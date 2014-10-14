@@ -79,4 +79,9 @@ Signature : text -> X
 Example   : query importObject('../Data/Objects/Germany/Staedteobj') count 
 Result    : 59
 
+Operator  : importObject2
+Number    : 1
+Signature : text -> X
+Example   : query importObject2('../Data/Objects/Germany/' + 'Staedteobj') count 
+Result    : 59
 

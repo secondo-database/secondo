@@ -36,3 +36,6 @@ operator insert alias INSERT pattern _ _ op
 # prefix operator
 operator importObject alias IMPORTOBJECT pattern op(_)
 
+# prefix operator
+operator importObject2 alias IMPORTOBJECT2 pattern op(_)
+

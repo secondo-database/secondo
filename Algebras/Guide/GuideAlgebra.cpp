@@ -3797,12 +3797,19 @@ An example is an import operator reading some object from a file. If the file co
 the type, the filename (a string or a text) must be known in the type mapping. 
 Secondo provides a possibility to get not only the types in the argument list of
 the type mapping but additionally the part of the query forming this type.
-To enable this feature for an operator, the function SetUsesArgsInTypeMapping() must 
-called for this operator. 
+To enable this feature for an operator, the function ~SetUsesArgsInTypeMapping()~ must 
+called for this operator. This happens within the Algebra constructor.
 
 This feature is explained at the example of the ~importObject~ operator. This operator
 gets a filename and returns the object located in the file. The objects is coded 
 in the way like ~save object to ...~ it does.
+
+9.1 Type Mapping
+
+If the argument feature is enabled for an operator, each argument is not longer only
+decsribed by its type, but by a list (<type> <expression>) where expression corresponds
+to the part of the query leading to the argument.
+
 
 */
 ListExpr importObjectTM(ListExpr args){
@@ -3856,7 +3863,12 @@ ListExpr importObjectTM(ListExpr args){
 
 }
 
+/*
+9.2 Value Mapping
 
+The value mapping is the same as for normal operators.
+
+*/
 int importObjectVM ( Word * args , Word & result , int message ,
                    Word & local , Supplier s ) {
    FText* fileName = (FText*) args[0].addr;
@@ -3897,6 +3909,13 @@ int importObjectVM ( Word * args , Word & result , int message ,
    return 0;
 }
 
+/*
+9.3 Specification
+
+There are no news within this part.
+
+*/
+
   
 OperatorSpec importObjectSpec (
     "  text -> X " ,
@@ -3905,6 +3924,13 @@ OperatorSpec importObjectSpec (
     " query importObject('Kinos.obj') "
 );
 
+/*
+9.4 Operator instance
+
+Also the definition of the operator instance is as usual.
+
+*/
+
 
 Operator importObjectOp (
   "importObject" , // name of the operator
@@ -3912,6 +3938,122 @@ Operator importObjectOp (
   importObjectVM , // value mapping
   Operator::SimpleSelect , // selection function
   importObjectTM // type mapping
+);
+
+/*
+9.5 More flexible variant of accessing values in type mappings
+
+The operator importObject only accepts a constant text as its input. 
+Sometimes, the argument is build by an expression build from constants
+and database objects. For example, if there is a database object
+called ~basename~ of type text, it would be desirable to import an object
+using the query :
+
+----
+
+query importObject(basename + 'obj')
+
+----
+
+Because importObject expects that the expression is a constant text, this is not
+possible. Here, a variant of the ~importObject~ operator is described supporting
+this kind of input. We call the operator ~importObject2~. Because the value mapping
+as well as the specification is the same as for ~importObject~, we use these 
+implementations when defining the operator instance.
+
+The main idea behind this operator is to use the Queryprocessor for evaluation of the
+expression building the argument. The ~QueryProcessor~ provides a function
+~ExecuteQuery~ for this job.
+
+*/
+
+ListExpr importObject2TM(ListExpr args){
+  string err="text expected";
+
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("expected one argument");
+  }
+  ListExpr arg = nl->First(args);
+  // the list is codes as (<type> <query part>)
+  if(!nl->HasLength(arg,2)){
+     return listutils::typeError("internal error");
+  }    
+
+  if(!FText::checkType(nl->First(arg))){
+    return listutils::typeError(err);
+  }
+  // here, accessing the value is changed
+
+   ListExpr expression = nl->Second(arg);
+
+   // we need some variables for feeding the ExecuteQuery function
+   Word queryResult;
+   string typeString = "";
+   string errorString = "";
+   bool correct;
+   bool evaluable;
+   bool defined;
+   bool isFunction;
+   // use the queryprocessor for executing the expression
+   qp->ExecuteQuery(expression, queryResult, 
+                    typeString, errorString, correct, 
+                    evaluable, defined, isFunction);
+   // check correctness of the expression
+   if(!correct || !evaluable || !defined || isFunction){
+      assert(queryResult.addr == 0);
+      return listutils::typeError("could not extract filename ("+
+                                   errorString + ")");
+   }
+   FText* fn = (FText*) queryResult.addr;
+   assert(fn);
+   if(!fn->IsDefined()){
+      fn->DeleteIfAllowed();
+      return listutils::typeError("filename undefined");
+   }
+   string fileName = fn->GetValue();
+   fn->DeleteIfAllowed();
+
+   // frome here, it's the same  as for importObject
+
+   ListExpr objectList;
+   if(! nl->ReadFromFile(fileName, objectList)){
+      return listutils::typeError("file not found or "
+                             "file does not contain a list");
+   }
+   // an object file is formatted as
+   // (OBJECT <name> <typename> <type> <value> () )
+   // the typename is mostly empty the last empty list is for future extensions
+   
+   // check structure
+   if(   !nl->HasLength(objectList,6)
+      || !listutils::isSymbol(nl->First(objectList),"OBJECT")){
+     return listutils::typeError("file does not contain a "
+                                 "valid object description");
+   }
+   ListExpr typeList = nl->Fourth(objectList);
+   // check whether this list is a valid type description
+   SecondoCatalog* ctl = SecondoSystem::GetCatalog();
+   string tname;
+   int algId, typeId;
+   if(!ctl->LookUpTypeExpr(typeList, tname, algId, typeId)){
+     return listutils::typeError("Invalid  type description in file");
+   }
+   return typeList;
+}
+
+/*
+9.5 Operator instance
+
+Here, we use the specification and the value maping for importObject.
+
+*/
+
+Operator importObject2Op (
+  "importObject2" , // name of the operator
+  importObjectSpec.getStr() , // specification
+  importObjectVM , // value mapping
+  Operator::SimpleSelect , // selection function
+  importObject2TM // type mapping
 );
 
 
@@ -3964,6 +4106,8 @@ class GuideAlgebra : public Algebra {
       AddOperator(&importObjectOp);
       importObjectOp.SetUsesArgsInTypeMapping();
 
+      AddOperator(&importObject2Op);
+      importObject2Op.SetUsesArgsInTypeMapping();
 
      }
  };
