@@ -1334,7 +1334,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg2S, Arg1S,
 /*
 
 ----    isOfFirst(Attr, X, Y)
-    isOfSecond(Attr, X, Y)
+    	isOfSecond(Attr, X, Y)
 ----
 
 ~Attr~ equal to either ~X~ or ~Y~ is an attribute of the first(second) relation.
@@ -1614,6 +1614,7 @@ cost(hashjoin(X, Y, _, _, 999997), Sel, S, C) :-
     B * SizeX +			% B - time per probe
     D * S.			% C - time per result tuple
 				% table fits in memory assumed
+
 
 
 cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
