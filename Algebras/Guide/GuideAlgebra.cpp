@@ -315,6 +315,7 @@ Here, each include is commented with some functionality used.
 
 #include <math.h>               // required for some operators
 #include <stack>
+#include <limits>
 
 /*
 0.5 Global Variables
@@ -2211,7 +2212,7 @@ be used. In return, no non-class functions must be implemented.
        ~GCircle(){}
 
        // auxiliary functions
-       static const string BasicType(){ return "GCircle"; }
+       static const string BasicType(){ return "gcircle"; }
        static const bool checkType(const ListExpr list) {
           return listutils::isSymbol(list, BasicType());
        }
@@ -4057,6 +4058,567 @@ Operator importObject2Op (
 );
 
 
+/*
+10 Compact Storing of Attribute Data Types
+
+The default implementation of storing attributes to disc within 
+a relation is to build a byte block from the class and perform
+a special treatment for the contained flobs. Because an attribute
+contains some reference counters and other stuff, the storage 
+size is much more than necessary. For example, an 32 bit int value
+has a storage size of 16 bytes, but needs only 5 bytes (defined + value)
+for its representation. On the other hand there are small size restricted 
+types, where the actual value varyies in size. For example, a string 
+data type may contain up to 48 characters but the most strings are
+much shorter.
+
+Secondo provides mechanisms for storing types within relations more 
+efficently than the standard storage procedure. These mechanism work 
+only for attributes without any FLOB members.
+
+For understanding the mechanism, the tuple representation on disc 
+must be explained. A tuple on disc consists of two parts. The first part
+is called the core part, the second one is the extension part. 
+Both parts are stored as a single byte block to disc. The core part of
+the tuple consists of the core parts of the attributes, written direcly
+one after each other. The extension part contains the extension parts of 
+the attributes and may be empty. 
+
+Obviously, we have to clarify the core and extension part of an attribute.
+Firstly, we describe the parts if the default mechanism is used. Afterwards,
+the changes for special storage mechanisms are described.
+
+The core part of an attribute for the default storage consists of the byte 
+block represented by the attribut's class. This is also called root record
+of the attribute. The extension part of an attribute without any flobs is 
+empty. If the attribute has flobs with a size smaller than a threshold, these
+flob data build the extension part. The threshold is defined in the file
+~RelationCommon.cpp~ in static tuple variable  ~Tuple::extensionLimit~.
+
+
+
+
+There are three different methods for storing an attribut in an relation:
+
+  * Default: This method corresponds to the storage mechanism above.
+          This mechanism is used in all attribute data types above.
+  
+  * Core: The storage size is fixed, there is no extension part.
+          The attribute class provides its own serialise method.
+          This method is suitable for smalle fixed size attributes
+          like number representations.
+
+  * Extension: The storage size may vary within a small range.
+						The attribute provides functions storing the core part and
+            the extension part. This may be used for attribute data
+            types like string etc.  
+
+
+
+
+10.1 Using Core Storage
+
+The next class uses the core storage mechanism. We describe the implementation of 
+the ushort type representing an unsigned integer having 2 bytes. We use an 
+additional byte for representing the undefined state.
+
+*/
+class UShort: public Attribute{
+  public:
+     typedef uint16_t inttype;
+     // constructors
+     UShort() {}
+     UShort(const inttype v): Attribute(true), value(v) {}
+     UShort(const bool def): Attribute(def), value(0) {}
+     UShort(int dummy): Attribute(false),value(0){}
+     UShort(const UShort& rhs): Attribute(rhs), value(rhs.value){}
+     // assignment operator
+     UShort& operator=(const UShort& src){
+        SetDefined(src.IsDefined());
+        value = src.value;
+        return *this;
+     }
+     // some class functions
+     inttype GetValue() const{
+       return value;
+     }
+     void Set(const bool def, const inttype v){
+        SetDefined(def);
+        value = v;
+     }
+     // auxiliary functions
+     static const string BasicType(){ return "ushort"; }
+     static const bool checkType(const ListExpr e){
+       return listutils::isSymbol(e,BasicType());
+     }
+     // attribute supporting types
+     virtual int NumOfFLOBS() const{
+        return 0;
+     }
+     virtual Flob* GetFLOB(const int i){
+        return 0;
+     }
+     int Compare(const Attribute* arg) const{
+       if(!IsDefined()){
+         return arg->IsDefined()?-1:0;
+       }
+       if(!arg->IsDefined()){
+          return 1;
+       }
+       inttype v = ((UShort*)arg)->GetValue();
+       if(value < v) return -1;
+       if(value > v) return 1;
+       return 0;
+     }
+     bool Adjacent(const Attribute* arg) const{
+       return false;
+     }
+     size_t Sizeof() const{
+       return sizeof(*this);
+     }
+     size_t HashValue() const{
+        if(!IsDefined()){
+           return 0xFFFFFFu;
+        } else {
+           return value;
+        }
+     }
+     void CopyFrom(const Attribute* arg){
+        *this = *((UShort*)arg);
+     }
+     Attribute* Clone() const{
+       return new UShort(*this);
+     } 
+     // function supporting generic type constructors
+     static ListExpr Property(){
+        return gentc::GenProperty("-> DATA",
+                                  BasicType(),
+                                  "int",
+                                  "16");
+     }
+     static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+        return checkType(type);
+     }
+     bool ReadFrom(ListExpr instance, const ListExpr typeInfo){
+        if(listutils::isSymbolUndefined(instance)){
+           SetDefined(false);
+            return true;
+        }
+        if(nl->AtomType(instance)!=IntType){
+           return false;
+        }
+        int v = nl->IntValue(instance);
+        if(v< 0 || v>numeric_limits<inttype>::max()){
+           return false;
+        }
+        Set(true,(inttype)v);
+        return true;
+     }   
+
+     ListExpr ToListExpr(ListExpr typeInfo) const{
+        if(!IsDefined()){
+           return listutils::getUndefined();
+        }
+        return nl->IntAtom(value);
+     }
+    
+     // function for storage management
+/*
+10.1.1 Function ~GetStorageType~
+
+Here, the StorageType is returned. Possible values are Default, Core, 
+Extension, Unspecified, where the last mentioned makes no sense. We want 
+to store the attribute completely within the Core part of the tuple, 
+Thus, the return value is Core.
+
+*/
+
+inline virtual StorageType GetStorageType() const{
+    return Core;
+}
+ 
+/*
+10.1.2 Function ~SerializedSize~
+
+This function returns the number of bytes required on disc for this type.
+
+
+*/
+inline virtual size_t SerializedSize() const{
+   return sizeof(inttype) + 1;
+}
+
+/*
+10.1.3 Function ~Serialize~
+
+This function writes the serial version of the value into some
+buffer. We assume that the first byte is for the defined flag
+an the remaining bytes are for the value. The argument sz contains
+the value returned by ~SerializedSize~
+
+*/
+inline virtual void Serialize(char* buffer, size_t sz, size_t offset) const{
+
+    uint8_t b = IsDefined()?1:0;
+    memcpy(buffer+offset,&b,1);
+    offset+=1;
+    memcpy(buffer+offset,&value, sizeof(inttype));
+    offset+= sizeof(inttype);
+}
+
+/*
+10.1.4 ~Rebuild~
+
+This function reads the value from a buffer. As for the Serialize function,
+~sz~ is the size returned by SerializedSize. In contrast to Serialize,
+there is no offset. The value is read from the beginning of the buffer.
+
+*/
+
+inline virtual void Rebuild(char* buffer, size_t sz){
+   size_t offset=0;
+   uint8_t b;
+   memcpy(&b, buffer+offset, 1);
+   offset += 1;
+   memcpy(&value, buffer+offset, sizeof(inttype)); 
+}
+
+  private:
+    inttype value;  
+};
+
+GenTC<UShort> ushortTC;
+
+/*
+10.1.5 Testing the success
+
+There are several operators returning some sizes for attributes.
+Here, we can use the queries:
+
+----
+  query [const ushort value 23] memattrsize
+  
+  query [const ushort value 23] feed transformstream rootattrsize[Elem]
+
+----
+
+and be happy that the first result is greated than the second one.
+
+*/
+
+
+/*
+11 Variable Size Attributes without FLOBs
+
+The storage mechanism describe in the last section can also be used for
+storing attribute data types of variable length. Even the usage of pointers
+is possible. Note that this mechanism is only for small values efficient.
+For bigger values (more than 512 bytes), this mechanism should not be used.
+
+We describe the mechanism at the attribute data type ~vstring~ representing
+a variable length string. Because the core size of an attribute is always
+fixed, we have to store the string data within the extension part. On the other 
+hand, the generic Open and Save functions defined in the attribute class only
+support the default mechanism. For this reason, we have to implement the 
+serialisation (Open and Save) functions self.
+
+*/
+class VString;
+ostream& operator<<(ostream& o, const VString& vs);
+
+class VString: public Attribute{
+  public:
+     VString() {}
+     VString(const bool def): Attribute(def), value(""){}
+     VString(const VString& src):Attribute(src),value(src.value) {}
+     VString(const string& s):Attribute(true),value(s){}
+     VString& operator=(const VString& src){
+        SetDefined(src.IsDefined());
+        value = IsDefined()?src.value:"";
+        return *this;
+     }
+     void Set(const bool def, const string& v){
+       SetDefined(def);
+       value = IsDefined()?v:"";
+     }
+
+     string GetValue() const{
+         return value;
+     }
+
+    // auxiliary functions
+    static const string BasicType(){ return "vstring"; }
+    static const bool checkType(ListExpr type){
+      return listutils::isSymbol(type,BasicType());
+    }
+    // attribute related functions
+    inline int NumOfFLOBs() const{
+      return 0;
+    }
+    inline virtual Flob* GetFLOB(const int i){
+       return 0;
+    }
+    int Compare(const Attribute* arg)const{
+      if(!IsDefined()){
+         return arg->IsDefined()?-1:0;
+      }
+      if(!arg->IsDefined()){
+         return 1;
+      }
+      return strcmp(value.c_str(),((VString*)arg)->value.c_str());
+    }
+    bool Adjacent(const Attribute* arg) const{
+      return false;
+    }
+    size_t Sizeof() const{
+       return sizeof(*this);
+    }
+    size_t HashValue() const{
+      if(!IsDefined()){
+        return 0;
+      }
+      size_t res = 0;
+      size_t st = value.length()>5u?5:value.length();
+      for(size_t i=0;i<st; i++){
+          res += i*255 + value[i];
+      }
+      return res;
+    } 
+    void CopyFrom(const Attribute* arg){
+       *this = *((VString*) arg);
+    }   
+    Attribute* Clone() const{
+       return new VString(*this);
+    }
+    // functions supporting the embedding into secondo
+    static ListExpr Property(){
+        return gentc::GenProperty( " -> DATA",
+                                   BasicType(),
+                                   "string or text",
+                                   "'lang'");
+    }
+    static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+        return checkType(type);
+    }
+
+    
+
+    static Word In(const ListExpr typeInfo, const ListExpr le,
+                const int errorPos, ListExpr& errorInfo, bool& correct){
+        Word res((void*)0);
+
+        if(listutils::isSymbolUndefined(le)){
+          res.addr = new VString(false);
+          correct = true;
+          return res;
+        }
+        if(nl->AtomType(le)==StringType){
+          res.addr = new VString(nl->StringValue(le));
+          correct = true;
+          return res;
+        }
+        if(nl->AtomType(le)==TextType){
+          res.addr = new VString(nl->Text2String(le));
+          correct = true;
+          return res;
+        }
+        correct = false;
+        return  res;
+    }
+
+    static ListExpr Out(const ListExpr typeInfo, Word value){
+        VString* v = (VString*) value.addr;
+        if(!v->IsDefined()){
+           return listutils::getUndefined();
+        }
+        if(v->value.length()<MAX_STRINGSIZE){
+           return nl->StringAtom(v->value);
+        } else {
+           return nl->TextAtom(v->value);
+        }
+     }
+ 
+     static Word Create(const ListExpr typeInfo){
+       Word res( new VString(false));
+       return res;
+     }   
+
+     static void Delete(const ListExpr typeInfo, Word& v){
+         delete (VString*) v.addr;
+         v.addr = 0;
+     }
+
+     static bool Open( SmiRecord& valueRecord, size_t& offset, 
+                       const ListExpr typeInfo, Word& value){
+        // get Size of the string
+        size_t length;
+        bool ok = valueRecord.Read(&length,sizeof(size_t),offset);
+        if(!ok) { return false; }
+        size_t buffersize = sizeof(size_t) + 1 + length;
+        char* buffer = new char[buffersize];
+        ok = valueRecord.Read(buffer,buffersize,offset);
+        offset += buffersize;
+        if(!ok){
+           delete[] buffer;
+           return false;
+        } 
+        VString* v = new VString(false);
+        v->Rebuild(buffer, buffersize);
+        value.addr = v;
+        delete[] buffer;
+        return true;
+     }
+
+     static bool Save(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value){
+         VString* v = (VString*) value.addr;
+         size_t size = v->SerializedSize();
+         char* buffer = new char[size];
+         v->Serialize(buffer, size,0);
+         bool ok = valueRecord.Write(buffer, size,offset);
+         offset += size;
+         delete[] buffer;
+         return ok;
+     }
+
+     static void Close(const ListExpr typeInfo, Word& w){
+         delete (VString*) w.addr;
+         w.addr = 0;
+     }
+     static Word Clone(const ListExpr typeInfo, const Word& w){
+        VString* v = (VString*) w.addr;
+        Word res;
+        res.addr = new VString(*v);
+        return res;
+     }
+
+/* 
+Because the Serialization does not overwrite internal function pointers as in the
+default mechanism, here just the argument pointer is returned. If we use the special
+call for the new operator as usual, the standard constructor of string will empty
+value.
+
+*/ 
+     static void* Cast(void* addr){
+         return addr;
+     }
+
+     static bool TypeCheck(ListExpr type, ListExpr& errorInfo){
+        return checkType(type);
+     }
+
+     static int SizeOf(){
+        return 256; 
+     }
+
+     inline virtual StorageType GetStorageType() const{
+        return Extension;
+     }
+
+     inline virtual size_t SerializedSize() const{
+         return sizeof(size_t) + 1 + value.length(); 
+     }
+     
+     inline virtual void Serialize(char* buffer, size_t sz, 
+                                   size_t offset) const{
+         size_t length = value.length();
+         uint8_t def = IsDefined()?1:0;
+         memcpy(buffer+offset, &length , sizeof(size_t));
+         offset += sizeof(size_t);
+         memcpy(buffer+offset, &def, 1);
+         offset += 1;
+         memcpy(buffer+offset, value.c_str(), length);
+         offset += length;
+     }
+
+     inline virtual void Rebuild(char* buffer, size_t sz){
+         size_t length;
+         uint8_t def;
+         size_t offset = 0;
+         memcpy(&length, buffer + offset, sizeof(size_t));
+         offset += sizeof(size_t);
+         memcpy(&def, buffer+offset, 1);
+         offset+=1;
+         if(!def){
+            value = "";
+            SetDefined(false);
+         } else {
+            this->value = string(buffer+offset,length);
+            SetDefined(true);
+         }
+     }
+
+  private:
+     string value;   // uses pointers internally
+
+};
+
+ostream& operator<<(ostream& o, const VString& vs){
+  if(!vs.IsDefined()){
+     o << "undef";
+  } else {
+     o << "'"<<vs.GetValue()<<"'";
+  }
+  return o;
+}
+
+/*
+11.2 Type constructor instance
+
+*/
+TypeConstructor VStringTC(
+  VString::BasicType(),
+  VString::Property, VString::Out, VString::In, 0,0,
+  VString::Create, VString::Delete,
+  VString::Open, VString::Save, VString::Close, VString::Clone,
+  VString::Cast, VString::SizeOf, VString::TypeCheck
+);
+
+
+/*
+12 Operator text2string
+
+This operator is for testing the vstring implementation. It takes a text and converts
+it into a vstring. 
+
+*/
+
+ListExpr text2vstringTM(ListExpr args){
+  if(!nl->HasLength(args,1) || !FText::checkType(nl->First(args))){
+     return listutils::typeError("text expected");
+  }
+  return listutils::basicSymbol<VString>();
+}
+
+
+int text2vstringVM ( Word * args , Word & result , int message ,
+                   Word & local , Supplier s ) {
+   FText* arg = (FText*) args[0].addr;
+   result = qp->ResultStorage(s);
+   VString* res = (VString*) result.addr;
+   if(!arg->IsDefined()){
+      res->SetDefined(0);
+      return 0;
+   }
+   res->Set(true, arg->GetValue());
+   return 0;
+}
+
+
+OperatorSpec text2vstringSpec (
+    "  text -> vstring " ,
+    " text2vstring(_) " ,
+    " Converts a text into a vstring" ,
+    " query text2vstring('This is text') "
+);
+
+Operator text2vstringOp (
+  "text2vstring" , // name of the operator
+  text2vstringSpec.getStr() , // specification
+  text2vstringVM , // value mapping
+  Operator::SimpleSelect , // selection function
+  text2vstringTM // type mapping
+);
 
 
 
@@ -4092,6 +4654,13 @@ class GuideAlgebra : public Algebra {
       PAVLTC.AssociateKind( Kind::SIMPLE() );
 
 
+      AddTypeConstructor( &ushortTC);
+      ushortTC.AssociateKind(Kind::DATA());
+
+      AddTypeConstructor( &VStringTC);
+      VStringTC.AssociateKind(Kind::DATA());
+
+
       AddOperator(&perimeterOp);
       AddOperator(&distNOp);
       AddOperator(&countNumberOp);
@@ -4109,6 +4678,7 @@ class GuideAlgebra : public Algebra {
       AddOperator(&importObject2Op);
       importObject2Op.SetUsesArgsInTypeMapping();
 
+      AddOperator(&text2vstringOp);
      }
  };
 

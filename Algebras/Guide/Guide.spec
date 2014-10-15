@@ -39,3 +39,6 @@ operator importObject alias IMPORTOBJECT pattern op(_)
 # prefix operator
 operator importObject2 alias IMPORTOBJECT2 pattern op(_)
 
+# prefix operator
+operator text2vstring alias text2vstring pattern op(_)
+

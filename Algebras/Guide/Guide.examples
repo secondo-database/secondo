@@ -85,3 +85,20 @@ Signature : text -> X
 Example   : query importObject2('../Data/Objects/Germany/' + 'Staedteobj') count 
 Result    : 59
 
+
+Operator  : text2vstring
+Number    : 1
+Signature : text -> vstring
+Example   : query text2vstring('secondo') 
+Result    : (vstring "secondo")
+
+Operator  : text2vstring
+Number    : 2
+Signature : text -> vstring
+Example   : query text2vstring('secondo secondo secondo secondo secondo secondo secondo secondo secondo') 
+Result    : (vstring 'secondo secondo secondo secondo secondo secondo secondo secondo secondo')
+
+
+
+
+
