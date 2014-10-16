@@ -45,6 +45,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 August 2008, Burkart Poneleit. Initial Version
 
+[toc]
+
 18.1 Transforming nested queries to their canonical form
 
 This file enables the SECONDO optimizer to process subqueries or nested queries formulated in SQL syntax.
@@ -993,7 +995,8 @@ retainSetSemantics(_, _, _, _,
 
 /*
 
----- joinPred(+InnerRels, +OuterRels, +PredicateList, -JoinPreds, -InnerPreds, -OuterPreds, -OuterAttrs)
+----	joinPred(+InnerRels, +OuterRels, +PredicateList, -JoinPreds, 
+	  -InnerPreds, -OuterPreds, -OuterAttrs)
 ----
 
 Partition the predicate list in such a way, that ~InnerPreds~ contains all predicates referring to attributes of relations in
@@ -2520,6 +2523,7 @@ Replacement of predicate ~simple(+P, +Rel1, +Rel2, -SimplePredicate)~ of file
 simple1(attr(Var:Attr, 0, _), _, _, Rel:Attr) :-
   usedAttr(rel(Rel, Var), attr(Var:Attr, 0, _)),
   !.
+
 simple1(attr(Attr, 0, _), _, _, Rel:Attr) :-
   usedAttr(rel(Rel, *), attr(Attr, 0, _)),
   !.
