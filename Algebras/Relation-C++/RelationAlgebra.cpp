@@ -3778,10 +3778,9 @@ int
 memattrsizeVM(Word* args, Word& result, int message,
                 Word& local, Supplier s){
    Attribute* arg = (Attribute*)  args[0].addr;
-   int  size = arg->Sizeof() + arg->getUncontrolledFlobSize();
    result = qp->ResultStorage(s);
    CcInt* res = (CcInt*) result.addr;
-   res->Set(true,size); 
+   res->Set(true,arg->GetMemSize()); 
    return 0;
 }
 

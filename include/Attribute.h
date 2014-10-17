@@ -199,11 +199,23 @@ Returns the ~sizeof~ of the attribute class.
    }
 
 
+   virtual size_t GetMemSize() {
+     return Sizeof() + getUncontrolledFlobSize();
+   }
+
+/*
+Returns the size of the object in main memory
+
+*/
+
+
+
+
 /*
 Returns the size of uncotrolled flob memory.
 
 */
-   size_t getUncontrolledFlobSize(){
+   size_t getUncontrolledFlobSize() {
       size_t res = 0;
       for(int i=0;i<NumOfFLOBs();i++){
          res += GetFLOB(i)->getUncontrolledSize();

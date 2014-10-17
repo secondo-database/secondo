@@ -795,8 +795,7 @@ Returns the size of attribute i including its extension part.
    // returns the size in memory of attribute i
    inline size_t  GetMemSize(int i) const {
       if(attributes[i]){
-       return attributes[i]->Sizeof() +
-              attributes[i]->getUncontrolledFlobSize();
+       return attributes[i]->GetMemSize();
       } else {
           return 0;
       }
