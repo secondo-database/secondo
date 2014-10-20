@@ -917,8 +917,11 @@ void Tools::createNFAfromPersistent(DbArray<NFAtransition> &trans,
   }
 }
 
-void Tools::printBinding(map<string, pair<unsigned int, unsigned int> > &b) {
-  map<string, pair<unsigned int, unsigned int> >::iterator it;
+void Tools::printBinding(map<string, pair<int, int> > &b) {
+  if (b.empty()) {
+    return;
+  }
+  map<string, pair<int, int> >::iterator it;
   for (it = b.begin(); it != b.end(); it++) {
     cout << it->first << " --> [" << it->second.first << ","
          << it->second.second << "]  ";

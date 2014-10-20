@@ -260,16 +260,26 @@ struct mstringtomlabelInfo : OperatorInfo {
 /*
 \section{Operator ~tolabels~}
 
-tolabels: text x ... x text -> labels
+tolabels: (text)+ -> labels
 
 \subsection{Type Mapping}
 
 */
 ListExpr tolabelsTM(ListExpr args) {
   ListExpr rest = args;
+  string firstType;
   while (!nl->IsEmpty(rest)) {
-    if (!FText::checkType(nl->First(rest))) {
-      return NList::typeError("Expecting only text elements.");
+    if (rest == args) { // first value
+      firstType = nl->ToString(nl->First(rest));
+      if (!FText::checkType(nl->First(rest)) && 
+          !CcString::checkType(nl->First(rest))) {
+        return NList::typeError("Expecting only text or string elements.");
+      }
+    }
+    else {
+      if (nl->ToString(nl->First(rest)) != firstType) {
+        return NList::typeError("Expecting only text or only string elements.");
+      }
     }
     rest = nl->Rest(rest);
   }
@@ -277,15 +287,27 @@ ListExpr tolabelsTM(ListExpr args) {
 }
 
 /*
+\subsection{Selection Function}
+
+*/
+int tolabelsSelect(ListExpr args) {
+  if (nl->IsEmpty(args)) return 0;
+  if (FText::checkType(nl->First(args))) return 0;
+  if (CcString::checkType(nl->First(args))) return 1;
+  return -1;
+}
+
+/*
 \subsection{Value Mapping}
 
 */
+template <class T>
 int tolabelsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   result = qp->ResultStorage(s);
   Labels* res = static_cast<Labels*>(result.addr);
   res->Clean();
   for (int i = 0; i < qp->GetNoSons(s); i++) {
-    FText* src = static_cast<FText*>(args[i].addr);
+    T* src = static_cast<T*>(args[i].addr);
     if (src->IsDefined()) {
       if (!src->GetValue().empty()) {
         res->Append(src->GetValue());
@@ -303,9 +325,9 @@ int tolabelsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 struct tolabelsInfo : OperatorInfo {
   tolabelsInfo() {
     name      = "tolabels";
-    signature = "(text x ... x text) -> labels";
-    syntax    = "tolabels( _, ..., _ );";
-    meaning   = "Creates a labels from a text list.";
+    signature = "T x ... x T -> labels, where T in {text, string}";
+    syntax    = "tolabels( _ , ..., _ );";
+    meaning   = "Creates a labels from a text or string list.";
   }
 };
 
@@ -474,7 +496,7 @@ struct containsInfo : OperatorInfo {
 /*
 \section{Operator ~toplace~}
 
-toplace: string x int -> place
+toplace: (string | text) x int -> place
 
 \subsection{Type Mapping}
 
@@ -487,7 +509,7 @@ ListExpr toplaceTM(ListExpr args) {
       return nl->SymbolAtom(Place::BasicType());
     }
   }
-  return NList::typeError("Expecting ([string | text] x int).");
+  return NList::typeError("Expecting (string | text) x int.");
 }
 
 /*
@@ -3569,7 +3591,6 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddTypeConstructor(&classifierTC);
 
   ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
-  
   AddOperator(tolabelInfo(), tolabelVMs, tolabelSelect, tolabelTM);
 
   AddOperator(tostringInfo(), tostringVM, tostringTM);
@@ -3578,7 +3599,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(mstringtomlabelInfo(), mstringtomlabelVM, mstringtomlabelTM);
   
-  AddOperator(tolabelsInfo(), tolabelsVM, tolabelsTM);
+  ValueMapping tolabelsVMs[] = {tolabelsVM<FText>, tolabelsVM<CcString>, 0};
+  AddOperator(tolabelsInfo(), tolabelsVMs, tolabelsSelect, tolabelsTM);
   
   ValueMapping toplacesVMs[] = {toplacesVM_P, toplacesVM_T, 0};
   AddOperator(toplacesInfo(), toplacesVMs, toplacesSelect, toplacesTM);

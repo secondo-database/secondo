@@ -1015,7 +1015,7 @@ void Classifier::buildMultiNFA(vector<Pattern*> patterns,
 IndexMatchesLI::IndexMatchesLI(Relation *rel, InvertedFile *inv,
  R_Tree<1, NewPair<TupleId, int> > *rt, int _attrNr, Pattern *_p, bool deleteP, 
    DataType type):
- mRel(rel), invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
+ mRel(rel), counter(0), invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
   if (_p) {
     if (mRel->GetNoTuples() > 0) {
       p = *_p;
@@ -1054,12 +1054,9 @@ void IndexMatchesLI::applyNFA() {
   set<int>::reverse_iterator is;
   map<int, int>::reverse_iterator im;
   while ((activeTuples > 0) && !states.empty()) {
+    counter++;
 //     cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
 //          << matches.size() << " matches; states:";
-//     for (is = states.rbegin(); is != states.rend(); is++) {
-//       cout << " " << *is;
-//     }
-//     cout << endl;
     for (is = states.rbegin(); is != states.rend(); is++) {
       map<int, int> trans = p.getTransitions(*is);
       for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++) {
@@ -1083,8 +1080,6 @@ void IndexMatchesLI::applyNFA() {
     states.clear();
     states.swap(newStates);
     clearMatchInfo();
-//     cout << "end of While loop. " << states.size() << " " << activeTuples
-//          << endl;
   }
 }
 
@@ -1437,37 +1432,41 @@ void IndexMatchesLI::retrieveValue(vector<set<int> >& oldPart,
   eit = invFile->getExactIterator(label, 16777216);
   if ((mtype == LABEL) || (mtype == LABELS)) {
     while (eit->next(id, wc, cc)) {
-      if (first) { // ignore oldPart
-        newPart[id].insert(wc);
-      }
-      else {
-        if ((rel == STANDARD) || (rel == EQUAL)) { // intersect sets
-          set<int>::iterator it = oldPart[id].find(wc);
-          if (it != oldPart[id].end()) { // found in oldPart
-            newPart[id].insert(it, wc);
-          }
-        }
-        else { // SUPERSET or INTERSECT => unite sets
-          oldPart[id].insert(wc);
-        }
-      }
-    }
-  }
-  else { // ref is used
-    while (eit->next(id, wc, cc)) {
-      if (ref == cc) { // cc represents the reference of the place
+      if (!deactivated[id]) {
         if (first) { // ignore oldPart
           newPart[id].insert(wc);
         }
         else {
           if ((rel == STANDARD) || (rel == EQUAL)) { // intersect sets
             set<int>::iterator it = oldPart[id].find(wc);
-            if (it != oldPart[id].end()) {
+            if (it != oldPart[id].end()) { // found in oldPart
               newPart[id].insert(it, wc);
             }
           }
           else { // SUPERSET or INTERSECT => unite sets
             oldPart[id].insert(wc);
+          }
+        }
+      }
+    }
+  }
+  else { // ref is used
+    while (eit->next(id, wc, cc)) {
+      if (!deactivated[id]) {
+        if (ref == cc) { // cc represents the reference of the place
+          if (first) { // ignore oldPart
+            newPart[id].insert(wc);
+          }
+          else {
+            if ((rel == STANDARD) || (rel == EQUAL)) { // intersect sets
+              set<int>::iterator it = oldPart[id].find(wc);
+              if (it != oldPart[id].end()) {
+                newPart[id].insert(it, wc);
+              }
+            }
+            else { // SUPERSET or INTERSECT => unite sets
+              oldPart[id].insert(wc);
+            }
           }
         }
       }
@@ -1507,12 +1506,14 @@ void IndexMatchesLI::retrieveTime(vector<set<int> >& oldPart,
   max[0] = iv.end.ToDouble();
   Rect1 rect1(true, min, max);
   if (rtree->First(rect1, leaf)) {
-    if (init || !oldPart[leaf.info.first].empty()) {
+    if ((init || !oldPart[leaf.info.first].empty()) &&
+        !deactivated[leaf.info.first]) {
       newPart[leaf.info.first].insert(newPart[leaf.info.first].end(), 
                                       leaf.info.second);
     }
     while (rtree->Next(leaf)) {
-      if (init || !oldPart[leaf.info.first].empty()) {
+      if ((init || !oldPart[leaf.info.first].empty()) &&
+          !deactivated[leaf.info.first]) {
         newPart[leaf.info.first].insert(newPart[leaf.info.first].end(),
                                         leaf.info.second);
       }
@@ -1528,16 +1529,9 @@ void IndexMatchesLI::retrieveTime(vector<set<int> >& oldPart,
 void IndexMatchesLI::removeIdFromIndexResult(const TupleId id) {
   for (int i = 0; i < p.getSize(); i++) {
     if (indexResult[i].size() > 0) {
-//       cout << "  Elem " << i << ", Tuple " << id << ":" << endl;
       if (!indexResult[i][id].units.empty() &&
           (indexResult[i][indexResult[i][id].pred].succ == id)) {
-//         cout << "   succ of " << indexResult[i][id].pred << " set from " 
-//             << indexResult[i][indexResult[i][id].pred].succ << " to "
-//             << indexResult[i][id].succ << endl;
         indexResult[i][indexResult[i][id].pred].succ = indexResult[i][id].succ;
-//         cout << "   pred of " << indexResult[i][id].succ << " set from "
-//             << indexResult[i][indexResult[i][id].succ].pred << " to " 
-//             << indexResult[i][id].pred << endl;
         indexResult[i][indexResult[i][id].succ].pred = indexResult[i][id].pred;
       }
     }
@@ -1579,6 +1573,7 @@ void IndexMatchesLI::removeIdFromMatchInfo(const TupleId id) {
       }
     }
   }
+  deactivated[id] = true;
   activeTuples -= (removed ? 1 : 0);
 }
 
@@ -1719,6 +1714,7 @@ void IndexMatchesLI::initMatchInfo(const set<int>& cruElems) {
       trajSize[id] = getMsize(id);
       IndexMatchInfo imi(false);
       (*matchInfoPtr)[0][id].imis.push_back(imi);
+      deactivated[id] = false;
       for (int s = 0; s < p.getNFAsize(); s++) {
         (*matchInfoPtr)[s][pred].succ = id;
         (*matchInfoPtr)[s][id].pred = pred;
@@ -1761,9 +1757,11 @@ void IndexMatchesLI::initialize() {
   set<int> cruElems;
   getCrucialElems(paths, cruElems);
   indexResult.resize(p.getSize());
+  deactivated.resize(mRel->GetNoTuples() + 1, false);
   for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
     storeIndexResult(*it);
   }
+  deactivated.resize(mRel->GetNoTuples() + 1, true);
   p.initEasyCondOpTrees();
   p.initCondOpTrees();
   matchInfoPtr = &matchInfo;
@@ -1806,9 +1804,10 @@ int IndexMatchesLI::getMsize(TupleId tId) {
 
 */
 bool IndexMatchesLI::hasIdIMIs(const TupleId id, const int state /* = -1 */) {
-  if (state == -1) {
+  if (state == -1) { // check all states
     for (int s = 0; s < p.getNFAsize(); s++) {
-      if (!(*matchInfoPtr)[s][id].imis.empty()) {
+      if (!(*matchInfoPtr)[s][id].imis.empty() || 
+          !(*newMatchInfoPtr)[s][id].imis.empty()) {
         return true;
       }
     }
@@ -1830,39 +1829,47 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
   while (id > 0) {
 //     cout << "wildcardMatch: " << (*matchInfoPtr)[state][id].imis.size() 
 //          << " IMIs, state=" << state << ", id=" << id << endl;
-    for (unsigned int i = 0; i < (*matchInfoPtr)[state][id].imis.size(); i++) {
+    unsigned int numOfIMIs = (*matchInfoPtr)[state][id].imis.size();
+    unsigned int i = 0;
+    while (!deactivated[id] && (i < numOfIMIs)) {
       imiPtr = &((*matchInfoPtr)[state][id].imis[i]);
-      imiPtr->next++;
-      imiPtr->range = true;
-      bool match = false;
-      if (p.hasConds()) { // extend binding for a complete match
-        extendBinding(*imiPtr, trans.first);
-        if (p.isFinalState(trans.second) && imiPtr->finished(trajSize[id])) {
-          unsigned int oldEnd = imiPtr->binding[imiPtr->prevVar].second;
-          imiPtr->binding[imiPtr->prevVar].second = trajSize[id] - 1;
-          match = checkConditions(id, *imiPtr);
-          if (!match) { // reset unsuccessful binding
-            imiPtr->binding[imiPtr->prevVar].second = oldEnd;
+//       imiPtr->next++;
+//       imiPtr->range = true;
+      if (imiPtr->next + 1 >= counter) {
+        bool match = false;
+        IndexMatchInfo newIMI(true, imiPtr->next, imiPtr->binding, 
+                              imiPtr->prevElem);
+        if (p.hasConds()) { // extend binding for a complete match
+          extendBinding(newIMI, trans.first);
+          if (p.isFinalState(trans.second) && imiPtr->finished(trajSize[id])) {
+            string var = p.getVarFromElem(trans.first);
+            int oldEnd = newIMI.binding[var].second;
+            newIMI.binding[var].second = trajSize[id] - 1;
+            match = checkConditions(id, newIMI);
+            if (!match) { // reset unsuccessful binding
+              newIMI.binding[var].second = oldEnd;
+            }
           }
         }
+        else { // no conditions
+          match = p.isFinalState(trans.second) &&imiPtr->finished(trajSize[id]);
+        }
+        if (match) {
+          matches.push_back(id); // complete match
+          ok = true;
+          removeIdFromMatchInfo(id);
+          removeIdFromIndexResult(id);
+  //         cout << id << " removed (wild match) " << activeTuples 
+  //              << " active tuples" << endl;
+          i = UINT_MAX - 1;
+        }
+        else if (!newIMI.exhausted(trajSize[id])) { // continue
+          (*newMatchInfoPtr)[trans.second][id].imis.push_back(newIMI);
+  //         cout << "   imi pushed back from wildcardMatch, id " << id << endl;
+          ok = true;
+        }
       }
-      else { // no conditions
-        match = p.isFinalState(trans.second) && imiPtr->finished(trajSize[id]);
-      }
-      if (match) {
-        matches.push_back(id); // complete match
-        ok = true;
-        removeIdFromMatchInfo(id);
-        removeIdFromIndexResult(id);
-//         cout << id << " removed (wild match) " << activeTuples 
-//              << " active tuples" << endl;
-        i = UINT_MAX - 1;
-      }
-      else if (!imiPtr->exhausted(trajSize[id])) { // continue
-        (*newMatchInfoPtr)[trans.second][id].imis.push_back(*imiPtr);
-//         cout << "   imi pushed back from wildcardMatch, id " << id << endl;
-        ok = true;
-      }
+      i++;
     }
     if (!ok && !hasIdIMIs(id, state)) { // no IMIs for id and state
       if (!hasIdIMIs(id)) { // no IMIs at all for id
@@ -1885,24 +1892,82 @@ void IndexMatchesLI::extendBinding(IndexMatchInfo& imi, const int e) {
   if (!p.hasConds()) {
     return;
   }
-  PatElem elem;
+  PatElem elem, prevElem;
+  string var, prevVar;
   p.getElem(e, elem);
-  string var;
+  if (imi.prevElem > -1) {
+    p.getElem(imi.prevElem, prevElem);
+    prevElem.getV(prevVar);
+  }
   elem.getV(var);
-  if (var == imi.prevVar) {
-    if (!var.empty()) { // [X, X | _, _]
+  if (e < imi.prevElem) { // possible for repeated regex
+    if (var == prevVar) { // valid case
+      if (!var.empty()) { // X [() * ()]+
+        imi.binding[var].second = imi.next - 1;
+//         cout << "right limit of " << var << " is " << imi.next - 1 << endl;
+      }
+      else { // [() ()]+
+//         cout << "no variable for atom " << e << " => no changes" << endl;
+      }
+    }
+    else { // invalid case
+//       cout << "ERROR: " << e << ", " << var << " after " << imi.prevElem
+//            << ", " << prevVar << endl;
+    }
+  }
+  else if (e == imi.prevElem) { // same atom (and same variable) as before
+    if (!var.empty()) { // X * or X [...]+
       imi.binding[var].second = imi.next - 1;
+//       cout << "upper limit of " << var << " set to " << imi.next - 1 << endl;
+    }
+    else { // no variable
+//       cout << "no variable for atom " << e << " ===> no changes" << endl;
     }
   }
-  else {
-    if (!imi.prevVar.empty()) { // X, [Y|_]
-      imi.binding[imi.prevVar].second = imi.next - 2;
+  else { // different atoms
+    if (var == prevVar) { // X [() +]
+      if (!var.empty()) {
+        imi.binding[var].second = imi.next - 1;
+//         cout << "ceiling of " << var << " set to " << imi.next - 1 << endl;
+      }
+      else { // no variable
+//         cout << "no variable for atom " << e << " ====>> no changes" << endl;
+      }
     }
-    if (!var.empty()) { // [X|_], Y
-      imi.binding[var] = make_pair(imi.next - 1, imi.next - 1);
+    else { // different variables
+      if (prevVar.empty()) { // () X ()
+        imi.binding[var] = make_pair(imi.next - 1, imi.next - 1);
+//         cout << "new var " << var << " bound to " << imi.next - 1 << endl;
+      }
+      else if (var.empty()) { // X () ()
+        if (prevElem.getW() != NO) {
+          imi.binding[prevVar].second = imi.next - 2;
+//           cout << "prevVar " << prevVar << " finishes at " << imi.next - 2
+//                << endl;
+        }
+      }
+      else { // X ... Y ...
+        if (elem.getW() == NO) {
+          if (prevElem.getW() != NO) { // X * Y ()
+            imi.binding[prevVar].second = imi.next - 2;
+//             cout << "prevVar " << prevVar << " extended to " << imi.next - 2
+//                  << endl;
+          }
+        }
+        else { // wildcard
+          if (prevElem.getW() != NO) { // X * Y *
+            imi.binding[prevVar].second = imi.next - 2;
+//             cout << "prev " << prevVar << " extended to " << imi.next - 2 
+//                  << endl;
+          }
+        }
+        imi.binding[var] = make_pair(imi.next - 1, imi.next - 1);
+//         cout << "new var " << var << " receives " << imi.next - 1 << endl;
+      }
     }
+    imi.binding[prevVar].second = imi.next - 2;
   }
-  imi.prevVar = var;  
+  imi.prevElem = e;
 //   Tools::printBinding(imi.binding);
 }
 
@@ -1989,30 +2054,35 @@ bool IndexMatchesLI::simpleMatch(const int e, const int state,
   if (!indexResult[e].empty()) { // contents found in at least one index
     TupleId id = indexResult[e][0].succ;
     while (id > 0) {
-//       cout << "state " << state << "; elem " << e << "; next id is " << id 
-//            << endl;
-      bool imiCreated = false;
-//       cout << "simpleMatch: " << (*matchInfoPtr)[state][id].imis.size()
-//            << " IMIs, state=" << state << ", id=" << id << endl;
-      if ((indexResult[e][indexResult[e][id].pred].succ == id) &&
-          !indexResult[e][id].units.empty()) {
-        for (unsigned int i = 0; i < (*matchInfoPtr)[state][id].imis.size();
-             i++) {
-          for (set<int>::iterator it = indexResult[e][id].units.begin(); 
-                                  it != indexResult[e][id].units.end(); it++) {
-            if (valuesMatch(e, id, (*matchInfoPtr)[state][id].imis[i], 
-                newState, *it)) {
-              transition = true;
-              imiCreated = true;
+      if (!deactivated[id]) {
+  //       cout << "state " << state << "; elem " << e << "; next id is " << id 
+  //            << endl;
+  //       cout << "simpleMatch: " << (*matchInfoPtr)[state][id].imis.size()
+  //            << " IMIs, state=" << state << ", id=" << id << endl;
+        if ((indexResult[e][indexResult[e][id].pred].succ == id) &&
+            !indexResult[e][id].units.empty()) {
+          unsigned int numOfIMIs = (*matchInfoPtr)[state][id].imis.size();
+          for (unsigned int i = 0; i < numOfIMIs; i++) {
+            set<int>::iterator it = indexResult[e][id].units.begin();
+            while (!deactivated[id] && (it != indexResult[e][id].units.end())) {
+              if (valuesMatch(e, id, (*matchInfoPtr)[state][id].imis[i], 
+                  newState, *it)) {
+                transition = true;
+                if (deactivated[id]) {
+                  i = numOfIMIs;
+                }
+              }
+              it++;
             }
           }
         }
-      }
-      if (!hasIdIMIs(id, state) && !imiCreated) { // no IMIs
-        if (!hasIdIMIs(id)) { // no IMIs at all for id
-          removeIdFromMatchInfo(id);
-//           cout << id << " removed (index) " << activeTuples 
-//                << " active tuples" << endl;
+        if (!hasIdIMIs(id, state)) { // no IMIs
+          if (!hasIdIMIs(id)) { // no IMIs at all for id
+            removeIdFromMatchInfo(id);
+            removeIdFromIndexResult(id);
+  //           cout << id << " removed (index) " << activeTuples 
+  //                << " active tuples" << endl;
+          }
         }
       }
       id = indexResult[e][id].succ;
@@ -2026,18 +2096,24 @@ bool IndexMatchesLI::simpleMatch(const int e, const int state,
       PatElem elem;
       TupleId id = matchInfo[e][0].succ; // first active tuple id
       while (id > 0) {
-        for (unsigned int i = 0; i < (*matchInfoPtr)[state][id].imis.size();
-             i++) {
-          if (valuesMatch(e, id, (*matchInfoPtr)[state][id].imis[i], 
-              newState, -1)) {
-            transition = true;
+        if (!deactivated[id]) {
+          unsigned int numOfIMIs = (*matchInfoPtr)[state][id].imis.size();
+          for (unsigned int i = 0; i < numOfIMIs; i++) {
+            if (valuesMatch(e, id, (*matchInfoPtr)[state][id].imis[i], 
+                newState, -1)) {
+              transition = true;
+              if (deactivated[id]) {
+                i = numOfIMIs;
+              }
+            }
           }
-        }
-        if (!hasIdIMIs(id, state)) { // no IMIs for id and state
-          if (!hasIdIMIs(id)) { // no IMIs at all for id
-            removeIdFromMatchInfo(id);
-//             cout << id << " removed (no index) " << activeTuples #
-//                  << " active tuples"  << endl;
+          if (!hasIdIMIs(id, state)) { // no IMIs for id and state
+            if (!hasIdIMIs(id)) { // no IMIs at all for id
+              removeIdFromMatchInfo(id);
+              removeIdFromIndexResult(id);
+  //             cout << id << " removed (no index) " << activeTuples #
+  //                  << " active tuples"  << endl;
+            }
           }
         }
         id = matchInfo[e][id].succ;

@@ -27,7 +27,7 @@ Result   : TRUE
 
 Operator : tolabels
 Number   : 1
-Signature: text x ... x text -> labels
+Signature: (text)+ -> labels
 Example  : query tolabels('Hummels', '', 'Schmelzer')
 Result   : (labels ('Hummels' 'Schmelzer'))
 
@@ -57,7 +57,7 @@ Result   : FALSE
 
 Operator : toplace
 Number   : 1
-Signature: string x int -> place
+Signature: (string | text) x int -> place
 Example  : query toplace("Reus", 11)
 Result   : (place ('Reus' 11))
 

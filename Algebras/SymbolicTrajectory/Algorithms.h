@@ -808,14 +808,15 @@ class Match {
                       map<int, int> &atomicToElem, map<int, string> &elemToVar);
   bool findBinding(unsigned int ulId, unsigned int pId, vector<PatElem> &elems,
                    vector<Condition> &conds, map<int, string> &elemToVar,
-                   map<string, pair<unsigned int, unsigned int> > &binding);
+                   map<string, pair<int, int> > &binding);
   void cleanPaths(map<int, int> &atomicToElem);
   bool cleanPath(unsigned int ulId, unsigned int pId);
   bool conditionsMatch(vector<Condition> &conds,
-                 const map<string, pair<unsigned int, unsigned int> > &binding);
+                 const map<string, pair<int, int> > &binding);
   bool evaluateEmptyM();
+  bool isSensiblyBound(const map<string, pair<int, int> > &b, string& var);
   bool evaluateCond(Condition &cond,
-                 const map<string, pair<unsigned int, unsigned int> > &binding);
+                 const map<string, pair<int, int> > &binding);
   void deletePattern() {if (p) {delete p; p = 0;}}
   bool initEasyCondOpTrees() {return p->initEasyCondOpTrees();}
   bool initCondOpTrees() {return p->initCondOpTrees();}
@@ -846,7 +847,7 @@ struct BindingStackElem {
   BindingStackElem(unsigned int ul, unsigned int pe) : ulId(ul), peId(pe) {}
 
   unsigned int ulId, peId;
-//   map<string, pair<unsigned int, unsigned int> > binding;
+//   map<string, pair<int, int> > binding;
 };
 
 template<class M>
@@ -858,17 +859,17 @@ class RewriteLI {
   ~RewriteLI() {}
 
   M* getNextResult();
-  static M* rewrite(M *src, map<string, pair<unsigned int, unsigned int> > 
-                    binding, vector<Assign> &assigns);
-  void resetBinding(unsigned int limit);
+  static M* rewrite(M *src, map<string, pair<int, int> > binding, 
+                    vector<Assign> &assigns);
+  void resetBinding(int limit);
   bool findNextBinding(unsigned int ulId, unsigned int pId, Pattern *p,
                        int offset);
   
  protected:
   stack<BindingStackElem> bindingStack;
   Match<M> *match;
-  map<string, pair<unsigned int, unsigned int> > binding;
-  set<map<string, pair<unsigned int, unsigned int> > > rewBindings;
+  map<string, pair<int, int> > binding;
+  set<map<string, pair<int, int> > > rewBindings;
 };
 
 class ClassifyLI {
@@ -950,10 +951,10 @@ struct IndexRetrieval {
 };
 
 struct IndexMatchInfo {
-  IndexMatchInfo(bool r, int n = 0) : range(r), next(n) {}
-  IndexMatchInfo(bool r, int n, 
-            map<string, pair<unsigned int, unsigned int> > b, const string& v) :
-       range(r), next(n), binding(b), prevVar(v) {}
+  IndexMatchInfo(bool r, int n = 0) : 
+       range(r), next(n), prevElem(-1) {binding.clear();}
+  IndexMatchInfo(bool r, int n, const map<string, pair<int, int> >& b, int e) :
+       range(r), next(n), prevElem(e) {if (b.size() > 0) {binding = b;}}
   
   void print(const bool printBinding);
   bool finished(const int size) const {return range || (next >= size);}
@@ -961,9 +962,8 @@ struct IndexMatchInfo {
   bool matches(const int unit) const {return (range ? next<=unit : next==unit);}
 
   bool range;
-  int next;
-  map<string, pair<unsigned int, unsigned int> > binding;
-  string prevVar;
+  int next, prevElem;
+  map<string, pair<int, int> > binding;
 };
 
 struct IndexMatchSlot {
@@ -1022,7 +1022,8 @@ class IndexMatchesLI {
   set<int> indexMismatch;
   vector<TupleId> matches;
   vector<int> trajSize;
-  int activeTuples;
+  vector<bool> deactivated;
+  int activeTuples, counter;
   vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo;
   vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
   InvertedFile* invFile;
@@ -3339,7 +3340,7 @@ bool Match<M>::findMatchingBinding(vector<map<int, int> > &nfa, int startState,
     return true;
   }
   map<int, int> transitions = nfa[startState];
-  map<string, pair<unsigned int, unsigned int> > binding;
+  map<string, pair<int, int> > binding;
   map<int, int>::reverse_iterator itm;
   for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
     if (findBinding(0, atomicToElem[itm->first], elems, conds, elemToVar,
@@ -3361,7 +3362,7 @@ template<class M>
 bool Match<M>::findBinding(unsigned int ulId, unsigned int pId,
                           vector<PatElem> &elems, vector<Condition> &conds,
                           map<int, string> &elemToVar,
-                      map<string, pair<unsigned int, unsigned int> > &binding) {
+                      map<string, pair<int, int> > &binding) {
   string var = elemToVar[pId];
   bool inserted = false;
   if (!var.empty()) {
@@ -3440,7 +3441,7 @@ bool Match<M>::easyCondsMatch(int ulId, PatElem const &elem,
   if (elem.getW() || pos.empty() || easyConds.empty()) {
     return true;
   }
-  map<string, pair<unsigned int, unsigned int> > binding;
+  map<string, pair<int, int> > binding;
   string var;
   elem.getV(var);
   binding[var] = make_pair(ulId, ulId);
@@ -3461,12 +3462,23 @@ and only if there is (at least) one binding that matches every condition.
 */
 template<class M>
 bool Match<M>::conditionsMatch(vector<Condition> &conds,
-                const map<string, pair<unsigned int, unsigned int> > &binding) {
+                const map<string, pair<int, int> > &binding) {
   if (!m->GetNoComponents()) { // empty MLabel
     return evaluateEmptyM();
   }
   for (unsigned int i = 0; i < conds.size(); i++) {
     if (!evaluateCond(conds[i], binding)) {
+//       cout << conds[i].getText() << " | X --> [" 
+//            << binding.find("X")->second.first << ", "
+//            << binding.find("X")->second.second << "] | A --> ["
+//            << binding.find("A")->second.first << ", "
+//            << binding.find("A")->second.second << "] | B --> ["
+//            << binding.find("B")->second.first << ", "
+//            << binding.find("B")->second.second << "] | Y --> ["
+//            << binding.find("Y")->second.first << ", "
+//            << binding.find("Y")->second.second << "] | Z --> ["
+//            << binding.find("Z")->second.first << ", "
+//            << binding.find("Z")->second.second << "] "<< endl;
       return false;
     }
   }
@@ -3501,6 +3513,21 @@ bool Match<M>::evaluateEmptyM() {
 }
 
 /*
+\subsection{Function ~isSensiblyBound~}
+
+This function checks whether a variable is bound in a sensible and valid way.
+
+*/
+template<class M>
+bool Match<M>::isSensiblyBound(const map<string, pair<int, int> > &b, 
+                               string& var) {
+  int first = b.find(var)->second.first;
+  int second = b.find(var)->second.second;
+  return (first >= 0 && first < m->GetNoComponents() &&
+          second >= 0 && second < m->GetNoComponents() && first <= second);
+}
+
+/*
 \subsection{Function ~evaluateCond~}
 
 This function is invoked by ~conditionsMatch~ and checks whether a binding
@@ -3509,13 +3536,13 @@ matches a certain condition.
 */
 template<class M>
 bool Match<M>::evaluateCond(Condition &cond,
-                const map<string, pair<unsigned int, unsigned int> > &binding) {
+                            const map<string, pair<int, int> > &binding) {
   Word qResult;
   unsigned int from, to;
   SecInterval iv(true);
   for (int i = 0; i < cond.getVarKeysSize(); i++) {
     string var = cond.getVar(i);
-    if (binding.count(var)) {
+    if (binding.count(var) /*&& isSensiblyBound(binding, var)*/) {
       from = binding.find(var)->second.first;
       to = binding.find(var)->second.second;
       switch (cond.getKey(i)) {
@@ -3691,6 +3718,7 @@ RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
     match = new Match<M>(pat, src);
     if (match->matches()) {
       match->initCondOpTrees();
+      match->initAssignOpTrees();
       if (!src->GetNoComponents()) {
         BindingStackElem dummy(0, 0);
         bindingStack.push(dummy);
@@ -3722,8 +3750,8 @@ RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
 
 */
 template<class M>
-M* RewriteLI<M>::rewrite(M *src, map<string, pair<unsigned int,unsigned int> > 
-                         binding, vector<Assign> &assigns){
+M* RewriteLI<M>::rewrite(M *src, map<string, pair<int, int> > binding,
+                         vector<Assign> &assigns){
   M *result = new M(true);
   Word qResult;
   Instant start(instanttype), end(instanttype);
@@ -4036,9 +4064,9 @@ M* RewriteLI<M>::getNextResult() {
 }
 
 template<class M>
-void RewriteLI<M>::resetBinding(unsigned int limit) {
+void RewriteLI<M>::resetBinding(int limit) {
   vector<string> toDelete;
-  map<string, pair<unsigned int, unsigned int> >::iterator it;
+  map<string, pair<int, int> >::iterator it;
   for (it = binding.begin(); it != binding.end(); it++) {
     if (it->second.first >= limit) {
       toDelete.push_back(it->first);
@@ -4224,6 +4252,7 @@ MultiRewriteLI<M>::MultiRewriteLI(Word _tstream, Word _pstream, int _pos) :
         }
         else {
           if (p->initCondOpTrees()) {
+            p->initAssignOpTrees();
             pats.push_back(p);
             for (int i = 0; i < p->getSize(); i++) {
               atomicToElem[patElems.size()] = elemCount + p->getElemFromAtom(i);
@@ -4333,7 +4362,7 @@ M* MultiRewriteLI<M>::nextResult() {
       if (this->findNextBinding(bE.ulId, bE.peId, pats[patNo.first], 
                                 patNo.second)) {
         return RewriteLI<M>::rewrite(traj, this->binding, 
-                                          pats[patNo.first]->getAssigns());
+                                     pats[patNo.first]->getAssigns());
       }
     }
     tuple->DeleteIfAllowed();
@@ -4462,7 +4491,6 @@ Tuple* IndexClassifyLI::nextResultTuple() {
   return result;
 }
 
-
 /*
 \subsection{Function ~imiMatch~}
 
@@ -4474,27 +4502,28 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
   p.getElem(e, elem);
   if (unit >= 0) { // exact position from index
 //     cout << "   unit=" << unit << ", imi: next=" << imi.next << ", range=" 
-//          << imi.range << endl;
+//          << (imi.range ? "TRUE" : "FALSE") << endl;
     if (imi.matches(unit) && match.valuesMatch(unit, elem) &&
         timesMatch(id, unit, elem) &&
         match.easyCondsMatch(unit, elem, p.easyConds, p.getEasyCondPos(e))) {
-      imi.next = unit + 1;
-      imi.range = false;
-      extendBinding(imi, e);
-      if (p.isFinalState(newState) && imi.finished(trajSize[id]) && 
-          checkConditions(id, imi)) { // complete match
-        removeIdFromIndexResult(id);
-        removeIdFromMatchInfo(id);
-//         cout << id << " removed (index match) " << activeTuples 
-//              << " active tuples" << endl;
-        matches.push_back(id);
-        return true;
-      }
-      else if (!imi.exhausted(trajSize[id])) { // continue
-        (*newMatchInfoPtr)[newState][id].imis.push_back(imi);
-//         cout << "   IMI pushed back for new state " << newState << " and id "
-//              << id << endl;
-        return true;
+      if (unit + 1 >= counter) {
+        IndexMatchInfo newIMI(false, unit + 1, imi.binding, imi.prevElem);
+        extendBinding(newIMI, e);
+        if (p.isFinalState(newState) && newIMI.finished(trajSize[id]) && 
+            checkConditions(id, newIMI)) { // complete match
+          removeIdFromIndexResult(id);
+          removeIdFromMatchInfo(id);
+  //         cout << id << " removed (index match) " << activeTuples 
+  //              << " active tuples" << endl;
+          matches.push_back(id);
+          return true;
+        }
+        else if (!newIMI.exhausted(trajSize[id])) { // continue
+          (*newMatchInfoPtr)[newState][id].imis.push_back(newIMI);
+  //         cout << "   IMI pushed back for new state " << newState
+  //              << " and id " << id << endl;
+          return true;
+        }
       }
     }
     return false;
@@ -4505,25 +4534,26 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
     for (int i = imi.next; i < trajSize[id]; i++) {
       if (match.valuesMatch(i, elem) && timesMatch(id, i, elem) &&
           match.easyCondsMatch(i, elem, p.easyConds, p.getEasyCondPos(e))) {
-        imi.next = i + 1;
-        imi.range = false;
-        extendBinding(imi, e);
-        if (p.isFinalState(newState) && imi.finished(trajSize[id]) &&
-            checkConditions(id, imi)) { // complete match
-          removeIdFromMatchInfo(id);
-//           cout << id << " removed (range match) " << activeTuples 
-//                << " active tuples" << endl;
-          removeIdFromIndexResult(id);
-          matches.push_back(id);
-          return true;
-        }
-        else if (!imi.exhausted(trajSize[id])) { // continue
-          if ((*newMatchInfoPtr)[newState].size() == 0) {
-            (*newMatchInfoPtr)[newState].resize(mRel->GetNoTuples());
+        if (i + 1 >= counter) {
+          IndexMatchInfo newIMI(false, i + 1, imi.binding, imi.prevElem);
+          extendBinding(newIMI, e);
+          if (p.isFinalState(newState) && imi.finished(trajSize[id]) &&
+              checkConditions(id, newIMI)) { // complete match
+            removeIdFromMatchInfo(id);
+  //           cout << id << " removed (range match) " << activeTuples 
+  //                << " active tuples" << endl;
+            removeIdFromIndexResult(id);
+            matches.push_back(id);
+            return true;
           }
-          (*newMatchInfoPtr)[newState][id].imis.push_back(imi);
-          numOfNewIMIs++;
-          result = true;
+          else if (!newIMI.exhausted(trajSize[id])) { // continue
+            if ((*newMatchInfoPtr)[newState].size() == 0) {
+              (*newMatchInfoPtr)[newState].resize(mRel->GetNoTuples());
+            }
+            (*newMatchInfoPtr)[newState][id].imis.push_back(newIMI);
+            numOfNewIMIs++;
+            result = true;
+          }
         }
       }
     }
@@ -4532,23 +4562,24 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
   else {
     if (match.valuesMatch(imi.next, elem) && timesMatch(id, imi.next, elem) &&
         match.easyCondsMatch(imi.next, elem, p.easyConds, p.getEasyCondPos(e))){
-      imi.next++;
-      imi.range = false;
-      extendBinding(imi, e);
-      if (p.isFinalState(newState) && imi.finished(trajSize[id]) && 
-          checkConditions(id, imi)) { // complete match
-        removeIdFromMatchInfo(id);
-//         cout << id << " removed (match) " << activeTuples << " active tuples"
-//              << endl;
-        matches.push_back(id);
-        return true;
-      }
-      else if (!imi.exhausted(trajSize[id])) { // continue
-        if ((*newMatchInfoPtr)[newState].size() == 0) {
-          (*newMatchInfoPtr)[newState].resize(mRel->GetNoTuples());
+      if (imi.next + 1 >= counter) {
+        IndexMatchInfo newIMI(false, imi.next + 1, imi.binding, imi.prevElem);
+        extendBinding(newIMI, e);
+        if (p.isFinalState(newState) && imi.finished(trajSize[id]) && 
+            checkConditions(id, newIMI)) { // complete match
+          removeIdFromMatchInfo(id);
+  //         cout << id << " removed (match) " << activeTuples
+  //              << " active tuples" << endl;
+          matches.push_back(id);
+          return true;
         }
-        (*newMatchInfoPtr)[newState][id].imis.push_back(imi);
-        return true;
+        else if (!newIMI.exhausted(trajSize[id])) { // continue
+          if ((*newMatchInfoPtr)[newState].size() == 0) {
+            (*newMatchInfoPtr)[newState].resize(mRel->GetNoTuples());
+          }
+          (*newMatchInfoPtr)[newState][id].imis.push_back(newIMI);
+          return true;
+        }
       }
     }
   }
