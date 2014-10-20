@@ -71,9 +71,9 @@ commute(Pred1, _, Pred2) :-
 
 % binary version - extracting rellist from predicate descriptor
 commute(Pred1, Pred2) :-
-  ( Pred1 = pr(_P,A)
+  ( Pred1 = pr(_ ,A)
     -> RL = [(1,A)]
-    ; ( Pred1 = pr(_P,A,B)
+    ; ( Pred1 = pr(_ ,A,B)
         -> RL = [(1,A),(2,B)]
         ; fail
       )
