@@ -30,7 +30,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 0 Preface
 
 This document describes how to integrate a new algebra into the
-Secondo DBMS. 
+Secondo DBMS. An algebra consists of types and operators. 
+
+It starts with a description of nested lists, a structure
+for representing objects externally and types internally. 
+The implementation of different kinds of types are shown, these include
+
+  * simple types
+
+  * attribute data types of fixed size
+
+  * attribute data type of variable size
+
+  * large types, e.g., for implementing indexes
+
+Some special sections also describe how to reduce the disc storage for
+attribute data types. 
+
+An Operator consists of a type mapping, a set of value mappings, 
+a selection function, and a description for the user. The type mapping checks 
+whether the operator can handle a given set of argument types. The value mapping
+computes the result of the operator from the arguments. The selection function
+selects a value mapping for overloaded operators. Operators can occur in a lot
+of ways. This document describes 
+
+  * simple operators
+  
+  * overloaded operators
+
+  * stream processing operators
+
+  * operators having a function as an argument
+
+  * update operators
+
+  * operators where results from the type mapping are transferred to the value mapping
+
+  * operators having access to values within the type mapping
+
+
+
+
 
 
 0.1 The PD-System
@@ -47,11 +87,11 @@ be created by entering ~make doc~ in the algebra directory.
 
 0.2 Nested Lists
 
-Because nested lists are used very often, this document starts with a 
+Because nested lists are used very often in Secondo, this document starts with a 
 short description of this structure.
 Nested lists are required to import/export objects, within type mappings,
-selection functions, display functions and much more. After readings this
-document, the most of these things will be clear.
+selection functions, display functions and much more. After reading this
+document, the meaning of these things will be clear.
 
 Each element of a nested list can be an atom or a nested list again.
 Atomar elements are the following:
@@ -82,7 +122,7 @@ extern NestedList* nl;
 
 The variable *nl* is a singleton pattern defined somewhere in the system.
 
-To create a list atom, the following functions are available
+To create a list atom, the following functions are available:
 
 ----
 ListExpr li = nl->IntAtom(23);
@@ -98,9 +138,14 @@ ListExpr l1 = nl->OneElemList(li);
 ListExpr l2 = nl->TwoElemList(li,lr);
   ...
 ListExpr l6 = nl->SixElemList(li,lr,lsy,l1,l2,li);
-ListExpr ls = nl->ReadFromString("a 'b' 1.0 (TRUE 6))");
+bool correct = nl->ReadFromString("a 'b' 1.0 (TRUE 6))", list);
 
 ----
+
+The return value of ~ReadFromString~ determines the success of 
+this operation, in particular, whether the string represents a
+valid nested list. The list itselfs is returned via the output 
+parameter list.
 
 For the creation of long lists, the following code fragment can be used as a template:
 
@@ -116,6 +161,16 @@ For the creation of long lists, the following code fragment can be used as a tem
 The function ~Append~ takes the last element of a list and append its second
 argument to this list. The new last element is returned.
 
+A nested list can be read from a file using the ~ReadFromFile~ function.
+This function works quite similar to ~ReadFromString~. The input is
+not the nested list as a string, but the name of a file containing the
+list.
+
+----
+
+bool correct = nl->ReadFromString("mylist.txt", list);
+
+----
 
 To request the type of a given list, the function ~AtomType~ ist used:
 
@@ -136,6 +191,17 @@ string s = nl->SymbolValue(list);
 string t = nl->Text2String(list);
 
 ----
+
+Note that the try to get the value of wrong type, e.g. calling 
+
+----
+
+int k = nl->IntValue(list); 
+
+----
+
+where list is a string, will crash the system by throwing an assertion.
+
 
 The following functions  provide information about the length of a list:
 
@@ -158,8 +224,8 @@ A list can be separated by:
 
 ----
 
-Two lists can be checked for equality and a single list can be checked to be an symbol atom
-having a certain value (the third argument is for case sensity) using the functions:
+Two lists can be checked for equality and a single list can be checked to be a symbol atom
+having a certain value (the third argument is for case sensitivity) using the functions:
 
 ----
   bool eq = nl->Equal(list1,list2);
@@ -174,14 +240,14 @@ For debugging purposes, sometimes an output of a list is required. This can be d
 
 ----
 
-Within ~ListUtils~ a collection of auxiliary functions are implemented, to make the life with
+Within ~ListUtils.h~ a collection of auxiliary functions are implemented, to make the life with
 nested lists easier, e.g.:
 
 ----
   #include "NestedList.h"
   #include "ListUtils.h"
 
-  // example: read in integers or reals
+  // example: read in an integer or a real from list
   if( listutils::isNumeric(list)){
     double d = listutils::getNumValue(list);
   }
@@ -396,7 +462,7 @@ returns only the main type, e.g. ~rel~.
 The function ~checkType~ takes a nested list
 and checks whether this list represents a valid type description for this class.
 Note that the ~checkType~ function not only checks the main type but the complete
-type expression, e.g. ~checkType(rel)~ will return ~false~ while
+type expression, e.g. for relations, ~checkType(rel)~ will return ~false~ while
 ~checktype(rel(tuple((A int)(B string))))~ will return ~true~.
 
 All other functions and members are the usual C++ stuff.
@@ -412,7 +478,9 @@ All other functions and members are the usual C++ stuff.
           x(_x), y(_y), r(_r) {}
        // destructor
        ~SCircle(){}
-       static const string BasicType(){ return "scircle"; }
+       static const string BasicType(){ return "scircle";} 
+       // the checktype funtion for non-nested types looks always
+       // the same
        static const bool checkType(const ListExpr list) {
           return listutils::isSymbol(list, BasicType());
        }
@@ -463,7 +531,7 @@ For the creation of a constant value within a query and for
 importing objects or whole databases from a file, object
 values are described by nested lists. The task of the ~IN~-function
 is to convert such a list into the internal object representation, i.e.
-an instance of the class above.
+into an instance of the class above.
 The list may have an  invalid format. If the list does not
 have the expected format, the output parameter ~correct~ must be set to
 ~false~ and the ~addr~-pointer of the result must be set to 0.
@@ -474,16 +542,16 @@ the ~addr~ pointer of the result points to an object instance having the
 value represented by the ~instance~ argument.
 The parameters of the function are:
 
-  * typeInfo : contains the complete type description and is required for nested types
+  * ~typeInfo~: contains the complete type description and is required for nested types
     like tuples
 
-  * instance : the value of the object in external (nested list) representation
+  * ~instance~: the value of the object in external (nested list) representation
 
-  * errorPos : output parameter reporting the position of an error within the list (set types)
+  * ~errorPos~: output parameter reporting the position of an error within the list (set types)
 
-  * errorInfo : can provide information about an error to the user
+  * ~errorInfo~: can provide information about an error to the user
 
-  * correct   : output parameter returning the success of this call
+  * ~correct~: output parameter returning the success of this call
 
 
 For the ~scircle~ class, the external representation consists of three numeric values standing for
@@ -517,7 +585,7 @@ zero.
     double r = listutils::getNumValue(nl->Third(instance));
     // check for a valid radius
     if(r<=0){
-       cmsg.inFunError("invalid radius (<0)");
+       cmsg.inFunError("invalid radius (<=0)");
        return res;
     }
     // list was correct,  create the result
@@ -533,10 +601,10 @@ This function is used to create the external representation of an object
 as nested list. Note that the ~IN~ function must be able to read in the
 result of this function.  The arguments are:
 
-  * typeInfo: nested list representing the type of the object (required for 
+  * ~typeInfo~: nested list representing the type of the object (required for 
               complex types)
 
-  * value: the ~addr~ pointer of ~value~ points to the object to export. The Secondo 
+  * ~value~: the ~addr~ pointer of ~value~ points to the object to export. The Secondo 
     framework ensures that the type of this object is the correct one. The
     cast in the first line will be successful.
 
@@ -571,13 +639,14 @@ Word CreateSCircle( const ListExpr typeInfo ) {
 /*
 1.6 Delete function
 
-Removes the complete object (inclusive disc parts if there are any). 
+Removes the complete object (inclusive disc parts if there are any, see section
+\ref{largeStructures}). 
 The Secondo framework ensures that the type behind the ~addr~ pointer
 of ~w~ is the expected one. The arguments are:
 
-  * typeInfo: the type description (for complex types)
+  * ~typeInfo~: the type description (for complex types)
 
-  * w: the ~addr~ pointer of this argument points to the object to delete.
+  * ~w~: the ~addr~ pointer of this argument points to the object to delete.
 
 */
 void DeleteSCircle( const ListExpr typeInfo, Word& w ) {
@@ -589,21 +658,28 @@ void DeleteSCircle( const ListExpr typeInfo, Word& w ) {
 /*
 1.7 Open function
 
-Reads an object from disc  via an SmiRecord.
+Reads an object from disc  via an ~SmiRecord~.
 
-  * valueRecord: here, the disc representation of the object is stored
+  * ~valueRecord~: here, the disc representation of the object is stored
 
-  * offset: the object representation starts here in ~valueRecord~ After 
+  * ~offset~: the object representation starts here in ~valueRecord~ After 
     the call of this function, ~offset~ must be after the object's value
 
-  * typeInfo: the type description (required for complex types)
+  * ~typeInfo~: the type description (required for complex types)
 
-  * value: output argument
+  * ~value~: output argument
 
 The function reads data out of the SmiRecord and creates a new object from them
 in case of success. The created object is stored in the ~addr~-pointer of the
 ~value~ argument. In the case of an error, the ~addr~ pointer has to be set to
 ~NULL~. The result of this functions reports the success of reading.
+To implement this function, the function ~Read~ of the ~SmiRecord~ is used.
+Its first argument is a  pointer to the storage where the data should be 
+written. The second argument determines how may data should be transferred 
+from the record to the buffer. The last argument indicates the position
+of the data within the record. The return value of this function corresponds
+to the actual read amount of data. In case of success, this number is 
+the same as given in the second argument.
 
 */
 bool OpenSCircle( SmiRecord& valueRecord,
@@ -611,11 +687,11 @@ bool OpenSCircle( SmiRecord& valueRecord,
                  Word& value ){
   size_t size = sizeof(double);
   double x,y,r;
-  bool ok = valueRecord.Read(&x,size,offset);
+  bool ok = (valueRecord.Read(&x,size,offset) == size);
   offset += size;
-  ok = ok && valueRecord.Read(&y,size,offset);
+  ok = ok && (valueRecord.Read(&y,size,offset) == size);
   offset += size;
-  ok = ok && valueRecord.Read(&r, size, offset);
+  ok = ok && (valueRecord.Read(&r, size, offset) == size);
   offset += size;
   if(ok){
     value.addr = new SCircle(x,y,r);
@@ -631,14 +707,17 @@ bool OpenSCircle( SmiRecord& valueRecord,
 Saves an object to disc (via SmiRecord). This function has to be symmetrically
 to the ~OPEN~ function. The result reports the success of the call. The arguments are
 
-  * valueRecord: here the object is stored
+  * ~valueRecord~: here the object is stored
 
-  * offset: the object has to be  stored at this position in ~valueRecord~; after the call of this
+  * ~offset~: the object has to be  stored at this position in ~valueRecord~; after the call of this
     function, ~offset~ must be after the object's representation 
 
-  * typeInfo: type descriptions as a nested list (required for complex types)
+  * ~typeInfo~: type descriptions as a nested list (required for complex types)
 
-  * value: the addr pointer of this argument points to the object to save
+  * ~value~: the addr pointer of this argument points to the object to save
+
+The used ~Write~ function of the ~SmiRecord~ works similar to its ~Read~ function but transfers the
+data into the other direction.
 
 */
 
@@ -664,9 +743,9 @@ bool SaveSCircle( SmiRecord& valueRecord, size_t& offset,
 Removes the main memory part of an object. In contrast to delete, the
 disc part of the object is untouched (if there is one).
 
-  * typeInfo: type description as  a nested list
+  * ~typeInfo~: type description as  a nested list
 
-  * w: the ~addr~ pointer of ~w~ points to the object which is to close 
+  * ~w~: the ~addr~ pointer of ~w~ points to the object which is to close 
 
 */
 void CloseSCircle( const ListExpr typeInfo, Word& w ) {
@@ -680,9 +759,9 @@ void CloseSCircle( const ListExpr typeInfo, Word& w ) {
 
 Creates a depth copy (inclusive disc parts) of an object.
 
-  * typeInfo: type description as nested list
+  * ~typeInfo~: type description as nested list
 
-  * w: holds a pointer to the object which is to clone
+  * ~w~: holds a pointer to the object which is to clone
 
 */
 Word CloneSCircle( const ListExpr typeInfo, const Word& w ){
@@ -706,7 +785,7 @@ void*  CastSCircle( void* addr ) {
 }
 
 /*
-1.12 type check
+1.12 Type Check
 
 Checks whether a given list corresponds to the type. This function
 is quit similar to the ~checkType~ function within the class.
@@ -723,7 +802,8 @@ bool SCircleTypeCheck(ListExpr type, ListExpr& errorInfo){
 1.13 SizeOf function
 
 Returns the size required to store an instance of this object to disc
-using the ~Save~ function from above.
+using the ~Save~ function from above. Because an ~scircle~ is represented
+by three double numbers, the size is three times the size of a single double.
 
 */
 int SizeOfSCircle() {
@@ -865,17 +945,17 @@ The result of the operator for non-stream operators is always 0.
 
 The arguments are :
 
-  * args: array with the arguments of the operator
+  * ~args~: array with the arguments of the operator
 
-  * result: output parameter, for non stream operators, the 
+  * ~result~: output parameter, for non stream operators, the 
           result storage must be used
 
-  * message: message used by stream operators
+  * ~message~: message used by stream operators
 
-  * local: possibility to store the state of an operator, used in
+  * ~local~: possibility to store the state of an operator, used in
            stream operators
 
-  * s: node of this operator within the operator tree
+  * ~s~: node of this operator within the operator tree
 
 
 */
@@ -2685,6 +2765,8 @@ Operator attrIndexOp (
 /*
 11 Implementing Large Structures
 
+\label{largeStructures}
+
 Up to now, all implemented data types within this algebra was more or less small.
 This section deals with the implementation of real big data types. This means, this
 type can massive exceed the main memory of the underlying system if it would be 
@@ -4492,6 +4574,10 @@ class VString: public Attribute{
         return res;
      }
 
+     static int Size() {
+        return 256;
+     }
+
 /* 
 Because the Serialization does not overwrite internal function pointers as in the
 default mechanism, here just the argument pointer is returned. If we use the special
@@ -4507,9 +4593,6 @@ value.
         return checkType(type);
      }
 
-     static int SizeOf(){
-        return 256; 
-     }
 
      inline virtual StorageType GetStorageType() const{
         return Extension;
@@ -4548,6 +4631,11 @@ value.
          }
      }
 
+     virtual size_t GetMemSize() {
+        return sizeof(*this) + value.length();
+     }
+ 
+
   private:
      string value;   // uses pointers internally
 
@@ -4571,7 +4659,7 @@ TypeConstructor VStringTC(
   VString::Property, VString::Out, VString::In, 0,0,
   VString::Create, VString::Delete,
   VString::Open, VString::Save, VString::Close, VString::Clone,
-  VString::Cast, VString::SizeOf, VString::TypeCheck
+  VString::Cast, VString::Size, VString::TypeCheck
 );
 
 
