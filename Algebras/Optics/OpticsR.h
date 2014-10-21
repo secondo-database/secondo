@@ -26,33 +26,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //characters   [3]  capital:  [\textsc{] [}]
 //characters   [4]  teletype:  [\texttt{] [}]
 
-1 Header file "Optics.h"[4]
+1 Header file "OpticsR.h"[4]
 
 March-October 2014, Marius Haug
 
 1.1 Overview
 
-This file contains the "Optics"[4] class declaration.
+This file contains the "OpticsR"[4] class declaration.
 
 1.2 Includes
 
 */
 #include "Algebra.h"
-#include "MMMTree.h"
+#include "MMRTree.h"
 #include "TupleIdentifier.h"
 #include "RelationAlgebra.h"
 
 namespace clusteropticsalg
 {
 /*
-1.3 Declarations of the class ~Optics~
+1.3 Declarations of the class ~OpticsR~
 
 */
- template<class T, class DistComp>
- class OpticsM;
+ template <unsigned dim>
+ class OpticsR;
 
- template<class T, class DistComp>
- class OpticsM
+ template <unsigned dim>
+ class OpticsR
  {
 /*
 1.3.1 Public members
@@ -63,14 +63,14 @@ namespace clusteropticsalg
 Constructor
 
 */
-   OpticsM();
+   OpticsR();
 /*
 Sets the "RTree"[4] for an optimized range query etc.
 
 */
-   void initialize(MMMTree<pair<T, TupleId>, DistComp >* queryTree
+   void initialize(mmrtree::RtreeT<dim, TupleId>* queryTree
     ,TupleBuffer* objsToOrd, int idxDistData, int idxCDist, int idxRDist
-    ,int idxPrc, DistComp distComp);
+    ,int idxPrc);
 /*
 Starts the ordering by the optics algorithm and saves the result in "order"[4].
 
@@ -95,21 +95,16 @@ Members to access elements of the tuples.
    int COR;
    int REA;
    int PRC;
+   int MODE;
    
    unsigned int minPts;
    
    double eps;
 /*
-Defined "MTree"[4] for the range query etc.
+Defined "RTree"[4] for the range query etc.
 
 */
-
-   DistComp dc;
-/*
-Defined "MTree"[4] for the range query etc.
-
-*/
-   MMMTree<pair< T, TupleId>, DistComp >* mtree;
+   mmrtree::RtreeT<dim, TupleId>* rtree;
 /*
 Defined "TupleBuffer"[4] which contains the data to order.
 

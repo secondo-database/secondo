@@ -20,12 +20,6 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-#operator optics_a alias OPTICSA pattern op ( _ ) 
-#operator opticsStr alias OPTICSS pattern _ op
-#operator opticsStrTpl alias OPTICSST pattern _ op[ list ] implicit parameter tuple type TUPLE
-#operator opticsStrTpl alias OPTICSST pattern _ op
-#operator optics alias OPTICS pattern _ op [ _, _ ]
-#operator optics alias OPTICS pattern _ op
-operator optics alias OPTICS pattern _ op [list]
 operator opticsR alias OPTICSR pattern _ op [list]
 operator opticsM alias OPTICSM pattern _ op [list]
+operator opticsF alias OPTICSF pattern _ op [list]

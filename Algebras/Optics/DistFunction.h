@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Point.h"
 #include "StandardTypes.h"
 #include "StringUtils.h"
+#include "TupleIdentifier.h"
 
 namespace clusteropticsalg
 {
@@ -82,7 +83,7 @@ namespace clusteropticsalg
   public:
 
    double operator()(const pair<CcReal*,TupleId>& p1
-    ,const pair<CcReal*, TupleId>& p2)
+    ,const pair<CcReal*,TupleId>& p2)
    {
     DistCount::cnt++;
     assert(p1.first);
@@ -164,10 +165,63 @@ namespace clusteropticsalg
      return numeric_limits<double>::max();
     }
     
-    return 0;//stringutils::ld(p1.first->GetValue(), p2.first->GetValue());
+    return stringutils::ld(p1.first->GetValue(), p2.first->GetValue());
    }
      
    ostream& print(const pair<CcString*,TupleId>& p, ostream& o)
+   {
+    o << *(p.first);
+    return o;
+   }
+ };
+ 
+ template<class T, class R>
+ class CustomDist: public DistCount
+ { 
+  private:
+   QueryProcessor* qp;
+   Supplier fun;
+ 
+  public:  
+   void initialize(QueryProcessor* queryProcessor, Supplier function)
+   {
+    qp = queryProcessor;
+    fun = function;
+   }
+   
+   double operator()(const pair<T,TupleId>& p1
+    ,const pair<T,TupleId>& p2)
+   {
+    cnt++;
+    assert(p1.first);
+    assert(p2.first);
+   
+    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+    {
+     return 0;
+    }
+    
+    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    {
+     return numeric_limits<double>::max();
+    }
+    
+    Word funRes;
+    ArgVectorPointer vector;
+    vector = qp->Argument(fun);
+    ((*vector)[0]).setAddr(p1.first);
+    ((*vector)[1]).setAddr(p2.first);
+    qp->Request(fun, funRes);
+    
+    R* result;
+    result = (R*) funRes.addr;
+        
+    double c = result->GetValue();
+
+    return c < 0 ? -c : c;
+   }
+     
+   ostream& print(const pair<T,TupleId>& p, ostream& o)
    {
     o << *(p.first);
     return o;
