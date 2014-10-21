@@ -1560,11 +1560,11 @@ double Point::DistanceOrthodrome( const Point& p,
 
 
 double Point::DistanceOrthodromePrecise( const Point& p,
-                                      const Geoid& g,
-                                      bool& valid,
-                                      double& initialBearingDEG,
-                                      double& finalBearingDEG,
-                                      const double epsilon /* = 1e-12 */) const
+                                         const Geoid& g,
+                                         bool& valid,
+                                         double& initialBearingDEG,
+                                         double& finalBearingDEG,
+                                         const bool epsilon /* = 1e-12 */) const
 {
  /*
   * Vincenty Inverse Solution of Geodesics on the Ellipsoid

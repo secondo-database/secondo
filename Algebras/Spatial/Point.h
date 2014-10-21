@@ -500,7 +500,7 @@ headings.
                                       bool& valid,
                                       double& initialBearingDEG,
                                       double& finalBearingDEG,
-                                      const double epsilon = 0.00001 ) const;
+                                      const bool epsilon = 0.00001 ) const;
 
 
 /*
