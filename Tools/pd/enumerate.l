@@ -59,6 +59,7 @@ subsubsection   {num}"."{subsection}
 /*  Alle Zeichenfolgen, die nicht durch einen 'match' behandelt
  *  werden, werden auf der Standardausgabe ausgegeben
  */
-main() { 
+int main() { 
    yylex();  
+   return 0;
 }

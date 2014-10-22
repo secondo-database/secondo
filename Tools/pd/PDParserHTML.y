@@ -83,6 +83,8 @@ followed by an empty line is written to the output file. To understand the outpu
 #define YYDEBUG 1
 
 extern void yyerror(const char *msg);
+extern int yylex();
+
 %}
 
 %token OPEN CLOSE EPAR DEFLINE LETTER DIGIT OTHER TILDE STAR

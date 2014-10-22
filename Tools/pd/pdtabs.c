@@ -19,9 +19,13 @@ GNU General Public License for more details.
 This program converts tab symbols into corresponding sequences of blanks. With the standard text editor, each tab corresponds to 8 blanks.
 
 */
+#include<stdio.h>
+
 
 #define TABLENGTH 8
+#ifndef EOF
 #define EOF -1
+#endif
 
 int
 main()  

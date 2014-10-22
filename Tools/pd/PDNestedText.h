@@ -81,7 +81,7 @@ The following is what is technically exported from this file:
 ***************************************/
 
 int atom(), atomc(), concat();
-int print(), copyout();
+void print(), copyout();
 
 void  release_storage(); 
 void show_storage(); 		/* show_storage used only for testing */

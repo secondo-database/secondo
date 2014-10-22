@@ -29,6 +29,7 @@ functions CheckDebugEnv, InitHeader and PrintTail are implemented in file PDLib.
 #include <stdlib.h>
 #include "PDLib.h"
 
+extern int yyparse();
 
 int main()
 {

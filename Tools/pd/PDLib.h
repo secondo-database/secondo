@@ -33,4 +33,8 @@ debug fkags for flex and bison
 */   
 void CheckDebugEnv();
 
+void InitHeader();
+
+void PrintTail();
+
 #endif

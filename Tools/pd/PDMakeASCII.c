@@ -27,7 +27,9 @@ Use the parser to transform from implicitly formatted text to ASCII.
 
 #include "PDLib.h"
 
-main()
+extern int yyparse();
+
+int main()
 {	
    CheckDebugEnv();
 

@@ -118,22 +118,6 @@ int concat(int list1, int list2)
     return(newnode);
 }
 
-/***************************************
-
-Function ~print~ writes the character strings from all atoms in ~list~ in the right order to standard output. 
-
-*****************************************/
-
-print(int list)
-{
-    int i;
-
-    if (isatom(list))
-	for (i = 0; i < nodespace[list].length; i++)
-	    putchar(text[nodespace[list].atomstring + i]);
-    else
-	{print(nodespace[list].left); print(nodespace[list].right);};
-}
 
 /******************************************
 
@@ -147,18 +131,29 @@ int isatom(int list)
     else return(FALSE);
 }
 
+/***************************************
+
+Function ~print~ writes the character strings from all atoms in ~list~ in the right order to standard output. 
+
+*****************************************/
+
+void print(int list)
+{
+    int i;
+
+    if (isatom(list))
+	for (i = 0; i < nodespace[list].length; i++)
+	    putchar(text[nodespace[list].atomstring + i]);
+    else
+	{print(nodespace[list].left); print(nodespace[list].right);};
+}
+
 /*******************************************
 
 The function ~copyout~ copies the character strings from all atoms in ~list~ in the right order into a string variable ~target~. Parameter ~lengthlimit~ ensures that the maximal available space in ~target~ is respected; an error occurs if the list expression ~list~ contains too many characters. ~Copyout~ just calls an auxiliary recursive procedure ~copylist~ which does the job.
 
 *******************************************/
 
-copyout(int list, char *target, int lengthlimit)	
-{   int i;
-
-    i = copylist(list, target, lengthlimit);
-    target[i] = '\0';
-}
 
 int copylist(int list, char *target, int lengthlimit)
 {   int i, j;
@@ -179,6 +174,13 @@ int copylist(int list, char *target, int lengthlimit)
 	j = copylist(nodespace[list].right, &target[i], lengthlimit - i);
 	return (i+j);
 	}
+}
+
+void copyout(int list, char *target, int lengthlimit)	
+{   int i;
+
+    i = copylist(list, target, lengthlimit);
+    target[i] = '\0';
 }
 
 /****************************************

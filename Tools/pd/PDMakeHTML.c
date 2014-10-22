@@ -26,6 +26,8 @@ Use the parser to transform from implicitly formatted text to HTML.
 
 #include "PDLib.h"
 
+extern int yyparse();
+
 int main() {	
 
     CheckDebugEnv();

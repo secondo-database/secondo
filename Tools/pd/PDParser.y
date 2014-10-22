@@ -73,6 +73,8 @@ extern char* endVerbatim;
 #define YYDEBUG 1
 
 extern void yyerror(const char *msg);
+extern int yylex();
+
 %}
 
 

@@ -20,10 +20,14 @@ This program reads a file from standard input and writes it to standard output. 
 
 */
 
+#include <stdio.h>
 
 
 #define LINELENGTH 80 
+#ifndef EOF	
 #define EOF -1
+#endif
+
 #define OR ||
 
 int
@@ -40,7 +44,7 @@ main()
 		if (c == ' ') lastblank = position;
 		position++;
 
-		if ((c == '\n') OR (position == LINELENGTH))
+		if ((c == '\n') OR (position == LINELENGTH)){
 			if (c == '\n') {
 
 				/* output a complete line */
@@ -48,9 +52,8 @@ main()
 				for (i = 0; i < position; i++)
 					putchar(line[i]);
 				position = 0;
-				lastblank = -1;}
-
-			else if (lastblank > 0) { 	/* a blank exists */
+				lastblank = -1;
+                        } else if (lastblank > 0) { 	/* a blank exists */
 
 				/* output line up to blank */
 
@@ -64,9 +67,7 @@ main()
 					line[i - (lastblank + 1)] = line[i];
 				position = position - (lastblank + 1);
 				lastblank = -1;
-				}
-
-			     else {			/* no blank exists */
+			} else {			/* no blank exists */
 
 				/* output line anyway */
 
@@ -75,7 +76,8 @@ main()
 				putchar('\n');
 				position = 0;
 				lastblank = -1;
-				}
+			}
+                 }
 	}
 
         return 0;

@@ -90,7 +90,7 @@ The following function ~enter-def~ puts a quadruple into this array. The last th
 
 ****************************************/
 
-enter_def(int index, int name, int open, int close)
+void enter_def(int index, int name, int open, int close)
 {   definitions[first_free_def].index = index;
     copyout(name, definitions[first_free_def].name, NAMELENGTH);
 
@@ -147,7 +147,7 @@ The function ~enter-schar~ puts such a pair into the data structure. Parameters 
 
 ********************************************/
 
-enter_schar(int code, int command)
+void enter_schar(int code, int command)
 {   copyout(code, schars[first_free_schar].code, CODELENGTH);
     copyout(command, schars[first_free_schar].command, COMLENGTH);
 
