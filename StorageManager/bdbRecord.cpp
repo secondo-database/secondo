@@ -33,7 +33,6 @@ April 2003 Ulrich Telle, implemented temporary SmiFiles
 
 */
 
-using namespace std;
 
 #include <string>
 #include <algorithm>
@@ -48,6 +47,9 @@ using namespace std;
 #include "SmiCodes.h"
 #include "Counter.h"
 #include "WinUnix.h"
+
+using namespace std;
+
 
 /* --- Implementation of class SmiRecord --- */
 

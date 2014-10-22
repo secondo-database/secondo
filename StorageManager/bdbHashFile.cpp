@@ -33,7 +33,6 @@ May 2008, Victor Almeida created the two sons of the ~SmiKeyedFile~ class, namel
 
 */
 
-using namespace std;
 
 //#define TRACE_ON 1
 #undef TRACE_ON
@@ -49,6 +48,8 @@ using namespace std;
 #include "SmiBDB.h"
 #include "SmiCodes.h"
 #include "Profiles.h"
+
+using namespace std;
 
 /* --- Implementation of class SmiHashFile --- */
 

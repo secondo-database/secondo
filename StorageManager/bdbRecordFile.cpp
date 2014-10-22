@@ -34,7 +34,6 @@ April 2003 Ulrich Telle, implemented temporary SmiFiles
 
 */
 
-using namespace std;
 
 #include <string>
 #include <algorithm>
@@ -48,6 +47,9 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 #include "SmiCodes.h"
+
+
+using namespace std;
 
 /* --- Implementation of class SmiRecordFile --- */
 

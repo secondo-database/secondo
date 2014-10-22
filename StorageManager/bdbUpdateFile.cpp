@@ -30,7 +30,6 @@ December 2009, Jiamin Lu
 
 */
 
-using namespace std;
 
 #include <string.h>
 #include <string>
@@ -55,6 +54,8 @@ using namespace std;
 #include "Counter.h"
 #include "WinUnix.h"
 #include "DbVersion.h"
+
+using namespace std;
 
 //Some default variables
 const int defaultPageSize = 1024;

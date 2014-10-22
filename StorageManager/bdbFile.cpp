@@ -44,7 +44,6 @@ This code also compiles with version 4.1.25 of Berkeley-DB.
 
 */
 
-using namespace std;
 
 #include <string.h>
 #include <string>
@@ -68,6 +67,8 @@ using namespace std;
 #include "CharTransform.h"
 #include "Counter.h"
 #include "WinUnix.h"
+
+using namespace std;
 
 static int  BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 );
 static int  BdbCompareLongint( Db* dbp, const Dbt* key1, const Dbt* key2 );

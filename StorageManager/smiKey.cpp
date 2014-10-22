@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 May 2002 Ulrich Telle
 
 */
-using namespace std;
 
 #include <string.h>
 #include <string>
@@ -36,6 +35,8 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "SmiCodes.h"
 #include "IndexableAttribute.h"
+
+using namespace std;
 
 SmiKey::SmiKey()
 {
