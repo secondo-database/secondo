@@ -439,7 +439,6 @@ namespace hgr
       return SetWord(new Histogram1d(false));
     }
 
-    Word w = SetWord(Address(0));
     Histogram1d* newHist = new Histogram1d(true);
     newHist->Clear();
     const ListExpr *concise = &instance;

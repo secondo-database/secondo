@@ -582,6 +582,7 @@ This functions read an entry from an input file stream starting at given offset.
        }
        read(in);
        readValues(in); 
+       return true;
     }
 
 /*
@@ -637,7 +638,7 @@ must be one of the integer types.
 
 */
   int getIntValue(const size_t nr) const{
-     if(nr < 0 || nr >=count){
+     if( nr >=count){
          throw(5);
      } 
      switch(type){
@@ -671,7 +672,7 @@ Returns the value at position nr for double-entries.
 
 */
   double getDoubleValue(const size_t nr) const{
-     if(nr < 0 || nr >=count){
+     if( nr >=count){
          throw(5);
      } 
      switch(type){

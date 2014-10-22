@@ -189,7 +189,13 @@ to be overwritten in histogram1d and histogram2d:
     virtual bool IsConsistent(const bool checkOrder = true) const = 0;
 
     virtual int Compare(const BaseHistogram& h) const = 0;
+    virtual int Compare(const Attribute* rhs) const{
+      return Compare(*((BaseHistogram*)rhs));
+    }
     virtual int CompareAlmost(const BaseHistogram& h) const = 0;
+    virtual int CompareAlmost(const Attribute* rhs) const{
+      return CompareAlmost(*((BaseHistogram*)rhs));
+    }
     virtual bool IsRefinement(const BaseHistogram& h) const = 0;
 
     virtual bool operator ==(const BaseHistogram& h) const = 0;

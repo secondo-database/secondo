@@ -457,7 +457,7 @@ ListExpr constGraphTypeMap( ListExpr args )
  if(characteristic==1||characteristic==3)
  {
    if ( nl->IsAtom(func)
-        || !nl->ListLength(func) == 3
+        || (nl->ListLength(func) != 3)
         || !nl->IsEqual(nl->First(func), Symbol::MAP())
         || !nl->IsEqual(nl->Third(func), CcReal::BasicType()) )
       {

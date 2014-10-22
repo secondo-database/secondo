@@ -217,7 +217,6 @@ Minimum amount of user defined memory for the operator.
 
     // buffer limits
     size_t MAX_MEMORY;
-    size_t MAX_TUPLES_IN_MEMORY;
 
     // buffer related members
     TupleBuffer2 *grpB;

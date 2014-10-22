@@ -49,13 +49,14 @@ relations.
 */
 
 
-using namespace std;
 
 #include <string.h>
 #include <set>
 #include "PlugJoinAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

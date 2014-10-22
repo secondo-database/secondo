@@ -390,10 +390,14 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 
         if(t1d > 0) {
           wtd1 = 1;
+        } else {
+          wtd1 = 0;
         }
 
         if(t2d > 0) {
           wtd2 = 1;
+        } else {
+          wtd2 = 0;
         }
 
         costs = NoTuples1 * NoTuples2 * uSymmJoin

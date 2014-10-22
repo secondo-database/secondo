@@ -26,10 +26,11 @@ January 2002 Ulrich Telle
 
 */
 
-using namespace std;
 
 #include "SecondoConfig.h"
 #include "DynamicLibrary.h"
+
+using namespace std;
 
 #ifndef SECONDO_WIN32
 #include <dlfcn.h>

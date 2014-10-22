@@ -721,7 +721,7 @@ OrderedRelationIterator::OrderedRelationIterator(const OrderedRelation* orel,
                                                 const CompositeKey& from,
                                                 const CompositeKey& to):
               tupleType(orel->tupleType), outtype(newType),
-              tupleFile(orel->tupleFile), lobFileId(orel->lobFileId),
+              lobFileId(orel->lobFileId),
               appendix(-1) {
 #ifdef DEBUG_OREL
 cout << "Konstruktor_OrelIter" << endl;

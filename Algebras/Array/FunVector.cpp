@@ -33,7 +33,6 @@ This code was taken out the ArrayAlgebra.cpp file implementation given
 a namespace problem.
 
 */
-using namespace std;
 
 #include "FunVector.h"
 #include "StandardTypes.h"

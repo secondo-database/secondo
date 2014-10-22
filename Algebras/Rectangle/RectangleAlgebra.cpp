@@ -39,7 +39,6 @@ struct ~Rectangle~, and the definitions of the type constructur
 2 Defines and Includes
 
 */
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -51,6 +50,8 @@ using namespace std;
 #include "ListUtils.h"
 #include "Symbols.h"
 #include "CellGrid.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

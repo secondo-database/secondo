@@ -51,7 +51,6 @@ For more detailed information see SpatialAlgebra.h.
 //#define __TRACE__ cout <<  __FILE__ << "::" << __LINE__;
 #define __TRACE__
 
-using namespace std;
 
 
 #include "Label.h"
@@ -73,6 +72,7 @@ using namespace std;
 #include "Symbols.h"
 #include "Stream.h"
 #include "RegionCreator.h"
+#include "StringUtils.h"
 
 #include <vector>
 #include <queue>
@@ -99,6 +99,7 @@ using namespace std;
 #include "Disc.h"
 #include "Stack.h"
 
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -6063,7 +6064,7 @@ void markUsage(const DbArray<HalfSegment>* hss, char* usage, char* critical ){
   }
   // 1.2 mark segments
   for(int i=0;i<hss->Size();i++) {
-     if((usage[i]==0) ){
+     if(usage[i]==0 ){
         // not used, but critical
         hss->Get(i,hs);
         vector<int> path;
@@ -14474,7 +14475,7 @@ SpatialRotateMap( ListExpr args )
     return nl->TypeError();
   }
 
-  if(!nl->AtomType(arg1)==SymbolType){
+  if(nl->AtomType(arg1)!=SymbolType){
     ErrorReporter::ReportError("spatial x real x real x real expected");
     return nl->TypeError();
   }
@@ -14904,7 +14905,8 @@ Signature is point x point -> line
 ListExpr MakeLineTypeMap(ListExpr args){
   int len;
   if((len = nl->ListLength(args))!=2){
-    return listutils::typeError("two arguments expected, but got " + len);
+    return listutils::typeError("two arguments expected, but got " + 
+              stringutils::int2str(len));
   }
   if(nl->IsEqual(nl->First(args),Point::BasicType()) &&
      nl->IsEqual(nl->Second(args),Point::BasicType())){
@@ -14923,7 +14925,8 @@ Signature is point x point -> sline
 ListExpr MakeSLineTypeMap(ListExpr args){
   int len;
   if((len = nl->ListLength(args))!=2){
-    return listutils::typeError("two arguments expected, but got " + len);
+    return listutils::typeError("two arguments expected, but got " 
+              + stringutils::int2str(len));
   }
   if(nl->IsEqual(nl->First(args),Point::BasicType()) &&
      nl->IsEqual(nl->Second(args),Point::BasicType())){

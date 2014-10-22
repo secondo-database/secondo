@@ -6515,7 +6515,7 @@ Word GLine::In ( const ListExpr typeInfo, const ListExpr instance,
   }
   ListExpr FirstElem = nl->First ( instance );
   ListExpr SecondElem = nl->Second ( instance );
-  if ( !nl->IsAtom ( FirstElem ) || !nl->AtomType ( FirstElem ) == IntType )
+  if ( !nl->IsAtom ( FirstElem ) || (nl->AtomType(FirstElem) != IntType) )
   {
     correct = false;
     pGline->DeleteIfAllowed();
@@ -6544,9 +6544,9 @@ Word GLine::In ( const ListExpr typeInfo, const ListExpr instance,
     ListExpr lrid = nl->First ( start );
     ListExpr lpos1 = nl->Second ( start );
     ListExpr lpos2 = nl->Third ( start );
-    if ( !nl->IsAtom ( lrid ) || !nl->AtomType ( lrid ) == IntType ||
-            !nl->IsAtom ( lpos1 ) || !nl->AtomType ( lpos1 ) == RealType ||
-            !nl->IsAtom ( lpos2 ) || !nl->AtomType ( lpos2 ) == RealType )
+    if ( !nl->IsAtom ( lrid ) || (nl->AtomType ( lrid ) != IntType) ||
+            !nl->IsAtom ( lpos1 ) || (nl->AtomType(lpos1) != RealType) ||
+            !nl->IsAtom ( lpos2 ) || (nl->AtomType(lpos2) != RealType) )
     {
       correct = false;
       pGline->DeleteIfAllowed();
@@ -7894,7 +7894,6 @@ Distance function computes the Euclidean Distance between two ~GPoint~s.
 
 double GPoint::Distance ( const GPoint* pToGPoint ) const
 {
-  map<int,string>::iterator it = netList->begin();
   if ( IsDefined() && pToGPoint->IsDefined() &&
           GetNetworkId() == pToGPoint->GetNetworkId() )
   {
@@ -10444,7 +10443,7 @@ Word GPoints::In ( const ListExpr typeInfo, const ListExpr instance,
   {
     ListExpr first = nl->First ( rest );
     rest = nl->Rest ( rest );
-    if (!nl->ListLength ( first ) == 4)
+    if (nl->ListLength ( first ) != 4)
     {
       correct = false;
       cmsg.inFunError ( "GPoint incorrect.Expected list of 4 Elements." );

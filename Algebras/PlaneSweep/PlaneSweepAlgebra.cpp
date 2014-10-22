@@ -27,7 +27,6 @@ Algorithmen for operations explained in the ROSE-Algebra
 
 */
 
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -42,6 +41,8 @@ using namespace std;
 #include <set>
 #include <queue>
 #include <algorithm>
+
+using namespace std;
 
 // some compiler versions seem not to have a definition for M_PI
 #ifndef M_PI

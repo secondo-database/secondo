@@ -371,7 +371,7 @@ bool Geoid::ReadFrom(const ListExpr instance, const ListExpr typeInfo) {
       ListExpr first = nl->First(instance);
       if(!nl->IsAtom(first)) { return false; }
       if(listutils::isSymbol(first)){
-        _name == nl->SymbolValue(first);
+        _name = nl->SymbolValue(first);
       } else if(nl->IsAtom(first) && (nl->AtomType(first)==StringType)){
         _name =  nl->StringValue(first);
       } else { // error

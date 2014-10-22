@@ -34,6 +34,7 @@ SECONDO types ~picture~ and ~histogram~ are located in other modules.
 #include "QueryProcessor.h"
 #include "PictureAlgebra.h"
 #include "Symbols.h"
+#include "StringUtils.h"
 
 using namespace std;
 
@@ -92,7 +93,7 @@ static ListExpr Picture2ScalarTypeMap(ListExpr args) {
     } else
         ErrorReporter::ReportError(
             "expected only one argument but received "
-            +nl->ListLength(args));
+            + stringutils::int2str(nl->ListLength(args)));
 
     return nl->SymbolAtom(Symbol::TYPEERROR());
 }

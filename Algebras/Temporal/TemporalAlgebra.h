@@ -1779,6 +1779,10 @@ is undefined, or the Instant is not within the unit's timeInterval.
     }
   }
 
+  virtual bool EqualValue( const TemporalUnit<Alpha>& i) const{
+     return EqualValue( *((const ConstTemporalUnit*)&i));
+  }
+
   virtual bool EqualValue( const ConstTemporalUnit<Alpha>& i ) const
   {
     return this->IsDefined() && (constValue.Compare( &i.constValue ) == 0);
@@ -1788,6 +1792,9 @@ Returns ~true~ if the value of this temporal unit is defined and equal to the
 value of the temporal unit ~i~ and ~false~ if they are different.
 
 */
+ virtual bool Merge( const TemporalUnit<Alpha>& i){
+  return  Merge( *((const ConstTemporalUnit<Alpha>*)&i));
+ }
 
   virtual bool Merge( const ConstTemporalUnit<Alpha>& i ) {
     if(!this->IsDefined() && !i.IsDefined()) { // mergeable, but nothing to do
@@ -2116,6 +2123,10 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual bool At( const CcReal& val, TemporalUnit<CcReal>& result ) const;
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<CcReal>& result ) const;
+
+  virtual bool EqualValue(const TemporalUnit<CcReal>& i1) const{
+    return TemporalUnit<CcReal>::EqualValue(i1);
+  }
 
   virtual bool EqualValue( const UReal& i1 ) const
   {
@@ -2697,6 +2708,10 @@ The vectorial velocity --- (X,Y)-components --- as temporal function
 temporal function.
 
 */
+ virtual bool EqualValue( const TemporalUnit<Point>& i) const{
+   return EqualValue(* ((UPoint*) &i));
+ }
+
   virtual bool EqualValue( const UPoint& i ) const {
     if( !IsDefined() && !i.IsDefined() ){
       // both undefined
@@ -2739,6 +2754,10 @@ temporal function.
 //       cout << "\t" << __PRETTY_FUNCTION__
 //            << " SUCCEEDED: all points matched." << endl;
     return true;
+  }
+
+  virtual bool Merge( const TemporalUnit<Point>& i){
+    return Merge(*((UPoint*) &i));
   }
 
   virtual bool Merge( const UPoint& i ) {
@@ -3619,6 +3638,10 @@ is set to true, the units are only removed if the stored value is equals to
 the given value.
 
 */
+  virtual void Restrict(const vector<pair<int, int> >& intervals){
+    return Mapping<ConstTemporalUnit<CcInt>, CcInt>::Restrict(intervals);
+  }
+
    void Restrict(MInt& result,
                  const bool useValue = false,
                  const int value = 0) const;

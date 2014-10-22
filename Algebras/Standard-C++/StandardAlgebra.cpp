@@ -1786,7 +1786,7 @@ ListExpr CcTypeMapNumNumOptNumOptBoolReal( ListExpr args ){
                              nl->OneElemList(nl->BoolAtom(false)),
                              nl->SymbolAtom(CcReal::BasicType()));
   }
-  if( (noargs==4) ){
+  if( noargs==4 ){
     if( !listutils::isNumericType(nl->Third(args)) ) {
       return listutils::typeError(errmsg);
     }

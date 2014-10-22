@@ -198,7 +198,7 @@ ostream& RouteLocation::Print(ostream& os) const
     side.Print(os);
   }
   else
-    os << Symbol::UNDEFINED << endl;
+    os << Symbol::UNDEFINED() << endl;
 
   return os;
 }

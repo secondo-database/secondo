@@ -48,6 +48,7 @@ class Array
     static const bool checkType(const ListExpr list){
        bool implemented = false;
        assert(implemented);
+       return false;
     }
 
   static Word genericClone( int algebraId,

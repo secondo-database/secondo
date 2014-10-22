@@ -68,7 +68,7 @@ answer string, it disconnects from the message queue server.
 class Messenger
 {
  public:
-  Messenger( const string& queueName )
+  Messenger( const std::string& queueName )
     : msgQueue( queueName ) {};
 /*
 Creates a messenger instance for communication with the message queue ~queueName~.
@@ -79,7 +79,7 @@ Creates a messenger instance for communication with the message queue ~queueName
 Destroys a messenger instance.
 
 */
-  bool Send( const string& message, string& answer );
+  bool Send( const std::string& message, std::string& answer );
 /*
 Send the ~message~ string to the message queue and wait for the ~answer~ string.
 If the communication was successful, the method returns "true"[4].
@@ -87,7 +87,7 @@ If the communication was successful, the method returns "true"[4].
 */
  protected:
  private:
-  string msgQueue; // Name of the message queue
+  std::string msgQueue; // Name of the message queue
 };
 
 #endif

@@ -25,7 +25,6 @@ deal with basic attributes such as image heigh or width.
 
 */
 
-using namespace std;
 
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
@@ -33,6 +32,8 @@ using namespace std;
 #include "JPEGPicture.h"
 #include "PictureAlgebra.h"
 #include "Attribute.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

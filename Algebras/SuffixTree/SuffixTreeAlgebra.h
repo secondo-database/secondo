@@ -74,7 +74,7 @@ class SuffixTree : public Attribute
 
     SuffixTreeVertex* GetRootVertex();
 
-    bool Equal(Attribute * arg) const;
+    bool Equal(const Attribute * arg) const;
 
     //for attribute
     size_t HashValue() const;
@@ -146,7 +146,7 @@ resp. the name Secondo uses for this type.
 This constructor should not be used.
 
 */
-     friend class ConstructorFunctions<SuffixTree>;
+     friend struct ConstructorFunctions<SuffixTree>;
 
 
      //member

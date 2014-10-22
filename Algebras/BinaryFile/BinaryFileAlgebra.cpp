@@ -41,7 +41,6 @@ An operator to save the contents into a file is provided.
 
 */
 
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -55,6 +54,9 @@ using namespace std;
 #include "BinaryFileAlgebra.h"
 #include "FTextAlgebra.h"
 #include <cstdlib>
+#include <string>
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

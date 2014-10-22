@@ -585,8 +585,6 @@ it is either empty or all of the following statements are true:
       return SetWord(new Histogram2d(false));
     }
 
-    Word w = SetWord(Address(0) );
-
     Histogram2d* newHist = new Histogram2d(true);
     const ListExpr *concise = &instance;
     ListExpr rangeXList;
@@ -2831,12 +2829,10 @@ Argument 0 Histogram2d, 1 real value
         const bool lexicographic,
         void *tupleSmaller ):
     stream( stream ),
-    currentIndex( 0 ),
     lexiTupleSmaller( lexicographic ?
         (LexicographicalTupleSmaller*)tupleSmaller :
         0 ),
     tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleSmaller ),
-    lexicographic( lexicographic ),
     count( 0 )
     {
       // Note: Is is not possible to define a Cmp object using the
@@ -3106,12 +3102,10 @@ Argument 0 Histogram2d, 1 real value
     }
 
     Word stream;
-    size_t currentIndex;
 
     // tuple information
     LexicographicalTupleSmaller *lexiTupleSmaller;
     TupleCompareBy *tupleCmpBy;
-    bool lexicographic;
 
     size_t count;
 
@@ -3137,12 +3131,10 @@ Argument 0 Histogram2d, 1 real value
         const bool lexicographic,
         void *tupleSmaller ):
     stream( stream ),
-    currentIndex( 0 ),
     lexiTupleSmaller( lexicographic ?
         (LexicographicalTupleSmaller*)tupleSmaller :
         0 ),
     tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleSmaller ),
-    lexicographic( lexicographic ),
     count( 0 )
     {
       // Note: Is is not possible to define a Cmp object using the
@@ -3416,13 +3408,10 @@ In this case we need to delete also all tuples stored in memory.
     }
 
     priority_queue<TupleAndRelPos> stream;
-    size_t currentIndex;
 
     // tuple information
     LexicographicalTupleSmaller *lexiTupleSmaller;
     TupleCompareBy *tupleCmpBy;
-    bool lexicographic;
-
     size_t count;
 
     // sorted runs created by in memory heap filtering

@@ -923,6 +923,9 @@ bool NestedRelation::readString( string& s, SmiRecord& valueRecord,
    char c;
    bool ok = true;
    ok = ok && valueRecord.Read( &size, sizeof( int ), offset);
+   if(!ok){
+     return false;
+   }
    offset += sizeof( int );
    for (int i = 0; i < size; i++)
    {
@@ -2742,7 +2745,6 @@ class UnnestInfo2{
       stream(_stream),
       arelIndex(_arelIndex),
       noAttr(_noAttr),
-      noAttrARel(_noAttrARel),
       tt(0),lastTuple(0),indexARel(0), rel(0),tupleIds(0){
       tt = new TupleType(attrList);
       stream.open();
@@ -2778,7 +2780,6 @@ class UnnestInfo2{
    Stream<Tuple> stream;
    int arelIndex;
    int noAttr;
-   int noAttrARel;
    TupleType* tt;
    Tuple* lastTuple;
    int indexARel;

@@ -273,7 +273,7 @@ vector<int>* Graph::GetSuccKeysFrom(const int key) const {
 
    // key does not exist?
    if (AVLTree<verticesStruct>::ReadNode(vertices,node,key,verticesRoot)<0)
-     return false;
+     return 0;
 
    vector<int>* result = new vector<int>(0);
    AVLTree<adjStruct>::ReadKeys(adjlist,result,node.elem.succ);

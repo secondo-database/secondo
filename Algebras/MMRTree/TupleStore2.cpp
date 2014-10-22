@@ -73,7 +73,7 @@ Returns the tuple for a given tupleId. If the tuple does not exist,
 */
 
 Tuple* TupleStore2::GetTuple(const TupleId id){
-   if( (id<0) || (id>=elems.size())){
+   if(id>=elems.size()){
       return 0;
    }
    Tuple* res = elems[id];

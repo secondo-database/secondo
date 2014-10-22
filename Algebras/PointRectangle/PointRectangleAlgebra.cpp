@@ -487,7 +487,7 @@ Secondo uses for this type.
   XRectangle() {}
   // Since we want to use some default implementations we need
   // to allow access to private members for the class below.
-  friend class ConstructorFunctions<XRectangle>;
+  friend struct  ConstructorFunctions<XRectangle>;
 
   int xl;
   int xr;

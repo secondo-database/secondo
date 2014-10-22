@@ -291,11 +291,6 @@ External buffer
 
 */
 
-    TupleType *tupleType;
-/*
-~TupleType~ for the buffer.
-
-*/
 
     bool inMemory;
 /*

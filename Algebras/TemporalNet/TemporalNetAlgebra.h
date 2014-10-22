@@ -158,7 +158,7 @@ Functions for Secondo integration.
 
     int NumOfFLOBs() const;
 
-    Flob* GetFLOB(const int i) const;
+    Flob* GetFLOB(const int i);
 
     static void* Cast(void* addr);
 

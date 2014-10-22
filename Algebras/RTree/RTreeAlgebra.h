@@ -361,7 +361,7 @@ Returns the size of the entry in disk.
 
   void Read( char *buffer, int& offset )
   {
-    memcpy( &this->box, buffer+offset, sizeof(BBox<dim>) );
+    memcpy((char*)(&this->box), buffer+offset, sizeof(BBox<dim>) );
     new(&this->box) BBox<dim>();
     offset += sizeof(BBox<dim>);
     memcpy( &pointer, buffer+offset, sizeof(SmiRecordId) );
@@ -374,7 +374,7 @@ Reads an entry from the buffer. Offset is increased.
 
   void Write( char *buffer, int& offset )
   {
-    memcpy( buffer+offset, &this->box, sizeof(BBox<dim>) );
+    memcpy( buffer+offset,(void*)(&this->box), sizeof(BBox<dim>) );
     offset += sizeof(BBox<dim>);
     memcpy( buffer+offset, &pointer, sizeof(SmiRecordId) );
     offset += sizeof(SmiRecordId);
@@ -447,7 +447,7 @@ Returns the size of the entry in disk.
 
   void Read( char *buffer, int& offset )
   {
-    memcpy( &this->box, buffer+offset, sizeof(BBox<dim>) );
+    memcpy((char*)( &this->box), buffer+offset, sizeof(BBox<dim>) );
     new(&this->box) BBox<dim>();
     offset += sizeof(BBox<dim>);
     memcpy( &info, buffer+offset, sizeof(Info) );
@@ -460,7 +460,7 @@ Reads an entry from the buffer. Offset is increased.
 
   void Write( char *buffer, int& offset )
   {
-    memcpy( buffer+offset, &this->box, sizeof(BBox<dim>) );
+    memcpy( buffer+offset,(char*)( &this->box), sizeof(BBox<dim>) );
     offset += sizeof(BBox<dim>);
     memcpy( buffer+offset, &info, sizeof(Info) );
     offset += sizeof(Info);
@@ -2036,20 +2036,20 @@ The record file of the R-Tree.
         nodeCount( 0 ), entryCount( 0 ), height( 0 ),
         second_head_id(0),path_rec_id(0), share(0)
         {}
-      Header( SmiRecordId headerRecordId, SmiRecordId rootRecordId = 0,
-              int minEntries = 0, int maxEntries = 0,
-              int minInternalEntries = 0, int maxInternalEntries = 0,
-              int nodeCount = 0, int entryCount = 0,
-              int nodeSize = 0, int height = 0, int s =0 ) :
-        headerRecordId( headerRecordId ),
-        rootRecordId( rootRecordId ),
-        minLeafEntries( minLeafEntries ),
-        maxLeafEntries( maxLeafEntries ),
-        minInternalEntries( minInternalEntries ),
-        maxInternalEntries( maxInternalEntries ),
-        nodeCount( nodeCount ),
-        entryCount( entryCount ),
-        height( height ), share(s)
+      Header( SmiRecordId _headerRecordId, SmiRecordId _rootRecordId = 0,
+              int _minEntries = 0, int _maxEntries = 0,
+              int _minInternalEntries = 0, int _maxInternalEntries = 0,
+              int _nodeCount = 0, int _entryCount = 0,
+              int _nodeSize = 0, int _height = 0, int s =0 ) :
+        headerRecordId( _headerRecordId ),
+        rootRecordId( _rootRecordId ),
+        minLeafEntries( _minEntries ),
+        maxLeafEntries( _maxEntries ),
+        minInternalEntries( _minInternalEntries ),
+        maxInternalEntries( _maxInternalEntries ),
+        nodeCount( _nodeCount ),
+        entryCount( _entryCount ),
+        height( _height ), share(s)
         {}
 
       ostream& print(ostream& o) const{

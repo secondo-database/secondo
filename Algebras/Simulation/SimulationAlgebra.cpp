@@ -1976,11 +1976,6 @@ class SimulationAlgebra : public Algebra
   ~SimulationAlgebra() {};
 
   private:
-    bool initialized;
-    const gsl_rng_type **simalg_randomgeneratorTable;
-    // number of generator types available:
-    int sim_randomgeneratorTableSize;
-    int sim_rng_defaultIndex;
 };
 
 

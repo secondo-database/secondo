@@ -81,7 +81,6 @@ class OrderedRelationIterator : public GenericRelationIterator {
     bool endOfScan;
     TupleType* tupleType;
     TupleType* outtype;
-    SmiBtreeFile* tupleFile;
     SmiFileId lobFileId;
     CompositeKey key;
     TupleId appendix;

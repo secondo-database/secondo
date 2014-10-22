@@ -41,11 +41,13 @@ for the implementation of operators to update relations.
 
 */
 
-using namespace std;
 
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
 #include "ListUtils.h"
+#include <string>
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

@@ -8972,7 +8972,7 @@ static int BboxValueMapIRegion(Word* args,
       min[2] = ur->instant.ToDouble();
       max[0] = r.MaxD(0);
       max[1] = r.MaxD(1);
-      max[3] = min[2];
+      max[2] = min[2];
       res->Set(true, min, max);
     }
     return (0);

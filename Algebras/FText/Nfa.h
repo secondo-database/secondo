@@ -1649,7 +1649,6 @@ void Nfa<sigma>::append(const Nfa<sigma>& second){
 
    typename std::vector<State<sigma> >::const_iterator it;
    int num = states.size();
-   int count = 1;
    for(it = second.states.begin(); it != second.states.end(); it++){
      State<sigma> s = *it;
      s.shift(num);

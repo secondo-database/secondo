@@ -6275,7 +6275,7 @@ ListExpr sqlExportTM(ListExpr args){
    return listutils::typeError(err);
  } 
 
- if((len==4)){
+ if(len==4){
    if(!CcBool::checkType(nl->Fourth(args))){
      return listutils::typeError(err);
    }
@@ -6528,7 +6528,7 @@ public:
        // error during initialization
        return 0;
      }
-     if( (posy==gridsize)){
+     if( posy==gridsize){
        return 0;
      }
      if(!f->good()){

@@ -43,7 +43,6 @@ respectively correspond to the memory representation for the type constructors
 #ifndef GRAPHALGEBRA_H_
 #define GRAPHALGEBRA_H_
 
-using namespace std;
 
 
 #include <vector>
@@ -56,6 +55,7 @@ using namespace std;
 #include "StandardTypes.h"    //always needed in Algebras
 #include "StringUtils.h"
 
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

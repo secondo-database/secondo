@@ -133,8 +133,6 @@ class SwitchAlgorithm : public FunVector {
   public:
     void request(Word, Word&, string);
     void request(Word, Word, Word&, string);
-  private:
-    int counter;
 };
 
 /*

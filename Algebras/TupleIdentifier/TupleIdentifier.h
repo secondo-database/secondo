@@ -40,7 +40,6 @@ for the implementation of operators to update relations.
 #ifndef TUPLEIDENTIFIER_H
 #define TUPLEIDENTIFIER_H
 
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -48,6 +47,8 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include <string>
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

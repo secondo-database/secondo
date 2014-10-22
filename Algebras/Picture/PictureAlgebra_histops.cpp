@@ -29,14 +29,16 @@ a ~histogram~ object.
 
 */
 
-using namespace std;
 
 #include "Algebra.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "NestedList.h"
+#include "StringUtils.h"
 
 #include "PictureAlgebra.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -243,7 +245,7 @@ ListExpr PictureColordistTypeMap(ListExpr args) {
     {
         ErrorReporter::ReportError(
             "expected four arguments but received "
-            +nl->ListLength(args));
+            +stringutils::int2str(nl->ListLength(args)));
 
         return( nl->SymbolAtom(Symbol::TYPEERROR()));
     }
@@ -285,7 +287,7 @@ ListExpr PictureEqualsTypeMap(ListExpr args) {
     {
         ErrorReporter::ReportError(
             "expected four arguments but received "
-            +nl->ListLength(args));
+            +stringutils::int2str(nl->ListLength(args)));
 
         return( nl->SymbolAtom(Symbol::TYPEERROR()));
     }
@@ -347,7 +349,7 @@ ListExpr PictureLikeTypeMap(ListExpr args) {
     {
         ErrorReporter::ReportError(
             "expected five arguments but received "
-            +nl->ListLength(args));
+            +stringutils::int2str(nl->ListLength(args)));
 
         return( nl->SymbolAtom(Symbol::TYPEERROR()));
     }

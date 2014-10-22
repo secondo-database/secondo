@@ -101,7 +101,7 @@ class SecondoTTY : public Application
  public:
   SecondoTTY( const TTYParameter& t );
   virtual ~SecondoTTY() {};
-  bool AbortOnSignal( int sig );
+  bool AbortOnSignal( int sig ) const;
   int  Execute();
 
  private:
@@ -164,7 +164,7 @@ SecondoTTY::SecondoTTY( const TTYParameter& t )
 }
 
 bool
-SecondoTTY::AbortOnSignal( int sig )
+SecondoTTY::AbortOnSignal( int sig ) const
 {
   return (true);
 }

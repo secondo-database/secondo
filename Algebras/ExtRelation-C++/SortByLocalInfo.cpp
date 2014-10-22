@@ -342,13 +342,11 @@ In this case we need to delete also all tuples stored in memory.
 		     void *tupleCmp, ProgressLocalInfo* p, Supplier s ):
       ProgressWrapper(p),
       stream( stream ),
-      currentIndex( 0 ),
       tupleCount(0),
       lexiTupleCmp( lexicographic ?
                     (LexicographicalTupleSmaller*)tupleCmp :
                     0 ),
-      tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
-      lexicographic( lexicographic )
+      tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp )
       {
         // Note: It is not possible to define a Cmp object using the
         // constructor

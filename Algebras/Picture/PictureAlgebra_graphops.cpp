@@ -25,13 +25,15 @@ deal with graphical operations like scale, cut, mirror and flipleft.
 
 */
 
-using namespace std;
 
 #include "PictureAlgebra.h"
 #include "JPEGPicture.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "StringUtils.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -231,7 +233,7 @@ ListExpr PictureScaleTypeMap(ListExpr args) {
     {
       ErrorReporter::ReportError(
           "expected three arguments but received "
-          +nl->ListLength(args));
+          +stringutils::int2str(nl->ListLength(args)));
     }
 
     return nl->SymbolAtom(Symbol::TYPEERROR());
@@ -263,7 +265,7 @@ ListExpr PictureCutTypeMap(ListExpr args) {
     {
       ErrorReporter::ReportError(
           "expected five arguments but received "
-          +nl->ListLength(args));
+          +stringutils::int2str(nl->ListLength(args)));
     }
 
     return nl->SymbolAtom(Symbol::TYPEERROR());
@@ -291,7 +293,7 @@ ListExpr PictureFlipleftTypeMap(ListExpr args) {
     {
       ErrorReporter::ReportError(
           "expected two arguments but received "
-          +nl->ListLength(args));
+          +stringutils::int2str(nl->ListLength(args)));
     }
 
     return nl->SymbolAtom(Symbol::TYPEERROR());
@@ -319,7 +321,7 @@ ListExpr PictureMirrorTypeMap(ListExpr args) {
     {
       ErrorReporter::ReportError(
           "expected two arguments but received "
-          +nl->ListLength(args));
+          +stringutils::int2str(nl->ListLength(args)));
     }
 
     return nl->SymbolAtom(Symbol::TYPEERROR());

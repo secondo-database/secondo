@@ -110,7 +110,6 @@ void DiceTree::appendText(string text, bool left){
       return;
   }
   int max = text.length()>depth?depth:text.length();
-  max = max;
   for(int i=0;i<max;i++){
     string subtext = text.substr(0,i);
     tree->insert(subtext,left);    

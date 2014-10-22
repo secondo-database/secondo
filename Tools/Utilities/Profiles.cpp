@@ -24,7 +24,6 @@ Jan 2005, M. Spiekermann. Changes in getParameter.
 
 */
 
-using namespace std;
 
 #include <string>
 #include <iostream>
@@ -35,6 +34,8 @@ using namespace std;
 #include <stdio.h>
 #include <unistd.h>
 #include "Profiles.h"
+
+using namespace std;
 
 #ifdef SECONDO_WIN32
 #include <windows.h>

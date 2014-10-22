@@ -83,6 +83,12 @@ result value will be 0.
 
 #define YYERROR_VERBOSE
 
+extern int yylex();
+extern int yyerror();
+extern void yy_scan_string(const char*);
+extern void tree_scan_string(const char*);
+extern void deleteCurrentBuffer();
+
 
 /*
 
@@ -119,7 +125,7 @@ struct stack* treestack;
 Pushes a new element on the stack.
 
 */
-push(struct tree* entry){
+void push(struct tree* entry){
     struct stack*  newelem = (struct stack*) (malloc((sizeof(struct stack))));
     newelem->next = treestack;
     newelem->entry= entry;

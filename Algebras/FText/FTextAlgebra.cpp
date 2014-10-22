@@ -7918,7 +7918,7 @@ int str2intVM1( Word* args, Word& result, int message,
   ss.str(str);
   int r;
   ss >> r;
-  if(r!=r || (!ss.eof())){
+  if(!ss.eof()){
     res->SetDefined(false);
   } else {
     res->Set(true,r);

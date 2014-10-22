@@ -24,12 +24,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-using namespace std;
 
 #include <cstdio>
 #include <string>
 #include <string.h>
 #include "NestedText.h"
+
+using namespace std;
 
 /*
 If ~left~ is NULL then this represents an atom, otherwise it is a list in

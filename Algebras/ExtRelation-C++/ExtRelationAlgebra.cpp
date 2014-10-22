@@ -2589,9 +2589,6 @@ Computes the hash value of a tuple based on the key attributes.
      for(size_t i=0;i<positions.size();i++){
         hash += tuple->GetAttribute(positions[i])->HashValue();
      }
-     if(hash < 0){
-        hash = -hash;
-     }
      return hash % buckNum;
    }
 
@@ -11523,7 +11520,7 @@ class ExtendNextInfo{
   public:
     ExtendNextInfo(Word& _stream, Supplier _s1, 
                    ListExpr resType):
-      stream(_stream), s1(_s1), first(true), lastTuple(0){
+      stream(_stream), s1(_s1), lastTuple(0){
       tupleType = new TupleType(resType);
       stream.open();
     }
@@ -11586,7 +11583,6 @@ class ExtendNextInfo{
   private:
     Stream<Tuple> stream;
     Supplier s1;
-    bool first;
     TupleType* tupleType;
     Tuple* lastTuple;
 
@@ -11733,11 +11729,11 @@ class ToFieldsInfo {
     int keypos;
     vector<string> fields, types;
     TupleType* tt;
-    int algid, typid, attrno;
+    int algid, typid;
     bool istype;
     vector<OutObject> outfuns;
     vector<ListExpr> typelists;
-    ListExpr typelist, output;
+    ListExpr typelist;
 };
 
 ToFieldsInfo::ToFieldsInfo( Word& is, vector<string> &fields1,

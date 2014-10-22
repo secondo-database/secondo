@@ -31,11 +31,12 @@ it calls the external function ~yyparse~ provided by bison.
 
 */
 
-using namespace std;
 
 #include "LogMsg.h"
 #include "NLScanner.h"
 #include "NLParser.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern CMsg cmsg;

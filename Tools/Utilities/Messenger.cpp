@@ -21,19 +21,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-using namespace std;
 
 #include <iostream>
 #include <string>
 #include "Messenger.h"
 #include "SocketIO.h"
 
+using namespace std;
+
 bool
 Messenger::Send( const string& message, string& answer )
 {
   bool ok = false;
   answer = "";
-  Socket* msgServer = Socket::Connect( msgQueue, "", Socket::SockLocalDomain, 3, 1 );
+  Socket* msgServer = Socket::Connect( msgQueue, "", 
+                          Socket::SockLocalDomain, 3, 1 );
   if ( msgServer && msgServer->IsOk() )
   {
     iostream& ss = msgServer->GetSocketStream();

@@ -267,7 +267,7 @@ Appends the tuples, the Ids of which are saved in tupleIds, to nrel.
         
        
    private:        
-        friend class ConstructorFunctions<AttributeRelation>; 
+        friend struct ConstructorFunctions<AttributeRelation>; 
        
         DbArray<TupleId> tupleIds;              
 /*

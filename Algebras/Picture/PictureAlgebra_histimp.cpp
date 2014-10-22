@@ -30,12 +30,13 @@ SECONDO to use ~Histogram~ plus basic SECONDO operators on ~histogram~.
 
 */
 
-using namespace std;
 
 #include <cmath>
 #include "NestedList.h"
 #include "PictureAlgebra.h"
 #include "JPEGPicture.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -98,7 +99,7 @@ Histogram::Histogram( unsigned char * rgbData,
         for ( unsigned int i=channel; i<rgbSize; i+=3 )
         {
                 no = (unsigned int) rgbData[i];
-                if ( (no < 0) || (no > 255 ))
+                if (no > 255)
                         cerr << "color value out of range: " << no  <<", ";
                 else
                 {

@@ -460,13 +460,15 @@ SuffixTreeVertex::CreateListExprFromSuffixtree(SuffixTreeVertex* tree)
     }
     // Die Kanten eines Knotens werden in einer List gespeichert
     if (!sonVector->empty()){
-    list = nl->OneElemList(sonVector->at(0));
-    ListExpr last = list;
-    for (size_t i = 1; i < sonVector->size(); i++)
-    {
-      nl->Append(last, sonVector->at(i));
-      last = nl->Rest(last);
-    }
+      list = nl->OneElemList(sonVector->at(0));
+      ListExpr last = list;
+      for (size_t i = 1; i < sonVector->size(); i++)
+      {
+         nl->Append(last, sonVector->at(i));
+         last = nl->Rest(last);
+       }
+    } else{
+      list = nl->TheEmptyList();
     }
   // cleanup
   delete sonVector;

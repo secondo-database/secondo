@@ -28,7 +28,6 @@ April 2003 Ulrich Telle Fixed a bug in the transfer of Win32 socket handle on Wi
 
 */
 
-using namespace std;
 
 #include <cstdlib>
 #include <iostream>
@@ -36,6 +35,8 @@ using namespace std;
 #include <string>
 
 #include "Processes.h"
+
+using namespace std;
 
 #ifndef _POSIX_OPEN_MAX
 #define _POSIX_OPEN_MAX 256

@@ -35,7 +35,6 @@ level remains. Models are also removed from type constructors.
 1 Includes and Defines
 
 */
-using namespace std;
 
 #include "Algebra.h"
 #include "SecondoSystem.h"
@@ -63,6 +62,8 @@ using namespace std;
 #include <errno.h>
 #include <sstream>
 #include <typeinfo>
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

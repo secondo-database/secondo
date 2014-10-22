@@ -100,6 +100,7 @@ ostream& PairIntDouble::Print(ostream& os) const
   os << "junction id: " << jid
      << ", distance: " << dist
      << endl;
+  return os;
 }
 
 /*

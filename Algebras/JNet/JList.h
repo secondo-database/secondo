@@ -197,6 +197,9 @@ Restricts the list to the given values
 
 JList<ListElem>& Restrict(const ListElem& sub);
 JList<ListElem>& Restrict(const JList<ListElem>& sub);
+void Restrict(const vector<pair<int,int> >& interval){
+  Attribute::Restrict(interval);
+}
 
 /*
 1.1.1.1 Controll Bulkload of lists

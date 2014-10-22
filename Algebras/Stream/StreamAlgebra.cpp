@@ -3223,7 +3223,7 @@ streamFilterType( ListExpr args )
 
       // test second argument for map T' bool. T = T'
       if ( nl->IsAtom(map)
-           || !nl->ListLength(map) == 3
+           || (nl->ListLength(map) != 3)
            || !nl->IsEqual(nl->First(map), Symbol::MAP())
            || !nl->IsEqual(nl->Third(map), CcBool::BasicType()) )
         {

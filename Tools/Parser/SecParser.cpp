@@ -31,7 +31,6 @@ During implementation of ~xxerror~ this was confusing.
 
 */
 
-using namespace std;
 
 #include <stdlib.h>
 #include <iostream>
@@ -41,6 +40,8 @@ using namespace std;
 #include "NestedText.h"
 #include "SecParser.h"
 #include "LogMsg.h"
+
+using namespace std;
 
 #ifndef yyFlexLexer
 #define yyFlexLexer xxFlexLexer

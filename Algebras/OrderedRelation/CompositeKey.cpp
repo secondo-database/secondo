@@ -48,7 +48,7 @@ CompositeKey::CompositeKey(const Tuple* t, const vector<int>& keyElements,
                            const bool append, const TupleId appendix):
                            IndexableAttribute(false),data(0) {
 
-  if((!append) xor (appendix<0)) {
+  if((!append) xor (false)) {
     return;
   }
 

@@ -88,13 +88,11 @@ class SortByLocalInfo : protected ProgressWrapper
 		void ShowPartitionInfo( int c, int a, int n,
 		            int m, int r, GenericRelation* rel );
     Word stream;
-    size_t currentIndex;
     size_t tupleCount;
 
     // tuple information
     LexicographicalTupleSmaller *lexiTupleCmp;
     TupleCompareBy *tupleCmpBy;
-    bool lexicographic;
 
     // sorted runs created by in memory heap filtering
     size_t MAX_MEMORY;

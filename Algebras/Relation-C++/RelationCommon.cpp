@@ -861,7 +861,7 @@ bool IsTupleDescription( ListExpr a )
          ErrorReporter::ReportError("Attribut description must have length 2");
       }
       if(!nl->IsAtom(nl->First(current)) ||
-         !nl->AtomType(nl->First(current)) == SymbolType){
+         (nl->AtomType(nl->First(current)) != SymbolType)){
          ErrorReporter::ReportError("Attribute name must be a symbol.");
       }
       if(! am->CheckKind(Kind::DATA(),nl->Second(current),errorInfo)){

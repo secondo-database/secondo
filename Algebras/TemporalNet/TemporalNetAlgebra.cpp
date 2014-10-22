@@ -7456,7 +7456,7 @@ int MGPSecUnit::NumOfFLOBs()const
   return 0;
 }
 
-Flob* MGPSecUnit::GetFLOB(const int i) const
+Flob* MGPSecUnit::GetFLOB(const int i)
 {
   return 0;
 }

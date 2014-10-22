@@ -62,8 +62,8 @@ const int64_t DELTA_NUMBERS =                // Precision factor, used within
 
 
 
-const uint64_t NEGZERO =                    // Used in AlmostEqual2sComplement()
-  ((uint64_t)(0x1)) << ((sizeof(double)*8)-1);// must be 2^(bitlength(double)-1)
+//const uint64_t NEGZERO =                  // Used in AlmostEqual2sComplement()
+//((uint64_t)(0x1)) << ((sizeof(double)*8)-1);// must be 2^(bitlength(double)-1)
 
 
 /*

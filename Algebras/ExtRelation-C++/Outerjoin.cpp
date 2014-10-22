@@ -612,8 +612,6 @@ private:
 
   // buffer limits  
   size_t MAX_MEMORY;
-  size_t MAX_TUPLES_IN_MEMORY;
-
   // buffer related members
   TupleBuffer *grpB;
   GenericRelationIterator *iter;
@@ -661,9 +659,6 @@ private:
   // a flag needed in function NextTuple which tells
   // if the merge with grpB has been finished
   bool continueMerge;
-
-  bool continueUndefB;
-  bool continueUndefA;
 
   template<bool BOTH_B>
   int CompareTuples(Tuple* t1, Tuple* t2)

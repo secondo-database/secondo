@@ -39,7 +39,6 @@ This algebra provides a type constructor ~pointsequence~.
 
 */
 
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -54,6 +53,8 @@ using namespace std;
 #include "Symbols.h"
 #include "ListUtils.h"
 
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

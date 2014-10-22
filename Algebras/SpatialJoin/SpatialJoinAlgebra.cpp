@@ -29,7 +29,6 @@ according to the evaluation result that we got in parallel processing.
 */
 
 
-using namespace std;
 
 #include <string.h>
 #include <vector>
@@ -39,6 +38,8 @@ using namespace std;
 
 #include "SpatialJoinAlgebra.h"
 #include "Symbols.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

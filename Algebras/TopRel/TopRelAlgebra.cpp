@@ -78,8 +78,8 @@ static const unsigned short P4 = 16;
 static const unsigned short P5 = 32;
 static const unsigned short P6 = 64;
 static const unsigned short P7 = 128;
-static const unsigned short P8 = 256;
-static const unsigned short P9 = 512;
+//static const unsigned short P8 = 256;
+//static const unsigned short P9 = 512;
 
 
 

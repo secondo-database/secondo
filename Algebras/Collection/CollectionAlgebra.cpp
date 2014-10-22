@@ -2477,7 +2477,7 @@ return 0;
 }
 
 ListExpr sizeTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
+if( nl->ListLength(args) > 0)
   {
     ListExpr arg1 = nl->First(args);
 

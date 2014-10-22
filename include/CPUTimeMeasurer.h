@@ -47,8 +47,10 @@ and printed to ~cerr~.
 class CPUTimeMeasurer
 {
 private:
+#ifdef MEASURE_OPERATORS
   clock_t enterTime;
   clock_t exitTime;
+#endif
   clock_t accumulated;
 
 public:

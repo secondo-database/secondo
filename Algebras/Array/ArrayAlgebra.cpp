@@ -100,7 +100,6 @@ for arrays of btree.
 1.1 Includes
 
 */
-using namespace std;
 
 #include <sstream>
 
@@ -115,6 +114,7 @@ using namespace std;
 #include "FunVector.h"
 #include "ArrayAlgebra.h"
 
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

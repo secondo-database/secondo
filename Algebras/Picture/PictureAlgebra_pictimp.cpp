@@ -33,7 +33,6 @@ SECONDO to use ~Picture~ plus basic SECONDO operators on ~picture~.
 
 */
 
-using namespace std;
 
 #include <unistd.h>
 #include <fstream>
@@ -54,6 +53,9 @@ using namespace std;
 #include "DateTime.h"
 #include "LogMsg.h"
 #include "../../Tools/Flob/Flob.h"
+#include "StringUtils.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -526,16 +528,7 @@ bool Picture::Display(void) {
     if (PA_DEBUG) cerr << "Picture::Display() temp file " << filename << endl;
 
     unsigned int len = write(fd, buf, size);
-    if (len < 0) {
-        cerr << "Picture::Display() could not write to temp file '"
-             << filename
-             << "': ";
-        perror("write");
-        unlink(filename);
-        free(filename);
-        delete[] buf;
-        return false;
-    } else if (len != size) {
+    if (len != size) {
         cerr << "Picture::Display() could only partially write to temp file '"
              << filename
              << "'"
@@ -880,7 +873,7 @@ ListExpr PictureDateTypeMap(ListExpr args) {
     } else
         ErrorReporter::ReportError(
             "expected one argument but received "
-            +nl->ListLength(args));
+            +stringutils::int2str(nl->ListLength(args)));
 
     return nl->SymbolAtom(Symbol::TYPEERROR());
 }
@@ -908,7 +901,7 @@ ListExpr PictureExportTypeMap(ListExpr args) {
     } else
         ErrorReporter::ReportError(
             "expected two arguments but received "
-            +nl->ListLength(args));
+            +stringutils::int2str(nl->ListLength(args)));
 
     return nl->SymbolAtom(Symbol::TYPEERROR());
 }
@@ -936,7 +929,7 @@ ListExpr PictureSimpleEqualsTypeMap(ListExpr args) {
     } else
         ErrorReporter::ReportError(
             "expected two arguments but received "
-            +nl->ListLength(args));
+            +stringutils::int2str(nl->ListLength(args)));
 
     return nl->SymbolAtom(Symbol::TYPEERROR());
 }

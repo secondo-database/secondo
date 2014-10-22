@@ -1004,6 +1004,10 @@ the result will be false and the cluster is not changed.
 
     bool Restrict(string condition, const bool updateBC = true);
 
+    virtual void Restrict(const vector<pair<int,int> >& interval){
+      Attribute::Restrict(interval);
+    } 
+
 
 /*
 2.2.22 Relax
@@ -1472,7 +1476,7 @@ int getClusterNumber(const Int9M& toprel) const{
                return i;
            }
        }
-
+       return -1;
 }
 
 

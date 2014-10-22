@@ -38,8 +38,6 @@ March 2006 M. Spiekermann, operators ~within~ and ~within2~ modified.
 
 */
 
-using namespace std;
-
 #include "Algebra.h"
 #include "NestedList.h"
 #include "NList.h"
@@ -48,6 +46,9 @@ using namespace std;
 #include "StandardTypes.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+#include <string>
+
+using namespace std;
 
 
 extern NestedList* nl;

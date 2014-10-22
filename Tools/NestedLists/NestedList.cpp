@@ -90,7 +90,6 @@ A nested list is represented by four stable tables called ~Nodes~, ~Ints~,
 
 */
 
-using namespace std;
 
 #include <string.h>
 #include <string>
@@ -109,6 +108,7 @@ using namespace std;
 #include "StringUtils.h"
 
 
+using namespace std;
 
 
 // used in PagedArray.h

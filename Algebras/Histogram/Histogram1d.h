@@ -356,7 +356,7 @@ histogram given as parameter.
 
 private:
 
-    friend class ConstructorFunctions<Histogram1d>;
+    friend struct ConstructorFunctions<Histogram1d>;
 
     DbArray<HIST_REAL> range;
 

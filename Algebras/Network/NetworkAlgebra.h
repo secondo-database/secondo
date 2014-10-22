@@ -3341,6 +3341,7 @@ struct RITreeP
       os << endl;
       return os;
     }
+    return os;
   }
 
 /*

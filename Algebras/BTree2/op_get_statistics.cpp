@@ -31,10 +31,6 @@ extern QueryProcessor *qp;
 namespace BTree2Algebra {
 namespace Operators {
 
-const double STD_FILL = 0.5;
-const int STD_NODESIZE = 3072;
-const int PAGE_CONST = 29;
-
 ListExpr get_statistics::TypeMapping(ListExpr args)
 {
   if ((nl->ListLength(args) != 1)) {

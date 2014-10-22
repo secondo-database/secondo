@@ -2089,8 +2089,7 @@ Tuple* TupleBuffer::GetTupleAtPos( const size_t pos ) const
 {
   if( inMemory )
   {
-    if( pos >= 0
-        && pos < memoryBuffer.size()
+    if( pos < memoryBuffer.size()
         && memoryBuffer[pos] != 0 )
     {
       return memoryBuffer[pos];
@@ -2104,7 +2103,7 @@ bool TupleBuffer::SetTupleAtPos( const size_t pos, Tuple* t)
 {
   if( inMemory )
   {
-    if( pos >= 0 && pos < memoryBuffer.size() )
+    if(pos < memoryBuffer.size() )
     {
       memoryBuffer[pos] = t;
     }
@@ -2361,8 +2360,7 @@ Tuple* CircularTupleBuffer::GetTupleAtPos( const size_t pos ) const
 {
   if( inMemory )
   {
-    if( pos >= 0
-        && pos < memoryBuffer.size()
+    if( pos < memoryBuffer.size()
         && memoryBuffer[pos] != 0 )
     {
       return memoryBuffer[pos];
@@ -2376,7 +2374,7 @@ bool CircularTupleBuffer::SetTupleAtPos( const size_t pos, Tuple* t)
 {
   if( inMemory )
   {
-    if( pos >= 0 && pos < memoryBuffer.size() )
+    if( pos < memoryBuffer.size() )
     {
       memoryBuffer[pos] = t;
     }

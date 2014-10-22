@@ -127,17 +127,18 @@ SuffixTreeVertex* SuffixTree::GetInMemoryTree()
  The result is true if the text of two SuffixTrees is exactly the same.
 
 */
-bool SuffixTree::Equal(Attribute* arg) const
+bool SuffixTree::Equal(const Attribute* arg) const
 {
   bool res = false;
-  SuffixTree* argumentTree = static_cast<SuffixTree*> (arg);
+  const SuffixTree* argumentTree = 
+       static_cast<const SuffixTree*> (arg);
 
   if (!IsDefined() || !argumentTree->IsDefined())
   {
     return false;
   }
   //get the flob of the suffixtree argument which has the text
-  Flob* textFlobArgument = argumentTree->GetFLOB(2);
+  const Flob* textFlobArgument = &mInput; 
   size_t flobLengthArgument = textFlobArgument->getSize();
   //read the flob and put the characters into an char array
   char *charArrayArgument = (char *) malloc(flobLengthArgument);

@@ -970,7 +970,7 @@ Prints out this node.
 
 */
 
-  virtual ostream& print(ostream& os){
+  virtual ostream& print(ostream& os)const{
      return Node<Dim, Info>::print(os) << next << endl;
   }
 
