@@ -12892,7 +12892,8 @@ int VM_Min(Word* args, Word& result,
    result = qp->ResultStorage(s);
    mtype* arg = (mtype*) args[0].addr;
    bool correct;
-   ((rtype*)result.addr)->Set(correct,arg->Min(correct));
+   typename rtype::ctype res = arg->Min(correct);
+   ((rtype*)result.addr)->Set(correct,res);
    return 0;
 }
 
@@ -12907,7 +12908,8 @@ int VM_Max(Word* args, Word& result,
    result = qp->ResultStorage(s);
    mtype* arg = (mtype*) args[0].addr;
    bool correct;
-   ((rtype*)result.addr)->Set(correct,arg->Max(correct));
+   typename rtype::ctype res = arg->Max(correct);
+   ((rtype*)result.addr)->Set(correct,res);
    return 0;
 }
 

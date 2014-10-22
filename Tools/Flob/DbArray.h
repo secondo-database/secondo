@@ -428,7 +428,7 @@ if( newSize == 0 ){
        if(!Get( j, &e )){
           return false;
        }
-       memcpy( buffer + offset, &e, sizeof( DbArrayElement ) );
+       memcpy( buffer + offset,(char*) &e, sizeof( DbArrayElement ) );
        offset += sizeof( DbArrayElement );
     }
   }

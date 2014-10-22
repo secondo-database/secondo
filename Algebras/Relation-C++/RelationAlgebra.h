@@ -2589,8 +2589,11 @@ and positions the cursor in the first tuple, if exists.
 The destructor.
 
 */
-    Tuple *GetNextTuple(int step);
-    Tuple *GetNextTuple(){return GetNextTuple(1);}
+    virtual Tuple *GetNextTuple(int step);
+    virtual Tuple *GetNextTuple(){return GetNextTuple(1);}
+    virtual Tuple* GetNextTuple(const list<int>& attrList){
+      return RelationIterator::GetNextTuple(attrList);
+    }
 /*
 Retrieves the tuple in the current position of the iterator and moves
 the cursor forward to the next tuple. Returns 0 if the cursor is in

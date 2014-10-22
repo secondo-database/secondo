@@ -108,6 +108,7 @@ class CcInt : public Attribute
  public:
 
   typedef int32_t inttype;
+  typedef int32_t ctype;
 
   static SmiKey::KeyDataType getSMIKeyType(){
        return SmiKey::Integer;
@@ -642,6 +643,8 @@ CcInt operator--(int){
 class CcReal : public Attribute
 {
  public:
+  typedef SEC_STD_REAL ctype;
+  
   inline CcReal()
   {
      realsCreated++;

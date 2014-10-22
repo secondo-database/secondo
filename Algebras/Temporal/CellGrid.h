@@ -652,7 +652,6 @@ int32_t CellGrid<dim>::getCellNo(const double p[dim]) const
   if (!this->IsDefined()){
     return getInvalidCellNo();
   }
-  bool succ = true;
   int32_t cellno = 1;
   for (int d = 0; (unsigned)d < dim; d++)
   {

@@ -185,7 +185,7 @@ class FileInfo {
   int fstatNr;
   // Sequence counter (used as foreigen key)
  
-  string file_name;
+  std::string file_name;
   //The name of the file. 
   
   size_t pagesize;
@@ -207,7 +207,7 @@ class FileInfo {
   //Pages written from the cache to the backing file. 
 
   FileInfo(const int fstatNr_,
-           const string file_name_,
+           const std::string file_name_,
            const size_t pagesize_,
            const size_t cache_hit_,
            const size_t cache_miss_,
