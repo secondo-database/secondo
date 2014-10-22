@@ -135,7 +135,7 @@ Changes the capacity of the DbArray.
 
 */
 
-virtual bool resize( const int newSize ){
+virtual bool resize( const SmiSize& newSize ){
    if(newSize==0){
     return clean();
    }

@@ -187,7 +187,7 @@ Function ~release-storage~ destroys the contents of the text and node buffers. S
 
 *****************************************/
 
-release_storage()
+void release_storage()
 {   first_free_char = 0;
     first_free_node = 0;
 }
@@ -198,7 +198,7 @@ Function ~show-storage~ writes the contents of the text and node buffers to stan
 
 *****************************************/
 
-show_storage()
+void show_storage()
 {   int i;
     fprintf(stderr,"first_free_char %d\n",first_free_char); 	
     for (i = 0; i < first_free_char; i++) putchar(text[i]);

@@ -33,7 +33,6 @@ through sockets.
 
 */
 
-using namespace std;
 
 #include "SecondoConfig.h"
 #include "SocketIO.h"
@@ -45,6 +44,8 @@ using namespace std;
 #else
 #include "UnixSocket.cpp"
 #endif
+
+using namespace std;
 
 iostream&
 Socket::GetSocketStream()
@@ -110,8 +111,8 @@ SocketBuffer::overflow( int ch )
   return (ch);
 }
 
-int
-SocketBuffer::xsputn( const char* s, int n )
+streamsize
+SocketBuffer::xsputn( const char* s, streamsize n )
 {
   int wval = epptr() - pptr();
   if ( n <= wval )
@@ -164,8 +165,8 @@ SocketBuffer::uflow()
 }
 
 
-int
-SocketBuffer::xsgetn( char* s, int n )
+streamsize
+SocketBuffer::xsgetn( char* s, streamsize n )
 {
   int rval = (gptr() && gptr() < egptr()) ? egptr() - gptr() : 0;
   if (rval >= n)
@@ -1358,13 +1359,13 @@ bool UDPsocket::shutdown(UDPSocketState how)
     __UDP_EXIT__
     return false;
   }
-  if( (status == UDPVOID) ){
+  if( status == UDPVOID ){
     ok = false;
     errorMsg = "Void socket.";
     __UDP_MSG("Void socket!")
         return false;
   }
-  if( (status == UDPFRESH) ){
+  if( status == UDPFRESH ){
     ok = false;
     errorMsg = "Socket unbound.";
     __UDP_MSG("Socket unbound!")

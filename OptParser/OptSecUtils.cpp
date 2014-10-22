@@ -183,7 +183,7 @@ Checks whether the list is a symbol and holds the given value.
 
 bool isSymbol(ListExpr l, const string& value)
 {
-  if (!plnl->AtomType(l) == SymbolType)
+  if (plnl->AtomType(l) != SymbolType)
   {
     return false;
   }
@@ -199,7 +199,7 @@ Checks whether a list is a symbol.
 
 bool isSymbol(ListExpr l)
 {
-  if (!plnl->AtomType(l) == SymbolType)
+  if (plnl->AtomType(l) != SymbolType)
   {
     return false;
   }
@@ -756,7 +756,7 @@ string getOperatorType(string operatorname, list<string>& parameters)
         result1, errorCode, errorPos, errorMsg);
 
     cout << "OptSecUtils errorMsg: " << errorMsg << endl;
-    if (!errorMsg.size() > 0)
+    if (errorMsg.size() == 0)
     {
       string operatorreturntype = plnl->ToString(plnl->Second(result1));
       cout << "*** getOperatorType operatorreturntype : "
@@ -805,7 +805,7 @@ string getAttributeType(string attribute, string relation)
   //(('(rel (tuple ((Kennzeichen string) (Ort string) 
   // (Vorwahl string) (BevT int))))'))
   std::cout << "still livin here" << std::endl;
-  if (!errorMsg.size() > 0)
+  if (errorMsg.size() == 0)
   {
     string attributetype = plnl->ToString(plnl->Second(result1));
     cout << "OptSecUtils getAttributeType: " << attributetype << endl;

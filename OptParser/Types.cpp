@@ -387,7 +387,7 @@ void OptParseStruct::checkAttributes()
     }
 
     // check if attribute has an alias
-    if (!aliasname.size() > 0)
+    if (aliasname.size() == 0)
     {
       //std::cout << "*** checkAttributes " << std::endl;
       bool foundInRelWithoutAlias = false;
@@ -424,7 +424,7 @@ void OptParseStruct::checkAttributes()
               itRel = rangepair.first; itRel != rangepair.second; itRel++)
           {
             //cout << " Alias : " << (*itRel).second << std::endl;
-            if (!(*itRel).second.size() > 0)
+            if ((*itRel).second.size() == 0)
             {
 
               //std::cout << "found " << attributename
@@ -697,7 +697,7 @@ string OptParseStruct::getAttributeType(string attribute)
       {
         //std::cout << (*itCheck) << std::endl;
         if (optutils::strequal((*itCheck), attributename, false)
-            and (!(*it).second.size() > 0))
+            and ((*it).second.size() == 0))
         {
           relationname = (*it).first;
           break;

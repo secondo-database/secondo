@@ -37,7 +37,6 @@ const int EXIT_LISTENER_NOPF     = 1;
 const int EXIT_LISTENER_NOHOST   = 2;
 const int EXIT_LISTENER_NOSERVER = 3;
 const int EXIT_LISTENER_NOSOCKET = 4;
-const int EXIT_LISTENER_FAIL     = 5;
 
 using namespace std;
 
@@ -50,7 +49,7 @@ class SecondoListener : public Application
   virtual ~SecondoListener() {};
   int  Execute();
   bool ClientAllowed();
-  bool AbortOnSignal( int sig );
+  bool AbortOnSignal( int sig ) const;
   void LogMessage( const string msg );
  private:
   string parmFile;
@@ -59,7 +58,7 @@ class SecondoListener : public Application
 };
 
 bool
-SecondoListener::AbortOnSignal( int sig )
+SecondoListener::AbortOnSignal( int sig ) const
 {
   if ( gate != 0 )
   {

@@ -224,6 +224,10 @@ class CcInt : public Attribute
                            IsDefined(), rhs->IsDefined() );
   }
 
+  virtual bool Equal(const Attribute* rhs) const{
+    return Attribute::Equal(rhs);
+  }
+
   inline virtual bool Less(const CcInt* rhs) const
   {
     static long& ctr = Counter::getRef(Symbol::CTR_INT_LESS());
@@ -231,6 +235,10 @@ class CcInt : public Attribute
 
     return Attribute::GenericLess<CcInt>( this, rhs,
                           IsDefined(), rhs->IsDefined() );
+  }
+
+  virtual bool Less(const Attribute* rhs) const{
+    return Attribute::Less(rhs);
   }
 
 

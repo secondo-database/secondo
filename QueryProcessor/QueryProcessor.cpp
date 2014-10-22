@@ -319,7 +319,7 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
   const size_t _globalMemory /* = DEFAULT_GLOBAL_MEMORY */ )
   : progressView(0),nl( newNestedList ),
     algebraManager( newAlgebraManager ),
-    testMode( false ), debugMode( false ),
+    debugMode( false ),
     traceMode( false ), traceNodes( false ), debugLocal(false),
     debugProgress(false), traceProgress(false),
     globalMemory(_globalMemory)
@@ -352,7 +352,7 @@ QueryProcessor::~QueryProcessor()
   // delete remaining argvectors
   for(unsigned int i = 0; i< argVectors.size(); i++){
     if(argVectors[i]){
-       delete argVectors[i];
+       delete[] argVectors[i];
        argVectors[i] = 0;
     }
   }
@@ -2996,7 +2996,7 @@ QueryProcessor::SubtreeX( const ListExpr expr )
   for ( int i = 0; i < functionno; i++)
   {
     if(argVectors[i]){
-      delete argVectors[i];
+      delete[] argVectors[i];
     }
     argVectors[i] = (ArgVectorPointer) new ArgVector;
     for ( int j = 0; j < MAXARG; j++ )

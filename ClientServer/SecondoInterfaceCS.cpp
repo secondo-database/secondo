@@ -38,7 +38,6 @@ provides functions useful for the client and for the server implementation.
 
 */
 
-using namespace std;
 
 #include <iostream>
 #include <fstream>
@@ -52,6 +51,7 @@ using namespace std;
 #include "Profiles.h"
 #include "CSProtocol.h"
 
+using namespace std;
 
 SecondoInterface::SecondoInterface(bool isServer /*= false*/)
 {

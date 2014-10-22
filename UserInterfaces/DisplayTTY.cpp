@@ -2185,8 +2185,8 @@ struct DisplayHistogram1d : DisplayFunction {
 
 
     else if ( val.length() != 2 ||
-              (!(val.first().length())
-              == val.second().length() + 1))
+              (val.first().length()
+              != val.second().length() + 1))
     {
       err = true;
       throw runtime_error(stdErrMsg);

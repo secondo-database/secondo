@@ -257,7 +257,7 @@ Returns the current state of the abort mode. If the abort mode is
 activated "true"[4] is returned, otherwise "false"[4].
 
 */
-  virtual bool AbortOnSignal ( int sig ) { return (true); };
+  virtual bool AbortOnSignal ( int sig )const { return (true); };
 /*
 Is called by the application's default signal handler whenever
 a signal is caught that would have aborted the process anyway. This

@@ -66,7 +66,6 @@ then you will be prompted for the filename.
 
 */
 
-using namespace std;
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -95,6 +94,7 @@ using namespace std;
 #include "LogMsg.h"
 #include "TTYParameter.h"
 
+using namespace std;
 
 class SecondoTTY : public Application
 {

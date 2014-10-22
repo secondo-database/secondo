@@ -78,7 +78,6 @@ The names of existing databases are stored in a list ~DBTable~.
 
 */
 
-using namespace std;
 
 //#define TRACE_ON 1
 #undef TRACE_ON
@@ -93,6 +92,8 @@ using namespace std;
 #include "NList.h"
 
 #include "../Tools/Flob/Flob.h"
+
+using namespace std;
 
 SecondoSystem* SecondoSystem::instance = 0;
 

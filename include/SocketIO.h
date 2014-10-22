@@ -756,19 +756,19 @@ Checks whether the stream buffer is ready for operation.
 Closes the stream buffer.
 
 */
-  streampos seekoff( streamoff, ios::seekdir, int )
+  streampos seekoff( streamoff, ios::seekdir, unsigned int )
     { return EOF; }
 /*
 Disallows seeking in the stream buffer since a TCP stream is strictly
 sequential.
 
 */
-  int xsputn( const char* s, const int n );
+  streamsize xsputn( const char* s, const streamsize n );
 /*
 Allows faster writing onto the socket of a string consisting on ~n~ characters.
 
 */
-  int xsgetn( char* s, const int n );
+  streamsize xsgetn( char* s, const streamsize n );
 /*
 Allows faster reading from the socket of a string consisting on ~n~ characters.
 

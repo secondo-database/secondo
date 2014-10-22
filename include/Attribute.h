@@ -478,7 +478,7 @@ to overwrite the default.
 
     inline virtual void Rebuild(char* state, size_t sz)
     {
-      memcpy(this, state, sz);
+      memcpy((char*)this, state, sz);
     }
 
     inline virtual void Rebuild(char* state, size_t sz, ObjectCast cast)

@@ -53,7 +53,7 @@ class SecondoRegistrar : public Application
   {};
   virtual ~SecondoRegistrar() {};
   int Execute();
-  bool AbortOnSignal( int sig );
+  bool AbortOnSignal( int sig ) const;
  private:
   int  ProcessCommands();
   void ExecRegister();
@@ -88,7 +88,7 @@ class SecondoRegistrar : public Application
 };
 
 bool
-SecondoRegistrar::AbortOnSignal( int sig )
+SecondoRegistrar::AbortOnSignal( int sig ) const
 {
   if ( msgSocket != 0 )
   {

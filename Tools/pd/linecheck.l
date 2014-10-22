@@ -91,7 +91,7 @@ int main (int argc, char** argv)
     if (ifile == NULL)
     {
       fprintf(stderr,"ERROR: cannot open file ");
-      fprintf(stderr,argv[filepos]);
+      fprintf(stderr,"%s",argv[filepos]);
       fprintf(stderr,"\n");
       return -1;
     }

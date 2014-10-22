@@ -32,7 +32,6 @@ added.
 
 */
 
-using namespace std;
 
 #include "AlgebraManager.h"
 #include "Algebra.h"
@@ -41,6 +40,8 @@ using namespace std;
 #include "Symbols.h"
 
 #include <fstream>
+
+using namespace std;
 
 NestedList *nl;
 QueryProcessor *qp;

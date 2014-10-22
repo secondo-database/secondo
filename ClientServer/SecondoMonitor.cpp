@@ -49,7 +49,7 @@ class SecondoMonitor : public Application
   int  Execute(bool autostartup);
 
  private:
-  bool AbortOnSignal( int sig );
+  bool AbortOnSignal( int sig ) const;
   void Usage();
   void ExecStartUp();
   void ExecShutDown();
@@ -126,7 +126,7 @@ void SecondoMonitor::HandleShutDown(int sig) {
 SecondoMonitor* SecondoMonitor::p = 0;
 
 bool
-SecondoMonitor::AbortOnSignal( int sig )
+SecondoMonitor::AbortOnSignal( int sig ) const
 {
   return (false);
 }

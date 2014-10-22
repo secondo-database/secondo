@@ -848,7 +848,6 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
   
   int  valueno;
   int  functionno;
-  bool testMode;
   bool debugMode;
   bool traceMode;
   bool traceNodes;

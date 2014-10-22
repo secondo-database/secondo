@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-using namespace std;
 
 #include "SecondoConfig.h"
 #ifdef SECONDO_WIN32
@@ -36,6 +35,7 @@ using namespace std;
 #include <cstdio>
 #include <cassert>
 
+using namespace std;
 // --- SocketAddress ---
 
 SocketAddress::SocketAddress()
@@ -78,9 +78,10 @@ bool SocketAddress::operator==( const SocketAddress& sockAddr ) const
   bool result = true;
   if ( this != &sockAddr )
   {
-    result = ((u.sock_inet.sin_family      == sockAddr.u.sock_inet.sin_family) &&
-              (u.sock_inet.sin_port        == sockAddr.u.sock_inet.sin_port) &&
-              (u.sock_inet.sin_addr.s_addr == sockAddr.u.sock_inet.sin_addr.s_addr));
+    result = ((u.sock_inet.sin_family == sockAddr.u.sock_inet.sin_family) &&
+              (u.sock_inet.sin_port == sockAddr.u.sock_inet.sin_port) &&
+              (u.sock_inet.sin_addr.s_addr 
+               == sockAddr.u.sock_inet.sin_addr.s_addr));
   }
   return (result);
 }

@@ -218,7 +218,6 @@ private:
   int MAX_BUFFERS;
 
   SmiRecord record;
-  SmiRecordId recid;
   SmiRecordFile *filePtr;
 
   struct RecordInfo {

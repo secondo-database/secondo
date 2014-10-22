@@ -30,12 +30,13 @@ This class implements a set of access rules based on IP adresses and IP masks.
 
 */
 
-using namespace std;
 
 #include "SecondoConfig.h"
 #include "SocketIO.h"
 #include <iostream>
 #include <fstream>
+
+using namespace std;
 
 char SocketRule::delimiter = '/';
 
@@ -57,7 +58,8 @@ SocketRule::SocketRule( const string& strIpAddr,
 bool
 SocketRule::Match( const SocketAddress& host )
 {
-  return ((inet_addr( host.GetIPAddress().c_str() ) & ipMask.s_addr) == ipAddr.s_addr);
+  return ((inet_addr( host.GetIPAddress().c_str() ) & ipMask.s_addr)
+           == ipAddr.s_addr);
 }
 
 bool

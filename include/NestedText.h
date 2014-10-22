@@ -117,7 +117,7 @@ The following is what is technically exported from this file:
 ***************************************/
 
 #ifndef NESTED_TEXT_H
-#define NESTED_TEXT
+#define NESTED_TEXT_H
 
 
 #include "MemCTable.h"

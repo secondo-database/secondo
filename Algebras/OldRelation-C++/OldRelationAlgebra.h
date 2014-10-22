@@ -41,7 +41,7 @@ vector instead of class CTable.
 
 */
 #ifndef OLD_RELATION_ALGEBRA__H
-#define OLD_RELATION_ALGEBRA_H
+#define OLD_RELATION_ALGEBRA__H
 
 #include "Algebra.h"
 #include "AlgebraManager.h"

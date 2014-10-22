@@ -107,7 +107,6 @@ transactions of errorneous queries were not aborted.
 
 */
 
-using namespace std;
 
 #include <iostream>
 #include <fstream>
@@ -150,6 +149,8 @@ using namespace std;
 #ifdef SECONDO_ANDROID
 #include "android/log.h"
 #endif
+
+using namespace std;
 
 extern bool USE_AUTO_BUFFER;
 

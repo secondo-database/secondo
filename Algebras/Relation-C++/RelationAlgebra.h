@@ -2589,7 +2589,8 @@ and positions the cursor in the first tuple, if exists.
 The destructor.
 
 */
-    Tuple *GetNextTuple(int step=1);
+    Tuple *GetNextTuple(int step);
+    Tuple *GetNextTuple(){return GetNextTuple(1);}
 /*
 Retrieves the tuple in the current position of the iterator and moves
 the cursor forward to the next tuple. Returns 0 if the cursor is in

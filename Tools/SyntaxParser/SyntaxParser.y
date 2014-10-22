@@ -120,7 +120,7 @@ void yyerror( const char* s )
 ofstream pFile;
 ofstream pFile1;
 
-bool init(){
+void init(){
   // set the translation to be empty
   
   string priorityFileName = "opprios.pl";
@@ -189,7 +189,7 @@ spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit buf
           {
               bool implicit = $7;
               pFile  << ":-op(800 , xf , "<< op <<")." << endl; // not for postfixbrackets!
-              if(  (s->isSpecial== true) /* || (implicit == true) */ ){
+              if(  s->isSpecial== true ){
                 // pFile1 << " secondoOpG(("<< op <<") ," << " special, " << s->no_args << ")." << endl;
                 pFile1 << " secondoOpG(("<< op <<") ," << " postfix, " << s->no_args << ")." << endl;
               } else {
@@ -199,7 +199,7 @@ spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit buf
           }
              case POSTFIXBRACKETS:
            {
-              if(  (s->isSpecial== true) /* || (implicit == true) */ ){
+              if(s->isSpecial== true ){
                 // pFile1 << " secondoOpG(("<< op <<") ," << " special, " << s->no_args << ")." << endl;
                 pFile1 << " secondoOpG(("<< op <<") ," << " postfixbrackets, " << s->no_args << ")." << endl;
               } else {
