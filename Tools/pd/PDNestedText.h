@@ -80,8 +80,11 @@ The following is what is technically exported from this file:
 
 ***************************************/
 
-int atom(), atomc(), concat();
-void print(), copyout();
+int atom(const char* string, int length);
+int atomc(const char* string);
+int  concat(int list1, int list2);
+void print(const int list);
+void  copyout(int list, char* target, int lengthlimit);
 
 void  release_storage(); 
 void show_storage(); 		/* show_storage used only for testing */

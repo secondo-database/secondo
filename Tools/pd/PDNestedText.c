@@ -55,7 +55,7 @@ The function ~atom~ creates from a character string ~string~ of length ~length~ 
 
 ***************************************/
 
-int atom(char *string, int length)
+int atom(const char *string, int length)
 {
     int newnode;
     int i;
@@ -89,7 +89,7 @@ The function ~atomc~ works like ~atom~ except that the parameter should be a nul
 
 ******************************************/
 
-int atomc(char *string)
+int atomc(const char *string)
 {   int length;
 
     length = strlen(string);
