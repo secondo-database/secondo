@@ -1,0 +1,272 @@
+
+#!/bin/bash
+
+# this script is for automatic testing secondo
+
+# define some constants
+
+# directory for testing
+basedir=$HOME
+# file for setting secondo environment
+envfile=$HOME/.secondorc
+# set force to yes for testing even if no changes were made since last test
+force="no"
+#time out for Testrunner
+timeout=1800
+
+server=bassi.fernuni-hagen.de
+
+# derived file and directory names
+secondoname=sectest
+secondodir=$basedir/$secondoname
+databasedir=$basedir/secondo-databases
+logdir=$basedir/secondotestlogs
+failed_log_dir=$logdir/failed
+
+last_run=$logdir/last_run
+make_log_first=$logdir/make_first.log
+make_log_current=$logdir/make.log
+checkout_log=$logdir/checkout.log
+users=/cvsroot/CVSROOT/users
+
+last_stable_dir=$basedir/laststable
+
+
+
+
+function sendMail {
+ local subject=$1
+ local testStarted=$2
+ local to=fabio.valdes@fernuni-hagen.de
+ local from=fabio.valdes@fernuni-hagen.de
+ # compress log directory
+ local appendix=$logdir/failed.tgz 
+ rm -f $appendix
+ cd $logdir
+ tar -czf $appendix $(basename $failed_log_dir)
+
+ echo "thomas.behr@fernuni-hagen.de" >>$logdir/ChangerMails.txt
+ echo "mail@thomas-behr.de" >>$logdir/ChangerMails.txt
+ local bcc=$(cat $logdir/ChangerMails.txt | sort | uniq | sed "s/$/,/")
+ bcc=$(echo $bcc | sed "s/ //g" | sed "s/,$//")
+ local content=$logdir/mailcontent.txt
+ echo "Dear Secondo developer, " >$content
+ echo "" >>$content
+ echo "During the last tests of Secondo, some errors occurred." >>$content
+ echo "You receive this email because you have checked in some code since the last successful test." >>$content
+ echo "" >>$content
+ echo "The changes after the previous test are the following:" >>$content
+ echo "" >>$content
+ cat $logdir/Changes.txt >>$content
+ echo "" >>$content
+ echo "Please check whether your changes are responsible for the failed test." >>$content
+ if [ "$testStarted" == "true" ]; then
+   echo "Failed tests:" >>$content
+   cat $logdir/_failed_* >>$content
+ fi
+ echo "Detailed information can be found in the attachment." >>$content
+ echo "" >>$content
+ echo "Kind Regards" >>$content
+ echo "The automatic Test" >>$content
+ mailx  -s "$subject" -a $appendix -b "$bcc" -r $from  -S smtp=smtp://$server $to <$content
+
+}
+
+
+function fileDate {
+ local res=$(date)
+  if [ -e $1 ]; then
+    res=$(stat -c %z $1 | awk '{print $1" " $2}')
+  fi
+  echo "$res"
+}
+
+
+function createaccessfiles {
+local lastrun=$1
+local logdir=$2
+local users=$3
+
+  firstrun="true"
+  lastrundate="1 day ago"
+  if [ -f "$lastrun" ]; then
+     lastrundate=$(fileDate $lastrun)
+     firstrun="false"
+  fi
+
+  echo "lastrundate = $lastrundate" >$logdir/lastrundate.txt
+
+  cvs history -xMAR -a -D "$lastrundate" -p secondo | grep -v 'No records selected'   >$logdir/Changes.txt
+  cat $logdir/Changes.txt | awk '{print $5}' | sort | uniq | sort >$logdir/changerNames.txt
+  cat /cvsroot/CVSROOT/users | sort -t: | join -t: -  $logdir/changerNames.txt | sed "s/.*://"  >$logdir/ChangerMails.txt
+  
+  if [ "$firstrun" == "true" ]; then 
+     echo "yes"
+  else
+     noChanges=$(cat $logdir/Changes.txt | wc -l | awk '{print $1}')
+     if [ "$noChanges" == "0" ]; then
+        echo "no"
+     else
+        echo "yes"
+     fi
+  fi
+}
+
+function showValue
+{
+  local var=$1
+  eval echo $var' = $'$var''
+}
+
+
+
+# start processing
+
+echo "start testing secondo"
+
+testStart="false"
+
+rm -rf $secondodir
+rm -rf $databasedir
+rm -rf $failed_log_dir
+
+mkdir -p $failed_log_dir; echo "logdir created"
+
+# create files containing the changes, the names of the people who made the changes
+# and the corresponding email-adresses
+# the result of the function changes may be yes or no depending whether there were
+# changes since the last test
+
+
+changes=$(createaccessfiles $last_run $logdir $users)
+
+showValue changes
+
+if [ "$changes" == "no" ]; then
+  echo "no changes since last run of the test"
+  if [ "$force" != "yes" ]; then
+     echo "exit test"
+     exit 0
+  fi
+  echo "force test even without changes"
+fi
+
+# mark the file holding the last run 
+touch $last_run
+
+# step 1: checkout the newest secondo version
+
+cd $basedir
+echo "Checkout secondo"
+
+firstCheckOutFailure=$(fileDate $checkout_log)
+
+cvs -q co -d $secondoname secondo  >/dev/null 2>&1
+
+n=$?
+
+if [ "$n" != "0" ]; then
+  if [ ! -f  $checkout_log ]; then
+      touch $checkout_log
+  fi
+  sendMail "Problem in checking out secondo" $testStart 
+  exit 1
+fi
+
+#chekout successful
+
+rm -f $checkout_log
+
+
+#step 2: compile secondo
+
+echo "set environment"
+
+source $envfile $secondodir
+cd $secondodir
+
+echo "make secondo"
+
+firstFailedMake=$(fileDate $make_log_first)
+make >$make_log_current 2>&1
+
+n=$?
+
+if [ "$n" != "0" ]; then
+  if [ ! -f "$make_log_first" ]; then
+     touch $make_log_first
+  fi
+  mv -f $make_log_current $failed_log_dir
+  sendMail  "Building secondo failed" $testStart 
+  exit 1
+fi
+
+rm -f $make_log_first
+rm -f $make_log_current
+
+# start tests
+
+
+echo "run tests"
+testStart="true"
+ 
+cd $secondodir/CM-Scripts
+run-tests.sh -tty $logdir  $timeout
+
+n=$?
+
+if [ "$n" != "0" ]; then
+ #automatic test failed, collect log files into $failed_log_dir
+ failed_tests=$(find $logdir -maxdepth 1 -name "_failed_*" -printf "%f " | sed "s/_failed_//g")
+ for f in $failed_tests; do
+   find $secondodir -name $f.log -exec cp {} $failed_log_dir \;
+ done
+ sendMail "Automatic tests failed" $testStart 
+ exit 1
+fi
+
+# tests were successful, set LAST_STABLE tag in Secondo
+
+cd $secondodir
+cvs tag -F LAST_STABLE
+
+echo "Secondo tests successful" | mailx -s "Secondo tests successful" -r fabio.valdes@fernuni-hagen.de -c thomas.behr@fernuni-hagen.de -S smtp=smtp://$server fabio.valdes@fernuni-hagen.de
+
+
+
+rm -f $logdir/_failed_*
+rm -rf $failed_log_dir
+rm -f $logdir/Changes.txt $logdir/changerNames.txt $logdir/ChangerMails.txt $logdir/mailcontent.txt $logdir/failed.tgz
+
+
+# create a tar-gz from the last stable version
+
+mkdir -p $last_stable_dir
+cd $last_stable_dir
+cvs export -r LAST_STABLE secondo
+tar -xzf  secondo_LAST_STABLE.tgz secondo
+
+# create public version of secondo
+cd secondo
+CM_Scripts/makepublicsecondo LAST_STABLE >$logdir/pubsec.log
+
+n=$?
+
+if [ "$n" != "0" ]; then
+   echo "Public secondo version could not be created." | mailx -s "building public version failed"  -a $logdir/pubsec.log -r fabio.valdes@fernuni-hagen.de -c thomas.behr@fernuni-hagen.de -S smtp=smtp://$server fabio.valdes@fernuni-hagen.de
+   rm -f $logdir/pubsec.log
+   exit 1
+fi
+
+mv secondo_LAST_STABLE* ..
+cd ..
+rm -rf secondo
+rm -f $logdir/pubsec.log
+
+
+# possible extension: test public version
+
+echo "Public secondo version created." | mailx -s "building public version successful"  -r fabio.valdes@fernuni-hagen.de -c thomas.behr@fernuni-hagen.de -S smtp=smtp://$server fabio.valdes@fernuni-hagen.de
+
+exit 0
+
