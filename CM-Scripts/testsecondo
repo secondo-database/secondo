@@ -46,7 +46,6 @@ function sendMail {
  tar -czf $appendix $(basename $failed_log_dir)
 
  echo "thomas.behr@fernuni-hagen.de" >>$logdir/ChangerMails.txt
- echo "mail@thomas-behr.de" >>$logdir/ChangerMails.txt
  local bcc=$(cat $logdir/ChangerMails.txt | sort | uniq | sed "s/$/,/")
  bcc=$(echo $bcc | sed "s/ //g" | sed "s/,$//")
  local content=$logdir/mailcontent.txt
