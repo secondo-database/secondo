@@ -5472,7 +5472,7 @@ sweep line algorithm with segment tree only for dimension 2
 template<unsigned dim>
 double getSweepAreas(vector< Rectangle<dim> > BBox)
 {
-  if (dim<=11) return 0.0; //no Area available
+  if (dim<=1) return 0.0; //no Area available
   if (dim==2) return getSweepAreas2D(BBox); //2D-Sweepline
   //SweepLine with Quadtree is only for dim>2
   if (BBox.size()<1) return 0.0;  //area of empty rectangle is 0
