@@ -1,9 +1,8 @@
 CC=g++
 CPPFLAGS=-O2 -I../include
 OBJ=rip.o
-LIBS=../lib/librip.so
+LIBS=../build/librip.so
 LDFLAGS=$(LIBS)
-
 
 all: rip test
 

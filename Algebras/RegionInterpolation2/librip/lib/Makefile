@@ -20,12 +20,15 @@ else
 endif
 
 all: librip.so librip.a
+	cp *.o ../build
 
 librip.so: $(OBJ)
 	$(CC) -o librip.so $(OBJ) $(LDFLAGS)
+	cp librip.so ../build
 
 librip.a: $(OBJ)
 	ar rcs librip.a $(OBJ) 
+	cp librip.a ../build
 
 clean:
 	rm  -f *.o *~ librip.so librip.a
