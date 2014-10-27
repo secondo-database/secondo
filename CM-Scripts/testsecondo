@@ -15,6 +15,55 @@ force="no"
 timeout=1800
 
 server=bassi.fernuni-hagen.de
+users=/cvsroot/CVSROOT/users
+to=fabio.valdes@fernuni-hagen.de
+from=fabio.valdes@fernuni-hagen.de
+additional=""
+
+function help {
+ echo "testsecondo [OPTIONS]"
+ echo "OPTIONS: "
+ echo "-f:   forces to run the test even if there are no changes since last run"
+ echo "-d <directory>: changes the base directory, default is \$HOME"
+ echo "-e <envfile>: changes the file for setting the environment, default is \$HOME/.secondorc"
+ echo "-t <timeout>: sets the timeout for each test in seconds, default is 1800"
+ echo "-m <server>: specifies the mailserver for outgoing mails"
+ echo "-u <users>: specifies the file where cvs users emails are provided"
+ echo "-s <from>: email address of the sender of an email"
+ echo "-r <recipient>: email address of the main recipient"
+ echo "-a <recipient>: additional recipient (repeat this option if more than one)"
+ echo "-h: shows this help text"
+}
+
+
+# overwrite standard parameters if options are available
+
+while getopts hfd:e:t:m:u:s:r:a: opt
+do
+  case $opt in
+    f) force="yes";;
+    d) basedir=$OPTARG ;;
+    e) envfile=$OPTARG ;;
+    t) timeout=$OPTARG ;;
+    m) server=$OPTARG ;;
+    u) users=$OPTARG ;;
+    s) to=$OPTARG ;;
+    r) recipient=$OPTARG ;;
+    a) additional+=$OPTARG" "; echo "add additional $OPTARG" ;;
+    h) help; exit 0 ;;
+  esac
+done
+
+# create additional list with commata
+additionalcs=$(echo $additional | sed "s/  */,/g")
+
+if [ ! -f $users ]; then
+  echo "users file: $users not present"
+  echo exit
+  exit 1
+fi
+
+
 
 # derived file and directory names
 secondoname=sectest
@@ -27,7 +76,6 @@ last_run=$logdir/last_run
 make_log_first=$logdir/make_first.log
 make_log_current=$logdir/make.log
 checkout_log=$logdir/checkout.log
-users=/cvsroot/CVSROOT/users
 
 last_stable_dir=$basedir/laststable
 
@@ -37,15 +85,15 @@ last_stable_dir=$basedir/laststable
 function sendMail {
  local subject=$1
  local testStarted=$2
- local to=fabio.valdes@fernuni-hagen.de
- local from=fabio.valdes@fernuni-hagen.de
  # compress log directory
  local appendix=$logdir/failed.tgz 
  rm -f $appendix
  cd $logdir
  tar -czf $appendix $(basename $failed_log_dir)
-
- echo "thomas.behr@fernuni-hagen.de" >>$logdir/ChangerMails.txt
+ ## add additional recipients
+ for a in $additional; do
+   echo $a >>$logdir/ChangerMails.txt
+ done
  local bcc=$(cat $logdir/ChangerMails.txt | sort | uniq | sed "s/$/,/")
  bcc=$(echo $bcc | sed "s/ //g" | sed "s/,$//")
  local content=$logdir/mailcontent.txt
@@ -229,7 +277,11 @@ fi
 cd $secondodir
 cvs tag -F LAST_STABLE
 
-echo "Secondo tests successful" | mailx -s "Secondo tests successful" -r fabio.valdes@fernuni-hagen.de -c thomas.behr@fernuni-hagen.de -S smtp=smtp://$server fabio.valdes@fernuni-hagen.de
+if [ -n "$additionalcs" ]; then
+echo "Secondo tests successful" | mailx -s "Secondo tests successful" -r $from  -S smtp=smtp://$server $to
+else 
+echo "Secondo tests successful" | mailx -s "Secondo tests successful" -r $from -c "$additionalcs" -S smtp=smtp://$server $to
+fi
 
 
 
@@ -252,7 +304,12 @@ CM_Scripts/makepublicsecondo LAST_STABLE >$logdir/pubsec.log
 n=$?
 
 if [ "$n" != "0" ]; then
-   echo "Public secondo version could not be created." | mailx -s "building public version failed"  -a $logdir/pubsec.log -r fabio.valdes@fernuni-hagen.de -c thomas.behr@fernuni-hagen.de -S smtp=smtp://$server fabio.valdes@fernuni-hagen.de
+
+if [ -n "$additionalcs" ]; then
+   echo "Public secondo version could not be created." | mailx -s "building public version failed"  -a $logdir/pubsec.log -r $from -S smtp=smtp://$server $to 
+else 
+   echo "Public secondo version could not be created." | mailx -s "building public version failed"  -a $logdir/pubsec.log -c "$additionalcs" -r $from -S smtp=smtp://$server $to 
+fi
    rm -f $logdir/pubsec.log
    exit 1
 fi
@@ -265,7 +322,11 @@ rm -f $logdir/pubsec.log
 
 # possible extension: test public version
 
-echo "Public secondo version created." | mailx -s "building public version successful"  -r fabio.valdes@fernuni-hagen.de -c thomas.behr@fernuni-hagen.de -S smtp=smtp://$server fabio.valdes@fernuni-hagen.de
+if [ -n "$additionalcs" ]; then
+  echo "Public secondo version created." | mailx -s "building public version successful"  -r $from -S smtp=smtp://$server $to
+else 
+  echo "Public secondo version created." | mailx -s "building public version successful"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
+fi
 
 exit 0
 
