@@ -177,6 +177,9 @@ rm -rf $secondodir
 rm -rf $databasedir
 rm -rf $failed_log_dir
 
+rm -f $logdir/_failed_*
+rm -rf $failed_log_dir
+rm -f $logdir/Changes.txt $logdir/changerNames.txt $logdir/ChangerMails.txt $logdir/mailcontent.txt $logdir/failed.tgz
 mkdir -p $failed_log_dir; echo "logdir created"
 
 # create files containing the changes, the names of the people who made the changes
