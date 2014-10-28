@@ -309,7 +309,7 @@ tar -czf  secondo_LAST_STABLE.tgz secondo
 
 # create public version of secondo
 cd secondo
-CM_Scripts/makepublicsecondo LAST_STABLE >$logdir/pubsec.log
+CM-Scripts/makepublicsecondo LAST_STABLE >$logdir/pubsec.log
 
 n=$?
 
