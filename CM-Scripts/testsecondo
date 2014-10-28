@@ -58,7 +58,7 @@ do
 done
 
 
-CVSROOT=$cvs
+export CVSROOT=$cvs
 
 # create additional list with commata
 additionalcs=$(echo $additional | sed "s/  */,/g")
