@@ -19,6 +19,7 @@ users=/cvsroot/CVSROOT/users
 to=fabio.valdes@fernuni-hagen.de
 from=fabio.valdes@fernuni-hagen.de
 additional=""
+cvs=""
 
 function help {
  echo "testsecondo [OPTIONS]"
@@ -32,13 +33,14 @@ function help {
  echo "-s <from>: email address of the sender of an email"
  echo "-r <recipient>: email address of the main recipient"
  echo "-a <recipient>: additional recipient (repeat this option if more than one)"
+ echo "-c <CVSROOT>: sets CVSROOT variable"
  echo "-h: shows this help text"
 }
 
 
 # overwrite standard parameters if options are available
 
-while getopts hfd:e:t:m:u:s:r:a: opt
+while getopts hfd:e:t:m:u:s:r:a:c: opt
 do
   case $opt in
     f) force="yes";;
@@ -50,9 +52,13 @@ do
     s) to=$OPTARG ;;
     r) recipient=$OPTARG ;;
     a) additional+=$OPTARG" "; echo "add additional $OPTARG" ;;
+    c) cvs=$OPTARG ;;
     h) help; exit 0 ;;
   esac
 done
+
+
+CVSROOT=$cvs
 
 # create additional list with commata
 additionalcs=$(echo $additional | sed "s/  */,/g")
