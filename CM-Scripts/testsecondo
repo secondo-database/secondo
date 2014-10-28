@@ -284,9 +284,9 @@ fi
 # tests were successful, set LAST_STABLE tag in Secondo
 
 cd $secondodir
-cvs tag -F LAST_STABLE
+cvs -q tag -F LAST_STABLE
 
-if [ -n "$additionalcs" ]; then
+if [ -z "$additionalcs" ]; then
 echo "Secondo tests successful" | mailx -s "Secondo tests successful" -r $from  -S smtp=smtp://$server $to
 else 
 echo "Secondo tests successful" | mailx -s "Secondo tests successful" -r $from -c "$additionalcs" -S smtp=smtp://$server $to
@@ -315,7 +315,7 @@ n=$?
 
 if [ "$n" != "0" ]; then
 
-if [ -n "$additionalcs" ]; then
+if [ -z "$additionalcs" ]; then
    echo "Public secondo version could not be created." | mailx -s "building public version failed"  -a $logdir/pubsec.log -r $from -S smtp=smtp://$server $to 
 else 
    echo "Public secondo version could not be created." | mailx -s "building public version failed"  -a $logdir/pubsec.log -c "$additionalcs" -r $from -S smtp=smtp://$server $to 
@@ -332,7 +332,7 @@ rm -f $logdir/pubsec.log
 
 # possible extension: test public version
 
-if [ -n "$additionalcs" ]; then
+if [ -z "$additionalcs" ]; then
   echo "Public secondo version created." | mailx -s "building public version successful"  -r $from -S smtp=smtp://$server $to
 else 
   echo "Public secondo version created." | mailx -s "building public version successful"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
