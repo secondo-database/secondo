@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # this script is for automatic testing secondo
@@ -304,11 +303,12 @@ rm -f $logdir/Changes.txt $logdir/changerNames.txt $logdir/ChangerMails.txt $log
 mkdir -p $last_stable_dir
 cd $last_stable_dir
 rm -rf secondo
-cvs export -r LAST_STABLE secondo
+cvs -q export -r LAST_STABLE secondo 2>/dev/null
 tar -czf  secondo_LAST_STABLE.tgz secondo
 
 # create public version of secondo
 cd secondo
+source $envfile $PWD
 CM-Scripts/makepublicsecondo LAST_STABLE >$logdir/pubsec.log
 
 n=$?
@@ -324,7 +324,7 @@ fi
    exit 1
 fi
 
-mv secondo_LAST_STABLE* ..
+mv secondo_LAST_STABLE.tgz ..
 cd ..
 rm -rf secondo
 rm -f $logdir/pubsec.log
