@@ -303,8 +303,9 @@ rm -f $logdir/Changes.txt $logdir/changerNames.txt $logdir/ChangerMails.txt $log
 
 mkdir -p $last_stable_dir
 cd $last_stable_dir
+rm -rf secondo
 cvs export -r LAST_STABLE secondo
-tar -xzf  secondo_LAST_STABLE.tgz secondo
+tar -czf  secondo_LAST_STABLE.tgz secondo
 
 # create public version of secondo
 cd secondo
