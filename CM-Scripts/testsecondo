@@ -324,7 +324,7 @@ fi
    exit 1
 fi
 
-mv secondo_LAST_STABLE.tgz ..
+mv secondo_LAST_STABLE-LAT1.tar.gz ../secondo_LAST_STABLE_PUBLIC.tgz
 cd ..
 rm -rf secondo
 rm -f $logdir/pubsec.log
