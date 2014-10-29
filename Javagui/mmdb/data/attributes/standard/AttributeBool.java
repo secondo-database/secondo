@@ -80,7 +80,7 @@ public class AttributeBool extends MemoryAttribute implements Orderable, Parsabl
 	 */
 	@Override
 	public int hashCode() {
-		return Boolean.hashCode(isValue());
+		return isValue() ? 1231 : 1237;
 	}
 
 	/*

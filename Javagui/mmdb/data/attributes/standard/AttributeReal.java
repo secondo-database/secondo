@@ -81,7 +81,7 @@ public class AttributeReal extends MemoryAttribute implements Orderable, Parsabl
 	 */
 	@Override
 	public int hashCode() {
-		return Float.hashCode(getValue());
+		return Float.floatToIntBits(getValue());
 	}
 
 	/*

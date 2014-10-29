@@ -81,7 +81,7 @@ public class AttributeInt extends MemoryAttribute implements Orderable, Parsable
 	 */
 	@Override
 	public int hashCode() {
-		return Integer.hashCode(getValue());
+		return getValue();
 	}
 
 	/*
