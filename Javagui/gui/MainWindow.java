@@ -32,6 +32,7 @@ import java.awt.image.BufferedImage;
 import java.awt.geom.*;
 import tools.Reporter;
 import javax.swing.filechooser.FileFilter;
+import mmdb.MMDBUserInterfaceController;
 
 public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,SecondoChangeListener{
 
@@ -866,6 +867,7 @@ public MainWindow(String Title,String user,String passwd){
       } 
     };
     Toolkit.getDefaultToolkit().addAWTEventListener(SnapshotKL,AWTEvent.KEY_EVENT_MASK);
+    MMDBUserInterfaceController.getInstance().injectElementsToMMDB(OList, MainWindow.ComPanel);
 }
 
 private void showUserSettings(StringBuffer u, StringBuffer p){
@@ -1367,7 +1369,7 @@ public boolean execGuiCommand(String command){
       }
       ComPanel.showPrompt();
   } else if(command.startsWith("removeObject")){
-      if(OList.removeObject(command.substring(12)))
+	  if (OList.removeObject(command.substring(12), true))
          ComPanel.appendText("OK");
       else{
          ComPanel.appendText("ObjectName not found");
@@ -3362,6 +3364,7 @@ private void cleanMenu( boolean addProgress){
    MainMenu.add(OptimizerMenu);
    MainMenu.add(Menu_ServerCommand);
    MainMenu.add(HelpMenu);
+   MMDBUserInterfaceController.getInstance().addMMDBMenu(MainMenu);
    MainMenu.add(Viewers);
    if(addProgress){
      MainMenu.add(progressTimer);

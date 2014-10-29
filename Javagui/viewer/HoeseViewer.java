@@ -1110,6 +1110,7 @@ public class HoeseViewer extends SecondoViewer {
     jMenuGui.add(new JSeparator());
 
      createMenu = new JMenu("Object Creation");
+     createMenu.setPreferredSize(new Dimension(130, 20));
    // jMenuGui.add(createMenu); // moved into the main menu
     selectSequenceCat = new JMenuItem("Select Category");
     createMenu.add(selectSequenceCat);

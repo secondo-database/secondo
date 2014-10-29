@@ -20,16 +20,25 @@
 package gui;
 
 import javax.swing.*;
+
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
+
 import javax.swing.plaf.basic.*;
+
 import java.io.*;
+
 import sj.lang.ListExpr;
 import sj.lang.ServerErrorCodes;
 import gui.idmanager.*;
+
 import java.io.File;
+
 import javax.swing.event.*;
+
 import extern.*;
 import extern.binarylist.*;
 import tools.Reporter;
@@ -286,14 +295,15 @@ public boolean hideObject(String Name){
   }
 }
 
-public boolean removeObject(String Name){
+public boolean removeObject(String Name, boolean doGC){
  int index = getIndexOf(Name);
   if(index <0)
      return false;
   else{
      Content.setSelectedIndex(index);
      removeSelectedObject();
-     System.gc();
+     if(doGC)
+    	 System.gc();
      return true;
   }
 }
@@ -347,13 +357,18 @@ public Dimension getMaximumSize(){
 private void listChanged(){
    int index = Content.getSelectedIndex();
    boolean on = index>=0;
+   boolean onlyMemory = false;
    if(index> Content.getModel().getSize()-1)
       on=false;
+   if (on && getSelectedObject().toListExpr() == null) {
+		onlyMemory = true;
+		on = false;
+   }
    ShowBtn.setEnabled(on);
    HideBtn.setEnabled(on);
-   RemoveBtn.setEnabled(on);
+   RemoveBtn.setEnabled(on || onlyMemory);
    SaveBtn.setEnabled(on);
-   RenameBtn.setEnabled(on);
+   RenameBtn.setEnabled(on || onlyMemory);
    
    StoreBtn.setEnabled( on & StoringEnabled);
 }
@@ -433,7 +448,8 @@ public void clearList(){
         VC.hideObject(this,SO);
     Objects.remove(0);
     myListModel.remove(0);
-    SO.toListExpr().destroy();
+    if (SO.toListExpr() != null)
+    	SO.toListExpr().destroy();
   }
   System.gc();
   updateList();
@@ -750,7 +766,8 @@ public boolean saveSelectedObject(){
           VC.hideObject(this,SO);
           myListModel.remove(index);
           Objects.remove(index);
-          SO.toListExpr().destroy();
+          if (SO.toListExpr() != null)
+        	  SO.toListExpr().destroy();
           removed = true;
        }
     }
@@ -989,7 +1006,33 @@ private void updateList(){
   updateMarks();
 }
 
+/** returns the currently selected object **/
+public SecondoObject getSelectedObject() {
+	int index = Content.getSelectedIndex();
+	if (index < 0)
+		return null;
+	else
+		return (SecondoObject) Objects.get(index);
+}
 
+/** returns all secondo objects **/
+public List<SecondoObject> getAllObjects() {
+	List<SecondoObject> result = new ArrayList<SecondoObject>();
+	for (Object object : Objects) {
+		result.add((SecondoObject) object);
+	}
+	return result;
+}
+
+/** returns the secondo object for a given name **/
+public SecondoObject getSingleObject(String name) {
+	SecondoObject result = null;
+	int index = getIndexOf(name);
+	if (index >= 0) {
+		result = (SecondoObject) Objects.elementAt(index);
+	}
+	return result;
+}
 
 private class RenamePanel extends JPanel{
   private JTextField OldName;
@@ -1067,6 +1110,8 @@ private class RenamePanel extends JPanel{
         else{
            if(!Name.equals("")){
                ObjectList.this.VC.hideObject(ObjectList.this,SO);
+               if (SO.getMemoryObject() != null && !Name.contains("["))
+					Name += (SO.toListExpr() == null) ? " [+]" : " [++]";
                SO.setName(Name);
                ObjectList.this.updateList();
                ObjectList.this.setRenameMode(false);

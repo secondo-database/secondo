@@ -20,11 +20,16 @@
 package viewer;
 
 import gui.*;
+
 import java.awt.*;
 import java.awt.event.*;
+
 import javax.swing.*;
+
 import sj.lang.ListExpr;
+
 import java.util.Vector;
+
 import sj.lang.IntByReference;
 import tools.Reporter;
 
@@ -199,7 +204,7 @@ public void updateObject(SecondoObject SO){
 
 public SecondoViewer[] getViewers(){
    Reporter.writeWarning("QueryViewer.getViewers not implemented");
-   return null;
+   return new SecondoViewer[0];
 }
 
 public void addViewerChangeListener(ViewerChangeListener VCL){

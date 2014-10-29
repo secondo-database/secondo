@@ -19,15 +19,21 @@
 
 package gui;
 
+import mmdb.data.MemoryObject;
+import mmdb.data.MemoryRelation;
 import sj.lang.ListExpr;
 import gui.idmanager.*;
 
-/** this class provided a named listExpr **/
+/**
+ * this class provides a secondo object which can contain a nested list
+ * representation, a memory relation object or both
+ **/
 
 public class SecondoObject{
 
 private String Name="";
 private ListExpr value=null;
+private MemoryObject memoryObject = null;
 private ID myID= IDManager.getNextID();
 
 public SecondoObject(ID aID){
@@ -78,6 +84,20 @@ public boolean fromList(ListExpr value){
   **/
 public ListExpr toListExpr(){
   return value;
+}
+
+/**
+ * returns the memory object
+ */
+public MemoryObject getMemoryObject() {
+	return memoryObject;
+}
+
+/**
+ * stores the memory object
+ */
+public void setMemoryObject(MemoryObject memoryObject) {
+	this.memoryObject = memoryObject;
 }
 
 }
