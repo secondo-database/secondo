@@ -74,17 +74,17 @@ public final class IndexDialog extends JDialog {
 	/**
 	 * The list of attributes that can be used for indexing.
 	 */
-	private JList<String> attributeList;
+	private JList attributeList;
 
 	/**
 	 * The list of relations that can be indexed.
 	 */
-	private JList<String> relationList;
+	private JList relationList;
 
 	/**
 	 * The type of index that shall be created.
 	 */
-	private JComboBox<IndexType> indexSelection;
+	private JComboBox indexSelection;
 
 	/**
 	 * The dialog's answer for further processing. ([0] = selected relation, [1]
@@ -136,7 +136,7 @@ public final class IndexDialog extends JDialog {
 	 */
 	private void addRelationPanel(Container container) {
 		Vector<String> vector = new Vector<String>(relations.keySet());
-		relationList = new JList<String>(vector);
+		relationList = new JList(vector);
 		relationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		relationList.addListSelectionListener(new ListSelectionListener() {
 			@Override
@@ -160,7 +160,7 @@ public final class IndexDialog extends JDialog {
 	 *            the dialog's content pane
 	 */
 	private void addAttributePanel(Container container) {
-		attributeList = new JList<String>(new DefaultListModel<String>());
+		attributeList = new JList(new DefaultListModel());
 		attributeList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		attributeList.addListSelectionListener(new ListSelectionListener() {
 			@Override
@@ -190,8 +190,8 @@ public final class IndexDialog extends JDialog {
 		button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				String selectedRelation = relationList.getSelectedValue();
-				String selectedAttribute = attributeList.getSelectedValue();
+				String selectedRelation = (String)relationList.getSelectedValue();
+				String selectedAttribute = (String)attributeList.getSelectedValue();
 				if (selectedRelation == null || selectedAttribute == null) {
 					Reporter.showInfo("Please select a relation and an attribute.");
 				} else {
@@ -206,7 +206,7 @@ public final class IndexDialog extends JDialog {
 		});
 		JPanel selectionPanel = new JPanel(new FlowLayout());
 		JLabel label = new JLabel("Index Type: ");
-		indexSelection = new JComboBox<IndexType>();
+		indexSelection = new JComboBox();
 		((JLabel) indexSelection.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 		indexSelection.setPreferredSize(new Dimension(150, 30));
 		selectionPanel.add(label);
@@ -225,9 +225,9 @@ public final class IndexDialog extends JDialog {
 	 *            the selected relation
 	 */
 	private void fillAttributeList() {
-		DefaultListModel<String> model = (DefaultListModel<String>) attributeList.getModel();
+		DefaultListModel model = (DefaultListModel) attributeList.getModel();
 		model.removeAllElements();
-		String selectedValue = relationList.getSelectedValue();
+		String selectedValue = (String)relationList.getSelectedValue();
 		if (selectedValue == null) {
 			return;
 		}
@@ -244,10 +244,10 @@ public final class IndexDialog extends JDialog {
 	}
 
 	private void fillIndexSelectionList() {
-		DefaultComboBoxModel<IndexType> model = (DefaultComboBoxModel<IndexType>) indexSelection
+		DefaultComboBoxModel model = (DefaultComboBoxModel) indexSelection
 				.getModel();
 		model.removeAllElements();
-		String selectedAttribute = attributeList.getSelectedValue();
+		String selectedAttribute = (String)attributeList.getSelectedValue();
 		if (selectedAttribute == null) {
 			return;
 		}

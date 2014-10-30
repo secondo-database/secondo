@@ -47,6 +47,7 @@ import mmdb.gui.IndexDialog;
 import mmdb.gui.MMDBMenu;
 import mmdb.gui.MMDBMenu.MenuEntry;
 import mmdb.gui.MemoryDialog;
+import mmdb.gui.MemoryDialog.Command;
 import mmdb.gui.QueryDialog;
 import mmdb.service.MemoryWatcher;
 import mmdb.service.ObjectConverter;
@@ -382,25 +383,26 @@ public final class MMDBUserInterfaceController {
 			}
 			String[][] objectStatistics = MemoryWatcher.getInstance().getObjectStatistics(
 					objectList.getAllObjects());
-			String[] dialogAnswer = MemoryDialog.showDialog(objectStatistics, commandPanel);
+			Object[] dialogAnswer = MemoryDialog.showDialog(objectStatistics, commandPanel);
 			if (dialogAnswer[1] == null) {
 				break;
 			}
-			SecondoObject object = objectList.getSingleObject(dialogAnswer[0]);
+			SecondoObject object = objectList.getSingleObject((String)dialogAnswer[0]);
 			if (object == null) {
 				break;
 			}
-			switch (dialogAnswer[1]) {
-			case ("OBJ"):
+			Command command = (Command)dialogAnswer[1];
+			switch (command) {
+			case OBJ:
 				objectList.removeObject(object.getName(), false);
 				break;
-			case ("NES"):
+			case NES:
 				removeNestedList(object);
 				break;
-			case ("REL"):
+			case REL:
 				removeRelation(object);
 				break;
-			case ("IDX"):
+			case IDX:
 				removeIndices(object.getMemoryObject());
 				break;
 			}

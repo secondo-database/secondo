@@ -21,9 +21,8 @@ package mmdb.data.indices.unsorted;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import mmdb.data.MemoryTuple;
 import mmdb.data.features.Matchable;
@@ -41,7 +40,7 @@ public class IndexSimpleHash extends UnsortedIndex {
 	/**
 	 * The hash map containing the index.
 	 */
-	private Map<Matchable, List<MemoryTuple>> indexMap = new HashMap<Matchable, List<MemoryTuple>>();
+	private ConcurrentHashMap<Matchable, List<MemoryTuple>> indexMap = new ConcurrentHashMap<Matchable, List<MemoryTuple>>();
 
 	/*
 	 * (non-Javadoc)
@@ -91,7 +90,7 @@ public class IndexSimpleHash extends UnsortedIndex {
 	 * 
 	 * @return the indexMap
 	 */
-	public Map<Matchable, List<MemoryTuple>> getIndexMap() {
+	public ConcurrentHashMap<Matchable, List<MemoryTuple>> getIndexMap() {
 		return indexMap;
 	}
 

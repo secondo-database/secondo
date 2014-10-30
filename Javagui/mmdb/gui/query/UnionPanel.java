@@ -56,22 +56,22 @@ public class UnionPanel extends AbstractOperationPanel {
 	/**
 	 * The first list of relations which can be united.
 	 */
-	private JList<String> firstRelationList;
+	private JList firstRelationList;
 
 	/**
 	 * The second list of relations which can be united.
 	 */
-	private JList<String> secondRelationList;
+	private JList secondRelationList;
 
 	/**
 	 * The list of attributes from the first relation.
 	 */
-	private JList<String> firstAttributeList;
+	private JList firstAttributeList;
 
 	/**
 	 * The list of attributes from the second relation.
 	 */
-	private JList<String> secondAttributeList;
+	private JList secondAttributeList;
 
 	/*
 	 * (non-Javadoc)
@@ -107,8 +107,8 @@ public class UnionPanel extends AbstractOperationPanel {
 		return new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				String selectedFirstRelation = firstRelationList.getSelectedValue();
-				String selectedSecondRelation = secondRelationList.getSelectedValue();
+				String selectedFirstRelation = (String)firstRelationList.getSelectedValue();
+				String selectedSecondRelation = (String)secondRelationList.getSelectedValue();
 				if (selectedFirstRelation == null || selectedSecondRelation == null) {
 					Reporter.showInfo("Please select both relations.");
 					return;
@@ -151,10 +151,10 @@ public class UnionPanel extends AbstractOperationPanel {
 	 */
 	private void createLists() {
 		Vector<String> vector = new Vector<String>(relations.keySet());
-		firstRelationList = new JList<String>(vector);
-		secondRelationList = new JList<String>(vector);
-		firstAttributeList = new JList<String>(new DefaultListModel<String>());
-		secondAttributeList = new JList<String>(new DefaultListModel<String>());
+		firstRelationList = new JList(vector);
+		secondRelationList = new JList(vector);
+		firstAttributeList = new JList(new DefaultListModel());
+		secondAttributeList = new JList(new DefaultListModel());
 	}
 
 	/**
@@ -169,13 +169,13 @@ public class UnionPanel extends AbstractOperationPanel {
 	 * @param area
 	 *            the underlying container the components are added to
 	 */
-	private void addRelationPanel(final JList<String> relationList, JList<String> attributeList,
+	private void addRelationPanel(final JList relationList, final JList attributeList,
 			String title, JPanel area) {
 		relationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		relationList.addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
-				fillAttributeList(relationList.getSelectedValue(), attributeList);
+				fillAttributeList((String)relationList.getSelectedValue(), attributeList);
 			}
 		});
 		JScrollPane relationSelectionPane = new JScrollPane(relationList,
@@ -197,7 +197,7 @@ public class UnionPanel extends AbstractOperationPanel {
 	 * @param area
 	 *            the underlying container the components are added to
 	 */
-	private void addAttributePanel(JList<String> attributeList, String title, JPanel area) {
+	private void addAttributePanel(JList attributeList, String title, JPanel area) {
 		attributeList.setEnabled(false);
 		JScrollPane attributeSelectionPane = new JScrollPane(attributeList,
 				ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -217,9 +217,9 @@ public class UnionPanel extends AbstractOperationPanel {
 	 * @param attributeList
 	 *            the list to which the relation's attributes shall be added
 	 */
-	private void fillAttributeList(String selectedValue, JList<String> attributeList) {
+	private void fillAttributeList(String selectedValue, JList attributeList) {
 		MemoryRelation relation = relations.get(selectedValue);
-		DefaultListModel<String> model = (DefaultListModel<String>) attributeList.getModel();
+		DefaultListModel model = (DefaultListModel) attributeList.getModel();
 		model.removeAllElements();
 		for (RelationHeaderItem item : relation.getHeader()) {
 			if (!item.isProjected()) {
@@ -235,9 +235,9 @@ public class UnionPanel extends AbstractOperationPanel {
 	 * @return true if both lists are identical, else false
 	 */
 	private boolean attributesIdentical() {
-		DefaultListModel<String> firstModel = (DefaultListModel<String>) firstAttributeList
+		DefaultListModel firstModel = (DefaultListModel) firstAttributeList
 				.getModel();
-		DefaultListModel<String> secondModel = (DefaultListModel<String>) secondAttributeList
+		DefaultListModel secondModel = (DefaultListModel) secondAttributeList
 				.getModel();
 		if (firstModel == null || secondModel == null) {
 			return false;

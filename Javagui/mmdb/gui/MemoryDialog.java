@@ -73,7 +73,7 @@ public final class MemoryDialog extends JDialog {
 	 * The dialog's answer for further processing. ([0] = selected object, [1] =
 	 * selected deletion type)
 	 */
-	private String[] answer;
+	private Object[] answer;
 
 	/**
 	 * The label containing the total memory.
@@ -99,7 +99,7 @@ public final class MemoryDialog extends JDialog {
 	 *            the parent component for locating the window
 	 * @return the user's input
 	 */
-	public static String[] showDialog(String[][] objectStatistics, Component component) {
+	public static Object[] showDialog(String[][] objectStatistics, Component component) {
 		MemoryDialog dialog = new MemoryDialog(objectStatistics);
 		dialog.setLocationRelativeTo(component);
 		dialog.setModal(true);
@@ -116,7 +116,7 @@ public final class MemoryDialog extends JDialog {
 	 */
 	private MemoryDialog(String[][] objectStatistics) {
 		this.objectStatistics = objectStatistics;
-		this.answer = new String[2];
+		this.answer = new Object[2];
 		setName("MANAGE MEMORY");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		Container container = this.getContentPane();
@@ -232,10 +232,10 @@ public final class MemoryDialog extends JDialog {
 		JButton removeNL = new JButton("NESTED-LIST");
 		JButton removeMemRelation = new JButton("RELATION");
 		JButton removeIndex = new JButton("INDICES");
-		addActionListener(removeObject, "OBJ");
-		addActionListener(removeNL, "NES");
-		addActionListener(removeMemRelation, "REL");
-		addActionListener(removeIndex, "IDX");
+		addActionListener(removeObject, Command.OBJ);
+		addActionListener(removeNL, Command.NES);
+		addActionListener(removeMemRelation, Command.REL);
+		addActionListener(removeIndex, Command.IDX);
 		panel.add(removeObject);
 		panel.add(removeNL);
 		panel.add(removeMemRelation);
@@ -255,7 +255,7 @@ public final class MemoryDialog extends JDialog {
 	 * @param command
 	 *            the command for the answer
 	 */
-	private void addActionListener(JButton button, String command) {
+	private void addActionListener(JButton button, final Command command) {
 		button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -271,6 +271,10 @@ public final class MemoryDialog extends JDialog {
 				}
 			}
 		});
+	}
+	
+	public enum Command {
+		OBJ, NES, REL, IDX;
 	}
 
 }

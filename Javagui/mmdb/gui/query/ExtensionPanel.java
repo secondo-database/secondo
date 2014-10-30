@@ -71,12 +71,12 @@ public class ExtensionPanel extends AbstractOperationPanel {
 	/**
 	 * The list of relations from which attributes can be selected.
 	 */
-	private JList<String> relationList;
+	private JList relationList;
 
 	/**
 	 * The list of operations that can be selected.
 	 */
-	private JComboBox<EOperator> operatorList;
+	private JComboBox operatorList;
 
 	/**
 	 * The name of the new attribute.
@@ -91,7 +91,7 @@ public class ExtensionPanel extends AbstractOperationPanel {
 	/**
 	 * The operator's argument values.
 	 */
-	private List<JComboBox<String>> argumentValues = new ArrayList<JComboBox<String>>();
+	private List<JComboBox> argumentValues = new ArrayList<JComboBox>();
 
 	/**
 	 * The number of arguments.
@@ -140,7 +140,7 @@ public class ExtensionPanel extends AbstractOperationPanel {
 					return;
 				}
 				MemoryRelation resultRelation = null;
-				String selectedRelation = relationList.getSelectedValue();
+				String selectedRelation = (String)relationList.getSelectedValue();
 				EOperator selectedOperator = (EOperator) operatorList.getSelectedItem();
 				List<String> arguments = new ArrayList<String>();
 				for (int i = 0; i < numberOfArguments; i++) {
@@ -181,7 +181,7 @@ public class ExtensionPanel extends AbstractOperationPanel {
 	 */
 	private void addRelationPanel(JPanel area) {
 		Vector<String> vector = new Vector<String>(relations.keySet());
-		relationList = new JList<String>(vector);
+		relationList = new JList(vector);
 		relationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		relationList.addListSelectionListener(new ListSelectionListener() {
 			@Override
@@ -224,7 +224,7 @@ public class ExtensionPanel extends AbstractOperationPanel {
 	private void createOperatorPanel(JPanel area) {
 		JPanel operatorPanel = new JPanel(new FlowLayout());
 		operatorPanel.setBorder(BorderFactory.createTitledBorder("3) OPERATOR"));
-		operatorList = new JComboBox<EOperator>(EOperator.values());
+		operatorList = new JComboBox(EOperator.values());
 		operatorList.setPreferredSize(new Dimension(200, 30));
 		((JLabel) operatorList.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 		operatorList.setSelectedItem(null);
@@ -257,7 +257,7 @@ public class ExtensionPanel extends AbstractOperationPanel {
 			textField.setHorizontalAlignment(JTextField.CENTER);
 			argumentSubPanel.add(textField);
 			argumentTypes.add(textField);
-			JComboBox<String> comboBox = new JComboBox<String>();
+			JComboBox comboBox = new JComboBox();
 			comboBox.setPreferredSize(new Dimension(150, 30));
 			((JLabel) comboBox.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 			argumentSubPanel.add(comboBox);
@@ -295,7 +295,7 @@ public class ExtensionPanel extends AbstractOperationPanel {
 		clearArgumentValues();
 		MemoryRelation relation = relations.get(relationList.getSelectedValue());
 		for (int i = 0; i < numberOfArguments; i++) {
-			DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>) argumentValues.get(
+			DefaultComboBoxModel model = (DefaultComboBoxModel) argumentValues.get(
 					i).getModel();
 			String argumentType = argumentTypes.get(i).getText();
 			for (RelationHeaderItem item : relation.getHeader()) {
@@ -316,7 +316,7 @@ public class ExtensionPanel extends AbstractOperationPanel {
 		for (JTextField field : argumentTypes) {
 			field.setVisible(false);
 		}
-		for (JComboBox<String> box : argumentValues) {
+		for (JComboBox box : argumentValues) {
 			box.setVisible(false);
 		}
 	}
@@ -334,8 +334,8 @@ public class ExtensionPanel extends AbstractOperationPanel {
 	 * Clears all argument values.
 	 */
 	private void clearArgumentValues() {
-		for (JComboBox<String> box : argumentValues) {
-			DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>) box.getModel();
+		for (JComboBox box : argumentValues) {
+			DefaultComboBoxModel model = (DefaultComboBoxModel) box.getModel();
 			model.removeAllElements();
 		}
 	}

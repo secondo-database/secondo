@@ -23,6 +23,7 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
@@ -57,12 +58,12 @@ public class ProjectionPanel extends AbstractOperationPanel {
 	/**
 	 * The list of relations from which attributes can be selected.
 	 */
-	private JList<String> relationList;
+	private JList relationList;
 
 	/**
 	 * The list of attributes that can be selected.
 	 */
-	private JList<String> attributeList;
+	private JList attributeList;
 
 	/*
 	 * (non-Javadoc)
@@ -92,8 +93,12 @@ public class ProjectionPanel extends AbstractOperationPanel {
 		return new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				String selectedRelation = relationList.getSelectedValue();
-				List<String> selectedAttributes = attributeList.getSelectedValuesList();
+				String selectedRelation = (String)relationList.getSelectedValue();
+				Object[] selectedValues = attributeList.getSelectedValues();
+				List<String> selectedAttributes = new ArrayList<String>();
+				for(int i = 0; i<selectedValues.length;i++) {
+					selectedAttributes.add((String)selectedValues[i]);
+				}
 				if (selectedRelation == null || selectedAttributes.isEmpty()) {
 					Reporter.showInfo("Please select a relation and attributes.");
 					return;
@@ -133,12 +138,12 @@ public class ProjectionPanel extends AbstractOperationPanel {
 	 */
 	private void addRelationPanel(JPanel area) {
 		Vector<String> vector = new Vector<String>(relations.keySet());
-		relationList = new JList<String>(vector);
+		relationList = new JList(vector);
 		relationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		relationList.addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
-				fillAttributeList(relationList.getSelectedValue());
+				fillAttributeList((String)relationList.getSelectedValue());
 			}
 		});
 		JScrollPane relationSelectionPane = new JScrollPane(relationList,
@@ -157,7 +162,7 @@ public class ProjectionPanel extends AbstractOperationPanel {
 	 *            the underlying container the components are added to
 	 */
 	private void addAttributePanel(JPanel area) {
-		attributeList = new JList<String>(new DefaultListModel<String>());
+		attributeList = new JList(new DefaultListModel());
 		attributeList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		JScrollPane attributeSelectionPane = new JScrollPane(attributeList,
 				ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -177,7 +182,7 @@ public class ProjectionPanel extends AbstractOperationPanel {
 	 */
 	private void fillAttributeList(String selectedValue) {
 		MemoryRelation relation = relations.get(selectedValue);
-		DefaultListModel<String> model = (DefaultListModel<String>) attributeList.getModel();
+		DefaultListModel model = (DefaultListModel) attributeList.getModel();
 		model.removeAllElements();
 		for (RelationHeaderItem item : relation.getHeader()) {
 			if (!item.isProjected()) {

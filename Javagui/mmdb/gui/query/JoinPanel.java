@@ -73,27 +73,27 @@ public class JoinPanel extends AbstractOperationPanel {
 	/**
 	 * The first list of relations which can be joined.
 	 */
-	private JList<String> firstRelationList;
+	private JList firstRelationList;
 
 	/**
 	 * The second list of relations which can be joined.
 	 */
-	private JList<String> secondRelationList;
+	private JList secondRelationList;
 
 	/**
 	 * The list of operations that can be selected.
 	 */
-	private JComboBox<COperator> operatorList;
+	private JComboBox operatorList;
 
 	/**
 	 * The list of join attributes from the first relation.
 	 */
-	private JComboBox<String> firstJoinAttributeList;
+	private JComboBox firstJoinAttributeList;
 
 	/**
 	 * The list of join attributes from the second relation.
 	 */
-	private JComboBox<String> secondJoinAttributeList;
+	private JComboBox secondJoinAttributeList;
 
 	/*
 	 * (non-Javadoc)
@@ -147,8 +147,8 @@ public class JoinPanel extends AbstractOperationPanel {
 					return;
 				}
 				MemoryRelation resultRelation = null;
-				String firstSelectedRelation = firstRelationList.getSelectedValue();
-				String secondSelectedRelation = secondRelationList.getSelectedValue();
+				String firstSelectedRelation = (String)firstRelationList.getSelectedValue();
+				String secondSelectedRelation = (String)secondRelationList.getSelectedValue();
 				COperator selectedOperator = (COperator) operatorList.getSelectedItem();
 				try {
 					resultRelation = queryController.executeQuery(
@@ -184,10 +184,10 @@ public class JoinPanel extends AbstractOperationPanel {
 	 */
 	private void createLists() {
 		Vector<String> vector = new Vector<String>(relations.keySet());
-		firstRelationList = new JList<String>(vector);
-		secondRelationList = new JList<String>(vector);
-		firstJoinAttributeList = new JComboBox<String>(new DefaultComboBoxModel<String>());
-		secondJoinAttributeList = new JComboBox<String>(new DefaultComboBoxModel<String>());
+		firstRelationList = new JList(vector);
+		secondRelationList = new JList(vector);
+		firstJoinAttributeList = new JComboBox(new DefaultComboBoxModel());
+		secondJoinAttributeList = new JComboBox(new DefaultComboBoxModel());
 	}
 
 	/**
@@ -202,14 +202,14 @@ public class JoinPanel extends AbstractOperationPanel {
 	 * @param area
 	 *            the underlying container the components are added to
 	 */
-	private void addRelationPanel(final JList<String> relationList,
-			JComboBox<String> attributeList, String title, JPanel area) {
+	private void addRelationPanel(final JList relationList,
+			final JComboBox attributeList, final String title, JPanel area) {
 		relationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		relationList.addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
 				if (title.contains("FIRST")) {
-					fillCondAttributeList(relationList.getSelectedValue(),
+					fillCondAttributeList((String)relationList.getSelectedValue(),
 							(COperator) operatorList.getSelectedItem(), attributeList);
 				} else {
 					fillCondValueList();
@@ -234,14 +234,14 @@ public class JoinPanel extends AbstractOperationPanel {
 	private void addOperatorPanel(JPanel area) {
 		JPanel operationPanel = new JPanel(new FlowLayout());
 		operationPanel.setBorder(BorderFactory.createTitledBorder("3) OPERATOR"));
-		operatorList = new JComboBox<COperator>(COperator.values());
+		operatorList = new JComboBox(COperator.values());
 		((JLabel) operatorList.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 		operatorList.setSelectedItem(null);
 		operatorList.setPreferredSize(new Dimension(200, 30));
 		operatorList.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
-				fillCondAttributeList(firstRelationList.getSelectedValue(),
+				fillCondAttributeList((String)firstRelationList.getSelectedValue(),
 						(COperator) operatorList.getSelectedItem(), firstJoinAttributeList);
 				fillCondValueList();
 			}
@@ -284,10 +284,10 @@ public class JoinPanel extends AbstractOperationPanel {
 	 * depending on the user's relation, operator and first argument selection.
 	 */
 	private void fillCondValueList() {
-		DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>) secondJoinAttributeList
+		DefaultComboBoxModel model = (DefaultComboBoxModel) secondJoinAttributeList
 				.getModel();
 		model.removeAllElements();
-		String selectedRelation = secondRelationList.getSelectedValue();
+		String selectedRelation = (String)secondRelationList.getSelectedValue();
 		String selectedFirstAttribute = (String) firstJoinAttributeList.getSelectedItem();
 		COperator selectedOperator = (COperator) operatorList.getSelectedItem();
 		if (selectedRelation == null || selectedOperator == null || selectedFirstAttribute == null) {

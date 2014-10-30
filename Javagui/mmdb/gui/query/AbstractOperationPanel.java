@@ -198,8 +198,8 @@ public abstract class AbstractOperationPanel extends JPanel {
 	 *            the list to which the relation's attributes shall be added
 	 */
 	protected void fillCondAttributeList(String selectedRelation, COperator operator,
-			JComboBox<String> attributeList) {
-		DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>) attributeList
+			JComboBox attributeList) {
+		DefaultComboBoxModel model = (DefaultComboBoxModel) attributeList
 				.getModel();
 		model.removeAllElements();
 		if (selectedRelation == null || operator == null) {

@@ -73,7 +73,7 @@ public class MMDBMenu extends JMenu {
 	 * Adds action listeners to menu items.
 	 */
 	private void addActionListeners() {
-		for (MenuEntry entry : MenuEntry.values()) {
+		for (final MenuEntry entry : MenuEntry.values()) {
 			entry.item.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {

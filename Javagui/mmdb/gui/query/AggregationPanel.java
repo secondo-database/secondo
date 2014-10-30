@@ -65,17 +65,17 @@ public class AggregationPanel extends AbstractOperationPanel {
 	/**
 	 * The list of relations from which attributes can be selected.
 	 */
-	private JList<String> relationList;
+	private JList relationList;
 
 	/**
 	 * The list of attributes that can be selected.
 	 */
-	private JList<String> attributeList;
+	private JList attributeList;
 
 	/**
 	 * The list of operators that can be selected.
 	 */
-	private JComboBox<AOperator> operatorList;
+	private JComboBox operatorList;
 
 	/*
 	 * (non-Javadoc)
@@ -115,9 +115,9 @@ public class AggregationPanel extends AbstractOperationPanel {
 					return;
 				}
 				MemoryRelation resultRelation = null;
-				String selectedRelation = relationList.getSelectedValue();
+				String selectedRelation = (String)relationList.getSelectedValue();
 				AOperator selectedOperator = (AOperator) operatorList.getSelectedItem();
-				String selectedAttribute = attributeList.getSelectedValue();
+				String selectedAttribute = (String)attributeList.getSelectedValue();
 				try {
 					resultRelation = queryController.executeQuery(relations.get(selectedRelation),
 							selectedOperator, removeType(selectedAttribute));
@@ -152,7 +152,7 @@ public class AggregationPanel extends AbstractOperationPanel {
 	 */
 	private void addRelationPanel(JPanel area) {
 		Vector<String> vector = new Vector<String>(relations.keySet());
-		relationList = new JList<String>(vector);
+		relationList = new JList(vector);
 		relationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		relationList.addListSelectionListener(new ListSelectionListener() {
 			@Override
@@ -181,7 +181,7 @@ public class AggregationPanel extends AbstractOperationPanel {
 		dummyPanel1.setBackground(Color.WHITE);
 		operationPanel.add(dummyPanel1);
 		operationPanel.setBorder(BorderFactory.createTitledBorder("2) OPERATOR"));
-		operatorList = new JComboBox<AOperator>(AOperator.values());
+		operatorList = new JComboBox(AOperator.values());
 		((JLabel) operatorList.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 		operatorList.setSelectedItem(null);
 		operatorList.setPreferredSize(new Dimension(200, 30));
@@ -209,7 +209,7 @@ public class AggregationPanel extends AbstractOperationPanel {
 	 *            the underlying container the components are added to
 	 */
 	private void addAttributePanel(JPanel area) {
-		attributeList = new JList<String>(new DefaultListModel<String>());
+		attributeList = new JList(new DefaultListModel());
 		attributeList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		JScrollPane attributeSelectionPane = new JScrollPane(attributeList,
 				ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -223,9 +223,9 @@ public class AggregationPanel extends AbstractOperationPanel {
 	 * operator selection.
 	 */
 	private void fillAttributeList() {
-		DefaultListModel<String> model = (DefaultListModel<String>) attributeList.getModel();
+		DefaultListModel model = (DefaultListModel) attributeList.getModel();
 		model.removeAllElements();
-		String selectedRelation = relationList.getSelectedValue();
+		String selectedRelation = (String)relationList.getSelectedValue();
 		AOperator selectedOperator = (AOperator) operatorList.getSelectedItem();
 		if (selectedRelation == null || selectedOperator == null) {
 			return;

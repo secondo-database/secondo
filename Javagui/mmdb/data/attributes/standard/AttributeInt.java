@@ -92,7 +92,7 @@ public class AttributeInt extends MemoryAttribute implements Orderable, Parsable
 	@Override
 	public int compareTo(Orderable attribute) {
 		int valueOther = ((AttributeInt) attribute).getValue();
-		return Integer.compare(getValue(), valueOther);
+		return (getValue() < valueOther) ? -1 : ((getValue() == valueOther) ? 0 : 1);
 	}
 
 	/*

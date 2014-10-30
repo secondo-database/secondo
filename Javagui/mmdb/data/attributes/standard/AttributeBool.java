@@ -91,7 +91,7 @@ public class AttributeBool extends MemoryAttribute implements Orderable, Parsabl
 	@Override
 	public int compareTo(Orderable attribute) {
 		boolean valueOther = ((AttributeBool) attribute).isValue();
-		return Boolean.compare(isValue(), valueOther);
+		return (isValue() == valueOther) ? 0 : (isValue() ? 1 : -1);
 	}
 
 	/*

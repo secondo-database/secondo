@@ -74,17 +74,17 @@ public class SelectionPanel extends AbstractOperationPanel {
 	/**
 	 * The list of relations from which attributes can be selected.
 	 */
-	private JList<String> relationList;
+	private JList relationList;
 
 	/**
 	 * The list of operations that can be selected.
 	 */
-	private JComboBox<COperator> operatorList;
+	private JComboBox operatorList;
 
 	/**
 	 * The list of attributes that can be selected.
 	 */
-	private JComboBox<String> attributeList;
+	private JComboBox attributeList;
 
 	/**
 	 * The button which opens an input dialog for loading an attribute from
@@ -106,7 +106,7 @@ public class SelectionPanel extends AbstractOperationPanel {
 	/**
 	 * The selected value type.
 	 */
-	private JComboBox<String> valueTypeSelection;
+	private JComboBox valueTypeSelection;
 
 	/**
 	 * The selected value as object.
@@ -158,7 +158,7 @@ public class SelectionPanel extends AbstractOperationPanel {
 					return;
 				}
 				MemoryRelation resultRelation = null;
-				String selectedRelation = relationList.getSelectedValue();
+				String selectedRelation = (String)relationList.getSelectedValue();
 				COperator selectedOperator = (COperator) operatorList.getSelectedItem();
 				String selectedAttribute = (String) attributeList.getSelectedItem();
 				try {
@@ -195,12 +195,12 @@ public class SelectionPanel extends AbstractOperationPanel {
 	 */
 	private void addRelationPanel(JPanel area) {
 		Vector<String> vector = new Vector<String>(relations.keySet());
-		relationList = new JList<String>(vector);
+		relationList = new JList(vector);
 		relationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		relationList.addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
-				fillCondAttributeList(relationList.getSelectedValue(),
+				fillCondAttributeList((String)relationList.getSelectedValue(),
 						(COperator) operatorList.getSelectedItem(), attributeList);
 			}
 		});
@@ -222,14 +222,14 @@ public class SelectionPanel extends AbstractOperationPanel {
 	private void createOperatorPanel(JPanel area) {
 		JPanel operationPanel = new JPanel(new FlowLayout());
 		operationPanel.setBorder(BorderFactory.createTitledBorder("2) OPERATOR"));
-		operatorList = new JComboBox<COperator>(COperator.values());
+		operatorList = new JComboBox(COperator.values());
 		((JLabel) operatorList.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 		operatorList.setSelectedItem(null);
 		operatorList.setPreferredSize(new Dimension(200, 30));
 		operatorList.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
-				fillCondAttributeList(relationList.getSelectedValue(),
+				fillCondAttributeList((String)relationList.getSelectedValue(),
 						(COperator) operatorList.getSelectedItem(), attributeList);
 			}
 		});
@@ -247,7 +247,7 @@ public class SelectionPanel extends AbstractOperationPanel {
 	private void createAttributePanel(JPanel area) {
 		JPanel attributePanel = new JPanel(new FlowLayout());
 		attributePanel.setBorder(BorderFactory.createTitledBorder("3) ATTRIBUTE"));
-		attributeList = new JComboBox<String>(new DefaultComboBoxModel<String>());
+		attributeList = new JComboBox(new DefaultComboBoxModel());
 		((JLabel) attributeList.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 		attributeList.setPreferredSize(new Dimension(200, 30));
 		attributeList.addItemListener(new ItemListener() {
@@ -272,7 +272,7 @@ public class SelectionPanel extends AbstractOperationPanel {
 		JPanel valuePanel = new JPanel(new GridLayout(3, 1));
 		valuePanel.setBorder(BorderFactory.createTitledBorder("4) VALUE"));
 		JPanel valueTypePanel = new JPanel(new FlowLayout());
-		valueTypeSelection = new JComboBox<String>(new DefaultComboBoxModel<String>());
+		valueTypeSelection = new JComboBox(new DefaultComboBoxModel());
 		((JLabel) valueTypeSelection.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 		valueTypeSelection.setPreferredSize(new Dimension(200, 30));
 		addValueTypeSelectionListener();
@@ -395,7 +395,7 @@ public class SelectionPanel extends AbstractOperationPanel {
 	 *            the selected operator
 	 */
 	private void fillValueTypeSelectionList(String selectedAttribute, COperator selectedOperator) {
-		DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>) valueTypeSelection
+		DefaultComboBoxModel model = (DefaultComboBoxModel) valueTypeSelection
 				.getModel();
 		model.removeAllElements();
 		if (selectedAttribute == null || selectedOperator == null) {

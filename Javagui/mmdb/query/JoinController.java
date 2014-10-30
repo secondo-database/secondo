@@ -23,7 +23,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import mmdb.data.MemoryRelation;
@@ -90,7 +89,7 @@ public class JoinController extends AbstractQueryController {
 	/**
 	 * The hash table for hash joins.
 	 */
-	private Map<Matchable, List<MemoryTuple>> hashMap;
+	private ConcurrentHashMap<Matchable, List<MemoryTuple>> hashMap;
 
 	/*
 	 * (non-Javadoc)
