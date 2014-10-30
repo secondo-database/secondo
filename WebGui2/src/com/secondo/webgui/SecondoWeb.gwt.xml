@@ -17,7 +17,7 @@
 
 	<!-- Other module inherits -->
 	<inherits name='org.gwtopenmaps.openlayers.OpenLayers'/>
-	<!--<inherits name='net.auroris.ColorPicker.client'/> -->
+	<inherits name='net.auroris.ColorPicker.client'/>
 
 	<!-- Specify the app entry point class. -->
 	<entry-point class='com.secondo.webgui.client.SecondoWeb' />
