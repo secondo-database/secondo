@@ -163,7 +163,7 @@ prefix    : ZZOP '('simpleargscomma')'
 	      collectPrefix = "";
 	      collectPrefix += "\"#(o";
 	      for(int i=1;i<$3;i++) {
-		collectPrefix += "; o";
+		collectPrefix += ", o";
 	      }
 	      collectPrefix += ")\"";
             }
@@ -235,9 +235,7 @@ argscomma   : arg
 		collectArgscomma += collectArg;
 	      }
 	    | argscomma ',' arg
-	      { $$ = $1 + 1;
-		collectArgscomma += "; " + collectArg;
-	      }
+	      {       }
 	    ;
 
 arg	    : '_'
