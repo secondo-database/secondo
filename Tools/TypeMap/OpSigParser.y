@@ -349,7 +349,7 @@ sigargtypes : type ZZCROSSPRODUCT type
 		collectArgs2 += "(var " + str222 + " " + str23 + "))";
 		collectArgs3 = "";
 		collectArgs3 += "\"" + str1 + ";" + str10 + "\" ";
-		collectArgs3 += "\"attr;attr\"";
+		collectArgs3 += "\"attr,attr\"";
 	      }
 
 	    | type'('type'('varname attrsindex')' ')' 
