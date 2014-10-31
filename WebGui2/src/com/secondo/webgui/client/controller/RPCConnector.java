@@ -20,10 +20,12 @@
 package com.secondo.webgui.client.controller;
 
 import java.util.ArrayList;
+
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.FormPanel;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.secondo.webgui.client.mainview.MainView;
 import com.secondo.webgui.client.rpc.SecondoService;
@@ -430,6 +432,7 @@ public class RPCConnector {
 			public void onSuccess(ArrayList<DataType> result) {
 				
 				mainView.getMapView().getCurrentResultTypeList().clear();
+				mainView.getMapView().clearControllers();
 				mainView.getGraphicalView().getCurrentResultList().clear();
 				
 				if(!result.isEmpty()){
@@ -531,5 +534,61 @@ public class RPCConnector {
 			}
 		  };		  
 		secondoService.resetObjectCounter(callback); 		
+	}
+	
+	public void createSymTraj(int option, String nameOfUploadedFile){
+		String command="let Raw5 = gpximport('"+nameOfUploadedFile+"') consume";
+		AsyncCallback<String> callback = new AsyncCallback<String>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);		
+			}
+
+			@Override
+			public void onSuccess(String result) {				
+				Window.alert(result);		
+			}
+		  };		  
+		  secondoService.sendCommand(command, callback);	
+		
+	}
+	
+	public void saveGPXfileToServer(final String filename, final FormPanel form){
+		
+		if (filename.length() == 0) {
+            Window.alert("Please select a file");}
+		if(filename.endsWith(".gpx"))
+		{
+		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
+			
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);	
+				
+			}
+
+			@Override
+			public void onSuccess(Void result) {
+				form.submit();
+				String url = GWT.getModuleBaseURL() + "uploadService?fileName=" + filename;
+				Window.open( url, "_blank", "status=0,toolbar=0,menubar=0,location=0");	
+				Window.alert("File upload is successfull");
+				
+				
+			}
+			
+			
+		};
+		
+		secondoService.saveGPXfileToServer(filename, callback); 
+		
+		
+		}
+		else {
+			Window.alert("You can upload only gpx file");
+		}
+		
 	}
 }

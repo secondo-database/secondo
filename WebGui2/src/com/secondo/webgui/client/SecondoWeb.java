@@ -20,6 +20,7 @@
 package com.secondo.webgui.client;
 
 import java.util.ArrayList;
+
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -41,6 +42,8 @@ import com.secondo.webgui.client.loginview.LoginView;
 import com.secondo.webgui.client.mainview.MainView;
 import com.secondo.webgui.client.rpc.SecondoService;
 import com.secondo.webgui.client.rpc.SecondoServiceAsync;
+import com.secondo.webgui.utils.config.Resources;
+import com.secondo.webgui.utils.config.SecondoConstants;
 
 /**
  * This is the Entry point class which defines the onModuleLoad()-Method to start the application, 
@@ -91,13 +94,31 @@ public class SecondoWeb implements EntryPoint {
 	/**************************************************************
 	 * This is the entry point method which starts the application.
 	 **************************************************************/
-	public void onModuleLoad() {
+	public void onModuleLoad() {	
+		 Resources.INSTANCE.css().ensureInjected(); 
 					
-	/*set default values in login textfields*/
+	/*set default values in login textfields using properties*/
 		//this.loginView.getUsername().setText("testuser");
 		//this.loginView.getPassword().setText("s3c0nd0");
-		this.loginView.getIpadresse().setText("agnesi.fernuni-hagen.de");
-		this.loginView.getPort().setText("1302");		
+//		this.loginView.getIpadresse().setText("agnesi.fernuni-hagen.de");
+//		this.loginView.getPort().setText("1302");	
+		SecondoConstants constantsToConnect = GWT.create(SecondoConstants.class);
+//		this.loginView.getIpadresse().setText(constantsToConnect.IP());
+//		this.loginView.getPort().setText(constantsToConnect.port());
+		
+		if(!logindata.isEmpty()){
+      	  logindata.clear();
+      }
+      	  //get the content of the login text fields  
+			logindata.add("");
+			logindata.add("");
+      	  logindata.add(constantsToConnect.IP());
+      	  logindata.add(constantsToConnect.port());
+      	  
+      	//connect to secondo with logindata 
+      	  sendLogin(logindata, constantsToConnect.DB());	
+      	  
+      	  
 
 	/*initialize the loading popup*/
 	    loadingPopup.setAnimationEnabled(true);
@@ -155,7 +176,7 @@ public class SecondoWeb implements EntryPoint {
 		            	  logindata.add(loginView.getPort().getText());
 		            	  
 		            	//connect to secondo with logindata 
-		            	  sendLogin(logindata);	
+//		            	  sendLogin(logindata);	
 				}
 			}
 		});
@@ -174,7 +195,7 @@ public class SecondoWeb implements EntryPoint {
             	  logindata.add(loginView.getIpadresse().getText());
             	  logindata.add(loginView.getPort().getText());  
 
-	              sendLogin(logindata);	
+//	              sendLogin(logindata);	
 	            }
 	          });
 		
@@ -268,8 +289,72 @@ public class SecondoWeb implements EntryPoint {
 	        	rpcConnector.saveTextFile(mainView.getRawDataView().getRawDataOutput().getText(), "secondo-text.txt");
 	          }
 		 });
+	    
+	    /*allows to download a raw data result*/
+	    this.mainView.getHeader().getExport().setScheduledCommand(new Command() {
+			
+			@Override
+			public void execute() {
+				rpcConnector.saveTextFile(mainView.getRawDataView().getRawDataOutput().getText(), "secondo-text.txt");
+				
+			}
+		});
+	    
+	    this.mainView.getOptionsTabPanel().getCreateSymTrajButton().addClickHandler(new ClickHandler() {
+	          public void onClick(ClickEvent event) {
+
+	        	rpcConnector.createSymTraj(mainView.getOptionsTabPanel().getOptionsForCreatingSymTraj().getSelectedIndex(),mainView.getOptionsTabPanel().getNameOfUploadedFile());
+	          }
+		 });
+	    
+	    /**Adds an event handler on the button "get relation" of the options tab panel */
+		this.mainView.getOptionsTabPanel().getAnimateButton().addClickHandler(new ClickHandler() {
+			public void onClick(ClickEvent event) {
+				String command=mainView.getOptionsTabPanel().getCommandForQueryRelation();
+				if(!command.isEmpty()){
+					mainView.resetMapView();
+					
+					//send the command directly to secondo
+					rpcConnector.sendCommand(command, mainView, loadingPopup);
+					rpcConnector.addCommandToHistory(command);
+					rpcConnector.updateCommandHistory(mainView);
+					
+					//show the loading popup in the center of the application until the call is finished
+			    	loadingPopup.center(); 	
+
+				}
+				else{
+					Window.alert("Please select relation");
+				}
+				
+				
+			}
+		});
+		
+		this.mainView.getOptionsTabPanel().getMatchButton().addClickHandler(new ClickHandler() {
+			
+			@Override
+			public void onClick(ClickEvent event) {
+				String command= mainView.getOptionsTabPanel().getCommandForPatternMatching();
+				if(!command.isEmpty()){
+					mainView.resetMapView();					
+					
+					//send the command directly to secondo
+					rpcConnector.sendCommand(command, mainView, loadingPopup);
+					rpcConnector.addCommandToHistory(command);
+					rpcConnector.updateCommandHistory(mainView);
+					
+					//show the loading popup in the center of the application until the call is finished
+			    	loadingPopup.center(); 	
+				}
+				else{
+					Window.alert("Please select relation");
+				}
+			}
+		});
 	   
-        
+	   
+	    
 		/*sets default content after starting the application, which is the login-page*/
         //check for ie8 and display default message
         if(Window.Navigator.getUserAgent().contains("MSIE 8")){
@@ -279,7 +364,7 @@ public class SecondoWeb implements EntryPoint {
 		    loginView.getMainPanel().remove(2); 
 		    loginView.getMainPanel().insert(defaultText, 2);
 		}
-		this.setContent(0);
+//		this.setContent(0);
 	}
 	
 /* ***Methods with RPC-Calls to the Application-Server for getting server-side Data which need 
@@ -290,7 +375,7 @@ public class SecondoWeb implements EntryPoint {
 	 * 
 	 * @param userDataList List with logindata of the user
 	 * */
-	public void sendLogin(ArrayList<String> userDataList) {
+	public void sendLogin(ArrayList<String> userDataList, final String db) {
 						  
 		  AsyncCallback<Void> callback = new AsyncCallback<Void>() {
 
@@ -303,7 +388,8 @@ public class SecondoWeb implements EntryPoint {
 				@Override
 				public void onSuccess(Void result) { 
 						
-						updateDatabaseList();		          			
+//						updateDatabaseList();
+					openDatabase(db);
 				}
 			  };
 		  		 
@@ -356,7 +442,7 @@ public class SecondoWeb implements EntryPoint {
 			@Override
 			public void onSuccess(String openDatabase) { //result here is return from secondoserviceimpl method
 
-          		Window.alert("Database " + openDatabase + " is opened successfully!");	
+//          		Window.alert("Database " + openDatabase + " is opened successfully!");	
           		
 				//set status info to status bar
           		mainView.getStatusBar().getSecondoServer().setText(logindata.get(2) + " : " + logindata.get(3));
@@ -388,7 +474,8 @@ public class SecondoWeb implements EntryPoint {
       			
       			rpcConnector.resetObjectCounter();
       			
-				mainView.showGraphicalView();
+//				mainView.showGraphicalView();
+				mainView.showMapView();
           		
           		setContent(2);			
 			}
@@ -505,9 +592,12 @@ public class SecondoWeb implements EntryPoint {
          break;
         case 2:
             System.out.println("User is logged in and has chosen a database");
+            
             header.clear();
-			header.add(mainView.getMainheader().gethPanel());
-			
+            mainView.getMainheader().getLabelWithDatabaseName().setText(currentDatabase);
+            header.add(mainView.getMainheader().getGrid());
+//			header.add(mainView.getMainheader().gethPanel());
+						
 			content.clear();
 			content.add(mainView.getMainPanel());
 			

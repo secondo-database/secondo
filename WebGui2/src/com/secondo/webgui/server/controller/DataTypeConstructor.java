@@ -24,9 +24,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
+
 import sj.lang.ListExpr;
+
 import com.secondo.webgui.shared.model.DataType;
 import com.secondo.webgui.shared.model.Line;
+import com.secondo.webgui.shared.model.MLabel;
 import com.secondo.webgui.shared.model.MPoint;
 import com.secondo.webgui.shared.model.Point;
 import com.secondo.webgui.shared.model.Polygon;
@@ -38,6 +41,7 @@ import com.secondo.webgui.shared.model.TimeInterval;
 *  and creates objects for all datatypes that have been found. All objects are put into a new resultlist of datatypes.
 *  
 *  @author Kristina Steiger
+*  
 *  
 **/
 public class DataTypeConstructor{
@@ -101,6 +105,8 @@ public class DataTypeConstructor{
 				&& le.first().first().writeListExprToString().contains("rel")) {
 			dataType = "rel";			
 			this.analyzeRelation(le);
+			
+			
 		}
 		
 		//add attributelist to datatypes
@@ -394,6 +400,57 @@ public class DataTypeConstructor{
             		    mpoint.setTime(timelist);
             		    resultTypeList.add(mpoint);
 				}
+                
+                if (tuplelist.first().second().stringValue().equals("mlabel")) {
+
+                	ArrayList<String> labellist = new ArrayList<String>();
+            		ArrayList<TimeInterval> timelist = new ArrayList<TimeInterval>();
+            		MLabel mlabel = new MLabel();
+            		
+            		ListExpr valueList = listentry.first();            	
+            		
+
+            		while (!valueList.isEmpty()) {			
+            			
+            			   //get time
+            			   Date timeA = parseStringToDate(valueList.first().first().first().writeListExprToString());
+            			   Date timeB = parseStringToDate(valueList.first().first().second().writeListExprToString());	
+            			   
+            			   //add time to timelist
+            			   TimeInterval time = new TimeInterval();
+            			   time.setTimeA(timeA);
+            			   time.setTimeB(timeB);
+            			   timelist.add(time);
+            			
+            			   //get label
+            			   String label=valueList.first().second().symbolValue();
+            			   //generate color for each label
+            			   mlabel.generateColorsForLabel2(label);
+            			   if(labellist.contains(label)){
+            				   int indexOfFirstOccurrance=labellist.indexOf(label);
+            				   labellist.add(label);
+            				   mlabel.generateColorsForDuplicateLabel(indexOfFirstOccurrance);
+            				   
+            			   }else{
+            			   labellist.add(label);
+            			   mlabel.generateColorsForLabel(labellist.size()-1);
+            			   
+            			   }           			      			   
+            			   
+            			   valueList = valueList.rest();
+            			  
+            		}	
+            		   //add the MLabel to the resultlist
+            		    mlabel.setId(objectCounter);
+            		    objectCounter++;  
+            		    mlabel.setName(firstTuple.trim());
+            		    //name - attribute name of type mlabel in the relation 
+            		    mlabel.setAttributeNameInRelation(tuplelist.first().first().stringValue());            		    
+            		    mlabel.setTime(timelist);
+            		    mlabel.setLabel(labellist);
+            		    
+            		    resultTypeList.add(mlabel);
+				}
 				tuplelist = tuplelist.rest();
 				listentry = listentry.rest();
 				index1++;		
@@ -403,6 +460,9 @@ public class DataTypeConstructor{
 			index++;
 		}	
     	System.out.println("############## Size of resultTypeList: " +resultTypeList.size());
+    	for(DataType each:resultTypeList){
+    		System.out.println(" "+each.getType());
+    	}
 	}
 	
 	/**Gets the line-result from secondo, builds a list of lines and puts it into the resultTypeList

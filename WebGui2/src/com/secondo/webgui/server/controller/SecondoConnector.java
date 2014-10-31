@@ -131,6 +131,41 @@ public class SecondoConnector {
 		}*/
 	}
 
+	/**Method to make a connection to the secondo server and send a query to the secondo database. Successful query has no result in resultList (like create or delete queries) 
+	 * @param command The command to be send to the server. 
+     * @exception IOException On input error.
+	 */
+	public void doQueryWithoutResult(String command) throws IOException {
+
+		this.secondoresult = "";
+		ListExpr resultList = new ListExpr();
+
+		secondoInterface.useBinaryLists(true);
+
+		if (!secondoInterface.isConnected()) { 
+			this.connect();
+		}
+
+		IntByReference errorCode = new IntByReference(0);
+		IntByReference errorPos = new IntByReference(0);
+		StringBuffer errorMessage = new StringBuffer();
+
+		// get the command from the userinterface and send it to secondo, return the listexpr from secondo
+		 secondoInterface.secondo(command, resultList, errorCode, errorPos, errorMessage); 
+
+		if (errorCode.value != 0) {
+			System.err.println("Error in executing " + command + " \n"
+					+ errorMessage);
+			this.secondoresult = "Error in executing " + command + " \n"
+					+ errorMessage;			
+		} else {
+			System.err.println("success!");
+			 this.secondoresult = resultList.toString();			 
+			 
+		}
+		
+	}
+	
 	/**Returns all available databases from secondo and adds them to a list 
 	 * 
 	 * @return The list of all available databases

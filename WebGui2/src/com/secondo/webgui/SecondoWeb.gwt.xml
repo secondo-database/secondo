@@ -6,7 +6,10 @@
 <module rename-to='secondoweb'>
 	<!-- Inherit the core Web Toolkit stuff. -->
 	<inherits name='com.google.gwt.user.User' />
-
+	<inherits name="com.google.gwt.user.Debug"/>
+	
+	
+<!-- <stylesheet src="/SecondoWeb.css"/>	 -->
 	<!-- Inherit the default GWT style sheet. You can change -->
 	<!-- the theme of your GWT application by uncommenting -->
 	<!-- any one of the following lines. -->
@@ -17,7 +20,23 @@
 
 	<!-- Other module inherits -->
 	<inherits name='org.gwtopenmaps.openlayers.OpenLayers'/>
-	<inherits name='net.auroris.ColorPicker.client'/>
+<!-- 	<inherits name="com.gwtext.GwtExt"/> -->
+<!-- 	<inherits name="com.smartgwt.SmartGwt"/> -->
+<!-- 	<inherits name="com.smartclient.theme.graphite.Graphite"/> -->
+	<!-- <inherits name="com.extjs.gxt.ui.GXT"/>-->
+	<!-- <inherits name="com.gwtext.GwtExt"/>  -->	
+<!-- 	<inherits name="com.smartgwt.SmartGwt"/>	 -->
+<!-- <inherits name="com.smartgwt.SmartGwtNoScript"/> -->
+
+<!-- <inherits name="com.smartclient.theme.silverwave.SilverWaveResources" /> -->
+<!-- <inherits name="com.smartclient.theme.silverwave.SilverWave" /> -->
+	
+<!-- 	<inherits name="com.smartclient.theme.graphite.GraphiteResources"/> -->
+  	<!--<inherits name='com.sencha.gxt.ui.GXT' />-->
+  	
+	
+	
+	<!--<inherits name='net.auroris.ColorPicker.client'/> -->
 
 	<!-- Specify the app entry point class. -->
 	<entry-point class='com.secondo.webgui.client.SecondoWeb' />
@@ -25,5 +44,12 @@
 	<!-- Specify the paths for translatable code -->
 	<source path='client' />
 	<source path='shared' />
+	<source path='utils' />
+<!-- 	<stylesheet src="js/ext/resources/css/ext-all.css"/> -->
+<!-- 	<script src="js/ext/adapter/ext/ext-base.js"/> -->
+<!-- 	<script src="js/ext/ext-all.js"/> -->
+	
+	
+	
 
 </module>

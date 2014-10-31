@@ -19,13 +19,27 @@
 
 package com.secondo.webgui.client.mainview;
 
+import com.google.gwt.dom.client.Style;
 import com.google.gwt.dom.client.Style.Unit;
+import com.google.gwt.event.dom.client.MouseMoveEvent;
+import com.google.gwt.event.dom.client.MouseOutEvent;
+import com.google.gwt.event.dom.client.MouseOutHandler;
+import com.google.gwt.event.dom.client.MouseOverEvent;
+import com.google.gwt.event.dom.client.MouseOverHandler;
+import com.google.gwt.event.shared.HandlerRegistration;
+import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FocusWidget;
+import com.google.gwt.user.client.ui.Grid;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
+import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.MenuBar;
+import com.google.gwt.user.client.ui.MenuItem;
+
 
 /**
 *  This class represents the header of the main view.
@@ -38,11 +52,17 @@ public class Header extends Composite{
 	/**The main panel of the header*/
 	private HorizontalPanel hPanel = new HorizontalPanel();
 	
+	/**The main grid of the header*/
+	private Grid g=new Grid();
+	
 	/**The Secondo logo image*/
 	private Image logo = new Image("resources/images/secondo-logo.gif");
 	
 	/**The panel for buttons*/
 	private HorizontalPanel buttonPanel = new HorizontalPanel();
+	
+	/**The label to show a name of actual database*/
+	private Label labelWithDatabaseName= new Label();
 	
 	/**The close database button*/
 	private Button closedatabaseButton = new Button("<img src='resources/images/close-database.png' height='30px' width='30px'/>");
@@ -52,16 +72,111 @@ public class Header extends Composite{
 	
 	/**Width of the header*/
     private int width=Window.getClientWidth();
+    
+    private MenuBar mainMenuBar = new MenuBar();
+    private MenuItem legend= new MenuItem("Legend", mainMenuBar);
+    private MenuItem export = new MenuItem("Export", mainMenuBar);
+    private MenuItem plainTraj= new MenuItem("Plain trajectory", mainMenuBar);
 	
 	public Header(){
-
-		int windowWidth = Window.getClientWidth();
+		g.resize(4, 1);
+		//TODO
+//		int windowWidth = Window.getClientWidth();
 		
 		logo.getElement().getStyle().setMarginLeft(30, Unit.PX);
-		logo.setWidth("250px");
-		hPanel.add(logo);
-		hPanel.setWidth(width + "px");
+		logo.setSize("190px", "28px");
+		g.setWidget(0,0,logo);
+		g.setWidth(width + "px");
+		g.setHeight("28px");
+		g.getElement().setClassName("mainheader");
+//		hPanel.add(logo);
+//		hPanel.setWidth(width + "px");
 		buttonPanel.getElement().getStyle().setMarginLeft(width-430, Unit.PX);
+		
+		MenuBar homeMenu = new MenuBar(true);
+		homeMenu.getElement().getStyle().setColor("white");
+		MenuBar symbTrajMenu = new MenuBar(true);
+		symbTrajMenu.getElement().getStyle().setColor("white");
+		MenuBar database = new MenuBar(true);
+		database.getElement().getStyle().setColor("white");
+		MenuBar optimizer = new MenuBar(true);
+		optimizer.getElement().getStyle().setColor("white");
+		MenuBar support = new MenuBar(true);
+		support.getElement().getStyle().setColor("white");
+		support.getElement().getStyle().setFontStyle(Style.FontStyle.NORMAL);
+		support.getElement().getStyle().setFontWeight(Style.FontWeight.NORMAL);
+		
+		
+		MenuBar menu = new MenuBar();		
+	    menu.addItem("Home", homeMenu);
+	    menu.addItem("About symbolic trajectory", symbTrajMenu);
+	    menu.addItem("Database", database);
+	    menu.addItem("Optimizer", optimizer);
+	    menu.addItem("Support", support);
+	    menu.getElement().getStyle().setColor("white");
+	    menu.getElement().getStyle().setBorderStyle(Style.BorderStyle.NONE);
+	    g.setWidget(1,0, menu);
+	    g.getCellFormatter().setStyleName(1, 0, "GreyMenubar");
+	    
+	    
+	    
+	    
+	    final OptimizerSyntaxDialog optimizerSyntaxDialog = new OptimizerSyntaxDialog();
+		  //command that will execute on selection of the optimizer info menu item
+		    Command optimizerInfo = new Command() {
+		      public void execute() {
+		        optimizerSyntaxDialog.getHelpDialogBox().center();
+		        optimizerSyntaxDialog.getHelpDialogBox().show();
+		      }
+		    };
+	    
+	    
+
+	    MenuItem homeItem=new MenuItem("My location", mainMenuBar);	
+	    homeItem.setTitle("Help!!!");
+	    
+	    homeItem.setStyleName("transparent1");
+	    homeItem.setScheduledCommand(optimizerInfo);
+	    mainMenuBar.addItem(homeItem); 	    
+
+	    
+	    legend.setStyleName("transparent2");
+	    legend.setTitle("Legend to the symbolic trajectory");
+	    mainMenuBar.addItem(legend);
+	    
+	    Command menuCommand = new Command(){
+		      public void execute() {
+			        optimizerSyntaxDialog.getHelpDialogBox().center();
+			        optimizerSyntaxDialog.getHelpDialogBox().show();
+			      }
+			    };
+	    MenuItem link = new MenuItem("Link", menuCommand);	    
+	    link.setStyleName("transparent3");
+	    mainMenuBar.addItem(link);
+	    
+	    MenuItem print = new MenuItem("Print", menuCommand);	    
+	    print.setStyleName("transparent4");	   
+	    mainMenuBar.addItem(print);
+	    
+	    
+	    export.setStyleName("transparent4");
+	    export.setTitle("Export raw data");
+	    mainMenuBar.addItem(export);
+	    
+	    
+	    plainTraj.setStyleName("transparent4");
+	    plainTraj.setTitle("Symbolic trajectory\n in plain text");
+	    mainMenuBar.addItem(plainTraj);
+	    
+	    
+	    
+	    
+	    g.setWidget(3, 0, mainMenuBar);
+	    g.getCellFormatter().setStyleName(3, 0, "toolbar_menu");
+	    
+	    
+	    
+	    
 		
 		//configure buttons
 		closedatabaseButton.getElement().setClassName("closedatabasebutton");
@@ -70,18 +185,21 @@ public class Header extends Composite{
 		closedatabaseButton.setTitle("Close Database");
 		logoutButton.getElement().setClassName("logoutbutton");
 		logoutButton.setWidth("40px");
-		logoutButton.setTitle("Logout");
+		logoutButton.setTitle("Logout");		
 		
 		buttonPanel.setWidth("100px");
 		buttonPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
-		buttonPanel.getElement().getStyle().setMarginLeft(windowWidth-430, Unit.PX);
+		//TODO
+//		buttonPanel.getElement().getStyle().setMarginLeft(windowWidth-430, Unit.PX);
+		buttonPanel.add(labelWithDatabaseName);
 		buttonPanel.add(closedatabaseButton);
 		buttonPanel.add(logoutButton);
-		hPanel.add(buttonPanel);
+		
+//		hPanel.add(buttonPanel);
 
-		hPanel.getElement().setClassName("mainheader");	
-		hPanel.setWidth(windowWidth + "px");
-		hPanel.setHeight("50px");
+//		hPanel.getElement().setClassName("mainheader");	
+//		hPanel.setWidth(windowWidth + "px");
+//		hPanel.setHeight("50px");
 	}
 	
 	/**On resizing of the browser window the width of the main panel and button panel is readjusted
@@ -120,5 +238,39 @@ public class Header extends Composite{
 	 * */
 	public Button getLogoutButton() {
 		return logoutButton;
+	}
+	
+	/**Returns the label with the currently selected database
+	 * 
+	 * @return The label
+	 * */
+	public Label getLabelWithDatabaseName(){
+		return labelWithDatabaseName;
+	}
+	
+	public Grid getGrid(){
+		return g;
+	}
+	
+	/**
+	 * @return the legend
+	 */
+	public MenuItem getLegendMenuItem() {
+		return legend;
+	}
+	
+
+	/**
+	 * @return the export
+	 */
+	public MenuItem getExport() {
+		return export;
+	}
+
+	/**
+	 * @return the plainTraj
+	 */
+	public MenuItem getPlainTraj() {
+		return plainTraj;
 	}
 }

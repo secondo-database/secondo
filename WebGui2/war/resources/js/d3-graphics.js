@@ -352,7 +352,8 @@ function showLineArray(id, index, color){
 	   		return yScale(d[3]);
 	      })
          .attr("stroke-width", 2)
-         .attr("stroke", color);	
+         .attr("stroke", color);
+         
 }
 
 /**Delete all lines in the array by removing references to them*/
@@ -639,6 +640,7 @@ function animateMovingPoint(id, index, color){
           .attr("fill", "none")
           .attr("stroke-width", 2)
           .attr("stroke", "steelblue");
+          
 
     //create moving point
 	var movingpoint = d3.select("#mainsvg").append("circle") 
@@ -721,3 +723,11 @@ function deleteAllMPointPaths(){
 	    datasetMPoints.length = 0;
   }
 }
+
+///**handle fileUpload-input element*/
+//function handleInput(ev) {
+//	window.alert(ev.target.value);
+//	Element el=document.getElementById("gwt-debug-fileUploadHidden");
+//	window.alert("On input"+el.value);
+//    document.getElementById("gwt-debug-textBoxForUpload").value=el.value; 
+//}

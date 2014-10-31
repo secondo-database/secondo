@@ -20,6 +20,10 @@
 package com.secondo.webgui.client.rpc;
 
 import java.util.ArrayList;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 import com.secondo.webgui.shared.model.DataType;
@@ -60,4 +64,7 @@ public interface SecondoService extends RemoteService {
 	
 	void addCommandToHistory(String command);
 	void saveTextFile(String text, String filename);
+	public void saveGPXfileToServer(String filename);
+	String sendCommandWithoutResult(String command);	
+	
 }

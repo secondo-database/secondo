@@ -30,6 +30,15 @@
     <servlet-name>downloadService</servlet-name>
     <url-pattern>/secondoweb/downloadService</url-pattern>
  </servlet-mapping>
+ 
+	 <servlet>
+	    <servlet-name>uploadService</servlet-name>
+	    <servlet-class>com.secondo.webgui.server.rpc.UploadServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+	  <servlet-name>uploadService</servlet-name>
+	  <url-pattern>/secondoweb/uploadService</url-pattern>
+	</servlet-mapping>
   
   <!-- Default page to serve -->
   <welcome-file-list>

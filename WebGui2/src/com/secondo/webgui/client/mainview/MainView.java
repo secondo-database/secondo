@@ -21,6 +21,9 @@ package com.secondo.webgui.client.mainview;
 
 import java.util.ArrayList;
 import java.util.Map.Entry;
+
+import java_cup.non_terminal;
+
 import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -31,6 +34,7 @@ import com.google.gwt.event.logical.shared.ValueChangeEvent;
 import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.AbsolutePanel;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
@@ -51,7 +55,7 @@ public class MainView extends Composite {
 
 	/**The main panel of the main view*/
 	private HorizontalPanel mainPanel = new HorizontalPanel();
-	private FlowPanel contentPanel = new FlowPanel();
+	private AbsolutePanel contentPanel = new AbsolutePanel();
 
 	// main elements of the application
 	private Header header = new Header();
@@ -59,6 +63,7 @@ public class MainView extends Composite {
 	private SideBar sidebar = new SideBar();
 	private FlowPanel commandPanelWrapper = new FlowPanel();
 	private CommandPanel commandPanel = new CommandPanel();
+	private OptionsTabPanel optionsTabPanel = new OptionsTabPanel();
 
 	// different views that can be displayed in the viewpanel
 	private HorizontalPanel view = new HorizontalPanel();
@@ -67,6 +72,7 @@ public class MainView extends Composite {
 	private GraphicalView graphicalView = new GraphicalView();
 	private MapView mapView = new MapView();
 	private ToolBox toolbox = new ToolBox();
+	
 
 	// boolean values to show if panels are visible or not
 	private boolean cpTurnedOn = true;
@@ -76,10 +82,16 @@ public class MainView extends Composite {
 	// Commands for optimizer
 	private Command optimizerOn;
 	private Command optimizerOff;
+	
+	 /**
+     * default value=0, means "doesn't show symtraj"
+     */
+    private int modeForSymTraj=0;
 
 	public MainView() {
 
-		contentPanel.add(view);
+		contentPanel.add(view);		
+		contentPanel.add(optionsTabPanel.getOptionsTabPanel(), 10,0);
 		contentPanel.add(commandPanelWrapper);
 		contentPanel.add(statusBar.gethPanel());
 
@@ -188,10 +200,10 @@ public class MainView extends Composite {
 			public void onClick(ClickEvent event) {
 				graphicalView.resetData();
 				graphicalView.getMpointController().stopAllAnimations();
-				mapView.resetData();
-				mapView.getMpointController().stopAllAnimations();
+				resetMapView();
 				toolbox.resetData();
 			}
+			
 		});
 
 		/** Adds an event handler on the resetTextButton of the toolbar to clear the textview*/
@@ -213,7 +225,43 @@ public class MainView extends Composite {
 				}
 			}
 		});
+		
+		this.optionsTabPanel.getSelectOptionsForDisplayMode().addClickHandler(new ClickHandler(){
 
+			@Override
+			public void onClick(ClickEvent event) {
+				modeForSymTraj=optionsTabPanel.getSelectOptionsForDisplayMode().getSelectedIndex();
+				getMapView().setModeForSymTraj(modeForSymTraj);
+			}
+			
+		});
+		
+		/**Adds an event handler on the playButton of the optionsTabPanel to animate the moving point */
+		this.optionsTabPanel.getPlayLink().addClickHandler(new ClickHandler() {
+			public void onClick(ClickEvent event) {
+
+				
+		    	if(modeForSymTraj!=0){
+		    		
+		    		getMapView().getMpointController().animateMovingPoints(optionsTabPanel, mapView.getMap(),modeForSymTraj);		
+		    	}
+		    	else{
+		    		Window.alert("Please select display mode");
+		    	}
+			}
+		});
+		
+		
+
+		/**Adds an event handler on the forwardButton of the optionsTabPanel to animate the moving point */
+		this.optionsTabPanel.getForwardLink().addClickHandler(new ClickHandler() {
+			public void onClick(ClickEvent event) {
+
+					getMapView().getMpointController().speedUpMovingPoint();
+				
+			}
+		});
+		
 		/**Adds an event handler on the forwardButton of the toolbar to animate the moving point */
 		this.toolbox.getForwardLink().addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
@@ -241,6 +289,18 @@ public class MainView extends Composite {
 			}
 		});
 
+		/** Adds an event handler on the rewindButton of the optionsTabPanel to animate the moving point */
+		this.optionsTabPanel.getRewindLink().addClickHandler(new ClickHandler() {
+			public void onClick(ClickEvent event) {
+
+				
+					getMapView().getMpointController()
+							.reduceSpeedOfMovingPoint();
+				
+			}
+		});
+
+		
 		/** Adds an event handler on the pauseButton of the toolbar to pause the animation of the the moving point */
 		this.toolbox.getPauseLink().addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
@@ -253,6 +313,19 @@ public class MainView extends Composite {
 				} else {
 					getGraphicalView().getMpointController().pauseMovingPoint();
 				}
+			}
+		});
+		
+		/** Adds an event handler on the pauseButton of the optionsTabPanel to pause the animation of the the moving point */
+		this.optionsTabPanel.getPauseLink().addClickHandler(new ClickHandler() {
+			public void onClick(ClickEvent event) {
+
+				optionsTabPanel.getAnimationPanel().remove(0);
+				optionsTabPanel.getAnimationPanel().insert(optionsTabPanel.getPanelForPlay(), 0);
+
+				
+					getMapView().getMpointController().pauseMovingPoint();
+				
 			}
 		});
 
@@ -376,6 +449,8 @@ public class MainView extends Composite {
 					}
 				});
 		
+		
+		
 		/** Adds an event handler to the save button of the zoom level dialog to change the zoom level */
 		this.toolbox.getZoomLevelDialog().getSaveButton().addClickHandler(new ClickHandler() {
 					public void onClick(ClickEvent event) {
@@ -477,6 +552,15 @@ public class MainView extends Composite {
 			}
 		};
 		this.commandPanel.getMenubarCP().getOptimizerItemOff().setScheduledCommand(optimizerOff);
+		
+		this.getHeader().getPlainTraj().setScheduledCommand(new Command() {
+			
+			@Override
+			public void execute() {
+				// TODO Auto-generated method stub
+				
+			}
+		});
 	}
 
 	/** On resizing of the browser window the elements of the main view are readjusted with the commandpanel displayed
@@ -746,6 +830,7 @@ public class MainView extends Composite {
 	}
 
 	/**Shows the map view and resizes all visible elements*/
+	
 	public void showMapView() {
 
 		//reset all data
@@ -786,8 +871,20 @@ public class MainView extends Composite {
 			} else {
 				resizeToFullScreen(windowWidth, windowHeight);
 			}
-		}
+		}else{
 		mapView.updateView();
+		}
+		
+		final LegendDialog legend = mapView.getLegend();		
+	    Command legendInfo = new Command() {
+	      public void execute() {
+	    	  legend.getHelpDialogBox().center();
+	    	  legend.getHelpDialogBox().show();
+	      }
+	    };
+	    
+	    this.optionsTabPanel.setAttributeNameOfMpointInRelation(this.mapView.getAttributeNameOfMPoint());
+		header.getLegendMenuItem().setScheduledCommand(legendInfo);
 	}
 
 	/**Shows the raw data view in the view panel*/
@@ -1202,4 +1299,28 @@ public class MainView extends Composite {
 	public boolean isMapTurnedOn() {
 		return mapTurnedOn;
 	}
+
+	/**
+	 * @return optionsTabPanel
+	 */
+	public OptionsTabPanel getOptionsTabPanel() {
+		return optionsTabPanel;
+	}
+	
+	/**
+	 * 
+	 */
+	public void resetMapView() {
+		mapView.resetData();
+		mapView.getMpointController().stopAllAnimations();
+	}
+
+	/**
+	 * @return the header
+	 */
+	public Header getHeader() {
+		return header;
+	}
+
+	
 }

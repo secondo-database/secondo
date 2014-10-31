@@ -1,0 +1,628 @@
+@charset "utf-8";
+
+/******************** fonts ********************/
+
+.serverResponseLabelError {
+	color: red;
+}	
+
+/***********************************************************
+*                 GWT Application Elements
+***********************************************************/
+
+.gwt-DialogBox {
+	width: 400.0px;
+}
+
+
+
+/******************** Loading Animation Popup ********************/
+.gwt-PopupPanelGlass {
+   background-color: #000;
+   opacity: 0.3;
+}
+
+.loadingpopup{
+	border: none;
+}
+
+/******************** Buttons ********************/
+.closedatabasebutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.logoutbutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.hideterminalbutton{
+	background: #F1F1F1;
+	border: none;
+	text-shadow: none;
+}
+
+.resettextbutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.resetrawdatabutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.colorpickerbutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.zoombutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+.zoomallbutton{
+	background: #F1F1F1;
+	border: none;
+	text-shadow: none;
+}
+
+.zoomlastbutton{
+	background: #F1F1F1;
+	border: none;
+	text-shadow: none;
+}
+
+.resetobjectlistbutton{
+	background: white;
+	border: none;
+	text-shadow: none;
+}
+
+/******************** View Panels ********************/
+
+.commandpanel {
+	background: black;
+	border: none;
+	font: 18px;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: #00FF00;
+	resize: none;
+	margin: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.menubar {
+	background: #F1F1F1;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: black;
+	margin: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.menubarpopup{
+	font-weight: bold;
+	text-align: left;
+	float: left;
+	padding: 0.0px 20.0px 0.0px 20.0px;
+}
+
+.menubarpopup .gwt-MenuItem{
+	padding: 0.0px 20.0px 0.0px 20.0px;
+}
+
+.sidebar {
+	background: #F1F1F1;
+	border: none;
+	margin: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.statusbar {
+	background: #F1F1F1;
+	border: none;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: black;
+	margin: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.rawdataoutput {
+	background: white;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: black;
+	resize: none;
+	padding: 0.0px 0.0px 20.0px 20.0px;
+}
+
+.rawdataview {
+	background: white;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCCCCC;
+	border-bottom: none;
+	border-left: none;
+	resize: none;
+}
+
+.textoutput {
+	background: white;
+	border: none;
+	font: 15px;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: black;
+	resize: none;
+	padding: 5.0px 0.0px 5.0px 10.0px;
+}
+
+.textview {
+	background: white;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right: none;
+	border-bottom: none;
+	border-left: none;
+	resize: none;
+}
+
+.graphicalcontentpanel {
+	background: white;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCCCCC;
+	border-bottom: none;
+	border-left-width: 1px;
+	border-left-style: solid;
+	border-left-color: #CCCCCC;
+}
+
+.mapcontentpanel {
+	background: white;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCCCCC;
+	border-bottom: none;
+	border-left-width: 1px;
+	border-left-style: solid;
+	border-left-color: #CCCCCC;
+}
+
+.toolbox {
+	background: white;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCCCCC;
+	border-bottom: none;
+	border-left: none;
+	font: 15px;
+	font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+	color: black;
+	resize: none;
+	padding: 0.0px 10.0px 10.0px 10.0px;
+	margin: 0.0px 0.0px 0.0px 0.0px;
+}
+
+.toolsstackpanel .gwt-StackPanelItem{
+	background: white;
+	font-weight: bold;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCCCCC;
+	border-left-width: 1px;
+	border-left-style: solid;
+	border-left-color: #CCCCCC;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: #CCCCCC;
+}
+
+/***********************************************************
+*                     D3 Elements
+***********************************************************/
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    font-family: "ms sans serif", geneva, arial, helvetica, sans-serif;
+    font-size: 11px;
+}
+
+.gwt-MenuBar{
+	float: left;	
+	font-size: 12px;
+	padding-top:5px;
+	background: none repeat scroll 0 0 rgba(0, 0, 0, 0);
+    border: medium none;	
+}
+
+.gwt-MenuBar-horizontal .gwt-MenuItem {
+background-color: rgb(126, 126, 126);
+border-left: 1px solid rgb(163, 163, 163);
+border-right: 1px solid rgb(84, 84, 84);
+color: white;
+display: block;
+float: left;
+height: 25px;
+line-height: 23px;
+padding: 0px 8px;
+text-decoration: none;
+font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
+font-size: 12px;
+font-weight: normal;
+}
+
+.gwt-MenuBar-horizontal:hover .gwt-MenuItem:hover, .gwt-MenuItem-selected {
+    background-color: rgb(84, 84, 84);
+    
+}
+
+.gwt-MenuBar .gwt-MenuItemSeparator{
+	color:white;
+	
+}
+.GreyMenubar{
+	color: white;
+	border-radius: 10px;
+	
+	
+}
+
+.toolbar_menu{
+	float:left;
+	margin-left:300px;
+	height: 30px;
+	border-collapse: collapse;
+	
+	
+	
+	width:650px;
+	/* IE10 Consumer Preview */ 
+background-image: -ms-linear-gradient(top, #FFFFFF 0%, #E1E6E4 100%);
+
+/* Mozilla Firefox */ 
+background-image: -moz-linear-gradient(top, #FFFFFF 0%, #E1E6E4 100%);
+
+/* Opera */ 
+background-image: -o-linear-gradient(top, #FFFFFF 0%, #E1E6E4 100%);
+
+/* Webkit (Safari/Chrome 10) */ 
+background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #FFFFFF), color-stop(1, #E1E6E4));
+
+/* Webkit (Chrome 11+) */ 
+background-image: -webkit-linear-gradient(top, #FFFFFF 0%, #E1E6E4 100%);
+
+/* W3C Markup, IE10 Release Preview */ 
+background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
+
+	color:grey;
+	border-radius: 5px;
+	border-spacing: 2px;
+	
+	border: 1px solid #e0e0e0;
+	
+	white-space: normal;
+	line-height: normal;
+	font-weight: normal;
+	font-size: 14px;
+	font-variant: normal;
+	font-style: normal;	
+	text-align: start;
+	
+}
+
+.transparent{
+	
+	text-align: left;
+	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
+	font-size: 12px;
+/* 	padding-left: 20px;	 */
+	padding: 0px 20px;
+	cursor: pointer;
+  	cursor: hand;
+}
+.transparent1{
+	background: url("/resources/images/home-icon-blue.png") no-repeat scroll 0 transparent;
+	text-align: left;
+	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
+	font-size: 12px;
+/* 	padding-left: 20px;	 */
+	padding: 0px 26px;
+	cursor: pointer;
+  	cursor: hand;
+}
+
+.transparent2{
+	background: url("/resources/images/info-icon-blue.png") no-repeat scroll 0 transparent;
+	text-align: left;
+	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
+	font-size: 12px;
+/* 	padding-left: 20px;	 */
+	padding: 0px 26px;
+	cursor: pointer;
+  	cursor: hand;
+}
+
+.transparent3{
+	background: url("/resources/images/link-icon-blue.png") no-repeat scroll 0 transparent;
+	text-align: left;
+	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
+	font-size: 12px;
+/* 	padding-left: 20px;	 */
+	padding: 0px 26px;
+	cursor: pointer;
+  	cursor: hand;
+}
+
+.transparent4{
+	background: url("/resources/images/printer-icon-blue.png") no-repeat scroll  0 transparent;
+	text-align: left;
+	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
+	font-size: 12px;
+/* 	padding-left: 20px;	 */
+	padding: 0px 26px;
+	cursor: pointer;
+  	cursor: hand;
+}
+
+.transparent1:hover, .transparent2:hover, .transparent3:hover, .transparent4:hover{
+	text-decoration: underline;	
+	
+}
+
+.transparent4[title]:hover:after{
+	border: 1px solid #7f7f7f;
+    background-color: #fffff0;
+    padding: 3px;
+}
+
+.uploadLabel{
+	padding-left:15 px;
+	color: grey; 
+	display:inline;
+}
+.gwt-DecoratedTabBar {
+  background: #ccc;
+  padding-top: 6px;
+}
+.gwt-DecoratedTabBar .gwt-TabBarFirst {
+  width: 5px;  /* first tab distance from the left */
+}
+.gwt-DecoratedTabBar .gwt-TabBarRest {
+}
+.gwt-DecoratedTabBar .gwt-TabBarItem {
+  border-collapse: collapse;
+  margin-left: 4px;
+}
+.gwt-DecoratedTabBar .tabTopCenter {
+  padding: 0px;
+  background: #8E8E8E;
+}
+.gwt-DecoratedTabBar .tabTopLeft,
+.gwt-DecoratedTabBar .tabTopRight {
+  padding: 0px;
+  zoom: 1;
+}
+.gwt-DecoratedTabBar .tabTopLeftInner,
+.gwt-DecoratedTabBar .tabTopRightInner {
+  width: 3px;
+  height: 3px;
+}
+.gwt-DecoratedTabBar .tabTopLeft {
+  background: url("/resources/images/circles.png") no-repeat 0px 0px;
+  -background: url(images/circles_ie6.png) no-repeat 0px 0px;
+}
+.gwt-DecoratedTabBar .tabTopRight {
+  background: url("/resources/images/circles.png") no-repeat -3px 0px;
+  -background: url(images/circles_ie6.png) no-repeat -3px 0px;
+}
+.gwt-DecoratedTabBar .tabMiddleLeft,
+.gwt-DecoratedTabBar .tabMiddleRight {
+  width: 3px;
+  padding: 0px;
+  background: #8E8E8E;
+}
+.gwt-DecoratedTabBar .tabMiddleLeftInner,
+.gwt-DecoratedTabBar .tabMiddleRightInner {
+  width: 1px;
+  height: 1px;
+}
+.gwt-DecoratedTabBar .tabMiddleCenter {
+  padding: 0px 5px 4px 5px;
+  cursor: pointer;
+  cursor: hand;
+  color: #fff;
+  font-weight: normal;
+  text-align: center;
+  background: #8E8E8E;
+}
+.gwt-DecoratedTabBar .gwt-TabBarItem-selected .tabTopCenter {
+  background:#fff;
+}
+.gwt-DecoratedTabBar .gwt-TabBarItem-selected .tabTopLeft {
+  background: url("/resources/images/circles.png") no-repeat -6px 0px;
+  -background: url(images/circles_ie6.png) no-repeat -6px 0px;
+}
+.gwt-DecoratedTabBar .gwt-TabBarItem-selected .tabTopRight {
+  background: url("/resources/images/circles.png") no-repeat -9px 0px;
+  -background: url(images/circles_ie6.png) no-repeat -9px 0px;
+}
+.gwt-DecoratedTabBar .gwt-TabBarItem-selected .tabMiddleLeft,
+.gwt-DecoratedTabBar .gwt-TabBarItem-selected .tabMiddleRight {
+  background: #fff;
+}
+.gwt-DecoratedTabBar .gwt-TabBarItem-selected .tabMiddleCenter {
+  cursor: default;
+  background: #fff;
+  color:#333;
+  font-weight:bold;
+}
+.gwt-DecoratedTabBar .gwt-TabBarItem-disabled .tabMiddleCenter {
+  cursor: default;
+  color: #999999;
+}
+html>body .gwt-DecoratedTabBar {
+}
+* html .gwt-DecoratedTabBar .tabTopLeftInner,
+* html .gwt-DecoratedTabBar .tabTopRightInner {
+  width: 3px;
+  height: 3px;
+  overflow: hidden;
+}
+.gwt-TabPanel, .vpDotted {
+	overflow: visible;
+	background: radial-gradient(ellipse at center center , #FFFFFF 0%, #E4E3EF 100%) repeat scroll 0 0 rgba(0, 0, 0, 0);
+	
+}
+/*class of DecoratedTab (is interpreted as table) */
+.minHeight{
+	min-height: 30px;	
+	table-layout:fixed;
+}
+.minHeight td{
+	overflow: hidden;
+}
+
+.gwt-TabPanelBottom {
+  border-color: #ccc;
+  border-style: solid;
+  border-width: 0px 1px 1px;
+  overflow: hidden;
+  padding: 6px;
+  background: white;
+}
+
+.gwt-TabLayoutPanel .gwt-TabLayoutPanelTabs {
+	background:transparent;
+	color: grey;
+}
+
+.centered{
+	 display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.pushButtonWithTransparentBackground{
+	background:transparent;
+	border:none;
+	width:20px;
+	display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+.labelTextInOneLine{
+	clear: both;
+    display: inline-block;
+    overflow: hidden;    
+    font-weight: normal;
+    color: #808080; 
+    width:120px;   
+}
+.fileUploadInOneLine{
+	clear: both;
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    font-weight: normal;
+    color: #808080;   
+}
+
+.gwt-Button{
+	border:1px solid #d1dcdf; -webkit-border-radius: 3px; -moz-border-radius: 3px;border-radius: 3px;font-size:12px;font-family:arial, helvetica, sans-serif; padding: 6px 14px 6px 14px; text-decoration:none; display:inline-block;font-weight:bold; color: #6987FF;
+ background-color: #f2f5f6; background-image: -webkit-gradient(linear, left top, left bottom, from(#f2f5f6), to(#c8d7dc));
+ background-image: -webkit-linear-gradient(top, #f2f5f6, #c8d7dc);
+ background-image: -moz-linear-gradient(top, #f2f5f6, #c8d7dc);
+ background-image: -ms-linear-gradient(top, #f2f5f6, #c8d7dc);
+ background-image: -o-linear-gradient(top, #f2f5f6, #c8d7dc);
+ background-image: linear-gradient(to bottom, #f2f5f6, #c8d7dc);filter:progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr=#f2f5f6, endColorstr=#c8d7dc);
+}
+
+.gwt-Button:hover{
+	border:1px solid #b6c7cc;
+ background-color: #d4dee1; background-image: -webkit-gradient(linear, left top, left bottom, from(#d4dee1), to(#a9c0c8));
+ background-image: -webkit-linear-gradient(top, #d4dee1, #a9c0c8);
+ background-image: -moz-linear-gradient(top, #d4dee1, #a9c0c8);
+ background-image: -ms-linear-gradient(top, #d4dee1, #a9c0c8);
+ background-image: -o-linear-gradient(top, #d4dee1, #a9c0c8);
+ background-image: linear-gradient(to bottom, #d4dee1, #a9c0c8);filter:progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr=#d4dee1, endColorstr=#a9c0c8);
+}
+
+.maxWidth{
+	max-width:300px;
+}
+
+.gwt-TextBox {
+  padding: 5px 4px;
+  border: 1px solid #ccc;
+  border-top: 1px solid #999;
+  font-size: small;
+  font-family: Arial Unicode MS, Arial, sans-serif;
+}
+
+.lastCellInGrid{
+	width:25px;
+}
+
+.triangle-right:after {
+    border-color: #075698 rgba(0, 0, 0, 0);
+    border-style: solid;
+    border-width: 20px 0 0 20px;
+    bottom: -20px;
+    content: "";
+    display: block;
+    left: 50px;
+    position: absolute;
+    width: 0;
+}
+.triangle-right {
+    background: linear-gradient(#2E88C4, #075698) repeat scroll 0 0 rgba(0, 0, 0, 0);
+    border-radius: 10px 10px 10px 10px;
+    color: #FFFFFF;
+    margin: 1em 0 3em;
+    padding: 15px;
+    position: relative;
+}
+
+.transparentButton{
+	border:none;
+	background:transparent;
+}
+.tableWithFixedWidth{
+	width:290px;
+}
+
+.elementWithMargin{
+	margin-left: 26px;
+}
+
+
+

@@ -21,6 +21,9 @@ package com.secondo.webgui.client.rpc;
 
 import java.util.ArrayList;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.secondo.webgui.shared.model.DataType;
 
@@ -33,6 +36,7 @@ public interface SecondoServiceAsync {
 	
 	//secondo connection
 	 void sendCommand(String s, AsyncCallback<String> callback);
+	 void sendCommandWithoutResult(String s, AsyncCallback<String> callback);																																																																																																																																																																																																																																																																																																																																																																																																																																																																											
 	 void setSecondoConnectionData(ArrayList<String> data, AsyncCallback<Void> callback);
 	 void updateDatabaseList(AsyncCallback<ArrayList<String>> callback);
 	 void openDatabase(String database, AsyncCallback<String> callback);
@@ -59,5 +63,7 @@ public interface SecondoServiceAsync {
 	 void resetObjectCounter(AsyncCallback<Void> callback);
 	 
 	 void addCommandToHistory(String command, AsyncCallback<Void> callback);
-	 void saveTextFile(String text, String filename, AsyncCallback<Void> callback);	 
+	 void saveTextFile(String text, String filename, AsyncCallback<Void> callback);
+	void saveGPXfileToServer(String filename, AsyncCallback<Void> callback);
+	
 }

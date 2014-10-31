@@ -19,11 +19,29 @@
 
 package com.secondo.webgui.server.rpc;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileItemFactory;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload.servlet.ServletRequestContext;
+import org.apache.commons.io.FilenameUtils;
+
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.secondo.webgui.client.rpc.SecondoService;
 import com.secondo.webgui.server.controller.OptimizerConnector;
@@ -56,13 +74,29 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements SecondoS
 	public SecondoServiceImpl(){	
 	}
 
+	
+	@Override
+	public String sendCommandWithoutResult(String command) {
+		
+		System.out.println("SecondoServiceImpl has been called!");
+
+    	try {
+			sc.doQueryWithoutResult(command);
+		} catch (IOException e) {
+			System.out.println("Call to Secondo-Server failed.");
+			e.printStackTrace();
+		} 
+    	    
+		
+	    return sc.getSecondoresult();
+	  }
+	
 	/**This method sends the given command to secondo and returns the result
 	 * 
 	 * @param command The command to be send to the server
 	 * @return The result from the secondo database
 	 * */
-	@Override
-	public String sendCommand(String command) {
+public String sendCommand(String command) {
 		
 		System.out.println("SecondoServiceImpl has been called!");
 
@@ -353,4 +387,34 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements SecondoS
 		    }
 		}
 	}
+
+	@Override
+	public void saveGPXfileToServer(String filename) {
+		BufferedReader reader = null;
+		
+		try
+		{
+			reader = new BufferedReader( new FileReader(filename));
+			reader.read();
+		}
+		catch ( IOException e)
+		{
+		}
+		finally
+		{
+		    try
+		    {
+		        if ( reader != null)
+		        	reader.close( );
+		    }
+		    catch ( IOException e)
+		    {
+		    }
+		}
+		
+	}
+	
+	
+	
+	
 }
