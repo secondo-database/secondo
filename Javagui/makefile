@@ -3,6 +3,7 @@
 # last change 05-2003; Thomas Behr
 #
 #             10-2003; M. Spiekermann, automatic creation of configuration files added.
+#             10-2014: A. Castor, mmdb-module included
 
 
 include ./makefile.inc
@@ -87,7 +88,7 @@ makedirs:
 	make -C gui all
 	make -C viewer viewers
 	make -C tools all
-
+	make -C mmdb all
 
 
 .PHONY: clean # removes the documentation and all .class files
@@ -100,7 +101,6 @@ clean: removedoc
 	make -C project clean
 	make -C tools clean
 	make -C viewer clean
+	make -C mmdb clean
 	rm -rf Demo
 	rm -rf sj
-
-
