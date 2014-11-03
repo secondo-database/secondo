@@ -282,7 +282,7 @@ fi
 
 # tests were successful, set LAST_STABLE tag in Secondo
 
-cd $secondodir
+Gcd $secondodir
 cvs -q tag -F LAST_STABLE
 
 if [ -z "$additionalcs" ]; then
@@ -330,13 +330,66 @@ rm -rf secondo
 rm -f $logdir/pubsec.log
 
 
-# possible extension: test public version
 
 if [ -z "$additionalcs" ]; then
   echo "Public secondo version created." | mailx -s "building public version successful"  -r $from -S smtp=smtp://$server $to
 else 
   echo "Public secondo version created." | mailx -s "building public version successful"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
 fi
+
+echo "Public version created"
+
+cd $last_stable_dir
+tar -xzf secondo_LAST_STABLE_PUBLIC.tgz
+cd secondo
+source $envfile $PWD
+make 2>&1 >make.log
+
+n=$?
+if [ "$n" != "0" ]; then
+  gzip make.log
+  if [ -z "$additionalcs" ]; then
+    echo "Making public version failed." | mailx -s "making public version failed" -a make.log.gz -r $from -S smtp=smtp://$server $to
+  else 
+    echo "Making public version failed." | mailx -s "making public version failed"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
+  fi
+else
+  rm make.log
+fi
+
+cd CM-Scripts
+run-tests.sh -tty $logdir  $timeout
+
+n=$?
+
+if [ "$n" != "0" ]; then
+ #automatic test failed, collect log files into $failed_log_dir
+ failed_tests=$(find $logdir -maxdepth 1 -name "_failed_*" -printf "%f " | sed "s/_failed_//g")
+ for f in $failed_tests; do
+   find $secondodir -name $f.log -exec cp {} $failed_log_dir \;
+ done
+ sendMail "Automatic tests failed" $testStart 
+ cd $last_stable_dir
+ rm -rf secondo
+ exit 1
+fi
+ 
+cd $last_stable_dir
+rm -rf secondo
+
+rm -f $logdir/_failed_*
+rm -rf $failed_log_dir
+rm -f $logdir/Changes.txt $logdir/changerNames.txt $logdir/ChangerMails.txt $logdir/mailcontent.txt $logdir/failed.tgz
+
+echo "Public version tests successful"
+
+
+if [ -z "$additionalcs" ]; then
+  echo "Public secondo successful tested." | mailx -s "testing public version successful"  -r $from -S smtp=smtp://$server $to
+else 
+  echo "Public secondo successful tested." | mailx -s "testing public version successful"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
+fi
+
 
 exit 0
 
