@@ -282,7 +282,7 @@ fi
 
 # tests were successful, set LAST_STABLE tag in Secondo
 
-Gcd $secondodir
+cd $secondodir
 cvs -q tag -F LAST_STABLE
 
 if [ -z "$additionalcs" ]; then
@@ -343,7 +343,8 @@ cd $last_stable_dir
 tar -xzf secondo_LAST_STABLE_PUBLIC.tgz
 cd secondo
 source $envfile $PWD
-make 2>&1 >make.log
+
+make >make.log 2>&1
 
 n=$?
 if [ "$n" != "0" ]; then
@@ -353,6 +354,7 @@ if [ "$n" != "0" ]; then
   else 
     echo "Making public version failed." | mailx -s "making public version failed"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
   fi
+  exit 1
 else
   rm make.log
 fi
