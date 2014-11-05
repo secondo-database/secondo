@@ -44,8 +44,8 @@ The implementation of different kinds of types are shown, these include
 
   * large types, e.g., for implementing indexes
 
-Some special sections also describe how to reduce the disc storage for
-attribute data types. 
+Some special sections also describe how to reduce the amount of disc storage 
+required for an attribute data type. 
 
 An Operator consists of a type mapping, a set of value mappings, 
 a selection function, and a description for the user. The type mapping checks 
@@ -75,7 +75,7 @@ of ways. This document describes
 
 0.1 The PD-System
 
-All files in Secondo are commented using comments in PD-style. This tool
+All files in Secondo are commented using comments in PD-style. The PD tool
 allows the creation of pretty formatted PDF documents from source
 files. For a complete documentation of this tool, read the file PDSystem1.pdf 
 located in the ~Documents~ directory of Secondo.
@@ -113,7 +113,8 @@ Functions manipulating nested lists use a global list storage called *nl*.
 This list storage is cleaned after each query. This disables the possibility
 to store some frequently used list as static variables. 
 
-For using the global nested list storage, the following lines are required:
+For using the global nested list storage, the following lines within the program code
+are required:
 
 ----
 #include "NestedList.h"
@@ -122,7 +123,7 @@ extern NestedList* nl;
 
 The variable *nl* is a singleton pattern defined somewhere in the system.
 
-To create a list atom, the following functions are available:
+For the  creation of a list atom, the following functions are available:
 
 ----
 ListExpr li = nl->IntAtom(23);
@@ -144,8 +145,8 @@ bool correct = nl->ReadFromString("a 'b' 1.0 (TRUE 6))", list);
 
 The return value of ~ReadFromString~ determines the success of 
 this operation, in particular, whether the string represents a
-valid nested list. The list itselfs is returned via the output 
-parameter list.
+valid nested list. The list itself is returned via the output 
+parameter ~list~.
 
 For the creation of long lists, the following code fragment can be used as a template:
 
@@ -200,7 +201,7 @@ int k = nl->IntValue(list);
 
 ----
 
-where list is a string, will crash the system by throwing an assertion.
+where ~list~ is a string, will crash the system by throwing an assertion.
 
 
 The following functions  provide information about the length of a list:
@@ -339,7 +340,7 @@ include ../../makefile.env
 
 This provides understandable error messages if one of the required algebras is not 
 activated. Without these entries a required but non-activated algebra will
-lead to strange error message during linking the system.
+lead to strange error messages during linking the system.
 
 
 After these steps, the algebra file(s) can be implemented.
@@ -398,7 +399,7 @@ extern AlgebraManager *am;
 
 
 /*
-0.6 NameSpace
+0.6 Namespace
 
 Each algebra file defines a lot of functions. Thus, name conflicts may arise 
 with function names defined in other algebra modules during compiling/linking
@@ -418,12 +419,12 @@ In the next section, the creation of a simple (non-attribute) type and it's
 integration into a Secondo algebra is described. A value of such an object 
 can be stored and accessed within a Secondo database but cannot be part of
 a relation.  In general, a class encapsulating
-the type and a set of functions must be implemented. These functions provide
+the type and a set of functions must be implemented. These functions are 
 
   * Description of the type
 
   * Import, Export
-  
+
   * Creation, Deletion
 
   * Open, Close, Save
@@ -453,7 +454,7 @@ constructor doing nothing. This constructor is later used within the cast functi
 and should be called only in the cast function.
 
 For an easy use of this class in Secondo, two additional functions are implemented,
-namely ~BasicType~ and ~checktype~. The ~BasicType~ function return Secondo's 
+namely ~BasicType~ and ~checkType~. The ~BasicType~ function return Secondo's 
 basic type for this class. We call the type of the example ~scircle~ (standing for simple circle).
 For non-nested types, a string holding the type's name is the result of the
 ~BasicType~ function.
@@ -465,7 +466,7 @@ Note that the ~checkType~ function not only checks the main type but the complet
 type expression, e.g. for relations, ~checkType(rel)~ will return ~false~ while
 ~checktype(rel(tuple((A int)(B string))))~ will return ~true~.
 
-All other functions and members are the usual C++ stuff.
+All other functions and members are usual C++ stuff.
 
 */
 
@@ -479,7 +480,7 @@ All other functions and members are the usual C++ stuff.
        // destructor
        ~SCircle(){}
        static const string BasicType(){ return "scircle";} 
-       // the checktype funtion for non-nested types looks always
+       // the checktype function for non-nested types looks always
        // the same
        static const bool checkType(const ListExpr list) {
           return listutils::isSymbol(list, BasicType());
@@ -707,12 +708,12 @@ bool OpenSCircle( SmiRecord& valueRecord,
 Saves an object to disc (via SmiRecord). This function has to be symmetrically
 to the ~OPEN~ function. The result reports the success of the call. The arguments are
 
-  * ~valueRecord~: here the object is stored
+  * ~valueRecord~: here the object will be stored
 
   * ~offset~: the object has to be  stored at this position in ~valueRecord~; after the call of this
     function, ~offset~ must be after the object's representation 
 
-  * ~typeInfo~: type descriptions as a nested list (required for complex types)
+  * ~typeInfo~: type description as a nested list (required for complex types)
 
   * ~value~: the addr pointer of this argument points to the object to save
 
@@ -840,7 +841,7 @@ type ~scircle~ can be integrated into secondo.
 
 For compiling the algebra module, just type ~make~ within the algebra
 directory. For linking the algebra together with the kernel, navigate to 
-Secondo's main directory and enter ~make TTY~. If these calls was
+Secondo's main directory and enter ~make TTY~. If these calls were
 successful, you can start with first tests.
 
 Start SecondoTTYBDB:
@@ -851,7 +852,7 @@ the new algebra should be part of the result.
 ~list algebra GuideAlgebra~:
 the type constructor for ~scircle~ is displayed
 
-Open a database (create one if  no algebra exists)
+Open a database (create one if  no database exists)
 
 
 ~query [const scircle value (9.0 10.0 20.0)]~:
@@ -863,6 +864,9 @@ a scircle object is displayed as a nested list
 
 ~query k1~: displays the created scircle object as a nested list
 
+~let k2 = k1~: copies k1
+
+~delete k1~: removed the object k1
 
 If running secondo on a linux system with valgrind installed, Secondo can be
 started with:
@@ -872,9 +876,9 @@ SecondoTTYBDB --valgrind
 
 ----
 
-This starts Secondo within a valgrind environment and reports 
+This call starts Secondo within a valgrind environment and reports 
 memory errors and memory leaks. If there is a memory leak, the
-reason of it  can be reported by:
+reason of it is  reported by:
 
 ----
 SecondoTTYBDB --valgrindlc
@@ -971,9 +975,9 @@ int perimeterVM (Word* args, Word& result, int message,
 2.3 Specification
 
 The specification provides an operator description for the user.
-The first argument is a description of the type mapping,
-the second argument describes the syntax of the operator,
-than comes the operator's  meaning and the last argument
+The first argument of the ~OperatorSpec~ constructor is a description 
+of the type mapping, the second argument describes the syntax of 
+the operator, than comes the operator's  meaning and the last argument
 used here is an example query. If required, an additional
 argument can provide some remark to this operator.
 
@@ -992,6 +996,8 @@ argument can provide some remark to this operator.
 
 Here, we create an instance of the operator using a constructor
 of the class ~Operator~ and feeding it with the defined functions.
+For non-overloaded operators, always the selection function
+~Operator::SimpleSelect~ is used.
 
 */
 Operator perimeterOp(
@@ -1046,14 +1052,14 @@ arguments and may have a different result type for each type
 combination. 
 
 The ~distN~ operator accepts two integers or two real numbers 
-as arguments and returns the distance of these numbers as result.
+as arguments and returns the distance of these numbers as its result.
 If the input types are integers, the result is also an integer. 
 In the case of a real number input, the result is a real number too.
 
 
 3.1 Type Mapping
 
-The type mapping of an overloaded operator handles all combination of
+The type mapping of an overloaded operator handles all combinations of
 accepted input types.
 
 */
@@ -1097,7 +1103,7 @@ value mapping functions.
    T* res = (T*) result.addr;
    // in secondo, integers and reals can be undefined
    // if one of the arguments is not defined,
-   // set the result to be undefined an exist
+   // set the result to be undefined
    if(!a1->IsDefined() || !a2->IsDefined()){
       res->SetDefined(false);
       return 0;
@@ -1158,7 +1164,7 @@ each accepted type combination must be recognized from the description.
 /*
 3.5 operator instance
 
-For an overloaded operator, another Operator constructor is used.
+For an overloaded operator, another ~Operator~ constructor is used.
 
 */
 Operator distNOp(
@@ -1229,7 +1235,7 @@ ListExpr countNumberTM(ListExpr args){
 4.2 Value Mapping
 
 Firstly, the first argument is 
-put into a stream constructor. The second argument is
+put into the ~Stream~ constructor. The second argument is
 cast to a ~CcInt~. The stream is opened. While the
 stream is not exhausted, we get the next element from the
 stream via the ~request~ function. We compare the stream element
@@ -1239,19 +1245,19 @@ attribute data types provide reference counting, we use the function
 ~DeleteIfAllowed~  (instead of direct delete) for this purpose.
 If the stream is exhausted (~request~ returns null),
 we set the result ~res~ to the counter's value  and close the stream.
-Because this valuemapping produces no stream, the return value is 0.
+Because this value mapping produces no stream, the return value is 0.
 
 */
 
 int countNumberVM( Word* args, Word& result, int message,
                    Word& local, Supplier s ){
-   result = qp->ResultStorage(s);
-   Stream<CcInt> stream(args[0]);
+   result = qp->ResultStorage(s);  // use result storage for the result
+   Stream<CcInt> stream(args[0]);  // wrap the stream
    CcInt* num = (CcInt*) args[1].addr;
    int count = 0;
-   stream.open();
+   stream.open(); // open the stream
    CcInt* elem;
-   while( (elem = stream.request()) ){
+   while( (elem = stream.request()) ){  // request next element
       if(num->Compare(elem) == 0){
          count++;
       }
@@ -1323,7 +1329,7 @@ query intstream(1,10) intstream(2,10) concat countNumber[8]
 5 Streams as result of operators (stream-operators)
 
 If a stream is the result of an operator, we call such an operator
-stream-operator.  The main difference to other operators is the
+stream-operator.  The main difference to other operators is in the
 value mapping function. 
 
 We explain the implementation of a stream operator by the
@@ -1334,7 +1340,8 @@ corresponds to a single character of the argument.
 5.1 Type Mapping
 
 The type mapping of a stream operator has no specials. The creation
-of the result is a little bit more complicated as for simple types.
+of the result is a little bit more complicated as for simple types because
+the typed stream must be returned.
 
 */
 ListExpr getCharsTM(ListExpr args){
@@ -1392,7 +1399,7 @@ class getCharsLI{
 5.3 Value Mapping
 
 The value mapping of stream operators has a lot of differences compared to
-the value mapping of non-stream operator. The main difference is 
+the value mapping of non-stream operator. One difference is 
 that the ~message~ argument must be used to select the action to do. The messages
 are OPEN, REQUEST, and CLOSE. (if the operator supports progress estimation,
 some more messages must be handled). 
@@ -1417,7 +1424,7 @@ is already such a structure, we compute the next result and store it into the
 the ~getNext~ function of the localInfo class. If there is a next result (addr
 pointer of result is not null), the operator returns YIELD, otherwise CANCEL.
 
-In case of a CLOSE message we free the memory allocated by the local info class
+In the case of a CLOSE message, we free the memory allocated by the local info class
 and set the ~addr~ pointer of ~local~ to null. The result to a CLOSE message is
 always 0.
 
@@ -1489,7 +1496,7 @@ As usual, the final steps are:
 /*
 6 Streams as both, Arguments and Result
 
-Some operators have a stream as argument and return also a stream.  The 
+Some operators have a stream as an argument and return also a stream.  The 
 implementation combines stream consuming with stream producing operators. 
 
 We show as an example the operator ~startsWithS~. This is a kind of filter operator.
@@ -1524,7 +1531,7 @@ and delete the instance in case of a CLOSE message, we open the
 argument stream in the constructor and close it in the destructor.
 
 Elements passing the test are just returned as the next result. 
-String that are not returned are deleted.
+Filtered out strings  are deleted.
 
 */
  class startsWithSLI{
@@ -1562,7 +1569,7 @@ String that are not returned are deleted.
 /*
 6.3 Value Mapping
 
-Because the complete functionality is outsourced to the LocalInfo class,
+Because the complete functionality is outsourced to the ~LocalInfo~ class,
 the implementation of the actual value mapping is straightforward.
 
 */
@@ -1596,7 +1603,7 @@ int startsWithSVM( Word* args, Word& result, int message,
        " stream(string) x string -> stream(string)",
        " _ startsWithS[_]",
        " All strings in the stream not starting with the second "
-       " are filtered out form the stream",
+       " are filtered out from the stream",
        " query  plz feed projecttransformstream[Ort] startsWithS(\"Ha\") count"
   );
 
@@ -1636,7 +1643,7 @@ returns another (or may be the same) attribute data type.
 
 7.1 Type Mapping
 
-The type mapping itselfs has no speciality. The type of a function is
+The type mapping itself has no speciality. The type of a function is
 given by ~(map arguments result)~, e.g. ~(map real int bool)~ for
 a function computing a ~bool~ value from a ~real~ and an ~int~.
 
@@ -1862,10 +1869,10 @@ attribute data type.
 
   * bool Adjacent(const Attribute[*] arg) const \\
     This operator checks whether this instance and arg (having the same 
-    type as the instance are adjacent. This operator is used to
+    type as the instance) are adjacent. This operator is used to
     build generic range types. Because these generic range types was never 
     implemented, this function can just return false if there is no
-    meaningful adjacent relation between intances of this class.
+    meaningful adjacent relation between instances of this class.
 
 
   * size\_t Sizeof() const \\
@@ -1893,7 +1900,11 @@ Because Secondo is developed since many years, there are several possibilities
 to define an attribute data type. In this document two of them are presented.
 
 This first method is the classical one, defining a lot of independent functions 
-as input for a Secondo type constructor. The other one uses static member functions 
+as input for a Secondo type constructor. This method should be used if an existing
+Secondo data type is to tranfer into an attribute data type or in some
+special cases. If the type is planned
+to be an attribute data type from the beginning, the secondo method is to prefer.
+The second method uses static member functions 
 of the class for defining an attribute data type using a generic template class.
 
 */
@@ -1903,10 +1914,10 @@ of the class for defining an attribute data type using a generic template class.
 
 8.1.1 Defining the Class
 
-We call the class ACircle standing for (attribute circle).
+We call the class ~ACircle~ standing for (attribute circle).
 Because a circle can be represented using three double 
-values, this class has fixed size and does not have any 
-pointers. 
+values, this class has fixed size and  hence no pointers
+are used. 
 
 
 */
@@ -2057,7 +2068,7 @@ return ( nl -> TwoElemList (
 8.1.2.2 IN function
 
 Because each attribute may be undefined, a special treatment is
-necessary for the case. 
+necessary for this case. 
 
 */
 
@@ -2126,7 +2137,7 @@ ListExpr OutACircle( ListExpr typeInfo, Word value ) {
 /*
 8.1.2.4 Create function, Delete function, Close function
 
-Again very similar to CreateSCircle.
+Again very similar to the ~SCircle~ versions.
 
 */
 
@@ -2156,7 +2167,7 @@ void CloseACircle ( const ListExpr typeInfo , Word & w ) {
 /*
 8.1.2.5 Open and Save Functions
 
-For attribute data types generic Open and Save functions
+For attribute data types, generic ~Open~ and ~Save~ functions
 are available. Thus we don't need an implementation here.
 
 */
@@ -2164,12 +2175,11 @@ are available. Thus we don't need an implementation here.
 /*
 8.1.2.6 Clone function
 
-Because an class representing an attribute data type has an own Clone 
+Because a class representing an attribute data type has an own ~Clone~ 
 function, the implementation of Secondo's Clone function is simpler
 than for non-attribute types.
 
 */
-
 
 Word CloneACircle ( const ListExpr typeInfo , const Word & w ){
     ACircle * k = ( ACircle *) w . addr ;
@@ -2178,6 +2188,8 @@ Word CloneACircle ( const ListExpr typeInfo , const Word & w ){
 }
 /*
 8.1.2.7 Cast function
+
+The cast function is implemented as before.
 
 */
 void * CastACircle ( void * addr ) {
@@ -2189,6 +2201,8 @@ void * CastACircle ( void * addr ) {
 /*
 8.1.2.7 Type check
 
+
+Within the ~TypeCheck~ function, we can call the appropriate class function.
 
 */
 bool ACircleTypeCheck ( ListExpr type , ListExpr & errorInfo ){
@@ -2230,7 +2244,7 @@ TypeConstructor ACircleTC(
 
 /*
 After adding this type constructor to the algebra, the type constructor is 
-added to be in kind DATA to mark it as an attribute data type. See section
+inserted into kind ~DATA~ to mark it as an attribute data type. See section
 \ref{AlgebraDefinition}.
 
 */
@@ -2288,7 +2302,7 @@ be used. In return, no non-class functions must be implemented.
           return *this;
        }
       
-        // desctructor
+        // destructor
        ~GCircle(){}
 
        // auxiliary functions
@@ -2297,7 +2311,7 @@ be used. In return, no non-class functions must be implemented.
           return listutils::isSymbol(list, BasicType());
        }
        
-       // perimeter construction
+       // perimeter computation
        double perimeter() const{
           return 2*M_PI*r;
        } 
@@ -2318,7 +2332,7 @@ be used. In return, no non-class functions must be implemented.
       } 
 
        // compare, always implement this function
-       // if there is no natular order, just use any
+       // if there is no natural order, just use any
        // valid order to the objects, in this example,
        // a lexicographical order is chosen
        int Compare(const Attribute* arg) const{
@@ -2348,7 +2362,7 @@ be used. In return, no non-class functions must be implemented.
         return sizeof(*this);
      }    
 
-     // defined a meaningful hash function for 
+     // define a meaningful hash function for 
      // support of hash joins
      size_t HashValue() const{ 
         if(!IsDefined()){
@@ -2367,7 +2381,7 @@ be used. In return, no non-class functions must be implemented.
 
 
 /*
-8.3.2.3 Here, the additional functions start
+Here, the additional functions start
 
 */
 
@@ -2467,15 +2481,15 @@ forbidden. The solution provided in the Secondo system are so called FLOBs (Fake
 Large Objects) which can be embedded into an attribute data type. Basically a 
 FLOB is a unstructured memory block. For using FLOBs directly see the 
 ~BinaryFileAlgebra~ implementation. Mostly, a set of structured data should be 
-part of an attribute. To realize this, Secondo provides a DbArray implementation
-derived from the FLOB class. A DbArray can store an arbitrary number of a structure
+part of an attribute. To realize this, Secondo provides a ~DbArray~ implementation
+derived from the FLOB class. A ~DbArray~ can store an arbitrary number of a structure
 and offers random access to its elements. Pointers are not allowed to be part 
-of DbArray Elements.  If required, use logical pointers (indexes to DbArrays) to 
-realize pointers. FLOBs and DbArrays cannot be nested. 
+of ~DbArray~ elements.  If required, use logical pointers (indexes in ~DbArray~s) to 
+realize pointers. ~FLOBs~ and ~DbArrays~ cannot be nested. 
 
 We show the implementation of an integer list as an example. In all constructors
-except the standard constructor, all DBArray members have to be initialized. Otherwise
-Secondo will crash while using it.
+except the standard constructor, all ~DBArray~ members have to be initialized. Otherwise
+Secondo will crash when using it.
 
 Do not forget the include:
 
@@ -2581,7 +2595,7 @@ Do not forget the include:
         return sizeof(*this);
      }    
 
-     // defined a meaningful hash function for 
+     // define a meaningful hash function for 
      // support of hash joins and others
      size_t HashValue() const{ 
         if(!IsDefined()){
@@ -2679,13 +2693,13 @@ a certain attribute name. Another application are default
 arguments. For this purpose, Secondo provides
 the so-called APPEND mechanism. In general is works as follows. 
 Instead of returning just the result type within the type mapping,
-a list of length three of the form (APPEND args result)
-where APPEND is a keyword (symbol), args is a list containing additional
-arguments and result is the normal result type. The content of
+a list of length three of the form (~APPEND args result~)
+where APPEND is a keyword (symbol), ~args~ is a list containing additional
+arguments and ~result~ is the normal result type. The content of
 args is accessible within the value mapping as when the user had given
 additional arguments directly.
 
-This mechanism is explained at the attrIndex operator. This operator
+This mechanism is explained at the ~attrIndex~ operator. This operator
 gets a stream of tuples and an attribute name. The result of this operator 
 is the index of the attribute with given name in the tuple. The content
 of the tuple stream remains untouched. 
@@ -2767,12 +2781,12 @@ Operator attrIndexOp (
 
 \label{largeStructures}
 
-Up to now, all implemented data types within this algebra was more or less small.
+Up to now, all implemented data types within this algebra were more or less small.
 This section deals with the implementation of real big data types. This means, this
 type can massive exceed the main memory of the underlying system if it would be 
 completely loaded. 
 
-To solve this problem. only small parts of the whole structure are in memory, 
+To solve this problem, only small parts of the whole structure are in memory, 
 the main part is located on disc. Using files directly would violate the ACID 
 properties of a database system because there is no synchronization if several 
 users work in parallel. For this reason, file structures
