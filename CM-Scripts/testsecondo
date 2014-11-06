@@ -359,7 +359,7 @@ if [ "$PUBLISH" == "yes" ]; then
    echo "<div>" >>$pv
    echo "<a href=\"secondo_LAST.tgz\"> Download Link </a>" >> $pv
    echo "</div>" >>$pv
-   FD=fileDate(secondo_LAST_STABLE_PUBLIC.tgz)
+   FD=$(fileDate secondo_LAST_STABLE_PUBLIC.tgz)
    echo "<div>" >>$pv
    echo "This version was created: $FD" >> $pv
    echo "</div>" >>$pv
