@@ -33,16 +33,18 @@ function help {
  echo "-r <recipient>: email address of the main recipient"
  echo "-a <recipient>: additional recipient (repeat this option if more than one)"
  echo "-c <CVSROOT>: sets CVSROOT variable"
+ echo "-p: publish public version to dna server" 
  echo "-h: shows this help text"
 }
 
 
 # overwrite standard parameters if options are available
 
-while getopts hfd:e:t:m:u:s:r:a:c: opt
+while getopts hfpd:e:t:m:u:s:r:a:c: opt
 do
   case $opt in
     f) force="yes";;
+    p) PUBLISH="yes";;
     d) basedir=$OPTARG ;;
     e) envfile=$OPTARG ;;
     t) timeout=$OPTARG ;;
@@ -303,7 +305,7 @@ rm -f $logdir/Changes.txt $logdir/changerNames.txt $logdir/ChangerMails.txt $log
 mkdir -p $last_stable_dir
 cd $last_stable_dir
 rm -rf secondo
-cvs -q export -r LAST_STABLE secondo 2>/dev/null
+cvs -q export -r LAST_STABLE secondo 2>&1 >/dev/null
 tar -czf  secondo_LAST_STABLE.tgz secondo
 
 # create public version of secondo
@@ -324,17 +326,25 @@ fi
    exit 1
 fi
 
-mv secondo_LAST_STABLE-LAT1.tar.gz ../secondo_LAST_STABLE_PUBLIC.tgz
+
+mv secondo-LAST_STABLE-LAT1.tar.gz ../secondo_LAST_STABLE_PUBLIC.tgz
 cd ..
 rm -rf secondo
 rm -f $logdir/pubsec.log
+PUBLISHED="but not published at dna"
+if [ "$PUBLISH" == "yes" ]; then
+   echo "Public version"
+   scp secondo_LAST_STABLE_PUBLIC.tgz dna.fernuni-hagen.de:/www/pi4/secondo/files/laststable/secondo_LAST_STABLE.tgz
+   PUBLISHED="and published to DNA"
+fi
+
 
 
 
 if [ -z "$additionalcs" ]; then
-  echo "Public secondo version created." | mailx -s "building public version successful"  -r $from -S smtp=smtp://$server $to
+  echo "Public secondo version created $PUBLISHED ." | mailx -s "building public version successful"  -r $from -S smtp=smtp://$server $to
 else 
-  echo "Public secondo version created." | mailx -s "building public version successful"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
+  echo "Public secondo version created $PUBLISHED ." | mailx -s "building public version successful"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
 fi
 
 echo "Public version created"
