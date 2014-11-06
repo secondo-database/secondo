@@ -331,51 +331,13 @@ mv secondo-LAST_STABLE-LAT1.tar.gz ../secondo_LAST_STABLE_PUBLIC.tgz
 cd ..
 rm -rf secondo
 rm -f $logdir/pubsec.log
-PUBLISHED="but not published at dna"
-if [ "$PUBLISH" == "yes" ]; then
-   echo "Public version"
-   scp secondo_LAST_STABLE_PUBLIC.tgz dna.fernuni-hagen.de:/www/pi4/secondo/files/lastversion/secondo_LAST.tgz
-
-   pv="PublicVersion.html"
-   echo "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">" >$pv
-   echo "<html>" >>$pv
-   echo "<head>" >>$pv
-   echo "<title> SECONDO Latest Version </title>" >>$pv
-   echo "<meta name=\"description\" content=\"erweiterbares Datenbanksystem\">" >>$pv
-   echo "<link rel=\"stylesheet\" type=\"text/css\" href=\"../../secondo.css\">" >>$pv
-   echo "<link rel=\"shortcut icon\" href=\"../../favicon.ico\">" >>$pv
-   echo "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">" >>$pv
-   echo "</head>" >>$pv
-   echo "<body>" >>$pv
-   echo "<div align=\"center\">" >>$pv
-   echo "<img alt=\"SECONDO\" width=\"598\" height=\"107\" src=\"../../images/logo.gif\"> " >>$pv
-   echo "</div>" >>$pv
-   echo "<h1> Last Version of Secondo </h1>" >>$pv
-   echo "<div>" >>$pv
-   echo "Here you can download the latest sources of Secondo Database system " >>$pv
-   echo "having passed simple automatic tests." >>$pv
-   echo "Note that this version is not so good tested as the official releases." >> $pv
-   echo "</div>" >>$pv
-   echo "<div>" >>$pv
-   echo "<a href=\"secondo_LAST.tgz\"> Download Link </a>" >> $pv
-   echo "</div>" >>$pv
-   FD=$(fileDate secondo_LAST_STABLE_PUBLIC.tgz)
-   echo "<div>" >>$pv
-   echo "This version was created: $FD" >> $pv
-   echo "</div>" >>$pv
-   echo "</body>" >>$pv
-   echo "</html>" >>$pv
-   scp $pv dna.fernuni-hagen.de:/www/pi4/secondo/files/lastversion/index.html
-   PUBLISHED="and published to DNA"
-fi
-
 
 
 
 if [ -z "$additionalcs" ]; then
-  echo "Public secondo version created $PUBLISHED ." | mailx -s "building public version successful"  -r $from -S smtp=smtp://$server $to
+  echo "Public secondo version created." | mailx -s "building public version successful"  -r $from -S smtp=smtp://$server $to
 else 
-  echo "Public secondo version created $PUBLISHED ." | mailx -s "building public version successful"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
+  echo "Public secondo version created." | mailx -s "building public version successful"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
 fi
 
 echo "Public version created"
@@ -426,11 +388,49 @@ rm -f $logdir/Changes.txt $logdir/changerNames.txt $logdir/ChangerMails.txt $log
 
 echo "Public version tests successful"
 
+PUBLISHED="but not published at dna"
+if [ "$PUBLISH" == "yes" ]; then
+   echo "Public version"
+   scp secondo_LAST_STABLE_PUBLIC.tgz dna.fernuni-hagen.de:/www/pi4/secondo/files/lastversion/secondo_LAST.tgz
+
+   pv="PublicVersion.html"
+   echo "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">" >$pv
+   echo "<html>" >>$pv
+   echo "<head>" >>$pv
+   echo "<title> SECONDO Latest Version </title>" >>$pv
+   echo "<meta name=\"description\" content=\"erweiterbares Datenbanksystem\">" >>$pv
+   echo "<link rel=\"stylesheet\" type=\"text/css\" href=\"../../secondo.css\">" >>$pv
+   echo "<link rel=\"shortcut icon\" href=\"../../favicon.ico\">" >>$pv
+   echo "<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">" >>$pv
+   echo "</head>" >>$pv
+   echo "<body>" >>$pv
+   echo "<div align=\"center\">" >>$pv
+   echo "<img alt=\"SECONDO\" width=\"598\" height=\"107\" src=\"../../images/logo.gif\"> " >>$pv
+   echo "</div>" >>$pv
+   echo "<h1> Last Version of Secondo </h1>" >>$pv
+   echo "<div>" >>$pv
+   echo "Here you can download the latest sources of Secondo Database system " >>$pv
+   echo "having passed simple automatic tests." >>$pv
+   echo "Note that this version is not so good tested as the official releases." >> $pv
+   echo "</div>" >>$pv
+   echo "<div>" >>$pv
+   echo "<a href=\"secondo_LAST.tgz\"> Download Link </a>" >> $pv
+   echo "</div>" >>$pv
+   FD=$(fileDate secondo_LAST_STABLE_PUBLIC.tgz)
+   echo "<div>" >>$pv
+   echo "This version was created: $FD" >> $pv
+   echo "</div>" >>$pv
+   echo "</body>" >>$pv
+   echo "</html>" >>$pv
+   scp $pv dna.fernuni-hagen.de:/www/pi4/secondo/files/lastversion/index.html
+   PUBLISHED="and published to DNA"
+fi
+
 
 if [ -z "$additionalcs" ]; then
-  echo "Public secondo successful tested." | mailx -s "testing public version successful"  -r $from -S smtp=smtp://$server $to
+  echo "Public secondo successful tested $PUBLISHED ." | mailx -s "testing public version successful"  -r $from -S smtp=smtp://$server $to
 else 
-  echo "Public secondo successful tested." | mailx -s "testing public version successful"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
+  echo "Public secondo successful tested $PUBLISHED ." | mailx -s "testing public version successful"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
 fi
 
 
