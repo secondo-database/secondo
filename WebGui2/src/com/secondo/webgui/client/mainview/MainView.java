@@ -883,7 +883,7 @@ public class MainView extends Composite {
 	      }
 	    };
 	    
-	    this.optionsTabPanel.setAttributeNameOfMpointInRelation(this.mapView.getAttributeNameOfMPoint());
+	    this.optionsTabPanel.setAttributeNameOfMLabelInRelation(this.mapView.getAttributeNameOfMLabel());
 		header.getLegendMenuItem().setScheduledCommand(legendInfo);
 	}
 

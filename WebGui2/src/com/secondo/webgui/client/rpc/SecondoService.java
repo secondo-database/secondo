@@ -65,6 +65,8 @@ public interface SecondoService extends RemoteService {
 	void addCommandToHistory(String command);
 	void saveTextFile(String text, String filename);
 	public void saveGPXfileToServer(String filename);
-	String sendCommandWithoutResult(String command);	
+	
+	String sendCommandWithoutResult(String command);
+	int getNumberOfTuplesInRelationFromResultList();
 	
 }

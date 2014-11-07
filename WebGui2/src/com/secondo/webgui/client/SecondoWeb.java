@@ -315,9 +315,7 @@ public class SecondoWeb implements EntryPoint {
 					mainView.resetMapView();
 					
 					//send the command directly to secondo
-					rpcConnector.sendCommand(command, mainView, loadingPopup);
-					rpcConnector.addCommandToHistory(command);
-					rpcConnector.updateCommandHistory(mainView);
+					rpcConnector.sendCommandAndUpdateHistory(command, mainView, loadingPopup);
 					
 					//show the loading popup in the center of the application until the call is finished
 			    	loadingPopup.center(); 	
@@ -339,16 +337,16 @@ public class SecondoWeb implements EntryPoint {
 				if(!command.isEmpty()){
 					mainView.resetMapView();					
 					
-					//send the command directly to secondo
-					rpcConnector.sendCommand(command, mainView, loadingPopup);
-					rpcConnector.addCommandToHistory(command);
-					rpcConnector.updateCommandHistory(mainView);
+					//send the command directly to secondo					
+					rpcConnector.sendCommandAndUpdateHistory(command, mainView, loadingPopup);
+					//get number of tuples and show in pattern result part of options tabs
+					rpcConnector.getNumberOfTuplesInRelationFromResultList(mainView);					
 					
 					//show the loading popup in the center of the application until the call is finished
 			    	loadingPopup.center(); 	
 				}
 				else{
-					Window.alert("Please select relation");
+					Window.alert("Please select relation and load it");
 				}
 			}
 		});

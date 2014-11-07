@@ -66,4 +66,7 @@ public interface SecondoServiceAsync {
 	 void saveTextFile(String text, String filename, AsyncCallback<Void> callback);
 	void saveGPXfileToServer(String filename, AsyncCallback<Void> callback);
 	
+	void getNumberOfTuplesInRelationFromResultList(AsyncCallback<Integer> callback);
+	
+	
 }

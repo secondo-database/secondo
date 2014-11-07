@@ -135,7 +135,7 @@ public class MapView extends Composite implements View {
 
 	private LegendDialog legend = new LegendDialog();
 	
-	private String attributeNameOfMPoint;
+	private String attributeNameOfMLabel;
 	
 	
 
@@ -514,7 +514,7 @@ public class MapView extends Composite implements View {
 				if (data.getType().equals("MLabel")) {
 					mlabelController.addMLabel((MLabel)data);
 					mpointController.transmitLabelsToMPandCalculateColorsForPolyline((MLabel) data, polylineController);
-					attributeNameOfMPoint=((MLabel)data).getAttributeNameInRelation();
+					attributeNameOfMLabel=((MLabel)data).getAttributeNameInRelation();
 //					polylineController.setColorsAndLegend(colors.get(data.getId()), mlabelController
 //							.getLegendToMLabel(data.getId()));
 					
@@ -790,7 +790,7 @@ public class MapView extends Composite implements View {
 	/**
 	 * @return the attributeNameOfMPoint
 	 */
-	public String getAttributeNameOfMPoint() {
-		return attributeNameOfMPoint;
+	public String getAttributeNameOfMLabel() {
+		return attributeNameOfMLabel;
 	}
 }

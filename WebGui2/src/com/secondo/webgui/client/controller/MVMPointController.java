@@ -741,6 +741,8 @@ public class MVMPointController {
 				+ point.getTime().size());
 		System.out.println("Number of line intervals in mp "
 				+ point.getPath().size());
+		
+		boolean containsOnlyDefaultValues=true;
 		for (int j = 0; j < point.getTime().size(); j++) {
 			TimeInterval intervalOfMPoint = point.getTime().get(j);			
 
@@ -754,27 +756,23 @@ public class MVMPointController {
 				// intervalOfMPoint should be within intervalOfMLabel
 				if ((compareTimeA == 0 || compareTimeA > 0)
 						&& (compareTimeB == 0 || compareTimeB < 0)) {
-					labelList.add(data.getLabel().get(i));				
-				
-					// System.out.println("Line interval xA"+
-					// lineIntervalOfMPoint.getPointA().getX()+" yA "
-					// +lineIntervalOfMPoint.getPointA().getY()+ " xB "+
-					// lineIntervalOfMPoint.getPointB().getX()+ " yB "+
-					// lineIntervalOfMPoint.getPointB().getY());
-
+					
+					labelList.add(data.getLabel().get(i));		
+					containsOnlyDefaultValues=false;
+					
 					break;
 				}
 				if (i == data.getTime().size() - 1) {
+					//default value
 					labelList.add("");				
 					
 				}
 
 			}
 
-		}
-		System.out.println("Size of labellist " + labelList.size());
+		}	
 		
-		if (!labelList.isEmpty()) {
+		if (!containsOnlyDefaultValues) {
 			addLabelListToMpoint(labelList, point.getId());
 			addColorsListToMpoint(point.getId(), labelList, data);
 		}
@@ -796,9 +794,9 @@ public class MVMPointController {
 						mlabel.getColorFromMapWithLabelsAndColors(label));
 			} else{
 				mpToLegend.put(label,
-						mlabel.getColorFromMapWithLabelsAndColors(label));}
-			System.out.println("Hex color "
-					+ mlabel.getColorFromMapWithLabelsAndColors(label));
+						mlabel.getColorFromMapWithLabelsAndColors(label));
+				}
+			
 		}
 		mpToColorList.put(key, colorList);
 		mpToLegendMap.put(key, mpToLegend);

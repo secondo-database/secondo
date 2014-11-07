@@ -84,8 +84,7 @@ public class MLabel implements DataType, Serializable{
 	public void setLabel(ArrayList<String> label) {
 		this.labelList = label;	
 		for(int i=0;i<labelList.size(); i++){
-			System.out.println("label: "+ labelList.get(i));
-			System.out.println("color of label: "+ colorOfLines.get(i));
+			System.out.println("label: "+ labelList.get(i));			
 		}
 	}
 
@@ -101,13 +100,6 @@ public class MLabel implements DataType, Serializable{
 	 */
 	public void setPath(ArrayList<Line> path) {
 		this.path = path;
-	}
-
-	/**
-	 * @return the colorOfLines
-	 */
-	public ArrayList<String> getColorOfLines() {
-		return colorOfLines;
 	}
 	
 	public void generateColorsForLabel(int i){

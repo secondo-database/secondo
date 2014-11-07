@@ -414,6 +414,10 @@ public String sendCommand(String command) {
 		
 	}
 	
+	public int getNumberOfTuplesInRelationFromResultList(){
+		return sc.getNumberOfTuplesInRelationFromResult(); 
+	}
+	
 	
 	
 	

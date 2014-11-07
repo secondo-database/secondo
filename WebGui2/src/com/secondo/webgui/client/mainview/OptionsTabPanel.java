@@ -82,6 +82,7 @@ public class OptionsTabPanel extends Composite{
 	 SuggestBox optionsForTimeInPattern;
 	 SuggestBox optionsForLabelInPattern ;
 	 private Label patternLabel = new Label("");
+	 private Label resultOfPatternMatchingLabel=new Label("");
 	 private ScrollPanel definedPattern= new ScrollPanel();
 	 Pattern pattern = new Pattern();
 	 private TextBox patternBox= new DefaultTextBox	("enter your pattern");
@@ -93,8 +94,9 @@ public class OptionsTabPanel extends Composite{
 	 private Button animateButton = new Button("Get relation");
 	 final Image addPatternButton = new Image("resources/images/plus.png");
 	 private Button matchButton= new Button("match");
+	 private Button removeButton = new Button("remove");
 	 
-	 private String attributeNameOfMpointInRelation="";
+	 private String attributeNameOfMlabelInRelation="";
 	
 	
 	
@@ -305,7 +307,7 @@ public class OptionsTabPanel extends Composite{
         createSymTrajButton= new Button("Create trajectory");
         createSymTrajButton.setWidth("100px");
         
-        gridWithOptions.setWidget(0, 2, help);
+        
         gridWithOptions.setWidget(0, 1, optionsForCreatingSymTraj);
         gridWithOptions.setWidget(1, 1, createSymTrajButton);
         gridWithOptions.setVisible(false);
@@ -418,7 +420,7 @@ public class OptionsTabPanel extends Composite{
         flexTable.getFlexCellFormatter().setColSpan(2, 0, 3);
         flexTable.getFlexCellFormatter().setColSpan(3, 0, 4);
         
-        Label labelForVariable= createLabel("Define your pattern");
+        Label labelForVariable= createLabel("define your pattern");
         labelForVariable.setStyleName("labelTextInOneLine");
 //        Label labelForTime = createLabel("time");
 //        Label labelForLabel = createLabel("label");
@@ -514,14 +516,21 @@ public class OptionsTabPanel extends Composite{
        
        formatter.setHorizontalAlignment(
     	        1, 0, HasHorizontalAlignment.ALIGN_RIGHT);
-       definedPattern.add(patternLabel);
+       formatter.setHorizontalAlignment(
+   	        1, 1, HasHorizontalAlignment.ALIGN_RIGHT);
+       VerticalPanel patternAndResultOfPatternLabels= new VerticalPanel();
+       patternAndResultOfPatternLabels.add(patternLabel);
+       patternAndResultOfPatternLabels.add(resultOfPatternMatchingLabel);
+       resultOfPatternMatchingLabel.setStyleName("textInRed");
+       definedPattern.add(patternAndResultOfPatternLabels);       
        definedPatternWidget.setVisible(false);
        definedPattern.setSize("280", "70");
-       definedPatternWidget.setWidget(0, 0, definedPattern);
+       definedPatternWidget.setWidget(0, 0, definedPattern);       
        
        
        definedPatternWidget.setWidget(1, 0, matchButton);
-       flexTable.setWidget(3, 0, definedPatternWidget);
+       definedPatternWidget.setWidget(1, 1, removeButton);
+//       flexTable.setWidget(3, 0, definedPatternWidget);
        panelForPattern.add(definedPatternWidget);
        
 //       setCount(getCount());
@@ -552,6 +561,16 @@ public class OptionsTabPanel extends Composite{
 		}
 	});
        
+       removeButton.addClickHandler(new ClickHandler() {
+		
+		@Override
+		public void onClick(ClickEvent event) {
+			cleanTextInPatternLabel();
+			cleanTextInResultOfPatternMatchingLabel();
+			definedPatternWidget.setVisible(false);
+		}
+	});
+       
        
        
        
@@ -570,7 +589,7 @@ public class OptionsTabPanel extends Composite{
 //				flexTable.setVisible(false);
 				panelForPattern.setVisible(false);
 				patternLabel.setText("");
-				definedPattern.setVisible(false);
+				definedPatternWidget.setVisible(false);
 				closeArrowButtonForTab2.setVisible(false);
 				vPanel2.setHeight("30px");		
 				
@@ -806,6 +825,7 @@ public class OptionsTabPanel extends Composite{
 		ListBox selectOptionsForExistingTrajectories = new ListBox();
         selectOptionsForExistingTrajectories.addItem("geotrips_part");
         selectOptionsForExistingTrajectories.addItem("geolife_part");
+        selectOptionsForExistingTrajectories.addItem("geotrips_part2");
         selectOptionsForExistingTrajectories.setVisibleItemCount(1);
 //        selectOptionsForExistingTrajectories.setWidth("150px");
 		return selectOptionsForExistingTrajectories;
@@ -869,22 +889,15 @@ public class OptionsTabPanel extends Composite{
         playpanel.add(playIcon);
         playpanel.add(playLink);     
 	
-	    HorizontalPanel forwardpanel = new HorizontalPanel();
-        forwardpanel.add(forwardIcon);
-        forwardpanel.add(forwardLink);       
+	    HorizontalPanel forwardpanel = createForwardPanel();       
+        	    
+	    HorizontalPanel rewindpanel = createRewindPanel();      
+        	    
+        HorizontalPanel pausepanel = createPausePanel(); 
         
-	    
-	    HorizontalPanel rewindpanel = new HorizontalPanel();
-        rewindpanel.add(rewindIcon);
-        rewindpanel.add(rewindLink);       
-        
-	    
-        HorizontalPanel pausepanel = new HorizontalPanel();
-        pausepanel.add(pauseIcon);
-        pausepanel.add(pauseLink); 
-        panelForPause.add(pausepanel);
-        panelForPause.add(forwardpanel);
-        panelForPause.add(rewindpanel);
+//        panelForPause.add(pausepanel);
+//        panelForPause.add(forwardpanel);
+//        panelForPause.add(rewindpanel);
         
         panelForPlay.add(playpanel);
         panelForPlay.add(forwardpanel);
@@ -898,6 +911,36 @@ public class OptionsTabPanel extends Composite{
 
 	    return animationPanel;
 	  }
+
+	/**
+	 * @return
+	 */
+	private HorizontalPanel createRewindPanel() {
+		HorizontalPanel rewindpanel = new HorizontalPanel();
+        rewindpanel.add(rewindIcon);
+        rewindpanel.add(rewindLink);
+		return rewindpanel;
+	}
+
+	/**
+	 * @return
+	 */
+	private HorizontalPanel createForwardPanel() {
+		HorizontalPanel forwardpanel = new HorizontalPanel();
+        forwardpanel.add(forwardIcon);
+        forwardpanel.add(forwardLink);
+		return forwardpanel;
+	}
+
+	/**
+	 * @return
+	 */
+	private HorizontalPanel createPausePanel() {
+		HorizontalPanel pausepanel = new HorizontalPanel();
+        pausepanel.add(pauseIcon);
+        pausepanel.add(pauseLink);
+		return pausepanel;
+	}
 	
 	/**Resets the animation panel to the default values*/
 	public void resetAnimationPanel(){
@@ -996,6 +1039,9 @@ public class OptionsTabPanel extends Composite{
 	 * @return the panelForPause
 	 */
 	public HorizontalPanel getPanelForPause() {
+		panelForPause.add(createPausePanel());
+        panelForPause.add(createForwardPanel());
+        panelForPause.add(createRewindPanel());
 		return panelForPause;
 	}
 
@@ -1012,32 +1058,34 @@ public class OptionsTabPanel extends Composite{
 			patternLabel.setText(patternLabel.getText() + " " + text);
 		}
 	}
-
 	
-
-	/**
-	 * @return the matchButton
-	 */
-	public Button getMatchButton() {
-		return matchButton;
+	private void cleanTextInPatternLabel(){
+		patternLabel.setText("");
+	}
+	
+	public void setTextInResultOfPatternMatchingLabel(String text){
+		resultOfPatternMatchingLabel.setText(text);
+	}
+	private void cleanTextInResultOfPatternMatchingLabel(){
+		resultOfPatternMatchingLabel.setText("");
 	}
 
 	
 
 	/**
-	 * @param attributeNameOfMpointInRelation the attributeNameOfMpointInRelation to set
+	 * @param attributeNameOfMlabelInRelation the attributeNameOfMpointInRelation to set
 	 */
-	public void setAttributeNameOfMpointInRelation(
-			String attributeNameOfMpointInRelation) {
-		this.attributeNameOfMpointInRelation = attributeNameOfMpointInRelation;
+	public void setAttributeNameOfMLabelInRelation(
+			String attributeNameOfMlabelInRelation) {
+		this.attributeNameOfMlabelInRelation = attributeNameOfMlabelInRelation;
 	}
 	
 	public String getCommandForPatternMatching(){
 		int selectedInd=selectOptionsForExistingTrajectories.getSelectedIndex();
 		String command="";
-		if(selectedInd!=-1){
+		if(selectedInd!=-1 && !attributeNameOfMlabelInRelation.isEmpty()){
 		command="query "+selectOptionsForExistingTrajectories.getItemText(selectedInd);
-		command = command+" feed filtermatches["+ attributeNameOfMpointInRelation+",";
+		command = command+" feed filtermatches["+ attributeNameOfMlabelInRelation+",";
 		command=command+" '"+ patternLabel.getText()+"'] consume";
 		}
 		return command;
@@ -1051,6 +1099,13 @@ public class OptionsTabPanel extends Composite{
 		}
 		return command;
 		
+	}
+
+	/**
+	 * @return the removeButton
+	 */
+	public Button getMatchButton() {
+		return matchButton;
 	}
 	
 	

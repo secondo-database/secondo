@@ -21,6 +21,8 @@ package com.secondo.webgui.client.controller;
 
 import java.util.ArrayList;
 
+import org.gwtopenmaps.openlayers.client.popup.Popup;
+
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
@@ -589,6 +591,43 @@ public class RPCConnector {
 		else {
 			Window.alert("You can upload only gpx file");
 		}
+		
+	}
+	
+	
+	/**
+	 * The method sends command to the Secondo server, adds it to command
+	 * history and updates history.
+	 * 
+	 * @param command
+	 *            to be sent to the server
+	 * @param mv
+	 * @param lp
+	 */
+	public void sendCommandAndUpdateHistory(String command, MainView mv,
+			PopupPanel lp) {
+		sendCommand(command, mv, lp);
+		addCommandToHistory(command);
+		updateCommandHistory(mv);
+	}	
+		
+	public void getNumberOfTuplesInRelationFromResultList(final MainView mv){
+		
+		AsyncCallback<Integer> callback = new AsyncCallback<Integer>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);
+				
+			}
+
+			@Override
+			public void onSuccess(Integer result) {
+				mv.getOptionsTabPanel().setTextInResultOfPatternMatchingLabel("Result of pattern matching: "+result.toString());
+				
+			}			
+		};
+		secondoService.getNumberOfTuplesInRelationFromResultList(callback);
 		
 	}
 }

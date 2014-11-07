@@ -51,6 +51,11 @@ public class DataTypeConstructor{
 	
 	/**The object counter, which creates a unique id for each object*/
 	private int objectCounter = 1;
+	
+	/**
+	 * The number of tuples from the resulted relation 
+	 */
+	private int numberOfTuplesInRelation=0;
 
 	public DataTypeConstructor() {
 	}
@@ -63,6 +68,7 @@ public class DataTypeConstructor{
 	public String getDataType(ListExpr le) {
 
 		String dataType = "unknown type";
+		numberOfTuplesInRelation=0;
 		
 		this.resultTypeList.clear();
 
@@ -424,19 +430,11 @@ public class DataTypeConstructor{
             			
             			   //get label
             			   String label=valueList.first().second().symbolValue();
+            			   labellist.add(label);
+            			   
             			   //generate color for each label
             			   mlabel.generateColorsForLabel2(label);
-            			   if(labellist.contains(label)){
-            				   int indexOfFirstOccurrance=labellist.indexOf(label);
-            				   labellist.add(label);
-            				   mlabel.generateColorsForDuplicateLabel(indexOfFirstOccurrance);
-            				   
-            			   }else{
-            			   labellist.add(label);
-            			   mlabel.generateColorsForLabel(labellist.size()-1);
-            			   
-            			   }           			      			   
-            			   
+            			               			   
             			   valueList = valueList.rest();
             			  
             		}	
@@ -458,11 +456,11 @@ public class DataTypeConstructor{
 			
 			values = values.rest();
 			index++;
+			numberOfTuplesInRelation++;
 		}	
+		
     	System.out.println("############## Size of resultTypeList: " +resultTypeList.size());
-    	for(DataType each:resultTypeList){
-    		System.out.println(" "+each.getType());
-    	}
+    	
 	}
 	
 	/**Gets the line-result from secondo, builds a list of lines and puts it into the resultTypeList
@@ -685,5 +683,12 @@ public class DataTypeConstructor{
 	 * */
 	public ArrayList<DataType> getResultTypeList() {
 		return resultTypeList;
+	}
+
+	/**
+	 * @return the numberOfTuplesInRelation
+	 */
+	public int getNumberOfTuplesInRelation() {
+		return numberOfTuplesInRelation;
 	}	
 }

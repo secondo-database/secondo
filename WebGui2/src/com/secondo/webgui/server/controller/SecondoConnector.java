@@ -45,6 +45,8 @@ public class SecondoConnector {
 	private String secondoresult = "";
 	private ArrayList<String> databaselist = new ArrayList<String>();
 	
+	private int numberOfTuplesInRelationFromResult=0;
+	
 	public SecondoConnector(){
 		}
 
@@ -117,18 +119,20 @@ public class SecondoConnector {
 			return resultList;
 		} else {
 			System.err.println("success!");
-			 this.secondoresult = resultList.toString();
-			 
-			 //format the data for the formatted view
-			 textFormatter.formatData(resultList);
-			 
-			 //analyze the geodatatype and put it into the resulttypelist for the graphical view
-			 typeConstructor.getDataType(resultList);
+			this.secondoresult = resultList.toString();
+
+			// format the data for the formatted view
+			textFormatter.formatData(resultList);
+
+			// analyze the geodatatype and put it into the resulttypelist for
+			// the graphical view
+			typeConstructor.getDataType(resultList);
+			numberOfTuplesInRelationFromResult=typeConstructor.getNumberOfTuplesInRelation();
 			return resultList;
 		}
-		/*if (Secondointerface.isConnected()) {
-			this.disconnect();
-		}*/
+		/*
+		 * if (Secondointerface.isConnected()) { this.disconnect(); }
+		 */
 	}
 
 	/**Method to make a connection to the secondo server and send a query to the secondo database. Successful query has no result in resultList (like create or delete queries) 
@@ -376,5 +380,12 @@ public class SecondoConnector {
 	 * */
 	public ArrayList<String> getDatabaselist() {
 		return databaselist;
+	}
+
+	/**
+	 * @return the numberOfTuplesInRelationFromResult
+	 */
+	public int getNumberOfTuplesInRelationFromResult() {
+		return numberOfTuplesInRelationFromResult;
 	}	
 }
