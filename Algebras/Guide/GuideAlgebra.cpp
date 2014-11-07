@@ -22,6 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
 \setcounter{tocdepth}{2}
 \tableofcontents
 
@@ -2806,7 +2809,7 @@ tree.
 A node of an AVL-tree consists of its content, pointers to the two sons and a value denoting 
 the height which is used for balancing these nodes.  Each node corresponds to a record
 within the file representing the tree.  As mentioned above, we simulate 
-pointers by RecordIds. For technical reasons, each node contains also its own RecordId.
+pointers by ~RecordId~s. For technical reasons, each node contains also its own ~RecordId~.
 This makes it easier to update the node after changes.
 The ~Node~ class provides methods for reading its value from a record
 and writing to a record.
@@ -2961,7 +2964,7 @@ class PAVLTree{
 /*
 11.2.1 Constructors
 
-The ~PAVLTree~ class provides two constructor. The first one create a new 
+The ~PAVLTree~ class provides two constructors. The first one creates a new 
 ~PAVLTree~ including the record file storing the tree. The tree will be 
 empty. The second variant is used to open an existing ~PAVLTree~. Details 
 of these constructors can be found at their implementations.
@@ -2978,9 +2981,9 @@ of these constructors can be found at their implementations.
 /*
 11.2.2 Destructor
 
-Each opened file must be closed at the end of a secondo session. Otherwise the
+Each opened file must be closed at the end of a Secondo session. Otherwise the
 database directory may be corrupt. Hence is is strongly required to close the
-file in the desctructor.
+file in the destructor.
 
 */
   ~PAVLTree(){
@@ -3029,14 +3032,14 @@ be closed.
   }
 
 /*
-Functions for convetiong in and from nested lists.
+Functions for converting into and from nested lists.
 
 */
   bool readFrom(ListExpr args);
   ListExpr toListExpr();
  
 /*
-The clean function removed all elements from a tree.
+The clean function removes all elements from a tree.
 
 */
   void clean();
@@ -3075,7 +3078,7 @@ Auxiliary functions
 
 
 
-   // returns the height of s subtree specified by id
+   // returns the height of the subtree specified by id
    Node::htype getHeight(SmiRecordId id){
       if(id==0) return 0;
       return getNode(id).getHeight();
@@ -3098,7 +3101,7 @@ Auxiliary functions
    // balances an unbalanced subtree
    void balance(Node& badNode, stack<Node>& parents);
 
-   // recomputes the height of a node and writes to file
+   // recomputes the height of a node and writes the changed node to file
    void updateHeight(Node n){
       Node::htype h1 = getHeight(n.getLeft());
       Node::htype h2 = getHeight(n.getRight());
@@ -3179,9 +3182,9 @@ PAVLTree* PAVLTree::clone(){
 }
 
 /*
-This functions clone a subtree given by root. 
-The function returns the recordId of the newly created root 
-in res.
+This functions clones a subtree given by root. 
+The function returns the ~RecordId~ of the newly created root 
+in ~res~.
 
 */
 SmiRecordId PAVLTree::clone(SmiRecordId root, PAVLTree* res){
@@ -3263,13 +3266,14 @@ bool PAVLTree::insert(CcInt* value){
   }
   cn.update(file);
   s.push(cn);
-  // now we have to correct the height of the predecessors
+  // now, we have to correct the heights of the predecessors
   while(!s.empty()){
     Node parent = s.top();
     s.pop();
     Node::htype leftHeight = getHeight(parent.getLeft());
     Node::htype rightHeight = getHeight(parent.getRight());
     if(abs(balanceVal(leftHeight, rightHeight)) > 1){
+       // correct unbalanced node
        balance(parent,s);
        return true;
     }
@@ -3383,9 +3387,9 @@ void PAVLTree::clean(){
 /*
 11.3.2 ~readFrom~
 
-This functions reads a nested list and stores the tree represented by the 
-list into the the file. The id of the subtree's root is returned in the
-output parameter rootTd. Furthermore, the minimum and the maximum value
+This function reads a nested list and stores the tree represented by the 
+list into the file. The id of the subtree's root is returned in the
+output parameter ~rootId~. Furthermore, the minimum and the maximum value
 of the tree are returned in the appropriate output parameters. If the list 
 represents a valid AVL-tree, the return value of this function is true, false 
 otherwise.
@@ -3459,8 +3463,8 @@ bool PAVLTree::readFrom(ListExpr list, SmiRecordId& rootId,
 /*
 11.3.3 ~readFrom~
 
-This function converts a nested int into a tree. The return value
-is true if the list represents a valid AVL tree, false otherwise.
+This function converts a nested list into a tree. The return value
+is ~true~ if the list represents a valid AVL tree, ~false~ otherwise.
 
 */
 
@@ -3573,7 +3577,7 @@ Word CreatePAVL(const ListExpr typeInfo){
 /*
 11.3.5 Delete
 
-Here the complete objectrepresentation is removed inclusive 
+Here the complete object instance is removed inclusive 
 the file.
 
 */
@@ -3619,8 +3623,8 @@ bool OpenPAVL ( SmiRecord & valueRecord ,
 /*
 11.3.7 SAVE
 
-The save function just stored the main information into the record. 
-The tree file is not required (except its id).
+The save function stores the main information into the record. 
+The tree's file is not required (except its id).
 
 */
 bool SavePAVL( SmiRecord & valueRecord , size_t & offset ,
@@ -3704,7 +3708,7 @@ PAVLTypeCheck );
 /*
 11.4 Operators creating a PAVL tree
 
-11.4.1 Creation of an pavltree
+11.4.1 Creation of a pavltree
 
 */
 ListExpr createPAVLTM(ListExpr args){
@@ -3813,7 +3817,7 @@ an ~insert~ operator inserting new elementes into an existing avl-tree.
  
 12.1 Type mapping
 
-The type mapping for an update opererator has no special features.
+The type mapping of an update operator has no special features.
 
 */
 ListExpr insertTM(ListExpr args){
@@ -3834,9 +3838,10 @@ ListExpr insertTM(ListExpr args){
 
 Within  the value mapping the tree argument is manipulated. 
 At the end of this operator, this argument is marked as 
-modified. For stream operators, this mark can be done 
-within the ~CLOSE~ section. Here, we do it at the end
-of the implementation.  
+modified. For stream operators, this marking can be done 
+within the ~CLOSE~ section. In non-stream operators like here,
+this is done somewhere in the value mapping implementation. 
+
 
 */
 
@@ -3895,17 +3900,17 @@ the type, the filename (a string or a text) must be known in the type mapping.
 Secondo provides a possibility to get not only the types in the argument list of
 the type mapping but additionally the part of the query forming this type.
 To enable this feature for an operator, the function ~SetUsesArgsInTypeMapping()~ must 
-called for this operator. This happens within the Algebra constructor.
+be called for this operator. This happens within the Algebra constructor.
 
 This feature is explained at the example of the ~importObject~ operator. This operator
-gets a filename and returns the object located in the file. The objects is coded 
+gets a filename and returns the object located in the file. The object is coded 
 in the way like ~save object to ...~ it does.
 
 9.1 Type Mapping
 
 If the argument feature is enabled for an operator, each argument is not longer only
-decsribed by its type, but by a list (<type> <expression>) where expression corresponds
-to the part of the query leading to the argument.
+described by its type, but by a list ([<]type[>] [<]expression[>]) where [<]expression[>] corresponds
+to the part of the query forming the argument.
 
 
 */
@@ -3916,7 +3921,7 @@ ListExpr importObjectTM(ListExpr args){
     return listutils::typeError("expected one argument");
   }
   ListExpr arg = nl->First(args);
-  // the list is codes as (<type> <query part>)
+  // the list is coded as (<type> <query part>)
   if(!nl->HasLength(arg,2)){
      return listutils::typeError("internal error");
   }    
@@ -3938,7 +3943,7 @@ ListExpr importObjectTM(ListExpr args){
    }
    // an object file is formatted as
    // (OBJECT <name> <typename> <type> <value> () )
-   // the typename is mostly empty the last empty list is for future extensions
+   // the typename is mostly empty the last, empty list is for future extensions
    
    // check structure
    if(   !nl->HasLength(objectList,6)
@@ -3998,7 +4003,8 @@ int importObjectVM ( Word * args , Word & result , int message ,
    if(!correct){
       return 0;
    }
-   // now, we replace the resultStorage
+   // Because the object may be quite large, we replace it instead 
+   // of manipulating the stored object
    qp->DeleteResultStorage(s);
    qp->ChangeResultStorage(s, o);
    qp->SetDeleteFunction(s, am->DeleteObj(algId, typeId));
@@ -4055,12 +4061,12 @@ query importObject(basename + 'obj')
 Because importObject expects that the expression is a constant text, this is not
 possible. Here, a variant of the ~importObject~ operator is described supporting
 this kind of input. We call the operator ~importObject2~. Because the value mapping
-as well as the specification is the same as for ~importObject~, we use these 
+as well as the specification is the same as for ~importObject~, we reuse these 
 implementations when defining the operator instance.
 
-The main idea behind this operator is to use the Queryprocessor for evaluation of the
-expression building the argument. The ~QueryProcessor~ provides a function
-~ExecuteQuery~ for this job.
+The main idea behind this operator is to use the Queryprocessor for the 
+evaluation of the expression building the argument. The ~QueryProcessor~ 
+provides a function ~ExecuteQuery~ for this job.
 
 */
 
@@ -4169,13 +4175,14 @@ data type may contain up to 48 characters but the most strings are
 much shorter.
 
 Secondo provides mechanisms for storing types within relations more 
-efficently than the standard storage procedure. These mechanism work 
+efficently than the standard storage procedure. These mechanisms work 
 only for attributes without any FLOB members.
 
 For understanding the mechanism, the tuple representation on disc 
 must be explained. A tuple on disc consists of two parts. The first part
 is called the core part, the second one is the extension part. 
-Both parts are stored as a single byte block to disc. The core part of
+Both parts are stored together as a single byte block to disc. 
+The core part of
 the tuple consists of the core parts of the attributes, written direcly
 one after each other. The extension part contains the extension parts of 
 the attributes and may be empty. 
@@ -4194,14 +4201,14 @@ flob data build the extension part. The threshold is defined in the file
 
 
 
-There are three different methods for storing an attribut in an relation:
+There are three different methods for storing an attribut in a relation:
 
   * Default: This method corresponds to the storage mechanism above.
-          This mechanism is used in all attribute data types above.
+          This mechanism is used for all attribute data types above.
   
   * Core: The storage size is fixed, there is no extension part.
-          The attribute class provides its own serialise method.
-          This method is suitable for smalle fixed size attributes
+          The attribute class provides its own serialization method.
+          This istorage method is suitable for small fixed size attributes
           like number representations.
 
   * Extension: The storage size may vary within a small range.
@@ -4215,7 +4222,7 @@ There are three different methods for storing an attribut in an relation:
 10.1 Using Core Storage
 
 The next class uses the core storage mechanism. We describe the implementation of 
-the ushort type representing an unsigned integer having 2 bytes. We use an 
+the ~ushort~ type representing an unsigned integer with 2 bytes length. We use an 
 additional byte for representing the undefined state.
 
 */
@@ -4322,10 +4329,10 @@ class UShort: public Attribute{
 /*
 10.1.1 Function ~GetStorageType~
 
-Here, the StorageType is returned. Possible values are Default, Core, 
-Extension, Unspecified, where the last mentioned makes no sense. We want 
-to store the attribute completely within the Core part of the tuple, 
-Thus, the return value is Core.
+Here, the ~StorageType~ is returned. Possible values are ~Default~, ~Core~, 
+~Extension~, ~Unspecified~, where the last mentioned one makes no sense to use. We want 
+to store the attribute completely within the Core part of the tuple. 
+Thus, the return value is ~Core~.
 
 */
 
@@ -4347,9 +4354,9 @@ inline virtual size_t SerializedSize() const{
 /*
 10.1.3 Function ~Serialize~
 
-This function writes the serial version of the value into some
-buffer. We assume that the first byte is for the defined flag
-an the remaining bytes are for the value. The argument sz contains
+This function writes the serialized version of the value into some
+buffer. We use the first byte  for the defined flag
+and the remaining bytes store  the value. The argument ~sz~ contains
 the value returned by ~SerializedSize~
 
 */
@@ -4365,8 +4372,8 @@ inline virtual void Serialize(char* buffer, size_t sz, size_t offset) const{
 /*
 10.1.4 ~Rebuild~
 
-This function reads the value from a buffer. As for the Serialize function,
-~sz~ is the size returned by SerializedSize. In contrast to Serialize,
+This function reads the value from a buffer. As for the ~Serialize~ function,
+~sz~ is the size returned by ~SerializedSize~. In contrast to ~Serialize~,
 there is no offset. The value is read from the beginning of the buffer.
 
 */
@@ -4398,7 +4405,7 @@ Here, we can use the queries:
 
 ----
 
-and be happy that the first result is greated than the second one.
+and be happy that the first result is greater than the second one.
 
 */
 
@@ -4409,14 +4416,15 @@ and be happy that the first result is greated than the second one.
 The storage mechanism describe in the last section can also be used for
 storing attribute data types of variable length. Even the usage of pointers
 is possible. Note that this mechanism is only for small values efficient.
-For bigger values (more than 512 bytes), this mechanism should not be used.
+For bigger values (more than 512 bytes), FLOBs should be used instead of 
+this mechanism.
 
 We describe the mechanism at the attribute data type ~vstring~ representing
 a variable length string. Because the core size of an attribute is always
 fixed, we have to store the string data within the extension part. On the other 
 hand, the generic Open and Save functions defined in the attribute class only
 support the default mechanism. For this reason, we have to implement the 
-serialisation (Open and Save) functions self.
+serialisation (Open and Save) functions by ourself.
 
 */
 class VString;
@@ -4594,9 +4602,9 @@ class VString: public Attribute{
 
 /* 
 Because the Serialization does not overwrite internal function pointers as in the
-default mechanism, here just the argument pointer is returned. If we use the special
-call for the new operator as usual, the standard constructor of string will empty
-value.
+default mechanism, here just the argument pointer is returned. 
+Because the Standard constructir of the ~string~ class initilizes the
+string to be empty, we cannot use the special variant of ~new~ here.
 
 */ 
      static void* Cast(void* addr){
@@ -4607,15 +4615,24 @@ value.
         return checkType(type);
      }
 
+/*
 
+Because of the variable length, we have to store the value within the 
+extension part of a tuple.
+
+*/
      inline virtual StorageType GetStorageType() const{
         return Extension;
      }
 
+/*
+The function ~SerializedSize~ is implemented as for the ~Core~ variant.
+
+*/
      inline virtual size_t SerializedSize() const{
          return sizeof(size_t) + 1 + value.length(); 
      }
-     
+    
      inline virtual void Serialize(char* buffer, size_t sz, 
                                    size_t offset) const{
          size_t length = value.length();
@@ -4644,7 +4661,16 @@ value.
             SetDefined(true);
          }
      }
+/*
+~GetMemSize~
 
+The ~GetMemSize~ function returns the amount of space required for an object in
+main memory. The default implementation uses the size of the root block and adds
+the FlobSizes of FLOBs whose data are not controlled by the FLOBCache.
+Because in the VString class pointers are present, we have to overwrite this 
+function for returning a correct result.
+
+*/
      virtual size_t GetMemSize() {
         return sizeof(*this) + value.length();
      }
@@ -4680,8 +4706,8 @@ TypeConstructor VStringTC(
 /*
 12 Operator text2string
 
-This operator is for testing the vstring implementation. It takes a text and converts
-it into a vstring. 
+This operator is for testing the vstring implementation. It takes a ~text~ and converts
+it into a ~vstring~. 
 
 */
 

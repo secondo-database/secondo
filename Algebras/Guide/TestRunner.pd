@@ -2,11 +2,12 @@
 
 1 Advanced Tests
 
-The Selftest provides only simple tests. Because only queries are allowed within 
-an ~examples~ file, only objects within the stored database can be used. 
+The Selftest provides only simple tests. Only queries are allowed within 
+an ~examples~ file, hence only objects within the stored database or
+constant values can be used. 
 Secondo provides a more powerful test suite for testing an algebra modul, the
-TestRunner. A TestRunner file consist of three parts: the setup part, followed by
-the test part and the final teardown part. Within the setup part a database can be 
+~TestRunner~. A TestRunner file consists of three parts: the ~setup~ part, followed by
+the ~test~ part and the final ~teardown~ part. Within the setup part, a database can be 
 created, restored or just opened, new objects can be stored and so on. 
 If one of the commands in the setup part fails, the complete test fails.
 In the testcase part, commands and their results are specified. Besides a concrete 

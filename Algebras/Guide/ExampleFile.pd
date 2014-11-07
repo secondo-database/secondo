@@ -110,7 +110,7 @@ the result list and the computed result of a query are compared using an approxi
 double values. The tolerance can be given as an absolute value, e.g. 0.01 if a deviance between the two
 values should not be greater than 0.01, or as an relative value, e.g. 0.1\% is the accepted tolerance is 0.1 percent.
 
-The Guide Algebra contains the following examples:
+The ~GuideAlgebra~ contains the following examples:
 
 
 

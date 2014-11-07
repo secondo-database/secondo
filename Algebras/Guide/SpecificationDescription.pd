@@ -8,7 +8,7 @@
 Within the ~spec~ file, the syntax of operators is fixed.
 The file must be located in the algebra directory and is named
 ~AlgebraName.spec~. The default syntax of an operator is
-a prefix operator. Nevertheless it is recommended, to specify 
+prefix notation. Nevertheless it is recommended, to specify 
 the syntax for all operators. 
 
 If an operator occurs in several algebras, the syntax of the operator
@@ -19,7 +19,7 @@ error message.
 Lines in the file starting with a '\#' are ignored and can be used for comments.
 For formatting the file, empty lines are also ignored.
 
-The syntax definition an an operator has format
+The syntax definition of an operator has the format
 
 ----
 operator <opname> alias <opalias> pattern <syntax> 
@@ -38,15 +38,15 @@ with
   * implicit parameters: use of special types for function arguments
 
 
-The ~implicit parameter~ part is optionally and can only used for function
-arguments. The ~opalias~ is the name of the operator as text, e.g. PLUS
+The ~implicit parameter~ part is optionally and can be used for function
+arguments only. The ~opalias~ is the name of the operator as text, e.g. PLUS
 if the operator is '+'. This has technical reasons.
 
 The syntax can be:
 
 ----
 
- op()           prefix operator without argument
+ op()           prefix operator without any argument
  op(_)          prefix operator with one argument
  op(_,_)        prefix operator having arbitrary many arguments
  _ infixop _    infix operator
@@ -70,11 +70,11 @@ _, _     usual parameter
 list     parameter list of arbitrary length
 fun      this parameter is a function (together with implicit parameters)
 funlist  list of functions
-X ; Y    semicolon separated argument lists X and Y are again parameter lists
+X ; Y    semicolon separated argument lists, X and Y are parameter lists again
 
 ----
 
-Implicit parameter can be used for simpler use of function arguments. This requires
+Implicit parameters can be used for simpler use of function arguments. This requires
 a fun or a funlist to be part of the parameter list. The syntax is:
 
 ----
@@ -83,7 +83,7 @@ a fun or a funlist to be part of the parameter list. The syntax is:
 
 ----
 
-where namelist is a list of comma separated names and type list are the corresponding
+where ~namelist~ is a list of comma separated names and ~typelist~ contains the corresponding
 types. The first name is assigned to the first type, second name to the second type
 and so on. This requires that both lists must have the same length. Often, the type is
 given as so-called Type Operator. This is an operator having only the type mapping but 
@@ -125,7 +125,7 @@ By the implicit parameter part, this query is rewritten automatically to:
 
 ----
 
-The type operator STREAMELEM extract the tuple type from the arounding types.
+The type operator STREAMELEM extracts the tuple type from the arounding types.
 Thus, without all these mechanisms the query has to be written as
 
 ----
@@ -136,7 +136,7 @@ Thus, without all these mechanisms the query has to be written as
 
 ----
 
-Obviously, the first version using all features the the simplest one from the view of a
+Obviously, the first version using all features is the simplest one from the view of a
 user.
 
 

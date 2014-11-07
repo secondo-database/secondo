@@ -95,8 +95,8 @@ Result    : (vstring "secondo")
 Operator  : text2vstring
 Number    : 2
 Signature : text -> vstring
-Example   : query text2vstring('secondo secondo secondo secondo secondo secondo secondo secondo secondo') 
-Result    : (vstring 'secondo secondo secondo secondo secondo secondo secondo secondo secondo')
+Example   : query text2vstring('secondo secondo secondo secondo secondo') 
+Result    : (vstring 'secondo secondo secondo secondo secondo')
 
 
 
