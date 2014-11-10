@@ -17,7 +17,7 @@ import com.google.gwt.user.client.ui.ScrollPanel;
  */
 public class LegendDialog {
 	
-	private DialogBox helpDialogBox = new DialogBox();
+	private DialogBox legendDialogBox = new DialogBox();
     private FlowPanel dialogContents = new FlowPanel();
     private ScrollPanel scrollContent = new ScrollPanel();
 	private HTML legendInfo;
@@ -26,11 +26,11 @@ public class LegendDialog {
 	
 	public LegendDialog() {
 		
-		helpDialogBox.setText("Legend Info");
+		legendDialogBox.setText("Legend Info");
 		
 		// Create a table to layout the content
 	    dialogContents.getElement().getStyle().setPadding(5, Unit.PX);
-	    helpDialogBox.setWidget(dialogContents);
+	    legendDialogBox.setWidget(dialogContents);
 	    legendInfo=new HTML("No info");
 	    
 	 // Add the text to the dialog
@@ -44,7 +44,7 @@ public class LegendDialog {
 
 			@Override
 			public void onClick(ClickEvent event) {
-				helpDialogBox.hide();
+				legendDialogBox.hide();
 				
 			}
 	        });
@@ -54,7 +54,7 @@ public class LegendDialog {
 
 
 	public DialogBox getHelpDialogBox() {
-		return helpDialogBox;
+		return legendDialogBox;
 	}
 
 
