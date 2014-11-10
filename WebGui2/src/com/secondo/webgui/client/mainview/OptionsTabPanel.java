@@ -887,23 +887,10 @@ public class OptionsTabPanel extends Composite{
 	    
 	    HorizontalPanel playpanel= new HorizontalPanel();
         playpanel.add(playIcon);
-        playpanel.add(playLink);     
+        playpanel.add(playLink);    
 	
-	    HorizontalPanel forwardpanel = createForwardPanel();       
-        	    
-	    HorizontalPanel rewindpanel = createRewindPanel();      
-        	    
-        HorizontalPanel pausepanel = createPausePanel(); 
-        
-//        panelForPause.add(pausepanel);
-//        panelForPause.add(forwardpanel);
-//        panelForPause.add(rewindpanel);
-        
-        panelForPlay.add(playpanel);
-        panelForPlay.add(forwardpanel);
-        panelForPlay.add(rewindpanel);
-        
-        animationPanel.add(panelForPlay);
+                
+        animationPanel.add(getPanelForPlay());
 	    
 	    animationPanel.add(timeCounter);
 	    
@@ -940,6 +927,13 @@ public class OptionsTabPanel extends Composite{
         pausepanel.add(pauseIcon);
         pausepanel.add(pauseLink);
 		return pausepanel;
+	}
+	
+	private HorizontalPanel createPlayPanel() {
+		HorizontalPanel playpanel = new HorizontalPanel();
+		playpanel.add(playIcon);
+		playpanel.add(playLink);
+		return playpanel;
 	}
 	
 	/**Resets the animation panel to the default values*/
@@ -1049,6 +1043,9 @@ public class OptionsTabPanel extends Composite{
 	 * @return the panelForPlay
 	 */
 	public HorizontalPanel getPanelForPlay() {
+		panelForPlay.add(createPlayPanel());
+		panelForPlay.add(createForwardPanel());
+		panelForPlay.add(createRewindPanel());
 		return panelForPlay;
 	}
 
