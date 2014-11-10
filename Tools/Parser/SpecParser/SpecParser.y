@@ -95,6 +95,8 @@ set<string> opnamesWithPattern;
 int processedSpecifications; // number of processed specifications
 
 
+void removeFiles();
+
 /*
 1.4 The error function
 
@@ -107,6 +109,7 @@ void yyerror( const char* s )
 {
   cerr << endl << s << endl << endl;
   cerr << "error at line " << yylineno << endl;
+  removeFiles();
 }
 
 
@@ -145,6 +148,37 @@ ostream& operator<<(ostream& o, const struct trans& t){
            <<      t.bufferForced << "]";
 
 }
+
+/*
+1.7 ~removeFiles~
+
+Removes all output files.
+
+*/
+void removeFiles(){
+  if(lexrules != NULL){
+    lexrules->close();
+    lexrules=0;
+  }
+  if(yaccrules1 != NULL){
+    yaccrules1->close();
+    yaccrules1=0;
+  }
+  if(yaccrules2 != NULL){
+     yaccrules2->close();
+     yaccrules2=0;
+  }
+  if(tokens != NULL){
+    tokens->close();
+    tokens=0;
+  }
+  remove("lexrules");
+  remove("yaccrules1");
+  remove("yaccrules2");
+  remove("tokens");
+}
+
+
 
 
 /*
@@ -508,7 +542,8 @@ void print_complex_postfix(){
            << yylineno <<  endl;
       cerr << " allowed numbe is 2, found " << sizei << " ones " << endl;
       cerr << " The operator is " << opname << endl; 
-      exit(-1);
+      removeFiles();
+      exit(1);
    }
 
    string funname = currenttranslation.alias+"_fun";
@@ -774,7 +809,8 @@ void printtranslation(){
        for(int i=0;i<implicitTypesSize;i++)
             cerr << ((*currenttranslation.implicitTypes)[i]) << endl;
       finalize();
-       exit(-1);
+       removeFiles();
+       exit(1);
   }
   if(implicitNamesSize==0){ // without implicite parameters
      print_complex_postfix_without_implicit_parameters();     
@@ -831,10 +867,11 @@ spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit buf
                   // operator already exists check for different pattern
                   if(opnamesWithPattern.find(opWithPattern)==
                      opnamesWithPattern.end()){
-                      cerr << " Conficting definition of operator " 
+                      cerr << " Conflicting definition of operator " 
                            << op << endl;
                       cerr << " Line in spec file is " << yylineno << endl;
-                      exit(-1);
+                      removeFiles();
+                      exit(1);
                   }
                 }
                 reset(); // make clean 
@@ -1026,15 +1063,18 @@ int main(int argc, char** argv) {
     }
     if(!init()){
       cerr << "Error in initialization " << endl;
+      removeFiles();
       return -1;
     }
     if(yyparse()!=0){
        cerr << " Error in parsing specification" << endl;
+       removeFiles();
        return -1;
     }
     printStatistics();
     if(!finalize()){
        cerr << "Error in finalization " <<  endl;
+       removeFiles();
        return -1;
     }
     return 0;
