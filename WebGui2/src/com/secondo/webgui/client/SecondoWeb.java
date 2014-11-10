@@ -291,7 +291,7 @@ public class SecondoWeb implements EntryPoint {
 		 });
 	    
 	    /*allows to download a raw data result*/
-	    this.mainView.getHeader().getExport().setScheduledCommand(new Command() {
+	    this.mainView.getMainheader().getExport().setScheduledCommand(new Command() {
 			
 			@Override
 			public void execute() {

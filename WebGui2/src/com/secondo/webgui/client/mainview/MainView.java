@@ -553,11 +553,12 @@ public class MainView extends Composite {
 		};
 		this.commandPanel.getMenubarCP().getOptimizerItemOff().setScheduledCommand(optimizerOff);
 		
-		this.getHeader().getPlainTraj().setScheduledCommand(new Command() {
+		this.header.getPlainTraj().setScheduledCommand(new Command() {
 			
 			@Override
-			public void execute() {
-				// TODO Auto-generated method stub
+			public void execute() {				
+				header.getTextViewOfTrajInDialog().getPlainTrajDialogBox().center();
+				header.getTextViewOfTrajInDialog().getPlainTrajDialogBox().show();
 				
 			}
 		});
@@ -875,6 +876,17 @@ public class MainView extends Composite {
 		mapView.updateView();
 		}
 		
+		updateLegendInfoForMenuItem();
+		header.getTextViewOfTrajInDialog().setTextViewInPlainTrajDialog(textView.getTextOutput());
+	    
+	    this.optionsTabPanel.setAttributeNameOfMLabelInRelation(this.mapView.getAttributeNameOfMLabel());
+		
+	}
+
+	/**
+	 * Sets a legend information to the menu item "legend"
+	 */
+	private void updateLegendInfoForMenuItem() {
 		final LegendDialog legend = mapView.getLegend();		
 	    Command legendInfo = new Command() {
 	      public void execute() {
@@ -882,9 +894,7 @@ public class MainView extends Composite {
 	    	  legend.getHelpDialogBox().show();
 	      }
 	    };
-	    
-	    this.optionsTabPanel.setAttributeNameOfMLabelInRelation(this.mapView.getAttributeNameOfMLabel());
-		header.getLegendMenuItem().setScheduledCommand(legendInfo);
+	    header.getLegendMenuItem().setScheduledCommand(legendInfo);
 	}
 
 	/**Shows the raw data view in the view panel*/
@@ -1313,13 +1323,6 @@ public class MainView extends Composite {
 	public void resetMapView() {
 		mapView.resetData();
 		mapView.getMpointController().stopAllAnimations();
-	}
-
-	/**
-	 * @return the header
-	 */
-	public Header getHeader() {
-		return header;
 	}
 
 	

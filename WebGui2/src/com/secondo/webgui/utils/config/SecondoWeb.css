@@ -304,7 +304,7 @@ font-weight: normal;
 	
 	
 	
-	width:650px;
+	width:600px;
 	/* IE10 Consumer Preview */ 
 background-image: -ms-linear-gradient(top, #FFFFFF 0%, #E1E6E4 100%);
 
@@ -393,9 +393,30 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
   	cursor: hand;
 }
 
-.transparent1:hover, .transparent2:hover, .transparent3:hover, .transparent4:hover{
-	text-decoration: underline;	
-	
+.transparent5{
+	background: url("/resources/images/arrow-down-icon.png") no-repeat scroll  0 transparent;
+	text-align: left;
+	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
+	font-size: 12px;
+/* 	padding-left: 20px;	 */
+	padding: 0px 26px;
+	cursor: pointer;
+  	cursor: hand;
+}
+
+.transparent6{
+	background: url("/resources/images/edit-clipboard-icon.png") no-repeat scroll  0 transparent;
+	text-align: left;
+	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
+	font-size: 12px;
+/* 	padding-left: 20px;	 */
+	padding: 0px 26px;
+	cursor: pointer;
+  	cursor: hand;
+}
+
+.transparent1:hover, .transparent2:hover, .transparent3:hover, .transparent4:hover, .transparent5:hover, .transparent6:hover{
+	text-decoration: underline;		
 }
 
 .transparent4[title]:hover:after{
@@ -625,6 +646,9 @@ html>body .gwt-DecoratedTabBar {
 }
 .textInRed{
 	color:red;
+}
+.right-floated-button{
+	float:right;
 }
 
 

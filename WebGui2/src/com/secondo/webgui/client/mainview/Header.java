@@ -77,6 +77,8 @@ public class Header extends Composite{
     private MenuItem legend= new MenuItem("Legend", mainMenuBar);
     private MenuItem export = new MenuItem("Export", mainMenuBar);
     private MenuItem plainTraj= new MenuItem("Plain trajectory", mainMenuBar);
+    
+    private PlainTrajDialog textViewOfTrajInDialog= new PlainTrajDialog();
 	
 	public Header(){
 		g.resize(4, 1);
@@ -159,13 +161,13 @@ public class Header extends Composite{
 	    mainMenuBar.addItem(print);
 	    
 	    
-	    export.setStyleName("transparent4");
+	    export.setStyleName("transparent5");
 	    export.setTitle("Export raw data");
 	    mainMenuBar.addItem(export);
 	    
 	    
-	    plainTraj.setStyleName("transparent4");
-	    plainTraj.setTitle("Symbolic trajectory\n in plain text");
+	    plainTraj.setStyleName("transparent6");
+	    plainTraj.setTitle("Symbolic trajectory\n in plain text");	    
 	    mainMenuBar.addItem(plainTraj);
 	    
 	    
@@ -272,5 +274,12 @@ public class Header extends Composite{
 	 */
 	public MenuItem getPlainTraj() {
 		return plainTraj;
+	}
+
+	/**
+	 * @return the textViewOfTrajInDialog
+	 */
+	public PlainTrajDialog getTextViewOfTrajInDialog() {
+		return textViewOfTrajInDialog;
 	}
 }
