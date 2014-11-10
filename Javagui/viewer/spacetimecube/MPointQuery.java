@@ -63,12 +63,11 @@ public class MPointQuery {
 				   columns = new String[value.listLength()];
 				   for (int i=0;i<value.listLength();i++) {
 					   columns[i] = tempLE.first().first().toString();
-					   String s = tempLE.first().second().toString();
+					   String s = tempLE.first().second().toString(); // extract data type from temporary ListExpression
 					   if (s.length()>=6) {
 		 				  if (s.substring(s.length()-6, s.length()).equals("mpoint")) {
 		 					 mPointPos.add(new Integer(i));	// data type MPoint might occur multiple times				  
 		 				  }
-						   
 					   }
 					  tempLE = tempLE.rest();
 				   }

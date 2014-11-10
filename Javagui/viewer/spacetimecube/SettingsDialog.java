@@ -36,10 +36,10 @@ import viewer.SpaceTimeCubeViewer;
  */
 public class SettingsDialog extends JFrame implements ActionListener, ItemListener {
 	
-	private JLabel labelDisplay, labelSO;
-	private JLabel labelVertLines, labelColorSO, labelColorBackground, labelLineWidth;
+	private JLabel labelDisplay, labelSO, labelVertLines, labelColorSO, 
+			labelColorBackground, labelLineWidth, labelTranspMPoints;
 	private JTextField tfSOred, tfSOgreen, tfSOblue, tfBackgroundRed, tfBackgroundGreen, 
-		tfBackgroundBlue, tfLineWidth;
+		tfBackgroundBlue, tfLineWidth, tfTranspMPoints;
 	private JCheckBox chbVertLines;
 	private JComboBox cbSecondoObject;
 	private JButton butOk, butCancel;
@@ -57,7 +57,7 @@ public class SettingsDialog extends JFrame implements ActionListener, ItemListen
 		objectColors = (Hashtable)stcv.getColorSO().clone();
 		
 		setTitle("SpaceTimeCube Settings");
-		setSize(300,290);
+		setSize(330,290);
 		
 		JSeparator sepHori1 = new JSeparator();
 		
@@ -70,6 +70,7 @@ public class SettingsDialog extends JFrame implements ActionListener, ItemListen
 		labelColorSO = new JLabel("Color (R/G/B):");
 		labelColorBackground = new JLabel("Background color (R/G/B):");
 		labelLineWidth = new JLabel("Line width:");
+		labelTranspMPoints = new JLabel("Transparency:");
 		//
 		
 		// combobox section
@@ -122,6 +123,10 @@ public class SettingsDialog extends JFrame implements ActionListener, ItemListen
 		tfLineWidth = new JTextField();
 		tfLineWidth.setPreferredSize(new Dimension(10, tfLineWidth.getPreferredSize().height));
 		tfLineWidth.setText(String.valueOf(stcv.getLineWidth()));
+		
+		tfTranspMPoints = new JTextField();
+		tfTranspMPoints.setPreferredSize(new Dimension(10, tfTranspMPoints.getPreferredSize().height));
+		tfTranspMPoints.setText(String.valueOf(stcv.getTranspMPoints()));
 		//
 		
 		// checkbox section
@@ -267,6 +272,28 @@ public class SettingsDialog extends JFrame implements ActionListener, ItemListen
 		
 		gbc.gridx = 0;
 		gbc.gridy += 1;
+		gbc.gridwidth = 1;
+		gbc.gridheight = 1;
+		gbl.setConstraints(labelTranspMPoints, gbc);
+		add(labelTranspMPoints);
+		
+		gbc.gridx = 1;
+		gbc.gridy += 0;
+		gbc.gridwidth = 1;
+		gbc.gridheight = 1;
+		gbl.setConstraints(tfTranspMPoints, gbc);
+		add(tfTranspMPoints);
+		
+		JLabel tmpLabel2 = new JLabel("");
+		gbc.gridx = 2;
+		gbc.gridy += 0;
+		gbc.gridwidth = 2;
+		gbc.gridheight = 1;
+		gbl.setConstraints(tmpLabel2, gbc);
+		add(tmpLabel2);
+		
+		gbc.gridx = 0;
+		gbc.gridy += 1;
 		gbc.gridwidth = 4;
 		gbc.gridheight = 1;
 		gbl.setConstraints(sepHori, gbc);
@@ -349,11 +376,14 @@ public class SettingsDialog extends JFrame implements ActionListener, ItemListen
 				
 				float lineWidth = (float)(Float.parseFloat((tfLineWidth.getText())));
 				
+				float transpMPoints = (float)(Float.parseFloat((tfTranspMPoints.getText())));
+				
 				// effective setting of the values
 				stcv.setColorSO(objectColors);
 				stcv.setDrawVertLines(chbVertLines.isSelected());
 				stcv.setColorCanvas(colorBackground);
 				stcv.setLineWidth(lineWidth);
+				stcv.setTranspMPoints(transpMPoints);
 				
 				stcv.recompute(); // mandatory
 				
@@ -411,6 +441,17 @@ public class SettingsDialog extends JFrame implements ActionListener, ItemListen
 			}
 		} catch (NumberFormatException e) {
 			msg += "Line width value not between 1.0 and 10.0.\n";
+		}
+		
+		// check transparency entry
+		try {
+			float transpMPoints = Float.parseFloat(tfTranspMPoints.getText());
+			
+			if (transpMPoints < 0.0f || transpMPoints > 1.0f) {
+				msg += "Transparency value not between 0.0 and 1.0.\n";
+			}
+		} catch (NumberFormatException e) {
+			msg += "Transparency value not between 0.0 and 1.0.\n";
 		}
 		
 		if (msg != "") {

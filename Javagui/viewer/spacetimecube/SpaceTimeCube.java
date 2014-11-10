@@ -42,8 +42,6 @@ import tools.Pair;
 import viewer.hoese.StaticOSMMapper;
 import viewer.hoese.CachedImage;
 import viewer.hoese.ImgLoader;
-import viewer.spacetimecube.MPoint;
-import viewer.spacetimecube.Point3DSTC;
 import viewer.SpaceTimeCubeViewer;
 
 /**
@@ -312,7 +310,7 @@ public class SpaceTimeCube {
 	/**
 	 * Computations will be performed like
 	 * - borders of the SpaceTimeCube as world coordinates and projected values
-	 * - map will be generated
+	 * - points of the MPoints are stored into a vector
 	 * OSMMercator projection is used.
 	 */
 	public void recompute() {
@@ -521,7 +519,6 @@ public class SpaceTimeCube {
 	 * 	- bounding box of all tiles in world coordinates is calculated (bboxTilesOrig)
 	 * 	- BufferedImage is built out of single tiles (result)
 	 * 	- Built image is cropped to the size of the SpaceTimeCube
-	 *  - Cropped image is scaled according to the length of the SpaceTimeCube
 	 *  @return
 	 *  	map as BufferedImage.
 	 */
@@ -713,7 +710,7 @@ public class SpaceTimeCube {
 			
 			BufferedImage result = new BufferedImage(imageXY, imageXY, BufferedImage.TYPE_INT_RGB);
 			Graphics2D g = result.createGraphics();
-			
+						
 			int xPos=0;
 			int yPos=0;
 			for (int i=0;i<tilePaths.length;i++) {
@@ -751,7 +748,7 @@ public class SpaceTimeCube {
 			
 			result = result.getSubimage((int)Math.round(offsetLeft), (int)Math.round(offsetTop), 
 					(int)Math.round(subimgXY), (int)Math.round(subimgXY));
-				
+			
 			return result;
 		}
 		else {

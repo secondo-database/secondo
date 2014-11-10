@@ -20,13 +20,15 @@
 package viewer.spacetimecube;
 
 
+import gui.idmanager.ID;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
 import java.awt.image.BufferedImage;
-import java.util.Vector;
+import java.util.*;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
+import viewer.SpaceTimeCubeViewer;
 
 
 /**
@@ -38,11 +40,13 @@ public class View2DSTC extends JPanel implements MouseListener, MouseMotionListe
 	
 	private BufferedImage img; // map of the 2D-view
 	private Vector<Vector> ptArrays; // 2D points for line creation
-	private int leng; // length of the viewing area
+	private int areaLength; // length of the viewing area
 	private boolean initialized; // 2D-view already initialized
 	private boolean pressed; // mouse button pressed
 	private Point startPoint, endPoint; // dragging start and end point
 	private int borderWeight; // weight/width of the 2D-view border
+	private Hashtable<ID,float[]> colorSecObj; // stores the color of all SecondoObjects identified by ID
+	private SpaceTimeCubeViewer STCViewer; // this variable provides the link to the STCV
 
 	/**
 	 * @param image
@@ -51,23 +55,28 @@ public class View2DSTC extends JPanel implements MouseListener, MouseMotionListe
 	 * 		2D points for line creation
 	 * @param length
 	 * 		length of the viewing area
+	 * @param stcv
+	 * 		link to the STCV
 	 */
-	public void initialize(BufferedImage image, Vector<Vector> pointArrays, int length) {
+	public void initialize(BufferedImage image, Vector<Vector> pointArrays, int length, SpaceTimeCubeViewer stcv) {
 		removeAll(); // remove all from the java.awt.Container
 		
 		LineBorder border = (LineBorder)getBorder();
 		borderWeight = border.getThickness();
 		img = image;
 		ptArrays = pointArrays;
-		leng = length-(borderWeight*2); // for calculation purposes the border needs to be subtracted
-		if (img != null) img = getScaledImage(img, leng, leng);
+		areaLength = length-(borderWeight*2); // for calculation purposes the border needs to be subtracted
+		if (img != null) img = getScaledImage(img, areaLength, areaLength);
 		
 		addMouseListener(this);
 		addMouseMotionListener(this);
 		
 		// set initial start and end point
 		startPoint = new Point(borderWeight, borderWeight);
-		endPoint = new Point(leng, leng);
+		endPoint = new Point(areaLength, areaLength);
+		
+		STCViewer = stcv;
+		colorSecObj = STCViewer.getColorSO();
 		
 		initialized = true;
 	}
@@ -79,12 +88,11 @@ public class View2DSTC extends JPanel implements MouseListener, MouseMotionListe
 			// paint map with border's weight as insets
 			if (img != null) g.drawImage(img, borderWeight, borderWeight, null);
 			
-			g.setColor(Color.RED); // line/trajectory color
 			double maxX=0, maxY=0, minX=0, minY=0;
 			for (int i=0;i<ptArrays.size();i++) {
-				Vector<Point2D> pts = ptArrays.get(i); // corresponds to a single MPoint
+				Vector<Point2DSTC> pts = ptArrays.get(i); // corresponds to a single MPoint
 				for (int a=0;a<pts.size();a++) {
-					Point2D pt = (pts.get(a));
+					Point2DSTC pt = (pts.get(a));
 					if (i==0 && a==0) {
 						maxX = pt.getX();
 						maxY = pt.getY();
@@ -115,28 +123,34 @@ public class View2DSTC extends JPanel implements MouseListener, MouseMotionListe
 			if ((maxX-minX)>(maxY-minY)) length = maxX-minX;
 			else length = maxY-minY;
 			
+			float[] colSO = {0,0,0}; // default color of all SecondoObjects/MPoints
+			
 			// lines are getting drawn for each MPoint
 			for (int i=0;i<ptArrays.size();i++) {
-				Vector<Point2D> pts = ptArrays.get(i);
+				Vector<Point2DSTC> pts = ptArrays.get(i);
 				for (int a=0;a<pts.size();a++) {
-					Point2D pt = (pts.get(a));
-					Point2D tempPt1 = pt;
-					Point2D tempPt2;
+					Point2DSTC pt = (pts.get(a));
+					Point2DSTC tempPt1 = pt;
+					Point2DSTC tempPt2;
+					
+					colSO = colorSecObj.get(pt.getSecondoID());
+					g.setColor(new Color(colSO[0],colSO[1],colSO[2])); // line/trajectory color
+					
 					if (a==pts.size()-1) { tempPt2 = pt; }
 					else { tempPt2 = (pts.get(a+1)); }
-					int x1 = ((int)Math.round((leng/length*tempPt1.getX())))+borderWeight;
-					int y1 = ((int)Math.round((leng-(leng/length*tempPt1.getY()))))+borderWeight;
-					int x2 = ((int)Math.round((leng/length*tempPt2.getX())))+borderWeight;
-					int y2 = ((int)Math.round((leng-(leng/length*tempPt2.getY()))))+borderWeight;
+					int x1 = ((int)Math.round((areaLength/length*tempPt1.getX())))+borderWeight;
+					int y1 = ((int)Math.round((areaLength-(areaLength/length*tempPt1.getY()))))+borderWeight;
+					int x2 = ((int)Math.round((areaLength/length*tempPt2.getX())))+borderWeight;
+					int y2 = ((int)Math.round((areaLength-(areaLength/length*tempPt2.getY()))))+borderWeight;
 					if (x1 <= borderWeight) { x1 = 1; }
 					if (y1 <= borderWeight) { y1 = 1; }
 					if (x2 <= borderWeight) { x2 = 1; }
 					if (y2 <= borderWeight) { y2 = 1; }
 					
-					if (x1 >= (leng+borderWeight)) { x1 = leng; }
-					if (y1 >= (leng+borderWeight)) { y1 = leng; }
-					if (x2 >= (leng+borderWeight)) { x2 = leng; }
-					if (y2 >= (leng+borderWeight)) { y2 = leng; }
+					if (x1 >= (areaLength+borderWeight)) { x1 = areaLength; }
+					if (y1 >= (areaLength+borderWeight)) { y1 = areaLength; }
+					if (x2 >= (areaLength+borderWeight)) { x2 = areaLength; }
+					if (y2 >= (areaLength+borderWeight)) { y2 = areaLength; }
 					g.drawLine(x1,y1,x2,y2);
 				}
 			}

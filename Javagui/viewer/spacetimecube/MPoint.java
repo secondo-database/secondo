@@ -105,11 +105,11 @@ public class MPoint {
 	public long[] getMilliSecondsArray() { return milliseconds; } 
 	
 	/**
-	 * Get a JDBC timestamp from a MPoint time specification.
+	 * Get a SQL timestamp from a MPoint time specification.
 	 * @param timestamp
 	 * 		MPoint time specification.
 	 * @return
-	 * 		JDBC timestamp.
+	 * 		SQL timestamp.
 	 */
 	public Timestamp getTimestamp(String timestamp) {
 		String part1 = timestamp.substring(0, 10);
