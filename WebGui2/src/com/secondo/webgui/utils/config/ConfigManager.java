@@ -26,7 +26,4 @@ public class ConfigManager {
 	public ResourceBundle getResources() {
 	return resources;
 	}
-
-
-
 }
