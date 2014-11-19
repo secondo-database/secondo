@@ -97,6 +97,7 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	private boolean drawVertLines = false; // switch for drawing vertical lines
 	private Color3f colorCanvas = new Color3f(0,0,0); // background color
 	private float lineWidth = 1.0f; // weight of MPoint lines
+	private float transpMPoints = 0.0f; // transparency value of the MPoints
 	// >
 	
 	/**
@@ -443,11 +444,17 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		frameLoad.setLayout(gblLoad);
 		frameLoad.setTitle("loading...");
 		JLabel labelLoadingMap = new JLabel("Loading map...");
+		JLabel labelInternetRequired = new JLabel("(Internet connection required)");
 		gbcLoad.gridx = 0;
 		gbcLoad.gridy = 0;
 		gbcLoad.gridwidth = 2;
 		gblLoad.setConstraints(labelLoadingMap, gbcLoad);
 		frameLoad.add(labelLoadingMap);
+		gbcLoad.gridx = 0;
+		gbcLoad.gridy += 1;
+		gbcLoad.gridwidth = 2;
+		gblLoad.setConstraints(labelInternetRequired, gbcLoad);
+		frameLoad.add(labelInternetRequired);
 		gbcLoad.gridx = 0;
 		gbcLoad.gridy += 1;
 		gbcLoad.gridwidth = 1;
@@ -460,7 +467,7 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		gbcLoad.weightx = 1;
 		gbcLoad.insets = new Insets(2,2,2,2);
 		gblLoad.setConstraints(new JLabel(), gbcLoad);
-		frameLoad.setSize(200,100);
+		frameLoad.setSize(230,130);
 	}
 	
 	 /**
@@ -585,11 +592,9 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		 if(isDisplayed(o)) { return true; }
 		 
 		 MPointQuery mpQuery = new MPointQuery();
-		 Vector<MPoint> mpoints = new Vector<MPoint>();
 		 		 
 		 if (mpQuery.readFromSecondoObject(o)) {
-			 mpoints = mpQuery.getMPointsVector();
-			 STC.addMPointsVector(mpoints);	 
+			 STC.addMPointsVector(mpQuery.getMPointsVector());	 
 		 }
 		 drawMap();
 
@@ -603,7 +608,7 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		 rightNow = Calendar.getInstance();
 		 long ts2 = rightNow.getTimeInMillis();
 		 double timeToAdd = ((double)(ts2 - ts1)/1000); // in seconds
-		 System.out.println("Time to add SecondoObject to Viewer: "+timeToAdd+" seconds");
+		 System.out.println("Time to add SecondoObject to STC-Viewer: "+timeToAdd+" seconds");
 		 
 		 return true;
 	}
@@ -926,6 +931,18 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	  * 	mpoint/trajectory line width/weight that will be set.
 	  */
 	 public void setLineWidth(float weight) { lineWidth = weight; }
+	 
+	 /**
+	  * @return
+	  * 	the actual mpoint/trajectory transparency value.
+	  */
+	 public float getTranspMPoints() { return transpMPoints; }
+	 
+	 /**
+	  * @param transp
+	  * 	mpoint/trajectory transparency value that will be set.
+	  */
+	 public void setTranspMPoints(float transp) { transpMPoints = transp; }
 	 /////////////////////////////////////////
 	 
 	 /**
@@ -956,7 +973,7 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		 for (int i=0;i<STCpointArrays.size();i++) {
 			 
 			 Vector<Point3DSTC> pointArray = STCpointArrays.get(i);	// corresponds to a MPoint
-			 Vector<Point2D.Double> p2ds = new Vector<Point2D.Double>(); // stores 2D point coordinates of the mpoint
+			 Vector<Point2DSTC> p2ds = new Vector<Point2DSTC>(); // stores 2D point coordinates of the mpoint
 			 p2dArrays.add(p2ds);
 			 
 			 int pointArraySize = pointArray.size();
@@ -982,13 +999,13 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 			 stripVertexCountsVert[0] = 2;
 			 int vertexCountVert = 2;
 			 int count=0;
-			 int vertLineAmount = 15;
+			 int vertLineAmount = 50;
 			 int divider;
 			 
 			 /*
-			  *  Usually 15 vertical lines per mpoint are drawn.
+			  *  Usually 50 vertical lines per mpoint are drawn.
 			  *  If the area is filtered a mpoint may contain less than
-			  *  15 single points. Then 15 vertical lines can't be drawn.
+			  *  50 single points. Then 50 vertical lines can't be drawn.
 			  */
 			 if (pointArraySize > (vertLineAmount*vertLineAmount)) divider = vertLineAmount;
 			 else divider = pointArraySize/vertLineAmount;
@@ -1040,7 +1057,7 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 						 }
 					 }
 				 }
-				 p2ds.add(new Point2D.Double(x+0.5,y+0.5)); // 2D points for 2D-view
+				 p2ds.add(new Point2DSTC(x+0.5,y+0.5,point.getSecondoID())); // 2D points for 2D-view
 			 }			 
 			 if (uneven) {
 				 p3d[vertexCount-1] = new Point3d(x,y,z); // an additional point will be added
@@ -1085,20 +1102,24 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 			 bg.setCapability(BranchGroup.ALLOW_DETACH);
 			 
 			 // create the 'outside' of the cube including axis, labels, etc.
-			 createCube(tg, bg);
+			 createCube(tg);
 			 
 			 mPoints.clear();
 			 
 			 // TransformGroup tg will be filled
 			 for (int i=0;i<mPointShapes.size();i++) {
 				 Shape3D tempShape = mPointShapes.get(i);
-				 
-				 // Only works under OpenGL
+				 				 
+				 // only works under OpenGL
 				 Appearance tmpApp = new Appearance();
 				 LineAttributes tmpLA = new LineAttributes();
 				 tmpLA.setLineWidth(lineWidth); 
 				 tmpLA.setLinePattern(LineAttributes.PATTERN_SOLID);
 				 tmpApp.setLineAttributes(tmpLA);
+				 
+				 // set transparency as per defined settings
+				 TransparencyAttributes taMPoints = new TransparencyAttributes(TransparencyAttributes.FASTEST, transpMPoints);
+				 tmpApp.setTransparencyAttributes(taMPoints);
 				 
 				 Shape3D mPoint = new Shape3D(tempShape.getGeometry(), tmpApp); // corresponds to 1 MPoint
 				 
@@ -1108,8 +1129,8 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 			 }
 			 for (int i=0;i<vertShapes.size();i++) {
 				 Shape3D tempShape = vertShapes.get(i);
-				 Shape3D vert = new Shape3D(tempShape.getGeometry(), tempShape.getAppearance());
-				 tg.addChild(vert);
+				 Shape3D vertLine = new Shape3D(tempShape.getGeometry(), tempShape.getAppearance());
+				 tg.addChild(vertLine);
 			 }
 			 if (mapShape != null) {
 				 Shape3D tempShape = new Shape3D(mapShape.getGeometry(),mapShape.getAppearance());
@@ -1123,7 +1144,7 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 			 }
 			 
 			 // initialize panel for 2D-view
-			 panelMapOverview.initialize(map, p2dArrays, panelMapOverview.getPreferredSize().width);
+			 panelMapOverview.initialize(map, p2dArrays, panelMapOverview.getPreferredSize().width, this);
 			 panelMapOverview.updateUI();
 			 
 			 tg.setTransform(transform); // initial transform of tg (basic TransformGroup)
@@ -1212,7 +1233,7 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	 /*
 	  * Creates the 'outside' of the cube as lines, quads and texts/labels.
 	  */
-	 private void createCube(TransformGroup tg, BranchGroup bg) {
+	 private void createCube(TransformGroup tg) {
 
 		 Appearance ap = new Appearance();
 		 // setting 50% transparency for the lines
