@@ -62,13 +62,12 @@ public class MainView extends Composite {
 	private StatusBar statusBar = new StatusBar();
 	private SideBar sidebar = new SideBar();
 	private FlowPanel commandPanelWrapper = new FlowPanel();
-	private CommandPanel commandPanel = new CommandPanel();
+	
 	private OptionsTabPanel optionsTabPanel = new OptionsTabPanel();
 
 	// different views that can be displayed in the viewpanel
 	private HorizontalPanel view = new HorizontalPanel();
-	private RawDataView rawDataView = new RawDataView();
-	private TextPanel textView = new TextPanel();
+	private RawDataView rawDataView = new RawDataView();	
 	private GraphicalView graphicalView = new GraphicalView();
 	private MapView mapView = new MapView();
 	private ToolBox toolbox = new ToolBox();
@@ -92,62 +91,38 @@ public class MainView extends Composite {
 
 		contentPanel.add(view);		
 		contentPanel.add(optionsTabPanel.getOptionsTabPanel(), 10,0);
-		contentPanel.add(commandPanelWrapper);
+//		contentPanel.add(commandPanelWrapper);
 		contentPanel.add(statusBar.gethPanel());
 
-		mainPanel.add(sidebar.getSidebar());
+//		mainPanel.add(sidebar.getSidebar());
 		mainPanel.add(contentPanel);
 
 		//initialize the main view with the graphical view
-		showGraphicalView();
-
-		commandPanelWrapper.add(commandPanel.getCommandPanel());
+//		showGraphicalView();
+		showMapView();
+		
 
 		// get the size of the browserwindow and set the elements to the right size
 		int windowWidth = Window.getClientWidth();
 		int windowHeight = Window.getClientHeight();
 
-		this.resizeWithCP(windowWidth, windowHeight);
+//		this.resizeWithCP(windowWidth, windowHeight);
+		this.resizeToFullScreen(windowWidth, windowHeight);
 
 		// resize the application elements if the size of the window changes
 		Window.addResizeHandler(new ResizeHandler() {
 			public void onResize(ResizeEvent event) {
 				int windowWidth = event.getWidth();
-				int windowHeight = event.getHeight();
-
-				if (cpTurnedOn && textTurnedOn) {
-					resizeWithTextAndCP(windowWidth, windowHeight);
-				}
-				if (cpTurnedOn && !textTurnedOn) {
-					resizeWithCP(windowWidth, windowHeight);
-				}
-
-				if (!cpTurnedOn && textTurnedOn) {
-					resizeWithTextPanel(windowWidth, windowHeight);
-				}
-				if (!cpTurnedOn && !textTurnedOn) {
+				int windowHeight = event.getHeight();				
+				
 					resizeToFullScreen(windowWidth, windowHeight);
-				}
+				
 			}
 		});
 
 /* ******************************EventHandler for the Sidebar*************************************************/
 
-		/* Adds an event handler to the terminal button to show the terminal */
-		this.sidebar.getShowTerminalButton().addClickHandler(
-				new ClickHandler() {
-					public void onClick(ClickEvent event) {
-						showCommandPanel();
-					}
-				});
-
-		/* Adds an event handler to the terminal button to hide the terminal */
-		this.sidebar.getHideTerminalButton().addClickHandler(
-				new ClickHandler() {
-					public void onClick(ClickEvent event) {
-						hideCommandPanel();
-					}
-				});
+	
 
 		/* Adds an event handler to the show raw data button to show the raw data */
 		this.sidebar.getShowRawdataButton().addClickHandler(new ClickHandler() {
@@ -156,26 +131,8 @@ public class MainView extends Composite {
 			}
 		});
 
-		/*Adds an event handler to the hide raw data button to hide the raw data*/
-		this.sidebar.getHideRawdataButton().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-				hideRawDataView();
-			}
-		});
+	
 
-		/*Adds an event handler to the show text button to show the text in the view */
-		this.sidebar.getShowTextButton().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-				showTextView();
-			}
-		});
-
-		/* Adds an event handler to the show text button to show the text in the view */
-		this.sidebar.getHideTextButton().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-				hideTextView();
-			}
-		});
 
 		/* Adds an event handler to the map button to show the map view */
 		this.sidebar.getShowMapButton().addClickHandler(new ClickHandler() {
@@ -184,14 +141,7 @@ public class MainView extends Composite {
 			}
 		});
 
-		/* Adds an event handler to the geometry button to show the graphical view */
-		this.sidebar.getHideMapButton().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
 
-				showGraphicalView(); // resizing
-				getGraphicalView().initDataTypes(); // drawing
-			}
-		});
 
 /* ****************************** EventHandler for the ToolBox ************************************************* */
 
@@ -206,13 +156,7 @@ public class MainView extends Composite {
 			
 		});
 
-		/** Adds an event handler on the resetTextButton of the toolbar to clear the textview*/
-		this.toolbox.getResetTextLink().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-				getTextView().resetData();
-				getRawDataView().resetData();
-			}
-		});
+		
 
 		/**Adds an event handler on the playButton of the toolbar to animate the moving point */
 		this.toolbox.getPlayLink().addClickHandler(new ClickHandler() {
@@ -468,91 +412,9 @@ public class MainView extends Composite {
 					}
 				});
 
-/* ********************************* EventHandler for the Menubar of the CommandPanel ************************************* */
 
-		/** Adds a ClickHandler to the selection box of the commandpanel to show the chosen query */
-		this.commandPanel.getMenubarCP().getCommandHistoryBox()
-				.addChangeHandler(new ChangeHandler() {
-					public void onChange(ChangeEvent event) {
 
-						int selectedCommandIndex = commandPanel.getMenubarCP()
-								.getCommandHistoryBox().getSelectedIndex();
-
-						if (commandPanel.getMenubarCP().getCommandHistoryBox()
-								.getItemText(selectedCommandIndex)
-								.equals("Command History...")) {
-							// do nothing
-						} else {
-							commandPanel.getTextArea().setText(
-									commandPanel.getMenubarCP()
-											.getCommandHistoryBox()
-											.getItemText(selectedCommandIndex));
-						}
-					}
-				});
-		
-		/**Adds an event handler on the zoomallButton of the commandpanel menubar to zoom to all queries */
-		this.commandPanel.getMenubarCP().getZoomAllButton()
-				.addClickHandler(new ClickHandler() {
-					public void onClick(ClickEvent event) {
-						mapView.setZoomToAll(true);
-						mapView.updateView();
-						commandPanel.getMenubarCP().getZoomPanel().clear();
-						commandPanel.getMenubarCP().getZoomPanel().add(commandPanel.getMenubarCP().getZoomLastButton());
-					}
-				});
-		
-		/**Adds an event handler on the zoomlastButton of the commandpanel menubar to zoom to the last query */
-		this.commandPanel.getMenubarCP().getZoomLastButton()
-				.addClickHandler(new ClickHandler() {
-					public void onClick(ClickEvent event) {
-						mapView.setZoomToAll(false);
-						mapView.updateView();
-						commandPanel.getMenubarCP().getZoomPanel().clear();
-						commandPanel.getMenubarCP().getZoomPanel().add(commandPanel.getMenubarCP().getZoomAllButton());
-					}
-				});
-
-		/**Adds an event handler on the hideTerminalButton of the commandpanel menubar to hide the commandpanel */
-		this.commandPanel.getMenubarCP().getHideTerminalButton()
-				.addClickHandler(new ClickHandler() {
-					public void onClick(ClickEvent event) {
-						hideCommandPanel();
-					}
-				});
-
-		/** Creates a command to execute when optimizer on is selected in themenubar of the commandpanel */
-		this.optimizerOn = new Command() {
-
-			public void execute() {
-
-				commandPanel.getMenubarCP().setOptimizerTurnedOn(true);
-				commandPanel.getMenubarCP().getOptimizerMenu()
-						.removeItem(commandPanel.getMenubarCP().getOptimizerItemOn());
-				commandPanel.getMenubarCP().getOptimizerMenu()
-						.insertItem(commandPanel.getMenubarCP().getOptimizerItemOff(), 1);
-				statusBar.getLabelBox().remove(statusBar.getOffIcon());
-				statusBar.getLabelBox().insert(statusBar.getOnIcon(), 9);
-			}
-		};
-		this.commandPanel.getMenubarCP().getOptimizerItemOn().setScheduledCommand(optimizerOn);
-
-		/** Creates a command to execute when optimizer off is selected in the menubar of the commandpanel*/
-		this.optimizerOff = new Command() {
-
-			public void execute() {
-
-				commandPanel.getMenubarCP().setOptimizerTurnedOn(false);
-				commandPanel.getMenubarCP().getOptimizerMenu()
-						.removeItem(commandPanel.getMenubarCP().getOptimizerItemOff());
-				commandPanel.getMenubarCP().getOptimizerMenu()
-						.insertItem(commandPanel.getMenubarCP().getOptimizerItemOn(), 1);
-				statusBar.getLabelBox().remove(statusBar.getOnIcon());
-				statusBar.getLabelBox().insert(statusBar.getOffIcon(), 9);
-			}
-		};
-		this.commandPanel.getMenubarCP().getOptimizerItemOff().setScheduledCommand(optimizerOff);
-		
+				
 		this.header.getPlainTraj().setScheduledCommand(new Command() {
 			
 			@Override
@@ -564,89 +426,7 @@ public class MainView extends Composite {
 		});
 	}
 
-	/** On resizing of the browser window the elements of the main view are readjusted with the commandpanel displayed
-	 * 
-	 * @param width The new width of the visible elements
-	 * @param height The new height of the visible elements
-	 * */
-	public void resizeWithCP(int width, int height) {
 
-		header.resizeWidth(width);
-		rawDataView.resizeWithCP(width, height);
-
-		if (textTurnedOn) {
-			textView.resizeWithCP(height);
-		}
-		if (mapTurnedOn) {
-			mapView.resizeWithCP(width, height);
-			mapView.updateView();
-		}
-		else {
-			graphicalView.resizeWithCP(width, height);
-			graphicalView.updateView();
-		}
-
-		toolbox.resizeHeightWithCP(height);
-		sidebar.resizeHeight(height);
-		commandPanel.resizeWidth(width);
-		commandPanel.getMenubarCP().resizeWidth(width);
-		statusBar.resizeWidth(width);
-	}
-
-	/**On resizing of the browser window the elements of the main view are readjusted with the textpanel displayed
-	 * 
-	 * @param width The new width of all visible elements
-	 * @param height The new height of all visible elements
-	 * */
-	public void resizeWithTextPanel(int width, int height) {
-
-		header.resizeWidth(width);
-		rawDataView.resizeToFullScreen(width, height);
-
-		if (textTurnedOn) {
-			textView.resizeToFullScreen(height);
-		}
-		if (mapTurnedOn) {
-			mapView.resizeWithTextPanel(width, height);
-			mapView.updateView();
-		}
-		else {
-			graphicalView.resizeWithTextPanel(width, height);
-			graphicalView.updateView();
-		}
-		toolbox.resizeHeightToFullScreen(height);
-		sidebar.resizeHeight(height);
-		commandPanel.resizeWidth(width);
-		commandPanel.getMenubarCP().resizeWidth(width);
-		statusBar.resizeWidth(width);
-	}
-
-	/**On resizing of the browser window the elements of the main view are readjusted with the textpanel and commandpanel displayed
-	 * 
-	 * @param width The new width of all visible elements
-	 * @param height The new height of all visible elements
-	 * */
-	public void resizeWithTextAndCP(int width, int height) {
-
-		header.resizeWidth(width);
-		rawDataView.resizeWithCP(width, height);
-
-		if (textTurnedOn) {
-			textView.resizeWithCP(height);
-		}
-		if (mapTurnedOn) {
-			mapView.resizeWithTextAndCP(width, height);
-			mapView.updateView();
-		} else {
-			graphicalView.resizeWithTextAndCP(width, height);
-			graphicalView.updateView();
-		}
-		toolbox.resizeHeightWithCP(height);
-		sidebar.resizeHeight(height);
-		commandPanel.resizeWidth(width);
-		commandPanel.getMenubarCP().resizeWidth(width);
-		statusBar.resizeWidth(width);
-	}
 
 	/**On resizing of the browser window the elements of the main view are readjusted with to fullscreen
 	 * 
@@ -656,11 +436,11 @@ public class MainView extends Composite {
 	public void resizeToFullScreen(int width, int height) {
 
 		header.resizeWidth(width);
-		rawDataView.resizeToFullScreen(width, height);
+//		rawDataView.resizeToFullScreen(width, height);
 
-		if (textTurnedOn) {
-			textView.resizeToFullScreen(height);
-		}
+//		if (textTurnedOn) {
+//			textView.resizeToFullScreen(height);
+//		}
 		if (mapTurnedOn) {
 			mapView.resizeToFullScreen(width, height);
 			mapView.updateView();
@@ -668,167 +448,12 @@ public class MainView extends Composite {
 			graphicalView.resizeToFullScreen(width, height);
 			graphicalView.updateView();
 		}
-		toolbox.resizeHeightToFullScreen(height);
-		sidebar.resizeHeight(height);
-		commandPanel.resizeWidth(width);
-		commandPanel.getMenubarCP().resizeWidth(width);
-		statusBar.resizeWidth(width);
+//		toolbox.resizeHeightToFullScreen(height);
+//		sidebar.resizeHeight(height);
+//		
+//		statusBar.resizeWidth(width);
 	}
 
-	/**Shows the commandpanel and resizes all visible elements*/
-	public void showCommandPanel() {
-
-		cpTurnedOn = true;
-		commandPanelWrapper.add(commandPanel.getCommandPanel());
-
-		sidebar.getSidebar().remove(sidebar.getShowTerminalButton());
-		sidebar.getSidebar().insert(sidebar.getHideTerminalButton(), 0);
-		sidebar.getSidebar().remove(sidebar.getHideRawdataButton());
-		sidebar.getSidebar().insert(sidebar.getShowRawdataButton(), 3); 
-
-		// get the size of the browserwindow 
-		int windowWidth = Window.getClientWidth();
-		int windowHeight = Window.getClientHeight();
-
-		if (textTurnedOn) {
-			this.resizeWithTextAndCP(windowWidth, windowHeight);
-
-		} else {
-			this.resizeWithCP(windowWidth, windowHeight);
-		}
-	}
-
-	/**Hides the commandpanel and resizes all visible elements*/
-	public void hideCommandPanel() {
-
-		cpTurnedOn = false;
-		commandPanelWrapper.clear();
-
-		sidebar.getSidebar().remove(sidebar.getHideTerminalButton());
-		sidebar.getSidebar().insert(sidebar.getShowTerminalButton(), 0);
-		sidebar.getSidebar().remove(sidebar.getHideRawdataButton());
-		sidebar.getSidebar().insert(sidebar.getShowRawdataButton(), 3); 
-
-		// get the size of the browserwindow 
-		int windowWidth = Window.getClientWidth();
-		int windowHeight = Window.getClientHeight();
-
-		if (textTurnedOn) {
-			this.resizeWithTextPanel(windowWidth, windowHeight);
-
-		} else {
-			this.resizeToFullScreen(windowWidth, windowHeight);
-		}
-	}
-
-	/**Shows the textpanel and resizes all visible elements*/
-	public void showTextView() {
-
-		textTurnedOn = true;
-		view.clear();
-
-		sidebar.getSidebar().remove(sidebar.getShowTextButton());
-		sidebar.getSidebar().insert(sidebar.getHideTextButton(), 1); 
-		sidebar.getSidebar().remove(sidebar.getHideRawdataButton());
-		sidebar.getSidebar().insert(sidebar.getShowRawdataButton(), 3);
-
-		view.add(textView.getContentPanel());
-
-		if (mapTurnedOn) {
-			view.add(mapView.getContentPanel());
-			view.add(toolbox.getFpanel());
-		} else {
-			view.add(graphicalView.getContentPanel());
-			view.add(toolbox.getFpanel());
-		}
-
-		// get the size of the browserwindow 
-		int windowWidth = Window.getClientWidth();
-		int windowHeight = Window.getClientHeight();
-
-		if (cpTurnedOn) {
-			this.resizeWithTextAndCP(windowWidth, windowHeight);
-
-		} else {
-			this.resizeWithTextPanel(windowWidth, windowHeight);
-		}
-
-	}
-
-	/**Hides the textpanel and resizes all visible elements*/
-	public void hideTextView() {
-
-		textTurnedOn = false;
-		view.clear();
-
-		sidebar.getSidebar().remove(sidebar.getHideTextButton());
-		sidebar.getSidebar().insert(sidebar.getShowTextButton(), 1);
-		sidebar.getSidebar().remove(sidebar.getHideRawdataButton());
-		sidebar.getSidebar().insert(sidebar.getShowRawdataButton(), 3);
-
-		if (mapTurnedOn) {
-			view.add(mapView.getContentPanel());
-			view.add(toolbox.getFpanel());
-		} else {
-			view.add(graphicalView.getContentPanel());
-			view.add(toolbox.getFpanel());
-		}
-
-		// get the size of the browserwindow
-		int windowWidth = Window.getClientWidth();
-		int windowHeight = Window.getClientHeight();
-
-		if (cpTurnedOn) {
-			this.resizeWithCP(windowWidth, windowHeight);
-
-		} else {
-			this.resizeToFullScreen(windowWidth, windowHeight);
-		}
-	}
-
-	/**Shows the graphical view and resizes all visible elements*/
-	public void showGraphicalView() {
-
-		//reset all data
-		mapTurnedOn = false;
-		mapView.getMpointController().stopAllAnimations();
-		toolbox.resetAnimationPanel();
-
-		sidebar.getSidebar().remove(sidebar.getHideMapButton());
-		sidebar.getSidebar().insert(sidebar.getShowMapButton(), 2);
-		sidebar.getSidebar().remove(sidebar.getHideRawdataButton());
-		sidebar.getSidebar().insert(sidebar.getShowRawdataButton(), 3);
-
-		view.clear();
-
-		// get the size of the browserwindow 
-		int windowWidth = Window.getClientWidth();
-		int windowHeight = Window.getClientHeight();
-
-		if (cpTurnedOn && textTurnedOn) {
-			view.add(textView.getContentPanel());
-			view.add(graphicalView.getContentPanel());
-			view.add(toolbox.getFpanel());
-			resizeWithTextAndCP(windowWidth, windowHeight);	
-		}
-		if (cpTurnedOn && !textTurnedOn) {
-			view.add(graphicalView.getContentPanel());
-			view.add(toolbox.getFpanel());
-			resizeWithCP(windowWidth, windowHeight);
-		}
-
-		if (!cpTurnedOn && textTurnedOn) {
-			view.add(textView.getContentPanel());
-			view.add(graphicalView.getContentPanel());
-			view.add(toolbox.getFpanel());
-			resizeWithTextPanel(windowWidth, windowHeight);
-		}
-		if (!cpTurnedOn && !textTurnedOn) {
-			view.add(graphicalView.getContentPanel());
-			view.add(toolbox.getFpanel());
-			resizeToFullScreen(windowWidth, windowHeight);
-		}
-	}
 
 	/**Shows the map view and resizes all visible elements*/
 	
@@ -836,13 +461,13 @@ public class MainView extends Composite {
 
 		//reset all data
 		mapTurnedOn = true;
-		graphicalView.getMpointController().stopAllAnimations();
-		toolbox.resetAnimationPanel();
-
-		sidebar.getSidebar().remove(sidebar.getShowMapButton());
-		sidebar.getSidebar().insert(sidebar.getHideMapButton(), 2);
-		sidebar.getSidebar().remove(sidebar.getHideRawdataButton());
-		sidebar.getSidebar().insert(sidebar.getShowRawdataButton(), 3);
+//		graphicalView.getMpointController().stopAllAnimations();
+//		toolbox.resetAnimationPanel();
+//
+//		sidebar.getSidebar().remove(sidebar.getShowMapButton());
+//		sidebar.getSidebar().insert(sidebar.getHideMapButton(), 2);
+//		sidebar.getSidebar().remove(sidebar.getHideRawdataButton());
+//		sidebar.getSidebar().insert(sidebar.getShowRawdataButton(), 3);
 
 		view.clear();
 
@@ -850,34 +475,36 @@ public class MainView extends Composite {
 		int windowWidth = Window.getClientWidth();
 		int windowHeight = Window.getClientHeight();
 
-		if (textTurnedOn) {
-			view.add(textView.getContentPanel());
-			view.add(mapView.getContentPanel());
-			view.add(toolbox.getFpanel());
-
-			if (cpTurnedOn) {
-				this.resizeWithTextAndCP(windowWidth, windowHeight);
-
-			} else {
-				this.resizeWithTextPanel(windowWidth, windowHeight);
-			}
-		}
-		if (!textTurnedOn) {
-			view.add(mapView.getContentPanel());
-			view.add(toolbox.getFpanel());
-
-			if (cpTurnedOn) {
-				resizeWithCP(windowWidth, windowHeight);
-
-			} else {
-				resizeToFullScreen(windowWidth, windowHeight);
-			}
-		}else{
+//		if (textTurnedOn) {
+////			view.add(textView.getContentPanel());
+//			view.add(mapView.getContentPanel());
+//			view.add(toolbox.getFpanel());
+//
+//			if (cpTurnedOn) {
+//				this.resizeWithTextAndCP(windowWidth, windowHeight);
+//
+//			} else {
+//				this.resizeWithTextPanel(windowWidth, windowHeight);
+//			}
+//		}
+//		if (!textTurnedOn) {
+//			view.add(mapView.getContentPanel());
+//			view.add(toolbox.getFpanel());
+//
+//			if (cpTurnedOn) {
+//				resizeWithCP(windowWidth, windowHeight);
+//
+//			} else {
+//				resizeToFullScreen(windowWidth, windowHeight);
+//			}
+//		}else{
+//		mapView.updateView();
+//		}
+		view.add(mapView.getContentPanel());
+		resizeToFullScreen(windowWidth, windowHeight);
 		mapView.updateView();
-		}
-		
 		updateLegendInfoForMenuItem();
-		header.getTextViewOfTrajInDialog().setTextViewInPlainTrajDialog(textView.getTextOutput());
+//		header.getTextViewOfTrajInDialog().setTextViewInPlainTrajDialog(textView.getTextOutput());
 	    
 	    this.optionsTabPanel.setAttributeNameOfMLabelInRelation(this.mapView.getAttributeNameOfMLabel());
 		
@@ -907,69 +534,7 @@ public class MainView extends Composite {
 		view.add(rawDataView.getContentPanel());
 	}
 
-	/** Hides the raw data view and shows the former screen */
-	public void hideRawDataView() {
-
-		sidebar.getSidebar().remove(sidebar.getHideRawdataButton());
-		sidebar.getSidebar().insert(sidebar.getShowRawdataButton(), 3);
-
-		view.clear();
-
-		// get the size of the browserwindow
-		int windowWidth = Window.getClientWidth();
-		int windowHeight = Window.getClientHeight();
-
-		if (mapTurnedOn) {
-
-			if (textTurnedOn) {
-				view.add(textView.getContentPanel());
-				view.add(mapView.getContentPanel());
-				view.add(toolbox.getFpanel());
-
-				if (cpTurnedOn) {
-					this.resizeWithTextAndCP(windowWidth, windowHeight);
-
-				} else {
-					this.resizeWithTextPanel(windowWidth, windowHeight);
-				}
-			}
-			if (!textTurnedOn) {
-				view.add(mapView.getContentPanel());
-				view.add(toolbox.getFpanel());
-
-				if (cpTurnedOn) {
-					resizeWithCP(windowWidth, windowHeight);
-
-				} else {
-					resizeToFullScreen(windowWidth, windowHeight);
-				}
-			}
-		} else {
-			if (textTurnedOn) {
-				view.add(textView.getContentPanel());
-				view.add(graphicalView.getContentPanel());
-				view.add(toolbox.getFpanel());
-
-				if (cpTurnedOn) {
-					this.resizeWithTextAndCP(windowWidth, windowHeight);
-
-				} else {
-					this.resizeWithTextPanel(windowWidth, windowHeight);
-				}
-			}
-			if (!textTurnedOn) {
-				view.add(graphicalView.getContentPanel());
-				view.add(toolbox.getFpanel());
-
-				if (cpTurnedOn) {
-					resizeWithCP(windowWidth, windowHeight);
-
-				} else {
-					resizeToFullScreen(windowWidth, windowHeight);
-				}
-			}
-		}
-	}
+	
 
 	/**Adds EventChangeHandler to all Checkboxes of Querys in the Object List of the ToolBox */
 	public void addQueryCheckBoxChangeHandler() {
@@ -1230,13 +795,7 @@ public class MainView extends Composite {
 		return sidebar;
 	}
 
-	/**Returns the commandpanel object
-	 * 
-	 * @return The commandpanel object
-	 * */
-	public CommandPanel getCommandPanel() {
-		return commandPanel;
-	}
+	
 
 	/**Returns the raw data view object
 	 * 
@@ -1246,13 +805,7 @@ public class MainView extends Composite {
 		return rawDataView;
 	}
 
-	/**Returns the textpanel object
-	 * 
-	 * @return The textpanel object
-	 * */
-	public TextPanel getTextView() {
-		return textView;
-	}
+	
 
 	/**Returns the graphical view object
 	 * 

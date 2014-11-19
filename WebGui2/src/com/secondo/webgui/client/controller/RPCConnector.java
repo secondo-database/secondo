@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import org.gwtopenmaps.openlayers.client.popup.Popup;
 
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -73,8 +74,7 @@ public class RPCConnector {
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
 			@Override
-			public void onFailure(Throwable caught) {		
-				mainView.getCommandPanel().getTextArea().setText("Query failed: " + caught.getMessage() + "\n" + "Sec >");
+			public void onFailure(Throwable caught) {				
 				
 				loadingPopup.hide();
 				System.err.println("Query failed: " + caught.getMessage());
@@ -85,28 +85,23 @@ public class RPCConnector {
 				
 				//result is return from secondoserviceimpl method				
 				if(result.startsWith("Error")){
-					mainView.getCommandPanel().getTextArea().setText(result  + "\n" + "Sec >");
+//					mainView.getCommandPanel().getTextArea().setText(result  + "\n" + "Sec >");
 					loadingPopup.hide();
 				}
 				else{
 					
-					mainView.getCommandPanel().getTextArea().setText("Query successful! Loading Views..."  + "\n" + "Sec >");			
+								
 				
-				    updateCommandHistory(mainView);
+				    updateCommandHistory(mainView);			    
 				    
-				    mainView.getToolbox().getCheckBoxPoints().setValue(true);
-		            mainView.getToolbox().getCheckBoxLines().setValue(true);
-		            mainView.getToolbox().getCheckBoxPolygons().setValue(true);
 				
 				   //put secondo data into the corresponding views
 	        	    setTextView(mainView, loadingPopup);
-					mainView.getTextView().getResultListBox().addItem(currentCommand);
+					
 
-	        	   //get datatype resultlist for map, graphical view and toolbox 
-	        	    getDatatypeResultList(mainView, loadingPopup);	
-		        
-		            mainView.getRawDataView().getResultList().add(result);	        
-		            mainView.getRawDataView().updateRawDataView();
+	        	   //get datatype resultlist for map
+	        	    getDatatypeResultList(mainView, loadingPopup);			        
+		           
 		            
 		              //start timer to wait for data being loaded
 			   	       Timer timer = new Timer() {  
@@ -129,15 +124,14 @@ public class RPCConnector {
 			           	  if(mainView.getMapView().isDataLoaded()){
 			           		 //if textpanel is turned on, wait for text to be loaded
 			           		  if(mainView.isTextTurnedOn()){
-			           			  if(mainView.getTextView().isDataLoaded() && mainView.getMapView().isDataLoaded()){
-			           				 counter = maxCount;
-				           		     mainView.getCommandPanel().getTextArea().setText("Query successful!"  + "\n" + "Sec >");; 
+			           			  if(mainView.getMainheader().getTextViewOfTrajInDialog().isDataLoaded() && mainView.getMapView().isDataLoaded()){
+			           				 counter = maxCount;				           		     
 			           			  }			           			  
 			           		  }
 			           		  else{
 			           		     counter = maxCount;
-			           		     mainView.getCommandPanel().getTextArea().setText("Query successful!"  + "\n" + "Sec >");
-			           		     System.out.println("###MapView data ist loaded!");
+			           		     
+			           		     
 			           		  }
 			             	}
 			           	   counter++;
@@ -147,14 +141,14 @@ public class RPCConnector {
 			           		if(mainView.getGraphicalView().isDataLoaded()){
 				           		 //if textpanel is turned on, wait for text to be loaded
 				           		 if(mainView.isTextTurnedOn()){
-				           			  if(mainView.getTextView().isDataLoaded() && mainView.getGraphicalView().isDataLoaded()){
+				           			  if(mainView.getMainheader().getTextViewOfTrajInDialog().isDataLoaded() && mainView.getGraphicalView().isDataLoaded()){
 				           				 counter = maxCount;
-					           		     mainView.getCommandPanel().getTextArea().setText("Query successful!"  + "\n" + "Sec >");
+					           		    
 				           			  }			           			  
 				           		  }
 				           		  else{
 				           		     counter = maxCount;
-				           		     mainView.getCommandPanel().getTextArea().setText("Query successful!"  + "\n" + "Sec >");
+				           		    
 				           		     System.out.println("###GraphicalView data ist loaded!");
 				           		  }
 				             	}
@@ -185,9 +179,8 @@ public class RPCConnector {
 		AsyncCallback<ArrayList<String>> callback = new AsyncCallback<ArrayList<String>>() {
 
 			@Override
-			public void onFailure(Throwable caught) {			
-				mainView.getCommandPanel().getTextArea().setText("Optimizer failed: " + caught.getMessage() + "\n" + "Sec >");
-				
+			public void onFailure(Throwable caught) {	
+								
 				loadingPopup.hide();
 				System.err.println("Optimizer failed: " + caught.getMessage());
 			}
@@ -197,7 +190,7 @@ public class RPCConnector {
   
 				//check if there has been an error 
 				if(!resultList.get(1).isEmpty()){
-					mainView.getCommandPanel().getTextArea().setText(resultList.get(1)  + "\n" + "Sec >");
+					
 					loadingPopup.hide();
 				}
 				else{
@@ -205,13 +198,13 @@ public class RPCConnector {
 					if(resultList.get(3).equals("no error")){
 						
 					   System.out.println("##### successfully optimized command");						
-					   mainView.getCommandPanel().getTextArea().setText("Optimized query successfully!"  + "\n" + "Sec >");
+					  
 					
 					    //send the optimized query to secondo
 					   sendCommand(resultList.get(0), mainView, loadingPopup);
 					}
 					else{
-						mainView.getCommandPanel().getTextArea().setText(resultList.get(3)  + "\n" + "Sec >");
+						
 						loadingPopup.hide();
 					}
 				}
@@ -288,8 +281,8 @@ public class RPCConnector {
 				@Override
 				public void onSuccess(ArrayList<String> result) {
 					if(!result.isEmpty()){			
-				    	mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getHost().setText(result.get(0));
-				    	mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getPort().setText(result.get(1));
+//				    	mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getHost().setText(result.get(0));
+//				    	mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getPort().setText(result.get(1));
 				    	mainView.getStatusBar().getOptimizer().setText(result.get(0) + " : " + result.get(1));
 					}
 				}
@@ -316,11 +309,11 @@ public class RPCConnector {
 			@Override
 			public void onSuccess(ArrayList<String> commandHistory) { 
 				
-				mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().clear();
-				mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().addItem("Command History...");
+//				mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().clear();
+//				mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().addItem("Command History...");
 							
 				for (String command : commandHistory){		
-					mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().addItem(command);
+//					mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().addItem(command);
 				}				
 			}
 		  };		  
@@ -349,32 +342,7 @@ public class RPCConnector {
 		secondoService.addCommandToHistory(command, callback); 
 	}
 	
-	/** Starts an RPC call to the server to delete the command history in the sessiondata-object and clear the dropdownlist for command history
-	 * 
-	 * @param mv The main view object
-	 * */
-	public void deleteCommandHistory(MainView mv){
-		
-		this.mainView = mv;
-		
-		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
-
-			@Override
-			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);				
-			}
-
-			@Override
-			public void onSuccess(Void result) {
-				
-				mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().clear();
-				mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().addItem("Command History...");
-				
-				System.out.println("#######CommandHistory has been deleted.");
-			}
-		  };		  
-		secondoService.deleteCommandHistory(callback); 
-	}
+	
 	
 	/** Starts an RPC call to the server, gets the formatted text result and displays it in the text view 
 	 * 
@@ -391,19 +359,20 @@ public class RPCConnector {
 			public void onFailure(Throwable caught) {
 				Window.alert(SERVER_ERROR);		
 				loadingPopup.hide();
-				mainView.getTextView().setDataLoaded(true);
+				mainView.getMainheader().getTextViewOfTrajInDialog().setDataLoaded(true);
 			}
 
 			@Override
 			public void onSuccess(ArrayList<String> textResultList) {
 				
-				if(!textResultList.isEmpty()){
-					mainView.getTextView().getResultList().add(textResultList);
-					mainView.getTextView().updateTextView();
+				if(!textResultList.isEmpty()){					
+					
+					mainView.getMainheader().getTextViewOfTrajInDialog().getResultList().add(textResultList);
+					mainView.getMainheader().getTextViewOfTrajInDialog().updateTextView();
 				}
 				//resultlist is empty
 				else{
-					mainView.getTextView().setDataLoaded(true);
+					mainView.getMainheader().getTextViewOfTrajInDialog().setDataLoaded(true);
 				}
 			}
 		  };		  
@@ -463,10 +432,7 @@ public class RPCConnector {
 		                 //resizing + update drawing
 		   			     if(mainView.isMapTurnedOn()){
 		   			        	mainView.showMapView();
-		   			        }
-		   			     else{
-		   			        	mainView.showGraphicalView();
-		   			        }		   				  
+		   			        }		   			    
 	                        cancel();
 		                    return;
 		              }
@@ -539,7 +505,8 @@ public class RPCConnector {
 	}
 	
 	public void createSymTraj(int option, String nameOfUploadedFile){
-		String command="let Raw5 = gpximport('"+nameOfUploadedFile+"') consume";
+		String command="let Raw = gpximport('"+nameOfUploadedFile+"') consume";
+		System.out.println("Command "+ command);
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
 			@Override
@@ -549,11 +516,78 @@ public class RPCConnector {
 
 			@Override
 			public void onSuccess(String result) {				
-				Window.alert(result);		
+				Window.alert("Trajectory created!");		
 			}
 		  };		  
-		  secondoService.sendCommand(command, callback);	
+		  secondoService.sendCommandWithoutResult(command, callback);	
 		
+	}
+	
+	public void getCoordinateFromAddress(String command, MainView mv,
+			PopupPanel lp) {
+		this.mainView = mv;
+		this.loadingPopup = lp;
+		this.currentCommand = command;
+
+		AsyncCallback<String> callback = new AsyncCallback<String>() {
+
+			@Override
+			public void onSuccess(String result) {
+				loadingPopup.hide();
+				mainView.getMainheader().getLocationDialog()
+						.setLabelForResult(result);
+				
+				if(!result.isEmpty()){	
+				result=result.replace("(", "");
+				result=result.replace(")", "");
+				result=result.replace("point", "");
+				result=result.replace("\n", "");
+				result=result.trim();
+				int end=result.indexOf(" ");
+				String lon_str=result.substring(0, end);
+				String lat_str=result.substring(result.indexOf(" ")+1, result.length());
+				double lon = NumberFormat.getDecimalFormat().parse(lon_str);
+				double lat = NumberFormat.getDecimalFormat().parse(lat_str);
+				System.out.println("Lon "+ lon+ " Lat "+ lat);
+				mainView.getMapView().centerOnMyLocation(lon, lat);
+				
+				//start timer to wait for data being initialized
+		   	       Timer timer = new Timer() {  
+		   	    	
+		   	    	private int counter = 0; 
+		   	    	private int maxCount = 100;
+		   	    	
+		            @Override
+		            public void run() {
+		 
+		            //If data is initialized start drawing of data
+		           	 if (counter >= maxCount) {					        
+		                 //resizing + update drawing
+		   			     if(mainView.isMapTurnedOn()){
+		   			        	mainView.showMapView();
+		   			        }		   			    
+	                        cancel();
+		                    return;
+		              }
+		           	  if(mainView.getMapView().isDataInitialized() && mainView.getGraphicalView().isDataInitialized()){
+		           		counter = maxCount;
+		             	}
+		           	  counter++;
+		             }
+		            };
+		           timer.scheduleRepeating(500);
+				
+				}
+
+			}
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);
+				loadingPopup.hide();
+			}
+		};
+		secondoService.sendCommand(currentCommand, callback);
 	}
 	
 	public void saveGPXfileToServer(final String filename, final FormPanel form){

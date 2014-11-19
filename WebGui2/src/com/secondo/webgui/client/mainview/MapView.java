@@ -22,23 +22,16 @@ package com.secondo.webgui.client.mainview;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-
 import org.gwtopenmaps.openlayers.client.Bounds;
 import org.gwtopenmaps.openlayers.client.LonLat;
 import org.gwtopenmaps.openlayers.client.Map;
 import org.gwtopenmaps.openlayers.client.MapOptions;
 import org.gwtopenmaps.openlayers.client.MapWidget;
 import org.gwtopenmaps.openlayers.client.Projection;
-import org.gwtopenmaps.openlayers.client.RenderIntent;
 import org.gwtopenmaps.openlayers.client.control.LayerSwitcher;
 import org.gwtopenmaps.openlayers.client.control.MousePosition;
 import org.gwtopenmaps.openlayers.client.control.OverviewMap;
 import org.gwtopenmaps.openlayers.client.control.ScaleLine;
-import org.gwtopenmaps.openlayers.client.control.SelectFeature;
-import org.gwtopenmaps.openlayers.client.control.SelectFeatureOptions;
-import org.gwtopenmaps.openlayers.client.event.FeatureHighlightedListener;
-import org.gwtopenmaps.openlayers.client.event.FeatureUnhighlightedListener;
 import org.gwtopenmaps.openlayers.client.feature.VectorFeature;
 import org.gwtopenmaps.openlayers.client.layer.GoogleV3;
 import org.gwtopenmaps.openlayers.client.layer.GoogleV3MapType;
@@ -63,13 +56,10 @@ import com.secondo.webgui.client.controller.MVPointController;
 import com.secondo.webgui.client.controller.MVPolygonController;
 import com.secondo.webgui.client.controller.MVPolylineController;
 import com.secondo.webgui.shared.model.DataType;
-import com.secondo.webgui.shared.model.Line;
 import com.secondo.webgui.shared.model.MLabel;
 import com.secondo.webgui.shared.model.MPoint;
 import com.secondo.webgui.shared.model.Polygon;
 import com.secondo.webgui.shared.model.Polyline;
-import com.secondo.webgui.shared.model.TimeInterval;
-import com.secondo.webgui.utils.config.ModesToShowSymTraj;
 
 /**
  * This class represents all elements of the map view to display graphical
@@ -78,7 +68,7 @@ import com.secondo.webgui.utils.config.ModesToShowSymTraj;
  * @author Kristina Steiger
  * 
  **/
-public class MapView extends Composite implements View {
+public class MapView extends Composite{
 
 	/** The Main panel of the map view */
 	private FlowPanel contentPanel = new FlowPanel();
@@ -113,12 +103,6 @@ public class MapView extends Composite implements View {
 	/** Controller for moving label objects */
 	private MVMLabelController mlabelController = new MVMLabelController();
 
-	/** Width of the map view */
-	private int width = Window.getClientWidth() - 293;
-
-	/** Height of the map view */
-	private int height = Window.getClientHeight() - 321;
-
 	/** Resultlist for current secondo query result */
 	private ArrayList<DataType> currentResultTypeList = new ArrayList<DataType>();
 
@@ -145,14 +129,13 @@ public class MapView extends Composite implements View {
 
 		// create a mapwidget and add it to the contentpanel
 		MapOptions defaultMapOptions = new MapOptions();
-		// TODO
-		// mapWidget = new MapWidget(width + "px", height + "px",
-		// defaultMapOptions);
-		mapWidget = new MapWidget("500px", "500px", defaultMapOptions);
+
+		mapWidget = new MapWidget(Window.getClientWidth() + "px",
+				Window.getClientHeight() + "px", defaultMapOptions);
+
 		mapWidget.getElement().setClassName("mapwidget");
 
 		contentPanel.add(mapWidget);
-
 		map = mapWidget.getMap();
 
 		initOsmMap();
@@ -168,8 +151,7 @@ public class MapView extends Composite implements View {
 	 *            The longitude of the default center point
 	 * */
 	public void initOsmMap() {
-
-		LonLat lonLat = new LonLat(51.3760448, 7.4947253);
+		LonLat lonLat = new LonLat(7.4947253, 51.3760448);
 		lonLat.transform("EPSG:4326", "EPSG:900913");
 
 		map = mapWidget.getMap();
@@ -177,9 +159,11 @@ public class MapView extends Composite implements View {
 		OSM osm_1 = OSM.Mapnik("Open Street Map Mapnik "); // Label for menu
 															// 'LayerSwitcher'
 		osm_1.setIsBaseLayer(true);
-
-		OSM osm_2 = OSM.CycleMap("Open Street Map CycleMap ");
-
+		
+		
+		OSM osm_2 = OSM.CycleMap("Open Street Map CycleMap ");	
+		osm_2.setIsBaseLayer(true);
+		
 		map.addLayer(osm_1);
 		map.addLayer(osm_2);
 
@@ -192,10 +176,8 @@ public class MapView extends Composite implements View {
 		map.addControl(new OverviewMap()); // + sign in the lowerright to
 											// display the overviewmap
 		map.addControl(new ScaleLine()); // Display the scaleline
-
-		map.setCenter(lonLat, 10);
-
-		// initGeoLocation();
+		
+		map.setCenter(lonLat, 15);
 
 		// force the map to fall behind popups
 		mapWidget.getElement().getFirstChildElement().getStyle().setZIndex(0);
@@ -207,10 +189,14 @@ public class MapView extends Composite implements View {
 	 * not supported from the browser, centered on Hagen
 	 * */
 	private void initGeoLocation() {
-
+		final Map map = mapWidget.getMap();
 		// Create a marker layer to the current location marker
 		final Vector markerLayer = new Vector("Marker layer");
+		markerLayer.setIsBaseLayer(false);
+		markerLayer.setDisplayInLayerSwitcher(true);
+		markerLayer.setIsVisible(true);
 		map.addLayer(markerLayer);
+		
 
 		// Start GeoLocation stuff (note that the GeoLocation is just plain GWT
 		// stuff)
@@ -218,9 +204,14 @@ public class MapView extends Composite implements View {
 
 		if (geoLocation == null) {
 			Window.alert("No GeoLocation support available in this browser :-(");
+			LonLat lonLat = new LonLat(51.3760448, 7.4947253);
+			lonLat.transform("EPSG:4326", "EPSG:900913");
+			map.setCenter(lonLat, 18);
 		} else {
 			final Geolocation.PositionOptions geoOptions = new Geolocation.PositionOptions();
 			geoOptions.setHighAccuracyEnabled(true);
+			
+
 
 			geoLocation.watchPosition(new Callback<Position, PositionError>() {
 				public void onFailure(final PositionError reason) {
@@ -261,12 +252,41 @@ public class MapView extends Composite implements View {
 							"EPSG:900913")); // transform point to OSM
 												// coordinate system
 					final VectorFeature pointFeature = new VectorFeature(point,
-							pointStyle);
+							pointStyle);					
 					markerLayer.destroyFeatures();
-					markerLayer.addFeature(pointFeature);
+					markerLayer.addFeature(pointFeature);					
 				}
 			}, geoOptions);
-		}
+		}		
+	}
+	
+	
+	/**
+	 * The map will be centered on the defined location (GPX coordinates should be provided)
+	 * @param lon
+	 * @param lat
+	 */
+	public void centerOnMyLocation(double lon, double lat) {
+		LonLat coordinatePair = new LonLat(lon, lat);
+		map = mapWidget.getMap();
+		coordinatePair.transform("EPSG:4326", "EPSG:900913");
+		map.setCenter(coordinatePair, 18);
+
+		Vector markerLayer = new Vector("Marker layer");
+		markerLayer.setIsBaseLayer(false);
+		map.addLayer(markerLayer);
+
+		Style pointStyle = new Style();
+		pointStyle.setFillColor("red");
+		pointStyle.setStrokeColor("green");
+		pointStyle.setStrokeWidth(2);
+		pointStyle.setFillOpacity(0.9);
+
+		Point point = new Point(lon, lat);
+		point.transform(DEFAULT_PROJECTION, new Projection("EPSG:900913")); 
+		VectorFeature pointFeature = new VectorFeature(point, pointStyle);
+		markerLayer.destroyFeatures();
+		markerLayer.addFeature(pointFeature);
 
 	}
 
@@ -303,108 +323,11 @@ public class MapView extends Composite implements View {
 		map.addLayer(gTerrain);
 	}
 
-	/**
-	 * On resizing of the browser window the elements of the map view are
-	 * readjusted with the commandpanel displayed
-	 * 
-	 * @param width
-	 *            The new width of the map view
-	 * @param height
-	 *            The new height of the map view
-	 * */
-	@Override
-	public void resizeWithCP(int width, int height) {
+	
 
-		// add 3 pixel for borders, 50px for sidebar, 20px for sidepadding, 220
-		// for toolbox
-		if (width > 1000) {
-			this.width = width - 293;
-			contentPanel.setWidth(width - 293 + "px");
-			mapWidget.setWidth(width - 293 + "px");
-		} else {
-			this.width = 1000 - 293;
-			contentPanel.setWidth(1000 - 293 + "px");
-			mapWidget.setWidth(1000 - 293 + "px");
-		}
-		if (height > 650) {
-			contentPanel.setHeight(height - 321 + "px");
-			this.height = height - 321;
-			mapWidget.setHeight(height - 321 + "px");
-		} else {
-			contentPanel.setHeight(650 - 321 + "px");
-			this.height = 650 - 321;
-			mapWidget.setHeight(650 - 321 + "px");
-		}
-		map.updateSize();
-	}
+	
 
-	/**
-	 * On resizing of the browser window the elements of the map view are
-	 * readjusted with the textpanel displayed
-	 * 
-	 * @param width
-	 *            The new width of the map view
-	 * @param height
-	 *            The new height of the map view
-	 * */
-	@Override
-	public void resizeWithTextPanel(int width, int height) {
 
-		if (width > 1000) {
-			// add 3 pixel for borders, 50px for sidebar, 20px for sidepadding,
-			// 220 for toolbox + 300 textpanel
-			this.width = width - 593;
-			contentPanel.setWidth(width - 593 + "px");
-			mapWidget.setWidth(width - 593 + "px");
-		} else {
-			this.width = 1000 - 593;
-			contentPanel.setWidth(1000 - 593 + "px");
-			mapWidget.setWidth(1000 - 593 + "px");
-		}
-		if (height > 650) {
-			this.height = height - 91;
-			contentPanel.setHeight(height - 91 + "px");
-			mapWidget.setHeight(height - 91 + "px");
-		} else {
-			contentPanel.setHeight(650 - 91 + "px");
-			this.height = 650 - 91;
-			mapWidget.setHeight(650 - 91 + "px");
-		}
-		map.updateSize();
-	}
-
-	/**
-	 * On resizing of the browser window the elements of the map view are
-	 * readjusted with the textpanel and commandpanel displayed
-	 * 
-	 * @param width
-	 *            The new width of the map view
-	 * @param height
-	 *            The new height of the map view
-	 * */
-	@Override
-	public void resizeWithTextAndCP(int width, int height) {
-
-		if (width > 1000) {
-			this.width = width - 593;
-			contentPanel.setWidth(width - 593 + "px");
-			mapWidget.setWidth(width - 593 + "px");
-		} else {
-			this.width = 1000 - 603;
-			contentPanel.setWidth(1000 - 593 + "px");
-			mapWidget.setWidth(1000 - 593 + "px");
-		}
-		if (height > 650) {
-			this.height = height - 321;
-			contentPanel.setHeight(height - 321 + "px");
-			mapWidget.setHeight(height - 321 + "px");
-		} else {
-			contentPanel.setHeight(650 - 321 + "px");
-			this.height = 650 - 321;
-			mapWidget.setHeight(650 - 321 + "px");
-		}
-		map.updateSize();
-	}
 
 	/**
 	 * On resizing of the browser window the elements of the map view are
@@ -415,25 +338,23 @@ public class MapView extends Composite implements View {
 	 * @param height
 	 *            The new height of the map view
 	 * */
-	@Override
 	public void resizeToFullScreen(int width, int height) {
 
 		if (width > 1000) {
-			this.width = width - 293;
-			contentPanel.setWidth(width - 293 + "px");
-			mapWidget.setWidth(width - 293 + "px");
+
+			contentPanel.setWidth(width + "px");
+			mapWidget.setWidth(width + "px");
 		} else {
-			this.width = 1000 - 293;
+			
 			contentPanel.setWidth(1000 - 293 + "px");
 			mapWidget.setWidth(1000 - 293 + "px");
 		}
 		if (height > 650) {
-			this.height = height - 91;
+			
 			contentPanel.setHeight(height - 91 + "px");
 			mapWidget.setHeight(height - 91 + "px");
 		} else {
-			contentPanel.setHeight(650 - 91 + "px");
-			this.height = 650 - 91;
+			contentPanel.setHeight(650 - 91 + "px");			
 			mapWidget.setHeight(650 - 91 + "px");
 		}
 		map.updateSize();
@@ -557,7 +478,6 @@ public class MapView extends Composite implements View {
 	}
 
 	/** Draws all elements of the map with the new size of the mapwidget */
-	@Override
 	public void updateView() {
 
 		// Delete all overlays
@@ -615,7 +535,6 @@ public class MapView extends Composite implements View {
 	}
 
 	/** Removes all data from the map */
-	@Override
 	public void resetData() {
 		pointController.deleteAllPoints();
 		polylineController.deleteAllPolylines();

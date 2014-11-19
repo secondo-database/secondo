@@ -59,7 +59,7 @@ public class MenuCommandPanel extends Composite{
     private String optimizerIcon = "<img src='resources/images/tools-icon.png' height='25px' width='25px'/>";
 	private MenuItem optimizerItemSettings;
 	private Command optimizerSettings;
-	private OptimizerSettingsDialog optimizerDialog = new OptimizerSettingsDialog();
+	private DBSettingsDialog optimizerDialog = new DBSettingsDialog();
 	private MenuItem optimizerItemOn;
 	private Command optimizerOnCommand;
 	private String optimizerOnIcon = "<img src='resources/images/accept-icon.png' height='12px' width='12px'/>";
@@ -111,7 +111,7 @@ public class MenuCommandPanel extends Composite{
 	private MenuItem helpItem1;
 	private SecondoSyntaxDialog secondoSyntaxDialog = new SecondoSyntaxDialog();
 	private MenuItem helpItem2;
-	private OptimizerSyntaxDialog optimizerSyntaxDialog = new OptimizerSyntaxDialog();
+	private SymTrajDialog optimizerSyntaxDialog = new SymTrajDialog();
 	
 	private FlowPanel zoomPanel = new FlowPanel();
 	private Button zoomAllButton = new Button("<img src='resources/images/world_add.png' height='25px' width='25px'/>");
@@ -413,7 +413,7 @@ public class MenuCommandPanel extends Composite{
 	 * 
 	 * @return The optimizer dialog
 	 * */
-	public OptimizerSettingsDialog getOptimizerDialog() {
+	public DBSettingsDialog getOptimizerDialog() {
 		return optimizerDialog;
 	}
 

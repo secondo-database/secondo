@@ -131,35 +131,6 @@ public class SecondoWeb implements EntryPoint {
 /* *** Eventhandler for elements that need to change the main content of the application 
  * *** or need the rpcConnector, which can only be done in this class */
 
-		/* Adding an Eventhandler to the Enter-Key in the Commandpanel */
-		this.mainView.getCommandPanel().getTextArea().addKeyPressHandler(new KeyPressHandler() {
-			public void onKeyPress(KeyPressEvent event) {
-				boolean enterPressed = KeyCodes.KEY_ENTER == event
-						.getNativeEvent().getKeyCode();
-				if (enterPressed) {
-					
-					// delete everything before >
-					String command = mainView.getCommandPanel().getTextArea().getText();
-					int splitIndex = command.indexOf(">");
-					command = command.substring(splitIndex+1);
-					
-					if(mainView.getCommandPanel().getMenubarCP().isOptimizerTurnedOn()){
-						//get the optimized command from the optimizer and send this one to secondo
-						rpcConnector.sendOptimizedCommand(command, currentDatabase.toLowerCase(), false, mainView, loadingPopup);					
-					}
-					else{
-						//send the command directly to secondo
-						rpcConnector.sendCommand(command, mainView, loadingPopup);
-					}
-
-					rpcConnector.addCommandToHistory(command);
-					rpcConnector.updateCommandHistory(mainView);
-					
-					//show the loading popup in the center of the application until the call is finished
-			    	loadingPopup.center(); 				
-				}
-			}
-		});
 		
 		/*Adding an Eventhandler to the Enter-Key in the Passwordfield to log in*/
 		this.loginView.getPassword().addKeyPressHandler(new KeyPressHandler() {
@@ -226,7 +197,7 @@ public class SecondoWeb implements EntryPoint {
 	          public void onClick(ClickEvent event) {
 	        	  
                 closeDatabase(currentDatabase);  //database from sessiondata?
-		    	rpcConnector.deleteCommandHistory(mainView);
+//		    	rpcConnector.deleteCommandHistory(mainView);
 	          }
 		 });
 	    
@@ -235,54 +206,11 @@ public class SecondoWeb implements EntryPoint {
 	          public void onClick(ClickEvent event) {
 	        	  
 	        	  logout();
-	        	  rpcConnector.deleteCommandHistory(mainView);
+//	        	  rpcConnector.deleteCommandHistory(mainView);
 	          }
 		 });
 	    
-	    
-	    /*Adds an event handler on the save Button in the optimizer dialog of the commandpanel menubar to save the new connection data*/	    
-	    this.mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getSavebutton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
-	        	  
-	        	//check if textfields are empty
-	            if (mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getHost().getText().length() == 0
-	        		|| mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getPort().getText().length() == 0) {
-	        		Window.alert("Hostname or Portnumber cannot be empty."); 
-	        	 }
-
-	            else{
-	            	
-	              loadingPopup.center();         	  
-	        	  rpcConnector.setOptimizerConnection(mainView.getCommandPanel().getMenubarCP().
-	        			  getOptimizerDialog().getHost().getText(), 
-	        			  Integer.parseInt(mainView.getCommandPanel().getMenubarCP().
-	        					  getOptimizerDialog().getPort().getText()), mainView, loadingPopup);
-	              }
-	          }
-		 });
-	    
-	    /*Creates a command to execute when optimizer settings are selected in the menubar of the commandpanel*/
-		this.optimizerSettings = new Command() {
-
-		      public void execute() {
-		    	  
-		    	  rpcConnector.getOptimizerConnection(mainView);
-		    	  
-		    	  //show dialogbox
-		    	  mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getOptimizerDialogBox().center();
-		    	  mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getOptimizerDialogBox().show();
-		      }
-		    };    	 
-        this.mainView.getCommandPanel().getMenubarCP().getOptimizerItemSettings().setScheduledCommand(optimizerSettings);
-	    
-	    /*Adds an event handler on the downloadtextButton of the toolbar to download the text into a file*/
-	    this.mainView.getToolbox().getDownloadTextLink().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
-
-	        	rpcConnector.saveTextFile(mainView.getTextView().getTextOutput().getText(), "secondo-text.txt");
-	          }
-		 });
-	    
+	  
 	    /*Adds an event handler on the downloadRawDataButton of the toolbar to download the raw data into a file*/
 	    this.mainView.getToolbox().getDownloadRawDataLink().addClickHandler(new ClickHandler() {
 	          public void onClick(ClickEvent event) {
@@ -349,6 +277,17 @@ public class SecondoWeb implements EntryPoint {
 				else{
 					Window.alert("Please select relation and load it");
 				}
+			}
+		});
+		
+		//Adds an event handler on the button "get GPX coordinate" to define a location from address
+		this.mainView.getMainheader().getLocationDialog().getGetCoordinateButton().addClickHandler(new ClickHandler() {
+						@Override
+			public void onClick(ClickEvent event) {
+				String command=mainView.getMainheader().getCommandForGeocode();
+				//send the command directly to secondo
+				rpcConnector.getCoordinateFromAddress(command, mainView, loadingPopup);
+				
 			}
 		});
 	   
@@ -443,24 +382,28 @@ public class SecondoWeb implements EntryPoint {
 
 //          		Window.alert("Database " + openDatabase + " is opened successfully!");	
           		
-				//set status info to status bar
-          		mainView.getStatusBar().getSecondoServer().setText(logindata.get(2) + " : " + logindata.get(3));
-          		mainView.getStatusBar().getUserName().setText(logindata.get(0));
-          		mainView.getStatusBar().getOpenDatabase().setText(openDatabase );
+				//set database info to info dialog         		
+				mainView.getMainheader().getDatabaseInfo().getHost()
+						.setText(logindata.get(2));
+				mainView.getMainheader().getDatabaseInfo().getPort()
+						.setText(logindata.get(3));
+				mainView.getMainheader().getDatabaseInfo().getDb()
+						.setText(openDatabase);
           		
           		//set optimizerurl
           		rpcConnector.getOptimizerConnection(mainView);
           		 		
           		//delete data from last actions
-      			mainView.getCommandPanel().getTextArea().setText("Sec >");	
-      			mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().clear();
-      			mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().addItem("Select Command...");
+//      			mainView.getCommandPanel().getTextArea().setText("Sec >");	
+//      			mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().clear();
+//      			mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().addItem("Select Command...");
      			
-      			rpcConnector.deleteCommandHistory(mainView);
+//      			rpcConnector.deleteCommandHistory(mainView);
       			
 				//reset text views
       			mainView.getRawDataView().resetData();
-          		mainView.getTextView().resetData();
+          		
+          		mainView.getMainheader().getTextViewOfTrajInDialog().resetData();
       			
       			//delete data from map and graphical views
       			mainView.getGraphicalView().resetData();
@@ -528,11 +471,11 @@ public class SecondoWeb implements EntryPoint {
           			Window.alert("Thanks for using Secondo! Good bye!");
 
     				setContent(0);	
-    				rpcConnector.deleteCommandHistory(mainView);
+//    				rpcConnector.deleteCommandHistory(mainView);
     				databaseView.getMultiBox().clear();
 
     				//reset text views		
-    				mainView.getTextView().getTextOutput().setText("");
+    				
     				mainView.getRawDataView().getRawDataOutput().setText("");
     				
     				//reset graphical and map view

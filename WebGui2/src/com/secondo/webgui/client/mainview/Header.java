@@ -29,6 +29,7 @@ import com.google.gwt.event.dom.client.MouseOverHandler;
 import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FocusWidget;
@@ -79,11 +80,12 @@ public class Header extends Composite{
     private MenuItem plainTraj= new MenuItem("Plain trajectory", mainMenuBar);
     
     private PlainTrajDialog textViewOfTrajInDialog= new PlainTrajDialog();
+    private DBSettingsDialog databaseInfo= new DBSettingsDialog();
+    private LocationDialog locationDialog= new LocationDialog();
 	
 	public Header(){
 		g.resize(4, 1);
-		//TODO
-//		int windowWidth = Window.getClientWidth();
+
 		
 		logo.getElement().getStyle().setMarginLeft(30, Unit.PX);
 		logo.setSize("190px", "28px");
@@ -95,14 +97,58 @@ public class Header extends Composite{
 //		hPanel.setWidth(width + "px");
 		buttonPanel.getElement().getStyle().setMarginLeft(width-430, Unit.PX);
 		
-		MenuBar homeMenu = new MenuBar(true);
+		
+		MenuItem homeMenu = new MenuItem("Home", new Command() {
+			
+			@Override
+			public void execute() {
+				doClickOnLink();				
+			}
+		});
+		
+		homeMenu.ensureDebugId("HomeItem");		
+		homeMenu.setTitle("link to the secondo web page");
 		homeMenu.getElement().getStyle().setColor("white");
-		MenuBar symbTrajMenu = new MenuBar(true);
+		
+		Anchor home= new Anchor("Home", "http://dna.fernuni-hagen.de/Secondo.html/index.html");
+		home.setVisible(false);
+		home.ensureDebugId("LinkToHome");
+		g.setWidget(2, 0, home);
+		
+		MenuItem symbTrajMenu = new MenuItem ("About symbolic trajectory", new Command() {
+			
+			@Override
+			public void execute() {
+				SymTrajDialog infoAboutSymTraj= new SymTrajDialog();
+				infoAboutSymTraj.getHelpDialogBox().center();
+				infoAboutSymTraj.getHelpDialogBox().show();
+				
+			}
+		});
 		symbTrajMenu.getElement().getStyle().setColor("white");
-		MenuBar database = new MenuBar(true);
-		database.getElement().getStyle().setColor("white");
-		MenuBar optimizer = new MenuBar(true);
-		optimizer.getElement().getStyle().setColor("white");
+		
+		MenuItem database = new MenuItem("Database", new Command() {
+
+			@Override
+			public void execute() {
+				databaseInfo.getDbDialogBox().center();
+				databaseInfo.getDbDialogBox().show();
+
+			}
+		});
+		database.getElement().getStyle().setColor("white");	
+		
+		MenuItem patternMenu = new MenuItem("About pattern matching", new Command() {
+
+			@Override
+			public void execute() {
+				databaseInfo.getDbDialogBox().center();
+				databaseInfo.getDbDialogBox().show();
+
+			}
+		});
+		patternMenu.getElement().getStyle().setColor("white");	
+		
 		MenuBar support = new MenuBar(true);
 		support.getElement().getStyle().setColor("white");
 		support.getElement().getStyle().setFontStyle(Style.FontStyle.NORMAL);
@@ -110,10 +156,10 @@ public class Header extends Composite{
 		
 		
 		MenuBar menu = new MenuBar();		
-	    menu.addItem("Home", homeMenu);
-	    menu.addItem("About symbolic trajectory", symbTrajMenu);
-	    menu.addItem("Database", database);
-	    menu.addItem("Optimizer", optimizer);
+	    menu.addItem(homeMenu);
+	    menu.addItem(symbTrajMenu);
+	    menu.addItem(patternMenu);
+	    menu.addItem(database);
 	    menu.addItem("Support", support);
 	    menu.getElement().getStyle().setColor("white");
 	    menu.getElement().getStyle().setBorderStyle(Style.BorderStyle.NONE);
@@ -123,7 +169,7 @@ public class Header extends Composite{
 	    
 	    
 	    
-	    final OptimizerSyntaxDialog optimizerSyntaxDialog = new OptimizerSyntaxDialog();
+	    final SymTrajDialog optimizerSyntaxDialog = new SymTrajDialog();
 		  //command that will execute on selection of the optimizer info menu item
 		    Command optimizerInfo = new Command() {
 		      public void execute() {
@@ -134,11 +180,19 @@ public class Header extends Composite{
 	    
 	    
 
-	    MenuItem homeItem=new MenuItem("My location", mainMenuBar);	
-	    homeItem.setTitle("Help!!!");
+	    MenuItem homeItem=new MenuItem("My location", new Command() {
+			
+			@Override
+			public void execute() {				
+				locationDialog.getLocationDialogBox().center();
+				locationDialog.getLocationDialogBox().show();
+				
+			}
+		});	
+	    homeItem.setTitle("Define your location");
 	    
 	    homeItem.setStyleName("transparent1");
-	    homeItem.setScheduledCommand(optimizerInfo);
+	    
 	    mainMenuBar.addItem(homeItem); 	    
 
 	    
@@ -281,5 +335,33 @@ public class Header extends Composite{
 	 */
 	public PlainTrajDialog getTextViewOfTrajInDialog() {
 		return textViewOfTrajInDialog;
+	}
+	
+	public static native void doClickOnLink() /*-{
+	  $doc.getElementById('gwt-debug-LinkToHome').click();
+	}-*/;
+
+	/**
+	 * @return the databaseInfo
+	 */
+	public DBSettingsDialog getDatabaseInfo() {
+		return databaseInfo;
+	}
+
+	/**
+	 * @return the infoToLocation
+	 */
+	public LocationDialog getLocationDialog() {
+		return locationDialog;
+	}
+	
+	public String getCommandForGeocode(){
+		String command="query geocode (\"";
+		command+=getLocationDialog().getStreet().getText()+"\",";
+		command+=getLocationDialog().getBuilding().getText()+",";
+		command+=getLocationDialog().getZip().getText()+", \"";
+		command+=getLocationDialog().getCity().getText()+"\")";
+		return command;
+		
 	}
 }

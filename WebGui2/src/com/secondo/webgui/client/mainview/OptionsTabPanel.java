@@ -208,7 +208,7 @@ public class OptionsTabPanel extends Composite{
         
         vPanel0.add(openArrowButton);   
         
-        Image help = new Image("resources/images/help-icon-16.png");
+        Image help = new Image("resources/images/question-icon.png");
         help.setWidth("18px");
         help.ensureDebugId("helpButton");
         help.setVisible(true);
