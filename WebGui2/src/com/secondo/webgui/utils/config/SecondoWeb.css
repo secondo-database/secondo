@@ -651,5 +651,11 @@ html>body .gwt-DecoratedTabBar {
 	float:right;
 }
 
+.textItem{
+	font-size:14px;
+	border:none;
+	background:transparent;
+}
+
 
 
