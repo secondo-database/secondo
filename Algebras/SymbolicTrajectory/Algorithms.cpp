@@ -1062,15 +1062,15 @@ void IndexMatchesLI::applyNFA() {
       for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++) {
         p.getElem(im->first, elem);
         if (elem.getW() == NO) { // no wildcard
-//           cout << "call simpleMatch for transition " << *is << " --" 
-//                << im->first << "--> " << im->second << endl;
+//            cout << "call simpleMatch for transition " << *is << " --" 
+//                 << im->first << "--> " << im->second << endl;
           if (simpleMatch(im->first, *is, im->second)) {
             newStates.insert(im->second);
           }
         }
         else { // + or *
-//           cout << "call wildcardMatch for transition " << *is << " --> " 
-//                << im->second << endl;
+//            cout << "call wildcardMatch for transition " << *is << " --" 
+//                 << im->first << "--> " << im->second << endl;
           if (wildcardMatch(*is, *im)) {
             newStates.insert(im->second);
           }
@@ -1827,14 +1827,13 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
   bool ok = false;
   TupleId id = (*matchInfoPtr)[state][0].succ; // first active tuple id
   while (id > 0) {
-//     cout << "wildcardMatch: " << (*matchInfoPtr)[state][id].imis.size() 
-//          << " IMIs, state=" << state << ", id=" << id << endl;
+//      cout << "wildcardMatch: " << (*matchInfoPtr)[state][id].imis.size() 
+//           << " IMIs, state=" << state << ", id=" << id << endl;
     unsigned int numOfIMIs = (*matchInfoPtr)[state][id].imis.size();
     unsigned int i = 0;
     while (!deactivated[id] && (i < numOfIMIs)) {
       imiPtr = &((*matchInfoPtr)[state][id].imis[i]);
-//       imiPtr->next++;
-//       imiPtr->range = true;
+//       cout << imiPtr->next + 1 << " | " << counter << endl;
       if (imiPtr->next + 1 >= counter) {
         bool match = false;
         IndexMatchInfo newIMI(true, imiPtr->next, imiPtr->binding, 
@@ -1852,7 +1851,9 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
           }
         }
         else { // no conditions
-          match = p.isFinalState(trans.second) &&imiPtr->finished(trajSize[id]);
+//          cout << "   " << p.isFinalState(trans.second) << " *** "
+//               << newIMI.finished(trajSize[id]) << endl;
+          match = p.isFinalState(trans.second) && newIMI.finished(trajSize[id]);
         }
         if (match) {
           matches.push_back(id); // complete match
