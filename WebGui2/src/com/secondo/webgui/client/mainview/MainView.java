@@ -38,8 +38,11 @@ import com.google.gwt.user.client.ui.AbsolutePanel;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.FormPanel;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.RadioButton;
+import com.google.gwt.user.client.ui.FormPanel.SubmitCompleteEvent;
+import com.google.gwt.user.client.ui.FormPanel.SubmitEvent;
 import com.secondo.webgui.shared.model.DataType;
 import com.secondo.webgui.shared.model.Point;
 import com.secondo.webgui.shared.model.Polygon;
@@ -421,6 +424,44 @@ public class MainView extends Composite {
 			public void execute() {				
 				header.getTextViewOfTrajInDialog().getPlainTrajDialogBox().center();
 				header.getTextViewOfTrajInDialog().getPlainTrajDialogBox().show();
+				
+			}
+		});
+		
+		this.optionsTabPanel.getUploadWidget().addSubmitHandler(
+				new FormPanel.SubmitHandler() {
+					// This event is fired just before the form is submitted. We
+					// can take
+					// this opportunity to perform validation.
+					@Override
+					public void onSubmit(SubmitEvent event) {
+						String filename = optionsTabPanel.getUploadWidget()
+								.getFilenameFromFileUpload();
+						if (filename.length() == 0) {
+							Window.alert("Please select a file");
+							event.cancel();
+						} else {
+							if (!filename.endsWith(".gpx")) {
+								Window.alert("You can upload only gpx file");
+								event.cancel();
+							}
+						}
+					}
+				});
+		
+		this.optionsTabPanel.getUploadWidget().addSubmitCompleteHandler(new FormPanel.SubmitCompleteHandler() {
+			
+
+			@Override
+			public void onSubmitComplete(SubmitCompleteEvent event) {
+					if(event.getResults().contains("File name:")) {
+						System.out.println("Result "+ event.getResults());
+						String result=event.getResults().replace("</pre>", "");
+						String uploadedFilename=result.substring(result.lastIndexOf(":")+1);
+						optionsTabPanel.getUploadWidget().setNameOfUploadedFile(uploadedFilename);
+						Window.alert("File "+ uploadedFilename+ " uploaded successfully!");
+					}			
+					optionsTabPanel.getGridWithOptionsForCreatingSymTraj().setVisible(true);
 				
 			}
 		});

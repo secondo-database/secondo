@@ -504,7 +504,7 @@ public class RPCConnector {
 		secondoService.resetObjectCounter(callback); 		
 	}
 	
-	public void createSymTraj(int option, String nameOfUploadedFile){
+	public void createSymTraj(final int option, final String nameOfUploadedFile){		
 		String command="let Raw = gpximport('"+nameOfUploadedFile+"') consume";
 		System.out.println("Command "+ command);
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
@@ -515,12 +515,34 @@ public class RPCConnector {
 			}
 
 			@Override
-			public void onSuccess(String result) {				
-				Window.alert("Trajectory created!");		
+			public void onSuccess(String result) {		
+				if(result.contains("already used")){
+					deleteOldSymTraj();
+					createSymTraj(option, nameOfUploadedFile);
+				}else{
+				Window.alert("Trajectory created!");}		
 			}
 		  };		  
 		  secondoService.sendCommandWithoutResult(command, callback);	
 		
+	}
+	
+	public void deleteOldSymTraj(){
+		String command="delete Raw";
+		System.out.println("Command "+ command);
+		AsyncCallback<String> callback = new AsyncCallback<String>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);		
+			}
+
+			@Override
+			public void onSuccess(String result) {				
+					
+			}
+		  };		  
+		  secondoService.sendCommandWithoutResult(command, callback);	
 	}
 	
 	public void getCoordinateFromAddress(String command, MainView mv,

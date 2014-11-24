@@ -46,17 +46,15 @@ import com.secondo.webgui.utils.config.ModesToShowSymTraj;
 public class OptionsTabPanel extends Composite{
 
 	private DecoratedTabPanel optionsTabPanel= new DecoratedTabPanel(); 
-	Button uploadButton = new Button("Upload file");
-	FileUpload fileUpload = new FileUpload();
-	FormPanel formPanel = new FormPanel();
+	
+	private FileUploadPanel uploadWidget= new FileUploadPanel();
+		
 	
 //	private Button helpButton = new Button("<img src='resources/images/help-icon-16.png' height='25px'/>");
 	ListBox optionsForCreatingSymTraj;
-	Grid gridWithOptions;
-	Grid gridForUploadComponents;
-	Button createSymTrajButton;
-	TextBox fileUploadBox;
-	String nameOfUploadedFile;
+	private Grid gridWithOptionsForCreatingSymTraj;
+	private Button createSymTrajButton;
+	
 	private SecondoSyntaxDialog secondoSyntaxDialog = new SecondoSyntaxDialog();
 	private int count;
 	
@@ -112,21 +110,10 @@ public class OptionsTabPanel extends Composite{
 		optionsTabPanel.setWidth("300px");
 		optionsTabPanel.getElement().getStyle().setMarginBottom(10.0, Unit.PX);
 		optionsTabPanel.setVisible(true);
-		optionsTabPanel.setStyleName("maxWidth");
+		optionsTabPanel.setStyleName("maxWidth");	
 		
-		
-		
-		
-		formPanel.setAction(GWT.getModuleBaseURL()+"uploadService");	
-		formPanel.setEncoding(FormPanel.ENCODING_MULTIPART);
-		formPanel.setMethod(FormPanel.METHOD_POST);
-		
-
 		optionsForCreatingSymTraj = new ListBox();		
 		
-	    
-	 
-	    
 	    final VerticalPanel vPanel0 = new VerticalPanel();  	    
         vPanel0.setStyleName("minHeight");  
         vPanel0.setWidth("300px");
@@ -149,89 +136,24 @@ public class OptionsTabPanel extends Composite{
 //        closeArrowButton.setHeight("20px");
         closeArrowButton.setVisible(true);
         
-        gridForUploadComponents= new Grid(2,3);
-        gridForUploadComponents.ensureDebugId("gridForUploadComponents");
-        
-//        gridForUploadComponents.getCellFormatter().setStyleName(1,2,"lastCellInGrid");
-        
-        
-        final Label lblSelectAgpx = new Label("Select a .gpx track: ");        
-        lblSelectAgpx.setStyleName("labelTextInOneLine");
-        
-        fileUploadBox= new TextBox();
-        fileUploadBox.ensureDebugId("textBoxForUpload");
-        fileUploadBox.setWidth("130px");
-        fileUploadBox.addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				fileClick(fileUpload.getElement());				
-//				fileUploadBox.setText(fileUpload.getFilename());
-//				fileUploadBox.setEnabled(false);
-				
-			}});
-        
-      
-        
-        fileUpload.setName("upload");
-        fileUpload.ensureDebugId("fileUploadHidden");
-        fileUpload.setVisible(false);
-        fileUpload.setStyleName("fileUploadInOneLine");  
-        
-        
-        uploadButton.setWidth("100px");
-     // Add a button to upload the file        
-        uploadButton.addClickHandler(new ClickHandler() {
-          public void onClick(ClickEvent event) { 
-        	  System.out.println("File selected "+fileUpload.getFilename());
-            	formPanel.submit();              
-            
-          }
-        });
-        
-        
-        
-         	
+       
         openArrowButton.addClickHandler(new ClickHandler() {
 			
 			@Override
 			public void onClick(ClickEvent event) {
 				openArrowButton.setVisible(false);				
 				closeArrowButton.setVisible(true);
-				gridForUploadComponents.setVisible(true);	
-				if(gridWithOptions.isVisible()){
-					gridWithOptions.setVisible(true);
+				uploadWidget.setVisible(true);	
+				if(gridWithOptionsForCreatingSymTraj.isVisible()){
+					gridWithOptionsForCreatingSymTraj.setVisible(true);
 				}
 							}
 		});
         openArrowButton.setVisible(false);        
         
-        vPanel0.add(openArrowButton);   
+        vPanel0.add(openArrowButton);  
         
-        Image help = new Image("resources/images/question-icon.png");
-        help.setWidth("18px");
-        help.ensureDebugId("helpButton");
-        help.setVisible(true);
-//        help.setStyleName("transparentButton");
-        help.addClickHandler(new ClickHandler() {
-			
-			@Override
-			public void onClick(ClickEvent event) {
-				secondoSyntaxDialog.getHelpDialogBox().center();
-		        secondoSyntaxDialog.getHelpDialogBox().show();
-				
-			}
-		});
-        
-        gridForUploadComponents.setCellSpacing(3);
-        gridForUploadComponents.setWidget(0, 0, lblSelectAgpx);
-        gridForUploadComponents.setWidget(0, 1, fileUploadBox);
-        gridForUploadComponents.setWidget(0, 2, help);
-        gridForUploadComponents.setWidget(1, 0, fileUpload);
-        gridForUploadComponents.setWidget(1, 1, uploadButton);        
-        formPanel.add(gridForUploadComponents);
-        
-        vPanel0.add(formPanel);
+        vPanel0.add(uploadWidget);
         
         closeArrowButton.addClickHandler(new ClickHandler() {
 			
@@ -240,8 +162,8 @@ public class OptionsTabPanel extends Composite{
 				
 				openArrowButton.setVisible(true);				
 				closeArrowButton.setVisible(false);
-				gridForUploadComponents.setVisible(false);
-				gridWithOptions.setVisible(false);
+				uploadWidget.setVisible(false);
+				gridWithOptionsForCreatingSymTraj.setVisible(false);
 				vPanel0.setHeight("30px");				
 
 				
@@ -249,50 +171,15 @@ public class OptionsTabPanel extends Composite{
 			}
 		});
         
-        
-     // This event is fired just before the form is submitted. We can take
-        // this opportunity to perform validation.
-        formPanel.addSubmitHandler(new FormPanel.SubmitHandler() {
-          
-
-		@Override
-		public void onSubmit(SubmitEvent event) {
-			String filename = fileUpload.getFilename();
-            if (filename.length() == 0) {
-              Window.alert("Please select a file");
-              event.cancel();
-            }
-            if(!filename.endsWith(".gpx")){
-            	Window.alert("You can upload only gpx file");
-            	event.cancel();
-            }			
-			
-		}
-        });
-        
-        formPanel.addSubmitCompleteHandler(new FormPanel.SubmitCompleteHandler() {
-    		
-
-			@Override
-			public void onSubmitComplete(SubmitCompleteEvent event) {
-					if(event.getResults().contains("File name:")) {
-						nameOfUploadedFile=event.getResults().substring(event.getResults().lastIndexOf("File name:"));
-					}			
-				gridWithOptions.setVisible(true);
-				
-			}
-    	});
-        
-        
-        gridWithOptions = new Grid(2,3);
-        gridWithOptions.setCellSpacing(3);
-        gridWithOptions.getCellFormatter().setStyleName(0,2,"lastCellInGrid");
-        gridWithOptions.getCellFormatter().setStyleName(1,2,"lastCellInGrid");       
+        gridWithOptionsForCreatingSymTraj = new Grid(2,3);
+        gridWithOptionsForCreatingSymTraj.setCellSpacing(3);
+        gridWithOptionsForCreatingSymTraj.getCellFormatter().setStyleName(0,2,"lastCellInGrid");
+        gridWithOptionsForCreatingSymTraj.getCellFormatter().setStyleName(1,2,"lastCellInGrid");       
         
         Label selectOptionForSymTraj = new Label("Select an option for symbolic trajectory:");        
         selectOptionForSymTraj.setStyleName("centered");
         selectOptionForSymTraj.setStyleName("labelTextInOneLine");       
-        gridWithOptions.setWidget(0,0, selectOptionForSymTraj);
+        gridWithOptionsForCreatingSymTraj.setWidget(0,0, selectOptionForSymTraj);
         
         /**
          * comboBox should be visible if gpx file was successfully uploaded
@@ -308,12 +195,12 @@ public class OptionsTabPanel extends Composite{
         createSymTrajButton.setWidth("100px");
         
         
-        gridWithOptions.setWidget(0, 1, optionsForCreatingSymTraj);
-        gridWithOptions.setWidget(1, 1, createSymTrajButton);
-        gridWithOptions.setVisible(false);
+        gridWithOptionsForCreatingSymTraj.setWidget(0, 1, optionsForCreatingSymTraj);
+        gridWithOptionsForCreatingSymTraj.setWidget(1, 1, createSymTrajButton);
+        gridWithOptionsForCreatingSymTraj.setVisible(false);
         
         
-        vPanel0.add(gridWithOptions);  
+        vPanel0.add(gridWithOptionsForCreatingSymTraj);  
         vPanel0.add(closeArrowButton);
         
         optionsTabPanel.add(vPanel0, "Create trajectory");
@@ -838,26 +725,7 @@ public class OptionsTabPanel extends Composite{
 		return label;
 	}
 
-	/**
-	 * @return the uploadButton
-	 */
-	public Button getUploadButton() {
-		return uploadButton;
-	}
-
-	/**
-	 * @return the fileUpload
-	 */
-	public FileUpload getFileUpload() {
-		return fileUpload;
-	}
-
-	/**
-	 * @return the formPanel
-	 */
-	public FormPanel getFormPanel() {
-		return formPanel;
-	}
+	
 
 	/**
 	 * @return the optionsForCreatingSymTraj
@@ -874,10 +742,11 @@ public class OptionsTabPanel extends Composite{
 	}
 
 	/**
+	 * returns the name of uploaded file
 	 * @return the nameOfUploadedFile
 	 */
 	public String getNameOfUploadedFile() {
-		return nameOfUploadedFile;
+		return this.uploadWidget.getNameOfUploadedFile();
 	}
 	
 	
@@ -929,6 +798,13 @@ public class OptionsTabPanel extends Composite{
 		return pausepanel;
 	}
 	
+	/**
+	 * @return the uploadWidget
+	 */
+	public FileUploadPanel getUploadWidget() {
+		return uploadWidget;
+	}
+
 	private HorizontalPanel createPlayPanel() {
 		HorizontalPanel playpanel = new HorizontalPanel();
 		playpanel.add(playIcon);
@@ -949,18 +825,7 @@ public class OptionsTabPanel extends Composite{
 	
 
 
-	private static native void fileClick(Element el) /*-{
-		
-//    Element el=document.getElementById("gwt-debug-fileUploadHidden");
-//	window.alert("On input"+el.value);
-//    document.getElementById("gwt-debug-textBoxForUpload").value=el.value; 
-//    el.addEventListener('input',handleInput,false); 
-    el.click();
-    $doc.getElementById("gwt-debug-textBoxForUpload").value=el.value; 
-      
-    
-
-}-*/;
+	
 
 	/**
 	 * @return the selectOptionsForDisplayMode
@@ -1103,6 +968,13 @@ public class OptionsTabPanel extends Composite{
 	 */
 	public Button getMatchButton() {
 		return matchButton;
+	}
+
+	/**
+	 * @return the gridWithOptionsForCreatingSymTraj
+	 */
+	public Grid getGridWithOptionsForCreatingSymTraj() {
+		return gridWithOptionsForCreatingSymTraj;
 	}
 	
 	

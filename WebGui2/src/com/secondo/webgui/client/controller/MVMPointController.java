@@ -425,8 +425,7 @@ public class MVMPointController {
      * */
     public void animateMovingPoint(MPoint mpoint, int index, final Map map, final int mode){
     	setCounter(0);
-    	//add mpoint layer to the map
-        map.addLayer(mpointMap.get(mpoint.getId())); 	
+    	
     	
     	final int size = (mpoint.getPath().size())-1;   	
        	final int i = index;
@@ -434,6 +433,9 @@ public class MVMPointController {
     	final Map mapIntern = map;
     	final Vector vectorLayer = mpointMap.get(mpointID);
     	final VectorFeature pointFeature =mpointFeatures.get(i);
+    	
+    	//add mpoint layer to the map
+    	mapIntern.addLayer(mpointMap.get(mpoint.getId())); 	
     	
     	System.out.println("Size of path "+ size);
     	System.out.println("Size of mpointPathArray for this mpoint "+ mpointPathArray.get(i).size());
@@ -445,7 +447,7 @@ public class MVMPointController {
     	
     	
     	if(mode==2 && !labelSet.isEmpty()){
-    	addPopupToShowST(map, pointFeature, mpointID, vectorLayer, i);}
+    	addPopupToShowST(mapIntern, pointFeature, mpointID, vectorLayer, i);}
  
         
         //start timer to schedule animation
@@ -491,43 +493,51 @@ public class MVMPointController {
 	 * @param mpointID
 	 * @param vectorLayer
 	 */
-	private void addPopupToShowST(final Map map, final VectorFeature pointFeature,
-			final int mpointID, final Vector vectorLayer, final int i) {
-		      //First create a select control and make sure it is activated
-		        final SelectFeature selectFeature = new SelectFeature(vectorLayer);
-		        selectFeature.setAutoActivate(true);
-		        map.addControl(selectFeature);	 
-		        System.out.println("Popup is adding");
-	
-		    
-		      //Secondly add a VectorFeatureSelectedListener to the feature
-		        vectorLayer.addVectorFeatureSelectedListener(new VectorFeatureSelectedListener() {
-		            public void onFeatureSelected(FeatureSelectedEvent eventObject) {               
-		 
-		            	//Attach a popup to the point, we use null as size cause we set autoSize to true
-		                //Note that we use FramedCloud... This extends a normal popup and creates is styled as a baloon
-		                final Popup popup = new FramedCloud(new Integer(mpointID).toString(), mpointPathArray.get(i).get(getCounter()), null, labelSet.get(mpointID).get(getCounter()), null, false);
-		               	               
-		                popup.setPanMapIfOutOfView(true); //this set the popup in a strategic way, and pans the map if needed.
-		                popup.setAutoSize(true);                
-		                pointFeature.setPopup(popup);
-		                vectorLayer.addFeature(pointFeature);
-		                
-		 
-		                //And attach the popup to the map
-		                map.addPopup(eventObject.getVectorFeature().getPopup());
-		            }
-		        });
-		 
-		        //And add a VectorFeatureUnselectedListener which removes the popup.
-		        vectorLayer.addVectorFeatureUnselectedListener(new VectorFeatureUnselectedListener()
-		        {
-		            public void onFeatureUnselected(FeatureUnselectedEvent eventObject)
-		            {                
-		                map.removePopup(eventObject.getVectorFeature().getPopup());
-		                pointFeature.resetPopup();
-		            }
-		        });
+	private void addPopupToShowST(final Map map,
+			final VectorFeature pointFeature, final int mpointID,
+			final Vector vectorLayer, final int i) {
+		// create a select control and make sure it is activated
+		final SelectFeature selectFeature = new SelectFeature(vectorLayer);
+		selectFeature.setAutoActivate(true);
+		map.addControl(selectFeature);
+
+		// add a VectorFeatureSelectedListener to the feature
+		vectorLayer
+				.addVectorFeatureSelectedListener(new VectorFeatureSelectedListener() {
+					public void onFeatureSelected(
+							FeatureSelectedEvent eventObject) {
+
+						// Attach a popup to the point, we use null as size
+						// cause we set autoSize to true
+						// Note that we use FramedCloud... This extends a normal
+						// popup and is styled as a balloon
+						final Popup popup = new FramedCloud(new Integer(
+								mpointID).toString(), mpointPathArray.get(i)
+								.get(getCounter()), null, labelSet
+								.get(mpointID).get(getCounter()), null, false);
+						popup.setPanMapIfOutOfView(true); // this set the popup
+															// in a strategic
+															// way, and pans the
+															// map if needed.
+						popup.setAutoSize(true);
+						pointFeature.setPopup(popup);
+						vectorLayer.addFeature(pointFeature);
+
+						// attach the popup to the map
+						map.addPopup(eventObject.getVectorFeature().getPopup());
+					}
+				});
+
+		// add a VectorFeatureUnselectedListener which removes the popup
+		vectorLayer
+				.addVectorFeatureUnselectedListener(new VectorFeatureUnselectedListener() {
+					public void onFeatureUnselected(
+							FeatureUnselectedEvent eventObject) {
+						map.removePopup(eventObject.getVectorFeature()
+								.getPopup());
+						pointFeature.resetPopup();
+					}
+				});
 	}
     
     /**
