@@ -113,7 +113,7 @@ bool Label::operator==(const string& text) const {
 \subsection{Function ~Distance~}
 
 */
-double Label::Distance(const Label& lb) const {
+double Label::Distance(const Label& lb, const bool normalize) const {
   if (!IsDefined() && !lb.IsDefined()) {
     return 0;
   }
@@ -123,8 +123,11 @@ double Label::Distance(const Label& lb) const {
   string str1, str2;
   GetValue(str1);
   lb.GetValue(str2);
-  // TODO: return Tools::distance(str1, str2) and delete remainder
-  return double(stringutils::ld(str1,str2)) / max(str1.length(), str2.length());
+  if (!str1.length() && !str2.length()) {
+    return 0;
+  }
+  double dist = stringutils::ld(str1,str2);
+  return normalize ? dist / max(str1.length(), str2.length()) : dist;
 }
 
 /*
@@ -487,7 +490,8 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 \subsection{Function ~Contains~}
 
 */
-double Labels::Distance(const Labels& lbs) const {
+double Labels::Distance(const Labels& lbs, const bool normalizeNum, 
+                        const bool normalizeLabel) const {
   if (!IsDefined() && !lbs.IsDefined()) {
     return 0;
   }
@@ -497,19 +501,29 @@ double Labels::Distance(const Labels& lbs) const {
   set<string> values1, values2;
   GetValues(values1);
   lbs.GetValues(values2);
-  // TODO: return Tools::distance(values1, values2) and delete remainder
   if (values1.empty() && values2.empty()) {
     return 0;
   }
   if (values1.empty() || values2.empty()) {
-    return 1;
+    if (normalizeLabel) {
+      return normalizeNum ? 1 : max(values1.size(), values2.size());
+    }
+    else {
+      return normalizeNum ? DBL_MAX / max(values1.size(), values2.size()) : 
+                            DBL_MAX;
+    }
   }
   set<string>::iterator i1, i2;
   multiset<double> dist;
   for (i1 = values1.begin(); i1 != values1.end(); i1++) {
     for (i2 = values2.begin(); i2 != values2.end(); i2++) {
-      dist.insert(double(stringutils::ld(*i1, *i2)) /
-                  max(i1->length(), i2->length()));
+      if (normalizeLabel) {
+        dist.insert(double(stringutils::ld(*i1, *i2)) /
+                    max(i1->length(), i2->length()));
+      }
+      else {
+        dist.insert(double(stringutils::ld(*i1, *i2)));
+      }
     }
   }
   int limit = min(values1.size(), values2.size());
@@ -518,6 +532,9 @@ double Labels::Distance(const Labels& lbs) const {
   for (int k = 0; k < limit; k++) {
     sum += *it;
     it++;
+  }
+  if (!normalizeNum) {
+    return sum;
   }
   return (sum / limit + abs((int64_t)values1.size() - (int64_t)values2.size())/ 
                         max(values1.size(), values2.size())) / 2;
@@ -725,15 +742,16 @@ bool Place::operator==(const pair<string, unsigned int>& value) const {
 \subsection{Function ~Distance~}
 
 */
-double Place::Distance(const Place& p) const {
+double Place::Distance(const Place& p, const bool normalizeLabel,
+                       const double ratio) const {
   if (!IsDefined() && !p.IsDefined()) {
     return 0;
   }
   if (!IsDefined() || !p.IsDefined()) {
     return 1;
   }
-  // TODO: return Tools::distance(value1, value2) and delete remainder
-  return Label::Distance(p) / 2 + (GetRef() == p.GetRef() ? 0 : 0.5);
+  return Label::Distance(p, normalizeLabel) * ratio +
+         (GetRef() == p.GetRef() ? 0 : 1 - ratio);
 }
 
 /*
@@ -1054,7 +1072,8 @@ bool Places::operator==(const Places& p) const {
 \subsection{Function ~Distance~}
 
 */
-double Places::Distance(const Places& p) const {
+double Places::Distance(const Places& p, const bool normalizeNum, 
+                        const bool normalizeLabel) const {
   if (!IsDefined() && !p.IsDefined()) {
     return 0;
   }
@@ -1075,6 +1094,7 @@ double Places::Distance(const Places& p) const {
   multiset<double> dist;
   for (i1 = values1.begin(); i1 != values1.end(); i1++) {
     for (i2 = values2.begin(); i2 != values2.end(); i2++) {
+      
       double labelDist = double(stringutils::ld(i1->first, i2->first)) /
                          max(i1->first.length(), i2->first.length());
       dist.insert(labelDist + (i1->second == i2->second ? 0 : 0.5));

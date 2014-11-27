@@ -229,6 +229,7 @@ class MBasic : public Attribute {
   Attribute* Clone() const {return new MBasic<B>(*this);}
   bool Adjacent(const Attribute *arg) const {return false;}
   size_t HashValue() const;
+  MBasic<B>& operator=(const MBasic<B>& src);
   void CopyFrom(const Attribute *arg);
   
   ListExpr unitToListExpr(const int i);
@@ -297,6 +298,7 @@ class MBasics : public Attribute {
   Attribute *Clone() const;
   size_t HashValue() const {return pos.Size() * units.Size();}
   void CopyFrom(const Attribute* right) {*this = *((MBasics<B>*)right);}
+  MBasics<B>& operator=(const MBasics<B>& src);
   ListExpr ToListExpr(ListExpr typeInfo);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
   void Destroy() {values.destroy(); units.destroy(); pos.destroy();}
@@ -1583,6 +1585,18 @@ void MBasic<B>::CopyFrom(const Attribute *arg) {
 }
 
 /*
+\subsection{Function ~=~}
+
+*/
+template<class B>
+MBasic<B>& MBasic<B>::operator=(const MBasic<B>& src) {
+  Attribute::operator=(src);
+  units.copyFrom(src.units);
+  values.copyFrom(src.values);
+  return *this;
+}
+
+/*
 \subsection{Function ~unitToListExpr~}
 
 */
@@ -2272,6 +2286,19 @@ int MBasics<B>::Compare(const Attribute* arg) const {
 template<class B>
 Attribute* MBasics<B>::Clone() const {
   return new (MBasics<B>)(*(MBasics<B>*)this);
+}
+
+/*
+\subsection{Function ~=~}
+
+*/
+template<class B>
+MBasics<B>& MBasics<B>::operator=(const MBasics<B>& src) {
+  Attribute::operator=(src);
+  units.copyFrom(src.units);
+  values.copyFrom(src.values);
+  pos.copyFrom(src.pos);
+  return *this;
 }
 
 /*
@@ -4608,7 +4635,8 @@ DeriveGroupsLI<M>::DeriveGroupsLI(Word _stream, double threshold, int attrNo) {
   vector<double> dist[noTuples];
   for (int i = 0; i < noTuples; i++) {
     for (int j = 0; j < i; j++) {
-      double distance = trajStore[i]->Distance(*trajStore[j]);
+      double distance = 0;
+      //double distance = trajStore[i]->Distance(*trajStore[j]);
       if (distance <= threshold) {
         dist[i].push_back(j);
         cout << "pair (" << i << ", " << j << ") found" << endl;

@@ -768,7 +768,8 @@ int distanceVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   result = qp->ResultStorage(s);
   CcReal *res = static_cast<CcReal*>(result.addr);
   if (first->IsDefined() && second->IsDefined()) {
-    res->Set(true, first->Distance(*second));
+    res->Set(true, 0);
+    //res->Set(true, first->Distance(*second));
   }
   else {
     res->SetDefined(false);
