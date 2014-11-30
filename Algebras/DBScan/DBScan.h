@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //characters   [3]  capital:  [\textsc{] [}]
 //characters   [4]  teletype:  [\texttt{] [}]
 
-1 Header file "Optics.h"[4]
+1 Header file "DBScan.h"[4]
 
 March-December 2014, Natalie Jaeckel
 
@@ -37,10 +37,11 @@ This file contains the "DBScan"[4] class declaration.
 1.2 Includes
 
 */
+
 #include "Algebra.h"
-#include "MTree.h"
 #include "MMRTree.h"
-#include "DistfunReg.h"
+#include "TupleIdentifier.h"
+#include "RelationAlgebra.h"
 
 namespace clusterdbscanalg
 {
@@ -63,13 +64,19 @@ namespace clusterdbscanalg
 Constructor
 
 */
-   DBScan();
+  DBScan();
    
-  void clusterAlgo(mtreeAlgebra::MTree* queryTree, TupleBuffer* objs, int eps, 
-  int minPts, int idxClusterAttr, int    clusterID, int visited);
-  
+/*
+Function ~DBScan::clusterAlgo~
+
+This function detects cluster in a given amount of tupel. A MMRTree is used as 
+an index to provide a better performance.
+It starts wirh a random point of the amount and uses the expandCluster 
+function to expand the cluster
+
+*/   
   void clusterAlgo(mmrtree::RtreeT<dim, TupleId>* queryTree, TupleBuffer* objs, 
-  int eps, int minPts, int idxClusterAttr, int    clusterID, int visited);
+   int eps, int minPts, int idxClusterAttr, int    clusterID, int visited);
 
 
 /*
@@ -80,26 +87,32 @@ Constructor
   
   const static int UNDEFINED = -1;
   const static int NOISE     = -2;
-  const static int MTREE   = 1;
-  const static int MMRTREE = 2;
 
   int PNT; 
   int CID;
   int VIS;
-  int MOD;
-
 
   int nextId(){return ++id;};
 
   int id;
-  mtreeAlgebra::MTree* mtree;
   mmrtree::RtreeT<dim, TupleId>* rtree;
-  bool expandCluster(TupleBuffer* objs, Tuple* obj, int clusterId, 
-          int eps, int minPts);
-  std::list<TupleId>* regionQuery(TupleBuffer* objs, Tuple* obj, int eps);
-  void changeClustId(std::list<Tuple*>& seeds, Tuple* obj, 
-          int clusterId);
 
+/*
+Function ~DBScan::expandCluster~
+
+This function expands the cluster for a given point of the amount
+
+*/
+  bool expandCluster(TupleBuffer* objs, Tuple* obj, int clusterId, 
+   int eps, int minPts);
+
+/*
+Function ~DBScan::regionQuery~
+
+This function detectes all points in a given eps neighbourhood
+
+*/
+  std::list<TupleId>* regionQuery(TupleBuffer* objs, Tuple* obj, int eps);
 
  };
 }

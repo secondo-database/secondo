@@ -26,13 +26,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //characters   [3]  capital:  [\textsc{] [}]
 //characters   [4]  teletype:  [\texttt{] [}]
 
-2 Source file "Optics.cpp"[4]
+2 Source file "DBScan.cpp"[4]
 
-March-October 2014, Marius Haug
+March-December 2014, Natalie Jaeckel
 
 2.1 Overview
 
-This file contains the "Optics"[4] class definition.
+This file contains the "DBScan"[4] class definition.
 
 2.2 Includes
 
@@ -42,93 +42,39 @@ This file contains the "Optics"[4] class definition.
 #include "SpatialAlgebra.h"
 #include "RectangleAlgebra.h"
 
+/*
+2.3 Implementation of the class ~DBScan~
 
+*/
 namespace clusterdbscanalg
 {
+/*
+Default constructor ~DBScan::DBScan~
 
-
+*/
  template <unsigned dim>
  DBScan<dim>::DBScan()
  {
   id = 0;
   return;
  }
-
-
-
- template <unsigned dim>
- void DBScan<dim>::clusterAlgo(mtreeAlgebra::MTree* queryTree
- , TupleBuffer* objs, 
- int eps, int minPts, int idxClusterAttr, int idxCID, int idxVisited)
- {
-  mtree = queryTree;
-       
-  PNT = idxClusterAttr;
-  CID = idxCID;
-  VIS = idxVisited;
-  MOD = MTREE;
  
-  GenericRelationIterator *relIter = objs->MakeScan();
-  Tuple* obj;
+/*
+Function ~DBScan::clusterAlgo~
 
-  int clusterId = 0;
-  
-  while((obj = relIter->GetNextTuple()))
-  {
-   if( !((CcBool*)obj->GetAttribute(VIS))->GetValue() )
-   {
-    CcBool visited(true, true);
-    obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
-
-    std::list<TupleId>* N = regionQuery(objs, obj, eps);
-    int nSize = N->size();    
-    
-    if(nSize < minPts) 
-    {
-     CcInt* distI = new CcInt;
-     distI->Set(NOISE);
-     obj->PutAttribute( CID, ((Attribute*)distI)->Clone() ); 
-    }   
-    else
-    {
-     clusterId = nextId();
-     CcInt* distI = new CcInt;
-     distI->Set(clusterId);
-     obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
-     
-     std::list<TupleId>::iterator it;
-
-     for (it = N->begin(); it != N->end(); it++)
-     {
-      //TupleId curObjId = *it;
-      Tuple* point = objs->GetTuple(*it, true);
-      
-      if(((CcInt*)point->GetAttribute(CID))->GetValue() == UNDEFINED 
-       || ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
-      {
-       expandCluster(objs, point, clusterId, eps, minPts);
-      }
-     }
-    }
-   }
-  }
- }
- 
+*/
  template <unsigned dim>
  void DBScan<dim>::clusterAlgo(mmrtree::RtreeT<dim, TupleId>* queryTree, 
-   TupleBuffer* objs, int eps, int minPts, int idxClusterAttr, int idxCID, 
-   int idxVisited)
+ TupleBuffer* objs, int eps, int minPts, int idxClusterAttr, int idxCID, 
+ int idxVisited)
  {
   rtree = queryTree;
-       
   PNT = idxClusterAttr;
   CID = idxCID;
   VIS = idxVisited;
-  MOD = MMRTREE;
- 
+  
   GenericRelationIterator *relIter = objs->MakeScan();
   Tuple* obj;
-
   int clusterId = 0;
   
   while((obj = relIter->GetNextTuple()))
@@ -137,16 +83,15 @@ namespace clusterdbscanalg
    {
     CcBool visited(true, true);
     obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
-
     std::list<TupleId>* N = regionQuery(objs, obj, eps);
-    int nSize = N->size();    
+    int nSize = N->size();
     
-    if(nSize < minPts) 
+    if(nSize < minPts)
     {
      CcInt* distI = new CcInt;
      distI->Set(NOISE);
-     obj->PutAttribute( CID, ((Attribute*)distI)->Clone() ); 
-    }   
+     obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
+    }
     else
     {
      clusterId = nextId();
@@ -155,14 +100,11 @@ namespace clusterdbscanalg
      obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
      
      std::list<TupleId>::iterator it;
-
      for (it = N->begin(); it != N->end(); it++)
      {
-      //TupleId curObjId = *it;
       Tuple* point = objs->GetTuple(*it, true);
-      
-      if(((CcInt*)point->GetAttribute(CID))->GetValue() == UNDEFINED 
-       || ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
+      if(((CcInt*)point->GetAttribute(CID))->GetValue() == UNDEFINED
+      || ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
       {
        expandCluster(objs, point, clusterId, eps, minPts);
       }
@@ -172,77 +114,75 @@ namespace clusterdbscanalg
   }
  }
 
- template <unsigned dim>
- bool DBScan<dim>::expandCluster(TupleBuffer* objs, Tuple* obj, int clusterId, 
-          int eps, int minPts)
- {
+/*
+Function ~DBScan::expandCluster~
 
+*/
+ template <unsigned dim>
+ bool DBScan<dim>::expandCluster(TupleBuffer* objs, Tuple* obj, int clusterId,
+  int eps, int minPts)
+ {
   CcInt* distI = new CcInt;
   distI->Set(clusterId);
   obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
-
+  
   if( !((CcBool*)obj->GetAttribute(VIS))->GetValue() )
   {
    CcBool visited(true, true);
    obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
-
    std::list<TupleId>* N = regionQuery(objs, obj, eps);
-
    int nSize = N->size();
    
-   if(nSize >= minPts) 
-   { 
+   if(nSize >= minPts)
+   {
     std::list<TupleId>::iterator it;
-
     for (it = N->begin(); it != N->end(); it++)
     {
-     //TupleId curObjId = *it;
      Tuple* point = objs->GetTuple(*it, true);
-      
      if(((CcInt*)point->GetAttribute(CID))->GetValue() == UNDEFINED ||
-      ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
+     ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
      {
       expandCluster(objs, point, clusterId, eps, minPts);
      }
-    }  
+    }
    }
   }
   return true;
  }
  
+/*
+Function ~DBScan::regionQuery~
+
+*/
  template <unsigned dim>
- std::list<TupleId>* DBScan<dim>::regionQuery(TupleBuffer* objs, Tuple* obj
- , int eps)
+ std::list<TupleId>* DBScan<dim>::regionQuery(TupleBuffer* objs, Tuple* obj, 
+  int eps)
  {
   std::list<TupleId>* near(new list<TupleId>);
   
-  if(MOD == MTREE)
-  {
-   mtree->rangeSearch((Attribute*)obj->GetAttribute(PNT), eps, near);
-  }
-  else if (MOD == MMRTREE)
-  {
-   double x = ((Point*) obj->GetAttribute(PNT))->GetX();
-   double y = ((Point*) obj->GetAttribute(PNT))->GetY();
-   double recP1[2];
-   double recP2[2];
-    
-   recP1[0] = x - eps;
-   recP1[1] = y - eps;
-   recP2[0] = x + eps;
-   recP2[1] = y + eps;
-                
-   Rectangle<dim> rEps(true, recP1, recP2);
-   set<TupleId> b;
-   rtree->findAll(rEps, b);
+  double x = ((Point*) obj->GetAttribute(PNT))->GetX();
+  double y = ((Point*) obj->GetAttribute(PNT))->GetY();
+  double recP1[2];
+  double recP2[2];
    
-   set<TupleId>::iterator it;
-   for(it = b.begin(); it != b.end(); it++)
-   {
-    Tuple* curObj;
+  recP1[0] = x - eps;
+  recP1[1] = y - eps;
+  recP2[0] = x + eps;
+  recP2[1] = y + eps;
+               
+  Rectangle<dim> rEps(true, recP1, recP2);
+  set<TupleId> b;
+  rtree->findAll(rEps, b);
   
-    curObj = objs->GetTuple(*it, false);
+  set<TupleId>::iterator it;
+  for(it = b.begin(); it != b.end(); it++)
+  {
+   Tuple* curObj;
+  
+   curObj = objs->GetTuple(*it, false);
     
+   if(obj != curObj)
+   {
     double distance = ((Rectangle<dim>*)obj->GetAttribute(PNT))->Distance(
      (*(Rectangle<dim>*)curObj->GetAttribute(PNT)));
     
@@ -255,6 +195,10 @@ namespace clusterdbscanalg
   return near;
  }
  
+/*
+Definition of the available template values
+
+*/ 
  template class DBScan<0>;
  template class DBScan<2>;
  template class DBScan<3>;
