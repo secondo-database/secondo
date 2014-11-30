@@ -246,7 +246,7 @@ Value mapping method ~opticsRVM~
      {
       newTuple->CopyAttribute( i, tup, i);
      }
-     
+ 
      //Initialize the result tuple with default values
      CcReal coreDist(-1.0);
      newTuple->PutAttribute( attrCnt, ((Attribute*) &coreDist)->Clone());
@@ -416,13 +416,15 @@ Type mapping method ~opticsMTM~
   if( !CcInt::checkType(attrType)
    && !CcReal::checkType(attrType)
    && !Point::checkType(attrType)
-   && !CcString::checkType(attrType) )
+   && !CcString::checkType(attrType)
+   && !Picture::checkType(attrType) )
   {
    return listutils::typeError("Attribute " + attrName + " not of type " 
     + CcInt::BasicType() + ", " 
     + CcReal::BasicType() + ", " 
-    + Point::BasicType() + " or " 
-    + CcString::BasicType() );
+    + Point::BasicType() + " , " 
+    + CcString::BasicType() + " or " 
+    + Picture::BasicType() );
   }
   
   //Copy attrlist to newattrlist
@@ -628,6 +630,10 @@ Selection method for value mapping array ~opticsMDisSL~
   {
    return 3;
   }
+  else if(Picture::checkType(attrType))
+  {
+   return 4;
+  }
   
   return -1; 
  };
@@ -641,6 +647,7 @@ Value mapping array ~opticsMDisVM[]~
  ,opticsMVM<CcReal*, RealDist>
  ,opticsMVM<Point*, PointDist>
  ,opticsMVM<CcString*, StringDist>
+ ,opticsMVM<Picture*, PictureDist>
  };
 /*
 Type mapping method ~opticsFTM~
@@ -720,7 +727,7 @@ Type mapping method ~opticsFTM~
   if( !CcInt::checkType(funResType)
    && !CcReal::checkType(funResType) )
   {
-   return listutils::typeError("Function relult type not of type " 
+   return listutils::typeError("Function result type not of type " 
     + CcInt::BasicType() + " or " 
     + CcReal::BasicType() );
   }  
@@ -728,7 +735,8 @@ Type mapping method ~opticsFTM~
   if( !(CcInt::checkType(attrType) && CcInt::checkType(funResType))
    && !(CcReal::checkType(attrType) && CcReal::checkType(funResType))
    && !(Point::checkType(attrType) && CcReal::checkType(funResType))
-   && !(CcString::checkType(attrType) && CcInt::checkType(funResType)) )
+   && !(CcString::checkType(attrType) && CcInt::checkType(funResType))
+   && !(Picture::checkType(attrType) && CcReal::checkType(funResType)) )
   {
    return listutils::typeError("Attribute " + attrName + " not of type " 
     + CcInt::BasicType() + " and function result not " + CcInt::BasicType() 
@@ -736,8 +744,10 @@ Type mapping method ~opticsFTM~
     + CcReal::BasicType() + " and function result not " + CcReal::BasicType() 
     + ", " 
     + Point::BasicType() + " and function result not " + CcReal::BasicType() 
-    + " or " 
+    + ", " 
     + CcString::BasicType()+ " and function result not " + CcInt::BasicType()
+    + " or " 
+    + Picture::BasicType() + " and function result not " + CcReal::BasicType() 
      );
   }
   
@@ -952,6 +962,10 @@ Selection method for value mapping array ~opticsFDisSL~
   {
    return 3;
   }
+  else if(Picture::checkType(attrType) && CcReal::checkType(funResType))
+  {
+   return 4;
+  }
   
   return -1; 
  };
@@ -965,6 +979,7 @@ Value mapping array ~opticsFDisVM[]~
  ,opticsFVM<CcReal*, CustomDist<CcReal*, CcReal> >
  ,opticsFVM<Point*, CustomDist<Point*, CcReal> >
  ,opticsFVM<CcString*, CustomDist<CcString*, CcInt> >
+ ,opticsFVM<Picture*, CustomDist<Picture*, CcReal> >
  };
 /*
 Struct ~opticsInfoR~
@@ -977,7 +992,12 @@ Struct ~opticsInfoR~
    name      = "opticsR";
    signature = "stream(Tuple) -> stream(Tuple)";
    syntax    = "_ opticsR [_, _, _]";
-   meaning   = "Order points to identify the cluster structure";
+   meaning   = "This operator will ordering data to identify the cluster "
+               "structure. The operator uses the MMRTree index structure. The "
+               "first paramater has to be a stream of tuple, the second is the "
+               "attribute for clustering, the third is eps and the fourth is "
+               "MinPts. The return value is a stream of tuples."
+               "The supported type to cluster is the bbox.";
    example   = "query Kneipen feed extend[B : bbox(.GeoData)]" 
                "opticsR[B, 1000.0, 5] consume";
   }
@@ -993,8 +1013,14 @@ Struct ~opticsInfoM~
    name      = "opticsM";
    signature = "stream(Tuple) -> stream(Tuple)";
    syntax    = "_ opticsM [_, _, _]";
-   meaning   = "Order points to identify the cluster structure";
-   example   = "query plz feed opticsM[PLZ, 10.0, 5] consume";
+   meaning   = "This operator will ordering data to identify the cluster "
+               "structure. The operator uses the MMMTree index structure. The "
+               "first paramater has to be a stream of tuple, the second is the "
+               "attribute for clustering, the third is eps and the fourth is "
+               "MinPts. The return value is a stream of tuples."
+               "The supported types to cluster are point, picture, int, real "
+               "and string.";
+   example   = "query Kneipen feed opticsM[Name, 10.0, 5] consume";
   }
  };
 /*
@@ -1008,7 +1034,14 @@ Struct ~opticsInfoF~
    name      = "opticsF";
    signature = "stream(Tuple) -> stream(Tuple)";
    syntax    = "_ opticsF [_, _, _, fun]";
-   meaning   = "Order points to identify the cluster structure";
+   meaning   = "This operator will ordering data to identify the cluster "
+               "structure. The operator uses the MMMTree index structure. The "
+               "first paramater has to be a stream of tuple, the second is the "
+               "attribute for clustering, the third is eps, the fourth is "
+               "MinPts and the sixth is the distance function. The return "
+               "value is a stream of tuples."
+               "The supported types to cluster are point, picture, int, real "
+               "and string.";
    example   = "query plz feed opticsF[PLZ, 10.0, 5, fun(i1: int, i2: int)"
                "i1 - i2] consume";
    }

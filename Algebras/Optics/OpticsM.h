@@ -32,7 +32,7 @@ March-October 2014, Marius Haug
 
 1.1 Overview
 
-This file contains the "Optics"[4] class declaration.
+This file contains the "OpticsM"[4] class declaration.
 
 1.2 Includes
 
@@ -45,7 +45,7 @@ This file contains the "Optics"[4] class declaration.
 namespace clusteropticsalg
 {
 /*
-1.3 Declarations of the class ~Optics~
+1.3 Declarations of the class ~OpticsM~
 
 */
  template<class T, class DistComp>
@@ -65,7 +65,7 @@ Constructor
 */
    OpticsM();
 /*
-Sets the "RTree"[4] for an optimized range query etc.
+Sets the "MMMTree"[4] for an optimized range query etc.
 
 */
    void initialize(MMMTree<pair<T, TupleId>, DistComp >* queryTree
@@ -82,6 +82,7 @@ Starts the ordering by the optics algorithm and saves the result in "order"[4].
 
 */
   private:
+void pprint(std::list<TupleId>* neighbors);
 /*
 Static constants for the value definition of distance undefined.
 
@@ -100,10 +101,9 @@ Members to access elements of the tuples.
    
    double eps;
 /*
-Defined "MTree"[4] for the range query etc.
+Defined "DistComp"[4] for the range query etc.
 
 */
-
    DistComp dc;
 /*
 Defined "MTree"[4] for the range query etc.
@@ -116,10 +116,15 @@ Defined "TupleBuffer"[4] which contains the data to order.
 */
    TupleBuffer* objs;
 /*
-Defined "TupleBuffer"[4] where the result will be saved.
+Defined "list"[4] where the result will be saved.
 
 */   
    list<TupleId>* result;
+/*
+Defined "list"[4] to avoid order failures.
+
+*/
+   list<TupleId>* undefined;
 /*
 Iterates through the given objects and controlls the next starting object to
 find the cluster order.
@@ -144,18 +149,18 @@ up within "orderedSeeds"[4] with respect to their reachable distance to
 
 */
    void update(std::list<TupleId>* neighbors, TupleId centerId
-    ,std::list<TupleId>& orderedSeeds);
+    ,std::list<TupleId>* orderedSeeds);
 /*
 Inserts "obj"[4] into "orderedSeeds"[4].
 
 */
-   void insert(std::list<TupleId>& orderedSeeds, TupleId objId);
+   void insert(std::list<TupleId>* orderedSeeds, TupleId objId);
 /*
 Moves "obj"[4] up within "orderedSeeds"[4] with respect to the reachable
 distances of the elements of "orderedSeeds"[4].
 
 */
-   void decrease(std::list<TupleId>& orderedSeeds, TupleId objId);
+   void decrease(std::list<TupleId>* orderedSeeds, TupleId objId);
 /*
 Returns the reachable distance from "neighbor"[4] to "obj"[4].
 

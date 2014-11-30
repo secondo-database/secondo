@@ -26,13 +26,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //characters   [3]  capital:  [\textsc{] [}]
 //characters   [4]  teletype:  [\texttt{] [}]
 
-2 Source file "Optics.cpp"[4]
+2 Source file "OpticsM.cpp"[4]
 
 March-October 2014, Marius Haug
 
 2.1 Overview
 
-This file contains the "Optics"[4] class definition.
+This file contains the "OpticsM"[4] class definition.
 
 2.2 Includes
 
@@ -40,16 +40,17 @@ This file contains the "Optics"[4] class definition.
 #include "OpticsM.h"
 #include "StandardTypes.h"
 #include "DistFunction.h"
+#include "PictureAlgebra.h"
 #include <vector>
 
 namespace clusteropticsalg
-{
+{ 
 /*
-2.3 Implementation of the class ~Optics~
+2.3 Implementation of the class ~OpticsM~
 
 */
 /*
-Default constructor ~Optics::Optics~
+Default constructor ~OpticsM::OpticsM~
 
 */
  template<class T, class DistComp>
@@ -58,7 +59,7 @@ Default constructor ~Optics::Optics~
   return;
  }
 /*
-Method ~Optics::initialize~
+Method ~OpticsM::initialize~
 
 */
  template<class T, class DistComp>
@@ -74,9 +75,10 @@ Method ~Optics::initialize~
   REA = idxRDist;
   PRC = idxPrc;
   dc = distComp;
+  undefined = new list<TupleId>();
  }
 /*
-Method ~Optics::order~
+Method ~OpticsM::order~
 
 */
  template<class T, class DistComp>
@@ -84,7 +86,6 @@ Method ~Optics::order~
   ,list<TupleId>* pOrder)
  {
   pOrder->clear();
-  
   minPts = pMinPts;
   eps = pEps;
   result = pOrder;
@@ -102,62 +103,84 @@ Method ~Optics::order~
     expandClusterOrder(objId);
    }
   }
+  
+  std::list<TupleId>::iterator it;
+  for (it = undefined->begin(); it != undefined->end(); it++)
+  {
+   Tuple* undef = objs->GetTuple(*it, true);
+   
+   if(!(((CcBool*)undef->GetAttribute(PRC))->GetValue()))
+   {
+    CcBool processed(true, true);
+    undef->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
+    result->push_back(*it);
+   }
+  }
  }
 /*
-Method ~Optics::expandClusterOrder~
+Method ~OpticsM::expandClusterOrder~
 
 */
  template<class T, class DistComp>
  void OpticsM<T, DistComp>::expandClusterOrder(TupleId objId)
  {
   Tuple* obj;
-  std::list<TupleId> orderedSeeds;
+  std::list<TupleId>* orderedSeeds(new list<TupleId>);
 
   obj = objs->GetTuple(objId, false);
 
   std::list<TupleId>* neighbors = getNeighbors(objId);
 
-  CcBool processed(true, true);
-  obj->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
+//  CcBool processed(true, true);
+//  obj->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
 
   CcReal rDist(UNDEFINED);
   obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
 
   setCoreDistance(neighbors, objId);
-  //orderedOut add the Point obj
-  result->push_back(objId);
 
-  //(obj->distCore != UNDEFINED)
+//  result->push_back(objId);
+
   if(((CcReal*)obj->GetAttribute(COR))->GetValue() != UNDEFINED)
   {
+   CcBool processed(true, true);
+   obj->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
+
+   result->push_back(objId);
+
    update(neighbors, objId, orderedSeeds);
 
    std::list<TupleId>::iterator it;
-   for (it = orderedSeeds.begin(); it != orderedSeeds.end(); it++)
+   for (it = orderedSeeds->begin(); it != orderedSeeds->end(); it++)
    {
     TupleId curObjId = *it;
     Tuple* curObj = objs->GetTuple(*it, true);
 
     neighbors = getNeighbors(curObjId);
-
+     
     CcBool processed(true, true);
     curObj->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
 
     setCoreDistance(neighbors, curObjId);
 
-    //orderedOut add the Point curObj
     result->push_back(curObjId);
-
-    //(currentObject->distCore != UNDEFINED)
+    
+    it = orderedSeeds->erase(it);
+    --it;
+    
     if(((CcReal*)curObj->GetAttribute(COR))->GetValue() != UNDEFINED)
     {
      update(neighbors, curObjId, orderedSeeds);
     }
    }
   }
+  else
+  {
+   undefined->push_back(objId);
+  }
  }
 /*
-Method ~Optics::getNeighbors~
+Method ~OpticsM::getNeighbors~
 
 */
  template<class T, class DistComp>
@@ -175,15 +198,17 @@ Method ~Optics::getNeighbors~
   while(it->hasNext())
   {
     pair<T,TupleId> p = *(it->next());
-    near->push_back(p.second);
+    
+    if(objId != p.second)
+    {
+     near->push_back(p.second);
+    }
   }
-
-  //near->remove(objId);
 
   return near;
  }
 /*
-Method ~Optics::setCoreDistance~
+Method ~OpticsM::setCoreDistance~
 
 */
  template<class T, class DistComp>
@@ -192,9 +217,7 @@ Method ~Optics::setCoreDistance~
  {
   double coreDist = UNDEFINED;
   Tuple* obj;
-  std::list<TupleId>* near;
-  near = new list<TupleId>;
-
+ 
   obj = objs->GetTuple(objId, false);
 
   if(neighbors->size() >= minPts)
@@ -208,8 +231,11 @@ Method ~Optics::setCoreDistance~
    while(it->hasNext() && count < minPts)
    {
     pair<T,TupleId> n = *(it->next());
-    coreDist = dc(o, n);
-    count++;
+    if(objId != n.second)
+    {
+     coreDist = dc(o, n);
+     count++;
+    }
    }
   }
 
@@ -217,40 +243,32 @@ Method ~Optics::setCoreDistance~
   obj->PutAttribute(COR, ((Attribute*) &cDist)->Clone());
  }
 /*
-Method ~Optics::update~
+Method ~OpticsM::update~
 
 */
  template<class T, class DistComp>
  void OpticsM<T, DistComp>::update(std::list<TupleId>* neighbors
-  ,TupleId centerId, std::list<TupleId>& orderedSeeds)
+  ,TupleId centerId, std::list<TupleId>* orderedSeeds)
  {
-  //FORALL Object FROM neighbors DO
   std::list<TupleId>::iterator it;
   for (it = neighbors->begin(); it != neighbors->end(); it++)
   {
    TupleId objId = *it;
    Tuple* obj = objs->GetTuple(objId, false);
 
-   //IF NOT Object.Processed THEN
-   if(!(((CcBool*)obj->GetAttribute(PRC))->GetValue())) //(!obj->processed)
+   if(!(((CcBool*)obj->GetAttribute(PRC))->GetValue()))
    {
    
-    //new_r_dist:=max(c_dist,CenterObject.dist(Object));
     double newReachDist = getReachableDist(centerId, objId);
 
-    //IF Object.reachability_distance=UNDEFINED THEN
     if(((CcReal*)obj->GetAttribute(REA))->GetValue() == UNDEFINED)
     {
-     //Object.reachability_distance := new_r_dist;
      CcReal rDist(newReachDist);
      obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
      insert(orderedSeeds, objId);
     }
-    //ELSE IF new_r_dist<Object.reachability_distance THEN
-    // Object already in OrderSeeds
     else if(newReachDist < ((CcReal*)obj->GetAttribute(REA))->GetValue())
     {
-     //Object.reachability_distance := new_r_dist;
      CcReal rDist(newReachDist);
      obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
      decrease(orderedSeeds, objId);
@@ -259,11 +277,11 @@ Method ~Optics::update~
   }
  }
 /*
-Method ~Optics::insert~
+Method ~OpticsM::insert~
 
 */
  template<class T, class DistComp>
- void OpticsM<T, DistComp>::insert(std::list<TupleId>& orderedSeeds
+ void OpticsM<T, DistComp>::insert(std::list<TupleId>* orderedSeeds
   ,TupleId objId)
  {
   std::list<TupleId>::iterator it;
@@ -271,7 +289,7 @@ Method ~Optics::insert~
 
   obj = objs->GetTuple(objId, true);
 
-  for (it = orderedSeeds.begin(); it != orderedSeeds.end(); it++)
+  for (it = orderedSeeds->begin(); it != orderedSeeds->end(); it++)
   {
    TupleId seedId = *it;
    Tuple* seed = objs->GetTuple(seedId, true);
@@ -279,19 +297,19 @@ Method ~Optics::insert~
    if(((CcReal*)seed->GetAttribute(REA))->GetValue()
     > ((CcReal*)obj->GetAttribute(REA))->GetValue())
    {
-    orderedSeeds.insert(it, objId);
+    orderedSeeds->insert(it, objId);
     return;
    }
   }
 
-  orderedSeeds.push_back(objId);
+  orderedSeeds->push_back(objId);
  }
 /*
-Method ~Optics::decrease~
+Method ~OpticsM::decrease~
 
 */
  template<class T, class DistComp>
- void OpticsM<T, DistComp>::decrease(std::list<TupleId>& orderedSeeds
+ void OpticsM<T, DistComp>::decrease(std::list<TupleId>* orderedSeeds
   ,TupleId objId)
  {
   bool found    = false;
@@ -300,11 +318,11 @@ Method ~Optics::decrease~
   Tuple* obj = objs->GetTuple(objId, true);
   
   std::list<TupleId>::iterator itObjId;
-  for (itObjId = orderedSeeds.begin(); itObjId != orderedSeeds.end(); itObjId++)
+  for (itObjId = orderedSeeds->begin(); itObjId != orderedSeeds->end()
+   ;itObjId++)
   {
    seed = objs->GetTuple(*itObjId, true);
 
-   //first find the position
    if(obj == seed)
    {
     found = true;
@@ -314,9 +332,8 @@ Method ~Optics::decrease~
 
   if(found)
   {
-   //Now raise the tuple up
    std::list<TupleId>::iterator itId;
-   for (itId = itObjId; itId != orderedSeeds.begin(); --itId)
+   for (itId = itObjId; itId != orderedSeeds->begin(); --itId)
    {
     seed = objs->GetTuple(*itId, true);
 
@@ -330,8 +347,8 @@ Method ~Optics::decrease~
    
    if(decrease)
    {
-    orderedSeeds.insert(++itId, 1, objId);
-    orderedSeeds.erase(itObjId);
+    orderedSeeds->insert(++itId, 1, objId);
+    orderedSeeds->erase(itObjId);
    }
   }
  }
@@ -347,19 +364,23 @@ Method ~Optics::decrease~
   pair<T, TupleId> o((T) obj->GetAttribute(PNT), objId);
   pair<T, TupleId> n((T) neighbor->GetAttribute(PNT), neighborId);
   distance = dc(o, n);
-  
-  //new_r_dist:=max(c_dist,CenterObject.dist(Object));
+
   return ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance
    ? ((CcReal*)obj->GetAttribute(COR))->GetValue()
    : distance;
  }
+/*
+Defintion of the possible template values.
 
+*/
  template class OpticsM<CcInt*, IntDist>;
  template class OpticsM<CcReal*, RealDist>;
  template class OpticsM<Point*, PointDist>;
  template class OpticsM<CcString*, StringDist>;
+ template class OpticsM<Picture*, PictureDist>;
  template class OpticsM<CcInt*, CustomDist<CcInt*, CcInt> >;
  template class OpticsM<CcReal*, CustomDist<CcReal*, CcReal> >;
  template class OpticsM<Point*, CustomDist<Point*, CcReal> >;
  template class OpticsM<CcString*, CustomDist<CcString*, CcInt> >;
+ template class OpticsM<Picture*, CustomDist<Picture*, CcReal> >;
 }
