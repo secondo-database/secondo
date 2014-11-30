@@ -19,9 +19,9 @@
 
 package  viewer.optics;
 
-import viewer.SecondoViewer;
 import gui.MainWindow;
 import gui.SecondoObject;
+import gui.idmanager.ID;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -45,9 +45,9 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Vector;
-import javax.swing.AbstractListModel;
+import java.util.HashMap;
+import java.util.Iterator;
+
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -66,6 +66,7 @@ import javax.swing.event.ListSelectionListener;
 
 import sj.lang.ListExpr;
 import tools.Reporter;
+import viewer.SecondoViewer;
 
 /**
  * This class represents the viewer to display the data of optics operator.
@@ -105,9 +106,11 @@ public class OpticsViewer extends SecondoViewer
  
  private JButton btnToHeose = new JButton("Add to Hoese");
  
- private SecondoObject secObj = null;
- 
  private MainWindow parent = null;
+ 
+ private HashMap<ID, SecondoObject> cachedData = new HashMap<ID, SecondoObject>();
+ 
+ private ID displayedID = null;
 
  public OpticsViewer()
  {
@@ -142,6 +145,7 @@ public class OpticsViewer extends SecondoViewer
   lstPoints.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
   lstPoints.setCellRenderer(renderer);
   lstPoints.addListSelectionListener(this);
+  lstPoints.setFixedCellWidth(200);
   
   sclPoints.getVerticalScrollBar().setUnitIncrement(16);
   sclPoints.getHorizontalScrollBar().setUnitIncrement(16);
@@ -180,28 +184,50 @@ public class OpticsViewer extends SecondoViewer
  @Override
  public String getName()
  {
-  return "OpticsViewer";
+  return "OPTICS-Viewer";
  }
 
  @Override
  public boolean addObject(SecondoObject o)
  {
-  secObj = o;
-  return addData(o, false);
+  if(cachedData.get(o.getID()) == null)
+  {
+   cachedData.put(o.getID(), o);
+   return addData(o, false);
+  }
+  else
+  {
+   selectObject(o);
+  }
+  return false;
  }
 
  @Override
  public void removeObject(SecondoObject o) 
  {
-  chart.clear();
-  lstPoints.setListData(new OpticsPoint[]{});
-  lstPoints.revalidate();
-  txtEps.setText(null);
+  cachedData.remove(o.getID());
+  if( displayedID != null 
+   && displayedID.equals(o.getID()) )
+  {
+   chart.clear();
+   lstPoints.setListData(new OpticsPoint[]{});
+   lstPoints.revalidate();
+   txtEps.setText(null);
+  }
+
+  Iterator<ID> it = cachedData.keySet().iterator();
+
+  if(it.hasNext())
+  {
+   selectObject(cachedData.get(it.next()));
+  }
  }
 
  @Override
  public void removeAll() 
  {
+  displayedID = null;
+  cachedData.clear();
   chart.clear();
   lstPoints.setListData(new OpticsPoint[]{});
   lstPoints.revalidate();
@@ -231,7 +257,7 @@ public class OpticsViewer extends SecondoViewer
        || maintype.symbolValue().equals("mrel") 
        || maintype.symbolValue().equals("trel") ) )
    {
-    Reporter.showError("Not a relation!");
+    //Reporter.showError("Not a relation!");
     return false;
    }
 
@@ -301,13 +327,15 @@ public class OpticsViewer extends SecondoViewer
    if(!checkOnly)
    {
     add(leValue, leType);
+    displayedID = o.getID();
    }
    
    return true;
   }
   catch(Exception e)
   {
-   Reporter.showError(e.toString());
+   e.printStackTrace(System.out);
+   Reporter.showError(e.getStackTrace().toString());
   }
   
   return false;
@@ -317,8 +345,7 @@ public class OpticsViewer extends SecondoViewer
  {
   try
   {
-	  OpticsViewer.this.setCursor(new Cursor(Cursor.WAIT_CURSOR));
-   removeAll();
+   setCursor(new Cursor(Cursor.WAIT_CURSOR));
    ArrayList<OpticsPoint> alPoints = new ArrayList<OpticsPoint>(); 
    ListExpr tupletype = leType.second();
    // analyse the values
@@ -328,7 +355,6 @@ public class OpticsViewer extends SecondoViewer
    int len = TupleTypeValue.listLength();
    int order = 1;
    double eps = 0.0;
-   boolean epsSet = false;
    
    while(!leValue.isEmpty())
    {
@@ -341,7 +367,6 @@ public class OpticsViewer extends SecondoViewer
    
     String name  = null;
     String type  = null;
-    String value = null;
      
     while( !TupleValue.isEmpty()
         && !TupleTypeValue.isEmpty() )
@@ -405,24 +430,38 @@ public class OpticsViewer extends SecondoViewer
   }
   catch(Exception e)
   {
-   Reporter.showError(e.toString());
+   e.printStackTrace(System.out);
+   Reporter.showError(e.getStackTrace().toString());
   }
   finally
   {
-	  OpticsViewer.this.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+	  setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
   }
  }
 
  @Override
  public boolean isDisplayed(SecondoObject o) 
  {
-  return secObj == o;
+  return displayedID != null && displayedID.equals(o.getID());
  }
 
  @Override
  public boolean selectObject(SecondoObject o) 
  {
-  return addObject(o);
+  SecondoObject soCached = cachedData.get(o.getID());
+  
+  if(soCached == null)
+  {
+   return false;
+  }
+  
+  if( displayedID != null 
+   && displayedID.equals(o.getID()) )
+  {
+   return true;
+  }
+  
+  return addData(soCached, false);
  }
  
  @Override
@@ -461,8 +500,11 @@ public class OpticsViewer extends SecondoViewer
  {
   if(e.getSource() == lstPoints)
   {
-   chart.setSelected(((OpticsPoint) 
-    ((JList) e.getSource()).getSelectedValue()).order);
+   OpticsPoint tmp = (OpticsPoint) ((JList) e.getSource()).getSelectedValue();
+   if(tmp != null)
+   {
+    chart.setSelected(tmp.order);
+   }
   }
  }
 
@@ -579,7 +621,7 @@ public class OpticsViewer extends SecondoViewer
   }
   else
   {
-   ListExpr LE = secObj.toListExpr();
+   ListExpr LE = cachedData.get(displayedID).toListExpr();
    ListExpr type = LE.first();
    ListExpr value = LE.second();
   
@@ -605,7 +647,6 @@ public class OpticsViewer extends SecondoViewer
      ListExpr.symbolAtom("rel")
     ,ListExpr.twoElemList(
       ListExpr.symbolAtom("tuple"), newAttrList));
-      System.out.println(a.toString());
    
    ListExpr choice = null;
    ListExpr points = null;
@@ -613,13 +654,19 @@ public class OpticsViewer extends SecondoViewer
    int i = 0;
    ListExpr last = null;
    int cid = 1;
-   int lastCount = 0;
+   int lastCount = -1;
    
    do
    {
     ListExpr tmp = value.first();
-   
+    boolean add = false;
+    
     if(chart.isSelected(i))
+    {
+     add = true;     
+    }
+    
+    if(add)
     {
      cid = i-1 != lastCount ? ++cid : cid;
      
@@ -696,7 +743,9 @@ public class OpticsViewer extends SecondoViewer
   public String getTxt()
   {
    return "<html><table border=\"0\", style=\"font-family:arial;font-size:10\">" 
-   + txt + "</table></html>";
+   + txt + "<tr><td><b>ORDER" + "</b></td><td>:"
+            + "</td><td>" + order
+            + "</td></tr>" + "</table></html>";
   }
   
   public void setOrder(int order)
@@ -1181,24 +1230,13 @@ public class OpticsViewer extends SecondoViewer
    return d/(maxEps/CS_HEIGHT);
   }
   
-  private Color getNextColor()
-  {
-    if(curColor.equals(Color.BLUE))
-    {
-      return Color.GREEN;
-    }
-    else if(curColor.equals(Color.GREEN))
-    {
-      return Color.YELLOW;
-    }
-    else
-    {
-      return Color.BLUE;
-    }
-  }
-  
   public boolean isSelected(int i)
   {
+   if(i >= alPoints.size())
+   {
+    return false;
+   }
+   
    OpticsPoint p = alPoints.get(i);
    
    int p1X = (int) (OFF_SCL_WIDTH + (p.getOrder() * zoom));
@@ -1211,80 +1249,7 @@ public class OpticsViewer extends SecondoViewer
                                         ,p1X - OFF_SCL_WIDTH
                                         ,p1Y - OFF_SCL_HEIGTH)
      || p.getReachDist() < 0);
-   return cl;// || (p.getReachDist() < 0 && p.getCoreDist() > 0);
+   return cl;
   }
- }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
- private void test()
- {
-  ArrayList<OpticsPoint> alPoints = new ArrayList<OpticsPoint>();
-  
-  int a = 100;
-  int s = -1;
-  
-  for(int i = 1; i < 1000;)
-  {
-   a += s;
-   alPoints.add(new OpticsPoint(i++, a, 99));
-   
-   if(a == 50)
-   {
-    alPoints.add(new OpticsPoint(i++, -1, 99));
-    alPoints.add(new OpticsPoint(i++, a, 99));
-    alPoints.add(new OpticsPoint(i++, a, 99));
-    alPoints.add(new OpticsPoint(i++, a, 99));
-    s = s * -1;
-   }
-   else if(a == 100)
-   {
-    s = s * -1;
-   }
-  }
-  
-  chart.add(alPoints);
-  lstPoints.setListData(alPoints.toArray());
-  lstPoints.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-  lstPoints.revalidate();
-  sclChart.doLayout();
  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
