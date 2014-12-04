@@ -1,4 +1,3 @@
-
 /*
 ----
 This file is part of SECONDO.
@@ -45,11 +44,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NList.h"
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
-
-#include <boost/uuid/uuid.hpp>      
-#include <boost/uuid/uuid_generators.hpp> 
-#include <boost/uuid/uuid_io.hpp>  
-
 
 /*
 1.1 Defines
@@ -153,7 +147,7 @@ public:
     // Update last executed command
     bool result = cassandra -> executeCQLSync(
       query,
-      cql::CQL_CONSISTENCY_ONE
+      CASS_CONSISTENCY_ONE 
     );
   
     if(! result) {
@@ -258,7 +252,7 @@ bool updateLastCommand(CassandraAdapter* cassandra,
   // Update last executed command
   bool result = cassandra -> executeCQLSync(
     ss.str(),
-    cql::CQL_CONSISTENCY_ONE
+    CASS_CONSISTENCY_ONE 
   );
  
   if(! result) {
@@ -294,7 +288,7 @@ bool updateLastProcessedToken(CassandraAdapter* cassandra,
   // Update last executed command
   bool result = cassandra -> executeCQLSync(
     ss.str(),
-    cql::CQL_CONSISTENCY_ONE
+    CASS_CONSISTENCY_ONE 
   );
  
   if(! result) {
@@ -383,6 +377,24 @@ void executeSecondoCommand(SecondoInterface* si,
 }
 
 /*
+2.2 Crete a new UUID 
+
+*/
+void createUUID(string &uuid) {
+   char buffer[128];
+   FILE * file;
+   file = fopen( "/proc/sys/kernel/random/uuid" , "r");
+   
+   if (file) {
+     while (fscanf(file, "%s", buffer)!=EOF) {
+        uuid.append(buffer);
+     }
+   }  
+
+   fclose(file);
+}
+
+/*
 2.2 Execute a token query for a given tokenrange
 
 */
@@ -404,8 +416,8 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
     replacePlaceholder(ourQuery, "__TOKENRANGE__", ss.str());
     
     // Replace Query UUID placeholder
-    boost::uuids::uuid queryUuid = boost::uuids::random_generator()();
-    string myQueryUuid = boost::lexical_cast<std::string>(queryUuid);
+    string myQueryUuid;
+    createUUID(myQueryUuid);
     replacePlaceholder(ourQuery, "__QUERYUUID__", myQueryUuid);
     
     executeSecondoCommand(si, nl, ourQuery);
@@ -498,7 +510,7 @@ bool updateUuid(CassandraAdapter* cassandra, string uuid,
   
   bool result = cassandra -> executeCQLSync(
       ss.str(),
-      cql::CQL_CONSISTENCY_ONE
+      CASS_CONSISTENCY_ONE
   );
   
   if(! result) {
@@ -890,8 +902,8 @@ int main(int argc, char* argv[]){
   cout << "Connection to cassandra successfull" << endl;
 
   // Gernerate UUID
-  boost::uuids::uuid uuid = boost::uuids::random_generator()();
-  string myUuid = boost::lexical_cast<std::string>(uuid);
+  string myUuid;
+  createUUID(myUuid);
   cout << "Our id is: " << myUuid << endl;
   
   // Main Programm

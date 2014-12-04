@@ -32,9 +32,9 @@ endif
 
 
 LDFLAGS += -lpthread
-LDFLAGS += -lboost_system-mt -lboost_thread-mt -lboost_unit_test_framework-mt -lboost_date_time-mt -lboost_program_options-mt 
-LDFLAGS += -lssl -lcrypto -lz -lcql
-
+LDFLAGS += -lssl -lcrypto -lz -luv -lcassandra
+ 
+LDFLAGS += $(ALGDEPS)
 
 Algebra:
 	make -C ../../
@@ -45,7 +45,7 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 
 
 Queryexecutor$(EXEEXT): Queryexecutor.o
-	$(CPPC) -o Queryexecutor$(EXEEXT) Queryexecutor.o ../../CassandraAdapter.o ../../CqlSingleNodeLoadbalancing.o ../../CassandraResult.o $(LDFLAGS)
+	$(CPPC) -o Queryexecutor$(EXEEXT) Queryexecutor.o ../../CassandraAdapter.o ../../CassandraResult.o $(LDFLAGS)
 	rm -rf nltemp
 	mkdir nltemp
 
