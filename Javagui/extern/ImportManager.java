@@ -23,6 +23,7 @@ import sj.lang.ListExpr;
 import extern.dbfreader.Dbf3Reader;
 import extern.shapedbf.ShapeDbf;
 import extern.shapereader.ShapeReader;
+import extern.stlreader.StlReader;
 import java.io.File;
 import extern.binarylist.*;
 import tools.Reporter;
@@ -85,6 +86,17 @@ public ListExpr importFile(String FileName){
         return extractFromObject(LE);
      }
   }
+  
+
+  if(FileName.toLowerCase().endsWith(".stl")){
+     ListExpr res = stlReader.getList(FileName);
+     if(res!=null){
+        return res;
+     }
+     else{
+        ErrorText = stlReader.getErrorString();
+     }
+  }
 
   // ever try to load this file as nested list
   t1 = System.currentTimeMillis();
@@ -142,6 +154,7 @@ private String ErrorText="";
 private Dbf3Reader dbf3Reader = new Dbf3Reader();
 private ShapeReader shapereader = new ShapeReader();
 private ShapeDbf shapedbfreader = new ShapeDbf();
+private StlReader  stlReader = new StlReader();
 
 
 

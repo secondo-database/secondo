@@ -17,11 +17,11 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# filename extern/makefile
+# filename extern/dbfreader/makefile
 #
 # last change: 08-2003; Th. Behr
 
-include ../makefile.inc
+include ../../makefile.inc
 JAVAFILES =$(shell find -name "*.java")
 TMPFILES = $(subst .java,.class,$(JAVAFILES))
 CLASSFILES = $(subst ./,,$(TMPFILES))
@@ -29,29 +29,13 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 
 
 .PHONY:all
-all: subdirs $(CLASSFILES)
+all:  $(CLASSFILES)
 
 
-.PHONY:subdirs
-subdirs:
-	(make -C numericreader all)
-	(make -C shapereader all)
-	(make -C dbfreader all)
-	(make -C stlreader all)
-	(make -C shapedbf  all)
-	(make -C binarylist all)
-	(make -C psexport all)
 
 %.class:%.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
 
 .PHONY: clean
 clean:
-	(make -C numericreader clean)
-	(make -C shapereader clean)
-	(make -C dbfreader clean)
-	(make -C stlreader clean)
-	(make -C shapedbf clean)
-	(make -C binarylist clean)
-	(make -C psexport clean)
 	rm -f *.class
