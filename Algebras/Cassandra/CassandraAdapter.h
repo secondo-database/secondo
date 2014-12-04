@@ -290,8 +290,9 @@ public:
 
 */
     CassandraAdapter(string myContactpoint, string myKeyspace) 
-      : contactpoint(myContactpoint), keyspace(myKeyspace) {
-    
+      : contactpoint(myContactpoint), keyspace(myKeyspace),
+        insertCQLid(NULL) {
+          
     }
     
     virtual ~CassandraAdapter() {
@@ -623,7 +624,7 @@ protected:
        relation spoecified in the first parameter.
        
 */    
-  bool prepareCQLInsert(string relation, string consistenceLevel);
+  bool prepareCQLInsert(string relation);
 
 /*
 2.3.30 Iterate over all pending futures (e.g. writes), report
@@ -674,7 +675,7 @@ private:
   CassSession* session;
   
   // Query ID for prepared insert statement
-  CassPrepared* insertCQLid;  
+  const CassPrepared* insertCQLid;  
 
   // Pending futures (e.g. write requests)
   std::vector<CassFuture*> pendingFutures;             

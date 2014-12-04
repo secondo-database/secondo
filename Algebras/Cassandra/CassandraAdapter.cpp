@@ -149,35 +149,36 @@ void CassandraAdapter::writeDataToCassandra(string relation, string partition,
 void CassandraAdapter::writeDataToCassandraPrepared(string relation, 
         string partition, string node, string key, string value, 
         string consistenceLevel, bool sync) {
-    /*
-    // Statement unknown? => Prepare
-    if(insertCQLid.empty()) {
-       prepareCQLInsert(relation, consistenceLevel);
+   
+    CassFuture* future = NULL;
+ 
+    // If the statement is not prepared, prepare it now 
+    if(insertCQLid == NULL) {
+       prepareCQLInsert(relation);
        
-       if(insertCQLid.empty()) {
+       if(insertCQLid == NULL) {
          cout << "Unable to prepare CQL insert statement" << endl;
          return;
        }
     }
+   
+    CassStatement* statement = cass_prepared_bind(insertCQLid);
+    cass_statement_set_consistency(statement, 
+         CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
     
-    try {
-    // Use prepared query for execution
-    boost::shared_ptr<cql::cql_execute_t> boundCQLInsert(
-            new cql::cql_execute_t(
-              insertCQLid,         
-              CassandraHelper::convertConsistencyStringToEnum(consistenceLevel)
-    ));
-
-    // Bound prameter
-    boundCQLInsert -> push_back(partition);
-    boundCQLInsert -> push_back(node);
-    boundCQLInsert -> push_back(key);
-    boundCQLInsert -> push_back(value);
-    
+    // Bind parameter
+    cass_statement_bind_string(statement, 0, 
+         cass_string_init(partition.c_str()));
+    cass_statement_bind_string(statement, 1, 
+         cass_string_init(node.c_str()));
+    cass_statement_bind_string(statement, 2, 
+         cass_string_init(key.c_str()));
+    cass_statement_bind_string(statement, 3, 
+         cass_string_init(value.c_str()));
+ 
     // Build future and execute
-    boost::shared_future<cql::cql_future_result_t> future 
-       = session->execute(boundCQLInsert);
-    
+    future = cass_session_execute(session, statement);
+ 
     // Execution sync or async?
     if(sync) {
        executeCQLFutureSync(future);
@@ -185,45 +186,33 @@ void CassandraAdapter::writeDataToCassandraPrepared(string relation,
       pendingFutures.push_back(future);
       removeFinishedFutures();
     }
-    
-    } catch(std::exception& e) {
-        cerr << "Got exception executing perpared cql query: " 
-             << e.what() << endl;
-    }*/
+
+    cass_statement_free(statement);    
 }
 
-bool CassandraAdapter::prepareCQLInsert(string relation, 
-                                        string consistenceLevel) {
-/*     try {
+bool CassandraAdapter::prepareCQLInsert(string relation) {
+        
+        CassError rc = CASS_OK;
+        bool result = true;
+
         string cqlQuery = getInsertCQL(relation, "?", "?", "?", "?");
         cout << "Preparing insert query: "  << cqlQuery << endl;
-        
-        boost::shared_ptr<cql::cql_query_t> unboundInsert(
-            new cql::cql_query_t(cqlQuery, 
-            CassandraHelper::convertConsistencyStringToEnum
-                   (consistenceLevel))
-        );
-            
-        // Prepare CQL
-        boost::shared_future<cql::cql_future_result_t> future 
-            = session->prepare(unboundInsert);
-            
-        // Wait for result
-        future.wait();
-        
-        if(future.get().error.is_err()) {
-                cerr << "Unable to prepare Insert CQL " << endl;
-                cerr << "Error is " << future.get().error.message << endl;
+
+        CassString query = cass_string_init(cqlQuery.c_str());
+
+        CassFuture* future = cass_session_prepare(session, query);
+        cass_future_wait(future);
+
+        if(rc != CASS_OK) {
+           CassandraHelper::print_error(future);
+           result = false;
         } else {
-            insertCQLid = future.get().result->query_id();
-            return true;
+           insertCQLid = cass_future_get_prepared(future);
         }
-    } catch(std::exception& e) {
-        cerr << "Got exception while preparing cql query: " 
-             << e.what() << endl;
-    }
-   */ 
-    return false;
+    
+        cass_future_free(future);
+
+        return result;
 }
 
 string CassandraAdapter::getInsertCQL(string relation, string partition, 
