@@ -785,7 +785,12 @@ bool CassandraAdapter::getTokensFromQuery
               CassString item_string;
               cass_value_get_string(cass_iterator_get_value(items_iterator), 
                   &item_string);
-              long long tokenLong = atol(item_string.data);
+               
+               char value_buffer[128];   
+               memcpy(value_buffer, item_string.data, item_string.length);
+               value_buffer[item_string.length] = '\0';
+
+              long long tokenLong = atol(value_buffer);
               result.push_back(CassandraToken(tokenLong, currentPeer));
          }
          cass_iterator_free(items_iterator);

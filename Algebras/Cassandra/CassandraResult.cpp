@@ -81,7 +81,7 @@ bool SingleCassandraResult::hasNext() {
 void SingleCassandraResult::getStringValue(string &resultString, int pos) {
    CassString result;
    cass_value_get_string(cass_row_get_column(row, pos), &result);
-   resultString.append(result.data);
+   resultString.append(result.data, result.length);
 }
 
 cass_int64_t SingleCassandraResult::getIntValue(int pos) {
