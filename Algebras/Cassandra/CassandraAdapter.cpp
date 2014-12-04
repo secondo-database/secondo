@@ -559,6 +559,8 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string cql,
      cass_statement_set_consistency(statement, consistenceLevel);
 
      future = cass_session_execute(session, statement);
+     
+     cass_statement_free(statement);
 
      rc = cass_future_error_code(future);
      if(rc != CASS_OK) {
@@ -697,6 +699,8 @@ void CassandraAdapter::removeFinishedFutures(bool force) {
           CassandraHelper::print_error(future); 
         }
         
+        cass_future_free(future);
+ 
         iter = pendingFutures.erase(iter);
       } else {
         ++iter;
@@ -705,6 +709,8 @@ void CassandraAdapter::removeFinishedFutures(bool force) {
 }
 
 bool CassandraAdapter::executeCQLFutureSync(CassFuture* future) {
+
+    bool result = true;
 
      if(! isConnected() ) {
          cerr << "Cassandra session not ready" << endl;
@@ -716,10 +722,15 @@ bool CassandraAdapter::executeCQLFutureSync(CassFuture* future) {
 
      if(cass_future_error_code(future) != CASS_OK) {
          CassandraHelper::print_error(future); 
-         return false;
+         result = false;
      }
 
-     return true;
+     if(future != NULL) {
+           cass_future_free(future);
+           future = NULL;
+     } 
+      
+     return result;
 }
 
 CassFuture* CassandraAdapter::executeCQL
@@ -729,6 +740,8 @@ CassFuture* CassandraAdapter::executeCQL
           cass_statement_new(cass_string_init(cql.c_str()), 0);
     cass_statement_set_consistency(statement, consistency);
     CassFuture* future = cass_session_execute(session, statement);
+   
+    cass_statement_free(statement);
 
     return future;
 }
