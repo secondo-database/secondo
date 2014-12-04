@@ -2250,7 +2250,7 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
         ss << "values(" << queryid << ", '" << query << "');";
         
         bool insertResult = cassandra 
-            -> executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
+            -> executeCQLSync(ss.str(), CASS_CONSISTENCY_ALL);
   
         if(! insertResult) {
           cout << "Unable to execute query: " << ss.str() << endl;

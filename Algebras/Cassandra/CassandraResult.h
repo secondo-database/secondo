@@ -72,7 +72,7 @@ public:
        // To be implemented in subclasses
      }
      
-     virtual int getIntValue(int pos) {
+     virtual cass_int64_t getIntValue(int pos) {
        // To be implemented in subclasses
        return -1;
      }
@@ -88,18 +88,39 @@ class SingleCassandraResult : public CassandraResult {
 public:
 
      SingleCassandraResult(
-       boost::shared_future<cql::cql_future_result_t> myFuture) 
-        : future(myFuture), futureWaitCalled(false) {
+       CassFuture* myFuture) 
+        : future(myFuture), 
+          result(NULL), iterator(NULL), row(NULL),
+          futureWaitCalled(false) {
      }
      
-     //virtual ~SingleCassandraResult() { }
+     virtual ~SingleCassandraResult() { 
+         
+         if(result != NULL) {
+              cass_result_free(result);
+              result = NULL;     
+         }
+
+         if(iterator != NULL) {
+             cass_iterator_free(iterator);
+             iterator = NULL;
+         }
+
+         if(future != NULL) {
+             cass_future_free(future);
+             future = NULL;
+         }
+     }
      
      virtual bool hasNext();
      virtual void getStringValue(string &resultString, int pos);
-     virtual int getIntValue(int pos);
+     virtual cass_int64_t getIntValue(int pos);
      
 private:
-     boost::shared_future<cql::cql_future_result_t> future;
+     CassFuture* future;
+     const CassResult* result;
+     CassIterator* iterator;
+     const CassRow* row;
      bool futureWaitCalled;
 };
 
@@ -113,18 +134,18 @@ public:
      
   MultiCassandraResult(vector<string> myQueries, 
                           CassandraAdapter* myCassandraAdapter,
-                          cql::cql_consistency_enum myConsistenceLevel);
+                          CassConsistency myConsistenceLevel);
   
   virtual ~MultiCassandraResult();
   virtual bool setupNextQuery();
   virtual bool hasNext();
   virtual void getStringValue(string &resultString, int pos);
-  virtual int getIntValue(int pos);
+  virtual cass_int64_t getIntValue(int pos);
   
 protected:
   vector<string> queries;
   CassandraAdapter* cassandraAdapter;
-  cql::cql_consistency_enum consistenceLevel;
+  CassConsistency consistenceLevel;
   CassandraResult* cassandraResult;
 };
 
@@ -140,13 +161,13 @@ public:
      
   MultiThreadedCassandraResult(vector<string> myQueries, 
                           CassandraAdapter* myCassandraAdapter,
-                          cql::cql_consistency_enum myConsistenceLevel
+                          CassConsistency myConsistenceLevel
                       );
   
   virtual ~MultiThreadedCassandraResult();
   virtual bool hasNext();
   virtual void getStringValue(string &resultString, int pos);
-  virtual int getIntValue(int pos);
+  virtual cass_int64_t getIntValue(int pos);
   
 private:
   queue< vector<string> > results;

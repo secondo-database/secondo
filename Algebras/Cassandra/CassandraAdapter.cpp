@@ -39,30 +39,14 @@
 #include <iostream>
 #include <climits>
 #include <map>
+#include <sstream>
+#include <stdlib.h>
+#include <arpa/inet.h>
+#include <uv.h>
 
 #include <cassert>
+#include <cassandra.h>
 
-#include <boost/bind.hpp>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/foreach.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/thread.hpp>
-#include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include <cql/cql.hpp>
-#include <cql/cql_error.hpp>
-#include <cql/cql_event.hpp>
-#include <cql/cql_connection.hpp>
-#include <cql/cql_session.hpp>
-#include <cql/cql_cluster.hpp>
-#include <cql/cql_builder.hpp>
-#include <cql/cql_execute.hpp>
-#include <cql/cql_result.hpp>
-#include <cql/cql_set.hpp>
-
-#include "CqlSingleNodeLoadbalancing.h"
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
 
@@ -77,38 +61,58 @@ namespace cassandra {
 // Init static variables
 const string CassandraAdapter::METADATA_TUPLETYPE = "_TUPLETYPE";
 
+CassError CassandraAdapter::connect_session(CassCluster* cluster, 
+    CassSession** output) {
+   
+   CassError rc = CASS_OK;
+   CassFuture* future = cass_cluster_connect(cluster);
+   
+   *output = NULL;
+   
+   cass_future_wait(future);
+   
+   rc = cass_future_error_code(future);
+
+   if (rc != CASS_OK) {
+      CassandraHelper::print_error(future);
+   } else {
+      *output = cass_future_get_session(future);
+   }
+   
+   cass_future_free(future);
+   return rc;
+}
+
 void CassandraAdapter::connect(bool singleNodeLoadBalancing) {
-    try {
+   
+     CassError rc = CASS_OK;
+     stringstream ss;
 
-        // Connect to cassandra cluster
-        builder -> add_contact_point(
-            boost::asio::ip::address::from_string(contactpoint)
-        );
+     cluster = cass_cluster_new();
+     cass_cluster_set_contact_points(cluster, contactpoint.c_str());        
+     
+     // Switch to single node policy
+     if(singleNodeLoadBalancing) {
+         cass_cluster_set_load_balance_single(cluster, contactpoint.c_str()); 
+     }
+      
+     rc = connect_session(cluster, &session);
 
-        // Set our single node policy
-        if(singleNodeLoadBalancing) {
-          builder -> with_load_balancing_policy( 
-                  boost::shared_ptr< cql::cql_load_balancing_policy_t >( 
-                      new SingleNodeLoadBlancing(contactpoint)));
-        }
-        
-        cluster = builder -> build();
-        session = cluster -> connect();
-        
+     if (rc != CASS_OK) {
+        session = NULL;
+        disconnect();
+     } else {
+        ss << "USE ";
+        ss << keyspace;
+
         // Switch keyspace
-        session -> set_keyspace(keyspace);
-       
+        executeCQLSync(ss.str(), CASS_CONSISTENCY_ALL);
+
         cout << "Cassandra: Connection successfully established" << endl;
         cout << "You are connected to host " << contactpoint
                  << " keyspace " << keyspace << endl;
         cout << "SingleNodeLoadBalancing: " << singleNodeLoadBalancing << endl;
-       
-    } catch(std::exception& e) {
-        cerr << "Got exception while connection to cassandra: "
-             << e.what() << endl;
-
-        disconnect();
-    }
+     }
 }
 
 bool CassandraAdapter::isConnected() {
@@ -124,20 +128,20 @@ void CassandraAdapter::writeDataToCassandra(string relation, string partition,
         bool sync) {
 
     // Convert consistence level
-    cql::cql_consistency_enum consitence 
+    CassConsistency consistency
        = CassandraHelper::convertConsistencyStringToEnum(consistenceLevel);
        
     // Write Data and wait for result
     if(sync) {
       executeCQLSync(
           getInsertCQL(relation, partition, node, key, value),
-          consitence
+          consistency
       );
       
     } else {
       executeCQLASync(
           getInsertCQL(relation, partition, node, key, value),
-          consitence
+          consistency
       );
     }
 }
@@ -145,7 +149,7 @@ void CassandraAdapter::writeDataToCassandra(string relation, string partition,
 void CassandraAdapter::writeDataToCassandraPrepared(string relation, 
         string partition, string node, string key, string value, 
         string consistenceLevel, bool sync) {
-
+    /*
     // Statement unknown? => Prepare
     if(insertCQLid.empty()) {
        prepareCQLInsert(relation, consistenceLevel);
@@ -185,12 +189,12 @@ void CassandraAdapter::writeDataToCassandraPrepared(string relation,
     } catch(std::exception& e) {
         cerr << "Got exception executing perpared cql query: " 
              << e.what() << endl;
-    }
+    }*/
 }
 
 bool CassandraAdapter::prepareCQLInsert(string relation, 
                                         string consistenceLevel) {
-     try {
+/*     try {
         string cqlQuery = getInsertCQL(relation, "?", "?", "?", "?");
         cout << "Preparing insert query: "  << cqlQuery << endl;
         
@@ -218,7 +222,7 @@ bool CassandraAdapter::prepareCQLInsert(string relation,
         cerr << "Got exception while preparing cql query: " 
              << e.what() << endl;
     }
-    
+   */ 
     return false;
 }
 
@@ -256,7 +260,7 @@ CassandraResult* CassandraAdapter::getAllTables(string keyspace) {
     ss << keyspace;
     ss << "';";
     
-  return readDataFromCassandra(ss.str(), cql::CQL_CONSISTENCY_ONE);
+  return readDataFromCassandra(ss.str(), CASS_CONSISTENCY_ONE);
 }
 
 
@@ -275,7 +279,7 @@ bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
 
     // Execute query
     CassandraResult* cassandraResult = 
-       readDataFromCassandra(query, cql::CQL_CONSISTENCY_ONE, false);
+       readDataFromCassandra(query, CASS_CONSISTENCY_ONE, false);
     
     if(cassandraResult == NULL) {
       return false;
@@ -539,33 +543,32 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
 
 
 CassandraResult* CassandraAdapter::readDataFromCassandra(string cql, 
-         cql::cql_consistency_enum consistenceLevel, bool printError) {
+         CassConsistency consistenceLevel, bool printError) {
+
+     CassError rc = CASS_OK;
+     CassFuture* future = NULL;
       
-    if(! isConnected() ) {
+     if(! isConnected() ) {
         cerr << "Cassandra session not ready" << endl;
         return NULL;
-    }
+     }
 
-    try {
-        boost::shared_ptr<cql::cql_query_t> cqlStatement(
-            new cql::cql_query_t(cql,
-            consistenceLevel
-        ));
+     CassStatement* statement = cass_statement_new(
+              cass_string_init(cql.c_str()), 0);
 
-        boost::shared_future<cql::cql_future_result_t> future
-            = session->query(cqlStatement);
+     cass_statement_set_consistency(statement, consistenceLevel);
 
-        if(future.get().error.is_err()) {
-            if(printError) {
-              cerr << "Unable to execute " << cqlStatement << endl;
-              cerr << "Error is " << future.get().error.message << endl;
-            }
-        } else {
-            return new SingleCassandraResult(future);
+     future = cass_session_execute(session, statement);
+
+     rc = cass_future_error_code(future);
+     if(rc != CASS_OK) {
+        if(printError) {
+            cerr << "Unable to execute " << cql << endl;
+            CassandraHelper::print_error(future);
         }
-    } catch(std::exception& e) {
-        cerr << "Got exception while reading data: " << e.what() << endl;
-    }
+     } else {
+         return new SingleCassandraResult(future);
+     }
 
     return NULL;
 }
@@ -579,9 +582,7 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
     ss << " ( partition text, node text, key text,";
     ss << " value text, PRIMARY KEY(partition, node, key));";
 
-    bool resultCreate = executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
-    
-    sleep(1);
+    bool resultCreate = executeCQLSync(ss.str(), CASS_CONSISTENCY_ALL);
     
     // Write tupletype
     if(resultCreate) {
@@ -590,7 +591,7 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
             getInsertCQL(tablename, CassandraAdapter::METADATA_TUPLETYPE,
                          CassandraAdapter::METADATA_TUPLETYPE, 
                          CassandraAdapter::METADATA_TUPLETYPE, tupleType),
-            cql::CQL_CONSISTENCY_ALL
+            CASS_CONSISTENCY_ALL
       );
       
       if(resultInsert) {
@@ -609,32 +610,21 @@ bool CassandraAdapter::dropTable(string tablename) {
     ss << tablename;
     ss << ";";
 
-    return executeCQLSync(ss.str(), cql::CQL_CONSISTENCY_ALL);
+    return executeCQLSync(ss.str(), CASS_CONSISTENCY_ALL);
 }
 
 void CassandraAdapter::waitForPendingFutures() {
     if(! pendingFutures.empty()) {
-      cout << "Wait for pending futures: " << flush;
       
-      for(vector < boost::shared_future<cql::cql_future_result_t> >
-          ::iterator iter = pendingFutures.begin(); 
+      for(vector<CassFuture*>::iterator iter = pendingFutures.begin(); 
           iter != pendingFutures.end(); ++iter) {
         
-          boost::shared_future<cql::cql_future_result_t> future = *iter;
-      
-          if(! future.is_ready() && ! future.has_exception() ) {
-            // Assume future error after 100 seconds
-            future.timed_wait(boost::posix_time::millisec(100));
-            cout << "." << flush;
-          }
+          CassFuture* future = *iter;
+          cass_future_wait(future);
       }
-      
-      cout << endl;
       
       // Force removal of finished futures
       removeFinishedFutures(true);
-      
-      cout << "All futures finished" << endl;
    }
 }
 
@@ -645,69 +635,45 @@ void CassandraAdapter::disconnect() {
         cout << "Disconnecting from cassandra" << endl;
 
         // Close session and cluster
-        session -> close();
-        cluster -> shutdown();
+        CassFuture* close_future = cass_session_close(session);
+        cass_future_wait(close_future);
+        cass_future_free(close_future);
+        cass_cluster_free(cluster);
 
-        // Reset pointer
-        session.reset();
-        cluster.reset();
-        builder.reset();
+        session = NULL;
     }
 }
 
 bool CassandraAdapter::executeCQLSync
-(string cql, cql::cql_consistency_enum consistency) {
-      try {
+   (string cql, CassConsistency consistency) {
+        
+   if(! isConnected() ) {
+      cerr << "Cassandra session not ready" << endl;
+      return false;
+   }
 
-        if(! isConnected() ) {
-            cerr << "Cassandra session not ready" << endl;
-            return false;
-        }
-
-        boost::shared_future<cql::cql_future_result_t> future
-          = executeCQL(cql, consistency);
+   CassFuture* future = executeCQL(cql, consistency);
           
-        return executeCQLFutureSync(future);
-
-      } catch(std::exception& e) {
-        cerr << "Got exception while executing cql: " << e.what() << endl;
-      }
-
-    return false;
+   return executeCQLFutureSync(future);
 }
 
 bool CassandraAdapter::executeCQLASync
-(string cql, cql::cql_consistency_enum consistency) {
+    (string cql, CassConsistency consistency) {
       
-      try {
-
-        if(! isConnected() ) {
-            cerr << "Cassandra session not ready" << endl;
-            return false;
-        }
+     if(! isConnected() ) {
+        cerr << "Cassandra session not ready" << endl;
+        return false;
+     }
         
-        usleep(250 + (pendingFutures.size()));
- 
-        while(pendingFutures.size() > 50) {
+     while(pendingFutures.size() > 50) {
           waitForPendingFutures();
-          usleep(1000);
-          removeFinishedFutures(true);
-        }
+     }
 
-        boost::shared_future<cql::cql_future_result_t> future
-          = executeCQL(cql, consistency);
-          
-        pendingFutures.push_back(future);
+     CassFuture* future = executeCQL(cql, consistency);
+     pendingFutures.push_back(future);
+     removeFinishedFutures();
         
-        removeFinishedFutures();
-        
-        return true;
-      
-      } catch(std::exception& e) {
-        cerr << "Got exception while executing cql: " << e.what() << endl;
-      }
-
-    return false;
+     return true;
 }
 
 void CassandraAdapter::removeFinishedFutures(bool force) {
@@ -718,19 +684,17 @@ void CassandraAdapter::removeFinishedFutures(bool force) {
     }
   
     // Are some futures finished?
-    for(vector < boost::shared_future<cql::cql_future_result_t> >
-      ::iterator iter = pendingFutures.begin(); 
-      iter != pendingFutures.end(); 
-      ) {
+    for(vector<CassFuture*>::iterator iter = pendingFutures.begin(); 
+      iter != pendingFutures.end(); ) {
       
-      boost::shared_future<cql::cql_future_result_t> future = *iter;
+      CassFuture* future = *iter;
       
       // Remove finished futures
-      if(future.is_ready()) {
+      if(cass_future_ready(future) == cass_true) {
         
-        if(future.get().error.is_err()) {
-          cerr << "Got error while executing future: " 
-                << future.get().error.message << endl;
+        if(cass_future_error_code(future) != CASS_OK) {
+          cerr << "Got error while executing future" << endl;
+          CassandraHelper::print_error(future); 
         }
         
         iter = pendingFutures.erase(iter);
@@ -740,96 +704,96 @@ void CassandraAdapter::removeFinishedFutures(bool force) {
     }
 }
 
-bool CassandraAdapter::executeCQLFutureSync
-(boost::shared_future<cql::cql_future_result_t> cqlFuture) {
+bool CassandraAdapter::executeCQLFutureSync(CassFuture* future) {
 
-    try {
+     if(! isConnected() ) {
+         cerr << "Cassandra session not ready" << endl;
+         return false;
+     }
 
-        if(! isConnected() ) {
-            cerr << "Cassandra session not ready" << endl;
-            return false;
-        }
+     // Wait for execution
+     cass_future_wait(future);
 
-        // Wait for execution
-        cqlFuture.wait();
+     if(cass_future_error_code(future) != CASS_OK) {
+         CassandraHelper::print_error(future); 
+         return false;
+     }
 
-        if(cqlFuture.get().error.is_err()) {
-            cerr << "Error is " << cqlFuture.get().error.message << endl;
-            return false;
-        }
-
-        return true;
-
-    } catch(std::exception& e) {
-        cerr << "Got exception while executing cql future: " 
-             << e.what() << endl;
-    }
-
-    return false;
+     return true;
 }
 
-boost::shared_future<cql::cql_future_result_t>
-CassandraAdapter::executeCQL
-(string cql, cql::cql_consistency_enum consistency) {
+CassFuture* CassandraAdapter::executeCQL
+   (string cql, CassConsistency consistency) {
 
-
-    boost::shared_ptr<cql::cql_query_t> cqlStatement(
-        new cql::cql_query_t(cql, consistency));
-
-    boost::shared_future<cql::cql_future_result_t> future
-    = session->query(cqlStatement);
+    CassStatement* statement = 
+          cass_statement_new(cass_string_init(cql.c_str()), 0);
+    cass_statement_set_consistency(statement, consistency);
+    CassFuture* future = cass_session_execute(session, statement);
 
     return future;
 }
 
 bool CassandraAdapter::getTokensFromQuery
     (string query, vector <CassandraToken> &result, string peer) {    
-      
-    try {
-       boost::shared_future< cql::cql_future_result_t > future = 
-          executeCQL(query, cql::CQL_CONSISTENCY_ALL);
+     
+     CassError rc = CASS_OK;  
+     CassFuture* future = executeCQL(query, CASS_CONSISTENCY_ALL);
   
-       future.wait();
+     cass_future_wait(future);
+
+     if (rc != CASS_OK) {
+             CassandraHelper::print_error(future);
+             return false;
+     }   
+     
+     const CassResult* cas_result = cass_future_get_result(future);
+     CassIterator* iterator = cass_iterator_from_result(cas_result);
     
-       if(future.get().error.is_err()) {
-         cerr << "Unable to fetch local token list" << endl;
-         return false;
-       }
-    
-       cql::cql_result_t& cqlResult = *(future.get().result);
-    
-       while(cqlResult.next()) {
-         cql::cql_set_t* setResult = NULL;
-         cqlResult.get_set(0, &setResult);
+      while(cass_iterator_next(iterator)) {
+         const CassRow* row = cass_iterator_get_row(iterator);
          
          // No peer argument was given, fetch from database
          string currentPeer = peer;
          
          if(currentPeer.empty()) {
-           
            // Convert data into ip addresss
-           boost::asio::ip::address peerData;
-           cqlResult.get_inet("peer", peerData );
-           currentPeer = peerData.to_string();
+           CassInet peerData;
+           cass_value_get_inet(cass_row_get_column_by_name(row, "peer"), 
+              &peerData);
+           char buf[INET_ADDRSTRLEN];
+           uv_inet_ntop(AF_INET, peerData.address, buf, sizeof(buf));
+           currentPeer = buf; 
          }
-      
-         if(setResult != NULL) {
-             for (size_t i = 0; i < setResult->size(); ++i) {
-                string token;
-                setResult->get_string(i, token);
-                long long tokenLong = atol(token.c_str());
-                result.push_back(CassandraToken(tokenLong, currentPeer));
-             }
-    
-             delete setResult;
+         
+         const CassValue* value = cass_row_get_column(row, 0); 
+         CassIterator* items_iterator = cass_iterator_from_collection(value);
+ 
+         while(cass_iterator_next(items_iterator)) {
+              CassString item_string;
+              cass_value_get_string(cass_iterator_get_value(items_iterator), 
+                  &item_string);
+              long long tokenLong = atol(item_string.data);
+              result.push_back(CassandraToken(tokenLong, currentPeer));
          }
+         cass_iterator_free(items_iterator);
        }
-     } catch(std::exception& e) {
-        cerr << "Got exception while executing cql: " << e.what() << endl;
-        return false;
-     }
-   
-     return true;
+       
+      if(cas_result != NULL) {
+            cass_result_free(cas_result);
+            cas_result = NULL;    
+       }   
+
+       if(iterator != NULL) {
+           cass_iterator_free(iterator);
+           iterator = NULL;
+       }   
+
+       if(future != NULL) {
+           cass_future_free(future);
+           future = NULL;
+       }       
+
+    return true;
 }
 
 bool CassandraAdapter::getLocalTokens(vector <CassandraToken> &result) {
@@ -876,7 +840,7 @@ bool CassandraAdapter::createMetatables() {
  
     // Create queries table
     bool result = executeCQLSync(
-      query, cql::CQL_CONSISTENCY_ALL
+      query, CASS_CONSISTENCY_ALL 
     );
   
     if(! result) {
@@ -905,7 +869,7 @@ bool CassandraAdapter::dropMetatables() {
   
     // Create queries table
     bool result = executeCQLSync(
-      query, cql::CQL_CONSISTENCY_ALL
+      query, CASS_CONSISTENCY_ALL
     );
   
     if(! result) {
@@ -924,12 +888,12 @@ bool CassandraAdapter::dropMetatables() {
 
 CassandraResult* CassandraAdapter::getQueriesToExecute() {
   return readDataFromCassandra
-            ("SELECT id, query from system_queries", cql::CQL_CONSISTENCY_ALL);
+            ("SELECT id, query from system_queries", CASS_CONSISTENCY_ALL);
 }
 
 CassandraResult* CassandraAdapter::getGlobalQueryState() {
     return readDataFromCassandra
-          ("SELECT ip, lastquery FROM system_state", cql::CQL_CONSISTENCY_ALL);
+          ("SELECT ip, lastquery FROM system_state", CASS_CONSISTENCY_ALL);
 }
 
 void CassandraAdapter::quoteCqlStatement(string &query) {
@@ -970,7 +934,7 @@ bool CassandraAdapter::copyTokenRangesToSystemtable (string localip) {
           // Update last executed command
           bool result = executeCQLSync(
             ss.str(),
-            cql::CQL_CONSISTENCY_ALL
+            CASS_CONSISTENCY_ALL
           );
           
           if(! result) {
@@ -1002,118 +966,115 @@ bool CassandraAdapter::getProcessedTokenRangesForQuery (
 
 bool CassandraAdapter::getTokenrangesFromQuery (
     vector<TokenRange> &result, string query) {
-
-    try {   
-       boost::shared_future< cql::cql_future_result_t > future = 
-          executeCQL(query, cql::CQL_CONSISTENCY_ALL);
   
-       future.wait();
-    
-       if(future.get().error.is_err()) {
-         cerr << "Unable to fetch processed tokens for query" << endl;
-         return false;
-       }
+  CassError rc = CASS_OK; 
+  CassFuture* future = executeCQL(query, CASS_CONSISTENCY_ALL);
+ 
+  cass_future_wait(future);
+
+  if (rc != CASS_OK) {
+     CassandraHelper::print_error(future);
+     return false;
+  } 
        
-       // Does the query return queryuuids?
-       bool containsQueryuuid = query.find("queryuuid") != string::npos;
-    
-       cql::cql_result_t& cqlResult = *(future.get().result);
-    
-       while(cqlResult.next()) {
+   // Does the query return queryuuids?
+   bool containsQueryuuid = query.find("queryuuid") != string::npos;
+  
+   const CassResult* cas_result = cass_future_get_result(future);
+   CassIterator* iterator = cass_iterator_from_result(cas_result);
+  
+   while(cass_iterator_next(iterator)) {
+         
+         const CassRow* row = cass_iterator_get_row(iterator);
+         CassString result_string;
+
          string ip;
          string beginToken;
          string endToken;
          string queryuuid = "";
          
-         cqlResult.get_string(0, ip);
-         cqlResult.get_string(1, beginToken);
-         cqlResult.get_string(2, endToken);
-        
+         cass_value_get_string(cass_row_get_column(row, 0), &result_string);
+         ip.append(result_string.data);
+
+         cass_value_get_string(cass_row_get_column(row, 1), &result_string);
+         beginToken.append(result_string.data);
+          
+         cass_value_get_string(cass_row_get_column(row, 2), &result_string);
+         endToken.append(result_string.data);
+ 
          long long beginLong = atol(beginToken.c_str());
          long long endLong = atol(endToken.c_str());
          
          if(containsQueryuuid) {
-           cqlResult.get_string(3, queryuuid);
+           cass_value_get_string(cass_row_get_column(row, 3), &result_string);
+           queryuuid.append(result_string.data);
          }
          
          result.push_back(TokenRange(beginLong, endLong, ip, queryuuid));
-       }
-     } catch(std::exception& e) {
-        cerr << "Got exception while executing cql: " << e.what() << endl;
-        return false;
-     }
-     
+    }
+    
+    if(cas_result != NULL) {
+       cass_result_free(cas_result);
+       cas_result = NULL;    
+    }
+
+    if(iterator != NULL) {
+       cass_iterator_free(iterator);
+       iterator = NULL; 
+    }
+
+    if(future != NULL) {
+       cass_future_free(future);
+       future = NULL;
+    }
+
      // Sort result
      sort(result.begin(), result.end());
-   
+     
      return true;
 }
 
 bool CassandraAdapter::getHeartbeatData(map<string, time_t> &result) {
-    try {   
-
-       boost::shared_future< cql::cql_future_result_t > future = 
-          executeCQL(string("SELECT ip, heartbeat FROM system_state"), 
-                     cql::CQL_CONSISTENCY_ONE);
+ 
+  CassandraResult *cas_result = readDataFromCassandra(
+            string("SELECT ip, heartbeat FROM system_state"), 
+            CASS_CONSISTENCY_ONE);
   
-       future.wait();
-    
-       if(future.get().error.is_err()) {
-         cerr << "Unable to fetch heartbeat data" << endl;
-         return false;
-       }
-    
-       cql::cql_result_t& cqlResult = *(future.get().result);
-    
-       while(cqlResult.next()) {
+  while(cas_result->hasNext()) {
          string ip;
-         boost::int64_t res;
-         
-         cqlResult.get_string(0, ip);
-         cqlResult.get_bigint(1, res);
+         cass_int64_t res;
+          
+         res = cas_result->getIntValue(1);
+         cas_result->getStringValue(ip, 0); 
          
          result.insert(std::pair<string,time_t>(ip,(time_t) res));
-       }
-     } catch(std::exception& e) {
-        cerr << "Got exception while executing cql: " << e.what() << endl;
-        return false;
-     }
-   
-     return true;
+   }
+
+   delete cas_result;
+
+   return true;
 }
 
 bool CassandraAdapter::getNodeData(map<string, string> &result) {
-    try {   
 
-       boost::shared_future< cql::cql_future_result_t > future = 
-          executeCQL(string("SELECT ip, node FROM system_state"), 
-                     cql::CQL_CONSISTENCY_ALL);
+
+ CassandraResult *cas_result = readDataFromCassandra(
+            string("SELECT ip, node FROM system_state"), 
+            CASS_CONSISTENCY_ONE);
   
-       future.wait();
-    
-       if(future.get().error.is_err()) {
-         cerr << "Unable to fetch heartbeat data" << endl;
-         return false;
-       }
-    
-       cql::cql_result_t& cqlResult = *(future.get().result);
-    
-       while(cqlResult.next()) {
+  while(cas_result->hasNext()) {
          string ip;
          string node;
          
-         cqlResult.get_string(0, ip);
-         cqlResult.get_string(1, node);
+         cas_result->getStringValue(ip, 0); 
+         cas_result->getStringValue(node, 1); 
          
          result.insert(std::pair<string,string>(ip, node));
-       }
-     } catch(std::exception& e) {
-        cerr << "Got exception while executing cql: " << e.what() << endl;
-        return false;
-     }
-   
-     return true;
+   }
+
+   delete cas_result;
+
+   return true;
 }
 
 }
-

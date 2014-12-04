@@ -45,30 +45,16 @@
 #ifndef _CASSANDRA_H
 #define _CASSANDRA_H
 
+#include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <iostream>
 #include <map>
-
+#include <stdlib.h>
 #include <cassert>
-
-#include <boost/bind.hpp>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/foreach.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/thread.hpp>
-#include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include <cql/cql.hpp>
-#include <cql/cql_error.hpp>
-#include <cql/cql_event.hpp>
-#include <cql/cql_connection.hpp>
-#include <cql/cql_session.hpp>
-#include <cql/cql_cluster.hpp>
-#include <cql/cql_builder.hpp>
-#include <cql/cql_execute.hpp>
-#include <cql/cql_result.hpp>
+#include <cassandra.h>
+#include <algorithm>
+#include <limits.h>
 
 #include "CassandraResult.h"
 
@@ -110,28 +96,39 @@ public:
 2.1.1 Converts a string into a ~cql\_consistency\_enum~
 
 */    
-    static cql::cql_consistency_enum convertConsistencyStringToEnum
+    static CassConsistency convertConsistencyStringToEnum
       (string consistenceLevel) {
         
         if(consistenceLevel.compare("ANY") == 0) {
-          return cql::CQL_CONSISTENCY_ANY;
+          return CASS_CONSISTENCY_ANY;
         }
         
         if(consistenceLevel.compare("ONE") == 0) {
-          return cql::CQL_CONSISTENCY_ONE;
+          return CASS_CONSISTENCY_ONE;
         }
         
         if(consistenceLevel.compare("QUORUM") == 0) {
-          return cql::CQL_CONSISTENCY_QUORUM;
+          return CASS_CONSISTENCY_QUORUM;
         }
         
         if(consistenceLevel.compare("ALL") == 0) {
-          return cql::CQL_CONSISTENCY_ONE;
+          return CASS_CONSISTENCY_ALL;
         }
         
-        return cql::CQL_CONSISTENCY_ONE;
+        return CASS_CONSISTENCY_ONE;
     }
 
+/*
+2.1.2 Get the error message from a future and print it 
+
+1. Parameter is the future 
+
+*/
+  static void print_error(CassFuture* future) {
+    CassString message = cass_future_error_message(future);
+    fprintf(stderr, "Error: %.*s\n", (int)message.length, message.data);
+  }
+ 
 };
 
 /*
@@ -295,7 +292,6 @@ public:
     CassandraAdapter(string myContactpoint, string myKeyspace) 
       : contactpoint(myContactpoint), keyspace(myKeyspace) {
     
-        builder = cql::cql_cluster_t::builder();
     }
     
     virtual ~CassandraAdapter() {
@@ -461,7 +457,7 @@ a valid result. False otherweise
 
 */    
   CassandraResult* readDataFromCassandra(string cql, 
-         cql::cql_consistency_enum consistenceLevel,
+         CassConsistency consistenceLevel,
          bool printError = true);
 
 /*
@@ -495,13 +491,13 @@ a valid result. False otherweise
 2.3.12 Execute the cql statement with a given consistence level synchronus
 
 */    
-  bool executeCQLSync(string cql, cql::cql_consistency_enum consistency);
+  bool executeCQLSync(string cql, CassConsistency consistency);
 
 /*
 2.3.13 Execute the cql statement with a given consistence level asynchronus
 
 */    
-  bool executeCQLASync(string cql, cql::cql_consistency_enum consistency);
+  bool executeCQLASync(string cql, CassConsistency consistency);
 
 /*
 2.3.14 Create meta tables for queries and status information
@@ -601,16 +597,15 @@ protected:
        true if the future is executed successfully. False otherwise.
        
 */    
-  bool executeCQLFutureSync(
-    boost::shared_future<cql::cql_future_result_t> cqlFuture);
+  bool executeCQLFutureSync(CassFuture* cqlFuture);
 
 /*
 2.3.27 Execute the given cql. Returns a future containing the
        Query result.
        
 */    
-  boost::shared_future<cql::cql_future_result_t> 
-     executeCQL(string cql, cql::cql_consistency_enum consistency);
+  CassFuture* 
+     executeCQL(string cql, CassConsistency consistency);
 
 /*
 2.3.28 Returns a CQL statement for inserting a new row. The
@@ -650,8 +645,17 @@ protected:
 */
   bool getTokensFromQuery (string query, vector <CassandraToken> &result, 
                            string peer);
-   
-  
+
+/*
+2.3.32 Connect to the cassandra cluster 
+
+1. Parameter is the cassandra cluster 
+2. Parameter is the session instance
+
+*/
+  CassError connect_session(CassCluster* cluster, CassSession** output);   
+
+ 
 private:
 
   // Our cassandra contact point
@@ -663,21 +667,17 @@ private:
   // Our relation
   string relation;                
   
-  // Cassandra session builder
-  boost::shared_ptr<cql::cql_builder_t> builder;
-  
   // Cassandra cluster
-  boost::shared_ptr<cql::cql_cluster_t> cluster;
+  CassCluster* cluster;
   
   // Cassandra session
-  boost::shared_ptr<cql::cql_session_t> session;
+  CassSession* session;
   
   // Query ID for prepared insert statement
-  std::vector<cql::cql_byte_t> insertCQLid;  
+  CassPrepared* insertCQLid;  
 
   // Pending futures (e.g. write requests)
-  std::vector<boost::shared_future<cql::cql_future_result_t> > 
-      pendingFutures;             
+  std::vector<CassFuture*> pendingFutures;             
       
 };
 

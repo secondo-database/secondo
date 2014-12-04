@@ -50,30 +50,43 @@ namespace cassandra {
 */
 bool SingleCassandraResult::hasNext() {
 
+  CassError rc = CASS_OK;
+  bool hasNext = true;
+
   // Wait for result
   if(! futureWaitCalled ) {
       futureWaitCalled = true;      
-      try {
-          future.wait();
-      } catch(std::exception& e) {
-          cerr << "Got exception while reading data: " << e.what() << endl;
-          return false;
+          cass_future_wait(future);
+          
+          rc = cass_future_error_code(future);
+
+          if (rc != CASS_OK) {
+             CassandraHelper::print_error(future);
+             return false;
       }
-  }
   
-  cql::cql_result_t& result = *(future.get().result);
-  return result.next();
+      result = cass_future_get_result(future);
+      iterator = cass_iterator_from_result(result);
+  }
+
+  hasNext = cass_iterator_next(iterator);
+
+  if(hasNext == true) {
+     row = cass_iterator_get_row(iterator);
+  }
+
+  return hasNext;
 }
 
 void SingleCassandraResult::getStringValue(string &resultString, int pos) {
-  cql::cql_result_t& result = *(future.get().result);
-  result.get_string(pos, resultString);
+   CassString result;
+   cass_value_get_string(cass_row_get_column(row, pos), &result);
+   resultString.append(result.data);
 }
 
-int SingleCassandraResult::getIntValue(int pos) {
-  int resultInt;
-  cql::cql_result_t& result = *(future.get().result);
-  result.get_int(pos, resultInt);
+cass_int64_t SingleCassandraResult::getIntValue(int pos) {
+  cass_int64_t resultInt;
+  cass_value_get_int64(cass_row_get_column(row, pos), &resultInt);
   return resultInt;
 }
 
@@ -83,7 +96,7 @@ int SingleCassandraResult::getIntValue(int pos) {
 */
 MultiCassandraResult::MultiCassandraResult(vector<string> myQueries, 
                     CassandraAdapter* myCassandraAdapter,
-                    cql::cql_consistency_enum myConsistenceLevel) 
+                    CassConsistency myConsistenceLevel) 
   : queries(myQueries), cassandraAdapter(myCassandraAdapter), 
   consistenceLevel(myConsistenceLevel) { 
     
@@ -127,7 +140,7 @@ void MultiCassandraResult::getStringValue(string &resultString, int pos) {
   cassandraResult -> getStringValue(resultString, pos);
 }
 
-int MultiCassandraResult::getIntValue(int pos) {
+cass_int64_t MultiCassandraResult::getIntValue(int pos) {
   return cassandraResult -> getIntValue(pos);
 }
 
@@ -168,7 +181,7 @@ public:
   pthread_mutex_t* queueMutex;
   pthread_cond_t* queueCondition;
   CassandraAdapter* cassandraAdapter;
-  cql::cql_consistency_enum* consistenceLevel;
+  CassConsistency consistenceLevel;
 };
 
 /*
@@ -246,7 +259,7 @@ void* collectWorkerThread(void *ptr) {
 #endif
     
     CassandraResult* cassandraResult = configuration -> cassandraAdapter
-          ->readDataFromCassandra(cql, *(configuration -> consistenceLevel));
+          ->readDataFromCassandra(cql, configuration -> consistenceLevel);
     
     while(cassandraResult->hasNext()) {
       vector<string> result;
@@ -281,7 +294,7 @@ void* collectWorkerThread(void *ptr) {
 MultiThreadedCassandraResult::MultiThreadedCassandraResult(
                     vector<string> myQueries, 
                     CassandraAdapter* myCassandraAdapter,
-                    cql::cql_consistency_enum myConsistenceLevel) 
+                    CassConsistency myConsistenceLevel) 
   : MultiCassandraResult(myQueries, myCassandraAdapter, myConsistenceLevel), 
   runningThreads(0), firstCall(true) { 
 
@@ -305,7 +318,7 @@ MultiThreadedCassandraResult::MultiThreadedCassandraResult(
       config->results = &results;
       config->queries = &queries;
       config->cassandraAdapter = cassandraAdapter;
-      config->consistenceLevel = &consistenceLevel;
+      config->consistenceLevel = consistenceLevel;
       
       pthread_create(&targetThread, NULL, &collectWorkerThread, config);
       threads.push_back(targetThread);
@@ -457,7 +470,7 @@ void MultiThreadedCassandraResult::getStringValue(string &resultString,
     pthread_mutex_unlock(&queueMutex);
 }
 
-int MultiThreadedCassandraResult::getIntValue(int pos) {
+cass_int64_t MultiThreadedCassandraResult::getIntValue(int pos) {
   return -1;
 }
 
