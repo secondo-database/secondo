@@ -624,7 +624,7 @@ If an error occurs, the return value is 0.
 
 */
 int orthodromeAtLatitude( const Point &other, const double& latitudeDEG,
-                            double& lonMinDEG, double lonMaxDEG) const;
+                            double& lonMinDEG, double& lonMaxDEG) const;
 
 /*
 4.3.17 Operation ~orthodromeExtremeLatitudes~

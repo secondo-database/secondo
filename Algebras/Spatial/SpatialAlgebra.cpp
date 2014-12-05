@@ -1307,7 +1307,7 @@ Point Point::orthodromeVertex(const double& rcourseDEG) const {
 }
 
 int Point::orthodromeAtLatitude( const Point &other, const double& latitudeDEG,
-                          double& lonMinDEG, double lonMaxDEG) const{
+                          double& lonMinDEG, double& lonMaxDEG) const{
   if(    !checkGeographicCoord() || !other.checkGeographicCoord()
       || AlmostEqual(*this,other)
       || (latitudeDEG<-90) || (latitudeDEG>90) ){
