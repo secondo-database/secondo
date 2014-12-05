@@ -135,7 +135,7 @@ Changes the capacity of the DbArray.
 
 */
 
-virtual bool resize( const int newSize ){
+bool resize( const SmiSize& newSize ){
    if(newSize==0){
     return clean();
    }
@@ -508,8 +508,8 @@ virtual void restoreHeader(char* buffer,
                   SmiSize& offset)
 {
  Flob::restoreHeader(buffer, offset);
- ReadVar<int>(nElements, buffer, offset);
- ReadVar<int>(maxElements, buffer, offset);
+ ReadVar<SmiSize>(nElements, buffer, offset);
+ ReadVar<SmiSize>(maxElements, buffer, offset);
 }
 
 
@@ -709,12 +709,12 @@ class const_iterator{
 
   private:
 
-    int nElements;
+    SmiSize nElements;
 /*
 Stores the number of elements currently managed (contained) by the array.
 
 */
-    int maxElements;
+    SmiSize maxElements;
 /*
 Stores the total number of elements that can currently could be managed by
 this array (without resizing it).

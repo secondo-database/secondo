@@ -260,9 +260,9 @@ Returns the size of the flob data not under management of the FlobManager;
 Changes the size of a flob to the given value.
 
 */
-    virtual bool resize(const SmiSize& newsize) {
+    bool resize(const SmiSize& newsize) {
        return FlobManager::getInstance().resize(*this,newsize);
-     }
+    }
 
 
 /*
