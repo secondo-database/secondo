@@ -819,7 +819,7 @@ Therefore, we use the record id from the newly created flob structure.
   char flobBlock[size];
   tupleFile->read(flobBlock, size);
 
-  if (tupleFile->gcount() != size){
+  if ( (SmiSize)tupleFile->gcount() != size){
     cerr << "Error!! read " << tupleFile->gcount() 
          << " from " << flobFile 
          << " at " << flobOffset 
