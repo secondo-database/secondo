@@ -178,7 +178,7 @@ azimuth and angle of imaginated light source
             }
             else
             {
-              aspect = aspect;
+              ; //aspect = aspect;
             }
           }
 
@@ -640,7 +640,7 @@ azimuth and angle of imaginated light source
                     }
                     else
                     {
-                      aspect = aspect;
+                      ; //aspect = aspect;
                     }
                   }
 
@@ -732,8 +732,8 @@ definition of hillshadeFuns array
   {
     hillshadeFun<raster2::sint>,
     hillshadeFun<raster2::sreal>,
-    hillshadeFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int>>,
-    hillshadeFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double>>,
+    hillshadeFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int> >,
+    hillshadeFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >,
     0
   };
 

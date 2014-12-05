@@ -1312,8 +1312,8 @@ declaration of contourFuns array
   {
     contourFun<raster2::sint>,
     contourFun<raster2::sreal>,
-    contourFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int>>,
-    contourFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double>>,
+    contourFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int> >,
+    contourFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >,
     0
   };
 

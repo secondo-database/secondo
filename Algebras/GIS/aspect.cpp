@@ -617,8 +617,8 @@ definition of aspectFuns array
   {
     aspectFun<raster2::sint>,
     aspectFun<raster2::sreal>,
-    aspectFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int>>,
-    aspectFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double>>,
+    aspectFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int> >,
+    aspectFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >,
     0
   };
 
