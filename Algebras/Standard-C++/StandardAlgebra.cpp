@@ -1604,16 +1604,34 @@ const string maps_num2str[3][2] =
   {LongInt::BasicType(),  CcString::BasicType()}
 };
 
-ListExpr
-NumStringTypeMap( ListExpr args )
-{
-  return SimpleMaps<3,2>(maps_num2str, args);
+ListExpr NumStringTypeMap(ListExpr args) {
+  if (nl->ListLength(args) == 1) {
+    if (CcInt::checkType(nl->First(args)) || CcReal::checkType(nl->First(args))
+     || LongInt::checkType(nl->First(args))) {
+      return nl->SymbolAtom(CcString::BasicType());
+    }
+  }
+  if (nl->ListLength(args) == 2) {
+    if ((CcInt::checkType(nl->First(args)) || CcReal::checkType(nl->First(args))
+         || LongInt::checkType(nl->First(args))) 
+         && CcInt::checkType(nl->Second(args))) {
+      return nl->SymbolAtom(CcString::BasicType());
+    }
+  }
+  return NList::typeError("Expecting either int|real|longint or "
+                          "int|real|longint x int .");
 }
 
-int
-ccnum2stringSelect( ListExpr args )
-{
-  return SimpleSelect<3,2>(maps_num2str, args);
+int ccnum2stringSelect(ListExpr args) {
+  if (nl->ListLength(args) == 1) {
+    if (CcReal::checkType(nl->First(args)))  return 0;
+    if (CcInt::checkType(nl->First(args)))   return 1;
+    if (LongInt::checkType(nl->First(args))) return 2;
+  }
+  if (CcReal::checkType(nl->First(args)))  return 3;
+  if (CcInt::checkType(nl->First(args)))   return 4;
+  if (LongInt::checkType(nl->First(args))) return 5;
+  return -1;
 }
 
 /*
@@ -4064,26 +4082,44 @@ CcCeilValueMap( Word* args, Word& result, int message,
 4.24 Operator ~num2string~
 
 */
-template<class T>
-int CcNum2String( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-    T* arg = (T*) args[0].addr;
-    result = qp->ResultStorage( s );
-    CcString* res = (CcString*) result.addr;
-
-    if ( !arg->IsDefined() )
-      res->SetDefined( false );
-    else{
-      ostringstream os;
-      os.precision(47);
-      os << arg->GetValue();
-      string s = os.str().substr(0,MAX_STRINGSIZE);
-      STRING_T S;
-      strcpy(S,s.c_str());
-      res->Set( true, &S);
+template<class T, bool lengthGiven>
+int CcNum2String(Word* args, Word& result, int message,
+                 Word& local, Supplier s) {
+  T* arg = (T*)args[0].addr;
+  int length = 47;
+  result = qp->ResultStorage(s);
+  CcString* res = (CcString*)result.addr;
+  if (lengthGiven) {
+    CcInt* len = (CcInt*)args[1].addr;
+    if (len->IsDefined()) {
+      length = len->GetValue();
+      if (length < 1) {
+        length = 1;
+      }
+      else if (length > 47) {
+        length = 47;
+      }
     }
-    return 0;
+    else {
+      res->SetDefined(false);
+    }
+  }
+  if (!arg->IsDefined()) {
+    res->SetDefined(false);
+  }
+  else{
+    ostringstream os;
+    if (!lengthGiven) {
+      length = arg->toText().length();
+    }
+    os.precision(length);
+    os << arg->GetValue();
+    string s = os.str().substr(0, MAX_STRINGSIZE);
+    STRING_T S;
+    strcpy(S,s.c_str());
+    res->Set(true, &S);
+  }
+  return 0;
 }
 
 /*
@@ -4631,8 +4667,12 @@ ValueMapping ccbool2intvaluemap[] = { CcBool2intValueMap };
 ValueMapping ccfloorvaluemap[] = { CcFloorValueMap };
 ValueMapping ccceilvaluemap[] = { CcCeilValueMap };
 ValueMapping ccnum2stringvaluemap[] =
-                          { CcNum2String<CcReal>, CcNum2String<CcInt>,
-                            CcNum2String<LongInt> };
+                          { CcNum2String<CcReal, false>, 
+                            CcNum2String<CcInt, false>,
+                            CcNum2String<LongInt, false>,
+                            CcNum2String<CcReal, true>, 
+                            CcNum2String<CcInt, true>,
+                            CcNum2String<LongInt, true>};
 ValueMapping abs_vms[] = { abs_vm<CcReal, double>, abs_vm<CcInt, int>, 0 };
 ValueMapping cccharvaluemap[] = { CcCharFun };
 
@@ -5537,7 +5577,7 @@ Operator ccceil( "ceil", CCceilSpec, 1, ccceilvaluemap,
 Operator ccfloor( "floor", CCfloorSpec, 1, ccfloorvaluemap,
                  Operator::SimpleSelect, RealReal);
 
-Operator ccnum2string( "num2string", CCnum2stringSpec, 3, ccnum2stringvaluemap,
+Operator ccnum2string( "num2string", CCnum2stringSpec, 6, ccnum2stringvaluemap,
                  ccnum2stringSelect, NumStringTypeMap);
 
 Operator ccchar( "char", CCcharSpec, 1, cccharvaluemap,
