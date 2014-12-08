@@ -49,6 +49,9 @@ types and functions implemented by the Relation Algebra module.
 #include "Symbols.h"
 #include "Stream.h"
 
+#include <iostream>
+using namespace std;
+
 /*
 
 3 Implementation of class AttributeRelation
@@ -57,7 +60,7 @@ types and functions implemented by the Relation Algebra module.
 
 */
 AttributeRelation::AttributeRelation( ListExpr typeInfo, bool nrel,
-                                                         int n):
+							 int n):
  Attribute(true),
  tupleIds( n ),
  arelType( typeInfo ),
@@ -74,14 +77,14 @@ In this case nrel has added the SmiFileId of the corresponding relation
 
 */
       {
-         relId = nl->IntValue (nl -> Third( typeInfo ));
-         rel = Relation::GetRelation( relId );
+	 relId = nl->IntValue (nl -> Third( typeInfo ));
+	 rel = Relation::GetRelation( relId );
       } 
    } 
 }
 
 AttributeRelation::AttributeRelation( const SmiFileId id, const ListExpr
-                                      typeInfo, int n) :
+				      typeInfo, int n) :
    Attribute(true),
    tupleIds( n ),
    arelType( typeInfo ),
@@ -179,8 +182,8 @@ void AttributeRelation::CopyTuplesToRel(Relation* r)
       tupleIds.Get(i, tid);
       t = temp->GetTuple(tid,false);
       if(t){
-        r->AppendTuple(t);
-        t->DeleteIfAllowed();
+	r->AppendTuple(t);
+	t->DeleteIfAllowed();
       }
     }
 }
@@ -195,8 +198,8 @@ void AttributeRelation::CopyTuplesToNrel(NestedRelation* nrel)
       tupleIds.Get(i, tid);
       t = temp->GetTuple(tid, false);
       if(t){
-        nrel->AppendTuple(t);
-        t->DeleteIfAllowed();
+	nrel->AppendTuple(t);
+	t->DeleteIfAllowed();
       }
     }
 }
@@ -225,7 +228,7 @@ int AttributeRelation::Compare(const Attribute* attr) const
   Relation* rel1 = Relation::GetRelation(relId);
   TupleType* tt = rel1->GetTupleType();
   const AttributeRelation* arel = static_cast
-                                <const AttributeRelation*> (attr);
+				<const AttributeRelation*> (attr);
   Relation* rel2;
   if (relId == arel->getRelId())
     rel2 = rel1;
@@ -250,9 +253,9 @@ int AttributeRelation::Compare(const Attribute* attr) const
       cmp = a1->Compare(a2);
       if (cmp != 0)
       {
-        t1->DeleteIfAllowed();
-        t2->DeleteIfAllowed();
-        return cmp;
+	t1->DeleteIfAllowed();
+	t2->DeleteIfAllowed();
+	return cmp;
       }
     }
     i++;
@@ -275,7 +278,7 @@ bool AttributeRelation::Adjacent(const Attribute* attr) const
 AttributeRelation *AttributeRelation::Clone() const
 {
   AttributeRelation *arel = new AttributeRelation( this->arelType,
-                                  false, this->tupleIds.Size() );
+				  false, this->tupleIds.Size() );
   arel->setRelId(this->relId);
   TupleId tid;
   for (int i = 0; i < this->tupleIds.Size(); i++){
@@ -346,8 +349,8 @@ void AttributeRelation::CopyFrom(const Attribute* right)
 
 */
 Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr
-                    value, const int errorPos, ListExpr& errorInfo,
-                    bool& correct)
+		    value, const int errorPos, ListExpr& errorInfo,
+		    bool& correct)
 {
 
    Word result = SetWord( Address(0) );
@@ -361,11 +364,11 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr
       int relAlgId = am->GetAlgebraId("RelationAlgebra");
       int relId = NestedRelation::getTypeId(relAlgId, Relation::BasicType());
       ListExpr relType = nl->TwoElemList(nl->TwoElemList
-          (nl->IntAtom(relAlgId), nl->IntAtom(relId)),
-           nl->Second(typeInfo));
+	  (nl->IntAtom(relAlgId), nl->IntAtom(relId)),
+	   nl->Second(typeInfo));
       rel = new Relation( relType );
       arel = new AttributeRelation (-1, typeInfo,
-                                  nl->ListLength(value));
+				  nl->ListLength(value));
       arel->setPartOfNrel(false);
    }
    else
@@ -393,7 +396,7 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr
        nl->SymbolAtom(AttributeRelation::BasicType()),
        tuplelist));
       if (!arel->isPartOfNrel()){
-        rel->Delete();
+	rel->Delete();
       }
       delete arel;
       return result;
@@ -402,7 +405,7 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr
    {
       first = nl->First(tuplelist);
       if (nl->IsAtom(first))
-         tuplelist = nl->Rest(tuplelist);
+	 tuplelist = nl->Rest(tuplelist);
       while (!nl->IsEmpty(tuplelist))
       {
 /*
@@ -410,45 +413,45 @@ Disregard a possibly existing Int-Atom which indicates whether to
 show tupleIds or tuple-values.
 
 */
-         first = nl->First(tuplelist);
-         tuplelist = nl->Rest(tuplelist);
-         tupleno++;
-         tupleaddr = Tuple::In(TupleTypeInfo, first, tupleno,
-                            errorInfo, tupleCorrect);
+	 first = nl->First(tuplelist);
+	 tuplelist = nl->Rest(tuplelist);
+	 tupleno++;
+	 tupleaddr = Tuple::In(TupleTypeInfo, first, tupleno,
+			    errorInfo, tupleCorrect);
 
-         if (tupleCorrect)
-         {
-            rel->AppendTuple(tupleaddr);
-            arel->Append(tupleaddr->GetTupleId());
-            tupleaddr->DeleteIfAllowed();
-            count++;
-         }
-         else
-         {
-            correct = false;
-         }
+	 if (tupleCorrect)
+	 {
+	    rel->AppendTuple(tupleaddr);
+	    arel->Append(tupleaddr->GetTupleId());
+	    tupleaddr->DeleteIfAllowed();
+	    count++;
+	 }
+	 else
+	 {
+	    correct = false;
+	 }
       }
 
       if (!correct)
       {
-         errorInfo =
-          nl->Append(errorInfo,
-            nl->TwoElemList(
-            nl->IntAtom(72),
-            nl->SymbolAtom(AttributeRelation::BasicType())));
-         if (!arel->isPartOfNrel()){
-           rel->Delete();
-         }
-         delete arel;
-         return result;
+	 errorInfo =
+	  nl->Append(errorInfo,
+	    nl->TwoElemList(
+	    nl->IntAtom(72),
+	    nl->SymbolAtom(AttributeRelation::BasicType())));
+	 if (!arel->isPartOfNrel()){
+	   rel->Delete();
+	 }
+	 delete arel;
+	 return result;
       }
       else
       {
-         if (!arel->isPartOfNrel()){
-           rel->Delete();
-         }
-         result.addr = arel;
-         return result;
+	 if (!arel->isPartOfNrel()){
+	   rel->Delete();
+	 }
+	 result.addr = arel;
+	 return result;
       }
    }
 }
@@ -525,7 +528,7 @@ void AttributeRelation::Delete( const ListExpr typeInfo, Word& w )
 void AttributeRelation::Close( const ListExpr typeInfo, Word& w )
 {
      AttributeRelation* arel = static_cast
-                                <AttributeRelation *> (w.addr);
+				<AttributeRelation *> (w.addr);
      arel->rel = 0;
      delete arel;
      w.addr = 0;
@@ -537,12 +540,12 @@ void AttributeRelation::Close( const ListExpr typeInfo, Word& w )
 */
 bool
 AttributeRelation::Open( SmiRecord& valueRecord,
-             size_t& offset,
-             const ListExpr typeInfo,
-             Word& value )
+	     size_t& offset,
+	     const ListExpr typeInfo,
+	     Word& value )
 {
   AttributeRelation *arel = (AttributeRelation*)Attribute::
-                            Open( valueRecord, offset, typeInfo );
+			    Open( valueRecord, offset, typeInfo );
   value.setAddr( arel );
   return true;
 }
@@ -553,9 +556,9 @@ AttributeRelation::Open( SmiRecord& valueRecord,
 */
 bool
 AttributeRelation::Save( SmiRecord& valueRecord,
-             size_t& offset,
-             const ListExpr typeInfo,
-             Word& value )
+	     size_t& offset,
+	     const ListExpr typeInfo,
+	     Word& value )
 {
   AttributeRelation *arel = (AttributeRelation *)value.addr;
   if (!arel->isPartOfNrel() && arel->relDelete)
@@ -673,29 +676,29 @@ TypeConstructor attributeRelationTC( ari, arf );
 */
 
 NestedRelation::NestedRelation(ListExpr typeInfo) :
-                                        subRels(0)
+					subRels(0)
 {
 
    int relAlgId = am->GetAlgebraId("RelationAlgebra");
    int relId = getTypeId(relAlgId, Relation::BasicType());
    primaryTypeInfo = nl->TwoElemList(nl->TwoElemList(nl->IntAtom
-                             (relAlgId), nl->IntAtom(relId)),
-                              nl->Second(typeInfo));
+			     (relAlgId), nl->IntAtom(relId)),
+			      nl->Second(typeInfo));
    primary = new Relation( primaryTypeInfo );
    insertSubRelations( nl->Second(nl->Second(typeInfo)));
    setTupleTypeInfo(typeInfo);
 }
 
 NestedRelation::NestedRelation( ListExpr typeInfo, Relation* ptr,
-                                vector<SubRelation*>& sR ) :
+				vector<SubRelation*>& sR ) :
   primary(ptr),
   subRels(sR)
 {
    int relAlgId = am->GetAlgebraId("RelationAlgebra");
    int relId = getTypeId(relAlgId, Relation::BasicType());
    ListExpr primaryInfo = nl->TwoElemList(nl->TwoElemList(nl->IntAtom
-                               (relAlgId), nl->IntAtom(relId)), nl->
-                                Second(typeInfo));
+			       (relAlgId), nl->IntAtom(relId)), nl->
+				Second(typeInfo));
    primaryTypeInfo = primaryInfo;
    setTupleTypeInfo(typeInfo);
 }
@@ -721,21 +724,21 @@ void NestedRelation::insertSubRelations( ListExpr typeInfo )
       rest.rest();
       //check whether attribute is of type arel
       if (!first2.first().isAtom() && first2.first().hasLength(2) &&
-        first2.first().first().isInt() && first2.first().first()
-        .intval() == nrelAlgId && first2.first().second().isInt() &&
-        first2.first().second().intval() == arelId)
+	first2.first().first().isInt() && first2.first().first()
+	.intval() == nrelAlgId && first2.first().second().isInt() &&
+	first2.first().second().intval() == arelId)
       {
-         //create a Subrelation and call insertSubRelation
-         ListExpr subRelInfo = nl->TwoElemList(nl->TwoElemList
-                             (nl->IntAtom(relAlgId), nl->IntAtom(relId)),
-                              nl->Second(first2.listExpr()));
-         Relation *subRel = new Relation(subRelInfo);
-         SubRelation *s = new SubRelation(subRel, first1.str(),
-                          subRel->GetFileId(),
-                          subRelInfo);
-         append(s);
+	 //create a Subrelation and call insertSubRelation
+	 ListExpr subRelInfo = nl->TwoElemList(nl->TwoElemList
+			     (nl->IntAtom(relAlgId), nl->IntAtom(relId)),
+			      nl->Second(first2.listExpr()));
+	 Relation *subRel = new Relation(subRelInfo);
+	 SubRelation *s = new SubRelation(subRel, first1.str(),
+			  subRel->GetFileId(),
+			  subRelInfo);
+	 append(s);
 
-         insertSubRelations( first2.second().second().listExpr() );
+	 insertSubRelations( first2.second().second().listExpr() );
       }
    }
 }
@@ -767,16 +770,16 @@ void NestedRelation::setTupleTypeInfo( ListExpr typeInfo )
       first2 = first.second();
       attrList.rest();
       if (!first2.first().isAtom() && first2.first().hasLength(2)
-        && first2.first().first().isInt() && first2.first().
-        first().intval() == nrelAlgId && first2.first().
-        second().isInt() && first2.first().second().intval()
-        == arelId)
+	&& first2.first().first().isInt() && first2.first().
+	first().intval() == nrelAlgId && first2.first().
+	second().isInt() && first2.first().second().intval()
+	== arelId)
       {
-         ListExpr subRelInfo = getSubRelationInfo(first.listExpr());
-         tupleAttrList.append(NList(subRelInfo));
+	 ListExpr subRelInfo = getSubRelationInfo(first.listExpr());
+	 tupleAttrList.append(NList(subRelInfo));
       }
       else
-         tupleAttrList.append(first);
+	 tupleAttrList.append(first);
    }
    tupleTypeInfo = nl->TwoElemList(nl->TwoElemList
       (type.second().first().listExpr(), tupleAttrList.listExpr()),
@@ -803,20 +806,20 @@ ListExpr NestedRelation::getSubRelationInfo( ListExpr typeInfo )
       first2 = first.second();
       attrList.rest();
       if (!first2.first().isAtom() && first2.first().hasLength(2) &&
-        first2.first().first().isInt() && first2.first().first().intval()
-        == nrelAlgId && first2.first().second().isInt() &&
-        first2.first().second().intval() == arelId)
+	first2.first().first().isInt() && first2.first().first().intval()
+	== nrelAlgId && first2.first().second().isInt() &&
+	first2.first().second().intval() == arelId)
       {
-         ListExpr subArelInfo = getSubRelationInfo(first.listExpr());
-         arelAttrList.append(NList(subArelInfo));
+	 ListExpr subArelInfo = getSubRelationInfo(first.listExpr());
+	 arelAttrList.append(NList(subArelInfo));
       }
       else
-         arelAttrList.append(first);
+	 arelAttrList.append(first);
    }
    fileId = getSubRel(name)->fileId;
    ListExpr temp = nl->TwoElemList(tuple.listExpr(), arelAttrList.listExpr());
    ListExpr temp1 = nl->ThreeElemList (arel.listExpr(), temp,
-                                       nl->IntAtom(fileId));
+				       nl->IntAtom(fileId));
    ListExpr result = nl->TwoElemList(ident.listExpr(), temp1);
    return result;
 }
@@ -827,7 +830,7 @@ SubRelation* NestedRelation::getSubRel(string name)
    {
       SubRelation* srel = subRels[i];
       if ( srel->name == name )
-         return srel;
+	 return srel;
    }
    return 0;
 }
@@ -836,8 +839,8 @@ int NestedRelation::getTypeId(int algId, string typeName)
 {
     int result = -1;
     for (int i = 0; i < am->ConstrNumber(algId); i++){
-        if (am->GetTC(algId, i)->Name() == typeName){
-           result = i;
+	if (am->GetTC(algId, i)->Name() == typeName){
+	   result = i;
        }
     }
     return result;
@@ -857,8 +860,8 @@ bool NestedRelation::namesUnique(ListExpr type, string& s)
     attrlist = nl->Rest(attrlist);
     attrname = nl->SymbolValue(nl->First(pair));
     unique = std::count(attrnamelist.begin(),
-                              attrnamelist.end(),
-                              attrname);
+			      attrnamelist.end(),
+			      attrname);
     if (unique > 0)
     {
       s = attrname;
@@ -887,8 +890,8 @@ ListExpr NestedRelation::unnestedList(ListExpr typeInfo)
       NList tempRest(nl->Second(temp));
       while(!tempRest.isEmpty())
       {
-        attributes.append(tempRest.first());
-        tempRest.rest();
+	attributes.append(tempRest.first());
+	tempRest.rest();
       }
     }
     else
@@ -896,11 +899,11 @@ ListExpr NestedRelation::unnestedList(ListExpr typeInfo)
     rest.rest();
   }
   return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-                         attributes.listExpr());
+			 attributes.listExpr());
 }
 
 bool NestedRelation::saveString( string& s, SmiRecord& valueRecord,
-                                 size_t& offset )
+				 size_t& offset )
 {
    int size = s.size();
    bool ok = true;
@@ -916,7 +919,7 @@ bool NestedRelation::saveString( string& s, SmiRecord& valueRecord,
 }
 
 bool NestedRelation::readString( string& s, SmiRecord& valueRecord,
-                                 size_t& offset )
+				 size_t& offset )
 {
    int size;
    string temp;
@@ -957,8 +960,8 @@ NestedRelation *NestedRelation::Clone(ListExpr typeInfo)
    GenericRelationIterator *iter = primary->MakeScan();
    while( (t = iter->GetNextTuple()) != 0 )
       {
-         nrel->AppendTuple( t );
-         t->DeleteIfAllowed();
+	 nrel->AppendTuple( t );
+	 t->DeleteIfAllowed();
       }
    delete iter;
    return nrel;
@@ -975,12 +978,12 @@ AttributeRelation* NestedRelation::storeSubRel(AttributeRelation* a, int& i)
 {
    int nrelAlgId = am->GetAlgebraId("NestedRelationAlgebra");
    int arelId = NestedRelation::getTypeId(nrelAlgId,
-                                          AttributeRelation::BasicType());
+					  AttributeRelation::BasicType());
    Relation* relOld = Relation::GetRelation(a->getRelId());
    SmiFileId id = getSubRels()->at(i)->fileId;
    Relation* r = getSubRels()->at(i)->rel;
    AttributeRelation* arel = new AttributeRelation (id, a->getArelType(),
-                                                a->getTupleIds()->Size());
+						a->getTupleIds()->Size());
    arel->setRel(r);
    arel->setPartOfNrel(true);
    int j = i;
@@ -995,22 +998,22 @@ AttributeRelation* NestedRelation::storeSubRel(AttributeRelation* a, int& i)
       t = relOld->GetTuple(tid, false);
       newTuple = new Tuple(t->GetTupleType());
       for (int i2 = 0; i2 < t->GetTupleType()->GetNoAttributes();
-           i2++)
+	   i2++)
       {
-         if (t->GetTupleType()->GetAttributeType(i2).algId ==
-         nrelAlgId && t->GetTupleType()->
-         GetAttributeType(i2).typeId == arelId)
-         {
-            i = i + 1;
-            AttributeRelation* ar = (AttributeRelation*)
-                                   (t->GetAttribute(i2));
-            AttributeRelation* b = storeSubRel(ar, i);
-            newTuple->PutAttribute(i2, b);
-         }
-         else
-         {
-              newTuple->CopyAttribute( i2, t, i2 );
-         }
+	 if (t->GetTupleType()->GetAttributeType(i2).algId ==
+	 nrelAlgId && t->GetTupleType()->
+	 GetAttributeType(i2).typeId == arelId)
+	 {
+	    i = i + 1;
+	    AttributeRelation* ar = (AttributeRelation*)
+				   (t->GetAttribute(i2));
+	    AttributeRelation* b = storeSubRel(ar, i);
+	    newTuple->PutAttribute(i2, b);
+	 }
+	 else
+	 {
+	      newTuple->CopyAttribute( i2, t, i2 );
+	 }
       }
       r->AppendTuple(newTuple);
       arel->Append(newTuple->GetTupleId());
@@ -1025,8 +1028,36 @@ void NestedRelation::AppendTuple(Tuple* tuple)
 {
   int nrelAlgId = am->GetAlgebraId("NestedRelationAlgebra");
   int arelId = NestedRelation::getTypeId(nrelAlgId,
-                                         AttributeRelation::BasicType());
+					 AttributeRelation::BasicType());
   int i = -1;
+  Tuple* newTuple = new Tuple(tuple->GetTupleType());
+  for (int i2 = 0; i2 < tuple->GetTupleType()->
+	GetNoAttributes(); i2++)
+  {
+    if (tuple->GetTupleType()->GetAttributeType(i2).algId ==
+	nrelAlgId && tuple->GetTupleType()->GetAttributeType(i2)
+	.typeId == arelId)
+    {
+      i = i + 1;
+      AttributeRelation* temp1 = (AttributeRelation*)
+				       (tuple->GetAttribute(i2));
+      AttributeRelation* b = storeSubRel(temp1, i);
+      newTuple->PutAttribute(i2, b);
+    }
+    else
+      {
+	newTuple->CopyAttribute(i2, tuple, i2);
+      }
+  }
+  primary->AppendTuple(newTuple);
+  newTuple->DeleteIfAllowed();
+}
+Tuple* NestedRelation::NestedTuple2Tuple(Tuple* tuple)
+{
+	int nrelAlgId = am->GetAlgebraId("NestedRelationAlgebra");
+	  int arelId = NestedRelation::getTypeId(nrelAlgId,
+		 AttributeRelation::BasicType());
+	  int i = -1;
   Tuple* newTuple = new Tuple(tuple->GetTupleType());
   for (int i2 = 0; i2 < tuple->GetTupleType()->
         GetNoAttributes(); i2++)
@@ -1046,10 +1077,8 @@ void NestedRelation::AppendTuple(Tuple* tuple)
         newTuple->CopyAttribute(i2, tuple, i2);
       }
   }
-  primary->AppendTuple(newTuple);
-  newTuple->DeleteIfAllowed();
+	  return newTuple ;
 }
-
 
 /*
 4.3 The mandatory set of algebra support functions
@@ -1764,6 +1793,7 @@ consume(Word* args, Word& result, int message,
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
   Tuple* tuple;
+
   while (qp->Received(args[0].addr))
   {
      tuple = (Tuple*)actual.addr;

@@ -87,7 +87,6 @@ constructors, namely ~AttributeRelation~ and ~NestedRelation~.
 #include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "RelationAlgebra.h"
-
 #include <vector>
 
 extern NestedList* nl;
@@ -514,7 +513,11 @@ primary, the subtuples in the corresponding subrelation. Precondition is that
 the type of tuple corresponds to the type of the primary relation.
 
 */
-          
+          Tuple* NestedTuple2Tuple(Tuple* tuple);
+/*
+Converts nested tuples to the normal tuple
+
+*/
             
           static Word     In( const ListExpr typeInfo, const ListExpr instance,
                           const int errorPos, ListExpr& errorInfo, 
