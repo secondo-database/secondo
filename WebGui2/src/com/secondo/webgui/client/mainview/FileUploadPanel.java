@@ -30,9 +30,6 @@ public class FileUploadPanel extends FormPanel {
 		this.setEncoding(FormPanel.ENCODING_MULTIPART);
 		this.setMethod(FormPanel.METHOD_POST);
 
-		gridForUploadComponents = new Grid(2, 3);
-		gridForUploadComponents.ensureDebugId("gridForUploadComponents");
-
 		lblSelectAgpx = new Label("Select a .gpx track: ");
 		lblSelectAgpx.setStyleName("labelTextInOneLine");
 
@@ -56,18 +53,19 @@ public class FileUploadPanel extends FormPanel {
 		fileUpload.setStyleName("fileUploadInOneLine");
 
 		final FileUploadPanel form = this;
+		
 		uploadButton.setWidth("100px");
+		
 		uploadButton.addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-				System.out.println("File selected " + fileUpload.getFilename());
+			public void onClick(ClickEvent event) {					
 				form.submit();
-
 			}
-
 		});
 
 		Image help = getHelp();
 
+		gridForUploadComponents = new Grid(2, 3);
+		gridForUploadComponents.ensureDebugId("gridForUploadComponents");
 		gridForUploadComponents.setCellSpacing(3);
 		gridForUploadComponents.setWidget(0, 0, lblSelectAgpx);
 		gridForUploadComponents.setWidget(0, 1, fileUploadBox);

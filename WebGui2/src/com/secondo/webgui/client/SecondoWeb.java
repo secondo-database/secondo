@@ -45,6 +45,7 @@ import com.secondo.webgui.client.rpc.SecondoService;
 import com.secondo.webgui.client.rpc.SecondoServiceAsync;
 import com.secondo.webgui.utils.config.Resources;
 import com.secondo.webgui.utils.config.SecondoConstants;
+import com.sun.java.swing.plaf.windows.resources.windows;
 
 /**
  * This is the Entry point class which defines the onModuleLoad()-Method to start the application, 
@@ -229,12 +230,26 @@ public class SecondoWeb implements EntryPoint {
 			}
 		});
 	    
-	    this.mainView.getOptionsTabPanel().getCreateSymTrajButton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
+		this.mainView.getOptionsTabPanel().getCreateSymTrajButton()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						if (mainView.getOptionsTabPanel()
+								.getOptionsForCreatingSymTraj()
+								.getSelectedIndex() == 2
+								&& mainView.getMapView().getMyLocation() != null) {
+							Window.alert("Please select my location using menu");
+						} else {
+							rpcConnector
+									.doGPXimport(mainView.getOptionsTabPanel()
+											.getNameOfUploadedFile(), mainView
+											.getOptionsTabPanel()
+											.getOptionsForCreatingSymTraj()
+											.getSelectedIndex(), mainView,
+											loadingPopup);
+						}
 
-	        	rpcConnector.createSymTraj(mainView.getOptionsTabPanel().getOptionsForCreatingSymTraj().getSelectedIndex(),mainView.getOptionsTabPanel().getNameOfUploadedFile());
-	          }
-		 });
+					}
+				});
 	    
 	    /**Adds an event handler on the button "get relation" of the options tab panel */
 		this.mainView.getOptionsTabPanel().getAnimateButton().addClickHandler(new ClickHandler() {

@@ -504,9 +504,14 @@ public class RPCConnector {
 		secondoService.resetObjectCounter(callback); 		
 	}
 	
-	public void createSymTraj(final int option, final String nameOfUploadedFile){		
-		String command="let Raw = gpximport('"+nameOfUploadedFile+"') consume";
+	public void doGPXimport(final String nameOfUploadedFile, final int option, MainView mv, PopupPanel lp){	
+		this.mainView = mv;
+		this.loadingPopup = lp;
+		final String relName="Raw"+nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("/")+1, nameOfUploadedFile.lastIndexOf("."));
+		String command="let "+relName+" = gpximport('"+nameOfUploadedFile+"') consume;";		
+		
 		System.out.println("Command "+ command);
+		
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
 			@Override
@@ -516,19 +521,126 @@ public class RPCConnector {
 
 			@Override
 			public void onSuccess(String result) {		
-				if(result.contains("already used")){
-					deleteOldSymTraj();
-					createSymTraj(option, nameOfUploadedFile);
+				if (result.contains("already used")) {
+					deleteOldRelation(relName, nameOfUploadedFile, option);					
 				}else{
-				Window.alert("Trajectory created!");}		
+				makeMPfromGPX(relName,option);
+				}	
+					
+				
+						
 			}
 		  };		  
 		  secondoService.sendCommandWithoutResult(command, callback);	
 		
 	}
 	
-	public void deleteOldSymTraj(){
-		String command="delete Raw";
+	public void makeMPfromGPX(String relName, final int option) {
+		final String actualName=relName.replace("Raw", "MPfromGPX");
+		String command = "let "+actualName+" = "+relName+" feed extend[Trip: makepoint(.Lon, .Lat)]sortby[Time asc]approximate[Time, Trip, [const duration value (0 300000)]]";
+		System.out.println("Command " + command);
+		
+		AsyncCallback<String> callback = new AsyncCallback<String>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);
+			}
+
+			@Override
+			public void onSuccess(String result) {
+				if (result.contains("already used")) {
+					deleteOldRelation(actualName, null, option);					
+				}
+				else{
+					makeRelationFromMP(actualName, option);
+				}
+			}
+		};
+		secondoService.sendCommandWithoutResult(command, callback);
+	}
+	
+	public void makeRelationFromMP(String relName, final int option) {
+		final String actualName=relName.replace("MPfromGPX", "MPfromGPXrelation");
+		String command = "let "+actualName+" = "+relName+" feed namedtransformstream[Trip] consume";
+		System.out.println("Command " + command);
+		
+		AsyncCallback<String> callback = new AsyncCallback<String>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);
+			}
+
+			@Override
+			public void onSuccess(String result) {
+				if (result.contains("already used")) {
+					deleteOldRelation(actualName, null, option);
+					
+				}
+				else{
+					createSymTraj(actualName, option, mainView, loadingPopup);
+				}
+			}
+		};
+		secondoService.sendCommandWithoutResult(command, callback);
+
+	}
+	
+	public void createSymTraj(String relName, final int option, MainView mv,
+			PopupPanel lp) {
+		final String actualName = relName.replace("MPfromGPXrelation",
+				"SymTrajWithDirection");
+		String command = "";
+		//direction
+		if (option == 1) {
+			command = "let "
+					+ actualName
+					+ "= "
+					+ relName
+					+ " feed addcounter[TrackId, 1] projectextend[TrackId, Trip; Traj: trajectory(.Trip), SymTraj: units(direction("+relName+" feed extract[Trip])) transformstream extend[Direction: the_unit(tolabel(getDirectionString(val(initial(.Elem)))), inst(initial(.Elem)), inst(final(.Elem)), TRUE, FALSE)] makemvalue[Direction]] consume";
+			System.out.println("Command " + command);
+			}
+		
+		//distance
+		if(option==2){			
+			double lat= mv.getMapView().getMyLocation().getX();
+			double lon= mv.getMapView().getMyLocation().getY();
+			
+			command = "let "
+					+ actualName
+					+ "= "
+					+ relName
+					+ " feed addcounter[TrackId, 1] projectextend[TrackId, Trip; Traj: trajectory(.Trip), SymTraj: units(distance(gk(.Trip), gk(point ( "+lon+" "+lat+" )))) transformstream extend[Distance: the_unit(tolabel(getDistanceString(val(initial(.Elem)))), inst(initial(.Elem)), inst(final(.Elem)), TRUE, FALSE)] makemvalue[Distance]] consume";
+			System.out.println("Command " + command);
+		}
+			AsyncCallback<String> callback = new AsyncCallback<String>() {
+
+				@Override
+				public void onFailure(Throwable caught) {
+					Window.alert(SERVER_ERROR);
+				}
+
+				@Override
+				public void onSuccess(String result) {
+					if (result.contains("already used")) {
+						deleteOldRelation(actualName, null, option);
+
+					} else {
+						mainView.getOptionsTabPanel()
+								.getSelectOptionsForExistingTrajectories()
+								.addItem(actualName);
+						Window.alert("Symbolic trajetory was scuccesfully created. On \"Try trajectory\" animate a newly created relation! ");
+					}
+				}
+
+			};
+			secondoService.sendCommandWithoutResult(command, callback);
+		
+	}
+	
+	public void deleteOldRelation(final String relationName, final String nameOfUploadedFile, final int option){
+		String command="delete " + relationName;
 		System.out.println("Command "+ command);
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
@@ -539,6 +651,19 @@ public class RPCConnector {
 
 			@Override
 			public void onSuccess(String result) {				
+				if(relationName.contains("Raw")){
+					doGPXimport(nameOfUploadedFile, option, mainView, loadingPopup);
+				}
+				if(relationName.contains("MPfromGPX")){
+					makeMPfromGPX(relationName, option);
+				}
+				if(relationName.contains("MPfromGPXrelation")){
+					makeRelationFromMP(relationName, option);
+				}
+				if(relationName.contains("SymTrajWithDirection")){
+					createSymTraj(relationName, option, mainView, loadingPopup);			
+				}
+				
 					
 			}
 		  };		  

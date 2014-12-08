@@ -19,6 +19,7 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DecoratedPopupPanel;
+import com.google.gwt.user.client.ui.DecoratedStackPanel;
 import com.google.gwt.user.client.ui.DecoratedTabPanel;
 import com.google.gwt.user.client.ui.FileUpload;
 import com.google.gwt.user.client.ui.FlexTable;
@@ -55,7 +56,8 @@ public class OptionsTabPanel extends Composite{
 	private Grid gridWithOptionsForCreatingSymTraj;
 	private Button createSymTrajButton;
 	
-	private SecondoSyntaxDialog secondoSyntaxDialog = new SecondoSyntaxDialog();
+	private DecoratedStackPanel stackPanel = new DecoratedStackPanel();
+	
 	private int count;
 	
 	//elements of the animation panel
@@ -64,7 +66,6 @@ public class OptionsTabPanel extends Composite{
     private HorizontalPanel panelForPause = new HorizontalPanel();   
 	private TextBox timeCounter = new TextBox();
 	private TimeSlider timeSlider = new TimeSlider(); 
-	private Image animationIcon = new Image("resources/images/play-icon.png");
     private Image playIcon = new Image("resources/images/play-icon2.png");
     private Image forwardIcon = new Image("resources/images/speedup-icon.png");
     private Image rewindIcon = new Image("resources/images/speeddown-icon.png");
@@ -84,12 +85,12 @@ public class OptionsTabPanel extends Composite{
 	 private ScrollPanel definedPattern= new ScrollPanel();
 	 Pattern pattern = new Pattern();
 	 private TextBox patternBox= new DefaultTextBox	("enter your pattern");
-	 final private FlexTable flexTable = new FlexTable();
+	 final private FlexTable tableForPattern = new FlexTable();
 	 final private VerticalPanel panelForPattern = new VerticalPanel();
 	 private ListBox optionsWithSequencePattern = new ListBox(false);
 	 private ListBox selectOptionsForDisplayMode = new ListBox(); 
 	 private ListBox selectOptionsForExistingTrajectories = createBoxWithSelectOptionsForExistingTrajectories();
-	 private Button animateButton = new Button("Get relation");
+	 private Button getRelationButton = new Button("Get relation");
 	 final Image addPatternButton = new Image("resources/images/plus.png");
 	 private Button matchButton= new Button("match");
 	 private Button removeButton = new Button("remove");
@@ -186,7 +187,7 @@ public class OptionsTabPanel extends Composite{
          * */        
         optionsForCreatingSymTraj.addItem("speed mode");
         optionsForCreatingSymTraj.addItem("directions");
-        optionsForCreatingSymTraj.addItem("personal location");//operator geocode
+        optionsForCreatingSymTraj.addItem("distance");//with personal location
         optionsForCreatingSymTraj.setVisibleItemCount(1);   
         optionsForCreatingSymTraj.setWidth("130px");
         
@@ -243,8 +244,8 @@ public class OptionsTabPanel extends Composite{
         
         
         
-        animateButton.setWidth("100px");
-        gridForExistingTrajectory.setWidget(2, 1, animateButton);
+        getRelationButton.setWidth("100px");
+        gridForExistingTrajectory.setWidget(2, 1, getRelationButton);
         
         gridForExistingTrajectory.getFlexCellFormatter().setColSpan(3, 0, 2);
         gridForExistingTrajectory.getFlexCellFormatter().setHorizontalAlignment(3, 0, HasHorizontalAlignment.ALIGN_RIGHT);
@@ -283,16 +284,16 @@ public class OptionsTabPanel extends Composite{
         
         
         
-        flexTable.ensureDebugId("tableForPattern");
-        flexTable.addStyleName("tableWithFixedWidth");        
-        flexTable.setWidth("290px");
+        tableForPattern.ensureDebugId("tableForPattern");
+        tableForPattern.addStyleName("tableWithFixedWidth");        
+        tableForPattern.setWidth("290px");
         panelForPattern.setWidth("290px");
         panelForPattern.setSpacing(4);
         
-        FlexCellFormatter cellFormatter = flexTable.getFlexCellFormatter();
+        FlexCellFormatter cellFormatter = tableForPattern.getFlexCellFormatter();
                 
-        flexTable.setCellSpacing(5);
-        flexTable.setCellPadding(0);
+        tableForPattern.setCellSpacing(5);
+        tableForPattern.setCellPadding(0);
         cellFormatter.setHorizontalAlignment(
         	      0, 0, HasHorizontalAlignment.ALIGN_LEFT); 
         cellFormatter.setHorizontalAlignment(
@@ -302,17 +303,17 @@ public class OptionsTabPanel extends Composite{
 //        flexTable.getColumnFormatter().setWidth(0, "30px");
 //        flexTable.getColumnFormatter().setWidth(1, "25px");
     
-        flexTable.getFlexCellFormatter().setColSpan(0, 0, 4);
-        flexTable.getFlexCellFormatter().setColSpan(1, 0, 2);
-        flexTable.getFlexCellFormatter().setColSpan(2, 0, 3);
-        flexTable.getFlexCellFormatter().setColSpan(3, 0, 4);
+        tableForPattern.getFlexCellFormatter().setColSpan(0, 0, 4);
+        tableForPattern.getFlexCellFormatter().setColSpan(1, 0, 2);
+        tableForPattern.getFlexCellFormatter().setColSpan(2, 0, 3);
+        tableForPattern.getFlexCellFormatter().setColSpan(3, 0, 4);
         
         Label labelForVariable= createLabel("define your pattern");
         labelForVariable.setStyleName("labelTextInOneLine");
 //        Label labelForTime = createLabel("time");
 //        Label labelForLabel = createLabel("label");
 //        Label labelForSequence = createLabel("sequence");
-        flexTable.setWidget(0, 0, labelForVariable);   
+        tableForPattern.setWidget(0, 0, labelForVariable);   
         panelForPattern.add(labelForVariable);
         
 //        flexTable.setWidget(0, 2, labelForTime);
@@ -342,13 +343,13 @@ public class OptionsTabPanel extends Composite{
          
         
         
-       flexTable.setWidget(1, 3, addPatternButton);     
-       flexTable.setWidget(2, 3, addConditionButton);
+       tableForPattern.setWidget(1, 3, addPatternButton);     
+       tableForPattern.setWidget(2, 3, addConditionButton);
        
        final DefaultTextBox condition = new DefaultTextBox("condition");
        condition.setWidth("225px");
 
-       flexTable.setWidget(2,0, condition);
+       tableForPattern.setWidget(2,0, condition);
        
        final HorizontalPanel hzForPattern = new HorizontalPanel();  
        hzForPattern.setSpacing(4);
@@ -458,11 +459,13 @@ public class OptionsTabPanel extends Composite{
 		}
 	});
        
-       
+       stackPanel.add(getAnimationPanel(), "test", true);
+       stackPanel.add(panelForPattern, "pattern", true);
+       vPanel2.add(stackPanel);
        
        
 //       vPanel2.add(flexTable);
-       vPanel2.add(panelForPattern);
+//       vPanel2.add(panelForPattern);
        
        
         
@@ -628,7 +631,7 @@ public class OptionsTabPanel extends Composite{
         
         
         patternBox.setEnabled(true);
-        flexTable.setWidget(1,2,  patternBox);
+        tableForPattern.setWidget(1,2,  patternBox);
         
        
        
@@ -877,7 +880,7 @@ public class OptionsTabPanel extends Composite{
 	 * @return the animateButton
 	 */
 	public Button getAnimateButton() {
-		return animateButton;
+		return getRelationButton;
 	}
 
 	/**
@@ -975,6 +978,13 @@ public class OptionsTabPanel extends Composite{
 	 */
 	public Grid getGridWithOptionsForCreatingSymTraj() {
 		return gridWithOptionsForCreatingSymTraj;
+	}
+
+	/**
+	 * @return the selectOptionsForExistingTrajectories
+	 */
+	public ListBox getSelectOptionsForExistingTrajectories() {
+		return selectOptionsForExistingTrajectories;
 	}
 	
 	

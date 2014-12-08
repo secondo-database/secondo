@@ -39,6 +39,13 @@
 	  <servlet-name>uploadService</servlet-name>
 	  <url-pattern>/secondoweb/uploadService</url-pattern>
 	</servlet-mapping>
+	
+	<listener>
+    <listener-class>
+      org.apache.commons.fileupload.servlet.FileCleanerCleanup
+    </listener-class>
+  </listener>
+	
   
   <!-- Default page to serve -->
   <welcome-file-list>

@@ -463,19 +463,22 @@ public class MVMPointController {
                     mapIntern.removeLayer(mpointMap.get(mpointID));
                     return;
                   }
-           	 if(mode==1 && !labelSet.isEmpty()){
-           	Style pointStyle= mpointFeatures.get(i).getStyle();
-//          represent a symbolic trajectory (label) in a form of label  
-           	if(!labelSet.isEmpty()){
-           	if(!(counter>labelSet.get(mpointID).size())){
-            pointStyle.setLabel(labelSet.get(mpointID).get(counter));
-            pointStyle.setLabelXOffset(10);
-            pointStyle.setLabelYOffset(10);
-            pointStyle.setLabelAlign("lb");
-            pointStyle.setFontColor("#0000FF");
-            pointStyle.setGraphicSize(32, 32);}
-            } 
-           	}         	          	
+				if (mode == 1 && !labelSet.isEmpty()) {
+					Style pointStyle = mpointFeatures.get(i).getStyle();
+					// represent a symbolic trajectory in a form of
+					// label
+
+					if (!(counter > labelSet.get(mpointID).size())) {
+						pointStyle
+								.setLabel(labelSet.get(mpointID).get(counter));
+						pointStyle.setLabelXOffset(10);
+						pointStyle.setLabelYOffset(10);
+						pointStyle.setLabelAlign("lb");
+						pointStyle.setFontColor("#0000FF");
+						pointStyle.setGraphicSize(32, 32);
+					}
+
+				}
            	
            	
             mpointFeatures.get(i).move(mpointPathArray.get(i).get(getCounter())); //move point	

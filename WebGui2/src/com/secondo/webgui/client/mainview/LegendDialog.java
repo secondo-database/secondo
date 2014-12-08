@@ -34,8 +34,9 @@ public class LegendDialog {
 	    legendInfo=new HTML("No info");
 	    
 	 // Add the text to the dialog
-	    legendInfo.setSize("390px", "390px");
-	    scrollContent.setSize("410px", "410px");
+//	    legendInfo.setSize("390px", "390px");
+//	    scrollContent.setSize("210px", "210px");
+	    
 	    scrollContent.add(legendInfo);
 	    dialogContents.add(scrollContent);
 	    

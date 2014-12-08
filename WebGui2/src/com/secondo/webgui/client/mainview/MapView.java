@@ -121,6 +121,9 @@ public class MapView extends Composite{
 	
 	private String attributeNameOfMLabel;
 	
+	/** Point with geo coordinates from user */
+	private Point myLocation;
+	
 	
 
 	public MapView() {
@@ -282,9 +285,9 @@ public class MapView extends Composite{
 		pointStyle.setStrokeWidth(2);
 		pointStyle.setFillOpacity(0.9);
 
-		Point point = new Point(lon, lat);
-		point.transform(DEFAULT_PROJECTION, new Projection("EPSG:900913")); 
-		VectorFeature pointFeature = new VectorFeature(point, pointStyle);
+		myLocation = new Point(lon, lat);
+		myLocation.transform(DEFAULT_PROJECTION, new Projection("EPSG:900913")); 
+		VectorFeature pointFeature = new VectorFeature(myLocation, pointStyle);
 		markerLayer.destroyFeatures();
 		markerLayer.addFeature(pointFeature);
 
@@ -436,40 +439,6 @@ public class MapView extends Composite{
 					mlabelController.addMLabel((MLabel)data);
 					mpointController.transmitLabelsToMPandCalculateColorsForPolyline((MLabel) data, polylineController);
 					attributeNameOfMLabel=((MLabel)data).getAttributeNameInRelation();
-//					polylineController.setColorsAndLegend(colors.get(data.getId()), mlabelController
-//							.getLegendToMLabel(data.getId()));
-					
-					
-//					if (!mpointController.getMpointArray().isEmpty()) {
-//						for (MPoint mpoint : mpointController.getMpointArray()) {
-//
-//							if (!mpointController
-//									.containsLabelListToMpoint(mpoint.getId())) {
-//								ArrayList<String> labelList = mlabelController
-//										.matchMLtoMPonBaseOfTime((MLabel) data,
-//												mpoint);
-//
-//								if (!labelList.isEmpty()) {
-//									mpointController.addLabelListToMpoint(
-//											labelList, mpoint.getId());
-//								}
-//								if (!mlabelController.getColorsForPolyline()
-//										.isEmpty()) {
-//									polylineController
-//											.addColorsFromML(mlabelController
-//													.getColorsForPolyline());
-//									polylineController
-//											.addLegendFromML(mlabelController
-//													.getLegendToMLabel(data.getId()));
-//
-//								}
-//							}
-//
-//						}
-//
-//					}
-
-					
 
 				}
 			}
@@ -711,5 +680,12 @@ public class MapView extends Composite{
 	 */
 	public String getAttributeNameOfMLabel() {
 		return attributeNameOfMLabel;
+	}
+
+	/**
+	 * @return the myLocation
+	 */
+	public Point getMyLocation() {
+		return myLocation;
 	}
 }
