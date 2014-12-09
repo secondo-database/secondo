@@ -498,9 +498,9 @@ virtual size_t serializeHeader( char* buffer, SmiSize& offset) const {
  // first save the flob
  SmiSize sz = Flob::serializeHeader(buffer, offset);
  // append nElements and maxElements
- WriteVar<int>(nElements, buffer, offset);
- WriteVar<int>(maxElements, buffer, offset);
- sz += 2*sizeof(int);
+ WriteVar<SmiSize>(nElements, buffer, offset);
+ WriteVar<SmiSize>(maxElements, buffer, offset);
+ sz += 2*sizeof(SmiSize);
  return sz;
 }
 
