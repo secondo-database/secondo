@@ -190,6 +190,14 @@ void CassandraAdapter::writeDataToCassandraPrepared(string relation,
     cass_statement_free(statement);    
 }
 
+void CassandraAdapter::relationCompleteCallback(string relation) {
+
+        if(insertCQLid != NULL) {
+                cass_prepared_free(insertCQLid);
+                insertCQLid = NULL;
+        }
+}
+
 bool CassandraAdapter::prepareCQLInsert(string relation) {
         
         CassError rc = CASS_OK;
@@ -624,6 +632,12 @@ void CassandraAdapter::disconnect() {
         waitForPendingFutures();
         
         cout << "Disconnecting from cassandra" << endl;
+
+        // Free prepared statement  
+        if(insertCQLid != NULL) {
+                cass_prepared_free(insertCQLid);
+                insertCQLid = NULL;
+        }
 
         // Close session and cluster
         CassFuture* close_future = cass_session_close(session);

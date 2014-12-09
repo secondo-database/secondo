@@ -336,6 +336,14 @@ public:
                              );
 
 /*
+2.3.4 Inform the CassandraAdapter about the fact that the last tuple for 
+   the relaion is written. Batch writes can be commited and prepared 
+   statements can be freed. 
+
+*/
+    void relationCompleteCallback(string relation);
+
+/*
 2.3.5 Fetch a full table from cassandra
 
 1. Parameter is the relation to read
