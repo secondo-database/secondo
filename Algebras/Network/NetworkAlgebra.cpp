@@ -2701,7 +2701,7 @@ m_reverseSubAdjancencyList(0)
     return;
   }
 
-   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(SmiSize);
    SmiSize offset = 0;
    char* buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
@@ -2718,7 +2718,7 @@ m_reverseSubAdjancencyList(0)
    free(buf);
 
 // The same for reverse adjacency lists.
-   bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(SmiSize);
    offset = 0;
    buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
@@ -5858,7 +5858,7 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
    SmiRecordFile *rf = ctlg->GetFlobFile();
    m_xAdjacencyList.saveToFile(rf, m_xAdjacencyList);
    SmiSize offset = 0;
-   size_t bufsize = m_xAdjacencyList.headerSize()+ 2*sizeof(int);
+   size_t bufsize = m_xAdjacencyList.headerSize()+ 2*sizeof(SmiSize);
    char* buf = (char*) malloc(bufsize);
    m_xAdjacencyList.serializeHeader(buf,offset);
    assert(offset==bufsize);
@@ -5879,7 +5879,7 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
    //save m_reverseAdjacencyList
    m_reverseAdjacencyList.saveToFile(rf, m_reverseAdjacencyList);
    offset = 0;
-   bufsize = m_reverseAdjacencyList.headerSize()+ 2*sizeof(int);
+   bufsize = m_reverseAdjacencyList.headerSize()+ 2*sizeof(SmiSize);
    buf = (char*) malloc(bufsize);
    m_reverseAdjacencyList.serializeHeader(buf,offset);
    assert(offset==bufsize);
