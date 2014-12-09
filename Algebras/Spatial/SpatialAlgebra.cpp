@@ -1212,13 +1212,19 @@ double Point::Direction(const Point& p ,
                         const bool atEndpoint /*=false*/ ) const{
 
   if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
+    throw( new SecondoException(string("invalid Arguments") + __FILE__ + 
+                                  "  " + stringutils::int2str(__LINE__)));
     return -1.0;
   }
   if(geoid && (!checkGeographicCoord() || !p.checkGeographicCoord()) ){
     cerr << __PRETTY_FUNCTION__ << ": Invalid geographic coordinate." << endl;
+    throw( new SecondoException(string("invalid coordinate") + __FILE__ + "  "
+                                       + stringutils::int2str(__LINE__)));
     return -1.0;
   }
   if(AlmostEqual(*this, p)){
+    throw( new SecondoException(string("equal points") + __FILE__ + "  "
+                                 + stringutils::int2str(__LINE__)));
     return -1.0;
   }
   errno = 0;
@@ -1247,6 +1253,8 @@ double Point::Direction(const Point& p ,
     }
     if(errno != 0) {
       cerr << __PRETTY_FUNCTION__ << ": Numerical error in euclidean." << endl;
+    throw( new SecondoException(string("numerical error") + __FILE__ + "  " 
+                                        + stringutils::int2str(__LINE__)));
       return -1.0;
     }
     // normalize return value:
@@ -1261,6 +1269,8 @@ double Point::Direction(const Point& p ,
     bool valid = true;
     double d = DistanceOrthodromePrecise(p, *geoid, valid, tc1, tc2);
     if(!valid || (d<0)){
+      throw( new SecondoException(string("error in distance computation") 
+                        + __FILE__ + "  " + stringutils::int2str(__LINE__)));
       return -1.0;
     }
     if(returnHeading){
@@ -1311,13 +1321,17 @@ int Point::orthodromeAtLatitude( const Point &other, const double& latitudeDEG,
   if(    !checkGeographicCoord() || !other.checkGeographicCoord()
       || AlmostEqual(*this,other)
       || (latitudeDEG<-90) || (latitudeDEG>90) ){
+    throw( new SecondoException(string("invalid parameter") + __FILE__ + "  " 
+                                        + stringutils::int2str(__LINE__)));
     return 0;
   }
+
   double lon1 = degToRad(GetX());
   double lat1 = degToRad(GetY());
   double lon2 = degToRad(other.GetX());
   double lat2 = degToRad(other.GetY());
   double lat3 = degToRad(latitudeDEG);
+
   double l12 = lon1-lon2;
   double A = sin(lat1)*cos(lat2)*cos(lat3)*sin(l12);
   double B =   sin(lat1)*cos(lat2)*cos(lat3)*cos(l12)
@@ -1335,6 +1349,8 @@ int Point::orthodromeAtLatitude( const Point &other, const double& latitudeDEG,
     }
     return 2;
   }
+  throw( new SecondoException(string("numerical error") + __FILE__ 
+                                     + "  " + stringutils::int2str(__LINE__)));
   return 0;
 }
 
@@ -1350,6 +1366,8 @@ bool Point::orthodromeExtremeLatitudes(const Point &other, const Geoid &geoid,
     minLat =  1000.0;
     maxLat = -1000.0;
 //     cerr << __PRETTY_FUNCTION__ << ": Invalid parameter." << endl;
+    throw( new SecondoException(string("invalid parameter") + __FILE__ 
+                                + "  " + stringutils::int2str(__LINE__)));
     return false;
   }
   if(AlmostEqual(*this,other)){
@@ -1376,6 +1394,8 @@ bool Point::orthodromeExtremeLatitudes(const Point &other, const Geoid &geoid,
     maxLat=MAX(this->GetY(),other.GetY());
 //     cerr << __PRETTY_FUNCTION__ << ": minLat=" << minLat << endl;
 //     cerr << __PRETTY_FUNCTION__ << ": maxLat=" << maxLat << endl;
+    throw( new SecondoException(string("invalid parameter") + __FILE__ 
+                                  + "  " + stringutils::int2str(__LINE__)));
     return false;
   }
 //   cerr << __PRETTY_FUNCTION__ << ": vertex=" << vertex << endl;
@@ -1565,7 +1585,7 @@ double Point::DistanceOrthodromePrecise( const Point& p,
                                          bool& valid,
                                          double& initialBearingDEG,
                                          double& finalBearingDEG,
-                                         const bool epsilon /* = 1e-12 */) const
+                                         const double epsilon /* = 1 */) const
 {
  /*
   * Vincenty Inverse Solution of Geodesics on the Ellipsoid
