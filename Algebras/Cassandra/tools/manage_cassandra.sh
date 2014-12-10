@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 # This script starts and stops cassandra
-# on multiple nodes
+# on multiple nodes. The script can also
+# create the default keyspaces.
 #
 # Jan Kristof Nidzwetzki
 #
@@ -57,6 +58,24 @@ for node in $nodes; do
 done
 }
 
+# Init cassandra keyspaces
+init_cassandra() {
+	tmpfile=$(mktmp)
+	ip=$(ifconfig | grep "inet addr" | cut -d ":" -f 2 | awk {'print $1'} | head -1)
+
+cat << EOF > $tmpfile
+CREATE KEYSPACE keyspace_r1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};
+CREATE KEYSPACE keyspace_r2 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 2};
+CREATE KEYSPACE keyspace_r3 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3};
+CREATE KEYSPACE keyspace_r4 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 4};
+CREATE KEYSPACE keyspace_r5 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 5};
+CREATE KEYSPACE keyspace_r6 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 6};
+EOF
+
+	$cassandradir/bin/cqlsh $ip < $tmpfile
+
+	rm $tmpfile
+}
 
 case "$1" in 
 
@@ -66,8 +85,11 @@ start)
 stop)
    stop
    ;;
+init)
+   init_cassandra
+   ;;
 *)
-   echo "Usage $0 {start|stop}"
+   echo "Usage $0 {start|stop|init}"
    ;;
 esac
 
