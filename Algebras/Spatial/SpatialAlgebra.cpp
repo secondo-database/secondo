@@ -16423,8 +16423,13 @@ int SpatialDirectionHeading_pp( Word* args, Word& result, int message,
   const Point *p2 = ((Point*)args[1].addr);
   const Geoid* geoid =
             (qp->GetNoSons(s)==3)?static_cast<const Geoid*>(args[2].addr):0;
-  double d = p1->Direction(*p2, isHeading, geoid); // all saveguards included!
-  res->Set(d>=0.0,d);
+  try{
+    double d = p1->Direction(*p2, isHeading, geoid); // all saveguards included!
+    res->Set(d>=0.0,d);
+  } catch (SecondoException* e){
+    res->Set(false,0.0);
+    delete e;
+  }
   return 0;
 }
 
