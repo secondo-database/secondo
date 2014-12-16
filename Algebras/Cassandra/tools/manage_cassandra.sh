@@ -60,7 +60,7 @@ done
 
 # Init cassandra keyspaces
 init_cassandra() {
-	tmpfile=$(mktmp)
+	tmpfile=$(mktemp)
 	ip=$(ifconfig | grep "inet addr" | cut -d ":" -f 2 | awk {'print $1'} | head -1)
 
 cat << EOF > $tmpfile
