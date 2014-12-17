@@ -43,15 +43,6 @@ declaration of namespace GISAlgebra
 */
 namespace GISAlgebra 
 {
-/*
-declaration of struct ResultInfo
-
-*/
-        struct ResultInfo
-        {
-          int level;
-          Line* cline;
-        };
 
 /*
 declaration of contourFuns array
@@ -72,20 +63,6 @@ Value Mapping
         int contourSelectFun(ListExpr args);
 
 /*
-Method ProcessRectangle returns true if processing was successful
-
-Parameters: values and coordinates of four points, the wanted interval, 
-            the minimum value and DbArray ResultInfo to store the found 
-            segments
-
-*/
-        bool ProcessRectangle(double, double, double,
-                              double, double, double,
-                              double, double, double,
-                              double, double, double, 
-                              int, double, DbArray<ResultInfo>*);
-
-/*
 Method Intersects calculates if a line between two points intersects the level
 
 Parameters: values and coordinates of two points, value of a third point, 
@@ -98,17 +75,6 @@ Parameters: values and coordinates of two points, value of a third point,
                        double, double, double,
                        double, double, int*, double*, double*);
 
-/*
-Method AddSegment addes the found segments to the ResultInfo DbArray
-
-Parameters: level value, coordinates of segments start and stop point, 
-            the minimum value, the interval value and DbArray ResultInfo 
-            to store the segments
-
-*/
-        bool AddSegment(int, double, double, 
-                        double, double, double, int,
-                        DbArray<ResultInfo>*);
 
 /*
 Method GetValuesContour reads the values for 3x3 cells

@@ -34,12 +34,166 @@ Raster2 and Tile includes
 #include "../Raster2/sreal.h"
 #include "../Tile/t/tint.h"
 #include "../Tile/t/treal.h"
+#include "StopWatch.h"
+
+#include "DLine.h"
+
+typedef DLine LineType;
+
+
 
 /*
 declaration of namespace GISAlgebra
 
 */
 namespace GISAlgebra {
+
+
+/*
+declaration of struct ResultInfo
+
+*/
+struct ResultInfo {   
+    ResultInfo(int dummy): level(-32000), cline(0){
+    }   
+    ResultInfo() {}  
+    int level;
+    LineType* cline;
+};  
+
+
+
+class ContourLocalInfo{
+public:
+  ContourLocalInfo(const int _num, const double _min, 
+                   const int _interval, ListExpr tupleType) :
+      clines(_num), num(_num),min(_min), interval(_interval){
+     ResultInfo line(1);
+     for (int i = 0; i<num; i++) {
+          clines.Put(i,line);
+     }
+     tt = new TupleType(tupleType);
+  }
+
+  ~ContourLocalInfo(){
+     tt->DeleteIfAllowed();
+  }
+
+
+
+  void addSegment(int level, const Point& p1, const Point & p2){
+    HalfSegment hs(true, p1, p2);
+
+    // calculate array element
+    int i = floor((level - min) / interval);
+
+    // find correct contour line
+    ResultInfo temp(1);
+    clines.Get(i,temp);
+
+    // if contour line exists, add segment
+    if (temp.level != -32000)
+    {            
+      LineType* line = temp.cline;
+
+      int s = line->Size();
+
+      hs.attr.edgeno = s/2;
+      (*line) += hs;
+      hs.SetLeftDomPoint(false);
+      (*line) += hs;
+    }
+    else
+    // if not, create new line
+    {
+      LineType* line = new LineType(0);
+      line->StartBulkLoad();
+      hs.attr.edgeno = 0;
+      (*line) += hs;
+      hs.SetLeftDomPoint(false);
+      (*line) += hs;
+
+      int l2 = static_cast<int>(level);
+
+      ResultInfo lines(0);
+
+      lines.level = l2;
+      lines.cline = line;
+
+      clines.Put(i,lines);
+    }
+
+  }
+
+  void finish(){};
+
+  Tuple* getNext() {
+       int i = clines.Size();
+
+       if(i<= 0){
+         return 0;
+       }
+       ResultInfo temp(1);
+       clines.Get(i-1,temp);
+       clines.resize(i-1);
+
+       int j = 2;
+
+       while ((temp.level == -32000) && (j <= i)) {
+          clines.Get(i-j,temp);
+          clines.resize(i-j);
+          j++;
+       }
+       if ( temp.level == -32000 ) {
+            return 0;
+       }
+
+       CcInt* level = new CcInt(true,temp.level);
+       LineType* line = temp.cline;
+       line->EndBulkLoad();
+       Tuple* result = new Tuple(tt);
+
+       result->PutAttribute(0,level);
+       result->PutAttribute(1,line);
+       return result;
+  }
+
+  private:
+    DbArray<ResultInfo> clines;
+    int num;
+    double min;
+    int interval;
+    TupleType* tt;
+
+};
+
+
+/*
+Method ProcessRectangle returns true if processing was successful
+
+Parameters: values and coordinates of four points, the wanted interval, 
+            the minimum value and DbArray ResultInfo to store the found 
+            segments
+
+*/
+        bool ProcessRectangle(double, double, double,
+                              double, double, double,
+                              double, double, double,
+                              double, double, double, 
+                              int, ContourLocalInfo*);
+
+/*
+Method AddSegment addes the found segments to the ResultInfo DbArray
+
+Parameters: level value, coordinates of segments start and stop point, 
+            the minimum value, the interval value and DbArray ResultInfo 
+            to store the segments
+
+*/
+        void AddSegment(int, double, double,
+                        double, double, ContourLocalInfo*);
+
+
 
 /*
 Method contourFuns: calculates the contour lines for a given sint or sreal
@@ -62,9 +216,15 @@ Return value: stream of tuple (level, line)
     {
       case OPEN:
       {
+        StopWatch sw;
         // initialize the local storage
         double min = s_in->getMinimum();
         double max = s_in->getMaximum();
+        if(   !lines->IsDefined() 
+            || s_in->isUndefined(min) || s_in->isUndefined(max)){
+           return 0;
+        }
+        
         int interval = lines->GetValue();
         
         if ( interval < 1 )
@@ -77,380 +237,305 @@ Return value: stream of tuple (level, line)
         double diff = max - min;
         int num = ceil(diff / interval) + 1;
 
-        DbArray<ResultInfo>* clines = new DbArray<ResultInfo>(num);
+         
+        ContourLocalInfo* li = new ContourLocalInfo(num,min, interval, 
+                                        nl->Second(GetTupleResultType(s)));
+        local.addr = li;
 
-        // initialise array and set level to -32000
-        for (int i = 0; i<num; i++)
+        raster2::grid2 grid = s_in->getGrid();
+        Rectangle<2> bbox = s_in->bbox();
+
+        double gridOriginX = grid.getOriginX();
+        double gridOriginY = grid.getOriginY();
+        double cellsize = grid.getLength();
+
+        raster2::RasterIndex<2> from = 
+                                grid.getIndex(bbox.MinD(0), bbox.MinD(1));
+        raster2::RasterIndex<2> to = 
+                                grid.getIndex(bbox.MaxD(0), bbox.MaxD(1));
+
+        for (raster2::RasterIndex<2> index = from; index < to;
+                                     index.increment(from, to))
         {
-          ResultInfo lines;
-          lines.level = -32000;
-          clines->Put(i,lines);
-        }
+          // central cell
+          double e = s_in->get(index);
 
-        local.addr = clines;
-
-        if (clines != 0)
-        {
-          raster2::grid2 grid = s_in->getGrid();
-          Rectangle<2> bbox = s_in->bbox();
-
-          double gridOriginX = grid.getOriginX();
-          double gridOriginY = grid.getOriginY();
-          double cellsize = grid.getLength();
-
-          raster2::RasterIndex<2> from = 
-                                  grid.getIndex(bbox.MinD(0), bbox.MinD(1));
-          raster2::RasterIndex<2> to = 
-                                  grid.getIndex(bbox.MaxD(0), bbox.MaxD(1));
-
-          for (raster2::RasterIndex<2> index = from; index < to;
-                                       index.increment(from, to))
+          if (!(s_in->isUndefined(e)))
           {
-            // central cell
-            double e = s_in->get(index);
+            double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
+            double a1 = s_in->get((int[]){index[0] - 1, index[1] + 2});
+            double b = s_in->get((int[]){index[0], index[1] + 1});
+            double b1 = s_in->get((int[]){index[0], index[1] + 2});
+            double c = s_in->get((int[]){index[0] + 1, index[1] + 1});
+            double d = s_in->get((int[]){index[0] - 1, index[1]});
+            double g = s_in->get((int[]){index[0] - 1, index[1] - 1});
+            double h = s_in->get((int[]){index[0], index[1] - 1});
+            double f = s_in->get((int[]){index[0] + 1, index[1]});
 
-            if (!(s_in->isUndefined(e)))
+            // calculate coordinates
+            double X = index[0] * cellsize + cellsize/2 + gridOriginX;
+            double Y = index[1] * cellsize + cellsize/2 + gridOriginY;
+
+            // if all four cells have valid values
+            if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(b)) && 
+                !(s_in->isUndefined(d)) && !(s_in->isUndefined(e)))
             {
-              double a = s_in->get((int[]){index[0] - 1, index[1] + 1});
-              double a1 = s_in->get((int[]){index[0] - 1, index[1] + 2});
-              double b = s_in->get((int[]){index[0], index[1] + 1});
-              double b1 = s_in->get((int[]){index[0], index[1] + 2});
-              double c = s_in->get((int[]){index[0] + 1, index[1] + 1});
-              double d = s_in->get((int[]){index[0] - 1, index[1]});
-              double g = s_in->get((int[]){index[0] - 1, index[1] - 1});
-              double h = s_in->get((int[]){index[0], index[1] - 1});
-              double f = s_in->get((int[]){index[0] + 1, index[1]});
-
-              // calculate coordinates
-              double X = index[0] * cellsize + cellsize/2 + gridOriginX;
-              double Y = index[1] * cellsize + cellsize/2 + gridOriginY;
-
-              // if all four cells have valid values
-              if (!(s_in->isUndefined(a)) && !(s_in->isUndefined(b)) && 
-                  !(s_in->isUndefined(d)) && !(s_in->isUndefined(e)))
+              // special case for bottom right cell
+              if ((s_in->isUndefined(h)) && (s_in->isUndefined(f)))
               {
-                // special case for bottom right cell
-                if ((s_in->isUndefined(h)) && (s_in->isUndefined(f)))
-                {
-                  ProcessRectangle(a, X - cellsize, Y + cellsize, 
-                                   d, X - cellsize, Y - cellsize/2,
-                                   e, X + cellsize/2, Y - cellsize/2, 
-                                   b, X + cellsize/2, Y + cellsize, 
-                                   interval, min, clines);       
-                }
-                // special case for first row
-                else if ((s_in->isUndefined(h)) && (s_in->isUndefined(g)))
-                {
-                  ProcessRectangle(a, X - cellsize, Y + cellsize, 
-                                   d, X - cellsize, Y - cellsize/2,
-                                   e, X, Y - cellsize/2, 
-                                   b, X, Y + cellsize, 
-                                   interval, min, clines);       
-                }
-                // special case for top right cell
-                else if ((s_in->isUndefined(f)) && (s_in->isUndefined(a1)) 
-                                                && (s_in->isUndefined(b1)))
-                {
-                  ProcessRectangle(a, X - cellsize, Y + cellsize + cellsize/2,
-                                   d, X - cellsize, Y,
-                                   e, X + cellsize/2, Y, 
-                                   b, X + cellsize/2, Y + cellsize+cellsize/2,
-                                   interval, min, clines);       
-                }
-                // special case for last column
-                else if ((s_in->isUndefined(f)) && (s_in->isUndefined(c)))
-                {
-                  ProcessRectangle(a, X - cellsize, Y + cellsize, 
-                                   d, X - cellsize, Y,
-                                   e, X + cellsize/2, Y, 
-                                   b, X + cellsize/2, Y + cellsize, 
-                                   interval, min, clines);       
-                }
-                // special case for top row
-                else if ((s_in->isUndefined(a1)) && (s_in->isUndefined(b1)))
-                {
-                  ProcessRectangle(a, X - cellsize, Y + cellsize + cellsize/2, 
-                                   d, X - cellsize, Y,
-                                   e, X, Y, 
-                                   b, X, Y + cellsize+cellsize/2,
-                                   interval, min, clines);       
-                }
-                // normal case
+                ProcessRectangle(a, X - cellsize, Y + cellsize, 
+                                 d, X - cellsize, Y - cellsize/2,
+                                 e, X + cellsize/2, Y - cellsize/2, 
+                                 b, X + cellsize/2, Y + cellsize, 
+                                 interval, li);       
+              }
+              // special case for first row
+              else if ((s_in->isUndefined(h)) && (s_in->isUndefined(g)))
+              {
+                ProcessRectangle(a, X - cellsize, Y + cellsize, 
+                                 d, X - cellsize, Y - cellsize/2,
+                                 e, X, Y - cellsize/2, 
+                                 b, X, Y + cellsize, 
+                                 interval, li);       
+              }
+              // special case for top right cell
+              else if ((s_in->isUndefined(f)) && (s_in->isUndefined(a1)) 
+                                              && (s_in->isUndefined(b1)))
+              {
+                ProcessRectangle(a, X - cellsize, Y + cellsize + cellsize/2,
+                                 d, X - cellsize, Y,
+                                 e, X + cellsize/2, Y, 
+                                 b, X + cellsize/2, Y + cellsize+cellsize/2,
+                                 interval, li);       
+              }
+              // special case for last column
+              else if ((s_in->isUndefined(f)) && (s_in->isUndefined(c)))
+              {
+                ProcessRectangle(a, X - cellsize, Y + cellsize, 
+                                 d, X - cellsize, Y,
+                                 e, X + cellsize/2, Y, 
+                                 b, X + cellsize/2, Y + cellsize, 
+                                 interval, li);       
+              }
+              // special case for top row
+              else if ((s_in->isUndefined(a1)) && (s_in->isUndefined(b1)))
+              {
+                ProcessRectangle(a, X - cellsize, Y + cellsize + cellsize/2, 
+                                 d, X - cellsize, Y,
+                                 e, X, Y, 
+                                 b, X, Y + cellsize+cellsize/2,
+                                 interval, li);       
+              }
+              // normal case
+              else
+              {
+                ProcessRectangle(a, X - cellsize, Y + cellsize, 
+                                 d, X - cellsize, Y,
+                                 e, X, Y, 
+                                 b, X, Y + cellsize, 
+                                 interval, li);       
+              }
+            }
+            else
+            {
+              // determine which cells have defined values, accumulate values
+              // and divide through number of valid cells
+              double sum = 0;
+              int good = 0;
+              double center = 0;
+
+              if (!(s_in->isUndefined(a)))
+              {
+                sum += a;
+                good++;
+              }
+
+              if (!(s_in->isUndefined(b)))
+              {
+                sum += b;
+                good++;
+              }
+
+              if (!(s_in->isUndefined(d)))
+              {
+                sum += d;
+                good++;
+              }
+
+              if (!(s_in->isUndefined(e)))
+              {
+                sum += e;
+                good++;
+              }
+
+              center = sum / good;
+
+              // calculate alternative values
+              double top;
+              double left;
+              double right;
+              double bottom;
+
+              if(!(s_in->isUndefined(a)))
+              {
+                if(!(s_in->isUndefined(b)))
+                  top = (a + b) / 2.0;
                 else
-                {
-                  ProcessRectangle(a, X - cellsize, Y + cellsize, 
-                                   d, X - cellsize, Y,
-                                   e, X, Y, 
-                                   b, X, Y + cellsize, 
-                                   interval, min, clines);       
-                }
+                  top = a;
+
+                if(!(s_in->isUndefined(d)))
+                  left = (a + d) / 2.0;
+                else
+                  left = a;
               }
               else
               {
-                // determine which cells have defined values, accumulate values
-                // and divide through number of valid cells
-                double sum = 0;
-                int good = 0;
-                double center = 0;
-  
-                if (!(s_in->isUndefined(a)))
-                {
-                  sum += a;
-                  good++;
-                }
-  
                 if (!(s_in->isUndefined(b)))
-                {
-                  sum += b;
-                  good++;
-                }
-  
+                  top = b;
+                else
+                  top = e;
+
                 if (!(s_in->isUndefined(d)))
-                {
-                  sum += d;
-                  good++;
-                }
-  
-                if (!(s_in->isUndefined(e)))
-                {
-                  sum += e;
-                  good++;
-                }
-  
-                center = sum / good;
-  
-                // calculate alternative values
-                double top;
-                double left;
-                double right;
-                double bottom;
-  
-                if(!(s_in->isUndefined(a)))
-                {
-                  if(!(s_in->isUndefined(b)))
-                    top = (a + b) / 2.0;
-                  else
-                    top = a;
-  
-                  if(!(s_in->isUndefined(d)))
-                    left = (a + d) / 2.0;
-                  else
-                    left = a;
-                }
+                  left = d;
                 else
-                {
-                  if (!(s_in->isUndefined(b)))
-                    top = b;
-                  else
-                    top = e;
+                  left = e;
+              }
 
-                  if (!(s_in->isUndefined(d)))
-                    left = d;
-                  else
-                    left = e;
-                }
+              if(!(s_in->isUndefined(b)))
+                right = (e + b) / 2.0;
+              else
+                right = e;
   
-                if(!(s_in->isUndefined(b)))
-                  right = (e + b) / 2.0;
-                else
-                  right = e;
-    
-                if(!(s_in->isUndefined(d)))
-                  bottom = (e + d) / 2.0;
-                else
-                  bottom = e;
+              if(!(s_in->isUndefined(d)))
+                bottom = (e + d) / 2.0;
+              else
+                bottom = e;
 
-                // if one cell is not defined
-                // -> calculation with alternative values
-                if (!(s_in->isUndefined(a)))
+              // if one cell is not defined
+              // -> calculation with alternative values
+              if (!(s_in->isUndefined(a)))
+              {
+                ProcessRectangle(a, X - cellsize, Y + cellsize, 
+                                 left, X - cellsize, Y + cellsize/2,
+                                 center, X - cellsize/2, Y + cellsize/2, 
+                                 top, X - cellsize/2, Y + cellsize, 
+                                 interval, li);
+              }
+          
+              if (!(s_in->isUndefined(d)))
+              {
+                if ((s_in->isUndefined(f)) && (s_in->isUndefined(b)))
                 {
-                  ProcessRectangle(a, X - cellsize, Y + cellsize, 
-                                   left, X - cellsize, Y + cellsize/2,
+                  // special case top right cell
+                }
+                else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(d)) &&
+                          (s_in->isUndefined(a)) && !(s_in->isUndefined(b)))
+                {
+                  // special case cell under undefined cell
+                  ProcessRectangle(left, X - cellsize, Y + cellsize/2, 
+                                   d, X - cellsize, Y,
+                                   bottom, X - cellsize/2, Y, 
                                    center, X - cellsize/2, Y + cellsize/2, 
-                                   top, X - cellsize/2, Y + cellsize, 
-                                   interval, min, clines);
+                                   interval, li);
                 }
-            
-                if (!(s_in->isUndefined(d)))
+                else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(d)) &&
+                         !(s_in->isUndefined(a)) && (s_in->isUndefined(b)))
                 {
-                  if ((s_in->isUndefined(f)) && (s_in->isUndefined(b)))
-                  {
-                    // special case top right cell
-                  }
-                  else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(d)) &&
-                            (s_in->isUndefined(a)) && !(s_in->isUndefined(b)))
-                  {
-                    // special case cell under undefined cell
-                    ProcessRectangle(left, X - cellsize, Y + cellsize/2, 
-                                     d, X - cellsize, Y,
-                                     bottom, X - cellsize/2, Y, 
-                                     center, X - cellsize/2, Y + cellsize/2, 
-                                     interval, min, clines);
-                  }
-                  else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(d)) &&
-                           !(s_in->isUndefined(a)) && (s_in->isUndefined(b)))
-                  {
-                    // special case cell left under undefined cell
-                    ProcessRectangle(left, X - cellsize, Y + cellsize/2, 
-                                     d, X - cellsize, Y,
-                                     bottom, X - cellsize/2, Y, 
-                                     center, X - cellsize/2, Y + cellsize/2, 
-                                     interval, min, clines);
-                  }
-                }
-            
-                if (!(s_in->isUndefined(e)) && (s_in->isUndefined(h))
-                                            && (s_in->isUndefined(d)))
-                {
-                  // special case left bottom cell
-                }
-                else if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a)) &&
-                         !(s_in->isUndefined(b)) && (s_in->isUndefined(b1)))
-                {
-                  // special case top left cell
-                  ProcessRectangle(b, X-cellsize/2, Y+cellsize+cellsize/2,
-                                   bottom, X - cellsize/2, Y,
-                                   e, X, Y, 
-                                   b, X, Y + cellsize + cellsize/2, 
-                                   interval, min, clines);
-                }
-                else if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a))
-                                                 && (s_in->isUndefined(b)))
-                {
-                  // special case top row
-                }
-                else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(f)))
-                {
-                  // special case right top cell
-                  ProcessRectangle(center, X - cellsize/2, Y + cellsize/2, 
-                                   bottom, X - cellsize/2, Y,
-                                   e, X, Y, 
-                                   right, X, Y + cellsize/2, 
-                                   interval, min, clines);
-                }
-
-                if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a)) &&
-                         !(s_in->isUndefined(b)) && (s_in->isUndefined(b1)) &&
-                          (s_in->isUndefined(a1)))
-                {
-                  // special case left top cell
-                }
-                else if (!(s_in->isUndefined(b)) && (s_in->isUndefined(h)))
-                {
-                  ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
-                                   e, X - cellsize/2, Y - cellsize/2,
-                                   e, X, Y - cellsize/2, 
-                                   b, X, Y + cellsize, 
-                                   interval, min, clines);
-                }
-                else if (!(s_in->isUndefined(b)) && (s_in->isUndefined(d))
-                                                 && !(s_in->isUndefined(b1)))
-                {
-                  ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
-                                   center, X - cellsize/2, Y + cellsize/2,
-                                   right, X, Y + cellsize/2, 
-                                   b, X, Y + cellsize, 
-                                   interval, min, clines);
-                }
-                else if (!(s_in->isUndefined(b)) && !(s_in->isUndefined(e))
-                                                 && (s_in->isUndefined(a)))
-                {
-                  // special case right of undefined
-                  ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
-                                   center, X - cellsize/2, Y + cellsize/2,
-                                   right, X, Y + cellsize/2, 
-                                   b, X, Y + cellsize, 
-                                   interval, min, clines);
+                  // special case cell left under undefined cell
+                  ProcessRectangle(left, X - cellsize, Y + cellsize/2, 
+                                   d, X - cellsize, Y,
+                                   bottom, X - cellsize/2, Y, 
+                                   center, X - cellsize/2, Y + cellsize/2, 
+                                   interval,  li);
                 }
               }
-            }//if e def
-          }// for 
-        }//if clines
+          
+              if (!(s_in->isUndefined(e)) && (s_in->isUndefined(h))
+                                          && (s_in->isUndefined(d)))
+              {
+                // special case left bottom cell
+              }
+              else if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a)) &&
+                       !(s_in->isUndefined(b)) && (s_in->isUndefined(b1)))
+              {
+                // special case top left cell
+                ProcessRectangle(b, X-cellsize/2, Y+cellsize+cellsize/2,
+                                 bottom, X - cellsize/2, Y,
+                                 e, X, Y, 
+                                 b, X, Y + cellsize + cellsize/2, 
+                                 interval,  li);
+              }
+              else if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a))
+                                               && (s_in->isUndefined(b)))
+              {
+                // special case top row
+              }
+              else if (!(s_in->isUndefined(e)) && !(s_in->isUndefined(f)))
+              {
+                // special case right top cell
+                ProcessRectangle(center, X - cellsize/2, Y + cellsize/2, 
+                                 bottom, X - cellsize/2, Y,
+                                 e, X, Y, 
+                                 right, X, Y + cellsize/2, 
+                                 interval, li);
+              }
 
+              if (!(s_in->isUndefined(e)) && (s_in->isUndefined(a)) &&
+                       !(s_in->isUndefined(b)) && (s_in->isUndefined(b1)) &&
+                        (s_in->isUndefined(a1)))
+              {
+                // special case left top cell
+              }
+              else if (!(s_in->isUndefined(b)) && (s_in->isUndefined(h)))
+              {
+                ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
+                                 e, X - cellsize/2, Y - cellsize/2,
+                                 e, X, Y - cellsize/2, 
+                                 b, X, Y + cellsize, 
+                                 interval, li);
+              }
+              else if (!(s_in->isUndefined(b)) && (s_in->isUndefined(d))
+                                               && !(s_in->isUndefined(b1)))
+              {
+                ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
+                                 center, X - cellsize/2, Y + cellsize/2,
+                                 right, X, Y + cellsize/2, 
+                                 b, X, Y + cellsize, 
+                                 interval, li);
+              }
+              else if (!(s_in->isUndefined(b)) && !(s_in->isUndefined(e))
+                                               && (s_in->isUndefined(a)))
+              {
+                // special case right of undefined
+                ProcessRectangle(top, X - cellsize/2, Y + cellsize, 
+                                 center, X - cellsize/2, Y + cellsize/2,
+                                 right, X, Y + cellsize/2, 
+                                 b, X, Y + cellsize, 
+                                 interval,  li);
+              }
+            }
+          }//if e def
+        }// for 
+        li->finish();
         return 0;
       }
     
       case REQUEST:
       {
-        if(local.addr != 0)
-        {
-          ListExpr resultType = GetTupleResultType(s);
-          TupleType *tupleType = new TupleType(nl->Second(resultType));
-          Tuple *clines = new Tuple( tupleType );
+        ContourLocalInfo* li = (ContourLocalInfo*) local.addr;
+        result.addr = li?li->getNext():0;
+        return result.addr?YIELD:CANCEL;
 
-          DbArray<ResultInfo>* pResultInfo = (DbArray<ResultInfo>*)local.addr;
-
-          if( clines != 0 )
-          {
-            if ( pResultInfo != 0 )
-            {
-              int i = pResultInfo->Size();
-
-              if ( i > 0 )
-              {
-                ResultInfo temp;
-                pResultInfo->Get(i-1,temp);
-                pResultInfo->resize(i-1);
-
-                int j = 2;
-
-                while ((temp.level == -32000) && (j <= i))
-                {
-                  pResultInfo->Get(i-j,temp);
-                  pResultInfo->resize(i-j);
-
-                  j++;
-                }
-
-                if ( temp.level == -32000 )
-                {
-                  result.addr = 0;
-                  return CANCEL;
-                }
-
-                CcInt* level = new CcInt(true,temp.level);
-                Line* line = temp.cline;
-                line->EndBulkLoad();
-
-                clines->PutAttribute(0,level);
-                clines->PutAttribute(1,line);
-                result.addr = clines;
-
-                return YIELD;
-              }
-            }
-
-            result.addr = 0;
-            return CANCEL;
-
-          }  
-          else
-          {
-            result.addr = 0;
-            return CANCEL;
-          }      
-        }
-        else
-        {
-          result.addr = 0;
-          return CANCEL;
-        }      
       }
 
       case CLOSE:
       {
-        if(local.addr != 0)
-        {
-          DbArray<ResultInfo>* pResultInfo = (DbArray<ResultInfo>*)local.addr;
-          
-          if(pResultInfo != 0)
-          {
-            delete pResultInfo;
-            local.addr = 0;
-          }  
-        }
-
-        return 0;        
+          ContourLocalInfo* li = (ContourLocalInfo*) local.addr;
+          if(li){
+             delete li;
+             local.addr = 0;
+          } 
+          return 0;
       }
 
       default:
@@ -508,6 +593,10 @@ Return value: stream of tuple (level, line)
     {
       case OPEN:
       {
+
+        if(!lines->IsDefined()){
+            return 0;
+        }
         int interval = lines->GetValue();
 
         // Check for valid interval        
@@ -561,17 +650,10 @@ Return value: stream of tuple (level, line)
         double diff = max - min;
         int num = ceil(diff / interval) + 1;
 
-        DbArray<ResultInfo>* clines = new DbArray<ResultInfo>(num);
+        ContourLocalInfo* li = new ContourLocalInfo(num, min, interval, 
+                                        nl->Second(GetTupleResultType(s)));
 
-        // initialise array and set level to -32000
-        for (int i = 0; i<num; i++)
-        {
-          ResultInfo lines;
-          lines.level = -32000;
-          clines->Put(i,lines);
-        }
-
-        local.addr = clines;
+        local.addr = li;
 
         qp->Open(args[0].addr);
 
@@ -881,7 +963,7 @@ Return value: stream of tuple (level, line)
                                        d, X - cellSize, Y - cellSize/2,
                                        e, X + cellSize/2, Y - cellSize/2, 
                                        b, X + cellSize/2, Y + cellSize, 
-                                       interval, min, clines);       
+                                       interval, li);       
                     }
                     // special case for first row
                     else if ((SourceTypeProperties::TypeProperties::
@@ -893,7 +975,7 @@ Return value: stream of tuple (level, line)
                                        d, X - cellSize, Y - cellSize/2,
                                        e, X, Y - cellSize/2, 
                                        b, X, Y + cellSize, 
-                                       interval, min, clines);       
+                                       interval, li);       
                     }
                     // special case for top right cell
                     else if ((SourceTypeProperties::TypeProperties::
@@ -907,7 +989,7 @@ Return value: stream of tuple (level, line)
                                        d, X - cellSize, Y,
                                        e, X + cellSize/2, Y, 
                                        b, X + cellSize/2, Y+cellSize+cellSize/2,
-                                       interval, min, clines);       
+                                       interval, li);       
                     }
                     // special case for last column
                     else if ((SourceTypeProperties::TypeProperties::
@@ -919,7 +1001,7 @@ Return value: stream of tuple (level, line)
                                        d, X - cellSize, Y,
                                        e, X + cellSize/2, Y, 
                                        b, X + cellSize/2, Y + cellSize, 
-                                       interval, min, clines);       
+                                       interval, li);       
                     }
                     // special case for top row
                     else if ((SourceTypeProperties::TypeProperties::
@@ -931,7 +1013,7 @@ Return value: stream of tuple (level, line)
                                        d, X - cellSize, Y,
                                        e, X, Y, 
                                        b, X, Y + cellSize + cellSize/2,
-                                       interval, min, clines);       
+                                       interval, li);       
                     }
                     // normal case
                     else
@@ -940,7 +1022,7 @@ Return value: stream of tuple (level, line)
                                        d, X - cellSize, Y,
                                        e, X, Y, 
                                        b, X, Y + cellSize, 
-                                       interval, min, clines);       
+                                       interval, li);       
                     }
                   }
                   else
@@ -1038,7 +1120,7 @@ Return value: stream of tuple (level, line)
                                        left, X - cellSize, Y + cellSize/2,
                                        center, X - cellSize/2, Y + cellSize/2,
                                        top, X - cellSize/2, Y + cellSize, 
-                                       interval, min, clines);
+                                       interval, li);
                     }
               
                     if (!(SourceTypeProperties::TypeProperties::
@@ -1065,7 +1147,7 @@ Return value: stream of tuple (level, line)
                                          d, X - cellSize, Y,
                                          bottom, X - cellSize/2, Y, 
                                          center, X - cellSize/2, Y + cellSize/2,
-                                         interval, min, clines);
+                                         interval, li);
                       }
                       else if (!(SourceTypeProperties::TypeProperties::
                                  IsUndefinedValue(e)) && 
@@ -1081,7 +1163,7 @@ Return value: stream of tuple (level, line)
                                          d, X - cellSize, Y,
                                          bottom, X - cellSize/2, Y, 
                                          center, X - cellSize/2, Y + cellSize/2,
-                                         interval, min, clines);
+                                         interval, li);
                       }
                     }
             
@@ -1108,7 +1190,7 @@ Return value: stream of tuple (level, line)
                                        bottom, X - cellSize/2, Y,
                                        e, X, Y, 
                                        b, X, Y + cellSize + cellSize/2, 
-                                       interval, min, clines);
+                                       interval, li);
                     }
                     else if (!(SourceTypeProperties::TypeProperties::
                                IsUndefinedValue(e)) && 
@@ -1129,7 +1211,7 @@ Return value: stream of tuple (level, line)
                                        bottom, X - cellSize/2, Y,
                                        e, X, Y, 
                                        right, X, Y + cellSize/2,   
-                                       interval, min, clines);
+                                       interval, li);
                     }
 
                     if (!(SourceTypeProperties::TypeProperties::
@@ -1154,7 +1236,7 @@ Return value: stream of tuple (level, line)
                                        e, X - cellSize/2, Y - cellSize/2,
                                        e, X, Y - cellSize/2, 
                                        b, X, Y + cellSize, 
-                                       interval, min, clines);
+                                       interval,  li);
                     }
                     else if (!(SourceTypeProperties::TypeProperties::
                                IsUndefinedValue(b)) && 
@@ -1167,7 +1249,7 @@ Return value: stream of tuple (level, line)
                                        center, X - cellSize/2, Y + cellSize/2,
                                        right, X, Y + cellSize/2, 
                                        b, X, Y + cellSize, 
-                                       interval, min, clines);
+                                       interval,  li);
                     }
                     else if (!(SourceTypeProperties::TypeProperties::
                                IsUndefinedValue(b)) && 
@@ -1181,7 +1263,7 @@ Return value: stream of tuple (level, line)
                                        center, X - cellSize/2, Y + cellSize/2,
                                        right, X, Y + cellSize/2, 
                                        b, X, Y + cellSize, 
-                                       interval, min, clines);
+                                       interval, li);
                     }
                   }
                 }//if e def
@@ -1207,93 +1289,25 @@ Return value: stream of tuple (level, line)
           currentTuple = 0;
           readNextElement = true;
         }
-
+        li->finish();
         return 0;
       }
     
       case REQUEST:
       {
-        if(local.addr != 0)
-        {
-          ListExpr resultType = GetTupleResultType(s);
-          TupleType *tupleType = new TupleType(nl->Second(resultType));
-          Tuple *clines = new Tuple( tupleType );
-
-          DbArray<ResultInfo>* pResultInfo = (DbArray<ResultInfo>*)local.addr;
-
-          if( clines != 0 )
-          {
-            if ( pResultInfo != 0 )
-            {
-              int i = pResultInfo->Size();
-
-              if ( i > 0 )
-              {
-                ResultInfo temp;
-                pResultInfo->Get(i-1,temp);
-                pResultInfo->resize(i-1);
-
-                int j = 2;
-
-                while ((temp.level == -32000) && (j <= i))
-                {
-                  pResultInfo->Get(i-j,temp);
-                  pResultInfo->resize(i-j);
-
-                  j++;
-                }
-
-                if ( temp.level == -32000 )
-                {
-                  result.addr = 0;
-                  return CANCEL;
-                }
-
-                CcInt* level = new CcInt(true,temp.level);
-                Line* line = temp.cline;
-                line->EndBulkLoad();
-
-                clines->PutAttribute(0,level);
-                clines->PutAttribute(1,line);
-                result.addr = clines;
-
-                return YIELD;
-              }
-            }
-
-            result.addr = 0;
-            return CANCEL;
-
-          }  
-          else
-          {
-            result.addr = 0;
-            return CANCEL;
-          }      
-        }
-        else
-        {
-          result.addr = 0;
-          return CANCEL;
-        }      
+         ContourLocalInfo* li = (ContourLocalInfo*) local.addr;
+         result.addr=li?li->getNext():0;
+         return result.addr?YIELD:CANCEL;
       }
 
       case CLOSE:
       {
-        if(local.addr != 0)
-        {
-          DbArray<ResultInfo>* pResultInfo = (DbArray<ResultInfo>*)local.addr;
-          
-          if(pResultInfo != 0)
-          {
-            delete pResultInfo;
-            local.addr = 0;
-          }  
+        
+        ContourLocalInfo* li = (ContourLocalInfo*) local.addr;
+        if(li){
+           delete li;
+           local.addr = 0;
         }
-
-        qp->Close(args[0].addr);
-
-        return 0;        
       }
 
       default:
@@ -1371,7 +1385,7 @@ Type Mapping
                                      nl->SymbolAtom(CcInt::BasicType()));
 
     ListExpr attr2 = nl->TwoElemList( nl->SymbolAtom("Contour"),
-                                     nl->SymbolAtom(Line::BasicType()));
+                                     nl->SymbolAtom(LineType::BasicType()));
 
     attrList = nl->TwoElemList( attr1, attr2 );
 
@@ -1421,8 +1435,8 @@ Parameters: values and coordinates of four points, the wanted interval,
                         double g, double gX, double gY,
                         double i, double iX, double iY,
                         double c, double cX, double cY, 
-                        int interval, double min, 
-                        DbArray<ResultInfo>* clines)
+                        int interval,  
+                        ContourLocalInfo* li)
   {
     // calculate minimum and maximum
     double Min = MIN(MIN(a,c),MIN(g,i));
@@ -1462,38 +1476,38 @@ Parameters: values and coordinates of four points, the wanted interval,
         {
           if ( !(g == level && i == level) )
             AddSegment( level, pointsX[0], pointsY[0], 
-                        pointsX[1], pointsY[1], min, interval, clines);
+                        pointsX[1], pointsY[1], li);
         }
         // left and right
         else if ( nPoints1 == 1 && nPoints3 == 2 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], min, interval, clines);
+                      pointsX[1], pointsY[1], li);
         }
         // left and top
         else if ( nPoints1 == 1 && nPoints == 2 )
         { 
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], min, interval, clines);
+                      pointsX[1], pointsY[1], li);
         }
         // bottom and right
         else if(  nPoints2 == 1 && nPoints3 == 2)
         {
           if ( !(c == level && i == level) )
             AddSegment( level, pointsX[0], pointsY[0], 
-                        pointsX[1], pointsY[1], min, interval, clines);
+                        pointsX[1], pointsY[1], li);
         }
         // bottom and top
         else if ( nPoints2 == 1 && nPoints == 2 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], min, interval, clines);
+                      pointsX[1], pointsY[1], li);
         }
         // right and top
         else if ( nPoints3 == 1 && nPoints == 2 )
         { 
            AddSegment( level, pointsX[0], pointsY[0], 
-                       pointsX[1], pointsY[1], min, interval, clines);
+                       pointsX[1], pointsY[1], li);
         }
         else
         {
@@ -1507,37 +1521,37 @@ Parameters: values and coordinates of four points, the wanted interval,
         if ( nPoints1 == 1 && nPoints2 == 2 && nPoints3 == 3 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], min, interval, clines);
+                      pointsX[1], pointsY[1], li);
 
           AddSegment( level, pointsX[1], pointsY[1], 
-                      pointsX[2], pointsY[2], min, interval, clines);
+                      pointsX[2], pointsY[2], li);
         }
         // left, bottom and top
         else if ( nPoints1 == 1 && nPoints2 == 2 && nPoints == 3 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], min, interval, clines);
+                      pointsX[1], pointsY[1],  li);
 
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[2], pointsY[2], min, interval, clines);
+                      pointsX[2], pointsY[2],  li);
         }
         // bottom, right and top
         else if ( nPoints2 == 1 && nPoints3 == 2 && nPoints == 3 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], min, interval, clines);
+                      pointsX[1], pointsY[1], li);
 
           AddSegment( level, pointsX[1], pointsY[1], 
-                      pointsX[2], pointsY[2], min, interval, clines);
+                      pointsX[2], pointsY[2], li);
         }
         // left, right and top
         else if ( nPoints1 == 1 && nPoints3 == 2 && nPoints == 3 )
         {
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[1], pointsY[1], min, interval, clines);
+                      pointsX[1], pointsY[1], li);
 
           AddSegment( level, pointsX[1], pointsY[1], 
-                      pointsX[2], pointsY[2], min, interval, clines);
+                      pointsX[2], pointsY[2], li);
         }
       }
 
@@ -1546,9 +1560,9 @@ Parameters: values and coordinates of four points, the wanted interval,
         if ( !(c == level && a == level) )
         {
           AddSegment( level, pointsX[1], pointsY[1], 
-                      pointsX[2], pointsY[2], min, interval, clines);
+                      pointsX[2], pointsY[2], li);
           AddSegment( level, pointsX[0], pointsY[0], 
-                      pointsX[3], pointsY[3], min, interval, clines);
+                      pointsX[3], pointsY[3], li);
         }
       }
     } 
@@ -1601,88 +1615,45 @@ Parameters: level value, coordinates of segments start and stop point,
             to store the segments
 
 */
-  bool AddSegment(int l, double startX, double startY,
-                  double endX, double endY, 
-                  double min, int interval, DbArray<ResultInfo>* clines)
+  void  AddSegment(int l, double startX, double startY,
+                  double endX, double endY, ContourLocalInfo* clines)
   {
     Point p1(true, startX, startY);
     Point p2(true, endX, endY);
-    HalfSegment hs(true, p1, p2);
-
-    // calculate array element
-    int i = floor((l - min) / interval);
-
-    // find correct contour line
-    ResultInfo temp;
-    clines->Get(i,temp);
-
-    // if contour line exists, add segment
-    if (!(temp.level == -32000))
-    {            
-      Line* line = temp.cline;
-
-      int s = line->Size();
-
-      hs.attr.edgeno = s/2;
-      (*line) += hs;
-      hs.SetLeftDomPoint(false);
-      (*line) += hs;
-    }
-    else
-    // if not, create new line
-    {
-      Line* line = new Line(0);
-
-      line->StartBulkLoad();
-
-      hs.attr.edgeno = 0;
-      (*line) += hs;
-      hs.SetLeftDomPoint(false);
-      (*line) += hs;
-
-      int l2 = static_cast<int>(l);
-
-      ResultInfo lines;
-
-      lines.level = l2;
-      lines.cline = line;
-
-      clines->Put(i,lines);
-    }
-
-    return true;
+    clines->addSegment(l,p1,p2);    
   }
 
 /*
 Method GetValuesContour reads the values for 3x3 cells
 
-parameters: a - reference to top left cell \\
-            a1 - reference to top left cell + 1 \\
-            b - reference to top middle cell \\
-            b1 - reference to top middle cell + 1 \\
-            c - reference to top right cell \\
-            d - reference to middle left cell \\
-            f - reference to middle right cell \\
-            g - reference to bottom left cell \\
-            h - reference to bottom right cell \\
-            row - number of current row \\
-            column - number of current column \\
-            currentTuple - number of current tuple \\
-            s\_in - current tuple \\
-            maxX - maximum X in a tuple \\
-            maxY - maximum Y in a tuple \\
-            factorNext - if vector current and next have different start points \\
-            factorlast - if vector current and last have different start points \\
-            skipNextRow - if difference between next and current is more 
-                          than one tile \\
-            skipLastRow - if difference between last and current is more 
-                          than one tile \\
-            current - current vector \\
-            next - next vector \\
-            last - last vector \\
-            currentSize - size of current vector \\
-            nextSize - size of next vector \\
-            lastSize - size of last vector \\
+parameters:
+   a - reference to top left cell \\
+   a1 - reference to top left cell + 1 \\
+   b - reference to top middle cell \\
+   b1 - reference to top middle cell + 1 \\
+   c - reference to top right cell \\
+   d - reference to middle left cell \\
+   f - reference to middle right cell \\
+   g - reference to bottom left cell \\
+   h - reference to bottom right cell \\
+   row - number of current row \\
+   column - number of current column \\
+   currentTuple - number of current tuple \\
+   s\_in - current tuple \\
+   maxX - maximum X in a tuple \\
+   maxY - maximum Y in a tuple \\
+   factorNext - if vector current and next have different start points \\
+   factorlast - if vector current and last have different start points \\
+   skipNextRow - if difference between next and current is more 
+   than one tile \\
+   skipLastRow - if difference between last and current is more 
+   than one tile \\
+   current - current vector \\
+   next - next vector \\
+   last - last vector \\
+   currentSize - size of current vector \\
+   nextSize - size of next vector \\
+   lastSize - size of last vector \\
 return value: -
 exceptions: -
 
