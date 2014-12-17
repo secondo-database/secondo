@@ -402,6 +402,21 @@ class DLine : public StandardSpatialAttribute<2>{
      int getSize() const{
        return segments.Size();
      }
+    
+     int Size() const{
+       return segments.Size();
+     }
+
+     DLine& operator+=(const HalfSegment& hs){
+        if(hs.IsLeftDomPoint()){
+           append(SimpleSegment(hs));
+        }
+        return *this;
+     }
+
+     void StartBulkLoad(){}
+
+      bool EndBulkLoad() { return true; }
  
 
   private:
