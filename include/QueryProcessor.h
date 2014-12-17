@@ -373,7 +373,12 @@ For a given supplier ~s~ set its Selectivity ~selectivity~
 For a given supplier ~s~ set its Predicate Cost ~predCost~
 
 */
+void UpdateProgress();
 
+/*
+Update the progress bar to the current progress value.
+
+*/
 
   void CheckProgress();
 

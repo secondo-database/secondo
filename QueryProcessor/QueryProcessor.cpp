@@ -4251,6 +4251,22 @@ Then call the operator's value mapping function.
 }
 
 
+void 
+QueryProcessor::UpdateProgress() 
+{
+      ProgressInfo progress;
+      
+      allowProgress = false;
+
+      if ( RequestProgress(QueryTree, &progress) ) {
+        if ( progressView ) progressView->ModifyProgressView(progress);
+      }
+
+      allowProgress = true;
+}
+
+
+
 void
 QueryProcessor::CheckProgress()
 {
@@ -4275,7 +4291,6 @@ a multiple of the one defined here.
   static const int progressDelta = 100;
 
   static int progressCtr = progressDelta;
-  ProgressInfo progress;
 
   progressCtr--;
 
@@ -4286,14 +4301,7 @@ a multiple of the one defined here.
     }
 
     if ( (clock() - lastClock) > clockDelta / 10) {
-
-      allowProgress = false;
-
-      if ( RequestProgress(QueryTree, &progress) ) {
-        if ( progressView ) progressView->ModifyProgressView(progress);
-      }
-
-      allowProgress = true;
+      UpdateProgress();
       lastClock = clock();
     }
     progressCtr = progressDelta;
