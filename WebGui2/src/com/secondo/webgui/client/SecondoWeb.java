@@ -84,8 +84,7 @@ public class SecondoWeb implements EntryPoint {
 			+ "attempting to contact the server. Please check your network "
 			+ "connection and try again.";
 	
-	/**Command for the optimizer*/
-	private Command optimizerSettings;
+
 	
 	/* Storage for temporary data*/
 	private String currentDatabase="";
@@ -229,14 +228,14 @@ public class SecondoWeb implements EntryPoint {
 				
 			}
 		});
-	    
+	    /*Adds an event handler on the button "create symtraj"*/
 		this.mainView.getOptionsTabPanel().getCreateSymTrajButton()
 				.addClickHandler(new ClickHandler() {
 					public void onClick(ClickEvent event) {
 						if (mainView.getOptionsTabPanel()
 								.getOptionsForCreatingSymTraj()
 								.getSelectedIndex() == 2
-								&& mainView.getMapView().getMyLocation() != null) {
+								&& mainView.getMapView().getMyLocation() == null) {
 							Window.alert("Please select my location using menu");
 						} else {
 							rpcConnector
@@ -273,27 +272,37 @@ public class SecondoWeb implements EntryPoint {
 			}
 		});
 		
-		this.mainView.getOptionsTabPanel().getMatchButton().addClickHandler(new ClickHandler() {
-			
-			@Override
-			public void onClick(ClickEvent event) {
-				String command= mainView.getOptionsTabPanel().getCommandForPatternMatching();
-				if(!command.isEmpty()){
-					mainView.resetMapView();					
-					
-					//send the command directly to secondo					
-					rpcConnector.sendCommandAndUpdateHistory(command, mainView, loadingPopup);
-					//get number of tuples and show in pattern result part of options tabs
-					rpcConnector.getNumberOfTuplesInRelationFromResultList(mainView);					
-					
-					//show the loading popup in the center of the application until the call is finished
-			    	loadingPopup.center(); 	
-				}
-				else{
-					Window.alert("Please select relation and load it");
-				}
-			}
-		});
+		//Adds an event handler on the button "match pattern" to match a defined pattern to the loaded relation
+		this.mainView.getOptionsTabPanel().getMatchButton()
+				.addClickHandler(new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+						if (!mainView.getOptionsTabPanel()
+								.isUnsuccessfulVerification()) {
+							String command = mainView.getOptionsTabPanel()
+									.getCommandForPatternMatching();
+							mainView.getOptionsTabPanel()
+									.setPatternMatchingIsInitiated(true);
+							if (!command.isEmpty()) {
+								mainView.resetMapView();
+
+								// send the command directly to secondo
+								rpcConnector.sendCommandAndUpdateHistory(
+										command, mainView, loadingPopup);
+
+								// show the loading popup in the center of the
+								// application until the call is finished
+								loadingPopup.center();
+							} else {
+								Window.alert("Please select relation and load it");
+							}
+
+						} else {
+							Window.alert("Please correct your pattern statement!");
+						}
+					}
+				});
 		
 		//Adds an event handler on the button "get GPX coordinate" to define a location from address
 		this.mainView.getMainheader().getLocationDialog().getGetCoordinateButton().addClickHandler(new ClickHandler() {

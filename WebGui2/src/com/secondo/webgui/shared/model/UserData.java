@@ -41,6 +41,7 @@ public class UserData implements Serializable {
 	private ArrayList<String> commandHistory = new ArrayList<String>();
 	private ArrayList<String> resultHistory = new ArrayList<String>();
 	private ArrayList<ArrayList<String>> formattedResultHistory = new ArrayList<ArrayList<String>>();
+	private int numberOfSuccessfulReusltsInPatternMatching=0;
 	
 	public UserData(){		
 	}
@@ -163,5 +164,14 @@ public class UserData implements Serializable {
 	 * */
 	public ArrayList<ArrayList<String>> getFormattedResultHistory() {
 		return formattedResultHistory;
+	}
+
+	public int getNumberOfSuccessfulReusltsInPatternMatching() {
+		return numberOfSuccessfulReusltsInPatternMatching;
+	}
+
+	public void setNumberOfSuccessfulReusltsInPatternMatching(
+			int numberOfSuccessfulReusltsInPatternMatching) {
+		this.numberOfSuccessfulReusltsInPatternMatching = numberOfSuccessfulReusltsInPatternMatching;
 	}
 }

@@ -99,6 +99,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements SecondoS
 public String sendCommand(String command) {
 		
 		System.out.println("SecondoServiceImpl has been called!");
+		System.out.println("Command "+ command);
 
     	try {
 			sc.doQuery(command);
@@ -109,7 +110,8 @@ public String sendCommand(String command) {
   	
     	    //save the result in the history lists
 	    	sd.getResultHistory().add(sc.getSecondoresult());	    	
-	    	sd.getFormattedResultHistory().add(sc.getFormattedList());
+	    	sd.getFormattedResultHistory().add(sc.getFormattedList());	
+	    	sd.setNumberOfSuccessfulReusltsInPatternMatching(sc.getNumberOfTuplesInRelationFromResult());
 		
 	    return sc.getSecondoresult();
 	  }
@@ -415,7 +417,7 @@ public String sendCommand(String command) {
 	}
 	
 	public int getNumberOfTuplesInRelationFromResultList(){
-		return sc.getNumberOfTuplesInRelationFromResult(); 
+		return sd.getNumberOfSuccessfulReusltsInPatternMatching();
 	}
 	
 	

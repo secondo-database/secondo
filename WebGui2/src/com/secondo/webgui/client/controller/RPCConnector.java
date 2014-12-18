@@ -90,7 +90,11 @@ public class RPCConnector {
 				}
 				else{
 					
-								
+					if (mainView.getOptionsTabPanel()
+							.isPatternMatchingIsInitiated()) {
+						
+						setNumberOfTuplesInRelationFromResultList(mainView);
+					}	
 				
 				    updateCommandHistory(mainView);			    
 				    
@@ -163,55 +167,6 @@ public class RPCConnector {
 		secondoService.sendCommand(command, callback); 
 	}
 	
-	/** Starts an RPC call to the server to send the command from the commandpanel to the optimizer and get the optimized result back 
-	 * 
-	 * @param command The command to be send to the optimizer server
-	 * @param database The currently open database
-	 * @param executeFlag The executeFlag for the optimizer server
-	 * @param mv The main view object
-	 * @param lp The loading popup object
-	 * */
-	public void sendOptimizedCommand(String command, String database, boolean executeFlag, MainView mv, PopupPanel lp) {
-		
-		this.mainView = mv;
-		this.loadingPopup = lp;
-								
-		AsyncCallback<ArrayList<String>> callback = new AsyncCallback<ArrayList<String>>() {
-
-			@Override
-			public void onFailure(Throwable caught) {	
-								
-				loadingPopup.hide();
-				System.err.println("Optimizer failed: " + caught.getMessage());
-			}
-
-			@Override
-			public void onSuccess(ArrayList<String> resultList) {
-  
-				//check if there has been an error 
-				if(!resultList.get(1).isEmpty()){
-					
-					loadingPopup.hide();
-				}
-				else{
-					//check if the errorcode of the last error is 0
-					if(resultList.get(3).equals("no error")){
-						
-					   System.out.println("##### successfully optimized command");						
-					  
-					
-					    //send the optimized query to secondo
-					   sendCommand(resultList.get(0), mainView, loadingPopup);
-					}
-					else{
-						
-						loadingPopup.hide();
-					}
-				}
-			}
-		  };		  		 
-		secondoService.getOptimizedQuery(command, database, executeFlag, callback); 
-	}
 	
 	
 	/** Starts an RPC call to the server to set the connection data for the optimizer 
@@ -507,8 +462,12 @@ public class RPCConnector {
 	public void doGPXimport(final String nameOfUploadedFile, final int option, MainView mv, PopupPanel lp){	
 		this.mainView = mv;
 		this.loadingPopup = lp;
-		final String relName="Raw"+nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("/")+1, nameOfUploadedFile.lastIndexOf("."));
-		String command="let "+relName+" = gpximport('"+nameOfUploadedFile+"') consume;";		
+
+		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("\\")+1, nameOfUploadedFile.lastIndexOf("."));
+		final String relName="Raw"+sufix;
+
+
+		String command="let "+relName+" = gpximport('"+relName.replace("Raw", "")+".gpx"+"') consume";	
 		
 		System.out.println("Command "+ command);
 		
@@ -522,9 +481,9 @@ public class RPCConnector {
 			@Override
 			public void onSuccess(String result) {		
 				if (result.contains("already used")) {
-					deleteOldRelation(relName, nameOfUploadedFile, option);					
+					deleteOldRelation(relName, "", nameOfUploadedFile, option);					
 				}else{
-				makeMPfromGPX(relName,option);
+				makeMPfromGPX(relName, nameOfUploadedFile, option);
 				}	
 					
 				
@@ -535,9 +494,10 @@ public class RPCConnector {
 		
 	}
 	
-	public void makeMPfromGPX(String relName, final int option) {
-		final String actualName=relName.replace("Raw", "MPfromGPX");
-		String command = "let "+actualName+" = "+relName+" feed extend[Trip: makepoint(.Lon, .Lat)]sortby[Time asc]approximate[Time, Trip, [const duration value (0 300000)]]";
+	public void makeMPfromGPX(final String startRelationName, final String nameOfUploadedFile, final int option) {		
+		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("\\")+1, nameOfUploadedFile.lastIndexOf("."));
+		final String resultRelationName="MPfromGPX"+sufix;
+		String command = "let "+resultRelationName+" = "+startRelationName+" feed extend[Trip: makepoint(.Lon, .Lat)]sortby[Time asc]approximate[Time, Trip, [const duration value (0 300000)]]";
 		System.out.println("Command " + command);
 		
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
@@ -550,19 +510,20 @@ public class RPCConnector {
 			@Override
 			public void onSuccess(String result) {
 				if (result.contains("already used")) {
-					deleteOldRelation(actualName, null, option);					
+					deleteOldRelation(resultRelationName, startRelationName, nameOfUploadedFile, option);					
 				}
 				else{
-					makeRelationFromMP(actualName, option);
+					makeRelationFromMP(resultRelationName, nameOfUploadedFile, option);
 				}
 			}
 		};
 		secondoService.sendCommandWithoutResult(command, callback);
 	}
 	
-	public void makeRelationFromMP(String relName, final int option) {
-		final String actualName=relName.replace("MPfromGPX", "MPfromGPXrelation");
-		String command = "let "+actualName+" = "+relName+" feed namedtransformstream[Trip] consume";
+	public void makeRelationFromMP(final String startRelationName, final String nameOfUploadedFile, final int option) {
+		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("\\")+1, nameOfUploadedFile.lastIndexOf("."));
+		final String resultRelationName="MPfromGPXrelation"+sufix;
+		String command = "let "+resultRelationName+" = "+startRelationName+" feed namedtransformstream[Trip] consume";
 		System.out.println("Command " + command);
 		
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
@@ -575,11 +536,11 @@ public class RPCConnector {
 			@Override
 			public void onSuccess(String result) {
 				if (result.contains("already used")) {
-					deleteOldRelation(actualName, null, option);
+					deleteOldRelation(resultRelationName, startRelationName, nameOfUploadedFile, option);
 					
 				}
 				else{
-					createSymTraj(actualName, option, mainView, loadingPopup);
+					createSymTraj(resultRelationName, nameOfUploadedFile, option, mainView, loadingPopup);
 				}
 			}
 		};
@@ -587,18 +548,30 @@ public class RPCConnector {
 
 	}
 	
-	public void createSymTraj(String relName, final int option, MainView mv,
+	public void createSymTraj(final String startRelationName, final String nameOfUploadedFile, final int option, MainView mv,
 			PopupPanel lp) {
-		final String actualName = relName.replace("MPfromGPXrelation",
-				"SymTrajWithDirection");
+		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("\\")+1, nameOfUploadedFile.lastIndexOf("."));
+		String resultRelationName = "";
 		String command = "";
+		//speed mode
+		if (option == 0) {
+			resultRelationName = "SymTrajWithSpeedMode"+sufix;
+			command = "let "
+					+ resultRelationName
+					+ "= "
+					+ startRelationName
+					+ " feed addcounter[TrackId, 1] projectextend[TrackId, Trip; Traj: trajectory(.Trip), SymTraj: units(speed(gk(.Trip))) transformstream extend[Speed: the_unit(tolabel(getSpeedString(val(initial(.Elem)))), inst(initial(.Elem)), inst(final(.Elem)), TRUE, FALSE)] makemvalue[Speed]] consume";
+			System.out.println("Command " + command);
+			}
+		
 		//direction
 		if (option == 1) {
+			resultRelationName = "SymTrajWithDirection"+sufix;
 			command = "let "
-					+ actualName
+					+ resultRelationName
 					+ "= "
-					+ relName
-					+ " feed addcounter[TrackId, 1] projectextend[TrackId, Trip; Traj: trajectory(.Trip), SymTraj: units(direction("+relName+" feed extract[Trip])) transformstream extend[Direction: the_unit(tolabel(getDirectionString(val(initial(.Elem)))), inst(initial(.Elem)), inst(final(.Elem)), TRUE, FALSE)] makemvalue[Direction]] consume";
+					+ startRelationName
+					+ " feed addcounter[TrackId, 1] projectextend[TrackId, Trip; Traj: trajectory(.Trip), SymTraj: units(direction("+startRelationName+" feed extract[Trip])) transformstream extend[Direction: the_unit(tolabel(getDirectionString(val(initial(.Elem)))), inst(initial(.Elem)), inst(final(.Elem)), TRUE, FALSE)] makemvalue[Direction]] consume";
 			System.out.println("Command " + command);
 			}
 		
@@ -606,14 +579,26 @@ public class RPCConnector {
 		if(option==2){			
 			double lat= mv.getMapView().getMyLocation().getX();
 			double lon= mv.getMapView().getMyLocation().getY();
-			
+			resultRelationName = "SymTrajWithDistance"+sufix;
 			command = "let "
-					+ actualName
+					+ resultRelationName
 					+ "= "
-					+ relName
+					+ startRelationName
 					+ " feed addcounter[TrackId, 1] projectextend[TrackId, Trip; Traj: trajectory(.Trip), SymTraj: units(distance(gk(.Trip), gk(point ( "+lon+" "+lat+" )))) transformstream extend[Distance: the_unit(tolabel(getDistanceString(val(initial(.Elem)))), inst(initial(.Elem)), inst(final(.Elem)), TRUE, FALSE)] makemvalue[Distance]] consume";
 			System.out.println("Command " + command);
 		}
+		
+		//administrative districts
+		if (option == 3) {
+			resultRelationName = "SymTrajWithAdminDistricts"+sufix;
+			command = "let "
+					+ resultRelationName
+					+ "= "					
+					+ " AdminDistrictsGermany feed "+startRelationName+" feed addcounter[TrackId, 1] itSpatialJoin[Gebiet, Trip] projectextend[TrackId, Trip, KName; Traj: trajectory(.Trip), Pieces: .Trip at .Gebiet] filter[not(isempty(deftime(.Pieces)))] projectextendstream[TrackId, Trip, Traj, KName; Time: components(deftime(.Pieces))] extend[Mintime: minimum(.Time), U: the_unit(tolabel(.KName), minimum(.Time), maximum(.Time), TRUE, FALSE)] sortby[TrackId, Mintime] groupby[TrackId;Trip : group feed extract[Trip], Traj : group feed extract[Traj], SymTrip : group feed makemvalue[U]] consume";
+			System.out.println("Command " + command);
+		}
+		
+		final 		String resultRelation=resultRelationName;
 			AsyncCallback<String> callback = new AsyncCallback<String>() {
 
 				@Override
@@ -624,12 +609,12 @@ public class RPCConnector {
 				@Override
 				public void onSuccess(String result) {
 					if (result.contains("already used")) {
-						deleteOldRelation(actualName, null, option);
+						deleteOldRelation(resultRelation, startRelationName, nameOfUploadedFile, option);
 
 					} else {
 						mainView.getOptionsTabPanel()
 								.getSelectOptionsForExistingTrajectories()
-								.addItem(actualName);
+								.addItem(resultRelation);
 						Window.alert("Symbolic trajetory was scuccesfully created. On \"Try trajectory\" animate a newly created relation! ");
 					}
 				}
@@ -639,9 +624,11 @@ public class RPCConnector {
 		
 	}
 	
-	public void deleteOldRelation(final String relationName, final String nameOfUploadedFile, final int option){
-		String command="delete " + relationName;
+	public void deleteOldRelation(final String resultRelationName, final String startRelationName, final String nameOfUploadedFile, final int option){
+		
+		final String command="delete " + resultRelationName;
 		System.out.println("Command "+ command);
+		
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
 			@Override
@@ -651,17 +638,19 @@ public class RPCConnector {
 
 			@Override
 			public void onSuccess(String result) {				
-				if(relationName.contains("Raw")){
+				if(resultRelationName.contains("Raw")){
 					doGPXimport(nameOfUploadedFile, option, mainView, loadingPopup);
+				}				
+				if(resultRelationName.contains("MPfromGPXrelation")){				
+					
+					makeRelationFromMP(startRelationName, nameOfUploadedFile, option);
 				}
-				if(relationName.contains("MPfromGPX")){
-					makeMPfromGPX(relationName, option);
+				if(resultRelationName.contains("MPfromGPX")&& !resultRelationName.contains("relation")){
+					
+					makeMPfromGPX(startRelationName, nameOfUploadedFile, option);
 				}
-				if(relationName.contains("MPfromGPXrelation")){
-					makeRelationFromMP(relationName, option);
-				}
-				if(relationName.contains("SymTrajWithDirection")){
-					createSymTraj(relationName, option, mainView, loadingPopup);			
+				if(resultRelationName.contains("SymTrajWith")){
+					createSymTraj(startRelationName, nameOfUploadedFile, option, mainView, loadingPopup);			
 				}
 				
 					
@@ -790,9 +779,16 @@ public class RPCConnector {
 		sendCommand(command, mv, lp);
 		addCommandToHistory(command);
 		updateCommandHistory(mv);
-	}	
 		
-	public void getNumberOfTuplesInRelationFromResultList(final MainView mv){
+	}	
+	
+
+		
+	/**
+	 * sets number of tuples and show in pattern result part of options tabs
+	 * @param mv
+	 */
+	public void setNumberOfTuplesInRelationFromResultList(final MainView mv){
 		
 		AsyncCallback<Integer> callback = new AsyncCallback<Integer>() {
 
@@ -804,7 +800,9 @@ public class RPCConnector {
 
 			@Override
 			public void onSuccess(Integer result) {
+
 				mv.getOptionsTabPanel().setTextInResultOfPatternMatchingLabel("Result of pattern matching: "+result.toString());
+				mv.getOptionsTabPanel().setPatternMatchingIsInitiated(false);
 				
 			}			
 		};
