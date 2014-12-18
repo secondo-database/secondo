@@ -1,104 +1,93 @@
 package com.secondo.webgui.client.mainview;
 
-
-
 import java.util.ArrayList;
 
-import com.google.gwt.core.client.GWT;
-import com.google.gwt.dom.client.Element;
+
+
+
+import java.util.List;
+
 import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.dom.client.KeyPressEvent;
-import com.google.gwt.event.dom.client.KeyPressHandler;
-import com.google.gwt.event.logical.shared.SelectionEvent;
-import com.google.gwt.event.logical.shared.SelectionHandler;
-import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.DecoratedPopupPanel;
-import com.google.gwt.user.client.ui.DecoratedStackPanel;
 import com.google.gwt.user.client.ui.DecoratedTabPanel;
-import com.google.gwt.user.client.ui.FileUpload;
+import com.google.gwt.user.client.ui.DecoratorPanel;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlexTable.FlexCellFormatter;
-import com.google.gwt.user.client.ui.FormPanel;
-import com.google.gwt.user.client.ui.FormPanel.SubmitCompleteEvent;
-import com.google.gwt.user.client.ui.FormPanel.SubmitEvent;
 import com.google.gwt.user.client.ui.ScrollPanel;
-import com.google.gwt.user.client.ui.SuggestOracle.Suggestion;
+import com.google.gwt.user.client.ui.StackPanel;
 import com.google.gwt.user.client.ui.Grid;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
+import com.google.gwt.user.client.ui.HasVerticalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
-import com.google.gwt.user.client.ui.MultiWordSuggestOracle;
-import com.google.gwt.user.client.ui.SuggestBox;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.PushButton;
 import com.secondo.webgui.utils.config.ModesToShowSymTraj;
 
+public class OptionsTabPanel extends Composite {
 
-public class OptionsTabPanel extends Composite{
+	private DecoratedTabPanel optionsTabPanel = new DecoratedTabPanel();
 
-	private DecoratedTabPanel optionsTabPanel= new DecoratedTabPanel(); 
-	
-	private FileUploadPanel uploadWidget= new FileUploadPanel();
-		
-	
-//	private Button helpButton = new Button("<img src='resources/images/help-icon-16.png' height='25px'/>");
+	private FileUploadPanel uploadWidget = new FileUploadPanel();
+
 	ListBox optionsForCreatingSymTraj;
 	private Grid gridWithOptionsForCreatingSymTraj;
 	private Button createSymTrajButton;
-	
-	private DecoratedStackPanel stackPanel = new DecoratedStackPanel();
-	
-	private int count;
-	
-	//elements of the animation panel
-    private VerticalPanel animationPanel = new VerticalPanel();
-    private HorizontalPanel panelForPlay = new HorizontalPanel();
-    private HorizontalPanel panelForPause = new HorizontalPanel();   
+
+	private StackPanel stackPanel = new StackPanel();
+
+	// elements of the animation panel
+	private VerticalPanel animationPanel = new VerticalPanel();
+	private HorizontalPanel panelForPlay = new HorizontalPanel();
+	private HorizontalPanel panelForPause = new HorizontalPanel();
 	private TextBox timeCounter = new TextBox();
-	private TimeSlider timeSlider = new TimeSlider(); 
-    private Image playIcon = new Image("resources/images/play-icon2.png");
-    private Image forwardIcon = new Image("resources/images/speedup-icon.png");
-    private Image rewindIcon = new Image("resources/images/speeddown-icon.png");
-    private Image pauseIcon = new Image("resources/images/pause-icon.png");
+	private TimeSlider timeSlider = new TimeSlider();
+	private Image playIcon = new Image("resources/images/play-icon2.png");
+	private Image forwardIcon = new Image("resources/images/speedup-icon.png");
+	private Image rewindIcon = new Image("resources/images/speeddown-icon.png");
+	private Image pauseIcon = new Image("resources/images/pause-icon.png");		
+	private Image queryIcon = new Image("resources/images/check-icon.png");
 	private Anchor playLink = new Anchor("Play");
 	private Anchor forwardLink = new Anchor("Speed Up");
 	private Anchor rewindLink = new Anchor("Speed Down");
 	private Anchor pauseLink = new Anchor("Pause");
+
+	CheckBox checkBoxForVariable = new CheckBox();
 	
-	  CheckBox checkBoxForVariable = new CheckBox();
-	 private TextBox textBoxForVariable = new DefaultTextBox("variable");
-	 ArrayList<HorizontalPanel> arrayOfGrids = new ArrayList<HorizontalPanel>();
-	 SuggestBox optionsForTimeInPattern;
-	 SuggestBox optionsForLabelInPattern ;
-	 private Label patternLabel = new Label("");
-	 private Label resultOfPatternMatchingLabel=new Label("");
-	 private ScrollPanel definedPattern= new ScrollPanel();
-	 Pattern pattern = new Pattern();
-	 private TextBox patternBox= new DefaultTextBox	("enter your pattern");
-	 final private FlexTable tableForPattern = new FlexTable();
-	 final private VerticalPanel panelForPattern = new VerticalPanel();
-	 private ListBox optionsWithSequencePattern = new ListBox(false);
-	 private ListBox selectOptionsForDisplayMode = new ListBox(); 
-	 private ListBox selectOptionsForExistingTrajectories = createBoxWithSelectOptionsForExistingTrajectories();
-	 private Button getRelationButton = new Button("Get relation");
-	 final Image addPatternButton = new Image("resources/images/plus.png");
-	 private Button matchButton= new Button("match");
-	 private Button removeButton = new Button("remove");
-	 
-	 private String attributeNameOfMlabelInRelation="";
+	ArrayList<HorizontalPanel> arrayOfGrids = new ArrayList<HorizontalPanel>();
 	
-	
-	
+//	elements for pattern panel
+	private Label patternLabel = new Label("");
+	private Label warningLabel= new Label("");
+	private Label resultOfPatternMatchingLabel = new Label("");
+	private ScrollPanel definedPattern = new ScrollPanel();	
+	private TextBox textBoxForVariable = new DefaultTextBox("variable");
+	private TextBox patternBox = new DefaultTextBox("enter your pattern");	
+	private TextBox condition = new DefaultTextBox("condition");
+	final private VerticalPanel panelForPattern = new VerticalPanel();
+	private ListBox selectOptionsForDisplayMode = new ListBox();
+	private ListBox selectOptionsForExistingTrajectories = createBoxWithSelectOptionsForExistingTrajectories();
+	private Button getRelationButton = new Button("Get relation");	
+	private Button matchButton = new Button("match");
+	private Button removeButton = new Button("remove");
+	private FlexTable definedPatternWidget;
+	private ArrayList<String> variablesForPattern = new ArrayList<>(); 
+	private boolean unsuccessfulVerification=false; 
+
+	private String attributeNameOfMlabelInRelation = "";
+	private DecoratorPanel decPanelForStackWithSimpleQueries = new DecoratorPanel();
+
+	private boolean patternMatchingIsInitiated = false;
+
 	public DecoratedTabPanel getOptionsTabPanel() {
 		return optionsTabPanel;
 	}
@@ -106,629 +95,589 @@ public class OptionsTabPanel extends Composite{
 	/**
 	 * 
 	 */
-	public OptionsTabPanel(){	
-				
+	public OptionsTabPanel() {
+
 		optionsTabPanel.setWidth("300px");
 		optionsTabPanel.getElement().getStyle().setMarginBottom(10.0, Unit.PX);
 		optionsTabPanel.setVisible(true);
-		optionsTabPanel.setStyleName("maxWidth");	
-		
-		optionsForCreatingSymTraj = new ListBox();		
-		
-	    final VerticalPanel vPanel0 = new VerticalPanel();  	    
-        vPanel0.setStyleName("minHeight");  
-        vPanel0.setWidth("300px");
-        vPanel0.setSpacing(5);                 
-        
-        
-        
-        Image closeImage=new Image("/resources/images/Action-arrow-blue-down-icon.png");
-        closeImage.setStyleName("centered");
-        Image openImage=new Image("/resources/images/Action-arrow-blue-up-icon.png");
-        openImage.setStyleName("centered");
-        
-        
-        final PushButton openArrowButton = new PushButton(new Image("/resources/images/Action-arrow-blue-down-icon.png"));
-        openArrowButton.setStyleName("pushButtonWithTransparentBackground"); 
-//        openArrowButton.setHeight("20px");
-        
-        final PushButton closeArrowButton = new PushButton(new Image("/resources/images/Action-arrow-blue-up-icon.png"));
-        closeArrowButton.setStyleName("pushButtonWithTransparentBackground");
-//        closeArrowButton.setHeight("20px");
-        closeArrowButton.setVisible(true);
-        
-       
-        openArrowButton.addClickHandler(new ClickHandler() {
-			
+		optionsTabPanel.setStyleName("maxWidth");
+
+		optionsForCreatingSymTraj = new ListBox();
+
+		final VerticalPanel vPanel0 = new VerticalPanel();
+		vPanel0.setStyleName("minHeight");
+		vPanel0.setWidth("300px");
+		vPanel0.setSpacing(5);
+
+		Image closeImage = new Image(
+				"/resources/images/Action-arrow-blue-down-icon.png");
+		closeImage.setStyleName("centered");
+		Image openImage = new Image(
+				"/resources/images/Action-arrow-blue-up-icon.png");
+		openImage.setStyleName("centered");
+
+		final PushButton openArrowButton = new PushButton(new Image(
+				"/resources/images/Action-arrow-blue-down-icon.png"));
+		openArrowButton.setStyleName("pushButtonWithTransparentBackground");
+
+		final PushButton closeArrowButton = new PushButton(new Image(
+				"/resources/images/Action-arrow-blue-up-icon.png"));
+		closeArrowButton.setStyleName("pushButtonWithTransparentBackground");
+		closeArrowButton.setVisible(true);
+
+		openArrowButton.addClickHandler(new ClickHandler() {
+
 			@Override
 			public void onClick(ClickEvent event) {
-				openArrowButton.setVisible(false);				
+				openArrowButton.setVisible(false);
 				closeArrowButton.setVisible(true);
-				uploadWidget.setVisible(true);	
-				if(gridWithOptionsForCreatingSymTraj.isVisible()){
+				uploadWidget.setVisible(true);
+				if (gridWithOptionsForCreatingSymTraj.isVisible()) {
 					gridWithOptionsForCreatingSymTraj.setVisible(true);
 				}
-							}
+			}
 		});
-        openArrowButton.setVisible(false);        
-        
-        vPanel0.add(openArrowButton);  
-        
-        vPanel0.add(uploadWidget);
-        
-        closeArrowButton.addClickHandler(new ClickHandler() {
-			
+		openArrowButton.setVisible(false);
+
+		vPanel0.add(openArrowButton);
+
+		vPanel0.add(uploadWidget);
+
+		closeArrowButton.addClickHandler(new ClickHandler() {
+
 			@Override
 			public void onClick(ClickEvent event) {
-				
-				openArrowButton.setVisible(true);				
+
+				openArrowButton.setVisible(true);
 				closeArrowButton.setVisible(false);
 				uploadWidget.setVisible(false);
 				gridWithOptionsForCreatingSymTraj.setVisible(false);
-				vPanel0.setHeight("30px");				
+				vPanel0.setHeight("30px");
 
-				
-				
 			}
 		});
-        
-        gridWithOptionsForCreatingSymTraj = new Grid(2,3);
-        gridWithOptionsForCreatingSymTraj.setCellSpacing(3);
-        gridWithOptionsForCreatingSymTraj.getCellFormatter().setStyleName(0,2,"lastCellInGrid");
-        gridWithOptionsForCreatingSymTraj.getCellFormatter().setStyleName(1,2,"lastCellInGrid");       
-        
-        Label selectOptionForSymTraj = new Label("Select an option for symbolic trajectory:");        
-        selectOptionForSymTraj.setStyleName("centered");
-        selectOptionForSymTraj.setStyleName("labelTextInOneLine");       
-        gridWithOptionsForCreatingSymTraj.setWidget(0,0, selectOptionForSymTraj);
-        
-        /**
-         * comboBox should be visible if gpx file was successfully uploaded
-         * */        
-        optionsForCreatingSymTraj.addItem("speed mode");
-        optionsForCreatingSymTraj.addItem("directions");
-        optionsForCreatingSymTraj.addItem("distance");//with personal location
-        optionsForCreatingSymTraj.setVisibleItemCount(1);   
-        optionsForCreatingSymTraj.setWidth("130px");
-        
-        
-        createSymTrajButton= new Button("Create trajectory");
-        createSymTrajButton.setWidth("100px");
-        
-        
-        gridWithOptionsForCreatingSymTraj.setWidget(0, 1, optionsForCreatingSymTraj);
-        gridWithOptionsForCreatingSymTraj.setWidget(1, 1, createSymTrajButton);
-        gridWithOptionsForCreatingSymTraj.setVisible(false);
-        
-        
-        vPanel0.add(gridWithOptionsForCreatingSymTraj);  
-        vPanel0.add(closeArrowButton);
-        
-        optionsTabPanel.add(vPanel0, "Create trajectory");
-        
-	    
-	    final VerticalPanel vPanel2 = new VerticalPanel();
-	    vPanel2.setStyleName("minHeight");
-	    vPanel2.setWidth("300px");
-        vPanel2.setSpacing(5); 
-        
-        final FlexTable gridForExistingTrajectory= new FlexTable();
-        
-        gridForExistingTrajectory.setWidth("290px");
-        gridForExistingTrajectory.setCellSpacing(3);
-        
-        Label labelForSelectTrajectory = createLabel("select relation:");
-        labelForSelectTrajectory.ensureDebugId("labelForSelectSymbTraj");
-        labelForSelectTrajectory.setStyleName("labelTextInOneLine");
-        gridForExistingTrajectory.setWidget(0,0,labelForSelectTrajectory);
-        
-        
-        selectOptionsForExistingTrajectories.ensureDebugId("listBoxForSelectExistingSymbTraj");
-        selectOptionsForExistingTrajectories.setWidth("130px");
-        gridForExistingTrajectory.setWidget(0, 1, selectOptionsForExistingTrajectories);
-        
-        Label labelForSelectModesToDisplayTrajectory = createLabel("select display mode:");
-        labelForSelectModesToDisplayTrajectory.ensureDebugId("labelForSelectModesToDisplayTrajectory");
-        labelForSelectModesToDisplayTrajectory.setStyleName("labelTextInOneLine");
-        gridForExistingTrajectory.setWidget(1,0,labelForSelectModesToDisplayTrajectory);
-        
-               
-        selectOptionsForDisplayMode.addItem(ModesToShowSymTraj.NoModes.getValue());
-        selectOptionsForDisplayMode.addItem(ModesToShowSymTraj.SHOWwithLabel.getValue());
-        selectOptionsForDisplayMode.addItem(ModesToShowSymTraj.SHOWwithPopup.getValue());
-        selectOptionsForDisplayMode.addItem(ModesToShowSymTraj.SHOWwithColor.getValue());
-        selectOptionsForDisplayMode.setVisibleItemCount(1);
-        selectOptionsForDisplayMode.ensureDebugId("listBoxForDisplayMode");
-        selectOptionsForDisplayMode.setWidth("130px");
-        gridForExistingTrajectory.setWidget(1, 1, selectOptionsForDisplayMode);
-        
-        
-        
-        getRelationButton.setWidth("100px");
-        gridForExistingTrajectory.setWidget(2, 1, getRelationButton);
-        
-        gridForExistingTrajectory.getFlexCellFormatter().setColSpan(3, 0, 2);
-        gridForExistingTrajectory.getFlexCellFormatter().setHorizontalAlignment(3, 0, HasHorizontalAlignment.ALIGN_RIGHT);
-        gridForExistingTrajectory.setWidget(3, 0, createAnimationItem());
-        
-        
-        
-        
-        
-        final PushButton openArrowButtonForTab2 = new PushButton(closeImage);
-        final PushButton closeArrowButtonForTab2 = new PushButton(openImage);
-        openArrowButtonForTab2.setStyleName("pushButtonWithTransparentBackground"); 
-        closeArrowButtonForTab2.setStyleName("pushButtonWithTransparentBackground");
-        
-        openArrowButtonForTab2.addClickHandler(new ClickHandler() {
-			
+
+		gridWithOptionsForCreatingSymTraj = new Grid(2, 3);
+		gridWithOptionsForCreatingSymTraj.setCellSpacing(3);
+		gridWithOptionsForCreatingSymTraj.getCellFormatter().setStyleName(0, 2,
+				"lastCellInGrid");
+		gridWithOptionsForCreatingSymTraj.getCellFormatter().setStyleName(1, 2,
+				"lastCellInGrid");
+
+		Label selectOptionForSymTraj = new Label(
+				"Select an option for symbolic trajectory:");
+		selectOptionForSymTraj.setStyleName("centered");
+		selectOptionForSymTraj.setStyleName("labelTextInOneLine");
+		gridWithOptionsForCreatingSymTraj.setWidget(0, 0,
+				selectOptionForSymTraj);
+
+		/**
+		 * comboBox should be visible if gpx file was successfully uploaded
+		 * */
+		optionsForCreatingSymTraj.addItem("speed mode");
+		optionsForCreatingSymTraj.addItem("directions");
+		optionsForCreatingSymTraj.addItem("distance");// with personal location
+		optionsForCreatingSymTraj.addItem("administrative districts");
+		optionsForCreatingSymTraj.setVisibleItemCount(1);
+		optionsForCreatingSymTraj.setWidth("130px");
+
+		createSymTrajButton = new Button("Create trajectory");
+		createSymTrajButton.setWidth("100px");
+
+		gridWithOptionsForCreatingSymTraj.setWidget(0, 1,
+				optionsForCreatingSymTraj);
+		gridWithOptionsForCreatingSymTraj.setWidget(1, 1, createSymTrajButton);
+		gridWithOptionsForCreatingSymTraj.setVisible(false);
+
+		vPanel0.add(gridWithOptionsForCreatingSymTraj);
+		vPanel0.add(closeArrowButton);
+
+		optionsTabPanel.add(vPanel0, "Create trajectory");
+
+		final VerticalPanel vPanel2 = new VerticalPanel();
+		vPanel2.setStyleName("minHeight");
+		vPanel2.setWidth("300px");
+		vPanel2.setSpacing(5);
+
+		final FlexTable gridForExistingTrajectory = new FlexTable();
+
+		gridForExistingTrajectory.setWidth("290px");
+		gridForExistingTrajectory.setCellSpacing(3);
+
+		Label labelForSelectTrajectory = createLabel("select relation:");
+		labelForSelectTrajectory.ensureDebugId("labelForSelectSymbTraj");
+		labelForSelectTrajectory.setStyleName("labelTextInOneLine");
+		gridForExistingTrajectory.setWidget(0, 0, labelForSelectTrajectory);
+
+		selectOptionsForExistingTrajectories
+				.ensureDebugId("listBoxForSelectExistingSymbTraj");
+		selectOptionsForExistingTrajectories.setWidth("130px");
+		gridForExistingTrajectory.setWidget(0, 1,
+				selectOptionsForExistingTrajectories);
+
+		Label labelForSelectModesToDisplayTrajectory = createLabel("select display mode:");
+		labelForSelectModesToDisplayTrajectory
+				.ensureDebugId("labelForSelectModesToDisplayTrajectory");
+		labelForSelectModesToDisplayTrajectory
+				.setStyleName("labelTextInOneLine");
+		gridForExistingTrajectory.setWidget(1, 0,
+				labelForSelectModesToDisplayTrajectory);
+
+		selectOptionsForDisplayMode.addItem(ModesToShowSymTraj.NoModes
+				.getValue());
+		selectOptionsForDisplayMode.addItem(ModesToShowSymTraj.SHOWwithLabel
+				.getValue());
+		selectOptionsForDisplayMode.addItem(ModesToShowSymTraj.SHOWwithPopup
+				.getValue());
+		selectOptionsForDisplayMode.addItem(ModesToShowSymTraj.SHOWwithColor
+				.getValue());
+		selectOptionsForDisplayMode.setVisibleItemCount(1);
+		selectOptionsForDisplayMode.ensureDebugId("listBoxForDisplayMode");
+		selectOptionsForDisplayMode.setWidth("130px");
+		gridForExistingTrajectory.setWidget(1, 1, selectOptionsForDisplayMode);
+
+		getRelationButton.setWidth("100px");
+		gridForExistingTrajectory.setWidget(2, 1, getRelationButton);
+
+//		gridForExistingTrajectory.getFlexCellFormatter().setColSpan(3, 0, 2);
+//		gridForExistingTrajectory.getFlexCellFormatter()
+//				.setHorizontalAlignment(3, 0,
+//						HasHorizontalAlignment.ALIGN_RIGHT);
+//		gridForExistingTrajectory.setWidget(3, 0, createAnimationItem());
+
+		final PushButton openArrowButtonForTab2 = new PushButton(closeImage);
+		final PushButton closeArrowButtonForTab2 = new PushButton(openImage);
+		openArrowButtonForTab2
+				.setStyleName("pushButtonWithTransparentBackground");
+		closeArrowButtonForTab2
+				.setStyleName("pushButtonWithTransparentBackground");
+
+		openArrowButtonForTab2.addClickHandler(new ClickHandler() {
+
 			@Override
 			public void onClick(ClickEvent event) {
-//				optionsTabPanel.remove(vPanelForOpening);
-//				optionsTabPanel.add(vPanel0, "Create trajectory");
 				openArrowButtonForTab2.setVisible(false);
 				gridForExistingTrajectory.setVisible(true);
-//				flexTable.setVisible(true);
-				panelForPattern.setVisible(true);				
-				
+				panelForPattern.setVisible(true);
+				decPanelForStackWithSimpleQueries.setVisible(true);
 				closeArrowButtonForTab2.setVisible(true);
-				
-				
-			}
-		});
-        openArrowButtonForTab2.setVisible(false);
-        openArrowButtonForTab2.getElement().setAttribute("align", "center");
-        
-        vPanel2.add(openArrowButtonForTab2);
-        vPanel2.add(gridForExistingTrajectory);
-        
-        
-        
-        tableForPattern.ensureDebugId("tableForPattern");
-        tableForPattern.addStyleName("tableWithFixedWidth");        
-        tableForPattern.setWidth("290px");
-        panelForPattern.setWidth("290px");
-        panelForPattern.setSpacing(4);
-        
-        FlexCellFormatter cellFormatter = tableForPattern.getFlexCellFormatter();
-                
-        tableForPattern.setCellSpacing(5);
-        tableForPattern.setCellPadding(0);
-        cellFormatter.setHorizontalAlignment(
-        	      0, 0, HasHorizontalAlignment.ALIGN_LEFT); 
-        cellFormatter.setHorizontalAlignment(
-      	      0, 2, HasHorizontalAlignment.ALIGN_LEFT);
-        
-        
-//        flexTable.getColumnFormatter().setWidth(0, "30px");
-//        flexTable.getColumnFormatter().setWidth(1, "25px");
-    
-        tableForPattern.getFlexCellFormatter().setColSpan(0, 0, 4);
-        tableForPattern.getFlexCellFormatter().setColSpan(1, 0, 2);
-        tableForPattern.getFlexCellFormatter().setColSpan(2, 0, 3);
-        tableForPattern.getFlexCellFormatter().setColSpan(3, 0, 4);
-        
-        Label labelForVariable= createLabel("define your pattern");
-        labelForVariable.setStyleName("labelTextInOneLine");
-//        Label labelForTime = createLabel("time");
-//        Label labelForLabel = createLabel("label");
-//        Label labelForSequence = createLabel("sequence");
-        tableForPattern.setWidget(0, 0, labelForVariable);   
-        panelForPattern.add(labelForVariable);
-        
-//        flexTable.setWidget(0, 2, labelForTime);
-//        flexTable.setWidget(0, 3, labelForLabel);
-//        flexTable.setWidget(0, 4, labelForSequence);
-        
-                
-        addPatternButton.getElement().setAttribute("background", "transparent");
-        addPatternButton.setTitle("add new pattern part");
-       
-        
-        final Image addConditionButton = new Image("resources/images/plus-green.png");
-        addConditionButton.getElement().setAttribute("background", "transparent");
-        addConditionButton.setTitle("add condition");
-        
-        
-        
-        
-//        HorizontalPanel gridForInputValuesForPattern = createGridForInputValuesForPattern();
-//        arrayOfGrids.add(gridForInputValuesForPattern);
-       
-       
-       
-//       createGridForInputValuesForPattern();
-       
-//       flexTable.setWidget(1, 0, gridForInputValuesForPattern);    
-         
-        
-        
-       tableForPattern.setWidget(1, 3, addPatternButton);     
-       tableForPattern.setWidget(2, 3, addConditionButton);
-       
-       final DefaultTextBox condition = new DefaultTextBox("condition");
-       condition.setWidth("225px");
 
-       tableForPattern.setWidget(2,0, condition);
-       
-       final HorizontalPanel hzForPattern = new HorizontalPanel();  
-       hzForPattern.setSpacing(4);
-       checkBoxForVariable.setEnabled(true);        
-       checkBoxForVariable.addClickHandler(new ClickHandler() {
-			
-			@SuppressWarnings("deprecation")
-			@Override
-			public void onClick(ClickEvent event) {
-				if(checkBoxForVariable.isChecked()){
-					textBoxForVariable.setEnabled(true);
-				}
-				
 			}
 		});
-       
-       textBoxForVariable.setMaxLength(1);        
-       textBoxForVariable.setWidth("50px");
-       textBoxForVariable.setEnabled(false);
-       
-       patternBox.setEnabled(true);      
-       patternBox.setWidth("160px");
-       
-       hzForPattern.add(checkBoxForVariable);
-       hzForPattern.add(textBoxForVariable);
-       hzForPattern.add(patternBox);       
-       hzForPattern.add(addPatternButton);
-//       flexTable.setWidget(1, 0, panelForVariable);
-       panelForPattern.add(hzForPattern);
-       
-       HorizontalPanel hpForCondition= new HorizontalPanel(); 
-       hpForCondition.setStyleName("elementWithMargin");
-       hpForCondition.setSpacing(4);
-       hpForCondition.add(condition);       
-       hpForCondition.add(addConditionButton);
-       panelForPattern.add(hpForCondition);
-       
-       addConditionButton.addClickHandler(new ClickHandler() {
+		openArrowButtonForTab2.setVisible(false);
+		openArrowButtonForTab2.getElement().setAttribute("align", "center");
+
+		vPanel2.add(openArrowButtonForTab2);
+		vPanel2.add(gridForExistingTrajectory);
+
+		String animationHeader = getHeaderString("Animation", createPatternIcon());
+		stackPanel.add(createAnimationItem(), animationHeader, true);
+		String patternHeader = getHeaderString("Pattern queries", createPatternIcon());
+		stackPanel.add(createPanelForPattern(), patternHeader, true);
+		String simpleQueriesHeader = getHeaderString("Simple queries",
+				createPatternIcon());
+		stackPanel.add(createSimpleQueriesStackPanel(), simpleQueriesHeader,
+				true);
+		stackPanel.getElement().setAttribute("width", "100%");
 		
-		@Override
-		public void onClick(ClickEvent event) {
-			setTextInPatternLabel(condition.getText());
-			condition.setText("");
-			
-			
-		}
-	});
-       
-       
-       final FlexTable definedPatternWidget = new FlexTable(); 
-       FlexCellFormatter formatter = definedPatternWidget.getFlexCellFormatter();
-       
-       formatter.setHorizontalAlignment(
-    	        1, 0, HasHorizontalAlignment.ALIGN_RIGHT);
-       formatter.setHorizontalAlignment(
-   	        1, 1, HasHorizontalAlignment.ALIGN_RIGHT);
-       VerticalPanel patternAndResultOfPatternLabels= new VerticalPanel();
-       patternAndResultOfPatternLabels.add(patternLabel);
-       patternAndResultOfPatternLabels.add(resultOfPatternMatchingLabel);
-       resultOfPatternMatchingLabel.setStyleName("textInRed");
-       definedPattern.add(patternAndResultOfPatternLabels);       
-       definedPatternWidget.setVisible(false);
-       definedPattern.setSize("280", "70");
-       definedPatternWidget.setWidget(0, 0, definedPattern);       
-       
-       
-       definedPatternWidget.setWidget(1, 0, matchButton);
-       definedPatternWidget.setWidget(1, 1, removeButton);
-//       flexTable.setWidget(3, 0, definedPatternWidget);
-       panelForPattern.add(definedPatternWidget);
-       
-//       setCount(getCount());
-       
-       addPatternButton.addClickHandler(new ClickHandler() {
+
+		decPanelForStackWithSimpleQueries.getElement().setAttribute("width",
+				"290px");
+		decPanelForStackWithSimpleQueries.setWidget(stackPanel);
+		vPanel2.add(decPanelForStackWithSimpleQueries);
 		
-		@SuppressWarnings("deprecation")
-		@Override
-		public void onClick(ClickEvent event) {
-			if(checkBoxForVariable.isChecked()){
-				checkBoxForVariable.setChecked(false);
-			}
-			setTextInPatternLabel(textBoxForVariable.getText());			
-			((DefaultTextBox) textBoxForVariable).setDefaultTextAndDisable("variable");
-			
-			setTextInPatternLabel(patternBox.getText());			
-			patternBox.setText("enter your pattern");
-			
-			if(!patternLabel.getText().equals("")){
-				definedPatternWidget.setVisible(true);
-			}
-			
-//			optionsForTimeInPattern.setValue("");
-//			optionsForLabelInPattern.setValue("");
-//			optionsWithSequencePattern.setSelectedIndex(0);
-			
-			
-		}
-	});
-       
-       removeButton.addClickHandler(new ClickHandler() {
-		
-		@Override
-		public void onClick(ClickEvent event) {
-			cleanTextInPatternLabel();
-			cleanTextInResultOfPatternMatchingLabel();
-			definedPatternWidget.setVisible(false);
-		}
-	});
-       
-       stackPanel.add(getAnimationPanel(), "test", true);
-       stackPanel.add(panelForPattern, "pattern", true);
-       vPanel2.add(stackPanel);
-       
-       
-//       vPanel2.add(flexTable);
-//       vPanel2.add(panelForPattern);
-       
-       
-        
-        closeArrowButtonForTab2.addClickHandler(new ClickHandler() {
-			
+
+		closeArrowButtonForTab2.addClickHandler(new ClickHandler() {
+
 			@Override
 			public void onClick(ClickEvent event) {
-				
+
 				openArrowButtonForTab2.setVisible(true);
 				gridForExistingTrajectory.setVisible(false);
-//				flexTable.setVisible(false);
-				panelForPattern.setVisible(false);
-				patternLabel.setText("");
-				definedPatternWidget.setVisible(false);
+				decPanelForStackWithSimpleQueries.setVisible(false);
 				closeArrowButtonForTab2.setVisible(false);
-				vPanel2.setHeight("30px");		
-				
-				}
+				vPanel2.setHeight("30px");
+
+			}
 		});
-        closeArrowButtonForTab2.getElement().setAttribute("align", "center");
-        vPanel2.add(closeArrowButtonForTab2);
-        
-        optionsTabPanel.add(vPanel2, "Try trajectory");  
-        
-        
-	    
-	    
-	 // Return the content
-        optionsTabPanel.selectTab(0);
-        optionsTabPanel.ensureDebugId("cwTabPanel"); 
+		closeArrowButtonForTab2.getElement().setAttribute("align", "center");
+		vPanel2.add(closeArrowButtonForTab2);
+
+		optionsTabPanel.add(vPanel2, "Try trajectory");
+
+		// Return the content
+		optionsTabPanel.selectTab(0);
+		optionsTabPanel.ensureDebugId("cwTabPanel");
+		
+	}
+
+	/**
+	 * adds to panel all the needed components for pattern 
+	 */
+	private VerticalPanel createPanelForPattern() {
+		Label labelForVariable = createLabel("define your pattern");			
+		panelForPattern.add(labelForVariable);
+		
+		HorizontalPanel hzForPattern = createHorizPanelForPattern();
+		panelForPattern.add(hzForPattern);
+
+		HorizontalPanel hpForCondition = createHorizPanelForCondition();
+		panelForPattern.add(hpForCondition);
+
+		definedPatternWidget= createDefinedPatternWidget();		
+		panelForPattern.add(definedPatternWidget);
+		return panelForPattern;
+	}
+
+	/**
+	 * creates icon for pattern matching and simple queries panel with specified image and style
+	 * @return Image
+	 */
+	private Image createPatternIcon() {
+		Image patternIcon = new Image("resources/images/checked-icon.png");
+		patternIcon.setSize("20px", "20px");
+		patternIcon.getElement().getStyle().setPadding(5, Unit.PX);
+		return patternIcon;
+	}
+
+	/**
+	 * The method creates HorizontalPanel containing a text box for condition and "add condition" button
+	 * @return panel with text box for condition and "add condition" button
+	 */
+	private HorizontalPanel createHorizPanelForCondition() {
+		HorizontalPanel hpForCondition = new HorizontalPanel();
+		hpForCondition.setStyleName("elementWithMargin");
+		hpForCondition.setSpacing(4);
+		
+		condition.setWidth("200px");
+		hpForCondition.add(condition);
+		final Image addConditionButton = new Image(
+				"resources/images/plus-green.png");
+		addConditionButton.getElement().setAttribute("background",
+				"transparent");
+		addConditionButton.setTitle("add condition");
+		addConditionButton.addClickHandler(new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+				
+				if (condition.getText().contains("//")) {
+					setTextInPatternLabel(condition.getText());
+				} else {
+					setTextInPatternLabel("//" + condition.getText());
+				}
+				verifyCondition(condition.getText());
+				condition.setText("condition");				
+				
+				if (!patternLabel.getText().equals("")) {
+					definedPatternWidget.setVisible(true);
+				}
+
+			}
+		});
+		hpForCondition.add(addConditionButton);
+		return hpForCondition;
+	}
+
+	protected void verifyCondition(String text) {
+		if(patternLabel.getText().isEmpty()){
+			printWarning("Conditions should be specified after pattern. Provide a pattern at first");
+		}
+		ArrayList<Integer> points=defineIndexOfPoint(text);
+		for(int i:points){
+			
+		if(!variablesForPattern.contains(text.toUpperCase().charAt(i-1)+"")){
+			printWarning("Varibales in condition should be similar to variables from pattern");
+		}	
+		
+		}
+		
+		if(!attributeFromUserVerified(text, points)){
+			printWarning("Variable can have only special defined attributes");
+		}
+		if(points.isEmpty()){
+			printWarning("Condition should contain \"variables.attribute\"");
+		}
 		
 		
-																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																														
+	}
+	
+	private boolean attributeFromUserVerified(String text,
+			ArrayList<Integer> indexes) {
+		boolean positivVerified=false;
+		int count = 0;
 		
-//		TabPanel tabPanel = new TabPanel();
-//        tabPanel.setResizeTabs(true);        
-//        tabPanel.setAnimScroll(true);
-//        tabPanel.setWidth(450);  
-//        tabPanel.setAutoHeight(true);  
-//        tabPanel.setBodyBorder(true);
-//       
-//        
-//        
-//        TabItem tbtmCreateTrajectory = new TabItem("Create trajectory"); 
-//        
-//        Grid grid = new Grid(2, 2);        
-//        grid.setCellPadding(10);
-//        tbtmCreateTrajectory.add(grid);
-//        grid.setSize("200px", "200px");
-//        tbtmCreateTrajectory.setStyleAttribute("padding", "10px");
-//        
-//        
-//        
-//        Label lblUploadFile = new Label("Upload file:");       
-//        lblUploadFile.setStyleName("uploadLabel", true);
-//        grid.setWidget(0, 0, lblUploadFile);
-//        lblUploadFile.setWidth("113px");
-//        
-//        FileUpload fileUpload = new FileUpload();        
-//        grid.setWidget(0, 1, fileUpload);       
-//        
-//        Label lblSelectTypeOf = new Label("select type of symbolic trajectory");
-//        grid.setWidget(1, 0, lblSelectTypeOf);
-//        
-//        ListBox comboBox = new ListBox();
-//        comboBox.addItem("speed mode");
-//        comboBox.addItem("directions");
-//        comboBox.addItem("transportation mode");
-//        comboBox.setVisibleItemCount(3);
-//        
-//        grid.setWidget(1, 1, comboBox);
-//                      
-//                
-//        tabPanel.add(tbtmCreateTrajectory);
-//        
-//        TabItem personal = new TabItem();
-//        personal.setStyleAttribute("padding", "10px");
-//        personal.setText("Personal Details");
-//        personal.setLayout(new FormLayout());
-//        
-//
-//        TextField<String> name = new TextField<String>();
-//        name.setFieldLabel("First Name");
-//        name.setValue("Darrell");
-//        personal.add(name, new FormData("100%"));
-//
-//        
-//        tabPanel.add(personal);
-//        
-//        
-//        
-//        TabItem tbtmTryTrajectory = new TabItem("Try trajectory");
-//        tbtmTryTrajectory.setLayout(new FillLayout(Orientation.HORIZONTAL));
-//        
-//        tabPanel.add(tbtmTryTrajectory);        
-        
+		List<Boolean> verified=new ArrayList<Boolean>();
+		ArrayList<String> attributes = new ArrayList<>();
+		attributes.add("label");
+		attributes.add("time");
+		attributes.add("card");
+		attributes.add("start");
+		attributes.add("end");
+		attributes.add("leftclosed");
+		attributes.add("rightclosed");		
+		for (int i=0; i<indexes.size(); i++) {
+			String attrFromUser;
+			if (count+1 >= indexes.size()) {
+				attrFromUser = text.substring(indexes.get(i)+1, text.length());
+			} else {
+				count=count+1;
+				attrFromUser = text.substring(indexes.get(i)+1, indexes.get(count));
+			}				
+				
+			for(String attr:attributes){
+				
+				if(attrFromUser.matches("(?i)"+attr+".*")){
+					verified.add(i, true);				
+					
+				}
+					
+			}
+			if(verified.size()==i){
+				verified.add(i, false);
+			}
+				
+			 
+			
+		}
+		if(!verified.contains(false)){
+			positivVerified=true;
+		}
+		return positivVerified;
+
+	}
+
+	private ArrayList<Integer> defineIndexOfPoint(String text){
+		int index = text.indexOf(".");
+		ArrayList<Integer> indexes= new ArrayList<Integer>(); 
+		while (index >= 0) {
+		    System.out.println(index);
+		    indexes.add(index);
+		    index = text.indexOf(".", index + 1);
+		}
+		return indexes;
+	}
+
+	/**
+	 * Widget contains label with the defined by user pattern (with/without
+	 * conditions), label for the result of pattern matching, two buttons:
+	 * "match", "remove"
+	 * 
+	 * @return FlexTable
+	 */
+	private FlexTable createDefinedPatternWidget() {
+		final FlexTable definedPatternWidget = new FlexTable();
+		FlexCellFormatter formatter = definedPatternWidget
+				.getFlexCellFormatter();
+
+		formatter.setHorizontalAlignment(1, 0,
+				HasHorizontalAlignment.ALIGN_RIGHT);
+		formatter.setHorizontalAlignment(1, 1,
+				HasHorizontalAlignment.ALIGN_RIGHT);
+		
+		VerticalPanel patternAndResultOfPatternLabels = new VerticalPanel();
+		patternLabel.setAutoHorizontalAlignment(HasHorizontalAlignment.ALIGN_JUSTIFY);
+		warningLabel.setAutoHorizontalAlignment(HasHorizontalAlignment.ALIGN_JUSTIFY);
+		resultOfPatternMatchingLabel.setAutoHorizontalAlignment(HasHorizontalAlignment.ALIGN_JUSTIFY);
+		warningLabel.setStyleName("textInRed");
+		resultOfPatternMatchingLabel.setStyleName("textInRed");
+		
+		patternAndResultOfPatternLabels.add(patternLabel);		
+		patternAndResultOfPatternLabels.add(warningLabel);
+		patternAndResultOfPatternLabels.add(resultOfPatternMatchingLabel);
+		
+		definedPattern.add(patternAndResultOfPatternLabels);
+		definedPatternWidget.setVisible(false);
+		definedPattern.setSize("280", "70");
+		definedPatternWidget.setWidget(0, 0, definedPattern);
+		
+		removeButton.addClickHandler(new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+				cleanTextInPatternLabel();
+				cleanWarningLabel();
+				cleanTextInResultOfPatternMatchingLabel();
+				definedPatternWidget.setVisible(false);
+				variablesForPattern.clear();
+			}
+		});
+
+		matchButton.getElement().setAttribute("float", "right");
+		removeButton.getElement().setAttribute("float", "right");
+		
+		definedPatternWidget.setWidget(1, 0, matchButton);
+		definedPatternWidget.setWidget(1, 1, removeButton);
+		return definedPatternWidget;
+	}
+
+	/**
+	 * cleans a warning label and resets unsuccessfulVerification to false
+	 */
+	protected void cleanWarningLabel() {
+		warningLabel.setText("");
+		unsuccessfulVerification=false;
 		
 	}
 
 	/**
 	 * @return
 	 */
-	private void createGridForInputValuesForPattern() {
-//		HorizontalPanel panelForInputValuesForPattern = new HorizontalPanel();
-//		panelForInputValuesForPattern.setWidth("300px");
-//		final PatternNode node =pattern.new PatternNode();
-		
-		HorizontalPanel panelForVariable = new HorizontalPanel();		
-        checkBoxForVariable.setEnabled(true);        
-        checkBoxForVariable.addClickHandler(new ClickHandler() {
-			
+	private HorizontalPanel createHorizPanelForPattern() {
+		final HorizontalPanel hzForPattern = new HorizontalPanel();
+		hzForPattern.setSpacing(4);
+		checkBoxForVariable.setEnabled(true);
+		checkBoxForVariable.addClickHandler(new ClickHandler() {
+
 			@SuppressWarnings("deprecation")
 			@Override
 			public void onClick(ClickEvent event) {
-				if(checkBoxForVariable.isChecked()){
+				if (checkBoxForVariable.isChecked()) {
 					textBoxForVariable.setEnabled(true);
 				}
-				
+
 			}
 		});
-        
-        textBoxForVariable.setMaxLength(1);        
-        textBoxForVariable.setWidth("50px");
-        textBoxForVariable.setEnabled(false);
-        
-        panelForVariable.add(checkBoxForVariable);
-        panelForVariable.add(textBoxForVariable);
-        panelForVariable.add(addPatternButton);
-//        flexTable.setWidget(1, 0, panelForVariable);
-        panelForPattern.add(panelForVariable);
-        
-//        panelForInputValuesForPattern.add(checkBoxForVariable);        
-        
-        
-        
-//        panelForInputValuesForPattern.add(textBoxForVariable);        
-        
-        final DecoratedPopupPanel simplePopup = new DecoratedPopupPanel(true);
-        simplePopup.ensureDebugId("cwBasicPopup-simplePopup");
-        simplePopup.setStyleName("triangle-right");        
-        simplePopup.setWidth("100px");
-        simplePopup.setWidget(new HTML("<div>Allowed only alphabetic inputs</div>"));
-        
-        textBoxForVariable.addKeyPressHandler(new KeyPressHandler() {
-			
+
+		textBoxForVariable.setMaxLength(1);
+		textBoxForVariable.setWidth("20px");
+		textBoxForVariable.setEnabled(false);
+
+		patternBox.setEnabled(true);
+		patternBox.setWidth("167px");
+		
+		Image addPatternButton = new Image("resources/images/plus.png");
+		addPatternButton.getElement().setAttribute("background", "transparent");
+		addPatternButton.setTitle("add new pattern part");
+		addPatternButton.addClickHandler(new ClickHandler() {
+
+			@SuppressWarnings("deprecation")
 			@Override
-			public void onKeyPress(KeyPressEvent event) {
-				TextBox source = (TextBox) event.getSource();
-			        if (!Character.isLetter(event.getCharCode())) {
-			        	
-			        	source.cancelKey();
-			        	int left = source.getAbsoluteLeft() + 10;
-			            int top = source.getAbsoluteTop() + 10;
-			            simplePopup.setPopupPosition(left, top);
-			           
-			            simplePopup.show();
-			            source.setEnabled(true);
-			        }			       
-			      
-				
+			public void onClick(ClickEvent event) {
+				if (checkBoxForVariable.isChecked()) {
+					checkBoxForVariable.setChecked(false);
+				}
+				if(!textBoxForVariable.getText().equals("variable")){
+					setTextInPatternLabel(Character.toUpperCase(textBoxForVariable.getText().charAt(0))+"");					
+					
+					verifyVariableAndPrintWarningIfNeeded(textBoxForVariable.getText(), patternBox.getText());
+					((DefaultTextBox) textBoxForVariable)
+					.setDefaultTextAndDisable("variable");
+				}				
+
+				if (!patternBox.getText().equals("enter your pattern")) {
+					if(patternLabel.getText().contains("//")){
+						printWarning("You can not provide pattern after defined condition");
+					}else{
+						setTextInPatternLabel(patternBox.getText());						
+					}
+					
+					patternBox.setText("enter your pattern");
+				}
+
+				if (!patternLabel.getText().equals("")) {
+					definedPatternWidget.setVisible(true);
+				}
 			}
 		});
-        
-        
-        patternBox.setEnabled(true);
-        tableForPattern.setWidget(1,2,  patternBox);
-        
-       
-       
-       MultiWordSuggestOracle oracle = new MultiWordSuggestOracle();
-       oracle.add("_");
-       oracle.add("2014-02-01");
-       optionsForTimeInPattern = new SuggestBox(oracle);
-       optionsForTimeInPattern.setWidth("40px");
-       optionsForTimeInPattern.isAutoSelectEnabled();
-       optionsForTimeInPattern.addSelectionHandler(new SelectionHandler<MultiWordSuggestOracle.Suggestion>() {
 
-		@Override
-		public void onSelection(SelectionEvent<Suggestion> event) {
-//			node.getTimeOrLabel().add(event.getSelectedItem().toString());
-			patternLabel.setText(patternLabel.getText()+" "+event.getSelectedItem().toString());
-			
+		hzForPattern.add(checkBoxForVariable);
+		hzForPattern.add(textBoxForVariable);
+		hzForPattern.add(patternBox);
+		hzForPattern.add(addPatternButton);
+		return hzForPattern;
+	}
+	
+	private void verifyVariableAndPrintWarningIfNeeded(String var,
+			String pattern) {
+		if(!Character.isLetter(var.charAt(0))){
+			printWarning("A varibale should be only a letter! Please remove and then provide a new one.");
+		}
+		if (variablesForPattern.contains(var)) {
+			printWarning("All variables occuring in a pattern should be distict! Please remove and then select a new variable");
 		}
 
-        
+		if (pattern.replace("enter your pattern", "").isEmpty()) {
+			printWarning("A varibale should be always associated with a patter. Please remove and then define a pattern");
 
-		
-       });
-       
-//   flexTable.setWidget(1, 2, optionsForTimeInPattern);
-       
-       optionsForLabelInPattern = new SuggestBox(oracle);
-       optionsForLabelInPattern.setWidth("40px");
-       optionsForLabelInPattern.isAutoSelectEnabled();
-       optionsForLabelInPattern.addSelectionHandler(new SelectionHandler<MultiWordSuggestOracle.Suggestion>() {
+		}
+		addToListWithVariablesForPattern(var);
 
-		@Override
-		public void onSelection(SelectionEvent<Suggestion> event) {
-//			node.getTimeOrLabel().add(event.getSelectedItem().toString());
-			patternLabel.setText(patternLabel.getText()+" "+event.getSelectedItem().toString());
-			
-		}
-	});
-       
-//       flexTable.setWidget(1, 3, optionsForLabelInPattern);
-       
-//       panelForInputValuesForPattern.add(optionsForTimeInPattern);
-//       panelForInputValuesForPattern.add(optionsForLabelInPattern);
-       
-       
-       
-       optionsWithSequencePattern.setSelectedIndex(0);
-       optionsWithSequencePattern.setWidth("40px");
-       optionsWithSequencePattern.setVisibleItemCount(1);
-       optionsWithSequencePattern.addItem(" ");
-       optionsWithSequencePattern.addItem("*");
-       optionsWithSequencePattern.addItem("+");
-       optionsWithSequencePattern.addItem("[]");
-       optionsWithSequencePattern.addItem("|");
-       optionsWithSequencePattern.addItem("[]+");
-       optionsWithSequencePattern.addItem("[]*");
-       optionsWithSequencePattern.addItem("[]?");
-       
-       optionsWithSequencePattern.addClickHandler(new ClickHandler() {
-		
-		@Override
-		public void onClick(ClickEvent event) {
-			ListBox box=(ListBox)event.getSource();
-			int index= box.getSelectedIndex();
-//			node.getSequencePattern().add(box.getValue(index));
-			patternLabel.setText(patternLabel.getText()+" "+box.getValue(index));
-			
-		}
-	});
-//       flexTable.setWidget(1, 4, optionsWithSequencePattern);
-       
-//       panelForInputValuesForPattern.add(optionsWithSequencePattern);
-		
 	}
 	
 	
+
+	private void printWarning(String warningText) {
+		warningLabel.setText(warningText);	
+		unsuccessfulVerification=true;
+	}
+
+	/**
+	 * creates simple queries stack panel
+	 */
+	private StackPanel createSimpleQueriesStackPanel() {
+		StackPanel simpleQueriesPanel = new StackPanel();
+		String passesHeader = getHeaderStringLevel2("passes", queryIcon);
+		VerticalPanel passesPanel = createPanelForOneQueryFromSimple(
+				"Does the trip pass through ...(i.e. specified street, southeast, moderate tempo)?",
+				"passes", "i.e. Baker St");
+		simpleQueriesPanel.add(passesPanel, passesHeader, true);
+
+		String atinstantHeader = getHeaderStringLevel2("atinstant", queryIcon);
+		VerticalPanel atinstantPanel = createPanelForOneQueryFromSimple(
+				"Through what does the trip pass at defined time?",
+				"atinstant", "i.e. 2012-01-01-01:15");
+		simpleQueriesPanel.add(atinstantPanel, atinstantHeader, true);
+
+		String deftimeHeader = getHeaderStringLevel2("deftime", queryIcon);
+		VerticalPanel deftimePanel = createPanelForOneQueryFromSimple(
+				"Determine the time intervals when the trip was at ... (i.e. specified street, southeast, moderate tempo)",
+				"deftime", "i.e. Baker St");
+		simpleQueriesPanel.add(deftimePanel, deftimeHeader, true);
+		return simpleQueriesPanel;
+	}
+
+	/**
+	 * creates passes panel for simple queries stack
+	 */
+	private VerticalPanel createPanelForOneQueryFromSimple(
+			String textForHelpInfoLabel, String textForButton,
+			String defaultText) {
+		VerticalPanel queryPanel = new VerticalPanel();
+		queryPanel.setSpacing(4);
+		Label helpInfoLabel = new Label(textForHelpInfoLabel);
+		helpInfoLabel.setStylePrimaryName("labelForPasses");
+		queryPanel.add(helpInfoLabel);
+		DefaultTextBox labelTextForQuery = new DefaultTextBox(defaultText);
+		labelTextForQuery.setWidth("90%");
+		queryPanel.add(labelTextForQuery);
+		Button queryButton = new Button(textForButton);
+		queryButton.setStyleName("floatRight");
+		queryPanel.add(queryButton);
+		Label resultInfoLabel = new Label();
+		queryPanel.add(resultInfoLabel);
+		return queryPanel;
+	}
 
 	/**
 	 * @return drop-dawn list with options to select
 	 */
 	private ListBox createBoxWithSelectOptionsForExistingTrajectories() {
 		ListBox selectOptionsForExistingTrajectories = new ListBox();
-        selectOptionsForExistingTrajectories.addItem("geotrips_part");
-        selectOptionsForExistingTrajectories.addItem("geolife_part");
-        selectOptionsForExistingTrajectories.addItem("geotrips_part2");
-        selectOptionsForExistingTrajectories.setVisibleItemCount(1);
-//        selectOptionsForExistingTrajectories.setWidth("150px");
+		selectOptionsForExistingTrajectories.addItem("geotrips_part");
+		selectOptionsForExistingTrajectories.addItem("geolife_part");
+		selectOptionsForExistingTrajectories.addItem("geotrips_part2");
+		selectOptionsForExistingTrajectories.setVisibleItemCount(1);
+		// selectOptionsForExistingTrajectories.setWidth("150px");
 		return selectOptionsForExistingTrajectories;
 	}
 
 	private Label createLabel(String textForLabel) {
 		Label label = new Label(textForLabel);
-//        label.setStyleName("centered");
-//        label.setStyleName("labelTextInOneLine");
+		// label.setStyleName("centered");
+		 label.setStyleName("labelTextInOneLine");
 		return label;
 	}
-
-	
 
 	/**
 	 * @return the optionsForCreatingSymTraj
@@ -740,44 +689,43 @@ public class OptionsTabPanel extends Composite{
 	/**
 	 * @return the createSymTrajButton
 	 */
-	public Button getCreateSymTrajButton() {		
+	public Button getCreateSymTrajButton() {
 		return createSymTrajButton;
 	}
 
 	/**
 	 * returns the name of uploaded file
+	 * 
 	 * @return the nameOfUploadedFile
 	 */
 	public String getNameOfUploadedFile() {
 		return this.uploadWidget.getNameOfUploadedFile();
 	}
-	
-	
+
 	private VerticalPanel createAnimationItem() {
 
-	    animationPanel.setSpacing(4);
-	    
-	    HorizontalPanel playpanel= new HorizontalPanel();
-        playpanel.add(playIcon);
-        playpanel.add(playLink);    
-	
-                
-        animationPanel.add(getPanelForPlay());
-	    
-	    animationPanel.add(timeCounter);
-	    
-	    animationPanel.add(timeSlider.getMainPanel());
+		animationPanel.setSpacing(4);
 
-	    return animationPanel;
-	  }
+		HorizontalPanel playpanel = new HorizontalPanel();
+		playpanel.add(playIcon);
+		playpanel.add(playLink);
+
+		animationPanel.add(getPanelForPlay());
+
+		animationPanel.add(timeCounter);
+
+		animationPanel.add(timeSlider.getMainPanel());
+
+		return animationPanel;
+	}
 
 	/**
 	 * @return
 	 */
 	private HorizontalPanel createRewindPanel() {
 		HorizontalPanel rewindpanel = new HorizontalPanel();
-        rewindpanel.add(rewindIcon);
-        rewindpanel.add(rewindLink);
+		rewindpanel.add(rewindIcon);
+		rewindpanel.add(rewindLink);
 		return rewindpanel;
 	}
 
@@ -786,8 +734,8 @@ public class OptionsTabPanel extends Composite{
 	 */
 	private HorizontalPanel createForwardPanel() {
 		HorizontalPanel forwardpanel = new HorizontalPanel();
-        forwardpanel.add(forwardIcon);
-        forwardpanel.add(forwardLink);
+		forwardpanel.add(forwardIcon);
+		forwardpanel.add(forwardLink);
 		return forwardpanel;
 	}
 
@@ -796,16 +744,20 @@ public class OptionsTabPanel extends Composite{
 	 */
 	private HorizontalPanel createPausePanel() {
 		HorizontalPanel pausepanel = new HorizontalPanel();
-        pausepanel.add(pauseIcon);
-        pausepanel.add(pauseLink);
+		pausepanel.add(pauseIcon);
+		pausepanel.add(pauseLink);
 		return pausepanel;
 	}
-	
+
 	/**
 	 * @return the uploadWidget
 	 */
 	public FileUploadPanel getUploadWidget() {
 		return uploadWidget;
+	}
+
+	public boolean isUnsuccessfulVerification() {
+		return unsuccessfulVerification;
 	}
 
 	private HorizontalPanel createPlayPanel() {
@@ -814,21 +766,15 @@ public class OptionsTabPanel extends Composite{
 		playpanel.add(playLink);
 		return playpanel;
 	}
-	
-	/**Resets the animation panel to the default values*/
-	public void resetAnimationPanel(){
-		
+
+	/** Resets the animation panel to the default values */
+	public void resetAnimationPanel() {
+
 		animationPanel.remove(0);
 		animationPanel.insert(panelForPlay, 0);
 		timeSlider.resetSlider();
-		timeCounter.setText("Press Play to start animation");		
+		timeCounter.setText("Press Play to start animation");
 	}
-
-	
-	
-
-
-	
 
 	/**
 	 * @return the selectOptionsForDisplayMode
@@ -851,8 +797,6 @@ public class OptionsTabPanel extends Composite{
 		return animationPanel;
 	}
 
-	
-
 	/**
 	 * @return the timeSlider
 	 */
@@ -865,7 +809,7 @@ public class OptionsTabPanel extends Composite{
 	 */
 	public TextBox getTimeCounter() {
 		return timeCounter;
-	}	
+	}
 
 	/**
 	 * @return the pauseLink
@@ -873,8 +817,6 @@ public class OptionsTabPanel extends Composite{
 	public Anchor getPauseLink() {
 		return pauseLink;
 	}
-
-
 
 	/**
 	 * @return the animateButton
@@ -902,8 +844,8 @@ public class OptionsTabPanel extends Composite{
 	 */
 	public HorizontalPanel getPanelForPause() {
 		panelForPause.add(createPausePanel());
-        panelForPause.add(createForwardPanel());
-        panelForPause.add(createRewindPanel());
+		panelForPause.add(createForwardPanel());
+		panelForPause.add(createRewindPanel());
 		return panelForPause;
 	}
 
@@ -917,53 +859,70 @@ public class OptionsTabPanel extends Composite{
 		return panelForPlay;
 	}
 
-	private void setTextInPatternLabel(String text){
-		if (!text.equals("variable") && !text.equals("enter your pattern")) {
-			
+	private void setTextInPatternLabel(String text) {
+		if (!text.equals("enter your pattern") && !text.equals("//condition")) {
+			if(patternLabel.getText().contains("//")){
+				text.replace("//", ",");
+			}
 			patternLabel.setText(patternLabel.getText() + " " + text);
 		}
 	}
-	
-	private void cleanTextInPatternLabel(){
+
+	private void cleanTextInPatternLabel() {
 		patternLabel.setText("");
 	}
-	
-	public void setTextInResultOfPatternMatchingLabel(String text){
+
+	public boolean isPatternMatchingIsInitiated() {
+		return patternMatchingIsInitiated;
+	}
+
+	public void setPatternMatchingIsInitiated(boolean patternMatchingIsInitiated) {
+		this.patternMatchingIsInitiated = patternMatchingIsInitiated;
+	}
+
+	public void setTextInResultOfPatternMatchingLabel(String text) {
 		resultOfPatternMatchingLabel.setText(text);
 	}
-	private void cleanTextInResultOfPatternMatchingLabel(){
+
+	private void cleanTextInResultOfPatternMatchingLabel() {
 		resultOfPatternMatchingLabel.setText("");
 	}
 
-	
-
 	/**
-	 * @param attributeNameOfMlabelInRelation the attributeNameOfMpointInRelation to set
+	 * @param attributeNameOfMlabelInRelation
+	 *            the attributeNameOfMpointInRelation to set
 	 */
 	public void setAttributeNameOfMLabelInRelation(
 			String attributeNameOfMlabelInRelation) {
 		this.attributeNameOfMlabelInRelation = attributeNameOfMlabelInRelation;
 	}
-	
-	public String getCommandForPatternMatching(){
-		int selectedInd=selectOptionsForExistingTrajectories.getSelectedIndex();
-		String command="";
-		if(selectedInd!=-1 && !attributeNameOfMlabelInRelation.isEmpty()){
-		command="query "+selectOptionsForExistingTrajectories.getItemText(selectedInd);
-		command = command+" feed filtermatches["+ attributeNameOfMlabelInRelation+",";
-		command=command+" '"+ patternLabel.getText()+"'] consume";
+
+	public String getCommandForPatternMatching() {
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		String command = "";
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
+			command = command + " feed filtermatches["
+					+ attributeNameOfMlabelInRelation + ",";
+			command = command + " '" + patternLabel.getText() + "'] consume";
 		}
 		return command;
 	}
-	
-	public String getCommandForQueryRelation(){
-		int selectedInd=selectOptionsForExistingTrajectories.getSelectedIndex();
-		String command="";
-		if(selectedInd!=-1){
-			command="query "+selectOptionsForExistingTrajectories.getItemText(selectedInd);	
+
+	public String getCommandForQueryRelation() {
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		String command = "";
+		if (selectedInd != -1) {
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
 		}
 		return command;
-		
+
 	}
 
 	/**
@@ -986,9 +945,64 @@ public class OptionsTabPanel extends Composite{
 	public ListBox getSelectOptionsForExistingTrajectories() {
 		return selectOptionsForExistingTrajectories;
 	}
+
+	/**
+	 * Gets a string representation of the header that includes an image and
+	 * some text.
+	 * 
+	 * @param text
+	 *            the header text
+	 * @param image
+	 *            the Image to add next to the header
+	 * @return the header as a string
+	 */
+	private String getHeaderString(String text, Image image) {
+		// Add the image and text to a horizontal panel
+		HorizontalPanel hPanel = new HorizontalPanel();
+		hPanel.setSpacing(0);
+		hPanel.setVerticalAlignment(HasVerticalAlignment.ALIGN_MIDDLE);
+		hPanel.add(image);
+		HTML headerText = new HTML(text);
+		hPanel.add(headerText);
+
+		// Return the HTML string for the panel
+		return hPanel.getElement().getString();
+	}
+
+	/**
+	 * Gets a string representation of the header that includes an image and
+	 * some text.
+	 * 
+	 * @param text
+	 *            the header text
+	 * @param image
+	 *            the Image to add next to the header
+	 * @return the header as a string
+	 */
+	private String getHeaderStringLevel2(String text, Image image) {
+		// Add the image and text to a horizontal panel
+		HorizontalPanel hPanel = new HorizontalPanel();
+		hPanel.setSpacing(0);
+		hPanel.setVerticalAlignment(HasVerticalAlignment.ALIGN_MIDDLE);
+		image.setSize("16px", "16px");
+		image.setWidth("20px");
+		hPanel.add(image);
+		HTML headerText = new HTML(text);
+		headerText.getElement().setAttribute("float", "left");
+		hPanel.add(headerText);
+		hPanel.setStyleName("customizedStackPanel");
+
+		// Return the HTML string for the panel
+		return hPanel.getElement().getString();
+	}
 	
 	
 
-	
-	
+	private void addToListWithVariablesForPattern(String var) {
+		if (!unsuccessfulVerification) {
+			variablesForPattern.add(var.toUpperCase());
+		}
+
+	}
+
 }

@@ -454,7 +454,7 @@ public class MapView extends Composite{
 		dataLoaded = false;
 
 		if (!currentResultTypeList.isEmpty()) {
-			System.out.println(currentResultTypeList.size());
+			System.out.println("Result list has "+currentResultTypeList.size());
 
 			if (!pointController.getPointMap().isEmpty()) {
 				if (zoomToAll == true) {
