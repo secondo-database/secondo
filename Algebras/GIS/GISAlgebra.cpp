@@ -135,7 +135,11 @@ GISAlgebra::GISAlgebra()
               hillshadeTypeMap);
   AddOperator(ruggednessInfo(), ruggednessFuns, ruggednessSelectFun, 
               ruggednessTypeMap);
-  AddOperator(contourInfo(), contourFuns, contourSelectFun, contourTypeMap);
+  Operator* cont = AddOperator(contourInfo(), contourFuns, 
+                     contourSelectFun, contourTypeMap);
+#ifndef contourlines_fixed_cache
+  cont->SetUsesMemory();
+#endif
 }
 
 /*

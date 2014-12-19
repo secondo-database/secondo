@@ -23,6 +23,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef GIS_CONTOUR_H
 #define GIS_CONTOUR_H
 
+
+
+ // uncomment the next line if you want to use a
+ // fixed size cahce of 64 MB for contour operator
+ // instead of using the available memory size requested
+ // from query processor
+
+ // #define contourlines_fixed_cache
+
+
 /*
 SECONDO includes
 

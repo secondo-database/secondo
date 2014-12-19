@@ -907,9 +907,15 @@ Return value: stream of tuple (level, line)
         if(li){ delete li; }
    //   li = new LIT(num,min, interval, 
    //                                     nl->Second(GetTupleResultType(s)));
+         size_t mem;
+#ifdef contourlines_fixed_cache
+         mem = 64*1024*1024;
+#else
+         mem = qp->GetMemorySize(s)*1024*1024;
+#endif         
          li = new LIT(interval, 
                                     nl->Second(GetTupleResultType(s)),
-                                    64*1024*1024);
+                                    mem);
         
         local.addr = li;
 
@@ -1323,9 +1329,15 @@ Return value: stream of tuple (level, line)
 
      //   li = new ContourLocalInfo(num, min, interval, 
      //                                   nl->Second(GetTupleResultType(s)));
+     size_t mem;
+#ifdef contourlines_fixed_cache
+         mem = 64*1024*1024;
+#else
+         mem = qp->GetMemorySize(s)*1024*1024;
+#endif         
         li = new ContourLineLocalInfo2(interval, 
                                   nl->Second(GetTupleResultType(s)),
-                                  64*1024*1024);
+                                  mem);
 
         local.addr = li;
 
