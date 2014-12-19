@@ -342,7 +342,7 @@ void replacePlaceholder(string &query, string placeholder, string value) {
 }
 
 /*
-2.2 Does the given sting contains a placeholder?
+2.2 Does the given string contains a placeholder?
 
 */
 bool containsPlaceholder(string searchString, string placeholder) {
@@ -365,13 +365,10 @@ void executeSecondoCommand(SecondoInterface* si,
 
         // check whether command was successful
         if(err.code!=0){ 
-          // if the error code is different to zero, an error is occurred
           cout << "Error during command. Error code :" << err.code << endl;
           cout << "Error message = " << err.msg << endl;
         } else {
           // command was successful
-          // do what ever you want to de with the result list
-          // in this little example, the result is just printed out
           cout << "Result is:" << nl->ToString(res) << endl << endl;
         }
 }
@@ -382,8 +379,15 @@ void executeSecondoCommand(SecondoInterface* si,
 */
 void createUUID(string &uuid) {
    char buffer[128];
-   FILE * file;
-   file = fopen( "/proc/sys/kernel/random/uuid" , "r");
+
+   const char *filename = "/proc/sys/kernel/random/uuid";
+   FILE *file = fopen(filename, "r");
+
+   // Does the proc file exists?
+   if( access(filename, R_OK ) != -1 ) {
+       cerr << "Unable to get UUID from kernel" << endl;
+       exit(-1);
+   }
    
    if (file) {
      while (fscanf(file, "%s", buffer)!=EOF) {
