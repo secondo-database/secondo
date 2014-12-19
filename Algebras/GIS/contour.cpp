@@ -20,6 +20,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#include <algorithm>
+#include <stdio.h>
+
 /*
 GIS includes
 
@@ -37,6 +40,7 @@ Raster2 and Tile includes
 #include "StopWatch.h"
 
 #include "DLine.h"
+#include "WinUnix.h"
 
 typedef DLine LineType;
 
@@ -164,6 +168,662 @@ public:
     double min;
     int interval;
     TupleType* tt;
+};
+
+
+
+
+/*
+1 class ~hSegment~
+
+This class represents a single segment assigned to a height. 
+There are two spezial values for a normal mark and a specialized
+end mark.
+
+
+*/
+class hSegment{
+  public:
+     hSegment(){}
+
+     hSegment(const int _level, const Point& _p1, const Point& _p2):
+        level(_level), p1(_p1), p2(_p2){
+       if(p1.IsDefined() && p2.IsDefined() && (p1< p2)) swap(p1,p2);
+     }
+
+     hSegment(const hSegment& h): level(h.level), p1(h.p1), p2(h.p2){}
+
+     ~hSegment(){}
+
+     hSegment& operator=(const hSegment& h){
+       level = h.level;
+       p1 = h.p1;
+       p2 = h.p2;
+       return *this;
+     }
+
+     bool operator==(const hSegment& h)const{
+       return (level==level) && AlmostEqual(p1,h.p1) && AlmostEqual(p2,h.p2);
+     }
+
+     bool operator<(const hSegment& h) const{
+       if(level!=h.level){
+          return level < h.level;
+       }
+       if(!AlmostEqual(p1,h.p1)){
+         return p1 < h.p1;
+       }
+       if(!AlmostEqual(p2,h.p2)){
+         return p2 < h.p2;
+       }
+       return  false;
+     }
+
+     inline int getLevel() const{ return level; }
+     inline const Point& getP1()const{ return p1; }
+     inline const Point& getP2()const{ return p2; }
+
+     static hSegment getEnd(){
+       return hSegment(0,Point(false,0,0),Point(false,0,0));
+     }
+     static hSegment getMarker(){
+       return hSegment(0,Point(false,0,0),Point(true,0,0));
+     }
+
+     bool isMarker(){
+       return !p1.IsDefined();
+     }
+     
+     bool isEnd(){
+       return !p1.IsDefined() && !p2.IsDefined();
+     }
+  private:
+    int level;
+    Point p1;
+    Point p2;
+};
+
+
+/*
+2 class restrictedHeap
+
+This class provides a heap implementation having a restricted size.
+The size is given during construction an instance of this class.
+When inserting a new element into the heap, the smallest value
+(including the new element) is removed from the set of heap elements
+and the new element and given back.
+
+
+*/
+
+template<class T>
+class restrictedHeap{
+ public:
+  restrictedHeap(size_t slots): slots(slots), used(0){
+    content = new T[slots];
+  }
+
+  ~restrictedHeap(){
+     delete[] content;
+  }
+
+/*
+Inserts a new element. If the heap overflows, the element's value
+is set to the smallest value in the heap (including the element itselfs.
+The smallest element is removed from the heap and the result will be true;
+
+*/  
+
+  bool insert( T& element){
+     if(used<slots){ // there is space available
+        content[used] = element;
+        used++;
+        climb();
+        return false;
+     }
+     if(element == content[0] || element < content[0]){
+        return true;
+     }
+     std::swap(element,content[0]);
+     sink();
+     return true;
+  }
+
+  size_t size() const{
+     return used;
+  }
+
+  bool empty() const{
+    return used==0;
+  }
+
+  bool full() const{
+    return used == slots;
+  }
+
+  const T& getMin(){
+    assert(used>0);
+    return content[0];
+  }
+
+  const void deleteMin(){
+     if(used>0){
+        swap(content[0], content[used-1]);
+        used --;
+        sink();
+     }
+  }
+
+
+  private:
+    size_t slots;
+    size_t used;
+    T* content;
+
+/*
+lets the last element in the heap climb to its final position 
+
+*/
+  void climb(){
+     size_t pos = used;
+     while(pos>1){
+        size_t father= pos/2;
+        if(content[father-1] < content[pos-1]){
+             return;
+        }
+        swap(content[father-1], content[pos-1]);
+        pos = father;
+     }
+  }
+
+/*
+lets the first element in heap sink to its final position
+
+*/  
+  void sink(){
+     size_t pos = 1;
+     while(pos < slots){
+        size_t s1 = pos*2;
+        if(s1>used){
+           return;
+        }
+        size_t s2 = s1 + 1;
+        size_t s;
+        if(s2>used){
+           // only one son available
+           s = s1;
+        } else {
+           s = content[s1-1] < content[s2-1]?s1:s2;
+        }
+        if(content[pos-1] < content[s-1]){
+          return; // reached final position
+        }
+        swap(content[pos-1],content[s-1]);
+        pos = s;
+     } 
+  }
+};
+
+
+
+
+/*
+3 class segmentStorage
+
+This class provides a storage for hSegment objects. 
+There are two stages of usage this storage. Within the
+first stage, elements can be inserted into this storage.
+This stage is finished using the finish() method. 
+In the second stage (after calling finished), elements 
+can be retrieved from the storage.  The segments are 
+returned according to its order.
+
+*/
+class segmentStorage{
+ public:
+
+/*
+3.1 Contructor
+
+This constructor takes the available memory in bytes as its input.
+
+*/
+     segmentStorage(size_t mem){
+     if(mem<4096){
+       mem = 4096;
+     }
+     slots = mem/(sizeof(hSegment) + sizeof(void*) );
+     if(slots<2){
+        slots = 2; 
+     }
+     h1 = new restrictedHeap<hSegment>(slots/2);
+     h2 = 0;
+     f1 = 0;
+     f2 = 0;
+     outputCache = 0;
+     buffersize = 8192; // buffersize for file operations
+   }
+
+/*
+3.2 Destructor
+
+*/ 
+  ~segmentStorage(){
+      if(h1) delete h1;
+      if(h2) delete h1;
+      if(outputCache) delete[] outputCache;
+      if(f1){ f1->close(); delete f1; }
+      if(f2){ f2->close(); delete f2; };
+      for(size_t i=0;i<filenames.size();i++){
+         remove(filenames[i].c_str());
+      }
+      for(size_t i=0;i<filebuffers.size();i++){
+         delete[] filebuffers[i];
+      }
+   }
+
+
+/*
+3.3 insert
+
+This function inserts a new element to this storage.
+
+*/
+   void insert(hSegment& seg){
+      if(!h2 && !h1->full()){
+         // first filling of h1
+         bool overflow = h1->insert(seg);
+         assert(!overflow);
+         return;
+      }
+      // stage 2
+      hSegment cmin = h1->getMin();
+      h1->deleteMin();
+      append(f1,cmin); // append to file
+      if(seg < cmin){
+         if(!h2){
+           h2 = new restrictedHeap<hSegment>(slots/2);
+         }
+         h2->insert(seg);
+      } else {
+        h1->insert(seg);
+      }
+      if(h1->size()==0){
+         appendMarker(f1);
+         swap(f1,f2);
+         swap(h1,h2);
+      } 
+   }
+
+
+/*
+3.4 finish
+
+switch from insertion phase to retrieval phase.
+
+*/
+
+   void finish(){
+     //  case 1: h2, f1 and f2 are not present : all items are included in h1
+     if(h1 && !h2 && !f1 && !f2){
+       //cout << "Case : all elements are in h1" << endl;
+       size_t size = h1->size();
+       if(size>0){
+          outputCache = new hSegment[size];
+          int i=0;
+          while(!h1->empty()){
+             outputCache[i] = h1->getMin();
+             i++; 
+             h1->deleteMin();
+          }
+          outPos = 0;
+          outMax = size;
+       } else {
+          outPos = 0;
+          outMax = 0;
+       }
+       return;
+     }
+
+     // case 2: h1 and f1 are in use
+     if(f1 && !h2 && !f2){
+       // all elements in h1 are greater than those in
+       // f1, thus we just move the content of h1 to
+       // the file, generate the output buffer and
+       // fill the buffer with the content of f1
+       //cout << "case 2: h1 and f1 are used, h2 and f2 not" << endl;
+       append(f1,h1,false,true);
+       outMax = slots;
+       outputCache = new hSegment[outMax];
+       f1->seekg(0);
+       fillOutputCache();
+       return; 
+     }
+
+    // case 3: h1, h2 and f1 is used, f2 not
+    if(h1 && h2 && f1){
+       //cout << "case 3 : one or two files and both heaps is used" << endl;
+      // all elements in f1 are smaller than
+      // those in h1, elements in h2 are
+      // smaller than the last element in f1
+      append(f1,h1,true,true);      
+      append(f2,h2,true,true);
+      merge(f1,f2);
+      outputCache = new hSegment[slots];
+      outMax = slots;
+      f1->seekg(0);
+      fillOutputCache();
+      return;
+    }
+
+
+
+     assert(false); //  forgotten case
+
+   }
+
+
+/*
+3.5 ~hasNext~
+
+Within the retrieval phase, it can be checked whether more elements are available.
+
+*/
+   bool hasNext() const{
+      return outPos < outMax;
+   }
+
+   const hSegment& current(){
+      return outputCache[outPos];
+   }
+
+   void next(){
+      outPos++;
+      if(outPos == outMax){
+         if(f1){
+            fillOutputCache();
+         }
+      }
+   }
+
+ private:
+    restrictedHeap<hSegment>* h1; // heap
+    restrictedHeap<hSegment>* h2; // heap
+    fstream* f1;                  // file for heap overflow
+    fstream* f2;                  // second file
+    vector<char*> filebuffers;    // vector of  buffers
+    size_t slots;                 
+    hSegment* outputCache;
+    size_t outPos;
+    size_t outMax;
+    vector<string> filenames;
+    size_t buffersize;
+
+/*
+3.6 append
+
+Appends ~seg~ to ~f~. if ~f~ does not exist, it will be created.
+
+*/
+    void append(fstream*& f , const hSegment& seg){
+       if(!f){
+          string fname = generateFName();
+          f = new fstream(fname.c_str(), ios_base::in | ios_base::out 
+                          | ios_base::binary | ios_base::trunc);
+          char* buffer = new char[buffersize];
+          filebuffers.push_back(buffer);
+          f->rdbuf()->pubsetbuf(buffer, buffersize);
+       }
+       f->write((char*) &seg, sizeof(hSegment));
+    }
+
+/*
+3.7 append
+
+Appends a normal marker to the given file.
+
+*/
+
+    void appendMarker(fstream*& f){
+      static hSegment marker = hSegment::getMarker();
+      append(f,marker);
+    }
+
+
+/*
+3.8 gerenateFName
+
+Generates a new filename.
+
+*/
+    string generateFName(){
+      static int no = 0;
+      stringstream ss;
+      ss << "tmp/T_" << WinUnix::getpid() << "_segStorage_" << no;
+      no++;
+      filenames.push_back(ss.str());
+      return ss.str();
+    }
+
+
+/*
+3.9 fillOutputcache
+
+Copies data from file f1 to the outputcache.
+
+*/
+
+    void fillOutputCache(){
+       assert(f1);
+       outPos = 0;
+       size_t pos = 0;
+       hSegment seg;
+       while( (pos < outMax) && !f1->eof()){
+          f1->read((char*)&seg, sizeof(hSegment));
+          if(!seg.isMarker()){
+            outputCache[pos] = seg;
+            pos++;
+          } else if(seg.isEnd()){
+              f1->close();
+              delete f1;
+              f1 = 0;
+              outMax = pos;
+              return;
+          }
+       }
+       if(f1->eof()){
+          f1->close();
+          delete f1;
+          f1 = 0;
+       }
+       outMax = pos;
+    }
+
+
+/*
+3.10 append
+
+Appends all elements within the heap to ~f~. If finishMarker
+is set to ~true~, an marker will be appended after the elements
+of ~h~. If destroy Heap is set to true, the heap is destroyed 
+after copying the elements.
+
+*/
+    void append(fstream*& f, 
+                restrictedHeap<hSegment>*& h, 
+                bool finishMarker, bool destroyHeap){
+       while(!h->empty()){
+         append(f,h->getMin());
+         h->deleteMin();
+       }
+       if(finishMarker){
+         appendMarker(f);
+       }
+       if(destroyHeap){
+         delete h;
+         h = 0;
+       }
+    }
+
+
+/*
+3.11 merge
+
+Merges the contents of f1 and f2 together in result. 
+The result is written to f1. 
+
+
+*/
+
+    void merge(fstream*& f1, fstream*& f2){
+       StopWatch sw;
+       size_t phases = 0;
+       fstream* g1 = new fstream(generateFName().c_str(), ios_base::in | 
+                                      ios_base::out | ios_base::binary | 
+                                                        ios_base::trunc);
+       fstream* g2 = new fstream(generateFName().c_str(), ios_base::in | 
+                                      ios_base::out | ios_base::binary | 
+                                                        ios_base::trunc);
+       append(f1, hSegment::getEnd());
+       append(f2, hSegment::getEnd());
+       char g1buf[buffersize];
+       char g2buf[buffersize];
+       g1->rdbuf()->pubsetbuf(g1buf,buffersize);
+       g2->rdbuf()->pubsetbuf(g2buf,buffersize);
+
+       int runs=0;
+       do{
+          runs = merge(f1,f2,g1,g2);
+          swap(f1,g1);
+          swap(f2,g2);
+          phases++;
+       } while(runs > 1);
+       delete f2;
+       f2 = 0;
+       delete g1;
+       g1 = 0;
+       delete g2;
+       g2 = 0;
+    }
+
+/*
+3.12 merge
+
+This function perform a single phase of merging f1 and f2. The merged
+runs are written to g1 and g2.
+
+*/
+    int merge(fstream* f1, fstream* f2, fstream* g1, fstream* g2){
+      f1->seekg(0);
+      f2->seekg(0);
+      g1->seekp(0);
+      g2->seekp(0);
+      hSegment f1Cur;
+      hSegment f2Cur;
+      int runs = 0;
+      f1->read((char*) &f1Cur, sizeof(hSegment));
+      f2->read((char*) &f2Cur, sizeof(hSegment));
+
+      while(!f1Cur.isEnd() || !f2Cur.isEnd()){
+
+        while(!f1Cur.isMarker() || !f2Cur.isMarker()){
+           if(f1Cur.isMarker()){
+             append(g1,f2Cur);
+             f2->read((char*) &f2Cur, sizeof(hSegment));
+           } else if(f2Cur.isMarker()){
+             append(g1,f1Cur);
+             f1->read((char*) &f1Cur, sizeof(hSegment));
+           } else {
+              if(f1Cur < f2Cur){
+                  append(g1,f1Cur);
+                 f1->read((char*) &f1Cur, sizeof(hSegment));
+              } else {
+               append(g1,f2Cur);
+               f2->read((char*) &f2Cur, sizeof(hSegment));
+              }
+           }
+        }
+        // both element are markers
+        append(g1,hSegment::getMarker());
+        runs++;
+        swap(g1,g2);
+        if(!f1Cur.isEnd()){
+           f1->read((char*) &f1Cur, sizeof(hSegment));
+        }
+        if(!f2Cur.isEnd()){
+           f2->read((char*) &f2Cur, sizeof(hSegment));
+        }
+      }
+      append(g1,hSegment::getEnd());
+      append(g2,hSegment::getEnd());
+      return runs ;
+    }
+};
+
+
+
+
+class ContourLineLocalInfo2{
+public:
+  ContourLineLocalInfo2(const int _interval, ListExpr tupleType, size_t mem) :
+      interval(_interval),pos(0){
+     tt = new TupleType(tupleType);
+     store = new segmentStorage(mem);
+  }
+
+  ~ContourLineLocalInfo2(){
+     tt->DeleteIfAllowed();
+     delete store;
+  }
+
+  void addSegment(int level, const Point& p1, const Point & p2){
+     hSegment seg(level,p1,p2);
+     store->insert(seg);
+  }
+
+  void finish(){
+     store->finish();
+  }
+
+  Tuple* getNext() {
+
+       if(!store->hasNext()){
+         return 0;
+       }
+       LineType* line = new LineType(0);
+       line->StartBulkLoad();
+       hSegment seg = store->current();
+       int level = seg.getLevel();
+       int edge = 0;
+       while(store->hasNext() && level == seg.getLevel()){
+         insert(seg,line, edge);
+         edge++;
+         store->next();
+         if(store->hasNext()){
+            seg = store->current();
+         }
+       }
+       line->EndBulkLoad();
+       Tuple* result = new Tuple(tt);
+       result->PutAttribute(0,new CcInt(true,level));
+       result->PutAttribute(1,line);
+       return result;
+  }
+
+  private:
+    int interval;
+    size_t pos;
+   // vector<hSegment> v; 
+    segmentStorage* store;
+    TupleType* tt;
+
+    void insert(const hSegment seg, LineType* line, int edgeno){
+        HalfSegment hs(true,seg.getP1(), seg.getP2());
+        hs.attr.edgeno=edgeno;
+        (*line) += hs;
+        hs.SetLeftDomPoint(false);
+        (*line) += hs;
+    }
 
 };
 
@@ -176,11 +836,12 @@ Parameters: values and coordinates of four points, the wanted interval,
             segments
 
 */
-        bool ProcessRectangle(double, double, double,
+   template<class LI>
+    bool ProcessRectangle(double, double, double,
                               double, double, double,
                               double, double, double,
                               double, double, double, 
-                              int, ContourLocalInfo*);
+                              int, LI*);
 
 /*
 Method AddSegment addes the found segments to the ResultInfo DbArray
@@ -190,8 +851,9 @@ Parameters: level value, coordinates of segments start and stop point,
             to store the segments
 
 */
+  template<class LI>
         void AddSegment(int, double, double,
-                        double, double, ContourLocalInfo*);
+                        double, double, LI*);
 
 
 
@@ -212,11 +874,14 @@ Return value: stream of tuple (level, line)
           static_cast<typename T::this_type*>(args[0].addr);
     CcInt* lines = static_cast<CcInt*>(args[1].addr);
 
+
+    typedef ContourLineLocalInfo2 LIT;
+    LIT* li = (LIT*) local.addr;
+
     switch(message)
     {
       case OPEN:
       {
-        StopWatch sw;
         // initialize the local storage
         double min = s_in->getMinimum();
         double max = s_in->getMaximum();
@@ -234,12 +899,18 @@ Return value: stream of tuple (level, line)
           return CANCEL;
         }
 
-        double diff = max - min;
-        int num = ceil(diff / interval) + 1;
+        // double diff = max - min;
+       // int num = ceil(diff / interval) + 1;
 
          
-        ContourLocalInfo* li = new ContourLocalInfo(num,min, interval, 
-                                        nl->Second(GetTupleResultType(s)));
+
+        if(li){ delete li; }
+   //   li = new LIT(num,min, interval, 
+   //                                     nl->Second(GetTupleResultType(s)));
+         li = new LIT(interval, 
+                                    nl->Second(GetTupleResultType(s)),
+                                    64*1024*1024);
+        
         local.addr = li;
 
         raster2::grid2 grid = s_in->getGrid();
@@ -522,7 +1193,6 @@ Return value: stream of tuple (level, line)
     
       case REQUEST:
       {
-        ContourLocalInfo* li = (ContourLocalInfo*) local.addr;
         result.addr = li?li->getNext():0;
         return result.addr?YIELD:CANCEL;
 
@@ -530,7 +1200,6 @@ Return value: stream of tuple (level, line)
 
       case CLOSE:
       {
-          ContourLocalInfo* li = (ContourLocalInfo*) local.addr;
           if(li){
              delete li;
              local.addr = 0;
@@ -587,7 +1256,8 @@ Return value: stream of tuple (level, line)
 
     int maxX = xDimensionSize - 1;
     int maxY = yDimensionSize - 1;
-
+    //ContourLocalInfo* li = (ContourLocalInfo*) local.addr;
+    ContourLineLocalInfo2* li = (ContourLineLocalInfo2*) local.addr;
 
     switch(message)
     {
@@ -630,28 +1300,32 @@ Return value: stream of tuple (level, line)
           typename SourceTypeProperties::TypeProperties::PropertiesType maxTemp;
           s_in->maximum(maxTemp);
 
-          if ((minTemp < min) || (firstValue == true))
+          if (firstValue ||(minTemp < min) )
           {
             min = minTemp;
           }
 
-          if ((maxTemp > max) || (firstValue == true))
+          if (firstValue || (maxTemp > max) )
           {
             max = maxTemp;
           }
 
           firstValue = false;
-
+          tuple->DeleteIfAllowed();
           qp->Request(args[0].addr, elem);
         }
 
         qp->Close(args[0].addr);
 
-        double diff = max - min;
-        int num = ceil(diff / interval) + 1;
+     //   double diff = max - min;
+     //   int num = ceil(diff / interval) + 1;
+        if(li) delete li;
 
-        ContourLocalInfo* li = new ContourLocalInfo(num, min, interval, 
-                                        nl->Second(GetTupleResultType(s)));
+     //   li = new ContourLocalInfo(num, min, interval, 
+     //                                   nl->Second(GetTupleResultType(s)));
+        li = new ContourLineLocalInfo2(interval, 
+                                  nl->Second(GetTupleResultType(s)),
+                                  64*1024*1024);
 
         local.addr = li;
 
@@ -680,7 +1354,7 @@ Return value: stream of tuple (level, line)
             tileSize = cellSize * xDimensionSize;
 
             // read cells until Y coordinate changes
-            if ((gridOriginY == lastOriginY) || (firstTuple == true))
+            if ( firstTuple || (gridOriginY == lastOriginY) )
             {
               if (!(firstTuple == true))
               {
@@ -1274,6 +1948,10 @@ Return value: stream of tuple (level, line)
           }
 
           // change of tile rows
+          for(int i=0;i<last.size();i++){
+             last[i]->DeleteIfAllowed();
+          }
+
           last = current;
           current = next;
           next.clear();
@@ -1285,29 +1963,30 @@ Return value: stream of tuple (level, line)
             next.push_back(nextElement);
             newLine = false;
           }
-
           currentTuple = 0;
           readNextElement = true;
         }
+        for(int i=0;i<last.size();i++){
+           last[i]->DeleteIfAllowed();
+        }
+ 
         li->finish();
         return 0;
       }
     
       case REQUEST:
       {
-         ContourLocalInfo* li = (ContourLocalInfo*) local.addr;
          result.addr=li?li->getNext():0;
          return result.addr?YIELD:CANCEL;
       }
 
       case CLOSE:
       {
-        
-        ContourLocalInfo* li = (ContourLocalInfo*) local.addr;
         if(li){
            delete li;
            local.addr = 0;
         }
+        return 0;
       }
 
       default:
@@ -1431,12 +2110,13 @@ Parameters: values and coordinates of four points, the wanted interval,
             segments
 
 */
+  template<class LI>
   bool ProcessRectangle(double a, double aX, double aY,
                         double g, double gX, double gY,
                         double i, double iX, double iY,
                         double c, double cX, double cY, 
                         int interval,  
-                        ContourLocalInfo* li)
+                        LI* li)
   {
     // calculate minimum and maximum
     double Min = MIN(MIN(a,c),MIN(g,i));
@@ -1615,8 +2295,9 @@ Parameters: level value, coordinates of segments start and stop point,
             to store the segments
 
 */
+  template<class LI>
   void  AddSegment(int l, double startX, double startY,
-                  double endX, double endY, ContourLocalInfo* clines)
+                  double endX, double endY, LI* clines)
   {
     Point p1(true, startX, startY);
     Point p2(true, endX, endY);
