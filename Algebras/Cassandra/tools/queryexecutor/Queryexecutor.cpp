@@ -69,7 +69,8 @@ enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE };
 
 #define CMDLINE_CASSANDRA_NODE          1<<0
 #define CMDLINE_CASSANDRA_KEYSPACE      1<<1
-#define CMDLINE_CASSANDRA_PORT          1<<2
+#define CMDLINE_SECONDO_HOST            1<<2
+#define CMDLINE_SECONDO_PORT            1<<3
 
 /*
 1.2 Usings
@@ -85,6 +86,7 @@ using namespace cassandra;
 struct cmdline_args_t {
   string cassandraNodeIp;
   string cassandraKeyspace;
+  string secondoHost;
   string secondoPort;
 };
 
@@ -829,12 +831,14 @@ HeartbeatUpdater* startHeartbeatThread(string cassandraIp,
 */
 void printHelpAndExit(char *progName) {
   cerr << "Usage: " << progName 
-       << " -i <cassandra-ip> -k <keyspace> -p <secondo-port>"  << endl;
+       << " -i <cassandra-ip> -k <keyspace> -s <secondo-ip> -p <secondo-port>" 
+       << endl;
           
   cerr << endl;
   cerr << "-i <IP-Address> - The cassandra node to connect to" << endl;
-  cerr << "-k <Keyspace> - The keyspace to open" << endl;
-  cerr << "-p <Port> - The SECONDO Server port to connect to" << endl;
+  cerr << "-k <Keyspace>   - The keyspace to open" << endl;
+  cerr << "-s <IP-Address> - The IP of the SECONDO Server" << endl;
+  cerr << "-p <Port>       - The SECONDO Server port to connect to" << endl;
   exit(EXIT_FAILURE);
 }
 
@@ -848,7 +852,7 @@ void parseCommandline(int argc, char* argv[],
   unsigned int flags = 0;
   int option = 0;
   
-  while ((option = getopt(argc, argv,"i:k:p:")) != -1) {
+  while ((option = getopt(argc, argv,"i:k:s:p:")) != -1) {
      switch (option) {
       case 'i':
            cmdline_args.cassandraNodeIp = string(optarg);
@@ -858,9 +862,13 @@ void parseCommandline(int argc, char* argv[],
            cmdline_args.cassandraKeyspace = string(optarg);
            flags |= CMDLINE_CASSANDRA_KEYSPACE;
            break;
+      case 's':
+           cmdline_args.secondoHost = string(optarg);
+           flags |= CMDLINE_SECONDO_HOST;
+           break;
       case 'p':
            cmdline_args.secondoPort = string(optarg);
-           flags |= CMDLINE_CASSANDRA_PORT;
+           flags |= CMDLINE_SECONDO_PORT;
            break;
       default:
         printHelpAndExit(argv[0]);
@@ -868,8 +876,9 @@ void parseCommandline(int argc, char* argv[],
   }
   
   unsigned int requiredFalgs = CMDLINE_CASSANDRA_NODE | 
-                               CMDLINE_CASSANDRA_KEYSPACE | 
-                               CMDLINE_CASSANDRA_PORT;
+                               CMDLINE_CASSANDRA_KEYSPACE |
+                               CMDLINE_SECONDO_HOST | 
+                               CMDLINE_SECONDO_PORT;
                                
   if(requiredFalgs != flags) {
     printHelpAndExit(argv[0]);
@@ -885,8 +894,7 @@ int main(int argc, char* argv[]){
   cmdline_args_t cmdline_args;
   parseCommandline(argc, argv, cmdline_args);
 
-  string secondoHost = string("127.0.0.1");
-  SecondoInterface* si = initSecondoInterface(secondoHost, 
+  SecondoInterface* si = initSecondoInterface(cmdline_args.secondoHost, 
                                               cmdline_args.secondoPort);
 
   if(si == NULL) { 

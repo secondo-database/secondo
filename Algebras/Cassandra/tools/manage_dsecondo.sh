@@ -15,10 +15,10 @@ LANG=C
 port=11234
 
 # Keyspace to use
-keyspace="keyspace_r1"
+keyspace="keyspace_r3"
 
 # Cassandra Nodes
-nodes="node1 node2 node3 node4 node5 node6"
+nodes="node1 node2 node4 node5 node6"
 #nodes="node1"
 
 # Variables
@@ -90,7 +90,7 @@ start_local() {
    execCommandsInScreen $screensessionServer "cd $SECONDO_BUILD_DIR/bin" "./SecondoMonitor -s"
    sleep 2
    localIp=$(getIp "")
-   execCommandsInScreen $screensessionExecutor "cd $SECONDO_BUILD_DIR/Algebras/Cassandra/tools/queryexecutor/" "./Queryexecutor -i $localIp -k $keyspace -p $port"
+   execCommandsInScreen $screensessionExecutor "cd $SECONDO_BUILD_DIR/Algebras/Cassandra/tools/queryexecutor/" "./Queryexecutor -i $localIp -k $keyspace -s 127.0.0.1 -p $port"
 }
 
 # Stop local dsecondo instance
