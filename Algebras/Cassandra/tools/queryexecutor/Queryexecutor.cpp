@@ -386,7 +386,7 @@ void createUUID(string &uuid) {
    FILE *file = fopen(filename, "r");
 
    // Does the proc file exists?
-   if( access(filename, R_OK ) != -1 ) {
+   if( access(filename, R_OK ) == -1 ) {
        cerr << "Unable to get UUID from kernel" << endl;
        exit(-1);
    }
