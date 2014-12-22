@@ -211,6 +211,7 @@ bool CassandraAdapter::prepareCQLInsert(string relation) {
 
         CassFuture* future = cass_session_prepare(session, query);
         cass_future_wait(future);
+        rc = cass_future_error_code(future);
 
         if(rc != CASS_OK) {
            CassandraHelper::print_error(future);
@@ -757,6 +758,7 @@ bool CassandraAdapter::getTokensFromQuery
      CassFuture* future = executeCQL(query, CASS_CONSISTENCY_ALL);
   
      cass_future_wait(future);
+     rc = cass_future_error_code(future);
 
      if (rc != CASS_OK) {
              CassandraHelper::print_error(future);
@@ -993,6 +995,7 @@ bool CassandraAdapter::getTokenrangesFromQuery (
   CassFuture* future = executeCQL(query, CASS_CONSISTENCY_ALL);
  
   cass_future_wait(future);
+  rc = cass_future_error_code(future);
 
   if (rc != CASS_OK) {
      CassandraHelper::print_error(future);
