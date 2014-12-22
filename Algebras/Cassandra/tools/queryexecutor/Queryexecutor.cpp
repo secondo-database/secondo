@@ -706,7 +706,8 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
           } else {
 #ifdef __DEBUG__             
             cout << "[Debug] Treat range as local, because node is dead: " 
-                 << range;
+                 << range << " last update " << heartbeatData[range.getIp()] 
+                 << endl;
 #endif
                  
           }
