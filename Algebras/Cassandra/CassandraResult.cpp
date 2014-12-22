@@ -84,7 +84,13 @@ void SingleCassandraResult::getStringValue(string &resultString, int pos) {
    resultString.append(result.data, result.length);
 }
 
-cass_int64_t SingleCassandraResult::getIntValue(int pos) {
+cass_int32_t SingleCassandraResult::getIntValue(int pos) {
+  cass_int32_t resultInt;
+  cass_value_get_int32(cass_row_get_column(row, pos), &resultInt);
+  return resultInt;
+}
+
+cass_int64_t SingleCassandraResult::getBigIntValue(int pos) {
   cass_int64_t resultInt;
   cass_value_get_int64(cass_row_get_column(row, pos), &resultInt);
   return resultInt;
@@ -140,8 +146,12 @@ void MultiCassandraResult::getStringValue(string &resultString, int pos) {
   cassandraResult -> getStringValue(resultString, pos);
 }
 
-cass_int64_t MultiCassandraResult::getIntValue(int pos) {
+cass_int32_t MultiCassandraResult::getIntValue(int pos) {
   return cassandraResult -> getIntValue(pos);
+}
+
+cass_int64_t MultiCassandraResult::getBigIntValue(int pos) {
+  return cassandraResult -> getBigIntValue(pos);
 }
 
 bool MultiCassandraResult::hasNext() {
@@ -470,9 +480,14 @@ void MultiThreadedCassandraResult::getStringValue(string &resultString,
     pthread_mutex_unlock(&queueMutex);
 }
 
-cass_int64_t MultiThreadedCassandraResult::getIntValue(int pos) {
+cass_int32_t MultiThreadedCassandraResult::getIntValue(int pos) {
   return -1;
 }
+
+cass_int64_t MultiThreadedCassandraResult::getBigIntValue(int pos) {
+  return -1;
+}
+
 
   
 } // Namespace

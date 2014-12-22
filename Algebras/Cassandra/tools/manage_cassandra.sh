@@ -176,7 +176,7 @@ for node in $nodes; do
  
    echo -n "Install Cassandra on Node $node " 
    ssh $node "source .secondorc; $script install_local /dev/null" 
-   echo $done
+   echo -e $done
 done
 
 }

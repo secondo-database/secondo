@@ -72,7 +72,12 @@ public:
        // To be implemented in subclasses
      }
      
-     virtual cass_int64_t getIntValue(int pos) {
+     virtual cass_int32_t getIntValue(int pos) {
+       // To be implemented in subclasses
+       return -1;
+     }
+     
+     virtual cass_int64_t getBigIntValue(int pos) {
        // To be implemented in subclasses
        return -1;
      }
@@ -114,7 +119,8 @@ public:
      
      virtual bool hasNext();
      virtual void getStringValue(string &resultString, int pos);
-     virtual cass_int64_t getIntValue(int pos);
+     virtual cass_int32_t getIntValue(int pos);
+     virtual cass_int64_t getBigIntValue(int pos);
      
 private:
      CassFuture* future;
@@ -140,7 +146,8 @@ public:
   virtual bool setupNextQuery();
   virtual bool hasNext();
   virtual void getStringValue(string &resultString, int pos);
-  virtual cass_int64_t getIntValue(int pos);
+  virtual cass_int32_t getIntValue(int pos);
+  virtual cass_int64_t getBigIntValue(int pos);
   
 protected:
   vector<string> queries;
@@ -167,7 +174,8 @@ public:
   virtual ~MultiThreadedCassandraResult();
   virtual bool hasNext();
   virtual void getStringValue(string &resultString, int pos);
-  virtual cass_int64_t getIntValue(int pos);
+  virtual cass_int32_t getIntValue(int pos);
+  virtual cass_int64_t getBigIntValue(int pos);
   
 private:
   queue< vector<string> > results;

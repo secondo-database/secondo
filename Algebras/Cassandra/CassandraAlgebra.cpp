@@ -2519,21 +2519,14 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
             delete result;
           }
           
-          // Is query executed completelly?
+          // Is query executed completely?
           if(highestValue >= queryId) {
             break;
           }
           
-          //cout << "Highest value: " << highestValue << endl;
-          
-          for(size_t i = 0; i < 50000; ++i) {
-              // We are blocking the query processor
-              // So we need to call CheckProgress 
-              // manually, to receive getProgress messages
-              qp->CheckProgress();
-              usleep(100);
-          }
-          
+          qp->UpdateProgress();
+
+          sleep(1);          
         }
         
       }

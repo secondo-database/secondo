@@ -1064,11 +1064,10 @@ bool CassandraAdapter::getHeartbeatData(map<string, time_t> &result) {
   
   while(cas_result->hasNext()) {
          string ip;
-         cass_int64_t res;
-          
-         res = cas_result->getIntValue(1);
+         long long res;
+
+         res = cas_result->getBigIntValue(1);
          cas_result->getStringValue(ip, 0); 
-         
          result.insert(std::pair<string,time_t>(ip,(time_t) res));
    }
 
