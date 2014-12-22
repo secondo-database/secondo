@@ -658,11 +658,12 @@ protected:
 /*
 2.3.32 Connect to the cassandra cluster 
 
-1. Parameter is the cassandra cluster 
-2. Parameter is the session instance
+1. Parameter is the session instance
+2. Parameter is the cassandra cluster 
 
 */
-  CassError connect_session(CassCluster* cluster, CassSession** output);   
+  CassError connect_session(CassSession* session, 
+                                 const CassCluster* cluster);   
 
  
 private:

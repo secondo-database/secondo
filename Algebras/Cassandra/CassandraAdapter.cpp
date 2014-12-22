@@ -62,13 +62,11 @@ namespace cassandra {
 // Init static variables
 const string CassandraAdapter::METADATA_TUPLETYPE = "_TUPLETYPE";
 
-CassError CassandraAdapter::connect_session(CassCluster* cluster, 
-    CassSession** output) {
+CassError CassandraAdapter::connect_session(CassSession* session, 
+    const CassCluster* cluster) {
    
    CassError rc = CASS_OK;
-   CassFuture* future = cass_cluster_connect(cluster);
-   
-   *output = NULL;
+   CassFuture* future = cass_session_connect(session, cluster);
    
    cass_future_wait(future);
    
@@ -76,11 +74,9 @@ CassError CassandraAdapter::connect_session(CassCluster* cluster,
 
    if (rc != CASS_OK) {
       CassandraHelper::print_error(future);
-   } else {
-      *output = cass_future_get_session(future);
-   }
-   
+   } 
    cass_future_free(future);
+   
    return rc;
 }
 
@@ -90,6 +86,8 @@ void CassandraAdapter::connect(bool singleNodeLoadBalancing) {
      stringstream ss;
 
      cluster = cass_cluster_new();
+     session = cass_session_new();
+
      cass_cluster_set_contact_points(cluster, contactpoint.c_str());        
      
      // Switch to single node policy
@@ -97,10 +95,9 @@ void CassandraAdapter::connect(bool singleNodeLoadBalancing) {
          cass_cluster_set_load_balance_single(cluster, contactpoint.c_str()); 
      }
       
-     rc = connect_session(cluster, &session);
+     rc = connect_session(session, cluster);
 
      if (rc != CASS_OK) {
-        session = NULL;
         disconnect();
      } else {
         ss << "USE ";
@@ -646,7 +643,9 @@ void CassandraAdapter::disconnect() {
         cass_future_wait(close_future);
         cass_future_free(close_future);
         cass_cluster_free(cluster);
+        cass_session_free(session);
 
+        cluster = NULL;
         session = NULL;
     }
 }
