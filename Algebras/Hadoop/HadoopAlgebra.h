@@ -53,14 +53,18 @@ Select different collect option.
 #include "RelationAlgebra.h"
 #include "Stream.h"
 
+typedef vector<pair<string, fList*> > Para_FList;
 bool isFListStreamDescription(const NList& typeInfo);
 ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
     vector<string>& DLF_NameList, vector<string>& DLF_fileLocList,
     vector<string>& DLO_NameList, vector<string>& DLO_locList,
     bool ua, bool& ok, int argIndex = 0);  //Replace DLO and DLF
+
 ListExpr replaceParaOp(
     ListExpr queryList, vector<string>& flistNames,
     vector<fList*>& flistObjects, bool& ok);
+ListExpr replaceParaOp(
+    ListExpr queryList, Para_FList& para_flist, bool& ok);
 ListExpr replaceSecObj(ListExpr queryList, bool& ok);
 
 pthread_mutex_t CLI_mutex = PTHREAD_MUTEX_INITIALIZER;

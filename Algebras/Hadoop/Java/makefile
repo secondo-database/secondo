@@ -7,7 +7,8 @@ CLS_P = ${BIN_P}/${PKGNM}
 SRC_P = ./${PKGNM}
 SECLIB = ${BIN_P}/lib/SecondoInterface.jar
 
-all: checkenv checkbin checklib editor mod ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class ${CLS_P}/PS_HadoopReduce2.class ${CLS_P}/PS_HadoopMapAll.class
+all: checkenv checkbin checklib editor mod ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class \
+${CLS_P}/PS_HadoopReduce2.class ${CLS_P}/PS_HadoopMapAll.class ${CLS_P}/PS_HadoopMap2.class
 	jar -cf ${JarFile} -C ${BIN_P} .
 	cp ${JarFile} ../../../bin/
 
@@ -37,6 +38,20 @@ ${CLS_P}/PS_HadoopMap_Reduce.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSN
 ${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class \
 ${SRC_P}/PS_HadoopMap_Reduce.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap_Reduce.java -d ${BIN_P}	
+
+${CLS_P}/PS_HadoopMap2.class: ${CLS_P}/PS_HadoopMap2_Map.class ${CLS_P}/PS_HadoopMap2_Reduce.class \
+${SRC_P}/PS_HadoopMap2.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap2.java -d ${BIN_P}
+
+${CLS_P}/PS_HadoopMap2_Map.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class \
+${SRC_P}/PS_HadoopMap2_Map.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap2_Map.java -d ${BIN_P}	
+
+${CLS_P}/PS_HadoopMap2_Reduce.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class \
+${SRC_P}/PS_HadoopMap2_Reduce.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap2_Reduce.java -d ${BIN_P}	
 
 ${CLS_P}/PS_HadoopReduce.class: ${CLS_P}/PS_HadoopReduce_Map.class ${CLS_P}/PS_HadoopReduce_Reduce.class \
 ${CLS_P}/PS_HadoopReduce_QMap.class ${SRC_P}/PS_HadoopReduce.java
