@@ -51,6 +51,7 @@ And includes one method:
 #ifdef SECONDO_WIN32
 #include <winsock2.h>
 #endif
+#include <sys/socket.h>
 #include "TupleQueue.h"
 
 #include "FileSystem.h"

@@ -6914,7 +6914,8 @@ it asks the following parameters:
   if (FileSystem::FileOrFolderExists(localSheetPath)){
     FileSystem::DeleteFileOrFolder(localSheetPath);
   }
-  close(hsock);
+  //close(hsock);
+  shutdown(hsock, 2);
 
   // after getting all result flob files
   pthread_mutex_lock(&FFLI_mutex);
