@@ -1,4 +1,10 @@
 /*
+//[=>] [$=>$]
+//[toc] [\tableofcontents]
+
+[toc]
+
+
 1 Constants for Operators
 
 [File ~operators.pl~]
@@ -24,16 +30,11 @@ loopjoinTC(1.0).
 
 exactmatchTC(10.0).
 
-sortmergejoinTC(0.3, 0.73).
-
 extendTC(1.5).
 
 removeTC(0.6).
 
 projectTC(0.71).
-
-renameTC(0.1).
-
 
 
 
@@ -42,6 +43,8 @@ renameTC(0.1).
 /*
 
 1 Determining Cost Constants
+
+Ralf's machine at university, Ubuntu 14.04, scale factor 1.0, end of 2014, 2048 MB global memory.
 
 1.1 hashjoin
 
@@ -186,7 +189,7 @@ cost(product(X, Y), _, S, C) :-
   cost(Y, 1, SizeY, CostY),
   productTC(A, B),
   S is SizeX * SizeY,
-  C is CostX + CostY + SizeY * B + S * A.
+  C is CostX + CostY + SizeY * A + S * B.
 ----
 
 ----
@@ -229,7 +232,7 @@ The cost formula is:
 cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
-  sortmergejoinTC(A, B),
+  sortmergejoinTC(A, B, D),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY + 			% producing the arguments
     A * SizeX +				% sorting the first argument
@@ -251,9 +254,106 @@ X = 2000000: 25.987, 33.38, 33.79	-> 33.60 | 32.5	= 5 * 6.5
 This shows the roughly linear development of the cost for sorting, at least in this range of sizes.
 
 
+1.7 Change of Computer
 
+New computer: Ubuntu 14.04, Ralf at home, end of 2014.
+
+plz100Even and plz100Odd recreated:
+
+plz100Even: 2062619
+
+plz100Odd: 2064277
+
+
+----
+query plz100Even feed head[2000000] sortby[R] count
+
+29.99 sec, 29.63, 29.32 at 512 MB memory
+
+29.81, 29.37, 29.40 at 2048 MB memory => 29.5 seconds
+----
+
+Leads to a machine factor for this machine of 33.5 / 29.5 = 1.1355 [=>] 1.14
+
+
+----
+query plz100Even feed count
+
+Result: 2062619
+4.09 sec, 3.97, 4.25 => 4.1 seconds
+----
+
+1.8 rename
+
+----
+query plz100Even feed {p1} count
+
+Result: 2062619
+5.23, 4.89, 5.04 => 5.0
+----
+
+Rename 5.0 - 4.9 = 0.9, per tuple 900000 / 2062619 = 0.43
+
+Machine factor: 0.43 * 1.14 = 0.49
 
 */
+renameTC(0.49).
+
+/*
+1.9 sortmergejoin
+
+First step: just the sorting.
+
+----
+query plz100Even feed {p1} plz100Even feed {p2} sortmergejoin[R_p1, R_p2] head[1] count
+
+Result: 1
+54.10, 54.09 seconds
+----
+
+
+  * 10 seconds for feed .. count
+
+  * 44.1 seconds for sorting the two arguments
+
+  * 22.05 seconds for sorting one argument
+
+  * is 22050000 / 2062619 = 10.69 microseconds per tuple
+
+The second query adds the cost of the merge phase, but does not produce any results.
+
+----
+query plz100Even feed {p1} plz100Odd feed {p2} sortmergejoin[R_p1, R_p2] count
+
+Result: 0
+63.98, 62.49 seconds => 63.1 seconds
+----
+
+Cost for merge 63.1 - 54.1 = 9.0 seconds. Per tuple 9000000 / (2062619 + 2064277) = 2.18 microseconds.
+
+The third query adds the cost of producing result tuples.
+
+----
+query plz100Even feed {p1} plz100Even feed {p2} sortmergejoin[R_p1, R_p2] count
+
+Result 10575947
+79.80, 78.86 seconds => 79.40 seconds
+----
+
+Cost for results is 79.4 - 63.1 = 16.3 seconds. Per result tuple 16300000 / 10575947 = 1.54 microseconds.
+
+Applying machine factors: 
+
+----
+10.69 * 1.14 = 12.18
+2.18 * 1.14 = 2.48
+1.54 * 1.14 = 1.75
+----
+
+*/
+sortmergejoinTC(12.18, 2.48, 1.75).
+
+
 
 
 
