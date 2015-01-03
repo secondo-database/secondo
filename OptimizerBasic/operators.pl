@@ -26,8 +26,6 @@ constants below are quite accurate e.g. for examples 14 to
 
 leftrangeTC(10).
 
-loopjoinTC(1.0).
-
 exactmatchTC(10.0).
 
 extendTC(1.5).
@@ -354,18 +352,89 @@ Applying machine factors:
 sortmergejoinTC(12.18, 2.48, 1.75).
 
 
+/* 
+1.10 loopjoin
+
+Create an empty relation: 
+
+----
+let Empty = ten feed filter[.No > 100] consume
+----
+
+----
+query plz100Even feed {p1} loopjoin[Empty feed] count
+
+Result: 0
+14.3, 14.36, 14.90, 14.44 seconds => 14.4 seconds
+----
+
+We consider this as the base cost for loopjoin. 
+
+Cost for feed .. count is 5.0 seconds (see rename). Remaining cost is 9.4 seconds. Per tuple 9400000 / 2062619 = 4.55 microseconds.
+
+Machine factor: 4.55 * 1.14 = 5.187
+
+*/
+loopjoinTC(5.19).
+
+/*
+1.11 exactmatch
+
+----
+let plz100Even_R = plz100Even createbtree[R]
+
+let plz100Odd_R = plz100Odd createbtree[R]
+
+let plz100Odd200000 = plz100Odd feed head[200000] consume
+
+let plz100Odd200000_R = plz100Odd200000 createbtree[R]
+
+let plz100Odd20000 = plz100Odd feed head[20000] consume
+
+let plz100Odd20000_R = plz100Odd20000 createbtree[R]
+
+let plz100Odd2000 = plz100Odd feed head[2000] consume
+
+let plz100Odd2000_R = plz100Odd2000 createbtree[R]
 
 
 
+query plz100Even feed {p1} loopjoin[plz100Odd_R plz100Odd 
+exactmatch[.R_p1] {p2}] count
+
+Result: 0
+4:17 min (256.82 seconds)
+
+query plz100Even feed {p1} loopjoin[plz100Odd200000_R plz100Odd200000 
+exactmatch[.R_p1] {p2}] count
+
+Result 0
+2:34 min (154 sec)
+
+query plz100Even feed {p1} loopjoin[plz100Odd20000_R plz100Odd20000 
+exactmatch[.R_p1] {p2}] count
+
+Result 0
+2:13 min (132 seconds)
+
+query plz100Even feed {p1} loopjoin[plz100Odd2000_R plz100Odd2000 
+exactmatch[.R_p1] {p2}] count
+
+Result 0
+1:21 min (80.74 seconds)
+----
 
 
+Curve fitting results in a running time for all queries in the loopjoin of 80 + 59 * ($\log_{10} N - 3.301$) seconds where N is the size of the relation indexed in the B-tree.
 
+Per query (and subtracting the base cost) this is ((80000000 - 14400000) / 2062619) + (59000000 / 2062619) * ($\log_{10} N - 3.301$) = 31.80 + 28.60 * ($\log_{10} N - 3.301$) microseconds.
 
+----
+query plz100Even feed {p1} loopjoin[plz100Even_R plz100Even 
+exactmatch[.R_p1] {p2}] count
+----
 
-
-
-
-
+*/
 
 
 
