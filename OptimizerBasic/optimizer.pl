@@ -1551,7 +1551,7 @@ cost(product(X, Y), _, S, C) :-
   cost(Y, 1, SizeY, CostY),
   productTC(A, B),
   S is SizeX * SizeY,
-  C is CostX + CostY + SizeY * B + S * A.
+  C is CostX + CostY + SizeY * A + S * B.
 
 
 cost(leftrange(_, Rel, _), Sel, Size, Cost) :-
@@ -1620,12 +1620,12 @@ cost(hashjoin(X, Y, _, _, 999997), Sel, S, C) :-
 cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
-  sortmergejoinTC(A, B),
+  sortmergejoinTC(A, B, D),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                % producing the arguments
-    A * SizeX * log(SizeX + 1) +
-    A * SizeY * log(SizeY + 1) +        % sorting the arguments
-    B * S.                           % parallel scan of sorted relations
+  C is CostX + CostY + 		% producing the arguments
+    A * (SizeX + SizeY) +	% sorting the arguments
+    B * (SizeX + SizeY) +	% merge step
+    D * S.          		% cost of results
 
 
 cost(extend(X, _), Sel, S, C) :-
