@@ -27,6 +27,7 @@ SECLIBS+=$(LIBD)/libsdbsys.a
 SECLIBS+=$(LIBD)/libsdbutils.a
 SECLIBS+=$(LIBD)/libsmibdb.a
 SECLIBS+=$(LIBD)/libappCommon.a
+SECLIBS+=$(TYPEMAPLIB)
 LIB1:=$(addprefix $(BD)/lib/lib, $(ALGBASE))
 LIB2:=$(addsuffix .$(LIBEXT), $(LIB1))
 SECLIBS+=$(LIB2)
