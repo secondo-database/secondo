@@ -421,6 +421,10 @@ class ServerMessage : public MessageHandler {
           
    return true;       
   } 
+
+  void Flush(){
+    iosock.flush();
+  }
   
   ServerMessage(iostream& ios) : 
    iosock(ios),

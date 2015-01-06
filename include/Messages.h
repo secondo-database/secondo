@@ -48,7 +48,7 @@ class MessageHandler {
 
   public:
   virtual bool handleMsg(NList msgList) = 0;
- 
+  virtual void Flush() {} 
   MessageHandler() {}
   virtual ~MessageHandler() {}
   
@@ -145,6 +145,15 @@ class MessageCenter {
      HandlerList::const_iterator it = msgHandler.begin();
      for(; it != msgHandler.end(); it++) {
         (*it)->handleMsg(message);
+     } 
+  } 
+  
+
+  void Flush() 
+  {
+     HandlerList::const_iterator it = msgHandler.begin();
+     for(; it != msgHandler.end(); it++) {
+        (*it)->Flush();
      } 
   } 
 
