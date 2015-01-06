@@ -16,7 +16,8 @@ VIEWER_CLASSES +=   PictureViewer.class
 VIEWER_CLASSES +=   UpdateViewer.class
 VIEWER_CLASSES +=   UpdateViewer2.class
 VIEWER_CLASSES +=   QueryconstructionViewer.class
-VIEWER_CLASSES +=   UpdateViewer2.java
+VIEWER_CLASSES +=   UpdateViewer2.class
+VIEWER_CLASSES +=   MessageViewer.class
 #VIEWER_CLASSES +=   GrappaViewer.class
 #VIEWER_CLASSES +=   SvgViewer.class
 #### RTreeViewer requires Java 1.5:
