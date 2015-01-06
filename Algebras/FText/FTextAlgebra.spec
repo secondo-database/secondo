@@ -109,4 +109,4 @@ operator tmcheck alias TMCHECK pattern _ op [_]
 operator fileExtension alias fileEXTENSION pattern op(_)
 operator maskBackslash alias MASKBACKSLASH pattern _ op
 
-
+operator messageTest alias MESSAGETEST pattern _ op [_]

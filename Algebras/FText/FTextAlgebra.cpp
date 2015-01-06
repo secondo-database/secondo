@@ -11369,10 +11369,122 @@ Operator maskBackslashOP(
   maskBackslashTM
 );
 
-  /*
-  5 Creating the algebra
+/*
+4.40 Operator ~messageTest~
 
-  */
+This operator send a message about the number of transferred tuples of a stream to the 
+user as a nested list. The operator has two arguments, the first argument is the stream,
+the second one is after how many stream elements a message should be sent.
+
+*/
+
+ListExpr messageTestTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("expected 2 arguments");
+  }
+ 
+  ListExpr s = nl->First(args);
+  ListExpr i = nl->Second(args);
+
+  if(!nl->HasLength(s,2) ||
+     !listutils::isSymbol(nl->First(s),Symbols::STREAM())){
+    return listutils::typeError("first argument must be a stream");
+  }
+  if(!CcInt::checkType(i)){
+    return listutils::typeError("first argument must be an int");
+  }
+  return s;
+}
+
+class messageTestLocalInfo{
+
+  public:
+
+    messageTestLocalInfo(Word& _stream, Word& c): 
+       stream(_stream), counter(0), number(0){
+       CcInt* i = (CcInt*) c.addr;
+       if(i->IsDefined()){
+          int v = i->GetValue();
+          number=v>0?v:0;
+       } 
+       qp->Open(stream.addr);
+       msg = MessageCenter::GetInstance();
+    }
+
+    ~messageTestLocalInfo(){
+       qp->Close(stream.addr);
+     }
+
+    Word next(){
+       Word res;
+       qp->Request(stream.addr,res);
+       if(!qp->Received(stream.addr)){
+         return SetWord((void*)0);
+       }
+       counter++;
+       if(number>0 && counter%number==0){
+          NList list(NList("messageTest"), NList(counter));
+          msg->Send(list);
+          msg->Flush();
+       }
+       return res;
+    }
+
+  private:
+    Word stream;
+    int counter;
+    int number;
+    MessageCenter* msg;
+};
+
+
+int messageTestVM( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+  messageTestLocalInfo* li = (messageTestLocalInfo*) local.addr;
+  switch(message){
+    case OPEN: 
+            cout << "OPEN" << endl;
+            if(li) {
+               delete li;
+            }
+            local.addr=new messageTestLocalInfo(args[0],args[1]);
+            return 0;
+    case REQUEST:
+            result.addr = li?li->next().addr:0;
+            return result.addr?YIELD:CANCEL;
+    case CLOSE:
+           if(li) {
+             delete li;
+             local.addr=0;
+           }
+           return 0;
+    default: assert(false);
+             return 0;
+  }
+}
+
+OperatorSpec messageTestSpec(
+  "stream x int -> stream",
+  "_ messageTest[_])",
+  " Sends a message to the user after processing x elements, where x"
+  " is specified by the second argument.",
+  "query intstream(1,1000) messageTest[50] count"
+);
+
+
+Operator messageTestOP(
+  "messageTest",
+  messageTestSpec.getStr(),
+  messageTestVM,
+  Operator::SimpleSelect,
+  messageTestTM
+);
+
+/*
+5 Creating the algebra
+
+*/
 
   class FTextAlgebra : public Algebra
   {
@@ -11499,6 +11611,8 @@ Operator maskBackslashOP(
       AddOperator(&globalMemoryOP);
       AddOperator(&fileExtensionOP);
       AddOperator(&maskBackslashOP);
+
+      AddOperator(&messageTestOP);
 
 
 #ifdef RECODE

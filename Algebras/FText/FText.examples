@@ -1207,5 +1207,10 @@ Example  : query "bin\\tmp" maskBackslash
 Result   : "bin\\\\tmp"
 
 
+Operator : messageTest 
+Number : 1
+Signature : stream x int -> stream
+Example  : query intstream(1,1000) messageTest[50] count
+Result   : 1000
 
 
