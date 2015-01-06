@@ -3740,6 +3740,11 @@ public boolean execCommand(String cmd, IntByReference errorCode,ListExpr resultL
      return ComPanel.execCommand(cmd,errorCode,resultList,errorMessage);
 }
 
+public void addMessageListener(MessageListener ml){
+  ComPanel.addMessageListener(ml);
+}
+
+
 
 /** returns a small interface to secondo needed by the 'UpdateViewer'*/
 public static UpdateInterface getUpdateInterface(){

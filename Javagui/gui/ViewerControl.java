@@ -22,6 +22,7 @@ package gui;
 import viewer.SecondoViewer;
 import sj.lang.ListExpr;
 import sj.lang.IntByReference;
+import sj.lang.MessageListener;
 import java.awt.*;
 import java.util.Vector;
 
@@ -100,6 +101,9 @@ public boolean execUserCommand(String cmd);
 /** A general method for ececuting commands */
 public boolean execCommand(String cmd, IntByReference errorCode, ListExpr resultList, StringBuffer errorMessage);
 
+
+/** Adds a new MessageListener **/
+public void addMessageListener(MessageListener ml);
 
 }
 
