@@ -27,6 +27,7 @@ import java.awt.event.*;
 import javax.swing.*;
 
 import sj.lang.ListExpr;
+import sj.lang.MessageListener;
 
 import java.util.Vector;
 
@@ -402,6 +403,12 @@ public void createShowMenu(){
   MI_ShowSelectedTuple.addActionListener(ShowListener);
   MI_ShowAllTuples.addActionListener(ShowListener);
 
+}
+
+public void addMessageListener(MessageListener msg){
+  if(VC!=null){
+     VC.addMessageListener(msg);
+  }
 }
 
 
