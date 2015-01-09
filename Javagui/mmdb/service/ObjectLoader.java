@@ -79,9 +79,9 @@ public final class ObjectLoader {
 	public String readCommandFromPanel(JTextArea systemArea) throws LoadFromQueryException {
 		String text = systemArea.getText();
 		int startIndex = text.lastIndexOf("Sec>");
-		int endIndex = text.lastIndexOf(";");
+		int endIndex = text.length();
 		if (startIndex > -1 && startIndex < endIndex - 4) {
-			return text.substring(startIndex + 4, endIndex);
+			return text.substring(startIndex + 4, endIndex).trim();
 		} else {
 			throw new LoadFromQueryException("-> Could not read query from command panel.");
 		}
@@ -101,7 +101,7 @@ public final class ObjectLoader {
 	public ListExpr executeRemoteCommand(String command, CommandPanel commandPanel)
 			throws LoadFromQueryException, MemoryException {
 		MemoryWatcher.getInstance().checkMemoryStatus();
-		commandPanel.addToHistory(command + ";");
+		commandPanel.addToHistory(command);
 		ListExpr queryResult = commandPanel.getCommandResult(command);
 		if (queryResult != null) {
 			return queryResult;
@@ -131,7 +131,7 @@ public final class ObjectLoader {
 			MemoryRelation relationObject = ObjectConverter.getInstance().convertListToObject(
 					queryResult);
 			secondoObject.setMemoryObject(relationObject);
-			secondoObject.setName(command + "; [++]");
+			secondoObject.setName(command + " [++]");
 		} catch (ConversionException e) {
 			throw new LoadException(
 					"-> Could not convert nested list to memory object, caused by:\n"

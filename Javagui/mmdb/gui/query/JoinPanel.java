@@ -94,6 +94,11 @@ public class JoinPanel extends AbstractOperationPanel {
 	 * The list of join attributes from the second relation.
 	 */
 	private JComboBox secondJoinAttributeList;
+	
+	/**
+	 * The previously selected value from the second attribute list.
+	 */
+	private String previousValueSelection;
 
 	/*
 	 * (non-Javadoc)
@@ -243,7 +248,7 @@ public class JoinPanel extends AbstractOperationPanel {
 			public void itemStateChanged(ItemEvent e) {
 				fillCondAttributeList((String)firstRelationList.getSelectedValue(),
 						(COperator) operatorList.getSelectedItem(), firstJoinAttributeList);
-				fillCondValueList();
+				//fillCondValueList();
 			}
 		});
 		operationPanel.add(operatorList);
@@ -284,6 +289,9 @@ public class JoinPanel extends AbstractOperationPanel {
 	 * depending on the user's relation, operator and first argument selection.
 	 */
 	private void fillCondValueList() {
+		if(secondJoinAttributeList.getSelectedItem() != null) {
+			previousValueSelection = (String) secondJoinAttributeList.getSelectedItem();
+		}
 		DefaultComboBoxModel model = (DefaultComboBoxModel) secondJoinAttributeList
 				.getModel();
 		model.removeAllElements();
@@ -316,6 +324,10 @@ public class JoinPanel extends AbstractOperationPanel {
 					}
 				}
 			}
+		}
+		int previousIndex = model.getIndexOf(previousValueSelection);
+		if (!insertedElements.isEmpty() && previousIndex > 0) {
+				secondJoinAttributeList.setSelectedIndex(previousIndex);
 		}
 	}
 }

@@ -100,6 +100,11 @@ public abstract class AbstractOperationPanel extends JPanel {
 	 * button's action listeners.
 	 */
 	protected JDialog dialog;
+	
+	/**
+	 * The previously selected value from the cond attribute list.
+	 */
+	private String previousValueSelection;
 
 	/**
 	 * Creates the UI elements contained in the panel.
@@ -199,6 +204,9 @@ public abstract class AbstractOperationPanel extends JPanel {
 	 */
 	protected void fillCondAttributeList(String selectedRelation, COperator operator,
 			JComboBox attributeList) {
+		if(attributeList.getSelectedItem() != null) {
+			previousValueSelection = (String) attributeList.getSelectedItem();
+		}
 		DefaultComboBoxModel model = (DefaultComboBoxModel) attributeList
 				.getModel();
 		model.removeAllElements();
@@ -223,8 +231,14 @@ public abstract class AbstractOperationPanel extends JPanel {
 				}
 			}
 		}
+		int previousIndex = model.getIndexOf(previousValueSelection);
 		if (!insertedElements.isEmpty()) {
-			attributeList.setSelectedIndex(0);
+			if(previousIndex > 0) {
+				attributeList.setSelectedIndex(previousIndex);
+			}
+			else {
+				attributeList.setSelectedIndex(0);
+			}
 		}
 	}
 

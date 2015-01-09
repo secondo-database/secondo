@@ -496,7 +496,11 @@ public final class MMDBUserInterfaceController {
 	 */
 	private void removeRelation(SecondoObject object) {
 		if (object.toListExpr() == null) {
-			objectList.removeObject(object.getName(), false);
+			int reply = JOptionPane.showConfirmDialog(null, "If you remove the memory representation the "
+					+ "whole object will be removed.", "Please confirm operation", JOptionPane.YES_NO_OPTION);
+			if (reply == JOptionPane.YES_OPTION) {
+				objectList.removeObject(object.getName(), false);
+			}
 		} else {
 			String newObjectName = object.getName().replace(" [++]", "");
 			object.setName(newObjectName);
@@ -514,7 +518,11 @@ public final class MMDBUserInterfaceController {
 	 */
 	private void removeNestedList(SecondoObject object) {
 		if (object.getMemoryObject() == null) {
-			objectList.removeObject(object.getName(), false);
+			int reply = JOptionPane.showConfirmDialog(null, "If you remove the list representation the "
+					+ "whole object will be removed.", "Please confirm operation", JOptionPane.YES_NO_OPTION);
+			if (reply == JOptionPane.YES_OPTION) {
+				objectList.removeObject(object.getName(), false);
+			}
 		} else {
 			String newObjectName = object.getName().replace("[++]", "[+]");
 			object.setName(newObjectName);

@@ -498,7 +498,7 @@ public boolean showSelectedObject(){
         // current viewer
         int index = indices[0];
         SecondoObject SO = (SecondoObject) Objects.get(index); 
-        if (VC!=null){
+        if (VC!=null && SO!=null && SO.toListExpr()!=null){
             if (VC.showObject(SO)){
                  markAsDisplayed(SO);
                  ok = true;
