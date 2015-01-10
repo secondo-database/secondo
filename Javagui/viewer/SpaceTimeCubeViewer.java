@@ -729,6 +729,8 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 			 tfActual.mul(tfRot); // multiply the actual transform with the rotated one
 			 
 			 tg.setTransform(tfActual);
+			 
+			 cbView.setSelectedIndex(0);
 		 }
 		 // spinner rot. Z changed
 		 else if (e.getSource() == rotZspinner) {
@@ -744,6 +746,8 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 			 tfActual.mul(tfRot); // multiply the actual transform with the rotated one
 			 
 			 tg.setTransform(tfActual);
+			 
+			 cbView.setSelectedIndex(0);
 		 }
 	 }
 	 
@@ -763,6 +767,9 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 				 tg.getTransform(actualTransform);
 				 actualTransform.lookAt(eye, center, up);
 				 tg.setTransform(actualTransform);
+				 
+				 rotXspinner.setValue(new Integer(0));
+				 rotZspinner.setValue(new Integer(0));
 			 }
 		 }
 	 }
