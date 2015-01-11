@@ -38,7 +38,7 @@ public class IndexTTree extends SortedIndex {
 	/**
 	 * The maximum capacity of the nodes' data arrays.
 	 */
-	private static final int CAPACITY = 20;
+	private static final int CAPACITY = 1;
 
 	/**
 	 * The tree's root element.

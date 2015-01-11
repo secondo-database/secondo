@@ -130,6 +130,7 @@ public class HelpWindow extends JFrame {
 				+ "\n3) EXTENSION: Add new attributes to the relation's tuples via an operation."
 				+ "\n4) UNION: Merge the tuples of two relations. Attribute sets must be identical."
 				+ "\n5) JOIN: Merge attributes of two different relations depending on a condition."
+				+ "\n6) AGGREGATION: Calculate aggregations of a certain attribute for all tuples of a relation."
 				+ "\n\n-----------------------\n\n<<MANAGE MEMORY>>\n"
 				+ "Since all relations are stored in main memory it might occur that the JVM is running out of "
 				+ "memory which means that the application will crash. To prevent these OutOfMemoryErrors memory "

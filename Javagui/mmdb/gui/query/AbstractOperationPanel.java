@@ -253,7 +253,7 @@ public abstract class AbstractOperationPanel extends JPanel {
 	 * @return the object name for the result relation
 	 */
 	protected String createObjectName(String operationName, String selectedRelation) {
-		int indexOfBrackets = selectedRelation.indexOf("[");
+		int indexOfBrackets = selectedRelation.indexOf("[+");
 		String relationName;
 		if (selectedRelation.contains(";")) {
 			relationName = selectedRelation.substring(0, indexOfBrackets - 2);
