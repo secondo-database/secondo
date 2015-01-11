@@ -29,6 +29,7 @@ import mmdb.operator.condition.OperatorEqualsLess;
 import mmdb.operator.condition.OperatorEqualsNot;
 import mmdb.operator.condition.OperatorGreater;
 import mmdb.operator.condition.OperatorLess;
+import mmdb.operator.condition.OperatorTrue;
 
 import org.junit.Test;
 
@@ -89,6 +90,13 @@ public class ConditionOperatorTests {
 		assertFalse(OperatorLess.operate(attributeA, attributeA));
 		assertTrue(OperatorLess.operate(attributeA, attributeB));
 		assertFalse(OperatorLess.operate(attributeB, attributeA));
+	}
+	
+	@Test
+	public void testTrue() throws Exception {
+		assertTrue(OperatorTrue.operate(attributeA, attributeA));
+		assertTrue(OperatorTrue.operate(attributeA, attributeB));
+		assertTrue(OperatorTrue.operate(attributeB, attributeA));
 	}
 
 }

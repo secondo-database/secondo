@@ -144,9 +144,10 @@ public class JoinPanel extends AbstractOperationPanel {
 					Reporter.showInfo("Please select relations, attributes and operator.");
 					return;
 				}
+				COperator selectedOperator = (COperator) operatorList.getSelectedItem();
 				String firstSelectedAttribute = (String) firstJoinAttributeList.getSelectedItem();
 				String secondSelectedAttribute = (String) secondJoinAttributeList.getSelectedItem();
-				if (!removeIdentifier(firstSelectedAttribute).equals(
+				if (selectedOperator.parameterTypesEqual && !removeIdentifier(firstSelectedAttribute).equals(
 						removeIdentifier(secondSelectedAttribute))) {
 					Reporter.showInfo("Selected attributes do not match.");
 					return;
@@ -154,7 +155,6 @@ public class JoinPanel extends AbstractOperationPanel {
 				MemoryRelation resultRelation = null;
 				String firstSelectedRelation = (String)firstRelationList.getSelectedValue();
 				String secondSelectedRelation = (String)secondRelationList.getSelectedValue();
-				COperator selectedOperator = (COperator) operatorList.getSelectedItem();
 				try {
 					resultRelation = queryController.executeQuery(
 							relations.get(firstSelectedRelation),

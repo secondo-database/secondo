@@ -36,6 +36,7 @@ import mmdb.operator.condition.OperatorEqualsLess;
 import mmdb.operator.condition.OperatorGreater;
 import mmdb.operator.condition.OperatorLess;
 import mmdb.operator.condition.OperatorPresent;
+import mmdb.operator.condition.OperatorTrue;
 import mmdb.operator.extension.ExtensionOperator;
 import mmdb.operator.extension.OperatorAddString;
 import mmdb.operator.extension.OperatorConcat;
@@ -81,7 +82,8 @@ public abstract class OperationController {
 		CONTAINS(OperatorContains.class, true), EQUALS(OperatorEquals.class, true), EQUALS_GREATER(
 				OperatorEqualsGreater.class, true), EQUALS_LESS(OperatorEqualsLess.class, true), EQUALS_NOT(
 				OperatorEquals.class, true), GREATER(OperatorGreater.class, true), LESS(
-				OperatorLess.class, true), PRESENT(OperatorPresent.class, false);
+				OperatorLess.class, true), PRESENT(OperatorPresent.class, false), 
+				TRUE(OperatorTrue.class, false);
 
 		public final Class<? extends ConditionOperator> operatorClass;
 		public final boolean parameterTypesEqual;
