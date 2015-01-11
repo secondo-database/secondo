@@ -11,15 +11,18 @@
 # Set language to default
 LANG=C
 
-# port for secondo
+# port for secondo (the port range $port - $port+$instances-1 will be used)
 port=11234
+
+# secondo worker instances
+instances=3
 
 # Keyspace to use
 keyspace="keyspace_r3"
 
 # Cassandra Nodes
-nodes="node1 node2 node4 node5 node6"
-#nodes="node1"
+#nodes="node1 node2 node4 node5 node6"
+nodes="node1"
 
 # Variables
 screensessionServer="dsecondo-server"
@@ -71,26 +74,46 @@ start_local() {
       echo "Unable to locate SECONDO config" 1>&2
       exit -1;
    fi 
-
-   # Change SECONDO Server Port in configuration
-   sed -i "s/SecondoPort=.*/SecondoPort=$port/" $SECONDO_CONFIG 
-
+   
    # Check if screen is already running
    sInstances=$(screen -ls | egrep "($screensessionServer|$screensessionExecutor)" | wc -l)
-   
+  
    if [ $sInstances -ne 0 ]; then
        echo "[Error] Screen is already running... " 1>&2
        exit -1
    fi
-   
-   # Start screen in deamon mode 
-   screen -dmS $screensessionServer
-   screen -dmS $screensessionExecutor
+ 
+   ports="" 
+   instance=0
+   while [ $instance -le $((instances-1)) ]; do
 
-   execCommandsInScreen $screensessionServer "cd $SECONDO_BUILD_DIR/bin" "./SecondoMonitor -s"
+     instance_port=$((port+instance))
+     ports+=":${instance_port}"
+
+     # Change SECONDO Server Port in configuration
+     configuration=${SECONDO_CONFIG}_${instance}
+     cp ${SECONDO_CONFIG} $configuration
+     sed -i "s/^SecondoPort=.*/SecondoPort=$instance_port/" $configuration
+     sed -i "s/^SecondoHome=\(.*\)/SecondoHome=\1_$instance/" $configuration
+     secondoHome=$(grep ^SecondoHome $configuration | cut -d "=" -f 2) 
+     mkdir -p $secondoHome
+
+     # Start screen in deamon mode 
+     screenId=${screensessionServer}_${instance}
+     screen -dmS $screenId
+     execCommandsInScreen $screenId "cd $SECONDO_BUILD_DIR/bin" "export SECONDO_CONFIG=${configuration}" "./SecondoMonitor -s "
+     
+     instance=$((instance+1))
+   done
+     
    sleep 2
+
+   # remove trailing ':' in ports list
+   ports=$(echo $ports | sed s/^://g)
+   
+   screen -dmS $screensessionExecutor
    localIp=$(getIp "")
-   execCommandsInScreen $screensessionExecutor "cd $SECONDO_BUILD_DIR/Algebras/Cassandra/tools/queryexecutor/" "./Queryexecutor -i $localIp -k $keyspace -s 127.0.0.1 -p $port"
+   execCommandsInScreen $screensessionExecutor "cd $SECONDO_BUILD_DIR/Algebras/Cassandra/tools/queryexecutor/" "./Queryexecutor -i $localIp -k $keyspace -s 127.0.0.1 -p $ports"
 }
 
 # Stop local dsecondo instance
@@ -104,22 +127,39 @@ stop_local() {
       echo $screenid
       kill $screenid 
    fi
-
-   # Line borrowed from psecondo tools
-   screenid=$(getScreenId "$screensessionServer")
-   if [ "$screenid" != "-1" ]; then
-      execCommandsInScreen $screenid "quit" "y" "exit"
-      sleep 5
-   fi
-
-   # Kill the screen executor session
-   screenid=$(getScreenId "$screensessionServer")
    
-   if [ "$screenid" != "-1" ]; then
-      echo $screenid
-      kill $screenid 
-   fi
+   # Stop secondo instances
+   instance=0
+   while [ $instance -le $((instances-1)) ]; do
 
+      screenId=${screensessionServer}_${instance}
+     
+      # Line borrowed from psecondo tools
+      screenpid=$(getScreenId "$screenId")
+      if [ "$screenpid" != "-1" ]; then
+         execCommandsInScreen $screenpid "quit" "y" "exit"
+      fi
+      instance=$((instance+1))
+   done
+    
+   sleep 5
+     
+   # kill remaining secondo instances 
+   instance=0
+   while [ $instance -le $((instances-1)) ]; do
+
+      screenId=${screensessionServer}_${instance}
+    
+      # Kill the screen executor session
+      screenpid=$(getScreenId "$screenId")
+   
+      if [ "$screenpid" != "-1" ]; then
+         echo $screenpid
+         kill $screenpid 
+      fi
+     
+      instance=$((instance+1))
+   done
 }
 
 # Start all descondo instances
