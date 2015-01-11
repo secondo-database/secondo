@@ -108,9 +108,12 @@ public class OpticsViewer extends SecondoViewer
  
  private MainWindow parent = null;
  
- private HashMap<ID, SecondoObject> cachedData = new HashMap<ID, SecondoObject>();
- 
+ private HashMap<ID, SecondoObject> cachedData     = new HashMap<ID, SecondoObject>();
+ private HashMap<ID, SecondoObject> cachedDataSend = new HashMap<ID, SecondoObject>();
+
  private ID displayedID = null;
+ 
+ private SecondoObject soSend = null;
 
  public OpticsViewer()
  {
@@ -205,21 +208,32 @@ public class OpticsViewer extends SecondoViewer
  @Override
  public void removeObject(SecondoObject o) 
  {
-  cachedData.remove(o.getID());
-  if( displayedID != null 
-   && displayedID.equals(o.getID()) )
+  SecondoObject soCached = cachedData.remove(o.getID());
+  
+  if(soCached != null)
   {
-   chart.clear();
-   lstPoints.setListData(new OpticsPoint[]{});
-   lstPoints.revalidate();
-   txtEps.setText(null);
-  }
+   if( displayedID != null 
+    && displayedID.equals(o.getID()) )
+   {
+    chart.clear();
+    lstPoints.setListData(new OpticsPoint[]{});
+    lstPoints.revalidate();
+    txtEps.setText(null);
+   }
+   
+   Iterator<ID> it = cachedData.keySet().iterator();
 
-  Iterator<ID> it = cachedData.keySet().iterator();
-
-  if(it.hasNext())
-  {
-   selectObject(cachedData.get(it.next()));
+   if(it.hasNext())
+   {
+    selectObject(cachedData.get(it.next()));
+   }
+   
+   if( parent != null
+    && (soCached = cachedDataSend.get(o.getID())) != null)
+   {
+	   parent.hideObject(new String("Force to delete"), soCached);
+	   cachedDataSend.remove(o.getID());
+   }
   }
  }
 
@@ -334,8 +348,8 @@ public class OpticsViewer extends SecondoViewer
   }
   catch(Exception e)
   {
-   e.printStackTrace(System.out);
-   Reporter.showError(e.getStackTrace().toString());
+   //e.printStackTrace(System.out);
+   //Reporter.showError(e.getStackTrace().toString());
   }
   
   return false;
@@ -430,8 +444,8 @@ public class OpticsViewer extends SecondoViewer
   }
   catch(Exception e)
   {
-   e.printStackTrace(System.out);
-   Reporter.showError(e.getStackTrace().toString());
+   //e.printStackTrace(System.out);
+   //Reporter.showError(e.getStackTrace().toString());
   }
   finally
   {
@@ -704,6 +718,8 @@ public class OpticsViewer extends SecondoViewer
    } while(!value.isEmpty());
    
    SecondoObject obj = new SecondoObject("Optics choice", choice);
+   obj.setID(displayedID);
+   cachedDataSend.put(displayedID, obj);
    parent.displayAt("Hoese-Viewer", obj);
   }
  }
