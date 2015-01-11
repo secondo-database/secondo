@@ -90,6 +90,11 @@ public class JoinController extends AbstractQueryController {
 	 * The hash table for hash joins.
 	 */
 	private ConcurrentHashMap<Matchable, List<MemoryTuple>> hashMap;
+	
+	/**
+	 * Flag to indicate whether attributes are switched when determining smaller and bigger relation.
+	 */
+	private boolean attributesSwitched = false;
 
 	/*
 	 * (non-Javadoc)
@@ -155,6 +160,7 @@ public class JoinController extends AbstractQueryController {
 			smallerRelation = secondRelation;
 			smallerAttributeHeaderIndex = secondRelation.getHeaderIndex(secondAttribute);
 			smallerAttributeIdentifier = secondAttribute;
+			attributesSwitched = false;
 		} else {
 			biggerRelation = secondRelation;
 			biggerAttributeHeaderIndex = secondRelation.getHeaderIndex(secondAttribute);
@@ -162,6 +168,7 @@ public class JoinController extends AbstractQueryController {
 			smallerRelation = firstRelation;
 			smallerAttributeHeaderIndex = firstRelation.getHeaderIndex(firstAttribute);
 			smallerAttributeIdentifier = firstAttribute;
+			attributesSwitched = true;
 		}
 		operatorMethod = getOperatorMethod(operator);
 		outputTuples = Collections.synchronizedList(new ArrayList<MemoryTuple>());
@@ -321,8 +328,15 @@ public class JoinController extends AbstractQueryController {
 					for (MemoryTuple smallerTuple : smallerTuples) {
 						MemoryAttribute smallerAttribute = smallerTuple
 								.getAttribute(smallerAttributeHeaderIndex);
-						boolean match = (Boolean) operatorMethod.invoke(null, biggerAttribute,
-								smallerAttribute);
+						boolean match = false;
+						if(attributesSwitched) {
+							match = (Boolean) operatorMethod.invoke(null, smallerAttribute,
+									biggerAttribute);
+						}
+						else {
+							match = (Boolean) operatorMethod.invoke(null, biggerAttribute,
+									smallerAttribute);
+						}
 						if (match) {
 							MemoryTuple newTuple = new MemoryTuple();
 							newTuple.getAttributes().addAll(smallerTuple.getAttributes());
