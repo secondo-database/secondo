@@ -44,16 +44,16 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	sed -i -e "s#SecondoHome=.*#SecondoHome=$$PWD/nltemp#g" Config.ini
 
 
-Queryexecutor$(EXEEXT): Queryexecutor.o heartbeat.o
-	$(CPPC) -o Queryexecutor$(EXEEXT) Queryexecutor.o heartbeat.o ../../CassandraAdapter.o ../../CassandraResult.o $(LDFLAGS)
+Queryexecutor$(EXEEXT): queryexecutor.o heartbeat.o
+	$(CPPC) -o Queryexecutor$(EXEEXT) queryexecutor.o heartbeat.o ../../CassandraAdapter.o ../../CassandraResult.o $(LDFLAGS)
 	rm -rf nltemp
 	mkdir nltemp
 
 heartbeat.o: heartbeat.cpp 
 	$(CPPC) -c -o heartbeat.o $(CCFLAGS) heartbeat.cpp -I../../ -I$(BDBINCLUDE) 
 
-Queryexecutor.o: Queryexecutor.cpp Algebra 
-	$(CPPC) -c -o Queryexecutor.o $(CCFLAGS) Queryexecutor.cpp -I../../ -I$(BDBINCLUDE) 
+queryexecutor.o: queryexecutor.cpp Algebra 
+	$(CPPC) -c -o queryexecutor.o $(CCFLAGS) queryexecutor.cpp -I../../ -I$(BDBINCLUDE) 
 
 
 .PHONY:clean
