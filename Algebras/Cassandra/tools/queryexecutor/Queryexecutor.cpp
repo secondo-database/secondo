@@ -44,6 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NList.h"
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
+#include "heartbeat.h"
 
 /*
 1.1 Defines
@@ -54,15 +55,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // Local Tokenrange   - We have to process the data in the range
 // Foreign Tokenrange - An other worker process has to process the data
 enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE };
-
-// Timeout in ms for receiving heartbeat messages from other nodes
-#define HEARTBEAT_NODE_TIMEOUT 30000
-
-// Send heartbeat message to cassandra all n seconds
-#define HEARTBEAT_UPDATE 5
-
-// Refresh heartbeat status of other nodes all n seconds
-#define HEARTBEAT_REFRESH_DATA 15
 
 // Activate debug messages
 #define __DEBUG__
@@ -88,111 +80,6 @@ struct cmdline_args_t {
   string cassandraKeyspace;
   string secondoHost;
   string secondoPort;
-};
-
-/*
-2.0 Helper class for sending our own hearbeat
-messages to cassandra. This class will be executed
-in the background in its own thread.
-
-*/
-class HeartbeatUpdater {
- 
-public:
-  
-  HeartbeatUpdater(string myCassandraIp, string myCassandraKeyspace) 
-     : cassandraIp(myCassandraIp), 
-     cassandraKeyspace(myCassandraKeyspace),
-     cassandra(NULL), active(true) {
-        
-       // Connect to cassandra
-     cassandra = new CassandraAdapter
-        (cassandraIp, cassandraKeyspace);
-      
-     cout << "[Heartbeat] Connecting to " << cassandraIp;
-     cout << " / " << cassandraKeyspace << endl;
-  
-     if(cassandra != NULL) {
-       cassandra -> connect(false);
-     } else {
-       cerr << "[Heartbeat] Unable to connect to cassandra, ";
-       cerr << "exiting thread" << endl;
-       active = false;
-     }
-  }
-  
-  virtual ~HeartbeatUpdater() {
-    cout << "[Heartbeat] Shutdown because destructor called" << endl;
-    stop();
-  }
-  
-/*
-2.1 Update Heartbeat timestamp
-
-*/
-  bool updateHeartbeat() {  
-    // Build CQL query
-    stringstream ss;
-    ss << "UPDATE system_state set heartbeat = unixTimestampOf(now()) ";
-    ss << "WHERE ip = '";
-    ss << cassandraIp;
-    ss << "';";
-    
-    return executeQuery(ss.str());
-  } 
-
-/*
-2.1 Execute a query in cassandra
-
-*/
-  bool executeQuery(string query) {
-    // Update last executed command
-    bool result = cassandra -> executeCQLSync(
-      query,
-      CASS_CONSISTENCY_ONE 
-    );
-  
-    if(! result) {
-      cout << "Unable to update heartbeat in system_state table" << endl;
-      cout << "CQL Statement: " << query << endl;
-      return false;
-    }
-
-    return true;
-  }
-
-/*
-2.1 Main loop - send heartbeat messages all n seconds
-
-*/
-  void run() {
-    while(active) {
-      updateHeartbeat();
-      sleep(HEARTBEAT_UPDATE);
-    }
-  }
-
-/*
-2.1 Stop the main loop
-
-*/
-  void stop() {
-    active = false;
-    
-    // Disconnect from cassandra
-    if(cassandra != NULL) {
-      cassandra -> disconnect();
-      delete cassandra;
-      cassandra = NULL;
-    }
-    
-  }
-  
-private:
-  string cassandraIp;
-  string cassandraKeyspace;
-  CassandraAdapter* cassandra;
-  bool active;
 };
 
 
