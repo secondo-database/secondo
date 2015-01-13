@@ -428,33 +428,33 @@ int tgrid::Compare(const Attribute* pAttribute) const
       {
         if(btgridIsDefined == true) // defined x defined
         {
-          if(m_dX < ptgrid->m_dX)
+          if(m_dY < ptgrid->m_dY)
           {
             nRetVal = -1;
           }
 
           else
           {
-            if(m_dX > ptgrid->m_dX)
+            if(m_dY > ptgrid->m_dY)
             {
               nRetVal = 1;
             }
 
-            else // m_dX == ptgrid->m_dX
+            else // m_dY == ptgrid->m_dY
             {
-              if(m_dY < ptgrid->m_dY)
+              if(m_dX < ptgrid->m_dX)
               {
                 nRetVal = -1;
               }
 
               else
               {
-                if(m_dY > ptgrid->m_dY)
+                if(m_dX > ptgrid->m_dX)
                 {
                   nRetVal = 1;
                 }
 
-                else // m_dY == ptgrid->m_dY
+                else // m_dX == ptgrid->m_dX
                 {
                   if(m_dLength < ptgrid->m_dLength)
                   {
