@@ -157,7 +157,7 @@ public class StaticOSMMapper implements Rect2UrlMapper {
        
 		}
 		lastURLs = res;
-    lastClipRect = bbox;
+    lastClipRect = (Rectangle2D) bbox.clone();
 		return res;
 	}
 
@@ -342,7 +342,6 @@ public class StaticOSMMapper implements Rect2UrlMapper {
       } else if(sc>1.5){
          zoom++;
       }
-
     }
 
 
