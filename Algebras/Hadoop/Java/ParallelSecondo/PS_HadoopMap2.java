@@ -37,9 +37,6 @@ public class PS_HadoopMap2 implements Constant {
 	 */
 	public static void main(String[] args) {
 
-/*
-
-*/
 		final int paraLength = 11;
 		String usage = "Usage PS_HadoopMap <databaseName> " +
 				"<CreateObjectName> <CreateQuery> " +
@@ -80,17 +77,17 @@ public class PS_HadoopMap2 implements Constant {
 			e1.printStackTrace();
 		}
 
-		String databaseName 		= args[0];
-		String CreateObjectName	= args[1];
+		String databaseName         = args[0];
+		String CreateObjectName     = args[1];
 		String CreateQuery	 		= args[2];
 		String DLF_Name_List	 	= args[3];
-		String DLF_fileLoc_List	= args[4];
+		String DLF_fileLoc_List	    = args[4];
 		String DLO_Name_List	 	= args[5];
 		String DLO_loc_List			= args[6];
 		int duplicateTimes 			= Integer.parseInt(args[7]);
 		FListKind outputKind 		= FListKind.values()[Integer.parseInt(args[8])];
 		String CreateFilePath		= args[9];
-		int MapTasksNum 				= Integer.parseInt(args[10]);
+		int MapTasksNum 			= Integer.parseInt(args[10]);
 		
 		ListExpr fpList = ListExpr.oneElemList(ListExpr.textAtom(CreateFilePath));
 		CreateFilePath = fpList.toString().replace('\n', ' ');  //In case empty path
@@ -100,62 +97,61 @@ public class PS_HadoopMap2 implements Constant {
 		allDLFNameLists.readFromString(DLF_Name_List);
 		ListExpr allDLFLocLists = new ListExpr();
 		allDLFLocLists.readFromString(DLF_fileLoc_List);
-		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper2(allDLFNameLists, allDLFLocLists, MapTasksNum, slaves.size());
+//		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper2(allDLFNameLists, allDLFLocLists, MapTasksNum, slaves.size());
+		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper(allDLFNameLists, allDLFLocLists, MapTasksNum);
 
 		ListExpr allDLONameLists = new ListExpr();
 		allDLONameLists.readFromString(DLO_Name_List);
 		ListExpr allDLOLocLists = new ListExpr();
 		allDLOLocLists.readFromString(DLO_loc_List);
-		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper2(allDLONameLists, allDLOLocLists, MapTasksNum, slaves.size());
+//		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper2(allDLONameLists, allDLOLocLists, MapTasksNum, slaves.size());
+		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper(allDLONameLists, allDLOLocLists, MapTasksNum);
 		
-		System.out.println( HPA_AuxFunctions.plainStr(allDLFLists));
-		
-		//System.exit(-1);
-		
-		/*
-		 * allDLFLists example: 
-		 * 
-		 ( ( ( (1 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->) () () () ()) ( (1 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->) () () () ())) 
-   ( (() (2 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->) () () ()) (() (2 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->) () () ())) 
-   ( (() () (3 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->) () ()) (() () (3 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->) () ())) 
-   ( (() () () (4 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->) ()) (() () () (4 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->) ())) 
-   ( (() () () () (5 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->)) (() () () () (5 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->)))
-   )
-		 * 
-		 * 
-		 * 
-		 */
+
 		//Prepare the input for mappers
-    String inputPath = "INPUT";
-    String outputPath = "OUTPUT";
-    Configuration conf = new Configuration();
+        String inputPath = "INPUT";
+        String outputPath = "OUTPUT";
+        Configuration conf = new Configuration();
 		try
 		{
 			FileSystem.get(conf).delete(new Path(outputPath), true);
 			FileSystem.get(conf).delete(new Path(inputPath), true);
 			ListExpr aMapperDLO_Rest = allDLOLists;
 			ListExpr aMapperDLF_Rest = allDLFLists;//traverse the nestedlist
+			
+			System.out.println(HPA_AuxFunctions.plainStr(allDLFLists) + "\n\n");
 
 			for (int mapperIdx = 1; mapperIdx <= MapTasksNum; mapperIdx++)
 			{
-				ListExpr amDLO = aMapperDLO_Rest.first();
+				
+				ListExpr amDLO = ListExpr.theEmptyList();
+				ListExpr amDLF = ListExpr.theEmptyList();
+				
+				if (!aMapperDLO_Rest.isEmpty()) amDLO = aMapperDLO_Rest.first(); 
+				if (!aMapperDLF_Rest.isEmpty()) amDLF = aMapperDLF_Rest.first(); 
 				//example:( ( ( (1 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->) () () () ()) ( (1 (1 2 3 4 5) <text>/opt/psec/cheng/PSFS</text--->) () () () ())) 
-				  
-				ListExpr amDLF = aMapperDLF_Rest.first();
-	
-				//allMapperFOExist check if two objects exist.
-				boolean allDLOexist = HPA_AuxFunctions.allMapperFOExist(amDLO.first()) && HPA_AuxFunctions.allMapperFOExist(amDLO.second());
-				boolean allDLFexist = HPA_AuxFunctions.allMapperFOExist(amDLF.first()) && HPA_AuxFunctions.allMapperFOExist(amDLF.second());
-
+								
+				boolean allDLOexist = true; 
+				if (amDLO.listLength() == 2)
+				  allDLOexist = bothMapperFOExist(amDLO.first(), amDLO.second());
+				boolean allDLFexist = true; 
+				if (amDLF.listLength() == 2)
+				  allDLFexist = bothMapperFOExist(amDLF.first(), amDLF.second());
+				
 				if (allDLFexist && allDLOexist)
 				{
 					String dlfLocStr = HPA_AuxFunctions.plainStr(amDLF);
 					String dloLocStr = HPA_AuxFunctions.plainStr(amDLO);
-					int slaveIdx = HPA_AuxFunctions.findFirstSlave(amDLF.first());
+					int slaveIdx = HPA_AuxFunctions.findFirstSlave(amDLF);
 					if (slaveIdx == 0){
-						slaveIdx = HPA_AuxFunctions.findFirstSlave(amDLO.first());
+						slaveIdx = HPA_AuxFunctions.findFirstSlave(amDLO);
 					}
 					
+/*
+It is certain that all used DLO sub-objects exist on the target mapper, 
+hence it is not necessary to deliver their inforatmion any more.  
+
+*/
 					
 					String fileName = JOBID + "_INPUT_"+ mapperIdx + ".dat";
 					PrintWriter out = new PrintWriter(
@@ -163,18 +159,16 @@ public class PS_HadoopMap2 implements Constant {
 									new Path(inputPath + "/" + fileName)));
 					
 					out.print( "" +
-                            slaveIdx                                                        + inDim +
-                            mapperIdx                                                       + inDim +
-                            databaseName                                    + inDim +
-                            CreateObjectName                        + inDim +
-                            CreateQuery                                     + inDim +
-                            DLF_Name_List                           + inDim +
-                            dlfLocStr                                               + inDim +
-                            DLO_Name_List               + inDim +
-                            dloLocStr                   + inDim +
-                            duplicateTimes                          + inDim +
-                            CreateFilePath                          + inDim +
-                            outputKind.ordinal()
+                            slaveIdx                    + inDim +  //0
+                            mapperIdx                   + inDim +  //1
+                            databaseName                + inDim +  //2
+                            CreateObjectName            + inDim +  //3
+                            CreateQuery                 + inDim +  //4
+                            DLF_Name_List               + inDim +  //5
+                            dlfLocStr                   + inDim +  //6
+                            duplicateTimes              + inDim +  //7
+                            CreateFilePath              + inDim +  //8
+                            outputKind.ordinal()                   //9
 
 					);
 					
@@ -190,7 +184,7 @@ public class PS_HadoopMap2 implements Constant {
 			e.printStackTrace();
 			System.exit(-1);
 		}
-		System.exit(-1);
+
 		//Create the job
 		try {
 			Job job = new Job();
@@ -198,8 +192,8 @@ public class PS_HadoopMap2 implements Constant {
 			
 			FileInputFormat.addInputPath(job, new Path(inputPath));
 			FileOutputFormat.setOutputPath(job, new Path(outputPath));
-			job.setMapperClass(PS_HadoopMap_Map.class);
-			job.setReducerClass(PS_HadoopMap_Reduce.class);
+			job.setMapperClass(PS_HadoopMap2_Map.class);
+			job.setReducerClass(PS_HadoopMap2_Reduce.class);
 			
 			job.setMapOutputKeyClass(Text.class);
 			job.setMapOutputValueClass(BooleanWritable.class);
@@ -220,4 +214,28 @@ public class PS_HadoopMap2 implements Constant {
 			e.printStackTrace();
 		}
 	}
+	
+	private static boolean bothMapperFOExist(ListExpr loc1, ListExpr loc2){
+	  
+	  //DLO and DLF can be exist separately
+	  if (loc1.isEmpty() || loc2.isEmpty()) return true;
+	  
+	  if (loc1.listLength() != loc2.listLength()) return false;
+	  
+	  ListExpr obj1 = loc1, obj2 = loc2;
+	  while (!obj1.isEmpty()){
+		 ListExpr row1 = obj1.first(), row2 = obj2.first();
+		 if (row1.isEmpty() ^ row2.isEmpty()) return false;
+		 if (!row1.isEmpty() && !row2.isEmpty()){
+		   if (row1.first().intValue() != row2.first().intValue()){
+			   //rows are not stored on the same data Server
+			   return false;
+		   }
+		 }
+		 obj1 = obj1.rest();
+		 obj2 = obj2.rest();
+	  }
+	  return true;
+	}
+	
 }

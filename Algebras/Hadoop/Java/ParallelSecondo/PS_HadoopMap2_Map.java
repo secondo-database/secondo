@@ -25,29 +25,32 @@ public class PS_HadoopMap2_Map
 	protected void map(LongWritable key, Text value, Context context) 
 	throws IOException, InterruptedException {
 	
+//1. read all given parameters
+		//Expect 10 parameters
 		String parameters[] = value.toString().split(inDim);
-		int 		slaveIdx					= Integer.parseInt(parameters[0]);							 							
-		int 		mapperIdx					= Integer.parseInt(parameters[1]);							 							
-		String 	databaseName 			= parameters[2];		
-		String 	CreateObjectName 	= parameters[3];		
-		String 	CreateQuery 			= parameters[4];
-		String 	mapFileName 			= parameters[5];
-		String 	mapFileLoc				= parameters[6];
-		int 		duplicateTimes    = Integer.parseInt(parameters[7]);
-		
-		String  CreateFilePath = parameters[8];
+		int     slaveIdx         = Integer.parseInt(parameters[0]);							 							
+		int     mapperIdx        = Integer.parseInt(parameters[1]);							 							
+		String 	databaseName     = parameters[2];		
+		String 	CreateObjectName = parameters[3];		
+		String 	CreateQuery      = parameters[4];
+		String  DLF_Name_List    = parameters[5];  
+		String  dlfLocStr        = parameters[6];  
+		int 	duplicateTimes   = Integer.parseInt(parameters[7]);
+
+		String  CreateFilePath = parameters[8];	
 		ListExpr fpList = new ListExpr();
 		fpList.readFromString(CreateFilePath);
 		CreateFilePath = fpList.first().textValue();
 		
-		FListKind outputKind = FListKind.values()[Integer.parseInt(parameters[9])];
+		FListKind outputKind = FListKind.values()[Integer.parseInt(parameters[9])];	
 		
 		ListExpr fileNameList = new ListExpr(), fileLocList = new ListExpr();
-		fileNameList.readFromString(mapFileName);
-		fileLocList.readFromString(mapFileLoc);
+		fileNameList.readFromString(DLF_Name_List);
+		fileLocList.readFromString(dlfLocStr);
 		ListExpr queryList = new ListExpr();
 		queryList.readFromString(CreateQuery);
 		
+//2. determine the processing node		
 		String slFile = System.getenv().get("PARALLEL_SECONDO_SLAVES");
 		if (slFile == null)
 			throw new RuntimeException(
@@ -68,9 +71,10 @@ public class PS_HadoopMap2_Map
 		}
 		String mapperIPAddr = slaves.get(slaveIdx - 1).getIpAddr();
 		int mapperPortNum = slaves.get(slaveIdx - 1).getPortNum();
-		
 		QuerySecondo secEntity = new QuerySecondo();
-	
+
+
+//3. create the processing query
 		try
 		{
 			//Prepare the creation query first

@@ -29,3 +29,4 @@ operator pffeed alias PFFEED pattern _ op [list;list]
 operator pffeed2 alias PFFEED2 pattern _ op [list;list]
 operator pffeed3 alias PFFEED3 pattern _ op [list;list]
 operator hadoopMapAll alias HADOOPMAPALL pattern op (_)
+operator hadoopMap2 alias HADOOPMAP2 pattern _ _ op [list; fun] implicit parameters lobject1, lobject2 types TPARA, TPARA2
