@@ -29,6 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef __QEXECUTOR_HEARTBEAT__
+#define __QEXECUTOR_HEARTBEAT__
+
 #include <string>
 #include <iostream>
 #include <map>
@@ -116,3 +119,5 @@ private:
   bool active;
 
 };
+
+#endif
