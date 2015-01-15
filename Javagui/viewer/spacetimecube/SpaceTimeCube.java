@@ -39,7 +39,6 @@ import tools.downloadmanager.DownloadObserver;
 import tools.downloadmanager.DownloadState;
 import tools.Cache;
 import tools.Pair;
-import viewer.hoese.StaticOSMMapper;
 import viewer.hoese.CachedImage;
 import viewer.hoese.ImgLoader;
 import viewer.SpaceTimeCubeViewer;
@@ -562,7 +561,7 @@ public class SpaceTimeCube {
 					MINZOOMLEVEL, MAXZOOMLEVEL, baseUrl, prefix);
 			
 			try {
-				downloadManager = new DownloadManager(new File(PATH), MAXDOWNLOADS);
+				downloadManager = new DownloadManager(new File(PATH), MAXDOWNLOADS, true);
 			} catch (Exception e) {
 				System.err.println("Problem in initiating download manager");
 				downloadManager = null;
@@ -578,8 +577,7 @@ public class SpaceTimeCube {
 			Cache<CachedImage, ImgLoader> imageCache = new Cache<CachedImage, ImgLoader>(CACHESIZE,
 					new ImgLoader());
 			
-			LinkedList<Pair<URL, AffineTransform>> urls = osmmapper
-			.computeURLs((Rectangle2D.Double) clipRect);
+			LinkedList<Pair<URL, AffineTransform>> urls = osmmapper.computeURLs((Rectangle2D.Double) clipRect);
 					
 			/*
 			 *  Check if amount of tile rows and columns is identical.
