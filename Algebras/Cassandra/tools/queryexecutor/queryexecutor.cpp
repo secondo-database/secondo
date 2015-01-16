@@ -38,13 +38,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <stdlib.h>
 #include <time.h>
 
-#include "../../CassandraAdapter.h"
 #include "SecondoInterface.h"
 #include "NestedList.h"
 #include "NList.h"
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
 #include "heartbeat.h"
+#include "workerqueue.h"
 
 /*
 1.1 Defines
