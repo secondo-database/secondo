@@ -1,0 +1,34 @@
+The space-time cube viewer requires installation of Java3D.
+
+Installation von Java3D
+=======================
+
+
+1. Download der neuesten Java3d-Version von:
+
+https://java3d.java.net/binary-builds.html
+
+
+2. Entpacken der zip-Datei (entfällt bei Mac)
+
+3. Order $HOME/j3d erstellen
+
+4. Entpacken der Datei j3d-jre.zip in das Verzeichnis
+   $HOME/j3d
+
+
+5. Linux:
+
+   in .bashrc eintragen:
+
+J3D=$HOME/j3d/lib
+export JAVA3DPATH=$J3D/ext/j3dcore.jar:$J3D/ext/j3dutils.jar:$J3D/ext/vecmath.jar
+export JAVA3DLIB=$J3D/amd64
+
+   (unter MacOSX sollte der zweite export entfallen)
+
+
+
+6. Terminal neu starten
+
+
