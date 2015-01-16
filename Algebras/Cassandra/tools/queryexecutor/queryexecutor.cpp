@@ -807,14 +807,20 @@ int main(int argc, char* argv[]){
   cout << "Our id is: " << myUuid << endl;
   
   // Main Programm
-  pthread_t targetThread;
-
-  startHeartbeatThread(cmdline_args.cassandraNodeIp, 
-                       cmdline_args.cassandraKeyspace, targetThread);
+  pthread_t heartbeatThread;
+  HeartbeatUpdater* heartbeatUpdater;
+  
+  heartbeatUpdater = startHeartbeatThread(cmdline_args.cassandraNodeIp, 
+                       cmdline_args.cassandraKeyspace, heartbeatThread);
 
   mainLoop(si, cassandra, cmdline_args.cassandraNodeIp, 
            cmdline_args.cassandraKeyspace, myUuid);
   
+  // Stop heatbeat thread
+  heartbeatUpdater->stop();
+  pthread_join(heartbeatThread, NULL);
+  
+  // Disconnect from cassandra
   if(cassandra) {
     cassandra -> disconnect();
     delete cassandra;
