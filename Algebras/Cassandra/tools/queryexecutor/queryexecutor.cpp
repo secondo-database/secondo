@@ -80,7 +80,7 @@ struct cmdline_args_t {
   string cassandraNodeIp;
   string cassandraKeyspace;
   string secondoHost;
-  string secondoPort;
+  vector<string> secondoPorts;
 };
 
 
@@ -715,6 +715,7 @@ void parseCommandline(int argc, char* argv[],
   
   unsigned int flags = 0;
   int option = 0;
+  char* pch;
   
   while ((option = getopt(argc, argv,"i:k:s:p:")) != -1) {
      switch (option) {
@@ -731,7 +732,13 @@ void parseCommandline(int argc, char* argv[],
            flags |= CMDLINE_SECONDO_HOST;
            break;
       case 'p':
-           cmdline_args.secondoPort = string(optarg);
+           
+           pch = strtok (optarg, ":");
+           while (pch != NULL) {
+              cmdline_args.secondoPorts.push_back(string(pch));
+              pch = strtok (NULL, ":");
+           }
+        
            flags |= CMDLINE_SECONDO_PORT;
            break;
       default:
@@ -759,7 +766,7 @@ int main(int argc, char* argv[]){
   parseCommandline(argc, argv, cmdline_args);
 
   SecondoInterface* si = initSecondoInterface(cmdline_args.secondoHost, 
-                                              cmdline_args.secondoPort);
+                            cmdline_args.secondoPorts.front());
 
   if(si == NULL) { 
     return -1;
@@ -780,7 +787,9 @@ int main(int argc, char* argv[]){
   // Gernerate UUID
   string myUuid;
   QEUtils::createUUID(myUuid);
-  cout << "Our id is: " << myUuid << endl;
+ 
+  // Create worker queue
+  WorkerQueue workerQueue(2);
   
   // Main Programm
   pthread_t heartbeatThread;
