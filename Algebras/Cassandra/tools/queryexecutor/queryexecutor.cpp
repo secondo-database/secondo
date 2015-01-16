@@ -45,6 +45,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CassandraResult.h"
 #include "heartbeat.h"
 #include "workerqueue.h"
+#include "qeutils.h"
 
 /*
 1.1 Defines
@@ -263,31 +264,6 @@ void executeSecondoCommand(SecondoInterface* si,
 }
 
 /*
-2.2 Crete a new UUID 
-
-*/
-void createUUID(string &uuid) {
-   char buffer[128];
-
-   const char *filename = "/proc/sys/kernel/random/uuid";
-   FILE *file = fopen(filename, "r");
-
-   // Does the proc file exists?
-   if( access(filename, R_OK ) == -1 ) {
-       cerr << "Unable to get UUID from kernel" << endl;
-       exit(-1);
-   }
-   
-   if (file) {
-     while (fscanf(file, "%s", buffer)!=EOF) {
-        uuid.append(buffer);
-     }
-   }  
-
-   fclose(file);
-}
-
-/*
 2.2 Execute a token query for a given tokenrange
 
 */
@@ -310,7 +286,7 @@ void executeTokenQuery(CassandraAdapter* cassandra, string &query,
     
     // Replace Query UUID placeholder
     string myQueryUuid;
-    createUUID(myQueryUuid);
+    QEUtils::createUUID(myQueryUuid);
     replacePlaceholder(ourQuery, "__QUERYUUID__", myQueryUuid);
     
     executeSecondoCommand(si, nl, ourQuery);
@@ -803,7 +779,7 @@ int main(int argc, char* argv[]){
 
   // Gernerate UUID
   string myUuid;
-  createUUID(myUuid);
+  QEUtils::createUUID(myUuid);
   cout << "Our id is: " << myUuid << endl;
   
   // Main Programm
