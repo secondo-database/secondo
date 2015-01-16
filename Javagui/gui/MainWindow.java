@@ -3515,7 +3515,7 @@ public void databaseOpened(String DBName){
 
 public void databaseClosed(){
   if(MI_OptimizerReconnectWhenOpenDB.isSelected()){
-      Reporter.writeError("HOtfix reconnect optimizer");
+      Reporter.debug("HOtfix reconnect optimizer");
       ComPanel.reconnectOptimizer();
   }
   MI_ListTypes.setEnabled(false);

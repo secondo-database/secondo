@@ -808,7 +808,7 @@ public boolean storeSelectedObject(){
        SecondoObject SO = (SecondoObject) Objects.get(index);
        String SOName = SO.getName().trim();
        if (SOName.indexOf(" ")>=0){  // a space cannot be in objectname
-           Reporter.showWarning("objectname contains spaces\n please rename");
+           Reporter.showWarning("objectname " + SOName+ " contains spaces\n please rename");
        }
        else{
           String cmd;

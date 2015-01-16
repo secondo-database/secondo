@@ -772,7 +772,7 @@ public class CommandPanel extends JScrollPane {
         return "";
       } else if(catChanged){
         boolean ok = reopenDatabase();
-        appendText("Hotfix : reopen database ");
+        appendText("reopen database ");
         if(ok){
            appendText("successful \n");
         } else {
