@@ -664,7 +664,7 @@ GenericRelationIterator* phjLocalInfo::getNewProducts( Supplier s)
       // No more data exists
       delete tbA;
       delete tbB;
-      return false;
+      return 0;
     }
     else if(countA == 0 || countB == 0)
     {
@@ -3924,7 +3924,7 @@ int hdpJoinValueMap(Word* args, Word& result,
         return CANCEL;
     }
     case CLOSE:{
-      if (0 == local.addr);
+      if (0 == local.addr)
         return CANCEL;
       hjli = (hdpJoinLocalInfo*)local.addr;
       delete hjli;
@@ -5381,6 +5381,25 @@ FetchFlobLocalInfo1::FetchFlobLocalInfo1(
   pfs = 0;
 }
 
+FetchFlobLocalInfo1::~FetchFlobLocalInfo1(){
+  if (resultType)
+    resultType->DeleteIfAllowed();
+
+  pthread_mutex_destroy(&FFLI_mutex1);
+
+  if (ci){
+    delete ci;
+    delete standby;
+    for (vector<FlobSheet1*>::iterator cit = prepared->begin();
+      cit != prepared->end(); cit++){
+      FlobSheet1* fs = (*cit);
+      delete fs;
+    }
+    delete prepared;
+    delete []sheetCounter;
+  }
+}
+
 Tuple* FetchFlobLocalInfo1::getNextTuple(const Supplier s)
 {
   if (moreInput)
@@ -6474,6 +6493,9 @@ having the Flobs from the same DSs.
       }
     }
   }
+
+  //should never be here
+  return 0;
 }
 
 Tuple* FetchFlobLocalInfo::getTupleFromBuffer()

@@ -112,9 +112,6 @@ private:
   int attrIndexA;
   int attrIndexB;
 
-  ListExpr tupTypeA;
-  ListExpr tupTypeB;
-
   TupleType *resultTupleType;
 
   Tuple* makeTuple(Word stream, int index, int sig);
@@ -177,8 +174,6 @@ class phjLocalInfo
 private:
 
   Word mixStream;
-  ListExpr aTypeInfo;
-  ListExpr bTypeInfo;
   TupleType *resultTupleType;
   TupleType *tupleTypeA, *tupleTypeB;
 
@@ -230,8 +225,6 @@ private:
 
   Word mixedStream;
   Supplier JNfun;
-  ListExpr aTypeInfo;
-  ListExpr bTypeInfo;
   TupleType *tupleTypeA, *tupleTypeB;
 
   TupleBuffer *tbA;
@@ -242,10 +235,6 @@ private:
   bool endOfStream;
   bool isBufferFilled;
 
-  int bucketNum;
-  int tupNum;
-
-
   //Get the tuples within one bucket,
   //and fill them into tupleBuffers
   void loadTuples();
@@ -254,8 +243,6 @@ public:
       ListExpr ttA, ListExpr ttB,
       int mem) :
     mixedStream(inputStream),
-    aTypeInfo(ttA),
-    bTypeInfo(ttB),
     tbA(0),
     itrA(0),
     tbB(0),
@@ -473,8 +460,7 @@ class FFeedLocalInfo: public ProgressLocalInfo
 {
 public:
   FFeedLocalInfo( Supplier s, bool _nf, int _prd, string _fp)
-  : tupleBlockFile(0), fileFound(false), noFlob(_nf),
-    prdIndex(_prd), filePath(_fp)
+  : tupleBlockFile(0), fileFound(false), noFlob(_nf), filePath(_fp)
   {
 
     if (noFlob)
@@ -541,7 +527,6 @@ private:
   bool isLocalFileExist(string filePath);
   bool fileFound;
   bool noFlob;
-  int  prdIndex;  //The index of the produce DS
   string filePath;
 };
 
@@ -748,24 +733,7 @@ public:
   FetchFlobLocalInfo1(const Supplier s, NList resultTypeList,
       NList raList, NList daList);
 
-  ~FetchFlobLocalInfo1(){
-    if (resultType)
-      resultType->DeleteIfAllowed();
-
-    pthread_mutex_destroy(&FFLI_mutex1);
-
-    if (ci){
-      delete ci;
-      delete standby;
-      for (vector<FlobSheet1*>::iterator cit = prepared->begin();
-        cit != prepared->end(); cit++){
-        FlobSheet1* fs = (*cit);
-        delete fs;
-      }
-      delete prepared;
-      delete []sheetCounter;
-    }
-  }
+  ~FetchFlobLocalInfo1();
 
   Tuple* getNextTuple(const Supplier s);
 

@@ -430,7 +430,7 @@ bool fList::Open(SmiRecord& valueRecord,
                  const ListExpr typeInfo,
                  Word& value)
 {
-  int valueLength;
+  int valueLen;
   string valueStr = "";
   ListExpr valueList = 0;
   char *buf = 0;
@@ -438,21 +438,25 @@ bool fList::Open(SmiRecord& valueRecord,
   bool correct;
 
   bool ok = true;
-  ok = ok && valueRecord.Read(&valueLength, sizeof(int), offset);
+  ok &= (valueRecord.Read(&valueLen, sizeof(int), offset) == sizeof(int));
+  if (!ok) return false;
+
   offset += sizeof(int);
-  buf = new char[valueLength];
-  ok = ok && valueRecord.Read(buf, valueLength, offset);
-  offset += valueLength;
-  valueStr.assign(buf, valueLength);
+  buf = new char[valueLen];
+  ok &= (valueRecord.Read(buf, valueLen, offset) == valueLen);
+  offset += valueLen;
+  if (ok){
+    valueStr.assign(buf, valueLen);
+    nl->ReadFromString(valueStr, valueList);
+
+    value = RestoreFromList(typeInfo, nl->First(valueList),
+        1, errorInfo, correct);
+
+    if (errorInfo != 0)
+      nl->Destroy(errorInfo);
+    nl->Destroy(valueList);
+  }
   delete []buf;
-  nl->ReadFromString(valueStr, valueList);
-
-  value = RestoreFromList(typeInfo, nl->First(valueList),
-      1, errorInfo, correct);
-
-  if (errorInfo != 0)
-    nl->Destroy(errorInfo);
-  nl->Destroy(valueList);
   return ok;
 }
 
@@ -3887,7 +3891,7 @@ ListExpr hadoopMap2TypeMap(ListExpr args) {
     NList OptinalList = l.third();
     int numbersOfPara = OptinalList.first().length();
     clusterInfo ci;
-    size_t mapTaskNum = ci.getSlaveSize();
+//    size_t mapTaskNum = ci.getSlaveSize();
     if (numbersOfPara > 0) {
       if (numbersOfPara > 4)
         return l.typeError(typErr);

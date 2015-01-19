@@ -248,7 +248,7 @@ private:
   bool setLocList(NList fllist);
   bool verifyLocList();
 
-  friend class ConstructorFunctions<fList>;
+  friend struct ConstructorFunctions<fList>;
 };
 
 /*
