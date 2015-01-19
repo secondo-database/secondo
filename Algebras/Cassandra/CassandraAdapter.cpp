@@ -754,7 +754,7 @@ bool CassandraAdapter::getTokensFromQuery
     (string query, vector <CassandraToken> &result, string peer) {    
      
      CassError rc = CASS_OK;  
-     CassFuture* future = executeCQL(query, CASS_CONSISTENCY_ALL);
+     CassFuture* future = executeCQL(query, CASS_CONSISTENCY_QUORUM);
   
      cass_future_wait(future);
      rc = cass_future_error_code(future);
