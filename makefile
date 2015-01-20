@@ -245,6 +245,7 @@ clean:
 	$(MAKE) -C UserInterfaces clean
 	$(MAKE) -C Jpl clean
 	$(MAKE) -C OptServer clean
+	$(MAKE) -C OptParser clean
 	$(MAKE) -C Optimizer clean
 	$(MAKE) -C api_cpp clean
 	$(MAKE) -f ./makefile.libs clean
