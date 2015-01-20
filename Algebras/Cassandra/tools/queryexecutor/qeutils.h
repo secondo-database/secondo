@@ -65,6 +65,30 @@ static void createUUID(string &uuid) {
 
      fclose(file);
   }
+  
+
+  /*
+  2.2 Replace placeholder like __NODEID__ in a given string
+
+  */
+  static void replacePlaceholder(string &query, string placeholder, 
+    string value) {
+    size_t startPos = 0;
+    
+    while((startPos = query.find(placeholder, startPos)) != std::string::npos) {
+           query.replace(startPos, placeholder.length(), value);
+           startPos += value.length();
+    }
+  }
+
+  /*
+  2.3 Does the given string contains a placeholder?
+
+  */
+  static bool containsPlaceholder(string searchString, string placeholder) {
+    return searchString.find(placeholder) != std::string::npos;
+  }
+  
 };
 
 #endif

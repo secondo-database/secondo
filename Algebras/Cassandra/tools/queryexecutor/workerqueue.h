@@ -59,7 +59,7 @@ public:
 2.1 Push a tokenrange into the queue
 
 */
-   void push(TokenRange* range) {
+   void push(TokenRange range) {
       pthread_mutex_lock(&queueMutex);      
       
       // Queue is full, wait for element removal
@@ -82,7 +82,7 @@ public:
 2.2 Get the next tokenrange from the queue
 
 */
-   TokenRange* pop() {
+   TokenRange pop() {
        pthread_mutex_lock(&queueMutex);
       
        while(myQueue.empty()) {
@@ -91,7 +91,7 @@ public:
 
        bool wasFull = isFull();
 
-       TokenRange* range = myQueue.front();
+       TokenRange range = myQueue.front();
        myQueue.pop();
 
        // Wakeup sleeping consumers
@@ -122,7 +122,7 @@ public:
 
 private:
    size_t maxElements;
-   queue<TokenRange*> myQueue;
+   queue<TokenRange> myQueue;
    pthread_mutex_t queueMutex;
    pthread_cond_t queueCondition;
 };

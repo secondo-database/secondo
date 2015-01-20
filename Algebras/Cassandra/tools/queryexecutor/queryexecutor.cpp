@@ -46,6 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "heartbeat.h"
 #include "workerqueue.h"
 #include "qeutils.h"
+#include "secondoworker.h"
 
 /*
 1.1 Defines
@@ -55,7 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // Enum for ownership of a token range
 // Local Tokenrange   - We have to process the data in the range
 // Foreign Tokenrange - An other worker process has to process the data
-enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE };
+enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE};
 
 // Activate debug messages
 #define __DEBUG__
@@ -84,45 +85,6 @@ struct cmdline_args_t {
 };
 
 
-/*
-2.0 Init the secondo c++ api
-
-*/
-
-SecondoInterface* initSecondoInterface(string secondoHost, 
-                  string secondoPort) {
-
-   // create an interface to the secondo server
-   // the paramneter must be true to communicate as client
-   SecondoInterface* si = new SecondoInterface(true);
-
-   // define the name of the configuration file
-   string config = "Config.ini";
-
-   // read in runtime flags from the config file
-   si->InitRTFlags(config);
-
-  // SECONDO Connection data
-  string user = "";
-  string passwd = "";
-  
-  bool multiUser = true;
-  string errMsg;          // return parameter
-  
-  // try to connect
-  if(!si->Initialize(user, passwd, secondoHost, secondoPort, 
-                    config, errMsg, multiUser)){
-
-     // connection failed, handle error
-     cerr << "Cannot initialize secondo system" << endl;
-     cerr << "Error message = " << errMsg << endl;
-
-     return NULL;
-  }
-  
-  return si;
-}
-
 
 /*
 2.1 Update last executed command in cassandra system table
@@ -138,7 +100,7 @@ bool updateLastCommand(CassandraAdapter* cassandra,
   ss << " WHERE ip = '";
   ss << ip;
   ss << "';";
-  
+
   // Update last executed command
   bool result = cassandra -> executeCQLSync(
     ss.str(),
@@ -148,42 +110,6 @@ bool updateLastCommand(CassandraAdapter* cassandra,
   if(! result) {
      cout << "Unable to update last executed query ";
      cout << "in system_state table" << endl;
-     cout << "CQL Statement: " << ss.str() << endl;
-     return false;
-  }
-
-  return true;
-}
-
-/*
-2.1 Update global query status
-
-*/
-bool updateLastProcessedToken(CassandraAdapter* cassandra, 
-                       size_t lastCommandId, string &ip, 
-                       TokenRange tokenrange, string queryid) {
-  
-  // Build CQL query
-  stringstream ss;
-  ss << "INSERT INTO system_progress ";
-  ss << "(queryid, ip, begintoken, endtoken, queryuuid) ";
-  ss << "values(";
-  ss << "" << lastCommandId << ",",
-  ss << "'" << ip << "',";
-  ss << "'" << tokenrange.getStart() << "',",
-  ss << "'" << tokenrange.getEnd() << "',",
-  ss << "'" << queryid << "'",
-  ss << ");";
-  
-  // Update last executed command
-  bool result = cassandra -> executeCQLSync(
-    ss.str(),
-    CASS_CONSISTENCY_ONE 
-  );
- 
-  if(! result) {
-     cout << "Unable to update last executed query in ";
-     cout << "system_progress table" << endl;
      cout << "CQL Statement: " << ss.str() << endl;
      return false;
   }
@@ -215,82 +141,6 @@ CassandraAdapter* getCassandraAdapter(string &cassandraHostname,
   }
   
   return cassandra;
-}
-
-
-/*
-2.2 Replace placeholder like __NODEID__ in a given string
-
-*/
-void replacePlaceholder(string &query, string placeholder, string value) {
-  size_t startPos = 0;
-    
-  while((startPos = query.find(placeholder, startPos)) != std::string::npos) {
-         query.replace(startPos, placeholder.length(), value);
-         startPos += value.length();
-  }
-}
-
-/*
-2.2 Does the given string contains a placeholder?
-
-*/
-bool containsPlaceholder(string searchString, string placeholder) {
-  return searchString.find(placeholder) != std::string::npos;
-}
-
-/*
-2.2 Execute a command in SECONDO
-
-*/
-void executeSecondoCommand(SecondoInterface* si, 
-                           NestedList* nl, string command) {
-  
-        cout << "Executing command " << command << endl;
-        
-        ListExpr res = nl->TheEmptyList(); // will contain the result
-        SecErrInfo err;                 // will contain error information
-        
-        si->Secondo(command, res, err); 
-
-        // check whether command was successful
-        if(err.code!=0){ 
-          cout << "Error during command. Error code :" << err.code << endl;
-          cout << "Error message = " << err.msg << endl;
-        } else {
-          // command was successful
-          cout << "Result is:" << nl->ToString(res) << endl << endl;
-        }
-}
-
-/*
-2.2 Execute a token query for a given tokenrange
-
-*/
-void executeTokenQuery(CassandraAdapter* cassandra, string &query, 
-                      size_t queryId, string &ip, 
-                      TokenRange tokenrange,
-                      SecondoInterface* si, NestedList* nl) {
-  
-    stringstream ss;
-    ss << "'" << tokenrange.getStart() << "'";
-    ss << ", ";
-    ss << "'" << tokenrange.getEnd() << "'";
-  
-    // Copy query string, so we can replace the
-    // placeholder multiple times
-    string ourQuery = string(query);
-    
-    // Replace token range placeholder
-    replacePlaceholder(ourQuery, "__TOKENRANGE__", ss.str());
-    
-    // Replace Query UUID placeholder
-    string myQueryUuid;
-    QEUtils::createUUID(myQueryUuid);
-    replacePlaceholder(ourQuery, "__QUERYUUID__", myQueryUuid);
-    
-    executeSecondoCommand(si, nl, ourQuery);
-    updateLastProcessedToken(cassandra, queryId, ip, tokenrange, myQueryUuid);
 }
 
 /*
@@ -433,12 +283,12 @@ void printStatusMessage(vector<TokenRange> &allTokenRanges,
     already processed 
 
 */
-bool executeQueryForTokenrangeIfNeeded(CassandraAdapter* cassandra, 
+bool executeQueryForTokenrangeIfNeeded(vector<SecondoWorker*> &worker, 
+                                CassandraAdapter* cassandra, 
                                 string &query, 
                                 size_t queryId, string &ip, 
-                                SecondoInterface* si, NestedList* nl,
                                 vector<TokenRange> &processedIntervals,
-                                TokenRange &tokenrange) {
+                                TokenRange tokenrange) {
   
   
         // Its query already processed for tokenrange?
@@ -452,7 +302,8 @@ bool executeQueryForTokenrangeIfNeeded(CassandraAdapter* cassandra,
                
           return false;
         } else {
-          executeTokenQuery(cassandra, query, queryId, ip, tokenrange, si, nl);
+          WorkerQueue *tokenQueue = (worker.front()) -> getTokenQueue();
+          tokenQueue->push(tokenrange);
           return true;
         }
 }
@@ -461,9 +312,9 @@ bool executeQueryForTokenrangeIfNeeded(CassandraAdapter* cassandra,
 2.2 Execute the given query for all local token ranges
 
 */
-void executeQueryForTokenranges(CassandraAdapter* cassandra, string &query, 
-                                size_t queryId, string &ip, 
-                                SecondoInterface* si, NestedList* nl,
+void executeQueryForTokenranges(vector<SecondoWorker*> &worker, 
+                                CassandraAdapter* cassandra, string &query, 
+                                size_t queryId, string &ip,
                                 vector<TokenRange> &allTokenRanges,
                                 vector<TokenRange> &localTokenRanges,
                                 vector<TokenRange> &processedIntervals) {
@@ -478,21 +329,29 @@ void executeQueryForTokenranges(CassandraAdapter* cassandra, string &query,
       // It's a local token range
       if(tokenrange.isLocalTokenRange(ip)) {
         localTokenRanges.push_back(tokenrange);
-        executeQueryForTokenrangeIfNeeded(cassandra, query, queryId, ip, si, 
-                                          nl, processedIntervals, tokenrange);
+        executeQueryForTokenrangeIfNeeded(worker, cassandra, 
+        query, queryId, ip, processedIntervals, tokenrange);
       }
     }  
 }
 
+void waitForSecondoWorker(vector<SecondoWorker*> &worker) {
+   // Wait for query execution
+   for(vector<SecondoWorker*>::iterator it = worker.begin(); 
+      it != worker.end(); ++it) {
+      SecondoWorker *worker = *it;
+      worker->waitForQueryCompletion();
+   }
+}
 
 /*
 2.2 Handle a multitoken query (e.g. query ccollectrange('192.168.1.108', 
      'secondo', 'relation2', 'ONE',__TOKENRANGE__);
 
 */
-void handleTokenQuery(CassandraAdapter* cassandra, string &query, 
-                      size_t queryId, string &ip, 
-                      SecondoInterface* si, NestedList* nl) {
+void handleTokenQuery(vector<SecondoWorker*> &worker, 
+                      CassandraAdapter* cassandra, string &query, 
+                      size_t queryId, string &ip) {
 
     // Collecting ring configuration
     vector<TokenRange> allTokenRanges;
@@ -508,7 +367,7 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
     }
     
     // Part 1: Execute query for all local token ranges
-    executeQueryForTokenranges(cassandra, query, queryId, ip, si, nl, 
+    executeQueryForTokenranges(worker, cassandra, query, queryId, ip,
                              allTokenRanges, localTokenRanges, 
                              processedIntervals);
 
@@ -578,26 +437,51 @@ void handleTokenQuery(CassandraAdapter* cassandra, string &query,
         
         // Process range - it's a local token range
         if(mode == LOCAL_TOKENRANGE) {
-          executeQueryForTokenrangeIfNeeded(cassandra, query, queryId, ip, 
-                                       si, nl, processedIntervals, range);
+          executeQueryForTokenrangeIfNeeded(worker, cassandra, 
+           query, queryId, ip, processedIntervals, range);
         }
       }
-      
+            
       printStatusMessage(allTokenRanges, processedIntervals, true);
     }
+    
+    WorkerQueue *tokenQueue = (worker.front()) -> getTokenQueue();
+
+    // Add Termination token
+    for(size_t i = 0; i < worker.size(); ++i) {
+       tokenQueue->push(TokenRange(0, 0, ip));
+    }
+    
+    waitForSecondoWorker(worker);
 } 
+
+
       
+void executeSecondoCommand(vector<SecondoWorker*> &worker, 
+     string command, size_t queryId, bool wait = true) {
+   
+   // Execute query on all worker
+   for(vector<SecondoWorker*>::iterator it = worker.begin(); 
+     it != worker.end(); ++it) {
+        
+      SecondoWorker *worker = *it;
+      worker->submitQuery(command, queryId);
+   }
+   
+   if(wait) {
+      waitForSecondoWorker(worker);
+   }
+}
+
 /*
 2.3 This is the main loop of the query executor. This method fetches
   queries from cassandra and forward them to secondo.
 
 */
-void mainLoop(SecondoInterface* si, 
+void mainLoop(vector<SecondoWorker*> &worker, 
               CassandraAdapter* cassandra, string cassandraIp,
               string cassandraKeyspace, string uuid) {
   
-  NestedList* nl = si->GetNestedList();
-  NList::setNLRef(nl);
   
   size_t lastCommandId = 0;
   updateLastCommand(cassandra, lastCommandId, cassandraIp);
@@ -605,7 +489,7 @@ void mainLoop(SecondoInterface* si,
   
   while(true) {
         
-        cout << "Waiting for commands" << endl;
+        cout << "Waiting for commands...." << endl;
         
         CassandraResult* result = cassandra->getQueriesToExecute();
         size_t seenCommands = 0;
@@ -615,9 +499,12 @@ void mainLoop(SecondoInterface* si,
           
           string command;
           result->getStringValue(command, 1);
-          replacePlaceholder(command, "__NODEID__", uuid);
-          replacePlaceholder(command, "__CASSANDRAIP__", cassandraIp);
-          replacePlaceholder(command, "__KEYSPACE__", cassandraKeyspace);
+          QEUtils::replacePlaceholder(
+             command, "__NODEID__", uuid);
+          QEUtils::replacePlaceholder(
+             command, "__CASSANDRAIP__", cassandraIp);
+          QEUtils::replacePlaceholder(
+             command, "__KEYSPACE__", cassandraKeyspace);
           
           // Is this the next query to execute
           if(id == lastCommandId + 1) {
@@ -626,11 +513,12 @@ void mainLoop(SecondoInterface* si,
             ++lastCommandId;
             
             // Simple query or token based query?
-            if(containsPlaceholder(command, "__TOKENRANGE__")) {
-              handleTokenQuery(cassandra, command, lastCommandId, 
-                               cassandraIp, si, nl);
+            if(QEUtils::containsPlaceholder(command, "__TOKENRANGE__")) {
+              executeSecondoCommand(worker, command, lastCommandId, false);
+              handleTokenQuery(worker, cassandra, command, 
+                   lastCommandId, cassandraIp);
             } else {
-              executeSecondoCommand(si, nl, command);
+               executeSecondoCommand(worker, command, lastCommandId);
             }
             
             updateLastCommand(cassandra, lastCommandId, cassandraIp);
@@ -653,7 +541,7 @@ void mainLoop(SecondoInterface* si,
           lastCommandId = 0;
           updateLastCommand(cassandra, lastCommandId, cassandraIp);
           updateUuid(cassandra, uuid, cassandraIp);
-          executeSecondoCommand(si, nl, "close database");
+          executeSecondoCommand(worker, string("close database"), seenCommands);
           cout << "[Info] Reset complete, waiting for new queries" << endl;
         }
         
@@ -762,17 +650,10 @@ void parseCommandline(int argc, char* argv[],
 */
 int main(int argc, char* argv[]){
   
+  WorkerQueue tokenQueue(2);
   cmdline_args_t cmdline_args;
   parseCommandline(argc, argv, cmdline_args);
-
-  SecondoInterface* si = initSecondoInterface(cmdline_args.secondoHost, 
-                            cmdline_args.secondoPorts.front());
-
-  if(si == NULL) { 
-    return -1;
-  }
-  
-  cout << "SecondoInterface successfully initialized" << endl;
+  vector<SecondoWorker*> worker;
   
   CassandraAdapter* cassandra = 
      getCassandraAdapter(cmdline_args.cassandraNodeIp, 
@@ -783,13 +664,22 @@ int main(int argc, char* argv[]){
   }
   
   cout << "Connection to cassandra successfull" << endl;
+  
+  // Start SECONDO worker
+  for(vector<string>::iterator it = cmdline_args.secondoPorts.begin(); 
+       it != cmdline_args.secondoPorts.end(); it++) {
+          
+      SecondoWorker *secondoWorker = new SecondoWorker(
+           cassandra, cmdline_args.secondoHost, *it, &tokenQueue);
+      
+      startSecondoWorkerThread(secondoWorker);
+      
+      worker.push_back(secondoWorker);
+  }
 
   // Gernerate UUID
   string myUuid;
   QEUtils::createUUID(myUuid);
- 
-  // Create worker queue
-  WorkerQueue workerQueue(2);
   
   // Main Programm
   pthread_t heartbeatThread;
@@ -798,12 +688,24 @@ int main(int argc, char* argv[]){
   heartbeatUpdater = startHeartbeatThread(cmdline_args.cassandraNodeIp, 
                        cmdline_args.cassandraKeyspace, heartbeatThread);
 
-  mainLoop(si, cassandra, cmdline_args.cassandraNodeIp, 
+  mainLoop(worker, cassandra, cmdline_args.cassandraNodeIp, 
            cmdline_args.cassandraKeyspace, myUuid);
   
+  // Stop SECONDO worker
+  for(vector<SecondoWorker*>::iterator it = worker.begin(); 
+       it != worker.end(); it++) {
+     
+          // Stop and delete worker
+          (*it)->stop();
+          delete *it;
+  }
+  worker.clear();
+   
   // Stop heatbeat thread
   heartbeatUpdater->stop();
   pthread_join(heartbeatThread, NULL);
+  delete heartbeatUpdater;
+  heartbeatUpdater = NULL;
   
   // Disconnect from cassandra
   if(cassandra) {
@@ -812,12 +714,6 @@ int main(int argc, char* argv[]){
     cassandra = NULL;
   }
   
-  // Shutdown the SECONDO interface
-  if(si) {
-    si->Terminate();
-    delete si;
-    si = NULL;
-  }
  
   return 0;
 }
