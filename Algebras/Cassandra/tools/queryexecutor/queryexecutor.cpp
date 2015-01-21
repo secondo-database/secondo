@@ -387,6 +387,16 @@ void handleTokenQuery(vector<SecondoWorker*> &worker,
       // All TokenRanges are processed
       if(processedIntervals.size() == allTokenRanges.size()) {
         printStatusMessage(allTokenRanges, processedIntervals, false);
+        
+        WorkerQueue *tokenQueue = (worker.front()) -> getTokenQueue();
+
+        // Add Termination token
+        for(size_t i = 0; i < worker.size(); ++i) {
+           tokenQueue->push(TokenRange(0, 0, ip));
+        }
+    
+        waitForSecondoWorker(worker);
+
         return; 
       }
 
@@ -401,13 +411,13 @@ void handleTokenQuery(vector<SecondoWorker*> &worker,
         TokenRange range = allTokenRanges[realPos];
 
 #ifdef __DEBUG__                 
-        cout << "[Debug] Handling tokenrange: " << range;
+          cout << "[Debug] Handling tokenrange: " << range;
 #endif
         
         if(range.isLocalTokenRange(ip)) {
 
 #ifdef __DEBUG__         
-          cout << "[Debug] it's a local token range" << endl;
+                  cout << "[Debug] it's a local token range" << endl;
 #endif
           
           mode = LOCAL_TOKENRANGE;
@@ -422,14 +432,14 @@ void handleTokenQuery(vector<SecondoWorker*> &worker,
           
           if(heartbeatData[range.getIp()] + HEARTBEAT_NODE_TIMEOUT > now) {
 #ifdef __DEBUG__             
-            cout << "[Debug] Set to foreign: " << range;
+             cout << "[Debug] Set to foreign: " << range;
 #endif            
             mode = FOREIGN_TOKENRANGE;
           } else {
 #ifdef __DEBUG__             
-            cout << "[Debug] Treat range as local, because node is dead: " 
-                 << range << " last update " << heartbeatData[range.getIp()] 
-                 << endl;
+              cout << "[Debug] Treat range as local, because node is dead: " 
+                   << range << " last update " << heartbeatData[range.getIp()] 
+                   << endl;
 #endif
                  
           }
@@ -437,6 +447,7 @@ void handleTokenQuery(vector<SecondoWorker*> &worker,
         
         // Process range - it's a local token range
         if(mode == LOCAL_TOKENRANGE) {
+           cout << "Execute: " << range;
           executeQueryForTokenrangeIfNeeded(worker, cassandra, 
            query, queryId, ip, processedIntervals, range);
         }
@@ -444,17 +455,7 @@ void handleTokenQuery(vector<SecondoWorker*> &worker,
             
       printStatusMessage(allTokenRanges, processedIntervals, true);
     }
-    
-    WorkerQueue *tokenQueue = (worker.front()) -> getTokenQueue();
-
-    // Add Termination token
-    for(size_t i = 0; i < worker.size(); ++i) {
-       tokenQueue->push(TokenRange(0, 0, ip));
-    }
-    
-    waitForSecondoWorker(worker);
 } 
-
 
       
 void executeSecondoCommand(vector<SecondoWorker*> &worker, 
@@ -537,11 +538,12 @@ void mainLoop(vector<SecondoWorker*> &worker,
         // commands in the past. => cqueryreset is executed,
         // clear secondo state and reset lastCommandId
         if(seenCommands < lastCommandId && lastCommandId > 0) {
+          cout << "Doing query reset" << endl;
           sleep(5); // Wait for system tables to be recreated
           lastCommandId = 0;
+          executeSecondoCommand(worker, string("close database"), seenCommands);
           updateLastCommand(cassandra, lastCommandId, cassandraIp);
           updateUuid(cassandra, uuid, cassandraIp);
-          executeSecondoCommand(worker, string("close database"), seenCommands);
           cout << "[Info] Reset complete, waiting for new queries" << endl;
         }
         
