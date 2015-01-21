@@ -157,6 +157,12 @@ Signature: mlabel -> (stream ulabel)
 Example  : query units(mlabel1) count
 Result   : 6
 
+Operator : no_components
+Number   : 1
+Signature: mlabel -> int
+Example  : query no_components(mlabel1)
+Result   : 6
+
 Operator : initial
 Number   : 12
 Signature: ulabel -> ilabel

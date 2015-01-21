@@ -1264,7 +1264,7 @@ ListExpr deftimeSymbolicTM(ListExpr args) {
 \subsubsection{Selection Function}
 
 */
-int deftimeUnitsAtinstantSymbolicSelect(ListExpr args) {
+int deftimeUnitsAtinstantNocomponentsSymbolicSelect(ListExpr args) {
   if (MLabel::checkType(nl->First(args))) return 0;
   if (MLabels::checkType(nl->First(args))) return 1;
   if (MPlace::checkType(nl->First(args))) return 2;
@@ -1364,6 +1364,63 @@ struct atinstantSymbolicInfo : OperatorInfo {
     syntax    = "_ atinstant _";
     meaning   = "Gets the intime value from a moving object corresponding to "
                 "the temporal value at the given instant.";
+  }
+};
+
+/*
+\subsection{Operator ~no\_components~}
+
+no\_components: mlabel -> int
+no\_components: mlabels -> int
+no\_components: mplace -> int
+no\_components: mplaces -> int
+
+\subsubsection{Type Mapping}
+
+*/
+ListExpr nocomponentsSymbolicTM(ListExpr args) {
+    if (nl->HasLength(args, 1)) {
+    ListExpr first = nl->First(args);
+    if (MLabel::checkType(first) || MLabels::checkType(first) ||
+        MPlace::checkType(first) || MPlaces::checkType(first)) {
+      return nl->SymbolAtom(CcInt::BasicType());
+    }
+  }
+  return listutils::typeError("Expects a symbolic trajectory.");
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class Mapping>
+int nocomponentsSymbolicVM(Word* args, Word& result, int message, Word& local,
+                           Supplier s) {
+  result = qp->ResultStorage(s);
+  CcInt* res = static_cast<CcInt*>(result.addr);
+  Mapping *src = static_cast<Mapping*>(args[0].addr);
+  if (src->IsDefined()) {
+    res->Set(true, src->GetNoComponents());
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsubsection{Operator Info}
+
+*/
+struct nocomponentsSymbolicInfo : OperatorInfo {
+  nocomponentsSymbolicInfo() {
+    name      = "no_components";
+    signature = "mlabel -> int";
+    appendSignature("mlabels -> int");
+    appendSignature("mplace -> int");
+    appendSignature("mplaces -> int");
+    syntax    = "no_components ( _ )";
+    meaning   = "Returns the number of units of the symbolic trajectory.";
   }
 };
 
@@ -2169,6 +2226,10 @@ int createunitrtreeVM(Word* args, Word& result, int message, Word& local,
   R_Tree<1, NewPair<TupleId, int> > *rtree =
     (R_Tree<1, NewPair<TupleId, int> >*)qp->ResultStorage(s).addr;
   result.setAddr(rtree);
+  if (!rtree->InitializeBulkLoad()) {
+    cout << "R-tree not initialized for bulk load" << endl;
+    return 0;
+  }
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
   int tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
   qp->Open(args[0].addr);
@@ -2188,7 +2249,7 @@ int createunitrtreeVM(Word* args, Word& result, int message, Word& local,
         if (doubleIv.IsDefined()) {
           NewPair<TupleId, int> position(tid->GetTid(), i);
           R_TreeLeafEntry<1, NewPair<TupleId, int> > entry(doubleIv, position);
-          rtree->Insert(entry);
+          rtree->InsertBulkLoad(entry);
         }
       }
     }
@@ -2196,6 +2257,9 @@ int createunitrtreeVM(Word* args, Word& result, int message, Word& local,
     qp->Request(args[0].addr, wTuple);
   }
   qp->Close(args[0].addr);
+  if (!rtree->FinalizeBulkLoad()) {
+    cout << "bulk load not finalized" << endl;
+  }
   return 0;
 }
 
@@ -3656,19 +3720,25 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     deftimeSymbolicVM<MLabels>, deftimeSymbolicVM<MPlace>,
     deftimeSymbolicVM<MPlaces>, 0};
   AddOperator(deftimeSymbolicInfo(), deftimeSymbolicVMs, 
-              deftimeUnitsAtinstantSymbolicSelect, deftimeSymbolicTM);
+            deftimeUnitsAtinstantNocomponentsSymbolicSelect, deftimeSymbolicTM);
   
   ValueMapping atinstantSymbolicVMs[] = {atinstantSymbolicVM<MLabel, ILabel>,
     atinstantSymbolicVM<MLabels, ILabels>, atinstantSymbolicVM<MPlace, IPlace>,
     atinstantSymbolicVM<MPlaces, IPlaces>, 0};
   AddOperator(atinstantSymbolicInfo(), atinstantSymbolicVMs,
-              deftimeUnitsAtinstantSymbolicSelect, atinstantSymbolicTM);
+          deftimeUnitsAtinstantNocomponentsSymbolicSelect, atinstantSymbolicTM);
+  
+  ValueMapping nocomponentsSymbolicVMs[] = {nocomponentsSymbolicVM<MLabel>,
+    nocomponentsSymbolicVM<MLabels>, nocomponentsSymbolicVM<MPlace>,
+    nocomponentsSymbolicVM<MPlaces>, 0};
+  AddOperator(nocomponentsSymbolicInfo(), nocomponentsSymbolicVMs,
+       deftimeUnitsAtinstantNocomponentsSymbolicSelect, nocomponentsSymbolicTM);
   
   ValueMapping unitsSymbolicVMs[] = {unitsSymbolicVM<MLabel, ULabel>,
     unitsSymbolicVM<MLabels, ULabels>, unitsSymbolicVM<MPlace, UPlace>, 
     unitsSymbolicVM<MPlaces, UPlaces>, 0};
   AddOperator(unitsSymbolicInfo(), unitsSymbolicVMs, 
-              deftimeUnitsAtinstantSymbolicSelect, unitsSymbolicTM);
+              deftimeUnitsAtinstantNocomponentsSymbolicSelect, unitsSymbolicTM);
   
   ValueMapping initialSymbolicVMs[] = {initialSymbolicVM<ULabel, ILabel>,
     initialSymbolicVM<ULabels, ILabels>, initialSymbolicVM<MLabel, ILabel>,
