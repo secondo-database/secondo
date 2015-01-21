@@ -82,36 +82,40 @@ Function ~DBScan::clusterAlgo~
    if( !((CcBool*)obj->GetAttribute(VIS))->GetValue() )
    {
     CcBool visited(true, true);
-    obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
+    obj->PutAttribute(VIS, visited.Clone());
     std::list<TupleId>* N = regionQuery(objs, obj, eps);
     int nSize = N->size();
     
     if(nSize < minPts)
     {
-     CcInt* distI = new CcInt;
-     distI->Set(NOISE);
-     obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
+     CcInt distI(true,NOISE);
+     obj->PutAttribute( CID, distI.Clone() );
     }
     else
     {
      clusterId = nextId();
-     CcInt* distI = new CcInt;
-     distI->Set(clusterId);
-     obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
+     CcInt distI(true, clusterId);
+     obj->PutAttribute( CID, distI.Clone() );
      
      std::list<TupleId>::iterator it;
      for (it = N->begin(); it != N->end(); it++)
      {
-      Tuple* point = objs->GetTuple(*it, true);
+      
+      Tuple* point = objs->InMemory()?objs->GetTuple(*it, true)
+                                     : objs->GetTuple(*it-1,true);
       if(((CcInt*)point->GetAttribute(CID))->GetValue() == UNDEFINED
       || ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
       {
        expandCluster(objs, point, clusterId, eps, minPts);
       }
+      point->DeleteIfAllowed();
      }
     }
+    delete N;
    }
+   obj->DeleteIfAllowed();
   }
+  delete relIter;
  }
 
 /*
@@ -122,14 +126,13 @@ Function ~DBScan::expandCluster~
  bool DBScan<dim>::expandCluster(TupleBuffer* objs, Tuple* obj, int clusterId,
   int eps, int minPts)
  {
-  CcInt* distI = new CcInt;
-  distI->Set(clusterId);
-  obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
+  CcInt distI(true, clusterId);
+  obj->PutAttribute( CID, distI.Clone() );
   
   if( !((CcBool*)obj->GetAttribute(VIS))->GetValue() )
   {
    CcBool visited(true, true);
-   obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
+   obj->PutAttribute(VIS, visited.Clone());
    std::list<TupleId>* N = regionQuery(objs, obj, eps);
    int nSize = N->size();
    
@@ -138,14 +141,17 @@ Function ~DBScan::expandCluster~
     std::list<TupleId>::iterator it;
     for (it = N->begin(); it != N->end(); it++)
     {
-     Tuple* point = objs->GetTuple(*it, true);
+     Tuple* point = objs->InMemory()?objs->GetTuple(*it, true) 
+                                    : objs->GetTuple(*it -1,true);
      if(((CcInt*)point->GetAttribute(CID))->GetValue() == UNDEFINED ||
      ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
      {
       expandCluster(objs, point, clusterId, eps, minPts);
      }
+     point->DeleteIfAllowed();
     }
    }
+   delete N;
   }
   return true;
  }
@@ -179,7 +185,8 @@ Function ~DBScan::regionQuery~
   {
    Tuple* curObj;
   
-   curObj = objs->GetTuple(*it, false);
+   curObj = objs->InMemory()?objs->GetTuple(*it, false) 
+                            : objs->GetTuple(*it -1 , false);
     
    if(obj != curObj)
    {
@@ -191,6 +198,7 @@ Function ~DBScan::regionQuery~
      near->push_back(*it);
     }
    }
+   curObj->DeleteIfAllowed();
   }
   return near;
  }

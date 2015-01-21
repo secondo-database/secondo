@@ -89,22 +89,20 @@ Function ~DBScanMT::clusterAlgo~
     CcBool visited(true, true);
     obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
 
-    std::list<TupleId>* N = regionQuery(objs, relIter->GetTupleId(), eps);
+    std::list<TupleId>* N = regionQuery(objs, obj->GetTupleId(), eps);
     
     int nSize = N->size();    
     
     if(nSize < minPts) 
     {
-     CcInt* distI = new CcInt;
-     distI->Set(NOISE);
-     obj->PutAttribute( CID, ((Attribute*)distI)->Clone() ); 
+     CcInt distI(true,NOISE);
+     obj->PutAttribute( CID, distI.Clone() ); 
     }   
     else
     {
      clusterId = nextId();
-     CcInt* distI = new CcInt;
-     distI->Set(clusterId);
-     obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
+     CcInt distI(true,clusterId);
+     obj->PutAttribute( CID, distI.Clone() );
      
      std::list<TupleId>::iterator it;
 
@@ -117,10 +115,14 @@ Function ~DBScanMT::clusterAlgo~
       {
        expandCluster(objs, *it, clusterId, eps, minPts);
       }
+      point->DeleteIfAllowed();
      }
     }
+    delete N;
    }
+   obj->DeleteIfAllowed();
   }
+  delete relIter;
  }
  
 /*
@@ -132,9 +134,8 @@ Function ~DBScanMT::expandCluster~
   int clusterId, int eps, int minPts)
  {
   Tuple* obj = objs->GetTuple(objId, false);
-  CcInt* distI = new CcInt;
-  distI->Set(clusterId);
-  obj->PutAttribute( CID, ((Attribute*)distI)->Clone() );
+  CcInt distI(true,clusterId);
+  obj->PutAttribute( CID, distI.Clone() );
 
   if( !((CcBool*)obj->GetAttribute(VIS))->GetValue() )
   {
@@ -159,9 +160,12 @@ Function ~DBScanMT::expandCluster~
      {
       expandCluster(objs, *it, clusterId, eps, minPts);
      }
+     point->DeleteIfAllowed();
     }  
    }
+   delete N; 
   }
+  obj->DeleteIfAllowed();;
   return true;
  }
  
@@ -190,6 +194,8 @@ Function ~DBScanMT::regionQuery~
     near->push_back(p.second);
    }
   }
+  obj->DeleteIfAllowed();
+  delete it;
   return near;
  }
  

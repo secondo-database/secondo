@@ -51,6 +51,7 @@ This file contains the implementation of the DBScanAlgebra.
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <utility>
 
 
 extern NestedList* nl;
@@ -178,10 +179,17 @@ Type mapping method ~dbscanType~ MMR-Tree
 Value mapping method ~dbscanRT~ MMR-Tree
 
 */
+
+struct dbscanLI{
+  TupleType* tt;
+  TupleBuffer* tp;
+  GenericRelationIterator* relIter;
+};
+
+
  template <int dim>
  int dbscanRT(Word* args, Word& result, int message, Word& local, Supplier s)
  {
-  GenericRelationIterator *relIter = 0;
   
   switch (message)
   {
@@ -210,7 +218,6 @@ Value mapping method ~dbscanRT~ MMR-Tree
     tp = 0;
     MaxMem = qp->FixedMemory();
     tp = new TupleBuffer(MaxMem);
-    relIter = 0;
 
     supplier = qp->GetSupplier(args[1].addr, 2);
     qp->Request(supplier, argument);
@@ -246,7 +253,8 @@ Value mapping method ~dbscanRT~ MMR-Tree
      newTuple->PutAttribute( attrCnt+1, ((Attribute*) &visited)->Clone());
        
      tp->AppendTuple(newTuple);
-     tup->DeleteIfAllowed(); 
+     tup->DeleteIfAllowed();
+     newTuple->DeleteIfAllowed(); 
     }
     
     stream.close();
@@ -267,24 +275,30 @@ Value mapping method ~dbscanRT~ MMR-Tree
      }
      obj->DeleteIfAllowed();
     }
+    delete relIter;
+
     DBScan<dim> cluster; 
     cluster.clusterAlgo(&rtree, tp, defEps, defMinPts, idxClusterAttr, 
         attrCnt, attrCnt+1);
 
+
     relIter = tp->MakeScan();
-    local.setAddr( relIter );
+    dbscanLI* li  = new dbscanLI();
+    li->tt = resultTupleType;
+    li->tp = tp;
+    li->relIter = relIter;
+    local.setAddr( li );
 
     return 0;
    }
    case REQUEST :
    {
-    relIter = (GenericRelationIterator *)local.addr;
-    
-    Tuple* curtup;
-    
-    if((curtup = relIter->GetNextTuple()))
+    dbscanLI* li = (dbscanLI*) local.addr;;
+    if(!li) return CANCEL;
+   
+    Tuple* curtup; 
+    if((curtup = li->relIter->GetNextTuple()))
     {  
-     curtup->DeleteIfAllowed();
      result.setAddr(curtup);
      return YIELD;
     }
@@ -293,8 +307,17 @@ Value mapping method ~dbscanRT~ MMR-Tree
      return CANCEL;
     }
    }
-   case CLOSE :
-   return 0;
+   case CLOSE :{
+      dbscanLI* li = (dbscanLI*) local.addr;;
+      if(li){
+        li->tt->DeleteIfAllowed();
+        delete li->relIter;
+        delete li->tp;
+        delete li;
+        local.addr=0;
+      }
+      return 0;
+   }
    }
    return 0;
  }
@@ -493,6 +516,7 @@ Value mapping method ~dbscanFunMT~ MMM-Tree
           
      tp->AppendTuple(newTuple);
      tup->DeleteIfAllowed(); 
+     newTuple->DeleteIfAllowed();
     }
     
     stream.close();
@@ -514,24 +538,33 @@ Value mapping method ~dbscanFunMT~ MMM-Tree
      
      obj->DeleteIfAllowed();
     }
+    delete relIter;
 
     dbscan.clusterAlgo(mtree, tp, defEps, defMinPts, idxClusterAttr, 
         attrCnt, attrCnt+1);
 
+    
     relIter = tp->MakeScan();
-    local.setAddr( relIter );
+    dbscanLI* li = new dbscanLI();
+    li->tp = tp;
+    li->tt = resultTupleType;
+    li->relIter = relIter;
+    local.setAddr( li );
+
+    delete mtree;
 
     return 0;
    }
    case REQUEST :
    {
-    relIter = (GenericRelationIterator *)local.addr;
+    dbscanLI* li = (dbscanLI*) local.addr;
+    if(!li) return CANCEL;
+    relIter = li->relIter;
     
     Tuple* curtup;
     
     if((curtup = relIter->GetNextTuple()))
     {  
-     curtup->DeleteIfAllowed();
      result.setAddr(curtup);
      return YIELD;
     }
@@ -540,8 +573,19 @@ Value mapping method ~dbscanFunMT~ MMM-Tree
      return CANCEL;
     }
    }
-   case CLOSE :
-   return 0;
+   case CLOSE :{
+      dbscanLI* li = (dbscanLI*) local.addr;
+      if(li){
+         li->tt->DeleteIfAllowed();
+         delete li->relIter;
+         delete li->tp;
+         delete li;
+         local.addr=0;
+      }
+      
+  
+      return 0;
+   }
    }
    return 0;
  }
