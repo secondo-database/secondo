@@ -12,17 +12,18 @@
 LANG=C
 
 # port for secondo (the port range $port - $port+$instances-1 will be used)
-port=11234
+port=12234
 
-# secondo worker instances
-instances=3
+# secondo worker instances (2 cores for the kernel and cassandra 
+# and the remaning cores for DSECONDO)
+instances=$(($(cat /proc/cpuinfo | grep processor | wc -l) - 2))
 
 # Keyspace to use
 keyspace="keyspace_r3"
 
 # Cassandra Nodes
 #nodes="node1 node2 node4 node5 node6"
-nodes="node1"
+nodes="node1 node2 node6"
 
 # Variables
 screensessionServer="dsecondo-server"
@@ -95,6 +96,7 @@ start_local() {
      cp ${SECONDO_CONFIG} $configuration
      sed -i "s/^SecondoPort=.*/SecondoPort=$instance_port/" $configuration
      sed -i "s/^SecondoHome=\(.*\)/SecondoHome=\1_$instance/" $configuration
+ #    sed -i "s/^RTFlags +=.*Server:BinaryTransfer/#RTFlags +=.*Server:BinaryTransfer/" $configuration
      secondoHome=$(grep ^SecondoHome $configuration | cut -d "=" -f 2) 
      mkdir -p $secondoHome
 
@@ -113,6 +115,7 @@ start_local() {
    
    screen -dmS $screensessionExecutor
    localIp=$(getIp "")
+   #execCommandsInScreen $screensessionExecutor "cd $SECONDO_BUILD_DIR/Algebras/Cassandra/tools/queryexecutor/" "./Queryexecutor -i $localIp -k $keyspace -s 127.0.0.1 -p $ports | tee /tmp/qe.log"
    execCommandsInScreen $screensessionExecutor "cd $SECONDO_BUILD_DIR/Algebras/Cassandra/tools/queryexecutor/" "./Queryexecutor -i $localIp -k $keyspace -s 127.0.0.1 -p $ports"
 }
 
