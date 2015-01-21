@@ -101,6 +101,7 @@ public:
         // connection failed, handle error
         cerr << "Cannot initialize secondo system" << endl;
         cerr << "Error message = " << errMsg << endl;
+        shutdown = true;
 
         return NULL;
      }
@@ -113,6 +114,13 @@ public:
    }
    
    void submitQuery(string &myQuery, size_t myQueryId) {
+      
+      if(shutdown) {
+         cout << "SECONDO worker is down [ " << secondoPort << " ]: " 
+              << "ignoring query" << endl;
+         return;
+      }
+      
       pthread_mutex_lock(&processMutex);
       
       queryComplete = false;
@@ -181,6 +189,13 @@ public:
 
    void mainLoop() {
       
+      if(si == NULL) {
+         cout << "---> [ " << secondoPort 
+              << " ]: Unable to connect to SECONDO, unable to start MainLoop" 
+              << endl;
+         return;
+      }
+      
       nl = si->GetNestedList();
       NList::setNLRef(nl);
       
@@ -200,6 +215,7 @@ public:
                while(true) {
                   TokenRange tokenRange = tokenQueue->pop();
                   
+                  // special terminal token
                   if(tokenRange.getStart() == 0 && tokenRange.getEnd() == 0) {
                      break;
                   }
