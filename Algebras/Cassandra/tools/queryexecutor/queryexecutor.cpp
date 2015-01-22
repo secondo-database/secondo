@@ -492,14 +492,17 @@ void mainLoop(vector<SecondoWorker*> &worker,
         
         cout << "Waiting for commands...." << endl;
         
-        CassandraResult* result = cassandra->getQueriesToExecute();
+        vector<CassandraQuery> result;
+        cassandra->getQueriesToExecute(result);
         size_t seenCommands = 0;
         
-        while(result != NULL && result -> hasNext()) {
-          size_t id = result->getIntValue(0);
+        while(!result.empty()) {
+           
+          CassandraQuery &query = result.back();
+           
+          size_t id = query.getQueryId();
+          string command = query.getQuery();
           
-          string command;
-          result->getStringValue(command, 1);
           QEUtils::replacePlaceholder(
              command, "__NODEID__", uuid);
           QEUtils::replacePlaceholder(
@@ -526,12 +529,8 @@ void mainLoop(vector<SecondoWorker*> &worker,
             updateUuid(cassandra, uuid, cassandraIp);
           }
           
+          result.pop_back();
           ++seenCommands;
-        }
-        
-        if(result != NULL)  {
-           delete result;
-           result = NULL;
         }
         
         // Command list is empty and we have processed 
