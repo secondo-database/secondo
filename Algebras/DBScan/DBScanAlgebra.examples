@@ -8,6 +8,12 @@ Example  : query Kneipen feed extend[B : bbox(.GeoData)] dbscanRT
      [B, No, 1000.0, 5] consume
 Result   : stream(Tuple)
 
+Operator : dbscanRT2
+Number   : 1
+Signature: stream(Tuple) -> stream(Tuple)
+Example  : query Kneipen feed extend[B : bbox(.GeoData)] dbscanRT2
+     [B, No, 1000.0, 5] consume
+Result   : stream(Tuple)
 
 Operator : dbscanDAC
 Number   : 1

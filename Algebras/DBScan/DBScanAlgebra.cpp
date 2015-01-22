@@ -48,6 +48,9 @@ This file contains the implementation of the DBScanAlgebra.
 #include "DBScanMT.h"
 #include "DistFunction.h"
 
+
+#include "DBScan2.h"
+
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -322,6 +325,44 @@ struct dbscanLI{
    return 0;
  }
  
+ template <int dim>
+ int dbscanRT2(Word* args, Word& result, int message, Word& local, Supplier s)
+ {
+  DBScanRT2<dim>* li = (DBScanRT2<dim>*) local.addr;  
+  switch (message)
+  {
+   case OPEN :
+   {
+    // arg0 : stream
+    Word stream = args[0];
+    Supplier supplier = qp->GetSupplier(args[1].addr, 2);
+    Word argument;
+    qp->Request(supplier, argument);
+    CcReal* eps = ((CcReal*)argument.addr);
+    supplier = qp->GetSupplier(args[1].addr, 3);
+    qp->Request(supplier, argument);
+    CcInt* minPts = ((CcInt*)argument.addr);
+    int cid = ((CcInt*)args[2].addr)->GetValue();
+    ListExpr resultType = GetTupleResultType( s );
+    ListExpr tt = ( nl->Second( resultType ) );
+    if(li) delete li;
+    size_t maxMem = (qp->GetMemorySize(s) * 1024);
+    local.addr = new DBScanRT2<dim>(stream,eps,minPts,cid,tt,maxMem);
+    return 0;
+  } 
+  case REQUEST:
+     result.addr= li?li->next():0;
+     return result.addr?YIELD:CANCEL;
+  case CLOSE:{
+     if(li){
+        delete li;
+        local.addr=0;
+     }
+  }
+  }
+  return 0;
+}
+    
  
  
 /*
@@ -1338,6 +1379,24 @@ Struct ~dbscanInfoRT~
   }
  };
  
+
+ struct dbscanInfoRT2 :  OperatorInfo
+ {
+  dbscanInfoRT2() : OperatorInfo()
+  {
+   name      = "dbscanRT2";
+   signature = "stream(Tuple) -> stream(Tuple)";
+   syntax    = "_ dbscanRT [_, _, _, _]";
+   meaning   = "Detects cluster from a given stream using MMR-Tree as index "
+   "structure. The first parameter has to be a bbox, the second parameter is "
+   "the name for the cluster ID attribute, the  third paramter is eps and "
+   "the fourth parameter is MinPts. A tuple stream will be returned but the "
+   "tuple will have additional attributes as bbox, visited and clusterID";
+   example   = "query Kneipen feed extend[B : bbox(.GeoData)] dbscanRT "
+       "[B, No, 1000.0, 5] consume";
+  }
+ };
+ 
 /*
 Struct ~dbscanInfoDAC~
 
@@ -1464,6 +1523,14 @@ Selection method ~dbscanRRecSL~
    ,dbscanRT<8>
  };
  
+ ValueMapping dbscanRT2VM[] = 
+ {
+    dbscanRT2<2>
+   ,dbscanRT2<3>
+   ,dbscanRT2<4>
+   ,dbscanRT2<8>
+ };
+ 
 
 /*
 Selection method for value mapping array ~dbscanMTDisSL~
@@ -1578,6 +1645,8 @@ Algebra class ~ClusterDBScanAlgebra~
    ClusterDBScanAlgebra() : Algebra()
    {
     AddOperator(dbscanInfoRT(), dbscanRRecVM, dbscanRRecSL, dbscanTypeRT);
+    AddOperator(dbscanInfoRT2(), dbscanRT2VM, 
+                                dbscanRRecSL, dbscanTypeRT)->SetUsesMemory();
     AddOperator(dbscanInfoDAC(), dbscanFunDAC, dbscanTypeDAC);
     AddOperator(dbscanInfoMT(), dbscanMTDisVM, dbscanMTDisSL, dbscanTypeMT);
     AddOperator(dbscanInfoMTF(),dbscanMTFDisVM, dbscanMTFDisSL, dbscanTypeMTF);
