@@ -84,7 +84,7 @@ can be used.  Note that the returned tuple ids are not nessecary increasing.
       t->PinAttributes();
       overflow->AppendTupleNoLOBs(t);
       TupleId newId = t->GetTupleId();
-      return (TupleId) (newId + firstElems.size());
+      return (TupleId) (newId + firstElems.size()-1);
   }
 /*
 ~Destructor~
@@ -115,7 +115,7 @@ Retrieves a tuple by id. If no corresponding tuple is found,
        assert(res);
        return res;
     } else {
-       return overflow->GetTuple(tid - firstElems.size(),false);
+       return overflow->GetTuple(tid - firstElems.size()+1,false);
     }
   }
 

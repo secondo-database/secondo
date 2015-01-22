@@ -39,6 +39,9 @@ This tuple store used a chache and a relation to store tuples.
 #include <vector>
 
 
+
+
+
 class TupleStore1{
 public:
 
@@ -77,6 +80,86 @@ Retrieves a tuple by id. If no corresponding tuple is found,
 */
 
   Tuple* GetTuple(const TupleId tid);
+
+
+
+  class TupleStore1Iterator : public GenericRelationIterator{
+    public:
+      TupleStore1Iterator(TupleStore1* _buffer): pos(0), buffer(_buffer),pIt(0){
+      }
+
+      Tuple* GetNextTuple(){
+         Tuple* res;
+         if(pos < buffer->firstElems.size()){
+            res = buffer->firstElems[pos];
+            res->IncReference();
+         } else if(!buffer->overflow){
+            res = 0;
+         } else {
+            if(!pIt){
+            //  cout << "create Scan" << endl;
+              pIt = buffer->overflow->MakeScan();
+            }
+            res = pIt->GetNextTuple();
+         }
+         if(res) pos++;
+         return res;  
+      }
+
+      TupleId GetTupleId() const{
+          //cout << " << GetTupleId called" << endl;
+          if(pos==0) return 0;
+          size_t pos1 = pos -1;
+          if(pos1 < buffer->firstElems.size()){
+            // cout << "case 1" << endl;
+             return pos1;
+          }
+          if(!buffer->overflow){
+             cout << "case 2" << endl;
+             return 0;
+          }
+          //cout << "case 3" << endl;
+          if(!pIt){
+             pIt = buffer->overflow->MakeScan();
+          }
+          return pIt->GetTupleId() + buffer->firstElems.size()-1;
+      }
+
+      ~TupleStore1Iterator(){
+          if(pIt) {
+             delete pIt;
+          }
+      }
+
+
+    private:
+      size_t pos;
+      TupleStore1* buffer;
+      mutable GenericRelationIterator* pIt;
+  };
+  
+  TupleStore1Iterator* MakeScan() {
+     return new TupleStore1Iterator(this);
+  }
+
+
+  bool usesDisk() const{
+      return useOverflow;
+  }
+  
+  size_t countMMTuples() const{
+     return firstElems.size();
+  }
+  
+  size_t countDiskTuples() const{
+     if(!overflow) return 0;
+     return overflow->GetNoTuples();
+  }
+ 
+  size_t size() const{
+    return firstElems.size() + countDiskTuples();
+  }
+
 
 private:
    vector<Tuple*> firstElems; // cache
