@@ -96,6 +96,8 @@ parameters for the minimum/ maximum number of entries within a node.
       }
    }
 
+   Rectangle<dim> getBBox() const;
+
 
 /*
 2.2 ~insert~
@@ -1803,6 +1805,11 @@ bool RtreeT<dim,T>::checkLeafLevel(const Node<dim,T>* root,
 }
 
 
+template<unsigned dim, class T>
+Rectangle<dim> RtreeT<dim,T>::getBBox() const{
+     if(root) return root->box; 
+     return Rectangle<dim>(false);
+}
 
 
 } // end of namespace
