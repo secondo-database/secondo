@@ -1949,7 +1949,7 @@ public:
   CQueryListLocalInfo(ListExpr type, string myContactPoint, string myKeyspace)
   
     : contactPoint(myContactPoint), keyspace(myKeyspace),
-    cassandra(NULL), result(NULL) {
+    cassandra(NULL) {
 
 #ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
@@ -1987,37 +1987,33 @@ public:
        cassandra = CassandraConnectionPool::Instance()->
           getConnection(contactPoint, keyspace, false);
           
-      result = cassandra -> getQueriesToExecute();
+      cassandra -> getQueriesToExecute(result);
     }
   }
 
   Tuple* fetchNextTuple() {
     
-    if(result != NULL && result->hasNext()) {
-      
-      // Error while fetching data from cassandra
-      if(result == NULL) {
-        return NULL;
-      }
-      
+    if(! result.empty()) {
+      CassandraQuery &query = result.back();
+       
       static char c = 0; 
       static string nullstr( &c,1);
       Tuple* resultTuple = BasicTuple->Clone();
 
       // Attribute 0
       Attribute* attr0 = instances[0]->Clone();
-      size_t id = result->getIntValue(0);
+      
       stringstream ss;
-      ss << id;
+      ss << query.getQueryId();
       attr0->ReadFromString(ss.str());
       resultTuple->PutAttribute(0,attr0);
       
       // Attribute 1
       Attribute* attr1 = instances[1]->Clone();
-      string myResult;
-      result -> getStringValue(myResult, 1);
-      attr1->ReadFromString(myResult);
+      attr1->ReadFromString(query.getQuery());
       resultTuple->PutAttribute(1,attr1);
+      
+      result.pop_back();
       
       return resultTuple;
     }
@@ -2026,11 +2022,7 @@ public:
   }
   
   virtual ~CQueryListLocalInfo() {
-    if(result != NULL) {
-      delete result;
-      result = NULL;
-    }
-    
+
     if(BasicTuple){
        delete BasicTuple;
        BasicTuple = 0;
@@ -2052,7 +2044,7 @@ public:
   string contactPoint;         // Contactpoint for our cluster
   string keyspace;             // Keyspace
   CassandraAdapter* cassandra; // Our cassandra connection
-  CassandraResult* result;     // Query result
+  vector<CassandraQuery> result;  // Query result
   TupleType* tupleType;        // Tuple Type
   Tuple* BasicTuple;           // Basic tuple
   vector<Attribute*> instances; // Instaces of attributes

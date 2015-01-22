@@ -909,9 +909,33 @@ bool CassandraAdapter::dropMetatables() {
   return true;
 }
 
-CassandraResult* CassandraAdapter::getQueriesToExecute() {
-  return readDataFromCassandra
+bool querySortFunction (CassandraQuery a, CassandraQuery b) { 
+   return (a.getQueryId() > b.getQueryId()); 
+}
+
+void CassandraAdapter::getQueriesToExecute(vector<CassandraQuery> &result) {
+  CassandraResult* queries = readDataFromCassandra
             ("SELECT id, query from system_queries", CASS_CONSISTENCY_ALL);
+  
+  while(queries != NULL && queries->hasNext()) {
+     
+     // Error while fetching data from cassandra
+     if(queries == NULL) {
+       return;
+     }
+     
+     size_t id = queries->getIntValue(0);
+     string myResult;
+     queries -> getStringValue(myResult, 1);
+     result.push_back(CassandraQuery(id, myResult));
+  }
+  
+  if(queries != NULL) {
+     delete queries;
+     queries = NULL;
+  }
+  
+  sort(result.begin(), result.end(), querySortFunction);
 }
 
 CassandraResult* CassandraAdapter::getGlobalQueryState() {

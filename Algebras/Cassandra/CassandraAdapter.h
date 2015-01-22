@@ -55,6 +55,7 @@
 #include <cassandra.h>
 #include <algorithm>
 #include <limits.h>
+#include <vector>
 
 #include "CassandraResult.h"
 
@@ -264,7 +265,28 @@ inline std::ostream& operator<<(std::ostream &strm,
               << "ip=" << tokenInterval.getIp() << "]" << endl;
 }
 
+/*
+2.4 CassandraQuery wrapper class
 
+*/
+class CassandraQuery {
+public:
+   CassandraQuery(size_t myQueryId, string &myQuery) 
+      : queryId(myQueryId), query(myQuery) 
+   {}
+
+   size_t getQueryId() {
+      return queryId;
+   }
+   
+   string getQuery() {
+      return query;
+   }
+
+private:
+   size_t queryId;
+   string query;
+};
 
 /*
 2.3 Adapter for cassandra
@@ -525,7 +547,7 @@ a valid result. False otherweise
 2.3.16 Get a cassandraResult with queries to execute
 
 */    
-  CassandraResult* getQueriesToExecute();
+  void getQueriesToExecute(vector<CassandraQuery> &result);
 
 /*
 2.3.17 Quote CQL Statement
@@ -690,6 +712,8 @@ private:
   std::vector<CassFuture*> pendingFutures;             
       
 };
+
+
 
 } // Namespace
 
