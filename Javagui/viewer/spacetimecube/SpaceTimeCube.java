@@ -20,7 +20,6 @@
 
 package viewer.spacetimecube;
 
-import gui.*;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
@@ -37,10 +36,7 @@ import tools.downloadmanager.DownloadEvent;
 import tools.downloadmanager.DownloadManager;
 import tools.downloadmanager.DownloadObserver;
 import tools.downloadmanager.DownloadState;
-import tools.Cache;
 import tools.Pair;
-import viewer.hoese.CachedImage;
-import viewer.hoese.ImgLoader;
 import viewer.SpaceTimeCubeViewer;
 
 /**
@@ -86,12 +82,17 @@ public class SpaceTimeCube {
 	private long minZnoLimit, maxZnoLimit;
 	
 	private OSMMercator osmm;
-	private String[] tilePaths; // list of all paths to tiles
+	private int tileAmount; // amount of tiles to download
 	private int downloadsDone; // each tile-download is counted
-	private boolean downloadsCompleted; // true if all tiles have been downloaded
 	private SpaceTimeCubeViewer STCviewer;
 	private Vector<Vector> pointArrays; // stores arrays of points (Point3DSTC)
 	private int[] indexesAfterFilter; // stores which indexes in mPointsVector are still used after filtering
+	
+	// shared variables for map download and generation
+	private int xCount, yCount;
+	private String[] tilePaths;
+	private double xySTCproj;
+	private LinkedList<Pair<URL, AffineTransform>> urls;
 	
 	// variables for tile handling
 	private static final String PROTOCOL = "http";
@@ -300,13 +301,6 @@ public class SpaceTimeCube {
 	public int[] getIndexesAfterFilter() { return indexesAfterFilter; }
 	
 	/**
-	 * Check if all tiles have been downloaded completely.
-	 * @return
-	 * 		true if all tiles have been downloaded.
-	 */
-	public boolean downloadsCompleted() { return downloadsCompleted; }
-	
-	/**
 	 * Computations will be performed like
 	 * - borders of the SpaceTimeCube as world coordinates and projected values
 	 * - points of the MPoints are stored into a vector
@@ -395,6 +389,7 @@ public class SpaceTimeCube {
 					lastInd = i;
 	
 					if (worldcoord) {
+						downloadsDone = 0;
 						if (x[a]<-180 || x[a] >180 || y[a]>90 || y[a]<-90) {
 							worldcoord = false;
 							recompute();
@@ -511,23 +506,22 @@ public class SpaceTimeCube {
 	}
 	
 	/**
-	 * Generates an image/map cropped according to the size of the SpaceTimeCube.
-	 * Steps:
-	 * 	- bounding box of the SpaceTimeCube in world coordinates is calculated (clipRect)
-	 * 	- Tile URLs are calculated and tiles downloaded (as per clipRect)
-	 * 	- bounding box of all tiles in world coordinates is calculated (bboxTilesOrig)
-	 * 	- BufferedImage is built out of single tiles (result)
-	 * 	- Built image is cropped to the size of the SpaceTimeCube
-	 *  @return
-	 *  	map as BufferedImage.
+	 * Downloads all necessary tiles from OSM tiles interface
+	 * based on the currently maintained MPoints in the STC.
+	 * @return
+	 * 		true if all tiles have been downloaded or STC is not based on world coordinates
+	 * 		false if downloads are going on
 	 */
-	public BufferedImage generateMap() {
-		if (worldcoord) {
+	public boolean downloadMap() {
+		/*
+		 * 	Bounding box of the SpaceTimeCube in world coordinates is calculated (clipRect).
+		 * 	Tile URLs are calculated and tiles downloaded (as per clipRect).
+		 */
+		if (worldcoord && mPointsVector.size()>0) {			
 			DownloadManager downloadManager;
 			
 			double widthSTCproj = Math.abs(maxXproj - minXproj);
 			double heightSTCproj = Math.abs(maxYproj - minYproj);
-			double xySTCproj;
 			
 			if (widthSTCproj > heightSTCproj) xySTCproj = widthSTCproj;
 			else xySTCproj = heightSTCproj;
@@ -561,7 +555,7 @@ public class SpaceTimeCube {
 					MINZOOMLEVEL, MAXZOOMLEVEL, baseUrl, prefix);
 			
 			try {
-				downloadManager = new DownloadManager(new File(PATH), MAXDOWNLOADS, true);
+				downloadManager = new DownloadManager(new File(PATH), MAXDOWNLOADS, false);
 			} catch (Exception e) {
 				System.err.println("Problem in initiating download manager");
 				downloadManager = null;
@@ -574,10 +568,8 @@ public class SpaceTimeCube {
 					SpaceTimeCube.this.downloadStateChanged(evt);
 				}
 			};
-			Cache<CachedImage, ImgLoader> imageCache = new Cache<CachedImage, ImgLoader>(CACHESIZE,
-					new ImgLoader());
 			
-			LinkedList<Pair<URL, AffineTransform>> urls = osmmapper.computeURLs((Rectangle2D.Double) clipRect);
+			urls = osmmapper.computeURLs((Rectangle2D.Double) clipRect);
 					
 			/*
 			 *  Check if amount of tile rows and columns is identical.
@@ -585,7 +577,6 @@ public class SpaceTimeCube {
 			 *  to get a quadratic image finally.
 			 */
 			int z=0, x0=0, y0=0, x=0, y=0, counter;
-			int xCount, yCount;
 			
 			do {
 				counter=0;
@@ -621,35 +612,46 @@ public class SpaceTimeCube {
 			
 			Iterator<Pair<URL, AffineTransform>> it = urls.iterator();
 			
-			double xImage=0;
-			double yImage=0;
-			counter=0;
-			x = 0;
-			y = 0;
-			z = 0;
-			x0 = 0;
-			y0 = 0;
-			double[] heights = new double[urls.size()];
-			double[] widths = new double[urls.size()];
-			tilePaths = new String[urls.size()];
+			tileAmount = urls.size();
 			downloadsDone = 0;
-			downloadsCompleted = false;
-			boolean sthToDownload = false;
 			while (it.hasNext()) {
 				URL url = it.next().first();
 				File f = downloadManager.getURL(url, observer);
-				if (f==null) sthToDownload=true;
+				if (f == null) STCviewer.showLoadingDialog(true);
 				else if (f != null) { // url already downloaded
 					downloadsDone++;
-					CachedImage cimg = imageCache.getElem(f);
-					if (cimg == null) {
-						System.err.println("could not load image from file " + f);
-						f.delete();
-						sthToDownload=true;
-						downloadsDone--;
-					}
 				}
-				
+				if (downloadsDone == tileAmount) {
+					STCviewer.showLoadingDialog(false);
+					return true;
+				}
+			}
+			return false; // downloads are going on
+		}
+		else return true; // STC is not based on world coordinates
+	}
+	
+	/**
+	 * Generates an image/map cropped according to the size of the SpaceTimeCube.
+	 * Steps:
+	 * 	- bounding box of all tiles in world coordinates is calculated (bboxTilesOrig)
+	 * 	- BufferedImage is built out of single tiles (result)
+	 * 	- Built image is cropped to the size of the SpaceTimeCube
+	 *  @return
+	 *  	map as BufferedImage.
+	 */
+	public BufferedImage generateMap() {
+		if (worldcoord) {
+			
+			Iterator<Pair<URL, AffineTransform>> it = urls.iterator();
+			double xImage=0, yImage=0;
+			int counter=0;
+			int x=0, y=0, z=0;
+			double[] heights = new double[urls.size()];
+			double[] widths = new double[urls.size()];
+			tilePaths = new String[urls.size()];
+			while (it.hasNext()) {
+				URL url = it.next().first();		
 				String temp = url.getPath();
 				tilePaths[counter] = temp;
 				temp = temp.substring(1, temp.lastIndexOf("."));
@@ -662,8 +664,6 @@ public class SpaceTimeCube {
 	 			if (counter==0) {
 	 				xImage = bboxTile.x;
 	 				yImage = bboxTile.y;
-	 				x0 = x;
-	 				y0 = y;
 	 			} else {
 	 				if (bboxTile.x < xImage) {
 	 					xImage = bboxTile.x;
@@ -677,12 +677,7 @@ public class SpaceTimeCube {
 	 			
 	 			counter++;
 			}
-					
-			if (!sthToDownload) {
-				downloadsDone = tilePaths.length;
-				downloadsCompleted = true;
-			}
-						
+			
 			double width=0;
 			double height=0;
 			
@@ -749,10 +744,7 @@ public class SpaceTimeCube {
 			
 			return result;
 		}
-		else {
-			downloadsCompleted = true;
-			return null;
-		}
+		return null;
 	}
 	
 	/**
@@ -762,7 +754,6 @@ public class SpaceTimeCube {
 		mPointsVector.clear();
 		pointArrays.clear();
 		limitSet = false;
-		tilePaths = null;
 		recompute();
 	}
 	
@@ -776,13 +767,10 @@ public class SpaceTimeCube {
 		DownloadState state = evt.getState();
 		ActiveDownload ad = evt.getSource();
 		if (state == DownloadState.DONE) {
-			downloadsDone++;
-			if (downloadsDone == tilePaths.length) {
-				downloadsCompleted = true;
-				Vector<SecondoObject> SOlist = STCviewer.getSecondoObjectList();
-				SecondoObject tmpSO = SOlist.get(SOlist.size()-1);
-				SOlist.remove(SOlist.size()-1);
-				STCviewer.addObject(tmpSO);
+			downloadsDone++;			
+			if (downloadsDone == tileAmount) {
+				STCviewer.showLoadingDialog(false);
+				STCviewer.recompute();
 			}
 		}
 		else if (state == DownloadState.BROKEN) {

@@ -32,9 +32,10 @@ import java.awt.geom.*;
 import java.awt.image.BufferedImage;
 import java.sql.Timestamp;
 import java.util.*;
+
 import javax.media.j3d.*;
 import javax.swing.*;
-import javax.swing.border.LineBorder;
+import javax.swing.border.*;
 import javax.swing.event.*;
 import javax.vecmath.Color3f;
 import javax.vecmath.Point3d;
@@ -53,7 +54,7 @@ import viewer.spacetimecube.*;
  *
  */
 public class SpaceTimeCubeViewer extends SecondoViewer implements 
-			ActionListener, ChangeListener, MouseListener, ItemListener {
+			ActionListener, ChangeListener, MouseListener, ItemListener, ComponentListener {
 	
 	private MenuVector MenuExtension;
 	private JMenuItem miShowSettings;
@@ -78,7 +79,7 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	private JLabel zMinLabel, zMaxLabel;
 	private JLabel labelDateMap, labelTimeMap;
 			// labels for timestamp connected to map slider
-	private JButton butSubmit, butRetry, butReset, butBack;
+	private JButton butSubmit, butRetry, butReset, butBack, butMapTimeStart, butMapTimeEnd;
 	private JFrame frameLoad, frameMPoint;	// frameLoad = dialog when loading of the map takes time
 								// frameMPoint = frame showing additional information when right-clicking a mpoint  
 	private View2DSTC panelMapOverview; // panel on the top right showing the 2D map
@@ -91,7 +92,9 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	private Vector<LastLimits> lastLimits;
 			// stores all filter values to make "back"-button work multiple times
 	private JComboBox cbView;
-	private Vector<double[]> views; // stores values for "lookat"-method
+	private Vector<double[]> views; // stores rotation values
+	private double[] referenceView = {0, 0, 0};
+	private double factorCanvas = 1; // ratio between canvas width and height
 	//< Settings (from settings dialog)
 	private Hashtable<ID, float[]> colorSO; // color information for each SecondoObject in the STC
 	private boolean drawVertLines = false; // switch for drawing vertical lines
@@ -105,6 +108,8 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	 * for common attributes and setting initial layout.
 	 */
 	public SpaceTimeCubeViewer(){
+		
+		this.addComponentListener(this);
 		
 		MenuExtension = new MenuVector();
 		STCMenu = new JMenu("STC-Viewer");
@@ -120,29 +125,26 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		lastLimits = new Vector<LastLimits>();
 		colorSO = new Hashtable<ID, float[]>();
 		
-		views = new Vector<double[]>();
-		double[] viewOverview = {0.5, -1.0, 0.65, 0, 0, 1}; // overview view
-		double[] viewTop = {0, 0, 0.75, 0, 1, 0}; // top view
-		double[] viewFront = {0, -0.75, 0, 0, 0, 1}; // front view
-		// all defined views are added to the views vector
-		views.add(viewOverview);
-		views.add(viewTop);
-		views.add(viewFront);
-		
 		// combobox holding all view possibilities
 		cbView = new JComboBox();
 		cbView.addItemListener(this);
 		cbView.addItem("---------");
 		cbView.addItem("Overview");
-		cbView.addItem("Top");
 		cbView.addItem("Front");
+		cbView.addItem("Top");
 		
 		// buttons in this viewer
 		butSubmit = new JButton("OK");
 		butBack = new JButton("Back");
 		butReset = new JButton("Reset");
 		butRetry = new JButton("Retry");
-		
+		butMapTimeStart = new JButton("set map time");
+		butMapTimeEnd = new JButton("set map time");
+		butMapTimeStart.setFont(new Font("Arial", Font.BOLD, 10));
+		butMapTimeEnd.setFont(new Font("Arial", Font.BOLD, 10));
+	    butMapTimeStart.setMargin(new Insets(1,2,1,2));
+	    butMapTimeEnd.setMargin(new Insets(1,2,1,2));
+	 
 		// spinners in this viewer
 		rotXspinner = new JSpinner();
 		rotXspinner.setPreferredSize(new Dimension(45, rotXspinner.getPreferredSize().height));
@@ -202,6 +204,12 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		panelBut.add(butSubmit);
 		panelBut.add(butBack);
 		panelBut.add(butReset);
+		JPanel panelStartTime = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+		JPanel panelEndTime = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+		panelStartTime.add(zMinLabel);
+		panelStartTime.add(butMapTimeStart);
+		panelEndTime.add(zMaxLabel);
+		panelEndTime.add(butMapTimeEnd);
 		panelMapOverview = new View2DSTC(); // this is the 2D map on the top right
 		panelMapOverview.setPreferredSize(new Dimension(250,250)); // size of the 2D map !
 		panelMapOverview.setBorder(new LineBorder(Color.BLUE, 1));
@@ -267,8 +275,8 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		gbcSettings.gridheight=1;
 		gbcSettings.gridwidth=1;
 		gbcSettings.weightx=1;
-		gblSettings.setConstraints(zMinLabel, gbcSettings);
-		panelSettings.add(zMinLabel);
+		gblSettings.setConstraints(panelStartTime, gbcSettings);
+		panelSettings.add(panelStartTime);
 		gbcSettings.weightx=0;
 		
 		gbcSettings.gridx=2;
@@ -299,8 +307,8 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		gbcSettings.gridheight=1;
 		gbcSettings.gridwidth=1;
 		gbcSettings.weightx=1;
-		gblSettings.setConstraints(zMaxLabel, gbcSettings);
-		panelSettings.add(zMaxLabel);
+		gblSettings.setConstraints(panelEndTime, gbcSettings);
+		panelSettings.add(panelEndTime);
 		gbcSettings.weightx=0;
 		
 		gbcSettings.gridx=2;
@@ -403,12 +411,6 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		transform = new Transform3D(); // base transform for the whole cube
 		transformMap = new Transform3D();
 		
-		// setting the initial view (overview)
-		Point3d eye = new Point3d(views.get(0)[0],views.get(0)[1],views.get(0)[2]);
-		Point3d center = new Point3d(0.0,0.0,0.0);
-		Vector3d up = new Vector3d(0,0,1);
-		transform.lookAt(eye, center, up);
-		
 		canvas = new Canvas3D(SimpleUniverse.getPreferredConfiguration());
 		add(canvas,BorderLayout.CENTER);
 		 
@@ -425,8 +427,6 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		topBackLeft = new Point3d(-0.5+0,-0.5+1,-0.5+1);
 		topBackRight = new Point3d(-0.5+1,-0.5+1,-0.5+1);
 		
-		zMinSlide.addChangeListener(this);
-		zMaxSlide.addChangeListener(this);
 		rotXspinner.addChangeListener(this);
 		rotZspinner.addChangeListener(this);
 		butSubmit.addActionListener(this);
@@ -434,6 +434,8 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		butBack.addActionListener(this);
 		butBack.setEnabled(false);
 		butRetry.addActionListener(this);
+		butMapTimeStart.addActionListener(this);
+		butMapTimeEnd.addActionListener(this);
 		
 		// definition of dialog when loading of the map takes time (frameLoad)
 		GridBagConstraints gbcLoad = new GridBagConstraints();
@@ -468,6 +470,15 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		gbcLoad.insets = new Insets(2,2,2,2);
 		gblLoad.setConstraints(new JLabel(), gbcLoad);
 		frameLoad.setSize(230,130);
+		
+		// all defined views are added to the views vector
+		views = new Vector<double[]>();
+		double[] viewOverview = {25,0,-25}; // {rotationX, rotationY, rotationZ}
+		double[] viewFront = {0,0,0}; // similar to reference view !!!
+		double[] viewTop = {90,0,0};
+		views.add(viewOverview);
+		views.add(viewFront);
+		views.add(viewTop);
 	}
 	
 	 /**
@@ -586,31 +597,21 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	  */
 	 public boolean addObject(SecondoObject o){
 		 
-		 Calendar rightNow = Calendar.getInstance();
-		 long ts1 = rightNow.getTimeInMillis();
-		 
 		 if(isDisplayed(o)) { return true; }
-		 
+		 try {
 		 MPointQuery mpQuery = new MPointQuery();
 		 		 
 		 if (mpQuery.readFromSecondoObject(o)) {
 			 STC.addMPointsVector(mpQuery.getMPointsVector());	 
 		 }
-		 drawMap();
 
 		 float[] tmpCol = {1, 0, 0};
 		 colorSO.put(o.getID(), tmpCol);
 		 
-		 recompute();
-
 		 objectList.add(o);
-		 
-		 rightNow = Calendar.getInstance();
-		 long ts2 = rightNow.getTimeInMillis();
-		 double timeToAdd = ((double)(ts2 - ts1)/1000); // in seconds
-		 System.out.println("Time to add SecondoObject to STC-Viewer: "+timeToAdd+" seconds");
-		 
-		 return true;
+		 recompute();
+		 } catch (Exception e) { e.printStackTrace(); }
+		 return true; 
 	}
 	 
 	 /**
@@ -684,6 +685,14 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	    	 frameSettings.setLocation(getLocationOnScreen().x+(getWidth()/2)-frameSettings.getWidth()/2,
 						 getLocationOnScreen().y+(getHeight()/2)-frameSettings.getHeight()/2);
 	    	 frameSettings.setVisible(true);
+		 }
+		 // "set map time" button regarding start time clicked
+		 else if (e.getSource() == butMapTimeStart) {
+			 zMinSlide.setValue(mapSlide.getValue());
+		 }
+		 // "set map time" button regarding end time clicked
+		 else if (e.getSource() == butMapTimeEnd) {
+			 zMaxSlide.setValue(mapSlide.getValue());
 		 }
 	 }
 	 
@@ -760,14 +769,21 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 			 int ind = cbView.getSelectedIndex();
 			 if (ind > 0) {
 				 ind-=1;
-				 Point3d eye = new Point3d(views.get(ind)[0],views.get(ind)[1],views.get(ind)[2]);
-				 Vector3d up = new Vector3d(views.get(ind)[3],views.get(ind)[4],views.get(ind)[5]);
+				 Point3d eye = new Point3d(referenceView[0],referenceView[1],referenceView[2]);
+				 Vector3d up = new Vector3d(0,0,1);
 				 Point3d center = new Point3d(0.0,0.0,0.0); // (0,0,0) is the center of the cube
-				 Transform3D actualTransform = new Transform3D();
-				 tg.getTransform(actualTransform);
-				 actualTransform.lookAt(eye, center, up);
-				 tg.setTransform(actualTransform);
 				 
+				 Transform3D tfRot = new Transform3D();
+				 Transform3D transform = new Transform3D();
+				 transform.lookAt(eye, center, up);
+				 tfRot.rotX(views.get(ind)[0]/57.295); // convert from radian to degree
+				 transform.mul(tfRot); // multiply the actual transform with the rotated one
+				 tfRot.rotY(views.get(ind)[1]/57.295);
+				 transform.mul(tfRot);
+				 tfRot.rotZ(views.get(ind)[2]/57.295);
+				 transform.mul(tfRot);
+				 tg.setTransform(transform);
+				 				 
 				 rotXspinner.setValue(new Integer(0));
 				 rotZspinner.setValue(new Integer(0));
 			 }
@@ -886,6 +902,19 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	 
 	 public void mouseExited(MouseEvent e) { }
 	 
+	 /*
+	  * Views need to be recalculated because canvas width-height-ratio might have changed.
+	  */
+	 public void componentResized(ComponentEvent e) {
+		 if (e.getSource() == this) {
+			 computeReferenceView();
+		 }
+	 }
+	 
+	 public void componentHidden(ComponentEvent e) { }
+	 public void componentMoved(ComponentEvent e) { }
+	 public void componentShown(ComponentEvent e) { }
+	 
 	 public MenuVector getMenuVector(){
 		 return MenuExtension;
 	 }
@@ -954,15 +983,20 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	 
 	 /**
 	  * Following computations are done:
-	  * 1. Extraction of points out of all MPoints.
-	  * 2. Creation of linestriparrays based on "1.".
-	  * 3. Map will be drawn.
+	  * 1. Map is drawn.
+	  * 2. Extraction of points out of all MPoints.
+	  * 3. Creation of linestriparrays based on "1.".
 	  * 4. Creation of the 'outside' of the cube including axis, labels, etc..
 	  * 5. Lines and map are added to the basic TransformGroup and the TG is added to a BranchGroup.
-	  * 6. Behaviors are added to the BranchGroup.
+	  * 6. Set views depending on canvas width.
+	  * 7. Behaviors are added to the BranchGroup.
 	  */
 	 public void recompute() {
-
+		 
+		 if (STC.downloadMap()) {
+			 
+		 drawMap();
+		 
 		 if (lastLimits.size()>0) butBack.setEnabled(true); // if there is sth. to go back to
 		 else butBack.setEnabled(false);
 			 
@@ -1093,97 +1127,99 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 			 mPointShapes.add(new Shape3D(la));
 		 }
 		 
-		 // drawing map
-		 drawMap();
+		 if (lastBg!=null) universe.getLocale().removeBranchGraph(lastBg);
 		 
-		 if (STC.downloadsCompleted()) {
-			 frameLoad.setVisible(false);
+		 tg = new TransformGroup();
+		 tg.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
+		 tg.setCapability(TransformGroup.ENABLE_PICK_REPORTING);
+		 
+		 BranchGroup bg = new BranchGroup();
+		 bg.setCapability(BranchGroup.ALLOW_DETACH);
+		 
+		 // create the 'outside' of the cube including axis, labels, etc.
+		 createCube(tg);
+		 
+		 mPoints.clear();
+		 
+		 // TransformGroup tg will be filled
+		 for (int i=0;i<mPointShapes.size();i++) {
+			 Shape3D tempShape = mPointShapes.get(i);
+			 				 
+			 // only works under OpenGL
+			 Appearance tmpApp = new Appearance();
+			 LineAttributes tmpLA = new LineAttributes();
+			 tmpLA.setLineWidth(lineWidth); 
+			 tmpLA.setLinePattern(LineAttributes.PATTERN_SOLID);
+			 tmpApp.setLineAttributes(tmpLA);
 			 
-			 if (lastBg!=null) universe.getLocale().removeBranchGraph(lastBg);
+			 // set transparency as per defined settings
+			 TransparencyAttributes taMPoints = new TransparencyAttributes(TransparencyAttributes.FASTEST, transpMPoints);
+			 tmpApp.setTransparencyAttributes(taMPoints);
 			 
-			 tg = new TransformGroup();
-			 tg.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
-			 tg.setCapability(TransformGroup.ENABLE_PICK_REPORTING);
+			 Shape3D mPoint = new Shape3D(tempShape.getGeometry(), tmpApp); // corresponds to 1 MPoint
 			 
-			 BranchGroup bg = new BranchGroup();
-			 bg.setCapability(BranchGroup.ALLOW_DETACH);
+			 mPoints.add(mPoint);
 			 
-			 // create the 'outside' of the cube including axis, labels, etc.
-			 createCube(tg);
-			 
-			 mPoints.clear();
-			 
-			 // TransformGroup tg will be filled
-			 for (int i=0;i<mPointShapes.size();i++) {
-				 Shape3D tempShape = mPointShapes.get(i);
-				 				 
-				 // only works under OpenGL
-				 Appearance tmpApp = new Appearance();
-				 LineAttributes tmpLA = new LineAttributes();
-				 tmpLA.setLineWidth(lineWidth); 
-				 tmpLA.setLinePattern(LineAttributes.PATTERN_SOLID);
-				 tmpApp.setLineAttributes(tmpLA);
-				 
-				 // set transparency as per defined settings
-				 TransparencyAttributes taMPoints = new TransparencyAttributes(TransparencyAttributes.FASTEST, transpMPoints);
-				 tmpApp.setTransparencyAttributes(taMPoints);
-				 
-				 Shape3D mPoint = new Shape3D(tempShape.getGeometry(), tmpApp); // corresponds to 1 MPoint
-				 
-				 mPoints.add(mPoint);
-				 
-				 tg.addChild(mPoint);
-			 }
-			 for (int i=0;i<vertShapes.size();i++) {
-				 Shape3D tempShape = vertShapes.get(i);
-				 Shape3D vertLine = new Shape3D(tempShape.getGeometry(), tempShape.getAppearance());
-				 tg.addChild(vertLine);
-			 }
-			 if (mapShape != null) {
-				 Shape3D tempShape = new Shape3D(mapShape.getGeometry(),mapShape.getAppearance());
-				 tgMap = new TransformGroup();
-				 tgMap.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
-				 tgMap.addChild(tempShape);
-				 Transform3D tmpTransform = new Transform3D();
-				 tmpTransform.setTranslation(new Vector3d(-0.5+0,-0.5+0,-0.5+0));
-				 tgMap.setTransform(tmpTransform);
-				 tg.addChild(tgMap);
-			 }
-			 
-			 // initialize panel for 2D-view
-			 panelMapOverview.initialize(map, p2dArrays, panelMapOverview.getPreferredSize().width, this);
-			 panelMapOverview.updateUI();
-			 
-			 tg.setTransform(transform); // initial transform of tg (basic TransformGroup)
-
-			 lastBg = bg;
-			 bg.addChild(tg);
-			 
-			 // add Behaviors to the BranchGroup
-			 PickRotateBehavior rotateBehavior = new PickRotateBehavior(bg, canvas, tg.getBounds());
-			 bg.addChild(rotateBehavior);
-			 PickTranslateBehavior translateBehavior = new PickTranslateBehavior(bg, canvas, tg.getBounds());
-			 bg.addChild(translateBehavior);
-			 PickZoomBehavior zoomBehavior = new PickZoomBehavior(bg, canvas, tg.getBounds());
-			 bg.addChild(zoomBehavior);
-			 
-			 pickCanvas = new PickCanvas(canvas, bg); 
-		     pickCanvas.setMode(PickCanvas.GEOMETRY); 
-		     canvas.addMouseListener(this);
-		     
-		     // set background
-		     Background background = new Background(colorCanvas);
-		     BoundingSphere sphere = new BoundingSphere(new Point3d(0,0,0), 100000);
-		     background.setApplicationBounds(sphere);
-		     bg.addChild(background);
-
-			 universe.addBranchGraph(bg);
+			 tg.addChild(mPoint);
 		 }
-		 else { // if map download is going on
-			 frameLoad.setLocation(getLocationOnScreen().x+(getWidth()/2)-frameLoad.getWidth()/2,
-					 getLocationOnScreen().y+(getHeight()/2)-frameLoad.getHeight()/2);
-			 frameLoad.setVisible(true);
+		 for (int i=0;i<vertShapes.size();i++) {
+			 Shape3D tempShape = vertShapes.get(i);
+			 Shape3D vertLine = new Shape3D(tempShape.getGeometry(), tempShape.getAppearance());
+			 tg.addChild(vertLine);
 		 }
+		 if (mapShape != null) {
+			 
+			 Shape3D mapShapeTmp = new Shape3D(mapShape.getGeometry(),mapShape.getAppearance());
+			 
+			 tgMap = new TransformGroup();
+			 tgMap.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
+			 tgMap.addChild(mapShapeTmp);
+			 
+			 Transform3D tmpTransform = new Transform3D();
+			 tmpTransform.setTranslation(new Vector3d(-0.5+0,-0.5+0,-0.5+0));
+			 tgMap.setTransform(tmpTransform);
+			 tg.addChild(tgMap);
+		 }
+		 
+		 // initialize panel for 2D-view
+		 panelMapOverview.initialize(map, p2dArrays, panelMapOverview.getPreferredSize().width, this);
+		 panelMapOverview.updateUI();
+		 
+		 computeReferenceView();
+		
+		 // setting the initial view
+		 Point3d eye = new Point3d(referenceView[0],referenceView[1],referenceView[2]);
+		 Point3d center = new Point3d(0.0,0.0,0.0);
+		 Vector3d up = new Vector3d(0,0,1);
+		 transform.lookAt(eye, center, up);
+		 Transform3D tfRot = new Transform3D();
+		 tfRot.rotX(30/57.295); // convert from radian to degree
+		 transform.mul(tfRot); // multiply the actual transform with the rotated one
+
+		 tg.setTransform(transform); // initial transform of tg (basic TransformGroup)
+
+		 lastBg = bg;
+		 bg.addChild(tg);
+		 
+		 // add Behaviors to the BranchGroup
+		 PickRotateBehavior rotateBehavior = new PickRotateBehavior(bg, canvas, tg.getBounds());
+		 bg.addChild(rotateBehavior);
+		 PickTranslateBehavior translateBehavior = new PickTranslateBehavior(bg, canvas, tg.getBounds());
+		 bg.addChild(translateBehavior);
+		 PickZoomBehavior zoomBehavior = new PickZoomBehavior(bg, canvas, tg.getBounds());
+		 bg.addChild(zoomBehavior);
+		 
+		 pickCanvas = new PickCanvas(canvas, bg); 
+	     pickCanvas.setMode(PickCanvas.GEOMETRY); 
+	     canvas.addMouseListener(this);
+	     
+	     // set background
+	     Background background = new Background(colorCanvas);
+	     BoundingSphere sphere = new BoundingSphere(new Point3d(0,0,0), 100000);
+	     background.setApplicationBounds(sphere);
+	     bg.addChild(background);
+
+		 universe.addBranchGraph(bg);
 		 
 		 // setting JSlider values as per STC min and max values
 		 zMinSlide.setMinimum((int)(STC.getMinZ()/1000));
@@ -1195,6 +1231,8 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		 mapSlide.setMinimum((int)(STC.getMinZ()/1000));
 		 mapSlide.setMaximum((int)(STC.getMaxZ()/1000));
 		 mapSlide.setValue((int)(STC.getMinZlimit()/1000));
+		 zMinSlide.addChangeListener(this);
+		 zMaxSlide.addChangeListener(this);
 		 mapSlide.addChangeListener(this);
 		 
 		 zMinLabel.setText(getTimestampForMilliseconds((long)zMinSlide.getValue()*1000));
@@ -1204,6 +1242,18 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		 labelDateMap.setText(tmp[0]);
 		 labelTimeMap.setText(tmp[1]);
 		 
+		 }
+	 }
+	 
+	 /**
+	  * Shows a loading dialog.
+	  * @param show
+	  * 	true = show, false = hide
+	  */
+	 public void showLoadingDialog(boolean show) {
+		 frameLoad.setLocation(getLocationOnScreen().x+(getWidth()/2)-frameLoad.getWidth()/2,
+				 getLocationOnScreen().y+(getHeight()/2)-frameLoad.getHeight()/2);
+		 frameLoad.setVisible(show);
 	 }
 	 
 	 /*
@@ -1212,28 +1262,30 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 	  */
 	 private void drawMap() {
 		 mapShape = null;
-		 map = STC.generateMap();
-		 if (map != null) {				 
-			 Texture txt = new TextureLoader(map).getTexture();
-			 Appearance ap = new Appearance();			  
-			 ap.setTexture(txt);
-			 
-			 float[] tcoords =
-			 {
-			  0, 0,
-			  1, 0,
-			  1, 1,
-			  0, 1
-			 };
-			 QuadArray plane = new QuadArray(4, QuadArray.COORDINATES
-						| QuadArray.TEXTURE_COORDINATE_2);
-			 plane.setCoordinate(0, new Point3d(0,0,0));
-			 plane.setCoordinate(1, new Point3d(1,0,0));
-			 plane.setCoordinate(2, new Point3d(1,1,0));
-			 plane.setCoordinate(3, new Point3d(0,1,0));
-			 plane.setTextureCoordinates(0, 0, tcoords);
-			 
-			 mapShape = new Shape3D(plane, ap);
+		 if (objectList.size()>0) {
+			 map = STC.generateMap();
+			 if (map != null) {				 
+				 Texture txt = new TextureLoader(map).getTexture();
+				 Appearance ap = new Appearance();			  
+				 ap.setTexture(txt);
+				 
+				 float[] tcoords =
+				 {
+				  0, 0,
+				  1, 0,
+				  1, 1,
+				  0, 1
+				 };
+				 QuadArray plane = new QuadArray(4, QuadArray.COORDINATES
+							| QuadArray.TEXTURE_COORDINATE_2);
+				 plane.setCoordinate(0, new Point3d(0,0,0));
+				 plane.setCoordinate(1, new Point3d(1,0,0));
+				 plane.setCoordinate(2, new Point3d(1,1,0));
+				 plane.setCoordinate(3, new Point3d(0,1,0));
+				 plane.setTextureCoordinates(0, 0, tcoords);
+				 
+				 mapShape = new Shape3D(plane, ap);
+			 }
 		 }
 	 }
 	 
@@ -1374,8 +1426,8 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		 Appearance apTextAxis = new Appearance();
 		 apTextAxis.setColoringAttributes(new ColoringAttributes(colTextAxis, ColoringAttributes.SHADE_FLAT));
 		 Font3D font = new Font3D(new Font("Arial", Font.ROMAN_BASELINE, 1), new FontExtrusion());
-		 double scaleTextCoords = 0.15; // size of coordinate labels
-		 double scaleTextAxis = 0.2; // size of axis' labels
+		 double scaleTextCoords = 0.25/factorCanvas; // size of coordinate labels
+		 double scaleTextAxis = 0.35/factorCanvas; // size of axis' labels
 		 String temp;
 		 
 		 Text3D textMinX = new Text3D(font);
@@ -1566,6 +1618,28 @@ public class SpaceTimeCubeViewer extends SecondoViewer implements
 		 STC.setMinYlimit(p1.getY());
 		 STC.setMaxXlimit(p2.getX());
 		 STC.setMaxYlimit(p2.getY());
+	 }
+	 
+	 /* 
+	 * Java3D's basis for dimensioning/positioning/etc. of objects is the canvas width.
+	 * That's why the eye's position needs to be related to the canvas width.
+	 */
+	 private void computeReferenceView() {
+		 double cHeight = canvas.getHeight();
+		 double cWidth = canvas.getWidth();
+		 if (cHeight > cWidth) factorCanvas = cHeight/cWidth;
+		 else factorCanvas = cWidth/cHeight;
+		 
+		 double distance = 0;
+		 
+		 // following computation is based on test/trial data
+		 if (factorCanvas > 1.32) {
+			 double inc = (factorCanvas-1.32)/0.06;
+			 distance = 0.1*inc;
+		 }
+		 else distance = 0.01;
+		 		 
+		 referenceView[1] = -distance;
 	 }
 	 
 	 /*
