@@ -64,6 +64,11 @@ public class SelectionController extends AbstractQueryController {
 	 */
 	private Method operatorMethod;
 
+	/**
+	 * Indicates whether the query is to run in normal mode.
+	 */
+	private boolean queryModeNormal;
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -74,18 +79,24 @@ public class SelectionController extends AbstractQueryController {
 		MemoryRelation result = null;
 		try {
 			threads.clear();
+			resultInMeasureMode = 0;
 			MemoryRelation relation = (MemoryRelation) parameters[0];
 			COperator operator = (COperator) parameters[1];
 			String firstArgumentName = (String) parameters[2];
 			MemoryAttribute secondArgument = (MemoryAttribute) parameters[3];
+			queryModeNormal = (Boolean) parameters[4];
 			initializeMembers(relation, operator, firstArgumentName, secondArgument);
 			if (!indexSelect(relation, operator, firstArgumentName, secondArgument)) {
 				int[] segments = divideTupleListForThreads(relation.getTuples());
 				startThreads(segments, relation.getHeaderIndex(firstArgumentName));
 				joinThreads();
 			}
-			result = new MemoryRelation(relation.getHeader());
-			result.setTuples(outputTuples);
+			if (queryModeNormal) {
+				result = new MemoryRelation(relation.getHeader());
+				result.setTuples(outputTuples);
+			} else {
+				result = constructMeasureModeResult();
+			}
 		} catch (Throwable e) {
 			throw new SelectionException(e);
 		}
@@ -95,7 +106,7 @@ public class SelectionController extends AbstractQueryController {
 			}
 			throw new SelectionException(threadError);
 		}
-		if (result.getTuples().isEmpty()) {
+		if (queryModeNormal && result.getTuples().isEmpty()) {
 			throw new SelectionException("-> No tuples matched condition.");
 		}
 		return result;
@@ -145,7 +156,11 @@ public class SelectionController extends AbstractQueryController {
 			MemoryIndex index = relation.getIndex(firstArgumentName);
 			if (index != null) {
 				try {
-					outputTuples = index.searchElements(secondArgument);
+					if (queryModeNormal) {
+						outputTuples = index.searchElements(secondArgument);
+					} else {
+						resultInMeasureMode = index.searchElements(secondArgument).size();
+					}
 					return true;
 				} catch (IndexSearchElementException e) {
 					Reporter.showInfo("Could not access index. Selection will be continued anyway.");
@@ -199,12 +214,17 @@ public class SelectionController extends AbstractQueryController {
 		@Override
 		public void run() {
 			List<MemoryTuple> resultTuples = new ArrayList<MemoryTuple>();
+			int threadResults = 0;
 			for (int i = rangeBegin; i <= rangeEnd; i++) {
 				try {
 					MemoryTuple tuple = inputTuples.get(i);
 					MemoryAttribute attribute = tuple.getAttribute(headerIndex);
 					boolean match = (Boolean) operatorMethod
 							.invoke(null, attribute, secondArgument);
+					if (!queryModeNormal) {
+						threadResults = match ? ++threadResults : threadResults;
+						continue;
+					}
 					if (match) {
 						resultTuples.add(tuple);
 					}
@@ -222,7 +242,11 @@ public class SelectionController extends AbstractQueryController {
 					break;
 				}
 			}
-			outputTuples.addAll(resultTuples);
+			if (queryModeNormal) {
+				outputTuples.addAll(resultTuples);
+			} else {
+				synchronizedIncrement(threadResults);
+			}
 		}
 
 	}

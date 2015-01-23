@@ -41,6 +41,7 @@ import javax.swing.SwingConstants;
 
 import mmdb.data.MemoryRelation;
 import mmdb.data.MemoryRelation.RelationHeaderItem;
+import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.gui.QueryDialog;
 import mmdb.operator.OperationController;
 import mmdb.operator.OperationController.COperator;
@@ -51,6 +52,7 @@ import mmdb.query.JoinController;
 import mmdb.query.ProjectionController;
 import mmdb.query.SelectionController;
 import mmdb.query.UnionController;
+import tools.Reporter;
 
 /**
  * Superclass for all operation panels that are included in the query dialog.
@@ -100,7 +102,7 @@ public abstract class AbstractOperationPanel extends JPanel {
 	 * button's action listeners.
 	 */
 	protected JDialog dialog;
-	
+
 	/**
 	 * The previously selected value from the cond attribute list.
 	 */
@@ -204,11 +206,10 @@ public abstract class AbstractOperationPanel extends JPanel {
 	 */
 	protected void fillCondAttributeList(String selectedRelation, COperator operator,
 			JComboBox attributeList) {
-		if(attributeList.getSelectedItem() != null) {
+		if (attributeList.getSelectedItem() != null) {
 			previousValueSelection = (String) attributeList.getSelectedItem();
 		}
-		DefaultComboBoxModel model = (DefaultComboBoxModel) attributeList
-				.getModel();
+		DefaultComboBoxModel model = (DefaultComboBoxModel) attributeList.getModel();
 		model.removeAllElements();
 		if (selectedRelation == null || operator == null) {
 			return;
@@ -233,10 +234,9 @@ public abstract class AbstractOperationPanel extends JPanel {
 		}
 		int previousIndex = model.getIndexOf(previousValueSelection);
 		if (!insertedElements.isEmpty()) {
-			if(previousIndex > 0) {
+			if (previousIndex > 0) {
 				attributeList.setSelectedIndex(previousIndex);
-			}
-			else {
+			} else {
 				attributeList.setSelectedIndex(0);
 			}
 		}
@@ -333,6 +333,22 @@ public abstract class AbstractOperationPanel extends JPanel {
 			cleanAttributeList.add(removeType(attribute));
 		}
 		return cleanAttributeList;
+	}
+
+	/**
+	 * Displays the info box in case of queries in measure mode.
+	 * 
+	 * @param resultRelation
+	 *            the relation containing the number of result tuples
+	 * @param duration
+	 *            the duration of the query execution
+	 */
+	protected void showMeasureModeInfoBox(MemoryRelation resultRelation, long duration) {
+		AttributeInt resultAttribute = (AttributeInt) resultRelation.getTuples().get(0)
+				.getAttribute(0);
+		int tuplesCount = resultAttribute.getValue();
+		Reporter.showInfo("RESULT OF QUERY ...\n\n" + "> duration: " + duration + " [ms]\n"
+				+ "> tuples: " + tuplesCount);
 	}
 
 	/**

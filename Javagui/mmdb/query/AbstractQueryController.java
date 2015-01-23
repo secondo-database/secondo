@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mmdb.data.MemoryRelation;
+import mmdb.data.MemoryRelation.RelationHeaderItem;
 import mmdb.data.MemoryTuple;
+import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.error.memory.MemoryException;
 import mmdb.error.query.QueryException;
 
@@ -58,6 +60,11 @@ public abstract class AbstractQueryController {
 	 * error.
 	 */
 	protected Throwable threadError = null;
+
+	/**
+	 * The result for selection and join queries in measure mode.
+	 */
+	protected Integer resultInMeasureMode = 0;
 
 	/**
 	 * Main method for executing queries which is overridden by corresponding
@@ -109,6 +116,35 @@ public abstract class AbstractQueryController {
 		for (Thread thread : threads) {
 			thread.join();
 		}
+	}
+
+	/**
+	 * Creates a new relation containing one tuple with one attribute storing
+	 * the result count for measure mode.
+	 * 
+	 * @return a memory relation for measure mode
+	 */
+	protected MemoryRelation constructMeasureModeResult() {
+		RelationHeaderItem item = new RelationHeaderItem("count", "int");
+		List<RelationHeaderItem> header = new ArrayList<RelationHeaderItem>();
+		header.add(item);
+		MemoryRelation result = new MemoryRelation(header);
+		MemoryTuple tuple = new MemoryTuple();
+		AttributeInt attribute = new AttributeInt();
+		attribute.setValue(resultInMeasureMode);
+		tuple.addAttribute(attribute);
+		result.getTuples().add(tuple);
+		return result;
+	}
+
+	/**
+	 * Thread-safe increment of an Integer.
+	 * 
+	 * @param increment
+	 *            the increment
+	 */
+	protected synchronized void synchronizedIncrement(int increment) {
+		resultInMeasureMode += increment;
 	}
 
 }

@@ -24,6 +24,8 @@ import gui.CommandPanel;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -35,6 +37,7 @@ import java.util.Vector;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -42,6 +45,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
@@ -113,6 +117,11 @@ public class SelectionPanel extends AbstractOperationPanel {
 	 */
 	private MemoryAttribute selectedValue;
 
+	/**
+	 * The radio button for query mode selection.
+	 */
+	private JRadioButton queryModeNormal;
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -125,7 +134,12 @@ public class SelectionPanel extends AbstractOperationPanel {
 				this);
 		JPanel selectionArea = new JPanel(new GridLayout(1, 2));
 		selectionArea.setPreferredSize(new Dimension(QueryDialog.DIALOG_WIDTH, MIDDLE_HEIGHT));
-		addRelationPanel(selectionArea);
+		JPanel leftArea = new JPanel(new GridBagLayout());
+		leftArea.setPreferredSize(new Dimension(QueryDialog.DIALOG_WIDTH / 2, MIDDLE_HEIGHT));
+		GridBagConstraints c = new GridBagConstraints();
+		addRelationPanel(leftArea, c);
+		addModePanel(leftArea, c);
+		selectionArea.add(leftArea);
 		JPanel rightArea = new JPanel(new GridLayout(2, 1));
 		rightArea.setPreferredSize(new Dimension(QueryDialog.DIALOG_WIDTH / 2, MIDDLE_HEIGHT));
 		JPanel rightTopArea = new JPanel(new GridLayout(2, 1));
@@ -158,12 +172,15 @@ public class SelectionPanel extends AbstractOperationPanel {
 					return;
 				}
 				MemoryRelation resultRelation = null;
-				String selectedRelation = (String)relationList.getSelectedValue();
+				String selectedRelation = (String) relationList.getSelectedValue();
 				COperator selectedOperator = (COperator) operatorList.getSelectedItem();
 				String selectedAttribute = (String) attributeList.getSelectedItem();
+				boolean normalQuery = queryModeNormal.isSelected();
+				long startTime = System.currentTimeMillis();
 				try {
 					resultRelation = queryController.executeQuery(relations.get(selectedRelation),
-							selectedOperator, removeType(selectedAttribute), selectedValue);
+							selectedOperator, removeType(selectedAttribute), selectedValue,
+							normalQuery);
 				} catch (QueryException e) {
 					Throwable unexpected = e.getUnexpectedError();
 					if (unexpected != null) {
@@ -178,11 +195,16 @@ public class SelectionPanel extends AbstractOperationPanel {
 					dialog.dispose();
 					MMDBUserInterfaceController.getInstance().processMemoryException(e);
 				}
-				answer[0] = resultRelation;
-				answer[1] = createObjectName("SELECTION", selectedRelation);
-				answer[2] = convert.isSelected();
-				dialog.setVisible(false);
-				dialog.dispose();
+				long endTime = System.currentTimeMillis();
+				if (normalQuery) {
+					answer[0] = resultRelation;
+					answer[1] = createObjectName("SELECTION", selectedRelation);
+					answer[2] = convert.isSelected();
+					dialog.setVisible(false);
+					dialog.dispose();
+				} else {
+					showMeasureModeInfoBox(resultRelation, endTime - startTime);
+				}
 			}
 		};
 	}
@@ -192,15 +214,17 @@ public class SelectionPanel extends AbstractOperationPanel {
 	 * 
 	 * @param area
 	 *            the underlying container the components are added to
+	 * @param constraints
+	 *            the grid bag constraints for the area
 	 */
-	private void addRelationPanel(JPanel area) {
+	private void addRelationPanel(JPanel area, GridBagConstraints constraints) {
 		Vector<String> vector = new Vector<String>(relations.keySet());
 		relationList = new JList(vector);
 		relationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		relationList.addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
-				fillCondAttributeList((String)relationList.getSelectedValue(),
+				fillCondAttributeList((String) relationList.getSelectedValue(),
 						(COperator) operatorList.getSelectedItem(), attributeList);
 			}
 		});
@@ -208,9 +232,45 @@ public class SelectionPanel extends AbstractOperationPanel {
 				ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
 				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		relationSelectionPane.setBorder(BorderFactory.createTitledBorder("1) RELATION"));
-		relationSelectionPane.setPreferredSize(new Dimension(QueryDialog.DIALOG_WIDTH / 2,
-				MIDDLE_HEIGHT));
-		area.add(relationSelectionPane);
+		constraints.fill = GridBagConstraints.BOTH;
+		constraints.ipady = MIDDLE_HEIGHT / 2;
+		constraints.weightx = 1.0;
+		constraints.weighty = 0.85;
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		area.add(relationSelectionPane, constraints);
+	}
+
+	/**
+	 * Adds the mode panel to the underlying container.
+	 * 
+	 * @param area
+	 *            the underlying container the components are added to
+	 * @param constraints
+	 *            the grid bag constraints for the area
+	 */
+	private void addModePanel(JPanel area, GridBagConstraints constraints) {
+		JPanel modeArea = new JPanel(new FlowLayout(FlowLayout.CENTER, 50, 0));
+		modeArea.setBorder(BorderFactory.createTitledBorder("2) QUERY-MODE"));
+		constraints.fill = GridBagConstraints.BOTH;
+		constraints.ipady = 10;
+		constraints.weightx = 1.0;
+		constraints.weighty = 0.15;
+		constraints.gridx = 0;
+		constraints.gridy = 1;
+		queryModeNormal = new JRadioButton("normal");
+		JRadioButton queryModeCount = new JRadioButton("measure");
+		ButtonGroup group = new ButtonGroup();
+		group.add(queryModeNormal);
+		group.add(queryModeCount);
+		queryModeNormal.setSelected(true);
+		queryModeNormal.setPreferredSize(new Dimension(85, 30));
+		queryModeCount.setPreferredSize(new Dimension(85, 30));
+		modeArea.add(queryModeNormal);
+		modeArea.add(queryModeCount);
+		modeArea.setBackground(Color.WHITE);
+		area.setBackground(Color.WHITE);
+		area.add(modeArea, constraints);
 	}
 
 	/**
@@ -221,7 +281,7 @@ public class SelectionPanel extends AbstractOperationPanel {
 	 */
 	private void createOperatorPanel(JPanel area) {
 		JPanel operationPanel = new JPanel(new FlowLayout());
-		operationPanel.setBorder(BorderFactory.createTitledBorder("2) OPERATOR"));
+		operationPanel.setBorder(BorderFactory.createTitledBorder("3) OPERATOR"));
 		operatorList = new JComboBox(COperator.values());
 		((JLabel) operatorList.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 		operatorList.setSelectedItem(null);
@@ -229,7 +289,7 @@ public class SelectionPanel extends AbstractOperationPanel {
 		operatorList.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
-				fillCondAttributeList((String)relationList.getSelectedValue(),
+				fillCondAttributeList((String) relationList.getSelectedValue(),
 						(COperator) operatorList.getSelectedItem(), attributeList);
 			}
 		});
@@ -246,7 +306,7 @@ public class SelectionPanel extends AbstractOperationPanel {
 	 */
 	private void createAttributePanel(JPanel area) {
 		JPanel attributePanel = new JPanel(new FlowLayout());
-		attributePanel.setBorder(BorderFactory.createTitledBorder("3) ATTRIBUTE"));
+		attributePanel.setBorder(BorderFactory.createTitledBorder("4) ATTRIBUTE"));
 		attributeList = new JComboBox(new DefaultComboBoxModel());
 		((JLabel) attributeList.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 		attributeList.setPreferredSize(new Dimension(200, 30));
@@ -270,7 +330,7 @@ public class SelectionPanel extends AbstractOperationPanel {
 	 */
 	private void createValuePanel(JPanel area) {
 		JPanel valuePanel = new JPanel(new GridLayout(3, 1));
-		valuePanel.setBorder(BorderFactory.createTitledBorder("4) VALUE"));
+		valuePanel.setBorder(BorderFactory.createTitledBorder("5) VALUE"));
 		JPanel valueTypePanel = new JPanel(new FlowLayout());
 		valueTypeSelection = new JComboBox(new DefaultComboBoxModel());
 		((JLabel) valueTypeSelection.getRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
@@ -395,8 +455,7 @@ public class SelectionPanel extends AbstractOperationPanel {
 	 *            the selected operator
 	 */
 	private void fillValueTypeSelectionList(String selectedAttribute, COperator selectedOperator) {
-		DefaultComboBoxModel model = (DefaultComboBoxModel) valueTypeSelection
-				.getModel();
+		DefaultComboBoxModel model = (DefaultComboBoxModel) valueTypeSelection.getModel();
 		model.removeAllElements();
 		if (selectedAttribute == null || selectedOperator == null) {
 			return;

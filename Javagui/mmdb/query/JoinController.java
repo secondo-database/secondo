@@ -90,11 +90,17 @@ public class JoinController extends AbstractQueryController {
 	 * The hash table for hash joins.
 	 */
 	private ConcurrentHashMap<Matchable, List<MemoryTuple>> hashMap;
-	
+
 	/**
-	 * Flag to indicate whether attributes are switched when determining smaller and bigger relation.
+	 * Flag to indicate whether attributes are switched when determining smaller
+	 * and bigger relation.
 	 */
 	private boolean attributesSwitched = false;
+
+	/**
+	 * Indicates whether the query is to run in normal mode.
+	 */
+	private boolean queryModeNormal;
 
 	/*
 	 * (non-Javadoc)
@@ -106,11 +112,13 @@ public class JoinController extends AbstractQueryController {
 		MemoryRelation result = null;
 		try {
 			threads.clear();
+			resultInMeasureMode = 0;
 			MemoryRelation firstRelation = (MemoryRelation) parameters[0];
 			MemoryRelation secondRelation = (MemoryRelation) parameters[1];
 			String firstAttribute = (String) parameters[2];
 			String secondAttribute = (String) parameters[3];
 			COperator operator = (COperator) parameters[4];
+			queryModeNormal = (Boolean) parameters[5];
 			initializeMembers(firstRelation, secondRelation, firstAttribute, secondAttribute,
 					operator);
 			List<RelationHeaderItem> newHeader = createNewHeader();
@@ -119,8 +127,12 @@ public class JoinController extends AbstractQueryController {
 			} else {
 				performNestedLoopJoin();
 			}
-			result = new MemoryRelation(newHeader);
-			result.setTuples(outputTuples);
+			if (queryModeNormal) {
+				result = new MemoryRelation(newHeader);
+				result.setTuples(outputTuples);
+			} else {
+				result = constructMeasureModeResult();
+			}
 		} catch (Throwable e) {
 			throw new JoinException(e);
 		}
@@ -130,7 +142,7 @@ public class JoinController extends AbstractQueryController {
 			}
 			throw new JoinException(threadError);
 		}
-		if (result.getTuples().isEmpty()) {
+		if (queryModeNormal && result.getTuples().isEmpty()) {
 			throw new JoinException("-> No tuples matched condition.");
 		}
 		return result;
@@ -320,6 +332,7 @@ public class JoinController extends AbstractQueryController {
 			List<MemoryTuple> resultTuples = new ArrayList<MemoryTuple>();
 			List<MemoryTuple> biggerTuples = biggerRelation.getTuples();
 			List<MemoryTuple> smallerTuples = smallerRelation.getTuples();
+			int threadResults = 0;
 			outerloop: for (int i = rangeBegin; i <= rangeEnd; i++) {
 				try {
 					MemoryTuple biggerTuple = biggerTuples.get(i);
@@ -329,13 +342,16 @@ public class JoinController extends AbstractQueryController {
 						MemoryAttribute smallerAttribute = smallerTuple
 								.getAttribute(smallerAttributeHeaderIndex);
 						boolean match = false;
-						if(attributesSwitched) {
+						if (attributesSwitched) {
 							match = (Boolean) operatorMethod.invoke(null, smallerAttribute,
 									biggerAttribute);
-						}
-						else {
+						} else {
 							match = (Boolean) operatorMethod.invoke(null, biggerAttribute,
 									smallerAttribute);
+						}
+						if (!queryModeNormal) {
+							threadResults = match ? ++threadResults : threadResults;
+							continue;
 						}
 						if (match) {
 							MemoryTuple newTuple = new MemoryTuple();
@@ -344,7 +360,7 @@ public class JoinController extends AbstractQueryController {
 							resultTuples.add(newTuple);
 						}
 					}
-					if (i % COPY_BATCH_SIZE == 0) {
+					if (queryModeNormal && i % COPY_BATCH_SIZE == 0) {
 						outputTuples.addAll(resultTuples);
 						resultTuples.clear();
 					}
@@ -358,7 +374,11 @@ public class JoinController extends AbstractQueryController {
 					break outerloop;
 				}
 			}
-			outputTuples.addAll(resultTuples);
+			if (queryModeNormal) {
+				outputTuples.addAll(resultTuples);
+			} else {
+				synchronizedIncrement(threadResults);
+			}
 		}
 
 	}
@@ -435,6 +455,7 @@ public class JoinController extends AbstractQueryController {
 			List<MemoryTuple> resultTuples = new ArrayList<MemoryTuple>();
 			List<MemoryTuple> tuples = null;
 			Matchable attribute = null;
+			int threadResults = 0;
 			if (isBigger) {
 				tuples = biggerRelation.getTuples();
 			} else {
@@ -450,6 +471,10 @@ public class JoinController extends AbstractQueryController {
 					}
 					List<MemoryTuple> retrievedTuples = hashMap.get(attribute);
 					if (retrievedTuples != null) {
+						if (!queryModeNormal) {
+							threadResults += retrievedTuples.size();
+							continue;
+						}
 						for (MemoryTuple retrievedTuple : retrievedTuples) {
 							MemoryTuple newTuple = new MemoryTuple();
 							if (isBigger) {
@@ -462,7 +487,7 @@ public class JoinController extends AbstractQueryController {
 							resultTuples.add(newTuple);
 						}
 					}
-					if (i % COPY_BATCH_SIZE == 0) {
+					if (queryModeNormal && i % COPY_BATCH_SIZE == 0) {
 						outputTuples.addAll(resultTuples);
 						resultTuples.clear();
 					}
@@ -476,7 +501,11 @@ public class JoinController extends AbstractQueryController {
 					break;
 				}
 			}
-			outputTuples.addAll(resultTuples);
+			if (queryModeNormal) {
+				outputTuples.addAll(resultTuples);
+			} else {
+				synchronizedIncrement(threadResults);
+			}
 		}
 
 	}

@@ -26,6 +26,7 @@ import java.util.List;
 import mmdb.data.MemoryRelation;
 import mmdb.data.MemoryTuple;
 import mmdb.data.attributes.MemoryAttribute;
+import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.data.indices.MemoryIndex.IndexType;
 import mmdb.operator.OperationController.COperator;
 import mmdb.query.JoinController;
@@ -45,12 +46,13 @@ public class JoinControllerTests {
 	public void testExecuteQueryNestedLoopJoin() throws Exception {
 		MemoryRelation firstRelation = TestUtilRelation.getIntStringRelation(10, false, false);
 		MemoryRelation secondRelation = TestUtilRelation.getIntStringRelation(10, false, false);
-		Object[] parameters = new Object[5];
+		Object[] parameters = new Object[6];
 		parameters[0] = firstRelation;
 		parameters[1] = secondRelation;
 		parameters[2] = "identifierString";
 		parameters[3] = "identifierString";
 		parameters[4] = COperator.CONTAINS;
+		parameters[5] = true;
 		MemoryRelation result = (new JoinController()).executeQuery(parameters);
 		List<MemoryTuple> tuples = result.getTuples();
 		assertEquals(11, tuples.size());
@@ -67,12 +69,13 @@ public class JoinControllerTests {
 		MemoryRelation firstRelation = TestUtilRelation.getIntStringRelation(2000, false, false);
 		MemoryRelation secondRelation = TestUtilRelation.getIntStringRelation(3000, false, false);
 		firstRelation.createIndex("identifierInt", IndexType.SIMPLE_HASH.toString());
-		Object[] parameters = new Object[5];
+		Object[] parameters = new Object[6];
 		parameters[0] = firstRelation;
 		parameters[1] = secondRelation;
 		parameters[2] = "identifierInt";
 		parameters[3] = "identifierInt";
 		parameters[4] = COperator.EQUALS;
+		parameters[5] = true;
 		MemoryRelation result = (new JoinController()).executeQuery(parameters);
 		List<MemoryTuple> tuples = result.getTuples();
 		assertEquals(2000, tuples.size());
@@ -83,12 +86,13 @@ public class JoinControllerTests {
 		MemoryRelation firstRelation = TestUtilRelation.getIntStringRelation(2000, false, false);
 		MemoryRelation secondRelation = TestUtilRelation.getIntStringRelation(3000, false, false);
 		secondRelation.createIndex("identifierInt", IndexType.SIMPLE_HASH.toString());
-		Object[] parameters = new Object[5];
+		Object[] parameters = new Object[6];
 		parameters[0] = firstRelation;
 		parameters[1] = secondRelation;
 		parameters[2] = "identifierInt";
 		parameters[3] = "identifierInt";
 		parameters[4] = COperator.EQUALS;
+		parameters[5] = true;
 		MemoryRelation result = (new JoinController()).executeQuery(parameters);
 		List<MemoryTuple> tuples = result.getTuples();
 		assertEquals(2000, tuples.size());
@@ -98,15 +102,56 @@ public class JoinControllerTests {
 	public void testExecuteQueryHashJoinWithoutIndex() throws Exception {
 		MemoryRelation firstRelation = TestUtilRelation.getIntStringRelation(3000, false, false);
 		MemoryRelation secondRelation = TestUtilRelation.getIntStringRelation(2000, false, false);
-		Object[] parameters = new Object[5];
+		Object[] parameters = new Object[6];
 		parameters[0] = firstRelation;
 		parameters[1] = secondRelation;
 		parameters[2] = "identifierInt";
 		parameters[3] = "identifierInt";
 		parameters[4] = COperator.EQUALS;
+		parameters[5] = true;
 		MemoryRelation result = (new JoinController()).executeQuery(parameters);
 		List<MemoryTuple> tuples = result.getTuples();
 		assertEquals(2000, tuples.size());
+	}
+
+	@Test
+	public void testExecuteQueryNestedLoopJoinMeasureMode() throws Exception {
+		MemoryRelation firstRelation = TestUtilRelation.getIntStringRelation(10, false, false);
+		MemoryRelation secondRelation = TestUtilRelation.getIntStringRelation(10, false, false);
+		Object[] parameters = new Object[6];
+		parameters[0] = firstRelation;
+		parameters[1] = secondRelation;
+		parameters[2] = "identifierString";
+		parameters[3] = "identifierString";
+		parameters[4] = COperator.CONTAINS;
+		parameters[5] = false;
+		MemoryRelation result = (new JoinController()).executeQuery(parameters);
+		List<MemoryTuple> tuples = result.getTuples();
+		assertEquals(1, tuples.size());
+		List<MemoryAttribute> attributes = tuples.get(0).getAttributes();
+		assertEquals(1, attributes.size());
+		AttributeInt attribute = (AttributeInt) attributes.get(0);
+		assertEquals(11, attribute.getValue());
+	}
+
+	@Test
+	public void testExecuteQueryHashJoinMeasureMode() throws Exception {
+		MemoryRelation firstRelation = TestUtilRelation.getIntStringRelation(2000, false, false);
+		MemoryRelation secondRelation = TestUtilRelation.getIntStringRelation(3000, false, false);
+		Object[] parameters = new Object[6];
+		parameters[0] = firstRelation;
+		parameters[1] = secondRelation;
+		parameters[2] = "identifierInt";
+		parameters[3] = "identifierInt";
+		parameters[4] = COperator.EQUALS;
+		parameters[5] = false;
+		MemoryRelation result = (new JoinController()).executeQuery(parameters);
+		List<MemoryTuple> tuples = result.getTuples();
+		assertEquals(1, tuples.size());
+		List<MemoryAttribute> attributes = tuples.get(0).getAttributes();
+		assertEquals(1, attributes.size());
+		AttributeInt attribute = (AttributeInt) attributes.get(0);
+		assertEquals(2000, attribute.getValue());
 	}
 
 }

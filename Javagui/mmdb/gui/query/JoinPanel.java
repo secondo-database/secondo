@@ -33,11 +33,13 @@ import java.util.Vector;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
@@ -94,11 +96,16 @@ public class JoinPanel extends AbstractOperationPanel {
 	 * The list of join attributes from the second relation.
 	 */
 	private JComboBox secondJoinAttributeList;
-	
+
 	/**
 	 * The previously selected value from the second attribute list.
 	 */
 	private String previousValueSelection;
+
+	/**
+	 * The radio button for query mode selection.
+	 */
+	private JRadioButton queryModeNormal;
 
 	/*
 	 * (non-Javadoc)
@@ -119,8 +126,13 @@ public class JoinPanel extends AbstractOperationPanel {
 		this.add(topArea);
 		JPanel bottomArea = new JPanel(new GridLayout(2, 1));
 		bottomArea.setPreferredSize(new Dimension(QueryDialog.DIALOG_WIDTH, BOTTOM_AREA_HEIGHT));
-		addOperatorPanel(bottomArea);
-		addAttributePanel(bottomArea);
+		JPanel topBottomArea = new JPanel(new GridLayout(1, 2));
+		addOperatorPanel(topBottomArea);
+		addModePanel(topBottomArea);
+		bottomArea.add(topBottomArea);
+		JPanel bottomBottomArea = new JPanel(new GridLayout(1, 2));
+		addAttributePanels(bottomBottomArea);
+		bottomArea.add(bottomBottomArea);
 		this.add(bottomArea);
 		addConvertToListPanel(this);
 		addButtonPanel(this);
@@ -147,20 +159,23 @@ public class JoinPanel extends AbstractOperationPanel {
 				COperator selectedOperator = (COperator) operatorList.getSelectedItem();
 				String firstSelectedAttribute = (String) firstJoinAttributeList.getSelectedItem();
 				String secondSelectedAttribute = (String) secondJoinAttributeList.getSelectedItem();
-				if (selectedOperator.parameterTypesEqual && !removeIdentifier(firstSelectedAttribute).equals(
-						removeIdentifier(secondSelectedAttribute))) {
+				if (selectedOperator.parameterTypesEqual
+						&& !removeIdentifier(firstSelectedAttribute).equals(
+								removeIdentifier(secondSelectedAttribute))) {
 					Reporter.showInfo("Selected attributes do not match.");
 					return;
 				}
 				MemoryRelation resultRelation = null;
-				String firstSelectedRelation = (String)firstRelationList.getSelectedValue();
-				String secondSelectedRelation = (String)secondRelationList.getSelectedValue();
+				String firstSelectedRelation = (String) firstRelationList.getSelectedValue();
+				String secondSelectedRelation = (String) secondRelationList.getSelectedValue();
+				boolean normalQuery = queryModeNormal.isSelected();
+				long startTime = System.currentTimeMillis();
 				try {
 					resultRelation = queryController.executeQuery(
 							relations.get(firstSelectedRelation),
 							relations.get(secondSelectedRelation),
 							removeType(firstSelectedAttribute),
-							removeType(secondSelectedAttribute), selectedOperator);
+							removeType(secondSelectedAttribute), selectedOperator, normalQuery);
 				} catch (QueryException e) {
 					Throwable unexpected = e.getUnexpectedError();
 					if (unexpected != null) {
@@ -175,11 +190,17 @@ public class JoinPanel extends AbstractOperationPanel {
 					dialog.dispose();
 					MMDBUserInterfaceController.getInstance().processMemoryException(e);
 				}
-				answer[0] = resultRelation;
-				answer[1] = createObjectName("JOIN", firstSelectedRelation, secondSelectedRelation);
-				answer[2] = convert.isSelected();
-				dialog.setVisible(false);
-				dialog.dispose();
+				long endTime = System.currentTimeMillis();
+				if (normalQuery) {
+					answer[0] = resultRelation;
+					answer[1] = createObjectName("JOIN", firstSelectedRelation,
+							secondSelectedRelation);
+					answer[2] = convert.isSelected();
+					dialog.setVisible(false);
+					dialog.dispose();
+				} else {
+					showMeasureModeInfoBox(resultRelation, endTime - startTime);
+				}
 			}
 		};
 	}
@@ -207,14 +228,14 @@ public class JoinPanel extends AbstractOperationPanel {
 	 * @param area
 	 *            the underlying container the components are added to
 	 */
-	private void addRelationPanel(final JList relationList,
-			final JComboBox attributeList, final String title, JPanel area) {
+	private void addRelationPanel(final JList relationList, final JComboBox attributeList,
+			final String title, JPanel area) {
 		relationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		relationList.addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
 				if (title.contains("FIRST")) {
-					fillCondAttributeList((String)relationList.getSelectedValue(),
+					fillCondAttributeList((String) relationList.getSelectedValue(),
 							(COperator) operatorList.getSelectedItem(), attributeList);
 				} else {
 					fillCondValueList();
@@ -246,9 +267,9 @@ public class JoinPanel extends AbstractOperationPanel {
 		operatorList.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
-				fillCondAttributeList((String)firstRelationList.getSelectedValue(),
+				fillCondAttributeList((String) firstRelationList.getSelectedValue(),
 						(COperator) operatorList.getSelectedItem(), firstJoinAttributeList);
-				//fillCondValueList();
+				// fillCondValueList();
 			}
 		});
 		operationPanel.add(operatorList);
@@ -257,14 +278,39 @@ public class JoinPanel extends AbstractOperationPanel {
 	}
 
 	/**
+	 * Adds the mode panel to the underlying container.
+	 * 
+	 * @param area
+	 *            the underlying container the components are added to
+	 */
+	private void addModePanel(JPanel area) {
+		JPanel modeArea = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 0));
+		modeArea.setBorder(BorderFactory.createTitledBorder("4) QUERY-MODE"));
+		queryModeNormal = new JRadioButton("normal");
+		JRadioButton queryModeCount = new JRadioButton("measure");
+		ButtonGroup group = new ButtonGroup();
+		group.add(queryModeNormal);
+		group.add(queryModeCount);
+		queryModeNormal.setSelected(true);
+		queryModeNormal.setPreferredSize(new Dimension(85, 30));
+		queryModeCount.setPreferredSize(new Dimension(85, 30));
+		modeArea.add(queryModeNormal);
+		modeArea.add(queryModeCount);
+		modeArea.setBackground(Color.WHITE);
+		area.setBackground(Color.WHITE);
+		area.add(modeArea);
+	}
+
+	/**
 	 * Adds the attribute panel to the underlying container.
 	 * 
 	 * @param area
 	 *            the underlying container the components are added to
 	 */
-	private void addAttributePanel(JPanel area) {
-		JPanel attributePanel = new JPanel(new FlowLayout());
-		attributePanel.setBorder(BorderFactory.createTitledBorder("4) ATTRIBUTES"));
+	private void addAttributePanels(JPanel area) {
+		JPanel attributePanelFirst = new JPanel(new FlowLayout());
+		attributePanelFirst.setBorder(BorderFactory
+				.createTitledBorder("5) ATTRIBUTE - FIRST RELATION"));
 		firstJoinAttributeList.setPreferredSize(new Dimension(200, 30));
 		firstJoinAttributeList.addItemListener(new ItemListener() {
 			@Override
@@ -274,14 +320,18 @@ public class JoinPanel extends AbstractOperationPanel {
 		});
 		((JLabel) firstJoinAttributeList.getRenderer())
 				.setHorizontalAlignment(SwingConstants.CENTER);
-		attributePanel.add(firstJoinAttributeList);
+		attributePanelFirst.add(firstJoinAttributeList);
+		attributePanelFirst.setBackground(Color.WHITE);
+		JPanel attributePanelSecond = new JPanel(new FlowLayout());
+		attributePanelSecond.setBorder(BorderFactory
+				.createTitledBorder("6) ATTRIBUTE - SECOND RELATION"));
 		secondJoinAttributeList.setPreferredSize(new Dimension(200, 30));
 		((JLabel) secondJoinAttributeList.getRenderer())
 				.setHorizontalAlignment(SwingConstants.CENTER);
-		attributePanel.add(new JLabel("                 "));
-		attributePanel.add(secondJoinAttributeList);
-		attributePanel.setBackground(Color.WHITE);
-		area.add(attributePanel);
+		attributePanelSecond.add(secondJoinAttributeList);
+		attributePanelSecond.setBackground(Color.WHITE);
+		area.add(attributePanelFirst);
+		area.add(attributePanelSecond);
 	}
 
 	/**
@@ -289,13 +339,12 @@ public class JoinPanel extends AbstractOperationPanel {
 	 * depending on the user's relation, operator and first argument selection.
 	 */
 	private void fillCondValueList() {
-		if(secondJoinAttributeList.getSelectedItem() != null) {
+		if (secondJoinAttributeList.getSelectedItem() != null) {
 			previousValueSelection = (String) secondJoinAttributeList.getSelectedItem();
 		}
-		DefaultComboBoxModel model = (DefaultComboBoxModel) secondJoinAttributeList
-				.getModel();
+		DefaultComboBoxModel model = (DefaultComboBoxModel) secondJoinAttributeList.getModel();
 		model.removeAllElements();
-		String selectedRelation = (String)secondRelationList.getSelectedValue();
+		String selectedRelation = (String) secondRelationList.getSelectedValue();
 		String selectedFirstAttribute = (String) firstJoinAttributeList.getSelectedItem();
 		COperator selectedOperator = (COperator) operatorList.getSelectedItem();
 		if (selectedRelation == null || selectedOperator == null || selectedFirstAttribute == null) {
@@ -327,7 +376,7 @@ public class JoinPanel extends AbstractOperationPanel {
 		}
 		int previousIndex = model.getIndexOf(previousValueSelection);
 		if (!insertedElements.isEmpty() && previousIndex > 0) {
-				secondJoinAttributeList.setSelectedIndex(previousIndex);
+			secondJoinAttributeList.setSelectedIndex(previousIndex);
 		}
 	}
 }
