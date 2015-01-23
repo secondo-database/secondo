@@ -59,12 +59,12 @@ namespace clusterdbscanalg
   public: 
    DistCount() { cnt = 0; }
       
-   void reset() { cnt =0; }
+   void reset() const { cnt =0; }
 
-   size_t getCount() { return cnt; }
+   size_t getCount() const{ return cnt; }
 
   protected:
-   size_t cnt;
+   mutable size_t cnt;
  };
 /*
 1.4 Declarations and definition of the class ~IntDist~
@@ -256,7 +256,6 @@ namespace clusterdbscanalg
     result = (R*) funRes.addr;
         
     double c = result->GetValue();
-
     return c < 0 ? -c : c;
    }
      

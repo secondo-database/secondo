@@ -640,14 +640,12 @@ Type mapping method ~dbscanTypeMTF~ MMM-Tree with given distance function
  {
   if(nl->ListLength(args)!=2)
   {
-   ErrorReporter::ReportError("two elements expected. " 
+   return listutils::typeError("two elements expected. " 
             "Stream and argument list");
-   return nl->TypeError();
   }
-
   ListExpr stream = nl->First(args);
 
-  if(!Stream<Tuple>::checkType(nl->First(args)))
+  if(!Stream<Tuple>::checkType(stream))
   {
    return listutils::typeError("first argument is not stream(Tuple)");
   }
@@ -656,9 +654,8 @@ Type mapping method ~dbscanTypeMTF~ MMM-Tree with given distance function
 
   if(nl->ListLength(arguments)!=5)
   {
-   ErrorReporter::ReportError("non conform list of cluster attribut, "
-    "attribute name as cluster ID, Eps and MinPts");
-   return nl->TypeError();
+   return listutils::typeError("non conform list of cluster attribut, "
+    "attribute name as cluster ID, Eps and MinPts, distfun");
   }
 
   if(!CcReal::checkType(nl->Third(arguments)))
@@ -671,65 +668,44 @@ Type mapping method ~dbscanTypeMTF~ MMM-Tree with given distance function
    return listutils::typeError("no numeric MinPts");
   }
 
-  if(!listutils::isMap<2>(nl->Fifth(arguments)))
+  ListExpr fun = nl->Fifth(arguments);
+
+  if(!listutils::isMap<2>(fun))
   {
-   return listutils::typeError("arg4 is not a map");
-  }
-  
-  if(nl->ListLength(nl->Fifth(arguments))!=4)
-  {
-   ErrorReporter::ReportError("wrong map length (four arguments expected)");
-   return nl->TypeError();
+   return listutils::typeError("arg4 is not a map with 2 arguments");
   }
 
-//Check the cluster attribute name, if it is in the tuple
+  if(    !nl->Equal(nl->Second(fun), nl->Third(fun)) 
+      || (   !CcReal::checkType(nl->Fourth(fun)) 
+          && !CcInt::checkType(nl->Fourth(fun)) )) {
+     return listutils::typeError("fun is not of type: T x T -> {int, real} ");
+   
+   }
+
+
+  
+
+  //Check the cluster attribute name, if it is in the tuple
   ListExpr attrList = nl->Second(nl->Second(stream));
   ListExpr attrType;
-  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
+  
+  ListExpr clusterAttr = nl->First(arguments);
+  if(nl->AtomType(clusterAttr)!=SymbolType){
+    return listutils::typeError("First arg of the parameter list "
+           + nl->ToString(clusterAttr) + "  is not "
+           "a valid attribute name");
+  }
+  string attrName = nl->SymbolValue(clusterAttr);
   int found = FindAttribute(attrList, attrName, attrType);
   if(found == 0)
   {
-   ErrorReporter::ReportError("Attribute "
+   return listutils::typeError("Attribute "
     + attrName + " is no member of the tuple");
-   return nl->TypeError();
   }
 
-  if(!nl->Equal(attrType, nl->Second(nl->Fifth(arguments))))
-  {
+  if(!nl->Equal(attrType, nl->Second(fun))) {
    return listutils::typeError("Clustervalue type and function value type"
     "different");
-  }
-  
-  if(!nl->Equal(attrType, nl->Third(nl->Fifth(arguments))))
-  {
-   return listutils::typeError("Clustervalue type and function value type"
-    "different");
-  }
-
-  ListExpr funResType = nl->Fourth(nl->Fifth(arguments));
-  
-  if( !CcInt::checkType(funResType)
-   && !CcReal::checkType(funResType) )
-  {
-   return listutils::typeError("Function result type not of type " 
-    + CcInt::BasicType() + " or " 
-    + CcReal::BasicType() );
-  }  
-
-  if( !(CcInt::checkType(attrType) && CcInt::checkType(funResType))
-   && !(CcReal::checkType(attrType) && CcReal::checkType(funResType))
-   && !(Point::checkType(attrType) && CcReal::checkType(funResType))
-   && !(CcString::checkType(attrType) && CcInt::checkType(funResType)) )
-  {
-   return listutils::typeError("Attribute " + attrName + " not of type " 
-    + CcInt::BasicType() + " and function result not " + CcInt::BasicType() 
-    + ", "
-    + CcReal::BasicType() + " and function result not " + CcReal::BasicType() 
-    + ", " 
-    + Point::BasicType() + " and function result not " + CcReal::BasicType() 
-    + " or " 
-    + CcString::BasicType()+ " and function result not " + CcInt::BasicType()
-     );
   }
 
   ListExpr typeList;
@@ -746,9 +722,14 @@ Type mapping method ~dbscanTypeMTF~ MMM-Tree with given distance function
   int pos = FindAttribute(attrList,namestr,typeList);
   if(pos!=0)
   {
-   ErrorReporter::ReportError("Attribute "+ namestr +
+   return listutils::typeError("Attribute "+ namestr +
                               " already member of the tuple");
-   return nl->TypeError();
+  }//endif
+  pos = FindAttribute(attrList,"Visited",typeList);
+  if(pos!=0)
+  {
+   return listutils::typeError("Attribute Visisted" 
+                              " already member of the tuple");
   }//endif
 
   //Copy attrlist to newattrlist
@@ -807,8 +788,8 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
     int defMinPts = 0;
     int idxClusterAttr = -1;
     int attrCnt = 0;
-    int minLeafs  = 2;
-    int maxLeafs  = 8;
+    int minLeafs  = 4;
+    int maxLeafs  = 10;
     DBScanMT<T, DistComp> dbscan;
    
     qp->Open(args[0].addr);
@@ -839,10 +820,12 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
     
     stream.open();
 
+    TupleId id = 0;
+
     while( (tup = stream.request()) != 0)
     {
      Tuple *newTuple = new Tuple(resultTupleType);
-
+     newTuple->SetTupleId(id++);
      //Copy points from given tuple to the new tuple
      attrCnt = tup->GetNoAttributes();
      for( int i = 0; i < attrCnt; i++ ) //tup->GetNoAttributes(); i++ ) 
@@ -860,9 +843,8 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
      tp->AppendTuple(newTuple);
      tup->DeleteIfAllowed(); 
     }
-
     stream.close();
-
+    
     DistComp dc;
     dc.initialize(qp, supplier);
 
@@ -870,6 +852,9 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
 
     GenericRelationIterator* relIter = tp->MakeScan();
     Tuple* obj;
+
+
+    int count = 0;
 
     while((obj = relIter->GetNextTuple()))
     {
@@ -879,9 +864,11 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
      pair<T, TupleId> p(attr, objId);
 
      mtree->insert(p);
-     
+     count++;
      obj->DeleteIfAllowed();
     }
+
+    mtree->getDistComp().reset();
 
     dbscan.clusterAlgo(mtree, tp, defEps, defMinPts, idxClusterAttr, 
         attrCnt, attrCnt+1);
@@ -891,6 +878,8 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
 
     return 0;
    }
+
+
    case REQUEST :
    {
     relIter = (GenericRelationIterator *)local.addr;
@@ -1588,35 +1577,9 @@ Selection method for value mapping array ~dbscanMTFDisSL~
 */
  int dbscanMTFDisSL(ListExpr args)
  {
-  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
-  ListExpr attrType;
-  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
-  int found = FindAttribute(attrList, attrName, attrType);
-  assert(found > 0);
-  
-  ListExpr funResType = nl->Fourth(nl->Fifth(nl->Second(args)));
-  
-  if(CcInt::checkType(attrType) && CcInt::checkType(funResType))
-  {
-   return 0;
-  }
-  else if(CcReal::checkType(attrType) && CcReal::checkType(funResType))
-  {
-   return 1;
-  }
-  else if(Point::checkType(attrType) && CcReal::checkType(funResType))
-  {
-   return 2;
-  }
-  else if(CcString::checkType(attrType) && CcInt::checkType(funResType))
-  {
-   return 3;
-  }
-  else if(Picture::checkType(attrType) && CcReal::checkType(funResType))
-  {
-   return 4;
-  }
-  
+  ListExpr funResult= nl->Fourth(nl->Fifth(nl->Second(args)));
+  if(CcInt::checkType(funResult)) return 0;
+  if(CcReal::checkType(funResult)) return 1;
   return -1; 
  };
  
@@ -1627,11 +1590,8 @@ Value mapping array ~dbscanMTFDisVM[]~
 */
  ValueMapping dbscanMTFDisVM[] = 
  {
-  dbscanFunMTF<CcInt*, CustomDist<CcInt*, CcInt> >
- ,dbscanFunMTF<CcReal*, CustomDist<CcReal*, CcReal> >
- ,dbscanFunMTF<Point*, CustomDist<Point*, CcReal> >
- ,dbscanFunMTF<CcString*, CustomDist<CcString*, CcInt> >
- ,dbscanFunMTF<Picture*, CustomDist<Picture*, CcReal> >
+  dbscanFunMTF<Attribute*, CustomDist<Attribute*, CcInt> >,
+  dbscanFunMTF<Attribute*, CustomDist<Attribute*, CcReal> >
  };
 
 
@@ -1649,7 +1609,10 @@ Algebra class ~ClusterDBScanAlgebra~
                                 dbscanRRecSL, dbscanTypeRT)->SetUsesMemory();
     AddOperator(dbscanInfoDAC(), dbscanFunDAC, dbscanTypeDAC);
     AddOperator(dbscanInfoMT(), dbscanMTDisVM, dbscanMTDisSL, dbscanTypeMT);
+
     AddOperator(dbscanInfoMTF(),dbscanMTFDisVM, dbscanMTFDisSL, dbscanTypeMTF);
+
+
     AddOperator(dbscanInfoMerge(), dbscanFunMerge, dbscanTypeMerge);
    }
 

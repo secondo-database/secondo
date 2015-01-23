@@ -51,9 +51,6 @@ namespace clusterdbscanalg
 
 */
  template<class T, class DistComp>
- class DBScanMT;
-
- template<class T, class DistComp>
  class DBScanMT
  {
  
@@ -80,7 +77,7 @@ function to expand the cluster
 
 */   
   void clusterAlgo(MMMTree<pair<T, TupleId>, DistComp >* queryTree, 
-   TupleBuffer* objs, int eps, int minPts, int idxClusterAttr, 
+   TupleBuffer* objs, double eps, int minPts, int idxClusterAttr, 
    int clusterID, int visited) ;
 
 
@@ -109,7 +106,8 @@ Function ~DBScanMT::expandCluster~
 This function expands the cluster for a given point of the amount
 
 */
-  bool expandCluster(TupleBuffer* objs, TupleId objId, int clusterId, int eps, 
+  bool expandCluster(TupleBuffer* objs, TupleId objId, 
+                    int clusterId, double eps, 
     int minPts);
 
 
@@ -119,7 +117,7 @@ Function ~DBScanMT::regionQuery~
 This function detectes all points in a given eps neighbourhood
 
 */ 
-  std::list<TupleId>* regionQuery(TupleBuffer* objs, TupleId objId, int eps);
+  std::list<TupleId>* regionQuery(TupleBuffer* objs, TupleId objId, double eps);
 
 
  };

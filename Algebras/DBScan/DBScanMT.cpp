@@ -68,7 +68,7 @@ Function ~DBScanMT::clusterAlgo~
 */
  template<class T, class DistComp>
  void DBScanMT<T, DistComp>::clusterAlgo(MMMTree<pair<T, TupleId>, DistComp >* 
-  queryTree, TupleBuffer* objs, int eps, int minPts, int idxClusterAttr, 
+  queryTree, TupleBuffer* objs, double eps, int minPts, int idxClusterAttr, 
   int idxCID, int idxVisited)
  {
   mtree = queryTree;
@@ -86,20 +86,20 @@ Function ~DBScanMT::clusterAlgo~
   {
    if( !((CcBool*)obj->GetAttribute(VIS))->GetValue() )
    {
+
     CcBool visited(true, true);
     obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
 
     std::list<TupleId>* N = regionQuery(objs, obj->GetTupleId(), eps);
-    
+
     int nSize = N->size();    
     
-    if(nSize < minPts) 
-    {
+    if(nSize < minPts) {
      CcInt distI(true,NOISE);
      obj->PutAttribute( CID, distI.Clone() ); 
-    }   
-    else
-    {
+    }  else {
+
+
      clusterId = nextId();
      CcInt distI(true,clusterId);
      obj->PutAttribute( CID, distI.Clone() );
@@ -108,7 +108,7 @@ Function ~DBScanMT::clusterAlgo~
 
      for (it = N->begin(); it != N->end(); it++)
      {
-      Tuple* point = objs->GetTuple(*it, true);
+       Tuple* point = objs->GetTuple(*it, true);
       
       if(((CcInt*)point->GetAttribute(CID))->GetValue() == UNDEFINED 
        || ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
@@ -131,7 +131,7 @@ Function ~DBScanMT::expandCluster~
 */
  template<class T, class DistComp>
  bool DBScanMT<T, DistComp>::expandCluster(TupleBuffer* objs, TupleId objId, 
-  int clusterId, int eps, int minPts)
+  int clusterId, double eps, int minPts)
  {
   Tuple* obj = objs->GetTuple(objId, false);
   CcInt distI(true,clusterId);
@@ -142,7 +142,6 @@ Function ~DBScanMT::expandCluster~
    CcBool visited(true, true);
    obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
 
-   //std::list<TupleId>* N = regionQuery(objs, obj, eps);
    std::list<TupleId>* N = regionQuery(objs, objId, eps);
 
    int nSize = N->size();
@@ -175,25 +174,37 @@ Function ~DBScanMT::regionQuery~
 */ 
  template<class T, class DistComp>
  std::list<TupleId>* DBScanMT<T, DistComp>::regionQuery(TupleBuffer* objs, 
-  TupleId objId, int eps)
+  TupleId objId, double eps)
  {
+
+  
+
   std::list<TupleId>* near(new list<TupleId>);
   Tuple* obj;
-  
+ 
   obj = objs->GetTuple(objId, false);
+
   T key = (T) obj->GetAttribute(PNT);
+
   pair<T,TupleId> p(key, objId);
   RangeIterator<pair<T,TupleId>, DistComp >*  it;
+
+
   it = mtree->rangeSearch(p, eps);
 
+  DistComp dc;
+
+  int count = 0;
   while(it->hasNext())
   {
+   count++;
    pair<T,TupleId> p = *(it->next());
    if(p.second != objId)
    {
     near->push_back(p.second);
    }
   }
+
   obj->DeleteIfAllowed();
   delete it;
   return near;
@@ -213,5 +224,7 @@ Definition of the available template values
  template class DBScanMT<Point*, CustomDist<Point*, CcReal> >;
  template class DBScanMT<CcString*, CustomDist<CcString*, CcInt> >;
  template class DBScanMT<Picture*, CustomDist<Picture*, CcReal> >;
+ template class DBScanMT<Attribute*, CustomDist<Attribute*, CcReal> >;
+ template class DBScanMT<Attribute*, CustomDist<Attribute*, CcInt> >;
  
 }
