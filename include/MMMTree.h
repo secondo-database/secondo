@@ -1041,6 +1041,9 @@ increasing order to the reference object.
      return new NNIterator<T,DistComp>(root,ref,di);
    }
 
+   const DistComp& getDistComp(){
+      return di;
+   }
 
 
    private:
