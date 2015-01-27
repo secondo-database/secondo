@@ -560,11 +560,11 @@ void DistfunReg::initialize()
         DistDataReg::getInfo(CcString::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
-    addInfo(DistfunInfo(
-        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
-        symTrajDistance1<stj::MLabel>,
-        DistDataReg::getInfo(stj::MLabel::BasicType(), DDATA_NATIVE),
-        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+//     addInfo(DistfunInfo(
+//         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+//         symTrajDistance1<stj::MLabel>,
+//         DistDataReg::getInfo(stj::MLabel::BasicType(), DDATA_NATIVE),
+//         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     addInfo(DistfunInfo(
         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
@@ -572,17 +572,17 @@ void DistfunReg::initialize()
         DistDataReg::getInfo(stj::MLabels::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
-    addInfo(DistfunInfo(
-        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
-        symTrajDistance1<stj::MPlace>,
-        DistDataReg::getInfo(stj::MPlace::BasicType(), DDATA_NATIVE),
-        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
-
-    addInfo(DistfunInfo(
-        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
-        symTrajDistance1<stj::MPlaces>,
-        DistDataReg::getInfo(stj::MPlaces::BasicType(), DDATA_NATIVE),
-        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+//     addInfo(DistfunInfo(
+//         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+//         symTrajDistance1<stj::MPlace>,
+//         DistDataReg::getInfo(stj::MPlace::BasicType(), DDATA_NATIVE),
+//         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+// 
+//     addInfo(DistfunInfo(
+//         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+//         symTrajDistance1<stj::MPlaces>,
+//         DistDataReg::getInfo(stj::MPlaces::BasicType(), DDATA_NATIVE),
+//         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     PictureFuns::initDistfuns();
 
