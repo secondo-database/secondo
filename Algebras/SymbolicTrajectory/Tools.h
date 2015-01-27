@@ -27,6 +27,11 @@ Started July 2014, Fabio Vald\'{e}s
 
 */
 
+
+#ifndef SYMB_TOOLS_H
+#define SYMB_TOOLS_H
+
+
 #include "RelationAlgebra.h"
 #include "TemporalUnitAlgebra.h"
 #include "SecParser.h"
@@ -103,3 +108,7 @@ Started July 2014, Fabio Vald\'{e}s
 };
 
  }
+
+#endif
+
+
