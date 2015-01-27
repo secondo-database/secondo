@@ -79,7 +79,7 @@ NOW=$(date +"%Y-%m-%d-%T")
 which stat 2>&1 >/dev/null
 if [ "$?" = "0" ]; then
    USESTAT=TRUE
-   stat -c %w .
+   stat -c %w . >/dev/null
    if [ "$?" != "0" ]; then
      USESTAT=FALSE 
    fi
