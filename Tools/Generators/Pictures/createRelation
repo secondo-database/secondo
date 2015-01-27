@@ -88,9 +88,9 @@ function writeTuple {
 if [ "$#" = "0" ]; then
  read F
  while [ -n "$F" ]; do
-   FB=$(basename $F)
+   FB=$(basename "$F")
    if [ "$USESTAT" = "TRUE" ]; then
-      D=$(stat -c %y $F | sed "s/\([^ ]*\).*/\1/g" )
+      D=$(stat -c %y "$F" | sed "s/\([^ ]*\).*/\1/g" )
    else
       D=$NOW
    fi
@@ -107,7 +107,7 @@ if [ "$#" = "0" ]; then
  else
    while [ "$#" != "0" ]; do
      F=$1
-     FB=$(basename $F)
+     FB=$(basename "$F")
      if [ "$USESTAT" = "TRUE" ]; then
         D=$(stat -c %y $F | sed "s/\([^ ]*\).*/\1/g" )
      else
