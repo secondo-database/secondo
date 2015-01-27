@@ -91,11 +91,12 @@ Started July 2014, Fabio Vald\'{e}s
      map<int, int> &final2Pat);
   static void createNFAfromPersistent(DbArray<NFAtransition> &trans, 
           DbArray<int> &fs, vector<map<int, int> > &nfa, set<int> &finalStates);
-  static void printBinding(map<string, pair<int, int> > &b);
-  static double distance(string& val1, string& val2);
-  static double distance(pair<string, unsigned int>& val1, 
-                         pair<string, unsigned int>& val2);
-  static double distance(set<string>& values1, set<string>& values2);
+  static void printBinding(const map<string, pair<int, int> > &b);
+  static double distance(const string& str1, const string& str2, const int fun);
+  static double distance(const pair<string, unsigned int>& val1, 
+                       const pair<string, unsigned int>& val2, const int fun);
+  static double distance(const set<string>& values1, const set<string>& values2,
+                         const int fun, const int labelFun);
   static double distance(set<pair<string, unsigned int> >& values1, 
                          set<pair<string, unsigned int> >& values2);
 };

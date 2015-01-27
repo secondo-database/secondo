@@ -113,21 +113,20 @@ bool Label::operator==(const string& text) const {
 \subsection{Function ~Distance~}
 
 */
-double Label::Distance(const Label& lb, const bool normalize) const {
+double Label::Distance(const Label& lb, const int fun) const {
   if (!IsDefined() && !lb.IsDefined()) {
     return 0;
   }
-  if (!IsDefined() || !lb.IsDefined()) {
-    return 1;
-  }
   string str1, str2;
+  if (!IsDefined() || !lb.IsDefined()) {
+    if (fun % 2 == 0) {
+      return 1;
+    }
+    return IsDefined() ? Sizeof() : lb.Sizeof();
+  }
   GetValue(str1);
   lb.GetValue(str2);
-  if (!str1.length() && !str2.length()) {
-    return 0;
-  }
-  double dist = stringutils::ld(str1,str2);
-  return normalize ? dist / max(str1.length(), str2.length()) : dist;
+  return Tools::distance(str1, str2, fun);
 }
 
 /*
@@ -490,54 +489,19 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 \subsection{Function ~Contains~}
 
 */
-double Labels::Distance(const Labels& lbs, const bool normalizeNum, 
-                        const bool normalizeLabel) const {
+double Labels::Distance(const Labels& lbs, const int fun, const int labelFun) 
+                        const {
   if (!IsDefined() && !lbs.IsDefined()) {
     return 0;
   }
-  if (!IsDefined() || !lbs.IsDefined()) {
-    return 1;
-  }
   set<string> values1, values2;
-  GetValues(values1);
-  lbs.GetValues(values2);
-  if (values1.empty() && values2.empty()) {
-    return 0;
+  if (IsDefined()) {
+    GetValues(values1);
   }
-  if (values1.empty() || values2.empty()) {
-    if (normalizeLabel) {
-      return normalizeNum ? 1 : max(values1.size(), values2.size());
-    }
-    else {
-      return normalizeNum ? DBL_MAX / max(values1.size(), values2.size()) : 
-                            DBL_MAX;
-    }
+  if (lbs.IsDefined()) {
+    lbs.GetValues(values1);
   }
-  set<string>::iterator i1, i2;
-  multiset<double> dist;
-  for (i1 = values1.begin(); i1 != values1.end(); i1++) {
-    for (i2 = values2.begin(); i2 != values2.end(); i2++) {
-      if (normalizeLabel) {
-        dist.insert(double(stringutils::ld(*i1, *i2)) /
-                    max(i1->length(), i2->length()));
-      }
-      else {
-        dist.insert(double(stringutils::ld(*i1, *i2)));
-      }
-    }
-  }
-  int limit = min(values1.size(), values2.size());
-  multiset<double>::iterator it = dist.begin();
-  double sum = 0;
-  for (int k = 0; k < limit; k++) {
-    sum += *it;
-    it++;
-  }
-  if (!normalizeNum) {
-    return sum;
-  }
-  return (sum / limit + abs((int64_t)values1.size() - (int64_t)values2.size())/ 
-                        max(values1.size(), values2.size())) / 2;
+  return Tools::distance(values1, values2, fun, labelFun);
 }
 
 /*
@@ -742,16 +706,17 @@ bool Place::operator==(const pair<string, unsigned int>& value) const {
 \subsection{Function ~Distance~}
 
 */
-double Place::Distance(const Place& p, const bool normalizeLabel,
-                       const double ratio) const {
+double Place::Distance(const Place& p, const int fun) const {
   if (!IsDefined() && !p.IsDefined()) {
     return 0;
   }
   if (!IsDefined() || !p.IsDefined()) {
-    return 1;
+    return Label::Distance(p, fun);
   }
-  return Label::Distance(p, normalizeLabel) * ratio +
-         (GetRef() == p.GetRef() ? 0 : 1 - ratio);
+  pair<string, unsigned int> val1, val2;
+  GetValue(val1);
+  p.GetValue(val2);
+  return Tools::distance(val1, val2, fun);
 }
 
 /*

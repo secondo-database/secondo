@@ -33,7 +33,10 @@ Started July 2014, Fabio Vald\'{e}s
 #include "TemporalExtAlgebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
+#include "Tools.h"
 #include <string>
+#include <algorithm>
+#include <cctype>
 
 namespace stj {
   
@@ -94,7 +97,7 @@ class Label : public Attribute {
   Label& operator=(const Label& lb) {CopyFrom(&lb); return *this;}
   bool operator==(const Label& lb) const;
   bool operator==(const string& text) const;
-  double Distance(const Label& lb, const bool normalize) const;
+  double Distance(const Label& lb, const int fun) const;
 
   static bool readValueFrom(ListExpr LE, string& text, unitelem& unit);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
@@ -159,8 +162,7 @@ class Labels : public Attribute {
   void Clean() {values.clean(); pos.clean();}
   bool Contains(const string& text) const;
   friend ostream& operator<<(ostream& os, const Labels& lbs);
-  double Distance(const Labels& lbs, const bool normalizeNum,
-                  const bool normalizeLabel) const;
+  double Distance(const Labels& lbs, const int fun, const int labelFun) const;
   
   int NumOfFLOBs() const {return 2;}
   Flob *GetFLOB(const int i);
@@ -215,8 +217,7 @@ class Place : public Label {
   Place& operator=(const Place& p);
   bool operator==(const Place& p) const;
   bool operator==(const pair<string, unsigned int>& value) const;
-  double Distance(const Place& p, const bool normalizeLabel, const double ratio)
-         const;
+  double Distance(const Place& p, const int fun) const;
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Place);}

@@ -917,11 +917,11 @@ void Tools::createNFAfromPersistent(DbArray<NFAtransition> &trans,
   }
 }
 
-void Tools::printBinding(map<string, pair<int, int> > &b) {
+void Tools::printBinding(const map<string, pair<int, int> > &b) {
   if (b.empty()) {
     return;
   }
-  map<string, pair<int, int> >::iterator it;
+  map<string, pair<int, int> >::const_iterator it;
   for (it = b.begin(); it != b.end(); it++) {
     cout << it->first << " --> [" << it->second.first << ","
          << it->second.second << "]  ";
@@ -929,40 +929,62 @@ void Tools::printBinding(map<string, pair<int, int> > &b) {
   cout << endl;
 }
 
-double Tools::distance(string& val1, string& val2) {
-  return double(stringutils::ld(val1,val2)) / max(val1.length(), val2.length());
+double Tools::distance(const string& str1, const string& str2, const int fun) {
+  if (!str1.length() && !str2.length()) {
+    return 0;
+  }
+  double ld;
+  if (fun > 1) {
+    string newstr1, newstr2;
+    transform(str1.begin(), str1.end(), newstr1.begin(), ::tolower);
+    transform(str2.begin(), str2.end(), newstr2.begin(), ::tolower);
+    ld = stringutils::ld(newstr1, newstr2);
+  }
+  ld = stringutils::ld(str1, str2);
+  return (fun % 2 == 0) ? ld / max(str1.length(), str2.length()) : ld;
 }
 
-double Tools::distance(pair<string, unsigned int>& val1, 
-                       pair<string, unsigned int>& val2) {
-  return distance(val1.first, val2.first) / 2 + 
-         (val1.second == val2.second ? 0 : 0.5);
+double Tools::distance(const pair<string, unsigned int>& val1, 
+                       const pair<string, unsigned int>& val2, const int fun) {
+  double ld = Tools::distance(val1.first, val2.first, fun);
+  return (fun > 4 && val1.second == val2.second) ? ld / 2 : ld;
 }
 
-double Tools::distance(set<string>& values1, set<string>& values2) {
+double Tools::distance(const set<string>& values1, const set<string>& values2,
+                       const int fun, const int labelFun) {
   if (values1.empty() && values2.empty()) {
     return 0;
   }
-  if (values1.empty() || values2.empty()) {
-    return 1;
-  }
   set<string>::iterator i1, i2;
   multiset<double> dist;
-  for (i1 = values1.begin(); i1 != values1.end(); i1++) {
-    for (i2 = values2.begin(); i2 != values2.end(); i2++) {
-      dist.insert(double(stringutils::ld(*i1, *i2)) /
-                  max(i1->length(), i2->length()));
+  if (values2.empty()) {
+    for (i1 = values1.begin(); i1 != values1.end(); i1++) {
+      dist.insert(labelFun % 2 == 0 ? 1 : i1->length());
     }
   }
-  int limit = min(values1.size(), values2.size());
+  else if (values1.empty()) {
+    for (i2 = values2.begin(); i2 != values2.end(); i2++) {
+      dist.insert(labelFun % 2 == 0 ? 1 : i2->length());
+    }
+  }
+  else {
+    for (i1 = values1.begin(); i1 != values1.end(); i1++) {
+      for (i2 = values2.begin(); i2 != values2.end(); i2++) {
+        dist.insert(Tools::distance(*i1, *i2, labelFun));
+      }
+    }
+  }
+  int m = values1.size();
+  int n = values2.size();
+  int limit = (fun % 5) % 2 == 1 ? min(m, n) : 
+              ((fun % 5) > 0 ? max(m, n) : m + n);
   multiset<double>::iterator it = dist.begin();
   double sum = 0;
   for (int k = 0; k < limit; k++) {
     sum += *it;
     it++;
   }
-  return (sum / limit + (double)abs((int)values1.size() - (int)values2.size()) /
-                                max(values1.size(), values2.size())) / 2;
+  return fun < 5 ? sum / limit : sum;
 }
 
 double Tools::distance(set<pair<string, unsigned int> >& values1, 
