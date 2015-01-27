@@ -1836,14 +1836,15 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
 //       cout << imiPtr->next + 1 << " | " << counter << endl;
       if (imiPtr->next + 1 >= counter) {
         bool match = false;
-        IndexMatchInfo newIMI(true, imiPtr->next, imiPtr->binding, 
+        IndexMatchInfo newIMI(true, imiPtr->next + 1, imiPtr->binding, 
                               imiPtr->prevElem);
         if (p.hasConds()) { // extend binding for a complete match
           extendBinding(newIMI, trans.first);
           if (p.isFinalState(trans.second) && imiPtr->finished(trajSize[id])) {
-            string var = p.getVarFromElem(trans.first);
+            string var = p.getVarFromElem(p.getElemFromAtom(trans.first));
             int oldEnd = newIMI.binding[var].second;
             newIMI.binding[var].second = trajSize[id] - 1;
+            cout << "call from WM::: ";
             match = checkConditions(id, newIMI);
             if (!match) { // reset unsuccessful binding
               newIMI.binding[var].second = oldEnd;
@@ -1903,7 +1904,7 @@ void IndexMatchesLI::extendBinding(IndexMatchInfo& imi, const int e) {
   elem.getV(var);
   if (e < imi.prevElem) { // possible for repeated regex
     if (var == prevVar) { // valid case
-      if (!var.empty()) { // X [() * ()]+
+      if (var != "") { // X [() * ()]+
         imi.binding[var].second = imi.next - 1;
 //         cout << "right limit of " << var << " is " << imi.next - 1 << endl;
       }
@@ -1917,7 +1918,7 @@ void IndexMatchesLI::extendBinding(IndexMatchInfo& imi, const int e) {
     }
   }
   else if (e == imi.prevElem) { // same atom (and same variable) as before
-    if (!var.empty()) { // X * or X [...]+
+    if (var != "") { // X * or X [...]+
       imi.binding[var].second = imi.next - 1;
 //       cout << "upper limit of " << var << " set to " << imi.next - 1 << endl;
     }
@@ -1927,7 +1928,7 @@ void IndexMatchesLI::extendBinding(IndexMatchInfo& imi, const int e) {
   }
   else { // different atoms
     if (var == prevVar) { // X [() +]
-      if (!var.empty()) {
+      if (var != "") {
         imi.binding[var].second = imi.next - 1;
 //         cout << "ceiling of " << var << " set to " << imi.next - 1 << endl;
       }
@@ -1936,11 +1937,17 @@ void IndexMatchesLI::extendBinding(IndexMatchInfo& imi, const int e) {
       }
     }
     else { // different variables
-      if (prevVar.empty()) { // () X ()
-        imi.binding[var] = make_pair(imi.next - 1, imi.next - 1);
-//         cout << "new var " << var << " bound to " << imi.next - 1 << endl;
+      if ((var != "") && (prevVar != "")) { // () X ()
+        if (imi.next == 0) { // first atom
+          imi.binding[var] = make_pair(0, 0);
+//           cout << "new var " << var << " bound to 0" << endl;
+        }
+        else {
+          imi.binding[var] = make_pair(imi.next - 1, imi.next - 1);
+//           cout << "new var " << var << " bound to " << imi.next - 1 << endl;
+        }
       }
-      else if (var.empty()) { // X () ()
+      else if (var == "") { // X () ()
         if (prevElem.getW() != NO) {
           imi.binding[prevVar].second = imi.next - 2;
 //           cout << "prevVar " << prevVar << " finishes at " << imi.next - 2
@@ -1966,7 +1973,9 @@ void IndexMatchesLI::extendBinding(IndexMatchInfo& imi, const int e) {
 //         cout << "new var " << var << " receives " << imi.next - 1 << endl;
       }
     }
-    imi.binding[prevVar].second = imi.next - 2;
+    if (prevVar != "") {
+      imi.binding[prevVar].second = imi.next - 2;
+    }
   }
   imi.prevElem = e;
 //   Tools::printBinding(imi.binding);

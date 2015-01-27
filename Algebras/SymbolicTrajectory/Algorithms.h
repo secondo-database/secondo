@@ -62,7 +62,6 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include <math.h>
 #include <time.h>
 
-#include "Tools.h"
 #include "BasicTypes.h"
 
 #define YYDEBUG 1
@@ -1697,10 +1696,10 @@ void MBasic<B>::serialize(size_t &size, char *bytes) const {
   }
   size = sizeof(size_t) + sizeof(*this) + values.getSize() + units.getSize();
   bytes = new char[size];
-  memcpy(bytes, &size, sizeof(size_t));
-  memcpy(bytes, this, sizeof(*this));
-  memcpy(bytes, &values, values.getSize());
-  memcpy(bytes, &units, units.getSize());
+  memcpy(bytes, (void*)&size, sizeof(size_t));
+  memcpy(bytes, (void*)this, sizeof(*this));
+  memcpy(bytes, (void*)&values, values.getSize());
+  memcpy(bytes, (void*)&units, units.getSize());
 }
 
 /*
@@ -1710,10 +1709,11 @@ void MBasic<B>::serialize(size_t &size, char *bytes) const {
 template<class B>
 void MBasic<B>::deserialize(const char *bytes) {
   size_t size;
-  memcpy(&size, bytes, sizeof(size_t));
-  memcpy(this, bytes + sizeof(size_t), size);
-  memcpy(&values, bytes + sizeof(size_t) + sizeof(this), values.getSize());
-  memcpy(&units, bytes + sizeof(size_t) + sizeof(this) + values.getSize(), 
+  memcpy((void*)&size, bytes, sizeof(size_t));
+  memcpy((void*)this, bytes + sizeof(size_t), size);
+  memcpy((void*)&values, bytes + sizeof(size_t) + sizeof(this), 
+         values.getSize());
+  memcpy((void*)&units, bytes + sizeof(size_t) + sizeof(this) +values.getSize(),
          units.getSize());
 }
 
@@ -1787,7 +1787,6 @@ void MBasic<B>::GetInterval(const int i, SecInterval& result) const {
 */
 template<class B>
 void MBasic<B>::GetBasic(const int i, B& result) const {
-  cout << "getBasic " << i << " from " << GetNoComponents() << endl;
   assert((i >= 0) && (i < GetNoComponents()));
   result.SetDefined(IsDefined());
   if (IsDefined()) {
@@ -2451,11 +2450,11 @@ void MBasics<B>::serialize(size_t &size, char *bytes) const {
   size = sizeof(size_t) + sizeof(*this) + values.getSize() + units.getSize()
          + pos.getSize();
   bytes = new char[size];
-  memcpy(bytes, &size, sizeof(size_t));
-  memcpy(bytes, this, sizeof(*this));
-  memcpy(bytes, &values, values.getSize());
-  memcpy(bytes, &units, units.getSize());
-  memcpy(bytes, &pos, pos.getSize());
+  memcpy(bytes, (void*)&size, sizeof(size_t));
+  memcpy(bytes, (void*)this, sizeof(*this));
+  memcpy(bytes, (void*)&values, values.getSize());
+  memcpy(bytes, (void*)&units, units.getSize());
+  memcpy(bytes, (void*)&pos, pos.getSize());
 }
 
 /*
@@ -2465,12 +2464,13 @@ void MBasics<B>::serialize(size_t &size, char *bytes) const {
 template<class B>
 void MBasics<B>::deserialize(const char *bytes) {
   size_t size;
-  memcpy(&size, bytes, sizeof(size_t));
-  memcpy(this, bytes + sizeof(size_t), size);
-  memcpy(&values, bytes + sizeof(size_t) + sizeof(this), values.getSize());
-  memcpy(&units, bytes + sizeof(size_t) + sizeof(this) + values.getSize(), 
+  memcpy((void*)&size, bytes, sizeof(size_t));
+  memcpy((void*)this, bytes + sizeof(size_t), size);
+  memcpy((void*)&values, bytes + sizeof(size_t) + sizeof(this), 
+         values.getSize());
+  memcpy((void*)&units, bytes + sizeof(size_t) + sizeof(this) +values.getSize(),
          units.getSize());
-  memcpy(&pos, bytes + sizeof(size_t) + sizeof(this) + values.getSize() 
+  memcpy((void*)&pos, bytes + sizeof(size_t) + sizeof(this) + values.getSize() 
          + units.getSize(), pos.getSize());
 }
 
@@ -3009,13 +3009,15 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
     dp[0][j] = j;
   }
   set<typename B::base> basics1, basics2;
+  int fun = 0; // TODO: change
+  int labelFun = 0; // TODO: change
   for (int i = 1; i < n; i++) {
     GetValues(i - 1, basics1);
     for (int j = 1; j < m; j++) {
       mbs.GetValues(j - 1, basics2);
       dp[i][j] = min(dp[i - 1][j] + 1,
                  min(dp[i][j - 1] + 1, 
-                     dp[i -1][j - 1] + Tools::distance(basics1, basics2)));
+           dp[i -1][j - 1] + Tools::distance(basics1, basics2, fun, labelFun)));
     }
   }
   return dp[n - 1][m - 1] / max(n, m);
@@ -3389,7 +3391,7 @@ template<class M>
 bool Match<M>::findBinding(unsigned int ulId, unsigned int pId,
                           vector<PatElem> &elems, vector<Condition> &conds,
                           map<int, string> &elemToVar,
-                      map<string, pair<int, int> > &binding) {
+                          map<string, pair<int, int> > &binding) {
   string var = elemToVar[pId];
   bool inserted = false;
   if (!var.empty()) {
@@ -3495,20 +3497,12 @@ bool Match<M>::conditionsMatch(vector<Condition> &conds,
   }
   for (unsigned int i = 0; i < conds.size(); i++) {
     if (!evaluateCond(conds[i], binding)) {
-//       cout << conds[i].getText() << " | X --> [" 
-//            << binding.find("X")->second.first << ", "
-//            << binding.find("X")->second.second << "] | A --> ["
-//            << binding.find("A")->second.first << ", "
-//            << binding.find("A")->second.second << "] | B --> ["
-//            << binding.find("B")->second.first << ", "
-//            << binding.find("B")->second.second << "] | Y --> ["
-//            << binding.find("Y")->second.first << ", "
-//            << binding.find("Y")->second.second << "] | Z --> ["
-//            << binding.find("Z")->second.first << ", "
-//            << binding.find("Z")->second.second << "] "<< endl;
+//       cout << conds[i].getText() << " | ";
+//       Tools::printBinding(binding);
       return false;
     }
   }
+//   cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!! MATCH" << endl;
   return true;
 }
 
@@ -3569,7 +3563,7 @@ bool Match<M>::evaluateCond(Condition &cond,
   SecInterval iv(true);
   for (int i = 0; i < cond.getVarKeysSize(); i++) {
     string var = cond.getVar(i);
-    if (binding.count(var) /*&& isSensiblyBound(binding, var)*/) {
+    if ((var != "") && binding.count(var)) {
       from = binding.find(var)->second.first;
       to = binding.find(var)->second.second;
       switch (cond.getKey(i)) {
@@ -3656,6 +3650,35 @@ bool Match<M>::evaluateCond(Condition &cond,
     }
     else { // variable bound to empty sequence
       switch (cond.getKey(i)) {
+        case 0: { // label
+          string value("");
+          cond.setValuePtr(i, value);
+          break;
+        }
+        case 1: { // place
+          pair<string, unsigned int> value;
+          cond.setValuePtr(i, value);
+          break;
+        }
+        case 2: {
+          cond.clearTimePtr(i);
+          m->GetInterval(m->GetNoComponents() - 1, iv);
+          iv.SetStart(iv.end, false);
+          cond.mergeAddTimePtr(i, iv);
+          break;
+        }
+        case 3: // start
+        case 4: { // end
+          m->GetInterval(m->GetNoComponents() - 1, iv);
+          cond.setStartEndPtr(i, iv.end);
+          break;
+        }
+        case 5: // leftclosed
+        case 6: { // rightclosed
+          m->GetInterval(m->GetNoComponents() - 1, iv);
+          cond.setLeftRightclosedPtr(i, iv.rc);
+          break;
+        }
         case 7: {
           cond.setCardPtr(i, 0);
           break;
@@ -4536,6 +4559,9 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
       if (unit + 1 >= counter) {
         IndexMatchInfo newIMI(false, unit + 1, imi.binding, imi.prevElem);
         extendBinding(newIMI, e);
+//         if (newIMI.finished(trajSize[id])) {
+//           newIMI.print(true); cout << "   ";
+//         }
         if (p.isFinalState(newState) && newIMI.finished(trajSize[id]) && 
             checkConditions(id, newIMI)) { // complete match
           removeIdFromIndexResult(id);
@@ -4632,17 +4658,17 @@ DeriveGroupsLI<M>::DeriveGroupsLI(Word _stream, double threshold, int attrNo) {
     noTuples++;
   }
   stream.close();
-  vector<double> dist[noTuples];
-  for (int i = 0; i < noTuples; i++) {
-    for (int j = 0; j < i; j++) {
-      double distance = 0;
-      //double distance = trajStore[i]->Distance(*trajStore[j]);
-      if (distance <= threshold) {
-        dist[i].push_back(j);
-        cout << "pair (" << i << ", " << j << ") found" << endl;
-      }
-    }
-  }
+//   vector<double> dist[noTuples];
+//   for (int i = 0; i < noTuples; i++) {
+//     for (int j = 0; j < i; j++) {
+//       double distance = 0;
+//       //double distance = trajStore[i]->Distance(*trajStore[j]);
+//       if (distance <= threshold) {
+//         dist[i].push_back(j);
+//         cout << "pair (" << i << ", " << j << ") found" << endl;
+//       }
+//     }
+//   }
 }
 
 /*
