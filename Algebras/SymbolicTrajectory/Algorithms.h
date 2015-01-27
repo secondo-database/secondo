@@ -55,6 +55,7 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include "IntNfa.h"
 #include "TemporalUnitAlgebra.h"
 #include "GenericTC.h"
+#include "Tools.h"
 #include <string>
 #include <set>
 #include <stack>
