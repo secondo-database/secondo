@@ -27,10 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef COORD_H
-#define COORD_H
+ //#ifndef COORD_H
+ //#define COORD_H
 
 typedef double Coord;
 
-#endif
+ //#endif
 
