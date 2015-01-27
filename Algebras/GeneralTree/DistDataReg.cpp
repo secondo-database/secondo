@@ -35,7 +35,6 @@ January-May 2008, Mirko Dibbert
 #include "DistDataReg.h"
 #include "PictureFuns.h"
 
-#include "Coord.h"
 #include "Point.h"
 #include "SpatialAlgebra.h"
 #include "Algorithms.h"
