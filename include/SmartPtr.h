@@ -92,7 +92,7 @@ The "="[4] operator could be used to assign a regular pointer, a "SmartPointer"[
 
 */
 #ifndef __SMART_PTR_H____
-#define __SMART_PTR_H__
+#define __SMART_PTR_H____
 
 #include <limits>
 
