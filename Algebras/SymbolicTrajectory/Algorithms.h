@@ -2179,6 +2179,7 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
   for (int j = 0; j < m; j++) {
     dp[0][j] = j;
   }
+  int labelFun = 0; // TODO: change
   typename B::base basic1, basic2;
   for (int i = 1; i < n; i++) {
     GetValue(i - 1, basic1);
@@ -2186,7 +2187,8 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
       mb.GetValue(j - 1, basic2);
       dp[i][j] = min(dp[i - 1][j] + 1,
                  min(dp[i][j - 1] + 1, 
-                     dp[i -1][j - 1] + Tools::distance(basic1, basic2)));
+                     dp[i -1][j - 1] + Tools::distance(basic1, basic2, 
+                                                       labelFun)));
     }
   }
   return dp[n - 1][m - 1] / max(n, m);

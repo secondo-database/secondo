@@ -945,9 +945,9 @@ double Tools::distance(const string& str1, const string& str2, const int fun) {
 }
 
 double Tools::distance(const pair<string, unsigned int>& val1, 
-                       const pair<string, unsigned int>& val2, const int fun) {
-  double ld = Tools::distance(val1.first, val2.first, fun);
-  return (fun > 4 && val1.second == val2.second) ? ld / 2 : ld;
+    const pair<string, unsigned int>& val2, const int labelFun) {
+  double ld = Tools::distance(val1.first, val2.first, labelFun);
+  return (labelFun > 4 && val1.second == val2.second) ? ld / 2 : ld;
 }
 
 double Tools::distance(const set<string>& values1, const set<string>& values2,
@@ -988,7 +988,7 @@ double Tools::distance(const set<string>& values1, const set<string>& values2,
 }
 
 double Tools::distance(set<pair<string, unsigned int> >& values1, 
-                       set<pair<string, unsigned int> >& values2) {
+ set<pair<string, unsigned int> >& values2, const int fun, const int labelFun) {
   if (values1.empty() && values2.empty()) {
     return 0;
   }

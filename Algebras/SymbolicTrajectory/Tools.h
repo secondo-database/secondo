@@ -98,7 +98,8 @@ Started July 2014, Fabio Vald\'{e}s
   static double distance(const set<string>& values1, const set<string>& values2,
                          const int fun, const int labelFun);
   static double distance(set<pair<string, unsigned int> >& values1, 
-                         set<pair<string, unsigned int> >& values2);
+                         set<pair<string, unsigned int> >& values2,
+                         const int fun, const int labelFun);
 };
 
  }
