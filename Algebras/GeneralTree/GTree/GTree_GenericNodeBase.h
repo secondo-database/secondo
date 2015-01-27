@@ -138,7 +138,7 @@ Reserves space for "n"[4] entries in the entry vector.
 
 */
     inline void reserve(size_t n)
-    { entries->reserve(n); }
+    { m_entries->reserve(n); }
 
 /*
 Sets the modified flag and recomputes "m[_]curSize" and "m[_]pagesize", which is nessesary, if the entry vector has been directly manipulated.
