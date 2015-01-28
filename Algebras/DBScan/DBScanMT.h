@@ -81,6 +81,7 @@ function to expand the cluster
    int clusterID, int visited) ;
 
 
+  size_t no_Objects;
 /*
 1.3.2 Private members
 
@@ -106,9 +107,9 @@ Function ~DBScanMT::expandCluster~
 This function expands the cluster for a given point of the amount
 
 */
-  bool expandCluster(TupleBuffer* objs, TupleId objId, 
+  bool expandCluster(TupleBuffer* objs, 
                     int clusterId, double eps, 
-    int minPts);
+    int minPts, list<TupleId>* seeds, vector<bool>& isSeed);
 
 
 /*

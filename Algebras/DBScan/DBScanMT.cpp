@@ -58,6 +58,7 @@ Default constructor ~DBScanMT::DBScanMT~
  DBScanMT<T, DistComp>::DBScanMT()
  {
   id = 0;
+  no_Objects=0;
   return;
  }
 
@@ -71,8 +72,8 @@ Function ~DBScanMT::clusterAlgo~
   queryTree, TupleBuffer* objs, double eps, int minPts, int idxClusterAttr, 
   int idxCID, int idxVisited)
  {
+
   mtree = queryTree;
-       
   PNT = idxClusterAttr;
   CID = idxCID;
   VIS = idxVisited;
@@ -81,6 +82,7 @@ Function ~DBScanMT::clusterAlgo~
   Tuple* obj;
 
   int clusterId = 0;
+  vector<bool> isSeed(no_Objects, false);
   
   while((obj = relIter->GetNextTuple()))
   {
@@ -91,32 +93,21 @@ Function ~DBScanMT::clusterAlgo~
     obj->PutAttribute(VIS, ((Attribute*) &visited)->Clone());
 
     std::list<TupleId>* N = regionQuery(objs, obj->GetTupleId(), eps);
-
     int nSize = N->size();    
     
     if(nSize < minPts) {
      CcInt distI(true,NOISE);
      obj->PutAttribute( CID, distI.Clone() ); 
     }  else {
-
-
      clusterId = nextId();
      CcInt distI(true,clusterId);
      obj->PutAttribute( CID, distI.Clone() );
-     
      std::list<TupleId>::iterator it;
-
-     for (it = N->begin(); it != N->end(); it++)
-     {
-       Tuple* point = objs->GetTuple(*it, true);
-      
-      if(((CcInt*)point->GetAttribute(CID))->GetValue() == UNDEFINED 
-       || ((CcInt*)point->GetAttribute(CID))->GetValue() == NOISE)
-      {
-       expandCluster(objs, *it, clusterId, eps, minPts);
-      }
-      point->DeleteIfAllowed();
+     for(it=N->begin(); it!=N->end(); it++){
+       isSeed[*it] = true;
      }
+     expandCluster(objs, clusterId, eps, minPts, N , isSeed);
+     
     }
     delete N;
    }
@@ -129,8 +120,11 @@ Function ~DBScanMT::clusterAlgo~
 Function ~DBScanMT::expandCluster~
 
 */
+
+ /*
  template<class T, class DistComp>
- bool DBScanMT<T, DistComp>::expandCluster(TupleBuffer* objs, TupleId objId, 
+ bool DBScanMT<T, DistComp>::expandCluster_old(TupleBuffer* objs, 
+  TupleId objId, 
   int clusterId, double eps, int minPts)
  {
   Tuple* obj = objs->GetTuple(objId, false);
@@ -167,6 +161,48 @@ Function ~DBScanMT::expandCluster~
   obj->DeleteIfAllowed();;
   return true;
  }
+ */ 
+
+void merge(std::list<TupleId>* seeds, std::list<TupleId>* N, 
+           vector<bool>& seedMark){
+   std::list<TupleId>::iterator it;
+   for(it = N->begin() ; it!=N->end();it++){
+      if(!seedMark[*it]){
+         seeds->push_back(*it);
+      }
+   }
+}
+
+
+template<class T, class DistComp>
+ bool DBScanMT<T, DistComp>::expandCluster(TupleBuffer* objs, 
+  int clusterId, double eps, int minPts,std::list<TupleId>* seeds, 
+  vector<bool>& seedMark)
+ {
+  
+  while(!seeds->empty()){
+     TupleId id = seeds->front();
+     seeds->pop_front();
+     seedMark[id] = false;
+     Tuple* tuple = objs->GetTuple(id,true);
+     if( !((CcBool*)tuple->GetAttribute(VIS))->GetValue() ){
+         std::list<TupleId>* N = regionQuery(objs, id, eps);
+         tuple->PutAttribute(VIS, new CcBool(true,true));
+         if(N->size() >= minPts){ // core point
+             merge(seeds,N,seedMark);     
+         } else { // border point
+           int cid = ((CcInt*)tuple->GetAttribute(CID))->GetValue();
+           if(cid==UNDEFINED || cid==NOISE){
+               tuple->PutAttribute(CID, new CcInt(true,clusterId));
+           }
+         }
+         delete N;
+     }
+     tuple->DeleteIfAllowed();
+  }
+
+  return true;
+ }
  
 /*
 Function ~DBScanMT::regionQuery~
@@ -176,8 +212,6 @@ Function ~DBScanMT::regionQuery~
  std::list<TupleId>* DBScanMT<T, DistComp>::regionQuery(TupleBuffer* objs, 
   TupleId objId, double eps)
  {
-
-  
 
   std::list<TupleId>* near(new list<TupleId>);
   Tuple* obj;

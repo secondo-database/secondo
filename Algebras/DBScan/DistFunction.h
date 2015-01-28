@@ -315,8 +315,11 @@ namespace clusterdbscanalg
     }
     
     double distance;
-    
-    df.dist(df.getData(p1.first), df.getData(p2.first), distance);
+    gta::DistData* dd1 = df.getData(p1.first);
+    gta::DistData* dd2 = df.getData(p2.first); 
+    df.dist(dd1, dd2, distance);
+    delete dd1;
+    delete dd2;
     
     return distance;
    }

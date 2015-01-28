@@ -496,6 +496,8 @@ Value mapping method ~dbscanFunMT~ MMM-Tree
   {
    case OPEN :
    {
+    cout << "called open" << endl;
+
     Word argument;
     Supplier supplier;
     TupleType *resultTupleType;
@@ -536,12 +538,14 @@ Value mapping method ~dbscanFunMT~ MMM-Tree
     MMMTree<pair<T, TupleId>, DistComp >* mtree;
     
     stream.open();
+    dbscan.no_Objects = 0;
 
     while( (tup = stream.request()) != 0)
     {
      Tuple *newTuple = new Tuple(resultTupleType);
 
      //Copy points from given tuple to the new tuple
+     newTuple->SetTupleId(dbscan.no_Objects);
      attrCnt = tup->GetNoAttributes();
      for( int i = 0; i < attrCnt; i++ ) //tup->GetNoAttributes(); i++ ) 
      {
@@ -558,9 +562,11 @@ Value mapping method ~dbscanFunMT~ MMM-Tree
      tp->AppendTuple(newTuple);
      tup->DeleteIfAllowed(); 
      newTuple->DeleteIfAllowed();
+     dbscan.no_Objects++;
     }
     
     stream.close();
+
     
     DistComp dc;
     mtree = new MMMTree<pair<T, TupleId>, DistComp >(minLeafs, maxLeafs, dc);
@@ -574,12 +580,12 @@ Value mapping method ~dbscanFunMT~ MMM-Tree
      T attr = (T) obj->GetAttribute(idxClusterAttr);
      
      pair<T, TupleId> p(attr, objId);
-     
      mtree->insert(p);
-     
      obj->DeleteIfAllowed();
     }
     delete relIter;
+
+
 
     dbscan.clusterAlgo(mtree, tp, defEps, defMinPts, idxClusterAttr, 
         attrCnt, attrCnt+1);
@@ -773,7 +779,8 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
  {
 
   GenericRelationIterator *relIter = 0;
-  
+  dbscanLI* li  = (dbscanLI*)local.addr;
+
   switch (message)
   {
    case OPEN :
@@ -842,6 +849,8 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
           
      tp->AppendTuple(newTuple);
      tup->DeleteIfAllowed(); 
+     newTuple->DeleteIfAllowed();
+     dbscan.no_Objects++;
     }
     stream.close();
     
@@ -868,13 +877,27 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
      obj->DeleteIfAllowed();
     }
 
+    delete relIter;
     mtree->getDistComp().reset();
 
     dbscan.clusterAlgo(mtree, tp, defEps, defMinPts, idxClusterAttr, 
         attrCnt, attrCnt+1);
 
+    delete mtree;
+    resultTupleType->DeleteIfAllowed();
+
+    if(li){
+      delete li->relIter;
+      delete li->tp;
+      delete li;
+    }  
     relIter = tp->MakeScan();
-    local.setAddr( relIter );
+    li = new dbscanLI();
+    li->tt=0;
+    li->tp=tp;
+    li->relIter= relIter;
+    local.setAddr( li );
+
 
     return 0;
    }
@@ -882,13 +905,16 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
 
    case REQUEST :
    {
-    relIter = (GenericRelationIterator *)local.addr;
+    if(!li){
+      return CANCEL;
+    }
+
+    relIter = li->relIter;
     
     Tuple* curtup;
     
     if((curtup = relIter->GetNextTuple()))
     {  
-     curtup->DeleteIfAllowed();
      result.setAddr(curtup);
      return YIELD;
     }
@@ -897,8 +923,16 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
      return CANCEL;
     }
    }
-   case CLOSE :
-   return 0;
+   case CLOSE :{
+    if(li){
+      delete li->relIter;
+      delete li->tp;
+      delete li;
+      local.addr=0;
+    }  
+      
+      return 0;
+   }
    }
    return 0;
  }
