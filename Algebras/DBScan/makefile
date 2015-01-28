@@ -26,13 +26,25 @@
 # inlcude global definitions
 include ../../makefile.env
 
+
+CURRENT_ALGEBRA := DBScanAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra
+ALGEBRA_DEPENDENCIES += RelationAlgebra
+ALGEBRA_DEPENDENCIES += GeneralTreeAlgebra
+
+
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: check_dependencies $(OBJECTS) $(LIBOBJ)
+
+check_dependencies:
+	$(check-algebra-dependencies)
+
+
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
