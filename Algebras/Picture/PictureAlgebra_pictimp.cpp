@@ -177,7 +177,7 @@ Picture::Picture(string imgdataB64,
                  << endl;
 
         delete[] imgdata;
-        jpegData = 0;
+        jpegData.clean();
         SetDefined(false);
         return;
     }
@@ -194,7 +194,7 @@ Picture::Picture(string imgdataB64,
                      << filename
                      << endl;
             delete[] imgdata;
-            jpegData = 0;
+            jpegData.clean();
             SetDefined(false);
             return;
         } else {
@@ -413,7 +413,7 @@ void Picture::CopyFrom(const Attribute* attr) {
 
     // copy simple attributes
 
-    jpegData = 0;
+    jpegData.clean();
     SetDefined( p->IsDefined());
 
     if (IsDefined()) {
