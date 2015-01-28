@@ -55,7 +55,7 @@ void Picture::Scale(Picture *pic, int w, int h) {
 
     // check for invalid parameters
     if (w <= 0 || h <= 0) {
-       pic->jpegData = 0;
+       pic->jpegData.clean();
        pic->SetDefined(false);
        return;
     }
@@ -95,7 +95,7 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
     if (x < 0 || y < 0 || w <= 0 || h <= 0) {
       if (PA_DEBUG) cerr << "Picture::Cut() error #1" << endl;
 
-      pic->jpegData = 0;
+      pic->jpegData.clean();
       pic->SetDefined(false);
       return;
     }
@@ -117,7 +117,7 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
     if (cut == 0) {
       if (PA_DEBUG) cerr << "Picture::Cut() error #2" << endl;
 
-      pic->jpegData = 0;
+      pic->jpegData.clean();
       pic->SetDefined(false);
       return;
     }
@@ -142,7 +142,7 @@ void Picture::FlipLeft(Picture *pic, int n) {
 
     // check for invalid parameters
     if (n < 0) {
-      pic->jpegData = 0;
+      pic->jpegData.clean();
       pic->SetDefined(false);
       return;
     }
