@@ -1445,8 +1445,8 @@ class PrecRegion : public StandardSpatialAttribute<2> {
         scale = src.scale;
         gridData.copyFrom(src.gridData);
         fracStorage.copyFrom(src.fracStorage);
-        assert(fracStorage==0);
-        assert(src.fracStorage==0);
+        assert(bulkloadStorage==0);
+        assert(src.bulkloadStorage==0);
         return *this;
      }
 
