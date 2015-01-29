@@ -674,6 +674,7 @@ PictureFuns::getData_lab256 (const void* attr)
 
         ++hist_abs[pictureLabOffsetTable[ (r*4096) + (g*64) + b] ];
     }
+    delete[] imgdata;
 
     return encodeHistogram<histDomain> (
             hist_abs, numOfPixels, 256, compressData);
