@@ -44,7 +44,6 @@ This file contains the implementation of the DBScanAlgebra.
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
 #include "DBScan.h"
-#include "DBScanDAC.h"
 #include "DBScanMT.h"
 #include "DistFunction.h"
 
@@ -939,447 +938,7 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
  
 
 
-/*
-Type mapping method ~dbscanTypeDAC~ Divide and Conquer
 
-*/
- ListExpr dbscanTypeDAC( ListExpr args )
- {
- 
-  if(nl->ListLength(args)!=2)
-  {
-   ErrorReporter::ReportError("two elements expected. "
-    "Stream and argument list");
-   return nl->TypeError();
-  }
-
-  ListExpr stream = nl->First(args);
-
-  if(!Stream<Tuple>::checkType(nl->First(args)))
-  {
-   return listutils::typeError("first argument is not stream(Tuple)");
-  }
-
-  ListExpr arguments = nl->Second(args);
-
-  if(nl->ListLength(arguments)!=4)
-  {
-   ErrorReporter::ReportError("non conform list of cluster attribut, "
-    "attribute name as cluster ID, Eps and MinPts");
-   return nl->TypeError();
-  }
-
-  if(!CcReal::checkType(nl->Third(arguments)))
-  {
-   return listutils::typeError("no numeric Eps");
-  }
-
-  if(!CcInt::checkType(nl->Fourth(arguments)))
-  {
-   return listutils::typeError("no numeric MinPts");
-  }
-
-
-//Check the cluster attribute name, if it is in the tuple
-  ListExpr attrList = nl->Second(nl->Second(stream));
-  ListExpr attrType;
-  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
-  int found = FindAttribute(attrList, attrName, attrType);
-  if(found == 0)
-  {
-   ErrorReporter::ReportError("Attribute "
-    + attrName + " is no member of the tuple");
-   return nl->TypeError();
-  }
-
-
-  ListExpr typeList;
-
-  // check functions
-  ListExpr name = nl->Second(arguments); 
-  
-  string errormsg;
-  if(!listutils::isValidAttributeName(name, errormsg)){
-   return listutils::typeError(errormsg);
-  }//endif
-
-  string namestr = nl->SymbolValue(name);
-  int pos = FindAttribute(attrList,namestr,typeList);
-  if(pos!=0)
-  {
-   ErrorReporter::ReportError("Attribute "+ namestr +
-                              " already member of the tuple");
-   return nl->TypeError();
-  }//endif
-
-  //Copy attrlist to newattrlist
-  attrList             = nl->Second(nl->Second(stream));
-  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
-  ListExpr lastlistn   = newAttrList;
-  
-  attrList = nl->Rest(attrList);
-  
-  while(!(nl->IsEmpty(attrList)))
-  {
-   lastlistn = nl->Append(lastlistn,nl->First(attrList));
-   attrList = nl->Rest(attrList);
-  }
-
-
-  lastlistn = nl->Append(lastlistn, 
-     (nl->TwoElemList(name, nl->SymbolAtom(CcInt::BasicType()) )));
- 
-  lastlistn = nl->Append(lastlistn, 
-      nl->TwoElemList(nl->SymbolAtom("Visited"),
-      nl->SymbolAtom(CcBool::BasicType()) ));
-      
-  return nl->ThreeElemList(
-   nl->SymbolAtom(Symbol::APPEND())
-        ,nl->OneElemList(nl->IntAtom(found-1))
-        ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM())
-                        ,nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType())
-                                      ,newAttrList)));
- }
-
-
-/*
-Value mapping method ~dbscanFunDAC~ Divide and Conquer
-
-*/
- int dbscanFunDAC(Word* args, Word& result, int message, 
-  Word& local, Supplier s)
- {
-  GenericRelationIterator *relIter = 0;
-  
-  switch (message)
-  {
-   case OPEN :
-   {
-    Word argument;
-    Supplier supplier;
-    TupleType *resultTupleType;
-    ListExpr resultType;
-    TupleBuffer *tp;
-    long MaxMem;
-    double defEps    = 0;
-    int defMinPts = 0;
-    int idxClusterAttr = -1;
-    int attrCnt = 0;
-    DBScanDAC cluster; 
-   
-    qp->Open(args[0].addr);
-    resultType = GetTupleResultType( s );
-    resultTupleType = new TupleType( nl->Second( resultType ) );
-
-    Stream<Tuple> stream(args[0]);
-      
-    Tuple* tup;
-    tp = 0;
-    MaxMem = qp->FixedMemory();
-    tp = new TupleBuffer(MaxMem);
-    relIter = 0;
-
-    supplier = qp->GetSupplier(args[1].addr, 2);
-    qp->Request(supplier, argument);
-    defEps = ((CcReal*)argument.addr)->GetRealval();
-
-    supplier = qp->GetSupplier(args[1].addr, 3);
-    qp->Request(supplier, argument);
-    defMinPts = ((CcInt*)argument.addr)->GetIntval();
-
-    idxClusterAttr = static_cast<CcInt*>(args[2].addr)->GetIntval();
-    
-    stream.open();
-
-    while( (tup = stream.request()) != 0)
-    {
-     Tuple *newTuple = new Tuple(resultTupleType);
-
-     //Copy points from given tuple to the new tuple
-     attrCnt = tup->GetNoAttributes();
-     for( int i = 0; i < attrCnt; i++ ) //tup->GetNoAttributes(); i++ ) 
-     {
-      newTuple->CopyAttribute( i, tup, i );
-     }
- 
-     //Initialize the result tuple with default values
-     CcInt clusterID(-1);
-     newTuple->PutAttribute( attrCnt, ((Attribute*) &clusterID)->Clone());
-  
-     CcBool visited(true, false);
-     newTuple->PutAttribute( attrCnt+1, ((Attribute*) &visited)->Clone());
-          
-     tp->AppendTuple(newTuple);
-     tup->DeleteIfAllowed(); 
-    }
-    
-    stream.close();
-    
-    std::list<TupleId>* tupleIds(new list<TupleId>);
-    GenericRelationIterator *relIterForIds = tp->MakeScan();
-    while((relIterForIds->GetNextTuple()))
-    {
-     tupleIds->push_back(relIterForIds->GetTupleId());
-    }
-  
-    cluster.cluster(tp, tupleIds, defEps, defMinPts, idxClusterAttr, 
-     attrCnt, attrCnt+1 );
-
-    relIter = tp->MakeScan();
-    local.setAddr( relIter );
-
-    return 0;
-   }
-   case REQUEST :
-   {
-    relIter = (GenericRelationIterator *)local.addr;
-    
-    Tuple* curtup;
-    
-    if((curtup = relIter->GetNextTuple()))
-    {  
-    
-     curtup->DeleteIfAllowed();
-     result.setAddr(curtup);
-     return YIELD;
-    }
-    else
-    {
-     return CANCEL;
-    }
-   }
-   case CLOSE :
-   return 0;
-   }
-   return 0;
- }
-
-/*
-Type mapping method ~dbscanTypeMerge~ merge operator
-
-*/
- ListExpr dbscanTypeMerge( ListExpr args )
- {
- 
-  if(nl->ListLength(args)!=3)
-  {
-   ErrorReporter::ReportError("three elements expected. "
-    "Stream, Stream and argument list");
-   return nl->TypeError();
-  }
-
-  ListExpr stream = nl->First(args);
-
-  if(!Stream<Tuple>::checkType(nl->First(args)))
-  {
-   return listutils::typeError("first argument is not stream(Tuple)");
-  }
-  
-  ListExpr stream2 = nl->Second(args);
-
-  if(!Stream<Tuple>::checkType(nl->Second(args)))
-  {
-   return listutils::typeError("second argument is not stream(Tuple)");
-  }
-
-  ListExpr arguments = nl->Third(args);
-
-  if(nl->ListLength(arguments)!=4)
-  {
-   ErrorReporter::ReportError("non conform list of cluster attribut, "
-    "attribute name as cluster ID, Eps and MinPts");
-   return nl->TypeError();
-  }
-
-  if(!CcReal::checkType(nl->Third(arguments)))
-  {
-   return listutils::typeError("no numeric Eps");
-  }
-
-  if(!CcInt::checkType(nl->Fourth(arguments)))
-  {
-   return listutils::typeError("no numeric MinPts");
-  }
-
-
-//Check the cluster attribute name, if it is in the tuple
-  ListExpr attrList = nl->Second(nl->Second(stream));
-  ListExpr attrType;
-  string attrName = nl->SymbolValue(nl->First(nl->Third(args)));
-  int found = FindAttribute(attrList, attrName, attrType);
-  if(found == 0)
-  {
-   ErrorReporter::ReportError("Attribute "
-    + attrName + " is no member of the tuple");
-   return nl->TypeError();
-  }
-
-//Check the cluster attribute name, if it is in the tuple
-  attrList = nl->Second(nl->Second(stream2));
-  attrName = nl->SymbolValue(nl->First(nl->Third(args)));
-
-  // check functions
-  ListExpr name = nl->Second(arguments); 
-  
-  string errormsg;
-  if(!listutils::isValidAttributeName(name, errormsg)){
-   return listutils::typeError(errormsg);
-  }//endif
-
-  //Copy attrlist to newattrlist
-  attrList             = nl->Second(nl->Second(stream));
-  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
-  ListExpr lastlistn   = newAttrList;
-  
-  attrList = nl->Rest(attrList);
-  
-  while(!(nl->IsEmpty(attrList)))
-  {
-   lastlistn = nl->Append(lastlistn,nl->First(attrList));
-   attrList = nl->Rest(attrList);
-  }
-
-  return nl->ThreeElemList(
-   nl->SymbolAtom(Symbol::APPEND())
-        ,nl->OneElemList(nl->IntAtom(found-1))
-        ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM())
-                        ,nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType())
-                                      ,newAttrList)));
- }
-
-
-/*
-Value mapping method ~dbscanFunMerge~ merge operator
-
-*/
- int dbscanFunMerge(Word* args, Word& result, int message, Word& local, 
-   Supplier s)
- {
-  GenericRelationIterator *relIter = 0;
-  
-  switch (message)
-  {
-   case OPEN :
-   {
-    Word argument;
-    Supplier supplier;
-    TupleBuffer *tp;
-    long MaxMem;
-    double defEps    = 0;
-    int defMinPts = 0;
-    int idxClusterAttr = -1;
-    int attrCnt = 0;
-    DBScanDAC cluster; 
-  
-
-    Stream<Tuple> stream(args[0]);
-    Stream<Tuple> stream2(args[1]);
-      
-    Tuple* tup;
-    tp = 0;
-    MaxMem = qp->FixedMemory();
-    tp = new TupleBuffer(MaxMem);
-    relIter = 0;
-
-    supplier = qp->GetSupplier(args[2].addr, 2);
-    qp->Request(supplier, argument);
-    defEps = ((CcReal*)argument.addr)->GetRealval();
-
-    supplier = qp->GetSupplier(args[2].addr, 3);
-    qp->Request(supplier, argument);
-    defMinPts = ((CcInt*)argument.addr)->GetIntval();
-
-    idxClusterAttr = static_cast<CcInt*>(args[3].addr)->GetIntval();
-    
-    stream.open();
-
- int c = 0;
-   std::map<int, int> m;
-  std::map<int,int>::iterator itMap;    
-         
-    while( (tup = stream.request()) != 0)
-    {
-     attrCnt = tup->GetNoAttributes();
-     int clusID = ((CcInt*)tup->GetAttribute(attrCnt-2))->GetValue();
-     if(clusID != -2)
-     {
-      itMap = m.find(clusID);
-      if(itMap == m.end())
-      {
-       m.insert ( std::pair<int,int>(clusID,++c) );
-      }
-      CcInt* distI = new CcInt;
-      distI->Set(m.find(clusID)->second);
-      tup->PutAttribute( attrCnt-2, ((Attribute*)distI)->Clone() ); 
-     }  
-               
-     tp->AppendTuple(tup);
-    }
-    
-    stream.close();
-    
-    
-    
-    stream2.open();
-    std::map<int, int> mneu;  
-    while( (tup = stream2.request()) != 0)
-    {          
-     int clusID = ((CcInt*)tup->GetAttribute(attrCnt-2))->GetValue();
-     if(clusID != -2)
-     {
-      itMap = mneu.find(clusID);
-      if(itMap == mneu.end())
-      {
-       mneu.insert ( std::pair<int,int>(clusID,++c) );
-      }
-      CcInt* distI = new CcInt;
-      distI->Set(mneu.find(clusID)->second);
-      tup->PutAttribute( attrCnt-2, ((Attribute*)distI)->Clone() ); 
-     }  
-     
-     tp->AppendTuple(tup);
-    }
-    
-    stream2.close();    
-    
-    std::list<TupleId>* tupleIds(new list<TupleId>);
-    GenericRelationIterator *relIterForIds = tp->MakeScan();
-    while((relIterForIds->GetNextTuple()))
-    {
-     tupleIds->push_back(relIterForIds->GetTupleId());
-    }
-   
-    cluster.merge(tp, tupleIds, defEps, defMinPts, 
-      idxClusterAttr, attrCnt-2, attrCnt-1);
-
-    relIter = tp->MakeScan();
-    local.setAddr( relIter );
-
-    return 0;
-   }
-   case REQUEST :
-   {
-    relIter = (GenericRelationIterator *)local.addr;
-    
-    Tuple* curtup;
-    
-    if((curtup = relIter->GetNextTuple()))
-    {  
-    
-     curtup->DeleteIfAllowed();
-     result.setAddr(curtup);
-     return YIELD;
-    }
-    else
-    {
-     return CANCEL;
-    }
-   }
-   case CLOSE :
-   return 0;
-   }
-   return 0;
- }
 
 /*
 Struct ~dbscanInfoRT~
@@ -1389,9 +948,9 @@ Struct ~dbscanInfoRT~
  {
   dbscanInfoRT() : OperatorInfo()
   {
-   name      = "dbscanRT";
+   name      = "dbscanR";
    signature = "stream(Tuple) -> stream(Tuple)";
-   syntax    = "_ dbscanRT [_, _, _, _]";
+   syntax    = "_ dbscanR [_, _, _, _]";
    meaning   = "Detects cluster from a given stream using MMR-Tree as index "
    "structure. The first parameter has to be a bbox, the second parameter is "
    "the name for the cluster ID attribute, the  third paramter is eps and "
@@ -1407,9 +966,9 @@ Struct ~dbscanInfoRT~
  {
   dbscanInfoRT2() : OperatorInfo()
   {
-   name      = "dbscanRT2";
+   name      = "dbscanR2";
    signature = "stream(Tuple) -> stream(Tuple)";
-   syntax    = "_ dbscanRT [_, _, _, _]";
+   syntax    = "_ dbscanR2 [_, _, _, _]";
    meaning   = "Detects cluster from a given stream using MMR-Tree as index "
    "structure. The first parameter has to be a bbox, the second parameter is "
    "the name for the cluster ID attribute, the  third paramter is eps and "
@@ -1420,47 +979,7 @@ Struct ~dbscanInfoRT~
   }
  };
  
-/*
-Struct ~dbscanInfoDAC~
-
-*/
- struct dbscanInfoDAC :  OperatorInfo
- {
-  dbscanInfoDAC() : OperatorInfo()
-  {
-   name      = "dbscanDAC";
-   signature = "stream(Tuple) -> stream(Tuple)";
-   syntax    = "_ dbscanDAC [_, _, _, _]";
-   meaning   = "Detects cluster from a given stream using the Divide and "
-   "Conquer implementation. The first parameter "
-   "is the attribute to cluster, the second parameter is the name for "
-   "the cluster ID attribute, the  third paramter is eps and the fourth "
-   "parameter is MinPts. A tuple stream will be returned but the tuple "
-   "will have additional attributes as X, visited and clusterID";
-   example   = "query Kneipen feed extend[X : getx(.GeoData)] sortby[X asc] "
-    "dbscanDAC [GeoData, No, 1000.0, 5] consume";
-  }
- };
  
-/*
-Struct ~dbscanInfoMerge~
-
-*/
- struct dbscanInfoMerge :  OperatorInfo
- {
-  dbscanInfoMerge() : OperatorInfo()
-  {
-   name      = "dbscanMerge";
-   signature = "stream(Tuple) x stream(Tuple) -> stream(Tuple)";
-   syntax    = "_ _ dbscanMerge [_, _, _, _]";
-   meaning   = "Merges two clustered tuple streams to one clustered stream ";
-   example   = "query Kneipen feed head[100] extend[X : getx(.GeoData)] "
-   "sortby[X asc] dbscanDAC [GeoData, No, 1000.0, 5] Kneipen feed tail[184] "
-   "extend[X : getx(.GeoData)] sortby[X asc] dbscanDAC [GeoData, No, 1000.0, 5]"
-   " dbscanMerge [GeoData, No, 1000.0, 5] consume";
-  }
- };
-  
   
 /*
 Struct ~dbscanInfoMT~
@@ -1470,9 +989,9 @@ Struct ~dbscanInfoMT~
  {
   dbscanInfoMT() : OperatorInfo()
   {
-   name      = "dbscanMT";
+   name      = "dbscanM";
    signature = "stream(Tuple) -> stream(Tuple)";
-   syntax    = "_ dbscanMT [_, _, _, _]";
+   syntax    = "_ dbscanM [_, _, _, _]";
    meaning   = "Detects cluster from a given stream using MMM-Tree as index "
    "structure. The first parameter is the attribute to cluster, the second "
    "parameter is the name for the cluster ID attribute, the  third paramter "
@@ -1491,9 +1010,9 @@ Struct ~dbscanInfoMTF~
  {
   dbscanInfoMTF() : OperatorInfo()
   {
-   name      = "dbscanMTF";
+   name      = "dbscanF";
    signature = "stream(Tuple) -> stream(Tuple)";
-   syntax    = "_ dbscanMTF [_, _, _, _, fun]";
+   syntax    = "_ dbscanF [_, _, _, _, fun]";
    meaning   = "Detects cluster from a given stream using MMM-Tree as index "
    "structure. The first parameter is the attribute to cluster, the second "
    "parameter is the name for the cluster ID attribute, the  third paramter "
@@ -1641,13 +1160,10 @@ Algebra class ~ClusterDBScanAlgebra~
     AddOperator(dbscanInfoRT(), dbscanRRecVM, dbscanRRecSL, dbscanTypeRT);
     AddOperator(dbscanInfoRT2(), dbscanRT2VM, 
                                 dbscanRRecSL, dbscanTypeRT)->SetUsesMemory();
-    AddOperator(dbscanInfoDAC(), dbscanFunDAC, dbscanTypeDAC);
     AddOperator(dbscanInfoMT(), dbscanMTDisVM, dbscanMTDisSL, dbscanTypeMT);
 
     AddOperator(dbscanInfoMTF(),dbscanMTFDisVM, dbscanMTFDisSL, dbscanTypeMTF);
 
-
-    AddOperator(dbscanInfoMerge(), dbscanFunMerge, dbscanTypeMerge);
    }
 
    ~ClusterDBScanAlgebra() {};

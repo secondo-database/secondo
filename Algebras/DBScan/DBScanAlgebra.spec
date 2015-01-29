@@ -20,9 +20,7 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator dbscanRT alias DBSCANRT pattern _ op [list]
-operator dbscanRT2 alias DBSCANRT2 pattern _ op [list]
-operator dbscanDAC alias DBSCANDAC pattern _ op [list]
-operator dbscanMT alias DBSCANMT pattern _ op [list]
-operator dbscanMTF alias DBSCANMTF pattern _ op [list]
-operator dbscanMerge alias DBSCANMERGE pattern _ _ op [list]
+operator dbscanR alias DBSCANR pattern _ op [list]
+operator dbscanR2 alias DBSCANR2 pattern _ op [list]
+operator dbscanM alias DBSCANM pattern _ op [list]
+operator dbscanF alias DBSCANF pattern _ op [list]
