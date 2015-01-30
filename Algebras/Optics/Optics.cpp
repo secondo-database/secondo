@@ -120,7 +120,9 @@ Method ~Optics::order~
    {
     expandClusterOrder(objId);
    }
+   obj->DeleteIfAllowed();
   }
+  delete relIter;
  }
 /*
 Method ~Optics::expandClusterOrder~
@@ -172,8 +174,10 @@ Method ~Optics::expandClusterOrder~
     {
      update(neighbors, curObjId, orderedSeeds);
     }
+    curObj->DeleteIfAllowed();
    }
   }
+  obj->DeleteIfAllowed();
  }
 /*
 Method ~Optics::getNeighbors~
@@ -222,9 +226,10 @@ Method ~Optics::getNeighbors~
     { 
      near->push_back(*it);
     }
+    curObj->DeleteIfAllowed();
    }
   }
-  
+  obj->DeleteIfAllowed(); 
   return near;
  }
 /*
@@ -263,6 +268,7 @@ Method ~Optics::setCoreDistance~
       {
        coreDist = distance;
       }     
+      curObj->DeleteIfAllowed();
     }
    }
    else if(MODE == MODE_MMRTREE)
@@ -273,6 +279,7 @@ Method ~Optics::setCoreDistance~
   
   CcReal cDist(coreDist);
   obj->PutAttribute(COR, ((Attribute*) &cDist)->Clone());
+  obj->DeleteIfAllowed();
  }
 /*
 Method ~Optics::getCoreDistanceR~
@@ -333,6 +340,7 @@ Method ~Optics::getCoreDistanceR~
      }
 
      lastDist = cDst;
+     curNear->DeleteIfAllowed();
     }
 
     Tuple* curNear = objs->GetTuple(nearest[biggest], true);
@@ -346,8 +354,11 @@ Method ~Optics::getCoreDistanceR~
      nearest[biggest] = curObjId;
      coreDist = curDist;
     }
+    curNear->DeleteIfAllowed();
    }
+   neighbor->DeleteIfAllowed();
   }
+  obj->DeleteIfAllowed();
   
   return coreDist;
  }
@@ -390,6 +401,7 @@ Method ~Optics::update~
      decrease(orderedSeeds, objId);
     }
    }
+   obj->DeleteIfAllowed();
   }
  }
 /*
@@ -415,8 +427,9 @@ Method ~Optics::insert~
     orderedSeeds.insert(it, objId);
     return;
    }
+   seed->DeleteIfAllowed();
   }
-  
+  obj->DeleteIfAllowed(); 
   orderedSeeds.push_back(objId);
  }
 /*
@@ -439,9 +452,11 @@ Method ~Optics::decrease~
    //first find the position
    if(obj == seed)
    {
+    seed->DeleteIfAllowed();
     found = true;
     break;
    }
+   seed->DeleteIfAllowed();
   }
 
   if(found)
@@ -455,9 +470,11 @@ Method ~Optics::decrease~
     if(((CcReal*)obj->GetAttribute(REA))->GetValue()
      > ((CcReal*)seed->GetAttribute(REA))->GetValue())
     {
+     seed->DeleteIfAllowed(); 
      decrease = true;
      break;
     }
+    seed->DeleteIfAllowed(); 
    }
    
    if(decrease)
@@ -466,6 +483,7 @@ Method ~Optics::decrease~
     orderedSeeds.erase(itObjId);
    }
   }
+  obj->DeleteIfAllowed();
  }
 
  template <unsigned dim>
@@ -488,9 +506,13 @@ Method ~Optics::decrease~
       (*(Rectangle<dim>*)neighbor->GetAttribute(PNT)));
   }
   //new_r_dist:=max(c_dist,CenterObject.dist(Object));    
-  return ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance 
+  double res = ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance 
    ? ((CcReal*)obj->GetAttribute(COR))->GetValue() 
    : distance;
+  obj->DeleteIfAllowed();
+  neighbor->DeleteIfAllowed();
+  return res;
+   
  } 
  
  template class Optics<0>;

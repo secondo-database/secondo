@@ -53,10 +53,18 @@ Default constructor ~OpticsR::OpticsR~
 
 */
  template <unsigned dim>
- OpticsR<dim>::OpticsR()
+ OpticsR<dim>::OpticsR(): undefined(0)
  {
   return;
  }
+
+ template <unsigned dim>
+ OpticsR<dim>::~OpticsR(){
+   if(undefined){
+     delete undefined;
+   }
+ }
+
 /*
 Method ~OpticsR::initialize~
 
@@ -74,6 +82,8 @@ Method ~OpticsR::initialize~
   PRC = idxPrc;
   undefined = new list<TupleId>();
  }
+
+
 /*
 Method ~OpticsR::order~
 
@@ -83,14 +93,13 @@ Method ~OpticsR::order~
   ,list<TupleId>* pOrder)
  {
   pOrder->clear();
-  
   minPts = pMinPts;
   eps = pEps;
   result = pOrder;
-
   GenericRelationIterator* relIter = objs->MakeScan();
   TupleId objId;
   Tuple* obj;
+    
 
   while((obj = relIter->GetNextTuple()))
   {
@@ -100,8 +109,25 @@ Method ~OpticsR::order~
    {
     expandClusterOrder(objId);
    }
+   obj->DeleteIfAllowed();
   }
-  
+  delete relIter;
+
+  /*
+  // debug code checkeing for correct references
+  GenericRelationIterator* debug = objs->MakeScan();
+  Tuple* tmp;
+  while((tmp=debug->GetNextTuple())){
+     int ref = tmp->GetNumOfRefs();
+     if(ref>2){
+        cout << debug->GetTupleId() << " : " << ref << endl;
+     }
+     tmp->DeleteIfAllowed();
+  }
+  delete debug;
+  */
+
+ 
   std::list<TupleId>::iterator it;
   for (it = undefined->begin(); it != undefined->end(); it++)
   {
@@ -113,6 +139,7 @@ Method ~OpticsR::order~
     undef->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
     result->push_back(*it);
    }
+   undef->DeleteIfAllowed();
   }
  }
 /*
@@ -122,20 +149,21 @@ Method ~OpticsR::expandClusterOrder~
  template <unsigned dim>
  void OpticsR<dim>::expandClusterOrder(TupleId objId)
  {
+
   Tuple* obj;
-  std::list<TupleId>* orderedSeeds(new list<TupleId>);
+  std::list<TupleId> orderedSeeds;
   
   obj = objs->GetTuple(objId, false);
-  
   std::list<TupleId>* neighbors = getNeighbors(objId);
+
 
 //  CcBool processed(true, true);
 //  obj->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
   
-  CcReal rDist(UNDEFINED);
-  obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
+   CcReal rDist(UNDEFINED);
+   obj->PutAttribute(REA, ((Attribute*) &rDist)->Clone());
 
-  setCoreDistance(neighbors, objId);
+   setCoreDistance(neighbors, objId);
 
 //  result->push_back(objId);
 
@@ -146,14 +174,14 @@ Method ~OpticsR::expandClusterOrder~
 
    result->push_back(objId);
    
-   update(neighbors, objId, orderedSeeds);
+   update(neighbors, objId, &orderedSeeds);
 
    std::list<TupleId>::iterator it;
-   for (it = orderedSeeds->begin(); it != orderedSeeds->end(); it++)
+   for (it = orderedSeeds.begin(); it != orderedSeeds.end(); it++)
    {
     TupleId curObjId = *it;
     Tuple* curObj = objs->GetTuple(*it, true);
-
+    delete neighbors;
     neighbors = getNeighbors(curObjId);
     
     CcBool processed(true, true);
@@ -163,19 +191,22 @@ Method ~OpticsR::expandClusterOrder~
     
     result->push_back(curObjId);
     
-    it = orderedSeeds->erase(it);
+    it = orderedSeeds.erase(it);
     --it;
     
     if(((CcReal*)curObj->GetAttribute(COR))->GetValue() != UNDEFINED) 
     {
-     update(neighbors, curObjId, orderedSeeds);
+     update(neighbors, curObjId, &orderedSeeds);
     }
+    curObj->DeleteIfAllowed();
    }
   }
   else
   {
    undefined->push_back(objId);
   }
+  obj->DeleteIfAllowed();
+  delete neighbors;
  }
 /*
 Method ~OpticsR::getNeighbors~
@@ -206,12 +237,11 @@ Method ~OpticsR::getNeighbors~
   set<TupleId>::iterator it;
   for(it = b.begin(); it != b.end(); it++)
   {
-   if(objId != ((TupleId) *it))
+   if(objId != (*it))
    {
     Tuple* curObj;
   
     curObj = objs->GetTuple(*it, false);
-    
     double distance = ((Rectangle<dim>*)obj->GetAttribute(PNT))->Distance(
      (*(Rectangle<dim>*)curObj->GetAttribute(PNT)));
     
@@ -219,9 +249,10 @@ Method ~OpticsR::getNeighbors~
     { 
      near->push_back(*it);
     }
+    curObj->DeleteIfAllowed();
    }
   }
-  
+  obj->DeleteIfAllowed();
   return near;
  }
 /*
@@ -234,8 +265,6 @@ Method ~OpticsR::setCoreDistance~
  {
   double coreDist = UNDEFINED;
   Tuple* obj;
-  std::list<TupleId>* near;
-  near = new list<TupleId>;
   
   obj = objs->GetTuple(objId, false);
 
@@ -246,8 +275,6 @@ Method ~OpticsR::setCoreDistance~
    unsigned int count   = 0;
    unsigned int biggest = 0;
    TupleId nearest[minPts];
-
-   Tuple* obj = objs->GetTuple(objId, true);
    
    std::list<TupleId>::iterator it;
    for (it = neighbors->begin(); it != neighbors->end(); it++)
@@ -287,8 +314,8 @@ Method ~OpticsR::setCoreDistance~
        biggest = i;
        coreDist = cDst;
       }
-
       lastDist = cDst;
+      curNear->DeleteIfAllowed();
      }
 
      Tuple* curNear = objs->GetTuple(nearest[biggest], true);
@@ -301,12 +328,15 @@ Method ~OpticsR::setCoreDistance~
       nearest[biggest] = curObjId;
       coreDist = curDist;
      }
+     curNear->DeleteIfAllowed();
     }
+    neighbor->DeleteIfAllowed();
    }
   }
   
   CcReal cDist(coreDist);
   obj->PutAttribute(COR, ((Attribute*) &cDist)->Clone());
+  obj->DeleteIfAllowed();
  }
 /*
 Method ~OpticsR::update~
@@ -339,6 +369,7 @@ Method ~OpticsR::update~
      decrease(orderedSeeds, objId);
     }
    }
+   obj->DeleteIfAllowed();
   }
  }
 /*
@@ -362,10 +393,13 @@ Method ~OpticsR::insert~
     > ((CcReal*)obj->GetAttribute(REA))->GetValue())
    {
     orderedSeeds->insert(it, objId);
+    obj->DeleteIfAllowed();
+    seed->DeleteIfAllowed();
     return;
    }
+   seed->DeleteIfAllowed();
   }
-  
+  obj->DeleteIfAllowed();
   orderedSeeds->push_back(objId);
  }
 /*
@@ -388,9 +422,11 @@ Method ~OpticsR::decrease~
 
    if(obj == seed)
    {
+    seed->DeleteIfAllowed();
     found = true;
     break;
    }
+   seed->DeleteIfAllowed();
   }
 
   if(found)
@@ -404,9 +440,11 @@ Method ~OpticsR::decrease~
     if(((CcReal*)obj->GetAttribute(REA))->GetValue()
      > ((CcReal*)seed->GetAttribute(REA))->GetValue())
     {
+     seed->DeleteIfAllowed();
      decrease = true;
      break;
     }
+    seed->DeleteIfAllowed();
    }
    
    if(decrease)
@@ -415,6 +453,7 @@ Method ~OpticsR::decrease~
     orderedSeeds->erase(itObjId);
    }
   }
+  obj->DeleteIfAllowed();
  }
 /*
 Method ~OpticsR::getReachableDist~
@@ -428,10 +467,17 @@ Method ~OpticsR::getReachableDist~
   
   double distance = ((Rectangle<dim>*)obj->GetAttribute(PNT))->Distance(
       (*(Rectangle<dim>*)neighbor->GetAttribute(PNT)));
+
+   
          
-  return ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance 
+  double res = ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance 
    ? ((CcReal*)obj->GetAttribute(COR))->GetValue() 
    : distance;
+
+   obj->DeleteIfAllowed();
+   neighbor->DeleteIfAllowed();
+   return res;
+
  } 
 /*
 Defintion of the possible template values.

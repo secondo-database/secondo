@@ -77,6 +77,9 @@ Starts the ordering by the optics algorithm and saves the result in "order"[4].
 */
    void order(double pEps, unsigned int pMinPts, list<TupleId>* pOrder);
 
+   ~OpticsR();
+
+
 /*
 1.3.2 Private members
 

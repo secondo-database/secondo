@@ -234,7 +234,7 @@ Value mapping method ~opticsRVM~
     stream.open();
     
     maxMem = qp->FixedMemory();
-    tp = new TupleBuffer(maxMem);
+    tp = new TupleBuffer(maxMem*1024);
     
     while((tup = stream.request()) != 0)
     {
@@ -259,12 +259,13 @@ Value mapping method ~opticsRVM~
      
      tp->AppendTuple(newTuple);
      tup->DeleteIfAllowed();
+     newTuple->DeleteIfAllowed();
     }
-    
     stream.close();
     
     if(info)
     {
+     if(info->buffer) delete info->buffer;
      delete info;
     }
     
@@ -284,18 +285,24 @@ Value mapping method ~opticsRVM~
      {
       rtree.insert(*attr, objId);
      }
-     
      obj->DeleteIfAllowed();
     }
-    
+    delete relIter;
+   
+
+ 
     optics.initialize(&rtree, tp, idxData, attrCnt, attrCnt+1, attrCnt+2);
+
     
+
+
     //Start the optics ordering
     optics.order(defEps, defMinPts, info->tupleIds);
     
+    
     info->initialize();
     local.setAddr(info);
-    
+    resultTupleType->DeleteIfAllowed(); 
     return 0;
    }
    case REQUEST :
@@ -304,7 +311,6 @@ Value mapping method ~opticsRVM~
     {
      TupleId tid = info->next();
      Tuple* outTup = info->buffer->GetTuple(tid, false);
-     outTup->DeleteIfAllowed();
      result = SetWord(outTup);
      return YIELD;
     }
@@ -315,6 +321,11 @@ Value mapping method ~opticsRVM~
    }
    case CLOSE :
    {
+    if(info){
+       delete info->buffer;
+       delete info;
+       local.addr=0;
+    }
     return 0;
    }
   }
@@ -810,7 +821,6 @@ Value mapping method ~opticsFVM~
     TupleBuffer* tp;
     long maxMem;
     Word argument;
-    Word* function;
     Supplier son;
 
     //OpticsM instance
