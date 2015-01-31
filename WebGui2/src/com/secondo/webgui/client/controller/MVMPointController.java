@@ -446,9 +446,9 @@ public class MVMPointController {
     	}
     	
     	
-    	if(mode==2 && !labelSet.isEmpty()){
-    	addPopupToShowST(mapIntern, pointFeature, mpointID, vectorLayer, i);}
- 
+		if (mode == 2 && !labelSet.isEmpty()) {
+			addPopupToShowST(mapIntern, pointFeature, mpointID, vectorLayer, i);
+		}
         
         //start timer to schedule animation
    	    Timer timer = new Timer() {  
@@ -462,12 +462,12 @@ public class MVMPointController {
                     cancel();
                     mapIntern.removeLayer(mpointMap.get(mpointID));
                     return;
-                  }
+				}
+           	 
 				if (mode == 1 && !labelSet.isEmpty()) {
 					Style pointStyle = mpointFeatures.get(i).getStyle();
 					// represent a symbolic trajectory in a form of
 					// label
-
 					if (!(counter > labelSet.get(mpointID).size())) {
 						pointStyle
 								.setLabel(labelSet.get(mpointID).get(counter));
@@ -477,7 +477,6 @@ public class MVMPointController {
 						pointStyle.setFontColor("#0000FF");
 						pointStyle.setGraphicSize(32, 32);
 					}
-
 				}
            	
            	

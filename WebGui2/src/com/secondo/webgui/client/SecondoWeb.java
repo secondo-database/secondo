@@ -45,7 +45,6 @@ import com.secondo.webgui.client.rpc.SecondoService;
 import com.secondo.webgui.client.rpc.SecondoServiceAsync;
 import com.secondo.webgui.utils.config.Resources;
 import com.secondo.webgui.utils.config.SecondoConstants;
-import com.sun.java.swing.plaf.windows.resources.windows;
 
 /**
  * This is the Entry point class which defines the onModuleLoad()-Method to start the application, 
@@ -224,7 +223,7 @@ public class SecondoWeb implements EntryPoint {
 			
 			@Override
 			public void execute() {
-				rpcConnector.saveTextFile(mainView.getRawDataView().getRawDataOutput().getText(), "secondo-text.txt");
+				rpcConnector.saveTextFile(mainView.getMainheader().getTextViewOfTrajInDialog().getTextView().getText(), "secondo-text.txt");
 				
 			}
 		});
@@ -312,6 +311,55 @@ public class SecondoWeb implements EntryPoint {
 				//send the command directly to secondo
 				rpcConnector.getCoordinateFromAddress(command, mainView, loadingPopup);
 				
+			}
+		});
+		
+		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel().getPassesPanel().getQueryButton().addClickHandler(new ClickHandler() {
+			
+			@Override
+			public void onClick(ClickEvent event) {
+				
+				String command=mainView.getOptionsTabPanel().getCommandForSimpleQueryPasses();
+				if (!command.isEmpty()) {
+					rpcConnector.sendSimpleQuery(command, mainView);
+				}
+				else {
+					Window.alert("Please select relation and load it");
+				}
+			}
+		});
+		
+		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+				.getDeftimePanel().getQueryButton()
+				.addClickHandler(new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForSimpleQueryDeftime();
+						if (!command.isEmpty()) {
+							rpcConnector.sendSimpleQuery(command, mainView);
+						} else {
+							Window.alert("Please select relation and load it");
+						}
+					}
+				});
+		
+		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+		.getAtinstantPanel().getQueryButton()
+		.addClickHandler(new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+
+				String command = mainView.getOptionsTabPanel()
+						.getCommandForSimpleQueryAtinstant();
+				if (!command.isEmpty()) {
+					rpcConnector.sendSimpleQuery(command, mainView);
+				} else {
+					Window.alert("Please select relation and load it");
+				}
 			}
 		});
 	   

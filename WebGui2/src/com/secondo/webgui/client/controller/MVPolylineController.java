@@ -515,10 +515,9 @@ public class MVPolylineController {
 				+ "<tr>";
 		String legend_lastPart = "" + "</tr>" + "</tbody>" + "</table>";
 		String html = "";
-		for (int i = 0; i < mapWithLabelToColor.keySet().toArray().length; i++) {
+		for (String label : mapWithLabelToColor.keySet()) {
 
-			String label = (String) mapWithLabelToColor.keySet().toArray()[i];
-			String color = (String) mapWithLabelToColor.values().toArray()[i];
+			String color =  mapWithLabelToColor.get(label);
 			System.out.println("label and color for legend " + label + color);
 			html = html
 					+ "<tr>"

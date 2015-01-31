@@ -785,7 +785,7 @@ public class RPCConnector {
 
 		
 	/**
-	 * sets number of tuples and show in pattern result part of options tabs
+	 * sets number of tuples and shows a result in pattern result part of options tabs
 	 * @param mv
 	 */
 	public void setNumberOfTuplesInRelationFromResultList(final MainView mv){
@@ -808,5 +808,51 @@ public class RPCConnector {
 		};
 		secondoService.getNumberOfTuplesInRelationFromResultList(callback);
 		
+	}
+	
+	public void sendSimpleQuery(final String command, MainView mv) {
+		this.mainView = mv;
+
+		AsyncCallback<String> callback = new AsyncCallback<String>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);
+
+			}
+
+			@Override
+			public void onSuccess(String result) {
+
+				if (command.contains("passes")) {
+					if (result.contains("error")) {
+						result = "Error in executing query";
+					}
+					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+							.getPassesPanel().getResultInfoLabel()
+							.setText(result);
+				}
+				if (command.contains("atinstant")) {
+					if (result.contains("error")) {
+						result = "Error in executing query";
+					}
+					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+							.getAtinstantPanel().getResultInfoLabel()
+							.setText(result);
+				}
+				if (command.contains("deftime")) {
+					if (result.contains("error")) {
+						result = "Error in executing query";
+					}
+					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+							.getDeftimePanel().getResultInfoLabel()
+							.setText(result);
+				}
+
+			}
+
+		};
+		secondoService.sendCommand(command, callback);
+
 	}
 }

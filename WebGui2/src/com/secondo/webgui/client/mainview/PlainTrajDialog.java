@@ -117,4 +117,8 @@ public class PlainTrajDialog {
 		this.dataLoaded = dataLoaded;
 	}
 
+	public TextArea getTextView() {
+		return textView;
+	}
+
 }

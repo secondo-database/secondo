@@ -21,10 +21,13 @@ package com.secondo.webgui.server.controller;
 
 import java.io.IOException;
 import java.util.ArrayList;
+
 import com.secondo.webgui.shared.model.DataType;
+
 import sj.lang.ESInterface;
 import sj.lang.IntByReference;
 import sj.lang.ListExpr;
+import tools.Environment;
 
 /**
  * This class offers methods to connect to the secondo server, send commands to the secondo database and retrieve the result in NestList-Format.
@@ -81,6 +84,9 @@ public class SecondoConnector {
 	 * @param Port The Port of the Secondo-Server
 	 * */
 	public void setConnection(String User, String PassWd, String Host, int Port) {
+		
+		Environment.ENCODING = "UTF8";
+		
 		secondoInterface.setUserName(User);
 		secondoInterface.setPassWd(PassWd);
 		secondoInterface.setHostname(Host);

@@ -83,8 +83,9 @@ public class OptionsTabPanel extends Composite {
 	private ArrayList<String> variablesForPattern = new ArrayList<>(); 
 	private boolean unsuccessfulVerification=false; 
 
-	private String attributeNameOfMlabelInRelation = "";
+	private String attributeNameOfMlabelInRelation;
 	private DecoratorPanel decPanelForStackWithSimpleQueries = new DecoratorPanel();
+	private SimpleQueriesStackPanel simpleQueriesStackPanel;
 
 	private boolean patternMatchingIsInitiated = false;
 
@@ -96,7 +97,7 @@ public class OptionsTabPanel extends Composite {
 	 * 
 	 */
 	public OptionsTabPanel() {
-
+		attributeNameOfMlabelInRelation="";
 		optionsTabPanel.setWidth("300px");
 		optionsTabPanel.getElement().getStyle().setMarginBottom(10.0, Unit.PX);
 		optionsTabPanel.setVisible(true);
@@ -276,7 +277,8 @@ public class OptionsTabPanel extends Composite {
 		stackPanel.add(createPanelForPattern(), patternHeader, true);
 		String simpleQueriesHeader = getHeaderString("Simple queries",
 				createPatternIcon());
-		stackPanel.add(createSimpleQueriesStackPanel(), simpleQueriesHeader,
+		simpleQueriesStackPanel= new SimpleQueriesStackPanel();
+		stackPanel.add(simpleQueriesStackPanel, simpleQueriesHeader,
 				true);
 		stackPanel.getElement().setAttribute("width", "100%");
 		
@@ -313,6 +315,7 @@ public class OptionsTabPanel extends Composite {
 
 	/**
 	 * adds to panel all the needed components for pattern 
+	 * @return pattern queries panel
 	 */
 	private VerticalPanel createPanelForPattern() {
 		Label labelForVariable = createLabel("define your pattern");			
@@ -326,6 +329,7 @@ public class OptionsTabPanel extends Composite {
 
 		definedPatternWidget= createDefinedPatternWidget();		
 		panelForPattern.add(definedPatternWidget);
+		
 		return panelForPattern;
 	}
 
@@ -366,7 +370,7 @@ public class OptionsTabPanel extends Composite {
 				} else {
 					setTextInPatternLabel("//" + condition.getText());
 				}
-				verifyCondition(condition.getText());
+				verifyConditionAndPrintWarningIfNeeded(condition.getText());
 				condition.setText("condition");				
 				
 				if (!patternLabel.getText().equals("")) {
@@ -379,7 +383,7 @@ public class OptionsTabPanel extends Composite {
 		return hpForCondition;
 	}
 
-	protected void verifyCondition(String text) {
+	private void verifyConditionAndPrintWarningIfNeeded(String text) {
 		if(patternLabel.getText().isEmpty()){
 			printWarning("Conditions should be specified after pattern. Provide a pattern at first");
 		}
@@ -387,7 +391,7 @@ public class OptionsTabPanel extends Composite {
 		for(int i:points){
 			
 		if(!variablesForPattern.contains(text.toUpperCase().charAt(i-1)+"")){
-			printWarning("Varibales in condition should be similar to variables from pattern");
+			printWarning("Variables in condition should be similar to variables from pattern");
 		}	
 		
 		}
@@ -396,7 +400,7 @@ public class OptionsTabPanel extends Composite {
 			printWarning("Variable can have only special defined attributes");
 		}
 		if(points.isEmpty()){
-			printWarning("Condition should contain \"variables.attribute\"");
+			printWarning("Condition should contain \"variable.attribute\"");
 		}
 		
 		
@@ -460,7 +464,7 @@ public class OptionsTabPanel extends Composite {
 
 	/**
 	 * Widget contains label with the defined by user pattern (with/without
-	 * conditions), label for the result of pattern matching, two buttons:
+	 * conditions), a warning label, a label for the result of pattern matching, two buttons:
 	 * "match", "remove"
 	 * 
 	 * @return FlexTable
@@ -591,7 +595,7 @@ public class OptionsTabPanel extends Composite {
 	private void verifyVariableAndPrintWarningIfNeeded(String var,
 			String pattern) {
 		if(!Character.isLetter(var.charAt(0))){
-			printWarning("A varibale should be only a letter! Please remove and then provide a new one.");
+			printWarning("A variable should be only a letter! Please remove and then provide a new one.");
 		}
 		if (variablesForPattern.contains(var)) {
 			printWarning("All variables occuring in a pattern should be distict! Please remove and then select a new variable");
@@ -618,19 +622,19 @@ public class OptionsTabPanel extends Composite {
 	private StackPanel createSimpleQueriesStackPanel() {
 		StackPanel simpleQueriesPanel = new StackPanel();
 		String passesHeader = getHeaderStringLevel2("passes", queryIcon);
-		VerticalPanel passesPanel = createPanelForOneQueryFromSimple(
+		VerticalPanel passesPanel = new SimpleQueryPanel(
 				"Does the trip pass through ...(i.e. specified street, southeast, moderate tempo)?",
 				"passes", "i.e. Baker St");
-		simpleQueriesPanel.add(passesPanel, passesHeader, true);
+		simpleQueriesPanel.add(passesPanel, passesHeader, true);		
 
 		String atinstantHeader = getHeaderStringLevel2("atinstant", queryIcon);
-		VerticalPanel atinstantPanel = createPanelForOneQueryFromSimple(
+		VerticalPanel atinstantPanel = new SimpleQueryPanel(
 				"Through what does the trip pass at defined time?",
 				"atinstant", "i.e. 2012-01-01-01:15");
 		simpleQueriesPanel.add(atinstantPanel, atinstantHeader, true);
 
 		String deftimeHeader = getHeaderStringLevel2("deftime", queryIcon);
-		VerticalPanel deftimePanel = createPanelForOneQueryFromSimple(
+		VerticalPanel deftimePanel = new SimpleQueryPanel(
 				"Determine the time intervals when the trip was at ... (i.e. specified street, southeast, moderate tempo)",
 				"deftime", "i.e. Baker St");
 		simpleQueriesPanel.add(deftimePanel, deftimeHeader, true);
@@ -897,6 +901,10 @@ public class OptionsTabPanel extends Composite {
 		this.attributeNameOfMlabelInRelation = attributeNameOfMlabelInRelation;
 	}
 
+	/**
+	 * returns query for pattern matching to be send to secondo; empty query if no relation was selected
+	 * @return
+	 */
 	public String getCommandForPatternMatching() {
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
@@ -909,6 +917,60 @@ public class OptionsTabPanel extends Composite {
 					+ attributeNameOfMlabelInRelation + ",";
 			command = command + " '" + patternLabel.getText() + "'] consume";
 		}
+		return command;
+	}
+	
+	public String getCommandForSimpleQueryPasses(){
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		String command="";
+		String label = simpleQueriesStackPanel.getPassesPanel().getLabelTextForQuery().getText();
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+			
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
+			command = command + " feed extract["
+					+ attributeNameOfMlabelInRelation + "] passes tolabel(\""+label+"\")";
+		
+		}
+		
+		return command;
+	}
+	
+	public String getCommandForSimpleQueryDeftime(){
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		String command="";
+		String label = simpleQueriesStackPanel.getDeftimePanel().getLabelTextForQuery().getText();
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+			
+			command = "query deftime ("
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
+			command = command + " feed extract["
+					+ attributeNameOfMlabelInRelation + "] at tolabel(\""+label+"\"))";
+		
+		}
+		
+		return command;
+	}
+	
+	public String getCommandForSimpleQueryAtinstant(){
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		String command="";
+		String label = simpleQueriesStackPanel.getAtinstantPanel().getLabelTextForQuery().getText();
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+			
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
+			command = command + " feed extract["
+					+ attributeNameOfMlabelInRelation + "] atinstant [const instant value\""+label+"\"]";
+		
+		}
+		
 		return command;
 	}
 
@@ -924,6 +986,8 @@ public class OptionsTabPanel extends Composite {
 		return command;
 
 	}
+	
+	
 
 	/**
 	 * @return the removeButton
@@ -1003,6 +1067,10 @@ public class OptionsTabPanel extends Composite {
 			variablesForPattern.add(var.toUpperCase());
 		}
 
+	}
+
+	public SimpleQueriesStackPanel getSimpleQueriesStackPanel() {
+		return simpleQueriesStackPanel;
 	}
 
 }
