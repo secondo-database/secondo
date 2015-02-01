@@ -475,8 +475,8 @@ public class OpticsViewer extends SecondoViewer
   }
   catch(Exception e)
   {
-   e.printStackTrace(System.out);
-   Reporter.showError(e.getStackTrace().toString());
+   //e.printStackTrace(System.out);
+   //Reporter.showError(e.getStackTrace().toString());
   }
   finally
   {
