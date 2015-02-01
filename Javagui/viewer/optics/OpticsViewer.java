@@ -22,6 +22,7 @@ package  viewer.optics;
 import gui.MainWindow;
 import gui.SecondoObject;
 import gui.idmanager.ID;
+import gui.idmanager.IDManager;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -37,6 +38,8 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -44,12 +47,15 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JList;
@@ -82,6 +88,7 @@ public class OpticsViewer extends SecondoViewer
                                     ,MouseListener
                                     ,MouseMotionListener
                                     ,ActionListener
+                                    ,ItemListener
 {
  private static final long serialVersionUID = 1L;
  
@@ -104,16 +111,17 @@ public class OpticsViewer extends SecondoViewer
  
  private JLabel lblEps = new JLabel("Eps");
  
- private JButton btnToHeose = new JButton("Add to Hoese");
+ private JButton btnToHeose = new JButton("Create cluster");
  
  private MainWindow parent = null;
  
  private HashMap<ID, SecondoObject> cachedData     = new HashMap<ID, SecondoObject>();
- private HashMap<ID, SecondoObject> cachedDataSend = new HashMap<ID, SecondoObject>();
 
- private ID displayedID = null;
+ private JCheckBox cbOrgCore  = new JCheckBox("OC");
+ private JCheckBox cbOrgNoise = new JCheckBox("ON");
+ private JCheckBox cbSelNoise = new JCheckBox("SN");
  
- private SecondoObject soSend = null;
+ private ID displayedID = null;
 
  public OpticsViewer()
  {
@@ -139,6 +147,21 @@ public class OpticsViewer extends SecondoViewer
   sldZoom.setValue(1); 
   sldZoom.addMouseWheelListener(this);
   
+  cbOrgNoise.setPreferredSize(new Dimension(50, 20));
+  cbOrgNoise.setSelected(false);
+  cbOrgNoise.setToolTipText("add the \"origin\" noise (reach-dist && core-dist = -1.0) to the selection");
+  cbOrgNoise.addItemListener(this);
+  
+  cbOrgCore.setPreferredSize(new Dimension(50, 20));
+  cbOrgCore.setSelected(false);
+  cbOrgCore.setToolTipText("add the \"origin\" core points (reach-dist = -1.0) to the selection");
+  cbOrgCore.addItemListener(this);
+  
+  cbSelNoise.setPreferredSize(new Dimension(50, 20));
+  cbSelNoise.setSelected(false);
+  cbSelNoise.setToolTipText("add the \"selected\" noise (grey bar) to the selection");
+  cbSelNoise.addItemListener(this);
+  
   btnToHeose.setPreferredSize(new Dimension(140, 20));
   btnToHeose.addActionListener(this);
   
@@ -163,17 +186,26 @@ public class OpticsViewer extends SecondoViewer
   pnlCtrl.setLayout(new GridBagLayout());
   pnlCtrl.setPreferredSize(new Dimension(750, 25));
   
-  pnlCtrl.add(lblEps,     new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
+  pnlCtrl.add(lblEps,             new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0
     ,GridBagConstraints.WEST, GridBagConstraints.NONE
     ,new Insets(0, 2, 0, 0), 0, 0));
-  pnlCtrl.add(txtEps,     new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0
+  pnlCtrl.add(txtEps,             new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0
     ,GridBagConstraints.WEST, GridBagConstraints.NONE
     ,new Insets(0, 2, 0, 0), 0, 0));
-  pnlCtrl.add(sldZoom,    new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0
+  pnlCtrl.add(sldZoom,            new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0
     ,GridBagConstraints.WEST, GridBagConstraints.NONE
     ,new Insets(0, 2, 0, 0), 0, 0));
-  pnlCtrl.add(btnToHeose, new GridBagConstraints(3, 0, 1, 1, 1.0, 0.0
+  pnlCtrl.add(cbOrgCore,          new GridBagConstraints(3, 0, 1, 1, 1.0, 0.0
     ,GridBagConstraints.EAST, GridBagConstraints.REMAINDER
+    ,new Insets(0, 2, 0, 0), 0, 0));
+  pnlCtrl.add(cbOrgNoise,         new GridBagConstraints(4, 0, 1, 1, 0.0, 0.0
+    ,GridBagConstraints.EAST, GridBagConstraints.NONE
+    ,new Insets(0, 2, 0, 0), 0, 0));
+  pnlCtrl.add(cbSelNoise,         new GridBagConstraints(5, 0, 1, 1, 0.0, 0.0
+    ,GridBagConstraints.EAST, GridBagConstraints.NONE
+    ,new Insets(0, 2, 0, 0), 0, 0));
+  pnlCtrl.add(btnToHeose,         new GridBagConstraints(6, 0, 1, 1, 0.0, 0.0
+    ,GridBagConstraints.EAST, GridBagConstraints.NONE
     ,new Insets(0, 2, 0, 0), 0, 0));
   
   this.add(pnlCtrl, new GridBagConstraints(0, 0, 1, 1, 1.0, 0.0
@@ -212,28 +244,27 @@ public class OpticsViewer extends SecondoViewer
   
   if(soCached != null)
   {
-   if( displayedID != null 
-    && displayedID.equals(o.getID()) )
-   {
-    chart.clear();
-    lstPoints.setListData(new OpticsPoint[]{});
-    lstPoints.revalidate();
-    txtEps.setText(null);
-   }
-   
-   Iterator<ID> it = cachedData.keySet().iterator();
+  if( displayedID != null 
+   && displayedID.equals(o.getID()) )
+  {
+   chart.clear();
+   lstPoints.setListData(new OpticsPoint[]{});
+   lstPoints.revalidate();
+   txtEps.setText(null);
+  }
+  
+  Iterator<ID> it = cachedData.keySet().iterator();
 
-   if(it.hasNext())
-   {
-    selectObject(cachedData.get(it.next()));
-   }
-   
-   if( parent != null
-    && (soCached = cachedDataSend.get(o.getID())) != null)
-   {
-	   parent.hideObject(new String("Force to delete"), soCached);
-	   cachedDataSend.remove(o.getID());
-   }
+  if(it.hasNext())
+  {
+   selectObject(cachedData.get(it.next()));
+  }
+  
+//  if( parent != null
+//   && (soCached = cachedDataSend.get(o.getID())) != null)
+//  {
+//   parent.hideObject(new String("Force to delete"), soCached);
+//  }
   }
  }
 
@@ -444,12 +475,12 @@ public class OpticsViewer extends SecondoViewer
   }
   catch(Exception e)
   {
-   //e.printStackTrace(System.out);
-   //Reporter.showError(e.getStackTrace().toString());
+   e.printStackTrace(System.out);
+   Reporter.showError(e.getStackTrace().toString());
   }
   finally
   {
-	  setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+   setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
   }
  }
 
@@ -635,9 +666,10 @@ public class OpticsViewer extends SecondoViewer
   }
   else
   {
-   ListExpr LE = cachedData.get(displayedID).toListExpr();
-   ListExpr type = LE.first();
-   ListExpr value = LE.second();
+   ListExpr le = new ListExpr(); 
+   le.readFromString(cachedData.get(displayedID).toListExpr().writeListExprToString());
+   ListExpr type = le.first();
+   ListExpr value = le.second();
   
    ListExpr attrList     = type.second().second();
    ListExpr newAttrList  = ListExpr.oneElemList(attrList.first());
@@ -667,38 +699,87 @@ public class OpticsViewer extends SecondoViewer
   
    int i = 0;
    ListExpr last = null;
-   int cid = 1;
+   int cid = 0;
+   int curCid = 0;
    int lastCount = -1;
+
+   boolean withSelNoise = cbSelNoise.isSelected();
+   boolean withOrgNoise = cbOrgNoise.isSelected();
+   boolean withOrgCore = cbOrgCore.isSelected();
    
    do
    {
     ListExpr tmp = value.first();
     boolean add = false;
+    boolean core = false;
+    boolean noise = false;
+    OpticsPoint op;
     
     if(chart.isSelected(i))
     {
      add = true;     
     }
     
-    if(add)
+    if(withOrgCore)
     {
-     cid = i-1 != lastCount ? ++cid : cid;
-     
+     if( (op = chart.getOpticsPoint(i)) != null 
+      && op.reachDist == -1.0 && op.coreDist >= 0.0 )
+     {
+      core = true;
+     }
+    }    
+    
+    if(withOrgNoise)
+    {
+     if( (op = chart.getOpticsPoint(i)) != null 
+      && op.reachDist == -1.0 && op.coreDist == -1.0 )
+     {
+      noise = true;
+     }
+    }
+    
+    if(withSelNoise)
+    {
+     if(!chart.isSelected(i))
+     {
+      noise = true;
+     }
+    }
+    
+    if(add || core || noise)
+    {
+     if(noise)
+     {
+      curCid = -1;
+     }
+     else
+     {
+      if(core)
+      {
+       curCid = ++cid;
+      }
+      else
+      {
+       cid = i-1 != lastCount ? ++cid : cid;
+       curCid = cid;
+      }
+     }
+    
      ListExpr valueList     = tmp;
      ListExpr newValueList  = valueList;
      ListExpr lastValueList = newValueList; 
-    
+   
      valueList = valueList.rest();
-     
+    
      while(!valueList.isEmpty())
      {
       lastValueList = ListExpr.append(lastValueList, valueList.first());
       valueList = valueList.rest();
      }
-     
+    
      lastValueList = ListExpr.append(lastValueList
-      ,ListExpr.intAtom(cid));
-     
+      ,ListExpr.intAtom(curCid));
+    
      if(points == null)
      {
       points = ListExpr.oneElemList(newValueList);
@@ -709,18 +790,43 @@ public class OpticsViewer extends SecondoViewer
      {
       last = ListExpr.append(last, newValueList);
      }
-     
+    
      lastCount = i;
-    }
+   }
+   else if(withOrgNoise)
+   {
+    
+   }
    
     value = value.rest();
     i++;
    } while(!value.isEmpty());
    
-   SecondoObject obj = new SecondoObject("Optics choice", choice);
-   obj.setID(displayedID);
-   cachedDataSend.put(displayedID, obj);
-   parent.displayAt("Hoese-Viewer", obj);
+   ID id = IDManager.getNextID();
+   SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy hh:mm:ss");   
+   SecondoObject obj = new SecondoObject("Optics selection + " + sdf.format(new Date()) + " (#" + id + ")", choice);
+   obj.setID(id);
+//   cachedDataSend.put(displayedID, obj);
+//   parent.displayAt("Hoese-Viewer", obj);
+   parent.addObject(obj);
+  }
+ }
+
+ @Override
+ public void itemStateChanged(ItemEvent e) 
+ {
+  if(e.getSource() == cbSelNoise)
+  {
+   cbOrgCore.setSelected(false);
+   cbOrgNoise.setSelected(false);
+  }
+  else if(e.getSource() == cbOrgCore)
+  {
+   cbSelNoise.setSelected(false);
+  }
+  else if(e.getSource() == cbOrgNoise)
+  {
+   cbSelNoise.setSelected(false);
   }
  }
  
@@ -759,9 +865,11 @@ public class OpticsViewer extends SecondoViewer
   public String getTxt()
   {
    return "<html><table border=\"0\", style=\"font-family:arial;font-size:10\">" 
-   + txt + "<tr><td><b>ORDER" + "</b></td><td>:"
-            + "</td><td>" + order
-            + "</td></tr>" + "</table></html>";
+   + txt 
+   //+ "<tr><td><b>ORDER" + "</b></td><td>:"
+   //         + "</td><td>" + order
+   //         + "</td></tr>"
+             + "</table></html>";
   }
   
   public void setOrder(int order)
@@ -934,7 +1042,7 @@ public class OpticsViewer extends SecondoViewer
   
   public ArrayList<OpticsPoint> getElements()
   {
-	  return alPoints;
+   return alPoints;
   }
   
   /**
@@ -1266,6 +1374,16 @@ public class OpticsViewer extends SecondoViewer
                                         ,p1Y - OFF_SCL_HEIGTH)
      || p.getReachDist() < 0);
    return cl;
+  }
+  
+  public OpticsPoint getOpticsPoint(int i)
+  {
+   if(i >= alPoints.size())
+   {
+    return null;
+   }
+   
+   return alPoints.get(i);
   }
  }
 }
