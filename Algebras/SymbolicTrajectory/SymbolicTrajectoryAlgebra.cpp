@@ -1264,7 +1264,7 @@ ListExpr deftimeSymbolicTM(ListExpr args) {
 \subsubsection{Selection Function}
 
 */
-int deftimeUnitsAtinstantNocomponentsSymbolicSelect(ListExpr args) {
+int symbolicSimpleSelect(ListExpr args) {
   if (MLabel::checkType(nl->First(args))) return 0;
   if (MLabels::checkType(nl->First(args))) return 1;
   if (MPlace::checkType(nl->First(args))) return 2;
@@ -1421,6 +1421,80 @@ struct nocomponentsSymbolicInfo : OperatorInfo {
     appendSignature("mplaces -> int");
     syntax    = "no_components ( _ )";
     meaning   = "Returns the number of units of the symbolic trajectory.";
+  }
+};
+
+/*
+\subsection{Operator ~getunit~}
+
+getunit: mlabel x int -> ulabel
+getunit: mlabels x int -> ulabels
+getunit: mplace x int -> uplace
+getunit: mplaces x int -> uplaces
+
+\subsubsection{Type Mapping}
+
+*/
+ListExpr getunitSymbolicTM(ListExpr args) {
+  if (nl->HasLength(args, 2)) {
+    if (CcInt::checkType(nl->Second(args))) {
+      ListExpr first = nl->First(args);
+      if (MLabel::checkType(first)) {
+        return nl->SymbolAtom(ULabel::BasicType());
+      } 
+      if (MLabels::checkType(first)) {
+        return nl->SymbolAtom(ULabels::BasicType());
+      }
+      if (MPlace::checkType(first)) {
+        return nl->SymbolAtom(UPlace::BasicType());
+      }
+      if (MPlaces::checkType(first)) {
+        return nl->SymbolAtom(UPlaces::BasicType());
+      }
+    }
+  }
+  return listutils::typeError("Expects a symbolic trajectory and an integer.");
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class M, class U>
+int getunitSymbolicVM(Word* args, Word& result, int message, Word& local,
+                      Supplier s) {
+  result = qp->ResultStorage(s);
+  M *src = static_cast<M*>(args[0].addr);
+  CcInt* pos = static_cast<CcInt*>(args[1].addr);
+  U *res = static_cast<U*>(result.addr);
+  if (src->IsDefined() && pos->IsDefined()) {
+    if (pos->GetIntval() < src->GetNoComponents() && pos->GetIntval() >= 0) {
+      src->Get(pos->GetIntval(), *res);
+    }
+    else {
+      res->SetDefined(false);
+    }
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsubsection{Operator Info}
+
+*/
+struct getunitSymbolicInfo : OperatorInfo {
+  getunitSymbolicInfo() {
+    name      = "getunit";
+    signature = "mlabel x int -> ulabel";
+    appendSignature("mlabels x int -> ulabels");
+    appendSignature("mplace x int -> uplace");
+    appendSignature("mplaces x int -> uplaces");
+    syntax    = "getunit ( _, _ )";
+    meaning   = "Returns the unit located at a certain position of the symbolic"
+                "trajectory.";
   }
 };
 
@@ -3719,26 +3793,32 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   ValueMapping deftimeSymbolicVMs[] = {deftimeSymbolicVM<MLabel>,
     deftimeSymbolicVM<MLabels>, deftimeSymbolicVM<MPlace>,
     deftimeSymbolicVM<MPlaces>, 0};
-  AddOperator(deftimeSymbolicInfo(), deftimeSymbolicVMs, 
-            deftimeUnitsAtinstantNocomponentsSymbolicSelect, deftimeSymbolicTM);
+  AddOperator(deftimeSymbolicInfo(), deftimeSymbolicVMs, symbolicSimpleSelect, 
+              deftimeSymbolicTM);
   
   ValueMapping atinstantSymbolicVMs[] = {atinstantSymbolicVM<MLabel, ILabel>,
     atinstantSymbolicVM<MLabels, ILabels>, atinstantSymbolicVM<MPlace, IPlace>,
     atinstantSymbolicVM<MPlaces, IPlaces>, 0};
   AddOperator(atinstantSymbolicInfo(), atinstantSymbolicVMs,
-          deftimeUnitsAtinstantNocomponentsSymbolicSelect, atinstantSymbolicTM);
+              symbolicSimpleSelect, atinstantSymbolicTM);
   
   ValueMapping nocomponentsSymbolicVMs[] = {nocomponentsSymbolicVM<MLabel>,
     nocomponentsSymbolicVM<MLabels>, nocomponentsSymbolicVM<MPlace>,
     nocomponentsSymbolicVM<MPlaces>, 0};
   AddOperator(nocomponentsSymbolicInfo(), nocomponentsSymbolicVMs,
-       deftimeUnitsAtinstantNocomponentsSymbolicSelect, nocomponentsSymbolicTM);
+              symbolicSimpleSelect, nocomponentsSymbolicTM);
+  
+  ValueMapping getunitSymbolicVMs[] = {getunitSymbolicVM<MLabel, ULabel>,
+    getunitSymbolicVM<MLabels, ULabels>, getunitSymbolicVM<MPlace, UPlace>, 
+    getunitSymbolicVM<MPlaces, UPlaces>, 0};
+  AddOperator(getunitSymbolicInfo(), getunitSymbolicVMs, symbolicSimpleSelect,
+              getunitSymbolicTM);
   
   ValueMapping unitsSymbolicVMs[] = {unitsSymbolicVM<MLabel, ULabel>,
     unitsSymbolicVM<MLabels, ULabels>, unitsSymbolicVM<MPlace, UPlace>, 
     unitsSymbolicVM<MPlaces, UPlaces>, 0};
-  AddOperator(unitsSymbolicInfo(), unitsSymbolicVMs, 
-              deftimeUnitsAtinstantNocomponentsSymbolicSelect, unitsSymbolicTM);
+  AddOperator(unitsSymbolicInfo(), unitsSymbolicVMs, symbolicSimpleSelect,
+              unitsSymbolicTM);
   
   ValueMapping initialSymbolicVMs[] = {initialSymbolicVM<ULabel, ILabel>,
     initialSymbolicVM<ULabels, ILabels>, initialSymbolicVM<MLabel, ILabel>,

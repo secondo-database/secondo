@@ -163,6 +163,12 @@ Signature: mlabel -> int
 Example  : query no_components(mlabel1)
 Result   : 6
 
+Operator : getunit
+Number   : 1
+Signature: mlabel x int -> ulabel
+Example  : query getunit(mlabel1, 0)
+Result   : (ulabel (("2012-01-01" "2012-01-01-00:30" TRUE FALSE) "Eving"))
+
 Operator : initial
 Number   : 12
 Signature: ulabel -> ilabel
