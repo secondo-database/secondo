@@ -207,7 +207,7 @@ Value mapping method ~opticsRVM~
     TupleType* resultTupleType;
     ListExpr resultType;
     TupleBuffer* tp;
-    long maxMem;
+    size_t maxMem;
     Word argument;
     Supplier son;
     
@@ -233,8 +233,8 @@ Value mapping method ~opticsRVM~
     
     stream.open();
     
-    maxMem = qp->FixedMemory();
-    tp = new TupleBuffer(maxMem*1024);
+    maxMem = qp->GetMemorySize(s);
+    tp = new TupleBuffer(maxMem*1024*1024);
     
     while((tup = stream.request()) != 0)
     {
@@ -498,7 +498,7 @@ Value mapping method ~opticsMVM~
     TupleType* resultTupleType;
     ListExpr resultType;
     TupleBuffer* tp;
-    long maxMem;
+    size_t maxMem;
     Word argument;
     Supplier son;
     MMMTree<pair<T, TupleId>, DistComp >* mtree;
@@ -525,8 +525,8 @@ Value mapping method ~opticsMVM~
     
     stream.open();
     
-    maxMem = qp->FixedMemory();
-    tp = new TupleBuffer(maxMem);
+    maxMem = qp->GetMemorySize(s);
+    tp = new TupleBuffer(maxMem*1024*1024);
     int cou = 0;
     while((tup = stream.request()) != 0)
     {
@@ -551,12 +551,14 @@ Value mapping method ~opticsMVM~
      cou++;
      tp->AppendTuple(newTuple);
      tup->DeleteIfAllowed();
+     newTuple->DeleteIfAllowed();
     }
     
     stream.close();
     
     if(info)
-    {
+    { 
+     delete info->buffer;
      delete info;
     }
     
@@ -576,10 +578,10 @@ Value mapping method ~opticsMVM~
      pair<T, TupleId> p(attr, objId);
      
      mtree->insert(p);
-     
      obj->DeleteIfAllowed();
     }
-    
+    delete relIter;     
+ 
     optics.initialize(mtree, tp, idxData, attrCnt, attrCnt+1, attrCnt+2, dc);
     
     //Start the optics ordering
@@ -587,7 +589,8 @@ Value mapping method ~opticsMVM~
     
     info->initialize();
     local.setAddr(info);
-    
+    delete mtree; 
+    resultTupleType->DeleteIfAllowed();
     return 0;
    }
    case REQUEST :
@@ -596,7 +599,6 @@ Value mapping method ~opticsMVM~
     {
      TupleId tid = info->next();
      Tuple* outTup = info->buffer->GetTuple(tid, false);
-     outTup->DeleteIfAllowed();
      result = SetWord(outTup);
      return YIELD;
     }
@@ -607,6 +609,12 @@ Value mapping method ~opticsMVM~
    }
    case CLOSE :
    {
+    if(info)
+    { 
+     delete info->buffer;
+     delete info;
+     local.addr=0;
+    }
     return 0;
    }
   }
@@ -702,12 +710,13 @@ Type mapping method ~opticsFTM~
   {
    return listutils::typeError("arg4 is not a map");
   }
-  
-  if(nl->ListLength(nl->Fourth(arguments))!=4)
-  {
-   ErrorReporter::ReportError("wrong map length (four arguments expected)");
-   return nl->TypeError();
+  ListExpr funres = nl->Fourth(nl->Fourth(arguments));
+  if(!CcInt::checkType(funres) &&
+     !CcReal::checkType(funres)){
+    return listutils::typeError("function reault not of type int or real");
   }
+
+  
   
   //Check the attribute name, is it in the tuple list
   ListExpr attrType;
@@ -733,34 +742,6 @@ Type mapping method ~opticsFTM~
     "different");
   }
   
-  ListExpr funResType = nl->Fourth(nl->Fourth(arguments));
-  
-  if( !CcInt::checkType(funResType)
-   && !CcReal::checkType(funResType) )
-  {
-   return listutils::typeError("Function result type not of type " 
-    + CcInt::BasicType() + " or " 
-    + CcReal::BasicType() );
-  }  
-  
-  if( !(CcInt::checkType(attrType) && CcInt::checkType(funResType))
-   && !(CcReal::checkType(attrType) && CcReal::checkType(funResType))
-   && !(Point::checkType(attrType) && CcReal::checkType(funResType))
-   && !(CcString::checkType(attrType) && CcInt::checkType(funResType))
-   && !(Picture::checkType(attrType) && CcReal::checkType(funResType)) )
-  {
-   return listutils::typeError("Attribute " + attrName + " not of type " 
-    + CcInt::BasicType() + " and function result not " + CcInt::BasicType() 
-    + ", "
-    + CcReal::BasicType() + " and function result not " + CcReal::BasicType() 
-    + ", " 
-    + Point::BasicType() + " and function result not " + CcReal::BasicType() 
-    + ", " 
-    + CcString::BasicType()+ " and function result not " + CcInt::BasicType()
-    + " or " 
-    + Picture::BasicType() + " and function result not " + CcReal::BasicType() 
-     );
-  }
   
   //Copy attrlist to newattrlist
   attrList             = nl->Second(nl->Second(stream));
@@ -819,7 +800,7 @@ Value mapping method ~opticsFVM~
     TupleType* resultTupleType;
     ListExpr resultType;
     TupleBuffer* tp;
-    long maxMem;
+    size_t maxMem;
     Word argument;
     Supplier son;
 
@@ -853,8 +834,8 @@ Value mapping method ~opticsFVM~
     
     stream.open();
     
-    maxMem = qp->FixedMemory();
-    tp = new TupleBuffer(maxMem);
+    maxMem = qp->GetMemorySize(s);
+    tp = new TupleBuffer(maxMem * 1024*1024);
     int cou = 0;
     while((tup = stream.request()) != 0)
     {
@@ -879,12 +860,14 @@ Value mapping method ~opticsFVM~
      cou++;
      tp->AppendTuple(newTuple);
      tup->DeleteIfAllowed();
+     newTuple->DeleteIfAllowed();
     }
     
     stream.close();
     
     if(info)
     {
+     delete info->buffer;
      delete info;
     }
     
@@ -908,6 +891,7 @@ Value mapping method ~opticsFVM~
      
      obj->DeleteIfAllowed();
     }
+    delete relIter;
     
     optics.initialize(mtree, tp, idxData, attrCnt, attrCnt+1, attrCnt+2, dc);
     
@@ -916,6 +900,8 @@ Value mapping method ~opticsFVM~
     
     info->initialize();
     local.setAddr(info);
+    resultTupleType->DeleteIfAllowed();
+    delete mtree;
     
     return 0;
    }
@@ -925,7 +911,6 @@ Value mapping method ~opticsFVM~
     {
      TupleId tid = info->next();
      Tuple* outTup = info->buffer->GetTuple(tid, false);
-     outTup->DeleteIfAllowed();
      result = SetWord(outTup);
      return YIELD;
     }
@@ -936,6 +921,11 @@ Value mapping method ~opticsFVM~
    }
    case CLOSE :
    {
+    if(info){
+      delete info->buffer;
+      delete info;
+      local.addr=0;
+    }
     return 0;
    }
   }
@@ -948,34 +938,9 @@ Selection method for value mapping array ~opticsFDisSL~
 */
  int opticsFDisSL(ListExpr args)
  {
-  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
-  ListExpr attrType;
-  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
-  int found = FindAttribute(attrList, attrName, attrType);
-  assert(found > 0);
-  
   ListExpr funResType = nl->Fourth(nl->Fourth(nl->Second(args)));
-  
-  if(CcInt::checkType(attrType) && CcInt::checkType(funResType))
-  {
-   return 0;
-  }
-  else if(CcReal::checkType(attrType) && CcReal::checkType(funResType))
-  {
-   return 1;
-  }
-  else if(Point::checkType(attrType) && CcReal::checkType(funResType))
-  {
-   return 2;
-  }
-  else if(CcString::checkType(attrType) && CcInt::checkType(funResType))
-  {
-   return 3;
-  }
-  else if(Picture::checkType(attrType) && CcReal::checkType(funResType))
-  {
-   return 4;
-  }
+  if(CcInt::checkType(funResType)) return 0;
+  if(CcReal::checkType(funResType)) return 1;
   
   return -1; 
  };
@@ -985,11 +950,8 @@ Value mapping array ~opticsFDisVM[]~
 */
  ValueMapping opticsFDisVM[] = 
  {
-  opticsFVM<CcInt*, CustomDist<CcInt*, CcInt> >
- ,opticsFVM<CcReal*, CustomDist<CcReal*, CcReal> >
- ,opticsFVM<Point*, CustomDist<Point*, CcReal> >
- ,opticsFVM<CcString*, CustomDist<CcString*, CcInt> >
- ,opticsFVM<Picture*, CustomDist<Picture*, CcReal> >
+  opticsFVM<Attribute*, CustomDist<Attribute*, CcInt> >,
+  opticsFVM<Attribute*, CustomDist<Attribute*, CcReal> >
  };
 /*
 Struct ~opticsInfoR~
@@ -1065,9 +1027,15 @@ Algebra class ~ClusterOpticsAlgebra~
   public:
    ClusterOpticsAlgebra() : Algebra()
    {
-    AddOperator(opticsInfoR(), opticsRRecVM, opticsRRecSL, opticsRTM);
-    AddOperator(opticsInfoM(), opticsMDisVM, opticsMDisSL, opticsMTM);
-    AddOperator(opticsInfoF(), opticsFDisVM, opticsFDisSL, opticsFTM);
+    Operator* opr = 
+        AddOperator(opticsInfoR(), opticsRRecVM, opticsRRecSL, opticsRTM);
+    opr->SetUsesMemory();
+    Operator* opm = 
+        AddOperator(opticsInfoM(), opticsMDisVM, opticsMDisSL, opticsMTM);
+    opm->SetUsesMemory();
+    Operator* opf = 
+        AddOperator(opticsInfoF(), opticsFDisVM, opticsFDisSL, opticsFTM);
+    opf->SetUsesMemory();
    }
 
    ~ClusterOpticsAlgebra() {};

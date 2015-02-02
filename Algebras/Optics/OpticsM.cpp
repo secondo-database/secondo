@@ -102,7 +102,11 @@ Method ~OpticsM::order~
    {
     expandClusterOrder(objId);
    }
+   obj->DeleteIfAllowed();
   }
+  delete relIter;
+  
+
   
   std::list<TupleId>::iterator it;
   for (it = undefined->begin(); it != undefined->end(); it++)
@@ -115,6 +119,7 @@ Method ~OpticsM::order~
     undef->PutAttribute(PRC, ((Attribute*) &processed)->Clone());
     result->push_back(*it);
    }
+   undef->DeleteIfAllowed();
   }
  }
 /*
@@ -125,7 +130,7 @@ Method ~OpticsM::expandClusterOrder~
  void OpticsM<T, DistComp>::expandClusterOrder(TupleId objId)
  {
   Tuple* obj;
-  std::list<TupleId>* orderedSeeds(new list<TupleId>);
+  std::list<TupleId>* orderedSeeds = new list<TupleId>();
 
   obj = objs->GetTuple(objId, false);
 
@@ -155,7 +160,7 @@ Method ~OpticsM::expandClusterOrder~
    {
     TupleId curObjId = *it;
     Tuple* curObj = objs->GetTuple(*it, true);
-
+    delete neighbors;
     neighbors = getNeighbors(curObjId);
      
     CcBool processed(true, true);
@@ -172,12 +177,16 @@ Method ~OpticsM::expandClusterOrder~
     {
      update(neighbors, curObjId, orderedSeeds);
     }
+    curObj->DeleteIfAllowed();
    }
   }
   else
   {
    undefined->push_back(objId);
   }
+  delete neighbors;
+  obj->DeleteIfAllowed();
+  delete orderedSeeds;
  }
 /*
 Method ~OpticsM::getNeighbors~
@@ -204,6 +213,8 @@ Method ~OpticsM::getNeighbors~
      near->push_back(p.second);
     }
   }
+  delete it;
+  obj->DeleteIfAllowed();
 
   return near;
  }
@@ -237,10 +248,12 @@ Method ~OpticsM::setCoreDistance~
      count++;
     }
    }
+   delete it;
   }
 
   CcReal cDist(coreDist);
   obj->PutAttribute(COR, ((Attribute*) &cDist)->Clone());
+  obj->DeleteIfAllowed();
  }
 /*
 Method ~OpticsM::update~
@@ -274,6 +287,7 @@ Method ~OpticsM::update~
      decrease(orderedSeeds, objId);
     }
    }
+   obj->DeleteIfAllowed();
   }
  }
 /*
@@ -298,11 +312,15 @@ Method ~OpticsM::insert~
     > ((CcReal*)obj->GetAttribute(REA))->GetValue())
    {
     orderedSeeds->insert(it, objId);
+    obj->DeleteIfAllowed();
+    seed->DeleteIfAllowed();
     return;
    }
+   seed->DeleteIfAllowed();
   }
 
   orderedSeeds->push_back(objId);
+  obj->DeleteIfAllowed();
  }
 /*
 Method ~OpticsM::decrease~
@@ -326,8 +344,10 @@ Method ~OpticsM::decrease~
    if(obj == seed)
    {
     found = true;
+    seed->DeleteIfAllowed();
     break;
    }
+   seed->DeleteIfAllowed();
   }
 
   if(found)
@@ -341,8 +361,10 @@ Method ~OpticsM::decrease~
      > ((CcReal*)seed->GetAttribute(REA))->GetValue())
     {
      decrease = true;
+     seed->DeleteIfAllowed();
      break;
     }
+    seed->DeleteIfAllowed();
    }
    
    if(decrease)
@@ -351,6 +373,7 @@ Method ~OpticsM::decrease~
     orderedSeeds->erase(itObjId);
    }
   }
+  obj->DeleteIfAllowed();
  }
 
  template<class T, class DistComp>
@@ -365,9 +388,12 @@ Method ~OpticsM::decrease~
   pair<T, TupleId> n((T) neighbor->GetAttribute(PNT), neighborId);
   distance = dc(o, n);
 
-  return ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance
+  double res = ((CcReal*)obj->GetAttribute(COR))->GetValue() > distance
    ? ((CcReal*)obj->GetAttribute(COR))->GetValue()
    : distance;
+  obj->DeleteIfAllowed();
+  neighbor->DeleteIfAllowed();
+  return res; 
  }
 /*
 Defintion of the possible template values.
@@ -383,4 +409,6 @@ Defintion of the possible template values.
  template class OpticsM<Point*, CustomDist<Point*, CcReal> >;
  template class OpticsM<CcString*, CustomDist<CcString*, CcInt> >;
  template class OpticsM<Picture*, CustomDist<Picture*, CcReal> >;
+ template class OpticsM<Attribute*, CustomDist<Attribute*, CcReal> >;
+ template class OpticsM<Attribute*, CustomDist<Attribute*, CcInt> >;
 }

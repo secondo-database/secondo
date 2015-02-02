@@ -64,6 +64,12 @@ Constructor
 
 */
    OpticsM();
+
+   ~OpticsM(){
+      delete undefined;
+    }
+
+
 /*
 Sets the "MMMTree"[4] for an optimized range query etc.
 

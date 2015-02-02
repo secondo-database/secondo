@@ -316,9 +316,11 @@ namespace clusteropticsalg
     }
     
     double distance;
-    
-    df.dist(df.getData(p1.first), df.getData(p2.first), distance);
-    
+    gta::DistData* d1 = df.getData(p1.first);
+    gta::DistData* d2 = df.getData(p2.first);
+    df.dist(d1,d2, distance);
+    delete d1;
+    delete d2; 
     return distance;
    }
      
