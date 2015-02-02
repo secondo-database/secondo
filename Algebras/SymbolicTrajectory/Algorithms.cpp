@@ -1844,7 +1844,6 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
             string var = p.getVarFromElem(p.getElemFromAtom(trans.first));
             int oldEnd = newIMI.binding[var].second;
             newIMI.binding[var].second = trajSize[id] - 1;
-            cout << "call from WM::: ";
             match = checkConditions(id, newIMI);
             if (!match) { // reset unsuccessful binding
               newIMI.binding[var].second = oldEnd;
