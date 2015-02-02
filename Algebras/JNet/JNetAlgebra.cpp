@@ -3127,6 +3127,102 @@ Operator trajectoryJNet("trajectory", trajectorySpec, trajectoryVM,
                          Operator::SimpleSelect, trajectoryTM);
 
 /*
+1.1.1.2 no\_components
+
+Returns an ~int~ representing the number of units of an mjpoint.
+
+*/
+
+ListExpr nocomponentsJNetTM(ListExpr args) {
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError("One argument expected.");
+  }
+  if (!listutils::isSymbol(nl->First(args), MJPoint::BasicType())) {
+    return listutils::typeError("Argument must be " + MJPoint::BasicType());
+  }
+  return nl->SymbolAtom(CcInt::BasicType());
+}
+
+int nocomponentsJNetVM(Word* args, Word& result, int message, Word& local,
+                       Supplier s) {
+  result = qp->ResultStorage(s);
+  MJPoint *mjp = (MJPoint*)args[0].addr;
+  CcInt* res = static_cast<CcInt*>(result.addr);
+  if (mjp->IsDefined()) {
+    res->Set(true, mjp->GetNoComponents());
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+const string nocomponentsJNetSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  MJPoint::BasicType() + " -> " + CcInt::BasicType() +
+  "</text--->"
+  "<text>no_components(<testmjp>) </text--->"
+  "<text>Returns an "+ JLine::BasicType() + " representing the the number of "
+  "an " + MJPoint::BasicType() + ".</text--->"
+  "<text>query no_components(testmjp)</text--->))";
+
+Operator nocomponentsJNet("no_components", nocomponentsJNetSpec, 
+                nocomponentsJNetVM, Operator::SimpleSelect, nocomponentsJNetTM);
+
+/*
+1.1.1.3 getunit
+
+Returns the ~ujpoint~ located at a certain position of the mjpoint
+
+*/
+
+ListExpr getunitJNetTM(ListExpr args) {
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError("Two arguments expected.");
+  }
+  if (!MJPoint::checkType(nl->First(args))) {
+    return listutils::typeError("1st argument must be " + MJPoint::BasicType());
+  }
+  if (!CcInt::checkType(nl->Second(args))) {
+    return listutils::typeError("2st argument must be " + CcInt::BasicType());
+  }
+  return nl->SymbolAtom(UJPoint::BasicType());
+}
+
+int getunitJNetVM(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  result = qp->ResultStorage(s);
+  MJPoint *mjp = (MJPoint*)args[0].addr;
+  CcInt *pos = (CcInt*)args[1].addr;
+  UJPoint* res = static_cast<UJPoint*>(result.addr);
+  if (mjp->IsDefined() && pos->IsDefined()) {
+    if (pos->GetIntval() < mjp->GetNoComponents() && pos->GetIntval() >= 0) {
+      mjp->Get(pos->GetIntval(), *res);
+    }
+    else {
+      res->SetDefined(false);
+    }
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+const string getunitJNetSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  MJPoint::BasicType() + " x " + CcInt::BasicType() + " -> "
+  + UJPoint::BasicType() + "</text--->"
+  "<text>getunit(<testmjp>, <int>) </text--->"
+  "<text>Returns the "+ UJPoint::BasicType() + " located at a certain position "
+  "of the " + MJPoint::BasicType() + ".</text--->"
+  "<text>query getunit(testmjp, 0)</text--->))";
+
+Operator getunitJNet("getunit", getunitJNetSpec, getunitJNetVM, 
+                     Operator::SimpleSelect, getunitJNetTM);
+
+/*
 1.1.1 Of IJPoint
 
 1.1.1.1 ~val~
@@ -4605,6 +4701,8 @@ JNetAlgebra::JNetAlgebra():Algebra()
 */
 
   AddOperator(&trajectoryJNet);
+  AddOperator(&nocomponentsJNet);
+  AddOperator(&getunitJNet);
 
 
 /*

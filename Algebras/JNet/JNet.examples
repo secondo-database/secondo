@@ -770,6 +770,12 @@ Signature: jnet x int x jdirection -> jlistint
 Example  : query getReverseAdjacentSections(testjnet, 2, [const jdirection value("Both")])
 Result   : (listint(1 2 4 6 7))
 
+Operator : getunit
+Number   : 1
+Signature: mjpoint x int -> ujpoint
+Example  : query getunit(testmjp, 0)
+Result   : (ujpoint ("testjnet" (("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.001 0.01 (Up)))))
+
 Operator : incircle
 Number   : 1
 Signature: jpoint x real -> jline
@@ -923,6 +929,12 @@ Signature: jline x jline -> real
 Example  : query netdistance(testjl, testjl);
 Result   : 0.0
 Tolerance: 0.01%
+
+Operator : no_components
+Number   : 1
+Signature: mjpoint -> int
+Example  : query no_components(testmjp)
+Result   : 1
 
 Operator : outcircle
 Number   : 1
