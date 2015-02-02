@@ -36,9 +36,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "workerqueue.h"
+
 #define CMDLINE_INPUTFILE   1<<0
 #define CMDLINE_OUTPUTFILE  1<<1
 #define CMDLINE_RESOLUTION  1<<2
+
+#define QUEUE_ELEMENTS 100
 
 using namespace std;
 
@@ -65,12 +69,14 @@ public:
 };
 
 
-void handleCSVLine(vector<InputData*> &data, vector<std::string> &lineData) {
+void handleCSVLine(WorkerQueue<InputData*> &data, 
+  vector<std::string> &lineData) {
+     
    InputData *inputdata1 = new InputData;
    InputData *inputdata2 = new InputData;
    
-   data.push_back(inputdata1);
-   data.push_back(inputdata2);
+   data.push(inputdata1);
+   data.push(inputdata2);
    
    inputdata1 -> moid = atoi(lineData[0].c_str());
    inputdata2 -> moid = atoi(lineData[0].c_str());
@@ -100,9 +106,11 @@ void handleCSVLine(vector<InputData*> &data, vector<std::string> &lineData) {
    
    inputdata2 -> x = atof(lineData[6].c_str());
    inputdata2 -> y = atof(lineData[7].c_str());
+   
+   cout << mktime(&tm1) << endl;
 }
 
-bool parseInputData(string &filename, vector<InputData*> &data) {
+bool parseInputData(string &filename, WorkerQueue<InputData*> &data) {
    
    if( access( filename.c_str(), F_OK ) == -1 ) {
       cerr << "Unable to open Input file: " << filename << endl;
@@ -190,7 +198,7 @@ int main(int argc, char *argv[]) {
    
    parseParameter(argc, argv, configuration);
    
-   vector<InputData*> inputData;
+   WorkerQueue<InputData*> inputData(QUEUE_ELEMENTS);
    
    bool result = parseInputData(configuration->inputfile, inputData);
    
@@ -218,9 +226,8 @@ int main(int argc, char *argv[]) {
       configuration = NULL;
    }
    
-   while(! inputData.empty()) {
-      InputData *entry = inputData.back();
-      inputData.pop_back();
+   while(! inputData.isEmpty()) {
+      InputData *entry = inputData.pop();
       
       if(entry != NULL) {
          delete entry;
