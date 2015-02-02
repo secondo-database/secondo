@@ -3,6 +3,7 @@
 CFLAGS += -Wall
 CFLAGS += -g
 CFLAGS += -O2
+CFLAGS += -pthread 
 
 CC = g++
 
