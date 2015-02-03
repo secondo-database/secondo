@@ -2595,58 +2595,90 @@ Operator restrictJNet("restrict", restrictSpec, 8, restrictMap,
 
 1.1.1.1.1 ~initialJNet~
 
-Returns the start position and time of the ~mjpoint~ as ~ijpoint~
+Returns the start position and time of the ~mjpoint~ or the ~ujpoint~ as
+~ijpoint~
 
 */
-
-const string maps_initial[1][2] =
-{
-  {MJPoint::BasicType(), IJPoint::BasicType()}
-};
-
-ListExpr initialTM (ListExpr args)
-{
-  return SimpleMaps<1,2>(maps_initial, args);
-}
-
-int initialSelect(ListExpr args)
-{
-  return SimpleSelect<1,2>(maps_initial, args);
-}
-
-int initialVM ( Word* args, Word& result, int message, Word& local,
-                Supplier s )
-{
-  result = qp->ResultStorage( s );
-  MJPoint* mjp = ( MJPoint* ) args[0].addr;
-  IJPoint* ijp = static_cast<IJPoint* > (result.addr);
-  if (mjp != NULL && mjp->IsDefined())
-  {
-    *ijp = mjp->Initial();
+ListExpr finalInitialTM(ListExpr args) {
+  if (nl->HasLength(args, 1)) {
+    if (MJPoint::checkType(nl->First(args)) ||
+        UJPoint::checkType(nl->First(args))) {
+      return nl->SymbolAtom(IJPoint::BasicType());
+    }
   }
-  else
-    ijp->SetDefined(false);
+  return listutils::typeError("One argument expected: MJPoint or UJPoint");
+}
+
+int finalInitialSelect(ListExpr args) {
+  if (MJPoint::checkType(nl->First(args))) return 0;
+  if (UJPoint::checkType(nl->First(args))) return 1;
+  return -1;
+}
+
+template<class Source>
+int initialVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  Source* src = (Source*)args[0].addr;
+  IJPoint* res = static_cast<IJPoint*>(result.addr);
+  if (src->IsDefined()) {
+    *res = src->Initial();
+  }
+  else {
+    res->SetDefined(false);
+  }
   return 0;
 }
 
-ValueMapping initialMap[] =
-{
-  initialVM
-};
+ValueMapping initialVMs[] = {initialVM<MJPoint>, initialVM<UJPoint>, 0};
 
 const string initialSpec =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "(<text>" +
-   MJPoint::BasicType() + " -> " + IJPoint::BasicType() +
-    "</text--->"
-    "<text>initial(<mjpoint>) </text--->"
-    "<text>Returns an " + IJPoint::BasicType() + " with the start time and"
-    " network position of the " + MJPoint::BasicType()+ "."
-    "</text--->"
-    "<text>query testmjp atinstant create_instant(0.5)</text--->))";
+   "(<text>(" + MJPoint::BasicType() + " | " + UJPoint::BasicType() + ") -> " 
+   + IJPoint::BasicType() + "</text--->"
+   "<text>initial((<mjpoint> | <ujpoint>)) </text--->"
+   "<text>Returns an " + IJPoint::BasicType() + " with the start time and"
+   " network position of the " + MJPoint::BasicType() + " or " 
+   + UJPoint::BasicType() + ".</text--->"
+   "<text>query initial(testmjp)</text--->))";
 
-Operator initialJNet( "initial", initialSpec, 1, initialMap, initialSelect,
-                      initialTM);
+Operator initialJNet("initial", initialSpec, 2, initialVMs, finalInitialSelect,
+                     finalInitialTM);
+
+/*
+1.1.1.1.1 ~finalJNet~
+
+Returns the end position and time of the ~mjpoint~ or the ~ujpoint~ as
+~ijpoint~
+
+*/
+template<class Source>
+int finalVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  Source* src = (Source*)args[0].addr;
+  IJPoint* res = static_cast<IJPoint*>(result.addr);
+  if (src->IsDefined()) {
+    *res = src->Final();
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+ValueMapping finalVMs[] = {finalVM<MJPoint>, finalVM<UJPoint>, 0};
+
+const string finalSpec =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "(<text>(" + MJPoint::BasicType() + " | " + UJPoint::BasicType() + ") -> " 
+   + IJPoint::BasicType() + "</text--->"
+   "<text>final((<mjpoint> | <ujpoint>)) </text--->"
+   "<text>Returns an " + IJPoint::BasicType() + " with the end time and network"
+   " position of the " + MJPoint::BasicType() + " or " + UJPoint::BasicType() 
+   + ".</text--->"
+   "<text>query initial(testmjp)</text--->))";
+
+Operator finalJNet("final", finalSpec, 2, finalVMs, finalInitialSelect,
+                   finalInitialTM);
 
 /*
 1.1.1.1.1 ~atinstant~
@@ -4659,6 +4691,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 */
 
   AddOperator(&initialJNet);
+  AddOperator(&finalJNet);
   AddOperator(&atinstantJNet);
   AddOperator(&atperiodsJNet);
 

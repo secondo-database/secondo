@@ -199,6 +199,16 @@ time interval.
 IJPoint Initial(const string netId) const;
 
 /*
+1.1.1.1.1 Final
+
+Returns the ijpoint giving the position in the network at the end of the time
+interval.
+
+*/
+
+IJPoint Final(const string netId) const;
+
+/*
 1.1.1.1.1 AtPos
 
 Returns the junit when the jpoint  was at position.

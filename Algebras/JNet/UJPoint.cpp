@@ -418,6 +418,23 @@ string UJPoint::Example()
   return "(netname (" + JUnit::Example() + "))";
 }
 
+IJPoint UJPoint::Initial() const {
+  if (IsDefined()) {
+    return unit.Initial(nid);
+  }
+  else {
+    return IJPoint(false);
+  }
+}
+
+IJPoint UJPoint::Final() const {
+  if (IsDefined()) {
+    return unit.Final(nid);
+  }
+  else {
+    return IJPoint(false);
+  }
+}
 
 Rectangle< 3 > UJPoint::BoundingBox() const
 {

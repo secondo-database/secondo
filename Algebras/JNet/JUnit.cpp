@@ -530,6 +530,20 @@ IJPoint JUnit::Initial(const string netId) const
 }
 
 /*
+1.1.1.1 Final
+
+*/
+
+IJPoint JUnit::Final(const string netId) const
+{
+  if (IsDefined())
+    return IJPoint(timeInter.end,
+                   JPoint(netId, routeInter.GetEndLocation(), false));
+  else
+    return IJPoint(false);
+}
+
+/*
 1.1.1.1 AtPos
 
 */

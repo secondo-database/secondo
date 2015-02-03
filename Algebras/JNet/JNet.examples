@@ -706,6 +706,20 @@ Example  : query distances(testjnet);
 Result   : file
 Tolerance: 0.01%
 
+Operator : final
+Number   : 1
+Signature: mjpoint -> ijpoint
+Example  : query final(testmjp);
+Result   : (ijpoint("2000-01-03-10:48" ("testjnet" (1 0.01 (Up)))))
+Tolerance: 0.01%
+
+Operator : final
+Number   : 2
+Signature: ujpoint -> ijpoint
+Example  : query final(getunit(testmjp, 0));
+Result   : (ijpoint("2000-01-03-10:48" ("testjnet" (1 0.01 (Up)))))
+Tolerance: 0.01%
+
 Operator : fromnetwork
 Number   : 1
 Signature: jpoint -> point
@@ -787,6 +801,13 @@ Operator : initial
 Number   : 1
 Signature: mjpoint -> ijpoint
 Example  : query initial(testmjp);
+Result   : (ijpoint("2000-01-03-09:36" ("testjnet" (1 0.001 (Up)))))
+Tolerance: 0.01%
+
+Operator : initial
+Number   : 2
+Signature: ujpoint -> ijpoint
+Example  : query initial(getunit(testmjp, 0));
 Result   : (ijpoint("2000-01-03-09:36" ("testjnet" (1 0.001 (Up)))))
 Tolerance: 0.01%
 

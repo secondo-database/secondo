@@ -275,11 +275,19 @@ The result value restricts the mjpoint to the given periods of time.
 /*
 1.1.1.1 ~Initial~
 
-Returns an ~ijpoint~ with the start position and time of the given ~mjpoint~
+Returns an ~ijpoint~ with the start position and time of the given ~mjpoint~.
 
 */
 
  IJPoint Initial() const;
+
+/*
+1.1.1.1 ~Final~
+
+Returns an ~ijpoint~ with the end position and time of the given ~mjpoint~.
+
+*/
+IJPoint Final() const;
 
 /*
 1.1.1.1 ~Passes~

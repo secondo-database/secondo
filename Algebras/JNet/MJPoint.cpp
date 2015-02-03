@@ -1007,6 +1007,22 @@ IJPoint MJPoint::Initial() const
   return IJPoint(false);
 }
 
+/*
+1.1.1 ~Final~
+
+*/
+
+IJPoint MJPoint::Final() const
+{
+  if (IsDefined() && !IsEmpty())
+  {
+    JUnit ju;
+    Get(GetNoComponents() - 1, ju);
+    return ju.Final(nid);
+  }
+  return IJPoint(false);
+}
+
 
 /*
 1.1.1 ~Passes~

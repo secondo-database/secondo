@@ -143,6 +143,8 @@ It can not be private because UJPoint is used as part of MJPoint.
 
 */
   static string Example();
+  IJPoint Initial() const;
+  IJPoint Final() const;
 
 /*
 1.1.1 Bounding Box
