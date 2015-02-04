@@ -106,7 +106,7 @@ echo "All cassandra nodes are ready...."
 stop() {
 for node in $nodes; do
 
-   echo -n "Killing Cassandra on node $node"
+   echo -n "Killing Cassandra on node $node "
    ssh $node "ps ux | grep CassandraDaemon | grep -v grep | awk {'print \$2'} | xargs kill 2> /dev/null"
    echo -e $done 
 
