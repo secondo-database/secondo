@@ -879,50 +879,64 @@ bool CassandraAdapter::createMetatables() {
 bool CassandraAdapter::dropMetatables() {
   
   vector<string> queries;
+  vector<TokenRange> ranges;
+  int highestQueryId = 0;
+  size_t clearTry = 0;
+
+  string getSystemProgress = string(
+       "SELECT ip, begintoken, endtoken, queryuuid FROM system_progress");
  
   queries.push_back(string("TRUNCATE system_queries;"));
   queries.push_back(string("TRUNCATE system_state;"));
   queries.push_back(string("TRUNCATE system_progress;"));
   queries.push_back(string("TRUNCATE system_tokenranges"));
-
-  for(vector<string>::iterator iter = queries.begin(); 
-      iter != queries.end(); ++iter) {
-    
-    string query = *iter;
   
-    // Create queries table
-    bool result = executeCQLSync(
-      query, CASS_CONSISTENCY_ALL
-    );
-  
-    if(! result) {
-      cout << "Unable to execute query: " << query << endl;
-      return false;
-    }  
-    
-  }
-
-  // Wait for drop request to be
-  // executed on all cassandra nodes
-  vector<TokenRange> ranges;
-  size_t clearTry = 0;
-
   do {
-      stringstream ss;
-      ss << "SELECT ip, begintoken, endtoken, queryuuid FROM system_progress"; 
-      
-      clearTry++;
-      ranges.clear();
- 
-      if(clearTry > 10) {
-          cerr << "Error: system_progress is not empty after 10 seconds" 
+     if(clearTry > 20) {
+          cerr << "Error: system_progress is not empty after 100 seconds" 
                << endl;
           return false;
-      }
+     }
+  
+     for(vector<string>::iterator iter = queries.begin(); 
+        iter != queries.end(); ++iter) {
+    
+       string query = *iter;
 
-      getTokenrangesFromQuery(ranges, ss.str());
-      sleep(1);
-  } while(! ranges.empty() );
+       // Create queries table
+       bool result = executeCQLSync(
+         query, CASS_CONSISTENCY_ALL
+       );
+  
+       if(! result) {
+         cout << "Unable to execute query: " << query << endl;
+         return false;
+       }  
+     }
+
+     clearTry++;
+     ranges.clear();
+     
+     sleep(5);
+     getTokenrangesFromQuery(ranges, getSystemProgress);
+          
+     CassandraResult* result = getGlobalQueryState();
+     highestQueryId = 0;
+     
+      // Determine the highest executed query
+      if(result != NULL) {
+         while(result -> hasNext()) {
+           int lastExecutedQuery = result -> getIntValue(1);
+           if(lastExecutedQuery > highestQueryId) {
+             highestQueryId = lastExecutedQuery;
+           }
+         }
+            
+       delete result;
+     }
+     
+     cout << "----> " << ranges.size() << " / " << highestQueryId << endl;
+  } while(! ranges.empty() || highestQueryId > 0 || clearTry < 2) ;
  
   return true;
 }
@@ -1104,7 +1118,7 @@ bool CassandraAdapter::getHeartbeatData(map<string, time_t> &result) {
  
   CassandraResult *cas_result = readDataFromCassandra(
             string("SELECT ip, heartbeat FROM system_state"), 
-            CASS_CONSISTENCY_ONE);
+            CASS_CONSISTENCY_QUORUM);
   
   while(cas_result->hasNext()) {
          string ip;
@@ -1125,7 +1139,7 @@ bool CassandraAdapter::getNodeData(map<string, string> &result) {
 
  CassandraResult *cas_result = readDataFromCassandra(
             string("SELECT ip, node FROM system_state"), 
-            CASS_CONSISTENCY_ONE);
+            CASS_CONSISTENCY_QUORUM);
   
   while(cas_result->hasNext()) {
          string ip;
