@@ -879,12 +879,12 @@ bool CassandraAdapter::createMetatables() {
 bool CassandraAdapter::dropMetatables() {
   
   vector<string> queries;
-  
+ 
   queries.push_back(string("TRUNCATE system_queries;"));
   queries.push_back(string("TRUNCATE system_state;"));
   queries.push_back(string("TRUNCATE system_progress;"));
   queries.push_back(string("TRUNCATE system_tokenranges"));
-  
+
   for(vector<string>::iterator iter = queries.begin(); 
       iter != queries.end(); ++iter) {
     
@@ -904,7 +904,25 @@ bool CassandraAdapter::dropMetatables() {
 
   // Wait for drop request to be
   // executed on all cassandra nodes
-  sleep(5); 
+  vector<TokenRange> ranges;
+  size_t clearTry = 0;
+
+  do {
+      stringstream ss;
+      ss << "SELECT ip, begintoken, endtoken, queryuuid FROM system_progress"; 
+      
+      clearTry++;
+      ranges.clear();
+ 
+      if(clearTry > 10) {
+          cerr << "Error: system_progress is not empty after 10 seconds" 
+               << endl;
+          return false;
+      }
+
+      getTokenrangesFromQuery(ranges, ss.str());
+      sleep(1);
+  } while(! ranges.empty() );
  
   return true;
 }
