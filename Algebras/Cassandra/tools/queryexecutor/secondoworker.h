@@ -68,6 +68,7 @@ public:
       
       pthread_mutex_destroy(&processMutex);
       pthread_cond_destroy(&processCondition);
+      exit(-1);
    }
    
    /*
