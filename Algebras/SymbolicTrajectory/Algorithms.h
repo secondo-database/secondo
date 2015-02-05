@@ -3081,6 +3081,10 @@ ExtBool Match<M>::matches() {
     cout << "empty nfa" << endl;
     return UNDEF;
   }
+  if (!p->initEasyCondOpTrees()) {
+    cout << "Error: EasyCondOpTrees not initialized" << endl;
+    return UNDEF;
+  }
   set<int> states;
   states.insert(0);
   if (!p->hasConds() && !p->hasAssigns()) {

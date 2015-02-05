@@ -17,12 +17,6 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-########################################################################
-#
-# generic makefile for an algebra module 
-#
-########################################################################
-
 CURRENT_ALGEBRA := SymbolicTrajectoryAlgebra
 
 ALGEBRA_DEPENDENCIES := TrieAlgebra
@@ -88,7 +82,7 @@ PatternRegExParser.y.c: PatternRegExParser.y
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	rm -f $(BASE).tab.c parse.o lex.pattern.c scan.o mini $(BASE).tab.h $(BASE).output PatternRegExParser.y.c PatternRegExScanner.c PatternRegExParser.y.h
+	rm -f $(BASE).tab.c parse.o lex.pattern.c scan.o PatternRegExParser.o PatternRegExScanner.o mini $(BASE).tab.h $(BASE).output PatternRegExParser.y.c PatternRegExScanner.c PatternRegExParser.y.h
 
 
 

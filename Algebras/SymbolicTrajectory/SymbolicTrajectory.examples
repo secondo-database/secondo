@@ -79,6 +79,12 @@ Signature: T x T -> bool,   where T in {label(s), place(s)}
 Example  : query [const labels value ('Reus' 'Hummels')] = [const labels value ('Hummels' 'Reus')]
 Result   : TRUE
 
+Operator : #
+Number   : 1
+Signature: T x T -> bool,   where T in {label(s), place(s)}
+Example  : query [const labels value ('Reus' 'Hummels')] # [const labels value ('Hummels' 'Reus')]
+Result   : FALSE
+
 Operator : distance
 Number   : 1
 Signature: T x T -> bool,   where T in {label(s), place(s)}

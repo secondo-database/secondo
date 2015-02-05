@@ -432,18 +432,28 @@ struct toplacesInfo : OperatorInfo {
 
 contains: labels x label -> bool
 contains: places x place -> bool
+contains: labels x labels -> bool
+contains: places x places -> bool
 
 \subsection{Type Mapping}
 
 */
 ListExpr containsTM(ListExpr args) {
-  const string errMsg = "Expecting labels x label or places x place.";
+  const string errMsg = "Expecting labels x label(s) or places x place(s).";
   if (nl->ListLength(args) != 2) {
     return listutils::typeError("Two arguments expected.");
   }
-  if ((Labels::checkType(nl->First(args)) && Label::checkType(nl->Second(args)))
- || (Places::checkType(nl->First(args)) && Place::checkType(nl->Second(args)))){
-    return nl->SymbolAtom(CcBool::BasicType());
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
+  if (Labels::checkType(first)) {
+    if (Label::checkType(second) || Labels::checkType(second)) {
+      return nl->SymbolAtom(CcBool::BasicType());
+    }
+  }
+  if (Places::checkType(first)) {
+    if (Place::checkType(second) || Places::checkType(second)) {
+      return nl->SymbolAtom(CcBool::BasicType());
+    }
   }
   return NList::typeError(errMsg);
 }
@@ -453,8 +463,12 @@ ListExpr containsTM(ListExpr args) {
 
 */
 int containsSelect(ListExpr args) {
-  if (Labels::checkType(nl->First(args))) return 0;
-  if (Places::checkType(nl->First(args))) return 1;
+  if (Labels::checkType(nl->First(args))) {
+    return Label::checkType(nl->Second(args)) ? 0 : 2;
+  }
+  if (Places::checkType(nl->First(args))) {
+    return Place::checkType(nl->Second(args)) ? 1 : 3;
+  }
   return -1;
 }
 
@@ -463,18 +477,43 @@ int containsSelect(ListExpr args) {
 
 */
 template<class Collection, class Value>
-int containsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+int containsSingleVM(Word* args, Word& result, int message, Word& local, 
+                     Supplier s) {
   Collection *coll = static_cast<Collection*>(args[0].addr);
   Value* val = static_cast<Value*>(args[1].addr);
   result = qp->ResultStorage(s);
-  CcBool* ccbool = static_cast<CcBool*>(result.addr);
+  CcBool* res = static_cast<CcBool*>(result.addr);
   if (coll->IsDefined() && val->IsDefined()) {
     typename Value::base value;
     val->GetValue(value);
-    ccbool->Set(true, coll->Contains(value));
+    res->Set(true, coll->Contains(value));
   }
   else {
-    ccbool->SetDefined(false);
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+template<class Collection, class Values>
+int containsMultiVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  Collection *coll = static_cast<Collection*>(args[0].addr);
+  Values* vals = static_cast<Values*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  if (coll->IsDefined() && vals->IsDefined()) {
+    res->Set(true, true);
+    for (int i = 0; i < vals->GetNoValues(); i++) {
+      typename Values::base value;
+      vals->GetValue(i, value);
+      if (!coll->Contains(value)) {
+        res->Set(true, false);
+        return 0;
+      }
+    }
+  }
+  else {
+    res->SetDefined(false);
   }
   return 0;
 }
@@ -656,7 +695,7 @@ struct refInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr equalsTM(ListExpr args) {
+ListExpr equalsUnequalsTM(ListExpr args) {
   if (nl->ListLength(args) != 2) {
     return NList::typeError("Expecting two arguments.");
   }
@@ -673,7 +712,7 @@ ListExpr equalsTM(ListExpr args) {
 \subsection{Selection Function}
 
 */
-int equalsSelect(ListExpr args) {
+int equalsUnequalsSelect(ListExpr args) {
   if (Label::checkType(nl->First(args))) return 0; 
   if (Labels::checkType(nl->First(args))) return 1;
   if (Place::checkType(nl->First(args))) return 2; 
@@ -710,6 +749,42 @@ struct equalsInfo : OperatorInfo {
     signature = "T x T -> bool,   where T in {label(s), place(s)}";
     syntax    = "_ = _;";
     meaning   = "Checks whether both objects are equal.";
+  }
+};
+
+/*
+\section{Operator ~\#~}
+
+\#: T x T -> bool,   where T in {place(s), label(s)}
+
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int unequalsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  T *first = static_cast<T*>(args[0].addr);
+  T *second = static_cast<T*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcBool *res = static_cast<CcBool*>(result.addr);
+  if (first->IsDefined() && second->IsDefined()) {
+    res->Set(true, !(*first == *second));
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct unequalsInfo : OperatorInfo {
+  unequalsInfo() {
+    name      = "#";
+    signature = "T x T -> bool,   where T in {label(s), place(s)}";
+    syntax    = "_ = _;";
+    meaning   = "Checks whether both objects are unequal.";
   }
 };
 
@@ -3744,8 +3819,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   ValueMapping toplacesVMs[] = {toplacesVM_P, toplacesVM_T, 0};
   AddOperator(toplacesInfo(), toplacesVMs, toplacesSelect, toplacesTM);
 
-  ValueMapping containsVMs[] = {containsVM<Labels, Label>,
-                                containsVM<Places, Place>, 0};
+  ValueMapping containsVMs[] = {containsSingleVM<Labels, Label>,
+    containsSingleVM<Places, Place>, containsMultiVM<Labels, Labels>, 
+    containsMultiVM<Places, Places>, 0};
   AddOperator(containsInfo(), containsVMs, containsSelect, containsTM);
   
   ValueMapping toplaceVMs[] = {toplaceVM<CcString>, toplaceVM<FText>, 0};
@@ -3757,7 +3833,12 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   ValueMapping equalsVMs[] = {equalsVM<Label>, equalsVM<Labels>, 
     equalsVM<Place>, equalsVM<Places>, 0};
-  AddOperator(equalsInfo(), equalsVMs, equalsSelect, equalsTM);
+  AddOperator(equalsInfo(), equalsVMs, equalsUnequalsSelect, equalsUnequalsTM);
+
+  ValueMapping unequalsVMs[] = {unequalsVM<Label>, unequalsVM<Labels>, 
+    unequalsVM<Place>, unequalsVM<Places>, 0};
+  AddOperator(unequalsInfo(), unequalsVMs, equalsUnequalsSelect,
+              equalsUnequalsTM);
   
   ValueMapping distanceVMs[] = {distanceVM<Label>, distanceVM<Labels>,
     distanceVM<Place>, distanceVM<Places>, distanceVM<MLabel>,
