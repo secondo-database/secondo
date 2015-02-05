@@ -22,8 +22,8 @@ instances=$(($(cat /proc/cpuinfo | grep processor | wc -l) - 2))
 keyspace="keyspace_r3"
 
 # Cassandra Nodes
-#nodes="node1 node2 node4 node5 node6"
-nodes="node1 node2 node6"
+nodes="node1 node2 node3 node4 node5 node6"
+#nodes="node1"
 
 # Variables
 screensessionServer="dsecondo-server"
@@ -108,7 +108,7 @@ start_local() {
      instance=$((instance+1))
    done
      
-   sleep 2
+   sleep 5
 
    # remove trailing ':' in ports list
    ports=$(echo $ports | sed s/^://g)
@@ -116,7 +116,7 @@ start_local() {
    screen -dmS $screensessionExecutor
    localIp=$(getIp "")
    #execCommandsInScreen $screensessionExecutor "cd $SECONDO_BUILD_DIR/Algebras/Cassandra/tools/queryexecutor/" "./Queryexecutor -i $localIp -k $keyspace -s 127.0.0.1 -p $ports | tee /tmp/qe.log"
-   execCommandsInScreen $screensessionExecutor "cd $SECONDO_BUILD_DIR/Algebras/Cassandra/tools/queryexecutor/" "./Queryexecutor -i $localIp -k $keyspace -s 127.0.0.1 -p $ports"
+   execCommandsInScreen $screensessionExecutor "cd $SECONDO_BUILD_DIR/Algebras/Cassandra/tools/queryexecutor/" "while [ true ]; do ./Queryexecutor -i $localIp -k $keyspace -s 127.0.0.1 -p $ports; sleep 5; done"
 }
 
 # Stop local dsecondo instance
