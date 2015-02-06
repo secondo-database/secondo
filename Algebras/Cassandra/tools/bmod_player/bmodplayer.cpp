@@ -39,8 +39,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "workerqueue.h"
 
 #define CMDLINE_INPUTFILE   1<<0
-#define CMDLINE_OUTPUTFILE  1<<1
-#define CMDLINE_RESOLUTION  1<<2
+#define CMDLINE_DESTHOST    1<<1
+#define CMDLINE_DESTPORT    1<<2
 
 #define QUEUE_ELEMENTS 100
 
@@ -48,8 +48,8 @@ using namespace std;
 
 struct Configuration {
    string inputfile;
-   string outputfile;
-   size_t resolution;
+   string desthost;
+   size_t destport;
 };
 
 struct Statistics {
@@ -58,9 +58,7 @@ struct Statistics {
    size_t discarded; 
 };
 
-class InputData {
-   
-public:   
+struct InputData {
     size_t moid;
     size_t tripid;
     tm time;
@@ -69,14 +67,30 @@ public:
 };
 
 
-void handleCSVLine(WorkerQueue<InputData*> &data, 
+bool handleCSVLine(WorkerQueue<InputData*> &data, 
   vector<std::string> &lineData) {
-     
+   
+   // Skip CSV header
+   if(lineData[0] == "Moid") {
+      return true;     
+   }
+   
+   // 2007-06-08 08:32:26.781
+   struct tm tm1;
+   struct tm tm2;
+   
+   if (! strptime(lineData[2].c_str(), "%Y-%m-%d %H:%M:%S.", &tm1)) {
+      cerr << "Unable to parse start date: " << lineData[2] << endl;
+      return false;
+   }
+   
+   if (! strptime(lineData[3].c_str(), "%Y-%m-%d %H:%M:%S.", &tm2)) {
+      cerr << "Unable to parse end date: " << lineData[3] << endl;
+      return false;
+   }
+   
    InputData *inputdata1 = new InputData;
    InputData *inputdata2 = new InputData;
-   
-   data.push(inputdata1);
-   data.push(inputdata2);
    
    inputdata1 -> moid = atoi(lineData[0].c_str());
    inputdata2 -> moid = atoi(lineData[0].c_str());
@@ -86,18 +100,6 @@ void handleCSVLine(WorkerQueue<InputData*> &data,
    
    cout << lineData[2] << endl;
    
-   // 2007-06-08 08:32:26.781
-   struct tm tm1;
-   struct tm tm2;
-   
-   if (! strptime(lineData[2].c_str(), "%Y-%m-%d %H:%M:%S.", &tm1)) {
-      cerr << "Unable to parse start date: " << lineData[2] << endl;
-   }
-   
-   if (! strptime(lineData[3].c_str(), "%Y-%m-%d %H:%M:%S.", &tm2)) {
-      cerr << "Unable to parse end date: " << lineData[3] << endl;
-   }
-   
    inputdata1 -> time = tm1;
    inputdata2 -> time = tm2;
    
@@ -106,8 +108,11 @@ void handleCSVLine(WorkerQueue<InputData*> &data,
    
    inputdata2 -> x = atof(lineData[6].c_str());
    inputdata2 -> y = atof(lineData[7].c_str());
-   
-   cout << mktime(&tm1) << endl;
+
+   data.push(inputdata1);
+   data.push(inputdata2);
+
+   return true;
 }
 
 bool parseInputData(string &filename, WorkerQueue<InputData*> &data) {
@@ -144,12 +149,19 @@ bool parseInputData(string &filename, WorkerQueue<InputData*> &data) {
    }
    
    myfile.close();
+   
+   // Add term token
+   data.push(NULL);
+   
    return true;
 }
 
 void printHelpAndExit(char *progName) {
-   cerr << "Usage: " << progName << " -i <inputfile>";
-   cerr << " -o <outputfile> -r <resolution>" << endl;
+   cerr << "Usage: " << progName << " -i <inputfile> ";
+   cerr << "-h <hostname> -p <port>" << endl;
+   cerr << endl;
+   cerr << "For example: " << progName << " -i trips.csv";
+   cerr << "-h localhost -p 10000" << endl;
    exit(-1);
 }
 
@@ -158,21 +170,21 @@ void parseParameter(int argc, char *argv[], Configuration *configuration) {
    unsigned int flags = 0;
    int option = 0;
    
-   while ((option = getopt(argc, argv,"i:o:r:")) != -1) {
+   while ((option = getopt(argc, argv,"i:h:p:")) != -1) {
        switch (option) {
           case 'i':
              flags |= CMDLINE_INPUTFILE;
              configuration->inputfile = string(optarg);
           break;
           
-          case 'o':
-             flags |= CMDLINE_OUTPUTFILE;
-             configuration->outputfile = string(optarg);
+          case 'h':
+             flags |= CMDLINE_DESTHOST;
+             configuration->desthost = string(optarg);
           break;
           
-          case 'r':
-             flags |= CMDLINE_RESOLUTION;
-             configuration->resolution = atoi(optarg);
+          case 'p':
+             flags |= CMDLINE_DESTPORT;
+             configuration->destport = atoi(optarg);
           break;
           
           default:
@@ -180,25 +192,67 @@ void parseParameter(int argc, char *argv[], Configuration *configuration) {
        }
    }
    
-   
-   unsigned int requiredFalgs = CMDLINE_RESOLUTION | 
-                                CMDLINE_INPUTFILE|
-                                CMDLINE_OUTPUTFILE;
+   unsigned int requiredFalgs = CMDLINE_INPUTFILE |
+                                CMDLINE_DESTHOST |
+                                CMDLINE_DESTPORT;
    
    if(flags != requiredFalgs) {
       printHelpAndExit(argv[0]);
    }
-   
 }
+
+class Consumer {  
+   
+public:
+   
+   Consumer(WorkerQueue<InputData*> *myQueue) : queue(myQueue) {
+      
+   }
+   
+   void dataConsumer() {
+      InputData *element = queue->pop();
+   
+      while(element != NULL) {
+         cout << "Consume: " << element->x << " / " 
+              << element->y << endl;
+         
+         delete element;
+         
+         element = queue->pop();         
+      }
+      
+      cout << "Consumer Done" << endl;
+   }  
+   
+private:
+   WorkerQueue<InputData*> *queue;
+};
+
+void* startConsumerThreadInternal(void *ptr) {
+  Consumer* consumer = (Consumer*) ptr;
+  consumer -> dataConsumer();
+  
+  return NULL;
+}
+
+
 
 int main(int argc, char *argv[]) {
    
    Configuration *configuration = new Configuration();
    Statistics *statistics = new Statistics(); 
+   pthread_t readerThread;
+   pthread_t writerThread;
    
    parseParameter(argc, argv, configuration);
    
    WorkerQueue<InputData*> inputData(QUEUE_ELEMENTS);
+   
+   Consumer consumer(&inputData);
+   
+   pthread_create(&writerThread, NULL, 
+                  &startConsumerThreadInternal, &consumer);
+   
    
    bool result = parseInputData(configuration->inputfile, inputData);
    
@@ -215,6 +269,9 @@ int main(int argc, char *argv[]) {
       cout.flush();
       usleep(1000 * 1000);
    }
+   
+   pthread_join(readerThread, NULL);
+   pthread_join(writerThread, NULL);
 
    if(statistics != NULL) {
       delete statistics;
