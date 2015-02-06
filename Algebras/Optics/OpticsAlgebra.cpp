@@ -48,6 +48,9 @@ This file contains the implementation of the OpticsAlgebra.
 #include "OpticsM.h"
 #include "DistFunction.h"
 
+#include "OpticsR2.h"
+#include "Symbols.h"
+
 #include <limits.h>
 #include <float.h>
 #include <iostream>
@@ -332,6 +335,75 @@ Value mapping method ~opticsRVM~
   
   return 0;
  }
+
+
+ template <int dim>
+ int opticsR2VM1(Word* args, Word& result, int message, Word& local, Supplier s)
+ {
+  OpticsR2<dim>* info = (OpticsR2<dim>*) local.addr;
+
+  switch (message)
+  {
+   case OPEN :
+   {
+    if(info){
+      delete info;
+      local.addr=0;
+    }
+        
+    
+    //set the result type of the tuple
+    ListExpr resultType = nl->Second(GetTupleResultType(s));
+    //set the given eps
+    Supplier son = qp->GetSupplier(args[1].addr, 1);
+    Word argument; 
+    qp->Request(son, argument);
+    CcReal* Eps = ((CcReal*) argument.addr);
+    if(!Eps->IsDefined()){
+      return 0;
+    }
+    double eps = Eps->GetValue();
+    if(eps <= 0) {
+       return 0;
+    }
+    
+    //set the given minPts
+    son = qp->GetSupplier(args[1].addr, 2);
+    qp->Request(son, argument);
+    CcInt* MinPts  = ((CcInt*)argument.addr);
+    if(!MinPts->IsDefined()){
+      return 0;
+    }
+    int minPts = MinPts->GetValue();
+    if(minPts < 1){
+       return 0;
+    }
+    //set the index of the attribute in the tuple
+    int attrPos = static_cast<CcInt*>(args[2].addr)->GetIntval();
+    size_t maxMem = qp->GetMemorySize(s)*1024*1024; 
+    double UNDEFINED = -1.0;
+    local.addr = new OpticsR2<dim>(args[0], attrPos, eps, minPts, 
+                                   UNDEFINED, resultType, maxMem);
+    return 0;
+   } 
+   case REQUEST : {
+     result.addr = info?info->next():0;
+     return result.addr?YIELD:CANCEL;
+   }
+   case CLOSE : {
+    if(info){
+      delete info;
+      local.addr = 0;
+    }
+    return 0;
+   }
+  }
+  
+  return 0;
+}
+
+
+
 /*
 Selection method for value mapping array ~opticsRRecSL~
 
@@ -374,6 +446,17 @@ Value mapping array ~opticsRRecVM[]~
  ,opticsRVM<4>
  ,opticsRVM<8>
  };
+
+
+ ValueMapping opticsR2VM[] = 
+ {
+  opticsR2VM1<2>,
+  opticsR2VM1<3>,
+  opticsR2VM1<4>,
+  opticsR2VM1<8>
+ };
+
+
 /*
 Type mapping method ~opticsMTM~
 
@@ -974,6 +1057,26 @@ Struct ~opticsInfoR~
                "opticsR[B, 1000.0, 5] consume";
   }
  };
+
+ struct opticsInfoR2 : OperatorInfo
+ {
+  opticsInfoR2() : OperatorInfo()
+  {
+   name      = "opticsR2";
+   signature = "stream(Tuple) x attrName x double x int -> stream(Tuple)";
+   syntax    = "_ opticsR2[_, _, _]";
+   meaning   = "This operator will ordering data to identify the cluster "
+               "structure. The operator uses the MMRTree index structure. The "
+               "first paramater has to be a stream of tuple, the second is the "
+               "attribute for clustering, the third is eps and the fourth is "
+               "MinPts. The return value is a stream of tuples."
+               "The supported type to cluster is the bbox.";
+   example   = "query Kneipen feed extend[B : bbox(.GeoData)]" 
+               "opticsR2[B, 1000.0, 5] consume";
+  }
+ };
+
+
 /*
 Struct ~opticsInfoM~
 
@@ -1018,6 +1121,206 @@ Struct ~opticsInfoF~
                "i1 - i2] consume";
    }
  };
+
+
+
+/*
+Operator ~extractDbScan~
+
+*/
+ListExpr extractDbScanTM(ListExpr args){
+
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError("two arguments expected");
+  }
+  ListExpr stream = nl->First(args);
+  if(!Stream<Tuple>::checkType(stream)){
+     return listutils::typeError("first argument must be a tuple stream");
+  }
+  if(!CcReal::checkType(nl->Second(args))){
+     return listutils::typeError("first argument must be a real");
+  }
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr type;
+  int coreDistPos = listutils::findAttribute(attrList, "CoreDist", type); 
+  if(!coreDistPos){
+     return listutils::typeError("Attribute CoreDist not member of the stream");
+  }
+  if(!CcReal::checkType(type)){
+     return listutils::typeError("Attribute CoreDist not of type real");
+  }
+  int reachDistPos = listutils::findAttribute(attrList, "ReachDist", type); 
+  if(!reachDistPos){
+     return listutils::typeError("Attribute reachDist not "
+                                  "member of the stream");
+  }
+  if(!CcReal::checkType(type)){
+     return listutils::typeError("Attribute reachDist not of type real");
+  }
+  
+  int EpsPos = listutils::findAttribute(attrList, "Eps", type); 
+  if(!EpsPos){
+     return listutils::typeError("Attribute Eps not member of the stream");
+  }
+  if(!CcReal::checkType(type)){
+     return listutils::typeError("Attribute Eps not of type real");
+  }
+  int cidPos = listutils::findAttribute(attrList,"Cid", type);
+  if(cidPos){
+     return listutils::typeError("Attribute Cid already "
+                                 "part of the attributes");
+  }  
+ 
+
+
+  ListExpr newAttr = nl->OneElemList( 
+               nl->TwoElemList( nl->SymbolAtom("Cid"),
+                                listutils::basicSymbol<CcInt>()));
+  ListExpr newAttrList = listutils::concat(attrList, newAttr);
+  ListExpr appendList = nl->ThreeElemList( nl->IntAtom(coreDistPos-1), 
+                                           nl->IntAtom(reachDistPos-1), 
+                                           nl->IntAtom(EpsPos-1));
+  return nl->ThreeElemList(
+                 nl->SymbolAtom(Symbols::APPEND()),
+                 appendList,
+                 nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                                  nl->TwoElemList( 
+                                         listutils::basicSymbol<Tuple>(),
+                                          newAttrList)));
+}
+
+
+class extractLocal{
+
+  public:
+     extractLocal(Word _stream, double _eps, int _coreDistPos, 
+                  int _reachDistPos, int _epsPos, ListExpr type):
+       stream(_stream), eps(_eps), coreDistPos(_coreDistPos), 
+       reachDistPos(_reachDistPos), epsPos(_epsPos), id(0){
+       tt = new TupleType(type);
+       stream.open();
+     }
+
+     ~extractLocal(){
+         stream.close();
+         tt->DeleteIfAllowed();
+      }
+
+      Tuple* next(){
+         Tuple* inTuple = stream.request();
+         if(!inTuple){
+            return 0;
+         }
+         Tuple* resTuple = new Tuple(tt);
+         int attrCnt = inTuple->GetNoAttributes();
+         // copy attributes to resTuple
+         for(int i=0;i<attrCnt; i++){
+            resTuple->CopyAttribute(i,inTuple,i);
+         }
+         CcReal* Eps = (CcReal*) inTuple->GetAttribute(epsPos);
+         CcReal* ReachDist = (CcReal*) inTuple->GetAttribute(reachDistPos);
+         CcReal* CoreDist = (CcReal*) inTuple->GetAttribute(coreDistPos);
+         // optics never creates undefined attributes.
+         // undefined is simulated by a value < 0
+         if(    !Eps->IsDefined() || !ReachDist->IsDefined()
+             || !CoreDist->IsDefined()){
+            resTuple->PutAttribute(attrCnt, new CcInt(false,0));
+            return resTuple;
+         }
+         double oldEps = Eps->GetValue();
+         if(eps > oldEps){  // check condition
+            resTuple->PutAttribute(attrCnt, new CcInt(false,0));
+            return resTuple;
+         }
+         double reachDist = ReachDist->GetValue();
+         double coreDist = CoreDist->GetValue();
+         if((reachDist > eps) || (reachDist < 0)){
+            if((coreDist <= eps) && !(coreDist < 0)){
+               id++;
+               resTuple->PutAttribute(attrCnt, new CcInt(true,id));  
+            } else {
+               resTuple->PutAttribute(attrCnt, new CcInt(true, -2));
+            }
+         } else {
+            resTuple->PutAttribute(attrCnt, new CcInt(true,id));  
+         }
+         return resTuple; 
+      }
+
+
+  private:
+     Stream<Tuple> stream;
+     double eps;
+     int coreDistPos;
+     int reachDistPos;
+     int epsPos;
+     TupleType* tt; 
+     int id;
+};
+
+
+
+ int extractDbScanVM(Word* args, Word& result, 
+                     int message, Word& local, Supplier s) {
+   extractLocal* info = (extractLocal*) local.addr;
+   switch(message){
+      case OPEN: {
+            if(info) {
+               delete info;
+               local.addr=0;
+            }
+            int coreDistPos = ((CcInt*)args[2].addr)->GetValue();
+            int reachDistPos = ((CcInt*)args[3].addr)->GetValue();
+            int epsPos = ((CcInt*)args[4].addr)->GetValue();
+            ListExpr type = nl->Second(GetTupleResultType(s));
+            CcReal* Eps = (CcReal*) args[1].addr;
+            if(!Eps->IsDefined()){
+                return 0;
+            }
+            double eps = Eps->GetValue();
+            if(eps<=0){
+               return 0;
+            }
+            info = new extractLocal(args[0], eps, coreDistPos, 
+                                    reachDistPos, epsPos, type);
+            local.addr = info;
+            return 0;
+         }
+      case REQUEST: {
+         result.addr = info?info->next():0;
+         return result.addr?YIELD:CANCEL;
+      }
+      case CLOSE: {
+           if(info){
+              delete info;
+              local.addr = 0;
+           }
+           return 0;
+      }
+   }
+   return -1;
+ }
+
+ OperatorSpec extractDbScanSpec(
+  "stream x real -> stream",
+  "_ extractDbScan",
+  " Extract cluster from a stream processed via optics.",
+  "query Kneipen feed extend[B : bbox(.GeoData)] "
+    "opticsR[B, 2000.0, 10] extractDbScan[500.0] consume"
+);
+
+
+Operator extractDbScanOP(
+  "extractDbScan",
+  extractDbScanSpec.getStr(),
+  extractDbScanVM,
+  Operator::SimpleSelect,
+  extractDbScanTM
+);
+
+
+
+
 /*
 Algebra class ~ClusterOpticsAlgebra~
 
@@ -1030,12 +1333,20 @@ Algebra class ~ClusterOpticsAlgebra~
     Operator* opr = 
         AddOperator(opticsInfoR(), opticsRRecVM, opticsRRecSL, opticsRTM);
     opr->SetUsesMemory();
+
+    Operator* opr2 = 
+        AddOperator(opticsInfoR2(), opticsR2VM, opticsRRecSL, opticsRTM);
+    opr2->SetUsesMemory();
+
     Operator* opm = 
         AddOperator(opticsInfoM(), opticsMDisVM, opticsMDisSL, opticsMTM);
     opm->SetUsesMemory();
     Operator* opf = 
         AddOperator(opticsInfoF(), opticsFDisVM, opticsFDisSL, opticsFTM);
     opf->SetUsesMemory();
+
+    AddOperator(&extractDbScanOP);
+
    }
 
    ~ClusterOpticsAlgebra() {};

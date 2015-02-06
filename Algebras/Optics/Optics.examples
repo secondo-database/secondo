@@ -1,0 +1,38 @@
+Database: berlintest
+Restore : No
+
+Operator : extractDbScan
+Number   : 1
+Signature: stream x real -> stream
+Example  : query Kneipen feed extend[B : bbox(.GeoData)] opticsR2[B, 2000.0, 10] extractDbScan[500.0] filter[.Cid>=0] sortby[Cid] groupby[Cid; C : group count] count 
+Result   : 4
+
+
+Operator : opticsF
+Number   : 1
+Signature: stream(Tuple) -> stream(Tuple)
+Example  : query (plz feed opticsF[PLZ, 10.0, 5, fun(i1: int, i2: int)i1 - i2] count ) = (plz count)
+Result   :  TRUE
+
+
+Operator : opticsM
+Number   : 1
+Signature: stream(Tuple) -> stream(Tuple)
+Example  : query Kneipen feed opticsM[Name, 10.0, 5] count
+Result   :  284
+
+
+Operator : opticsR2
+Number   : 1
+Signature: stream(Tuple) x attrName x double x int -> stream(Tuple)
+Example  : query Kneipen feed extend[B : bbox(.GeoData)]opticsR2[B, 1000.0, 5] count
+Result   : 284
+
+
+Operator : opticsR
+Number   : 1
+Signature: stream(Tuple) -> stream(Tuple)
+Example  : query Kneipen feed extend[B : bbox(.GeoData)]opticsR[B, 1000.0, 5] count
+Result   : 284
+
+
