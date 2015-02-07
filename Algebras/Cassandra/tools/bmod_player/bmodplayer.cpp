@@ -34,7 +34,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <fstream>
 #include <sstream>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <netinet/in.h>
 
 #include "workerqueue.h"
 
@@ -224,8 +230,60 @@ class Consumer {
    
 public:
    
-   Consumer(WorkerQueue<InputData*> *myQueue) : queue(myQueue) {
+   Consumer(WorkerQueue<InputData*> *myQueue) 
+      : queue(myQueue), socketfd(-1) {
       
+   }
+   
+   /*
+   2.4 Open the network socket
+
+   */
+   bool openSocket(char* hostname, int port) {
+  
+      struct hostent *server;
+      struct sockaddr_in server_addr;
+   
+      socketfd = socket(AF_INET, SOCK_STREAM, 0); 
+
+      if(socketfd < 0) {
+         cerr << "Error opening socket" << endl;
+         return false;
+      }   
+   
+      // Resolve hostname
+      server = gethostbyname(hostname);
+   
+      if(server == NULL) {
+         cerr << "Error resolving hostname: " << hostname << endl;
+         return -1; 
+      }   
+   
+      // Connect
+      memset(&server_addr, 0, sizeof(server_addr));
+      server_addr.sin_family = AF_INET;
+      server_addr.sin_port = htons(port);
+   
+      server_addr.sin_addr.s_addr = 
+        ((struct in_addr *)server->h_addr_list[0])->s_addr;
+  
+      if(connect(socketfd, (struct sockaddr*) &server_addr, 
+            sizeof(struct sockaddr)) < 0) {
+
+         cerr << "Error in connect() " << endl;
+         return false;
+      }   
+   
+      return true;
+   }
+   
+   void closeSocket() {
+      if(socketfd == -1) {
+         return;
+      }
+      
+      shutdown(socketfd, 2);
+      socketfd = -1;
    }
    
    void dataConsumer() {
@@ -245,6 +303,7 @@ public:
    
 private:
    WorkerQueue<InputData*> *queue;
+   int socketfd;
 };
 
 void* startConsumerThreadInternal(void *ptr) {
