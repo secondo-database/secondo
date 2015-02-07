@@ -66,6 +66,25 @@ struct InputData {
     float y;
 };
 
+bool parseCSVDate(struct tm &tm, string date) {
+   if (strptime(date.c_str(), "%Y-%m-%d %H:%M:%S.", &tm)) {
+      return true;
+   }
+   
+   if (strptime(date.c_str(), "%Y-%m-%d %H:%M", &tm)) {
+      return true;
+   }
+   
+   if (strptime(date.c_str(), "%Y-%m-%d %H", &tm)) {
+      return true;
+   }
+   
+   if (strptime(date.c_str(), "%Y-%m-%d", &tm)) {
+      return true;
+   }
+   
+   return false;
+}
 
 bool handleCSVLine(WorkerQueue<InputData*> &data, 
   vector<std::string> &lineData) {
@@ -79,12 +98,12 @@ bool handleCSVLine(WorkerQueue<InputData*> &data,
    struct tm tm1;
    struct tm tm2;
    
-   if (! strptime(lineData[2].c_str(), "%Y-%m-%d %H:%M:%S.", &tm1)) {
+   if (! parseCSVDate(tm1, lineData[2])) {
       cerr << "Unable to parse start date: " << lineData[2] << endl;
       return false;
    }
    
-   if (! strptime(lineData[3].c_str(), "%Y-%m-%d %H:%M:%S.", &tm2)) {
+   if (! parseCSVDate(tm2, lineData[3])) {
       cerr << "Unable to parse end date: " << lineData[3] << endl;
       return false;
    }
