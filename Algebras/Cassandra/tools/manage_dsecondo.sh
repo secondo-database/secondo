@@ -16,7 +16,7 @@ port=12234
 
 # secondo worker instances (2 cores for the kernel and cassandra 
 # and the remaning cores for DSECONDO)
-instances=$(($(cat /proc/cpuinfo | grep processor | wc -l) - 2))
+instances=$(($(cat /proc/cpuinfo | grep processor | wc -l) - 3))
 
 # Keyspace to use
 keyspace="keyspace_r3"
