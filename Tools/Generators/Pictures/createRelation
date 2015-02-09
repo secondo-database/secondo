@@ -87,44 +87,55 @@ else
    USESTAT=FALSE
 fi
 
+
 function writeTuple {
 
 if [ "$#" = "0" ]; then
  read F
  while [ -n "$F" ]; do
-   FB=$(basename "$F")
-   if [ "$USESTAT" = "TRUE" ]; then
-      D=$(stat -c %y "$F" | sed "s/\([^ ]*\).*/\1/g" )
+   checkImage "$F"
+   if [ "$?" != "0" ]; then
+     echo "exclude file " $F >&2
    else
-      D=$NOW
+     FB=$(basename "$F")
+     if [ "$USESTAT" = "TRUE" ]; then
+        D=$(stat -c %z "$F" | sed "s/\([^ ]*\).*/\1/g" )
+     else
+        D=$NOW
+     fi
+     # (<file> <date> <category> <portrait> <data>)
+       echo -e  "  ( <text>$F</text---> "
+       echo -e  "    ( \"$FB\" "
+       echo -e  "      \"$D\" "
+       echo -e  "      \"unknown\" " 
+       echo -e  "      TRUE "
+       echo -e  "      <file>$F</file--->)"
+       echo -e  "  )"
    fi
-   # (<file> <date> <category> <portrait> <data>)
-     echo -e  "  ( <text>$F</text---> "
-     echo -e  "    ( \"$FB\" "
-     echo -e  "      \"$D\" "
-     echo -e  "      \"unknown\" " 
-     echo -e  "      TRUE "
-     echo -e  "      <file>$F</file--->)"
-     echo -e  "  )"
    read F
  done
  else
    while [ "$#" != "0" ]; do
      F=$1
-     FB=$(basename "$F")
-     if [ "$USESTAT" = "TRUE" ]; then
-        D=$(stat -c %y $F | sed "s/\([^ ]*\).*/\1/g" )
+     checkImage "$F"
+     if [ "$?" != "0" ]; then
+       echo "exclude file " $F >&2
      else
-        D=$NOW
+       FB=$(basename "$F")
+       if [ "$USESTAT" = "TRUE" ]; then
+          D=$(stat -c %y $F | sed "s/\([^ ]*\).*/\1/g" )
+       else
+          D=$NOW
+       fi
+       # (<file> <date> <category> <portrait> <data>)
+       echo -e  "  ( <text>$F</text---> "
+       echo -e  "    ( \"$FB\" "
+       echo -e  "      \"$D\" "
+       echo -e  "      \"unknown\" " 
+       echo -e  "      TRUE "
+       echo -e  "      <file>$F</file--->)"
+       echo -e  "  )"
      fi
-     # (<file> <date> <category> <portrait> <data>)
-     echo -e  "  ( <text>$F</text---> "
-     echo -e  "    ( \"$FB\" "
-     echo -e  "      \"$D\" "
-     echo -e  "      \"unknown\" " 
-     echo -e  "      TRUE "
-     echo -e  "      <file>$F</file--->)"
-     echo -e  "  )"
      shift    
    done
 

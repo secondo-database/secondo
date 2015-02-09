@@ -4,7 +4,12 @@
 # containing about 4100 JPEG objects.
 
 .PHONY all:
-all: paintings Convert.class
+all: paintings Convert.class checkImage
+
+
+checkImage: checkImage.cpp
+	g++ -ggdb -ljpeg -I../../../Algebras/Picture -o $@ $<
+
 
 paintings:
 	find . -iname "*.jpg" | artpics2rel.sh > $@ 
