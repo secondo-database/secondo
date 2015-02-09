@@ -48,6 +48,9 @@ from "MMRTreeAlgebra.cpp".
 #include "DistfunReg.h"
 #include "PictureAlgebra.h"
 
+#ifndef OPTICS_DISTFUNCTION_H
+#define OPTICS_DISTFUNCTION_H
+
 namespace clusteropticsalg
 {
 /*
@@ -77,22 +80,26 @@ namespace clusteropticsalg
    double operator()(const pair<CcInt*,TupleId>& p1
     ,const pair<CcInt*,TupleId>& p2)
    {
+      return operator()(p1.first, p2.first);
+   }
+
+   double operator()(const CcInt* p1, const CcInt* p2){
     DistCount::cnt++;
-    assert(p1.first);
-    assert(p2.first);
+    assert(p1);
+    assert(p2);
   
-    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+    if(!p1->IsDefined() && !p2->IsDefined())
     {
      return 0;
     }
    
-    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    if(!p1->IsDefined() || !p2->IsDefined())
     {
      return numeric_limits<double>::max();
     }
    
-    int i1 = p1.first->GetValue();
-    int i2 = p2.first->GetValue();
+    int i1 = p1->GetValue();
+    int i2 = p2->GetValue();
     int c = i1-i2;
    
     return c<0?-c:c;
@@ -113,26 +120,28 @@ namespace clusteropticsalg
   public:
 
    double operator()(const pair<CcReal*,TupleId>& p1
-    ,const pair<CcReal*,TupleId>& p2)
-   {
+    ,const pair<CcReal*,TupleId>& p2) {
+     return operator()(p1.first, p2.first);
+   }
+
+   double operator()(const CcReal* p1, const CcReal* p2){
     DistCount::cnt++;
-    assert(p1.first);
-    assert(p2.first);
+    assert(p1);
+    assert(p2);
   
-    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+    if(!p1->IsDefined() && !p2->IsDefined())
     {
      return 0;
     }
    
-    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    if(!p1->IsDefined() || !p2->IsDefined())
     {
      return numeric_limits<double>::max();
     }
    
-    int i1 = p1.first->GetValue();
-    int i2 = p2.first->GetValue();
+    int i1 = p1->GetValue();
+    int i2 = p2->GetValue();
     int c = i1-i2;
-   
     return c<0?-c:c;
    }
 
@@ -151,23 +160,26 @@ namespace clusteropticsalg
   public:
   
    double operator()(const pair<Point*,TupleId>& p1
-    ,const pair<Point*,TupleId>& p2)
-   {
+    ,const pair<Point*,TupleId>& p2) {
+     return operator()(p1.first, p2.first);
+   }
+
+   double operator()(const Point* p1, const Point* p2){
     cnt++;
-    assert(p1.first);
-    assert(p2.first);
+    assert(p1);
+    assert(p2);
     
-    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+    if(!p1->IsDefined() && !p2->IsDefined())
     {
      return 0;
     }
     
-    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    if(!p1->IsDefined() || !p2->IsDefined())
     {
      return numeric_limits<double>::max();
     }
     
-    return p1.first->Distance(*(p2.first));
+    return p1->Distance(*(p2));
    }
      
    ostream& print(const pair<Point*,TupleId>& p, ostream& o)
@@ -185,23 +197,26 @@ namespace clusteropticsalg
   public:
   
    double operator()(const pair<CcString*,TupleId>& p1
-    ,const pair<CcString*,TupleId>& p2)
-   {
+    ,const pair<CcString*,TupleId>& p2) {
+      return operator()(p1.first, p2.first);
+   }
+
+   double operator()(const CcString* p1, const CcString* p2){
     cnt++;
-    assert(p1.first);
-    assert(p2.first);
+    assert(p1);
+    assert(p2);
    
-    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+    if(!p1->IsDefined() && !p2->IsDefined())
     {
      return 0;
     }
     
-    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    if(!p1->IsDefined() || !p2->IsDefined())
     {
      return numeric_limits<double>::max();
     }
     
-    return stringutils::ld(p1.first->GetValue(), p2.first->GetValue());
+    return stringutils::ld(p1->GetValue(), p2->GetValue());
    }
      
    ostream& print(const pair<CcString*,TupleId>& p, ostream& o)
@@ -228,19 +243,21 @@ namespace clusteropticsalg
     fun = function;
    }
    
-   double operator()(const pair<T,TupleId>& p1
-    ,const pair<T,TupleId>& p2)
-   {
-    cnt++;
-    assert(p1.first);
-    assert(p2.first);
+   double operator()(const pair<T,TupleId>& p1 ,const pair<T,TupleId>& p2) {
+       return operator()(p1.first, p2.first);
+    }
    
-    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+    double operator()(const T& p1, const T& p2){
+    cnt++;
+    assert(p1);
+    assert(p2);
+   
+    if(!p1->IsDefined() && !p2->IsDefined())
     {
      return 0;
     }
     
-    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    if(!p1->IsDefined() || !p2->IsDefined())
     {
      return numeric_limits<double>::max();
     }
@@ -248,8 +265,8 @@ namespace clusteropticsalg
     Word funRes;
     ArgVectorPointer vector;
     vector = qp->Argument(fun);
-    ((*vector)[0]).setAddr(p1.first);
-    ((*vector)[1]).setAddr(p2.first);
+    ((*vector)[0]).setAddr(p1);
+    ((*vector)[1]).setAddr(p2);
     qp->Request(fun, funRes);
     
     R* result;
@@ -284,18 +301,21 @@ namespace clusteropticsalg
    };
    
    double operator()(const pair<Picture*,TupleId>& p1
-    ,const pair<Picture*,TupleId>& p2)
-   {
-    cnt++;
-    assert(p1.first);
-    assert(p2.first);
+    ,const pair<Picture*,TupleId>& p2) {
+     return operator()(p1.first, p2.first);
+   }
    
-    if(!p1.first->IsDefined() && !p2.first->IsDefined())
+   double operator()(const Picture* p1, const Picture* p2){
+    cnt++;
+    assert(p1);
+    assert(p2);
+   
+    if(!p1->IsDefined() && !p2->IsDefined())
     {
      return 0;
     }
     
-    if(!p1.first->IsDefined() || !p2.first->IsDefined())
+    if(!p1->IsDefined() || !p2->IsDefined())
     {
      return numeric_limits<double>::max();
     }
@@ -316,8 +336,8 @@ namespace clusteropticsalg
     }
     
     double distance;
-    gta::DistData* d1 = df.getData(p1.first);
-    gta::DistData* d2 = df.getData(p2.first);
+    gta::DistData* d1 = df.getData(p1);
+    gta::DistData* d2 = df.getData(p2);
     df.dist(d1,d2, distance);
     delete d1;
     delete d2; 
@@ -330,4 +350,27 @@ namespace clusteropticsalg
     return o;
    }
  };
+
+ template <unsigned int dim>
+ class RectDist: public DistCount{
+    public:
+      double operator()(const Rectangle<dim>* r1, const Rectangle<dim>* r2){
+         DistCount::cnt++;
+         if(!r1->IsDefined() && !r2->IsDefined()){
+           return 0;
+         }
+         if(!r1->IsDefined() || !r2->IsDefined()){
+           return numeric_limits<double>::max();
+         }
+         return r1->Distance(*r2);
+      } 
+      double operator()(const pair<Rectangle<dim>*, TupleId>& p1,
+                        const pair<Rectangle<dim>*, TupleId>& p2){
+         return operator()(p1.first, p2.first);
+      }
+ }; 
 }
+
+#endif
+
+

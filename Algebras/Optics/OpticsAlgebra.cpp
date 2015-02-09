@@ -48,7 +48,8 @@ This file contains the implementation of the OpticsAlgebra.
 #include "OpticsM.h"
 #include "DistFunction.h"
 
-#include "OpticsR2.h"
+#include "OpticsGen.h"
+
 #include "Symbols.h"
 
 #include <limits.h>
@@ -340,7 +341,12 @@ Value mapping method ~opticsRVM~
  template <int dim>
  int opticsR2VM1(Word* args, Word& result, int message, Word& local, Supplier s)
  {
-  OpticsR2<dim>* info = (OpticsR2<dim>*) local.addr;
+
+  typedef OpticsGen<Rectangle<dim>,  
+                    SetOfObjectsR<RectDist<dim>, dim>,
+                    RectDist<dim> > opticsclass;
+
+   opticsclass* info = (opticsclass*) local.addr;
 
   switch (message)
   {
@@ -351,7 +357,6 @@ Value mapping method ~opticsRVM~
       local.addr=0;
     }
         
-    
     //set the result type of the tuple
     ListExpr resultType = nl->Second(GetTupleResultType(s));
     //set the given eps
@@ -382,8 +387,11 @@ Value mapping method ~opticsRVM~
     int attrPos = static_cast<CcInt*>(args[2].addr)->GetIntval();
     size_t maxMem = qp->GetMemorySize(s)*1024*1024; 
     double UNDEFINED = -1.0;
-    local.addr = new OpticsR2<dim>(args[0], attrPos, eps, minPts, 
-                                   UNDEFINED, resultType, maxMem);
+
+    RectDist<dim> df;
+    local.addr = new opticsclass(
+                          args[0], attrPos, eps, minPts, 
+                          UNDEFINED, resultType, maxMem, df);
     return 0;
    } 
    case REQUEST : {
@@ -398,9 +406,10 @@ Value mapping method ~opticsRVM~
     return 0;
    }
   }
-  
   return 0;
 }
+
+
 
 
 
@@ -455,6 +464,9 @@ Value mapping array ~opticsRRecVM[]~
   opticsR2VM1<4>,
   opticsR2VM1<8>
  };
+
+
+
 
 
 /*
@@ -1058,6 +1070,7 @@ Struct ~opticsInfoR~
   }
  };
 
+
  struct opticsInfoR2 : OperatorInfo
  {
   opticsInfoR2() : OperatorInfo()
@@ -1075,7 +1088,6 @@ Struct ~opticsInfoR~
                "opticsR2[B, 1000.0, 5] consume";
   }
  };
-
 
 /*
 Struct ~opticsInfoM~
@@ -1236,9 +1248,11 @@ class extractLocal{
          double coreDist = CoreDist->GetValue();
          if((reachDist > eps) || (reachDist < 0)){
             if((coreDist <= eps) && !(coreDist < 0)){
+               // start new cluster
                id++;
                resTuple->PutAttribute(attrCnt, new CcInt(true,id));  
             } else {
+               // mark as noise
                resTuple->PutAttribute(attrCnt, new CcInt(true, -2));
             }
          } else {
@@ -1333,7 +1347,7 @@ Algebra class ~ClusterOpticsAlgebra~
     Operator* opr = 
         AddOperator(opticsInfoR(), opticsRRecVM, opticsRRecSL, opticsRTM);
     opr->SetUsesMemory();
-
+    
     Operator* opr2 = 
         AddOperator(opticsInfoR2(), opticsR2VM, opticsRRecSL, opticsRTM);
     opr2->SetUsesMemory();

@@ -27,18 +27,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 This class represents the orderSeeds structure for the optics algorithm.
 
-ToDo: 
-  Remove dependency to distance computation based on available 
-  distance function.
-
 */
 
-template <class T>
+#ifndef OPTICS_ORDERSEEDS_H
+#define OPTICS_ORDERSEEDS_H
+
+ // attribute type for clustering
+ // Distance function
+ // set of objects
+template <class SoO>
 class OrderSeeds{
 
   public:
-    OrderSeeds( TupleBuffer* objects, int reachPos, int  _corePos, 
-                int _procPos, int _attrPos, double _UNDEFINED) ;
+    OrderSeeds( SoO* objects, double _UNDEFINED);
 
     void update(list<TupleId>& neighbors, TupleId objId);
 
@@ -47,11 +48,7 @@ class OrderSeeds{
     bool empty();
 
   private:
-     TupleBuffer* objs;
-     int reachPos; // attribute position for reachability distance
-     int corePos;  // attribute position for core distance
-     int procPos;  // attribute index for processed flag
-     int attrPos;  // index of attribute to cluster 
+     SoO* objs;
      double UNDEFINED; 
      vector<TupleId> heap;
      map<TupleId, size_t> index;
@@ -65,8 +62,6 @@ class OrderSeeds{
      void sink(int index);
      double getReachDist(int index);
      void swap(int index1, int index2);
-     double distance(T* v1, T* v2);
-
      // for dbugging only
      bool checkStructureDebug();
 };
@@ -76,11 +71,9 @@ class OrderSeeds{
 
 */
 
-template <class T>
-OrderSeeds<T>::OrderSeeds(TupleBuffer* _objs, int _reachPos, int _corePos, 
-                          int _procPos, int _attrPos, double _UNDEFINED):
-    objs(_objs), reachPos(_reachPos), corePos(_corePos), procPos(_procPos), 
-    attrPos(_attrPos), UNDEFINED(_UNDEFINED) {
+template <class S>
+OrderSeeds<S>::OrderSeeds(S* _objs, double _UNDEFINED):
+    objs(_objs), UNDEFINED(_UNDEFINED) {
      firstError= true;
  }
 
@@ -88,8 +81,8 @@ OrderSeeds<T>::OrderSeeds(TupleBuffer* _objs, int _reachPos, int _corePos,
 1.2 check for emptyness
 
 */
-template <class T>
-  bool OrderSeeds<T>::empty(){
+template <class S>
+  bool OrderSeeds<S>::empty(){
      return heap.empty();
   }
 
@@ -97,8 +90,8 @@ template <class T>
 1.3 returns the next (minimum) element
 
 */
-template <class T>
-TupleId OrderSeeds<T>::next(){
+template <class S>
+TupleId OrderSeeds<S>::next(){
      assert(!empty());
      TupleId res = heap[0];
      deleteMin();
@@ -113,25 +106,24 @@ This operation updates thes structure. neighbbors are the neighbors of the
 tuple with id ~objId~.
 
 */
-template <class T>
-  void OrderSeeds<T>::update(list<TupleId>& neighbors, TupleId objId){
-      Tuple* obj = objs->GetTuple(objId, true);
-      double c_dist = ((CcReal*)obj->GetAttribute(corePos))->GetValue();
+template <class S>
+  void OrderSeeds<S>::update(list<TupleId>& neighbors, TupleId objId){
+      Tuple* obj = objs->GetTuple(objId);
+      double c_dist = objs->getCoreDist(objId);
       list<TupleId>::iterator it;
       for(it = neighbors.begin(); it!=neighbors.end(); it++){
          TupleId cId = *it;
-         Tuple* cur = objs->GetTuple(cId,true);
-         bool processed = ((CcBool*)cur->GetAttribute(procPos))->GetValue();
+         Tuple* cur = objs->GetTuple(cId);
+         bool processed = objs->getProcessed(cId);
          if(!processed){
-            double new_r_dist = max(c_dist, distance(obj, cur));
-            double old_r_dist = 
-                  ((CcReal*)cur->GetAttribute(reachPos))->GetValue();
+            double new_r_dist = max(c_dist, objs->distance(obj, cur));
+            double old_r_dist = objs->getReachDist(cId); 
             if(old_r_dist == UNDEFINED){
-               cur->PutAttribute(reachPos, new CcReal(new_r_dist));
+               objs->updateReachability( cId, new_r_dist);
                insert(cId, new_r_dist);
             } else {
                if(new_r_dist < old_r_dist){
-                  cur->PutAttribute(reachPos, new CcReal(new_r_dist));
+                  objs->updateReachability(cId, new_r_dist);
                   decrease(cId, new_r_dist);
                }
             }
@@ -143,39 +135,13 @@ template <class T>
 
 
 /*
-1.5 Distance
-
-Returns the distance between two attributes.
-
-*/
-template <class T>
-double OrderSeeds<T>::distance(T* v1, T* v2){
-   return v1->Distance(*v2);
-}
-
-
-/*
-1.6 Distance
-
-Returns te distance between two tuples according to the cluster
-attribute.
-
-*/
-template <class T>
-double OrderSeeds<T>::distance(Tuple* t1, Tuple* t2){
-   T* a1 = (T*) t1->GetAttribute(attrPos);
-   T* a2 = (T*) t2->GetAttribute(attrPos);
-   return distance(a1,a2); 
-}
-
-/*
 1.7 DeletMin
 
 Removes the minimum element.
 
 */
-template<class T>
-void OrderSeeds<T>::deleteMin(){
+template<class S>
+void OrderSeeds<S>::deleteMin(){
    assert(!empty());
    TupleId id = heap[0];
    index.erase(id);
@@ -197,15 +163,12 @@ Extracts the reachability distance of the tuple at index index in the
 heap.
 
 */
-template<class T>
-double OrderSeeds<T>::getReachDist(int index){
+template<class S>
+double OrderSeeds<S>::getReachDist(int index){
    assert(index >=0);
    assert(index < (int)heap.size());
    TupleId id = heap[index];
-   Tuple* t = objs->GetTuple(id , true);
-   double res = ((CcReal*)t->GetAttribute(reachPos))->GetValue();
-   t->DeleteIfAllowed();
-   return res;
+   return objs->getReachDist(id);
 }
 
 
@@ -217,8 +180,8 @@ it is a leaf or all sons are greater/equal than the
 element itselfs. 
 
 */
-template<class T>
-void OrderSeeds<T>::sink(int index){
+template<class S>
+void OrderSeeds< S>::sink(int index){
    double dist = getReachDist(index);
    int pos = index + 1;
    int s1 = pos*2;
@@ -262,8 +225,8 @@ void OrderSeeds<T>::sink(int index){
 Inserts a new element into the heap.
 
 */
-template<class T>
-void OrderSeeds<T>::insert(TupleId id, double dist){
+template<class S>
+void OrderSeeds<S>::insert(TupleId id, double dist){
    heap.push_back(id);
    index[id] = heap.size()-1; 
    int pos = heap.size();
@@ -286,17 +249,17 @@ Updates the reachability distance to an already existing object.
 
 */
 
-template<class T>
-void OrderSeeds<T>::decrease(TupleId id, double newDist){
-   Tuple* tuple = objs->GetTuple(id,true);
-   double oldDist = ((CcReal*)tuple->GetAttribute(reachPos))->GetValue();
+template<class S>
+void OrderSeeds<S>::decrease(TupleId id, double newDist){
+   Tuple* tuple = objs->GetTuple(id);
+   double oldDist = objs->getReachDist(id); 
    if(newDist > oldDist){
      cout << "decrease increases distance" << endl;
      cout << "olddist = " << oldDist << endl;
      cout << "newDist = " << newDist << endl;
      assert(oldDist > newDist);
    }
-   tuple->PutAttribute(reachPos, new CcReal(newDist));
+   objs->updateReachability(id, newDist);
    tuple->DeleteIfAllowed();
    // blow up
    int pos = index[id]+1;  
@@ -319,8 +282,8 @@ This method checks the internal structure for corectness.
 
 */
 
-template<class T>
-bool OrderSeeds<T>::checkStructureDebug(){
+template<class S>
+bool OrderSeeds<S>::checkStructureDebug(){
 
   // check the index
   for(size_t i=0;i<heap.size();i++){
@@ -376,8 +339,8 @@ bool OrderSeeds<T>::checkStructureDebug(){
 }
 
 
-template<class T>
-void OrderSeeds<T>::swap(int index1, int index2){
+template<class S>
+void OrderSeeds<S>::swap(int index1, int index2){
    // swap
    TupleId id1 = heap[index1];
    TupleId id2 = heap[index2];
@@ -388,9 +351,5 @@ void OrderSeeds<T>::swap(int index1, int index2){
    index[id2] = index1; 
 }
 
-
-
-
-
-
+#endif
 
