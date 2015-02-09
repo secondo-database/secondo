@@ -646,6 +646,53 @@ void parseCommandline(int argc, char* argv[],
 }
 
 /*
+2.7 Disconnect from cassandra
+
+*/
+void disconnectFromCassandra(CassandraAdapter* cassandra) {
+   if(cassandra != NULL) {
+     cassandra -> disconnect();
+     delete cassandra;
+     cassandra = NULL;
+   }
+}
+
+/*
+2.8 Start n SECONDO worker
+
+*/
+void startSecondoWorker(vector<SecondoWorker*> &worker, 
+   cmdline_args_t &cmdline_args, WorkerQueue &tokenQueue, 
+   CassandraAdapter* cassandra) {
+   
+   for(vector<string>::iterator it = cmdline_args.secondoPorts.begin(); 
+        it != cmdline_args.secondoPorts.end(); it++) {
+          
+       SecondoWorker *secondoWorker = new SecondoWorker(
+            cassandra, cmdline_args.secondoHost, *it, &tokenQueue);
+      
+       startSecondoWorkerThread(secondoWorker);
+      
+       worker.push_back(secondoWorker);
+   }
+}
+
+/*
+2.9 Stop all SECONDO worker
+
+*/
+void stopSeconcoWorker(vector<SecondoWorker*> &worker) {
+   for(vector<SecondoWorker*>::iterator it = worker.begin(); 
+        it != worker.end(); it++) {
+     
+           // Stop and delete worker
+           (*it)->stop();
+           delete *it;
+   }
+   worker.clear();
+}
+
+/*
 2.8 Main method
 
 */
@@ -653,34 +700,25 @@ int main(int argc, char* argv[]){
   
   WorkerQueue tokenQueue(2);
   cmdline_args_t cmdline_args;
-  parseCommandline(argc, argv, cmdline_args);
   vector<SecondoWorker*> worker;
+
+  parseCommandline(argc, argv, cmdline_args);
   
   CassandraAdapter* cassandra = 
      getCassandraAdapter(cmdline_args.cassandraNodeIp, 
                          cmdline_args.cassandraKeyspace);
   
   if(cassandra == NULL) { 
-    return -1;
+    cerr << "Could not connect to cassandra, exiting" << endl;
+    exit(EXIT_FAILURE);
   }
-  
-  cout << "Connection to cassandra successfull" << endl;
   
   // Start SECONDO worker
-  for(vector<string>::iterator it = cmdline_args.secondoPorts.begin(); 
-       it != cmdline_args.secondoPorts.end(); it++) {
-          
-      SecondoWorker *secondoWorker = new SecondoWorker(
-           cassandra, cmdline_args.secondoHost, *it, &tokenQueue);
-      
-      startSecondoWorkerThread(secondoWorker);
-      
-      worker.push_back(secondoWorker);
-  }
+  startSecondoWorker(worker, cmdline_args, tokenQueue, cassandra);
 
   // Gernerate UUID
-  string myUuid;
-  QEUtils::createUUID(myUuid);
+  string instanceUuid;
+  QEUtils::createUUID(instanceUuid);
   
   // Main Programm
   pthread_t heartbeatThread;
@@ -690,17 +728,10 @@ int main(int argc, char* argv[]){
                        cmdline_args.cassandraKeyspace, heartbeatThread);
 
   mainLoop(worker, cassandra, cmdline_args.cassandraNodeIp, 
-           cmdline_args.cassandraKeyspace, myUuid);
+           cmdline_args.cassandraKeyspace, instanceUuid);
   
   // Stop SECONDO worker
-  for(vector<SecondoWorker*>::iterator it = worker.begin(); 
-       it != worker.end(); it++) {
-     
-          // Stop and delete worker
-          (*it)->stop();
-          delete *it;
-  }
-  worker.clear();
+  stopSeconcoWorker(worker);
    
   // Stop heatbeat thread
   heartbeatUpdater->stop();
@@ -709,12 +740,7 @@ int main(int argc, char* argv[]){
   heartbeatUpdater = NULL;
   
   // Disconnect from cassandra
-  if(cassandra) {
-    cassandra -> disconnect();
-    delete cassandra;
-    cassandra = NULL;
-  }
-  
+  disconnectFromCassandra(cassandra);
  
   return 0;
 }
