@@ -9,8 +9,8 @@ CC = g++
 
 OBJS := bmodplayer.o
 
-%.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+%.o: %.cpp $(DEPS)
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 all: bmodplayer
 
