@@ -29,19 +29,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#include "state.h"
+
 #ifndef __QEXECUTOR_WORKER__
 #define __QEXECUTOR_WORKER__
+
+//#define QUERY_WORKER_DEBUG
 
 class SecondoWorker {
 
 public:
    SecondoWorker (CassandraAdapter* myCassandra, string mySecondoHost, 
-   string mySecondoPort, WorkerQueue *myTokenQueue) 
+   string mySecondoPort, WorkerQueue *myTokenQueue, size_t myWorkerId, 
+   QueryexecutorState *myQueryExecutorState) 
    : cassandra(myCassandra), secondoHost(mySecondoHost), 
-   secondoPort(mySecondoPort),
-   queryComplete(false), shutdown(false), query(NULL),
-   tokenQueue(myTokenQueue) {
-      
+   secondoPort(mySecondoPort), queryComplete(false), 
+   shutdown(false), query(NULL), tokenQueue(myTokenQueue),
+   workerId(myWorkerId), queryExecutorState(myQueryExecutorState) {
+   
       si = initSecondoInterface(secondoHost, secondoPort);
 
       if(si != NULL) { 
@@ -51,6 +56,8 @@ public:
       
       pthread_mutex_init(&processMutex, NULL);
       pthread_cond_init(&processCondition, NULL);  
+      
+      queryExecutorState -> setState(workerId, "Idle");
    }
       
    virtual ~SecondoWorker() {
@@ -233,7 +240,11 @@ public:
          }
          
          queryComplete = true;
+
+#ifdef QUERY_WORKER_DEBUG
          cout << "---> [ " << secondoPort << " ]: Query done" << endl;
+#endif
+         
          pthread_cond_broadcast(&processCondition);
          pthread_mutex_unlock(&processMutex);
       }
@@ -252,9 +263,11 @@ private:
    */
    void executeSecondoCommand(string command) {
   
+#ifdef QUERY_WORKER_DEBUG
            cout << "Executing command [ " << secondoPort << " ]: " 
                 << command << endl;
-        
+#endif
+           
            ListExpr res = nl->TheEmptyList(); // will contain the result
            SecErrInfo err;                 // will contain error information
         
@@ -265,9 +278,11 @@ private:
              cout << "Error during command. Error code [ " << secondoPort 
                   << " ]: " << err.code << " / " << err.msg << endl;
            } else {
+#ifdef QUERY_WORKER_DEBUG
              // command was successful
              cout << "Result is [ " << secondoPort << " ]: " 
                   << nl->ToString(res) << endl;
+#endif
            }
    }
    
@@ -282,6 +297,14 @@ private:
        ss << "'" << tokenrange.getStart() << "'";
        ss << ", ";
        ss << "'" << tokenrange.getEnd() << "'";
+       
+       stringstream statestream;
+       statestream << "[" << tokenrange.getStart() << "";
+       statestream << ", ";
+       statestream << "" << tokenrange.getEnd() << "]";
+       statestream << " [data node: " << tokenrange.getIp() << "]";
+        
+       queryExecutorState -> setState(workerId, statestream.str());
   
        // Copy query string, so we can replace the
        // placeholder multiple times
@@ -298,6 +321,7 @@ private:
        executeSecondoCommand(ourQuery);
        
        updateLastProcessedToken(tokenrange, myQueryUuid);
+       queryExecutorState -> setState(workerId, "Idle");
    }
    
    CassandraAdapter* cassandra;
@@ -310,6 +334,14 @@ private:
    string* query;
    size_t queryId;
    WorkerQueue *tokenQueue;
+   
+   // Thread id
+   size_t workerId;
+   
+   // QueryExecutor state
+   QueryexecutorState *queryExecutorState;
+   
+   // Thread handling
    pthread_t workerThread;
    pthread_mutex_t processMutex;
    pthread_cond_t processCondition;

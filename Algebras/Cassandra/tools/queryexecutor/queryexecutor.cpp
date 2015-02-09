@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2007,
+Copyright (C) 2015,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -47,6 +47,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "workerqueue.h"
 #include "qeutils.h"
 #include "secondoworker.h"
+#include "state.h"
 
 /*
 1.1 Defines
@@ -296,8 +297,8 @@ bool executeQueryForTokenrangeIfNeeded(vector<SecondoWorker*> &worker,
                           processedIntervals.end(), tokenrange))  {
           
 #ifdef __DEBUG__
-          cout << "[Debug] Skipping already processed TokenRange: " 
-               << tokenrange;
+   //     cout << "[Debug] Skipping already processed TokenRange: " 
+   //           << tokenrange;
 #endif
                
           return false;
@@ -317,7 +318,8 @@ void executeQueryForTokenranges(vector<SecondoWorker*> &worker,
                                 size_t queryId, string &ip,
                                 vector<TokenRange> &allTokenRanges,
                                 vector<TokenRange> &localTokenRanges,
-                                vector<TokenRange> &processedIntervals) {
+                                vector<TokenRange> &processedIntervals, 
+                                QueryexecutorState &queryExecutorState) {
   
     // Generate token range queries for local tokenranges;
     for(vector<TokenRange>::iterator 
@@ -351,13 +353,16 @@ void waitForSecondoWorker(vector<SecondoWorker*> &worker) {
 */
 void handleTokenQuery(vector<SecondoWorker*> &worker, 
                       CassandraAdapter* cassandra, string &query, 
-                      size_t queryId, string &ip) {
+                      size_t queryId, string &ip, 
+                      QueryexecutorState &queryExecutorState) {
 
     // Collecting ring configuration
     vector<TokenRange> allTokenRanges;
     vector<TokenRange> localTokenRanges;
     vector<TokenRange> processedIntervals;
     map<string, time_t> heartbeatData;
+    
+    queryExecutorState.setQuery(query);
     
     if (! refreshRingInfo(cassandra, 
            allTokenRanges, processedIntervals, heartbeatData, queryId) ) {
@@ -369,7 +374,7 @@ void handleTokenQuery(vector<SecondoWorker*> &worker,
     // Part 1: Execute query for all local token ranges
     executeQueryForTokenranges(worker, cassandra, query, queryId, ip,
                              allTokenRanges, localTokenRanges, 
-                             processedIntervals);
+                             processedIntervals, queryExecutorState);
 
     // Part 2: Process other token ranges
     while( true ) {
@@ -411,13 +416,13 @@ void handleTokenQuery(vector<SecondoWorker*> &worker,
         TokenRange range = allTokenRanges[realPos];
 
 #ifdef __DEBUG__                 
-          cout << "[Debug] Handling tokenrange: " << range;
+ //         cout << "[Debug] Handling tokenrange: " << range;
 #endif
         
         if(range.isLocalTokenRange(ip)) {
 
 #ifdef __DEBUG__         
-                  cout << "[Debug] it's a local token range" << endl;
+ //                 cout << "[Debug] it's a local token range" << endl;
 #endif
           
           mode = LOCAL_TOKENRANGE;
@@ -432,14 +437,14 @@ void handleTokenQuery(vector<SecondoWorker*> &worker,
           
           if(heartbeatData[range.getIp()] + HEARTBEAT_NODE_TIMEOUT > now) {
 #ifdef __DEBUG__             
-             cout << "[Debug] Set to foreign: " << range;
+   //          cout << "[Debug] Set to foreign: " << range;
 #endif            
             mode = FOREIGN_TOKENRANGE;
           } else {
 #ifdef __DEBUG__             
-              cout << "[Debug] Treat range as local, because node is dead: " 
-                   << range << " last update " << heartbeatData[range.getIp()] 
-                   << endl;
+  //         cout << "[Debug] Treat range as local, because node is dead: " 
+  //              << range << " last update " << heartbeatData[range.getIp()]
+  //              << endl;
 #endif
                  
           }
@@ -447,7 +452,6 @@ void handleTokenQuery(vector<SecondoWorker*> &worker,
         
         // Process range - it's a local token range
         if(mode == LOCAL_TOKENRANGE) {
-           cout << "Execute: " << range;
           executeQueryForTokenrangeIfNeeded(worker, cassandra, 
            query, queryId, ip, processedIntervals, range);
         }
@@ -481,7 +485,8 @@ void executeSecondoCommand(vector<SecondoWorker*> &worker,
 */
 void mainLoop(vector<SecondoWorker*> &worker, 
               CassandraAdapter* cassandra, string cassandraIp,
-              string cassandraKeyspace, string uuid) {
+              string cassandraKeyspace, string uuid, 
+              QueryexecutorState &queryExecutorState) {
   
   
   size_t lastCommandId = 0;
@@ -520,7 +525,7 @@ void mainLoop(vector<SecondoWorker*> &worker,
             if(QEUtils::containsPlaceholder(command, "__TOKENRANGE__")) {
               executeSecondoCommand(worker, command, lastCommandId, false);
               handleTokenQuery(worker, cassandra, command, 
-                   lastCommandId, cassandraIp);
+                   lastCommandId, cassandraIp, queryExecutorState);
             } else {
                executeSecondoCommand(worker, command, lastCommandId);
             }
@@ -662,18 +667,23 @@ void disconnectFromCassandra(CassandraAdapter* cassandra) {
 
 */
 void startSecondoWorker(vector<SecondoWorker*> &worker, 
+   QueryexecutorState &queryExecutorState, 
    cmdline_args_t &cmdline_args, WorkerQueue &tokenQueue, 
    CassandraAdapter* cassandra) {
    
+   size_t workerId = 0;
+      
    for(vector<string>::iterator it = cmdline_args.secondoPorts.begin(); 
         it != cmdline_args.secondoPorts.end(); it++) {
           
        SecondoWorker *secondoWorker = new SecondoWorker(
-            cassandra, cmdline_args.secondoHost, *it, &tokenQueue);
+            cassandra, cmdline_args.secondoHost, *it, &tokenQueue, 
+            workerId, &queryExecutorState);
       
        startSecondoWorkerThread(secondoWorker);
-      
        worker.push_back(secondoWorker);
+       
+       workerId++;
    }
 }
 
@@ -701,6 +711,7 @@ int main(int argc, char* argv[]){
   WorkerQueue tokenQueue(2);
   cmdline_args_t cmdline_args;
   vector<SecondoWorker*> worker;
+  QueryexecutorState queryExecutorState;
 
   parseCommandline(argc, argv, cmdline_args);
   
@@ -714,7 +725,8 @@ int main(int argc, char* argv[]){
   }
   
   // Start SECONDO worker
-  startSecondoWorker(worker, cmdline_args, tokenQueue, cassandra);
+  startSecondoWorker(worker, queryExecutorState, cmdline_args, 
+     tokenQueue, cassandra);
 
   // Gernerate UUID
   string instanceUuid;
@@ -728,7 +740,8 @@ int main(int argc, char* argv[]){
                        cmdline_args.cassandraKeyspace, heartbeatThread);
 
   mainLoop(worker, cassandra, cmdline_args.cassandraNodeIp, 
-           cmdline_args.cassandraKeyspace, instanceUuid);
+           cmdline_args.cassandraKeyspace, instanceUuid, 
+           queryExecutorState);
   
   // Stop SECONDO worker
   stopSeconcoWorker(worker);
