@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sys/time.h>
 #include <netinet/in.h>
 
+#include "../timer.h"
 #include "workerqueue.h"
 
 #define CMDLINE_INPUTFILE   1<<0
@@ -62,6 +63,7 @@ struct Configuration {
 struct Statistics {
    size_t read;
    size_t send;
+   bool done;
 };
 
 struct InputData {
@@ -347,6 +349,7 @@ public:
          element = queue->pop();         
       }
       
+      statistics -> done = true;
       cout << "Consumer Done" << endl;
    }  
    
@@ -388,6 +391,9 @@ int main(int argc, char *argv[]) {
    
    Configuration *configuration = new Configuration();
    Statistics *statistics = new Statistics(); 
+   statistics->done = false;
+   
+   Timer timer;
    
    pthread_t readerThread;
    pthread_t writerThread;
@@ -405,8 +411,10 @@ int main(int argc, char *argv[]) {
    pthread_create(&writerThread, NULL, 
                   &startConsumerThreadInternal, &consumer);
    
-   for(size_t i = 0; i < 100; i++) {
-      cout << "\r\033[2K" << "Sec: " << i;
+   timer.start();
+   
+   while(statistics->done == false) {
+      cout << "\r\033[2K" << "Sec: " << timer.getDiff() / (1024 * 1024);
       cout << " \033[1m Read:\033[0m " << statistics -> read;
       cout << " \033[1m Send:\033[0m " << statistics -> send;
       cout.flush();
