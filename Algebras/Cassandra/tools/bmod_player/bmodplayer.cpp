@@ -49,6 +49,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define CMDLINE_DESTPORT    1<<2
 
 #define QUEUE_ELEMENTS 100
+#define DELIMITER ","
 
 using namespace std;
 
@@ -59,9 +60,8 @@ struct Configuration {
 };
 
 struct Statistics {
-   size_t trips;
+   size_t read;
    size_t send;
-   size_t discarded; 
 };
 
 struct InputData {
@@ -72,114 +72,130 @@ struct InputData {
     float y;
 };
 
-bool parseCSVDate(struct tm &tm, string date) {
-   if (strptime(date.c_str(), "%Y-%m-%d %H:%M:%S.", &tm)) {
-      return true;
-   }
-   
-   if (strptime(date.c_str(), "%Y-%m-%d %H:%M", &tm)) {
-      return true;
-   }
-   
-   if (strptime(date.c_str(), "%Y-%m-%d %H", &tm)) {
-      return true;
-   }
-   
-   if (strptime(date.c_str(), "%Y-%m-%d", &tm)) {
-      return true;
-   }
-   
-   return false;
-}
+class Producer {
+public:
 
-bool handleCSVLine(WorkerQueue<InputData*> &data, 
-  vector<std::string> &lineData) {
-   
-   // Skip CSV header
-   if(lineData[0] == "Moid") {
-      return true;     
-   }
-   
-   // 2007-06-08 08:32:26.781
-   struct tm tm1;
-   struct tm tm2;
-   
-   if (! parseCSVDate(tm1, lineData[2])) {
-      cerr << "Unable to parse start date: " << lineData[2] << endl;
-      return false;
-   }
-   
-   if (! parseCSVDate(tm2, lineData[3])) {
-      cerr << "Unable to parse end date: " << lineData[3] << endl;
-      return false;
-   }
-   
-   InputData *inputdata1 = new InputData;
-   InputData *inputdata2 = new InputData;
-   
-   inputdata1 -> moid = atoi(lineData[0].c_str());
-   inputdata2 -> moid = atoi(lineData[0].c_str());
-   
-   inputdata1 -> tripid = atoi(lineData[1].c_str());
-   inputdata2 -> tripid = atoi(lineData[1].c_str());
-   
-   cout << lineData[2] << endl;
-   
-   inputdata1 -> time = tm1;
-   inputdata2 -> time = tm2;
-   
-   inputdata1 -> x = atof(lineData[4].c_str());
-   inputdata1 -> y = atof(lineData[5].c_str());
-   
-   inputdata2 -> x = atof(lineData[6].c_str());
-   inputdata2 -> y = atof(lineData[7].c_str());
+    Producer(Configuration *myConfiguration, Statistics *myStatistics, 
+        WorkerQueue<InputData*> *myData) : 
+        configuration(myConfiguration), statistics(myStatistics), data(myData) {
+           
+    }
 
-   data.push(inputdata1);
-   data.push(inputdata2);
-
-   return true;
-}
-
-bool parseInputData(string &filename, WorkerQueue<InputData*> &data) {
-   
-   if( access( filename.c_str(), F_OK ) == -1 ) {
-      cerr << "Unable to open Input file: " << filename << endl;
-      return false;
-   }
-   
-   string line;
-   ifstream myfile(filename.c_str());
-   
-   if (! myfile.is_open()) {
-      cerr << "Unable to open file: " << filename << endl;
-      return false;
-   }
-   
-   while ( getline (myfile,line) ) {
-          
-      vector<std::string> lineData;
-      stringstream lineStream(line);
-      string cell;
-
-      while(getline(lineStream,cell,',')) {
-         lineData.push_back(cell);
+    bool parseCSVDate(struct tm &tm, string date) {
+      if (strptime(date.c_str(), "%Y-%m-%d %H:%M:%S.", &tm)) {
+         return true;
       }
+   
+      if (strptime(date.c_str(), "%Y-%m-%d %H:%M", &tm)) {
+         return true;
+      }
+   
+      if (strptime(date.c_str(), "%Y-%m-%d %H", &tm)) {
+         return true;
+      }
+   
+      if (strptime(date.c_str(), "%Y-%m-%d", &tm)) {
+         return true;
+      }
+   
+      return false;
+   }
+
+   bool handleCSVLine(vector<std::string> &lineData) {
+   
+      // Skip CSV header
+      if(lineData[0] == "Moid") {
+         return true;     
+      }
+      
+      statistics->read++;
+   
+      // 2007-06-08 08:32:26.781
+      struct tm tm1;
+      struct tm tm2;
+   
+      if (! parseCSVDate(tm1, lineData[2])) {
+         cerr << "Unable to parse start date: " << lineData[2] << endl;
+         return false;
+      }
+   
+      if (! parseCSVDate(tm2, lineData[3])) {
+         cerr << "Unable to parse end date: " << lineData[3] << endl;
+         return false;
+      }
+   
+      InputData *inputdata1 = new InputData;
+      InputData *inputdata2 = new InputData;
+   
+      inputdata1 -> moid = atoi(lineData[0].c_str());
+      inputdata2 -> moid = atoi(lineData[0].c_str());
+   
+      inputdata1 -> tripid = atoi(lineData[1].c_str());
+      inputdata2 -> tripid = atoi(lineData[1].c_str());
+         
+      inputdata1 -> time = tm1;
+      inputdata2 -> time = tm2;
+   
+      inputdata1 -> x = atof(lineData[4].c_str());
+      inputdata1 -> y = atof(lineData[5].c_str());
+   
+      inputdata2 -> x = atof(lineData[6].c_str());
+      inputdata2 -> y = atof(lineData[7].c_str());
+
+      data->push(inputdata1);
+      data->push(inputdata2);
+
+      return true;
+   }
+
+   bool parseInputData() {
+   
+      if( access( configuration -> inputfile.c_str(), F_OK ) == -1 ) {
+         cerr << "Unable to open Input file: " 
+              << configuration -> inputfile << endl;
+         return false;
+      }
+   
+      string line;
+      ifstream myfile(configuration -> inputfile.c_str());
+   
+      if (! myfile.is_open()) {
+         cerr << "Unable to open file: " << configuration -> inputfile << endl;
+         return false;
+      }
+   
+      while ( getline (myfile,line) ) {
+          
+         vector<std::string> lineData;
+         stringstream lineStream(line);
+         string cell;
+
+         while(getline(lineStream,cell,',')) {
+            lineData.push_back(cell);
+         }
                     
-      if(lineData.size() != 8) {
-         cerr << "Invalid line: " << line << " skipping" << endl;
-         continue;
-      }
+         if(lineData.size() != 8) {
+            cerr << "Invalid line: " << line << " skipping" << endl;
+            continue;
+         }
           
-      handleCSVLine(data, lineData);
+         handleCSVLine(lineData);
+      }
+   
+      myfile.close();
+   
+      // Add term token
+      data->push(NULL);
+   
+      return true;
    }
-   
-   myfile.close();
-   
-   // Add term token
-   data.push(NULL);
-   
-   return true;
-}
+
+private:
+   Configuration *configuration;
+   Statistics *statistics;
+   WorkerQueue<InputData*> *data;
+};
+
 
 void printHelpAndExit(char *progName) {
    cerr << "Usage: " << progName << " -i <inputfile> ";
@@ -230,16 +246,22 @@ class Consumer {
    
 public:
    
-   Consumer(WorkerQueue<InputData*> *myQueue) 
-      : queue(myQueue), socketfd(-1) {
+   Consumer(Configuration *myConfiguration, Statistics *myStatistics, 
+           WorkerQueue<InputData*> *myQueue) 
+      : configuration(myConfiguration), statistics(myStatistics), 
+        queue(myQueue), socketfd(-1), ready(false) {
       
+   }
+   
+   virtual ~Consumer() {
+      closeSocket();
    }
    
    /*
    2.4 Open the network socket
 
    */
-   bool openSocket(char* hostname, int port) {
+   bool openSocket() {
   
       struct hostent *server;
       struct sockaddr_in server_addr;
@@ -252,17 +274,18 @@ public:
       }   
    
       // Resolve hostname
-      server = gethostbyname(hostname);
+      server = gethostbyname(configuration->desthost.c_str());
    
       if(server == NULL) {
-         cerr << "Error resolving hostname: " << hostname << endl;
+         cerr << "Error resolving hostname: " 
+              << configuration->desthost << endl;
          return -1; 
       }   
    
       // Connect
       memset(&server_addr, 0, sizeof(server_addr));
       server_addr.sin_family = AF_INET;
-      server_addr.sin_port = htons(port);
+      server_addr.sin_port = htons(configuration->destport);
    
       server_addr.sin_addr.s_addr = 
         ((struct in_addr *)server->h_addr_list[0])->s_addr;
@@ -274,6 +297,7 @@ public:
          return false;
       }   
    
+      ready = true;
       return true;
    }
    
@@ -287,11 +311,36 @@ public:
    }
    
    void dataConsumer() {
+      char dateBuffer[80];
+      string buffer;
+      stringstream ss;
       InputData *element = queue->pop();
    
       while(element != NULL) {
-         cout << "Consume: " << element->x << " / " 
-              << element->y << endl;
+         if(ready) {
+            ss.str("");
+             
+            strftime(dateBuffer,80,"%d-%m-%Y %I:%M:%S",&element->time);
+
+            ss << dateBuffer << DELIMITER;            
+            ss << element->moid << DELIMITER;
+            ss << element->tripid << DELIMITER;
+            ss << element->x << DELIMITER;
+            ss << element->y << "\n";
+            
+            buffer.clear();
+            buffer = ss.str();
+
+            int res = write(socketfd, buffer.c_str(), buffer.length());
+            
+            if(res != -1) {
+               statistics->send++;
+            } else {
+               cerr << "Error while calling write" << endl;
+            }
+         } else {
+            cerr << "Socket not ready, ignoring line" << endl;
+         }
          
          delete element;
          
@@ -302,23 +351,44 @@ public:
    }  
    
 private:
+   Configuration *configuration;
+   Statistics *statistics;
    WorkerQueue<InputData*> *queue;
    int socketfd;
+   bool ready;
 };
 
 void* startConsumerThreadInternal(void *ptr) {
   Consumer* consumer = (Consumer*) ptr;
+  
+  bool res = consumer->openSocket();
+  
+  if(! res) {
+     cerr << "Unable to open socket!" << endl;
+  }
+  
   consumer -> dataConsumer();
   
   return NULL;
 }
 
-
+void* startProducerThreadInternal(void *ptr) {
+   Producer* producer = (Producer*) ptr;
+   
+   bool result = producer -> parseInputData();
+   
+   if(! result) {
+      cerr << "Unable to parse input data" << endl;
+   }
+   
+   return NULL;
+}
 
 int main(int argc, char *argv[]) {
    
    Configuration *configuration = new Configuration();
    Statistics *statistics = new Statistics(); 
+   
    pthread_t readerThread;
    pthread_t writerThread;
    
@@ -326,24 +396,19 @@ int main(int argc, char *argv[]) {
    
    WorkerQueue<InputData*> inputData(QUEUE_ELEMENTS);
    
-   Consumer consumer(&inputData);
-   
+   Consumer consumer(configuration, statistics, &inputData);
+   Producer producer(configuration, statistics, &inputData);
+
+   pthread_create(&readerThread, NULL, 
+                  &startProducerThreadInternal, &producer);
+
    pthread_create(&writerThread, NULL, 
                   &startConsumerThreadInternal, &consumer);
    
-   
-   bool result = parseInputData(configuration->inputfile, inputData);
-   
-   if(! result) {
-      cerr << "Unable to parse input data" << endl;
-      exit(-1);
-   }
-   
    for(size_t i = 0; i < 100; i++) {
       cout << "\r\033[2K" << "Sec: " << i;
-      cout << " \033[1m Trips:\033[0m " << statistics -> trips;
+      cout << " \033[1m Read:\033[0m " << statistics -> read;
       cout << " \033[1m Send:\033[0m " << statistics -> send;
-      cout << " \033[1m Discarded:\033[0m " << statistics -> discarded;
       cout.flush();
       usleep(1000 * 1000);
    }
