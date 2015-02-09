@@ -203,7 +203,7 @@ void printHelpAndExit(char *progName) {
    cerr << "Usage: " << progName << " -i <inputfile> ";
    cerr << "-h <hostname> -p <port>" << endl;
    cerr << endl;
-   cerr << "For example: " << progName << " -i trips.csv";
+   cerr << "For example: " << progName << " -i trips.csv ";
    cerr << "-h localhost -p 10000" << endl;
    exit(-1);
 }
