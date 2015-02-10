@@ -86,37 +86,463 @@ struct cmdline_args_t {
 };
 
 
+class Queryexecutor {
 
-/*
-2.1 Update last executed command in cassandra system table
+public:
+   
+   Queryexecutor(vector<SecondoWorker*> *myWorker, 
+         CassandraAdapter *myCassandra,
+         cmdline_args_t *myCmdline_args, string myInstanceUuid, 
+         QueryexecutorState *myQueryExecutorState) 
+         : worker(myWorker), cassandra(myCassandra), 
+           cmdline_args(myCmdline_args), instanceUuid(myInstanceUuid), 
+           queryExecutorState(myQueryExecutorState) {
+             
+   }
+   
+   /*
+   2.1 Update last executed command in cassandra system table
 
-*/
-bool updateLastCommand(CassandraAdapter* cassandra, 
-                       size_t lastCommandId, string &ip) {
+   */
+   bool updateLastCommand(size_t lastCommandId) {
   
-  // Build CQL query
-  stringstream ss;
-  ss << "UPDATE system_state set lastquery = ";
-  ss << lastCommandId;
-  ss << " WHERE ip = '";
-  ss << ip;
-  ss << "';";
+     // Build CQL query
+     stringstream ss;
+     ss << "UPDATE system_state set lastquery = ";
+     ss << lastCommandId;
+     ss << " WHERE ip = '";
+     ss << cmdline_args->cassandraNodeIp;
+     ss << "';";
 
-  // Update last executed command
-  bool result = cassandra -> executeCQLSync(
-    ss.str(),
-    CASS_CONSISTENCY_ONE 
-  );
+     // Update last executed command
+     bool result = cassandra -> executeCQLSync(
+       ss.str(),
+       CASS_CONSISTENCY_ONE 
+     );
  
-  if(! result) {
-     cout << "Unable to update last executed query ";
-     cout << "in system_state table" << endl;
-     cout << "CQL Statement: " << ss.str() << endl;
-     return false;
-  }
+     if(! result) {
+        cout << "Unable to update last executed query ";
+        cout << "in system_state table" << endl;
+        cout << "CQL Statement: " << ss.str() << endl;
+        return false;
+     }
 
-  return true;
-}
+     return true;
+   }
+   
+
+   /*
+   2.2 Refresh our heartbeat data
+
+   */
+   bool updateHeartbeatData(map<string, time_t> &heartbeatData) {
+
+
+       // Timestamp of the last heartbeat update
+       // We update the heartbeat messages only 
+       // if the last update is older then
+       // HEARTBEAT_REFRESH_DATA
+       static time_t lastUpdate = 0;
+    
+       time_t now = time(0);
+
+       // Heartbeat data outdated, refresh
+       if(lastUpdate + HEARTBEAT_REFRESH_DATA < now) {
+     
+         heartbeatData.clear();
+
+         if (! cassandra -> getHeartbeatData(heartbeatData) ) {
+             cerr << "[Error] Unable to heartbeat from system table" << endl;
+             return false;
+         }
+
+         // Update last heartbeat refresh timestamp
+         lastUpdate = time(0); 
+       }
+
+       return true;
+   }
+
+   /*
+   2.2 Refresh our information about the cassandra ring
+
+   */
+   bool refreshRingInfo(vector<TokenRange> &allTokenRanges, 
+                        vector<TokenRange> &processedIntervals, 
+                        map<string, time_t> &heartbeatData, 
+                        size_t queryId) {
+  
+
+       // Clear transient data
+       allTokenRanges.clear();
+       processedIntervals.clear();
+
+       // Refresh data
+       if (! cassandra -> getTokenRangesFromSystemtable(allTokenRanges) ) {
+         cerr << "[Error] Unable to collect token ranges from system table" 
+              << endl;
+         return false;
+       }
+   
+       if (! cassandra -> getProcessedTokenRangesForQuery(
+                  processedIntervals, queryId) ) {
+      
+         cerr << "[Error] Unable to collect processed token ranges from "
+              << "system table" << endl;
+         return false;
+       }
+  
+      if( ! updateHeartbeatData(heartbeatData)) {
+         return false;
+      }  
+  
+     return true;
+   }
+
+   /*
+   2.2 Update UUID Entry in global state table
+
+   */
+   bool updateUuid() {  
+      
+     // Build CQL query
+     stringstream ss;
+     ss << "UPDATE system_state set node = '";
+     ss << instanceUuid;
+     ss << "' WHERE ip = '";
+     ss << cmdline_args->cassandraNodeIp;
+     ss << "';";
+  
+     bool result = cassandra -> executeCQLSync(
+         ss.str(),
+         CASS_CONSISTENCY_ONE
+     );
+  
+     if(! result) {
+       cout << "[Error] Unable to update heartbeat in system_state table" 
+            << endl;
+       cout << "CQL Statement: " << ss.str() << endl;
+       return false;
+     }
+  
+     return true;
+   }
+
+   /*
+   2.2 Find the first local token range in the logical ring and 
+       return its position
+
+   */
+   size_t findFirstLocalTokenrange(vector<TokenRange> &allTokenRanges, 
+                                 vector<TokenRange> &localTokenRanges) {
+         size_t offset = 0;
+         for( ; offset < allTokenRanges.size(); ++offset) {
+           TokenRange tryTokenRange = allTokenRanges[offset];
+           if(binary_search(localTokenRanges.begin(), 
+                            localTokenRanges.end(), tryTokenRange)) {
+             break;
+           }
+         }
+      
+         return offset;
+   }
+
+   /*
+   2.2 Print total and processed tokens and sleep some time
+    
+   */
+   void printStatusMessage(vector<TokenRange> &allTokenRanges, 
+                           vector<TokenRange> &processedIntervals,
+                           bool wait) {
+        
+         cout << "[Info] RESULT: " << processedIntervals.size() << " of "
+              << allTokenRanges.size() << " token ranges processed" << endl;
+      
+         if(wait) {
+           cout << "[Info] Sleep 5 seconds and check the ring again" << endl;
+           sleep(5);
+         }
+   }
+
+   /*
+   2.2 Execute a query for a tokenrange range, only if it's not 
+       already processed 
+
+   */
+   bool executeQueryForTokenrangeIfNeeded(string &query, 
+                                   size_t queryId, string &ip, 
+                                   vector<TokenRange> &processedIntervals,
+                                   TokenRange tokenrange) {
+  
+  
+           // Its query already processed for tokenrange?
+           if( binary_search(processedIntervals.begin(), 
+                             processedIntervals.end(), tokenrange))  {
+          
+   #ifdef __DEBUG__
+      //     cout << "[Debug] Skipping already processed TokenRange: " 
+      //           << tokenrange;
+   #endif
+               
+             return false;
+           } else {
+             WorkerQueue *tokenQueue = (worker->front()) -> getTokenQueue();
+             tokenQueue->push(tokenrange);
+             return true;
+           }
+   }
+
+   /*
+   2.2 Execute the given query for all local token ranges
+
+   */
+   void executeQueryForTokenranges(string &query, 
+                                   size_t queryId, string &ip,
+                                   vector<TokenRange> &allTokenRanges,
+                                   vector<TokenRange> &localTokenRanges,
+                                   vector<TokenRange> &processedIntervals) {
+  
+       // Generate token range queries for local tokenranges;
+       for(vector<TokenRange>::iterator 
+           iter = allTokenRanges.begin();
+           iter != allTokenRanges.end(); ++iter) {
+ 
+         TokenRange tokenrange = *iter;
+    
+         // It's a local token range
+         if(tokenrange.isLocalTokenRange(ip)) {
+           localTokenRanges.push_back(tokenrange);
+           executeQueryForTokenrangeIfNeeded(query, queryId, ip, 
+                processedIntervals, tokenrange);
+         }
+       }  
+   }
+
+   void waitForSecondoWorker() {
+      // Wait for query execution
+      for(vector<SecondoWorker*>::iterator it = worker->begin(); 
+         it != worker->end(); ++it) {
+         SecondoWorker *worker = *it;
+         worker->waitForQueryCompletion();
+      }
+   }
+
+   /*
+   2.2 Handle a multitoken query (e.g. query ccollectrange('192.168.1.108', 
+        'secondo', 'relation2', 'ONE',__TOKENRANGE__);
+
+   */
+   void handleTokenQuery(string &query, 
+                         size_t queryId, string &ip) {
+
+       // Collecting ring configuration
+       vector<TokenRange> allTokenRanges;
+       vector<TokenRange> localTokenRanges;
+       vector<TokenRange> processedIntervals;
+       map<string, time_t> heartbeatData;
+    
+       queryExecutorState->setQuery(query);
+    
+       if (! refreshRingInfo(allTokenRanges, processedIntervals, 
+            heartbeatData, queryId) ) {
+      
+         cerr << "[Error] Unable to collect ring info" << endl;
+         return;
+       }
+    
+       // Part 1: Execute query for all local token ranges
+       executeQueryForTokenranges(query, queryId, ip,
+                                allTokenRanges, localTokenRanges, 
+                                processedIntervals);
+
+       // Part 2: Process other token ranges
+       while( true ) {
+         if (! refreshRingInfo(allTokenRanges, processedIntervals, 
+               heartbeatData, queryId) ) {
+        
+           cerr << "[Error] Unable to collect ring info" << endl;
+           return;
+         }
+      
+         // Reverse the data of the logical ring, so we can interate from
+         // MAX to MIN
+         reverse(allTokenRanges.begin(), allTokenRanges.end());
+           
+         // All TokenRanges are processed
+         if(processedIntervals.size() == allTokenRanges.size()) {
+           printStatusMessage(allTokenRanges, processedIntervals, false);
+        
+           WorkerQueue *tokenQueue = (worker->front()) -> getTokenQueue();
+
+           // Add Termination token
+           for(size_t i = 0; i < worker->size(); ++i) {
+              tokenQueue->push(TokenRange(0, 0, ip));
+           }
+    
+           waitForSecondoWorker();
+
+           return; 
+         }
+
+         // Find start offset
+         size_t offset = findFirstLocalTokenrange(allTokenRanges, 
+                                                  localTokenRanges);
+      
+         RANGE_MODE mode = LOCAL_TOKENRANGE;
+      
+         for(size_t position = 0; position < allTokenRanges.size(); 
+             ++position) {
+                
+           size_t realPos = (position + offset) % allTokenRanges.size();
+           TokenRange range = allTokenRanges[realPos];
+
+   #ifdef __DEBUG__                 
+    //         cout << "[Debug] Handling tokenrange: " << range;
+   #endif
+        
+           if(range.isLocalTokenRange(ip)) {
+
+   #ifdef __DEBUG__         
+    //                 cout << "[Debug] it's a local token range" << endl;
+   #endif
+          
+             mode = LOCAL_TOKENRANGE;
+           } else {
+          
+             // refresh heartbeat data
+             if( ! updateHeartbeatData(heartbeatData)) {
+                cout << "[Error] Unable to refresh heartbeat data" << endl;
+             }  
+          
+             time_t now = time(0) * 1000; // Convert to ms
+          
+             if(heartbeatData[range.getIp()] + HEARTBEAT_NODE_TIMEOUT > now) {
+   #ifdef __DEBUG__             
+      //          cout << "[Debug] Set to foreign: " << range;
+   #endif            
+               mode = FOREIGN_TOKENRANGE;
+             } else {
+   #ifdef __DEBUG__             
+     //         cout << "[Debug] Treat range as local, because node is dead: " 
+     //              << range << " last update " << heartbeatData[range.getIp()]
+     //              << endl;
+   #endif
+                 
+             }
+           }
+        
+           // Process range - it's a local token range
+           if(mode == LOCAL_TOKENRANGE) {
+             executeQueryForTokenrangeIfNeeded(
+              query, queryId, ip, processedIntervals, range);
+           }
+         }
+            
+         printStatusMessage(allTokenRanges, processedIntervals, true);
+       }
+   } 
+
+      
+   void executeSecondoCommand(string command, size_t queryId, 
+       bool wait = true) {
+   
+      // Execute query on all worker
+      for(vector<SecondoWorker*>::iterator it = worker->begin(); 
+        it != worker->end(); ++it) {
+        
+         SecondoWorker *worker = *it;
+         worker->submitQuery(command, queryId);
+      }
+   
+      if(wait) {
+         waitForSecondoWorker();
+      }
+   }
+
+   /*
+   2.3 This is the main loop of the query executor. This method fetches
+     queries from cassandra and forward them to secondo.
+
+   */
+   void mainLoop() {
+ 
+     size_t lastCommandId = 0;
+     
+     updateLastCommand(lastCommandId);       
+     updateUuid();
+  
+     while(true) {
+        
+           cout << "Waiting for commands...." << endl;
+        
+           vector<CassandraQuery> result;
+           cassandra->getQueriesToExecute(result);
+           size_t seenCommands = 0;
+        
+           while(!result.empty()) {
+           
+             CassandraQuery &query = result.back();
+           
+             size_t id = query.getQueryId();
+             string command = query.getQuery();
+          
+             QEUtils::replacePlaceholder(
+                command, "__NODEID__", instanceUuid);
+             QEUtils::replacePlaceholder(
+                command, "__CASSANDRAIP__", cmdline_args -> cassandraNodeIp);
+             QEUtils::replacePlaceholder(
+                command, "__KEYSPACE__", cmdline_args -> cassandraKeyspace);
+          
+             // Is this the next query to execute
+             if(id == lastCommandId + 1) {
+
+               // Update global status
+               ++lastCommandId;
+            
+               // Simple query or token based query?
+               if(QEUtils::containsPlaceholder(command, "__TOKENRANGE__")) {
+                 executeSecondoCommand(command, lastCommandId, false);
+                 handleTokenQuery(command, lastCommandId, 
+                      cmdline_args -> cassandraNodeIp);
+               } else {
+                  executeSecondoCommand(command, lastCommandId);
+               }
+            
+               updateLastCommand(lastCommandId);
+               updateUuid();
+             }
+          
+             result.pop_back();
+             ++seenCommands;
+           }
+        
+           // Command list is empty and we have processed 
+           // commands in the past. => cqueryreset is executed,
+           // clear secondo state and reset lastCommandId
+           if(seenCommands < lastCommandId && lastCommandId > 0) {
+             cout << "Doing query reset" << endl;
+             sleep(5); // Wait for system tables to be recreated
+             lastCommandId = 0;
+             executeSecondoCommand(string("close database"), seenCommands);
+             
+             updateLastCommand(lastCommandId);
+             updateUuid();
+                 
+             cout << "[Info] Reset complete, waiting for new queries" << endl;
+           }
+        
+           sleep(5);
+     }
+   }
+   
+private:
+   vector<SecondoWorker*> *worker;
+   CassandraAdapter *cassandra;
+   cmdline_args_t *cmdline_args;
+   string instanceUuid;
+   QueryexecutorState *queryExecutorState;
+};
+
 
 /*
 2.1 Init the cassandra adapter, the 1st parameter
@@ -142,417 +568,6 @@ CassandraAdapter* getCassandraAdapter(string &cassandraHostname,
   }
   
   return cassandra;
-}
-
-/*
-2.2 Refresh our heartbeat data
-
-*/
-bool updateHeartbeatData(CassandraAdapter* cassandra, 
-                         map<string, time_t> &heartbeatData) {
-
-
-    // Timestamp of the last heartbeat update
-    // We update the heartbeat messages only 
-    // if the last update is older then
-    // HEARTBEAT_REFRESH_DATA
-    static time_t lastUpdate = 0;
-    
-    time_t now = time(0);
-
-    // Heartbeat data outdated, refresh
-    if(lastUpdate + HEARTBEAT_REFRESH_DATA < now) {
-     
-      heartbeatData.clear();
-
-      if (! cassandra -> getHeartbeatData(heartbeatData) ) {
-          cerr << "[Error] Unable to heartbeat from system table" << endl;
-          return false;
-      }
-
-      // Update last heartbeat refresh timestamp
-      lastUpdate = time(0); 
-    }
-
-    return true;
-}
-
-/*
-2.2 Refresh our information about the cassandra ring
-
-*/
-bool refreshRingInfo(CassandraAdapter* cassandra, 
-                     vector<TokenRange> &allTokenRanges, 
-                     vector<TokenRange> &processedIntervals, 
-                     map<string, time_t> &heartbeatData, 
-                     size_t queryId) {
-  
-
-    // Clear transient data
-    allTokenRanges.clear();
-    processedIntervals.clear();
-
-    // Refresh data
-    if (! cassandra -> getTokenRangesFromSystemtable(allTokenRanges) ) {
-      cerr << "[Error] Unable to collect token ranges from system table" 
-           << endl;
-      return false;
-    }
-   
-    if (! cassandra -> getProcessedTokenRangesForQuery(
-               processedIntervals, queryId) ) {
-      
-      cerr << "[Error] Unable to collect processed token ranges from "
-           << "system table" << endl;
-      return false;
-    }
-  
-   if( ! updateHeartbeatData(cassandra, heartbeatData)) {
-      return false;
-   }  
-  
-  return true;
-}
-
-/*
-2.2 Update UUID Entry in global state table
-
-*/
-bool updateUuid(CassandraAdapter* cassandra, string uuid, 
-                string cassandraIp) {  
-  // Build CQL query
-  stringstream ss;
-  ss << "UPDATE system_state set node = '";
-  ss << uuid;
-  ss << "' WHERE ip = '";
-  ss << cassandraIp;
-  ss << "';";
-  
-  bool result = cassandra -> executeCQLSync(
-      ss.str(),
-      CASS_CONSISTENCY_ONE
-  );
-  
-  if(! result) {
-    cout << "[Error] Unable to update heartbeat in system_state table" 
-         << endl;
-    cout << "CQL Statement: " << ss.str() << endl;
-    return false;
-  }
-  
-  return true;
-}
-
-/*
-2.2 Find the first local token range in the logical ring and 
-    return its position
-
-*/
-size_t findFirstLocalTokenrange(vector<TokenRange> &allTokenRanges, 
-                              vector<TokenRange> &localTokenRanges) {
-      size_t offset = 0;
-      for( ; offset < allTokenRanges.size(); ++offset) {
-        TokenRange tryTokenRange = allTokenRanges[offset];
-        if(binary_search(localTokenRanges.begin(), 
-                         localTokenRanges.end(), tryTokenRange)) {
-          break;
-        }
-      }
-      
-      return offset;
-}
-
-/*
-2.2 Print total and processed tokens and sleep some time
-    
-*/
-void printStatusMessage(vector<TokenRange> &allTokenRanges, 
-                        vector<TokenRange> &processedIntervals,
-                        bool wait) {
-        
-      cout << "[Info] RESULT: " << processedIntervals.size() << " of "
-           << allTokenRanges.size() << " token ranges processed" << endl;
-      
-      if(wait) {
-        cout << "[Info] Sleep 5 seconds and check the ring again" << endl;
-        sleep(5);
-      }
-}
-
-/*
-2.2 Execute a query for a tokenrange range, only if it's not 
-    already processed 
-
-*/
-bool executeQueryForTokenrangeIfNeeded(vector<SecondoWorker*> &worker, 
-                                CassandraAdapter* cassandra, 
-                                string &query, 
-                                size_t queryId, string &ip, 
-                                vector<TokenRange> &processedIntervals,
-                                TokenRange tokenrange) {
-  
-  
-        // Its query already processed for tokenrange?
-        if( binary_search(processedIntervals.begin(), 
-                          processedIntervals.end(), tokenrange))  {
-          
-#ifdef __DEBUG__
-   //     cout << "[Debug] Skipping already processed TokenRange: " 
-   //           << tokenrange;
-#endif
-               
-          return false;
-        } else {
-          WorkerQueue *tokenQueue = (worker.front()) -> getTokenQueue();
-          tokenQueue->push(tokenrange);
-          return true;
-        }
-}
-
-/*
-2.2 Execute the given query for all local token ranges
-
-*/
-void executeQueryForTokenranges(vector<SecondoWorker*> &worker, 
-                                CassandraAdapter* cassandra, string &query, 
-                                size_t queryId, string &ip,
-                                vector<TokenRange> &allTokenRanges,
-                                vector<TokenRange> &localTokenRanges,
-                                vector<TokenRange> &processedIntervals, 
-                                QueryexecutorState &queryExecutorState) {
-  
-    // Generate token range queries for local tokenranges;
-    for(vector<TokenRange>::iterator 
-        iter = allTokenRanges.begin();
-        iter != allTokenRanges.end(); ++iter) {
- 
-      TokenRange tokenrange = *iter;
-    
-      // It's a local token range
-      if(tokenrange.isLocalTokenRange(ip)) {
-        localTokenRanges.push_back(tokenrange);
-        executeQueryForTokenrangeIfNeeded(worker, cassandra, 
-        query, queryId, ip, processedIntervals, tokenrange);
-      }
-    }  
-}
-
-void waitForSecondoWorker(vector<SecondoWorker*> &worker) {
-   // Wait for query execution
-   for(vector<SecondoWorker*>::iterator it = worker.begin(); 
-      it != worker.end(); ++it) {
-      SecondoWorker *worker = *it;
-      worker->waitForQueryCompletion();
-   }
-}
-
-/*
-2.2 Handle a multitoken query (e.g. query ccollectrange('192.168.1.108', 
-     'secondo', 'relation2', 'ONE',__TOKENRANGE__);
-
-*/
-void handleTokenQuery(vector<SecondoWorker*> &worker, 
-                      CassandraAdapter* cassandra, string &query, 
-                      size_t queryId, string &ip, 
-                      QueryexecutorState &queryExecutorState) {
-
-    // Collecting ring configuration
-    vector<TokenRange> allTokenRanges;
-    vector<TokenRange> localTokenRanges;
-    vector<TokenRange> processedIntervals;
-    map<string, time_t> heartbeatData;
-    
-    queryExecutorState.setQuery(query);
-    
-    if (! refreshRingInfo(cassandra, 
-           allTokenRanges, processedIntervals, heartbeatData, queryId) ) {
-      
-      cerr << "[Error] Unable to collect ring info" << endl;
-      return;
-    }
-    
-    // Part 1: Execute query for all local token ranges
-    executeQueryForTokenranges(worker, cassandra, query, queryId, ip,
-                             allTokenRanges, localTokenRanges, 
-                             processedIntervals, queryExecutorState);
-
-    // Part 2: Process other token ranges
-    while( true ) {
-      if (! refreshRingInfo(cassandra, 
-            allTokenRanges, processedIntervals, heartbeatData, queryId) ) {
-        
-        cerr << "[Error] Unable to collect ring info" << endl;
-        return;
-      }
-      
-      // Reverse the data of the logical ring, so we can interate from
-      // MAX to MIN
-      reverse(allTokenRanges.begin(), allTokenRanges.end());
-           
-      // All TokenRanges are processed
-      if(processedIntervals.size() == allTokenRanges.size()) {
-        printStatusMessage(allTokenRanges, processedIntervals, false);
-        
-        WorkerQueue *tokenQueue = (worker.front()) -> getTokenQueue();
-
-        // Add Termination token
-        for(size_t i = 0; i < worker.size(); ++i) {
-           tokenQueue->push(TokenRange(0, 0, ip));
-        }
-    
-        waitForSecondoWorker(worker);
-
-        return; 
-      }
-
-      // Find start offset
-      size_t offset = findFirstLocalTokenrange(allTokenRanges, 
-                                               localTokenRanges);
-      
-      RANGE_MODE mode = LOCAL_TOKENRANGE;
-      
-      for(size_t position = 0; position < allTokenRanges.size(); ++position) {
-        size_t realPos = (position + offset) % allTokenRanges.size();
-        TokenRange range = allTokenRanges[realPos];
-
-#ifdef __DEBUG__                 
- //         cout << "[Debug] Handling tokenrange: " << range;
-#endif
-        
-        if(range.isLocalTokenRange(ip)) {
-
-#ifdef __DEBUG__         
- //                 cout << "[Debug] it's a local token range" << endl;
-#endif
-          
-          mode = LOCAL_TOKENRANGE;
-        } else {
-          
-          // refresh heartbeat data
-          if( ! updateHeartbeatData(cassandra, heartbeatData)) {
-             cout << "[Error] Unable to refresh heartbeat data" << endl;
-          }  
-          
-          time_t now = time(0) * 1000; // Convert to ms
-          
-          if(heartbeatData[range.getIp()] + HEARTBEAT_NODE_TIMEOUT > now) {
-#ifdef __DEBUG__             
-   //          cout << "[Debug] Set to foreign: " << range;
-#endif            
-            mode = FOREIGN_TOKENRANGE;
-          } else {
-#ifdef __DEBUG__             
-  //         cout << "[Debug] Treat range as local, because node is dead: " 
-  //              << range << " last update " << heartbeatData[range.getIp()]
-  //              << endl;
-#endif
-                 
-          }
-        }
-        
-        // Process range - it's a local token range
-        if(mode == LOCAL_TOKENRANGE) {
-          executeQueryForTokenrangeIfNeeded(worker, cassandra, 
-           query, queryId, ip, processedIntervals, range);
-        }
-      }
-            
-      printStatusMessage(allTokenRanges, processedIntervals, true);
-    }
-} 
-
-      
-void executeSecondoCommand(vector<SecondoWorker*> &worker, 
-     string command, size_t queryId, bool wait = true) {
-   
-   // Execute query on all worker
-   for(vector<SecondoWorker*>::iterator it = worker.begin(); 
-     it != worker.end(); ++it) {
-        
-      SecondoWorker *worker = *it;
-      worker->submitQuery(command, queryId);
-   }
-   
-   if(wait) {
-      waitForSecondoWorker(worker);
-   }
-}
-
-/*
-2.3 This is the main loop of the query executor. This method fetches
-  queries from cassandra and forward them to secondo.
-
-*/
-void mainLoop(vector<SecondoWorker*> &worker, 
-              CassandraAdapter* cassandra, string cassandraIp,
-              string cassandraKeyspace, string uuid, 
-              QueryexecutorState &queryExecutorState) {
-  
-  
-  size_t lastCommandId = 0;
-  updateLastCommand(cassandra, lastCommandId, cassandraIp);
-  updateUuid(cassandra, uuid, cassandraIp);
-  
-  while(true) {
-        
-        cout << "Waiting for commands...." << endl;
-        
-        vector<CassandraQuery> result;
-        cassandra->getQueriesToExecute(result);
-        size_t seenCommands = 0;
-        
-        while(!result.empty()) {
-           
-          CassandraQuery &query = result.back();
-           
-          size_t id = query.getQueryId();
-          string command = query.getQuery();
-          
-          QEUtils::replacePlaceholder(
-             command, "__NODEID__", uuid);
-          QEUtils::replacePlaceholder(
-             command, "__CASSANDRAIP__", cassandraIp);
-          QEUtils::replacePlaceholder(
-             command, "__KEYSPACE__", cassandraKeyspace);
-          
-          // Is this the next query to execute
-          if(id == lastCommandId + 1) {
-
-            // Update global status
-            ++lastCommandId;
-            
-            // Simple query or token based query?
-            if(QEUtils::containsPlaceholder(command, "__TOKENRANGE__")) {
-              executeSecondoCommand(worker, command, lastCommandId, false);
-              handleTokenQuery(worker, cassandra, command, 
-                   lastCommandId, cassandraIp, queryExecutorState);
-            } else {
-               executeSecondoCommand(worker, command, lastCommandId);
-            }
-            
-            updateLastCommand(cassandra, lastCommandId, cassandraIp);
-            updateUuid(cassandra, uuid, cassandraIp);
-          }
-          
-          result.pop_back();
-          ++seenCommands;
-        }
-        
-        // Command list is empty and we have processed 
-        // commands in the past. => cqueryreset is executed,
-        // clear secondo state and reset lastCommandId
-        if(seenCommands < lastCommandId && lastCommandId > 0) {
-          cout << "Doing query reset" << endl;
-          sleep(5); // Wait for system tables to be recreated
-          lastCommandId = 0;
-          executeSecondoCommand(worker, string("close database"), seenCommands);
-          updateLastCommand(cassandra, lastCommandId, cassandraIp);
-          updateUuid(cassandra, uuid, cassandraIp);
-          cout << "[Info] Reset complete, waiting for new queries" << endl;
-        }
-        
-        sleep(5);
-  }
 }
 
 /*
@@ -739,9 +754,10 @@ int main(int argc, char* argv[]){
   heartbeatUpdater = startHeartbeatThread(cmdline_args.cassandraNodeIp, 
                        cmdline_args.cassandraKeyspace, heartbeatThread);
 
-  mainLoop(worker, cassandra, cmdline_args.cassandraNodeIp, 
-           cmdline_args.cassandraKeyspace, instanceUuid, 
-           queryExecutorState);
+
+  Queryexecutor queryexecutor(&worker, cassandra, &cmdline_args, 
+                instanceUuid, &queryExecutorState);
+  queryexecutor.mainLoop();
   
   // Stop SECONDO worker
   stopSeconcoWorker(worker);
@@ -757,4 +773,3 @@ int main(int argc, char* argv[]){
  
   return 0;
 }
-
