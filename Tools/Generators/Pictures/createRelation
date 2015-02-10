@@ -75,6 +75,8 @@
 CONTENTTYPE="picture"
 CONTENTNAME="Picture"
 NOW=$(date +"%Y-%m-%d-%T")
+CI=$SECONDO_BUILD_DIR/Tools/Generators/Pictures/checkImage
+
 
 which stat 2>&1 >/dev/null
 if [ "$?" = "0" ]; then
@@ -93,7 +95,7 @@ function writeTuple {
 if [ "$#" = "0" ]; then
  read F
  while [ -n "$F" ]; do
-   checkImage "$F"
+   $CI "$F"
    if [ "$?" != "0" ]; then
      echo "exclude file " $F >&2
    else
@@ -117,7 +119,7 @@ if [ "$#" = "0" ]; then
  else
    while [ "$#" != "0" ]; do
      F=$1
-     checkImage "$F"
+     $CI "$F"
      if [ "$?" != "0" ]; then
        echo "exclude file " $F >&2
      else
