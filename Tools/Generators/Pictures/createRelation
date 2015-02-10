@@ -78,10 +78,10 @@ NOW=$(date +"%Y-%m-%d-%T")
 CI=$SECONDO_BUILD_DIR/Tools/Generators/Pictures/checkImage
 
 
-which stat 2>&1 >/dev/null
+which stat >/dev/null 2>&1 
 if [ "$?" = "0" ]; then
    USESTAT=TRUE
-   stat -c %w . 2>&1  >/dev/null
+   stat -c %w . >/dev/null 2>&1 
    if [ "$?" != "0" ]; then
      USESTAT=FALSE 
    fi
