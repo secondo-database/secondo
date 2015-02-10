@@ -34,8 +34,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef __QEXECUTOR_WORKER__
 #define __QEXECUTOR_WORKER__
 
-//#define QUERY_WORKER_DEBUG
-
 class SecondoWorker {
 
 public:
@@ -124,8 +122,8 @@ public:
    void submitQuery(string &myQuery, size_t myQueryId) {
       
       if(shutdown) {
-         cout << "SECONDO worker is down [ " << secondoPort << " ]: " 
-              << "ignoring query" << endl;
+         LOG_ERROR("SECONDO worker is down [ " << secondoPort << " ]: " 
+              << "ignoring query");
          return;
       }
       
@@ -198,9 +196,8 @@ public:
    void mainLoop() {
       
       if(si == NULL) {
-         cout << "---> [ " << secondoPort 
-              << " ]: Unable to connect to SECONDO, unable to start MainLoop" 
-              << endl;
+         LOG_ERROR("---> [ " << secondoPort 
+            << " ]: Unable to connect to SECONDO, unable to start MainLoop");
          return;
       }
       
@@ -240,11 +237,7 @@ public:
          }
          
          queryComplete = true;
-
-#ifdef QUERY_WORKER_DEBUG
-         cout << "---> [ " << secondoPort << " ]: Query done" << endl;
-#endif
-         
+         LOG_DEBUG("Worker [ " << secondoPort << " ]: Query done");
          pthread_cond_broadcast(&processCondition);
          pthread_mutex_unlock(&processMutex);
       }
@@ -263,26 +256,20 @@ private:
    */
    void executeSecondoCommand(string command) {
   
-#ifdef QUERY_WORKER_DEBUG
-           cout << "Executing command [ " << secondoPort << " ]: " 
-                << command << endl;
-#endif
-           
-           ListExpr res = nl->TheEmptyList(); // will contain the result
-           SecErrInfo err;                 // will contain error information
+     //  LOG_DEBUG("Worker [ " << secondoPort << " ] executing: " << command);
+
+          ListExpr res = nl->TheEmptyList(); // will contain the result
+          SecErrInfo err;                 // will contain error information
         
            si->Secondo(command, res, err); 
 
            // check whether command was successful
            if(err.code!=0){ 
-             cout << "Error during command. Error code [ " << secondoPort 
-                  << " ]: " << err.code << " / " << err.msg << endl;
+             LOG_ERROR("Error during command. Error code [ " << secondoPort 
+                  << " ]: " << err.code << " / " << err.msg);
            } else {
-#ifdef QUERY_WORKER_DEBUG
-             // command was successful
-             cout << "Result is [ " << secondoPort << " ]: " 
-                  << nl->ToString(res) << endl;
-#endif
+              LOG_DEBUG("Worker [ " << secondoPort << " ]: computed result " 
+                  << nl->ToString(res));
            }
    }
    

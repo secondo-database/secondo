@@ -277,9 +277,10 @@ public:
            if( binary_search(processedIntervals.begin(), 
                              processedIntervals.end(), tokenrange))  {
           
-             LOG_DEBUG("Skipping already processed Range: " << tokenrange);
+             LOG_DEBUG("Skipping already processed range: " << tokenrange);
              return false;
            } else {
+             LOG_DEBUG("Executing query for range: " << tokenrange);
              WorkerQueue *tokenQueue = (worker->front()) -> getTokenQueue();
              tokenQueue->push(tokenrange);
              return true;
@@ -389,13 +390,12 @@ public:
                 
            size_t realPos = (position + offset) % allTokenRanges.size();
            TokenRange range = allTokenRanges[realPos];              
-           LOG_DEBUG("Handling tokenrange: " << range);
         
            if(range.isLocalTokenRange(ip)) {
-             LOG_DEBUG("It's a local token range");
-             mode = LOCAL_TOKENRANGE;
+              LOG_DEBUG("Ignoring local token range: " << range);
+              mode = LOCAL_TOKENRANGE;
            } else {
-          
+              LOG_DEBUG("Processing foreign token range: " << range);
              // refresh heartbeat data
              if( ! updateHeartbeatData(heartbeatData)) {
                 LOG_ERROR("Unable to refresh heartbeat data");
