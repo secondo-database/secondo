@@ -1443,12 +1443,70 @@ struct atinstantSymbolicInfo : OperatorInfo {
 };
 
 /*
+\subsection{Operator ~atperiods~}
+
+atperiods: mlabel x periods -> mlabel
+atperiods: mlabels x periods -> mlabels
+atperiods: mplace x periods -> mplace
+atperiods: mplaces x periods -> mplaces
+
+\subsubsection{Type Mapping}
+
+*/
+ListExpr atperiodsSymbolicTM(ListExpr args) {
+  if (nl->HasLength(args, 2)) {
+    if (Periods::checkType(nl->Second(args))) {
+      ListExpr first = nl->First(args);
+      if (MLabel::checkType(first) || MLabels::checkType(first) ||
+          MPlace::checkType(first) || MPlaces::checkType(first)) {
+        return nl->First(args);
+      }
+    }
+  }
+  return listutils::typeError("Correct signature: mT x periods -> mT,   with "
+    "T in {label(s), place(s)}");
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class M>
+int atperiodsSymbolicVM(Word* args, Word& result, int message, Word& local,
+                        Supplier s) {
+  result = qp->ResultStorage(s);
+  M *src = static_cast<M*>(args[0].addr);
+  Periods *per = static_cast<Periods*>(args[1].addr);
+  M *res = static_cast<M*>(result.addr);
+  src->Atperiods(*per, *res);
+  return 0;
+}
+
+/*
+\subsubsection{Operator Info}
+
+*/
+struct atperiodsSymbolicInfo : OperatorInfo {
+  atperiodsSymbolicInfo() {
+    name      = "atperiods";
+    signature = "mlabel x periods -> mlabel";
+    appendSignature("mlabels x periods -> mlabels");
+    appendSignature("mplace x periods -> mplace");
+    appendSignature("mplaces x periods -> mplaces");
+    syntax    = "_ atperiods _";
+    meaning   = "Restrict the moving object to the given periods.";
+  }
+};
+
+/*
 \subsection{Operator ~no\_components~}
 
 no\_components: mlabel -> int
 no\_components: mlabels -> int
 no\_components: mplace -> int
 no\_components: mplaces -> int
+no\_components: labels -> int
+no\_components: places -> int
 
 \subsubsection{Type Mapping}
 
@@ -1457,23 +1515,39 @@ ListExpr nocomponentsSymbolicTM(ListExpr args) {
     if (nl->HasLength(args, 1)) {
     ListExpr first = nl->First(args);
     if (MLabel::checkType(first) || MLabels::checkType(first) ||
-        MPlace::checkType(first) || MPlaces::checkType(first)) {
+        MPlace::checkType(first) || MPlaces::checkType(first) ||
+        Labels::checkType(first) || Places::checkType(first)) {
       return nl->SymbolAtom(CcInt::BasicType());
     }
   }
-  return listutils::typeError("Expects a symbolic trajectory.");
+  return listutils::typeError("Expects a symbolic trajectory or a labels/places"
+    "object.");
+}
+
+/*
+\subsubsection{Selection Function}
+
+*/
+int nocomponentsSymbolicSelect(ListExpr args) {
+  if (MLabel::checkType(nl->First(args)))  return 0;
+  if (MLabels::checkType(nl->First(args))) return 1;
+  if (MPlace::checkType(nl->First(args)))  return 2;
+  if (MPlaces::checkType(nl->First(args))) return 3;
+  if (Labels::checkType(nl->First(args)))  return 4;
+  if (Places::checkType(nl->First(args)))  return 5;
+  return -1;
 }
 
 /*
 \subsubsection{Value Mapping}
 
 */
-template<class Mapping>
+template<class Coll>
 int nocomponentsSymbolicVM(Word* args, Word& result, int message, Word& local,
                            Supplier s) {
   result = qp->ResultStorage(s);
   CcInt* res = static_cast<CcInt*>(result.addr);
-  Mapping *src = static_cast<Mapping*>(args[0].addr);
+  Coll *src = static_cast<Coll*>(args[0].addr);
   if (src->IsDefined()) {
     res->Set(true, src->GetNoComponents());
   }
@@ -1494,8 +1568,11 @@ struct nocomponentsSymbolicInfo : OperatorInfo {
     appendSignature("mlabels -> int");
     appendSignature("mplace -> int");
     appendSignature("mplaces -> int");
+    appendSignature("labels -> int");
+    appendSignature("places -> int");
     syntax    = "no_components ( _ )";
-    meaning   = "Returns the number of units of the symbolic trajectory.";
+    meaning   = "Returns the number of units of the symbolic trajectory or the "
+      "number of components of a labels/places object.";
   }
 };
 
@@ -3883,11 +3960,18 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(atinstantSymbolicInfo(), atinstantSymbolicVMs,
               symbolicSimpleSelect, atinstantSymbolicTM);
   
+  ValueMapping atperiodsSymbolicVMs[] = {atperiodsSymbolicVM<MLabel>,
+    atperiodsSymbolicVM<MLabels>, atperiodsSymbolicVM<MPlace>, 
+    atperiodsSymbolicVM<MPlaces>, 0};
+  AddOperator(atperiodsSymbolicInfo(), atperiodsSymbolicVMs, 
+              symbolicSimpleSelect, atperiodsSymbolicTM);
+  
   ValueMapping nocomponentsSymbolicVMs[] = {nocomponentsSymbolicVM<MLabel>,
     nocomponentsSymbolicVM<MLabels>, nocomponentsSymbolicVM<MPlace>,
-    nocomponentsSymbolicVM<MPlaces>, 0};
+    nocomponentsSymbolicVM<MPlaces>, nocomponentsSymbolicVM<Labels>,
+    nocomponentsSymbolicVM<Places>, 0};
   AddOperator(nocomponentsSymbolicInfo(), nocomponentsSymbolicVMs,
-              symbolicSimpleSelect, nocomponentsSymbolicTM);
+              nocomponentsSymbolicSelect, nocomponentsSymbolicTM);
   
   ValueMapping getunitSymbolicVMs[] = {getunitSymbolicVM<MLabel, ULabel>,
     getunitSymbolicVM<MLabels, ULabels>, getunitSymbolicVM<MPlace, UPlace>, 

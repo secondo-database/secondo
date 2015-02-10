@@ -157,6 +157,12 @@ Signature: mplace x instant -> iplace
 Example  : query mplace1 atinstant [const instant value "2014-01-01-01:15"]
 Result   : (iplace ("2014-01-01-01:15" ('Aubameyang' 17)))
 
+Operator : atperiods
+Number   : 1
+Signature: mlabel x periods -> mlabel
+Example  : query mlabel1 atperiods [const periods value (("2012-01-01-01:10" "2012-01-01-01:20" TRUE TRUE))]
+Result   : (mlabel (("2012-01-01-01:10" "2012-01-01-01:20" TRUE TRUE) 'Brackel'))
+
 Operator : units
 Number   : 5
 Signature: mlabel -> (stream ulabel)

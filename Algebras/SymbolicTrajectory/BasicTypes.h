@@ -145,6 +145,7 @@ class Labels : public Attribute {
   void Append(const set<string>& values);
   void Destroy() {values.destroy(); pos.destroy();}
   int GetNoValues() const {return pos.Size();}
+  int GetNoComponents() const {return GetNoValues();}
   size_t GetLength() const {return values.getSize();}
   void Get(int i, Label& lb) const;
   void GetValue(int i, string& text) const;
@@ -263,6 +264,7 @@ class Places : public Attribute {
   void Append(const set<base>& values);
   void Destroy() {values.destroy(); posref.destroy();}
   int GetNoValues() const {return posref.Size();}
+  int GetNoComponents() const {return GetNoValues();}
   size_t GetLength() const {return values.getSize();}
   void Get(const int i, Place& pl) const;
   void GetValue(int i, base& val) const;

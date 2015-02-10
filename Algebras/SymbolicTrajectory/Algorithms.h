@@ -257,6 +257,7 @@ class MBasic : public Attribute {
   void At(const B& basic, MBasic<B>& result) const;
   void DefTime(Periods& per) const;
   void Atinstant(const Instant& inst, IBasic<B>& result) const;
+  void Atperiods(const Periods& per, MBasic<B>& result) const;
   void Initial(IBasic<B>& result) const;
   void Final(IBasic<B>& result) const;
   void Inside(const typename B::coll& coll, MBool& result) const;
@@ -333,6 +334,7 @@ class MBasics : public Attribute {
   void At(const B& bs, MBasics<B>& result) const;
   void DefTime(Periods& per) const;
   void Atinstant(const Instant& inst, IBasics<B>& result) const;
+  void Atperiods(const Periods& per, MBasics<B>& result) const;
   void Initial(IBasics<B>& result) const;
   void Final(IBasics<B>& result) const;
   void Fill(MBasics<B>& result, DateTime& duration) const;
@@ -2029,6 +2031,71 @@ void MBasic<B>::Atinstant(const Instant& inst, IBasic<B>& result) const {
 }
 
 /*
+\subsection{Function ~Atperiods~}
+
+*/
+template<class B>
+void MBasic<B>::Atperiods(const Periods& per, MBasic<B>& result) const {
+  result.Clear();
+  result.SetDefined(IsDefined() && per.IsDefined());
+  if (!IsDefined() || !per.IsDefined()) {
+    return;
+  }
+  if (IsEmpty() || per.IsEmpty()) {
+    return;
+  }
+  if (IsMaximumPeriods(per)) {
+    result.CopyFrom(this);
+    return;
+  }
+  assert(per.IsOrdered());
+  SecInterval ivS(true), ivP(true), ivR(true);
+  GetInterval(0, ivS);
+  GetInterval(GetNoComponents() - 1, ivP);
+  if (per.Before(ivS.start) || per.After(ivP.end)) {
+    return;
+  }
+  result.StartBulkLoad();
+  B val(true); // string | pair<string, unsigned int>
+  int i = 0, j = 0;
+  while ((i < GetNoComponents()) && (j < per.GetNoComponents())) {
+    GetInterval(i, ivS); // get source interval
+    per.Get(j, ivP); // get interval from periods
+    GetBasic(i, val); // get source value
+    if (ivS.Before(ivP)) {
+      i++;
+    }
+    else if (ivS.After(ivP)) {
+      j++;
+    }
+    else { // intervals overlap
+      ivS.Intersection(ivP, ivR);
+      ivR.SetDefined(true);
+      result.Add(ivR, val);
+      if (ivS.end == ivP.end) {
+        if (ivS.rc == ivP.rc) {
+          i++;
+          j++;
+        }
+        else if (ivP.rc == true) {
+          i++;
+        }
+        else {
+          j++;
+        }
+      }
+      else if (ivS.end < ivP.end) {
+        i++;
+      }
+      else {
+        j++;
+      }
+    }
+  }
+  result.EndBulkLoad(false);
+}
+
+/*
 \subsection{Function ~Initial~}
 
 */
@@ -2879,6 +2946,70 @@ void MBasics<B>::Atinstant(const Instant& inst,
     result.SetDefined(true);
     result.instant = inst;
   }
+}
+
+/*
+\subsection{Function ~Atperiods~}
+
+*/
+template<class B>
+void MBasics<B>::Atperiods(const Periods& per, MBasics<B>& result) const {
+  result.Clear();
+  result.SetDefined(IsDefined() && per.IsDefined());
+  if (!IsDefined() || !per.IsDefined()) {
+    return;
+  }
+  if (IsEmpty() || per.IsEmpty()) {
+    return;
+  }
+  if (IsMaximumPeriods(per)) {
+    result.CopyFrom(this);
+    return;
+  }
+  assert(per.IsOrdered());
+  SecInterval ivS(true), ivP(true), ivR(true);
+  GetInterval(0, ivS);
+  GetInterval(GetNoComponents() - 1, ivP);
+  if (per.Before(ivS.start) || per.After(ivP.end)) {
+    return;
+  }
+  result.StartBulkLoad();
+  B vals;
+  int i = 0, j = 0;
+  while ((i < GetNoComponents()) && (j < per.GetNoComponents())) {
+    GetInterval(i, ivS); // get source interval
+    per.Get(j, ivP); // get interval from periods
+    GetBasics(i, vals); // get source value
+    if (ivS.Before(ivP)) {
+      i++;
+    }
+    else if (ivS.After(ivP)) {
+      j++;
+    }
+    else { // intervals overlap
+      ivS.Intersection(ivP, ivR);
+      result.Add(ivR, vals);
+      if (ivS.end == ivP.end) {
+        if (ivS.rc == ivP.rc) {
+          i++;
+          j++;
+        }
+        else if (ivP.rc == true) {
+          i++;
+        }
+        else {
+          j++;
+        }
+      }
+      else if (ivS.end < ivP.end) {
+        i++;
+      }
+      else {
+        j++;
+      }
+    }
+  }
+  result.EndBulkLoad(false);
 }
 
 /*
