@@ -59,10 +59,17 @@ public:
    
    void print() {
       pthread_mutex_lock(&mutex);
-      size_t lines = 4 + states.size();
+
+      /*
+      size_t lines = 4 + states.size();   
       cout << "\033[" << lines << "F"; // Move cursor back n lines
       cout << "\033[0J";               // Clear lines below cursor
       cout << "\r";                    // Move cursor back to pos 0
+      */
+      
+      cout << "\033[2J";    // Clear screen
+      cout << "\033[1;1H";  // Move coursor to Line 1 Pos 1
+       
       cout << "================" << endl;
       cout << "Execution state for query: " << query << endl;
       cout << "================" << endl;
