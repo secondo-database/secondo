@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecondoInterface.h"
 #include "NestedList.h"
 #include "NList.h"
+#include "qelogger.h"
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
 #include "heartbeat.h"
@@ -58,9 +59,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // Local Tokenrange   - We have to process the data in the range
 // Foreign Tokenrange - An other worker process has to process the data
 enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE};
-
-// Activate debug messages
-#define __DEBUG__
 
 #define CMDLINE_CASSANDRA_NODE          1<<0
 #define CMDLINE_CASSANDRA_KEYSPACE      1<<1
@@ -121,9 +119,9 @@ public:
      );
  
      if(! result) {
-        cout << "Unable to update last executed query ";
-        cout << "in system_state table" << endl;
-        cout << "CQL Statement: " << ss.str() << endl;
+        LOG_ERROR("Unable to update last executed query "
+          << "in system_state table" << endl
+          << "CQL Statement: " << ss.str() << endl);
         return false;
      }
 
@@ -279,11 +277,7 @@ public:
            if( binary_search(processedIntervals.begin(), 
                              processedIntervals.end(), tokenrange))  {
           
-   #ifdef __DEBUG__
-      //     cout << "[Debug] Skipping already processed TokenRange: " 
-      //           << tokenrange;
-   #endif
-               
+             LOG_DEBUG("Skipping already processed Range: " << tokenrange);
              return false;
            } else {
              WorkerQueue *tokenQueue = (worker->front()) -> getTokenQueue();
@@ -394,40 +388,27 @@ public:
              ++position) {
                 
            size_t realPos = (position + offset) % allTokenRanges.size();
-           TokenRange range = allTokenRanges[realPos];
-
-   #ifdef __DEBUG__                 
-    //         cout << "[Debug] Handling tokenrange: " << range;
-   #endif
+           TokenRange range = allTokenRanges[realPos];              
+           LOG_DEBUG("Handling tokenrange: " << range);
         
            if(range.isLocalTokenRange(ip)) {
-
-   #ifdef __DEBUG__         
-    //                 cout << "[Debug] it's a local token range" << endl;
-   #endif
-          
+             LOG_DEBUG("It's a local token range");
              mode = LOCAL_TOKENRANGE;
            } else {
           
              // refresh heartbeat data
              if( ! updateHeartbeatData(heartbeatData)) {
-                cout << "[Error] Unable to refresh heartbeat data" << endl;
+                LOG_ERROR("Unable to refresh heartbeat data");
              }  
           
              time_t now = time(0) * 1000; // Convert to ms
           
              if(heartbeatData[range.getIp()] + HEARTBEAT_NODE_TIMEOUT > now) {
-   #ifdef __DEBUG__             
-      //          cout << "[Debug] Set to foreign: " << range;
-   #endif            
+               LOG_DEBUG("Set to foreign: " << range);
                mode = FOREIGN_TOKENRANGE;
              } else {
-   #ifdef __DEBUG__             
-     //         cout << "[Debug] Treat range as local, because node is dead: " 
-     //              << range << " last update " << heartbeatData[range.getIp()]
-     //              << endl;
-   #endif
-                 
+               LOG_DEBUG("Treat range as local, because node is dead: " 
+                 << range << " Hartbeat: " << heartbeatData[range.getIp()]);
              }
            }
         
@@ -727,6 +708,7 @@ int main(int argc, char* argv[]){
   cmdline_args_t cmdline_args;
   vector<SecondoWorker*> worker;
   QueryexecutorState queryExecutorState;
+  Logger::open();
 
   parseCommandline(argc, argv, cmdline_args);
   
@@ -768,8 +750,8 @@ int main(int argc, char* argv[]){
   delete heartbeatUpdater;
   heartbeatUpdater = NULL;
   
-  // Disconnect from cassandra
   disconnectFromCassandra(cassandra);
- 
+  Logger::close();
+   
   return 0;
 }
