@@ -14,6 +14,11 @@ Signature: stream(Tuple) -> stream(Tuple)
 Example  : query (plz feed opticsF[PLZ, 10.0, 5, fun(i1: int, i2: int)i1 - i2] count ) = (plz count)
 Result   :  TRUE
 
+Operator : opticsF2
+Number   : 1
+Signature: stream(Tuple) -> stream(Tuple)
+Example  : query (plz feed opticsF2[PLZ, 10.0, 5, fun(i1: int, i2: int)i1 - i2] count ) = (plz count)
+Result   :  TRUE
 
 Operator : opticsM
 Number   : 1
@@ -21,6 +26,11 @@ Signature: stream(Tuple) -> stream(Tuple)
 Example  : query Kneipen feed opticsM[Name, 10.0, 5] count
 Result   :  284
 
+Operator : opticsM2
+Number   : 1
+Signature: stream(Tuple) x ID x real x int -> stream(Tuple)
+Example  : query Kneipen feed opticsM2[Name, 10.0, 5] count
+Result   :  284
 
 Operator : opticsR2
 Number   : 1

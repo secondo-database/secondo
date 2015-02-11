@@ -49,6 +49,8 @@ This file contains the implementation of the OpticsAlgebra.
 #include "DistFunction.h"
 
 #include "OpticsGen.h"
+#include "SetOfObjectsR.h"
+#include "SetOfObjectsM.h"
 
 #include "Symbols.h"
 
@@ -716,6 +718,82 @@ Value mapping method ~opticsMVM~
   
   return 0;
  }
+
+
+ template <class T, class DistComp>
+ int opticsM2VM1(Word* args, Word& result, int message, Word& local, Supplier s)
+ {
+
+  typedef OpticsGen<T,  
+                   SetOfObjectsM<DistComp,T>,
+                   DistComp> opticsclass;
+
+   opticsclass* info = (opticsclass*) local.addr;
+
+  switch (message)
+  {
+   case OPEN :
+   {
+    if(info){
+      delete info;
+      local.addr=0;
+    }
+        
+    //set the result type of the tuple
+    ListExpr resultType = nl->Second(GetTupleResultType(s));
+    //set the given eps
+    Supplier son = qp->GetSupplier(args[1].addr, 1);
+    Word argument; 
+    qp->Request(son, argument);
+    CcReal* Eps = ((CcReal*) argument.addr);
+    if(!Eps->IsDefined()){
+      return 0;
+    }
+    double eps = Eps->GetValue();
+    if(eps <= 0) {
+       return 0;
+    }
+    
+    //set the given minPts
+    son = qp->GetSupplier(args[1].addr, 2);
+    qp->Request(son, argument);
+    CcInt* MinPts  = ((CcInt*)argument.addr);
+    if(!MinPts->IsDefined()){
+      return 0;
+    }
+    int minPts = MinPts->GetValue();
+    if(minPts < 1){
+       return 0;
+    }
+    //set the index of the attribute in the tuple
+    int attrPos = static_cast<CcInt*>(args[2].addr)->GetIntval();
+    size_t maxMem = qp->GetMemorySize(s)*1024*1024; 
+    double UNDEFINED = -1.0;
+
+    DistComp df;
+    local.addr = new opticsclass(
+                          args[0], attrPos, eps, minPts, 
+                          UNDEFINED, resultType, maxMem, df);
+    return 0;
+   } 
+   case REQUEST : {
+     result.addr = info?info->next():0;
+     return result.addr?YIELD:CANCEL;
+   }
+   case CLOSE : {
+    if(info){
+      delete info;
+      local.addr = 0;
+    }
+    return 0;
+   }
+  }
+  return 0;
+}
+
+
+
+
 /*
 Selection method for value mapping array ~opticsMDisSL~
 
@@ -763,6 +841,16 @@ Value mapping array ~opticsMDisVM[]~
  ,opticsMVM<CcString*, StringDist>
  ,opticsMVM<Picture*, PictureDist>
  };
+
+ ValueMapping opticsM2VM[] = 
+ {
+  opticsM2VM1<CcInt, IntDist>
+ ,opticsM2VM1<CcReal, RealDist>
+ ,opticsM2VM1<Point, PointDist>
+ ,opticsM2VM1<CcString, StringDist>
+ ,opticsM2VM1<Picture, PictureDist>
+ };
+
 /*
 Type mapping method ~opticsFTM~
 
@@ -870,6 +958,7 @@ Type mapping method ~opticsFTM~
    ,nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType())
      ,newAttrList)));
  } 
+
 /*
 Value mapping method ~opticsFVM~
 
@@ -1027,6 +1116,85 @@ Value mapping method ~opticsFVM~
   
   return 0;
  }
+
+
+ template <class T, class DistComp>
+ int opticsMF2VM1(Word* args, Word& result, 
+                  int message, Word& local, Supplier s)
+ {
+
+  typedef OpticsGen<T,  
+                   SetOfObjectsM<DistComp,T>,
+                   DistComp> opticsclass;
+
+   opticsclass* info = (opticsclass*) local.addr;
+
+  switch (message)
+  {
+   case OPEN :
+   {
+    if(info){
+      delete info;
+      local.addr=0;
+    }
+        
+    //set the result type of the tuple
+    ListExpr resultType = nl->Second(GetTupleResultType(s));
+    //set the given eps
+    Supplier son = qp->GetSupplier(args[1].addr, 1);
+    Word argument; 
+    qp->Request(son, argument);
+    CcReal* Eps = ((CcReal*) argument.addr);
+    if(!Eps->IsDefined()){
+      return 0;
+    }
+    double eps = Eps->GetValue();
+    if(eps <= 0) {
+       return 0;
+    }
+    
+    //set the given minPts
+    son = qp->GetSupplier(args[1].addr, 2);
+    qp->Request(son, argument);
+    CcInt* MinPts  = ((CcInt*)argument.addr);
+    if(!MinPts->IsDefined()){
+      return 0;
+    }
+    int minPts = MinPts->GetValue();
+    if(minPts < 1){
+       return 0;
+    }
+    //set the index of the attribute in the tuple
+    int attrPos = static_cast<CcInt*>(args[2].addr)->GetIntval();
+    size_t maxMem = qp->GetMemorySize(s)*1024*1024; 
+    double UNDEFINED = -1.0;
+
+    son = qp->GetSupplier(args[1].addr, 3);
+    DistComp df(qp,son);
+    //df.initialize(qp, son);
+    local.addr = new opticsclass(
+                          args[0], attrPos, eps, minPts, 
+                          UNDEFINED, resultType, maxMem, df);
+    return 0;
+   } 
+   case REQUEST : {
+     result.addr = info?info->next():0;
+     return result.addr?YIELD:CANCEL;
+   }
+   case CLOSE : {
+    if(info){
+      delete info;
+      local.addr = 0;
+    }
+    return 0;
+   }
+  }
+  return 0;
+}
+
+
+
+
 /*
 Selection method for value mapping array ~opticsFDisSL~
 
@@ -1048,6 +1216,14 @@ Value mapping array ~opticsFDisVM[]~
   opticsFVM<Attribute*, CustomDist<Attribute*, CcInt> >,
   opticsFVM<Attribute*, CustomDist<Attribute*, CcReal> >
  };
+
+ ValueMapping opticsF2VM[] = 
+ {
+  opticsMF2VM1<Attribute, CustomDist<Attribute*, CcInt> >,
+  opticsMF2VM1<Attribute, CustomDist<Attribute*, CcReal> >
+ };
+
+
 /*
 Struct ~opticsInfoR~
 
@@ -1110,6 +1286,27 @@ Struct ~opticsInfoM~
    example   = "query Kneipen feed opticsM[Name, 10.0, 5] consume";
   }
  };
+
+
+ struct opticsInfoM2 : OperatorInfo
+ {
+  opticsInfoM2() : OperatorInfo()
+  {
+   name      = "opticsM2";
+   signature = "stream(Tuple) -> stream(Tuple)";
+   syntax    = "_ opticsM2 [_, _, _]";
+   meaning   = "This operator will ordering data to identify the cluster "
+               "structure. The operator uses the MMMTree index structure. The "
+               "first paramater has to be a stream of tuple, the second is the "
+               "attribute for clustering, the third is eps and the fourth is "
+               "MinPts. The return value is a stream of tuples."
+               "The supported types to cluster are point, picture, int, real "
+               "and string.";
+   example   = "query Kneipen feed opticsM2[Name, 10.0, 5] consume";
+  }
+ };
+
+
 /*
 Struct ~opticsInfoF~
 
@@ -1134,6 +1331,25 @@ Struct ~opticsInfoF~
    }
  };
 
+ struct opticsInfoF2 : OperatorInfo
+ {
+  opticsInfoF2() : OperatorInfo()
+  {
+   name      = "opticsF2";
+   signature = "stream(Tuple) x Id x real x int x fun -> stream(Tuple)";
+   syntax    = "_ opticsF [_, _, _, fun]";
+   meaning   = "This operator will ordering data to identify the cluster "
+               "structure. The operator uses the MMMTree index structure. The "
+               "first paramater has to be a stream of tuple, the second is the "
+               "attribute for clustering, the third is eps, the fourth is "
+               "MinPts and the sixth is the distance function. The return "
+               "value is a stream of tuples."
+               "The supported types to cluster are point, picture, int, real "
+               "and string.";
+   example   = "query plz feed opticsF2[PLZ, 10.0, 5, fun(i1: int, i2: int)"
+               "i1 - i2] consume";
+   }
+ };
 
 
 /*
@@ -1355,9 +1571,20 @@ Algebra class ~ClusterOpticsAlgebra~
     Operator* opm = 
         AddOperator(opticsInfoM(), opticsMDisVM, opticsMDisSL, opticsMTM);
     opm->SetUsesMemory();
+
+    Operator* opm2 = 
+        AddOperator(opticsInfoM2(), opticsM2VM, opticsMDisSL, opticsMTM);
+    opm2->SetUsesMemory();
+
+
     Operator* opf = 
         AddOperator(opticsInfoF(), opticsFDisVM, opticsFDisSL, opticsFTM);
     opf->SetUsesMemory();
+    
+
+    Operator* opf2 = 
+        AddOperator(opticsInfoF2(), opticsF2VM, opticsFDisSL, opticsFTM);
+    opf2->SetUsesMemory();
 
     AddOperator(&extractDbScanOP);
 

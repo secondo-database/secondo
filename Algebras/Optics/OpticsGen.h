@@ -69,7 +69,7 @@ typedef OrderSeeds<SoO> ORDERSEEDS;
     minPts(_minPts),  
     UNDEFINED(_UNDEFINED), distfun(_distfun){
       Stream<Tuple> stream(_instream);
-      setOfObjects = new SoO(stream, attrPos, distfun, _eps,
+      setOfObjects = new SoO(stream, attrPos, _distfun, _eps,
                               maxMem, _resultType);
       orderSeeds = new ORDERSEEDS(setOfObjects, UNDEFINED);
       optics();

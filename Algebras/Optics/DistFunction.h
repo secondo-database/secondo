@@ -235,13 +235,33 @@ namespace clusteropticsalg
   private:
    QueryProcessor* qp;
    Supplier fun;
+   ArgVectorPointer funargs;
  
   public:  
    void initialize(QueryProcessor* queryProcessor, Supplier function)
    {
     qp = queryProcessor;
     fun = function;
+    funargs = qp->Argument(fun);
    }
+
+   CustomDist(): qp(0), fun(0) { }
+
+   CustomDist(QueryProcessor * _qp, Supplier _fun ): qp(_qp), fun(_fun){
+      funargs = qp->Argument(fun);
+   }
+
+   CustomDist( const CustomDist& src): 
+        qp(src.qp), fun(src.fun), funargs(src.funargs) {}
+
+   CustomDist& operator=(const CustomDist& src){
+      this->qp = src.qp;
+      this->fun = src.fun;
+      funargs = qp->Argument(fun);
+      return *this; 
+   }
+
+
    
    double operator()(const pair<T,TupleId>& p1 ,const pair<T,TupleId>& p2) {
        return operator()(p1.first, p2.first);
@@ -251,7 +271,9 @@ namespace clusteropticsalg
     cnt++;
     assert(p1);
     assert(p2);
-   
+
+    
+
     if(!p1->IsDefined() && !p2->IsDefined())
     {
      return 0;
@@ -261,16 +283,30 @@ namespace clusteropticsalg
     {
      return numeric_limits<double>::max();
     }
+
+    T v1 = (T) (*funargs)[0].addr;
+    T v2 = (T) (*funargs)[1].addr;
+    cout << "current funargs " ; if(v1 && v2 ) { v1->Print(cout) 
+         << ", " ;  v2->Print(cout) << endl;} else {cout << "not init" << endl;}
     
+    funargs = qp->Argument(fun);
+    (*funargs)[0] = SetWord(p1);
+    (*funargs)[1] = SetWord(p2); 
+    
+     cout << "Compute Distance between "; p1->Print(cout) 
+           << " and " ; p2->Print(cout) << endl;
+
     Word funRes;
-    ArgVectorPointer vector;
-    vector = qp->Argument(fun);
-    ((*vector)[0]).setAddr(p1);
-    ((*vector)[1]).setAddr(p2);
     qp->Request(fun, funRes);
+
     
     R* result;
     result = (R*) funRes.addr;
+
+    if(!result->IsDefined()){
+       return numeric_limits<double>::max();
+    }
+
         
     double c = result->GetValue();
 
