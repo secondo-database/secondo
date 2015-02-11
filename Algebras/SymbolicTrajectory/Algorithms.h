@@ -3171,7 +3171,6 @@ ExtBool Pattern::matches(M *m) {
     cout << "pattern is not suitable for type " << M::BasicType() << endl;
     return result;
   }
-/*  cout << nfa2String() << endl;*/
   Match<M> *match = new Match<M>(this, m);
   if (initEasyCondOpTrees()) {
     result = match->matches();
