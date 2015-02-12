@@ -23,6 +23,10 @@ commute(X # Y, Y # X).
 
 */
 
+
+
+
+	/* not used any more
 sel(plz:ort = staedte:sName, 0.0031).
 sel(plz:pLZ = (plz:pLZ)+1, 0.00001644).
 sel((plz:pLZ)-1 = plz:pLZ, 0.00001644).
@@ -40,6 +44,7 @@ sel(staedte:bev > 300000, 0.26).
 sel(staedte:bev < 500000, 0.79).
 sel(staedte:kennzeichen starts "F", 0.034).
 sel(staedte:kennzeichen starts "W", 0.068).
+	*/
 
 /*
 
@@ -193,14 +198,14 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
   dynamicPossiblyRename(Rel2, Rel2Query),
   Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
 
-sels(Pred, Sel) :-
-  sel(Pred, Sel),
-  !.
+% sels(Pred, Sel) :-
+%  sel(Pred, Sel),
+%  !.
 
-sels(Pred, Sel) :-
-  commute(Pred, Pred2),
-  sel(Pred2, Sel),
-  !.
+% sels(Pred, Sel) :-
+%   commute(Pred, Pred2),
+%   sel(Pred2, Sel),
+%   !.
 
 sels(Pred, Sel) :-
   storedSel(Pred, Sel),
@@ -260,8 +265,8 @@ selectivity(pr(Pred, Rel), Sel) :-
   cardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
-  %write(QueryAtom),
+  write('selectivity query : '),
+  write(QueryAtom), nl,
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1)/ SampleCard,		% must not be 0
   write('selectivity : '),
@@ -281,8 +286,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   dynamicCardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
-  %write(QueryAtom),
+  write('selectivity query : '),
+  write(QueryAtom), nl,
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('selectivity : '),
