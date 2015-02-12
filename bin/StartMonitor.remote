@@ -8,7 +8,7 @@
       port=`grep ^SecondoPort SecondoConfig.ini | sed -e 's@SecondoPort=@@g'`
       sechome=`grep ^SecondoHome SecondoConfig.ini | sed -e 's@SecondoHome=@@g'`
     else
-      echo "Error: Cannot determin SecondoConfig file!"
+      echo "Error: Cannot determine SecondoConfig file!"
       exit 1;
     fi
   else
