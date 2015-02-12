@@ -2026,16 +2026,17 @@ dijkstra1(Boundary, _, _, found) :- !,
 dijkstra1(Boundary, _, _, _) :- b_isEmpty(Boundary).
 
 dijkstra1(Boundary, Dest, N, _) :-
-%%	nl, nl,
-%%	write('dijkstra1 called.'), nl,
-%%        write('Boundary = '), write(Boundary), nl, write('====='), nl, 
+%	nl, nl,
+%	write('dijkstra1 called.'), nl,
+%        write('Boundary = '), write(Boundary), nl, write('====='), nl, 
   b_removemin(Boundary, Node, Bound2),
   Node = node(Name, _, _),
-%%	write('Node = '), write(Name), nl,
+%	write('Node = '), write(Name), nl,
   assert(center(Name, Node)),
+%        write('Center = '), writeCenter, nl, write('====='), nl, 
   checkDest(Name, Dest, N, Found),
   putsuccessors(Bound2, Node, Bound3),
-%%	write('putsuccessors succeeded.'), nl,
+%	write('putsuccessors succeeded.'), nl,
   N1 is N+1,
   dijkstra1(Bound3, Dest, N1, Found).
 
@@ -2058,7 +2059,7 @@ writeCenter1 :-
   center(_, node(Name, Distance, Path)),
   write('Node: '), write(Name), nl,
   write('Cost: '), write(Distance), nl,
-  write('Path: '), nl, writePath(Path), nl, fail.
+  write('Path: '), nl, write(Path), nl, fail.
 
 writePath([]).
 writePath([costEdge(Source, Target, Term, Result, Size, Cost) | Path]) :-
@@ -2078,10 +2079,13 @@ the center, updating their distance if they are already present, to obtain
 putsuccessors(Boundary, Node, BoundaryNew) :-  
   findall(Succ, successor(Node, Succ), Successors),
 
-    % write('successors of '), write(Node), nl,
-    % writeList(Successors), nl, nl,
+%    write('successors of '), write(Node), nl,
+%    writeList(Successors), nl, nl,
 
-  putsucc1(Boundary, Successors, BoundaryNew). 
+  putsucc1(Boundary, Successors, BoundaryNew).
+
+%    write('the new boundary is: '), write(BoundaryNew), 
+%    nl, write('====='), nl. 
  
 /* 
 ----    putsucc1(Boundary, Successors, BoundaryNew) :- 
@@ -2141,7 +2145,7 @@ putsucc1(Boundary, [simplenode(N, D, P) | Successors], BNew) :-
 
 insertIfNotDominated(Boundary, simplenode(N, D, P), [], Version, BoundaryOut) :-
   b_insert(Boundary, node(n(N, Version), D, P), BoundaryOut).
-%%	nl, write('***** inserted '), write(node(n(N, Version), D, P)), nl.
+%	nl, write('***** inserted '), write(node(n(N, Version), D, P)), nl.
 
 insertIfNotDominated(Boundary, simplenode(N, D, [Path, Prop]), 
   [node(n(N, V), DistOld, [_, PropOld]) | Nodes], Version, BoundaryOut) :-
@@ -2156,7 +2160,7 @@ insertIfNotDominated(Boundary, simplenode(N, D, [Path, Prop]),
 
 insertIfNotDominated(Boundary, simplenode(N, D, [_, Prop]), 
   [node(n(N, _), DistOld, [_, PropOld]) | _], _, Boundary) :-
-%% write('***** NOT inserted '), write(simplenode(N, D, [Path, Prop])), nl,
+% nl, write('***** NOT inserted '), write(simplenode(N, D, [Path, Prop])), nl,
   D >= DistOld,
   included(Prop, PropOld).	% is dominated and can be ignored.  
 
@@ -2167,14 +2171,14 @@ removeThoseDominated(Boundary, simplenode(_, _, [_, _]), [], Boundary).
 
 removeThoseDominated(Boundary, simplenode(N, D, [Path, Prop]), 
   [node(n(N, _), DistOld, [_, PropOld]) | Nodes], Boundary2) :-
-  ( DistOld < D ; otherProperties(PropOld, Prop) ), !,	% not dominated
+  ( DistOld =< D ; otherProperties(PropOld, Prop) ), !,	% not dominated
   removeThoseDominated(Boundary, simplenode(N, D, [Path, Prop]), Nodes, 
     Boundary2).
   
 removeThoseDominated(Boundary, simplenode(N, D, [Path, Prop]), 
   [node(n(N, V), _, [_, _]) | Nodes], Boundary3) :-
   b_deleteByName(Boundary, n(N, V), Boundary2),
-%%	nl, write('***** deleted '), write(n(N, V)), nl,
+%	nl, write('***** deleted '), write(n(N, V)), nl,
   removeThoseDominated(Boundary2, simplenode(N, D, [Path, Prop]), Nodes, 
     Boundary3).
 
