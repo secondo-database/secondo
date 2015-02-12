@@ -284,18 +284,10 @@ namespace clusteropticsalg
      return numeric_limits<double>::max();
     }
 
-    T v1 = (T) (*funargs)[0].addr;
-    T v2 = (T) (*funargs)[1].addr;
-    cout << "current funargs " ; if(v1 && v2 ) { v1->Print(cout) 
-         << ", " ;  v2->Print(cout) << endl;} else {cout << "not init" << endl;}
-    
     funargs = qp->Argument(fun);
     (*funargs)[0] = SetWord(p1);
     (*funargs)[1] = SetWord(p2); 
     
-     cout << "Compute Distance between "; p1->Print(cout) 
-           << " and " ; p2->Print(cout) << endl;
-
     Word funRes;
     qp->Request(fun, funRes);
 
