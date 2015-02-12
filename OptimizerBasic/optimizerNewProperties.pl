@@ -1699,7 +1699,7 @@ cost(product(X, Y), _, S, C) :-
   cost(Y, 1, SizeY, CostY),
   productTC(A, B),
   S is SizeX * SizeY,
-  C is CostX + CostY + SizeY * B + S * A.
+  C is CostX + CostY + SizeY * A + S * B.
 
 
 cost(leftrange(_, Rel, _), Sel, Size, Cost) :-
@@ -1713,6 +1713,7 @@ cost(rightrange(_, Rel, _), Sel, Size, Cost) :-
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
+
 
 /*
 
@@ -1730,22 +1731,26 @@ overall index join cost.
 */
 cost(exactmatchfun(_, Rel, _), Sel, Size, Cost) :-
   cost(Rel, 1, RelSize, _),
-  exactmatchTC(C),
+  exactmatchTC(A, B, C, D),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * C.
+  Cost is A + B * (log10(RelSize) - C) +	% query cost
+    Sel * RelSize * D.				% size of result
 
 cost(exactmatch(_, Rel, _), Sel, Size, Cost) :-
   cost(Rel, 1, RelSize, _),
-  exactmatchTC(C),
+  exactmatchTC(A, B, C, D),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * C.
+  Cost is A + B * (log10(RelSize) - C) +	% query cost
+    Sel * RelSize * D.				% size of result
 
 cost(loopjoin(X, Y), Sel, S, Cost) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, Sel, SizeY, CostY),
   S is SizeX * SizeY,
-  loopjoinTC(C),
-  Cost is C * SizeX + CostX + SizeX * CostY.
+  loopjoinTC(A),
+  Cost is CostX +		% producing the first argument
+    SizeX * A + 		% base cost for loopjoin 
+    SizeX * CostY.		% sum of query costs
 
 cost(fun(_, X), Sel, Size, Cost) :-
   cost(X, Sel, Size, Cost).
@@ -1767,22 +1772,22 @@ cost(hashjoin(X, Y, _, _, 999997), Sel, S, C) :-
 cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
-  sortmergejoinTC(A, B),
+  sortmergejoinTC(A, B, D),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                % producing the arguments
-    A * SizeX * log(SizeX + 1) +
-    A * SizeY * log(SizeY + 1) +        % sorting the arguments
-    B * S.                           % parallel scan of sorted relations
+  C is CostX + CostY + 		% producing the arguments
+    A * (SizeX + SizeY) +	% sorting the arguments
+    B * (SizeX + SizeY) +	% merge step
+    D * S.          		% cost of results
 
 
 cost(mergejoin(X, Y, _, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
-  sortmergejoinTC(_, B),
+  sortmergejoinTC(_, B, D),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                % producing the arguments
-    B * S.                           % parallel scan of sorted relations
-
+  C is CostX + CostY + 		% producing the arguments
+    B * (SizeX + SizeY) +	% merge step
+    D * S.          		% cost of results
 
 
 cost(extend(X, _), Sel, S, C) :-
@@ -1804,6 +1809,7 @@ cost(rename(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),
   renameTC(A),
   C is C1 + A * S.
+
 
 /*
 8.2 Creating Cost Edges

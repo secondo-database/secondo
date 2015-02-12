@@ -1583,22 +1583,26 @@ overall index join cost.
 */
 cost(exactmatchfun(_, Rel, _), Sel, Size, Cost) :-
   cost(Rel, 1, RelSize, _),
-  exactmatchTC(C),
+  exactmatchTC(A, B, C, D),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * C.
+  Cost is A + B * (log10(RelSize) - C) +	% query cost
+    Sel * RelSize * D.				% size of result
 
 cost(exactmatch(_, Rel, _), Sel, Size, Cost) :-
   cost(Rel, 1, RelSize, _),
-  exactmatchTC(C),
+  exactmatchTC(A, B, C, D),
   Size is Sel * RelSize,
-  Cost is Sel * RelSize * C.
+  Cost is A + B * (log10(RelSize) - C) +	% query cost
+    Sel * RelSize * D.				% size of result
 
 cost(loopjoin(X, Y), Sel, S, Cost) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, Sel, SizeY, CostY),
   S is SizeX * SizeY,
-  loopjoinTC(C),
-  Cost is C * SizeX + CostX + SizeX * CostY.
+  loopjoinTC(A),
+  Cost is CostX +		% producing the first argument
+    SizeX * A + 		% base cost for loopjoin 
+    SizeX * CostY.		% sum of query costs
 
 cost(fun(_, X), Sel, Size, Cost) :-
   cost(X, Sel, Size, Cost).
