@@ -22,6 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef MMMTREE_H
+#define MMMTREE_H
+
 #include <assert.h>
 #include <cstdlib> 
 #include <utility>
@@ -1252,6 +1255,6 @@ Performs a split up to the root of this tree.
 
 
 
-
+#endif
 
 
