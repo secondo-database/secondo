@@ -26,8 +26,6 @@ constants below are quite accurate e.g. for examples 14 to
 
 leftrangeTC(10).
 
-exactmatchTC(10.0).
-
 extendTC(1.5).
 
 removeTC(0.6).
@@ -355,6 +353,19 @@ sortmergejoinTC(12.18, 2.48, 1.75).
 /* 
 1.10 loopjoin
 
+The cost for loopjoin is linear in the size of the first argument.
+
+----
+cost(loopjoin(X, Y), Sel, S, Cost) :-
+  cost(X, 1, SizeX, CostX),
+  cost(Y, Sel, SizeY, CostY),
+  S is SizeX * SizeY,
+  loopjoinTC(A),
+  Cost is CostX +		% producing the first argument
+    SizeX * A + 		% base cost for loopjoin 
+    SizeX * CostY.		% sum of query costs
+----
+
 Create an empty relation: 
 
 ----
@@ -429,12 +440,53 @@ Curve fitting results in a running time for all queries in the loopjoin of 80 + 
 
 Per query (and subtracting the base cost) this is ((80000000 - 14400000) / 2062619) + (59000000 / 2062619) * ($\log_{10} N - 3.301$) = 31.80 + 28.60 * ($\log_{10} N - 3.301$) microseconds.
 
+
+The following two queries differ only in producing result tuples:
+
 ----
-query plz100Even feed {p1} loopjoin[plz100Even_R plz100Even 
+query plz100Even feed head[500000] {p1} loopjoin[plz100Odd_R plz100Odd 
 exactmatch[.R_p1] {p2}] count
+
+Result 0
+78.24, 40.98, 41.21 => 41 seconds
+
+
+query plz100Even feed head[500000] {p1} loopjoin[plz100Even_R plz100Even 
+exactmatch[.R_p1] {p2}] count
+
+Result 2563645
+180, 86, 85 seconds
+----
+
+One can observe that there is a big difference between cold and warm buffer states.
+
+The time difference in warm state is 85 - 41 seconds = 44 seconds. Per tuple 44000000 / 2563645 = 17.16 microseconds.
+
+Hence the cost for the exactmatch is
+
+----
+cost(exactmatch(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
+  exactmatchTC(A, B, C, D),
+  Size is Sel * RelSize,
+  Cost is A + B * (log10(RelSize) - C) +	% query cost
+    Sel * RelSize * D.				% size of result
+----
+
+Adapting to machine factor:
+
+----
+31.8 * 1.14 = 36.25
+28.6 * 1.14 = 32.6
+17.16 * 1.14 = 19.56
 ----
 
 */
+
+exactmatchTC(36.25, 32.6, 3.3, 19.56).
+
+
+
 
 
 
