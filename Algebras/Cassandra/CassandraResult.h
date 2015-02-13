@@ -43,12 +43,14 @@
 #define _CASSANDRA_RESULT_H
 
 #include <queue>
+#include "CassandraHelper.h"
 #include "CassandraAdapter.h"
 
 using namespace std;
 
 //namespace to avoid name conflicts
 namespace cassandra {
+
 
 // Prototype class
 class CassandraAdapter;
@@ -92,11 +94,24 @@ class SingleCassandraResult : public CassandraResult {
   
 public:
 
-     SingleCassandraResult(
-       CassFuture* myFuture) 
-        : future(myFuture), 
-          result(NULL), iterator(NULL), row(NULL),
-          futureWaitCalled(false) {
+     SingleCassandraResult(CassSession* session, CassStatement* myStatement, 
+        bool printError = true) 
+        : statement(myStatement), future(NULL), result(NULL), iterator(NULL), 
+          row(NULL), futureWaitCalled(false) {
+
+         future = cass_session_execute(session, statement);
+     
+         CassError rc = cass_future_error_code(future);
+    
+         if(rc != CASS_OK) {
+
+            if(printError) {
+               cerr << "Unable to execute statement " << endl;
+               CassandraHelper::print_error(future);
+            }   
+ 
+            future = NULL;
+         }
      }
      
      virtual ~SingleCassandraResult() { 
@@ -115,6 +130,11 @@ public:
              cass_future_free(future);
              future = NULL;
          }
+
+         if(statement != NULL) {
+            cass_statement_free(statement);
+            statement = NULL;
+         }
      }
      
      virtual bool hasNext();
@@ -123,6 +143,7 @@ public:
      virtual cass_int64_t getBigIntValue(int pos);
      
 private:
+     CassStatement* statement;
      CassFuture* future;
      const CassResult* result;
      CassIterator* iterator;

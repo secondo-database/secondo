@@ -48,6 +48,7 @@
 #include <cassert>
 #include <cassandra.h>
 
+#include "CassandraHelper.h"
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
 
@@ -541,9 +542,6 @@ CassandraResult* CassandraAdapter::readTableLocal(string relation,
 CassandraResult* CassandraAdapter::readDataFromCassandra(string cql, 
          CassConsistency consistenceLevel, bool printError) {
 
-     CassError rc = CASS_OK;
-     CassFuture* future = NULL;
-      
      if(! isConnected() ) {
         cerr << "Cassandra session not ready" << endl;
         return NULL;
@@ -554,21 +552,7 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string cql,
 
      cass_statement_set_consistency(statement, consistenceLevel);
 
-     future = cass_session_execute(session, statement);
-     
-     cass_statement_free(statement);
-
-     rc = cass_future_error_code(future);
-     if(rc != CASS_OK) {
-        if(printError) {
-            cerr << "Unable to execute " << cql << endl;
-            CassandraHelper::print_error(future);
-        }
-     } else {
-         return new SingleCassandraResult(future);
-     }
-
-    return NULL;
+     return new SingleCassandraResult(session, statement, printError);
 }
 
 

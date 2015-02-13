@@ -57,6 +57,7 @@
 #include <limits.h>
 #include <vector>
 
+#include "CassandraHelper.h"
 #include "CassandraResult.h"
 
 using namespace std;
@@ -67,70 +68,6 @@ namespace cassandra {
 // Prototype classes
 class CassandraResult;
 class CassandraToken;
-
-/*
-2.1 Helper Classes
-
-*/
-class CassandraHelper {
-
-public:
-  
-/*
-2.1.1 Return true if the string matches a known
-      Consistence level, false otherwise
-
-*/
-    static bool checkConsistenceLevel(string consistenceLevel) {
-        if ((consistenceLevel.compare("ANY") == 0)
-                || (consistenceLevel.compare("ONE") == 0)
-                || (consistenceLevel.compare("QUORUM") == 0)
-                || (consistenceLevel.compare("ALL") == 0)) {
-
-            return true;
-        }
-
-        return false;
-    }
-    
-/*
-2.1.1 Converts a string into a ~cql\_consistency\_enum~
-
-*/    
-    static CassConsistency convertConsistencyStringToEnum
-      (string consistenceLevel) {
-        
-        if(consistenceLevel.compare("ANY") == 0) {
-          return CASS_CONSISTENCY_ANY;
-        }
-        
-        if(consistenceLevel.compare("ONE") == 0) {
-          return CASS_CONSISTENCY_ONE;
-        }
-        
-        if(consistenceLevel.compare("QUORUM") == 0) {
-          return CASS_CONSISTENCY_QUORUM;
-        }
-        
-        if(consistenceLevel.compare("ALL") == 0) {
-          return CASS_CONSISTENCY_ALL;
-        }
-        
-        return CASS_CONSISTENCY_ONE;
-    }
-
-/*
-2.1.2 Get the error message from a future and print it 
-
-1. Parameter is the future 
-
-*/
-  static void print_error(CassFuture* future) {
-    CassString message = cass_future_error_message(future);
-    fprintf(stderr, "Error: %.*s\n", (int)message.length, message.data);
-  }
- 
-};
 
 /*
 2.4 Helper Class Token Interval

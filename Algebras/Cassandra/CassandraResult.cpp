@@ -53,6 +53,11 @@ bool SingleCassandraResult::hasNext() {
   CassError rc = CASS_OK;
   bool hasNext = true;
 
+  // Future could not be prepared
+  if(future == NULL) {
+      return false;
+  }
+
   // Wait for result
   if(! futureWaitCalled ) {
       futureWaitCalled = true;      
