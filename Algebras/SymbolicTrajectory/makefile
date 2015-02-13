@@ -52,30 +52,30 @@ $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
 
 
-scan.o: lex.yy.c
-	        $(CPPC) -c -ggdb -o scan.o lex.pattern.c $(DEFAULTCCFLAGS)
+scan.o: lex.pattern.c
+	        $(CPPC) -c -ggdb -o $@ $< $(DEFAULTCCFLAGS)
 
-lex.yy.c: $(BASE).l parse.o
+lex.pattern.c: $(BASE).l parse.o
 	        flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	        $(CPPC) -c -ggdb -o parse.o $(BASE).tab.c -lstd -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS)
+	        $(CPPC) -c -ggdb -o $@ $< -lstd -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS)
 
 
 $(BASE).tab.c: $(BASE).y
 	        bison -v -d $(BASE).y
 
 PatternRegExScanner.o: PatternRegExScanner.c
-	$(CC) -fPIC -c $(ALG_INC_DIRS) -I../../include -o PatternRegExScanner.o PatternRegExScanner.c
+	$(CC) -fPIC -c $(ALG_INC_DIRS) -I../../include -o $@ $<
 
 PatternRegExScanner.c: PatternRegExScanner.l PatternRegExParser.y.c
-	$(LEX) -o PatternRegExScanner.c PatternRegExScanner.l
+	$(LEX) -o $@ $<
 
 PatternRegExParser.o:  PatternRegExParser.y.c
-	$(CC) -fPIC -x c++ -c -o PatternRegExParser.o  $(ALG_INC_DIRS) -I../../include PatternRegExParser.y.c
+	$(CC) -fPIC -x c++ -c -o $@  $(ALG_INC_DIRS) -I../../include $<
 
 PatternRegExParser.y.c: PatternRegExParser.y
-	$(YACC) -d -o PatternRegExParser.y.c PatternRegExParser.y
+	$(YACC) -d -o $@ $<
 
 
 # generic rule for cleaning all generated files
