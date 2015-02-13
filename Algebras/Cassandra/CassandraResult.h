@@ -94,10 +94,12 @@ class SingleCassandraResult : public CassandraResult {
   
 public:
 
-     SingleCassandraResult(CassSession* session, CassStatement* myStatement, 
+     SingleCassandraResult(CassSession* mySession, CassStatement* myStatement, 
         bool printError = true) 
-        : statement(myStatement), future(NULL), result(NULL), iterator(NULL), 
-          row(NULL), futureWaitCalled(false) {
+        : session(mySession), statement(myStatement), future(NULL), 
+          result(NULL), iterator(NULL), row(NULL), futureWaitCalled(false) {
+
+         cass_statement_set_paging_size(statement, 100);
 
          future = cass_session_execute(session, statement);
      
@@ -143,6 +145,7 @@ public:
      virtual cass_int64_t getBigIntValue(int pos);
      
 private:
+     CassSession* session;
      CassStatement* statement;
      CassFuture* future;
      const CassResult* result;

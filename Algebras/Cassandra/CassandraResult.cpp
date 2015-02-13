@@ -51,7 +51,7 @@ namespace cassandra {
 bool SingleCassandraResult::hasNext() {
 
   CassError rc = CASS_OK;
-  bool hasNext = true;
+  bool hasNextResult = true;
 
   // Future could not be prepared
   if(future == NULL) {
@@ -61,11 +61,11 @@ bool SingleCassandraResult::hasNext() {
   // Wait for result
   if(! futureWaitCalled ) {
       futureWaitCalled = true;      
-          cass_future_wait(future);
+      cass_future_wait(future);
           
-          rc = cass_future_error_code(future);
+      rc = cass_future_error_code(future);
 
-          if (rc != CASS_OK) {
+      if (rc != CASS_OK) {
              CassandraHelper::print_error(future);
              return false;
       }
@@ -74,13 +74,31 @@ bool SingleCassandraResult::hasNext() {
       iterator = cass_iterator_from_result(result);
   }
 
-  hasNext = cass_iterator_next(iterator);
+  hasNextResult = cass_iterator_next(iterator);
 
-  if(hasNext == true) {
+  if(hasNextResult == true) {
      row = cass_iterator_get_row(iterator);
+  } else {
+     // Get next page
+     bool hasMorePages = cass_result_has_more_pages(result);
+
+     if(hasMorePages) {
+        
+        // Free the old iterator
+        if(iterator != NULL) {
+           cass_iterator_free(iterator); 
+           iterator = NULL;
+        }
+
+        // Set position to next page
+        cass_statement_set_paging_state(statement, result);
+        future = cass_session_execute(session, statement);
+        futureWaitCalled = false;
+        return hasNext();
+     }
   }
 
-  return hasNext;
+  return hasNextResult;
 }
 
 void SingleCassandraResult::getStringValue(string &resultString, int pos) {
