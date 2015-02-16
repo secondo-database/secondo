@@ -281,7 +281,7 @@ public:
 7. Parameter specifies to use synchronus or asynchronus writes
 
 */
-    void writeDataToCassandra(string relation, 
+    bool writeDataToCassandra(string relation, 
         string partition, string node, string key, string value, 
         string consistenceLevel, bool sync);
   
@@ -289,7 +289,7 @@ public:
 2.3.4 Same as writeDataToCassandra, but with prepared statements
 
 */
-    void writeDataToCassandraPrepared(string relation, 
+    bool writeDataToCassandraPrepared(string relation, 
         string partition, string node, string key, string value, 
         string consistenceLevel, bool sync
                              );

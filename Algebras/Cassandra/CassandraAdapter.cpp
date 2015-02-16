@@ -55,6 +55,8 @@
 // Activate debug messages
 //#define __DEBUG__
 
+#define MAX_PENDING_FUTURES 30
+
 using namespace std;
 
 //namespace to avoid name conflicts
@@ -122,34 +124,41 @@ bool CassandraAdapter::isConnected() {
       }
 }
 
-void CassandraAdapter::writeDataToCassandra(string relation, string partition, 
+bool CassandraAdapter::writeDataToCassandra(string relation, string partition, 
         string node, string key, string value, string consistenceLevel, 
         bool sync) {
 
+    bool result = false;
+    
     // Convert consistence level
     CassConsistency consistency
        = CassandraHelper::convertConsistencyStringToEnum(consistenceLevel);
        
     // Write Data and wait for result
     if(sync) {
-      executeCQLSync(
+      result = executeCQLSync(
           getInsertCQL(relation, partition, node, key, value),
           consistency
       );
       
     } else {
-      executeCQLASync(
+      result = executeCQLASync(
           getInsertCQL(relation, partition, node, key, value),
           consistency
       );
     }
+    
+    return result;
 }
 
-void CassandraAdapter::writeDataToCassandraPrepared(string relation, 
+bool CassandraAdapter::writeDataToCassandraPrepared(string relation, 
         string partition, string node, string key, string value, 
         string consistenceLevel, bool sync) {
    
-    CassFuture* future = NULL;
+    if(! isConnected() ) {
+       cerr << "Cassandra session not ready" << endl;
+       return false;
+    }
  
     // If the statement is not prepared, prepare it now 
     if(insertCQLid == NULL) {
@@ -157,7 +166,7 @@ void CassandraAdapter::writeDataToCassandraPrepared(string relation,
        
        if(insertCQLid == NULL) {
          cout << "Unable to prepare CQL insert statement" << endl;
-         return;
+         return false;
        }
     }
    
@@ -176,17 +185,23 @@ void CassandraAdapter::writeDataToCassandraPrepared(string relation,
          cass_string_init(value.c_str()));
  
     // Build future and execute
-    future = cass_session_execute(session, statement);
+    CassFuture* future = cass_session_execute(session, statement);
  
     // Execution sync or async?
     if(sync) {
        executeCQLFutureSync(future);
     } else {
       pendingFutures.push_back(future);
+        
+      while(pendingFutures.size() > MAX_PENDING_FUTURES) {
+           waitForPendingFutures();
+      }
+      
       removeFinishedFutures();
     }
 
-    cass_statement_free(statement);    
+    cass_statement_free(statement);  
+    return true;  
 }
 
 void CassandraAdapter::relationCompleteCallback(string relation) {
@@ -657,7 +672,7 @@ bool CassandraAdapter::executeCQLASync
         return false;
      }
         
-     while(pendingFutures.size() > 50) {
+     while(pendingFutures.size() > MAX_PENDING_FUTURES) {
           waitForPendingFutures();
      }
 
