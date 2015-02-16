@@ -283,6 +283,8 @@ bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
     }
     
     if(! cassandraResult->hasNext() ) {
+      delete cassandraResult;
+      cassandraResult = NULL;
       return false;
     }
     
