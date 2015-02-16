@@ -29,6 +29,13 @@ nodes="node1 node2 node3 node4 node5 node6"
 screensessionServer="dsecondo-server"
 screensessionExecutor="dsecondo-executor"
 
+##
+# Other variables
+##
+done=" \x1b[33;32m[ Done ]\x1b[39;49;00m"
+failed=" \x1b[31;31m[ Failed ]\x1b[39;49;00m"
+
+
 # Scriptname and Path
 pushd `dirname $0` > /dev/null
 scriptpath=`pwd`
@@ -172,7 +179,7 @@ start() {
       echo -n "Starting DSECONDO on Node $node " 
          ssh $node "source .secondorc; $scriptpath/$scriptname start_local > /dev/null"
          #ssh $node "source .secondorc; bash -x $scriptpath/$scriptname start_local > /dev/null"
-      echo "  [ Done ]"
+      echo -e " $done"
    done
 }
 
@@ -183,7 +190,7 @@ stop() {
       echo -n "Stopping DSECONDO on Node $node " 
          ssh $node "source .secondorc; $scriptpath/$scriptname stop_local > /dev/null"
          #ssh $node "source .secondorc; bash -x $scriptpath/$scriptname stop_local > /dev/null"
-      echo "  [ Done ]"
+      echo -e " $done"
 
    done
 }
