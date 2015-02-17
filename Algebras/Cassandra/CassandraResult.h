@@ -116,27 +116,39 @@ public:
          }
      }
      
-     virtual ~SingleCassandraResult() { 
-         
-         if(result != NULL) {
-              cass_result_free(result);
-              result = NULL;     
-         }
-
-         if(iterator != NULL) {
-             cass_iterator_free(iterator);
-             iterator = NULL;
-         }
-
-         if(future != NULL) {
-             cass_future_free(future);
-             future = NULL;
-         }
-
-         if(statement != NULL) {
-            cass_statement_free(statement);
-            statement = NULL;
-         }
+     void freeIterator() {
+        if(iterator != NULL) {
+            cass_iterator_free(iterator);
+            iterator = NULL;
+        }
+     }
+     
+     void freeResult() {
+        if(result != NULL) {
+             cass_result_free(result);
+             result = NULL;     
+        }
+     }
+     
+     void freeFuture() {
+        if(future != NULL) {
+            cass_future_free(future);
+            future = NULL;
+        }
+     }
+     
+     void freeStatement() {
+        if(statement != NULL) {
+           cass_statement_free(statement);
+           statement = NULL;
+        }
+     }
+     
+     virtual ~SingleCassandraResult() {
+         freeIterator();
+         freeResult();
+         freeFuture();
+         freeStatement();
      }
      
      virtual bool hasNext();

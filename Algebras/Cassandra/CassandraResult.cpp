@@ -84,11 +84,9 @@ bool SingleCassandraResult::hasNext() {
 
      if(hasMorePages) {
         
-        // Free the old iterator
-        if(iterator != NULL) {
-           cass_iterator_free(iterator); 
-           iterator = NULL;
-        }
+        // Cleanup data from previous page
+        freeIterator();
+        freeFuture();
 
         // Set position to next page
         cass_statement_set_paging_state(statement, result);
