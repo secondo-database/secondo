@@ -496,26 +496,36 @@ Replace all single quotes with double quotes
 
 /*
 2.3.18 Get the global query state
+  
+1. parameter is the consistency level (optional)
 
 */    
-  CassandraResult* getGlobalQueryState();
+  CassandraResult* getGlobalQueryState(
+   CassConsistency consistency = CASS_CONSISTENCY_ALL);
 
 /*
 2.3.19 Get processed token ranges for query
-
+  
+1. parameter is the result vector
+2. parameter is the id of the query
+3. parameter is the consistency level (optional)
+ 
 */
   bool getProcessedTokenRangesForQuery (
-      vector<TokenRange> &result, int queryId);
+      vector<TokenRange> &result, int queryId,
+      CassConsistency consistency = CASS_CONSISTENCY_ALL);
 
 /*
 2.3.20 Get tokenranges from query
 
 1. parameter result
 2. parameter the query
+3. parameter the consistency level (optional)
 
 */  
   bool getTokenrangesFromQuery (
-    vector<TokenRange> &result, string query);
+    vector<TokenRange> &result, string query, 
+    CassConsistency consistency = CASS_CONSISTENCY_ALL);
 
 /*
 2.3.21 Get tokenranges from system table

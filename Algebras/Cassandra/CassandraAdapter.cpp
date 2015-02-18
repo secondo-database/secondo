@@ -936,7 +936,6 @@ bool CassandraAdapter::dropMetatables() {
        delete result;
      }
      
-     cout << "----> " << ranges.size() << " / " << highestQueryId << endl;
   } while(! ranges.empty() || highestQueryId > 0 || clearTry < 2) ;
  
   return true;
@@ -971,9 +970,12 @@ void CassandraAdapter::getQueriesToExecute(vector<CassandraQuery> &result) {
   sort(result.begin(), result.end(), querySortFunction);
 }
 
-CassandraResult* CassandraAdapter::getGlobalQueryState() {
-    return readDataFromCassandra
-          ("SELECT ip, lastquery FROM system_state", CASS_CONSISTENCY_ALL);
+CassandraResult* CassandraAdapter::getGlobalQueryState(
+    CassConsistency consistency) {
+       
+    string cql("SELECT ip, lastquery FROM system_state");
+    
+    return readDataFromCassandra(cql, consistency);
 }
 
 void CassandraAdapter::quoteCqlStatement(string &query) {
@@ -1035,20 +1037,20 @@ bool CassandraAdapter::getTokenRangesFromSystemtable (
 }
 
 bool CassandraAdapter::getProcessedTokenRangesForQuery (
-    vector<TokenRange> &result, int queryId) {
+    vector<TokenRange> &result, int queryId, CassConsistency consistency) {
   
       stringstream ss;
       ss << "SELECT ip, begintoken, endtoken, queryuuid FROM system_progress ";
       ss << " WHERE queryid = " << queryId;
       
-      return getTokenrangesFromQuery(result, ss.str());
+      return getTokenrangesFromQuery(result, ss.str(), consistency);
 }
 
 bool CassandraAdapter::getTokenrangesFromQuery (
-    vector<TokenRange> &result, string query) {
+    vector<TokenRange> &result, string query, CassConsistency consistency) {
   
   CassError rc = CASS_OK; 
-  CassFuture* future = executeCQL(query, CASS_CONSISTENCY_ALL);
+  CassFuture* future = executeCQL(query, consistency);
  
   cass_future_wait(future);
   rc = cass_future_error_code(future);

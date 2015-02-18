@@ -2349,12 +2349,12 @@ public:
     if(cassandra == NULL) {
         cassandra = CassandraConnectionPool::Instance()->
             getConnection(contactPoint, keyspace, false);
-           
     }
   }
   
   bool getProcessedTokenRangesForQuery(vector<TokenRange> &result) {
-      return cassandra -> getProcessedTokenRangesForQuery(result, queryId);
+      return cassandra -> getProcessedTokenRangesForQuery(
+         result, queryId, CASS_CONSISTENCY_ONE);
   }
   
   time_t getStartTime() {
@@ -2497,7 +2497,8 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
           int highestValue = -1;
           
           // Get the global query state
-          CassandraResult* result = cassandra -> getGlobalQueryState();
+          CassandraResult* result = 
+             cassandra -> getGlobalQueryState(CASS_CONSISTENCY_ONE);
           
           // Determine the highest executed query
           if(result != NULL) {
