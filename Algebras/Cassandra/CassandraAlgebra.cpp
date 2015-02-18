@@ -848,8 +848,9 @@ public:
   }  
   
   bool feed(Tuple* tuple) {
-    
+    bool result;
     stringstream ss;
+    
     ss << tuple -> HashValue(attrIndex);
     string partitionKey = ss.str();
     
@@ -859,7 +860,7 @@ public:
     ss << tupleNumber;
     string tupleNumberStr = ss.str();
     
-    cassandra->writeDataToCassandraPrepared(
+    result = cassandra->writeDataToCassandraPrepared(
                          relationName,
                          partitionKey,
                          systemname,
@@ -869,7 +870,7 @@ public:
     
     ++tupleNumber;
     
-    return true;
+    return result;
   }
   
   size_t getTupleNumber() {
@@ -938,7 +939,6 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
     
       string tupleType = nl->ToString(relTypeList);
       
-      
       cli = new CSpreadLocalInfo(
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
@@ -956,17 +956,18 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
       while ( qp->Received(args[0].addr) ) {      
         
         // Cassandra ready?
-        if(parameterOk) {
+        if(parameterOk && feedOk) {
           feedOk = cli -> feed((Tuple*)elem.addr);
-
+          
           if(! feedOk) {
-            cout << "Unable to write tuple to cassandra" << endl;
+            cout << "Unable to write tuple to cassandra..." << endl;
           }
         }
         
         ((Tuple*)elem.addr)->DeleteIfAllowed();         
         qp->Request(args[0].addr, elem);
       }  
+      
       qp->Close(args[0].addr);
       static_cast<CcInt*>(result.addr)->Set(true, cli -> getTupleNumber());  
       
@@ -976,8 +977,8 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
       cli = NULL;
       
       return YIELD;
-      
   }
+  
   return 0;
 }
 
