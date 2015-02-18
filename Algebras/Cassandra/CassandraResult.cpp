@@ -84,12 +84,14 @@ bool SingleCassandraResult::hasNext() {
 
      if(hasMorePages) {
         
-        // Cleanup data from previous page
-        freeIterator();
-        freeFuture();
-
         // Set position to next page
         cass_statement_set_paging_state(statement, result);
+        
+        // Cleanup data from previous page
+        freeIterator();
+        freeResult();
+        freeFuture();
+
         future = cass_session_execute(session, statement);
         futureWaitCalled = false;
         return hasNext();
