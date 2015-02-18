@@ -971,11 +971,12 @@ void CassandraAdapter::getQueriesToExecute(vector<CassandraQuery> &result) {
 }
 
 CassandraResult* CassandraAdapter::getGlobalQueryState(
-    CassConsistency consistency) {
+    CassConsistency consistency, 
+    bool printError) {
        
     string cql("SELECT ip, lastquery FROM system_state");
     
-    return readDataFromCassandra(cql, consistency);
+    return readDataFromCassandra(cql, consistency, printError);
 }
 
 void CassandraAdapter::quoteCqlStatement(string &query) {
@@ -1037,7 +1038,8 @@ bool CassandraAdapter::getTokenRangesFromSystemtable (
 }
 
 bool CassandraAdapter::getProcessedTokenRangesForQuery (
-    vector<TokenRange> &result, int queryId, CassConsistency consistency) {
+    vector<TokenRange> &result, int queryId, 
+    CassConsistency consistency, bool printError) {
   
       stringstream ss;
       ss << "SELECT ip, begintoken, endtoken, queryuuid FROM system_progress ";
@@ -1047,7 +1049,8 @@ bool CassandraAdapter::getProcessedTokenRangesForQuery (
 }
 
 bool CassandraAdapter::getTokenrangesFromQuery (
-    vector<TokenRange> &result, string query, CassConsistency consistency) {
+    vector<TokenRange> &result, string query, 
+    CassConsistency consistency, bool printError) {
   
   CassError rc = CASS_OK; 
   CassFuture* future = executeCQL(query, consistency);
@@ -1056,7 +1059,10 @@ bool CassandraAdapter::getTokenrangesFromQuery (
   rc = cass_future_error_code(future);
 
   if (rc != CASS_OK) {
-     CassandraHelper::print_error(future);
+     if(printError) {
+        CassandraHelper::print_error(future);
+     }
+     
      return false;
   } 
        

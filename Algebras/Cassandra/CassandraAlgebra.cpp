@@ -2355,7 +2355,7 @@ public:
   
   bool getProcessedTokenRangesForQuery(vector<TokenRange> &result) {
       return cassandra -> getProcessedTokenRangesForQuery(
-         result, queryId, CASS_CONSISTENCY_ONE);
+         result, queryId, CASS_CONSISTENCY_QUORUM, false);
   }
   
   time_t getStartTime() {
@@ -2499,7 +2499,7 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
           
           // Get the global query state
           CassandraResult* result = 
-             cassandra -> getGlobalQueryState(CASS_CONSISTENCY_ONE);
+             cassandra -> getGlobalQueryState(CASS_CONSISTENCY_ALL, false);
           
           // Determine the highest executed query
           if(result != NULL) {
@@ -2520,9 +2520,8 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
           
           qp->UpdateProgress();
 
-          sleep(1);          
-        }
-        
+          sleep(1);
+        }        
       }
       
       static_cast<CcBool*>(result.addr)->Set(true, true);
