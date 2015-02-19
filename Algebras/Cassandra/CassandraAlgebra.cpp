@@ -2379,11 +2379,26 @@ public:
         cassandra = CassandraConnectionPool::Instance()->
             getConnection(contactPoint, keyspace, false);
     }
+    
+    vector <TokenRange> tokenRanges;
+    cassandra -> getAllTokenRanges(tokenRanges);
+    allTokenRanges = tokenRanges.size();
   }
   
   bool getProcessedTokenRangesForQuery(vector<TokenRange> &result) {
       return cassandra -> getProcessedTokenRangesForQuery(
          result, queryId, CASS_CONSISTENCY_QUORUM, false);
+  }
+  
+  bool isQueryComplete() {
+     vector<TokenRange> processedToken;
+     bool result = getProcessedTokenRangesForQuery(processedToken);
+     
+     if(!result) {
+        return false;
+     }
+     
+     return processedToken.size() >= allTokenRanges;
   }
   
   time_t getStartTime() {
@@ -2395,13 +2410,13 @@ public:
   }
   
 private:
-  string contactPoint;         // Contactpoint for our cluster
-  string keyspace;             // Keyspace
-  int queryId;                 // Query id to wait for
-  CassandraAdapter* cassandra; // Our cassandra connection
-  time_t startTime;
+  string contactPoint;             // Contactpoint for our cluster
+  string keyspace;                 // Keyspace
+  int queryId;                     // Query id to wait for
+  CassandraAdapter* cassandra;     // Our cassandra connection
+  time_t startTime;                // Start time of the execution
+  size_t allTokenRanges;           // All token ranges in the cassandra cluster
 };
-
 
 
 class CQueryWaitCostEstimation : public CostEstimation {
@@ -2516,42 +2531,17 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
       local.addr = cli;
  
       cout << "Wait for query id to be executed: " << queryId << endl;
-      
-      CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
-            getConnection(contactPoint, keyspace, false);
-           
-      if(cassandra != NULL && cassandra -> isConnected()) {
-        
-        while (true) {
-          int highestValue = -1;
-          
-          // Get the global query state
-          CassandraResult* result = 
-             cassandra -> getGlobalQueryState(CASS_CONSISTENCY_ALL, false);
-          
-          // Determine the highest executed query
-          if(result != NULL) {
-            while(result -> hasNext()) {
-              int lastExecutedQuery = result -> getIntValue(1);
-              if(lastExecutedQuery > highestValue) {
-                highestValue = lastExecutedQuery;
-              }
-            }
-            
-            delete result;
-          }
-          
-          // Is query executed completely?
-          if(highestValue >= queryId) {
-            break;
+
+      while (true) {
+          if(cli -> isQueryComplete()) {
+             break;
           }
           
           qp->UpdateProgress();
 
           sleep(1);
-        }        
-      }
-      
+      }        
+   
       static_cast<CcBool*>(result.addr)->Set(true, true);
       
       // Delete local info
