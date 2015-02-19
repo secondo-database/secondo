@@ -76,8 +76,10 @@ CassError CassandraAdapter::connect_session(CassSession* session,
    rc = cass_future_error_code(future);
 
    if (rc != CASS_OK) {
+      errorFlag = true;
       CassandraHelper::print_error(future);
    } 
+   
    cass_future_free(future);
    
    return rc;
@@ -219,6 +221,7 @@ const CassPrepared* CassandraAdapter::prepareCQLInsert(string relation) {
         rc = cass_future_error_code(future);
 
         if(rc != CASS_OK) {
+           errorFlag = true;
            CassandraHelper::print_error(future);
         } else {
            result = cass_future_get_prepared(future);
@@ -690,8 +693,8 @@ void CassandraAdapter::removeFinishedFutures(bool force) {
       if(cass_future_ready(future) == cass_true) {
         
         if(cass_future_error_code(future) != CASS_OK) {
-          cerr << "Got error while executing future" << endl;
-          CassandraHelper::print_error(future); 
+           errorFlag = true;
+           CassandraHelper::print_error(future); 
         }
         
         cass_future_free(future);
@@ -716,6 +719,7 @@ bool CassandraAdapter::executeCQLFutureSync(CassFuture* future) {
      cass_future_wait(future);
 
      if(cass_future_error_code(future) != CASS_OK) {
+         errorFlag = true;
          CassandraHelper::print_error(future); 
          result = false;
      }
@@ -751,6 +755,7 @@ bool CassandraAdapter::getTokensFromQuery
      rc = cass_future_error_code(future);
 
      if (rc != CASS_OK) {
+             errorFlag = true;
              CassandraHelper::print_error(future);
              return false;
      }   
@@ -1050,6 +1055,7 @@ bool CassandraAdapter::getTokenrangesFromQuery (
 
   if (rc != CASS_OK) {
      if(printError) {
+        errorFlag = true;
         CassandraHelper::print_error(future);
      }
      
@@ -1134,7 +1140,6 @@ bool CassandraAdapter::getHeartbeatData(map<string, time_t> &result) {
 }
 
 bool CassandraAdapter::getNodeData(map<string, string> &result) {
-
 
  CassandraResult *cas_result = readDataFromCassandra(
             string("SELECT ip, node FROM system_state"), 

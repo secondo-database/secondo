@@ -817,6 +817,8 @@ public:
       
       cassandra = CassandraConnectionPool::Instance()->
             getConnection(contactPoint, keyspace, false);
+      
+      cassandra -> clearErrorFlag();
         
       // Does table exist?
       string resultType = "";
@@ -850,6 +852,19 @@ public:
         cassandra -> freePreparedStatement(statement);
         statement = NULL;
      }
+  }
+  
+  bool operationSuccessfully() {
+     if(cassandra == NULL) {
+        return false;
+     }
+     
+     cassandra -> waitForPendingFutures();
+     
+     bool operationResult = cassandra -> getErrorFlag();
+     cassandra -> clearErrorFlag();
+     
+     return ! operationResult;
   }
   
   bool feed(Tuple* tuple) {
@@ -972,6 +987,11 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
         ((Tuple*)elem.addr)->DeleteIfAllowed();         
         qp->Request(args[0].addr, elem);
       }  
+      
+      bool operationStatus = cli -> operationSuccessfully();
+      if(operationStatus == false) {
+         feedOk = false;
+      }
       
       qp->Close(args[0].addr);
       

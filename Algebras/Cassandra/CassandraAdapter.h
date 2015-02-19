@@ -249,14 +249,14 @@ public:
 
 */
     CassandraAdapter(string myContactpoint, string myKeyspace) 
-      : contactpoint(myContactpoint), keyspace(myKeyspace) {
+      : contactpoint(myContactpoint), keyspace(myKeyspace),
+        errorFlag(false) {
           
     }
     
     virtual ~CassandraAdapter() {
          disconnect();
     }
-    
 
 /*
 2.3.2 Open a connection to the cassandra cluster. If the 1st parameter
@@ -267,6 +267,22 @@ public:
 
 */
     void connect(bool singleNodeLoadBalancing);
+
+/*
+2.3.2 Get error flag
+
+*/
+    bool getErrorFlag() {
+        return errorFlag;
+    }
+
+/*
+2.3.2 Clear error flag
+
+*/
+    void clearErrorFlag() {
+        errorFlag = false;
+    }
 
 /*
 2.3.3 Write a tuple to the cluster
@@ -674,7 +690,10 @@ private:
   CassSession* session;
   
   // Pending futures (e.g. write requests)
-  std::vector<CassFuture*> pendingFutures;             
+  std::vector<CassFuture*> pendingFutures;
+
+  // Error flag
+  bool errorFlag;
 };
 
 } // Namespace
