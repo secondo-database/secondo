@@ -876,8 +876,7 @@ public:
   size_t getTupleNumber() {
     return tupleNumber;
   }
-  
-      
+     
 private:
   string contactPoint;         // Contactpoint for our cluster
   string keyspace;             // Keyspace
@@ -969,10 +968,14 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
       }  
       
       qp->Close(args[0].addr);
-      static_cast<CcInt*>(result.addr)->Set(true, cli -> getTupleNumber());  
+      
+      if(feedOk) {
+         static_cast<CcInt*>(result.addr)->Set(true, cli -> getTupleNumber());
+      } else {
+         static_cast<CcInt*>(result.addr)->Set(true, -1);
+      }
       
       cli -> disconnect();
-      
       delete cli;
       cli = NULL;
       
