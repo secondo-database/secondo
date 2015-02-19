@@ -249,8 +249,7 @@ public:
 
 */
     CassandraAdapter(string myContactpoint, string myKeyspace) 
-      : contactpoint(myContactpoint), keyspace(myKeyspace),
-        insertCQLid(NULL) {
+      : contactpoint(myContactpoint), keyspace(myKeyspace) {
           
     }
     
@@ -289,7 +288,7 @@ public:
 2.3.4 Same as writeDataToCassandra, but with prepared statements
 
 */
-    bool writeDataToCassandraPrepared(string relation, 
+    bool writeDataToCassandraPrepared(const CassPrepared* preparedStatement, 
         string partition, string node, string key, string value, 
         string consistenceLevel, bool sync
                              );
@@ -574,17 +573,34 @@ IP to Noodename
 
 */
   void waitForPendingFutures();
+
+/*
+2.3.26 Create a pepared statement for inserting data into the 
+       relation spoecified in the first parameter.
+       
+*/    
+  const CassPrepared* prepareCQLInsert(string relation);
+
+
+/*
+2.3.27 Free a prepared statement 
+
+1. Parameter is the prepared statement 
+
+*/
+  void freePreparedStatement(const CassPrepared* preparedStatement);
+ 
 protected:
 
 /*
-2.3.26 Execute the given cql future and check for errors. Returns
+2.3.28 Execute the given cql future and check for errors. Returns
        true if the future is executed successfully. False otherwise.
        
 */    
   bool executeCQLFutureSync(CassFuture* cqlFuture);
 
 /*
-2.3.27 Execute the given cql. Returns a future containing the
+2.3.29 Execute the given cql. Returns a future containing the
        Query result.
        
 */    
@@ -592,7 +608,7 @@ protected:
      executeCQL(string cql, CassConsistency consistency);
 
 /*
-2.3.28 Returns a CQL statement for inserting a new row. The
+2.3.30 Returns a CQL statement for inserting a new row. The
        first parameter is the relation for this request. The 
        second parameter is the parition key, the third parameter 
        is the node id. The fourth parameter is the key of the tuple.
@@ -603,14 +619,7 @@ protected:
                       string node, string key, string value);
 
 /*
-2.3.29 Create a pepared statement for inserting data into the 
-       relation spoecified in the first parameter.
-       
-*/    
-  bool prepareCQLInsert(string relation);
-
-/*
-2.3.30 Iterate over all pending futures (e.g. writes), report
+2.3.31 Iterate over all pending futures (e.g. writes), report
        errors and remove finished futures from the future list.
        Normally a cleanup is started only if the condition
        list.length % 100 = 0 is true. 
@@ -620,7 +629,7 @@ protected:
   void removeFinishedFutures(bool force = false);
 
 /*
-2.3.31 Execute a CQL query and extract result tokens
+2.3.32 Execute a CQL query and extract result tokens
 
 1. Parameter is the query to execute
 2. Parameter is the token result list
@@ -631,7 +640,7 @@ protected:
                            string peer);
 
 /*
-2.3.32 Connect to the cassandra cluster 
+2.3.33 Connect to the cassandra cluster 
 
 1. Parameter is the session instance
 2. Parameter is the cassandra cluster 
@@ -640,7 +649,6 @@ protected:
   CassError connect_session(CassSession* session, 
                                  const CassCluster* cluster);   
 
- 
 private:
 
   // Our cassandra contact point
@@ -658,15 +666,9 @@ private:
   // Cassandra session
   CassSession* session;
   
-  // Query ID for prepared insert statement
-  const CassPrepared* insertCQLid;  
-
   // Pending futures (e.g. write requests)
   std::vector<CassFuture*> pendingFutures;             
-      
 };
-
-
 
 } // Namespace
 

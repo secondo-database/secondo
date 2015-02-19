@@ -803,7 +803,7 @@ public:
     : contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence), 
     systemname(mySystemname), attrIndex(myAttrIndex), tupleType(myTupleType), 
-    tupleNumber(0) {
+    tupleNumber(0), statement(NULL) {
       
 #ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
@@ -828,6 +828,8 @@ public:
         cassandra -> createTable(relationName, tupleType);
       }
       
+      statement = cassandra->prepareCQLInsert(relationName);
+      
       if(sizeof(size_t) < 8) {
         cout << "WARNING: Your size_t datatype is smaller then 8 bytes. ";
         cout << endl;
@@ -840,12 +842,15 @@ public:
   }
   
   virtual ~CSpreadLocalInfo() {
-    disconnect();
+    freePreparedStatement();
   }
   
-  void disconnect() {
-      cassandra->relationCompleteCallback(relationName);
-  }  
+  void freePreparedStatement() {
+     if(statement != NULL) {
+        cassandra -> freePreparedStatement(statement);
+        statement = NULL;
+     }
+  }
   
   bool feed(Tuple* tuple) {
     bool result;
@@ -861,7 +866,7 @@ public:
     string tupleNumberStr = ss.str();
     
     result = cassandra->writeDataToCassandraPrepared(
-                         relationName,
+                         statement,
                          partitionKey,
                          systemname,
                          tupleNumberStr, 
@@ -887,6 +892,7 @@ private:
   string tupleType;            // Type of the tuples (Nested List String)
   size_t tupleNumber;          // Number of the current tuple
   CassandraAdapter *cassandra; // Cassandra connection
+  const CassPrepared *statement; // The prepared insert statement
 };
 
 int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -975,7 +981,6 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
          static_cast<CcInt*>(result.addr)->Set(true, -1);
       }
       
-      cli -> disconnect();
       delete cli;
       cli = NULL;
       

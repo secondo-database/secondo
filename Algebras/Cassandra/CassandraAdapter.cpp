@@ -151,7 +151,8 @@ bool CassandraAdapter::writeDataToCassandra(string relation, string partition,
     return result;
 }
 
-bool CassandraAdapter::writeDataToCassandraPrepared(string relation, 
+bool CassandraAdapter::writeDataToCassandraPrepared(
+        const CassPrepared* preparedStatement, 
         string partition, string node, string key, string value, 
         string consistenceLevel, bool sync) {
    
@@ -159,18 +160,13 @@ bool CassandraAdapter::writeDataToCassandraPrepared(string relation,
        cerr << "Cassandra session not ready" << endl;
        return false;
     }
- 
-    // If the statement is not prepared, prepare it now 
-    if(insertCQLid == NULL) {
-       prepareCQLInsert(relation);
-       
-       if(insertCQLid == NULL) {
-         cout << "Unable to prepare CQL insert statement" << endl;
-         return false;
-       }
+    
+    if(preparedStatement == NULL) {
+       cerr << "Prepared statement is null" << endl;
+       return false;
     }
    
-    CassStatement* statement = cass_prepared_bind(insertCQLid);
+    CassStatement* statement = cass_prepared_bind(preparedStatement);
     cass_statement_set_consistency(statement, 
          CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
     
@@ -204,19 +200,20 @@ bool CassandraAdapter::writeDataToCassandraPrepared(string relation,
     return true;  
 }
 
-void CassandraAdapter::relationCompleteCallback(string relation) {
-
-        if(insertCQLid != NULL) {
-                cass_prepared_free(insertCQLid);
-                insertCQLid = NULL;
+void CassandraAdapter::freePreparedStatement(
+     const CassPrepared* preparedStatement) {
+        
+        if(preparedStatement != NULL) {
+                cass_prepared_free(preparedStatement);
+                preparedStatement = NULL;
         }
 }
 
-bool CassandraAdapter::prepareCQLInsert(string relation) {
+const CassPrepared* CassandraAdapter::prepareCQLInsert(string relation) {
         
         CassError rc = CASS_OK;
-        bool result = true;
-
+        const CassPrepared* result = NULL;
+        
         string cqlQuery = getInsertCQL(relation, "?", "?", "?", "?");
         cout << "Preparing insert query: "  << cqlQuery << endl;
 
@@ -228,9 +225,8 @@ bool CassandraAdapter::prepareCQLInsert(string relation) {
 
         if(rc != CASS_OK) {
            CassandraHelper::print_error(future);
-           result = false;
         } else {
-           insertCQLid = cass_future_get_prepared(future);
+           result = cass_future_get_prepared(future);
         }
     
         cass_future_free(future);
@@ -632,12 +628,6 @@ void CassandraAdapter::disconnect() {
         waitForPendingFutures();
         
         cout << "Disconnecting from cassandra" << endl;
-
-        // Free prepared statement  
-        if(insertCQLid != NULL) {
-                cass_prepared_free(insertCQLid);
-                insertCQLid = NULL;
-        }
 
         // Close session and cluster
         CassFuture* close_future = cass_session_close(session);
