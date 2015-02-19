@@ -188,12 +188,7 @@ bool CassandraAdapter::writeDataToCassandraPrepared(
        executeCQLFutureSync(future);
     } else {
       pendingFutures.push_back(future);
-        
-      while(pendingFutures.size() > MAX_PENDING_FUTURES) {
-           waitForPendingFutures();
-      }
-      
-      removeFinishedFutures();
+      waitForPendingFuturesIfNeeded();
     }
 
     cass_statement_free(statement);  
@@ -608,37 +603,46 @@ bool CassandraAdapter::dropTable(string tablename) {
     return executeCQLSync(ss.str(), CASS_CONSISTENCY_ALL);
 }
 
+void CassandraAdapter::waitForPendingFuturesIfNeeded() {
+   while(pendingFutures.size() > MAX_PENDING_FUTURES) {
+        waitForPendingFutures();
+   }
+}
+
 void CassandraAdapter::waitForPendingFutures() {
-    if(! pendingFutures.empty()) {
+    if(pendingFutures.empty()) {
+       return;
+    }
       
-      for(vector<CassFuture*>::iterator iter = pendingFutures.begin(); 
+    for(vector<CassFuture*>::iterator iter = pendingFutures.begin(); 
           iter != pendingFutures.end(); ++iter) {
         
           CassFuture* future = *iter;
           cass_future_wait(future);
-      }
+     }
       
-      // Force removal of finished futures
-      removeFinishedFutures(true);
-   }
+     // Force removal of finished futures
+     removeFinishedFutures(true);
 }
 
 void CassandraAdapter::disconnect() {
-    if(isConnected()) {
-        waitForPendingFutures();
-        
-        cout << "Disconnecting from cassandra" << endl;
-
-        // Close session and cluster
-        CassFuture* close_future = cass_session_close(session);
-        cass_future_wait(close_future);
-        cass_future_free(close_future);
-        cass_cluster_free(cluster);
-        cass_session_free(session);
-
-        cluster = NULL;
-        session = NULL;
+    if( ! isConnected()) {
+       return;
     }
+    
+    cout << "Disconnecting from cassandra" << endl;
+    
+    waitForPendingFutures();
+
+    // Close session and cluster
+    CassFuture* close_future = cass_session_close(session);
+    cass_future_wait(close_future);
+    cass_future_free(close_future);
+    cass_cluster_free(cluster);
+    cass_session_free(session);
+
+    cluster = NULL;
+    session = NULL;
 }
 
 bool CassandraAdapter::executeCQLSync
@@ -662,14 +666,10 @@ bool CassandraAdapter::executeCQLASync
         return false;
      }
         
-     while(pendingFutures.size() > MAX_PENDING_FUTURES) {
-          waitForPendingFutures();
-     }
-
      CassFuture* future = executeCQL(cql, consistency);
      pendingFutures.push_back(future);
-     removeFinishedFutures();
-        
+     waitForPendingFuturesIfNeeded();
+
      return true;
 }
 

@@ -574,6 +574,13 @@ IP to Noodename
 */
   void waitForPendingFutures();
 
+
+/*
+2.3.25 Wait for pending futures if needed
+
+*/
+  void waitForPendingFuturesIfNeeded();
+
 /*
 2.3.26 Create a pepared statement for inserting data into the 
        relation spoecified in the first parameter.
