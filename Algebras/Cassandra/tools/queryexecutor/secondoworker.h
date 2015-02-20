@@ -254,7 +254,7 @@ private:
    2.2 Execute a command in SECONDO
 
    */
-   void executeSecondoCommand(string command) {
+   bool executeSecondoCommand(string command) {
   
      //  LOG_DEBUG("Worker [ " << secondoPort << " ] executing: " << command);
 
@@ -267,10 +267,18 @@ private:
            if(err.code!=0){ 
              LOG_ERROR("Error during command. Error code [ " << secondoPort 
                   << " ]: " << err.code << " / " << err.msg);
+             return false;
            } else {
               LOG_DEBUG("Worker [ " << secondoPort << " ]: computed result " 
                   << nl->ToString(res));
-           }
+              
+              // Error result
+              if("(int -1)" == nl->ToString(res)) {
+                 return false;
+              }
+              
+              return true;
+          }
    }
    
    /*
@@ -305,7 +313,16 @@ private:
        QEUtils::createUUID(myQueryUuid);
        QEUtils::replacePlaceholder(ourQuery, "__QUERYUUID__", myQueryUuid);
     
-       executeSecondoCommand(ourQuery);
+       // Reexecute failing queries
+       for(size_t tryCount = 0; tryCount < 10; tryCount++) {
+           bool result = executeSecondoCommand(ourQuery);
+           
+           if(result == true) {
+              break;
+           }
+           
+           LOG_WARN("Rexecuting query, because of an error");
+       } 
        
        updateLastProcessedToken(tokenrange, myQueryUuid);
        queryExecutorState -> setState(workerId, "Idle");
