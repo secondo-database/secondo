@@ -1,37 +1,9 @@
-	Secondo Script for Importing the Geolife data set into a Secondo Database	
+# The 182 directories of the different persons have to be put into the directory
+# secondo/bin/Geolife/Data.
 
-	1. Get Secondo, version 3.3.0 or higher, from the Secondo web site at
-
-	http://dna.fernuni-hagen.de/Secondo.html/index.html
-
-	and install it according to the instructions given there.
-
-	2. Get the Geolife GPS trajectory data set from 
-
-	http://research.microsoft.com/en-us/downloads/b16d359d-d164-469e-9fd4-daa38f2b2e13/
-
-	and unzip it. Make the Geolife root directory a subdirectory of the secondo/bin 
-	directory and rename it to "Geolife"
-
-	3. Using SecondoTTYBDB, create a database "geolife" and close it. Then quit Secondo.
-
-	4. Start as shell and in the secondo/bin directory run the command
-
-	SecondoTTYNT -i Scripts/ImportGeolife.sec
-
-
+create database geolife;
 
 open database geolife;
-
-delete mlabeltype;
-delete importMLabelFile;
-delete mpointtype;
-delete importMPointFile;
-delete importMRealFile;
-delete getPersonId;
-delete getTripId;
-delete TranspModes;
-delete Trips;
 
 let mlabeltype = [const rel(tuple([S: string, E: string, L: string])) value ()];
  
@@ -64,15 +36,18 @@ let getTripId = fun(Filename: text)
 let TranspModes = getDirectory('Geolife/Data', 2) transformstream
     filter[not(isDirectory(.Elem))]
     filter[.Elem endsWith ".txt"]
-    projectextend[; PersonId: getPersonId(.Elem, 2, 1), TranspMode: importMLabelFile(.Elem)]
+    projectextend[; PId: getPId(.Elem, 2, 1), TMode: importMLabelFile(.Elem)]
     consume;
 
 let Trips = getDirectory('Geolife/Data', 3) transformstream 
     filter[not(isDirectory(.Elem))] 
     filter[.Elem endsWith '.plt']
-    projectextend[; PersonId: getPersonId(.Elem, 3, 2), TripId: getTripId(.Elem), 
-                    Trip: importMPointFile(.Elem), Altitude: importMRealFile(.Elem)]
+    projectextend[; PId: getPId(.Elem, 3, 2), TId: getTId(.Elem), 
+                    Trip: importMPointFile(.Elem), Alt: importMRealFile(.Elem)]
     consume;
 
-close database;
-
+let geolife = TranspModes feed {tm} Trips feed {t} hashjoin[PersonId_tm, PersonId_t] 
+    projectextend[; Pid: .PersonId_tm, Tid: .TripId_t, Trip: .Trip_t, Alt: .Alt_t,
+        Trans: .TMode_tm atperiods deftime(.Trip_t)]
+    filter[no_components(.TransM) > 0]
+    consume; 
