@@ -80,10 +80,6 @@ public class MainView extends Composite {
 	private boolean cpTurnedOn = true;
 	private boolean textTurnedOn = false;
 	private boolean mapTurnedOn = false;
-
-	// Commands for optimizer
-	private Command optimizerOn;
-	private Command optimizerOff;
 	
 	 /**
      * default value=0, means "doesn't show symtraj"
@@ -449,8 +445,7 @@ public class MainView extends Composite {
 					}
 				});
 		
-		this.optionsTabPanel.getUploadWidget().addSubmitCompleteHandler(new FormPanel.SubmitCompleteHandler() {
-			
+		this.optionsTabPanel.getUploadWidget().addSubmitCompleteHandler(new FormPanel.SubmitCompleteHandler() {			
 
 			@Override
 			public void onSubmitComplete(SubmitCompleteEvent event) {
@@ -465,6 +460,22 @@ public class MainView extends Composite {
 				
 			}
 		});
+		
+		final SimpleQueriesStackPanel stackpanel=this.getOptionsTabPanel().getSimpleQueriesStackPanel();
+		stackpanel.addHandler(new ClickHandler(){
+
+			@Override
+			public void onClick(ClickEvent event) {
+				
+				if(stackpanel.getSelectedIndex()==1){
+				mapView.initDrawLayer();	
+				}
+				else{
+					mapView.removeDrawLayer();
+				}
+				
+				
+			}},  ClickEvent.getType() );
 	}
 
 
@@ -548,6 +559,7 @@ public class MainView extends Composite {
 //		header.getTextViewOfTrajInDialog().setTextViewInPlainTrajDialog(textView.getTextOutput());
 	    
 	    this.optionsTabPanel.setAttributeNameOfMLabelInRelation(this.mapView.getAttributeNameOfMLabel());
+	    this.optionsTabPanel.setAttributeNameOfMPointInRelation(this.mapView.getAttributeNameOfMPoint());
 		
 	}
 

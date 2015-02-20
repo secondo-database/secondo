@@ -810,7 +810,7 @@ public class RPCConnector {
 		
 	}
 	
-	public void sendSimpleQuery(final String command, MainView mv) {
+	public void sendSimpleQuery(final String command, final String typeOfCommand, MainView mv) {
 		this.mainView = mv;
 
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
@@ -823,30 +823,44 @@ public class RPCConnector {
 
 			@Override
 			public void onSuccess(String result) {
+				switch(typeOfCommand){
 
-				if (command.contains("passes")) {
+				case "passes": {
 					if (result.contains("error")) {
 						result = "Error in executing query";
 					}
 					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 							.getPassesPanel().getResultInfoLabel()
 							.setText(result);
+					break;
 				}
-				if (command.contains("atinstant")) {
+				case "passesThrough": {
+					if (result.contains("error")) {
+						result = "Error in executing query";
+					}
+					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+							.getPassesThroughRegionPanel().getResultInfoLabel()
+							.setText(result);
+					break;
+				}				
+				case "atinstant": {
 					if (result.contains("error")) {
 						result = "Error in executing query";
 					}
 					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 							.getAtinstantPanel().getResultInfoLabel()
 							.setText(result);
+					break;
 				}
-				if (command.contains("deftime")) {
+				case "deftime": {
 					if (result.contains("error")) {
 						result = "Error in executing query";
 					}
 					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 							.getDeftimePanel().getResultInfoLabel()
 							.setText(result);
+					break;
+				}
 				}
 
 			}

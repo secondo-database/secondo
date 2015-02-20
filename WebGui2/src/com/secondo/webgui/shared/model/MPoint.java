@@ -40,6 +40,7 @@ public class MPoint implements DataType, Serializable{
 	private ArrayList<TimeInterval> time = new ArrayList<TimeInterval>();
 	private String color = "red";
 	private ArrayList<String> attributeList = new ArrayList<String>();
+	private String attributeNameInRelation="";
 	
 	public MPoint(){	
 	}
@@ -147,5 +148,13 @@ public class MPoint implements DataType, Serializable{
 	@Override
 	public void setColor(String color) {
 		this.color = color;		
+	}
+	
+	public void setAttributeNameInRelation(String attributeNameInRelation) {
+		this.attributeNameInRelation = attributeNameInRelation;
+	}
+
+	public String getAttributeNameInRelation() {
+		return attributeNameInRelation;
 	}
 }

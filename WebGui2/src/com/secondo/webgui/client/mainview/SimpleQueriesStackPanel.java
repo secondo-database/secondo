@@ -10,6 +10,7 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 public class SimpleQueriesStackPanel extends StackPanel{
 
 	private SimpleQueryPanel passesPanel;
+	private SimpleQueryPanel passesThroughRegionPanel;
 	private SimpleQueryPanel atinstantPanel;
 	private SimpleQueryPanel deftimePanel;	
 
@@ -19,9 +20,15 @@ public class SimpleQueriesStackPanel extends StackPanel{
 	public SimpleQueriesStackPanel(){
 		String passesHeader = getHeaderStringLevel2("passes", queryIcon);
 		passesPanel = new SimpleQueryPanel(
-				"Does the trip pass through ...(i.e. specified street, southeast, moderate tempo)?",
+				"Does the trip pass through ...(i.e. specified street, cardinal direction, speed tempo)?",
 				"passes", "i.e. Baker St");
-		this.add(passesPanel, passesHeader, true);		
+		this.add(passesPanel, passesHeader, true);	
+		
+		String passesThroughRegionHeader = getHeaderStringLevel2("passes through region", queryIcon);
+		passesThroughRegionPanel = new SimpleQueryPanel(
+				"Does the trip pass through region?", "passes", "region on the map");
+		passesThroughRegionPanel.setWidth("100%");
+		this.add(passesThroughRegionPanel, passesThroughRegionHeader, true);			
 
 		String atinstantHeader = getHeaderStringLevel2("atinstant", queryIcon);
 		atinstantPanel = new SimpleQueryPanel(
@@ -33,7 +40,8 @@ public class SimpleQueriesStackPanel extends StackPanel{
 		deftimePanel = new SimpleQueryPanel(
 				"Determine the time intervals when the trip was at ... (i.e. specified street, southeast, moderate tempo)",
 				"deftime", "i.e. Baker St");
-		this.add(deftimePanel, deftimeHeader, true);
+		this.add(deftimePanel, deftimeHeader, true);	
+				
 	}
 	
 	/**
@@ -73,5 +81,9 @@ public class SimpleQueriesStackPanel extends StackPanel{
 	
 	public SimpleQueryPanel getDeftimePanel() {
 		return deftimePanel;
+	}
+
+	public SimpleQueryPanel getPassesThroughRegionPanel() {
+		return passesThroughRegionPanel;
 	}
 }

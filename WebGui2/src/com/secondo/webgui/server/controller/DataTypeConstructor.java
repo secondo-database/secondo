@@ -405,6 +405,8 @@ public class DataTypeConstructor{
             		    mpoint.setPath(linelist);
             		    mpoint.setTime(timelist);
             		    resultTypeList.add(mpoint);
+            		  //name - attribute name of type mlabel in the relation 
+            		    mpoint.setAttributeNameInRelation(tuplelist.first().first().stringValue());     
 				}
                 
                 if (tuplelist.first().second().stringValue().equals("mlabel")) {

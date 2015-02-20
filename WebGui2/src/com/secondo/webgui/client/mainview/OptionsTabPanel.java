@@ -7,6 +7,10 @@ import java.util.ArrayList;
 
 import java.util.List;
 
+import org.gwtopenmaps.openlayers.client.Projection;
+import org.gwtopenmaps.openlayers.client.geometry.Point;
+import org.gwtopenmaps.openlayers.client.layer.Vector;
+
 import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -84,6 +88,7 @@ public class OptionsTabPanel extends Composite {
 	private boolean unsuccessfulVerification=false; 
 
 	private String attributeNameOfMlabelInRelation;
+	private String attributeNameOfMPointInRelation;
 	private DecoratorPanel decPanelForStackWithSimpleQueries = new DecoratorPanel();
 	private SimpleQueriesStackPanel simpleQueriesStackPanel;
 
@@ -278,6 +283,11 @@ public class OptionsTabPanel extends Composite {
 		String simpleQueriesHeader = getHeaderString("Simple queries",
 				createPatternIcon());
 		simpleQueriesStackPanel= new SimpleQueriesStackPanel();
+		simpleQueriesStackPanel.setWidth("100%");
+		simpleQueriesStackPanel.ensureDebugId("nestedStack");
+		
+		
+		
 		stackPanel.add(simpleQueriesStackPanel, simpleQueriesHeader,
 				true);
 		stackPanel.getElement().setAttribute("width", "100%");
@@ -902,6 +912,14 @@ public class OptionsTabPanel extends Composite {
 	}
 
 	/**
+	 * @param attributeNameOfMPointInRelation
+	 */
+	public void setAttributeNameOfMPointInRelation(
+			String attributeNameOfMPointInRelation) {
+		this.attributeNameOfMPointInRelation = attributeNameOfMPointInRelation;
+	}
+
+	/**
 	 * returns query for pattern matching to be send to secondo; empty query if no relation was selected
 	 * @return
 	 */
@@ -973,6 +991,51 @@ public class OptionsTabPanel extends Composite {
 		
 		return command;
 	}
+	
+	
+	/**
+	 * generates command with the coordinates of the last rectangle on the map (draw layer)
+	 * @param drawLayer
+	 * @return command to be sent to SECONDO
+	 */
+	public String getCommandForSimpleQueryPassesThroughRegion(Vector drawLayer) {
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+
+		Point[] listOfPoints = drawLayer.getFeatures()[drawLayer.getFeatures().length-1].getGeometry()
+				.getVertices(false);
+		Projection OSM_PROJECTION = new Projection(
+				"EPSG:4326");
+		Projection GEO_PROJECTION = new Projection(
+				"EPSG:900913");
+		
+		Point first=listOfPoints[2];		
+		first.transform(GEO_PROJECTION, OSM_PROJECTION);
+		Point second=listOfPoints[0];
+		second.transform(GEO_PROJECTION, OSM_PROJECTION);
+		
+		simpleQueriesStackPanel.getPassesThroughRegionPanel().getLabelTextForQuery().setText(first.getX()
+					+ " " + first.getY() + " "
+					+ second.getX() + " " + second.getY());
+		String command = "";
+
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
+			command = command + " feed extract["
+					+ attributeNameOfMPointInRelation
+					+ "] passes [const rect value(" + first.getX()
+					+ " " + first.getY() + " "
+					+ second.getX() + " " + second.getY()
+					+ ")]";
+
+		}
+
+		return command;
+	}
+	
 
 	public String getCommandForQueryRelation() {
 		int selectedInd = selectOptionsForExistingTrajectories

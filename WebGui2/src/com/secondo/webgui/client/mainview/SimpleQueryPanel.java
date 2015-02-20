@@ -14,6 +14,7 @@ public class SimpleQueryPanel extends VerticalPanel{
 		super();
 		
 		this.setSpacing(4);
+		this.setWidth("100%");
 		Label helpInfoLabel = new Label(textForHelpInfoLabel);
 		helpInfoLabel.setStylePrimaryName("labelForPasses");
 		this.add(helpInfoLabel);

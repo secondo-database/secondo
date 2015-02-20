@@ -309,26 +309,28 @@ public class SecondoWeb implements EntryPoint {
 			public void onClick(ClickEvent event) {
 				String command=mainView.getMainheader().getCommandForGeocode();
 				//send the command directly to secondo
-				rpcConnector.getCoordinateFromAddress(command, mainView, loadingPopup);
+				rpcConnector.getCoordinateFromAddress(command, mainView, loadingPopup);				
 				
 			}
 		});
 		
-		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel().getPassesPanel().getQueryButton().addClickHandler(new ClickHandler() {
-			
-			@Override
-			public void onClick(ClickEvent event) {
-				
-				String command=mainView.getOptionsTabPanel().getCommandForSimpleQueryPasses();
-				if (!command.isEmpty()) {
-					rpcConnector.sendSimpleQuery(command, mainView);
-				}
-				else {
-					Window.alert("Please select relation and load it");
-				}
-			}
-		});
-		
+		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+				.getPassesPanel().getQueryButton()
+				.addClickHandler(new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForSimpleQueryPasses();
+						if (!command.isEmpty()) {
+							rpcConnector.sendSimpleQuery(command, "passes", mainView);
+						} else {
+							Window.alert("Please select relation and load it");
+						}
+					}
+				});
+
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 				.getDeftimePanel().getQueryButton()
 				.addClickHandler(new ClickHandler() {
@@ -339,7 +341,7 @@ public class SecondoWeb implements EntryPoint {
 						String command = mainView.getOptionsTabPanel()
 								.getCommandForSimpleQueryDeftime();
 						if (!command.isEmpty()) {
-							rpcConnector.sendSimpleQuery(command, mainView);
+							rpcConnector.sendSimpleQuery(command, "deftime",mainView);
 						} else {
 							Window.alert("Please select relation and load it");
 						}
@@ -356,12 +358,29 @@ public class SecondoWeb implements EntryPoint {
 				String command = mainView.getOptionsTabPanel()
 						.getCommandForSimpleQueryAtinstant();
 				if (!command.isEmpty()) {
-					rpcConnector.sendSimpleQuery(command, mainView);
+					rpcConnector.sendSimpleQuery(command, "atinstant",mainView);
 				} else {
 					Window.alert("Please select relation and load it");
 				}
 			}
 		});
+		
+		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+				.getPassesThroughRegionPanel().getQueryButton()
+				.addClickHandler(new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForSimpleQueryPassesThroughRegion(mainView.getMapView().getDrawLayer());
+						if (!command.isEmpty()) {
+							rpcConnector.sendSimpleQuery(command, "passesThrough", mainView);							
+						} else {
+							Window.alert("Please select relation and load it");
+						}
+
+					}
+				});
 	   
 	   
 	    

@@ -28,6 +28,7 @@ import org.gwtopenmaps.openlayers.client.Map;
 import org.gwtopenmaps.openlayers.client.MapOptions;
 import org.gwtopenmaps.openlayers.client.MapWidget;
 import org.gwtopenmaps.openlayers.client.Projection;
+import org.gwtopenmaps.openlayers.client.control.DrawFeature;
 import org.gwtopenmaps.openlayers.client.control.LayerSwitcher;
 import org.gwtopenmaps.openlayers.client.control.MousePosition;
 import org.gwtopenmaps.openlayers.client.control.OverviewMap;
@@ -46,6 +47,8 @@ import com.google.gwt.geolocation.client.Position;
 import com.google.gwt.geolocation.client.PositionError;
 
 import org.gwtopenmaps.openlayers.client.geometry.Point;
+import org.gwtopenmaps.openlayers.client.handler.RegularPolygonHandler;
+import org.gwtopenmaps.openlayers.client.handler.RegularPolygonHandlerOptions;
 
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Composite;
@@ -120,10 +123,12 @@ public class MapView extends Composite{
 	private LegendDialog legend = new LegendDialog();
 	
 	private String attributeNameOfMLabel;
+	private String attributeNameOfMPoint;
 	
 	/** Point with geo coordinates from user */
 	private Point myLocation;
-	
+
+	private Vector drawLayer;  
 	
 
 	public MapView() {
@@ -183,8 +188,27 @@ public class MapView extends Composite{
 		map.setCenter(lonLat, 15);
 
 		// force the map to fall behind popups
-		mapWidget.getElement().getFirstChildElement().getStyle().setZIndex(0);
+		mapWidget.getElement().getFirstChildElement().getStyle().setZIndex(0);		
+		
+	}
 
+	/**
+	 * control for polygon
+	 */
+	public void initDrawLayer() {
+		// Create the Vector layer on which the user can draw new widgets
+		drawLayer = new Vector("Draw layer");
+		map.addLayer(drawLayer);
+
+		final RegularPolygonHandlerOptions boxHandlerOptions = new RegularPolygonHandlerOptions();
+		boxHandlerOptions.setIrregular(true);
+		RegularPolygonHandler boxHandler = new RegularPolygonHandler();
+		DrawFeature drawRegularPolygon = new DrawFeature(drawLayer, boxHandler);
+		((RegularPolygonHandler) drawRegularPolygon.getHandler())
+				.setOptions(boxHandlerOptions);
+
+		map.addControl(drawRegularPolygon);
+		drawRegularPolygon.activate();
 	}
 
 	/**
@@ -433,6 +457,7 @@ public class MapView extends Composite{
 
 					mpointController.addMP((MPoint)data, boundsAll, boundsLast);				
 					polylineController.addPolylineFromMP((MPoint) data, boundsAll, boundsLast);
+					attributeNameOfMPoint=((MPoint)data).getAttributeNameInRelation();
 				}
 				// add label to mpoint if time intervals equals
 				if (data.getType().equals("MLabel")) {
@@ -528,6 +553,12 @@ public class MapView extends Composite{
 	/** Resets the map by deleting all overlays from the map */
 	public void resetMap() {
 		map.removeOverlayLayers();
+	}
+	
+	/** Removes draw overlay from the map */
+	public void removeDrawLayer(){
+		if(drawLayer!=null){
+		map.removeLayer(drawLayer);}
 	}
 
 	/**
@@ -688,4 +719,13 @@ public class MapView extends Composite{
 	public Point getMyLocation() {
 		return myLocation;
 	}
+
+	public Vector getDrawLayer() {
+		return drawLayer;
+	}
+
+	public String getAttributeNameOfMPoint() {
+		return attributeNameOfMPoint;
+	}	
+	
 }
