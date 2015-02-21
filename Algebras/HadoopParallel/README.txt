@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 //[newpage] [\newpage]
 
-[1] File-Related Operators in HadoopParallelAlgebra 
+[1] File-Related Operators in the HadoopParallelAlgebra 
 
 June 2011 Jiamin Lu
 
@@ -40,34 +40,34 @@ the HadoopParallelAlgebra: ~fconsume~, ~ffeed~ and ~fdistribute~,
 and their fault-tolerance feature inside a computer cluster 
 environment. 
 
-The ~fconsume~ and ~fdistribute~ operators export a stream tuples 
-data into the file system. The ~fconsume~ writes 
-the whole stream tuples into one binary file, and the ~fdistribute~ 
-divide tuples into different files based on one partition 
-attribute's values. These binary files are called as data files. 
+The ~fconsume~ and ~fdistribute~ operators export (the data of) a stream of tuples 
+into the file system. The ~fconsume~ writes 
+the whole stream of tuples into one binary file, and the ~fdistribute~ 
+divides tuples into different files based on one partition 
+attribute's values. These binary files are called ~data files~. 
 At the same time, the type list of the input tuple stream is kept 
-in a text file, which are called as type file. After the exportation, 
+in a text file, which is called ~type file~. After the export, 
 these files can be imported into the Secondo database efficiently 
 by using the ~ffeed~ operator.
 
-Inside a computer cluster, above type file and data files can be 
-duplicated on several computers, in case some of them may corrupt 
+Inside a computer cluster, the above type file and data files can be 
+duplicated on several computers, in case some of them may be corrupt 
 during the parallel processing. At present, we pick up a simple 
-chained-declustering mechanism[YYTM10] to manage these duplicated files.
+chained-declustering mechanism [YYTM10] to manage these duplicated files.
 All computers involved in keeping these duplicated files build up 
 a simple distributed file system of the parallel Secondo. 
 
-2 Basic functions
+2 Basic Functions
 
 2.1 File Names
 
 These file-related operators exchange data between Secondo database 
 and file systems, and we use file names to identify different files. 
 Hence the string name must be given by the user, and it will be 
-used as the prefix name of all involving files. 
+used as the prefix name of all involved files. 
 
 As we explained in the last section, there are two kinds of files 
-are processed by these operators, a text type file and binary data files. 
+that are processed by these operators, a text type file and binary data files. 
 The type file's name is fixed by connecting the given file name
 and a string of "type", with an underscore. 
 E.g., if we set the name as FILENAME, then the type file's name is 
@@ -75,7 +75,7 @@ FILENAME\_type.
 
 There are totally three kinds of scenarios when using these 
 file-related operators. First, a Secondo relation may be exported 
-into one data file completely. Secondo, a Secondo relation may be 
+into one data file completely. Second, a Secondo relation may be 
 exported into several data files for parallel processing. 
 At last, a Secondo relation may be divided by several computers, 
 and is partitioned into a matrix file at last. 
@@ -89,25 +89,25 @@ them from each other. The prefix name and postfix numbers are
 connected by underscores too. 
 E.g., the file name of FILENAME\_0\_1 means 
 this is a data file with the given name of FILENAME,
-and it locates in the 1th row, 2th column of a file matrix.
+and it locates in the 1st row, 2nd column of a file matrix.
 
 
 2.2 File Path
 
-All three file-related operators set the file path as indispensable 
-parameters, which decides a local directory that kept all these 
+All three file-related operators set the file path as an indispensable 
+parameter, which determines a local directory that keeps all these 
 type and data files. If the file path is used, then it must be 
-an absolute path. But it can also be set as an empty text string,
+an absolute path. But it can also be set to an empty text string,
 and then the default file path will be used. 
 
 The default path is set inside the SecondoConfig.ini file, 
 which normally is kept in \$SECONDO\_BUILD\_DIR/bin. 
-Inside the file, a parameter called as *SecondoFilePath*, 
-belong to the *ParallelSecondo* environment, denotes the file path.
+Inside the file, a parameter called *SecondoFilePath*, 
+belonging to the *ParallelSecondo* environment, denotes the file path.
 If this parameter is not defined, 
-or it's not exist and cannot be created, then the directory in 
+or it does not exist and cannot be created, then the directory in 
 \$SECONDO\_BUILD\_DIR/bin/parallel will be used as the default file path.
-If this path is still unavailable, then the operation fail.
+If this path is still unavailable, then the operation fails.
 
 
 2.3 fconsume and fdistribute Operators
@@ -135,7 +135,7 @@ x [targetIndex x dupTimes ]              ;
 -> stream(tuple(fileSufix, value))
 ---- 
 
-Both operators export a stream tuples data into the file system. 
+Both operators export a stream of tuples data into the file system. 
 Therefore they set a stream of tuples, a fileName and
 the file path as indispensable parameters.
 
@@ -143,49 +143,49 @@ Besides these parameters, ~fconsume~ also accepts
 the rowNum and colNum as optional parameters. 
 If they are not defined, then the data file will be named 
 with the given fileName directly. 
-The rowNum and colNum are not dependent from each other. 
+The rowNum and colNum are not dependent on each other. 
 If only one number is given, then this number can be viewed as 
 a row number or a column number, and it doesn't affect the exported
 file's name.
 
 The ~fdistribute~ requires another indispensable parameter partAttr, 
-which divides tuples into different data files based its value.
-The type of the partAttr must provides an available HashValue function, 
-since we reply on this function to classify the tuples. 
+which divides tuples into different data files based on its value.
+The type of the partAttr must provide an available HashValue function, 
+since we rely on this function to classify the tuples. 
 In some cases, directly dividing the tuples based on partAttr's 
-hash values is not a good idea, since it may produce extreme uneven 
+hash values is not a good idea, since it may produce an extremely uneven 
 partition. The user can set the optional parameter nBucket 
 which is used to re-hash these tuples, and get a new hash value
 to achieve an even partition.
 These hash values are viewed as column numbers of the data files, 
-during the matrix file distribution, the optional integer parameter 
+during the matrix file distribution. The optional integer parameter 
 rowNum can also be set, and it will be set in data files' names 
 between the fileName and the column number. 
 
-The ~fconsume~ operator export tuples' complete values into the data file, 
+The ~fconsume~ operator exports tuples' complete values into the data file, 
 but the ~fdistribute~ operator can choose whether keeping 
 the partition attribute or not, by setting the 
-optional parameter KPA(Keep Partition Attribute). 
-Since sometimes, the partition attribute is a temporary attribute. 
-By default, the KPA is set as false.
+optional parameter KPA (Keep Partition Attribute). 
+This is because sometimes the partition attribute is a temporary attribute. 
+By default, the KPA is set to false.
 
-Above functions are called as local mode of these two operators, 
-users can use these two operators on a discrete computer too. 
-Besides the local mode, there are other two groups of parameters 
-are used in a cluster environment, to duplicate those produced type
+The above functions are called ~local mode~ of these two operators, 
+users can use these two operators on a single computer too. 
+Besides the local mode, there are two other groups of parameters 
+used in a cluster environment, to duplicate those produced type
 and data files into some remote computers. Parameters of different 
 modes are separated into groups by semicolons, 
-and the other two groups parameters are all optional. 
+and the other two groups' parameters are all optional. 
 Hence if you can don't need to duplicate these files, 
 these parameters can be simply set as empty. E.g., a query like: 
 
-----
-  query plz feed fconsume["PLZFILE",'';;]
+----    
+query plz feed fconsume["PLZFILE",'';;]
 ----    
 
 will create two files, one is PLZFILE\_type that keeps the nested list 
 of the relation plz. The other file is PLZFILE, which keeps all the 
-binary data of the tuples inside the replation plz. 
+binary data of the tuples inside the relation plz. 
 Both files will be stored in default paths of the computer.  
 Since the fileSuffix is set as empty, the data file doesn't have 
 any suffix number. At the same time, all the parameters for 
@@ -196,32 +196,32 @@ duplicated to any other machines.
 2.4 ffeed Operator
 
 The ~ffeed~ operator is used to import the files produced by 
-~fconsume~ and ~fdistribute~ operators, back into the Secondo 
+~fconsume~ and ~fdistribute~ operators back into the Secondo 
 database again. The syntax of the ~ffeed~ is: 
 
 ----
 fileName 
 x filePath x [rowNum] x [colNum]                ;
 x [typeNodeIndex]                               ;
-x [producerIndex x targetIndex x attemptTimes]  ;
+x [producerIndex x targetIndex x attemptTimes]  
 ->stream(tuple(...))
 ---- 
 
 The type of the output tuple stream is set by reading the nested-list 
-in the type file, which is named as *fileName\_type*. 
+in the type file, which is named *fileName\_type*. 
 The data of the tuples are read from the binary data file, 
-and it feed in only one data file each time. 
-If the optional parameters rowNum or colNum is defined, 
+and it feeds in only one data file each time. 
+If the optional parameters rowNum or colNum are defined, 
 then the data file's name is composed by these parameters.
 If the filePath is empty, Secondo will search both type and 
 data files in the default file path. 
 
 Similar as the above operators, ~ffeed~ also offers some other 
-groups optional parameter for feeding files from other machines, 
-parameters belong to different groups are divided by semicolons, 
-if the user doesn't need the remote-feed functions, then he don't 
-have to set any other parameters, but still need to write 
-two semicolons to denote the empty parameters. E.g.m a query like: 
+groups of optional parameter for feeding files from other machines. 
+Parameters belonging to different groups are divided by semicolons. 
+If the user doesn't need the remote-feed functions, then he doesn't 
+have to set any other parameters, but still needs to write 
+two semicolons to denote the empty parameters. E.g. a query like: 
 
 ----
   query "PLZFILE" ffeed['';;] count
@@ -232,18 +232,18 @@ in the last example.
 
 
 
-3 Fault-tolerance in cluster
+3 Fault-Tolerance in a Cluster
 
 During the parallel processing, data are kept as files on disks 
 of different computers. 
-Sometimes, especially within a cluster of thousands computers, 
-it's common that several computers may crush during the processing, 
+Sometimes, especially within a cluster of thousands of computers, 
+it is common that several computers may crash during the processing, 
 and all the data kept in these computers become inavailable. 
 In case of this kind of problem, data must be duplicated on several computers, 
-so to keep the reliability of them.
+in order to keep the reliability of them.
 
 In Parallel Secondo, we pick up the simple chained-declustering 
-mechanism to duplicate these files. I.e., Nodes are listed one 
+mechanism to duplicate these files. I.e., nodes are listed one 
 by one into a slaveList, and each file can be duplicated into several successive 
 ~n~ nodes within the slaveList, where the ~n~ is denoted by the user himself. 
 
@@ -253,49 +253,49 @@ The slaveList follows the schema:
 IPAddress:FilePath:MonitorPort
 ----
 
-The IPAdrress denotes files' locations inside the computer cluster, 
+The IPAddress denotes files' locations inside the computer cluster, 
 then the filePath denotes the locations inside nodes' disks.
-Then the last defines a port number through which a Secondo Monitor 
-listens the requirements from different nodes. 
+Then the last part defines a port number on which a Secondo Monitor 
+listens to the requirements from different nodes. 
 
-As in HadoopParallel algebra, data are kept into two kinds of files, 
+As in the HadoopParallel algebra data are kept in two kinds of files, 
 the type file and the data files, we duplicate these files separately.
-In each file-related operators, besides above parameters that are 
-used for local mode, there are two left groups of parameters are 
+In all file-related operators, besides the above parameters that are 
+used for the local mode, there are two further groups of parameters 
 prepared for the remote modes, i.e. the fault-tolerance feature 
 of Parallel Secondo. 
 
 The first group is used to process the type file on remote machines, 
-hence we call it as type remote mode parameters. 
-The parameters are integer numbers, indicate target machines' indices 
+hence we call it  ~type remote mode parameters~. 
+The parameters are integer numbers and indicate target machines' indices 
 inside the slaveList. For ~fconsume~ and ~fdistribute~ operators, 
-at most two remote nodes' inidices can be set as parameters, 
+at most two remote nodes' indices can be set as parameters, 
 i.e., the type file produced by these two operators can be duplicated 
-into at most two other nodes. And for ~ffeed~ operator, 
+into at most two other nodes. And for the ~ffeed~ operator, 
 only one node index can be set as type remote index. 
 
 The second group is used to process data files on remote machines, 
-hence we call it as data remote mode parameters. 
+hence we call it  ~data remote mode parameters~. 
 In ~fconsume~ and ~fdistribute~ operators, the data remote parameters
-are same, and are composed by two integers, one defines the first 
-target node, and the other defines the duplicate times.
-Sometimes, if the local node is not included inside the duplication 
+are the same, and are composed by two integers; one defines the first 
+target node, and the other defines the number of duplicates.
+Sometimes, if the local node is not included among the duplication 
 nodes, then the created data file will be removed after the duplication. 
 If one node is defined twice during the duplication, the copy only 
 happens once. 
-It's common that two nodes produce files with a same name, 
+It is common that two nodes produce files with a same name, 
 and both attempt to duplicate the file into another node's disk. 
 To distinguish the files that are created by the current node, 
 and the files that are copied from other nodes, 
-all files created by other nodes, must use the producer's IP address 
+all files created by other nodes must use the producer's IP address 
 as the postfix of the file name. 
 
-In ~ffeed~, there are totally three parameters are required for 
+In ~ffeed~, there are totally three parameters required for 
 the data remote mode: producerIndex, targetIndex and attemptTimes.
-The producerIndex identify which node created the data file. 
-Then it use the targetIndex to locate the node that the operator 
-starts looking for the data file from. At last, the attemptTimes 
-denotes the maximum attempt times on differnt machines for searching 
+The producerIndex identifies which node created the data file. 
+Then it uses the targetIndex to locate the node from which the operator 
+starts to look for the data file. At last, the attemptTimes 
+denotes the maximum attempt times on different machines for searching 
 the file. If the operator cannot find the data file after attemptTimes
 search, then nothing will be returned, or else it will copy the data 
 from the remote machine to the local disk, then read the tuples 
