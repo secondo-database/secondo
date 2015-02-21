@@ -117,13 +117,13 @@ it's syntax is:
 
 ----
 (stream(tuple(...))
-  x fileName x filePath x [rowNum] x [colNum]
-  x [typeLoc1] x [typeLoc2]
-  x [targetIndex x dupTimes])
+  x fileName x filePath x [rowNum] x [colNum]	;
+  x [typeLoc1] x [typeLoc2]			;
+  x [targetIndex x dupTimes]
 -> bool
 ----
 
-~fdistribute~ distribute a stream of tuples into several data files, 
+~fdistribute~ distributes a stream of tuples into several data files, 
 and it's syntax is:  
 
 ----
@@ -131,8 +131,8 @@ stream(tuple(...))
 x fileName x path x partAttr x [rowNum]  ;
 x [nBuckets] x [KPA]                     ;
 x [typeNodeIndex1] x [typeNodeIndex2]    ;
-x [targetIndex x dupTimes ]              ;
--> stream(tuple(fileSufix, value))
+x [targetIndex x dupTimes ]              
+-> stream(tuple(fileSuffix, value))
 ---- 
 
 Both operators export a stream of tuples data into the file system. 
