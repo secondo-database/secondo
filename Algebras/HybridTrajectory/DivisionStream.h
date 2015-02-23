@@ -116,7 +116,7 @@ bool DivisionStream<Mapping1,Unit1,Mapping2,Unit2>::getNext(Tuple** result){
  iv2 = divideurUnit.getTimeInterval();
 
     /*to check this one*/
- Mapping1* coloumn1=new Mapping1(0);
+ Mapping1* coloumn1=new Mapping1(true);
 
  Mapping2* coloumn2=new Mapping2(1);
     coloumn2->Add(divideurUnit);

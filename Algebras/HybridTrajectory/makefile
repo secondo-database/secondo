@@ -26,6 +26,8 @@
 
 CURRENT_ALGEBRA := HybridTrajectoryAlgebra
 
+ALGEBRA_DEPENDENCIES := SymbolicTrajectoryAlgebra
+
 # inlcude global definitions
 include ../../makefile.env
 
