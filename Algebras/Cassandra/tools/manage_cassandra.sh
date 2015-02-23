@@ -19,7 +19,7 @@ cassandradir=$cassandrapath/current
 cassandraconfig=$cassandradir/conf/cassandra.yaml
 
 # Cassandra version and download URL
-cassandra_version="2.1.2"
+cassandra_version="2.1.3"
 cassandra_url="http://artfiles.org/apache.org/cassandra/${cassandra_version}/apache-cassandra-${cassandra_version}-bin.tar.gz"
 
 ##
@@ -142,7 +142,7 @@ install_cassandra_local() {
     if [ ! -f apache-cassandra-${cassandra_version}-bin.tar.gz ]; then
         wget $cassandra_url
         
-        if [ -f current ]; then
+        if [ -d current ]; then
            rm current
         fi
 
