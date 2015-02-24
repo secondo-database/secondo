@@ -102,6 +102,7 @@ private:
    ORDERSEEDS* orderSeeds;
    double UNDEFINED;
    DistFun distfun;
+   set<TupleId> deferred;
 
 /*
 1.5 main algorithm
@@ -120,6 +121,13 @@ private:
           }
       }
       delete it; 
+
+      set<TupleId>::iterator itd;
+      for(itd=deferred.begin(); itd!=deferred.end();itd++){
+         TupleId object = *itd;
+         setOfObjects->updateProcessed(object,true);
+         setOfObjects->append(object);
+      }
    }
 
 /*
@@ -131,28 +139,32 @@ Puts new elements to a cluster
    void expandCluster(TupleId object){
       Tuple* tuple = setOfObjects->GetTuple(object);
       list<TupleId>* neighbors = setOfObjects->getNeighbors(object);
-      setOfObjects->updateProcessed(object,true);
-      setOfObjects->updateReachability(object, UNDEFINED);
       double coreDist = setCoreDistance(tuple, object, neighbors);
-      setOfObjects->append(object);
+      setOfObjects->updateReachability(object, UNDEFINED);
       if(coreDist != UNDEFINED){
          orderSeeds->update(*neighbors, object);
          delete neighbors;    
+         setOfObjects->updateProcessed(object,true);
+         setOfObjects->append(object);
          while(!orderSeeds->empty()){
            TupleId currentId = orderSeeds->next();
-           Tuple* curTup = setOfObjects->GetTuple(currentId);
-           neighbors = setOfObjects->getNeighbors(currentId);
-           setOfObjects->updateProcessed(currentId, true);
-           coreDist = setCoreDistance(curTup, currentId, neighbors);
-           setOfObjects->append(currentId);
-           if(coreDist != UNDEFINED){
-              orderSeeds->update(*neighbors, currentId);
+           if(!setOfObjects->getProcessed(currentId)){
+             Tuple* curTup = setOfObjects->GetTuple(currentId);
+             neighbors = setOfObjects->getNeighbors(currentId);
+             setOfObjects->updateProcessed(currentId, true);
+             coreDist = setCoreDistance(curTup, currentId, neighbors);
+             setOfObjects->append(currentId);
+             deferred.erase(currentId);
+             if(coreDist != UNDEFINED){
+                orderSeeds->update(*neighbors, currentId);
+             }
+             delete neighbors;
+             curTup->DeleteIfAllowed();
            }
-           delete neighbors;
-           curTup->DeleteIfAllowed();
          }
-      } else {
+      } else { // no core point, try to process later
          delete neighbors;
+         deferred.insert(object);
       }
       tuple->DeleteIfAllowed();
    }

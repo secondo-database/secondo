@@ -173,7 +173,7 @@ class SetOfObjectsM{
       return res;
     }
     
-    inline  double getProcessed(TupleId id){
+    inline  bool getProcessed(TupleId id){
       Tuple* t = buffer->GetTuple(id,true);
       bool  res =  ((CcBool*)t->GetAttribute(procPos))->GetValue();
       t->DeleteIfAllowed();

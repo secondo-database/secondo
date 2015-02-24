@@ -113,9 +113,9 @@ template <class S>
       list<TupleId>::iterator it;
       for(it = neighbors.begin(); it!=neighbors.end(); it++){
          TupleId cId = *it;
-         Tuple* cur = objs->GetTuple(cId);
          bool processed = objs->getProcessed(cId);
          if(!processed){
+            Tuple* cur = objs->GetTuple(cId);
             double new_r_dist = max(c_dist, objs->distance(obj, cur));
             double old_r_dist = objs->getReachDist(cId); 
             if(old_r_dist == UNDEFINED){
@@ -127,8 +127,8 @@ template <class S>
                   decrease(cId, new_r_dist);
                }
             }
+            cur->DeleteIfAllowed();
          } 
-         cur->DeleteIfAllowed();
       }
       obj->DeleteIfAllowed();
   }
@@ -227,6 +227,9 @@ Inserts a new element into the heap.
 */
 template<class S>
 void OrderSeeds<S>::insert(TupleId id, double dist){
+   
+
+
    heap.push_back(id);
    index[id] = heap.size()-1; 
    int pos = heap.size();

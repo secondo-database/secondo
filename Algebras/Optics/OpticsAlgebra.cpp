@@ -902,6 +902,7 @@ class extractLocal{
          for(int i=0;i<attrCnt; i++){
             resTuple->CopyAttribute(i,inTuple,i);
          }
+         inTuple->DeleteIfAllowed();
          CcReal* Eps = (CcReal*) inTuple->GetAttribute(epsPos);
          CcReal* ReachDist = (CcReal*) inTuple->GetAttribute(reachDistPos);
          CcReal* CoreDist = (CcReal*) inTuple->GetAttribute(coreDistPos);
