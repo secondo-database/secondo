@@ -21,11 +21,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator opticsR alias OPTICSR pattern _ op [list]
-operator opticsR2 alias OPTICSR2 pattern _ op [list]
 operator opticsM alias OPTICSM pattern _ op [list]
-operator opticsM2 alias OPTICSM2 pattern _ op [list]
 operator opticsF alias OPTICSF pattern _ op [list]
-operator opticsF2 alias OPTICSF2 pattern _ op [list]
-
 operator extractDbScan alias EXTRACTDBSCAN pattern _ op[_]
 
