@@ -55,11 +55,13 @@ else
    firststart=0
 fi
 
+script=$(readlink -f $0)
+
 counter=0
 for node in $nodes; do
    
    echo -n "Starting Cassandra on Node $node " 
-   ssh $node "source .secondorc; $cassandradir/bin/cassandra > /dev/null" 
+   ssh $node "source .secondorc; $script start_local > /dev/null" 
    res=$?
 
    if [ $counter -eq 0 ]; then
@@ -72,7 +74,7 @@ for node in $nodes; do
    else
      if [ $counter -ne 0 ]; then
        if [ $firststart -eq 1 ]; then
-          # Wait for node movement to connect 
+          # Wait for node to connect 
           while [ true ]; do
              if [ $($cassandradir/bin/nodetool ring | grep Joining | wc -l) -ne 0 ]; then
                 break
@@ -100,6 +102,19 @@ done
 
 
 echo "All cassandra nodes are ready...."
+}
+
+start_local() {
+  # Set max filehandles
+  ulimit -n 32768 > /dev/null 2>&1
+  
+  if [ $? -ne 0 ]; then
+     echo "Unable to set max filehandles to 32768"
+     echo "Contact your system administrator for assistance"
+     exit -1
+  fi
+
+  $cassandradir/bin/cassandra > /dev/null 
 }
 
 # Stop cassandra
@@ -170,12 +185,11 @@ install_cassandra_local() {
 
 # Install cassandra on all nodes
 install_cassandra() {
+script=$(readlink -f $0)
+
 for node in $nodes; do
-  
-   script=$(readlink -f $0)
- 
    echo -n "Install Cassandra on Node $node " 
-   ssh $node "source .secondorc; $script install_local /dev/null" 
+   ssh $node "source .secondorc; $script install_local > /dev/null" 
    echo -e $done
 done
 
@@ -207,6 +221,9 @@ start)
    ;;
 stop)
    stop
+   ;;
+start_local)
+   start_local
    ;;
 install)
    install_cassandra
