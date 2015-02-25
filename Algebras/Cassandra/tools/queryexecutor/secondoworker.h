@@ -38,12 +38,14 @@ class SecondoWorker {
 
 public:
    SecondoWorker (CassandraAdapter* myCassandra, string mySecondoHost, 
-   string mySecondoPort, WorkerQueue *myTokenQueue, size_t myWorkerId, 
+   string mySecondoPort, string myCassandraHost, 
+   WorkerQueue *myTokenQueue, size_t myWorkerId, 
    QueryexecutorState *myQueryExecutorState) 
    : cassandra(myCassandra), secondoHost(mySecondoHost), 
-   secondoPort(mySecondoPort), queryComplete(false), 
-   shutdown(false), query(NULL), tokenQueue(myTokenQueue),
-   workerId(myWorkerId), queryExecutorState(myQueryExecutorState) {
+   secondoPort(mySecondoPort), cassandraHost(myCassandraHost), 
+   queryComplete(false), shutdown(false), query(NULL), 
+   tokenQueue(myTokenQueue), workerId(myWorkerId), 
+   queryExecutorState(myQueryExecutorState) {
    
       si = initSecondoInterface(secondoHost, secondoPort);
 
@@ -170,7 +172,7 @@ public:
      ss << "(queryid, ip, begintoken, endtoken, queryuuid) ";
      ss << "values(";
      ss << "" << queryId << ",",
-     ss << "'" << secondoHost << "',";
+     ss << "'" << cassandraHost << "',";
      ss << "'" << tokenrange.getStart() << "',",
      ss << "'" << tokenrange.getEnd() << "',",
      ss << "'" << queryuuid << "'",
@@ -333,6 +335,7 @@ private:
    NestedList* nl;
    string secondoHost;
    string secondoPort;
+   string cassandraHost;
    bool queryComplete;
    bool shutdown;
    string* query;

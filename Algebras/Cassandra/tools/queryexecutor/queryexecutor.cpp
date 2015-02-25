@@ -673,8 +673,9 @@ void startSecondoWorker(vector<SecondoWorker*> &worker,
         it != cmdline_args.secondoPorts.end(); it++) {
           
        SecondoWorker *secondoWorker = new SecondoWorker(
-            cassandra, cmdline_args.secondoHost, *it, &tokenQueue, 
-            workerId, &queryExecutorState);
+            cassandra, cmdline_args.secondoHost, *it, 
+            cmdline_args.cassandraNodeIp,
+            &tokenQueue, workerId, &queryExecutorState);
       
        startSecondoWorkerThread(secondoWorker);
        worker.push_back(secondoWorker);
