@@ -49,7 +49,6 @@ This file contains the implementation of the DBScanAlgebra.
 #include "Stream.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
-#include "DBScanMT.h"
 #include "DistFunction.h"
 
 #include <iostream>
@@ -65,13 +64,19 @@ namespace clusterdbscanalg
 {
 
 /*
-Type mapping method ~dbscanType~ MMR-Tree
+
+1 Operator dbScanR
+
+
+This operator realizes the db scan for rectangles 
+using an r-tree as index structure.
+
+1.1 Type Mapping
+
 
 */
- ListExpr dbscanTypeRT( ListExpr args )
- {
-  if(nl->ListLength(args)!=2)
-  {
+ ListExpr dbscanRTM( ListExpr args ) {
+  if(nl->ListLength(args)!=2) {
    ErrorReporter::ReportError("two elements expected. "
     "Stream and argument list");
    return nl->TypeError();
@@ -79,27 +84,23 @@ Type mapping method ~dbscanType~ MMR-Tree
 
   ListExpr stream = nl->First(args);
 
-  if(!Stream<Tuple>::checkType(nl->First(args)))
-  {
+  if(!Stream<Tuple>::checkType(nl->First(args))) {
    return listutils::typeError("first argument is not stream(Tuple)");
   }
 
   ListExpr arguments = nl->Second(args);
 
-  if(nl->ListLength(arguments)!=4)
-  {
+  if(nl->ListLength(arguments)!=4) {
    ErrorReporter::ReportError("non conform list of cluster attribut, "
     "attribute name as cluster ID, Eps and MinPts");
    return nl->TypeError();
   }
 
-  if(!CcReal::checkType(nl->Third(arguments)))
-  {
+  if(!CcReal::checkType(nl->Third(arguments))) {
    return listutils::typeError("no numeric Eps");
   }
 
-  if(!CcInt::checkType(nl->Fourth(arguments)))
-  {
+  if(!CcInt::checkType(nl->Fourth(arguments))) {
    return listutils::typeError("no numeric MinPts");
   }
 
@@ -109,8 +110,7 @@ Type mapping method ~dbscanType~ MMR-Tree
   ListExpr attrType;
   string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
   int found = FindAttribute(attrList, attrName, attrType);
-  if(found == 0)
-  {
+  if(found == 0) {
    ErrorReporter::ReportError("Attribute "
     + attrName + " is no member of the tuple");
    return nl->TypeError();
@@ -119,8 +119,7 @@ Type mapping method ~dbscanType~ MMR-Tree
  if( !Rectangle<2>::checkType(attrType)
    && !Rectangle<3>::checkType(attrType)
    && !Rectangle<4>::checkType(attrType)
-   && !Rectangle<8>::checkType(attrType) )
-  {
+   && !Rectangle<8>::checkType(attrType) ) {
      return listutils::typeError("Attribute " + attrName + " not of type " 
       + Rectangle<2>::BasicType() + ", " 
       + Rectangle<3>::BasicType() + ", " 
@@ -140,8 +139,7 @@ Type mapping method ~dbscanType~ MMR-Tree
 
   string namestr = nl->SymbolValue(name);
   int pos = FindAttribute(attrList,namestr,typeList);
-  if(pos!=0)
-  {
+  if(pos!=0) {
    ErrorReporter::ReportError("Attribute "+ namestr +
                               " already member of the tuple");
    return nl->TypeError();
@@ -154,8 +152,7 @@ Type mapping method ~dbscanType~ MMR-Tree
   
   attrList = nl->Rest(attrList);
   
-  while(!(nl->IsEmpty(attrList)))
-  {
+  while(!(nl->IsEmpty(attrList))) {
    lastlistn = nl->Append(lastlistn,nl->First(attrList));
    attrList = nl->Rest(attrList);
   }
@@ -177,21 +174,12 @@ Type mapping method ~dbscanType~ MMR-Tree
  }
 
 
-
-
 /*
-Value mapping method ~dbscanRT~ MMR-Tree
+1.2 Value mapping 
 
 */
-
-struct dbscanLI{
-  TupleType* tt;
-  TupleBuffer* tp;
-  GenericRelationIterator* relIter;
-};
-
  template <int dim>
- int dbscanRT(Word* args, Word& result, int message, Word& local, Supplier s)
+ int dbscanRVM1(Word* args, Word& result, int message, Word& local, Supplier s)
  {
 
   typedef clusterdbscanalg::RectDist<dim> Dist;
@@ -249,16 +237,79 @@ struct dbscanLI{
   }
   return 0;
 }
- 
- 
+
 /*
-Type mapping method ~dbscanTypeMT~ MMM-Tree
+1.3 Struct ~dbscanInfoRT~
 
 */
- ListExpr dbscanTypeMT( ListExpr args )
+
+ struct dbscanRInfo :  OperatorInfo
  {
-  if(nl->ListLength(args)!=2)
+  dbscanRInfo() : OperatorInfo()
   {
+   name      = "dbscanR";
+   signature = "stream(Tuple) -> stream(Tuple)";
+   syntax    = "_ dbscanR [_, _, _, _]";
+   meaning   = "Detects cluster from a given stream using MMR-Tree as index "
+   "structure. The first parameter has to be a bbox, the second parameter is "
+   "the name for the cluster ID attribute, the  third paramter is eps and "
+   "the fourth parameter is MinPts. A tuple stream will be returned but the "
+   "tuple will have additional attributes as bbox, visited and clusterID";
+   example   = "query Kneipen feed extend[B : bbox(.GeoData)] dbscanRT "
+       "[B, No, 1000.0, 5] consume";
+  }
+ };
+
+/*
+1.4 Selection method ~dbscanRSel~
+
+*/ 
+ int dbscanRSel(ListExpr args)
+ {
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr attrType;
+  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
+  int found = FindAttribute(attrList, attrName, attrType);
+  assert(found > 0);
+   
+  if(Rectangle<2>::checkType(attrType)) {
+   return 0;
+  } else if(Rectangle<3>::checkType(attrType)) {
+   return 1;
+  } else if(Rectangle<4>::checkType(attrType)) {
+   return 2;
+  } else if(Rectangle<8>::checkType(attrType)) {
+   return 3;
+  }
+   
+  return -1;
+ }
+
+/*
+1.5 Value Mapping Array
+
+*/
+ 
+ ValueMapping dbscanRVM[] = 
+ {
+    dbscanRVM1<2>,
+    dbscanRVM1<3>,
+    dbscanRVM1<4>,
+    dbscanRVM1<8>
+ };
+
+
+/*
+2 Operator dbScanM
+
+*/
+ 
+/*
+2.1 Type mapping 
+
+*/
+ ListExpr dbscanMTM( ListExpr args ) {
+  if(nl->ListLength(args)!=2) {
    ErrorReporter::ReportError("two elements expected. " 
             "Stream and argument list");
    return nl->TypeError();
@@ -266,27 +317,23 @@ Type mapping method ~dbscanTypeMT~ MMM-Tree
 
   ListExpr stream = nl->First(args);
 
-  if(!Stream<Tuple>::checkType(nl->First(args)))
-  {
+  if(!Stream<Tuple>::checkType(nl->First(args))) {
    return listutils::typeError("first argument is not stream(Tuple)");
   }
 
   ListExpr arguments = nl->Second(args);
 
-  if(nl->ListLength(arguments)!=4)
-  {
+  if(nl->ListLength(arguments)!=4) {
    ErrorReporter::ReportError("non conform list of cluster attribut, "
     "attribute name as cluster ID, Eps and MinPts");
    return nl->TypeError();
   }
 
-  if(!CcReal::checkType(nl->Third(arguments)))
-  {
+  if(!CcReal::checkType(nl->Third(arguments))) {
    return listutils::typeError("no numeric Eps");
   }
 
-  if(!CcInt::checkType(nl->Fourth(arguments)))
-  {
+  if(!CcInt::checkType(nl->Fourth(arguments))) {
    return listutils::typeError("no numeric MinPts");
   }
 
@@ -296,8 +343,7 @@ Type mapping method ~dbscanTypeMT~ MMM-Tree
   ListExpr attrType;
   string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
   int found = FindAttribute(attrList, attrName, attrType);
-  if(found == 0)
-  {
+  if(found == 0) {
    ErrorReporter::ReportError("Attribute "
     + attrName + " is no member of the tuple");
    return nl->TypeError();
@@ -307,8 +353,7 @@ Type mapping method ~dbscanTypeMT~ MMM-Tree
    && !CcReal::checkType(attrType)
    && !Point::checkType(attrType)
    && !CcString::checkType(attrType) 
-   && !Picture::checkType(attrType) )
-  {
+   && !Picture::checkType(attrType) ) {
    return listutils::typeError("Attribute " + attrName + " not of type " 
     + CcInt::BasicType() + ", " 
     + CcReal::BasicType() + ", " 
@@ -329,8 +374,7 @@ Type mapping method ~dbscanTypeMT~ MMM-Tree
 
   string namestr = nl->SymbolValue(name);
   int pos = FindAttribute(attrList,namestr,typeList);
-  if(pos!=0)
-  {
+  if(pos!=0) {
    ErrorReporter::ReportError("Attribute "+ namestr +
                               " already member of the tuple");
    return nl->TypeError();
@@ -343,8 +387,7 @@ Type mapping method ~dbscanTypeMT~ MMM-Tree
   
   attrList = nl->Rest(attrList);
   
-  while(!(nl->IsEmpty(attrList)))
-  {
+  while(!(nl->IsEmpty(attrList))) {
    lastlistn = nl->Append(lastlistn,nl->First(attrList));
    attrList = nl->Rest(attrList);
   }
@@ -367,7 +410,7 @@ Type mapping method ~dbscanTypeMT~ MMM-Tree
 
 
 /*
-Value mapping method ~dbscanM~ MMM-Tree
+1.2 Value mapping method ~dbscanM~ 
 
 */
 
@@ -431,49 +474,117 @@ int dbscanMVM1(Word* args, Word& result,
 }
 
 
+/*
+1.3 Struct ~dbscanMInfo~
+
+*/
+ struct dbscanMInfo :  OperatorInfo
+ {
+  dbscanMInfo() : OperatorInfo()
+  {
+   name      = "dbscanM";
+   signature = "stream(Tuple) -> stream(Tuple)";
+   syntax    = "_ dbscanM [_, _, _, _]";
+   meaning   = "Detects cluster from a given stream using MMM-Tree as index "
+   "structure. The first parameter is the attribute to cluster, the second "
+   "parameter is the name for the cluster ID attribute, the  third paramter "
+   "is eps and the fourth parameter is MinPts. A tuple stream will be returned "
+   "but the tuple will have additional attributes as visited and clusterID";
+   example   = "query Kneipen feed dbscanM[GeoData, CID, 1000.0, 5] consume";
+   
+  }
+ };
+
+
+/*
+1.4 Selection Function
+
+*/ 
+ int dbscanMSel(ListExpr args) {
+
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr attrType;
+  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
+  int found = FindAttribute(attrList, attrName, attrType);
+  assert(found > 0);
+  
+  if(CcInt::checkType(attrType)) {
+   return 0;
+  } else if(CcReal::checkType(attrType)) {
+   return 1;
+  } else if(Point::checkType(attrType)) {
+   return 2;
+  } else if(CcString::checkType(attrType)) {
+   return 3;
+  } else if(Picture::checkType(attrType)) {
+   return 4;
+  }
+  
+  return -1; 
+ };
+
+ 
+/*
+Value mapping array ~dbscanMVM~
+
+*/
+
+ValueMapping dbscanMVM[] = 
+ {
+  dbscanMVM1<CcInt, IntDist>,
+  dbscanMVM1<CcReal, RealDist>,
+  dbscanMVM1<Point, PointDist>,
+  dbscanMVM1<CcString, StringDist>,
+  dbscanMVM1<Picture, PictureDist>
+ };
+ 
+
+
 
 
 
 /*
-Type mapping method ~dbscanTypeMTF~ MMM-Tree with given distance function
+3  Operator ~dbscanF~
+
+This operator works the same as the ~dbScanM~ operator.
+The difference is that this operator allows the user to define
+its own distance function instead of using a predefined one.
+While the ~dbScanM~ operator has a small set of attribute 
+data type which can be processed, the ~dbscanF~ operator
+is able to process arbitrary attribute data types.
+
+3.1 Type Mapping
 
 */
- ListExpr dbscanTypeMTF( ListExpr args )
- {
-  if(nl->ListLength(args)!=2)
-  {
+ListExpr dbscanFTM( ListExpr args ) {
+  if(nl->ListLength(args)!=2) {
    return listutils::typeError("two elements expected. " 
             "Stream and argument list");
   }
   ListExpr stream = nl->First(args);
 
-  if(!Stream<Tuple>::checkType(stream))
-  {
+  if(!Stream<Tuple>::checkType(stream)) {
    return listutils::typeError("first argument is not stream(Tuple)");
   }
 
   ListExpr arguments = nl->Second(args);
 
-  if(nl->ListLength(arguments)!=5)
-  {
+  if(nl->ListLength(arguments)!=5) {
    return listutils::typeError("non conform list of cluster attribut, "
     "attribute name as cluster ID, Eps and MinPts, distfun");
   }
 
-  if(!CcReal::checkType(nl->Third(arguments)))
-  {
+  if(!CcReal::checkType(nl->Third(arguments))) {
    return listutils::typeError("no numeric Eps");
   }
 
-  if(!CcInt::checkType(nl->Fourth(arguments)))
-  {
+  if(!CcInt::checkType(nl->Fourth(arguments))) {
    return listutils::typeError("no numeric MinPts");
   }
 
   ListExpr fun = nl->Fifth(arguments);
 
-  if(!listutils::isMap<2>(fun))
-  {
+  if(!listutils::isMap<2>(fun)) {
    return listutils::typeError("arg4 is not a map with 2 arguments");
   }
 
@@ -499,8 +610,7 @@ Type mapping method ~dbscanTypeMTF~ MMM-Tree with given distance function
   }
   string attrName = nl->SymbolValue(clusterAttr);
   int found = FindAttribute(attrList, attrName, attrType);
-  if(found == 0)
-  {
+  if(found == 0) {
    return listutils::typeError("Attribute "
     + attrName + " is no member of the tuple");
   }
@@ -522,14 +632,12 @@ Type mapping method ~dbscanTypeMTF~ MMM-Tree with given distance function
 
   string namestr = nl->SymbolValue(name);
   int pos = FindAttribute(attrList,namestr,typeList);
-  if(pos!=0)
-  {
+  if(pos!=0) {
    return listutils::typeError("Attribute "+ namestr +
                               " already member of the tuple");
   }//endif
   pos = FindAttribute(attrList,"Visited",typeList);
-  if(pos!=0)
-  {
+  if(pos!=0) {
    return listutils::typeError("Attribute Visisted" 
                               " already member of the tuple");
   }//endif
@@ -541,8 +649,7 @@ Type mapping method ~dbscanTypeMTF~ MMM-Tree with given distance function
   
   attrList = nl->Rest(attrList);
   
-  while(!(nl->IsEmpty(attrList)))
-  {
+  while(!(nl->IsEmpty(attrList))) {
    lastlistn = nl->Append(lastlistn,nl->First(attrList));
    attrList = nl->Rest(attrList);
   }
@@ -562,250 +669,85 @@ Type mapping method ~dbscanTypeMTF~ MMM-Tree with given distance function
                         ,nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType())
                                       ,newAttrList)));
  }
- 
- 
+
 
 /*
-Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
+3.1 Value Mapping
 
-*/
- template <class T, class DistComp>
- int dbscanFunMTF(Word* args, Word& result, int message, Word& local, 
-  Supplier s)
- {
+The template argument specifies the result type of the distance function and
+may be CcInt or CcReal
 
-  GenericRelationIterator *relIter = 0;
-  dbscanLI* li  = (dbscanLI*)local.addr;
+*/ 
 
+template <class R> 
+int dbscanFVM1(Word* args, Word& result, 
+               int message, Word& local, Supplier s) {
+
+  typedef  CustomDist<Attribute*,R> DistComp;
+  typedef  dbscan::DBScanGen< 
+                   dbscan::SetOfObjectsM<DistComp,Attribute >, 
+                   DistComp > 
+           dbscanclass;
+  dbscanclass* li = (dbscanclass*) local.addr;  
   switch (message)
   {
    case OPEN :
    {
+    // arg0 : stream
+    Word stream = args[0];
+    Supplier supplier = qp->GetSupplier(args[1].addr, 2);
     Word argument;
-    Supplier supplier;
-    TupleType *resultTupleType;
-    ListExpr resultType;
-    TupleBuffer *tp;
-    long MaxMem;
-    double defEps    = 0;
-    int defMinPts = 0;
-    int idxClusterAttr = -1;
-    int attrCnt = 0;
-    int minLeafs  = 4;
-    int maxLeafs  = 10;
-    DBScanMT<T, DistComp> dbscan;
-   
-    qp->Open(args[0].addr);
-    resultType = GetTupleResultType( s );
-    resultTupleType = new TupleType( nl->Second( resultType ) );
-
-    Stream<Tuple> stream(args[0]);
-      
-    Tuple* tup;
-    tp = 0;
-    MaxMem = qp->FixedMemory();
-    tp = new TupleBuffer(MaxMem);
-    relIter = 0;
-
-    supplier = qp->GetSupplier(args[1].addr, 2);
     qp->Request(supplier, argument);
-    defEps = ((CcReal*)argument.addr)->GetRealval();
-
+    CcReal* eps = ((CcReal*)argument.addr);
     supplier = qp->GetSupplier(args[1].addr, 3);
     qp->Request(supplier, argument);
-    defMinPts = ((CcInt*)argument.addr)->GetIntval();
-
-    supplier = qp->GetSupplier(args[1].addr, 4);
-
-    idxClusterAttr = static_cast<CcInt*>(args[2].addr)->GetIntval();
-    
-    MMMTree<pair<T, TupleId>, DistComp >* mtree;
-    
-    stream.open();
-
-    TupleId id = 0;
-
-    while( (tup = stream.request()) != 0)
-    {
-     Tuple *newTuple = new Tuple(resultTupleType);
-     newTuple->SetTupleId(id++);
-     //Copy points from given tuple to the new tuple
-     attrCnt = tup->GetNoAttributes();
-     for( int i = 0; i < attrCnt; i++ ) //tup->GetNoAttributes(); i++ ) 
-     {
-      newTuple->CopyAttribute( i, tup, i );
-     }
-
-     //Initialize the result tuple with default values
-     CcInt clusterID(-1);
-     newTuple->PutAttribute( attrCnt, ((Attribute*) &clusterID)->Clone());
-  
-     CcBool visited(true, false);
-     newTuple->PutAttribute( attrCnt+1, ((Attribute*) &visited)->Clone());
-          
-     tp->AppendTuple(newTuple);
-     tup->DeleteIfAllowed(); 
-     newTuple->DeleteIfAllowed();
-     dbscan.no_Objects++;
+    CcInt* minPts = ((CcInt*)argument.addr);
+    int cid = ((CcInt*)args[2].addr)->GetValue();
+    ListExpr resultType = GetTupleResultType( s );
+    ListExpr tt = ( nl->Second( resultType ) );
+    if(li) { 
+        delete li;
+        local.addr=0;
     }
-    stream.close();
-    
-    DistComp dc;
-    dc.initialize(qp, supplier);
-
-    mtree = new MMMTree<pair<T, TupleId>, DistComp >(minLeafs, maxLeafs, dc);
-
-    GenericRelationIterator* relIter = tp->MakeScan();
-    Tuple* obj;
-
-
-    int count = 0;
-
-    while((obj = relIter->GetNextTuple()))
-    {
-     TupleId objId = relIter->GetTupleId();
-     T attr = (T) obj->GetAttribute(idxClusterAttr);
-     
-     pair<T, TupleId> p(attr, objId);
-
-     mtree->insert(p);
-     count++;
-     obj->DeleteIfAllowed();
-    }
-
-    delete relIter;
-    mtree->getDistComp().reset();
-
-    dbscan.clusterAlgo(mtree, tp, defEps, defMinPts, idxClusterAttr, 
-        attrCnt, attrCnt+1);
-
-    delete mtree;
-    resultTupleType->DeleteIfAllowed();
-
-    if(li){
-      delete li->relIter;
-      delete li->tp;
-      delete li;
-    }  
-    relIter = tp->MakeScan();
-    li = new dbscanLI();
-    li->tt=0;
-    li->tp=tp;
-    li->relIter= relIter;
-    local.setAddr( li );
-
-
-    return 0;
-   }
-
-
-   case REQUEST :
-   {
-    if(!li){
-      return CANCEL;
-    }
-
-    relIter = li->relIter;
-    
-    Tuple* curtup;
-    
-    if((curtup = relIter->GetNextTuple()))
-    {  
-     result.setAddr(curtup);
-     return YIELD;
-    }
-    else
-    {
-     return CANCEL;
-    }
-   }
-   case CLOSE :{
-    if(li){
-      delete li->relIter;
-      delete li->tp;
-      delete li;
-      local.addr=0;
-    }  
-      
+    size_t maxMem = (qp->GetMemorySize(s) * 1024);
+    if(!eps->IsDefined() || eps->GetValue() < 0){
       return 0;
-   }
-   }
-   return 0;
- }
- 
-
-
-
-
-/*
-Struct ~dbscanInfoRT~
-
-*/
-
- struct dbscanInfoRT :  OperatorInfo
- {
-  dbscanInfoRT() : OperatorInfo()
-  {
-   name      = "dbscanR";
-   signature = "stream(Tuple) -> stream(Tuple)";
-   syntax    = "_ dbscanR [_, _, _, _]";
-   meaning   = "Detects cluster from a given stream using MMR-Tree as index "
-   "structure. The first parameter has to be a bbox, the second parameter is "
-   "the name for the cluster ID attribute, the  third paramter is eps and "
-   "the fourth parameter is MinPts. A tuple stream will be returned but the "
-   "tuple will have additional attributes as bbox, visited and clusterID";
-   example   = "query Kneipen feed extend[B : bbox(.GeoData)] dbscanRT "
-       "[B, No, 1000.0, 5] consume";
-  }
- };
- 
- struct dbscanInfoRT2 :  OperatorInfo
- {
-  dbscanInfoRT2() : OperatorInfo()
-  {
-   name      = "dbscanR2";
-   signature = "stream(Tuple) -> stream(Tuple)";
-   syntax    = "_ dbscanR2 [_, _, _, _]";
-   meaning   = "Detects cluster from a given stream using MMR-Tree as index "
-   "structure. The first parameter has to be a bbox, the second parameter is "
-   "the name for the cluster ID attribute, the  third paramter is eps and "
-   "the fourth parameter is MinPts. A tuple stream will be returned but the "
-   "tuple will have additional attributes as bbox, visited and clusterID";
-   example   = "query Kneipen feed extend[B : bbox(.GeoData)] dbscanRT "
-       "[B, No, 1000.0, 5] consume";
-  }
- };
- 
-  
-/*
-Struct ~dbscanInfoMT~
-
-*/
- struct dbscanInfoMT :  OperatorInfo
- {
-  dbscanInfoMT() : OperatorInfo()
-  {
-   name      = "dbscanM";
-   signature = "stream(Tuple) -> stream(Tuple)";
-   syntax    = "_ dbscanM [_, _, _, _]";
-   meaning   = "Detects cluster from a given stream using MMM-Tree as index "
-   "structure. The first parameter is the attribute to cluster, the second "
-   "parameter is the name for the cluster ID attribute, the  third paramter "
-   "is eps and the fourth parameter is MinPts. A tuple stream will be returned "
-   "but the tuple will have additional attributes as visited and clusterID";
-   example   = "query Kneipen feed dbscanM[GeoData, CID, 1000.0, 5] consume";
+    }
+    if(!minPts->IsDefined() || minPts->GetValue() < 0){
+      return 0;
+    }
    
+    DistComp dist;
+    Supplier supplier2 = qp->GetSupplier(args[1].addr, 4);
+    dist.initialize(qp, supplier2); 
+    local.addr = new dbscanclass(stream,tt, 
+                                 eps->GetValue(),
+                                 minPts->GetValue(),
+                                 maxMem, 
+                                 cid, dist);
+    return 0;
+  } 
+  case REQUEST:
+     result.addr= li?li->next():0;
+     return result.addr?YIELD:CANCEL;
+  case CLOSE:{
+     if(li){
+        delete li;
+        local.addr=0;
+     }
   }
- };
-
+  }
+  return 0;
+}
+ 
  
 /*
-Struct ~dbscanInfoMTF~
+1.3 Struct ~dbscanFInfo~
 
 */ 
- struct dbscanInfoMTF :  OperatorInfo
+ struct dbscanFInfo :  OperatorInfo
  {
-  dbscanInfoMTF() : OperatorInfo()
+  dbscanFInfo() : OperatorInfo()
   {
    name      = "dbscanF";
    signature = "stream(Tuple) -> stream(Tuple)";
@@ -823,102 +765,10 @@ Struct ~dbscanInfoMTF~
  
  
 /*
-Selection method ~dbscanRRecSL~
-
-*/ 
- int dbscanRRecSL(ListExpr args)
- {
-  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
-  ListExpr attrType;
-  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
-  int found = FindAttribute(attrList, attrName, attrType);
-  assert(found > 0);
-   
-  if(Rectangle<2>::checkType(attrType))
-  {
-   return 0;
-  }
-  else if(Rectangle<3>::checkType(attrType))
-  {
-   return 1;
-  }
-  else if(Rectangle<4>::checkType(attrType))
-  {
-   return 2;
-  }
-  else if(Rectangle<8>::checkType(attrType))
-  {
-   return 3;
-  }
-   
-  return -1;
- }
- 
- ValueMapping dbscanRTVM[] = 
- {
-    dbscanRT<2>
-   ,dbscanRT<3>
-   ,dbscanRT<4>
-   ,dbscanRT<8>
- };
- 
-
-/*
-Selection method for value mapping array ~dbscanMTDisSL~
-
-*/ 
- int dbscanMTDisSL(ListExpr args)
- {
-  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
-  ListExpr attrType;
-  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
-  int found = FindAttribute(attrList, attrName, attrType);
-  assert(found > 0);
-  
-  if(CcInt::checkType(attrType))
-  {
-   return 0;
-  }
-  else if(CcReal::checkType(attrType))
-  {
-   return 1;
-  }
-  else if(Point::checkType(attrType))
-  {
-   return 2;
-  }
-  else if(CcString::checkType(attrType))
-  {
-   return 3;
-  }
-  else if(Picture::checkType(attrType))
-  {
-   return 4;
-  }
-  
-  return -1; 
- };
- 
-/*
-Value mapping array ~dbscanMVM~
+1.4 Selection method 
 
 */
-
-ValueMapping dbscanMVM[] = 
- {
-  dbscanMVM1<CcInt, IntDist>,
-  dbscanMVM1<CcReal, RealDist>,
-  dbscanMVM1<Point, PointDist>,
-  dbscanMVM1<CcString, StringDist>,
-  dbscanMVM1<Picture, PictureDist>
- };
- 
- 
-/*
-Selection method for value mapping array ~dbscanMTFDisSL~
-
-*/
- int dbscanMTFDisSL(ListExpr args)
+ int dbscanFSel(ListExpr args)
  {
   ListExpr funResult= nl->Fourth(nl->Fifth(nl->Second(args)));
   if(CcInt::checkType(funResult)) return 0;
@@ -928,15 +778,15 @@ Selection method for value mapping array ~dbscanMTFDisSL~
  
  
 /*
-Value mapping array ~dbscanMTFDisVM[]~
+1.5. Value mapping array 
 
 */
- ValueMapping dbscanMTFDisVM[] = 
- {
-  dbscanFunMTF<Attribute*, CustomDist<Attribute*, CcInt> >,
-  dbscanFunMTF<Attribute*, CustomDist<Attribute*, CcReal> >
- };
 
+ ValueMapping dbscanFVM[] = 
+ {
+  dbscanFVM1<CcInt>,
+  dbscanFVM1<CcReal> 
+ };
 
 /*
 Algebra class ~ClusterDBScanAlgebra~
@@ -947,13 +797,15 @@ Algebra class ~ClusterDBScanAlgebra~
   public:
    ClusterDBScanAlgebra() : Algebra()
    {
-    AddOperator(dbscanInfoRT(), dbscanRTVM, 
-                                dbscanRRecSL, dbscanTypeRT)->SetUsesMemory();
+    AddOperator(dbscanRInfo(), dbscanRVM, 
+                                dbscanRSel, 
+                                dbscanRTM)->SetUsesMemory();
 
-    AddOperator(dbscanInfoMT(), dbscanMVM, 
-                 dbscanMTDisSL, dbscanTypeMT)->SetUsesMemory();
+    AddOperator(dbscanMInfo(), dbscanMVM, 
+                 dbscanMSel, dbscanMTM)->SetUsesMemory();
 
-    AddOperator(dbscanInfoMTF(),dbscanMTFDisVM, dbscanMTFDisSL, dbscanTypeMTF);
+    AddOperator(dbscanFInfo(),dbscanFVM, 
+                dbscanFSel, dbscanFTM)->SetUsesMemory();
 
    }
 

@@ -17,6 +17,6 @@ Operator : dbscanF
 Number   : 1
 Signature: stream(Tuple) x Id x Id x real x int x fun  -> stream(Tuple)
 Example  : query Kneipen feed  dbscanF[GeoData, No, 500.0, 5, fun(p1 : point, p2 : point) distance(p1,p2)] sortby[No] groupby[No ; C : group count] count
-Result   : 9
+Result   : 7
 
 
