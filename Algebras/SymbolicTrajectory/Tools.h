@@ -35,6 +35,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "RelationAlgebra.h"
 #include "TemporalUnitAlgebra.h"
 #include "SecParser.h"
+#include "RTreeAlgebra.h"
  
  using namespace std;
  
@@ -89,7 +90,11 @@ Started July 2014, Fabio Vald\'{e}s
   static bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
   // static Word evaluate(string input);
-  static void createTrajectory(int size, vector<string>& result);
+  static bool createTransitions(const bool dortmund,
+                                map<string, set<string> >& transitions);
+  static bool createLabelSequence(const int size, const int number,
+                    const bool dortmund, map<string, set<string> >& transitions,
+                    vector<string>& result);
   static void printNfa(vector<map<int, int> > &nfa, set<int> &finalStates);
   static void makeNFApersistent(vector<map<int, int> > &nfa,
      set<int> &finalStates, DbArray<NFAtransition> &trans, DbArray<int> &fs, 

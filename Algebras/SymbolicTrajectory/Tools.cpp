@@ -814,59 +814,126 @@ The string ~input~ is evaluated by Secondo. The result is returned as a Word.
 //   return queryResult;
 // }
 
-/*
-\subsection{Function ~createTrajectory~}
 
-Creates a vector of string containing districts of Dortmund in a random but
-sensible order.
+
+bool Tools::createTransitions(const bool dortmund,
+                              map<string, set<string> >& transitions) {
+  if (dortmund) {
+    map<string, set<string> >::iterator im;
+    set<string>::iterator it;
+    transitions["Aplerbeck"].insert("Hörde");
+    transitions["Aplerbeck"].insert("Innenstadt-Ost");
+    transitions["Aplerbeck"].insert("Brackel");
+    transitions["Brackel"].insert("Innenstadt-Nord");
+    transitions["Brackel"].insert("Innenstadt-Ost");
+    transitions["Brackel"].insert("Scharnhorst");
+    transitions["Eving"].insert("Huckarde");
+    transitions["Eving"].insert("Innenstadt-Nord");
+    transitions["Eving"].insert("Mengede");
+    transitions["Eving"].insert("Scharnhorst");
+    transitions["Hörde"].insert("Hombruch");
+    transitions["Hörde"].insert("Innenstadt-Ost");
+    transitions["Hombruch"].insert("Innenstadt-Ost");
+    transitions["Hombruch"].insert("Innenstadt-West");
+    transitions["Hombruch"].insert("Lütgendortmund");
+    transitions["Huckarde"].insert("Innenstadt-Nord");
+    transitions["Huckarde"].insert("Innenstadt-West");
+    transitions["Huckarde"].insert("Lütgendortmund");
+    transitions["Huckarde"].insert("Mengede");
+    transitions["Innenstadt-Nord"].insert("Innenstadt-Ost");
+    transitions["Innenstadt-Nord"].insert("Innenstadt-West");
+    transitions["Innenstadt-Nord"].insert("Scharnhorst");
+    transitions["Innenstadt-Ost"].insert("Innenstadt-West");
+    transitions["Innenstadt-West"].insert("Lütgendortmund");
+    for (im = transitions.begin(); im != transitions.end(); im++) {
+      for (it = im->second.begin(); it != im->second.end(); it++) {
+        transitions[*it].insert(im->first); // add symmetric transitions
+      }
+      transitions[im->first].insert(im->first); // remaining in the same area
+    }
+  }
+  else {
+    Word kreis, kreisrtree;
+    bool defined;
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    if (!sc->GetObject("Kreis", kreis, defined)) {
+      cout << "Error: GetObject Kreis failed" << endl;
+      return false;
+    }
+    if (!defined) {
+      cout << "Error: object Kreis undefined" << endl;
+      return false;
+    }
+    if (!sc->GetObject("Kreisrtree", kreisrtree, defined)) {
+      cout << "Error: GetObject Kreisrtree failed" << endl;
+      return false;
+    }
+    if (!defined) {
+      cout << "Error: object Kreisrtree undefined" << endl;
+      return false;
+    }
+    Relation *rel = (Relation*)(kreis.addr);
+    R_Tree<2, TupleId> *rtree = (R_Tree<2, TupleId>*)(kreisrtree.addr);
+    RelationIterator *it1 = new RelationIterator(*rel);
+    Tuple *tuple1 = it1->GetNextTuple();
+    R_TreeLeafEntry<2, TupleId> leaf;
+    Tuple *tuple2 = 0;
+    while (tuple1) {
+      string name1 = ((CcString*)(tuple1->GetAttribute(0)))->GetValue();
+      Region *r1 = (Region*)(tuple1->GetAttribute(4));
+      Rectangle<2> bbox = r1->BoundingBox();
+      if (rtree->First(bbox, leaf)) {
+        tuple2 = rel->GetTuple(leaf.info, true);
+        string name2 = ((CcString*)(tuple2->GetAttribute(0)))->GetValue();
+        transitions[name1.substr(3)].insert(name2.substr(3));
+        tuple2->DeleteIfAllowed();
+        while (rtree->Next(leaf)) {
+          tuple2 = rel->GetTuple(leaf.info, true);
+          string name2 = ((CcString*)(tuple2->GetAttribute(0)))->GetValue();
+          transitions[name1.substr(3)].insert(name2.substr(3));
+          tuple2->DeleteIfAllowed();
+        }
+      }
+      tuple1->DeleteIfAllowed();
+      tuple1 = it1->GetNextTuple();
+    }
+    delete it1;
+    delete rtree;
+    delete rel;
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~createLabelSequence~}
+
+Creates a vector of string containing either districts of Dortmund or German
+counties in a random but sensible order.
 
 */
-void Tools::createTrajectory(int size, vector<string>& result) {
-  string districts[12] = {"Aplerbeck", "Brackel", "Eving", "Hörde", "Hombruch",
-                          "Huckarde", "Innenstadt-Nord", "Innenstadt-Ost",
-                          "Innenstadt-West", "Lütgendortmund", "Mengede",
-                          "Scharnhorst"};
-  map<int, set<int> > transitions;
-  set<int>::iterator it;
-  transitions[0].insert(3);
-  transitions[0].insert(7);
-  transitions[0].insert(1);
-  transitions[1].insert(6);
-  transitions[1].insert(7);
-  transitions[1].insert(11);
-  transitions[2].insert(5);
-  transitions[2].insert(6);
-  transitions[2].insert(10);
-  transitions[2].insert(11);
-  transitions[3].insert(4);
-  transitions[3].insert(7);
-  transitions[4].insert(7);
-  transitions[4].insert(8);
-  transitions[4].insert(9);
-  transitions[5].insert(6);
-  transitions[5].insert(8);
-  transitions[5].insert(9);
-  transitions[5].insert(10);
-  transitions[6].insert(7);
-  transitions[6].insert(8);
-  transitions[6].insert(11);
-  transitions[7].insert(8);
-  transitions[8].insert(9);
-  for (int i = 0; i < 12; i++) {
-    for (it = transitions[i].begin(); it != transitions[i].end(); it++) {
-      transitions[*it].insert(i); // add symmetric transitions
+bool Tools::createLabelSequence(const int size, const int number,
+                    const bool dortmund, map<string, set<string> >& transitions,
+                    vector<string>& result) {
+  time_t t;
+  time(&t);
+  srand((unsigned int)t);
+  map<string, set<string> >::iterator im;
+  set<string>::iterator it;
+  for (int i = 0; i < number; i++) {
+    im = transitions.begin();
+    int choice = rand() % transitions.size();
+    advance(im, choice);
+    string name = im->first;
+    result.push_back(name);
+    for (int j = 1; j < size; j++) {
+      it = transitions[name].begin();
+      choice = rand() % transitions[name].size();
+      advance(it, choice);
+      name = *it;
+      result.push_back(name);
     }
-    transitions[i].insert(i); // remaining in the same area is possible
   }
-  int choice, prevPos;
-  prevPos = (int)rand() % 12;
-  for (int i = 0; i < size; i++) {
-    choice = (int)rand() % transitions[prevPos].size();
-    it = transitions[prevPos].begin();
-    advance(it, choice);
-    result.push_back(districts[*it]);
-    prevPos = *it;
-  }
+  return result.size() == (unsigned int)(size * number);
 }
 
 void Tools::printNfa(vector<map<int, int> > &nfa, set<int> &finalStates) {

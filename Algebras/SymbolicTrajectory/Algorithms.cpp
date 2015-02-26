@@ -128,61 +128,34 @@ void Assign::appendToPlacesPtr(unsigned int pos,
 /*
 \section{Implementation of class ~MLabels~}
 
-\subsection{Function ~create~}
-
-Creates an MLabel of a certain size for testing purposes. The labels will be
-contain only numbers between 1 and size[*]rate; rate being the number of
-different labels divided by the size.
+\subsection{Function ~createML~}
 
 */
-void MLabel::createML(int size, bool text, double rate /* = 1.0 */) {
-  if ((size > 0) && (rate > 0) && (rate <= 1)) {
-    int max = size * rate;
+void MLabel::createML(const int size, const int number, vector<string>& labels){
+  if (size > 0) {
     ULabel ul(1);
-    DateTime start(instanttype);
+    Instant start(1.0);
+    start.Set(2015, 1, 1);
     time_t t;
     time(&t);
-    srand(((unsigned int)t) % 86400000);
-    DateTime dur(0, rand(), durationtype); // duration
-    start.Set(2014, 1, 1);
+    srand((unsigned int)t);
     Instant end(start);
-    end.Add(&dur);
-    SecInterval iv(start, end, true, false);
-    if (text) {
-      vector<string> trajectory;
-      Tools::createTrajectory(size, trajectory);
-      for (int i = 0; i < size; i++) {
-        time_t tm;
-        time(&tm);
-        srand(((unsigned int)tm) % 86400000);
-        DateTime dur(0, rand(), durationtype); // duration
-        ul.constValue.Set(true, trajectory[i]);
-        iv.Set(start, end, true, false);
-        ul.timeInterval = iv;
-        Add(ul);
-        start.Add(&dur);
-        end.Add(&dur);
-      }
-    }
-    else {
-      for (int i = 0; i < size; i++) {
-        time_t tm;
-        time(&tm);
-        srand(((unsigned int)tm) % 86400000);
-        DateTime dur(0, rand(), durationtype); // duration
-        ul.constValue.Set(true, Tools::int2String(max - (i % max)));
-        start.Add(&dur);
-        end.Add(&dur);
-        iv.Set(start, end, true, false);
-        ul.timeInterval = iv;
-        Add(ul);
-      }
+    SecInterval iv(true);
+    int labelStartPos = size * number;
+    for (int i = 0; i < size; i++) {
+      DateTime dur(0, rand() % 86400000 + 3600000, durationtype); // duration
+      end.Add(&dur);
+      ul.constValue.Set(true, labels[labelStartPos + i]);
+      iv.Set(start, end, true, false);
+      ul.timeInterval = iv;
+      Add(ul);
+      start = end;
     }
     units.TrimToSize();
   }
   else {
     cout << "Invalid parameters for creation." << endl;
-    Clear();
+    SetDefined(false);
   }
 }
 
@@ -551,6 +524,7 @@ bool Pattern::initEasyCondOpTrees() {
                   + Condition::getType(easyConds[i].getKey(j));
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
       }
+      cout << q << endl;
       pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
       if (!qp_optree.first) {
         cout << "Op tree for easy condition " << i << " uninitialized" << endl;

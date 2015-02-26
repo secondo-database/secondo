@@ -161,7 +161,7 @@ Operator : atperiods
 Number   : 1
 Signature: mlabel x periods -> mlabel
 Example  : query mlabel1 atperiods [const periods value (("2012-01-01-01:10" "2012-01-01-01:20" TRUE TRUE))]
-Result   : (mlabel (("2012-01-01-01:10" "2012-01-01-01:20" TRUE TRUE) 'Brackel'))
+Result   : (mlabel ((("2012-01-01-01:10" "2012-01-01-01:20" TRUE TRUE) 'Brackel')))
 
 Operator : units
 Number   : 5
@@ -179,7 +179,7 @@ Operator : getunit
 Number   : 1
 Signature: mlabel x int -> ulabel
 Example  : query getunit(mlabel1, 0)
-Result   : (ulabel (("2012-01-01" "2012-01-01-00:30" TRUE FALSE) "Eving"))
+Result   : (ulabel (("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 'Eving'))
 
 Operator : initial
 Number   : 12
@@ -378,7 +378,7 @@ Operator : createunitrtree
 Number   : 1
 Signature: stream(tuple(X)) x IDENT -> rtree
 Example  : query Dotraj feed addid createunitrtree[Trajectory]
-Result   : ((rtree1 (tuple ((No int) (Trajectory mlabel) (TID tid))) mlabel FALSE) ("R-Tree statistics" ("Height" 1) ("# of (leaf) entries" 100) ("# of nodes" 3) ("Bounding Box" (4381.0 4381.208333333333))))
+Result   : ((rtree1 (tuple ((No int) (Trajectory mlabel) (TID tid))) mlabel FALSE) ("R-Tree statistics" ("Height" 1) ("# of (leaf) entries" 100) ("# of nodes" 10) ("Bounding Box" (4381.0 4381.208333333333))))
 
 Operator : indexmatches
 Number   : 1
@@ -430,14 +430,14 @@ Result   : (mlabel ((("2012-10-01" "2012-10-02-07:00" TRUE FALSE) 'at_home')))
 
 Operator : createml
 Number   : 1
-Signature: int x real -> mlabel
-Example  : query createml(2, 0.5) matches '() ()'
+Signature: int x bool -> mlabel
+Example  : query createml(2, TRUE) matches '() ()'
 Result   : TRUE
 
-Operator : createmlrelation
+Operator : createmlrel
 Number   : 1
-Signature: int x int x string -> bool
-Example  : query createmlrelation(10, 50, "Dotraj")
+Signature: int x int x string x bool -> bool
+Example  : query createmlrel(10, 50, "Dotraj", TRUE)
 Result   : FALSE
 
 Operator : createtrie

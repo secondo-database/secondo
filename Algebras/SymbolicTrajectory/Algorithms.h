@@ -358,7 +358,7 @@ class MLabel : public MBasic<Label> {
   MLabel() {}
   MLabel(unsigned int n) : MBasic<Label>(n) {}
    
-  void createML(int size, bool text, double rate = 1.0);
+  void createML(const int size, const int number, vector<string>& labels);
   void convertFromMString(const MString& source);
 };
 

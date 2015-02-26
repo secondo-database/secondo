@@ -3404,13 +3404,12 @@ struct fillgapsInfo : OperatorInfo {
 
 */
 ListExpr createmlTM(ListExpr args) {
-  const string errMsg = "Expecting an integer and a real.";
+  const string errMsg = "Expecting an integer and a bool.";
   if (nl->ListLength(args) != 2) {
     return listutils::typeError("Two arguments expected.");
   }
-  if (nl->IsEqual(nl->First(args), CcInt::BasicType())
-   && (nl->IsEqual(nl->Second(args), CcReal::BasicType())
-    || CcInt::checkType(nl->Second(args)))) {
+  if (CcInt::checkType(nl->First(args)) && 
+      CcBool::checkType(nl->Second(args))) {
     return nl->SymbolAtom(MLabel::BasicType());
   }
   return NList::typeError(errMsg);
@@ -3423,18 +3422,24 @@ ListExpr createmlTM(ListExpr args) {
 int createmlVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   result = qp->ResultStorage(s);
   CcInt* ccint = static_cast<CcInt*>(args[0].addr);
-  CcReal* ccreal = static_cast<CcReal*>(args[1].addr);
+  CcBool* ccbool = static_cast<CcBool*>(args[1].addr);
   MLabel* ml = static_cast<MLabel*>(result.addr);
-  if (ccint->IsDefined() && ccreal->IsDefined()) {
-    int size = ccint->GetValue();
-    double rate = ccreal->GetValue();
-    ml->createML(size, false, rate);
-    ml->SetDefined(true);
+  ml->SetDefined(false);
+  if (!ccint->IsDefined() || !ccbool->IsDefined()) {
+    cout << "undefined value" << endl;
+    return 0;
   }
-  else {
-//     cout << "Error: undefined value." << endl;
-    ml->SetDefined(false);
+  map<string, set<string> > transitions;
+  if (!Tools::createTransitions(ccbool->GetValue(), transitions)) {
+    return 0;
   }
+  vector<string> labels;
+  if (!Tools::createLabelSequence(ccint->GetValue(), 1, ccbool->GetValue(),
+                                  transitions, labels)) {
+    return 0;
+  }
+  ml->SetDefined(true);
+  ml->createML(ccint->GetValue(), 0, labels);
   return 0;
 }
 
@@ -3445,50 +3450,62 @@ int createmlVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 struct createmlInfo : OperatorInfo {
   createmlInfo() {
     name      = "createml";
-    signature = "int x real -> mlabel";
+    signature = "int x bool -> mlabel";
     syntax    = "createml(_,_)";
-    meaning   = "Creates an MLabel, the size being determined by the first"
-                "parameter. The second one is the rate of different entries.";
+    meaning   = "Creates an MLabel, representing a trip either through "
+                "Dortmund's districts (iff the second parameter is true) or "
+                " Germany's counties. The first parameter determines the size.";
   }
 };
 
 /*
-\section{Operator ~createmlrelation~}
+\section{Operator ~createmlrel~}
 
 \subsection{Type Mapping}
 
 */
-ListExpr createmlrelationTM(ListExpr args) {
-  if (nl->ListLength(args) != 3) {
-    return listutils::typeError("Three arguments expected.");
+ListExpr createmlrelTM(ListExpr args) {
+  if (nl->ListLength(args) != 4) {
+    return listutils::typeError("Four arguments expected.");
   }
   if (nl->IsEqual(nl->First(args), CcInt::BasicType())
    && nl->IsEqual(nl->Second(args), CcInt::BasicType())
-   && nl->IsEqual(nl->Third(args), CcString::BasicType())) {
+   && nl->IsEqual(nl->Third(args), CcString::BasicType())
+   && nl->IsEqual(nl->Fourth(args), CcBool::BasicType())) {
     return nl->SymbolAtom(CcBool::BasicType());
   }
-  return NList::typeError("Expecting two integers and a string.");
+  return NList::typeError("Expecting two integers, a string and a bool.");
 }
 
 /*
 \subsection{Value Mapping}
 
 */
-int createmlrelationVM(Word* args, Word& result, int message, Word& local,
-                        Supplier s) {
+int createmlrelVM(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
   CcInt* ccint1 = static_cast<CcInt*>(args[0].addr);
   CcInt* ccint2 = static_cast<CcInt*>(args[1].addr);
   CcString* ccstring = static_cast<CcString*>(args[2].addr);
+  CcBool* ccbool = static_cast<CcBool*>(args[3].addr);
   int number, size;
   string relName, errMsg;
   result = qp->ResultStorage(s);
   CcBool* res = (CcBool*)result.addr;
-  if (ccstring->IsDefined() && ccint1->IsDefined() && ccint2->IsDefined()) {
+  if (ccstring->IsDefined() && ccint1->IsDefined() && ccint2->IsDefined() &&
+      ccbool->IsDefined()) {
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
     relName = ccstring->GetValue();
     if (!sc->IsValidIdentifier(relName, errMsg, true)) { // check relation name
       cout << "Invalid relation name \"" << relName << "\"; " << errMsg << endl;
       res->Set(true, false);
+      return 0;
+    }
+    if (sc->IsObjectName(relName)) {
+      cout << relName << " is an existing DB object" << endl;
+      return 0;
+    }
+    if (sc->IsSystemObject(relName)) {
+      cout << relName << " is a reserved name" << endl;
       return 0;
     }
     number = ccint1->GetValue();
@@ -3497,17 +3514,26 @@ int createmlrelationVM(Word* args, Word& result, int message, Word& local,
         nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("No"),
                                         nl->SymbolAtom(CcInt::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("Trajectory"),
-                                       nl->SymbolAtom(MLabel::BasicType()))));
+                                        nl->SymbolAtom(MLabel::BasicType()))));
     ListExpr numTypeInfo = sc->NumericType(typeInfo);
     TupleType* type = new TupleType(numTypeInfo);
     Relation* rel = new Relation(type, false);
     Tuple* tuple;
     MLabel* ml;
     srand(time(0));
+    map<string, set<string> > transitions;
+    if (!Tools::createTransitions(ccbool->GetValue(), transitions)) {
+      return 0;
+    }
+    vector<string> labels;
+    if (!Tools::createLabelSequence(size, number, ccbool->GetValue(),
+                                    transitions, labels)) {
+      return 0;
+    }
     for (int i = 0; i < number; i++) {
       tuple = new Tuple(type);
       ml = new MLabel(1);
-      ml->createML(size, true);
+      ml->createML(size, i, labels);
       tuple->PutAttribute(0, new CcInt(true, i));
       tuple->PutAttribute(1, ml);
       rel->AppendTuple(tuple);
@@ -3532,13 +3558,16 @@ int createmlrelationVM(Word* args, Word& result, int message, Word& local,
 \subsection{Operator Info}
 
 */
-struct createmlrelationInfo : OperatorInfo {
-  createmlrelationInfo() {
-    name      = "createmlrelation";
-    signature = "int x int x string -> bool";
-    syntax    = "createmlrelation(_ , _ , _)";
+struct createmlrelInfo : OperatorInfo {
+  createmlrelInfo() {
+    name      = "createmlrel";
+    signature = "int x int x string x bool -> bool";
+    syntax    = "createmlrelation(_ , _ , _ , _)";
     meaning   = "Creates a relation containing arbitrary many synthetic moving"
-                "labels of arbitrary size and stores it into the database.";
+                "labels of arbitrary size and stores it into the database. If "
+                "the boolean parameter is true, a trip through Dortmund's "
+                "districts is simulated (12 different labels); otherwise the "
+                "trip is based on German counties (439 different labels).";
   }
 };
 
@@ -4083,8 +4112,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
   AddOperator(createmlInfo(), createmlVM, createmlTM);
 
-  AddOperator(createmlrelationInfo(), createmlrelationVM,
-              createmlrelationTM);
+  AddOperator(createmlrelInfo(), createmlrelVM, createmlrelTM);
 
   ValueMapping createtrieVMs[] = {createtrieVM<MLabel>, createtrieVM<MLabels>,
                                 createtrieVM<MPlace>, createtrieVM<MPlaces>, 0};
