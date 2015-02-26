@@ -161,7 +161,10 @@ the returned list.
         list<TupleId>* res = new list<TupleId>();
 
         while(it->hasNext()){
-           res->push_back(it->next()->second);
+           TupleId id2 = it->next()->second;
+           if(id!=id2){
+               res->push_back(id2);
+           }
         }   
         delete it; 
         tuple->DeleteIfAllowed();
@@ -209,7 +212,6 @@ Changes the seed flag for a tuple.
      void setSeed(TupleId id, bool value){
          tupleStates[id].isSeed = value;
      }
-
 
   private:
 
