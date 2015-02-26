@@ -7,13 +7,6 @@ Signature: stream(Tuple) x Id x Id x real x int -> stream(Tuple)
 Example  : query Kneipen feed extend[B : bbox(.GeoData)] dbscanR [B, No, 500.0, 5] sortby[No] groupby[No ; C : group count] count
 Result   : 8
 
-Operator : dbscanR2
-Number   : 1
-Signature: stream(Tuple) x Id x Id x real x int -> stream(Tuple)
-Example  : query Kneipen feed extend[B : bbox(.GeoData)] dbscanR2 [B, No, 500.0, 5] sortby[No] groupby[No ; C : group count] count
-Result   : 8
-
-
 Operator : dbscanM
 Number   : 1
 Signature: stream(Tuple) x Id x Id x real x int  -> stream(Tuple)

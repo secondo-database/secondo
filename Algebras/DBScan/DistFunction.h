@@ -330,4 +330,25 @@ namespace clusterdbscanalg
     return o;
    }
  };
+
+ template <unsigned int dim>
+ class RectDist: public DistCount{
+    public:
+      double operator()(const Rectangle<dim>* r1, const Rectangle<dim>* r2){
+         DistCount::cnt++;
+         if(!r1->IsDefined() && !r2->IsDefined()){
+           return 0;
+         }
+         if(!r1->IsDefined() || !r2->IsDefined()){
+           return numeric_limits<double>::max();
+         }
+         return r1->Distance(*r2);
+      } 
+      double operator()(const pair<Rectangle<dim>*, TupleId>& p1,
+                        const pair<Rectangle<dim>*, TupleId>& p2){
+         return operator()(p1.first, p2.first);
+      }   
+ }; 
+
+
 }

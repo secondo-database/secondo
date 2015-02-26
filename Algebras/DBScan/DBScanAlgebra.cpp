@@ -37,18 +37,19 @@ This file contains the implementation of the DBScanAlgebra.
 1.2 Includes
 
 */
+
+
+#include "SetOfObjectsR.h"
+#include "DBScanGen.h"
+
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "RelationAlgebra.h"
 #include "Stream.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
-#include "DBScan.h"
 #include "DBScanMT.h"
 #include "DistFunction.h"
-
-
-#include "DBScan2.h"
 
 #include <iostream>
 #include <string>
@@ -188,146 +189,16 @@ struct dbscanLI{
   GenericRelationIterator* relIter;
 };
 
-
  template <int dim>
  int dbscanRT(Word* args, Word& result, int message, Word& local, Supplier s)
  {
-  
-  switch (message)
-  {
-   case OPEN :
-   {
-    Word argument;
-    Supplier supplier;
-    TupleType *resultTupleType;
-    ListExpr resultType;
-    TupleBuffer *tp;
-    long MaxMem;
-    double defEps    = 0;
-    int defMinPts = 0;
-    int idxClusterAttr = -1;
-    int attrCnt = 0;
-    int minLeafs  = 2;
-    int maxLeafs  = 8;
-   
-    qp->Open(args[0].addr);
-    resultType = GetTupleResultType( s );
-    resultTupleType = new TupleType( nl->Second( resultType ) );
 
-    Stream<Tuple> stream(args[0]);
-      
-    Tuple* tup;
-    tp = 0;
-    MaxMem = qp->FixedMemory();
-    tp = new TupleBuffer(MaxMem);
-
-    supplier = qp->GetSupplier(args[1].addr, 2);
-    qp->Request(supplier, argument);
-    defEps = ((CcReal*)argument.addr)->GetRealval();
-
-    supplier = qp->GetSupplier(args[1].addr, 3);
-    qp->Request(supplier, argument);
-    defMinPts = ((CcInt*)argument.addr)->GetIntval();
-
-    idxClusterAttr = static_cast<CcInt*>(args[2].addr)->GetIntval();
-    
-    
-    mmrtree::RtreeT<dim, TupleId> rtree(minLeafs, maxLeafs);
-    
-    stream.open();
-
-    while( (tup = stream.request()) != 0)
-    {
-     Tuple *newTuple = new Tuple(resultTupleType);
-
-     //Copy points from given tuple to the new tuple
-     attrCnt = tup->GetNoAttributes();
-     for( int i = 0; i < attrCnt; i++ ) //tup->GetNoAttributes(); i++ ) 
-     {
-      newTuple->CopyAttribute( i, tup, i );
-     }
- 
-     //Initialize the result tuple with default values
-     CcInt clusterID(-1);
-     newTuple->PutAttribute( attrCnt, ((Attribute*) &clusterID)->Clone());
-  
-     CcBool visited(true, false);
-     newTuple->PutAttribute( attrCnt+1, ((Attribute*) &visited)->Clone());
-       
-     tp->AppendTuple(newTuple);
-     tup->DeleteIfAllowed();
-     newTuple->DeleteIfAllowed(); 
-    }
-    
-    stream.close();
-    
-    GenericRelationIterator* relIter = tp->MakeScan();
-    Tuple* obj;
- 
-    while((obj = relIter->GetNextTuple()))
-    {
-     TupleId objId = relIter->GetTupleId();
-          
-     Rectangle<dim>* attr = 
-       (Rectangle<dim>*) obj->GetAttribute(idxClusterAttr);
-     
-     if(attr->IsDefined())
-     {
-      rtree.insert(*attr, objId);
-     }
-     obj->DeleteIfAllowed();
-    }
-    delete relIter;
-
-    DBScan<dim> cluster; 
-    cluster.clusterAlgo(&rtree, tp, defEps, defMinPts, idxClusterAttr, 
-        attrCnt, attrCnt+1);
-
-
-    relIter = tp->MakeScan();
-    dbscanLI* li  = new dbscanLI();
-    li->tt = resultTupleType;
-    li->tp = tp;
-    li->relIter = relIter;
-    local.setAddr( li );
-
-    return 0;
-   }
-   case REQUEST :
-   {
-    dbscanLI* li = (dbscanLI*) local.addr;;
-    if(!li) return CANCEL;
-   
-    Tuple* curtup; 
-    if((curtup = li->relIter->GetNextTuple()))
-    {  
-     result.setAddr(curtup);
-     return YIELD;
-    }
-    else
-    {
-     return CANCEL;
-    }
-   }
-   case CLOSE :{
-      dbscanLI* li = (dbscanLI*) local.addr;;
-      if(li){
-        li->tt->DeleteIfAllowed();
-        delete li->relIter;
-        delete li->tp;
-        delete li;
-        local.addr=0;
-      }
-      return 0;
-   }
-   }
-   return 0;
- }
- 
- template <int dim>
- int dbscanRT2(Word* args, Word& result, int message, Word& local, Supplier s)
- {
-  DBScanRT2<dim>* li = (DBScanRT2<dim>*) local.addr;  
+  typedef clusterdbscanalg::RectDist<dim> Dist;
+  typedef  dbscan::DBScanGen< 
+                   dbscan::SetOfObjectsR <dim,Dist >, 
+                   Dist > 
+           dbscanclass;
+  dbscanclass* li = (dbscanclass*) local.addr;  
   switch (message)
   {
    case OPEN :
@@ -344,9 +215,25 @@ struct dbscanLI{
     int cid = ((CcInt*)args[2].addr)->GetValue();
     ListExpr resultType = GetTupleResultType( s );
     ListExpr tt = ( nl->Second( resultType ) );
-    if(li) delete li;
+    if(li) { 
+        delete li;
+        local.addr=0;
+    }
     size_t maxMem = (qp->GetMemorySize(s) * 1024);
-    local.addr = new DBScanRT2<dim>(stream,eps,minPts,cid,tt,maxMem);
+    if(!eps->IsDefined() || eps->GetValue() < 0){
+      return 0;
+    }
+    if(!minPts->IsDefined() || minPts->GetValue() < 0){
+      return 0;
+    }
+   
+    Dist dist; 
+
+    local.addr = new dbscanclass(stream,tt, 
+                                 eps->GetValue(),
+                                 minPts->GetValue(),
+                                 maxMem, 
+                                 cid, dist);
     return 0;
   } 
   case REQUEST:
@@ -361,7 +248,6 @@ struct dbscanLI{
   }
   return 0;
 }
-    
  
  
 /*
@@ -944,6 +830,7 @@ Value mapping method ~dbscanFunMTF~ MMM-Tree with given distance function
 Struct ~dbscanInfoRT~
 
 */
+
  struct dbscanInfoRT :  OperatorInfo
  {
   dbscanInfoRT() : OperatorInfo()
@@ -961,7 +848,6 @@ Struct ~dbscanInfoRT~
   }
  };
  
-
  struct dbscanInfoRT2 :  OperatorInfo
  {
   dbscanInfoRT2() : OperatorInfo()
@@ -978,7 +864,6 @@ Struct ~dbscanInfoRT~
        "[B, No, 1000.0, 5] consume";
   }
  };
- 
  
   
 /*
@@ -1057,20 +942,12 @@ Selection method ~dbscanRRecSL~
   return -1;
  }
  
- ValueMapping dbscanRRecVM[] = 
+ ValueMapping dbscanRTVM[] = 
  {
     dbscanRT<2>
    ,dbscanRT<3>
    ,dbscanRT<4>
    ,dbscanRT<8>
- };
- 
- ValueMapping dbscanRT2VM[] = 
- {
-    dbscanRT2<2>
-   ,dbscanRT2<3>
-   ,dbscanRT2<4>
-   ,dbscanRT2<8>
  };
  
 
@@ -1157,8 +1034,7 @@ Algebra class ~ClusterDBScanAlgebra~
   public:
    ClusterDBScanAlgebra() : Algebra()
    {
-    AddOperator(dbscanInfoRT(), dbscanRRecVM, dbscanRRecSL, dbscanTypeRT);
-    AddOperator(dbscanInfoRT2(), dbscanRT2VM, 
+    AddOperator(dbscanInfoRT(), dbscanRTVM, 
                                 dbscanRRecSL, dbscanTypeRT)->SetUsesMemory();
     AddOperator(dbscanInfoMT(), dbscanMTDisVM, dbscanMTDisSL, dbscanTypeMT);
 

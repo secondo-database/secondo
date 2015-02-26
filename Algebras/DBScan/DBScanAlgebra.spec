@@ -21,6 +21,5 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator dbscanR alias DBSCANR pattern _ op [list]
-operator dbscanR2 alias DBSCANR2 pattern _ op [list]
 operator dbscanM alias DBSCANM pattern _ op [list]
 operator dbscanF alias DBSCANF pattern _ op [list]
