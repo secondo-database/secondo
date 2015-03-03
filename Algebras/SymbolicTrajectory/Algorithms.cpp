@@ -524,7 +524,6 @@ bool Pattern::initEasyCondOpTrees() {
                   + Condition::getType(easyConds[i].getKey(j));
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
       }
-      cout << q << endl;
       pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
       if (!qp_optree.first) {
         cout << "Op tree for easy condition " << i << " uninitialized" << endl;
