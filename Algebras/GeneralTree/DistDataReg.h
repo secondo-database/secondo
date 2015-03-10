@@ -59,7 +59,6 @@ New distdata-types must be registered in the "DistDataReg::initialize"[4] method
 #ifndef __DISTDATA_REG_H__
 #define __DISTDATA_REG_H__
 
-#include "SecondoInterface.h"
 #include <iostream>
 #include <string>
 #include "StandardTypes.h"
@@ -69,7 +68,6 @@ New distdata-types must be registered in the "DistDataReg::initialize"[4] method
 #include "NestedList.h"
 #include "ListUtils.h"
 
-extern SecondoInterface* si;
 using namespace std;
 
 namespace gta

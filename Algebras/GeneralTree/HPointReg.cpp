@@ -90,7 +90,8 @@ HPointInfo& HPointReg::getInfo(
         initialize();
 
     int algebraId, typeId;
-    si->GetTypeId(typeName, algebraId, typeId);
+    
+    SecondoSystem::GetCatalog()->GetTypeId(typeName, algebraId, typeId);
 
     ostringstream osId;
     osId << algebraId << "#" << typeId << "#" << gethpoint_FunName;

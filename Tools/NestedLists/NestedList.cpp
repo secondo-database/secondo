@@ -41,45 +41,60 @@ June 10, 1996 RHG Changed result type of procedure RealValue back to REAL.
 
 September 24, 1996 RHG Cleaned up PD representation.
 
-October 22, 1996 RHG Corrected EndOfList, Nth-Element, and Second ... Sixth. Made operations ~ListLength~ and ~WriteListExpr~ available. Changed internal procedure ~WriteList~ so that atoms following a list are written indented to the same level as a preceding list. This affects all output of lists.
+October 22, 1996 RHG Corrected EndOfList, Nth-Element, and Second ... Sixth.
+Made operations ~ListLength~ and ~WriteListExpr~ available. Changed internal
+procedure ~WriteList~ so that atoms following a list are written indented to
+the same level as a preceding list. This affects all output of lists.
 
 November 14, 1996 RHG Removed ~SetValid~ commands.
 
-November 18, 1996 RHG Changed Import from ~CatalogManager~ to ~Ctable~ in component ~ListsAndTables~.
+November 18, 1996 RHG Changed Import from ~CatalogManager~ to ~Ctable~ 
+in component ~ListsAndTables~.
 
 November 22, 1996 RHG Added a final ~WriteLn~ in ~WriteToFile~.
 
-January 20, 1997 RHG Corrected procedure ~AtomType~. Removed error message from ~ReadFromString~.
+January 20, 1997 RHG Corrected procedure ~AtomType~. Removed error message 
+from ~ReadFromString~.
 
 September 26, 1997 Stefan Dieker Corrected wrong order of CTable calls in
 ~Append~, ~AppendText~, and all procedures creating atoms.
 
-May 8, 1998 RHG Changed the way how text atoms are written to the screen. Affects procedures ~WriteAtom~, ~WriteLists~.
+May 8, 1998 RHG Changed the way how text atoms are written to the screen. 
+Affects procedures ~WriteAtom~, ~WriteLists~.
 
-October 12, 1998 Stefan Dieker. The name of the temporary file created by ~ReadFromString~ is now unique for each call of ~ReadFromString~.
+October 12, 1998 Stefan Dieker. The name of the temporary file created by 
+~ReadFromString~ is now unique for each call of ~ReadFromString~.
 
 December 1, 2001 Ulrich Telle Port to C++
 
 November 28, 2002 M. Spiekermann coding of reportVectorSizes().
 
-December 05, 2002 M. Spiekermann methods InitializeListMemory() and CopyList/CopyRecursive implemented.
+December 05, 2002 M. Spiekermann methods InitializeListMemory() and 
+CopyList/CopyRecursive implemented.
 
-April 22, 2003 V. Almeida changed the methods CopyList and Destroy to use iteration instead of recursion.
+April 22, 2003 V. Almeida changed the methods CopyList and Destroy to use 
+iteration instead of recursion.
 
-Jan - May 2003, M. Spiekermann. Get() and Put() Methods of CTable.h were used to allow switching between
-persistent and in memory implementations of NL without writing special code for both implementations.
-Uncomment the precompiler directive \#define CTABLE\_PERSISTENT for support of big nested lists.
+Jan - May 2003, M. Spiekermann. Get() and Put() Methods of CTable.h were 
+used to allow switching between persistent and in memory implementations of 
+NL without writing special code for both implementations.
+Uncomment the precompiler directive \#define CTABLE\_PERSISTENT for support 
+of big nested lists.
 Currently it is not possible to mix both alternatives.
 
-December 2003, M. Spiekermann. A new method GetNextText has been introduced and and the
-implementation of Text2String was changed in order to use stringstreams.
+December 2003, M. Spiekermann. A new method GetNextText has been introduced 
+and and the implementation of Text2String was changed in order to use 
+stringstreams.
 
-February 2004, M. Spiekermann. Reading of binary encoded lists was implemented. WriteAtom changed;
+February 2004, M. Spiekermann. Reading of binary encoded lists was implemented.
+ WriteAtom changed;
 only 48 bytes of text atoms are displayed on screen now.
 
-July 2004, M. Spiekermann. A big constant was replaced by UINT\_MAX and PD syntax corrected.
+July 2004, M. Spiekermann. A big constant was replaced by UINT\_MAX and PD 
+syntax corrected.
 
-August 2004, M. Spiekermann. A char pointer in ~StringSymbolValue~ has been changed to an array of char.
+August 2004, M. Spiekermann. A char pointer in ~StringSymbolValue~ has been 
+changed to an array of char.
 
 1 Introduction
 
@@ -125,6 +140,8 @@ Definitions implied by convention:
 
 
 bool NestedList::doDestroy = false;
+size_t NestedList::NLinstance = 0;
+
 
 #ifdef CTABLE_PERSISTENT
 const bool NestedList::isPersistent = true;
@@ -155,6 +172,8 @@ NestedList::NestedList( SmiRecordFile* ptr2RecFile )
   stringTable = 0;
   nodeTable = 0;
   textTable = 0;
+
+  instanceNo = NLinstance++;
 
   setMem(1024, 512, 512);
   initializeListMemory();
@@ -949,7 +968,8 @@ NestedList::WriteAtom( const ListExpr atom,
         {
           ostr << "'";
           string textFragment = "";
-          while ( GetNextText(atom, textFragment, 1024) ) {
+          TextScanInfo info;
+          while ( GetNextText(atom, textFragment, 1024, info) ) {
            ostr << transformText2Outtext(textFragment);
           }
           ostr << "'";
@@ -1208,7 +1228,8 @@ within the structure of the list, otherwise, the function result is ~true~.
           nlChars << "'";
 
           string textFragment = "";
-          while ( GetNextText(list, textFragment, 1024) ) {
+          TextScanInfo info;
+          while ( GetNextText(list, textFragment, 1024, info) ) {
             textFragment = transformText2Outtext(textFragment);
              nlChars << textFragment;
           }
@@ -1288,8 +1309,8 @@ NestedList::ReadBinaryFrom(istream& in, ListExpr& list) {
     return false;
   }
   // version number check ommitted
-
-  bool ok = ReadBinaryRec(list, in);
+  unsigned long pos = 0;
+  bool ok = ReadBinaryRec(list, in, pos);
   return ok;
 }
 
@@ -1303,16 +1324,13 @@ NestedList::ReadBinaryFrom(istream& in, ListExpr& list) {
 
 */
 
-char*
-NestedList::hton(long value) const {
-
+void 
+NestedList::hton(long value, char* buffer) const {
    static const int n = sizeof(long);
-   static char buffer[n];
    for (int i=0; i<n; i++) {
      buffer[n-1-i] = (byte) (value & 255);
      value = value >> 8;
    }
-   return (char*) buffer;
 }
 
 
@@ -1378,12 +1396,11 @@ NestedList::GetBinaryType(const ListExpr list) const {
                            return BIN_TEXT;
                         return BIN_LONGTEXT;
                        }
-  case NoAtom        : {int len = ListLength(list);
-                        if(len<256)
-                          return BIN_SHORTLIST;
-                        if(len<65536)
-                           return BIN_LIST;
-                        return BIN_LONGLIST;
+  case NoAtom        : { if(HasMinLength(list,256)){
+                            return BIN_LONGLIST;
+                         } else {
+                            return BIN_SHORTLIST;
+                         }
                        }
   default : return (byte) 255;
 
@@ -1400,8 +1417,8 @@ NestedList::GetBinaryType(const ListExpr list) const {
 int32_t
 NestedList::ReadInt(istream& in, const int len /*= 4*/) const{
 
-  static bool debug = RTFlag::isActive("NL:BinaryListDebug");
-  static char buffer[4] = { 0, 0, 0, 0 };
+  static const bool debug = RTFlag::isActive("NL:BinaryListDebug");
+  char buffer[4] = { 0, 0, 0, 0 };
   int32_t result = 0;
 
   in.read(buffer,len);
@@ -1448,7 +1465,8 @@ NestedList::ReadShort(istream& in) const {
 
 /*
 6.4 swap: Convert a ~N~ byte buffer into reverse order. This is needed to
-    convert float/double values between little endian an big endian representation.
+    convert float/double values between little endian an big endian 
+    representation.
 
 */
 
@@ -1486,7 +1504,8 @@ NestedList::ReadString( istream& in,
 
 bool
 NestedList::ReadBinarySubLists( ListExpr& LE, istream& in,
-                                unsigned long length       )
+                                unsigned long length, 
+                                unsigned long& pos   )
 {
   if(length==0) {
      LE = TheEmptyList();
@@ -1494,7 +1513,7 @@ NestedList::ReadBinarySubLists( ListExpr& LE, istream& in,
   }
 
   ListExpr subList = 0;
-  bool ok = ReadBinaryRec(subList, in);
+  bool ok = ReadBinaryRec(subList, in, pos);
   if(!ok) // error in reading sublist
      return false;
   LE = OneElemList(subList);
@@ -1502,7 +1521,7 @@ NestedList::ReadBinarySubLists( ListExpr& LE, istream& in,
   ListExpr Last = LE;
   ListExpr Next = 0;
   for(unsigned int i=1; i<length; i++){
-      bool ok = ReadBinaryRec(Next, in);
+      bool ok = ReadBinaryRec(Next, in, pos);
       if(!ok) // error in reading sublist
           return false;
       Last = Append(Last,Next);
@@ -1518,12 +1537,11 @@ NestedList::ReadBinarySubLists( ListExpr& LE, istream& in,
 
 */
 bool
-NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
+NestedList::ReadBinaryRec(ListExpr& result, istream& in, unsigned long& pos) {
 
-  static bool debug = RTFlag::isActive("NL:BinaryListDebug");
-  static unsigned long len = 0;
-  static unsigned long pos = 0;
-  static string str = "";
+  static const bool debug = RTFlag::isActive("NL:BinaryListDebug");
+  unsigned long len = 0;
+  string str = "";
 
   byte typeId = 255 & in.get();
   pos++;
@@ -1642,7 +1660,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
   if( debug ) {
     cerr << "len: " << len << endl;
   }
-                                  bool ok = ReadBinarySubLists(LE, in, len);
+                                  bool ok = ReadBinarySubLists(LE, in, len,pos);
                                   if (!ok) {
                                     result = 0;
                                     return false;
@@ -1655,7 +1673,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
       case BIN_LIST           : { len = 65535 & ReadShort(in);
                                   pos += 2;
                                   ListExpr LE = 0;
-                                  bool ok = ReadBinarySubLists(LE, in, len);
+                                  bool ok = ReadBinarySubLists(LE, in,len,pos);
                                   if (!ok) {
                                     result = 0;
                                     return false;
@@ -1668,7 +1686,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
       case BIN_LONGLIST      : {  len = 4294967295u & ReadInt(in); // 2^32-1
                                   pos += 4;
                                   ListExpr LE = 0;
-                                  bool ok = ReadBinarySubLists(LE, in, len);
+                                  bool ok = ReadBinarySubLists(LE,in,len,pos);
                                   if (!ok) {
                                     cout << "Error in ReadBinarySubLists(...)!"
                                          << endl;
@@ -1704,7 +1722,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
 bool
 NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
 
-  static bool debug = RTFlag::isActive("NL:BinaryListDebug");
+  static const bool debug = RTFlag::isActive("NL:BinaryListDebug");
   static const int floatLen=sizeof(float);
   static const int doubleLen=sizeof(double);
   static const int longLen=sizeof(long);
@@ -1712,7 +1730,6 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
 
   unsigned long strlen = 0;
   unsigned int len = 0;
-  char* pv = 0;
 
   os.flush();
   assert( os.good() );
@@ -1733,7 +1750,8 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
           case BIN_INTEGER:
           {
                            long value = IntValue(list);
-                           pv = hton(value);
+                           char pv[sizeof(long)];
+                           hton(value,pv);
                            if (typeId == BIN_BYTE) {
                              len = 1;
                            } else {
@@ -1769,7 +1787,8 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
           case BIN_LONGSTRING: {
                            string value = StringValue(list);
                            strlen = value.length();
-                           pv = hton(strlen);
+                           char pv[sizeof(long)];
+                           hton(strlen,pv);
                            if (typeId == BIN_SHORTSTRING) {
                              len = 1;
                            } else {
@@ -1784,7 +1803,8 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
           case BIN_LONGSYMBOL: {
                            string value = SymbolValue(list);
                            strlen = value.length();
-                           pv = hton(strlen);
+                           char pv[sizeof(long)];
+                           hton(strlen,pv);
                            if (typeId == BIN_SHORTSYMBOL) {
                              len = 1;
                            } else {
@@ -1798,7 +1818,8 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
           case BIN_TEXT:
           case BIN_LONGTEXT:   {
                            strlen = TextLength(list);
-                           pv = hton(strlen);
+                           char pv[sizeof(long)];
+                           hton(strlen,pv);
                            if (typeId == BIN_SHORTTEXT) {
                              len = 1;
                            } else {
@@ -1806,7 +1827,8 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
                            }
                            os.write(pv+longLen-len,len);
                            string value="";
-                           while ( GetNextText(list, value, 1024) ) {
+                           TextScanInfo info;
+                           while ( GetNextText(list, value, 1024, info) ) {
                               os << value;
                            }
                            return true;
@@ -1820,8 +1842,9 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
     cerr << "TypeId: " << (unsigned int) (255 & typeId) << endl;
     cerr << "ListLength: " << ListLength(list) << endl;
     cerr << "sizeof(long): " << sizeof(long) << endl;
-   }
-                           pv = hton(ListLength(list));
+   }                       
+                           char pv[sizeof(long)];
+                           hton(ListLength(list),pv);
                            if (typeId == BIN_SHORTLIST) {
                              len = 1;
                            } else {
@@ -2246,7 +2269,7 @@ NestedList::StringSymbolValue( const ListExpr atom ) const
 {
 
   const NodeRecord& atomRef = (*nodeTable)[atom];
-  static char buffer[MAX_STRINGSIZE + 1];
+  char buffer[MAX_STRINGSIZE + 1];
 
   const unsigned char strLen = atomRef.strLength;
   assert( strLen <= MAX_STRINGSIZE );
@@ -2352,15 +2375,15 @@ NestedList::GetText ( TextScan       textScan,
 
       if( fragment.next != 0 )
       {
-	// get the next Fragment
+    // get the next Fragment
         textScan->currentFragment = fragment.next;
         textScan->currentPosition = 0;
-	curPos = 0;
+    curPos = 0;
         (*textTable).Get(textScan->currentFragment,fragment);
       }
       else
       {
-	// more characters requested than stored
+    // more characters requested than stored
         return;
       }
   }
@@ -2379,7 +2402,7 @@ to save memory in the NodeRecord representation.
 Cardinal
 TextRecord::used() const {
 
-  static Cardinal usedLength = 0;
+  Cardinal usedLength = 0;
   for ( usedLength = 0;
         usedLength < TextFragmentSize &&
         field[usedLength];
@@ -2429,7 +2452,7 @@ NestedList::EndOfText( const TextScan textScan ) const
     Cardinal used = fragment.used();
 
     cerr << "fragment.next == 0, textScan->currentPosition"
-	 << " >= usedFragmentLength: "
+         << " >= usedFragmentLength: "
          << fragment.next << ","
          << textScan->currentPosition << ","
          << used
@@ -2448,56 +2471,50 @@ was implemented, since EndOfText has not been used in the complete
 SECONDO code.
 
 */
+ bool
+ NestedList::GetNextText( const ListExpr textAtom,
+                          string& textFragment,
+                          Cardinal size, 
+                          TextScanInfo& info           ) const
+ {
+ 
+   if (info.last) { // end of text reached ?
+     textFragment = "";
+     DestroyTextScan ( info.textScan );
+     info.first = true;
+     info.last = false;
+     return false;
+   }
+ 
+   if (info.first) { // initialize status variables
+     info.atom = textAtom;
+     info.textFragmentLength = size;
+     info.textLength = TextLength( info.atom );
+     info.textScan = CreateTextScan( info.atom );
+     textFragment.resize(size);
+     info.first = false;
+   }
+ 
+   assert( (size == info.textFragmentLength)); 
+   assert(info.atom == textAtom);
+ 
+   textFragment="";
+   /*  Write the text atom to the output stream in chunks
+    *  of size textFragmentLength
+    */
+   if (info.textFragmentLength < info.textLength)
+   {
+     GetText( info.textScan, info.textFragmentLength, textFragment );
+     info.textLength -= info.textFragmentLength;
+     assert(info.textLength >= 0);
+     return true;
+   } else {
+     GetText ( info.textScan, info.textLength, textFragment );
+     info.last = true; // end of text reached
+     return true;
+   }
+ }
 
-bool
-NestedList::GetNextText( const ListExpr textAtom,
-                         string& textFragment,
-                         Cardinal size           ) const
-{
-  static bool first = true;
-  static bool last = false;
-  static Cardinal textLength = 0;
-  static TextScan textScan;
-  static Cardinal textFragmentLength = 0;
-  static ListExpr atom = 0;
-
-  if (last) { // end of text reached ?
-    textFragment = "";
-    DestroyTextScan ( textScan );
-    first = true;
-    last = false;
-    return false;
-  }
-
-  if (first) { // initialize status variables
-    atom = textAtom;
-    textFragmentLength = size;
-    textLength = TextLength( atom );
-    textScan = CreateTextScan( atom );
-    textFragment.resize(size);
-    first = false;
-  }
-
-  assert ( (size == textFragmentLength) && (atom == textAtom) );
-
-  textFragment="";
-  /*  Write the text atom to the output stream in chunks
-   *  of size textFragmentLength
-   */
-  if (textFragmentLength < textLength)
-  {
-    GetText( textScan, textFragmentLength, textFragment );
-    textLength -= textFragmentLength;
-    assert(textLength >= 0);
-    return true;
-  } else {
-    GetText ( textScan, textLength, textFragment );
-    last = true; // end of text reached
-    return true;
-  }
-
-
-}
 
 /*
 9.6.5 DestroyTextScan
@@ -2526,7 +2543,8 @@ NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) const
 
   ostringstream outStream;
   string textFragment = "";
-  while ( GetNextText(textAtom, textFragment, 1024) ) {
+  TextScanInfo info;
+  while ( GetNextText(textAtom, textFragment, 1024,info) ) {
      outStream << textFragment;
   }
   resultStr = outStream.str();
@@ -2538,7 +2556,8 @@ NestedList::Text2String( const ListExpr& textAtom ) const {
 
   ostringstream outStream;
   string textFragment = "";
-  while ( GetNextText(textAtom, textFragment, 1024) ) {
+  TextScanInfo info;
+  while ( GetNextText(textAtom, textFragment, 1024,info) ) {
      outStream << textFragment;
   }
   return outStream.str();

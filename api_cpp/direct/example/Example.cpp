@@ -40,6 +40,7 @@ communication..
 #include <iostream>
 #include <stdlib.h>
 #include "SecondoInterface.h"
+#include "SecondoInterfaceTTY.h"
 #include "NestedList.h"
 #include "NList.h"
 
@@ -56,7 +57,7 @@ SecondoInterface.
 
 */
 
-SecondoInterface* si =0;
+SecondoInterfaceTTY* si =0;
 
 
 int main(int argc, char** argv){
@@ -66,7 +67,7 @@ int main(int argc, char** argv){
 
    // create an interface to the secondo functionality
    // the paramneter must be false to communicate with secondo directly
-   si = new SecondoInterface(false);
+   si = new SecondoInterfaceTTY(false);
 
    // define the name of the configuration file
    string config = "Config.ini";

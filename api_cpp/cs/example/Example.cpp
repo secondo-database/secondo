@@ -39,6 +39,7 @@ communicate with an Secondo Server.
 #include <iostream>
 #include <stdlib.h>
 #include "SecondoInterface.h"
+#include "SecondoInterfaceCS.h"
 #include "NestedList.h"
 #include "NList.h"
 
@@ -51,7 +52,7 @@ int main(int argc, char** argv){
 
    // create an interface to the secondo server
    // the paramneter must be true to communicate as client
-   SecondoInterface* si = new SecondoInterface(true);
+   SecondoInterface* si = new SecondoInterfaceCS(true);
 
    // define the name of the configuration file
    string config = "Config.ini";
@@ -65,7 +66,7 @@ int main(int argc, char** argv){
 
   string user="";
   string passwd="";
-  string host="localhost";
+  string host="132.176.69.180";
   string port ="1234";
   string errMsg;          // return param
   bool   multiUser=true;

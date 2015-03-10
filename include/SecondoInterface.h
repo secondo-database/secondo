@@ -160,7 +160,7 @@ struct SecErrInfo {
 class SecondoInterface
 {
  public:
-  SecondoInterface(bool isServer=false);
+  SecondoInterface(bool isServer=false, NestedList* _nl = 0);
 /*
 Constructs a "Secondo"[3] interface. Depending on the implementation of
 the interface different member variables are initialized.
@@ -171,11 +171,11 @@ the interface different member variables are initialized.
 Destroys a "Secondo"[3] interface.
 
 */
-  bool Initialize( const string& user, const string& pswd,
+  virtual bool Initialize( const string& user, const string& pswd,
                    const string& host, const string& port,
                    string& profile,
                    string& errorMsg,
-                   const bool multiUser = false );
+                   const bool multiUser = false ) = 0;
 
 /*
 Starts up the "Secondo"[3] interface. Depending on the implementation
@@ -196,7 +196,7 @@ In the single user version only the name of the configuration file
 
 */
 
-  void Terminate();
+  virtual void Terminate() = 0;
 
 /*
 Shuts down the "Secondo"[3] interface. In the client/server version
@@ -208,7 +208,7 @@ the "Secondo"[3] system and the ~SmiEnvironment~ are shut down.
 2.1.2 The "Secondo"[3] main interface method
 
 */
-  void Secondo( const string& commandText,
+  virtual void Secondo( const string& commandText,
                 const ListExpr commandLE,
                 const int commandType,
                 const bool commandAsText,
@@ -219,7 +219,7 @@ the "Secondo"[3] system and the ~SmiEnvironment~ are shut down.
                 string& errorMessage,
                 const string& resultFileName =
                                 "SecondoResult",
-                const bool isApplicationLevelCommand = true);
+                const bool isApplicationLevelCommand = true) = 0;
 
    bool Secondo( const string& cmdText,
                  ListExpr& resultList,
@@ -781,7 +781,7 @@ Possible errors:
 
   * no database open
 
-----	list counters
+----  list counters
 ----
 
 Returns a nested list containing pairs of the form (<counter number> <counter
@@ -827,7 +827,7 @@ algebra number and type constructor number).
 
 */
 
-  ListExpr NumericTypeExpr( const ListExpr type );
+  virtual ListExpr NumericTypeExpr( const ListExpr type ) = 0;
 /*
 Transforms a given type expression into a list structure where each type
 constructor has been replaced by the corresponding pair (algebraId,
@@ -850,22 +850,23 @@ The resulting form of the type expression is useful for calling the type
 specific ~In~ and ~Out~ procedures.
 
 */
-  bool GetTypeId( const string& name,
-                  int& algebraId, int& typeId );
+  virtual bool GetTypeId( const string& name,
+                  int& algebraId, int& typeId ) = 0;
 /*
 Finds the ~algebraId~ and ~typeId~ of a named type.
 The catalog is used to resolve the type name.
 
 */
-  bool LookUpTypeExpr( ListExpr type, string& name,
-                       int& algebraId, int& typeId );
+  virtual bool LookUpTypeExpr( ListExpr type, string& name,
+                       int& algebraId, int& typeId ) = 0;
 /*
 Finds the ~name~, ~algebraId~ and ~typeId~ of a type given by the type expression
 ~type~. The catalog is used to resolve the type name.
 
 */
   NestedList* GetNestedList();
-	void InitRTFlags(const string& configFile);
+
+  void InitRTFlags(const string& configFile);
 /*
 The first returns a reference to the application specific nested list container and
 the second initializes the RTFlags found in the configuration file.
@@ -876,7 +877,7 @@ The function below returns a message string for a specific error message.
 
 */
   static string GetErrorMessage( const int errorCode,
-		                 const ListExpr params = 0 );
+                     const ListExpr params = 0 );
 /*
 
 For a detailed explanation of all error code refer to the implementation in
@@ -922,26 +923,26 @@ parameter ~ostr~.
   void WriteErrorList ( ListExpr list, ostream& ostr = cerr );
 
 
-  ListExpr DerivedObjValueExpr();
+//  virtual ListExpr DerivedObjValueExpr() = 0;
 /*
 Needed to support ~derived~ Objects
 
 */
 
-  void SetDebugLevel( const int level );
+  virtual void SetDebugLevel( const int level ) = 0;
 /*
 Sets the debug level of the query processor.
 
 */
 
- bool getOperatorIndexes(
+  virtual  bool getOperatorIndexes(
          const string OpName,
          ListExpr argList,
          ListExpr& resList,
          int& algId,
          int& opId,
          int& funId,
-         NestedList* listStorage);
+         NestedList* listStorage) = 0;
 
 
 /*
@@ -954,7 +955,7 @@ the return value is false.
 
 */
 
-bool getCosts(const int algId,
+virtual bool getCosts(const int algId,
               const int opId,
               const int funId,
               const size_t noTuples,
@@ -962,10 +963,10 @@ bool getCosts(const int algId,
               const size_t noAttributes,
               const double selectivity,
               const size_t memoryMB,
-              size_t& costs);
+              size_t& costs) = 0;
 
 
-bool getCosts(const int algId,
+virtual bool getCosts(const int algId,
               const int opId,
               const int funId,
               const size_t noTuples1,
@@ -976,7 +977,7 @@ bool getCosts(const int algId,
               const size_t noAttributes2,
               const double selectivity,
               const size_t memoryMB,
-              size_t& costs);
+              size_t& costs) = 0;
 
 /*
 ~getLinearParams~
@@ -985,7 +986,7 @@ Retrieves the parameters for estimating the cost function of an operator
 in a linear way.
 
 */
-bool getLinearParams( const int algId,
+virtual bool getLinearParams( const int algId,
                       const int opId,
                       const int funId,
                       const size_t noTuples1,
@@ -994,10 +995,10 @@ bool getLinearParams( const int algId,
                       const double selectivity,
                       double& sufficientMemory,
                       double& timeAtSuffMemory,
-                      double& timeAt16MB);
+                      double& timeAt16MB) = 0;
 
 
-bool getLinearParams( const int algId,
+virtual bool getLinearParams( const int algId,
                       const int opId,
                       const int funId,
                       const size_t noTuples1,
@@ -1009,7 +1010,7 @@ bool getLinearParams( const int algId,
                       const double selectivity,
                       double& sufficientMemory,
                       double& timeAtSuffMemory,
-                      double& timeAt16MB);
+                      double& timeAt16MB) = 0;
 
 /*
 ~getFunction~
@@ -1018,7 +1019,7 @@ Returns an approximation of the cost function of a specified value mapping as
 a parametrized function.
 
 */
-bool getFunction(const int algId,
+virtual bool getFunction(const int algId,
                  const int opId,
                  const int funId,
                  const size_t noTuples,
@@ -1029,11 +1030,11 @@ bool getFunction(const int algId,
                  double& sufficientMemory,
                  double& timeAtSuffMemory,
                  double& timeAt16MB,
-                 double& a, double& b, double&c, double& d);
+                 double& a, double& b, double&c, double& d) = 0;
                       
 
 
-bool getFunction(const int algId,
+virtual bool getFunction(const int algId,
                  const int opId,
                  const int funId,
                  const size_t noTuples1,
@@ -1047,54 +1048,21 @@ bool getFunction(const int algId,
                  double& sufficientMemory,
                  double& timeAtSuffMemory,
                  double& timeAt16MB,
-                 double& a, double& b, double&c, double& d);
+                 double& a, double& b, double&c, double& d) = 0;
 
  protected:
- private:
   void Init();                // Inititalize to  default values
   void InitErrorMessages();
 
   void showTimes(double real, double cpu);
-
-  void StartCommand();
-  bool FinishCommand( SI_Error& errorCode, string& errorMessage );
-
-  void constructErrMsg(int& errorCode, string& errorMessage);
-
-  // implementation of SECONDO commands
-  SI_Error Command_Query( const ListExpr list,
-                          ListExpr& result, string& errorMessage );
-
-  SI_Error Command_Create( const ListExpr list,
-                           ListExpr& result,
-                           ListExpr& error, string& errorMessage );
-
-  SI_Error Command_Let( const ListExpr list, string& errorMessage );
-
-  SI_Error Command_Set( const ListExpr list );
-
-  SI_Error Command_Derive( const ListExpr list, string& errorMessage );
-
-  SI_Error Command_Update( const ListExpr list, string& errorMessage );
-
-  SI_Error Command_Conditional( const ListExpr list,
-                                ListExpr &resultList,
-                                string &errorMessage );
-
-  SI_Error Command_Sequence( const ListExpr list,
-                             ListExpr &resultList,
-                             string &errorMessage,
-                             bool conjunct );
-
-  SI_Error Command_WhileDoLoop( const ListExpr list,
-                                ListExpr &resultList,
-                                string &errorMessage );
 
   bool initialized;       // state of interface
   bool activeTransaction; // state of transaction block
 
   NestedList*  nl;        // pointer to nested list instances
   NestedList*  al;
+
+  bool externalNL;
 
   Socket*     server;     // used in C/S version only
   CSProtocol* csp;
@@ -1120,6 +1088,10 @@ bool getFunction(const int algId,
   double copyReal;
 
 };
+
+
+
+
 
 /*
 *References*

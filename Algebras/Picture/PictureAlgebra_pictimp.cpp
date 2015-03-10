@@ -675,7 +675,8 @@ static Word InPicture(const ListExpr typeInfo,
                     cerr << "InPicture() date is correct" << endl;
                 string imgdataBase64 = "";
                 string current;
-                while (nl->GetNextText(imgdata, current, 72*1000+1000)) {
+                TextScanInfo info;
+                while (nl->GetNextText(imgdata, current, 72*1000+1000, info)) {
                     imgdataBase64 += current;
                     if (PA_DEBUG)
                         cerr << "InPicture() position="

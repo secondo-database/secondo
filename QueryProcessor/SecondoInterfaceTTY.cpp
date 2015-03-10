@@ -2,7 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and Computer Science,
+Copyright (C) 2004-2008, University in Hagen, 
+Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -20,7 +21,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-1 The Implementation-Module SecondoInterface
+1 The Implementation-Module SecondoInterfaceTTY
 
 September 1996 Claudia Freundorfer
 
@@ -28,7 +29,7 @@ December 23, 1996 RHG Added error code information.
 
 January 17, 1998 RHG Connected Secondo Parser (= command level 1 available).
 
-This module implements the module ~SecondoInterface~ by using the
+This module implements the module ~SecondoInterfaceTTY~ by using the
 modules ~NestedList~, ~SecondoCatalog~, ~QueryProcessor~ and
 ~StorageManager~.
 
@@ -73,9 +74,11 @@ in two system tables (relation objects). The save database command omits to
 save list expressions for those objects.  After restoring all saved objects the
 derived objects are rebuild in the restore database command.
 
-August 2004, M. Spiekermann. The complex nesting of function ~Secondo~ has been reduced.
+August 2004, M. Spiekermann. The complex nesting of function ~Secondo~ has 
+been reduced.
 
-Sept 2004, M. Spiekermann. A bug in the error handling of restore databases has been fixed.
+Sept 2004, M. Spiekermann. A bug in the error handling of restore databases has 
+been fixed.
 
 Dec 2004, M. Spiekermann. The new command ~set~ was implemented to support
 interactive changes of runtime parameters.
@@ -90,7 +93,8 @@ variables in function Secondo was limited to a minimum, e.g. the declarations
 were moved nearer to the usage. This gives more encapsulation and is easier to
 understand and maintain.
 
-April 2006, M. Spiekermann. Implementation of system tables SEC\_COUNTERS and SEC\_COMMANDS.
+April 2006, M. Spiekermann. Implementation of system tables SEC\_COUNTERS 
+and SEC\_COMMANDS.
 
 August 2006, M. Spiekermann. Bug fix for error messages of create or delete
 database.  The error codes of the SMI module are now integrated into the error
@@ -117,6 +121,7 @@ transactions of errorneous queries were not aborted.
 #include "LogMsg.h"
 
 #include "SecondoInterface.h"
+#include "SecondoInterfaceTTY.h"
 #include "SecondoSystem.h"
 #include "SecondoCatalog.h"
 #include "SecondoConfig.h"
@@ -191,7 +196,7 @@ Symbols sym;
 
 /**************************************************************************
 
-1 Implementation of class SecondoInterface
+1 Implementation of class SecondoInterfaceTTY
 
 */
 
@@ -202,12 +207,9 @@ Symbols sym;
 
 */
 
-SecondoInterface::SecondoInterface(bool isServer/* =false*/)
-{
-  Init();
-
-  serverInstance = isServer;
-}
+SecondoInterfaceTTY::SecondoInterfaceTTY(bool isServer/* =false*/,
+                                         NestedList* _nl):
+  SecondoInterface(isServer, _nl) {}
 
 
 /*
@@ -216,7 +218,7 @@ SecondoInterface::SecondoInterface(bool isServer/* =false*/)
 
 */
 
-SecondoInterface::~SecondoInterface()
+SecondoInterfaceTTY::~SecondoInterfaceTTY()
 {
   if ( initialized )
   {
@@ -233,7 +235,7 @@ SecondoInterface::~SecondoInterface()
 */
 
 bool
-SecondoInterface::Initialize( const string& user, const string& pswd,
+SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
                               const string& host, const string& port,
                               string& parmFile, string& errorMsg,
                               const bool multiUser
@@ -242,7 +244,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   bool ok = false;
 #ifdef SECONDO_ANDROID
         __android_log_print(ANDROID_LOG_INFO,
-	"FU", "Initializing the Secondo on Android Interface ...");
+        "FU", "Initializing the Secondo on Android Interface ...");
 #else
 
   cout << endl << "Initializing the SECONDO Interface ..." << endl;
@@ -251,13 +253,13 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   stringstream version;
   version << "Version: " << SECONDO_VERSION_MAJOR << "."
                          << SECONDO_VERSION_MINOR << "."
-			 << SECONDO_VERSION_REVISION << endl;
+                         << SECONDO_VERSION_REVISION << endl;
 
 #ifndef SECONDO_ANDROID
   cout << version.str() << endl;
 #else
         __android_log_print(ANDROID_LOG_INFO,
-	"FU", "Secondo Version %s\n",version.str().c_str());
+        "FU", "Secondo Version %s\n",version.str().c_str());
 #endif
 
 
@@ -272,7 +274,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   cout << dbversion.str() << endl  << endl;
 #else
         __android_log_print(ANDROID_LOG_INFO,
-		"FU", "%s\n",dbversion.str().c_str());
+                "FU", "%s\n",dbversion.str().c_str());
 #endif
 
 
@@ -287,7 +289,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     cout << "Error: Secondo home directory not specified." << endl;
 #else
         __android_log_print(ANDROID_LOG_ERROR,
-	"FU", "Secondo Home directory not specified");
+        "FU", "Secondo Home directory not specified");
 #endif
 
     errorMsg += "Secondo home directory not specified\n";
@@ -357,10 +359,10 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
                                     + progressConstantsFileDefault;
   }
 #else
-	string sbd = parmFile.substr(0,parmFile.find_last_of("\\/"));
+        string sbd = parmFile.substr(0,parmFile.find_last_of("\\/"));
         //string sbd ="/data/data/de.fernunihagen.dna.Secondo4Android";
         progressConstantsFileDefault = sbd 
-		+ CFile::pathSep + progressConstantsFileDefault;
+                + CFile::pathSep + progressConstantsFileDefault;
 #endif
 
   string progressConstantsFile = SmiProfile::GetParameter(
@@ -388,8 +390,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 #ifndef SECONDO_ANDROID 
  string tempDir("tmp");
 #else
-	string tempDirPath = parmFile.substr(0,
-		parmFile.find_last_of("\\/"));	
+        string tempDirPath = parmFile.substr(0,
+                parmFile.find_last_of("\\/"));        
         string tempDir(tempDirPath+"tmp");
 #endif
 
@@ -403,7 +405,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       errorMsg += "Could not create directory " + tempDir +"\n";
 #ifdef SECONDO_ANDROID
         __android_log_print(ANDROID_LOG_INFO,"FU", 
-		"Could not Create Directory %s",tempDir.c_str());
+                "Could not Create Directory %s",tempDir.c_str());
 #endif
 
     }
@@ -417,7 +419,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 
        mode = SmiEnvironment::SingleUserSimple;
        cout << "  SmiEnvironment mode  = SingleUserSimple"
-	       " (transaction submodule disabled)" << endl;
+               " (transaction submodule disabled)" << endl;
 
     } else { // Transactions and logging are used
 
@@ -519,7 +521,10 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     bool rc = SecondoSystem::CreateInstance( &GetAlgebraEntry );
     assert(rc);
     ss = SecondoSystem::GetInstance();
-
+    if(!externalNL){
+      delete nl;
+    }
+    externalNL = true;
     nl = SecondoSystem::GetNestedList();
     nl->setMem(nodeMem, stringMem, textMem);
     nl->initializeListMemory();
@@ -527,12 +532,12 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 
     cmsg.info() << "Kernels List Memory:" << endl
               << "  NodeMem = " << nodeMem
-	      << " / slots = " << nl->nodeEntries << endl
+              << " / slots = " << nl->nodeEntries << endl
               << "  StringMem = " << stringMem
-	      << " / slots = " << nl->stringEntries << endl
+              << " / slots = " << nl->stringEntries << endl
               << "  TextMem = " << textMem
-	      << " / slots = " << nl->textEntries << endl
-	      << endl;
+              << " / slots = " << nl->textEntries << endl
+              << endl;
     cmsg.send();
 
     al = SecondoSystem::GetAppNestedList();
@@ -618,10 +623,10 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 
 
 void
-SecondoInterface::Terminate()
+SecondoInterfaceTTY::Terminate()
 {
   static bool traceHandles =
-	        RTFlag::isActive("SMI:traceHandles") ? true : false;
+                RTFlag::isActive("SMI:traceHandles") ? true : false;
   const string bullet(" - ");
   if ( initialized )
   {
@@ -652,6 +657,9 @@ SecondoInterface::Terminate()
 
     initialized = false;
     activeTransaction = false;
+    if(!externalNL && nl){
+        delete nl;
+    }
     nl = 0;
     al = 0;
     server = 0;
@@ -675,7 +683,7 @@ SecondoInterface::Terminate()
 
 
 void
-SecondoInterface::Secondo( const string& commandText,
+SecondoInterfaceTTY::Secondo( const string& commandText,
                            const ListExpr commandLE,
                            const int commandLevel,
                            const bool commandAsText,
@@ -708,14 +716,15 @@ in the file "include/LogMsg.h"
 
 Please create new functions for implementation of new commands, since this
 function contains already many lines of code. Hence, some commands have been
-moved to separate functions. This kind of functions should be named Command\_<name>.
+moved to separate functions. This kind of functions should be named 
+Command\_<name>.
 
 */
 
  #ifdef SECONDO_ANDROID
         __android_log_print(ANDROID_LOG_INFO,"FU", "Starting Secondo(...)");
         __android_log_print(ANDROID_LOG_INFO,"FU", 
-		"Command: %s", commandText.c_str());
+                "Command: %s", commandText.c_str());
 
 #endif 
 
@@ -732,6 +741,10 @@ moved to separate functions. This kind of functions should be named Command\_<na
 
   resultList   = nl->TheEmptyList();
 
+  if(!externalNL ){
+    delete nl;
+  }
+  externalNL = true;
   NestedList* nl = SecondoSystem::GetNestedList();
   NestedList* al = SecondoSystem::GetAppNestedList();
   NList::setNLRef(nl);
@@ -971,7 +984,7 @@ moved to separate functions. This kind of functions should be named Command\_<na
         else
         {
           dbName = nl->SymbolValue( nl->Third( list ) );
-	  errorCode = sys.OpenDatabase( dbName );
+          errorCode = sys.OpenDatabase( dbName );
           if ( errorCode == ERR_NO_ERROR )
           {
             // create new instance if necessary
@@ -1063,15 +1076,15 @@ moved to separate functions. This kind of functions should be named Command\_<na
           {
             cmsg.info()
               << "Error during restore detected. Trying to create "
-	            << "derived objects ..." << endl;
+                    << "derived objects ..." << endl;
             cmsg.send();
 
             delete derivedObjPtr;
             derivedObjPtr = new DerivedObj();
             derivedObjPtr->rebuildObjs();
 
-	    cmsg.info()
-	      << "About to close the database "
+            cmsg.info()
+              << "About to close the database "
               << dbName << " ... ";
             cmsg.send();
 
@@ -1509,7 +1522,7 @@ moved to separate functions. This kind of functions should be named Command\_<na
               )
             )
     {
-      errorCode = SecondoInterface::Command_Conditional( list,
+      errorCode = SecondoInterfaceTTY::Command_Conditional( list,
                                        resultList,
                                        errorMessage );
     }
@@ -1521,7 +1534,7 @@ moved to separate functions. This kind of functions should be named Command\_<na
                 nl->IsEqual( nl->Nth(3, list), "endseq" )
             )
     {
-      errorCode =  SecondoInterface::Command_Sequence( list,
+      errorCode =  SecondoInterfaceTTY::Command_Sequence( list,
                                        resultList,
                                        errorMessage,
                                        true );
@@ -1532,7 +1545,7 @@ moved to separate functions. This kind of functions should be named Command\_<na
                 nl->IsEqual( nl->Nth(3, list), "endseq2" )
             )
     {
-      errorCode =  SecondoInterface::Command_Sequence( list,
+      errorCode =  SecondoInterfaceTTY::Command_Sequence( list,
                                        resultList,
                                        errorMessage,
                                        false );
@@ -1689,7 +1702,7 @@ moved to separate functions. This kind of functions should be named Command\_<na
 
 
 void
-SecondoInterface::constructErrMsg(int& errorCode, string& errorMessage)
+SecondoInterfaceTTY::constructErrMsg(int& errorCode, string& errorMessage)
 {
 
   // Check if there were SMI errors
@@ -1734,7 +1747,7 @@ SecondoInterface::constructErrMsg(int& errorCode, string& errorMessage)
 */
 
 SI_Error
-SecondoInterface::Command_Query( const ListExpr list,
+SecondoInterfaceTTY::Command_Query( const ListExpr list,
                                  ListExpr& resultList,
                                  string& errorMessage )
 {
@@ -1776,8 +1789,8 @@ SecondoInterface::Command_Query( const ListExpr list,
     if ( evaluable )
     {
        if (printQueryAnalysis) {
-	 cmsg.info() << padStr("Execute ...",20);
-	 cmsg.send();
+         cmsg.info() << padStr("Execute ...",20);
+         cmsg.send();
        }
 
        qp.ResetTimer();
@@ -1788,7 +1801,7 @@ SecondoInterface::Command_Query( const ListExpr list,
        queryCPU = queryTime.diffSecondsCPU();
        if (printQueryAnalysis)
        {
-	 showTimes(queryReal, queryCPU);
+         showTimes(queryReal, queryCPU);
        }
 
        StopWatch outObj;
@@ -1796,9 +1809,9 @@ SecondoInterface::Command_Query( const ListExpr list,
 
        if (printQueryAnalysis)
        {
-	 cmsg.info() << padStr("OutObject ...",20)
-	             << outObj.diffTimes() << endl;
-	 cmsg.send();
+         cmsg.info() << padStr("OutObject ...",20)
+                     << outObj.diffTimes() << endl;
+         cmsg.send();
        }
        outObjReal = outObj.diffSecondsReal();
 
@@ -1807,18 +1820,18 @@ SecondoInterface::Command_Query( const ListExpr list,
        StopWatch destroyTime;
        qp.Destroy( tree, true );
        if ( RTFlag::isActive("SI:DestroyOpTreeTime") ) {
-	 cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
-	 cmsg.send();
+         cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
+         cmsg.send();
        }
 
        if (RTFlag::isActive("NL:MemInfo"))
        {
-	 cmsg.info() << nl.ReportTableSizes(true) << endl;
-	 cmsg.send();
+         cmsg.info() << nl.ReportTableSizes(true) << endl;
+         cmsg.send();
        }
        else
        {
-	 nl.ReportTableSizes(false);
+         nl.ReportTableSizes(false);
        }
 
     }
@@ -1828,12 +1841,12 @@ SecondoInterface::Command_Query( const ListExpr list,
       ListExpr second = nl.Second( list );
       if ( nl.IsAtom( second ) )  // function object
       {
-	ListExpr valueList = ctlg.GetObjectValue( nl.SymbolValue( second ) );
-	resultList = nl.TwoElemList( resultType, valueList );
+        ListExpr valueList = ctlg.GetObjectValue( nl.SymbolValue( second ) );
+        resultList = nl.TwoElemList( resultType, valueList );
       }
       else
       {
-	resultList = nl.TwoElemList( resultType, second );
+        resultList = nl.TwoElemList( resultType, second );
       }
     }
 
@@ -1858,7 +1871,7 @@ SecondoInterface::Command_Query( const ListExpr list,
 
 
 SI_Error
-SecondoInterface::Command_Derive( const ListExpr list, string& errorMessage )
+SecondoInterfaceTTY::Command_Derive( const ListExpr list, string& errorMessage )
 {
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
   SecondoSystem& sys = *SecondoSystem::GetInstance();
@@ -1908,7 +1921,7 @@ SecondoInterface::Command_Derive( const ListExpr list, string& errorMessage )
 
 
 SI_Error
-SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
+SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage  )
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
@@ -1948,43 +1961,43 @@ SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
         qp.Construct( valueExpr, correct, evaluable, defined,
                       isFunction, tree, resultType );
 
-	if ( evaluable || isFunction )
-	{
-	  string typeName = "";
-	  ctlg.CreateObject(objName, typeName, resultType, 0);
-	}
-	if ( evaluable )
-	{
-	  qp.EvalP( tree, result, 1 );
+        if ( evaluable || isFunction )
+        {
+          string typeName = "";
+          ctlg.CreateObject(objName, typeName, resultType, 0);
+        }
+        if ( evaluable )
+        {
+          qp.EvalP( tree, result, 1 );
 
-	  if( IsRootObject( tree ) && !IsConstantObject( tree ) )
-	  {
-	    ctlg.CloneObject( objName, result );
-	    qp.Destroy( tree, true );
-	  }
-	  else
-	  {
-	    ctlg.UpdateObject( objName, result );
-	    qp.Destroy( tree, false );
-	  }
-	}
-	else if ( isFunction ) // abstraction or function object
-	{
-	  if ( nl.IsAtom( valueExpr ) )  // function object
-	  {
-	     ListExpr functionList = ctlg.GetObjectValue(
-					    nl.SymbolValue( valueExpr ) );
-	     ctlg.UpdateObject( objName, SetWord( functionList ) );
-	  }
-	  else
-	  {
-	     ctlg.UpdateObject( objName, SetWord( valueExpr ) );
-	  }
+          if( IsRootObject( tree ) && !IsConstantObject( tree ) )
+          {
+            ctlg.CloneObject( objName, result );
+            qp.Destroy( tree, true );
+          }
+          else
+          {
+            ctlg.UpdateObject( objName, result );
+            qp.Destroy( tree, false );
+          }
+        }
+        else if ( isFunction ) // abstraction or function object
+        {
+          if ( nl.IsAtom( valueExpr ) )  // function object
+          {
+             ListExpr functionList = ctlg.GetObjectValue(
+                                            nl.SymbolValue( valueExpr ) );
+             ctlg.UpdateObject( objName, SetWord( functionList ) );
+          }
+          else
+          {
+             ctlg.UpdateObject( objName, SetWord( valueExpr ) );
+          }
           qp.Destroy( tree, true );
-	}
+        }
       } catch (SI_Error err) {
 
-	 errorCode = err;
+         errorCode = err;
          qp.Destroy( tree, true );
       }
     }
@@ -2006,7 +2019,7 @@ SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
 */
 
 SI_Error
-SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
+SecondoInterfaceTTY::Command_Update( const ListExpr list, string& errorMessage )
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
@@ -2034,16 +2047,16 @@ SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
       try {
 
       if ( ctlg.IsSystemObject(objName) ) {
-	throw ERR_IDENT_RESERVED;
+        throw ERR_IDENT_RESERVED;
       }
 
       if ( derivedObjPtr && derivedObjPtr->isDerived(objName) ) {
-	throw ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED;
+        throw ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED;
       }
 
       if ( !ctlg.IsObjectName( objName ) ) {
-	// identifier not a known object name
-	throw ERR_IDENT_UNKNOWN_OBJ;
+        // identifier not a known object name
+        throw ERR_IDENT_UNKNOWN_OBJ;
       }
 
       qp.Construct( valueExpr, correct, evaluable, defined,
@@ -2052,43 +2065,43 @@ SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
 
       ListExpr typeExpr = ctlg.GetObjectTypeExpr( objName );
       if ( !nl.Equal( typeExpr, resultType ) ) {
-	// types of object and expression do not agree
-	throw ERR_EXPR_TYPE_NEQ_OBJ_TYPE;
+        // types of object and expression do not agree
+        throw ERR_EXPR_TYPE_NEQ_OBJ_TYPE;
       }
 
       if ( evaluable )
       {
-	qp.EvalP( tree, result, 1 );
+        qp.EvalP( tree, result, 1 );
 
-	if ( IsRootObject( tree ) && !IsConstantObject( tree ) )
-	{
-	   ctlg.CloneObject( objName, result );
-	   qp.Destroy( tree, true );
-	}
-	else
-	{
-	   ctlg.UpdateObject( objName, result );
-	   qp.Destroy( tree, false );
-	}
+        if ( IsRootObject( tree ) && !IsConstantObject( tree ) )
+        {
+           ctlg.CloneObject( objName, result );
+           qp.Destroy( tree, true );
+        }
+        else
+        {
+           ctlg.UpdateObject( objName, result );
+           qp.Destroy( tree, false );
+        }
       }
       else  // abstraction or function object
       {
-	assert(isFunction);
-	if ( nl.IsAtom( valueExpr ) )  // function object
-	{
-	  ListExpr functionList = ctlg.GetObjectValue(
-					 nl.SymbolValue( valueExpr ) );
-	  ctlg.UpdateObject( objName, SetWord( functionList ) );
-	}
-	else
-	{
-	  ctlg.UpdateObject( objName, SetWord( valueExpr ) );
-	}
+        assert(isFunction);
+        if ( nl.IsAtom( valueExpr ) )  // function object
+        {
+          ListExpr functionList = ctlg.GetObjectValue(
+                                         nl.SymbolValue( valueExpr ) );
+          ctlg.UpdateObject( objName, SetWord( functionList ) );
+        }
+        else
+        {
+          ctlg.UpdateObject( objName, SetWord( valueExpr ) );
+        }
       }
 
       } catch (SI_Error err) {
 
-	 errorCode = err;
+         errorCode = err;
          qp.Destroy( tree, true );
       }
       FinishCommand( errorCode, errorMessage );
@@ -2110,7 +2123,7 @@ SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
 */
 
 SI_Error
-SecondoInterface::Command_Create( const ListExpr list,
+SecondoInterfaceTTY::Command_Create( const ListExpr list,
                                   ListExpr& resultList,
                                   ListExpr& errorList,
                                   string& errorMessage  )
@@ -2171,7 +2184,7 @@ SecondoInterface::Command_Create( const ListExpr list,
 */
 
 SI_Error
-SecondoInterface::Command_Set( const ListExpr list )
+SecondoInterfaceTTY::Command_Set( const ListExpr list )
 {
   NestedList& nl = *SecondoSystem::GetNestedList();
 
@@ -2196,7 +2209,7 @@ SecondoInterface::Command_Set( const ListExpr list )
 
 */
 SI_Error
-SecondoInterface::Command_Conditional( const ListExpr list,
+SecondoInterfaceTTY::Command_Conditional( const ListExpr list,
                                        ListExpr &resultList,
                                        string &errorMessage )
 {
@@ -2210,7 +2223,8 @@ SecondoInterface::Command_Conditional( const ListExpr list,
   errorMessage       = "";
 
   command = nl->TwoElemList(nl->SymbolAtom("query"),nl->Second( list ));
-  errorCode = SecondoInterface::Command_Query( command, presult, errorMessage );
+  errorCode = SecondoInterfaceTTY::Command_Query( command, presult, 
+                                                  errorMessage );
   if(errorCode != ERR_NO_ERROR){
     return errorCode;
   } else { // check result type
@@ -2234,7 +2248,7 @@ SecondoInterface::Command_Conditional( const ListExpr list,
     // execute 1st command (THEN-branch)
     command = nl->Nth( 4, list );
     const string command_text = "ELSE: " + (nl->ToString(command));
-    SecondoInterface::Secondo( command_text,
+    SecondoInterfaceTTY::Secondo( command_text,
                            command,
                            0,
                            false,
@@ -2249,7 +2263,7 @@ SecondoInterface::Command_Conditional( const ListExpr list,
     // execute 2nd command (ELSE-branch)
     command = nl->Nth( 6, list );
     const string command_text = "THEN: " + (nl->ToString(command));
-    SecondoInterface::Secondo( command_text,
+    SecondoInterfaceTTY::Secondo( command_text,
                            command,
                            0,
                            false,
@@ -2275,7 +2289,7 @@ SecondoInterface::Command_Conditional( const ListExpr list,
 
 */
 SI_Error
-SecondoInterface::Command_Sequence( const ListExpr  list,
+SecondoInterfaceTTY::Command_Sequence( const ListExpr  list,
                                     ListExpr       &resultList,
                                     string         &errorMessage,
                                     bool           ignoreError )
@@ -2298,7 +2312,7 @@ SecondoInterface::Command_Sequence( const ListExpr  list,
     cresult = nl->TheEmptyList();
     const string command_text =   "SEQUENCE (" + i_s + "): "
                                 + (nl->ToString(command));
-    SecondoInterface::Secondo( command_text,
+    SecondoInterfaceTTY::Secondo( command_text,
                            command,
                            0,
                            false,
@@ -2332,7 +2346,7 @@ SecondoInterface::Command_Sequence( const ListExpr  list,
 
 */
 SI_Error
-SecondoInterface::Command_WhileDoLoop( const ListExpr  list,
+SecondoInterfaceTTY::Command_WhileDoLoop( const ListExpr  list,
                                        ListExpr       &resultList,
                                        string         &errorMessage )
 {
@@ -2352,7 +2366,7 @@ SecondoInterface::Command_WhileDoLoop( const ListExpr  list,
   pred_command = nl->TwoElemList(nl->SymbolAtom("query"),nl->Second( list ));
   loop_command = nl->Fourth( list );
   while ( (errorCode == ERR_NO_ERROR) && pred_def && pred_val ){
-    errorCode = SecondoInterface::Command_Query( pred_command,
+    errorCode = SecondoInterfaceTTY::Command_Query( pred_command,
                                                  presult,
                                                  errorMessage );
     if(errorCode == ERR_NO_ERROR){
@@ -2383,7 +2397,7 @@ SecondoInterface::Command_WhileDoLoop( const ListExpr  list,
       cresult = nl->TheEmptyList();
       const string command_text =   "DO (" + loop_cnt_s + "): "
                                   + (nl->ToString(loop_command));
-      SecondoInterface::Secondo( command_text,
+      SecondoInterfaceTTY::Secondo( command_text,
                             loop_command,
                             0,
                             false,
@@ -2417,7 +2431,7 @@ SecondoInterface::Command_WhileDoLoop( const ListExpr  list,
 
 */
 ListExpr
-SecondoInterface::NumericTypeExpr( const ListExpr type )
+SecondoInterfaceTTY::NumericTypeExpr( const ListExpr type )
 {
   ListExpr list = nl->TheEmptyList();
   if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
@@ -2430,7 +2444,7 @@ SecondoInterface::NumericTypeExpr( const ListExpr type )
 }
 
 bool
-SecondoInterface::GetTypeId( const string& name,
+SecondoInterfaceTTY::GetTypeId( const string& name,
                              int& algebraId, int& typeId )
 {
   bool ok = SecondoSystem::GetCatalog()->
@@ -2439,7 +2453,7 @@ SecondoInterface::GetTypeId( const string& name,
 }
 
 bool
-SecondoInterface::LookUpTypeExpr( ListExpr type, string& name,
+SecondoInterfaceTTY::LookUpTypeExpr( ListExpr type, string& name,
                                   int& algebraId, int& typeId )
 {
   bool ok = false;
@@ -2458,7 +2472,7 @@ SecondoInterface::LookUpTypeExpr( ListExpr type, string& name,
 }
 
 void
-SecondoInterface::StartCommand()
+SecondoInterfaceTTY::StartCommand()
 {
   if ( !activeTransaction )
   {
@@ -2467,7 +2481,7 @@ SecondoInterface::StartCommand()
 }
 
 bool
-SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
+SecondoInterfaceTTY::FinishCommand( SI_Error& errorCode, string& errMsg )
 {
   Flob::dropFiles();
   if ( !activeTransaction )
@@ -2510,13 +2524,13 @@ SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
 
 
 void
-SecondoInterface::SetDebugLevel( const int level )
+SecondoInterfaceTTY::SetDebugLevel( const int level )
 {
   SecondoSystem::GetQueryProcessor()->SetDebugLevel( level );
 }
 
 
-bool SecondoInterface::getOperatorIndexes(
+bool SecondoInterfaceTTY::getOperatorIndexes(
                         const string opName, // name of operator
                         const ListExpr argList, // list of types or
                                      //  (algebra AlgName) or (algebra all)
@@ -2560,7 +2574,7 @@ the return value is false.
 
 */
 
-bool SecondoInterface::getCosts(const int algId,
+bool SecondoInterfaceTTY::getCosts(const int algId,
               const int opId,
               const int funId,
               const size_t noTuples,
@@ -2576,7 +2590,7 @@ bool SecondoInterface::getCosts(const int algId,
 }
 
 
-bool SecondoInterface::getCosts(const int algId,
+bool SecondoInterfaceTTY::getCosts(const int algId,
               const int opId,
               const int funId,
               const size_t noTuples1,
@@ -2603,7 +2617,7 @@ Retrieves the parameters for estimating the cost function of an operator
 in a linear way.
 
 */
-bool SecondoInterface::getLinearParams( const int algId,
+bool SecondoInterfaceTTY::getLinearParams( const int algId,
                       const int opId,
                       const int funId,
                       const size_t noTuples1,
@@ -2621,7 +2635,7 @@ bool SecondoInterface::getLinearParams( const int algId,
 }
 
 
-bool SecondoInterface::getLinearParams( const int algId,
+bool SecondoInterfaceTTY::getLinearParams( const int algId,
                       const int opId,
                       const int funId,
                       const size_t noTuples1,
@@ -2649,7 +2663,7 @@ Returns an approximation of the cost function of a specified value mapping as
 a parametrized function.
 
 */
-bool SecondoInterface::getFunction(const int algId,
+bool SecondoInterfaceTTY::getFunction(const int algId,
                  const int opId,
                  const int funId,
                  const size_t noTuples,
@@ -2672,7 +2686,7 @@ bool SecondoInterface::getFunction(const int algId,
                       
 
 
-bool SecondoInterface::getFunction(const int algId,
+bool SecondoInterfaceTTY::getFunction(const int algId,
                  const int opId,
                  const int funId,
                  const size_t noTuples1,
@@ -2696,4 +2710,7 @@ bool SecondoInterface::getFunction(const int algId,
            funType, sufficientMemory, timeAtSuffMemory, timeAt16MB,
            a,b,c,d);
 }
+
+
+
 

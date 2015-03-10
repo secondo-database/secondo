@@ -39,7 +39,6 @@ This file implements the GeneralTreeAlgebra.
 */
 #include "Algebra.h"
 #include "RelationAlgebra.h"
-#include "SecondoInterface.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Base64.h"

@@ -5857,7 +5857,7 @@ class SendtextstreamTCP_LI {
         warning << "Warning: Operator sendtextstreamTCP failed to "
            <<   "connect to server " << _ip << ":" << _port << " (timeout="
            << ( (int)timeout ) << "s, retries=" << retries << ").";
-        msgcenter->Send(nl->TwoElemList(nl->SymbolAtom("simple"),
+        msgcenter->Send(nl, nl->TwoElemList(nl->SymbolAtom("simple"),
                                         nl->TextAtom(warning.str())));
         ok = false;
         finished = true;
@@ -11423,8 +11423,10 @@ class messageTestLocalInfo{
        }
        counter++;
        if(number>0 && counter%number==0){
-          NList list(NList("messageTest"), NList(counter));
-          msg->Send(list);
+          ListExpr list = nl->TwoElemList(
+                             nl->SymbolAtom("messageTest"),
+                             nl->IntAtom(counter));
+          msg->Send(nl,list);
           msg->Flush();
        }
        return res;

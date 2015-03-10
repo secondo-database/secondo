@@ -1359,13 +1359,13 @@ int WindowIntersects( Word* args, Word& result,
 
         pRes->CopySizes(localInfo);
 
-	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
+  if ( localInfo->completeCalls > 0 )     //called in a loopjoin
         {
           pRes->Card =
             (double) localInfo->completeReturned /
             (double) localInfo->completeCalls;
         }
-        else	//single or first call
+        else  //single or first call
         {
           if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
             pRes->Card = (double) localInfo->defaultValue;
@@ -1380,7 +1380,7 @@ int WindowIntersects( Word* args, Word& result,
 
           if (pRes->Card > (double) localInfo->total) // more than all cannot be
             pRes->Card = (double) localInfo->total;
-	}
+  }
 
         pRes->Time = uSearch + pRes->Card * vResult;
 
@@ -1884,7 +1884,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
     {
       if( localInfo )
       {
-	localInfo->resultTupleType->DeleteIfAllowed();
+  localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
         local.setAddr(Address(0));
       }
@@ -1915,21 +1915,21 @@ int WindowIntersectsSStandard( Word* args, Word& result,
           localInfo->noAttrs = 1;
           localInfo->attrSize = new double[localInfo->noAttrs];
           localInfo->attrSizeExt = new double[localInfo->noAttrs];
-	  localInfo->attrSize[0] = 16;
-	  localInfo->attrSizeExt[0] = 16;
+    localInfo->attrSize[0] = 16;
+    localInfo->attrSizeExt[0] = 16;
           localInfo->sizesInitialized = true;
           localInfo->sizesChanged = true;
         }
 
         pRes->CopySizes(localInfo);
 
-	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
+  if ( localInfo->completeCalls > 0 )     //called in a loopjoin
         {
           pRes->Card =
             (double) localInfo->completeReturned /
             (double) localInfo->completeCalls;
         }
-        else	//single or first call
+        else  //single or first call
         {
           if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
             pRes->Card = (double) localInfo->defaultValue;
@@ -1944,7 +1944,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
 
           if (pRes->Card > (double) localInfo->total) // more than all cannot be
             pRes->Card = (double) localInfo->total;
-	}
+  }
 
         pRes->Time = uSearch + pRes->Card * vResult;
 
@@ -2069,7 +2069,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
     {
       if( localInfo )
       {
-	localInfo->resultTupleType->DeleteIfAllowed();
+  localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
         local.setAddr(Address(0));
       }
@@ -2085,7 +2085,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
       //Experiments described in file Cost functions
       const double uSearch = 0.45;    //milliseconds per search
       const double vResult = 0.02;  //milliseconds per result tuple
-		// vResult to be adjusted
+    // vResult to be adjusted
 
       if (!localInfo) return CANCEL;
       else
@@ -2101,25 +2101,25 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
           localInfo->noAttrs = 3;
           localInfo->attrSize = new double[localInfo->noAttrs];
           localInfo->attrSizeExt = new double[localInfo->noAttrs];
-	  localInfo->attrSize[0] = 16;
-	  localInfo->attrSizeExt[0] = 16;
-	  localInfo->attrSize[1] = 5;
-	  localInfo->attrSizeExt[1] = 5;
-	  localInfo->attrSize[2] = 5;
-	  localInfo->attrSizeExt[2] = 5;
+    localInfo->attrSize[0] = 16;
+    localInfo->attrSizeExt[0] = 16;
+    localInfo->attrSize[1] = 5;
+    localInfo->attrSizeExt[1] = 5;
+    localInfo->attrSize[2] = 5;
+    localInfo->attrSizeExt[2] = 5;
           localInfo->sizesInitialized = true;
           localInfo->sizesChanged = true;
         }
 
         pRes->CopySizes(localInfo);
 
-	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
+  if ( localInfo->completeCalls > 0 )     //called in a loopjoin
         {
           pRes->Card =
             (double) localInfo->completeReturned /
             (double) localInfo->completeCalls;
         }
-        else	//single or first call
+        else  //single or first call
         {
           if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
             pRes->Card = (double) localInfo->defaultValue;
@@ -2134,7 +2134,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
 
           if (pRes->Card > (double) localInfo->total) // more than all cannot be
             pRes->Card = (double) localInfo->total;
-	}
+  }
 
         pRes->Time = uSearch + pRes->Card * vResult;
 
@@ -2454,9 +2454,9 @@ template<int TidIndexPos>
             GetAttribute(localInfo->tidIndex))->GetTid(),true);
 
         if(!relTuple){
-          NList msg_list(NList("simple") ,
-                    NList("Warning: invalid tuple id"));
-          msg->Send(msg_list);
+          ListExpr list = nl->TwoElemList( nl->SymbolAtom("simple"),
+                           nl->StringAtom("Warning: invalid tuple id"));
+          msg->Send(nl,list);
           qp->Request(args[0].addr, wTuple);
         } else {
           int j = 0;
@@ -3281,11 +3281,11 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
     if ((count++ % 10000) == 0)
     {
       // build a two elem list (simple count)
-      NList msgList( NList("simple"), NList(count) );
+      ListExpr list = listutils::simpleMessage(count);
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-      msg->Send(msgList);
+      msg->Send(nl,list);
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
 
@@ -3327,11 +3327,10 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
   assert( FinalizedBulkLoad );
 
   // build a two elem list (simple count)
-  NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-  msg->Send(msgList);
+  msg->Send(nl,listutils::simpleMessage(count));
 
   return 0;
 }
@@ -3364,12 +3363,10 @@ template<unsigned dim>
   {
     if ((count++ % 10000) == 0)
     {
-      // build a two elem list (simple count)
-      NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-      msg->Send(msgList);
+      msg->Send(nl, listutils::simpleMessage(count)); 
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
 
@@ -3403,12 +3400,10 @@ template<unsigned dim>
   int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
   assert( FinalizedBulkLoad );
 
-  // build a two elem list (simple count)
-  NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-  msg->Send(msgList);
+  msg->Send(nl, listutils::simpleMessage(count));
 
   return 0;
 }
@@ -3442,12 +3437,10 @@ template<unsigned dim>
   {
     if ((count++ % 10000) == 0)
     {
-      // build a two elem list (simple count)
-      NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-      msg->Send(msgList);
+      msg->Send(nl, listutils::simpleMessage(count)); 
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
 
@@ -3469,12 +3462,10 @@ template<unsigned dim>
 
   int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
   assert( FinalizedBulkLoad );
-        // build a two elem list (simple count)
-  NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-  msg->Send(msgList);
+  msg->Send(nl, listutils::simpleMessage(count));
 
   return 0;
 }
@@ -3506,12 +3497,10 @@ int CreateRTreeBulkLoadStreamL2Rect(Word* args, Word& result, int message,
   {
     if ((count++ % 10000) == 0)
     {
-      // build a two elem list (simple count)
-      NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-      msg->Send(msgList);
+      msg->Send(nl, listutils::simpleMessage(count));
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
 
@@ -3546,12 +3535,10 @@ int CreateRTreeBulkLoadStreamL2Rect(Word* args, Word& result, int message,
 
   int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
   assert( FinalizedBulkLoad );
-        // build a two elem list (simple count)
-  NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-  msg->Send(msgList);
+  msg->Send(nl, listutils::simpleMessage(count));
 
   return 0;
 }
@@ -4757,12 +4744,10 @@ Supplier s)
   {
     if ((count++ % 10000) == 0)
     {
-      // build a two elem list (simple count)
-      NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-      msg->Send(msgList);
+      msg->Send(nl, listutils::simpleMessage(count));
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
 
@@ -4788,12 +4773,10 @@ Supplier s)
   int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
   assert( FinalizedBulkLoad );
 
-  // build a two elem list (simple count)
-  NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-  msg->Send(msgList);
+  msg->Send(nl, listutils::simpleMessage(count)); 
   rtree->SwitchHeader(rtree_in1);
   result.setAddr(rtree);
   return 0;

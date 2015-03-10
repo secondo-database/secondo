@@ -72,7 +72,7 @@ DistDataInfo::DistDataInfo(
   m_flags(DDATA_IS_DEFINED | flags)
 {
     int algebraId, typeId;
-    si->GetTypeId(typeName, algebraId, typeId);
+    SecondoSystem::GetCatalog()->GetTypeId(typeName, algebraId, typeId);
     m_id = DistDataId(algebraId, typeId, distdataId);
 }
 
@@ -169,7 +169,7 @@ DistDataId DistDataReg::getId(
         initialize();
 
     int algebraId, typeId;
-    si->GetTypeId(typeName, algebraId, typeId);
+    SecondoSystem::GetCatalog()->GetTypeId(typeName, algebraId, typeId);
 
     map<string, int>::iterator iter;
 

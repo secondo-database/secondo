@@ -47,7 +47,7 @@ of a message handler.
 class MessageHandler {
 
   public:
-  virtual bool handleMsg(NList msgList) = 0;
+  virtual bool handleMsg(NestedList* nl, ListExpr list) = 0;
   virtual void Flush() {} 
   MessageHandler() {}
   virtual ~MessageHandler() {}
@@ -72,15 +72,17 @@ purposes. Your own message handler classes can do more complex things.
 class SimpleHandler : public MessageHandler {
 
   public:
-  virtual bool handleMsg(NList msgList) {
-
-    //msgList.showNLRefs();
-    if ( !msgList.first().isSymbol("simple") )
-      return false;
-    
-    cerr << "Message: " << msgList << endl; 
-    return true;
-  } 
+  virtual bool handleMsg(NestedList* nl, ListExpr list){
+     if(!nl->HasMinLength(list,2)){
+       return false;
+     }
+     if(!nl->IsEqual(nl->First(list),"simple")){
+        return false;
+     }
+     cerr << "Message: " << nl->ToString(list);
+     return true;
+  }
+ 
   SimpleHandler() {};
   ~SimpleHandler() {};
  
@@ -100,7 +102,8 @@ class ProgMesHandler : public MessageHandler
 {
 
   public:
-  virtual bool handleMsg(NList msgList);
+  //virtual bool handleMsg(NList msgList);
+  virtual bool handleMsg(NestedList* nl, ListExpr list);
   ProgMesHandler():total(50),highest(-1) {};
   ~ProgMesHandler() {};
 
@@ -140,11 +143,11 @@ class MessageCenter {
        delete *it;
   } 
   
-  void CallHandler(NList message) 
+  void CallHandler(NestedList* nl, ListExpr message) 
   {
      HandlerList::const_iterator it = msgHandler.begin();
      for(; it != msgHandler.end(); it++) {
-        (*it)->handleMsg(message);
+        (*it)->handleMsg(nl, message);
      } 
   } 
   
@@ -157,10 +160,10 @@ class MessageCenter {
      } 
   } 
 
-  void Send(NList message) 
+  void Send(NestedList* nl, ListExpr message) 
   {
     //message.showNLRefs();
-    CallHandler(message); 
+    CallHandler(nl, message); 
   } 
   
   void AddHandler(MessageHandler* handler) {

@@ -42,6 +42,9 @@ using namespace std;
 
 */
 
+template<typename T>
+size_t CTable<T>::noInstances = 0;
+
 
 
 template<typename T>
@@ -50,8 +53,10 @@ CTable<T>::CTable( Cardinal const count ) :
 isPersistent(false),
 elemCount(count),
 leastFree(1),
-highestValid(0)
+highestValid(0), last(0)
 {
+  instanceID = noInstances++;
+
   assert( count > 0 );
 
   CalcSlotSize();
@@ -77,7 +82,7 @@ template<typename T>
 void
 CTable<T>::TotalMemory( Cardinal &mem, 
                         Cardinal &pageChanges, 
-			Cardinal &slotAccess  ) 
+                        Cardinal &slotAccess  ) 
 { 
   mem = (Cardinal)(slotSize * elemCount);
   pageChanges = 0;

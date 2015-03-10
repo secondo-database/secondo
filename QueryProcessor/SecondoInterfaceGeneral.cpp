@@ -46,6 +46,27 @@ using namespace std;
 
 SecondoInterface::ErrorMap SecondoInterface::errors;
 
+
+SecondoInterface::SecondoInterface(bool isServer, NestedList* _nl)
+{
+  Init();
+
+  serverInstance = isServer;
+  if(!_nl){
+    nl = new NestedList();
+    al = nl;
+    externalNL = false;
+  } else {
+    nl = _nl;
+    al = nl;
+    externalNL = true;
+  }
+  csp = 0;
+}
+
+
+SecondoInterface::~SecondoInterface(){ } 
+
 void
 SecondoInterface::Init() {
 
@@ -297,7 +318,7 @@ Todo: Translation of the ~params~ list.
 */
 string
 SecondoInterface::GetErrorMessage( const int errorCode,
-		                   const ListExpr params /* = 0*/ )
+                       const ListExpr params /* = 0*/ )
 {
   ErrorMap::const_iterator errPos = errors.find( errorCode );
   if ( errPos != errors.end() )

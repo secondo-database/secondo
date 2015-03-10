@@ -80,10 +80,9 @@ void sendMessage ( string in_strMessage )
 {
   // Get message-center and initialize message-list
   static MessageCenter* xMessageCenter= MessageCenter::GetInstance();
-  NList xMessage;
-  xMessage.append ( NList ( "error" ) );
-  xMessage.append ( NList().textAtom ( in_strMessage ) );
-  xMessageCenter->Send ( xMessage );
+  ListExpr list = nl->TwoElemList( nl->SymbolAtom("error"),
+                                   nl->TextAtom(in_strMessage));
+  xMessageCenter->Send ( nl, list); 
 }
 
 

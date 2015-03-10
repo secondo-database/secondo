@@ -20,21 +20,21 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph	[10]	title:		[{\Large \bf ] [}]
+//paragraph  [10]  title:    [{\Large \bf ] [}]
 
-//paragraph	[21]	table1column:	[\begin{quote}\begin{tabular}{l}]	[\end{tabular}\end{quote}]
+//paragraph  [21]  table1column:  [\begin{quote}\begin{tabular}{l}]  [\end{tabular}\end{quote}]
 
-//paragraph	[22]	table2columns:	[\begin{quote}\begin{tabular}{ll}]	[\end{tabular}\end{quote}]
+//paragraph  [22]  table2columns:  [\begin{quote}\begin{tabular}{ll}]  [\end{tabular}\end{quote}]
 
-//paragraph	[23]	table3columns:	[\begin{quote}\begin{tabular}{lll}]	[\end{tabular}\end{quote}]
+//paragraph  [23]  table3columns:  [\begin{quote}\begin{tabular}{lll}]  [\end{tabular}\end{quote}]
 
-//paragraph	[24]	table4columns:	[\begin{quote}\begin{tabular}{llll}]	[\end{tabular}\end{quote}]
+//paragraph  [24]  table4columns:  [\begin{quote}\begin{tabular}{llll}]  [\end{tabular}\end{quote}]
 
-//[--------]	[\hline]
+//[--------]  [\hline]
 
-//characters	[1]	verbatim:	[$]	[$]
+//characters  [1]  verbatim:  [$]  [$]
 
-//characters	[2]	formula:	[$]	[$]
+//characters  [2]  formula:  [$]  [$]
 
 //characters    [3]    capital:    [\textsc{]    [}]
 
@@ -91,7 +91,7 @@ numbers starting from 1. Whereas a list offers only sequential access, a
 table offers random access to all its elements.
 
 
-		Figure 1: Concept of a compact table [CompactTable.eps]
+        Figure 1: Concept of a compact table [CompactTable.eps]
 
 
 A compact table also provides the storage for its elements. 
@@ -105,22 +105,22 @@ is also able to extend its size automatically when all slots are filled. The
 
 third way is writing and reading it sequentially, like a list.
 
-[24]	Creation/Removal & Size info & Element access & Managing a set	\\ 
-	[--------]
-	CTable		 & Size	     & [cppref] const & IsValid		\\
-	[tilde]CTable	 & NoEntries & [cppref]	      & EmptySlot	\\
-	                 &	     &                & Add		\\
-			 &	     &  	      & Remove		\\
+[24]  Creation/Removal & Size info & Element access & Managing a set  \\ 
+  [--------]
+  CTable     & Size       & [cppref] const & IsValid    \\
+  [tilde]CTable   & NoEntries & [cppref]        & EmptySlot  \\
+                   &       &                & Add    \\
+       &       &          & Remove    \\
 
 
 
-[23]	Iterator   & Scanning	    & Persistence	\\
-	[--------]
-	Iterator   & ++	            & Load (not implemented yet) \\
-	Begin      & EndOfScan	    & Save (not implemented yet) \\
-	End	   & GetIndex       &	\\
-	operator== & operator[star] &	\\
-	operator!= & operator=	    &	\\	
+[23]  Iterator   & Scanning      & Persistence  \\
+  [--------]
+  Iterator   & ++              & Load (not implemented yet) \\
+  Begin      & EndOfScan      & Save (not implemented yet) \\
+  End     & GetIndex       &  \\
+  operator== & operator[star] &  \\
+  operator!= & operator=      &  \\  
 
 
 The CTable has two implementations. The first is on top of the standard vector
@@ -280,22 +280,25 @@ valid.
 
 ``Select for reading''. Returns the address of the slot with index ~index~. 
 
-*Precondition*: "1 [<=] index [<=] Size(Table)"[1] and slot ~index~ must be valid.
+*Precondition*: "1 [<=] index [<=] Size(Table)"[1] and slot ~index~ must be
+ valid.
 
 
 ``Select for writing''. Returns the address of the slot with index ~index~.
-Makes slot ~index~ valid and marks it as changed. In the persistent implementation
-only the Put method can be used to write a value into a slot. 
+Makes slot ~index~ valid and marks it as changed. In the persistent 
+implementation only the Put method can be used to write a value into a slot. 
 
-Warning: If you want to write code that can be used with both implementations you 
-must always use the following sequence of operations, to ~write~ values into a slot:
+Warning: If you want to write code that can be used with both implementations 
+you must always use the following sequence of operations, to ~write~ values 
+into a slot:
 
 index = EmptySlot() 
 Get(index, Record)
 change Record values
 Put(index, Record)
 
-Be careful: references to Records are invalid after the next call of the Get method. 
+Be careful: references to Records are invalid after the next call of the 
+Get method. 
 
 *Precondition*: "1 [<=] Index [<=] Size (Table)".
 
@@ -357,7 +360,9 @@ Provided for convenience; is the same as:
 
 ----
 
-An initial sequence of ~Add~ operations (before any ~Remove~ operations and without ~Remove~ or ~EmptySlot~ in between) is guaranteed to fill the table sequentially and hence maintains the order of insertions. 
+An initial sequence of ~Add~ operations (before any ~Remove~ operations 
+and without ~Remove~ or ~EmptySlot~ in between) is guaranteed to fill the 
+table sequentially and hence maintains the order of insertions. 
 
 */
 
@@ -478,6 +483,11 @@ True if the scan is at position ~end~ (no more elements present).
 
     Iterator( CTable<T>* ctPtr );
 
+#ifdef CTABLE_PERSISTENT
+    T returnelem; // speed up of operator*
+#endif
+
+
 /*
 
 Creates an iterator for the CTable referenced by ~ctPtr~ pointing to the
@@ -542,7 +552,8 @@ private:
    
     if ( !(n > 0 && n <= elemCount) ) {
        cerr << "CTable<" << typeid(T).name() << "> "
-            << "slot n=" << n << " is out of range." << endl;
+            << "slot n=" << n << " is out of range [0.." 
+            << elemCount <<"]." << endl;
        return true;
     }
     return false;
@@ -554,7 +565,7 @@ private:
     bool* ptrb = 0; // vector<bool> may have a special implementation
                     // which uses memory more efficiently
  
-    // calculation of allocated memory	 
+    // calculation of allocated memory   
     intptr_t dT = ((intptr_t)++ptrT); 
     intptr_t db = ((intptr_t)++ptrb);
     slotSize = dT + db; 
@@ -567,8 +578,8 @@ private:
   bool setFALSE;     // Reference Values needed for the 
   bool setTRUE;      // PArray.Put(int index, T& elem) method
   T* dummyElem;
-	T lastAccessedElem; // For speed up of []operator implementation
-	Cardinal lastAccessedIndex;
+  T lastAccessedElem; // For speed up of []operator implementation
+  Cardinal lastAccessedIndex;
 
   PagedArray<T>* table;        // Array of table elements
   PagedArray<bool>* valid;     // Array of table element states
@@ -586,6 +597,12 @@ private:
   Cardinal elemCount;      // Size of compact table
   Cardinal leastFree;      // Position of free slot
   Cardinal highestValid;   // Position of highest valid slot
+  Cardinal last; 
+
+  static size_t noInstances; // instance counter
+  size_t instanceID;
+
+
 };
 
 

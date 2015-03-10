@@ -55,6 +55,9 @@ this for bug-fixing.
 
 #include "WinUnix.h"
 
+template<typename T>
+size_t CTable<T>::noInstances = 0;
+
 
 template<typename T>
 
@@ -67,8 +70,10 @@ CTable<T>::CTable(  Cardinal const count ) :
  isPersistent(true),
  elemCount(0), 
  leastFree(1),  
- highestValid(0)
+ highestValid(0), last(0)
 {
+
+  instanceID = noInstances++;
   CalcSlotSize();
 
   // In this implementation of CTable the total slot size grows one by
@@ -97,7 +102,7 @@ template<typename T>
 void
 CTable<T>::TotalMemory( Cardinal &mem, 
                         Cardinal &pageChanges, 
-			                  Cardinal &slotAccess  ) 
+                        Cardinal &slotAccess  ) 
 {  
   mem = (Cardinal)(slotSize * elemCount);
   pageChanges = table->PageChanges(); 
@@ -215,9 +220,8 @@ template<typename T>
 const Cardinal
 CTable<T>::EmptySlot() { 
 
-  static Cardinal last = 0;
   if ( leastFree > elemCount ) { // initialize a new slot
-	  
+    
     elemCount++;
     valid->Put(elemCount-1, setFALSE);
     //table->Put(elemCount-1, *dummyElem);
@@ -232,9 +236,9 @@ CTable<T>::EmptySlot() {
   }
   
   last = leastFree;
-	//cout << "CTable<" << typeid(T).name() 
+  //cout << "CTable<" << typeid(T).name() 
   //     << ">::EmptySlot last=" << last << endl;
-	
+  
   return last;
 }
 
@@ -331,10 +335,9 @@ CTable<T>::Iterator::operator*() const {
   ct->valid->Get(current, isvalid);
   assert( current < ct->elemCount && isvalid );
 
-  static T elem;
-  ct->table->Get(current, elem);
+  ct->table->Get(current, returnelem);
   
-  return elem;
+  return returnelem;
 }
 
 

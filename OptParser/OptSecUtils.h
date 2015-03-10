@@ -30,9 +30,10 @@ This is the document describes the implementation of the OptSecUtils checks whic
 
 #include "NestedList.h"
 #include "SecondoInterface.h"
+#include "SecondoInterfaceTTY.h"
 
 extern NestedList* nl; // use global si
-extern SecondoInterface* si; // use the same si as the rest of prolog
+extern SecondoInterfaceTTY* si; // use the same si as the rest of prolog
 
 
 namespace optutils

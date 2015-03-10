@@ -494,7 +494,7 @@ inline Rectangle<dim>::Rectangle( const bool defined, ... ):
     static MessageCenter* msg = MessageCenter::GetInstance();
     NList msgList( NList("simple"),
                    NList("Rectangle built with invalid dimensions!") );
-    msg->Send(msgList);
+    msg->Send(nl,msgList.listExpr());
     this->del.isDefined = false;
   }
 }
@@ -546,7 +546,7 @@ inline void Rectangle<dim>::Set(const bool defined, const double *min,
     static MessageCenter* msg = MessageCenter::GetInstance();
     NList msgList( NList("simple"),
                    NList("Rectangle built with invalid dimensions!") );
-    msg->Send(msgList);
+    msg->Send(nl,msgList.listExpr());
     this->SetDefined(false);
   }
 }

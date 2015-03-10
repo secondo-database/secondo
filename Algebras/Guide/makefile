@@ -89,4 +89,4 @@ GuideAlgebra.doc: GuideAlgebra.cpp SpecificationDescription.pd Guide.spec Exampl
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	rm -f GuideAlgebra.doc GuideAlgebra.doc.pdf GuideAlgebra.doc.dvi GuideAlgebra.doc.log GuideAlgebra.doc.aux GuideAlgebra.doc.tex
+	rm -f GuideAlgebra.doc GuideAlgebra.doc.pdf GuideAlgebra.doc.dvi GuideAlgebra.doc.log GuideAlgebra.doc.aux GuideAlgebra.doc.tex GuideAlgebra.doc.toc

@@ -60,7 +60,7 @@ ostream& operator<<(ostream& os, const NList& n) {
 namespace csp {
 
 void
-sendList(iostream& iosock, const NList list)
+sendList(iostream& iosock, NestedList* nl, ListExpr list)
 {
   if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
  
@@ -75,7 +75,8 @@ sendList(iostream& iosock, const NList list)
     //string resultStr;
     //nl->WriteToString( resultStr, list );
     //iosock << resultStr << endl;
-    list.writeAsStringTo(iosock);  
+    // list.writeAsStringTo(iosock);  
+    nl->WriteListExpr(list, iosock);
     iosock << endl;
 
     LOGMSG( "Server:SendTimeMsg",
@@ -89,7 +90,7 @@ sendList(iostream& iosock, const NList list)
     
     if ( RTFlag::isActive("Server:ResultFile") ) {
       ofstream file("result.bnl", ios::out|ios::trunc|ios::binary);
-      list.writeAsBinaryTo(file);
+      nl->WriteBinaryTo(list,file);
       file.close();
     }
     
@@ -99,7 +100,7 @@ sendList(iostream& iosock, const NList list)
       cerr << "Sending list as binary representation ... ";
     )
 
-    list.writeAsBinaryTo(iosock);
+    nl->WriteBinaryTo(list, iosock); 
   
     LOGMSG( "Server:SendTimeMsg",
       cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;;

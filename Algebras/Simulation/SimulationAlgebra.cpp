@@ -556,16 +556,12 @@ int sim_create_trip_VM ( Word* args, Word& result,
     double            Vtop = cTopSpeed->GetValue();
     double    currentSpeed = cVstart->GetRealval();
     if( Vtop<=0.0 ){
-      NList msg_list(NList("simple") ,
-      NList("Warning: invalid top speed in operator create_sim_trip!",
-             true,true));
-      msg->Send(msg_list);
+      string msgstr = "Warning: invalid top speed in operator create_sim_trip!";
+      msg->Send(nl, listutils::simpleMessage(msgstr)); 
     }
     if( currentSpeed<0.0 ){
-      NList msg_list(NList("simple") ,
-      NList("Warning: invalid top speed in operator create_sim_trip!", 
-             true, true));
-      msg->Send(msg_list);
+      string msgstr = "Warning: invalid top speed in operator create_sim_trip!";
+      msg->Send(nl, listutils::simpleMessage(msgstr)); 
     }
     if( (Vtop<=0.0) || (currentSpeed<0.0) ){
       res->SetDefined( false );
@@ -1686,10 +1682,8 @@ int sim_trips_VM_old ( Word* args, Word& result,
           { // sli->u1 is constant
             if(!ok){
               MessageCenter* msg = MessageCenter::GetInstance();
-              NList msg_list(NList("simple") ,
-                    NList("Warning: invalid geografic coordinate found!", 
-                           true, true));
-              msg->Send(msg_list);
+              string msgstr = "Warning: invalid geografic coordinate found!";
+              msg->Send(nl, listutils::simpleMessage(msgstr)); 
               sli->finished = true;
               result.setAddr(0);
               return CANCEL;
@@ -1699,10 +1693,8 @@ int sim_trips_VM_old ( Word* args, Word& result,
             { // sli->u1 is constant and u2 is constant
               if(!ok){
                 MessageCenter* msg = MessageCenter::GetInstance();
-                NList msg_list(NList("simple") ,
-                      NList("Warning: invalid geografic coordinate found!", 
-                             true, true));
-                msg->Send(msg_list);
+                string msgstr = "Warning: invalid geografic coordinate found!";
+                msg->Send(nl, listutils::simpleMessage(msgstr)); 
                 sli->finished = true;
                 result.setAddr(0);
                 return CANCEL;
@@ -1776,10 +1768,8 @@ int sim_trips_VM_old ( Word* args, Word& result,
             {
               if(!ok){
                 MessageCenter* msg = MessageCenter::GetInstance();
-                NList msg_list(NList("simple") ,
-                      NList("Warning: invalid geografic coordinate found!", 
-                            true, true));
-                msg->Send(msg_list);
+                string msgstr = "Warning: invalid geografic coordinate found!";
+                msg->Send(nl, listutils::simpleMessage(msgstr)); 
                 sli->finished = true;
                 result.setAddr(0);
                 return CANCEL;
@@ -1817,10 +1807,8 @@ int sim_trips_VM_old ( Word* args, Word& result,
           {
             if(!ok){
               MessageCenter* msg = MessageCenter::GetInstance();
-              NList msg_list(NList("simple") ,
-                    NList("Warning: invalid geografic coordinate found!", 
-                          true, true));
-              msg->Send(msg_list);
+              string msgstr = "Warning: invalid geografic coordinate found!";
+              msg->Send(nl, listutils::simpleMessage(msgstr)); 
               sli->finished = true;
               result.setAddr(0);
               return CANCEL;
@@ -1833,10 +1821,8 @@ int sim_trips_VM_old ( Word* args, Word& result,
   //               cout << " Adding (7)"; sli->u1.Print(cout); cout << endl;
               if(!ok){
                 MessageCenter* msg = MessageCenter::GetInstance();
-                NList msg_list(NList("simple") ,
-                      NList("Warning: invalid geografic coordinate found!", 
-                             true, true));
-                msg->Send(msg_list);
+                string msgstr = "Warning: invalid geografic coordinate found!";
+                msg->Send(nl, listutils::simpleMessage(msgstr)); 
                 sli->finished = true;
                 result.setAddr(0);
                 return CANCEL;
@@ -1860,10 +1846,8 @@ int sim_trips_VM_old ( Word* args, Word& result,
   //               cout << " Adding (8)"; sli->u1.Print(cout); cout << endl;
               if(!ok){
                 MessageCenter* msg = MessageCenter::GetInstance();
-                NList msg_list(NList("simple") ,
-                      NList("Warning: invalid geografic coordinate found!", 
-                             true, true));
-                msg->Send(msg_list);
+                string msgstr = "Warning: invalid geografic coordinate found!";
+                msg->Send(nl, listutils::simpleMessage(msgstr)); 
                 sli->finished = true;
                 result.setAddr(0);
                 return CANCEL;

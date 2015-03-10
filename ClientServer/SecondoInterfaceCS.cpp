@@ -47,23 +47,23 @@ provides functions useful for the client and for the server implementation.
 #undef TRACE_ON
 #include "LogMsg.h"
 #include "SecondoInterface.h"
+#include "SecondoInterfaceCS.h"
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "CSProtocol.h"
 
 using namespace std;
 
-SecondoInterface::SecondoInterface(bool isServer /*= false*/)
-{
-  Init();
+SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
+                                       NestedList* _nl /*=0 */):
+ SecondoInterface(isServer,_nl) {
+    externalNL = _nl!=0;
+    maxAttempts = DEFAULT_CONNECT_MAX_ATTEMPTS;
+    timeout = DEFAULT_RECONNECT_TIMEOUT;
+ }
 
-  serverInstance = isServer;
-  nl = new NestedList();
-  al = nl;
-  csp = 0;
-}
 
-SecondoInterface::~SecondoInterface()
+SecondoInterfaceCS::~SecondoInterfaceCS()
 {
   if ( initialized )
   {
@@ -73,7 +73,7 @@ SecondoInterface::~SecondoInterface()
 
 
 bool
-SecondoInterface::Initialize( const string& user, const string& pswd,
+SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                               const string& host, const string& port,
                               string& parmFile, string& errorMsg,
                               const bool multiUser )
@@ -88,29 +88,30 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     // initialize runtime flags
     InitRTFlags(parmFile);
 
-    cout << "Setting up temporary Berkeley-DB envinronment" << endl;
     bool ok=false;
-    if ( SmiEnvironment::SetHomeDir(parmFile) )
-    {
-      SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
-      ok = true;
-    }
-    else
-    {
-      string errMsg;
-      SmiEnvironment::GetLastErrorCode( errMsg );
-      cout << "Error: " << errMsg << endl;
-      errorMsg += errMsg +"\n";
-      ok=false;
-    }
+    if(externalNL){
+      cout << "use already existing nested list storage" << endl;
+    } else {
+      cout << "Setting up temporary Berkeley-DB envinronment" << endl;
+      if ( SmiEnvironment::SetHomeDir(parmFile) ) {
+           SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
+           ok = true;
+      } else {
+           string errMsg;
+           SmiEnvironment::GetLastErrorCode( errMsg );
+            cout  << "Error: " << errMsg << endl;
+            errorMsg += errMsg +"\n";
+            ok=false;
+       }
 
-    if (ok)
-      ok = (SmiEnvironment::CreateTmpEnvironment( cerr ) == 0);
+       if (ok)
+          ok = (SmiEnvironment::CreateTmpEnvironment( cerr ) == 0);
 
-    if (!ok) {
-      cerr << "Error: No Berkeley-DB environment! "
-           << "Persistent nested lists not available!"
-           << endl;
+       if (!ok) {
+           cerr << "Error: No Berkeley-DB environment! "
+                << "Persistent nested lists not available!"
+               << endl;
+       }
     }
 
     // Connect with server, needed host and port
@@ -131,7 +132,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     {
       cout << "Connecting with Secondo server '" << secHost << "' on port "
            << secPort << " ..." << endl;
-      server = Socket::Connect( secHost, secPort, Socket::SockGlobalDomain );
+      server = Socket::Connect( secHost, secPort, Socket::SockGlobalDomain,
+                                maxAttempts, timeout );
       if ( server != 0 && server->IsOk() )
       {
         iostream& iosock = server->GetSocketStream();
@@ -203,7 +205,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 }
 
 void
-SecondoInterface::Terminate()
+SecondoInterfaceCS::Terminate()
 {
   if ( server != 0 )
   {
@@ -222,9 +224,11 @@ SecondoInterface::Terminate()
 
   if (initialized)
   {
-    delete nl;
+    if(!externalNL){
+      delete nl;
+      SmiEnvironment::DeleteTmpEnvironment();
+    }
     al = 0;
-    SmiEnvironment::DeleteTmpEnvironment();
     initialized = false;
   }
 }
@@ -238,7 +242,7 @@ SecondoInterface::Terminate()
 */
 
 void
-SecondoInterface::Secondo( const string& commandText,
+SecondoInterfaceCS::Secondo( const string& commandText,
                            const ListExpr commandLE,
                            const int commandType,
                            const bool commandAsText,
@@ -259,12 +263,10 @@ For an explanation of the error codes refer to SecondoInterface.h
 */
 
   string cmdText="";
-  ListExpr list, errorList, errorInfo;
+  ListExpr list;
   string filename="", dbName="", objName="", typeName="";
   errorMessage = "";
   errorCode    = 0;
-  errorList    = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  errorInfo    = errorList;
   resultList   = nl->TheEmptyList();
 
   if ( server == 0 )
@@ -578,7 +580,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
 */
 ListExpr
-SecondoInterface::NumericTypeExpr( const ListExpr type )
+SecondoInterfaceCS::NumericTypeExpr( const ListExpr type )
 {
   ListExpr list = nl->TheEmptyList();
   if ( server != 0 )
@@ -614,7 +616,7 @@ SecondoInterface::NumericTypeExpr( const ListExpr type )
 
 
 bool
-SecondoInterface::GetTypeId( const string& name,
+SecondoInterfaceCS::GetTypeId( const string& name,
                              int& algebraId, int& typeId )
 {
   bool ok = false;
@@ -648,7 +650,7 @@ SecondoInterface::GetTypeId( const string& name,
 }
 
 bool
-SecondoInterface::LookUpTypeExpr( ListExpr type, string& name,
+SecondoInterfaceCS::LookUpTypeExpr( ListExpr type, string& name,
                                   int& algebraId, int& typeId )
 {
   bool ok = false;
@@ -703,11 +705,31 @@ SecondoInterface::LookUpTypeExpr( ListExpr type, string& name,
 
 
 void
-SecondoInterface::SetDebugLevel( const int level )
+SecondoInterfaceCS::SetDebugLevel( const int level )
 {
 }
 
-bool SecondoInterface::getOperatorIndexes(
+
+bool SecondoInterfaceCS::sendFile( const string& localfilename,
+                                   const string& serverFileName){
+   iostream& iosock = server->GetSocketStream();
+   iosock << csp->startFileTransfer << endl;
+   iosock << serverFileName << endl;
+   csp->SendFile(localfilename);
+   iosock << csp->endFileTransfer << endl;
+   ListExpr resultList;
+   int errorCode; 
+   int errorPos;
+   string errorMessage;
+   errorCode = csp->ReadResponse( resultList,
+                                  errorCode, errorPos,
+                                  errorMessage         );
+
+   return errorCode==0;
+}
+
+
+bool SecondoInterfaceCS::getOperatorIndexes(
             const string name,
             const ListExpr argList,
             ListExpr& resList,
@@ -771,7 +793,7 @@ the return value is false.
 
 */
 
-bool SecondoInterface::getCosts(
+bool SecondoInterfaceCS::getCosts(
               const int algId,
               const int opId,
               const int funId,
@@ -818,7 +840,7 @@ bool SecondoInterface::getCosts(
 }
 
 
-bool SecondoInterface::getCosts(const int algId,
+bool SecondoInterfaceCS::getCosts(const int algId,
               const int opId,
               const int funId,
               const size_t noTuples1,
@@ -875,7 +897,7 @@ Retrieves the parameters for estimating the cost function of an operator
 in a linear way.
 
 */
-bool SecondoInterface::getLinearParams( const int algId,
+bool SecondoInterfaceCS::getLinearParams( const int algId,
                       const int opId,
                       const int funId,
                       const size_t noTuples1,
@@ -925,7 +947,7 @@ bool SecondoInterface::getLinearParams( const int algId,
 }
 
 
-bool SecondoInterface::getLinearParams( const int algId,
+bool SecondoInterfaceCS::getLinearParams( const int algId,
                       const int opId,
                       const int funId,
                       const size_t noTuples1,
@@ -986,7 +1008,7 @@ Returns an approximation of the cost function of a specified value mapping as
 a parametrized function.
 
 */
-bool SecondoInterface::getFunction(const int algId,
+bool SecondoInterfaceCS::getFunction(const int algId,
                  const int opId,
                  const int funId,
                  const size_t noTuples1,
@@ -1046,7 +1068,7 @@ bool SecondoInterface::getFunction(const int algId,
     }
 }
 
-bool SecondoInterface::getFunction(const int algId,
+bool SecondoInterfaceCS::getFunction(const int algId,
                  const int opId,
                  const int funId,
                  const size_t noTuples1,
@@ -1115,4 +1137,15 @@ bool SecondoInterface::getFunction(const int algId,
 }
 
 
+void SecondoInterfaceCS::setMaxAttempts(int a){
+   if(a>0 && a < 1000){
+      maxAttempts = a;
+   }
+}
+   
+void SecondoInterfaceCS::setTimeout(int t){
+   if(t>0 && t < 60){
+      timeout = t;
+   }
+}
 

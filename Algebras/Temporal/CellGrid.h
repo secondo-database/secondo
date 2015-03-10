@@ -520,7 +520,7 @@ void CellGrid<dim>::set(const double* originPoint,
     static MessageCenter* msg = MessageCenter::GetInstance();
     NList msgList( NList("simple"),
                    NList("CellGrid built with invalid dimensions!") );
-    msg->Send(msgList);
+    msg->Send(nl,msgList.listExpr());
     this->SetDefined(false);
   }
   this->SetDefined(true);
@@ -887,7 +887,7 @@ bool CellGrid<dim>::ReadFrom(const ListExpr value,const ListExpr typeInfo){
     static MessageCenter* msg = MessageCenter::GetInstance();
     NList msgList( NList("simple"),
                    NList("CellGrid built with invalid dimensions!") );
-    msg->Send(msgList);
+    msg->Send(nl,msgList.listExpr());
     this->SetDefined(false);
   }
 

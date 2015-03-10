@@ -366,6 +366,14 @@ alway use const string Symbol::UNDEFINED()!
   ListExpr getUndefined(); 
   string getUndefinedString(); 
 
+  
+  ListExpr simpleMessage(const string& msg);
+  ListExpr simpleMessage(const int value);
+  ListExpr getMessage( const string& messageType, const string& message);
+  ListExpr getMessage( const string& messageType, const int value);
+
+
+
 
 /*
 ~basicSymbol~

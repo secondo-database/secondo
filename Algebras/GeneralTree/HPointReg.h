@@ -41,13 +41,11 @@ This file contains all defined gethpoint functions. New functions must be regist
 #ifndef __HPOINT_REG_H__
 #define __HPOINT_REG_H__
 
-#include "SecondoInterface.h"
 #include "Symbols.h"
 #include "TypeConstructor.h"
 #include "GTA_SpatialAttr.h"
 #include <string>
 
-extern SecondoInterface* si;
 
 namespace gta
 {
@@ -120,7 +118,8 @@ Constructor (creates a new info object with the given values)
             char flags = 0)
         : m_name(name), m_gethpointFun(gethpoint_Fun),
           m_flags(HPOINT_IS_DEFINED | flags)
-    { si->GetTypeId(typeName, m_algebraId, m_typeId); }
+    {  static SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+      ctlg->GetTypeId(typeName, m_algebraId, m_typeId); }
 
 /*
 Returns the name of the assigned gethpoint function.

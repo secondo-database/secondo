@@ -1107,7 +1107,7 @@ ListExpr feedproject_tm(ListExpr args)
 
   NList outlist = NList( NList(Symbol::APPEND()),
                          NList( NList( noAtoms ), indices ),
-			 NList().tupleStreamOf( newAttrs ) );
+       NList().tupleStreamOf( newAttrs ) );
 
   return outlist.listExpr();
 }
@@ -1154,7 +1154,7 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           son = qp->GetSupplier(args[3].addr, i);
           qp->Request(son, elem);
           index = ((CcInt*)elem.addr)->GetIntval();
-	  //cerr << "ind = " << index << endl;
+    //cerr << "ind = " << index << endl;
           usedAttrs.push_back(index-1);
         }
 
@@ -1645,15 +1645,15 @@ not only types but also arguments in the type mapping. This happens
 when an operator
 registers "UsesArgsinTypeMapping". Type list now has the form
 
-----	( (type1 arg1) (type2 arg2) )
+----  ( (type1 arg1) (type2 arg2) )
 ----
 
 that is
 
-----	(
-		  ( (stream (tuple x))  arg1 )
-		  ( (map (tuple x) bool)  arg2 )
-		)
+----  (
+      ( (stream (tuple x))  arg1 )
+      ( (map (tuple x) bool)  arg2 )
+    )
 ----
 
 */
@@ -1705,13 +1705,13 @@ ListExpr FilterTypeMap(ListExpr args)
   bool showArguments = false;
   if ( showArguments ) {
         cout << "arguments to the filter operator:" << endl;
-	    cout << "first argument: ";
-		nl->WriteListExpr( nl->Second(nl->First(args)), cout, 2 );
-		cout << endl;
-	    cout << "second argument: ";
-		nl->WriteListExpr( nl->Second(nl->Second(args)), cout, 2 );
+      cout << "first argument: ";
+    nl->WriteListExpr( nl->Second(nl->First(args)), cout, 2 );
+    cout << endl;
+      cout << "second argument: ";
+    nl->WriteListExpr( nl->Second(nl->Second(args)), cout, 2 );
         cout << endl;
-		cout << endl;
+    cout << endl;
   }
 
 
@@ -3155,7 +3155,10 @@ TCountStream2(Word* args, Word& result, int message,
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-      msg->Send(msgList);
+      ListExpr list = nl->TwoElemList(
+                        nl->SymbolAtom("simple"),
+                        nl->IntAtom(count));
+      msg->Send(nl,list);
     }
     ((Tuple*)elem.addr)->DeleteIfAllowed();
     qp->Request(args[0].addr, elem);

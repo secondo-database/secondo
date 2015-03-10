@@ -87,6 +87,12 @@ then you will be prompted for the filename.
 #include "FileSystem.h"
 #include "SecondoSystem.h"
 #include "SecondoInterface.h"
+#ifndef SECONDO_CLIENT_SERVER
+  #include "SecondoInterfaceTTY.h"
+#else
+  #include "SecondoInterfaceCS.h"
+#endif
+
 #include "SecondoSMI.h"
 #include "NestedList.h"
 #include "DisplayTTY.h"
@@ -707,7 +713,11 @@ SecondoTTY::Execute()
   ofstream fileOutput;
   bool useOutputFile = oFileName.length() > 0;
 
-  si = new SecondoInterface();
+  #ifndef SECONDO_CLIENT_SERVER
+  si = new SecondoInterfaceTTY( false);
+  #else
+  si = new SecondoInterfaceCS(true);
+  #endif
   string errorMsg("");
   if ( si->Initialize( user, pswd, host, port, parmFile, errorMsg  ) )
   {

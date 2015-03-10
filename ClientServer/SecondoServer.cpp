@@ -58,6 +58,7 @@ using namespace std;
 #include "SecondoSystem.h"
 #include "SecondoCatalog.h"
 #include "SecondoInterface.h"
+#include "SecondoInterfaceTTY.h"
 #include "FileSystem.h"
 #include "Profiles.h"
 #include "LogMsg.h"
@@ -87,6 +88,7 @@ class SecondoServer : public Application
   void CallObjectSave();
   void CallDbRestore();
   void CallObjectRestore();
+  void CallFileTransfer();
   void Connect();
   void Disconnect();
   void WriteResponse( const int errorCode, const int errorPos,
@@ -134,7 +136,7 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
  
   csp->IgnoreMsg(true); 
   iosock << "<SecondoResponse>" << endl;
-  csp::sendList(iosock, NList(list));  
+  csp::sendList(iosock,nl, list);  
   iosock << "</SecondoResponse>" << endl;
   
 }
@@ -695,6 +697,31 @@ SecondoServer::CallDbRestore()
   CallRestore("DbRestore",true);        
 }       
 
+void
+SecondoServer::CallFileTransfer() {
+  // parameters for Secondo interface call
+  SI_Error errorCode=0;
+  int errorPos=0;
+  string errorMessage="";
+  ListExpr resultList = nl->TheEmptyList();
+  
+  // read in object or database name
+  iostream& iosock = client->GetSocketStream();
+  string serverFileName = "";
+  iosock >> serverFileName;
+  csp->skipRestOfLine();
+  if ( !csp->ReceiveFile( serverFileName ) ) {
+    errorCode = ERR_IN_SECONDO_PROTOCOL;
+    errorMessage = "Protocol-Error: File not received correctly."; 
+    resultList = nl->TheEmptyList();
+  }
+  
+  if (!csp->nextLine(csp->endFileTransfer, errorMessage) )
+  {
+    errorCode = ERR_IN_SECONDO_PROTOCOL;
+  }
+  WriteResponse( errorCode, errorPos, errorMessage, resultList );
+}
 
 void
 SecondoServer::Connect()
@@ -721,7 +748,7 @@ SecondoServer::Execute()
   int rc = 0;
   parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
   registrar = SmiProfile::GetUniqueSocketName( parmFile );
-  si = new SecondoInterface(true);
+  si = new SecondoInterfaceTTY(true);
   cout << "Initialize the secondo interface " << endl;
 
   map<string,ExecCommand> commandTable;
@@ -734,6 +761,7 @@ SecondoServer::Execute()
   commandTable["<ObjectSave>"]  = &SecondoServer::CallObjectSave;
   commandTable["<ObjectRestore>"]   = &SecondoServer::CallObjectRestore;
   commandTable["<DbRestore>"]   = &SecondoServer::CallDbRestore;
+  commandTable["<FileTransder>"]   = &SecondoServer::CallFileTransfer;
   commandTable["<Connect>"]     = &SecondoServer::Connect;
   commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
   commandTable["<REQUESTOPERATORINDEXES>"] = 
@@ -874,7 +902,7 @@ SecondoServer::Execute()
 
 int SecondoServerMode( const int argc, const char* argv[] )
 {
-  const char* fname = "SecondoServer.msg";	
+  const char* fname = "SecondoServer.msg";  
   ofstream fmsg;
   fmsg.open(fname, ios::app);
 

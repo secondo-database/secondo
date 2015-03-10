@@ -507,6 +507,24 @@ $d1 - err < d2  or d2 - err < d1$
 
 
 /*
+1.4 class TextScanInfo
+
+*/
+class TextScanInfo{
+  public:
+     TextScanInfo(): first(true), last(false), textLength(0), 
+                    textScan(), textFragmentLength(0), atom(0) {}
+  bool first;
+  bool last;
+  Cardinal textLength;
+  TextScan textScan;
+  Cardinal textFragmentLength;
+  ListExpr atom;
+};
+
+
+
+/*
 1.4 Class "NestedList"[2]
 
 */
@@ -977,7 +995,8 @@ Creates a text scan. Current position is 0 (the first character in the ~atom~).
   void GetText( TextScan textScan,
                 const Cardinal noChars, string& textBuffer ) const;
   bool GetNextText( const ListExpr textAtom,
-                    string& textFragment, Cardinal size) const;
+                    string& textFragment, Cardinal size,
+                    TextScanInfo& info) const;
 
 
 /*
@@ -1243,14 +1262,15 @@ prototypes for functions used for the binary encoding/decoding of lists
 
 */
   bool  WriteBinaryRec( ListExpr list, ostream& os ) const;
-  bool  ReadBinaryRec( ListExpr& result, istream& in );
-  bool  ReadBinarySubLists( ListExpr& LE, istream& in, unsigned long length );
+  bool  ReadBinaryRec( ListExpr& result, istream& in, unsigned long& pos );
+  bool  ReadBinarySubLists( ListExpr& LE, istream& in, unsigned long length,
+                            unsigned long& pos );
   int32_t  ReadShort( istream& in ) const;
   int32_t  ReadInt( istream& in, const int len = 4 ) const;
   void  ReadString( istream& in, string& outStr, unsigned long length ) const;
 
   byte  GetBinaryType(const ListExpr list) const;
-  char* hton(long value) const;
+  void hton(long value, char* buffer) const;
   inline void swap(char* buffer,int size) const;
 
 
@@ -1267,6 +1287,8 @@ prototypes for functions used for the binary encoding/decoding of lists
   static const bool    isPersistent;
   ListExpr typeError;
   ListExpr errorList;
+  static size_t NLinstance; // number of nested list instances
+  size_t instanceNo;        // number of this instance
 
 
 /*

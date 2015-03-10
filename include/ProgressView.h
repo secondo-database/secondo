@@ -100,13 +100,13 @@ class ProgressView
     if (PROGTYPEPROG)
     {
       initialized  = true;
-   	  startClock  = clock();
+       startClock  = clock();
       msg = MessageCenter::GetInstance();
 
       msgList = NList(NList("progress"), 
                          NList(NList(-1), 
                          NList(PROGRESS_NORM)));
-      msg->Send(msgList);
+      msg->Send(nl,msgList.listExpr());
     }
   }
 
@@ -142,7 +142,7 @@ class ProgressView
        msgList = NList( NList("progress"),
               NList( NList((int) (currentProgress*PROGRESS_NORM)), 
                      NList(PROGRESS_NORM)));
-       msg->Send(msgList);
+       msg->Send(nl,msgList.listExpr());
               
       if (DETPROT & 2)
       {
@@ -192,15 +192,15 @@ class ProgressView
       msgList = NList( NList("progress"),
                            NList(NList(PROGRESS_NORM), 
                            NList(PROGRESS_NORM)));
-      msg->Send(msgList);
+      msg->Send(nl,msgList.listExpr());
     
 
       // mark end of progress messages
       msgList = NList(NList("progress"), NList(NList(0), NList(-1)));
-      msg->Send(msgList);
+      msg->Send(nl,msgList.listExpr());
 
       if (DETPROT & 2) {
-          	ofs << endl;
+            ofs << endl;
       }
     }
   }

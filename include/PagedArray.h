@@ -20,9 +20,9 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph	[23]	table3columns:	[\begin{quote}\begin{tabular}{lll}]	[\end{tabular}\end{quote}]
-//[--------]	[\hline]
-//characters	[1]	verbatim:	[\verb|]	[|]
+//paragraph[23] table3columns:[\begin{quote}\begin{tabular}{lll}] [\end{tabular}\end{quote}]
+//[--------] [\hline]
+//characters [1] verbatim: [\verb|] [|]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -62,11 +62,11 @@ operating systems page size
 
 This module offers the following public methods:
 
-[23]	Creation/Removal 	& Access   	& Inquiries	\\ 	
-	[--------]
-	PagedArray        	& Get 		& Size		\\  	
-	[tilde]PagedArray	& Put		& Id		\\
-	MarkDelete		&		& 		\\
+[23]  Creation/Removal   & Access     & Inquiries  \\   
+  [--------]
+  PagedArray          & Get     & Size    \\    
+  [tilde]PagedArray  & Put    & Id    \\
+  MarkDelete    &    &     \\
 
 
 1.3 Class ~PagedArray~
@@ -117,21 +117,22 @@ public:
     BufInfo(MAX_BUFFERS),
     bufferReplacements(0),
     trace(traceOn),
-    os(cmsg.file("recbuf.log"))
+    os(cmsg.file("recbuf.log")),
+    rrpos(0)
   {
     assert( REC_SIZE >= BUF_SIZE );
     assert( MAX_BUFFERS >= 1 );
 
     // will be used if variable SEC_Rebuf_Trace is set
     if (trace) {
-      cerr << "REC_SIZE = " << REC_SIZE << endl;	    
-      cerr << "BUF_SIZE = " << BUF_SIZE << endl;	    
-      cerr << "MAX_BUFFERS = " << MAX_BUFFERS << endl;	    
+      cerr << "REC_SIZE = " << REC_SIZE << endl;      
+      cerr << "BUF_SIZE = " << BUF_SIZE << endl;      
+      cerr << "MAX_BUFFERS = " << MAX_BUFFERS << endl;      
     }
 
     for (int i=0; i < MAX_BUFFERS; i++) { // initialize the buffer
-
        BufInfo[i].bufPtr = (void*) new char[BUF_SIZE];
+       memset(BufInfo[i].bufPtr, 0,  BUF_SIZE); // initialize with 0
        BufInfo[i].pageNr = i;
        recidVec.push_back( RecordInfo(0,i) );
        maxPageNr++;
@@ -190,13 +191,13 @@ public:
     
        // if no record file was created, open a file.
        if ( filePtr == 0 ) {
-	     bool ok = false;
-	     if (trace)
+       bool ok = false;
+       if (trace)
                os << "NL: creating record file " 
-		  << "for persistent storage!" << endl;
-	     filePtr = new SmiRecordFile(true,REC_SIZE,true);
-	     ok = filePtr->Create();
-	     assert( ok == true ); 
+      << "for persistent storage!" << endl;
+       filePtr = new SmiRecordFile(true,REC_SIZE,true);
+       ok = filePtr->Create();
+       assert( ok == true ); 
        }
 
        // select buffer number to replace
@@ -314,16 +315,16 @@ private:
 
   int RoundRobin() {
 
-    static int nextBuf=0;
-    nextBuf++;
-    if ( nextBuf >= MAX_BUFFERS ) {
-       nextBuf=0;
+    rrpos++;
+    if ( rrpos >= MAX_BUFFERS ) {
+       rrpos=0;
     } 
-    return nextBuf;
+    return rrpos;
   }
 
   // trace file
   ostream& os;
+  int rrpos; // position for round robin
 };
 
 
@@ -495,7 +496,7 @@ size( 0 ),
 pageRecord( recSize ),
 recordBuf( recSize, recSize, 
            (2*buffers)/pageRecord.slots + 1, 
-	   getenv("SEC_RecordBuf_Trace") != 0 ),
+           getenv("SEC_RecordBuf_Trace") != 0 ),
 bufPtr(0),
 log( logOn )
 {
@@ -535,7 +536,6 @@ of the pages in memory has to be substituted by a page on disk.
 template< class T>
 void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
 {
-  static Cardinal pageNo = 0;
   bool pageChange = false;
   
   // The array will be enlarged by slots per page if necessary 
@@ -547,14 +547,14 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
   }
 
   // calculate page number
-  pageNo = index / pageRecord.slots;
+  Cardinal pageNo = index / pageRecord.slots;
 
   // cast the buffer pointer 
   bufPtr = (T*) recordBuf.GetBufPtr(pageNo, pageChange); 
 
   slot = index - (pageNo * pageRecord.slots);
-  assert ( (slot >= 0) && (slot < pageRecord.slots) );
-  
+  assert ( slot >= 0 );
+  assert (slot < pageRecord.slots );
 
   if ( log.switchedOn ) {
      if (pageChange) { 
@@ -570,7 +570,7 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
 template<class T>
 void PagedArray<T>::Put(Cardinal const index, T& elem)
 {
-  static int slot = 0;
+  int slot = 0;
 
   assert ( writeable );
 
@@ -595,7 +595,7 @@ void PagedArray<T>::Put(Cardinal const index, T& elem)
 template<class T>
 void PagedArray<T>::Get(Cardinal const index, T& elem)
 {
-  static int slot = 0;
+  int slot = 0;
     
   GetSlot(index, slot); 
   

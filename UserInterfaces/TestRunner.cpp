@@ -76,6 +76,12 @@ This is the test enviroment for Secondo. The code is derived from SecondoTTY.
 
 #include "SecondoSystem.h"
 #include "SecondoInterface.h"
+#ifndef SECONDO_CLIENT_SERVER
+#include "SecondoInterfaceTTY.h"
+#else
+#include "SecondoInterfaceCS.h"
+#endif
+
 #include "SecondoSMI.h"
 #include "SecParser.h"
 
@@ -1436,8 +1442,7 @@ void
 TestRunner::CallSecondo2()
 {
   ShowTestTitle();
-  ListExpr result;
-  result = CallSecondo();
+  CallSecondo();
   nl->initializeListMemory();
 }
 
@@ -1463,7 +1468,11 @@ TestRunner::Execute()
     streambuf* oldOutputBuffer = 0;
     ifstream fileInput;
     ofstream fileOutput;
-    si = new SecondoInterface();
+    #ifndef SECONDO_CLIENT_SERVER
+    si = new SecondoInterfaceTTY(false);
+    #else
+    si = new SecondoInterfaceCS(false,0);
+    #endif
     string errorMsg("");
     if ( si->Initialize( user, pswd, host, port, parmFile, errorMsg ) )
     {

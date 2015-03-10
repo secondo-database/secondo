@@ -40,6 +40,7 @@ endif
 
 APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
+  SecondoTTYCS.$(OBJEXT) \
 	DisplayTTY.$(OBJEXT) \
 	MainTTY.$(OBJEXT) \
 	cmsg.$(OBJEXT) \
@@ -73,24 +74,25 @@ endif
 
 ifeq ($(optimizer),"true")
 PLOBJ := SecondoPL.$(OBJEXT) SecondoPLMode.$(OBJEXT)
+PLCSOBJ := SecondoPLCS.$(OBJEXT) SecondoPLMode.$(OBJEXT)
 PL_OBJECTS := $(PLOBJ) $(ENTROPY_OBJ)
+PLCS_OBJECTS := $(PLCSOBJ)  $(ENTROPY_OBJ)
 APPLOBJECTS += $(PLOBJ)
 CCFLAGS += $(PLINCLUDEFLAGS) -DSECONDO_PL
 endif
 
-BDB_OBJECTS :=  TestRunner.o \
-		../ClientServer/SecondoServer.o
+BDB_OBJECTS :=   ../ClientServer/SecondoServer.o
 		 
-ALG_LIST    :=  SecondoInterface.o AlgebraList.o
+ALG_LIST    :=  SecondoInterfaceTTY.o  SecondoInterfaceCS.o AlgebraList.o SecondoInterfaceGeneral.o
 
-TTY_OBJECTS :=  cmsg.o \
-		SecondoInterfaceGeneral.o \
-	        SecondoTTY.o \
-		DisplayTTY.o
+
+COMMON_OBJECTS := cmsg.o SecondoInterfaceGeneral.o DisplayTTY.o
+
+TTY_OBJECTS :=   MainTTY.o SecondoInterfaceTTY.o SecondoTTY.o  TestRunner.o
 
 FLOB := $(SECONDO_BUILD_DIR)/Tools/Flob/FlobManager.o
 
-CS_OBJECTS :=   MainTTYCS.o SecondoInterfaceCS.o
+CS_OBJECTS :=   MainTTYCS.o  SecondoInterfaceCS.o SecondoTTYCS.o TestRunnerCS.o
 
 APP_LIB := ../lib/libappCommon.$(LIBEXT)
 
@@ -122,7 +124,7 @@ entropy:
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES)
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) SecondoPLCS.o
 
 
 #
@@ -140,18 +142,26 @@ SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) 
 
+SecondoPLCS.$(OBJEXT): SecondoPL.cpp
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  
+
+SecondoTTYCS.$(OBJEXT): SecondoTTY.cpp 
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) 
+
+TestRunnerCS.$(OBJEXT): TestRunner.cpp 
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) 
+
 
 # Rules for linkage
 #
 # Note: Currently, the SecondoInterface depends on a static function of the relation
 # algebra which returns tuple statistics. We should change this in the future.
 
-$(APP_LIB): $(TTY_OBJECTS) $(BDB_OBJECTS) 	
+$(APP_LIB): $(COMMON_OBJECTS) $(BDB_OBJECTS) 	
 	$(create-lib)
 
 # SecondoBDB, the stand alone application.
-$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) MainTTY.o $(FLOB)
-$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): MainTTY.o $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS)
+$(BINDIR)/Secondo$(SMIUP)$(EXEEXT):  $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS) $(TTY_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) $(LIBXML2) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
 
@@ -159,7 +169,7 @@ $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): MainTTY.o $(APP_LIB) $(ALG_LIST) $(FLOB) $(P
 # need the algebra libs.
 # 
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
-$(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PL_OBJECTS) $(FLOB)
+$(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PLCS_OBJECTS) $(FLOB)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
 
 

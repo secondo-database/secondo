@@ -352,7 +352,23 @@ Secondo commands. These requests need to transmit a file to the server.
 The values of "dbName", "objName" and "fileName" are strings. The value "N" indicates the
 file size in bytes followed by the bytes of the file.
 
-6 Disconnecting
+6 File Transfer 
+
+For transfer a file from client to the server (for example for importing it), the client sends
+
+----
+   <FileTransfer>\n
+   filename\n
+   <FileData>\n
+   N\n
+   byte1..byteN
+   </FileData>\n
+   </FileTransfer>
+----
+
+
+
+7 Disconnecting
 
 The client can close the connection by sending
 
@@ -376,7 +392,6 @@ The client can close the connection by sending
 #include "ErrorCodes.h"
 #include "NestedList.h"
 #include "Messages.h"
-#include "NList.h"
 #include "TraceMacros.h"
 #include "limits.h"
 
@@ -390,7 +405,7 @@ Utility functions
 namespace csp {
 
 void
-sendList(iostream& iosock, NList list);
+sendList(iostream& iosock, NestedList* nl, ListExpr list);
 
 } // end of namespace
 
@@ -404,19 +419,20 @@ class ServerMessage : public MessageHandler {
   bool ignore;
   
   public:
-  virtual bool handleMsg(NList msg) {
+  virtual bool handleMsg(NestedList* nl, ListExpr msg) {
 
    if (ignore) {
      cerr << "Warning: Last request was not <Secondo>! "
           << "Message will not be sent to the client." << endl
           << startMessage << endl 
-          << msg.convertToString() << endMessage << endl;
+          << nl->ToString(msg) 
+          << endMessage << endl;
      return false;
    } 
 
    //cerr << "Sending message ..." << endl;
    iosock << startMessage << endl;
-   csp::sendList(iosock, msg);
+   csp::sendList(iosock, nl, msg);
    iosock << endMessage << endl;
           
    return true;       
@@ -474,6 +490,8 @@ struct CSProtocol {
  const string endRequestOperatorIndexes;
  const string startOperatorIndexesResponse;
  const string endOperatorIndexesResponse;
+ const string startFileTransfer;
+ const string endFileTransfer;
  
  CSProtocol(NestedList* instance, iostream& ios, bool server = false) : 
    iosock(ios), 
@@ -493,7 +511,9 @@ struct CSProtocol {
    startRequestOperatorIndexes("<REQUESTOPERATORINDEXES>"),
    endRequestOperatorIndexes("</REQUESTOPERATORINDEXES>"),
    startOperatorIndexesResponse("<OPERATORINDEXESRESPONSE>"),
-   endOperatorIndexesResponse("</OPERATORINDEXESRESPONSE>")
+   endOperatorIndexesResponse("</OPERATORINDEXESRESPONSE>"),
+   startFileTransfer("<FileTransfer>"),
+   endFileTransfer("</FileTransfer>")
  {
    ignoreMsg = true;
    nl = instance;
@@ -580,35 +600,27 @@ struct CSProtocol {
     {
       const int bufSize =512;
       static char buf[bufSize];       
-      int read = 0;
-
-      // compute file size
-      do { 
-        restoreFile.read(buf, bufSize);
-        read += restoreFile.gcount();
-
-      } while ( restoreFile.good() );
-      restoreFile.close();
+      restoreFile.seekg (0, restoreFile.end);
+      int length = restoreFile.tellg();
+      restoreFile.seekg (0, restoreFile.beg);
 
       // send file size
-      iosock << read << endl;         
-      cout << "SendFile: file size: " << read <<  " bytes." << endl;
-      
-      ifstream restoreFile2( filename.c_str(), ios::binary );
+      iosock << length << endl;         
+      cout << "SendFile: file size: " << length <<  " bytes." << endl;
       
       // send file data
       int read2 = 0;
-      while (!restoreFile2.eof() && !iosock.fail())
+      while (!restoreFile.eof() && !iosock.fail())
       {
-        restoreFile2.read(buf, bufSize);
-        int read = restoreFile2.gcount();
+        restoreFile.read(buf, bufSize);
+        int read = restoreFile.gcount();
         read2 += read;
         iosock.write(buf, read);
       }
       cout << "SendFile: transmitted " 
            << read2 <<  " bytes to the server." << endl;
 
-      restoreFile2.close();
+      restoreFile.close();
       
       cout.flush();
       iosock.flush();
@@ -733,8 +745,7 @@ ReadResponse( ListExpr& resultList,
   {
     success = ReadList(endMessage, messageList, errorCode);
     if (success) {
-     
-      msg->Send(messageList);
+      msg->Send(nl,messageList);
       getline( iosock, line );
       badbit = iosock.bad();
     }  

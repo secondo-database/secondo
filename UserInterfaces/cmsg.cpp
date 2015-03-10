@@ -67,8 +67,8 @@ CMsg::CMsg()
 CMsg::~CMsg() // close open files
 {
   for ( map<string,ofstream*>::iterator it = files.begin();
-	it != files.end();
-	it++ )
+  it != files.end();
+  it++ )
   {
      it->second->close();
      delete it->second;
@@ -193,14 +193,25 @@ Implementation of Class ProgMesHandler
 */
 
 bool
-ProgMesHandler::handleMsg(NList msgList)
+ProgMesHandler::handleMsg(NestedList* nl, ListExpr list)
 {
-  if ( !msgList.first().isSymbol("progress") ){
+  if(!nl->HasMinLength(list,2)){
+     return false;
+  }
+  if ( !nl->IsEqual(nl->First(list),"progress") ){
+    return false;
+  }
+  ListExpr second = nl->Second(list);
+  if(!nl->HasMinLength(second,2)){
+    return false;
+  }
+  if(nl->AtomType(nl->First(second))!=IntType ||
+     nl->AtomType(nl->Second(second)!=IntType)){
     return false;
   }
 
-  int ActValue = msgList.second().first().intval();
-  int TotalValue = msgList.second().second().intval();
+  int ActValue = nl->IntValue(nl->First(second)); 
+  int TotalValue = nl->IntValue(nl->Second(second)); 
 
   static StopWatch* s = 0;
   static double rt = 0;
@@ -214,7 +225,7 @@ ProgMesHandler::handleMsg(NList msgList)
           cout << "-";
       }
     }
-	  cout << "|" << endl;
+    cout << "|" << endl;
     if(s){
       delete s;
     }
@@ -268,13 +279,13 @@ ProgMesHandler::handleMsg(NList msgList)
     cout << "\r" << bar1 << bar2 
     //     << " ( " << setw(3) << setfill(' ') <<  p << "\% )  "
          << " remaining: " << showMin << ":" 
-	       << setw(2) << setfill('0') << showSec << " min  "
-  	     << flush;
+         << setw(2) << setfill('0') << showSec << " min  "
+         << flush;
   } else {
     cout << "\r" << bar1 << bar2 
     //   << " remaining: ?? :  min  "
          << " ( " << setw(3) << setfill(' ') <<  0 << "\% )  "
-  	     << flush;
+         << flush;
   }
   return true;
 }

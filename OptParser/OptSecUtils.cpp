@@ -43,12 +43,13 @@ is in kind data). At this place these checks are not nessecary.
 
 #include "NestedList.h"
 #include "SecondoInterface.h"
+#include "SecondoInterfaceTTY.h"
 #include "OptSecUtils.h"
 #include <algorithm>
 #include <string>
 
 extern NestedList* plnl; // use global si
-extern SecondoInterface* si; // use the same si as the rest of prolog
+extern SecondoInterfaceTTY* si; // use the same si as the rest of prolog
 
 
 namespace optutils

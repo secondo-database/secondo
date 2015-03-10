@@ -26,7 +26,7 @@
 include ../makefile.env
 
 LIBOBJECTS=\
-	$(LIBDIR)/SecondoInterface.$(OBJEXT) \
+	$(LIBDIR)/SecondoInterfaceTTY.$(OBJEXT) \
 	$(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT)
 
 .PHONY: all

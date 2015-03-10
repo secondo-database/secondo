@@ -58,6 +58,11 @@ using namespace std;
 
 #include "NestedList.h"
 #include "SecondoInterface.h"
+#ifndef SECONDO_CLIENT_SERVER
+#include "SecondoInterfaceTTY.h"
+#else
+#include "SecondoInterfaceCS.h"
+#endif
 #include "Profiles.h"
 #include "LogMsg.h"
 #include "License.h"
@@ -1261,8 +1266,11 @@ StartSecondoC(TTYParameter& tp)
     return false;
   }  
   //tp.Print(cout);  
-
-  si = new SecondoInterface();
+  #ifndef SECONDO_CLIENT_SERVER
+  si = new SecondoInterfaceTTY();
+  #else
+  si = new SecondoInterfaceCS();
+  #endif
   string errorMsg("");
   if(si->Initialize(tp.user, tp.pswd, tp.host, tp.port, tp.parmFile, errorMsg))
   {

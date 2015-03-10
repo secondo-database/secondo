@@ -47,8 +47,6 @@ This file contains all defined getbbox functions. New functions must be register
 #include "RectangleAlgebra.h"
 #include "GTA_SpatialAttr.h"
 
-extern SecondoInterface* si;
-
 namespace gta
 {
 
@@ -120,7 +118,8 @@ Constructor (creates a new info object with the given values)
             char flags = 0)
         : m_name(name), m_getbboxFun(getbbox_Fun),
           m_flags(BBOX_IS_DEFINED | flags)
-    { si->GetTypeId(typeName, m_algebraId, m_typeId); }
+    { static SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+      ctlg->GetTypeId(typeName, m_algebraId, m_typeId); }
 
 /*
 Returns the name of the assigned getbbox function.

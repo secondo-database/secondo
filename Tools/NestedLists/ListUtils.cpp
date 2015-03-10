@@ -847,6 +847,25 @@ Checks whether the list represents a stream.
     return first;
  }
 
+  ListExpr simpleMessage(const string& msg){
+     return getMessage("simple",msg);
+  }
+  ListExpr simpleMessage(const int value){
+     return getMessage("simple", value);
+  }
+  ListExpr getMessage( const string& messageType, const string& message){
+     ListExpr l =   message.length()>=MAX_STRINGSIZE
+                  ? nl->TextAtom(message)
+                  : nl->StringAtom(message);
+     return nl->TwoElemList( nl->SymbolAtom(messageType),l);
+  
+  }
+  ListExpr getMessage( const string& messageType, const int value){
+    return nl->TwoElemList( nl->SymbolAtom(messageType),
+                            nl->IntAtom(value));
+  }
+
+
 
 
 
