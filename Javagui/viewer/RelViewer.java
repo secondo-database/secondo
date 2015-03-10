@@ -28,15 +28,30 @@ import gui.*;
 import java.awt.event.*;
 import java.io.*;
 import javax.swing.JFileChooser;
+import tools.Reporter;
+import java.util.StringTokenizer;
+
+
+
+class TableTypePair{
+  TableTypePair(JTable t, ListExpr[] types){
+     this.table = t;
+     this.types = types;
+  }
+
+   JTable table;
+   ListExpr[] types;
+}
+
 
 public class RelViewer extends SecondoViewer{
 
  private JComboBox ComboBox;
  private JScrollPane ScrollPane;
  private JTable CurrentTable;
- private Vector Tables;
+ private Vector<TableTypePair> Tables;
  private JPanel dummy;  // to show nothing
- private JButton exportBtn;
+ private JButton exportBtn, importBtn;
  private JFileChooser filechooser;
 
  // the value of MAX_TEXT_LENGTH must be greater then five
@@ -50,9 +65,12 @@ public class RelViewer extends SecondoViewer{
    CurrentTable = null;
    Tables = new Vector();
    exportBtn = new JButton("export");
+   importBtn = new JButton("import");
 
    JPanel p = new JPanel();
    p.add(exportBtn);
+   p.add(importBtn);
+   
    
    filechooser = new JFileChooser(".");
 
@@ -60,6 +78,7 @@ public class RelViewer extends SecondoViewer{
    add(ComboBox,BorderLayout.NORTH);
    add(ScrollPane,BorderLayout.CENTER);
    add(p,BorderLayout.SOUTH);
+
 
    ComboBox.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -70,6 +89,17 @@ public class RelViewer extends SecondoViewer{
           exportAsCSV();
        }
    });
+   
+   
+   importBtn.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          if(!importFromCSV()){
+             Reporter.showInfo("Import CSV file failed");
+           }
+       }
+   });
+   
+   
 
  }
 
@@ -78,13 +108,418 @@ public class RelViewer extends SecondoViewer{
  private void showSelectedObject(){
     int index = ComboBox.getSelectedIndex();
     if(index>=0){
-      CurrentTable = (JTable)Tables.get(index);
+      CurrentTable = (JTable)Tables.get(index).table;
       ScrollPane.setViewportView(CurrentTable);
     }
     else
       ScrollPane.setViewportView(dummy);
 
  }
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ private boolean importFromCSV(){
+ 
+   // check whether table is selected
+   int index = ComboBox.getSelectedIndex();   
+   if(index < 0)
+   { Reporter.showInfo("no Table selected");
+   
+     return false;
+   }
+      
+   // check whether attribute types are supported
+   ListExpr[] types = Tables.get(index).types;
+   
+   
+   if(!checkCSVTypes(types))
+   { 
+     Reporter.showInfo("Unsupported Type in table");
+     return false;
+   }
+      
+   // open file
+   if(filechooser.showOpenDialog(this)!=JFileChooser.APPROVE_OPTION)
+   {   
+       return true;
+   }
+   
+   
+   File file = filechooser.getSelectedFile();
+   ListExpr result = importCSV(file,types);
+   
+  
+   
+   
+   
+   
+   if(result==null)
+   { 
+     Reporter.debug("error in reading csv file");
+     return false;
+   }
+   
+   
+  
+   
+   
+   ListExpr relHeader = getHeader(types, Tables.get(index).table);
+  
+   
+   
+   ListExpr objList = ListExpr.twoElemList(relHeader,result);
+   
+   String update = "update";
+   String assign = ":=";
+   
+   String eingabe = JOptionPane.showInputDialog(null,"Confirm update of the selected relation by typing in its name and pressing OK.\nOtherwise the update will not take place.",
+                                                             "Relation Update",
+                                                             JOptionPane.PLAIN_MESSAGE);
+   
+   
+   ListExpr updaterel = ListExpr.fourElemList(ListExpr.symbolAtom(update), ListExpr.symbolAtom(eingabe), ListExpr.symbolAtom(assign), objList);
+   
+   String text = updaterel.toString();
+   
+   
+   
+   SecondoObject obj = new SecondoObject(file.getName(), objList);
+   
+   
+   
+   
+   
+   VC.addObject(obj);
+   this.addObject(obj);
+   VC.execCommand(text);
+   return true;
+   
+ }
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ private ListExpr getHeader(ListExpr[] types, JTable table)
+ {
+    ListExpr res = null;
+    ListExpr last = null;
+    
+    String tuple = "tuple";
+    String relation = "rel";
+    
+    
+    for(int i=0;i<types.length;i++){
+      String name = table.getColumnName(i).toString();
+      ListExpr attr = ListExpr.twoElemList( ListExpr.symbolAtom(name), types[i]);
+      if(res==null){
+        res = ListExpr.oneElemList(attr);
+        last = res;
+      } else {
+        last = ListExpr.append(last,attr);
+      }
+    }
+    
+    ListExpr tup = ListExpr.twoElemList(ListExpr.symbolAtom(tuple), res);
+    ListExpr rel = ListExpr.twoElemList(ListExpr.symbolAtom(relation), tup);
+    
+    
+     
+    return rel;
+    
+    
+    
+    
+ }
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ private boolean checkCSVTypes(ListExpr[] types)
+ {
+   for(int i=0;i<types.length;i++)
+   {
+     if(!checkCSVType(types[i]))
+     {
+       return false;
+     }
+   }
+   return true;
+ }
+ 
+ 
+ 
+ private boolean checkCSVType(ListExpr list)
+ {
+    if(list.atomType()!=ListExpr.SYMBOL_ATOM)
+    {
+       return false;
+    }
+    String sv = list.symbolValue();
+    if(sv.equals("int")) return true;
+    if(sv.equals("string")) return true;
+    if(sv.equals("real")) return true;
+    if(sv.equals("bool")) return true;
+    // to be continued
+    return false;
+ }
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ private ListExpr importCSVTuple(String line, ListExpr[] types)
+ {
+    StringTokenizer st = new StringTokenizer(line,",");
+    if(st.countTokens()!=types.length)
+    {  
+       return null;
+    }
+    
+   
+    
+    
+    
+    ListExpr res = null;
+    ListExpr last = null;
+    ListExpr attr = null;
+    
+    
+    
+    
+    for(int i=0;i<types.length;i++)
+    {        
+       String token = st.nextToken();      
+        
+       attr = importAttr(types[i],token);
+       
+             
+       
+       
+       
+     if(attr==null)
+        {         
+          return null;
+        }
+       
+       
+       
+       
+      if(res==null)
+        {
+          res = ListExpr.oneElemList(attr);
+          last = res;
+          
+          
+          
+        }
+        
+       else {
+              last = ListExpr.append(last,attr);
+            }
+    }
+    
+    return res;
+ }
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ private ListExpr importAttr(ListExpr type, String value)
+ {
+    String t = type.symbolValue();
+    
+    if(value.trim().equals("undef")  || value.trim().equals("undefined"))
+    {
+      return ListExpr.symbolAtom("undef");
+    }
+    
+    
+    
+    
+    if(t.equals("int"))
+    { 
+      try
+      {
+      
+        int v = Integer.parseInt(value.trim());
+     
+        return ListExpr.intAtom(v);
+      }
+      
+        catch(NumberFormatException e)
+        {
+         return  null;
+        }
+    } 
+     
+   
+   
+   
+   
+   
+   if(t.equals("real"))
+    { 
+     
+     try
+      {
+     
+        double v = Double.parseDouble(value.trim());
+      
+        return ListExpr.realAtom(v);             
+      }    
+    
+      catch(NumberFormatException e)
+        {
+         return  null;
+        }
+        
+     }
+     
+     
+     
+     
+     
+    
+    if (t.equals("bool"))
+    
+     { 
+     
+     try
+      { 
+     
+        Boolean v = Boolean.parseBoolean(value.trim());
+      
+        return ListExpr.boolAtom(v);   
+        
+      }    
+    
+      catch(NumberFormatException e)
+        {
+         return  null;
+        }
+    
+    }
+    
+    
+    
+    
+    
+    if(t.equals("string"))
+    {
+      return  ListExpr.stringAtom(value.trim());
+    }
+    
+      
+    
+    // to be continued
+    return null; // unsupported type
+ }
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ private ListExpr importCSV(File file, ListExpr[] types)
+ {
+ 
+    try
+    {
+      ListExpr result = null;
+      ListExpr last = null;
+      BufferedReader in = new BufferedReader(new FileReader(file));
+      
+      String dummyheader = in.readLine().trim();
+      
+      while(in.ready())
+      { 
+      
+        
+        String line = in.readLine().trim();
+        if(line.length()>0)
+        {
+          ListExpr tuple = importCSVTuple(line,types);
+          if(tuple==null)
+           { 
+             
+             in.close();
+             return null;
+           } 
+          if(result==null)
+           {
+             result = ListExpr.oneElemList(tuple);
+             last = result;
+           } 
+            
+            else 
+            {
+             last = ListExpr.append(last,tuple);
+            }
+        }  
+       
+      }
+      
+      
+      in.close();
+      return result;
+    } catch(Exception e){
+       Reporter.debug(e);
+       return null;
+    }
+ 
+ }
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
  public  String getName(){
    return "RelationsViewer";
@@ -99,7 +534,7 @@ public class RelViewer extends SecondoViewer{
       tools.Reporter.showError("no table is selected");
       return;
     }
-    JTable theTable = (JTable) Tables.get(index);
+    JTable theTable = (JTable) Tables.get(index).table;
     if(filechooser.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
        File file = filechooser.getSelectedFile();
        if(file.exists()){
@@ -151,14 +586,14 @@ public class RelViewer extends SecondoViewer{
       return false;
    }
    else{
-      JTable NTable = createTableFrom(o.toListExpr());
-      if(NTable==null)
+      TableTypePair pair = createTableFrom(o.toListExpr());
+      if(pair==null)
           return false;
       else{
-         Tables.add(NTable);
+         Tables.add(pair);
          ComboBox.addItem(o.getName());
          selectObject(o);
-         ScrollPane.setViewportView(NTable);
+         ScrollPane.setViewportView(pair.table);
          return true;
        }
     }
@@ -169,9 +604,10 @@ public class RelViewer extends SecondoViewer{
  /** created a new JTable from LE, if LE not a valid
    * ListExpr for a relation null ist returned
    **/
- private JTable createTableFrom(ListExpr LE){
+ private TableTypePair createTableFrom(ListExpr LE){
  boolean result = true;
  JTable NTable = null;
+ ListExpr[] types;
   if (LE.listLength()!=2)
      return null;
   else{
@@ -192,6 +628,7 @@ public class RelViewer extends SecondoViewer{
     ListExpr TupleTypeValue = tupletype.second();
     // the table head
     String[] head=new String[TupleTypeValue.listLength()];
+    types= new ListExpr[head.length];
     for(int i=0;!TupleTypeValue.isEmpty()&&result;i++) {
         ListExpr TupleSubType = TupleTypeValue.first();
         if (TupleSubType.listLength()!=2)
@@ -199,7 +636,7 @@ public class RelViewer extends SecondoViewer{
         else{
            head[i] = TupleSubType.first().writeListExprToString();
           // remove comment below if Type is wanted
-          // head[i] += "  "+ TupleSubType.second().writeListExprToString();
+          types[i] = TupleSubType.second();
         }
         TupleTypeValue = TupleTypeValue.rest();
     }
@@ -247,10 +684,21 @@ public class RelViewer extends SecondoViewer{
   }
 
   if(result) 
-      return NTable;
+      return new TableTypePair(NTable, types);
    else 
       return null;
 }
+
+
+
+
+
+
+
+
+
+
+
 
  /** returns the index in ComboBox of S,
    * if S not exists in ComboBox -1 is returned 
@@ -299,6 +747,8 @@ public class RelViewer extends SecondoViewer{
      }
    }  
  }
+ 
+ 
 
  /** check if o displayed in the moment **/
  public boolean isDisplayed(SecondoObject o){
