@@ -484,7 +484,7 @@ True if the scan is at position ~end~ (no more elements present).
     Iterator( CTable<T>* ctPtr );
 
 #ifdef CTABLE_PERSISTENT
-    T returnelem; // speed up of operator*
+    mutable T returnelem; // speed up of operator*
 #endif
 
 
