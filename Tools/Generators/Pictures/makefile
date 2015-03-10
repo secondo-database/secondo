@@ -20,4 +20,4 @@ Convert.class: Convert.java
 
 .PHONY: clean
 clean:
-	rm -f *.class
+	rm -f *.class checkImage paintings
