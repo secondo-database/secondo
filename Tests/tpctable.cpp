@@ -32,12 +32,13 @@ Last change: Nov. 2004, M. Spiekermann
 #include "CTable.h"
 
 
-/*   
-Important Note: Currently the CTable is implemented as a temporary datastructure 
-which uses main memory and Berkeley-DB records as disk memory. Functions for
-storing (and restoring) a CTable completley on disk are not implemented yet.
+  /*   
+Important Note: Currently the CTable is implemented as a temporary 
+datastructure which uses main memory and Berkeley-DB records as disk
+ memory. Functions for storing (and restoring) a CTable completley 
+on disk are not implemented yet.
 
-*/
+  */
 
 SmiRecordFile* rf = 0;
 
@@ -89,7 +90,8 @@ PArrayTest() {
   PagedArray<int> pa(1024, true);
 
   int max = 1000000;
-  cout << "Storing numbers from 1 to " << max << ", read back, and sum them up ... " << endl;
+  cout << "Storing numbers from 1 to " << max 
+       << ", read back, and sum them up ... " << endl;
   for (int j = 0; j < max; j++) {
 
   int val = j+1;
@@ -175,7 +177,8 @@ PCTableTest() {
   CTable<int>::Iterator it, it2;
   it2 = ct.Begin();
   it = it2++;
-  cout << "*it  " << *it  << ", i= " << it.GetIndex()  << endl;
+  const int i1 = *it;
+  cout << "*it  " << i1  << ", i= " << it.GetIndex()  << endl;
   cout << "*it2 " << *it2 << ", i2=" << it2.GetIndex() << endl;
 
   cout << "Set first element to value 5 and remove the 5th element." << endl;
@@ -189,7 +192,8 @@ PCTableTest() {
   {
     cout << "it " << *it << ", i=" << it.GetIndex() << endl;
   }
-  cout << "Test for end of scan! Result of it.EndOfScan() && (++it).EndOfScan(): " 
+  cout << "Test for end of scan! Result of it.EndOfScan() "
+       << "&& (++it).EndOfScan(): " 
        << (it.EndOfScan() && (++it).EndOfScan())
        << endl;
 
@@ -242,7 +246,7 @@ main() {
       else
         cout << "CloseDatabase PARRAY failed." << endl;
       
-      if ( ok = SmiEnvironment::OpenDatabase( "PARRAY" ) )
+      if ( (ok = SmiEnvironment::OpenDatabase( "PARRAY" )) )
         cout << "OpenDatabase PARRAY ok." << endl;
       else
         cout << "OpenDatabase PARRAY failed." << endl;
@@ -250,7 +254,8 @@ main() {
     Pause();
     if ( ok )
     {
-      //cout << "Begin Transaction: " << SmiEnvironment::BeginTransaction() << endl;
+      //cout << "Begin Transaction: " 
+      // << SmiEnvironment::BeginTransaction() << endl;
     
       Pause();
       RecordBufferTest(); 

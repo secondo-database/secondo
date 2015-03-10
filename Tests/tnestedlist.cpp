@@ -177,8 +177,8 @@ TestNLCopy()
   }
 
      cout << " ReportTableSizes(true,true): " << endl
-	  << " listA: " << endl << nA.ReportTableSizes(true,true) << endl
-	  << " listB: " << endl << nB.ReportTableSizes(true,true) << endl;
+          << " listA: " << endl << nA.ReportTableSizes(true,true) << endl
+          << " listB: " << endl << nB.ReportTableSizes(true,true) << endl;
 
   return 0;
 }
@@ -208,10 +208,10 @@ StringAtom_bug() {
 
    ListExpr result = pnl->TwoElemList(
             pnl->TwoElemList(pnl->StringAtom("Creation"), 
-			     pnl->StringAtom("Example Creation")),    
+                             pnl->StringAtom("Example Creation")),    
             pnl->TwoElemList(examplelist, 
-			     pnl->StringAtom("(let mybtree = ten "
-			     "createbtree [no])")));
+                             pnl->StringAtom("(let mybtree = ten "
+                             "createbtree [no])")));
    cerr << endl << "### BTreeProp(): " << pnl->ToString(result) << endl;
 
   exit(0);
@@ -279,24 +279,22 @@ int
 TestBasicOperations()
 {
    ListExpr  ListExpr1 = 0,  ListExpr2 = 0,  ListExpr3 = 0, 
-	     ListExpr4 = 0,  ListExpr5 = 0,  ListExpr6 = 0,
-	     ListExpr8 = 0,  ListExpr9 = 0, ListExpr15 = 0,
-	     EmptyListVar = 0,
-	     IntAtomVar = 0,
-	     BoolAtomVar = 0,
-	     StringAtomVar = 0,
-	     SymbolAtomVar = 0,
-	     TextAtomVar = 0, 
+             ListExpr4 = 0,  ListExpr5 = 0,  ListExpr6 = 0,
+             ListExpr8 = 0,  ListExpr9 = 0, ListExpr15 = 0,
+             EmptyListVar = 0,
+             IntAtomVar = 0,
+             BoolAtomVar = 0,
+             StringAtomVar = 0,
+             SymbolAtomVar = 0,
+             TextAtomVar = 0, 
              TextAtomVar2 = 0;
 
-   long ErrorVar = 0;
    bool BoolValue = false, BoolValue2 = false;
 
    string NLStringValue = "", NLStringValue2 = "", 
           SymbolValue = "", SymbolValue2 = "";
    string String1 = "", String2 = "", String3 = "", Chars = "";
    TextScan TextScan1;
-   Cardinal Position = 0;
 
    
    NestedList nl(rf);
@@ -358,7 +356,7 @@ TestBasicOperations()
    ok = BeginCheck("IntAtom(), IntValue(), AtomType() ");
    for ( vector<IntPairs>::iterator it = IntValues.begin(); 
          it != IntValues.end();
-	 it++ )
+         it++ )
    {
       it->l = nl.IntAtom(it->v); // create Integer Atoms
    }
@@ -366,7 +364,7 @@ TestBasicOperations()
    ok = true;
    for ( vector<IntPairs>::iterator it = IntValues.begin(); 
          it != IntValues.end();
-	 it++ )
+         it++ )
    {
       
      if ( nl.AtomType(it->l) != IntType)
@@ -399,7 +397,7 @@ TestBasicOperations()
    ok = BeginCheck("RealAtom(), RealValue(), AtomType() ");
    for ( rvit = realValues.begin(); 
          rvit != realValues.end();
-	 rvit++ )
+         rvit++ )
    {
       rvit->first = nl.RealAtom(rvit->second); // create Real Atoms
    }
@@ -407,7 +405,7 @@ TestBasicOperations()
    ok = true;
    for ( rvit = realValues.begin(); 
          rvit != realValues.end();
-	 rvit++ )
+         rvit++ )
    {
       
      if ( nl.AtomType(rvit->first) != RealType)
@@ -500,7 +498,7 @@ ste
    cout << endl << " Short text (one fragment only)" << endl; 
    TextAtomVar = nl.TextAtom();
    string TextChars 
-	     = "1__4__7__10__4__7__20__4__7__30__4__7__40__4__7__50__4__7";
+             = "1__4__7__10__4__7__20__4__7__30__4__7__40__4__7__50__4__7";
    int TextSize=TextChars.length();
    nl.AppendText (TextAtomVar, TextChars);
 
@@ -511,7 +509,6 @@ ste
 
    TextScan1 = nl.CreateTextScan(TextAtomVar);
    Chars = "";
-   Position = 0;
    int sum = 0;
    for (int i=1; i<TextSize; i++) {
      nl.GetText (TextScan1, i, Chars);
@@ -522,13 +519,13 @@ ste
 
      bool endOfText = false;
      if (sum >= TextSize) 
-       endOfText = true;	     
+       endOfText = true;             
 
      bool rc = CheckResult("EndOfText", nl.EndOfText(TextScan1), endOfText);
      if (!rc) {
        cerr << "End of text check after retrieving " 
-	    << sum << " characters failed" << endl;
-     } 	     
+            << sum << " characters failed" << endl;
+     }              
 
      rc = CheckResult("Equal-Strings?", Chars == subText, true);
      if (!rc) {
@@ -536,7 +533,7 @@ ste
        cerr << "Expected: <" << subText << ">" << endl;
        cerr << "Computed: <" << Chars << ">" << endl;
        exit(1);
-     }	     
+     }             
    }
    nl.DestroyTextScan(TextScan1);
 
@@ -567,7 +564,6 @@ ste
 
    TextScan1 = nl.CreateTextScan (TextAtomVar2);
    Chars = "";
-   Position = 0;
    while ( !nl.EndOfText (TextScan1) )
    {   
      nl.GetText (TextScan1, 50, Chars);
@@ -594,8 +590,8 @@ ste
    TestCase("List Construction and Traversal");
 
    ListExpr1 = nl.SixElemList (EmptyListVar, IntAtomVar, 
-			       BoolAtomVar,  StringAtomVar,
-			       SymbolAtomVar, ListExpr15);
+                               BoolAtomVar,  StringAtomVar,
+                               SymbolAtomVar, ListExpr15);
 
    cout << "ListExpr1" << nl.ToString(ListExpr1) <<  endl;
 
@@ -628,32 +624,32 @@ The following steps are executed with a small list expression.
                    "ReadFromFile, WriteToString, Equal");
    nl.WriteListExpr (ListExpr3);
    
-   ErrorVar = nl.WriteToFile ("testout_SmallListFile", ListExpr3);
+   nl.WriteToFile ("testout_SmallListFile", ListExpr3);
    cout << "WriteToFile" << endl;
-   ErrorVar = nl.WriteToString ( String1, ListExpr3 );
+   nl.WriteToString ( String1, ListExpr3 );
    cout << "WriteToString" << endl;
    cout << endl;
    cout << "Small list - File test. Written to File: SmallList = "; 
    cout << String1 << endl << endl;
 
-   ErrorVar = nl.ReadFromFile ("testout_SmallListFile", ListExpr5);
-   ErrorVar = nl.WriteToString (String1, ListExpr5);
+   nl.ReadFromFile ("testout_SmallListFile", ListExpr5);
+   nl.WriteToString (String1, ListExpr5);
    cout << endl;
    cout << "Small list - File test. Found in File: SmallList = "; 
    cout << String1 << endl << endl;
 
-   ErrorVar = nl.WriteToString (String2, ListExpr3);
-   ErrorVar = nl.ReadFromString (String2, ListExpr6);
-   ErrorVar = nl.WriteToString (String3, ListExpr6);
+   nl.WriteToString (String2, ListExpr3);
+   nl.ReadFromString (String2, ListExpr6);
+   nl.WriteToString (String3, ListExpr6);
    cout << endl;
    cout << "Small list- String test. SmallList = ";
    cout << String3 << endl << endl;
    ok = CHECK( nl.Equal(ListExpr5, ListExpr6), true);
 
-   ErrorVar = nl.WriteToFile ("testout_RestExpr5", nl.Rest(ListExpr5));
+   nl.WriteToFile ("testout_RestExpr5", nl.Rest(ListExpr5));
    cout << endl;
 
-   ErrorVar = nl.WriteToFile ("testout_FirstExpr5", nl.First(ListExpr5));
+   nl.WriteToFile ("testout_FirstExpr5", nl.First(ListExpr5));
    cout << endl;
 
    cout << "After String <-> List Conversions, Memory-Usage: " 
@@ -690,13 +686,13 @@ The following steps are executed with a small list expression.
    string text1 = tagS + text + tagE;
    string text2 = tagS + text + text + tagE;
    
-   ErrorVar = nl.ReadFromString(text1, ListExpr1);
-   ErrorVar = nl.ReadFromString(text1, ListExpr2);
-   ErrorVar = nl.ReadFromString(text2, ListExpr3);
+   nl.ReadFromString(text1, ListExpr1);
+   nl.ReadFromString(text1, ListExpr2);
+   nl.ReadFromString(text2, ListExpr3);
    
-   ErrorVar = nl.WriteToString(String1, ListExpr1);
-   ErrorVar = nl.WriteToString(String2, ListExpr2);
-   ErrorVar = nl.WriteToString(String3, ListExpr3);
+   nl.WriteToString(String1, ListExpr1);
+   nl.WriteToString(String2, ListExpr2);
+   nl.WriteToString(String3, ListExpr3);
    
    CHECK( String1 == text1, true);
    CHECK( String3 == text2, true);
