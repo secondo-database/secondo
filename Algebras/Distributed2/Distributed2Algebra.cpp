@@ -163,16 +163,17 @@ class ConnectionListener{
 
   virtual void jobDone(int id, string& command, size_t no, int error, 
                        string& errMsg, const string& resList)=0;
-  virtual void taskDone() =0;
-
 };
 
 
 /*
 2. Class ConnectionTask
 
-This class manages several commands which should be handlet sequentially
-at an existing connection. 
+This class manages the task for a single connection.
+In an endless loop it will wait for a new command. If a 
+new command is available, the command is executed and
+the listener is informed about that. Then, then it waits for
+the next command.
 
 */
 class ConnectionTask{
@@ -180,89 +181,83 @@ class ConnectionTask{
 
      ConnectionTask( ConnectionInfo* _connection, 
                      ConnectionListener* _listener):
-      connection(_connection), listener(_listener), 
-      running(false),no(0),pc1(0), workerThread(0){} 
-
+      connection(_connection), listener(_listener), no(0),
+      done(false), pc1(this), commandList(), listmtx(), 
+      condmtx(), cond(),  worker(pc1){
+         
+      } 
      
     ~ConnectionTask(){
-        if(workerThread){
-           workerThread->interrupt();
-           delete workerThread;
-        } 
-        if(pc1){
-            delete pc1; 
-        }
-
-     }
+          listener = 0;
+          done = true;
+          cond.notify_one();
+          worker.join(); // wait until worker is done
+      }
 
      void addCommand(const int id, const string& cmd){
-       mtx.lock();
+       boost::lock_guard<boost::mutex> lock(condmtx);
+       listmtx.lock(); 
        commandList.push_back(make_pair(id, cmd));
-       run();
-       mtx.unlock();
+       listmtx.unlock();
+       cond.notify_one();        
      }
 
      void removeListener(){
         listener = 0;
      }
 
-     
-
-
   private:
-
-
 class pc{
   public:
-     pc( ConnectionTask* _ct) : ct(_ct) {
+     pc( ConnectionTask* _ct) : ct(_ct){
 
      }
      void operator()(){
-        while(!ct->commandList.empty()){
-          ct->running = true;
-          pair<int, string> cmd1 = ct->commandList.front();
-          string cmd = cmd1.second;
-          int id = cmd1.first;
-          ct->commandList.pop_front();
-          int error;
-          string errMsg; 
-          string resList;
-          ct->connection->simpleCommand(cmd, error,errMsg, resList);
-          if(ct->listener){
-             ct->listener->jobDone(id, cmd, ct->no, error, errMsg, resList);
-          }
-          ct->no++;
-          ct->running = false;
-        }
-        if(ct->listener){
-          ct->listener->taskDone();   
-        }
+      while(!ct->done){
+         boost::unique_lock<boost::mutex> lock(ct->condmtx);
+         // wait for available data
+         ct->listmtx.lock();
+         while(!ct->done && ct->commandList.empty()){
+            ct->listmtx.unlock();
+            ct->cond.wait(lock);
+            ct->listmtx.lock();
+         }
+         if(ct->done){
+           ct->listmtx.unlock();
+           return; 
+         }
+         pair<int, string> cmd1 = ct->commandList.front();
+         ct->commandList.pop_front();
+         ct->listmtx.unlock();
+         ct->no++;
+         string cmd = cmd1.second;
+         int id = cmd1.first;
+
+         int error;
+         string errMsg; 
+         string resList;
+         ct->connection->simpleCommand(cmd, error,errMsg, resList);
+         if(ct->listener){
+            ct->listener->jobDone(id, cmd, ct->no, error, errMsg, resList);
+         }
+         ct->no++;
+      }
      }
 
      ConnectionTask* ct;
-
 };
 
      ConnectionInfo* connection;
      ConnectionListener* listener;
-     bool running;
      size_t no;
-     pc* pc1;
-     boost::thread* workerThread;
+     bool done;
+     pc pc1;
      list<pair<int,string> > commandList;
-     boost::mutex mtx;      
-
-
-     void run(){
-        if(running){
-           return;
-        }
-        running = true;
-        if(workerThread) delete workerThread;
-        if(pc1) delete pc1;
-        pc1 = new pc(this);
-        workerThread = new boost::thread(*pc1);
-     } 
+     boost::mutex listmtx; //synchronize list access    
+     boost::mutex condmtx; 
+     boost::condition_variable cond;
+     boost::thread worker;
+     
 };
 
 
@@ -1143,14 +1138,13 @@ class prcmdInfo{
 
     ~prcmdInfo(){
         tt->DeleteIfAllowed();
-        delete inproc;
         for(size_t i=0;i<tasks.size() ;i++){
             if(tasks[i]){
                 tasks[i]->removeListener();
                 delete tasks[i];
             }
         }
-       
+        delete inproc;
      }
 
     Tuple* next(){
@@ -1311,7 +1305,6 @@ class prcmdInfo{
             } 
             outmut.unlock();
          }
-         void taskDone(){}
    };
 
    TupleType* tt;
