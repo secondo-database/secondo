@@ -144,7 +144,7 @@ class ConnectionInfo{
        }
 
 
-        bool transferFile( const string& local, const string remote){
+        bool transferFile( const string& local, const string& remote){
           return si->sendFile(local,remote);
         }
 
@@ -1415,6 +1415,111 @@ Operator prcmdOp (
 
 
 
+/*
+1.6 Operator 'transferFile'
+
+Copies a local file to a remove server.  This version works  
+serial.
+
+1.6.1 Type Mapping
+
+The arguments are the server number, the name of the local file as well as 
+the name of the remote file.
+
+*/
+ListExpr transferFileTM(ListExpr args){
+  string err = "int x {string, text} x {string, text} expected";
+
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  if(!CcInt::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(    !CcString::checkType(nl->Second(args)) 
+      && !FText::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  } 
+  if(    !CcString::checkType(nl->Third(args)) 
+      && !FText::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+  } 
+  return listutils::basicSymbol<CcBool>();
+}
+
+template<class L , class R>
+int transferFileVMT( Word* args, Word& result, int message,
+               Word& local, Supplier s ){
+
+
+   CcInt* Server = (CcInt*) args[0].addr;
+   L* Local = (L*) args[1].addr;
+   R* Remote = (R*) args[2].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   if(!Server->IsDefined() || ! Local->IsDefined() || !Remote->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   int server = Server->GetValue();
+   if(server < 0 || server >= algInstance->noConnections()){
+      res->Set(true,false);
+      return 0;
+   }
+   res->Set(true, algInstance->transferFile(server, 
+                                 Local->GetValue(), 
+                                 Remote->GetValue()));
+   return 0;
+}
+
+/*
+1.6.2 Specification
+
+*/
+
+OperatorSpec transferFileSpec(
+     " int x {string, text} x {string, text} -> bool",
+     " transferFile( serverNo, localFile, remoteFile) ",
+     " Transfers a local file to the remote server. ",
+     " query transferFile( 0, 'local.txt', 'remote.txt' ");
+
+/*
+1.6.3 Value Mapping Array and Selection
+
+*/
+
+ValueMapping transferFileVM[] = {
+  transferFileVMT<CcString, CcString>,
+  transferFileVMT<CcString, FText>,
+  transferFileVMT<FText, CcString>,
+  transferFileVMT<FText, FText>
+};
+
+int transferFileSelect(ListExpr args){
+
+  int n1 = CcString::checkType(nl->Second(args))?0:2;
+  int n2 = CcString::checkType(nl->Third(args))?0:1;
+  return n1+n2; 
+}
+
+/*
+1.6.4 Operator instance
+
+*/
+
+Operator transferFileOp (
+    "transferFile",             //name
+     transferFileSpec.getStr(),         //specification
+     4,
+     transferFileVM,        //value mapping
+     transferFileSelect,   //trivial selection function
+     transferFileTM        //type mapping
+);
+
+
+
+
+
 
 
 /*
@@ -1429,6 +1534,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&rqueryOp);
    rqueryOp.SetUsesArgsInTypeMapping();
    AddOperator(&prcmdOp);
+   AddOperator(&transferFileOp);
 }
 
 
