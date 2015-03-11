@@ -1,0 +1,41 @@
+Database : berlintest
+Restore  : No 
+
+Operator : connect
+Number   : 1  
+Signature: text  x int x text -> bool
+Example  : query connect('localhost', 1234, 'SecondoConfig.ini')
+Result   : FALSE
+
+
+Operator : checkConnections 
+Number   : 1  
+Signature: -> strean(tuple)
+Example  : query checkConnections() count
+Result   : 0
+
+Operator : rcmd 
+Number   : 1  
+Signature: int x {string,text} -> stream(tuple)
+Example  : query rcmd(0,'list databases') count
+Result   : 0
+
+Operator : disconnect
+Number   : 1  
+Signature: int -> int , -> int
+Example  : query disconnect(0)
+Result   : 0
+
+Operator  : rquery
+Number    : 1
+Signature : int x {string,text} -> ANY
+Example   : query rquery(0,'query ten count')
+Result    : bug
+Remark    : requires a remote server
+
+Operator  : prcmd
+Number    : 1
+Signature : stream(tuple) x attrName x attrName -> stream(tuple + E)
+Example   : query intstream(0,5) namedTransformstream[Server] extend[ W : 'open database berlintest'] prcmd[Server,Q] consume
+Result    : bug
+Remark    : requires a remote server
