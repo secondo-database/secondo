@@ -1137,7 +1137,6 @@ class prcmdInfo{
     }
 
     ~prcmdInfo(){
-        tt->DeleteIfAllowed();
         for(size_t i=0;i<tasks.size() ;i++){
             if(tasks[i]){
                 tasks[i]->removeListener();
@@ -1145,6 +1144,13 @@ class prcmdInfo{
             }
         }
         delete inproc;
+        tt->DeleteIfAllowed();
+        listaccessmut.lock();
+        while(!outTuples.empty()){
+           delete outTuples.front();
+           outTuples.pop_front();
+        }
+        listaccessmut.unlock();
      }
 
     Tuple* next(){
@@ -1192,6 +1198,10 @@ class prcmdInfo{
             stopped = true;
             stream.close();
             mut.unlock();
+            map<int,Tuple*>::iterator it;
+            for(it = inTuples.begin(); it != inTuples.end(); it++){
+                 delete it->second;
+            }
           }
 
           void operator()() {
@@ -1324,6 +1334,12 @@ class prcmdInfo{
 1.5.3 Value Mapping
 
 */
+//template<class T>
+//void del(T* info){
+//   delete info;
+//}
+
+
 template<class T>
 int prcmdVMT( Word* args, Word& result, int message,
                Word& local, Supplier s ){
@@ -1345,6 +1361,7 @@ int prcmdVMT( Word* args, Word& result, int message,
            return result.addr?YIELD:CANCEL;
     case CLOSE:
          if(li){
+        //   boost::thread k(del<prcmdInfo<T> >,li); 
            delete li;
            local.addr =0;
          }
