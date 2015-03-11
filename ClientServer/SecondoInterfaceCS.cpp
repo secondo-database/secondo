@@ -712,6 +712,7 @@ SecondoInterfaceCS::SetDebugLevel( const int level )
 
 bool SecondoInterfaceCS::sendFile( const string& localfilename,
                                    const string& serverFileName){
+
    iostream& iosock = server->GetSocketStream();
    iosock << csp->startFileTransfer << endl;
    iosock << serverFileName << endl;
@@ -724,7 +725,6 @@ bool SecondoInterfaceCS::sendFile( const string& localfilename,
    errorCode = csp->ReadResponse( resultList,
                                   errorCode, errorPos,
                                   errorMessage         );
-
    return errorCode==0;
 }
 

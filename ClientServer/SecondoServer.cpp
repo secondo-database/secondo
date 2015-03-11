@@ -761,7 +761,7 @@ SecondoServer::Execute()
   commandTable["<ObjectSave>"]  = &SecondoServer::CallObjectSave;
   commandTable["<ObjectRestore>"]   = &SecondoServer::CallObjectRestore;
   commandTable["<DbRestore>"]   = &SecondoServer::CallDbRestore;
-  commandTable["<FileTransder>"]   = &SecondoServer::CallFileTransfer;
+  commandTable["<FileTransfer>"]   = &SecondoServer::CallFileTransfer;
   commandTable["<Connect>"]     = &SecondoServer::Connect;
   commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
   commandTable["<REQUESTOPERATORINDEXES>"] = 
