@@ -598,10 +598,10 @@ struct CSProtocol {
   try {
 
     {
-      const int bufSize =512;
+      const unsigned int bufSize =512;
       static char buf[bufSize];       
       restoreFile.seekg (0, restoreFile.end);
-      int length = restoreFile.tellg();
+      uint64_t length = restoreFile.tellg();
       restoreFile.seekg (0, restoreFile.beg);
 
       // send file size
@@ -609,11 +609,11 @@ struct CSProtocol {
       cout << "SendFile: file size: " << length <<  " bytes." << endl;
       
       // send file data
-      int read2 = 0;
+      uint64_t read2 = 0;
       while (!restoreFile.eof() && !iosock.fail())
       {
         restoreFile.read(buf, bufSize);
-        int read = restoreFile.gcount();
+        unsigned int read = restoreFile.gcount();
         read2 += read;
         iosock.write(buf, read);
       }
@@ -648,24 +648,24 @@ bool ReceiveFile( const string& serverFileName )
     return false;
   
   // read file size
-  int size = 0;
+  uint64_t size = 0;
   iosock >> size;    
   skipRestOfLine();
   cout << "Size: " << size << endl;
   
   ofstream serverFile( serverFileName.c_str() );
   
-  static int bufSize=512;
+  static unsigned int bufSize=512;
   char buf[bufSize];
-  int calls=0;
-  int size2=size;
+  size_t calls=0;
+  uint64_t size2=size;
   while (!iosock.fail() && size)
   {
     if (size < bufSize)
       bufSize = size;       
     iosock.read(buf, bufSize);
     calls++;
-    int read=iosock.gcount();
+    size_t read=iosock.gcount();
     serverFile.write(buf, read);
     size -= read; 
   }
