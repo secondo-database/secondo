@@ -265,6 +265,11 @@ ALGEBRAS      += NestedRelationAlgebra
 ## uncomment the next line if you use mac os
 ##ALGEBRA_LINK_FLAGS += -framework CoreServices
 
+#ALGEBRA_DIRS += Distributed2
+#ALGEBRAS += Distributed2Algebra
+#ALGEBRA_DEPS += boost_system boost_thread
+
+
 
 #ALGEBRA_DIRS  += Constraint
 #ALGEBRAS      += ConstraintAlgebra
