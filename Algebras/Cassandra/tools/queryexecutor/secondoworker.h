@@ -29,10 +29,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "state.h"
-
 #ifndef __QEXECUTOR_WORKER__
 #define __QEXECUTOR_WORKER__
+
+#include "state.h"
+#include "SecondoInterface.h"
+#include "SecondoInterfaceCS.h"
 
 class SecondoWorker {
 
@@ -41,7 +43,7 @@ public:
    string mySecondoPort, string myCassandraHost, 
    WorkerQueue *myTokenQueue, size_t myWorkerId, 
    QueryexecutorState *myQueryExecutorState) 
-   : cassandra(myCassandra), secondoHost(mySecondoHost), 
+   : cassandra(myCassandra), mynl(NULL), secondoHost(mySecondoHost), 
    secondoPort(mySecondoPort), cassandraHost(myCassandraHost), 
    queryComplete(false), shutdown(false), query(NULL), 
    tokenQueue(myTokenQueue), workerId(myWorkerId), 
@@ -73,6 +75,11 @@ public:
          query = NULL;
       }
       
+      if(mynl != NULL) {
+         delete mynl;
+         mynl = NULL;
+      }
+      
       pthread_mutex_destroy(&processMutex);
       pthread_cond_destroy(&processCondition);
       exit(-1);
@@ -87,7 +94,8 @@ public:
 
       // create an interface to the secondo server
       // the paramneter must be true to communicate as client
-      SecondoInterface* si = new SecondoInterface(true);
+      mynl = new NestedList();
+      SecondoInterface* si = new SecondoInterfaceCS(true, mynl);
 
       // define the name of the configuration file
       string config = "Config.ini";
@@ -203,7 +211,7 @@ public:
          return;
       }
       
-      nl = si->GetNestedList();
+      NestedList* nl = si->GetNestedList();
       NList::setNLRef(nl);
       
       while (! shutdown) {
@@ -260,7 +268,7 @@ private:
   
      //  LOG_DEBUG("Worker [ " << secondoPort << " ] executing: " << command);
 
-          ListExpr res = nl->TheEmptyList(); // will contain the result
+          ListExpr res = mynl->TheEmptyList(); // will contain the result
           SecErrInfo err;                 // will contain error information
         
            si->Secondo(command, res, err); 
@@ -272,10 +280,10 @@ private:
              return false;
            } else {
               LOG_DEBUG("Worker [ " << secondoPort << " ]: computed result " 
-                  << nl->ToString(res));
+                  << mynl->ToString(res));
               
               // Error result
-              if("(int -1)" == nl->ToString(res)) {
+              if("(int -1)" == mynl->ToString(res)) {
                  return false;
               }
               
@@ -332,7 +340,7 @@ private:
    
    CassandraAdapter* cassandra;
    SecondoInterface* si;
-   NestedList* nl;
+   NestedList* mynl;
    string secondoHost;
    string secondoPort;
    string cassandraHost;
