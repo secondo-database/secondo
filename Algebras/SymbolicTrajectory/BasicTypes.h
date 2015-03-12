@@ -90,6 +90,7 @@ class Label : public Attribute {
   void Clean() {value.clean();}
   void Destroy() {value.destroy();}
   void GetValue(string &text) const;
+  void GetValues(set<string>& values) const;
   static void buildValue(const string& text, const unitelem& unit,base& result);
   static ListExpr getList(const string& text) {return nl->TextAtom(text);}
   void Set(const bool def, const string &text) {SetDefined(def);SetValue(text);}
@@ -162,6 +163,9 @@ class Labels : public Attribute {
   const bool IsEmpty() const {return GetNoValues() == 0;}
   void Clean() {values.clean(); pos.clean();}
   bool Contains(const string& text) const;
+  void Union(const set<string>& values1, const set<string>& values2);
+  void Intersection(const set<string>& values1, const set<string>& values2);
+  void Minus(const set<string>& values1, const set<string>& values2);
   friend ostream& operator<<(ostream& os, const Labels& lbs);
   double Distance(const Labels& lbs, const int fun, const int labelFun) const;
   
@@ -212,6 +216,7 @@ class Place : public Label {
   void SetValue(const pair<string, unsigned int>& value);
   void SetRef(const unsigned int value) {ref = value;}
   void GetValue(pair<string, unsigned int>& value) const;
+  void GetValues(set<pair<string, unsigned int> >& values) const;
   static void buildValue(const string& text, const unitelem& unit,base& result);
   static ListExpr getList(const base& value);
   unsigned int GetRef() const {return ref;}
@@ -271,6 +276,9 @@ class Places : public Attribute {
   void GetValues(set<base>& values) const;
   bool IsEmpty() const {return (GetNoValues() == 0);}
   bool Contains(const base& val) const;
+  void Union(const set<base>& values1, const set<base>& values2);
+  void Intersection(const set<base>& values1, const set<base>& values2);
+  void Minus(const set<base>& values1, const set<base>& values2);
   void Clean() {values.clean(); posref.clean();}
   static void getRefToLastElem(const int size, arrayelem& result);
   static unsigned int getFlobPos(const arrayelem elem);

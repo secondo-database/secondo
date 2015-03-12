@@ -60,6 +60,18 @@ void Label::GetValue(string& text) const {
 }
 
 /*
+\subsection{Function ~GetValues~}
+
+*/
+void Label::GetValues(set<string>& values) const {
+  assert(IsDefined());
+  string value;
+  GetValue(value);
+  values.clear();
+  values.insert(value);
+}
+
+/*
 \subsection{Function ~buildValue~}
 
 */
@@ -470,6 +482,44 @@ bool Labels::Contains(const string& text) const {
 }
 
 /*
+\subsection{Function ~Union~}
+
+*/
+void Labels::Union(const set<string>& values1, const set<string>& values2) {
+  SetDefined(true);
+  Clean();
+  Append(values1);
+  Append(values2);
+}
+
+/*
+\subsection{Function ~Intersection~}
+
+*/
+void Labels::Intersection(const set<string>& values1, 
+                          const set<string>& values2) {
+  SetDefined(true);
+  Clean();
+  set<string> intersection;
+  set_intersection(values1.begin(), values1.end(), values2.begin(), 
+              values2.end(), std::inserter(intersection, intersection.begin()));
+  Append(intersection);
+}
+
+/*
+\subsection{Function ~Minus~}
+
+*/
+void Labels::Minus(const set<string>& values1, const set<string>& values2) {
+  SetDefined(true);
+  Clean();
+  set<string> difference;
+  set_difference(values1.begin(), values1.end(), values2.begin(), 
+                 values2.end(), std::inserter(difference, difference.begin()));
+  Append(difference);
+}
+
+/*
 \subsection{Operator ~<<~}
 
 */
@@ -647,6 +697,18 @@ void Place::SetValue(const pair<string, unsigned int>& value) {
 void Place::GetValue(pair<string, unsigned int>& value) const {
   Label::GetValue(value.first);
   value.second = GetRef();
+}
+
+/*
+\subsection{Function ~GetValues~}
+
+*/
+void Place::GetValues(set<pair<string, unsigned int> >& values) const {
+  assert(IsDefined());
+  pair<string, unsigned int> value;
+  GetValue(value);
+  values.clear();
+  values.insert(value);
 }
 
 /*
@@ -931,6 +993,44 @@ bool Places::Contains(const base& val) const {
   }
   return false;
 }
+
+/*
+\subsection{Function ~Union~}
+
+*/
+void Places::Union(const set<base>& values1, const set<base>& values2) {
+  SetDefined(true);
+  Clean();
+  Append(values1);
+  Append(values2);
+}
+
+/*
+\subsection{Function ~Intersection~}
+
+*/
+void Places::Intersection(const set<base>& values1, const set<base>& values2) {
+  SetDefined(true);
+  Clean();
+  set<base> intersection;
+  set_intersection(values1.begin(), values1.end(), values2.begin(), 
+              values2.end(), std::inserter(intersection, intersection.begin()));
+  Append(intersection);
+}
+
+/*
+\subsection{Function ~Minus~}
+
+*/
+void Places::Minus(const set<base>& values1, const set<base>& values2) {
+  SetDefined(true);
+  Clean();
+  set<base> difference;
+  set_difference(values1.begin(), values1.end(), values2.begin(), 
+                 values2.end(), std::inserter(difference, difference.begin()));
+  Append(difference);
+}
+
 
 /*
 \subsection{Function ~getRefToLastElem~}

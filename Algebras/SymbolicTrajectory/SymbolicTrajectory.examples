@@ -85,6 +85,24 @@ Signature: T x T -> bool,   where T in {label(s), place(s)}
 Example  : query [const labels value ('Reus' 'Hummels')] # [const labels value ('Hummels' 'Reus')]
 Result   : FALSE
 
+Operator : union
+Number   : 1
+Signature: T x T -> (labels|places),   where T in {label(s), place(s)}
+Example  : query [const labels value ('Reus' 'Hummels')] union [const labels value ('Hummels' 'Kirch')]
+Result   : (labels ('Hummels' 'Reus' 'Kirch'))
+
+Operator : intersection
+Number   : 1
+Signature: T x T -> T,   where T in {labels, places}
+Example  : query intersection([const labels value ('Reus' 'Hummels')], [const labels value ('Hummels' 'Kirch')])
+Result   : (labels ('Hummels'))
+
+Operator : minus
+Number   : 1
+Signature: T x U -> T,   where T in {labels, places}, U in {label(s), place(s)}
+Example  : query [const labels value ('Reus' 'Hummels')] minus [const labels value ('Hummels' 'Kirch')]
+Result   : (labels ('Reus'))
+
 Operator : distance
 Number   : 1
 Signature: T x T -> bool,   where T in {label(s), place(s)}
@@ -409,6 +427,12 @@ Number   : 1
 Signature: stream(tuple(X)) x IDENT x stream(text) -> stream(mT), T in {mlabel(s), mplace(s)}
 Example  : query Dotraj feed multirewrite[Trajectory, rewrite1 feed projecttransformstream[Pattern]] count
 Result   : 3
+
+Operator : concat
+Number   : 1
+Signature: mlabel -> mlabel
+Example  : query [const mlabel value ((("2000-01-03" "2000-01-04" TRUE FALSE)'Mkhitaryan'))] [const mlabel value ((("2000-01-07" "2000-01-10" TRUE FALSE)'Ginter'))] concat
+Result   : (mlabel ((("2000-01-03" "2000-01-04" TRUE FALSE) 'Mkhitaryan') (("2000-01-07" "2000-01-10" TRUE FALSE) 'Ginter')))
 
 Operator : compress
 Number   : 1

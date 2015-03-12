@@ -262,6 +262,7 @@ class MBasic : public Attribute {
   void Final(IBasic<B>& result) const;
   void Inside(const typename B::coll& coll, MBool& result) const;
   void Fill(MBasic<B>& result, DateTime& duration) const;
+  void Concat(const MBasic<B>& src1, const MBasic<B>& src2);
   void Compress(MBasic<B>& result) const;
   ostream& Print(ostream& os) const;
   double Distance(const MBasic<B>& mb) const;
@@ -338,6 +339,7 @@ class MBasics : public Attribute {
   void Initial(IBasics<B>& result) const;
   void Final(IBasics<B>& result) const;
   void Fill(MBasics<B>& result, DateTime& duration) const;
+  void Concat(const MBasics<B>& src1, const MBasics<B>& src2);
   void Compress(MBasics<B>& result) const;
   ostream& Print(ostream& os) const;
   double Distance(const MBasics<B>& mbs) const;
@@ -2184,6 +2186,36 @@ void MBasic<B>::Fill(MBasic<B>& result, DateTime& dur) const {
 }
 
 /*
+\subsection{Function ~concat~}
+
+*/
+template<class B>
+void MBasic<B>::Concat(const MBasic<B>& src1, const MBasic<B>& src2) {
+  Clear();
+  if (src1.IsEmpty()) {
+    CopyFrom(&src2);
+    return;
+  }
+  if (src2.IsEmpty()) {
+    CopyFrom(&src1);
+    return;
+  }
+  SecInterval iv1, iv2;
+  src1.GetInterval(src1.GetNoComponents() - 1, iv1);
+  src2.GetInterval(0, iv2);
+  SetDefined(src1.IsDefined() && src2.IsDefined() && iv1.Before(iv2));
+  if (!IsDefined()) {
+    return;
+  }
+  CopyFrom(&src1);
+  UBasic<B> unit(true);
+  for (int i = 0; i < src2.GetNoComponents(); i++) {
+    src2.Get(i, unit);
+    Add(unit);
+  }
+}
+
+/*
 \subsection{Function ~Compress~}
 
 */
@@ -3076,6 +3108,36 @@ void MBasics<B>::Fill(MBasics<B>& result, DateTime& dur) const {
     }
   }
   result.MergeAdd(lastUnit);
+}
+
+/*
+\subsection{Function ~concat~}
+
+*/
+template<class B>
+void MBasics<B>::Concat(const MBasics<B>& src1, const MBasics<B>& src2) {
+  Clear();
+  if (src1.IsEmpty()) {
+    CopyFrom(&src2);
+    return;
+  }
+  if (src2.IsEmpty()) {
+    CopyFrom(&src1);
+    return;
+  }
+  SecInterval iv1, iv2;
+  src1.GetInterval(src1.GetNoComponents() - 1, iv1);
+  src2.GetInterval(0, iv2);
+  SetDefined(src1.IsDefined() && src2.IsDefined() && iv1.Before(iv2));
+  if (!IsDefined()) {
+    return;
+  }
+  CopyFrom(&src1);
+  UBasics<B> unit(true);
+  for (int i = 0; i < src2.GetNoComponents(); i++) {
+    src2.Get(i, unit);
+    Add(unit);
+  }
 }
 
 /*

@@ -789,6 +789,235 @@ struct unequalsInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~union~}
+
+union: T x T -> (labels|places),   where T in {place(s), label(s)}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr unionTM(ListExpr args) {
+  if (nl->ListLength(args) != 2) {
+    return NList::typeError("Expecting two arguments.");
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if ((Label::checkType(arg1) && Label::checkType(arg2)) || 
+      (Labels::checkType(arg1) && Label::checkType(arg2)) ||
+      (Label::checkType(arg1) && Labels::checkType(arg2)) ||
+      (Labels::checkType(arg1) && Labels::checkType(arg2))) {
+    return nl->SymbolAtom(Labels::BasicType());
+  }
+  if ((Place::checkType(arg1) && Place::checkType(arg2)) || 
+      (Places::checkType(arg1) && Place::checkType(arg2)) ||
+      (Place::checkType(arg1) && Places::checkType(arg2)) ||
+      (Places::checkType(arg1) && Places::checkType(arg2))) {
+    return nl->SymbolAtom(Places::BasicType());
+  }
+  return NList::typeError("Expecting T x T, where T in {place(s), label(s)}");
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int unionSelect(ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (Label::checkType(arg1) && Label::checkType(arg2))   return 0;
+  if (Labels::checkType(arg1) && Label::checkType(arg2))  return 1;
+  if (Label::checkType(arg1) && Labels::checkType(arg2))  return 2;
+  if (Labels::checkType(arg1) && Labels::checkType(arg2)) return 3;
+  if (Place::checkType(arg1) && Place::checkType(arg2))   return 4;
+  if (Places::checkType(arg1) && Place::checkType(arg2))  return 5;
+  if (Place::checkType(arg1) && Places::checkType(arg2))  return 6;
+  if (Places::checkType(arg1) && Places::checkType(arg2)) return 7;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T, class U, class V>
+int unionVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  T *first = static_cast<T*>(args[0].addr);
+  U *second = static_cast<U*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  V *res = static_cast<V*>(result.addr);
+  if (first->IsDefined() && second->IsDefined()) {
+    set<typename V::base> values1, values2;
+    first->GetValues(values1);
+    second->GetValues(values2);
+    res->Union(values1, values2);
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct unionInfo : OperatorInfo {
+  unionInfo() {
+    name      = "union";
+    signature = "T x T -> (labels|places),   where T in {label(s), place(s)}";
+    syntax    = "_ union _;";
+    meaning   = "Computes the union of both arguments.";
+  }
+};
+
+/*
+\section{Operator ~intersection~}
+
+intersection: T x T -> T,   where T in {places, labels}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr intersectionTM(ListExpr args) {
+  if (nl->ListLength(args) != 2) {
+    return NList::typeError("Expecting two arguments.");
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (Labels::checkType(arg1) && Labels::checkType(arg2)) {
+    return nl->SymbolAtom(Labels::BasicType());
+  }
+  if (Places::checkType(arg1) && Places::checkType(arg2)) {
+    return nl->SymbolAtom(Places::BasicType());
+  }
+  return NList::typeError("Expecting T x T, where T in {places, labels}");
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int intersectionSelect(ListExpr args) {
+  if (Labels::checkType(nl->First(args))) return 0;
+  if (Places::checkType(nl->First(args))) return 1;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int intersectionVM(Word* args, Word& result, int message, Word& local, 
+                   Supplier s) {
+  T *first = static_cast<T*>(args[0].addr);
+  T *second = static_cast<T*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  T *res = static_cast<T*>(result.addr);
+  if (first->IsDefined() && second->IsDefined()) {
+    set<typename T::base> values1, values2;
+    first->GetValues(values1);
+    second->GetValues(values2);
+    res->Intersection(values1, values2);
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct intersectionInfo : OperatorInfo {
+  intersectionInfo() {
+    name      = "intersection";
+    signature = "T x T -> T,   where T in {labels, places}";
+    syntax    = "intersection(_ , _);";
+    meaning   = "Computes the intersection of both arguments.";
+  }
+};
+
+/*
+\section{Operator ~minus~}
+
+minus: T x U -> T,   where T in {places, labels}, U in {place(s), label(s)}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr minusTM(ListExpr args) {
+  if (nl->ListLength(args) != 2) {
+    return NList::typeError("Expecting two arguments.");
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (Labels::checkType(arg1) &&
+     (Label::checkType(arg2) || Labels::checkType(arg2))) {
+    return nl->SymbolAtom(Labels::BasicType());
+  }
+  if (Places::checkType(arg1) && 
+     (Place::checkType(arg2) || Places::checkType(arg2))) {
+    return nl->SymbolAtom(Places::BasicType());
+  }
+  return NList::typeError("Expecting T x U, where T in {places, labels} and "
+                          "U in {place(s), label(s)}");
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int minusSelect(ListExpr args) {
+  if (Labels::checkType(nl->First(args))) {
+    if (Label::checkType(nl->Second(args)))  return 0;
+    if (Labels::checkType(nl->Second(args))) return 1;
+  }
+  if (Places::checkType(nl->First(args))) {
+    if (Place::checkType(nl->Second(args)))  return 2;
+    if (Places::checkType(nl->Second(args))) return 3;
+  }
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T, class U>
+int minusVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  T *first = static_cast<T*>(args[0].addr);
+  U *second = static_cast<U*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  T *res = static_cast<T*>(result.addr);
+  if (first->IsDefined() && second->IsDefined()) {
+    set<typename T::base> values1, values2;
+    first->GetValues(values1);
+    second->GetValues(values2);
+    res->Minus(values1, values2);
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct minusInfo : OperatorInfo {
+  minusInfo() {
+    name      = "minus";
+    signature = "T x U -> T,   where T in {labels, places}, "
+                "U in {label(s), place(s)";
+    syntax    = "_ minus _;";
+    meaning   = "Computes the difference of both arguments.";
+  }
+};
+
+/*
 \section{Operator ~distance~}
 
 distance: T x T -> double,   where T in {place(s), label(s)}
@@ -3175,8 +3404,51 @@ struct indexclassifyInfo : OperatorInfo {
 };
 
 /*
-\subsection{Implementation of struct ~IndexMatchInfo~}
+\section{Operator ~concat~}
 
+\subsection{Type Mapping}
+
+*/
+ListExpr concatTM(ListExpr args) {
+  const string errMsg = "Expecting two symbolic trajectories of the same type.";
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError(errMsg);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if ((MLabel::checkType(arg1) && MLabel::checkType(arg2)) ||
+      (MLabels::checkType(arg1) && MLabels::checkType(arg2)) ||
+      (MPlace::checkType(arg1) && MPlace::checkType(arg2)) ||
+      (MPlaces::checkType(arg1) && MPlaces::checkType(arg2))) {
+    return arg1;
+  }
+  return listutils::typeError(errMsg);
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int concatVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  T* src1 = static_cast<T*>(args[0].addr);
+  T* src2 = static_cast<T*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  T* res = (T*)result.addr;
+  res->Concat(*src1, *src2);
+  return  0;
+}
+
+struct concatInfo : OperatorInfo {
+  concatInfo() {
+    name      = "concat";
+    signature = "mT x mT -> mT, where T in {label(s), place(s)}";
+    syntax    = "concat _  _";
+    meaning   = "Concatenates two symbolic trajectories into one.";
+  }
+};
+
+/*
 \section{Operator ~compress~}
 
 \subsection{Type Mapping}
@@ -3946,6 +4218,22 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(unequalsInfo(), unequalsVMs, equalsUnequalsSelect,
               equalsUnequalsTM);
   
+  ValueMapping unionVMs[] = {unionVM<Label, Label, Labels>,
+    unionVM<Labels, Label, Labels>, unionVM<Label, Labels, Labels>,
+    unionVM<Labels, Labels, Labels>, unionVM<Place, Place, Places>, 
+    unionVM<Places, Place, Places>, unionVM<Place, Places, Places>,
+    unionVM<Places, Places, Places>, 0};
+  AddOperator(unionInfo(), unionVMs, unionSelect, unionTM);
+  
+  ValueMapping intersectionVMs[] = {intersectionVM<Labels>,
+    intersectionVM<Places>, 0};
+  AddOperator(intersectionInfo(), intersectionVMs, intersectionSelect, 
+              intersectionTM);
+  
+  ValueMapping minusVMs[] = {minusVM<Labels, Label>, minusVM<Labels, Labels>,
+    minusVM<Places, Place>, minusVM<Places, Places>, 0};
+  AddOperator(minusInfo(), minusVMs, minusSelect, minusTM);
+  
   ValueMapping distanceVMs[] = {distanceVM<Label>, distanceVM<Labels>,
     distanceVM<Place>, distanceVM<Places>, distanceVM<MLabel>,
     distanceVM<MLabels>, distanceVM<MPlace>, distanceVM<MPlaces>, 0};
@@ -4099,6 +4387,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     0};
   AddOperator(indexclassifyInfo(), indexclassifyVMs, indexclassifySelect,
               indexclassifyTM);
+  
+  ValueMapping concatVMs[] = {concatVM<MLabel>, concatVM<MLabels>,
+    concatVM<MPlace>, concatVM<MPlaces>, 0};
+  AddOperator(concatInfo(), concatVMs, symbolicSimpleSelect, concatTM);
 
   ValueMapping compressVMs[] = {compressVM_1<MLabel>, compressVM_1<MLabels>,
     compressVM_1<MPlace>, compressVM_1<MPlaces>, compressVM_Str<MLabel>,
