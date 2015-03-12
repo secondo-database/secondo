@@ -7,3 +7,4 @@ operator disconnect alias DISCONNECT pattern op(_,_)
 operator rquery alias rquery pattern op(_,_)
 operator prcmd alias PRCMD pattern _ op [_,_]
 operator transferFile alias TRANSFERFILE pattern op(_,_,_)
+operator requestFile alias REQUESTFILE pattern op(_,_,_)

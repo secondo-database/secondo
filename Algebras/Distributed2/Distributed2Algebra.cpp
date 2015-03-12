@@ -66,7 +66,9 @@ class ConnectionInfo{
       }
 
       ~ConnectionInfo(){
+          simtx.lock();
           si->Terminate();
+          simtx.unlock();
           delete si;
           delete mynl;
        }
@@ -86,7 +88,9 @@ class ConnectionInfo{
           ListExpr res;
           string cmd = "list databases";
           SecErrInfo err;
+          simtx.lock();
           si->Secondo(cmd,res,err);
+          simtx.unlock();
           return err.code==0;
        }
 
@@ -94,6 +98,7 @@ class ConnectionInfo{
           SecErrInfo serr;
           ListExpr resList;
           assert(si->GetNestedList() == mynl);
+          simtx.lock();
           si->Secondo(command, resList, serr);
           err = serr.code;
           if(err==0){
@@ -101,6 +106,7 @@ class ConnectionInfo{
           } else {
              result = si->GetErrorMessage(err);
           }
+          simtx.unlock();
        }
 
        void simpleCommand(string command, int& error, string& errMsg, 
@@ -108,13 +114,13 @@ class ConnectionInfo{
 
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
-
+          simtx.lock();
           si->Secondo(command, myResList, serr);
           error = serr.code;
           if(error!=0){
             errMsg = si->GetErrorMessage(error);
           }
-
+          simtx.unlock();
           assert(si->GetNestedList() == mynl);
 
           resList = mynl->ToString(myResList);
@@ -126,11 +132,13 @@ class ConnectionInfo{
                           ListExpr& resList){
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
+          simtx.lock();
           si->Secondo(command, myResList, serr);
           error = serr.code;
           if(error!=0){
             errMsg = si->GetErrorMessage(error);
           }
+          simtx.unlock();
 
           assert(si->GetNestedList() == mynl);
 
@@ -145,7 +153,20 @@ class ConnectionInfo{
 
 
         bool transferFile( const string& local, const string& remote){
-          return si->sendFile(local,remote);
+          simtx.lock();
+          bool res =  si->sendFile(local,remote);
+          simtx.unlock();
+          return res;
+        }
+        
+
+        bool requestFile( const string& remote, const string& local){
+          simtx.lock();
+          cout << "call si->RequestFile" << endl;
+          int res =  si->requestFile(remote, local);
+          cout << "success is " << res << endl;
+          simtx.unlock();
+          return res==0;
         }
 
 
@@ -155,6 +176,7 @@ class ConnectionInfo{
     string config;
     SecondoInterfaceCS* si;
     NestedList* mynl;
+    boost::mutex simtx; // mutex for synchronizing access to the interface
 };
 
 
@@ -368,6 +390,20 @@ Transfers a local file to a remove server.
         return false;
       }
       return connections[con2]->transferFile(local,remote);
+    }
+    
+
+    bool requestFile( const int con, 
+                       const string& remote,
+                       const string& local){
+      if(con < 0 ){
+       return false;
+      }
+      unsigned int con2 = con;
+      if(con2 >= connections.size()){
+        return false;
+      }
+      return connections[con2]->requestFile(remote,local);
     }
 
   private:
@@ -1517,6 +1553,107 @@ Operator transferFileOp (
 );
 
 
+/*
+1.7 Operator requestFile
+
+This operator request a file from a remote server.
+
+1.7.1 Type Mapping
+
+The arguments for this operator are the number of the server,
+the name of the file at server side and the local file name.
+The result is a boolean reporting the success of the file 
+transfer.
+
+*/
+
+ListExpr requestFileTM(ListExpr args){
+  string err = "int x {string, text} x {string, text} expected";
+
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  if(!CcInt::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(    !CcString::checkType(nl->Second(args)) 
+      && !FText::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  } 
+  if(    !CcString::checkType(nl->Third(args)) 
+      && !FText::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+  } 
+  return listutils::basicSymbol<CcBool>();
+}
+
+/*
+1.7.2 Value Mapping
+
+*/
+
+template<class R , class L>
+int requestFileVMT( Word* args, Word& result, int message,
+               Word& local, Supplier s ){
+
+
+   cout << "RequestFileVM; called";
+   CcInt* Server = (CcInt*) args[0].addr;
+   R* Remote = (R*) args[1].addr;
+   L* Local = (L*) args[2].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   if(!Server->IsDefined() || ! Local->IsDefined() || !Remote->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   int server = Server->GetValue();
+   res->Set(true, algInstance->requestFile(server, 
+                                 Remote->GetValue(), 
+                                 Local->GetValue()));
+   return 0;
+}
+
+
+OperatorSpec requestFileSpec(
+     " int x {string, text} x {string, text} -> bool",
+     " requestFile( serverNo, remoteFile, localFile) ",
+     " Transfers a remopte file to the local file system. ",
+     " query requestFile( 0, 'remote.txt', 'local.txt' ");
+
+/*
+1.6.3 Value Mapping Array and Selection
+
+*/
+
+ValueMapping requestFileVM[] = {
+  requestFileVMT<CcString, CcString>,
+  requestFileVMT<CcString, FText>,
+  requestFileVMT<FText, CcString>,
+  requestFileVMT<FText, FText>
+};
+
+int requestFileSelect(ListExpr args){
+
+  int n1 = CcString::checkType(nl->Second(args))?0:2;
+  int n2 = CcString::checkType(nl->Third(args))?0:1;
+  return n1+n2; 
+}
+
+/*
+1.6.4 Operator instance
+
+*/
+
+Operator requestFileOp (
+    "requestFile",             //name
+     requestFileSpec.getStr(),         //specification
+     4,
+     requestFileVM,        //value mapping
+     requestFileSelect,   //trivial selection function
+     requestFileTM        //type mapping
+);
+
 
 
 
@@ -1535,6 +1672,7 @@ Distributed2Algebra::Distributed2Algebra(){
    rqueryOp.SetUsesArgsInTypeMapping();
    AddOperator(&prcmdOp);
    AddOperator(&transferFileOp);
+   AddOperator(&requestFileOp);
 }
 
 

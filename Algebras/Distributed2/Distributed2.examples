@@ -47,3 +47,9 @@ Example   : query transferFile(0, 'local.txt', "remote.txt")
 Result    : bug
 Remark    : Requires a remote server
 
+Operator : requestFile
+Number   : 1
+Signature : int x {string, text} x {string, text} -> bool
+Example   : query requestFile(0, 'remote.txt', "local.txt")
+Result    : bug
+Remark    : Requires a remote server
