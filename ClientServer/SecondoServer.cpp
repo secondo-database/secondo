@@ -89,6 +89,7 @@ class SecondoServer : public Application
   void CallDbRestore();
   void CallObjectRestore();
   void CallFileTransfer();
+  void CallRequestFile();
   void Connect();
   void Disconnect();
   void WriteResponse( const int errorCode, const int errorPos,
@@ -723,6 +724,22 @@ SecondoServer::CallFileTransfer() {
   WriteResponse( errorCode, errorPos, errorMessage, resultList );
 }
 
+void 
+SecondoServer::CallRequestFile(){
+  iostream& iosock = client->GetSocketStream();
+  string serverFileName = "";
+  iosock >> serverFileName;
+  csp->skipRestOfLine();
+  string errorMessage="";
+  if(!csp->nextLine(csp->endRequestFile, errorMessage)){
+     return;  // protocol error
+  }
+  csp->SendFile(serverFileName);  
+   
+}
+
+
+
 void
 SecondoServer::Connect()
 {
@@ -762,6 +779,7 @@ SecondoServer::Execute()
   commandTable["<ObjectRestore>"]   = &SecondoServer::CallObjectRestore;
   commandTable["<DbRestore>"]   = &SecondoServer::CallDbRestore;
   commandTable["<FileTransfer>"]   = &SecondoServer::CallFileTransfer;
+  commandTable["<RequestFile>"] = &SecondoServer::CallRequestFile;
   commandTable["<Connect>"]     = &SecondoServer::Connect;
   commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
   commandTable["<REQUESTOPERATORINDEXES>"] = 

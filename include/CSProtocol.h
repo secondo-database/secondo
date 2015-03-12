@@ -366,6 +366,33 @@ For transfer a file from client to the server (for example for importing it), th
    </FileTransfer>
 ----
 
+The filename is the name of the file created on server side. N is the size of the file.
+
+
+The reverse way, i.e. requesting a file from the server, works as follows:
+
+The client sends to the server:
+
+----
+   <RequestFile>\n
+   filename\n
+   </RequestFile>
+----
+
+The answer of the server is:
+
+----
+   <FileData>\n
+   N\n
+   byte1...byteN
+   </FileData>
+----
+
+in case of successful access to the file or in case of an error
+
+----
+    <SendFileError>\n
+----
 
 
 7 Disconnecting
@@ -492,6 +519,8 @@ struct CSProtocol {
  const string endOperatorIndexesResponse;
  const string startFileTransfer;
  const string endFileTransfer;
+ const string startRequestFile;
+ const string endRequestFile;
  
  CSProtocol(NestedList* instance, iostream& ios, bool server = false) : 
    iosock(ios), 
@@ -513,7 +542,9 @@ struct CSProtocol {
    startOperatorIndexesResponse("<OPERATORINDEXESRESPONSE>"),
    endOperatorIndexesResponse("</OPERATORINDEXESRESPONSE>"),
    startFileTransfer("<FileTransfer>"),
-   endFileTransfer("</FileTransfer>")
+   endFileTransfer("</FileTransfer>"),
+   startRequestFile("<RequestFile>"),
+   endRequestFile("<RequestFile>")
  {
    ignoreMsg = true;
    nl = instance;

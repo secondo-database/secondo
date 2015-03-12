@@ -186,6 +186,8 @@ public:
    bool sendFile(const string& localFileName,
                  const string& serverFileName);
 
+   int requestFile( const string& serverFileName,
+                     const string& localFileName);
 
   private:
      int  maxAttempts; // maximum number of attemps when connecting

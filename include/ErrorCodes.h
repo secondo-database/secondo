@@ -44,7 +44,7 @@ which defines all error codes.
 The following codes reflect error conditions which can occur during a call of the
 SecondoInterface. There are five general error codes: 
 
-  * ERR\_NO_ERR: no error
+  * ERR\_NO\_ERR: no error
 
   * ERR\_CMD\_NOT\_RECOGNIZED: command not recognized
 
@@ -136,6 +136,7 @@ const SI_Error ERR_IDENT_UNKNOWN_DB_OBJECT = 82;
 const SI_Error ERR_OBJ_NAME_IN_FILE_NEQ_IDENT = 83;
 const SI_Error ERR_IDENT_ALREADY_KNOWN_IN_DB = 84;
 const SI_Error ERR_ALGEBRA_UNKNOWN = 85;
+const SI_Error ERR_IN_FILETRANSFER = 86;
 
 const SI_Error ERR_SYSTEM_ERROR = 100;
 
@@ -219,3 +220,4 @@ const SmiError E_SMI_CURSOR_FINISH     = -1275;
 
 const SmiError E_SMI_PREFETCH_RANGE    = -1290;
 #endif
+

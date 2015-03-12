@@ -728,6 +728,24 @@ bool SecondoInterfaceCS::sendFile( const string& localfilename,
    return errorCode==0;
 }
 
+int SecondoInterfaceCS::requestFile(const string& serverFilename,
+                                    const string& localFilename){
+   iostream& iosock = server->GetSocketStream();
+   iosock << csp->startRequestFile << endl;
+   iosock << serverFilename << endl;
+   iosock << csp->endRequestFile << endl;
+   // the answer may be SecondoError or SecondoResponse
+   bool ok = csp->ReceiveFile(localFilename);
+   if(ok){
+       return 0;
+   } else {
+       return ERR_IN_FILETRANSFER;
+   }
+}
+
+
+
+
 
 bool SecondoInterfaceCS::getOperatorIndexes(
             const string name,
