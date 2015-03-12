@@ -59,6 +59,13 @@ void Label::GetValue(string& text) const {
   }
 }
 
+string Label::GetValue() const {
+  assert(IsDefined());
+  string result;
+  GetValue(result);
+  return result;
+}
+
 /*
 \subsection{Function ~GetValues~}
 

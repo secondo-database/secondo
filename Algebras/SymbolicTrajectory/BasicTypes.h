@@ -90,6 +90,7 @@ class Label : public Attribute {
   void Clean() {value.clean();}
   void Destroy() {value.destroy();}
   void GetValue(string &text) const;
+  string GetValue() const;
   void GetValues(set<string>& values) const;
   static void buildValue(const string& text, const unitelem& unit,base& result);
   static ListExpr getList(const string& text) {return nl->TextAtom(text);}

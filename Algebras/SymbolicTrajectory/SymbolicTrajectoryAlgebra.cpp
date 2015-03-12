@@ -699,10 +699,15 @@ ListExpr equalsUnequalsTM(ListExpr args) {
   if (nl->ListLength(args) != 2) {
     return NList::typeError("Expecting two arguments.");
   }
-  if ((Label::checkType(nl->First(args)) && Label::checkType(nl->Second(args)))
-|| (Labels::checkType(nl->First(args)) && Labels::checkType(nl->Second(args)))
-|| (Place::checkType(nl->First(args)) && Place::checkType(nl->Second(args)))
-|| (Places::checkType(nl->First(args)) && Places::checkType(nl->Second(args)))){
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if ((Label::checkType(arg1) && (Label::checkType(arg2) ||
+         CcString::checkType(arg2) || FText::checkType(arg2))) ||
+      (Label::checkType(arg2) && (Label::checkType(arg1) ||
+         CcString::checkType(arg1) || FText::checkType(arg1))) ||
+      (Labels::checkType(arg1) && Labels::checkType(arg2)) ||
+      (Place::checkType(arg1) && Place::checkType(arg2)) ||
+      (Places::checkType(arg1) && Places::checkType(arg2))) {
       return nl->SymbolAtom(CcBool::BasicType());
   }
   return NList::typeError("Expecting T x T, where T in {place(s), label(s)}");
@@ -713,9 +718,17 @@ ListExpr equalsUnequalsTM(ListExpr args) {
 
 */
 int equalsUnequalsSelect(ListExpr args) {
-  if (Label::checkType(nl->First(args))) return 0; 
+  if (Label::checkType(nl->First(args))) {
+    if (Label::checkType(nl->Second(args)))    return 0;
+    if (CcString::checkType(nl->Second(args))) return 4;
+    if (FText::checkType(nl->Second(args)))    return 5;
+  }
+  if (Label::checkType(nl->Second(args))) {
+    if (CcString::checkType(nl->First(args))) return 6;
+    if (FText::checkType(nl->First(args)))    return 7;
+  }
   if (Labels::checkType(nl->First(args))) return 1;
-  if (Place::checkType(nl->First(args))) return 2; 
+  if (Place::checkType(nl->First(args)))  return 2; 
   if (Places::checkType(nl->First(args))) return 3;
   return -1;
 }
@@ -732,6 +745,21 @@ int equalsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   CcBool *res = static_cast<CcBool*>(result.addr);
   if (first->IsDefined() && second->IsDefined()) {
     res->Set(true, *first == *second);
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+template<class T, class U>
+int equalsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  T *first = static_cast<T*>(args[0].addr);
+  U *second = static_cast<U*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcBool *res = static_cast<CcBool*>(result.addr);
+  if (first->IsDefined() && second->IsDefined()) {
+    res->Set(true, first->GetValue() == second->GetValue());
   }
   else {
     res->SetDefined(false);
@@ -768,6 +796,21 @@ int unequalsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   CcBool *res = static_cast<CcBool*>(result.addr);
   if (first->IsDefined() && second->IsDefined()) {
     res->Set(true, !(*first == *second));
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+template<class T, class U>
+int unequalsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  T *first = static_cast<T*>(args[0].addr);
+  U *second = static_cast<U*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcBool *res = static_cast<CcBool*>(result.addr);
+  if (first->IsDefined() && second->IsDefined()) {
+    res->Set(true, !(first->GetValue() == second->GetValue()));
   }
   else {
     res->SetDefined(false);
@@ -4210,11 +4253,15 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(refInfo(), refVM, refTM);
   
   ValueMapping equalsVMs[] = {equalsVM<Label>, equalsVM<Labels>, 
-    equalsVM<Place>, equalsVM<Places>, 0};
+    equalsVM<Place>, equalsVM<Places>, equalsVM<Label, CcString>,
+    equalsVM<Label, FText>, equalsVM<CcString, Label>, equalsVM<FText, Label>, 
+    0};
   AddOperator(equalsInfo(), equalsVMs, equalsUnequalsSelect, equalsUnequalsTM);
 
   ValueMapping unequalsVMs[] = {unequalsVM<Label>, unequalsVM<Labels>, 
-    unequalsVM<Place>, unequalsVM<Places>, 0};
+    unequalsVM<Place>, unequalsVM<Places>, unequalsVM<Label, CcString>,
+    unequalsVM<Label, FText>, unequalsVM<CcString, Label>, 
+    unequalsVM<FText, Label>, 0};
   AddOperator(unequalsInfo(), unequalsVMs, equalsUnequalsSelect,
               equalsUnequalsTM);
   
