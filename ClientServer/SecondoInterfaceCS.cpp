@@ -712,6 +712,9 @@ SecondoInterfaceCS::SetDebugLevel( const int level )
 
 bool SecondoInterfaceCS::sendFile( const string& localfilename,
                                    const string& serverFileName){
+   if(localfilename.empty() || serverFileName.empty()){
+        return false;
+   }
 
    iostream& iosock = server->GetSocketStream();
    iosock << csp->startFileTransfer << endl;
