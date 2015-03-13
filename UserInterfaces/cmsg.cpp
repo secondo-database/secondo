@@ -205,10 +205,13 @@ ProgMesHandler::handleMsg(NestedList* nl, ListExpr list)
   if(!nl->HasMinLength(second,2)){
     return false;
   }
-  if(nl->AtomType(nl->First(second))!=IntType ||
-     nl->AtomType(nl->Second(second)!=IntType)){
-    return false;
+  if(nl->AtomType(nl->First(second))!=IntType){
+     return false;
   }
+  if(nl->AtomType(nl->Second(second))!=IntType){
+     return false;
+  }
+
 
   int ActValue = nl->IntValue(nl->First(second)); 
   int TotalValue = nl->IntValue(nl->Second(second)); 
