@@ -1756,22 +1756,47 @@ ListExpr ptransferFileTM(ListExpr args){
 
 
 /*
-1.7.2 Class ~ptransferLocal~
+1.7.2 Class ~transferFileListener~
 
-This class implements parallel file transfer.
+This class is an interface for listening running file transfers.
 
 */
 
 class transferFileListener{
 
   public:
+
+
+/*
+~transferFinished~
+
+This function is called if a single transfer is finished. 
+
+
+*/   
     virtual void  transferFinished(Tuple* intuple, 
                                bool success, 
                                const string& msg ) =0;
 
+/*
+~setInputTupleNumber~
+
+This function is called if the number of input tuples is known, i.e.
+the input stream is completely processed or the processing is
+canceled.
+
+*/
     virtual void setInputTupleNumber(int no)=0;
 };
 
+
+/*
+struct ~transfer~
+
+This is a class holding the information about a single 
+file transfer.
+
+*/
 struct transfer{
   transfer(Tuple* _tuple, const string& _local, const string& _remote):
     inTuple(_tuple), local(_local), remote(_remote){}
@@ -1781,16 +1806,44 @@ struct transfer{
   string remote;
 };
 
+/*
+class ~FileTransferator~
+
+This class organizes the transfer of files for a single connection.
+All file transfers are handles sequentially. It is possible to add
+new transfer tasks during a running file transfer. Furthermore, it
+is possible to stop the processing. In the case of stop, the last
+started transfer must be finished, since the interface does not
+allow to interrupt a transfer.
+
+*/
+
+
 class fileTransferator{
   public:
+
+/*
+~Constructor~
+
+This constructs a filetranferator for a given connection (server) with a
+single listener.
+
+*/
      fileTransferator(int _server, transferFileListener* _listener) :
          server(_server), listener(_listener), stopped(false){
-         //runner = new Runner(this);
-         // runnerThread = new boost::thread(*runner);
          runnerThread = boost::thread(
                         boost::bind(&fileTransferator::run, this));
      }
 
+
+/*
+~Destructor~
+
+This will destroy the instance of this class. 
+The last running transfer (if there is one) will be finsihed during 
+destroying this object.
+
+*/
      ~fileTransferator(){
         stop();
         runnerThread.join();
@@ -1803,12 +1856,30 @@ class fileTransferator{
         listAccess.unlock();
      }
 
-    
+/*
+~stop~
+
+This will stop the thread processing pending transfers.
+After calling this function, this object cannot be 
+restarted. The only thing you can do after calling stop 
+it to destroy it.
+
+*/    
      void stop(){
           stopped = true;
           boost::lock_guard<boost::mutex> lock(condmtx);
           cond.notify_one();
      }
+
+
+/*
+~addtransfer~
+
+Adds a new transfer to this list. If there is no other transfer
+active, the transfer will start immediately. Otherwise the transfer
+will be handled as the last one.
+
+*/
 
       void addTransfer(Tuple* inTuple, const string& local, 
                        const string& remote) {
@@ -1822,6 +1893,14 @@ class fileTransferator{
 
   private:
 
+
+/*
+~run~
+
+This function works within an own thread. It waits unil new transfer tasks
+are available, tankes the first one, and starts the transfer.
+
+*/
       void run(){
           boost::unique_lock<boost::mutex> lock(condmtx);
           while(!stopped){
@@ -1864,9 +1943,23 @@ class fileTransferator{
 };
 
 
+/*
+
+Class ~ptransferFileInputProcessor~
+
+This class processes in input tuples of the stream for the
+parallel file transfer.
+
+*/
+
 template<class L, class R>
 class ptransferFileInputProcessor{
      public:
+
+/*
+~Constructors~
+
+*/
         ptransferFileInputProcessor(Word& _stream, 
                                    int _serverIndex, int _localIndex, 
                        int _remoteIndex, transferFileListener* _listener):
@@ -1885,7 +1978,10 @@ class ptransferFileInputProcessor{
         }
 
 
+/*
+~Destructors~
 
+*/
         ~ptransferFileInputProcessor(){
            stream.close();
            // stop active threads
@@ -1899,10 +1995,24 @@ class ptransferFileInputProcessor{
            }
          }
 
+
+/*
+~stop~
+
+This will stop the processing of input tuples.
+
+*/
          void stop(){
             stopped=true;
          }
 
+
+/*
+~run~
+
+This function processes the tuples of the input stream.
+
+*/
          void run(){
             Tuple* inTuple;
             inTuple = stream.request();
@@ -1933,15 +2043,26 @@ class ptransferFileInputProcessor{
             }
             listener->setInputTupleNumber(noInTuples);
           }
-    private:
-       Stream<Tuple> stream;
-       int serverIndex;
-       int localIndex;
-       int remoteIndex;
-       transferFileListener* listener;
-       bool stopped;
-       map<int, fileTransferator*> activeThreads;
 
+
+    private:
+       Stream<Tuple> stream;  //input stream
+       int serverIndex;       // where to find server index in input tuple
+       int localIndex;        // where to find the local file name
+       int remoteIndex;       // where to find the remote file name
+       transferFileListener* listener; // reference to the listener object 
+       bool stopped;          // flag for activiness
+       map<int, fileTransferator*> activeThreads; //threads for each connection
+
+
+/*
+~processInvalidTuple~
+
+This function is called if an invalid tuple is determined in the input stream.
+This is the case if one of the required attributes is undefined or has an
+invalid value, e.g., a negative server number.
+
+*/
        void processInvalidTuple(Tuple* inTuple, const string& msg){
             if(listener){
                listener->transferFinished(inTuple, false, msg);
@@ -1950,6 +2071,17 @@ class ptransferFileInputProcessor{
             }
        }
 
+
+/*
+~processValidTuple~
+
+This function is called for each valid input tuple. If there not yet
+a processing instance for the given server number, a new instance 
+is created. The transfer task is added to the running instance for this
+server.
+
+
+*/
        void processValidTuple(Tuple* inTuple, const int server, 
                               const string& local, const string& remote){
 
@@ -1963,10 +2095,24 @@ class ptransferFileInputProcessor{
 
 
 
+/*
+Class ~ptransferLocal~
+
+This is the local info class for the ptransfer operator. 
+
+*/
+
 template<class L, class R>
 class ptransferLocal: public transferFileListener {
 
   public:
+
+
+/*
+~Constructor~
+
+*/
+
      ptransferLocal(Word& stream, int _serverindex,
                     int _localindex, int  _remoteindex,
                     ListExpr _tt) {
@@ -1979,10 +2125,16 @@ class ptransferLocal: public transferFileListener {
                                            this);
         runner = new boost::thread( boost::bind(
                 &ptransferFileInputProcessor<L,R>::run, inputProcessor));
-
      }
 
+/*
+~Destructor~
 
+This will wait until all running transfers are processed. This does not
+includes instantiates but not yet started transfers. All present but
+not used result tuples are deleted also.
+
+*/
      virtual ~ptransferLocal(){
         inputProcessor->stop(); // stop processing
         runner->join(); // wait until started jobs are done
@@ -2000,6 +2152,15 @@ class ptransferLocal: public transferFileListener {
      }
 
 
+/*
+~next~
+
+This function provides the next result tuple.
+If there is no result tuple available, it waits 
+until it is. 
+
+*/
+
      Tuple* next(){
         boost::unique_lock<boost::mutex> lock(resultMutex);
         listAccess.lock();
@@ -2014,13 +2175,20 @@ class ptransferLocal: public transferFileListener {
      } 
 
 
+/*
+~transferFinished~
+
+This function is called if a transfer has been finished. 
+It will created a new result tuple from the input tuple,
+the success flag and the error message.
+
+*/
+
      // callback function for a single finished transfer
      virtual void transferFinished(Tuple* inTuple, bool success, 
                                    const string& msg){
 
-
         tupleCreationMtx.lock();
-
         Tuple* resTuple =  new Tuple(tt);
         // copy original attributes
         for(int i=0;i<inTuple->GetNoAttributes(); i++){
@@ -2040,9 +2208,6 @@ class ptransferLocal: public transferFileListener {
         resultList.push_back(resTuple);
         listAccess.unlock();
 
-
-
-
         // update counter
         outputTuples++;
         if(inputTuples==outputTuples){
@@ -2055,6 +2220,14 @@ class ptransferLocal: public transferFileListener {
         resultAvailable.notify_one();
      }
 
+
+/*
+~setInputTupleNumber~
+
+This function is called if the number of input tuples is known.
+
+
+*/   
      virtual void setInputTupleNumber(int i){
         if(i==0){ // we cannot expect any results
            boost::lock_guard<boost::mutex> lock(resultMutex);
@@ -2079,6 +2252,8 @@ class ptransferLocal: public transferFileListener {
           }
         }
      }
+
+
   private:
      TupleType* tt;
      bool finished;
@@ -2096,7 +2271,10 @@ class ptransferLocal: public transferFileListener {
 };
 
 
+/*
+~Value Mapping~
 
+*/
 
 template<class L , class R>
 int ptransferFileVMT( Word* args, Word& result, int message,
@@ -2127,7 +2305,10 @@ int ptransferFileVMT( Word* args, Word& result, int message,
    return -1;
 }
 
+/*
+1.7.2 Specification
 
+*/
 
 OperatorSpec ptransferFileSpec(
      " stream(tuple) x attrName x attrName x attrName -> stream(Tuple + Ext)",
@@ -2161,7 +2342,6 @@ int ptransferFileSelect(ListExpr args){
   listutils::findAttribute(attrList, name2, type2);
   int n1 = CcString::checkType(type1)?0:2;
   int n2 = CcString::checkType(type2)?0:1;
-
 
   return n1+n2; 
 }
