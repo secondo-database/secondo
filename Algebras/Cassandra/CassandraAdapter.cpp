@@ -86,7 +86,7 @@ CassError CassandraAdapter::connect_session(CassSession* session,
 }
 
 void CassandraAdapter::connect(bool singleNodeLoadBalancing) {
-   
+      
      CassError rc = CASS_OK;
      stringstream ss;
 

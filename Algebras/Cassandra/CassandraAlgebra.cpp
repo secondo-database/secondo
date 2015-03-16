@@ -70,6 +70,7 @@
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
 #include "CassandraConnectionPool.h"
+#include "CassandraTupleAggregator.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -802,8 +803,7 @@ public:
   
     : contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence), 
-    systemname(mySystemname), attrIndex(myAttrIndex), tupleType(myTupleType), 
-    tupleNumber(0), statement(NULL) {
+    systemname(mySystemname), attrIndex(myAttrIndex), tupleType(myTupleType) {
       
 #ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
@@ -830,27 +830,23 @@ public:
         cassandra -> createTable(relationName, tupleType);
       }
       
-      statement = cassandra->prepareCQLInsert(relationName);
-      
       if(sizeof(size_t) < 8) {
         cout << "WARNING: Your size_t datatype is smaller then 8 bytes. ";
         cout << endl;
         cout << "The size of size_t on your system is: " << sizeof(size_t);
         cout << endl;
         cout << "This leads to small hash values and performance issues ";
-        cout << " with casssandra";
         cout << endl;
       }   
+      
+      aggregator = new CassandraTupleAggrerator(cassandra, relationName, 
+          consistence, systemname);
   }
   
   virtual ~CSpreadLocalInfo() {
-    freePreparedStatement();
-  }
-  
-  void freePreparedStatement() {
-     if(statement != NULL) {
-        cassandra -> freePreparedStatement(statement);
-        statement = NULL;
+     if(aggregator != NULL) {
+        delete aggregator;
+        aggregator = NULL;
      }
   }
   
@@ -858,6 +854,9 @@ public:
      if(cassandra == NULL) {
         return false;
      }
+     
+     aggregator -> sendCurrentChunk();
+     aggregator -> printTupleRatio();
      
      cassandra -> waitForPendingFutures();
      
@@ -868,33 +867,19 @@ public:
   }
   
   bool feed(Tuple* tuple) {
-    bool result;
+    bool result = true;
     stringstream ss;
     
     ss << tuple -> HashValue(attrIndex);
     string partitionKey = ss.str();
     
-    ss.clear();
-    ss.str(std::string());
-    
-    ss << tupleNumber;
-    string tupleNumberStr = ss.str();
-    
-    result = cassandra->writeDataToCassandraPrepared(
-                         statement,
-                         partitionKey,
-                         systemname,
-                         tupleNumberStr, 
-                         tuple -> WriteToBinStr(), 
-                         consistence, false);
-    
-    ++tupleNumber;
-    
+    result = aggregator -> processTuple(partitionKey, tuple -> WriteToBinStr());
+        
     return result;
   }
   
   size_t getTupleNumber() {
-    return tupleNumber;
+    return aggregator -> getReceivedTuple();
   }
      
 private:
@@ -905,9 +890,8 @@ private:
   string systemname;           // Name of our system
   int attrIndex;               // Index of attribute to cluster
   string tupleType;            // Type of the tuples (Nested List String)
-  size_t tupleNumber;          // Number of the current tuple
   CassandraAdapter *cassandra; // Cassandra connection
-  const CassPrepared *statement; // The prepared insert statement
+  CassandraTupleAggrerator *aggregator; // Cassandra tuple aggregator
 };
 
 int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -1403,7 +1387,7 @@ public:
   
     : tupleType(myType), contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence),
-    cassandra(NULL), result(NULL) {
+    cassandra(NULL), result(NULL), fetchedTuple("") {
 
 #ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
@@ -1463,36 +1447,61 @@ public:
       
     }
   }
+  
+  bool fetchDataFromCassandra() {
+     // No result present
+     if(result == NULL) {
+       return false;
+     }
+    
+     while(result->hasNext()) {
+      
+       string key;
+       fetchedTuple = "";
+       
+       result -> getStringValue(key, 0);
+       result -> getStringValue(fetchedTuple, 1);
+      
+       // Metadata? Skip tuple
+       if(key.at(0) == '_') {
+ #ifdef __DEBUG__
+         cout << "Skipping key: " << key << " value " << value << endl;
+ #endif
+         continue;
+       }
+       
+       return true;
+    }
+    
+    return false;
+  }
 
   Tuple* fetchNextTuple() {
 
-    // No result present
-    if(result == NULL) {
-      return NULL;
-    }
-    
-    while(result->hasNext()) {
-      
-      string key;
       string value;
-      result -> getStringValue(key, 0);
-      result -> getStringValue(value, 1);
-      
-      // Metadata? Skip tuple
-      if(key.at(0) == '_') {
-#ifdef __DEBUG__
-        cout << "Skipping key: " << key << " value " << value << endl;
-#endif
-        continue;
+     
+      if(fetchedTuple == "") {
+         bool res = fetchDataFromCassandra();
+         
+         if(res == false) {
+            return NULL;
+         }
       }
-      
-      // Otherwise: Build tuple and return
+
+      int pos = fetchedTuple.find_first_of("|");
+
+      if(pos == string::npos) {
+         value = fetchedTuple;
+         fetchedTuple = "";
+      } else {
+         value = fetchedTuple.substr(0, pos);
+         fetchedTuple = fetchedTuple.substr(pos + 1);
+      }
+            
+      // Build tuple and return
       Tuple* tuple = new Tuple(tupleType);
       tuple->ReadFromBinStr(value);
       return tuple;
-    }
-    
-    return NULL;
   }
   
   void setBeginEndToken(string myBegintoken, string myEndToken) {
@@ -1515,6 +1524,7 @@ private:
   string beginToken;           // Begin Token
   string endToken;             // End Token
   int    queryId;              // Queryid
+  string fetchedTuple;         // Fetched tuple
 };
 
 template<CollectFetchMode fetchMode>
@@ -2456,7 +2466,7 @@ public:
       return CANCEL;
     }
     
-    //cout << "Total: " << totalProcessedTokens << endl;
+   // cout << "Total: " << totalProcessedTokens << endl;
     
     pRes->Card = 1;
     pRes->BProgress = (double) totalProcessedTokens / (double) max;
