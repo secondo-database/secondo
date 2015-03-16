@@ -4168,16 +4168,32 @@ int FTextValueMapChartext( Word* args, Word& result, int message,
 }
 
 /*
-Value Mapping Function for ~toupper~, ~tolower~
+
+Operators ~toupper~, ~tolower~
 
 */
-template<bool isToLower>
-int FTextValueMapChangeCase( Word* args, Word& result, int message,
+ListExpr changeCaseTM(ListExpr args){
+
+  string err = "text or string expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  ListExpr arg = nl->First(args);
+  if(!CcString::checkType(arg) && !FText::checkType(arg)){
+     return listutils::typeError(err);
+  }
+  return arg;
+}
+
+
+
+template<bool isToLower, class T>
+int FTextValueMapChangeCaseT( Word* args, Word& result, int message,
                              Word& local, Supplier s )
 {
-  FText* text = static_cast<FText*>(args[0].addr);
+  T* text = static_cast<T*>(args[0].addr);
   result = qp->ResultStorage( s );
-  FText* res = static_cast<FText*>(result.addr);
+  T* res = static_cast<T*>(result.addr);
 
   if ( !text->IsDefined() ){
     res->Set( false, "" );
@@ -4191,6 +4207,26 @@ int FTextValueMapChangeCase( Word* args, Word& result, int message,
     res->Set( true, str );
   }
   return 0;
+}
+
+/*
+Value mappiung Array and Selection Function for ~toupper~, ~tolower~
+
+
+*/
+
+ValueMapping toLowerVM[] = {
+    FTextValueMapChangeCaseT<true, CcString>,
+    FTextValueMapChangeCaseT<true, FText>
+};
+
+ValueMapping toUpperVM[] = {
+    FTextValueMapChangeCaseT<false, CcString>,
+    FTextValueMapChangeCaseT<false, FText>
+};
+
+int changeCaseSelect(ListExpr args){
+ return CcString::checkType(nl->First(args))?0:1;
 }
 
 
@@ -7282,19 +7318,23 @@ Operator ftexttoupper
     (
     "toupper",
     FTextToUpperSpec,
-    FTextValueMapChangeCase<false>,
-    Operator::SimpleSelect,
-    TypeMap_text__text
-    );
+    2,
+    toUpperVM,
+    changeCaseSelect, 
+    changeCaseTM
+ );
+
 
 Operator ftexttolower
     (
     "tolower",
     FTextToLowerSpec,
-    FTextValueMapChangeCase<true>,
-    Operator::SimpleSelect,
-    TypeMap_text__text
-    );
+    2,
+    toLowerVM,
+    changeCaseSelect, 
+    changeCaseTM
+ );
+
 
 Operator ftexttostring
     (
