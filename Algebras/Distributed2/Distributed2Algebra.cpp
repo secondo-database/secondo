@@ -162,9 +162,7 @@ class ConnectionInfo{
 
         bool requestFile( const string& remote, const string& local){
           simtx.lock();
-          cout << "call si->RequestFile" << endl;
           int res =  si->requestFile(remote, local);
-          cout << "success is " << res << endl;
           simtx.unlock();
           return res==0;
         }
@@ -580,8 +578,6 @@ ListExpr  checkConnectionsTM(ListExpr args){
 
 /*
 1.2.2 Value Mapping
-
-TODO: Make it in parallel
 
 */
 
@@ -1234,6 +1230,7 @@ class prcmdInfo{
             stopped = true;
             stream.close();
             mut.unlock();
+            // delete non processed input tuples
             map<int,Tuple*>::iterator it;
             for(it = inTuples.begin(); it != inTuples.end(); it++){
                  delete it->second;
@@ -1597,7 +1594,6 @@ int requestFileVMT( Word* args, Word& result, int message,
                Word& local, Supplier s ){
 
 
-   cout << "RequestFileVM; called";
    CcInt* Server = (CcInt*) args[0].addr;
    R* Remote = (R*) args[1].addr;
    L* Local = (L*) args[2].addr;
@@ -1656,7 +1652,533 @@ Operator requestFileOp (
 
 
 
+/*
+1.7 Operator ~ptransferFile~
 
+This operator transfers local files to connected SecondoServers in parallel.
+
+1.7.1 Type Mapping
+
+The operator receives a stream of tuples at least having a number and 
+text/string attributes. Furthermore three attribute names are required. 
+The first attribute name points to an integer attribute specifing the 
+connection where the file should be transferred to. The second attribute 
+name points to the local filename within the tuple. This may be a string 
+or a text. The third attribute name points to the name of the file which 
+should be created at the remote server. 
+The last two attribute names may be the same (in this case the local file 
+name is equal to the remote file name.
+
+Each input tuple is extened by a boolean and an text attribute. 
+The boolean value points to the success of the file transfer and 
+the text value will given an error message if fauled.
+
+*/
+
+ListExpr ptransferFileTM(ListExpr args){
+
+  string err = "stream(tuple) x attrname x attrname x attrname expected";
+
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError(err + " (invalid number of attributes)");
+  }
+  ListExpr stream = nl->First(args);
+  ListExpr attrs[] = { nl->Second(args), nl->Third(args), nl->Fourth(args)};
+
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError(err + " ( first arg is not a tuple stream)");
+  }
+  for(int i=0;i<3;i++){
+    if(nl->AtomType(attrs[i])!=SymbolType){
+       return listutils::typeError(err + " ( invalid attribute name found )");
+    }
+  }
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr type;
+  string name = nl->SymbolValue(attrs[0]);
+  int indexServer = listutils::findAttribute(attrList, name, type);
+  if(!indexServer){
+    return listutils::typeError(" attribute " + name + " not found");
+  }
+  if(!CcInt::checkType(type)){
+    return listutils::typeError(" attribute " + name + " not an integer");
+  }
+
+  name = nl->SymbolValue(attrs[1]);
+  int indexLocal = listutils::findAttribute(attrList, name, type);
+  if(!indexLocal){
+    return listutils::typeError(" attribute " + name + " not found");
+  }
+  if(!CcString::checkType(type) &&!FText::checkType(type)){
+    return listutils::typeError(" attribute " + name + 
+                                " is not of type string or text");
+  }
+
+  name = nl->SymbolValue(attrs[2]);
+  int indexRemote = listutils::findAttribute(attrList, name, type);
+  if(!indexRemote){
+    return listutils::typeError(" attribute " + name + " not found");
+  }
+  if(!CcString::checkType(type) &&!FText::checkType(type)){
+    return listutils::typeError(" attribute " + name + 
+                                " is not of type string or text");
+  }
+
+  // input ok, generate output
+  ListExpr extAttr = nl->TwoElemList(
+                    nl->TwoElemList(
+                            nl->SymbolAtom("OK"), 
+                            listutils::basicSymbol<CcBool>()),
+                    nl->TwoElemList(
+                            nl->SymbolAtom("ErrMsg"), 
+                            listutils::basicSymbol<FText>()) );
+
+  ListExpr newAttrList = listutils::concat(attrList, extAttr);
+  if(!listutils::isAttrList(newAttrList)){
+    return listutils::typeError("Attribute OK or ErrMsg "
+                                "already present in tuple");
+  }
+  ListExpr appendList = nl->ThreeElemList(
+                          nl->IntAtom(indexServer-1),
+                          nl->IntAtom(indexLocal-1),
+                          nl->IntAtom(indexRemote-1));
+
+  ListExpr resultList = nl->TwoElemList(
+                            listutils::basicSymbol<Stream<Tuple> >(),
+                            nl->TwoElemList(
+                                listutils::basicSymbol<Tuple>(),
+                                newAttrList));
+
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            appendList,
+                            resultList);  
+}
+
+
+/*
+1.7.2 Class ~ptransferLocal~
+
+This class implements parallel file transfer.
+
+*/
+
+class transferFileListener{
+
+  public:
+    virtual void  transferFinished(Tuple* intuple, 
+                               bool success, 
+                               const string& msg ) =0;
+
+    virtual void setInputTupleNumber(int no)=0;
+};
+
+struct transfer{
+  transfer(Tuple* _tuple, const string& _local, const string& _remote):
+    inTuple(_tuple), local(_local), remote(_remote){}
+
+  Tuple* inTuple;
+  string local;
+  string remote;
+};
+
+class fileTransferator{
+  public:
+     fileTransferator(int _server, transferFileListener* _listener) :
+         server(_server), listener(_listener), stopped(false){
+         //runner = new Runner(this);
+         // runnerThread = new boost::thread(*runner);
+         runnerThread = boost::thread(
+                        boost::bind(&fileTransferator::run, this));
+     }
+
+     ~fileTransferator(){
+        stop();
+        runnerThread.join();
+        listAccess.lock();
+        while(!pendingtransfers.empty()){
+           transfer t = pendingtransfers.front();
+           t.inTuple->DeleteIfAllowed();
+           pendingtransfers.pop_front();
+        }
+        listAccess.unlock();
+     }
+
+    
+     void stop(){
+          stopped = true;
+          boost::lock_guard<boost::mutex> lock(condmtx);
+          cond.notify_one();
+     }
+
+      void addTransfer(Tuple* inTuple, const string& local, 
+                       const string& remote) {
+          transfer newTransfer(inTuple, local, remote);
+          listAccess.lock();
+          pendingtransfers.push_back(newTransfer);
+          listAccess.unlock();
+          boost::lock_guard<boost::mutex> lock(condmtx);
+          cond.notify_one();
+      }
+
+  private:
+
+      void run(){
+          boost::unique_lock<boost::mutex> lock(condmtx);
+          while(!stopped){
+               // wait for date
+               listAccess.lock();
+               while(!stopped && pendingtransfers.empty()){
+                   listAccess.unlock();
+                   cond.wait(lock); 
+               }
+               listAccess.unlock();
+               if(!stopped){
+                   listAccess.lock();
+                   transfer t = pendingtransfers.front();
+                   pendingtransfers.pop_front();   
+                   listAccess.unlock();
+                   bool ret = algInstance->transferFile(server, 
+                                                       t.local, t.remote);
+                   if(listener){
+                      if(ret){
+                          listener->transferFinished(t.inTuple, true, "");
+                      } else {
+                          listener->transferFinished(t.inTuple, false, 
+                                                   "Error during transfer"); 
+                      }
+                   } else {
+                      t.inTuple->DeleteIfAllowed();
+                   }
+               }
+          }
+      }
+
+    int server;
+    transferFileListener* listener;
+    bool stopped;
+    list<transfer>  pendingtransfers;
+    boost::mutex listAccess;
+    boost::thread runnerThread;
+    boost::mutex condmtx;
+    boost::condition_variable cond;
+};
+
+
+template<class L, class R>
+class ptransferFileInputProcessor{
+     public:
+        ptransferFileInputProcessor(Word& _stream, 
+                                   int _serverIndex, int _localIndex, 
+                       int _remoteIndex, transferFileListener* _listener):
+          stream(_stream), serverIndex(_serverIndex), localIndex(_localIndex),
+          remoteIndex(_remoteIndex), listener(_listener), stopped(false) 
+       {
+          stream.open();
+        }
+
+        ptransferFileInputProcessor(const ptransferFileInputProcessor& src):
+          stream(src.stream), serverIndex(src.serverIndex), 
+          localIndex(src.localIndex),
+          remoteIndex(src.remoteIndex), listener(src.listener), 
+          stopped(src.stopped),
+          activeThreads(src.activeThreads) {
+        }
+
+
+
+        ~ptransferFileInputProcessor(){
+           stream.close();
+           // stop active threads
+           map<int, fileTransferator*>::iterator it;
+           for(it = activeThreads.begin(); it!=activeThreads.end(); it++){
+               it->second->stop();
+           }
+           // delete active threads
+           for(it = activeThreads.begin(); it!=activeThreads.end(); it++){
+               delete it->second;
+           }
+         }
+
+         void stop(){
+            stopped=true;
+         }
+
+         void run(){
+            Tuple* inTuple;
+            inTuple = stream.request();
+            int noInTuples = 0; 
+            while(inTuple && !stopped) {
+               noInTuples++;
+               CcInt* Server = (CcInt*) inTuple->GetAttribute(serverIndex);
+               L* Local = (L*) inTuple->GetAttribute(localIndex);
+               R* Remote = (R*) inTuple->GetAttribute(remoteIndex);
+
+               if(!Server->IsDefined() || !Local->IsDefined()
+                  || !Remote->IsDefined()){
+                   processInvalidTuple(inTuple, "undefined value found");
+               } else {
+                  int server = Server->GetValue(); 
+                  string localname = Local->GetValue();
+                  string remotename = Remote->GetValue();
+                  if(server < 0 || server >= algInstance->noConnections()){
+                     processInvalidTuple(inTuple, "invalid server number");
+                  } else {
+                    processValidTuple(inTuple, server, localname, remotename);
+                  }
+               }
+               inTuple = stream.request();
+            }
+            if(inTuple){
+                inTuple->DeleteIfAllowed();
+            }
+            listener->setInputTupleNumber(noInTuples);
+          }
+    private:
+       Stream<Tuple> stream;
+       int serverIndex;
+       int localIndex;
+       int remoteIndex;
+       transferFileListener* listener;
+       bool stopped;
+       map<int, fileTransferator*> activeThreads;
+
+       void processInvalidTuple(Tuple* inTuple, const string& msg){
+            if(listener){
+               listener->transferFinished(inTuple, false, msg);
+            } else {
+                inTuple->DeleteIfAllowed();
+            }
+       }
+
+       void processValidTuple(Tuple* inTuple, const int server, 
+                              const string& local, const string& remote){
+
+          if(activeThreads.find(server)==activeThreads.end()){
+              fileTransferator* fi = new fileTransferator(server, listener);
+              activeThreads[server] = fi; 
+          } 
+          activeThreads[server]->addTransfer(inTuple, local,remote);
+       }
+  };
+
+
+
+template<class L, class R>
+class ptransferLocal: public transferFileListener {
+
+  public:
+     ptransferLocal(Word& stream, int _serverindex,
+                    int _localindex, int  _remoteindex,
+                    ListExpr _tt) {
+        inputTuples = -1; // unknown number of input tuples
+        outputTuples = 0; // up to now, there is no output tuple
+        tt = new TupleType(_tt);
+        inputProcessor = 
+              new ptransferFileInputProcessor<L,R>(stream,_serverindex, 
+                                           _localindex, _remoteindex, 
+                                           this);
+        runner = new boost::thread( boost::bind(
+                &ptransferFileInputProcessor<L,R>::run, inputProcessor));
+
+     }
+
+
+     virtual ~ptransferLocal(){
+        inputProcessor->stop(); // stop processing
+        runner->join(); // wait until started jobs are done
+        delete runner;
+        delete inputProcessor;
+
+        list<Tuple*>::iterator it;
+        // remove already created result tuples
+        listAccess.lock();
+        for(it = resultList.begin();it!=resultList.end();it++){
+            (*it)->DeleteIfAllowed();
+        }
+        listAccess.unlock();
+        tt->DeleteIfAllowed();
+     }
+
+
+     Tuple* next(){
+        boost::unique_lock<boost::mutex> lock(resultMutex);
+        listAccess.lock();
+        while(resultList.empty()){
+            listAccess.unlock();
+            resultAvailable.wait(lock);
+        }
+        Tuple* res = resultList.front();
+        resultList.pop_front();
+        listAccess.unlock();
+        return res;
+     } 
+
+
+     // callback function for a single finished transfer
+     virtual void transferFinished(Tuple* inTuple, bool success, 
+                                   const string& msg){
+
+
+        tupleCreationMtx.lock();
+
+        Tuple* resTuple =  new Tuple(tt);
+        // copy original attributes
+        for(int i=0;i<inTuple->GetNoAttributes(); i++){
+           resTuple->CopyAttribute(i,inTuple,i);
+        } 
+        resTuple->PutAttribute(inTuple->GetNoAttributes(), 
+                               new CcBool(true,success));
+        resTuple->PutAttribute(inTuple->GetNoAttributes() + 1, 
+                               new FText(true,msg));
+
+        inTuple->DeleteIfAllowed();
+
+
+        boost::lock_guard<boost::mutex> lock(resultMutex);
+
+        listAccess.lock();
+        resultList.push_back(resTuple);
+        listAccess.unlock();
+
+
+
+
+        // update counter
+        outputTuples++;
+        if(inputTuples==outputTuples){
+          // this was the last tuple to create
+          listAccess.lock();
+          resultList.push_back(0);
+          listAccess.unlock();
+        }
+        tupleCreationMtx.unlock();
+        resultAvailable.notify_one();
+     }
+
+     virtual void setInputTupleNumber(int i){
+        if(i==0){ // we cannot expect any results
+           boost::lock_guard<boost::mutex> lock(resultMutex);
+           listAccess.lock();
+           resultList.push_back(0);
+           listAccess.unlock();
+           // inform about new tuple.
+           resultAvailable.notify_one(); 
+        } else {
+          assert(i>0);
+          countMtx.lock();
+          inputTuples = i;
+          if(inputTuples == outputTuples){
+             // all output tuples was generated
+             countMtx.unlock();
+             boost::lock_guard<boost::mutex> lock(resultMutex);
+             listAccess.lock();
+             resultList.push_back(0);
+             listAccess.unlock();
+             // inform about new tuple.
+             resultAvailable.notify_one(); 
+          }
+        }
+     }
+  private:
+     TupleType* tt;
+     bool finished;
+     ptransferFileInputProcessor<L,R>* inputProcessor;
+     boost::thread* runner;
+     list<Tuple*> resultList;
+     boost::condition_variable resultAvailable;
+     boost::mutex resultMutex;
+     boost::mutex listAccess;
+     boost::mutex tupleCreationMtx;
+     int inputTuples;
+     int outputTuples;
+     boost::mutex countMtx;
+     
+};
+
+
+
+
+template<class L , class R>
+int ptransferFileVMT( Word* args, Word& result, int message,
+               Word& local, Supplier s ){
+
+   ptransferLocal<L,R>* li = (ptransferLocal<L,R>*) local.addr;
+
+   switch(message){
+      case OPEN: {
+               if(li) delete li;
+               int serv = ((CcInt*)args[4].addr)->GetValue();
+               int loc = ((CcInt*)args[5].addr)->GetValue();
+               int rem = ((CcInt*)args[6].addr)->GetValue();
+               ListExpr tt = nl->Second(GetTupleResultType(s));
+               local.addr = new ptransferLocal<L,R>(args[0], serv, loc, rem,tt);
+               return 0;
+          }
+      case REQUEST:
+               result.addr = li?li->next():0;
+               return result.addr?YIELD:CANCEL;
+      case CLOSE:
+             if(li){
+                delete li;
+                local.addr = 0;                  
+             }
+             return 0;
+   }
+   return -1;
+}
+
+
+
+OperatorSpec ptransferFileSpec(
+     " stream(tuple) x attrName x attrName x attrName -> stream(Tuple + Ext)",
+     " _ ptransferFile[ ServerAttr, LocalFileAttr, RemoteFileAttr]  ",
+     " Transfers local files to remote servers in parallel. The ServerAttr "
+     " must point to an integer attribute specifying the server number. "
+     " The localFileAttr and remoteFileAttr arguments mark the attribute name"
+     " for the local and remote file name, respectively. Both arguments can be"
+     " of type text or string", 
+     " query fileRel feed ptransferFile[0, LocalFile, RemoteFile] consume");
+
+/*
+1.7.3 Value Mapping Array and Selection
+
+*/
+
+ValueMapping ptransferFileVM[] = {
+  ptransferFileVMT<CcString, CcString>,
+  ptransferFileVMT<CcString, FText>,
+  ptransferFileVMT<FText, CcString>,
+  ptransferFileVMT<FText, FText>
+};
+
+int ptransferFileSelect(ListExpr args){
+
+  string name1 = nl->SymbolValue(nl->Third(args));
+  string name2 = nl->SymbolValue(nl->Fourth(args));
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr type1, type2;
+  listutils::findAttribute(attrList, name1, type1);
+  listutils::findAttribute(attrList, name2, type2);
+  int n1 = CcString::checkType(type1)?0:2;
+  int n2 = CcString::checkType(type2)?0:1;
+
+
+  return n1+n2; 
+}
+
+/*
+1.6.4 Operator instance
+
+*/
+
+Operator ptransferFileOp (
+    "ptransferFile",             //name
+     ptransferFileSpec.getStr(),         //specification
+     4,
+     ptransferFileVM,        //value mapping
+     ptransferFileSelect,   //trivial selection function
+     ptransferFileTM        //type mapping
+);
 
 
 /*
@@ -1673,6 +2195,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&prcmdOp);
    AddOperator(&transferFileOp);
    AddOperator(&requestFileOp);
+   AddOperator(&ptransferFileOp);
 }
 
 

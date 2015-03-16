@@ -53,3 +53,13 @@ Signature : int x {string, text} x {string, text} -> bool
 Example   : query requestFile(0, 'remote.txt', "local.txt")
 Result    : bug
 Remark    : Requires a remote server
+
+
+Operator  : ptransferFile
+Number    : 1
+Signature : stream(tuple) x ID x ID x ID -> stream(extend(tuple))
+Example   : query filetable feed ptransferFile[ServerNo, LocalFileName, RemoteFileName] consume
+Result    : bug
+Remark    : Requires a remote server
+
+
