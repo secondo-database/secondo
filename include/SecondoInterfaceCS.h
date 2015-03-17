@@ -183,7 +183,7 @@ public:
 
    void setTimeout(int t);
 
-   bool sendFile(const string& localFileName,
+   int sendFile(const string& localFileName,
                  const string& serverFileName);
 
    int requestFile( const string& serverFileName,

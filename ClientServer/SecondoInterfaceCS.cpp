@@ -710,10 +710,10 @@ SecondoInterfaceCS::SetDebugLevel( const int level )
 }
 
 
-bool SecondoInterfaceCS::sendFile( const string& localfilename,
+int SecondoInterfaceCS::sendFile( const string& localfilename,
                                    const string& serverFileName){
    if(localfilename.empty() || serverFileName.empty()){
-        return false;
+        return ERR_INVALID_FILE_NAME;
    }
 
    iostream& iosock = server->GetSocketStream();
@@ -728,7 +728,7 @@ bool SecondoInterfaceCS::sendFile( const string& localfilename,
    errorCode = csp->ReadResponse( resultList,
                                   errorCode, errorPos,
                                   errorMessage         );
-   return errorCode==0;
+   return errorCode;
 }
 
 int SecondoInterfaceCS::requestFile(const string& serverFilename,

@@ -152,19 +152,19 @@ class ConnectionInfo{
        }
 
 
-        bool transferFile( const string& local, const string& remote){
+        int transferFile( const string& local, const string& remote){
           simtx.lock();
-          bool res =  si->sendFile(local,remote);
+          int res =  si->sendFile(local,remote);
           simtx.unlock();
           return res;
         }
         
 
-        bool requestFile( const string& remote, const string& local){
+        int requestFile( const string& remote, const string& local){
           simtx.lock();
           int res =  si->requestFile(remote, local);
           simtx.unlock();
-          return res==0;
+          return res;
         }
 
 
@@ -377,29 +377,29 @@ given argument specifies an existing connection.
 Transfers a local file to a remove server.
 
 */
-    bool transferFile( const int con, 
+    int transferFile( const int con, 
                        const string& local,
                        const string& remote){
       if(con < 0 ){
-       return false;
+       return -3;
       }
       unsigned int con2 = con;
       if(con2 >= connections.size()){
-        return false;
+        return -3;
       }
       return connections[con2]->transferFile(local,remote);
     }
     
 
-    bool requestFile( const int con, 
+    int requestFile( const int con, 
                        const string& remote,
                        const string& local){
       if(con < 0 ){
-       return false;
+       return -3;
       }
       unsigned int con2 = con;
       if(con2 >= connections.size()){
-        return false;
+        return -3;
       }
       return connections[con2]->requestFile(remote,local);
     }
@@ -1477,7 +1477,7 @@ ListExpr transferFileTM(ListExpr args){
       && !FText::checkType(nl->Third(args))){
     return listutils::typeError(err);
   } 
-  return listutils::basicSymbol<CcBool>();
+  return listutils::basicSymbol<CcInt>();
 }
 
 template<class L , class R>
@@ -1496,7 +1496,7 @@ int transferFileVMT( Word* args, Word& result, int message,
    }
    int server = Server->GetValue();
    if(server < 0 || server >= algInstance->noConnections()){
-      res->Set(true,false);
+      res->Set(true,-3);
       return 0;
    }
    res->Set(true, algInstance->transferFile(server, 
@@ -1511,7 +1511,7 @@ int transferFileVMT( Word* args, Word& result, int message,
 */
 
 OperatorSpec transferFileSpec(
-     " int x {string, text} x {string, text} -> bool",
+     " int x {string, text} x {string, text} -> int",
      " transferFile( serverNo, localFile, remoteFile) ",
      " Transfers a local file to the remote server. ",
      " query transferFile( 0, 'local.txt', 'remote.txt' ");
@@ -1581,7 +1581,7 @@ ListExpr requestFileTM(ListExpr args){
       && !FText::checkType(nl->Third(args))){
     return listutils::typeError(err);
   } 
-  return listutils::basicSymbol<CcBool>();
+  return listutils::basicSymbol<CcInt>();
 }
 
 /*
@@ -1727,15 +1727,15 @@ ListExpr ptransferFileTM(ListExpr args){
   // input ok, generate output
   ListExpr extAttr = nl->TwoElemList(
                     nl->TwoElemList(
-                            nl->SymbolAtom("OK"), 
-                            listutils::basicSymbol<CcBool>()),
+                            nl->SymbolAtom("ErrorCode"), 
+                            listutils::basicSymbol<CcInt>()),
                     nl->TwoElemList(
                             nl->SymbolAtom("ErrMsg"), 
                             listutils::basicSymbol<FText>()) );
 
   ListExpr newAttrList = listutils::concat(attrList, extAttr);
   if(!listutils::isAttrList(newAttrList)){
-    return listutils::typeError("Attribute OK or ErrMsg "
+    return listutils::typeError("Attribute ErrorCode or ErrMsg "
                                 "already present in tuple");
   }
   ListExpr appendList = nl->ThreeElemList(
@@ -1775,7 +1775,7 @@ This function is called if a single transfer is finished.
 
 */   
     virtual void  transferFinished(Tuple* intuple, 
-                               bool success, 
+                               int errorCode, 
                                const string& msg ) =0;
 
 /*
@@ -1916,15 +1916,18 @@ are available, tankes the first one, and starts the transfer.
                    transfer t = pendingtransfers.front();
                    pendingtransfers.pop_front();   
                    listAccess.unlock();
-                   bool ret = algInstance->transferFile(server, 
+                   int ret = algInstance->transferFile(server, 
                                                        t.local, t.remote);
                    if(listener){
-                      if(ret){
-                          listener->transferFinished(t.inTuple, true, "");
-                      } else {
-                          listener->transferFinished(t.inTuple, false, 
-                                                   "Error during transfer"); 
-                      }
+                       if(ret == -3){ // algebra specific error code
+                          listener->transferFinished(t.inTuple, ret, 
+                                              "Conection number invalid.");
+                       }  else if(ret==0){ // no error
+                          listener->transferFinished(t.inTuple, ret, "");
+                       } else { // general error
+                          listener->transferFinished(t.inTuple, ret, 
+                                   SecondoInterface::GetErrorMessage(ret) );
+                       }
                    } else {
                       t.inTuple->DeleteIfAllowed();
                    }
@@ -2065,7 +2068,7 @@ invalid value, e.g., a negative server number.
 */
        void processInvalidTuple(Tuple* inTuple, const string& msg){
             if(listener){
-               listener->transferFinished(inTuple, false, msg);
+               listener->transferFinished(inTuple, -3, msg);
             } else {
                 inTuple->DeleteIfAllowed();
             }
@@ -2185,7 +2188,7 @@ the success flag and the error message.
 */
 
      // callback function for a single finished transfer
-     virtual void transferFinished(Tuple* inTuple, bool success, 
+     virtual void transferFinished(Tuple* inTuple,int errorCode, 
                                    const string& msg){
 
         tupleCreationMtx.lock();
@@ -2195,9 +2198,9 @@ the success flag and the error message.
            resTuple->CopyAttribute(i,inTuple,i);
         } 
         resTuple->PutAttribute(inTuple->GetNoAttributes(), 
-                               new CcBool(true,success));
+                               new CcInt(true, errorCode));
         resTuple->PutAttribute(inTuple->GetNoAttributes() + 1, 
-                               new FText(true,msg));
+                               new FText(true, msg));
 
         inTuple->DeleteIfAllowed();
 
@@ -2353,7 +2356,7 @@ int ptransferFileSelect(ListExpr args){
 
 Operator ptransferFileOp (
     "ptransferFile",             //name
-     ptransferFileSpec.getStr(),         //specification
+     ptransferFileSpec.getStr(), //specification
      4,
      ptransferFileVM,        //value mapping
      ptransferFileSelect,   //trivial selection function

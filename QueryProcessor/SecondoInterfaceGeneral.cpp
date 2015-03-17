@@ -303,6 +303,13 @@ after the error number have the following meaning:
  errors[ERR_ALGEBRA_UNKNOWN]
   = "Algebra not known or currently not included.";
 
+ errors[ERR_IN_FILETRANSFER]
+  = "Error during tranfer of a file.";
+
+ errors[ERR_INVALID_FILE_NAME]
+  = "Invalid filename.";
+
+
  errors[ERR_UNKNOWN_RETURN_CODE]
   = "A function call returned with an unknown message. ";
 
