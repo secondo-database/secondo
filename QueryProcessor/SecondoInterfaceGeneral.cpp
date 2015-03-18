@@ -309,6 +309,12 @@ after the error number have the following meaning:
  errors[ERR_INVALID_FILE_NAME]
   = "Invalid filename.";
 
+ errors[ERR_FILE_EXISTS]
+  = "File exists.";
+
+ errors[ERR_FILE_NOT_EXISTS]
+  = "File does not exist.";
+
 
  errors[ERR_UNKNOWN_RETURN_CODE]
   = "A function call returned with an unknown message. ";
