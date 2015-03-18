@@ -1214,3 +1214,8 @@ Example  : query intstream(1,1000) messageTest[50] count
 Result   : 1000
 
 
+Operator : errorMessage 
+Number : 1
+Signature : int -> text
+Example  : query errorMessage(0)
+Result   : 'Secondo: No Error!'

@@ -11523,6 +11523,74 @@ Operator messageTestOP(
   messageTestTM
 );
 
+
+/*
+4.41 Operator ~errorMessage~
+
+This operator decodes error codes used internally in Secondo
+into the human redable message.
+
+4.41.1 Type Mapping
+
+
+The operator gets an int and returns a text.
+
+*/
+ListExpr errorMessageTM(ListExpr args){
+  string err = " expected int";
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+  }
+  if(!CcInt::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<FText>();
+}
+
+/*
+4.41.2 Value Mapping
+
+*/
+
+int errorMessageVM( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+   CcInt* arg = (CcInt*) args[0].addr;
+   result = qp->ResultStorage(s);
+   FText* res = (FText*) result.addr;
+   if(!arg->IsDefined()){
+      res->SetDefined(false);
+   } else {
+      res->Set(true, SecondoInterface::GetErrorMessage(arg->GetValue()));
+   }
+   return 0;
+}
+
+/*
+4.41.3 Specification
+
+*/
+OperatorSpec errorMessageSpec(
+  " int -> text",
+  " errorMessage(_)",
+  " transfers an error code into an error message",
+  "query errorMessage(0)"
+);
+
+
+Operator errorMessageOP(
+  "errorMessage",
+  errorMessageSpec.getStr(),
+  errorMessageVM,
+  Operator::SimpleSelect,
+  errorMessageTM
+);
+
+
+
+
+
+
 /*
 5 Creating the algebra
 
@@ -11655,6 +11723,7 @@ Operator messageTestOP(
       AddOperator(&maskBackslashOP);
 
       AddOperator(&messageTestOP);
+      AddOperator(&errorMessageOP);
 
 
 #ifdef RECODE

@@ -110,3 +110,8 @@ operator fileExtension alias fileEXTENSION pattern op(_)
 operator maskBackslash alias MASKBACKSLASH pattern _ op
 
 operator messageTest alias MESSAGETEST pattern _ op [_]
+
+operator errorMessage alias ERRORMESSAGE pattern op(_)
+
+
+
