@@ -17,7 +17,14 @@
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+
+
+
+
+
+
 package viewer;
+
 
 import sj.lang.*;
 import javax.swing.*;
@@ -154,12 +161,14 @@ public class RelViewer extends SecondoViewer{
    
    
    File file = filechooser.getSelectedFile();
-   ListExpr result = importCSV(file,types);
    
-  
+   String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Delimiter input",
+                                                             JOptionPane.PLAIN_MESSAGE);
    
    
+   ListExpr result = importCSV(file,types, delim);
    
+    
    
    if(result==null)
    { 
@@ -167,15 +176,11 @@ public class RelViewer extends SecondoViewer{
      return false;
    }
    
-   
-  
-   
-   
-   ListExpr relHeader = getHeader(types, Tables.get(index).table);
-  
-   
+   ListExpr relHeader = getHeader(types, Tables.get(index).table);   
    
    ListExpr objList = ListExpr.twoElemList(relHeader,result);
+   
+   
    
    String update = "update";
    String assign = ":=";
@@ -194,8 +199,7 @@ public class RelViewer extends SecondoViewer{
    SecondoObject obj = new SecondoObject(file.getName(), objList);
    
    
-   
-   
+      
    
    VC.addObject(obj);
    this.addObject(obj);
@@ -212,7 +216,366 @@ public class RelViewer extends SecondoViewer{
  
  
  
- private ListExpr getHeader(ListExpr[] types, JTable table)
+ 
+ 
+private boolean checkCSVTypes(ListExpr[] types)
+ {
+   for(int i=0;i<types.length;i++)
+   {
+     if(!checkCSVType(types[i]))
+     {
+       return false;
+     }
+   }
+   return true;
+ }
+ 
+ 
+ 
+ private boolean checkCSVType(ListExpr list)
+ {
+    if(list.atomType()!=ListExpr.SYMBOL_ATOM)
+    {
+       return false;
+    }
+    String sv = list.symbolValue();
+    if(sv.equals("int")) return true;
+    if(sv.equals("string")) return true;
+    if(sv.equals("real")) return true;
+    if(sv.equals("bool")) return true;
+    // to be continued
+    return false;
+ }
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ private ListExpr importCSV(File file, ListExpr[] types, String delm)
+ {
+ 
+    try
+    {
+      ListExpr result = null;
+      ListExpr last = null;
+      BufferedReader in = new BufferedReader(new FileReader(file));
+      BufferedReader test = new BufferedReader(new FileReader(file));
+      
+     
+     String dummyheader;
+     String dummycomment;
+     int countcomments = 0;
+     
+     
+     int readloop = -2;
+     int read = test.read();      
+     int read2 = test.read();
+     int readbom = -2;
+     
+     
+    
+          
+     
+    
+     while ( (read == 35 && readloop==-2) || (read2 == 35 && readloop==-2) || readloop == 35)  //maybe there is a BOM at before a "#"
+      {       
+       dummycomment = test.readLine().trim();
+       readloop = test.read();       
+       countcomments++;
+      }
+      
+     
+      
+      
+      
+      
+     if (read == 65279)  
+      {
+      readbom = in.read();                                            //skipping the BOM in the in buffer
+      }
+      
+      
+     
+      
+      for (int i=1; i<=countcomments; i++)
+       {
+        dummyheader = in.readLine().trim();                           //skipping the # rows
+       }
+      
+      
+      
+      
+      while(in.ready())                                                // going through the buffer lines
+      { 
+      
+        String line = in.readLine().trim();
+        if(line.length()>0)
+        {
+          ListExpr tuple = importCSVTuple(line,types,delm);
+          
+          if(tuple==null)
+           {              
+             in.close();
+             return null;
+           } 
+           
+          if(result==null)
+           {
+             result = ListExpr.oneElemList(tuple);
+             last = result;
+           } 
+            
+            else 
+            {
+             last = ListExpr.append(last,tuple);
+            }
+        }  
+       
+      }
+      
+      
+      in.close();
+      return result;
+    } catch(Exception e){
+       Reporter.debug(e);
+       return null;
+    }
+ 
+ }
+ 
+
+ 
+ 
+  
+ 
+ 
+ 
+ 
+ 
+ private ListExpr importCSVTuple(String line, ListExpr[] types, String delim)
+ {    
+    
+    char delimchar;
+    char [] delimchararray;
+    delimchararray = delim.toCharArray();
+    delimchar = delimchararray[0];
+    
+ 
+    MyStringTokenizer st = new MyStringTokenizer(line, delimchar);
+    MyStringTokenizer lang = new MyStringTokenizer(line, delimchar);    
+      
+    
+    ListExpr res = null;
+    ListExpr last = null;
+    ListExpr attr = null;
+    
+    int i=0;
+    int lenght=types.length;
+    int trigger= 0;
+    
+    String token = "dummy";
+    String t="dummy";
+    
+    
+    while (i<lenght)
+    
+    {  
+              
+      token = st.nextToken();        
+        
+      attr = importAttr(types[i],token);
+       
+       if (attr.atomType()==ListExpr.SYMBOL_ATOM) 
+        {t = attr.symbolValue();}
+        
+             
+       
+       if(attr==null)
+        {         
+          return null;
+        }
+       
+         
+       
+       if(res==null)
+        {
+          res = ListExpr.oneElemList(attr);
+          last = res;
+          
+          
+          
+        }
+        
+       else {
+              last = ListExpr.append(last,attr);
+            }
+            
+            
+      i++;  
+      
+    }
+    
+    
+    
+    
+    
+
+    
+    return res;
+ }
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+ 
+ private ListExpr importAttr(ListExpr type, String value)
+ {
+  
+  if (value.trim().equals(""))
+   {
+   return ListExpr.symbolAtom("undef");
+   }
+   
+  else
+  
+  { 
+  
+    String t = type.symbolValue();
+    
+    if(value.trim().equals("undef")  || value.trim().equals("undefined"))
+    
+    {
+      return ListExpr.symbolAtom("undefined");
+    }
+    
+    
+    
+    
+    if(t.equals("int"))
+    
+    { 
+      try
+       {      
+        int v = Integer.parseInt(value.trim());
+     
+        return ListExpr.intAtom(v);
+       }
+      
+        catch(NumberFormatException e)
+        {
+         return ListExpr.symbolAtom("undef");       
+        }
+     } 
+     
+   
+   
+   
+   
+   
+   if(t.equals("real"))
+    { 
+     
+     try
+      {
+     
+        double v = Double.parseDouble(value.trim());
+      
+        return ListExpr.realAtom(v);             
+      }    
+    
+      catch(NumberFormatException e)
+        {        
+         return ListExpr.symbolAtom("undef");
+        }
+        
+     }
+     
+     
+     
+     
+     
+    
+    if (t.equals("bool"))
+    
+    { 
+     
+     try
+      { 
+     
+        Boolean v = Boolean.parseBoolean(value.trim());
+      
+        return ListExpr.boolAtom(v);   
+        
+      }    
+    
+      catch(NumberFormatException e)
+        {
+         return ListExpr.symbolAtom("undef");
+        }
+       
+    
+     }
+    
+    
+    
+    
+    
+    if(t.equals("string"))
+     
+    {
+    
+     try
+      {      
+          
+       return  ListExpr.stringAtom(value.trim());
+        
+      }    
+    
+      catch(NumberFormatException e)
+        {
+         return ListExpr.symbolAtom("undef");
+        }
+    
+     } 
+    
+    // to be continued
+  
+  
+  } //end of else
+    
+    
+    return null; // unsupported type
+}
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+private ListExpr getHeader(ListExpr[] types, JTable table)
  {
     ListExpr res = null;
     ListExpr last = null;
@@ -250,261 +613,6 @@ public class RelViewer extends SecondoViewer{
  
  
  
- private boolean checkCSVTypes(ListExpr[] types)
- {
-   for(int i=0;i<types.length;i++)
-   {
-     if(!checkCSVType(types[i]))
-     {
-       return false;
-     }
-   }
-   return true;
- }
- 
- 
- 
- private boolean checkCSVType(ListExpr list)
- {
-    if(list.atomType()!=ListExpr.SYMBOL_ATOM)
-    {
-       return false;
-    }
-    String sv = list.symbolValue();
-    if(sv.equals("int")) return true;
-    if(sv.equals("string")) return true;
-    if(sv.equals("real")) return true;
-    if(sv.equals("bool")) return true;
-    // to be continued
-    return false;
- }
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- private ListExpr importCSVTuple(String line, ListExpr[] types)
- {
-    StringTokenizer st = new StringTokenizer(line,",");
-    if(st.countTokens()!=types.length)
-    {  
-       return null;
-    }
-    
-   
-    
-    
-    
-    ListExpr res = null;
-    ListExpr last = null;
-    ListExpr attr = null;
-    
-    
-    
-    
-    for(int i=0;i<types.length;i++)
-    {        
-       String token = st.nextToken();      
-        
-       attr = importAttr(types[i],token);
-       
-             
-       
-       
-       
-     if(attr==null)
-        {         
-          return null;
-        }
-       
-       
-       
-       
-      if(res==null)
-        {
-          res = ListExpr.oneElemList(attr);
-          last = res;
-          
-          
-          
-        }
-        
-       else {
-              last = ListExpr.append(last,attr);
-            }
-    }
-    
-    return res;
- }
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- private ListExpr importAttr(ListExpr type, String value)
- {
-    String t = type.symbolValue();
-    
-    if(value.trim().equals("undef")  || value.trim().equals("undefined"))
-    {
-      return ListExpr.symbolAtom("undef");
-    }
-    
-    
-    
-    
-    if(t.equals("int"))
-    { 
-      try
-      {
-      
-        int v = Integer.parseInt(value.trim());
-     
-        return ListExpr.intAtom(v);
-      }
-      
-        catch(NumberFormatException e)
-        {
-         return  null;
-        }
-    } 
-     
-   
-   
-   
-   
-   
-   if(t.equals("real"))
-    { 
-     
-     try
-      {
-     
-        double v = Double.parseDouble(value.trim());
-      
-        return ListExpr.realAtom(v);             
-      }    
-    
-      catch(NumberFormatException e)
-        {
-         return  null;
-        }
-        
-     }
-     
-     
-     
-     
-     
-    
-    if (t.equals("bool"))
-    
-     { 
-     
-     try
-      { 
-     
-        Boolean v = Boolean.parseBoolean(value.trim());
-      
-        return ListExpr.boolAtom(v);   
-        
-      }    
-    
-      catch(NumberFormatException e)
-        {
-         return  null;
-        }
-    
-    }
-    
-    
-    
-    
-    
-    if(t.equals("string"))
-    {
-      return  ListExpr.stringAtom(value.trim());
-    }
-    
-      
-    
-    // to be continued
-    return null; // unsupported type
- }
- 
- 
- 
- 
-
- 
- 
- 
- 
- 
- 
- 
- private ListExpr importCSV(File file, ListExpr[] types)
- {
- 
-    try
-    {
-      ListExpr result = null;
-      ListExpr last = null;
-      BufferedReader in = new BufferedReader(new FileReader(file));
-      
-      String dummyheader = in.readLine().trim();
-      
-      while(in.ready())
-      { 
-      
-        
-        String line = in.readLine().trim();
-        if(line.length()>0)
-        {
-          ListExpr tuple = importCSVTuple(line,types);
-          if(tuple==null)
-           { 
-             
-             in.close();
-             return null;
-           } 
-          if(result==null)
-           {
-             result = ListExpr.oneElemList(tuple);
-             last = result;
-           } 
-            
-            else 
-            {
-             last = ListExpr.append(last,tuple);
-            }
-        }  
-       
-      }
-      
-      
-      in.close();
-      return result;
-    } catch(Exception e){
-       Reporter.debug(e);
-       return null;
-    }
- 
- }
  
 
  
@@ -552,15 +660,10 @@ public class RelViewer extends SecondoViewer{
     try{
        PrintStream out = new PrintStream(new FileOutputStream(file));
 
-       // print out the header
-       for(int j=0;j<table.getColumnCount();j++){
-         if(j>0){
-           out.print(",");
-         }
-         out.print((""+table.getColumnModel().getColumn(j).getIdentifier()).replaceAll("\n"," ").replaceAll(",",";"));
-        
-       }
-       out.println("");
+    
+       
+       
+       
 
        for(int i=0;i<table.getRowCount(); i++){
           for(int j=0;j<table.getColumnCount();j++){
