@@ -142,11 +142,23 @@ The function returns "true"[4], if the current folder could be set.
 
 */
   static bool CreateFolder( const string& folder );
+
 /*
 Creates the folder (directory) located at ~folder~.
 The function returns "true"[4], if the folder could be created.
 
 */
+
+  static bool CreateFolderEx(string folder);
+
+/*
+Creates the folger located at ~folder~ and necessary
+parent directories. The return value is true if the folder
+could be created.
+
+*/
+
+
   static bool IsDirectory( const string& fileName );
 /*
 Check, whether fileName is a directory.

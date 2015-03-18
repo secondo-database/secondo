@@ -62,6 +62,8 @@ June 2009 Sven Jungnickel new function MakeTemp() added.
 
 #include "WinUnix.h"
 
+#include <stack>
+
 using namespace std;
 
 /*
@@ -158,6 +160,25 @@ FileSystem::SetCurrentFolder( const string& folder )
 #endif
 }
 
+bool FileSystem::CreateFolderEx(string pathname){
+  stack<string> toCreate;
+
+  while(pathname.length()>0u && !IsDirectory(pathname)){
+      toCreate.push(pathname);
+      pathname = GetParentFolder(pathname);
+  }
+  while(!toCreate.empty()){
+    string next = toCreate.top();
+    toCreate.pop();
+    if(!CreateFolder(next)){
+       return false;
+    }
+  }
+  return true; 
+}
+
+
+
 bool
 FileSystem::CreateFolder( const string& folder )
 {
@@ -168,6 +189,10 @@ FileSystem::CreateFolder( const string& folder )
   return (::mkdir( folder.c_str(), S_IRWXU | S_IRWXG | S_IRWXO ) == 0);
 #endif
 }
+
+
+
+
 
 bool
 FileSystem::IsDirectory( const string& fileName )
