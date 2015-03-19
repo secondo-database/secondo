@@ -22,6 +22,8 @@
 
 
 
+
+
 package viewer;
 
 
@@ -369,14 +371,34 @@ private boolean checkCSVTypes(ListExpr[] types)
     MyStringTokenizer lang = new MyStringTokenizer(line, delimchar);    
     StringTokenizer lang2 = new StringTokenizer(line, delim);    
     
+    int count = 0;
+    int count2 = lang2.countTokens();
+    int typelenght = types.length;
+    String tokentest = "dummy"; 
     
-    if(lang2.countTokens()>types.length)
-    {  System.out.println("importCSVTuples: counttokens > types lenght:");
-       return null;
+    
+     
+    
+    
+    
+    while (lang.hasMoreTokens())
+     {
+      count++;
+      tokentest = lang.nextToken();               
+    
+     }
+    
+    
+     
+   if((count2 > typelenght) || ( (count2 == count) &&  (count < typelenght)) || (count > typelenght) )  //Table size mismatch
+    
+    
+    {  
+       return null;   
     }
     
     
-        
+    
     
       
     
@@ -394,7 +416,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     
     
     
-   
+    
     
     
     while (i<lenght)
