@@ -70,9 +70,14 @@ public:
    }
    
    bool processTuple(string &partitionKey, string tuple) {
+
       bool result = true;
       receivedTuple++;
       
+      if(statement == NULL) {
+          return false;
+      }
+
       if((partitionKey != lastpartitionKey) 
          || (tupleInBuffer >= MAX_TUPLE_IN_BUFFER)) {
             

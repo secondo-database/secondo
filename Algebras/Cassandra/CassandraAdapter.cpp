@@ -210,7 +210,12 @@ const CassPrepared* CassandraAdapter::prepareCQLInsert(string relation) {
         
         CassError rc = CASS_OK;
         const CassPrepared* result = NULL;
-        
+       
+        if(! isConnected() ) {
+           cerr << "Cassandra session not ready" << endl;
+           return NULL;
+        }
+ 
         string cqlQuery = getInsertCQL(relation, "?", "?", "?", "?");
         cout << "Preparing insert query: "  << cqlQuery << endl;
 
