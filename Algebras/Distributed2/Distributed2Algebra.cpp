@@ -97,7 +97,6 @@ class ConnectionInfo{
        void simpleCommand(string command, int& err, string& result){
           SecErrInfo serr;
           ListExpr resList;
-          assert(si->GetNestedList() == mynl);
           simtx.lock();
           si->Secondo(command, resList, serr);
           err = serr.code;
@@ -121,7 +120,6 @@ class ConnectionInfo{
             errMsg = si->GetErrorMessage(error);
           }
           simtx.unlock();
-          assert(si->GetNestedList() == mynl);
 
           resList = mynl->ToString(myResList);
           mynl->Destroy(myResList);
@@ -139,9 +137,6 @@ class ConnectionInfo{
             errMsg = si->GetErrorMessage(error);
           }
           simtx.unlock();
-
-          assert(si->GetNestedList() == mynl);
-
           // copy resultlist from local nested list to global nested list
           static boost::mutex copylistmutex;
           copylistmutex.lock();
@@ -152,8 +147,8 @@ class ConnectionInfo{
        }
 
 
-        int transferFile( const string& local, const string& remote, 
-                          const bool allowOverwrite){
+        int sendFile( const string& local, const string& remote, 
+                      const bool allowOverwrite){
           simtx.lock();
           int res =  si->sendFile(local,remote, allowOverwrite);
           simtx.unlock();
@@ -388,12 +383,12 @@ given argument specifies an existing connection.
      }
 
 /*
-~transferFile~
+~sendFile~
 
 Transfers a local file to a remove server.
 
 */
-    int transferFile( const int con, 
+    int sendFile( const int con, 
                        const string& local,
                        const string& remote,
                        const bool allowOverwrite){
@@ -404,7 +399,7 @@ Transfers a local file to a remove server.
       if(con2 >= connections.size()){
         return -3;
       }
-      return connections[con2]->transferFile(local,remote, allowOverwrite);
+      return connections[con2]->sendFile(local,remote, allowOverwrite);
     }
     
 
@@ -1491,7 +1486,7 @@ Operator prcmdOp (
 
 
 /*
-1.6 Operator 'transferFile'
+1.6 Operator ~sendFile~ 
 
 Copies a local file to a remove server.  This version works  
 serial.
@@ -1502,7 +1497,7 @@ The arguments are the server number, the name of the local file as well as
 the name of the remote file.
 
 */
-ListExpr transferFileTM(ListExpr args){
+ListExpr sendFileTM(ListExpr args){
   string err = "int x {string, text} x {string, text} [ x bool] expected";
 
   if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
@@ -1529,7 +1524,7 @@ ListExpr transferFileTM(ListExpr args){
 }
 
 template<class L , class R>
-int transferFileVMT( Word* args, Word& result, int message,
+int sendFileVMT( Word* args, Word& result, int message,
                Word& local, Supplier s ){
 
 
@@ -1554,7 +1549,7 @@ int transferFileVMT( Word* args, Word& result, int message,
       res->Set(true,-3);
       return 0;
    }
-   res->Set(true, algInstance->transferFile(server, 
+   res->Set(true, algInstance->sendFile(server, 
                                  Local->GetValue(), 
                                  Remote->GetValue(),
                                  AllowOverwrite->GetValue()));
@@ -1566,25 +1561,25 @@ int transferFileVMT( Word* args, Word& result, int message,
 
 */
 
-OperatorSpec transferFileSpec(
+OperatorSpec sendFileSpec(
      " int x {string, text} x {string, text} -> int",
-     " transferFile( serverNo, localFile, remoteFile) ",
+     " sendFile( serverNo, localFile, remoteFile) ",
      " Transfers a local file to the remote server. ",
-     " query transferFile( 0, 'local.txt', 'remote.txt' ");
+     " query sendFile( 0, 'local.txt', 'remote.txt' ");
 
 /*
 1.6.3 Value Mapping Array and Selection
 
 */
 
-ValueMapping transferFileVM[] = {
-  transferFileVMT<CcString, CcString>,
-  transferFileVMT<CcString, FText>,
-  transferFileVMT<FText, CcString>,
-  transferFileVMT<FText, FText>
+ValueMapping sendFileVM[] = {
+  sendFileVMT<CcString, CcString>,
+  sendFileVMT<CcString, FText>,
+  sendFileVMT<FText, CcString>,
+  sendFileVMT<FText, FText>
 };
 
-int transferFileSelect(ListExpr args){
+int sendFileSelect(ListExpr args){
 
   int n1 = CcString::checkType(nl->Second(args))?0:2;
   int n2 = CcString::checkType(nl->Third(args))?0:1;
@@ -1596,13 +1591,13 @@ int transferFileSelect(ListExpr args){
 
 */
 
-Operator transferFileOp (
-    "transferFile",             //name
-     transferFileSpec.getStr(),         //specification
+Operator sendFileOp (
+    "sendFile",             //name
+     sendFileSpec.getStr(),         //specification
      4,
-     transferFileVM,        //value mapping
-     transferFileSelect,   //trivial selection function
-     transferFileTM        //type mapping
+     sendFileVM,        //value mapping
+     sendFileSelect,   //trivial selection function
+     sendFileTM        //type mapping
 );
 
 
@@ -1724,9 +1719,10 @@ Operator requestFileOp (
 
 
 /*
-1.7 Operator ~ptransferFile~
+1.7 Operators ~psendFile~ and ~prequestFile~
 
-This operator transfers local files to connected SecondoServers in parallel.
+These operators transfers files between the local
+file system and the remote server.
 
 1.7.1 Type Mapping
 
@@ -1923,6 +1919,24 @@ allow to interrupt a transfer.
 */
 
 
+class sendFunctor{
+ public:
+  int operator()(const int server, const string& source, 
+                 const string& target, const bool allowOverwrite){
+    return algInstance->sendFile(server, source, target, allowOverwrite);
+  }
+};
+
+class requestFunctor{
+ public:
+  int operator()(const int server, const string& source, 
+                 const string& target, const bool allowOverwrite){
+    return algInstance->requestFile(server, source, target, allowOverwrite);
+  }
+};
+
+
+template<class T>
 class fileTransferator{
   public:
 
@@ -2020,9 +2034,8 @@ are available, tankes the first one, and starts the transfer.
                    transfer t = pendingtransfers.front();
                    pendingtransfers.pop_front();   
                    listAccess.unlock();
-                   int ret = algInstance->transferFile(server, 
-                                                       t.local, t.remote,
-                                                       t.allowOverwrite);
+                   int ret = functor(server, t.local, t.remote, 
+                                     t.allowOverwrite);
                    if(listener){
                        if(ret == -3){ // algebra specific error code
                           listener->transferFinished(t.inTuple, ret, 
@@ -2048,6 +2061,7 @@ are available, tankes the first one, and starts the transfer.
     boost::thread runnerThread;
     boost::mutex condmtx;
     boost::condition_variable cond;
+    T functor;
 };
 
 
@@ -2060,7 +2074,7 @@ parallel file transfer.
 
 */
 
-template<class L, class R>
+template<class L, class R, class T>
 class ptransferFileInputProcessor{
      public:
 
@@ -2088,7 +2102,7 @@ class ptransferFileInputProcessor{
         ~ptransferFileInputProcessor(){
            stream.close();
            // stop active threads
-           map<int, fileTransferator*>::iterator it;
+           typename map<int, fileTransferator<T>*>::iterator it;
            for(it = activeThreads.begin(); it!=activeThreads.end(); it++){
                it->second->stop();
            }
@@ -2166,7 +2180,8 @@ This function processes the tuples of the input stream.
                               // < 0 if default
        transferFileListener* listener; // reference to the listener object 
        bool stopped;          // flag for activiness
-       map<int, fileTransferator*> activeThreads; //threads for each connection
+       map<int, fileTransferator<T>*>
+                             activeThreads; //threads for each connection
 
 
 /*
@@ -2201,7 +2216,8 @@ server.
                               const bool allowOverwrite){
 
           if(activeThreads.find(server)==activeThreads.end()){
-              fileTransferator* fi = new fileTransferator(server, listener);
+              fileTransferator<T>* fi =
+                               new fileTransferator<T>(server, listener);
               activeThreads[server] = fi; 
           } 
           activeThreads[server]->addTransfer(inTuple, 
@@ -2218,7 +2234,7 @@ This is the local info class for the ptransfer operator.
 
 */
 
-template<class L, class R>
+template<class L, class R, class T>
 class ptransferLocal: public transferFileListener {
 
   public:
@@ -2236,11 +2252,11 @@ class ptransferLocal: public transferFileListener {
         outputTuples = 0; // up to now, there is no output tuple
         tt = new TupleType(_tt);
         inputProcessor = 
-              new ptransferFileInputProcessor<L,R>(stream,_serverindex, 
+              new ptransferFileInputProcessor<L,R,T>(stream,_serverindex, 
                                            _localindex, _remoteindex,
                                            _overwrite, this);
         runner = new boost::thread( boost::bind(
-                &ptransferFileInputProcessor<L,R>::run, inputProcessor));
+                &ptransferFileInputProcessor<L,R,T>::run, inputProcessor));
      }
 
 /*
@@ -2373,7 +2389,7 @@ This function is called if the number of input tuples is known.
   private:
      TupleType* tt;
      bool finished;
-     ptransferFileInputProcessor<L,R>* inputProcessor;
+     ptransferFileInputProcessor<L,R,T>* inputProcessor;
      boost::thread* runner;
      list<Tuple*> resultList;
      boost::condition_variable resultAvailable;
@@ -2392,11 +2408,11 @@ This function is called if the number of input tuples is known.
 
 */
 
-template<class L , class R>
+template<class L , class R, class T>
 int ptransferFileVMT( Word* args, Word& result, int message,
                Word& local, Supplier s ){
 
-   ptransferLocal<L,R>* li = (ptransferLocal<L,R>*) local.addr;
+   ptransferLocal<L,R,T>* li = (ptransferLocal<L,R,T>*) local.addr;
 
    switch(message){
       case OPEN: {
@@ -2406,7 +2422,7 @@ int ptransferFileVMT( Word* args, Word& result, int message,
                int rem = ((CcInt*)args[7].addr)->GetValue();
                int over = ((CcInt*) args[8].addr)->GetValue(); 
                ListExpr tt = nl->Second(GetTupleResultType(s));
-               local.addr = new ptransferLocal<L,R>(args[0], serv, loc, 
+               local.addr = new ptransferLocal<L,R,T>(args[0], serv, loc, 
                                                      rem, over, tt);
                return 0;
           }
@@ -2428,30 +2444,50 @@ int ptransferFileVMT( Word* args, Word& result, int message,
 
 */
 
-OperatorSpec ptransferFileSpec(
+OperatorSpec psendFileSpec(
      " stream(tuple) x attrName x attrName x attrName -> stream(Tuple + Ext)",
-     " _ ptransferFile[ ServerAttr, LocalFileAttr, RemoteFileAttr]  ",
+     " _ psendFile[ ServerAttr, LocalFileAttr, RemoteFileAttr]  ",
      " Transfers local files to remote servers in parallel. The ServerAttr "
      " must point to an integer attribute specifying the server number. "
      " The localFileAttr and remoteFileAttr arguments mark the attribute name"
      " for the local and remote file name, respectively. Both arguments can be"
      " of type text or string", 
-     " query fileRel feed ptransferFile[0, LocalFile, RemoteFile] consume");
+     " query fileRel feed psendFile[0, LocalFile, RemoteFile] consume");
+
+
+OperatorSpec prequestFileSpec(
+     " stream(tuple) x attrName x attrName x attrName -> stream(Tuple + Ext)",
+     " _ prequestFile[ ServerAttr, RemoteFileAttr, LocalFileAttr]  ",
+     " Transfers remote files to local file system  in parallel. "
+     "The ServerAttr "
+     " must point to an integer attribute specifying the server number. "
+     " The localFileAttr and remoteFileAttr arguments mark the attribute name"
+     " for the local and remote file name, respectively. Both arguments can be"
+     " of type text or string", 
+     " query fileRel feed prequestFile[0, LocalFile, RemoteFile] consume");
 
 /*
 1.7.3 Value Mapping Array and Selection
 
 */
 
-ValueMapping ptransferFileVM[] = {
-  ptransferFileVMT<CcString, CcString>,
-  ptransferFileVMT<CcString, FText>,
-  ptransferFileVMT<FText, CcString>,
-  ptransferFileVMT<FText, FText>
+ValueMapping psendFileVM[] = {
+  ptransferFileVMT<CcString, CcString, sendFunctor>,
+  ptransferFileVMT<CcString, FText, sendFunctor>,
+  ptransferFileVMT<FText, CcString, sendFunctor>,
+  ptransferFileVMT<FText, FText, sendFunctor>
 };
 
-int ptransferFileSelect(ListExpr args){
+ValueMapping prequestFileVM[] = {
+  ptransferFileVMT<CcString, CcString, requestFunctor>,
+  ptransferFileVMT<CcString, FText, requestFunctor>,
+  ptransferFileVMT<FText, CcString, requestFunctor>,
+  ptransferFileVMT<FText, FText, requestFunctor>
+};
 
+
+
+int ptransferFileSelect(ListExpr args){
   string name1 = nl->SymbolValue(nl->Third(args));
   string name2 = nl->SymbolValue(nl->Fourth(args));
   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
@@ -2469,15 +2505,23 @@ int ptransferFileSelect(ListExpr args){
 
 */
 
-Operator ptransferFileOp (
-    "ptransferFile",             //name
-     ptransferFileSpec.getStr(), //specification
+Operator psendFileOp (
+    "psendFile",             //name
+     psendFileSpec.getStr(), //specification
      4,
-     ptransferFileVM,        //value mapping
+     psendFileVM,        //value mapping
      ptransferFileSelect,   //trivial selection function
      ptransferFileTM        //type mapping
 );
 
+Operator prequestFileOp (
+    "prequestFile",             //name
+     prequestFileSpec.getStr(), //specification
+     4,
+     prequestFileVM,        //value mapping
+     ptransferFileSelect,   //trivial selection function
+     ptransferFileTM        //type mapping
+);
 
 /*
 1.7 Operators ~getRequestFolder~ and ~getTransferFolder~
@@ -2575,9 +2619,10 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&rqueryOp);
    rqueryOp.SetUsesArgsInTypeMapping();
    AddOperator(&prcmdOp);
-   AddOperator(&transferFileOp);
+   AddOperator(&sendFileOp);
    AddOperator(&requestFileOp);
-   AddOperator(&ptransferFileOp);
+   AddOperator(&psendFileOp);
+   AddOperator(&prequestFileOp);
    AddOperator(&getRequestFolderOp);
    AddOperator(&getSendFolderOp);
 }

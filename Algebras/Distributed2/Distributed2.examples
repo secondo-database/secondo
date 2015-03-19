@@ -40,10 +40,10 @@ Example   : query intstream(0,5) namedtransformstream[Server] extend[ W : 'open 
 Result    : bug
 Remark    : requires a remote server
 
-Operator : transferFile
+Operator : sendFile
 Number   : 1
 Signature : int x {string, text} x {string, text} -> bool
-Example   : query transferFile(0, 'local.txt', "remote.txt")
+Example   : query sendFile(0, 'local.txt', "remote.txt")
 Result    : bug
 Remark    : Requires a remote server
 
@@ -55,12 +55,22 @@ Result    : bug
 Remark    : Requires a remote server
 
 
-Operator  : ptransferFile
+Operator  : psendFile
 Number    : 1
 Signature : stream(tuple) x ID x ID x ID -> stream(extend(tuple))
-Example   : query filetable feed ptransferFile[ServerNo, LocalFileName, RemoteFileName] consume
+Example   : query filetable feed psendFile[ServerNo, LocalFileName, RemoteFileName] consume
 Result    : bug
 Remark    : Requires a remote server
+
+
+Operator  : prequestFile
+Number    : 1
+Signature : stream(tuple) x ID x ID x ID -> stream(extend(tuple))
+Example   : query filetable feed prequestFile[ServerNo, RemoteFileName, LocalFileName] consume
+Result    : bug
+Remark    : Requires a remote server
+
+
 
 Operator  : getRequestFolder 
 Number    : 1
