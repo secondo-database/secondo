@@ -359,6 +359,38 @@ For transfer a file from client to the server (for example for importing it), th
 ----
    <FileTransfer>\n
    filename\n
+----
+
+Depending wether overwriting of files is allowed or not, the next line sent to the
+server is.
+
+----
+   <ALLOW_OVERWRITING>\n
+----
+
+or
+  
+----
+  <DISALLOW_OVERWRITING>\n
+----
+
+The answer of the server in case of an error is.
+
+----
+  <SecondoError>\n
+   ErrorMessage \n
+  </SecondoError>\n
+----
+
+If there are no problems up to now, the server answers:
+
+----
+  <SecondoOK>
+----
+
+In this case, the client sends the file to the server:
+
+----
    <FileData>\n
    N\n
    byte1..byteN
@@ -587,7 +619,7 @@ struct CSProtocol {
      cerr << errMsg << endl;
      return false;
    }
-   cerr << "line: \"" << line << "\"" << endl; 
+   //cerr << "line: \"" << line << "\"" << endl; 
    return true;  
  }
 
@@ -637,7 +669,7 @@ struct CSProtocol {
 
       // send file size
       iosock << length << endl;         
-      cout << "SendFile: file size: " << length <<  " bytes." << endl;
+      // cout << "SendFile: file size: " << length <<  " bytes." << endl;
       
       // send file data
       uint64_t read2 = 0;
@@ -648,8 +680,8 @@ struct CSProtocol {
         read2 += read;
         iosock.write(buf, read);
       }
-      cout << "SendFile: transmitted " 
-           << read2 <<  " bytes to the server." << endl;
+      //cout << "SendFile: transmitted " 
+      //     << read2 <<  " bytes to the server." << endl;
 
       restoreFile.close();
       
@@ -670,26 +702,36 @@ struct CSProtocol {
   return true;
 }       
 
-bool ReceiveFile( const string& serverFileName )
+bool ReceiveFile( const string& localFileName )
 {
-  //cout << "Begin ReceiveFile()" << endl;
   
   string errMsg = "";
-  if ( !nextLine(startFileData, errMsg) )
+  string line="";
+  getline(iosock, line);
+  if(line == sendFileError ){ 
+     return false;
+  }
+  if(line != startFileData){
+    // protocol error
     return false;
-  
+  }
+
   // read file size
   uint64_t size = 0;
   iosock >> size;    
   skipRestOfLine();
-  cout << "Size: " << size << endl;
+  // cout << "Size: " << size << endl;
   
-  ofstream serverFile( serverFileName.c_str() );
+  ofstream localFile;
+  localFile.open( localFileName.c_str() );
   
   static unsigned int bufSize=512;
   char buf[bufSize];
   size_t calls=0;
   uint64_t size2=size;
+
+  // get data and write them to local file
+
   while (!iosock.fail() && size)
   {
     if (size < bufSize)
@@ -697,18 +739,17 @@ bool ReceiveFile( const string& serverFileName )
     iosock.read(buf, bufSize);
     calls++;
     size_t read=iosock.gcount();
-    serverFile.write(buf, read);
+    localFile.write(buf, read);
     size -= read; 
   }
   cout << "Average read bytes per iosock.read(): " << (1.0*size2)/calls << endl;
-  serverFile.close();
+  localFile.close();
 
   // check protool end sequence
-  if ( !nextLine(endFileData, errMsg) )
+  if ( !nextLine(endFileData, errMsg) ) {
     return false;    
+  }
     
-  //cout << "End ReceiveFile()" << endl;
-  
   return true;
 }
 

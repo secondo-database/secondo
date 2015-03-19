@@ -152,17 +152,33 @@ class ConnectionInfo{
        }
 
 
-        int transferFile( const string& local, const string& remote){
+        int transferFile( const string& local, const string& remote, 
+                          const bool allowOverwrite){
           simtx.lock();
-          int res =  si->sendFile(local,remote);
+          int res =  si->sendFile(local,remote, allowOverwrite);
           simtx.unlock();
           return res;
         }
         
 
-        int requestFile( const string& remote, const string& local){
+        int requestFile( const string& remote, const string& local,
+                         const bool allowOverwrite){
           simtx.lock();
-          int res =  si->requestFile(remote, local);
+          int res =  si->requestFile(remote, local, allowOverwrite);
+          simtx.unlock();
+          return res;
+        }
+
+        string getRequestFolder(){
+          simtx.lock();
+          string res =  si->getRequestFileFolder();
+          simtx.unlock();
+          return res;
+        }
+        
+        string getSendFolder(){
+          simtx.lock();
+          string res =  si->getSendFileFolder();
           simtx.unlock();
           return res;
         }
@@ -379,7 +395,8 @@ Transfers a local file to a remove server.
 */
     int transferFile( const int con, 
                        const string& local,
-                       const string& remote){
+                       const string& remote,
+                       const bool allowOverwrite){
       if(con < 0 ){
        return -3;
       }
@@ -387,13 +404,14 @@ Transfers a local file to a remove server.
       if(con2 >= connections.size()){
         return -3;
       }
-      return connections[con2]->transferFile(local,remote);
+      return connections[con2]->transferFile(local,remote, allowOverwrite);
     }
     
 
     int requestFile( const int con, 
-                       const string& remote,
-                       const string& local){
+                     const string& remote,
+                     const string& local,
+                     const bool allowOverwrite){
       if(con < 0 ){
        return -3;
       }
@@ -401,8 +419,32 @@ Transfers a local file to a remove server.
       if(con2 >= connections.size()){
         return -3;
       }
-      return connections[con2]->requestFile(remote,local);
+      return connections[con2]->requestFile(remote,local, allowOverwrite);
     }
+
+
+    string getRequestFolder( int con){
+      if(con < 0 ){
+       return "";
+      }
+      unsigned int con2 = con;
+      if(con2 >= connections.size()){
+        return "";
+      }
+      return connections[con2]->getRequestFolder(); 
+    }
+    
+    string getSendFolder( int con){
+      if(con < 0 ){
+       return "";
+      }
+      unsigned int con2 = con;
+      if(con2 >= connections.size()){
+        return "";
+      }
+      return connections[con2]->getSendFolder(); 
+    }
+
 
   private:
     vector<ConnectionInfo*> connections;
@@ -1461,9 +1503,9 @@ the name of the remote file.
 
 */
 ListExpr transferFileTM(ListExpr args){
-  string err = "int x {string, text} x {string, text} expected";
+  string err = "int x {string, text} x {string, text} [ x bool] expected";
 
-  if(!nl->HasLength(args,3)){
+  if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
     return listutils::typeError(err);
   }
   if(!CcInt::checkType(nl->First(args))){
@@ -1476,7 +1518,13 @@ ListExpr transferFileTM(ListExpr args){
   if(    !CcString::checkType(nl->Third(args)) 
       && !FText::checkType(nl->Third(args))){
     return listutils::typeError(err);
-  } 
+  }
+
+  if(nl->HasLength(args,4)){
+     if(!CcBool::checkType(nl->Fourth(args))){
+        return listutils::typeError(err);
+     }
+  }
   return listutils::basicSymbol<CcInt>();
 }
 
@@ -1488,9 +1536,16 @@ int transferFileVMT( Word* args, Word& result, int message,
    CcInt* Server = (CcInt*) args[0].addr;
    L* Local = (L*) args[1].addr;
    R* Remote = (R*) args[2].addr;
+   CcBool al(true,false);
+   CcBool* AllowOverwrite = &al;
+
+   if(qp->GetNoSons(s)==4){
+      AllowOverwrite = (CcBool*) args[3].addr;
+   }
    result = qp->ResultStorage(s);
-   CcBool* res = (CcBool*) result.addr;
-   if(!Server->IsDefined() || ! Local->IsDefined() || !Remote->IsDefined()){
+   CcInt* res = (CcInt*) result.addr;
+   if(!Server->IsDefined() || ! Local->IsDefined() || !Remote->IsDefined()
+      || !AllowOverwrite->IsDefined()){
       res->SetDefined(false);
       return 0;
    }
@@ -1501,7 +1556,8 @@ int transferFileVMT( Word* args, Word& result, int message,
    }
    res->Set(true, algInstance->transferFile(server, 
                                  Local->GetValue(), 
-                                 Remote->GetValue()));
+                                 Remote->GetValue(),
+                                 AllowOverwrite->GetValue()));
    return 0;
 }
 
@@ -1565,9 +1621,9 @@ transfer.
 */
 
 ListExpr requestFileTM(ListExpr args){
-  string err = "int x {string, text} x {string, text} expected";
+  string err = "int x {string, text} x {string, text} [ x bool] expected";
 
-  if(!nl->HasLength(args,3)){
+  if(!nl->HasLength(args,4) && !nl->HasLength(args,3) ){
     return listutils::typeError(err);
   }
   if(!CcInt::checkType(nl->First(args))){
@@ -1580,7 +1636,15 @@ ListExpr requestFileTM(ListExpr args){
   if(    !CcString::checkType(nl->Third(args)) 
       && !FText::checkType(nl->Third(args))){
     return listutils::typeError(err);
-  } 
+  }
+
+  if(nl->HasLength(args,4)){ 
+    // full argument set given
+     if(!CcBool::checkType(nl->Fourth(args))){
+        return listutils::typeError(err);
+     }
+  }
+
   return listutils::basicSymbol<CcInt>();
 }
 
@@ -1592,21 +1656,28 @@ ListExpr requestFileTM(ListExpr args){
 template<class R , class L>
 int requestFileVMT( Word* args, Word& result, int message,
                Word& local, Supplier s ){
-
-
    CcInt* Server = (CcInt*) args[0].addr;
    R* Remote = (R*) args[1].addr;
    L* Local = (L*) args[2].addr;
+
+   CcBool al(true,false);
+   CcBool* AllowOverwrite = &al;
+   if(qp->GetNoSons(s)==4){
+     AllowOverwrite = (CcBool*) args[3].addr;
+   }
    result = qp->ResultStorage(s);
-   CcBool* res = (CcBool*) result.addr;
-   if(!Server->IsDefined() || ! Local->IsDefined() || !Remote->IsDefined()){
+   CcInt* res = (CcInt*) result.addr;
+   
+   if(!Server->IsDefined() || ! Local->IsDefined() || !Remote->IsDefined()
+      || !AllowOverwrite->IsDefined()){
       res->SetDefined(false);
       return 0;
    }
    int server = Server->GetValue();
    res->Set(true, algInstance->requestFile(server, 
                                  Remote->GetValue(), 
-                                 Local->GetValue()));
+                                 Local->GetValue(),
+                                 AllowOverwrite->GetValue()));
    return 0;
 }
 
@@ -1679,7 +1750,7 @@ ListExpr ptransferFileTM(ListExpr args){
 
   string err = "stream(tuple) x attrname x attrname x attrname expected";
 
-  if(!nl->HasLength(args,4)){
+  if(!nl->HasLength(args,4) && !nl->HasLength(args,5) ){
     return listutils::typeError(err + " (invalid number of attributes)");
   }
   ListExpr stream = nl->First(args);
@@ -1688,6 +1759,7 @@ ListExpr ptransferFileTM(ListExpr args){
   if(!Stream<Tuple>::checkType(stream)){
     return listutils::typeError(err + " ( first arg is not a tuple stream)");
   }
+
   for(int i=0;i<3;i++){
     if(nl->AtomType(attrs[i])!=SymbolType){
        return listutils::typeError(err + " ( invalid attribute name found )");
@@ -1724,6 +1796,40 @@ ListExpr ptransferFileTM(ListExpr args){
                                 " is not of type string or text");
   }
 
+  int indexOver = -1;
+  ListExpr appendList;
+
+  if(nl->HasLength(args,5)){ // full parameter set
+    ListExpr overname = nl->Fifth(args);
+    if(nl->AtomType(overname)!=SymbolType){
+      return listutils::typeError("invalid attribute name detected");
+    }
+    name = nl->SymbolValue(overname);
+    indexOver = listutils::findAttribute(attrList, name, type);
+    if(!indexOver){
+       return listutils::typeError(" attribute " + name + " not found");
+    }
+    if(!CcBool::checkType(type)){
+       return listutils::typeError(" attribute " + name + 
+                                   " is not of type bool");
+    }
+    appendList = nl->FourElemList(
+                          nl->IntAtom(indexServer-1),
+                          nl->IntAtom(indexLocal-1),
+                          nl->IntAtom(indexRemote-1),
+                          nl->IntAtom(indexOver-1));
+
+  } else { // optional overwrite omitten
+    appendList = nl->FiveElemList(
+                          nl->IntAtom(-3),  
+                         // dummy filling up missing attribute name
+                          nl->IntAtom(indexServer-1),
+                          nl->IntAtom(indexLocal-1),
+                          nl->IntAtom(indexRemote-1),
+                          nl->IntAtom(indexOver));
+  }
+
+
   // input ok, generate output
   ListExpr extAttr = nl->TwoElemList(
                     nl->TwoElemList(
@@ -1738,11 +1844,6 @@ ListExpr ptransferFileTM(ListExpr args){
     return listutils::typeError("Attribute ErrorCode or ErrMsg "
                                 "already present in tuple");
   }
-  ListExpr appendList = nl->ThreeElemList(
-                          nl->IntAtom(indexServer-1),
-                          nl->IntAtom(indexLocal-1),
-                          nl->IntAtom(indexRemote-1));
-
   ListExpr resultList = nl->TwoElemList(
                             listutils::basicSymbol<Stream<Tuple> >(),
                             nl->TwoElemList(
@@ -1798,12 +1899,15 @@ file transfer.
 
 */
 struct transfer{
-  transfer(Tuple* _tuple, const string& _local, const string& _remote):
-    inTuple(_tuple), local(_local), remote(_remote){}
+  transfer(Tuple* _tuple, const string& _local, const string& _remote,
+           const bool _allowOverwrite):
+    inTuple(_tuple), local(_local), remote(_remote), 
+    allowOverwrite(_allowOverwrite){}
 
   Tuple* inTuple;
   string local;
   string remote;
+  bool allowOverwrite;
 };
 
 /*
@@ -1882,8 +1986,8 @@ will be handled as the last one.
 */
 
       void addTransfer(Tuple* inTuple, const string& local, 
-                       const string& remote) {
-          transfer newTransfer(inTuple, local, remote);
+                       const string& remote, const bool allowOverwrite) {
+          transfer newTransfer(inTuple, local, remote, allowOverwrite);
           listAccess.lock();
           pendingtransfers.push_back(newTransfer);
           listAccess.unlock();
@@ -1917,7 +2021,8 @@ are available, tankes the first one, and starts the transfer.
                    pendingtransfers.pop_front();   
                    listAccess.unlock();
                    int ret = algInstance->transferFile(server, 
-                                                       t.local, t.remote);
+                                                       t.local, t.remote,
+                                                       t.allowOverwrite);
                    if(listener){
                        if(ret == -3){ // algebra specific error code
                           listener->transferFinished(t.inTuple, ret, 
@@ -1965,20 +2070,15 @@ class ptransferFileInputProcessor{
 */
         ptransferFileInputProcessor(Word& _stream, 
                                    int _serverIndex, int _localIndex, 
-                       int _remoteIndex, transferFileListener* _listener):
+                       int _remoteIndex, int _overwriteIndex,
+                       transferFileListener* _listener):
           stream(_stream), serverIndex(_serverIndex), localIndex(_localIndex),
-          remoteIndex(_remoteIndex), listener(_listener), stopped(false) 
+          remoteIndex(_remoteIndex), overwriteIndex(_overwriteIndex),
+          listener(_listener), stopped(false) 
        {
           stream.open();
         }
 
-        ptransferFileInputProcessor(const ptransferFileInputProcessor& src):
-          stream(src.stream), serverIndex(src.serverIndex), 
-          localIndex(src.localIndex),
-          remoteIndex(src.remoteIndex), listener(src.listener), 
-          stopped(src.stopped),
-          activeThreads(src.activeThreads) {
-        }
 
 
 /*
@@ -2025,18 +2125,27 @@ This function processes the tuples of the input stream.
                CcInt* Server = (CcInt*) inTuple->GetAttribute(serverIndex);
                L* Local = (L*) inTuple->GetAttribute(localIndex);
                R* Remote = (R*) inTuple->GetAttribute(remoteIndex);
+               CcBool* Overwrite = 0;
+               CcBool defaultOverwrite(true,false);
+               if(overwriteIndex>=0){
+                  Overwrite = (CcBool*) inTuple->GetAttribute(overwriteIndex);
+               } else {
+                  Overwrite = &defaultOverwrite;
+               }
 
                if(!Server->IsDefined() || !Local->IsDefined()
-                  || !Remote->IsDefined()){
+                  || !Remote->IsDefined() || !Overwrite->IsDefined()){
                    processInvalidTuple(inTuple, "undefined value found");
                } else {
                   int server = Server->GetValue(); 
                   string localname = Local->GetValue();
                   string remotename = Remote->GetValue();
+                  bool overwrite = Overwrite->GetValue();
                   if(server < 0 || server >= algInstance->noConnections()){
                      processInvalidTuple(inTuple, "invalid server number");
                   } else {
-                    processValidTuple(inTuple, server, localname, remotename);
+                    processValidTuple(inTuple, server, localname, 
+                                      remotename, overwrite);
                   }
                }
                inTuple = stream.request();
@@ -2049,10 +2158,12 @@ This function processes the tuples of the input stream.
 
 
     private:
-       Stream<Tuple> stream;  //input stream
+       Stream<Tuple> stream;  // input stream
        int serverIndex;       // where to find server index in input tuple
        int localIndex;        // where to find the local file name
        int remoteIndex;       // where to find the remote file name
+       int overwriteIndex;    // where to find the remote file name, 
+                              // < 0 if default
        transferFileListener* listener; // reference to the listener object 
        bool stopped;          // flag for activiness
        map<int, fileTransferator*> activeThreads; //threads for each connection
@@ -2086,13 +2197,15 @@ server.
 
 */
        void processValidTuple(Tuple* inTuple, const int server, 
-                              const string& local, const string& remote){
+                              const string& local, const string& remote,
+                              const bool allowOverwrite){
 
           if(activeThreads.find(server)==activeThreads.end()){
               fileTransferator* fi = new fileTransferator(server, listener);
               activeThreads[server] = fi; 
           } 
-          activeThreads[server]->addTransfer(inTuple, local,remote);
+          activeThreads[server]->addTransfer(inTuple, 
+                                           local,remote, allowOverwrite);
        }
   };
 
@@ -2118,14 +2231,14 @@ class ptransferLocal: public transferFileListener {
 
      ptransferLocal(Word& stream, int _serverindex,
                     int _localindex, int  _remoteindex,
-                    ListExpr _tt) {
+                    int _overwrite, ListExpr _tt) {
         inputTuples = -1; // unknown number of input tuples
         outputTuples = 0; // up to now, there is no output tuple
         tt = new TupleType(_tt);
         inputProcessor = 
               new ptransferFileInputProcessor<L,R>(stream,_serverindex, 
-                                           _localindex, _remoteindex, 
-                                           this);
+                                           _localindex, _remoteindex,
+                                           _overwrite, this);
         runner = new boost::thread( boost::bind(
                 &ptransferFileInputProcessor<L,R>::run, inputProcessor));
      }
@@ -2288,11 +2401,13 @@ int ptransferFileVMT( Word* args, Word& result, int message,
    switch(message){
       case OPEN: {
                if(li) delete li;
-               int serv = ((CcInt*)args[4].addr)->GetValue();
-               int loc = ((CcInt*)args[5].addr)->GetValue();
-               int rem = ((CcInt*)args[6].addr)->GetValue();
+               int serv = ((CcInt*)args[5].addr)->GetValue();
+               int loc = ((CcInt*)args[6].addr)->GetValue();
+               int rem = ((CcInt*)args[7].addr)->GetValue();
+               int over = ((CcInt*) args[8].addr)->GetValue(); 
                ListExpr tt = nl->Second(GetTupleResultType(s));
-               local.addr = new ptransferLocal<L,R>(args[0], serv, loc, rem,tt);
+               local.addr = new ptransferLocal<L,R>(args[0], serv, loc, 
+                                                     rem, over, tt);
                return 0;
           }
       case REQUEST:
@@ -2365,6 +2480,90 @@ Operator ptransferFileOp (
 
 
 /*
+1.7 Operators ~getRequestFolder~ and ~getTransferFolder~
+
+These operator are indeed to get the folder for sending and 
+receiving files on remote servers.
+
+1.7.1 Type Mapping
+
+*/
+ListExpr getFoldersTM(ListExpr args){
+
+  string err = "int expected";
+
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(!CcInt::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  } 
+  return listutils::basicSymbol<FText>();
+}
+
+
+/*
+1.7.2 Value Mapping
+
+*/
+
+template<bool send>
+int getFolderVM(Word* args, Word& result, int message,
+                Word& local, Supplier s ){
+
+  CcInt* server = (CcInt*) args[0].addr;
+  result = qp->ResultStorage(s);
+  FText* res = (FText*) result.addr;
+  if(!server->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  int ser = server->GetValue();
+  if(ser<0 || ser >=algInstance->noConnections()){
+     res->SetDefined(false);
+     return 0;
+  }
+  if(send) {
+     res->Set(true, algInstance->getSendFolder(ser));
+  } else {
+     res->Set(true, algInstance->getRequestFolder(ser));
+  }
+  return 0;
+}
+
+
+OperatorSpec getRequestFolderSpec(
+     " int -> text ",
+     " getRequestFolder(_)  ",
+     " return the name of the folder on the server for a given connection "
+     " from where files are requested. ",
+     " query getRequestFolder(0)");
+
+OperatorSpec getSendFolderSpec(
+     " int -> text ",
+     " getSendFolder(_)  ",
+     " returns the name of the folder on the server for a given connection "
+     " into which files are written. ",
+     " query getSendFolder(0)");
+
+
+Operator getRequestFolderOp (
+    "getRequestFolder",             //name
+     getRequestFolderSpec.getStr(), //specification
+     getFolderVM<false>,        //value mapping
+     Operator::SimpleSelect,   //trivial selection function
+     getFoldersTM        //type mapping
+);
+
+Operator getSendFolderOp (
+    "getSendFolder",             //name
+     getSendFolderSpec.getStr(), //specification
+     getFolderVM<true>,        //value mapping
+     Operator::SimpleSelect,   //trivial selection function
+     getFoldersTM        //type mapping
+);
+
+/*
 2 Implementation of the Algebra
 
 */
@@ -2379,6 +2578,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&transferFileOp);
    AddOperator(&requestFileOp);
    AddOperator(&ptransferFileOp);
+   AddOperator(&getRequestFolderOp);
+   AddOperator(&getSendFolderOp);
 }
 
 

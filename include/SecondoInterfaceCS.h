@@ -184,16 +184,22 @@ public:
    void setTimeout(int t);
 
    int sendFile(const string& localFileName,
-                 const string& serverFileName);
+                const string& serverFileName,
+                const bool allowOverwrite);
 
    int requestFile( const string& serverFileName,
-                     const string& localFileName);
+                    const string& localFileName,
+                    const bool allowOverwrite );
+
+   string getSendFileFolder();
+
+   string getRequestFileFolder();
+
 
   private:
      int  maxAttempts; // maximum number of attemps when connecting
      int  timeout; // timeout in second per connection attemp 
 
-    
 };
 
 #endif

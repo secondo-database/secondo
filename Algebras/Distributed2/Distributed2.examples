@@ -62,4 +62,14 @@ Example   : query filetable feed ptransferFile[ServerNo, LocalFileName, RemoteFi
 Result    : bug
 Remark    : Requires a remote server
 
+Operator  : getRequestFolder 
+Number    : 1
+Signature : int -> text
+Example   : query getRequestFolder(0)
+Result    : (text undefined)
 
+Operator  : getSendFolder 
+Number    : 1
+Signature : int -> text
+Example   : query getSendFolder(0)
+Result    : (text undefined)

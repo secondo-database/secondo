@@ -63,11 +63,18 @@ using namespace std;
 #include "Profiles.h"
 #include "LogMsg.h"
 #include "StopWatch.h"
+#include "StringUtils.h"
+#include "FileSystem.h"
 
 #include "CSProtocol.h"
 #include "NList.h"
 
 
+
+static string currentFolder  = FileSystem::GetCurrentFolder(); 
+static string requestFolder  = currentFolder + "/filetransfers";
+static string transferFolder =   (requestFolder +"/" )  
+                               + stringutils::int2str(WinUnix::getpid());
 
 class SecondoServer;
 typedef void (SecondoServer::*ExecCommand)();
@@ -90,6 +97,8 @@ class SecondoServer : public Application
   void CallObjectRestore();
   void CallFileTransfer();
   void CallRequestFile();
+  void CallRequestFileFolder();
+  void CallSendFileFolder();
   void Connect();
   void Disconnect();
   void WriteResponse( const int errorCode, const int errorPos,
@@ -698,6 +707,14 @@ SecondoServer::CallDbRestore()
   CallRestore("DbRestore",true);        
 }       
 
+
+bool isValidFileName(const string& name){
+  if(name.empty()) return false;
+  if(stringutils::startsWith(name, "/")) return false;
+  if(name.find("..") != string::npos) return false;
+  return true;
+}
+
 void
 SecondoServer::CallFileTransfer() {
   // parameters for Secondo interface call
@@ -711,7 +728,49 @@ SecondoServer::CallFileTransfer() {
   string serverFileName = "";
   iosock >> serverFileName;
   csp->skipRestOfLine();
-  if ( !csp->ReceiveFile( serverFileName ) ) {
+  string allowOverwriteS;
+  getline(iosock, allowOverwriteS);
+  bool allowOverwrite = allowOverwriteS == "<ALLOW_OVERWRITE>"; 
+  
+  stringutils::trim(serverFileName);
+  if(!isValidFileName(serverFileName)){
+     iosock << "<SecondoError>" << endl;
+     iosock << stringutils::int2str(ERR_INVALID_FILE_NAME) << endl;
+     iosock << "</SecondoError>" << endl;
+     iosock.flush();
+     return;
+  }
+  
+  string fullFileName = transferFolder  + "/" + serverFileName; 
+
+  if(!allowOverwrite){
+     if(FileSystem::FileOrFolderExists(fullFileName)){
+       iosock << "<SecondoError>" << endl;
+       iosock << stringutils::int2str(ERR_FILE_EXISTS) << endl;
+       iosock << "</SecondoError>" << endl;
+       iosock.flush();
+       return;
+     }
+  }
+
+  if(FileSystem::IsDirectory(fullFileName)){ // overwriting impossible
+       iosock << "<SecondoError>" << endl;
+       iosock << stringutils::int2str(ERR_FILE_EXISTS) << endl;
+       iosock << "</SecondoError>" << endl;
+       iosock.flush();
+       return;
+  } 
+
+   
+  int lastPathSeparator = fullFileName.find_last_of("/");
+  string path = fullFileName.substr(0,lastPathSeparator);
+  if(!FileSystem::IsDirectory(path)){
+    FileSystem::CreateFolderEx(path);
+  }
+  iosock << "<SecondoOK>" << endl;
+  iosock.flush(); 
+
+  if ( !csp->ReceiveFile( fullFileName) ) {
     errorCode = ERR_IN_SECONDO_PROTOCOL;
     errorMessage = "Protocol-Error: File not received correctly."; 
     resultList = nl->TheEmptyList();
@@ -724,6 +783,23 @@ SecondoServer::CallFileTransfer() {
   WriteResponse( errorCode, errorPos, errorMessage, resultList );
 }
 
+
+
+
+void SecondoServer::CallRequestFileFolder(){
+  iostream& iosock = client->GetSocketStream();
+  string res = requestFolder.substr(currentFolder.length()+1);
+  iosock << res << endl;
+  iosock.flush();
+}
+
+void SecondoServer::CallSendFileFolder(){
+  iostream& iosock = client->GetSocketStream();
+  string res = transferFolder.substr(currentFolder.length()+1);
+  iosock << res << endl;
+  iosock.flush();
+}
+
 void 
 SecondoServer::CallRequestFile(){
   iostream& iosock = client->GetSocketStream();
@@ -734,8 +810,34 @@ SecondoServer::CallRequestFile(){
   if(!csp->nextLine(csp->endRequestFile, errorMessage)){
      return;  // protocol error
   }
-  csp->SendFile(serverFileName);  
-   
+  // check validity of the file file, i.e. the name cannot
+  // be empty, cannot start with a '/' and cannot
+  // contain '..' . 
+  stringutils::trim(serverFileName);
+  if(!isValidFileName(serverFileName)){
+     iosock << "<SecondoError>" << endl;
+     iosock << stringutils::int2str(ERR_INVALID_FILE_NAME) << endl;
+     iosock << "</SecondoError>" << endl;
+     iosock.flush();
+     return;
+  }       
+  string fullFileName = requestFolder + "/" + serverFileName; 
+
+  cout << "look fro file " << fullFileName << endl << endl << endl << endl;
+ 
+  // check wether file is present
+  ifstream in(fullFileName.c_str());
+  if(!in.good()){
+     iosock << "<SecondoError>" << endl;
+     iosock << stringutils::int2str(ERR_FILE_NOT_EXISTS) << endl;
+     iosock << "</SecondoError>" << endl;
+     iosock.flush();
+     return;
+  } 
+  in.close();
+  iosock << "<SecondoOK>" << endl;
+  iosock.flush();
+  csp->SendFile(fullFileName);  
 }
 
 
@@ -747,8 +849,8 @@ SecondoServer::Connect()
   string line;
   getline( iosock, user );
   getline( iosock, pswd );
-  cout << "user = " << user << endl;
-  cout << "passwd = " << pswd << endl;
+  //cout << "user = " << user << endl;
+  //cout << "passwd = " << pswd << endl;
   getline( iosock, line ); //eat up </USER> ?
   
 }
@@ -780,6 +882,10 @@ SecondoServer::Execute()
   commandTable["<DbRestore>"]   = &SecondoServer::CallDbRestore;
   commandTable["<FileTransfer>"]   = &SecondoServer::CallFileTransfer;
   commandTable["<RequestFile>"] = &SecondoServer::CallRequestFile;
+  commandTable["<REQUEST_FILE_FOLDER>"] 
+               = &SecondoServer::CallRequestFileFolder;
+  commandTable["<SEND_FILE_FOLDER>"] 
+               = &SecondoServer::CallSendFileFolder;
   commandTable["<Connect>"]     = &SecondoServer::Connect;
   commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
   commandTable["<REQUESTOPERATORINDEXES>"] = 

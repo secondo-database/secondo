@@ -9,3 +9,5 @@ operator prcmd alias PRCMD pattern _ op [_,_]
 operator transferFile alias TRANSFERFILE pattern op(_,_,_)
 operator requestFile alias REQUESTFILE pattern op(_,_,_)
 operator ptransferFile alias PTRANSFERFILE  pattern _ op [_,_,_]
+operator getRequestFolder alias GETREQUESTFOLDER pattern op(_)
+operator getSendFolder alias GETSENDFOLDER pattern op(_)

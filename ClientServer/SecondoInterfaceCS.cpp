@@ -711,14 +711,40 @@ SecondoInterfaceCS::SetDebugLevel( const int level )
 
 
 int SecondoInterfaceCS::sendFile( const string& localfilename,
-                                   const string& serverFileName){
+                                  const string& serverFileName,
+                                  const bool allowOverwrite ){
+
    if(localfilename.empty() || serverFileName.empty()){
         return ERR_INVALID_FILE_NAME;
    }
 
    iostream& iosock = server->GetSocketStream();
+
    iosock << csp->startFileTransfer << endl;
    iosock << serverFileName << endl;
+   string allow = allowOverwrite?"<ALLOW_OVERWRITE>":"<DISALLOW_OVERWRITE>";
+   iosock << allow << endl;
+   iosock.flush();
+
+   string line;
+   getline(iosock,line);
+
+   if(line == "<SecondoError>"){
+      int errCode = ERR_FILE_EXISTS;
+      iosock >> errCode;
+      csp->skipRestOfLine();
+      getline(iosock,line);
+      if(line != "</SecondoError>"){
+        return ERR_IN_SECONDO_PROTOCOL;
+      }
+      return errCode;
+   }
+
+   if(line != "<SecondoOK>"){
+     return ERR_IN_SECONDO_PROTOCOL;
+   }
+
+
    csp->SendFile(localfilename);
    iosock << csp->endFileTransfer << endl;
    ListExpr resultList;
@@ -732,11 +758,38 @@ int SecondoInterfaceCS::sendFile( const string& localfilename,
 }
 
 int SecondoInterfaceCS::requestFile(const string& serverFilename,
-                                    const string& localFilename){
+                                    const string& localFilename,
+                                    const bool allowOverwrite ){
+  if(!allowOverwrite) {
+     std::ifstream in(localFilename.c_str());
+     if(in.good()){
+       in.close();
+       return ERR_FILE_EXISTS;
+     } 
+   }
+
    iostream& iosock = server->GetSocketStream();
    iosock << csp->startRequestFile << endl;
    iosock << serverFilename << endl;
    iosock << csp->endRequestFile << endl;
+   iosock.flush();
+   string line;
+   getline(iosock,line);
+   if(line=="<SecondoError>"){
+      int code= -1;
+      iosock >> code;
+      csp->skipRestOfLine();
+      getline(iosock,line);
+      if(line!="</SecondoError>"){
+         return ERR_IN_SECONDO_PROTOCOL;
+      } else {
+        return code;
+      }
+   }
+   if(line!="<SecondoOK>"){
+     return ERR_IN_SECONDO_PROTOCOL;
+   }
+
    // the answer may be SecondoError or SecondoResponse
    bool ok = csp->ReceiveFile(localFilename);
    if(ok){
@@ -745,6 +798,29 @@ int SecondoInterfaceCS::requestFile(const string& serverFilename,
        return ERR_IN_FILETRANSFER;
    }
 }
+
+
+string SecondoInterfaceCS::getRequestFileFolder(){
+   iostream& iosock = server->GetSocketStream();
+   iosock << "<REQUEST_FILE_FOLDER>" << endl;
+   iosock.flush();
+   string line;
+   getline(iosock,line);
+   return line; 
+}
+
+string SecondoInterfaceCS::getSendFileFolder(){
+   iostream& iosock = server->GetSocketStream();
+   iosock << "<SEND_FILE_FOLDER>" << endl;
+   iosock.flush();
+   string line;
+   getline(iosock,line);
+   return line; 
+}
+
+
+
+
 
 
 
