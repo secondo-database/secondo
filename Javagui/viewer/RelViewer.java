@@ -171,7 +171,7 @@ public class RelViewer extends SecondoViewer{
    
    if(result==null)
    { 
-     Reporter.debug("error in reading csv file");
+     Reporter.debug("error in reading csv file: table mismatch");
      return false;
    }
    
@@ -320,6 +320,7 @@ private boolean checkCSVTypes(ListExpr[] types)
           if(tuple==null)
            {              
              in.close();
+             test.close();
              return null;
            } 
            
@@ -339,11 +340,15 @@ private boolean checkCSVTypes(ListExpr[] types)
       
       
       in.close();
+      test.close();
       return result;
-    } catch(Exception e){
+    } 
+    
+    catch(Exception e)
+     {
        Reporter.debug(e);
        return null;
-    }
+     }
  
  }
  
@@ -372,27 +377,31 @@ private boolean checkCSVTypes(ListExpr[] types)
     int count = 0;
     int count2 = lang2.countTokens();
     int typelenght = types.length;
+    int delimnumber = CountDelims (line, delimchar);
     String tokentest = "dummy"; 
     
     
-     
     
     
     
     while (lang.hasMoreTokens())
-     {
+     {     
       count++;
-      tokentest = lang.nextToken();               
-    
+      tokentest = lang.nextToken();        
      }
     
     
+    
      
-   if((count2 > typelenght) || ( (count2 == count) &&  (count < typelenght)) || (count > typelenght) )  //Table size mismatch
     
     
-    {  
-       return null;   
+    
+     
+   if((count2 > typelenght) || ( (count2 == count) &&  (count < typelenght)) || (count > typelenght) ||  (delimnumber >= typelenght)) //Table mismatch
+    
+    
+    {       
+     return null;   
     }
     
     
@@ -409,7 +418,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     int trigger= 0;
     
     String token = "dummy";
-    String t="dummy";
+    
     
     
     
@@ -428,10 +437,7 @@ private boolean checkCSVTypes(ListExpr[] types)
         
       attr = importAttr(types[i],token);
        
-       if (attr.atomType()==ListExpr.SYMBOL_ATOM) 
-        {t = attr.symbolValue();}
-        
-             
+              
        
        if(attr==null)
         {         
@@ -461,7 +467,6 @@ private boolean checkCSVTypes(ListExpr[] types)
     
     
     
-    
 
     
     return res;
@@ -470,6 +475,23 @@ private boolean checkCSVTypes(ListExpr[] types)
  
 
  
+ 
+ 
+ 
+ 
+ 
+  private int CountDelims (String input, char c) 
+  {
+    int count = 0;
+    for (char act : input.toCharArray()) 
+    {
+     if (act == c) 
+      {
+       count++;
+      }
+    }
+    return count;
+  }
  
  
  
@@ -698,6 +720,8 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
     try{
        PrintStream out = new PrintStream(new FileOutputStream(file));
 
+    
+    
        // print out the header
        for(int j=0;j<table.getColumnCount();j++)
        { 
@@ -716,15 +740,18 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
        out.println("");
     
     
+    
+    
+    
+    
+    
        
        
        
 
        for(int i=0;i<table.getRowCount(); i++){
-          for(int j=0;j<table.getColumnCount();j++)
-          {         
-            if(j>0)
-            {
+          for(int j=0;j<table.getColumnCount();j++){
+            if(j>0){
                out.print(",");
             }
             out.print((""+table.getValueAt(i,j)).replaceAll("\n"," ").replaceAll(",",";"));
