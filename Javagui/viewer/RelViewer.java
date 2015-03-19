@@ -22,8 +22,6 @@
 
 
 
-
-
 package viewer;
 
 
@@ -700,14 +698,33 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
     try{
        PrintStream out = new PrintStream(new FileOutputStream(file));
 
+       // print out the header
+       for(int j=0;j<table.getColumnCount();j++)
+       { 
+         if(j==0)         
+         {
+          out.print("#");
+         }
+         
+         if(j>0)
+         {
+          out.print(",");
+         }
+         out.print((""+table.getColumnModel().getColumn(j).getIdentifier()).replaceAll("\n"," ").replaceAll(",",";"));
+        
+       }
+       out.println("");
+    
     
        
        
        
 
        for(int i=0;i<table.getRowCount(); i++){
-          for(int j=0;j<table.getColumnCount();j++){
-            if(j>0){
+          for(int j=0;j<table.getColumnCount();j++)
+          {         
+            if(j>0)
+            {
                out.print(",");
             }
             out.print((""+table.getValueAt(i,j)).replaceAll("\n"," ").replaceAll(",",";"));
