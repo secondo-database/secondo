@@ -662,7 +662,7 @@ struct CSProtocol {
 
     {
       const unsigned int bufSize =512;
-      static char buf[bufSize];       
+      char buf[bufSize];       
       restoreFile.seekg (0, restoreFile.end);
       uint64_t length = restoreFile.tellg();
       restoreFile.seekg (0, restoreFile.beg);
@@ -684,12 +684,11 @@ struct CSProtocol {
       //     << read2 <<  " bytes to the server." << endl;
 
       restoreFile.close();
-      
-      cout.flush();
       iosock.flush();
     }
     // send end sequence => empty file;
     iosock << endFileData << endl;
+    iosock.flush();
 
   } catch (ios_base::failure) {
      cerr << endl 
@@ -723,9 +722,9 @@ bool ReceiveFile( const string& localFileName )
   // cout << "Size: " << size << endl;
   
   ofstream localFile;
-  localFile.open( localFileName.c_str() );
+  localFile.open( localFileName.c_str(), ios::binary );
   
-  static unsigned int bufSize=512;
+  unsigned int bufSize=512;
   char buf[bufSize];
   size_t calls=0;
   uint64_t size2=size;
