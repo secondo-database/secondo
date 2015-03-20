@@ -321,7 +321,7 @@ ALGEBRAS     += SuffixTreeAlgebra
 #ALGEBRA_DIRS += OSM
 #ALGEBRAS     += OsmAlgebra
 #ALGEBRA_DEPS += xml2
-# in some linux distributions, the xml2 library is outside
+# in some linux or macosx distributions, the xml2 library is outside
 # of standard paths, iff so, add the missing parts here
 #ALGEBRA_DEP_DIRS += /usr/lib/libxml2
 #ALGEBRA_INCLUDE_DIRS += /usr/include/libxml2 
