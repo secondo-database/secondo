@@ -28,11 +28,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[x] [$\times $]
 //[->] [$\rightarrow $]
 
-[1] Implementation of the MRegionOps2Algebra
+[1] Headerfile of the Segment classes
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
-[2] Implementation with exakt dataype 
+[2] Implementation with exakt dataype
 
 Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 
@@ -43,28 +43,73 @@ Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 2 Defines and Includes
 
 */
+#ifndef SEGMENT3D_H_
+#define SEGMENT3D_H_
 
-#include "Segment.h"
+#include "Point3D.h"
 
 namespace mregionops2 {
 
 /*
-3 Overloaded output operators
+3 Class Segment3D
+
+This class provides an oriented segment in the euclidian space.
+It's start- and endpoint is represented by a Point3D each.
+
+*/
+class Segment3D {
+
+public:
     
-*/ 
+/*
 
-ostream& operator <<(ostream& o, const Segment2D& s) {
+3.1 Constructors
 
-    o << s.GetStart() << " -> " << s.GetEnd();
+*/   
 
-    return o;
-}
+    inline Segment3D() {
+        
+    }
 
-ostream& operator <<(ostream& o, const Segment3D& s) {
+    inline Segment3D(const Point3D& _start, const Point3D& _end) :
+        start(_start), end(_end) {
 
-    o << s.GetStart() << " -> " << s.GetEnd();
+    }
+    
+/*
 
-    return o;
-}
+3.2 Getter methods.
+
+*/
+
+    inline const Point3D& GetStart() const {
+        return start;
+    }
+    inline const Point3D& GetEnd() const {
+        return end;
+    }
+    
+/*
+
+3.3 Operators and Predicates
+        
+3.3.1 IsOrthogonalToTAxis
+
+Returns ~true~, if this is parallel to the xy-plane.
+
+*/   
+
+    inline const bool IsOrthogonalToTAxis() const {
+          return (start.GetT() == end.GetT());
+    }
+    
+
+private:
+
+    Point3D start, end;
+
+};
 
 } // end of namespace mregionops2
+
+#endif /*SEGMENT3DH_*/

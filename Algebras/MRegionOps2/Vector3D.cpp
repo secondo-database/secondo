@@ -28,13 +28,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[x] [$\times $]
 //[->] [$\rightarrow $]
 
-[1] Implementation of the MRegionOps2Algebra
+[1] Implementation 
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 
 [TOC]
 

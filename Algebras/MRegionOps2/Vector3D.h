@@ -35,7 +35,7 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype, 
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 
 [TOC]
 

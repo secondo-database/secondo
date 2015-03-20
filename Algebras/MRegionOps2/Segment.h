@@ -32,11 +32,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
+[2] Implementation with exakt dataype, 
+
+Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
+
 [TOC]
 
 1 Introduction
-
-This file contains the definitions of the classes Segment2D and Segment3D.
 
 2 Defines and Includes
 
@@ -47,6 +49,12 @@ This file contains the definitions of the classes Segment2D and Segment3D.
 #define SEGMENT_H_
 
 #include "PointVector.h"
+//#include "Point2D.h"
+//#include "Point3D.h"
+//#include "Vector2D.h"
+//#include "Vector3D.h"
+
+
 
 namespace mregionops2 {
 
@@ -102,28 +110,6 @@ Returns ~true~, if this is parallel to the xy-plane.
           return (start.GetT() == end.GetT());
     }
     
-/*
-3.3.2 Length
-        
-Returns the length of this segment.
-
-*/    
-    
-//??     inline mpq_class Length() const {
-//??            return (end - start).Length();
-//??     }
-    
-/*
-3.3.3 Length2
-            
-Returns the quadratic length of this segment.
-
-*/       
-    
-//??    inline mpq_class Length2() const {
-//??
-//??        return (end - start).Length2();
-//??     }
 
 private:
 
@@ -131,17 +117,20 @@ private:
 };
 
 /*
+
 4 Class Segment2D
 
 This class provides an oriented segment in the euclidian plane.
 It's start- and endpoint is represented by a Point2D each.
 
 */
+
 class Segment2D {
 
 public:
     
 /*
+
 4.1 Constructors
 
 */   
@@ -173,6 +162,7 @@ public:
     }
     
 /*
+
 4.2 Getter methods.
 
 */    
@@ -201,18 +191,11 @@ Returns ~true~, if this is parallel to s.
         Vector2D v1 = end - start;
         Vector2D v2 = s.end - s.start;
 
-//      Determinate der zwei Vektoren
-//	Wenn gleich Null, dann sind diese linear abhängig = parallel
-	return ( (v1.GetX() * v2.GetY() ) - (v1.GetY() * v2.GetX() )) == 0;
-
-// SuS        v1.Normalize();
-// SuS        v2.Normalize();
-// SuS        const mpq_class d = v1 | v2;
-// SuS	  return (d == 0);
-//        return NumericUtil::NearlyEqual(d, 0.0);
+    return ((v1.GetX() * v2.GetY()) - (v1.GetY() * v2.GetX())) == 0;
     }
     
 /*
+
 4.3.2 IsColinear
 
 Returns ~true~, if this is colinear to s.
@@ -225,18 +208,19 @@ Returns ~true~, if this is colinear to s.
     }
 
 /*
+
 4.3.3 IsVertical
 
 Returns ~true~, if start.x equals end.x
 
 */  
     
-    inline bool IsVertical() const {
-	  return (start.GetX() == end.GetX());
-//        return NumericUtil::NearlyEqual(start.GetX(), end.GetX());
+   inline bool IsVertical() const {
+    return (start.GetX() == end.GetX());
     }
 
 /*
+
 4.3.4 IsHorizontal
 
 Returns ~true~, if start.y equals end.y
@@ -245,22 +229,12 @@ Returns ~true~, if start.y equals end.y
     
     inline bool IsHorizontal() const {
 
-	return (start.GetY() == end.GetY());
-//        return NumericUtil::NearlyEqual(start.GetY(), end.GetY());
+     return (start.GetY() == end.GetY());
+
     }
 
 /*
-3.3.5 Length
-        
-Returns the length of this segment.
 
-*/    
-    
-// SuS    inline mpq_class Length() const {
-// SuS        return (end - start).Length();
-// SuS    }
-
-/*
 3.3.6 Length2
         
 Returns the quadratic length of this segment.
@@ -273,6 +247,7 @@ Returns the quadratic length of this segment.
     }
 
 /*
+
 3.3.7 Flip
         
 Swaps the start- and endpoint of this segment.
@@ -293,6 +268,7 @@ private:
 };
 
 /*
+
 4 Overloaded output operators
     
 */ 

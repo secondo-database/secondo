@@ -1,16 +1,52 @@
 /*
+----
+This file is part of SECONDO.
 
-1 Class SourceUnit2
+Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
 
-This class is essentially a container for one ~SourceUnit~ A or B
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+//[ue] [\"u]
+//[ae] [\"a]
+//[oe] [\"o]
+//[x] [$\times $]
+//[->] [$\rightarrow $]
+//[pow] [\verb+^+]
+
+[1] Implementation
+
+Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
+
+[TOC]
+
+1 Introduction
+
+This class is essentially a container for both ~SourceUnits~ A and B
+
+2 Defines and Includes
 
 */
 
+
 #ifndef SOURCEUNIT2_H_
 #define SOURCEUNIT2_H_
-
 #include <gmp.h>
-
 #include "Refinement3.h"
 #include "MovingRegion2Algebra.h"
 #include "SetOps2.h"
@@ -83,6 +119,7 @@ Returns ~true~, if this ~SourceUnit~ represents an empty unit.
 
     void FinalizeIntSegs();
 
+
     inline bool IsUnitA() const {
         return isUnitA;
     }
@@ -99,10 +136,23 @@ Returns ~true~, if this ~SourceUnit~ represents an empty unit.
     mpq_class GetTimeIntervalStart(unsigned int i);
     mpq_class GetTimeIntervalEnd(unsigned int i);   
 
+   SourceUnit2* GetPartner();
+   inline void SetPartner(SourceUnit2* p)
+   {
+	partner = p;
+   }
+   vector<PFace*> GetPFaces(); 
+   int GetPFaceCount(); 
+   void AddToMRegion(MRegion2* const target);
+
+   bool HasIntersecs();
+   bool IsInsidePartner();
+
 private:
     void NormalizeTimeInterval();
     void ComputeBoundingRect();
     const Region GetTestRegion(const double t);
+    unsigned int myDebugId;
 
 /*
 1.1 Attributes
@@ -142,7 +192,6 @@ Note that the interval of uRegion might be changed!
 1.1.1 array
 
 A pointer to the corresponding ~DBArray<MSegmentData>~.
-
 1.1.1 partner
 
 A pointer to  the other ~SourceUnit~ instance, which
@@ -192,16 +241,17 @@ pass them to the ~ResultUnitFactory~.
 
 */
 
-    void CollectRelevantPFaces();
-
+	void CollectRelevantPFaces(vector<PFace*>* storage);
+	bool IsPFaceInsidePartner(PFace* pface); 
 /*
 
-1.1 Methods for debugging
+1.1 Methods for debugging and internal helper tasks
 
 */
 
     void PrintPFaces();
-
+    bool pointInPolygon(float  polyX[],
+         float  polyY[],float  x, float y, int polyCorners);
 /*
 
 1.1.1 pFace
