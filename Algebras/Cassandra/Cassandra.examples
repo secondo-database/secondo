@@ -15,67 +15,67 @@ Result   : 10
 
 Operator : cdelete
 Number   : 1
-Signature: (text text text) -> bool
-Example  : query cdelete ('127.0.0.1', 'keyspace1', 'plz') 
+Signature: (text) -> bool
+Example  : query cdelete('plz') 
 Result   : TRUE
 
 Operator : cspread
 Number   : 1
-Signature: ((stream (tuple x) x text x text x text x text x text x attr)) -> int
-Example  : query plz feed cspread['127.0.0.1', 'keyspace1', 'plz', 'ANY', 'node1', PLZ]
+Signature: ((stream (tuple x) x text x text x text x attr)) -> int
+Example  : query plz feed cspread['plz', 'ANY', 'node1', PLZ]
 Result   : 41267
 
 Operator : ccollect
 Number   : 1
-Signature: text x text x text x text -> stream(tuple(...))
-Example  : query ccollect('127.0.0.1', 'keyspace1', 'plz', 'ONE') count
+Signature: text x text -> stream(tuple(...))
+Example  : query ccollect('plz', 'ONE') count
 Result   : 41267
 
 Operator : ccollectlocal
 Number   : 1
-Signature: text x text x text x text -> stream(tuple(...))
-Example  : query ccollectlocal('127.0.0.1', 'keyspace1', 'plz', 'ONE') count
+Signature: text x text -> stream(tuple(...))
+Example  : query ccollectlocal('plz', 'ONE') count
 Result   : 41267
 
 Operator : ccollectrange
 Number   : 1
-Signature: text x text x text x text x text x text -> stream(tuple(...))
-Example  : query ccollectrange('127.0.0.1', 'keyspace1', 'plz', 'ONE', '1234', '5678') count
+Signature: text x text x text x text -> stream(tuple(...))
+Example  : query ccollectrange('plz', 'ONE', '1234', '5678') count
 Result   : 41267
 
 Operator : ccollectquery
 Number   : 1
-Signature: text x text x text x text x int -> stream(tuple(...))
-Example  : query ccollectquery('127.0.0.1', 'keyspace1', 'plz', 'ONE', 2) count
+Signature: text x text x int -> stream(tuple(...))
+Example  : query ccollectquery('plz', 'ONE', 2) count
 Result   : 41267
 
 Operator : clist
 Number   : 1
-Signature: text x text -> stream(text)
-Example  : query clist('127.0.0.1', 'keyspace1') count
+Signature: () -> stream(text)
+Example  : query clist() count
 Result   : 10
 
 Operator : cquerylist
 Number   : 1
-Signature: text x text -> stream(tuple())
-Example  : query cquerylist('127.0.0.1', 'keyspace1') consume
+Signature: () -> stream(tuple())
+Example  : query cquerylist() consume
 Result   : 10
 
 Operator : cqueryreset
 Number   : 1
 Signature: text x text -> bool
-Example  : query cqueryreset('127.0.0.1', 'keyspace1')
+Example  : query cqueryreset()
 Result   : TRUE
 
 Operator : cqueryexecute
 Number   : 1
-Signature: text x text x int x text -> bool
-Example  : query cqueryexecute('127.0.0.1', 'keyspace1', 2, <text>query ccollectrange('__CASSANDRAIP__', '__KEYSPACE__', 'relation2', 'ONE',__TOKEN__) count;</text--->)
+Signature: int x text -> bool
+Example  : query cqueryexecute(2, <text>query ccollectrange('relation2', 'ONE', __TOKEN__) count;</text--->)
 Result   : TRUE
 
 Operator : cquerywait
 Number   : 1
-Signature: text x text x int -> bool
-Example  : query cqueryexecute('127.0.0.1', 'keyspace1', 2)
+Signature: int -> bool
+Example  : query cqueryexecute(2)
 Result   : TRUE
 

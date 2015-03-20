@@ -22,15 +22,15 @@ operator sleep alias SLEEP pattern _ op [ _ ]
 operator statistics alias STATISTICS pattern _ op [ _ , _ ]
 
 
-operator cdelete alias CDELETE pattern op ( _ , _ , _ )
-operator clist alias CLIST pattern op ( _ , _ )
-operator cspread alias CSPREAD pattern _ op [ _ , _ , _ , _ , _ , _ ]
-operator ccollect alias CCOLLECT pattern op ( _ , _ , _ , _ )
-operator ccollectlocal alias CCOLLECTLOCAL pattern op ( _ , _ , _ , _ )
-operator ccollectrange alias CCOLLECTRANGE pattern op ( _ , _ , _ , _ , _ , _ )
-operator ccollectquery alias CCOLLECTQUERY pattern op ( _ , _ , _ , _ , _ )
-operator cquerylist alias CQUERYLIST pattern op ( _ , _ )
-operator cqueryexecute alias CQUERYEXECUTE pattern op ( _ , _ , _ , _ )
+operator cdelete alias CDELETE pattern op ( _ )
+operator clist alias CLIST pattern op ( )
+operator cspread alias CSPREAD pattern _ op [ _ , _ , _ , _ ]
+operator ccollect alias CCOLLECT pattern op ( _ , _ )
+operator ccollectlocal alias CCOLLECTLOCAL pattern op ( _ , _ )
+operator ccollectrange alias CCOLLECTRANGE pattern op ( _ , _ , _ , _ )
+operator ccollectquery alias CCOLLECTQUERY pattern op ( _ , _ , _ )
+operator cquerylist alias CQUERYLIST pattern op ( )
+operator cqueryexecute alias CQUERYEXECUTE pattern op ( _ , _ )
 operator cquerywait alias CQUERYWAIT pattern op ( _ , _ , _ )
-operator cqueryreset alias CQUERYRESET pattern op ( _ , _ )
+operator cqueryreset alias CQUERYRESET pattern op ( )
 

@@ -66,6 +66,7 @@
 #include "FTextAlgebra.h"
 #include "Stream.h"
 #include "Progress.h"
+#include "Profiles.h"
 
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
@@ -531,9 +532,7 @@ Operator cassandrastatistics (
 2.3 Operator ~cdelete~
 
 The operator ~cdelete~ deletes a relation in our
-cassandra cluster. The first parameter is the contact
-point to the cluster, the second paramter is the 
-keyspace. The third paramter is the name of the 
+cassandra cluster. The paramter is the name of the 
 relation to delete.
 
 2.3.1 Type mapping function of operator ~cdelete~
@@ -541,23 +540,20 @@ relation to delete.
 Type mapping for ~cdelete~ is
 
 ----
- (text x text x text) -> bool            
+ (text) -> bool            
 ----
 
 */
 
 ListExpr CDeleteTypeMap( ListExpr args )
 {
-  string err = "text x text x text expected";
+  string err = "text expected";
   
-  if(!nl->HasLength(args,3)){
+  if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
   
-  if(!listutils::isSymbol(nl->First(args),FText::BasicType())  ||
-     !listutils::isSymbol(nl->Second(args),FText::BasicType()) ||
-     !listutils::isSymbol(nl->Third(args),FText::BasicType())) {
-    
+  if(!listutils::isSymbol(nl->First(args),FText::BasicType())) {
     return listutils::typeError(err);
   }    
 
@@ -630,20 +626,18 @@ int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
       result = qp->ResultStorage(s);
       static_cast<CcInt*>(result.addr)->Set(false, 0);
       
-      if(! ((FText*) args[0].addr)->IsDefined()) {
-        cout << "Cluster contactpoint is not defined" << endl;
-        return CANCEL;
-      }  else if (! ((FText*) args[1].addr)->IsDefined()) {
-        cout << "Keyspace is not defined" << endl;
-        return CANCEL;
-      } else if (! ((FText*) args[2].addr)->IsDefined()) {
+      if (! ((FText*) args[0].addr)->IsDefined()) {
         cout << "Relationname is not defined" << endl;
         return CANCEL;
       } else {
+        string parmFile = expandVar("$(SECONDO_CONFIG)");
+        string host = SmiProfile::GetParameter("CassandraAlgebra", 
+           "host", "127.0.0.1", parmFile);
+        string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+           "keyspace", "keyspace_r3", parmFile);
+                  
       cli = new CDeleteLocalInfo(
-        (((FText*)args[0].addr)->GetValue()),
-        (((FText*)args[1].addr)->GetValue()),
-        (((FText*)args[2].addr)->GetValue())
+        host, keyspace, (((FText*)args[0].addr)->GetValue())
       );
       
       deleteOk = cli -> deleteRelation();
@@ -666,16 +660,13 @@ int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CDeleteSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>(text x text x text) -> bool</text--->"
-                         "<text> cdelete ( _ , _ , _ )</text--->"
+                         "<text>(text) -> bool</text--->"
+                         "<text> cdelete ( _ )</text--->"
                          "<text> The operator cdelete deletes a relation "
-                         "in our cassandra cluster. The first parameter is "
-                         "the contact point to the cluster, the second "
-                         "paramter is the keyspace. The third parameter is" 
+                         "in our cassandra cluster. The parameter is the "
                          "name of the relation to delete."
                          "</text--->"
-                         "<text>query cdelete ('127.0.0.1', 'keyspace1'"
-                         ", 'plz') </text--->"
+                         "<text>query cdelete ('plz') </text--->"
                               ") )";
 
 /*
@@ -698,10 +689,8 @@ Operator cassandradelete (
 2.4 Operator ~cspread~
 
 The operator ~cspread~ feeds a tuple stream into
-a cassandra cluster. The first paramter is the contactpoint
-to the cluster. The second paramter is the keyspace. The 
-third parameter is the name of the relation.
-The third parameter is the consistence level:
+a cassandra cluster.  The first parameter is the name 
+of the relation. The second parameter is the consistence level:
 
 ANY    - Only a hinted handoff is created
 ONE    - One of the cassandra nodes has written the tuple
@@ -709,15 +698,15 @@ QUORUM - More then n/2+1 cassandra nodes have written the tuple
          n is the replication factor of the cluster
 ALL    - All cassandra nodes have written the tuple
 
-The fourth parameter is the name of the local
+The third parameter is the name of the local
 system. The name must be unique for each secondo
 node
 
-The sixth parameter is the name of the local 
+The fourth parameter is the name of the local 
 system. The name must be unique for each secondo
 node
 
-The seventh parameter is the attribute used for
+The fifth parameter is the attribute used for
 clustering
 
 2.2.1 Type mapping function of operator ~cspread~
@@ -725,7 +714,7 @@ clustering
 Type mapping for ~cspread~ is
 
 ----
-  stream(tuple(...)) x text x text x text x text x text x attr -> int
+  stream(tuple(...)) x text x text x text x attr -> int
                 
 ----
 
@@ -733,26 +722,21 @@ Type mapping for ~cspread~ is
 ListExpr CSpreadTypeMap( ListExpr args )
 {
 
-  if(nl->ListLength(args) != 7){
-    return listutils::typeError("seven arguments expected");
+  if(nl->ListLength(args) != 5){
+    return listutils::typeError("five arguments expected");
   }
 
-  string err = " stream(tuple(...)) x text x text x text x text "
+  string err = " stream(tuple(...)) x text x text "
     " x text x attr expected";
 
   ListExpr stream = nl->First(args);
-  
-  ListExpr contactpoint = nl->Second(args);
-  ListExpr keyspace = nl->Third(args);
-  ListExpr relation = nl->Fourth(args);
-  ListExpr consistence = nl->Fifth(args);
-  ListExpr systemname = nl->Sixth(args);
-  ListExpr attr = nl->Seventh(args);
+  ListExpr relation = nl->Second(args);
+  ListExpr consistence = nl->Third(args);
+  ListExpr systemname = nl->Fourth(args);
+  ListExpr attr = nl->Fifth(args);
   
   if(( !Stream<Tuple>::checkType(stream) &&
        !Stream<Attribute>::checkType(stream) ) ||
-       !FText::checkType(contactpoint) ||
-       !FText::checkType(keyspace) ||
        !FText::checkType(relation) ||
        !FText::checkType(consistence) ||
        !FText::checkType(systemname)) {
@@ -910,27 +894,21 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
       result = qp->ResultStorage(s);
       static_cast<CcInt*>(result.addr)->Set(false, 0);
       
-      if(! ((FText*) args[1].addr)->IsDefined()) {
-        cout << "Cluster contactpoint is not defined" << endl;
-        parameterOk = false;
-      } else if (! ((FText*) args[2].addr)->IsDefined()) {
-        cout << "Keyspace is not defined" << endl;
-        parameterOk = false;        
-      } else if (! ((FText*) args[3].addr)->IsDefined()) {
+      if (! ((FText*) args[1].addr)->IsDefined()) {
         cout << "Relationname is not defined" << endl;
         parameterOk = false;
-      } else if (! ((FText*) args[4].addr)->IsDefined()) {
+      } else if (! ((FText*) args[2].addr)->IsDefined()) {
         cout << "Consistence level is not defined" << endl;
         parameterOk = false;
-      } else if (! ((FText*) args[5].addr)->IsDefined()) {
+      } else if (! ((FText*) args[3].addr)->IsDefined()) {
         cout << "Systemname is not defined" << endl;
         parameterOk = false;
-      } else if (! ((CcInt*) args[7].addr)->IsDefined()) {
+      } else if (! ((CcInt*) args[5].addr)->IsDefined()) {
         cout << "Attr Index is not defined" << endl;
         parameterOk = false;
       }
       
-      string consistenceLevel = ((FText*) args[4].addr)->GetValue();
+      string consistenceLevel = ((FText*) args[2].addr)->GetValue();
       
       if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel) ) {
         cout << "Unknown consistence level: " << consistenceLevel << endl;
@@ -943,13 +921,19 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
     
       string tupleType = nl->ToString(relTypeList);
       
+      string parmFile = expandVar("$(SECONDO_CONFIG)");
+      string host = SmiProfile::GetParameter("CassandraAlgebra", 
+         "host", "127.0.0.1", parmFile);
+      string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+         "keyspace", "keyspace_r3", parmFile);
+      
       cli = new CSpreadLocalInfo(
+                      host,
+                      keyspace,
                       (((FText*)args[1].addr)->GetValue()),
                       (((FText*)args[2].addr)->GetValue()),
                       (((FText*)args[3].addr)->GetValue()),
-                      (((FText*)args[4].addr)->GetValue()),
-                      (((FText*)args[5].addr)->GetValue()),
-                      (((CcInt*)args[7].addr)->GetValue()),
+                      (((CcInt*)args[5].addr)->GetValue()),
                       tupleType
                       );
       
@@ -1006,10 +990,8 @@ const string CSpreadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "x text x text x attr -> int</text--->"
                          "<text>cspread _ op [ _ , _ , _ , _ , _ ] </text--->"
                          "<text>The operator cspread feeds a tuple stream"
-                         "into a cassandra cluster. The first paramter is "
-                         "the contactpoint to the cluster. The second "
-                         "paramter is the keyspace. The third parameter is "
-                         "the name of the relation. The fourth "
+                         "into a cassandra cluster. The first parameter is "
+                         "the name of the relation. The second "
                          "parameter is the consistence level:"
                          "ANY    - Only a hinted handoff is created"
                          "ONE    - One of the cassandra nodes has written the "
@@ -1019,15 +1001,15 @@ const string CSpreadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "         replication factor of the cluster"
                          "ALL    - All cassandra nodes have written the tuple"
                          ""
-                         "The sixth parameter is the name of the local "
+                         "The fourth parameter is the name of the local "
                          "system. The name must be unique for each secondo"
                          "node"
                          ""
-                         "The seventh parameter is the attribute used for"
+                         "The fifth parameter is the attribute used for"
                          "clustering"
                          "</text--->"
-                         "<text>query plz feed cspread['127.0.0.1', 'keyspace'"
-                         ", 'plz', 'ANY'. 'node1', 'PLZ']</text--->"
+                         "<text>query plz feed cspread["
+                         "'plz', 'ANY'. 'node1', 'PLZ']</text--->"
                               ") )";
 
 /*
@@ -1110,17 +1092,17 @@ enum CollectFetchMode {ALL, LOCAL, RANGE, QUERY};
 Type mapping for ~ccollect~ is
 
 ----
-   text x text x text x text -> stream(tuple(...))
+   text x text -> stream(tuple(...))
 ----
 
 */
 ListExpr CCollectTypeMap( ListExpr args ) {
 
-  if(nl->ListLength(args) != 4){
-    return listutils::typeError("four arguments expected");
+  if(nl->ListLength(args) != 2){
+    return listutils::typeError("two arguments expected");
   }
 
-  string err = " text x text x text x text expected";
+  string err = " text x text expected";
 
   // arg evaluation is active
   // this means each argument is a two elem list (type value)
@@ -1131,31 +1113,13 @@ ListExpr CCollectTypeMap( ListExpr args ) {
     }    
     tmp = nl->Rest(tmp);
   }
-  
-  ListExpr contactPoint = nl->First(args);
-  ListExpr keyspace = nl->Second(args);
-  ListExpr relationName = nl->Third(args);
-  ListExpr consistenceLevel = nl->Fourth(args);
 
-  if(  !FText::checkType(nl->First(contactPoint)) ||
-       !FText::checkType(nl->First(keyspace)) ||
-       !FText::checkType(nl->First(relationName)) ||
+  ListExpr relationName = nl->First(args);
+  ListExpr consistenceLevel = nl->Second(args);
+
+  if(  !FText::checkType(nl->First(relationName)) ||
        !FText::checkType(nl->First(consistenceLevel))) {
     return listutils::typeError(err);
-  }
-  
-  // We need to evaluate the result list, contact cassandra
-  // and read the tuple type of the table
-  string contactPointVal;  
-  string contactPointExpr = nl->ToString(nl->Second(contactPoint));
-  if(! EvaluateTypeMappingExpr(contactPointExpr, contactPointVal) ) {
-    return listutils::typeError(contactPointVal);
-  }
-  
-  string keyspaceVal;  
-  string keyspaceExpr = nl->ToString(nl->Second(keyspace));
-  if(! EvaluateTypeMappingExpr(keyspaceExpr, keyspaceVal) ) {
-    return listutils::typeError(keyspaceVal);
   }
 
   string relationVal;  
@@ -1167,9 +1131,15 @@ ListExpr CCollectTypeMap( ListExpr args ) {
   // Read tuple type from cassandra
   string tupleType;
   
+  string parmFile = expandVar("$(SECONDO_CONFIG)");
+  string host = SmiProfile::GetParameter("CassandraAlgebra", 
+     "host", "127.0.0.1", parmFile);
+  string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+     "keyspace", "keyspace_r3", parmFile);
+  
   CassandraAdapter* cassandra 
      = CassandraConnectionPool::Instance()->
-      getConnection(contactPointVal, keyspaceVal, false);
+      getConnection(host, keyspace, false);
  
   bool result = 
      cassandra -> getTupleTypeFromTable(relationVal, tupleType);
@@ -1195,17 +1165,17 @@ ListExpr CCollectTypeMap( ListExpr args ) {
 Type mapping for ~ccollectrange~ is
 
 ----
-   text x text x text x text x text x text -> stream(tuple(...))
+   text x text x text x text -> stream(tuple(...))
 ----
 
 */
 ListExpr CCollectRangeTypeMap( ListExpr args ) {
 
-  if(nl->ListLength(args) != 6){
-    return listutils::typeError("six arguments expected");
+  if(nl->ListLength(args) != 4){
+    return listutils::typeError("four arguments expected");
   }
 
-  string err = " text x text x text x text x text x text expected";
+  string err = " text x text x text x text expected";
 
   // arg evaluation is active
   // this means each argument is a two elem list (type value)
@@ -1217,16 +1187,12 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
     tmp = nl->Rest(tmp);
   }
   
-  ListExpr contactPoint = nl->First(args);
-  ListExpr keyspace = nl->Second(args);
-  ListExpr relationName = nl->Third(args);
-  ListExpr consistenceLevel = nl->Fourth(args);
-  ListExpr begin = nl->Fifth(args);
-  ListExpr end = nl->Sixth(args);
+  ListExpr relationName = nl->First(args);
+  ListExpr consistenceLevel = nl->Second(args);
+  ListExpr begin = nl->Third(args);
+  ListExpr end = nl->Fourth(args);
 
-  if(  !FText::checkType(nl->First(contactPoint)) ||
-       !FText::checkType(nl->First(keyspace)) ||
-       !FText::checkType(nl->First(relationName)) ||
+  if(  !FText::checkType(nl->First(relationName)) ||
        !FText::checkType(nl->First(consistenceLevel)) ||
        !FText::checkType(nl->First(begin)) ||
        !FText::checkType(nl->First(end))
@@ -1237,18 +1203,6 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
   
   // We need to evaluate the result list, contact cassandra
   // and read the tuple type of the table
-  string contactPointVal;  
-  string contactPointExpr = nl->ToString(nl->Second(contactPoint));
-  if(! EvaluateTypeMappingExpr(contactPointExpr, contactPointVal) ) {
-    return listutils::typeError(contactPointVal);
-  }
-  
-  string keyspaceVal;  
-  string keyspaceExpr = nl->ToString(nl->Second(keyspace));
-  if(! EvaluateTypeMappingExpr(keyspaceExpr, keyspaceVal) ) {
-    return listutils::typeError(keyspaceVal);
-  }
-
   string relationVal;  
   string relationExpr = nl->ToString(nl->Second(relationName));
   if(! EvaluateTypeMappingExpr(relationExpr, relationVal) ) {
@@ -1258,9 +1212,15 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
   // Read tuple type from cassandra
   string tupleType;
   
+  string parmFile = expandVar("$(SECONDO_CONFIG)");
+  string host = SmiProfile::GetParameter("CassandraAlgebra", 
+     "host", "127.0.0.1", parmFile);
+  string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+     "keyspace", "keyspace_r3", parmFile);
+  
   CassandraAdapter* cassandra 
   = CassandraConnectionPool::Instance()->
-      getConnection(contactPointVal, keyspaceVal, false);
+      getConnection(host, keyspace, false);
 
   bool result = 
      cassandra -> getTupleTypeFromTable(relationVal, tupleType);
@@ -1281,24 +1241,23 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
 }
 
 
-
 /*
 2.5.2 Type mapping function of operator ~ccollectquery~
 
 Type mapping for ~ccollecquery~ is
 
 ----
-   text x text x text x text x int -> stream(tuple(...))
+   text x text x int -> stream(tuple(...))
 ----
 
 */
 ListExpr CCollectQueryTypeMap( ListExpr args ) {
 
-  if(nl->ListLength(args) != 5){
-    return listutils::typeError("five arguments expected");
+  if(nl->ListLength(args) != 3){
+    return listutils::typeError("three arguments expected");
   }
 
-  string err = " text x text x text x text x int expected";
+  string err = " text x text x int expected";
 
   // arg evaluation is active
   // this means each argument is a two elem list (type value)
@@ -1310,15 +1269,11 @@ ListExpr CCollectQueryTypeMap( ListExpr args ) {
     tmp = nl->Rest(tmp);
   }
   
-  ListExpr contactPoint = nl->First(args);
-  ListExpr keyspace = nl->Second(args);
-  ListExpr relationName = nl->Third(args);
-  ListExpr consistenceLevel = nl->Fourth(args);
-  ListExpr query = nl->Fifth(args);
+  ListExpr relationName = nl->First(args);
+  ListExpr consistenceLevel = nl->Second(args);
+  ListExpr query = nl->Third(args);
 
-  if(  !FText::checkType(nl->First(contactPoint)) ||
-       !FText::checkType(nl->First(keyspace)) ||
-       !FText::checkType(nl->First(relationName)) ||
+  if(  !FText::checkType(nl->First(relationName)) ||
        !FText::checkType(nl->First(consistenceLevel)) ||
        !CcInt::checkType(nl->First(query))
     ) {
@@ -1328,18 +1283,6 @@ ListExpr CCollectQueryTypeMap( ListExpr args ) {
   
   // We need to evaluate the result list, contact cassandra
   // and read the tuple type of the table
-  string contactPointVal;  
-  string contactPointExpr = nl->ToString(nl->Second(contactPoint));
-  if(! EvaluateTypeMappingExpr(contactPointExpr, contactPointVal) ) {
-    return listutils::typeError(contactPointVal);
-  }
-  
-  string keyspaceVal;  
-  string keyspaceExpr = nl->ToString(nl->Second(keyspace));
-  if(! EvaluateTypeMappingExpr(keyspaceExpr, keyspaceVal) ) {
-    return listutils::typeError(keyspaceVal);
-  }
-
   string relationVal;  
   string relationExpr = nl->ToString(nl->Second(relationName));
   if(! EvaluateTypeMappingExpr(relationExpr, relationVal) ) {
@@ -1349,13 +1292,18 @@ ListExpr CCollectQueryTypeMap( ListExpr args ) {
   // Read tuple type from cassandra
   string tupleType;
   
+  string parmFile = expandVar("$(SECONDO_CONFIG)");
+  string host = SmiProfile::GetParameter("CassandraAlgebra", 
+     "host", "127.0.0.1", parmFile);
+  string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+     "keyspace", "keyspace_r3", parmFile);
+  
   CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
-            getConnection(contactPointVal, keyspaceVal, false);
+            getConnection(host, keyspace, false);
            
   bool result = 
      cassandra -> getTupleTypeFromTable(relationVal, tupleType);
      
-  
   if(!result) {
      return listutils::typeError("Unable to read table type from "
        "cassandra. Does the table exist?");
@@ -1543,46 +1491,49 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
 
      if ( cli ) delete cli;
      
-     consistenceLevel = ((FText*) args[3].addr)->GetValue();
+     consistenceLevel = ((FText*) args[1].addr)->GetValue();
      
-     if(! ((FText*) args[0].addr)->IsDefined()) {
-       cout << "Cluster contactpoint is not defined" << endl;
+     if (! ((FText*) args[0].addr)->IsDefined()) {
+       cout << "Relation name is not defined" << endl;
      } else if (! ((FText*) args[1].addr)->IsDefined()) {
-       cout << "Keyspace is not defined" << endl;
-     }  else if (! ((FText*) args[3].addr)->IsDefined()) {
        cout << "Consistence level is not defined" << endl;
      } else if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel)) {
        cout << "Unknown consistence level: " << consistenceLevel << endl; 
      } else {
        
+        string parmFile = expandVar("$(SECONDO_CONFIG)");
+        string host = SmiProfile::GetParameter("CassandraAlgebra", 
+           "host", "127.0.0.1", parmFile);
+        string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+           "keyspace", "keyspace_r3", parmFile);
        
-         cli = new CCollectLocalInfo<fetchMode>(nl -> Second(resultType),
+        cli = new CCollectLocalInfo<fetchMode>(nl -> Second(resultType),
+                      host,
+                      keyspace,
                       (((FText*)args[0].addr)->GetValue()),
-                      (((FText*)args[1].addr)->GetValue()),
-                      (((FText*)args[2].addr)->GetValue()),
-                      (((FText*)args[3].addr)->GetValue())
+                      (((FText*)args[1].addr)->GetValue())
                  );
          
          // Parse additional parameter for RANGE MODE
          if(fetchMode == RANGE) {
-            if (! ((FText*) args[4].addr)->IsDefined()) {
+            if (! ((FText*) args[2].addr)->IsDefined()) {
                 cout << "Begin Token not defined" << endl;
-            } else if (! ((FText*) args[5].addr)->IsDefined()) {
+            } else if (! ((FText*) args[3].addr)->IsDefined()) {
                 cout << "End Token not defined" << endl;
             }
             
-            string begin = ((FText*)args[4].addr)->GetValue();
-            string end   = ((FText*)args[5].addr)->GetValue();
+            string begin = ((FText*)args[2].addr)->GetValue();
+            string end   = ((FText*)args[3].addr)->GetValue();
 
             cli -> setBeginEndToken(begin, end);
          }
          
          // Parse additional parameter for QUERY
          if(fetchMode == QUERY) {
-           if (! ((CcInt*) args[4].addr)->IsDefined()) {
+           if (! ((CcInt*) args[2].addr)->IsDefined()) {
                 cout << "QueryId is not defined" << endl;
            } else {
-             int queryId = ((CcInt*)args[4].addr)->GetValue();
+             int queryId = ((CcInt*)args[2].addr)->GetValue();
              cli -> setQueryId(queryId);
            }
          }
@@ -1629,22 +1580,18 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CCollectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>text x text x text x text "
-                         "-> stream(tuple(...))</text--->"
-                         "<text>ccollect [ _ , _ , _ , _ ] </text--->"
+                         "<text>text x text -> stream(tuple(...))</text--->"
+                         "<text>ccollect [ _ , _ ] </text--->"
                          "<text>The operator ccollect fetches a relation from"
                          "our cassandra cluster and create a stream of"
-                         "tuples. The first paramter is the contact point to "
-                         "the cassandra cluster. The second parameter "
-                         "specifies the keyspace to use. The third parameter "
+                         "tuples. The first parameter "
                          "contains the name of the relation to fetch. The "
-                         "fourth parameter specifies the consistence "
+                         "second parameter specifies the consistence "
                          "level used for reading. "
                          "If you use the operator ccollectlocal, only"
                          "the data stored on the connected cassandra node "
                          "will be collected</text--->"
-                         "<text>query ccollect['127.0.0.1', 'keyspace1', "
-                         "'plz', 'ANY'] count</text--->"
+                         "<text>query ccollect['plz', 'ANY'] count</text--->"
                               ") )";
 
 /*
@@ -1654,21 +1601,19 @@ const string CCollectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 const string CCollectRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>text x text x text x text x text x text"
+                         "<text>text x text x text x text"
                          "-> stream(tuple(...))</text--->"
-                         "<text>ccollectrange [ _ , _ , _ , _ , _ , _ ]"
+                         "<text>ccollectrange [ _ , _ , _ , _ ]"
                          "</text--->"
                          "<text>The operator ccollectrange fetches a relation"
                          "from our cassandra cluster and create a stream of"
-                         "tuples. The first paramter is the contact point to "
-                         "the cassandra cluster. The second parameter "
-                         "specifies the keyspace to use. The third parameter "
+                         "tuples. The first parameter "
                          "contains the name of the relation to fetch. The "
-                         "fourth parameter specifies the consistence "
-                         "level used for reading. The fith and the sixth"
+                         "second parameter specifies the consistence "
+                         "level used for reading. The third and the fourth"
                          "parameter specifies the token range</text--->"
-                         "<text>query ccollectrange['127.0.0.1', 'keyspace1', "
-                         "'plz', 'ANY', '1234', '5678'] count</text--->"
+                         "<text>query ccollectrange['plz', 'ANY', '1234',"
+                         " '5678'] count</text--->"
                               ") )";
 
 /*
@@ -1678,22 +1623,20 @@ const string CCollectRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 const string CCollectQuerySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>text x text x text x text x int"
+                         "<text>text x text x int"
                          "-> stream(tuple(...))</text--->"
-                         "<text>ccollectquery [ _ , _ , _ , _ , _ ] </text--->"
+                         "<text>ccollectquery [ _ , _ , _ ] </text--->"
                          "<text>The operator ccollect fetches a relation from"
                          "our cassandra cluster and create a stream of"
-                         "tuples. The first paramter is the contact point to "
-                         "the cassandra cluster. The second parameter "
-                         "specifies the keyspace to use. The third parameter "
+                         "tuples. The third parameter "
                          "contains the name of the relation to fetch. The "
-                         "fourth parameter specifies the consistence "
-                         "level used for reading. The fifth parameter"
+                         "second parameter specifies the consistence "
+                         "level used for reading. The third parameter"
                          "specifies the query id that produced the relation"
-                         "Instad of ccollect this operator guarantees that"
+                         "Instead of ccollect this operator guarantees that"
                          "only data from error free nodes is fetched"
                          "</text--->"
-                         "<text>query ccollectquery['127.0.0.1', 'keyspace1', "
+                         "<text>query ccollectquery["
                          "'plz', 'ANY', 3] count</text--->"
                               ") )";
 
@@ -1749,25 +1692,14 @@ The second parameter specifies the keyspace to use
 Type mapping for ~clist~ is
 
 ----
-  text x text -> stream(text)
+  () -> stream(text)
 ----
 
 */
-ListExpr CListTypeMap( ListExpr args )
-{
-
-  if(nl->ListLength(args) != 2){
-    return listutils::typeError("two arguments expected");
-  }
-
-  string err = " text x text expected";
-
-  ListExpr contactPoint = nl->First(args);
-  ListExpr keyspace = nl->Second(args);
-
-  if(  !FText::checkType(contactPoint) ||
-       !FText::checkType(keyspace)) {
-    return listutils::typeError(err);
+ListExpr CListTypeMap( ListExpr args ) {
+   
+  if(!nl->IsEmpty(args)){
+     return listutils::typeError("no arguments expected");
   }
   
   // create result list
@@ -1844,6 +1776,10 @@ int CList(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CListLocalInfo *cli; 
   Word elem;
+  string host;
+  string keyspace;
+  string parmFile;
+  
   cli = (CListLocalInfo*)local.addr;
   
   switch(message) {
@@ -1851,19 +1787,15 @@ int CList(Word* args, Word& result, int message, Word& local, Supplier s)
 
      if ( cli ) delete cli;
      
-     if(! ((FText*) args[0].addr)->IsDefined()) {
-       cout << "Cluster contactpoint is not defined" << endl;
-     } else if (! ((FText*) args[1].addr)->IsDefined()) {
-       cout << "Keyspace is not defined" << endl;
-     } else {
-       cli = new CListLocalInfo(
-                      (((FText*)args[0].addr)->GetValue()),
-                      (((FText*)args[1].addr)->GetValue())
-                 );
+     parmFile = expandVar("$(SECONDO_CONFIG)");
+     host = SmiProfile::GetParameter("CassandraAlgebra", 
+           "host", "127.0.0.1", parmFile);
+     keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+           "keyspace", "keyspace_r3", parmFile);
         
-       local.setAddr( cli );
-     }
-      
+      cli = new CListLocalInfo(host, keyspace);
+      local.setAddr( cli );
+  
      return 0;
 
     case REQUEST:
@@ -1902,10 +1834,10 @@ const string CListSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
                          "<text>text x text -> stream(text)</text--->"
-                         "<text>clist ( _ , _ ) </text--->"
+                         "<text>clist ( ) </text--->"
                          "<text>The operator clist list all known tables in a"
                          "cassandra keyspace</text--->"
-                         "<text>query clist('127.0.0.1', 'keyspace1') count "
+                         "<text>query clist() count "
                          "</text--->"
                               ") )";
 
@@ -1937,29 +1869,19 @@ The second parameter specifies the keyspace to use
 Type mapping for ~cquerylist~ is
 
 ----
-  text x text -> stream(tuple(...))
+  () -> stream(tuple(...))
 ----
 
 */
 ListExpr CQueryListTypeMap( ListExpr args )
 {
 
-  if(nl->ListLength(args) != 2){
-    return listutils::typeError("two arguments expected");
-  }
-
-  string err = " text x text expected";
-
-  ListExpr contactPoint = nl->First(args);
-  ListExpr keyspace = nl->Second(args);
-
-  if(  !FText::checkType(contactPoint) ||
-       !FText::checkType(keyspace)) {
-    return listutils::typeError(err);
-  }
+   if(!nl->IsEmpty(args)){
+      return listutils::typeError("no arguments expected");
+   }
   
-  // create result list
-  ListExpr res =  nl->TwoElemList( 
+   // create result list
+   ListExpr res =  nl->TwoElemList( 
                         nl->SymbolAtom(Stream<Tuple>::BasicType()),
                         nl->TwoElemList(
                             nl->SymbolAtom(Tuple::BasicType()) ,
@@ -2094,6 +2016,10 @@ int CQueryList(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CQueryListLocalInfo *cli; 
   Word elem;
+  string parmFile;
+  string host;
+  string keyspace;
+     
   cli = (CQueryListLocalInfo*)local.addr;
   ListExpr type = qp->GetType(s);
   
@@ -2102,19 +2028,16 @@ int CQueryList(Word* args, Word& result, int message, Word& local, Supplier s)
      
      if ( cli ) delete cli;
      
-     if(! ((FText*) args[0].addr)->IsDefined()) {
-       cout << "Cluster contactpoint is not defined" << endl;
-     } else if (! ((FText*) args[1].addr)->IsDefined()) {
-       cout << "Keyspace is not defined" << endl;
-     } else {
-       cli = new CQueryListLocalInfo(type,
-                      (((FText*)args[0].addr)->GetValue()),
-                      (((FText*)args[1].addr)->GetValue())
-                 );
+     parmFile = expandVar("$(SECONDO_CONFIG)");
+     host = SmiProfile::GetParameter("CassandraAlgebra", 
+        "host", "127.0.0.1", parmFile);
+     keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+        "keyspace", "keyspace_r3", parmFile);
+
+     cli = new CQueryListLocalInfo(type, host, keyspace);
         
-       local.setAddr( cli );
-     }
-      
+     local.setAddr( cli );
+  
      return 0;
 
     case REQUEST:
@@ -2152,12 +2075,11 @@ int CQueryList(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CQueryListSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>text x text -> stream(tuple(...))</text--->"
-                         "<text>clist ( _ , _ ) </text--->"
-                         "<text>The operator clist list all schduled queries"
+                         "<text>() -> stream(tuple(...))</text--->"
+                         "<text>clist ( ) </text--->"
+                         "<text>The operator clist list all scheduled queries"
                          "in a given cassandra keyspace</text--->"
-                         "<text>query cquerylist('127.0.0.1', "
-                         "'keyspace1') consume</text--->"
+                         "<text>query cquerylist() consume</text--->"
                               ") )";
 
 /*
@@ -2178,37 +2100,31 @@ Operator cassandraquerylist (
 
 The operator ~cqueryexecute~ schedules a query for execuion
 
-The first paramter is the contact point to the cassandra cluster
-The second parameter specifies the keyspace to use
-The third parameter is the id of the query
-The fourth parameter is the query
+The first parameter is the id of the query
+The second parameter is the query
 
 2.8.1 Type mapping function of operator ~cquerinsert~
 
 Type mapping for ~cqueryexecute~ is
 
 ----
-  text x text x int x text -> bool
+  int x text -> bool
 ----
 
 */
 ListExpr CQueryInsertTypeMap( ListExpr args )
 {
 
-  if(nl->ListLength(args) != 4){
-    return listutils::typeError("four arguments expected");
+  if(nl->ListLength(args) != 2){
+    return listutils::typeError("two arguments expected");
   }
 
-  string err = " text x text expected";
+  string err = " id x text expected";
 
-  ListExpr contactPoint = nl->First(args);
-  ListExpr keyspace = nl->Second(args);
-  ListExpr id = nl->Third(args);
-  ListExpr query = nl->Fourth(args);
+  ListExpr id = nl->First(args);
+  ListExpr query = nl->Second(args);
 
-  if(  !FText::checkType(contactPoint) ||
-       !FText::checkType(keyspace) ||
-       !CcInt::checkType(id) ||
+  if(  !CcInt::checkType(id) ||
        !FText::checkType(query) ) {
     return listutils::typeError(err);
   }
@@ -2235,27 +2151,25 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
     
       bool resultValue = false;
       
-      if(! ((FText*) args[0].addr)->IsDefined()) {
-        cout << "Cluster contactpoint is not defined" << endl;
-        return CANCEL;
-      } else if (! ((FText*) args[1].addr)->IsDefined()) {
-        cout << "Keyspace is not defined" << endl;
-        return CANCEL;
-      } else if (! ((CcInt*) args[2].addr)->IsDefined()) {
+      if (! ((CcInt*) args[0].addr)->IsDefined()) {
         cout << "Query id is not defined" << endl;
         return CANCEL;
-      } else if (! ((FText*) args[3].addr)->IsDefined()) {
+      } else if (! ((FText*) args[1].addr)->IsDefined()) {
         cout << "Query is not defined" << endl;
         return CANCEL;
       } else {
-      
-      string contactPoint = ((FText*) args[0].addr) -> GetValue();
-      string keyspace = ((FText*) args[1].addr) -> GetValue();
-      int queryid = ((CcInt*) args[2].addr) -> GetValue();
-      string query = ((FText*) args[3].addr) -> GetValue();
+         
+      string parmFile = expandVar("$(SECONDO_CONFIG)");
+      string host = SmiProfile::GetParameter("CassandraAlgebra", 
+            "host", "127.0.0.1", parmFile);
+      string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+            "keyspace", "keyspace_r3", parmFile);
+
+      int queryid = ((CcInt*) args[0].addr) -> GetValue();
+      string query = ((FText*) args[1].addr) -> GetValue();
       
       CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
-            getConnection(contactPoint, keyspace, true);
+            getConnection(host, keyspace, true);
            
       if(cassandra != NULL && cassandra -> isConnected()) {
         bool createMetatables = cassandra -> createMetatables();
@@ -2275,7 +2189,7 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
         
         // Copy token ranges to systemtable
         if(queryid == 1) {
-          cassandra -> copyTokenRangesToSystemtable(contactPoint);
+          cassandra -> copyTokenRangesToSystemtable(host);
         }
         
         resultValue = insertResult && createMetatables;
@@ -2297,12 +2211,11 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CQueryInsertSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>text x text x int x text -> bool</text--->"
-                         "<text>cqueryexecute ( _ , _ , _ , _ ) </text--->"
+                         "<text>int x text -> bool</text--->"
+                         "<text>cqueryexecute ( _ , _ ) </text--->"
                          "<text>The operator cqueryexecute schedules a query"
                          "for execuion. </text--->"
-                         "<text>query cqueryexecute('127.0.0.1', 'keyspace1', "
-                         "1, 'open database opt') "
+                         "<text>query cqueryexecute(1, 'open database opt') "
                          "</text--->"
                               ") )";
 
@@ -2326,35 +2239,29 @@ Operator cassandraqueryinsert (
 The operator ~cquerywait~ waits until the query, given by queryid
 is executed completelly
 
-The first paramter is the contact point to the cassandra cluster
-The second parameter specifies the keyspace to use
-The third parameter is the query id
+The first parameter is the query id
 
 2.9.1 Type mapping function of operator ~cquerywait~
 
 Type mapping for ~cquerywait~ is
 
 ----
-  text x text x int -> bool
+   int -> bool
 ----
 
 */
 ListExpr CQueryWaitTypeMap( ListExpr args )
 {
 
-  if(nl->ListLength(args) != 3){
-    return listutils::typeError("three arguments expected");
+  if(nl->ListLength(args) != 1){
+    return listutils::typeError("one argument expected");
   }
 
-  string err = " text x text x int expected";
+  string err = " int expected";
 
-  ListExpr contactPoint = nl->First(args);
-  ListExpr keyspace = nl->Second(args);
-  ListExpr queryId = nl->Third(args);
+  ListExpr queryId = nl->First(args);
 
-  if(  !FText::checkType(contactPoint) ||
-       !FText::checkType(keyspace) ||
-       !CcInt::checkType(queryId)) {
+  if( !CcInt::checkType(queryId)) {
     return listutils::typeError(err);
   }
   
@@ -2518,26 +2425,23 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
       CQueryWaitLocalInfo* cli = (CQueryWaitLocalInfo*)local.addr;
       if ( cli ) delete cli;
     
-      
       result = qp->ResultStorage(s);
       static_cast<CcInt*>(result.addr)->Set(false, 0);
     
-      if(! ((FText*) args[0].addr)->IsDefined()) {
-        cout << "Cluster contactpoint is not defined" << endl;
-        return CANCEL;
-      } else if (! ((FText*) args[1].addr)->IsDefined()) {
-        cout << "Keyspace is not defined" << endl;
-        return CANCEL;
-      } else if (! ((CcInt*) args[2].addr)->IsDefined()) {
+      if (! ((CcInt*) args[0].addr)->IsDefined()) {
         cout << "Query-Id is not defined" << endl;
         return CANCEL;
       } else {
           
-      string contactPoint = ((FText*) args[0].addr) -> GetValue();
-      string keyspace = ((FText*) args[1].addr) -> GetValue();
-      int queryId = ((CcInt*) args[2].addr) -> GetValue();
+      string parmFile = expandVar("$(SECONDO_CONFIG)");
+      string host = SmiProfile::GetParameter("CassandraAlgebra", 
+            "host", "127.0.0.1", parmFile);
+      string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+            "keyspace", "keyspace_r3", parmFile);
+         
+      int queryId = ((CcInt*) args[0].addr) -> GetValue();
       
-      cli = new CQueryWaitLocalInfo(contactPoint, keyspace, queryId);
+      cli = new CQueryWaitLocalInfo(host, keyspace, queryId);
       local.addr = cli;
  
       cout << "Wait for query id to be executed: " << queryId << endl;
@@ -2573,12 +2477,12 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CQueryWaitSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>text x text x int -> bool</text--->"
-                         "<text>cquerywait ( _ , _ , _ ) </text--->"
+                         "<text>int -> bool</text--->"
+                         "<text>cquerywait ( _ ) </text--->"
                          "<text>The operator cquerywait blocks until the"
                          "query specified by query id is executed"
                           "completelly</text--->"
-                         "<text>query cquerywait('127.0.0.1', 'keyspace1', 3)"
+                         "<text>query cquerywait(3)"
                          "</text--->"
                               ") )";
 
@@ -2617,18 +2521,8 @@ Type mapping for ~cqueryreset~ is
 ListExpr CQueryResetTypeMap( ListExpr args )
 {
 
-  if(nl->ListLength(args) != 2){
-    return listutils::typeError("two arguments expected");
-  }
-
-  string err = " text x text expected";
-
-  ListExpr contactPoint = nl->First(args);
-  ListExpr keyspace = nl->Second(args);
-
-  if(  !FText::checkType(contactPoint) ||
-       !FText::checkType(keyspace)) {
-    return listutils::typeError(err);
+  if(!nl->IsEmpty(args)){
+      return listutils::typeError("no arguments expected");
   }
   
   return nl->SymbolAtom(CcBool::BasicType());
@@ -2653,19 +2547,14 @@ int CQueryReset(Word* args, Word& result, int message, Word& local, Supplier s)
     
       bool resultValue = false;
       
-      if(! ((FText*) args[0].addr)->IsDefined()) {
-        cout << "Cluster contactpoint is not defined" << endl;
-        return CANCEL;
-      }  else if (! ((FText*) args[1].addr)->IsDefined()) {
-        cout << "Keyspace is not defined" << endl;
-        return CANCEL;
-      } else {
-      
-      string contactPoint = ((FText*) args[0].addr) -> GetValue();
-      string keyspace = ((FText*) args[1].addr) -> GetValue();
-      
+      string parmFile = expandVar("$(SECONDO_CONFIG)");
+      string host = SmiProfile::GetParameter("CassandraAlgebra", 
+         "host", "127.0.0.1", parmFile);
+      string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+         "keyspace", "keyspace_r3", parmFile);
+             
       CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
-            getConnection(contactPoint, keyspace, false);
+            getConnection(host, keyspace, false);
            
       if(cassandra != NULL && cassandra -> isConnected()) {
         bool dropResult = cassandra -> dropMetatables();
@@ -2688,7 +2577,7 @@ int CQueryReset(Word* args, Word& result, int message, Word& local, Supplier s)
       static_cast<CcBool*>(result.addr)->Set(true, resultValue);
       
       return YIELD;
-      }
+      
   }
   
   return 0;    
@@ -2701,13 +2590,13 @@ int CQueryReset(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CQueryResetSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>text x text -> bool</text--->"
-                         "<text>cqueryreset ( _ , _ ) </text--->"
+                         "<text>() -> bool</text--->"
+                         "<text>cqueryreset () </text--->"
                          "<text>The operator cqueryreset recreate all "
                          "metatables in the specified cassandra keyspace."
                          "All planed and executed queries will be lost"
                          "</text--->"
-                         "<text>query cqueryreset('127.0.0.1', 'keyspace1') "
+                         "<text>query cqueryreset() "
                          "</text--->"
                               ") )";
 
