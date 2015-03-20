@@ -202,9 +202,9 @@ void SetOperator2::Operate(const SetOp op) {
         
         if (aIsEmpty || bIsEmpty) {
             if (op == INTERSECTION) {
-               	// Result is empty: nothing to do
+// Result is empty: nothing to do
 cout << "SetOperator2 inside Operate - aIsEmpty || bIsEmpty \n"; 
-	        continue;
+ continue;
             }
             if (op == MINUS && aIsEmpty) {
                // Result is empty: nothing to do
@@ -228,19 +228,19 @@ cout << "SetOperator2::Operate() new SourceUnitPair2.Operate finished\n";
 
 cout << "SetOperator2::Operate() before EndBulkLoad\n";
     res->EndBulkLoad(false);
-	cout << "SetOperator2::Operate() after EndBulkLoad\n";
+cout << "SetOperator2::Operate() after EndBulkLoad\n";
 
 
-	bool tmpRes = so->GetSpecialOperationsResult();
-	bRes = &tmpRes;
-	switch (op) {       
-		case INSIDE:
+bool tmpRes = so->GetSpecialOperationsResult();
+bRes = &tmpRes;
+switch (op) {       
+	case INSIDE:
 cout << "Operator 'INSIDE' --> " << *bRes << endl;
-		    break;
-		case INTERSECT:
+break;
+case INTERSECT:
 cout << "Operator 'INTERSECT' --> " << *bRes << endl;
-		    break;
-	}
+break;
+}
 
        
         // delete all objects
