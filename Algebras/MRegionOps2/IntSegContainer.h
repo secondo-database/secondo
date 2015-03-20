@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[ae] [\"a]
 //[oe] [\"o]
 
+[1] Implementation
+
+Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 
 [TOC]
 

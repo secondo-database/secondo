@@ -34,7 +34,7 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 
 [TOC]
 
@@ -129,7 +129,7 @@ void IntSegContainer::FinalizeIntSegs()
 
 void IntSegContainer::FillIntSegsTable(unsigned int count)
 {
-// Nr der Zeitscheibe liefert uns alle InterSegs die darin vorkommen 
+// Nr from timeslot pick all InterSegs which are inside
   set<IntersectionSegment*>::const_iterator iter;
 
   for (iter = intSegs.begin(); iter != intSegs.end(); ++iter)
