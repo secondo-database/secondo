@@ -12,3 +12,6 @@ operator psendFile alias PSENDFILE  pattern _ op [_,_,_]
 operator prequestFile alias PREQUESTFILE  pattern _ op [_,_,_]
 operator getRequestFolder alias GETREQUESTFOLDER pattern op(_)
 operator getSendFolder alias GETSENDFOLDER pattern op(_)
+operator pconnect alias PCONNECT pattern _ op[_,_,_]
+
+

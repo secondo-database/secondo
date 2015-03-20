@@ -36,7 +36,7 @@ Remark    : requires a remote server
 Operator  : prcmd
 Number    : 1
 Signature : stream(tuple) x attrName x attrName -> stream(tuple + E)
-Example   : query intstream(0,5) namedtransformstream[Server] extend[ W : 'open database berlintest'] prcmd[Server,Q] consume
+Example   : query intstream(0,5) namedtransformstream[Server] extend[ W : 'open database berlintest'] prcmd[Server,W] consume
 Result    : bug
 Remark    : requires a remote server
 
@@ -47,8 +47,8 @@ Example   : query sendFile(0, 'local.txt', "remote.txt")
 Result    : bug
 Remark    : Requires a remote server
 
-Operator : requestFile
-Number   : 1
+Operator  : requestFile
+Number    : 1
 Signature : int x {string, text} x {string, text} -> bool
 Example   : query requestFile(0, 'remote.txt', "local.txt")
 Result    : bug
@@ -70,8 +70,6 @@ Example   : query filetable feed prequestFile[ServerNo, RemoteFileName, LocalFil
 Result    : bug
 Remark    : Requires a remote server
 
-
-
 Operator  : getRequestFolder 
 Number    : 1
 Signature : int -> text
@@ -83,3 +81,15 @@ Number    : 1
 Signature : int -> text
 Example   : query getSendFolder(0)
 Result    : (text undefined)
+
+Operator : pconnect
+Number   : 1
+Signature: stream(tuple(X)) x id x id x id -> stream(tuple(X + CNo))
+Example  : query connectTable feed pconnect[Host, Port, Config] consume
+Result   : bug
+Remark   : Requires a remote server
+
+
+
+
+

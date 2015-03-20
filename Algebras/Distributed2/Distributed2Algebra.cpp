@@ -189,7 +189,7 @@ class ConnectionInfo{
 };
 
 
-class ConnectionListener{
+class CommandListener{
  public:
 
   virtual void jobDone(int id, string& command, size_t no, int error, 
@@ -211,7 +211,7 @@ class ConnectionTask{
   public:
 
      ConnectionTask( ConnectionInfo* _connection, 
-                     ConnectionListener* _listener):
+                     CommandListener* _listener):
       connection(_connection), listener(_listener), no(0),
       done(false), pc1(this), commandList(), listmtx(), 
       condmtx(), cond(),  worker(pc1){
@@ -279,7 +279,7 @@ class pc{
 };
 
      ConnectionInfo* connection;
-     ConnectionListener* listener;
+     CommandListener* listener;
      size_t no;
      bool done;
      pc pc1;
@@ -311,10 +311,12 @@ Closes all open connections and destroys them.
 
 */
      ~Distributed2Algebra(){
+        mtx.lock();
         for(size_t i=0;i<connections.size();i++){
            delete connections[i];
         }
         connections.clear();
+        mtx.unlock();
      }
 
 /*
@@ -323,8 +325,12 @@ Closes all open connections and destroys them.
 Adds a new connection to the connection pool.
 
 */
-     void addConnection(ConnectionInfo* ci){
+     int addConnection(ConnectionInfo* ci){
+       mtx.lock();
+       int res = connections.size();
        connections.push_back(ci);
+       mtx.unlock();
+       return res; 
      }
 
 /*
@@ -335,7 +341,10 @@ Returns the number of connections
 */
 
      size_t noConnections(){
-         return connections.size();
+         mtx.lock();
+         size_t res =  connections.size();
+         mtx.unlock();
+         return res;
      }
 
 /*
@@ -345,7 +354,10 @@ Returns the connection at position i
 
 */
      ConnectionInfo* getConnection(size_t i){
-         return connections[i];
+         mtx.lock();
+         ConnectionInfo* res =  connections[i];
+         mtx.unlock();
+         return res;
      }
 
 /*
@@ -356,11 +368,13 @@ The return value is the number of closed connections.
 
 */
      int disconnect(){
+        mtx.lock();
         int res = connections.size();
         for(size_t i=0;i<connections.size();i++){
           delete connections[i];
         }
         connections.clear();
+        mtx.unlock();
         return res;
      }
      
@@ -374,11 +388,14 @@ given argument specifies an existing connection.
 
 */
      int disconnect( unsigned int position){
+        mtx.lock();
         if( position >= connections.size()){
+           mtx.unlock();
            return 0;
         }
         delete connections[position];
         connections.erase(connections.begin()+position);
+        mtx.unlock();
         return 1;
      }
 
@@ -396,10 +413,14 @@ Transfers a local file to a remove server.
        return -3;
       }
       unsigned int con2 = con;
+      mtx.lock();
       if(con2 >= connections.size()){
+        mtx.unlock();
         return -3;
       }
-      return connections[con2]->sendFile(local,remote, allowOverwrite);
+      ConnectionInfo* c = connections[con2];
+      mtx.unlock();
+      return c->sendFile(local,remote, allowOverwrite);
     }
     
 
@@ -411,10 +432,14 @@ Transfers a local file to a remove server.
        return -3;
       }
       unsigned int con2 = con;
+      mtx.lock();
       if(con2 >= connections.size()){
+        mtx.unlock();
         return -3;
       }
-      return connections[con2]->requestFile(remote,local, allowOverwrite);
+      ConnectionInfo* c = connections[con2];
+      mtx.unlock();
+      return c->requestFile(remote,local, allowOverwrite);
     }
 
 
@@ -423,10 +448,14 @@ Transfers a local file to a remove server.
        return "";
       }
       unsigned int con2 = con;
+      mtx.lock();
       if(con2 >= connections.size()){
+        mtx.unlock();
         return "";
       }
-      return connections[con2]->getRequestFolder(); 
+      ConnectionInfo* c = connections[con2];
+      mtx.unlock();
+      return c->getRequestFolder(); 
     }
     
     string getSendFolder( int con){
@@ -434,15 +463,20 @@ Transfers a local file to a remove server.
        return "";
       }
       unsigned int con2 = con;
+      mtx.lock();
       if(con2 >= connections.size()){
+        mtx.unlock();
         return "";
       }
-      return connections[con2]->getSendFolder(); 
+      ConnectionInfo* c = connections[con2];
+      mtx.unlock();
+      return c->getSendFolder(); 
     }
 
 
   private:
     vector<ConnectionInfo*> connections;
+    boost::mutex mtx;
 
 };
 
@@ -754,8 +788,9 @@ int rcmdVMT( Word* args, Word& result, int message,
            int errorCode = 0;
            string result ="";
            ci->simpleCommand( cmd->GetValue(), errorCode, result);
-           Tuple* resTuple = new Tuple(
-                        new TupleType( nl->Second(GetTupleResultType(s))));
+           TupleType* tt = new TupleType( nl->Second(GetTupleResultType(s)));
+           Tuple* resTuple = new Tuple(tt);
+           tt->DeleteIfAllowed();
            resTuple->PutAttribute(0, new CcInt(true,conv));
            resTuple->PutAttribute(1, new CcInt(true,errorCode));
            resTuple->PutAttribute(2, new FText(true, result));
@@ -1068,6 +1103,7 @@ int rqueryVMT( Word* args, Word& result, int message,
      sendMessage(msg, "InObject failed" );
      return 0;
   }
+  qp->DeleteResultStorage(s);
   qp->ChangeResultStorage(s,res);
   result = qp->ResultStorage(s);
   return 0;
@@ -1250,7 +1286,7 @@ class prcmdInfo{
      }
 
  
-   class InputProcessor : public ConnectionListener{
+   class InputProcessor : public CommandListener{
       public:
          InputProcessor(Word _s, int _intAttr, int _qAttr, prcmdInfo<T>* _info):
            stream(_s), intPos(_intAttr), qPos(_qAttr), info(_info) {
@@ -2607,6 +2643,400 @@ Operator getSendFolderOp (
      getFoldersTM        //type mapping
 );
 
+
+/*
+1.9 Operator ~pconnect~
+
+This operator connects to different Servers in parallel.
+
+1.9.1 Type Mapping
+
+The operator receives an tuple stream and three attribute names.
+The first attribute determines the host name and points to a string
+or a text attribute. The second attribute name determines the port und
+points to an integer attribute. The third attribute name determines the
+SecondoConfig.ini file and may be of type text or of type string.
+
+*/
+
+ListExpr pconnectTM(ListExpr args){
+
+  string err = "stream(tuple) x ID x ID x ID  expected";
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError(err);
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("The first attribute is not a tuple stream");
+  }
+  ListExpr a1 = nl->Second(args);
+  ListExpr a2 = nl->Third(args);
+  ListExpr a3 = nl->Fourth(args);
+  if(nl->AtomType(a1) != SymbolType || 
+     nl->AtomType(a2) != SymbolType ||
+     nl->AtomType(a3) != SymbolType){
+    return listutils::typeError(err);
+  }
+
+  string n1 = nl->SymbolValue(a1);
+  string n2 = nl->SymbolValue(a2);
+  string n3 = nl->SymbolValue(a3);
+
+  ListExpr type;
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+
+  int hostIndex = listutils::findAttribute(attrList, n1, type);
+  if(!hostIndex){
+    return listutils::typeError("Attribute " + n1 + " not found");
+  }
+  if(!CcString::checkType(type) && !FText::checkType(type)){
+     return listutils::typeError("Attribute " + n1 + 
+                                 " not of type string or type text");
+  }
+  int portIndex = listutils::findAttribute(attrList, n2, type);
+  if(!portIndex){
+    return listutils::typeError("Attribute " + n2 + " not found");
+  }
+  if(!CcInt::checkType(type) ){
+     return listutils::typeError("Attribute " + n2 + 
+                                 " not of type int");
+  }
+  int configIndex = listutils::findAttribute(attrList, n3, type);
+  if(!configIndex){
+    return listutils::typeError("Attribute " + n3 + " not found");
+  }
+  if(!CcString::checkType(type) && !FText::checkType(type)){
+     return listutils::typeError("Attribute " + n3 + 
+                                 " not of type string or type text");
+  }
+
+  if(listutils::findAttribute(attrList, "CNo",type)){
+    return listutils::typeError("incoming tuple stream already "
+                                "contains CNo attribute");
+  }
+
+  ListExpr resAttrList = listutils::concat(attrList, 
+                              nl->OneElemList(nl->TwoElemList(
+                                      nl->SymbolAtom("CNo"), 
+                                     listutils::basicSymbol<CcInt>())));
+
+
+  ListExpr appendList = nl->ThreeElemList(
+                              nl->IntAtom(hostIndex -1),
+                              nl->IntAtom(portIndex -1),
+                              nl->IntAtom(configIndex -1));
+
+  ListExpr resList = nl->TwoElemList(
+                      listutils::basicSymbol<Stream<Tuple> >(),
+                      nl->TwoElemList(
+                           listutils::basicSymbol<Tuple>(),
+                           resAttrList));
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            appendList,
+                            resList); 
+
+}
+
+
+/*
+1.7.2 auxiliary classes
+
+
+class ~ConnectionListener~
+
+This class contains a callback function that is called when
+a attempt for a connection is done. If the attempt was
+successful, no is the connection number, other wise no
+is negative.
+
+*/
+class ConnectionListener{
+
+  public:
+    virtual void connectionDone(Tuple* inputTuple, int no) =0;
+
+};
+
+
+/*
+Class ~Connector~
+
+This class implements a single attempt to connect 
+with a remote server. Directly after calling the constructor,
+a thread is start doing the connection attempt.
+
+*/
+
+class Connector{
+
+  public:
+     Connector(Tuple* _inTuple, const string& _host, const int _port, 
+               const string& _config, ConnectionListener* _listener):
+       inTuple(_inTuple), host(_host), port(_port), config(_config), 
+       listener(_listener){
+       mythread = boost::thread(
+                      boost::bind(&Connector::run, this));
+     }
+
+     ~Connector(){
+         mythread.join();
+      }
+
+  private:
+     Tuple* inTuple;
+     string host;
+     int port;
+     string config;
+     ConnectionListener* listener;
+     boost::thread mythread;
+
+
+     void run(){
+        if(port<0 || host.empty() || config.empty()){
+           listener->connectionDone(inTuple, -3);
+           return;
+        }
+
+        NestedList* mynl = new NestedList();
+        SecondoInterfaceCS* si = new SecondoInterfaceCS(false, mynl);
+        si->setMaxAttempts(4);
+        si->setTimeout(1);
+        string errMsg;
+        if(!si->Initialize( "", "", host, stringutils::int2str(port),
+                           config,errMsg, true)){
+           listener->connectionDone(inTuple, -3);
+           delete si;
+           delete mynl;
+        } else {
+           ConnectionInfo* ci = new ConnectionInfo(host,port,config,si,mynl);
+           int no = algInstance->addConnection(ci);
+           listener->connectionDone(inTuple, no);
+        }
+     }
+};
+
+
+
+
+template<class H, class C>
+class pconnectLocal : public ConnectionListener{
+  public:
+    pconnectLocal(Word& _stream, int _hostIndex, int _portIndex,
+                  int _configIndex, ListExpr _tt):
+       stream(_stream), hostIndex(_hostIndex), portIndex(_portIndex), 
+       configIndex(_configIndex), inputTuples(-1), outputTuples(0), 
+       stopped(false) {
+        tt = new TupleType(_tt);
+        stream.open(); 
+        runnerThread = boost::thread(
+                        boost::bind(&pconnectLocal::run, this));
+    }
+
+    virtual ~pconnectLocal(){
+       stop();
+       runnerThread.join();
+       stream.close();
+       for(size_t i=0;i<connectors.size(); i++){
+         delete connectors[i];
+       }
+       tt->DeleteIfAllowed(); 
+    }
+
+
+    Tuple* next(){
+       boost::unique_lock<boost::mutex> lock(waitmut);
+       listaccessmut.lock();
+       while(resultTuples.empty()){
+          listaccessmut.unlock();
+          cond.wait(lock);
+       }
+       Tuple* res = resultTuples.front();
+       resultTuples.pop_front();
+       listaccessmut.unlock();
+       return res;
+    } 
+
+    void stop(){
+      stopped = true;
+    }
+
+
+    virtual void connectionDone(Tuple* inTuple, int no){
+        mut.lock();
+        if(stopped){ // do not produce more output tuples
+           inTuple->DeleteIfAllowed();
+           mut.unlock();
+           return; 
+        }
+        mut.unlock();
+        outmut.lock();
+        Tuple* resTuple = new Tuple(tt);
+        // copy attributes
+        int noa = inTuple->GetNoAttributes();
+        for(int i=0;i<noa ; i++){
+           resTuple->CopyAttribute(i,inTuple,i);   
+        }
+        inTuple->DeleteIfAllowed();
+        resTuple->PutAttribute(noa, new CcInt(no));
+        listaccessmut.lock();
+        resultTuples.push_back(resTuple);
+        outputTuples++;
+        if(inputTuples==outputTuples){
+           stop();
+           resultTuples.push_back(0); // add end marker
+        }
+        listaccessmut.unlock();  
+        outmut.unlock();
+        boost::lock_guard<boost::mutex> lock(waitmut);
+        cond.notify_one();
+    }
+       
+
+  private:
+     Stream<Tuple> stream;
+     int hostIndex;
+     int portIndex;
+     int configIndex;
+     int inputTuples;
+     int outputTuples;
+     bool stopped;
+     TupleType* tt;
+     boost::mutex listaccessmut;
+     boost::mutex mut;
+     boost::mutex waitmut;
+     boost::mutex outmut;
+     boost::condition_variable cond;
+     list<Tuple*> resultTuples;
+     boost::thread runnerThread;
+     vector<Connector*> connectors;
+
+     void run(){
+        Tuple* inTuple;
+        int noTuples = 0;
+        inTuple = stream.request();
+        while(!stopped && inTuple!=0){
+           noTuples++;
+           H* Host = (H*) inTuple->GetAttribute(hostIndex);
+           CcInt* Port = (CcInt*) inTuple->GetAttribute(portIndex);
+           C* Config = (C*) inTuple->GetAttribute(configIndex);
+           if(   !Host->IsDefined() || !Port->IsDefined() 
+              || !Config->IsDefined()){
+              connectionDone(inTuple, -3);
+           } else {
+              Connector* connector = new Connector(inTuple, Host->GetValue(), 
+                                  Port->GetValue(), Config->GetValue(), this);
+              connectors.push_back(connector);
+           }
+           inTuple = stream.request();
+        }
+        if(inTuple){
+          inTuple->DeleteIfAllowed();
+        }
+        outmut.lock();
+        inputTuples = noTuples;
+        outmut.unlock();
+        if(inputTuples == outputTuples){
+            listaccessmut.lock();
+            resultTuples.push_back(0);
+            listaccessmut.unlock();
+            boost::lock_guard<boost::mutex> lock(waitmut);
+            cond.notify_one();
+         }    
+     }
+};
+
+
+/*
+1.7.3 Value Mapping
+
+*/
+template<class H, class C>
+int pconnectVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s ){
+
+   pconnectLocal<H,C>* li = (pconnectLocal<H,C>*) local.addr;
+   switch(message){
+     case OPEN: {
+            if(li) delete li;
+            int hostIndex = ((CcInt*)args[4].addr)->GetValue();
+            int portIndex = ((CcInt*)args[5].addr)->GetValue();
+            int configIndex = ((CcInt*)args[6].addr)->GetValue();
+            ListExpr tt = nl->Second(GetTupleResultType(s));
+            local.addr  = new pconnectLocal<H,C>( args[0], hostIndex,  
+                                         portIndex, configIndex, tt);
+            return 0;
+          }
+     case REQUEST:
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+     case CLOSE:
+            if(li){
+              delete li;
+              local.addr = 0;
+            }
+            return 0;
+   }
+   return -1;
+}
+
+/*
+1.7.3 Value Mapping Array and Selection
+
+*/
+ValueMapping pconnectVM[] = {
+  pconnectVMT<CcString, CcString>,
+  pconnectVMT<CcString, FText>,
+  pconnectVMT<FText, CcString>,
+  pconnectVMT<FText, FText>
+};
+
+
+
+int pconnectSelect(ListExpr args){
+  string name1 = nl->SymbolValue(nl->Second(args));// hostattr
+  string name2 = nl->SymbolValue(nl->Fourth(args));// configattr
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr type1, type2;
+  listutils::findAttribute(attrList, name1, type1);
+  listutils::findAttribute(attrList, name2, type2);
+  int n1 = CcString::checkType(type1)?0:2;
+  int n2 = CcString::checkType(type2)?0:1;
+  return n1+n2; 
+}
+
+/*
+1.7.4 Specification
+
+*/
+
+OperatorSpec pconnectSpec(
+     " stream(tuple(X)) x Id x Id x Id -> stream(tuple(X + (CNo int))) ",
+     " _ pconnect[_,_,_]  ",
+     " Creates connection to Secondo servers in parallel.  "
+     " The first argument is a stream of tuples. The parameters are "
+     " the attribute name for the host (string or text), the attribute "
+     " name for the port (int), and the attribute name for the "
+     " local configuration file (string or text). By this operator, the "
+     " input tuples are extended by the connection number. If the number is"
+     " negative, no connection could be build up for this input tuple. "
+     " The order of the output tuples depends on the connection speeds",
+     " query ConTable feed pconnect[Host, Port, Config] consume");
+
+/*
+1.7.5 Operator instance
+
+*/
+
+Operator pconnectOp (
+    "pconnect",             //name
+     pconnectSpec.getStr(),         //specification
+     4,
+     pconnectVM,        //value mapping
+     pconnectSelect,   //trivial selection function
+     pconnectTM        //type mapping
+);
+
+
+
 /*
 2 Implementation of the Algebra
 
@@ -2625,6 +3055,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&prequestFileOp);
    AddOperator(&getRequestFolderOp);
    AddOperator(&getSendFolderOp);
+   AddOperator(&pconnectOp);
+
 }
 
 
