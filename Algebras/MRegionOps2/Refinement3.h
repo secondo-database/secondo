@@ -33,7 +33,7 @@ This file contains classes and functions for use within the operators intersecti
 
 [2] Implementation with exakt dataype
 
-Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 

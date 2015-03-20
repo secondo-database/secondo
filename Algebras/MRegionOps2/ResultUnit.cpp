@@ -2,7 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Copyright (C) 2008, University in Hagen,
+Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -29,7 +30,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[->] [$\rightarrow $]
 //[pow] [\verb+^+]
 
-[1] Implementation
+[1] Codefile of ResultUnit class
+
+April - November 2008, M. H[oe]ger for bachelor thesis.
+
+[2] Implementation with exakt dataype
 
 Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
@@ -40,34 +45,25 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 2 Defines and Includes
 
 */
-
-#include "Angle.h"
-
+#include "ResultUnit.h"
+#include "NumericUtil.h"
 namespace mregionops2 {
 
-Angle Angle::GetOpposite()
+ResultUnit::ResultUnit()
 {
-  
-  mpq_class a = angle + Maxvalue / 2;
-  Normalize();
-  
-  return Angle(a);
+	cout << "ResultUnit ctor\n";
+}
+void ResultUnit::EndBulkLoad(bool merge)
+{
+	cout << "ResultUnit EndBulkLoad\n";
 }
 
-void Angle::Normalize()
+URegionEmb2* ResultUnit::ConvertToURegionEmb(DbArray<MSegmentData>* segments,
+Interval<Instant> interval) const 
 {
 
-  // Angles lie between 0 and 4
-  while (angle >= Maxvalue) angle = angle - Maxvalue;
-  while (angle < 0) angle = angle + Maxvalue;
 
+	return NULL;
 }
 
-}  /* end namespace mregionops2 */
-
-
-
-
-
-
-
+}

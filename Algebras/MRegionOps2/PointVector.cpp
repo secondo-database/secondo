@@ -34,7 +34,7 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype, 
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
@@ -58,7 +58,7 @@ Point2D::Point2D(const Point3D& p) :
 	x(p.GetX()), y(p.GetY()) {
 
 }
-// SuS
+
 mpq_class Point2D::WhichSide(const Segment2D& s) const {
 
     return WhichSide(s.GetStart(), s.GetEnd());
@@ -85,11 +85,6 @@ ostream& operator <<(ostream& o, const Point2D& p) {
 
     return o;
 }
-
-// Sonderfälle betrachten
-// linke Seite AD
-// rechte Seite BC
-// liegen Punkte Seitenkanten AD/BC auf der Kante AB/DC?
 
 
 

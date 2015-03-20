@@ -28,17 +28,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[x] [$\times $]
 //[->] [$\rightarrow $]
 
-[1] Implementation of the MRegionOps2Algebra
+[1] Implementation 
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype, 
 
-April - November 2014, S. Schroer for master thesis.
-
-[2] Implementation with exakt dataype
-
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
@@ -67,27 +63,31 @@ Point2D::Point2D(const Point3D& p) :
 bool Point2D::LiesBetween(Point2D p1, Point2D p2)
 
 {
-// *this = referenziertes Objekt das zu überprüfen ist
+// *this = referenziertes object to compare
   if ((*this == p1) || (*this == p2)) return true;
 
-// kann nicht dazwischen liegen
+// not beetween
   if (p1 == p2) return false;
     
   if (p1.x != p2.x)
   {
-    // x-Koordinate vom Objekt
-    // was passiert wenn p2 < p1
+    // x-Koordinate from object
+    // what's happend if p2 < p1
     mpq_class ratio = (x - p1.x) / (p2.x - p1.x);
 
-    // < 0 liegt der Punkt links von p1, > 0 liegt der Punkt rechts von p1
-    // wenn x zwischen p1 und p2 liegen soll, muss das 
-    // Verhältnis der y-Werte dem der x-Werte entsprechen
+    // shortens common divisor, canonische Form: ratio.canonicalize();  
+    // < 0 if the point is to the left of p1 
+	// > 0 if the point is to the right of p1
+	// when x is between p1 and p2 should be 
+	// ratio of the y - values correspond to the x- values
+	
     if ((ratio >= 0) && (ratio <= 1) &&
         ((y - p1.y) == (ratio * (p2.y - p1.y)))) return true;
   }
 
-  // p1, p2 liegen auf einer parallelen zur x-Achse
-  // wir wissen, y1 <> y2 und prüfen das Verhältnis neu
+  // p1, p2 lie on a line parallel to the x- axis
+  // we know, y1 <> y2 and examine the relationship new
+  
   else
   {
     mpq_class ratio = (y - p1.y) / (p2.y - p1.y);

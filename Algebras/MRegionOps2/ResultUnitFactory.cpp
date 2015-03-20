@@ -2,7 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Copyright (C) 2008, University in Hagen,
+Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,49 +28,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[oe] [\"o]
 //[x] [$\times $]
 //[->] [$\rightarrow $]
+//[pow] [\verb+^+]
 
-[1] Implementation of the MRegionOps2Algebra
+[1] Codefile of ResultUnitFactory class
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
-[2] Implementation with exakt dataype, 
+[2] Implementation with exakt dataype
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
 1 Introduction
 
-This file essentially contains the implementation of the algebra class and
-the type- and value mapping functions of the three set operators
-~intersection~, ~union~ and ~minus~ with the signature \\
-movingregion [x] movingregion [->] movingregion \\
-used in the MovingRegion Algebra.
-
-For more detailed information please see the files ~SetOps.h~ and ~SetOps.cpp~.
-
 2 Defines and Includes
 
 */
-
 #include <gmp.h>
-
-
+#include <ResultUnitFactory.h>
 namespace mregionops2 {
 
 
-/*
-1 Class ResultUnitFactory
-
-*/
-
-void ResultUnitFactory::Start() {
-
-cout << "ResultUnitFactory::Start" << endl;    
-
-
-}
-
-// end of namespace mregionops2
 
 };

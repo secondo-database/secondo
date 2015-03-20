@@ -27,9 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[oe] [\"o]
 //[x] [$\times $]
 //[->] [$\rightarrow $]
-//[pow] [\verb+^+]
 
-[1] Headerfile 
+[1] Implementation
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
@@ -39,104 +38,72 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
+[2] Implementation with exakt dataype, 
+
+April - November 2014, S. Schroer for master thesis.
+
 1 Introduction
 
 2 Defines and Includes
 
 */
 
-#ifndef POINT3DEXTSET_H_
-#define POINT3DEXTSET_H_
-
+#include "Point2D.h"
+#include "Point3D.h"
 #include "Point3DExt.h"
-#include "Segment3D.h"
+#include "Vector3D.h"
+#include "Vector2D.h"
+#include "Angle.h"
 
-#include <set>
+namespace mregionops2
+{
 
-namespace mregionops2 {
+ostream& operator <<(ostream& o, Point2D& p) {
 
-/*
+    o << "(" << p.GetX() << ", " << p.GetY() << ")";
 
-1 Class PointExtSet
-
-This set is used in the class ~PFace~ to compute the intersection segment of
-two ~PFaces~.
-
-*/
-
-class PointExtSet {
-
-public:
-
-/*
-
-1.1 Constructors
-
-*/
-
-    inline PointExtSet() {
-
-    }
-
-/*
-
-1.1 Operators and Predicates
-
-1.1.1 Insert
-
-Inserts p, if p isn't already inserted.
-
-*/
-
-    inline void Insert(const Point3DExt& p) {
-        s.insert(p);
-    }
-
-/*
-
-1.1.1 Size
-
-Returns the number of points in the set.
-
-*/
-
-    inline unsigned int Size() const {
-        return s.size();
-    }
-
-/*
-1.1.1 GetIntersectionSegment
-
-Returns ~true~, if there is an intersection segment and writes it to result.
-
-*/
-
-    bool GetIntersectionSegment(Segment3D& result) const;
-
-/*
-
-1.1 Methods for debugging
-
-*/
-
-    void Print() const;
-
-private:
-
-/*
-
-1.1 Attributes
-
-1.1.1 s
-
-A ~std::set~, using the overloaded operator $<$ for comparison.
-
-*/
-
-    set<Point3DExt> s;
-};
-
+    return o;
 }
 
-#endif /*POINT3DEXTSET_H_*/
+ostream& operator <<(ostream& o, Point3D& p) {
 
+    o << "(" << p.GetX() << ", " << p.GetY() << ", " << p.GetZ() << ")";
+
+    return o;
+}
+
+ostream& operator <<(ostream& o, Point3DExt& p) {
+
+    o << "(" << p.GetX() << ", " << p.GetY() << ", " << p.GetZ() << ")";
+
+    return o;
+}
+
+ostream& operator <<(ostream& o, Vector3D& v) {
+
+    o << "(" << v.GetX() << ", " << v.GetY() << ", " << v.GetZ() << ")";
+
+    return o;
+}
+
+ostream& operator <<(ostream& o, Vector2D& v) {
+
+    o << "(" << v.GetX() << ", " << v.GetY() << ")";
+}
+
+ostream& operator <<(ostream& o, Angle& a) {
+
+    if (a.IsInfinite())
+      o  << "INFINITE";      
+    else
+      o  << a.GetAngle();
+
+    return o;
+}
+
+void pmq(mpq_class val) {
+
+    cout << val << endl;
+}
+
+}

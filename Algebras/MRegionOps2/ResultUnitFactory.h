@@ -2,8 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2013, University in Hagen, 
-Faculty of Mathematics and Computer Science,
+Copyright (C) 2008, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -26,46 +25,40 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[ue] [\"u]
 //[ae] [\"a]
 //[oe] [\"o]
+//[x] [$\times $]
+//[->] [$\rightarrow $]
+//[pow] [\verb+^+]
 
+[1] Headerfile of ResultUnitFactory class
+
+April - November 2008, M. H[oe]ger for bachelor thesis.
+
+[2] Implementation with exakt dataype
+
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
-1 Helper classes and methods
-
-1.1 Some forward declaration of helper methods
-
-
-1 class deklarations
-
-class SetOperator2 (startpoint Operate())
-class SourceUnitPair2
-class SourceUnit2
-class ResultUnit
-class PFace
-class MSegment
+1 Introduction
 
 2 Defines and Includes
 
 */
-
 #ifndef RESULTUNITFACTORY_H_
 #define RESULTUNITFACTORY_H_
 
+#include <gmp.h>
 #include "MovingRegion2Algebra.h"
-#include "PointVector.h"
-#include "Segment.h"
+//#include "MSegment.h"
 #include "Refinement3.h"
 #include "IntersectionSegment.h"
 #include "IntSegContainer.h"
-
-
+#include "SetOps2.h"
+#include "PFace.h"
+using namespace std;
 namespace mregionops2 {
 
 class SourceUnitPair2;
-class SourceUnit2;
-class ResultUnitFactory;
-class ResultUnit;
-
 
 /*
 
@@ -77,6 +70,19 @@ over all ~PFaces~. For each relevant timevalue a new ~ResultUnit~ is
 constructed and added to the result ~MRegion~.
 
 */
+
+struct DoubleCompare {
+
+    inline bool operator()(const double& d1, const double& d2) const {
+        if(d1 < d2)
+	{
+		return d1;	
+	}
+	else
+		return d2;
+        //return NumericUtil::Lower(d1, d2);
+    }
+};
 
 class ResultUnitFactory {
 
@@ -116,39 +122,10 @@ This method starts the construction of all ~ResultUnits~.
 
 */
 
-    void Start();
+	void Start();
 
-/*
-1.1.1 AddPFace
-
-Adds a relevant ~PFace~.
-
-*/
-
-    inline void AddPFace(PFace* pf) {
-
-        pFaces.push_back(pf);
-    }
-
-/*
-
-1.1 Attributes
-
-1.1.1 time, timeIter
-A ~std::set~ to store the relevant timevalues and a suitable iterator.
-
-*/
-
-    //set<double, DoubleCompare> time;
-    //set<double, DoubleCompare>::const_iterator timeIter;
-
-/*
-
-1.1.1 t1, t12, t2
-
-The start-, middle- and endtime of the current ~ResultUnit~.
-
-*/
+	inline void AddPFace(PFace* pf)
+	{ pFaces.push_back(pf);}
 
     mpq_class t1;
     mpq_class t12;
@@ -156,36 +133,6 @@ The start-, middle- and endtime of the current ~ResultUnit~.
 
 /*
 
-1.1.1 pFaces
-A ~std::vector~ to store the relevant ~PFaces~.
-
-*/
-
-   vector<PFace*> pFaces;
-
-/*
-
-1.1.1 pFacesReduced
-
-A ~std::vector~ to store a reduced set of ~PFaces~, relevant for the
-intersection process. This optimization can be done in advance by using
-the projection bounding rectangles of both ~SourceUnits~.
-
-*/
-
-    vector<PFace*> pFacesReduced;
-
-/*
-
-1.1.1 criticalMSegs
-
-A ~std::vector~ to store the critical MSegments.
-
-*/
-
-//    vector<MSegmentCritical> criticalMSegs;
-
-/*
 1.1.1 resMRegion
 
 A pointer to the result ~MRegion~.
@@ -195,6 +142,7 @@ A pointer to the result ~MRegion~.
     MRegion2* resMRegion;
 
 /*
+
 1.1.1 parent
 
 A pointer to the parent object.
@@ -204,13 +152,14 @@ A pointer to the parent object.
     const SourceUnitPair2* const parent;
 
 /*
+
 1.1.1 resultUnit
 
 A pointer to the current ~ResultUnit~.
 
 */
 
-    ResultUnit* resultUnit;
+ //   ResultUnit* resultUnit;
 
 /*
 1.1.1 Attributes used for debugging
@@ -230,21 +179,12 @@ A pointer to the current ~ResultUnit~.
 
     vector<string> vrml;
 
+
+    set<double, DoubleCompare> time;
+    set<double, DoubleCompare>::const_iterator timeIter;
+
+	vector<PFace*> pFaces;
 };
-
-
-
-
-/*
-
-1 Class ResultUnit
-
-This class essentially collects at first all ~MSegments~ of a result unit,
-produced by the ~ResultUnitFactory~. Afterwards, the ~MSegments~ will be
-suitably linked together, to form a proper ~URegionEmb~. This is done by
-calling the method EndBulkLoad.
-
-*/
 
 
 /*
@@ -277,7 +217,7 @@ public:
     ResultUnit(const Interval<Instant> _interval) :
         interval(_interval),
         index(0) {
-
+	cout << "ResultUnitFactory.h - ResultUnit::Constructor()" << endl;  
     }
 
 /*
@@ -305,11 +245,16 @@ This method must be called before adding the first ~MSegment~.
 
     inline void StartBulkLoad() {
         index = 0;
+	
     }
 
 
     void EndBulkLoad(bool merge);
+    
+    inline void AddSegment(Segment3D ms) {
 
+        msegments.push_back(ms);
+    }
 /*
 1.1.1 ConvertToListExpr
 
@@ -328,17 +273,6 @@ Converts this ~ResultUnit~ to a ~URegionEmb~.
 
     URegionEmb* ConvertToURegionEmb(DbArray<MSegmentData>* segments) const;
 
-/*
-1.1.1 IsEmpty
-
-Returns ~true~, if this ~ResultUnit~ contains no ~MSegments~.
-
-*/
-
-//    inline bool IsEmpty() const {
-//
-//        return msegments.size() == 0;
-//    }
 
 /*
 1.1 Methods for debugging
@@ -370,7 +304,7 @@ The list of the ~MSegments~.
 
 */
 
-//    vector<MSegment> msegments;
+    vector<Segment3D> msegments;
 
 /*
 1.1.1 index
@@ -381,6 +315,7 @@ A counter, used in ~AddSegment~.
 
     unsigned int index;
 };
+
 
 }
 

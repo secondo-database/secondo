@@ -34,7 +34,7 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype, 
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
@@ -47,6 +47,7 @@ April - November 2014, S. Schroer for master thesis.
 #include "IntersectionSegment.h"
 #include "PFace.h"
 #include <iostream>
+#include "NumericUtil.h"
 
 
 namespace mregionops2 {
@@ -66,7 +67,7 @@ bool IntSegWCompare::operator()(const IntersectionSegment* const& s1,
 IntersectionSegment::IntersectionSegment(const Segment3D& s, PFace* _pface,
                               Angle leftAng, Angle rightAng, Direction dir) 
     {
-
+	cout << "ctor IntersectionSegment() started\n";
     // The startpoint's t-coord is always lower or equal to the
     // endpoint's t-coord.
     // Note: We don't care for x and y!
@@ -93,7 +94,9 @@ IntersectionSegment::IntersectionSegment(const Segment3D& s, PFace* _pface,
 
     if (rightNeighbour.IsZero()) rightNeighbour = Angle();
     if (leftNeighbour.IsZero()) leftNeighbour = Angle();
-    
+
+	Print();
+	cout << "ctor IntersectionSegment() finished\n";    
 }
 
 void IntersectionSegment::UpdateWith(IntersectionSegment* seg)
@@ -160,7 +163,7 @@ void IntersectionSegment::ComputeIntervalW(mpq_class startTime,
  
 //  compute IntervalW
 //  Interval: startTime - endTime
-//  Segment: GetStartT - GetEndT
+//  Segment:  GetStartT - GetEndT
 
     intervalStartW = Point2D(startWT, endWT, 
                      (startTime-GetStartT())/(GetEndT()-GetStartT())).GetW();
@@ -202,6 +205,45 @@ void IntersectionSegment::InvertAreaDirection()
   }
 }
 
+Point3D IntersectionSegment::Evaluate(const mpq_class mpqt) const {
+
+    double t = mpqt.get_d();
+    // We compute the intersection point
+    // of the horizontal plane, defined by t, and this segment.
+    
+    // Precondition:
+    // t is between t_start and t_end.
+
+    //assert(NumericUtil::Between(GetStartT(), t, GetEndT()));
+
+    // Point3D pointInPlane(0.0, 0.0, t);
+    // Vector3D normalVectorOfPlane(0.0, 0.0, 1.0);
+    // Vector3D u = *this->GetEndXYT() - *this->GetStartXYT();
+    // Vector3D w = this->GetStartXYT() - pointInPlane;
+    // double d = normalVectorOfPlane * u;
+    // double n = -normalVectorOfPlane * w;
+    
+    // This can be simplified to:
+
+//
+//    const Vector3D u =  endXYT - startXYT;//GetEndXYT() - GetStartXYT();
+//    const double d = GetEndT() - GetStartT();
+//    const double n = t - GetStartT();
+//
+    // This segment must not be parallel to plane:
+    //assert(!NumericUtil::NearlyEqual(d, 0.0));
+
+    //const double s = n / d;
+
+    // This segment intersects the plane:
+    //assert(NumericUtil::Between(0.0, s, 1.0));
+
+    // Compute segment intersection point:
+
+    //return *GetStartXYT() + s * u;
+Point3D p;
+	return p;
+}
 bool IntersectionSegment::IsLeftOf(const IntersectionSegment* intSeg) const {
     
     // Precondition: 

@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
+
 [TOC]
 
 1 Introduction

@@ -35,7 +35,7 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype, 
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
@@ -44,7 +44,7 @@ April - November 2014, S. Schroer for master thesis.
 2 Defines and Includes
 
 */
-
+#pragma once
 #ifndef POINTVECTOR_H_
 #define POINTVECTOR_H_
 
@@ -306,7 +306,7 @@ components of p.
 
 private:
 
-// neuer Datentyp mpq_class 
+// neuer Datentyp mpq_class aus MovingRegion3Algebra.h
 
 // SuS
     mpq_class x;
@@ -497,25 +497,7 @@ Returns the cross product of this and w: a Vector3D
         return Vector3D(0.0, 0.0, x * w.y - y * w.x);
     }
     
-/*
-3.3.12 Normalize
-    
-Normalize this vector to length one.
-
-*/         
-
-// SuS    inline void Normalize() {
-// SuS
-// nicht exakt
-// SuS        const mpq_class len = sqrt(x*x + y*y);
-
-// SuS        if (len != 0.0) {
-
-// SuS            x /= len;
-// SuS            y /= len;
-// SuS        }
-// SuS    }
-    
+   
 /*
 3.3.13 operator ==
     
@@ -688,16 +670,7 @@ Returns this point, scaled by the factor f.
     
 Returns the distance between this and p.
 
-*/    
-    
-// SuS mpq_class 
-// inline double Distance(const Point2D& p) const {
-// SuS    inline mpq_class Distance(const Point2D& p) const {
-// SuS
-// SuS        return (p - *this).Length();
-// SuS    }
-    
-/*
+
 5.3.8 Distance2
     
 Returns the quadratic distance between this and p.
@@ -750,10 +723,6 @@ an epsilon to avoid rounding errors.
     bool IsColinear(const Segment2D& s) const;
 
 private:
-
-// hier Datentyp ersetzen SuS
-// neuer Datentyp mpq_class aus MovingRegion3Algebra.h
-// ersetzte double durch mpq_class
 
     mpq_class x;
     mpq_class y;
@@ -899,18 +868,7 @@ Returns this point, scaled by the factor f.
     }
     
 /*
-6.3.7 Distance
-    
-Returns the distance between this and p.
 
-*/    
-// SuS    
-// SuS   inline mpq_class Distance(const Point3D& p) const {
-// SuS        
-// SuS        return (p - *this).Length();
-// SuS    }
-    
-/*
 6.3.8 Distance2
     
 Returns the quadratic distance between this and p.

@@ -234,7 +234,7 @@ cout << "SetOperator2::Operate() after EndBulkLoad\n";
 bool tmpRes = so->GetSpecialOperationsResult();
 bRes = &tmpRes;
 switch (op) {       
-	case INSIDE:
+case INSIDE:
 cout << "Operator 'INSIDE' --> " << *bRes << endl;
 break;
 case INTERSECT:

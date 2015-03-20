@@ -29,13 +29,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[->] [$\rightarrow $]
 //[pow] [\verb+^+]
 
-[1] Headerfile of the Point and Vector classes
+[1] Codefile of PFace class
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
-[2] Implementation with exakt dataype, 
+[2] Implementation with exakt dataype
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
@@ -44,7 +44,6 @@ April - November 2014, S. Schroer for master thesis.
 2 Defines and Includes
 
 */
-
 #include "PFace.h"
 #include "Point3DExt.h"
 #include "PointExtSet.h"
@@ -69,29 +68,42 @@ PFace::PFace(SourceUnit2* _unit, Point2D _is,
 {
 
     SetInitialStartPointIsA();
-//    ComputeBoundingRect();
     ComputeNormalVector();
     ComputeVerticalVector();
     ComputeWVector();
+	//    ComputeBoundingRect();
 }
 
 // case 1: the segment lies on eges from p-face
 PFace::TouchMode PFace::LiesOnBorder(const Segment3D& seg)
-    {
-      if (seg.GetStart().LiesBetween(GetA_XYT(), GetC_XYT()) &&
-          seg.GetEnd().LiesBetween(GetA_XYT(), GetC_XYT()))
-        return LEFT;
+{
+	PFace::TouchMode result = NONE;
 
-      if (seg.GetStart().LiesBetween(GetB_XYT(), GetD_XYT()) &&
-          seg.GetEnd().LiesBetween(GetB_XYT(), GetD_XYT()))
-        return RIGHT;
 
-      return NONE;
-    }
+if (seg.GetStart().LiesBetween(GetA_XYT(), 
+GetC_XYT()) && seg.GetEnd().LiesBetween(GetA_XYT(), GetC_XYT()))
+	{
+		//cout << "PFace::LiesOnBorder: LEFT\n";
+	    //return LEFT;
+		result = LEFT;
+	}
+if (seg.GetStart().LiesBetween(GetB_XYT(), 
+GetD_XYT()) && seg.GetEnd().LiesBetween(GetB_XYT(), GetD_XYT()))
+	{
+		//cout << "PFace::LiesOnBorder: RIGHT\n";
+	    //return RIGHT;
+		result = RIGHT;
+	}
+	
+	cout << "PFace::LiesOnBorder: " << result << endl;
+	//return NONE;
+	return result;
+}
 
 
 PFace::TouchMode PFace::BorderLiesOn(PFace& pf)
     {
+	cout << "PFace::BorderLiesOn\n";
       TouchMode touchMode = NONE;
 
 // left eges
@@ -116,19 +128,23 @@ PFace::TouchMode PFace::BorderLiesOn(PFace& pf)
 	else
 	  touchMode = RIGHT;
       }
+cout << "PFace::BorderLiesOn: " << touchMode << "\n";
       return touchMode;
     }
 
 // p-faces are parallel
 bool PFace::IsParallel(const PFace& pf)
 {
+	bool result = false;
 
 // if the normalvector are a duplicated from the other normalvector
 // the p-faces are "linear abhängig" and parallel
 Vector3D nv = pf.GetNormalVector();
-return ((normalVector.GetX() * nv.GetY() == normalVector.GetY() * nv.GetX()) &&
+result=((normalVector.GetX() * nv.GetY() == normalVector.GetY() * nv.GetX()) &&
 (normalVector.GetY() * nv.GetZ() == normalVector.GetZ() * nv.GetY()) &&
 (normalVector.GetX() * nv.GetZ() == normalVector.GetZ() * nv.GetX()));
+cout << "PFace::IsParallel: " << result << endl;
+return result;
 }
 
 bool PFace::IntersectionPlaneSegment(const Segment3D& seg, Point3D& result) {
@@ -148,7 +164,7 @@ bool PFace::IntersectionPlaneSegment(const Segment3D& seg, Point3D& result) {
 
     mpq_class s = n / d;
 
-    // No intersection point, if s < or s > 1
+    // No intersection point, if s < 0 or s > 1
     if ((s < 0) || (s > 1)) 
         return false;
 
@@ -162,7 +178,6 @@ bool PFace::Isintersectedby(const Segment3D seg, Segment3D& resultseg)
 {
 //  precondition: seg liegt in der gleichen Ebene wie das pface
 //  Anfang und Endpunkte liegen auf der selben Zeitachse wie das pface
-
 //  Variablen für die umgerechneten w-Koordinaten
     mpq_class w_A;
     mpq_class w_B;
@@ -245,35 +260,35 @@ return isegfound;
 
 void PFace::Intersection(PFace& pf)
 {
-// 1. parallel, sind linear abhängig
+// 1. parallel
    if (this->IsParallel(pf) )
    {
 	Segment3D iseg;
 	Segment3D resultseg;
 
-//	1a. koplanar, liegen in einer Ebene
+//	1a. koplanar
 	Vector3D vec (GetA_XYT(), pf.GetA_XYT());
 	if (vec * GetNormalVector() != 0)
 	{
 	  return;
 	}
 
-	if (Isintersectedby(Segment3D(pf.GetA_XYT(), pf.GetC_XYT()), resultseg))
+if (Isintersectedby(Segment3D(pf.GetA_XYT(), pf.GetC_XYT()), resultseg))
 	{
 
            AddIntSeg(resultseg, pf.GetAngle(), POSITIVE);
         }
 
-	if (Isintersectedby(Segment3D(pf.GetB_XYT(), GetD_XYT()), resultseg))
+if (Isintersectedby(Segment3D(pf.GetB_XYT(), GetD_XYT()), resultseg))
 	{ 
             AddIntSeg(resultseg, pf.GetAngle().GetOpposite(), NEGATIVE);
         }
  
-        if (pf.Isintersectedby(Segment3D(GetA_XYT(), GetC_XYT()), resultseg))
+if (pf.Isintersectedby(Segment3D(GetA_XYT(), GetC_XYT()), resultseg))
         {
             pf.AddIntSeg(resultseg, GetAngle(), POSITIVE);
         }
-        if (pf.Isintersectedby(Segment3D(GetB_XYT(), GetD_XYT()), resultseg))
+if (pf.Isintersectedby(Segment3D(GetB_XYT(), GetD_XYT()), resultseg))
         {
 	    pf.AddIntSeg(resultseg, GetAngle().GetOpposite(), NEGATIVE);
 	} 
@@ -285,7 +300,7 @@ void PFace::Intersection(PFace& pf)
 // We store all edges of this PFaceA as 3DSegments in the vector edgesPFaceA:
    vector<Segment3D> edgesPFaceA;
 
-// da stehen drei / vier Kanten = EdgesPFaceA / 
+// three / four edges = EdgesPFaceA / 
 // B = Menge der Kanten beider Pfaces
    edgesPFaceA.push_back(Segment3D(this->GetA_XYT(), this->GetC_XYT()));
    edgesPFaceA.push_back(Segment3D(this->GetB_XYT(), this->GetD_XYT()));
@@ -433,6 +448,9 @@ Angle pfAng = Angle(Vector2D(GetVerticalVector() * pf.GetVerticalVector(),
 
 void PFace::AddIntSeg(const Segment3D& seg, Angle angle, Direction dir)
 {
+
+
+	
     IntersectionSegment* intSeg;
 
     SetOp op = GetOperation();
@@ -449,9 +467,9 @@ intSeg = new IntersectionSegment(seg, this, pAngOpp - angle, angle - pAng, dir);
     }
         
     intSegs.AddIntSeg(intSeg);
-    
+    myIntSegs.push_back(intSeg);
 //  Plumbline sparen mit dem Wissen der Nr der Zyklen und pfaces
-//  GetT - neue Punkte der resultierenden U-Region
+//  GetT - new points from result U-Region
     unit->SetCycleStatus(faceNo, cycleNo, HASINTSEGS);
     unit->AddTimestamp(seg.GetStart().GetT());
     unit->AddTimestamp(seg.GetEnd().GetT());
@@ -475,6 +493,7 @@ intSeg = new IntersectionSegment(seg, this, angle - pAngOpp, pAng - angle, dir);
 intSeg = new IntersectionSegment(seg, this, pAngOpp - angle, angle - pAng, dir);
     }
         
+
     horizontalIntSegs.AddIntSeg(intSeg);
     
     unit->SetCycleStatus(faceNo, cycleNo, HASINTSEGS);
@@ -565,7 +584,7 @@ void PFace::ComputeWVector() {
 
 void PFace::FinalizeIntSegs()
 {
-
+   cout << "PFace::FinalizeIntSegs()\n";
 // IntersectionSegment::Finalize()
    intSegs.FinalizeIntSegs();
 
@@ -578,6 +597,7 @@ void PFace::FinalizeIntSegs()
 
 // IntersectionSegment::Finalize()
    horizontalIntSegs.FinalizeIntSegs();
+
    intSegs.FillIntSegsTable(unit->GetTimeIntervalCount());
 }
 
@@ -585,13 +605,13 @@ void PFace::FinalizeIntSegs()
 // füll die SET-Liste für das Zeitintervall n 
 void PFace::FillIntSegIntervallList(unsigned int intervalNo)
 {
-
+cout << "PFace::FillIntSegIntervallList intervalNo: " << intervalNo << endl;
    intSegIntervalList.clear();
    mpq_class startTime = GetTimeIntervalStart(intervalNo);
    mpq_class endTime = GetTimeIntervalEnd(intervalNo);
    
-   pair<multimap<unsigned int, IntersectionSegment*>::iterator,
-        multimap<unsigned int, IntersectionSegment*>::iterator> eqr;
+   pair<multimap<unsigned int, IntersectionSegment*>::iterator,        
+multimap<unsigned int, IntersectionSegment*>::iterator> eqr;
    eqr = intSegsToInterval.equal_range(intervalNo);
    for (multimap<unsigned int, IntersectionSegment*>::iterator iter = eqr.first;
         iter != eqr.second; iter++)
@@ -599,7 +619,9 @@ void PFace::FillIntSegIntervallList(unsigned int intervalNo)
      IntersectionSegment* intSeg = iter->second;
      intSeg->ComputeIntervalW(startTime, endTime);
      intSegIntervalList.insert(intSeg);
+	cout << "PFace::FillIntSegIntervallList for each\n";
    }
+	cout << "PFace::FillIntSegIntervallList\n";
 }
 
 void PFace::SetInitialStartPointIsA() {
@@ -616,10 +638,8 @@ void PFace::SetInitialStartPointIsA() {
 }
 
 void PFace::Print() {
-
-    cout << "PFace:" << endl;
-    cout << endl;
-    
+    PrintIdentifier();
+    cout << "PFace: " << Get_faceNo() << endl;
     cout << "Starttime: " << unit->GetStartTime() << endl;
     cout << "Endtime: " << unit->GetEndTime() << endl;
     
@@ -666,12 +686,15 @@ void PFace::Print() {
     }
     else
     {
-multimap<unsigned int, IntersectionSegment*>::iterator iter;
+	cout << "\nlist intSegsToInterval\n";
+	multimap<unsigned int, IntersectionSegment*>::iterator iter;
 for (iter = intSegsToInterval.begin(); iter != intSegsToInterval.end(); iter++)
-    {
-     cout << (*iter).first <<  "=>" << endl;
-     cout << (*iter).second << endl;
-    }
+	{
+cout << (*iter).first <<  "=>";
+cout << (*iter).second << endl;
+const Point3D* startPoint=((IntersectionSegment*)(*iter).second)->GetStartXYT();
+const Point3D* endPoint=((IntersectionSegment*)(*iter).second)->GetEndXYT();
+	}
     }
 
     mpq_class wt;

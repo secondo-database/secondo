@@ -29,13 +29,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[->] [$\rightarrow $]
 //[pow] [\verb+^+]
 
-[1] Headerfile of the Point and Vector classes
+[1] Headerfile 
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype, 
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
@@ -222,6 +222,63 @@ public:
     void FinalizeIntSegs(); 
     void Print();
 
+    inline unsigned int Get_cycleNo()
+	{ return cycleNo;}
+    inline unsigned int Get_faceNo()
+	{ return faceNo;}
+
+    inline bool HasIntersegs()
+    {
+	if(intSegsToInterval.size() > 0)
+		return true;
+	else
+		return false;
+    }
+    inline void SetDebugId(unsigned int ID)
+    {
+       debugId = ID;
+    }
+
+    inline void PrintIdentifier()
+    {
+	Point3D p_a = GetA_XYT();
+	Point3D p_b = GetB_XYT();
+	if(unit->IsUnitA() ==true)
+		cout << "Unit A PFace " << debugId << 
+		"; A=" << p_a << "; B=" << p_b << endl;
+	else
+		cout << "Unit B PFace " << debugId << 
+		"; A=" << p_a << "; B=" << p_b << endl;
+    }
+
+	inline IntSegContainer* getIntSegs()
+	{
+		return &intSegs;
+	}
+   inline vector<IntersectionSegment*> GetIntSegs()
+   {
+	return myIntSegs;
+   }
+   inline vector<IntersectionSegment*> 
+getIntersectionSegmentByInterval(unsigned int interval)
+   {
+	vector<IntersectionSegment*> result;
+	
+	multimap<unsigned int, IntersectionSegment*>::iterator iter;
+for (iter = intSegsToInterval.begin(); iter != intSegsToInterval.end(); iter++)
+	{
+		cout << "key=" << (*iter).first << endl;
+		if((*iter).first == interval)
+		{
+			cout << "adding IntersectionSegment\n";
+			result.push_back((*iter).second);
+		}
+		else
+			cout << "skipping IntersectionSegment\n";
+	}
+	return result;
+   }
+
 private:
 
     enum TouchMode {LEFT, RIGHT, BOTH, NONE};
@@ -249,6 +306,7 @@ private:
     SourceUnit2* const unit;
     Point2D is, ie, fs, fe;
     bool insideAbove;
+
     unsigned int cycleNo;
     unsigned int faceNo;
     Vector3D normalVector;
@@ -256,8 +314,11 @@ private:
     Vector3D wVector;
     bool initialStartPointIsA;
     IntSegContainer intSegs;
+    vector<IntersectionSegment*> myIntSegs;
     IntSegContainer horizontalIntSegs;
     Angle angle;
+
+    unsigned int debugId;
 
 //  alle Intersektionsegmente zurück gegeben die 
 //  für die Zeitscheibe Key relevant sind

@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[ae] [\"a]
 //[oe] [\"o]
 
+[1] Implementation with exakt dataype
+
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
@@ -41,19 +44,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <gmp.h>
 #include <gmpxx.h>
-#include "MovingRegionAlgebra.h"
-#include "TemporalAlgebra.h"
-#include "NList.h"
-#include "NumericUtil.h"
-#include "PointVector.h"
-#include "Segment.h"
-#include "Statistic.h"
-#include "DateTime.h"
-#include "StopWatch.h"
 #include <vector>
 #include <set>
 #include <list>
 
+//#include "MovingRegionAlgebra.h"
+//#include "PointVector.h"
+//#include "Statistic.h"
+
+#include "TemporalAlgebra.h"
+#include "NList.h"
+#include "NumericUtil.h"
+#include "Segment.h"
+#include "DateTime.h"
+#include "StopWatch.h"
 
 namespace mregionops2 {
 
@@ -73,6 +77,7 @@ class MSegment {
 public:
 
 /*
+
 1.1 Constructor
 
 */
@@ -92,7 +97,6 @@ Returns a pointer to the ~PFace~, this ~MSegment~ comes from.
 */
 
     inline const PFace* GetPFace() const {
-
         return pFace;
     }
 
@@ -105,12 +109,10 @@ This segment might be degenerated to a point.
 */
 
     inline const Segment2D& GetInitial() const {
-
         return initial;
     }
 
     inline const Segment2D& GetFinal() const {
-
         return final;
     }
 
@@ -123,7 +125,6 @@ This segment can never degenerate.
 */
 
     inline const Segment2D& GetMedian() const {
-
         return median;
     }
 
@@ -136,7 +137,6 @@ This segment can never degenerate.
 */
 
     inline const HalfSegment& GetMedianHS() const {
-
         return medianHS;
     }
 
@@ -148,17 +148,14 @@ Returns the faceno/cycleno/edgeno of this ~MSegment~.
 */
 
     inline int GetFaceNo() const {
-
         return medianHS.attr.faceno;
     }
 
     inline int GetCycleNo() const {
-
         return medianHS.attr.cycleno;
     }
 
     inline int GetSegmentNo() const {
-
         return medianHS.attr.edgeno;
     }
 
@@ -170,7 +167,6 @@ Returns the flag insideAbove of this ~MSegment~.
 */
 
     inline int GetInsideAbove() const {
-
         return insideAbove;
     }
 
@@ -184,7 +180,6 @@ Note: This is indicated by the median ~HalfSegment~.
 */
 
     inline bool IsLeftDomPoint() const {
-
         return medianHS.IsLeftDomPoint();
     }
 
@@ -196,7 +191,6 @@ Marks this ~MSegment~ as left.
 */
 
     inline void SetLeftDomPoint(bool ldp) {
-
         medianHS.SetLeftDomPoint(ldp);
     }
 
@@ -208,7 +202,6 @@ Sets the segmentno to sn.
 */
 
     inline void SetSegmentNo(int sn) {
-
         medianHS.attr.edgeno = sn;
     }
 
@@ -223,10 +216,10 @@ Copies the faceno/cycleno/edgeno from hs to this.
 
     inline void CopyIndicesFrom(const HalfSegment* hs) {
 
-        medianHS.attr.faceno = hs->attr.faceno;
-        medianHS.attr.cycleno = hs->attr.cycleno;
-        medianHS.attr.edgeno = hs->attr.edgeno;
-        //medianHS.attr.insideAbove = hs->attr.insideAbove;
+    medianHS.attr.faceno = hs->attr.faceno;
+    medianHS.attr.cycleno = hs->attr.cycleno;
+    medianHS.attr.edgeno = hs->attr.edgeno;
+    //medianHS.attr.insideAbove = hs->attr.insideAbove;
     }
 
 /*

@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[ae] [\"a]
 //[oe] [\"o]
 
+[1] Implementation
+
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
@@ -197,17 +200,6 @@ Precondition: $startpoint.t <= t <= endpoint.t$
 
     Point3D Evaluate(const mpq_class t) const;
 
-/*
-1.1 Methods for debugging
-
-*/
-
-//    inline unsigned int GetID() const {
-//        return id;
-//    }
-
-//    string GetVRMLDesc();
-
     void Print();
 
 private:
@@ -228,17 +220,7 @@ private:
 /*
 1.1 Attributes
 
-1.1.1 id
 
-A unique id for each instance.
-Used for debugging only.
-
-*/
-
-//    unsigned int id;
-//    static unsigned int instanceCount;
-
-/*
 1.1.1 startXYT and endXYT
 
 Start- and endpoint of this segment in xyt-coordinates.

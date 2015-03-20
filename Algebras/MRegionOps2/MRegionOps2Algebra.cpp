@@ -34,7 +34,11 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
+
+the additional Prädikat Inside and Intersect,
+because movingregion2 [x] movingregion2 [->] bool not working,
+it's a open problem to solve
 
 [TOC]
 
@@ -162,12 +166,14 @@ int InsideValueMap(Word* args, Word& result, int message, Word& local,
     MRegion2* mrB = static_cast<MRegion2*>(args[1].addr );
 
     result = qp->ResultStorage(s);
-
     MRegion2* res = static_cast<MRegion2*>(result.addr );
 
     SetOperator2 so(mrA, mrB, res);
-    //so.Inside();
-
+    so.Inside();
+//  not working
+//    bool* bRes = static_cast<bool*>(result.addr );
+//  bRes = so.bRes;
+//
    return 0;
 }
 
@@ -181,9 +187,13 @@ int IntersectValueMap(Word* args, Word& result, int message, Word& local,
 
     MRegion2* res = static_cast<MRegion2*>(result.addr );
 
-    SetOperator2 so(mrA, mrB, res);
-    //so.Intersect();
 
+    SetOperator2 so(mrA, mrB, res);
+    so.Intersect();
+//  not working
+//    bool* bRes = static_cast<bool*>(result.addr );
+//    bRes = so.bRes;
+//
    return 0;
 }
 
@@ -227,7 +237,7 @@ struct InsideInfo : OperatorInfo {
 
     InsideInfo() {
         name = "inside";
-        signature = "mregion2 x mregion2 -> mregion2";
+        signature = "mregion2 x mregion2 -> " + CcBool::BasicType();
         syntax = "_ inside _";
         meaning = "inside operation for two moving regions.";
     }
@@ -237,7 +247,7 @@ struct IntersectInfo : OperatorInfo {
 
     IntersectInfo() {
         name = "intersect";
-        signature = "mregion2 x mregion2 -> mregion2";
+        signature = "mregion2 x mregion2 -> " + CcBool::BasicType();
         syntax = "_ intersect _";
         meaning = "Intersect operation for two moving regions.";
     }
