@@ -51,11 +51,11 @@ namespace mregionops2 {
 
 ResultUnit::ResultUnit()
 {
-	cout << "ResultUnit ctor\n";
+cout << "ResultUnit ctor\n";
 }
 void ResultUnit::EndBulkLoad(bool merge)
 {
-	cout << "ResultUnit EndBulkLoad\n";
+cout << "ResultUnit EndBulkLoad\n";
 }
 
 URegionEmb2* ResultUnit::ConvertToURegionEmb(DbArray<MSegmentData>* segments,
@@ -63,7 +63,7 @@ Interval<Instant> interval) const
 {
 
 
-	return NULL;
+return NULL;
 }
 
 }
