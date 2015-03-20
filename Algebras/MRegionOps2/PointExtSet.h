@@ -27,8 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[oe] [\"o]
 //[x] [$\times $]
 //[->] [$\rightarrow $]
+//[pow] [\verb+^+]
 
-[1] Implementation 
+[1] Headerfile 
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
@@ -44,38 +45,98 @@ Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 
 */
 
+#ifndef POINT3DEXTSET_H_
+#define POINT3DEXTSET_H_
+
 #include "Point3DExt.h"
+#include "Segment3D.h"
+
+#include <set>
 
 namespace mregionops2 {
 
 /*
-1 Class Point3DExt
+
+1 Class PointExtSet
+
+This set is used in the class ~PFace~ to compute the intersection segment of
+two ~PFaces~.
 
 */
 
-bool Point3DExt::operator <(const Point3DExt& p) const {
+class PointExtSet {
 
-    if (GetX() < p.GetX())
-        return true;
-    if (GetX() > p.GetX())
-        return false;
-    if (GetY() < p.GetY())
-        return true;
-    if (GetY() > p.GetY())
-        return false;
-    if (GetT() < p.GetT())
-        return true;
-    if (GetT() > p.GetT())
-        return false;
+public:
 
-    //cout << "sourceFlag < p.sourceFlag" << endl;
-    return sourceFlag < p.sourceFlag;
+/*
+
+1.1 Constructors
+
+*/
+
+    inline PointExtSet() {
+
+    }
+
+/*
+
+1.1 Operators and Predicates
+
+1.1.1 Insert
+
+Inserts p, if p isn't already inserted.
+
+*/
+
+    inline void Insert(const Point3DExt& p) {
+        s.insert(p);
+    }
+
+/*
+
+1.1.1 Size
+
+Returns the number of points in the set.
+
+*/
+
+    inline unsigned int Size() const {
+        return s.size();
+    }
+
+/*
+1.1.1 GetIntersectionSegment
+
+Returns ~true~, if there is an intersection segment and writes it to result.
+
+*/
+
+    bool GetIntersectionSegment(Segment3D& result) const;
+
+/*
+
+1.1 Methods for debugging
+
+*/
+
+    void Print() const;
+
+private:
+
+/*
+
+1.1 Attributes
+
+1.1.1 s
+
+A ~std::set~, using the overloaded operator $<$ for comparison.
+
+*/
+
+    set<Point3DExt> s;
+};
+
 }
 
+#endif /*POINT3DEXTSET_H_*/
 
-/***********************************
-
- end of namespace mregionops2
-
-***********************************/
-};

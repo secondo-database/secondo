@@ -28,11 +28,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[oe] [\"o]
 
 
+[1] Headerfile 
+
+Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
+
 [TOC]
-
-[2] Implementation with exakt dataype, 
-
-April - November 2014, S. Schroer for master thesis.
 
 1 Helper classes and methods
 
