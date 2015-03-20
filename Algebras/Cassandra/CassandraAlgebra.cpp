@@ -73,6 +73,9 @@
 #include "CassandraConnectionPool.h"
 #include "CassandraTupleAggregator.h"
 
+#define CASSANDRA_DEFAULT_IP        "127.0.0.1"
+#define CASSANDRA_DEFAULT_KEYSPACE  "keyspace_r3"
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
@@ -632,9 +635,9 @@ int CDelete(Word* args, Word& result, int message, Word& local, Supplier s)
       } else {
         string parmFile = expandVar("$(SECONDO_CONFIG)");
         string host = SmiProfile::GetParameter("CassandraAlgebra", 
-           "host", "127.0.0.1", parmFile);
+           "host", CASSANDRA_DEFAULT_IP, parmFile);
         string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-           "keyspace", "keyspace_r3", parmFile);
+           "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
                   
       cli = new CDeleteLocalInfo(
         host, keyspace, (((FText*)args[0].addr)->GetValue())
@@ -923,9 +926,9 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
       
       string parmFile = expandVar("$(SECONDO_CONFIG)");
       string host = SmiProfile::GetParameter("CassandraAlgebra", 
-         "host", "127.0.0.1", parmFile);
+         "host", CASSANDRA_DEFAULT_IP, parmFile);
       string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-         "keyspace", "keyspace_r3", parmFile);
+         "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
       
       cli = new CSpreadLocalInfo(
                       host,
@@ -1133,9 +1136,9 @@ ListExpr CCollectTypeMap( ListExpr args ) {
   
   string parmFile = expandVar("$(SECONDO_CONFIG)");
   string host = SmiProfile::GetParameter("CassandraAlgebra", 
-     "host", "127.0.0.1", parmFile);
+     "host", CASSANDRA_DEFAULT_IP, parmFile);
   string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-     "keyspace", "keyspace_r3", parmFile);
+     "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
   
   CassandraAdapter* cassandra 
      = CassandraConnectionPool::Instance()->
@@ -1214,9 +1217,9 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
   
   string parmFile = expandVar("$(SECONDO_CONFIG)");
   string host = SmiProfile::GetParameter("CassandraAlgebra", 
-     "host", "127.0.0.1", parmFile);
+     "host", CASSANDRA_DEFAULT_IP, parmFile);
   string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-     "keyspace", "keyspace_r3", parmFile);
+     "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
   
   CassandraAdapter* cassandra 
   = CassandraConnectionPool::Instance()->
@@ -1294,9 +1297,9 @@ ListExpr CCollectQueryTypeMap( ListExpr args ) {
   
   string parmFile = expandVar("$(SECONDO_CONFIG)");
   string host = SmiProfile::GetParameter("CassandraAlgebra", 
-     "host", "127.0.0.1", parmFile);
+     "host", CASSANDRA_DEFAULT_IP, parmFile);
   string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-     "keyspace", "keyspace_r3", parmFile);
+     "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
   
   CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
             getConnection(host, keyspace, false);
@@ -1503,9 +1506,9 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
        
         string parmFile = expandVar("$(SECONDO_CONFIG)");
         string host = SmiProfile::GetParameter("CassandraAlgebra", 
-           "host", "127.0.0.1", parmFile);
+           "host", CASSANDRA_DEFAULT_IP, parmFile);
         string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-           "keyspace", "keyspace_r3", parmFile);
+           "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
        
         cli = new CCollectLocalInfo<fetchMode>(nl -> Second(resultType),
                       host,
@@ -1789,9 +1792,9 @@ int CList(Word* args, Word& result, int message, Word& local, Supplier s)
      
      parmFile = expandVar("$(SECONDO_CONFIG)");
      host = SmiProfile::GetParameter("CassandraAlgebra", 
-           "host", "127.0.0.1", parmFile);
+           "host", CASSANDRA_DEFAULT_IP, parmFile);
      keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-           "keyspace", "keyspace_r3", parmFile);
+           "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
         
       cli = new CListLocalInfo(host, keyspace);
       local.setAddr( cli );
@@ -2030,9 +2033,9 @@ int CQueryList(Word* args, Word& result, int message, Word& local, Supplier s)
      
      parmFile = expandVar("$(SECONDO_CONFIG)");
      host = SmiProfile::GetParameter("CassandraAlgebra", 
-        "host", "127.0.0.1", parmFile);
+        "host", CASSANDRA_DEFAULT_IP, parmFile);
      keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-        "keyspace", "keyspace_r3", parmFile);
+        "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
 
      cli = new CQueryListLocalInfo(type, host, keyspace);
         
@@ -2161,9 +2164,9 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
          
       string parmFile = expandVar("$(SECONDO_CONFIG)");
       string host = SmiProfile::GetParameter("CassandraAlgebra", 
-            "host", "127.0.0.1", parmFile);
+            "host", CASSANDRA_DEFAULT_IP, parmFile);
       string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-            "keyspace", "keyspace_r3", parmFile);
+            "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
 
       int queryid = ((CcInt*) args[0].addr) -> GetValue();
       string query = ((FText*) args[1].addr) -> GetValue();
@@ -2435,9 +2438,9 @@ int CQueryWait(Word* args, Word& result, int message, Word& local, Supplier s)
           
       string parmFile = expandVar("$(SECONDO_CONFIG)");
       string host = SmiProfile::GetParameter("CassandraAlgebra", 
-            "host", "127.0.0.1", parmFile);
+            "host", CASSANDRA_DEFAULT_IP, parmFile);
       string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-            "keyspace", "keyspace_r3", parmFile);
+            "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
          
       int queryId = ((CcInt*) args[0].addr) -> GetValue();
       
@@ -2549,9 +2552,9 @@ int CQueryReset(Word* args, Word& result, int message, Word& local, Supplier s)
       
       string parmFile = expandVar("$(SECONDO_CONFIG)");
       string host = SmiProfile::GetParameter("CassandraAlgebra", 
-         "host", "127.0.0.1", parmFile);
+         "host", CASSANDRA_DEFAULT_IP, parmFile);
       string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-         "keyspace", "keyspace_r3", parmFile);
+         "keyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
              
       CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
             getConnection(host, keyspace, false);
