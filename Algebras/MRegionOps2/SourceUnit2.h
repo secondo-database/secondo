@@ -139,7 +139,7 @@ Returns ~true~, if this ~SourceUnit~ represents an empty unit.
    SourceUnit2* GetPartner();
    inline void SetPartner(SourceUnit2* p)
    {
-	partner = p;
+    partner = p;
    }
    vector<PFace*> GetPFaces(); 
    int GetPFaceCount(); 
@@ -241,8 +241,8 @@ pass them to the ~ResultUnitFactory~.
 
 */
 
-	void CollectRelevantPFaces(vector<PFace*>* storage);
-	bool IsPFaceInsidePartner(PFace* pface); 
+void CollectRelevantPFaces(vector<PFace*>* storage);
+bool IsPFaceInsidePartner(PFace* pface); 
 /*
 
 1.1 Methods for debugging and internal helper tasks
