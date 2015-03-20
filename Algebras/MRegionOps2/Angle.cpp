@@ -29,7 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[->] [$\rightarrow $]
 //[pow] [\verb+^+]
 
-[1] Headerfile 
+[1] Implementation
+
+Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 
 [TOC]
 
@@ -55,7 +57,7 @@ Angle Angle::GetOpposite()
 void Angle::Normalize()
 {
 
-  // Winkel liegen zwischen 0 und 4
+  // Angles lie between 0 and 4
   while (angle >= Maxvalue) angle = angle - Maxvalue;
   while (angle < 0) angle = angle + Maxvalue;
 

@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Headerfile 
 
+Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 
 [TOC]
 
@@ -44,7 +45,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ANGLE_H_
 
 #include <gmpxx.h>
-
 #include "Vector2D.h"
 
 namespace mregionops2 {
