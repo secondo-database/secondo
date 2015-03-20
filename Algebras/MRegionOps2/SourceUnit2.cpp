@@ -2,7 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Copyright (C) 2008, University in Hagen,
+Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -29,13 +30,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[->] [$\rightarrow $]
 //[pow] [\verb+^+]
 
-[1] Headerfile of the Point and Vector classes
+[1] Codefile of SourceUnit class
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
@@ -44,11 +45,10 @@ April - November 2014, S. Schroer for master thesis.
 2 Defines and Includes
 
 */
-
 #include "SourceUnit2.h"
 #include "PFace.h"
 #include "SourceUnitPair2.h"
-
+#include <stdlib.h>
 namespace mregionops2 {
 
 /***********************************
@@ -60,7 +60,7 @@ namespace mregionops2 {
 SourceUnit2::SourceUnit2(const bool _isUnitA, 
              MRegion2* const _mRegion,
              const int _pos,
-	     precTimeInterval _interval,
+             precTimeInterval _interval,
              SourceUnitPair2* const _parent) :
                  
              isUnitA(_isUnitA),
@@ -69,7 +69,7 @@ SourceUnit2::SourceUnit2(const bool _isUnitA,
              interval(_interval),
              parent(_parent)
 {
-
+    myDebugId=0;
 }
 /***********************************
 
@@ -97,7 +97,7 @@ void SourceUnit2::CreatePFaces() {
 // mpz_t sFactor;
 // mpz_init(sFactor);
 // uint sfactor;
-// Skalierungsfaktor für den ganzzahligen Anteil
+// scalefactor for ganzzahligen Anteil
    int sFac = mRegion->GetScaleFactor();
 
 // old Segement URegion
@@ -126,6 +126,7 @@ void SourceUnit2::CreatePFaces() {
         uRegion.GetPreciseSegment(preciseSegmentData, i, pdms);
         unsigned int cycleNo = dms.GetCycleNo();
         unsigned int faceNo  = dms.GetFaceNo();
+
         SetCycleStatus(faceNo, cycleNo, NOTYETKNOWN);
 
 //      one mregion in use
@@ -161,10 +162,10 @@ void SourceUnit2::CreatePFaces() {
         fex = fex * sFac;
         fey = fey * sFac;
 
-/*     
-        old Segement URegion
-        old_is, old_ie, old_fs, old_fe; 
-*/
+//     
+//      old Segement URegion
+//      old_is, old_ie, old_fs, old_fe; 
+//
         old_is = Point2D(isx, isy);
         old_ie = Point2D(iex, iey);
         old_fs = Point2D(fsx, fsy);
@@ -207,6 +208,7 @@ void SourceUnit2::CreatePFaces() {
         PFace* pFace = new PFace(this, new_is, new_ie, 
                                  new_fs, new_fe, dms.GetInsideAbove(), 
                                  cycleNo, faceNo);
+    pFace->SetDebugId(myDebugId++);
         pFaces.push_back(pFace);
    }  
 }
@@ -241,8 +243,8 @@ void SourceUnit2::SetCycleStatus(unsigned int pfaceNo,
      it = cycleInfo.find(key);
 
      if (it == cycleInfo.end()) {
-
-	 CycleInfo* newentry = new CycleInfo();
+    cout << "insert new" << endl;
+     CycleInfo* newentry = new CycleInfo();
          newentry->status = stat;
          cycleInfo.insert(pair<pair<unsigned int, 
                           unsigned int>, 
@@ -250,6 +252,7 @@ void SourceUnit2::SetCycleStatus(unsigned int pfaceNo,
      }
      else
      {
+    cout << "actualize status" << endl;
          it->second->status = stat;
      }
 }  
@@ -275,27 +278,226 @@ SourceUnit2::~SourceUnit2() {
 }
 
 const SetOp SourceUnit2::GetOperation() const {
-	return parent->GetOperation();
+    return parent->GetOperation();
 }
 
 
 
-void SourceUnit2::CollectRelevantPFaces() {
+void SourceUnit2::CollectRelevantPFaces(vector<PFace*>* storage)
+{
+    string mystring; //just for stopping the console, debugging
 
-   vector<PFace*>::iterator iter;
+    cout << "SourceUnit2::CollectRelevantPFaces started for operation: ";
+    switch(GetOperation())
+    {
+        case INTERSECTION: cout << "INTERSECTION/Schnittmenge\n"; break;
+        case UNION: cout << "UNION/Vereinigung\n"; break;
+        case MINUS: cout << "MINUS\n"; break;
+        case INSIDE: cout << "INSIDE\n"; break;
+        case INTERSECT: cout << "INTERSECT\n"; break;
+    }
 
-// for all pfaces in one Cycle - woher weiß ich die Anz Zyklen    
-   for (iter = pFaces.begin(); iter != pFaces.end(); iter++) {
 
-//     if ( MAP (iter, Cyclus_no))  Frage nach cyclusinfo = HASINTSEGS
-//         JA alle ss des Zyklus auf HASINTSEGS setzen
-//         Nein alle ss des Zyklus auf NOTYETKNOWN setzen
-//
+    vector<PFace*>::iterator iter;
+    for (iter = pFaces.begin(); iter != pFaces.end(); iter++)
+    {
+
+        //(*iter)->Print();
+        
+        switch(GetOperation())
+        {
+            case INTERSECTION: 
+                cout << "INTERSECTION/Schnittmenge\n";
+                if((*iter)->HasIntersegs() == true)
+                {
+                    cout << "PFace has intersegs --> is relevant\n";
+                    storage->push_back(*iter);
+                }
+                else
+                {
+                    if(IsPFaceInsidePartner(*iter)==true)
+                    {
+
+                        storage->push_back(*iter);
+                    }
+                    else
+
+                }
+                break;
+
+            case UNION:
+if((*iter)->HasIntersegs() == false && IsPFaceInsidePartner(*iter)==false)
+                {
+
+                    storage->push_back(*iter);
+                }
+            else if ((*iter)->HasIntersegs() == true)
+                {
+                    cout << "PFace has intersegs --> is relevant\n";
+                    storage->push_back(*iter);
+                }
+            else
+
+                break;
+            case MINUS: 
+                if(IsUnitA()==true && (*iter)->HasIntersegs() == false)
+                {
+                    
+                    storage->push_back(*iter);
+                }
+                if(IsUnitB()==true)
+                {
+                    if ((*iter)->HasIntersegs() == true)
+                    {
+                    
+                        storage->push_back(*iter);
+                    }
+                    else
+                    {
+                        if(IsPFaceInsidePartner(*iter)==true)
+                        {
+
+                            storage->push_back(*iter);
+                        }                    
+                        else
+                        {
+
+                        }                    
+                    }
+                }
+        }
+        
+    }
+
+    for (iter = pFaces.begin(); iter != pFaces.end(); iter++)
+    {
+     //is pface in map?
+pair<unsigned int, unsigned int> key((*iter)->Get_faceNo(),
+(*iter)->Get_cycleNo());
+map<pair<unsigned int, unsigned int>, CycleInfo*>::iterator it;
+        it = cycleInfo.find(key);
+        if (it != cycleInfo.end())
+        {
+
+        }
+        else
+        {
+            
+        }
+    }
 
 
+// show content:
+   map<pair<unsigned int, unsigned int>, CycleInfo*>::iterator it;
 
+    for (it = cycleInfo.begin(); it != cycleInfo.end(); ++it)
+    {
+        
+    }
+
+cout << "SourceUnit2::CollectRelevantPFaces finished" << endl;
 }
 
+bool SourceUnit2::IsPFaceInsidePartner(PFace* pface) 
+{
+    //cout << "IsPFaceInsidePartner()\n";
+
+    bool result = false;
+    if(IsUnitA())
+        cout << "i'm A  -> ";
+    else
+        cout << "i'm B  -> ";
+
+    SourceUnit2* partner = GetPartner();
+    if(partner->IsUnitA())
+        cout << "and my partner is A\n";
+    else
+        cout << "and my partner is B\n";
+    
+    //startpoint instead MidPoint, because intersection exist
+    const Point3D p = pface->GetA_XYT();
+
+    const Point p2D(true, p.GetX().get_d(), p.GetY().get_d());
+    if(IsUnitA()==true && partner->IsUnitB()==true)
+    
+    else if(IsUnitB()==true && partner->IsUnitA()==true)
+    
+    else
+    cout << "You should never see this message!\n";        
+    
+    cout << "Partner Unit has " << partner->GetPFaceCount() << " pFaces\n";    
+    vector<PFace*> pFacesOfPartner = partner->GetPFaces();
+
+    int polygonCorners = partner->GetPFaceCount();
+    int cornerIndex = 0;
+    float polyX[polygonCorners];
+    float polyY[polygonCorners];
+
+    vector<PFace*>::iterator iter;
+    for (iter = partner->pFaces.begin(); iter != partner->pFaces.end(); iter++)
+    {
+        Point3D startPoint = (*iter)->GetA_XYT();
+        polyX[cornerIndex] = (float)startPoint.GetX().get_d();
+        polyY[cornerIndex] = (float)startPoint.GetY().get_d();
+        cornerIndex++;
+    }
+    result =pointInPolygon(polyX,polyY,(float)p.GetX().get_d(), 
+(float)p.GetY().get_d(), polygonCorners);
+
+    if (result == true)
+        cout << "point is INSIDE of partner unit\n"; 
+    else
+        cout << "point is OUTSIDE of partner unit\n";
+
+    return result;
+}
+
+//http://alienryderflex.com/polygon/
+bool SourceUnit2::pointInPolygon(float  polyX[],float  polyY[],float  x, 
+float y, int polyCorners)
+{
+  int   i, j=polyCorners-1 ;
+  bool  oddNodes=false      ;
+
+  for (i=0; i<polyCorners; i++) {
+    if ((polyY[i]< y && polyY[j]>=y
+    ||   polyY[j]< y && polyY[i]>=y)
+    &&  (polyX[i]<=x || polyX[j]<=x)) {
+oddNodes^=(polyX[i]+(y-polyY[i])/(polyY[j]-polyY[i])*(polyX[j]-polyX[i])<x); }
+    j=i; }
+
+  return oddNodes; }
+
+
+bool SourceUnit2::HasIntersecs()
+{
+    bool result =false;
+        vector<PFace*>::iterator iter;
+    for (iter = pFaces.begin(); iter != pFaces.end(); iter++)
+    {
+        if((*iter)->HasIntersegs() == true)
+        {
+            result=true;
+            break;
+        }
+    }
+    return result;
+}
+
+bool SourceUnit2::IsInsidePartner()
+{
+    bool result =true;
+        vector<PFace*>::iterator iter;
+    for (iter = pFaces.begin(); iter != pFaces.end(); iter++)
+    {
+        if(IsPFaceInsidePartner(*iter)==false)
+        {
+            result=false;
+            break;
+        }
+    }
+    return result;
+}
 
 /***********************************
 
@@ -304,14 +506,55 @@ void SourceUnit2::CollectRelevantPFaces() {
 ***********************************/
 
 void SourceUnit2::PrintPFaces() 
-
 {
      cout << "inside PrintPFaces " << endl;
-
      for (vector<PFace*>::iterator iter = pFaces.begin(); 
                 iter != pFaces.end(); iter++) {
         (*iter)->Print();
      }
+}
+SourceUnit2* SourceUnit2::GetPartner()
+{
+    return partner;
+}
+int SourceUnit2::GetPFaceCount()
+{
+    return pFaces.size();
+}
+vector<PFace*> SourceUnit2::GetPFaces() 
+{
+    return pFaces;
+}
+void SourceUnit2::AddToMRegion(MRegion2* const target) {
+
+    if (IsEmpty())
+        return;
+
+DbArray<MSegmentData>* targetArray = (DbArray<MSegmentData>*)target->GetFLOB(1);
+    
+    const int segmentsStartPos = targetArray->Size();
+
+    precTimeInterval tmp =     GetTimeInterval();
+    Instant starttime(instanttype);
+    Instant endtime(instanttype);
+    starttime.ReadFrom(tmp.start.get_d());
+    endtime.ReadFrom(tmp.end.get_d());
+    const Interval<Instant> interval(starttime, endtime, true, false);
+
+    URegionEmb targetUnit(interval, segmentsStartPos);
+    
+    MSegmentData segment;
+      
+    URegionEmb2 ur;
+    mRegion->Get(0, ur);
+    for (int i = 0; i < ur.GetSegmentsNum(); i++)
+    {
+    cout << "AddToMRegion() index:" << i << endl;
+
+//        uRegion->GetSegment(array, i, segment);
+//        targetUnit.PutSegment(targetArray, i, segment, true);
+    }
+    target->Add(ur);
 }
 
 }

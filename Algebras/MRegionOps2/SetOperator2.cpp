@@ -2,7 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Copyright (C) 2008, University in Hagen,
+Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,14 +28,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[oe] [\"o]
 //[x] [$\times $]
 //[->] [$\rightarrow $]
+//[pow] [\verb+^+]
 
-[1] Implementation of the MRegionOps2Algebra
+[1] Implementation
 
 April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [2] Implementation with exakt dataype
 
-April - November 2014, S. Schroer for master thesis.
+Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 [TOC]
 
@@ -46,13 +48,15 @@ the type- and value mapping functions of the three set operators
 movingregion2 [x] movingregion2 [->] movingregion2 \\
 used in the MovingRegion Algebra.
 
+~Inside~ and ~Intersects~ with the signature \\
+movingregion2 [x] movingregion2 [->] bool \\
+
 2 Defines and Includes
 
 */
 
 #include "SetOperator2.h"
 #include "SourceUnitPair2.h"
-
 namespace mregionops2 {
 
 
@@ -71,7 +75,7 @@ namespace mregionops2 {
 void SetOperator2::Intersection() {
    
  Operate(INTERSECTION);
- cout << ("INTERSECTION inside SetOperator2") << endl;
+ cout << "INTERSECTION inside SetOperator2\n";
 
 }
 
@@ -84,7 +88,7 @@ void SetOperator2::Intersection() {
 void SetOperator2::Union() {
 
  Operate(UNION);
- cout << ("UNION inside SetOperator2") << endl;
+ cout << "UNION inside SetOperator2\n";
 
 }
 
@@ -97,7 +101,7 @@ void SetOperator2::Union() {
 void SetOperator2::Minus() {
 
  Operate(MINUS);
- cout << ("MINUS inside SetOperator2") << endl;
+ cout << "MINUS inside SetOperator2\n";
 
 }
 
@@ -110,7 +114,7 @@ void SetOperator2::Minus() {
 void SetOperator2::Inside() {
 
  Operate(INSIDE);
- cout << ("INSIDE inside SetOperator2") << endl;
+ cout << "INSIDE inside SetOperator2\n";
 
 }
 
@@ -123,7 +127,7 @@ void SetOperator2::Inside() {
 void SetOperator2::Intersect() {
 
  Operate(INTERSECT);
- cout << ("INTERSECT inside SetOperator2") << endl;
+ cout << "INTERSECT inside SetOperator2\n";
 
 }
 
@@ -150,8 +154,9 @@ void SetOperator2::Operate(const SetOp op) {
     // bPos the referenz to slot in b
     
     RefinementPartition3 rp(*a, *b);
-    cout << "RefinementPartition3 with rp-Size = " << rp.Size() 
-         << " units created.";
+
+
+
     
     precTimeInterval interval;
     int aPos;
@@ -164,7 +169,7 @@ void SetOperator2::Operate(const SetOp op) {
     URegionEmb2 unitBRestrict;  
     SourceUnitPair2* so;
     
-    cout << ("SetOperator2 inside Operate after RefinementPartition") << endl;
+    cout << "SetOperator2 inside Operate after RefinementPartition\n";
 
 //  init
     res->Clear();
@@ -174,7 +179,7 @@ void SetOperator2::Operate(const SetOp op) {
     
 //  rp = sum of time-slot from both MRegions
     for (unsigned int i = 0; i < rp.Size(); i++) {
-    cout << ("SetOperator2 inside Operate timeslots = ") << i << endl;
+        cout << "SetOperator2 inside Operate timeslots = i" << i << endl;
         
         // For each interval of the refinement partition...
         // aPos, bPos = position in MRegions as defined
@@ -183,7 +188,7 @@ void SetOperator2::Operate(const SetOp op) {
         // interval = interval (starttime - endtime)
 
         rp.Get(i, interval, aPos, bPos);
-        cout << ("SetOperator2 inside Operate i ") << i << endl;      
+        cout << "SetOperator2 inside Operate i " << i << endl;      
         // new datenfield intervalAsPeriod to store interval
         // Periods intervalAsPeriod(1);
         // intervalAsPeriod.Add(interval);
@@ -197,32 +202,54 @@ void SetOperator2::Operate(const SetOp op) {
         
         if (aIsEmpty || bIsEmpty) {
             if (op == INTERSECTION) {
-               // Result is empty: nothing to do
-cout << ("SetOperator2 inside Operate - aIsEmpty || bIsEmpty ") << endl; 
-               continue;
+               	// Result is empty: nothing to do
+cout << "SetOperator2 inside Operate - aIsEmpty || bIsEmpty \n"; 
+	        continue;
             }
             if (op == MINUS && aIsEmpty) {
                // Result is empty: nothing to do
-cout << ("SetOperator2 inside Operate - MINUS && aIsEmpty ") << endl; 
+cout << "SetOperator2 inside Operate - MINUS && aIsEmpty \n"; 
                continue;
             }
         }
 
-cout << ("SetOperator2 inside Operate - aPos and bPos not empty") << endl; 
+cout << "SetOperator2 inside Operate - aPos and bPos not empty\n"; 
 
         // pair from SourceUnits inside a, b        
         so = new SourceUnitPair2(a, aPos, interval,
                                  b, bPos, op, res);
 
+cout << "SetOperator2::Operate() new SourceUnitPair2 created\n"; 
+
+cout << "SetOperator2::Operate() new SourceUnitPair2.Operate started\n"; 
         // call methode "operate"
         so->Operate();
+cout << "SetOperator2::Operate() new SourceUnitPair2.Operate finished\n";
+
+cout << "SetOperator2::Operate() before EndBulkLoad\n";
+    res->EndBulkLoad(false);
+	cout << "SetOperator2::Operate() after EndBulkLoad\n";
+
+
+	bool tmpRes = so->GetSpecialOperationsResult();
+	bRes = &tmpRes;
+	switch (op) {       
+		case INSIDE:
+cout << "Operator 'INSIDE' --> " << *bRes << endl;
+		    break;
+		case INTERSECT:
+cout << "Operator 'INTERSECT' --> " << *bRes << endl;
+		    break;
+	}
+
        
         // delete all objects
         delete so;
+cout << "SetOperator2::Operate() new SourceUnitPair2 deleted\n";
         
     }
              
-    res->EndBulkLoad(false);
+
 };
 
 }
