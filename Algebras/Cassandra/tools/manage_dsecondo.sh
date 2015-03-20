@@ -80,7 +80,12 @@ start_local() {
 
    if [ ! -f $SECONDO_CONFIG ]; then
       echo "Unable to locate SECONDO config" 1>&2
-      exit -1;
+      exit -1
+   fi
+
+   if [ $(grep CassandraHost $SECONDO_CONFIG | wc -l ) -ne 1 ]; then
+      echo "CassandraHost is not set in your SECONDO config, exiting" 1>&2
+      exit -1
    fi 
    
    # Check if screen is already running
@@ -91,6 +96,12 @@ start_local() {
        exit -1
    fi
  
+   # local ip
+   ip=$(ifconfig | grep "inet addr" | cut -d ":" -f 2 | awk {'print $1'} | head -1)
+  
+   # username
+   username=$(whoami)
+ 
    ports="" 
    instance=0
    while [ $instance -le $((instances-1)) ]; do
@@ -99,11 +110,12 @@ start_local() {
      ports+=":${instance_port}"
 
      # Change SECONDO Server Port in configuration
-     configuration=${SECONDO_CONFIG}_${instance}
+     configuration=/tmp/SecondoConfig_${username}_${instance}.ini
      cp ${SECONDO_CONFIG} $configuration
      sed -i "s/^SecondoPort=.*/SecondoPort=$instance_port/" $configuration
      sed -i "s/^SecondoHome=\(.*\)/SecondoHome=\1_$instance/" $configuration
- #    sed -i "s/^RTFlags +=.*Server:BinaryTransfer/#RTFlags +=.*Server:BinaryTransfer/" $configuration
+     sed -i "s/^CassandraHost=.*/CassandraHost=$ip/" $configuration
+     
      secondoHome=$(grep ^SecondoHome $configuration | cut -d "=" -f 2) 
      mkdir -p $secondoHome
 
