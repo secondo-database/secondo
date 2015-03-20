@@ -243,13 +243,13 @@ both ~SourceUnits~.
 
     void ComputeOverlapRect();
 
-	ResultUnitFactory resultUnitFactory;
+ ResultUnitFactory resultUnitFactory;
 
-	vector<PFace*> myRelevantPFaces;
+ vector<PFace*> myRelevantPFaces;
 
-	ResultUnit* resultUnit;
-	void ConstructResultUnitAsURegionEmb();
-	void BuildNewResultUnit(double start, double end,unsigned int index);
+ ResultUnit* resultUnit;
+ void ConstructResultUnitAsURegionEmb();
+ void BuildNewResultUnit(double start, double end,unsigned int index);
 // for debugging in ConstructResultUnitAsURegionEmb()
     unsigned int noUnits;
     unsigned int noEmptyUnits;
