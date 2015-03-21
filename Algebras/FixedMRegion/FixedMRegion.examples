@@ -1,0 +1,14 @@
+Database: berlintest
+Restore : No
+
+Operator : =
+Number   : 1
+Signature: pstpoint x pstpoint -> bool
+Example  : query [const  pstpoint value(1.2 1.4)] = [const pstpoint value(1.2 1.4)]
+Result   : TRUE
+
+Operator : testoperatora
+Number   : 1
+Signature: int -> int
+Example  : query testoperatora(0)
+Result   : 1

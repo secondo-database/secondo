@@ -1,0 +1,68 @@
+FixedMRegionAlgebra.o: FixedMRegionAlgebra.cpp \
+ /home/secondo/secondo/include/Algebra.h \
+ /home/secondo/secondo/include/NestedList.h \
+ /home/secondo/secondo/Tools/ListsAndTables/CTable.h \
+ /home/secondo/secondo/include/PagedArray.h \
+ /home/secondo/secondo/include/SecondoSMI.h \
+ /home/secondo/BDB/include/db_cxx.h /home/secondo/BDB/include/db.h \
+ /home/secondo/secondo/include/ErrorCodes.h \
+ /home/secondo/secondo/include/SecondoConfig.h \
+ /home/secondo/secondo/include/CacheInfo.h \
+ /home/secondo/secondo/include/LogMsg.h \
+ /home/secondo/secondo/Tools/ListsAndTables/PCTable.cpp \
+ /home/secondo/secondo/include/WinUnix.h \
+ /home/secondo/secondo/include/AlgebraTypes.h \
+ /home/secondo/secondo/include/Operator.h \
+ /home/secondo/secondo/include/NList.h \
+ /home/secondo/secondo/include/CostEstimation.h \
+ /home/secondo/secondo/include/TypeConstructor.h \
+ /home/secondo/secondo/include/ConstructorTemplates.h \
+ /home/secondo/secondo/include/Attribute.h \
+ /home/secondo/secondo/include/SecondoSystem.h \
+ /home/secondo/secondo/include/Messages.h \
+ /home/secondo/secondo/include/SecondoCatalog.h \
+ /home/secondo/secondo/include/AlgebraManager.h \
+ /home/secondo/secondo/include/AlgebraInit.h \
+ /home/secondo/secondo/include/AlgebraClassDef.h \
+ /home/secondo/secondo/include/SystemInfoRel.h \
+ /home/secondo/secondo/include/NameIndex.h \
+ /home/secondo/secondo/include/SystemTables.h \
+ /home/secondo/secondo/include/ListUtils.h \
+ /home/secondo/secondo/include/QueryProcessor.h \
+ /home/secondo/secondo/include/StopWatch.h \
+ /home/secondo/secondo/include/DotSpec.h \
+ /home/secondo/secondo/include/Counter.h \
+ /home/secondo/secondo/include/CharTransform.h \
+ /home/secondo/secondo/include/WinUnix.h \
+ /home/secondo/secondo/include/../Tools/Flob/Flob.h \
+ /home/secondo/secondo/include/../Tools/Flob/FlobId.h \
+ /home/secondo/secondo/include/SecondoSMI.h \
+ /home/secondo/secondo/include/../Tools/Flob/FlobManager.h \
+ /home/secondo/secondo/include/Serialize.h \
+ /home/secondo/secondo/include/AlmostEqual.h \
+ /home/secondo/secondo/include/NestedList.h \
+ /home/secondo/secondo/include/QueryProcessor.h \
+ ../Spatial/SpatialAlgebra.h /home/secondo/secondo/include/Attribute.h \
+ ../Spatial/../../Tools/Flob/DbArray.h ../Spatial/../../Tools/Flob/Flob.h \
+ ../Spatial/../Rectangle/RectangleAlgebra.h \
+ /home/secondo/secondo/include/Messages.h ../Spatial/Geoid.h \
+ /home/secondo/secondo/include/StandardTypes.h \
+ /home/secondo/secondo/include/Trace.h \
+ /home/secondo/secondo/include/TraceMacros.h \
+ /home/secondo/secondo/include/Symbols.h \
+ /home/secondo/secondo/include/Serialize.h \
+ /home/secondo/secondo/include/StringUtils.h \
+ /home/secondo/secondo/include/GenericTC.h \
+ /home/secondo/secondo/include/Algebra.h \
+ /home/secondo/secondo/include/ListUtils.h \
+ /home/secondo/secondo/include/AvlTree.h \
+ /home/secondo/secondo/include/AlmostEqual.h ../Spatial/AVLSegment.h \
+ ../Spatial/HalfSegment.h ../Spatial/Coord.h ../Spatial/Point.h \
+ ../Spatial/Geoid.h ../Rectangle/RectangleAlgebra.h ../Spatial/AttrType.h \
+ ../Spatial/Berlin2WGS.h ../Spatial/SpatialAlgebra.h \
+ ../Relation-C++/RelationAlgebra.h /home/secondo/secondo/include/Trace.h \
+ /home/secondo/secondo/include/Counter.h \
+ ../Relation-C++/../TupleIdentifier/TupleIdentifier.h \
+ /home/secondo/secondo/include/Symbols.h ../Temporal/CellGrid.h \
+ /home/secondo/secondo/include/SecondoSystem.h ../../Tools/Flob/DbArray.h \
+ FixedMRegiontest.h FixedMRegion1.h Move.h
