@@ -3,7 +3,7 @@ This is the file with the tests.
 
 */
 using namespace std;
-#include FixedMRegiontest.h";
+#include "FixedMRegiontest.h"
 extern NestedList* nl;
 extern QueryProcessor* qp;
 /*
@@ -134,6 +134,62 @@ void testRegion(){
   //result->EndBulkLoad( false, false, false, false );
 }
 
+
+/*
+This method tests the method atinstant.
+
+*/
+void testatinstant(){
+  //Region tests
+  printf("Test atinstant\n");
+  Point *p1 = new Point( true, 0.0, 0.0);
+  Point *p2 = new Point( true, 1.0, 0.0);
+  Point *p3 = new Point( true, 0.0, 1.0);
+  Region *result= new Region(*p1, *p2, *p3);
+  
+  //result->Clear();
+  //if( !IsDefined() ) {
+  //  result->SetDefined( false );
+  //  return;
+  //}
+  //result->SetDefined( true );
+  //assert( IsOrdered() );
+  HalfSegment hs;
+  //result->StartBulkLoad();
+  for( int i = 0; i <2; i++ )
+  {
+    result->Get( i, hs );
+    //hs.Translate( x, y );
+    const Point l=hs.GetLeftPoint();
+    printf("P%f=(%f,%f)\n",(double)i,l.GetX(),l.GetY());
+    Point r=hs.GetRightPoint();
+    printf("P%f=(%f,%f)\n",(double)i,r.GetX(),r.GetY());
+    //result += hs;
+  }
+//  FixedMRegion fmr = FixedMRegion(1.0, 1.0, 1.0, result, 1.0, 2.0, 2*M_PI, 
+//2.0, 3.0, 2*M_PI); 
+FixedMRegion fmr = FixedMRegion(0, 0, 0, result, 0, 0, 0, 
+0, 0, 0); 
+printf("huhu1\n");
+  result=fmr.atinstant(2);
+   printf("huhu2\n");
+  for( int i = 0; i <2; i++ )
+  {
+    result->Get( i, hs );
+    printf("huhu3\n");
+    //hs.Translate( x, y );
+    const Point l=hs.GetLeftPoint();
+    printf("P%f=(%f,%f)\n",(double)i,l.GetX(),l.GetY());
+    Point r=hs.GetRightPoint();
+    printf("P%f=(%f,%f)\n",(double)i,r.GetX(),r.GetY());
+    //result += hs;
+  }
+  
+  //result->SetNoComponents( NoComponents() );
+  //result->EndBulkLoad( false, false, false, false );
+}
+
+
 /*
 This is the only test method and contains all tests.
 
@@ -142,4 +198,5 @@ void runTestMethod() {
   testMove();
   testLATransform();
   testRegion();
+  testatinstant();
 }

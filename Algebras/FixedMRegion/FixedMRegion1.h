@@ -6,7 +6,7 @@ This is my test method tat contains all tests.
 #define __FIXEDMREGION1_H
 
 #include <iostream>
-#include "RegionInterpolator.h"
+//#include "RegionInterpolator.h"
 #include "SecondoSystem.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"

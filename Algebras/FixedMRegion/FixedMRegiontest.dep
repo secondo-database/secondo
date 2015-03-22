@@ -1,4 +1,4 @@
-FixedMRegiontest.o: FixedMRegiontest.cpp \
+FixedMRegiontest.o: FixedMRegiontest.cpp FixedMRegiontest.h \
  /home/secondo/secondo/include/SecondoSystem.h \
  /home/secondo/secondo/include/ErrorCodes.h \
  /home/secondo/secondo/include/NestedList.h \
@@ -60,4 +60,4 @@ FixedMRegiontest.o: FixedMRegiontest.cpp \
  ../Spatial/HalfSegment.h ../Spatial/Coord.h ../Spatial/Point.h \
  ../Spatial/Geoid.h ../Rectangle/RectangleAlgebra.h ../Spatial/AttrType.h \
  ../Spatial/Berlin2WGS.h ../Spatial/SpatialAlgebra.h \
- ../Spatial/HalfSegment.h ../Spatial/Coord.h
+ ../Spatial/HalfSegment.h ../Spatial/Coord.h FixedMRegion.h

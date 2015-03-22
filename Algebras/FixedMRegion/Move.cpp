@@ -3,7 +3,7 @@ This class calculates the movements.
 
 */
 using namespace std;
-#include "Move.h";
+#include "Move.h"
 /*
 This constructor receives a starting point (x0, y0), a starting 
 angle alpha0, and a moving vector (vx, vy) and a moving angle.
@@ -41,9 +41,12 @@ This is the copy constructor.
 */
     Move::Move(const Move &_m): x_0(_m.x_0), y_0(_m.y_0), 
 alpha_0(_m.alpha_0), v_x(_m.v_x), v_y(_m.v_y), v_alpha(_m.v_alpha) {}
-      
-      
-    }
+
+/*
+This is the constructor. Do not use.
+
+*/
+    Move::Move(){}
 /*
 This is the destructor.
 

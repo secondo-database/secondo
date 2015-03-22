@@ -6,55 +6,79 @@ This class is a FixedMRegion.
 #ifndef __FIXEDMREGION_H
 #define __FIXEDMREGION_H
 
-#include "Move.h";
-#include "LATransform.h";
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "SpatialAlgebra.h"
+#include "HalfSegment.h"
+#include "Coord.h"
+//#include "TemporalAlgebra.h"
+#include "Move.h"
+#include "LATransform.h"
+#include "HalfSegment.h"
+
+typedef int MBool;
+typedef int MPoint;
 
 class FixedMRegion
 {
   public:
 /*
-This is the constructor. It gets necessary information. 
-
-*/  
-    FixedMRegion(const Region &_r, const LATransform &_l, 
-const Move &_m, double t);
-/*
 This is the default constructor. Do not use.
 
 */
+
     FixedMRegion();
 /*
 This is the copy constructor.
 
 */
+
     FixedMRegion(const FixedMRegion &f);
 /*
 This is the standard destructor.
 
 */
+
+/*
+This is the constructor that gets necessary information. 
+
+*/  
+    FixedMRegion(double _t, 
+const Move & _m, Region * _r, const LATransform & _l);  
+/*
+This is the constructor that should not be used externally. It gets necessary information. 
+
+*/  
+    FixedMRegion(double _t, double _xm, double _ym, 
+Region * _r, double _x0, double _y0, double _alpha0, 
+double _vx, double _vy, double _valpha);
+    
+
+
     ~FixedMRegion();
     
 /*
-This is a constructor that accepts a list of regions. The regions represent 
+This is a method that accepts a list of regions. The regions represent 
 spots and the movement will be calculated. The constructor expects identical 
 regions that can be transformed by a translation or rotation. The region itself
  cannot cahnge its shape.
 
 */
-    FixedMRegion(Region* spots);
+Region interpolate(Region* spots);
 /*
 This method will return a region that the FMRegion will have at the given 
 time ti.
 
 */
-Region atinstant(double ti);
+Region * atinstant(double ti);
 /*
 This method will calculate a MBool with true, if the MPoint mp is inside the
 FMRegion at the given time and false, if not. The MBool will be calculated 
 for the time intervall ta to te.
 
 */
-MBool inside(MPoint mp, double ta, double te), int steps;
+MBool inside(MPoint mp, double ta, double te, double precision);
 /*
 This method will calculate a MPoint with which is defined, if the MPoint mp 
 is inside the FMRegion at the given time and else not defined. The MPoint 
@@ -68,7 +92,7 @@ the FMRegion at the given time and false, if not. The MBool will be calculated
 for the time intervall ta to te.
 
 */
-MBool intersection(MPoint mp, double ta, double te, int steps);
+MBool intersection(MPoint mp, double ta, double te, double precision);
 /*
 This method will calculate a MPoint with which is defined, if the MPoint mp 
 intersects with the FMRegion at the given time and else not defined. The 
@@ -82,23 +106,29 @@ the FMRegion has at least on time (or more often) traversed in the given
 intervall ta to te. 
 
 */
-Region traversed(double ta, double te, int steps);
+Region traversed(double ta, double te, double precision);
     
     
-    const Region& getRegion();
-    void setRegion(const Region &_r);
-    const LATransform& getLATransform();
-    void setLATransform(const LATransform &_l);
-    const Move& getMove();
-    void setMove(const Move &_m);
-    double gett();
+    const Region * getRegion() const;
+    void setRegion(Region * _r);
+    const double gett() const;
     void sett(double _t);
     
 private:
-   Region r;
-   LATransform l;
-   Move m;
+
    double t;
-   //void calculateInternalVars();
+   Move m;
+   Region * r;
+   LATransform l;
+   double xm;
+   double ym;
+
+   
+   void calculateInternalVars();
+   const LATransform& getLATransform();
+   void setLATransform(const LATransform &_l);
+   const Move& getMove();
+   void setMove(const Move &_m);
+
 }; 
 #endif

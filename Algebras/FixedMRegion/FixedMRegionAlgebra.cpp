@@ -4,7 +4,7 @@ folder.
 
 */
 using namespace std;
-#include "FixedMRegionAlgebra.h";
+#include "FixedMRegionAlgebra.h"
 extern NestedList* nl;
 extern QueryProcessor* qp;
 

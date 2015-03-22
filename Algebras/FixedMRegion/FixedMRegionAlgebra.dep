@@ -1,4 +1,4 @@
-FixedMRegionAlgebra.o: FixedMRegionAlgebra.cpp \
+FixedMRegionAlgebra.o: FixedMRegionAlgebra.cpp FixedMRegionAlgebra.h \
  /home/secondo/secondo/include/Algebra.h \
  /home/secondo/secondo/include/NestedList.h \
  /home/secondo/secondo/Tools/ListsAndTables/CTable.h \
@@ -65,4 +65,24 @@ FixedMRegionAlgebra.o: FixedMRegionAlgebra.cpp \
  ../Relation-C++/../TupleIdentifier/TupleIdentifier.h \
  /home/secondo/secondo/include/Symbols.h ../Temporal/CellGrid.h \
  /home/secondo/secondo/include/SecondoSystem.h ../../Tools/Flob/DbArray.h \
- FixedMRegiontest.h FixedMRegion1.h Move.h
+ FixedMRegiontest.h ../PST/PSTtest.h Move.h LATransform.h \
+ ../Spatial/HalfSegment.h ../Spatial/Coord.h FixedMRegion1.h \
+ ../RegionInterpolation/RegionInterpolator.h \
+ ../RegionInterpolation/../../Tools/Flob/DbArray.h \
+ ../Temporal/TemporalAlgebra.h ../Temporal/../../Tools/Flob/DbArray.h \
+ /home/secondo/secondo/include/Progress.h ../Temporal/CellGrid.h \
+ /home/secondo/secondo/include/DateTime.h \
+ /home/secondo/secondo/include/IndexableAttribute.h \
+ /home/secondo/secondo/include/StandardTypes.h \
+ /home/secondo/secondo/include/BigInt.h \
+ ../Temporal/../../include/CharTransform.h \
+ ../MovingRegion/MovingRegionAlgebra.h ../RegionInterpolation/Lines.h \
+ ../RegionInterpolation/RegionTreeNode.h \
+ ../RegionInterpolation/ConvexHullTreeNode.h \
+ ../RegionInterpolation/Utils.h ../RegionInterpolation/Face.h \
+ ../RegionInterpolation/Region.h ../RegionInterpolation/SingleMatch.h \
+ ../RegionInterpolation/Match.h ../RegionInterpolation/CentroidMatch.h \
+ ../RegionInterpolation/SteinerPointMatch.h \
+ ../RegionInterpolation/OverlapingMatch.h \
+ ../RegionInterpolation/OptimalMatch.h ../RegionInterpolation/mLineRep.h \
+ FixedMRegion.h

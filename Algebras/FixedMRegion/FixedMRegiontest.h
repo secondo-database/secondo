@@ -19,6 +19,7 @@ This my test methd.
 #include "SpatialAlgebra.h"
 #include "HalfSegment.h"
 #include "Coord.h"
+#include "FixedMRegion.h"
 
 void runTestMethod();
 

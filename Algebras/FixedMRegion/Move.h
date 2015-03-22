@@ -14,13 +14,18 @@ class Move
 {
   public:
 /*
+This is the constructor. Do not use.
+
+*/
+    Move();
+/*
 This is the copy constructor.
 
 */
     Move(const Move &_m);
 /*
 This constructor receives a starting point (x0, y0), a starting angle alpha0, 
-and a moving vector (vx, vy) and a moving ankle.
+and a moving vector (vx, vy) and a moving angle.
 
 */
     Move(double x0, double y0, double alpha0, double vx, double vy, 
@@ -33,7 +38,7 @@ This is the destructor.
 */
     ~Move();
 /*
-This method calculates the necessary set of (x,y) and angla alpha for a
+This method calculates the necessary set of (x,y) and angle alpha for a
 given time t.
 
 */    

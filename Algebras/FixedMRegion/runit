@@ -1,0 +1,4 @@
+#!/bin/bash
+pushd .
+make && rm ../specs && cd ../.. && make && cd bin && SecondoTTYBDB
+popd

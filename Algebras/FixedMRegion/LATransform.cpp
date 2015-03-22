@@ -4,7 +4,7 @@ constructor is called.
 
 */
 using namespace std;
-#include "LATransform.h"; 
+#include "LATransform.h" 
 /*
 This is the constructor. It gets a linear movement (x,y), the 
 middle of a 
@@ -16,8 +16,8 @@ without the
 already given information. 
 
 */  
-  LATransform::LATransform(double x, double y, double xm, double ym, 
-   double alpha)
+  LATransform::LATransform(double x, double y, double _xm, double _ym, 
+   double alpha): xm(_xm), ym(_ym)
     {
       //A'=M*A+(D-M*D+W) mit Gesamtgleichung
       //M einfach alpha einsetzen Winkel alpha, M Matrix, zu 
@@ -61,4 +61,18 @@ usual destructor
 
 */
     LATransform::~LATransform(){}
+/*
+This method returns the turning points x value.
+
+*/ 
+      double LATransform::getXM(){
+return xm;
+      }
+/*
+This method returns the turning points y value.
+
+*/
+      double LATransform::getYM(){
+return ym;
+}
 ;
