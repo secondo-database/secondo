@@ -64,35 +64,32 @@ This is the standard destructor.
     }
     
     Region * FixedMRegion::atinstant(double ti){
-  //Region *result= new Region(this);
       sett(ti);
-  Region * result = new Region(*r);
-  HalfSegment hs;
-  result->StartBulkLoad();
-  for( int i = 0; i < result->Size(); i++ )
-  {
-    result->Get( i, hs );
-    const Point lp=hs.GetLeftPoint();
-    printf("Pl%d=(%f,%f)\n",i,lp.GetX(),lp.GetY());
-     const Point newlp=Point(l.getImgX(lp.GetX(), lp.GetY()), 
-  l.getImgY(lp.GetX(), lp.GetY()));
-    const Point rp=hs.GetRightPoint();
-    printf("Pr%d=(%f,%f)\n",i,rp.GetX(),rp.GetY());
-    const Point newrp=Point(l.getImgX(rp.GetX(), rp.GetY()), 
- l.getImgY(rp.GetX(), rp.GetY()));
-    printf("Pnl%d=(%f,%f)\n",i,newlp.GetX(),newlp.GetY());
-    printf("Pnr%d=(%f,%f)\n",i,newrp.GetX(),newrp.GetY());
-    
-    HalfSegment tmp= HalfSegment(false, newlp,newrp);
-    result->Put(i, tmp);
-    //delete lp;
-    //delete rp;
-    //delete newlp;
-    //delete newrp;
-    //delete tmp;
-  }
-  result->EndBulkLoad();
-  return result;
+      Region * result = new Region(*r);
+      HalfSegment hs;
+      result->StartBulkLoad();
+      for( int i = 0; i < result->Size(); i++ )
+      {
+         result->Get( i, hs );
+         
+         Point lp(hs.GetLeftPoint());
+         printf("Pl%d=(%f,%f)\n",i,lp.GetX(),lp.GetY());
+         double newx=l.getImgX(lp.GetX(), lp.GetY());
+         double newy=l.getImgY(lp.GetX(), lp.GetY());
+         Point newlp(true, newx, newy);
+         
+         Point rp(hs.GetRightPoint());
+         printf("Pr%d=(%f,%f)\n",i,rp.GetX(),rp.GetY());
+         newx=l.getImgX(rp.GetX(), rp.GetY());
+         newy=l.getImgY(rp.GetX(), rp.GetY());
+         Point newrp(true, newx, newy);
+         printf("Pnl%d=(%f,%f)\n",i,newlp.GetX(),newlp.GetY());
+         printf("Pnr%d=(%f,%f)\n",i,newrp.GetX(),newrp.GetY());
+         HalfSegment tmp= HalfSegment(false, newlp,newrp);
+         result->Put(i, tmp);
+      }
+      result->EndBulkLoad();
+      return result;
     }
     
     MBool FixedMRegion::inside(MPoint mp, double ta, double te, double
