@@ -6,20 +6,16 @@ This my test methd.
 #define __FIXEDMREGIONTEST_H
 
 #include <iostream>
-#include "SecondoSystem.h"
-#include "../../Tools/Flob/DbArray.h"
-#include "Attribute.h"
-#include "Symbols.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "PSTtest.h"
+#include "Attribute.h"
+#include "Symbols.h"
+#include "math.h"
+#include "Secondo_Include.h"
 #include "Move.h"
 #include "LATransform.h"
-#include "math.h"
-#include "SpatialAlgebra.h"
-#include "HalfSegment.h"
-#include "Coord.h"
 #include "FixedMRegion.h"
+
 
 void runTestMethod();
 

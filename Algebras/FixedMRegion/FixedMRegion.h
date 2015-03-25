@@ -9,16 +9,13 @@ This class is a FixedMRegion.
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "SpatialAlgebra.h"
-#include "HalfSegment.h"
-#include "Coord.h"
-//#include "TemporalAlgebra.h"
+#include "Secondo_Include.h"
 #include "Move.h"
 #include "LATransform.h"
-#include "HalfSegment.h"
 
-typedef int MBool;
-typedef int MPoint;
+
+//typedef int MBool;
+//typedef int MPoint;
 
 class FixedMRegion
 {
@@ -66,6 +63,7 @@ regions that can be transformed by a translation or rotation. The region itself
 
 */
 Region interpolate(Region* spots);
+//TODO
 /*
 This method will return a region that the FMRegion will have at the given 
 time ti.
@@ -79,6 +77,7 @@ for the time intervall ta to te.
 
 */
 MBool inside(MPoint mp, double ta, double te, double precision);
+//TODO
 /*
 This method will calculate a MPoint with which is defined, if the MPoint mp 
 is inside the FMRegion at the given time and else not defined. The MPoint 
@@ -93,6 +92,7 @@ for the time intervall ta to te.
 
 */
 MBool intersection(MPoint mp, double ta, double te, double precision);
+//TODO
 /*
 This method will calculate a MPoint with which is defined, if the MPoint mp 
 intersects with the FMRegion at the given time and else not defined. The 
@@ -107,7 +107,7 @@ intervall ta to te.
 
 */
 Region traversed(double ta, double te, double precision);
-    
+//TODO    
     
     const Region * getRegion() const;
     void setRegion(Region * _r);
