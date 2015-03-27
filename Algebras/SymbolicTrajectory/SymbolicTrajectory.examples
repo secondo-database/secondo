@@ -386,6 +386,12 @@ Signature: mlabel x text -> bool
 Example  : query mlabel1 matches '(_ "Eving") * (_ "Innenstadt-Ost") +'
 Result   : TRUE
 
+Operator : tmatches
+Number   : 1
+Signature: tuple(X) x IDENT x (text | pattern) -> bool
+Example  : query Part feed filter[. tmatches [ML, '* (_ _ superset{"BKA"}) *']] count
+Result   : 2
+
 Operator : filtermatches
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
@@ -469,9 +475,3 @@ Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
 Example  : query Dotraj createtrie[Trajectory] wordCount["Innenstadt-Ost"]
 Result   : 14
-
-Operator : derivegroups
-Number   : 1
-Signature: stream(tuple(..., mT, ...)) x attrname x real -> stream(tuple(..., mT, ..., int)),   where T in {label(s), place(s)}
-Example  : query Dotraj feed derivegroups[Trajectory, 0.3] count
-Result   : 0

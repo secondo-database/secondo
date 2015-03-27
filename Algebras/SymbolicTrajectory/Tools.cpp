@@ -365,7 +365,7 @@ void Tools::splitPattern(string& input, vector<string>& result) {
 /*
 function ~extractVar~
 
-Takes an assignment string like ~time=Z.time~ and returns the variable string.
+Takes an assignment string like ~time:=Z.time~ and returns the variable string.
 
 */
 string Tools::extractVar(const string& input) {
@@ -405,17 +405,15 @@ string Tools::getDataType(const int key) {
 }
 
 DataType Tools::getDataType(const string& type) {
-  if (type == "mlabel") return LABEL;
-  if (type == "mlabels") return LABELS;
-  if (type == "mplace") return PLACE;
-  return PLACES;
+  if (type == "mlabel") return MLABEL;
+  if (type == "mlabels") return MLABELS;
+  if (type == "mplace") return MPLACE;
+  return MPLACES;
 }
 
-bool Tools::isSymbolicType(ListExpr typeList) {
-  if ("mlabel" || "mplace" || "mlabels" || "mplaces") {
-    return true;
-  }
-  return false;
+bool Tools::isSymbolicType(ListExpr type) {
+  return ((nl->ToString(type) == "mlabel") || (nl->ToString(type) == "mlabels")
+     || (nl->ToString(type) == "mplace") || (nl->ToString(type) ==  "mplaces"));
 }
 
 /*

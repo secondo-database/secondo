@@ -10,6 +10,7 @@ operator distance alias DISTANCE pattern op ( _ , _ )
 operator topattern alias TOPATTERN pattern _ op
 operator toclassifier alias TOCLASSIFIER pattern _ op
 operator matches alias MATCHES pattern _ infixop _
+operator tmatches alias TMATCHES pattern _ op [ _ , _ ]
 operator createunitrtree alias CREATEUNITRTREE pattern _ op [ _ ]
 operator indexmatches alias INDEXMATCHES pattern _ op [ _ , _ , _ ]
 operator filtermatches alias FILTERMATCHES pattern _ op [ _ , _ ]

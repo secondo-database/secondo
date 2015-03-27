@@ -1,4 +1,4 @@
- 
+
 /*
 ----
 This file is part of SECONDO.
@@ -252,12 +252,12 @@ bool Pattern::isValid(const string& type) const {
 Calls the parser.
 
 */
-Pattern* Pattern::getPattern(string input, bool classify) {
+Pattern* Pattern::getPattern(string input, bool classify, Tuple *tuple) {
   if (input.find('\n') == string::npos) {
     input.append("\n");
   }
   const char *patternChar = input.c_str();
-  return parseString(patternChar, classify);
+  return parseString(patternChar, classify, tuple);
 }
 
 bool Pattern::containsFinalState(set<int> &states) {
@@ -294,6 +294,17 @@ bool Pattern::parseNFA() {
   return true;
 }
 
+/*
+\subsection{Function ~tmatches~}
+
+Computes whether a tuple with several trajectories of different types matches
+the pattern.
+
+*/
+ExtBool Pattern::tmatches(Tuple *tuple, const int attrno) {
+  
+  return TRUE;
+}
 
 string Condition::getType(int t) {
   switch (t) {
@@ -1193,23 +1204,23 @@ IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
   if (mRel->GetNoTuples() > 0) {
     c = (Classifier*)_classifier.addr;
     for (int i = 0; i < c->getNumOfP(); i++) { // check patterns
-      Pattern *p = Pattern::getPattern(c->getPatText(i));
+      Pattern *p = Pattern::getPattern(c->getPatText(i), false);
       bool ok = false;
       if (p) {
         switch (type) {
-          case LABEL: {
+          case MLABEL: {
             ok = p->isValid("label");
             break;
           }
-          case LABELS: {
+          case MLABELS: {
             ok = p->isValid("labels");
             break;
           }
-          case PLACE: {
+          case MPLACE: {
             ok = p->isValid("place");
             break;
           }
-          case PLACES: {
+          case MPLACES: {
             ok = p->isValid("places");
             break;
           }
@@ -1264,19 +1275,19 @@ void IndexMatchesLI::getInterval(const TupleId tId, const int pos,
                                   SecInterval& iv) {
   Tuple *tuple = mRel->GetTuple(tId, false);
   switch (mtype) {
-    case LABEL: {
+    case MLABEL: {
       ((MLabel*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
       break;
     }
-    case LABELS: {
+    case MLABELS: {
       ((MLabels*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
       break;
     }
-    case PLACE: {
+    case MPLACE: {
       ((MPlace*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
       break;
     }
-    case PLACES: {
+    case MPLACES: {
       ((MPlaces*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
       break;
     }
@@ -1299,7 +1310,7 @@ void IndexMatchesLI::simplifyNFA(vector<map<int, int> >& result) {
       ptext[i] = ' '; // eliminate repetition of regular expressions
     }
   }
-  Pattern *pnew = Pattern::getPattern(ptext);
+  Pattern *pnew = Pattern::getPattern(ptext, false);
   vector<map<int, int> > oldNFA;
   pnew->getNFA(oldNFA);
   delete pnew;
@@ -1403,7 +1414,7 @@ void IndexMatchesLI::retrieveValue(vector<set<int> >& oldPart,
   wordPosType wc;
   charPosType cc;
   eit = invFile->getExactIterator(label, 16777216);
-  if ((mtype == LABEL) || (mtype == LABELS)) {
+  if ((mtype == MLABEL) || (mtype == MLABELS)) {
     while (eit->next(id, wc, cc)) {
       if (!deactivated[id]) {
         if (first) { // ignore oldPart
@@ -1570,7 +1581,7 @@ void IndexMatchesLI::storeIndexResult(const int e) {
 //   time.resize(mRel->GetNoTuples() + 1, true);
 //   time2.resize(mRel->GetNoTuples() + 1, true);
   if (elem.getSetRel() != DISJOINT) {
-    if ((mtype == LABEL) || (mtype == LABELS)) {
+    if ((mtype == MLABEL) || (mtype == MLABELS)) {
       elem.getL(lbs);
       set<string>::iterator is = lbs.begin();
       if (!lbs.empty()) {
@@ -1751,15 +1762,15 @@ int IndexMatchesLI::getMsize(TupleId tId) {
   Tuple* tuple = mRel->GetTuple(tId, false);
   int result = -1;
   switch (mtype) {
-    case LABEL: {
+    case MLABEL: {
       result = ((MLabel*)tuple->GetAttribute(attrNr))->GetNoComponents();
       break;
     }
-    case LABELS: {
+    case MLABELS: {
       result = ((MLabels*)tuple->GetAttribute(attrNr))->GetNoComponents();
       break;
     }
-    case PLACE: {
+    case MPLACE: {
       result = ((MPlace*)tuple->GetAttribute(attrNr))->GetNoComponents();
       break;
     }
@@ -1965,19 +1976,19 @@ bool IndexMatchesLI::valuesMatch(const int e, const TupleId id,
   Tuple *tuple = mRel->GetTuple(id, false);
   bool result = false;
   switch (mtype) {
-    case LABEL: {
+    case MLABEL: {
       MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNr));
       Match<MLabel> match(0, ml);
       result = imiMatch(match, e, id, imi, unit, newState);
       break;
     }
-    case LABELS: {
+    case MLABELS: {
       MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNr));
       Match<MLabels> match(0, mls);
       result = imiMatch(match, e, id, imi, unit, newState);
       break;
     }
-    case PLACE: {
+    case MPLACE: {
       MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNr));
       Match<MPlace> match(0, mp);
       result = imiMatch(match, e, id, imi, unit, newState);
@@ -2132,19 +2143,19 @@ bool IndexMatchesLI::checkConditions(const TupleId id, IndexMatchInfo& imi) {
 //        << imi.binding[imi.prevVar].second << ")" << endl;
   bool result = false;
   switch (mtype) {
-    case LABEL: {
+    case MLABEL: {
       MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNr));
       Match<MLabel> match(&p, ml);
       result = match.conditionsMatch(*(p.getConds()), imi.binding);
       break;
     }
-    case LABELS: {
+    case MLABELS: {
       MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNr));
       Match<MLabels> match(&p, mls);
       result = match.conditionsMatch(*(p.getConds()), imi.binding);
       break;
     }
-    case PLACE: {
+    case MPLACE: {
       MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNr));
       Match<MPlace> match(&p, mp);
       result = match.conditionsMatch(*(p.getConds()), imi.binding);

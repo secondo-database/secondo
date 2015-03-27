@@ -42,7 +42,7 @@ Started July 2014, Fabio Vald\'{e}s
  namespace stj {
    
  enum SetRel {STANDARD, DISJOINT, SUPERSET, EQUAL, INTERSECT};
- enum DataType {LABEL, LABELS, PLACE, PLACES};
+ enum DataType {MLABEL, MLABELS, MPLACE, MPLACES};
  
  struct NFAtransition {
   int oldState;

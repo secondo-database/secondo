@@ -78,6 +78,7 @@ string regEx, expr;
 set<string> curIvs, patVars, resultVars, condVars;
 unsigned int pos(0), regExLength(1), numOfElems(0);
 vector<int> posBeforeOpen;
+Tuple *tup = 0;
 char* errMsg;
 %}
 
@@ -449,9 +450,9 @@ patternsequence : patternsequence variable element {
                 ;
 
 element : patternelement {
-            PatElem pElem($1);
+            PatElem pElem($1, tup);
             if (!pElem.isOk()) {
-              errMsg = Tools::convert("invalid time information in pattern element");
+              errMsg = Tools::convert("invalid information in pattern atom " + wholepat->getSize());
               free($1);
               yyerror(errMsg);
               YYERROR;
@@ -506,7 +507,8 @@ function ~parseString~
 This function is the only one called by the algebra.
 
 */
-Pattern* stj::parseString(const char* input, bool classify = false) {
+Pattern* stj::parseString(const char* input, bool classify = false,
+                          Tuple *t = 0) {
   wholepat = new Pattern(0);
   patternFlushBuffer();
   pattern_scan_string(input);
@@ -525,6 +527,7 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
   assignNow = false;
   easyCond = true;
   numOfElems = 0;
+  tup = t;
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
     parseSuccess = false;
@@ -651,31 +654,127 @@ bool PatElem::hasRealInterval() const {
 }
 
 /*
-Constructor for class ~PatElem~
+\subsubsection{Function ~extractValues~}
 
 */
-PatElem::PatElem(const char *contents) : var(""), ivs(), lbs(), pls(), wc(NO), 
-                                         setRel(STANDARD), ok(true) {
-  string input(contents);
+bool PatElem::extractValues(string &input, Tuple *tuple) {
+  cout << "#" << input << "#" << endl;
+  if (input.empty()) {
+    return false;
+  }
+  if (input[0] == '*') {
+    wc = STAR;
+    return true;
+  }
+  if (input[0] == '+') {
+    wc = PLUS;
+    return true;
+  }
   vector<string> parts;
   Tools::splitPattern(input, parts);
-  if (parts.size() == 2) {
-    stringToSet(parts[0], true);
-    stringToSet(parts[1], false);
-    SecInterval iv;
-    for (set<string>::iterator it = ivs.begin(); it != ivs.end(); it++) {
-      if ((*it)[0] >= 65 && (*it)[0] <= 122 &&
-          !Tools::checkSemanticDate(*it, iv, false)) {
-        ok = false;
+  stringToSet(parts[0], true);
+  Interval<Instant> testiv(true);
+  for (set<string>::iterator it = ivs.begin(); it != ivs.end(); it++) {
+    if ((*it)[0] >= 65 && (*it)[0] <= 122 &&
+      !Tools::checkSemanticDate(*it, testiv, false)) {
+      ok = false;
+    }
+  }
+  int pos = input.find_first_not_of(' ', parts[0].length() + 1);
+  int endpos = pos;
+  cout << "pos set to " << pos << endl;
+  set<pair<string, ValueType> > valueset;
+  switch (input[pos]) {
+    case '_': {
+      pos = input.find_first_not_of(' ', pos);
+      cout << "underscore ignored" << endl;
+      break;
+    }
+    case '<': {
+      endpos = input.find(' ', pos);
+      stringstream leftss(input.substr(pos + 1, endpos));
+      double left = 0.0;
+      leftss >> left;
+      pos = input.find_first_not_of(' ', endpos);
+      endpos = input.find(' ', pos);
+      stringstream rightss(input.substr(pos, endpos - 1));
+      double right = 0.0;
+      rightss >> right;
+      if (left > right) {
+        cout << "invalid interval: " << left << " > " << right << endl;
+        return false;
+      }
+      endpos = input.find(' ', pos);
+      pos = input.find_first_not_of(' ', endpos);
+      if (input[pos] != 't' && input[pos] != 'f') {
+        cout << "\"t\" or \"f\" expected for interval, instead of \"" 
+             << input[pos] << "\"" << endl;
+        return false;
+      }
+      bool lc = (input[pos] == 't');
+      pos = input.find_first_not_of(' ', pos + 1);
+      bool rc = (input[pos] == 't');
+      pos = input.find('>', pos) + 1;
+      Interval<double> iv(left, right, lc, rc);
+      cout << "interval " << (lc ? "[" : "(") << left << ", " << right
+           << (rc ? "]" : ")") << " found" << endl;
+      pos = input.find('>', pos);
+      endpos = pos;
+    }
+    case '{': {
+      
+      break;
+    }
+    default: {
+      if (stringutils::isLetter(input[pos])) {
+        if (input.substr(pos,4) == "TRUE") {
+          valueset.insert(make_pair("TRUE", BOOL));
+        }
+        else if (input.substr(pos,5) == "FALSE") {
+          valueset.insert(make_pair("FALSE", BOOL));
+        }
+        endpos = input.find_first_of(" ,)", pos) - 1;
+        valueset.insert(make_pair(input.substr(pos, endpos - pos + 1), DBOBJ));
+        cout << input.substr(pos, endpos - pos + 1) << " inserted" << endl;
+        values.push_back(valueset);
+        valueset.clear();
       }
     }
   }
-  else if (parts.size() == 1) {
-    if (parts[0] == "*") {
-      wc = STAR;
+  return ok;
+}
+
+/*
+Constructor for class ~PatElem~
+
+*/
+PatElem::PatElem(const char *contents, Tuple *tuple) : 
+              var(""), ivs(), lbs(), pls(), wc(NO), setRel(STANDARD), ok(true) {
+  string input(contents);
+  if (tuple) {
+    ok = extractValues(input, tuple);
+  }
+  else {
+    vector<string> parts;
+    Tools::splitPattern(input, parts);
+    if (parts.size() == 2) {
+      stringToSet(parts[0], true);
+      stringToSet(parts[1], false);
+      SecInterval iv;
+      for (set<string>::iterator it = ivs.begin(); it != ivs.end(); it++) {
+        if ((*it)[0] >= 65 && (*it)[0] <= 122 &&
+            !Tools::checkSemanticDate(*it, iv, false)) {
+          ok = false;
+        }
+      }
     }
-    else if (parts[0] == "+") {
-      wc = PLUS;
+    else if (parts.size() == 1) {
+      if (parts[0] == "*") {
+        wc = STAR;
+      }
+      else if (parts[0] == "+") {
+        wc = PLUS;
+      }
     }
   }
 }

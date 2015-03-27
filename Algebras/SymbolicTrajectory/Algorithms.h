@@ -82,11 +82,12 @@ class Assign;
 class ClassifyLI;
 class IndexLI;
 
-Pattern* parseString(const char* input, bool classify);
+Pattern* parseString(const char* input, bool classify, Tuple *t);
 void patternFlushBuffer();
 
 enum ExtBool {FALSE, TRUE, UNDEF};
 enum Wildcard {NO, STAR, PLUS};
+enum ValueType {DBOBJ, INTERVAL, BOOL, LABEL, PLACE};
 
 /*
 \section{Class ~IBasic~}
@@ -446,13 +447,14 @@ class PatElem {
   set<string> ivs;
   set<string> lbs;
   set<pair<string, unsigned int> > pls;
+  vector<set<pair<string, ValueType> > > values;
   Wildcard wc;
   SetRel setRel;
   bool ok;
 
  public:
   PatElem() : var(""), ivs(), lbs(), pls(), wc(NO), setRel(STANDARD), ok(true){}
-  PatElem(const char* contents);
+  PatElem(const char* contents, Tuple *tuple);
   PatElem(const PatElem& elem) : var(elem.var), ivs(elem.ivs), lbs(elem.lbs),
                 pls(elem.pls), wc(elem.wc), setRel(elem.setRel), ok(elem.ok) {}
   ~PatElem() {}
@@ -490,6 +492,7 @@ class PatElem {
   bool     hasRealInterval() const;
   bool     hasIndexableContents() const {return (hasLabel() || hasPlace() ||
                                                  hasRealInterval());}
+  bool     extractValues(string &input, Tuple *tuple);
 };
 
 class Assign {
@@ -578,9 +581,11 @@ class Pattern {
 
   string GetText() const;
   bool isValid(const string& type) const;
-  static Pattern* getPattern(string input, bool classify = false);
+  static Pattern* getPattern(string input, bool classify, 
+                             Tuple *tuple = 0);
   template<class M>
   ExtBool matches(M *m);
+  ExtBool tmatches(Tuple *tuple, int attrno);
   int getResultPos(const string v);
   void collectAssVars();
   void addVarPos(string var, int pos);
@@ -678,7 +683,7 @@ class PatPersistent : public Label {
   string toText() const {string value; Label::GetValue(value); return value;}
   template<class M>
   ExtBool matches(M *traj) {
-    Pattern *p = Pattern::getPattern(toText());
+    Pattern *p = Pattern::getPattern(toText(), false);
     if (p) {
       ExtBool result = p->matches(traj);
       delete p;
@@ -3248,15 +3253,15 @@ ExtBool Pattern::matches(M *m) {
 template<class M>
 DataType Match<M>::getMType() {
   if (M::BasicType() == "mlabels") {
-    return LABELS;
+    return MLABELS;
   }
   if (M::BasicType() == "mplace") {
-    return PLACE;
+    return MPLACE;
   }
   if (M::BasicType() == "mplaces") {
-    return PLACES;
+    return MPLACES;
   }
-  return LABEL;
+  return MLABEL;
 }
 
 /*
@@ -3430,7 +3435,7 @@ bool Match<M>::valuesMatch(int i, const PatElem& elem) {
     return true; // easiest case
   }
   switch (type) {
-    case LABEL: {
+    case MLABEL: {
       string mlb;
       ((MLabel*)m)->GetValue(i, mlb);
       if (elem.getSetRel() == STANDARD) {
@@ -3439,11 +3444,11 @@ bool Match<M>::valuesMatch(int i, const PatElem& elem) {
       mlbs.insert(mlb);
       return Tools::relationHolds<string>(mlbs, plbs, elem.getSetRel());
     }
-    case LABELS: {
+    case MLABELS: {
       ((MLabels*)m)->GetValues(i, mlbs);
       return Tools::relationHolds<string>(mlbs, plbs, elem.getSetRel());
     }
-    case PLACE: {
+    case MPLACE: {
       pair<string, unsigned int> mpl;
       ((MPlace*)m)->GetValue(i, mpl);
       if (elem.getSetRel() == STANDARD) {
@@ -3453,7 +3458,7 @@ bool Match<M>::valuesMatch(int i, const PatElem& elem) {
       return Tools::relationHolds<pair<string, unsigned int> >(mpls, ppls, 
                                                               elem.getSetRel());
     }  
-    case PLACES: {
+    case MPLACES: {
       ((MPlaces*)m)->GetValues(i, mpls);
       return Tools::relationHolds<pair<string, unsigned int> >(mpls, ppls, 
                                                               elem.getSetRel());
@@ -3812,7 +3817,7 @@ bool Match<M>::evaluateCond(Condition &cond,
         }
         case 8: { // labels
           cond.cleanLabelsPtr(i);
-          if (type == LABEL) {
+          if (type == MLABEL) {
             for (unsigned int j = from; j <= to; j++) {
               string value;
               ((MLabel*)m)->GetValue(j, value);
@@ -3830,7 +3835,7 @@ bool Match<M>::evaluateCond(Condition &cond,
         }
         default: { // places
           cond.cleanPlacesPtr(i);
-          if (type == PLACE) {
+          if (type == MPLACE) {
             for (unsigned int j = from; j <= to; j++) {
               pair<string, unsigned int> value;
               ((MPlace*)m)->GetValue(j, value);
@@ -3909,7 +3914,7 @@ template<class M>
 FilterMatchesLI<M>::FilterMatchesLI(Word _stream, int _attrIndex, string& pText)
                : stream(_stream), attrIndex(_attrIndex), match(0), 
                  streamOpen(false), deleteP(true) {
-  Pattern *p = Pattern::getPattern(pText);
+  Pattern *p = Pattern::getPattern(pText, false);
   if (p) {
     if (p->isValid(M::BasicType())) {
       match = new Match<M>(p, 0);
@@ -4705,7 +4710,7 @@ Tuple* IndexClassifyLI::nextResultTuple() {
     }
     cout << "results empty, fill now. currentPat=" << currentPat << ", " 
          << c->getPatText(currentPat) << endl;
-    Pattern *pat = Pattern::getPattern(c->getPatText(currentPat));
+    Pattern *pat = Pattern::getPattern(c->getPatText(currentPat), false);
     p = *pat;
     delete pat;
     initialize();

@@ -2342,7 +2342,7 @@ int topatternVM(Word* args, Word& result, int message, Word& local,
   PatPersistent* p = static_cast<PatPersistent*>(result.addr);
   Pattern* pattern = 0;
   if (pText->IsDefined()) {
-    pattern = Pattern::getPattern(pText->toText());
+    pattern = Pattern::getPattern(pText->toText(), false);
   }
   else {
     cout << "undefined text" << endl;
@@ -2541,7 +2541,7 @@ int matchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
     if ((static_cast<CcBool*>(args[2].addr))->GetValue()) { //2nd argument const
       if (!local.addr) {
         if (pText->IsDefined() && traj->IsDefined()) {
-          local.addr = Pattern::getPattern(pText->toText());
+          local.addr = Pattern::getPattern(pText->toText(), false);
         }
         else {
           cout << "Undefined pattern text or trajectory." << endl;
@@ -2576,7 +2576,7 @@ int matchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
     }
     else { // second argument non-constant
       if (pText->IsDefined()) {
-        p = Pattern::getPattern(pText->toText());
+        p = Pattern::getPattern(pText->toText(), false);
       }
       else {
         cout << "Undefined pattern text." << endl;
@@ -2638,6 +2638,103 @@ ValueMapping matchesVMs[] = {matchesVM<MLabel, FText>, matchesVM<MPlace, FText>,
 
 Operator matches("matches", matchesSpec, 8, matchesVMs, matchesSelect,
                  matchesTM);
+
+/*
+\section{Operator ~tmatches~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr tmatchesTM(ListExpr args) {
+  string err = "the expected syntax is: tuple(X) x attrname x (text | pattern)";
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if (!nl->HasLength(nl->First(args), 2)) {
+    return listutils::typeError(err + " (first argument is not a tuple)");
+  }
+  if (!Tuple::checkType(nl->First(nl->First(args))) || 
+      !listutils::isSymbol(nl->First(nl->Second(args))) ||
+     (!FText::checkType(nl->First(nl->Third(args))) && 
+      !PatPersistent::checkType(nl->First(nl->Third(args))))) {
+    return listutils::typeError(err);
+  }
+  cout << nl->ToString(nl->Second(nl->First(nl->First(args)))) << endl;
+  ListExpr attrs = nl->Second(nl->First(nl->First(args)));
+  string name = nl->SymbolValue(nl->First(nl->Second(args)));
+  ListExpr type;
+  int index = listutils::findAttribute(attrs, name, type);
+  if (!index) {
+    return listutils::typeError("Attribute " + name + " not found in tuple.");
+  }
+  if (!MLabel::checkType(type) && !MLabels::checkType(type) &&
+      !MPlace::checkType(type) && !MPlaces::checkType(type)) {
+    return listutils::typeError("Attribute " + name + " is not a symbolic "
+                               "trajectory (MLabel, MLabels, MPlace, MPlaces)");
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->OneElemList(nl->IntAtom(index - 1)), 
+                           nl->SymbolAtom(CcBool::BasicType()));
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int tmatchesSelect(ListExpr args) {
+  return FText::checkType(nl->Third(args)) ? 0 : 1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class P>
+int tmatchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  Tuple *tuple = static_cast<Tuple*>(args[0].addr);
+  CcInt *attrno = static_cast<CcInt*>(args[3].addr);
+  P* pat = static_cast<P*>(args[2].addr);
+  Pattern *p = 0;
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  res->SetDefined(false);
+  if (pat->IsDefined() && attrno->IsDefined()) {
+    p = Pattern::getPattern(pat->toText(), false, tuple);
+    if (p) {
+      ExtBool result = p->tmatches(tuple, attrno->GetIntval());
+      if (result == TRUE) {
+        res->Set(true, true); 
+      }
+      else if (result == FALSE) {
+        res->Set(true, false);  
+      }
+      delete p;
+    }
+    else {
+      cout << "invalid pattern" << endl;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+const string tmatchesSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> tuple(X) x attrname x (pattern | text) -> bool </text--->"
+  "<text> t matches [attr, p] </text--->"
+  "<text> Checks whether the moving type attributes of the tuple match the\n"
+  "pattern. The given attribute name has to be the name of a symbolic\n"
+  "trajectory attribute. It is treated as a master attribute."
+  "<text>query Part feed filter[. matches [ML, "
+  "'* (_ _ superset{\"BKA\"}) *']] count </text--->) )";
+
+ValueMapping tmatchesVMs[] = {tmatchesVM<FText>, tmatchesVM<PatPersistent>};
+
+Operator tmatches("tmatches", tmatchesSpec, 2, tmatchesVMs, tmatchesSelect,
+                  tmatchesTM);
 
 /*
 \section{Operator ~createunitrtree~}
@@ -2867,7 +2964,7 @@ int indexmatchesVM(Word* args, Word& result, int message, Word& local,
                   static_cast<R_Tree<1, NewPair<TupleId, int> >*>(args[3].addr);
       Relation *rel = static_cast<Relation*>(args[0].addr);
       if (pText->IsDefined() && attr->IsDefined()) {
-        Pattern *p = Pattern::getPattern(pText->toText());
+        Pattern *p = Pattern::getPattern(pText->toText(), false);
         if (p) {
           if (p->isValid(M::BasicType())) {
             local.addr = new IndexMatchesLI(rel, inv, rt, attr->GetIntval(), p,
@@ -3091,7 +3188,7 @@ int rewriteVM(Word* args, Word& result, int message, Word& local, Supplier s) {
         cout << "Error: undefined mlabel." << endl;
         return 0;
       }
-      p = Pattern::getPattern(pText->toText());
+      p = Pattern::getPattern(pText->toText(), false);
       if (!p) {
         cout << "Error: pattern not initialized." << endl;
       }
@@ -4389,6 +4486,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&matches);
   matches.SetUsesArgsInTypeMapping();
   
+  AddOperator(&tmatches);
+  tmatches.SetUsesArgsInTypeMapping();
+  
   ValueMapping createunitrtreeVMs[] = {createunitrtreeVM<MLabel>,
     createunitrtreeVM<MLabels>, createunitrtreeVM<MPlace>, 
     createunitrtreeVM<MPlaces>, 0};
@@ -4457,10 +4557,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                 createtrieVM<MPlace>, createtrieVM<MPlaces>, 0};
   AddOperator(createtrieInfo(), createtrieVMs, createtrieSelect, createtrieTM);
   
-  ValueMapping derivegroupsVMs[] = {derivegroupsVM<MLabel>,
-    derivegroupsVM<MLabels>, derivegroupsVM<MPlace>, derivegroupsVM<MPlaces>,0};
-  AddOperator(derivegroupsInfo(), derivegroupsVMs, derivegroupsSelect,
-              derivegroupsTM);
+//   ValueMapping derivegroupsVMs[] = {derivegroupsVM<MLabel>,
+//     derivegroupsVM<MLabels>, derivegroupsVM<MPlace>, 
+//     derivegroupsVM<MPlaces>,0};
+//   AddOperator(derivegroupsInfo(), derivegroupsVMs, derivegroupsSelect,
+//               derivegroupsTM);
   }
   
   ~SymbolicTrajectoryAlgebra() {}
