@@ -84,7 +84,7 @@ public class OptionsTabPanel extends Composite {
 	private Button matchButton = new Button("match");
 	private Button removeButton = new Button("remove");
 	private FlexTable definedPatternWidget;
-	private ArrayList<String> variablesForPattern = new ArrayList<>(); 
+	private ArrayList<String> variablesForPattern = new ArrayList<String>(); 
 	private boolean unsuccessfulVerification=false; 
 
 	private String attributeNameOfMlabelInRelation;
@@ -116,46 +116,50 @@ public class OptionsTabPanel extends Composite {
 		vPanel0.setSpacing(5);
 
 		Image closeImage = new Image(
-				"/resources/images/Action-arrow-blue-down-icon.png");
+				"resources/images/Action-arrow-blue-down-icon.png");
 		closeImage.setStyleName("centered");
+		closeImage.setTitle("Show");
 		Image openImage = new Image(
-				"/resources/images/Action-arrow-blue-up-icon.png");
+				"resources/images/Action-arrow-blue-up-icon.png");
 		openImage.setStyleName("centered");
+		openImage.setTitle("Hide");
 
-		final PushButton openArrowButton = new PushButton(new Image(
-				"/resources/images/Action-arrow-blue-down-icon.png"));
-		openArrowButton.setStyleName("pushButtonWithTransparentBackground");
+		final PushButton openArrowButtonForTab1 = new PushButton(new Image(
+				"resources/images/Action-arrow-blue-down-icon.png"));
+		openArrowButtonForTab1.setTitle("Show");
+		openArrowButtonForTab1.setStyleName("pushButtonWithTransparentBackground");
 
-		final PushButton closeArrowButton = new PushButton(new Image(
-				"/resources/images/Action-arrow-blue-up-icon.png"));
-		closeArrowButton.setStyleName("pushButtonWithTransparentBackground");
-		closeArrowButton.setVisible(true);
+		final PushButton closeArrowButtonForTab1 = new PushButton(new Image(
+				"resources/images/Action-arrow-blue-up-icon.png"));
+		closeArrowButtonForTab1.setStyleName("pushButtonWithTransparentBackground");
+		closeArrowButtonForTab1.setVisible(true);
+		closeArrowButtonForTab1.setTitle("Hide");
 
-		openArrowButton.addClickHandler(new ClickHandler() {
+		openArrowButtonForTab1.addClickHandler(new ClickHandler() {
 
 			@Override
 			public void onClick(ClickEvent event) {
-				openArrowButton.setVisible(false);
-				closeArrowButton.setVisible(true);
+				openArrowButtonForTab1.setVisible(false);
+				closeArrowButtonForTab1.setVisible(true);
 				uploadWidget.setVisible(true);
 				if (gridWithOptionsForCreatingSymTraj.isVisible()) {
 					gridWithOptionsForCreatingSymTraj.setVisible(true);
 				}
 			}
 		});
-		openArrowButton.setVisible(false);
+		openArrowButtonForTab1.setVisible(false);
 
-		vPanel0.add(openArrowButton);
+		vPanel0.add(openArrowButtonForTab1);
 
 		vPanel0.add(uploadWidget);
 
-		closeArrowButton.addClickHandler(new ClickHandler() {
+		closeArrowButtonForTab1.addClickHandler(new ClickHandler() {
 
 			@Override
 			public void onClick(ClickEvent event) {
 
-				openArrowButton.setVisible(true);
-				closeArrowButton.setVisible(false);
+				openArrowButtonForTab1.setVisible(true);
+				closeArrowButtonForTab1.setVisible(false);
 				uploadWidget.setVisible(false);
 				gridWithOptionsForCreatingSymTraj.setVisible(false);
 				vPanel0.setHeight("30px");
@@ -196,7 +200,7 @@ public class OptionsTabPanel extends Composite {
 		gridWithOptionsForCreatingSymTraj.setVisible(false);
 
 		vPanel0.add(gridWithOptionsForCreatingSymTraj);
-		vPanel0.add(closeArrowButton);
+		vPanel0.add(closeArrowButtonForTab1);
 
 		optionsTabPanel.add(vPanel0, "Create trajectory");
 
@@ -324,15 +328,15 @@ public class OptionsTabPanel extends Composite {
 	}
 
 	/**
-	 * adds to panel all the needed components for pattern 
+	 * adds pattern components to panel 
 	 * @return pattern queries panel
 	 */
 	private VerticalPanel createPanelForPattern() {
 		Label labelForVariable = createLabel("define your pattern");			
 		panelForPattern.add(labelForVariable);
 		
-		HorizontalPanel hzForPattern = createHorizPanelForPattern();
-		panelForPattern.add(hzForPattern);
+		HorizontalPanel hpForPattern = createHorizPanelForPattern();
+		panelForPattern.add(hpForPattern);
 
 		HorizontalPanel hpForCondition = createHorizPanelForCondition();
 		panelForPattern.add(hpForCondition);
@@ -422,7 +426,7 @@ public class OptionsTabPanel extends Composite {
 		int count = 0;
 		
 		List<Boolean> verified=new ArrayList<Boolean>();
-		ArrayList<String> attributes = new ArrayList<>();
+		ArrayList<String> attributes = new ArrayList<String>();
 		attributes.add("label");
 		attributes.add("time");
 		attributes.add("card");
@@ -678,9 +682,12 @@ public class OptionsTabPanel extends Composite {
 	 */
 	private ListBox createBoxWithSelectOptionsForExistingTrajectories() {
 		ListBox selectOptionsForExistingTrajectories = new ListBox();
+		selectOptionsForExistingTrajectories.addItem("");
 		selectOptionsForExistingTrajectories.addItem("geotrips_part");
+//		selectOptionsForExistingTrajectories.addItem("geotrips");
+//		selectOptionsForExistingTrajectories.addItem("geolife");
 		selectOptionsForExistingTrajectories.addItem("geolife_part");
-		selectOptionsForExistingTrajectories.addItem("geotrips_part2");
+//		selectOptionsForExistingTrajectories.addItem("geotrips_part2");
 		selectOptionsForExistingTrajectories.setVisibleItemCount(1);
 		// selectOptionsForExistingTrajectories.setWidth("150px");
 		return selectOptionsForExistingTrajectories;
@@ -727,6 +734,7 @@ public class OptionsTabPanel extends Composite {
 		animationPanel.add(getPanelForPlay());
 
 		animationPanel.add(timeCounter);
+		timeCounter.setReadOnly(true);
 
 		animationPanel.add(timeSlider.getMainPanel());
 
@@ -787,7 +795,7 @@ public class OptionsTabPanel extends Composite {
 		animationPanel.remove(0);
 		animationPanel.insert(panelForPlay, 0);
 		timeSlider.resetSlider();
-		timeCounter.setText("Press Play to start animation");
+		timeCounter.setText("Press Play to start animation");		
 	}
 
 	/**
@@ -1001,22 +1009,21 @@ public class OptionsTabPanel extends Composite {
 	public String getCommandForSimpleQueryPassesThroughRegion(Vector drawLayer) {
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
+		System.out.println("Length of "+drawLayer.getFeatures().length);
+		removePreviousFeatures(drawLayer);
 
-		Point[] listOfPoints = drawLayer.getFeatures()[drawLayer.getFeatures().length-1].getGeometry()
-				.getVertices(false);
-		Projection OSM_PROJECTION = new Projection(
-				"EPSG:4326");
-		Projection GEO_PROJECTION = new Projection(
-				"EPSG:900913");
-		
-		Point first=listOfPoints[2];		
-		first.transform(GEO_PROJECTION, OSM_PROJECTION);
-		Point second=listOfPoints[0];
-		second.transform(GEO_PROJECTION, OSM_PROJECTION);
-		
-		simpleQueriesStackPanel.getPassesThroughRegionPanel().getLabelTextForQuery().setText(first.getX()
-					+ " " + first.getY() + " "
-					+ second.getX() + " " + second.getY());
+		Point[] listOfPoints = drawLayer.getFeatures()[drawLayer.getFeatures().length - 1]
+				.getGeometry().getVertices(false);
+
+		double[] coordinatesForPasses = coordinateValues(listOfPoints);
+
+		simpleQueriesStackPanel
+				.getPassesThroughRegionPanel()
+				.getLabelTextForQuery()
+				.setText(
+						coordinatesForPasses[0] + " " + coordinatesForPasses[1]
+								+ " " + coordinatesForPasses[2] + " "
+								+ coordinatesForPasses[3]);
 		String command = "";
 
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
@@ -1026,9 +1033,9 @@ public class OptionsTabPanel extends Composite {
 							.getItemText(selectedInd);
 			command = command + " feed extract["
 					+ attributeNameOfMPointInRelation
-					+ "] passes [const rect value(" + first.getX()
-					+ " " + first.getY() + " "
-					+ second.getX() + " " + second.getY()
+					+ "] passes [const rect value(" + coordinatesForPasses[0]
+					+ " " + coordinatesForPasses[1] + " "
+					+ coordinatesForPasses[2] + " " + coordinatesForPasses[3]
 					+ ")]";
 
 		}
@@ -1036,6 +1043,47 @@ public class OptionsTabPanel extends Composite {
 		return command;
 	}
 	
+	private void removePreviousFeatures(Vector layer) {
+		if (layer.getFeatures().length > 1) {
+			System.out.println("Length "+layer.getFeatures().length);
+			for (int i = 0; i < layer.getFeatures().length - 2; i++) {
+				layer.removeFeature(layer.getFeatures()[i]);
+				System.out.println("Feature removed");
+			}
+		}
+	}
+	
+	private static double [] coordinateValues(Point[] listOfPoints) {		
+		Projection OSM_PROJECTION = new Projection(
+				"EPSG:4326");
+		Projection GEO_PROJECTION = new Projection(
+				"EPSG:900913");
+		for(Point each:listOfPoints){
+			each.transform(GEO_PROJECTION, OSM_PROJECTION);
+		}
+		
+		double maxX = listOfPoints[0].getX();
+		double minX=listOfPoints[0].getX();
+		double maxY=listOfPoints[0].getY();
+		double minY=listOfPoints[0].getY();
+		for (int ktr = 0; ktr < listOfPoints.length; ktr++) {
+			if (listOfPoints[ktr].getX() > maxX) {
+				maxX = listOfPoints[ktr].getX();
+			}
+			if(listOfPoints[ktr].getX()<minX){
+				minX=listOfPoints[ktr].getX();
+			}
+			if (listOfPoints[ktr].getY() > maxY) {
+				maxY = listOfPoints[ktr].getY();
+			}
+			if(listOfPoints[ktr].getY()<minY){
+				minY=listOfPoints[ktr].getY();
+			}
+			
+		}
+		double [] result=new double[]{minX,maxX, minY, maxY};
+		return result;
+	}
 
 	public String getCommandForQueryRelation() {
 		int selectedInd = selectOptionsForExistingTrajectories

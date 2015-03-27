@@ -70,7 +70,7 @@ public class MVPolylineController {
 	/**
 	 * key - id of mp; value - map where key -label, value - color
 	 */
-	private HashMap<Number, HashMap<String, String>> mpToLegendMap= new HashMap<>();
+	private HashMap<Number, HashMap<String, String>> mpToLegendMap= new HashMap<Number, HashMap<String, String>>();
 	
 	/** Array for colors from ML */
 //	private List<List<String>> colors = new ArrayList<List<String>>();
@@ -265,11 +265,14 @@ public class MVPolylineController {
 	private Vector createLayerForColoredPolyline(List<LineString> lines,
 			List<String> colorList, int key,
 			String legendForColoredPolyline) {
-		System.out.println("Size with colors " + colorList.size());
+		
 		// Create the vector layer
 		Vector coloredPolylineLayer = new Vector("Polyline Overlay with Colors");
 		coloredPolylineLayer.setIsBaseLayer(false);
 		coloredPolylineLayer.setDisplayInLayerSwitcher(false);
+		
+		if(colorList!=null){
+			System.out.println("Size with colors " + colorList.size());
 
 		for (int i = 0; i < lines.size(); i++) {
 
@@ -288,7 +291,7 @@ public class MVPolylineController {
 					new Integer(key).toString(), coloredFeature
 							.getCenterLonLat(), null, legendForColoredPolyline,
 					null, false));
-		}
+		}}
 		return coloredPolylineLayer;
 
 	}
@@ -515,6 +518,7 @@ public class MVPolylineController {
 				+ "<tr>";
 		String legend_lastPart = "" + "</tr>" + "</tbody>" + "</table>";
 		String html = "";
+		if(mapWithLabelToColor!=null){
 		for (String label : mapWithLabelToColor.keySet()) {
 
 			String color =  mapWithLabelToColor.get(label);
@@ -531,16 +535,12 @@ public class MVPolylineController {
 					+ "<div style=\"margin: 5px; font-family: Verdana; color:blue;\">"
 					+ label + "</div>" + "</td> </tr>";
 		}
+		}
 		completeLegendForMap=completeLegendForMap+"<h>Legend for the trajectory</h> "+html;
 		return legend_firstPart + html + legend_lastPart;
 	}
 	
-//	public void setColorsAndLegend(ArrayList<String> colorsFromML,
-//			HashMap<String, String> labelToColor) {
-//		addColorsFromML(colorsFromML);
-//		addLegendFromML(labelToColor);
-//	}
-	
+
 	public void setListWithColorsToMP(
 			HashMap<Number, ArrayList<String>> mapFromMP) {
 		if (!mapFromMP.isEmpty()) {

@@ -26,10 +26,20 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -418,6 +428,47 @@ public String sendCommand(String command) {
 	
 	public int getNumberOfTuplesInRelationFromResultList(){
 		return sd.getNumberOfSuccessfulReusltsInPatternMatching();
+	}
+	
+	public Boolean sendMail(String html) {
+		final String username = "webappsymtraj@gmail.com";
+		final String password = "D5h8ReqDPNx4msckyATu";
+
+		Boolean result = false;
+
+		Properties props = new Properties();
+		props.put("mail.smtp.starttls.enable", "true");
+		props.put("mail.smtp.auth", "true");
+		props.put("mail.transport.protocol", "smtp");
+		props.put("mail.smtp.host", "smtp.gmail.com");
+		props.put("mail.smtp.port", "587");
+
+		Session session = Session.getInstance(props,
+				new javax.mail.Authenticator() {
+					protected PasswordAuthentication getPasswordAuthentication() {
+						return new PasswordAuthentication(username, password);
+					}
+				});
+
+		try {
+
+			Message message = new MimeMessage(session);
+			message.setFrom(new InternetAddress(username));
+			message.setRecipients(Message.RecipientType.TO,
+					InternetAddress.parse("Irina.Russkaya@Fernuni-Hagen.de"));
+			message.setSubject("Support Request");
+			message.setContent(html, "text/html");
+
+			Transport.send(message);
+
+			result = true;
+
+		} catch (MessagingException e) {
+			throw new RuntimeException(e);
+		}
+
+		return result;
+
 	}
 	
 	

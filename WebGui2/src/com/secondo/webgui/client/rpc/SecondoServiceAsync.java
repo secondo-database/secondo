@@ -64,7 +64,9 @@ public interface SecondoServiceAsync {
 	 
 	 void addCommandToHistory(String command, AsyncCallback<Void> callback);
 	 void saveTextFile(String text, String filename, AsyncCallback<Void> callback);
-	void saveGPXfileToServer(String filename, AsyncCallback<Void> callback);
+	 void saveGPXfileToServer(String filename, AsyncCallback<Void> callback);
+	 
+	 void sendMail(String html, AsyncCallback<Boolean> callback);  
 	
 	void getNumberOfTuplesInRelationFromResultList(AsyncCallback<Integer> callback);
 	

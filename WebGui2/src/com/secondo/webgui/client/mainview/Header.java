@@ -19,6 +19,7 @@
 
 package com.secondo.webgui.client.mainview;
 
+import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Style;
 import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.event.dom.client.MouseMoveEvent;
@@ -32,20 +33,23 @@ import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FocusWidget;
 import com.google.gwt.user.client.ui.Grid;
+import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.MenuBar;
 import com.google.gwt.user.client.ui.MenuItem;
+import com.google.gwt.user.client.ui.VerticalPanel;
 
 
 /**
 *  This class represents the header of the main view.
 *  
-*  @author Kristina Steiger
+*  @author Irina Russkaya
 *  
 **/
 public class Header extends Composite{
@@ -54,7 +58,7 @@ public class Header extends Composite{
 	private HorizontalPanel hPanel = new HorizontalPanel();
 	
 	/**The main grid of the header*/
-	private Grid g=new Grid();
+	private FlexTable mainGrid=new FlexTable();
 	
 	/**The Secondo logo image*/
 	private Image logo = new Image("resources/images/secondo-logo.gif");
@@ -72,7 +76,7 @@ public class Header extends Composite{
 	private Button logoutButton = new Button("<img src='resources/images/logout.gif' height='30px' width='30px'/>");
 	
 	/**Width of the header*/
-    private int width=Window.getClientWidth();
+    private int width=Window.getClientWidth()-17;
     
     private MenuBar mainMenuBar = new MenuBar();
     private MenuItem legend= new MenuItem("Legend", mainMenuBar);
@@ -82,23 +86,33 @@ public class Header extends Composite{
     private PlainTrajDialog textViewOfTrajInDialog= new PlainTrajDialog();
     private DBSettingsDialog databaseInfo= new DBSettingsDialog();
     private LocationDialog locationDialog= new LocationDialog();
+    private SupportDialog supportDialog=new SupportDialog();
+    private PatternDialog patternDialog = new PatternDialog();
 	
 	public Header(){
-		g.resize(4, 1);
-
+//		mainGrid.resize(4, 3);		
 		
-		logo.getElement().getStyle().setMarginLeft(30, Unit.PX);
 		logo.setSize("190px", "28px");
-		g.setWidget(0,0,logo);
-		g.setWidth(width + "px");
-		g.setHeight("28px");
-		g.getElement().setClassName("mainheader");
-//		hPanel.add(logo);
-//		hPanel.setWidth(width + "px");
-		buttonPanel.getElement().getStyle().setMarginLeft(width-430, Unit.PX);
+		mainGrid.setWidget(0,0,logo);
+		mainGrid.setWidth(width + "px");
+		mainGrid.setHeight("28px");
+		mainGrid.getElement().setClassName("mainheader");
 		
+		Image infoImage = new Image("resources/images/info-icon.png");
+		infoImage.getElement().setAttribute("align", "right");
+		mainGrid.setWidget(0, 1, infoImage);
 		
-		MenuItem homeMenu = new MenuItem("Home", new Command() {
+		VerticalPanel notePanel = new VerticalPanel();		
+		HTML htmlNote = new HTML("<div class=\"please_note_text\"> <div id=\"please_note_title\">Please note</div>"+
+		"<div><span style=\"color: grey;\">To zoom in and out use your mouse wheel.</span></p>"+
+		"<span style=\"color: grey;\">To pan the map drag your mouse holding left mouse button.</span></p>"+		
+	"</div></div>", true);
+		notePanel.add(htmlNote);		
+		mainGrid.setWidget(0, 2, notePanel);
+		mainGrid.getFlexCellFormatter().setRowSpan(0, 2, 3);
+		mainGrid.getColumnFormatter().setWidth(2, "350px");
+		
+		MenuItem homeMenu = new MenuItem("Secondo", new Command() {
 			
 			@Override
 			public void execute() {
@@ -113,7 +127,7 @@ public class Header extends Composite{
 		Anchor home= new Anchor("Home", "http://dna.fernuni-hagen.de/Secondo.html/index.html");
 		home.setVisible(false);
 		home.ensureDebugId("LinkToHome");
-		g.setWidget(2, 0, home);
+		mainGrid.setWidget(2, 0, home);
 		
 		MenuItem symbTrajMenu = new MenuItem ("About symbolic trajectory", new Command() {
 			
@@ -142,42 +156,36 @@ public class Header extends Composite{
 
 			@Override
 			public void execute() {
-				databaseInfo.getDbDialogBox().center();
-				databaseInfo.getDbDialogBox().show();
+				patternDialog.getHelpDialogBox().center();
+				patternDialog.getHelpDialogBox().show();
+
+			}
+		});
+		patternMenu.getElement().getStyle().setColor("white");			
+
+		
+		MenuItem supportMenu = new MenuItem("Support", new Command() {
+
+			@Override
+			public void execute() {
+				supportDialog.getSupportDialogBox().center();
+				supportDialog.getSupportDialogBox().show();
 
 			}
 		});
 		patternMenu.getElement().getStyle().setColor("white");	
-		
-		MenuBar support = new MenuBar(true);
-		support.getElement().getStyle().setColor("white");
-		support.getElement().getStyle().setFontStyle(Style.FontStyle.NORMAL);
-		support.getElement().getStyle().setFontWeight(Style.FontWeight.NORMAL);
-		
 		
 		MenuBar menu = new MenuBar();		
 	    menu.addItem(homeMenu);
 	    menu.addItem(symbTrajMenu);
 	    menu.addItem(patternMenu);
 	    menu.addItem(database);
-	    menu.addItem("Support", support);
+	    menu.addItem(supportMenu);
 	    menu.getElement().getStyle().setColor("white");
 	    menu.getElement().getStyle().setBorderStyle(Style.BorderStyle.NONE);
-	    g.setWidget(1,0, menu);
-	    g.getCellFormatter().setStyleName(1, 0, "GreyMenubar");
-	    
-	    
-	    
-	    
-	    final SymTrajDialog optimizerSyntaxDialog = new SymTrajDialog();
-		  //command that will execute on selection of the optimizer info menu item
-		    Command optimizerInfo = new Command() {
-		      public void execute() {
-		        optimizerSyntaxDialog.getHelpDialogBox().center();
-		        optimizerSyntaxDialog.getHelpDialogBox().show();
-		      }
-		    };
-	    
+	    mainGrid.setWidget(1,0, menu);
+	    mainGrid.getFlexCellFormatter().setColSpan(1, 0, 3);
+	    mainGrid.getCellFormatter().setStyleName(1, 0, "GreyMenubar");
 	    
 
 	    MenuItem homeItem=new MenuItem("My location", new Command() {
@@ -200,17 +208,26 @@ public class Header extends Composite{
 	    legend.setTitle("Legend to the symbolic trajectory");
 	    mainMenuBar.addItem(legend);
 	    
-	    Command menuCommand = new Command(){
-		      public void execute() {
-			        optimizerSyntaxDialog.getHelpDialogBox().center();
-			        optimizerSyntaxDialog.getHelpDialogBox().show();
-			      }
-			    };
-	    MenuItem link = new MenuItem("Link", menuCommand);	    
+	   
+	    MenuItem link = new MenuItem("Link", new Command() {
+			
+			@Override
+			public void execute() {
+				// TODO Auto-generated method stub
+				
+			}
+		});	    
 	    link.setStyleName("transparent3");
 	    mainMenuBar.addItem(link);
 	    
-	    MenuItem print = new MenuItem("Print", menuCommand);	    
+	    MenuItem print = new MenuItem("Print", new Command() {
+			
+			@Override
+			public void execute() {
+				Window.print();
+				
+			}
+		});	    
 	    print.setStyleName("transparent4");	   
 	    mainMenuBar.addItem(print);
 	    
@@ -224,38 +241,10 @@ public class Header extends Composite{
 	    plainTraj.setTitle("Symbolic trajectory\n in plain text");	    
 	    mainMenuBar.addItem(plainTraj);
 	    
-	    
-	    
-	    
-	    g.setWidget(3, 0, mainMenuBar);
-	    g.getCellFormatter().setStyleName(3, 0, "toolbar_menu");
-	    
-	    
-	    
-	    
-		
-		//configure buttons
-		closedatabaseButton.getElement().setClassName("closedatabasebutton");
-		closedatabaseButton.getElement().getStyle().setBackgroundColor("white");
-		closedatabaseButton.setWidth("40px");
-		closedatabaseButton.setTitle("Close Database");
-		logoutButton.getElement().setClassName("logoutbutton");
-		logoutButton.setWidth("40px");
-		logoutButton.setTitle("Logout");		
-		
-		buttonPanel.setWidth("100px");
-		buttonPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
-		//TODO
-//		buttonPanel.getElement().getStyle().setMarginLeft(windowWidth-430, Unit.PX);
-		buttonPanel.add(labelWithDatabaseName);
-		buttonPanel.add(closedatabaseButton);
-		buttonPanel.add(logoutButton);
-		
-//		hPanel.add(buttonPanel);
 
-//		hPanel.getElement().setClassName("mainheader");	
-//		hPanel.setWidth(windowWidth + "px");
-//		hPanel.setHeight("50px");
+	    mainGrid.setWidget(3, 0, mainMenuBar);
+	    mainGrid.getFlexCellFormatter().setColSpan(3, 0, 3);
+	    mainMenuBar.setStyleName("toolbar_menu");   
 	}
 	
 	/**On resizing of the browser window the width of the main panel and button panel is readjusted
@@ -263,12 +252,19 @@ public class Header extends Composite{
 	 * @param width The new width of the main panel and the button panel
 	 * */
 	public void resizeWidth(int width){
-		hPanel.setWidth(width + "px");
-		if(width > 1000){
-			buttonPanel.getElement().getStyle().setMarginLeft(width-430, Unit.PX);
+		
+		if(width > 950){
+			mainGrid.setWidth(width + "px");
+			mainMenuBar.getElement().getStyle().setMarginLeft(300, Unit.PX);
 		}		
 		else{
-			buttonPanel.getElement().getStyle().setMarginLeft(1000-430, Unit.PX);
+			mainGrid.setWidth("950px");
+			if(width<680){
+				mainMenuBar.getElement().getStyle().setMarginLeft(0, Unit.PX);
+			}
+			else{
+			mainMenuBar.getElement().getStyle().setMarginLeft(width-680, Unit.PX);
+			}			
 		}
 	}
 
@@ -304,8 +300,8 @@ public class Header extends Composite{
 		return labelWithDatabaseName;
 	}
 	
-	public Grid getGrid(){
-		return g;
+	public FlexTable getGrid(){
+		return mainGrid;
 	}
 	
 	/**
@@ -363,5 +359,9 @@ public class Header extends Composite{
 		command+=getLocationDialog().getCity().getText()+"\")";
 		return command;
 		
+	}
+
+	public SupportDialog getSupportDialog() {
+		return supportDialog;
 	}
 }

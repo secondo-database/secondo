@@ -116,7 +116,7 @@ public class MLabel implements DataType, Serializable{
 	
 }
 	
-	HashMap<String, String> mapWithLabelsAndColors = new HashMap<>();
+	HashMap<String, String> mapWithLabelsAndColors = new HashMap<String, String>();
 	public void generateColorsForLabel2(String label){
 		if(!mapWithLabelsAndColors.containsKey(label)){
 			int i = mapWithLabelsAndColors.size();

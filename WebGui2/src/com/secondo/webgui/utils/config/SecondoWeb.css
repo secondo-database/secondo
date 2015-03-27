@@ -336,8 +336,12 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
 	font-variant: normal;
 	font-style: normal;	
 	text-align: start;
+	padding-top: 4px;
+	padding-left:30px;
 	
 }
+
+
 
 .transparent{
 	
@@ -350,7 +354,7 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
   	cursor: hand;
 }
 .transparent1{
-	background: url("/resources/images/home-icon-blue.png") no-repeat scroll 0 transparent;
+	background: url("resources/images/home-icon-blue.png") no-repeat scroll 0 transparent;
 	text-align: left;
 	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
 	font-size: 12px;
@@ -362,7 +366,7 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
 }
 
 .transparent2{
-	background: url("/resources/images/info-icon-blue.png") no-repeat scroll 0 transparent;
+	background: url("resources/images/info-icon-blue.png") no-repeat scroll 0 transparent;
 	text-align: left;
 	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
 	font-size: 12px;
@@ -373,7 +377,7 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
 }
 
 .transparent3{
-	background: url("/resources/images/link-icon-blue.png") no-repeat scroll 0 transparent;
+	background: url("resources/images/link-icon-blue.png") no-repeat scroll 0 transparent;
 	text-align: left;
 	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
 	font-size: 12px;
@@ -384,7 +388,7 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
 }
 
 .transparent4{
-	background: url("/resources/images/printer-icon-blue.png") no-repeat scroll  0 transparent;
+	background: url("resources/images/printer-icon-blue.png") no-repeat scroll  0 transparent;
 	text-align: left;
 	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
 	font-size: 12px;
@@ -395,7 +399,7 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
 }
 
 .transparent5{
-	background: url("/resources/images/arrow-down-icon.png") no-repeat scroll  0 transparent;
+	background: url("resources/images/arrow-down-icon.png") no-repeat scroll  0 transparent;
 	text-align: left;
 	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
 	font-size: 12px;
@@ -406,7 +410,7 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
 }
 
 .transparent6{
-	background: url("/resources/images/edit-clipboard-icon.png") no-repeat scroll  0 transparent;
+	background: url("resources/images/edit-clipboard-icon.png") no-repeat scroll  0 transparent;
 	text-align: left;
 	font-family: Verdana,Tahoma,Helvetica,Arial,sans-serif;
 	font-size: 12px;
@@ -459,11 +463,11 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
   height: 3px;
 }
 .gwt-DecoratedTabBar .tabTopLeft {
-  background: url("/resources/images/circles.png") no-repeat 0px 0px;
+  background: url("resources/images/circles.png") no-repeat 0px 0px;
   -background: url(images/circles_ie6.png) no-repeat 0px 0px;
 }
 .gwt-DecoratedTabBar .tabTopRight {
-  background: url("/resources/images/circles.png") no-repeat -3px 0px;
+  background: url("resources/images/circles.png") no-repeat -3px 0px;
   -background: url(images/circles_ie6.png) no-repeat -3px 0px;
 }
 .gwt-DecoratedTabBar .tabMiddleLeft,
@@ -490,11 +494,11 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
   background:#fff;
 }
 .gwt-DecoratedTabBar .gwt-TabBarItem-selected .tabTopLeft {
-  background: url("/resources/images/circles.png") no-repeat -6px 0px;
+  background: url("resources/images/circles.png") no-repeat -6px 0px;
   -background: url(images/circles_ie6.png) no-repeat -6px 0px;
 }
 .gwt-DecoratedTabBar .gwt-TabBarItem-selected .tabTopRight {
-  background: url("/resources/images/circles.png") no-repeat -9px 0px;
+  background: url("resources/images/circles.png") no-repeat -9px 0px;
   -background: url(images/circles_ie6.png) no-repeat -9px 0px;
 }
 .gwt-DecoratedTabBar .gwt-TabBarItem-selected .tabMiddleLeft,
@@ -695,6 +699,23 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
 }
 .floatRight{
 	float: right;
+}
+/* .please_note_text{ */
+/* 	line-height: 1.4; */
+/*   	width: 270px; */
+/*   	position: absolute; */
+/*   	top: -2px; */
+/*   	left: 35px; */
+/* } */
+#please_note_title{
+	  color: #009DD8;
+  font-size: 11pt;
+  font-weight: bold;
+}
+
+#please_note_contents{
+	font: 8pt/16pt Verdana,Tahoma,helvetica,arial,sans-serif;
+	color:grey;
 }
 
 

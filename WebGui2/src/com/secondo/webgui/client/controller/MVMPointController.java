@@ -93,7 +93,7 @@ public class MVMPointController {
 	/**
 	 * key - id of mp; value - map where key -label, value - color
 	 */
-	private HashMap<Number, HashMap<String, String>> mpToLegendMap= new HashMap<>();
+	private HashMap<Number, HashMap<String, String>> mpToLegendMap= new HashMap<Number, HashMap<String, String>>();
 	
 	private ToolBox toolbox;
 	private OptionsTabPanel tabpanel;
@@ -743,7 +743,7 @@ public class MVMPointController {
 
 	}
 	/** key- id of mpoint; value- list of colors to this mpoint (according to the label list)*/
-	private HashMap<Number, ArrayList<String>> mpToColorList = new HashMap<>(); 
+	private HashMap<Number, ArrayList<String>> mpToColorList = new HashMap<Number, ArrayList<String>>(); 
 	
 	private void matchMLtoMPonBaseOfTime(MLabel data, MPoint point) {
 		
@@ -797,8 +797,8 @@ public class MVMPointController {
 
 	private void addColorsListToMpoint(int key, ArrayList<String> labelList,
 			MLabel mlabel) {
-		ArrayList<String> colorList = new ArrayList<>();
-		HashMap<String, String> mpToLegend = new HashMap<>();
+		ArrayList<String> colorList = new ArrayList<String>();
+		HashMap<String, String> mpToLegend = new HashMap<String, String>();
 		for (String label : labelList) {
 			colorList.add(mlabel.getColorFromMapWithLabelsAndColors(label));
 			if (label.equals("")) {
@@ -822,60 +822,7 @@ public class MVMPointController {
 		return mpToLegendMap;
 	}
 
-//	private ArrayList<String> matchMLtoMPonBaseOfTime(MLabel data, MPoint point) {
-//		ArrayList<String> colorsForPolyline = new ArrayList<String>();
-//		ArrayList<String> labelList = new ArrayList<String>();
-//		// ArrayList<String> colors =new ArrayList<String>();
-//		System.out.println("Number of time intervals in mp "
-//				+ point.getTime().size());
-//		System.out.println("Number of line intervals in mp "
-//				+ point.getPath().size());
-//		for (int j = 0; j < point.getTime().size(); j++) {
-//			TimeInterval intervalOfMPoint = point.getTime().get(j);			
-//
-//			for (int i = 0; i < data.getTime().size(); i++) {
-//				TimeInterval intervalOfMLabel = data.getTime().get(i);
-//
-//				int compareTimeA = intervalOfMPoint.getTimeA().compareTo(
-//						intervalOfMLabel.getTimeA());
-//				int compareTimeB = intervalOfMPoint.getTimeB().compareTo(
-//						intervalOfMLabel.getTimeB());
-//				// intervalOfMPoint should be within intervalOfMLabel
-//				if ((compareTimeA == 0 || compareTimeA > 0)
-//						&& (compareTimeB == 0 || compareTimeB < 0)) {
-//					labelList.add(data.getLabel().get(i));
-//					colorsForPolyline.add(data.getColorOfLines().get(i));
-//
-//					System.out.println("Color  added "
-//							+ data.getColorOfLines().get(i));
-//					// System.out.println("Line interval xA"+
-//					// lineIntervalOfMPoint.getPointA().getX()+" yA "
-//					// +lineIntervalOfMPoint.getPointA().getY()+ " xB "+
-//					// lineIntervalOfMPoint.getPointB().getX()+ " yB "+
-//					// lineIntervalOfMPoint.getPointB().getY());
-//
-//					break;
-//				}
-//				if (i == data.getTime().size() - 1) {
-//					labelList.add("");
-//					colorsForPolyline.add("#000000");
-//					System.out.println("Added empty label!");
-//				}
-//
-//			}
-//
-//		}
-//		System.out.println("Size of labellist " + labelList.size());
-//		System.out.println("Size of colorsForPolyline"
-//				+ colorsForPolyline.size());
-//		if (!labelList.isEmpty()) {
-//			addLabelListToMpoint(labelList, point.getId());
-//		}
-//
-//		return colorsForPolyline;
-//
-//	}
-	
+
 	public void addMP(MPoint data, Bounds boundsAll, Bounds boundsLast){
 		deleteAllLonLats();
 

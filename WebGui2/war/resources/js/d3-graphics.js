@@ -724,10 +724,4 @@ function deleteAllMPointPaths(){
   }
 }
 
-///**handle fileUpload-input element*/
-//function handleInput(ev) {
-//	window.alert(ev.target.value);
-//	Element el=document.getElementById("gwt-debug-fileUploadHidden");
-//	window.alert("On input"+el.value);
-//    document.getElementById("gwt-debug-textBoxForUpload").value=el.value; 
-//}
+

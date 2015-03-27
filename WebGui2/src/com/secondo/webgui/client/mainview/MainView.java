@@ -61,10 +61,8 @@ public class MainView extends Composite {
 	private AbsolutePanel contentPanel = new AbsolutePanel();
 
 	// main elements of the application
-	private Header header = new Header();
-	private StatusBar statusBar = new StatusBar();
-	private SideBar sidebar = new SideBar();
-	private FlowPanel commandPanelWrapper = new FlowPanel();
+	private Header header = new Header();	
+	private SideBar sidebar = new SideBar();	
 	
 	private OptionsTabPanel optionsTabPanel = new OptionsTabPanel();
 
@@ -90,8 +88,7 @@ public class MainView extends Composite {
 
 		contentPanel.add(view);		
 		contentPanel.add(optionsTabPanel.getOptionsTabPanel(), 10,0);
-//		contentPanel.add(commandPanelWrapper);
-		contentPanel.add(statusBar.gethPanel());
+//		contentPanel.add(commandPanelWrapper);		
 
 //		mainPanel.add(sidebar.getSidebar());
 		mainPanel.add(contentPanel);
@@ -104,6 +101,7 @@ public class MainView extends Composite {
 		// get the size of the browserwindow and set the elements to the right size
 		int windowWidth = Window.getClientWidth();
 		int windowHeight = Window.getClientHeight();
+		
 
 //		this.resizeWithCP(windowWidth, windowHeight);
 		this.resizeToFullScreen(windowWidth, windowHeight);
@@ -454,6 +452,7 @@ public class MainView extends Composite {
 						String result=event.getResults().replace("</pre>", "");
 						String uploadedFilename=result.substring(result.lastIndexOf(":")+1);
 						optionsTabPanel.getUploadWidget().setNameOfUploadedFile(uploadedFilename);
+						uploadedFilename=uploadedFilename.substring(uploadedFilename.lastIndexOf("/")+1);
 						Window.alert("File "+ uploadedFilename+ " uploaded successfully!");
 					}			
 					optionsTabPanel.getGridWithOptionsForCreatingSymTraj().setVisible(true);
@@ -486,7 +485,9 @@ public class MainView extends Composite {
 	 * @param height The new height of all visible elements
 	 * */
 	public void resizeToFullScreen(int width, int height) {
-
+		width=width-30;
+		height=height-134;
+		
 		header.resizeWidth(width);
 //		rawDataView.resizeToFullScreen(width, height);
 
@@ -875,14 +876,7 @@ public class MainView extends Composite {
 	public MapView getMapView() {
 		return mapView;
 	}
-
-	/**Returns the statusbar object
-	 * 
-	 * @return The statusbar object
-	 * */
-	public StatusBar getStatusBar() {
-		return statusBar;
-	}
+	
 
 	/**Returns the toolbox object
 	 * 

@@ -31,7 +31,7 @@ import com.google.gwt.user.client.ui.ScrollPanel;
 /**
 *  This class contains the dialog for the optimizer syntax in the help menu.
 *  
-*  @author Kristina Steiger
+*  @author Irina Russkaya
 *  
 **/
 public class SymTrajDialog {

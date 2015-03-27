@@ -2,15 +2,26 @@ package com.secondo.webgui.client.mainview;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.dom.client.Element;
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.SelectionEvent;
+import com.google.gwt.event.logical.shared.SelectionHandler;
+import com.google.gwt.event.shared.EventHandler;
+import com.google.gwt.user.client.Event;
+import com.google.gwt.user.client.EventListener;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.FileUpload;
 import com.google.gwt.user.client.ui.FormPanel;
 import com.google.gwt.user.client.ui.Grid;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
+import com.google.gwt.view.client.SelectionChangeEvent;
+import com.sun.java.swing.plaf.windows.resources.windows;
 
 public class FileUploadPanel extends FormPanel {
 
@@ -20,6 +31,7 @@ public class FileUploadPanel extends FormPanel {
 	private TextBox fileUploadBox;
 	private String nameOfUploadedFile;
 	private Label lblSelectAgpx;
+	private HelpDialogForCreateTraj helpDialog= new HelpDialogForCreateTraj();
 
 	/**
 	
@@ -40,10 +52,7 @@ public class FileUploadPanel extends FormPanel {
 
 			public void onClick(ClickEvent event) {
 				
-				fileClick(fileUpload.getElement());
-				// fileUploadBox.setText(fileUpload.getFilename());
-				// fileUploadBox.setEnabled(false);
-
+				fileClick(fileUpload.getElement());			
 			}
 		});
 
@@ -51,7 +60,17 @@ public class FileUploadPanel extends FormPanel {
 		fileUpload.ensureDebugId("fileUploadHidden");
 		fileUpload.setVisible(false);
 		fileUpload.setStyleName("fileUploadInOneLine");
+		
 
+		fileUpload.addChangeHandler(new ChangeHandler() {
+			
+			@Override
+			public void onChange(ChangeEvent event) {				
+				 String fileName = fileUpload.getFilename();
+				 fileUploadBox.setText(fileName);
+			}
+		});
+		
 		final FileUploadPanel form = this;
 		
 		uploadButton.setWidth("100px");
@@ -73,6 +92,8 @@ public class FileUploadPanel extends FormPanel {
 		gridForUploadComponents.setWidget(1, 0, fileUpload);
 		gridForUploadComponents.setWidget(1, 1, uploadButton);
 		this.add(gridForUploadComponents);
+		
+		
 
 	}
 
@@ -89,8 +110,8 @@ public class FileUploadPanel extends FormPanel {
 
 			@Override
 			public void onClick(ClickEvent event) {
-				// secondoSyntaxDialog.getHelpDialogBox().center();
-				// secondoSyntaxDialog.getHelpDialogBox().show();
+				 helpDialog.getHelpDialogBox().center();
+				 helpDialog.getHelpDialogBox().show();
 
 			}
 		});
@@ -110,7 +131,23 @@ public class FileUploadPanel extends FormPanel {
 //document.getElementById("gwt-debug-textBoxForUpload").value=el.value; 
 //el.addEventListener('input',handleInput,false); 
 el.click();
-$doc.getElementById("gwt-debug-textBoxForUpload").value=el.value;											
+$doc.getElementById("gwt-debug-textBoxForUpload").value=el.value;
+//window.alert("On input"+$doc.getElementById("gwt-debug-fileUploadHidden").value);
+
+//el.onselect=function(){window.alert("On input"+el.value);};
+
+
+//$doc.getElementById("gwt-debug-fileUploadHidden").onselect=function()
+//{$window.alert("On input"+$doc.getElementById("gwt-debug-fileUploadHidden").value);
+//};
+
+
+//window.alert("On input"+$doc.getElementById("gwt-debug-fileUploadHidden").value);
+
+// var x = el.form;
+//   x.onselect=function()
+//{$window.alert("On input"+el.value);}
+											
 
 }-*/;
 

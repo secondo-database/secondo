@@ -36,7 +36,7 @@ public class MVMLabelController {
 	
 	
 	/**map with unique key of moving label and its legend(what color symbolizes what label)*/
-	private HashMap<Number, HashMap<String, String>> mapWithMLandLegend = new HashMap<>();
+	private HashMap<Number, HashMap<String, String>> mapWithMLandLegend = new HashMap<Number, HashMap<String, String>>();
 	
 	public MVMLabelController() {
 		

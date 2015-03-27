@@ -68,5 +68,6 @@ public interface SecondoService extends RemoteService {
 	
 	String sendCommandWithoutResult(String command);
 	int getNumberOfTuplesInRelationFromResultList();
+	Boolean sendMail(String html);
 	
 }

@@ -341,7 +341,7 @@ public class SecondoWeb implements EntryPoint {
 						String command = mainView.getOptionsTabPanel()
 								.getCommandForSimpleQueryDeftime();
 						if (!command.isEmpty()) {
-							rpcConnector.sendSimpleQuery(command, "deftime",mainView);
+							rpcConnector.sendSimpleQuery(command, "deftime", mainView);
 						} else {
 							Window.alert("Please select relation and load it");
 						}
@@ -358,7 +358,7 @@ public class SecondoWeb implements EntryPoint {
 				String command = mainView.getOptionsTabPanel()
 						.getCommandForSimpleQueryAtinstant();
 				if (!command.isEmpty()) {
-					rpcConnector.sendSimpleQuery(command, "atinstant",mainView);
+					rpcConnector.sendSimpleQuery(command, "atinstant", mainView);
 				} else {
 					Window.alert("Please select relation and load it");
 				}
@@ -381,6 +381,14 @@ public class SecondoWeb implements EntryPoint {
 
 					}
 				});
+		
+		this.mainView.getMainheader().getSupportDialog().getSendButton().addClickHandler(new ClickHandler() {
+	          public void onClick(ClickEvent event) {
+	        	  rpcConnector.sendMailToSupport(mainView.getMainheader().getSupportDialog().getMessage());
+	        		 
+	        	  
+	        	  }
+	        });
 	   
 	   
 	    
@@ -481,8 +489,7 @@ public class SecondoWeb implements EntryPoint {
 				mainView.getMainheader().getDatabaseInfo().getDb()
 						.setText(openDatabase);
           		
-          		//set optimizerurl
-          		rpcConnector.getOptimizerConnection(mainView);
+          		
           		 		
           		//delete data from last actions
 //      			mainView.getCommandPanel().getTextArea().setText("Sec >");	

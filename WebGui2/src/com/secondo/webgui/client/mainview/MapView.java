@@ -22,6 +22,7 @@ package com.secondo.webgui.client.mainview;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+
 import org.gwtopenmaps.openlayers.client.Bounds;
 import org.gwtopenmaps.openlayers.client.LonLat;
 import org.gwtopenmaps.openlayers.client.Map;
@@ -37,6 +38,7 @@ import org.gwtopenmaps.openlayers.client.feature.VectorFeature;
 import org.gwtopenmaps.openlayers.client.layer.GoogleV3;
 import org.gwtopenmaps.openlayers.client.layer.GoogleV3MapType;
 import org.gwtopenmaps.openlayers.client.layer.GoogleV3Options;
+import org.gwtopenmaps.openlayers.client.layer.Layer;
 import org.gwtopenmaps.openlayers.client.layer.OSM;
 import org.gwtopenmaps.openlayers.client.layer.Vector;
 import org.gwtopenmaps.openlayers.client.Style;
@@ -129,6 +131,7 @@ public class MapView extends Composite{
 	private Point myLocation;
 
 	private Vector drawLayer;  
+	private DrawFeature drawRegularPolygon;
 	
 
 	public MapView() {
@@ -148,6 +151,7 @@ public class MapView extends Composite{
 
 		initOsmMap();
 		initGoogleLayers();
+		
 	}
 
 	/**
@@ -191,24 +195,38 @@ public class MapView extends Composite{
 		mapWidget.getElement().getFirstChildElement().getStyle().setZIndex(0);		
 		
 	}
+	
+	public void initDrawLayerAndDrawFeature(){
+		drawLayer = new Vector("Draw layer");
+		
+		RegularPolygonHandlerOptions boxHandlerOptions = new RegularPolygonHandlerOptions();
+		boxHandlerOptions.setIrregular(true);
+		RegularPolygonHandler boxHandler = new RegularPolygonHandler();
+		drawRegularPolygon = new DrawFeature(drawLayer, boxHandler);
+		((RegularPolygonHandler) drawRegularPolygon.getHandler())
+				.setOptions(boxHandlerOptions);
+	}
 
 	/**
 	 * control for polygon
 	 */
 	public void initDrawLayer() {
+		if(drawLayer==null){
 		// Create the Vector layer on which the user can draw new widgets
 		drawLayer = new Vector("Draw layer");
+		drawLayer.setIsBaseLayer(false);
+		drawLayer.setDisplayInLayerSwitcher(false); 		
 		map.addLayer(drawLayer);
 
-		final RegularPolygonHandlerOptions boxHandlerOptions = new RegularPolygonHandlerOptions();
+		RegularPolygonHandlerOptions boxHandlerOptions = new RegularPolygonHandlerOptions();
 		boxHandlerOptions.setIrregular(true);
 		RegularPolygonHandler boxHandler = new RegularPolygonHandler();
-		DrawFeature drawRegularPolygon = new DrawFeature(drawLayer, boxHandler);
+		drawRegularPolygon = new DrawFeature(drawLayer, boxHandler);		
 		((RegularPolygonHandler) drawRegularPolygon.getHandler())
 				.setOptions(boxHandlerOptions);
 
 		map.addControl(drawRegularPolygon);
-		drawRegularPolygon.activate();
+		drawRegularPolygon.activate();}
 	}
 
 	/**
@@ -366,23 +384,23 @@ public class MapView extends Composite{
 	 *            The new height of the map view
 	 * */
 	public void resizeToFullScreen(int width, int height) {
-
-		if (width > 1000) {
+		
+		if (width > 950) {
 
 			contentPanel.setWidth(width + "px");
 			mapWidget.setWidth(width + "px");
 		} else {
 			
-			contentPanel.setWidth(1000 - 293 + "px");
-			mapWidget.setWidth(1000 - 293 + "px");
+			contentPanel.setWidth(950 + "px");
+			mapWidget.setWidth(950 + "px");
 		}
-		if (height > 650) {
+		if (height > 300) {
 			
-			contentPanel.setHeight(height - 91 + "px");
-			mapWidget.setHeight(height - 91 + "px");
+			contentPanel.setHeight(height-20  + "px");
+			mapWidget.setHeight(height-20  + "px");
 		} else {
-			contentPanel.setHeight(650 - 91 + "px");			
-			mapWidget.setHeight(650 - 91 + "px");
+			contentPanel.setHeight(300 + "px");			
+			mapWidget.setHeight(300 + "px");
 		}
 		map.updateSize();
 	}
@@ -404,18 +422,18 @@ public class MapView extends Composite{
 
 				@Override
 				public int compare(DataType arg0, DataType arg1) {
-					if (arg0.getType().equalsIgnoreCase("Polyline")) {
+					if (arg0.getType().equalsIgnoreCase("Polyline")|| arg0.getType().equalsIgnoreCase("MLabel")) {
 						return 1;
 					}
-					if (arg1.getType().equalsIgnoreCase("Polyline")) {
+					if (arg1.getType().equalsIgnoreCase("Polyline")|| arg1.getType().equalsIgnoreCase("MLabel")) {
 						return -1;
 					}
-					if (arg0.getType().equalsIgnoreCase("MLabel")) {
-						return 1;
-					}
-					if (arg1.getType().equalsIgnoreCase("MLabel")) {
-						return -1;
-					}
+//					if (arg0.getType().equalsIgnoreCase("MLabel")) {
+//						return 1;
+//					}
+//					if (arg1.getType().equalsIgnoreCase("MLabel")) {
+//						return -1;
+//					}
 
 					else
 						return arg0.getType().compareTo(arg1.getType());
@@ -461,7 +479,7 @@ public class MapView extends Composite{
 				}
 				// add label to mpoint if time intervals equals
 				if (data.getType().equals("MLabel")) {
-					mlabelController.addMLabel((MLabel)data);
+					mlabelController.addMLabel((MLabel)data);					
 					mpointController.transmitLabelsToMPandCalculateColorsForPolyline((MLabel) data, polylineController);
 					attributeNameOfMLabel=((MLabel)data).getAttributeNameInRelation();
 
@@ -557,8 +575,24 @@ public class MapView extends Composite{
 	
 	/** Removes draw overlay from the map */
 	public void removeDrawLayer(){
-		if(drawLayer!=null){
-		map.removeLayer(drawLayer);}
+		if(drawLayer!=null && drawRegularPolygon!=null){
+			
+			
+			drawRegularPolygon.deactivate();
+			drawRegularPolygon.disable();
+			map.removeControl(drawRegularPolygon);
+			drawRegularPolygon=null;
+			
+			
+			drawLayer.destroyFeatures();					
+			map.removeLayer(drawLayer);
+			drawLayer=null;
+			
+			
+		
+		
+		}
+		
 	}
 
 	/**

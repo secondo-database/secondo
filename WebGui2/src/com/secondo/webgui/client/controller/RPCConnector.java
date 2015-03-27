@@ -21,6 +21,8 @@ package com.secondo.webgui.client.controller;
 
 import java.util.ArrayList;
 
+import org.gwtopenmaps.openlayers.client.Projection;
+import org.gwtopenmaps.openlayers.client.geometry.Point;
 import org.gwtopenmaps.openlayers.client.popup.Popup;
 
 import com.google.gwt.core.client.GWT;
@@ -169,82 +171,8 @@ public class RPCConnector {
 	
 	
 	
-	/** Starts an RPC call to the server to set the connection data for the optimizer 
-	 * 
-	 * @param Host Server URL of the optimizer server
-	 * @param Port Port of the optimizer server
-	 * @param mv The main view object
-	 * @param lp The loading popup object
-	 * */
-	public void setOptimizerConnection(String Host, int Port, MainView mv, PopupPanel lp) {
-		
-		this.mainView = mv;
-		this.loadingPopup = lp;
-						  
-		  AsyncCallback<String> callback = new AsyncCallback<String>() {
-
-				@Override
-				public void onFailure(Throwable caught) {
-					Window.alert("An error occurred while "
-							+ "attempting to contact the optimizer.");		
-					loadingPopup.hide(); 
-				}
-
-				@Override
-				public void onSuccess(String result) {
-					
-              	      loadingPopup.hide();
-              	      
-              	      if(!result.isEmpty()){
-
-                      System.out.println("####### Connection Errormessage: "+ result);	
-                      if(result.equals("no error")){
-                    	  //everything is okay
-                    	  Window.alert("Test of Optimizer Connection... successful!"); 
-                    	  //set the new optimizerurl to the statusbar
-                    		getOptimizerConnection(mainView);
-                      }
-                      else{
-                    	  
-                    	  System.out.println("#################error in setoptimizerconnection");
-                    	  Window.alert("Test of Optimizer Connection... failed! \nCheck your connection data and try again. " +
-                    	  		"\nMake sure the chosen optimizer is running.");
-                        }
-              	      }
-				}
-			  };	  		 
-			// Make the call. Control flow will continue immediately and later 'callback' will be invoked when the RPC completes.
-			  secondoService.setOptimizerConnection(Host, Port, callback); 
-	}
 	
-	/** Starts an RPC call to the server to get the connection data of the optimizer 
-	 * 
-	 * @param mv The main view object
-	 * */
-	public void getOptimizerConnection(MainView mv) {
-		
-		this.mainView = mv;
-						  
-		  AsyncCallback<ArrayList<String>> callback = new AsyncCallback<ArrayList<String>>() {
-
-				@Override
-				public void onFailure(Throwable caught) {
-					Window.alert("An error occurred while "
-							+ "attempting to contact the optimizer. Please check your connection data and try again.");					
-				}
-
-				@Override
-				public void onSuccess(ArrayList<String> result) {
-					if(!result.isEmpty()){			
-//				    	mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getHost().setText(result.get(0));
-//				    	mainView.getCommandPanel().getMenubarCP().getOptimizerDialog().getPort().setText(result.get(1));
-				    	mainView.getStatusBar().getOptimizer().setText(result.get(0) + " : " + result.get(1));
-					}
-				}
-			  };	  		 
-			// Make the call. Control flow will continue immediately and later 'callback' will be invoked when the RPC completes.
-			  secondoService.getOptimizerConnectionData(callback); 
-	}	
+	
 	
 	/** Starts an RPC call to the server to get the command history and update the dropdownlist for command history
 	 * 
@@ -462,14 +390,13 @@ public class RPCConnector {
 	public void doGPXimport(final String nameOfUploadedFile, final int option, MainView mv, PopupPanel lp){	
 		this.mainView = mv;
 		this.loadingPopup = lp;
-
-		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("\\")+1, nameOfUploadedFile.lastIndexOf("."));
-		final String relName="Raw"+sufix;
-
-
-		String command="let "+relName+" = gpximport('"+relName.replace("Raw", "")+".gpx"+"') consume";	
 		
-		System.out.println("Command "+ command);
+
+		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("/")+1, nameOfUploadedFile.lastIndexOf("."));
+		final String relName="Raw"+sufix;		
+		String command="let "+relName+" = gpximport('"+nameOfUploadedFile+"') consume";	
+		
+		System.out.println("Command "+ command);		
 		
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
@@ -479,15 +406,18 @@ public class RPCConnector {
 			}
 
 			@Override
-			public void onSuccess(String result) {		
-				if (result.contains("already used")) {
-					deleteOldRelation(relName, "", nameOfUploadedFile, option);					
-				}else{
-				makeMPfromGPX(relName, nameOfUploadedFile, option);
-				}	
-					
-				
-						
+			public void onSuccess(String result) {
+				if (result.contains("error") && !result.contains("already used")) {
+					Window.alert(result);
+				} else {
+					if (result.contains("already used")) {
+						deleteOldRelation(relName, "", nameOfUploadedFile,
+								option);
+					} else {
+						makeMPfromGPX(relName, nameOfUploadedFile, option);
+					}
+
+				}
 			}
 		  };		  
 		  secondoService.sendCommandWithoutResult(command, callback);	
@@ -495,7 +425,7 @@ public class RPCConnector {
 	}
 	
 	public void makeMPfromGPX(final String startRelationName, final String nameOfUploadedFile, final int option) {		
-		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("\\")+1, nameOfUploadedFile.lastIndexOf("."));
+		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("/")+1, nameOfUploadedFile.lastIndexOf("."));
 		final String resultRelationName="MPfromGPX"+sufix;
 		String command = "let "+resultRelationName+" = "+startRelationName+" feed extend[Trip: makepoint(.Lon, .Lat)]sortby[Time asc]approximate[Time, Trip, [const duration value (0 300000)]]";
 		System.out.println("Command " + command);
@@ -521,7 +451,7 @@ public class RPCConnector {
 	}
 	
 	public void makeRelationFromMP(final String startRelationName, final String nameOfUploadedFile, final int option) {
-		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("\\")+1, nameOfUploadedFile.lastIndexOf("."));
+		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("/")+1, nameOfUploadedFile.lastIndexOf("."));
 		final String resultRelationName="MPfromGPXrelation"+sufix;
 		String command = "let "+resultRelationName+" = "+startRelationName+" feed namedtransformstream[Trip] consume";
 		System.out.println("Command " + command);
@@ -550,7 +480,7 @@ public class RPCConnector {
 	
 	public void createSymTraj(final String startRelationName, final String nameOfUploadedFile, final int option, MainView mv,
 			PopupPanel lp) {
-		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("\\")+1, nameOfUploadedFile.lastIndexOf("."));
+		final String sufix=nameOfUploadedFile.substring(nameOfUploadedFile.lastIndexOf("/")+1, nameOfUploadedFile.lastIndexOf("."));
 		String resultRelationName = "";
 		String command = "";
 		//speed mode
@@ -576,9 +506,11 @@ public class RPCConnector {
 			}
 		
 		//distance
-		if(option==2){			
-			double lat= mv.getMapView().getMyLocation().getX();
-			double lon= mv.getMapView().getMyLocation().getY();
+		if(option==2){
+			Point point=mv.getMapView().getMyLocation();
+			point.transform(new Projection("EPSG:900913"), new Projection("EPSG:4326"));
+			double lat= point.getX();
+			double lon= point.getY();
 			resultRelationName = "SymTrajWithDistance"+sufix;
 			command = "let "
 					+ resultRelationName
@@ -673,7 +605,8 @@ public class RPCConnector {
 				mainView.getMainheader().getLocationDialog()
 						.setLabelForResult(result);
 				
-				if(!result.isEmpty()){	
+				if(!result.isEmpty() && !result.contains("failed")){	
+					System.out.println(result);
 				result=result.replace("(", "");
 				result=result.replace(")", "");
 				result=result.replace("point", "");
@@ -823,50 +756,76 @@ public class RPCConnector {
 
 			@Override
 			public void onSuccess(String result) {
-				switch(typeOfCommand){
+				if (typeOfCommand.equals("passes")) {
 
-				case "passes": {
 					if (result.contains("error")) {
 						result = "Error in executing query";
 					}
 					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 							.getPassesPanel().getResultInfoLabel()
 							.setText(result);
-					break;
+
 				}
-				case "passesThrough": {
+				if (typeOfCommand.equals("passesThrough")) {
 					if (result.contains("error")) {
 						result = "Error in executing query";
 					}
 					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 							.getPassesThroughRegionPanel().getResultInfoLabel()
 							.setText(result);
-					break;
-				}				
-				case "atinstant": {
+				}
+				if (typeOfCommand.equals("atinstant")) {
 					if (result.contains("error")) {
 						result = "Error in executing query";
 					}
 					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 							.getAtinstantPanel().getResultInfoLabel()
 							.setText(result);
-					break;
 				}
-				case "deftime": {
+				if (typeOfCommand.equals("deftime")) {
 					if (result.contains("error")) {
 						result = "Error in executing query";
 					}
 					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 							.getDeftimePanel().getResultInfoLabel()
 							.setText(result);
-					break;
-				}
-				}
 
+				}
 			}
+
+			
 
 		};
 		secondoService.sendCommand(command, callback);
 
+	}
+	
+	public void sendMailToSupport(String message){
+		
+		AsyncCallback<Boolean> callback = new AsyncCallback<Boolean>() {
+
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(SERVER_ERROR);
+
+			}
+
+			@Override
+			public void onSuccess(Boolean result) {
+				if(result){
+					Window.alert("Your message was successfully sent!"); 
+					mainView.getMainheader().getSupportDialog().getSupportDialogBox().hide();
+					mainView.getMainheader().getSupportDialog().cleanSupportDialogBox();
+				}
+				else {
+					Window.alert("Exception while sending your mail");
+				}
+				
+			}
+			};
+			secondoService.sendMail(message, callback);
+			
+			
+		
 	}
 }
