@@ -76,7 +76,7 @@ FMRegion at the given time and false, if not. The MBool will be calculated
 for the time intervall ta to te.
 
 */
-MBool inside(MPoint mp, double ta, double te, double precision);
+MBool inside(MPoint mp, double ta, double te, double precision=0.001);
 //TODO
 /*
 This method will calculate a MPoint with which is defined, if the MPoint mp 
@@ -84,6 +84,7 @@ is inside the FMRegion at the given time and else not defined. The MPoint
 will be calculated for the time intervall ta to te.
 
 */
+bool inside(MPoint mp, double t);
 //Idee: MPoint inside(MPoint mp, double ta, double te, int steps);
 /*
 This method will calculate a MBool with true, if the MPoint mp intersects with
@@ -91,7 +92,7 @@ the FMRegion at the given time and false, if not. The MBool will be calculated
 for the time intervall ta to te.
 
 */
-MBool intersection(MPoint mp, double ta, double te, double precision);
+MBool intersection(MPoint mp, double ta, double te, double precision=0.001);
 //TODO
 /*
 This method will calculate a MPoint with which is defined, if the MPoint mp 
@@ -99,6 +100,7 @@ intersects with the FMRegion at the given time and else not defined. The
 MPoint will be calculated for the time intervall ta to te.
 
 */
+bool intersection(MPoint mp, double t);
 //Idee: MPoint intersection(MPoint mp, double ta, double te, int steps);
 /*
 This method will calculate the Region which contains all points / areas, that
@@ -106,8 +108,8 @@ the FMRegion has at least on time (or more often) traversed in the given
 intervall ta to te. 
 
 */
-Region traversed(double ta, double te, double precision);
-//TODO    
+Region * traversed(double ta, double te, double precision=0.001);
+  
     
     const Region * getRegion() const;
     void setRegion(Region * _r);

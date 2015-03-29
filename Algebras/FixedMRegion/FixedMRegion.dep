@@ -1,4 +1,4 @@
-FixedMRegion.o: FixedMRegion.cpp FixedMRegion.h \
+FixedMRegion.o: FixedMRegion.cpp FixedMRegion.h Secondo_Include.h \
  ../Spatial/SpatialAlgebra.h /home/secondo/secondo/include/Attribute.h \
  /home/secondo/secondo/include/SecondoSystem.h \
  /home/secondo/secondo/include/ErrorCodes.h \
@@ -58,4 +58,17 @@ FixedMRegion.o: FixedMRegion.cpp FixedMRegion.h \
  ../Spatial/HalfSegment.h ../Spatial/Coord.h ../Spatial/Point.h \
  ../Spatial/Geoid.h ../Rectangle/RectangleAlgebra.h ../Spatial/AttrType.h \
  ../Spatial/Berlin2WGS.h ../Spatial/SpatialAlgebra.h \
- ../Spatial/HalfSegment.h ../Spatial/Coord.h Move.h LATransform.h
+ ../Spatial/HalfSegment.h ../Spatial/Coord.h ../PST/PSTtest.h \
+ /home/secondo/secondo/include/SecondoSystem.h ../../Tools/Flob/DbArray.h \
+ ../Relation-C++/RelationAlgebra.h /home/secondo/secondo/include/Trace.h \
+ /home/secondo/secondo/include/Algebra.h \
+ /home/secondo/secondo/include/Counter.h \
+ ../Relation-C++/../TupleIdentifier/TupleIdentifier.h \
+ /home/secondo/secondo/include/QueryProcessor.h \
+ ../Temporal/TemporalAlgebra.h ../Temporal/../../Tools/Flob/DbArray.h \
+ /home/secondo/secondo/include/Progress.h ../Temporal/CellGrid.h \
+ /home/secondo/secondo/include/DateTime.h \
+ /home/secondo/secondo/include/IndexableAttribute.h \
+ /home/secondo/secondo/include/StandardTypes.h \
+ /home/secondo/secondo/include/BigInt.h \
+ ../Temporal/../../include/CharTransform.h Move.h LATransform.h

@@ -33,15 +33,15 @@ const LATransform & _l): t(_t), m(_m),  r(_r), l(_l) {
 double _vx, double _vy, double _valpha)
     //: 
 //t(_t), xm(_xm), ym(_ym), r(_r){
-    {  printf("huhua\n");
+    {  //printf("huhua\n");
       t=_t;
   xm=_xm;
   ym=_ym;
-  printf("huhua1\n");
+//  printf("huhua1\n");
   r=_r;
-   printf("huhub\n");
+  // printf("huhub\n");
       m = Move(_x0, _y0, _alpha0, _vx, _vy, _valpha);
-       printf("huhuc\n");
+    //   printf("huhuc\n");
       calculateInternalVars();
 }
 
@@ -72,30 +72,45 @@ This is the standard destructor.
       {
          result->Get( i, hs );
          
-         Point lp(hs.GetLeftPoint());
-         printf("Pl%d=(%f,%f)\n",i,lp.GetX(),lp.GetY());
+         const Point lp=hs.GetLeftPoint();
+         //printf("Pl%d=(%f,%f)\n",i,lp.GetX(),lp.GetY());
          double newx=l.getImgX(lp.GetX(), lp.GetY());
          double newy=l.getImgY(lp.GetX(), lp.GetY());
          Point newlp(true, newx, newy);
          
-         Point rp(hs.GetRightPoint());
-         printf("Pr%d=(%f,%f)\n",i,rp.GetX(),rp.GetY());
+         const Point rp=hs.GetRightPoint();
+         //printf("Pr%d=(%f,%f)\n",i,rp.GetX(),rp.GetY());
          newx=l.getImgX(rp.GetX(), rp.GetY());
          newy=l.getImgY(rp.GetX(), rp.GetY());
          Point newrp(true, newx, newy);
-         printf("Pnl%d=(%f,%f)\n",i,newlp.GetX(),newlp.GetY());
-         printf("Pnr%d=(%f,%f)\n",i,newrp.GetX(),newrp.GetY());
-         HalfSegment tmp= HalfSegment(false, newlp,newrp);
-         result->Put(i, tmp);
+         //printf("Pnl%d=(%f,%f)\n",i,newlp.GetX(),newlp.GetY());
+         //printf("Pnr%d=(%f,%f)\n",i,newrp.GetX(),newrp.GetY());
+         //HalfSegment tmp= HalfSegment(false, newlp,newrp);
+         hs.Set(hs.IsLeftDomPoint(), newlp, newrp);
+
+         result->Put(i, hs);
       }
       result->EndBulkLoad();
       return result;
     }
     
-    MBool FixedMRegion::inside(MPoint mp, double ta, double te, double
-    precision){
+    MBool FixedMRegion::FixedMRegion::inside(MPoint mp, double ta, double te, 
+    double precision){
       return MBool();
       //TODO
+    }
+    
+    bool FixedMRegion::inside(MPoint mp, double t){
+      Region *rfix = atinstant(t);
+      // void AtInstant( const Instant& t, Intime<Point>& result ) const;
+//      Point *pointfix = NULL;
+      //mp.AtInstant(t, pointfix);
+      //FIXME
+//       Point *p1 = new Point( true, 0.0, 0.0);
+//       bool ret=rfix->Contains(pl);
+      //TODO
+//      return ret;
+    return false;
     }
     
     MBool FixedMRegion::intersection(MPoint mp, double ta, double te, double 
@@ -104,14 +119,37 @@ This is the standard destructor.
       //TODO
     }
     
-    Region FixedMRegion::traversed(double ta, double te, double precision){
-      Point *p1 = new Point( true, 0.0, 0.0);
-      Point *p2 = new Point( true, 1.0, 0.0);
-      Point *p3 = new Point( true, 0.0, 1.0);
-      Region result= Region(*p1, *p2, *p3);
-      return result;
-      //TODO
+    bool FixedMRegion::intersection(MPoint mp, double t){
+      Region *rfix = atinstant(t);
+      // void AtInstant( const Instant& t, Intime<Point>& result ) const;
+      Point *pointfix = NULL;
+      //mp->AtInstant(t, pointfix);
+      //FIXME
+       Point *p1 = new Point( true, 0.0, 0.0);
+       //  void Intersection(const Point& p, Points& result,
+       //             const Geoid* geoid=0) const;
+         
+       
+       //TODO
+      return false;
     }
+    
+    Region * FixedMRegion::traversed(double ta, double te, double precision){
+      Region * res=NULL;
+      for(double i=0;i<=(te-ta);i=i+precision){
+        Region * tmp = atinstant(ta+i);
+        if(res==NULL){
+          printf("NULL-Schleife\n");
+          res=tmp;
+        }else{
+          printf("Union-Schleife\n");
+          res->Union(* tmp,* res);
+        }
+        printf("res is %sdefined.\n", (res->IsDefined())?"":"NOT ");
+      }
+      return res;
+    }
+    
     
     const Region * FixedMRegion::getRegion() const {
       return r;

@@ -9,7 +9,7 @@ extern QueryProcessor* qp;
 
 /*
 This is my small test method.
-
+  
 */
 void runFixedMTestMethod() {
   printf("Hello runFixedMTestMethod\n");
