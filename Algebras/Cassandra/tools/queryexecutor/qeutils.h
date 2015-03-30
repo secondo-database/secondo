@@ -34,6 +34,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 /*
+
+1.2 Typedefs
+
+*/
+typedef bool(*myFunc)(string &);
+
+/*
 2 Helper class for the query executor
 
 */
@@ -87,6 +94,240 @@ static void createUUID(string &uuid) {
   */
   static bool containsPlaceholder(string searchString, string placeholder) {
     return searchString.find(placeholder) != std::string::npos;
+  }
+  
+  /*
+  2.4 Replace shortcuts. The following shortcuts are 
+      currently supported in DSECONDO:
+  
+      [read roads]              
+                         -> ccollect('roads', ONE)
+      [read roads consistency]  
+                         -> ccollect('roads', consistency)
+  
+      [readparallel roads]              
+                         -> ccollect('roads', ONE, __TOKENRANGE__)
+      [readparallel roads consistency] 
+                         -> ccollect('roads', consistency, __TOKENRANGE__)
+  
+      [write roads N]           
+                         -> cspread['roads', 'ONE', __QUERYUUID__, N]
+      [write roads N consistency] 
+                         -> cspread['roads', consistency, __QUERYUUID__, N]
+  
+  
+  */
+  static bool replaceShortcuts(string &query) {
+     
+     map<string, myFunc> converterFunctions;
+     
+     converterFunctions["[read"] = &handleReadShortcut;
+     converterFunctions["[readparallel"] = &handleReadparallelShortcut;
+     converterFunctions["[write"] = &handleWriteShortcut;
+     
+     size_t pos = getPosOfFirstShortcut(query, converterFunctions);
+     
+     while(pos != std::string::npos) {
+        
+         for(map<string, myFunc>::iterator iter = converterFunctions.begin(); 
+             iter != converterFunctions.end(); iter++) {
+                
+             string name = iter -> first;
+                
+             if(query.substr(pos, name.length()) == name) {
+                myFunc handler = iter -> second;
+                handler(query);
+             }
+         }
+         
+         pos = getPosOfFirstShortcut(query, converterFunctions);
+     }
+     
+     return true;
+  }
+  
+  /*
+  2.5 Get position of the first shortcut
+  
+  */
+  static size_t getPosOfFirstShortcut(string &query, 
+     map<string, myFunc> &converterFunctions) {
+     
+     size_t result = std::string::npos;
+     
+     for(map<string, myFunc>::iterator iter = converterFunctions.begin(); 
+         iter != converterFunctions.end(); iter++) {
+         
+         string name = iter -> first;
+         size_t pos = query.find(name);
+         
+         if(result == std::string::npos || result > pos) {
+            result = pos;
+         }
+     }
+     
+     return result;
+  }
+  
+  /*
+  2.5 Replace read shortcut
+  
+  */
+  static bool handleReadShortcut(string &query) {
+     
+     size_t pos = query.find("[read ");
+     
+     if(pos == std::string::npos) {
+        return false;
+     }
+     
+     size_t fields = getShortcutFieldCount(query, pos);
+     
+     string relation = getShortcutField(query, pos, 1);
+     string consistency = "ONE";
+     
+     if(fields == 2) {
+        consistency = getShortcutField(query, pos, 2);
+     }
+     
+     string shortcut = getFirstShortcut(query, pos);
+     string replacement = "ccollect('" + relation + "', '" 
+         + consistency + "')";
+     
+     replacePlaceholder(query, shortcut, replacement);
+     
+     return true;
+  }
+ 
+  
+  /*
+  2.6 Replace readparallel shortcut
+  
+  */ 
+  static bool handleReadparallelShortcut(string &query) {
+     
+     size_t pos = query.find("[readparallel ");
+     
+     if(pos == std::string::npos) {
+        return false;
+     }
+     
+     size_t fields = getShortcutFieldCount(query, pos);
+     
+     string relation = getShortcutField(query, pos, 1);
+     string consistency = "ONE";
+     
+     if(fields == 2) {
+        consistency = getShortcutField(query, pos, 2);
+     }
+     
+     string shortcut = getFirstShortcut(query, pos);
+     string replacement = "ccollectrange('" + relation + "', '" 
+         + consistency + "', __TOKENRANGE__)";
+     
+     replacePlaceholder(query, shortcut, replacement);
+     
+     return true;
+  }
+  
+  
+  /*
+  2.7 Replace write shortcut
+  
+  */
+  static bool handleWriteShortcut(string &query) {
+     
+     size_t pos = query.find("[write ");
+     
+     if(pos == std::string::npos) {
+        return false;
+     }
+     
+     size_t fields = getShortcutFieldCount(query, pos);
+     
+     string relation = getShortcutField(query, pos, 1);
+     string partitionKey = getShortcutField(query, pos, 2);
+     string consistency = "ONE";
+     
+     if(fields == 3) {
+        consistency = getShortcutField(query, pos, 3);
+     }
+     
+     string shortcut = getFirstShortcut(query, pos);
+     string replacement = "cspread['" + relation + "', '" 
+         + consistency + "', '__QUERYUUID__'" + ", " 
+         + partitionKey + "]";
+     
+     replacePlaceholder(query, shortcut, replacement);
+     
+     return true;
+  }
+  
+  /*
+  2.8 get number of fields, pointed by pos
+  
+  */
+  static size_t getShortcutFieldCount(string &query, size_t pos) {
+     
+     size_t fields = 0;
+     
+     for(size_t i = pos; i < query.length(); i++) {
+        if(query[i] == ' ') {
+           fields++;
+        }
+        
+        if(query[i] == ']') {
+           break;
+        }
+     }
+     
+     return fields;
+  }
+  
+  /*
+  2.9 Get the content of a field
+  
+  */
+  static string getShortcutField(string &query, size_t pos, size_t field) {
+     size_t currentField = 0;
+     stringstream ss;
+     
+     for( ; pos < query.length(); pos++) {
+        
+        if(query[pos] == ' ') {
+           currentField++;
+           continue;
+        }
+        
+        if(query[pos] == '[') {
+           continue;
+        }
+        
+        if(query[pos] == ']') {
+           break;
+        }
+        
+        if(currentField > field) {
+           break;
+        }
+        
+        if(currentField == field) {
+           ss << query[pos];
+        }
+        
+     }
+     
+     return ss.str();
+  } 
+  
+  static string getFirstShortcut(string &query, size_t pos) {
+
+     size_t end = query.find(']', pos);
+     size_t length = end-pos+1;
+     
+     string shortcut = query.substr(pos, length);
+     
+     return shortcut;
   }
   
 };

@@ -466,6 +466,8 @@ public:
            
              size_t id = query.getQueryId();
              string command = query.getQuery();
+             
+             QEUtils::replaceShortcuts(command);
           
              QEUtils::replacePlaceholder(
                 command, "__NODEID__", instanceUuid);
@@ -704,7 +706,7 @@ void stopSeconcoWorker(vector<SecondoWorker*> &worker) {
 
 */
 int main(int argc, char* argv[]){
-  
+    
   WorkerQueue tokenQueue(2);
   cmdline_args_t cmdline_args;
   vector<SecondoWorker*> worker;
