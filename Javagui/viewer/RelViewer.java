@@ -400,8 +400,7 @@ private boolean checkCSVTypes(ListExpr[] types)
    if((count2 > typelenght) || ( (count2 == count) &&  (count > typelenght)) || (count > typelenght) ||  (delimnumber >= typelenght)) //Table mismatch
     
     
-    {     
-       System.out.println("importCSVTuples: Tabellengrösse passt nicht:");
+    {         
        return null;   
     }
     
