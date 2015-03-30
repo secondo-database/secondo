@@ -1264,6 +1264,7 @@ class prcmdInfo{
        while(outTuples.empty()){
           listaccessmut.unlock();
           cond.wait(lock);
+          listaccess.lock();
        }
        Tuple* res = outTuples.front();
        outTuples.pop_front();
@@ -2848,6 +2849,7 @@ class pconnectLocal : public ConnectionListener{
        while(resultTuples.empty()){
           listaccessmut.unlock();
           cond.wait(lock);
+          listaccess.lock();
        }
        Tuple* res = resultTuples.front();
        resultTuples.pop_front();
