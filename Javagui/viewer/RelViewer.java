@@ -20,8 +20,6 @@
 
 
 
-
-
 package viewer;
 
 
@@ -171,7 +169,7 @@ public class RelViewer extends SecondoViewer{
    
    if(result==null)
    { 
-     Reporter.debug("error in reading csv file: table mismatch");
+     Reporter.debug("error in reading csv file: table mismatch or delimiter mismatch");
      return false;
    }
    
@@ -281,7 +279,7 @@ private boolean checkCSVTypes(ListExpr[] types)
           
      
     
-     while ( (read == 35 && readloop==-2) || (read2 == 35 && readloop==-2) || readloop == 35)  //maybe there is a BOM at before a "#"
+     while ( (read == 35 && readloop==-2) || (read2 == 35 && readloop==-2) || readloop == 35)  //maybe there is a BOM before a "#"
       {       
        dummycomment = test.readLine().trim();
        readloop = test.read();       
@@ -381,13 +379,14 @@ private boolean checkCSVTypes(ListExpr[] types)
     String tokentest = "dummy"; 
     
     
+     
     
     
     
     while (lang.hasMoreTokens())
      {     
       count++;
-      tokentest = lang.nextToken();        
+      tokentest = lang.nextToken();
      }
     
     
@@ -396,12 +395,14 @@ private boolean checkCSVTypes(ListExpr[] types)
     
     
     
+    
      
-   if((count2 > typelenght) || ( (count2 == count) &&  (count < typelenght)) || (count > typelenght) ||  (delimnumber >= typelenght)) //Table mismatch
+   if((count2 > typelenght) || ( (count2 == count) &&  (count > typelenght)) || (count > typelenght) ||  (delimnumber >= typelenght)) //Table mismatch
     
     
-    {       
-     return null;   
+    {     
+       System.out.println("importCSVTuples: Tabellengrösse passt nicht:");
+       return null;   
     }
     
     
@@ -418,7 +419,6 @@ private boolean checkCSVTypes(ListExpr[] types)
     int trigger= 0;
     
     String token = "dummy";
-    
     
     
     
@@ -463,6 +463,7 @@ private boolean checkCSVTypes(ListExpr[] types)
       i++;  
       
     }
+    
     
     
     
@@ -734,7 +735,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
          {
           out.print(",");
          }
-         out.print((""+table.getColumnModel().getColumn(j).getIdentifier()).replaceAll("\n"," ").replaceAll(",",";"));
+         out.print((""+table.getColumnModel().getColumn(j).getIdentifier()).replaceAll("\n","").replaceAll(",",";"));
         
        }
        out.println("");
@@ -754,7 +755,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
             if(j>0){
                out.print(",");
             }
-            out.print((""+table.getValueAt(i,j)).replaceAll("\n"," ").replaceAll(",",";"));
+            out.print((""+table.getValueAt(i,j)).replaceAll("\n","").replaceAll(",",";"));
           }
           out.println("");
        } 
