@@ -20,6 +20,7 @@
 
 
 
+
 package viewer;
 
 
@@ -50,7 +51,7 @@ class TableTypePair{
 
 public class RelViewer extends SecondoViewer{
 
- private JComboBox ComboBox;
+ private JComboBox<String> ComboBox;
  private JScrollPane ScrollPane;
  private JTable CurrentTable;
  private Vector<TableTypePair> Tables;
@@ -63,11 +64,11 @@ public class RelViewer extends SecondoViewer{
 
  /** creates a new RelationViewer **/
  public RelViewer(){
-   ComboBox = new JComboBox();
+   ComboBox = new JComboBox<String>();
    ScrollPane = new JScrollPane();
    dummy = new JPanel();
    CurrentTable = null;
-   Tables = new Vector();
+   Tables = new Vector<TableTypePair>();
    exportBtn = new JButton("export");
    importBtn = new JButton("import");
 
@@ -240,6 +241,8 @@ private boolean checkCSVTypes(ListExpr[] types)
     if(sv.equals("string")) return true;
     if(sv.equals("real")) return true;
     if(sv.equals("bool")) return true;
+    if(sv.equals("text")) return true;
+    
     // to be continued
     return false;
  }
@@ -378,8 +381,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     int delimnumber = CountDelims (line, delimchar);
     String tokentest = "dummy"; 
     
-    
-     
+   
     
     
     
@@ -387,12 +389,13 @@ private boolean checkCSVTypes(ListExpr[] types)
      {     
       count++;
       tokentest = lang.nextToken();
+      
      }
     
     
     
-     
     
+     
     
     
     
@@ -400,7 +403,8 @@ private boolean checkCSVTypes(ListExpr[] types)
    if((count2 > typelenght) || ( (count2 == count) &&  (count > typelenght)) || (count > typelenght) ||  (delimnumber >= typelenght)) //Table mismatch
     
     
-    {         
+    {     
+       
        return null;   
     }
     
@@ -423,6 +427,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     
     
     
+   
     
     
     while (i<lenght)
@@ -613,7 +618,30 @@ private boolean checkCSVTypes(ListExpr[] types)
     
      } 
     
-    // to be continued
+    
+    
+     if(t.equals("text"))
+     
+    {
+    
+     try
+      {      
+          
+       return  ListExpr.stringAtom(value.trim());
+        
+      }    
+    
+      catch(NumberFormatException e)
+        {
+         return ListExpr.symbolAtom("undef");
+        }
+    
+     } 
+    
+    
+    
+    
+    
   
   
   } //end of else
@@ -831,7 +859,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
    if (result){
      // analyse the values
      ListExpr TupleValue;
-     Vector V= new Vector();
+     Vector<String[]> V = new Vector<String[]>();
      String[] row;
      int pos;
      ListExpr Elem;
@@ -894,7 +922,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
    int count =  ComboBox.getItemCount();
    int pos = -1;
    for(int i=0;i<count;i++){
-     if( ((String)ComboBox.getItemAt(i)).equals(S)) pos=i;
+     if( (ComboBox.getItemAt(i)).equals(S)) pos=i;
    }
    return pos;
  }
