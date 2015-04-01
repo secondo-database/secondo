@@ -21,6 +21,7 @@
 
 
 
+
 package viewer;
 
 
@@ -160,7 +161,7 @@ public class RelViewer extends SecondoViewer{
    
    File file = filechooser.getSelectedFile();
    
-   String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Delimiter input",
+   String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Import: Delimiter input",
                                                              JOptionPane.PLAIN_MESSAGE);
    
    
@@ -389,7 +390,7 @@ private boolean checkCSVTypes(ListExpr[] types)
      {     
       count++;
       tokentest = lang.nextToken();
-      
+          
      }
     
     
@@ -437,7 +438,6 @@ private boolean checkCSVTypes(ListExpr[] types)
       token = st.nextToken();    
       
       
-      
         
       attr = importAttr(types[i],token);
        
@@ -469,7 +469,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     }
     
     
-    
+   
     
     
 
@@ -726,6 +726,12 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
    */
  private void exportAsCSV(){
     int index = ComboBox.getSelectedIndex();
+    char delimchar;
+    char [] delimchararray;
+    
+    
+    
+    
     if(index<0){
       tools.Reporter.showError("no table is selected");
       return;
@@ -738,13 +744,21 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
              return;
          }
        }
-       exportTable(theTable,file);
+       
+       String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Export: Delimiter input",
+                                                             JOptionPane.PLAIN_MESSAGE);
+                                                             
+      delimchararray = delim.toCharArray();
+      delimchar = delimchararray[0];                                                    
+                                                             
+       
+       exportTable(theTable,file, delimchar);
     } 
  }
 
  /** function supporting expostAsCSV
    */
-  private void exportTable(JTable table, File file){
+  private void exportTable(JTable table, File file, char delimchar){
     try{
        PrintStream out = new PrintStream(new FileOutputStream(file));
 
@@ -760,7 +774,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
          
          if(j>0)
          {
-          out.print(",");
+          out.print(delimchar);
          }
          out.print((""+table.getColumnModel().getColumn(j).getIdentifier()).replaceAll("\n","").replaceAll(",",";"));
         
@@ -780,7 +794,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
        for(int i=0;i<table.getRowCount(); i++){
           for(int j=0;j<table.getColumnCount();j++){
             if(j>0){
-               out.print(",");
+               out.print(delimchar);
             }
             out.print((""+table.getValueAt(i,j)).replaceAll("\n","").replaceAll(",",";"));
           }
