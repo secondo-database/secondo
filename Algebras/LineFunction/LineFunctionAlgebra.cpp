@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-\Large \bf \begin{center}LineFunctionAlgebra.cpp\end{center}
+{\Large \bf \begin{center}LineFunctionAlgebra.cpp\end{center}}
 
 \tableofcontents
 \newpage

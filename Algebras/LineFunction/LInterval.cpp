@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-{\Large \bf \begin{center}LineFunctionAlgebra.h\end{center}}
+{\Large \bf \begin{center}LInterval.cpp\end{center}}
 
 \tableofcontents
 \newpage
@@ -29,3 +29,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "LInterval.h"
+
+/*
+2 LInterval
+
+2.1 Constructors
+
+2.1.1 Default constructor
+
+*/
+
+LInterval::LInterval ( const bool boolvalue ) :
+start ( CcReal ( boolvalue ) ) ,
+end ( CcReal ( boolvalue ) ) ,
+lc ( true ) , rc ( true ) { }
+
+/*
+2.1.2 Copy Constructor
+
+*/
+
+LInterval::LInterval ( const LInterval& linterval ) :
+start ( linterval.start ) , 
+end ( linterval.end ) ,
+lc ( linterval.lc ) , 
+rc ( linterval.rc ) { }
+
+/*
+2.1.3 Setting Constructor
+
+*/
+
+LInterval::LInterval ( const CcReal& start , const CcReal& end ,
+            const bool lc , const bool rc ) :
+start ( start ) , end ( end ) , lc ( lc ) , rc ( rc ) { }
