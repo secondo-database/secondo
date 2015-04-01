@@ -58,5 +58,5 @@ queryexecutor.o: queryexecutor.cpp Algebra
 
 .PHONY:clean
 clean:
-	rm -f Config.ini app$(EXEEXT) *.o
+	rm -f Config.ini Queryexecutor$(EXEEXT) *.o
 	rm -rf nltemp
