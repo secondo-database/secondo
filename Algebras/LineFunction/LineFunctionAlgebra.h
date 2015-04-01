@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-\Large \bf \begin{center}LineFunctionAlgebra.cpp\end{center}
+\Large \bf \begin{center}LineFunctionAlgebra.h\end{center}
 
 \tableofcontents
 \newpage
@@ -28,42 +28,4 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 Defines and includes
 
 */
-
-#include "LineFunctionAlgebra.h"
-
-#include "Algebra.h"
-#include "NestedList.h"
-#include "QueryProcessor.h"
-
-extern NestedList* nl;
-extern QueryProcessor *qp;
-
-/*
-2 Class LineFunctionAlgebra
-
-*/
-class LineFunctionAlgebra : public Algebra
-{
-  public:
-    LineFunctionAlgebra() : Algebra()
-    {
-    }
-    ~LineFunctionAlgebra() {}
-};
-
-LineFunctionAlgebra LineFunctionAlgebra;
-
-/*
-
-3 Initialization
-
-*/
-
-extern "C"
-Algebra*
-InitializeLineFunctionAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
-{
-  nl = nlRef;
-  qp = qpRef;
-  return (&LineFunctionAlgebra);
-}
+#include "LInterval.h"
