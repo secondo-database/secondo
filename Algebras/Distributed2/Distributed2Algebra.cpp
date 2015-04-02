@@ -2197,6 +2197,7 @@ are available, tankes the first one, and starts the transfer.
                while(!stopped && pendingtransfers.empty()){
                    listAccess.unlock();
                    cond.wait(lock); 
+                   listAccess.lock();
                }
                listAccess.unlock();
                if(!stopped){
@@ -2469,6 +2470,7 @@ until it is.
         while(resultList.empty()){
             listAccess.unlock();
             resultAvailable.wait(lock);
+            listAccess.lock();
         }
         Tuple* res = resultList.front();
         resultList.pop_front();
