@@ -1255,7 +1255,7 @@ Stores the total size of the tuples taking into account the
 FLOBs.
 
 */
-    uint8_t noAttributes;
+    uint32_t noAttributes;
 /*
 Store the number of attributes of the tuple.
 
