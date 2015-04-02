@@ -21,7 +21,6 @@
 
 
 
-
 package viewer;
 
 
@@ -390,7 +389,7 @@ private boolean checkCSVTypes(ListExpr[] types)
      {     
       count++;
       tokentest = lang.nextToken();
-          
+      
      }
     
     
@@ -398,7 +397,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     
      
     
-    
+  
     
      
    if((count2 > typelenght) || ( (count2 == count) &&  (count > typelenght)) || (count > typelenght) ||  (delimnumber >= typelenght)) //Table mismatch
@@ -428,7 +427,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     
     
     
-   
+    
     
     
     while (i<lenght)
@@ -469,7 +468,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     }
     
     
-   
+    
     
     
 
@@ -627,7 +626,7 @@ private boolean checkCSVTypes(ListExpr[] types)
      try
       {      
           
-       return  ListExpr.stringAtom(value.trim());
+       return  ListExpr.textAtom(value.trim());
         
       }    
     
@@ -776,7 +775,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
          {
           out.print(delimchar);
          }
-         out.print((""+table.getColumnModel().getColumn(j).getIdentifier()).replaceAll("\n","").replaceAll(",",";"));
+         out.print((""+table.getColumnModel().getColumn(j).getIdentifier()).replaceAll("\n",""));
         
        }
        out.println("");
@@ -796,7 +795,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
             if(j>0){
                out.print(delimchar);
             }
-            out.print((""+table.getValueAt(i,j)).replaceAll("\n","").replaceAll(",",";"));
+            out.print((""+table.getValueAt(i,j)).replaceAll("\n",""));
           }
           out.println("");
        } 
