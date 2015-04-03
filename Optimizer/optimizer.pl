@@ -2947,6 +2947,38 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
 
 
 /*
+7.3 Index-Based Selection for Full-Text-Search: Inverted File
+
+Implemented predicate: Attr contains text
+
+*/
+
+% generic rule for (Attr contains Term): searchWord using invfile
+% without rename
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) contains Y, _)) =>
+  gettuples(rdup(sortby(
+    project(searchWord(dbobject(IndexName), Y), attrname(attr(tid, 1, u))),
+    attrname(attr(tid, 1, u)))),
+    rel(Name, *))
+  :-
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name, *), attr(AttrName, Arg, AttrCase), DCindex, invfile),
+  dcName2externalName(DCindex,IndexName).
+
+% generic rule for (Attr contains Term): searchWord using invfile
+% with rename
+indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) contains Y, _)) =>
+  rename(gettuples(rdup(sortby(
+    project(searchWord(dbobject(IndexName), Y), attrname(attr(tid, 1, u))),
+    attrname(attr(tid, 1, u)))),
+    rel(Name, Var)), Var)
+  :-
+  argument(N, rel(Name, Var)), Var \= *,
+  hasIndex(rel(Name, *), attr(AttrName, Arg, AttrCase), DCindex, invfile),
+  dcName2externalName(DCindex,IndexName).
+
+
+/*
 7.3 Index-Based Selection for Spatial Data: RTree
 
 Predicates implemented are:
@@ -5357,6 +5389,21 @@ cost(rangeS(dbobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
   exactmatchTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
+
+
+% Cost function for inverted file access. Not yet determined, for the moment
+% using formula similar to rangeS.
+
+cost(gettuples(rdup(sortby(
+    project(searchWord(dbobject(_), _), attrname(attr(tid, 1, u))),
+    attrname(attr(tid, 1, u)))),
+    Rel), Sel, _P, Size, Cost) :-
+  cost(Rel, _, _, RelSize, _),
+  exactmatchTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
+
+
 
 /*
 
