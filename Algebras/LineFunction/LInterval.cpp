@@ -63,3 +63,70 @@ rc ( linterval.rc ) { }
 LInterval::LInterval ( const CcReal& start , const CcReal& end ,
             const bool lc , const bool rc ) :
 start ( start ) , end ( end ) , lc ( lc ) , rc ( rc ) { }
+
+/*
+2.2 Member functions
+
+2.2.1 IsValid
+
+*/
+bool LInterval::IsValid() const
+{
+    if( !start.IsDefined() || !end.IsDefined() )
+    {
+        return false;
+    }
+    int cmp = start.Compare( &end );
+    if( cmp < 0 ) // start < end
+    {
+        return true;
+    }
+    else if( cmp == 0 ) // start == end
+    {
+        return rc && lc;
+    }
+    // start > end
+    return false;
+}
+
+/*
+2.2.2 Disjoint
+
+*/
+
+bool LInterval::R_Disjoint( const LInterval& i ) const
+{
+    bool res= ((end.Compare( &i.start ) < 0) ||
+    ( (end.Compare( &i.start ) == 0) && !( rc && i.lc ) ));
+    return( res );
+}
+
+bool LInterval::Disjoint( const LInterval& i ) const
+{
+    assert( IsValid() && i.IsValid() );
+    bool res=( R_Disjoint( i ) || i.R_Disjoint( *this ) );
+    return( res );
+}
+
+/*
+2.3 Functions to be part of relations
+
+2.3.1 Adjacent
+
+*/
+
+bool LInterval::R_Adjacent( const LInterval& i ) const
+{
+    bool res=( (Disjoint( i ) &&
+    ( end.Compare( &i.start ) == 0 && (rc || i.lc) )) ||
+    ( ( end.Compare( &i.start ) < 0 && rc && i.lc ) &&
+    end.Adjacent( &i.start ) ) );
+    return( res );
+}
+
+bool LInterval::Adjacent( const LInterval& i ) const
+{
+    assert( IsValid() && i.IsValid() );
+    bool res= ( R_Adjacent( i ) || i.R_Adjacent( *this ) );
+    return( res );
+}

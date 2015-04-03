@@ -46,7 +46,7 @@ function that computes a value inside the length unit given a length instant
 The LengthUnit does not yet contain a ~defined~ flag!
 
 */
-template <class Alpha>
+template <typename Alpha>
 class LengthUnit
 {
 public:

@@ -75,7 +75,64 @@ of the passed linterval
             const bool lc, const bool rc);
 
 /*
-3.2.3 Attributes
+2.2 Member functions
+
+2.2.1 IsValid
+
+*/
+    bool IsValid() const;
+/*
+Checks if the interval is valid or not. 
+An interval is valid if the following conditions are true:
+
+  1 ~start~ and ~end~ are defined
+
+  2 ~start~ $<=$ ~end~
+
+  3 if ~start~ $==$ ~end~, then must ~lc~ $=$ ~rc~ $=$ ~true~
+
+2.2.2 Disjoint
+
+*/
+
+    bool R_Disjoint( const LInterval& i ) const;
+/*
+Returns ~true~ if this interval is r-disjoint with the interval ~i~ 
+and ~false~ otherwise. This Function is called recursivly from function Disjoint 
+to check disjoining on both sides of the interval.
+
+*/
+
+  bool Disjoint( const LInterval& i ) const;
+/*
+Returns ~true~ if this interval is disjoint with the interval ~i~ and 
+~false~ otherwise.
+
+*/
+
+/*
+2.3 Functions to be part of relations
+
+2.3.1 Adjacent
+
+*/
+bool R_Adjacent( const LInterval& i ) const;
+/*
+Returns ~true~ if this interval is r-adjacent with the interval ~i~ and ~
+false~ otherwise. This Function is called recursivly from function Adjacent to 
+check the adjacence on both sides of the interval.
+
+*/
+
+  bool Adjacent( const LInterval& i ) const;
+/*
+Returns ~true~ if this interval is adjacent with the interval ~i~ and ~
+ false~ otherwise.
+
+*/
+
+/*
+2.4 Attributes
 
 */
     CcReal start;
