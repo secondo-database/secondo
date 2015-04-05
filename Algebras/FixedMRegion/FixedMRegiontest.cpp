@@ -136,7 +136,7 @@ if their edgepoints match
 
 */
 void testRegionCompare() {
-  printf("Test RegionCompare:\n");
+  printf("Test RegionCompare\n");
   Point *p1 = new Point( true, 0.0, 0.0);
   Point *p2 = new Point( true, 1.0, 0.0);
   Point *p3 = new Point( true, 0.0, 1.0);
@@ -260,40 +260,99 @@ void testatinstantRotate(){
   delete res;
 }
 
+void testtraversed1(){  
+  printf("Test traversed simple: ");
+  double min[]={0.0, 0.0};
+  double max[]={3.0, 3.0};
+  Region *rbig = new Region(Rectangle<2>(true,min, max));
+  FixedMRegion fmr = FixedMRegion(0, 0, 0, rbig, 0, 0, 0, 
+  0, 0.5, 0); 
+  Region * res2=fmr.traversed(0.0,1,0.1);
+
+  double min1[]={0.0, 0.0};
+  double max1[]={3.0, 3.5};
+  Region *r_test = new Region(Rectangle<2>(true,min1, max1));
+  Region *me = new Region(*r_test);
+  r_test->Minus(*res2, *me);
+  double r1=me->Area();
+  me=new Region(*res2);
+  res2->Minus(*r_test,*me);
+  double r2=me->Area();
+  printf("%s\n", (r1==r2)?"OK":"FAILED");
+  delete res2;
+  delete r_test;
+  delete me;
+}
+void testtraversed2(){  
+  printf("Test traversed with hole: ");
+  double min[]={0.0, 0.0};
+  double max[]={3.0, 3.0};
+  Region *rbigwo = new Region(Rectangle<2>(true,min, max));
+  
+  double minh[]={1.0, 1.0};
+  double maxh[]={2.01, 2.01};
+  Region *rbigh = new Region(Rectangle<2>(true,minh, maxh));
+  
+  Region *rbig = new Region(*rbigwo);
+  
+  printf("ping11\n");
+  rbigwo->Minus(*rbigh, *rbig);
+  printf("ping12\n");
+  
+  FixedMRegion fmr = FixedMRegion(0, 0, 0, rbig, 0, 0, 0, 
+  1, 0, 0); 
+  Region * res2=fmr.traversed(0.0,0.5,0.5);
+  printf("ping13\n");
+
+  double min1[]={0.0, 0.0};
+  double max1[]={3.0, 3.5};
+  Region *r_res1 = new Region(Rectangle<2>(true,min1, max1));
+  
+  double min1a[]={1.0, 1.5};
+  double max1a[]={2.0, 2.0};
+  Region *r_tmp = new Region(Rectangle<2>(true,min1a, max1a));  
+  
+  Region *r_test = new Region(*r_tmp);
+  
+  printf("ping1\n");
+  r_res1->Minus(*r_tmp, *r_test);
+  printf("ping2\n");
+  
+  Region *me = new Region(*r_test);
+  r_test->Minus(*res2, *me);
+  double r1=me->Area();
+  me=new Region(*res2);
+  res2->Minus(*r_test,*me);
+  double r2=me->Area();
+  printf("%s\n", (r1==r2)?"OK":"FAILED");
+  delete res2;
+  delete r_test;
+  delete me;
+}
+
+
 /*
 This method tests the method traversed.
   
 */
 void testtraversed(){
-  printf("Test traversed: ");
-  double min[]={0.0, 0.0};
-  double max[]={3.0, 3.0};
-  Region *rbig = new Region(Rectangle<2>(true,min, max));
-    for (int i=0; i<rbig->Size(); i++) {
-    HalfSegment hs;
-    rbig->Get(i, hs);
-    printHS(hs);
-  }
-// Point expected[]= {Point(true, 0.0, 0.0), Point(true, 3.0, 0.0), 
-//  Point(true, 0.0, 3.5), Point(true, 3.0, 3.5), 
-//  Point(true, 1.0, 1.5), Point(true, 2.0, 1.5),
-//  Point(true, 1.0, 2.0), Point(true, 2.0, 2.0)};
-      
-  Point expected[]= {Point(true, 0.0, 0.0), Point(true, 3.0, 0.0), 
-  Point(true, 3.0, 3.5), Point(true, 0.0, 3.5)};
-  FixedMRegion fmr = FixedMRegion(0, 0, 0, rbig, 0, 0, 0, 
-  0, 0.5, 0); 
-  printf("result: ");
-  Region * res2=fmr.traversed(0.0,1,0.5);
-  for (int i=0; i<res2->Size(); i++) {
-    HalfSegment hs;
-    res2->Get(i, hs);
-    printHS(hs);
-  }
-  printf("%s\n", (checkRegionPoints(res2, expected, 4))?"OK":"FAILED");
-  printf("Anzahl Komponenten: %d\n", res2->NoComponents());
-  
-  delete res2;
+  testtraversed1();
+  testtraversed2();
+}
+
+void testMBool(){
+  printf("Test testMBool: ");
+  MBool* res =new MBool();
+  res->Clear();
+  res->StartBulkLoad();
+  DateTime t1(instanttype);
+  t1.Set(2015,3,30,8,01);
+  DateTime t2(instanttype);
+  t2.Set(2015,3,30,9,02);
+  Interval<Instant> iv(t1,t2,false,true);
+  UBool ub(iv,(CcBool)true);
+  res->MergeAdd(ub);
+  res->EndBulkLoad();
 }
 
 
@@ -310,4 +369,5 @@ void runTestMethod() {
   testatinstantLinearMove();
   testatinstantRotate();
   testtraversed();
+  //testMBool();
 }

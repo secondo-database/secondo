@@ -101,7 +101,7 @@ This is the standard destructor.
     }
     
     bool FixedMRegion::inside(MPoint mp, double t){
-      Region *rfix = atinstant(t);
+      //Region *rfix = atinstant(t);
       // void AtInstant( const Instant& t, Intime<Point>& result ) const;
 //      Point *pointfix = NULL;
       //mp.AtInstant(t, pointfix);
@@ -120,12 +120,12 @@ This is the standard destructor.
     }
     
     bool FixedMRegion::intersection(MPoint mp, double t){
-      Region *rfix = atinstant(t);
+      //Region *rfix = atinstant(t);
       // void AtInstant( const Instant& t, Intime<Point>& result ) const;
-      Point *pointfix = NULL;
+      //Point *pointfix = NULL;
       //mp->AtInstant(t, pointfix);
       //FIXME
-       Point *p1 = new Point( true, 0.0, 0.0);
+       //Point *p1 = new Point( true, 0.0, 0.0);
        //  void Intersection(const Point& p, Points& result,
        //             const Geoid* geoid=0) const;
          
@@ -139,13 +139,15 @@ This is the standard destructor.
       for(double i=0;i<=(te-ta);i=i+precision){
         Region * tmp = atinstant(ta+i);
         if(res==NULL){
-          printf("NULL-Schleife\n");
           res=tmp;
         }else{
-          printf("Union-Schleife\n");
-          res->Union(* tmp,* res);
+	  Region *tmp2= new Region(*res);
+	  tmp2->Clear();
+	  res->Union(*tmp, *tmp2);
+	  delete tmp;
+	  delete res;
+	  res=tmp2;
         }
-        printf("res is %sdefined.\n", (res->IsDefined())?"":"NOT ");
       }
       return res;
     }
