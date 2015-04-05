@@ -37,6 +37,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <errno.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -45,12 +47,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../timer.h"
 #include "workerqueue.h"
 
-#define CMDLINE_INPUTFILE   1<<0
-#define CMDLINE_DESTHOST    1<<1
-#define CMDLINE_DESTPORT    1<<2
+
+/*
+1.2 Defines
+
+*/
+#define CMDLINE_INPUTFILE        1<<0
+#define CMDLINE_DESTHOST         1<<1
+#define CMDLINE_DESTPORT         1<<2
+#define CMDLINE_SIMULATION_MODE  1<<3
 
 #define QUEUE_ELEMENTS 100
 #define DELIMITER ","
+
+#define SIMULATION_MODE_ADAPTIVE 1
+#define SIMULATION_MODE_FIXED    2
 
 using namespace std;
 
@@ -58,6 +69,7 @@ struct Configuration {
    string inputfile;
    string desthost;
    size_t destport;
+   short simulationmode;
 };
 
 struct Statistics {
@@ -74,6 +86,10 @@ struct InputData {
     float y;
 };
 
+/*
+2.0 Producer class - reads berlin mod csv data 
+
+*/
 class Producer {
 public:
 
@@ -201,10 +217,15 @@ private:
 
 void printHelpAndExit(char *progName) {
    cerr << "Usage: " << progName << " -i <inputfile> ";
-   cerr << "-h <hostname> -p <port>" << endl;
+   cerr << "-h <hostname> -p <port> -s <adaptive|fixed>" << endl;
+   cerr << endl;
+   cerr << "-i is the CVS file with the trips to simulate" << endl;
+   cerr << "-h is the hostname to connect to" << endl;
+   cerr << "-p is the port to connect to" << endl;
+   cerr << "-s is the simulation mode" << endl;
    cerr << endl;
    cerr << "For example: " << progName << " -i trips.csv ";
-   cerr << "-h localhost -p 10000" << endl;
+   cerr << "-h localhost -p 10000 -s adaptive" << endl;
    exit(-1);
 }
 
@@ -213,7 +234,7 @@ void parseParameter(int argc, char *argv[], Configuration *configuration) {
    unsigned int flags = 0;
    int option = 0;
    
-   while ((option = getopt(argc, argv,"i:h:p:")) != -1) {
+   while ((option = getopt(argc, argv,"i:h:p:s:")) != -1) {
        switch (option) {
           case 'i':
              flags |= CMDLINE_INPUTFILE;
@@ -229,6 +250,20 @@ void parseParameter(int argc, char *argv[], Configuration *configuration) {
              flags |= CMDLINE_DESTPORT;
              configuration->destport = atoi(optarg);
           break;
+
+          case 's':
+             flags |= CMDLINE_SIMULATION_MODE;
+
+             if(strcmp(optarg,"adaptive") == 0) {
+                configuration->simulationmode = SIMULATION_MODE_ADAPTIVE;
+             } else if(strcmp(optarg,"fixed") == 0) {
+                configuration->simulationmode = SIMULATION_MODE_FIXED;
+             } else {
+                 cerr << "Unknown simulation mode: " << optarg << endl;
+                 cerr << endl;
+                 printHelpAndExit(argv[0]);
+             }
+          break;
           
           default:
             printHelpAndExit(argv[0]);
@@ -237,12 +272,18 @@ void parseParameter(int argc, char *argv[], Configuration *configuration) {
    
    unsigned int requiredFalgs = CMDLINE_INPUTFILE |
                                 CMDLINE_DESTHOST |
-                                CMDLINE_DESTPORT;
+                                CMDLINE_DESTPORT |
+                                CMDLINE_SIMULATION_MODE;
    
    if(flags != requiredFalgs) {
       printHelpAndExit(argv[0]);
    }
 }
+
+/*
+3.0 Consumer class - consumes berlin mod data and write it to a tcp socket
+
+*/
 
 class Consumer {  
    
@@ -332,14 +373,29 @@ public:
             
             buffer.clear();
             buffer = ss.str();
-
-            int res = write(socketfd, buffer.c_str(), buffer.length());
             
-            if(res != -1) {
+            int ret = 0;
+            int toSend = buffer.length();
+            const char* buf = buffer.c_str();
+
+            for (int n = 0; n < toSend; ) {
+                ret = write(socketfd, (char *)buf + n, toSend - n);
+                if (ret < 0) {
+                     if (errno == EINTR || errno == EAGAIN) {
+                        continue;
+                     }
+                     break;
+                } else {
+                    n += ret;
+                }
+            }
+
+            if(ret != -1) {
                statistics->send++;
             } else {
-               cerr << "Error while calling write" << endl;
+               cerr << "Error occurred while calling write on socket" << endl;
             }
+
          } else {
             cerr << "Socket not ready, ignoring line" << endl;
          }
@@ -445,3 +501,26 @@ int main(int argc, char *argv[]) {
    
    return EXIT_SUCCESS;
 }
+
+
+/*
+4.0 - Simulator 
+
+*/
+class Simulator {
+
+public:
+
+   Simulator(Configuration *myConfiguration) 
+     : configuration(myConfiguration) {
+
+   }
+
+   virtual ~Simulator() {
+   }
+
+private:
+   Configuration *configuration;
+};
+
+
