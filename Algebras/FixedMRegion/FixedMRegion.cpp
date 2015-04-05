@@ -141,12 +141,12 @@ This is the standard destructor.
         if(res==NULL){
           res=tmp;
         }else{
-	  Region *tmp2= new Region(*res);
-	  tmp2->Clear();
-	  res->Union(*tmp, *tmp2);
-	  delete tmp;
-	  delete res;
-	  res=tmp2;
+  Region *tmp2= new Region(*res);
+  tmp2->Clear();
+  res->Union(*tmp, *tmp2);
+  delete tmp;
+  delete res;
+  res=tmp2;
         }
       }
       return res;
