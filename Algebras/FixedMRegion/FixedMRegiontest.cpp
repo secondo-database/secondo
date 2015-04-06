@@ -283,6 +283,7 @@ void testtraversed1(){
   delete r_test;
   delete me;
 }
+
 void testtraversed2(){  
   printf("Test traversed with hole: ");
   double min[]={0.0, 0.0};
@@ -341,8 +342,8 @@ void testtraversed(){
 }
 
 void testMBool(){
-  printf("Test testMBool: ");
-  MBool* res =new MBool();
+  printf("Test testMBool: \n");
+  MBool* res =new MBool(10);
   res->Clear();
   res->StartBulkLoad();
   DateTime t1(instanttype);
@@ -352,7 +353,31 @@ void testMBool(){
   Interval<Instant> iv(t1,t2,false,true);
   UBool ub(iv,(CcBool)true);
   res->MergeAdd(ub);
+  
+  DateTime t11(instanttype);
+  t11.Set(2015,3,31,9,02);
+  DateTime t21(instanttype);
+  t21.Set(2015,4,30,8,02);
+  Interval<Instant> iv2(t11,t21,false,true);
+  UBool ub2(iv2,(CcBool)true);
+  res->MergeAdd(ub2);
   res->EndBulkLoad();
+  
+  DateTime test(instanttype);
+  test.Set(2015,3,31,9,02);
+  printf("(? %s\n",(res->Present(test))?"Wahr":"Falsch");
+  
+  DateTime test1(instanttype);
+  test1.Set(2015,4,30,8,02);
+  printf("]? %s\n",(res->Present(test1))?"Wahr":"Falsch");
+  
+  DateTime test2(instanttype);
+  test2.Set(2015,1,30,9,02);
+  printf("außerhalb %s\n",(res->Present(test2))?"Wahr":"Falsch");
+  
+  DateTime test3(instanttype);
+  test3.Set(2015,4,8,8,02);
+  printf("innerhalb %s\n",(res->Present(test3))?"Wahr":"Falsch");
 }
 
 
@@ -369,5 +394,5 @@ void runTestMethod() {
   testatinstantLinearMove();
   testatinstantRotate();
   testtraversed();
-  //testMBool();
+  testMBool();
 }
