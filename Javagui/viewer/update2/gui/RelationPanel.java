@@ -157,7 +157,6 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 		
 		// tables
 		this.relScroll = new JScrollPane();
-		this.relScroll.getVerticalScrollBar().setUnitIncrement(10);
 		this.insertScroll = new JScrollPane();
 		this.splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
 		this.tableCellRenderer = new ValueTableCellRenderer();
@@ -382,8 +381,11 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 										   }
 										   }
 										   });
-			
+		
 			this.relScroll.setViewportView(this.relTable);
+		  this.relScroll.getVerticalScrollBar().setUnitIncrement(10);
+		  this.relScroll.getVerticalScrollBar().setBlockIncrement(100);
+      
 			
 			this.repaint();
 			this.validate();
