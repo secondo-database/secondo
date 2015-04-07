@@ -21,6 +21,7 @@
 
 
 
+
 package viewer;
 
 
@@ -89,9 +90,14 @@ public class RelViewer extends SecondoViewer{
        public void actionPerformed(ActionEvent evt){
           showSelectedObject();
        }});
+       
+       
+       
    exportBtn.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
-          exportAsCSV();
+          if (exportAsCSV()== false) {
+          Reporter.showInfo("Export CSV file failed");
+          }
        }
    });
    
@@ -170,7 +176,7 @@ public class RelViewer extends SecondoViewer{
    
    if(result==null)
    { 
-     Reporter.debug("error in reading csv file: table mismatch or delimiter mismatch");
+     Reporter.debug("csv file import");
      return false;
    }
    
@@ -363,12 +369,25 @@ private boolean checkCSVTypes(ListExpr[] types)
  
  
  private ListExpr importCSVTuple(String line, ListExpr[] types, String delim)
- {    
+ {  
     
     char delimchar;
     char [] delimchararray;
-    delimchararray = delim.toCharArray();
-    delimchar = delimchararray[0];
+    
+    try
+    {
+     delimchararray = delim.toCharArray();
+     delimchar = delimchararray[0];
+    
+          
+     }
+     catch(Exception e)
+     {  
+        Reporter.debug("Empty delimiter inserted");
+        return  null;
+     }
+    
+    
     
  
     MyStringTokenizer st = new MyStringTokenizer(line, delimchar);
@@ -396,15 +415,14 @@ private boolean checkCSVTypes(ListExpr[] types)
     
     
      
-    
-  
+   
     
      
    if((count2 > typelenght) || ( (count2 == count) &&  (count > typelenght)) || (count > typelenght) ||  (delimnumber >= typelenght)) //Table mismatch
     
     
     {     
-       
+       Reporter.debug("Table mismatch or delimiter mismatch");
        return null;   
     }
     
@@ -436,6 +454,7 @@ private boolean checkCSVTypes(ListExpr[] types)
               
       token = st.nextToken();    
       
+     
       
         
       attr = importAttr(types[i],token);
@@ -468,7 +487,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     }
     
     
-    
+   
     
     
 
@@ -723,7 +742,8 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
  /** exports the currently selected table into a file in
    * csv format.
    */
- private void exportAsCSV(){
+ private boolean  exportAsCSV()
+ {
     int index = ComboBox.getSelectedIndex();
     char delimchar;
     char [] delimchararray;
@@ -731,30 +751,59 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
     
     
     
-    if(index<0){
-      tools.Reporter.showError("no table is selected");
-      return;
+    if(index<0)
+    {
+      tools.Reporter.showError("No table is selected");
+      return true;
     }
+    
+    
     JTable theTable = (JTable) Tables.get(index).table;
-    if(filechooser.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
+    if(filechooser.showSaveDialog(this)==JFileChooser.APPROVE_OPTION)
+    {
        File file = filechooser.getSelectedFile();
        if(file.exists()){
          if(tools.Reporter.showQuestion("File already exists\n overwrite it?")!=tools.Reporter.YES){
-             return;
+             return true;
          }
-       }
+    }
        
-       String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Export: Delimiter input",
-                                                             JOptionPane.PLAIN_MESSAGE);
-                                                             
-      delimchararray = delim.toCharArray();
-      delimchar = delimchararray[0];                                                    
-                                                             
        
-       exportTable(theTable,file, delimchar);
+    String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Export: Delimiter input",
+                                                             JOptionPane.PLAIN_MESSAGE);   
+      
+     try
+    {
+     delimchararray = delim.toCharArray();
+     delimchar = delimchararray[0];
+    
+          
+     }
+     catch(Exception e)
+     {  
+        Reporter.debug("Empty delimiter inserted");
+        return  false;
+     }
+    
+     
+                                                   
+       
+      exportTable(theTable,file, delimchar);
+      
+      return true;
     } 
+    
+    return true;
  }
 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  /** function supporting expostAsCSV
    */
   private void exportTable(JTable table, File file, char delimchar){
