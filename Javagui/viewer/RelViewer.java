@@ -21,7 +21,6 @@
 
 
 
-
 package viewer;
 
 
@@ -418,7 +417,8 @@ private boolean checkCSVTypes(ListExpr[] types)
    
     
      
-   if((count2 > typelenght) || ( (count2 == count) &&  (count > typelenght)) || (count > typelenght) ||  (delimnumber >= typelenght)) //Table mismatch
+   if ((count2 > typelenght) || ( (count2 == count) &&  (count > typelenght)) || (count > typelenght) 
+                             ||  (delimnumber >= typelenght) || delimnumber < typelenght-1)              //Table mismatch
     
     
     {     
