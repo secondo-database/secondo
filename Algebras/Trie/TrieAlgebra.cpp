@@ -1079,6 +1079,165 @@ Operator getSeparators (
           getSeparatorsTM);
 
 
+/*
+9.5 Operator ~containsWord~ and and ~containsPrefix~
+
+These operators check whether a text or a string contains
+a given word or a word prefix.
+
+9.5.1 Type Mapping
+
+These operators get two string or text values and optionally a
+boolean value. It checks whether the first argument contains the
+word or the word start given by the second argument. The boolean
+argument specifies wether the check should be case sensitive. The
+default value is false. For separating the first text into words, 
+the default seperator of the inverted file are used.
+
+*/
+ListExpr containsWordOrPrefixTM(ListExpr args){
+  string err = "{string,text} x {string, text} [ x bool] expected";
+  if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  if(   !CcString::checkType(nl->First(args)) 
+     && !FText::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(   !CcString::checkType(nl->Second(args)) 
+     && !FText::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  if(nl->HasLength(args,2)){
+     return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                     nl->OneElemList(nl->BoolAtom(false)),
+                     listutils::basicSymbol<CcBool>());
+  }
+  if(!CcBool::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+  }
+  return  listutils::basicSymbol<CcBool>();
+}
+
+/*
+9.5.2 Value Mapping
+
+*/
+template<class T, class W, bool prefix>
+int containsWordOrPrefixVM(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+
+   T* text = (T*) args[0].addr;
+   W* word = (W*) args[1].addr;
+   CcBool* cs = (CcBool*) args[2].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   if(!text->IsDefined() || !word->IsDefined() || !cs->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   string t = text->GetValue();
+   string w = word->GetValue();
+   bool c = cs->GetValue();
+   if(!c){
+     stringutils::toLower(t);
+     stringutils::toLower(w);
+     stringutils::trim(w);
+   }
+   res->Set(true,false);
+   if(w.length()==0){ // stupid user found
+     return 0;
+   }
+
+   
+
+   stringutils::StringTokenizer st(t,InvertedFile::getDefaultSeparators());
+   while(st.hasNextToken()){
+     string nw = st.nextToken();
+     if(prefix){
+        if(stringutils::startsWith(nw,w)){
+           res->Set(true,true);
+           return 0;           
+        }
+     } else {
+        if(nw==w){
+          res->Set(true,true);
+          return 0;
+        }
+     }
+   }
+   return 0;
+}
+
+/*
+9.5.3 Value Mapping array and Selection
+
+*/
+ValueMapping containsWordVM[] = {
+  containsWordOrPrefixVM<CcString,CcString,false>,
+  containsWordOrPrefixVM<CcString,FText,false>,
+  containsWordOrPrefixVM<FText,CcString,false>,
+  containsWordOrPrefixVM<FText,FText,false>,
+};
+
+ValueMapping containsPrefixVM[] = {
+  containsWordOrPrefixVM<CcString,CcString,true>,
+  containsWordOrPrefixVM<CcString,FText,true>,
+  containsWordOrPrefixVM<FText,CcString,true>,
+  containsWordOrPrefixVM<FText,FText,true>,
+};
+
+int containsWordOrPrefixSelect(ListExpr args){
+  int v1 = CcString::checkType(nl->Second(args))?0:1;
+  int v2 = CcString::checkType(nl->Second(args))?0:2;
+  return v1+v2;
+}
+
+/*
+9.5.4 Specififation
+
+*/
+
+OperatorSpec containsWordSpec(
+           "  {string,text} x {string,text} [ x bool] -> bool",
+           " containsWord(_,_,_)",
+           " Checks whether the first argument contains a word given "
+          " by the second argument. The optional third argument determines"
+          " whether the checking is case sensitive.",
+           " query containsWord('Secondo is great','Secondo',FALSE)" );
+
+OperatorSpec containsPrefixSpec(
+           "  {string,text} x {string,text} [ x bool] -> bool",
+           " containsprefix(_,_,_)",
+           " Checks whether the first argument contains a word starting with "
+          " the second argument. The optional third argument determines"
+          " whether the checking is case sensitive.",
+           " query containsWord('Secondo is great','Secondo',FALSE)" );
+
+/*
+9.5.5 Operator instances
+
+*/
+
+Operator containsWordOp(
+     "containsWord",                // operator's name
+     containsWordSpec.getStr(),    // specification
+     4,                     // number of Value Mappings
+     containsWordVM,               // value mapping array
+     containsWordOrPrefixSelect,           // selection function
+     containsWordOrPrefixTM                // type mapping
+);
+
+Operator containsPrefixOp(
+     "containsPrefix",                // operator's name
+     containsPrefixSpec.getStr(),    // specification
+     4,                     // number of Value Mappings
+     containsPrefixVM,               // value mapping array
+     containsWordOrPrefixSelect,           // selection function
+     containsWordOrPrefixTM                // type mapping
+);
+
+
 
 } // end of namespace triealg
 
@@ -1102,6 +1261,8 @@ class TrieAlgebra : public Algebra {
      AddOperator(&triealg::getInvFileSeparators);
      AddOperator(&triealg::getSeparators);
 
+     AddOperator(&triealg::containsWordOp);
+     AddOperator(&triealg::containsPrefixOp);
 
 #ifdef USE_PROGRESS
      triealg::createInvFile.EnableProgress();
