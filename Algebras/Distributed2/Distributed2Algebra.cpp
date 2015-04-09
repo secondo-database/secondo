@@ -2553,6 +2553,8 @@ This function is called if the number of input tuples is known.
              listAccess.unlock();
              // inform about new tuple.
              resultAvailable.notify_one(); 
+          } else {
+             countMtx.unlock();
           }
         }
      }
@@ -2571,7 +2573,6 @@ This function is called if the number of input tuples is known.
      int inputTuples;
      int outputTuples;
      boost::mutex countMtx;
-     
 };
 
 
