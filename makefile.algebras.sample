@@ -268,6 +268,8 @@ ALGEBRAS      += NestedRelationAlgebra
 #ALGEBRA_DIRS += Distributed2
 #ALGEBRAS += Distributed2Algebra
 #ALGEBRA_DEPS += boost_system boost_thread
+#CCFLAGS += -pthread
+
 
 
 
