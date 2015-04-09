@@ -4629,4 +4629,4 @@
                 (
                     'A * B [(_ "Lütgendortmund") | (_ "Innenstadt-West")] // B.start >= A.end => B') 
                 (
-                    'W (_ "Hombruch") X () * // X.label = "Hombruch" => W')))))
+                    'W (_ "Hombruch") X () * // X.label = tolabel("Hombruch") => W')))))
