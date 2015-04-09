@@ -117,8 +117,8 @@ StopWatch::diffSecondsCPU() {
 const string
 StopWatch::minutesAndSeconds(const double seconds) {
 
-  static char sbuf[20+1];
-  static double frac = 0, sec = 0, min = 0;
+  char sbuf[20+1];
+  double frac = 0, sec = 0, min = 0;
 
   frac = modf(seconds/60, &min);
   sec = seconds - (60 * min);
@@ -131,7 +131,7 @@ StopWatch::minutesAndSeconds(const double seconds) {
 const string
 StopWatch::timeStr(const time_t& inTime /* = 0*/) {
 
-  static char sbuf[20+1];
+  char sbuf[20+1];
 
   time_t usedTime = 0;
   if ( inTime == 0 ) {
