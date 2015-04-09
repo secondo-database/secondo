@@ -81,9 +81,12 @@ struct Statistics {
 struct InputData {
     size_t moid;
     size_t tripid;
-    tm time;
-    float x;
-    float y;
+    tm time_start;
+    tm time_end;
+    float x_start;
+    float y_start;
+    float x_end;
+    float y_end;
 };
 
 /*
@@ -143,25 +146,17 @@ public:
       }
    
       InputData *inputdata1 = new InputData;
-      InputData *inputdata2 = new InputData;
    
-      inputdata1 -> moid = atoi(lineData[0].c_str());
-      inputdata2 -> moid = atoi(lineData[0].c_str());
-   
+      inputdata1 -> moid = atoi(lineData[0].c_str());   
       inputdata1 -> tripid = atoi(lineData[1].c_str());
-      inputdata2 -> tripid = atoi(lineData[1].c_str());
-         
-      inputdata1 -> time = tm1;
-      inputdata2 -> time = tm2;
-   
-      inputdata1 -> x = atof(lineData[4].c_str());
-      inputdata1 -> y = atof(lineData[5].c_str());
-   
-      inputdata2 -> x = atof(lineData[6].c_str());
-      inputdata2 -> y = atof(lineData[7].c_str());
+      inputdata1 -> time_start = tm1;
+      inputdata1 -> time_end = tm2;
+      inputdata1 -> x_start = atof(lineData[4].c_str());
+      inputdata1 -> y_start = atof(lineData[5].c_str());
+      inputdata1 -> x_end = atof(lineData[6].c_str());
+      inputdata1 -> y_end = atof(lineData[7].c_str());
 
       data->push(inputdata1);
-      data->push(inputdata2);
 
       return true;
    }
@@ -202,7 +197,7 @@ public:
    
       myfile.close();
    
-      // Add term token
+      // Add terminal token
       data->push(NULL);
    
       return true;
@@ -353,6 +348,31 @@ public:
       socketfd = -1;
    }
    
+   bool sendData(string &buffer) {
+      int ret = 0;
+      int toSend = buffer.length();
+      const char* buf = buffer.c_str();
+
+      for (int n = 0; n < toSend; ) {
+          ret = write(socketfd, (char *)buf + n, toSend - n);
+          if (ret < 0) {
+               if (errno == EINTR || errno == EAGAIN) {
+                  continue;
+               }
+               break;
+          } else {
+              n += ret;
+          }
+      }
+      
+      // All data was written successfully
+      if(ret > 0) {
+         return true;
+      }
+      
+      return false;
+   }
+   
    void dataConsumer() {
       char dateBuffer[80];
       string buffer;
@@ -363,34 +383,20 @@ public:
          if(ready) {
             ss.str("");
              
-            strftime(dateBuffer,80,"%d-%m-%Y %I:%M:%S",&element->time);
+            strftime(dateBuffer,80,"%d-%m-%Y %I:%M:%S",&element->time_start);
 
             ss << dateBuffer << DELIMITER;            
             ss << element->moid << DELIMITER;
             ss << element->tripid << DELIMITER;
-            ss << element->x << DELIMITER;
-            ss << element->y << "\n";
+            ss << element->x_start << DELIMITER;
+            ss << element->y_start << "\n";
             
             buffer.clear();
             buffer = ss.str();
             
-            int ret = 0;
-            int toSend = buffer.length();
-            const char* buf = buffer.c_str();
+            bool res = sendData(buffer);
 
-            for (int n = 0; n < toSend; ) {
-                ret = write(socketfd, (char *)buf + n, toSend - n);
-                if (ret < 0) {
-                     if (errno == EINTR || errno == EAGAIN) {
-                        continue;
-                     }
-                     break;
-                } else {
-                    n += ret;
-                }
-            }
-
-            if(ret != -1) {
+            if(res == true) {
                statistics->send++;
             } else {
                cerr << "Error occurred while calling write on socket" << endl;
@@ -417,6 +423,66 @@ private:
    bool ready;
 };
 
+/*
+4.0 - Simulator 
+
+*/
+class Simulator {
+
+public:
+
+   Simulator(Configuration *myConfiguration) 
+     : configuration(myConfiguration) {
+
+   }
+
+   virtual ~Simulator() {
+   }
+   
+   virtual bool simulate() = 0;
+
+private:
+   Configuration *configuration;
+};
+
+/*
+5.0 - Fixed Simulator 
+
+*/
+class FixedSimulator : public Simulator {
+   
+public:
+   
+   bool simulate() {
+      return false;
+   }
+   
+private:
+
+};
+
+/*
+6.0 - Adaptive Simulator 
+
+*/
+class AdaptiveSimulator : public Simulator {
+   
+public:
+   
+   AdaptiveSimulator(Configuration *myConfiguration) 
+     : Simulator(myConfiguration) {
+        
+       gettimeofday(&start, NULL);
+   }
+   
+   bool simulate() {
+      return false;
+   }
+   
+private:
+   timeval start;
+};
+
 void* startConsumerThreadInternal(void *ptr) {
   Consumer* consumer = (Consumer*) ptr;
   
@@ -424,6 +490,7 @@ void* startConsumerThreadInternal(void *ptr) {
   
   if(! res) {
      cerr << "Unable to open socket!" << endl;
+     exit(EXIT_FAILURE);
   }
   
   consumer -> dataConsumer();
@@ -438,6 +505,7 @@ void* startProducerThreadInternal(void *ptr) {
    
    if(! result) {
       cerr << "Unable to parse input data" << endl;
+      exit(EXIT_FAILURE);
    }
    
    return NULL;
@@ -502,25 +570,5 @@ int main(int argc, char *argv[]) {
    return EXIT_SUCCESS;
 }
 
-
-/*
-4.0 - Simulator 
-
-*/
-class Simulator {
-
-public:
-
-   Simulator(Configuration *myConfiguration) 
-     : configuration(myConfiguration) {
-
-   }
-
-   virtual ~Simulator() {
-   }
-
-private:
-   Configuration *configuration;
-};
 
 
