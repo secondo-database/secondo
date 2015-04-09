@@ -1138,6 +1138,7 @@ int containsWordOrPrefixVM(Word* args, Word& result, int message,
    }
    string t = text->GetValue();
    string w = word->GetValue();
+
    bool c = cs->GetValue();
    if(!c){
      stringutils::toLower(t);
@@ -1189,7 +1190,7 @@ ValueMapping containsPrefixVM[] = {
 
 int containsWordOrPrefixSelect(ListExpr args){
   int v1 = CcString::checkType(nl->Second(args))?0:1;
-  int v2 = CcString::checkType(nl->Second(args))?0:2;
+  int v2 = CcString::checkType(nl->First(args))?0:2;
   return v1+v2;
 }
 
