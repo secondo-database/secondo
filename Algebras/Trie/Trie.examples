@@ -73,7 +73,7 @@ Result    : TRUE
 Operator  : containsPrefix 
 Number    : 1
 Signature : {string , text} x {string,text} [ x bool] -> bool
-Example   :  query containsWord('Secondo is great',"Seco",TRUE)
+Example   : query containsPrefix('Secondo is great',"Seco",TRUE)
 Result    : TRUE
 
 
