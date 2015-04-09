@@ -35,6 +35,8 @@ Feb. 2007, M. Spiekermann: Class Listener and MessageHandler introduced
 
 #include "NList.h"
 #include "LogMsg.h"
+#include "StopWatch.h"
+
 
 /*
 1 Class ~MessageHandler~
@@ -102,13 +104,23 @@ class ProgMesHandler : public MessageHandler
 {
 
   public:
+
+  ~ProgMesHandler(){
+     if(s){
+       delete s;
+     }
+  }
+
   //virtual bool handleMsg(NList msgList);
   virtual bool handleMsg(NestedList* nl, ListExpr list);
-  ProgMesHandler():total(50),highest(-1) {};
-  ~ProgMesHandler() {};
+  ProgMesHandler():total(50),highest(-1),s(0) {};
 
   int total;  // len of the progress bar 
   int highest; // highest value ever received
+
+  private:
+    StopWatch* s;
+
 };
 
 /*

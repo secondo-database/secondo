@@ -216,8 +216,7 @@ ProgMesHandler::handleMsg(NestedList* nl, ListExpr list)
   int ActValue = nl->IntValue(nl->First(second)); 
   int TotalValue = nl->IntValue(nl->Second(second)); 
 
-  static StopWatch* s = 0;
-  static double rt = 0;
+  double rt = 0;
 
   // initialize the size of the progress bar
   if (ActValue < 0) {
