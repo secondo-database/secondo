@@ -743,7 +743,7 @@ Returns the size of the attribute's root part.
         return tupleExtSize;
 
       tupleExtSize = 0;
-      for( int i = 0; i < noAttributes; i++)
+      for( size_t i = 0; i < noAttributes; i++)
       {
         tupleExtSize += GetExtSize(i);
       }
@@ -785,7 +785,7 @@ Returns the size of attribute i including its extension part.
         tupleMemSize += noAttributes + sizeof(Attribute*);
       }
 
-      for( int i = 0; i < noAttributes; i++)
+      for( size_t i = 0; i < noAttributes; i++)
       {
         tupleMemSize += GetMemSize(i);
       }
@@ -809,7 +809,7 @@ Returns the size of attribute i including its extension part.
         return tupleSize;
 
       tupleSize = 0;
-      for( int i = 0; i < noAttributes; i++)
+      for( size_t i = 0; i < noAttributes; i++)
       {
         tupleSize += GetSize(i);
       }
@@ -1115,7 +1115,7 @@ a tuple
 
   ostream& Print(ostream& out) const{
     out << "Tuple: (" << endl;
-    for(int i = 0; i < noAttributes; i++) {
+    for(size_t i = 0; i < noAttributes; i++) {
        GetAttribute(i)->Print(out);
        cout << endl;
     }
@@ -1138,7 +1138,7 @@ Some statistics about tuples.
 
     inline void InitAttrArray()
     {
-      for( int i = 0; i < noAttributes; i++ )
+      for( size_t i = 0; i < noAttributes; i++ )
         attributes[i] = 0;
     }
 /*
@@ -1188,7 +1188,7 @@ Initializes a tuple.
 
         // save the current addresses stored in attributes
         Attribute** tmp_attributes = new Attribute*[noAttributes];
-        for (int i = 0; i<noAttributes; i++) {
+        for (size_t i = 0; i<noAttributes; i++) {
            tmp_attributes[i] = attributes[i];
         }
 
