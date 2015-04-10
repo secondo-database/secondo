@@ -65,11 +65,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+/*
+1.3 Structs
+
+*/
 struct Configuration {
    string inputfile;
    string desthost;
    size_t destport;
    short simulationmode;
+   timeval start;
 };
 
 struct Statistics {
@@ -89,16 +94,24 @@ struct InputData {
     float y_end;
 };
 
+struct Position {
+   size_t moid;
+   size_t tripid;
+   tm time;
+   float x;
+   float y;
+};
+
 /*
-2.0 Producer class - reads berlin mod csv data 
+2.0 Abstract Producer class - reads berlin mod csv data 
 
 */
-class Producer {
+class AbstractProducer {
 public:
 
-    Producer(Configuration *myConfiguration, Statistics *myStatistics, 
-        WorkerQueue<InputData*> *myData) : 
-        configuration(myConfiguration), statistics(myStatistics), data(myData) {
+    AbstractProducer(Configuration *myConfiguration, 
+        Statistics *myStatistics) : 
+        configuration(myConfiguration), statistics(myStatistics) {
            
     }
 
@@ -120,45 +133,6 @@ public:
       }
    
       return false;
-   }
-
-   bool handleCSVLine(vector<std::string> &lineData) {
-   
-      // Skip CSV header
-      if(lineData[0] == "Moid") {
-         return true;     
-      }
-      
-      statistics->read++;
-   
-      // 2007-06-08 08:32:26.781
-      struct tm tm1;
-      struct tm tm2;
-   
-      if (! parseCSVDate(tm1, lineData[2])) {
-         cerr << "Unable to parse start date: " << lineData[2] << endl;
-         return false;
-      }
-   
-      if (! parseCSVDate(tm2, lineData[3])) {
-         cerr << "Unable to parse end date: " << lineData[3] << endl;
-         return false;
-      }
-   
-      InputData *inputdata1 = new InputData;
-   
-      inputdata1 -> moid = atoi(lineData[0].c_str());   
-      inputdata1 -> tripid = atoi(lineData[1].c_str());
-      inputdata1 -> time_start = tm1;
-      inputdata1 -> time_end = tm2;
-      inputdata1 -> x_start = atof(lineData[4].c_str());
-      inputdata1 -> y_start = atof(lineData[5].c_str());
-      inputdata1 -> x_end = atof(lineData[6].c_str());
-      inputdata1 -> y_end = atof(lineData[7].c_str());
-
-      data->push(inputdata1);
-
-      return true;
    }
 
    bool parseInputData() {
@@ -197,18 +171,155 @@ public:
    
       myfile.close();
    
-      // Add terminal token
-      data->push(NULL);
+      handleInputEnd();
    
       return true;
    }
-
-private:
+   
+   // Abstract methods
+   virtual bool handleCSVLine(vector<std::string> &lineData) = 0;
+   virtual void handleInputEnd() = 0;
+   
+protected:
    Configuration *configuration;
    Statistics *statistics;
-   WorkerQueue<InputData*> *data;
+   
+private:
+
 };
 
+/*
+2.1 Fixed producer class - produced a queue with points
+
+*/
+class FixedProducer : public AbstractProducer {
+
+public:
+   
+   FixedProducer(Configuration *myConfiguration, Statistics *myStatistics, 
+        WorkerQueue<Position*> *myData) : 
+        AbstractProducer(myConfiguration, myStatistics), data(myData) {
+      
+   }
+
+   virtual bool handleCSVLine(vector<std::string> &lineData) {
+   
+      // Skip CSV header
+      if(lineData[0] == "Moid") {
+         return true;     
+      }
+      
+      statistics->read++;
+   
+      // 2007-06-08 08:32:26.781
+      struct tm tm1;
+      struct tm tm2;
+   
+      if (! parseCSVDate(tm1, lineData[2])) {
+         cerr << "Unable to parse start date: " << lineData[2] << endl;
+         return false;
+      }
+   
+      if (! parseCSVDate(tm2, lineData[3])) {
+         cerr << "Unable to parse end date: " << lineData[3] << endl;
+         return false;
+      }
+   
+      Position *pos1 = new Position;
+      Position *pos2 = new Position;
+   
+      pos1 -> moid = atoi(lineData[0].c_str());   
+      pos2 -> moid = atoi(lineData[0].c_str());   
+      
+      pos1 -> tripid = atoi(lineData[1].c_str());
+      pos2 -> tripid = atoi(lineData[1].c_str());
+      
+      pos1 -> time = tm1;
+      pos2 -> time= tm2;
+      
+      pos1 -> x = atof(lineData[4].c_str());
+      pos1 -> y = atof(lineData[5].c_str());
+      
+      pos2 -> x = atof(lineData[6].c_str());
+      pos2 -> y = atof(lineData[7].c_str());
+
+      data->push(pos1);
+      data->push(pos2);
+
+      return true;
+   }
+   
+   virtual void handleInputEnd() {
+      // Add terminal token
+      data->push(NULL);
+   }
+
+private:
+   WorkerQueue<Position*> *data;
+};
+
+/*
+2.1 Adaptive producer class - produced a queue with ranges
+
+*/
+class AdapiveProducer : public AbstractProducer {
+
+public:
+   
+   AdapiveProducer(Configuration *myConfiguration, Statistics *myStatistics, 
+        WorkerQueue<InputData*> *myData) : 
+        AbstractProducer(myConfiguration, myStatistics), data(myData) {
+      
+   }
+
+   virtual bool handleCSVLine(vector<std::string> &lineData) {
+   
+      // Skip CSV header
+      if(lineData[0] == "Moid") {
+         return true;     
+      }
+      
+      statistics->read++;
+   
+      // 2007-06-08 08:32:26.781
+      struct tm tm1;
+      struct tm tm2;
+   
+      if (! parseCSVDate(tm1, lineData[2])) {
+         cerr << "Unable to parse start date: " << lineData[2] << endl;
+         return false;
+      }
+   
+      if (! parseCSVDate(tm2, lineData[3])) {
+         cerr << "Unable to parse end date: " << lineData[3] << endl;
+         return false;
+      }
+   
+      InputData *inputdata = new InputData;
+   
+      inputdata -> moid = atoi(lineData[0].c_str());   
+      inputdata -> tripid = atoi(lineData[1].c_str());
+      inputdata -> time_start = tm1;
+      inputdata -> time_end = tm2;
+      inputdata -> x_start = atof(lineData[4].c_str());
+      inputdata -> y_start = atof(lineData[5].c_str());
+      inputdata -> x_end = atof(lineData[6].c_str());
+      inputdata -> y_end = atof(lineData[7].c_str());
+
+      data->push(inputdata);
+
+      return true;
+   }
+   
+   virtual void handleInputEnd() {
+      // Add terminal token
+      data->push(NULL);
+   }
+   
+   
+private:
+   WorkerQueue<InputData*> *data;
+};
 
 void printHelpAndExit(char *progName) {
    cerr << "Usage: " << progName << " -i <inputfile> ";
@@ -472,7 +583,6 @@ public:
    AdaptiveSimulator(Configuration *myConfiguration) 
      : Simulator(myConfiguration) {
         
-       gettimeofday(&start, NULL);
    }
    
    bool simulate() {
@@ -480,7 +590,7 @@ public:
    }
    
 private:
-   timeval start;
+
 };
 
 void* startConsumerThreadInternal(void *ptr) {
@@ -499,7 +609,7 @@ void* startConsumerThreadInternal(void *ptr) {
 }
 
 void* startProducerThreadInternal(void *ptr) {
-   Producer* producer = (Producer*) ptr;
+   AbstractProducer* producer = (AbstractProducer*) ptr;
    
    bool result = producer -> parseInputData();
    
@@ -514,6 +624,8 @@ void* startProducerThreadInternal(void *ptr) {
 int main(int argc, char *argv[]) {
    
    Configuration *configuration = new Configuration();
+   gettimeofday(&configuration->start, NULL);
+   
    Statistics *statistics = new Statistics(); 
    statistics->done = false;
    
@@ -527,7 +639,7 @@ int main(int argc, char *argv[]) {
    WorkerQueue<InputData*> inputData(QUEUE_ELEMENTS);
    
    Consumer consumer(configuration, statistics, &inputData);
-   Producer producer(configuration, statistics, &inputData);
+   AdapiveProducer producer(configuration, statistics, &inputData);
 
    pthread_create(&readerThread, NULL, 
                   &startProducerThreadInternal, &producer);
@@ -569,6 +681,3 @@ int main(int argc, char *argv[]) {
    
    return EXIT_SUCCESS;
 }
-
-
-
