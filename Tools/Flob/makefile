@@ -25,7 +25,7 @@
 
 include ../../makefile.env
 
-CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
+#CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
 
 .PHONY: all
 all:  $(OBJECTS)

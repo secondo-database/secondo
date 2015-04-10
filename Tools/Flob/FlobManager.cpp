@@ -21,6 +21,11 @@ of that class.
 #include <fstream>
 #include "ExternalFileCache.h"
 
+
+#ifdef THREAD_SAVE
+#include <boost/thread.hpp>
+#endif
+
 #undef __TRACE_ENTER__
 #undef __TRACE_LEAVE__
 
@@ -142,6 +147,9 @@ SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId, const char mode) {
      return nativeFlobFile;
    }
 
+   #ifdef THREAD_SAVE
+   omtx.lock();
+   #endif
    SmiRecordFile* file(0);
    pair<SmiFileId, bool> finder(fileId,isTemp);
    map< pair<SmiFileId,bool>, SmiRecordFile*>::iterator it = 
@@ -155,6 +163,9 @@ SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId, const char mode) {
      file = it->second;
    }
    __TRACE_LEAVE__
+   #ifdef THREAD_SAVE
+   omtx.unlock();
+   #endif
    return file;
 }
 
@@ -178,6 +189,11 @@ This can be realized by calling the ~dropFile~ function.
      if(isTemp && id==nativeFlobs){ //never give up the control of native flobs
         return false; 
      }
+   
+     #ifdef THREAD_SAVE
+     omtx.lock();
+     #endif
+
      pair<SmiFileId,bool> finder(id,isTemp);
      map< pair<SmiFileId,bool>, SmiRecordFile*>::iterator it = 
             openFiles.find(finder);
@@ -188,8 +204,14 @@ This can be realized by calling the ~dropFile~ function.
          delete file;
          openFiles.erase(it);
          __TRACE_LEAVE__
+        #ifdef THREAD_SAVE
+        omtx.unlock();
+        #endif
          return true;
       } else{
+        #ifdef THREAD_SAVE
+        omtx.unlock();
+        #endif
         return false; // file  not handled by fm
         __TRACE_LEAVE__
       }
@@ -197,6 +219,10 @@ This can be realized by calling the ~dropFile~ function.
 
  
  bool FlobManager::dropFiles(){
+   #ifdef THREAD_SAVE
+   omtx.lock();
+   #endif
+
     map< pair<SmiFileId, bool>, SmiRecordFile*>::iterator it = 
            openFiles.begin();
     int count = 0;
@@ -209,24 +235,37 @@ This can be realized by calling the ~dropFile~ function.
        it++;
     }
     openFiles.clear();
+    #ifdef THREAD_SAVE
+    omtx.unlock();
+    #endif
     return count > 0;
  }
 
 
  void FlobManager::clearCaches(){
+   #ifdef THREAD_SAVE
+   ncmtx.lock();
+   #endif
+
    if(nativeFlobCache){
      nativeFlobCache->clear();
    }
+  #ifdef THREAD_SAVE
+    ncmtx.unlock();
+    pcmtx.lock();
+   #endif
    if(persistentFlobCache){
      persistentFlobCache->clear();
    }
+  #ifdef THREAD_SAVE
+   pcmtx.unlock();
+  #endif
  }
 
 
  bool FlobManager::makeControllable(Flob& flob){
 
     if(flob.dataPointer){
-
       assert(flob.id.isDestroyed());
       // found an evil flob, create a nice one from it
 
@@ -290,19 +329,42 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
     if(!isTemp || (fileId != nativeFlobs)){
       // the allocated memory for the slot may be too small now
       cerr << "Warning resize a persistent Flob" << endl;
+      #ifdef THREAD_SAVE
+      pcmtx.lock();
+      #endif
       persistentFlobCache->killLastSlot(flob);
+      #ifdef THREAD_SAVE
+      pcmtx.unlock();
+      #endif
     }
 
     if(isTemp &&  (fileId == nativeFlobs) && !ignoreCache){
-      return nativeFlobCache->resize(flob, newSize);
+      #ifdef THREAD_SAVE
+      ncmtx.lock();
+      #endif
+
+      bool res =  nativeFlobCache->resize(flob, newSize);
+
+      #ifdef THREAD_SAVE
+      ncmtx.unlock();
+      #endif
+      return res;
     }
 
     // resize the record containing the flob
     SmiRecord record;
     SmiRecordFile* file = getFile(fileId,id.mode);
 
+    #ifdef THREAD_SAVE
+    omtx.lock();
+    #endif
 
     bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
+    #ifdef THREAD_SAVE
+    omtx.unlock();
+    #endif
+
+
     if(!ok){
       cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
            << "Select Record failed:" << flob << endl;
@@ -310,16 +372,29 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
       __TRACE_LEAVE__
       return false;
     }
+    #ifdef THREAD_SAVE
+    omtx.lock();
+    #endif
+
     if(record.Size() != newSize){
       if( record.Resize(offset+newSize)){ 
          record.Finish();
          flob.size = newSize;
          __TRACE_LEAVE__
-         return true;
+        #ifdef THREAD_SAVE
+        omtx.unlock();
+        #endif
+        return true;
       } 
     } else {
+        #ifdef THREAD_SAVE
+        omtx.unlock();
+        #endif
        return true;
     }
+    #ifdef THREAD_SAVE
+    omtx.unlock();
+    #endif
     cerr << "Resize failed" << endl;
     
     return false;
@@ -364,9 +439,23 @@ bool FlobManager::getData(
 
     if(!ignoreCache){
       if(fileId!=nativeFlobs || !isTemp){
-         return persistentFlobCache->getData(flob,dest,offset,size);
+        #ifdef THREAD_SAVE
+        pcmtx.lock();
+        #endif
+        bool res =  persistentFlobCache->getData(flob,dest,offset,size);
+        #ifdef THREAD_SAVE
+        pcmtx.unlock();
+        #endif
+        return res;
       } else {
-        return nativeFlobCache->getData(flob, dest, offset, size);
+        #ifdef THREAD_SAVE
+        ncmtx.lock();
+        #endif
+        bool res = nativeFlobCache->getData(flob, dest, offset, size);
+        #ifdef THREAD_SAVE
+        ncmtx.unlock();
+        #endif
+        return res;
       }
     }
 
@@ -379,7 +468,15 @@ bool FlobManager::getData(
     SmiSize recOffset = floboffset + offset;
 
     SmiSize actRead;
+    #ifdef THREAD_SAVE
+    omtx.lock();
+    #endif
+
     bool ok = file->Read(recordId, dest, size, recOffset, actRead);
+    #ifdef THREAD_SAVE
+    omtx.unlock();
+    #endif
+
 
     if(!ok){
       cerr << " error in getting data from flob " << flob << endl;
@@ -396,14 +493,17 @@ bool FlobManager::getData(
       return true;
     }
     //assert(actRead == size);
-  }
-  else if (id.mode == 2)
-  {
+  } else if (id.mode == 2) {
     // retrieve data from external disk file
     SmiRecordId recordId = id.recordId;
     SmiSize     flobOffset = id.offset;
     SmiSize recOffset = flobOffset + offset;
     SmiSize actRead;
+
+    #ifdef THREAD_SAVE
+    omtx.lock();
+    #endif
+
 
     ifstream* tupleFile = externalFileCache->getFile(recordId);
 
@@ -416,6 +516,11 @@ Each time read part data within the Flob, decided by the recOffset and the size
 
     SmiSize curr = tupleFile->tellg();
     actRead =  curr - recOffset;
+
+    #ifdef THREAD_SAVE
+    omtx.unlock();
+    #endif
+
     if (actRead == size)
       return true;
     else{
@@ -466,8 +571,23 @@ bool FlobManager::destroy(Flob& victim) {
     assert(!victim.id.isDestroyed());
    bool isTemp = id.mode == 1;
    if(victim.id.fileId == nativeFlobs && isTemp){
+      #ifdef THREAD_SAVE
+      ncmtx.lock();
+      #endif
+
       nativeFlobCache->erase(victim); // delete from cache
+      #ifdef THREAD_SAVE
+      ncmtx.unlock();
+      omtx.lock();
+      #endif
+       
+
       DestroyedFlobs->push(victim);
+
+      #ifdef THREAD_SAVE
+      omtx.unlock();
+      #endif
+
      // if(DestroyedFlobs->getSize() > 64000){
      //   cerr << "Stack of destroyed flobs reaches a critical size " << endl;
      // }
@@ -483,10 +603,17 @@ bool FlobManager::destroy(Flob& victim) {
    // possible kill flob from persistent flob cache 
    // or wait until cache is removed automatically = current state
 
+   #ifdef THREAD_SAVE
+   omtx.lock();
+   #endif
 
    SmiRecordFile* file = getFile(id.fileId,id.mode);
    SmiRecord record;
    bool ok = file->SelectRecord(recordId, record, SmiFile::Update);  
+   #ifdef THREAD_SAVE
+   omtx.unlock();
+   #endif
+
    if(!ok){ // record not found in file
       cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
            << "Select Record failed:" << victim << endl;
@@ -498,8 +625,16 @@ bool FlobManager::destroy(Flob& victim) {
    
    if(id.fileId == nativeFlobs && isTemp){
       // each native flob is exlusive owner of an record
+      #ifdef THREAD_SAVE
+      ncmtx.lock();
+      omtx.lock();
+      #endif
       nativeFlobCache->erase(victim);
       file->DeleteRecord(recordId);
+      #ifdef THREAD_SAVE
+      omtx.unlock();
+      ncmtx.unlock();
+      #endif
       victim.id.destroy();
       return true;
    }
@@ -515,8 +650,15 @@ bool FlobManager::destroy(Flob& victim) {
          return false;
         
       } else { // truncate record
+        #ifdef THREAD_SAVE
+        omtx.lock();
+        #endif
          record.Truncate(offset);
          record.Finish();
+        #ifdef THREAD_SAVE
+        omtx.unlock();
+        #endif
+
       }
    } else {
      if((recordSize != size) && (id.fileId != nativeFlobs) ){
@@ -526,7 +668,13 @@ bool FlobManager::destroy(Flob& victim) {
        return false;
      } else {
         // record stores only the flob
+        #ifdef THREAD_SAVE
+        omtx.lock();
+        #endif
         file->DeleteRecord(recordId); 
+        #ifdef THREAD_SAVE
+        omtx.unlock();
+        #endif
      }
    }
    victim.id.destroy();
@@ -565,7 +713,6 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
  __TRACE_ENTER__
    assert(fileId != nativeFlobs);
    assert((mode==0) || (mode==1)); // no non-berkeley files 
-
    SmiRecordFile* file = getFile(fileId, mode);
    return saveTo(src, file, recordId, offset, result);
 
@@ -600,7 +747,16 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
    getData(src,buffer,0,src.size);
 
    SmiSize written;
+   #ifdef THREAD_SAVE
+   omtx.lock();
+   #endif
+
    bool ok = file->Write(recordId, buffer, src.size, offset, written);
+
+   #ifdef THREAD_SAVE
+   omtx.unlock();
+   #endif
+
    assert(ok);
    delete[] buffer;
   
@@ -652,23 +808,51 @@ Must be changed to support real large Flobs
     assert(file->GetFileId() != nativeFlobs || !file->IsTemp());
     SmiRecordId recId;
     SmiRecord rec;
+    #ifdef THREAD_SAVE
+    omtx.lock();
+    #endif
+
     if(!file->AppendRecord(recId,rec)){
       __TRACE_LEAVE__
+     #ifdef THREAD_SAVE
+      omtx.unlock();
+      #endif
+
       return false;
     }
     if(src.size==0){ // empty Flob
        rec.Finish();
        __TRACE_LEAVE__
+       #ifdef THREAD_SAVE
+       omtx.unlock();
+       #endif
        return true;
     }
+
+    #ifdef THREAD_SAVE
+    omtx.unlock();
+    #endif
+
 
     // write data
     char* buffer = new char[src.size+1];
     buffer[src.size] = '\0';
     getData(src, buffer, 0, src.size);
+
+    #ifdef THREAD_SAVE
+    omtx.lock();
+    #endif
+
+
     rec.Write(buffer, src.size,0);
+
     delete [] buffer;
     rec.Finish();
+
+    #ifdef THREAD_SAVE
+    omtx.unlock();
+    #endif
+
     char mode = file->IsTemp()?1:0;
 
     FlobId fid(file->GetFileId(), recId,0,mode);
@@ -716,17 +900,43 @@ bool FlobManager::putData(Flob& dest,         // destination flob
   if(!ignoreCache){
     if(fileId!=nativeFlobs || !isTemp){
       cerr << "Warning maipulate a perisistent Flob" << endl;
-      return persistentFlobCache->putData(dest, buffer, targetoffset, length);
+     #ifdef THREAD_SAVE
+     pcmtx.lock();
+     #endif
+     bool res = persistentFlobCache->putData(dest, buffer, 
+                                             targetoffset, length);
+     #ifdef THREAD_SAVE
+     pcmtx.unlock();
+     #endif
+     return res;
+
     } else {
-      return nativeFlobCache->putData(dest, buffer, targetoffset, length);
+     #ifdef THREAD_SAVE
+     ncmtx.lock();
+     #endif
+
+
+     bool res = nativeFlobCache->putData(dest, buffer, targetoffset, length);
+     #ifdef THREAD_SAVE
+     ncmtx.unlock();
+     #endif
+     return res;
+
     }
   }
 
   // put data to disk
   SmiRecordFile* file = getFile(fileId,id.mode);
   SmiSize written;
+  #ifdef THREAD_SAVE
+  omtx.lock();
+  #endif
   bool ok = file->Write(recordId, buffer, length, 
                         offset+targetoffset, written); 
+  #ifdef THREAD_SAVE
+  omtx.unlock();
+  #endif
+
   assert(ok);
   return true;
 }
@@ -751,11 +961,16 @@ bool FlobManager::putData(const FlobId& id,         // destination flob
 
   // avoid putting data into non-berkeley db flobs
   assert((id.mode==0) || (id.mode==1) || (id.mode==2));
-   
+  #ifdef THREAD_SAVE
+  omtx.lock();
+  #endif
   SmiRecordFile* file = getFile(fileId,id.mode);
   SmiSize written;
   bool ok = file->Write(recordId, buffer, length , 
                         offset + targetoffset , written);
+  #ifdef THREAD_SAVE
+  omtx.unlock();
+  #endif
   assert(ok);
   return true;
 }
@@ -773,8 +988,20 @@ bool FlobManager::setExFile(Flob& flob, const string& flobFile,
     return false;
   }
 
+
+  #ifdef THREAD_SAVE
+  omtx.lock();
+  #endif
+
+
   SmiRecordId recordId = flob.id.recordId;
   externalFileCache->cacheRecord(recordId, flobFile);
+
+  #ifdef THREAD_SAVE
+  omtx.unlock();
+  #endif
+
+
 
   flob.id.mode = 2;
   flob.id.offset = flobOffset;
@@ -798,6 +1025,11 @@ bool FlobManager::SwitchToMode1(Flob& flob, const string& flobFile,
 
   //Read data from the disk file
   ifstream* tupleFile = 0;
+  #ifdef THREAD_SAVE
+  omtx.lock();
+  #endif
+
+
   if (flob.id.mode == 3){
 /*
 In Mode 3, the record id is used to identify the remote DS,
@@ -808,8 +1040,7 @@ Therefore, we use the record id from the newly created flob structure.
     SmiRecordId recordId = newFlob.id.recordId;
     externalFileCache->cacheRecord(recordId, flobFile, true);
     tupleFile = externalFileCache->getFile(recordId);
-  }
-  else {
+  } else {
     // mode 2
     SmiRecordId recordId = flob.id.recordId;
     tupleFile = externalFileCache->getFile(recordId);
@@ -818,6 +1049,11 @@ Therefore, we use the record id from the newly created flob structure.
   tupleFile->seekg(flobOffset, ios::beg);
   char flobBlock[size];
   tupleFile->read(flobBlock, size);
+  #ifdef THREAD_SAVE
+  omtx.unlock();
+  #endif
+
+
 
   if ( (SmiSize)tupleFile->gcount() != size){
     cerr << "Error!! read " << tupleFile->gcount() 
@@ -855,28 +1091,52 @@ Warning: this function does not change the dataPointer.
     cerr << "Warning try to cretae a very big flob , size = " << size <<endl;
   }
 
+  #ifdef THREAD_SAVE
+  omtx.lock();
+  #endif
+
+
    if(!DestroyedFlobs->isEmpty()){
      result = DestroyedFlobs->pop();
      result.size = size;
+     #ifdef THREAD_SAVE
+     omtx.unlock();
+     #endif
      return true;
    }
  
 
+
+
    // create a record from the flob to get an id 
    if(!(nativeFlobFile->AppendRecord(recId,rec))){
       __TRACE_LEAVE__
+      #ifdef THREAD_SAVE
+      omtx.unlock();
+      #endif
       return false;
    }
 
    FlobId fid(nativeFlobs, recId, 0,1);
    result.id = fid;
    result.size = size;
+  #ifdef THREAD_SAVE
+   omtx.unlock();
+   #endif
+
+   #ifdef THREAD_SAVE
+   ncmtx.lock();
+   #endif
 
    if(!nativeFlobCache->create(result)){
       if(size>0){
          resize(result,size,true);
       }
    }
+   #ifdef THREAD_SAVE
+   ncmtx.unlock();
+   #endif
+
 
    __TRACE_LEAVE__
    return true;
@@ -901,12 +1161,23 @@ must exists.
 
    bool isTemp = mode==1;
    assert(fileId != nativeFlobs || !isTemp);
+   #ifdef THREAD_SAVE
+   omtx.lock();
+   #endif
+
    SmiRecordFile* file = getFile(fileId, mode);
    SmiRecord record;
    if(!file->SelectRecord(recordId,record)){
      __TRACE_LEAVE__
+      #ifdef THREAD_SAVE
+      omtx.unlock();
+      #endif
      return false;
    } 
+   #ifdef THREAD_SAVE
+   omtx.unlock();
+   #endif
+
    FlobId fid(fileId, recordId, offset, mode);
    result.id = fid;
    result.size = size;
@@ -963,11 +1234,27 @@ return a Flob with persistent storage allocated and defined elsewhere
 
 
       void FlobManager::killNativeFlobs(){
+        #ifdef THREAD_SAVE
+        ncmtx.lock();
+        #endif
+
         if(nativeFlobCache){
            nativeFlobCache->clear();
         }
-        bool ok = nativeFlobFile->ReCreate();  
+
+        bool ok = nativeFlobFile->ReCreate(); 
+        #ifdef THREAD_SAVE
+        ncmtx.unlock();
+        #endif
+
+        #ifdef THREAD_SAVE
+        omtx.lock();
+        #endif
+ 
         DestroyedFlobs->makeEmpty();
+        #ifdef THREAD_SAVE
+        omtx.unlock();
+        #endif
         assert(ok);
       }
 
@@ -985,9 +1272,17 @@ by the FlobManager class itself.
     assert(instance==0); // the constructor should only called one time
     // construct the temporarly FlobFile
     // not fixed size, dummy, temporarly
+
+    #ifdef THREAD_SAVE
+    ncmtx.lock();
+    #endif
+
+
     nativeFlobFile  = new SmiRecordFile(false,0,true); 
 
     bool created = nativeFlobFile->Create("NativeFlobFile","Default");
+
+
     // bool created = nativeFlobFile->Create();
 
     assert(created);
@@ -998,14 +1293,37 @@ by the FlobManager class itself.
     nativeFlobCache = new NativeFlobCache(NATIVE_CACHE_MAXSIZE, 
                                           NATIVE_CACHE_SLOTSIZE,
                                           NATIVE_CACHE_AVGSIZE);
+    #ifdef THREAD_SAVE
+    ncmtx.unlock();
+    #endif
+
+    #ifdef THREAD_SAVE
+    pcmtx.lock();
+    #endif
+
+
 
     persistentFlobCache = new PersistentFlobCache(PERSISTENT_CACHE_MAXSIZE, 
                                           PERSISTENT_CACHE_SLOTSIZE,
                                           PERSISTENT_CACHE_AVGSIZE);
 
+    #ifdef THREAD_SAVE
+    pcmtx.unlock();
+    omtx.lock();
+    #endif
+
+
+
+
     DestroyedFlobs = new Stack<Flob>();
 
     externalFileCache = new ExternalFileCache(FILEID_CACHE_MAXSIZE);
+
+    #ifdef THREAD_SAVE
+    omtx.unlock();
+    #endif
+
+
 
     __TRACE_LEAVE__
   }

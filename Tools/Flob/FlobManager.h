@@ -14,6 +14,10 @@ of this class.
 
 #include "SecondoSMI.h"
 
+#ifdef THREAD_SAVE
+#include <boost/thread.hpp>
+#endif
+
 
 class Flob;
 
@@ -377,6 +381,24 @@ Flob, that does not use fixed main memory buffer.
 
 */
  bool makeControllable(Flob& flob);
+
+
+/*
+~mutex member~
+
+If the implementation should be thread save, all accesses to 
+global instances (flob cashes) must be synchronized.
+
+*/
+#ifdef THREAD_SAVE
+  boost::mutex ncmtx;
+  boost::mutex pcmtx;
+  boost::mutex omtx;  // access to other variables
+#endif
+
+
+
+
 
 
 };
