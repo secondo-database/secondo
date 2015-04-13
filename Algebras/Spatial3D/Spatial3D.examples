@@ -1,0 +1,212 @@
+Database: mytestdb
+Restore : no 
+
+Operator : importSTL
+Number   : 1
+Signature: text -> volume3d
+Example  : query importSTL ('cube.txt.stl') exportSTL ["myCube", 'cube.txt.out.stl', FALSE];
+Result   : TRUE
+
+Operator : exportSTL
+Number   : 1
+Signature: volume3d x string x text x bool -> bool
+Example  : query importSTL ('cube.bin.stl') exportSTL ["myCube", 'cube.bin.out.stl', TRUE];
+Result   : TRUE
+
+Operator : rotate
+Number   : 1
+Signature: point3d x point3d x vector3d x real -> point3d
+Example  : query [const point3d value(1 1 0)] rotate [[const point3d value(0 0 0)],[const vector3d value(0 0 1)], 180.0];
+Result   : (point3d (-1.0 -1.0 0.0))
+
+Operator : rotate
+Number   : 2
+Signature: surface3d x point3d x vector3d x real -> surface3d
+Example  : query [const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)))]  rotate [[const point3d value(0 0 0)],[const vector3d value(0 0 1)], 270.0];
+Result   : (surface3d (((0.0 0.0 0.0) (1.0 -1.83697019872103e-16 0.0) (0.9999999999999998 -1.0 0.0)) ((0.0 0.0 0.0) (0.9999999999999998 -1.0 0.0) (-1.83697019872103e-16 -1.0 0.0))))
+
+Operator : rotate
+Number   : 3
+Signature: volume3d x point3d x vector3d x real -> volume3d
+Example  : query [const volume3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 1.0 0.0)(1.0 0.0 1.0)(1.0 0.0 0.0)) ((1.0 1.0 0.0)(0.0 0.0 0.0)(1.0 0.0 1.0)))]  rotate [[const point3d value(0 0 0)],[const vector3d value(0 0 1)], 180.0];
+Result   : (volume3d (((0.0 0.0 0.0) (-1.0 -0.9999999999999999 0.0) (-1.0 1.224646799147353e-16 0.0)) ((0.0 0.0 0.0) (-1.0 1.224646799147353e-16 0.0) (-1.0 1.224646799147353e-16 1.0)) ((-1.0 -0.9999999999999999 0.0) (-1.0 1.224646799147353e-16 1.0) (-1.0 1.224646799147353e-16 0.0)) ((-1.0 -0.9999999999999999 0.0) (0.0 0.0 0.0) (-1.0 1.224646799147353e-16 1.0))))
+
+Operator : mirror
+Number   : 1
+Signature: point3d x plane3d -> point3d
+Example  : query [const point3d value(1 1 5)] mirror [[const plane3d value(0 0 0 1)]];
+Result   : (point3d (1.0 1.0 -5.0))
+
+Operator : mirror
+Number   : 2
+Signature: surface3d x plane3d -> surface3d
+Example  : query [const surface3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 1.0 0.0)(1.0 0.0 1.0)(1.0 0.0 0.0)) ((1.0 1.0 0.0)(0.0 0.0 0.0)(1.0 0.0 1.0)))]  mirror [[const plane3d value(0.0 1.0 1.0 0.0)]];
+Result   : (surface3d (((0.0 0.0 0.0) (2.220446049250313e-16 -1.0 8.659560562354932e-17) (-0.9999999999999998 -1.0 1.731912112470987e-16)) ((0.0 0.0 0.0) (3.086402105485806e-16 -0.9999999999999999 1.0) (2.220446049250313e-16 -1.0 8.659560562354932e-17)) ((-0.9999999999999998 -1.0 1.731912112470987e-16) (2.220446049250313e-16 -1.0 8.659560562354932e-17) (3.086402105485806e-16 -0.9999999999999999 1.0)) ((-0.9999999999999998 -1.0 1.731912112470987e-16) (3.086402105485806e-16 -0.9999999999999999 1.0) (0.0 0.0 0.0))))
+
+Operator : mirror
+Number   : 3
+Signature: volume3d x plane3d -> volume3d
+Example  : query bbox3d([const volume3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 1.0 0.0)(1.0 0.0 1.0)(1.0 0.0 0.0)) ((1.0 1.0 0.0)(0.0 0.0 0.0)(1.0 0.0 1.0)))]  mirror [[const plane3d value(0.0 1.0 1.0 0.0)]]);
+Result   : (rect3 (-0.9999999999999998 3.086402105485806e-16 -1.0 0.0 0.0 1.0))
+
+Operator : translate
+Number   : 1
+Signature: point3d x vector3d -> point3d
+Example  : query [const point3d value(0 0 0)] translate [[const vector3d value(1 1 1)]];
+Result   : (point3d (1.0 1.0 1.0))
+
+Operator : translate
+Number   : 2
+Signature: surface3d x vector3d -> surface3d
+Example  : query [const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 1.0 0.0)))] translate [[const vector3d value(-10.0 20.0 -30.0)]];
+Result   : (surface3d (((-10.0 20.0 -30.0) (-10.0 21.0 -30.0) (-9.0 21.0 -30.0)) ((-10.0 20.0 -30.0) (-9.0 20.0 -30.0) (-9.0 21.0 -30.0))))
+
+Operator : translate
+Number   : 3
+Signature: volume3d x vector3d -> volume3d
+Example  : query [const volume3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 1.0 0.0)(1.0 0.0 1.0)(1.0 0.0 0.0)) ((1.0 1.0 0.0)(0.0 0.0 0.0)(1.0 0.0 1.0)))] translate [[const vector3d value(-10.0 20.0 -30.0)]];
+Result   : (volume3d (((-10.0 20.0 -30.0) (-9.0 21.0 -30.0) (-9.0 20.0 -30.0)) ((-10.0 20.0 -30.0) (-9.0 20.0 -30.0) (-9.0 20.0 -29.0)) ((-9.0 21.0 -30.0) (-9.0 20.0 -29.0) (-9.0 20.0 -30.0)) ((-9.0 21.0 -30.0) (-10.0 20.0 -30.0) (-9.0 20.0 -29.0))))
+
+Operator : scaleDir
+Number   : 1
+Signature: point3d x point3d x vector3d -> point3d
+Example  : query [const point3d value(2.0 3.0 4.0)] scaleDir [[const point3d value(1.0 2.0 3.0)],[const vector3d value(10.0 20.0 30.0)]];
+Result   : (point3d (11.0 22.0 33.0))
+
+Operator : scaleDir
+Number   : 2
+Signature: surface3d x point3d x vector3d -> surface3d
+Example  : query [const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 1.0 0.0)))] scaleDir [[const point3d value(1.0 2.0 3.0)],[const vector3d value(10.0 20.0 30.0)]];
+Result   : (surface3d (((-9.0 -38.0 -87.0) (-9.0 -18.0 -87.0) (1.0 -18.0 -87.0)) ((-9.0 -38.0 -87.0) (1.0 -38.0 -87.0) (1.0 -18.0 -87.0))))
+
+Operator : scaleDir
+Number   : 3
+Signature: volume3d x point3d x vector3d -> volume3d
+Example  : query [const volume3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 1.0 0.0)(1.0 0.0 1.0)(1.0 0.0 0.0)) ((1.0 1.0 0.0)(0.0 0.0 0.0)(1.0 0.0 1.0)))] scaleDir [[const point3d value(1.0 2.0 3.0)],[const vector3d value(10.0 20.0 30.0)]];
+Result   : (volume3d (((-9.0 -38.0 -87.0) (1.0 -18.0 -87.0) (1.0 -38.0 -87.0)) ((-9.0 -38.0 -87.0) (1.0 -38.0 -87.0) (1.0 -38.0 -57.0)) ((1.0 -18.0 -87.0) (1.0 -38.0 -57.0) (1.0 -38.0 -87.0)) ((1.0 -18.0 -87.0) (-9.0 -38.0 -87.0) (1.0 -38.0 -57.0))))
+
+Operator : scale
+Number   : 1
+Signature: point3d x point3d x real -> point3d
+Example  : query [const point3d value(2.0 3.0 4.0)] scale [[const point3d value(1.0 2.0 3.0)],10.0];
+Result   : (point3d (11.0 12.0 13.0))
+
+Operator : scale
+Number   : 2
+Signature: surface3d x point3d x real -> surface3d
+Example  : query [const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 1.0 0.0)))] scale [[const point3d value(1.0 2.0 3.0)],10.0];
+Result   : (surface3d (((-9.0 -18.0 -27.0) (-9.0 -8.0 -27.0) (1.0 -8.0 -27.0)) ((-9.0 -18.0 -27.0) (1.0 -18.0 -27.0) (1.0 -8.0 -27.0))))
+
+Operator : scale
+Number   : 3
+Signature: volume3d x point3d x real -> volume3d
+Example  : query [const volume3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 1.0 0.0)(1.0 0.0 1.0)(1.0 0.0 0.0)) ((1.0 1.0 0.0)(0.0 0.0 0.0)(1.0 0.0 1.0)))] scale [[const point3d value(1.0 2.0 3.0)],10.0];
+Result   : (volume3d (((-9.0 -18.0 -27.0) (1.0 -8.0 -27.0) (1.0 -18.0 -27.0)) ((-9.0 -18.0 -27.0) (1.0 -18.0 -27.0) (1.0 -18.0 -17.0)) ((1.0 -8.0 -27.0) (1.0 -18.0 -17.0) (1.0 -18.0 -27.0)) ((1.0 -8.0 -27.0) (-9.0 -18.0 -27.0) (1.0 -18.0 -17.0))))
+
+Operator : size
+Number   : 1
+Signature: ({surface3d | volume3d}) -> int
+Example  : query size([const surface3d value(((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((1.0 1.0 0.0) (0.0 1.0 0.0) (1.0 1.0 2.0)))]);
+Result   : 2
+
+Operator : bbox3d
+Number   : 1
+Signature: point3d -> rect3
+Example  : query bbox3d([const point3d value(1.0 1.0 2.0)]);
+Result   : (rect3 (1.0 1.0 1.0 1.0 2.0 2.0))
+
+Operator : bbox3d
+Number   : 2
+Signature: ({surface3d | volume3d}) -> rect3
+Example  : query bbox3d([const surface3d value(((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((1.0 1.0 0.0) (0.0 1.0 0.0) (1.0 1.0 2.0)))]);
+Result   : (rect3  (0.0 1.0 0.0 1.0 0.0 2.0))
+
+Operator : createCube
+Number   : 1
+Signature: point3d x point3d -> volume3d
+Example  : query bbox3d(createCube([const point3d value(0.0 0.0 0.0)],[const point3d value(1.0 1.0 1.0)]));
+Result   : (rect3 (0.0 1.0 0.0 1.0 0.0 1.0))
+
+Operator : createCylinder
+Number   : 1
+Signature: point3d x real x real x int -> volume3d
+Example  : query bbox3d(createCylinder([const point3d value(0.0 0.0 0.0)],1.0,1.0,3));
+Result   : (rect3 (-0.5000000000000004 1.0 -0.8660254037844384 0.8660254037844387 0.0 1.0))
+
+Operator : createCone
+Number   : 1
+Signature: point3d x real x real x int -> volume3d
+Example  : query bbox3d(createCone([const point3d value(0.0 0.0 0.0)],1.0,1.0,3));
+Result   : (rect3 (-0.5000000000000004 1.0 -0.8660254037844384 0.8660254037844387 0.0 1.0))
+
+Operator : createSphere
+Number   : 1
+Signature: point3d x real x int -> volume3d
+Example  : query bbox3d(createSphere([const point3d value(0.0 0.0 0.0)],1.0,3));
+Result   : (rect3 (-1.0 1.0 -1.0 1.0 0.0 2.0))
+
+Operator : union
+Number   : 1
+Signature: surface3d x surface3d -> surface3d
+Example  : query [const surface3d value(((0.0 0.0 0.0) (4.0 0.0 0.0) (2.0 4.0 1.0)))] union [const surface3d value(((1.0 2.0 0.0) (5.0 2.0 0.0) (1.0 6.0 0.0)))];
+Result   : (surface3d (((0.0 0.0 0.0) (4.0 0.0 0.0) (2.0 4.0 1.0)) ((1.0 2.0 0.0) (5.0 2.0 0.0) (1.0 6.0 0.0))))
+
+Operator : union
+Number   : 2
+Signature: volume3d x volume3d -> volume3d
+Example  : query [const volume3d value(((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((1.0 1.0 0.0) (0.0 1.0 0.0) (1.0 1.0 2.0)))] union [const volume3d value(((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((1.0 1.0 0.0) (0.0 1.0 0.0) (1.0 1.0 2.0)))];
+Result   : (volume3d undefined)
+
+Operator : minus
+Number   : 1
+Signature: surface3d x surface3d -> surface3d
+Example  : query [const surface3d value(((0.0 0.0 0.0) (4.0 0.0 0.0) (2.0 4.0 1.0)))] minus [const surface3d value(((1.0 2.0 0.0) (5.0 2.0 0.0) (1.0 6.0 0.0)))];
+Result   : (surface3d (((0.0 0.0 0.0) (4.0 0.0 0.0) (2.0 4.0 1.0))))
+
+Operator : minus
+Number   : 2
+Signature: volume3d x volume3d -> volume3d
+Example  : query [const volume3d value(((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((1.0 1.0 0.0) (0.0 1.0 0.0) (1.0 1.0 2.0)))] minus [const volume3d value(((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((1.0 1.0 0.0) (0.0 1.0 0.0) (1.0 1.0 2.0)))];
+Result   : (volume3d undefined)
+
+Operator : intersection
+Number   : 1
+Signature: surface3d x surface3d -> surface3d
+Example  : query intersection ([const surface3d value(((0.0 0.0 0.0) (4.0 0.0 0.0) (2.0 4.0 1.0)))] , [const surface3d value(((1.0 2.0 0.0) (5.0 2.0 0.0) (1.0 6.0 0.0)))]);
+Result   : (surface3d ())
+
+Operator : intersection
+Number   : 2
+Signature: volume3d x volume3d -> volume3d
+Example  : query intersection ([const volume3d value(((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((1.0 1.0 0.0) (0.0 1.0 0.0) (1.0 1.0 2.0)))] , [const volume3d value(((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((1.0 1.0 0.0) (0.0 1.0 0.0) (1.0 1.0 2.0)))]);
+Result   : (volume3d undefined)
+
+Operator : components
+Number   : 1
+Signature: surface3d -> (stream (surface3d))
+Example  : query components([const surface3d value(((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((1.0 1.0 0.0) (0.0 1.0 0.0) (1.0 1.0 2.0)))]) count;
+Result   : (int 1)
+
+Operator : region2surface
+Number   : 1
+Signature: region -> surface3d
+Example  : query region2surface([const rect value (-10.0 -9.0 10.0 11.0)] rect2region);
+Result   : (surface3d (((-10.0 11.0 0.0) (-10.0 10.0 0.0) (-9.0 11.0 0.0)) ((-9.0 11.0 0.0) (-10.0 10.0 0.0) (-9.0 10.0 0.0))))
+
+Operator : region2volume
+Number   : 1
+Signature: region -> volume3d
+Example  : query bbox3d(region2volume([const rect value (-10.0 -9.0 10.0 11.0)] rect2region, 1.0));
+Result   : (rect3 (-10.0 -9.0 10.0 11.0 0.0 1.0))
+
+Operator : mregion2volume
+Number   : 1
+Signature: mregion -> volume3d
+Example  : query bbox3d(mregion2volume([ const mregion value (((0.0 3.0 TRUE FALSE) ((((0.0 0.0 1.0 1.0) (2.0 0.0 3.0 1.0) (1.0 2.0 2.0 3.0)))))) ], 1.0));
+Result   : (rect3 (0.0 3.0 0.0 3.0 0.0 3.0))
+
+Operator : test
+Number   : 1
+Signature: int -> int
+Example  : query test(0);
+Result   : (int 1)

@@ -1,0 +1,18 @@
+delete database mytestdb;
+
+#setup Forall2Test StandardAlgebra RelationAlgebra
+create database mytestdb;
+open database mytestdb;
+
+#testcase fixSphere
+#yields success
+query  importSTL('testfiles/volumeswithleaks/sphere1.txt.stl') exportSTL ["fixed", 'sphere1.auto.stl', FALSE];
+
+#testcase createFus
+#yields success
+query importSTL('The_Double-lined_fusilier.stl') exportSTL ["fixed", 'fus.stl', FALSE];
+
+
+#teardown
+close database;
+delete database mytestdb;

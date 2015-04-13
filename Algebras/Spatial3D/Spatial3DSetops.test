@@ -1,0 +1,55 @@
+delete database mytestdb;
+
+#setup Forall2Test StandardAlgebra RelationAlgebra
+create database mytestdb;
+open database mytestdb;
+
+# now define some common surfaces and volumes for setops testcases
+let emptyvolume = [const volume3d value ()];
+
+let emptysurface = [const surface3d value ()];
+
+let undefvolume = [const volume3d value undefined];
+
+let undefsurface = [const surface3d value undefined];
+
+let cube = [const volume3d value (((0.0 1.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0))
+                                  ((1.0 0.0 0.0) (0.0 0.0 0.0) (0.0 1.0 0.0)) 
+                                  ((0.0 0.0 1.0) (1.0 0.0 1.0) (1.0 1.0 1.0)) 
+                                  ((1.0 1.0 1.0) (0.0 1.0 1.0) (0.0 0.0 1.0)) 
+                                  ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) 
+                                  ((1.0 0.0 1.0) (0.0 0.0 1.0) (0.0 0.0 0.0)) 
+                                  ((1.0 0.0 0.0) (1.0 1.0 0.0) (1.0 1.0 1.0)) 
+                                  ((1.0 1.0 1.0) (1.0 0.0 1.0) (1.0 0.0 0.0)) 
+                                  ((1.0 1.0 0.0) (0.0 1.0 0.0) (0.0 1.0 1.0)) 
+                                  ((0.0 1.0 1.0) (1.0 1.0 1.0) (1.0 1.0 0.0)) 
+                                  ((0.0 1.0 0.0) (0.0 0.0 0.0) (0.0 0.0 1.0)) 
+                                  ((0.0 0.0 1.0) (0.0 1.0 1.0) (0.0 1.0 0.0)))];    
+                                  
+let square  = [const surface3d value (((0.0 1.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0))
+                                     ((1.0 0.0 0.0) (0.0 0.0 0.0) (0.0 1.0 0.0)))]; 
+                                     
+let square2 = [const surface3d value (((0.0 2.0 0.0) (2.0 2.0 0.0) (2.0 0.0 0.0))
+                                     ((2.0 0.0 0.0) (0.0 0.0 0.0) (0.0 2.0 0.0)))]; 
+
+
+
+
+
+# here we have some crashes...
+
+
+
+#testcase importSTLcrash
+#yields success
+query importSTL('./testfiles/vampireSmall.stl');
+
+#testcase union-sur_sur_sur2
+#yields (surface3d value (((0.0 2.0 0.0) (2.0 2.0 0.0) (2.0 0.0 0.0)) ((2.0 0.0 0.0) (0.0 0.0 0.0) (0.0 2.0 0.0))))
+query square union square2;
+
+
+
+#teardown
+close database;
+delete database mytestdb;

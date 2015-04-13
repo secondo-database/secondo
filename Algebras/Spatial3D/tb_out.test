@@ -1,0 +1,190 @@
+delete database mytestdb;
+
+#setup Forall2Test StandardAlgebra RelationAlgebra
+create database mytestdb;
+open database mytestdb;
+
+## OK
+#testcase HELL_AND_HEAVEN_ANGELS
+#yields success
+query importSTL('./tb/HELL_AND_HEAVEN_ANGELS.stl') exportSTL ["tb.test", './tb_out/HELL_AND_HEAVEN_ANGELS.stl', FALSE];
+
+## OK
+#testcase pinoesel
+#yields success
+query importSTL('./tb/pinoesel.stl') exportSTL ["tb.test", './tb_out/pinoesel.stl', FALSE];
+
+## crash - assertion failure
+#testcase loubie_aria_dragon
+#yields success
+query importSTL('./tb/loubie_aria_dragon.stl') exportSTL ["tb.test", './tb_out/loubie_aria_dragon.stl', FALSE];
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase devilhead1
+#yields success
+query importSTL('./tb/devilhead1.stl') exportSTL ["tb.test", './tb_out/devilhead1.stl', FALSE];
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase My_Scan_2013-10-09_09.00_AM
+#yields success
+query importSTL('./tb/My_Scan_2013-10-09_09.00_AM.stl') exportSTL ["tb.test", './tb_out/My_Scan_2013-10-09_09.00_AM.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase dungeonskeeper_devil
+#yields success
+query importSTL('./tb/dungeonskeeper_devil.stl') exportSTL ["tb.test", './tb_out/dungeonskeeper_devil.stl', FALSE];
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase The_Horns_fixed
+#yields success
+query importSTL('./tb/The_Horns_fixed.stl') exportSTL ["tb.test", './tb_out/The_Horns_fixed.stl', FALSE];
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase AustereBunny
+#yields success
+query importSTL('./tb/AustereBunny.stl') exportSTL ["tb.test", './tb_out/AustereBunny.stl', FALSE];     
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase seaLadyBust
+#yields success
+query importSTL('./tb/seaLadyBust.stl') exportSTL ["tb.test", './tb_out/seaLadyBust.stl', FALSE];
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase Bunny
+#yields success
+query importSTL('./tb/Bunny.stl') exportSTL ["tb.test", './tb_out/Bunny.stl', FALSE];
+
+## OK (dauert laaange)
+#testcase creature
+#yields success
+query importSTL('./tb/creature.stl') exportSTL ["tb.test", './tb_out/creature.stl', FALSE];
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase GODZILLA_HEAD_002
+#yields success
+query importSTL('./tb/GODZILLA_HEAD_002.stl') exportSTL ["tb.test", './tb_out/GODZILLA_HEAD_002.stl', FALSE];
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase My_Scan_3
+#yields success
+query importSTL('./tb/My_Scan_3.stl') exportSTL ["tb.test", './tb_out/My_Scan_3.stl', FALSE];
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase Satan_repaired
+#yields success
+query importSTL('./tb/Satan_repaired.stl') exportSTL ["tb.test", './tb_out/Satan_repaired.stl', FALSE];
+
+## inifinite?
+#testcase DEVIL_96k
+#yields success
+query importSTL('./tb/DEVIL_96k.stl') exportSTL ["tb.test", './tb_out/DEVIL_96k.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase Dragon_Head_In_STL_for_Insense_v0.6
+#yields success
+query importSTL('./tb/Dragon_Head_In_STL_for_Insense_v0.6.stl') exportSTL ["tb.test", './tb_out/Dragon_Head_In_STL_for_Insense_v0.6.stl', FALSE];
+
+## crash - assertion failure
+#testcase devil_Highres
+#yields success                                                                                                                                                                                 
+query importSTL('./tb/devil_Highres.stl') exportSTL ["tb.test", './tb_out/devil_Highres.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase polysoup
+#yields success
+query importSTL('./tb/polysoup.stl') exportSTL ["tb.test", './tb_out/polysoup.stl', FALSE]; 
+
+## kein crash - aber numerical problem
+#testcase Creature_flat
+#yields success
+query importSTL('./tb/Creature_flat.stl') exportSTL ["tb.test", './tb_out/Creature_flat.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase DragonHeadSmall
+#yields success
+query importSTL('./tb/DragonHeadSmall.stl') exportSTL ["tb.test", './tb_out/DragonHeadSmall.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase gollumbust
+#yields success
+query importSTL('./tb/gollumbust.stl') exportSTL ["tb.test", './tb_out/gollumbust.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase DevilHornsGestureWitch
+#yields success
+query importSTL('./tb/DevilHornsGestureWitch.stl') exportSTL ["tb.test", './tb_out/DevilHornsGestureWitch.stl', FALSE];
+
+## kein crash, aber
+## a) leerzeichen in txt stl: "dragon lion" - mit "dragonlion" wird Datei eingelesen
+## b) dann numerical problem
+#testcase dragon_lion
+#yields success
+query importSTL('./tb/dragon_lion.stl') exportSTL ["tb.test", './tb_out/dragon_lion.stl', FALSE];
+
+## gefixte Datei aus testcase dragon_lion
+## kein crash - aber numerical problem
+#testcase dragon_lion_fixed
+#yields success
+query importSTL('./tb/dragon_lion_fixed.stl') exportSTL ["tb.test", './tb_out/dragon_lion_fixed.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase GARDEN_FROG
+#yields success
+query importSTL('./tb/GARDEN_FROG.stl') exportSTL ["tb.test", './tb_out/GARDEN_FROG.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase attitudeBunny_twiesner
+#yields success
+query importSTL('./tb/attitudeBunny_twiesner.stl') exportSTL ["tb.test", './tb_out/attitudeBunny_twiesner.stl', FALSE];
+
+## crash - assertion failure
+#testcase forrest_dragon_with_meshmixer_support
+#yields success
+query importSTL('./tb/forrest_dragon_with_meshmixer_support.stl') exportSTL ["tb.test", './tb_out/forrest_dragon_with_meshmixer_support.stl', FALSE];
+
+## kein crash, aber
+## a) leerzeichen in txt stl: "Demon Bunny Final" - mit "DemonBunnyFinal" wird Datei eingelesen
+## b) dann numerical problem
+#testcase Demon_Bunny_Final
+#yields success
+query importSTL('./tb/Demon_Bunny_Final.stl') exportSTL ["tb.test", './tb_out/Demon_Bunny_Final.stl', FALSE];
+
+## gefixte Datei aus testcase Demon_Bunny_Final
+## kein crash - aber numerical problem
+#testcase Demon_Bunny_Final_fixed
+#yields success
+query importSTL('./tb/Demon_Bunny_Final_fixed.stl') exportSTL ["tb.test", './tb_out/Demon_Bunny_Final_fixed.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase forest_dragon_full
+#yields success
+query importSTL('./tb/forest_dragon_full.stl') exportSTL ["tb.test", './tb_out/forest_dragon_full.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase dragonhead_resculpt
+#yields success
+query importSTL('./tb/dragonhead_resculpt.stl') exportSTL ["tb.test", './tb_out/dragonhead_resculpt.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase Dragon-Z-flat
+#yields success
+query importSTL('./tb/Dragon-Z-flat.stl') exportSTL ["tb.test", './tb_out/Dragon-Z-flat.stl', FALSE];
+
+## crash - stacksize - mit ulimit -s 1000000 funktionierts
+#testcase marble-player
+#yields success
+query importSTL('./tb/marble-player.stl') exportSTL ["tb.test", './tb_out/marble-player.stl', FALSE];
+
+## kein crash - aber numerical problem
+#testcase devilHighres_fixed
+#yields success
+query importSTL('./tb/devilHighres_fixed.stl') exportSTL ["tb.test", './tb_out/devilHighres_fixed.stl', FALSE]; 
+
+#teardown
+close database;
+delete database mytestdb;
+
+
+
+
+

@@ -1,0 +1,496 @@
+delete database mytestdb;
+
+#setup Forall2Test StandardAlgebra RelationAlgebra
+create database mytestdb;
+open database mytestdb;
+
+# now create some Spatial3D objects required for the tests....
+let real1 = 1.0;
+
+
+# now define some common surfaces and volumes for setops testcases
+let emptyvolume = [const volume3d value ()];
+
+let emptysurface = [const surface3d value ()];
+
+let undefvolume = [const volume3d value undefined];
+
+let undefsurface = [const surface3d value undefined];
+
+let cube = [const volume3d value (((0.0 1.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0))
+((1.0 0.0 0.0) (0.0 0.0 0.0) (0.0 1.0 0.0)) 
+((0.0 0.0 1.0) (1.0 0.0 1.0) (1.0 1.0 1.0)) 
+((1.0 1.0 1.0) (0.0 1.0 1.0) (0.0 0.0 1.0)) 
+((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) 
+((1.0 0.0 1.0) (0.0 0.0 1.0) (0.0 0.0 0.0)) 
+((1.0 0.0 0.0) (1.0 1.0 0.0) (1.0 1.0 1.0)) 
+((1.0 1.0 1.0) (1.0 0.0 1.0) (1.0 0.0 0.0)) 
+((1.0 1.0 0.0) (0.0 1.0 0.0) (0.0 1.0 1.0)) 
+((0.0 1.0 1.0) (1.0 1.0 1.0) (1.0 1.0 0.0)) 
+((0.0 1.0 0.0) (0.0 0.0 0.0) (0.0 0.0 1.0)) 
+((0.0 0.0 1.0) (0.0 1.0 1.0) (0.0 1.0 0.0)))];    
+
+let square  = [const surface3d value (((0.0 1.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0))
+((1.0 0.0 0.0) (0.0 0.0 0.0) (0.0 1.0 0.0)))]; 
+
+let square2 = [const surface3d value (((0.0 2.0 0.0) (2.0 2.0 0.0) (2.0 0.0 0.0))
+((2.0 0.0 0.0) (0.0 0.0 0.0) (0.0 2.0 0.0)))]; 
+
+
+# Here come: The tests
+
+# ==============================================================================
+# Examples
+# ==============================================================================
+
+#testcase ExampleTest1
+#yields (bool TRUE)
+query real1 = 1.0;
+
+#testcase ExampleTest2
+#yields error
+query unknownVar = 1.0;
+
+
+# ==============================================================================
+# Tests for basic types
+# ==============================================================================
+
+#testcase CreatePointSuccess
+#yields (point3d (4.0 -3.7 2.5))
+query [const point3d value (4 -3.7 2.5)];
+
+#testcase CreatePointListTooLong
+#yields error
+query [const point3d value (4 -3.7 2.5 2.8)];
+
+#testcase CreatePointListTooShort
+#yields error
+query [const point3d value (4 -3.7)];
+
+#testcase CreatePointWrongTypes
+#yields error
+query [const point3d value (4 -3.7 "1")];
+
+#testcase CreatePointUndefinedValue
+#yields (point3d undefined)
+query [const point3d value undefined];
+
+#testcase CreateSurfaceSuccess
+#yields (surface3d (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 1.0 0.0))))
+query [const surface3d value (((0 0 0) (0 1 0) (1 1 0)) ((0 0 0) (1 0 0) (1 1 0)))];
+
+#testcase CreateSurfaceTriangleListTooLong
+#yields error
+query [const surface3d value (((0 0 0) (0 1 0) (1 1 0)) ((0 0 0) (1 0 0) (1 1 0) (1 1 1)))];
+
+#testcase CreateSurfaceTriangleListTooShort
+#yields error
+query [const surface3d value (((0 0 0) (0 1 0) (1 1 0)) ((0 0 0) (1 0 0)))];
+
+#testcase CreateSurfacePointListTooLong
+#yields error
+query [const surface3d value (((0 0 0) (0 1 0) (1 1 0)) ((0 0 0) (1 0 0) (1 1 0 0)))];
+
+#testcase CreateSurfacePointListTooShort
+#yields error
+query [const surface3d value (((0 0 0) (0 1 0) (1 1 0)) ((0 0 0) (1 0 0) (1 1)))];
+
+#testcase CreateSurfaceWrongTypes
+#yields error
+query [const surface3d value (((0 0 0) (0 1 0) (1 1 0)) ((0 0 0) (1 0 0) (1 1 "0")))];
+
+#testcase CreateSurfaceUndefinedValue
+#yields (surface3d undefined)
+query [const surface3d value undefined];
+
+#testcase CreateSurfaceInvalidTriangle
+#yields (surface3d undefined)
+query [const surface3d value (((0 0 0) (0 1 0) (1 1 0)) ((0 0 0) (1 0 0) (2 0 0)))];
+
+# TODO: Surfaces violating constraints: (Jens Breit)
+# Overlapping triangles: same triangle
+# Overlapping triangles: point inside another triangle
+# shared part of an edge, but not whole edge
+# Edge on surface of another triangle
+
+# TODO: other cases of correct triangles (Jens Breit)
+# Shared single corner
+# Corner on edge of another triangle
+# Corner on surface of another triangle
+# unconnected triangles
+
+# TODO: copy and extend surface3d tests for volume3d (not yet relevant) (Jens Breit)
+
+# ==============================================================================
+# Operators: import / export
+# ==============================================================================
+
+
+# ==============================================================================
+# Operators: create*
+# ==============================================================================
+#tolerance_real 0.0009
+#testcase createCube1
+#yields (rect3 (0.0 1.0 0.0 1.0 0.0 1.0))
+query bbox3d (createCube([const point3d value(0.0 0.0 0.0)],[const point3d value(1.0 1.0 1.0)]));
+
+#testcase createCylinder
+#yields (rect3 (-0.5000000000000004 1.0 -0.8660254037844384 0.8660254037844387 0.0 1.0))
+query bbox3d (createCylinder([const point3d value(0.0 0.0 0.0)],1.0,1.0,3));
+
+#testcase createCone
+#yields (rect3 (-0.5000000000000004 1.0 -0.8660254037844384 0.8660254037844387 0.0 1.0))
+query bbox3d(createCone([const point3d value(0.0 0.0 0.0)],1.0,1.0,3));
+
+#testcase createSphere1
+#yields (rect3 (-1.0 1.0 -1.0 1.0 0.0 2.0))
+query bbox3d (createSphere([const point3d value(0.0 0.0 0.0)],1.0,3));
+
+#testcase createSphere2
+#yields (rect3 (-1.732050807568877 1.732050807568877 -2.0 2.0 2.5 5.5))
+query bbox3d (createSphere([const point3d value(0.0 0.0 2.0)],2.0,6));
+
+# ==============================================================================
+# Operators: transformations
+# ==============================================================================
+#testcase rotatePoint1
+#yields (point3d (-1.0 -1.0 0.0))
+query [const point3d value(1 1 0)] rotate [[const point3d value(0 0 0)],[const vector3d value(0 0 1)], 180.0];
+
+#testcase rotatePoint2
+#yields (point3d (1.0 -4.65685424949 4.0))
+query [const point3d value(-3.0 -3.0 4.0)] rotate [[const point3d value(1 1 0)],[const vector3d value(0 0 1)], 45.0];
+
+#testcase rotateSurface1
+#yields (surface3d (((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 -1.0 0.0)) ((0.0 0.0 0.0) (1.0 -1.0 0.0) (0.0 -1.0 0.0))))
+query [const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)))]  rotate [[const point3d value(0 0 0)],[const vector3d value(0 0 1)], 270.0];
+
+#testcase rotateSurface2
+#yields (surface3d (((0.0 0.0 0.0) (0.7071067811865475 -0.7071067811865477 0.0) (0.0 -1.414213562373095 0.0)) ((0.0 0.0 0.0) (0.0 -1.414213562373095 0.0) (-0.7071067811865475 -0.7071067811865477 0.0))))
+query [const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)))]  rotate [[const point3d value(0 0 0)],[const vector3d value(0 0 1)], 225.0];
+
+#testcase rotateVolume1
+#yields (volume3d (((0.0 0.0 0.0) (-1.0 -1.0 0.0) (-1.0 0.0 0.0)) ((0.0 0.0 0.0) (-1.0 0.0 0.0) (-1.0 0.0 1.0)) ((-1.0 0.0 1.0) (-1.0 0.0 0.0) (-1.0 -1.0 0.0)) ((0.0 0.0 0.0) (-1.0 0.0 1.0) (-1.0 -1.0 0.0))))
+query [const volume3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 0.0 1.0) (1.0 0.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 1.0) (1.0 1.0 0.0)))]  rotate [[const point3d value(0 0 0)],[const vector3d value(0 0 1)], 180.0];
+
+#testcase mirrorPoint1
+#yields (point3d (-1.0 -1.0 5.0))
+query [const point3d value(-1 -1 -5)] mirror [[const plane3d value(0.0 0.0 0.0 1.0)]];
+
+#testcase mirrorPoint2
+#yields (point3d (-1.0 -1.0 0.0))
+query [const point3d value(1 -1 0)] mirror [[const plane3d value(0.0 1.0 0.0 0.0)]];
+
+#testcase mirrorPoint3
+#yields (point3d (11.54700538379252 11.54700538379252 11.54700538379252))
+query [const point3d value(0.0 0.0 0.0)] mirror [[const plane3d value(10.0 1.0 1.0 1.0)]];
+
+#testcase mirrorSurface1
+#yields (surface3d (((0.0 0.0 0.0) (-1.0 -1.0 0.0) (-1.0 0.0 0.0)) ((0.0 0.0 0.0) (0.0 -1.0 0.0) (-1.0 -1.0 0.0))))
+query [const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)))]  mirror [[const plane3d value(0.0 1.0 1.0 0.0)]];
+
+#testcase mirrorVolume1
+#yields (volume3d (((0.0 0.0 0.0) (0.0 -1.0 0.0) (-1.0 -1.0 0.0)) ((0.0 0.0 0.0) (0.0 -1.0 1.0) (0.0 -1.0 0.0)) ((0.0 -1.0 1.0) (-1.0 -1.0 0.0) (0.0 -1.0 0.0)) ((0.0 0.0 0.0) (-1.0 -1.0 0.0) (0.0 -1.0 1.0))))
+query [const volume3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 0.0 1.0) (1.0 0.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 1.0) (1.0 1.0 0.0)))]  mirror [[const plane3d value(0.0 1.0 1.0 0.0)]];
+
+#testcase translatePoint1
+#yields (point3d (11.0 22.0 33.0))
+query [const point3d value(1.0 2.0 3.0)] translate [[const vector3d value(10.0 20.0 30.0)]];
+
+#testcase translatePoint2
+#yields (point3d (-11.0 18.0 -33.0))
+query [const point3d value(-1.0 -2.0 -3.0)] translate [[const vector3d value(-10.0 20.0 -30.0)]];
+
+#testcase translateSurface1
+#yields (surface3d (((-10.0 20.0 -30.0) (-10.0 21.0 -30.0) (-9.0 21.0 -30.0)) ((-10.0 20.0 -30.0) (-9.0 20.0 -30.0) (-9.0 21.0 -30.0))))
+query [const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 1.0 0.0)))] translate [[const vector3d value(-10.0 20.0 -30.0)]];
+
+#testcase translateVolume1
+#yields (volume3d (((-10.0 20.0 -30.0) (-9.0 21.0 -30.0) (-9.0 20.0 -30.0)) ((-10.0 20.0 -30.0) (-9.0 20.0 -30.0) (-9.0 20.0 -29.0)) ((-9.0 20.0 -29.0) (-9.0 20.0 -30.0) (-9.0 21.0 -30.0)) ((-10.0 20.0 -30.0) (-9.0 20.0 -29.0) (-9.0 21.0 -30.0))))
+query [const volume3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 0.0 1.0) (1.0 0.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 1.0) (1.0 1.0 0.0)))] translate [[const vector3d value(-10.0 20.0 -30.0)]];
+
+#testcase scaleDirPoint1
+#yields (point3d (11.0 22.0 33.0))
+query [const point3d value(2.0 3.0 4.0)] scaleDir [[const point3d value(1.0 2.0 3.0)],[const vector3d value(10.0 20.0 30.0)]];
+
+#testcase scaleDirSurface1
+#yields (surface3d (((-9.0 -38.0 -87.0) (-9.0 -18.0 -87.0) (1.0 -18.0 -87.0)) ((-9.0 -38.0 -87.0) (1.0 -38.0 -87.0) (1.0 -18.0 -87.0))))
+query [const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 1.0 0.0)))] scaleDir [[const point3d value(1.0 2.0 3.0)],[const vector3d value(10.0 20.0 30.0)]];
+
+#testcase scaleDirVolume1
+#yields (volume3d (((-9.0 -38.0 -87.0) (1.0 -18.0 -87.0) (1.0 -38.0 -87.0)) ((-9.0 -38.0 -87.0) (1.0 -38.0 -87.0) (1.0 -38.0 -57.0)) ((1.0 -38.0 -57.0) (1.0 -38.0 -87.0) (1.0 -18.0 -87.0)) ((-9.0 -38.0 -87.0) (1.0 -38.0 -57.0) (1.0 -18.0 -87.0))))
+query [const volume3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 0.0 1.0) (1.0 0.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 1.0) (1.0 1.0 0.0)))] scaleDir [[const point3d value(1.0 2.0 3.0)],[const vector3d value(10.0 20.0 30.0)]];
+
+#testcase scalePoint1
+#yields (point3d (11.0 12.0 13.0))
+query [const point3d value(2.0 3.0 4.0)] scale [[const point3d value(1.0 2.0 3.0)],10.0];
+
+#testcase scaleSurface1
+#yields (surface3d (((-9.0 -18.0 -27.0) (-9.0 -8.0 -27.0) (1.0 -8.0 -27.0)) ((-9.0 -18.0 -27.0) (1.0 -18.0 -27.0) (1.0 -8.0 -27.0))))
+query [const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 1.0 0.0)))] scale [[const point3d value(1.0 2.0 3.0)],10.0];
+
+#testcase scaleVolume1
+#yields (volume3d (((-9.0 -18.0 -27.0) (1.0 -8.0 -27.0) (1.0 -18.0 -27.0)) ((-9.0 -18.0 -27.0) (1.0 -18.0 -27.0) (1.0 -18.0 -17.0)) ((1.0 -18.0 -17.0) (1.0 -18.0 -27.0) (1.0 -8.0 -27.0)) ((-9.0 -18.0 -27.0) (1.0 -18.0 -17.0) (1.0 -8.0 -27.0))))
+query [const volume3d value (((0.0 0.0 0.0) (1.0 1.0 0.0) (1.0 0.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 0.0 1.0)) ((1.0 0.0 1.0) (1.0 0.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 1.0) (1.0 1.0 0.0)))] scale [[const point3d value(1.0 2.0 3.0)],10.0];
+
+# ==============================================================================
+# Operators: convert operators
+# ==============================================================================
+
+#testcase region2surface1
+#yields (rect3 (-10.0 -9.0 10.0 11.0 0.0 0.0))
+query bbox3d(region2surface([const rect value (-10.0 -9.0 10.0 11.0)] rect2region));
+
+
+#testcase region2surface2
+let r2 = [ const region value ((((200.0 100.0)
+                                 (100.0 100.0)
+                                 (100.0 200.0)
+                                 (200.0 200.0))
+                                ((175.0 125.0)
+                                 (125.0 125.0)
+                                 (125.0 175.0)
+                                 (175.0 175.0)))) ];    
+                                 
+#yields (rect3 (100.0 200.0 100.0 200.0 0.0 0.0))
+query bbox3d(region2surface(r2));
+
+#testcase region2surface3
+let r1 = [ const region value ((((200.0 100.0)
+                                 (50.0 50.0)
+                                 (100.0 100.0)
+                                 (100.0 200.0)
+                                 (200.0 200.0)))) ];    
+                                 
+#yields (rect3 (50.0 200.0 50.0 200.0 0.0 0.0))
+query bbox3d(region2surface(r1));
+
+#testcase region2volume1
+#yields (rect3 (-10.0 -9.0 10.0 11.0 0.0 1.0))
+query bbox3d(region2volume([const rect value (-10.0 -9.0 10.0 11.0)] rect2region, 1.0));
+
+#testcase mregion2volume1
+#yields (rect3 (0.0 3.0 0.0 3.0 0.0 3.0))
+query bbox3d(mregion2volume([ const mregion value (((0.0 3.0 TRUE FALSE) ((((0.0 0.0 1.0 1.0) (2.0 0.0 3.0 1.0) (1.0 2.0 2.0 3.0)))))) ], 1.0));
+
+#close database;
+#open database mytestdb;
+
+# ==============================================================================
+# Operators: set operators
+# ==============================================================================
+
+# currently all setops use the identical type mappping internally
+# therefore all typemapping related testcases are performed only on union operator
+
+# Check if we get type errors as expected when combining surface3d and volume3d objects
+
+#testcase union-type-undef_vol_sur
+#yields error
+query undefvolume union undefsurface;
+
+#testcase union-type-undef_sur_vol
+#yields error
+query undefsurface union undefvolume;
+
+#testcase union-type-empty_vol_sur
+#yields error
+query emptyvolume union emptysurface;
+
+#testcase union-type-empty_sur_vol
+#yields error
+query emptysurface union emptyvolume;
+
+#testcase union-type_vol_sur
+#yields error
+query cube union square;
+
+#testcase union-type_sur_vol
+#yields error
+query square union cube; 
+
+
+# Now check for correct handling of undefined objects
+# If any of the provided objects is undefined the result is also undefined
+
+#testcase union-undef-vol_undef_undef
+#yields (volume3d undefined)
+query undefvolume union undefvolume;
+
+#testcase union-undef-vol_undef_empty
+#yields (volume3d undefined)
+query undefvolume union emptyvolume;
+
+#testcase union-undef-vol_empty_undef
+#yields (volume3d undefined)
+query emptyvolume union undefvolume;
+
+#testcase union-undef-vol_undef_vol
+#yields (volume3d undefined)
+query undefvolume union cube;
+
+#testcase union-undef-vol_vol_undef
+#yields (volume3d undefined)
+query cube union undefvolume;
+
+
+
+#testcase union-undef-sur_undef_undef
+#yields (surface3d undefined)
+query undefsurface union undefsurface;
+
+#testcase union-undef-sur_undef_empty
+#yields (surface3d undefined)
+query undefsurface union emptysurface;
+
+#testcase union-undef-sur_empty_undef
+#yields (surface3d undefined)
+query emptysurface union undefsurface;
+
+#testcase union-undef-sur_undef_sur
+#yields (surface3d undefined)
+query undefsurface union square;
+
+#testcase union-undef-sur_sur_undef
+#yields (surface3d undefined)
+query square union undefsurface;
+
+
+# semantic tests union
+
+# result: empty
+
+#testcase union-vol_empty_empty
+#yields (volume3d ())
+query emptyvolume union emptyvolume;
+
+#testcase union-sur_empty_empty
+#yields (surface3d ())
+query emptysurface union emptysurface;
+
+
+
+# semantic tests minus
+
+# result: empty
+
+#testcase minus-vol_empty_empty
+#yields (volume3d ())
+query emptyvolume minus emptyvolume;
+
+#testcase minus-vol_empty_vol
+#yields (volume3d ())
+query emptyvolume minus cube;
+
+#testcase minus-sur_empty_empty
+#yields (surface3d ())
+query emptysurface minus emptysurface;
+
+#testcase minus-sur_empty_sur
+#yields (surface3d ())
+query emptysurface minus square;
+
+
+
+
+# semantic tests intersection
+
+# result: empty
+
+#testcase intersection-vol_empty_empty
+#yields (volume3d ())
+query intersection(emptyvolume, emptyvolume);
+
+#testcase intersection-vol_vol_empty
+#yields (volume3d ())
+query intersection(cube, emptyvolume);
+
+#testcase intersection-vol_empty_vol
+#yields (volume3d ())
+query intersection(emptyvolume, cube);
+
+#testcase intersection-sur_empty_empty
+#yields (surface3d ())
+query intersection(emptysurface, emptysurface);
+
+#testcase intersection-sur_sur_empty
+#yields (surface3d ())
+query intersection(square, emptysurface);
+
+#testcase intersection-sur_empty_sur
+#yields (surface3d ())
+query intersection(emptysurface, square);
+
+
+
+
+# ==============================================================================
+# Operators: components
+# ==============================================================================
+
+
+# ==============================================================================
+# Operators: other operators
+# ==============================================================================
+
+#testcase sizeSurface_succ1
+#yields (int 2)
+query size ([const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 1.0 0.0)))]);
+
+#testcase sizeSurface_undef
+#yields (int undefined)
+query size ([const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((2.0 2.0 2.0) (3.0 3.0 3.0) (4.0 4.0 4.0)))]);
+
+#testcase sizeSurface_succ2
+#yields (int 1)
+query size ([const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)))]);
+
+#testcase sizeWrongType
+#yields error
+query size ([const point3d value ((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0))]);
+
+#testcase sizeVolume_succ
+#yields (int 12)
+query size ([const volume3d value (((1 0 0) (0 0 0) (0 1 0)) ((1 0 0) (0 1 0) (1 1 0)) ((0 0 1) (1 0 1) (0 1 1)) ((0 1 1) (1 0 1) (1 1 1)) ((0 0 0) (0 0 1) (0 1 1)) ((0 1 1) (0 1 0) (0 0 0)) ((1 0 1) (1 0 0) (1 1 1)) ((1 1 0) (1 1 1) (1 0 0)) ((0 0 1) (0 0 0) (1 0 0)) ((1 0 0) (1 0 1) (0 0 1)) ((0 1 0) (0 1 1) (1 1 0)) ((1 1 1) (1 1 0) (0 1 1)))]);
+
+#testcase bbox3dPoint_succ1
+#yields (rect3 (1.0 1.0 2.0 2.0 3.0 3.0))
+query bbox3d ([const point3d value (1.0 2.0 3.0)]);
+
+#testcase bbox3dPoint_succ2
+#yields (rect3 (11.0 11.0 22.0 22.0 33.0 33.0))
+query bbox3d ([const point3d value(1.0 2.0 3.0)] translate [[const vector3d value(10.0 20.0 30.0)]]);
+
+#testcase bbox3dPoint_WrongType
+#yields error
+query bbox3d ([const point3d value (1.0 2.0)]);
+
+#testcase bbox3dSurface_succ1
+#yields (rect3 (0.0 1.0 0.0 1.0 0.0 0.0))
+query bbox3d ([const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 1.0 0.0)))]);
+
+#testcase bbox3dSurface_succ2
+#yields (rect3 (0.0 2.0 0.0 2.0 0.0 0.0))
+query bbox3d ([const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((0.0 0.0 0.0) (1.0 0.0 0.0) (1.0 1.0 0.0)))] scale [[const point3d value(0.0 0.0 0.0)],2.0]);
+
+#testcase bbox3dSurface_undef
+#yields (rect3 undefined)
+query bbox3d ([const surface3d value (((0.0 0.0 0.0) (0.0 1.0 0.0) (1.0 1.0 0.0)) ((2.0 2.0 2.0) (3.0 3.0 3.0) (4.0 4.0 4.0)))]);
+
+#testcase bbox3dVolume_succ
+#yields (rect3 (0.0 1.0 0.0 1.0 0.0 1.0))
+query bbox3d ([const volume3d value (((1 0 0) (0 0 0) (0 1 0)) ((1 0 0) (0 1 0) (1 1 0)) ((0 0 1) (1 0 1) (0 1 1)) ((0 1 1) (1 0 1) (1 1 1)) ((0 0 0) (0 0 1) (0 1 1)) ((0 1 1) (0 1 0) (0 0 0)) ((1 0 1) (1 0 0) (1 1 1)) ((1 1 0) (1 1 1) (1 0 0)) ((0 0 1) (0 0 0) (1 0 0)) ((1 0 0) (1 0 1) (0 0 1)) ((0 1 0) (0 1 1) (1 1 0)) ((1 1 1) (1 1 0) (0 1 1)))]);
+
+#testcase bbox3dVolume_undef
+#yields (rect3 undefined)
+query bbox3d ([const volume3d value (((2 3 4) (5 6 7) (8 9 10)) ((0 1 0) (1 0 0) (1 1 0)) ((0 0 1) (1 0 1) (0 1 1)) ((0 1 1) (1 0 1) (1 1 1)) ((0 0 0) (0 0 1) (0 1 1)) ((0 1 1) (0 1 0) (0 0 0)) ((1 0 0) (1 0 1) (1 1 1)) ((1 1 1) (1 1 0) (1 0 0)) ((0 0 0) (0 0 1) (1 0 0)) ((1 0 0) (1 0 1) (0 0 1)) ((0 1 0) (0 1 1) (1 1 0)) ((1 1 0) (1 1 1) (0 1 1)))]);
+
+
+#testcase geometric_tests
+#yields (int 0)
+#query test (0);
+
+#teardown
+close database;
+delete database mytestdb;

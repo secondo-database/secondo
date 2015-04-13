@@ -1,0 +1,196 @@
+delete database mytestdb;
+
+#setup Forall2Test StandardAlgebra RelationAlgebra
+create database mytestdb;
+open database mytestdb;
+
+## crash - assertion failure
+#testcase loubie_aria_dragon
+#yields success
+query importSTL('./tb/loubie_aria_dragon.stl');
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase devilhead1
+#yields success
+query importSTL('./tb/devilhead1.stl');
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase My_Scan_2013-10-09_09.00_AM
+#yields success
+query importSTL('./tb/My_Scan_2013-10-09_09.00_AM.stl');
+
+## kein crash - aber numerical problem
+#testcase dungeonskeeper_devil
+#yields success
+query importSTL('./tb/dungeonskeeper_devil.stl');
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase The_Horns_fixed
+#yields success
+query importSTL('./tb/The_Horns_fixed.stl');
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase AustereBunny
+#yields success
+query importSTL('./tb/AustereBunny.stl');     
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase seaLadyBust
+#yields success
+query importSTL('./tb/seaLadyBust.stl');
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase Bunny
+#yields success
+query importSTL('./tb/Bunny.stl');
+
+## infinite ???
+#testcase creature
+#yields success
+query importSTL('./tb/creature.stl');
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase GODZILLA_HEAD_002
+#yields success
+query importSTL('./tb/GODZILLA_HEAD_002.stl');
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase My_Scan_3
+#yields success
+query importSTL('./tb/My_Scan_3.stl');
+
+## crash - stacksize - mit ulimit -s 128000 funktionierts
+#testcase Satan_repaired
+#yields success
+query importSTL('./tb/Satan_repaired.stl');
+
+## kein crash - aber numerical problem
+#testcase DEVIL_96k
+#yields success
+query importSTL('./tb/DEVIL_96k.stl');
+
+## kein crash - aber numerical problem
+#testcase Dragon_Head_In_STL_for_Insense_v0.6
+#yields success
+query importSTL('./tb/Dragon_Head_In_STL_for_Insense_v0.6.stl');
+
+## crash - assertion failure
+#testcase devil_Highres
+#yields success                                                                                                                                                                                 
+query importSTL('./tb/devil_Highres.stl');
+
+## kein crash - aber numerical problem
+#testcase polysoup
+#yields success
+query importSTL('./tb/polysoup.stl'); 
+
+## kein crash - aber numerical problem
+#testcase devilHighres_fixed
+#yields success
+query importSTL('./tb/devilHighres_fixed.stl'); 
+
+## kein crash - aber numerical problem
+#testcase Creature_flat
+#yields success
+query importSTL('./tb/Creature_flat.stl');
+
+## kein crash - aber numerical problem
+#testcase DragonHeadSmall
+#yields success
+query importSTL('./tb/DragonHeadSmall.stl');
+
+## kein crash - aber numerical problem
+#testcase gollumbust
+#yields success
+query importSTL('./tb/gollumbust.stl');
+
+## kein crash - aber numerical problem
+#testcase DevilHornsGestureWitch
+#yields success
+query importSTL('./tb/DevilHornsGestureWitch.stl');
+
+## kein crash, aber
+## a) leerzeichen in txt stl: "dragon lion" - mit "dragonlion" wird Datei eingelesen
+## b) dann numerical problem
+#testcase dragon_lion
+#yields success
+query importSTL('./tb/dragon_lion.stl');
+
+## gefixte Datei aus testcase dragon_lion
+## kein crash - aber numerical problem
+#testcase dragon_lion_fixed
+#yields success
+query importSTL('./tb/dragon_lion_fixed.stl');
+
+## kein crash - aber numerical problem
+#testcase GARDEN_FROG
+#yields success
+query importSTL('./tb/GARDEN_FROG.stl');
+
+## kein crash - aber numerical problem
+#testcase attitudeBunny_twiesner
+#yields success
+query importSTL('./tb/attitudeBunny_twiesner.stl');
+
+## crash - assertion failure
+#testcase forrest_dragon_with_meshmixer_support
+#yields success
+query importSTL('./tb/forrest_dragon_with_meshmixer_support.stl');
+
+## kein crash - aber numerical problem
+#testcase attitudeBunny_twiesner
+#yields success
+query importSTL('./tb/attitudeBunny_twiesner.stl');
+
+## kein crash, aber
+## a) leerzeichen in txt stl: "Demon Bunny Final" - mit "DemonBunnyFinal" wird Datei eingelesen
+## b) dann numerical problem
+#testcase Demon_Bunny_Final
+#yields success
+query importSTL('./tb/Demon_Bunny_Final.stl');
+
+## gefixte Datei aus testcase Demon_Bunny_Final
+## kein crash - aber numerical problem
+#testcase Demon_Bunny_Final_fixed
+#yields success
+query importSTL('./tb/Demon_Bunny_Final_fixed.stl');
+
+## kein crash - aber numerical problem
+#testcase forest_dragon_full
+#yields success
+query importSTL('./tb/forest_dragon_full.stl');
+
+## kein crash - aber numerical problem
+#testcase dragonhead_resculpt
+#yields success
+query importSTL('./tb/dragonhead_resculpt.stl');
+
+## kein crash - aber numerical problem
+#testcase Dragon-Z-flat
+#yields success
+query importSTL('./tb/Dragon-Z-flat.stl');
+
+## infinite ???
+#testcase marble-player
+#yields success
+query importSTL('./tb/marble-player.stl');
+
+## OK
+#testcase HELL_AND_HEAVEN_ANGELS
+#yields success
+query importSTL('./tb/HELL_AND_HEAVEN_ANGELS.stl');
+
+## OK
+#testcase pinoesel
+#yields success
+query importSTL('./tb/pinoesel.stl');
+
+
+#teardown
+close database;
+delete database mytestdb;
+
+
+
+
+
