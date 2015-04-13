@@ -12,14 +12,15 @@ public class StlReader implements SecondoImporter{
 
 
   public ListExpr getList(String fileName){
+
      File f = new File(fileName);
      errorMsg = "NO_ERROR";
      if(!f.exists()){
-        errorMsg = "File " + fileName + " does not exists";
+        System.out.println("file not found");
         return null;
      }
      if(!f.isFile()){
-        errorMsg = "File " + fileName + " is not a regular file";
+        System.out.println("Not a regular file");
         return null;
      } try{
         return getTriangles(f);
@@ -44,6 +45,20 @@ public class StlReader implements SecondoImporter{
     String s = ft.nextToken(84);
     ft.close();
     if("solid".equals(s)){
+        // check for non-printable characters in the file
+        try{
+           BufferedInputStream in = new BufferedInputStream(new FileInputStream(f));
+           int b;
+           while( (b = in.read())>=0){
+              if(b<32 || b>126){
+                 in.close();
+                 return true;
+              }
+           }
+           in.close();
+        } catch(Exception e){
+            return false;
+        }
         return false;
     } else {
        return true;
@@ -228,7 +243,10 @@ public class StlReader implements SecondoImporter{
     }  else {
        res = getTrianglesASCII(file);
     }
-    if(res==null) return null;
+    
+    if(res==null){
+       return null;
+    }
     return ListExpr.twoElemList(ListExpr.symbolAtom("volume3d"), res);
 
  }
