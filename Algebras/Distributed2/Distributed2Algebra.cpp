@@ -1371,7 +1371,6 @@ class prcmdInfo{
     {
       tt = new TupleType(_tt);
       inproc = new InputProcessor(_s,_intAttrPos, _qAttrPos, this);
-      (*inproc)();
     }
 
     ~prcmdInfo(){
@@ -1430,6 +1429,8 @@ class prcmdInfo{
            inputDone = false;
            stopped= false;
            stream.open();
+           mythread = boost::thread(
+                      boost::bind(&InputProcessor::run, this));
          }
 
          virtual ~InputProcessor(){
@@ -1442,9 +1443,11 @@ class prcmdInfo{
             for(it = inTuples.begin(); it != inTuples.end(); it++){
                  delete it->second;
             }
+            //wait until the own thread is finsihed
+            mythread.join();
           }
 
-          void operator()() {
+          void run(){
              Tuple* inTuple;  
              mut.lock();
              inTuple = stream.request();
@@ -1508,6 +1511,7 @@ class prcmdInfo{
          int noInTuples;
          int noOutTuples;
          bool inputDone;
+         boost::thread mythread;
 
          void processInvalidTuple(Tuple* inTuple, int errCode, 
                                   const string& errMsg){
@@ -1574,11 +1578,6 @@ class prcmdInfo{
 1.5.3 Value Mapping
 
 */
-//template<class T>
-//void del(T* info){
-//   delete info;
-//}
-
 
 template<class T>
 int prcmdVMT( Word* args, Word& result, int message,

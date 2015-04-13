@@ -394,8 +394,19 @@ static {
          this.S = S;
          //cout.println("requesting from client");
          try{
-            in = new BufferedReader(new InputStreamReader(S.getInputStream()));
-            out = new BufferedWriter(new OutputStreamWriter(S.getOutputStream()));
+            // communication with client, always use UTF-8 encoding
+            try{
+               in = new BufferedReader(new InputStreamReader(S.getInputStream(),"UTF-8"));
+            } catch(UnsupportedEncodingException e){
+               System.err.println("Encoding UTF-8 not supported");
+               in = new BufferedReader(new InputStreamReader(S.getInputStream()));
+            }
+            try{
+               out = new BufferedWriter(new OutputStreamWriter(S.getOutputStream(),"UTF-8"));
+            } catch(UnsupportedEncodingException e){
+               System.err.println("Encoding UTF-8 not supported");
+               out = new BufferedWriter(new OutputStreamWriter(S.getOutputStream())); 
+            }
             String First = in.readLine();
             //cout.println("receive :"+First);
             if(First==null){
