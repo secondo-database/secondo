@@ -66,8 +66,18 @@ public boolean connect(){
      disconnect();
   try{
      ClientSocket = new Socket(HostName,PortNr);
-     in = new BufferedReader(new InputStreamReader(ClientSocket.getInputStream()));
-     out = new BufferedWriter(new OutputStreamWriter(ClientSocket.getOutputStream()));
+     try{ 
+         in = new BufferedReader(new InputStreamReader(ClientSocket.getInputStream(),"UTF-8"));
+     } catch (UnsupportedEncodingException e){
+         System.err.println("Internal error, UTF-8 not supported");
+         in = new BufferedReader(new InputStreamReader(ClientSocket.getInputStream()));
+     }
+     try{
+         out = new BufferedWriter(new OutputStreamWriter(ClientSocket.getOutputStream(),"UTF-8"));
+     } catch (UnsupportedEncodingException e){
+         System.err.println("Internal error, UTF-8 not supported");
+         out = new BufferedWriter(new OutputStreamWriter(ClientSocket.getOutputStream()));
+     }
      sendLine("<who>");
      out.flush();
      String answer = in.readLine();
