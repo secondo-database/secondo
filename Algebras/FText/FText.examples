@@ -997,6 +997,30 @@ Signature : text x text -> bool
 Example   : query 'Hello' startsWith 'Hell'
 Result    : TRUE
 
+Operator  : starts
+Number    : 1 
+Signature : string x string -> bool
+Example   : query "Hello" starts "llo"
+Result    : FALSE
+
+Operator  : starts
+Number    : 2
+Signature : string x text -> bool
+Example   : query "Hello" starts 'Hell'
+Result    : TRUE
+
+
+Operator  : starts
+Number    : 3 
+Signature : text x string -> bool
+Example   : query 'Hello' starts "llo"
+Result    : FALSE
+
+Operator  : starts
+Number    : 4 
+Signature : text x text -> bool
+Example   : query 'Hello' starts 'Hell'
+Result    : TRUE
 
 Operator  : markText
 Number    : 1

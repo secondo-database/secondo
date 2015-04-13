@@ -8257,6 +8257,15 @@ ListExpr starts_ends_WithTM(ListExpr args){
       " second's argument value</text--->"
       "<text>query \"Hello\" startsWith 'Hell'  </text--->"
       ") )";
+  
+  const string startsSpec =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+      "( <text>  {text,string} x {text,string} -> bool </text--->"
+      "<text> _ starts _  </text--->"
+      "<text>Checks whether the first argument's value starts with the  "
+      " second's argument value</text--->"
+      "<text>query \"Hello\" startsWith 'Hell'  </text--->"
+      ") )";
 
   Operator endsWith
   (
@@ -8278,6 +8287,15 @@ ListExpr starts_ends_WithTM(ListExpr args){
    starts_ends_WithTM        //type mapping
   );
 
+  Operator startsOp
+  (
+  "starts",             //name
+   startsSpec,         //specification
+   4,                           // no of VM functions
+   startsWithVM,        //value mapping
+   starts_ends_WithSelect,   
+   starts_ends_WithTM        //type mapping
+  );
 
 /*
 4.14 Operator markText
@@ -11688,6 +11706,7 @@ Operator errorMessageOP(
       AddOperator(&str2int);
       AddOperator(&endsWith);
       AddOperator(&startsWith);
+      AddOperator(&startsOp);
       AddOperator(&markText);
       AddOperator(&bashModifierOp);
       AddOperator(&getBashModifiersOp);
