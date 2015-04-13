@@ -345,14 +345,6 @@ Signature: real -> real
 Example  : query sqrt(2.1)
 Result   : 1.449137674618944
 
-
-Operator : starts
-Number   : 1
-Signature: (string string) -> bool
-Example  : query "starts" starts "st"
-Result   : TRUE
-
-
 Operator : substr
 Number   : 1
 Signature: (string x int x int) ->  string.

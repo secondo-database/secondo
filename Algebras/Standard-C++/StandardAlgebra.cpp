@@ -2817,31 +2817,6 @@ CcDiff2( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-/*
-4.14 Value mapping functions of operator ~starts~
-
-*/
-
-int
-StartsFun( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((CcString*)args[0].addr)->IsDefined() &&
-       ((CcString*)args[1].addr)->IsDefined() )
-  {
-    string str1 = (string)(char*)((CcString*)args[0].addr)->GetStringval();
-    string str2 = (string)(char*)((CcString*)args[1].addr)->GetStringval();
-    char* cstr1 = (char*)((CcString*)args[0].addr)->GetStringval();
-    char* cstr2 = (char*)((CcString*)args[1].addr)->GetStringval();
-    ((CcBool *)result.addr)->
-    Set (true, strncmp(cstr1, cstr2, str2.length()) == 0 );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
-}
 
 /*
 4.14 Value mapping functions of operator ~contains~
@@ -4635,7 +4610,6 @@ ValueMapping ccdiffmap[] = { CcDiff<CcInt>,
                              CcDiff<CcBool>,
                              CcDiff<CcString> };
 
-ValueMapping ccstartsmap[] = { StartsFun };
 ValueMapping cccontainsmap[] = { ContainsFun };
 ValueMapping ccandmap[] = { AndFun };
 ValueMapping ccandSmap[] = { AndSFun };
@@ -5490,8 +5464,6 @@ Operator ccequal( "=", CCSpecEQ, 11, ccequalmap,
 Operator ccdiff( "#", CCSpecNE, 11, ccdiffmap,
                  CcMathSelectCompare, CompareTypeMap );
 
-Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap,
-                   Operator::SimpleSelect, CcMathTypeMapBool3 );
 
 Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap,
                      Operator::SimpleSelect, CcMathTypeMapBool3 );
@@ -6219,7 +6191,6 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccgreaterequal );
     AddOperator( &ccequal );
     AddOperator( &ccdiff );
-    AddOperator( &ccstarts );
     AddOperator( &cccontains );
     AddOperator( &ccsubstr );
     AddOperator( &ccnot );
