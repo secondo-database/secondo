@@ -14,7 +14,7 @@ of this class.
 
 #include "SecondoSMI.h"
 
-#ifdef THREAD_SAVE
+#ifdef THREAD_SAFE
 #include <boost/thread.hpp>
 #endif
 
@@ -390,7 +390,7 @@ If the implementation should be thread save, all accesses to
 global instances (flob cashes) must be synchronized.
 
 */
-#ifdef THREAD_SAVE
+#ifdef THREAD_SAFE
   boost::mutex ncmtx;
   boost::mutex pcmtx;
   boost::mutex omtx;  // access to other variables
