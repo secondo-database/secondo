@@ -71,10 +71,21 @@ using namespace std;
 
 
 
-static string currentFolder  = FileSystem::GetCurrentFolder(); 
-static string requestFolder  = currentFolder + "/filetransfers";
-static string transferFolder =   (requestFolder +"/" )  
-                               + stringutils::int2str(WinUnix::getpid());
+static string currentFolder  = ""; 
+static string requestFolder  = "";
+static string transferFolder = "";
+
+
+void initTransferFolders(){
+  if(!currentFolder.empty()){
+    return;
+  }
+  currentFolder = SmiEnvironment::GetSecondoHome();
+  requestFolder  = currentFolder + "/filetransfers";
+  transferFolder =  (requestFolder +"/" ) 
+                   + stringutils::int2str(WinUnix::getpid());
+}
+
 
 class SecondoServer;
 typedef void (SecondoServer::*ExecCommand)();
@@ -718,6 +729,7 @@ bool isValidFileName(const string& name){
 void
 SecondoServer::CallFileTransfer() {
   // parameters for Secondo interface call
+  initTransferFolders();
   SI_Error errorCode=0;
   int errorPos=0;
   string errorMessage="";
@@ -787,6 +799,7 @@ SecondoServer::CallFileTransfer() {
 
 
 void SecondoServer::CallRequestFileFolder(){
+  initTransferFolders();
   iostream& iosock = client->GetSocketStream();
   string res = requestFolder.substr(currentFolder.length()+1);
   iosock << res << endl;
@@ -794,6 +807,7 @@ void SecondoServer::CallRequestFileFolder(){
 }
 
 void SecondoServer::CallSendFileFolder(){
+  initTransferFolders();
   iostream& iosock = client->GetSocketStream();
   string res = transferFolder.substr(currentFolder.length()+1);
   iosock << res << endl;
@@ -802,6 +816,7 @@ void SecondoServer::CallSendFileFolder(){
 
 void 
 SecondoServer::CallRequestFile(){
+  initTransferFolders();
   iostream& iosock = client->GetSocketStream();
   string serverFileName = "";
   iosock >> serverFileName;
@@ -823,8 +838,6 @@ SecondoServer::CallRequestFile(){
   }       
   string fullFileName = requestFolder + "/" + serverFileName; 
 
-  cout << "look fro file " << fullFileName << endl << endl << endl << endl;
- 
   // check wether file is present
   ifstream in(fullFileName.c_str());
   if(!in.good()){

@@ -1072,6 +1072,12 @@ SmiEnvironment::SetHomeDir(const string& parmFile)
     return true;
 }
 
+string SmiEnvironment::GetSecondoHome(){
+ 
+  return instance.impl? instance.impl->bdbHome : "";
+}
+
+
 
 int
 SmiEnvironment::CreateTmpEnvironment(ostream& errStream)

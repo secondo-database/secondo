@@ -992,6 +992,8 @@ Returns a pointer to the "Secondo"[3] Storage Management Environment
 
   static bool SetHomeDir(const string& parmFile);
 
+  static string GetSecondoHome();
+
   static int CreateTmpEnvironment(ostream& err);
   static int DeleteTmpEnvironment();
 
