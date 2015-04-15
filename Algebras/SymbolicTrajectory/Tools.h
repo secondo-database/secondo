@@ -36,6 +36,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "TemporalUnitAlgebra.h"
 #include "SecParser.h"
 #include "RTreeAlgebra.h"
+#include "BasicTypes.h"
  
  using namespace std;
  
@@ -43,7 +44,9 @@ Started July 2014, Fabio Vald\'{e}s
    
  enum SetRel {STANDARD, DISJOINT, SUPERSET, EQUAL, INTERSECT};
  enum DataType {MLABEL, MLABELS, MPLACE, MPLACES};
- 
+ enum ValueType {LABEL, LABELS, PLACE, PLACES, POINT, POINTS, LINE, RECT,
+                 REGION, INTERVAL, BOOL};
+
  struct NFAtransition {
   int oldState;
   int trigger;
@@ -87,6 +90,10 @@ Started July 2014, Fabio Vald\'{e}s
   static bool checkDaytime(const string& text, const SecInterval& uIv);
   static bool isInterval(const string& str);
   static void stringToInterval(const string& str, SecInterval& result);
+  static bool parseInterval(const string& input, int &pos, int &endpos,
+                            pair<Word, ValueType> &valuepair);
+  static bool parseBoolorObj(const string& input, int &pos, int &endpos,
+                             pair<Word, ValueType> &valuepair);
   static bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
   // static Word evaluate(string input);

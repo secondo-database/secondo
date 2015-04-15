@@ -703,6 +703,122 @@ void Tools::stringToInterval(const string& str, SecInterval& result) {
 }
 
 /*
+\subsection{Function ~parseInterval~}
+
+*/
+bool Tools::parseInterval(const string& input, int &pos, int &endpos,
+                          pair<Word, ValueType> &valuepair) {
+  endpos = input.find(' ', pos);
+  stringstream leftss(input.substr(pos + 1, endpos));
+  double left = 0.0;
+  leftss >> left;
+  pos = input.find_first_not_of(' ', endpos);
+  endpos = input.find(' ', pos);
+  stringstream rightss(input.substr(pos, endpos - 1));
+  double right = 0.0;
+  rightss >> right;
+  if (right < left) {
+    cout << "invalid interval" << endl;
+    return false;
+  }
+  endpos = input.find(' ', pos);
+  pos = input.find_first_not_of(' ', endpos);
+  if (input[pos] != 't' && input[pos] != 'f') {
+    cout << "\"t\" or \"f\" expected for interval, instead of \"" 
+        << input[pos] << "\"" << endl;
+    return false;
+  }
+  bool lc = (input[pos] == 't');
+  pos = input.find_first_not_of(' ', pos + 1);
+  bool rc = (input[pos] == 't');
+  pos = input.find('>', pos) + 1;
+  valuepair.first.addr = new Interval<double>(left, right, lc, rc);
+  valuepair.second = INTERVAL;
+  cout << "interval " << (lc ? "[" : "(") << left << ", " << right
+      << (rc ? "]" : ")") << " inserted" << endl;
+  endpos = pos - 1;
+  pos = input.find_first_not_of(' ', pos);
+  return true;
+}
+
+/*
+\subsection{Function ~parseBoolorObj~}
+
+*/
+bool Tools::parseBoolorObj(const string& input, int &pos, int &endpos,
+                           pair<Word, ValueType> &valuepair) {
+  if (!stringutils::isLetter(input[pos])) {
+    return false;
+  }
+  endpos = input.find_first_of(" ,)}", pos) - 1;
+  if (input.substr(pos, 4) == "TRUE") {
+    valuepair.first.addr = new CcBool(true, true);
+    valuepair.second = BOOL;
+  }
+  else if (input.substr(pos, 5) == "FALSE") {
+    valuepair.first.addr = new CcBool(true, false);
+    valuepair.second = BOOL;
+  }
+  else {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    string name = input.substr(pos, endpos - pos + 1);
+    if (!sc->IsObjectName(name)) {
+      cout << name << " is not an object name" << endl;
+      return false;
+    }
+    string type;
+    Word value;
+    bool defined;
+    if (!sc->GetObject(name, value, defined)) {
+      cout << "object " << name << " could not be read" << endl;
+      return false;
+    }
+    type = nl->ToString(sc->GetObjectTypeExpr(name));
+    if (type == "point") {
+      valuepair.second = POINT;
+    }
+    else if (type == "points") {
+      valuepair.second = POINTS;
+    }
+    else if (type == "line") {
+      valuepair.second = LINE;
+    }
+    else if (type == "rect") {
+      valuepair.second = RECT;
+    }
+    else if (type == "region") {
+      valuepair.second = REGION;
+    }
+    else if (type == "label") {
+      valuepair.second = LABEL;
+    }
+    else if (type == "labels") {
+      valuepair.second = LABELS;
+    }
+    else if (type == "place") {
+      valuepair.second = PLACE;
+    }
+    else if (type == "places") {
+      valuepair.second = PLACES;
+    }
+    else if (type == "interval") {
+      valuepair.second = INTERVAL;
+    }
+    else if (type == "bool") {
+      valuepair.second = BOOL;
+    }
+    else {
+      cout << "type " << type << " is invalid" << endl;
+      return false;
+    }
+    valuepair.first.addr = value.addr;
+    cout << "object " << name << " has type " << type << endl;
+  }
+  pos = input.find_first_not_of(' ', endpos + 1);
+  return true;
+}
+
+/*
 \subsection{Function ~timesMatch~}
 
 Checks whether the time interval ~uIv~ is completely enclosed by each of the

@@ -682,64 +682,99 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
   }
   int pos = input.find_first_not_of(' ', parts[0].length() + 1);
   int endpos = pos;
-  cout << "pos set to " << pos << endl;
-  set<pair<string, ValueType> > valueset;
-  switch (input[pos]) {
-    case '_': {
-      pos = input.find_first_not_of(' ', pos);
-      cout << "underscore ignored" << endl;
-      break;
-    }
-    case '<': {
-      endpos = input.find(' ', pos);
-      stringstream leftss(input.substr(pos + 1, endpos));
-      double left = 0.0;
-      leftss >> left;
-      pos = input.find_first_not_of(' ', endpos);
-      endpos = input.find(' ', pos);
-      stringstream rightss(input.substr(pos, endpos - 1));
-      double right = 0.0;
-      rightss >> right;
-      if (left > right) {
-        cout << "invalid interval: " << left << " > " << right << endl;
-        return false;
+  while (ok && pos >= 0 && pos < (int)input.length()) {
+    vector<pair<Word, ValueType> > valuevec;
+    pair<Word, ValueType> valuepair;
+    cout << "Pos set to " << pos << endl;
+    switch (input[pos]) {
+      case '_': {
+        pos = input.find_first_not_of(' ', pos + 1);
+        cout << "underscore ignored" << endl;
+        break;
       }
-      endpos = input.find(' ', pos);
-      pos = input.find_first_not_of(' ', endpos);
-      if (input[pos] != 't' && input[pos] != 'f') {
-        cout << "\"t\" or \"f\" expected for interval, instead of \"" 
-             << input[pos] << "\"" << endl;
-        return false;
-      }
-      bool lc = (input[pos] == 't');
-      pos = input.find_first_not_of(' ', pos + 1);
-      bool rc = (input[pos] == 't');
-      pos = input.find('>', pos) + 1;
-      Interval<double> iv(left, right, lc, rc);
-      cout << "interval " << (lc ? "[" : "(") << left << ", " << right
-           << (rc ? "]" : ")") << " found" << endl;
-      pos = input.find('>', pos);
-      endpos = pos;
-    }
-    case '{': {
-      
-      break;
-    }
-    default: {
-      if (stringutils::isLetter(input[pos])) {
-        if (input.substr(pos,4) == "TRUE") {
-          valueset.insert(make_pair("TRUE", BOOL));
+      case '<': {
+        ok = Tools::parseInterval(input, pos, endpos, valuepair);
+        if (ok) {
+          valuevec.push_back(valuepair);
+          cout << "pair pushed back, size is now " << valuevec.size() << endl;
         }
-        else if (input.substr(pos,5) == "FALSE") {
-          valueset.insert(make_pair("FALSE", BOOL));
+        break;
+      }
+      case '"': {
+        endpos = input.find('"', pos + 1);
+        valuepair.first.addr = new Label(input.substr(pos, pos - endpos + 1));
+        valuepair.second = LABEL;
+        break;
+      }
+      case '\'': {
+        endpos = input.find('\'', pos + 1);
+        valuepair.first.addr = new Label(input.substr(pos, pos - endpos + 1));
+        valuepair.second = LABEL;
+        break;
+      }
+      case '{': {
+        while (ok && pos >= 0 && input[pos] != '}') {
+          pos = input.find_first_not_of("{ ", pos);
+          cout << "pOs set to " << pos << ", " << input[pos] << endl;
+          switch (input[pos]) {
+            case '"': {
+              endpos = input.find('"', pos + 1);
+              valuepair.first.addr = new Label(input.substr(pos + 1, endpos - pos - 1));
+              valuepair.second = LABEL;
+              valuevec.push_back(valuepair);
+              pos = input.find_first_not_of(", ", endpos + 1);
+              break;
+            }
+            case '\'': {
+              endpos = input.find('\'', pos + 1);
+              valuepair.first.addr = new Label(input.substr(pos + 1, endpos - pos - 1));
+              valuepair.second = LABEL;
+              valuevec.push_back(valuepair);
+              pos = input.find_first_not_of(", ", endpos + 1);
+              break;
+            }
+            case '<': {
+              ok = Tools::parseInterval(input, pos, endpos, valuepair);
+              if (ok) {
+                valuevec.push_back(valuepair);
+                cout << "pair pushed back, size is now " << valuevec.size() << endl;
+              }
+              pos = input.find_first_not_of(", ", endpos + 1);
+              break;
+            }
+            default: {
+              ok = Tools::parseBoolorObj(input, pos, endpos, valuepair);
+              if (ok) {
+                valuevec.push_back(valuepair);
+                cout << "pair pushed back, size is now " << valuevec.size() << endl;
+              }
+              cout << "OK: " << ok << endl;
+              pos = input.find_first_not_of(", ", endpos + 1);
+              break;
+            }
+          }
+          if (!ok) {
+            return false;
+          }
         }
-        endpos = input.find_first_of(" ,)", pos) - 1;
-        valueset.insert(make_pair(input.substr(pos, endpos - pos + 1), DBOBJ));
-        cout << input.substr(pos, endpos - pos + 1) << " inserted" << endl;
-        values.push_back(valueset);
-        valueset.clear();
+        pos = input.find_first_not_of("} ", pos);
+        break;
+      }
+      default: {
+        ok = Tools::parseBoolorObj(input, pos, endpos, valuepair);
+        if (ok) {
+          valuevec.push_back(valuepair);
+          cout << "pair pushed back, size is now " << valuevec.size() << endl;
+        }
+        break;
       }
     }
+    if (!ok) {
+      return false;
+    }
+    values.push_back(valuevec);
+    cout << "vector of size " << valuevec.size() << " appended; size is now "
+         << values.size() << endl;
   }
   return ok;
 }
@@ -749,7 +784,7 @@ Constructor for class ~PatElem~
 
 */
 PatElem::PatElem(const char *contents, Tuple *tuple) : 
-              var(""), ivs(), lbs(), pls(), wc(NO), setRel(STANDARD), ok(true) {
+    var(""), ivs(), lbs(), pls(), values(), wc(NO), setRel(STANDARD), ok(true) {
   string input(contents);
   if (tuple) {
     ok = extractValues(input, tuple);

@@ -87,7 +87,6 @@ void patternFlushBuffer();
 
 enum ExtBool {FALSE, TRUE, UNDEF};
 enum Wildcard {NO, STAR, PLUS};
-enum ValueType {DBOBJ, INTERVAL, BOOL, LABEL, PLACE};
 
 /*
 \section{Class ~IBasic~}
@@ -447,16 +446,18 @@ class PatElem {
   set<string> ivs;
   set<string> lbs;
   set<pair<string, unsigned int> > pls;
-  vector<set<pair<string, ValueType> > > values;
+  vector<vector<pair<Word, ValueType> > > values;
   Wildcard wc;
   SetRel setRel;
   bool ok;
 
  public:
-  PatElem() : var(""), ivs(), lbs(), pls(), wc(NO), setRel(STANDARD), ok(true){}
+  PatElem() : var(""), ivs(), lbs(), pls(), values(), wc(NO), setRel(STANDARD),
+              ok(true) {}
   PatElem(const char* contents, Tuple *tuple);
   PatElem(const PatElem& elem) : var(elem.var), ivs(elem.ivs), lbs(elem.lbs),
-                pls(elem.pls), wc(elem.wc), setRel(elem.setRel), ok(elem.ok) {}
+                pls(elem.pls), values(elem.values), wc(elem.wc),
+                setRel(elem.setRel), ok(elem.ok) {}
   ~PatElem() {}
 
   void stringToSet(const string& input, const bool isTime);
@@ -493,6 +494,7 @@ class PatElem {
   bool     hasIndexableContents() const {return (hasLabel() || hasPlace() ||
                                                  hasRealInterval());}
   bool     extractValues(string &input, Tuple *tuple);
+  vector<vector<pair<Word, ValueType> > > getValues() const {return values;}
 };
 
 class Assign {

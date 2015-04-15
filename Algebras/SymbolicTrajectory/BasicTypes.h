@@ -27,6 +27,9 @@ Started July 2014, Fabio Vald\'{e}s
 
 */
 
+#ifndef SYMB_BASICTYPES_H
+#define SYMB_BASICTYPES_H
+
 #include "TemporalUnitAlgebra.h"
 #include "StandardTypes.h"
 #include "TemporalAlgebra.h"
@@ -317,3 +320,5 @@ class Places : public Attribute {
 };
 
 }
+
+#endif

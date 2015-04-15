@@ -302,7 +302,52 @@ the pattern.
 
 */
 ExtBool Pattern::tmatches(Tuple *tuple, const int attrno) {
-  
+  vector<vector<pair<Word, ValueType> > > values = elems[1].getValues();
+  for (unsigned int i = 0; i < values.size(); i++) {
+    for (unsigned int j = 0; j < values[i].size(); j++) {
+      switch (values[i][j].second) {
+        case POINTS: {
+          Points *pts = (Points*)values[i][j].first.addr;
+          pts->Print(cout); cout << endl;
+          pts->DeleteIfAllowed();
+          break;
+        }
+        case POINT: {
+          Point *pt = (Point*)values[i][j].first.addr;
+          pt->Print(cout); cout << endl;
+          pt->DeleteIfAllowed();
+          break;
+        }
+        case INTERVAL: {
+          Interval<double> *iv = (Interval<double>*)values[i][j].first.addr;
+          cout << (iv->lc ? "[" : "(") << iv->start << ", " << iv->end
+              << (iv->rc ? "]" : ")") << endl;
+          delete iv;
+          break;
+        }
+        case BOOL: {
+          CcBool *ccbool = (CcBool*)values[i][j].first.addr;
+          cout << (ccbool->GetValue() ? "TRUE" : "FALSE") << endl;
+          ccbool->DeleteIfAllowed();
+          break;
+        }
+        case LABEL: {
+          Label *label = (Label*)values[i][j].first.addr;
+          cout << label->GetValue() << endl;
+          label->DeleteIfAllowed();
+          break;
+        }
+        case PLACE: {
+          cout << "place" << endl;
+          break;
+        }
+        default: {
+          cout << "ERROR" << endl;
+          break;
+        }
+      }
+    }
+  }
   return TRUE;
 }
 
