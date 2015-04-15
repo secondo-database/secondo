@@ -314,6 +314,23 @@ given argument specifies an existing connection.
      }
 
 /*
+~isValidServerNo~
+
+checks whether an given integer points to a server
+
+*/
+   bool isValidServerNumber(int no){
+      if(no < 0){
+        return false;
+      }
+      mtx.lock();
+      bool res = no < (int) connections.size();
+      mtx.unlock();
+      return res; 
+   }
+
+
+/*
 ~sendFile~
 
 Transfers a local file to a remove server.
@@ -520,23 +537,26 @@ class ConnectionTask{
      ConnectionTask( int _connection, 
                      CommandListener* _listener):
       connection(_connection), listener(_listener), no(0),
-      done(false), pc1(this), commandList(), listmtx(), 
-      condmtx(), cond(),  worker(pc1){
-         
+      done(false){
+        worker = boost::thread(&ConnectionTask::run, this); 
       } 
      
     ~ConnectionTask(){
           listener = 0;
-          done = true;
+          {
+             boost::lock_guard<boost::mutex> lock(condmtx);
+             done = true;
+          }
           cond.notify_one();
           worker.join(); // wait until worker is done
       }
 
+
      void addCommand(const int id, const string& cmd){
-       boost::lock_guard<boost::mutex> lock(condmtx);
-       listmtx.lock(); 
-       commandList.push_back(make_pair(id, cmd));
-       listmtx.unlock();
+       { 
+         boost::lock_guard<boost::mutex> lock(condmtx);
+         commandList.push_back(make_pair(id, cmd));
+       }
        cond.notify_one();        
      }
 
@@ -545,54 +565,44 @@ class ConnectionTask{
      }
 
   private:
-class pc{
-  public:
-     pc( ConnectionTask* _ct) : ct(_ct){
-
-     }
-     void operator()(){
-      while(!ct->done){
-         boost::unique_lock<boost::mutex> lock(ct->condmtx);
-         // wait for available data
-         ct->listmtx.lock();
-         while(!ct->done && ct->commandList.empty()){
-            ct->listmtx.unlock();
-            ct->cond.wait(lock);
-            ct->listmtx.lock();
+    
+    void run(){
+      pair<int,string> cmd1;
+      while(!done){
+         {
+           boost::unique_lock<boost::mutex> lock(condmtx);
+           // wait for available command 
+           while(!done && commandList.empty()){
+              cond.wait(lock);
+           }
+           if(done){
+             return; 
+           }
+           // get next command from list
+           cmd1 = commandList.front();
+           commandList.pop_front();
          }
-         if(ct->done){
-           ct->listmtx.unlock();
-           return; 
-         }
-         pair<int, string> cmd1 = ct->commandList.front();
-         ct->commandList.pop_front();
-         ct->listmtx.unlock();
-         ct->no++;
+         no++;
          string cmd = cmd1.second;
          int id = cmd1.first;
-
          int error;
          string errMsg; 
          string resList;
-         algInstance->simpleCommand(ct->connection, cmd, 
+         algInstance->simpleCommand(connection, cmd, 
                                     error,errMsg, resList);
-         if(ct->listener){
-            ct->listener->jobDone(id, cmd, ct->no, error, errMsg, resList);
+
+         if(listener){
+            listener->jobDone(id, cmd, no, error, errMsg, resList);
          }
-         ct->no++;
       }
      }
 
-     ConnectionTask* ct;
-};
+     int connection;            // server number
+     CommandListener* listener; // informed if a command is processed
+     size_t no;                 // a running number
+     bool done;                 // finished state
+     list<pair<int,string> > commandList; // list of command
 
-     int connection;
-     CommandListener* listener;
-     size_t no;
-     bool done;
-     pc pc1;
-     list<pair<int,string> > commandList;
-     boost::mutex listmtx; //synchronize list access    
      boost::mutex condmtx; 
      boost::condition_variable cond;
      boost::thread worker;
@@ -1364,212 +1374,177 @@ ListExpr prcmdTM(ListExpr args){
 
 
 template<class T>
-class prcmdInfo{
+class prcmdInfo: public CommandListener{
 
   public:
-    prcmdInfo(Word _s, int _intAttrPos, int _qAttrPos, ListExpr _tt)
+    prcmdInfo(Word _s, int _intAttrPos, int _qAttrPos, ListExpr _tt):
+       inStream(_s), stopped(false), noInTuples(-1), noOutTuples(0),
+       serverAttrPos(_intAttrPos), queryAttrPos(_qAttrPos)
     {
       tt = new TupleType(_tt);
-      inproc = new InputProcessor(_s,_intAttrPos, _qAttrPos, this);
+      inStream.open();
+      runner = boost::thread(boost::bind(&prcmdInfo<T>::run, this));
     }
 
-    ~prcmdInfo(){
-        for(size_t i=0;i<tasks.size() ;i++){
-            if(tasks[i]){
-                tasks[i]->removeListener();
-                delete tasks[i];
-            }
-        }
-        delete inproc;
-        tt->DeleteIfAllowed();
-        listaccessmut.lock();
-        while(!outTuples.empty()){
-           delete outTuples.front();
-           outTuples.pop_front();
-        }
-        listaccessmut.unlock();
-     }
+    virtual ~prcmdInfo(){
+       stopMutex.lock();
+       stopped = true;
+       stopMutex.unlock();
+       // wait until runner is ready
+       runner.join();
+       // stop and delete running connectionTasks
+       map<int, ConnectionTask*>::iterator it1;
+       for(it1 = serverTasks.begin(); it1!=serverTasks.end(); it1++){
+          delete it1->second;
+       }
+       // delete non processed input tuples
+       map<int,Tuple*>::iterator it2;
+       for(it2 = validInputTuples.begin(); it2!= validInputTuples.end(); it2++){
+          it2->second->DeleteIfAllowed();
+       }
+       inStream.close();
+ 
+    }
+
 
     Tuple* next(){
-       boost::unique_lock<boost::mutex> lock(waitmut);
-       listaccessmut.lock();
-       while(outTuples.empty()){
-          listaccessmut.unlock();
-          cond.wait(lock);
-          listaccessmut.lock();
+      // wait for next available tuple
+       boost::unique_lock<boost::mutex> lock(resultMutex);
+       while(pendingResults.empty()){
+            cond.wait(lock);
+        }
+        Tuple* res = pendingResults.front();
+        pendingResults.pop_front();
+        return res;
+    }
+    
+
+    void jobDone(int id, string& command, size_t no, int error, 
+                 string& errMsg, const string& resList){
+       if(validInputTuples.find(id)==validInputTuples.end()){
+          return;
        }
-       Tuple* res = outTuples.front();
-       outTuples.pop_front();
-       listaccessmut.unlock();
-       return res;
+       Tuple* inTuple = validInputTuples[id];
+       validInputTuples.erase(id);
+       createResultTuple(inTuple,error,errMsg, resList);
     }
 
 
   private:
+    Stream<Tuple> inStream;
+    bool stopped;
+    int noInTuples;
+    int noOutTuples;
+    int serverAttrPos;
+    int queryAttrPos;
+    TupleType* tt;
+    list<Tuple*> pendingResults;
+    boost::thread runner;
+    
+    boost::mutex resultMutex; // waiting for new results
+    boost::condition_variable cond; // waiting for new results
 
-     // call back function if the next tuple is available
-     void nextTupleAvailable(Tuple* tuple){
-         nextmut.lock(); // allow only one process to call this function
-         boost::lock_guard<boost::mutex> lock(waitmut);
-         listaccessmut.lock();
-         outTuples.push_back( tuple);
-         listaccessmut.unlock();
-         cond.notify_one();
-         nextmut.unlock();
-     }
+    boost::mutex stopMutex; // access to stopped variable
 
- 
-   class InputProcessor : public CommandListener{
-      public:
-         InputProcessor(Word _s, int _intAttr, int _qAttr, prcmdInfo<T>* _info):
-           stream(_s), intPos(_intAttr), qPos(_qAttr), info(_info) {
-           currentId = 0;
-           noInTuples = 0;
-           noOutTuples = 0;
-           inputDone = false;
-           stopped= false;
-           stream.open();
-           mythread = boost::thread(
-                      boost::bind(&InputProcessor::run, this));
-         }
+    map<int,ConnectionTask*> serverTasks;
+    map<int, Tuple*>  validInputTuples;
 
-         virtual ~InputProcessor(){
-            mut.lock();
-            stopped = true;
-            stream.close();
-            mut.unlock();
-            // delete non processed input tuples
-            map<int,Tuple*>::iterator it;
-            for(it = inTuples.begin(); it != inTuples.end(); it++){
-                 delete it->second;
-            }
-            //wait until the own thread is finsihed
-            mythread.join();
+    boost::mutex tupleCreationMutex;
+
+    void run(){
+      Tuple* inTuple = inStream.request();
+      int noTuples = 0;
+      stopMutex.lock();
+      while(inTuple!=0 && !stopped){
+         stopMutex.unlock();
+         noTuples++;
+         processInputTuple(inTuple, noTuples);
+         inTuple = inStream.request();
+         stopMutex.lock();
+      }
+      if(stopped){
+        if(inTuple){
+           inTuple->DeleteIfAllowed();
+        }
+      } else {
+         ;
+      }
+      stopMutex.unlock();
+      setNoInTuples(noTuples);
+    }
+
+    void setNoInTuples(int num){
+       tupleCreationMutex.lock();
+       noInTuples = num;
+       if(noInTuples == noOutTuples){
+         tupleCreationMutex.unlock();
+          {
+            boost::lock_guard<boost::mutex> lock(resultMutex);
+            pendingResults.push_back(0);
           }
-
-          void run(){
-             Tuple* inTuple;  
-             mut.lock();
-             inTuple = stream.request();
-             bool stop = stopped;
-             mut.unlock();
-             while(inTuple!=0 && ! stop){
-               noInTuples++;
-               CcInt* Server = (CcInt*) inTuple->GetAttribute(intPos);
-               T* q = (T*) inTuple->GetAttribute(qPos);
-               if(!Server->IsDefined() ){
-                  processInvalidTuple(inTuple, -2, "Undefined server number");
-               } 
-               if(!q->IsDefined()){
-                  processInvalidTuple(inTuple, -3, "Undefined query");
-               }
-               int server = Server->GetValue();
-               if(server < 0 || server>= algInstance->noConnections()){
-                  processInvalidTuple(inTuple, -3, "Invalid server number");
-               } else {
-                  string query = q->GetValue(); 
-                  processValidTuple(inTuple, server, query); 
-               }
-               mut.lock();
-               stop = stopped;
-               inTuple=stop?0:stream.request(); 
-               mut.unlock();
-             }
-             inputDone = true;
-             if(noInTuples==0 || noInTuples == noOutTuples){
-                 info->nextTupleAvailable(0);
-             }
-          }
-
-          virtual void jobDone(int id, string& command, size_t no, int error,
-                               string& errMsg, const string& resList){
-               mapmut.lock();
-               if(inTuples.find(id)==inTuples.end()){
-                 cerr << "internal error, could not find input tuple fot id "
-                      << id;
-                 mapmut.unlock();
-                 return;
-               } 
-               Tuple* inTuple = inTuples[id];
-               inTuples.erase(id);
-               mapmut.unlock();
-               createResultTuple(inTuple,error, errMsg, resList);
-          }
+          cond.notify_one();
+       } else {
+         tupleCreationMutex.unlock();
+       } 
+    } 
 
 
-      private:
-         Stream<Tuple> stream;
-         int intPos;
-         int qPos;
-         prcmdInfo<T>* info;
-         bool stopped;
-         boost::mutex mut;
-         boost::mutex outmut;
-         boost::mutex mapmut;
-         map<int,Tuple*> inTuples;
-         int currentId;
-         int noInTuples;
-         int noOutTuples;
-         bool inputDone;
-         boost::thread mythread;
 
-         void processInvalidTuple(Tuple* inTuple, int errCode, 
-                                  const string& errMsg){
-            createResultTuple(inTuple, errCode, errMsg, "()");
+    void processInputTuple(Tuple* inTuple, int tupleId){
+       CcInt* ServerNo = (CcInt*) inTuple->GetAttribute(serverAttrPos);
+       T* Query = (T*) inTuple->GetAttribute(queryAttrPos);
+       if(!ServerNo->IsDefined() || !Query->IsDefined()){
+          createResultTuple(inTuple,-3, "Undefined Argument found", "");
+       }
+       int serverNo = ServerNo->GetValue();
+       if(!algInstance->isValidServerNumber(serverNo)){
+          createResultTuple(inTuple, -2, "Invalid server number", "");
+       }
+       // process a valid tuple
+       validInputTuples[tupleId] = inTuple; // store input tuple
+       // create a ConnectionTask for server if not present  
+       if(serverTasks.find(serverNo)==serverTasks.end()){
+          serverTasks[serverNo] = new ConnectionTask(serverNo, this);
+       }
+       // append the command
+       serverTasks[serverNo]->addCommand(tupleId, Query->GetValue());
+    }
+
+
+    void createResultTuple(Tuple* inTuple, int error, const string& errMsg, 
+                           const string& resList){
+
+       stopMutex.lock();
+       if(stopped){
+          inTuple->DeleteIfAllowed();
+          stopMutex.unlock();
+          return;
+       }
+       stopMutex.unlock();
+
+       tupleCreationMutex.lock();
+
+       Tuple* resTuple = new Tuple(tt);
+       int noAttr = inTuple->GetNoAttributes();
+       for(int i=0;i<noAttr;i++){
+         resTuple->CopyAttribute(i,inTuple,i);
+       }
+       inTuple->DeleteIfAllowed();
+       resTuple->PutAttribute(noAttr, new CcInt(error));
+       resTuple->PutAttribute(noAttr+1, new FText(true,errMsg));
+       resTuple->PutAttribute(noAttr+2, new FText(true,resList));
+       noOutTuples++;
+       {
+         boost::lock_guard<boost::mutex> lock(resultMutex);
+         pendingResults.push_back(resTuple);
+         if(noInTuples==noOutTuples){
+            pendingResults.push_back(0);
          }
-
-         void processValidTuple(Tuple* inTuple, size_t serverno, string query){
-             currentId++;
-             inTuples[currentId] = inTuple;
-             while(info->tasks.size() <= serverno){ // extend task vector
-               info->tasks.push_back(0);
-             }
-             if(!info->tasks[serverno]){
-                 info->tasks[serverno] = new ConnectionTask(
-                                   serverno, 
-                                   this);
-             }
-             info->tasks[serverno]->addCommand(currentId, query);
-         }
-
-         void createResultTuple(Tuple* inTuple, int errorCode, 
-                                const string& errMsg, const string& resList){
-            mut.lock();
-            if(stopped){
-              inTuple->DeleteIfAllowed();
-              mut.unlock();
-              return; 
-            }
-            mut.unlock();
-            outmut.lock();
-            Tuple* resTuple = new Tuple(info->tt);
-            // copy attributes
-            int no = inTuple->GetNoAttributes();
-            for(int i=0;i<no ; i++){
-               resTuple->CopyAttribute(i,inTuple,i);   
-            }
-            inTuple->DeleteIfAllowed();
-            resTuple->PutAttribute(no, new CcInt(errorCode));
-            resTuple->PutAttribute(no+1 , new FText(true, errMsg));
-            resTuple->PutAttribute(no+2, new FText(true, resList));
-            noOutTuples++;
-            info->nextTupleAvailable(resTuple);
-            if(inputDone && noInTuples == noOutTuples){
-              info->nextTupleAvailable(0); // mark end of processing
-            } 
-            outmut.unlock();
-         }
-   };
-
-   TupleType* tt;
-   vector<Tuple*> tuplestore;
-   InputProcessor* inproc;
-   vector<ConnectionTask*> tasks;
-   boost::condition_variable cond;
-   boost::mutex waitmut;
-   boost::mutex nextmut;
-   boost::mutex listaccessmut;
-   list<Tuple*> outTuples; // the next out tuple
+       }
+       tupleCreationMutex.unlock();
+       // inform about a new result tuple
+       cond.notify_one();
+    }
 };
 
 
@@ -2153,8 +2128,10 @@ it to destroy it.
 
 */    
      void stop(){
-          stopped = true;
-          boost::lock_guard<boost::mutex> lock(condmtx);
+         {
+            boost::lock_guard<boost::mutex> lock(condmtx);
+            stopped = true;
+          }
           cond.notify_one();
      }
 
@@ -2172,9 +2149,11 @@ will be handled as the last one.
                        const string& remote, const bool allowOverwrite) {
           transfer newTransfer(inTuple, local, remote, allowOverwrite);
           listAccess.lock();
-          pendingtransfers.push_back(newTransfer);
+          {
+            boost::lock_guard<boost::mutex> lock(condmtx);
+            pendingtransfers.push_back(newTransfer);
+          }
           listAccess.unlock();
-          boost::lock_guard<boost::mutex> lock(condmtx);
           cond.notify_one();
       }
 
@@ -2504,20 +2483,21 @@ the success flag and the error message.
 
         inTuple->DeleteIfAllowed();
 
+        {
+           boost::lock_guard<boost::mutex> lock(resultMutex);
 
-        boost::lock_guard<boost::mutex> lock(resultMutex);
+           listAccess.lock();
+           resultList.push_back(resTuple);
+           listAccess.unlock();
 
-        listAccess.lock();
-        resultList.push_back(resTuple);
-        listAccess.unlock();
-
-        // update counter
-        outputTuples++;
-        if(inputTuples==outputTuples){
-          // this was the last tuple to create
-          listAccess.lock();
-          resultList.push_back(0);
-          listAccess.unlock();
+           // update counter
+           outputTuples++;
+          if(inputTuples==outputTuples){
+             // this was the last tuple to create
+             listAccess.lock();
+             resultList.push_back(0);
+             listAccess.unlock();
+           }
         }
         tupleCreationMtx.unlock();
         resultAvailable.notify_one();
@@ -2533,9 +2513,11 @@ This function is called if the number of input tuples is known.
 */   
      virtual void setInputTupleNumber(int i){
         if(i==0){ // we cannot expect any results
-           boost::lock_guard<boost::mutex> lock(resultMutex);
            listAccess.lock();
-           resultList.push_back(0);
+           {
+             boost::lock_guard<boost::mutex> lock(resultMutex);
+             resultList.push_back(0);
+           }
            listAccess.unlock();
            // inform about new tuple.
            resultAvailable.notify_one(); 
@@ -2546,10 +2528,12 @@ This function is called if the number of input tuples is known.
           if(inputTuples == outputTuples){
              // all output tuples was generated
              countMtx.unlock();
-             boost::lock_guard<boost::mutex> lock(resultMutex);
-             listAccess.lock();
-             resultList.push_back(0);
-             listAccess.unlock();
+             {
+               boost::lock_guard<boost::mutex> lock(resultMutex);
+               listAccess.lock();
+               resultList.push_back(0);
+               listAccess.unlock();
+             }
              // inform about new tuple.
              resultAvailable.notify_one(); 
           } else {
@@ -3028,15 +3012,11 @@ class pconnectLocal : public ConnectionListener{
 
     Tuple* next(){
        boost::unique_lock<boost::mutex> lock(waitmut);
-       listaccessmut.lock();
        while(resultTuples.empty()){
-          listaccessmut.unlock();
           cond.wait(lock);
-          listaccessmut.lock();
        }
        Tuple* res = resultTuples.front();
        resultTuples.pop_front();
-       listaccessmut.unlock();
        return res;
     } 
 
@@ -3066,7 +3046,6 @@ class pconnectLocal : public ConnectionListener{
      bool stopped;
      bool det;
      TupleType* tt;
-     boost::mutex listaccessmut;
      boost::mutex mut;
      boost::mutex waitmut;
      boost::mutex outmut;
@@ -3126,10 +3105,10 @@ first connection and the first output tuple.
     void connectionDoneNonDet(Tuple* inTuple, int inTupleNo, 
                               ConnectionInfo* ci){
         if(!inTuple){
-            listaccessmut.lock();
-            resultTuples.push_back(0);
-            listaccessmut.unlock();
-            boost::lock_guard<boost::mutex> lock(waitmut);
+            {
+              boost::lock_guard<boost::mutex> lock(waitmut);
+              resultTuples.push_back(0);
+            }
             cond.notify_one();
             return;
         }
@@ -3150,16 +3129,16 @@ first connection and the first output tuple.
         inTuple->DeleteIfAllowed();
         int no = algInstance->addConnection(ci);
         resTuple->PutAttribute(noa, new CcInt(no));
-        listaccessmut.lock();
-        resultTuples.push_back(resTuple);
-        outputTuples++;
-        if(inputTuples==outputTuples){
-           stop();
-           resultTuples.push_back(0); // add end marker
+        {
+          boost::lock_guard<boost::mutex> lock(waitmut);
+          resultTuples.push_back(resTuple);
+          outputTuples++;
+          if(inputTuples==outputTuples){
+             stop();
+             resultTuples.push_back(0); // add end marker
+          }
         }
-        listaccessmut.unlock();  
         outmut.unlock();
-        boost::lock_guard<boost::mutex> lock(waitmut);
         cond.notify_one();
     }
 
