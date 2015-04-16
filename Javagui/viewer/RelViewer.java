@@ -51,7 +51,7 @@ class TableTypePair{
 
 public class RelViewer extends SecondoViewer{
 
- private JComboBox<String> ComboBox;
+ private JComboBox ComboBox;
  private JScrollPane ScrollPane;
  private JTable CurrentTable;
  private Vector<TableTypePair> Tables;
@@ -64,7 +64,7 @@ public class RelViewer extends SecondoViewer{
 
  /** creates a new RelationViewer **/
  public RelViewer(){
-   ComboBox = new JComboBox<String>();
+   ComboBox = new JComboBox();
    ScrollPane = new JScrollPane();
    dummy = new JPanel();
    CurrentTable = null;
