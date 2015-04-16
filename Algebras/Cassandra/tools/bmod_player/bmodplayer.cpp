@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <stdlib.h>
@@ -45,8 +46,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <netinet/in.h>
 
 #include "../timer.h"
-#include "workerqueue.h"
-
 
 /*
 1.2 Defines
@@ -112,7 +111,13 @@ public:
     AbstractProducer(Configuration *myConfiguration, 
         Statistics *myStatistics) : 
         configuration(myConfiguration), statistics(myStatistics) {
-           
+           pthread_mutex_init(&queueMutex, NULL);
+           pthread_cond_init(&queueCondition, NULL);
+    }
+    
+    virtual ~AbstractProducer() {
+       pthread_mutex_destroy(&queueMutex);
+       pthread_cond_destroy(&queueCondition);
     }
 
     bool parseCSVDate(struct tm &tm, string date) {
@@ -183,9 +188,10 @@ public:
 protected:
    Configuration *configuration;
    Statistics *statistics;
-   
-private:
+   pthread_mutex_t queueMutex;
+   pthread_cond_t queueCondition;
 
+private:
 };
 
 /*
@@ -197,7 +203,7 @@ class FixedProducer : public AbstractProducer {
 public:
    
    FixedProducer(Configuration *myConfiguration, Statistics *myStatistics, 
-        WorkerQueue<Position*> *myData) : 
+        vector<Position*> *myData) : 
         AbstractProducer(myConfiguration, myStatistics), data(myData) {
       
    }
@@ -235,7 +241,7 @@ public:
       pos2 -> tripid = atoi(lineData[1].c_str());
       
       pos1 -> time = tm1;
-      pos2 -> time= tm2;
+      pos2 -> time = tm2;
       
       pos1 -> x = atof(lineData[4].c_str());
       pos1 -> y = atof(lineData[5].c_str());
@@ -243,19 +249,40 @@ public:
       pos2 -> x = atof(lineData[6].c_str());
       pos2 -> y = atof(lineData[7].c_str());
 
-      data->push(pos1);
-      data->push(pos2);
-
+      putDataIntoQueue(pos1, pos2);
+      
       return true;
+   }
+   
+   void putDataIntoQueue(Position *pos1, Position *pos2) {
+      pthread_mutex_lock(&queueMutex);
+      
+      if(data->size() >= QUEUE_ELEMENTS) {
+         pthread_cond_wait(&queueCondition, &queueMutex);
+      }
+      
+      bool wasEmpty = data->empty();
+      
+      data->push_back(pos1);
+      
+      std::vector<Position*>::iterator insertPos
+          = lower_bound (data->begin(), data->end(), pos2);
+      
+      data->insert(insertPos, pos2);
+      
+      if(wasEmpty) {
+         pthread_cond_broadcast(&queueCondition);
+      }
+      pthread_mutex_unlock(&queueMutex);
    }
    
    virtual void handleInputEnd() {
       // Add terminal token
-      data->push(NULL);
+      data->push_back(NULL);
    }
 
 private:
-   WorkerQueue<Position*> *data;
+   vector<Position*> *data;
 };
 
 /*
@@ -267,7 +294,7 @@ class AdapiveProducer : public AbstractProducer {
 public:
    
    AdapiveProducer(Configuration *myConfiguration, Statistics *myStatistics, 
-        WorkerQueue<InputData*> *myData) : 
+        vector<InputData*> *myData) : 
         AbstractProducer(myConfiguration, myStatistics), data(myData) {
       
    }
@@ -306,19 +333,19 @@ public:
       inputdata -> x_end = atof(lineData[6].c_str());
       inputdata -> y_end = atof(lineData[7].c_str());
 
-      data->push(inputdata);
+      data->push_back(inputdata);
 
       return true;
    }
    
    virtual void handleInputEnd() {
       // Add terminal token
-      data->push(NULL);
+      data->push_back(NULL);
    }
    
    
 private:
-   WorkerQueue<InputData*> *data;
+   vector<InputData*> *data;
 };
 
 void printHelpAndExit(char *progName) {
@@ -326,9 +353,9 @@ void printHelpAndExit(char *progName) {
    cerr << "-h <hostname> -p <port> -s <adaptive|fixed>" << endl;
    cerr << endl;
    cerr << "-i is the CVS file with the trips to simulate" << endl;
-   cerr << "-h is the hostname to connect to" << endl;
-   cerr << "-p is the port to connect to" << endl;
-   cerr << "-s is the simulation mode" << endl;
+   cerr << "-h specifies the hostname to connect to" << endl;
+   cerr << "-p specifies the port to connect to" << endl;
+   cerr << "-s sets the simulation mode" << endl;
    cerr << endl;
    cerr << "For example: " << progName << " -i trips.csv ";
    cerr << "-h localhost -p 10000 -s adaptive" << endl;
@@ -396,7 +423,7 @@ class Consumer {
 public:
    
    Consumer(Configuration *myConfiguration, Statistics *myStatistics, 
-           WorkerQueue<InputData*> *myQueue) 
+           vector<InputData*> *myQueue) 
       : configuration(myConfiguration), statistics(myStatistics), 
         queue(myQueue), socketfd(-1), ready(false) {
       
@@ -484,11 +511,18 @@ public:
       return false;
    }
    
+   InputData* getQueueElement() {
+      InputData *element = queue->back();
+      queue -> pop_back();
+      return element;
+   }
+   
    void dataConsumer() {
       char dateBuffer[80];
       string buffer;
       stringstream ss;
-      InputData *element = queue->pop();
+      
+      InputData *element = getQueueElement();
    
       while(element != NULL) {
          if(ready) {
@@ -519,7 +553,7 @@ public:
          
          delete element;
          
-         element = queue->pop();         
+         element = getQueueElement();     
       }
       
       statistics -> done = true;
@@ -529,7 +563,7 @@ public:
 private:
    Configuration *configuration;
    Statistics *statistics;
-   WorkerQueue<InputData*> *queue;
+   vector<InputData*> *queue;
    int socketfd;
    bool ready;
 };
@@ -636,7 +670,7 @@ int main(int argc, char *argv[]) {
    
    parseParameter(argc, argv, configuration);
    
-   WorkerQueue<InputData*> inputData(QUEUE_ELEMENTS);
+   vector<InputData*> inputData(QUEUE_ELEMENTS);
    
    Consumer consumer(configuration, statistics, &inputData);
    AdapiveProducer producer(configuration, statistics, &inputData);
@@ -670,8 +704,9 @@ int main(int argc, char *argv[]) {
       configuration = NULL;
    }
    
-   while(! inputData.isEmpty()) {
-      InputData *entry = inputData.pop();
+   while(! inputData.empty()) {
+      InputData *entry = inputData.back();
+      inputData.pop_back();
       
       if(entry != NULL) {
          delete entry;
