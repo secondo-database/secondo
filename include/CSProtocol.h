@@ -623,24 +623,6 @@ struct CSProtocol {
    return true;  
  }
 
- /*
- bool SendMessage(ListExpr list) {
-
-   if (ignoreMsg) {
-     cerr << "Warning: Last request was not <Secondo>! "
-          << "Message will not be sent to the client." << endl
-          << startMessage << endl 
-          << list << endMessage << endl;
-     return false;
-   } 
-
-   iosock << startMessage << endl;
-   csp::sendList(nl,list);
-   iosock << endMessage << endl;
-          
-   return true;       
- } 
- */
   
  bool SendFile(const string& filename) {
 
