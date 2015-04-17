@@ -742,6 +742,33 @@ bool Tools::parseInterval(const string& input, int &pos, int &endpos,
 }
 
 /*
+\subsection{Function ~isSetRel~}
+
+*/
+bool Tools::isSetRel(const string& input, int &pos, int &endpos,
+                     SetRel &setrel) {
+  if (input.substr(pos, 8) == "disjoint") {
+    setrel = DISJOINT;
+  }
+  else if (input.substr(pos, 8) == "superset") {
+    setrel = SUPERSET;
+  }
+  else if (input.substr(pos, 5) == "equal") {
+    setrel = EQUAL;
+  }
+  else if (input.substr(pos, 9) == "intersect") {
+    setrel = INTERSECT;
+  }
+  if (setrel != STANDARD) {
+    pos = input.find_first_of('{', pos);
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+/*
 \subsection{Function ~parseBoolorObj~}
 
 */
@@ -816,6 +843,66 @@ bool Tools::parseBoolorObj(const string& input, int &pos, int &endpos,
   }
   pos = input.find_first_not_of(' ', endpos + 1);
   return true;
+}
+
+/*
+\subsection{Function ~checkAttrType~}
+
+*/
+bool Tools::checkAttrType(TupleType *ttype, const string& typeName,
+                          ValueType vtype) {
+  if (typeName == "mlabel" || typeName == "mlabels") {
+    return vtype == LABEL || vtype == LABELS;
+  }
+  else if (typeName == "mplace" || typeName == "mplaces") {
+    return vtype == PLACE || vtype == PLACES;
+  }
+  else if (typeName == "mpoint" || typeName == "mregion") {
+    return vtype == POINT || vtype == POINTS || vtype == LINE || vtype == RECT
+           || vtype == REGION;
+  }
+  else if (typeName == "mbool") {
+    return vtype == BOOL;
+  }
+  else if (typeName == "mint" || typeName == "mreal") {
+    return vtype == INTERVAL;
+  }
+  else { // ERROR
+    cout << "invalid type " << typeName << endl;
+    return false;
+  }
+}
+
+/*
+\subsection{Function ~isRelevantAttr~}
+
+*/
+bool Tools::isRelevantAttr(const string& name) {
+  string relevantAttrTypes[] = {"mlabel", "mlabels", "mplace", "mplaces",
+    "mpoint", "mreal", "mint", "mbool", "mregion"};
+  for (int i = 0; i < 9; i++) {
+    if (name == relevantAttrTypes[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+\subsection{Function ~getRelevantAttrs~}
+
+*/
+vector<pair<int, string> > Tools::getRelevantAttrs(TupleType *ttype) {
+  vector<pair<int, string> > result;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  for (int i = 0; i < ttype->GetNoAttributes(); i++) {
+    AttributeType attrType = ttype->GetAttributeType(i);
+    string typeName = sc->GetTypeName(attrType.algId, attrType.typeId);
+    if (isRelevantAttr(typeName)) {
+      result.push_back(make_pair(i, typeName));
+    }
+  }
+  return result;
 }
 
 /*

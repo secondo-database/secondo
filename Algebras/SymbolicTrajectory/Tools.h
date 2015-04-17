@@ -92,8 +92,14 @@ Started July 2014, Fabio Vald\'{e}s
   static void stringToInterval(const string& str, SecInterval& result);
   static bool parseInterval(const string& input, int &pos, int &endpos,
                             pair<Word, ValueType> &valuepair);
+  static bool isSetRel(const string& input, int &pos, int &endpos, 
+                       SetRel &setrel);
   static bool parseBoolorObj(const string& input, int &pos, int &endpos,
                              pair<Word, ValueType> &valuepair);
+  static bool checkAttrType(TupleType *ttype, const string& typeName, 
+                            ValueType vtype);
+  static bool isRelevantAttr(const string& name);
+  static vector<pair<int, string> > getRelevantAttrs(TupleType *ttype);
   static bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
   // static Word evaluate(string input);

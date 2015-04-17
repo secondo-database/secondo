@@ -682,14 +682,14 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
   }
   int pos = input.find_first_not_of(' ', parts[0].length() + 1);
   int endpos = pos;
+  SetRel setrel = STANDARD;
+  bool isSetRel = false;
   while (ok && pos >= 0 && pos < (int)input.length()) {
     vector<pair<Word, ValueType> > valuevec;
     pair<Word, ValueType> valuepair;
-    cout << "Pos set to " << pos << endl;
     switch (input[pos]) {
       case '_': {
         pos = input.find_first_not_of(' ', pos + 1);
-        cout << "underscore ignored" << endl;
         break;
       }
       case '<': {
@@ -715,7 +715,6 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
       case '{': {
         while (ok && pos >= 0 && input[pos] != '}') {
           pos = input.find_first_not_of("{ ", pos);
-          cout << "pOs set to " << pos << ", " << input[pos] << endl;
           switch (input[pos]) {
             case '"': {
               endpos = input.find('"', pos + 1);
@@ -748,7 +747,6 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
                 valuevec.push_back(valuepair);
                 cout << "pair pushed back, size is now " << valuevec.size() << endl;
               }
-              cout << "OK: " << ok << endl;
               pos = input.find_first_not_of(", ", endpos + 1);
               break;
             }
@@ -761,10 +759,13 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
         break;
       }
       default: {
-        ok = Tools::parseBoolorObj(input, pos, endpos, valuepair);
-        if (ok) {
-          valuevec.push_back(valuepair);
-          cout << "pair pushed back, size is now " << valuevec.size() << endl;
+        isSetRel = Tools::isSetRel(input, pos, endpos, setrel);
+        if (!isSetRel) {
+          ok = Tools::parseBoolorObj(input, pos, endpos, valuepair);
+          if (ok) {
+            valuevec.push_back(valuepair);
+            cout << "pair pushed back, size is now " << valuevec.size() << endl;
+          }
         }
         break;
       }
@@ -772,9 +773,13 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
     if (!ok) {
       return false;
     }
-    values.push_back(valuevec);
-    cout << "vector of size " << valuevec.size() << " appended; size is now "
-         << values.size() << endl;
+    if (!isSetRel) {
+      values.push_back(make_pair(valuevec, setrel));
+      setrel = STANDARD;
+      cout << "vector of size " << valuevec.size() << " appended; size is now "
+           << values.size() << endl;
+    }
+    isSetRel = false;
   }
   return ok;
 }

@@ -247,6 +247,45 @@ bool Pattern::isValid(const string& type) const {
 }
 
 /*
+\subsection{Function ~isCompatible~}
+
+Checks whether an extended pattern is compatible to a certain tuple type. The
+attribute number refers to the master attribute, whose type has to be a symbolic
+trajectory.
+
+*/
+bool Pattern::isCompatible(TupleType *ttype, const int majorAttrNo) {
+  vector<pair<int, string> > relevantAttrs = Tools::getRelevantAttrs(ttype);
+  cout << "attrs: ";
+  for (unsigned int i = 0; i < relevantAttrs.size(); i++) {
+    cout << "(" << relevantAttrs[i].first << ": " << relevantAttrs[i].second 
+         << ") ";
+  }
+  cout << endl;
+  vector<pair<vector<pair<Word, ValueType> >, SetRel> > values;
+  for (int i = 0; i < getSize(); i++) {
+    values = elems[i].getValues();
+    if (values.size() > 0) { // atom has values
+      if (values.size() != relevantAttrs.size()) {
+        cout << "wrong number of values (" << values.size() << " instead of "
+             << relevantAttrs.size() << ") in atom " << i << endl;
+      }
+      for (unsigned int j = 0; j < values.size(); j++) {
+        for (unsigned int k = 0; k < values[j].first.size(); k++) {
+          if (!Tools::checkAttrType(ttype, relevantAttrs[j].second,
+                                    values[j].first[k].second)) {
+            cout << "wrong type (atom " << i << ", specification " << j 
+                 << ", value " << k << ")" << endl;
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
+
+/*
 \subsection{Function ~getPattern~}
 
 Calls the parser.
@@ -302,52 +341,66 @@ the pattern.
 
 */
 ExtBool Pattern::tmatches(Tuple *tuple, const int attrno) {
-  vector<vector<pair<Word, ValueType> > > values = elems[1].getValues();
-  for (unsigned int i = 0; i < values.size(); i++) {
-    for (unsigned int j = 0; j < values[i].size(); j++) {
-      switch (values[i][j].second) {
-        case POINTS: {
-          Points *pts = (Points*)values[i][j].first.addr;
-          pts->Print(cout); cout << endl;
-          pts->DeleteIfAllowed();
-          break;
-        }
-        case POINT: {
-          Point *pt = (Point*)values[i][j].first.addr;
-          pt->Print(cout); cout << endl;
-          pt->DeleteIfAllowed();
-          break;
-        }
-        case INTERVAL: {
-          Interval<double> *iv = (Interval<double>*)values[i][j].first.addr;
-          cout << (iv->lc ? "[" : "(") << iv->start << ", " << iv->end
-              << (iv->rc ? "]" : ")") << endl;
-          delete iv;
-          break;
-        }
-        case BOOL: {
-          CcBool *ccbool = (CcBool*)values[i][j].first.addr;
-          cout << (ccbool->GetValue() ? "TRUE" : "FALSE") << endl;
-          ccbool->DeleteIfAllowed();
-          break;
-        }
-        case LABEL: {
-          Label *label = (Label*)values[i][j].first.addr;
-          cout << label->GetValue() << endl;
-          label->DeleteIfAllowed();
-          break;
-        }
-        case PLACE: {
-          cout << "place" << endl;
-          break;
-        }
-        default: {
-          cout << "ERROR" << endl;
-          break;
-        }
-      }
-    }
+//   vector<pair<vector<pair<Word, ValueType> >, SetRel> > values = 
+//                                                         elems[1].getValues();
+//   for (unsigned int i = 0; i < values.size(); i++) {
+//     for (unsigned int j = 0; j < values[i].first.size(); j++) {
+//       switch (values[i].first[j].second) {
+//         case POINT: {
+//           Point *pt = (Point*)values[i].first[j].first.addr;
+//           pt->Print(cout); cout << endl;
+//           pt->DeleteIfAllowed();
+//           break;
+//         }
+//         case POINTS: {
+//           Points *pts = (Points*)values[i].first[j].first.addr;
+//           pts->Print(cout); cout << endl;
+//           pts->DeleteIfAllowed();
+//           break;
+//         }
+//         case REGION: {
+//           Region *reg = (Region*)values[i].first[j].first.addr;
+//           reg->Print(cout); cout << endl;
+//           reg->DeleteIfAllowed();
+//           break;
+//         }
+//         case INTERVAL: {
+//           Interval<double> *iv =
+//                             (Interval<double>*)values[i].first[j].first.addr;
+//           cout << (iv->lc ? "[" : "(") << iv->start << ", " << iv->end
+//               << (iv->rc ? "]" : ")") << endl;
+//           delete iv;
+//           break;
+//         }
+//         case BOOL: {
+//           CcBool *ccbool = (CcBool*)values[i].first[j].first.addr;
+//           cout << (ccbool->GetValue() ? "TRUE" : "FALSE") << endl;
+//           ccbool->DeleteIfAllowed();
+//           break;
+//         }
+//         case LABEL: {
+//           Label *label = (Label*)values[i].first[j].first.addr;
+//           cout << label->GetValue() << endl;
+//           label->DeleteIfAllowed();
+//           break;
+//         }
+//         case PLACE: {
+//           cout << "place" << endl;
+//           break;
+//         }
+//         default: {
+//           cout << "ERROR" << endl;
+//           break;
+//         }
+//       }
+//     }
+//   }
+  ExtBool result = UNDEF;
+  if (!isCompatible(tuple->GetTupleType(), attrno)) {
+    return result;
   }
+  
+  
   return TRUE;
 }
 

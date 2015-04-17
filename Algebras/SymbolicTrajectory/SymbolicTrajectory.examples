@@ -390,7 +390,7 @@ Operator : tmatches
 Number   : 1
 Signature: tuple(X) x IDENT x (text | pattern) -> bool
 Example  : query Part feed filter[. tmatches [ML, '* (_ _ superset{"BKA"}) *']] count
-Result   : 0
+Result   : 2
 
 Operator : filtermatches
 Number   : 1

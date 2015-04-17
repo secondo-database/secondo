@@ -446,7 +446,7 @@ class PatElem {
   set<string> ivs;
   set<string> lbs;
   set<pair<string, unsigned int> > pls;
-  vector<vector<pair<Word, ValueType> > > values;
+  vector<pair<vector<pair<Word, ValueType> >, SetRel> > values;
   Wildcard wc;
   SetRel setRel;
   bool ok;
@@ -494,7 +494,8 @@ class PatElem {
   bool     hasIndexableContents() const {return (hasLabel() || hasPlace() ||
                                                  hasRealInterval());}
   bool     extractValues(string &input, Tuple *tuple);
-  vector<vector<pair<Word, ValueType> > > getValues() const {return values;}
+  vector<pair<vector<pair<Word, ValueType> >, SetRel> > getValues() const 
+                                                          {return values;}
 };
 
 class Assign {
@@ -583,11 +584,12 @@ class Pattern {
 
   string GetText() const;
   bool isValid(const string& type) const;
+  bool isCompatible(TupleType *ttype, const int majorAttrNo);
   static Pattern* getPattern(string input, bool classify, 
                              Tuple *tuple = 0);
   template<class M>
   ExtBool matches(M *m);
-  ExtBool tmatches(Tuple *tuple, int attrno);
+  ExtBool tmatches(Tuple *tuple, const int attrno);
   int getResultPos(const string v);
   void collectAssVars();
   void addVarPos(string var, int pos);
