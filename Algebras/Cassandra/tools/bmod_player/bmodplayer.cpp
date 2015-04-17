@@ -101,6 +101,11 @@ struct Position {
    float y;
 };
 
+struct QueueSync {
+   pthread_mutex_t queueMutex;
+   pthread_cond_t queueCondition;
+};
+
 /*
 2.0 Abstract Producer class - reads berlin mod csv data 
 
@@ -109,15 +114,14 @@ class AbstractProducer {
 public:
 
     AbstractProducer(Configuration *myConfiguration, 
-        Statistics *myStatistics) : 
+        Statistics *myStatistics, QueueSync *myQueueSync) : 
+        queueSync(myQueueSync) ,
         configuration(myConfiguration), statistics(myStatistics) {
-           pthread_mutex_init(&queueMutex, NULL);
-           pthread_cond_init(&queueCondition, NULL);
+   
     }
     
     virtual ~AbstractProducer() {
-       pthread_mutex_destroy(&queueMutex);
-       pthread_cond_destroy(&queueCondition);
+
     }
 
     bool parseCSVDate(struct tm &tm, string date) {
@@ -186,10 +190,10 @@ public:
    virtual void handleInputEnd() = 0;
    
 protected:
+   QueueSync *queueSync;
    Configuration *configuration;
    Statistics *statistics;
-   pthread_mutex_t queueMutex;
-   pthread_cond_t queueCondition;
+
 
 private:
 };
@@ -203,8 +207,9 @@ class FixedProducer : public AbstractProducer {
 public:
    
    FixedProducer(Configuration *myConfiguration, Statistics *myStatistics, 
-        vector<Position*> *myData) : 
-        AbstractProducer(myConfiguration, myStatistics), data(myData) {
+        vector<Position*> *myData, QueueSync *myQueueSync) : 
+        AbstractProducer(myConfiguration, myStatistics, myQueueSync), 
+        data(myData) {
       
    }
 
@@ -255,10 +260,11 @@ public:
    }
    
    void putDataIntoQueue(Position *pos1, Position *pos2) {
-      pthread_mutex_lock(&queueMutex);
+      pthread_mutex_lock(&queueSync->queueMutex);
       
       if(data->size() >= QUEUE_ELEMENTS) {
-         pthread_cond_wait(&queueCondition, &queueMutex);
+         pthread_cond_wait(&queueSync->queueCondition, 
+                           &queueSync->queueMutex);
       }
       
       bool wasEmpty = data->empty();
@@ -271,9 +277,9 @@ public:
       data->insert(insertPos, pos2);
       
       if(wasEmpty) {
-         pthread_cond_broadcast(&queueCondition);
+         pthread_cond_broadcast(&queueSync->queueCondition);
       }
-      pthread_mutex_unlock(&queueMutex);
+      pthread_mutex_unlock(&queueSync->queueMutex);
    }
    
    virtual void handleInputEnd() {
@@ -294,8 +300,9 @@ class AdapiveProducer : public AbstractProducer {
 public:
    
    AdapiveProducer(Configuration *myConfiguration, Statistics *myStatistics, 
-        vector<InputData*> *myData) : 
-        AbstractProducer(myConfiguration, myStatistics), data(myData) {
+        vector<InputData*> *myData, QueueSync *myQueueSync) : 
+        AbstractProducer(myConfiguration, myStatistics, myQueueSync), 
+        data(myData) {
       
    }
 
@@ -333,10 +340,29 @@ public:
       inputdata -> x_end = atof(lineData[6].c_str());
       inputdata -> y_end = atof(lineData[7].c_str());
 
-      data->push_back(inputdata);
+      putDataIntoQueue(inputdata);
 
       return true;
    }
+   
+   void putDataIntoQueue(InputData *inputdata) {
+      pthread_mutex_lock(&queueSync->queueMutex);
+      
+      if(data->size() >= QUEUE_ELEMENTS) {
+         pthread_cond_wait(&queueSync->queueCondition, 
+                           &queueSync->queueMutex);
+      }
+      
+      bool wasEmpty = data->empty();
+      
+      data->push_back(inputdata);
+      
+      if(wasEmpty) {
+         pthread_cond_broadcast(&queueSync->queueCondition);
+      }
+      pthread_mutex_unlock(&queueSync->queueMutex);
+   }
+   
    
    virtual void handleInputEnd() {
       // Add terminal token
@@ -664,6 +690,10 @@ int main(int argc, char *argv[]) {
    statistics->done = false;
    
    Timer timer;
+   QueueSync queueSync;
+   
+   pthread_mutex_init(&queueSync.queueMutex, NULL);
+   pthread_cond_init(&queueSync.queueCondition, NULL);
    
    pthread_t readerThread;
    pthread_t writerThread;
@@ -673,7 +703,8 @@ int main(int argc, char *argv[]) {
    vector<InputData*> inputData(QUEUE_ELEMENTS);
    
    Consumer consumer(configuration, statistics, &inputData);
-   AdapiveProducer producer(configuration, statistics, &inputData);
+   AdapiveProducer producer(configuration, statistics, 
+                            &inputData, &queueSync);
 
    pthread_create(&readerThread, NULL, 
                   &startProducerThreadInternal, &producer);
@@ -693,6 +724,9 @@ int main(int argc, char *argv[]) {
    
    pthread_join(readerThread, NULL);
    pthread_join(writerThread, NULL);
+   
+   pthread_mutex_destroy(&queueSync.queueMutex);
+   pthread_cond_destroy(&queueSync.queueCondition);
 
    if(statistics != NULL) {
       delete statistics;
