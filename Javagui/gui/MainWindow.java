@@ -36,7 +36,6 @@ import mmdb.MMDBUserInterfaceController;
 
 public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,SecondoChangeListener{
 
-public final static String CONFIGURATION_FILE="gui.cfg";
 public final static String AUTO_HISTORY_FILE=".gui_history";
 public final static String AUTO_QUERY_FILE=".gui_queries";
 // the last ... entries of the history are stored
@@ -194,7 +193,7 @@ private String ObjectDirectory ="./"; // where search for Objects
 private ProgressView progressView;
 private ProgressTimer progressTimer;
 
-
+private String configFile;
 
 private JFileChooser FC_History = new JFileChooser(".");
 private JFileChooser FC_Queries = new JFileChooser(".");
@@ -217,9 +216,9 @@ public Frame getMainFrame(){ return this; }
 
 
 /* creates a new MainWindow */
-public MainWindow(String Title,String user,String passwd){
-
+public MainWindow(String Title,String user,String passwd, String configFile){
   super(Title);
+  this.configFile = configFile;
   VCLs = new Vector(10);  // ViewerChangeListeners
   ViewerMenuItems = new Vector(10);
   AllViewers = new Vector(10);
@@ -301,7 +300,7 @@ public MainWindow(String Title,String user,String passwd){
 
   // try to read a configuration-File
   Properties Config = new Properties();
-  File CF = new File(CONFIGURATION_FILE);
+  File CF = new File(configFile);
   boolean config_file_ok =true;
   if(!CF.exists()){
      Reporter.writeError("Javagui: configuration file not found \n" +
@@ -412,7 +411,7 @@ public MainWindow(String Title,String user,String passwd){
  if(config_file_ok){
     String TMPServerName = Config.getProperty("SERVERNAME");
     if (TMPServerName==null){
-      Reporter.writeError("Servername not found in "+CONFIGURATION_FILE);
+      Reporter.writeError("Servername not found in "+configFile);
     }
     else{
       ServerName = TMPServerName;
@@ -421,13 +420,13 @@ public MainWindow(String Title,String user,String passwd){
 
     String TMPServerPort = Config.getProperty("SERVERPORT");
     if(TMPServerPort==null){
-       Reporter.writeError("Serverport not found in "+CONFIGURATION_FILE);
+       Reporter.writeError("Serverport not found in "+ configFile);
     }
     else{
        try{
           int PortInt = (new Integer(TMPServerPort)).intValue();
           if(PortInt <0){
-            Reporter.writeError("ServerPort in "+CONFIGURATION_FILE+" less than 0");
+            Reporter.writeError("ServerPort in "+ configFile+" less than 0");
           }
           else{
             Reporter.writeInfo("set port to "+PortInt);
@@ -442,7 +441,7 @@ public MainWindow(String Title,String user,String passwd){
 
     String Connection = Config.getProperty("START_CONNECTION");
     if(Connection==null){
-       Reporter.writeError("START_CONNECTION not found in "+CONFIGURATION_FILE);
+       Reporter.writeError("START_CONNECTION not found in "+configFile);
     }
     else{
        Connection=Connection.trim().toLowerCase();
@@ -451,7 +450,7 @@ public MainWindow(String Title,String user,String passwd){
        else if(Connection.equals("false"))
            StartConnection = false;
        else{
-           Reporter.writeError("START_CONNECTION has unknown value in "+CONFIGURATION_FILE);
+           Reporter.writeError("START_CONNECTION has unknown value in "+configFile);
            Reporter.writeInfo("allowed values are  true  and false");
        }
     }
@@ -459,7 +458,7 @@ public MainWindow(String Title,String user,String passwd){
 
     String FontSize = Config.getProperty("COMMAND_FONTSIZE");
     if(FontSize==null){
-       Reporter.writeError("COMMAND_FONTSIZE NOT found in "+CONFIGURATION_FILE);
+       Reporter.writeError("COMMAND_FONTSIZE NOT found in "+configFile);
     }
     else{
        try{
@@ -474,7 +473,7 @@ public MainWindow(String Title,String user,String passwd){
 
     FontSize = Config.getProperty("LIST_FONTSIZE");
     if(FontSize==null){
-       Reporter.writeError("LIST_FONTSIZE not found in "+CONFIGURATION_FILE);
+       Reporter.writeError("LIST_FONTSIZE not found in "+configFile);
     }
     else{
       try{
@@ -2151,6 +2150,7 @@ public static void main(String[] args){
   String user ="";
   String passwd = "";
   String testFileName = null;
+  String configFile = "gui.cfg";
   while(argspos < args.length){
      if(args[argspos].equals("--testmode")){
         tools.Environment.TESTMODE = tools.Environment.SIMPLE_TESTMODE;
@@ -2191,6 +2191,16 @@ public static void main(String[] args){
           passwd = args[argspos];
           argspos++;  
         }
+     } else if(args[argspos].equals("-config")){
+        if(argspos+1 == args.length){
+          Reporter.writeError("missing argument after -config option");
+          System.exit(1);
+        } else {
+          argspos++;
+          configFile = args[argspos];
+          argspos++;  
+        }
+
      } else {
          Reporter.writeError("unknown argument "+ args[argspos]); 
          System.exit(1);
@@ -2209,7 +2219,7 @@ public static void main(String[] args){
      }
   }
   // start Javagui
-  MainWindow SecGui = new MainWindow("Secondo-GUI",user,passwd);
+  MainWindow SecGui = new MainWindow("Secondo-GUI",user,passwd,configFile);
 
   setLAF();
 
