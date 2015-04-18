@@ -6,6 +6,7 @@ using namespace std;
 #include "FixedMRegiontest.h"
 #include "Secondo_Include.h"
 #include <vector>
+#include "../Spatial/RegionTools.h"
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
@@ -337,8 +338,9 @@ This method tests the method traversed.
   
 */
 void testtraversed(){
-  testtraversed1();
-  testtraversed2();
+  //testtraversed1();
+  //FIXME
+  //testtraversed2();
 }
 
 void testMBool(){
@@ -380,19 +382,343 @@ void testMBool(){
   printf("innerhalb %s\n",(res->Present(test3))?"Wahr":"Falsch");
 }
 
+void testraversedCase0(){
+  //alle Punkte auf einer Geraden
+  printf("Test testraversedCase0: \n");
+  
+}
+
+void testraversedCase1(){
+  //parallel
+  printf("Test testraversedCase1: \n");
+}
+
+void testraversedCase2(){
+  //beide außerhalb
+  printf("Test testraversedCase2: \n");
+}
+
+void testraversedCase3(){
+  //P0 + außerhalb
+  printf("Test testraversedCase3: \n");
+}
+
+void testraversedCase4(){
+  //P0 + P0'
+  printf("Test testraversedCase4: \n");
+}
+
+void testraversedCase5(){
+  //P0 + innerhalb
+  printf("Test testraversedCase5: \n");
+}
+
+void testraversedCase6(){
+  //beide innerhalb
+  printf("Test testraversedCase6: \n");
+}
+
+void testraversedCase7(){
+  //P0 + P1'
+  printf("Test testraversedCase7: \n");
+}
+
+void testraversedCase8(){
+  //P1 + außerhalb
+  printf("Test testraversedCase8: \n");
+}
+
+void testraversedCase9(){
+  //P1 + P0'
+  printf("Test testraversedCase9: \n");
+}
+
+void testraversedCase10(){
+  //P1 + P1'
+  printf("Test testraversedCase10: \n");
+}
+
+void testraversedCase11(){
+  //P1 + innerhalb
+  printf("Test testraversedCase11: \n");
+}
+
+void testraversedCase12(){
+  //außerhalb + P0'
+  printf("Test testraversedCase12: \n");
+}
+
+void testraversedCase13(){
+  //außerhalb + innerhalb
+  printf("Test testraversedCase13: \n");
+}
+
+void testraversedCase14(){
+  //außerhalb + P1'
+  printf("Test testraversedCase14: \n");
+}
+
+void testraversedCase15(){
+  //innerhalb + P0'
+  printf("Test testraversedCase15: \n");
+}
+
+void testraversedCase16(){
+  //innerhalb + außerhalb
+  printf("Test testraversedCase16: \n");
+}
+
+void testraversedCase17(){
+  //innerhalb + P1'
+  printf("Test testraversedCase17: \n");
+}
+
+void testraversedCaseA(){
+  //entartet
+  printf("Test testraversedCaseA: \n");
+  testraversedCase0();
+}
+void testraversedCaseB(){
+  //kein Schnittpunkt
+  printf("Test testraversedCaseB: \n");
+  testraversedCase1();
+}
+void testraversedCaseC(){
+  //2 von 4 Punkten sind identisch
+  printf("Test testraversedCaseC: \n");
+  testraversedCase4();
+  testraversedCase7();
+  testraversedCase9();
+  testraversedCase10();
+}
+void testraversedCaseD(){
+  //Viereck
+  printf("Test testraversedCaseD: \n");
+  testraversedCase2();
+  testraversedCase13();
+  testraversedCase16();
+}
+void testraversedCaseE(){
+  //Dreieck
+  printf("Test testraversedCaseE: \n");
+  testraversedCase3();
+  testraversedCase8();
+  testraversedCase12();
+  testraversedCase14();
+}
+void testraversedCaseF(){
+  //2 Dreiecke
+  printf("Test testraversedCaseF: \n");
+  testraversedCase6();
+  testraversedCase15();
+}
+void testraversedCaseG(){
+  //Dreieck + Gerade
+  printf("Test testraversedCaseG: \n");
+  testraversedCase5();
+  testraversedCase11();
+  testraversedCase17();
+}
+
+void testtraversedNew(){
+  printf("Test testtraversedNew: \n");
+  testraversedCaseA();
+  testraversedCaseB();
+  testraversedCaseC();
+  testraversedCaseD();
+  testraversedCaseE();
+  testraversedCaseF();
+  testraversedCaseG();
+}
+
+void testQuatro(){
+  printf("Test testQuatro: \n");
+  Point *p1 = new Point( true, 0.0, 0.0);
+  Point *p2 = new Point( true, 1.0, 0.0);
+  Point *p3 = new Point( true, 1.0, 1.0);
+  Point *p4 = new Point( true, 0.0, 1.0);
+  
+  Region *t1= new Region(*p1, *p2, *p3);
+  Region *t2= new Region(*p4, *p3, *p1);
+  
+//  Region *tmp1= new Region (*p1, *p2, *p4);
+//  Region *tmp2=new Region(0);
+//  tmp1->Union(*t1, *tmp2);
+  
+  //Point expected[]= {Point(true, 1.0, 0.0), Point(true, 0.0, 1.0), 
+  //  Point(true, 1.0, 1.0)};
+ 
+  //printf("%s\n", (checkRegionPoints(res, expected, 3))?"OK":"FAILED");
+
+  Region *v1= new Region(0);
+  t1->Union(*t2, *v1);
+  delete p1;
+  delete p2;
+  delete p3;
+  delete p4;
+  delete t1;
+  delete t2;
+  
+  printf("Test testQuatro6: \n");
+  double m=v1->Area();
+  printf("Flächeninhalt kleines Viereck: %f\n", m);
+  
+  Point *p5 = new Point( true, 0.0, 2.0);
+  Point *p6 = new Point( true, 1.0, 2.0);
+  Point *p7 = new Point( true, 1.0, 1.0);
+  Point *p8 = new Point( true, 0.0, 1.0);
+  
+  Region *t3= new Region(*p5, *p6, *p7);
+  Region *t4= new Region(*p5, *p7, *p8);
+  
+  //Point expected[]= {Point(true, 1.0, 0.0), Point(true, 0.0, 1.0), 
+  //  Point(true, 1.0, 1.0)};
+ 
+  //printf("%s\n", (checkRegionPoints(res, expected, 3))?"OK":"FAILED");
+
+  Region * v2= new Region(0);
+  t3->Union(*t4, *v2);
+  delete p7;
+  delete p8;
+  delete p5;
+  delete p6;
+  delete t3;
+  delete t4;
+  
+  printf("Test testQuatro7: \n");
+  double m2=v2->Area();
+  printf("Flächeninhalt zweites kleines Viereck: %f\n", m2);
+  
+  Region * res = new Region(0);
+  v1->Union(*v2, *res);
+  
+  printf("Test testQuatro12: \n");
+  double m3=res->Area();
+  printf("Flächeninhalt großes Viereck: %f\n", m3);
+  delete res;
+}
+
+void testTriangleQuatro(){
+  printf("Test testTriangleQuatro: \n");
+  Point *p1 = new Point( true, 0.0, 0.0);
+  Point *p2 = new Point( true, 0.5, 0.0);
+  Point *p3 = new Point( true, 1.0, 0.0);
+  Point *p4 = new Point( true, 1.0, 1.0);
+  Region * res = new Region(0);
+  printf("Test testTriangleQuatro2: \n");
+  res->StartBulkLoad();
+    printf("Test testTriangleQuatro3: \n");
+  HalfSegment h1(true, *p1, *p2 );
+  HalfSegment h2(true, *p3, *p4 );
+  HalfSegment h3(true, *p4, *p1 );
+  HalfSegment h4(true, *p2, *p3 );
+    printf("Test testTriangleQuatro4: \n");
+  *res+=h1;
+  *res+=h2;
+  *res+=h3;
+  *res+=h4;
+  printf("Test testTriangleQuatro5: \n");
+  res->EndBulkLoad();
+  printf("Test testTriangleQuatro6: \n");
+  double m=res->Area();
+  printf("Flächeninhalt kleines Viereck: %f\n", m);
+}
+
+void testCycle() {
+    vector<Point> v; //Vektor für den Polygonzug
+    v.push_back(Point(true, 0.0, 0.0)); 
+    //Die einzelnen Punkte hinzufügen
+    
+    v.push_back(Point(true, 0.0, 1.0)); //immer im Uhrzeigersinn
+    v.push_back(Point(true, 1.0, 1.0)); 
+    //gegen den Uhrzeigersinn würde es ein Loch
+    
+    v.push_back(Point(true, 1.0, 0.0));
+    v.push_back(Point(true, 0.0, 0.0)); //Den ersten zum Schluss nochmal
+    vector<vector<Point> > vv; //Einen Vektor von Vektoren erzeugen
+    vv.push_back(v); //Die einzelnen Polygonzüge hinzufügen (hier nur einer)
+    Region *res=buildRegion(vv);  //Region erstellen
+    printf("Cycle Area: %f\n", res->Area());
+    delete res;
+}
+
+
+
+void testUnion(){
+  printf("Test Union bei Dreiecken mit einer gleichen Kante: \n");
+  Point *p1 = new Point( true, 0.0, 0.0);
+  Point *p2 = new Point( true, 1.0, 0.0);
+  Point *p3 = new Point( true, 1.0, 1.0);
+  Point *p4 = new Point( true, 0.0, 1.0);
+  Region *t1= new Region(*p1, *p2, *p3);
+  Region *t2= new Region(*p4, *p3, *p1);
+  Region *v1= new Region(0);
+  t1->Union(*t2, *v1);
+  delete p1;
+  delete p2;
+  delete p3;
+  delete p4;
+  delete t1;
+  delete t2;
+  
+  printf("Test Union von überlappenden Dreiecken: \n");
+  Point *p5 = new Point( true, 0.0, 2.0);
+  Point *p6 = new Point( true, 1.0, 2.0);
+  Point *p7 = new Point( true, 1.0, 1.0);
+  Point *p8 = new Point( true, 0.0, 1.0);
+  
+  Region *t3= new Region(*p5, *p6, *p7);
+  Region *t4= new Region(*p6, *p7, *p8);
+  Region * v2= new Region(0);
+  t3->Union(*t4, *v2);
+  delete p7;
+  delete p8;
+  delete p5;
+  delete p6;
+  delete t3;
+  delete t4;
+  
+  printf("Test Union von berührenden Dreiecken: \n");
+  Point *p01 = new Point( true, 0.0, 0.0);
+  Point *p02 = new Point( true, 1.0, 0.0);
+  Point *p03 = new Point( true, 1.0, 1.0);
+  Point *p04 = new Point( true, 0.0, 2.0);
+  Point *p05 = new Point( true, 1.0, 2.0);
+  
+  Region *t5= new Region(*p01, *p02, *p03);
+  Region *t6= new Region(*p03, *p04, *p05);
+  Region * v3= new Region(0);
+  t5->Union(*t6, *v3);
+  delete p01;
+  delete p02;
+  delete p03;
+  delete p04;
+  delete p05;
+  delete t5;
+  delete t6;
+}
+
+
+
+
 
 /*
 This is the only test method and contains all tests.
 
 */
 void runTestMethod() {
-  testMove();
-  testLATransform();
+//  testMove();
+//  testLATransform();
   //testRegion();
-  testRegionCompare();
-  testatinstantNoMove();
-  testatinstantLinearMove();
-  testatinstantRotate();
-  testtraversed();
-  testMBool();
+//  testRegionCompare();
+//  testatinstantNoMove();
+//  testatinstantLinearMove();
+//  testatinstantRotate();
+//  testtraversed();
+//  testMBool();
+//  testtraversedNew();
+//  testQuatro();
+//  testCycle();
+    //  testTriangleQuatro();
+  testUnion();
 }

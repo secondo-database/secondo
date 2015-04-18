@@ -134,24 +134,71 @@ This is the standard destructor.
       return false;
     }
     
-    Region * FixedMRegion::traversed(double ta, double te, double precision){
+    Region * FixedMRegion::traversed2(double ta, double te, double precision){
       Region * res=NULL;
       for(double i=0;i<=(te-ta);i=i+precision){
         Region * tmp = atinstant(ta+i);
         if(res==NULL){
           res=tmp;
         }else{
-  Region *tmp2= new Region(*res);
-  tmp2->Clear();
-  res->Union(*tmp, *tmp2);
-  delete tmp;
-  delete res;
-  res=tmp2;
+           Region *tmp2= new Region(*res);
+           tmp2->Clear();
+           res->Union(*tmp, *tmp2);
+           delete tmp;
+           delete res;
+           res=tmp2;
         }
       }
       return res;
     }
     
+Region * FixedMRegion::traversed(double ta, double te, double precision){
+   Region * res=atinstant(ta);
+   Region * tiold=atinstant(ta);
+   Region * tinew=NULL;
+   for(double i=0;i<=(te-ta);i=i+precision)
+   {
+     Region * tinew = atinstant(ta+i);
+     Region * tmp = getDiffRegion(tiold, tinew);
+     Region *tmp2= new Region(*res);
+     tmp2->Clear();
+     res->Union(*tmp, *tmp2);
+     delete tmp;
+     delete res;
+     res=tmp2;
+     delete tiold;
+     tiold=tinew;
+   }
+   return res;
+}
+    
+Region * FixedMRegion::getDiffRegion(const Region *resultold, 
+  const Region * resultnew){
+  Region * diffregion = new Region(0);     
+  Region * tmp =NULL;
+  HalfSegment hsold;
+  HalfSegment hsnew;
+  for( int i = 0; i < resultold->Size(); i++ )
+  {
+    resultold->Get( i, hsold );
+    resultnew->Get( i, hsnew );
+    tmp=getHalfsegmentsMoveRegion(hsold, hsnew);
+    Region *tmp2= new Region(0);
+    diffregion->Union(*tmp, *tmp2);
+    delete tmp;
+    delete diffregion;
+    diffregion=tmp2;
+  }
+  delete tmp;
+  return diffregion;
+}
+
+Region * FixedMRegion::getHalfsegmentsMoveRegion(
+  HalfSegment hsold, HalfSegment hsnew){
+  Region * tmp =NULL;
+  
+  return tmp;
+}
     
     const Region * FixedMRegion::getRegion() const {
       return r;

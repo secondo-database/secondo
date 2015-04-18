@@ -74,4 +74,4 @@ FixedMRegiontest.o: FixedMRegiontest.cpp FixedMRegiontest.h \
  /home/secondo/secondo/include/StandardTypes.h \
  /home/secondo/secondo/include/BigInt.h \
  ../Temporal/../../include/CharTransform.h Move.h LATransform.h \
- FixedMRegion.h
+ FixedMRegion.h ../Spatial/RegionTools.h

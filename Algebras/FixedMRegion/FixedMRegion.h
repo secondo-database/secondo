@@ -108,8 +108,8 @@ the FMRegion has at least on time (or more often) traversed in the given
 intervall ta to te. 
 
 */
+Region * traversed2(double ta, double te, double precision=0.001);
 Region * traversed(double ta, double te, double precision=0.001);
-  
     
     const Region * getRegion() const;
     void setRegion(Region * _r);
@@ -124,8 +124,9 @@ private:
    LATransform l;
    double xm;
    double ym;
-
-   
+   Region * getHalfsegmentsMoveRegion(const HalfSegment hsold, 
+   const HalfSegment hsnew);
+   Region * getDiffRegion(const Region *resultold, const Region * resultnew);
    void calculateInternalVars();
    const LATransform& getLATransform();
    void setLATransform(const LATransform &_l);
