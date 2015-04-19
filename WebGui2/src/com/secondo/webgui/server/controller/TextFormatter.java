@@ -322,14 +322,7 @@ public class TextFormatter{
 			//get all tuples of one value
 			while (!listentry.isEmpty()) {
 				
-				//1 tuple
-				//for the line, region or mpoint add just (geometry) not all values
-	    		if (tuplelist.first().second().stringValue().equals("line") || tuplelist.first().second().stringValue().equals("region") || 
-	    				tuplelist.first().second().stringValue().equals("mpoint")){
-	    			formattedTextentry = formattedTextentry + tuplelist.first().first().stringValue().trim() + " : "; //Name : 
-					formattedTextentry = formattedTextentry +  "(geometry) \n \n"; //  (geometry)
-	    		}	    		
-	    		else{
+				
 	    			formattedTextentry = formattedTextentry + tuplelist.first().first().stringValue().trim() + " : ";
 	    			//add all other textentries, but remove the substrings: <text>, </text--->, <date>, </date--->, ""
 	    			formattedTextentry = formattedTextentry.replaceAll("\"", "");
@@ -339,7 +332,7 @@ public class TextFormatter{
 	    			formattedTextentry = formattedTextentry.replaceAll("<date>", "");
 	    			formattedTextentry = formattedTextentry.replaceAll("</date--->", "");
 					formattedTextentry = formattedTextentry + listentry.first().writeListExprToString().trim() + "\n \n";
-	    		}
+
 			    tuplelist = tuplelist.rest();
 			    listentry = listentry.rest();
 			    index1++;		

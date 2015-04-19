@@ -337,13 +337,13 @@ public class MVPolylineController {
 	private void addPopupToShowLegend(HashMap<Number, Vector> lineMap,
 			final Map map, Bounds bounds) {
 
-		System.out.println(lineMap.size());
+		System.out.println("LineMap "+lineMap.size());
 		if (!lineMap.isEmpty()) {
 			Vector [] overlays = new Vector [lineMap.size()]; 
 			int arrayIndex=0;
 			for (Vector lineLayer : lineMap.values()) {
-				int i = lineLayer.getFeatures().length;
-				System.out.println("Number of line segments on layer " + i);			
+//				int i = lineLayer.getFeatures().length;
+//				System.out.println("Number of line segments on layer " + i);			
 				
 				overlays[arrayIndex]=lineLayer;
 				// Secondly add a VectorFeatureSelectedListener to the feature
@@ -392,8 +392,8 @@ public class MVPolylineController {
 		if (!lineMap.isEmpty()) {
 
 			for (Vector lineLayer : lineMap.values()) {
-				int i = lineLayer.getFeatures().length;
-				System.out.println("Number of line segments on layer " + i);
+//				int i = lineLayer.getFeatures().length;
+//				System.out.println("Number of line segments on layer " + i);
 
 				map.addLayer(lineLayer);
 			}

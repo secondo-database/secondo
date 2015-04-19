@@ -11,9 +11,17 @@ import org.gwtopenmaps.openlayers.client.Projection;
 import org.gwtopenmaps.openlayers.client.geometry.Point;
 import org.gwtopenmaps.openlayers.client.layer.Vector;
 
+import com.google.gwt.dom.client.Document;
+import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.DomEvent;
+import com.google.gwt.event.dom.client.KeyCodes;
+import com.google.gwt.event.dom.client.KeyPressEvent;
+import com.google.gwt.event.dom.client.KeyPressHandler;
+import com.google.gwt.user.client.Event;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
@@ -81,7 +89,8 @@ public class OptionsTabPanel extends Composite {
 	private ListBox selectOptionsForDisplayMode = new ListBox();
 	private ListBox selectOptionsForExistingTrajectories = createBoxWithSelectOptionsForExistingTrajectories();
 	private Button getRelationButton = new Button("Get relation");	
-	private Button matchButton = new Button("match");
+	private Button retrieveButton = new Button("retrieve");
+	private Button countButton = new Button("count");
 	private Button removeButton = new Button("remove");
 	private FlexTable definedPatternWidget;
 	private ArrayList<String> variablesForPattern = new ArrayList<String>(); 
@@ -91,8 +100,16 @@ public class OptionsTabPanel extends Composite {
 	private String attributeNameOfMPointInRelation;
 	private DecoratorPanel decPanelForStackWithSimpleQueries = new DecoratorPanel();
 	private SimpleQueriesStackPanel simpleQueriesStackPanel;
+	
+	private FlexTable labelForInfoAboutOpenedRelation;
+	private Label numberOfTuplesInSampleRelation = new Label("");
+	private Label numberOfShownTuplesInSampleRelation=new Label("");
+	private HorizontalPanel numberOfTrajectoriesInPatternToShowPanel=new HorizontalPanel();
+	private ListBox numberOfTrajectoriesInPatternToShow = new ListBox();
 
 	private boolean patternMatchingIsInitiated = false;
+	private boolean simpleQueryForPassesIsInitiated = false;
+	private boolean simpleQueryForPassesTrhoughRegionsInitiated=false;
 
 	public DecoratedTabPanel getOptionsTabPanel() {
 		return optionsTabPanel;
@@ -214,7 +231,7 @@ public class OptionsTabPanel extends Composite {
 		gridForExistingTrajectory.setWidth("290px");
 		gridForExistingTrajectory.setCellSpacing(3);
 
-		Label labelForSelectTrajectory = createLabel("select relation:");
+		Label labelForSelectTrajectory = createLabel("open relation:");
 		labelForSelectTrajectory.ensureDebugId("labelForSelectSymbTraj");
 		labelForSelectTrajectory.setStyleName("labelTextInOneLine");
 		gridForExistingTrajectory.setWidget(0, 0, labelForSelectTrajectory);
@@ -248,11 +265,15 @@ public class OptionsTabPanel extends Composite {
 
 		getRelationButton.setWidth("100px");
 		gridForExistingTrajectory.setWidget(2, 1, getRelationButton);
+		
+		labelForInfoAboutOpenedRelation=createLabelForInfoAboutOpenedRelation();
+		gridForExistingTrajectory.setWidget(3, 0, labelForInfoAboutOpenedRelation);
+		
 
-//		gridForExistingTrajectory.getFlexCellFormatter().setColSpan(3, 0, 2);
-//		gridForExistingTrajectory.getFlexCellFormatter()
-//				.setHorizontalAlignment(3, 0,
-//						HasHorizontalAlignment.ALIGN_RIGHT);
+		gridForExistingTrajectory.getFlexCellFormatter().setColSpan(3, 0, 2);
+		gridForExistingTrajectory.getFlexCellFormatter()
+				.setHorizontalAlignment(3, 0,
+						HasHorizontalAlignment.ALIGN_LEFT);
 //		gridForExistingTrajectory.setWidget(3, 0, createAnimationItem());
 
 		final PushButton openArrowButtonForTab2 = new PushButton(closeImage);
@@ -324,6 +345,37 @@ public class OptionsTabPanel extends Composite {
 		// Return the content
 		optionsTabPanel.selectTab(0);
 		optionsTabPanel.ensureDebugId("cwTabPanel");
+		
+	}
+	
+	/**
+	 * creates a label with info about opened relation like how many tuples in the relation
+	 * @return
+	 */
+	private FlexTable createLabelForInfoAboutOpenedRelation(){
+		FlexTable labelForInfoAboutOpenedRelation=new FlexTable();
+		
+		Label numberOfTuplesInRelationLabel = new Label("The relation has:");
+		numberOfTuplesInRelationLabel.setStyleName("labelTextInOneLineWithItalic");		
+		
+		numberOfTuplesInSampleRelation.setStyleName("labelTextInOneLineWithItalic"); 
+		numberOfShownTuplesInSampleRelation.setStyleName("labelTextInOneLineWithItalic");
+		
+		Label numberOfShownTuplesLabel = new Label("On the map shown:");
+		numberOfShownTuplesLabel.setStyleName("labelTextInOneLineWithItalic");	
+				
+		
+		labelForInfoAboutOpenedRelation.setWidget(0, 0,
+				numberOfTuplesInRelationLabel);
+		labelForInfoAboutOpenedRelation.setWidget(0, 1,
+				numberOfTuplesInSampleRelation);
+		labelForInfoAboutOpenedRelation.setWidget(1, 0,
+				numberOfShownTuplesLabel);
+		labelForInfoAboutOpenedRelation.setWidget(1, 1, numberOfShownTuplesInSampleRelation);
+		labelForInfoAboutOpenedRelation.setVisible(false);
+		
+		return labelForInfoAboutOpenedRelation;
+		
 		
 	}
 
@@ -508,6 +560,7 @@ public class OptionsTabPanel extends Composite {
 		definedPatternWidget.setVisible(false);
 		definedPattern.setSize("280", "70");
 		definedPatternWidget.setWidget(0, 0, definedPattern);
+		definedPatternWidget.getFlexCellFormatter().setColSpan(0, 0, 3);
 		
 		removeButton.addClickHandler(new ClickHandler() {
 
@@ -517,15 +570,49 @@ public class OptionsTabPanel extends Composite {
 				cleanWarningLabel();
 				cleanTextInResultOfPatternMatchingLabel();
 				definedPatternWidget.setVisible(false);
+				numberOfTrajectoriesInPatternToShowPanel.setVisible(false);
 				variablesForPattern.clear();
 			}
-		});
+		});			
 
-		matchButton.getElement().setAttribute("float", "right");
+		retrieveButton.getElement().setAttribute("float", "right");
+		countButton.getElement().setAttribute("float", "right");
 		removeButton.getElement().setAttribute("float", "right");
 		
-		definedPatternWidget.setWidget(1, 0, matchButton);
-		definedPatternWidget.setWidget(1, 1, removeButton);
+		Label numberOfTrajectoriesToShowBeforeLabel= new Label("Show up to ");		
+		Label numberOfTrajectoriesToShowAfterLabel = new Label("     trajectories");
+
+		
+		numberOfTrajectoriesInPatternToShow.addItem(" ");
+		numberOfTrajectoriesInPatternToShow.addItem("3");
+		numberOfTrajectoriesInPatternToShow.addItem("5");
+		numberOfTrajectoriesInPatternToShow.addItem("7");
+		
+		
+		numberOfTrajectoriesInPatternToShowPanel.add(numberOfTrajectoriesToShowBeforeLabel);
+		numberOfTrajectoriesInPatternToShowPanel.add(numberOfTrajectoriesInPatternToShow);
+		numberOfTrajectoriesInPatternToShowPanel.add(numberOfTrajectoriesToShowAfterLabel);
+		numberOfTrajectoriesInPatternToShowPanel.getElement().setAttribute("cellpadding", "5px");
+		numberOfTrajectoriesInPatternToShowPanel.getElement().setAttribute("padding-left", "10px");
+		numberOfTrajectoriesInPatternToShowPanel.getElement().setAttribute("color", "#808080");		
+		
+		definedPatternWidget.setWidget(2, 0, numberOfTrajectoriesInPatternToShowPanel);
+		numberOfTrajectoriesInPatternToShowPanel.setVisible(false);
+		definedPatternWidget.getFlexCellFormatter().setColSpan(2, 0, 3);
+		
+		retrieveButton.addClickHandler(new ClickHandler() {
+			
+			@Override
+			public void onClick(ClickEvent event) {
+				numberOfTrajectoriesInPatternToShowPanel.setVisible(true);
+				
+				
+			}
+		});
+				
+		definedPatternWidget.setWidget(1, 0, retrieveButton);
+		definedPatternWidget.setWidget(1, 1, countButton);
+		definedPatternWidget.setWidget(1, 2, removeButton);
 		return definedPatternWidget;
 	}
 
@@ -546,14 +633,12 @@ public class OptionsTabPanel extends Composite {
 		hzForPattern.setSpacing(4);
 		checkBoxForVariable.setEnabled(true);
 		checkBoxForVariable.addClickHandler(new ClickHandler() {
-
 			@SuppressWarnings("deprecation")
 			@Override
 			public void onClick(ClickEvent event) {
 				if (checkBoxForVariable.isChecked()) {
 					textBoxForVariable.setEnabled(true);
 				}
-
 			}
 		});
 
@@ -563,38 +648,25 @@ public class OptionsTabPanel extends Composite {
 
 		patternBox.setEnabled(true);
 		patternBox.setWidth("167px");
-		
-		Image addPatternButton = new Image("resources/images/plus.png");
+
+		final Image addPatternButton = new Image("resources/images/plus.png");
 		addPatternButton.getElement().setAttribute("background", "transparent");
 		addPatternButton.setTitle("add new pattern part");
 		addPatternButton.addClickHandler(new ClickHandler() {
-
 			@SuppressWarnings("deprecation")
 			@Override
 			public void onClick(ClickEvent event) {
-				if (checkBoxForVariable.isChecked()) {
-					checkBoxForVariable.setChecked(false);
-				}
-				if(!textBoxForVariable.getText().equals("variable")){
-					setTextInPatternLabel(Character.toUpperCase(textBoxForVariable.getText().charAt(0))+"");					
-					
-					verifyVariableAndPrintWarningIfNeeded(textBoxForVariable.getText(), patternBox.getText());
-					((DefaultTextBox) textBoxForVariable)
-					.setDefaultTextAndDisable("variable");
-				}				
+				verifyAndAddPattern();
+			}
+		});
 
-				if (!patternBox.getText().equals("enter your pattern")) {
-					if(patternLabel.getText().contains("//")){
-						printWarning("You can not provide pattern after defined condition");
-					}else{
-						setTextInPatternLabel(patternBox.getText());						
-					}
-					
-					patternBox.setText("enter your pattern");
-				}
-
-				if (!patternLabel.getText().equals("")) {
-					definedPatternWidget.setVisible(true);
+		patternBox.addKeyPressHandler(new KeyPressHandler() {
+			@Override
+			public void onKeyPress(KeyPressEvent event) {
+				boolean enterPressed = KeyCodes.KEY_ENTER == event
+						.getNativeEvent().getKeyCode();
+				if (enterPressed) {
+					verifyAndAddPattern();
 				}
 			}
 		});
@@ -605,10 +677,10 @@ public class OptionsTabPanel extends Composite {
 		hzForPattern.add(addPatternButton);
 		return hzForPattern;
 	}
-	
+
 	private void verifyVariableAndPrintWarningIfNeeded(String var,
 			String pattern) {
-		if(!Character.isLetter(var.charAt(0))){
+		if (!Character.isLetter(var.charAt(0))) {
 			printWarning("A variable should be only a letter! Please remove and then provide a new one.");
 		}
 		if (variablesForPattern.contains(var)) {
@@ -623,6 +695,35 @@ public class OptionsTabPanel extends Composite {
 
 	}
 	
+	/**
+	 * 
+	 */
+	private void verifyAndAddPattern() {
+		if (checkBoxForVariable.isChecked()) {
+			checkBoxForVariable.setChecked(false);
+		}
+		if(!textBoxForVariable.getText().equals("variable")){
+			setTextInPatternLabel(Character.toUpperCase(textBoxForVariable.getText().charAt(0))+"");					
+			
+			verifyVariableAndPrintWarningIfNeeded(textBoxForVariable.getText(), patternBox.getText());
+			((DefaultTextBox) textBoxForVariable)
+			.setDefaultTextAndDisable("variable");
+		}				
+
+		if (!patternBox.getText().equals("enter your pattern")) {
+			if(patternLabel.getText().contains("//")){
+				printWarning("You can not provide pattern after defined condition");
+			}else{
+				setTextInPatternLabel(patternBox.getText());						
+			}
+			
+			patternBox.setText("enter your pattern");
+		}
+
+		if (!patternLabel.getText().equals("")) {
+			definedPatternWidget.setVisible(true);
+		}
+	}
 	
 
 	private void printWarning(String warningText) {
@@ -630,52 +731,8 @@ public class OptionsTabPanel extends Composite {
 		unsuccessfulVerification=true;
 	}
 
-	/**
-	 * creates simple queries stack panel
-	 */
-	private StackPanel createSimpleQueriesStackPanel() {
-		StackPanel simpleQueriesPanel = new StackPanel();
-		String passesHeader = getHeaderStringLevel2("passes", queryIcon);
-		VerticalPanel passesPanel = new SimpleQueryPanel(
-				"Does the trip pass through ...(i.e. specified street, southeast, moderate tempo)?",
-				"passes", "i.e. Baker St");
-		simpleQueriesPanel.add(passesPanel, passesHeader, true);		
-
-		String atinstantHeader = getHeaderStringLevel2("atinstant", queryIcon);
-		VerticalPanel atinstantPanel = new SimpleQueryPanel(
-				"Through what does the trip pass at defined time?",
-				"atinstant", "i.e. 2012-01-01-01:15");
-		simpleQueriesPanel.add(atinstantPanel, atinstantHeader, true);
-
-		String deftimeHeader = getHeaderStringLevel2("deftime", queryIcon);
-		VerticalPanel deftimePanel = new SimpleQueryPanel(
-				"Determine the time intervals when the trip was at ... (i.e. specified street, southeast, moderate tempo)",
-				"deftime", "i.e. Baker St");
-		simpleQueriesPanel.add(deftimePanel, deftimeHeader, true);
-		return simpleQueriesPanel;
-	}
-
-	/**
-	 * creates passes panel for simple queries stack
-	 */
-	private VerticalPanel createPanelForOneQueryFromSimple(
-			String textForHelpInfoLabel, String textForButton,
-			String defaultText) {
-		VerticalPanel queryPanel = new VerticalPanel();
-		queryPanel.setSpacing(4);
-		Label helpInfoLabel = new Label(textForHelpInfoLabel);
-		helpInfoLabel.setStylePrimaryName("labelForPasses");
-		queryPanel.add(helpInfoLabel);
-		DefaultTextBox labelTextForQuery = new DefaultTextBox(defaultText);
-		labelTextForQuery.setWidth("90%");
-		queryPanel.add(labelTextForQuery);
-		Button queryButton = new Button(textForButton);
-		queryButton.setStyleName("floatRight");
-		queryPanel.add(queryButton);
-		Label resultInfoLabel = new Label();
-		queryPanel.add(resultInfoLabel);
-		return queryPanel;
-	}
+	
+	
 
 	/**
 	 * @return drop-dawn list with options to select
@@ -684,9 +741,10 @@ public class OptionsTabPanel extends Composite {
 		ListBox selectOptionsForExistingTrajectories = new ListBox();
 		selectOptionsForExistingTrajectories.addItem("");
 		selectOptionsForExistingTrajectories.addItem("geotrips_part");
-//		selectOptionsForExistingTrajectories.addItem("geotrips");
-//		selectOptionsForExistingTrajectories.addItem("geolife");
-		selectOptionsForExistingTrajectories.addItem("geolife_part");
+		selectOptionsForExistingTrajectories.addItem("geotrips");
+		selectOptionsForExistingTrajectories.addItem("geolife");
+		selectOptionsForExistingTrajectories.addItem("animals");
+//		selectOptionsForExistingTrajectories.addItem("geolife_part");
 //		selectOptionsForExistingTrajectories.addItem("geotrips_part2");
 		selectOptionsForExistingTrajectories.setVisibleItemCount(1);
 		// selectOptionsForExistingTrajectories.setWidth("150px");
@@ -902,6 +960,23 @@ public class OptionsTabPanel extends Composite {
 		this.patternMatchingIsInitiated = patternMatchingIsInitiated;
 	}
 
+	public boolean isSimpleQueryForPassesIsInitiated() {
+		return simpleQueryForPassesIsInitiated;
+	}
+
+	public void setSimpleQueryForPassesIsInitiated(boolean simpleQueryIsInitiated) {
+		this.simpleQueryForPassesIsInitiated = simpleQueryIsInitiated;
+	}
+
+	public boolean isSimpleQueryForPassesTrhoughRegionsInitiated() {
+		return simpleQueryForPassesTrhoughRegionsInitiated;
+	}
+
+	public void setSimpleQueryForPassesTrhoughRegionsInitiated(
+			boolean simpleQueryForPassesTrhoughRegionsInitiated) {
+		this.simpleQueryForPassesTrhoughRegionsInitiated = simpleQueryForPassesTrhoughRegionsInitiated;
+	}
+
 	public void setTextInResultOfPatternMatchingLabel(String text) {
 		resultOfPatternMatchingLabel.setText(text);
 	}
@@ -934,6 +1009,7 @@ public class OptionsTabPanel extends Composite {
 	public String getCommandForPatternMatching() {
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
+		String numberOfTrajToShow=getNumberOfTrajectoriesToShow().getValue(getNumberOfTrajectoriesToShow().getSelectedIndex());
 		String command = "";
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
 			command = "query "
@@ -941,7 +1017,22 @@ public class OptionsTabPanel extends Composite {
 							.getItemText(selectedInd);
 			command = command + " feed filtermatches["
 					+ attributeNameOfMlabelInRelation + ",";
-			command = command + " '" + patternLabel.getText() + "'] consume";
+			command = command + " '" + patternLabel.getText() + "'] head["+numberOfTrajToShow+"] consume";
+		}
+		return command;
+	}
+	
+	public String getCommandForCountPatternMatching(){
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		String command = "";
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
+			command = command + " feed filtermatches["
+					+ attributeNameOfMlabelInRelation + ",";
+			command = command + " '" + patternLabel.getText() + "'] count";
 		}
 		return command;
 	}
@@ -949,6 +1040,8 @@ public class OptionsTabPanel extends Composite {
 	public String getCommandForSimpleQueryPasses(){
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
+		ListBox numberOfTrajectoriesToBeShown=simpleQueriesStackPanel.getPassesPanel().getNumberOfTrajectoriesToBeShown();
+		String numberOfTrajToShow=numberOfTrajectoriesToBeShown.getValue(numberOfTrajectoriesToBeShown.getSelectedIndex());
 		String command="";
 		String label = simpleQueriesStackPanel.getPassesPanel().getLabelTextForQuery().getText();
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
@@ -956,9 +1049,30 @@ public class OptionsTabPanel extends Composite {
 			command = "query "
 					+ selectOptionsForExistingTrajectories
 							.getItemText(selectedInd);
-			command = command + " feed extract["
-					+ attributeNameOfMlabelInRelation + "] passes tolabel(\""+label+"\")";
+			command = command + " feed filter[."
+					+ attributeNameOfMlabelInRelation + " passes tolabel(\""+label+"\")] head["+numberOfTrajToShow+"] consume";
 		
+		}
+		
+		return command;
+	}
+	
+	public String getCommandForSimpleQueryPassesCount(){
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		String command="";
+		String label = simpleQueriesStackPanel.getPassesPanel().getLabelTextForQuery().getText();
+		if (selectedInd != -1 && !(attributeNameOfMlabelInRelation==null)) {
+			
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
+			command = command + " feed filter[."
+					+ attributeNameOfMlabelInRelation + " passes tolabel(\""+label+"\")] count";
+		
+		}
+		else{
+			Window.alert("Please select relation and load it");
 		}
 		
 		return command;
@@ -1006,41 +1120,53 @@ public class OptionsTabPanel extends Composite {
 	 * @param drawLayer
 	 * @return command to be sent to SECONDO
 	 */
-	public String getCommandForSimpleQueryPassesThroughRegion(Vector drawLayer) {
+	public String getCommandForSimpleQueryPassesThroughRegion(Vector drawLayer,
+			String typeOfRequest) {
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
-		System.out.println("Length of "+drawLayer.getFeatures().length);
+		System.out.println("Length of " + drawLayer.getFeatures().length);
 		removePreviousFeatures(drawLayer);
 
 		Point[] listOfPoints = drawLayer.getFeatures()[drawLayer.getFeatures().length - 1]
 				.getGeometry().getVertices(false);
 
 		double[] coordinatesForPasses = coordinateValues(listOfPoints);
-
-		simpleQueriesStackPanel
-				.getPassesThroughRegionPanel()
-				.getLabelTextForQuery()
-				.setText(
-						coordinatesForPasses[0] + " " + coordinatesForPasses[1]
-								+ " " + coordinatesForPasses[2] + " "
-								+ coordinatesForPasses[3]);
+		
 		String command = "";
+		String commandForCount = "";
+
+		ListBox numberOfTrajectoriesToBeShown = simpleQueriesStackPanel
+				.getPassesThroughRegionPanel().getNumberOfTrajectoriesToBeShown();
+		String numberOfTrajToShow = numberOfTrajectoriesToBeShown
+				.getValue(numberOfTrajectoriesToBeShown.getSelectedIndex());
 
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
 
 			command = "query "
 					+ selectOptionsForExistingTrajectories
 							.getItemText(selectedInd);
-			command = command + " feed extract["
+			commandForCount = command + " feed filter[."
 					+ attributeNameOfMPointInRelation
-					+ "] passes [const rect value(" + coordinatesForPasses[0]
+					+ " passes [const rect value(" + coordinatesForPasses[0]
 					+ " " + coordinatesForPasses[1] + " "
 					+ coordinatesForPasses[2] + " " + coordinatesForPasses[3]
-					+ ")]";
+					+ ")]] count";
+			
+			command = command + " feed filter[."
+					+ attributeNameOfMPointInRelation
+					+ " passes [const rect value(" + coordinatesForPasses[0]
+					+ " " + coordinatesForPasses[1] + " "
+					+ coordinatesForPasses[2] + " " + coordinatesForPasses[3]
+					+ ")]] head[" + numberOfTrajToShow + "] consume";
 
 		}
 
-		return command;
+		if (typeOfRequest.equals("count")) {
+			return commandForCount;
+		} else {
+
+			return command;
+		}
 	}
 	
 	private void removePreviousFeatures(Vector layer) {
@@ -1081,30 +1207,61 @@ public class OptionsTabPanel extends Composite {
 			}
 			
 		}
+		
+		for(Point each:listOfPoints){
+			each.transform(OSM_PROJECTION, GEO_PROJECTION);
+		}
 		double [] result=new double[]{minX,maxX, minY, maxY};
 		return result;
 	}
 
-	public String getCommandForQueryRelation() {
+	public String getCommandForQuerySampleRelation() {
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
 		String command = "";
 		if (selectedInd != -1) {
 			command = "query "
 					+ selectOptionsForExistingTrajectories
-							.getItemText(selectedInd);
+							.getItemText(selectedInd)+" feed head[3] consume";
+			numberOfShownTuplesInSampleRelation.setText("3 tuples");
 		}
 		return command;
 
 	}
 	
+	public String getCommandForCountTuplesInSampleRelation(){
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		String command = "";
+		if (selectedInd != -1) {
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd)+" count";
+			
+		}
+		return command;
+	}
+	
+	
+	public String getCommandForCountSampleRelation() {
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		String command = "";
+		if (selectedInd != -1) {
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd)+" count";
+		}
+		return command;
+
+	}
 	
 
 	/**
 	 * @return the removeButton
 	 */
 	public Button getMatchButton() {
-		return matchButton;
+		return retrieveButton;
 	}
 
 	/**
@@ -1183,5 +1340,29 @@ public class OptionsTabPanel extends Composite {
 	public SimpleQueriesStackPanel getSimpleQueriesStackPanel() {
 		return simpleQueriesStackPanel;
 	}
+
+	public FlexTable getLabelForInfoAboutOpenedRelation() {
+		return labelForInfoAboutOpenedRelation;
+	}
+
+	public Label getNumberOfTuplesInSampleRelation() {
+		return numberOfTuplesInSampleRelation;
+	}
+
+	public Label getNumberOfShownTuplesInSampleRelation() {
+		return numberOfShownTuplesInSampleRelation;
+	}
+
+	public Button getCountButton() {
+		return countButton;
+	}
+
+	public ListBox getNumberOfTrajectoriesToShow() {
+		return numberOfTrajectoriesInPatternToShow;
+	}
+
+	
+
+	
 
 }

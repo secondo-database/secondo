@@ -20,13 +20,13 @@ public class SimpleQueriesStackPanel extends StackPanel{
 	public SimpleQueriesStackPanel(){
 		String passesHeader = getHeaderStringLevel2("passes", queryIcon);
 		passesPanel = new SimpleQueryPanel(
-				"Does the trip pass through ...(i.e. specified street, cardinal direction, speed tempo)?",
-				"passes", "i.e. Baker St");
+				"Find all trips passing through ...(i.e. specified street, cardinal direction, speed tempo)",
+				"pass", "i.e. Baker St");
 		this.add(passesPanel, passesHeader, true);	
 		
 		String passesThroughRegionHeader = getHeaderStringLevel2("passes through region", queryIcon);
 		passesThroughRegionPanel = new SimpleQueryPanel(
-				"Does the trip pass through region?", "passes", "region on the map");
+				"Find all trips passing region", "passThrough", "region on the map");
 		passesThroughRegionPanel.setWidth("100%");
 		this.add(passesThroughRegionPanel, passesThroughRegionHeader, true);			
 
@@ -69,6 +69,19 @@ public class SimpleQueriesStackPanel extends StackPanel{
 
 		// Return the HTML string for the panel
 		return hPanel.getElement().getString();
+	}
+	
+	/**
+	 * Cleans result info labels in all sub-panels of simple queries stack panel
+	 * and hides panel with number of trajectories to be shown
+	 */
+	public void cleanResultInfoLabelsAndPanelWithNumberOfTrajectoriesToBeShown() {
+		passesPanel.getResultInfoLabel().setText("");		
+		atinstantPanel.getResultInfoLabel().setText("");
+		deftimePanel.getResultInfoLabel().setText("");
+		passesThroughRegionPanel.getResultInfoLabel().setText("");
+//		if(passesPanel.getNumberOfTrajectoriesToBeShown().isVisible()){passesPanel.hideNumberOfTrajectoriesToBeShownPanel();}
+		
 	}
 
 	public SimpleQueryPanel getPassesPanel() {

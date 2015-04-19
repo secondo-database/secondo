@@ -653,14 +653,14 @@ public class DataTypeConstructor{
 			while (!listentry.isEmpty()) {
 			    
 			  //for the line or region add just (geometry) not all points
-	    		if (tuplelist.first().second().stringValue().equals("line") || tuplelist.first().second().stringValue().equals("region") || 
-	    				tuplelist.first().second().stringValue().equals("mpoint")){
-	    			datatype.getAttributeList().add(tuplelist.first().first().stringValue().trim() + " : " +  "(geometry) \n \n"); 
-	    		}
-	    		
-	    		else{
+//	    		if (tuplelist.first().second().stringValue().equals("line") || tuplelist.first().second().stringValue().equals("region") || 
+//	    				tuplelist.first().second().stringValue().equals("mpoint")){
+//	    			datatype.getAttributeList().add(tuplelist.first().first().stringValue().trim() + " : " +  "(geometry) \n \n"); 
+//	    		}
+//	    		
+//	    		else{
 			        datatype.getAttributeList().add(tuplelist.first().first().stringValue().trim() + " : " + listentry.first().writeListExprToString().trim()); //Ort :	(8.798653 53.08336)
-	    		}
+//	    		}
 	    		
 			    tuplelist = tuplelist.rest();
 			    listentry = listentry.rest();

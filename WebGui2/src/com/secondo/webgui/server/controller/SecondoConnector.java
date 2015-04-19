@@ -265,9 +265,10 @@ public class SecondoConnector {
 			this.disconnect();
 			}*/
 
-		if (errorCode.value != 0) {
+		if (errorCode.value != 0 && errorCode.value !=7) {
+			
 			System.err.println("Error in executing query"
-							+ errorMessage);
+							+ errorMessage);			
 			return false;
 		} else {
 			System.err.println("success!");

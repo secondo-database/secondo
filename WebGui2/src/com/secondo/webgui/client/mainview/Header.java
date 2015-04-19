@@ -67,13 +67,7 @@ public class Header extends Composite{
 	private HorizontalPanel buttonPanel = new HorizontalPanel();
 	
 	/**The label to show a name of actual database*/
-	private Label labelWithDatabaseName= new Label();
-	
-	/**The close database button*/
-	private Button closedatabaseButton = new Button("<img src='resources/images/close-database.png' height='30px' width='30px'/>");
-	
-	/**The logout button*/
-	private Button logoutButton = new Button("<img src='resources/images/logout.gif' height='30px' width='30px'/>");
+	private Label labelWithDatabaseName= new Label();	
 	
 	/**Width of the header*/
     private int width=Window.getClientWidth()-17;
@@ -209,16 +203,16 @@ public class Header extends Composite{
 	    mainMenuBar.addItem(legend);
 	    
 	   
-	    MenuItem link = new MenuItem("Link", new Command() {
-			
-			@Override
-			public void execute() {
-				// TODO Auto-generated method stub
-				
-			}
-		});	    
-	    link.setStyleName("transparent3");
-	    mainMenuBar.addItem(link);
+//	    MenuItem link = new MenuItem("Link", new Command() {
+//			
+//			@Override
+//			public void execute() {
+//				// TODO Auto-generated method stub
+//				
+//			}
+//		});	    
+//	    link.setStyleName("transparent3");
+//	    mainMenuBar.addItem(link);
 	    
 	    MenuItem print = new MenuItem("Print", new Command() {
 			
@@ -276,21 +270,7 @@ public class Header extends Composite{
 		return hPanel;
 	}
 	
-	/**Returns the close database button
-	 * 
-	 * @return The close database button
-	 * */
-	public Button getClosedatabaseButton() {
-		return closedatabaseButton;
-	}
-
-	/**Returns the logout button
-	 * 
-	 * @return The logout button
-	 * */
-	public Button getLogoutButton() {
-		return logoutButton;
-	}
+	
 	
 	/**Returns the label with the currently selected database
 	 * 

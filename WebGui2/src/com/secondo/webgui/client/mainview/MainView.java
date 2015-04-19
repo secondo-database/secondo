@@ -88,22 +88,15 @@ public class MainView extends Composite {
 
 		contentPanel.add(view);		
 		contentPanel.add(optionsTabPanel.getOptionsTabPanel(), 10,0);
-//		contentPanel.add(commandPanelWrapper);		
-
-//		mainPanel.add(sidebar.getSidebar());
 		mainPanel.add(contentPanel);
 
-		//initialize the main view with the graphical view
-//		showGraphicalView();
+		//initialize the main view with the map view
 		showMapView();
 		
 
 		// get the size of the browserwindow and set the elements to the right size
 		int windowWidth = Window.getClientWidth();
 		int windowHeight = Window.getClientHeight();
-		
-
-//		this.resizeWithCP(windowWidth, windowHeight);
 		this.resizeToFullScreen(windowWidth, windowHeight);
 
 		// resize the application elements if the size of the window changes
@@ -117,55 +110,9 @@ public class MainView extends Composite {
 			}
 		});
 
-/* ******************************EventHandler for the Sidebar*************************************************/
-
-	
-
-		/* Adds an event handler to the show raw data button to show the raw data */
-		this.sidebar.getShowRawdataButton().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-				showRawDataView();
-			}
-		});
-
-	
-
-
-		/* Adds an event handler to the map button to show the map view */
-		this.sidebar.getShowMapButton().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-				showMapView();
-			}
-		});
-
-
 
 /* ****************************** EventHandler for the ToolBox ************************************************* */
 
-		/**Adds an event handler on the resetGraphicButton of the toolbar to clear the graphical view */
-		this.toolbox.getResetGraphicLink().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-				graphicalView.resetData();
-				graphicalView.getMpointController().stopAllAnimations();
-				resetMapView();
-				toolbox.resetData();
-			}
-			
-		});
-
-		
-
-		/**Adds an event handler on the playButton of the toolbar to animate the moving point */
-		this.toolbox.getPlayLink().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-
-				if (isMapTurnedOn()) {
-					mapView.getMpointController().animateMovingPoints(toolbox, mapView.getMap());
-				} else {
-					getGraphicalView().getMpointController().animateMovingPoints(toolbox);
-				}
-			}
-		});
 		
 		this.optionsTabPanel.getSelectOptionsForDisplayMode().addClickHandler(new ClickHandler(){
 
@@ -203,32 +150,7 @@ public class MainView extends Composite {
 			}
 		});
 		
-		/**Adds an event handler on the forwardButton of the toolbar to animate the moving point */
-		this.toolbox.getForwardLink().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
 
-				if (isMapTurnedOn()) {
-					getMapView().getMpointController().speedUpMovingPoint();
-				} else {
-					getGraphicalView().getMpointController()
-							.speedUpMovingPoint();
-				}
-			}
-		});
-
-		/** Adds an event handler on the rewindButton of the toolbar to animate the moving point */
-		this.toolbox.getRewindLink().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-
-				if (isMapTurnedOn()) {
-					getMapView().getMpointController()
-							.reduceSpeedOfMovingPoint();
-				} else {
-					getGraphicalView().getMpointController()
-							.reduceSpeedOfMovingPoint();
-				}
-			}
-		});
 
 		/** Adds an event handler on the rewindButton of the optionsTabPanel to animate the moving point */
 		this.optionsTabPanel.getRewindLink().addClickHandler(new ClickHandler() {
@@ -241,22 +163,7 @@ public class MainView extends Composite {
 			}
 		});
 
-		
-		/** Adds an event handler on the pauseButton of the toolbar to pause the animation of the the moving point */
-		this.toolbox.getPauseLink().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-
-				toolbox.getAnimationPanel().remove(0);
-				toolbox.getAnimationPanel().insert(toolbox.getPlaypanel(), 0);
-
-				if (isMapTurnedOn()) {
-					getMapView().getMpointController().pauseMovingPoint();
-				} else {
-					getGraphicalView().getMpointController().pauseMovingPoint();
-				}
-			}
-		});
-		
+	
 		/** Adds an event handler on the pauseButton of the optionsTabPanel to pause the animation of the the moving point */
 		this.optionsTabPanel.getPauseLink().addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
@@ -269,148 +176,8 @@ public class MainView extends Composite {
 				
 			}
 		});
-
-		/** Adds an event handler to the checkbox to show markers on the map */
-		this.toolbox.getCheckBoxPoints().addValueChangeHandler(
-				new ValueChangeHandler<Boolean>() {
-					@Override
-					public void onValueChange(ValueChangeEvent<Boolean> event) {
-
-						// checkbox is checked
-						if (toolbox.getCheckBoxPoints().getValue() == true) { 
-							mapView.getPointController().showPoints();
-							graphicalView.getPointController().showPointArray();
-						} else {
-							mapView.getPointController().hidePoints();
-							graphicalView.getPointController().removeCircles();
-						}
-					}
-				});
-
-		/** Adds an event handler to the checkbox to show lines on the map */
-		this.toolbox.getCheckBoxLines().addValueChangeHandler(
-				new ValueChangeHandler<Boolean>() {
-					@Override
-					public void onValueChange(ValueChangeEvent<Boolean> event) {
-
-						// checkbox is checked
-						if (toolbox.getCheckBoxLines().getValue() == true) { 
-							mapView.getPolylineController().showPolylines();
-							//graphicalView.getPolylineController().drawAllPolylines();
-							graphicalView.updateView();
-						} else {
-							mapView.getPolylineController().hidePolylines();
-							graphicalView.getPolylineController().removeLines();
-						}
-					}
-				});
-
-		/** Adds an event handler to the checkbox to show polygonson the map */
-		this.toolbox.getCheckBoxPolygons().addValueChangeHandler(
-				new ValueChangeHandler<Boolean>() {
-					@Override
-					public void onValueChange(ValueChangeEvent<Boolean> event) {
-
-						if (toolbox.getCheckBoxPolygons().getValue() == true) {
-							mapView.getPolygonController().showPolygons();
-							graphicalView.getPolygonController()
-									.showPolygonArray();
-						} else {
-							mapView.getPolygonController().hidePolygons();
-							graphicalView.getPolygonController()
-									.removePolygons();
-						}
-					}
-				});
-
-		/** Adds an event handler to the save button of the colorchooser to give the selected elements a new color */
-		this.toolbox.getColorChooserDialog().getSaveButton().addClickHandler(new ClickHandler() {
-					public void onClick(ClickEvent event) {
-
-						String color = "";
-						int colorIndex = 0;
-						for (RadioButton colorButton : toolbox.getColorChooserDialog().getButtonList()) {
-							if (colorButton.getValue() == true) {
-								colorIndex = toolbox.getColorChooserDialog().getButtonList().indexOf(colorButton);
-								color = getColorForIndex(colorIndex);
-							}
-						}
-						int queryIndex = toolbox.getColorChooserDialog().getQueryBox().getSelectedIndex();
-						// change all datatypes in selected query to the chosen color
-						for (DataType datatype : toolbox.getResultList().get(queryIndex)) {
-
-							System.out.println("####change color of datatype: " + color + datatype.getId());
-							//elements in map view
-							if (mapTurnedOn) {
-
-								if (datatype.getType().equals("Point")) {
-									datatype.setColor(color);
-									mapView.getPointController().changePointColor(datatype.getId(), color);
-								}
-								if (datatype.getType().equals("Polygon")) {
-									datatype.setColor(color);
-									mapView.getPolygonController().changePolygonColor(datatype.getId(), color);
-								}
-								if (datatype.getType().equals("Polyline")) {
-									datatype.setColor(color);
-									mapView.getPolylineController().changePolylineColor(datatype.getId(), color);
-								}
-								if (datatype.getType().equals("MPoint")) {
-									datatype.setColor(color);
-									mapView.getMpointController().changeMPointColor(datatype.getId(), color);
-								}
-							// elements in graphical view
-							} else { 
-								if (datatype.getType().equals("Point")) {
-									datatype.setColor(color);
-									graphicalView.getPointController().removePoint(datatype.getId());
-									graphicalView.getPointController().showPointObject((Point)datatype);
-								}
-								if (datatype.getType().equals("Polygon")) {
-									datatype.setColor(color);
-									graphicalView.getPolygonController().changePolygonColor(datatype.getId(), color); 
-								}
-								if (datatype.getType().equals("Polyline")) {
-									datatype.setColor(color);
-									graphicalView.getPolylineController().removePolyline(datatype.getId());
-									graphicalView.getPolylineController().showPolylineObject((Polyline)datatype);
-								}
-								if (datatype.getType().equals("MPoint")) {
-									datatype.setColor(color);
-									//graphicalView.getMpointController().changeMPointColor(datatype.getId(), color);
-									graphicalView.getMpointController().stopAllAnimations();
-									graphicalView.getMpointController().drawFirstMovingPoint();
-								}
-							}
-						}
-						mapView.updateView();
-						//polygon in graphical view has to be handled differently because all polygons have to be drawn in one function in d3
-						graphicalView.getPolygonController().redrawAllPolygons();
-						toolbox.getColorChooserDialog().getDialogBox().hide();
-					}
-				});
 		
-		
-		
-		/** Adds an event handler to the save button of the zoom level dialog to change the zoom level */
-		this.toolbox.getZoomLevelDialog().getSaveButton().addClickHandler(new ClickHandler() {
-					public void onClick(ClickEvent event) {
-
-						if (toolbox.getZoomLevelDialog().getZoomAll().getValue() == true) {
-
-							mapView.setZoomToAll(true);
-						}
-						else{
-							mapView.setZoomToAll(false);
-						}
-						
-						mapView.updateView();
-						toolbox.getZoomLevelDialog().getDialogBox().hide();
-					}
-				});
-
-
-
+	
 				
 		this.header.getPlainTraj().setScheduledCommand(new Command() {
 			
@@ -473,6 +240,7 @@ public class MainView extends Composite {
 					mapView.removeDrawLayer();
 				}
 				
+				stackpanel.cleanResultInfoLabelsAndPanelWithNumberOfTrajectoriesToBeShown();
 				
 			}},  ClickEvent.getType() );
 	}
@@ -489,22 +257,16 @@ public class MainView extends Composite {
 		height=height-134;
 		
 		header.resizeWidth(width);
-//		rawDataView.resizeToFullScreen(width, height);
 
-//		if (textTurnedOn) {
-//			textView.resizeToFullScreen(height);
-//		}
 		if (mapTurnedOn) {
-			mapView.resizeToFullScreen(width, height);
+			
+			mapView.resizeToFullScreen(width, height, optionsTabPanel.getOptionsTabPanel().getElement().getClientHeight());			
 			mapView.updateView();
 		} else {
 			graphicalView.resizeToFullScreen(width, height);
 			graphicalView.updateView();
 		}
-//		toolbox.resizeHeightToFullScreen(height);
-//		sidebar.resizeHeight(height);
-//		
-//		statusBar.resizeWidth(width);
+
 	}
 
 
@@ -514,13 +276,7 @@ public class MainView extends Composite {
 
 		//reset all data
 		mapTurnedOn = true;
-//		graphicalView.getMpointController().stopAllAnimations();
-//		toolbox.resetAnimationPanel();
-//
-//		sidebar.getSidebar().remove(sidebar.getShowMapButton());
-//		sidebar.getSidebar().insert(sidebar.getHideMapButton(), 2);
-//		sidebar.getSidebar().remove(sidebar.getHideRawdataButton());
-//		sidebar.getSidebar().insert(sidebar.getShowRawdataButton(), 3);
+
 
 		view.clear();
 
@@ -528,31 +284,7 @@ public class MainView extends Composite {
 		int windowWidth = Window.getClientWidth();
 		int windowHeight = Window.getClientHeight();
 
-//		if (textTurnedOn) {
-////			view.add(textView.getContentPanel());
-//			view.add(mapView.getContentPanel());
-//			view.add(toolbox.getFpanel());
-//
-//			if (cpTurnedOn) {
-//				this.resizeWithTextAndCP(windowWidth, windowHeight);
-//
-//			} else {
-//				this.resizeWithTextPanel(windowWidth, windowHeight);
-//			}
-//		}
-//		if (!textTurnedOn) {
-//			view.add(mapView.getContentPanel());
-//			view.add(toolbox.getFpanel());
-//
-//			if (cpTurnedOn) {
-//				resizeWithCP(windowWidth, windowHeight);
-//
-//			} else {
-//				resizeToFullScreen(windowWidth, windowHeight);
-//			}
-//		}else{
-//		mapView.updateView();
-//		}
+
 		view.add(mapView.getContentPanel());
 		resizeToFullScreen(windowWidth, windowHeight);
 		mapView.updateView();

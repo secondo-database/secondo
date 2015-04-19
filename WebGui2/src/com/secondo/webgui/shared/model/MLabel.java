@@ -82,10 +82,7 @@ public class MLabel implements DataType, Serializable{
 
 	
 	public void setLabel(ArrayList<String> label) {
-		this.labelList = label;	
-		for(int i=0;i<labelList.size(); i++){
-			System.out.println("label: "+ labelList.get(i));			
-		}
+		this.labelList = label;			
 	}
 
 	/**

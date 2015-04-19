@@ -24,6 +24,8 @@ import java.util.ArrayList;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
@@ -191,23 +193,7 @@ public class SecondoWeb implements EntryPoint {
 	            }
 	          });
 	    
-	    /*Adds an event handler on the closedatabase button to close the database*/
-		this.mainView.getMainheader().getClosedatabaseButton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
-	        	  
-                closeDatabase(currentDatabase);  //database from sessiondata?
-//		    	rpcConnector.deleteCommandHistory(mainView);
-	          }
-		 });
-	    
-		/*Adds an event handler on the logout button of the mainview to log out of the application*/	    
-	    this.mainView.getMainheader().getLogoutButton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
-	        	  
-	        	  logout();
-//	        	  rpcConnector.deleteCommandHistory(mainView);
-	          }
-		 });
+	   
 	    
 	  
 	    /*Adds an event handler on the downloadRawDataButton of the toolbar to download the raw data into a file*/
@@ -252,15 +238,17 @@ public class SecondoWeb implements EntryPoint {
 	    /**Adds an event handler on the button "get relation" of the options tab panel */
 		this.mainView.getOptionsTabPanel().getAnimateButton().addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
-				String command=mainView.getOptionsTabPanel().getCommandForQueryRelation();
+				String command=mainView.getOptionsTabPanel().getCommandForQuerySampleRelation();
+				String commandForCountTuples=mainView.getOptionsTabPanel().getCommandForCountTuplesInSampleRelation();
 				if(!command.isEmpty()){
 					mainView.resetMapView();
 					
 					//send the command directly to secondo
-					rpcConnector.sendCommandAndUpdateHistory(command, mainView, loadingPopup);
+					rpcConnector.sendCommandAndUpdateHistory(command, commandForCountTuples, mainView, loadingPopup);
 					
 					//show the loading popup in the center of the application until the call is finished
-			    	loadingPopup.center(); 	
+			    	loadingPopup.center(); 
+			    	mainView.getOptionsTabPanel().getLabelForInfoAboutOpenedRelation().setVisible(true);
 
 				}
 				else{
@@ -271,37 +259,63 @@ public class SecondoWeb implements EntryPoint {
 			}
 		});
 		
-		//Adds an event handler on the button "match pattern" to match a defined pattern to the loaded relation
-		this.mainView.getOptionsTabPanel().getMatchButton()
-				.addClickHandler(new ClickHandler() {
+		//Adds an event handler on the button "retrieve" to match a defined pattern to the loaded relation
+		
+		this.mainView.getOptionsTabPanel().getNumberOfTrajectoriesToShow().addChangeHandler(new  ChangeHandler() {
+			
+			@Override
+			public void onChange(ChangeEvent event) {
+				if (!mainView.getOptionsTabPanel()
+						.isUnsuccessfulVerification()) {
+					String command = mainView.getOptionsTabPanel()
+							.getCommandForPatternMatching();
+					String commandForCountResult=mainView.getOptionsTabPanel().getCommandForCountPatternMatching();
+					mainView.getOptionsTabPanel()
+							.setPatternMatchingIsInitiated(true);
+					if (!command.isEmpty()) {
+						mainView.resetMapView();
 
-					@Override
-					public void onClick(ClickEvent event) {
-						if (!mainView.getOptionsTabPanel()
-								.isUnsuccessfulVerification()) {
-							String command = mainView.getOptionsTabPanel()
-									.getCommandForPatternMatching();
-							mainView.getOptionsTabPanel()
-									.setPatternMatchingIsInitiated(true);
-							if (!command.isEmpty()) {
-								mainView.resetMapView();
+						// send the command directly to secondo
+						rpcConnector.sendCommandAndUpdateHistory(
+								command, commandForCountResult, mainView, loadingPopup);
 
-								// send the command directly to secondo
-								rpcConnector.sendCommandAndUpdateHistory(
-										command, mainView, loadingPopup);
-
-								// show the loading popup in the center of the
-								// application until the call is finished
-								loadingPopup.center();
-							} else {
-								Window.alert("Please select relation and load it");
-							}
-
-						} else {
-							Window.alert("Please correct your pattern statement!");
-						}
+						// show the loading popup in the center of the
+						// application until the call is finished
+						loadingPopup.center();
+					} else {
+						Window.alert("Please select relation and load it");
 					}
-				});
+
+				} else {
+					Window.alert("Please correct your pattern statement!");
+				}
+			}
+		});
+		
+		//Adds an event handler on the button "count" to match a defined pattern to the loaded relation
+		this.mainView.getOptionsTabPanel().getCountButton().addClickHandler(new ClickHandler() {
+			
+			@Override
+			public void onClick(ClickEvent event) {
+				if (!mainView.getOptionsTabPanel()
+						.isUnsuccessfulVerification()) {
+					String commandForCountResult=mainView.getOptionsTabPanel().getCommandForCountPatternMatching();
+					mainView.getOptionsTabPanel()
+					.setPatternMatchingIsInitiated(true);
+					if (!commandForCountResult.isEmpty()) {
+						mainView.resetMapView();
+						
+						rpcConnector.setNumberOfTuplesInPatternMatchingResult(commandForCountResult, mainView, loadingPopup);
+						
+						loadingPopup.center();
+					}
+				}
+				
+				else {
+					Window.alert("Please correct your pattern statement!");
+				}
+			}
+		});
 		
 		//Adds an event handler on the button "get GPX coordinate" to define a location from address
 		this.mainView.getMainheader().getLocationDialog().getGetCoordinateButton().addClickHandler(new ClickHandler() {
@@ -314,22 +328,59 @@ public class SecondoWeb implements EntryPoint {
 			}
 		});
 		
+		//Adds an event handler on the button "retrieve" in the simple queries panel (for operator passes)
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-				.getPassesPanel().getQueryButton()
-				.addClickHandler(new ClickHandler() {
-
+				.getPassesPanel().getNumberOfTrajectoriesToBeShown().addChangeHandler(new ChangeHandler() {
+					
 					@Override
-					public void onClick(ClickEvent event) {
-
+					public void onChange(ChangeEvent event) {
 						String command = mainView.getOptionsTabPanel()
 								.getCommandForSimpleQueryPasses();
+						String commandForCountResult =  mainView.getOptionsTabPanel().getCommandForSimpleQueryPassesCount();
+						mainView.getOptionsTabPanel().setSimpleQueryForPassesIsInitiated(true);
 						if (!command.isEmpty()) {
-							rpcConnector.sendSimpleQuery(command, "passes", mainView);
+							
+							mainView.resetMapView();
+
+							// send the command directly to secondo
+							rpcConnector.sendCommandAndUpdateHistory(
+									command, commandForCountResult, mainView, loadingPopup);
+
+							// show the loading popup in the center of the
+							// application until the call is finished
+							loadingPopup.center();
+							
 						} else {
 							Window.alert("Please select relation and load it");
 						}
 					}
+					
 				});
+				
+
+					
+		
+		//Adds an event handler on the button "count" in the simple queries panel (for operator passes)
+		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+		.getPassesPanel().getCountButton().addClickHandler(new ClickHandler() {
+			
+			@Override
+			public void onClick(ClickEvent event) {
+				String commandForCountResult =  mainView.getOptionsTabPanel().getCommandForSimpleQueryPassesCount();
+				mainView.getOptionsTabPanel().setSimpleQueryForPassesIsInitiated(true);
+				if (!commandForCountResult.isEmpty()) {					
+					
+					// send the command directly to secondo
+					rpcConnector.setNumberOfTuplesInSimpleQueryResultPasses(
+							commandForCountResult, mainView, loadingPopup);
+					
+					
+				} else {
+					Window.alert("Please select relation and load it");
+				}
+				
+			}
+		});
 
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 				.getDeftimePanel().getQueryButton()
@@ -365,23 +416,58 @@ public class SecondoWeb implements EntryPoint {
 			}
 		});
 		
+		//Adds an event handler on the button "retrieve" in the simple queries panel (for operator passes through)
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-				.getPassesThroughRegionPanel().getQueryButton()
-				.addClickHandler(new ClickHandler() {
-
+				.getPassesThroughRegionPanel().getNumberOfTrajectoriesToBeShown().addChangeHandler(new ChangeHandler() {
+					
 					@Override
-					public void onClick(ClickEvent event) {
+					public void onChange(ChangeEvent event) {
 						String command = mainView.getOptionsTabPanel()
-								.getCommandForSimpleQueryPassesThroughRegion(mainView.getMapView().getDrawLayer());
+								.getCommandForSimpleQueryPassesThroughRegion(mainView.getMapView().getDrawLayer(), "retrieve");
+						String commandForCount =  mainView.getOptionsTabPanel()
+								.getCommandForSimpleQueryPassesThroughRegion(mainView.getMapView().getDrawLayer(), "count");
+						mainView.getOptionsTabPanel().setSimpleQueryForPassesTrhoughRegionsInitiated(true);
+						
 						if (!command.isEmpty()) {
-							rpcConnector.sendSimpleQuery(command, "passesThrough", mainView);							
+							mainView.resetMapView();
+
+							// send the command directly to secondo
+							rpcConnector.sendCommandAndUpdateHistory(
+									command, commandForCount, mainView, loadingPopup);
+
+							// show the loading popup in the center of the
+							// application until the call is finished
+							loadingPopup.center();						
 						} else {
 							Window.alert("Please select relation and load it");
 						}
 
+						
 					}
 				});
 		
+		//Adds an event handler on the button "count" in the simple queries panel (for operator passes)
+				this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+				.getPassesThroughRegionPanel().getCountButton().addClickHandler(new ClickHandler() {
+					
+					@Override
+					public void onClick(ClickEvent event) {
+						String commandForCountResult =  mainView.getOptionsTabPanel().getCommandForSimpleQueryPassesThroughRegion(mainView.getMapView().getDrawLayer(), "count");
+						mainView.getOptionsTabPanel().setSimpleQueryForPassesTrhoughRegionsInitiated(true);
+						if (!commandForCountResult.isEmpty()) {					
+							
+							// send the command directly to secondo
+							rpcConnector.setNumberOfTuplesInSimpleQueryResultPassesThrough(
+									commandForCountResult, mainView, loadingPopup);
+							
+							
+						} else {
+							Window.alert("Please select relation and load it");
+						}
+						
+					}
+				});
+				
 		this.mainView.getMainheader().getSupportDialog().getSendButton().addClickHandler(new ClickHandler() {
 	          public void onClick(ClickEvent event) {
 	        	  rpcConnector.sendMailToSupport(mainView.getMainheader().getSupportDialog().getMessage());
@@ -488,35 +574,22 @@ public class SecondoWeb implements EntryPoint {
 						.setText(logindata.get(3));
 				mainView.getMainheader().getDatabaseInfo().getDb()
 						.setText(openDatabase);
-          		
-          		
-          		 		
-          		//delete data from last actions
-//      			mainView.getCommandPanel().getTextArea().setText("Sec >");	
-//      			mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().clear();
-//      			mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().addItem("Select Command...");
-     			
-//      			rpcConnector.deleteCommandHistory(mainView);
+          	
+
       			
 				//reset text views
       			mainView.getRawDataView().resetData();
           		
           		mainView.getMainheader().getTextViewOfTrajInDialog().resetData();
       			
-      			//delete data from map and graphical views
-      			mainView.getGraphicalView().resetData();
-      			mainView.getGraphicalView().getMpointController().stopAllAnimations();
+      			//delete data from map      			
       			mainView.getMapView().resetData();
-      			mainView.getMapView().getMpointController().stopAllAnimations();
+      			mainView.getMapView().getMpointController().stopAllAnimations();      		
       			
-      			//delete data from toolbar
-      			mainView.getToolbox().resetData();
-      			
-      			rpcConnector.resetObjectCounter();
-      			
-//				mainView.showGraphicalView();
+      			rpcConnector.resetObjectCounter();      			
+
 				mainView.showMapView();
-          		
+				
           		setContent(2);			
 			}
 		  };		  
@@ -634,7 +707,7 @@ public class SecondoWeb implements EntryPoint {
             System.out.println("User is logged in and has chosen a database");
             
             header.clear();
-            mainView.getMainheader().getLabelWithDatabaseName().setText(currentDatabase);
+//            mainView.getMainheader().getLabelWithDatabaseName().setText(currentDatabase);
             header.add(mainView.getMainheader().getGrid());
 //			header.add(mainView.getMainheader().gethPanel());
 						

@@ -383,24 +383,24 @@ public class MapView extends Composite{
 	 * @param height
 	 *            The new height of the map view
 	 * */
-	public void resizeToFullScreen(int width, int height) {
+	public void resizeToFullScreen(int width, int height, int heightOfOptionsTabPanel) {
 		
-		if (width > 950) {
+		if (width > 850) {
 
 			contentPanel.setWidth(width + "px");
 			mapWidget.setWidth(width + "px");
 		} else {
 			
-			contentPanel.setWidth(950 + "px");
-			mapWidget.setWidth(950 + "px");
+			contentPanel.setWidth(850 + "px");
+			mapWidget.setWidth(850 + "px");
 		}
-		if (height > 300) {
+		if (height > heightOfOptionsTabPanel) {
 			
 			contentPanel.setHeight(height-20  + "px");
 			mapWidget.setHeight(height-20  + "px");
 		} else {
-			contentPanel.setHeight(300 + "px");			
-			mapWidget.setHeight(300 + "px");
+			contentPanel.setHeight(heightOfOptionsTabPanel + "px");			
+			mapWidget.setHeight(heightOfOptionsTabPanel + "px");
 		}
 		map.updateSize();
 	}
@@ -422,18 +422,18 @@ public class MapView extends Composite{
 
 				@Override
 				public int compare(DataType arg0, DataType arg1) {
-					if (arg0.getType().equalsIgnoreCase("Polyline")|| arg0.getType().equalsIgnoreCase("MLabel")) {
+					if (arg0.getType().equalsIgnoreCase("Polyline")) {
 						return 1;
 					}
-					if (arg1.getType().equalsIgnoreCase("Polyline")|| arg1.getType().equalsIgnoreCase("MLabel")) {
+					if (arg1.getType().equalsIgnoreCase("Polyline")) {
 						return -1;
 					}
-//					if (arg0.getType().equalsIgnoreCase("MLabel")) {
-//						return 1;
-//					}
-//					if (arg1.getType().equalsIgnoreCase("MLabel")) {
-//						return -1;
-//					}
+					if (arg0.getType().equalsIgnoreCase("MLabel")) {
+						return 1;
+					}
+					if (arg1.getType().equalsIgnoreCase("MLabel")) {
+						return -1;
+					}
 
 					else
 						return arg0.getType().compareTo(arg1.getType());

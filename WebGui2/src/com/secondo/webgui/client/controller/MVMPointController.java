@@ -90,6 +90,7 @@ public class MVMPointController {
 	private boolean timerIsRunning = false;
 	private int speed = 100;//10
 	private HashMap<Number, ArrayList<String>> labelSet = new HashMap<Number, ArrayList<String>>();
+	private boolean mpointArrayContainsEmptyMpoint;
 	/**
 	 * key - id of mp; value - map where key -label, value - color
 	 */
@@ -203,18 +204,23 @@ public class MVMPointController {
     	if(timerIsRunning == true){
     		timeTimer.cancel();
     	}
-    	    	
-    	
+    	  
     	//add first mpoint layer with starting point to the map
-       if(!mpointMap.isEmpty()){
-    	   int idOfFirstPoint = mpointArray.get(0).getId();    	   
-    	   map.addLayer(mpointMap.get(idOfFirstPoint));
-        
-           map.zoomToExtent(bounds); 
-           /*if(map.getZoom() > 10){ 
-    			map.zoomTo(10);
-    		}*/
-        }
+		if (!mpointMap.isEmpty()) {
+
+			for (int i = 0; i < mpointArray.size(); i++) {
+				int idOfFirstPoint = mpointArray.get(i).getId();
+				if (mpointMap.containsKey(idOfFirstPoint)) {
+					map.addLayer(mpointMap.get(idOfFirstPoint));
+					break;
+				}
+
+			}
+			map.zoomToExtent(bounds);
+			/*
+			 * if(map.getZoom() > 10){ map.zoomTo(10); }
+			 */
+		}
     }
     
     /**Shows the given moving point in the view
@@ -262,86 +268,12 @@ public class MVMPointController {
     
     /**Animates all moving points from the mpointarray
      * 
-     *  @param tb The toolbox element to communicate with the animation panel
+     *  @param tp The tool panel element to communicate with the animation panel
 	 *  @param map The map object
-	 *  */ 
-    public void animateMovingPoints(ToolBox tb, Map map){      
-    	
-    	this.toolbox = tb;
-    	
-    	if(mpointArray.isEmpty()){
-    		//do nothing
-    	}
-    	else{
-    		
-    	//change play to pause icon
-        toolbox.getAnimationPanel().remove(0);
-    	toolbox.getAnimationPanel().insert(toolbox.getPausepanel(), 0);
-    	
-    	//sort dates in ascending order
-    	Collections.sort(timeBounds); 
-        
-    	maxTime = (timeBounds.size())-1;
-    	final TextBox cb = toolbox.getTimeCounter();
-    	final TimeSlider ts = toolbox.getTimeSlider();
-    	final Map mapIntern = map;
-    	
-    	//set time ticks to the timeslider
-    	String minTick = DateTimeFormat.getFormat(DateTimeFormat.PredefinedFormat.DATE_TIME_SHORT).format(timeBounds.get(0));
-    	String maxTick = DateTimeFormat.getFormat(DateTimeFormat.PredefinedFormat.DATE_TIME_SHORT).format(timeBounds.get(maxTime));
-    	ts.setTicks(minTick, maxTick); 	
-    	ts.setNumberOfTimeValues(maxTime);
-        
-        System.out.println("####animateMovingPoints is called, timebounds size:" + timeBounds.size());
-        
-      //if during pausing of the animation any timers for moving points have been interrupted they need to be started again
-        if(!mpointTimerList.isEmpty()){
-        	for(Timer timer : mpointTimerList){
-        		timer.scheduleRepeating(speed);
-        	}
-        }
-        
-      //GWT timer to schedule animation
-   	    timeTimer = new Timer()  {   		 	 
-   	    	
-            @Override
-            public void run() {
-
-            	timerIsRunning = true;
-            	
-            	//add current time to timerBox in toolbar
-            	currentTime = timeBounds.get(timeCounter);           	
-            	cb.setText(DateTimeFormat.getFormat(DateTimeFormat.PredefinedFormat.DATE_TIME_MEDIUM).format(currentTime));
-            	ts.moveSlider(timeCounter, DateTimeFormat.getFormat(DateTimeFormat.PredefinedFormat.DATE_TIME_MEDIUM).format(currentTime));
-            	
-            //stop timer if time bounds are reached
-           	 if (timeCounter == maxTime) {
-                    cancel();
-                    timerIsRunning = false;
-                    timeCounter = 0;
-                    toolbox.resetAnimationPanel();
-  	        	    mpointTimerList.clear();
-                    return;
-             }
-           	 
-           //search for mpoints which start with the current time and start the animation for them
-           	 for(MPoint mpoint : mpointArray){
-           		 
-           		int indexMpoint = mpointArray.indexOf(mpoint);
-           		 
-           		 if(mpoint.getTime().get(0).getTimeA().equals(timeBounds.get(timeCounter))){
-           			 animateMovingPoint(mpoint, indexMpoint, mapIntern, -1);
-           		 }
-           	 }
-           	timeCounter++;
-            }
-        };
-        timeTimer.scheduleRepeating(speed);
-    	}
-    }
+	 *  */  
     
  public void animateMovingPoints(OptionsTabPanel tp, Map map, final int mode){      
-    	
+    	mpointArrayContainsEmptyMpoint=false;
     	this.tabpanel = tp;
     	
     	if(mpointArray.isEmpty()){
@@ -403,10 +335,14 @@ public class MVMPointController {
            	 for(MPoint mpoint : mpointArray){
            		 
            		int indexMpoint = mpointArray.indexOf(mpoint);
+           		if(mpoint.getTime().size()!=0){
            		 
            		 if(mpoint.getTime().get(0).getTimeA().equals(timeBounds.get(timeCounter))){
            			 animateMovingPoint(mpoint, indexMpoint, mapIntern,  mode);
            		 }
+           		}else{
+           			mpointArrayContainsEmptyMpoint=true;
+           		}
            	 }
            	timeCounter++;
             }
@@ -425,20 +361,21 @@ public class MVMPointController {
      * */
     public void animateMovingPoint(MPoint mpoint, int index, final Map map, final int mode){
     	setCounter(0);
-    	
+    	if(mpointArrayContainsEmptyMpoint){
+    		index--;
+    	}
     	
     	final int size = (mpoint.getPath().size())-1;   	
-       	final int i = index;
+       	final int i=index;
     	final int mpointID = mpoint.getId();
     	final Map mapIntern = map;
     	final Vector vectorLayer = mpointMap.get(mpointID);
-    	final VectorFeature pointFeature =mpointFeatures.get(i);
     	
     	//add mpoint layer to the map
     	mapIntern.addLayer(mpointMap.get(mpoint.getId())); 	
     	
     	System.out.println("Size of path "+ size);
-    	System.out.println("Size of mpointPathArray for this mpoint "+ mpointPathArray.get(i).size());
+//    	System.out.println("Size of mpointPathArray for this mpoint "+ mpointPathArray.get(i).size());
     	if(!labelSet.isEmpty()){
     		System.out.println("LabelSet is " + labelSet.get(mpointID).size());
     	}else{
@@ -447,6 +384,8 @@ public class MVMPointController {
     	
     	
 		if (mode == 2 && !labelSet.isEmpty()) {
+			
+			VectorFeature pointFeature=mpointFeatures.get(i);			
 			addPopupToShowST(mapIntern, pointFeature, mpointID, vectorLayer, i);
 		}
         
@@ -457,14 +396,15 @@ public class MVMPointController {
    	    	
             @Override
             public void run() {
- 
-           	 if (getCounter() == size) {
+            	
+           	 if (counter == size) {
                     cancel();
                     mapIntern.removeLayer(mpointMap.get(mpointID));
                     return;
 				}
            	 
 				if (mode == 1 && !labelSet.isEmpty()) {
+					
 					Style pointStyle = mpointFeatures.get(i).getStyle();
 					// represent a symbolic trajectory in a form of
 					// label
@@ -480,7 +420,8 @@ public class MVMPointController {
 				}
            	
            	
-            mpointFeatures.get(i).move(mpointPathArray.get(i).get(getCounter())); //move point	
+            mpointFeatures.get(i).move(mpointPathArray.get(i).get(counter)); //move point
+            
            	setCounter(getCounter()+1);
             }
 			
