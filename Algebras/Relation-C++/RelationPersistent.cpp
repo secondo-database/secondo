@@ -225,7 +225,7 @@ This struct contains the private attributes of the class ~Tuple~.
   {
     DEBUG_MSG("Destructor called.")
     // delete all attributes if no further references exist
-    for( int i = 0; i < noAttributes; i++ ){
+    for( size_t i = 0; i < noAttributes; i++ ){
       if( attributes[i] != 0 )
       {
         DEBUG_MSG("call attributes[" << i << "]->DeleteIfAllowed() with"
@@ -460,7 +460,7 @@ void Tuple::WriteToBlock(char* buf,
   uint32_t currentExtSize = 0;
 
   // collect all attributes into the memory block
-  for( int i = 0; i < noAttributes; i++)
+  for( size_t i = 0; i < noAttributes; i++)
   {
     SHOW(attributes[i]->IsDefined())
 
@@ -631,7 +631,7 @@ void Tuple::WriteToDivBlock(char* buf, size_t coreSize,
   char smode = 1; //mode for small Flob data
   SmiRecordId rcdId = sourceDS;
 
-  for (int i = 0; i < noAttributes; i++)
+  for (size_t i = 0; i < noAttributes; i++)
   {
     SHOW(attributes[i]->IsDefined())
 
@@ -962,7 +962,7 @@ void Tuple::InitializeAttributes(char* src, bool containLOBs/* = false*/)
 
     SHOW(offset)
 
-  for(int i=0;i<noAttributes;i++){
+  for(size_t i=0;i<noAttributes;i++){
 
     int algId = tupleType->GetAttributeType(i).algId;
     int typeId = tupleType->GetAttributeType(i).typeId;
@@ -1113,7 +1113,7 @@ void Tuple::InitializeNoFlobAttributes(char* src,
 
   size_t offset = 0;
 
-  for (int i = 0; i < noAttributes; i++)
+  for (size_t i = 0; i < noAttributes; i++)
   {
     int algId = tupleType->GetAttributeType(i).algId;
     int typeId = tupleType->GetAttributeType(i).typeId;
@@ -1171,7 +1171,7 @@ void Tuple::readLocalFlobFile(const string flobFilePath)
 {
   TRACE_ENTER
 
-  for (int i = 0; i < noAttributes; i++)
+  for (size_t i = 0; i < noAttributes; i++)
   {
     for (int k = 0; k < attributes[i]->NumOfFLOBs(); k++)
     {
