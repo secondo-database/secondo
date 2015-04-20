@@ -1617,16 +1617,16 @@ Operators: You only need to specify translation rules explicitly
 
   * for operators with a non-standard syntax (e.g. using a semicolon within a parameter list),
 
-  * for operators that perform translations to more complex terms, or nave another name than is used by the kernel,
+  * for operators that perform translations to more complex terms, or have another name than is used by the kernel,
 
   * if you want to respect some optimizerOptions,
 
-  * if you use implicit argumets,
+  * if you use implicit arguments,
 
   * if you need to change argument order.
 
 
-For general/standart syntax rules, see below.
+For general/standard syntax rules, see below.
 Non-standard syntax can be declared in file ~opsyntax.pl~ using facts ~secondoOp/3~.
 
 */
@@ -2379,7 +2379,7 @@ plan_to_atom(InTerm,OutTerm) :-
 Error handler for operator with 'special' syntax, that do not have a matching
 ~plan\_to\_atom~ rule:
 
-To safeguard an operator ~op~ with special translation against using standarad
+To safeguard an operator ~op~ with special translation against using standard
 translation, add a fact secondoOp(op, special, N) to file opsyntax.pl.
 
 */
@@ -2854,30 +2854,43 @@ select(arg(N), Y) => project(X, RenamedAttrNames) :-
   renameAttributes(Var, AttrNames, RenamedAttrNames).
 
 
-% replace (Attr = Term) by (Term = Attr)
+% generic handling of renaming in index access
+
+indexselect(arg(N), Y) => X :-
+  argument(N, rel(_, *)),
+  indexselect2(arg(N), Y ) => X.
+
+indexselect(arg(N), Y) => rename(X, Var) :-
+  argument(N, rel(_, Var)), Var \= *,
+  indexselect2(arg(N), Y ) => X.
+
+
+
+% replace (Attr = Term) by (Term = Attr) for indexselect
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
   not(isSubquery(Y)),
   indexselect(arg(N), pr(Y = attr(AttrName, Arg, Case), Rel)) => X.
 
+
+% replace (Attr = Term) by (Term = Attr) for indexselect2
+indexselect2(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
+  not(isSubquery(Y)),
+  indexselect2(arg(N), pr(Y = attr(AttrName, Arg, Case), Rel)) => X.
+
+
+
+
+
 % generic rule for (Term = Attr): exactmatch using btree or hashtable
-% without rename
-indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  exactmatch(dbobject(IndexName), rel(Name, *), Y)
+% with or without rename
+indexselect2(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
+  exactmatch(dbobject(IndexName), rel(Name, Z), Y)
   :-
-  argument(N, rel(Name, *)),
-  hasIndex(rel(Name,*),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
+  argument(N, rel(Name, Z)),
+  hasIndex(rel(Name, Z), attr(AttrName, Arg, AttrCase), DCindex, IndexType),
   dcName2externalName(DCindex,IndexName),
   (IndexType = btree; IndexType = hash).
 
-% generic rule for (Term = Attr): exactmatch using btree or hashtable
-% with rename
-indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rename(exactmatch(dbobject(IndexName), rel(Name, Var), Y), Var)
-  :-
-  argument(N, rel(Name, Var)), Var \= * ,
-  hasIndex(rel(Name,Var),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
-  dcName2externalName(DCindex,IndexName),
-  (IndexType = btree; IndexType = hash).
 
 
 % generic rule for (Term = Attr): rangesearch using mtree
@@ -2949,33 +2962,38 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
 /*
 7.3 Index-Based Selection for Full-Text-Search: Inverted File
 
-Implemented predicate: Attr contains text
+Implemented predicates:  containsWord(Attr, text), containsPrefix(Attr, text)
 
 */
 
-% generic rule for (Attr contains Term): searchWord using invfile
-% without rename
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) contains Y, _)) =>
+% generic rule for containsWord(Attr, Term): searchWord using invfile
+% case invariant
+indexselect2(arg(N), pr(containsWord(attr(AttrName, Arg, AttrCase), Y), _)) =>
   gettuples(rdup(sortby(
     project(searchWord(dbobject(IndexName), Y), attrname(attr(tid, 1, u))),
     attrname(attr(tid, 1, u)))),
-    rel(Name, *))
+    rel(Name, Z))
   :-
-  argument(N, rel(Name, *)),
-  hasIndex(rel(Name, *), attr(AttrName, Arg, AttrCase), DCindex, invfile),
+  argument(N, rel(Name, Z)),
+  hasIndex(rel(Name, Z), attr(AttrName, Arg, AttrCase), DCindex, invfile),
   dcName2externalName(DCindex,IndexName).
 
-% generic rule for (Attr contains Term): searchWord using invfile
-% with rename
-indexselect(arg(N), pr(attr(AttrName, Arg, AttrCase) contains Y, _)) =>
-  rename(gettuples(rdup(sortby(
-    project(searchWord(dbobject(IndexName), Y), attrname(attr(tid, 1, u))),
+
+% generic rule for containsPrefix(Attr, Term): searchWord using invfile
+% case invariant
+indexselect2(arg(N), pr(containsPrefix(attr(AttrName, Arg, AttrCase), Y), _)) =>
+  gettuples(rdup(sortby(
+    project(searchPrefix(dbobject(IndexName), Y), attrname(attr(tid, 1, u))),
     attrname(attr(tid, 1, u)))),
-    rel(Name, Var)), Var)
+    rel(Name, Z))
   :-
-  argument(N, rel(Name, Var)), Var \= *,
-  hasIndex(rel(Name, *), attr(AttrName, Arg, AttrCase), DCindex, invfile),
+  argument(N, rel(Name, Z)),
+  hasIndex(rel(Name, Z), attr(AttrName, Arg, AttrCase), DCindex, invfile),
   dcName2externalName(DCindex,IndexName).
+
+
+
+
 
 
 /*
@@ -5395,13 +5413,18 @@ cost(rangeS(dbobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
 % using formula similar to rangeS.
 
 cost(gettuples(rdup(sortby(
-    project(searchWord(dbobject(_), _), attrname(attr(tid, 1, u))),
+    project(SearchTerm, attrname(attr(tid, 1, u))),
     attrname(attr(tid, 1, u)))),
     Rel), Sel, _P, Size, Cost) :-
+  (SearchTerm = searchWord(dbobject(_), _); 
+    SearchTerm = searchPrefix(dbobject(_), _)),
   cost(Rel, _, _, RelSize, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
+
+
+
 
 
 
