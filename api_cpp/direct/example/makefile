@@ -54,7 +54,7 @@ LDFLAGS += -lpthread
 
 
 app$(EXEEXT): Example.o
-	$(CPPC) -o app$(EXEEXT) Example.o $(LDFLAGS)  
+	$(CPPC) -o app$(EXEEXT) Example.o $(LDFLAGS) $(COMMON_LD_FLAGS) 
 	mkdir -p databases
 
 
