@@ -7,6 +7,9 @@ using namespace std;
 #include "Secondo_Include.h"
 #include <vector>
 #include "../Spatial/RegionTools.h"
+
+#include "RobustOperators.h"
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
@@ -653,7 +656,8 @@ void testUnion(){
   Region *t1= new Region(*p1, *p2, *p3);
   Region *t2= new Region(*p4, *p3, *p1);
   Region *v1= new Region(0);
-  t1->Union(*t2, *v1);
+  //t1->Union(*t2, *v1);
+  RobustPlaneSweep::robustUnion(*t1,*t2,*v1);
   delete p1;
   delete p2;
   delete p3;
@@ -670,7 +674,8 @@ void testUnion(){
   Region *t3= new Region(*p5, *p6, *p7);
   Region *t4= new Region(*p6, *p7, *p8);
   Region * v2= new Region(0);
-  t3->Union(*t4, *v2);
+  //t3->Union(*t4, *v2);
+  RobustPlaneSweep::robustUnion(*t3,*t3,*v2);
   delete p7;
   delete p8;
   delete p5;
@@ -688,7 +693,8 @@ void testUnion(){
   Region *t5= new Region(*p01, *p02, *p03);
   Region *t6= new Region(*p03, *p04, *p05);
   Region * v3= new Region(0);
-  t5->Union(*t6, *v3);
+  //t5->Union(*t6, *v3);
+  RobustPlaneSweep::robustUnion(*t5,*t6,*v3);
   delete p01;
   delete p02;
   delete p03;
