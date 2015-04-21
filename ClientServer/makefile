@@ -62,19 +62,19 @@ endef
 
 $(BINDIR)/SecondoMonitor$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoMonitor$(EXEEXT): $(CMSG) SecondoMonitor.o
-	$(link-app)
+	$(link-app) $(COMMON_LD_FLAGS)
 
 $(BINDIR)/SecondoRegistrar$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoRegistrar$(EXEEXT): $(CMSG) SecondoRegistrar.o
-	$(link-app)
+	$(link-app) $(COMMON_LD_FLAGS)
 
 $(BINDIR)/SecondoCheckpoint$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoCheckpoint$(EXEEXT): $(CMSG) SecondoCheckpoint.o
-	$(link-app)
+	$(link-app) $(COMMON_LD_FLAGS)
 
 $(BINDIR)/SecondoListener$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoListener$(EXEEXT): $(CMSG) SecondoListener.o
-	$(link-app)
+	$(link-app) $(COMMON_LD_FLAGS)
 
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)

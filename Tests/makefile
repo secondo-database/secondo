@@ -91,7 +91,7 @@ all:  $(OBJECTS)
 
 # default rule for linking
 %$(EXEEXT): %.o
-	$(CC) $(EXEFLAGS) -o $@ $< $(LIBS)
+	$(CC) $(EXEFLAGS) -o $@ $< $(LIBS) $(COMMON_LD_FLAGS)
 
 # Test Dynamic Library module
 

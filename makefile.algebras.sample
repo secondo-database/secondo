@@ -268,11 +268,9 @@ ALGEBRAS      += NestedRelationAlgebra
 
 #ALGEBRA_DIRS += Distributed2
 #ALGEBRAS += Distributed2Algebra
-#ALGEBRA_DEPS += boost_thread boost_system
 #DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 #CCFLAGS += -pthread -DTHREAD_SAFE
-#LDFLAGS += -lboost_thread -lboost_system
-#EXEFLAGS += -lboost_thread -lboost_system
+#COMMON_LD_FLAGS += -lboost_thread -lboost_system
 
 # note if you want to enable thread save compilation the first time
 # on your system, goto into Secondo's home directory and enter:
@@ -284,11 +282,9 @@ ALGEBRAS      += NestedRelationAlgebra
 
 #ALGEBRA_DIRS += Distributed2
 #ALGEBRAS += Distributed2Algebra
-#ALGEBRA_DEPS += boost_threadi-mt  boost_system-mt
 #DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 #CCFLAGS += -pthread -DTHREAD_SAFE
-#LDFLAGS += -lboost_thread-mt -lboost_system-mt
-#EXEFLAGS += -lboost_thread-mt -lboost_system-mt
+#COMMON_LD_FLAGS += -lboost_thread-mt -lboost_system-mt
 
 
 
