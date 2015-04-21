@@ -9,7 +9,6 @@ This file includes secndo files.
 #include "SpatialAlgebra.h"
 #include "HalfSegment.h"
 #include "Coord.h"
-#include "PSTtest.h"
 #include "SecondoSystem.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "RelationAlgebra.h"
