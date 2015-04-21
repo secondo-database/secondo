@@ -188,12 +188,12 @@ class ConnectionInfo{
     boost::mutex simtx; // mutex for synchronizing access to the interface
 };
 
-
+template<class ResType>
 class CommandListener{
  public:
 
   virtual void jobDone(int id, string& command, size_t no, int error, 
-                       string& errMsg, const string& resList)=0;
+                       string& errMsg, ResType& resList)=0;
 };
 
 class Distributed2Algebra: public Algebra{
@@ -328,6 +328,14 @@ checks whether an given integer points to a server
       mtx.unlock();
       return res; 
    }
+
+/*
+~serverExists~
+
+*/   
+  bool serverExists(int s){
+     return isValidServerNumber(s) && (connections[s]!=0);
+  }
 
 
 /*
@@ -531,11 +539,12 @@ the listener is informed about that. Then, then it waits for
 the next command.
 
 */
+template<class ResType>
 class ConnectionTask{
   public:
 
      ConnectionTask( int _connection, 
-                     CommandListener* _listener):
+                     CommandListener<ResType>* _listener):
       connection(_connection), listener(_listener), no(0),
       done(false){
         worker = boost::thread(&ConnectionTask::run, this); 
@@ -563,6 +572,10 @@ class ConnectionTask{
      void removeListener(){
         listener = 0;
      }
+  
+     void stop(){
+        done = true;
+     }
 
   private:
     
@@ -587,7 +600,7 @@ class ConnectionTask{
          int id = cmd1.first;
          int error;
          string errMsg; 
-         string resList;
+         ResType resList;
          algInstance->simpleCommand(connection, cmd, 
                                     error,errMsg, resList);
 
@@ -598,7 +611,7 @@ class ConnectionTask{
      }
 
      int connection;            // server number
-     CommandListener* listener; // informed if a command is processed
+     CommandListener<ResType>* listener; // informed if a command is processed
      size_t no;                 // a running number
      bool done;                 // finished state
      list<pair<int,string> > commandList; // list of command
@@ -684,6 +697,8 @@ int connectVMT( Word* args, Word& result, int message,
                        errMsg, true)){
       msgcenter->Send(nl, nl->TwoElemList( nl->SymbolAtom("simple"),
                                        nl->TextAtom(errMsg)));
+     delete si;
+     delete mynl;
      res->Set(true,false);
    } else {
      res->Set(true,true);
@@ -1082,10 +1097,29 @@ bool getValue(ListExpr in, string&out){
    S* s = (S*) res.addr;
    if(!s->IsDefined()){
       out = "";
+      s->DeleteIfAllowed();
       return false;
    }
    out = s->GetValue();
    s->DeleteIfAllowed();
+   return true;
+}
+
+bool getValue(ListExpr in, int& out){
+   Word res;
+   bool success = QueryProcessor::ExecuteQuery(nl->ToString(in),res);
+   if(!success){
+     out = -1;
+     return false;
+   }
+   CcInt* r = (CcInt*) res.addr;
+   if(!r->IsDefined()){
+     out = -1;
+     r->DeleteIfAllowed();
+     return false;
+   }
+   out = r->GetValue();
+   r->DeleteIfAllowed();
    return true;
 }
 
@@ -1133,6 +1167,8 @@ ListExpr rqueryTM(ListExpr args){
    if(!ok){
       return listutils::typeError("Value of second argument invalid");
    }
+
+
 
    query +=  " getTypeNL";
    int error;
@@ -1374,7 +1410,7 @@ ListExpr prcmdTM(ListExpr args){
 
 
 template<class T>
-class prcmdInfo: public CommandListener{
+class prcmdInfo: public CommandListener<string>{
 
   public:
     prcmdInfo(Word _s, int _intAttrPos, int _qAttrPos, ListExpr _tt):
@@ -1393,7 +1429,7 @@ class prcmdInfo: public CommandListener{
        // wait until runner is ready
        runner.join();
        // stop and delete running connectionTasks
-       map<int, ConnectionTask*>::iterator it1;
+       map<int, ConnectionTask<string>*>::iterator it1;
        for(it1 = serverTasks.begin(); it1!=serverTasks.end(); it1++){
           delete it1->second;
        }
@@ -1403,7 +1439,7 @@ class prcmdInfo: public CommandListener{
           it2->second->DeleteIfAllowed();
        }
        inStream.close();
- 
+       tt->DeleteIfAllowed();
     }
 
 
@@ -1420,8 +1456,9 @@ class prcmdInfo: public CommandListener{
     
 
     void jobDone(int id, string& command, size_t no, int error, 
-                 string& errMsg, const string& resList){
+                 string& errMsg, string& resList){
        if(validInputTuples.find(id)==validInputTuples.end()){
+          cout << "could not return any input tuple" << endl;
           return;
        }
        Tuple* inTuple = validInputTuples[id];
@@ -1446,7 +1483,7 @@ class prcmdInfo: public CommandListener{
 
     boost::mutex stopMutex; // access to stopped variable
 
-    map<int,ConnectionTask*> serverTasks;
+    map<int,ConnectionTask<string> *> serverTasks;
     map<int, Tuple*>  validInputTuples;
 
     boost::mutex tupleCreationMutex;
@@ -1495,16 +1532,18 @@ class prcmdInfo: public CommandListener{
        T* Query = (T*) inTuple->GetAttribute(queryAttrPos);
        if(!ServerNo->IsDefined() || !Query->IsDefined()){
           createResultTuple(inTuple,-3, "Undefined Argument found", "");
+          return;
        }
        int serverNo = ServerNo->GetValue();
        if(!algInstance->isValidServerNumber(serverNo)){
           createResultTuple(inTuple, -2, "Invalid server number", "");
+          return; 
        }
        // process a valid tuple
        validInputTuples[tupleId] = inTuple; // store input tuple
        // create a ConnectionTask for server if not present  
        if(serverTasks.find(serverNo)==serverTasks.end()){
-          serverTasks[serverNo] = new ConnectionTask(serverNo, this);
+          serverTasks[serverNo] = new ConnectionTask<string>(serverNo, this);
        }
        // append the command
        serverTasks[serverNo]->addCommand(tupleId, Query->GetValue());
@@ -3265,6 +3304,372 @@ Operator pconnectOp (
 );
 
 
+/*
+1.8 Operator pquery
+
+This operators performs the same query on a set of servers. The result type 
+of the query is asked by a specified server. It's assumed that each server 
+returns the same type and this type must be in kind DATA.
+
+1.8.1 Type Mapping
+
+The type mapping is
+
+stream(int) x {string.text} x {int} -> stream(tuple(Server : int, Resul : DATA))
+
+This operator uses argument evaluation in type mapping.
+
+*/
+ListExpr pqueryTM(ListExpr args){
+  string err="stream(int) x {string.text} x {int} expected";
+  if(!nl->HasLength(args,3)){
+   return listutils::typeError(err + "( wrong number of args)" );
+  }
+  ListExpr stream = nl->First(nl->First(args)); // ignore query part
+  if(!Stream<CcInt>::checkType(stream)){
+    return listutils::typeError(err);
+  }
+
+  ListExpr second = nl->Second(args);
+
+  // determine query
+  string query;
+  bool ok;
+  if(FText::checkType(nl->First(second))){
+      ok = getValue<FText>(nl->Second(second),query);
+  } else if(CcString::checkType(nl->First(second))){
+     ok = getValue<CcString>(nl->Second(second),query);
+  } else {
+      return listutils::typeError(err);
+   }
+   if(!ok){
+      return listutils::typeError("Value of second argument invalid");
+   }
+
+   // determine type server
+   ListExpr third = nl->Third(args);
+   if(!CcInt::checkType(nl->First(third))){
+      return listutils::typeError(err);
+   }
+
+   int server;
+   if(!getValue(nl->Second(third),server)){
+      return listutils::typeError("Could not determine server "
+                                  "providing the type");
+   }
+
+   query +=  " getTypeNL";
+   int error;
+   string errMsg;
+   ListExpr reslist;
+   ok = algInstance->simpleCommand(server, query, error, errMsg, reslist);
+   if(!ok){
+     return listutils::typeError("found no connection for specified "
+                                 "connection number");
+   }
+   if(error!=0){
+     return listutils::typeError("Problem in determining result type : "
+                                 + errMsg);
+   }
+   if(!nl->HasLength(reslist,2)){
+      return listutils::typeError("Invalid result get from remote server");
+   }
+   if(!FText::checkType(nl->First(reslist))){
+      return listutils::typeError("Invalid result type for getTypeNL");
+   }
+   if(nl->AtomType(nl->Second(reslist))!=TextType){
+     return listutils::typeError("getTypeNL returns invalid/undefined result");
+   }
+   string typeList = nl->Text2String(nl->Second(reslist));
+   ListExpr resType;
+   if(!nl->ReadFromString(typeList,resType)){
+     return listutils::typeError("getTypeNL returns no valid list expression");
+   }   
+   if(nl->HasLength(resType,2)){
+     ListExpr first = nl->First(resType);
+     if(listutils::isSymbol(first, Stream<Tuple>::BasicType())){
+        return listutils::typeError("remote result is a stream");
+     }
+   }
+   // check whether resType is in kind data
+   if(!listutils::isDATA(resType)){
+      return listutils::typeError("Query result " + nl->ToString(resType) + 
+                                  "  not in kind data");
+   }
+
+   ListExpr attrList = nl->TwoElemList(
+                            nl->TwoElemList(
+                               nl->SymbolAtom("ServerNo"),
+                               listutils::basicSymbol<CcInt>() ),
+                            nl->TwoElemList(
+                               nl->SymbolAtom("Result"),
+                               resType));
+
+   ListExpr resList = nl->TwoElemList(
+             listutils::basicSymbol<Stream<Tuple> >(),
+             nl->TwoElemList( listutils::basicSymbol<Tuple>(), attrList));
+
+
+    return resList; 
+
+
+}
+
+
+/*
+1.8.2 LocalInfoClass
+
+*/
+
+
+class PQueryInfo : public CommandListener<ListExpr>{
+  public:
+    PQueryInfo(Word& _stream , const string& _query,  ListExpr _tt) : 
+      stream(_stream), query(_query){
+       tt = new TupleType(_tt);
+       stream.open();
+       stop = false;
+       noInputs=-1;
+       noOutputs = 0;
+       // run processing thread
+       nTypeList =nl->Second(nl->Second(nl->Second(_tt)));
+       int algId;
+       int typeId;
+       string typeName;
+
+       bool done = false;
+       while(!done){
+          if(nl->ListLength(nTypeList)<2){
+             cout << "could not detremine algAd and type Id for type "  
+                  << nl->ToString(nTypeList) << endl;
+             resultList.push_back(0);
+             return;
+          }
+          if(nl->AtomType(nl->First(nTypeList))!=IntType){
+               nTypeList = nl->First(nTypeList);
+          } else {
+             if(nl->AtomType(nl->Second(nTypeList))!=IntType){
+                resultList.push_back(0);
+                return;
+             } else {
+                algId = nl->IntValue(nl->First(nTypeList));
+                typeId = nl->IntValue(nl->Second(nTypeList));
+                done = true;
+             }
+          }
+       } 
+
+       AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+       inObject = am->InObj(algId,typeId);
+       createObject = am->CreateObj(algId,typeId);
+
+       runner = boost::thread(boost::bind(&PQueryInfo::run,this));
+    }
+
+    virtual ~PQueryInfo(){
+        stop = true;
+        runner.join();
+
+        map<int,ConnectionTask<ListExpr>*>::iterator it;
+        for(it = connectors.begin(); it!=connectors.end(); it++){
+           it->second->stop();
+        }
+        for(it = connectors.begin(); it!=connectors.end(); it++){
+           delete it->second;
+        }
+        while(!resultList.empty()){
+          Tuple* t = resultList.front();
+          resultList.pop_front();
+          t->DeleteIfAllowed();
+        }
+        stream.close();
+        tt->DeleteIfAllowed();
+    }
+
+    Tuple* next(){
+       boost::unique_lock<boost::mutex> lock(resmtx);
+       while(resultList.empty()){
+          cond.wait(lock);
+       }
+       Tuple* res = resultList.front();
+       resultList.pop_front();
+       return res;
+    }
+
+    virtual void jobDone(int id, string& command, size_t no, int error, 
+                       string& errMsg, ListExpr& valueList){
+
+       {
+      
+          boost::lock_guard<boost::mutex> guard(resmtx);
+          bool correct;    
+          Word res;
+          Tuple* resTuple = new Tuple(tt);
+          resTuple->PutAttribute(0, new CcInt(id));
+          int errorPos = 0;
+          ListExpr errorInfo = listutils::emptyErrorInfo();
+          if(nl->HasLength(valueList,2)){
+              res = inObject(nTypeList, nl->Second(valueList), 
+                         errorPos, errorInfo, correct);
+          } else {
+             correct = false;
+          }
+      
+          if(correct){ // nested list could not read in correctly
+             resTuple->PutAttribute(1, (Attribute*) res.addr); 
+          } else {
+             Attribute* attr = (Attribute*) createObject(nTypeList).addr;
+             attr->SetDefined(false);
+             resTuple->PutAttribute(1,attr); 
+          }
+          resultList.push_back(resTuple);
+          noOutputs++;
+          if(noInputs==noOutputs){
+           resultList.push_back(0);
+          }
+       }
+       cond.notify_one();
+    }
+
+  private:
+    Stream<CcInt> stream;
+    ListExpr nTypeList;
+    TupleType* tt;
+    string query;
+    int noInputs;
+    int noOutputs;
+    list<Tuple*> resultList;
+    boost::mutex resmtx;
+    boost::thread runner;
+    bool stop;
+    map<int,ConnectionTask<ListExpr>*> connectors;
+    boost::mutex mapmtx;
+    boost::condition_variable cond;
+    InObject inObject;
+    ObjectCreation createObject; 
+    
+
+    
+    void run(){
+       CcInt* inInt;
+       inInt = stream.request();
+       int count =0;
+       while(inInt && !stop){
+          if(inInt->IsDefined()){
+             int s = inInt->GetValue();
+             if(algInstance->serverExists(s)){
+               count++;
+               startQuery(s);
+             }
+          }
+          inInt->DeleteIfAllowed();
+          inInt = stream.request();
+       }
+       if(inInt){
+          inInt->DeleteIfAllowed();
+       }
+       noInputs = count;
+       if(noInputs==noOutputs){
+           {  boost::unique_lock<boost::mutex> lock(resmtx);
+              resultList.push_back(0);
+           }
+           cond.notify_one();
+       }
+    }
+
+    void startQuery(int s){
+       boost::lock_guard<boost::mutex> guard(mapmtx);
+       if(connectors.find(s)==connectors.end()){
+          connectors[s] = new ConnectionTask<ListExpr>(s,this);
+       }
+       connectors[s]->addCommand(s,query);
+     }
+};
+
+
+
+/*
+1.8.3 Value Mapping
+
+*/
+template<class T>
+int pqueryVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s ){
+
+   PQueryInfo* li = (PQueryInfo*) local.addr;
+   switch(message){
+     case OPEN:{
+           if(li){
+               delete li;
+               local.addr = 0;
+           }
+           ListExpr tt = nl->Second(GetTupleResultType(s));
+           T* query = (T*) args[1].addr;
+           if(!query->IsDefined()){
+              return 0;
+           }
+           local.addr = new PQueryInfo(args[0], query->GetValue(), tt);
+           return 0;
+       }
+     case REQUEST:
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+     case CLOSE:
+            if(li){
+               delete li;
+               local.addr = 0;
+            }
+            return 0;
+   }
+   return -1;
+}
+
+/*
+1.8.4 Value Mapping and selection
+
+*/
+
+ValueMapping pqueryVM[] = {
+  pqueryVMT<CcString>,
+  pqueryVMT<FText>
+};
+
+int pquerySelect(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+/*
+1.8.5 Sepcification
+
+*/
+OperatorSpec pquerySpec(
+     " stream(int) x {text, string} x int -> stream(tuple(int, DATA))",
+     " _ pquery[_,_]  ",
+     " Performs the same query on a set of remote servers.  "
+     " The first argument is a stream of integer specifying the servers."
+     " The second argument is the query to execute. The result of this "
+     " query has to be in kind DATA. The third argument is a server number"
+     " for determining the exact result type of the query. The result is"
+     " a stream of tuples consisting of the server number and the result"
+     " of this server.",
+     " query intstream(0,3) pquery['query ten count', 0] sum[Result]");
+
+/*
+1.8.6
+
+Operator instance
+
+*/
+Operator pqueryOp (
+    "pquery",             //name
+     pquerySpec.getStr(),         //specification
+     2,
+     pqueryVM,        //value mapping
+     pquerySelect,   //trivial selection function
+     pqueryTM        //type mapping
+);
+
+
 
 /*
 2 Implementation of the Algebra
@@ -3285,6 +3690,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&getRequestFolderOp);
    AddOperator(&getSendFolderOp);
    AddOperator(&pconnectOp);
+   AddOperator(&pqueryOp);
+   pqueryOp.SetUsesArgsInTypeMapping();
 
 }
 

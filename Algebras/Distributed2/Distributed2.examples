@@ -90,6 +90,12 @@ Result   : bug
 Remark   : Requires a remote server
 
 
+Operator : pquery
+Number   : 1
+Signature: stream(int) x {string.text} x int -> stream(Tuple(ServerNo : int, Result : text))
+Example  : query intstream(0,3) pquery['query ten count', 0] consume
+Result   : bug
+Remark   : Requires a remote server
 
 
 
