@@ -45,6 +45,8 @@ RobustPlaneSweepAlgebra.
 
 #include "Algorithm/Hobby.h"
 
+#include "RobustOperators.h"
+
 namespace RobustPlaneSweep
 {
 /*
@@ -2381,19 +2383,9 @@ int SpatialMinusGeneric(Word* args,
 1.1 Union2
 
 */
-template<class T1, class T2, class TResult>
-int SpatialUnionGeneric(
-                        Word* args,
-                        Word& result,
-                        int message,
-                        Word& local,
-                        Supplier s)
-{
-  result = qp->ResultStorage(s);
-  T1* arg1 = static_cast<T1*>(args[0].addr);
-  T2* arg2 = static_cast<T2*>(args[1].addr);
-  TResult* res = static_cast<TResult*>(result.addr);
 
+template<class T1, class T2, class TResult>
+int robustUnionT(T1* arg1, T2*arg2, TResult* res){
   res->Clear();
   if (!arg1->IsDefined() || !arg2->IsDefined()) {
     res->SetDefined(false);
@@ -2444,7 +2436,35 @@ int SpatialUnionGeneric(
   }
 
   return 0;
+
 }
+
+
+
+
+template<class T1, class T2, class TResult>
+int SpatialUnionGeneric(
+                        Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s)
+{
+  result = qp->ResultStorage(s);
+  T1* arg1 = static_cast<T1*>(args[0].addr);
+  T2* arg2 = static_cast<T2*>(args[1].addr);
+  TResult* res = static_cast<TResult*>(result.addr);
+  return robustUnionT<T1,T2,TResult>(arg1,arg2,res);
+}
+
+void robustUnion(Region& arg1, Region& arg2, Region& result){
+  robustUnionT<Region,Region,Region>(&arg1,&arg2,&result);
+}
+
+void robustUnion(Line& arg1, Line& arg2, Line& result){
+  robustUnionT<Line,Line,Line>(&arg1,&arg2,&result);
+}
+
 
 /*
 
