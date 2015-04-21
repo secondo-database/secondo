@@ -6101,6 +6101,71 @@ Operator chars(
 
 
 /*
+5.16 Operators ~true~ and ~false~
+
+
+5.16.1 Type Mapping
+
+*/
+
+ListExpr true_falseTM(ListExpr args){
+  if(!nl->IsEmpty(args)){
+    return listutils::typeError("no arguments exspected");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+/*
+5.16.2 Value Mapping
+
+*/
+template<bool v>
+int true_falseVM (Word* args, Word& result, int message, 
+              Word& local, Supplier s ) {
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  res->Set(true,v);
+}
+
+/*
+5.16.3 Specification.
+
+*/
+OperatorSpec trueSpec(
+  "-> bool",
+  "true() ",
+  "Returns the constant TRUE ",
+  " query true()"
+);
+
+OperatorSpec falseSpec(
+  "-> bool",
+  "false() ",
+  "Returns the constant false ",
+  " query false()"
+);
+
+/*
+5.16.4 Operator instances
+
+*/
+Operator trueOp(
+   "true",
+   trueSpec.getStr(),
+   true_falseVM<true>,
+   Operator::SimpleSelect,
+   true_falseTM);
+
+Operator falseOp(
+   "false",
+   falseSpec.getStr(),
+   true_falseVM<false>,
+   Operator::SimpleSelect,
+   true_falseTM);
+
+
+
+/*
 6 Class ~CcAlgebra~
 
 The last steps in adding an algebra to the Secondo system are
@@ -6257,6 +6322,8 @@ class CcAlgebra1 : public Algebra
     AddOperator (&longint2int);
     AddOperator (&rat);
     AddOperator (&chars);
+    AddOperator (&trueOp);
+    AddOperator (&falseOp);
 
 #ifdef USE_PROGRESS
     ccopifthenelse.EnableProgress();

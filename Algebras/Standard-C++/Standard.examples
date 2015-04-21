@@ -730,3 +730,18 @@ Number : 1
 Signature : string -> stream(int)
 Example   : query chars("test") count
 Result    : 4 
+
+
+Operator : true
+Number : 1
+Signature : -> bool
+Example   : query true()
+Result    : TRUE
+
+
+Operator : false 
+Number : 1
+Signature : -> bool
+Example   : query false()
+Result    : FALSE
+

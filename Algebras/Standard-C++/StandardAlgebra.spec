@@ -110,4 +110,8 @@ operator binands alias BINANDS pattern _ op
 
 operator switch alias SWITCH pattern _ op[ _; _ ; _]
 
+operator true alias TRUE pattern  op()
+operator false alias FALSE  pattern op()
+
+
 
