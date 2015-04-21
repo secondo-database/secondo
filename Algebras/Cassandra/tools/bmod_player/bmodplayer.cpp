@@ -194,7 +194,6 @@ protected:
    Configuration *configuration;
    Statistics *statistics;
 
-
 private:
 };
 
@@ -449,9 +448,10 @@ class Consumer {
 public:
    
    Consumer(Configuration *myConfiguration, Statistics *myStatistics, 
-           vector<InputData*> *myQueue) 
+           QueueSync* myQueueSync, vector<InputData*> *myQueue) 
       : configuration(myConfiguration), statistics(myStatistics), 
-        queue(myQueue), socketfd(-1), ready(false) {
+        queueSync(myQueueSync), queue(myQueue), socketfd(-1), 
+        ready(false) {
       
    }
    
@@ -589,6 +589,7 @@ public:
 private:
    Configuration *configuration;
    Statistics *statistics;
+   QueueSync *queueSync;
    vector<InputData*> *queue;
    int socketfd;
    bool ready;
@@ -653,6 +654,30 @@ private:
 
 };
 
+class StatisticsDisplay {
+
+public:
+   
+   StatisticsDisplay(Statistics *myStatistics, Timer *myTimer) :
+                     statistics(myStatistics), timer(myTimer) {
+      
+   }
+   
+   void mainLoop() {
+      while(statistics->done == false) {
+         cout << "\r\033[2K" << "Sec: " << timer-> getDiff() / (1024 * 1024);
+         cout << " \033[1m Read:\033[0m " << statistics -> read;
+         cout << " \033[1m Send:\033[0m " << statistics -> send;
+         cout.flush();
+         usleep(1000 * 1000);
+      }
+   }
+   
+private:
+      Statistics *statistics;
+      Timer *timer;
+};
+
 void* startConsumerThreadInternal(void *ptr) {
   Consumer* consumer = (Consumer*) ptr;
   
@@ -681,6 +706,14 @@ void* startProducerThreadInternal(void *ptr) {
    return NULL;
 }
 
+void* startStatisticsThreadInternal(void *ptr) {
+   StatisticsDisplay* statistics = (StatisticsDisplay*) ptr;
+   
+   statistics -> mainLoop();
+   
+   return NULL;
+}
+
 int main(int argc, char *argv[]) {
    
    Configuration *configuration = new Configuration();
@@ -689,7 +722,7 @@ int main(int argc, char *argv[]) {
    Statistics *statistics = new Statistics(); 
    statistics->done = false;
    
-   Timer timer;
+   Timer *timer = new Timer();
    QueueSync queueSync;
    
    pthread_mutex_init(&queueSync.queueMutex, NULL);
@@ -697,33 +730,37 @@ int main(int argc, char *argv[]) {
    
    pthread_t readerThread;
    pthread_t writerThread;
+   pthread_t statisticsThread;
    
    parseParameter(argc, argv, configuration);
    
    vector<InputData*> inputData(QUEUE_ELEMENTS);
    
-   Consumer consumer(configuration, statistics, &inputData);
+   Consumer consumer(configuration, statistics, &queueSync, 
+                            &inputData);
+                  
    AdapiveProducer producer(configuration, statistics, 
                             &inputData, &queueSync);
+                            
+   StatisticsDisplay statisticsDisplay(statistics, timer);
 
    pthread_create(&readerThread, NULL, 
                   &startProducerThreadInternal, &producer);
 
    pthread_create(&writerThread, NULL, 
                   &startConsumerThreadInternal, &consumer);
-   
-   timer.start();
-   
-   while(statistics->done == false) {
-      cout << "\r\033[2K" << "Sec: " << timer.getDiff() / (1024 * 1024);
-      cout << " \033[1m Read:\033[0m " << statistics -> read;
-      cout << " \033[1m Send:\033[0m " << statistics -> send;
-      cout.flush();
-      usleep(1000 * 1000);
-   }
+
+   pthread_create(&statisticsThread, NULL, 
+                  &startStatisticsThreadInternal, 
+                  &statisticsDisplay);
+                  
+   timer->start();
    
    pthread_join(readerThread, NULL);
    pthread_join(writerThread, NULL);
+   
+   statistics->done = true;
+   pthread_join(statisticsThread, NULL);
    
    pthread_mutex_destroy(&queueSync.queueMutex);
    pthread_cond_destroy(&queueSync.queueCondition);
@@ -736,6 +773,11 @@ int main(int argc, char *argv[]) {
    if(configuration != NULL) {
       delete configuration;
       configuration = NULL;
+   }
+   
+   if(timer != NULL) {
+      delete timer;
+      timer = NULL;
    }
    
    while(! inputData.empty()) {
