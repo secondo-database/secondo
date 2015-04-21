@@ -6084,7 +6084,7 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
           cds = ci->getLocalNode();
           size_t slaveSize = ci->getSlaveSize();
 
-          totalBufferedTuples = new TupleQueue(maxBufferSize);
+          totalBufferedTuples = new TupleQueueHP(maxBufferSize);
           totalBufferedTupleInfo = new list<TupleFlobInfo>();
 
           maxSheetSize = maxBufferSize / slaveSize;
@@ -6270,10 +6270,10 @@ void FetchFlobLocalInfo::orderOneTuple1(Tuple* tuple, int sdsVec[])
   size_t key = getKey(sdsVec);
   if (tbList->find(key) == tbList->end()){
     tbList->insert(make_pair(key,
-        make_pair(new TupleQueue(perBufferSize),
+        make_pair(new TupleQueueHP(perBufferSize),
                   new vector<TupleFlobInfo>())));
   }
-  TupleQueue* tb = tbList->find(key)->second.first;
+  TupleQueueHP* tb = tbList->find(key)->second.first;
   vector<TupleFlobInfo>* tfis = tbList->find(key)->second.second;
 
   tb->AppendTuple(tuple);
@@ -6358,7 +6358,7 @@ having the Flobs from the same DSs.
             //wait until one tuple list fullfill the condition
           for (mit = tbList->begin(); mit != tbList->end();){
             // check list with key: mit->first
-            TupleQueueIterator* tIt = mit->second.first->MakeScan();
+            TupleQueueHPIterator* tIt = mit->second.first->MakeScan();
             vector<TupleFlobInfo>::iterator infoIt;
             bool listPrepared = true;
             for ( infoIt = mit->second.second->begin();
@@ -6480,7 +6480,7 @@ having the Flobs from the same DSs.
       tbList->erase(curKey);
       tbfIt = 0;
 
-      //Clean up the NativeFlob Cache for the current TupleQueue
+      //Clean up the NativeFlob Cache for the current TupleQueueHP
       for (map<pair<int, int>, FlobSheet*>::iterator uit = ruSheets.begin();
           uit != ruSheets.end(); uit++){
         FlobSheet* s = uit->second;

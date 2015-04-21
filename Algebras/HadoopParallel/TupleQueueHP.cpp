@@ -20,25 +20,25 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-[1] Definition of TupleQueue
+[1] Definition of TupleQueueHP
 
 February 2014 Jiamin Lu
 
 [newpage]
 
-1 TupleQueue
+1 TupleQueueHP
 
 */
 
-#include "TupleQueue.h"
+#include "TupleQueueHP.h"
 #include "Counter.h"
 
-TupleQueue::TupleQueue(const size_t maxMemorySize):
+TupleQueueHP::TupleQueueHP(const size_t maxMemorySize):
   MAX_MEMORY_SIZE(maxMemorySize),
   diskBuffer(0), inMemory(true), totalMemSize(0), transportedTuples(0)
 {}
 
-TupleQueue::~TupleQueue(){
+TupleQueueHP::~TupleQueueHP(){
   if (inMemory){
     for(TupleList::iterator it = memoryBuffer.begin();
         it != memoryBuffer.end(); it++){
@@ -56,7 +56,7 @@ TupleQueue::~TupleQueue(){
   }
 }
 
-void TupleQueue::AppendTuple(Tuple* t)
+void TupleQueueHP::AppendTuple(Tuple* t)
 {
   if (inMemory)
   {
@@ -78,7 +78,7 @@ void TupleQueue::AppendTuple(Tuple* t)
   diskBuffer->AppendTupleNoLOBs(t);
 }
 
-Tuple* TupleQueue::PopTuple(bool& bulkLoaded){
+Tuple* TupleQueueHP::PopTuple(bool& bulkLoaded){
   if (memoryBuffer.empty()){
     if (!inMemory){
       if (!bulkLoadQueue()){
@@ -99,7 +99,7 @@ Tuple* TupleQueue::PopTuple(bool& bulkLoaded){
 }
 
 
-size_t TupleQueue::GetNoTuples() const {
+size_t TupleQueueHP::GetNoTuples() const {
   if (inMemory){
     return memoryBuffer.size();
   }
@@ -109,7 +109,7 @@ size_t TupleQueue::GetNoTuples() const {
   }
 }
 
-bool TupleQueue::bulkLoadQueue(){
+bool TupleQueueHP::bulkLoadQueue(){
   assert(!inMemory);
   assert(totalMemSize == 0);
 
@@ -140,7 +140,7 @@ bool TupleQueue::bulkLoadQueue(){
   return true;
 }
 
-Tuple* TupleQueue::getMemoryCachedTuple(size_t i)
+Tuple* TupleQueueHP::getMemoryCachedTuple(size_t i)
 {
   assert(i < memoryBuffer.size());
   size_t count = 0;
@@ -151,11 +151,11 @@ Tuple* TupleQueue::getMemoryCachedTuple(size_t i)
   return *it;
 }
 
-TupleQueueIterator::TupleQueueIterator(TupleQueue& q):
+TupleQueueHPIterator::TupleQueueHPIterator(TupleQueueHP& q):
   queue(q), diskIterator(0), currentTuple(0)
 {}
 
-Tuple* TupleQueueIterator::GetNextTuple()
+Tuple* TupleQueueHPIterator::GetNextTuple()
 {
   Tuple* result;
   if (currentTuple < queue.memoryBuffer.size()){
@@ -172,7 +172,7 @@ Tuple* TupleQueueIterator::GetNextTuple()
   return result;
 }
 
-void TupleQueue::IncFlobReference(const Flob& flob)
+void TupleQueueHP::IncFlobReference(const Flob& flob)
 {
   assert(flob.getMode() == 1);
   SmiRecordId recId = flob.getRecordId();
@@ -184,7 +184,7 @@ void TupleQueue::IncFlobReference(const Flob& flob)
   }
 }
 
-bool TupleQueue::deleteIfAllowed(const Flob& flob)
+bool TupleQueueHP::deleteIfAllowed(const Flob& flob)
 {
   if (flob.getMode() == 1)
   {
@@ -200,7 +200,7 @@ bool TupleQueue::deleteIfAllowed(const Flob& flob)
   return true;
 }
 
-void TupleQueue::cleanDiskBuffer()
+void TupleQueueHP::cleanDiskBuffer()
 {
   if (transportedTuples)
   {

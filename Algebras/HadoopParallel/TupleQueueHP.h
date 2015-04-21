@@ -28,15 +28,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[>] [$>$]
 //[INSET] [$\in$]
 
-[1] Definition of TupleQueue
+[1] Definition of TupleQueueHP
 
 February 2014 Jiamin Lu
 
 [newpage]
 
-1 TupleQueue
+1 TupleQueueHP
 
-The ~TupleQueue~ is designed as a replacement for the ~TupleBuffer~ structure.
+The ~TupleQueueHP~ is designed as a replacement for the ~TupleBuffer~ structure.
 Tuples in the ~TupleBuffer~ cannot be released until the whole query finishes.
 This is because when the tuple is cached, it is pinned and it may be used in
 several ~tupleBuffer~s.
@@ -54,7 +54,7 @@ replacement for the ~TupleBuffer~.
 It is a FIFO structure, when a tuple is returned then its Flob is also released.
 It holds a STL vector, named ~mtq~ (memory tuple queue), for the tuples as the memory buffer,
 and the overflowed tuples are inserted into a temporal relation structure.
-When a tuple is cached into TupleQueue, it makes a copy and the origianl one is deleted,
+When a tuple is cached into TupleQueueHP, it makes a copy and the origianl one is deleted,
 in order to avoid pining the tuple and the Flob.
 
 It does not support random access, all tuples are read from the top of the structure,
@@ -67,37 +67,37 @@ a stl list is used to take place of the queue structure for the ~mtq~
 
 */
 
-#ifndef TUPLEQUEUE_H_
-#define TUPLEQUEUE_H_
+#ifndef TUPLEQUEUEHP_H_
+#define TUPLEQUEUEHP_H_
 
 #include "RelationAlgebra.h"
 #include <list>
 
 typedef list<Tuple*> TupleList;
 
-class TupleQueue;
+class TupleQueueHP;
 
-class TupleQueueIterator
+class TupleQueueHPIterator
 {
 public:
-  TupleQueueIterator(TupleQueue& queue);
+  TupleQueueHPIterator(TupleQueueHP& queue);
 
   Tuple* GetNextTuple();
 
 private:
 
-  TupleQueue& queue;
+  TupleQueueHP& queue;
   GenericRelationIterator* diskIterator;
   size_t currentTuple;
 };
 
 
-class TupleQueue
+class TupleQueueHP
 {
 public:
 
-  TupleQueue( size_t mamMemmorySize = 16 * 1024 * 1024);
-  ~TupleQueue();
+  TupleQueueHP( size_t mamMemmorySize = 16 * 1024 * 1024);
+  ~TupleQueueHP();
 
   void AppendTuple(Tuple *t);
   Tuple* PopTuple(bool& bulkLoaded);
@@ -108,11 +108,11 @@ public:
 
   void IncFlobReference(const Flob& flob);
 
-  inline TupleQueueIterator* MakeScan(){
-    return new TupleQueueIterator(*this);
+  inline TupleQueueHPIterator* MakeScan(){
+    return new TupleQueueHPIterator(*this);
   }
 
-  friend class TupleQueueIterator;
+  friend class TupleQueueHPIterator;
 private:
 
   const size_t MAX_MEMORY_SIZE;

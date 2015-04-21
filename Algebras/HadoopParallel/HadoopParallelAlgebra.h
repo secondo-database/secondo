@@ -52,7 +52,7 @@ And includes one method:
 #include <winsock2.h>
 #endif
 #include <sys/socket.h>
-#include "TupleQueue.h"
+#include "TupleQueueHP.h"
 
 #include "FileSystem.h"
 #include "Profiles.h"
@@ -1240,7 +1240,7 @@ public:
   }
 
 private:
-  typedef pair<TupleQueue*, vector<TupleFlobInfo>*> tupleListT;
+  typedef pair<TupleQueueHP*, vector<TupleFlobInfo>*> tupleListT;
 
   Tuple* setResultTuple(Tuple* tuple);
 /*
@@ -1260,7 +1260,7 @@ and their Flob data as soon as possible.
 
 */
   map<size_t, tupleListT>* tbList;
-  TupleQueue* tbfIt;                      //current tuple queue
+  TupleQueueHP* tbfIt;                      //current tuple queue
   vector<TupleFlobInfo>::iterator tifIt;  //tuple info iterator
   size_t curKey;
   Tuple* getTupleFromBuffer1();
@@ -1268,8 +1268,9 @@ and their Flob data as soon as possible.
 
   map<pair<int, int>, FlobSheet*> ruSheets; //recently used sheets
 
-  //Use one large TupleQueue to increase the possibility of reusing cached Flob
-  TupleQueue* totalBufferedTuples;
+  //Use one large TupleQueueHP to increase the possibility of 
+  // reusing cached Flob
+  TupleQueueHP* totalBufferedTuples;
   list<TupleFlobInfo>* totalBufferedTupleInfo;
   Tuple* getTupleFromBuffer();
   void orderOneTuple(Tuple* tuple);
