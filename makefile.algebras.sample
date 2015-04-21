@@ -265,11 +265,14 @@ ALGEBRAS      += NestedRelationAlgebra
 ## uncomment the next line if you use mac os
 ##ALGEBRA_LINK_FLAGS += -framework CoreServices
 
+
 #ALGEBRA_DIRS += Distributed2
 #ALGEBRAS += Distributed2Algebra
-#ALGEBRA_DEPS += boost_system boost_thread
-#CCFLAGS += -pthread
-
+#ALGEBRA_DEPS += boost_thread boost_system
+#DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
+#CCFLAGS += -pthread -DTHREAD_SAFE
+#LDFLAGS += -lboost_thread -lboost_system
+#EXEFLAGS += -lboost_thread -lboost_system
 
 
 
