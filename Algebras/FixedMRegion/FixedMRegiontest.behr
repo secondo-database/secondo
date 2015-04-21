@@ -7,7 +7,13 @@ using namespace std;
 #include "Secondo_Include.h"
 #include <vector>
 #include "../Spatial/RegionTools.h"
+<<<<<<< FixedMRegiontest.cpp
 #include "TestTraversed.h"
+=======
+
+#include "RobustOperators.h"
+
+>>>>>>> 1.7
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
@@ -322,8 +328,7 @@ void testQuatro(){
   //printf("%s\n", (checkRegionPoints(res, expected, 3))?"OK":"FAILED");
 
   Region *v1= new Region(0);
-  //t1->Union(*t2, *v1);
-  RobustPlaneSweep::robustUnion(*t1,*t2,*v1);
+  t1->Union(*t2, *v1);
   delete p1;
   delete p2;
   delete p3;
@@ -349,8 +354,7 @@ void testQuatro(){
   //printf("%s\n", (checkRegionPoints(res, expected, 3))?"OK":"FAILED");
 
   Region * v2= new Region(0);
-  //t3->Union(*t4, *v2);
-  RobustPlaneSweep::robustUnion(*t3,*t4,*v2);  
+  t3->Union(*t4, *v2);
   delete p7;
   delete p8;
   delete p5;
@@ -363,8 +367,8 @@ void testQuatro(){
   printf("Flächeninhalt zweites kleines Viereck: %f\n", m2);
   
   Region * res = new Region(0);
-  //v1->Union(*v2, *res);
-  RobustPlaneSweep::robustUnion(*v1,*v2,*res);  
+  v1->Union(*v2, *res);
+  
   printf("Test testQuatro12: \n");
   double m3=res->Area();
   printf("Flächeninhalt großes Viereck: %f\n", m3);
@@ -445,7 +449,7 @@ void testUnion(){
   Region *t4= new Region(*p6, *p7, *p8);
   Region * v2= new Region(0);
   //t3->Union(*t4, *v2);
-  RobustPlaneSweep::robustUnion(*t3,*t4,*v2);
+  RobustPlaneSweep::robustUnion(*t3,*t3,*v2);
   delete p7;
   delete p8;
   delete p5;

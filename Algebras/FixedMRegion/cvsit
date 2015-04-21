@@ -1,0 +1,5 @@
+#!/bin/bash
+for a in *.{h,cpp,examples,spec} makefile runit; do 
+    cvs add $a
+done
+cvs -z5 commit

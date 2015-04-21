@@ -1,6 +1,6 @@
 /*
 
-This file includes secndo files.
+This file includes secondo files.
 
 */
 #ifndef __SECONDO_INCLUDE_H
@@ -16,6 +16,8 @@ This file includes secndo files.
 #include "NestedList.h"
 #include "Algebra.h"
 #include "TemporalAlgebra.h"
+#include "RegionTools.h"
 //#include "DateTime.h"
+#include "RobustOperators.h"
 
 #endif
