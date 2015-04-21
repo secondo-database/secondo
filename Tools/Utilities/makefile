@@ -25,7 +25,7 @@
 
 include ../../makefile.env
 
-CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
+#CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
 ifeq ($(platform),android)
 CCFLAGS += -DSECONDO_ANDROID 
 endif
