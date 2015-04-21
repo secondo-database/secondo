@@ -388,11 +388,10 @@ A session without a control tty can only have background jobs.
     {
       sigset_t sigs;
       sigset_t oldsigs;
-      int rc;
       sigemptyset( &sigs );
       sigaddset( &sigs, SIGTTOU );
       sigprocmask( SIG_BLOCK, &sigs, &oldsigs );
-      rc = tcsetpgrp( ctty, pgrp );
+      tcsetpgrp( ctty, pgrp );
       sigprocmask( SIG_SETMASK, &oldsigs, NULL );
     }
     if (instance->processDirectory.length() > 0 )
@@ -406,6 +405,7 @@ A session without a control tty can only have background jobs.
   // -- parent process
   delete []argv;
   delete[] argsbuf;
+  free(spath);
   
   if ( pid < 0 )
   {

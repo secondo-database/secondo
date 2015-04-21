@@ -49,6 +49,12 @@ July 2004 M. Spiekermann, Implementation of showActiveFlags.
 #include "Counter.h"
 #include "CharTransform.h"
 
+#ifdef THREAD_SAFE
+#include <boost/thread.hpp>
+#endif
+
+
+
 using namespace std;
 
 /*
@@ -62,55 +68,104 @@ StopWatch::StopWatch()
   start();
 }
 
+StopWatch::StopWatch(const StopWatch& src):
+#ifdef SECONDO_WIN32
+    startReal(src.startReal),
+    stopReal(src.stopReal),
+    cstartCPU(src.cstartCPU),
+    cstopCPU(src.cstopCPU)
+#else
+    startReal(src.startReal),
+    stopReal(src.stopReal),
+    startCPU(src.startCPU),
+    stopCPU(src.stopCPU)
+#endif 
+    {}
+
+
+StopWatch& StopWatch::operator=(const StopWatch& src){
+#ifdef SECONDO_WIN32
+    startReal = src.startReal;
+    stopReal = src.stopReal;
+    cstartCPU = src.cstartCPU;
+    cstopCPU = src.cstopCPU;
+#else
+    startReal = src.startReal;
+    stopReal = src.stopReal;
+    startCPU = src.startCPU;
+    stopCPU = src.stopCPU;
+#endif 
+  return *this;
+}
+
+StopWatch::~StopWatch(){
+}
+
+
+
+
+
 
 void
 StopWatch::start() {
 
+
+#ifdef THREAD_SAFE
+boost::lock_guard<boost::mutex> guard(mtx);
+#endif
+
 #ifndef SECONDO_WIN32
   gettimeofday(&startReal, 0);
-  //cout << startReal.tv_sec << endl;
-#else
-  time(&startReal);
-#endif
-
-#ifdef SECONDO_WIN32
-  cstartCPU=clock();
-  cstopCPU=cstartCPU;
-#else
   times(&startCPU);
   stopCPU=startCPU;
+#else
+  time(&startReal);
+  cstartCPU=clock();
+  cstopCPU=cstartCPU;
 #endif
-
 }
 
 
 const double
 StopWatch::diffSecondsReal() {
 
+#ifdef THREAD_SAFE
+boost::lock_guard<boost::mutex> guard(mtx);;
+#endif
+double result = 0;
+
 #ifndef SECONDO_WIN32
   gettimeofday(&stopReal, 0);
-  //cout << stopReal.tv_sec << endl;
   double diffSec = (stopReal.tv_sec - startReal.tv_sec)*1.0;
   diffSec += (stopReal.tv_usec - startReal.tv_usec)*1.0 / 1000000;
-  return diffSec;
+  result =  diffSec;
 #else
   time(&stopReal);
-  return difftime(stopReal, startReal);
+  result = difftime(stopReal, startReal);
 #endif
+
+return result;
+
 }
 
 
 const double
 StopWatch::diffSecondsCPU() {
+
+#ifdef THREAD_SAFE
+boost::lock_guard<boost::mutex> guard(mtx);;
+#endif
+
 #ifdef SECONDO_WIN32
       cstopCPU = clock();
-      return ((double) (cstopCPU - cstartCPU)) / CLOCKS_PER_SEC;
+      double res =  ((double) (cstopCPU - cstartCPU)) / CLOCKS_PER_SEC;
 #else
-     times(&stopCPU);
+    times(&stopCPU);
     double click = (double)sysconf(_SC_CLK_TCK);
-    return (double)((stopCPU.tms_utime-startCPU.tms_utime)/click +
+    double res = (double)((stopCPU.tms_utime-startCPU.tms_utime)/click +
                     (stopCPU.tms_stime-startCPU.tms_stime)/click);
 #endif
+    return res;
 }
 
 
@@ -118,9 +173,9 @@ const string
 StopWatch::minutesAndSeconds(const double seconds) {
 
   char sbuf[20+1];
-  double frac = 0, sec = 0, min = 0;
+  double sec = 0, min = 0;
 
-  frac = modf(seconds/60, &min);
+  modf(seconds/60, &min);
   sec = seconds - (60 * min);
   sprintf(&sbuf[0], "%.0f:%02.0f", min, sec);
 
@@ -130,7 +185,6 @@ StopWatch::minutesAndSeconds(const double seconds) {
 
 const string
 StopWatch::timeStr(const time_t& inTime /* = 0*/) {
-
   char sbuf[20+1];
 
   time_t usedTime = 0;
@@ -142,7 +196,6 @@ StopWatch::timeStr(const time_t& inTime /* = 0*/) {
 
   const tm *ltime = localtime(&usedTime);
   strftime(&sbuf[0], 20, "%H:%M:%S", ltime);
-
   return string((const char*) sbuf);
 }
 
@@ -447,7 +500,6 @@ string translate(const string& s,  const string& from, const string& to)
     {
       p1 = end;
     }
-    //cout << p1 << endl;
   }
   return result;
 }
@@ -463,7 +515,6 @@ string hexStr(const string& s)
   {
     res << hex << static_cast<int>( s[p] ) << " ";
     p++;
-    //cout << p << endl;
   }
   return res.str();
 }
@@ -668,7 +719,6 @@ string trim(const string& s, const string& ext/*=""*/)
 
 bool expandVarRef(string& s)
 {
-  //cout << "Input: \"" << s << "\"" << endl;
   size_t pos1 = s.find('$');
   size_t pos2 = s.find(')', pos1);
   if ( (s.size() > pos1+1) && (s[pos1+1] == '(') && (pos2 != string::npos) )
@@ -680,9 +730,6 @@ bool expandVarRef(string& s)
       val = "";
 
     s.replace(pos1, pos2-pos1+1, val);
-    //cout << "Variable: " << var << endl;
-    //cout << "Value   : " <<  val << endl;
-    //cout << "Result  : " <<  s << endl;
     return expandVarRef(s);
   }
   return true;

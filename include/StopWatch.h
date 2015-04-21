@@ -46,6 +46,12 @@ An instance could be used as a clock to measure time differences.
 
 #include "SecondoConfig.h"
 
+
+#ifdef THREAD_SAFE
+#include <boost/thread.hpp>
+#endif
+
+
 using namespace std;
 
 class StopWatch {
@@ -53,7 +59,9 @@ class StopWatch {
 
   public:
     StopWatch();
-    ~StopWatch() {};
+    StopWatch(const StopWatch& src);
+    StopWatch& operator=(const StopWatch& src);
+    ~StopWatch();
 
     // Reset the start time. Differences are computed with respect to this time
     void start();
@@ -78,56 +86,24 @@ class StopWatch {
 
   private:
 
-/*
-On windows we have no timeval struct and no gettineofday function. But these could
-be later defined in Winunix.h and implemented via the ~QueryPerformanceCounter~ function
-declared in winbase.h. Code example from
-
-----
-http://www.decompile.com/html/windows_timer_api.html
-
-  LARGE_INTEGER ticksPerSecond;
-  LARGE_INTEGER tick;   // A point in time
-  LARGE_INTEGER time;   // For converting tick into real time
-
-  // get the high resolution counter's accuracy
-  QueryPerformanceFrequency(&ticksPerSecond);
-
-  // what time is it?
-  QueryPerformanceCounter(&tick);
-
-  // convert the tick number into the number of seconds
-  // since the system was started...
-  time.QuadPart = tick.QuadPart/ticksPerSecond.QuadPart;
-
-  //get the number of hours
-  int hours = time.QuadPart/3600;
-
-  //get the number of minutes
-  time.QuadPart = time.QuadPart - (hours * 3600);
-  int minutes = time.QuadPart/60;
-
-  //get the number of seconds
-  int seconds = time.QuadPart - (minutes * 60);
-----
-
-*/
-
 #ifdef SECONDO_WIN32
     time_t startReal;
     time_t stopReal;
-#else
-    timeval startReal;
-    timeval stopReal;
-#endif
-
-#ifdef SECONDO_WIN32
     clock_t cstartCPU;
     clock_t cstopCPU;
 #else
-      struct tms startCPU;
-      struct tms stopCPU;
+    timeval startReal;
+    timeval stopReal;
+    struct tms startCPU;
+    struct tms stopCPU;
 #endif
+
+#ifdef THREAD_SAFE
+boost::mutex mtx;
+#endif
+
+
+
 };
 
 #endif

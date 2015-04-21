@@ -38,7 +38,17 @@ April 2007, M. Spiekermann. Some code moved from LogMsg.h into this file
 #include "Messages.h"
 #include "StopWatch.h"
 
+
+#ifdef THREAD_SAFE
+#include <boost/thread.hpp>
+#endif
+
+
 using namespace std;
+
+
+
+
 
 ostream* traceOS = &cerr;
 
@@ -195,6 +205,10 @@ Implementation of Class ProgMesHandler
 bool
 ProgMesHandler::handleMsg(NestedList* nl, ListExpr list)
 {
+  #ifdef THREAD_SAFE
+  boost::lock_guard<boost::mutex> guard(mtx);
+  #endif
+
   if(!nl->HasMinLength(list,2)){
      return false;
   }
@@ -238,6 +252,10 @@ ProgMesHandler::handleMsg(NestedList* nl, ListExpr list)
   }
 
 
+  if(!s) {
+    s = new StopWatch(); 
+  }
+
   // end of progress messages
   if(TotalValue <= 0){
       cout << endl << "feddisch!" << endl << endl;
@@ -248,7 +266,6 @@ ProgMesHandler::handleMsg(NestedList* nl, ListExpr list)
 
   // normal progress messages
   
-
   rt = s->diffSecondsReal();
   if(ActValue > TotalValue){
      ActValue = TotalValue;

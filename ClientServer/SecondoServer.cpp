@@ -96,7 +96,12 @@ class SecondoServer : public Application
   SecondoServer( const int argc, const char** argv ) : 
      Application( argc, argv ) 
   {};
-  virtual ~SecondoServer() {};
+  virtual ~SecondoServer() {
+      if(si) delete si;
+      if(csp) delete csp;
+      if(client) delete client;
+     // the nö pointer is free'd  during destruction of si
+  };
   int Execute();
   void CallSecondo();
   void CallNumericType();
@@ -1023,6 +1028,7 @@ SecondoServer::Execute()
       delete client;
       //os << "LOGOUT " << user << " " << GetOwnProcessId();
       //messenger.Send( os.str(), answer );
+      client = 0;
     } else {
        iosock << "<SecondoError>" << endl
               << "Initialization failed (username, password correct?)" << endl
@@ -1034,6 +1040,7 @@ SecondoServer::Execute()
 
   si->Terminate();
   delete si;
+  si = 0;
   return (rc);
 }
 

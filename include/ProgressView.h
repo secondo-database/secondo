@@ -46,7 +46,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef PROGRESSVIEW_H
 #define PROGRESSVIEW_H
 
-#include "StopWatch.h"
 #include "NList.h"
 #include "Messages.h"          // msg->Send(msgList)
 #include "Profiles.h"          // SmiProfile::GetParameter

@@ -178,8 +178,13 @@ SecondoListener::Execute()
     LogMessage( "Failed to create global socket: " + errbuf );
     rc = EXIT_LISTENER_NOSOCKET;
   }
-  gate->Close();
-  delete gate;
+  if(client){
+      delete client;
+  }
+  if(gate){
+     gate->Close();
+     delete gate;
+  }
   ProcessFactory::ShutDown();
   return (rc);
 }

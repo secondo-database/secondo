@@ -66,6 +66,11 @@ command instead of hard coded application name SecondoTTYBDB
 
 #include "Messages.h"
 MessageCenter* MessageCenter::msg = 0;
+#ifdef THREAD_SAFE
+ boost::mutex MessageCenter::mtx; 
+#endif
+
+
 
 Application* 
 Application::appPointer = 0;

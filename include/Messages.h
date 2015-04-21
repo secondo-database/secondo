@@ -37,6 +37,12 @@ Feb. 2007, M. Spiekermann: Class Listener and MessageHandler introduced
 #include "LogMsg.h"
 #include "StopWatch.h"
 
+#ifdef THREAD_SAFE
+#include <boost/thread.hpp>
+#endif
+
+
+
 
 /*
 1 Class ~MessageHandler~
@@ -53,6 +59,12 @@ class MessageHandler {
   virtual void Flush() {} 
   MessageHandler() {}
   virtual ~MessageHandler() {}
+
+protected:
+#ifdef THREAD_SAFE
+boost::mutex mtx;
+#endif
+
   
 }; 
 
@@ -75,6 +87,10 @@ class SimpleHandler : public MessageHandler {
 
   public:
   virtual bool handleMsg(NestedList* nl, ListExpr list){
+     #ifdef THREAD_SAFE
+     boost::lock_guard<boost::mutex> guard(mtx);
+     #endif
+
      if(!nl->HasMinLength(list,2)){
        return false;
      }
@@ -108,6 +124,7 @@ class ProgMesHandler : public MessageHandler
   ~ProgMesHandler(){
      if(s){
        delete s;
+       s = 0;
      }
   }
 
@@ -139,13 +156,21 @@ class MessageCenter {
  // is private. ~GetInstance~ will call it if necessary.
  MessageCenter() {} 
  static MessageCenter* msg;
+ #ifdef THREAD_SAFE
+ static boost::mutex mtx;
+ #endif
+
  
  public:
  
   static MessageCenter* GetInstance() { 
-   if (!msg)
-     msg = new MessageCenter();
-   return msg;
+    #ifdef THREAD_SAFE
+    boost::lock_guard<boost::mutex> guard(mtx); 
+    #endif
+    if (!msg){
+       msg = new MessageCenter();
+    }
+    return msg;
   }
  
   ~MessageCenter() 
@@ -157,6 +182,10 @@ class MessageCenter {
   
   void CallHandler(NestedList* nl, ListExpr message) 
   {
+    #ifdef THREAD_SAFE
+    boost::lock_guard<boost::mutex> guard(mtx); 
+    #endif
+     
      HandlerList::const_iterator it = msgHandler.begin();
      for(; it != msgHandler.end(); it++) {
         (*it)->handleMsg(nl, message);
@@ -166,6 +195,9 @@ class MessageCenter {
 
   void Flush() 
   {
+    #ifdef THREAD_SAFE
+    boost::lock_guard<boost::mutex> guard(mtx); 
+    #endif
      HandlerList::const_iterator it = msgHandler.begin();
      for(; it != msgHandler.end(); it++) {
         (*it)->Flush();
