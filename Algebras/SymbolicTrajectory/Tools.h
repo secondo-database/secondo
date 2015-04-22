@@ -82,6 +82,7 @@ Started July 2014, Fabio Vald\'{e}s
   static int getKey(const string& type);
   static string getDataType(const int key);
   static DataType getDataType(const string& type);
+  static DataType getDataType(TupleType *ttype, const int attrno);
   static bool isSymbolicType(ListExpr typeList);
   static string extractVar(const string& input);
   static string extendDate(string input, const bool start);
@@ -96,10 +97,11 @@ Started July 2014, Fabio Vald\'{e}s
                        SetRel &setrel);
   static bool parseBoolorObj(const string& input, int &pos, int &endpos,
                              pair<Word, ValueType> &valuepair);
-  static bool checkAttrType(TupleType *ttype, const string& typeName, 
-                            ValueType vtype);
+  static bool checkAttrType(const string& typeName, ValueType vtype);
   static bool isRelevantAttr(const string& name);
-  static vector<pair<int, string> > getRelevantAttrs(TupleType *ttype);
+  static vector<pair<int, string> > getRelevantAttrs(TupleType *ttype, 
+                                      const int majorAttrNo, int& majorValueNo);
+  static void deleteValue(pair<Word, ValueType>& valuepair);
   static bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
   // static Word evaluate(string input);

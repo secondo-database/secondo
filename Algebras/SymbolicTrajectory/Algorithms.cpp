@@ -254,8 +254,9 @@ attribute number refers to the master attribute, whose type has to be a symbolic
 trajectory.
 
 */
-bool Pattern::isCompatible(TupleType *ttype, const int majorAttrNo) {
-  vector<pair<int, string> > relevantAttrs = Tools::getRelevantAttrs(ttype);
+bool Pattern::isCompatible(TupleType *ttype, const int majorAttrNo,
+                 vector<pair<int, string> >& relevantAttrs, int& majorValueNo) {
+  relevantAttrs = Tools::getRelevantAttrs(ttype, majorAttrNo, majorValueNo);
   cout << "attrs: ";
   for (unsigned int i = 0; i < relevantAttrs.size(); i++) {
     cout << "(" << relevantAttrs[i].first << ": " << relevantAttrs[i].second 
@@ -272,7 +273,7 @@ bool Pattern::isCompatible(TupleType *ttype, const int majorAttrNo) {
       }
       for (unsigned int j = 0; j < values.size(); j++) {
         for (unsigned int k = 0; k < values[j].first.size(); k++) {
-          if (!Tools::checkAttrType(ttype, relevantAttrs[j].second,
+          if (!Tools::checkAttrType(relevantAttrs[j].second,
                                     values[j].first[k].second)) {
             cout << "wrong type (atom " << i << ", specification " << j 
                  << ", value " << k << ")" << endl;
@@ -300,12 +301,10 @@ Pattern* Pattern::getPattern(string input, bool classify, Tuple *tuple) {
 }
 
 bool Pattern::containsFinalState(set<int> &states) {
-  for (set<int>::iterator i = states.begin(); i != states.end(); i++) {
-    if (finalStates.count(*i)) {
-      return true;
-    }
-  }
-  return false;
+  set<int> result;
+  set_intersection(states.begin(), states.end(), finalStates.begin(),
+                   finalStates.end(), std::inserter(result, result.begin()));
+  return !result.empty();
 }
 
 bool Pattern::parseNFA() {
@@ -341,67 +340,20 @@ the pattern.
 
 */
 ExtBool Pattern::tmatches(Tuple *tuple, const int attrno) {
-//   vector<pair<vector<pair<Word, ValueType> >, SetRel> > values = 
-//                                                         elems[1].getValues();
-//   for (unsigned int i = 0; i < values.size(); i++) {
-//     for (unsigned int j = 0; j < values[i].first.size(); j++) {
-//       switch (values[i].first[j].second) {
-//         case POINT: {
-//           Point *pt = (Point*)values[i].first[j].first.addr;
-//           pt->Print(cout); cout << endl;
-//           pt->DeleteIfAllowed();
-//           break;
-//         }
-//         case POINTS: {
-//           Points *pts = (Points*)values[i].first[j].first.addr;
-//           pts->Print(cout); cout << endl;
-//           pts->DeleteIfAllowed();
-//           break;
-//         }
-//         case REGION: {
-//           Region *reg = (Region*)values[i].first[j].first.addr;
-//           reg->Print(cout); cout << endl;
-//           reg->DeleteIfAllowed();
-//           break;
-//         }
-//         case INTERVAL: {
-//           Interval<double> *iv =
-//                             (Interval<double>*)values[i].first[j].first.addr;
-//           cout << (iv->lc ? "[" : "(") << iv->start << ", " << iv->end
-//               << (iv->rc ? "]" : ")") << endl;
-//           delete iv;
-//           break;
-//         }
-//         case BOOL: {
-//           CcBool *ccbool = (CcBool*)values[i].first[j].first.addr;
-//           cout << (ccbool->GetValue() ? "TRUE" : "FALSE") << endl;
-//           ccbool->DeleteIfAllowed();
-//           break;
-//         }
-//         case LABEL: {
-//           Label *label = (Label*)values[i].first[j].first.addr;
-//           cout << label->GetValue() << endl;
-//           label->DeleteIfAllowed();
-//           break;
-//         }
-//         case PLACE: {
-//           cout << "place" << endl;
-//           break;
-//         }
-//         default: {
-//           cout << "ERROR" << endl;
-//           break;
-//         }
-//       }
-//     }
-//   }
-  ExtBool result = UNDEF;
-  if (!isCompatible(tuple->GetTupleType(), attrno)) {
-    return result;
+  vector<pair<int, string> > relevantAttrs;
+  int majorValueNo = -1;
+  if (!isCompatible(tuple->GetTupleType(), attrno, relevantAttrs, 
+                    majorValueNo)) {
+    return UNDEF;
   }
-  
-  
-  return TRUE;
+  if (!initEasyCondOpTrees()) {
+    return UNDEF;
+  }
+  if (isNFAempty()) {
+    return UNDEF;
+  }
+  TMatch tmatch(this, tuple, attrno, relevantAttrs, majorValueNo);
+  return tmatch.matches();
 }
 
 string Condition::getType(int t) {
@@ -676,7 +628,229 @@ void Pattern::deleteEasyCondOpTrees() {
 }
 
 /*
-\subsection{Destructor for class ~ClassifyLI~}
+\section{Functions for class ~TMatch~}
+
+\subsection{Function ~matches~}
+
+*/
+ExtBool TMatch::matches() {
+  set<int> states;
+  states.insert(0); // initial state
+  if (!p->hasConds() && !p->hasAssigns()) {
+    for (int i = 0; i < GetNoMainComponents(); i++) {
+      if (!performTransitions(i, states)) {
+        return FALSE;
+      }
+    }
+    if (p->containsFinalState(states)) {
+      return TRUE;
+    }
+    else {
+      return FALSE;
+    }
+  }
+  
+  
+  
+  return TRUE;
+}
+
+/*
+\subsection{Function ~GetNoMainComponents~}
+
+*/
+int TMatch::GetNoMainComponents() {
+  switch (type) {
+    case MLABEL: {
+      return ((MLabel*)t->GetAttribute(attrno))->GetNoComponents();
+    }
+    case MLABELS: {
+      return ((MLabels*)t->GetAttribute(attrno))->GetNoComponents();
+    }
+    case MPLACE: {
+      return ((MPlace*)t->GetAttribute(attrno))->GetNoComponents();
+    }
+    case MPLACES: {
+      return ((MPlaces*)t->GetAttribute(attrno))->GetNoComponents();
+    }
+    default: { // cannot occur
+      return -1;
+    }
+  }  
+}
+
+/*
+\subsection{Function ~GetInterval~}
+
+*/
+void TMatch::GetInterval(const int u, SecInterval& iv) {
+  switch (type) {
+    case MLABEL: {
+      ((MLabel*)t->GetAttribute(attrno))->GetInterval(u, iv);
+    }
+    case MLABELS: {
+      ((MLabels*)t->GetAttribute(attrno))->GetInterval(u, iv);
+    }
+    case MPLACE: {
+      ((MPlace*)t->GetAttribute(attrno))->GetInterval(u, iv);
+    }
+    case MPLACES: {
+      ((MPlaces*)t->GetAttribute(attrno))->GetInterval(u, iv);
+    }
+  }
+}
+
+/*
+\subsection{Function ~labelMatch~}
+
+*/
+bool TMatch::labelsMatch(const set<string>& tlabels, const int atom, 
+                         const int pos) {
+  set<string> plabels, plabelsTemp;
+  pair<vector<pair<Word, ValueType> >, SetRel> values =
+                                                     p->elems[atom].values[pos];
+  string plabel;
+  for (unsigned int i = 0; i < values.first.size(); i++) {
+    if (values.first[i].second == LABEL) {
+      ((Label*)values.first[i].first.addr)->GetValue(plabel);
+      plabels.insert(plabel);
+      cout << "Label " << plabel << " inserted" << endl;
+    }
+    else if (values.first[i].second == LABELS) {
+      ((Labels*)values.first[i].first.addr)->GetValues(plabelsTemp);
+      plabels.insert(plabelsTemp.begin(), plabelsTemp.end());
+      cout << plabelsTemp.size() << " labels inserted" << endl;
+    }
+    else {
+      cout << "ERROR: type is " << values.first[i].second << endl;
+    }
+  }
+  return Tools::relationHolds<string>(tlabels, plabels, values.second);
+}
+
+/*
+\subsection{Function ~labelsMatch~}
+
+*/
+bool TMatch::placesMatch(const set<pair<string, unsigned int> >& tplaces, 
+                         const int atom, const int pos) {
+  set<pair<string, unsigned int> > pplaces, pplacesTemp;
+  pair<vector<pair<Word, ValueType> >, SetRel> values =
+                                                     p->elems[atom].values[pos];
+  pair<string, unsigned int> pplace;
+  for (unsigned int i = 0; i < values.first.size(); i++) {
+    if (values.first[i].second == PLACE) {
+      ((Place*)values.first[i].first.addr)->GetValue(pplace);
+      pplaces.insert(pplace);
+      cout << "Place (" << pplace.first << ", " << pplace.second 
+           << ") inserted" << endl;
+    }
+    else if (values.first[i].second == PLACES) {
+      ((Places*)values.first[i].first.addr)->GetValues(pplacesTemp);
+      pplaces.insert(pplacesTemp.begin(), pplacesTemp.end());
+      cout << pplacesTemp.size() << " places inserted" << endl;
+    }
+    else {
+      cout << "ERROR: type is " << values.first[i].second << endl;
+    }
+  }
+  return Tools::relationHolds<pair<string, unsigned int> >(tplaces, pplaces, 
+                                                           values.second);
+}
+
+/*
+\subsection{Function ~mainValuesMatch~}
+
+*/
+bool TMatch::mainValuesMatch(const int u, const int atom) {
+  switch (type) {
+    case MLABEL: {
+      set<string> labels;
+      string label;
+      ((MLabel*)t->GetAttribute(attrno))->GetValue(u, label);
+      labels.insert(label);
+      return labelsMatch(labels, atom, valueno);
+    }
+    case MLABELS: {
+      set<string> labels;
+      ((MLabels*)t->GetAttribute(attrno))->GetValues(u, labels);
+      return labelsMatch(labels, atom, valueno);
+    }
+    case MPLACE: {
+      set<pair<string, unsigned int> > places;
+      pair<string, unsigned int> place;
+      ((MPlace*)t->GetAttribute(attrno))->GetValue(u, place);
+      places.insert(place);
+      return placesMatch(places, atom, valueno);
+    }
+    case MPLACES: {
+      set<pair<string, unsigned int> > places;
+      ((MPlaces*)t->GetAttribute(attrno))->GetValues(u, places);
+      return placesMatch(places, atom, valueno);
+    }
+    default: { // cannot occur
+      return false;
+    }
+  }
+}
+
+/*
+\subsection{Function ~valuesMatch~}
+
+*/
+bool TMatch::valuesMatch(const int u, const int atom) {
+  if (!mainValuesMatch(u, atom)) {
+    return false;
+  }
+  
+  
+//   SecInterval iv;
+//   GetInterval(u, iv);
+
+  return true;
+}
+
+/*
+\subsection{Function ~performTransitions~}
+
+*/
+bool TMatch::performTransitions(const int u, set<int>& states) {
+  map<int, int> transitions;
+  for (set<int>::iterator it = states.begin(); it != states.end(); it++) {
+    map<int, int> trans = p->nfa[*it]; // collect possible transitions
+    transitions.insert(trans.begin(), trans.end());
+  }
+  if (transitions.empty()) { // no possible transition available
+    return false;
+  }
+  states.clear();
+  map<int, int>::iterator it;
+  set<string> ivs;
+  SecInterval iv;
+  GetInterval(u, iv);
+  if (p->hasConds() || p->hasAssigns()) {
+    
+  }
+  else {
+    for (it = transitions.begin(); it != transitions.end(); it++) {
+      if (p->elems[it->first].getW() != NO) {
+        states.insert(states.end(), it->second);
+      }
+      else {
+        p->elems[it->first].getI(ivs);
+        if (Tools::timesMatch(iv, ivs) && valuesMatch(u, it->first)) {
+          states.insert(states.end(), it->second);
+        }
+      }
+    }
+  }
+  return !states.empty();
+}
+
+/*
+\section{Functions for class ~ClassifyLI~} 
+
+\subsection{Destructor}
 
 */
 ClassifyLI::~ClassifyLI() {
@@ -1284,6 +1458,26 @@ void Pattern::deleteAssignOpTrees(bool deleteConds) {
   if (deleteConds) {
     for (unsigned int i = 0; i < conds.size(); i++) {
       conds[i].deleteOpTree();
+    }
+  }
+}
+
+/*
+\subsection{Function ~deleteAtomValues~}
+
+*/
+void Pattern::deleteAtomValues() {
+  PatElem elem;
+  for (int i = 0; i < getSize(); i++) {
+    getElem(i, elem);
+    elem.deleteValues();
+  }
+}
+
+void PatElem::deleteValues() {
+  for (unsigned int i = 0; i < values.size(); i++) {
+    for (unsigned int j = 0; j < values[i].first.size(); j++) {
+      Tools::deleteValue(values[i].first[j]);
     }
   }
 }

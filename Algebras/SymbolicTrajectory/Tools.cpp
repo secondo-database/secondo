@@ -411,6 +411,13 @@ DataType Tools::getDataType(const string& type) {
   return MPLACES;
 }
 
+DataType Tools::getDataType(TupleType *ttype, const int attrno) {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  AttributeType attrType = ttype->GetAttributeType(attrno);
+  string typeName = sc->GetTypeName(attrType.algId, attrType.typeId);
+  return getDataType(typeName);
+}
+
 bool Tools::isSymbolicType(ListExpr type) {
   return ((nl->ToString(type) == "mlabel") || (nl->ToString(type) == "mlabels")
      || (nl->ToString(type) == "mplace") || (nl->ToString(type) ==  "mplaces"));
@@ -849,8 +856,7 @@ bool Tools::parseBoolorObj(const string& input, int &pos, int &endpos,
 \subsection{Function ~checkAttrType~}
 
 */
-bool Tools::checkAttrType(TupleType *ttype, const string& typeName,
-                          ValueType vtype) {
+bool Tools::checkAttrType(const string& typeName, ValueType vtype) {
   if (typeName == "mlabel" || typeName == "mlabels") {
     return vtype == LABEL || vtype == LABELS;
   }
@@ -892,17 +898,90 @@ bool Tools::isRelevantAttr(const string& name) {
 \subsection{Function ~getRelevantAttrs~}
 
 */
-vector<pair<int, string> > Tools::getRelevantAttrs(TupleType *ttype) {
+vector<pair<int, string> > Tools::getRelevantAttrs(TupleType *ttype,
+                                     const int majorAttrNo, int& majorValueNo) {
   vector<pair<int, string> > result;
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   for (int i = 0; i < ttype->GetNoAttributes(); i++) {
     AttributeType attrType = ttype->GetAttributeType(i);
     string typeName = sc->GetTypeName(attrType.algId, attrType.typeId);
+    if (i == majorAttrNo) {
+      majorValueNo = result.size();
+      cout << "majorValueNo = " << majorValueNo << endl;
+    }
     if (isRelevantAttr(typeName)) {
       result.push_back(make_pair(i, typeName));
     }
   }
   return result;
+}
+
+/*
+\subsection{Function ~deleteValue~}
+
+*/
+void Tools::deleteValue(pair<Word, ValueType>& valuepair) {
+  switch (valuepair.second) {
+    case LABEL: {
+      Label *label = (Label*)valuepair.first.addr;
+      label->DeleteIfAllowed();
+      break;
+    }
+    case LABELS: {
+      Labels *labels = (Labels*)valuepair.first.addr;
+      labels->DeleteIfAllowed();
+      break;
+    }
+    case PLACE: {
+      Place *place = (Place*)valuepair.first.addr;
+      place->DeleteIfAllowed();
+      break;
+    }
+    case PLACES: {
+      Places *places = (Places*)valuepair.first.addr;
+      places->DeleteIfAllowed();
+      break;
+    }
+    case POINT: {
+      Point *pt = (Point*)valuepair.first.addr;
+      pt->DeleteIfAllowed();
+      break;
+    }
+    case POINTS: {
+      Points *pts = (Points*)valuepair.first.addr;
+      pts->DeleteIfAllowed();
+      break;
+    }
+    case LINE: {
+      Line *line = (Line*)valuepair.first.addr;
+      line->DeleteIfAllowed();
+      break;
+    }
+    case RECT: {
+      Rectangle<2> *rect = (Rectangle<2>*)valuepair.first.addr;
+      rect->DeleteIfAllowed();
+      break;
+    }
+    case REGION: {
+      Region *reg = (Region*)valuepair.first.addr;
+      reg->DeleteIfAllowed();
+      break;
+    }
+    case INTERVAL: {
+      Interval<double> *iv = (Interval<double>*)valuepair.first.addr;
+      delete iv;
+      break;
+    }
+    case BOOL: {
+      CcBool *ccbool = (CcBool*)valuepair.first.addr;
+      ccbool->DeleteIfAllowed();
+      break;
+    }
+    default: { // cannot occur
+      cout << "ERROR" << endl;
+      break;
+    }
+  }
 }
 
 /*

@@ -2708,7 +2708,6 @@ int tmatchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
       else if (result == FALSE) {
         res->Set(true, false);  
       }
-      delete p;
     }
     else {
       cout << "invalid pattern" << endl;

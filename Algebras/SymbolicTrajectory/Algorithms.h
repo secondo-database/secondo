@@ -441,6 +441,7 @@ class Condition {
 };
 
 class PatElem {
+  friend class TMatch;
  private:
   string var;
   set<string> ivs;
@@ -467,6 +468,7 @@ class PatElem {
     ivs = elem.ivs;
     lbs = elem.lbs; 
     pls = elem.pls;
+    values = elem.values;
     wc = elem.wc; 
     setRel = elem.setRel;
     ok = elem.ok;
@@ -496,6 +498,7 @@ class PatElem {
   bool     extractValues(string &input, Tuple *tuple);
   vector<pair<vector<pair<Word, ValueType> >, SetRel> > getValues() const 
                                                           {return values;}
+  void     deleteValues();
 };
 
 class Assign {
@@ -570,7 +573,8 @@ class Assign {
   void    setTreesOk(bool value)             {treesOk = value;}
 };
 
-class Pattern {  
+class Pattern {
+  friend class TMatch;  
  public:
   Pattern() {}
 
@@ -580,11 +584,13 @@ class Pattern {
     deleteEasyCondOpTrees();
     deleteCondOpTrees();
     deleteAssignOpTrees();
+    deleteAtomValues();
   }
 
   string GetText() const;
   bool isValid(const string& type) const;
-  bool isCompatible(TupleType *ttype, const int majorAttrNo);
+  bool isCompatible(TupleType *ttype, const int majorAttrNo, 
+                  vector<pair<int, string> >& relevantAttrs, int& majorValueNo);
   static Pattern* getPattern(string input, bool classify, 
                              Tuple *tuple = 0);
   template<class M>
@@ -605,6 +611,7 @@ class Pattern {
   bool initEasyCondOpTrees();
   void deleteCondOpTrees();
   void deleteEasyCondOpTrees();
+  void deleteAtomValues();
 
   vector<PatElem>   getElems()              {return elems;}
   vector<Condition>* getConds()             {return &conds;}
@@ -787,6 +794,41 @@ struct BindingElem {
     
   string var;
   unsigned int from, to;
+};
+
+class TMatch {
+ public:
+  Pattern *p;
+  Tuple *t;
+  set<int>** matching;
+  int attrno, valueno;
+  DataType type;
+  vector<pair<int, string> > relevantAttrs;
+  
+  TMatch(Pattern *pat, Tuple *tuple, const int _attrno, 
+         vector<pair<int, string> >& relevantAttrs, const int _valueno) {
+    p = pat;
+    t = tuple;
+    attrno = _attrno;
+    valueno = _valueno;
+    matching = 0;
+    type = Tools::getDataType(t->GetTupleType(), attrno);
+    relevantAttrs = relevantAttrs;
+  }
+  
+  ~TMatch() {
+    delete p;
+  }
+  
+  ExtBool matches();
+  int GetNoMainComponents();
+  void GetInterval(const int u, SecInterval& iv);
+  bool labelsMatch(const set<string>& tlabels, const int atom, const int pos);
+  bool placesMatch(const set<pair<string, unsigned int> >& tlabels, 
+                   const int atom, const int pos);
+  bool mainValuesMatch(const int u, const int atom);
+  bool valuesMatch(const int u, const int atom);
+  bool performTransitions(const int u, set<int>& states);
 };
 
 template<class M>
