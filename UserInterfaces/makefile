@@ -162,7 +162,7 @@ $(APP_LIB): $(COMMON_OBJECTS) $(BDB_OBJECTS)
 
 # SecondoBDB, the stand alone application.
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT):  $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS) $(TTY_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) $(LIBXML2) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) $(LIBXML2) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
 
 
 # The TTY-Clients, they use special implementations of SecondoInterface and don't
@@ -170,7 +170,7 @@ $(BINDIR)/Secondo$(SMIUP)$(EXEEXT):  $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS
 # 
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
 $(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PLCS_OBJECTS) $(FLOB)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
 
 
 ifneq ($(MAKECMDGOALS),clean)
