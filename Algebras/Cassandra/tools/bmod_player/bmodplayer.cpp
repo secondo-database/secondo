@@ -736,19 +736,21 @@ int main(int argc, char *argv[]) {
    
    vector<InputData*> inputData(QUEUE_ELEMENTS);
    
-   Consumer consumer(configuration, statistics, &queueSync, 
+   Consumer *consumer = 
+      new Consumer(configuration, statistics, &queueSync, 
                             &inputData);
                   
-   AdapiveProducer producer(configuration, statistics, 
+   AdapiveProducer *producer = 
+      new AdapiveProducer(configuration, statistics, 
                             &inputData, &queueSync);
                             
    StatisticsDisplay statisticsDisplay(statistics, timer);
 
    pthread_create(&readerThread, NULL, 
-                  &startProducerThreadInternal, &producer);
+                  &startProducerThreadInternal, producer);
 
    pthread_create(&writerThread, NULL, 
-                  &startConsumerThreadInternal, &consumer);
+                  &startConsumerThreadInternal, consumer);
 
    pthread_create(&statisticsThread, NULL, 
                   &startStatisticsThreadInternal, 
@@ -764,6 +766,16 @@ int main(int argc, char *argv[]) {
    
    pthread_mutex_destroy(&queueSync.queueMutex);
    pthread_cond_destroy(&queueSync.queueCondition);
+   
+   if(consumer != NULL) {
+      delete consumer;
+      consumer = NULL;
+   }
+   
+   if(producer != NULL) {
+      delete producer;
+      producer = NULL;
+   }
 
    if(statistics != NULL) {
       delete statistics;
