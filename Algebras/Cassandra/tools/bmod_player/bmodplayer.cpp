@@ -477,19 +477,18 @@ void parseParameter(int argc, char *argv[], Configuration *configuration) {
 
 */
 
-class Consumer {  
+class AbstractConsumer {  
    
 public:
    
-   Consumer(Configuration *myConfiguration, Statistics *myStatistics, 
-           vector<InputData*> *myQueue, QueueSync* myQueueSync) 
-      : configuration(myConfiguration), statistics(myStatistics), 
-        queueSync(myQueueSync), queue(myQueue), socketfd(-1), 
+   AbstractConsumer(Configuration *myConfiguration, Statistics *myStatistics, 
+           QueueSync* myQueueSync) : configuration(myConfiguration), 
+           statistics(myStatistics), queueSync(myQueueSync), socketfd(-1), 
         ready(false) {
       
    }
    
-   virtual ~Consumer() {
+   virtual ~AbstractConsumer() {
       closeSocket();
    }
    
@@ -571,13 +570,42 @@ public:
       return false;
    }
    
+   virtual void dataConsumer() = 0;
+   
+
+protected:
+   Configuration *configuration;
+   Statistics *statistics;
+   QueueSync *queueSync;
+   int socketfd;
+   bool ready;
+   
+private:
+};
+
+
+/*
+5.0 FixedConsumer class
+
+*/
+class AdaptiveConsumer : public AbstractConsumer {
+
+public:
+   
+   AdaptiveConsumer(Configuration *myConfiguration, Statistics *myStatistics, 
+           vector<InputData*> *myQueue, QueueSync* myQueueSync) 
+      : AbstractConsumer(myConfiguration, myStatistics, myQueueSync), 
+      queue(myQueue) {
+      
+   }
+   
    InputData* getQueueElement() {
       InputData *element = queue->back();
       queue -> pop_back();
       return element;
    }
    
-   void dataConsumer() {
+   virtual void dataConsumer() {
       char dateBuffer[80];
       string buffer;
       stringstream ss;
@@ -620,74 +648,86 @@ public:
       cout << "Consumer Done" << endl;
    }  
    
+protected:
+      vector<InputData*> *queue;
+      
 private:
-   Configuration *configuration;
-   Statistics *statistics;
-   QueueSync *queueSync;
-   vector<InputData*> *queue;
-   int socketfd;
-   bool ready;
 };
 
 /*
-4.0 - Simulator 
+5.0 AdaptiveConsumer class
 
 */
-class Simulator {
-
+class FixedConsumer : public AbstractConsumer {
 public:
-
-   Simulator(Configuration *myConfiguration) 
-     : configuration(myConfiguration) {
-
-   }
-
-   virtual ~Simulator() {
+   FixedConsumer(Configuration *myConfiguration, Statistics *myStatistics, 
+           vector<Position*> *myQueue, QueueSync* myQueueSync) 
+      : AbstractConsumer(myConfiguration, myStatistics, myQueueSync), 
+      queue(myQueue) {
+      
    }
    
-   virtual bool simulate() = 0;
+   Position* getQueueElement() {
+      Position *element = queue->back();
+      queue -> pop_back();
+      return element;
+   }
+   
+   virtual void dataConsumer() {
+      char dateBuffer[80];
+      string buffer;
+      stringstream ss;
+      
+      Position *element = getQueueElement();
+   
+      while(element != NULL) {
+         if(ready) {
+            ss.str("");
+             
+            strftime(dateBuffer,80,"%d-%m-%Y %I:%M:%S",&element->time);
 
+            ss << dateBuffer << DELIMITER;            
+            ss << element->moid << DELIMITER;
+            ss << element->tripid << DELIMITER;
+            ss << element->x << DELIMITER;
+            ss << element->y << "\n";
+            
+            buffer.clear();
+            buffer = ss.str();
+            
+            bool res = sendData(buffer);
+
+            if(res == true) {
+               statistics->send++;
+            } else {
+               cerr << "Error occurred while calling write on socket" << endl;
+            }
+
+         } else {
+            cerr << "Socket not ready, ignoring line" << endl;
+         }
+         
+         delete element;
+         
+         element = getQueueElement();     
+      }
+      
+      statistics -> done = true;
+      cout << "Consumer Done" << endl;
+   }  
+   
+   
+protected:
+   vector<Position*> *queue;
+   
 private:
-   Configuration *configuration;
+
 };
 
 /*
-5.0 - Fixed Simulator 
+5.0 Statistics class
 
 */
-class FixedSimulator : public Simulator {
-   
-public:
-   
-   bool simulate() {
-      return false;
-   }
-   
-private:
-
-};
-
-/*
-6.0 - Adaptive Simulator 
-
-*/
-class AdaptiveSimulator : public Simulator {
-   
-public:
-   
-   AdaptiveSimulator(Configuration *myConfiguration) 
-     : Simulator(myConfiguration) {
-        
-   }
-   
-   bool simulate() {
-      return false;
-   }
-   
-private:
-
-};
-
 class StatisticsDisplay {
 
 public:
@@ -713,7 +753,7 @@ private:
 };
 
 void* startConsumerThreadInternal(void *ptr) {
-  Consumer* consumer = (Consumer*) ptr;
+  AbstractConsumer* consumer = (AbstractConsumer*) ptr;
   
   bool res = consumer->openSocket();
   
@@ -768,18 +808,21 @@ int main(int argc, char *argv[]) {
    
    parseParameter(argc, argv, configuration);
    
-   Consumer *consumer;
+   AbstractConsumer *consumer;
    AbstractProducer *producer;
    if(configuration->simulationmode == SIMULATION_MODE_FIXED) {
        vector<InputData*> *inputData = new vector<InputData*>(QUEUE_ELEMENTS);
    
-       consumer = new Consumer(configuration, statistics, 
+       consumer = new AdaptiveConsumer(configuration, statistics, 
                                inputData, &queueSync);
                   
        producer = new AdapiveProducer(configuration, statistics, 
                                inputData, &queueSync);
    } else if(configuration->simulationmode == SIMULATION_MODE_FIXED) {
       vector<Position*> *inputData = new vector<Position*>(QUEUE_ELEMENTS);
+      
+      consumer = new FixedConsumer(configuration, statistics, 
+                              inputData, &queueSync);
       
       producer = new FixedProducer(configuration, statistics, 
                               inputData, &queueSync);
