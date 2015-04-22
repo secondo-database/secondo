@@ -211,6 +211,23 @@ public:
         data(myData) {
       
    }
+   
+   virtual ~FixedProducer() {
+      if(data != NULL) {
+         while(! data -> empty()) {
+            Position *entry = data->back();
+            data -> pop_back();
+      
+            if(entry != NULL) {
+               delete entry;
+               entry = NULL;
+            }
+         }
+         
+         delete data;
+         data = NULL;
+      }
+   }
 
    virtual bool handleCSVLine(vector<std::string> &lineData) {
    
@@ -303,6 +320,23 @@ public:
         AbstractProducer(myConfiguration, myStatistics, myQueueSync), 
         data(myData) {
       
+   }
+   
+   virtual ~AdapiveProducer() {
+      if(data != NULL) {
+         while(! data -> empty()) {
+            InputData *entry = data->back();
+            data -> pop_back();
+      
+            if(entry != NULL) {
+               delete entry;
+               entry = NULL;
+            }
+         }
+         
+         delete data;
+         data = NULL;
+      }
    }
 
    virtual bool handleCSVLine(vector<std::string> &lineData) {
@@ -448,7 +482,7 @@ class Consumer {
 public:
    
    Consumer(Configuration *myConfiguration, Statistics *myStatistics, 
-           QueueSync* myQueueSync, vector<InputData*> *myQueue) 
+           vector<InputData*> *myQueue, QueueSync* myQueueSync) 
       : configuration(myConfiguration), statistics(myStatistics), 
         queueSync(myQueueSync), queue(myQueue), socketfd(-1), 
         ready(false) {
@@ -734,15 +768,26 @@ int main(int argc, char *argv[]) {
    
    parseParameter(argc, argv, configuration);
    
-   vector<InputData*> inputData(QUEUE_ELEMENTS);
+   Consumer *consumer;
+   AbstractProducer *producer;
+   if(configuration->simulationmode == SIMULATION_MODE_FIXED) {
+       vector<InputData*> *inputData = new vector<InputData*>(QUEUE_ELEMENTS);
    
-   Consumer *consumer = 
-      new Consumer(configuration, statistics, &queueSync, 
-                            &inputData);
+       consumer = new Consumer(configuration, statistics, 
+                               inputData, &queueSync);
                   
-   AdapiveProducer *producer = 
-      new AdapiveProducer(configuration, statistics, 
-                            &inputData, &queueSync);
+       producer = new AdapiveProducer(configuration, statistics, 
+                               inputData, &queueSync);
+   } else if(configuration->simulationmode == SIMULATION_MODE_FIXED) {
+      vector<Position*> *inputData = new vector<Position*>(QUEUE_ELEMENTS);
+      
+      producer = new FixedProducer(configuration, statistics, 
+                              inputData, &queueSync);
+   } else {
+      cerr << "Unknown simulation mode" << endl;
+      exit(EXIT_FAILURE);
+   }
+
                             
    StatisticsDisplay statisticsDisplay(statistics, timer);
 
@@ -790,16 +835,6 @@ int main(int argc, char *argv[]) {
    if(timer != NULL) {
       delete timer;
       timer = NULL;
-   }
-   
-   while(! inputData.empty()) {
-      InputData *entry = inputData.back();
-      inputData.pop_back();
-      
-      if(entry != NULL) {
-         delete entry;
-         entry = NULL;
-      }
    }
    
    return EXIT_SUCCESS;
