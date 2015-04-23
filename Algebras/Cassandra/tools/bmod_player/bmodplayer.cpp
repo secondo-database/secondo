@@ -600,9 +600,24 @@ public:
    }
    
    InputData* getQueueElement() {
+      pthread_mutex_lock(&queueSync->queueMutex);
+      
+      // Queue empty
+      if(queue -> size() == 0) {
+         pthread_cond_wait(&queueSync->queueCondition, 
+                           &queueSync->queueMutex);
+      }
+      
+      // Queue full
+      if(queue->size() >= QUEUE_ELEMENTS) {
+         pthread_cond_broadcast(&queueSync->queueCondition);
+      }
+      
       InputData *element = queue->back();
       queue -> pop_back();
       return element;
+      
+      pthread_mutex_unlock(&queueSync->queueMutex);
    }
    
    virtual void dataConsumer() {
@@ -668,9 +683,24 @@ public:
    }
    
    Position* getQueueElement() {
+      pthread_mutex_lock(&queueSync->queueMutex);
+      
+      // Queue empty
+      if(queue -> size() == 0) {
+         pthread_cond_wait(&queueSync->queueCondition, 
+                           &queueSync->queueMutex);
+      }
+      
+      // Queue full
+      if(queue->size() >= QUEUE_ELEMENTS) {
+         pthread_cond_broadcast(&queueSync->queueCondition);
+      }
+      
       Position *element = queue->back();
       queue -> pop_back();
       return element;
+      
+      pthread_mutex_unlock(&queueSync->queueMutex);
    }
    
    virtual void dataConsumer() {
