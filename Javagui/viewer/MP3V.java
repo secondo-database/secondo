@@ -441,9 +441,9 @@ public class MP3V extends SecondoViewer
 	add(
 	    newJToolBarJPanel(new Component[] {
 		PauseButton = newJButton("play",
-					 "MP3Images/play2_72.gif"),
-		PlayButton = newJButton ("stop",
-					 "MP3Images/stop2_72.gif")
+					 "res/play2.png"),
+		 PlayButton = newJButton ("stop",
+					 "res/stop2.png")
 	    }),
 	    BorderLayout.NORTH
 	    );
