@@ -19,5 +19,6 @@ This file includes secondo files.
 #include "RegionTools.h"
 //#include "DateTime.h"
 #include "RobustOperators.h"
+#include "AlmostEqual.h"
 
 #endif

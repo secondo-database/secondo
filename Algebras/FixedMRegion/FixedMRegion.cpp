@@ -4,7 +4,8 @@ This class is a FixedMRegion.
 */
 using namespace std;
 #include "FixedMRegion.h"
-
+//#define DEBUG_VERBOSE
+//#define DEBUG_VERBOSE2
 /*
 This is the default constructor. Do not use.
 
@@ -217,7 +218,12 @@ int FixedMRegion::getTraversedCase(const Point  & p1, const Point & p2,
   double y3=p3.GetY();  
   double x4=p4.GetX();
   double y4=p4.GetY();  
-  
+  #ifdef DEBUG_VERBOSE
+  printf("gettraversedcase P1: (%f, %f), P2: (%f, %f), 
+           P3: (%f, %f), P4: (%f, %f), ",
+           x1, y1, x2, y2, x3, y3, x4, y4);
+  //printf("Case: %d\n", casetype);
+#endif
   double a, b, c, d, e, f, D, Dx, Dy;
   double t, s;
 
@@ -231,16 +237,50 @@ int FixedMRegion::getTraversedCase(const Point  & p1, const Point & p2,
 
   D=b*f-c*e;
 
-  if (D==0) {
+  if (AlmostEqual(D, 0.0)) {
     //Fallunterscheidung Geraden parallel oder aufeinander:
-    double t=(x3-x1)/(x2-x1); //Problem wenn x1=x2
-    if (y3==y1+(y2-y1)*t) {
+    if (AlmostEqual(x1,x2)) {
+      if (AlmostEqual(x3,x1)) {
+         return -2;
+      } else {
+        return -1;
+      }
+    }
+    double t=(x3-x1)/(x2-x1);
+    if (AlmostEqual(y3,y1+(y2-y1)*t)) {
       //Geraden liegen aufeinander
       return -2;
     } else {
-      //Geraden liegen parallel
+     //Geraden liegen parallel
       return -1;
     }
+/*
+    if(x1!=x2){
+      double t=(x3-x1)/(x2-x1); 
+      if (y3==y1+(y2-y1)*t) {
+          return -2;
+      }
+    }
+    if(y1!=y2){
+      double t=(y3-y1)/(y2-y1); 
+      if (x3==x1+(x2-x1)*t) {
+          return -2;
+      }
+    }
+    if(y3!=y4){
+      double t=(y1-y4)/(y4-y3); 
+      if (x1==x4+(x4-x3)*t) {
+          return -2;
+      }
+    }
+    if(x3!=x4){
+      double t=(x1-x4)/(x4-x3); 
+      if (y1==y4+(y4-y3)*t) {
+          return -2;
+      }
+    }
+    return -1;
+*/
   }
 
   Dx=a*f-c*d;
@@ -252,22 +292,23 @@ int FixedMRegion::getTraversedCase(const Point  & p1, const Point & p2,
 //Strecke2: (x3, y3), (x4, y4)
   int cc=0; // Schnitt außerhalb
   //Fallunterscheidung nach (x1, y1), (x2, y2)
-  if (t==0) 
-    cc=1; //Schnitt auf (x1, y1)
-  if (t==1)
-    cc=2; //Schnitt auf (x2, y2)
   if ((t>0) && (t<1)) 
     cc=3; //Schnitt zwischen (x1, y1) und (x2, y2)
-
+  if (AlmostEqual(t, 0))
+    cc=1; //Schnitt auf (x1, y1)
+  if (AlmostEqual(t, 1))
+    cc=2; //Schnitt auf (x2, y2)
   //Fallunterscheidung nach (x3, y3), (x4, y4)
-  if (s==0) 
-    cc+=4; //Schnitt auf (x3, y3)
-  if (s==1)
-    cc+=8; // Schnitt auf (x4, y4)
   if ((s>0) && (s<1))
     cc+=12; //Schnitt zwischen (x3, y3) und (x4, y4)
+  if (AlmostEqual(s, 0)) 
+    cc+=4; //Schnitt auf (x3, y3)
+  if (AlmostEqual(s, 1))
+    cc+=8; // Schnitt auf (x4, y4)
 
+#ifdef DEBUG_VERBOSE
   printf("Schnittpunkt: %3.2f, %3.2f\n", x1+(x2-x1)*t, y1+(y2-y1)*t);
+#endif
 
   return cc;
 }
@@ -330,47 +371,61 @@ vector<vector<Point> > FixedMRegion::getTraversedArea(
   Point p2=hsold.GetSecPoint();
   Point p3=hsnew.GetDomPoint();
   Point p4=hsnew.GetSecPoint();
+    vector<Point> v;
   int casetype = getTraversedCase(p1, p2, p3, p4);
+#ifdef DEBUG_VERBOSE2
+  printf("P1: (%f, %f), P2: (%f, %f), P3: (%f, %f), P4: (%f, %f), ",
+           p1.GetX(), p1.GetY(),
+           p2.GetX(), p2.GetY(),
+           p3.GetX(), p3.GetY(),
+           p4.GetX(), p4.GetY());
+  printf("Case: %d\n", casetype);
+#endif
   switch (casetype) {
-  case -2://Strecken sind parallel
+  case -1://Strecken sind parallel
     //1
   case 0://Schnittpunkt liegt außerhalb beider Strecken
     //2
-  case 1://Schnittpunkt liegt auf P1 und außerhalb Strecke2
-    //3
-  case 2://Schnittpunkt liegt auf P2 und außerhalb Strecke2
-    //8
   case 3://Schnittpunkt liegt innerhalb Strecke1 und außerhalb Strecke2
     //16
-  case 4://Schnittpunkt liegt außerhalb Strecke1 und auf P3
-    //12
-  case 8://Schnittpunkt liegt außerhalb Strecke1 und auf P4
-    //14
-  case 11://Schnittpunkt liegt innerhalb Strecke1 und auf P4
-    //17
   case 12://Schnittpunkt liegt außerhalb Strecke1 und innerhalb Strecke2
     //13
-  case 13://Schnittpunkt liegt auf P1 und innerhalb Strecke2
-    //5
-  case 14://Schnittpunkt liegt auf P2 und innerhalb Strecke2
-    //11
-    res = traversedCalculateQuadrangle(p1, p2, p3, p4); 
+    res = traversedCalculateQuadrangle(p1, p2, p4, p3); 
     break;
-  case 7://Schnittpunkt liegt innerhalb Strecke1 und auf P3
-    //15
+
   case 15://Schnittpunkt liegt innerhalb Strecke1 und innerhalb Strecke2
     //6
     res = traversedCalculateTwoTriangles(p1, p2, p3, p4);
     break;
-  case -1://Strecken liegen auf der selben Geraden
+  case -2://Strecken liegen auf der selben Geraden
     //Entartung
+    break;
+  case 2://Schnittpunkt liegt auf P2 und außerhalb Strecke2
+    //8
+    res = traversedCalculateTriangle(p1, p2, p3);
+    break;
+  case 1://Schnittpunkt liegt auf P1 und außerhalb Strecke2
+    //3
+    res = traversedCalculateTriangle(p1, p2, p4);
+    break;  
+  case 4://Schnittpunkt liegt außerhalb Strecke1 und auf P3
+    //12
+    res = traversedCalculateTriangle(p2, p3, p4);
     break;
   case 5://Schnittpunkt liegt auf P1 und auf P3
     //4
     res = traversedCalculateTriangle(p1, p2, p4);
     break;
+  case 8://Schnittpunkt liegt außerhalb Strecke1 und auf P4
+    //14
+    res = traversedCalculateTriangle(p1, p3, p4);
+    break;
   case 6://Schnittpunkt liegt auf P2 und auf P3
     //9
+    res = traversedCalculateTriangle(p1, p2, p4);
+    break;
+  case 7://Schnittpunkt liegt innerhalb Strecke1 und auf P3
+    //15
     res = traversedCalculateTriangle(p1, p2, p4);
     break;
   case 9://Schnittpunkt liegt auf P1 und auf P4
@@ -381,6 +436,19 @@ vector<vector<Point> > FixedMRegion::getTraversedArea(
     //10
     res = traversedCalculateTriangle(p1, p2, p3);
     break;
+  case 11://Schnittpunkt liegt innerhalb Strecke1 und auf P4
+    //17
+    res = traversedCalculateTriangle(p1, p3, p4);
+    break;    
+  case 13://Schnittpunkt liegt auf P1 und innerhalb Strecke2
+    //5
+    res = traversedCalculateTriangle(p1, p2, p4);
+    break;    
+  case 14://Schnittpunkt liegt auf P2 und innerhalb Strecke2
+    //11
+    res = traversedCalculateTriangle(p1, p2, p3);
+    break;
+    
   default: 
     assert(false);
     break;
@@ -390,39 +458,107 @@ vector<vector<Point> > FixedMRegion::getTraversedArea(
 
 void FixedMRegion::traversedCreateCyclesNotHoles(
   vector< vector<Point> > & v_list){
+#ifdef DEBUG_VERBOSE
+  printf("Numcycles: %d", v_list.size());
+#endif
   for (size_t i=0; i<v_list.size(); i++) {
     if(!getDir(v_list[i])){
+#ifdef DEBUG_VERBOSE
+      printf("R: %d, ", i);
+#endif
       reverseCycle(v_list[i]);
     }
   }
+#ifdef DEBUG_VERBOSE
+  printf("\n");
+#endif
 }
 
+vector<HalfSegment> FixedMRegion::getHSFromRegion() {
+  vector<HalfSegment> result;
+  for (int i=0; i<r->Size(); i++) {
+    HalfSegment tmp;
+    r->Get(i, tmp);
+    if (tmp.IsLeftDomPoint()) {
+      result.push_back(tmp);
+    }
+  }
+  return result;
+}
 
-Region * FixedMRegion::getDiffRegion(const Region *resultold, 
-  const Region * resultnew){
-  Region * diffregion = new Region(0);   
+vector<HalfSegment> * FixedMRegion::atinstant(double ti, 
+  const vector<HalfSegment> & v) {
+      sett(ti);
+      vector<HalfSegment> * result = new vector<HalfSegment>(v.size());
+      HalfSegment hs;
+      for( size_t i = 0; i < v.size(); i++ )
+      {
+         hs=v[i];
+         
+         const Point lp=hs.GetLeftPoint();
+         //printf("Pl%d=(%f,%f)\n",i,lp.GetX(),lp.GetY());
+         double newx=l.getImgX(lp.GetX(), lp.GetY());
+         double newy=l.getImgY(lp.GetX(), lp.GetY());
+         Point newlp(true, newx, newy);
+         
+         const Point rp=hs.GetRightPoint();
+         //printf("Pr%d=(%f,%f)\n",i,rp.GetX(),rp.GetY());
+         newx=l.getImgX(rp.GetX(), rp.GetY());
+         newy=l.getImgY(rp.GetX(), rp.GetY());
+         Point newrp(true, newx, newy);
+         //printf("Pnl%d=(%f,%f)\n",i,newlp.GetX(),newlp.GetY());
+         //printf("Pnr%d=(%f,%f)\n",i,newrp.GetX(),newrp.GetY());
+         //HalfSegment tmp= HalfSegment(false, newlp,newrp);
+         hs.Set(hs.IsLeftDomPoint(), newlp, newrp);
+
+         result->push_back(hs);
+      }
+      return result;
+    }
+
+
+
+Region * FixedMRegion::getDiffRegion(const vector<HalfSegment> * resultold, 
+  const vector<HalfSegment> *  resultnew){
+  Region * diffregion = NULL;   
   Region *tmp2 = NULL;
   Region *tmp_region = NULL;
   HalfSegment hsold;
   HalfSegment hsnew;
-  for( int i = 0; i < resultold->Size(); i++ )
+  for( size_t i = 0; i < resultold->size(); i++ )
   {
-    resultold->Get( i, hsold );
-    resultnew->Get( i, hsnew );
+    //resultold->Get( i, hsold );
+    //resultnew->Get( i, hsnew );
+    hsold=(*resultold)[i];
+    hsnew=(*resultnew)[i];
     vector<vector<Point> > tmp_polygons=getTraversedArea(hsold, hsnew);
     
-    //routine zum orientierung prüfen und korrigieren
+    if (tmp_polygons.size()>0) {
+      //routine zum orientierung prüfen und korrigieren
+      traversedCreateCyclesNotHoles(tmp_polygons);
+      traversedCreateCyclesNotHoles(tmp_polygons);
     
-    tmp_region=buildRegion(tmp_polygons);  //Region erstellen
+      tmp_region=buildRegion2(tmp_polygons);  //Region erstellen
+#ifdef DEBUG_VERBOSE
+      vector<Region*> v;
+      tmp_region->Components(v);
+      printf("No. Components: %d\n", v.size());
+      for (size_t j=0; j<v.size(); j++)
+        delete v[j];
+#endif
     
-    tmp2= new Region(0);
-    //diffregion->Union(*tmp_region, *tmp2);
-    RobustPlaneSweep::robustUnion(*diffregion,*tmp_region,*tmp2);    
-    delete diffregion;
-    delete tmp_region;
-    diffregion=tmp2;
+      if (diffregion==NULL) {
+        diffregion=tmp_region;
+      } else {
+        tmp2= new Region(0);
+        //diffregion->Union(*tmp_region, *tmp2);
+        RobustPlaneSweep::robustUnion(*diffregion,*tmp_region,*tmp2);    
+        delete diffregion;
+        delete tmp_region;
+        diffregion=tmp2;
+      }
+    }
   }
-  delete tmp2;
   return diffregion;
 }
 
@@ -431,21 +567,25 @@ Region * FixedMRegion::getDiffRegion(const Region *resultold,
     
 Region * FixedMRegion::traversed(double ta, double te, double precision){
    Region * res=atinstant(ta);
-   Region * tiold=atinstant(ta);
+   vector<HalfSegment> vhs=getHSFromRegion();
+   vector<HalfSegment> * tiold=atinstant(ta, vhs);
    for(double i=0;i<=(te-ta);i=i+precision)
    {
-     Region * tinew = atinstant(ta+i);
+     vector<HalfSegment> * tinew = atinstant(ta+i, vhs);
      Region * tmp = getDiffRegion(tiold, tinew);
-     Region *tmp2= new Region(*res);
-     tmp2->Clear();
-     //res->Union(*tmp, *tmp2);
-     RobustPlaneSweep::robustUnion(*res,*tmp,*tmp2);
-     delete tmp;
-     delete res;
-     res=tmp2;
+     if (tmp!=NULL) {
+       Region *tmp2= new Region(*res);
+       tmp2->Clear();
+       //res->Union(*tmp, *tmp2);
+       RobustPlaneSweep::robustUnion(*res,*tmp,*tmp2);
+       delete tmp;
+       delete res;
+       res=tmp2;
+     }
      delete tiold;
      tiold=tinew;
    }
+   delete tiold;
    return res;
 }
 

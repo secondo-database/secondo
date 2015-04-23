@@ -475,7 +475,23 @@ void testUnion(){
 }
 
 
-
+void testconcaveQuadruple() {
+    vector<Point> v; //Vektor für den Polygonzug
+    v.push_back(Point(true, 0.0, 0.0)); 
+    //Die einzelnen Punkte hinzufügen
+    
+    v.push_back(Point(true, -0.5, -0.5)); //immer im Uhrzeigersinn
+    v.push_back(Point(true, -0.5, 0.5)); 
+    //gegen den Uhrzeigersinn würde es ein Loch
+    
+    v.push_back(Point(true, 1.0, 0.0));
+    v.push_back(Point(true, 0.0, 0.0)); //Den ersten zum Schluss nochmal
+    vector<vector<Point> > vv; //Einen Vektor von Vektoren erzeugen
+    vv.push_back(v); //Die einzelnen Polygonzüge hinzufügen (hier nur einer)
+    Region *res=buildRegion2(vv);  //Region erstellen
+    printf("Area should be 0.5 but is: %f\n", res->Area());
+    delete res;
+}
 
 
 /*
@@ -491,9 +507,10 @@ void runTestMethod() {
   testatinstantLinearMove();
   testatinstantRotate();
   testMBool();
-  testQuatro();
-  testCycle();
+  //testQuatro();
+  //testCycle();
     //  testTriangleQuatro();
-  testUnion();
+  //testUnion();
   runTestTraversedMethod();
+  //testconcaveQuadruple();
 }

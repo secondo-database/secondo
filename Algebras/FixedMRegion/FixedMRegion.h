@@ -180,7 +180,9 @@ This methods creates a region that contains the traversed area between the
 step's region at t\_start and t\_end.
 
 */ 
-   Region * getDiffRegion(const Region *resultold, const Region * resultnew);
+//   Region * getDiffRegion(const Region *resultold, const Region * resultnew);
+  Region * getDiffRegion(const vector<HalfSegment> * resultold, 
+  const vector<HalfSegment> *  resultnew);
 /*
 This methods creates a polygon of the given Points.
 
@@ -215,6 +217,10 @@ of the lines p1p2 and p3p4.
    void setLATransform(const LATransform &_l);
    const Move& getMove();
    void setMove(const Move &_m);
+   
+   vector<HalfSegment> * atinstant(double ti, const vector<HalfSegment> & v);
+   vector<HalfSegment> getHSFromRegion();
+
 
 }; 
 /*
@@ -223,3 +229,4 @@ step's region at t\_start and t\_end.
 
 */ 
 #endif
+
