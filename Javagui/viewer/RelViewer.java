@@ -21,6 +21,7 @@
 
 
 
+
 package viewer;
 
 
@@ -206,8 +207,16 @@ public class RelViewer extends SecondoViewer{
    
    VC.addObject(obj);
    this.addObject(obj);
-   VC.execCommand(text);
-   return true;
+   int rval = VC.execCommand(text);
+   if (rval==0)
+   {
+   return true;   
+   }
+   
+   
+  Reporter.showInfo("Secondo error");
+  Reporter.debug("Secondo errorcode: " +rval );
+  return false;
    
  }
  
@@ -247,6 +256,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     if(sv.equals("real")) return true;
     if(sv.equals("bool")) return true;
     if(sv.equals("text")) return true;
+    if(sv.equals("date")) return true;
     
     // to be continued
     return false;
@@ -399,7 +409,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     int delimnumber = CountDelims (line, delimchar);
     String tokentest = "dummy"; 
     
-   
+    
     
     
     
@@ -411,9 +421,7 @@ private boolean checkCSVTypes(ListExpr[] types)
      }
     
     
-    
-    
-     
+       
    
     
      
@@ -486,12 +494,8 @@ private boolean checkCSVTypes(ListExpr[] types)
       
     }
     
-    
-   
-    
-    
-
-    
+       
+        
     return res;
  }
  
@@ -638,7 +642,7 @@ private boolean checkCSVTypes(ListExpr[] types)
     
     
     
-     if(t.equals("text"))
+    if(t.equals("text"))
      
     {
     
@@ -658,6 +662,23 @@ private boolean checkCSVTypes(ListExpr[] types)
     
     
     
+   if(t.equals("date"))
+     
+    {
+    
+     try
+      {      
+          
+       return  ListExpr.stringAtom(value.trim());
+        
+      }    
+    
+      catch(NumberFormatException e)
+        {
+         return ListExpr.symbolAtom("undefined");
+        }
+    
+     } 
     
     
   
