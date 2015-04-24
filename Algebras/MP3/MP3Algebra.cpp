@@ -425,7 +425,7 @@ MP3* MP3::SubMP3(int beginframe, int size) const {
     newmp3 = new MP3(0);
 
     int sizeofoldflob = mp3Data.getSize();
-    char bin[sizeofoldflob];
+    char*  bin = new char[sizeofoldflob];
 
     mp3Data.read(bin, sizeof(char), 0);
 
@@ -486,6 +486,7 @@ MP3* MP3::SubMP3(int beginframe, int size) const {
     newmp3->frequency = this->frequency;
 
     newmp3->SetDefined (true);
+    delete bin;
     return newmp3;
 }
 
@@ -515,7 +516,11 @@ MP3* MP3::Concat (const MP3* other) const {
     /* First we copy both MP3s into the memory. */
     int sizeofthisflob = mp3Data.getSize(),
         sizeofotherflob = other->mp3Data.getSize();
-    char thisbin[sizeofthisflob], otherbin[sizeofotherflob];
+
+    char* thisbin = new char[sizeofthisflob];
+    char* otherbin = new char[sizeofotherflob];
+
+
     mp3Data.read( thisbin, sizeofthisflob, 0 );
     other->mp3Data.read( otherbin, sizeofotherflob, 0 );
 
@@ -565,6 +570,10 @@ MP3* MP3::Concat (const MP3* other) const {
     newmp3->frequency = this->frequency;
 
     newmp3->SetDefined (true);
+
+    delete[] thisbin;
+    delete[] otherbin;
+
     return newmp3;
 }
 
@@ -581,12 +590,13 @@ void MP3::Encode(string& textBytes) const {
     Base64 b;
     /* allocate as many bytes as the size of the FLOB has
        for the data of the DBArray. */
-    char bytes[mp3Data.getSize()];
+    char* bytes = new char[mp3Data.getSize()];
     /* load the contents of the DBArray mp3Data into above
        byte array. */
     mp3Data.read( bytes, mp3Data.getSize(), 0);
     /* Write the encoded string into textBytes */
     b.encode( bytes, mp3Data.getSize(), textBytes );
+    delete[]  bytes;
 }
 
 /*
@@ -737,7 +747,7 @@ void MP3::RemoveLyrics() {
     }
 
     int oldmp3size = mp3Data.getSize();
-    char bytes[oldmp3size];
+    char*  bytes = new char[oldmp3size];
     mp3Data.read(bytes, oldmp3size, 0);
 
     /* The last 9 bytes of a Lyrics tag have to be
@@ -775,6 +785,7 @@ void MP3::RemoveLyrics() {
     else {
         mp3Data.write(bytes, newsize, 0); /* proper music data */
     }
+    delete[] bytes;
 }
 
 /*
@@ -793,7 +804,7 @@ void MP3::PutLyrics(char *lyricsdump, int size) {
 
     int oldmp3size = mp3Data.getSize();
     bool existsid = ExistsID();
-    char bytes[oldmp3size];
+    char* bytes = new char[oldmp3size];
 
     mp3Data.read(bytes, oldmp3size, 0);
 
@@ -816,6 +827,7 @@ void MP3::PutLyrics(char *lyricsdump, int size) {
         mp3Data.write(lyricsdump, size, oldmp3size);
         /* no ID3 information available. */
     }
+    delete[] bytes;
 }
 
 /*
@@ -830,7 +842,7 @@ void MP3::RemoveID () {
     }
     /* copy mp3Data into bytes */
     int oldmp3size = mp3Data.getSize();
-    char bytes[oldmp3size];
+    char* bytes = new char[oldmp3size];
     mp3Data.read(bytes, oldmp3size, 0 );
 
     /* length of ID3 = 128 */
@@ -839,6 +851,7 @@ void MP3::RemoveID () {
 
     /* Write the music data into mp3Data. */
     mp3Data.write(bytes,newsize,0);
+    delete[] bytes;
     return;
 }
 
@@ -869,13 +882,14 @@ bool MP3::SaveMP3ToFile( const char *fileName ) const {
     if( f == NULL )
         return false;
 
-    char bytes[mp3Data.getSize()];
+    char* bytes = new char[mp3Data.getSize()];
     mp3Data.read( bytes, mp3Data.getSize(), 0);
 
     if( fwrite( bytes, 1, mp3Data.getSize(), f ) != mp3Data.getSize() )
         return false;
 
     fclose( f );
+    delete bytes;
     return true;
 }
 
@@ -913,7 +927,7 @@ bool MP3::LoadMP3FromFile( const string fileName ) {
   }
 
   // read the file
-  char bytes[ filesize ];
+  char* bytes = new char[ filesize ];
   file.seekg(0,ios::end);
   streampos fileend = file.tellg();
   file.seekg(0,ios::beg);
@@ -943,6 +957,7 @@ bool MP3::LoadMP3FromFile( const string fileName ) {
   mp3Data.resize( filesize );
   mp3Data.write(bytes, filesize, 0);
   SetDefined( true );
+  delete[] bytes;
   return true;
 }
 
