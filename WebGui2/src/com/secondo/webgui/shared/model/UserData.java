@@ -26,7 +26,7 @@ import java.util.ArrayList;
  * This class models a storage for all session based user data of the current session.
  * It has to be serializable to be exchanged between client and server.
  * 
- * @author Kristina Steiger
+ * @author Irina Russkaya
  * 
  */
 public class UserData implements Serializable {

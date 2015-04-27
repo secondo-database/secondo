@@ -28,9 +28,6 @@ import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.dom.client.KeyCodes;
-import com.google.gwt.event.dom.client.KeyPressEvent;
-import com.google.gwt.event.dom.client.KeyPressHandler;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -49,171 +46,93 @@ import com.secondo.webgui.utils.config.Resources;
 import com.secondo.webgui.utils.config.SecondoConstants;
 
 /**
- * This is the Entry point class which defines the onModuleLoad()-Method to start the application, 
- * creates important objects and sets the content of the HTML-Page with the method setContent().
+ * This is the Entry point class which defines the onModuleLoad()-Method to
+ * start the application, creates important objects and sets the content of the
+ * HTML-Page with the method setContent().
  * 
- * @author Kristina Steiger
+ * @author Irina Russkaya
  */
 public class SecondoWeb implements EntryPoint {
 
-	/** Main Elements of the Website which represent the divs in the HTML-Page*/
-	private FlowPanel header  = new FlowPanel();
+	/** Main Elements of the Website which represent the divs in the HTML-Page */
+	private FlowPanel header = new FlowPanel();
 	private FlowPanel content = new FlowPanel();
 	private FlowPanel footer = new FlowPanel();
-	
-	/**Element of the Loginview*/
+
+	/** Element of the Loginview */
 	private LoginView loginView = new LoginView();
-	
-	/**Element of the database view*/
+
+	/** Element of the database view */
 	private DatabaseView databaseView = new DatabaseView();
-	
-	/**Element of the main view*/
+
+	/** Element of the main view */
 	private MainView mainView = new MainView();
-	
-	/**Object to execute RPC-Calls to the server*/
+
+	/** Object to execute RPC-Calls to the server */
 	private RPCConnector rpcConnector = new RPCConnector();
-	
-	/**Service for RPC-Calls to the server in this class*/
-	private SecondoServiceAsync secondoService = (SecondoServiceAsync) GWT.create(SecondoService.class);
-	
-	/**Popup showing an animation while loading data from the database*/
+
+	/** Service for RPC-Calls to the server in this class */
+	private SecondoServiceAsync secondoService = (SecondoServiceAsync) GWT
+			.create(SecondoService.class);
+
+	/** Popup showing an animation while loading data from the database */
 	private PopupPanel loadingPopup = new PopupPanel(true);
-    private Image loadingImage = new Image("resources/images/loader1.gif");
-    
-	/**The message displayed to the user when the server cannot be reached or returns an error.*/
+	private Image loadingImage = new Image("resources/images/loader1.gif");
+
+	/**
+	 * The message displayed to the user when the server cannot be reached or
+	 * returns an error.
+	 */
 	private static final String SERVER_ERROR = "An error occurred while "
 			+ "attempting to contact the server. Please check your network "
 			+ "connection and try again.";
-	
 
-	
-	/* Storage for temporary data*/
-	private String currentDatabase="";
+	/* Storage for temporary data */	
 	private ArrayList<String> logindata = new ArrayList<String>();
-	private ArrayList<String> databases = new ArrayList<String>();
-
-
 	/**************************************************************
 	 * This is the entry point method which starts the application.
 	 **************************************************************/
-	public void onModuleLoad() {	
-		 Resources.INSTANCE.css().ensureInjected(); 
-					
-	/*set default values in login textfields using properties*/
-		//this.loginView.getUsername().setText("testuser");
-		//this.loginView.getPassword().setText("s3c0nd0");
-//		this.loginView.getIpadresse().setText("agnesi.fernuni-hagen.de");
-//		this.loginView.getPort().setText("1302");	
-		SecondoConstants constantsToConnect = GWT.create(SecondoConstants.class);
-//		this.loginView.getIpadresse().setText(constantsToConnect.IP());
-//		this.loginView.getPort().setText(constantsToConnect.port());
-		
-		if(!logindata.isEmpty()){
-      	  logindata.clear();
-      }
-      	  //get the content of the login text fields  
-			logindata.add("");
-			logindata.add("");
-      	  logindata.add(constantsToConnect.IP());
-      	  logindata.add(constantsToConnect.port());
-      	  
-      	//connect to secondo with logindata 
-      	  sendLogin(logindata, constantsToConnect.DB());	
-      	  
-      	  
+	public void onModuleLoad() {
+		Resources.INSTANCE.css().ensureInjected();
 
-	/*initialize the loading popup*/
-	    loadingPopup.setAnimationEnabled(true);
-	    loadingPopup.ensureDebugId("imagePopup");
-	    loadingPopup.setWidget(loadingImage);
-	    loadingPopup.setGlassEnabled(true);
-	    loadingPopup.getElement().setClassName("loadingpopup");
-		
-/* *** Eventhandler for elements that need to change the main content of the application 
- * *** or need the rpcConnector, which can only be done in this class */
+		/* set default values in login textfields using properties */
+		SecondoConstants constantsToConnect = GWT
+				.create(SecondoConstants.class);
 
-		
-		/*Adding an Eventhandler to the Enter-Key in the Passwordfield to log in*/
-		this.loginView.getPassword().addKeyPressHandler(new KeyPressHandler() {
-			public void onKeyPress(KeyPressEvent event) {
-				boolean enterPressed = KeyCodes.KEY_ENTER == event
-						.getNativeEvent().getKeyCode();
-				if (enterPressed) {
-					if(!logindata.isEmpty()){
-			        	  logindata.clear();
-			        }
-		            	  //get the content of the login text fields
-		            	  logindata.add(loginView.getUsername().getText());
-		            	  logindata.add(loginView.getPassword().getText());
-		            	  logindata.add(loginView.getIpadresse().getText());
-		            	  logindata.add(loginView.getPort().getText());
-		            	  
-		            	//connect to secondo with logindata 
-//		            	  sendLogin(logindata);	
-				}
-			}
-		});
-		
-		/* Adding an Eventhandler to the Login-Button */
-		this.loginView.getLoginbutton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
-        	      
-	        	 if(!logindata.isEmpty()){
-	        	  logindata.clear();
-	        	  }
+		if (!logindata.isEmpty()) {
+			logindata.clear();
+		}
+		// get the content of the login text fields
+		logindata.add("");
+		logindata.add("");
+		logindata.add(constantsToConnect.IP());
+		logindata.add(constantsToConnect.port());
 
-            	  //get the content of the login text fields
-            	  logindata.add(loginView.getUsername().getText());
-            	  logindata.add(loginView.getPassword().getText());
-            	  logindata.add(loginView.getIpadresse().getText());
-            	  logindata.add(loginView.getPort().getText());  
+		// connect to secondo with logindata
+		sendLogin(logindata, constantsToConnect.DB());
 
-//	              sendLogin(logindata);	
-	            }
-	          });
+		/* initialize the loading popup */
+		loadingPopup.setAnimationEnabled(true);
+		loadingPopup.ensureDebugId("imagePopup");
+		loadingPopup.setWidget(loadingImage);
+		loadingPopup.setGlassEnabled(true);
+		loadingPopup.getElement().setClassName("loadingpopup");
 		
-		/* Adding an Eventhandler to the Open Database Button*/
-		this.databaseView.getOpenDatabaseButton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
-	        	  	            	  
-	            	int selectedDatabase = databaseView.getMultiBox().getSelectedIndex();
-	            	
-	            	currentDatabase = databaseView.getMultiBox().getItemText(selectedDatabase);
-	            	  
-                 	openDatabase(databaseView.getMultiBox().getItemText(selectedDatabase));
-	            }
-	          });
-		
-		/* Adding an Eventhandler to the Import Database Button*/
-		this.databaseView.getImportDatabaseButton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
-	        	  
-	        	  Window.alert("Coming soon :)");            	  
-	            	
-	            }
-	          });
-	    
-	   
-	    
-	  
-	    /*Adds an event handler on the downloadRawDataButton of the toolbar to download the raw data into a file*/
-	    this.mainView.getToolbox().getDownloadRawDataLink().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
 
-	        	rpcConnector.saveTextFile(mainView.getRawDataView().getRawDataOutput().getText(), "secondo-text.txt");
-	          }
-		 });
-	    
-	    /*allows to download a raw data result*/
-	    this.mainView.getMainheader().getExport().setScheduledCommand(new Command() {
-			
-			@Override
-			public void execute() {
-				rpcConnector.saveTextFile(mainView.getMainheader().getTextViewOfTrajInDialog().getTextView().getText(), "secondo-text.txt");
-				
-			}
-		});
-	    /*Adds an event handler on the button "create symtraj"*/
+		/* Allows to download a raw data result */
+		this.mainView.getMainheader().getExport()
+				.setScheduledCommand(new Command() {
+
+					@Override
+					public void execute() {
+						rpcConnector.saveTextFile(mainView.getMainheader()
+								.getTextViewOfTrajInDialog().getTextView()
+								.getText(), "secondo-text.txt");
+
+					}
+				});
+		
+		/* Adds an event handler to the button "create symtraj" */
 		this.mainView.getOptionsTabPanel().getCreateSymTrajButton()
 				.addClickHandler(new ClickHandler() {
 					public void onClick(ClickEvent event) {
@@ -234,154 +153,168 @@ public class SecondoWeb implements EntryPoint {
 
 					}
 				});
-	    
-	    /**Adds an event handler on the button "get relation" of the options tab panel */
-		this.mainView.getOptionsTabPanel().getAnimateButton().addClickHandler(new ClickHandler() {
-			public void onClick(ClickEvent event) {
-				String command=mainView.getOptionsTabPanel().getCommandForQuerySampleRelation();
-				String commandForCountTuples=mainView.getOptionsTabPanel().getCommandForCountTuplesInSampleRelation();
-				if(!command.isEmpty()){
-					mainView.resetMapView();
-					
-					//send the command directly to secondo
-					rpcConnector.sendCommandAndUpdateHistory(command, commandForCountTuples, mainView, loadingPopup);
-					
-					//show the loading popup in the center of the application until the call is finished
-			    	loadingPopup.center(); 
-			    	mainView.getOptionsTabPanel().getLabelForInfoAboutOpenedRelation().setVisible(true);
 
-				}
-				else{
-					Window.alert("Please select relation");
-				}
-				
-				
-			}
-		});
-		
-		//Adds an event handler on the button "retrieve" to match a defined pattern to the loaded relation
-		
-		this.mainView.getOptionsTabPanel().getNumberOfTrajectoriesToShow().addChangeHandler(new  ChangeHandler() {
-			
-			@Override
-			public void onChange(ChangeEvent event) {
-				if (!mainView.getOptionsTabPanel()
-						.isUnsuccessfulVerification()) {
-					String command = mainView.getOptionsTabPanel()
-							.getCommandForPatternMatching();
-					String commandForCountResult=mainView.getOptionsTabPanel().getCommandForCountPatternMatching();
-					mainView.getOptionsTabPanel()
-							.setPatternMatchingIsInitiated(true);
-					if (!command.isEmpty()) {
-						mainView.resetMapView();
+		/* Adds an event handler to the button "get relation" of the options tab panel */
+		this.mainView.getOptionsTabPanel().getAnimateButton()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForQuerySampleRelation();
+						String commandForCountTuples = mainView
+								.getOptionsTabPanel()
+								.getCommandForCountTuplesInSampleRelation();
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+							
+							loadingPopup.center();
+							mainView.getOptionsTabPanel()
+									.getLabelForInfoAboutOpenedRelation()
+									.setVisible(true);
 
-						// send the command directly to secondo
-						rpcConnector.sendCommandAndUpdateHistory(
-								command, commandForCountResult, mainView, loadingPopup);
+						} else {
+							Window.alert("Please select relation");
+						}
 
-						// show the loading popup in the center of the
-						// application until the call is finished
-						loadingPopup.center();
-					} else {
-						Window.alert("Please select relation and load it");
 					}
+				});
 
-				} else {
-					Window.alert("Please correct your pattern statement!");
-				}
-			}
-		});
-		
-		//Adds an event handler on the button "count" to match a defined pattern to the loaded relation
-		this.mainView.getOptionsTabPanel().getCountButton().addClickHandler(new ClickHandler() {
-			
-			@Override
-			public void onClick(ClickEvent event) {
-				if (!mainView.getOptionsTabPanel()
-						.isUnsuccessfulVerification()) {
-					String commandForCountResult=mainView.getOptionsTabPanel().getCommandForCountPatternMatching();
-					mainView.getOptionsTabPanel()
-					.setPatternMatchingIsInitiated(true);
-					if (!commandForCountResult.isEmpty()) {
-						mainView.resetMapView();
-						
-						rpcConnector.setNumberOfTuplesInPatternMatchingResult(commandForCountResult, mainView, loadingPopup);
-						
-						loadingPopup.center();
+		/* Adds an event handler to the button "retrieve" to match a defined pattern to the loaded relation */
+		this.mainView.getOptionsTabPanel().getNumberOfTrajectoriesToShow()
+				.addChangeHandler(new ChangeHandler() {
+
+					@Override
+					public void onChange(ChangeEvent event) {
+						if (!mainView.getOptionsTabPanel()
+								.isUnsuccessfulVerification()) {
+							String command = mainView.getOptionsTabPanel()
+									.getCommandForPatternMatching();
+							String commandForCountResult = mainView
+									.getOptionsTabPanel()
+									.getCommandForCountPatternMatching();
+							mainView.getOptionsTabPanel()
+									.setPatternMatchingIsInitiated(true);
+							if (!command.isEmpty()) {
+								mainView.resetMapView();
+								
+								rpcConnector.sendCommandAndUpdateHistory(
+										command, commandForCountResult,
+										mainView, loadingPopup);
+								
+								loadingPopup.center();
+							} else {
+								Window.alert("Please select relation and load it");
+							}
+
+						} else {
+							Window.alert("Please correct your pattern statement!");
+						}
 					}
-				}
-				
-				else {
-					Window.alert("Please correct your pattern statement!");
-				}
-			}
-		});
-		
-		//Adds an event handler on the button "get GPX coordinate" to define a location from address
-		this.mainView.getMainheader().getLocationDialog().getGetCoordinateButton().addClickHandler(new ClickHandler() {
-						@Override
-			public void onClick(ClickEvent event) {
-				String command=mainView.getMainheader().getCommandForGeocode();
-				//send the command directly to secondo
-				rpcConnector.getCoordinateFromAddress(command, mainView, loadingPopup);				
-				
-			}
-		});
-		
-		//Adds an event handler on the button "retrieve" in the simple queries panel (for operator passes)
+				});
+
+		/* Adds an event handler to the button "count" to match a defined pattern to the loaded relation */
+		this.mainView.getOptionsTabPanel().getCountButton()
+				.addClickHandler(new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+						if (!mainView.getOptionsTabPanel()
+								.isUnsuccessfulVerification()) {
+							String commandForCountResult = mainView
+									.getOptionsTabPanel()
+									.getCommandForCountPatternMatching();
+							mainView.getOptionsTabPanel()
+									.setPatternMatchingIsInitiated(true);
+							if (!commandForCountResult.isEmpty()) {
+								mainView.resetMapView();
+
+								rpcConnector
+										.setNumberOfTuplesInPatternMatchingResult(
+												commandForCountResult,
+												mainView, loadingPopup);
+
+								loadingPopup.center();
+							}
+						}
+
+						else {
+							Window.alert("Please correct your pattern statement!");
+						}
+					}
+				});
+
+		/* Adds an event handler to the button "get GPX coordinate" to define a location from address */
+		this.mainView.getMainheader().getLocationDialog()
+				.getGetCoordinateButton().addClickHandler(new ClickHandler() {
+					@Override
+					public void onClick(ClickEvent event) {
+						String command = mainView.getMainheader()
+								.getCommandForGeocode();
+						
+						rpcConnector.getCoordinateFromAddress(command,
+								mainView, loadingPopup);
+
+					}
+				});
+
+		/* Adds an event handler to the button "retrieve" in the simple queries panel (for operator passes) */
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-				.getPassesPanel().getNumberOfTrajectoriesToBeShown().addChangeHandler(new ChangeHandler() {
-					
+				.getPassesPanel().getNumberOfTrajectoriesToBeShown()
+				.addChangeHandler(new ChangeHandler() {
+
 					@Override
 					public void onChange(ChangeEvent event) {
 						String command = mainView.getOptionsTabPanel()
 								.getCommandForSimpleQueryPasses();
-						String commandForCountResult =  mainView.getOptionsTabPanel().getCommandForSimpleQueryPassesCount();
-						mainView.getOptionsTabPanel().setSimpleQueryForPassesIsInitiated(true);
+						String commandForCountResult = mainView
+								.getOptionsTabPanel()
+								.getCommandForSimpleQueryPassesCount();
+						mainView.getOptionsTabPanel()
+								.setSimpleQueryForPassesIsInitiated(true);
 						if (!command.isEmpty()) {
-							
 							mainView.resetMapView();
-
-							// send the command directly to secondo
-							rpcConnector.sendCommandAndUpdateHistory(
-									command, commandForCountResult, mainView, loadingPopup);
-
-							// show the loading popup in the center of the
-							// application until the call is finished
-							loadingPopup.center();
 							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountResult, mainView,
+									loadingPopup);
+							
+							loadingPopup.center();
+
 						} else {
 							Window.alert("Please select relation and load it");
 						}
 					}
-					
+
 				});
-				
 
-					
-		
-		//Adds an event handler on the button "count" in the simple queries panel (for operator passes)
+		/* Adds an event handler to the button "count" in the simple queries panel (for operator passes)*/
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-		.getPassesPanel().getCountButton().addClickHandler(new ClickHandler() {
-			
-			@Override
-			public void onClick(ClickEvent event) {
-				String commandForCountResult =  mainView.getOptionsTabPanel().getCommandForSimpleQueryPassesCount();
-				mainView.getOptionsTabPanel().setSimpleQueryForPassesIsInitiated(true);
-				if (!commandForCountResult.isEmpty()) {					
-					
-					// send the command directly to secondo
-					rpcConnector.setNumberOfTuplesInSimpleQueryResultPasses(
-							commandForCountResult, mainView, loadingPopup);
-					
-					
-				} else {
-					Window.alert("Please select relation and load it");
-				}
-				
-			}
-		});
+				.getPassesPanel().getCountButton()
+				.addClickHandler(new ClickHandler() {
 
+					@Override
+					public void onClick(ClickEvent event) {
+						String commandForCountResult = mainView
+								.getOptionsTabPanel()
+								.getCommandForSimpleQueryPassesCount();
+						mainView.getOptionsTabPanel()
+								.setSimpleQueryForPassesIsInitiated(true);
+						if (!commandForCountResult.isEmpty()) {							
+							rpcConnector
+									.setNumberOfTuplesInSimpleQueryResultPasses(
+											commandForCountResult, mainView,
+											loadingPopup);
+						} else {
+							Window.alert("Please select relation and load it");
+						}
+
+					}
+				});
+
+		/* Adds an event handler to the button "define" in the simple queries panel (for operator deftime)*/
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 				.getDeftimePanel().getQueryButton()
 				.addClickHandler(new ClickHandler() {
@@ -392,338 +325,265 @@ public class SecondoWeb implements EntryPoint {
 						String command = mainView.getOptionsTabPanel()
 								.getCommandForSimpleQueryDeftime();
 						if (!command.isEmpty()) {
-							rpcConnector.sendSimpleQuery(command, "deftime", mainView);
+							rpcConnector.sendSimpleQuery(command, "deftime",
+									mainView);
 						} else {
 							Window.alert("Please select relation and load it");
 						}
 					}
 				});
-		
-		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-		.getAtinstantPanel().getQueryButton()
-		.addClickHandler(new ClickHandler() {
 
-			@Override
-			public void onClick(ClickEvent event) {
-
-				String command = mainView.getOptionsTabPanel()
-						.getCommandForSimpleQueryAtinstant();
-				if (!command.isEmpty()) {
-					rpcConnector.sendSimpleQuery(command, "atinstant", mainView);
-				} else {
-					Window.alert("Please select relation and load it");
-				}
-			}
-		});
-		
-		//Adds an event handler on the button "retrieve" in the simple queries panel (for operator passes through)
+		/* Adds an event handler to the button "define" in the simple queries panel (for operator atinstant)*/
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-				.getPassesThroughRegionPanel().getNumberOfTrajectoriesToBeShown().addChangeHandler(new ChangeHandler() {
-					
+				.getAtinstantPanel().getQueryButton()
+				.addClickHandler(new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForSimpleQueryAtinstant();
+						if (!command.isEmpty()) {
+							rpcConnector.sendSimpleQuery(command, "atinstant",
+									mainView);
+						} else {
+							Window.alert("Please select relation and load it");
+						}
+					}
+				});
+
+		/* Adds an event handler to the button "retrieve" in the simple queries panel (for operator passes through)*/
+		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+				.getPassesThroughRegionPanel()
+				.getNumberOfTrajectoriesToBeShown()
+				.addChangeHandler(new ChangeHandler() {
+
 					@Override
 					public void onChange(ChangeEvent event) {
 						String command = mainView.getOptionsTabPanel()
-								.getCommandForSimpleQueryPassesThroughRegion(mainView.getMapView().getDrawLayer(), "retrieve");
-						String commandForCount =  mainView.getOptionsTabPanel()
-								.getCommandForSimpleQueryPassesThroughRegion(mainView.getMapView().getDrawLayer(), "count");
-						mainView.getOptionsTabPanel().setSimpleQueryForPassesTrhoughRegionsInitiated(true);
-						
+								.getCommandForSimpleQueryPassesThroughRegion(
+										mainView.getMapView().getDrawLayer(),
+										"retrieve");
+						String commandForCount = mainView.getOptionsTabPanel()
+								.getCommandForSimpleQueryPassesThroughRegion(
+										mainView.getMapView().getDrawLayer(),
+										"count");
+						mainView.getOptionsTabPanel()
+								.setSimpleQueryForPassesTrhoughRegionsInitiated(
+										true);
+
 						if (!command.isEmpty()) {
 							mainView.resetMapView();
-
-							// send the command directly to secondo
-							rpcConnector.sendCommandAndUpdateHistory(
-									command, commandForCount, mainView, loadingPopup);
-
-							// show the loading popup in the center of the
-							// application until the call is finished
-							loadingPopup.center();						
+							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCount, mainView, loadingPopup);
+							
+							loadingPopup.center();
 						} else {
 							Window.alert("Please select relation and load it");
 						}
 
-						
 					}
 				});
-		
-		//Adds an event handler on the button "count" in the simple queries panel (for operator passes)
-				this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-				.getPassesThroughRegionPanel().getCountButton().addClickHandler(new ClickHandler() {
-					
+
+		/* Adds an event handler on the button "count" in the simple queries panel (for operator passes)*/
+		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+				.getPassesThroughRegionPanel().getCountButton()
+				.addClickHandler(new ClickHandler() {
+
 					@Override
 					public void onClick(ClickEvent event) {
-						String commandForCountResult =  mainView.getOptionsTabPanel().getCommandForSimpleQueryPassesThroughRegion(mainView.getMapView().getDrawLayer(), "count");
-						mainView.getOptionsTabPanel().setSimpleQueryForPassesTrhoughRegionsInitiated(true);
-						if (!commandForCountResult.isEmpty()) {					
-							
-							// send the command directly to secondo
-							rpcConnector.setNumberOfTuplesInSimpleQueryResultPassesThrough(
-									commandForCountResult, mainView, loadingPopup);
-							
-							
+						String commandForCountResult = mainView
+								.getOptionsTabPanel()
+								.getCommandForSimpleQueryPassesThroughRegion(
+										mainView.getMapView().getDrawLayer(),
+										"count");
+						mainView.getOptionsTabPanel()
+								.setSimpleQueryForPassesTrhoughRegionsInitiated(
+										true);
+						if (!commandForCountResult.isEmpty()) {							
+							rpcConnector
+									.setNumberOfTuplesInSimpleQueryResultPassesThrough(
+											commandForCountResult, mainView,
+											loadingPopup);
+
 						} else {
 							Window.alert("Please select relation and load it");
 						}
-						
+
 					}
 				});
-				
-		this.mainView.getMainheader().getSupportDialog().getSendButton().addClickHandler(new ClickHandler() {
-	          public void onClick(ClickEvent event) {
-	        	  rpcConnector.sendMailToSupport(mainView.getMainheader().getSupportDialog().getMessage());
-	        		 
-	        	  
-	        	  }
-	        });
-	   
-	   
-	    
-		/*sets default content after starting the application, which is the login-page*/
-        //check for ie8 and display default message
-        if(Window.Navigator.getUserAgent().contains("MSIE 8")){
-		    System.out.println("###Browser version: " + Window.Navigator.getUserAgent());
-		    HTML defaultText = new HTML("<p><h3>Your browser does not support Scalable Vector Graphics (SVG).<br>" +
-		    		" Please upgrade to a modern browser.</h3></p>");
-		    loginView.getMainPanel().remove(2); 
-		    loginView.getMainPanel().insert(defaultText, 2);
-		}
-//		this.setContent(0);
+
+		/* Adds an event handler to the menu item Support to send a user request to the support email*/
+		this.mainView.getMainheader().getSupportDialog().getSendButton()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						rpcConnector.sendMailToSupport(mainView.getMainheader()
+								.getSupportDialog().getMessage());
+
+					}
+				});
+
+		/*
+		 * sets default content after starting the application, which is the
+		 * login-page
+		 */
+		// check for ie8 and display default message
+		if (Window.Navigator.getUserAgent().contains("MSIE 8")) {
+			System.out.println("###Browser version: "
+					+ Window.Navigator.getUserAgent());
+			HTML defaultText = new HTML(
+					"<p><h3>Your browser does not support Scalable Vector Graphics (SVG).<br>"
+							+ " Please upgrade to a modern browser.</h3></p>");
+			loginView.getMainPanel().remove(2);
+			loginView.getMainPanel().insert(defaultText, 2);
+		}		
 	}
 	
-/* ***Methods with RPC-Calls to the Application-Server for getting server-side Data which need 
- * ***the setContent-Method to change the page content*/
 
-	
-	/** Starts an RPC call to the server to send the logindata to secondo and verify it 
+	/**
+	 * Starts an RPC call to the server to send the logindata to secondo and
+	 * verify it
 	 * 
-	 * @param userDataList List with logindata of the user
+	 * @param userDataList
+	 *            List with logindata of the user
 	 * */
 	public void sendLogin(ArrayList<String> userDataList, final String db) {
-						  
-		  AsyncCallback<Void> callback = new AsyncCallback<Void>() {
 
-				@Override
-				public void onFailure(Throwable caught) {
-					Window.alert("An error occurred while "
-							+ "attempting to contact the server. Please check your logindata and try again.");					
-				}
+		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
 
-				@Override
-				public void onSuccess(Void result) { 
-						
-//						updateDatabaseList();
-					openDatabase(db);
-				}
-			  };
-		  		 
-	       // Make the call. Control flow will continue immediately and later 'callback' will be invoked when the RPC completes.
-		  secondoService.setSecondoConnectionData(userDataList, callback); 
-	}
-	
-	/** Starts an RPC call to the server to get the list of currently available databases */
-	public void updateDatabaseList() {
-						  
-		  AsyncCallback<ArrayList<String>> callback = new AsyncCallback<ArrayList<String>>() {
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert("An error occurred while "
+						+ "attempting to contact the server. Please check your logindata and try again.");
+			}
 
-				@Override
-				public void onFailure(Throwable caught) {
-					Window.alert("Your attempt to connect to Secondo was not successful. " +
-							"\n\n Please check your logindata and try again.");					
-				}
+			@Override
+			public void onSuccess(Void result) {				
+				openDatabase(db);
+			}
+		};
 
-				@Override
-				public void onSuccess(ArrayList<String> databaselist) {
+		// Make the call. Control flow will continue immediately and later
+		// 'callback' will be invoked when the RPC completes.
+		secondoService.setSecondoConnectionData(userDataList, callback);
+	}	
 
-					databaseView.getMultiBox().clear();				
-					loginView.getPassword().setText("");
-						            	  
-	            	//set databasenames in the list
-	                  for (String database:databaselist){
-	          			databaseView.getMultiBox().addItem(database);
-	          			databases.add(database);
-	          		}		                  
-					setContent(1);	
-				}
-			  };
-		 secondoService.updateDatabaseList(callback); 
-	}
-
-	
-	/** Starts an RPC call to the server to send the name of the database to secondo and open the database 
+	/**
+	 * Starts an RPC call to the server to send the name of the database to
+	 * secondo and open the database
 	 * 
-	 * @param database The database to be opened
+	 * @param database
+	 *            The database to be opened
 	 * */
 	public void openDatabase(String database) {
-						
+
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
 			@Override
 			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);				
+				Window.alert(SERVER_ERROR);
 			}
 
 			@Override
-			public void onSuccess(String openDatabase) { //result here is return from secondoserviceimpl method
-
-//          		Window.alert("Database " + openDatabase + " is opened successfully!");	
-          		
-				//set database info to info dialog         		
+			public void onSuccess(String openDatabase) { 
+				
+				// set database info to info dialog
 				mainView.getMainheader().getDatabaseInfo().getHost()
 						.setText(logindata.get(2));
 				mainView.getMainheader().getDatabaseInfo().getPort()
 						.setText(logindata.get(3));
 				mainView.getMainheader().getDatabaseInfo().getDb()
 						.setText(openDatabase);
-          	
 
-      			
-				//reset text views
-      			mainView.getRawDataView().resetData();
-          		
-          		mainView.getMainheader().getTextViewOfTrajInDialog().resetData();
-      			
-      			//delete data from map      			
-      			mainView.getMapView().resetData();
-      			mainView.getMapView().getMpointController().stopAllAnimations();      		
-      			
-      			rpcConnector.resetObjectCounter();      			
+				// reset text view
+				mainView.getMainheader().getTextViewOfTrajInDialog()
+						.resetData();
+
+				// delete data from map
+				mainView.getMapView().resetData();
+				mainView.getMapView().getMpointController().stopAllAnimations();
+
+				rpcConnector.resetObjectCounter();
 
 				mainView.showMapView();
-				
-          		setContent(2);			
+
+				setContent(2);
 			}
-		  };		  
-		secondoService.openDatabase(database, callback); 
+		};
+		secondoService.openDatabase(database, callback);
 	}
 	
-	/** Starts an RPC call to the server to send the name of the database to secondo and close the database 
+
+	/**
+	 * Method to set 3 different contents to the HTML-Page, depending on the
+	 * userstatus and the chosen database
 	 * 
-	 * @param database The database to be closed
+	 * @param status
+	 *            Integer value with the status number, 0 for loginview, 1 for
+	 *            databaseview and 2 for mainview
 	 * */
-	public void closeDatabase(String database) {
-						
-		AsyncCallback<String> callback = new AsyncCallback<String>() {
-
-			@Override
-			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);			
-			}
-
-			@Override
-			public void onSuccess(String database) { //result here is return from secondoserviceimpl method
-          		
-          		if(!database.equals("failed")){
-          			Window.alert("Database " + database + " is successfully closed!");
-    				setContent(1);	
-    				
-    				//delete data from map and graphical views
-          			mainView.getGraphicalView().resetData();
-          			mainView.getMapView().resetData();
-          		}			
-			}
-		  };		  
-		secondoService.closeDatabase(database, callback); 
-	}
-	
-	/** Starts an RPC call to the server to log out of the application */
-	public void logout() {
-						
-		AsyncCallback<String> callback = new AsyncCallback<String>() {
-
-			@Override
-			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);	
-			}
-
-			@Override
-			public void onSuccess(String result) { //result here is return from secondoserviceimpl method
-          		
-          		if(result.equals("ok")){
-          			Window.alert("Thanks for using Secondo! Good bye!");
-
-    				setContent(0);	
-//    				rpcConnector.deleteCommandHistory(mainView);
-    				databaseView.getMultiBox().clear();
-
-    				//reset text views		
-    				
-    				mainView.getRawDataView().getRawDataOutput().setText("");
-    				
-    				//reset graphical and map view
-    				mainView.getMapView().resetData();
-    				mainView.getGraphicalView().resetData();
-          		}			
-			}
-		  };	  
-		secondoService.logout(callback); 
-	}
-	
-	/**Method to set 3 different contents to the HTML-Page, depending on the userstatus and the chosen database
-	 * 
-	 * @param status Integer value with the status number, 0 for loginview, 1 for databaseview and 2 for mainview
-	 * */
-	public void setContent(int status){
-		switch(status){
-        case 0:
-            System.out.println("User is not logged in");
-            header.clear();
+	public void setContent(int status) {
+		switch (status) {
+		case 0:
+			System.out.println("User is not logged in");
+			header.clear();
 			header.add(loginView.getLoginheader().gethPanel());
-			
+
 			content.clear();
 			content.add(loginView.getMainPanel());
-			
+
 			footer.clear();
 			footer.add(loginView.getLoginfooter().getHpanel());
-			
-			/* Associate the panels with the HTML host page.*/
+
+			/* Associate the panels with the HTML host page. */
 			RootPanel.get("content").add(content);
 
 			RootPanel.get("header").add(header);
 
 			RootPanel.get("footer").add(footer);
-            
-            break;
-        case 1:
-            System.out.println("User is logged in but has not chosen a database");
 
-            header.clear();
+			break;
+		case 1:
+			System.out
+					.println("User is logged in but has not chosen a database");
+
+			header.clear();
 			header.add(databaseView.getDatabaseHeader().getHeaderPanel());
-			
+
 			content.clear();
 			content.add(databaseView.gethPanel());
-			
+
 			footer.clear();
-			footer.add(databaseView.getDatabaseFooter().getHpanel());		
+			footer.add(databaseView.getDatabaseFooter().getHpanel());
 
-		/* Associate the panels with the HTML host page.*/
-		RootPanel.get("content").add(content);
+			/* Associate the panels with the HTML host page. */
+			RootPanel.get("content").add(content);
 
-		RootPanel.get("header").add(header);
+			RootPanel.get("header").add(header);
 
-		RootPanel.get("footer").add(footer);
-		
-         break;
-        case 2:
-            System.out.println("User is logged in and has chosen a database");
-            
-            header.clear();
-//            mainView.getMainheader().getLabelWithDatabaseName().setText(currentDatabase);
-            header.add(mainView.getMainheader().getGrid());
-//			header.add(mainView.getMainheader().gethPanel());
-						
+			RootPanel.get("footer").add(footer);
+
+			break;
+		case 2:
+			System.out.println("User is logged in and has chosen a database");
+
+			header.clear();			
+			header.add(mainView.getMainheader().getGrid());
+
 			content.clear();
 			content.add(mainView.getMainPanel());
-			
+
 			footer.clear();
 
-		/* Associate the panels with the HTML host page.*/
-		RootPanel.get("content").add(content);
+			/* Associate the panels with the HTML host page. */
+			RootPanel.get("content").add(content);
 
-		RootPanel.get("header").add(header);
+			RootPanel.get("header").add(header);
 
-            break;
-        default:
-            System.out.println("switch-case-defaulttext");
-        } 		
-	}	
+			break;
+		default:
+			System.out.println("switch-case-defaulttext");
+		}
+	}
 }

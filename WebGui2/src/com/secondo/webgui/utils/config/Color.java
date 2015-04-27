@@ -4,7 +4,7 @@
 package com.secondo.webgui.utils.config;
 
 /**
- * @author secuser
+ * @author Irina Russkaya
  *
  */
 public enum Color {
@@ -15,7 +15,12 @@ public enum Color {
 	Indigo("#4B0082"), 
 	Black("#000000"), 
 	Chocolate("#D2691E"), 
-	Crimson("#DC143C");
+	Crimson("#DC143C"),
+	Softgreen("#03c03c"),
+	Red2("#c23b22"),
+	Rosa("#ff77aa"),
+	Yellow("#ffd526"),
+	Violet("#800080");
 	
 	private String hex;
 	

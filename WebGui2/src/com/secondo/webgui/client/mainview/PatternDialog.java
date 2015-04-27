@@ -34,7 +34,8 @@ public class PatternDialog {
 				"<b>condition</b> which has a form <variable.attribute> with attributes: label(s), time, start, end, leftclosed, rightclosed"+
 				"<h3>Sample Pattern</h3><p>" +
 				"A (_\"SouthEast\") + B (_ \"SouthWest\")<br>" +				
-				"// (B.end - A.start) < (20 * minute)  <p>" );
+				"// (B.end - A.start) < (20 * minute)  <p>"+
+				"<p><a href=\"http://dna.fernuni-hagen.de/papers/SymbolicTrajectories369.pdf\">More info</a></p>");
 		
 		// Add the text to the dialog
 	    scrollContent.add(patternInfo);

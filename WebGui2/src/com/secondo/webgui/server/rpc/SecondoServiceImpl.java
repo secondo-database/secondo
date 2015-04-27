@@ -19,29 +19,14 @@
 
 package com.secondo.webgui.server.rpc;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Properties;
-
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.secondo.webgui.client.rpc.SecondoService;
-import com.secondo.webgui.server.controller.OptimizerConnector;
-import com.secondo.webgui.server.controller.SecondoConnector;
 import com.secondo.webgui.shared.model.DataType;
-import com.secondo.webgui.shared.model.UserData;
 
 /**
  * This class is responsible for the communication between the client and server
@@ -56,33 +41,37 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 		SecondoService, Serializable {
 
 	private static final long serialVersionUID = 1L;
-
-	/** The secondo server connection */
-	private SecondoConnector sc = new SecondoConnector();
-
-	/** The optimizer server connection */
-	private OptimizerConnector oc = new OptimizerConnector();
-
-	// temporary data
-	private UserData sd = new UserData();
-	private ArrayList<String> secondoConnectionData = new ArrayList<String>();
+	private Map<String, SecondoServiceCore> coreInstances = new HashMap<String, SecondoServiceCore>();
 
 	public SecondoServiceImpl() {
+	}
+
+	private SecondoServiceCore getSecondoServiceCore() {
+		String sid = this.getThreadLocalRequest().getSession().getId();
+		System.out.println("Session id: " + sid);
+
+		SecondoServiceCore coreInstance = coreInstances.get(sid);
+		if (coreInstance == null) {
+			coreInstance = new SecondoServiceCore();
+			coreInstances.put(sid, coreInstance);
+		}
+		return coreInstance;
+	}
+
+	public void closeSession() {
+		String sid = this.getThreadLocalRequest().getSession().getId();
+		SecondoServiceCore coreInstance = coreInstances.get(sid);
+		if (coreInstance != null) {
+			coreInstance.close();
+			coreInstances.remove(sid);
+		}
 	}
 
 	@Override
 	public String sendCommandWithoutResult(String command) {
 
-		System.out.println("SecondoServiceImpl has been called!");
+		return getSecondoServiceCore().sendCommandWithoutResult(command);
 
-		try {
-			sc.doQueryWithoutResult(command);
-		} catch (IOException e) {
-			System.out.println("Call to Secondo-Server failed.");
-			e.printStackTrace();
-		}
-
-		return sc.getSecondoresult();
 	}
 
 	/**
@@ -94,23 +83,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 * */
 	public String sendCommand(String command) {
 
-		System.out.println("SecondoServiceImpl has been called!");
-		System.out.println("Command " + command);
-
-		try {
-			sc.doQuery(command);
-		} catch (IOException e) {
-			System.out.println("Call to Secondo-Server failed.");
-			e.printStackTrace();
-		}
-
-		// save the result in the history lists
-		sd.getResultHistory().add(sc.getSecondoresult());
-		sd.getFormattedResultHistory().add(sc.getFormattedList());
-		sd.setNumberOfSuccessfulReusltsInPatternMatching(sc
-				.getNumberOfTuplesInRelationFromResult());
-
-		return sc.getSecondoresult();
+		return getSecondoServiceCore().sendCommand(command);
 	}
 
 	/**
@@ -122,116 +95,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 * */
 	@Override
 	public void setSecondoConnectionData(ArrayList<String> secondoConnectionData) {
-		this.secondoConnectionData = secondoConnectionData;
-
-		sc.setConnection(secondoConnectionData.get(0),
-				secondoConnectionData.get(1), secondoConnectionData.get(2),
-				new Integer(secondoConnectionData.get(3)));
-
-		// set data in sessiondata object
-		sd.setUsername(secondoConnectionData.get(0));
-		sd.setPassword(secondoConnectionData.get(1));
-		sd.setSecondoIP(secondoConnectionData.get(2));
-		sd.setSecondoPort(secondoConnectionData.get(3));
-		sd.setLoggedIn(true);
-	}
-
-	/**
-	 * Sets the connection data for the optimizer
-	 * 
-	 * @param Host
-	 *            The host for the connection to the optimizer
-	 * @param Port
-	 *            The port for the connection to the optimizer
-	 * @return An errormessage if the connection failed
-	 * */
-	@Override
-	public String setOptimizerConnection(String Host, int Port) {
-
-		// disconnect optimizer if its connected
-		if (oc.isOptimizerConnected()) {
-			oc.disconnectOptimizer();
-		}
-
-		// set new optimizer connection data
-		oc.setOptimizerConnection(Host, Port);
-
-		// test connection
-		if (oc.connectOptimizer()) {
-			oc.disconnectOptimizer();
-			return "no error";
-		} else {
-			return oc.getLastError();
-		}
-	}
-
-	/**
-	 * Returns the current connection data of the optimizer
-	 * 
-	 * @return The current connection data of the optimizer
-	 * */
-	@Override
-	public ArrayList<String> getOptimizerConnectionData() {
-
-		return oc.getOptimizerConnection();
-	}
-
-	/**
-	 * Sends the query to the optimizer and returns the optimized query, an
-	 * error message, status of connection, the last errorcode and the time
-	 * spent for optimization
-	 * 
-	 * @param command
-	 *            The command to be send to the optimizer
-	 * @param database
-	 *            The currently open database
-	 * @param executeFlag
-	 *            The execute Flag
-	 * @return A list with the optimized query, an error message, status of
-	 *         connection, the last errorcode and the time spent for
-	 *         optimization
-	 */
-	@Override
-	public ArrayList<String> getOptimizedQuery(String command, String database,
-			boolean executeFlag) {
-
-		ArrayList<String> resultList = new ArrayList<String>();
-		String result = "";
-
-		try {
-			result = oc.getOptimizedQuery(command, database, executeFlag);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		// add result, errormessage and connectioninfo to resultlist
-		String errormessage = oc.getErrorMessage();
-		boolean isConnected = oc.isOptimizerConnected();
-		String lastError = oc.getLastError();
-		String timeSpentForOptimization = oc.getTimeSpentForOptimization();
-
-		resultList.add(result);
-		resultList.add(errormessage);
-		if (isConnected) {
-			resultList.add("true");
-		} else {
-			resultList.add("false");
-		}
-		resultList.add(lastError);
-		resultList.add(timeSpentForOptimization);
-
-		return resultList;
-	}
-
-	/**
-	 * Returns a list with all available databases
-	 * 
-	 * @return A list with all available databases
-	 * */
-	@Override
-	public ArrayList<String> updateDatabaseList() {
-
-		return sc.updateDatabases();
+		getSecondoServiceCore().setSecondoConnectionData(secondoConnectionData);
 	}
 
 	/**
@@ -245,20 +109,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public String openDatabase(String database) {
 
-		if (sd.isLoggedIn() == false) {
-			return "failed";
-		}
-
-		boolean ok = sc.openDatabase(database);
-
-		if (ok == true) {
-
-			sd.setOpenDatabase(database);
-			sc.getFormattedList().clear();
-			sc.getResultTypeList().clear();
-			return database;
-		} else
-			return "failed";
+		return getSecondoServiceCore().openDatabase(database);
 	}
 
 	/**
@@ -272,15 +123,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public String closeDatabase(String database) {
 
-		boolean ok = sc.closeDatabase(database);
-
-		if (ok == true) {
-
-			sd.setOpenDatabase("no database open");
-
-			return database;
-		} else
-			return "failed";
+		return getSecondoServiceCore().closeDatabase(database);
 	}
 
 	/**
@@ -292,11 +135,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public String logout() {
 
-		sc.disconnect();
-
-		sd.setLoggedIn(false);
-
-		return "ok";
+		return getSecondoServiceCore().logout();
 	}
 
 	/**
@@ -307,7 +146,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public String getOpenDatabase() {
 
-		return sd.getOpenDatabase();
+		return getSecondoServiceCore().getOpenDatabase();
 	}
 
 	/**
@@ -317,7 +156,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 * */
 	@Override
 	public ArrayList<String> getSecondoConnectionData() {
-		return secondoConnectionData;
+		return getSecondoServiceCore().getSecondoConnectionData();
 	}
 
 	/**
@@ -327,7 +166,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 * */
 	@Override
 	public ArrayList<String> getCommandHistory() {
-		return sd.getCommandHistory();
+		return getSecondoServiceCore().getCommandHistory();
 	}
 
 	/**
@@ -338,14 +177,14 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 */
 	@Override
 	public void addCommandToHistory(String command) {
-		sd.getCommandHistory().add(command);
+		getSecondoServiceCore().addCommandToHistory(command);
 	}
 
 	/** This method deletes the command history of the current session */
 	@Override
 	public void deleteCommandHistory() {
 
-		sd.getCommandHistory().clear();
+		getSecondoServiceCore().deleteCommandHistory();
 	}
 
 	/**
@@ -355,7 +194,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 * */
 	@Override
 	public ArrayList<String> getResultHistory() {
-		return sd.getResultHistory();
+		return getSecondoServiceCore().getResultHistory();
 	}
 
 	/**
@@ -366,7 +205,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public ArrayList<String> getFormattedResult() {
 
-		return sc.getFormattedList();
+		return getSecondoServiceCore().getFormattedResult();
 	}
 
 	/**
@@ -377,13 +216,13 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 * */
 	@Override
 	public ArrayList<DataType> getResultTypeList() {
-		return sc.getResultTypeList();
+		return getSecondoServiceCore().getResultTypeList();
 	}
 
 	/** Resets the object counter of the DataTypeConstructor to 1 */
 	@Override
 	public void resetObjectCounter() {
-		sc.resetCounter();
+		getSecondoServiceCore().resetObjectCounter();
 	}
 
 	/**
@@ -396,81 +235,29 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 * */
 	public void saveTextFile(String text, String filename) {
 
-		BufferedWriter writer = null;
-		try {
-			writer = new BufferedWriter(new FileWriter(filename));
-			writer.write(text);
-		} catch (IOException e) {
-		} finally {
-			try {
-				if (writer != null)
-					writer.close();
-			} catch (IOException e) {
-			}
-		}
+		getSecondoServiceCore().saveTextFile(text, filename);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * com.secondo.webgui.client.rpc.SecondoService#saveGPXfileToServer(java
+	 * .lang.String)
+	 */
 	@Override
 	public void saveGPXfileToServer(String filename) {
-		BufferedReader reader = null;
-
-		try {
-			reader = new BufferedReader(new FileReader(filename));
-			reader.read();
-		} catch (IOException e) {
-		} finally {
-			try {
-				if (reader != null)
-					reader.close();
-			} catch (IOException e) {
-			}
-		}
-
+		getSecondoServiceCore().saveGPXfileToServer(filename);
 	}
 
-	public int getNumberOfTuplesInRelationFromResultList() {
-		return sd.getNumberOfSuccessfulReusltsInPatternMatching();
-	}
-
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * com.secondo.webgui.client.rpc.SecondoService#sendMail(java.lang.String)
+	 */
 	public Boolean sendMail(String html) {
-		final String username = "webappsymtraj@gmail.com";
-		final String password = "D5h8ReqDPNx4msckyATu";
-
-		Boolean result = false;
-
-		Properties props = new Properties();
-		props.put("mail.smtp.starttls.enable", "true");
-		props.put("mail.smtp.auth", "true");
-		props.put("mail.transport.protocol", "smtp");
-		props.put("mail.smtp.host", "smtp.gmail.com");
-		props.put("mail.smtp.port", "587");
-
-		Session session = Session.getInstance(props,
-				new javax.mail.Authenticator() {
-					protected PasswordAuthentication getPasswordAuthentication() {
-						return new PasswordAuthentication(username, password);
-					}
-				});
-
-		try {
-
-			Message message = new MimeMessage(session);
-			message.setFrom(new InternetAddress(username));
-			message.setRecipients(Message.RecipientType.TO,
-					InternetAddress.parse("Irina.Russkaya@Fernuni-Hagen.de"));
-			message.setSubject("Support Request");
-			message.setContent(html, "text/html");
-
-			Transport.send(message);
-
-			result = true;
-
-		} catch (MessagingException e) {
-			throw new RuntimeException(e);
-		}
-
-		return result;
-
+		return getSecondoServiceCore().sendMail(html);
 	}
 
 }

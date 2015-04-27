@@ -38,15 +38,9 @@ import org.gwtopenmaps.openlayers.client.feature.VectorFeature;
 import org.gwtopenmaps.openlayers.client.layer.GoogleV3;
 import org.gwtopenmaps.openlayers.client.layer.GoogleV3MapType;
 import org.gwtopenmaps.openlayers.client.layer.GoogleV3Options;
-import org.gwtopenmaps.openlayers.client.layer.Layer;
 import org.gwtopenmaps.openlayers.client.layer.OSM;
 import org.gwtopenmaps.openlayers.client.layer.Vector;
 import org.gwtopenmaps.openlayers.client.Style;
-
-import com.google.gwt.core.client.Callback;
-import com.google.gwt.geolocation.client.Geolocation;
-import com.google.gwt.geolocation.client.Position;
-import com.google.gwt.geolocation.client.PositionError;
 
 import org.gwtopenmaps.openlayers.client.geometry.Point;
 import org.gwtopenmaps.openlayers.client.handler.RegularPolygonHandler;
@@ -57,7 +51,6 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.secondo.webgui.client.controller.MVMLabelController;
 import com.secondo.webgui.client.controller.MVMPointController;
-import com.secondo.webgui.client.controller.MVPointController;
 import com.secondo.webgui.client.controller.MVPolygonController;
 import com.secondo.webgui.client.controller.MVPolylineController;
 import com.secondo.webgui.shared.model.DataType;
@@ -92,9 +85,6 @@ public class MapView extends Composite{
 	 * query
 	 */
 	private Bounds boundsLast = new Bounds();
-
-	/** Controller for point objects */
-	private MVPointController pointController = new MVPointController();
 
 	/** Controller for polyline objects */
 	private MVPolylineController polylineController = new MVPolylineController();
@@ -229,83 +219,6 @@ public class MapView extends Composite{
 		drawRegularPolygon.activate();}
 	}
 
-	/**
-	 * Initializes the map centered on the location of the user; if location is
-	 * not supported from the browser, centered on Hagen
-	 * */
-	private void initGeoLocation() {
-		final Map map = mapWidget.getMap();
-		// Create a marker layer to the current location marker
-		final Vector markerLayer = new Vector("Marker layer");
-		markerLayer.setIsBaseLayer(false);
-		markerLayer.setDisplayInLayerSwitcher(true);
-		markerLayer.setIsVisible(true);
-		map.addLayer(markerLayer);
-		
-
-		// Start GeoLocation stuff (note that the GeoLocation is just plain GWT
-		// stuff)
-		Geolocation geoLocation = Geolocation.getIfSupported();
-
-		if (geoLocation == null) {
-			Window.alert("No GeoLocation support available in this browser :-(");
-			LonLat lonLat = new LonLat(51.3760448, 7.4947253);
-			lonLat.transform("EPSG:4326", "EPSG:900913");
-			map.setCenter(lonLat, 18);
-		} else {
-			final Geolocation.PositionOptions geoOptions = new Geolocation.PositionOptions();
-			geoOptions.setHighAccuracyEnabled(true);
-			
-
-
-			geoLocation.watchPosition(new Callback<Position, PositionError>() {
-				public void onFailure(final PositionError reason) {
-					Window.alert("Something went wrong fetching the geolocation:\n"
-							+ reason);
-
-					LonLat lonLat = new LonLat(51.3760448, 7.4947253);
-					lonLat.transform("EPSG:4326", "EPSG:900913");
-					map.setCenter(lonLat, 18);
-
-				}
-
-				public void onSuccess(final Position result) {
-					// put the received result in an openlayers LonLat
-					// object
-					final LonLat lonLat = new LonLat(result.getCoordinates()
-							.getLongitude(), result.getCoordinates()
-							.getLatitude());
-					lonLat.transform("EPSG:4326", "EPSG:900913"); // transform
-																	// lonlat to
-																	// OSM
-																	// coordinate
-																	// system
-					// Center the map on the received location
-					map.setCenter(lonLat, 18);
-
-					// lets create a vector point on the location
-					Style pointStyle = new Style();
-					pointStyle.setFillColor("red");
-					pointStyle.setStrokeColor("green");
-					pointStyle.setStrokeWidth(2);
-					pointStyle.setFillOpacity(0.9);
-
-					final Point point = new Point(result.getCoordinates()
-							.getLongitude(), result.getCoordinates()
-							.getLatitude());
-					point.transform(DEFAULT_PROJECTION, new Projection(
-							"EPSG:900913")); // transform point to OSM
-												// coordinate system
-					final VectorFeature pointFeature = new VectorFeature(point,
-							pointStyle);					
-					markerLayer.destroyFeatures();
-					markerLayer.addFeature(pointFeature);					
-				}
-			}, geoOptions);
-		}		
-	}
-	
-	
 	/**
 	 * The map will be centered on the defined location (GPX coordinates should be provided)
 	 * @param lon
@@ -446,16 +359,7 @@ public class MapView extends Composite{
 				System.out.println("Type of data from result list: "
 						+ data.getType());
 
-				if (data.getType().equals("Point")) {
-
-					pointController.addPoint(
-							((com.secondo.webgui.shared.model.Point) data)
-									.getY(),
-							((com.secondo.webgui.shared.model.Point) data)
-									.getX(), data.getId(), boundsAll,
-							boundsLast);
-				}
-
+				
 				if (data.getType().equals("Polyline")) {
 					
 					polylineController.addPolyline((Polyline) data, boundsAll, boundsLast);
@@ -499,14 +403,6 @@ public class MapView extends Composite{
 		if (!currentResultTypeList.isEmpty()) {
 			System.out.println("Result list has "+currentResultTypeList.size());
 
-			if (!pointController.getPointMap().isEmpty()) {
-				if (zoomToAll == true) {
-					pointController.showPointOverlays(map, boundsAll);
-				} else {
-					pointController.showPointOverlays(map, boundsLast);
-				}
-			}
-
 			if (!polylineController.getPolylineMap().isEmpty()
 					|| !polylineController.getColoredPolylineMap().isEmpty()) {
 				boolean showWithDifColors = false;
@@ -547,8 +443,7 @@ public class MapView extends Composite{
 	}
 
 	/** Removes all data from the map */
-	public void resetData() {
-		pointController.deleteAllPoints();
+	public void resetData() {		
 		polylineController.deleteAllPolylines();
 		polylineController.deleteAllValuesFromMPandML();
 		polygonController.deleteAllPolygonPoints();
@@ -677,15 +572,6 @@ public class MapView extends Composite{
 	 * */
 	public Map getMap() {
 		return map;
-	}
-
-	/**
-	 * Returns the point controller of the map view
-	 * 
-	 * @return The point controller of the map view
-	 * */
-	public MVPointController getPointController() {
-		return pointController;
 	}
 
 	/**

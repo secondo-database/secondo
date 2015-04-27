@@ -19,14 +19,10 @@
 
 package com.secondo.webgui.client.controller;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 
 import org.gwtopenmaps.openlayers.client.Projection;
 import org.gwtopenmaps.openlayers.client.geometry.Point;
-import org.gwtopenmaps.openlayers.client.popup.Popup;
-
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.user.client.Timer;
@@ -38,13 +34,12 @@ import com.secondo.webgui.client.mainview.MainView;
 import com.secondo.webgui.client.rpc.SecondoService;
 import com.secondo.webgui.client.rpc.SecondoServiceAsync;
 import com.secondo.webgui.shared.model.DataType;
-import com.sun.java.swing.plaf.windows.resources.windows;
 
 /**
  * This class is responsible for RPC-Calls to the server side of the
  * application.
  * 
- * @author Kristina Steiger
+ * @author Irina Russkaya
  */
 public class RPCConnector {
 
@@ -55,6 +50,7 @@ public class RPCConnector {
 	private PopupPanel loadingPopup;
 	private String currentCommand = "";
 	private String commandForCount = "";
+	private boolean countLoaded = false;
 
 	/**
 	 * The standard message displayed to the user when the server cannot be
@@ -91,6 +87,7 @@ public class RPCConnector {
 		this.loadingPopup = lp;
 		this.currentCommand = command;
 		this.commandForCount = command2;
+		countLoaded = false;
 
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
@@ -109,45 +106,8 @@ public class RPCConnector {
 					pasteTextInResultInfoLabel("Error in executing query");
 
 					loadingPopup.hide();
+
 				} else {
-
-					if (mainView.getOptionsTabPanel()
-							.isPatternMatchingIsInitiated()) {
-						// setNumberOfTuplesInPatternMatchingResult(commandForCount,
-						// mainView, loadingPopup);
-						mainView.getOptionsTabPanel()
-								.setTextInResultOfPatternMatchingLabel(
-										"Result is shown on the map");
-						// setNumberOfTuplesInRelationFromResultList( mainView);
-					}
-					if (mainView.getOptionsTabPanel()
-							.isSimpleQueryForPassesIsInitiated()) {
-						mainView.getOptionsTabPanel()
-								.getSimpleQueriesStackPanel().getPassesPanel()
-								.getResultInfoLabel()
-								.setText("Result is shown on the map");
-						mainView.getOptionsTabPanel()
-								.getSimpleQueriesStackPanel().getPassesPanel()
-								.hideNumberOfTrajectoriesToBeShownPanel();
-
-					}
-					if (mainView.getOptionsTabPanel()
-							.isSimpleQueryForPassesTrhoughRegionsInitiated()) {
-						mainView.getOptionsTabPanel()
-								.getSimpleQueriesStackPanel()
-								.getPassesThroughRegionPanel()
-								.getResultInfoLabel()
-								.setText("Result is shown on the map");
-						mainView.getOptionsTabPanel()
-								.getSimpleQueriesStackPanel()
-								.getPassesThroughRegionPanel()
-								.hideNumberOfTrajectoriesToBeShownPanel();
-					}
-					// else {
-					// setNumberOfTuplesInSampleRelation(commandForCount);
-					// }
-
-					updateCommandHistory(mainView);
 
 					// put secondo data into the corresponding views
 					setTextView(mainView, loadingPopup);
@@ -174,21 +134,8 @@ public class RPCConnector {
 							// check if data in map and graphical view is loaded
 							if (mainView.isMapTurnedOn()) {
 
-								if (mainView.getMapView().isDataLoaded()) {
-									// if textpanel is turned on, wait for text
-									// to be loaded
-									if (mainView.isTextTurnedOn()) {
-										if (mainView.getMainheader()
-												.getTextViewOfTrajInDialog()
-												.isDataLoaded()
-												&& mainView.getMapView()
-														.isDataLoaded()) {
-											counter = maxCount;
-										}
-									} else {
-										counter = maxCount;
-
-									}
+								if (countLoaded) {
+									counter = maxCount;
 								}
 								counter++;
 							}
@@ -203,8 +150,46 @@ public class RPCConnector {
 	}
 
 	/**
-	 * Sets the specified String in the result info label of pattern or simple
-	 * query panel
+	 * Sends to Secondo a command for counting a loaded relation and sets the
+	 * result value (int number of tuples) in info label
+	 */
+	private void executeCountCommandAndSetNumberOfTuples() {
+		if (mainView.getOptionsTabPanel().isPatternMatchingIsInitiated()) {
+			// setNumberOfTuplesInPatternMatchingResult(commandForCount,
+			// mainView, loadingPopup);
+			mainView.getOptionsTabPanel()
+					.setTextInResultOfPatternMatchingLabel(
+							"Result is shown on the map");
+			countLoaded = true;
+			// setNumberOfTuplesInRelationFromResultList( mainView);
+		}
+		if (mainView.getOptionsTabPanel().isSimpleQueryForPassesIsInitiated()) {
+			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+					.getPassesPanel().getResultInfoLabel()
+					.setText("Result is shown on the map");
+			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+					.getPassesPanel().hideNumberOfTrajectoriesToBeShownPanel();
+			countLoaded = true;
+
+		}
+		if (mainView.getOptionsTabPanel()
+				.isSimpleQueryForPassesTrhoughRegionsInitiated()) {
+			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+					.getPassesThroughRegionPanel().getResultInfoLabel()
+					.setText("Result is shown on the map");
+			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+					.getPassesThroughRegionPanel()
+					.hideNumberOfTrajectoriesToBeShownPanel();
+			countLoaded = true;
+		} else {
+			setNumberOfTuplesInSampleRelation(commandForCount);
+		}
+	}
+
+	/**
+	 * Sets the specified String in the result info label of pattern and simple
+	 * query panel or displays it in a dialog box 	 
+	 * @param text message to be displayed
 	 */
 	private void pasteTextInResultInfoLabel(String text) {
 		if (mainView.getOptionsTabPanel().isSimpleQueryForPassesIsInitiated()) {
@@ -231,70 +216,12 @@ public class RPCConnector {
 	}
 
 	/**
-	 * Starts an RPC call to the server to get the command history and update
-	 * the dropdownlist for command history
-	 * 
-	 * @param mv
-	 *            The main view object
-	 * */
-	public void updateCommandHistory(MainView mv) {
-
-		this.mainView = mv;
-
-		AsyncCallback<ArrayList<String>> callback = new AsyncCallback<ArrayList<String>>() {
-
-			@Override
-			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);
-			}
-
-			@Override
-			public void onSuccess(ArrayList<String> commandHistory) {
-
-				// mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().clear();
-				// mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().addItem("Command History...");
-
-				for (String command : commandHistory) {
-					// mainView.getCommandPanel().getMenubarCP().getCommandHistoryBox().addItem(command);
-				}
-			}
-		};
-		secondoService.getCommandHistory(callback);
-	}
-
-	/**
-	 * Starts an RPC call to the server to add a command to the command history
-	 * in the sessiondata-object
-	 * 
-	 * @param command
-	 *            The command to be added to the commandhistory.
-	 * */
-	public void addCommandToHistory(String command) {
-
-		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
-
-			@Override
-			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);
-			}
-
-			@Override
-			public void onSuccess(Void result) {
-
-				System.out
-						.println("####### Command is added to CommandHistory.");
-			}
-		};
-		secondoService.addCommandToHistory(command, callback);
-	}
-
-	/**
 	 * Starts an RPC call to the server, gets the formatted text result and
 	 * displays it in the text view
 	 * 
-	 * @param mv
-	 *            The main view object
-	 * */
+	 * @param mv  The main view object	
+	 * @param lp  The loading popup object 
+	 */
 	public void setTextView(MainView mv, PopupPanel lp) {
 
 		this.mainView = mv;
@@ -346,23 +273,12 @@ public class RPCConnector {
 
 		AsyncCallback<ArrayList<DataType>> callback = new AsyncCallback<ArrayList<DataType>>() {
 
-			public String stackTraceToString(Throwable e) {
-				StringBuilder sb = new StringBuilder();
-				for (StackTraceElement element : e.getStackTrace()) {
-					sb.append(element.toString());
-					sb.append("\n");
-				}
-				return sb.toString();
-			}
 
 			@Override
 			public void onFailure(Throwable caught) {
-				String stackTrace = stackTraceToString(caught);
 
-				Window.alert(SERVER_ERROR + "Message:" + caught.getMessage()
-						+ " StackTrace:" + stackTrace);
-				loadingPopup.hide();
-				mainView.getGraphicalView().setDataLoaded(true);
+				Window.alert(SERVER_ERROR);
+				loadingPopup.hide();				
 				mainView.getMapView().setDataLoaded(true);
 			}
 
@@ -370,22 +286,16 @@ public class RPCConnector {
 			public void onSuccess(ArrayList<DataType> result) {
 
 				mainView.getMapView().getCurrentResultTypeList().clear();
-				mainView.getMapView().clearControllers();
-				mainView.getGraphicalView().getCurrentResultList().clear();
+				mainView.getMapView().clearControllers();				
 
 				if (!result.isEmpty()) {
 
-					mainView.getToolbox().getResultList().add(result);
-
 					for (DataType datatype : result) {
 						mainView.getMapView().getCurrentResultTypeList()
-								.add(datatype);
-						mainView.getGraphicalView().getCurrentResultList()
-								.add(datatype);
+								.add(datatype);						
 					}
 					// initialize data in views
 					mainView.getMapView().initializeOverlays();
-					mainView.getGraphicalView().initDataTypes();
 
 					// start timer to wait for data being initialized
 					Timer timer = new Timer() {
@@ -405,28 +315,20 @@ public class RPCConnector {
 								cancel();
 								return;
 							}
-							if (mainView.getMapView().isDataInitialized()
-									&& mainView.getGraphicalView()
-											.isDataInitialized()) {
+							if (mainView.getMapView().isDataInitialized()) {
 								counter = maxCount;
 							}
 							counter++;
 						}
 					};
 					timer.scheduleRepeating(500);
-
-					mainView.getToolbox().updateObjectList();
-
-					// Add changehandler to query checkboxes
-					mainView.addQueryCheckBoxChangeHandler();
-					mainView.addObjectCheckboxChangeHandler();
+					
 				}
 				// resultlist is empty
 				else {
-					mainView.getGraphicalView().setDataLoaded(true);
 					mainView.getMapView().setDataLoaded(true);
 				}
-				setNumberOfTuplesInSampleRelation(commandForCount);
+				executeCountCommandAndSetNumberOfTuples();
 			}
 		};
 		secondoService.getResultTypeList(callback);
@@ -436,9 +338,9 @@ public class RPCConnector {
 	 * Starts an RPC call to the server to write a string to a textfile
 	 * 
 	 * @param text
-	 *            Text to be saved in the textfile
+	 *            The text to be saved in the textfile
 	 * @param filename
-	 *            Name of the textfile
+	 *            The name of the textfile
 	 * */
 	public void saveTextFile(String text, String filename) {
 
@@ -769,9 +671,7 @@ public class RPCConnector {
 								cancel();
 								return;
 							}
-							if (mainView.getMapView().isDataInitialized()
-									&& mainView.getGraphicalView()
-											.isDataInitialized()) {
+							if (mainView.getMapView().isDataInitialized()) {
 								counter = maxCount;
 							}
 							counter++;
@@ -839,40 +739,10 @@ public class RPCConnector {
 	public void sendCommandAndUpdateHistory(String command, String command2,
 			MainView mv, PopupPanel lp) {
 		sendCommand(command, command2, mv, lp);
-		addCommandToHistory(command);
-		updateCommandHistory(mv);
 
 	}
 
-	/**
-	 * sets number of tuples and shows a result in pattern result part of
-	 * options tabs
-	 * 
-	 * @param mv
-	 */
-	public void setNumberOfTuplesInRelationFromResultList(final MainView mv) {
-
-		AsyncCallback<Integer> callback = new AsyncCallback<Integer>() {
-
-			@Override
-			public void onFailure(Throwable caught) {
-				Window.alert(SERVER_ERROR);
-
-			}
-
-			@Override
-			public void onSuccess(Integer result) {
-
-				mv.getOptionsTabPanel().setTextInResultOfPatternMatchingLabel(
-						"Result of pattern matching: " + result.toString());
-				mv.getOptionsTabPanel().setPatternMatchingIsInitiated(false);
-
-			}
-		};
-		secondoService.getNumberOfTuplesInRelationFromResultList(callback);
-
-	}
-
+	
 	/**
 	 * Sends command for count the opened relation to Secondo and updates label
 	 * "number of tuples in relation" with returned int or error message
@@ -910,6 +780,8 @@ public class RPCConnector {
 								.setText(result + " tuples");
 					}
 				}
+				countLoaded = true;
+
 			}
 		};
 		secondoService.sendCommand(command, callback);

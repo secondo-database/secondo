@@ -63,7 +63,8 @@ public class SymTrajDialog {
 				"( (2013-01-17-9:18:44, 2013-01-17-9:20:10, TRUE, FALSE), \"Queen Anne St\") ><p>" +
 				"Each line of the quoted moving label corresponds to a so-called unit label, i.e., "+
 				"a combination of a time interval and a description. The boolean expressions "+
-				"indicate whether the start and end instant belong to the interval, respectively.");
+				"indicate whether the start and end instant belong to the interval, respectively."
+				+ "<p><a href=\"http://dna.fernuni-hagen.de/papers/SymbolicTrajectories369.pdf\">More info</a></p>");
 		
 		// Add the text to the dialog
 	    scrollContent.add(symTrajInfo);

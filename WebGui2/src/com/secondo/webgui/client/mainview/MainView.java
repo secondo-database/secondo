@@ -69,7 +69,6 @@ public class MainView extends Composite {
 	// different views that can be displayed in the viewpanel
 	private HorizontalPanel view = new HorizontalPanel();
 	private RawDataView rawDataView = new RawDataView();	
-	private GraphicalView graphicalView = new GraphicalView();
 	private MapView mapView = new MapView();
 	private ToolBox toolbox = new ToolBox();
 	
@@ -262,10 +261,7 @@ public class MainView extends Composite {
 			
 			mapView.resizeToFullScreen(width, height, optionsTabPanel.getOptionsTabPanel().getElement().getClientHeight());			
 			mapView.updateView();
-		} else {
-			graphicalView.resizeToFullScreen(width, height);
-			graphicalView.updateView();
-		}
+		} 
 
 	}
 
@@ -321,209 +317,6 @@ public class MainView extends Composite {
 	}
 
 	
-
-	/**Adds EventChangeHandler to all Checkboxes of Querys in the Object List of the ToolBox */
-	public void addQueryCheckBoxChangeHandler() {
-
-		if (!toolbox.getQueryBoxes().isEmpty()) {
-
-			// add handler to all Query checkboxes
-			for (Entry<Number, CheckBox> e : toolbox.getQueryBoxes().entrySet()) {
-
-				final int resultIndex = (Integer) e.getKey();
-				CheckBox cb = e.getValue();
-
-				// set all checkboxes to selected
-				cb.setValue(true);
-
-				cb.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
-
-					@Override
-					public void onValueChange(ValueChangeEvent<Boolean> event) {
-
-						// checkbox is checked
-						if (event.getValue() == true) {
-
-							// show all datatypes in selected query
-							for (DataType datatype : toolbox.getResultList()
-									.get(resultIndex)) { // get list with datatypes from the query that equals the counter
-
-								// Map View
-								if (mapTurnedOn) {
-
-									if (datatype.getType().equals("Polygon")) {
-										mapView.getPolygonController().showPolygonObject((Polygon) datatype);
-									}
-									if (datatype.getType().equals("Polyline")) {
-										mapView.getPolylineController().showPolylineObject((Polyline) datatype);
-									}
-									if (datatype.getType().equals("Point")) {
-										mapView.getPointController().showPointObject((Point) datatype);
-									}
-									if (datatype.getType().equals("MPoint")) {
-										// mapView.getMpointController().showMPointObject((MPoint)datatype);
-									}
-								// Graphical View	
-								} else { 
-									if (datatype.getType().equals("Point")) {
-										graphicalView.getPointController().showPoint(datatype.getId(), datatype.getColor());
-									}
-									if (datatype.getType().equals("Polygon")) {
-										graphicalView.getPolygonController().showPolygon(datatype.getId(), datatype.getColor());
-									}
-									if (datatype.getType().equals("Polyline")) {
-										graphicalView.getPolylineController().showPolylineObject((Polyline) datatype);
-									}
-									if (datatype.getType().equals("MPoint")) {
-										// graphicalView.getMpointController().showMovingPoint((MPoint)datatype);
-									}
-								}
-								// set object checkbox to selected, if objects has attributes
-								if (!datatype.getAttributeList().isEmpty()) {
-									toolbox.getObjectBoxes().get(datatype.getId()).setValue(true);
-								}
-							}
-						} else {
-							for (DataType datatype : toolbox.getResultList().get(resultIndex)) {
-
-								if (mapTurnedOn) {
-									if (datatype.getType().equals("Polygon")) {
-										mapView.getPolygonController().hidePolygonObject((Polygon) datatype);
-									}
-									if (datatype.getType().equals("Polyline")) {
-										mapView.getPolylineController().hidePolylineObject((Polyline) datatype);
-									}
-									if (datatype.getType().equals("Point")) {
-										mapView.getPointController().hidePointObject((Point) datatype);
-									}
-									if (datatype.getType().equals("MPoint")) {
-										// mapView.getMpointController().hideMPointObject((MPoint)datatype);
-									}
-								} else {
-									if (datatype.getType().equals("Point")) {
-										graphicalView.getPointController().hidePoint(datatype.getId());
-									}
-									if (datatype.getType().equals("Polygon")) {
-										graphicalView.getPolygonController().hidePolygon(datatype.getId());
-									}
-									if (datatype.getType().equals("Polyline")) {
-										graphicalView.getPolylineController().removePolyline(datatype.getId());
-									}
-									if (datatype.getType().equals("MPoint")) {
-										// graphicalView.getMpointController().removeMovingPoint(datatype.getId());
-									}
-								}
-								// set object checkbox to unselected
-								if (!datatype.getAttributeList().isEmpty()) {
-									toolbox.getObjectBoxes().get(datatype.getId()).setValue(false);
-								}
-							}
-						}
-					}
-				});
-			}
-		}
-	}
-
-	/** Adds EventChangeHandler to all Checkboxes of Objects in the Object List of the ToolBox */
-	public void addObjectCheckboxChangeHandler() {
-
-		if (!toolbox.getObjectBoxes().isEmpty()) {
-
-			// add handler to all Query checkboxes
-			for (Entry<Number, CheckBox> e : toolbox.getObjectBoxes().entrySet()) {
-
-				final int objectId = (Integer) e.getKey();
-				CheckBox cb = e.getValue();
-
-				// set all checkboxes to selected
-				cb.setValue(true);
-
-				cb.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
-
-					@Override
-					public void onValueChange(ValueChangeEvent<Boolean> event) {
-
-						if (event.getValue() == true) { // checkbox is checked
-
-							// search for the object with the given id
-							for (ArrayList<DataType> queryList : toolbox.getResultList()) {
-								for (DataType datatype : queryList) {
-									if (datatype.getId() == objectId) {
-										if (mapTurnedOn) {
-											if (datatype.getType().equals("Polygon")) {
-												mapView.getPolygonController().showPolygonObject((Polygon) datatype);
-											}
-											if (datatype.getType().equals("Polyline")) {
-												mapView.getPolylineController().showPolylineObject((Polyline) datatype);
-											}
-											if (datatype.getType().equals("Point")) {
-												mapView.getPointController().showPointObject((Point) datatype);
-											}
-											if (datatype.getType().equals("MPoint")) {
-												// mapView.getMpointController().showMPointObject((MPoint)datatype);
-											}
-										} else {
-											if (datatype.getType().equals("Point")) {
-												graphicalView.getPointController().showPoint(datatype.getId(), datatype.getColor());
-											}
-											if (datatype.getType().equals("Polygon")) {
-												graphicalView.getPolygonController().showPolygon(datatype.getId(), datatype.getColor());
-											}
-											if (datatype.getType().equals("Polyline")) {
-												graphicalView.getPolylineController().showPolylineObject((Polyline) datatype);
-											}
-											if (datatype.getType().equals("MPoint")) {
-												// graphicalView.getMpointController().showMovingPoint((MPoint)datatype);
-											}
-										}
-									}
-								}
-							}
-
-						}
-
-						else {
-							// search for the object with the given id
-							for (ArrayList<DataType> queryList : toolbox.getResultList()) {
-								for (DataType datatype : queryList) {
-									if (datatype.getId() == objectId) {
-										if (mapTurnedOn) {
-											if (datatype.getType().equals("Polygon")) {
-												mapView.getPolygonController().hidePolygonObject((Polygon) datatype);
-											}
-											if (datatype.getType().equals("Polyline")) {
-												mapView.getPolylineController().hidePolylineObject((Polyline) datatype);
-											}
-											if (datatype.getType().equals("Point")) {
-												mapView.getPointController().hidePointObject((Point) datatype);
-											}
-											if (datatype.getType().equals("MPoint")) {
-												// mapView.getMpointController().hideMPointObject((MPoint)datatype);
-											}
-										} else {
-											if (datatype.getType().equals("Point")) {
-												graphicalView.getPointController().hidePoint(datatype.getId());
-											}
-											if (datatype.getType().equals("Polygon")) {
-												graphicalView.getPolygonController().hidePolygon(datatype.getId());
-											}
-											if (datatype.getType().equals("Polyline")) {
-												graphicalView.getPolylineController().removePolyline(datatype.getId());
-											}
-											if (datatype.getType().equals("MPoint")) {
-												// graphicalView.getMpointController().removeMovingPoint(datatype.getId());
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				});
-			}
-		}
-	}
 
 	/**Returns for the given index of the radiobutton in the list the corresponding color
 	 * 
@@ -592,14 +385,6 @@ public class MainView extends Composite {
 	}
 
 	
-
-	/**Returns the graphical view object
-	 * 
-	 * @return The graphical view object
-	 * */
-	public GraphicalView getGraphicalView() {
-		return graphicalView;
-	}
 
 	/**Returns the map view object
 	 * 

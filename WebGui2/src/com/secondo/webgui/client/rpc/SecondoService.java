@@ -37,16 +37,10 @@ public interface SecondoService extends RemoteService {
 	
 	//secondo connection
 	String sendCommand(String command);
-	void setSecondoConnectionData(ArrayList<String> data);
-	ArrayList<String> updateDatabaseList();
+	void setSecondoConnectionData(ArrayList<String> data);	
 	String openDatabase(String database);
 	String closeDatabase(String database);
 	String logout();
-	
-	//optimizer connection
-	String setOptimizerConnection(String Host, int Port);
-	ArrayList<String> getOptimizerConnectionData();
-	ArrayList<String> getOptimizedQuery(String command, String database, boolean executeFlag);
 	
 	/*get Secondo-Data*/
 	ArrayList<String> getFormattedResult();
@@ -66,8 +60,7 @@ public interface SecondoService extends RemoteService {
 	void saveTextFile(String text, String filename);
 	public void saveGPXfileToServer(String filename);
 	
-	String sendCommandWithoutResult(String command);
-	int getNumberOfTuplesInRelationFromResultList();
+	String sendCommandWithoutResult(String command);	
 	Boolean sendMail(String html);
 	
 }
