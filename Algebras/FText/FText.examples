@@ -1243,3 +1243,19 @@ Number : 1
 Signature : int -> text
 Example  : query errorMessage(0)
 Result   : 'Secondo: No Error!'
+
+
+Operator : text2filepath 
+Number : 1
+Signature : text -> filepath
+Example  : query filepath2text(text2filepath('C:\private\secure.txt')) = 'C:\private\secure.txt'
+Result   : TRUE
+
+
+Operator : filepath2text
+Number : 1
+Signature : filepath -> text
+Example  : query filepath2text(text2filepath('C:\private\secure.txt')) = 'C:\private\secure.txt'
+Result   : TRUE
+
+

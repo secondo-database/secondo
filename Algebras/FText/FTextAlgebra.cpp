@@ -11605,6 +11605,76 @@ Operator errorMessageOP(
 );
 
 
+/*
+4.42 Conversion between filepath and ftext
+
+*/
+ListExpr text2filepathTM(ListExpr args){
+  string err = "text expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  } 
+  if(!FText::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return nl->SymbolAtom("filepath");
+}
+
+ListExpr filepath2textTM(ListExpr args){
+  string err = "text expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  } 
+  if(!listutils::isSymbol(nl->First(args),"filepath")){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<FText>();
+}
+
+
+int filepath2textVM( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  FText* res = (FText*) result.addr;
+  FText* arg = (FText*) args[0].addr;
+  res->CopyFrom(arg);
+  return 0;
+}
+
+OperatorSpec text2filepathSpec(
+  " text -> filepath",
+  " text2filepath(_)",
+  " converts a text into a filepath",
+  " query filepath2text(text2filepath('C/home'))"
+);
+
+OperatorSpec filepath2textSpec(
+  " filepath -> text",
+  " filepath2text(_)",
+  " converts a filepath into a text",
+  " query filepath2text(text2filepath('C/home'))"
+);
+
+
+
+Operator text2filepathOP(
+  "text2filepath",
+  text2filepathSpec.getStr(),
+  filepath2textVM,
+  Operator::SimpleSelect,
+  text2filepathTM
+);
+
+
+Operator filepath2textOP(
+  "filepath2text",
+  filepath2textSpec.getStr(),
+  filepath2textVM,
+  Operator::SimpleSelect,
+  filepath2textTM
+);
+
 
 
 
@@ -11743,6 +11813,9 @@ Operator errorMessageOP(
 
       AddOperator(&messageTestOP);
       AddOperator(&errorMessageOP);
+
+      AddOperator(&filepath2textOP);
+      AddOperator(&text2filepathOP);
 
 
 #ifdef RECODE
