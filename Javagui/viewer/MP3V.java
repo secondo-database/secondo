@@ -24,6 +24,7 @@ import  java.awt.*;
 import  java.awt.event.*;
 import  java.net.URL;
 import  java.io.*;
+import  javazoom.jl.player.advanced.*;
 import  javazoom.jl.player.*;
 import  java.util.Properties;
 import  java.util.Vector;
@@ -45,7 +46,8 @@ import viewer.hoese.DsplGeneric;
 
 
 interface PositionUpdater{
-   void updatePosition(int milliseconds);
+   void updatePosition(int frame);
+   void endReached();
 }
 
 /** The class MP3V implements a viewer for MP3, ID3 and Lyrics.
@@ -68,6 +70,9 @@ public class MP3V extends SecondoViewer
     private JTextField id3Comment;
     private JTextField id3Genre;
     private JTextField id3TrackNo;
+
+    private ImageIcon playIcon = new ImageIcon("res/play2.png");
+    private ImageIcon pauseIcon = new ImageIcon("res/pause2.png");
 
     /* In this text field general information about an MP3, ID3
        or lyrics object is shown.
@@ -103,6 +108,7 @@ public class MP3V extends SecondoViewer
     private static final int STRINGTYPE = 5;
     private static final int INTTYPE = 6;
     private static final int LYRICSTYPE = 7;
+    private static final int FILEPATHTYPE = 8;
 
     /* typeselect indicates supported types for this viewer. */
     private int typeselect;
@@ -118,6 +124,8 @@ public class MP3V extends SecondoViewer
     /* This ListExpr songbuffer contains the MP3 that has to be
        provided for the MP3 player if needed. */
     private ListExpr songbuffer;
+    private ListExpr filepath;
+
     /* The ListExpr lyricsbuffer contains the Lyrics data that
        has to be provided for the lyrics thread. */
     private ListExpr lyricsbuffer;
@@ -209,6 +217,7 @@ public class MP3V extends SecondoViewer
     StopPlay ();
     StopLyrics ();
     songbuffer=null;
+    filepath = null;
     lyricsbuffer=null;
 
     /* textareas and infofields have to be initialized*/
@@ -230,11 +239,20 @@ public class MP3V extends SecondoViewer
        given position (nroftype) */
     for (i=1;i<=numberofattr;i++) {
         if (runnerattr.first().second().symbolValue().equals ("mp3")) {
-        if (counter == nroftype) {
-            songbuffer = runnertupel.first();
-            StartPlay ();
+          if (counter == nroftype) {
+             songbuffer = runnertupel.first();
+             filepath = null;
+             StartPlay();
+          }
+          counter++;
         }
-        counter++;
+        if (runnerattr.first().second().symbolValue().equals ("filepath")) {
+         if (counter == nroftype) {
+               filepath = runnertupel.first();;
+               songbuffer = null;
+               StartPlay();
+          }
+          counter++;
         }
         runnerattr = runnerattr.rest();
         runnertupel = runnertupel.rest();
@@ -427,12 +445,16 @@ public class MP3V extends SecondoViewer
     }
 
 
-  public void updatePosition(int milliseconds){
-     if(milliseconds<0){
+  public void updatePosition(int frame){
+     if(frame<0){
         positionLabel.setText("");
      } else {
-        positionLabel.setText("" + milliseconds + " ms");
+        positionLabel.setText("frame : " + frame);
      }
+  }
+
+  public void endReached(){
+    PauseButton.setIcon(playIcon);
   }
 
 
@@ -560,6 +582,7 @@ public class MP3V extends SecondoViewer
     StopPlay();
     StopLyrics();
     songbuffer=null;
+    filepath = null;
     lyricsbuffer=null;
     mychoice.removeAll();
     mychoice.setListData(new Vector());
@@ -579,23 +602,50 @@ public class MP3V extends SecondoViewer
     }
 
     /* starts the MP3 player. */
-    private void StartPlay () {
+    private void StartPlay() {
     try {
-        StopPlay();
-
-        /* if the mp3 is not defined we have to print
-           "UNDEFINED" in the infoarea */
-        if (DsplGeneric.isUndefined(songbuffer)){
-        infoarea.setText ("Song: UNDEFINED");
-        }
-        else if (songbuffer!=null) {
-        /* songbuffer is not empty. */
-        player = new PlayerThread(songbuffer,this);
-        player.start();
+      
+         if(player!=null){ 
+             if(player.isRunning()){ 
+                player.close();
+                PauseButton.setIcon(playIcon); 
+                return;
+             } 
+         } 
+         if(songbuffer==null && filepath==null){
+            // no data available
+            return;
+         }
+         if(songbuffer!=null){
+            if (DsplGeneric.isUndefined(songbuffer)){
+                infoarea.setText ("Song: UNDEFINED");
+            } else {
+             /* songbuffer is not empty. */
+            if(player==null){
+               player = new PlayerThread(songbuffer,this);
+               player.start();
+            } else {
+                player.continuePlayback();
+            }
+            PauseButton.setIcon(pauseIcon);
+           }
+        } else { // filepath variant
+            if (DsplGeneric.isUndefined(filepath)){
+                infoarea.setText ("FSong: UNDEFINED");
+            } else {
+              if(player==null){
+                 player = new PlayerThread(filepath.textValue(),this);
+                 player.start();
+              } else {
+                  player.continuePlayback();
+              }
+              PauseButton.setIcon(pauseIcon);
+            }
         }
     }
     catch(Exception e){
       Reporter.writeError("Error in player");
+      e.printStackTrace();
    }
     }
 
@@ -729,10 +779,15 @@ public class MP3V extends SecondoViewer
     {
         /* This object contains an MP3 */
         songbuffer = obj.toListExpr().second();
+        filepath = null;
         lyricsbuffer = null;
-        StartPlay ();
-    }
-    else if (typeselect == ID3V10TYPE || typeselect == ID3V11TYPE)
+        StartPlay();
+    } else if(typeselect == FILEPATHTYPE){
+        songbuffer = null;
+        filepath = obj.toListExpr().second();
+        lyricsbuffer = null;
+        StartPlay();
+    } else if (typeselect == ID3V10TYPE || typeselect == ID3V11TYPE)
         /* This object is an ID3. (v1.0 or v1.1) */
         DisplayID3 (obj.toListExpr().second());
     else if (typeselect == LYRICSTYPE)
@@ -843,6 +898,7 @@ public class MP3V extends SecondoViewer
     /** needed for the Java viewer. This viewer can
     display: MP3, ID3, Lyrics, int, string and relation of these types. */
     public boolean canDisplay(SecondoObject obj){
+
     ListExpr LE = obj.toListExpr();
 
     if(LE.listLength() == 2) {
@@ -859,6 +915,17 @@ public class MP3V extends SecondoViewer
             } else {
             return false;
             }
+        } else if(LE.first().symbolValue().equals("filepath")){
+            if (LE.second().atomType()==ListExpr.TEXT_ATOM ||
+            LE.second().atomType()==ListExpr.SYMBOL_ATOM )  {
+            /* This nested list contains the MP3 data
+               which can be displayed. */
+            typeselect = FILEPATHTYPE;
+            return true;
+            } else {
+            return false;
+            }
+
         } else if (LE.first().symbolValue().equals("id3") ) {
             if (LE.second().listLength() == 6) {
             /* This nested list contains the ID3 data
@@ -955,21 +1022,40 @@ public class MP3V extends SecondoViewer
 
     /* This class is used to start a seperate thread witch plays
        MP3 songs. */
-   private class PlayerThread extends Thread implements Runnable {
+   private class PlayerThread extends PlaybackListener implements Runnable {
+
+
 
     PlayerThread(ListExpr LE, PositionUpdater listener){
         this.listener = listener;
-        try {
-           P = new Player(LE.decodeText());
-        } catch(Exception e){}
+        lastFrame = 0;
+        this.listSource = LE;
+        this.fileSource = null;
+        running = false;
+        in = null;
+    }
+    
+    PlayerThread(String filename, PositionUpdater listener){
+        this.listener = listener;
+        lastFrame = 0;
+        this.listSource = null;
+        this.fileSource = new File(filename);
+        running = false;
+        in = null;
     }
 
     public void run(){
         if(P != null) {
           try {
-             pe = new PositionExtractor(P,listener);
-             (new Thread(pe)).start();
-             P.play();
+             if(listener!=null){
+               listener.updatePosition(-1);
+             }
+             running = true;
+             P.play(lastFrame, Integer.MAX_VALUE);
+             if(listener!=null){
+                 listener.endReached();
+             }
+             close();
           } catch(Exception e){
              e.printStackTrace();
              Reporter.debug(e);
@@ -977,56 +1063,98 @@ public class MP3V extends SecondoViewer
        } 
     }
 
+    public void start(){
+       if(running){
+          return;
+       }
+        try {
+           if(!createPlayer()){
+             System.err.println("problen in player creatioon");
+             return ;
+           }
+           P.setPlayBackListener(this);
+        } catch(Exception e){}
+        lastFrame = 0;
+        (new Thread(this)).start();
+    }
+
     public void close(){
-        if(pe!=null){
-           pe.stop();
-        } 
         if(P != null){
-           P.close();
+           try{
+              P.stop();
+           }catch(Exception e){}
+        }
+        if(in!=null){
+           try{
+            in.close();
+           } catch(Exception e){}
+           in = null;
+        }
+        running = false;
+    }
+
+    boolean isRunning(){
+         return running;
+    }
+
+    public void continuePlayback(){
+        try {
+           if(!createPlayer()){
+               Reporter.debug("problen in playerc creation");
+               return;
+           }
+           P.setPlayBackListener(this);
+        } catch(Exception e){}
+        try{
+           (new Thread(this)).start();
+        } catch(Exception e){
+           Reporter.debug(e);
         }
     }
 
-    Player P = null;
+
+    public void playbackFinished(PlaybackEvent evt){
+        lastFrame += evt.getFrame();
+        listener.updatePosition(lastFrame);
+    }
+
+    public void playbackStarted(PlaybackEvent evt){
+
+    }
+
+    private boolean createPlayer(){
+       try{
+          if(listSource!=null){
+               P = new AdvancedPlayer(listSource.decodeText());
+          } else if(fileSource!=null){
+              try{
+                if(in!=null){
+                    try{
+                       in.close();
+                    } catch(Exception e){}
+                }
+                in = null;
+                in = new BufferedInputStream(new FileInputStream(fileSource));
+              } catch(Exception e){
+                return false;
+              }
+              P = new AdvancedPlayer(in);
+          }
+        } catch(Exception ep){
+           Reporter.debug(ep);
+           return false;
+        }
+        return true;
+    }
+
+    AdvancedPlayer P = null;
     PositionUpdater listener;
-    PositionExtractor pe;
-
-    private class PositionExtractor implements Runnable{
-       PositionExtractor(Player p, PositionUpdater listener){
-            this.listener = listener;
-            this.player = p;
-            this.stop = p==null;
-       }
-      
-       void stop(){
-           stop = true;
-       }
-
-       public void run(){
-         while(!stop){
-           if(player!=null) {
-             int pos = player.getPosition();
-             if(listener!=null){
-                listener.updatePosition(pos);
-             }
-             try{
-                Thread.sleep(100);
-              } catch(Exception e){}
-           } else {
-             stop = true;
-           }
-         }
-       }
-
-       Player player;
-       PositionUpdater listener;
-       boolean stop;
-
-
-    }
-
-
-
-    }
+    int lastFrame;
+    ListExpr listSource;
+    File fileSource;
+    boolean running;
+    BufferedInputStream in;
+  }
 
 
 
