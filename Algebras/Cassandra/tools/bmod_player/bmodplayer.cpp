@@ -228,9 +228,16 @@ public:
         AbstractProducer(myConfiguration, myStatistics, myQueueSync), 
         data(myData) {
       
+        prepareQueue = new vector<Position*>();
    }
    
    virtual ~FixedProducer() {
+      
+      if(prepareQueue != NULL) {
+         delete prepareQueue;
+         prepareQueue = NULL;
+      }
+      
       if(data != NULL) {
          while(! data -> empty()) {
             Position *entry = data->back();
@@ -288,37 +295,50 @@ public:
 
       putDataIntoQueue(pos1, pos2);
       
-      statistics->read =  statistics->read + 2;
+      statistics->read = statistics->read + 2;
       
       return true;
    }
    
    void insertIntoQueue(Position *pos) {
       std::vector<Position*>::iterator insertPos
-          = upper_bound (data->begin(), data->end(), pos, comparePositionTime);
+          = upper_bound (prepareQueue->begin(), prepareQueue->end(), 
+                         pos, comparePositionTime);
       
-      data->insert(insertPos, pos);
+      prepareQueue->insert(insertPos, pos);
    }
    
-   void putDataIntoQueue(Position *pos1, Position *pos2) {
-            
+   void syncQueues(Position *position) {
       pthread_mutex_lock(&queueSync->queueMutex);
       
-      if(data->size() >= QUEUE_ELEMENTS) {
-         pthread_cond_wait(&queueSync->queueCondition, 
-                           &queueSync->queueMutex);
-      }
-            
       bool wasEmpty = data->empty();
       
-      insertIntoQueue(pos1);
-      insertIntoQueue(pos2);
+      while(comparePositionTime(position, prepareQueue->front()) == false) {
+         if(data->size() >= QUEUE_ELEMENTS) {
+            pthread_cond_wait(&queueSync->queueCondition, 
+                              &queueSync->queueMutex);
+         }
+         data->push_back(prepareQueue->front());
+         prepareQueue -> erase(prepareQueue->begin());
+      }
       
       if(wasEmpty) {
          pthread_cond_broadcast(&queueSync->queueCondition);
       }
       
       pthread_mutex_unlock(&queueSync->queueMutex);
+   }
+   
+   void putDataIntoQueue(Position *pos1, Position *pos2) {
+      
+      insertIntoQueue(pos1);
+      insertIntoQueue(pos2);
+      
+      // Move data from prepare queue to real queue
+      if(comparePositionTime(pos1, prepareQueue->front()) == false) {
+         syncQueues(pos1);
+      }     
+
    }
    
    virtual void handleInputEnd() {
@@ -658,7 +678,7 @@ public:
          if(ready) {
             ss.str("");
              
-            strftime(dateBuffer,80,"%d-%m-%Y %I:%M:%S",&element->time_start);
+            strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",&element->time_start);
 
             ss << dateBuffer << DELIMITER;            
             ss << element->moid << DELIMITER;
@@ -743,7 +763,7 @@ public:
          if(ready) {
             ss.str("");
              
-            strftime(dateBuffer,80,"%d-%m-%Y %I:%M:%S",&element->time);
+            strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",&element->time);
 
             ss << dateBuffer << DELIMITER;            
             ss << element->moid << DELIMITER;
