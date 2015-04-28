@@ -347,6 +347,7 @@ Compares this and the argument;
 
 
 
+
 /*
 ~SplitAround~
 
@@ -4740,7 +4741,13 @@ void Range<Alpha>::MergeAdd(const Interval<Alpha>& interval){
       last.end = interval.end;
       last.rc = interval.rc;
       intervals.Put(intervals.Size()-1, last);
-    }  else {
+    }
+    else if (last.Intersects(interval)) {
+      last.end = max(last.end, interval.end);
+      last.rc = max(last.rc, interval.rc);
+      intervals.Put(intervals.Size() - 1, last);
+    }
+    else {
       intervals.Append(interval);
     }
   }
