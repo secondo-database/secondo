@@ -56,7 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define CMDLINE_DESTPORT         1<<2
 #define CMDLINE_SIMULATION_MODE  1<<3
 
-#define QUEUE_ELEMENTS 100
+#define QUEUE_ELEMENTS 10000
 #define DELIMITER ","
 
 #define SIMULATION_MODE_ADAPTIVE 1
@@ -105,6 +105,24 @@ struct QueueSync {
    pthread_mutex_t queueMutex;
    pthread_cond_t queueCondition;
 };
+
+/*
+1.4 Compare functions for structs
+
+*/
+bool comparePositionTime(const Position* left, const Position* right) { 
+   Position* left1  = const_cast<Position*>(left);
+   Position* right1 = const_cast<Position*>(right);
+   
+   time_t left_time = mktime(&left1->time);
+   time_t right_time = mktime(&right1->time);
+   
+   if(left_time < right_time) {
+      return true;
+   }
+   
+   return false;
+}
 
 /*
 2.0 Abstract Producer class - reads berlin mod csv data 
@@ -235,9 +253,7 @@ public:
       if(lineData[0] == "Moid") {
          return true;     
       }
-      
-      statistics->read++;
-   
+         
       // 2007-06-08 08:32:26.781
       struct tm tm1;
       struct tm tm2;
@@ -272,29 +288,36 @@ public:
 
       putDataIntoQueue(pos1, pos2);
       
+      statistics->read =  statistics->read + 2;
+      
       return true;
    }
    
+   void insertIntoQueue(Position *pos) {
+      std::vector<Position*>::iterator insertPos
+          = upper_bound (data->begin(), data->end(), pos, comparePositionTime);
+      
+      data->insert(insertPos, pos);
+   }
+   
    void putDataIntoQueue(Position *pos1, Position *pos2) {
+            
       pthread_mutex_lock(&queueSync->queueMutex);
       
       if(data->size() >= QUEUE_ELEMENTS) {
          pthread_cond_wait(&queueSync->queueCondition, 
                            &queueSync->queueMutex);
       }
-      
+            
       bool wasEmpty = data->empty();
       
-      data->push_back(pos1);
-      
-      std::vector<Position*>::iterator insertPos
-          = lower_bound (data->begin(), data->end(), pos2);
-      
-      data->insert(insertPos, pos2);
+      insertIntoQueue(pos1);
+      insertIntoQueue(pos2);
       
       if(wasEmpty) {
          pthread_cond_broadcast(&queueSync->queueCondition);
       }
+      
       pthread_mutex_unlock(&queueSync->queueMutex);
    }
    
@@ -304,6 +327,7 @@ public:
    }
 
 private:
+   vector<Position*> *prepareQueue;
    vector<Position*> *data;
 };
 
@@ -610,9 +634,9 @@ public:
       
       bool wasFull = queue->size() >= QUEUE_ELEMENTS;
       
-      InputData *element = queue->back();
-      queue -> pop_back();
-      
+      InputData *element = queue->front();
+      queue -> erase(queue->begin());
+
       // Queue full
       if(wasFull) {
          pthread_cond_broadcast(&queueSync->queueCondition);
@@ -687,17 +711,16 @@ public:
    
    Position* getQueueElement() {
       pthread_mutex_lock(&queueSync->queueMutex);
-      
+       
       // Queue empty
       if(queue -> size() == 0) {
          pthread_cond_wait(&queueSync->queueCondition, 
                            &queueSync->queueMutex);
       }
-      
+   
       bool wasFull = queue->size() >= QUEUE_ELEMENTS;
-      
-      Position *element = queue->back();
-      queue -> pop_back();
+      Position *element = queue->front();
+      queue -> erase(queue->begin());
       
       // Queue full
       if(wasFull) {
@@ -846,8 +869,8 @@ int main(int argc, char *argv[]) {
    
    AbstractConsumer *consumer;
    AbstractProducer *producer;
-   if(configuration->simulationmode == SIMULATION_MODE_FIXED) {
-       vector<InputData*> *inputData = new vector<InputData*>(QUEUE_ELEMENTS);
+   if(configuration->simulationmode == SIMULATION_MODE_ADAPTIVE) {
+       vector<InputData*> *inputData = new vector<InputData*>();
    
        consumer = new AdaptiveConsumer(configuration, statistics, 
                                inputData, &queueSync);
@@ -855,7 +878,7 @@ int main(int argc, char *argv[]) {
        producer = new AdapiveProducer(configuration, statistics, 
                                inputData, &queueSync);
    } else if(configuration->simulationmode == SIMULATION_MODE_FIXED) {
-      vector<Position*> *inputData = new vector<Position*>(QUEUE_ELEMENTS);
+      vector<Position*> *inputData = new vector<Position*>();
       
       consumer = new FixedConsumer(configuration, statistics, 
                               inputData, &queueSync);
