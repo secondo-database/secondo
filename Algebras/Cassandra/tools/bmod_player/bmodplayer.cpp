@@ -347,11 +347,6 @@ public:
       insertIntoQueue(pos1);
       insertIntoQueue(pos2);
       
-      cout << "Queue stat: insert / front" << endl;
-      printPositionTime(pos1);
-      printPositionTime(prepareQueue->front());
-      cout << endl;
-      
       // Move data from prepare queue to real queue
       if(comparePositionTime(pos1, prepareQueue->front()) == false) {
          syncQueues(pos1);
