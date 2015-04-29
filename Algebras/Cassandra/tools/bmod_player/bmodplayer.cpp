@@ -117,7 +117,7 @@ bool comparePositionTime(const Position* left, const Position* right) {
    time_t left_time = mktime(&left1->time);
    time_t right_time = mktime(&right1->time);
    
-   if(left_time < right_time) {
+   if(left_time <= right_time) {
       return true;
    }
    
@@ -264,6 +264,10 @@ public:
       // 2007-06-08 08:32:26.781
       struct tm tm1;
       struct tm tm2;
+      
+      // Init structs
+      memset(&tm1, 0, sizeof(struct tm));
+      memset(&tm2, 0, sizeof(struct tm));
    
       if (! parseCSVDate(tm1, lineData[2])) {
          cerr << "Unable to parse start date: " << lineData[2] << endl;
@@ -308,16 +312,25 @@ public:
       prepareQueue->insert(insertPos, pos);
    }
    
+   void printPositionTime(Position *position) {
+      char dateBuffer[80];
+      strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",&position->time);
+      cout << "Time is: " << dateBuffer << endl;
+   }
+   
    void syncQueues(Position *position) {
       pthread_mutex_lock(&queueSync->queueMutex);
       
       bool wasEmpty = data->empty();
       
-      while(comparePositionTime(position, prepareQueue->front()) == false) {
+      while(prepareQueue->size() > 0 && 
+            comparePositionTime(position, prepareQueue->front()) == false) {
+               
          if(data->size() >= QUEUE_ELEMENTS) {
             pthread_cond_wait(&queueSync->queueCondition, 
                               &queueSync->queueMutex);
          }
+         
          data->push_back(prepareQueue->front());
          prepareQueue -> erase(prepareQueue->begin());
       }
@@ -334,10 +347,15 @@ public:
       insertIntoQueue(pos1);
       insertIntoQueue(pos2);
       
+      cout << "Queue stat: insert / front" << endl;
+      printPositionTime(pos1);
+      printPositionTime(prepareQueue->front());
+      cout << endl;
+      
       // Move data from prepare queue to real queue
       if(comparePositionTime(pos1, prepareQueue->front()) == false) {
          syncQueues(pos1);
-      }     
+      } 
 
    }
    
