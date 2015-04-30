@@ -464,70 +464,6 @@ private:
    vector<InputData*> *data;
 };
 
-void printHelpAndExit(char *progName) {
-   cerr << "Usage: " << progName << " -i <inputfile> ";
-   cerr << "-h <hostname> -p <port> -s <adaptive|fixed>" << endl;
-   cerr << endl;
-   cerr << "-i is the CVS file with the trips to simulate" << endl;
-   cerr << "-h specifies the hostname to connect to" << endl;
-   cerr << "-p specifies the port to connect to" << endl;
-   cerr << "-s sets the simulation mode" << endl;
-   cerr << endl;
-   cerr << "For example: " << progName << " -i trips.csv ";
-   cerr << "-h localhost -p 10000 -s adaptive" << endl;
-   exit(-1);
-}
-
-void parseParameter(int argc, char *argv[], Configuration *configuration) {
-   
-   unsigned int flags = 0;
-   int option = 0;
-   
-   while ((option = getopt(argc, argv,"i:h:p:s:")) != -1) {
-       switch (option) {
-          case 'i':
-             flags |= CMDLINE_INPUTFILE;
-             configuration->inputfile = string(optarg);
-          break;
-          
-          case 'h':
-             flags |= CMDLINE_DESTHOST;
-             configuration->desthost = string(optarg);
-          break;
-          
-          case 'p':
-             flags |= CMDLINE_DESTPORT;
-             configuration->destport = atoi(optarg);
-          break;
-
-          case 's':
-             flags |= CMDLINE_SIMULATION_MODE;
-
-             if(strcmp(optarg,"adaptive") == 0) {
-                configuration->simulationmode = SIMULATION_MODE_ADAPTIVE;
-             } else if(strcmp(optarg,"fixed") == 0) {
-                configuration->simulationmode = SIMULATION_MODE_FIXED;
-             } else {
-                 cerr << "Unknown simulation mode: " << optarg << endl;
-                 cerr << endl;
-                 printHelpAndExit(argv[0]);
-             }
-          break;
-          
-          default:
-            printHelpAndExit(argv[0]);
-       }
-   }
-   
-   unsigned int requiredFalgs = CMDLINE_INPUTFILE |
-                                CMDLINE_DESTHOST |
-                                CMDLINE_DESTPORT |
-                                CMDLINE_SIMULATION_MODE;
-   
-   if(flags != requiredFalgs) {
-      printHelpAndExit(argv[0]);
-   }
-}
 
 /*
 3.0 Consumer class - consumes berlin mod data and write it to a tcp socket
@@ -880,97 +816,183 @@ void* startStatisticsThreadInternal(void *ptr) {
    return NULL;
 }
 
-int main(int argc, char *argv[]) {
+class BModPlayer {
+
+public:
    
-   Configuration *configuration = new Configuration();
-   gettimeofday(&configuration->start, NULL);
+   BModPlayer() {
+      configuration = new Configuration();
+      gettimeofday(&configuration->start, NULL);
    
-   Statistics *statistics = new Statistics(); 
-   statistics->done = false;
+      statistics = new Statistics(); 
+      statistics->done = false;
    
-   Timer *timer = new Timer();
+      timer = new Timer();
+
+      pthread_mutex_init(&queueSync.queueMutex, NULL);
+      pthread_cond_init(&queueSync.queueCondition, NULL);
+ 
+   }
+   
+   void run(int argc, char *argv[]) {
+      StatisticsDisplay statisticsDisplay(statistics, timer);
+      
+      parseParameter(argc, argv, configuration);
+
+      if(configuration->simulationmode == SIMULATION_MODE_ADAPTIVE) {
+          vector<InputData*> *inputData = new vector<InputData*>();
+   
+          consumer = new AdaptiveConsumer(configuration, statistics, 
+                                  inputData, &queueSync);
+                  
+          producer = new AdapiveProducer(configuration, statistics, 
+                                  inputData, &queueSync);
+      } else if(configuration->simulationmode == SIMULATION_MODE_FIXED) {
+         vector<Position*> *inputData = new vector<Position*>();
+      
+         consumer = new FixedConsumer(configuration, statistics, 
+                                 inputData, &queueSync);
+      
+         producer = new FixedProducer(configuration, statistics, 
+                                 inputData, &queueSync);
+      } else {
+         cerr << "Unknown simulation mode" << endl;
+         exit(EXIT_FAILURE);
+      }
+
+      pthread_create(&readerThread, NULL, 
+                     &startProducerThreadInternal, producer);
+
+      pthread_create(&writerThread, NULL, 
+                     &startConsumerThreadInternal, consumer);
+
+      pthread_create(&statisticsThread, NULL, 
+                     &startStatisticsThreadInternal, 
+                     &statisticsDisplay);
+                  
+      timer->start();
+   
+      pthread_join(readerThread, NULL);
+      pthread_join(writerThread, NULL);
+   
+      statistics->done = true;
+      pthread_join(statisticsThread, NULL);
+   
+      pthread_mutex_destroy(&queueSync.queueMutex);
+      pthread_cond_destroy(&queueSync.queueCondition);
+      
+      cleanup();
+   }
+   
+private:
+   
+   void printHelpAndExit(char *progName) {
+      cerr << "Usage: " << progName << " -i <inputfile> ";
+      cerr << "-h <hostname> -p <port> -s <adaptive|fixed>" << endl;
+      cerr << endl;
+      cerr << "-i is the CVS file with the trips to simulate" << endl;
+      cerr << "-h specifies the hostname to connect to" << endl;
+      cerr << "-p specifies the port to connect to" << endl;
+      cerr << "-s sets the simulation mode" << endl;
+      cerr << endl;
+      cerr << "For example: " << progName << " -i trips.csv ";
+      cerr << "-h localhost -p 10000 -s adaptive" << endl;
+      exit(-1);
+   }
+
+   void parseParameter(int argc, char *argv[], Configuration *configuration) {
+   
+      unsigned int flags = 0;
+      int option = 0;
+   
+      while ((option = getopt(argc, argv,"i:h:p:s:")) != -1) {
+          switch (option) {
+             case 'i':
+                flags |= CMDLINE_INPUTFILE;
+                configuration->inputfile = string(optarg);
+             break;
+          
+             case 'h':
+                flags |= CMDLINE_DESTHOST;
+                configuration->desthost = string(optarg);
+             break;
+          
+             case 'p':
+                flags |= CMDLINE_DESTPORT;
+                configuration->destport = atoi(optarg);
+             break;
+
+             case 's':
+                flags |= CMDLINE_SIMULATION_MODE;
+
+                if(strcmp(optarg,"adaptive") == 0) {
+                   configuration->simulationmode = SIMULATION_MODE_ADAPTIVE;
+                } else if(strcmp(optarg,"fixed") == 0) {
+                   configuration->simulationmode = SIMULATION_MODE_FIXED;
+                } else {
+                    cerr << "Unknown simulation mode: " << optarg << endl;
+                    cerr << endl;
+                    printHelpAndExit(argv[0]);
+                }
+             break;
+          
+             default:
+               printHelpAndExit(argv[0]);
+          }
+      }
+   
+      unsigned int requiredFalgs = CMDLINE_INPUTFILE |
+                                   CMDLINE_DESTHOST |
+                                   CMDLINE_DESTPORT |
+                                   CMDLINE_SIMULATION_MODE;
+   
+      if(flags != requiredFalgs) {
+         printHelpAndExit(argv[0]);
+      }
+   }
+   
+   void cleanup() {
+      if(consumer != NULL) {
+         delete consumer;
+         consumer = NULL;
+      }
+   
+      if(producer != NULL) {
+         delete producer;
+         producer = NULL;
+      }
+
+      if(statistics != NULL) {
+         delete statistics;
+         statistics = NULL;
+      }
+   
+      if(configuration != NULL) {
+         delete configuration;
+         configuration = NULL;
+      }
+   
+      if(timer != NULL) {
+         delete timer;
+         timer = NULL;
+      }
+   }
+   
+   Configuration *configuration;
+   Statistics *statistics;
+   Timer *timer;
+   AbstractConsumer *consumer;
+   AbstractProducer *producer;
+   
    QueueSync queueSync;
-   
-   pthread_mutex_init(&queueSync.queueMutex, NULL);
-   pthread_cond_init(&queueSync.queueCondition, NULL);
-   
    pthread_t readerThread;
    pthread_t writerThread;
    pthread_t statisticsThread;
-   
-   parseParameter(argc, argv, configuration);
-   
-   AbstractConsumer *consumer;
-   AbstractProducer *producer;
-   if(configuration->simulationmode == SIMULATION_MODE_ADAPTIVE) {
-       vector<InputData*> *inputData = new vector<InputData*>();
-   
-       consumer = new AdaptiveConsumer(configuration, statistics, 
-                               inputData, &queueSync);
-                  
-       producer = new AdapiveProducer(configuration, statistics, 
-                               inputData, &queueSync);
-   } else if(configuration->simulationmode == SIMULATION_MODE_FIXED) {
-      vector<Position*> *inputData = new vector<Position*>();
-      
-      consumer = new FixedConsumer(configuration, statistics, 
-                              inputData, &queueSync);
-      
-      producer = new FixedProducer(configuration, statistics, 
-                              inputData, &queueSync);
-   } else {
-      cerr << "Unknown simulation mode" << endl;
-      exit(EXIT_FAILURE);
-   }
+};
 
-                            
-   StatisticsDisplay statisticsDisplay(statistics, timer);
-
-   pthread_create(&readerThread, NULL, 
-                  &startProducerThreadInternal, producer);
-
-   pthread_create(&writerThread, NULL, 
-                  &startConsumerThreadInternal, consumer);
-
-   pthread_create(&statisticsThread, NULL, 
-                  &startStatisticsThreadInternal, 
-                  &statisticsDisplay);
-                  
-   timer->start();
-   
-   pthread_join(readerThread, NULL);
-   pthread_join(writerThread, NULL);
-   
-   statistics->done = true;
-   pthread_join(statisticsThread, NULL);
-   
-   pthread_mutex_destroy(&queueSync.queueMutex);
-   pthread_cond_destroy(&queueSync.queueCondition);
-   
-   if(consumer != NULL) {
-      delete consumer;
-      consumer = NULL;
-   }
-   
-   if(producer != NULL) {
-      delete producer;
-      producer = NULL;
-   }
-
-   if(statistics != NULL) {
-      delete statistics;
-      statistics = NULL;
-   }
-   
-   if(configuration != NULL) {
-      delete configuration;
-      configuration = NULL;
-   }
-   
-   if(timer != NULL) {
-      delete timer;
-      timer = NULL;
-   }
+int main(int argc, char *argv[]) {
+   BModPlayer bModPlayer;
+   bModPlayer.run(argc, argv);
    
    return EXIT_SUCCESS;
 }
