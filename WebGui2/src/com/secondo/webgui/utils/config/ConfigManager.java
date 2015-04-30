@@ -5,6 +5,8 @@ import java.util.ResourceBundle;
 public class ConfigManager {
 	
 	private static ConfigManager instance = null;
+	private ResourceBundle resources;
+
 
 	public static ConfigManager getInstance() {
 	if (instance == null) {
@@ -16,9 +18,7 @@ public class ConfigManager {
 	public static String getConfigString(String key) {
 	return getInstance().getResources().getString(key);
 	}
-
-	private ResourceBundle resources;
-
+	
 	private ConfigManager() {
 	resources = ResourceBundle.getBundle("config.web-conf");
 	}

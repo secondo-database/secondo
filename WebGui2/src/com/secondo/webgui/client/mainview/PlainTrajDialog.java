@@ -41,11 +41,9 @@ public class PlainTrajDialog {
 
 		// Add a close button at the bottom of the dialog
 		closeButton.addClickHandler(new ClickHandler() {
-
 			@Override
 			public void onClick(ClickEvent event) {
 				plainTrajDialogBox.hide();
-
 			}
 		});
 		closeButton.setStyleName("right-floated-button");
@@ -57,7 +55,6 @@ public class PlainTrajDialog {
 
 	/** Updates the text view with the last result from the result list */
 	public void updateTextView() {
-
 		// reset text view
 		textView.setText("");
 		String currentResult = textView.getText();
@@ -68,26 +65,27 @@ public class PlainTrajDialog {
 			currentResult = textView.getText();
 			textView.setText(currentResult + data);
 		}
-
 	}
 
 	/** Deletes all data from the textview, the resultList and the resultlistBox */
 	public void resetData() {
-
 		// reset text view
 		textView.setText("");
 		resultList.clear();
-
 	}
 
 	/**
-	 * @return the dialogContents
+	 * Returns the dialog contents
+	 * 
+	 * @return The dialogContents
 	 */
 	public FlowPanel getDialogContents() {
 		return dialogContents;
 	}
 
 	/**
+	 * Sets the text to be displayed in the dialog
+	 * 
 	 * @param dialogContents
 	 *            the dialogContents to set
 	 */
@@ -96,6 +94,8 @@ public class PlainTrajDialog {
 	}
 
 	/**
+	 * Returns the dialog box
+	 * 
 	 * @return the plainTrajDialogBox
 	 */
 	public DialogBox getPlainTrajDialogBox() {
@@ -103,20 +103,38 @@ public class PlainTrajDialog {
 	}
 
 	/**
+	 * Returns the result list for secondo result displayed in the dialog
+	 * 
 	 * @return the resultList
 	 */
 	public ArrayList<ArrayList<String>> getResultList() {
 		return resultList;
 	}
 
+	/**
+	 * Indicates whether data is loaded or not
+	 * 
+	 * @return The data loaded or not
+	 */
 	public boolean isDataLoaded() {
 		return dataLoaded;
 	}
 
+	/**
+	 * Indicates that data loaded to the dialog
+	 * 
+	 * @param The
+	 *            dataLoaded
+	 */
 	public void setDataLoaded(boolean dataLoaded) {
 		this.dataLoaded = dataLoaded;
 	}
 
+	/**
+	 * Returns the text view of the dialog
+	 * 
+	 * @return The text area
+	 */
 	public TextArea getTextView() {
 		return textView;
 	}

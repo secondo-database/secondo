@@ -1,23 +1,3 @@
-//This file is part of SECONDO.
-
-//Copyright (C) 2014, University in Hagen, 
-//Faculty of Mathematics and Computer Science 
-//Database Systems for New Applications.
-
-//SECONDO is free software; you can redistribute it and/or modify
-//it under the terms of the GNU General Public License as published by
-//the Free Software Foundation; either version 2 of the License, or
-//(at your option) any later version.
-
-//SECONDO is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
-
-//You should have received a copy of the GNU General Public License
-//along with SECONDO; if not, write to the Free Software
-//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
 package com.secondo.webgui.client;
 
 import java.util.ArrayList;
@@ -37,8 +17,6 @@ import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.secondo.webgui.client.controller.RPCConnector;
-import com.secondo.webgui.client.databaseview.DatabaseView;
-import com.secondo.webgui.client.loginview.LoginView;
 import com.secondo.webgui.client.mainview.MainView;
 import com.secondo.webgui.client.rpc.SecondoService;
 import com.secondo.webgui.client.rpc.SecondoServiceAsync;
@@ -57,14 +35,8 @@ public class SecondoWeb implements EntryPoint {
 	/** Main Elements of the Website which represent the divs in the HTML-Page */
 	private FlowPanel header = new FlowPanel();
 	private FlowPanel content = new FlowPanel();
-	private FlowPanel footer = new FlowPanel();
-
-	/** Element of the Loginview */
-	private LoginView loginView = new LoginView();
-
-	/** Element of the database view */
-	private DatabaseView databaseView = new DatabaseView();
-
+	private FlowPanel footer = new FlowPanel();	
+	
 	/** Element of the main view */
 	private MainView mainView = new MainView();
 
@@ -128,7 +100,6 @@ public class SecondoWeb implements EntryPoint {
 						rpcConnector.saveTextFile(mainView.getMainheader()
 								.getTextViewOfTrajInDialog().getTextView()
 								.getText(), "secondo-text.txt");
-
 					}
 				});
 		
@@ -435,8 +406,8 @@ public class SecondoWeb implements EntryPoint {
 			HTML defaultText = new HTML(
 					"<p><h3>Your browser does not support Scalable Vector Graphics (SVG).<br>"
 							+ " Please upgrade to a modern browser.</h3></p>");
-			loginView.getMainPanel().remove(2);
-			loginView.getMainPanel().insert(defaultText, 2);
+			mainView.getMainPanel().remove(2);
+			mainView.getMainPanel().insert(defaultText, 2);
 		}		
 	}
 	
@@ -520,21 +491,12 @@ public class SecondoWeb implements EntryPoint {
 	 * userstatus and the chosen database
 	 * 
 	 * @param status
-	 *            Integer value with the status number, 0 for loginview, 1 for
-	 *            databaseview and 2 for mainview
+	 *            Integer value with the status number
 	 * */
 	public void setContent(int status) {
 		switch (status) {
 		case 0:
-			System.out.println("User is not logged in");
-			header.clear();
-			header.add(loginView.getLoginheader().gethPanel());
-
-			content.clear();
-			content.add(loginView.getMainPanel());
-
-			footer.clear();
-			footer.add(loginView.getLoginfooter().getHpanel());
+			System.out.println("User is not logged in");				
 
 			/* Associate the panels with the HTML host page. */
 			RootPanel.get("content").add(content);
@@ -547,16 +509,7 @@ public class SecondoWeb implements EntryPoint {
 		case 1:
 			System.out
 					.println("User is logged in but has not chosen a database");
-
-			header.clear();
-			header.add(databaseView.getDatabaseHeader().getHeaderPanel());
-
-			content.clear();
-			content.add(databaseView.gethPanel());
-
-			footer.clear();
-			footer.add(databaseView.getDatabaseFooter().getHpanel());
-
+			
 			/* Associate the panels with the HTML host page. */
 			RootPanel.get("content").add(content);
 

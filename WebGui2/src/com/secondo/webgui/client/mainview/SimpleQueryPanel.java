@@ -8,24 +8,28 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
-public class SimpleQueryPanel extends VerticalPanel{
-	private DefaultTextBox textForQuery; 
-	private Button queryButton;	
+/**
+ * @author Irina Russkaya
+ *
+ */
+public class SimpleQueryPanel extends VerticalPanel {
+	private DefaultTextBox textForQuery;
+	private Button queryButton;
 	private Button countButton;
 	private Label resultInfoLabel;
 	private ListBox numberOfTrajectoriesToBeShown;
 	private HorizontalPanel numberOfTrajectoriesToBeShownPanel;
-	
+
 	public SimpleQueryPanel(String textForHelpInfoLabel, String typeOfQuery,
-			String defaultText){
+			String defaultText) {
 		super();
-		
+
 		this.setSpacing(4);
 		this.setWidth("100%");
 		Label helpInfoLabel = new Label(textForHelpInfoLabel);
 		helpInfoLabel.setStylePrimaryName("labelForPasses");
 		this.add(helpInfoLabel);
-		
+
 		if (typeOfQuery.equals("passThrough")) {
 			Label helpInfoLevel2 = new Label(
 					"Define with your mouse a region on the map");
@@ -36,7 +40,7 @@ public class SimpleQueryPanel extends VerticalPanel{
 			textForQuery.setWidth("90%");
 			this.add(textForQuery);
 		}
-		
+
 		if (typeOfQuery.equals("passThrough") || typeOfQuery.equals("pass")) {
 			HorizontalPanel panelForButtons = new HorizontalPanel();
 			queryButton = new Button("retrieve");
@@ -52,7 +56,7 @@ public class SimpleQueryPanel extends VerticalPanel{
 					"Show up to ");
 			Label numberOfTrajectoriesToShowAfterLabel = new Label(
 					"     trajectories");
-			numberOfTrajectoriesToBeShown = new ListBox(); 
+			numberOfTrajectoriesToBeShown = new ListBox();
 			numberOfTrajectoriesToBeShown.addItem(" ");
 			numberOfTrajectoriesToBeShown.addItem("3");
 			numberOfTrajectoriesToBeShown.addItem("5");
@@ -71,11 +75,9 @@ public class SimpleQueryPanel extends VerticalPanel{
 					"color", "#808080");
 			numberOfTrajectoriesToBeShownPanel.setVisible(false);
 			queryButton.addClickHandler(new ClickHandler() {
-
 				@Override
 				public void onClick(ClickEvent event) {
 					numberOfTrajectoriesToBeShownPanel.setVisible(true);
-
 				}
 			});
 			this.add(numberOfTrajectoriesToBeShownPanel);
@@ -90,30 +92,58 @@ public class SimpleQueryPanel extends VerticalPanel{
 			resultInfoLabel = new Label();
 			this.add(resultInfoLabel);
 		}
-		
 	}
 
-	public DefaultTextBox getLabelTextForQuery() {		
+	/**
+	 * Returns the user input used to build a query
+	 * 
+	 * @return The user input in a text box
+	 */
+	public DefaultTextBox getLabelTextForQuery() {
 		return textForQuery;
 	}
+
+	/**
+	 * Returns the button "retrieve"
+	 * 
+	 * @return The button "retrieve"
+	 */
 	public Button getQueryButton() {
 		return queryButton;
 	}
 
+	/**
+	 * Returns the label with result
+	 * 
+	 * @return The label with result
+	 */
 	public Label getResultInfoLabel() {
 		return resultInfoLabel;
 	}
 
+	/**
+	 * Returns the list box containing the number of trajectories to be shown
+	 * 
+	 * @return The number of trajectories to be shown
+	 */
 	public ListBox getNumberOfTrajectoriesToBeShown() {
 		return numberOfTrajectoriesToBeShown;
 	}
 
+	/**
+	 * Returns the button "count"
+	 * 
+	 * @return The button "count"
+	 */
 	public Button getCountButton() {
 		return countButton;
 	}
-	
-	public void hideNumberOfTrajectoriesToBeShownPanel(){
+
+	/**
+	 * Hides the option to select the number of trajectories to be shown
+	 */
+	public void hideNumberOfTrajectoriesToBeShownPanel() {
 		numberOfTrajectoriesToBeShownPanel.setVisible(false);
 	}
-	
+
 }

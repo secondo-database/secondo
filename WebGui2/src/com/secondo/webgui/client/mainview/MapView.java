@@ -1,21 +1,3 @@
-//This file is part of SECONDO.
-
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-//Database Systems for New Applications.
-
-//SECONDO is free software; you can redistribute it and/or modify
-//it under the terms of the GNU General Public License as published by
-//the Free Software Foundation; either version 2 of the License, or
-//(at your option) any later version.
-
-//SECONDO is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
-
-//You should have received a copy of the GNU General Public License
-//along with SECONDO; if not, write to the Free Software
-//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.secondo.webgui.client.mainview;
 
@@ -63,10 +45,10 @@ import com.secondo.webgui.shared.model.Polyline;
  * This class represents all elements of the map view to display graphical
  * datatypes on a map with the gwt-openlayers library.
  * 
- * @author Kristina Steiger
+ * @author Irina Russkaya
  * 
  **/
-public class MapView extends Composite{
+public class MapView extends Composite {
 
 	/** The Main panel of the map view */
 	private FlowPanel contentPanel = new FlowPanel();
@@ -113,16 +95,15 @@ public class MapView extends Composite{
 			"EPSG:4326");
 
 	private LegendDialog legend = new LegendDialog();
-	
+
 	private String attributeNameOfMLabel;
 	private String attributeNameOfMPoint;
-	
+
 	/** Point with geo coordinates from user */
 	private Point myLocation;
 
-	private Vector drawLayer;  
+	private Vector drawLayer;
 	private DrawFeature drawRegularPolygon;
-	
 
 	public MapView() {
 
@@ -141,7 +122,7 @@ public class MapView extends Composite{
 
 		initOsmMap();
 		initGoogleLayers();
-		
+
 	}
 
 	/**
@@ -161,13 +142,12 @@ public class MapView extends Composite{
 		OSM osm_1 = OSM.Mapnik("Open Street Map Mapnik "); // Label for menu
 															// 'LayerSwitcher'
 		osm_1.setIsBaseLayer(true);
-		
-		
-		OSM osm_2 = OSM.CycleMap("Open Street Map CycleMap ");	
+
+		OSM osm_2 = OSM.CycleMap("Open Street Map CycleMap ");
 		osm_2.setIsBaseLayer(true);
-		
+
 		map.addLayer(osm_1);
-		map.addLayer(osm_2);
+		map.addLayer(osm_2);		
 
 		// Add some default controls to the map
 		map.addControl(new MousePosition()); // shows the coordinates of the
@@ -178,49 +158,42 @@ public class MapView extends Composite{
 		map.addControl(new OverviewMap()); // + sign in the lowerright to
 											// display the overviewmap
 		map.addControl(new ScaleLine()); // Display the scaleline
-		
-		map.setCenter(lonLat, 15);
+
+		map.setCenter(lonLat, 15);		
 
 		// force the map to fall behind popups
-		mapWidget.getElement().getFirstChildElement().getStyle().setZIndex(0);		
-		
-	}
-	
-	public void initDrawLayerAndDrawFeature(){
-		drawLayer = new Vector("Draw layer");
-		
-		RegularPolygonHandlerOptions boxHandlerOptions = new RegularPolygonHandlerOptions();
-		boxHandlerOptions.setIrregular(true);
-		RegularPolygonHandler boxHandler = new RegularPolygonHandler();
-		drawRegularPolygon = new DrawFeature(drawLayer, boxHandler);
-		((RegularPolygonHandler) drawRegularPolygon.getHandler())
-				.setOptions(boxHandlerOptions);
+		mapWidget.getElement().getFirstChildElement().getStyle().setZIndex(0);
+
 	}
 
 	/**
-	 * control for polygon
+	 * Initializes a draw layer to draw a rectangular for simple query with pass
+	 * through
 	 */
 	public void initDrawLayer() {
-		if(drawLayer==null){
-		// Create the Vector layer on which the user can draw new widgets
-		drawLayer = new Vector("Draw layer");
-		drawLayer.setIsBaseLayer(false);
-		drawLayer.setDisplayInLayerSwitcher(false); 		
-		map.addLayer(drawLayer);
+		if (drawLayer == null) {
+			// Create the Vector layer on which the user can draw new widgets
+			drawLayer = new Vector("Draw layer");
+			drawLayer.setIsBaseLayer(false);
+			drawLayer.setDisplayInLayerSwitcher(false);
+			map.addLayer(drawLayer);
 
-		RegularPolygonHandlerOptions boxHandlerOptions = new RegularPolygonHandlerOptions();
-		boxHandlerOptions.setIrregular(true);
-		RegularPolygonHandler boxHandler = new RegularPolygonHandler();
-		drawRegularPolygon = new DrawFeature(drawLayer, boxHandler);		
-		((RegularPolygonHandler) drawRegularPolygon.getHandler())
-				.setOptions(boxHandlerOptions);
+			RegularPolygonHandlerOptions boxHandlerOptions = new RegularPolygonHandlerOptions();
+			boxHandlerOptions.setIrregular(true);
+			RegularPolygonHandler boxHandler = new RegularPolygonHandler();
+			drawRegularPolygon = new DrawFeature(drawLayer, boxHandler);
+			((RegularPolygonHandler) drawRegularPolygon.getHandler())
+					.setOptions(boxHandlerOptions);
 
-		map.addControl(drawRegularPolygon);
-		drawRegularPolygon.activate();}
+			map.addControl(drawRegularPolygon);
+			drawRegularPolygon.activate();
+		}
 	}
 
 	/**
-	 * The map will be centered on the defined location (GPX coordinates should be provided)
+	 * The map will be centered on the defined location (GPX coordinates should
+	 * be provided)
+	 * 
 	 * @param lon
 	 * @param lat
 	 */
@@ -241,7 +214,7 @@ public class MapView extends Composite{
 		pointStyle.setFillOpacity(0.9);
 
 		myLocation = new Point(lon, lat);
-		myLocation.transform(DEFAULT_PROJECTION, new Projection("EPSG:900913")); 
+		myLocation.transform(DEFAULT_PROJECTION, new Projection("EPSG:900913"));
 		VectorFeature pointFeature = new VectorFeature(myLocation, pointStyle);
 		markerLayer.destroyFeatures();
 		markerLayer.addFeature(pointFeature);
@@ -281,12 +254,6 @@ public class MapView extends Composite{
 		map.addLayer(gTerrain);
 	}
 
-	
-
-	
-
-
-
 	/**
 	 * On resizing of the browser window the elements of the map view are
 	 * readjusted with to fullscreen
@@ -296,23 +263,24 @@ public class MapView extends Composite{
 	 * @param height
 	 *            The new height of the map view
 	 * */
-	public void resizeToFullScreen(int width, int height, int heightOfOptionsTabPanel) {
-		
+	public void resizeToFullScreen(int width, int height,
+			int heightOfOptionsTabPanel) {
+
 		if (width > 850) {
 
 			contentPanel.setWidth(width + "px");
 			mapWidget.setWidth(width + "px");
 		} else {
-			
+
 			contentPanel.setWidth(850 + "px");
 			mapWidget.setWidth(850 + "px");
 		}
 		if (height > heightOfOptionsTabPanel) {
-			
-			contentPanel.setHeight(height-20  + "px");
-			mapWidget.setHeight(height-20  + "px");
+
+			contentPanel.setHeight(height - 20 + "px");
+			mapWidget.setHeight(height - 20 + "px");
 		} else {
-			contentPanel.setHeight(heightOfOptionsTabPanel + "px");			
+			contentPanel.setHeight(heightOfOptionsTabPanel + "px");
 			mapWidget.setHeight(heightOfOptionsTabPanel + "px");
 		}
 		map.updateSize();
@@ -359,11 +327,11 @@ public class MapView extends Composite{
 				System.out.println("Type of data from result list: "
 						+ data.getType());
 
-				
 				if (data.getType().equals("Polyline")) {
-					
-					polylineController.addPolyline((Polyline) data, boundsAll, boundsLast);
-									}
+
+					polylineController.addPolyline((Polyline) data, boundsAll,
+							boundsLast);
+				}
 				if (data.getType().equals("Polygon")) {
 
 					polygonController.deleteAllPolygonPoints();
@@ -377,15 +345,21 @@ public class MapView extends Composite{
 				}
 				if (data.getType().equals("MPoint")) {
 
-					mpointController.addMP((MPoint)data, boundsAll, boundsLast);				
-					polylineController.addPolylineFromMP((MPoint) data, boundsAll, boundsLast);
-					attributeNameOfMPoint=((MPoint)data).getAttributeNameInRelation();
+					mpointController
+							.addMP((MPoint) data, boundsAll, boundsLast);
+					polylineController.addPolylineFromMP((MPoint) data,
+							boundsAll, boundsLast);
+					attributeNameOfMPoint = ((MPoint) data)
+							.getAttributeNameInRelation();
 				}
 				// add label to mpoint if time intervals equals
 				if (data.getType().equals("MLabel")) {
-					mlabelController.addMLabel((MLabel)data);					
-					mpointController.transmitLabelsToMPandCalculateColorsForPolyline((MLabel) data, polylineController);
-					attributeNameOfMLabel=((MLabel)data).getAttributeNameInRelation();
+					mlabelController.addMLabel((MLabel) data);
+					mpointController
+							.transmitLabelsToMPandCalculateColorsForPolyline(
+									(MLabel) data, polylineController);
+					attributeNameOfMLabel = ((MLabel) data)
+							.getAttributeNameInRelation();
 
 				}
 			}
@@ -401,14 +375,16 @@ public class MapView extends Composite{
 		dataLoaded = false;
 
 		if (!currentResultTypeList.isEmpty()) {
-			System.out.println("Result list has "+currentResultTypeList.size());
+			System.out.println("Result list has "
+					+ currentResultTypeList.size());
 
 			if (!polylineController.getPolylineMap().isEmpty()
 					|| !polylineController.getColoredPolylineMap().isEmpty()) {
 				boolean showWithDifColors = false;
 				if (modeForSymTraj == 3) {
 					showWithDifColors = true;
-					legend.setLegendInfo(polylineController.getCompleteLegendForMap());
+					legend.setLegendInfo(polylineController
+							.getCompleteLegendForMap());
 				}
 
 				if (zoomToAll == true) {
@@ -418,7 +394,6 @@ public class MapView extends Composite{
 					polylineController.showPolylineOverlays(map, boundsLast,
 							showWithDifColors);
 				}
-
 			}
 
 			if (!polygonController.getPolygonMap().isEmpty()) {
@@ -436,14 +411,14 @@ public class MapView extends Composite{
 				} else {
 					mpointController.drawFirstMovingPoint(map, boundsLast);
 				}
-			}			
-			
+			}
+
 		}
 		dataLoaded = true;
 	}
 
 	/** Removes all data from the map */
-	public void resetData() {		
+	public void resetData() {
 		polylineController.deleteAllPolylines();
 		polylineController.deleteAllValuesFromMPandML();
 		polygonController.deleteAllPolygonPoints();
@@ -467,27 +442,21 @@ public class MapView extends Composite{
 	public void resetMap() {
 		map.removeOverlayLayers();
 	}
-	
+
 	/** Removes draw overlay from the map */
-	public void removeDrawLayer(){
-		if(drawLayer!=null && drawRegularPolygon!=null){
-			
-			
+	public void removeDrawLayer() {
+		if (drawLayer != null && drawRegularPolygon != null) {
+
 			drawRegularPolygon.deactivate();
 			drawRegularPolygon.disable();
 			map.removeControl(drawRegularPolygon);
-			drawRegularPolygon=null;
-			
-			
-			drawLayer.destroyFeatures();					
+			drawRegularPolygon = null;
+
+			drawLayer.destroyFeatures();
 			map.removeLayer(drawLayer);
-			drawLayer=null;
-			
-			
-		
-		
+			drawLayer = null;
+
 		}
-		
 	}
 
 	/**
@@ -602,8 +571,10 @@ public class MapView extends Composite{
 	}
 
 	/**
+	 * Sets the mode to display a symbolic trajectory
+	 * 
 	 * @param modeForSymTraj
-	 *            the modeForSymTraj to set
+	 *            The modeForSymTraj to set
 	 */
 	public void setModeForSymTraj(int modeForSymTraj) {
 		this.modeForSymTraj = modeForSymTraj;
@@ -620,13 +591,17 @@ public class MapView extends Composite{
 	}
 
 	/**
-	 * @return the legend
+	 * Returns a legend info
+	 * 
+	 * @return The legend info
 	 */
 	public LegendDialog getLegend() {
 		return legend;
 	}
-	
+
 	/**
+	 * Returns an attribute name of mpoint in the loaded relation
+	 * 
 	 * @return the attributeNameOfMPoint
 	 */
 	public String getAttributeNameOfMLabel() {
@@ -634,18 +609,30 @@ public class MapView extends Composite{
 	}
 
 	/**
-	 * @return the myLocation
+	 * Returns the defined location point
+	 * 
+	 * @return The defined location point
 	 */
 	public Point getMyLocation() {
 		return myLocation;
 	}
 
+	/**
+	 * Returns the draw layer
+	 * 
+	 * @return
+	 */
 	public Vector getDrawLayer() {
 		return drawLayer;
 	}
 
+	/**
+	 * Returns the attribute name of mpoint
+	 * 
+	 * @return
+	 */
 	public String getAttributeNameOfMPoint() {
 		return attributeNameOfMPoint;
-	}	
-	
+	}
+
 }

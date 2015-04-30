@@ -5,30 +5,36 @@ import com.google.gwt.user.client.ui.HasVerticalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.StackPanel;
-import com.google.gwt.user.client.ui.VerticalPanel;
 
-public class SimpleQueriesStackPanel extends StackPanel{
+/**
+ * This class represents a stack panel for simple queries
+ * 
+ * @author Irina Russkaya
+ *
+ */
+public class SimpleQueriesStackPanel extends StackPanel {
 
 	private SimpleQueryPanel passesPanel;
 	private SimpleQueryPanel passesThroughRegionPanel;
 	private SimpleQueryPanel atinstantPanel;
-	private SimpleQueryPanel deftimePanel;	
+	private SimpleQueryPanel deftimePanel;
 
 	private Image queryIcon = new Image("resources/images/check-icon.png");
-	
-	
-	public SimpleQueriesStackPanel(){
+
+	public SimpleQueriesStackPanel() {
 		String passesHeader = getHeaderStringLevel2("passes", queryIcon);
 		passesPanel = new SimpleQueryPanel(
 				"Find all trips passing through ...(i.e. specified street, cardinal direction, speed tempo)",
 				"pass", "i.e. Baker St");
-		this.add(passesPanel, passesHeader, true);	
-		
-		String passesThroughRegionHeader = getHeaderStringLevel2("passes through region", queryIcon);
+		this.add(passesPanel, passesHeader, true);
+
+		String passesThroughRegionHeader = getHeaderStringLevel2(
+				"passes through region", queryIcon);
 		passesThroughRegionPanel = new SimpleQueryPanel(
-				"Find all trips passing region", "passThrough", "region on the map");
+				"Find all trips passing region", "passThrough",
+				"region on the map");
 		passesThroughRegionPanel.setWidth("100%");
-		this.add(passesThroughRegionPanel, passesThroughRegionHeader, true);			
+		this.add(passesThroughRegionPanel, passesThroughRegionHeader, true);
 
 		String atinstantHeader = getHeaderStringLevel2("atinstant", queryIcon);
 		atinstantPanel = new SimpleQueryPanel(
@@ -40,10 +46,10 @@ public class SimpleQueriesStackPanel extends StackPanel{
 		deftimePanel = new SimpleQueryPanel(
 				"Determine the time intervals when the trip was at ... (i.e. specified street, southeast, moderate tempo)",
 				"deftime", "i.e. Baker St");
-		this.add(deftimePanel, deftimeHeader, true);	
-				
+		this.add(deftimePanel, deftimeHeader, true);
+
 	}
-	
+
 	/**
 	 * Gets a string representation of the header that includes an image and
 	 * some text.
@@ -70,32 +76,50 @@ public class SimpleQueriesStackPanel extends StackPanel{
 		// Return the HTML string for the panel
 		return hPanel.getElement().getString();
 	}
-	
+
 	/**
 	 * Cleans result info labels in all sub-panels of simple queries stack panel
 	 * and hides panel with number of trajectories to be shown
 	 */
 	public void cleanResultInfoLabelsAndPanelWithNumberOfTrajectoriesToBeShown() {
-		passesPanel.getResultInfoLabel().setText("");		
+		passesPanel.getResultInfoLabel().setText("");
 		atinstantPanel.getResultInfoLabel().setText("");
 		deftimePanel.getResultInfoLabel().setText("");
 		passesThroughRegionPanel.getResultInfoLabel().setText("");
-//		if(passesPanel.getNumberOfTrajectoriesToBeShown().isVisible()){passesPanel.hideNumberOfTrajectoriesToBeShownPanel();}
-		
 	}
 
+	/**
+	 * Returns the passes panel
+	 * 
+	 * @return The passes panel
+	 */
 	public SimpleQueryPanel getPassesPanel() {
 		return passesPanel;
 	}
 
+	/**
+	 * Returns the atinstant panel
+	 * 
+	 * @return The atinstant panel
+	 */
 	public SimpleQueryPanel getAtinstantPanel() {
 		return atinstantPanel;
 	}
-	
+
+	/**
+	 * Returns the deftime panel
+	 * 
+	 * @return The deftime panel
+	 */
 	public SimpleQueryPanel getDeftimePanel() {
 		return deftimePanel;
 	}
 
+	/**
+	 * Returns the pass through panel
+	 * 
+	 * @return The pass through panel
+	 */
 	public SimpleQueryPanel getPassesThroughRegionPanel() {
 		return passesThroughRegionPanel;
 	}

@@ -34,7 +34,7 @@ import com.secondo.webgui.shared.model.DataType;
  * RPC-Service Interface. It implements the Interface SecondoService and all
  * methods that have been defined in this interface.
  * 
- * @author Kristina Steiger
+ * @author Irina Russkaya
  * 
  **/
 public class SecondoServiceImpl extends RemoteServiceServlet implements
@@ -46,6 +46,11 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	public SecondoServiceImpl() {
 	}
 
+	/**
+	 * Returns SecondoServiceCore object. Each session gets its own object.
+	 * 
+	 * @return The SecondoServiceCore object
+	 */
 	private SecondoServiceCore getSecondoServiceCore() {
 		String sid = this.getThreadLocalRequest().getSession().getId();
 		System.out.println("Session id: " + sid);
@@ -58,6 +63,10 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 		return coreInstance;
 	}
 
+	/**
+	 * Closes the session with the specified id; SecondoServiceCore object will
+	 * be removed
+	 */
 	public void closeSession() {
 		String sid = this.getThreadLocalRequest().getSession().getId();
 		SecondoServiceCore coreInstance = coreInstances.get(sid);
@@ -67,6 +76,13 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * com.secondo.webgui.client.rpc.SecondoService#sendCommandWithoutResult
+	 * (java.lang.String)
+	 */
 	@Override
 	public String sendCommandWithoutResult(String command) {
 

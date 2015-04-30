@@ -1,9 +1,8 @@
-/**
- * 
- */
+
 package com.secondo.webgui.utils.config;
 
-/**
+/**The enum with colors used for displaying a symbolic trajectory in display mode
+ * 
  * @author Irina Russkaya
  *
  */
@@ -28,25 +27,24 @@ public enum Color {
 		this.hex=hex;
 	}
 	
-	
-	
-	/**
+	/**Returns the hex value
 	 * @return the hex
 	 */
 	public String getHex() {
 		return hex;
 	}
-
-
-
-	/**
-	 * cyclic return elements of enum 
-	 * @return elements of enum
+	/** Returns cyclic elements of the enum
+	 *  
+	 * @return The elements of enum
 	 */
 	public Color getNext() {
 	return values()[(ordinal()+1) % values().length];
 	}
 	
+	/**Returns elements of the enum
+	 * @param The position of the element
+	 * @return The value in hex
+	 */
 	public static  String getHexValueForElementAt(int position){
 		if(position+1<values().length){
 		return values()[position].getHex();

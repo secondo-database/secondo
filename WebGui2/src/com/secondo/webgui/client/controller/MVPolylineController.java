@@ -36,8 +36,6 @@ import org.gwtopenmaps.openlayers.client.geometry.Point;
 import org.gwtopenmaps.openlayers.client.layer.Vector;
 import org.gwtopenmaps.openlayers.client.popup.FramedCloud;
 
-import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.ui.HTML;
 import com.secondo.webgui.shared.model.Line;
 import com.secondo.webgui.shared.model.MPoint;
 import com.secondo.webgui.shared.model.Polyline;
@@ -46,7 +44,7 @@ import com.secondo.webgui.shared.model.Polyline;
  * This class is a controller for the datatype polyline, to display polylines in
  * the map view.
  * 
- * @author Kristina Steiger
+ * @author Irina Russkaya
  * 
  **/
 public class MVPolylineController {
@@ -60,25 +58,16 @@ public class MVPolylineController {
 	/** Projection to transform geographical points to fit the map */
 	private Projection externalProjection = new Projection("EPSG:4326");
 	private Projection internalProjection = new Projection("EPSG:900913");
-
-	/** List with lists of line segments from MP */
-//	private List<List<LineString>> listWithlineSegmentsFromMP = new ArrayList<List<LineString>>();
-	/**id - mpoint id; value - list of line segments to this mpoint*/
+	/** id - mpoint id; value - list of line segments to this mpoint */
 	private HashMap<Number, List<LineString>> listWithlineSegmentsFromMP = new HashMap<Number, List<LineString>>();
-	/**key - id of mpoint; value - list of colors to this mpoint*/
+	/** key - id of mpoint; value - list of colors to this mpoint */
 	private HashMap<Number, List<String>> listWithColorsToMP = new HashMap<Number, List<String>>();
-	/**
-	 * key - id of mp; value - map where key -label, value - color
-	 */
-	private HashMap<Number, HashMap<String, String>> mpToLegendMap= new HashMap<Number, HashMap<String, String>>();
-	
-	/** Array for colors from ML */
-//	private List<List<String>> colors = new ArrayList<List<String>>();
+	/** key - id of mp; value - map where key -label, value - color */
+	private HashMap<Number, HashMap<String, String>> mpToLegendMap = new HashMap<Number, HashMap<String, String>>();
 
-//	private List<HashMap<String, String>> mapWithLabelsToColor = new ArrayList<>();
-	private int count=0;
-	
-	private String completeLegendForMap=new String(" ");
+	private int count = 0;
+
+	private String completeLegendForMap = new String(" ");
 
 	public MVPolylineController() {
 	}
@@ -91,7 +80,6 @@ public class MVPolylineController {
 	 * @return Returns true if the value is a geographic latitude
 	 * */
 	public boolean isLatitude(double lat) {
-
 		// range lat => -90 +90
 		if (lat < 90 && lat > -90) {
 			return true;
@@ -107,7 +95,6 @@ public class MVPolylineController {
 	 * @return Returns true if the value is a geographic longitude
 	 * */
 	public boolean isLongitude(double lng) {
-
 		// range lng => -180 +180
 		if (lng < 180 && lng > -180) {
 			return true;
@@ -165,7 +152,7 @@ public class MVPolylineController {
 	@SuppressWarnings("unchecked")
 	public void addPolyline(Polyline data, Bounds boundsAll, Bounds boundsLast) {
 		List<LineString> arrayWithLines;
-		Integer key=0;
+		Integer key = 0;
 
 		if (listWithlineSegmentsFromMP.isEmpty()) {
 			arrayWithLines = new ArrayList<LineString>();
@@ -178,10 +165,9 @@ public class MVPolylineController {
 		} else {
 			System.out.println(" Size of lineArrayFromMP "
 					+ listWithlineSegmentsFromMP.size());
-			arrayWithLines=(List<LineString>) listWithlineSegmentsFromMP.values().toArray()[count];
-			key=(Integer) listWithlineSegmentsFromMP.keySet().toArray()[count];
-//			arrayWithLines = listWithlineSegmentsFromMP.get(0);
-//			listWithlineSegmentsFromMP.remove(0);
+			arrayWithLines = (List<LineString>) listWithlineSegmentsFromMP
+					.values().toArray()[count];
+			key = (Integer) listWithlineSegmentsFromMP.keySet().toArray()[count];
 			count++;
 		}
 
@@ -194,59 +180,19 @@ public class MVPolylineController {
 					arrayWithLines, listWithColorsToMP.get(key), data.getId(),
 					legendForColoredPolyline);
 			coloredPolylineMap.put(data.getId(), coloredPolylineLayer);
-					
-			
-			
-		} 
-			Vector polylineLayer = createLayerForSimplePolyline(arrayWithLines);
-			polylineMap.put(data.getId(), polylineLayer);
-		
-
+		}
+		Vector polylineLayer = createLayerForSimplePolyline(arrayWithLines);
+		polylineMap.put(data.getId(), polylineLayer);
 	}
-	
-//	public void addPolyline(Polyline data, Bounds boundsAll, Bounds boundsLast) {
-//		List<LineString> arrayWithLines;
-//
-//		if (listWithlineSegmentsFromMP.isEmpty()) {
-//			arrayWithLines = new ArrayList<LineString>();
-//
-//			for (Line line : ((Polyline) data).getPath()) {
-//				addLineToArray(arrayWithLines, line.getPointA().getY(), line
-//						.getPointA().getX(), line.getPointB().getY(), line
-//						.getPointB().getX(), boundsAll, boundsLast);
-//			}
-//		} else {
-//			System.out.println(" Size of lineArrayFromMP "
-//					+ listWithlineSegmentsFromMP.size());
-//			arrayWithLines=(List<LineString>) listWithlineSegmentsFromMP.values().toArray()[0];
-//			int key=(int) listWithlineSegmentsFromMP.keySet().toArray()[0];
-////			arrayWithLines = listWithlineSegmentsFromMP.get(0);
-////			listWithlineSegmentsFromMP.remove(0);
-//		}
-//
-//		System.out.println("Size of line segments " + arrayWithLines.size());
-//		if (!colors.isEmpty()) {
-//
-//			String legendForColoredPolyline = generateLegend(mapWithLabelsToColor
-//					.get(0));
-//			Vector coloredPolylineLayer = createLayerForColoredPolyline(
-//					arrayWithLines, colors.get(0), data.getId(),
-//					legendForColoredPolyline);
-//			coloredPolylineMap.put(data.getId(), coloredPolylineLayer);
-//			colors.remove(0);
-//			Vector polylineLayer = createLayerForSimplePolyline(arrayWithLines);
-//			polylineMap.put(data.getId(), polylineLayer);
-//			mapWithLabelsToColor.remove(0);
-//		} else {
-//			Vector polylineLayer = createLayerForSimplePolyline(arrayWithLines);
-//			polylineMap.put(data.getId(), polylineLayer);
-//		}
-//
-//	}
 
+	/**
+	 * @param data
+	 * @param boundsAll
+	 * @param boundsLast
+	 */
 	public void addPolylineFromMP(MPoint data, Bounds boundsAll,
 			Bounds boundsLast) {
-		count=0;
+		count = 0;
 		List<LineString> arrayWithLines = new ArrayList<LineString>();
 
 		// add just pointA of all lines, not pointB, because thats
@@ -256,46 +202,53 @@ public class MVPolylineController {
 					.getPointA().getX(), line.getPointB().getY(), line
 					.getPointB().getX(), boundsAll, boundsLast);
 		}
-
-		// add mpoint to array
 		addToLineArrayFromMP(data.getId(), arrayWithLines);
-
 	}
 
+	/**
+	 * @param lines
+	 * @param colorList
+	 * @param key
+	 * @param legendForColoredPolyline
+	 * @return
+	 */
 	private Vector createLayerForColoredPolyline(List<LineString> lines,
-			List<String> colorList, int key,
-			String legendForColoredPolyline) {
-		
+			List<String> colorList, int key, String legendForColoredPolyline) {
+
 		// Create the vector layer
 		Vector coloredPolylineLayer = new Vector("Polyline Overlay with Colors");
 		coloredPolylineLayer.setIsBaseLayer(false);
 		coloredPolylineLayer.setDisplayInLayerSwitcher(false);
-		
-		if(colorList!=null){
+
+		if (colorList != null) {
 			System.out.println("Size with colors " + colorList.size());
 
-		for (int i = 0; i < lines.size(); i++) {
+			for (int i = 0; i < lines.size(); i++) {
 
-			VectorFeature coloredFeature = new VectorFeature(lines.get(i));
-			Style styleForColoredPolyline = new Style();
-			styleForColoredPolyline.setStrokeWidth(2);
-			if (i < colorList.size()) {
+				VectorFeature coloredFeature = new VectorFeature(lines.get(i));
+				Style styleForColoredPolyline = new Style();
+				styleForColoredPolyline.setStrokeWidth(2);
+				if (i < colorList.size()) {
 
-				styleForColoredPolyline.setStrokeColor(colorList.get(i));
-			} else {
-				styleForColoredPolyline.setStrokeColor("#000000");
+					styleForColoredPolyline.setStrokeColor(colorList.get(i));
+				} else {
+					styleForColoredPolyline.setStrokeColor("#000000");
+				}
+				coloredPolylineLayer.addFeature(coloredFeature);
+				coloredFeature.setStyle(styleForColoredPolyline);
+				coloredFeature.setPopup(new FramedCloud(new Integer(key)
+						.toString(), coloredFeature.getCenterLonLat(), null,
+						legendForColoredPolyline, null, false));
 			}
-			coloredPolylineLayer.addFeature(coloredFeature);
-			coloredFeature.setStyle(styleForColoredPolyline);
-			coloredFeature.setPopup(new FramedCloud(
-					new Integer(key).toString(), coloredFeature
-							.getCenterLonLat(), null, legendForColoredPolyline,
-					null, false));
-		}}
+		}
 		return coloredPolylineLayer;
 
 	}
 
+	/**
+	 * @param lines
+	 * @return
+	 */
 	private Vector createLayerForSimplePolyline(List<LineString> lines) {
 		// Create a style for the vectorlayer
 		Style style = new Style();
@@ -329,28 +282,29 @@ public class MVPolylineController {
 		if (!showWithColors) {
 			addLineLayersToMap(polylineMap, map, bounds);
 		} else {
-			// addLineLayersToMap(coloredPolylineMap, map, bounds);
 			addPopupToShowLegend(coloredPolylineMap, map, bounds);
 		}
 	}
 
+	/**
+	 * @param lineMap
+	 * @param map
+	 * @param bounds
+	 */
 	private void addPopupToShowLegend(HashMap<Number, Vector> lineMap,
 			final Map map, Bounds bounds) {
 
-		System.out.println("LineMap "+lineMap.size());
+		System.out.println("LineMap " + lineMap.size());
 		if (!lineMap.isEmpty()) {
-			Vector [] overlays = new Vector [lineMap.size()]; 
-			int arrayIndex=0;
+			Vector[] overlays = new Vector[lineMap.size()];
+			int arrayIndex = 0;
 			for (Vector lineLayer : lineMap.values()) {
-//				int i = lineLayer.getFeatures().length;
-//				System.out.println("Number of line segments on layer " + i);			
-				
-				overlays[arrayIndex]=lineLayer;
+				overlays[arrayIndex] = lineLayer;
 				// Secondly add a VectorFeatureSelectedListener to the feature
 				lineLayer
 						.addVectorFeatureSelectedListener(new VectorFeatureSelectedListener() {
 							public void onFeatureSelected(
-									FeatureSelectedEvent eventObject) {								
+									FeatureSelectedEvent eventObject) {
 								// And attach the popup to the map
 								map.addPopup(eventObject.getVectorFeature()
 										.getPopup());
@@ -372,9 +326,8 @@ public class MVPolylineController {
 
 			}
 			map.addLayers(overlays);
-			// First create a select control and make sure it is activated
+
 			final SelectFeature selectFeature = new SelectFeature(overlays);
-			
 			selectFeature.setAutoActivate(true);
 			map.addControl(selectFeature);
 			map.zoomToExtent(bounds);
@@ -392,17 +345,10 @@ public class MVPolylineController {
 		if (!lineMap.isEmpty()) {
 
 			for (Vector lineLayer : lineMap.values()) {
-//				int i = lineLayer.getFeatures().length;
-//				System.out.println("Number of line segments on layer " + i);
 
 				map.addLayer(lineLayer);
 			}
-
 			map.zoomToExtent(bounds);
-			// zoom not closer than 10
-			/*
-			 * if(map.getZoom() > 10){ map.zoomTo(10); }
-			 */
 		}
 	}
 
@@ -411,12 +357,11 @@ public class MVPolylineController {
 		polylineMap.clear();
 	}
 
+	/** Clears temporary data */
 	public void deleteAllValuesFromMPandML() {
-//		colors.clear();
 		listWithlineSegmentsFromMP.clear();
 		listWithColorsToMP.clear();
-		completeLegendForMap="";
-//		mapWithLabelsToColor.clear();
+		completeLegendForMap = "";
 	}
 
 	/** Shows all polylines on the map */
@@ -479,68 +424,66 @@ public class MVPolylineController {
 		return polylineMap;
 	}
 
-	/**
-	 * 
+	/**Adds to the map an mpoint id and list with its line segments
+	 * @param key
+	 * @param arrayWithLines
 	 */
-//	public void addColorsFromML(ArrayList<String> colorsSet) {
-//		if(!colorsSet.isEmpty()){
-//		List<String> colorsFromML=colorsSet;
-//		colors.add(colorsFromML);}		
-//	}
-
-//	public void addLegendFromML(HashMap<String, String> mapWithLabelToColor) {
-//		HashMap<String, String> labelToColor= new HashMap<>();
-//		labelToColor=mapWithLabelToColor;
-//		System.out.println("mapWithLabelToColor from ML in Poly "
-//				+ labelToColor.size());
-//		mapWithLabelsToColor.add(labelToColor);
-//	}
-
 	public void addToLineArrayFromMP(int key, List<LineString> arrayWithLines) {
 		listWithlineSegmentsFromMP.put(key, arrayWithLines);
 		System.out.println("Size of added lineArray " + arrayWithLines.size());
 		System.out.println("Size of lineArrayFromMP "
 				+ listWithlineSegmentsFromMP.size());
-		
+
 	}
 
-//	public List<List<LineString>> getLineArrayFromMP() {
-//		return listWithlineSegmentsFromMP;
-//	}
-
+	/**
+	 * Returns a map with polylines IDs and associated layers
+	 * 
+	 * @return The Map with IDs of polylines as keys and the layer for polylines
+	 *         as values
+	 */
 	public HashMap<Number, Vector> getColoredPolylineMap() {
 		return coloredPolylineMap;
 	}
 
+	/**Generates legend to display
+	 * @param mapWithLabelToColor
+	 *            The map binding label name to color in hex
+	 * @return The HTML to display as legend
+	 */
 	private String generateLegend(HashMap<String, String> mapWithLabelToColor) {
 		String legend_firstPart = ""
 				+ "<table cellspacing=\"0\" cellpadding=\"0\">" + "<tbody>"
 				+ "<tr>";
 		String legend_lastPart = "" + "</tr>" + "</tbody>" + "</table>";
 		String html = "";
-		if(mapWithLabelToColor!=null){
-		for (String label : mapWithLabelToColor.keySet()) {
+		if (mapWithLabelToColor != null) {
+			for (String label : mapWithLabelToColor.keySet()) {
 
-			String color =  mapWithLabelToColor.get(label);
-			System.out.println("label and color for legend " + label + color);
-			html = html
-					+ "<tr>"
-					+ "<td align=\"left\" style=\"vertical-align: top;\">"
-					+ "<div style=\"background-color: "
-					+ color
-					+ "; width: 25px; height: 15px; margin: 5px;\">"
-					+ "</div>"
-					+ "</td>"
-					+ "<td align=\"left\" style=\"vertical-align: top;\">"
-					+ "<div style=\"margin: 5px; font-family: Verdana; color:blue;\">"
-					+ label + "</div>" + "</td> </tr>";
+				String color = mapWithLabelToColor.get(label);
+				System.out.println("label and color for legend " + label
+						+ color);
+				html = html
+						+ "<tr>"
+						+ "<td align=\"left\" style=\"vertical-align: top;\">"
+						+ "<div style=\"background-color: "
+						+ color
+						+ "; width: 25px; height: 15px; margin: 5px;\">"
+						+ "</div>"
+						+ "</td>"
+						+ "<td align=\"left\" style=\"vertical-align: top;\">"
+						+ "<div style=\"margin: 5px; font-family: Verdana; color:blue;\">"
+						+ label + "</div>" + "</td> </tr>";
+			}
 		}
-		}
-		completeLegendForMap=completeLegendForMap+"<h>Legend for the trajectory</h> "+html;
+		completeLegendForMap = completeLegendForMap
+				+ "<h>Legend for the trajectory</h> " + html;
 		return legend_firstPart + html + legend_lastPart;
 	}
-	
 
+	/**Sets to the global map mpoint ID and asociated color list
+	 * @param mapFromMP The map with colors  
+	 */
 	public void setListWithColorsToMP(
 			HashMap<Number, ArrayList<String>> mapFromMP) {
 		if (!mapFromMP.isEmpty()) {
@@ -549,7 +492,10 @@ public class MVPolylineController {
 			}
 		}
 	}
-	
+
+	/**Adds a new entry to the map with mpoint id and successive labels and colors
+	 * @param The mapFromMP
+	 */
 	public void setMapWithMpToLegend(
 			HashMap<Number, HashMap<String, String>> mapFromMP) {
 		if (!mapFromMP.isEmpty()) {
@@ -559,15 +505,11 @@ public class MVPolylineController {
 		}
 	}
 
-	/**
-	 * @return the completeLegendForMap
+	/**Returns the legend to display in the dialog 
+	 * @return The completeLegendForMap
 	 */
 	public String getCompleteLegendForMap() {
 		return completeLegendForMap;
 	}
-	
-	
-	
-	
 
 }

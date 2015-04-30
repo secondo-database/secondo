@@ -23,6 +23,13 @@ import com.secondo.webgui.server.controller.SecondoConnector;
 import com.secondo.webgui.shared.model.DataType;
 import com.secondo.webgui.shared.model.UserData;
 
+/**
+ * This class is responsible for the communication between the client and server
+ * and support multi-threading.
+ * 
+ * @author Irina Russkaya
+ *
+ */
 public class SecondoServiceCore extends RemoteServiceServlet implements
 		SecondoService, Serializable {
 
@@ -75,9 +82,7 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 
 		// save the result in the history lists
 		sd.getResultHistory().add(sc.getSecondoresult());
-		sd.getFormattedResultHistory().add(sc.getFormattedList());
-		sd.setNumberOfSuccessfulReusltsInPatternMatching(sc
-				.getNumberOfTuplesInRelationFromResult());
+		sd.getFormattedResultHistory().add(sc.getFormattedList());		
 
 		return sc.getSecondoresult();
 	}
@@ -298,11 +303,7 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 		}
 
 	}
-
-	public int getNumberOfTuplesInRelationFromResultList() {
-		return sd.getNumberOfSuccessfulReusltsInPatternMatching();
-	}
-
+	
 	public Boolean sendMail(String html) {
 		final String username = "webappsymtraj@gmail.com";
 		final String password = "D5h8ReqDPNx4msckyATu";

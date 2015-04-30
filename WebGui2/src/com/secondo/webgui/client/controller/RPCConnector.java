@@ -188,8 +188,10 @@ public class RPCConnector {
 
 	/**
 	 * Sets the specified String in the result info label of pattern and simple
-	 * query panel or displays it in a dialog box 	 
-	 * @param text message to be displayed
+	 * query panel or displays it in a dialog box
+	 * 
+	 * @param text
+	 *            The message to be displayed
 	 */
 	private void pasteTextInResultInfoLabel(String text) {
 		if (mainView.getOptionsTabPanel().isSimpleQueryForPassesIsInitiated()) {
@@ -219,8 +221,10 @@ public class RPCConnector {
 	 * Starts an RPC call to the server, gets the formatted text result and
 	 * displays it in the text view
 	 * 
-	 * @param mv  The main view object	
-	 * @param lp  The loading popup object 
+	 * @param mv
+	 *            The main view object
+	 * @param lp
+	 *            The loading popup object
 	 */
 	public void setTextView(MainView mv, PopupPanel lp) {
 
@@ -273,12 +277,11 @@ public class RPCConnector {
 
 		AsyncCallback<ArrayList<DataType>> callback = new AsyncCallback<ArrayList<DataType>>() {
 
-
 			@Override
 			public void onFailure(Throwable caught) {
 
 				Window.alert(SERVER_ERROR);
-				loadingPopup.hide();				
+				loadingPopup.hide();
 				mainView.getMapView().setDataLoaded(true);
 			}
 
@@ -286,13 +289,13 @@ public class RPCConnector {
 			public void onSuccess(ArrayList<DataType> result) {
 
 				mainView.getMapView().getCurrentResultTypeList().clear();
-				mainView.getMapView().clearControllers();				
+				mainView.getMapView().clearControllers();
 
 				if (!result.isEmpty()) {
 
 					for (DataType datatype : result) {
 						mainView.getMapView().getCurrentResultTypeList()
-								.add(datatype);						
+								.add(datatype);
 					}
 					// initialize data in views
 					mainView.getMapView().initializeOverlays();
@@ -322,7 +325,7 @@ public class RPCConnector {
 						}
 					};
 					timer.scheduleRepeating(500);
-					
+
 				}
 				// resultlist is empty
 				else {
@@ -383,6 +386,12 @@ public class RPCConnector {
 		secondoService.resetObjectCounter(callback);
 	}
 
+	/**Starts an RPC call to the server to import a GPX file to SECONDO server
+	 * @param nameOfUploadedFile The name of uploaded file 
+	 * @param option The option for creating symbolic trajectory
+	 * @param mv The main view
+	 * @param lp The popup panel
+	 */
 	public void doGPXimport(final String nameOfUploadedFile, final int option,
 			MainView mv, PopupPanel lp) {
 		this.mainView = mv;
@@ -424,6 +433,11 @@ public class RPCConnector {
 
 	}
 
+	/**
+	 * @param startRelationName
+	 * @param nameOfUploadedFile The name of uploaded file
+	 * @param option
+	 */
 	public void makeMPfromGPX(final String startRelationName,
 			final String nameOfUploadedFile, final int option) {
 		final String sufix = nameOfUploadedFile.substring(
@@ -714,9 +728,7 @@ public class RPCConnector {
 					Window.open(url, "_blank",
 							"status=0,toolbar=0,menubar=0,location=0");
 					Window.alert("File upload is successfull");
-
 				}
-
 			};
 
 			secondoService.saveGPXfileToServer(filename, callback);
@@ -724,7 +736,6 @@ public class RPCConnector {
 		} else {
 			Window.alert("You can upload only gpx file");
 		}
-
 	}
 
 	/**
@@ -742,7 +753,6 @@ public class RPCConnector {
 
 	}
 
-	
 	/**
 	 * Sends command for count the opened relation to Secondo and updates label
 	 * "number of tuples in relation" with returned int or error message
@@ -781,11 +791,9 @@ public class RPCConnector {
 					}
 				}
 				countLoaded = true;
-
 			}
 		};
 		secondoService.sendCommand(command, callback);
-
 	}
 
 	/**
@@ -804,7 +812,6 @@ public class RPCConnector {
 			@Override
 			public void onFailure(Throwable caught) {
 				Window.alert(SERVER_ERROR);
-
 			}
 
 			@Override
@@ -823,7 +830,6 @@ public class RPCConnector {
 			}
 		};
 		secondoService.sendCommand(command, callback);
-
 	}
 
 	/**
@@ -842,7 +848,6 @@ public class RPCConnector {
 			@Override
 			public void onFailure(Throwable caught) {
 				Window.alert(SERVER_ERROR);
-
 			}
 
 			@Override
@@ -859,14 +864,13 @@ public class RPCConnector {
 						.setText("Result: " + result);
 				mv.getOptionsTabPanel().setSimpleQueryForPassesIsInitiated(
 						false);
-
 			}
 		};
 		secondoService.sendCommand(command, callback);
 	}
 
 	/**
-	 * sends command for count the matched tuples and sets the result value in
+	 * Sends command for count the matched tuples and sets the result value in
 	 * the appropriate info label (for simple queries -- passes through region)
 	 * 
 	 * @param command
@@ -881,7 +885,6 @@ public class RPCConnector {
 			@Override
 			public void onFailure(Throwable caught) {
 				Window.alert(SERVER_ERROR);
-
 			}
 
 			@Override
@@ -898,7 +901,6 @@ public class RPCConnector {
 						.setText("Result: " + result);
 				mv.getOptionsTabPanel()
 						.setSimpleQueryForPassesTrhoughRegionsInitiated(false);
-
 			}
 		};
 		secondoService.sendCommand(command, callback);
@@ -920,7 +922,6 @@ public class RPCConnector {
 			@Override
 			public void onFailure(Throwable caught) {
 				Window.alert(SERVER_ERROR);
-
 			}
 
 			@Override
@@ -941,7 +942,6 @@ public class RPCConnector {
 					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 							.getDeftimePanel().getResultInfoLabel()
 							.setText(result);
-
 				}
 			}
 		};
@@ -961,7 +961,6 @@ public class RPCConnector {
 			@Override
 			public void onFailure(Throwable caught) {
 				Window.alert(SERVER_ERROR);
-
 			}
 
 			@Override
