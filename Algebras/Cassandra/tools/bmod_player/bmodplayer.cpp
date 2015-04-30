@@ -834,11 +834,7 @@ public:
  
    }
    
-   void run(int argc, char *argv[]) {
-      StatisticsDisplay statisticsDisplay(statistics, timer);
-      
-      parseParameter(argc, argv, configuration);
-
+   void createWorker() {
       if(configuration->simulationmode == SIMULATION_MODE_ADAPTIVE) {
           vector<InputData*> *inputData = new vector<InputData*>();
    
@@ -859,6 +855,14 @@ public:
          cerr << "Unknown simulation mode" << endl;
          exit(EXIT_FAILURE);
       }
+   }
+   
+   void run(int argc, char *argv[]) {
+      StatisticsDisplay statisticsDisplay(statistics, timer);
+      
+      parseParameter(argc, argv, configuration);
+
+      createWorker();
 
       pthread_create(&readerThread, NULL, 
                      &startProducerThreadInternal, producer);
