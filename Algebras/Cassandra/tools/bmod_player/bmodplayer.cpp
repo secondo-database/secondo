@@ -52,9 +52,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #define CMDLINE_INPUTFILE        1<<0
-#define CMDLINE_DESTHOST         1<<1
-#define CMDLINE_DESTPORT         1<<2
-#define CMDLINE_SIMULATION_MODE  1<<3
+#define CMDLINE_STATISTICS       1<<1
+#define CMDLINE_DESTHOST         1<<2
+#define CMDLINE_DESTPORT         1<<3
+#define CMDLINE_SIMULATION_MODE  1<<4
 
 #define QUEUE_ELEMENTS 10000
 #define DELIMITER ","
@@ -70,6 +71,7 @@ using namespace std;
 */
 struct Configuration {
    string inputfile;
+   string statisticsfile;
    string desthost;
    size_t destport;
    short simulationmode;
@@ -77,8 +79,8 @@ struct Configuration {
 };
 
 struct Statistics {
-   size_t read;
-   size_t send;
+   unsigned long read;
+   unsigned long send;
    bool done;
 };
 
@@ -760,24 +762,82 @@ class StatisticsDisplay {
 
 public:
    
-   StatisticsDisplay(Statistics *myStatistics, Timer *myTimer) :
-                     statistics(myStatistics), timer(myTimer) {
-      
+   StatisticsDisplay(Configuration *myConfiguration,
+                     Statistics *myStatistics, Timer *myTimer) :
+                     configuration(myConfiguration), 
+                     statistics(myStatistics), timer(myTimer),
+                     outputfile(NULL) {
+                        
+      openStatistics();
+   }
+   
+   virtual ~StatisticsDisplay() {
+      closeStatistics();
+   }
+   
+   void openStatistics() {
+      if(outputfile == NULL) {
+         outputfile = fopen((configuration->statisticsfile).c_str(), "w");
+         
+         if(outputfile == NULL) {
+            cerr << "Unable to open" << configuration->statisticsfile <<
+               " for writing, exiting" << endl;
+            exit(EXIT_FAILURE);
+         }
+      }
+   }
+   
+   void closeStatistics() {
+      if(outputfile != NULL) {
+         fclose(outputfile);
+         outputfile = NULL;
+      }
+   }
+   
+   void printStatisticsData() {
+      cout << "\r\033[2K" << "Sec: " << timer-> getDiff() / (1024 * 1024);
+      cout << " \033[1m Read:\033[0m " << statistics -> read;
+      cout << " \033[1m Send:\033[0m " << statistics -> send;
+      cout.flush();
+   }
+   
+   void writeStatisticsData() {
+      if(outputfile != NULL) {
+         fprintf(outputfile, "%lu\t%lu\n", 
+                statistics -> read, statistics -> send);
+      }
    }
    
    void mainLoop() {
+      
+      gettimeofday(&lastrun, NULL);
+      
       while(statistics->done == false) {
-         cout << "\r\033[2K" << "Sec: " << timer-> getDiff() / (1024 * 1024);
-         cout << " \033[1m Read:\033[0m " << statistics -> read;
-         cout << " \033[1m Send:\033[0m " << statistics -> send;
-         cout.flush();
-         usleep(1000 * 1000);
+         printStatisticsData();
+         writeStatisticsData();
+         waitForNextSecond();
       }
    }
    
 private:
+      void waitForNextSecond() {
+         struct timeval curtime;
+         struct timeval result;
+         
+         do {
+            usleep(100);
+            gettimeofday(&curtime, NULL);
+            timersub(&curtime, &lastrun, &result);
+         } while(result.tv_sec < 1);
+         
+         lastrun = curtime;
+      }
+   
+      Configuration *configuration;
       Statistics *statistics;
       Timer *timer;
+      FILE *outputfile;
+      struct timeval lastrun;
 };
 
 void* startConsumerThreadInternal(void *ptr) {
@@ -816,6 +876,10 @@ void* startStatisticsThreadInternal(void *ptr) {
    return NULL;
 }
 
+/*
+BerlinModPlayer main class
+
+*/
 class BModPlayer {
 
 public:
@@ -858,12 +922,15 @@ public:
    }
    
    void run(int argc, char *argv[]) {
-      StatisticsDisplay statisticsDisplay(statistics, timer);
-      
+
       parseParameter(argc, argv, configuration);
 
       createWorker();
 
+      StatisticsDisplay statisticsDisplay(configuration, 
+                        statistics, timer);
+
+      // Create worker threads
       pthread_create(&readerThread, NULL, 
                      &startProducerThreadInternal, producer);
 
@@ -876,6 +943,7 @@ public:
                   
       timer->start();
    
+      // Wait for running threads
       pthread_join(readerThread, NULL);
       pthread_join(writerThread, NULL);
    
@@ -891,16 +959,18 @@ public:
 private:
    
    void printHelpAndExit(char *progName) {
-      cerr << "Usage: " << progName << " -i <inputfile> ";
+      cerr << "Usage: " << progName << " -i <inputfile> -o <statisticsfile> ";
       cerr << "-h <hostname> -p <port> -s <adaptive|fixed>" << endl;
       cerr << endl;
       cerr << "-i is the CVS file with the trips to simulate" << endl;
+      cerr << "-o is the output file for statistics" << endl;
       cerr << "-h specifies the hostname to connect to" << endl;
       cerr << "-p specifies the port to connect to" << endl;
       cerr << "-s sets the simulation mode" << endl;
       cerr << endl;
       cerr << "For example: " << progName << " -i trips.csv ";
-      cerr << "-h localhost -p 10000 -s adaptive" << endl;
+      cerr << "-o statistics.txt -h localhost ";
+      cerr << "-p 10000 -s adaptive" << endl;
       exit(-1);
    }
 
@@ -909,11 +979,16 @@ private:
       unsigned int flags = 0;
       int option = 0;
    
-      while ((option = getopt(argc, argv,"i:h:p:s:")) != -1) {
+      while ((option = getopt(argc, argv,"i:o:h:p:s:")) != -1) {
           switch (option) {
              case 'i':
                 flags |= CMDLINE_INPUTFILE;
                 configuration->inputfile = string(optarg);
+             break;
+             
+             case 'o':
+                flags |= CMDLINE_STATISTICS;
+                configuration->statisticsfile = string(optarg);
              break;
           
              case 'h':
@@ -946,6 +1021,7 @@ private:
       }
    
       unsigned int requiredFalgs = CMDLINE_INPUTFILE |
+                                   CMDLINE_STATISTICS |
                                    CMDLINE_DESTHOST |
                                    CMDLINE_DESTPORT |
                                    CMDLINE_SIMULATION_MODE;
