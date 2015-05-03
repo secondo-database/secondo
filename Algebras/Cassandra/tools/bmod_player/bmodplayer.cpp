@@ -56,6 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define CMDLINE_DESTHOST         1<<2
 #define CMDLINE_DESTPORT         1<<3
 #define CMDLINE_SIMULATION_MODE  1<<4
+#define CMDLINE_BEGINTIME        1<<5
 
 #define QUEUE_ELEMENTS 10000
 #define DELIMITER ","
@@ -75,6 +76,7 @@ struct Configuration {
    string desthost;
    size_t destport;
    short simulationmode;
+   time_t begintime;
    timeval start;
 };
 
@@ -163,6 +165,48 @@ public:
    
       return false;
    }
+   
+   void jumpToOffset(ifstream &myfile) {
+            
+      if(configuration->begintime > 0) {
+         string line;
+         struct tm tm1;
+                  
+         do {
+             vector<std::string> lineData;
+            
+             bool result = getline (myfile,line);
+             
+             if(!result ) {
+                continue;
+             }
+             
+             parseLineData(lineData, line);
+             memset(&tm1, 0, sizeof(struct tm));
+   
+             if (! parseCSVDate(tm1, lineData[2])) {
+                continue;
+             }
+             
+         } while(mktime(&tm1) < configuration->begintime);
+      }      
+   }
+
+   bool parseLineData(vector<std::string> &lineData, string &line) {
+      stringstream lineStream(line);
+      string cell;
+
+      while(getline(lineStream,cell,',')) {
+         lineData.push_back(cell);
+      }
+                 
+      if(lineData.size() != 8) {
+         cerr << "Invalid line: " << line << " skipping" << endl;
+         return false;
+      }
+      
+      return true;
+   }
 
    bool parseInputData() {
    
@@ -180,22 +224,16 @@ public:
          return false;
       }
    
+      jumpToOffset(myfile);
+   
       while ( getline (myfile,line) ) {
           
          vector<std::string> lineData;
-         stringstream lineStream(line);
-         string cell;
-
-         while(getline(lineStream,cell,',')) {
-            lineData.push_back(cell);
+         bool result = parseLineData(lineData, line);
+         
+         if(result == true) {
+            handleCSVLine(lineData);
          }
-                    
-         if(lineData.size() != 8) {
-            cerr << "Invalid line: " << line << " skipping" << endl;
-            continue;
-         }
-          
-         handleCSVLine(lineData);
       }
    
       myfile.close();
@@ -887,6 +925,7 @@ public:
    BModPlayer() {
       configuration = new Configuration();
       gettimeofday(&configuration->start, NULL);
+      configuration->begintime = 0;
    
       statistics = new Statistics(); 
       statistics->done = false;
@@ -960,17 +999,19 @@ private:
    
    void printHelpAndExit(char *progName) {
       cerr << "Usage: " << progName << " -i <inputfile> -o <statisticsfile> ";
-      cerr << "-h <hostname> -p <port> -s <adaptive|fixed>" << endl;
+      cerr << "-h <hostname> -p <port> -s <adaptive|fixed> -b <begintime>";
+      cerr << endl;
       cerr << endl;
       cerr << "-i is the CVS file with the trips to simulate" << endl;
       cerr << "-o is the output file for statistics" << endl;
       cerr << "-h specifies the hostname to connect to" << endl;
       cerr << "-p specifies the port to connect to" << endl;
       cerr << "-s sets the simulation mode" << endl;
+      cerr << "-b is the time offset for the input data" << endl;
       cerr << endl;
       cerr << "For example: " << progName << " -i trips.csv ";
       cerr << "-o statistics.txt -h localhost ";
-      cerr << "-p 10000 -s adaptive" << endl;
+      cerr << "-p 10000 -s adaptive -b '2007-05-28 06:00:14'" << endl;
       exit(-1);
    }
 
@@ -979,7 +1020,7 @@ private:
       unsigned int flags = 0;
       int option = 0;
    
-      while ((option = getopt(argc, argv,"i:o:h:p:s:")) != -1) {
+      while ((option = getopt(argc, argv,"i:o:h:p:s:b:")) != -1) {
           switch (option) {
              case 'i':
                 flags |= CMDLINE_INPUTFILE;
@@ -1014,6 +1055,18 @@ private:
                     printHelpAndExit(argv[0]);
                 }
              break;
+             
+             case 'b':
+                 flags |= CMDLINE_BEGINTIME;
+                 struct tm tm;
+                 
+                 if (! strptime(optarg, "%Y-%m-%d %H:%M:%S", &tm)) {
+                    cerr << "Unable to parse date: " << optarg << endl << endl;
+                    printHelpAndExit(argv[0]);
+                 }
+                 
+                 configuration->begintime = mktime(&tm);
+             break;
           
              default:
                printHelpAndExit(argv[0]);
@@ -1026,7 +1079,7 @@ private:
                                    CMDLINE_DESTPORT |
                                    CMDLINE_SIMULATION_MODE;
    
-      if(flags != requiredFalgs) {
+      if((flags & requiredFalgs) != requiredFalgs) {
          printHelpAndExit(argv[0]);
       }
    }
