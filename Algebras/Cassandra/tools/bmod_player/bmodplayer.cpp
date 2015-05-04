@@ -76,7 +76,7 @@ struct Configuration {
    string desthost;
    size_t destport;
    short simulationmode;
-   time_t begintime;
+   time_t beginoffset;
    timeval start;
 };
 
@@ -138,7 +138,8 @@ public:
     AbstractProducer(Configuration *myConfiguration, 
         Statistics *myStatistics, QueueSync *myQueueSync) : 
         queueSync(myQueueSync) ,
-        configuration(myConfiguration), statistics(myStatistics) {
+        configuration(myConfiguration), statistics(myStatistics),
+        jumpToOffsetDone(false) {
    
     }
     
@@ -168,7 +169,9 @@ public:
    
    void jumpToOffset(ifstream &myfile) {
             
-      if(configuration->begintime > 0) {
+      if(jumpToOffsetDone == false && 
+         configuration->beginoffset > 0) {
+            
          string line;
          struct tm tm1;
                   
@@ -188,7 +191,9 @@ public:
                 continue;
              }
              
-         } while(mktime(&tm1) < configuration->begintime);
+         } while(mktime(&tm1) < configuration->beginoffset);
+         
+         jumpToOffsetDone = true;
       }      
    }
 
@@ -251,6 +256,7 @@ protected:
    QueueSync *queueSync;
    Configuration *configuration;
    Statistics *statistics;
+   bool jumpToOffsetDone;
 
 private:
 };
@@ -405,7 +411,7 @@ private:
 };
 
 /*
-2.1 Adaptive producer class - produced a queue with ranges
+2.2 Adaptive producer class - produced a queue with ranges
 
 */
 class AdapiveProducer : public AbstractProducer {
@@ -435,6 +441,10 @@ public:
          data = NULL;
       }
    }
+   
+   void waitForLineRead() {
+      
+   }
 
    virtual bool handleCSVLine(vector<std::string> &lineData) {
    
@@ -443,8 +453,9 @@ public:
          return true;     
       }
       
-      statistics->read++;
-   
+      // Wait for line read
+      waitForLineRead();
+      
       // 2007-06-08 08:32:26.781
       struct tm tm1;
       struct tm tm2;
@@ -471,6 +482,8 @@ public:
       inputdata -> y_end = atof(lineData[7].c_str());
 
       putDataIntoQueue(inputdata);
+      
+      statistics->read++;
 
       return true;
    }
@@ -509,7 +522,6 @@ private:
 3.0 Consumer class - consumes berlin mod data and write it to a tcp socket
 
 */
-
 class AbstractConsumer {  
    
 public:
@@ -618,7 +630,7 @@ private:
 
 
 /*
-5.0 FixedConsumer class
+3.1 FixedConsumer class
 
 */
 class AdaptiveConsumer : public AbstractConsumer {
@@ -706,7 +718,7 @@ private:
 };
 
 /*
-5.0 AdaptiveConsumer class
+3.2 AdaptiveConsumer class
 
 */
 class FixedConsumer : public AbstractConsumer {
@@ -793,7 +805,7 @@ private:
 };
 
 /*
-5.0 Statistics class
+4.0 Statistics class
 
 */
 class StatisticsDisplay {
@@ -818,8 +830,8 @@ public:
          outputfile = fopen((configuration->statisticsfile).c_str(), "w");
          
          if(outputfile == NULL) {
-            cerr << "Unable to open" << configuration->statisticsfile <<
-               " for writing, exiting" << endl;
+            cerr << "Unable to open: " << configuration->statisticsfile 
+                 << " for writing, exiting" << endl;
             exit(EXIT_FAILURE);
          }
          
@@ -922,7 +934,7 @@ void* startStatisticsThreadInternal(void *ptr) {
 }
 
 /*
-BerlinModPlayer main class
+5.0 BerlinModPlayer main class
 
 */
 class BModPlayer {
@@ -932,7 +944,7 @@ public:
    BModPlayer() {
       configuration = new Configuration();
       gettimeofday(&configuration->start, NULL);
-      configuration->begintime = 0;
+      configuration->beginoffset = 0;
    
       statistics = new Statistics(); 
       statistics->done = false;
@@ -1006,7 +1018,7 @@ private:
    
    void printHelpAndExit(char *progName) {
       cerr << "Usage: " << progName << " -i <inputfile> -o <statisticsfile> ";
-      cerr << "-h <hostname> -p <port> -s <adaptive|fixed> -b <begintime>";
+      cerr << "-h <hostname> -p <port> -s <adaptive|fixed> -b <beginoffset>";
       cerr << endl;
       cerr << endl;
       cerr << "-i is the CVS file with the trips to simulate" << endl;
@@ -1072,7 +1084,7 @@ private:
                     printHelpAndExit(argv[0]);
                  }
                  
-                 configuration->begintime = mktime(&tm);
+                 configuration->beginoffset = mktime(&tm);
              break;
           
              default:
@@ -1130,6 +1142,10 @@ private:
    pthread_t statisticsThread;
 };
 
+/*
+6.0 Main Function
+
+*/
 int main(int argc, char *argv[]) {
    BModPlayer bModPlayer;
    bModPlayer.run(argc, argv);
