@@ -822,6 +822,8 @@ public:
                " for writing, exiting" << endl;
             exit(EXIT_FAILURE);
          }
+         
+         fprintf(outputfile, "#Sec\tRead\tWrite\n");
       }
    }
    
@@ -832,8 +834,12 @@ public:
       }
    }
    
+   size_t getElapsedSeconds() {
+      return timer-> getDiff() / (1000 * 1000);
+   }
+   
    void printStatisticsData() {
-      cout << "\r\033[2K" << "Sec: " << timer-> getDiff() / (1024 * 1024);
+      cout << "\r\033[2K" << "Sec: " << getElapsedSeconds();
       cout << " \033[1m Read:\033[0m " << statistics -> read;
       cout << " \033[1m Send:\033[0m " << statistics -> send;
       cout.flush();
@@ -841,8 +847,9 @@ public:
    
    void writeStatisticsData() {
       if(outputfile != NULL) {
-         fprintf(outputfile, "%lu\t%lu\n", 
+         fprintf(outputfile, "%zu\t%lu\t%lu\n", getElapsedSeconds(),
                 statistics -> read, statistics -> send);
+         fflush(outputfile);
       }
    }
    
@@ -868,7 +875,7 @@ private:
             timersub(&curtime, &lastrun, &result);
          } while(result.tv_sec < 1);
          
-         lastrun = curtime;
+         lastrun.tv_sec++;
       }
    
       Configuration *configuration;
