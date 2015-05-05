@@ -1,0 +1,6 @@
+#/bin/bash
+
+for a in *.h *.cpp; do
+    mv $a $a.bak
+    indent -nut -l80 -lc80 -o - < $a.bak | sed -e "s/const const/const/g" >$a
+done

@@ -237,10 +237,7 @@ FixedMRegionPointTypeCheck (ListExpr type, ListExpr & errorInfo)
 
 
 
-TypeConstructor FixedMRegionPointTC (FixedMRegionPoint::BasicType (), 
-                                     FixedMRegionPointProperty, 
-                                     OutFixedMRegionPoint, 
-                                     InFixedMRegionPoint, 0, 0,
+TypeConstructor FixedMRegionPointTC (FixedMRegionPoint::BasicType (), FixedMRegionPointProperty, OutFixedMRegionPoint, InFixedMRegionPoint, 0, 0,       //deprecated, don’t think about it
                                      CreateFixedMRegionPoint,
                                      DeleteFixedMRegionPoint,
                                      OpenFixedMRegionPoint,
@@ -285,9 +282,9 @@ testoperatoraVM (Word * args, Word & result, int message,
 }
 
 OperatorSpec testoperatoraSpec ("int -> int",
-            "testoperatora(_)",
-            "Computes nothing of an int and returns an int.",
-            "query testoperatora(0)");
+                                "testoperatora(_)",
+                                "Computes nothing of an int and returns an int.",
+                                "query testoperatora(0)");
 
 Operator testoperatoraOp ("testoperatora",
                           testoperatoraSpec.getStr (),

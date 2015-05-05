@@ -43,17 +43,9 @@ This method calculates the new y value that the given point will get after its m
 
 */
   double getImgY (double x, double y);
-/*
-This method calculates the original x value that the given point would have before its movement.
-It undoes the movement, that is caused from LATransform.
 
-*/
   double getOrigX (double x, double y);
-/*
-This method calculates the original y value that the given point would have before its movement.
-It undoes the movement, that is caused from LATransform.
 
-*/
   double getOrigY (double x, double y);
 /*
 This method returns the turning points x value.
@@ -67,9 +59,9 @@ This method returns the turning points y value.
   double getYM ();
 
 private:
-  double a00, a01, a10, a11;//matrix values
-  double cx, cy;//movement (D-M*D+W) look up in constructor
-  double xm, ym;//rotational center
-  double dx, dy;// inverse movement -(M'*(D+W)+D) look up in constructor
+  double a00, a01, a10, a11;
+  double cx, cy, xm, ym;
+  //für die Invertierung
+  double dx, dy;
 };
 #endif

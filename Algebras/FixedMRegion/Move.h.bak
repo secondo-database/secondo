@@ -43,11 +43,10 @@ an end time te.
 
 /*
 This constructor receives a starting point (xa, ya), a starting angle alphaa,
-a moving vector (xe, ye), a moving angle alphae and time t as Datetime.
-
+a moving vector (xe, ye), a moving angle alphae and time t as instant.
 */
-    Move (double xa, double ya, double alphaa, DateTime ta, double xe,
-          double ye, double alphae, DateTime te);
+    Move (double xa, double ya, double alphaa, DateTime ta, double xe, double ye,
+          double alphae, DateTime te);
 /*
 This is the destructor.
 
@@ -55,40 +54,22 @@ This is the destructor.
    ~Move ();
 /*
 This method calculates the necessary set of (x,y) and angle alpha for a
-given time t. relatime is not used.
+given time t.
 
 */
   double *attime (double t, bool relatime) const;
-/*
-This method calculates the necessary set of (x,y) and angle
-alpha for a given time t as an absolute value.
 
-*/
   double *attime (double t) const;
 
   double *attime (DateTime t) const;
-/*
-This method returns the start time of the valid interval as DateTime.
-
-*/
-  DateTime getStart () const;
-/*
-This method returns the start time of the valid interval as an double
-as absolute time.
-
-*/
-  double getStart (const double dummy) const;
-/*
-This method returns the end time of the valid interval as DateTime.
-
-*/
-  DateTime getEnd () const;
-/*
-This method returns the end time of the valid interval as an double
-as absolute time.
-
-*/
-  double getEnd (const double dummy) const;
+  
+  DateTime getStart() const;
+  
+  double getStart(const double dummy) const;
+  
+  DateTime getEnd() const;
+  
+  double getEnd(const double dummy) const;
 
 private:
   double x_0;
@@ -99,15 +80,9 @@ private:
   double v_alpha;
   DateTime t_a;
   DateTime t_e;
-/*
-This method converts the given Datetime time into double.
-
-*/
-  double convert (DateTime t) const;
-/*
-This method converts the given double time into Datetime.
-
-*/
-  DateTime convert (double t) const;
+  
+  double convert(DateTime t) const;
+  
+  DateTime convert(double t) const;
 };
 #endif

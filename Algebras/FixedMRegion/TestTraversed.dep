@@ -75,4 +75,4 @@ TestTraversed.o: TestTraversed.cpp TestTraversed.h \
  /home/secondo/secondo/include/BigInt.h \
  ../Temporal/../../include/CharTransform.h ../Spatial/RegionTools.h \
  ../RobustPlaneSweep/RobustOperators.h Move.h LATransform.h \
- FixedMRegion.h
+ FixedMRegion.h ../MovingRegion/MovingRegionAlgebra.h

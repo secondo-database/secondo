@@ -7,45 +7,49 @@ using namespace std;
 #include "LATransform.h"
 /*
 This is the constructor. It gets a linear movement (x,y), the 
-middle of a circle (xm, ym) and an ankle alpha. 
+middle of a 
+circle (xm, ym) and an ankle alpha. 
 This is possible because another class knows t and therefore does 
 already know alpha, x and y. 
 Later on, the methods of this class can be called for various points,
-without the already given information. 
+without the
+already given information. 
 
 */
-LATransform::LATransform(double x, double y, double _xm, double _ym,
-  double alpha):xm(_xm), ym(_ym){
-  //A'=M*A+(D-M*D+W) is equation of movement.
-  //M is rotational matrix with angle alpha
-  //D=(xm, ym), rotaional center; D!=d completely different meaning!
-  //W=(x,y) linear movement
-  //A point to move
-  //M=(a00 a01)
-  //  (a10 a11)     
+LATransform::LATransform (double x, double y, double _xm, double _ym,
+                          double alpha):
+xm (_xm),
+ym (_ym)
+{
+  //A'=M*A+(D-M*D+W) mit Gesamtgleichung
+  //M einfach alpha einsetzen Winkel alpha, M Matrix, zu 
+  //füllen in a.. Werte
+  //D=(xm, ym), Drehpunkt
+  //W=(x,y) Verschiebung
+  //in private variablen (schon angelegt)
   a00 = cos (alpha);
   a01 = -sin (alpha);
   a10 = sin (alpha);
   a11 = cos (alpha);
-  //c=(D-M*D+W) for movement
   cx = xm - (a00 * xm + a01 * ym) + x;
   cy = ym - (a10 * xm + a11 * ym) + y;
-  //M'=M^(-1)
-  // because M is rotaional matrix: M'=M^T (transposed)
-  //inverse of movement is:
+  //printf("Hello World. I am a LATransform object.\n");
+  //Das Inverse der Bewegung ist dann (mit M'=M^(-1))
+  //Da M Rotationsmatrix ist, ist M'=M^T
   //A=M'*A'-(M'*(D+W)+D)
-  //d=-(M'*(D+W)+D)
   dx = -(a00 * (x + xm) + a10 * (y + ym)) + xm;
   dy = -(a01 * (x + xm) + a11 * (y + ym)) + ym;
 }
 
 /*
 This method calculates the new x value that the given point will get 
-after its movement.
+after its
+movement.
 
 */
 double
-LATransform::getImgX(double x, double y){
+LATransform::getImgX (double x, double y)
+{
   double tmp = 0;
   tmp = a00 * x + a01 * y + cx;
   return tmp;
@@ -58,29 +62,24 @@ movement.
 
 */
 double
-LATransform::getImgY(double x, double y){
+LATransform::getImgY (double x, double y)
+{
   double tmp;
   tmp = a10 * x + a11 * y + cy;
   return tmp;
 }
-/*
-This method calculates the original x value that the given point would have before its movement.
-It undoes the movement, that is caused from LATransform.
 
-*/
 double
-LATransform::getOrigX(double x, double y){
+LATransform::getOrigX (double x, double y)
+{
   double tmp = 0;
   tmp = a00 * x + a10 * y + dx;
   return tmp;
 }
-/*
-This method calculates the original y value that the given point would have before its movement.
-It undoes the movement, that is caused from LATransform.
 
-*/
 double
-LATransform::getOrigY(double x, double y){
+LATransform::getOrigY (double x, double y)
+{
   double tmp;
   tmp = a01 * x + a11 * y + dy;
   return tmp;
@@ -90,7 +89,8 @@ LATransform::getOrigY(double x, double y){
 usual destructor
 
 */
-LATransform::~LATransform(){
+LATransform::~LATransform ()
+{
 }
 
 /*
@@ -98,7 +98,8 @@ This method returns the turning points x value.
 
 */
 double
-LATransform::getXM(){
+LATransform::getXM ()
+{
   return xm;
 }
 
@@ -107,7 +108,8 @@ This method returns the turning points y value.
 
 */
 double
-LATransform::getYM(){
+LATransform::getYM ()
+{
   return ym;
 }
 
