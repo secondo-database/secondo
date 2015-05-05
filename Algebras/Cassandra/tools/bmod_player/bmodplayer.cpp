@@ -941,6 +941,10 @@ private:
       struct timeval lastrun;
 };
 
+/*
+5.0.0 Helper function to create consumer threads
+
+*/
 void* startConsumerThreadInternal(void *ptr) {
   AbstractConsumer* consumer = (AbstractConsumer*) ptr;
   
@@ -956,6 +960,10 @@ void* startConsumerThreadInternal(void *ptr) {
   return NULL;
 }
 
+/*
+5.0.1 Helper function to create producer threads
+
+*/
 void* startProducerThreadInternal(void *ptr) {
    AbstractProducer* producer = (AbstractProducer*) ptr;
    
@@ -969,6 +977,10 @@ void* startProducerThreadInternal(void *ptr) {
    return NULL;
 }
 
+/*
+5.0.2 Helper function to create the statistic thread
+
+*/
 void* startStatisticsThreadInternal(void *ptr) {
    StatisticsDisplay* statistics = (StatisticsDisplay*) ptr;
    
@@ -984,7 +996,12 @@ void* startStatisticsThreadInternal(void *ptr) {
 class BModPlayer {
 
 public:
+
+/*
+5.1 Default constructor, initializes variables and set the
+    simulation timezone
    
+*/   
    BModPlayer() {
       timeval curtime;
       
@@ -1008,7 +1025,11 @@ public:
       pthread_cond_init(&queueSync.queueCondition, NULL);
  
    }
+ 
+/*
+5.2 Create worker depending on commandline flags
    
+*/
    void createWorker() {
       if(configuration->simulationmode == SIMULATION_MODE_ADAPTIVE) {
           vector<InputData*> *inputData = new vector<InputData*>();
@@ -1031,7 +1052,12 @@ public:
          exit(EXIT_FAILURE);
       }
    }
+
+/*
+5.3 Main function of the BerlinMODPlayer.
+    Start the worker and wait until they finish
    
+*/
    void run(int argc, char *argv[]) {
 
       parseParameter(argc, argv, configuration);
@@ -1068,7 +1094,11 @@ public:
    }
    
 private:
+
+/*
+5.4 Print usage infomations about this software
    
+*/   
    void printHelpAndExit(char *progName) {
       cerr << "Usage: " << progName << " -i <inputfile> -o <statisticsfile> ";
       cerr << "-h <hostname> -p <port> -s <adaptive|fixed> -b <beginoffset>";
@@ -1087,6 +1117,11 @@ private:
       exit(-1);
    }
 
+/*
+5.5 Parse commandline parameter and create the corresponding
+    configuration object
+   
+*/   
    void parseParameter(int argc, char *argv[], Configuration *configuration) {
    
       unsigned int flags = 0;
@@ -1155,7 +1190,11 @@ private:
          printHelpAndExit(argv[0]);
       }
    }
+
+/*
+5.6 Cleanup and delete all instantiated objects
    
+*/    
    void cleanup() {
       if(consumer != NULL) {
          delete consumer;
@@ -1196,7 +1235,7 @@ private:
 };
 
 /*
-6.0 Main Function
+6.0 Main Function - launch the Berlin Mod Player
 
 */
 int main(int argc, char *argv[]) {
