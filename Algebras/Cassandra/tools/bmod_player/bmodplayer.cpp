@@ -77,7 +77,7 @@ struct Configuration {
    size_t destport;
    short simulationmode;
    time_t beginoffset;
-   timeval start;
+   time_t programstart;
 };
 
 struct Statistics {
@@ -192,9 +192,9 @@ public:
              }
              
          } while(mktime(&tm1) < configuration->beginoffset);
-         
-         jumpToOffsetDone = true;
-      }      
+      }
+      
+      jumpToOffsetDone = true;      
    }
 
    bool parseLineData(vector<std::string> &lineData, string &line) {
@@ -423,7 +423,7 @@ public:
         vector<InputData*> *myData, QueueSync *myQueueSync) : 
         AbstractProducer(myConfiguration, myStatistics, myQueueSync), 
         data(myData) {
-      
+   
    }
    
    virtual ~AdapiveProducer() {
@@ -443,7 +443,43 @@ public:
       }
    }
    
-   void waitForLineRead() {
+   time_t getSimulationTime() {
+      timeval curtime;
+      
+      gettimeofday(&curtime, NULL);
+      time_t elapsedTime = (time_t) curtime.tv_sec 
+                            - configuration->programstart;
+      
+      return elapsedTime + configuration->beginoffset;
+   }
+   
+   void formatData(struct tm *tm, char *buffer, size_t bufferLength) {
+     strftime(buffer, bufferLength, "%Y-%m-%d %H:%M:%S", tm);
+   }
+   
+   void waitForLineRead(struct tm &lineDate) {
+      
+      time_t lineDiff = 0;
+      char buffer[80];
+      
+      do {
+          lineDiff = mktime(&lineDate) - getSimulationTime();
+          
+          formatData(&lineDate, buffer, sizeof(buffer));
+          //cout << "Time of line: " << buffer 
+          //     <<  " " << mktime(&lineDate) << endl;
+        
+          time_t simulationTime = getSimulationTime();
+          formatData(gmtime(&simulationTime), buffer, sizeof(buffer));
+          
+          // cout << "Simulation time is: " 
+          //      << buffer << " " << simulationTime << endl;
+          
+          if(lineDiff > 0) {
+             usleep(10000);
+          }
+
+      } while(lineDiff > 0);
       
    }
 
@@ -453,9 +489,6 @@ public:
       if(lineData[0] == "Moid") {
          return true;     
       }
-      
-      // Wait for line read
-      waitForLineRead();
       
       // 2007-06-08 08:32:26.781
       struct tm tm1;
@@ -470,6 +503,16 @@ public:
          cerr << "Unable to parse end date: " << lineData[3] << endl;
          return false;
       }
+      
+      // Set begin offset, if not specified via command line argument
+      // This value it's required to determine the begin of the simulation
+      if(configuration->beginoffset == 0) {
+         configuration->beginoffset = mktime(&tm1);
+      }
+      
+      // Wait with the processing of the line, until the simulation has 
+      // reached this time
+      waitForLineRead(tm1);
    
       InputData *inputdata = new InputData;
    
@@ -943,8 +986,17 @@ class BModPlayer {
 public:
    
    BModPlayer() {
+      timeval curtime;
+      
+      // Set timezone to utc to allow conversions between
+      // timestamp(UTC) <-> simulation time
+      setenv("TZ", "UTC", 1);
+      tzset();
+      
       configuration = new Configuration();
-      gettimeofday(&configuration->start, NULL);
+
+      gettimeofday(&curtime, NULL);
+      configuration->programstart = (time_t) curtime.tv_sec;
       configuration->beginoffset = 0;
    
       statistics = new Statistics(); 
@@ -1148,6 +1200,7 @@ private:
 
 */
 int main(int argc, char *argv[]) {
+   
    BModPlayer bModPlayer;
    bModPlayer.run(argc, argv);
    
