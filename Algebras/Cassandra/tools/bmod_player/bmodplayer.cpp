@@ -178,9 +178,9 @@ public:
          do {
              vector<std::string> lineData;
             
-             bool result = getline (myfile,line);
+             bool result = getline(myfile,line);
              
-             if(!result ) {
+             if(!result) {
                 continue;
              }
              
@@ -216,7 +216,7 @@ public:
    bool parseInputData() {
    
       if( access( configuration -> inputfile.c_str(), F_OK ) == -1 ) {
-         cerr << "Unable to open Input file: " 
+         cerr << "Unable to open input file: " 
               << configuration -> inputfile << endl;
          return false;
       }
@@ -225,7 +225,8 @@ public:
       ifstream myfile(configuration -> inputfile.c_str());
    
       if (! myfile.is_open()) {
-         cerr << "Unable to open file: " << configuration -> inputfile << endl;
+         cerr << "Unable to open input file: " 
+              << configuration -> inputfile << endl;
          return false;
       }
    
