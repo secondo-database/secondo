@@ -298,6 +298,27 @@ std::string double2str(const double v, int prec /*= 16*/,
 }
 
 
+bool isIdent(const std::string& s){
+  if(s.empty()){
+    return false;
+  }
+  if(!isLetter(s[0])){
+    return false;
+  }
+  for(size_t i=1;i<s.length();i++){
+     char c = s[i];
+     if(!isLetter(c) && !isDigit(c) && (c!='_')){
+       return false;
+     }
+  }
+  return true;
+}
+
+
+
+
+
+
 
 
 
