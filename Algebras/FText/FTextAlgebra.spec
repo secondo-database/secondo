@@ -117,5 +117,6 @@ operator errorMessage alias ERRORMESSAGE pattern op(_)
 operator filepath2text alias FILEPATHTOTEXT pattern op(_)
 operator text2filepath alias TEXTTOFILEPATH pattern op(_)
 
+operator secondoHome alias SECONDOHOME pattern op()
 
 

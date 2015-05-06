@@ -1259,3 +1259,10 @@ Example  : query filepath2text(text2filepath('C:\private\secure.txt')) = 'C:\pri
 Result   : TRUE
 
 
+Operator : secondoHome
+Number : 1
+Signature : -> text
+Example  : query length(secondoHome() ) > 0
+Result   : TRUE
+
+

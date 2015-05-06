@@ -11677,6 +11677,54 @@ Operator filepath2textOP(
 
 
 
+/*
+4.43 Operator ~secondoHome~
+
+4.43.1 Type Mapping
+
+*/
+ListExpr secondoHomeTM(ListExpr args){
+
+ if(!nl->IsEmpty(args)){
+   return listutils::typeError("no arguments expected");
+ }
+ return listutils::basicSymbol<FText>();
+}
+
+/*
+4.43.2 Value Mapping
+
+*/
+int secondoHomeVM( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  FText* res = (FText*) result.addr;
+  res->Set(true, SmiEnvironment::GetSecondoHome());
+  return 0;
+}
+
+/*
+1.43.3 Specification
+
+*/
+OperatorSpec secondoHomeSpec(
+  " -> text",
+  " secondoHome()",
+  " Return the home of the databases.",
+  " query secondoHome()"
+);
+
+/*
+1.43.4 Operator Instance
+
+*/
+Operator secondoHomeOP(
+  "secondoHome",
+  secondoHomeSpec.getStr(),
+  secondoHomeVM,
+  Operator::SimpleSelect,
+  secondoHomeTM
+);
 
 
 /*
@@ -11816,6 +11864,8 @@ Operator filepath2textOP(
 
       AddOperator(&filepath2textOP);
       AddOperator(&text2filepathOP);
+      
+      AddOperator(&secondoHomeOP);
 
 
 #ifdef RECODE
