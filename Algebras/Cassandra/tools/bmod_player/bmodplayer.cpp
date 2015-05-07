@@ -57,6 +57,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define CMDLINE_DESTPORT         1<<3
 #define CMDLINE_SIMULATION_MODE  1<<4
 #define CMDLINE_BEGINTIME        1<<5
+#define CMDLINE_ENDTIME          1<<6
 
 #define QUEUE_ELEMENTS 10000
 #define DELIMITER ","
@@ -77,6 +78,7 @@ struct Configuration {
    size_t destport;
    short simulationmode;
    time_t beginoffset;
+   time_t endoffset;
    time_t programstart;
 };
 
@@ -167,36 +169,46 @@ public:
       return false;
    }
    
-   void jumpToOffset(ifstream &myfile) {
+   bool isBeforeBeginOffset(vector<std::string> lineData) {
             
       if(jumpToOffsetDone == false && 
          configuration->beginoffset > 0) {
             
-         string line;
          struct tm tm1;
-                  
-         do {
-             vector<std::string> lineData;
-            
-             bool result = getline(myfile,line);
-             
-             if(!result) {
-                continue;
-             }
-             
-             parseLineData(lineData, line);
-             memset(&tm1, 0, sizeof(struct tm));
+         memset(&tm1, 0, sizeof(struct tm));
    
-             if (! parseCSVDate(tm1, lineData[2])) {
-                continue;
-             }
-             
-         } while(mktime(&tm1) < configuration->beginoffset);
+         if (! parseCSVDate(tm1, lineData[2])) {
+            return true;
+         }
+   
+         if(mktime(&tm1) < configuration->beginoffset) {
+            return true;
+         }
+         
+         jumpToOffsetDone = true;      
+      }   
+      
+      return false;
+   }
+   
+   bool isAfterEndOffset(vector<std::string> lineData) {
+      
+      if(configuration->endoffset > 0) {
+         struct tm tm1;
+         memset(&tm1, 0, sizeof(struct tm));
+      
+         if (! parseCSVDate(tm1, lineData[2])) {
+            return false;
+         }
+      
+         if(mktime(&tm1) > configuration->endoffset) {
+            return true;
+         }
       }
       
-      jumpToOffsetDone = true;      
+      return false;
    }
-
+   
    bool parseLineData(vector<std::string> &lineData, string &line) {
       stringstream lineStream(line);
       string cell;
@@ -230,14 +242,21 @@ public:
          return false;
       }
    
-      jumpToOffset(myfile);
-   
       while ( getline (myfile,line) ) {
-          
          vector<std::string> lineData;
          bool result = parseLineData(lineData, line);
          
          if(result == true) {
+            
+            // Skip data before begin offset
+            if(isBeforeBeginOffset(lineData)) {
+               continue;
+            }
+            
+            if(isAfterEndOffset(lineData)) {
+               break;
+            }
+            
             handleCSVLine(lineData);
          }
       }
@@ -371,7 +390,8 @@ public:
       bool wasEmpty = data->empty();
       
       while(prepareQueue->size() > 0 && 
-            comparePositionTime(position, prepareQueue->front()) == false) {
+            (position == NULL || 
+             comparePositionTime(position, prepareQueue->front()) == false)) {
                
          if(data->size() >= QUEUE_ELEMENTS) {
             pthread_cond_wait(&queueSync->queueCondition, 
@@ -402,7 +422,10 @@ public:
    }
    
    virtual void handleInputEnd() {
-      // Add terminal token
+      // Move data from pending queue to final queue
+      syncQueues(NULL);
+      
+      // Add terminal token for consumer
       data->push_back(NULL);
    }
 
@@ -1009,21 +1032,24 @@ public:
       // timestamp(UTC) <-> simulation time
       setenv("TZ", "UTC", 1);
       tzset();
-      
-      configuration = new Configuration();
 
+      // Create and init configuration structure
+      configuration = new Configuration();
       gettimeofday(&curtime, NULL);
       configuration->programstart = (time_t) curtime.tv_sec;
       configuration->beginoffset = 0;
+      configuration->endoffset = 0;
    
+      // Create and init statistics structure
       statistics = new Statistics(); 
       statistics->done = false;
    
+      // Create and init timer
       timer = new Timer();
 
+      // Init queuesync structure
       pthread_mutex_init(&queueSync.queueMutex, NULL);
       pthread_cond_init(&queueSync.queueCondition, NULL);
- 
    }
  
 /*
@@ -1101,19 +1127,25 @@ private:
 */   
    void printHelpAndExit(char *progName) {
       cerr << "Usage: " << progName << " -i <inputfile> -o <statisticsfile> ";
-      cerr << "-h <hostname> -p <port> -s <adaptive|fixed> -b <beginoffset>";
+      cerr << "-h <hostname> -p <port> -s <adaptive|fixed> -b <beginoffset> ";
+      cerr << "-e <endoffset>";
       cerr << endl;
       cerr << endl;
+      cerr << "Required parameter:" << endl;
       cerr << "-i is the CVS file with the trips to simulate" << endl;
       cerr << "-o is the output file for statistics" << endl;
       cerr << "-h specifies the hostname to connect to" << endl;
       cerr << "-p specifies the port to connect to" << endl;
       cerr << "-s sets the simulation mode" << endl;
-      cerr << "-b is the time offset for the input data" << endl;
+      cerr << endl;
+      cerr << "Optional parameter:" << endl;
+      cerr << "-b is the begin time offset for the simulation" << endl;
+      cerr << "-e is the end time offset for the simulation" << endl;
       cerr << endl;
       cerr << "For example: " << progName << " -i trips.csv ";
       cerr << "-o statistics.txt -h localhost ";
       cerr << "-p 10000 -s adaptive -b '2007-05-28 06:00:14'" << endl;
+      cerr << "-e '2007-05-28 08:22:31'" << endl;
       exit(-1);
    }
 
@@ -1126,8 +1158,9 @@ private:
    
       unsigned int flags = 0;
       int option = 0;
+      struct tm tm; 
    
-      while ((option = getopt(argc, argv,"i:o:h:p:s:b:")) != -1) {
+      while ((option = getopt(argc, argv,"i:o:h:p:s:b:e:")) != -1) {
           switch (option) {
              case 'i':
                 flags |= CMDLINE_INPUTFILE;
@@ -1165,14 +1198,26 @@ private:
              
              case 'b':
                  flags |= CMDLINE_BEGINTIME;
-                 struct tm tm;
                  
                  if (! strptime(optarg, "%Y-%m-%d %H:%M:%S", &tm)) {
-                    cerr << "Unable to parse date: " << optarg << endl << endl;
+                    cerr << "Unable to parse begin date: " << optarg 
+                         << endl << endl;
                     printHelpAndExit(argv[0]);
                  }
                  
                  configuration->beginoffset = mktime(&tm);
+             break;
+             
+             case 'e':
+                 flags |= CMDLINE_ENDTIME;
+                 
+                 if (! strptime(optarg, "%Y-%m-%d %H:%M:%S", &tm)) {
+                    cerr << "Unable to parse end date: " << optarg 
+                         << endl << endl;
+                    printHelpAndExit(argv[0]);
+                 }
+                 
+                 configuration->endoffset = mktime(&tm);
              break;
           
              default:
