@@ -54,9 +54,10 @@ si [+-]?[0-9]+
 ui [0-9]+
 real {si}+(\.{ui}+)?
 num {si}|{ui}|{real}
-numinterval <{num}(\_)+{num}((\_)+t(\_)+f>)?
+numinterval <{num}{num}(t\ f)?>
 star \*
 plus \+
+attr [A-Z][a-z]*
 setrelation disjoint|superset|equal|intersect
 wildcard {star}|{plus}
 date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
@@ -72,12 +73,12 @@ valueset {value}|(({setrelation})?\{{value}(\,[ ]*{value})*\})
 contents {intervalset}([\ ]*{valueset})+
 variable [A-Z][a-zA-Z0-9_\-]*
 doubleslash \/{2}
-conditiontype label|place|time|start|end|leftclosed|rightclosed|card|labels|places
+conditiontype label|place|time|start|end|leftclosed|rightclosed|card|labels|places|{attr}
 assigntype label|place|time|start|end|leftclosed|rightclosed|labels|places
 vardottype {variable}\.{conditiontype}
 vardottype2 {variable}\.{assigntype}
 rightarrow =>
-const_op ([^A-Z\(\)\[\]\,\"\t\n ][^\(\)\[\]\,\"\t\n ]+)|TRUE|FALSE|\"[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-]*\"
+const_op ([^A-Z\(\)\[\]\,\"\t\n ][^\(\)\[\]\,\"\t\n ]+)|{num}|<|>|>=|<=|=|\+|\-|\*|TRUE|FALSE|\"[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-]*\"
 assign \:=
 openregex \[
 closeregex (\]\+)|(\]\*)|(\]\?)|\]

@@ -34,8 +34,10 @@ Started July 2014, Fabio Vald\'{e}s
 
 #include "RelationAlgebra.h"
 #include "TemporalUnitAlgebra.h"
+#include "MovingRegionAlgebra.h"
 #include "SecParser.h"
 #include "RTreeAlgebra.h"
+#include "FTextAlgebra.h"
 #include "BasicTypes.h"
  
  using namespace std;
@@ -44,16 +46,30 @@ Started July 2014, Fabio Vald\'{e}s
    
  enum SetRel {STANDARD, DISJOINT, SUPERSET, EQUAL, INTERSECT};
  enum DataType {MLABEL, MLABELS, MPLACE, MPLACES};
- enum ValueType {LABEL, LABELS, PLACE, PLACES, POINT, POINTS, LINE, RECT,
-                 REGION, INTERVAL, BOOL};
 
  struct NFAtransition {
   int oldState;
   int trigger;
   int newState;
 };
+
+struct ivCmp {
+  bool operator() (const Interval<CcReal>& iv1, const Interval<CcReal>& iv2)
+                   const {
+    if (iv1.start == iv2.start) {
+      if (iv1.lc == iv2.lc) {
+        if (iv1.end == iv2.end) {
+          return iv1.rc > iv2.rc;
+        }
+        return iv1.end.GetValue() < iv2.end.GetValue();
+      }
+      return iv1.lc > iv2.lc;
+    }
+    return iv1.start.GetValue() < iv2.start.GetValue();
+  }
+};
  
- class Tools {
+class Tools {
  public:
   static void intersect(const vector<set<TupleId> >& tidsets, 
                         set<TupleId>& result);
@@ -64,8 +80,6 @@ Started July 2014, Fabio Vald\'{e}s
                              vector<set<pair<TupleId, int> > >& posVec);
   static void filterPairs(set<pair<TupleId, int> >* pairs,
                     const set<TupleId>& pos, set<pair<TupleId, int> >*& result);
-  template<class T>
-  static bool relationHolds(const set<T>& set1, const set<T>& set2, SetRel rel);
   static string int2String(int i);
   static int str2Int(string const &text);
   static void deleteSpaces(string& text);
@@ -79,7 +93,7 @@ Started July 2014, Fabio Vald\'{e}s
   static set<unsigned int>** createSetMatrix(unsigned int dim1, 
                                              unsigned int dim2);
   static void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
-  static int getKey(const string& type);
+  static int getKey(const string& type, Tuple *tuple = 0);
   static string getDataType(const int key);
   static DataType getDataType(const string& type);
   static DataType getDataType(TupleType *ttype, const int attrno);
@@ -91,17 +105,18 @@ Started July 2014, Fabio Vald\'{e}s
   static bool checkDaytime(const string& text, const SecInterval& uIv);
   static bool isInterval(const string& str);
   static void stringToInterval(const string& str, SecInterval& result);
-  static bool parseInterval(const string& input, int &pos, int &endpos,
-                            pair<Word, ValueType> &valuepair);
+  static bool orderCheckInsert(Range<CcReal> *range,const Interval<CcReal> &iv);
+  static bool parseInterval(const string& input, bool &isEmpty, int &pos,
+                            int &endpos, Word &value);
   static bool isSetRel(const string& input, int &pos, int &endpos, 
                        SetRel &setrel);
-  static bool parseBoolorObj(const string& input, int &pos, int &endpos,
-                             pair<Word, ValueType> &valuepair);
-  static bool checkAttrType(const string& typeName, ValueType vtype);
+  static bool parseBoolorObj(const string& input, bool &isEmpty, int &pos, 
+                             int &endpos, Word &value);
+  static bool checkAttrType(const string& typeName, const Word &value);
   static bool isRelevantAttr(const string& name);
   static vector<pair<int, string> > getRelevantAttrs(TupleType *ttype, 
                                       const int majorAttrNo, int& majorValueNo);
-  static void deleteValue(pair<Word, ValueType>& valuepair);
+  static void deleteValue(Word &value, const string &type);
   static bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
   // static Word evaluate(string input);
@@ -125,6 +140,199 @@ Started July 2014, Fabio Vald\'{e}s
   static double distance(set<pair<string, unsigned int> >& values1, 
                          set<pair<string, unsigned int> >& values2,
                          const int fun, const int labelFun);
+  
+  template<class T>
+  static bool relationHolds(const set<T>& s1, const set<T>& s2,
+                            const SetRel rel) {
+    set<T> temp;
+    switch (rel) {
+      case STANDARD: {
+        set_difference(s1.begin(), s1.end(), s2.begin(), s2.end(), 
+                      std::inserter(temp, temp.begin()));
+        return temp.empty();
+      }
+      case DISJOINT: {
+        set_union(s1.begin(), s1.end(), s2.begin(), s2.end(),
+                  std::inserter(temp, temp.begin()));
+        return (temp.size() == s1.size() + s2.size());
+      }
+      case SUPERSET: {
+        set_difference(s2.begin(), s2.end(), s1.begin(), s1.end(), 
+                      std::inserter(temp, temp.begin()));
+        return temp.empty();
+      }
+      case EQUAL: {
+        return s1 == s2;
+      }
+      case INTERSECT: {
+        set_union(s1.begin(), s1.end(), s2.begin(), s2.end(), 
+                  std::inserter(temp, temp.begin()));
+        return (temp.size() < s1.size() + s2.size());
+      }
+      default: // cannot occur
+        return false;
+    }
+  }
+  
+  template<class T>
+  static bool relationHolds(const Range<T>& r1, const Range<T>& r2, 
+                            const SetRel rel) {
+    switch (rel) {
+      case STANDARD: {
+        return r1.Inside(r2);
+      }
+      case DISJOINT: {
+        return !r1.Intersects(r2);
+      }
+      case SUPERSET: {
+        return r2.Inside(r1);
+      }
+      case EQUAL: {
+        return r1 == r2;
+      }
+      case INTERSECT: {
+        return r1.Intersects(r2);
+      }
+      default: { // cannot occur
+        return false;
+      }
+    }
+  }
+  
+  static bool relationHolds(const Range<CcReal>& range, const set<int>& intSet,
+                            const SetRel rel) {
+    set<int>::iterator it;
+    switch (rel) {
+      case STANDARD: {
+        for (it = intSet.begin(); it != intSet.end(); it++) {
+          CcReal ccreal((double)*it);
+          if (!range.Contains(ccreal)) {
+            return false;
+          }
+        }
+        return true;
+      }
+      case DISJOINT: {
+        for (it = intSet.begin(); it != intSet.end(); it++) {
+          CcReal ccreal((double)*it);
+          if (range.Contains(ccreal)) {
+            return false;
+          }
+        }
+        return true;
+      }
+      case SUPERSET: {
+        return false; // meaningless
+      }
+      case EQUAL: {
+        return false; // meaningless
+      }
+      case INTERSECT: {
+        for (it = intSet.begin(); it != intSet.end(); it++) {
+          CcReal ccreal((double)*it);
+          if (range.Contains(ccreal)) {
+            return true;
+          }
+        }
+        return false;
+      }
+      default: { // cannot occur
+        return false;
+      }
+    }
+  }
+  
+  static bool relationHolds(const MPoint &mp, const Region &reg, 
+                            const SetRel rel) {
+    switch (rel) {
+      case STANDARD: {
+        if (reg.Intersects(mp.BoundingBoxSpatial())) {
+          MPoint mpAtReg(true);
+          mp.AtRegion(&reg, mpAtReg);
+          return !mpAtReg.IsEmpty();
+        }
+        return false;
+      }
+      case DISJOINT: {
+        if (reg.Intersects(mp.BoundingBoxSpatial())) {
+          return !mp.Passes(reg);
+        }
+        return true;
+      }
+      case SUPERSET: { // meaningless
+        return false;
+      }
+      case EQUAL: { // meaningless
+        return false;
+      }
+      case INTERSECT: {
+        if (reg.Intersects(mp.BoundingBoxSpatial())) {
+          return mp.Passes(reg);
+        }
+        return false;
+      }
+      default: { // cannot occur
+        return false;
+      }
+    }
+  }
+  
+    static bool relationHolds(const MRegion &mreg, const Region &reg, 
+                              const SetRel rel) {
+    // TODO: a lot. use MRegion2 ?
+    Rectangle<3> bb3 = mreg.BoundingBox();
+    Rectangle<2> bbox(true, bb3.MinD(0), bb3.MaxD(0), bb3.MinD(1), bb3.MaxD(1));
+    URegionEmb ur(true);
+    switch (rel) {
+      case STANDARD: {
+        if (reg.Intersects(bbox)) {
+          for (int i = 1; i < mreg.GetNoComponents(); i++) {
+            mreg.Get(i, ur);
+          }
+        }
+        return false;
+      }
+      case DISJOINT: {
+        return false;
+      }
+      case SUPERSET: {
+        return false;
+      }
+      case EQUAL: {
+        return false;
+      }
+      case INTERSECT: {
+        return false;
+      }
+      default: { // cannot occur
+        return false;
+      }
+    }
+  }
+  
+  static bool relationHolds(const set<bool> &boolSet, const bool b, 
+                            const SetRel rel) {
+    switch (rel) {
+      case STANDARD: {
+        return (boolSet.find(b) != boolSet.end()) && (boolSet.size() == 1);
+      }
+      case DISJOINT: {
+        return boolSet.find(b) == boolSet.end();
+      }
+      case SUPERSET: {
+        return boolSet.find(b) != boolSet.end();
+      }
+      case EQUAL: {
+        return (boolSet.find(b) != boolSet.end()) && (boolSet.size() == 1);
+      }
+      case INTERSECT: {
+        return boolSet.find(b) != boolSet.end();
+      }
+      default: { // cannot occur
+        return false;
+      }
+    }
+  }
 };
 
  }

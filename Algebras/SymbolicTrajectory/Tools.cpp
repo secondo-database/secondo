@@ -374,7 +374,7 @@ string Tools::extractVar(const string& input) {
   return input.substr(posEq + 1, posDot - posEq - 1);
 }
 
-int Tools::getKey(const string& type) {
+int Tools::getKey(const string& type, Tuple *tuple /* = 0 */) {
   if (type == "label")       return 0;
   if (type == "place")       return 1;
   if (type == "time")        return 2;
@@ -385,21 +385,24 @@ int Tools::getKey(const string& type) {
   if (type == "card")        return 7;
   if (type == "labels")      return 8;
   if (type == "places")      return 9;
-  else return -1; // should not occur
+  if (tuple) {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  }
+  return -1; // should not occur
 }
 
 string Tools::getDataType(const int key) {
   switch (key) {
     case -1: return CcBool::BasicType();
-    case 0: return "label";
-    case 1: return "place";
+    case 0: return Label::BasicType();
+    case 1: return Place::BasicType();
     case 2: return SecInterval::BasicType();
     case 3: 
     case 4: return Instant::BasicType();
     case 5:
     case 6: return CcBool::BasicType();
-    case 8: return "labels";
-    case 9: return "places";
+    case 8: return Labels::BasicType();
+    case 9: return Places::BasicType();
     default: return "error";
   }
 }
@@ -710,11 +713,31 @@ void Tools::stringToInterval(const string& str, SecInterval& result) {
 }
 
 /*
+\subsection{Function ~orderCheckInsert~}
+
+*/
+bool Tools::orderCheckInsert(Range<CcReal> *range, const Interval<CcReal> &iv) {
+  set<Interval<CcReal>, ivCmp> ivSet;
+  Interval<CcReal> ivTemp;
+  for (int i = 0; i < range->GetNoComponents(); i++) {
+    range->Get(i, ivTemp);
+    ivSet.insert(ivTemp);
+  }
+  ivSet.insert(iv); // intervals are ordered in ivSet
+  range->Clear();
+  for (set<Interval<CcReal>, ivCmp>::iterator it = ivSet.begin(); 
+       it != ivSet.end(); it++) {
+    range->MergeAdd(*it);
+  }
+  return range->IsValid();
+}
+
+/*
 \subsection{Function ~parseInterval~}
 
 */
-bool Tools::parseInterval(const string& input, int &pos, int &endpos,
-                          pair<Word, ValueType> &valuepair) {
+bool Tools::parseInterval(const string& input, bool &isEmpty, int &pos, 
+                          int &endpos, Word &value) {
   endpos = input.find(' ', pos);
   stringstream leftss(input.substr(pos + 1, endpos));
   double left = 0.0;
@@ -739,10 +762,22 @@ bool Tools::parseInterval(const string& input, int &pos, int &endpos,
   pos = input.find_first_not_of(' ', pos + 1);
   bool rc = (input[pos] == 't');
   pos = input.find('>', pos) + 1;
-  valuepair.first.addr = new Interval<double>(left, right, lc, rc);
-  valuepair.second = INTERVAL;
-  cout << "interval " << (lc ? "[" : "(") << left << ", " << right
-      << (rc ? "]" : ")") << " inserted" << endl;
+  CcReal ccleft(left);
+  CcReal ccright(right);
+  Interval<CcReal> iv(ccleft, ccright, lc, rc);
+  if (isEmpty) {
+    value.addr = new Range<CcReal>(true);
+    ((Range<CcReal>*)value.addr)->Add(iv);
+    isEmpty = false;
+  }
+  else {
+    if (!Tools::orderCheckInsert((Range<CcReal>*)value.addr, iv)) {
+      cout << "error: interval " << input << " cannot be inserted" << endl;
+      return false;
+    }
+  }
+//   cout << "interval " << (lc ? "[" : "(") << left << ", " << right
+//       << (rc ? "]" : ")") << " inserted" << endl;
   endpos = pos - 1;
   pos = input.find_first_not_of(' ', pos);
   return true;
@@ -779,19 +814,24 @@ bool Tools::isSetRel(const string& input, int &pos, int &endpos,
 \subsection{Function ~parseBoolorObj~}
 
 */
-bool Tools::parseBoolorObj(const string& input, int &pos, int &endpos,
-                           pair<Word, ValueType> &valuepair) {
+bool Tools::parseBoolorObj(const string& input, bool &isEmpty, int &pos,
+                           int &endpos, Word &value) {
   if (!stringutils::isLetter(input[pos])) {
     return false;
   }
   endpos = input.find_first_of(" ,)}", pos) - 1;
   if (input.substr(pos, 4) == "TRUE") {
-    valuepair.first.addr = new CcBool(true, true);
-    valuepair.second = BOOL;
+    if (isEmpty) {
+      value.addr = new CcBool(true, true);
+    }
+    else {
+      ((CcBool*)value.addr)->Set(true, true);
+    }
   }
   else if (input.substr(pos, 5) == "FALSE") {
-    valuepair.first.addr = new CcBool(true, false);
-    valuepair.second = BOOL;
+    if (isEmpty) {
+      value.addr = new CcBool(true, false);
+    } // no else required; false remains false; true remains true
   }
   else {
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
@@ -801,54 +841,94 @@ bool Tools::parseBoolorObj(const string& input, int &pos, int &endpos,
       return false;
     }
     string type;
-    Word value;
+    Word valuePart;
     bool defined;
-    if (!sc->GetObject(name, value, defined)) {
+    if (!sc->GetObject(name, valuePart, defined)) {
       cout << "object " << name << " could not be read" << endl;
       return false;
     }
     type = nl->ToString(sc->GetObjectTypeExpr(name));
-    if (type == "point") {
-      valuepair.second = POINT;
-    }
-    else if (type == "points") {
-      valuepair.second = POINTS;
-    }
-    else if (type == "line") {
-      valuepair.second = LINE;
-    }
-    else if (type == "rect") {
-      valuepair.second = RECT;
+    if (type == "rect") {
+      if (isEmpty) {
+        value.addr = new Region(*((Rectangle<2>*)valuePart.addr));
+        ((Rectangle<2>*)valuePart.addr)->DeleteIfAllowed();
+      }
+      else {
+        Region rect(*((Rectangle<2>*)valuePart.addr));
+        ((Rectangle<2>*)valuePart.addr)->DeleteIfAllowed();
+        Region res(true);
+        ((Region*)value.addr)->Union(rect, res);
+        ((Region*)value.addr)->DeleteIfAllowed();
+        ((Region*)value.addr)->CopyFrom((Attribute*)(&res));
+      }
     }
     else if (type == "region") {
-      valuepair.second = REGION;
+      if (isEmpty) {
+        value.addr = valuePart.addr;
+      }
+      else {
+        Region res(true);
+        ((Region*)value.addr)->Union(*((Region*)valuePart.addr), res);
+        ((Region*)valuePart.addr)->DeleteIfAllowed();
+        ((Region*)value.addr)->CopyFrom((Attribute*)(&res));
+      }
     }
     else if (type == "label") {
-      valuepair.second = LABEL;
+      if (isEmpty) {
+        value.addr = new Labels(true);
+        ((Labels*)value.addr)->Append(*((Label*)valuePart.addr));
+        ((Label*)valuePart.addr)->DeleteIfAllowed();
+      }
+      else {
+        ((Labels*)value.addr)->Append(*((Label*)valuePart.addr));
+        ((Label*)valuePart.addr)->DeleteIfAllowed();
+      }
     }
     else if (type == "labels") {
-      valuepair.second = LABELS;
+      if (isEmpty) {
+        value.addr = valuePart.addr;
+      }
+      else {
+        set<string> labels;
+        ((Labels*)valuePart.addr)->GetValues(labels);
+        ((Labels*)value.addr)->Append(labels);
+      }
     }
     else if (type == "place") {
-      valuepair.second = PLACE;
+      // TODO.
     }
     else if (type == "places") {
-      valuepair.second = PLACES;
+      // TODO.
     }
     else if (type == "interval") {
-      valuepair.second = INTERVAL;
+      if (isEmpty) {
+        value.addr = new Range<CcReal>(true);
+        ((Range<CcReal>*)value.addr)->Add((*(Interval<CcReal>*)valuePart.addr));
+        delete (Interval<CcReal>*)valuePart.addr;
+      }
+      else {
+        orderCheckInsert((Range<CcReal>*)value.addr, 
+                         *((Interval<CcReal>*)valuePart.addr));
+        delete (Interval<CcReal>*)valuePart.addr;
+      }
     }
     else if (type == "bool") {
-      valuepair.second = BOOL;
+      if (isEmpty) {
+        value.addr = valuePart.addr;
+      }
+      else {
+        ((CcBool*)value.addr)->Set(true, ((CcBool*)value.addr)->GetValue() ||
+                                        ((CcBool*)valuePart.addr)->GetValue());
+        ((CcBool*)valuePart.addr)->DeleteIfAllowed();
+      }
     }
     else {
       cout << "type " << type << " is invalid" << endl;
       return false;
     }
-    valuepair.first.addr = value.addr;
-    cout << "object " << name << " has type " << type << endl;
   }
   pos = input.find_first_not_of(' ', endpos + 1);
+  isEmpty = false;
   return true;
 }
 
@@ -856,27 +936,29 @@ bool Tools::parseBoolorObj(const string& input, int &pos, int &endpos,
 \subsection{Function ~checkAttrType~}
 
 */
-bool Tools::checkAttrType(const string& typeName, ValueType vtype) {
-  if (typeName == "mlabel" || typeName == "mlabels") {
-    return vtype == LABEL || vtype == LABELS;
+bool Tools::checkAttrType(const string& typeName, const Word &value) {
+  if (value.addr == 0) {
+    return true;
   }
-  else if (typeName == "mplace" || typeName == "mplaces") {
-    return vtype == PLACE || vtype == PLACES;
+  else {
+    if (typeName == "mlabel" || typeName == "mlabels") {
+      return ((Labels*)value.addr)->IsDefined();
+    }
+    else if (typeName == "mplace" || typeName == "mplaces") {
+      return ((Places*)value.addr)->IsDefined();
+    }
+    else if (typeName == "mpoint" || typeName == "mregion") {
+      return ((Region*)value.addr)->IsDefined();
+    }
+    else if (typeName == "mbool") {
+      return ((CcBool*)value.addr)->IsDefined();
+    }
+    else if (typeName == "mint" || typeName == "mreal") {
+      return ((Range<CcReal>*)value.addr)->IsDefined();
+    }
   }
-  else if (typeName == "mpoint" || typeName == "mregion") {
-    return vtype == POINT || vtype == POINTS || vtype == LINE || vtype == RECT
-           || vtype == REGION;
-  }
-  else if (typeName == "mbool") {
-    return vtype == BOOL;
-  }
-  else if (typeName == "mint" || typeName == "mreal") {
-    return vtype == INTERVAL;
-  }
-  else { // ERROR
-    cout << "invalid type " << typeName << endl;
-    return false;
-  }
+  cout << "invalid type " << typeName << endl;
+  return false;
 }
 
 /*
@@ -907,7 +989,6 @@ vector<pair<int, string> > Tools::getRelevantAttrs(TupleType *ttype,
     string typeName = sc->GetTypeName(attrType.algId, attrType.typeId);
     if (i == majorAttrNo) {
       majorValueNo = result.size();
-      cout << "majorValueNo = " << majorValueNo << endl;
     }
     if (isRelevantAttr(typeName)) {
       result.push_back(make_pair(i, typeName));
@@ -920,67 +1001,27 @@ vector<pair<int, string> > Tools::getRelevantAttrs(TupleType *ttype,
 \subsection{Function ~deleteValue~}
 
 */
-void Tools::deleteValue(pair<Word, ValueType>& valuepair) {
-  switch (valuepair.second) {
-    case LABEL: {
-      Label *label = (Label*)valuepair.first.addr;
-      label->DeleteIfAllowed();
-      break;
-    }
-    case LABELS: {
-      Labels *labels = (Labels*)valuepair.first.addr;
-      labels->DeleteIfAllowed();
-      break;
-    }
-    case PLACE: {
-      Place *place = (Place*)valuepair.first.addr;
-      place->DeleteIfAllowed();
-      break;
-    }
-    case PLACES: {
-      Places *places = (Places*)valuepair.first.addr;
-      places->DeleteIfAllowed();
-      break;
-    }
-    case POINT: {
-      Point *pt = (Point*)valuepair.first.addr;
-      pt->DeleteIfAllowed();
-      break;
-    }
-    case POINTS: {
-      Points *pts = (Points*)valuepair.first.addr;
-      pts->DeleteIfAllowed();
-      break;
-    }
-    case LINE: {
-      Line *line = (Line*)valuepair.first.addr;
-      line->DeleteIfAllowed();
-      break;
-    }
-    case RECT: {
-      Rectangle<2> *rect = (Rectangle<2>*)valuepair.first.addr;
-      rect->DeleteIfAllowed();
-      break;
-    }
-    case REGION: {
-      Region *reg = (Region*)valuepair.first.addr;
-      reg->DeleteIfAllowed();
-      break;
-    }
-    case INTERVAL: {
-      Interval<double> *iv = (Interval<double>*)valuepair.first.addr;
-      delete iv;
-      break;
-    }
-    case BOOL: {
-      CcBool *ccbool = (CcBool*)valuepair.first.addr;
-      ccbool->DeleteIfAllowed();
-      break;
-    }
-    default: { // cannot occur
-      cout << "ERROR" << endl;
-      break;
-    }
+void Tools::deleteValue(Word &value, const string &type) {
+  if (value.addr == 0) {
+    return;
+  }
+  if (type == "mlabel" || type == "mlabels") {
+    ((Labels*)value.addr)->DeleteIfAllowed();
+  }
+  else if (type == "mplace" || type == "mplaces") {
+    ((Places*)value.addr)->DeleteIfAllowed();
+  }
+  else if (type == "mpoint" || type == "mregion") {
+    ((Region*)value.addr)->DeleteIfAllowed();
+  }
+  else if (type == "mbool") {
+    ((CcBool*)value.addr)->DeleteIfAllowed();
+  }
+  else if (type == "mint" || type == "mreal") {
+    ((Range<CcReal>*)value.addr)->DeleteIfAllowed();
+  }
+  else { // cannot occur
+    cout << "cannot delete invalid type " << type << endl;
   }
 }
 
@@ -1026,6 +1067,7 @@ Invoked by ~initOpTrees~
 
 */
 pair<QueryProcessor*, OpTree> Tools::processQueryStr(string query, int type) {
+  cout << "process # " << query << endl;
   pair<QueryProcessor*, OpTree> result;
   result.first = 0;
   result.second = 0;
@@ -1061,7 +1103,8 @@ pair<QueryProcessor*, OpTree> Tools::processQueryStr(string query, int type) {
     return result;
   }
   if (nl->ToString(rType) != Tools::getDataType(type)) {
-    cout << "incorrect result type: " << nl->ToString(rType) << endl;
+    cout << "incorrect result type: " << nl->ToString(rType) << "; should be "
+         << Tools::getDataType(type) << " (" << type << ")" << endl;
     delete result.first;
     result.first = 0;
     result.second = 0;

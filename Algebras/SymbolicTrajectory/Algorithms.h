@@ -51,7 +51,6 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include "Stream.h"
 #include "InvertedFile.h"
 #include "RTreeAlgebra.h"
-#include "FTextAlgebra.h"
 #include "IntNfa.h"
 #include "TemporalUnitAlgebra.h"
 #include "GenericTC.h"
@@ -399,7 +398,7 @@ class Condition {
   ~Condition() {}
   
   string toString() const;
-  int convertVarKey(const char *varKey);
+  int convertVarKey(const char *varKey, Tuple *t = 0);
   void clear();
   static string getType(int t);
   bool initOpTree();
@@ -447,7 +446,7 @@ class PatElem {
   set<string> ivs;
   set<string> lbs;
   set<pair<string, unsigned int> > pls;
-  vector<pair<vector<pair<Word, ValueType> >, SetRel> > values;
+  vector<pair<Word, SetRel> > values;
   Wildcard wc;
   SetRel setRel;
   bool ok;
@@ -496,9 +495,8 @@ class PatElem {
   bool     hasIndexableContents() const {return (hasLabel() || hasPlace() ||
                                                  hasRealInterval());}
   bool     extractValues(string &input, Tuple *tuple);
-  vector<pair<vector<pair<Word, ValueType> >, SetRel> > getValues() const 
-                                                          {return values;}
-  void     deleteValues();
+  vector<pair<Word, SetRel> > getValues() const           {return values;}
+  void     deleteValues(vector<pair<int, string> > &relevantAttrs);
 };
 
 class Assign {
@@ -516,7 +514,7 @@ class Assign {
   Assign() {treesOk = false;}
   ~Assign() {}
 
-  bool convertVarKey(const char* vk);
+  bool convertVarKey(const char* vk, Tuple *tuple = 0);
   bool prepareRewrite(int key, const vector<size_t> &assSeq,
                       map<string, int> &varPosInSeq, stj::MLabel const &ml);
   bool hasValue() {return (!text[0].empty() || !text[1].empty() ||
@@ -584,7 +582,6 @@ class Pattern {
     deleteEasyCondOpTrees();
     deleteCondOpTrees();
     deleteAssignOpTrees();
-    deleteAtomValues();
   }
 
   string GetText() const;
@@ -611,7 +608,7 @@ class Pattern {
   bool initEasyCondOpTrees();
   void deleteCondOpTrees();
   void deleteEasyCondOpTrees();
-  void deleteAtomValues();
+  void deleteAtomValues(vector<pair<int, string> > &attrs);
 
   vector<PatElem>   getElems()              {return elems;}
   vector<Condition>* getConds()             {return &conds;}
@@ -806,19 +803,17 @@ class TMatch {
   vector<pair<int, string> > relevantAttrs;
   
   TMatch(Pattern *pat, Tuple *tuple, const int _attrno, 
-         vector<pair<int, string> >& relevantAttrs, const int _valueno) {
+         vector<pair<int, string> >& _relevantAttrs, const int _valueno) {
     p = pat;
     t = tuple;
     attrno = _attrno;
     valueno = _valueno;
     matching = 0;
     type = Tools::getDataType(t->GetTupleType(), attrno);
-    relevantAttrs = relevantAttrs;
+    relevantAttrs = _relevantAttrs;
   }
   
-  ~TMatch() {
-    delete p;
-  }
+  ~TMatch() {}
   
   ExtBool matches();
   int GetNoMainComponents();
@@ -827,6 +822,7 @@ class TMatch {
   bool placesMatch(const set<pair<string, unsigned int> >& tlabels, 
                    const int atom, const int pos);
   bool mainValuesMatch(const int u, const int atom);
+  bool otherValuesMatch(const int pos, const SecInterval& iv, const int atom);
   bool valuesMatch(const int u, const int atom);
   bool performTransitions(const int u, set<int>& states);
 };
@@ -3429,38 +3425,6 @@ string Match<M>::matchings2Str(unsigned int dim1, unsigned int dim2) {
     result << endl;
   }
   return result.str();
-}
-
-template<class T>
-bool Tools::relationHolds(const set<T>& s1, const set<T>& s2, SetRel rel) {
-  set<T> temp;
-  switch (rel) {
-    case STANDARD: {
-      set_difference(s1.begin(), s1.end(), s2.begin(), s2.end(), 
-                     std::inserter(temp, temp.begin()));
-      return temp.empty();
-    }
-    case DISJOINT: {
-      set_union(s1.begin(), s1.end(), s2.begin(), s2.end(),
-                std::inserter(temp, temp.begin()));
-      return (temp.size() == s1.size() + s2.size());
-    }
-    case SUPERSET: {
-      set_difference(s2.begin(), s2.end(), s1.begin(), s1.end(), 
-                     std::inserter(temp, temp.begin()));
-      return temp.empty();
-    }
-    case EQUAL: {
-      return s1 == s2;
-    }
-    case INTERSECT: {
-      set_union(s1.begin(), s1.end(), s2.begin(), s2.end(), 
-                std::inserter(temp, temp.begin()));
-      return (temp.size() < s1.size() + s2.size());
-    }
-    default: // cannot occur
-      return false;
-  }
 }
 
 /*

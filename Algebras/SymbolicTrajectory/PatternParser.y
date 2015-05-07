@@ -246,7 +246,7 @@ condition : expressionlist {
           ;
 
 expression : ZZVAR_DOT_TYPE {
-               if (cond.convertVarKey($1) == -1) {
+               if (cond.convertVarKey($1, tup) == -1) {
                  string varDotType($1);
                  /*errMsg = convert("error: " + varDotType + " not accepted");
                  yyerror(errMsg);*/
@@ -254,7 +254,7 @@ expression : ZZVAR_DOT_TYPE {
                  free($1);
                } else {
                  if (assignNow) {
-                   if (!assign.convertVarKey($1)) {
+                   if (!assign.convertVarKey($1, tup)) {
 /*                      string varDotType($1); */
 /*                     errMsg = convert("error: " + varDotType + " not accepted");
                      yyerror(errMsg);*/
@@ -682,34 +682,33 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
   }
   int pos = input.find_first_not_of(' ', parts[0].length() + 1);
   int endpos = pos;
+  Word value;
   SetRel setrel = STANDARD;
   bool isSetRel = false;
+  bool isEmpty = true;
+  // TODO: handle place(s)
   while (ok && pos >= 0 && pos < (int)input.length()) {
-    vector<pair<Word, ValueType> > valuevec;
-    pair<Word, ValueType> valuepair;
     switch (input[pos]) {
       case '_': {
         pos = input.find_first_not_of(' ', pos + 1);
+        value.addr = 0;
+        isEmpty = true;
         break;
       }
       case '<': {
-        ok = Tools::parseInterval(input, pos, endpos, valuepair);
-        if (ok) {
-          valuevec.push_back(valuepair);
-          cout << "pair pushed back, size is now " << valuevec.size() << endl;
+        if (!Tools::parseInterval(input, isEmpty, pos, endpos, value)) {
+          return false;
         }
         break;
       }
       case '"': {
         endpos = input.find('"', pos + 1);
-        valuepair.first.addr = new Label(input.substr(pos, pos - endpos + 1));
-        valuepair.second = LABEL;
+        ((Labels*)value.addr)->Append(input.substr(pos, pos - endpos + 1));
         break;
       }
       case '\'': {
         endpos = input.find('\'', pos + 1);
-        valuepair.first.addr = new Label(input.substr(pos, pos - endpos + 1));
-        valuepair.second = LABEL;
+        ((Labels*)value.addr)->Append(input.substr(pos, pos - endpos + 1));
         break;
       }
       case '{': {
@@ -718,66 +717,59 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
           switch (input[pos]) {
             case '"': {
               endpos = input.find('"', pos + 1);
-              valuepair.first.addr = new Label(input.substr(pos + 1, endpos - pos - 1));
-              valuepair.second = LABEL;
-              valuevec.push_back(valuepair);
+              if (isEmpty) {
+                value.addr = new Labels(true);
+                isEmpty = false;
+              }
+              ((Labels*)value.addr)->Append(input.substr(pos + 1, 
+                                                         endpos - pos - 1));
               pos = input.find_first_not_of(", ", endpos + 1);
               break;
             }
             case '\'': {
               endpos = input.find('\'', pos + 1);
-              valuepair.first.addr = new Label(input.substr(pos + 1, endpos - pos - 1));
-              valuepair.second = LABEL;
-              valuevec.push_back(valuepair);
+              if (isEmpty) {
+                value.addr = new Labels(true);
+                isEmpty = false;
+              }
+              ((Labels*)value.addr)->Append(input.substr(pos + 1, 
+                                                         endpos - pos - 1));
               pos = input.find_first_not_of(", ", endpos + 1);
               break;
             }
             case '<': {
-              ok = Tools::parseInterval(input, pos, endpos, valuepair);
-              if (ok) {
-                valuevec.push_back(valuepair);
-                cout << "pair pushed back, size is now " << valuevec.size() << endl;
+              if (!Tools::parseInterval(input, isEmpty, pos, endpos, value)) {
+                return false;
               }
               pos = input.find_first_not_of(", ", endpos + 1);
               break;
             }
             default: {
-              ok = Tools::parseBoolorObj(input, pos, endpos, valuepair);
-              if (ok) {
-                valuevec.push_back(valuepair);
-                cout << "pair pushed back, size is now " << valuevec.size() << endl;
+              if (!Tools::parseBoolorObj(input, isEmpty, pos, endpos, value)) {
+                return false;
               }
               pos = input.find_first_not_of(", ", endpos + 1);
               break;
             }
           }
-          if (!ok) {
-            return false;
-          }
         }
         pos = input.find_first_not_of("} ", pos);
+        isEmpty = true;
         break;
       }
       default: {
         isSetRel = Tools::isSetRel(input, pos, endpos, setrel);
         if (!isSetRel) {
-          ok = Tools::parseBoolorObj(input, pos, endpos, valuepair);
-          if (ok) {
-            valuevec.push_back(valuepair);
-            cout << "pair pushed back, size is now " << valuevec.size() << endl;
+          if (!Tools::parseBoolorObj(input, isEmpty, pos, endpos, value)) {
+            return false;
           }
         }
         break;
       }
     }
-    if (!ok) {
-      return false;
-    }
     if (!isSetRel) {
-      values.push_back(make_pair(valuevec, setrel));
+      values.push_back(make_pair(value, setrel));
       setrel = STANDARD;
-      cout << "vector of size " << valuevec.size() << " appended; size is now "
-           << values.size() << endl;
     }
     isSetRel = false;
   }
@@ -826,7 +818,7 @@ Checks whether the variable var occurs in the pattern and whether the key k
 is valid; returns the recognized key.
 
 */
-int Condition::convertVarKey(const char *varKey) {
+int Condition::convertVarKey(const char *varKey, Tuple *t /* = 0 */) {
   string input(varKey), var;
   int key;
   int dotpos = input.find('.');
@@ -837,7 +829,8 @@ int Condition::convertVarKey(const char *varKey) {
     wholepat->getElem(i, elem);
     elem.getV(var);
     if (varInput == var) {
-      key = Tools::getKey(kInput);
+      key = Tools::getKey(kInput, t);
+      cout << "key for " << kInput << " is " << key << endl;
       if ((key < 2) && ((elem.getW() != NO)
        || (wholepat->getVarPos(var).first < wholepat->getVarPos(var).second))) {
         cout << "label/place condition not allowed for sequences" << endl;
@@ -863,7 +856,7 @@ int Condition::convertVarKey(const char *varKey) {
   return -1;
 }
 
-bool Assign::convertVarKey(const char *varKey) {
+bool Assign::convertVarKey(const char *varKey, Tuple *tuple /* = 0 */) {
   string input(varKey);
   int dotpos = input.find('.');
   string varInput(input.substr(0, dotpos));

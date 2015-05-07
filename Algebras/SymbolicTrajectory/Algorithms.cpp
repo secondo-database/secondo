@@ -263,7 +263,7 @@ bool Pattern::isCompatible(TupleType *ttype, const int majorAttrNo,
          << ") ";
   }
   cout << endl;
-  vector<pair<vector<pair<Word, ValueType> >, SetRel> > values;
+  vector<pair<Word, SetRel> > values;
   for (int i = 0; i < getSize(); i++) {
     values = elems[i].getValues();
     if (values.size() > 0) { // atom has values
@@ -272,13 +272,10 @@ bool Pattern::isCompatible(TupleType *ttype, const int majorAttrNo,
              << relevantAttrs.size() << ") in atom " << i << endl;
       }
       for (unsigned int j = 0; j < values.size(); j++) {
-        for (unsigned int k = 0; k < values[j].first.size(); k++) {
-          if (!Tools::checkAttrType(relevantAttrs[j].second,
-                                    values[j].first[k].second)) {
-            cout << "wrong type (atom " << i << ", specification " << j 
-                 << ", value " << k << ")" << endl;
-            return false;
-          }
+        if (!Tools::checkAttrType(relevantAttrs[j].second, values[j].first)) {
+          cout << "wrong type (atom " << i << ", specification " << j << ")"
+               << endl;
+          return false;
         }
       }
     }
@@ -340,20 +337,21 @@ the pattern.
 
 */
 ExtBool Pattern::tmatches(Tuple *tuple, const int attrno) {
+  ExtBool result = UNDEF;
   vector<pair<int, string> > relevantAttrs;
   int majorValueNo = -1;
-  if (!isCompatible(tuple->GetTupleType(), attrno, relevantAttrs, 
+  if (isCompatible(tuple->GetTupleType(), attrno, relevantAttrs, 
                     majorValueNo)) {
-    return UNDEF;
+    for (unsigned int i = 0; i < easyConds.size(); i++) {
+      cout << easyConds[i].getText() << endl;
+    }
+    if (initEasyCondOpTrees() && !isNFAempty()) {
+      TMatch tmatch(this, tuple, attrno, relevantAttrs, majorValueNo);
+      result = tmatch.matches();
+    }
   }
-  if (!initEasyCondOpTrees()) {
-    return UNDEF;
-  }
-  if (isNFAempty()) {
-    return UNDEF;
-  }
-  TMatch tmatch(this, tuple, attrno, relevantAttrs, majorValueNo);
-  return tmatch.matches();
+  deleteAtomValues(relevantAttrs);
+  return result;
 }
 
 string Condition::getType(int t) {
@@ -648,10 +646,7 @@ ExtBool TMatch::matches() {
     else {
       return FALSE;
     }
-  }
-  
-  
-  
+  } 
   return TRUE;
 }
 
@@ -701,59 +696,26 @@ void TMatch::GetInterval(const int u, SecInterval& iv) {
 }
 
 /*
-\subsection{Function ~labelMatch~}
+\subsection{Function ~labelsMatch~}
 
 */
 bool TMatch::labelsMatch(const set<string>& tlabels, const int atom, 
                          const int pos) {
   set<string> plabels, plabelsTemp;
-  pair<vector<pair<Word, ValueType> >, SetRel> values =
-                                                     p->elems[atom].values[pos];
-  string plabel;
-  for (unsigned int i = 0; i < values.first.size(); i++) {
-    if (values.first[i].second == LABEL) {
-      ((Label*)values.first[i].first.addr)->GetValue(plabel);
-      plabels.insert(plabel);
-      cout << "Label " << plabel << " inserted" << endl;
-    }
-    else if (values.first[i].second == LABELS) {
-      ((Labels*)values.first[i].first.addr)->GetValues(plabelsTemp);
-      plabels.insert(plabelsTemp.begin(), plabelsTemp.end());
-      cout << plabelsTemp.size() << " labels inserted" << endl;
-    }
-    else {
-      cout << "ERROR: type is " << values.first[i].second << endl;
-    }
-  }
+  pair<Word, SetRel> values = p->elems[atom].values[pos];
+  ((Labels*)values.first.addr)->GetValues(plabels);
   return Tools::relationHolds<string>(tlabels, plabels, values.second);
 }
 
 /*
-\subsection{Function ~labelsMatch~}
+\subsection{Function ~placesMatch~}
 
 */
 bool TMatch::placesMatch(const set<pair<string, unsigned int> >& tplaces, 
                          const int atom, const int pos) {
   set<pair<string, unsigned int> > pplaces, pplacesTemp;
-  pair<vector<pair<Word, ValueType> >, SetRel> values =
-                                                     p->elems[atom].values[pos];
-  pair<string, unsigned int> pplace;
-  for (unsigned int i = 0; i < values.first.size(); i++) {
-    if (values.first[i].second == PLACE) {
-      ((Place*)values.first[i].first.addr)->GetValue(pplace);
-      pplaces.insert(pplace);
-      cout << "Place (" << pplace.first << ", " << pplace.second 
-           << ") inserted" << endl;
-    }
-    else if (values.first[i].second == PLACES) {
-      ((Places*)values.first[i].first.addr)->GetValues(pplacesTemp);
-      pplaces.insert(pplacesTemp.begin(), pplacesTemp.end());
-      cout << pplacesTemp.size() << " places inserted" << endl;
-    }
-    else {
-      cout << "ERROR: type is " << values.first[i].second << endl;
-    }
-  }
+  pair<Word, SetRel> values = p->elems[atom].values[pos];
+  ((Places*)values.first.addr)->GetValues(pplaces);
   return Tools::relationHolds<pair<string, unsigned int> >(tplaces, pplaces, 
                                                            values.second);
 }
@@ -795,17 +757,168 @@ bool TMatch::mainValuesMatch(const int u, const int atom) {
 }
 
 /*
+\subsection{Function ~otherValuesMatch~}
+
+*/
+bool TMatch::otherValuesMatch(const int pos, const SecInterval& iv, 
+                              const int atom) {
+  pair<Word, SetRel> values = p->elems[atom].values[pos];
+  if (values.first.addr == 0) {
+    return true;
+  }
+  pair<int, string> attrInfo = relevantAttrs[pos];
+  int start(-1), end(-1);
+  if (attrInfo.second == "mlabel") {
+    MLabel *mlabel = (MLabel*)t->GetAttribute(attrInfo.first);
+    start = mlabel->Position(iv.start);
+    end = mlabel->Position(iv.end);
+    if (start == -1 || end == -1) {
+      return false;
+    }
+    set<string> tlabels, plabels, labels;
+    string label;
+    for (int i = start; i <= end; i++) {
+      mlabel->GetValue(i, label);
+      tlabels.insert(label);
+    }
+    ((Labels*)values.first.addr)->GetValues(plabels);
+    return Tools::relationHolds<string>(tlabels, plabels, values.second);
+  }
+  else if (attrInfo.second == "mlabels") {
+    MLabels *mlabels = (MLabels*)t->GetAttribute(attrInfo.first);
+    start = mlabels->Position(iv.start);
+    end = mlabels->Position(iv.end);
+    if (start == -1 || end == -1) {
+      return false;
+    }
+    set<string> tlabels, plabels, labels;
+    string label;
+    for (int i = start; i <= end; i++) {
+      mlabels->GetValues(i, labels);
+      tlabels.insert(labels.begin(), labels.end());
+    }
+    ((Labels*)values.first.addr)->GetValues(plabels);
+    return Tools::relationHolds<string>(tlabels, plabels, values.second);
+  }
+  else if (attrInfo.second == "mplace") {
+    // TODO.
+  }
+  else if (attrInfo.second == "mplaces") {
+    // TODO.
+  }
+  else if (attrInfo.second == "mpoint") {
+    MPoint *mpoint = (MPoint*)t->GetAttribute(attrInfo.first);
+    Periods per(true);
+    per.Add(iv);
+    MPoint mpAtPer(true);
+    mpoint->AtPeriods(per, mpAtPer);
+    if (mpAtPer.IsEmpty()) {
+      return false;
+    }
+    return Tools::relationHolds(mpAtPer, *((Region*)values.first.addr), 
+                                values.second);
+  }
+  else if (attrInfo.second == "mregion") {
+    MRegion *mreg = (MRegion*)t->GetAttribute(attrInfo.first);
+    Periods per(true);
+    per.Add(iv);
+    MRegion mrAtPer(true);
+    mreg->AtPeriods(&per, &mrAtPer);
+    if (mrAtPer.IsEmpty()) {
+      return false;
+    }
+    return Tools::relationHolds(mrAtPer, *((Region*)values.first.addr), 
+                                values.second);
+  }
+  else if (attrInfo.second == "mbool") {
+    MBool *mbool = (MBool*)t->GetAttribute(attrInfo.first);
+    start = mbool->Position(iv.start);
+    end = mbool->Position(iv.end);
+    if (start == -1 || end == -1) {
+      return false;
+    }
+    set<bool> boolSet;
+    UBool ub(true);
+    for (int i = start; i <= end; i++) {
+      mbool->Get(i, ub);
+      boolSet.insert(ub.constValue.GetValue());
+    }
+    return Tools::relationHolds(boolSet, 
+                       ((CcBool*)values.first.addr)->GetValue(), values.second);
+  }
+  else if (attrInfo.second == "mint") {
+    Range<CcInt> trange(true), prange(true);
+    MInt *mint = (MInt*)t->GetAttribute(attrInfo.first);
+    UInt unit(true);
+    int firstpos(mint->Position(iv.start)), lastpos(mint->Position(iv.end));
+    if (firstpos >= 0 && lastpos >= firstpos &&
+        lastpos < mint->GetNoComponents()) {
+      set<int> intSet;
+      for (int i = firstpos; i <= lastpos; i++) {
+        mint->Get(i, unit);
+        intSet.insert(unit.constValue.GetValue());
+      }
+      return Tools::relationHolds(*((Range<CcReal>*)values.first.addr), intSet, 
+                                  values.second);
+    }
+    return false;
+  }
+  else if (attrInfo.second == "mreal") {
+    Range<CcReal> trange(true), prange(true);
+    MReal *mreal = (MReal*)t->GetAttribute(attrInfo.first);
+    UReal ureal(true), urealTemp(true);
+    int firstpos(mreal->Position(iv.start)), lastpos(mreal->Position(iv.end));
+    if (firstpos >= 0 && lastpos >= firstpos &&
+        lastpos < mreal->GetNoComponents()) {
+      mreal->Get(firstpos, ureal);
+      ureal.AtInterval(iv, urealTemp);
+      bool correct = true;
+      CcReal ccmin(urealTemp.Min(correct)), ccmax(urealTemp.Max(correct));
+      Interval<CcReal> minMax(ccmin, ccmax, true, true);
+      set<Interval<CcReal>, ivCmp> ivSet;
+      ivSet.insert(minMax);
+      for (int i = firstpos + 1; i < lastpos; i++) {
+        mreal->Get(i, ureal);
+        minMax.start.Set(ureal.Min(correct));
+        minMax.end.Set(ureal.Max(correct));
+        ivSet.insert(minMax);
+      }
+      mreal->Get(mreal->Position(iv.end), ureal);
+      ureal.AtInterval(iv, urealTemp);
+      minMax.start.Set(urealTemp.Min(correct));
+      minMax.end.Set(urealTemp.Max(correct));
+      ivSet.insert(minMax);
+      for (set<Interval<CcReal>, ivCmp>::iterator it = ivSet.begin();
+           it != ivSet.end(); it++) {
+        trange.MergeAdd(*it);
+      }
+      return Tools::relationHolds<CcReal>(trange,
+                           *((Range<CcReal>*)values.first.addr), values.second);
+    }
+    return false;
+  }
+  else {
+    cout << "TYPE is " << attrInfo.second << endl;
+  }
+  
+  return true;
+}
+
+/*
 \subsection{Function ~valuesMatch~}
 
 */
 bool TMatch::valuesMatch(const int u, const int atom) {
+  SecInterval iv(true);
   if (!mainValuesMatch(u, atom)) {
     return false;
   }
-  
-  
-//   SecInterval iv;
-//   GetInterval(u, iv);
+  GetInterval(u, iv);
+  for (unsigned int pos = 0; pos < relevantAttrs.size(); pos++) {
+    if (!otherValuesMatch(pos, iv, atom)) {
+      return false;
+    }
+  }
 
   return true;
 }
@@ -825,9 +938,6 @@ bool TMatch::performTransitions(const int u, set<int>& states) {
   }
   states.clear();
   map<int, int>::iterator it;
-  set<string> ivs;
-  SecInterval iv;
-  GetInterval(u, iv);
   if (p->hasConds() || p->hasAssigns()) {
     
   }
@@ -837,6 +947,9 @@ bool TMatch::performTransitions(const int u, set<int>& states) {
         states.insert(states.end(), it->second);
       }
       else {
+        set<string> ivs;
+        SecInterval iv;
+        GetInterval(u, iv);
         p->elems[it->first].getI(ivs);
         if (Tools::timesMatch(iv, ivs) && valuesMatch(u, it->first)) {
           states.insert(states.end(), it->second);
@@ -1466,19 +1579,18 @@ void Pattern::deleteAssignOpTrees(bool deleteConds) {
 \subsection{Function ~deleteAtomValues~}
 
 */
-void Pattern::deleteAtomValues() {
-  PatElem elem;
+void Pattern::deleteAtomValues(vector<pair<int, string> > &relevantAttrs) {
   for (int i = 0; i < getSize(); i++) {
-    getElem(i, elem);
-    elem.deleteValues();
+    elems[i].deleteValues(relevantAttrs);
   }
 }
 
-void PatElem::deleteValues() {
+void PatElem::deleteValues(vector<pair<int, string> > &relevantAttrs) {
+  if (wc != NO) {
+    return;
+  }
   for (unsigned int i = 0; i < values.size(); i++) {
-    for (unsigned int j = 0; j < values[i].first.size(); j++) {
-      Tools::deleteValue(values[i].first[j]);
-    }
+    Tools::deleteValue(values[i].first, relevantAttrs[i].second);
   }
 }
 
