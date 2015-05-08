@@ -1,4 +1,3 @@
-
 /*
 ----
 This file is part of SECONDO.
@@ -31,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SecondoInterface.h"
 #include "SecondoInterfaceCS.h"
+#include "FileSystem.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "StandardTypes.h"
@@ -46,6 +46,179 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <boost/thread.hpp>
 #include <boost/date_time.hpp>
+
+/*
+Some Helper functions.
+
+*/
+class BinRelWriter{
+  public:
+     static bool writeHeader(ostream& out, ListExpr type){
+         string relTypeS = nl->ToString(type);
+         uint32_t length = relTypeS.length();
+         string magic = "srel";
+         out.write(magic.c_str(),4);
+         out.write((char*) &length, sizeof(uint32_t));
+         out.write(relTypeS.c_str(), length);
+         return out.good();
+     }
+
+    static bool writeNextTuple(ostream& out,Tuple* tuple){
+       // retrieve sizes
+       size_t coreSize;
+       size_t extensionSize;
+       size_t flobSize;
+       size_t blocksize = tuple->GetBlockSize(coreSize, extensionSize, 
+                                              flobSize);
+       // allocate buffer and write flob into it
+       char* buffer = new char[blocksize];
+       tuple->WriteToBin(buffer, coreSize, extensionSize, flobSize); 
+       uint32_t tsize = blocksize;
+       out.write((char*) &tsize, sizeof(uint32_t));
+       out.write(buffer, tsize);
+       delete[] buffer;
+       return out.good();
+    }
+           
+    static bool finish(ostream& out){
+           uint32_t marker = 0;
+           out.write((char*) &marker, sizeof(uint32_t));
+           return out.good();
+    }
+};
+
+
+class ffeed5Info{
+
+  public:
+    ffeed5Info(const string& filename, const ListExpr _tt){
+       tt = new TupleType(_tt);
+       in.open(filename.c_str(), ios::in | ios::binary);
+       ok = in.good();
+       if(ok){
+          readHeader();
+       }
+    }
+
+   
+    ffeed5Info(const string& filename, TupleType* _tt){
+       tt = new TupleType(*_tt);
+       in.open(filename.c_str(), ios::in | ios::binary);
+       ok = in.good();
+       if(ok){
+          readHeader();
+       }else{
+          cerr << "could not open file " << filename << endl; 
+       }
+    }
+    
+
+
+    ~ffeed5Info(){
+      tt->DeleteIfAllowed();
+      in.close();
+    }
+
+    Tuple* next(){
+       if(!ok) {
+         return 0;
+       }
+       if(!in.good() || in.eof()){
+          return 0;
+       }
+       uint32_t size;
+       in.read( (char*) &size, sizeof(uint32_t));
+       if(size==0){
+         return 0;
+       }
+       char* buffer = new char[size];
+       in.read(buffer, size);
+       if(!in.good()){
+         delete [] buffer;
+         return 0;
+       }
+       Tuple* res = new Tuple(tt);
+       res->ReadFromBin(buffer );
+       delete[] buffer;
+       return res;
+    }
+
+  private:
+     ifstream in;
+     TupleType* tt; 
+     bool ok;
+
+
+  void readHeader(){
+     char marker[4];
+     in.read(marker,4);
+     string ms(marker,4);
+     if(ms!="srel"){
+        ok = false;
+        return;
+     }
+     uint32_t length;
+     in.read((char*) &length,sizeof(uint32_t));
+     char* buffer = new char[length];
+     in.read(buffer,length);
+     string list(buffer,length);
+     delete[] buffer; 
+     ok = in.good();
+  }
+
+};
+
+
+template<class T>
+bool writeVar(const T& value, SmiRecord& record, size_t& offset){
+  bool res = record.Write(&value, sizeof(T), offset) == sizeof(T);
+  offset += sizeof(T);
+  return res;
+}
+
+template<>
+bool writeVar<string>(
+  const string& value, SmiRecord& record, size_t& offset){
+
+  // write the size of the sting
+  size_t len = value.length();
+  if(!writeVar<size_t>(len,record,offset)){
+     return false;
+  }
+  if(len==0){
+     return true;
+  }
+  if(record.Write(value.c_str(),len, offset)!=len){
+     return false;
+  }
+  offset+= len;
+  return true;
+}
+
+template<class T>
+bool readVar(T& value, SmiRecord& record, size_t& offset){
+  bool res = record.Read(&value, sizeof(T), offset) == sizeof(T);
+  offset += sizeof(T);
+  return res;
+}
+
+template<>
+bool readVar<string>(string& value, SmiRecord& record, size_t& offset){
+  size_t len;
+  if(!readVar<size_t>(len,record,offset)){
+    return false;
+  }
+  if(len==0){
+     value = "";
+     return true;
+  }
+  char* cstr = new char[len];
+  bool res = record.Read(cstr, len, offset) == len;
+  offset += len;
+  value.assign(cstr,len);
+  delete[] cstr;
+  return res;
+}
 
 
 /*
@@ -107,6 +280,23 @@ class ConnectionInfo{
           }
           simtx.unlock();
        }
+
+
+       bool switchDatabase(const string& dbname, bool createifnotexists){
+          boost::lock_guard<boost::mutex> guard(simtx);;
+          // close database ignore errors
+          SecErrInfo serr;
+          ListExpr resList;
+          si->Secondo("close database", resList, serr);
+          // create database ignore errors
+          if(createifnotexists){
+              si->Secondo("create database " + dbname, resList, serr);
+          }
+          // open database 
+          si->Secondo("open database "+ dbname, resList, serr);
+          return serr.code==0;   
+       }
+
 
        void simpleCommand(string command, int& error, string& errMsg, 
                           string& resList){
@@ -178,6 +368,212 @@ class ConnectionInfo{
           return res;
         }
 
+        static ConnectionInfo* createConnection(const string& host, 
+                                   const int port, string& config){
+
+              NestedList* mynl = new NestedList();
+              SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl);
+              string user="";
+              string passwd = "";
+              string errMsg;
+              si->setMaxAttempts(4);
+              si->setTimeout(1);
+              if(! si->Initialize(user, passwd, host, 
+                       stringutils::int2str(port), config, 
+                       errMsg, true)){
+                  delete si;
+                  delete mynl;
+                  return 0;
+             } else {
+                  return  new ConnectionInfo(host, port, config, si, mynl);
+             }
+         }
+
+         bool createOrUpdateObject(const string& name, 
+                                   ListExpr typelist, Word& value){
+
+               if(Relation::checkType(typelist)){
+                  return createOrUpdateRelation(name, typelist, value);
+               }
+
+              // TODO: special treatment for big objects like relations
+              // idea store relation binary into a file using fconsume
+              // send the file to the server
+              // cretae the relation using ffeed
+              // delete local and remote file
+
+              boost::lock_guard<boost::mutex> guard(simtx);
+              SecErrInfo serr;
+              ListExpr resList;
+              si->Secondo("delete " + name, resList, serr);
+              // ignore error (object must not exist)
+              string filename = name + "_" + 
+                                stringutils::int2str(WinUnix::getpid())
+                                 + ".obj";
+              storeObjectToFile(name, value, typelist, filename);
+              string cmd = "restore " + name + " from '" + filename + "'";
+              si->Secondo(cmd, resList, serr);
+              FileSystem::DeleteFileOrFolder(filename);
+              return serr.code==0;
+         }
+
+
+         bool createOrUpdateRelation(const string& name, ListExpr typeList,
+                                     Word& value){
+
+             // first, write the relation binary to atemporarly file
+             boost::lock_guard<boost::mutex> guard(simtx);
+             SecErrInfo serr;
+             ListExpr resList;
+             si->Secondo("delete " + name, resList, serr);
+             // ignore error (object must not exist)
+
+             string filename = name + "_" 
+                               + stringutils::int2str(WinUnix::getpid()) 
+                               + ".bin";
+             if(!saveRelationToFile(typeList, value, filename)){
+                return false;
+             }
+             // transfer file to remote server
+             si->sendFile(filename,filename,true);
+
+             // retrieve folder from which the filename can be read
+             string sendFolder = si->getSendFilePath();
+             
+             string rfilename = sendFolder+"/"+filename;
+
+             string cmd = "let " + name + " =  ffeed5('" 
+                          + rfilename + "') consume ";
+
+             si->Secondo(cmd, resList, serr);
+             FileSystem::DeleteFileOrFolder(filename);
+             bool ok = serr.code == 0;
+             cmd = "query removeFile('"+rfilename+"')";
+             si->Secondo (cmd,resList,serr); 
+             return ok;
+         }
+
+         bool saveRelationToFile(ListExpr relType, Word& value, 
+                                 const string& filename){
+            ofstream out(filename.c_str(),ios::out|ios::binary);
+            if(!out.good()){
+               return false;
+            }
+            if(!BinRelWriter::writeHeader(out,nl->Second(nl->Second(relType)))){
+               return false;
+            }
+            Relation* rel = (Relation*) value.addr;
+            GenericRelationIterator* it = rel->MakeScan();
+            bool ok = true;
+            Tuple* tuple=0;
+            while(ok && ((tuple=it->GetNextTuple())!=0)){
+               ok = BinRelWriter::writeNextTuple(out,tuple);
+               tuple->DeleteIfAllowed();
+            }
+            delete it;
+            BinRelWriter::finish(out);
+            out.close();
+            return ok;
+         }
+
+         bool storeObjectToFile( const string& objName, Word& value, 
+                                 ListExpr typeList, 
+                                  const string& fileName){
+               SecondoCatalog* ctl = SecondoSystem::GetCatalog();
+               ListExpr valueList = ctl->OutObject(typeList, value);
+               ListExpr objList = nl->FiveElemList(
+                                     nl->SymbolAtom("OBJECT"),
+                                     nl->SymbolAtom(objName),
+                                     nl->TheEmptyList(),
+                                     typeList,
+                                     valueList);
+              return nl->WriteToFile(fileName, objList);
+         }        
+
+
+          bool retrieve(const string& objName, ListExpr& resType, Word& result){
+              if(Relation::checkType(resType)){
+                  if(retrieveRelation(objName, resType, result)){
+                     return true;
+                  } 
+                  cerr << "Could not use fast retrieval for a "
+                       << " relation, failback" << endl;
+              }
+
+              // TODO: special treatment for big objects
+              boost::lock_guard<boost::mutex> guard(simtx);
+              SecErrInfo serr;
+              ListExpr myResList;
+              si->Secondo("query " + objName, myResList, serr);
+              SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+              if(serr.code!=0){
+                 return false;
+              }
+              if(!mynl->HasLength(myResList,2)){
+                return false;
+              }
+              // copy result list into global list memory
+              static boost::mutex copylistmutex;
+              copylistmutex.lock();
+              ListExpr resList =  mynl->CopyList(myResList, nl);
+              mynl->Destroy(myResList);
+              copylistmutex.unlock();
+
+              resType = nl->First(resList);
+              ListExpr value = nl->Second(resList);
+
+              int errorPos=0;
+              ListExpr errorInfo = listutils::emptyErrorInfo();
+              bool correct;
+              result = ctlg->InObject(resType,value, errorPos, 
+                                      errorInfo, correct);
+
+              return correct;
+          }
+
+          bool retrieveRelation(const string& objName, 
+                                 ListExpr& resType, Word& result){
+
+             boost::lock_guard<boost::mutex> guard(simtx);
+             string fname1 = objName+".bin";
+             string rfname = si->getRequestFilePath() + "/"+fname1;
+             // save the remove relation into a binary file
+             string cmd = "query " + objName + " feed fconsume5['"
+                          +rfname+"'] count";
+
+             SecErrInfo serr;
+             ListExpr resList;
+             si->Secondo(cmd,resList,serr);
+             if(serr.code!=0){
+                 return false;
+             }
+
+             if(si->requestFile(fname1, fname1 ,true)!=0){
+                 return false;
+             }
+
+             // delete remote file             
+             cmd = "query removeFile('"+rfname+"')";
+             si->Secondo(cmd,resList,serr);
+
+
+             // create result relation
+             ListExpr tType = nl->Second(resType);
+             tType = SecondoSystem::GetCatalog()->NumericType(tType);
+             TupleType* tt = new TupleType(tType);
+             Relation* resultrel = new Relation(tt); 
+             ffeed5Info reader(fname1,resultrel->GetTupleType());
+             Tuple* tuple;
+             while((tuple=reader.next())){
+                 resultrel->AppendTuple(tuple);
+                 tuple->DeleteIfAllowed();
+             }
+             tt->DeleteIfAllowed();
+             result.addr = resultrel;
+             // remove local file
+             FileSystem::DeleteFileOrFolder(fname1);
+             return true;
+          } 
 
   private:
     string host;
@@ -195,6 +591,201 @@ class CommandListener{
   virtual void jobDone(int id, string& command, size_t no, int error, 
                        string& errMsg, ResType& resList)=0;
 };
+
+
+
+
+
+
+/*
+Forward declaration of class DArray2Element.
+
+2.1.1 Class ~DArray2Element~
+
+This class represents information about a single connection of a DArray.
+
+*/
+
+class DArray2Element{
+  public:
+     DArray2Element(const string& _server, const int _port,
+                    const int _num, const string& _config):
+        server(_server), port(_port), num(_num),config(_config) {}
+
+     DArray2Element(const DArray2Element& src):
+      server(src.server), port(src.port), num(src.num),
+      config(src.config) {}
+
+     DArray2Element& operator=(const DArray2Element& src){
+        this->server = src.server;
+        this->port = src.port;
+        this->num = src.num;
+        this->config = src.config;
+        return *this;
+     }     
+
+     ~DArray2Element() {}
+
+
+      void setNum(const int num){
+         this->num = num;
+      }
+
+     void set(const string& server, const int port, 
+              const int num, const string& config){
+        this->server = server;
+        this->port = port;
+        this->num = num;
+        this->config = config;
+     }
+
+
+     bool operator==(const DArray2Element& other) const{
+       return    (this->port == other.port)
+              && (this->num == other.num)
+              && (this->server == other.server)
+              && (this->config == other.config); 
+     }
+
+     bool operator<(const DArray2Element& other) const {
+        if(this->port < other.port) return true;
+        if(this->port > other.port) return false;
+        if(this->num < other.num) return true;
+        if(this->num > other.num) return false;
+        if(this->server < other.server) return true;
+        if(this->server > other.server) return false;
+        if(this->config < other.config) return true;
+        // equal or greater
+        return false;
+     }
+
+     bool operator>(const DArray2Element& other) const {
+        if(this->port > other.port) return true;
+        if(this->port < other.port) return false;
+        if(this->num > other.num) return true;
+        if(this->num < other.num) return false;
+        if(this->server > other.server) return true;
+        if(this->server < other.server) return false;
+        if(this->config > other.config) return true;
+        // equal or greater
+        return false;
+     }
+     
+     ListExpr toListExpr(){
+        return nl->ThreeElemList(
+                   nl->TextAtom(server),
+                   nl->IntAtom(port),
+                   nl->TextAtom(config));   
+     }
+
+     bool readFrom(SmiRecord& valueRecord, size_t& offset){
+        string s;
+        if(!readVar(s,valueRecord,offset)){
+            return false;
+        }
+        uint32_t p;
+        if(!readVar(p,valueRecord,offset)){
+           return false;
+        }
+        string c;
+        if(!readVar(c,valueRecord,offset)){
+           return false;
+        }
+
+        server = s;
+        port = p;
+        num = -1;
+        config = c;
+        return true;
+     }
+
+     bool saveTo(SmiRecord& valueRecord, size_t& offset){
+        if(!writeVar(server,valueRecord,offset)){
+           return false;
+        }
+        if(!writeVar(port,valueRecord,offset)){
+            return false;
+        }
+        if(!writeVar(config,valueRecord,offset)){
+           return false;
+        }
+        return true;
+     }
+
+     void print(ostream& out)const{
+         out << "( S: " << server << ", P : " << port 
+             << "Num : " << num
+             << ", C : " << config << ")";
+     }
+
+     string getHost()const{ return server; }
+     int getPort() const {return port; }
+     string getConfig() const{ return config; }
+     int getNum() const{ return num; }
+
+
+  private:
+     string server;
+     uint32_t port;
+     uint32_t num;
+     string config;
+};
+
+
+ostream& operator<<(ostream& out, const DArray2Element& elem){
+  elem.print(out);
+  return out;
+}
+
+
+
+bool InDArray2Element(ListExpr list, DArray2Element& result){
+   if(!nl->HasLength(list,3)){
+     return false;
+   }
+   ListExpr e1 = nl->First(list);
+   ListExpr e2 = nl->Second(list);
+   ListExpr e4 = nl->Third(list);
+   string server;
+   int port;
+   int num;
+   string config;
+
+   if(nl->AtomType(e1) == StringType){
+      server = nl->StringValue(e1);     
+   } else if(nl->AtomType(e1) == TextType){
+      server = nl->Text2String(e1);
+   } else {
+      return false;
+   }
+   stringutils::trim(server);
+   if(server.empty()){
+     return false;
+   }
+   if(nl->AtomType(e2) != IntType){
+     return false;
+   }
+   port = nl->IntValue(e2);
+   if(port <=0){
+     return false;
+   }
+
+   if(nl->AtomType(e4) == StringType){
+      config = nl->StringValue(e4);     
+   } else if(nl->AtomType(e4) == TextType){
+      config = nl->Text2String(e4);
+   } else {
+      return false;
+   }
+   stringutils::trim(config);
+   if(config.empty()){
+      return false;
+   }   
+   num = -1;
+   result.set(server,port,num,config);
+   return true;
+}
+
 
 class Distributed2Algebra: public Algebra{
 
@@ -519,11 +1110,64 @@ Transfers a local file to a remove server.
       c->simpleCommand(cmd,error,errMsg,resList);
       return true;
     }
+
+
+/*
+The next functions are for interacting with workers, i.e.
+connections coming from darray2 elements.
+
+*/
+  ConnectionInfo* getWorkerConnection( const DArray2Element& info,
+                                       const string& dbname ){
+
+     typename map<DArray2Element, pair<string, ConnectionInfo*> >::iterator it;
+     it = workerconnections.find(info);
+     pair<string,ConnectionInfo*> pr("",0);
+     if(it==workerconnections.end()){
+        if(!createWorkerConnection(info,pr)){
+             return 0;
+        }
+        workerconnections[info] = pr;
+     } else {
+         pr = it->second;
+     }
+     string wdbname = dbname+"_dist2";
+     if(pr.first!=wdbname){
+         if(!pr.second->switchDatabase(wdbname,true)){
+            return 0;
+         }
+     }
+     return pr.second;
+  }
+
+  
+
+
+
     
 
   private:
+    // connections managed by the user
     vector<ConnectionInfo*> connections;
     boost::mutex mtx;
+
+    // connections managed automatically 
+    // for darray2 type
+    map<DArray2Element, pair<string,ConnectionInfo*> > workerconnections;
+
+
+    bool createWorkerConnection(const DArray2Element& worker, pair<string, 
+                                ConnectionInfo*>& res){
+      string host = worker.getHost();
+      int port = worker.getPort();
+      string config = worker.getConfig();
+      ConnectionInfo* ci = ConnectionInfo::createConnection(host, port, config);
+      res.first="";
+      res.second = ci;
+      return ci!=0;
+    }
+
+
 
 };
 
@@ -1458,7 +2102,6 @@ class prcmdInfo: public CommandListener<string>{
     void jobDone(int id, string& command, size_t no, int error, 
                  string& errMsg, string& resList){
        if(validInputTuples.find(id)==validInputTuples.end()){
-          cout << "could not return any input tuple" << endl;
           return;
        }
        Tuple* inTuple = validInputTuples[id];
@@ -3440,8 +4083,6 @@ class PQueryInfo : public CommandListener<ListExpr>{
        bool done = false;
        while(!done){
           if(nl->ListLength(nTypeList)<2){
-             cout << "could not detremine algAd and type Id for type "  
-                  << nl->ToString(nTypeList) << endl;
              resultList.push_back(0);
              return;
           }
@@ -3670,12 +4311,1681 @@ Operator pqueryOp (
 );
 
 
+/*
+2 Implementation of the DistributedAlgebra Functionality
+
+Here, the functionality of the Distributed algebra is implemented using the
+parts from before.
+
+2.1 Type ~darray2~
+
+A ~darray2~ contains the remote type as well as a server configuration 
+consiting of the name of the server, the used port, and the used 
+configuration file.  When accessing a  ~darray~ element, it is checked 
+whether there is already a connection to the remote server. To avoid
+ conflicts between user defined connections and connections used by 
+darray2 values, a second structure is hold within the algebra
+which opens and closes connections automatically.
+
+*/
+
 
 /*
-2 Implementation of the Algebra
+2.1.2 Class ~DArray2~
+
+This class represents the Secondo type ~darray2~. It just stores the information
+about a connection to a remote server. The actual connections are stored within
+the algebra instance.
+
+*/
+
+class DArray2{
+  public:
+     DArray2(size_t _size, const string& _name): 
+           worker(),size(_size), name(_name) {
+
+        if(!stringutils::isIdent(name) || size ==0){ // invalid
+           name = "";
+           defined = false;
+           states = 0;
+           return;
+        }
+        states = new char[size];
+        char state = 2; // unknown whether element exists at worker
+        memset(states,state,size);
+        defined = true;
+     }
+
+     
+
+     DArray2(size_t _size, const string& _name, 
+               const vector<DArray2Element>& _worker): 
+         worker(_worker),size(_size), name(_name) {
+
+        if(!stringutils::isIdent(name) || size ==0){ // invalid
+           name = "";
+           defined = false;
+           states = 0;
+           return;
+        }
+        states = new char[size];
+        char state = 2; // unknown whether element exists at worker
+        memset(states,state,size);
+        defined = true;
+     }
+
+     explicit DArray2(int dummy) {} // only for cast function
+
+ 
+     DArray2(const DArray2& src): 
+             worker(src.worker), size(src.size), name(src.name), 
+             states(0), defined(src.defined)
+       {
+           if(src.states){
+              states = new char[size];
+              memcpy(states,src.states,size);              
+           } 
+       }
+
+     DArray2& operator=(const DArray2& src) {
+        this->worker = src.worker;
+        if(this->size != src.size){
+           this->size = src.size;
+           if(states){
+             delete[] states;
+             states = 0;
+           }
+           if(src.states){
+              states = new char[size];
+              memcpy(states,src.states,size);              
+           } 
+        }
+        this->name = src.name;
+        this->defined = src.defined;
+        return *this;
+     }     
+ 
+     ~DArray2() {
+        if(states){
+           delete[] states;
+        }
+     }
+      
+
+     void set(const size_t size, const string& name, 
+              const vector<DArray2Element>& worker){
+        if(!stringutils::isIdent(name) || size ==0){ // invalid
+           this->name = "";
+           this->defined = false;
+           this->states = 0;
+           return;
+        }
+        if(states){
+            delete[] states;
+        }
+        states = new char[size];
+        char state = 2; // unknown whether element exists at worker
+        memset(states,state,size);
+        defined = true;
+        this->name = name;
+        this->size = size;
+        this->worker = worker;
+     }
+
+
+     bool IsDefined(){
+        return defined;
+     }
+
+     static const string BasicType() { 
+        return "darray2";
+     }
+
+     static const bool checkType(const ListExpr list){
+
+         if(!nl->HasLength(list,2)){
+            return false;
+         }  
+         if(!listutils::isSymbol(nl->First(list), BasicType())){
+             return false;
+         }
+         SecondoCatalog* ctl = SecondoSystem::GetCatalog();
+         string name;
+         int algid, type;
+         if(!ctl->LookUpTypeExpr(nl->Second(list), name, algid, type)){
+            return false;
+         }
+         AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+         ListExpr errorInfo = listutils::emptyErrorInfo();
+         if(!am->TypeCheck(algid,type,nl->Second(list),errorInfo)){
+            return false;
+         }
+         return true;
+     }
+
+     size_t numOfWorkers() const{
+       return worker.size();
+     }
+     size_t getSize() const{
+        return size;
+     }
+  
+
+     DArray2Element getWorker(int i){
+        if(i< 0 || i >= (int) worker.size()){
+            assert(false);
+           // throw "Invalid worker number";
+        }
+        return worker[i];
+     }
+
+     ListExpr toListExpr(){
+       if(!defined){
+         return listutils::getUndefined();
+       }
+
+       ListExpr wl;
+
+       if(worker.empty()){
+         wl =  nl->TheEmptyList();
+       } else {
+       
+           wl = nl->OneElemList(
+                        worker[0].toListExpr());
+           ListExpr last = wl;
+           for(size_t i=1;i<worker.size();i++){
+             last = nl->Append(last, worker[i].toListExpr());
+           }
+       }
+       return nl->ThreeElemList(nl->SymbolAtom(name), nl->IntAtom(size), wl); 
+     }
+
+
+     static DArray2* readFrom(ListExpr list){
+        if(listutils::isSymbolUndefined(list)){
+           return new DArray2(0,"");
+        }
+        if(!nl->HasLength(list,3)){
+           return 0;
+        }
+        ListExpr Name = nl->First(list);
+        ListExpr Size = nl->Second(list);
+        ListExpr Workers = nl->Third(list);
+        if(   (nl->AtomType(Name) != SymbolType)
+            ||(nl->AtomType(Size) != IntType)
+            ||(nl->AtomType(Workers)!=NoAtom)){
+           return 0;
+        }
+        string name = nl->SymbolValue(Name);
+        if(!stringutils::isIdent(name)){
+           return 0;
+        }
+        int size = nl->IntValue(Size);
+        if(size <=0){
+           return 0;
+        }
+        vector<DArray2Element> v;
+        int wn = 0;
+        while(!nl->IsEmpty(Workers)){
+           DArray2Element elem("",0,0,"");
+           if(!InDArray2Element(nl->First(Workers), elem)){
+              return 0;
+           }
+           elem.setNum(wn);
+           wn++;
+           v.push_back(elem);
+           Workers = nl->Rest(Workers);
+        }
+        DArray2* result = new DArray2(size,name);
+        swap(result->worker,v);
+        result->defined = true;
+        return result;
+     }
+
+
+
+     bool saveTo(SmiRecord& valueRecord, size_t& offset){
+        size_t size = worker.size();
+        if(!valueRecord.Write(&size,sizeof(size),offset)){
+            return false;
+        }  
+        offset += sizeof(size);
+        for(size_t i=0;i<worker.size();i++){
+           if(!worker[i].saveTo(valueRecord,offset)){
+               return false;
+           }
+        }
+        return true;
+     }
+
+     static bool open(SmiRecord& valueRecord, size_t& offset, 
+                      const ListExpr typeInfo, Word& result){
+
+        bool defined;
+        result.addr = 0;
+        if(!readVar<bool>(defined,valueRecord,offset)){
+           return false;
+        } 
+        if(!defined){
+          result.addr = new DArray2(0,"");
+          return true;
+        }
+        // array in smirecord is defined, read size
+        size_t size;
+        if(!readVar<size_t>(size,valueRecord,offset)){
+           return false;
+        }
+        // read name
+        string name;
+        if(!readVar<string>(name,valueRecord, offset)){
+            return false;
+        }
+        // append workers
+        size_t numWorkers;
+        if(!readVar<size_t>(numWorkers,valueRecord, offset)){
+          return false;
+        }
+        // create result
+        DArray2* res = new DArray2(size,name);
+        int wn = 0;
+        for(size_t i=0; i< numWorkers; i++){
+           DArray2Element elem("",0,0,"");
+           if(!elem.readFrom(valueRecord, offset)){
+               delete res;
+               return false;
+           }
+           elem.setNum(wn);
+           wn++;
+           res->worker.push_back(elem);
+        }
+        result.addr = res;
+        return true;
+     }
+
+     static bool save(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value) {
+
+         DArray2* a = (DArray2*) value.addr;
+         if(!writeVar(a->defined,valueRecord,offset)){
+           return false;
+         }
+         if(!a->defined){
+            return true;
+         }
+         if(!writeVar(a->size,valueRecord,offset)){
+           return false;
+         }
+         if(!writeVar(a->name, valueRecord, offset)){
+           return false;
+         }
+         if(!writeVar(a->worker.size(), valueRecord, offset)){
+           return false;
+         }
+         for(size_t i=0;i<a->worker.size();i++){
+              if(!a->worker[i].saveTo(valueRecord,offset)){
+                 return false;
+              }
+         }
+         return true; 
+     }
+
+     void print(ostream& out){
+       if(!defined){
+          out << "undefined";
+          return;
+       }
+
+       out << "Name : " << name <<", size : " << size 
+           << " workers : [" ;
+       for(size_t i =0;i<worker.size();i++){
+          if(i>0) out << ", ";
+          worker[i].print(out);
+       }
+       out << "]";
+     }
+
+     void makeUndefined(){
+        worker.clear();
+        size = 0;
+        name = "";
+        if(states){
+          delete[] states; 
+          states=0;
+        }
+        defined = false;
+     }
+
+     string getName(){
+        return name;
+     }
+
+
+  private:
+    vector<DArray2Element> worker; // connection information
+    size_t size;  // size of the array itselfs
+    string name;  // the basic name used on workers
+    char* states; // information about the state of the element on 
+                  // the appropiate worker
+                  // not existing : 0
+                  // exists : 1
+                  // unknown : 2
+                  // invalid : 3
+    bool defined; // defined state of this array
+};
+
+/*
+2.1.2.1 Property function
+
+*/
+ListExpr DArray2Property(){
+   return nl->TwoElemList(
+              nl->FourElemList(
+                   nl->StringAtom("Signature"),
+                   nl->StringAtom("Example Type List"), 
+                   nl->StringAtom("List Rep"),
+                   nl->StringAtom("Example List")),
+              nl->FourElemList(
+                   nl->StringAtom(" -> SIMPLE"),
+                   nl->StringAtom(" (darray2 <basictype>)"),
+                   nl->StringAtom(" ( s1 s2  ...) where "
+                                  "s_i =(server port config)"),
+                   nl->TextAtom(" (('localhost' 1234 'config.ini')"
+                                " ('localhost'  1235 'config.ini'))")));
+}
+
+/*
+2.1.2.2 IN function
+
+*/
+
+
+Word InDArray2(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct){
+
+   Word res((void*)0);
+   res.addr = DArray2::readFrom(instance);
+   correct = res.addr!=0;
+   return res;
+}
+
+/*
+
+2.1.2.3 Out function
+
+*/
+
+ListExpr OutDArray2(ListExpr typeInfo, Word value){
+   DArray2* da = (DArray2*) value.addr;
+   return da->toListExpr();
+}
+
+/*
+
+2.1.2.4 Create function
+
+*/
+Word CreateDArray2(const ListExpr typeInfo){
+
+  Word w;
+  w.addr = new DArray2(0,"");
+  return w;
+}
+
+/*
+
+2.1.2.4 Delete function
+
+*/
+void DeleteDArray2(const ListExpr typeInfo, Word& w){
+  DArray2* a = (DArray2*) w.addr;
+  delete a;
+  w.addr = 0;
+}
+
+
+/*
+
+2.1.2.4 Open function
+
+*/
+
+
+void CloseDArray2(const ListExpr typeInfo, Word& w){
+  DArray2* a = (DArray2*) w.addr;
+  delete a;
+  w.addr = 0;
+}
+
+
+Word CloneDArray2(const ListExpr typeInfo, const Word& w){
+    DArray2* a = (DArray2*) w.addr;
+    Word res;
+    res.addr = new DArray2(*a);
+    return res;
+}
+
+void* CastDArray2(void* addr){
+   return (new (addr) DArray2(0));   
+}
+
+bool DArray2TypeCheck(ListExpr type, ListExpr& errorInfo){
+    return DArray2::checkType(type);
+}
+
+
+int SizeOfDArray2(){
+  return 42; // a magic number
+}
+
+
+TypeConstructor DArray2TC(
+  DArray2::BasicType(),
+  DArray2Property,
+  OutDArray2, InDArray2,
+  0,0,
+  CreateDArray2, DeleteDArray2,
+  DArray2::open, DArray2::save,
+  CloseDArray2, CloneDArray2,
+  CastDArray2,
+  SizeOfDArray2,
+  DArray2TypeCheck );
+
+
+
+/*
+3. DArray2 Operators
+
+3.1 Operator ~put~
+
+This operator puts a new value into a DArray. It returns a clone of
+the argument array. If there is a problem during storing the value,
+the resulting array will be undefined. 
+
+3.1.1 Type Mapping
+
+the signature is darray2(t) x int x t -> darray2(t)
+
+*/
+ListExpr putTM(ListExpr args){
+   string err = "darray2(t) x int x t expected";
+
+   if(!nl->HasLength(args,3)){
+     return listutils::typeError(err + " (invalid number of args)");
+   } 
+   if( !DArray2::checkType(nl->First(args))){
+     return listutils::typeError(err + " ( first arg is not a darray)");
+   }
+   if( !CcInt::checkType(nl->Second(args))){
+     return listutils::typeError(err + " ( second arg is not an int)");
+   }
+
+
+   ListExpr subtype = nl->Second(nl->First(args));
+   if(!nl->Equal(subtype, nl->Third(args))){
+    return listutils::typeError("type conflic between darray2 "
+                                 "and argument type");
+   }
+   return nl->First(args);
+}
+
+/*
+3.1.2 ~put~ Value Mapping
+
+Note: the current implementation uses just nested list 
+even for relations, here, a special threatment for big objects
+should be implemented for transferring big objects to the
+remote server;
+
+*/
+
+int putVM(Word* args, Word& result, int message,
+                Word& local, Supplier s ){
+
+  DArray2* array = (DArray2*) args[0].addr;
+  CcInt* index = (CcInt*) args[1].addr;
+  result = qp->ResultStorage(s);
+  DArray2* res = (DArray2*) result.addr;
+  if(!array->IsDefined() || !index->IsDefined()){
+     res->makeUndefined();
+     return 0;
+  } 
+
+  int i = index->GetValue();
+
+  if(i < 0 || i >= (int) array->getSize()){
+     res->makeUndefined();
+     return 0;
+  }
+  if(array->numOfWorkers() < 1){
+       res->makeUndefined();
+  }
+
+  int workerindex =  i % array->numOfWorkers();
+
+  // retrieve the current database name on the master
+
+  string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+
+  
+  DArray2Element elem = array->getWorker(workerindex);
+
+  ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+
+  if(!ci){ // problem with connection the monitor or opening the databaseA
+     res->makeUndefined();
+     return 0;
+  }
+
+  if(! ci->createOrUpdateObject(  array->getName() + "_" 
+                                + stringutils::int2str(i),
+                                nl->Second(qp->GetType(s)),
+                                args[2])){
+      res->makeUndefined();
+      return 0;
+  }
+  (*res) = *array;
+  return 0;                           
+}
+
+
+/*
+3.1.3 Specification
+
+*/
+
+OperatorSpec putSpec(
+     " darray2(T) x int x T -> darray2(T) ",
+     " put(_,_,_)",
+     " Puts an element at at specific position of a darray2.  "
+     " If there is some problem, the result is undefined otherwise"
+     " the result is represents the same array as before with "
+     " a changed element",
+     " query put([const darray2(int) value"
+     "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
+     "           (\"host2\" 1234 \"Config2.ini\")))] , 1, 27)"
+     );
+
+
+/*
+3.1.4 Operator Instance
+
+*/
+
+Operator putOp(
+           "put",
+           putSpec.getStr(),
+           putVM,
+           Operator::SimpleSelect,
+           putTM);
+
+
+/*
+3.2 Operator get
+
+This operator retrieves an remove object from a server
+
+3.2.1 Type Mapping
+
+Signature is darray2(T) x int -> T
+
+*/
+ListExpr getTM(ListExpr args){
+
+  string err = "darray2(T) x int expected";
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err + " (invalid number of args)");
+  }
+  if(!DArray2::checkType(nl->First(args))){
+     return listutils::typeError(err+" ( first is not a darray2)");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+     return listutils::typeError(err+"(second arg is not of type int)");
+  }
+  return nl->Second(nl->First(args));
+}
+
+/*
+3.2.2 Value Mapping
+
+*/
+int getVM(Word* args, Word& result, int message,
+          Word& local, Supplier s ){
+
+  DArray2* array = (DArray2*) args[0].addr;
+  CcInt* index = (CcInt*) args[1].addr;
+  result = qp->ResultStorage(s);
+  bool isData = listutils::isDATA(qp->GetType(s));
+  if(!array->IsDefined() || !index->IsDefined()){
+     cerr << " undefined argument" << endl;
+     if(isData){
+        ((Attribute*) result.addr)->SetDefined(false);
+     } else {
+        cerr << "Undefined element found" << endl;
+     }
+     return 0;
+  } 
+
+  int i = index->GetValue();
+  if(i<0 || i>=(int)array->getSize()){
+     if(isData){
+        ((Attribute*) result.addr)->SetDefined(false);
+     } else {
+        cerr << "Undefined element found" << endl;
+     }
+     return 0;
+  }
+  if(array->numOfWorkers() <1){
+     if(isData){
+        ((Attribute*) result.addr)->SetDefined(false);
+     } else {
+        cerr << "Undefined element found" << endl;
+     }
+     return 0;
+  }
+
+
+  DArray2Element elem = array->getWorker(i % array->numOfWorkers());
+  string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+  ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+  if(!ci){ // problem with connection the monitor or opening the databaseA
+     if(isData){
+        ((Attribute*) result.addr)->SetDefined(false);
+     } else {
+        cerr << "Undefined element found" << endl;
+     }
+     return 0;
+  }
+
+  Word r;
+  ListExpr resType = qp->GetType(s);
+  bool ok =  ci->retrieve(array->getName() + "_"
+                                + stringutils::int2str(i),
+                                resType, r);
+
+  if(!ok){ // in case of an error, res.addr point to 0A
+     if(isData){
+        ((Attribute*) result.addr)->SetDefined(false);
+     } else {
+        cerr << "Undefined element found" << endl;
+     }
+     return 0;
+  }
+  if(!nl->Equal(resType, qp->GetType(s))){
+     // result type  differs from expected type
+     cerr << "Types in darray2 differs from type in remote db" << endl;
+     string typeName; 
+     int algebraId;
+     int typeId;
+     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+     AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+     if( ctlg->LookUpTypeExpr( resType, typeName, algebraId, typeId ) ){
+         am->DeleteObj(algebraId, typeId)(resType,r);    
+
+     } else {
+        cerr << "internal error leads to memory leak" << endl;
+     }
+     return 0;
+  }
+
+
+  // in case of no error, r.addr points to the result
+  qp->DeleteResultStorage(s);
+  qp->ChangeResultStorage(s,r);
+  result = qp->ResultStorage(s);
+
+
+  return 0;
+}
+
+
+OperatorSpec getSpec(
+     " darray2(T) x int -> T ",
+     " get(_,_)",
+     " Retrieves an element at a specific position of a darray2.  ",
+     " query get([const darray2(int) value"
+     "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
+     "           (\"host2\" 1234 \"Config2.ini\")))] , 1, )"
+     );
+
+Operator getOp(
+           "get",
+           getSpec.getStr(),
+           getVM,
+           Operator::SimpleSelect,
+           getTM);
+
+
+/*
+3.4.4 Operator size
+
+This operator just asks for the size of a darray2 instance.
+
+*/
+ListExpr sizeTM(ListExpr args){
+  string err  = "darray2 expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(!DArray2::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+int sizeVM(Word* args, Word& result, int message,
+          Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+
+  DArray2* arg  = (DArray2*) args[0].addr;
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    res->Set(true,arg->getSize());
+  }
+  return 0;
+}
+
+OperatorSpec sizeSpec(
+     " darray2(T) -> int ",
+     " size(_)",
+     " Returns the number of slots of a darray2 ",
+     " query size([const darray2(int) value"
+     "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
+     "           (\"host2\" 1234 \"Config2.ini\")))] )"
+     );
+
+
+Operator sizeOp(
+           "size",
+           sizeSpec.getStr(),
+           sizeVM,
+           Operator::SimpleSelect,
+           sizeTM);
+
+/*
+Operator getWorkers
+
+*/
+ListExpr getWorkersTM(ListExpr args){
+  string err = "darray2  expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(!DArray2::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+
+  ListExpr attrList = nl->FourElemList(
+        nl->TwoElemList(
+           nl->SymbolAtom("Host"),
+           listutils::basicSymbol<FText>()),
+        nl->TwoElemList(
+           nl->SymbolAtom("Port"),
+           listutils::basicSymbol<CcInt>()),
+        nl->TwoElemList(
+           nl->SymbolAtom("Config"),
+           listutils::basicSymbol<FText>()),
+        nl->TwoElemList(
+           nl->SymbolAtom("No"),
+           listutils::basicSymbol<CcInt>())
+      );
+  return nl->TwoElemList(
+      listutils::basicSymbol<Stream<Tuple> >(),
+      nl->TwoElemList(
+         listutils::basicSymbol<Tuple>(),
+         attrList));
+}
+
+class getWorkersInfo{
+  public:
+     getWorkersInfo(DArray2* _array, ListExpr _tt):
+        array(_array), pos(0){
+         tt = new TupleType(_tt);
+     }
+
+     ~getWorkersInfo(){
+         tt->DeleteIfAllowed();
+      }
+
+     Tuple* next(){
+         if(pos >= array->numOfWorkers()){
+            return 0;
+         }
+         DArray2Element e = array->getWorker(pos);
+         pos++;
+         Tuple* tuple = new Tuple(tt);
+         tuple->PutAttribute(0, new FText(true,e.getHost()));
+         tuple->PutAttribute(1, new CcInt(e.getPort()));
+         tuple->PutAttribute(2, new FText(true,e.getConfig()));
+         tuple->PutAttribute(3, new CcInt(e.getNum()));
+         return tuple;
+     }
+
+  private:
+     DArray2* array;
+     size_t pos;
+     TupleType* tt;
+
+};
+
+
+int getWorkersVM(Word* args, Word& result, int message,
+          Word& local, Supplier s ){
+
+   getWorkersInfo* li = (getWorkersInfo*) local.addr;
+   switch(message){
+      case OPEN:{
+            if(li){
+               delete li;
+               local.addr = 0;
+            }
+            DArray2* arg = (DArray2*) args[0].addr;
+            if(arg->IsDefined()){
+              local.addr = new getWorkersInfo(arg, 
+                              nl->Second(GetTupleResultType(s)));
+            }
+            return 0;
+         }   
+       case REQUEST:
+              result.addr = li?li->next():0;
+              return result.addr?YIELD:CANCEL;
+       case CLOSE:
+              if(li){
+                 delete li;
+                 local.addr = 0;
+              } 
+              return 0;
+   }
+   return -1;
+}
+
+
+OperatorSpec getWorkersSpec(
+     " darray2(T) -> stream(tuple(...)) ",
+     " getWorkers(_)",
+     " Returns information about worker in a darray2. ",
+     " query getWorkers([const darray2(int) value"
+     "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
+     "           (\"host2\" 1234 \"Config2.ini\")))] ) count"
+     );
+
+
+Operator getWorkersOp(
+           "getWorkers",
+           getWorkersSpec.getStr(),
+           getWorkersVM,
+           Operator::SimpleSelect,
+           getWorkersTM);
+
+
+/*
+1.4 Operator ~fconsume5~
+
+This operator stores a tuple stream into a single binary file.
+The incoming tuple stream is also the output stream.
+
+1.4.1 Type Mapping
+
+*/
+ListExpr fconsume5TM(ListExpr args){
+  string err = "stream(TUPLE) x {string.text} expected";
+
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  ListExpr fn = nl->Second(args);
+  if(!CcString::checkType(fn) && !FText::checkType(fn)){
+    return listutils::typeError(err);
+  }
+  return nl->First(args);
+}
+
+/*
+1.4.2 Local Info class
+
+*/
+class fconsume5Info{
+  public:
+
+    fconsume5Info(Word& _stream,
+                 const string& filename, 
+                 const ListExpr typeList):
+       in(_stream){
+       out.open(filename.c_str(),ios::out|ios::binary);
+       ok = out.good();
+       if(ok){
+         BinRelWriter::writeHeader(out,typeList);
+       } 
+       ok = out.good();
+       in.open();
+       firstError = true;
+    }
+
+    fconsume5Info(Word& _stream,
+                 const ListExpr typeList):
+       in(_stream){
+       ok = false;
+       firstError = true;
+    }
+
+    ~fconsume5Info(){
+        if(out.is_open()){
+           BinRelWriter::finish(out);
+           out.close();
+        }
+        in.close();
+     }
+
+     Tuple* next(){
+       Tuple* tuple = in.request();
+       if(!tuple){
+         return 0;
+       }
+       if(ok){
+         if(!BinRelWriter::writeNextTuple(out,tuple)){
+            ok = false;
+            if(firstError){
+              cerr << "Problem in writing tuple" << endl;
+              firstError = false;
+            }
+         }
+       }
+       return tuple;
+     }
+     
+  private:
+     Stream<Tuple> in;
+     ofstream out;
+     bool ok;
+     bool firstError;
+     
+
+};
+
+/*
+1.4.3 Value Mapping Template
+
+*/
+
+template<class T>
+int fconsume5VMT(Word* args, Word& result, int message,
+          Word& local, Supplier s ){
+
+    fconsume5Info* li = (fconsume5Info*) local.addr;
+
+    switch(message){
+      case OPEN : {
+         ListExpr type = qp->GetType(s);
+         type = nl->Second(nl->Second(type));
+         T* fn = (T*) args[1].addr;
+         if(li){
+            delete li;
+            local.addr = 0;
+         }
+         if(!fn->IsDefined()){
+             local.addr = new fconsume5Info(args[0],type);
+             return 0;
+         }
+         string fns = fn->GetValue();
+         local.addr = new fconsume5Info(args[0],fns,type);
+         return 0;
+      }
+      case REQUEST:
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+      case CLOSE:{
+            if(li) {
+               delete li;
+               local.addr = 0;
+            }
+            return 0;
+      }   
+    }
+    return -1;
+
+}
+
+/*
+1.4.4 Value Mapping Array and Selection
+
+*/
+int fconsume5Select(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+ValueMapping fconsume5VM[] = {
+  fconsume5VMT<CcString>,
+  fconsume5VMT<FText>
+};
+
+
+/*
+1.4.5 Specification
+
+*/
+
+OperatorSpec fconsume5Spec(
+     " stream(TUPLE) x {string, text} -> stream(TUPLE) ",
+     " _ fconsume5[_]",
+     " Stores a tuple stream into a binary file. ",
+     " query ten feed fconsume5['ten.bin'] count"
+     );
+
+/*
+1.4.6 Instance
+
+*/
+Operator fconsume5Op(
+   "fconsume5",
+   fconsume5Spec.getStr(),
+   2,
+   fconsume5VM,
+   fconsume5Select,
+   fconsume5TM
+);
+
+
+/*
+1.5 Operator ~ffeed5~
+
+This operator produces a stream of tuples from a file.
+
+*/
+ListExpr ffeed5TM(ListExpr args){
+  string err = "string or text expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  ListExpr argwt = nl->First(args);
+  if(!nl->HasLength(argwt,2)){
+     return listutils::typeError("internal error");
+  }
+  ListExpr arg = nl->First(argwt);
+  if(!CcString::checkType(arg) && !FText::checkType(arg)){
+    return listutils::typeError(err);
+  }
+
+  ListExpr query = nl->Second(argwt);
+  Word queryResult;
+  string typeString = "";
+  string errorString = "";
+  bool correct;
+  bool evaluable;
+  bool defined;
+  bool isFunction;
+  qp->ExecuteQuery(query, queryResult,
+                    typeString, errorString, correct,
+                    evaluable, defined, isFunction);
+  if(!correct || !evaluable || !defined || isFunction){
+     return listutils::typeError("could not extract filename ("+
+                                  errorString + ")");
+  }
+  string filename;
+  if(CcString::checkType(arg)){
+     CcString* res = (CcString*) queryResult.addr;
+     if(!res->IsDefined()){
+       res->DeleteIfAllowed();
+       return listutils::typeError("undefined filename");
+     } else {
+        filename = res->GetValue();
+        res->DeleteIfAllowed();
+     }
+  }else {
+     FText* res = (FText*) queryResult.addr;
+     if(!res->IsDefined()){
+       res->DeleteIfAllowed();
+       return listutils::typeError("undefined filename");
+     } else {
+        filename = res->GetValue();
+        res->DeleteIfAllowed();
+     }
+  }
+  // access file for extracting the type 
+  ifstream in(filename.c_str(), ios::in | ios::binary);
+  if(!in.good()){
+     return listutils::typeError("could not open file " + filename);
+  }
+  char marker[4];
+  in.read(marker,4);
+  if(!in.good()){
+     in.close();
+     return listutils::typeError("problem in reading from file " 
+                                 + filename);
+  }
+  string m(marker,4);
+
+  if(m!="srel"){
+    in.close();
+    return listutils::typeError("not a binary relation file");
+  }
+  uint32_t typeLength;
+  in.read((char*) &typeLength, sizeof(uint32_t));
+  char* buffer = new char[typeLength];
+  in.read(buffer,typeLength);
+  if(!in.good()){
+    in.close();
+    return listutils::typeError("problem in reading from file");
+  }  
+  string typeS(buffer, typeLength);
+  delete [] buffer;
+  ListExpr relType;
+  if(!nl->ReadFromString(typeS, relType)){
+    in.close();
+    return listutils::typeError("problem in determining rel type");
+  } 
+  ListExpr ttype = nl->TwoElemList( listutils::basicSymbol<Tuple>(),
+                                    relType);
+
+  if(!Tuple::checkType(ttype)){
+    in.close();
+    return listutils::typeError("found invalid type for tuple");
+  }
+
+  in.close();
+  return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                          ttype);
+}
+
+
+/*
+1.5.3 LocalInfo
+
+is defined before
+
+*/
+
+
+template<class T>
+int ffeed5VMT(Word* args, Word& result, int message,
+          Word& local, Supplier s ){
+
+   ffeed5Info* li = (ffeed5Info*) local.addr;
+   switch(message){
+      case OPEN: {
+          if(li){
+             delete li;
+             local.addr = 0;
+          }
+          T* fn = (T*) args[0].addr;
+          if(!fn->IsDefined()){
+             return 0;
+          }
+          local.addr = new ffeed5Info( fn->GetValue(),
+                                       nl->Second(GetTupleResultType(s)));
+          return 0;
+      }
+      case REQUEST:{
+           result.addr = li?li->next():0;
+           return result.addr?YIELD:CANCEL;
+      }
+      case CLOSE: {
+           if(li){
+              delete li;
+              local.addr = 0;
+           }
+           return 0;
+      }
+   }
+   return -1;
+}
+
+
+/*
+1.4.4 Value Mapping Array and Selection
+
+*/
+int ffeed5Select(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping ffeed5VM[] = {
+  ffeed5VMT<CcString>,
+  ffeed5VMT<FText>
+};
+
+
+/*
+1.4.5 Specification
+
+*/
+
+OperatorSpec ffeed5Spec(
+     " {string, text} -> stream(TUPLE) ",
+     " ffeed5(_)",
+     " Restores  a tuple stream from a binary file. ",
+     " query ffeed5('ten.bin') count "
+     );
+
+/*
+1.4.6 Instance
+
+*/
+Operator ffeed5Op(
+   "ffeed5",
+   ffeed5Spec.getStr(),
+   2,
+   ffeed5VM,
+   ffeed5Select,
+   ffeed5TM
+);
+
+/*
+1.5 Operator create darray2
+
+This operator creates a darray2 from a stream specifying the workers. 
+As well as a template type.
+
+1.5.1 Type Mapping 
+
+*/ 
+ListExpr createDarray2TM(ListExpr args){
+   string err = "stream(tuple) x int x string x any "
+                               "x Ident x Ident x Ident expected";
+   if(!nl->HasLength(args,7)){
+      return listutils::typeError(err);
+   }
+   ListExpr stream = nl->First(args);
+   if(!Stream<Tuple>::checkType(stream)){
+     return listutils::typeError("First argument must be a tuple stream");
+   }
+
+   if(!CcInt::checkType(nl->Second(args))){
+     return listutils::typeError("Second argument must be an int");
+   }
+   if(!CcString::checkType(nl->Third(args))){
+     return listutils::typeError("Third argument must be a string");
+   }
+
+   ListExpr ha = nl->Fifth(args);
+   ListExpr pa = nl->Sixth(args);
+   ListExpr ca = nl->Seventh(args);
+   if(    (nl->AtomType(ha) != SymbolType)
+        ||(nl->AtomType(pa) != SymbolType)
+        ||(nl->AtomType(ca) != SymbolType)){
+     return listutils::typeError("One of the last three argument"
+                                 " is not an Identifier");
+   }
+   ListExpr ht; // host type
+   int hp; // host position
+   string hn = nl->SymbolValue(ha);
+   ListExpr attrList = nl->Second(nl->Second(stream));
+   hp = listutils::findAttribute(attrList, hn, ht);
+   if(!hp){
+      return listutils::typeError("Attribute " + hn + " not found");
+   }
+
+   // fo the same for the port
+   ListExpr pt;
+   int pp; 
+   string pn = nl->SymbolValue(pa);
+   pp = listutils::findAttribute(attrList, pn, pt);
+   if(!pp){
+      return listutils::typeError("Attribute " + pn + " not found");
+   }
+   // and for the configuration
+   ListExpr ct;
+   int cp; 
+   string cn = nl->SymbolValue(ca);
+   cp = listutils::findAttribute(attrList, cn, ct);
+   if(!cp){
+      return listutils::typeError("Attribute " + cn + " not found");
+   }
+    
+   // check correct types
+   if(!CcInt::checkType(pt)){
+      return listutils::typeError(  "port attribute " + pn 
+                                  + " not of type int");
+   }
+
+   if(!CcString::checkType(ht) && !FText::checkType(ht)){
+      return listutils::typeError( "host attribute " + hn 
+                               + " must be of type text or string");
+
+   }
+   if(!CcString::checkType(ct) && !FText::checkType(ct)){
+      return listutils::typeError( "Config attribute " + cn 
+                               + " must be of type text or string");
+   }
+
+   ListExpr resType = nl->TwoElemList(
+                           listutils::basicSymbol<DArray2>(),
+                           nl->Fourth(args));
+
+   if(!DArray2::checkType(resType)){
+      return listutils::typeError("the fourth element does not "
+                                  "describe a valid type");
+   } 
+
+
+   return nl->ThreeElemList(
+                 nl->SymbolAtom(Symbols::APPEND()),
+                 nl->ThreeElemList( nl->IntAtom(hp-1),
+                                    nl->IntAtom(pp-1),
+                                    nl->IntAtom(cp-1)),
+                 resType);
+}
+
+/*
+1.5.3 Value Mapping Template
+
+*/
+template<class H, class C>
+int createDarray2VMT(Word* args, Word& result, int message,
+          Word& local, Supplier s ){
+
+   int host = ((CcInt*) args[7].addr)->GetValue();
+   int port = ((CcInt*) args[8].addr)->GetValue();
+   int config = ((CcInt*) args[9].addr)->GetValue();
+
+
+   result = qp->ResultStorage(s);
+   DArray2* res = (DArray2*) result.addr;
+
+   CcInt* size = (CcInt*) args[1].addr;
+   CcString* name = (CcString*) args[2].addr;
+   if(!size->IsDefined() || !name->IsDefined()){
+      res->makeUndefined();
+      return 0; 
+   }
+   int si = size->GetValue();
+   string n = name->GetValue();
+   if(si<=0 || !stringutils::isIdent(n)){
+      res->makeUndefined();
+      return 0; 
+   }
+   vector<DArray2Element> v;
+   Stream<Tuple> stream(args[0]);
+   stream.open();
+   Tuple* tuple;
+   int count = 0;
+   while((tuple=stream.request())){
+     H* h = (H*)  tuple->GetAttribute(host); 
+     CcInt* p = (CcInt*) tuple->GetAttribute(port);
+     C* c = (C*) tuple->GetAttribute(config);
+     if(h->IsDefined() && p->IsDefined() && c->IsDefined()){
+        string ho = h->GetValue();
+        int po = p->GetValue();
+        string co = c->GetValue();
+        if(po>0){
+           DArray2Element elem(ho,po,count,co);
+            count++;
+            v.push_back(elem);
+        }
+     }
+     tuple->DeleteIfAllowed();
+   }
+   stream.close();
+   res->set(si,n,v);
+   return 0;
+}
+
+/*
+1.4.5 Value Mapping Array and Selection Function
+
+*/
+ValueMapping createDarray2VM[] = {
+   createDarray2VMT<CcString,CcString>,
+   createDarray2VMT<CcString,FText>,
+   createDarray2VMT<FText,CcString>,
+   createDarray2VMT<FText,FText>
+};
+
+int createDarray2Select(ListExpr args){
+  ListExpr H = nl->Fifth(args);
+  ListExpr C = nl->Seventh(args);
+
+  ListExpr ht;
+  ListExpr ct;
+  ListExpr s = nl->Second(nl->Second(nl->First(args)));
+
+  listutils::findAttribute(s,nl->SymbolValue(H),ht);
+  listutils::findAttribute(s,nl->SymbolValue(C),ct);
+
+  int n1 = CcString::checkType(ht)?0:1; 
+  int n2 = CcString::checkType(ct)?0:1; 
+  return n2 + n1*2;
+}
+
+/*
+1.4.6 Specification
+
+*/
+OperatorSpec createDarray2Spec(
+     " stream<TUPLE> x int x string x ANY x Ident x Ident x Ident  -> darray2",
+     " _ createDarray2[size, name, type template , HostAttr, "
+                     "PortAttr, ConfigAttr]",
+     " Creates a darray 2. The workers are given by the input stream. ",
+     " query workers feed createDarray2[6,\"obj\",streets, Host, Port, Config] "
+     );
+
+/*
+1.4.7 Operator instance
+
+*/
+Operator createDarray2Op(
+  "createDarray2",
+  createDarray2Spec.getStr(),
+  4,
+  createDarray2VM,
+  createDarray2Select,
+  createDarray2TM
+);
+
+
+/*
+1.5 Operator pput
+
+This operator sets some values of the dbarray in parallel.
+
+
+
+*/
+ListExpr pputTM(ListExpr args){
+  string err = "darray2(T) x (int x T)+ expected";
+  if(nl->ListLength(args) <2){
+    return listutils::typeError(err);
+  }
+  ListExpr darray = nl->First(args);
+  ListExpr pairs = nl->Rest(args);
+  if(!DArray2::checkType(darray)){
+    return listutils::typeError(err);
+  }
+  ListExpr subType = nl->Second(darray);
+  bool index = true;
+  while(nl->IsEmpty(pairs)){
+    if(index){
+       if(!CcInt::checkType(nl->First(pairs))){
+          return listutils::typeError("array index not an int");
+       }
+    } else {
+       if(!nl->Equal(subType,nl->First(pairs))){
+         return listutils::typeError("expression does not fit darray subtype");
+       }
+    }
+    pairs = nl->Rest(pairs);
+    index = !index; 
+  }
+  if(!index){
+    return listutils::typeError("Missing expression for index");
+  }
+  return darray;
+}
+
+
+class SinglePutter{
+
+  public:
+    SinglePutter(ListExpr _type, DArray2* _array, 
+                 int _arrayIndex, Word& _value):
+     type(_type), array(_array), arrayIndex(_arrayIndex), value(_value){
+       runner = boost::thread(&SinglePutter::run,this);
+    }
+
+    ~SinglePutter(){
+        runner.join();
+    }
+ 
+
+  private:
+     ListExpr type;
+     DArray2* array;
+     int arrayIndex;
+     Word value;
+     boost::thread runner;
+
+
+    void run(){
+      string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+      DArray2Element elem = 
+                    array->getWorker(arrayIndex % array->numOfWorkers());
+      ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+      if(!ci){
+           cerr << "could not connect to server " << elem << endl;
+           return;
+      } 
+      string objname = array->getName() + "_"+stringutils::int2str(arrayIndex); 
+      ci->createOrUpdateObject(objname, type, value);
+    }
+
+
+};
+
+class PPutter{
+  public:
+
+    PPutter(ListExpr _type,
+            DArray2* _arg, vector<pair<int,Word> >& _values){
+      this->type = _type;
+      this->source = _arg;
+      set<int> used;
+      typename vector<pair<int,Word> >::iterator it;
+      for(it = _values.begin(); it!=_values.end(); it++){
+            pair<int,Word> p = *it;
+            int index = p.first;
+            if( (index >= 0) && ( (size_t)index < source->getSize())
+                 && (used.find(index)==used.end())){
+              values.push_back(p);
+            }
+      }
+      started = false;
+    }
+
+    void start(){
+       boost::lock_guard<boost::mutex> guard(mtx);
+       if(!started){
+         started=true;
+         for(size_t i=0;i<values.size();i++){
+            SinglePutter* sp = new SinglePutter(type,source,values[i].first, 
+                                                values[i].second);
+            putters.push_back(sp);
+         }
+       }
+    }  
+
+    ~PPutter(){
+         for(size_t i=0;i<putters.size();i++){
+            delete putters[i];
+         }
+      
+    } 
+
+  private:
+    ListExpr type;
+    DArray2* source;
+    vector<pair<int,Word> > values;
+    vector<SinglePutter*> putters;
+    bool started;
+    boost::mutex mtx;
+
+};
+
+
+
+int pputVM(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   DArray2* res = (DArray2*) result.addr;
+
+   DArray2* arg = (DArray2*) args[0].addr;
+
+   // collect the value to set into an vector
+   // ignoring undefined indexes or indexes 
+   // out of range, if an index is specified
+   // more than once, the first one wins
+   int sons = qp->GetNoSons(s);
+   int i=1;
+   set<int> used;
+
+   vector<pair<int, Word> > pairs;
+
+   while(i<sons){
+     CcInt* Index = (CcInt*) args[i].addr;
+     i++;
+     Word w = args[i];
+     i++;
+     if(Index->IsDefined()){
+       int index = Index->GetValue();
+       if( (index>=0 )&& 
+           ((size_t) index < arg->getSize()) && 
+           (used.find(index)==used.end())){
+           pair<int,Word> p(index,w);
+           pairs.push_back(p);
+           used.insert(index);
+       }
+     }
+   }
+
+   
+   PPutter* pput = new PPutter(nl->Second(qp->GetType(s)),arg, pairs);
+   pput->start(); 
+   delete pput;
+   *res = *arg;
+   return 0;
+}
+
+/*
+1.4.3 Specification
+
+*/
+
+
+OperatorSpec pputSpec(
+     " darray2(T) x (int x T)+ -> darray2 ",
+     " _ pput[ index , value , index, value ,...]",
+     " Puts elemnts into a darray2 in parallel. ",
+     " query da pput[0, streets1, 1, streets2]  "
+     );
+
+
+/*
+1.4.4 Operator instance
+
+*/
+
+Operator pputOp(
+  "pput",
+  pputSpec.getStr(),
+  pputVM,
+  Operator::SimpleSelect,
+  pputTM
+);
+
+
+
+/*
+3 Implementation of the Algebra
 
 */
 Distributed2Algebra::Distributed2Algebra(){
+   AddTypeConstructor(&DArray2TC);
+   DArray2TC.AssociateKind(Kind::SIMPLE());
+   
    AddOperator(&connectOp);
    AddOperator(&checkConnectionsOp);
    AddOperator(&rcmdOp);
@@ -3692,6 +6002,19 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&pconnectOp);
    AddOperator(&pqueryOp);
    pqueryOp.SetUsesArgsInTypeMapping();
+
+   AddOperator(&putOp);
+   AddOperator(&getOp);
+   AddOperator(&sizeOp);
+   AddOperator(&getWorkersOp);
+
+   AddOperator(&fconsume5Op);
+   AddOperator(&ffeed5Op);
+   ffeed5Op.SetUsesArgsInTypeMapping();
+
+   AddOperator(&createDarray2Op);
+
+   AddOperator(&pputOp);
 
 }
 

@@ -98,4 +98,62 @@ Result   : bug
 Remark   : Requires a remote server
 
 
+Operator : put
+Number   : 1
+Signature: darray2(T) x int x T -> darray2(T)
+Example  : query put([const darray2(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3,27)
+Result   : bug
+Remark   : Requires a remote server
+
+Operator : get
+Number   : 1
+Signature: darray2(T) x int -> T
+Example  : query get([const darray2(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3)
+Result   : bug
+Remark   : Requires a remote server
+
+Operator : size
+Number   : 1
+Signature: darray2(T) -> int 
+Example  : query size([const darray2(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))])
+Result   : 4
+
+Operator : getWorkers 
+Number   : 1
+Signature: darray2(T) -> stream(tuple)
+Example  : query getWorkers([const darray2(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))]) count
+Result   : 2
+
+
+Operator  : fconsume5
+Number    : 1
+Signature : stream(TUPLE) x {string, text} -> stream(TUPLE)
+Example   : query ten fconsume5['ten.bin'] count
+Result    : 10
+
+
+Operator  : ffeed5
+Number    : 1
+Signature : {string, text} -> stream(TUPLE)
+Example   : query ffeed5('ten.bin') count
+Result    : 10
+
+Operator  : createDarray2
+Number    : 1 
+Signature : stream(TUPLE) x int x string x ANY x Ident x Ident x Ident -> darray2
+Example   : query workers feed createDarray2[8,"DA1",strassen, Host, Port, Config]
+Result    : bug
+Remark    : in development
+
+Operator: pput
+Number  : 1
+Signature : darray2(T) x (int x t)+ -> darray2(T)
+Example   : query da3 feed pput[0,ten,1,ten]
+Result    : bug
+Remark    : remote server required
+
+
+
+
+
 
