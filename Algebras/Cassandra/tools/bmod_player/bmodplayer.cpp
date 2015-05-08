@@ -85,6 +85,7 @@ struct Configuration {
 struct Statistics {
    unsigned long read;
    unsigned long send;
+   unsigned long queuesize;
    bool done;
 };
 
@@ -93,10 +94,13 @@ struct InputData {
     size_t tripid;
     tm time_start;
     tm time_end;
+    time_t time_diff;
     float x_start;
     float y_start;
     float x_end;
     float y_end;
+    float x_diff;
+    float y_diff;
 };
 
 struct Position {
@@ -435,6 +439,9 @@ public:
          pthread_cond_broadcast(&queueSync->queueCondition);
       }
       
+      // Update statistics 
+      statistics->queuesize = data->size();
+      
       pthread_mutex_unlock(&queueSync->queueMutex);
    }
    
@@ -568,6 +575,11 @@ public:
       inputdata -> y_start = atof(lineData[5].c_str());
       inputdata -> x_end = atof(lineData[6].c_str());
       inputdata -> y_end = atof(lineData[7].c_str());
+      
+      inputdata -> x_diff = inputdata->x_end - inputdata->x_start;
+      inputdata -> y_diff = inputdata->y_end - inputdata->y_end;
+      inputdata -> time_diff = mktime(&(inputdata->time_end)) 
+                                - mktime(&(inputdata->time_start));
 
       putDataIntoQueue(inputdata);
       
@@ -579,18 +591,11 @@ public:
    void putDataIntoQueue(InputData *inputdata) {
       pthread_mutex_lock(&queueSync->queueMutex);
       
-      if(data->size() >= QUEUE_ELEMENTS) {
-         pthread_cond_wait(&queueSync->queueCondition, 
-                           &queueSync->queueMutex);
-      }
-      
-      bool wasEmpty = data->empty();
-      
       data->push_back(inputdata);
       
-      if(wasEmpty) {
-         pthread_cond_broadcast(&queueSync->queueCondition);
-      }
+      // Update statistics 
+      statistics->queuesize = data->size();
+      
       pthread_mutex_unlock(&queueSync->queueMutex);
    }
    
@@ -733,49 +738,82 @@ public:
            simulation(mySimulation), queue(myQueue) {
       
    }
+
+/*
+5.0.1 Remove all Elements from working queue that are out dated
    
-   InputData* getQueueElement() {
+*/
+   void removeOldElements() {
       pthread_mutex_lock(&queueSync->queueMutex);
       
-      // Queue empty
-      if(queue -> size() == 0) {
-         pthread_cond_wait(&queueSync->queueCondition, 
-                           &queueSync->queueMutex);
-      }
+      time_t currentSimulationTime = simulation->getSimulationTime();
       
-      bool wasFull = queue->size() >= QUEUE_ELEMENTS;
-      
-      InputData *element = queue->front();
-      queue -> erase(queue->begin());
-
-      // Queue full
-      if(wasFull) {
-         pthread_cond_broadcast(&queueSync->queueCondition);
-      }
-      
+      for(vector<InputData*>::iterator it = queue -> begin(); 
+          it != queue -> end(); ) {
+         
+         InputData *element = *it;
+         
+         if(mktime(&(element->time_end)) < currentSimulationTime) {
+            it = queue -> erase(it);
+            delete element;
+         } else {
+            it++;
+         }
+      } 
+  
       pthread_mutex_unlock(&queueSync->queueMutex);
-      
-      return element;
    }
    
    virtual void dataConsumer() {
+      float posx;
+      float posy;
+      float diff;
+      
       char dateBuffer[80];
       string buffer;
       stringstream ss;
+      time_t currentSimulationTimeRun;
+      InputData *element;
+      size_t counter;
       
-      InputData *element = getQueueElement();
-   
-      while(element != NULL) {
-         if(ready) {
+      currentSimulationTimeRun = 0;
+      
+      while(true) {
+         removeOldElements();
+         
+         if(! ready) {
+             cerr << "Socket not ready, skipping simulation run" << endl;
+             continue;
+         }
+         
+         // Wait for next second
+         while(currentSimulationTimeRun == simulation->getSimulationTime()) {
+            usleep(1000);
+         }
+         
+         pthread_mutex_lock(&queueSync->queueMutex);
+         counter = 0;
+         currentSimulationTimeRun = simulation->getSimulationTime();
+         
+         strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S", 
+                  gmtime(&currentSimulationTimeRun));
+      
+         for(vector<InputData*>::iterator it = queue -> begin(); 
+             it != queue -> end(); it++) {
+         
+            element = *it;
+         
             ss.str("");
              
-            strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",&element->time_start);
+            diff = 0.1;
+            posx = element->x_start;
+            posy = element->y_start;
 
-            ss << dateBuffer << DELIMITER;            
+            ss << dateBuffer << DELIMITER;
             ss << element->moid << DELIMITER;
             ss << element->tripid << DELIMITER;
-            ss << element->x_start << DELIMITER;
-            ss << element->y_start << "\n";
+            ss << posx << DELIMITER;
+            ss << posy << "\n";
             
             buffer.clear();
             buffer = ss.str();
@@ -787,14 +825,17 @@ public:
             } else {
                cerr << "Error occurred while calling write on socket" << endl;
             }
-
-         } else {
-            cerr << "Socket not ready, ignoring line" << endl;
-         }
-         
-         delete element;
-         
-         element = getQueueElement();     
+            
+            // Check simulation time
+            if(counter % 10 == 0) {
+               if(currentSimulationTimeRun < simulation->getSimulationTime()) {
+                  break;
+               }
+            }
+                
+            counter++;
+         }    
+         pthread_mutex_unlock(&queueSync->queueMutex);
       }
       
       statistics -> done = true;
@@ -804,8 +845,6 @@ public:
 private:
       Simulation *simulation;
       vector<InputData*> *queue;
-      
-private:
 };
 
 /*
@@ -941,6 +980,7 @@ public:
       cout << "\r\033[2K" << "Sec: " << getElapsedSeconds();
       cout << " \033[1m Read:\033[0m " << statistics -> read;
       cout << " \033[1m Send:\033[0m " << statistics -> send;
+      cout << " \033[1m Queuesize:\033[0m " << statistics -> queuesize;
       cout.flush();
    }
    
@@ -1061,7 +1101,10 @@ public:
       configuration->endoffset = 0;
    
       // Create and init statistics structure
-      statistics = new Statistics(); 
+      statistics = new Statistics();
+      statistics->read=0;
+      statistics->send=0;
+      statistics->queuesize=0;
       statistics->done = false;
    
       // Create and init timer
