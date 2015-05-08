@@ -130,6 +130,35 @@ bool comparePositionTime(const Position* left, const Position* right) {
    return false;
 }
 
+
+/*
+2.0 Simulation class
+
+*/
+class Simulation {
+   
+public:
+   
+   Simulation(Configuration *myConfiguration) :
+              configuration(myConfiguration) {
+      
+   }
+   
+   time_t getSimulationTime() {
+      timeval curtime;
+      
+      gettimeofday(&curtime, NULL);
+      time_t elapsedTime = (time_t) curtime.tv_sec 
+                            - configuration->programstart;
+      
+      return elapsedTime + configuration->beginoffset;
+   }
+   
+private:
+   Configuration *configuration;
+};
+
+
 /*
 2.0 Abstract Producer class - reads berlin mod csv data 
 
@@ -443,9 +472,10 @@ class AdapiveProducer : public AbstractProducer {
 public:
    
    AdapiveProducer(Configuration *myConfiguration, Statistics *myStatistics, 
-        vector<InputData*> *myData, QueueSync *myQueueSync) : 
+        Simulation *mySimulation, vector<InputData*> *myData, 
+        QueueSync *myQueueSync) : 
         AbstractProducer(myConfiguration, myStatistics, myQueueSync), 
-        data(myData) {
+        simulation (mySimulation), data(myData) {
    
    }
    
@@ -466,16 +496,6 @@ public:
       }
    }
    
-   time_t getSimulationTime() {
-      timeval curtime;
-      
-      gettimeofday(&curtime, NULL);
-      time_t elapsedTime = (time_t) curtime.tv_sec 
-                            - configuration->programstart;
-      
-      return elapsedTime + configuration->beginoffset;
-   }
-   
    void formatData(struct tm *tm, char *buffer, size_t bufferLength) {
      strftime(buffer, bufferLength, "%Y-%m-%d %H:%M:%S", tm);
    }
@@ -483,17 +503,18 @@ public:
    void waitForLineRead(struct tm &lineDate) {
       
       time_t lineDiff = 0;
-      char buffer[80];
       
       do {
-          lineDiff = mktime(&lineDate) - getSimulationTime();
+          time_t simulationTime = simulation -> getSimulationTime();
+          lineDiff = mktime(&lineDate) - simulationTime;
           
-          formatData(&lineDate, buffer, sizeof(buffer));
+          //char buffer[80];
+          //formatData(&lineDate, buffer, sizeof(buffer));
           //cout << "Time of line: " << buffer 
           //     <<  " " << mktime(&lineDate) << endl;
         
-          time_t simulationTime = getSimulationTime();
-          formatData(gmtime(&simulationTime), buffer, sizeof(buffer));
+          //time_t simulationTime = simulationTime;
+          //formatData(gmtime(&simulationTime), buffer, sizeof(buffer));
           
           // cout << "Simulation time is: " 
           //      << buffer << " " << simulationTime << endl;
@@ -581,6 +602,7 @@ public:
    
    
 private:
+   Simulation *simulation;
    vector<InputData*> *data;
 };
 
@@ -705,9 +727,10 @@ class AdaptiveConsumer : public AbstractConsumer {
 public:
    
    AdaptiveConsumer(Configuration *myConfiguration, Statistics *myStatistics, 
-           vector<InputData*> *myQueue, QueueSync* myQueueSync) 
+           Simulation *mySimulation, vector<InputData*> *myQueue, 
+           QueueSync* myQueueSync) 
       : AbstractConsumer(myConfiguration, myStatistics, myQueueSync), 
-      queue(myQueue) {
+           simulation(mySimulation), queue(myQueue) {
       
    }
    
@@ -778,7 +801,8 @@ public:
       cout << "Consumer Done" << endl;
    }  
    
-protected:
+private:
+      Simulation *simulation;
       vector<InputData*> *queue;
       
 private:
@@ -793,7 +817,7 @@ public:
    FixedConsumer(Configuration *myConfiguration, Statistics *myStatistics, 
            vector<Position*> *myQueue, QueueSync* myQueueSync) 
       : AbstractConsumer(myConfiguration, myStatistics, myQueueSync), 
-      queue(myQueue) {
+        queue(myQueue) {
       
    }
    
@@ -863,12 +887,8 @@ public:
       cout << "Consumer Done" << endl;
    }  
    
-   
-protected:
-   vector<Position*> *queue;
-   
 private:
-
+   vector<Position*> *queue;
 };
 
 /*
@@ -1013,7 +1033,7 @@ void* startStatisticsThreadInternal(void *ptr) {
 }
 
 /*
-5.0 BerlinModPlayer main class
+7.0 BerlinModPlayer main class
 
 */
 class BModPlayer {
@@ -1021,7 +1041,7 @@ class BModPlayer {
 public:
 
 /*
-5.1 Default constructor, initializes variables and set the
+7.1 Default constructor, initializes variables and set the
     simulation timezone
    
 */   
@@ -1046,6 +1066,9 @@ public:
    
       // Create and init timer
       timer = new Timer();
+      
+      // Create and init new simulation
+      simulation = new Simulation(configuration);
 
       // Init queuesync structure
       pthread_mutex_init(&queueSync.queueMutex, NULL);
@@ -1053,7 +1076,7 @@ public:
    }
  
 /*
-5.2 Create worker depending on commandline flags
+7.2 Create worker depending on commandline flags
    
 */
    void createWorker() {
@@ -1061,10 +1084,11 @@ public:
           vector<InputData*> *inputData = new vector<InputData*>();
    
           consumer = new AdaptiveConsumer(configuration, statistics, 
-                                  inputData, &queueSync);
+                                  simulation, inputData, &queueSync);
                   
           producer = new AdapiveProducer(configuration, statistics, 
-                                  inputData, &queueSync);
+                                  simulation, inputData, &queueSync);
+                                  
       } else if(configuration->simulationmode == SIMULATION_MODE_FIXED) {
          vector<Position*> *inputData = new vector<Position*>();
       
@@ -1080,7 +1104,7 @@ public:
    }
 
 /*
-5.3 Main function of the BerlinMODPlayer.
+7.3 Main function of the BerlinMODPlayer.
     Start the worker and wait until they finish
    
 */
@@ -1122,7 +1146,7 @@ public:
 private:
 
 /*
-5.4 Print usage infomations about this software
+7.4 Print usage infomations about this software
    
 */   
    void printHelpAndExit(char *progName) {
@@ -1150,7 +1174,7 @@ private:
    }
 
 /*
-5.5 Parse commandline parameter and create the corresponding
+7.5 Parse commandline parameter and create the corresponding
     configuration object
    
 */   
@@ -1237,7 +1261,7 @@ private:
    }
 
 /*
-5.6 Cleanup and delete all instantiated objects
+7.6 Cleanup and delete all instantiated objects
    
 */    
    void cleanup() {
@@ -1265,11 +1289,17 @@ private:
          delete timer;
          timer = NULL;
       }
+      
+      if(simulation != NULL) {
+         delete simulation;
+         simulation = NULL;
+      }
    }
    
    Configuration *configuration;
    Statistics *statistics;
    Timer *timer;
+   Simulation *simulation;
    AbstractConsumer *consumer;
    AbstractProducer *producer;
    
@@ -1280,7 +1310,7 @@ private:
 };
 
 /*
-6.0 Main Function - launch the Berlin Mod Player
+8.0 Main Function - launch the Berlin Mod Player
 
 */
 int main(int argc, char *argv[]) {
