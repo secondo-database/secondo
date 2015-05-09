@@ -460,7 +460,9 @@ public:
       syncQueues(NULL);
       
       // Add terminal token for consumer
+      pthread_mutex_lock(&queueSync->queueMutex);
       data->push_back(NULL);
+      pthread_mutex_unlock(&queueSync->queueMutex);
    }
 
 private:
