@@ -106,7 +106,7 @@ struct InputData {
 struct Position {
    size_t moid;
    size_t tripid;
-   tm time;
+   time_t time;
    float x;
    float y;
 };
@@ -121,13 +121,8 @@ struct QueueSync {
 
 */
 bool comparePositionTime(const Position* left, const Position* right) { 
-   Position* left1  = const_cast<Position*>(left);
-   Position* right1 = const_cast<Position*>(right);
-   
-   time_t left_time = mktime(&left1->time);
-   time_t right_time = mktime(&right1->time);
-   
-   if(left_time <= right_time) {
+
+   if(left->time <= right->time) {
       return true;
    }
    
@@ -387,8 +382,8 @@ public:
       pos1 -> tripid = atoi(lineData[1].c_str());
       pos2 -> tripid = atoi(lineData[1].c_str());
       
-      pos1 -> time = tm1;
-      pos2 -> time = tm2;
+      pos1 -> time = mktime(&tm1);
+      pos2 -> time = mktime(&tm2);
       
       pos1 -> x = atof(lineData[4].c_str());
       pos1 -> y = atof(lineData[5].c_str());
@@ -413,7 +408,7 @@ public:
    
    void printPositionTime(Position *position) {
       char dateBuffer[80];
-      strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",&position->time);
+      strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",gmtime(&(position->time)));
       cout << "Time is: " << dateBuffer << endl;
    }
    
@@ -796,7 +791,7 @@ public:
          currentSimulationTimeRun = simulation->getSimulationTime();
          
          strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S", 
-                  gmtime(&currentSimulationTimeRun));
+                   gmtime(&currentSimulationTimeRun));
       
          for(vector<InputData*>::iterator it = queue -> begin(); 
              it != queue -> end(); it++) {
@@ -894,7 +889,8 @@ public:
          if(ready) {
             ss.str("");
              
-            strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",&element->time);
+            strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",
+                     gmtime(&(element->time)));
 
             ss << dateBuffer << DELIMITER;            
             ss << element->moid << DELIMITER;
