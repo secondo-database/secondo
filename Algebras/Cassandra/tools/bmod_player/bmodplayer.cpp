@@ -92,8 +92,8 @@ struct Statistics {
 struct InputData {
     size_t moid;
     size_t tripid;
-    tm time_start;
-    tm time_end;
+    time_t time_start;
+    time_t time_end;
     time_t time_diff;
     float x_start;
     float y_start;
@@ -564,8 +564,8 @@ public:
    
       inputdata -> moid = atoi(lineData[0].c_str());   
       inputdata -> tripid = atoi(lineData[1].c_str());
-      inputdata -> time_start = tm1;
-      inputdata -> time_end = tm2;
+      inputdata -> time_start = mktime(&tm1);
+      inputdata -> time_end = mktime(&tm2);
       inputdata -> x_start = atof(lineData[4].c_str());
       inputdata -> y_start = atof(lineData[5].c_str());
       inputdata -> x_end = atof(lineData[6].c_str());
@@ -573,8 +573,8 @@ public:
       
       inputdata -> x_diff = inputdata->x_end - inputdata->x_start;
       inputdata -> y_diff = inputdata->y_end - inputdata->y_end;
-      inputdata -> time_diff = mktime(&(inputdata->time_end)) 
-                                - mktime(&(inputdata->time_start));
+      inputdata -> time_diff = inputdata->time_end
+                                - inputdata->time_start;
 
       putDataIntoQueue(inputdata);
       
@@ -748,7 +748,7 @@ public:
          
          InputData *element = *it;
          
-         if(mktime(&(element->time_end)) < currentSimulationTime) {
+         if(element->time_end < currentSimulationTime) {
             it = queue -> erase(it);
             delete element;
          } else {
