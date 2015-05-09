@@ -1308,6 +1308,15 @@ private:
       if((flags & requiredFalgs) != requiredFalgs) {
          printHelpAndExit(argv[0]);
       }
+      
+      // Check offsets
+      if(configuration->beginoffset > 0 && 
+         configuration->endoffset > 0 &&
+         configuration->beginoffset >= configuration->endoffset) {
+            cerr << "End offset must be greater than begin offset" << endl;
+            cerr << endl;
+            printHelpAndExit(argv[0]);
+         }
    }
 
 /*
