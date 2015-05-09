@@ -809,9 +809,11 @@ public:
          
             ss.str("");
              
-            diff = 0.1;
-            posx = element->x_start;
-            posy = element->y_start;
+            diff = element->time_diff / 
+               (currentSimulationTimeRun - element->time_start);
+            
+            posx = element->x_start * diff;
+            posy = element->y_start * diff;
 
             ss << dateBuffer << DELIMITER;
             ss << element->moid << DELIMITER;
