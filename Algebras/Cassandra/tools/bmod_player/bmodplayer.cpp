@@ -177,24 +177,28 @@ public:
 
     }
 
-    bool parseCSVDate(struct tm &tm, string date) {
+    time_t parseCSVDate(string date) {
+       
+      struct tm tm;
+      memset(&tm, 0, sizeof(struct tm));
+      
       if (strptime(date.c_str(), "%Y-%m-%d %H:%M:%S.", &tm)) {
-         return true;
+         return mktime(&tm);
       }
    
       if (strptime(date.c_str(), "%Y-%m-%d %H:%M", &tm)) {
-         return true;
+         return mktime(&tm);
       }
    
       if (strptime(date.c_str(), "%Y-%m-%d %H", &tm)) {
-         return true;
+         return mktime(&tm);
       }
    
       if (strptime(date.c_str(), "%Y-%m-%d", &tm)) {
-         return true;
+         return mktime(&tm);
       }
    
-      return false;
+      return 0;
    }
    
    bool isBeforeBeginOffset(vector<std::string> lineData) {
@@ -202,14 +206,13 @@ public:
       if(jumpToOffsetDone == false && 
          configuration->beginoffset > 0) {
             
-         struct tm tm1;
-         memset(&tm1, 0, sizeof(struct tm));
+         time_t date = parseCSVDate(lineData[2]);
    
-         if (! parseCSVDate(tm1, lineData[2])) {
+         if (date == 0) {
             return true;
          }
    
-         if(mktime(&tm1) < configuration->beginoffset) {
+         if(date < configuration->beginoffset) {
             return true;
          }
          
@@ -222,14 +225,14 @@ public:
    bool isAfterEndOffset(vector<std::string> lineData) {
       
       if(configuration->endoffset > 0) {
-         struct tm tm1;
-         memset(&tm1, 0, sizeof(struct tm));
+         
+         time_t date = parseCSVDate(lineData[2]);
       
-         if (! parseCSVDate(tm1, lineData[2])) {
+         if (date == 0) {
             return false;
          }
       
-         if(mktime(&tm1) > configuration->endoffset) {
+         if(date > configuration->endoffset) {
             return true;
          }
       }
@@ -356,19 +359,19 @@ public:
       }
          
       // 2007-06-08 08:32:26.781
-      struct tm tm1;
-      struct tm tm2;
+      time_t time1;
+      time_t time2;
       
-      // Init structs
-      memset(&tm1, 0, sizeof(struct tm));
-      memset(&tm2, 0, sizeof(struct tm));
-   
-      if (! parseCSVDate(tm1, lineData[2])) {
+      // Parse date
+      time1 = parseCSVDate(lineData[2]);
+      time2 = parseCSVDate(lineData[3]);
+      
+      if (time1 == 0) {
          cerr << "Unable to parse start date: " << lineData[2] << endl;
          return false;
       }
    
-      if (! parseCSVDate(tm2, lineData[3])) {
+      if (time2 == 0) {
          cerr << "Unable to parse end date: " << lineData[3] << endl;
          return false;
       }
@@ -382,8 +385,8 @@ public:
       pos1 -> tripid = atoi(lineData[1].c_str());
       pos2 -> tripid = atoi(lineData[1].c_str());
       
-      pos1 -> time = mktime(&tm1);
-      pos2 -> time = mktime(&tm2);
+      pos1 -> time = time1;
+      pos2 -> time = time2;
       
       pos1 -> x = atof(lineData[4].c_str());
       pos1 -> y = atof(lineData[5].c_str());
@@ -502,13 +505,13 @@ public:
      strftime(buffer, bufferLength, "%Y-%m-%d %H:%M:%S", tm);
    }
    
-   void waitForLineRead(struct tm &lineDate) {
+   void waitForLineRead(time_t lineDate) {
       
       time_t lineDiff = 0;
       
       do {
           time_t simulationTime = simulation -> getSimulationTime();
-          lineDiff = mktime(&lineDate) - simulationTime;
+          lineDiff = lineDate - simulationTime;
           
           //char buffer[80];
           //formatData(&lineDate, buffer, sizeof(buffer));
@@ -537,15 +540,19 @@ public:
       }
       
       // 2007-06-08 08:32:26.781
-      struct tm tm1;
-      struct tm tm2;
-   
-      if (! parseCSVDate(tm1, lineData[2])) {
+      time_t time1;
+      time_t time2;
+      
+      // Parse date
+      time1 = parseCSVDate(lineData[2]);
+      time2 = parseCSVDate(lineData[3]);
+      
+      if (time1 == 0) {
          cerr << "Unable to parse start date: " << lineData[2] << endl;
          return false;
       }
    
-      if (! parseCSVDate(tm2, lineData[3])) {
+      if (time2 == 0) {
          cerr << "Unable to parse end date: " << lineData[3] << endl;
          return false;
       }
@@ -553,19 +560,19 @@ public:
       // Set begin offset, if not specified via command line argument
       // This value it's required to determine the begin of the simulation
       if(configuration->beginoffset == 0) {
-         configuration->beginoffset = mktime(&tm1);
+         configuration->beginoffset = time1;
       }
       
       // Wait with the processing of the line, until the simulation has 
       // reached this time
-      waitForLineRead(tm1);
+      waitForLineRead(time1);
    
       InputData *inputdata = new InputData;
    
       inputdata -> moid = atoi(lineData[0].c_str());   
       inputdata -> tripid = atoi(lineData[1].c_str());
-      inputdata -> time_start = mktime(&tm1);
-      inputdata -> time_end = mktime(&tm2);
+      inputdata -> time_start = time1;
+      inputdata -> time_end = time2;
       inputdata -> x_start = atof(lineData[4].c_str());
       inputdata -> y_start = atof(lineData[5].c_str());
       inputdata -> x_end = atof(lineData[6].c_str());
@@ -1222,6 +1229,8 @@ private:
       unsigned int flags = 0;
       int option = 0;
       struct tm tm; 
+      
+      memset(&tm, 0, sizeof(struct tm));
    
       while ((option = getopt(argc, argv,"i:o:h:p:s:b:e:")) != -1) {
           switch (option) {
