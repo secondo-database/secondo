@@ -14,9 +14,11 @@ This class is a FixedMRegion.
 #include "MovingRegionAlgebra.h"
 #include "Move.h"
 #include "LATransform.h"
+#include "FixedMRegiontest.h"
 
 class FixedMRegion
 {
+friend class FMRTest;
 public:
 /*
 This is the default constructor. Do not use.
@@ -30,6 +32,39 @@ This is the copy constructor.
 */
 
   FixedMRegion (const FixedMRegion & f);
+/*
+This is the constructor that gets necessary information. 
+region: object that shall be moved
+\_startp: start point at starttime for the movement
+\_startangle: start angle at starttime for the movement
+\_endp: end point at endtime for the movement
+\_endangle: end angle at endtime for the movement
+rot\_center: rotational center
+\_startt: start time
+\_endt: end time 
+
+*/
+  FixedMRegion(Region * _region, const Point _startp, 
+  const double _startangle, Instant _startt, const Point _endp, 
+  const double _endangle, Instant _endt, const Point & rot_center);
+  
+  
+/*
+This is the constructor that gets necessary information. 
+region: object that shall be moved
+\_startp: start point at starttime for the movement
+\_startangle: start angle at starttime for the movement
+\_endp: end point at endtime for the movement
+\_endangle: end angle at endtime for the movement
+rot\_center: rotational center
+\_startt: start time
+\_endt: end time 
+
+*/
+
+  FixedMRegion(Region * _region, const Point _startp, 
+  const double _startangle, double _startt, const Point _endp, 
+  const double _endangle, double _endt, const Point & rot_center);
 
 /*
 This is the constructor that gets necessary information. 
@@ -43,7 +78,8 @@ starttime: the start time of the movement
                   const Point & rot_center, double _starttime);
 /*
 deprecated
-This is the constructor that should not be used externally. It gets necessary information. 
+This is the constructor that should not be used externally. It gets necessary 
+information. 
 \_t: never used
 \_xm: x-value of the rotation center, that will be moved, too
 \_ym: y-value of the rotation center, that will be moved, too
@@ -62,7 +98,8 @@ This is the constructor that should not be used externally. It gets necessary in
 
 
 /*
-This is the constructor that should be used externally. It gets necessary information.
+This is the constructor that should be used externally. It gets necessary 
+information.
 region: object that shall be moved
 start: point at which the object ist placed at the beginning $t=0$
 alpha\_start: angle of object at the bginning $t=0$
@@ -87,7 +124,7 @@ This is the standard destructor.
 This is a method that accepts a list of regions. The regions represent 
 spots and the movement will be calculated. The constructor expects identical 
 regions that can be transformed by a translation or rotation. The region itself
- cannot cahnge its shape.
+ cannot change its shape.
 
 */
   Region interpolate (Region * spots);
@@ -186,7 +223,7 @@ the result.
   int getTraversedCase (const Point & p1, const Point & p2,
                         const Point & p3, const Point & p4);
 /*
-This methods finds ou the correct case and calls other methods to calculate 
+This methods finds out the correct case and calls other methods to calculate 
 the polygon that was traversed in this step. It uses the halfsegments' start 
 and end position. It has to deal with al lot of different cases.
 
@@ -232,11 +269,12 @@ preparation to create a triangle.
 
 */
 vector < Point > traversedCalcTriangle (const Point & p1,
-                                            const Point & p2, const Point & p3);
+        const Point & p2, const Point & p3);
 /*
 This methods creates two polygons of the given Points, using the intersection
 of the lines p1p2 and p3p4.
-It will prepare two vectors with triangles and gives them back in a vectorvector.
+It will prepare two vectors with triangles and gives them back in a 
+vectorvector.
 
 */
     vector < vector < Point > >traversedCalculateTwoTriangles (Point p1,
@@ -274,7 +312,8 @@ This method sets the Move.
 void setMove (const Move & _m);
 
 /*
-This method will return a list of Halfsegments that the FMRegion will have at the given 
+This method will return a list of Halfsegments that the FMRegion will have 
+at the given 
 time ti.
 
 */
@@ -316,6 +355,48 @@ and gives it back.
 
 */
  Point getTransPoint (DateTime t, const Point & p) const;
-};
 
+/*
+This method generates a list of all Points of the region.
+
+*/
+vector<Point> generateListOfRegionPoints(const Region *r);
+/*
+This calculates the euclidian distance between the two points.
+
+*/
+double getOneDistance(const Point  &p1, const Point &p2);
+/*
+This method calculates the euclidian distance between the points. One Point 
+willl always be the given one.
+
+*/
+vector<double> getDistancesForPoint(int numberOfPoint, const vector<Point> &p);
+/*
+This method calculates the distance matrix of the points.
+
+*/
+vector<vector<double> > generateDistancesMatrix(const vector<Point> &p);
+/*
+This method identifies the line of the matrix, which equals the given 
+line of distances.
+return value: starts with zero for the first element
+-1 in case of error
+
+*/
+int identifyPoint(const vector<vector<double> > &matrixOfDistancesOfRegion1, 
+                  const vector<double> &listOfDistancesOfRegion2);
+/*
+This method returns a list that has got the numbers of matrix lines two whom
+correspond to the given [i]-line of matrix2.
+return value: starts with zero for the first element
+-1 in case of error
+
+*/
+//FIXME: erläutern, wer mit wem
+vector<int> identifyPoints(const vector<vector<double> > 
+  &matrixOfDistancesOfRegion1, const vector<vector<double> > 
+  &matrixOfDistancesOfRegion2);
+
+};
 #endif

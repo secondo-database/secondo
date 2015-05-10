@@ -22,6 +22,60 @@ l(f.l){}
 /*
 This is the constructor that gets necessary information. 
 region: object that shall be moved
+\_startp: start point at starttime for the movement
+\_startangle: start angle at starttime for the movement
+\_endp: end point at endtime for the movement
+\_endangle: end angle at endtime for the movement
+rot\_center: rotational center
+\_startt: start time
+\_endt: end time 
+
+*/
+
+FixedMRegion::FixedMRegion(Region * _region, const Point _startp, 
+  const double _startangle, Instant _startt, const Point _endp, 
+  const double _endangle, Instant _endt, const Point & rot_center){
+  r = _region;
+  
+  m = Move(_startp.GetX(), _startp.GetY(), _startangle, _startt, _endp.GetX(),
+          _endp.GetY(), _endangle, _endt);
+  t = _startt.ToDouble();
+  
+  xm = rot_center.GetX ();
+  ym = rot_center.GetY ();
+  calculateInternalVars ();
+}
+
+/*
+This is the constructor that gets necessary information. 
+region: object that shall be moved
+\_startp: start point at starttime for the movement
+\_startangle: start angle at starttime for the movement
+\_endp: end point at endtime for the movement
+\_endangle: end angle at endtime for the movement
+rot\_center: rotational center
+\_startt: start time
+\_endt: end time 
+
+*/
+
+FixedMRegion::FixedMRegion(Region * _region, const Point _startp, 
+  const double _startangle, double _startt, const Point _endp, 
+  const double _endangle, double _endt, const Point & rot_center){
+  r = _region;
+  
+  m = Move(_startp.GetX(), _startp.GetY(), _startangle, _startt, _endp.GetX(),
+          _endp.GetY(), _endangle, _endt);
+  t = _startt;
+  
+  xm = rot_center.GetX ();
+  ym = rot_center.GetY ();
+  calculateInternalVars ();
+}
+
+/*
+This is the constructor that gets necessary information. 
+region: object that shall be moved
 move: the move object
 rot\_center: the center of the rotation. It will be moved with the object.
 starttime: the start time of the movement
@@ -36,7 +90,6 @@ const Point & rot_center, double _starttime){
   ym = rot_center.GetY ();
   calculateInternalVars ();
 }
-
 /*
 deprecated
 This is the constructor that should not be used externally. It gets necessary information. 
@@ -197,11 +250,11 @@ MPoint FixedMRegion::approxMovement (const MPoint & p, double precision) const{
   Point po = getInv(ta, unit.p0);
   //FIXME: MPoint-Intervalle nutzen und ev. die teilen, wenn sie zu lang sind!!
   for (int i=1; i<=steps; i++) {
-    double now=(te-ta)/steps*i+ta;
+    double now=((te-ta)/steps)*i+ta;
     DateTime tn(now);
     Intime < Point > tp;
     p.AtInstant (tn, tp);
-    Point pn = getInv(i, tp.value);
+    Point pn = getInv(now, tp.value);
     Interval < Instant > in (to, tn, true, false);
     UPoint up (in, po, pn);
     res.MergeAdd (up);
@@ -287,15 +340,17 @@ MPoint will be calculated for the time intervall ta to te.
 
 */
 MPoint FixedMRegion::intersection(MPoint & mp){
-  MRegion *
-    rfix = buildMovingRegion ();
+  //MRegion *
+//    rfix = buildMovingRegion ();
   MPoint
-    tmp = approxMovement (mp, 1e-5);
+    tmp = approxMovement (mp, 1e-2);
   MPoint
-  res (0);
-  rfix->Intersection (tmp, res);
+    res (0);
+  //rfix->Intersection (tmp, res);
+  Region *r=atinstant(m.getStart(0.0));
+  tmp.AtRegion(r, res);
   delete
-    rfix;
+    r;
   return reverseMovement (res);
 }
 
@@ -851,6 +906,97 @@ This method sets the Move.
 */
 void FixedMRegion::setMove(const Move & _m){
   m = _m;
+}
+
+
+
+/*
+This method generates a list of all Points of the region.
+
+*/
+vector<Point> FixedMRegion::generateListOfRegionPoints(const Region *r){
+  return vector<Point>(0);
+}
+/*
+This calculates the euclidian distance between the two points.
+
+*/
+double FixedMRegion::getOneDistance(const Point &p1, const Point &p2){
+  //https://de.serlo.org/mathe/deutschland/bayern/gymnasium/
+  //klasse-12/geraden-und-ebenen-im-raum/abstand-zweier-punkte-berechnen
+   //printf("p1.x= %f\n", p1.GetX());
+   //printf("p2.x= %f\n", p2.GetX());
+   //printf("p1.y= %f\n", p1.GetY());
+   //printf("p2.y= %f\n", p2.GetY());   
+  double res = sqrt(pow(p2.GetX() - p1.GetX(), 2) + pow(p2.GetY() 
+  - p1.GetY(), 2) );
+  return res;
+}
+/*
+This method calculates the euclidian distance between the points. One Point 
+willl always be the given one.
+
+*/
+vector<double> FixedMRegion::getDistancesForPoint(int numberOfPoint, 
+  const vector<Point> &p){
+  vector<double> res = vector<double>(0);
+  for(size_t i=0;i<p.size();i++){
+    double z= getOneDistance(p[i], p[numberOfPoint]);
+    res.push_back(z);
+  }
+  return res;
+}
+/*
+This method calculates the distance matrix of the points.
+
+*/
+vector<vector<double> > FixedMRegion::generateDistancesMatrix(const 
+  vector<Point> &p){
+  vector<vector<double> > res= vector<vector<double> >(0);
+  for(size_t i=0;i<p.size();i++){
+    vector<double> r = vector<double>(0);
+    r=getDistancesForPoint(i, p);
+    res.push_back(r);
+  }
+  return res;
+}
+/*
+This method identifies the line of the matrix, which equals the given 
+line of distances.
+return value: starts with zero for the first element
+-1 in case of error
+
+*/
+int FixedMRegion::identifyPoint(const vector<vector<double> > 
+  &matrixOfDistancesOfRegion1, const vector<double> 
+  &listOfDistancesOfRegion2){
+  int ret =-1;
+  for(size_t i=0;i<=matrixOfDistancesOfRegion1.size();i++){
+    ret=i;
+    if(listOfDistancesOfRegion2==matrixOfDistancesOfRegion1[i]){
+      return ret;
+    }
+  }
+  return ret;
+}
+/*
+This method returns a list that has got the numbers of matrix lines two whom
+correspond to the given [i]-line of matrix2.
+FIXME: erläutern, wer mit wem
+return value: starts with zero for the first element
+-1 in case of error
+
+*/
+vector<int> FixedMRegion::identifyPoints(const vector<vector<double> > 
+&matrixOfDistancesOfRegion1, const vector<vector<double> > 
+&matrixOfDistancesOfRegion2){
+  vector<int> ret= vector<int>(0);
+  for(size_t i=0;i<=matrixOfDistancesOfRegion2.size();i++){
+    int tmp= identifyPoint(matrixOfDistancesOfRegion1, 
+      matrixOfDistancesOfRegion2[i]);
+    ret.push_back(tmp);
+  }
+  return ret;
 }
 
 ;

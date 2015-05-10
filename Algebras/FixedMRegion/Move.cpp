@@ -5,6 +5,7 @@ This class calculates the movements.
 using namespace std;
 #include "Move.h"
 
+Move::Move() {}
 /*
 This constructor receives a starting point (x0, y0), a starting 
 angle alpha0, and a moving vector (vx, vy) and a moving angle.
