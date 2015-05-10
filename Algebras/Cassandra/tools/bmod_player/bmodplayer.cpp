@@ -820,17 +820,37 @@ public:
       pthread_mutex_unlock(&queueSync->queueMutex);
    }
    
-   virtual void dataConsumer() {
+   void formatElement(string &buffer, InputData *element, 
+       time_t currentSimulationTimeRun, char *dateBuffer) {
+          
+      stringstream ss;
+      
       float posx;
       float posy;
       float diff;
       
+      diff = element->time_diff / 
+         (currentSimulationTimeRun - element->time_start);
+      
+      posx = element->x_start * diff;
+      posy = element->y_start * diff;
+
+      ss << dateBuffer << DELIMITER;
+      ss << element->moid << DELIMITER;
+      ss << element->tripid << DELIMITER;
+      ss << posx << DELIMITER;
+      ss << posy << "\n";
+      
+      buffer.clear();
+      buffer = ss.str();
+   }
+   
+   virtual void dataConsumer() {
       char dateBuffer[80];
       string buffer;
-      stringstream ss;
       time_t currentSimulationTimeRun;
-      InputData *element;
       size_t counter;
+      InputData *element;
       
       currentSimulationTimeRun = 0;
       
@@ -858,23 +878,9 @@ public:
              it != queue -> end(); it++) {
          
             element = *it;
-         
-            ss.str("");
              
-            diff = element->time_diff / 
-               (currentSimulationTimeRun - element->time_start);
-            
-            posx = element->x_start * diff;
-            posy = element->y_start * diff;
-
-            ss << dateBuffer << DELIMITER;
-            ss << element->moid << DELIMITER;
-            ss << element->tripid << DELIMITER;
-            ss << posx << DELIMITER;
-            ss << posy << "\n";
-            
-            buffer.clear();
-            buffer = ss.str();
+            formatElement(buffer, element, 
+                 currentSimulationTimeRun, dateBuffer);
             
             bool res = sendData(buffer);
 
@@ -884,7 +890,9 @@ public:
                cerr << "Error occurred while calling write on socket" << endl;
             }
             
-            // Check simulation time
+            // Check simulation time, break current run if the
+            // next simulation second has begun and start a new
+            // run.
             if(counter % 10 == 0) {
                if(currentSimulationTimeRun < simulation->getSimulationTime()) {
                   break;
@@ -941,29 +949,32 @@ public:
       return element;
    }
    
-   virtual void dataConsumer() {
-      char dateBuffer[80];
-      string buffer;
+   void formatData(string &buffer, Position *element) {
       stringstream ss;
+      char dateBuffer[80];
+      
+      strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",
+               gmtime(&(element->time)));
+
+      ss << dateBuffer << DELIMITER;
+      ss << element->moid << DELIMITER;
+      ss << element->tripid << DELIMITER;
+      ss << element->x << DELIMITER;
+      ss << element->y << "\n";
+      
+      buffer.clear();
+      buffer = ss.str();
+   }
+   
+   virtual void dataConsumer() {
+      string buffer;
       
       Position *element = getQueueElement();
    
       while(element != NULL) {
          if(ready) {
-            ss.str("");
-             
-            strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",
-                     gmtime(&(element->time)));
-
-            ss << dateBuffer << DELIMITER;            
-            ss << element->moid << DELIMITER;
-            ss << element->tripid << DELIMITER;
-            ss << element->x << DELIMITER;
-            ss << element->y << "\n";
             
-            buffer.clear();
-            buffer = ss.str();
-            
+            formatData(buffer, element);
             bool res = sendData(buffer);
 
             if(res == true) {
@@ -1397,17 +1408,30 @@ private:
       }
       
       // Check offsets
-      if(configuration->beginoffset > 0 && 
-         configuration->endoffset > 0 &&
-         configuration->beginoffset >= configuration->endoffset) {
+      checkOffsets(argv);
+   }
+   
+/*
+7.6 Check offset parameter, the offset end needs to be
+after the begin offset
+   
+*/
+   void checkOffsets(char *argv[]) {
+      
+      // Check if begin and end offset are set
+      if(configuration->beginoffset > 0 && configuration->endoffset > 0) {
+         
+         // Is begin offset after end offset? => Error
+         if(configuration->beginoffset >= configuration->endoffset) {   
             cerr << "End offset must be greater than begin offset" << endl;
             cerr << endl;
             printHelpAndExit(argv[0]);
          }
+      }
    }
 
 /*
-7.6 Cleanup and delete all instantiated objects
+7.7 Cleanup and delete all instantiated objects
    
 */    
    void cleanup() {
