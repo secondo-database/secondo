@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <utility>
 #include <fstream>
 #include <sstream>
 #include <stdlib.h>
@@ -131,7 +132,8 @@ bool comparePositionTime(const Position* left, const Position* right) {
 
 
 /*
-2.0 Simulation class
+2.0 Simulation class, provides informations, e.g., the current
+time in the simulation.
 
 */
 class Simulation {
@@ -159,7 +161,9 @@ private:
 
 
 /*
-2.0 Abstract Producer class - reads berlin mod csv data 
+2.0 Abstract Producer class - reads berlin mod csv data, jump to the
+right offset, parses the lines and calles the abtract functions 
+handleCSVLine and handleInputEnd
 
 */
 class AbstractProducer {
@@ -483,23 +487,37 @@ public:
         QueueSync *myQueueSync) : 
         AbstractProducer(myConfiguration, myStatistics, myQueueSync), 
         simulation (mySimulation), data(myData) {
-   
+           
+           prepareQueue = new vector<InputData*>();
+           activeTime = 0;
    }
    
    virtual ~AdapiveProducer() {
+      
+      if(prepareQueue != NULL) {
+         deleteVectorContent(prepareQueue);
+         delete prepareQueue;
+         prepareQueue = NULL;
+      }
+      
       if(data != NULL) {
-         while(! data -> empty()) {
-            InputData *entry = data->back();
-            data -> pop_back();
+         deleteVectorContent(data);
+         delete data;
+         data = NULL;
+      }
+   }
+   
+   void deleteVectorContent(vector<InputData*> *myVector) {
+      if(myVector != NULL) {
+         while(! myVector -> empty()) {
+            InputData *entry = myVector->back();
+            myVector -> pop_back();
       
             if(entry != NULL) {
                delete entry;
                entry = NULL;
             }
          }
-         
-         delete data;
-         data = NULL;
       }
    }
    
@@ -564,10 +582,14 @@ public:
       if(configuration->beginoffset == 0) {
          configuration->beginoffset = time1;
       }
-      
+            
       // Wait with the processing of the line, until the simulation has 
       // reached this time
-      waitForLineRead(time1);
+      if(activeTime < time1) {
+         movePrepareQueueToRealQueue();
+         waitForLineRead(time1);
+         activeTime = time1;
+      }
    
       InputData *inputdata = new InputData;
    
@@ -593,31 +615,47 @@ public:
    }
    
    void putDataIntoQueue(InputData *inputdata) {
+      prepareQueue->push_back(inputdata);
+   }
+   
+   void movePrepareQueueToRealQueue() {
       pthread_mutex_lock(&queueSync->queueMutex);
       
-      data->push_back(inputdata);
+      // Move data from the prepare queue to the real queue
+      for(vector<InputData*>::iterator it = prepareQueue->begin(); 
+         it != prepareQueue->end(); it++) {
+         
+         data->push_back(*it);
+      }
+      
+      prepareQueue->clear();
       
       // Update statistics 
-      statistics->queuesize = data->size();
+      statistics->queuesize = data->size(); 
       
       pthread_mutex_unlock(&queueSync->queueMutex);
    }
    
-   
    virtual void handleInputEnd() {
+      // Move pending data to real queue
+      movePrepareQueueToRealQueue();
+      
       // Add terminal token
       data->push_back(NULL);
    }
    
-   
 private:
    Simulation *simulation;
    vector<InputData*> *data;
+   vector<InputData*> *prepareQueue;
+   time_t activeTime;
 };
 
 
 /*
-3.0 Consumer class - consumes berlin mod data and write it to a tcp socket
+3.0 Consumer class - consumes berlin mod data and write it to a 
+tcp socket. This is an abstract class, the method dataConsumer()
+needs to be implemented in child classes.
 
 */
 class AbstractConsumer {  
@@ -636,7 +674,7 @@ public:
    }
    
    /*
-   2.4 Open the network socket
+   3.1 Open the network socket
 
    */
    bool openSocket() {
@@ -679,6 +717,10 @@ public:
       return true;
    }
    
+   /*
+   3.2 Close the tcp socket
+   
+   */
    void closeSocket() {
       if(socketfd == -1) {
          return;
@@ -688,6 +730,11 @@ public:
       socketfd = -1;
    }
    
+   /*
+   3.3 Write the string on the tcp socket, ensured that
+   the write class is retired, if a recoverable error occurs.
+   
+   */
    bool sendData(string &buffer) {
       int ret = 0;
       int toSend = buffer.length();
@@ -713,6 +760,11 @@ public:
       return false;
    }
    
+   /*
+   3.4 abstract method, need to be implemented in
+   subclasses
+   
+   */
    virtual void dataConsumer() = 0;
    
 
@@ -728,7 +780,7 @@ private:
 
 
 /*
-3.1 FixedConsumer class
+4.1 FixedConsumer class
 
 */
 class AdaptiveConsumer : public AbstractConsumer {
@@ -744,7 +796,7 @@ public:
    }
 
 /*
-5.0.1 Remove all Elements from working queue that are out dated
+4.1.1 Remove all Elements from working queue that are out dated
    
 */
    void removeOldElements() {
@@ -938,7 +990,8 @@ private:
 };
 
 /*
-4.0 Statistics class
+4.0 Statistics class. Print informations about the simulation
+on the console and into an output file.
 
 */
 class StatisticsDisplay {
@@ -958,6 +1011,10 @@ public:
       closeStatistics();
    }
    
+   /*
+   4.1 Open the statistics output file
+   
+   */
    void openStatistics() {
       if(outputfile == NULL) {
          outputfile = fopen((configuration->statisticsfile).c_str(), "w");
@@ -972,6 +1029,10 @@ public:
       }
    }
    
+   /*
+   4.2 Closes the statistics output file
+   
+   */
    void closeStatistics() {
       if(outputfile != NULL) {
          fclose(outputfile);
@@ -979,10 +1040,18 @@ public:
       }
    }
    
+   /*
+   4.3 Get the number of elapsed seconds in the simulation
+   
+   */
    size_t getElapsedSeconds() {
       return timer-> getDiff() / (1000 * 1000);
    }
    
+   /*
+   4.4 Print statistical informations on the screen
+   
+   */
    void printStatisticsData() {
       cout << "\r\033[2K" << "Sec: " << getElapsedSeconds();
       cout << " \033[1m Read:\033[0m " << statistics -> read;
@@ -991,6 +1060,10 @@ public:
       cout.flush();
    }
    
+   /*
+   4.5 Print statistical informations into the output file
+   
+   */
    void writeStatisticsData() {
       if(outputfile != NULL) {
          fprintf(outputfile, "%zu\t%lu\t%lu\n", getElapsedSeconds(),
@@ -999,6 +1072,10 @@ public:
       }
    }
    
+   /*
+   4.6 Main statistics loop, update statistics information
+   
+   */
    void mainLoop() {
       
       gettimeofday(&lastrun, NULL);
@@ -1010,20 +1087,28 @@ public:
       }
    }
    
-private:
-      void waitForNextSecond() {
-         struct timeval curtime;
-         struct timeval result;
-         
-         do {
-            usleep(100);
-            gettimeofday(&curtime, NULL);
-            timersub(&curtime, &lastrun, &result);
-         } while(result.tv_sec < 1);
-         
-         lastrun.tv_sec++;
-      }
+
+protected:
    
+   /*
+   4.7 Wait until the next second of the simulation has
+   begun
+   
+   */
+   void waitForNextSecond() {
+      struct timeval curtime;
+      struct timeval result;
+         
+      do {
+         usleep(100);
+         gettimeofday(&curtime, NULL);
+         timersub(&curtime, &lastrun, &result);
+      } while(result.tv_sec < 1);
+         
+      lastrun.tv_sec++;
+   }
+  
+private: 
       Configuration *configuration;
       Statistics *statistics;
       Timer *timer;
