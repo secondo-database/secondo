@@ -317,7 +317,7 @@ private:
 };
 
 /*
-2.1 Fixed producer class - produced a queue with points
+2.1 Fixed producer class - produce a queue with points
 
 */
 class FixedProducer : public AbstractProducer {
@@ -332,6 +332,10 @@ public:
         prepareQueue = new vector<Position*>();
    }
    
+/*
+2.2 Destructor remove all element from both queues
+   
+*/
    virtual ~FixedProducer() {
       
       if(prepareQueue != NULL) {
@@ -673,10 +677,10 @@ public:
       closeSocket();
    }
    
-   /*
-   3.1 Open the network socket
+/*
+3.1 Open the network socket for writing
 
-   */
+*/
    bool openSocket() {
   
       struct hostent *server;
@@ -717,10 +721,10 @@ public:
       return true;
    }
    
-   /*
-   3.2 Close the tcp socket
+/*
+3.2 Close the tcp socket
    
-   */
+*/
    void closeSocket() {
       if(socketfd == -1) {
          return;
@@ -730,11 +734,11 @@ public:
       socketfd = -1;
    }
    
-   /*
-   3.3 Write the string on the tcp socket, ensured that
-   the write class is retired, if a recoverable error occurs.
+/*
+3.3 Write the string on the tcp socket, ensured that
+the write class is retired, if a recoverable error occurs.
    
-   */
+*/
    bool sendData(string &buffer) {
       int ret = 0;
       int toSend = buffer.length();
@@ -760,11 +764,11 @@ public:
       return false;
    }
    
-   /*
-   3.4 abstract method, need to be implemented in
-   subclasses
+/*
+3.4 abstract method, need to be implemented in
+subclasses
    
-   */
+*/
    virtual void dataConsumer() = 0;
    
 
@@ -819,7 +823,11 @@ public:
   
       pthread_mutex_unlock(&queueSync->queueMutex);
    }
+
+/*
+4.1.2 Convert the element into a string
    
+*/
    void formatElement(string &buffer, InputData *element, 
        time_t currentSimulationTimeRun, char *dateBuffer) {
           
@@ -844,7 +852,12 @@ public:
       buffer.clear();
       buffer = ss.str();
    }
+
+/*
+4.1.3 Fetch the produced elements and send them on the output
+tcp socket
    
+*/   
    virtual void dataConsumer() {
       char dateBuffer[80];
       string buffer;
@@ -914,7 +927,7 @@ private:
 };
 
 /*
-3.2 AdaptiveConsumer class
+4.2 AdaptiveConsumer class
 
 */
 class FixedConsumer : public AbstractConsumer {
@@ -925,7 +938,11 @@ public:
         queue(myQueue) {
       
    }
+
+/*
+4.2.1 Get the next element from the producer queue
    
+*/
    Position* getQueueElement() {
       pthread_mutex_lock(&queueSync->queueMutex);
        
@@ -948,7 +965,11 @@ public:
       
       return element;
    }
+
+/*
+4.2.2 Convert the element into a string
    
+*/   
    void formatData(string &buffer, Position *element) {
       stringstream ss;
       char dateBuffer[80];
@@ -965,7 +986,12 @@ public:
       buffer.clear();
       buffer = ss.str();
    }
+
+/*
+4.2.3 Fetch the produced elements and send them on the output
+tcp socket
    
+*/    
    virtual void dataConsumer() {
       string buffer;
       
@@ -1001,7 +1027,7 @@ private:
 };
 
 /*
-4.0 Statistics class. Print informations about the simulation
+5.0 Statistics class. Print informations about the simulation
 on the console and into an output file.
 
 */
@@ -1023,7 +1049,7 @@ public:
    }
    
    /*
-   4.1 Open the statistics output file
+   5.1 Open the statistics output file
    
    */
    void openStatistics() {
@@ -1041,7 +1067,7 @@ public:
    }
    
    /*
-   4.2 Closes the statistics output file
+   5.2 Closes the statistics output file
    
    */
    void closeStatistics() {
@@ -1052,7 +1078,7 @@ public:
    }
    
    /*
-   4.3 Get the number of elapsed seconds in the simulation
+   5.3 Get the number of elapsed seconds in the simulation
    
    */
    size_t getElapsedSeconds() {
@@ -1060,7 +1086,7 @@ public:
    }
    
    /*
-   4.4 Print statistical informations on the screen
+   5.4 Print statistical informations on the screen
    
    */
    void printStatisticsData() {
@@ -1072,7 +1098,7 @@ public:
    }
    
    /*
-   4.5 Print statistical informations into the output file
+   5.5 Print statistical informations into the output file
    
    */
    void writeStatisticsData() {
@@ -1084,7 +1110,7 @@ public:
    }
    
    /*
-   4.6 Main statistics loop, update statistics information
+   5.6 Main statistics loop, update statistics information
    
    */
    void mainLoop() {
@@ -1102,7 +1128,7 @@ public:
 protected:
    
    /*
-   4.7 Wait until the next second of the simulation has
+   5.7 Wait until the next second of the simulation has
    begun
    
    */
