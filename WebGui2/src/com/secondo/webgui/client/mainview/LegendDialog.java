@@ -25,6 +25,7 @@ public class LegendDialog {
 	public LegendDialog() {
 
 		legendDialogBox.setText("Legend Info");
+		legendDialogBox.setModal(false);
 
 		// Create a table to layout the content
 		dialogContents.getElement().getStyle().setPadding(5, Unit.PX);

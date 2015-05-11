@@ -82,7 +82,7 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 
 		// save the result in the history lists
 		sd.getResultHistory().add(sc.getSecondoresult());
-		sd.getFormattedResultHistory().add(sc.getFormattedList());		
+		sd.getFormattedResultHistory().add(sc.getFormattedList());
 
 		return sc.getSecondoresult();
 	}
@@ -131,6 +131,7 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 
 			sd.setOpenDatabase(database);
 			sc.getFormattedList().clear();
+			sc.getFormattedListWithMlabel().clear();
 			sc.getResultTypeList().clear();
 			return database;
 		} else
@@ -303,7 +304,7 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 		}
 
 	}
-	
+
 	public Boolean sendMail(String html) {
 		final String username = "webappsymtraj@gmail.com";
 		final String password = "D5h8ReqDPNx4msckyATu";
@@ -347,5 +348,17 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 
 	public void close() {
 		sc.disconnect();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * com.secondo.webgui.client.rpc.SecondoService#getFormattedResultForSymTraj
+	 * ()
+	 */
+	@Override
+	public ArrayList<String> getFormattedResultForSymTraj() {
+		return sc.getFormattedListWithMlabel();
 	}
 }

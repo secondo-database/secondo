@@ -1,3 +1,6 @@
+/**
+ * 
+ */
 package com.secondo.webgui.client.mainview;
 
 import java.util.ArrayList;
@@ -11,15 +14,10 @@ import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.TextArea;
 
 /**
- * This class represents a dialog box associated with the menu item
- * "plain trajectory" which contains a text area to display the secondo query
- * results in formatted text
- * 
  * @author Irina Russkaya
- * 
+ *
  */
-public class PlainTrajDialog {
-
+public class PlainSymTrajDialog {
 	private DialogBox plainTrajDialogBox = new DialogBox();
 	/** The main panel of the dialog box */
 	private FlowPanel dialogContents = new FlowPanel();
@@ -31,7 +29,7 @@ public class PlainTrajDialog {
 	private ArrayList<ArrayList<String>> resultList = new ArrayList<ArrayList<String>>();
 	private boolean dataLoaded = false;
 
-	public PlainTrajDialog() {
+	public PlainSymTrajDialog() {
 		plainTrajDialogBox.setText("Trajectory in text format");
 		plainTrajDialogBox.setModal(false);
 		plainTrajDialogBox.setWidget(dialogContents);

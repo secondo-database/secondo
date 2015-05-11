@@ -19,18 +19,32 @@
 
 package com.secondo.webgui.client.mainview;
 
+import java.util.Iterator;
+
+import com.allen_sauer.gwt.dnd.client.PickupDragController;
+import com.google.gwt.dom.client.Document;
+import com.google.gwt.dom.client.TableElement;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.DragStartEvent;
+import com.google.gwt.event.dom.client.DragStartHandler;
+import com.google.gwt.event.dom.client.MouseDownEvent;
+import com.google.gwt.event.dom.client.MouseDownHandler;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.user.client.Command;
+import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.AbsolutePanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FormPanel;
+import com.google.gwt.user.client.ui.HasWidgets;
 import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.FormPanel.SubmitCompleteEvent;
 import com.google.gwt.user.client.ui.FormPanel.SubmitEvent;
+import com.google.gwt.user.client.ui.Widget;
+import com.sun.java.swing.plaf.windows.resources.windows;
 
 /**
  * This class represents the main view of the application and includes all
@@ -64,8 +78,27 @@ public class MainView extends Composite {
 	public MainView() {
 
 		contentPanel.add(view);
-		contentPanel.add(optionsTabPanel.getOptionsTabPanel(), 10, 0);
-		mainPanel.add(contentPanel);
+		contentPanel.add(optionsTabPanel, 10, 0);
+		mainPanel.add(contentPanel);		
+		
+		
+//		PickupDragController dragController = new PickupDragController(contentPanel, true);
+//		dragController.setBehaviorConstrainedToBoundaryPanel(true);
+//	    dragController.setBehaviorMultipleSelection(false);
+//	    dragController.setBehaviorDragStartSensitivity(5);
+		
+		
+//		optionsTabPanel.getTabBar().addHandler(new MouseDownHandler(){
+//			  @Override
+//			  public void onMouseDown(MouseDownEvent event) {
+//				  Window.alert("Down");
+//			  }}, MouseDownEvent.getType());
+		
+//				dragController.makeDraggable(optionsTabPanel);
+//		
+//		TableElement tabpanel=(TableElement)Document.get().getElementById("gwt-debug-cwTabPanel");
+//		tabpanel.setDraggable("DRAGGABLE_TRUE");
+		
 
 		// initialize the main view with the map view
 		showMapView();
@@ -174,6 +207,23 @@ public class MainView extends Composite {
 
 			}
 		});
+		
+		/**
+		 * Adds an event handler to the menu item "Symbolic trajectory" and shows
+		 * an appropriate dialog
+		 */
+		this.header.getPlainSymTraj().setScheduledCommand(new Command() {
+			@Override
+			public void execute() {
+				header.getTextViewOfSymTraj().getPlainTrajDialogBox()
+						.center();
+				header.getTextViewOfSymTraj().getPlainTrajDialogBox()
+						.show();
+
+			}
+		});
+		
+		
 
 		/**
 		 * This event is fired just before the form is submitted. It performs

@@ -304,7 +304,7 @@ font-weight: normal;
 	display: inline-block;
 	
 	
-	width:565px;
+	width:620px;
 	/* IE10 Consumer Preview */ 
 background-image: -ms-linear-gradient(top, #FFFFFF 0%, #E1E6E4 100%);
 
@@ -721,6 +721,10 @@ background-image: linear-gradient(to bottom, #FFFFFF 0%, #E1E6E4 100%);
 #please_note_contents{
 	font: 8pt/16pt Verdana,Tahoma,helvetica,arial,sans-serif;
 	color:grey;
+}
+
+.SpecialWidth{
+	width:60px;
 }
 
 

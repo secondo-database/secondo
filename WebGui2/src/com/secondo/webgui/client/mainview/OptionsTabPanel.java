@@ -7,6 +7,7 @@ import org.gwtopenmaps.openlayers.client.Projection;
 import org.gwtopenmaps.openlayers.client.geometry.Point;
 import org.gwtopenmaps.openlayers.client.layer.Vector;
 
+import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -32,6 +33,7 @@ import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
+import com.google.gwt.user.client.ui.TabBar;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.PushButton;
@@ -85,11 +87,14 @@ public class OptionsTabPanel extends Composite {
 	private TextBox condition = new DefaultTextBox("condition");
 	final private VerticalPanel panelForPattern = new VerticalPanel();
 	private ListBox selectOptionsForDisplayMode = new ListBox();
+	private HelpDialog helpDialog;
+	private HelpDialog helpDialog2;
 	private ListBox selectOptionsForExistingTrajectories = createBoxWithSelectOptionsForExistingTrajectories();
 	private Button getRelationButton = new Button("Get relation");
 	private Button retrieveButton = new Button("retrieve");
 	private Button countButton = new Button("count");
 	private Button removeButton = new Button("remove");
+	private Button removeLastInPatternButton = new Button("remove last");
 	private FlexTable definedPatternWidget;
 	private ArrayList<String> variablesForPattern = new ArrayList<String>();
 	private boolean unsuccessfulVerification = false;
@@ -110,6 +115,8 @@ public class OptionsTabPanel extends Composite {
 	private boolean simpleQueryForPassesTrhoughRegionsInitiated = false;
 
 	public OptionsTabPanel() {
+		initWidget(optionsTabPanel);
+
 		attributeNameOfMlabelInRelation = "";
 		optionsTabPanel.setWidth("300px");
 		optionsTabPanel.getElement().getStyle().setMarginBottom(10.0, Unit.PX);
@@ -208,6 +215,12 @@ public class OptionsTabPanel extends Composite {
 		vPanel0.add(closeArrowButtonForTab1);
 
 		optionsTabPanel.add(vPanel0, "Create trajectory");
+		// HTML labelForFirstTab= new
+		// HTML("<label id=\"FirstTab\">Create trajectory</label>");
+		// optionsTabPanel.add(vPanel0, labelForFirstTab, true);
+
+		// LabelElement labelOfFirstTab =
+		// (LabelElement)Document.get().getElementById("FirstTab");
 
 		final VerticalPanel vPanel2 = new VerticalPanel();
 		vPanel2.setStyleName("minHeight");
@@ -229,6 +242,7 @@ public class OptionsTabPanel extends Composite {
 		selectOptionsForExistingTrajectories.setWidth("130px");
 		gridForExistingTrajectory.setWidget(0, 1,
 				selectOptionsForExistingTrajectories);
+		gridForExistingTrajectory.setWidget(0, 2, getHelp());
 
 		Label labelForSelectModesToDisplayTrajectory = createLabel("select display mode:");
 		labelForSelectModesToDisplayTrajectory
@@ -250,6 +264,7 @@ public class OptionsTabPanel extends Composite {
 		selectOptionsForDisplayMode.ensureDebugId("listBoxForDisplayMode");
 		selectOptionsForDisplayMode.setWidth("130px");
 		gridForExistingTrajectory.setWidget(1, 1, selectOptionsForDisplayMode);
+		gridForExistingTrajectory.setWidget(1, 2, getHelp2());
 
 		getRelationButton.setWidth("100px");
 		gridForExistingTrajectory.setWidget(2, 1, getRelationButton);
@@ -321,9 +336,11 @@ public class OptionsTabPanel extends Composite {
 		vPanel2.add(closeArrowButtonForTab2);
 
 		optionsTabPanel.add(vPanel2, "Try trajectory");
+
 		// Return the content
 		optionsTabPanel.selectTab(0);
 		optionsTabPanel.ensureDebugId("cwTabPanel");
+
 	}
 
 	/**
@@ -359,6 +376,70 @@ public class OptionsTabPanel extends Composite {
 
 		return labelForInfoAboutOpenedRelation;
 
+	}
+
+	/**
+	 * Returns the help functionality to support creating trajectory process
+	 * 
+	 * @return The image in the form of question mark with the help info
+	 */
+	private Image getHelp() {
+		Image help = new Image("resources/images/question-icon.png");
+		help.setWidth("18px");
+		help.ensureDebugId("helpButton");
+		help.setVisible(true);
+		HTML helpInfo = new HTML(
+				"<h3>You can load and experiment with the following relations:</h3>"
+						+ "<dl>"
+						+ "<dt><h4 style=\"color:#009DD8\">Geotrips</h4></dt>"
+						+ "<dd>trajectories set with symbolic information containing road names (\"Alte Teichstraﬂe\", \"Grotenbachstraﬂe\")</dd>"
+						+ "<dt><h4 style=\"color:#009DD8\">Geolife</h4></dt>"
+						+ "<dd>trajectories with transportation modes (\"bus\", \"taxi\", \"subway\") based on a real data set collected in the Geolife project by 182 users during a period of over five years</dd>"
+						+"<dt><h4 style=\"color:#009DD8\">Animals</h4></dt>"
+						+"<dd>trajectories based on roe deer GPS data with symbolic information representing either a home range (labels H0, H1, and H2), an excursion (label E0), or a stopover (labels S0 and S1).</dd>"
+						+ "</dl>");
+		helpDialog = new HelpDialog("Sample relations to open", helpInfo);
+
+		help.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				helpDialog.getHelpDialogBox().center();
+				helpDialog.getHelpDialogBox().show();
+			}
+		});
+		return help;
+	}
+	
+	/**
+	 * Returns the help functionality to support visualization for symbolic trajectory
+	 * 
+	 * @return The image in the form of question mark with the help info
+	 */
+	private Image getHelp2() {
+		Image help = new Image("resources/images/question-icon.png");
+		help.setWidth("18px");
+		help.ensureDebugId("helpButton");
+		help.setVisible(true);
+		HTML helpInfo = new HTML(
+				"<h3>You can one of three options to visualize a symbolic trajectroy:</h3>"
+						+ "<dl>"
+						+ "<dt><h4 style=\"color:#009DD8\">Label</h4></dt>"
+						+ "<dd>animate trajectory to see that animated point contains an always visible label representing symbolic information</dd>"
+						+ "<dt><h4 style=\"color:#009DD8\">Popup</h4></dt>"
+						+ "<dd>click on the shown on the map trajectory and popup will appear. To hide the popup click on any place of the map</dd>"
+						+"<dt><h4 style=\"color:#009DD8\">Color</h4></dt>"
+						+"<dd>each component of symbolic trajectory gets a separate color for display. The meaning of the color notation in \"legend\" (menu)  or in the popup. The left click of the mouse on the trajectory initiates a popup</dd>"
+						+ "</dl>");
+		helpDialog2 = new HelpDialog("Visualization options", helpInfo);
+
+		help.addClickHandler(new ClickHandler() {
+			@Override
+			public void onClick(ClickEvent event) {
+				helpDialog2.getHelpDialogBox().center();
+				helpDialog2.getHelpDialogBox().show();
+			}
+		});
+		return help;
 	}
 
 	/**
@@ -413,26 +494,42 @@ public class OptionsTabPanel extends Composite {
 		addConditionButton.getElement().setAttribute("background",
 				"transparent");
 		addConditionButton.setTitle("add condition");
-		addConditionButton.addClickHandler(new ClickHandler() {
 
+		addConditionButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-
-				if (condition.getText().contains("//")) {
-					setTextInPatternLabel(condition.getText());
-				} else {
-					setTextInPatternLabel("//" + condition.getText());
-				}
-				verifyConditionAndPrintWarningIfNeeded(condition.getText());
-				condition.setText("condition");
-
-				if (!patternLabel.getText().equals("")) {
-					definedPatternWidget.setVisible(true);
+				verifyAndAddCondition();
+			}
+		});
+		condition.addKeyPressHandler(new KeyPressHandler() {
+			@Override
+			public void onKeyPress(KeyPressEvent event) {
+				boolean enterPressed = KeyCodes.KEY_ENTER == event
+						.getNativeEvent().getKeyCode();
+				if (enterPressed) {
+					verifyAndAddCondition();
 				}
 			}
 		});
 		hpForCondition.add(addConditionButton);
 		return hpForCondition;
+	}
+
+	/**
+	 * 
+	 */
+	private void verifyAndAddCondition() {
+		if (condition.getText().contains("//")) {
+			setTextInPatternLabel(condition.getText());
+		} else {
+			setTextInPatternLabel("//" + condition.getText());
+		}
+		verifyConditionAndPrintWarningIfNeeded(condition.getText());
+		condition.setText("condition");
+
+		if (!patternLabel.getText().equals("")) {
+			definedPatternWidget.setVisible(true);
+		}
 	}
 
 	/**
@@ -545,6 +642,10 @@ public class OptionsTabPanel extends Composite {
 				HasHorizontalAlignment.ALIGN_RIGHT);
 		formatter.setHorizontalAlignment(1, 1,
 				HasHorizontalAlignment.ALIGN_RIGHT);
+		formatter.setHorizontalAlignment(1, 2,
+				HasHorizontalAlignment.ALIGN_RIGHT);
+		formatter.setHorizontalAlignment(1, 3,
+				HasHorizontalAlignment.ALIGN_RIGHT);
 
 		VerticalPanel patternAndResultOfPatternLabels = new VerticalPanel();
 		patternLabel
@@ -579,9 +680,29 @@ public class OptionsTabPanel extends Composite {
 			}
 		});
 
+		removeLastInPatternButton.addClickHandler(new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+				String currentText = patternLabel.getText();
+				if (currentText.length() != 0) {
+					String withoutLast = currentText.substring(0,
+							currentText.lastIndexOf(" "));
+					patternLabel.setText(withoutLast);
+				}
+
+				cleanWarningLabel();
+			}
+		});
+
 		retrieveButton.getElement().setAttribute("float", "right");
+		retrieveButton.setStyleName("SpecialWidth");
 		countButton.getElement().setAttribute("float", "right");
+		countButton.setStyleName("SpecialWidth");
 		removeButton.getElement().setAttribute("float", "right");
+		removeButton.setStyleName("SpecialWidth");
+		removeLastInPatternButton.getElement().setAttribute("float", "right");
+		removeLastInPatternButton.setStyleName("SpecialWidth");
 
 		Label numberOfTrajectoriesToShowBeforeLabel = new Label("Show up to ");
 		Label numberOfTrajectoriesToShowAfterLabel = new Label(
@@ -621,6 +742,7 @@ public class OptionsTabPanel extends Composite {
 		definedPatternWidget.setWidget(1, 0, retrieveButton);
 		definedPatternWidget.setWidget(1, 1, countButton);
 		definedPatternWidget.setWidget(1, 2, removeButton);
+		definedPatternWidget.setWidget(1, 3, removeLastInPatternButton);
 		return definedPatternWidget;
 	}
 
@@ -1554,6 +1676,10 @@ public class OptionsTabPanel extends Composite {
 	 */
 	public DecoratedTabPanel getOptionsTabPanel() {
 		return optionsTabPanel;
+	}
+
+	public TabBar getTabBar() {
+		return optionsTabPanel.getTabBar();
 	}
 
 }

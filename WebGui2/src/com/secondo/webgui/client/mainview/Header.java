@@ -45,8 +45,10 @@ public class Header extends Composite {
 	private MenuItem legend = new MenuItem("Legend", mainMenuBar);
 	private MenuItem export = new MenuItem("Export", mainMenuBar);
 	private MenuItem plainTraj = new MenuItem("Plain trajectory", mainMenuBar);
+	private MenuItem plainSymTraj = new MenuItem("Symbolic trajectory", mainMenuBar);
 
 	private PlainTrajDialog textViewOfTrajInDialog = new PlainTrajDialog();
+	private PlainSymTrajDialog textViewOfSymTraj = new PlainSymTrajDialog();
 	private DBSettingsDialog databaseInfo = new DBSettingsDialog();
 	private LocationDialog locationDialog = new LocationDialog();
 	private SupportDialog supportDialog = new SupportDialog();
@@ -158,11 +160,15 @@ public class Header extends Composite {
 		homeItem.setStyleName("transparent1");
 		mainMenuBar.addItem(homeItem);
 
-		legend.setStyleName("transparent2");
-		legend.setTitle("Legend to the symbolic trajectory");
-		mainMenuBar.addItem(legend);
+	    
+	    legend.setStyleName("transparent2");
+	    legend.setTitle("Legend to the symbolic trajectory");
+	    mainMenuBar.addItem(legend);
 
-		MenuItem print = new MenuItem("Print", new Command() {
+
+	    
+	    MenuItem print = new MenuItem("Print", new Command() {
+			
 			@Override
 			public void execute() {
 				Window.print();
@@ -176,8 +182,12 @@ public class Header extends Composite {
 		mainMenuBar.addItem(export);
 
 		plainTraj.setStyleName("transparent6");
-		plainTraj.setTitle("Symbolic trajectory\n in plain text");
+		plainTraj.setTitle("Geographic trajectory\n in plain text");
 		mainMenuBar.addItem(plainTraj);
+		
+	    plainSymTraj.setStyleName("transparent3");
+	    plainSymTraj.setTitle("Symbolic trajectory\n in plain text");
+	    mainMenuBar.addItem(plainSymTraj);
 
 		mainGrid.setWidget(3, 0, mainMenuBar);
 		mainGrid.getFlexCellFormatter().setColSpan(3, 0, 3);
@@ -271,6 +281,14 @@ public class Header extends Composite {
 	}
 
 	/**
+	 * Returns the dialog with plain trajectory (symb. part)
+	 * @return	The textViewOfSymTraj
+	 */
+	public PlainSymTrajDialog getTextViewOfSymTraj() {
+		return textViewOfSymTraj;
+	}
+
+	/**
 	 * Does redirect to the secondo web-page
 	 */
 	public static native void doClickOnLink() /*-{
@@ -317,5 +335,9 @@ public class Header extends Composite {
 	 */
 	public SupportDialog getSupportDialog() {
 		return supportDialog;
+	}
+
+	public MenuItem getPlainSymTraj() {
+		return plainSymTraj;
 	}
 }

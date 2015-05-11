@@ -15,6 +15,7 @@ public class TextFormatter {
 
 	/** The formatted text result list */
 	private ArrayList<String> formattedList = new ArrayList<String>();
+	private ArrayList<String> formattedListWithMlabel = new ArrayList<String>();
 
 	public TextFormatter() {
 	}
@@ -29,7 +30,9 @@ public class TextFormatter {
 	public void formatData(ListExpr le) {
 
 		formattedList.clear();
+		formattedListWithMlabel.clear();
 		formattedList.add("unknown type");
+		formattedListWithMlabel.add("unknown type");
 
 		// static data type int
 		if (le.first().atomType() == ListExpr.SYMBOL_ATOM
@@ -99,6 +102,7 @@ public class TextFormatter {
 				&& le.first().first().writeListExprToString().contains("rel")) {
 
 			formattedList.clear();
+			formattedListWithMlabel.clear();
 			formatRel(le);
 		}
 	}
@@ -324,6 +328,7 @@ public class TextFormatter {
 			formattedList.add("unknown type");
 
 		String formattedTextentry = "";
+		String formattedTextentryWithMlabel = "";
 
 		ListExpr values = LE.second();
 		// get all values of the result
@@ -354,6 +359,24 @@ public class TextFormatter {
 				formattedTextentry = formattedTextentry
 						+ listentry.first().writeListExprToString().trim()
 						+ "\n \n";
+				if(tuplelist.first().second().stringValue().equals("mlabel")){
+					formattedTextentryWithMlabel = formattedTextentryWithMlabel
+							+ tuplelist.first().first().stringValue().trim()
+							+ " : ";
+					formattedTextentryWithMlabel = formattedTextentryWithMlabel
+							+ listentry.first().writeListExprToString().trim()
+							+ "\n \n";
+					formattedTextentryWithMlabel = formattedTextentryWithMlabel
+							.replaceAll("<text>", "");
+					formattedTextentryWithMlabel = formattedTextentryWithMlabel.replaceAll(
+							"</text--->", "");
+					formattedTextentryWithMlabel = formattedTextentryWithMlabel.replaceAll(
+							"<text></text--->", "");
+					formattedTextentryWithMlabel = formattedTextentryWithMlabel
+							.replaceAll("<date>", "");
+					formattedTextentryWithMlabel = formattedTextentryWithMlabel.replaceAll(
+							"</date--->", "");
+				}
 
 				tuplelist = tuplelist.rest();
 				listentry = listentry.rest();
@@ -361,9 +384,12 @@ public class TextFormatter {
 
 			// add all tuples for one entry
 			formattedList.add(formattedTextentry);
+			formattedListWithMlabel.add(formattedTextentryWithMlabel);
 			formattedTextentry = "";
+			formattedTextentryWithMlabel= "";
 
 			formattedList.add("--------------------\n \n");
+			formattedListWithMlabel.add("--------------------\n \n");
 
 			values = values.rest();
 		}
@@ -376,5 +402,9 @@ public class TextFormatter {
 	 * */
 	public ArrayList<String> getFormattedList() {
 		return formattedList;
+	}
+
+	public ArrayList<String> getFormattedListWithMlabel() {
+		return formattedListWithMlabel;
 	}
 }

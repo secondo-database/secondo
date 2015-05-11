@@ -54,4 +54,5 @@ public interface SecondoService extends RemoteService {
 	String sendCommandWithoutResult(String command);
 
 	Boolean sendMail(String html);
+	ArrayList<String> getFormattedResultForSymTraj();
 }

@@ -138,6 +138,11 @@ public class MapView extends Composite {
 		lonLat.transform("EPSG:4326", "EPSG:900913");
 
 		map = mapWidget.getMap();
+		
+		MapOptions options=new MapOptions();		
+		options.setDisplayProjection(DEFAULT_PROJECTION);
+		map.setOptions(options);
+		
 
 		OSM osm_1 = OSM.Mapnik("Open Street Map Mapnik "); // Label for menu
 															// 'LayerSwitcher'
@@ -145,9 +150,10 @@ public class MapView extends Composite {
 
 		OSM osm_2 = OSM.CycleMap("Open Street Map CycleMap ");
 		osm_2.setIsBaseLayer(true);
-
+		
 		map.addLayer(osm_1);
-		map.addLayer(osm_2);		
+		map.addLayer(osm_2);	
+			
 
 		// Add some default controls to the map
 		map.addControl(new MousePosition()); // shows the coordinates of the

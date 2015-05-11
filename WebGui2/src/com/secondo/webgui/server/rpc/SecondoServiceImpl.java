@@ -276,4 +276,12 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 		return getSecondoServiceCore().sendMail(html);
 	}
 
+	/* (non-Javadoc)
+	 * @see com.secondo.webgui.client.rpc.SecondoService#getFormattedResultForSymTraj()
+	 */
+	@Override
+	public ArrayList<String> getFormattedResultForSymTraj() {		
+		return getSecondoServiceCore().getFormattedResultForSymTraj();
+	}
+
 }

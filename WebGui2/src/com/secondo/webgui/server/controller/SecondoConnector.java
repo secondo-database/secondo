@@ -340,6 +340,16 @@ public class SecondoConnector {
 	public ArrayList<String> getFormattedList() {
 		return textFormatter.getFormattedList();
 	}
+	
+	/**
+	 * Returns the list of formatted text that is returned from the
+	 * textFormatter
+	 * 
+	 * @return The list of formatted text
+	 * */
+	public ArrayList<String> getFormattedListWithMlabel() {
+		return textFormatter.getFormattedListWithMlabel();
+	}
 
 	/**
 	 * Returns the list of datatype objects that is returned from the

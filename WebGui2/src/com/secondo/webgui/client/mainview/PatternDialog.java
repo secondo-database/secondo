@@ -25,15 +25,14 @@ public class PatternDialog {
 
 	public PatternDialog() {
 
-		helpDialogBox.setText("Info about Pattern Matching");
+		helpDialogBox.setText("Information about Pattern Matching");
 
 		// Create a table to layout the content
 		dialogContents.getElement().getStyle().setPadding(5, Unit.PX);
 		helpDialogBox.setWidget(dialogContents);
 
-		patternInfo = new HTML(
-				"<h3>Information about Pattern Matching</h3>"
-						+ "In Pattern queries you can define: <p>"
+		patternInfo = new HTML(				
+						"In Pattern queries you can define: <p>"
 						+ "<b>unit pattern</b> which has one of the forms ( t l ), (_ l ), ( t _), or (), where <b>t</b> is a time interval, "
 						+ "<b>l</b> is a label, and <b>_</b> is a wildcard symbol.<p>"
 						+ "<b>sequence pattern</b> which has one of the forms *, +, [p], [p1 | p2], [p]+, [p]*, or [p]?, where p, p1, p2 are simple patterns <p>"

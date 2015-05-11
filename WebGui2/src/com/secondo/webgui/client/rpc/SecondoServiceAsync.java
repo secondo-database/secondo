@@ -54,4 +54,6 @@ public interface SecondoServiceAsync {
 	void saveGPXfileToServer(String filename, AsyncCallback<Void> callback);
 
 	void sendMail(String html, AsyncCallback<Boolean> callback);
+
+	void getFormattedResultForSymTraj(AsyncCallback<ArrayList<String>> callback);
 }
