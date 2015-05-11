@@ -114,7 +114,9 @@ class SecondoServer : public Application
   void CallFileTransfer();
   void CallRequestFile();
   void CallRequestFileFolder();
+  void CallRequestFilePath();
   void CallSendFileFolder();
+  void CallSendFilePath();
   void Connect();
   void Disconnect();
   void WriteResponse( const int errorCode, const int errorPos,
@@ -811,10 +813,27 @@ void SecondoServer::CallRequestFileFolder(){
   iosock.flush();
 }
 
+void SecondoServer::CallRequestFilePath(){
+  initTransferFolders();
+  iostream& iosock = client->GetSocketStream();
+  string res = requestFolder;
+  iosock << res << endl;
+  iosock.flush();
+}
+
+
 void SecondoServer::CallSendFileFolder(){
   initTransferFolders();
   iostream& iosock = client->GetSocketStream();
   string res = transferFolder.substr(currentFolder.length()+1);
+  iosock << res << endl;
+  iosock.flush();
+}
+
+void SecondoServer::CallSendFilePath(){
+  initTransferFolders();
+  iostream& iosock = client->GetSocketStream();
+  string res = transferFolder;
   iosock << res << endl;
   iosock.flush();
 }
@@ -902,8 +921,12 @@ SecondoServer::Execute()
   commandTable["<RequestFile>"] = &SecondoServer::CallRequestFile;
   commandTable["<REQUEST_FILE_FOLDER>"] 
                = &SecondoServer::CallRequestFileFolder;
+  commandTable["<REQUEST_FILE_PATH>"] 
+               = &SecondoServer::CallRequestFilePath;
   commandTable["<SEND_FILE_FOLDER>"] 
                = &SecondoServer::CallSendFileFolder;
+  commandTable["<SEND_FILE_PATH>"] 
+               = &SecondoServer::CallSendFilePath;
   commandTable["<Connect>"]     = &SecondoServer::Connect;
   commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
   commandTable["<REQUESTOPERATORINDEXES>"] = 

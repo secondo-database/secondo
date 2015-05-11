@@ -808,6 +808,15 @@ string SecondoInterfaceCS::getRequestFileFolder(){
    return line; 
 }
 
+string SecondoInterfaceCS::getRequestFilePath(){
+   iostream& iosock = server->GetSocketStream();
+   iosock << "<REQUEST_FILE_PATH>" << endl;
+   iosock.flush();
+   string line;
+   getline(iosock,line);
+   return line; 
+}
+
 string SecondoInterfaceCS::getSendFileFolder(){
    iostream& iosock = server->GetSocketStream();
    iosock << "<SEND_FILE_FOLDER>" << endl;
@@ -817,6 +826,14 @@ string SecondoInterfaceCS::getSendFileFolder(){
    return line; 
 }
 
+string SecondoInterfaceCS::getSendFilePath(){
+   iostream& iosock = server->GetSocketStream();
+   iosock << "<SEND_FILE_PATH>" << endl;
+   iosock.flush();
+   string line;
+   getline(iosock,line);
+   return line; 
+}
 
 
 

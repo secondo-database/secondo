@@ -192,8 +192,10 @@ public:
                     const bool allowOverwrite );
 
    string getSendFileFolder();
+   string getSendFilePath();
 
    string getRequestFileFolder();
+   string getRequestFilePath();
 
 
   private:
