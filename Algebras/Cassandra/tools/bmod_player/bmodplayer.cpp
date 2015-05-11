@@ -22,8 +22,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 
-1 Realtime player for BerlinMod GPS Data
-
+1 Player for BerlinMod GPS Data. This program generates a
+stream of GPS coordinate updates and send them to a 
+network socket. For more information, see the documentation
+of this software.
 
 1.1 Includes
 
@@ -65,6 +67,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #define SIMULATION_MODE_ADAPTIVE 1
 #define SIMULATION_MODE_FIXED    2
+
+#define EOT             "\004"
 
 using namespace std;
 
@@ -729,7 +733,14 @@ public:
       if(socketfd == -1) {
          return;
       }
-      
+     
+      // Send EOT (End of Transmission)
+      int res = write(socketfd, EOT, sizeof(char));
+ 
+      if(res < 0) {
+         cerr << "Sending EOT failed" << endl;
+      }
+
       shutdown(socketfd, 2);
       socketfd = -1;
    }
