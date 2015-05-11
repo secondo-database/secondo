@@ -20,6 +20,7 @@
 
 	<!-- Other module inherits -->
 	<inherits name='org.gwtopenmaps.openlayers.OpenLayers'/>
+	<inherits name='com.allen_sauer.gwt.dnd.gwt-dnd'/>
 <!-- 	<inherits name="com.gwtext.GwtExt"/> -->
 <!-- 	<inherits name="com.smartgwt.SmartGwt"/> -->
 <!-- 	<inherits name="com.smartclient.theme.graphite.Graphite"/> -->

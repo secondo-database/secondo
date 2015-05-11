@@ -2,6 +2,7 @@ package com.secondo.webgui.client;
 
 import java.util.ArrayList;
 
+import com.allen_sauer.gwt.dnd.client.PickupDragController;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ChangeEvent;
@@ -470,6 +471,8 @@ public class SecondoWeb implements EntryPoint {
 				// reset text view
 				mainView.getMainheader().getTextViewOfTrajInDialog()
 						.resetData();
+				mainView.getMainheader().getTextViewOfSymTraj()
+				.resetData();
 
 				// delete data from map
 				mainView.getMapView().resetData();
