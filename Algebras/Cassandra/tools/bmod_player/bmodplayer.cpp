@@ -1127,7 +1127,7 @@ public:
    void writeFinalData() {
       if(outputfile != NULL) {
          fprintf(outputfile, "\n\n");
-         fprintf(outputfile, "### Total Execution time (ms): %lld\n",
+         fprintf(outputfile, "### Total execution time (ms): %lld\n",
             timer-> getDiff() / 1000);
          fprintf(outputfile, "### Read: %lu\n", statistics -> read);
          fprintf(outputfile, "### Send: %lu\n", statistics -> send);
