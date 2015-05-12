@@ -1,0 +1,33 @@
+
+the remote servers script
+=========================
+
+This script enables to start a SecondoMonitor at a remote server.
+There are two arguments required. This first one is the name 
+of a file holding the server information. It is required to 
+have an account on each server.
+Each line within the file is formatted as follows:
+
+<Server> <Configuration file>  [<user>]
+
+<server> 
+is just the name of the host on which the monitor should be started
+
+<configuration file>
+is the name of a configuration file. This file must already exist
+on the remote host.
+
+<user>
+This optionally argument specifies the user accessing the remote host.
+If this part is omitted, the current user name is used.
+
+
+
+The second argument of the script defines the action to do.
+It can be one of {start, stop, check}.
+Each action does the thing as it's name says.
+
+
+
+
+

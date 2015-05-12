@@ -1,0 +1,178 @@
+#/bin/bash
+
+if [ -z "$1" ]; then
+  echo "Missing Server Configuration File"
+  exit 1
+fi
+
+if [ "$1" == "--help" ]; then
+  echo not help available
+
+  exit
+fi
+
+
+if [ -z "$2" ]; then
+  echo "start stop as second parameter missing "
+  exit 1;
+fi
+
+config=$1
+action=$2
+
+if [ $action != start ]; then
+  if [ $action != stop ]; then
+    if [ $action != check ]; then
+      echo "invalid action"
+      echo allowed are start, stop, and check
+      exit 1
+    fi
+  fi
+fi
+  
+
+
+function startLine {
+  server=$1
+  config=$2
+
+  if [ -z "$1" ]; then  # empty line
+    return
+  fi
+  if [ -z "$2" ]; then  # empty line
+    echo "invalid format in line" $*
+    return
+  fi
+
+  if [ -n "$3" ]; then
+    user=$4@
+  fi
+
+  script=runMonitortemp.sh
+
+  echo 'cd $HOME/secondo/bin' >$script
+  echo export SECONDO_CONFIG=$config >>$script
+  echo 'if [ ! -e $SECONDO_CONFIG ]; then' >>$script
+  echo ' echo configuration file $SECONDO_CONFIG not found an server ' $server >>$script
+  echo ' exit' >>$script
+  echo 'fi' >>$script
+  echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
+  echo 'if [ -z $TMPDIR ]; then' >>$script
+  echo '  export TMPDIR=/tmp' >>$script
+  echo 'fi' >>$script
+  echo 'tmpfile="/tmp/SM_${port}.lck"'  >>$script
+  echo 'if [ -e $tmpfile ]; then' >>$script
+  echo 'echo "SecondoMonitor already running on port ${port}"'  >>$script
+  echo 'exit 1' >>$script
+  echo 'fi'  >>$script
+  echo 'nohup ./SecondoMonitor -s >SecondoMonitor.log 2>&1 &' >>$script
+  echo 'pid=$!' >>$script
+  echo 'echo $pid >$tmpfile' >>$script
+  echo 'w=$(ps -p $pid | wc -l )' >>$script
+  echo 'if [ "$w" == "2" ]; then' >>$script
+  echo '  echo Monitor is running now at port $port' >>$script
+  echo 'else' >>$script
+  echo '  echo Could not start Monitor on port $port' >> $script
+  echo '  rm $tmpfile' >>$script
+  echo 'fi' >> $script
+  echo Try to start monitor on server $server
+  ssh $user$server 'bash -s' <$script
+  rm $script
+}
+
+
+function stopLine {
+  server=$1
+  config=$2
+  if [ -z "$1" ]; then  # empty line
+    return
+  fi
+  if [ -z "$2" ]; then  # empty line
+    echo "invalid format in line" $*
+    return
+  fi
+  if [ -n "$3" ]; then
+    user=$4@
+  fi
+  script=stopMonitortemp.sh
+  echo 'cd $HOME/secondo/bin' >$script
+  echo export SECONDO_CONFIG=$config >>$script
+  echo 'if [ ! -e $SECONDO_CONFIG ]; then' >>$script
+  echo ' echo configuration file $SECONDO_CONFIG not found an server ' $server >>$script
+  echo ' exit' >>$script
+  echo 'fi' >>$script
+  echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
+  echo 'if [ -z $TMPDIR ]; then' >>$script
+  echo '  export TMPDIR=/tmp' >>$script
+  echo 'fi' >>$script
+  echo 'tmpfile="/tmp/SM_${port}.lck"'  >>$script
+  echo 'if [ ! -e $tmpfile ]; then' >>$script
+  echo 'echo "SecondoMonitor not running on port ${port}"'  >>$script
+  echo 'exit 1' >>$script
+  echo 'fi'  >>$script
+  echo 'pid=$(cat $tmpfile)' >>$script
+  echo 'gid=$(ps -p $pid -o pgid | sed -e "s@[a-zA-Z]@@g" )' >>$script
+  echo 'gid=$(echo $gid | sed -e "s@\s@@g")' >>$script
+  echo 'if [ -n "$gid" ]; then' >>$script
+  echo 'kill -9 -$gid' >>$script
+  echo 'fi' >>$script
+  echo 'rm $tmpfile' >>$script
+  echo Try to stop monitor on server $server
+  ssh $user$server 'bash -s' <$script
+  rm $script
+}
+
+
+function checkLine {
+  server=$1
+  config=$2
+  if [ -z "$1" ]; then  # empty line
+    return
+  fi
+  if [ -z "$2" ]; then  # empty line
+    echo "invalid format in line" $*
+    return
+  fi
+  if [ -n "$3" ]; then
+    user=$4@
+  fi
+  script=checkMonitortemp.sh
+  echo export SECONDO_CONFIG=$config >$script
+  echo 'if [ ! -e $SECONDO_CONFIG ]; then' >>$script
+  echo ' echo configuration file $SECONDO_CONFIG not found on server ' $server >>$script
+  echo ' exit' >>$script
+  echo 'fi' >>$script
+  echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
+  echo 'if [ -z $TMPDIR ]; then' >>$script
+  echo '  export TMPDIR=/tmp' >>$script
+  echo 'fi' >>$script
+  echo 'tmpfile="/tmp/SM_${port}.lck"'  >>$script
+  echo 'if [ ! -e $tmpfile ]; then' >>$script
+  echo 'echo "SecondoMonitor not running on port ${port}  at " ' $server  >>$script
+  echo 'exit 1' >>$script
+  echo 'fi'  >>$script
+  echo 'pid=$(cat $tmpfile)' >>$script
+  echo 'x=$(ps -p $pid | wc -l)' >>$script
+  echo 'if [ "$x" == "2" ]; then ' >>$script
+  echo '  echo Monitor is running on port $port at ' $server >> $script
+  echo "else " >>$script
+  echo "  echo Monitor should run but is not active, delete runnning marker" >> $script
+  echo '  rm $tmpfile' >>$script
+  echo "fi" >>$script
+  echo Try to check monitor on server $server
+  ssh $user$server 'bash -s' <$script
+  rm $script
+}
+
+
+if [ $action == start ]; then
+   while read line; do startLine $line ;done <$1
+else
+  if [ $action == stop ]; then
+     while read line; do stopLine $line ;done <$1
+  else
+     while read line; do checkLine $line ;done <$1
+  fi
+fi
+
+
