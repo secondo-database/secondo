@@ -1121,7 +1121,21 @@ public:
    }
    
    /*
-   5.6 Main statistics loop, update statistics information
+   5.6 Write final statics data
+   
+   */
+   void writeFinalData() {
+      if(outputfile != NULL) {
+         fprintf(outputfile, "\n\n");
+         fprintf(outputfile, "### Total Execution time (ms): %lld\n",
+            timer-> getDiff() / 1000);
+         fprintf(outputfile, "### Read: %lu\n", statistics -> read);
+         fprintf(outputfile, "### Send: %lu\n", statistics -> send);
+      }
+   }
+   
+   /*
+   5.7 Main statistics loop, update statistics information
    
    */
    void mainLoop() {
@@ -1133,13 +1147,17 @@ public:
          writeStatisticsData();
          waitForNextSecond();
       }
+      
+      // Statistics are done, close output file
+      writeFinalData();
+      closeStatistics();
    }
    
 
 protected:
    
    /*
-   5.7 Wait until the next second of the simulation has
+   5.8 Wait until the next second of the simulation has
    begun
    
    */
