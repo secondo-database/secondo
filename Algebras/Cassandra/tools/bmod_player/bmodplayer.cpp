@@ -1050,7 +1050,7 @@ public:
                      Statistics *myStatistics, Timer *myTimer) :
                      configuration(myConfiguration), 
                      statistics(myStatistics), timer(myTimer),
-                     outputfile(NULL) {
+                     outputfile(NULL), lastRead(0), lastSend(0) {
                         
       openStatistics();
    }
@@ -1073,7 +1073,7 @@ public:
             exit(EXIT_FAILURE);
          }
          
-         fprintf(outputfile, "#Sec\tRead\tWrite\n");
+         fprintf(outputfile, "#Sec\tRead\tWrite\tDiff read\tDiff send\n");
       }
    }
    
@@ -1114,9 +1114,17 @@ public:
    */
    void writeStatisticsData() {
       if(outputfile != NULL) {
-         fprintf(outputfile, "%zu\t%lu\t%lu\n", getElapsedSeconds(),
-                statistics -> read, statistics -> send);
+
+         unsigned long read = statistics -> read;
+         unsigned long send = statistics -> send;
+
+         fprintf(outputfile, "%zu\t%lu\t%lu\t%llu\t%llu\n", 
+                getElapsedSeconds(), read, send, 
+                (read - lastRead), (send - lastSend));
          fflush(outputfile);
+
+         lastRead = read;
+         lastSend = send;
       }
    }
    
@@ -1180,6 +1188,8 @@ private:
       Timer *timer;
       FILE *outputfile;
       struct timeval lastrun;
+      long long lastRead;
+      long long lastSend;
 };
 
 /*
