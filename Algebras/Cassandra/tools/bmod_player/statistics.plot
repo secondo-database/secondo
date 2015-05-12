@@ -4,8 +4,8 @@ set autoscale
 set grid x y
 set key left
 
-set xlabel "Updates"
-set ylabel "Time (Sec)"
+set ylabel "Updates"
+set xlabel "Time (Sec)"
 set title "BerlinMODPlayer simulation"
 
 # Uncomment this to get a square image
