@@ -102,9 +102,10 @@ bool SingleCassandraResult::hasNext() {
 }
 
 void SingleCassandraResult::getStringValue(string &resultString, int pos) {
-   CassString result;
-   cass_value_get_string(cass_row_get_column(row, pos), &result);
-   resultString.append(result.data, result.length);
+   const char* item;
+   size_t item_length;   
+   cass_value_get_string(cass_row_get_column(row, pos), &item, &item_length);
+   resultString.append(item, item_length);
 }
 
 cass_int32_t SingleCassandraResult::getIntValue(int pos) {

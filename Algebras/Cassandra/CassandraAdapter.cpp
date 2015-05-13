@@ -173,14 +173,10 @@ bool CassandraAdapter::writeDataToCassandraPrepared(
          CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
     
     // Bind parameter
-    cass_statement_bind_string(statement, 0, 
-         cass_string_init(partition.c_str()));
-    cass_statement_bind_string(statement, 1, 
-         cass_string_init(node.c_str()));
-    cass_statement_bind_string(statement, 2, 
-         cass_string_init(key.c_str()));
-    cass_statement_bind_string(statement, 3, 
-         cass_string_init(value.c_str()));
+    cass_statement_bind_string(statement, 0, partition.c_str());
+    cass_statement_bind_string(statement, 1, node.c_str());
+    cass_statement_bind_string(statement, 2, key.c_str());
+    cass_statement_bind_string(statement, 3, value.c_str());
  
     // Build future and execute
     CassFuture* future = cass_session_execute(session, statement);
@@ -219,9 +215,7 @@ const CassPrepared* CassandraAdapter::prepareCQLInsert(string relation) {
         string cqlQuery = getInsertCQL(relation, "?", "?", "?", "?");
         cout << "Preparing insert query: "  << cqlQuery << endl;
 
-        CassString query = cass_string_init(cqlQuery.c_str());
-
-        CassFuture* future = cass_session_prepare(session, query);
+        CassFuture* future = cass_session_prepare(session, cqlQuery.c_str());
         cass_future_wait(future);
         rc = cass_future_error_code(future);
 
@@ -564,7 +558,7 @@ CassandraResult* CassandraAdapter::readDataFromCassandra(string cql,
      }
 
      CassStatement* statement = cass_statement_new(
-              cass_string_init(cql.c_str()), 0);
+              cql.c_str(), 0);
 
      cass_statement_set_consistency(statement, consistenceLevel);
 
@@ -741,7 +735,7 @@ CassFuture* CassandraAdapter::executeCQL
    (string cql, CassConsistency consistency) {
 
     CassStatement* statement = 
-          cass_statement_new(cass_string_init(cql.c_str()), 0);
+          cass_statement_new(cql.c_str(), 0);
     cass_statement_set_consistency(statement, consistency);
     CassFuture* future = cass_session_execute(session, statement);
    
@@ -788,13 +782,14 @@ bool CassandraAdapter::getTokensFromQuery
          CassIterator* items_iterator = cass_iterator_from_collection(value);
  
          while(cass_iterator_next(items_iterator)) {
-              CassString item_string;
-              cass_value_get_string(cass_iterator_get_value(items_iterator), 
-                  &item_string);
+               const char* item_string;
+               size_t item_length;
+               cass_value_get_string(cass_iterator_get_value(items_iterator), 
+                  &item_string, &item_length);
                
                char value_buffer[128];   
-               memcpy(value_buffer, item_string.data, item_string.length);
-               value_buffer[item_string.length] = '\0';
+               memcpy(value_buffer, item_string, item_length);
+               value_buffer[item_length] = '\0';
 
               long long tokenLong = atol(value_buffer);
               result.push_back(CassandraToken(tokenLong, currentPeer));
@@ -1076,28 +1071,33 @@ bool CassandraAdapter::getTokenrangesFromQuery (
    while(cass_iterator_next(iterator)) {
          
          const CassRow* row = cass_iterator_get_row(iterator);
-         CassString result_string;
+         const char* result_string;
+         size_t item_length;
 
          string ip;
          string beginToken;
          string endToken;
          string queryuuid = "";
          
-         cass_value_get_string(cass_row_get_column(row, 0), &result_string);
-         ip.append(result_string.data);
+         cass_value_get_string(cass_row_get_column(row, 0), 
+           &result_string, &item_length);
+         ip.append(result_string);
 
-         cass_value_get_string(cass_row_get_column(row, 1), &result_string);
-         beginToken.append(result_string.data);
+         cass_value_get_string(cass_row_get_column(row, 1), 
+           &result_string, &item_length);
+         beginToken.append(result_string);
           
-         cass_value_get_string(cass_row_get_column(row, 2), &result_string);
-         endToken.append(result_string.data);
+         cass_value_get_string(cass_row_get_column(row, 2), 
+           &result_string, &item_length);
+         endToken.append(result_string);
  
          long long beginLong = atol(beginToken.c_str());
          long long endLong = atol(endToken.c_str());
          
          if(containsQueryuuid) {
-           cass_value_get_string(cass_row_get_column(row, 3), &result_string);
-           queryuuid.append(result_string.data);
+           cass_value_get_string(cass_row_get_column(row, 3), 
+              &result_string, &item_length);
+           queryuuid.append(result_string);
          }
          
          result.push_back(TokenRange(beginLong, endLong, ip, queryuuid));
