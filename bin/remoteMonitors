@@ -137,7 +137,8 @@ function checkLine {
     user=$4@
   fi
   script=checkMonitortemp.sh
-  echo export SECONDO_CONFIG=$config >$script
+  echo 'cd $HOME/secondo/bin' >$script
+  echo export SECONDO_CONFIG=$config >>$script
   echo 'if [ ! -e $SECONDO_CONFIG ]; then' >>$script
   echo ' echo configuration file $SECONDO_CONFIG not found on server ' $server >>$script
   echo ' exit' >>$script
