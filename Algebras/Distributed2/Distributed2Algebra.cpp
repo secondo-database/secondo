@@ -4789,7 +4789,7 @@ ListExpr DArray2Property(){
             nl->FourElemList(
                  nl->StringAtom(" -> SIMPLE"),
                  nl->StringAtom(" (darray2 <basictype>)"),
-                 nl->StringAtom("(name size ( s1 s2  ...)) where "
+                 nl->TextAtom("(name size ( s1 s2  ...)) where "
                                 "s_i =(server port config)"),
                  nl->TextAtom(" ( mydarray2 42 ('localhost' 1234 'config.ini')"
                               " ('localhost'  1235 'config.ini'))")));
