@@ -153,7 +153,23 @@ Result    : bug
 Remark    : remote server required
 
 
+Operator: ddistribute2
+Number  : 1
+Signature : rel(tuple(X)) x ident x darray2(Y) -> darray2(X) 
+Example   : query strassen feed addcounter[No,0] ddistribute2[No, da2] 
+Result    : bug
+Remark    : remote server required
 
+Operator: closeWorkers
+Number  : 1
+Signature : -> int , darray2 -> int
+Example   : query closeWorkers() 
+Result    : 0
 
+Operator: showWorkers
+Number  : 1
+Signature : -> stream(tuple) , darray2 -> stream(tuple)
+Example   : query showWorkers() count
+Result    : 0
 
 

@@ -54,6 +54,12 @@ Some Helper functions.
 class BinRelWriter{
   public:
      static bool writeHeader(ostream& out, ListExpr type){
+
+         if(!Relation::checkType(type)){
+            cerr << "invalid relation type " << nl->ToString(type);
+            assert(false);
+         }
+
          string relTypeS = nl->ToString(type);
          uint32_t length = relTypeS.length();
          string magic = "srel";
@@ -112,8 +118,6 @@ class ffeed5Info{
        }
     }
     
-
-
     ~ffeed5Info(){
       tt->DeleteIfAllowed();
       in.close();
@@ -391,7 +395,6 @@ class ConnectionInfo{
 
          bool createOrUpdateObject(const string& name, 
                                    ListExpr typelist, Word& value){
-
                if(Relation::checkType(typelist)){
                   return createOrUpdateRelation(name, typelist, value);
                }
@@ -421,35 +424,53 @@ class ConnectionInfo{
          bool createOrUpdateRelation(const string& name, ListExpr typeList,
                                      Word& value){
 
-             // first, write the relation binary to atemporarly file
-             boost::lock_guard<boost::mutex> guard(simtx);
-             SecErrInfo serr;
-             ListExpr resList;
-             si->Secondo("delete " + name, resList, serr);
-             // ignore error (object must not exist)
-
+             // write relation to a file
              string filename = name + "_" 
                                + stringutils::int2str(WinUnix::getpid()) 
                                + ".bin";
              if(!saveRelationToFile(typeList, value, filename)){
                 return false;
              }
+             // restore remote relation from local file
+             bool ok = createOrUpdateRelationFromBinFile(name,filename); 
+             // remove temporarly file
+             FileSystem::DeleteFileOrFolder(filename);
+             return ok;
+         }
+
+         bool createOrUpdateRelationFromBinFile(const string& name, 
+                                                const string& filename){
+             boost::lock_guard<boost::mutex> guard(simtx);
+             SecErrInfo serr;
+             ListExpr resList;
              // transfer file to remote server
-             si->sendFile(filename,filename,true);
+             int error = si->sendFile(filename,filename,true);
+             if(error!=0){
+                return false;
+             } 
 
              // retrieve folder from which the filename can be read
              string sendFolder = si->getSendFilePath();
              
              string rfilename = sendFolder+"/"+filename;
+             // delete existing object
 
-             string cmd = "let " + name + " =  ffeed5('" 
+             string cmd = "delete " + name;
+             si->Secondo(cmd, resList, serr);
+             
+             cmd = "let " + name + " =  ffeed5('" 
                           + rfilename + "') consume ";
 
              si->Secondo(cmd, resList, serr);
-             FileSystem::DeleteFileOrFolder(filename);
+
              bool ok = serr.code == 0;
+
+
              cmd = "query removeFile('"+rfilename+"')";
-             si->Secondo (cmd,resList,serr); 
+
+             si->Secondo (cmd,resList,serr);
+
+
              return ok;
          }
 
@@ -459,7 +480,7 @@ class ConnectionInfo{
             if(!out.good()){
                return false;
             }
-            if(!BinRelWriter::writeHeader(out,nl->Second(nl->Second(relType)))){
+            if(!BinRelWriter::writeHeader(out,relType)){
                return false;
             }
             Relation* rel = (Relation*) value.addr;
@@ -1119,7 +1140,7 @@ connections coming from darray2 elements.
 */
   ConnectionInfo* getWorkerConnection( const DArray2Element& info,
                                        const string& dbname ){
-
+     boost::lock_guard<boost::mutex> guard(workerMtx);
      typename map<DArray2Element, pair<string, ConnectionInfo*> >::iterator it;
      it = workerconnections.find(info);
      pair<string,ConnectionInfo*> pr("",0);
@@ -1140,9 +1161,67 @@ connections coming from darray2 elements.
      return pr.second;
   }
 
-  
+/*
+This operator closes all non user defined existing server connections.
+It returns the numer of closed workers
 
+*/
+ int closeAllWorkers(){
+    boost::lock_guard<boost::mutex> guard(workerMtx);
+    typename map<DArray2Element, pair<string,ConnectionInfo*> > ::iterator it;
+    int count = 0;
+    for(it=workerconnections.begin(); it!=workerconnections.end(); it++){
+       ConnectionInfo* ci = it->second.second;
+       delete ci;
+       count++;
+    }
+    workerconnections.clear();
+    return count;
+ } 
 
+/*
+The operator ~closeWorker~ closes the connections for a 
+specified DArray2Element.
+
+*/ 
+  bool closeWorker(const DArray2Element& elem){
+    boost::lock_guard<boost::mutex> guard(workerMtx);
+     typename map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
+     it = workerconnections.find(elem);
+     if(it==workerconnections.end()){
+        return false;
+     }
+     ConnectionInfo* info = it->second.second;
+     if(info){
+        delete info;
+        it->second.second = 0;
+     }
+     workerconnections.erase(it);
+     return true;
+  }
+
+  bool workerConnection(const DArray2Element& elem, string& dbname,
+                         ConnectionInfo*& ci){
+    boost::lock_guard<boost::mutex> guard(workerMtx);
+     typename map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
+     it = workerconnections.find(elem);
+     if(it == workerconnections.end()){
+        return false;
+     } 
+     dbname = it->second.first;
+     ci = it->second.second;
+     return true;
+  }
+
+  map<DArray2Element, pair<string,ConnectionInfo*> >::iterator
+  workersIterator(){
+    return workerconnections.begin();
+  }
+
+  bool isEnd( map<DArray2Element, pair<string,ConnectionInfo*> >::iterator& it){
+    boost::lock_guard<boost::mutex> guard(workerMtx);
+    return it==workerconnections.end();
+  } 
 
     
 
@@ -1153,7 +1232,11 @@ connections coming from darray2 elements.
 
     // connections managed automatically 
     // for darray2 type
+    // the key represents the connection information,
+    // the string the used database
+    // the ConnctionInfo the connection
     map<DArray2Element, pair<string,ConnectionInfo*> > workerconnections;
+    boost::mutex workerMtx;
 
 
     bool createWorkerConnection(const DArray2Element& worker, pair<string, 
@@ -1505,7 +1588,7 @@ int checkConnectionsVM( Word* args, Word& result, int message,
 OperatorSpec checkConnectionsSpec(
      "-> stream(tuple((No int)(Host text)(Port int)(Config text)(Ok bool)",
      "checkConnections()",
-     "Check connections in the Distributed2Alegbra",
+     "Check connections in the Distributed2Algebra",
      " query checkConnections() consume"); 
 
 
@@ -1633,7 +1716,7 @@ int rcmdSelect(ListExpr args){
 OperatorSpec rcmdSpec(
      "int x {text,string} -> stream(Tuple(C,E,R))",
      "rcmd(Connection, Command)",
-     "Performs a remove command at given connection",
+     "Performs a remote command at given connection.",
      "query rcmd(1,'list algebras')"); 
 
 /*
@@ -1702,7 +1785,7 @@ int disconnectVM( Word* args, Word& result, int message,
 OperatorSpec disconnectSpec(
      " int -> int , ->int",
      "disconnect(), disconnect(_)",
-     "Closes a connection to a remove server. Without any argument"
+     "Closes a connection to a remote server. Without any argument"
      " all connections are closed, otherwise only the specifyied one",
      "query disconnect(0)");
 
@@ -1953,10 +2036,10 @@ int rquerySelect(ListExpr args){
 OperatorSpec rquerySpec(
      " int x {string,text} -> ??",
      " rquery(server, query)",
-     " Performs a remove query at a remote server."
+     " Performs a remote query at a remote server."
      " The server is specified by its Id as the first argument."
      " The second argument is the query. The result type depends"
-     " on the type of of the query expression",
+     " on the type of the query expression",
      " query rquery(0, 'query ten count') ");
 
 /*
@@ -2292,7 +2375,10 @@ int prcmdSelect(ListExpr args){
 OperatorSpec prcmdSpec(
      " stream(tuple) x attrName x attrName -> stream(tuple + E)",
      " _ prcmd [ _,_]",
-     " Performs a a set of remote queries in parallel.",
+     " Performs a a set of remote queries in parallel. Each incoming tuple"
+     " is extended by some status information in attributes ErrorCode (int)"
+     "and ErrorMsg (text) as well as the result of the query in form of "
+     " a nested list (text attribute)",
      " query intstream(0,3) namedtransformstream[S] "
      "extend[ Q : 'query plz feed count'] prcmd[S,Q] consume ");
 
@@ -2390,7 +2476,17 @@ int sendFileVMT( Word* args, Word& result, int message,
 OperatorSpec sendFileSpec(
      " int x {string, text} x {string, text} -> int",
      " sendFile( serverNo, localFile, remoteFile) ",
-     " Transfers a local file to the remote server. ",
+     " Transfers a local file to the remote server. "
+     " The local file is searched within the current "
+     " directory (normally the bin directory of Secondo)"
+     " if not given as an absolute path. The name of "
+     " the remote file must be a relative path without "
+     " any gobacks (..) inside. The file is stored "
+     " on the server below the directory "
+     " $SECONDO_HOME/filetransfers/$PID, where $SECONDO_HOME"
+     " denotes the used database directory and $PID corresponds "
+     "to the process id of the connected serveri (see also operator"
+     " getSendFolder", 
      " query sendFile( 0, 'local.txt', 'remote.txt' ");
 
 /*
@@ -2506,7 +2602,12 @@ int requestFileVMT( Word* args, Word& result, int message,
 OperatorSpec requestFileSpec(
      " int x {string, text} x {string, text} -> bool",
      " requestFile( serverNo, remoteFile, localFile) ",
-     " Transfers a remopte file to the local file system. ",
+     " Transfers a remote file to the local file system. "
+     " The local file is stored relative to current directory if"
+     " its name is not given as an absolute path. The remote "
+     " file is taken relative from $SECONDO_HOME/filetransfers."
+     " For security reasons, the remote name cannot be an "
+     " absolute path and cannot contains any gobacks (..). ",
      " query requestFile( 0, 'remote.txt', 'local.txt' ");
 
 /*
@@ -3417,14 +3518,14 @@ int getFolderVM(Word* args, Word& result, int message,
 OperatorSpec getRequestFolderSpec(
      " int -> text ",
      " getRequestFolder(_)  ",
-     " return the name of the folder on the server for a given connection "
+     " Returns the name of the folder on the server for a given connection"
      " from where files are requested. ",
      " query getRequestFolder(0)");
 
 OperatorSpec getSendFolderSpec(
      " int -> text ",
      " getSendFolder(_)  ",
-     " returns the name of the folder on the server for a given connection "
+     " Returns the name of the folder on the server for a given connection"
      " into which files are written. ",
      " query getSendFolder(0)");
 
@@ -3920,7 +4021,8 @@ int pconnectSelect(ListExpr args){
 */
 
 OperatorSpec pconnectSpec(
-     " stream(tuple(X)) x Id x Id x Id -> stream(tuple(X + (CNo int))) ",
+     " stream(tuple(X)) x attrName x attrName x attrName "
+     "-> stream(tuple(X + (CNo int))) ",
      " _ pconnect[_,_,_]  ",
      " Creates connection to Secondo servers in parallel.  "
      " The first argument is a stream of tuples. The parameters are "
@@ -3928,8 +4030,8 @@ OperatorSpec pconnectSpec(
      " name for the port (int), and the attribute name for the "
      " local configuration file (string or text). By this operator, the "
      " input tuples are extended by the connection number. If the number is"
-     " negative, no connection could be build up for this input tuple. "
-     " The order of the output tuples depends on the connection speeds",
+     " negative, no connection could be built up for this input tuple. "
+     " The order of the output tuples depends on the connection speeds.",
      " query ConTable feed pconnect[Host, Port, Config] consume");
 
 /*
@@ -4679,18 +4781,18 @@ class DArray2{
 */
 ListExpr DArray2Property(){
    return nl->TwoElemList(
-              nl->FourElemList(
-                   nl->StringAtom("Signature"),
-                   nl->StringAtom("Example Type List"), 
-                   nl->StringAtom("List Rep"),
-                   nl->StringAtom("Example List")),
-              nl->FourElemList(
-                   nl->StringAtom(" -> SIMPLE"),
-                   nl->StringAtom(" (darray2 <basictype>)"),
-                   nl->StringAtom(" ( s1 s2  ...) where "
-                                  "s_i =(server port config)"),
-                   nl->TextAtom(" (('localhost' 1234 'config.ini')"
-                                " ('localhost'  1235 'config.ini'))")));
+            nl->FourElemList(
+                 nl->StringAtom("Signature"),
+                 nl->StringAtom("Example Type List"), 
+                 nl->StringAtom("List Rep"),
+                 nl->StringAtom("Example List")),
+            nl->FourElemList(
+                 nl->StringAtom(" -> SIMPLE"),
+                 nl->StringAtom(" (darray2 <basictype>)"),
+                 nl->StringAtom("(name size ( s1 s2  ...)) where "
+                                "s_i =(server port config)"),
+                 nl->TextAtom(" ( mydarray2 42 ('localhost' 1234 'config.ini')"
+                              " ('localhost'  1235 'config.ini'))")));
 }
 
 /*
@@ -4841,6 +4943,7 @@ remote server;
 int putVM(Word* args, Word& result, int message,
                 Word& local, Supplier s ){
 
+
   DArray2* array = (DArray2*) args[0].addr;
   CcInt* index = (CcInt*) args[1].addr;
   result = qp->ResultStorage(s);
@@ -4871,7 +4974,7 @@ int putVM(Word* args, Word& result, int message,
 
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
 
-  if(!ci){ // problem with connection the monitor or opening the databaseA
+  if(!ci){ // problem with connection the monitor or opening the database
      res->makeUndefined();
      return 0;
   }
@@ -4896,11 +4999,11 @@ int putVM(Word* args, Word& result, int message,
 OperatorSpec putSpec(
      " darray2(T) x int x T -> darray2(T) ",
      " put(_,_,_)",
-     " Puts an element at at specific position of a darray2.  "
-     " If there is some problem, the result is undefined otherwise"
-     " the result is represents the same array as before with "
-     " a changed element",
-     " query put([const darray2(int) value"
+     "Puts an element at a specific position of a darray2. "
+     "If there is some problem, the result is undefined; otherwise "
+     "the result represents the same array as before with "
+     "a changed element",
+     "query put([const darray2(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] , 1, 27)"
      );
@@ -5090,7 +5193,7 @@ int sizeVM(Word* args, Word& result, int message,
 OperatorSpec sizeSpec(
      " darray2(T) -> int ",
      " size(_)",
-     " Returns the number of slots of a darray2 ",
+     " Returns the number of slots of a darray2.",
      " query size([const darray2(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] )"
@@ -5205,7 +5308,7 @@ int getWorkersVM(Word* args, Word& result, int message,
 OperatorSpec getWorkersSpec(
      " darray2(T) -> stream(tuple(...)) ",
      " getWorkers(_)",
-     " Returns information about worker in a darray2. ",
+     " Returns information about workers in a darray2.",
      " query getWorkers([const darray2(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] ) count"
@@ -5321,7 +5424,6 @@ int fconsume5VMT(Word* args, Word& result, int message,
     switch(message){
       case OPEN : {
          ListExpr type = qp->GetType(s);
-         type = nl->Second(nl->Second(type));
          T* fn = (T*) args[1].addr;
          if(li){
             delete li;
@@ -5332,6 +5434,8 @@ int fconsume5VMT(Word* args, Word& result, int message,
              return 0;
          }
          string fns = fn->GetValue();
+         type = nl->TwoElemList( listutils::basicSymbol<Relation>(),
+                                 nl->Second(type));
          local.addr = new fconsume5Info(args[0],fns,type);
          return 0;
       }
@@ -5478,17 +5582,17 @@ ListExpr ffeed5TM(ListExpr args){
     in.close();
     return listutils::typeError("problem in determining rel type");
   } 
-  ListExpr ttype = nl->TwoElemList( listutils::basicSymbol<Tuple>(),
-                                    relType);
 
-  if(!Tuple::checkType(ttype)){
-    in.close();
-    return listutils::typeError("found invalid type for tuple");
+  if(!Relation::checkType(relType)){
+     in.close();
+     return listutils::typeError("not a valid relation type " 
+                    + nl->ToString(relType) );
   }
+
 
   in.close();
   return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
-                          ttype);
+                          nl->Second(relType));
 }
 
 
@@ -5756,7 +5860,8 @@ int createDarray2Select(ListExpr args){
 
 */
 OperatorSpec createDarray2Spec(
-     " stream<TUPLE> x int x string x ANY x Ident x Ident x Ident  -> darray2",
+     " stream<TUPLE> x int x string x ANY x attrName x "
+     "attrName x attrName  -> darray2",
      " _ createDarray2[size, name, type template , HostAttr, "
                      "PortAttr, ConfigAttr]",
      " Creates a darray 2. The workers are given by the input stream. ",
@@ -5904,7 +6009,10 @@ class PPutter{
 
 };
 
+/*
+1.4.2 Value Mapping
 
+*/
 
 int pputVM(Word* args, Word& result, int message,
            Word& local, Supplier s ){
@@ -5958,7 +6066,7 @@ int pputVM(Word* args, Word& result, int message,
 OperatorSpec pputSpec(
      " darray2(T) x (int x T)+ -> darray2 ",
      " _ pput[ index , value , index, value ,...]",
-     " Puts elemnts into a darray2 in parallel. ",
+     " Puts elements into a darray2 in parallel. ",
      " query da pput[0, streets1, 1, streets2]  "
      );
 
@@ -5976,6 +6084,431 @@ Operator pputOp(
   pputTM
 );
 
+
+/*
+1.6 Operator ddsitribute2
+
+1.6.1 Type Mapping
+
+*/
+
+ListExpr ddistribute2TM(ListExpr args){
+  string err = "stream(tuple(X)) x ident x darray2(Y) expected";
+  if(!nl->HasLength(args,3)){
+     return listutils::typeError(err);
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  if(nl->AtomType(nl->Second(args))!=SymbolType){
+     return listutils::typeError(err);
+  }
+  if(!DArray2::checkType(nl->Third(args))){
+     return listutils::typeError(err);
+  }
+
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  string ident = nl->SymbolValue(nl->Second(args));
+  ListExpr dType;
+  int pos = listutils::findAttribute(attrList, ident ,dType);
+  if(!pos){
+     return listutils::typeError("Attribute " + ident + " unknown");
+  }
+  if(!CcInt::checkType(dType)){
+     return listutils::typeError("Attribute " + ident + " not of type int");
+  }
+  ListExpr res = nl->TwoElemList(
+                   listutils::basicSymbol<DArray2>(),
+                   nl->TwoElemList(
+                      listutils::basicSymbol<Relation>(),
+                      nl->Second(nl->First(args))));
+  return nl->ThreeElemList(
+                  nl->SymbolAtom(Symbols::APPEND()),
+                  nl->OneElemList( nl->IntAtom(pos-1)),
+                  res);
+}
+
+/*
+1.6.2 Auxiliary class ~RelFileRestore~
+
+This class restores a relation stored within a binary file
+on a remote server within an own thread.
+
+*/
+
+class RelFileRestorer{
+
+ public:
+   RelFileRestorer(ListExpr _relType, const string& _objName,
+                   DArray2* _array, int _arrayIndex, 
+                   const string& _filename):
+    relType(_relType), objName(_objName), array(_array), 
+    arrayIndex(_arrayIndex), filename(_filename),
+    started(false){
+   }
+
+   ~RelFileRestorer(){
+     boost::lock_guard<boost::mutex> guard(mtx);
+     runner.join();
+    }
+
+   void start(){
+     boost::lock_guard<boost::mutex> guard(mtx);
+     if(!started){
+        started = true;
+        res = true;
+        runner = boost::thread(&RelFileRestorer::run, this);
+     }
+   }
+
+ private:
+    ListExpr relType;
+    string objName;
+    DArray2* array;
+    int arrayIndex;
+    string filename;
+    bool started;
+    boost::mutex mtx;
+    boost::thread runner;
+    bool res;
+
+    void run(){
+      int workerIndex = arrayIndex % array->numOfWorkers();
+      string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+      ConnectionInfo* ci = algInstance->getWorkerConnection(
+                                   array->getWorker(workerIndex),dbname);
+      if(ci){
+         res = ci->createOrUpdateRelationFromBinFile(objName,filename);
+      } else {
+        cerr << "connection failed" << endl;
+      }
+    }
+};
+
+
+/*
+1.6.3 Value Mapping
+
+*/
+
+int ddistribute2VM(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   DArray2* res = (DArray2*) result.addr;
+   int pos = ((CcInt*) args[3].addr)->GetValue();
+   DArray2* temp = (DArray2*) args[2].addr;
+   *res = *temp;
+   if(!res->IsDefined() || (res->numOfWorkers()<1) || (res->getSize() < 1)){
+      res->makeUndefined();
+      return 0;
+   }
+
+   // distribute the incoming tuple stream to a set of files
+   // if the distribution number is not defined, the tuple is
+   // treated as for number 0
+   map<int , pair<string,ofstream*> > files;
+   Stream<Tuple> stream(args[0]);
+   stream.open();
+   Tuple* tuple;
+   string name = temp->getName();
+
+   ListExpr relType = nl->Second(qp->GetType(s));
+
+   while((tuple=stream.request())){
+      CcInt* D = (CcInt*) tuple->GetAttribute(pos);
+      int index = D->IsDefined()?D->GetValue():0;
+      index = index % temp->getSize();
+      string fn = name + "_" + stringutils::int2str(index)+".bin";
+      if(files.find(index)==files.end()){
+          ofstream* out = new ofstream(fn.c_str(), ios::out | ios::binary);
+          pair<string,ofstream*> p(fn,out);
+          files[index] = p;
+          BinRelWriter::writeHeader(*out,relType); 
+      }
+      BinRelWriter::writeNextTuple(*(files[index].second),tuple);
+      tuple->DeleteIfAllowed();
+   }
+   stream.close();
+   // finalize files
+
+
+   vector<RelFileRestorer*> restorers;
+
+   
+   typename map<int, pair<string,ofstream*> >::iterator it;
+   for(it = files.begin(); it!=files.end();it++){
+      BinRelWriter::finish(*(it->second.second));
+      // close and delete ofstream
+      it->second.second->close();
+      delete it->second.second;
+      string objName = res->getName()+"_"+stringutils::int2str(it->first);
+      restorers.push_back(new RelFileRestorer(relType, objName,res, 
+                                              it->first, it->second.first));
+   }
+
+
+   // distribute the files to the workers and restore relations
+   for(size_t i=0;i<restorers.size();i++){
+     restorers[i]->start();
+   } 
+   // wait for finishing restore
+
+   
+   for(size_t i=0;i<restorers.size();i++){
+     delete restorers[i];
+   } 
+
+   return 0;   
+}
+
+/*
+1.6.4 Specification
+
+*/
+OperatorSpec ddistribute2Spec(
+     " stream(tuple(X)) x ident x darray2(Y) -> darray2(X) ",
+     " _ ddistribute2[ _, _]",
+     " Dsitributes a locally stored relation into an darray2 ",
+     " query strassen feed addcounter[No,1] ddistribute[No, da2]  "
+     );
+
+
+/*
+1.6.5 Operator instance
+
+*/
+Operator ddistribute2Op(
+  "ddistribute2",
+  ddistribute2Spec.getStr(),
+  ddistribute2VM,
+  Operator::SimpleSelect,
+  ddistribute2TM
+);
+
+
+/*
+1.7 Operator closeWorkers
+
+This operator closes the worker connections either dor a spoecified
+darray2 instance or all existing connections.
+
+*/
+ListExpr closeWorkersTM(ListExpr args){
+  string err = " no argument or darray2 expected";
+  if(!nl->IsEmpty(args) && !nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(nl->HasLength(args,1)){
+    if(!DArray2::checkType(nl->First(args))){
+       return listutils::typeError(err);
+    }
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+int closeWorkersVM(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+
+    result = qp->ResultStorage(s);
+    CcInt* res = (CcInt*) result.addr;
+    if(qp->GetNoSons(s)==0){
+       res->Set(true, algInstance->closeAllWorkers());  
+    } else {
+       DArray2* arg = (DArray2*) args[0].addr;
+       if(!arg->IsDefined()){
+         res->SetDefined(false);
+         return 0;
+       }
+       int count = 0;
+       for(size_t i=0;i<arg->numOfWorkers();i++){
+          bool closed = algInstance->closeWorker(arg->getWorker(i));
+          if(closed){
+             count++;
+          }
+       }
+       res->Set(true,count);
+    }
+    return 0;
+}
+
+
+OperatorSpec closeWorkersSpec(
+     " -> int, darray2 -> int ",
+     " closeWorkers([_])",
+     " Closes either all connection to workers (no argument)  "
+     ", or connections of a specified darray2 instance.",
+     " query closeWorkerConnections()  "
+     );
+
+Operator closeWorkersOp(
+  "closeWorkers",
+  closeWorkersSpec.getStr(),
+  closeWorkersVM,
+  Operator::SimpleSelect,
+  closeWorkersTM
+);
+
+
+/*
+1.8 Operator ~showWorkers~
+
+This operator shows the information about existing worker connections.
+If the optional argument is given, only open conections of this array
+are shown, otherwise infos about all existing workers.
+
+*/
+
+ListExpr showWorkersTM(ListExpr args){
+  string err = "nothing or darray2 expected" ;
+  if(!nl->IsEmpty(args) && !nl->HasLength(args,1)){
+     return listutils::typeError(err);
+  }
+  if(nl->HasLength(args,1) && !DArray2::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  ListExpr attrList = nl->SixElemList(
+    nl->TwoElemList( nl->SymbolAtom("Host"), 
+                     listutils::basicSymbol<FText>()),
+    nl->TwoElemList( nl->SymbolAtom("Port"), 
+                     listutils::basicSymbol<CcInt>()),
+    nl->TwoElemList( nl->SymbolAtom("ConfigFile"), 
+                     listutils::basicSymbol<FText>()),
+    nl->TwoElemList( nl->SymbolAtom("Num"),
+                     listutils::basicSymbol<CcInt>()),
+    nl->TwoElemList( nl->SymbolAtom("DBName"),
+                      listutils::basicSymbol<CcString>()),
+    nl->TwoElemList( nl->SymbolAtom("OK"), 
+                     listutils::basicSymbol<CcBool>()));
+    return nl->TwoElemList(
+             listutils::basicSymbol<Stream<Tuple> >(),
+             nl->TwoElemList(
+                 listutils::basicSymbol<Tuple>(),
+                  attrList));
+
+}
+
+
+class showWorkersInfo{
+
+  public:
+    showWorkersInfo(ListExpr resType) : array(0){
+       iter = algInstance->workersIterator();
+       tt = new TupleType(resType);
+    }
+    showWorkersInfo(DArray2* _array, ListExpr resType): array(_array), pos(0){
+       tt = new TupleType(resType);
+    }
+    ~showWorkersInfo(){
+       tt->DeleteIfAllowed();
+    }
+
+    Tuple* next(){
+      if(array){
+        return nextFromArray();
+      } else {
+        return nextFromAll();
+      }
+    }
+
+
+  private:
+    DArray2* array;
+    size_t pos;
+    typename map<DArray2Element, pair<string, ConnectionInfo*> >::iterator iter;
+    TupleType* tt;
+
+    Tuple* nextFromArray(){
+      if(!array->IsDefined()){
+         return 0;
+      }
+      while(pos < array->numOfWorkers()){
+        DArray2Element elem = array->getWorker(pos);
+        pos++;
+        string dbname;
+        ConnectionInfo* connectionInfo;
+        if(algInstance->workerConnection(elem, dbname, connectionInfo)){
+           return createTuple(elem, dbname, connectionInfo);
+        }
+     }
+     return 0;
+    }
+
+    Tuple* nextFromAll(){
+      if(algInstance->isEnd(iter)){
+         return 0;
+      }
+      Tuple* res = createTuple(iter->first, iter->second.first, 
+                               iter->second.second);
+      iter++;
+      return res;
+    }
+
+    Tuple* createTuple(const DArray2Element& elem, string& dbname,
+                        ConnectionInfo* ci){
+      Tuple* res = new Tuple(tt);
+      res->PutAttribute(0, new FText(true, elem.getHost()));
+      res->PutAttribute(1, new CcInt(true, elem.getPort()));
+      res->PutAttribute(2, new FText(true, elem.getConfig()));
+      res->PutAttribute(3, new CcInt(true, elem.getNum()));
+      res->PutAttribute(4, new CcString(true, dbname));
+      bool ok = ci?ci->check():false;
+      res->PutAttribute(5, new CcBool(true,ok));
+      return res;
+    }
+
+};
+
+
+
+int showWorkersVM(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+
+  showWorkersInfo* li = (showWorkersInfo*) local.addr;
+  switch(message){
+    case OPEN: {
+
+                 if(li){
+                    delete li;
+                    local.addr =0;
+                 }
+                 ListExpr tt = nl->Second(GetTupleResultType(s));
+                 if(qp->GetNoSons(s)==0){
+                   local.addr = new showWorkersInfo(tt);
+                 } else {
+                   local.addr = new showWorkersInfo((DArray2*) args[0].addr,tt);
+                 }
+                 return 0;
+    }
+    case REQUEST:
+                 result.addr = li?li->next():0;
+                 return result.addr?YIELD:CANCEL;
+    case CLOSE:
+           if(li){
+             delete li;
+             local.addr = 0;
+           }
+           return 0;
+  }
+  return -1; 
+}
+
+OperatorSpec showWorkersSpec(
+     " -> stream(tuple), darray2 -> stream(tuple) ",
+     " showWorkers([_])",
+     " Show information about either all connection to workers (no argument)  "
+     ", or connections of a specified darray2 instance.",
+     " query showWorkers()  consume "
+     );
+
+Operator showWorkersOp(
+  "showWorkers",
+  showWorkersSpec.getStr(),
+  showWorkersVM,
+  Operator::SimpleSelect,
+  showWorkersTM
+);
 
 
 /*
@@ -6015,6 +6548,10 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&createDarray2Op);
 
    AddOperator(&pputOp);
+   AddOperator(&ddistribute2Op);
+   AddOperator(&closeWorkersOp);
+   AddOperator(&closeWorkersOp);
+   AddOperator(&showWorkersOp);
 
 }
 
