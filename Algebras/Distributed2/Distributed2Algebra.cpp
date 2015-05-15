@@ -1367,9 +1367,9 @@ This operator gets a hostname, a port and a file for the configuration.
 
 */
 ListExpr connectTM(ListExpr args){
-  string err = "{text,string} x int x {text,string}= "
-               "(host, port, configfile) expected";
-  if(!nl->HasLength(args,3)){
+  string err = "{text,string} x int [x {text,string}] = "
+               "(host, port[, configfile]) expected";
+  if(!nl->HasLength(args,3) && !nl->HasLength(args,2)){
    return listutils::typeError(err);     
   }
   ListExpr first = nl->First(args);
@@ -1379,11 +1379,17 @@ ListExpr connectTM(ListExpr args){
   if(!CcInt::checkType(nl->Second(args))){
     return listutils::typeError(err);     
   }
-  ListExpr third = nl->Third(args);
-  if(!FText::checkType(third) && !CcString::checkType(third)){
-    return listutils::typeError(err);     
+  if(nl->HasLength(args,3)) {
+     ListExpr third = nl->Third(args);
+     if(!FText::checkType(third) && !CcString::checkType(third)){
+       return listutils::typeError(err);     
+     }
+     return listutils::basicSymbol<CcBool>();
   }
-  return listutils::basicSymbol<CcBool>();
+  return nl->ThreeElemList(
+           nl->SymbolAtom(Symbols::APPEND()),
+           nl->OneElemList( nl->StringAtom("SecondoConfig.ini")),
+           listutils::basicSymbol<CcBool>());
 }
 
 /*
@@ -1463,7 +1469,10 @@ ValueMapping connectVM[] = {
 */
 int connectSelect(ListExpr args){
   int first = FText::checkType(nl->First(args))?2:0;
-  int second = FText::checkType(nl->Third(args))?1:0;
+  int second = 0;
+  if(nl->HasLength(args,3)){
+    second = FText::checkType(nl->Third(args))?1:0;
+  }
   return first + second;
 }
 
@@ -6269,7 +6278,7 @@ int ddistribute2VM(Word* args, Word& result, int message,
 OperatorSpec ddistribute2Spec(
      " stream(tuple(X)) x ident x darray2(Y) -> darray2(X) ",
      " _ ddistribute2[ _, _]",
-     " Dsitributes a locally stored relation into an darray2 ",
+     " Distributes a locally stored relation into a darray2 ",
      " query strassen feed addcounter[No,1] ddistribute[No, da2]  "
      );
 
@@ -6336,8 +6345,8 @@ int closeWorkersVM(Word* args, Word& result, int message,
 
 OperatorSpec closeWorkersSpec(
      " -> int, darray2 -> int ",
-     " closeWorkers([_])",
-     " Closes either all connection to workers (no argument)  "
+     " closeWorkers(_)",
+     " Closes either all connections to workers (no argument)"
      ", or connections of a specified darray2 instance.",
      " query closeWorkerConnections()  "
      );
@@ -6512,6 +6521,51 @@ Operator showWorkersOp(
 
 
 /*
+1.9 Operator dloop2
+
+This operator performs a function over all entries of a darray2.
+
+1.9.1 Type Mpping
+
+Signature: darray2(X) x string x (X->Y) -> darray2(Y)
+
+*/
+
+ListExpr dloop2TM(ListExpr args){
+
+  string err = "darray(X) x string x fun: X -> Y  expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err + "(wrong number of args)");
+  }
+  if(!DArray2::checkType(nl->First(args))){
+    return listutils::typeError(err + "(first arg not a darray2");
+  }
+  if(!CcString::checkType(nl->Second(args))){
+    return listutils::typeError(err + "(second arg not a string");
+  }
+  if(!listutils::isMap<1>(nl->Third(args))){
+    return listutils::typeError(err + "(third arg nor a functions "
+                                      "with one argument)");
+  }
+  ListExpr dat = nl->Second(nl->First(args));
+  ListExpr funarg = nl->Second(nl->Third(args));
+  if(!nl->Equal(dat,funarg)){
+    return listutils::typeError("type msmatch between darray2 subtype "
+                                "and function argument type");
+  }
+  ListExpr result = nl->TwoElemList(listutils::basicSymbol<DArray2>(),
+                                    nl->Third(nl->Third(args)));
+  if(!DArray2::checkType(result)){
+    return listutils::typeError("Invalid function result");
+  }
+  return result;
+}
+
+
+
+
+
+/*
 3 Implementation of the Algebra
 
 */
@@ -6549,7 +6603,6 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&pputOp);
    AddOperator(&ddistribute2Op);
-   AddOperator(&closeWorkersOp);
    AddOperator(&closeWorkersOp);
    AddOperator(&showWorkersOp);
 
