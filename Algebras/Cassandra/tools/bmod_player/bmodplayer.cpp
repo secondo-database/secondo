@@ -70,6 +70,8 @@ of this software.
 
 #define EOT             "\004"
 
+#define VERSION         1.0
+
 using namespace std;
 
 /*
@@ -1361,6 +1363,8 @@ private:
    
 */   
    void printHelpAndExit(char *progName) {
+      cerr << "Player for BerlinMod data, version " << VERSION << endl;
+      cerr << endl;
       cerr << "Usage: " << progName << " -i <inputfile> -o <statisticsfile> ";
       cerr << "-h <hostname> -p <port> -s <adaptive|fixed> -b <beginoffset> ";
       cerr << "-e <endoffset>";
