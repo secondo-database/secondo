@@ -441,11 +441,13 @@ class ConnectionInfo{
          bool createOrUpdateRelationFromBinFile(const string& name, 
                                                 const string& filename){
              boost::lock_guard<boost::mutex> guard(simtx);
+
              SecErrInfo serr;
              ListExpr resList;
              // transfer file to remote server
              int error = si->sendFile(filename,filename,true);
              if(error!=0){
+                cout << "transfer of file " << filename << "failed" << endl;
                 return false;
              } 
 
@@ -456,12 +458,19 @@ class ConnectionInfo{
              // delete existing object
 
              string cmd = "delete " + name;
+
+             cout << "apply command " << cmd << endl;
              si->Secondo(cmd, resList, serr);
+       
+             cout << "errorCode " << serr.code << endl;
              
              cmd = "let " + name + " =  ffeed5('" 
                           + rfilename + "') consume ";
 
+             cout << "perform command " << cmd << endl;
              si->Secondo(cmd, resList, serr);
+             cout << "error Code " << serr.code << endl;
+             cout << "error message " << serr.msg << endl;
 
              bool ok = serr.code == 0;
 
@@ -1152,7 +1161,7 @@ connections coming from darray2 elements.
      } else {
          pr = it->second;
      }
-     string wdbname = dbname+"_dist2";
+     string wdbname = dbname;
      if(pr.first!=wdbname){
          if(!pr.second->switchDatabase(wdbname,true)){
             return 0;
@@ -4770,6 +4779,15 @@ class DArray2{
         return name;
      }
 
+      bool setName( const string& n){
+        if(!stringutils::isIdent(n)){
+           return false;
+        }
+        name = n;
+        return true;
+      }
+
+
 
   private:
     vector<DArray2Element> worker; // connection information
@@ -6188,6 +6206,9 @@ class RelFileRestorer{
                                    array->getWorker(workerIndex),dbname);
       if(ci){
          res = ci->createOrUpdateRelationFromBinFile(objName,filename);
+         if(!res){
+           cerr << "createorUpdateObject failed" << endl;
+         }
       } else {
         cerr << "connection failed" << endl;
       }
@@ -6294,6 +6315,44 @@ Operator ddistribute2Op(
   Operator::SimpleSelect,
   ddistribute2TM
 );
+
+/*
+1.7 fdistribute
+
+*/
+ListExpr fdistribute5TM(ListExpr args){
+  string err = "stream(tuple) x string x int x attrName expected";
+  // stream <base file name> <number of files> <attrName for distribute>
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError(err);
+  }
+  if( !Stream<Tuple>::checkType(nl->First(args))
+     || (   !CcString::checkType(nl->Second(args)) 
+         && !FText::checkType(nl->Second(args)))
+     || !CcInt::checkType(nl->Third(args))
+     || (nl->AtomType(nl->Fourth(args))!=SymbolType)){
+    return listutils::typeError(err);
+  }
+  string attrName = nl->SymbolValue(nl->Fourth(args));
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr type;
+  int pos = listutils::findAttribute(attrList,attrName,type);
+  if(!pos){
+     return listutils::typeError("AttrName " + attrName + " not found");
+  }
+  if(!CcInt::checkType(type)){
+     return listutils::typeError("AttrName " + attrName + " not of type int");
+  }
+  return nl->ThreeElemList(
+                nl->SymbolAtom(Symbols::APPEND()),
+                nl->OneElemList(nl->IntAtom(pos-1)),
+                nl->First(args));
+
+}
+
+
+
+
 
 
 /*
@@ -6537,30 +6596,200 @@ ListExpr dloop2TM(ListExpr args){
   if(!nl->HasLength(args,3)){
     return listutils::typeError(err + "(wrong number of args)");
   }
-  if(!DArray2::checkType(nl->First(args))){
+
+  if(    !nl->HasLength(nl->First(args),2) 
+      || !nl->HasLength(nl->Second(args),2)
+      || !nl->HasLength(nl->Third(args),2)){
+    return listutils::typeError("internal Error");
+  }
+
+  // extract types
+  ListExpr argTypes = nl->ThreeElemList(
+                           nl->First(nl->First(args)),
+                           nl->First(nl->Second(args)),
+                           nl->First(nl->Third(args)));
+
+
+  if(!DArray2::checkType(nl->First(argTypes))){
     return listutils::typeError(err + "(first arg not a darray2");
   }
-  if(!CcString::checkType(nl->Second(args))){
+  if(!CcString::checkType(nl->Second(argTypes))){
     return listutils::typeError(err + "(second arg not a string");
   }
-  if(!listutils::isMap<1>(nl->Third(args))){
+  if(!listutils::isMap<1>(nl->Third(argTypes))){
     return listutils::typeError(err + "(third arg nor a functions "
                                       "with one argument)");
   }
-  ListExpr dat = nl->Second(nl->First(args));
-  ListExpr funarg = nl->Second(nl->Third(args));
+  ListExpr dat = nl->Second(nl->First(argTypes));
+  ListExpr funarg = nl->Second(nl->Third(argTypes));
   if(!nl->Equal(dat,funarg)){
     return listutils::typeError("type msmatch between darray2 subtype "
                                 "and function argument type");
   }
   ListExpr result = nl->TwoElemList(listutils::basicSymbol<DArray2>(),
-                                    nl->Third(nl->Third(args)));
+                                    nl->Third(nl->Third(argTypes)));
   if(!DArray2::checkType(result)){
     return listutils::typeError("Invalid function result");
   }
-  return result;
+
+  return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(nl->ToString(
+                                           nl->Second(nl->Third(args))))),
+               result);
+
 }
 
+
+
+class dloop2Info{
+
+  public:
+   dloop2Info(DArray2* _array, int _index, string& _resName,string& _fun) : 
+     index(_index), resName(_resName), fun(_fun), elem("",0,0,""){
+     int wn = _index % _array->numOfWorkers();
+     elem = _array->getWorker(wn);
+     srcName = _array->getName();
+     runner = boost::thread(&dloop2Info::run, this);
+  }
+
+  ~dloop2Info(){
+     runner.join();
+  }
+
+
+  private:
+    int index;
+    string resName;
+    string fun;
+    DArray2Element elem;
+    string srcName;
+    boost::thread runner;
+
+    void run(){
+       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
+       if(!ci){
+          sendError("Cannot find connection ");
+          return;
+       }
+
+       string bn = resName + "_" + stringutils::int2str(index);
+       string fn = fn+"_fun";
+       // delete eventually existing old function
+       int err;
+       string strres;
+       ci->simpleCommand("delete " + fn,err,strres);
+       // ignore error, standard case: object does not exist
+       // create new function object
+       ListExpr reslist;
+       string errMsg;
+       string cmd = "let " + fn + " = " + fun;
+       ci->simpleCommand(cmd, err,errMsg, reslist);
+       if(err!=0){ 
+           sendError(" Problem in command " + cmd + ":" + errMsg);
+           return;
+       }
+       // delete old array content
+       ci->simpleCommand("delete "+ bn, err,strres);
+       // ignore error, frequently entry is not there
+       cmd = "let " + bn + " =  "  + fn + "("+ srcName + "_" 
+                    + stringutils::int2str(index) +")";
+       ci->simpleCommand(cmd, err,errMsg, reslist);
+       if(err!=0){ 
+           sendError(" Problem in command " + cmd + ":" + errMsg);
+       }
+       ci->simpleCommand("delete " + fn, err, strres);
+    }
+    void sendError(const string&msg){
+       cmsg.error() << msg;
+       cmsg.send();
+    }
+
+};
+
+
+int dloop2VM(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+
+   DArray2* array = (DArray2*) args[0].addr;
+   CcString* name = (CcString*) args[1].addr;
+   FText* fun = (FText*) args[3].addr;
+
+   result = qp->ResultStorage(s);
+   DArray2* res = (DArray2*) result.addr;
+
+   if(!array->IsDefined() || !name->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }  
+
+   string n = name->GetValue();
+   if(!stringutils::isIdent(n)){
+      res->makeUndefined();
+      return 0;
+   }
+   (*res) = (*array);
+   res->setName(n);
+
+   vector<dloop2Info*> runners;
+   string f = fun->GetValue();
+
+   for(size_t i=0; i<array->getSize(); i++){
+     dloop2Info* r = new dloop2Info(array,i,n,f);
+     runners.push_back(r);
+   }
+
+   for(size_t i=0;i<runners.size();i++){
+     delete runners[i];
+   }
+   return 0; 
+}
+
+
+OperatorSpec dloop2Spec(
+     " darray2(X) x string x  (X->Y) -> darray2(Y)",
+     " _ dloop2[_,_]",
+     "Performs a function on each element of an darray2 instance."
+     "The string argument specifies the name of the result.",
+     "query da2 dloop2[\"da3\", . count"
+     );
+
+Operator dloop2Op(
+  "dloop2",
+  dloop2Spec.getStr(),
+  dloop2VM,
+  Operator::SimpleSelect,
+  dloop2TM
+);
+
+
+ListExpr
+DARRAY2ELEMTM( ListExpr args )
+{
+  if(!nl->HasMinLength(args,2)){
+    return listutils::typeError("at least one argument required");
+  }
+  ListExpr first = nl->First(args);
+  if(!DArray2::checkType(first)){
+    return listutils::typeError("darray2 expected");
+  }
+  return nl->Second(first);
+}
+
+OperatorSpec DARRAY2ELEMSpec(
+     "darray2(X) -> X ",
+     "DARRAY2ELEM(_)",
+     "Type Mapping Operator. Extract the type of a darray2.",
+     "query da2 dloop2[\"da3\", . count"
+     );
+
+Operator DARRAY2ELEMOp (
+      "DARRAY2ELEM",
+      DARRAY2ELEMSpec.getStr(),
+      0,   
+      Operator::SimpleSelect,
+      DARRAY2ELEMTM );
 
 
 
@@ -6605,7 +6834,9 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&ddistribute2Op);
    AddOperator(&closeWorkersOp);
    AddOperator(&showWorkersOp);
-
+   AddOperator(&dloop2Op);
+   dloop2Op.SetUsesArgsInTypeMapping();
+   AddOperator(&DARRAY2ELEMOp);
 }
 
 

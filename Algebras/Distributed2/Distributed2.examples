@@ -172,4 +172,23 @@ Signature : -> stream(tuple) , darray2 -> stream(tuple)
 Example   : query showWorkers() count
 Result    : 0
 
+Operator  : DARRAY2ELEM
+Number    : 1
+Signature : darray2(X) -> X
+Example   : query da dloop2["da3", fun( x : DARRAY2ELEM) x count ]
+Result    : bug
+Remark    : remote server required, Type Mapping Operator
+
+
+Operator  : dloop2 
+Number    : 1
+Signature : darray2(X) x string x (X -> Y) -> darray2(Y)
+Example   : query da dloop2["da3", fun( x : DARRAY2ELEM) x count ]
+Result    : bug
+Remark    : remote server required
+
+
+
+
+
 

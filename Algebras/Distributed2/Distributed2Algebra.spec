@@ -31,5 +31,9 @@ operator ddistribute2 alias DDISTRIBUTE2 pattern _ op [_,_]
 operator closeWorkers alias closeWorkers pattern op(_)
 operator showWorkers alias showWorkers pattern op(_)
 
+operator DARRAY2ELEM alias DARRAY2ELEM pattern op(_)
+
+operator dloop2 alias DLOOP2 pattern _ op[_,fun] implicit parameter darray2elem type DARRAY2ELEM
+
 
 
