@@ -78,7 +78,7 @@ assigntype label|place|time|start|end|leftclosed|rightclosed|labels|places
 vardottype {variable}\.{conditiontype}
 vardottype2 {variable}\.{assigntype}
 rightarrow =>
-const_op ([^A-Z\(\)\[\]\,\"\t\n ][^\(\)\[\]\,\"\t\n ]+)|{num}|<|>|>=|<=|=|\+|\-|\*|TRUE|FALSE|\"[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-]*\"
+const_op ([^A-Z\(\)\[\]\,\"\t\n ][^\(\)\[\]\,\"\t\n ]+)|{num}|<|>|>=|<=|=|#|\+|\-|\*|TRUE|FALSE|\"[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-]*\"
 assign \:=
 openregex \[
 closeregex (\]\+)|(\]\*)|(\]\?)|\]

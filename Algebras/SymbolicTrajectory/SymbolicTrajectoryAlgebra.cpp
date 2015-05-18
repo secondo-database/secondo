@@ -2699,9 +2699,11 @@ int tmatchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   CcBool* res = static_cast<CcBool*>(result.addr);
   res->SetDefined(false);
   if (pat->IsDefined() && attrno->IsDefined()) {
-    p = Pattern::getPattern(pat->toText(), false, tuple);
+    Supplier s0 = qp->GetSon(s, 0);
+    ListExpr ttype = qp->GetType(s0);
+    p = Pattern::getPattern(pat->toText(), false, tuple, ttype);
     if (p) {
-      ExtBool result = p->tmatches(tuple, attrno->GetIntval());
+      ExtBool result = p->tmatches(tuple, attrno->GetIntval(), ttype);
       if (result == TRUE) {
         res->Set(true, true); 
       }

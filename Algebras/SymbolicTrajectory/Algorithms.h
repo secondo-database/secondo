@@ -47,7 +47,6 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include "SecParser.h"
 #include "NestedList.h"
 #include "ListUtils.h"
-#include "RelationAlgebra.h"
 #include "Stream.h"
 #include "InvertedFile.h"
 #include "RTreeAlgebra.h"
@@ -81,7 +80,7 @@ class Assign;
 class ClassifyLI;
 class IndexLI;
 
-Pattern* parseString(const char* input, bool classify, Tuple *t);
+Pattern* parseString(const char* input, bool classify, Tuple *t,ListExpr ttype);
 void patternFlushBuffer();
 
 enum ExtBool {FALSE, TRUE, UNDEF};
@@ -398,10 +397,10 @@ class Condition {
   ~Condition() {}
   
   string toString() const;
-  int convertVarKey(const char *varKey, Tuple *t = 0);
+  int convertVarKey(const char *varKey, Tuple *t = 0, ListExpr tupleType = 0);
   void clear();
-  static string getType(int t);
-  bool initOpTree();
+  static string getType(int t, Tuple *tuple = 0, ListExpr ttype = 0);
+  bool initOpTree(Tuple *tuple = 0);
   void deleteOpTree();
   
   string  getText() const          {return text;}
@@ -437,6 +436,14 @@ class Condition {
   int     getPointersSize()        {return pointers.size();}
   bool    isTreeOk()               {return treeOk;}
   void    setTreeOk(bool value)    {treeOk = value;}
+  template<class M>
+  void    setPointerToValue(const int pos, M *traj, const int from, 
+                            const int to);
+  template<class M>
+  void    setPointerToEmptyValue(const int pos, M *traj);
+  template<class M>
+  bool    evaluate(const map<string, pair<int, int> > &binding, M *traj,
+                   Tuple *tuple = 0);
 };
 
 class PatElem {
@@ -514,7 +521,7 @@ class Assign {
   Assign() {treesOk = false;}
   ~Assign() {}
 
-  bool convertVarKey(const char* vk, Tuple *tuple = 0);
+  bool convertVarKey(const char* vk, Tuple *tuple = 0, ListExpr tupleType = 0);
   bool prepareRewrite(int key, const vector<size_t> &assSeq,
                       map<string, int> &varPosInSeq, stj::MLabel const &ml);
   bool hasValue() {return (!text[0].empty() || !text[1].empty() ||
@@ -588,24 +595,24 @@ class Pattern {
   bool isValid(const string& type) const;
   bool isCompatible(TupleType *ttype, const int majorAttrNo, 
                   vector<pair<int, string> >& relevantAttrs, int& majorValueNo);
-  static Pattern* getPattern(string input, bool classify, 
-                             Tuple *tuple = 0);
+  static Pattern* getPattern(string input, bool classify, Tuple *tuple = 0,
+                             ListExpr ttype = 0);
   template<class M>
   ExtBool matches(M *m);
-  ExtBool tmatches(Tuple *tuple, const int attrno);
+  ExtBool tmatches(Tuple *tuple, const int attrno, ListExpr ttype);
   int getResultPos(const string v);
   void collectAssVars();
   void addVarPos(string var, int pos);
   void addAtomicPos();
   int getPatternPos(const string v);
   bool checkAssignTypes();
-  static pair<string, Attribute*> getPointer(int key);
+  static pair<string, Attribute*> getPointer(int key, Tuple *tuple = 0);
   bool initAssignOpTrees();
   void deleteAssignOpTrees(bool conds);
   bool parseNFA();
   bool containsFinalState(set<int> &states);
-  bool initCondOpTrees();
-  bool initEasyCondOpTrees();
+  bool initCondOpTrees(Tuple *tuple = 0);
+  bool initEasyCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0);
   void deleteCondOpTrees();
   void deleteEasyCondOpTrees();
   void deleteAtomValues(vector<pair<int, string> > &attrs);
@@ -801,6 +808,7 @@ class TMatch {
   int attrno, valueno;
   DataType type;
   vector<pair<int, string> > relevantAttrs;
+  set<unsigned int>** pathMatrix; // stores the whole matching process
   
   TMatch(Pattern *pat, Tuple *tuple, const int _attrno, 
          vector<pair<int, string> >& _relevantAttrs, const int _valueno) {
@@ -824,7 +832,13 @@ class TMatch {
   bool mainValuesMatch(const int u, const int atom);
   bool otherValuesMatch(const int pos, const SecInterval& iv, const int atom);
   bool valuesMatch(const int u, const int atom);
+  bool easyCondsMatch(const int u, const int atom);
   bool performTransitions(const int u, set<int>& states);
+  bool performTransitionsWithMatrix(const int u, set<int>& states);
+  bool findMatchingBinding(const int startState);
+  bool conditionsMatch(const map<string, pair<int, int> > &binding);
+  bool findBinding(const int u, const int atom, 
+                   map<string, pair<int, int> > &binding);
 };
 
 template<class M>
@@ -868,8 +882,6 @@ class Match {
                  const map<string, pair<int, int> > &binding);
   bool evaluateEmptyM();
   bool isSensiblyBound(const map<string, pair<int, int> > &b, string& var);
-  bool evaluateCond(Condition &cond,
-                 const map<string, pair<int, int> > &binding);
   void deletePattern() {if (p) {delete p; p = 0;}}
   bool initEasyCondOpTrees() {return p->initEasyCondOpTrees();}
   bool initCondOpTrees() {return p->initCondOpTrees();}
@@ -3265,6 +3277,190 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
   }
   return dp[n - 1][m - 1] / max(n, m);
 }
+
+/*
+\subsection{Function ~setPointerToValue~}
+
+*/
+template<class M>
+void Condition::setPointerToValue(const int pos, M *traj, const int from, 
+                                  const int to) {
+  SecInterval iv(true);
+  switch (getKey(pos)) {
+    case 0: { // label
+      string value;
+      ((MLabel*)traj)->GetValue(from, value);
+      setValuePtr(pos, value);
+      break;
+    }
+    case 1: { // place
+      pair<string, unsigned int> value;
+      ((MPlace*)traj)->GetValue(from, value);
+      setValuePtr(pos, value);
+      break;
+    }
+    case 2: { // time
+      clearTimePtr(pos);
+      for (unsigned int j = from; j <= to; j++) {
+        traj->GetInterval(j, iv);
+        mergeAddTimePtr(pos, iv);
+      }
+      break;
+    }
+    case 3: { // start
+      traj->GetInterval(from, iv);
+      setStartEndPtr(pos, iv.start);
+      break;
+    }
+    case 4: { // end
+      traj->GetInterval(to, iv);
+      setStartEndPtr(pos, iv.end);
+      break;
+    }
+    case 5: { // leftclosed
+      traj->GetInterval(from, iv);
+      setLeftRightclosedPtr(pos, iv.lc);
+      break;
+    }
+    case 6: { // rightclosed
+      traj->GetInterval(to, iv);
+      setLeftRightclosedPtr(pos, iv.rc);
+      break;
+    }
+    case 7: { // card
+      setCardPtr(pos, to - from + 1);
+      break;
+    }
+    case 8: { // labels
+      cleanLabelsPtr(pos);
+      if (M::BasicType() == MLabel::BasicType()) {
+        for (unsigned int j = from; j <= to; j++) {
+          string value;
+          ((MLabel*)traj)->GetValue(j, value);
+          appendToLabelsPtr(pos, value);
+        }
+      }
+      else {
+        for (unsigned int j = from; j <= to; j++) {
+          set<string> values;
+          ((MLabels*)traj)->GetValues(j, values);
+          appendToLabelsPtr(pos, values);
+        }
+      }
+      break;
+    }
+    default: { // places
+      cleanPlacesPtr(pos);
+      if (M::BasicType() == MPlace::BasicType()) {
+        for (unsigned int j = from; j <= to; j++) {
+          pair<string, unsigned int> value;
+          ((MPlace*)traj)->GetValue(j, value);
+          appendToPlacesPtr(pos, value);
+        }
+      }
+      else {
+        for (unsigned int j = from; j <= to; j++) {
+          set<pair<string, unsigned int> > values;
+          ((MPlaces*)traj)->GetValues(j, values);
+          appendToPlacesPtr(pos, values);
+        }
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~setPointerToEmptyValue~}
+
+*/
+template<class M>
+void Condition::setPointerToEmptyValue(const int pos, M *traj) {
+  SecInterval iv(true);
+  switch (getKey(pos)) {
+    case 0: { // label
+      string value("");
+      setValuePtr(pos, value);
+      break;
+    }
+    case 1: { // place
+      pair<string, unsigned int> value;
+      setValuePtr(pos, value);
+      break;
+    }
+    case 2: {
+      clearTimePtr(pos);
+      traj->GetInterval(traj->GetNoComponents() - 1, iv);
+      iv.SetStart(iv.end, false);
+      mergeAddTimePtr(pos, iv);
+      break;
+    }
+    case 3: // start
+    case 4: { // end
+      traj->GetInterval(traj->GetNoComponents() - 1, iv);
+      setStartEndPtr(pos, iv.end);
+      break;
+    }
+    case 5: // leftclosed
+    case 6: { // rightclosed
+      traj->GetInterval(traj->GetNoComponents() - 1, iv);
+      setLeftRightclosedPtr(pos, iv.rc);
+      break;
+    }
+    case 7: {
+      setCardPtr(pos, 0);
+      break;
+    }
+    case 8: {
+      cleanLabelsPtr(pos);
+      break;
+    }
+    case 9: {
+      cleanPlacesPtr(pos);
+      break;
+    }
+  }
+}
+
+/*
+\subsection{Function ~evaluate~}
+
+This function is invoked by ~conditionsMatch~ (and others) and checks whether a 
+binding matches a certain condition.
+
+*/
+template<class M>
+bool Condition::evaluate(const map<string, pair<int, int> > &binding, M *traj,
+                         Tuple *tuple /* = 0 */) {
+  Word qResult;
+  unsigned int from, to;
+  for (int i = 0; i < getVarKeysSize(); i++) {
+    string var = getVar(i);
+    if ((var != "") && binding.count(var)) {
+      from = binding.find(var)->second.first;
+      to = binding.find(var)->second.second;
+      if (getKey(i) > 99) { // reference to attribute of tuple
+        if (!tuple) {
+          return false;
+        }
+        pointers[i]->CopyFrom(tuple->GetAttribute(getKey(i) - 100));
+        getQP()->EvalS(getOpTree(), qResult, OPEN);
+        return ((CcBool*)qResult.addr)->GetValue();
+      }
+      setPointerToValue<M>(i, traj, from, to);
+    }
+    else { // variable bound to empty sequence
+      setPointerToEmptyValue<M>(i, traj);
+    }
+  }
+  getQP()->EvalS(getOpTree(), qResult, OPEN);
+  if (!((CcBool*)qResult.addr)->GetValue()) {
+    cout << "FALSE result: FROM " << from << " TO " << to << "; result for |" 
+         << text 
+         << "| is " << (((CcBool*)qResult.addr)->GetValue() ? "TRUE" : "FALSE") 
+         << endl;
+  }
+  return ((CcBool*)qResult.addr)->GetValue();
+}
  
 /*
 \subsection{Function ~matches~}
@@ -3689,7 +3885,7 @@ bool Match<M>::easyCondsMatch(int ulId, PatElem const &elem,
   elem.getV(var);
   binding[var] = make_pair(ulId, ulId);
   for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
-    if (!evaluateCond(easyConds[*it], binding)) {
+    if (!easyConds[*it].evaluate<M>(binding, m)) {
       return false;
     }
   }
@@ -3710,7 +3906,7 @@ bool Match<M>::conditionsMatch(vector<Condition> &conds,
     return evaluateEmptyM();
   }
   for (unsigned int i = 0; i < conds.size(); i++) {
-    if (!evaluateCond(conds[i], binding)) {
+    if (!conds[i].evaluate<M>(binding, m)) {
 //       cout << conds[i].getText() << " | ";
 //       Tools::printBinding(binding);
       return false;
@@ -3761,160 +3957,6 @@ bool Match<M>::isSensiblyBound(const map<string, pair<int, int> > &b,
   return (first >= 0 && first < m->GetNoComponents() &&
           second >= 0 && second < m->GetNoComponents() && first <= second);
 }
-
-/*
-\subsection{Function ~evaluateCond~}
-
-This function is invoked by ~conditionsMatch~ and checks whether a binding
-matches a certain condition.
-
-*/
-template<class M>
-bool Match<M>::evaluateCond(Condition &cond,
-                            const map<string, pair<int, int> > &binding) {
-  Word qResult;
-  unsigned int from, to;
-  SecInterval iv(true);
-  for (int i = 0; i < cond.getVarKeysSize(); i++) {
-    string var = cond.getVar(i);
-    if ((var != "") && binding.count(var)) {
-      from = binding.find(var)->second.first;
-      to = binding.find(var)->second.second;
-      switch (cond.getKey(i)) {
-        case 0: { // label
-          string value;
-          ((MLabel*)m)->GetValue(from, value);
-          cond.setValuePtr(i, value);
-          break;
-        }
-        case 1: { // place
-          pair<string, unsigned int> value;
-          ((MPlace*)m)->GetValue(from, value);
-          cond.setValuePtr(i, value);
-          break;
-        }
-        case 2: { // time
-          cond.clearTimePtr(i);
-          for (unsigned int j = from; j <= to; j++) {
-            m->GetInterval(j, iv);
-            cond.mergeAddTimePtr(i, iv);
-          }
-          break;
-        }
-        case 3: { // start
-          m->GetInterval(from, iv);
-          cond.setStartEndPtr(i, iv.start);
-          break;
-        }
-        case 4: { // end
-          m->GetInterval(to, iv);
-          cond.setStartEndPtr(i, iv.end);
-          break;
-        }
-        case 5: { // leftclosed
-          m->GetInterval(from, iv);
-          cond.setLeftRightclosedPtr(i, iv.lc);
-          break;
-        }
-        case 6: { // rightclosed
-          m->GetInterval(to, iv);
-          cond.setLeftRightclosedPtr(i, iv.rc);
-          break;
-        }
-        case 7: { // card
-          cond.setCardPtr(i, to - from + 1);
-          break;
-        }
-        case 8: { // labels
-          cond.cleanLabelsPtr(i);
-          if (type == MLABEL) {
-            for (unsigned int j = from; j <= to; j++) {
-              string value;
-              ((MLabel*)m)->GetValue(j, value);
-              cond.appendToLabelsPtr(i, value);
-            }
-          }
-          else {
-            for (unsigned int j = from; j <= to; j++) {
-              set<string> values;
-              ((MLabels*)m)->GetValues(j, values);
-              cond.appendToLabelsPtr(i, values);
-            }
-          }
-          break;
-        }
-        default: { // places
-          cond.cleanPlacesPtr(i);
-          if (type == MPLACE) {
-            for (unsigned int j = from; j <= to; j++) {
-              pair<string, unsigned int> value;
-              ((MPlace*)m)->GetValue(j, value);
-              cond.appendToPlacesPtr(i, value);
-            }
-          }
-          else {
-            for (unsigned int j = from; j <= to; j++) {
-              set<pair<string, unsigned int> > values;
-              ((MPlaces*)m)->GetValues(j, values);
-              cond.appendToPlacesPtr(i, values);
-            }
-          }
-        }
-      }
-    }
-    else { // variable bound to empty sequence
-      switch (cond.getKey(i)) {
-        case 0: { // label
-          string value("");
-          cond.setValuePtr(i, value);
-          break;
-        }
-        case 1: { // place
-          pair<string, unsigned int> value;
-          cond.setValuePtr(i, value);
-          break;
-        }
-        case 2: {
-          cond.clearTimePtr(i);
-          m->GetInterval(m->GetNoComponents() - 1, iv);
-          iv.SetStart(iv.end, false);
-          cond.mergeAddTimePtr(i, iv);
-          break;
-        }
-        case 3: // start
-        case 4: { // end
-          m->GetInterval(m->GetNoComponents() - 1, iv);
-          cond.setStartEndPtr(i, iv.end);
-          break;
-        }
-        case 5: // leftclosed
-        case 6: { // rightclosed
-          m->GetInterval(m->GetNoComponents() - 1, iv);
-          cond.setLeftRightclosedPtr(i, iv.rc);
-          break;
-        }
-        case 7: {
-          cond.setCardPtr(i, 0);
-          break;
-        }
-        case 8: {
-          cond.cleanLabelsPtr(i);
-          break;
-        }
-        case 9: {
-          cond.cleanPlacesPtr(i);
-          break;
-        }
-        default: {
-          return true;
-        }
-      }
-    }
-  }
-  cond.getQP()->EvalS(cond.getOpTree(), qResult, OPEN);
-  return ((CcBool*)qResult.addr)->GetValue();
-}
-
 
 /*
 \subsection{Constructors for class ~FilterMatchesLI~}

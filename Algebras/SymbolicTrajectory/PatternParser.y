@@ -79,6 +79,7 @@ set<string> curIvs, patVars, resultVars, condVars;
 unsigned int pos(0), regExLength(1), numOfElems(0);
 vector<int> posBeforeOpen;
 Tuple *tup = 0;
+ListExpr tupleType = 0;
 char* errMsg;
 %}
 
@@ -246,7 +247,7 @@ condition : expressionlist {
           ;
 
 expression : ZZVAR_DOT_TYPE {
-               if (cond.convertVarKey($1, tup) == -1) {
+               if (cond.convertVarKey($1, tup, tupleType) == -1) {
                  string varDotType($1);
                  /*errMsg = convert("error: " + varDotType + " not accepted");
                  yyerror(errMsg);*/
@@ -254,7 +255,7 @@ expression : ZZVAR_DOT_TYPE {
                  free($1);
                } else {
                  if (assignNow) {
-                   if (!assign.convertVarKey($1, tup)) {
+                   if (!assign.convertVarKey($1, tup, tupleType)) {
 /*                      string varDotType($1); */
 /*                     errMsg = convert("error: " + varDotType + " not accepted");
                      yyerror(errMsg);*/
@@ -508,7 +509,7 @@ This function is the only one called by the algebra.
 
 */
 Pattern* stj::parseString(const char* input, bool classify = false,
-                          Tuple *t = 0) {
+                          Tuple *t = 0, ListExpr ttype = 0) {
   wholepat = new Pattern(0);
   patternFlushBuffer();
   pattern_scan_string(input);
@@ -528,6 +529,7 @@ Pattern* stj::parseString(const char* input, bool classify = false,
   easyCond = true;
   numOfElems = 0;
   tup = t;
+  tupleType = ttype;
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
     parseSuccess = false;
@@ -818,7 +820,8 @@ Checks whether the variable var occurs in the pattern and whether the key k
 is valid; returns the recognized key.
 
 */
-int Condition::convertVarKey(const char *varKey, Tuple *t /* = 0 */) {
+int Condition::convertVarKey(const char *varKey, Tuple *t /* = 0 */,
+                             ListExpr tupleType /* = 0 */) {
   string input(varKey), var;
   int key;
   int dotpos = input.find('.');
@@ -829,8 +832,7 @@ int Condition::convertVarKey(const char *varKey, Tuple *t /* = 0 */) {
     wholepat->getElem(i, elem);
     elem.getV(var);
     if (varInput == var) {
-      key = Tools::getKey(kInput, t);
-      cout << "key for " << kInput << " is " << key << endl;
+      key = Tools::getKey(kInput, t, tupleType);
       if ((key < 2) && ((elem.getW() != NO)
        || (wholepat->getVarPos(var).first < wholepat->getVarPos(var).second))) {
         cout << "label/place condition not allowed for sequences" << endl;
@@ -856,7 +858,8 @@ int Condition::convertVarKey(const char *varKey, Tuple *t /* = 0 */) {
   return -1;
 }
 
-bool Assign::convertVarKey(const char *varKey, Tuple *tuple /* = 0 */) {
+bool Assign::convertVarKey(const char *varKey, Tuple *tuple /* = 0 */,
+                           ListExpr tupleType /* = 0 */) {
   string input(varKey);
   int dotpos = input.find('.');
   string varInput(input.substr(0, dotpos));

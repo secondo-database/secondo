@@ -289,12 +289,13 @@ bool Pattern::isCompatible(TupleType *ttype, const int majorAttrNo,
 Calls the parser.
 
 */
-Pattern* Pattern::getPattern(string input, bool classify, Tuple *tuple) {
+Pattern* Pattern::getPattern(string input, bool classify, Tuple *tuple /* =0 */,
+                             ListExpr ttype /* = 0 */) {
   if (input.find('\n') == string::npos) {
     input.append("\n");
   }
   const char *patternChar = input.c_str();
-  return parseString(patternChar, classify, tuple);
+  return parseString(patternChar, classify, tuple, ttype);
 }
 
 bool Pattern::containsFinalState(set<int> &states) {
@@ -336,7 +337,7 @@ Computes whether a tuple with several trajectories of different types matches
 the pattern.
 
 */
-ExtBool Pattern::tmatches(Tuple *tuple, const int attrno) {
+ExtBool Pattern::tmatches(Tuple *tuple, const int attrno, ListExpr ttype) {
   ExtBool result = UNDEF;
   vector<pair<int, string> > relevantAttrs;
   int majorValueNo = -1;
@@ -345,7 +346,7 @@ ExtBool Pattern::tmatches(Tuple *tuple, const int attrno) {
     for (unsigned int i = 0; i < easyConds.size(); i++) {
       cout << easyConds[i].getText() << endl;
     }
-    if (initEasyCondOpTrees() && !isNFAempty()) {
+    if (initEasyCondOpTrees(tuple, ttype) && !isNFAempty()) {
       TMatch tmatch(this, tuple, attrno, relevantAttrs, majorValueNo);
       result = tmatch.matches();
     }
@@ -354,7 +355,16 @@ ExtBool Pattern::tmatches(Tuple *tuple, const int attrno) {
   return result;
 }
 
-string Condition::getType(int t) {
+string Condition::getType(int t, Tuple *tuple /* = 0 */, 
+                          ListExpr ttype /* = 0 */) {
+  if (t > 99) {
+    if (tuple && ttype) {
+      return "." + nl->ToString(nl->First(nl->Nth(t - 99, nl->Second(ttype))));
+    }
+    else {
+      return ".ERROR";
+    }
+  }
   switch (t) {
     case 0: return ".label";
     case 1: return ".place";
@@ -467,57 +477,67 @@ void Condition::setLeftRightclosedPtr(unsigned int pos, bool value) {
 Static function invoked by ~initCondOpTrees~ or ~initAssignOpTrees~
 
 */
-pair<string, Attribute*> Pattern::getPointer(int key) {
+pair<string, Attribute*> Pattern::getPointer(int key, Tuple *tuple /* = 0 */) {
   pair<string, Attribute*> result;
-  switch (key) {
-    case 0: { // label, type Label
-      result.second = new Label(true);
-      result.first = "[const label pointer "
-                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
-      break;
-    }
-    case 1: { // place, type Place
-      result.second = new Place(true);
-      result.first = "[const place pointer "
-                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
-      break;
-    }
-    case 2: { // time, type Periods
-      result.second = new Periods(1);
-      result.first = "[const periods pointer "
-                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
-      break;
-    }
-    case 3:   // start, type Instant
-    case 4: { // end, type Instant
-      result.second = new DateTime(instanttype);
-      result.first = "[const instant pointer "
-                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
-      break;
-    }
-    case 5:   // leftclosed, type CcBool
-    case 6: { // rightclosed, type CcBool
-      result.second = new CcBool(false);
-      result.first = "[const bool pointer "
-                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
-      break;
-    }
-    case 7: { // card, type CcInt
-      result.second = new CcInt(false);
-      result.first = "[const int pointer "
-                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
-      break;
-    }
-    case 8: { // labels, type Labels
-      result.second = new Labels(true);
-      result.first = "[const labels pointer "
-                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
-      break;
-    }
-    default: { // places, type Places
-      result.second = new Places(true);
-      result.first = "[const places pointer "
-                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+  if (key > 99) { // attribute name
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    AttributeType attrType = tuple->GetTupleType()->GetAttributeType(key - 100);
+    string type = sc->GetTypeName(attrType.algId, attrType.typeId);
+    result.second = tuple->GetAttribute(key - 100)->Clone();
+    result.first = "[const " + type + " pointer "
+                 + nl->ToString(listutils::getPtrList(result.second)) + "]";
+  }
+  else {
+    switch (key) {
+      case 0: { // label, type Label
+        result.second = new Label(true);
+        result.first = "[const label pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+        break;
+      }
+      case 1: { // place, type Place
+        result.second = new Place(true);
+        result.first = "[const place pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+        break;
+      }
+      case 2: { // time, type Periods
+        result.second = new Periods(1);
+        result.first = "[const periods pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+        break;
+      }
+      case 3:   // start, type Instant
+      case 4: { // end, type Instant
+        result.second = new DateTime(instanttype);
+        result.first = "[const instant pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+        break;
+      }
+      case 5:   // leftclosed, type CcBool
+      case 6: { // rightclosed, type CcBool
+        result.second = new CcBool(false);
+        result.first = "[const bool pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+        break;
+      }
+      case 7: { // card, type CcInt
+        result.second = new CcInt(false);
+        result.first = "[const int pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+        break;
+      }
+      case 8: { // labels, type Labels
+        result.second = new Labels(true);
+        result.first = "[const labels pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+        break;
+      }
+      default: { // places, type Places
+        result.second = new Places(true);
+        result.first = "[const places pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      }
     }
   }
   return result;
@@ -529,7 +549,7 @@ pair<string, Attribute*> Pattern::getPointer(int key) {
 For a pattern with conditions, an operator tree structure is prepared.
 
 */
-bool Pattern::initCondOpTrees() {
+bool Pattern::initCondOpTrees(Tuple *tuple /* = 0 */) {
   for (unsigned int i = 0; i < conds.size(); i++) { // opTrees for conditions
     if (!conds[i].initOpTree()) {
       cout << "Operator tree for condition " << i << " uninitialized" << endl;
@@ -539,14 +559,14 @@ bool Pattern::initCondOpTrees() {
   return true;
 }
 
-bool Condition::initOpTree() {
+bool Condition::initOpTree(Tuple *tuple /* = 0 */) {
   string q(""), part, toReplace("");
   pair<string, Attribute*> strAttr;
   vector<Attribute*> ptrs;
   if (!isTreeOk()) {
     q = "query " + text;
     for (unsigned int j = 0; j < varKeys.size(); j++) { // init pointers
-      strAttr = Pattern::getPointer(getKey(j));
+      strAttr = Pattern::getPointer(getKey(j), tuple);
       ptrs.push_back(strAttr.second);
       toReplace = getVar(j) + getType(getKey(j));
       q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
@@ -569,7 +589,8 @@ bool Condition::initOpTree() {
 For a pattern with conditions, an operator tree structure is prepared.
 
 */
-bool Pattern::initEasyCondOpTrees() {
+bool Pattern::initEasyCondOpTrees(Tuple *tuple /* = 0 */, 
+                                  ListExpr ttype /* = 0 */) {
   string q(""), part, toReplace("");
   pair<string, Attribute*> strAttr;
   vector<Attribute*> ptrs;
@@ -577,10 +598,10 @@ bool Pattern::initEasyCondOpTrees() {
     if (!easyConds[i].isTreeOk()) {
       q = "query " + easyConds[i].getText();
       for (int j = 0; j < easyConds[i].getVarKeysSize(); j++) { // init pointers
-        strAttr = getPointer(easyConds[i].getKey(j));
+        strAttr = getPointer(easyConds[i].getKey(j), tuple);
         ptrs.push_back(strAttr.second);
         toReplace = easyConds[i].getVar(j)
-                  + Condition::getType(easyConds[i].getKey(j));
+                  + Condition::getType(easyConds[i].getKey(j), tuple, ttype);
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
       }
       pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
@@ -634,8 +655,9 @@ void Pattern::deleteEasyCondOpTrees() {
 ExtBool TMatch::matches() {
   set<int> states;
   states.insert(0); // initial state
+  int noMainComponents = GetNoMainComponents();
   if (!p->hasConds() && !p->hasAssigns()) {
-    for (int i = 0; i < GetNoMainComponents(); i++) {
+    for (int i = 0; i < noMainComponents; i++) {
       if (!performTransitions(i, states)) {
         return FALSE;
       }
@@ -646,7 +668,27 @@ ExtBool TMatch::matches() {
     else {
       return FALSE;
     }
-  } 
+  }
+  pathMatrix = Tools::createSetMatrix(noMainComponents, p->elemToVar.size());
+  for (int i = 0; i < noMainComponents; i++) {
+    if (!performTransitionsWithMatrix(i, states)) {
+      Tools::deleteSetMatrix(pathMatrix, noMainComponents);
+      return FALSE;
+    }
+  }
+  if (!p->containsFinalState(states)) {
+    Tools::deleteSetMatrix(pathMatrix, noMainComponents);
+    return FALSE;
+  }
+  if (!p->initCondOpTrees()) {
+    Tools::deleteSetMatrix(pathMatrix, noMainComponents);
+    return FALSE;
+  }
+  if (!p->hasAssigns()) {
+    bool result = findMatchingBinding(0);
+    Tools::deleteSetMatrix(pathMatrix, noMainComponents);
+    return (result ? TRUE : FALSE);
+  }
   return TRUE;
 }
 
@@ -924,6 +966,120 @@ bool TMatch::valuesMatch(const int u, const int atom) {
 }
 
 /*
+\subsection{Function ~easyCondsMatch~}
+
+*/
+bool TMatch::easyCondsMatch(const int u, const int atom) {
+  set<int> pos = p->getEasyCondPos(atom);
+  if (p->elems[atom].getW() || pos.empty() || p->easyConds.empty()) {
+    return true;
+  }
+  map<string, pair<int, int> > binding;
+  binding[p->elems[atom].var] = make_pair(u, u);
+  for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
+    switch (type) {
+      case MLABEL: {
+        MLabel *traj = (MLabel*)t->GetAttribute(attrno);
+        if (!p->easyConds[*it].evaluate<MLabel>(binding, traj, t)) {
+          return false;
+        }
+      }
+      case MLABELS: {
+        MLabels *traj = (MLabels*)t->GetAttribute(attrno);
+        if (!p->easyConds[*it].evaluate<MLabels>(binding, traj, t)) {
+          return false;
+        }
+      }
+      case MPLACE: {
+        MPlace *traj = (MPlace*)t->GetAttribute(attrno);
+        if (!p->easyConds[*it].evaluate<MPlace>(binding, traj, t)) {
+          return false;
+        }
+      }
+      case MPLACES: {
+        MPlaces *traj = (MPlaces*)t->GetAttribute(attrno);
+        if (!p->easyConds[*it].evaluate<MPlaces>(binding, traj, t)) {
+          return false;
+        }
+      }
+    }
+    
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~performTransitionsWithMatrix~}
+
+*/
+bool TMatch::performTransitionsWithMatrix(const int u, set<int>& states) {
+  map<int, int> transitions;
+  for (set<int>::iterator it = states.begin(); it != states.end(); it++) {
+    map<int, int> trans = p->nfa[*it]; // collect possible transitions
+    transitions.insert(trans.begin(), trans.end());
+  }
+  if (transitions.empty()) { // no possible transition available
+    return false;
+  }
+  states.clear();
+  map<int, int>::iterator it, itn;
+  set<unsigned int>::iterator itu;
+  if (u < GetNoMainComponents() - 1) { // usual case
+    for (it = transitions.begin(); it != transitions.end(); it++) {
+      if (p->elems[it->first].getW() != NO) {
+        states.insert(states.end(), it->second);
+        map<int, int> nextTrans = p->nfa[it->second];
+        for (itn = nextTrans.begin(); itn != nextTrans.end(); itn++) {
+          itu = pathMatrix[u][p->atomicToElem[it->first]].end();
+          pathMatrix[u][p->atomicToElem[it->first]].insert
+                                             (itu, p->atomicToElem[itn->first]);
+        }
+      }
+      else {
+        set<string> ivs;
+        SecInterval iv;
+        GetInterval(u, iv);
+        p->elems[it->first].getI(ivs);
+        if (Tools::timesMatch(iv, ivs) && valuesMatch(u, it->first)
+            && easyCondsMatch(u, it->first)) {
+          states.insert(states.end(), it->second);
+          map<int, int> nextTrans = p->nfa[it->second];
+          for (itn = nextTrans.begin(); itn != nextTrans.end(); itn++) {
+            itu = pathMatrix[u][p->atomicToElem[it->first]].end();
+            pathMatrix[u][p->atomicToElem[it->first]].insert
+                                             (itu, p->atomicToElem[itn->first]);
+          }
+        }
+      }
+    }
+  }
+  else { // last row; mark final states with -1
+    for (it = transitions.begin(); it != transitions.end(); it++) {
+      if (p->elems[it->first].getW() != NO) {
+        states.insert(states.end(), it->second);
+        if (p->finalStates.count(it->second)) { // store last matching
+          pathMatrix[u][p->atomicToElem[it->first]].insert(UINT_MAX);
+        }
+      }
+      else {
+        set<string> ivs;
+        SecInterval iv;
+        GetInterval(u, iv);
+        p->elems[it->first].getI(ivs);
+        if (Tools::timesMatch(iv, ivs) && valuesMatch(u, it->first)
+            && easyCondsMatch(u, it->first)) {
+          states.insert(states.end(), it->second);
+          if (p->finalStates.count(it->second)) { // store last matching
+            pathMatrix[u][p->atomicToElem[it->first]].insert(UINT_MAX);
+          }
+        }
+      }
+    }
+  }
+  return !states.empty();
+}
+
+/*
 \subsection{Function ~performTransitions~}
 
 */
@@ -938,26 +1094,139 @@ bool TMatch::performTransitions(const int u, set<int>& states) {
   }
   states.clear();
   map<int, int>::iterator it;
-  if (p->hasConds() || p->hasAssigns()) {
-    
-  }
-  else {
-    for (it = transitions.begin(); it != transitions.end(); it++) {
-      if (p->elems[it->first].getW() != NO) {
+  for (it = transitions.begin(); it != transitions.end(); it++) {
+    if (p->elems[it->first].getW() != NO) {
+      states.insert(states.end(), it->second);
+    }
+    else {
+      set<string> ivs;
+      SecInterval iv;
+      GetInterval(u, iv);
+      p->elems[it->first].getI(ivs);
+      if (Tools::timesMatch(iv, ivs) && valuesMatch(u, it->first)
+          && easyCondsMatch(u, it->first)) {
         states.insert(states.end(), it->second);
-      }
-      else {
-        set<string> ivs;
-        SecInterval iv;
-        GetInterval(u, iv);
-        p->elems[it->first].getI(ivs);
-        if (Tools::timesMatch(iv, ivs) && valuesMatch(u, it->first)) {
-          states.insert(states.end(), it->second);
-        }
       }
     }
   }
   return !states.empty();
+}
+
+/*
+\subsection{Function ~conditionsMatch~}
+
+*/
+bool TMatch::conditionsMatch(const map<string, pair<int, int> > &binding) {
+  Tools::printBinding(binding);
+  if (!GetNoMainComponents()) {
+    // TODO: consider empty symbolic trajectory
+  }
+  for (unsigned int i = 0; i < p->conds.size(); i++) {
+    switch (type) {
+      case MLABEL: {
+        if (!p->conds[i].evaluate(binding, (MLabel*)t->GetAttribute(attrno),t)){
+          cout << "FALSE: " << p->conds[i].getText() << endl;
+          return false;
+        }
+        cout << "TRUE: " << p->conds[i].getText() << endl;
+        break;
+      }
+      case MLABELS: {
+        if (!p->conds[i].evaluate(binding,(MLabels*)t->GetAttribute(attrno),t)){
+          return false;
+        }
+        break;
+      }
+      case MPLACE: {
+        if (!p->conds[i].evaluate(binding, (MPlace*)t->GetAttribute(attrno),t)){
+          return false;
+        }
+        break;
+      }
+      case MPLACES: {
+        if (!p->conds[i].evaluate(binding,(MPlaces*)t->GetAttribute(attrno),t)){
+          return false;
+        }
+        break;
+      }
+      default: { // cannot occur
+        return false;
+      }
+    }
+    
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~findBinding~}
+
+Recursively finds all bindings in the matching set matrix and checks whether
+they fulfill every condition, stopping immediately after the first success.
+
+*/
+bool TMatch::findBinding(const int u, const int elem,
+                         map<string, pair<int, int> > &binding) {
+  string var = p->elemToVar[elem];
+  bool inserted = false;
+  if (!var.empty()) {
+    if (binding.count(var)) { // extend existing binding
+      binding[var].second++;
+    }
+    else { // add new variable
+      binding[var] = make_pair(u, u);
+      inserted = true;
+    }
+  }
+  if (*(pathMatrix[u][elem].begin()) == UINT_MAX) { // complete match
+    if (conditionsMatch(binding)) {
+      cout << "RETURN TRUE from findBinding" << endl;
+      return true;
+    }
+  }
+  else {
+    for (set<unsigned int>::reverse_iterator it = pathMatrix[u][elem].rbegin();
+         it != pathMatrix[u][elem].rend(); it++) {
+      if (findBinding(u + 1, *it, binding)) {
+        return true;
+      }
+    }
+  }
+  if (!var.empty()) { // unsuccessful: reset binding
+    if (inserted) {
+      binding.erase(var);
+    }
+    else {
+      binding[var].second--;
+    }
+  }
+  return false;
+}
+
+
+/*
+\subsection{Function ~findMatchingBinding~}
+
+Searches for a binding which fulfills every condition.
+
+*/
+bool TMatch::findMatchingBinding(const int startState) {
+  if ((startState < 0) || (startState > (int)p->nfa.size() - 1)) {
+    return false; // illegal start state
+  }
+  if (p->conds.empty()) {
+    return true;
+  }
+  map<int, int> transitions = p->nfa[startState];
+  map<string, pair<int, int> > binding;
+  map<int, int>::reverse_iterator itm;
+  for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
+    if (findBinding(0, p->atomicToElem[itm->first], binding)) {
+      return true;
+    }
+    cout << "findBinding unsuccessful" << endl;
+  }
+  return false;
 }
 
 /*

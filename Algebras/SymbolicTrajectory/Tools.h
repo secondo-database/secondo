@@ -46,7 +46,7 @@ Started July 2014, Fabio Vald\'{e}s
    
  enum SetRel {STANDARD, DISJOINT, SUPERSET, EQUAL, INTERSECT};
  enum DataType {MLABEL, MLABELS, MPLACE, MPLACES};
-
+ 
  struct NFAtransition {
   int oldState;
   int trigger;
@@ -93,7 +93,8 @@ class Tools {
   static set<unsigned int>** createSetMatrix(unsigned int dim1, 
                                              unsigned int dim2);
   static void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
-  static int getKey(const string& type, Tuple *tuple = 0);
+  static int getKey(const string& type, Tuple *tuple = 0, 
+                    ListExpr tupleType = 0);
   static string getDataType(const int key);
   static DataType getDataType(const string& type);
   static DataType getDataType(TupleType *ttype, const int attrno);

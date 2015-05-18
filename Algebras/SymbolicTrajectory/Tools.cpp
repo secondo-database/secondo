@@ -374,7 +374,12 @@ string Tools::extractVar(const string& input) {
   return input.substr(posEq + 1, posDot - posEq - 1);
 }
 
-int Tools::getKey(const string& type, Tuple *tuple /* = 0 */) {
+int Tools::getKey(const string& type, Tuple *tuple /* = 0 */, 
+                  ListExpr tupleType /* = 0 */) {
+  if (type.empty()) {
+    cout << "Error: empty string after variable" << endl;
+    return -1;
+  }
   if (type == "label")       return 0;
   if (type == "place")       return 1;
   if (type == "time")        return 2;
@@ -386,7 +391,28 @@ int Tools::getKey(const string& type, Tuple *tuple /* = 0 */) {
   if (type == "labels")      return 8;
   if (type == "places")      return 9;
   if (tuple) {
-    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    if (tupleType == 0) {
+      cout << "Error: no tuple type found" << endl;
+      return -1;
+    }
+    if (nl->ListLength(tupleType) != 2) {
+      cout << "Error: list length must be 2" << endl;
+      return -1;
+    }
+    if (!IsTupleDescription(nl->Second(tupleType))) {
+      cout << "Error: list is not a tuple description" << endl;
+      return -1;
+    }
+    ListExpr aType;
+    int pos = FindAttribute(nl->Second(tupleType), type, aType);
+    if (pos == 0) {
+      cout << "Attribute " << type << " not found" << endl;
+      return -1;
+    }
+    return pos + 99;
+  }
+  else {
+    cout << "Error: type " << type << " is invalid" << endl;
   }
   return -1; // should not occur
 }
@@ -401,6 +427,7 @@ string Tools::getDataType(const int key) {
     case 4: return Instant::BasicType();
     case 5:
     case 6: return CcBool::BasicType();
+    case 7: return CcInt::BasicType();
     case 8: return Labels::BasicType();
     case 9: return Places::BasicType();
     default: return "error";
@@ -1063,11 +1090,10 @@ bool Tools::timesMatch(const Interval<DateTime>& iv, const set<string>& ivs) {
 /*
 \subsection{Function ~processQueryStr~}
 
-Invoked by ~initOpTrees~
+Invoked by ~initOpTrees~ and others.
 
 */
 pair<QueryProcessor*, OpTree> Tools::processQueryStr(string query, int type) {
-  cout << "process # " << query << endl;
   pair<QueryProcessor*, OpTree> result;
   result.first = 0;
   result.second = 0;
