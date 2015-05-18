@@ -45,7 +45,7 @@ function startLine {
   fi
 
   if [ -n "$3" ]; then
-    user=$4@
+    user=$3@
   fi
 
   script=runMonitortemp.sh
@@ -92,7 +92,7 @@ function stopLine {
     return
   fi
   if [ -n "$3" ]; then
-    user=$4@
+    user=$3@
   fi
   script=stopMonitortemp.sh
   echo 'cd $HOME/secondo/bin' >$script
@@ -134,7 +134,7 @@ function checkLine {
     return
   fi
   if [ -n "$3" ]; then
-    user=$4@
+    user=$3@
   fi
   script=checkMonitortemp.sh
   echo 'cd $HOME/secondo/bin' >$script
