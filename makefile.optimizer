@@ -60,7 +60,7 @@ AUXLIBS := $(SECONDO_SDK)/auxtools/lib
 STDPLLDFLAGS := -L$(PL_DLL_DIR) -l$(PL_LIB)
 
 ifdef STATIC_PL_LIB
-STDPLLDFLAGS := $(STATIC_PL_LIB)  -lunwind 
+STDPLLDFLAGS := $(STATIC_PL_LIB)   
 endif
 
 
