@@ -27,6 +27,7 @@ operator createDarray2 alias CREATEDARRAY2 pattern _ op[_,_,_,_,_,_]
 
 operator pput alias PPUT pattern _ op [_,_]
 operator ddistribute2 alias DDISTRIBUTE2 pattern _ op [_,_]
+operator fdistribute5 alias FDISTRIBUTE5 pattern _ op [_,_,_]
 
 operator closeWorkers alias closeWorkers pattern op(_)
 operator showWorkers alias showWorkers pattern op(_)

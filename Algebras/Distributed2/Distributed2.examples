@@ -188,6 +188,11 @@ Result    : bug
 Remark    : remote server required
 
 
+Operator  : fdistribute5 
+Number    : 1
+Signature : stream(tuple) x {string,text} x int x attrname -> stream(tuple)
+Example   : query (strassen feed addcounter[No,0] fdistribute5[strassen,5,No] count) = (strassen count)
+Result    : TRUE
 
 
 

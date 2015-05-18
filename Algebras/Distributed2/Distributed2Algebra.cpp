@@ -6350,7 +6350,157 @@ ListExpr fdistribute5TM(ListExpr args){
 
 }
 
+template<class T>
+class fdistribute5Info{
+  public:
+     fdistribute5Info(Word& _stream, CcInt* _size, T* _name,int _pos, 
+                      ListExpr relType)
+       : stream(_stream){
+        write = true;
+        if(!_size->IsDefined() || (_size->GetValue() <=0)){
+          write = false;
+        } else {
+          this->size = _size->GetValue();
+        }
+        if(!_name->IsDefined()){
+           write = false;
+        } else {
+           basename = _name->GetValue();
+        }
+        this->pos = _pos;
+        this->relType = relType;
+        stream.open();
+     }
 
+     Tuple* next(){
+        Tuple* tuple = stream.request();
+        if(write && tuple){
+            writeNextTuple(tuple);
+        }
+        return tuple;
+     }
+
+     ~fdistribute5Info(){
+        map<int,ofstream*>::iterator it;
+        for(it = writers.begin();it!=writers.end() ; it++){
+           BinRelWriter::finish(*(it->second));
+           delete it->second;
+        }
+        stream.close();
+     }
+
+
+  private:
+     Stream<Tuple> stream;
+     bool write;
+     string basename;
+     int pos;
+     int size;
+     ListExpr relType;
+     map<int, ofstream*> writers;
+
+    
+     void writeNextTuple(Tuple* tuple){
+        CcInt* num = (CcInt*) tuple->GetAttribute(pos);
+        int f =0;
+        if(num->IsDefined()){
+            f = num->GetValue() % size;
+        }
+        map<int,ofstream*>::iterator it = writers.find(f);
+        ofstream* out;
+        if(it==writers.end()){
+           out = new ofstream((basename +"_"+stringutils::int2str(f)).c_str(),
+                              ios::out | ios::binary);
+           writers[f] = out;
+           BinRelWriter::writeHeader(*out,relType);
+        } else {
+           out = it->second;
+        }
+        BinRelWriter::writeNextTuple(*out, tuple);
+     }
+
+
+
+
+};
+
+
+template<class T>
+int fdistribute5VMT(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+ 
+  fdistribute5Info<T>* li = (fdistribute5Info<T>*) local.addr;
+  switch(message){
+    case OPEN: { 
+      T* fname = (T*) args[1].addr;
+      CcInt* size = (CcInt*) args[2].addr;
+      int attrPos = ((CcInt*)args[4].addr)->GetValue();
+      if(li){
+         delete li;
+      }
+      ListExpr relType = nl->TwoElemList(
+                            listutils::basicSymbol<Relation>(),
+                            nl->Second(qp->GetType(s)));
+      local.addr = new fdistribute5Info<T>(args[0],size, fname, attrPos,
+                                           relType);
+      return 0;
+    }
+   case REQUEST:
+           result.addr = li?li->next():0;
+           return result.addr?YIELD:CANCEL;
+    case CLOSE:
+          if(li){
+             delete li;
+             local.addr = 0;
+          }
+          return 0;
+   }
+
+    
+  return -1;
+
+}
+
+/*
+1.7.3 Selction and value mapping
+
+*/
+
+int fdistribute5Select(ListExpr args){
+ return CcString::checkType(nl->Second(args))?0:1;
+}
+
+ValueMapping fdistribute5VM[] = {
+   fdistribute5VMT<CcString>,
+   fdistribute5VMT<FText>
+};
+
+/*
+1.7.4 Specification
+
+*/
+OperatorSpec fdistribute5Spec(
+     " stream(tuple(X)) x string,text} x int x attrName ",
+     " _ ddistribute2[ _, _,_]",
+     " Distributes a locally stored relation into a set of files."
+     "The file name are given by the second attribute extended by"
+     " the array index ",
+     " query strassen feed addcounter[No,1] ifdistribute5['strassen',10,No]"
+     "  count"
+     );
+
+/*
+1.7.5 Operator Instance
+
+*/
+Operator fdistribute5Op(
+   "fdistribute5",
+   fdistribute5Spec.getStr(),
+   2,
+   fdistribute5VM,
+   fdistribute5Select,
+   fdistribute5TM
+);
 
 
 
@@ -6832,6 +6982,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&pputOp);
    AddOperator(&ddistribute2Op);
+   AddOperator(&fdistribute5Op);
    AddOperator(&closeWorkersOp);
    AddOperator(&showWorkersOp);
    AddOperator(&dloop2Op);
