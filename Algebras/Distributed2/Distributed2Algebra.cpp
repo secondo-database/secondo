@@ -298,25 +298,45 @@ class ConnectionInfo{
           }
           // open database 
           si->Secondo("open database "+ dbname, resList, serr);
-          return serr.code==0;   
+          bool res = serr.code==0;   
+          return res;
        }
 
 
        void simpleCommand(string command, int& error, string& errMsg, 
                           string& resList){
 
+          boost::lock_guard<boost::mutex> guard(simtx);;
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
-          simtx.lock();
           si->Secondo(command, myResList, serr);
           error = serr.code;
-          if(error!=0){
-            errMsg = si->GetErrorMessage(error);
-          }
-          simtx.unlock();
+          errMsg = serr.msg;
 
           resList = mynl->ToString(myResList);
           mynl->Destroy(myResList);
+       }
+       
+       void simpleCommandFromList(string command, int& error, string& errMsg, 
+                          string& resList){
+
+          boost::lock_guard<boost::mutex> guard(simtx);;
+          ListExpr cmd = mynl->TheEmptyList();
+          if(! mynl->ReadFromString(command,cmd)){
+              error = 3;
+              errMsg = "error in parsing list";
+              return;
+          }
+
+          SecErrInfo serr;
+          ListExpr myResList = mynl->TheEmptyList();
+          si->Secondo(cmd, myResList, serr);
+          error = serr.code;
+          errMsg = serr.msg;
+
+          resList = mynl->ToString(myResList);
+          mynl->Destroy(myResList);
+          mynl->Destroy(cmd);
        }
 
 
@@ -327,9 +347,7 @@ class ConnectionInfo{
           simtx.lock();
           si->Secondo(command, myResList, serr);
           error = serr.code;
-          if(error!=0){
-            errMsg = si->GetErrorMessage(error);
-          }
+          errMsg = serr.msg;
           simtx.unlock();
           // copy resultlist from local nested list to global nested list
           static boost::mutex copylistmutex;
@@ -339,6 +357,9 @@ class ConnectionInfo{
           mynl->Destroy(myResList);
           copylistmutex.unlock();
        }
+
+       
+
 
 
         int sendFile( const string& local, const string& remote, 
@@ -447,7 +468,6 @@ class ConnectionInfo{
              // transfer file to remote server
              int error = si->sendFile(filename,filename,true);
              if(error!=0){
-                cout << "transfer of file " << filename << "failed" << endl;
                 return false;
              } 
 
@@ -459,18 +479,12 @@ class ConnectionInfo{
 
              string cmd = "delete " + name;
 
-             cout << "apply command " << cmd << endl;
              si->Secondo(cmd, resList, serr);
        
-             cout << "errorCode " << serr.code << endl;
-             
              cmd = "let " + name + " =  ffeed5('" 
                           + rfilename + "') consume ";
 
-             cout << "perform command " << cmd << endl;
              si->Secondo(cmd, resList, serr);
-             cout << "error Code " << serr.code << endl;
-             cout << "error message " << serr.msg << endl;
 
              bool ok = serr.code == 0;
 
@@ -1150,7 +1164,7 @@ connections coming from darray2 elements.
   ConnectionInfo* getWorkerConnection( const DArray2Element& info,
                                        const string& dbname ){
      boost::lock_guard<boost::mutex> guard(workerMtx);
-     typename map<DArray2Element, pair<string, ConnectionInfo*> >::iterator it;
+     map<DArray2Element, pair<string, ConnectionInfo*> >::iterator it;
      it = workerconnections.find(info);
      pair<string,ConnectionInfo*> pr("",0);
      if(it==workerconnections.end()){
@@ -1158,17 +1172,34 @@ connections coming from darray2 elements.
              return 0;
         }
         workerconnections[info] = pr;
+        it = workerconnections.find(info);
      } else {
          pr = it->second;
      }
      string wdbname = dbname;
      if(pr.first!=wdbname){
          if(!pr.second->switchDatabase(wdbname,true)){
+            it->second.first="";
             return 0;
+         } else {
+             it->second.first=dbname;
          }
      }
      return pr.second;
   }
+
+
+  string getDBName(const DArray2Element& info){
+     boost::lock_guard<boost::mutex> guard(workerMtx);
+     map<DArray2Element, pair<string, ConnectionInfo*> >::iterator it;
+     it = workerconnections.find(info);
+     string db = "";
+     if(it!=workerconnections.end()){
+        db=it->second.first;         
+     }
+     return db;
+  }
+
 
 /*
 This operator closes all non user defined existing server connections.
@@ -1177,7 +1208,7 @@ It returns the numer of closed workers
 */
  int closeAllWorkers(){
     boost::lock_guard<boost::mutex> guard(workerMtx);
-    typename map<DArray2Element, pair<string,ConnectionInfo*> > ::iterator it;
+    map<DArray2Element, pair<string,ConnectionInfo*> > ::iterator it;
     int count = 0;
     for(it=workerconnections.begin(); it!=workerconnections.end(); it++){
        ConnectionInfo* ci = it->second.second;
@@ -6644,7 +6675,7 @@ class showWorkersInfo{
       while(pos < array->numOfWorkers()){
         DArray2Element elem = array->getWorker(pos);
         pos++;
-        string dbname;
+        string dbname = algInstance->getDBName(elem);
         ConnectionInfo* connectionInfo;
         if(algInstance->workerConnection(elem, dbname, connectionInfo)){
            return createTuple(elem, dbname, connectionInfo);
@@ -6773,7 +6804,7 @@ ListExpr dloop2TM(ListExpr args){
   ListExpr dat = nl->Second(nl->First(argTypes));
   ListExpr funarg = nl->Second(nl->Third(argTypes));
   if(!nl->Equal(dat,funarg)){
-    return listutils::typeError("type msmatch between darray2 subtype "
+    return listutils::typeError("type mismatch between darray2 subtype "
                                 "and function argument type");
   }
   ListExpr result = nl->TwoElemList(listutils::basicSymbol<DArray2>(),
@@ -6782,10 +6813,22 @@ ListExpr dloop2TM(ListExpr args){
     return listutils::typeError("Invalid function result");
   }
 
+  ListExpr funquery = nl->Second(nl->Third(args));
+  
+  ListExpr funargs = nl->Second(funquery);
+  ListExpr rfunargs = nl->TwoElemList(
+                        nl->First(funargs),
+                        dat);
+  ListExpr rfun = nl->ThreeElemList(
+                        nl->First(funquery),
+                        rfunargs,
+                        nl->Third(funquery));   
+
+
+
   return nl->ThreeElemList(
                nl->SymbolAtom(Symbols::APPEND()),
-               nl->OneElemList(nl->TextAtom(nl->ToString(
-                                           nl->Second(nl->Third(args))))),
+               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
                result);
 
 }
@@ -6825,17 +6868,16 @@ class dloop2Info{
        }
 
        string bn = resName + "_" + stringutils::int2str(index);
-       string fn = fn+"_fun";
+       string fn = bn+"_fun";
        // delete eventually existing old function
        int err;
        string strres;
        ci->simpleCommand("delete " + fn,err,strres);
        // ignore error, standard case: object does not exist
        // create new function object
-       ListExpr reslist;
        string errMsg;
-       string cmd = "let " + fn + " = " + fun;
-       ci->simpleCommand(cmd, err,errMsg, reslist);
+       string cmd = "(let " + fn + " = " + fun +")";
+       ci->simpleCommandFromList(cmd, err,errMsg, strres);
        if(err!=0){ 
            sendError(" Problem in command " + cmd + ":" + errMsg);
            return;
@@ -6845,7 +6887,7 @@ class dloop2Info{
        // ignore error, frequently entry is not there
        cmd = "let " + bn + " =  "  + fn + "("+ srcName + "_" 
                     + stringutils::int2str(index) +")";
-       ci->simpleCommand(cmd, err,errMsg, reslist);
+       ci->simpleCommand(cmd, err,errMsg, strres);
        if(err!=0){ 
            sendError(" Problem in command " + cmd + ":" + errMsg);
        }
