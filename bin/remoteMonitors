@@ -51,6 +51,7 @@ function startLine {
   script=runMonitortemp.sh
 
   echo 'cd $HOME/secondo/bin' >$script
+  echo 'source $HOME/.secondorc' >> $script
   echo export SECONDO_CONFIG=$config >>$script
   echo 'if [ ! -e $SECONDO_CONFIG ]; then' >>$script
   echo ' echo configuration file $SECONDO_CONFIG not found an server ' $server >>$script
