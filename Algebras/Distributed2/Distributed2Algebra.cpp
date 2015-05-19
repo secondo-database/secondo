@@ -47,6 +47,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/thread.hpp>
 #include <boost/date_time.hpp>
 
+
+/*
+0 Workaround to the nested list parser
+
+The nested list parser implementation used a lot of global variables.
+This makes it impossible to create a nested list from a file or a 
+string in parallel. Thus, we introduce a global mutex which is locked
+always if a nested list is parsed.
+
+*/
+boost::mutex nlparsemtx;
+
+
+
+
+
+
 /*
 Some Helper functions.
 
@@ -320,13 +337,16 @@ class ConnectionInfo{
        void simpleCommandFromList(string command, int& error, string& errMsg, 
                           string& resList){
 
-          boost::lock_guard<boost::mutex> guard(simtx);;
+          boost::lock_guard<boost::mutex> guard(simtx);
           ListExpr cmd = mynl->TheEmptyList();
+          nlparsemtx.lock();
           if(! mynl->ReadFromString(command,cmd)){
+              nlparsemtx.unlock();
               error = 3;
               errMsg = "error in parsing list";
               return;
           }
+          nlparsemtx.unlock();
 
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
@@ -335,20 +355,25 @@ class ConnectionInfo{
           errMsg = serr.msg;
 
           resList = mynl->ToString(myResList);
-          mynl->Destroy(myResList);
-          mynl->Destroy(cmd);
+          if(mynl->AtomType(cmd)!=NoAtom && !mynl->IsEmpty(cmd)){
+              mynl->Destroy(cmd);
+          }
+          if(mynl->AtomType(myResList)!=NoAtom && !mynl->IsEmpty(myResList)){
+              mynl->Destroy(myResList);
+          }
+          
+          
        }
 
 
        void simpleCommand(string command, int& error, string& errMsg, 
                           ListExpr& resList){
+          boost::lock_guard<boost::mutex> guard(simtx);;
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
-          simtx.lock();
           si->Secondo(command, myResList, serr);
           error = serr.code;
           errMsg = serr.msg;
-          simtx.unlock();
           // copy resultlist from local nested list to global nested list
           static boost::mutex copylistmutex;
           copylistmutex.lock();
@@ -1970,9 +1995,12 @@ ListExpr rqueryTM(ListExpr args){
    }
    string typeList = nl->Text2String(nl->Second(reslist));
    ListExpr resType;
+   nlparsemtx.lock(); 
    if(!nl->ReadFromString(typeList,resType)){
+      nlparsemtx.unlock();
      return listutils::typeError("getTypeNL returns no valid list expression");
    }   
+   nlparsemtx.unlock();
    if(nl->HasLength(resType,2)){
      first = nl->First(resType);
      if(listutils::isSymbol(first, Stream<Tuple>::BasicType())){
@@ -4176,9 +4204,12 @@ ListExpr pqueryTM(ListExpr args){
    }
    string typeList = nl->Text2String(nl->Second(reslist));
    ListExpr resType;
+   nlparsemtx.lock();
    if(!nl->ReadFromString(typeList,resType)){
+     nlparsemtx.unlock();
      return listutils::typeError("getTypeNL returns no valid list expression");
    }   
+   nlparsemtx.unlock();
    if(nl->HasLength(resType,2)){
      ListExpr first = nl->First(resType);
      if(listutils::isSymbol(first, Stream<Tuple>::BasicType())){
@@ -5636,10 +5667,13 @@ ListExpr ffeed5TM(ListExpr args){
   string typeS(buffer, typeLength);
   delete [] buffer;
   ListExpr relType;
+  nlparsemtx.lock();
   if(!nl->ReadFromString(typeS, relType)){
+    nlparsemtx.unlock();
     in.close();
     return listutils::typeError("problem in determining rel type");
   } 
+  nlparsemtx.unlock();
 
   if(!Relation::checkType(relType)){
      in.close();
