@@ -38,6 +38,7 @@ Oct 2009, M. Spiekermann. Input, command processsing and termination revised
 #include "FileSystem.h"
 #include "CharTransform.h"
 #include "WinUnix.h"
+#include "TTYParameter.h"
 
 using namespace std;
 
@@ -84,8 +85,10 @@ static string VersionInfo ="1.1";
 SecondoMonitor::SecondoMonitor( const int argc, const char** argv )
   : Application( argc, argv )
 {
+  char **argvalues = (char**)argv;
+  TTYParameter ttyp(argc, argvalues);
   smiType       = SmiEnvironment::GetImplementationType();
-  parmFile      = "";
+  parmFile      = ttyp.parmFile;
   prompt        = "SEC_MON> ";
   line          = "";
   pidRegistrar  = 0;
@@ -377,9 +380,30 @@ SecondoMonitor::CheckConfiguration()
   bool found = false;
   cout << "Checking configuration ..." << endl;
   // --- Find configuration file
-  parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "";
+  parmFile = (GetArgCount() > 3) ? GetArgValues()[3] : "";
+  if (GetArgValues()[2] != "-c") {
+    parmFile = "";
+  }
   if ( parmFile.length() > 0 )
   {
+    cout << "Configuration file '" << parmFile;
+    found = FileSystem::FileOrFolderExists( parmFile );
+    if ( found )
+    {
+      cout << "':" << endl;
+    }
+    else
+    {
+      cout << "' not found!" << endl;
+    }
+  }
+  if ( !found )
+  {
+    cout << "Searching current directory for configuration file ..."
+          << endl;
+    string cwd = FileSystem::GetCurrentFolder();
+    FileSystem::AppendSlash( cwd );
+    parmFile = cwd + "SecondoConfig.ini";
     cout << "Configuration file '" << parmFile;
     found = FileSystem::FileOrFolderExists( parmFile );
     if ( found )
@@ -412,24 +436,6 @@ SecondoMonitor::CheckConfiguration()
     else
     {
       cout << "Environment variable SECONDO_CONFIG not defined." << endl;
-    }
-    if ( !found )
-    {
-      cout << "Searching current directory for configuration file ..."
-           << endl;
-      string cwd = FileSystem::GetCurrentFolder();
-      FileSystem::AppendSlash( cwd );
-      parmFile = cwd + "SecondoConfig.ini";
-      cout << "Configuration file '" << parmFile;
-      found = FileSystem::FileOrFolderExists( parmFile );
-      if ( found )
-      {
-        cout << "':" << endl;
-      }
-      else
-      {
-        cout << "' not found!" << endl;
-      }
     }
   }
   if ( found )
