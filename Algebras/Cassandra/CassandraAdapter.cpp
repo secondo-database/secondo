@@ -155,10 +155,10 @@ bool CassandraAdapter::writeDataToCassandra(string relation, string partition,
 
 bool CassandraAdapter::writeDataToCassandraPrepared(
         const CassPrepared* preparedStatement, 
-        string partition, string node, string key, string value, 
-        string consistenceLevel, bool sync) {
-   
-    if(! isConnected() ) {
+           string partition, string node, string key, char *value, 
+        size_t value_length, string consistenceLevel, bool sync) { 
+  
+  if(! isConnected() ) {
        cerr << "Cassandra session not ready" << endl;
        return false;
     }
@@ -176,7 +176,8 @@ bool CassandraAdapter::writeDataToCassandraPrepared(
     cass_statement_bind_string(statement, 0, partition.c_str());
     cass_statement_bind_string(statement, 1, node.c_str());
     cass_statement_bind_string(statement, 2, key.c_str());
-    cass_statement_bind_string(statement, 3, value.c_str());
+    cass_statement_bind_bytes(statement, 3, 
+        reinterpret_cast<cass_byte_t*>(value), value_length);
  
     // Build future and execute
     CassFuture* future = cass_session_execute(session, statement);
@@ -252,8 +253,8 @@ string CassandraAdapter::getInsertCQL(string relation, string partition,
     ss << quote << partition << quote << ", ";
     ss << quote << node << quote << ", ";
     ss << quote << key << quote << ", ";
-    ss << quote << value << quote << ");";
-    
+    ss << value << ");"; // Blob value, no quoting necessary
+ 
     return ss.str();
 }
 
@@ -572,20 +573,35 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
     ss << "CREATE TABLE IF NOT EXISTS ";
     ss << tablename;
     ss << " ( partition text, node text, key text,";
-    ss << " value text, PRIMARY KEY(partition, node, key));";
+    ss << " value blob, PRIMARY KEY(partition, node, key));";
 
     bool resultCreate = executeCQLSync(ss.str(), CASS_CONSISTENCY_ALL);
     
     // Write tupletype
     if(resultCreate) {
-      bool resultInsert = executeCQLSync(
-            // Partition is Tupletype, Key is Tupletype, Node id is tupletype
-            getInsertCQL(tablename, CassandraAdapter::METADATA_TUPLETYPE,
-                         CassandraAdapter::METADATA_TUPLETYPE, 
-                         CassandraAdapter::METADATA_TUPLETYPE, tupleType),
-            CASS_CONSISTENCY_ALL
-      );
-      
+       // Use a prepared statement to handle the blob correctly
+       const CassPrepared *statement;
+       statement = prepareCQLInsert(tablename);
+ 
+       char *tupleString = new char[tupleType.length() + 1];
+       strcpy(tupleString, tupleType.c_str());
+ 
+       bool resultInsert = writeDataToCassandraPrepared(statement, 
+        CassandraAdapter::METADATA_TUPLETYPE, 
+        CassandraAdapter::METADATA_TUPLETYPE,
+        CassandraAdapter::METADATA_TUPLETYPE, 
+        tupleString, tupleType.length(), 
+        "ALL", true);
+ 
+       if(statement != NULL) {
+          freePreparedStatement(statement);
+          statement = NULL;
+       }   
+       if(tupleString != NULL) {
+         delete[] tupleString;
+         tupleString = NULL;
+       }
+
       if(resultInsert) {
         // New table is created and the 
         // tuple type is stored successfully

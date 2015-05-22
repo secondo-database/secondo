@@ -71,7 +71,6 @@
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
 #include "CassandraConnectionPool.h"
-#include "CassandraTupleAggregator.h"
 
 #define CASSANDRA_DEFAULT_IP        "127.0.0.1"
 #define CASSANDRA_DEFAULT_KEYSPACE  "keyspace_r3"
@@ -790,7 +789,8 @@ public:
   
     : contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence), 
-    systemname(mySystemname), attrIndex(myAttrIndex), tupleType(myTupleType) {
+    systemname(mySystemname), attrIndex(myAttrIndex), tupleType(myTupleType),
+sendTuple(0) { 
       
 #ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
@@ -825,25 +825,20 @@ public:
         cout << "This leads to small hash values and performance issues ";
         cout << endl;
       }   
-      
-      aggregator = new CassandraTupleAggrerator(cassandra, relationName, 
-          consistence, systemname);
+   statement = cassandra->prepareCQLInsert(relationName);  
   }
   
   virtual ~CSpreadLocalInfo() {
-     if(aggregator != NULL) {
-        delete aggregator;
-        aggregator = NULL;
-     }
-  }
+       if(statement != NULL) {
+          cassandra -> freePreparedStatement(statement);
+          statement = NULL;
+       }    
+}
   
   bool operationSuccessfully() {
      if(cassandra == NULL) {
         return false;
      }
-     
-     aggregator -> sendCurrentChunk();
-     aggregator -> printTupleRatio();
      
      cassandra -> waitForPendingFutures();
      
@@ -860,13 +855,36 @@ public:
     ss << tuple -> HashValue(attrIndex);
     string partitionKey = ss.str();
     
-    result = aggregator -> processTuple(partitionKey, tuple -> WriteToBinStr());
-        
+   size_t coreSize = 0; 
+   size_t extensionSize = 0; 
+   size_t flobSize = 0; 
+   size_t blockSize = tuple->GetBlockSize(coreSize, extensionSize, flobSize);
+ 
+   //The tuple block need two values to indicate the whole block size
+   //and only the tuple's core and extension length.
+   //blockSize += sizeof(blockSize) + sizeof(u_int16_t);
+   char data[blockSize];
+   tuple->WriteToBin(data, coreSize, extensionSize, flobSize);
+ 
+          stringstream tss;
+          tss << sendTuple;
+          string tupleNumberStr = tss.str();
+ 
+          result = cassandra->writeDataToCassandraPrepared(
+                            statement,
+                            partitionKey,
+                            systemname,
+                            tupleNumberStr, 
+                            data,
+                            blockSize, 
+                            consistence, false);
+     sendTuple++; 
+ 
     return result;
   }
   
   size_t getTupleNumber() {
-    return aggregator -> getReceivedTuple();
+    return sendTuple; 
   }
      
 private:
@@ -878,7 +896,8 @@ private:
   int attrIndex;               // Index of attribute to cluster
   string tupleType;            // Type of the tuples (Nested List String)
   CassandraAdapter *cassandra; // Cassandra connection
-  CassandraTupleAggrerator *aggregator; // Cassandra tuple aggregator
+ size_t sendTuple;            // Number of send tuple
+   const CassPrepared *statement; // The prepared statement
 };
 
 int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -1428,30 +1447,20 @@ public:
   }
 
   Tuple* fetchNextTuple() {
-
-      string value;
      
-      if(fetchedTuple == "") {
-         bool res = fetchDataFromCassandra();
+      bool res = fetchDataFromCassandra();
          
-         if(res == false) {
-            return NULL;
-         }
+      if(res == false) {
+         return NULL;
       }
-
-      int pos = fetchedTuple.find_first_of("|");
-
-      if(pos == string::npos) {
-         value = fetchedTuple;
-         fetchedTuple = "";
-      } else {
-         value = fetchedTuple.substr(0, pos);
-         fetchedTuple = fetchedTuple.substr(pos + 1);
-      }
+     
+      char *bytes = (char *)malloc(fetchedTuple.size() + 1);
+      memcpy(bytes, fetchedTuple.c_str(), fetchedTuple.size() + 1);
             
       // Build tuple and return
       Tuple* tuple = new Tuple(tupleType);
-      tuple->ReadFromBinStr(value);
+      tuple->ReadFromBin(bytes);
+      delete bytes;      
       return tuple;
   }
   

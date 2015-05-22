@@ -305,9 +305,8 @@ public:
 
 */
     bool writeDataToCassandraPrepared(const CassPrepared* preparedStatement, 
-        string partition, string node, string key, string value, 
-        string consistenceLevel, bool sync
-                             );
+         string partition, string node, string key, char* value, 
+         size_t value_length, string consistenceLevel, bool sync);
 
 /*
 2.3.4 Inform the CassandraAdapter about the fact that the last tuple for 
