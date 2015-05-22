@@ -380,8 +380,18 @@ SecondoMonitor::CheckConfiguration()
   bool found = false;
   cout << "Checking configuration ..." << endl;
   // --- Find configuration file
-  parmFile = (GetArgCount() > 3) ? GetArgValues()[3] : "";
-  if (GetArgValues()[2] != "-c") {
+  parmFile = "";
+  string secondParam;
+  if (GetArgCount() > 3) {
+    secondParam = GetArgValues()[2];
+    parmFile = GetArgValues()[3];
+  }
+  if (GetArgCount() == 3) {
+    secondParam = GetArgValues()[1];
+    parmFile = GetArgValues()[2];
+  }
+  if (secondParam != "-c") {
+    cout << "Error: Parameter " << secondParam << " is invalid." << endl;
     parmFile = "";
   }
   if ( parmFile.length() > 0 )
