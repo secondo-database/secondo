@@ -93,7 +93,11 @@ void CassandraAdapter::connect(bool singleNodeLoadBalancing) {
      cluster = cass_cluster_new();
      session = cass_session_new();
 
-     cass_cluster_set_contact_points(cluster, contactpoint.c_str());        
+     cass_cluster_set_contact_points(cluster, contactpoint.c_str());
+
+     // Set high bytes watermark to 1MB, so each connection can
+     // have 1 MB of data pending        
+     cass_cluster_set_write_bytes_high_water_mark(cluster, 1024 * 1024);
      
      // Switch to single node policy
      if(singleNodeLoadBalancing) {
