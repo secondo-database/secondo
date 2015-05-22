@@ -390,7 +390,7 @@ SecondoMonitor::CheckConfiguration()
     secondParam = GetArgValues()[1];
     parmFile = GetArgValues()[2];
   }
-  if (secondParam != "-c") {
+  if (GetArgCount() >= 3 && secondParam != "-c") {
     cout << "Error: Parameter " << secondParam << " is invalid." << endl;
     parmFile = "";
   }
