@@ -491,7 +491,7 @@ a valid result. False otherweise
 2.3.15 Drop metatables
 
 */    
-  bool dropMetatables();
+  bool truncateMetatables();
   
   
 /*

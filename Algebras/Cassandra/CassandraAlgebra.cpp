@@ -2569,21 +2569,22 @@ int CQueryReset(Word* args, Word& result, int message, Word& local, Supplier s)
             getConnection(host, keyspace, false);
            
       if(cassandra != NULL && cassandra -> isConnected()) {
-        bool dropResult = cassandra -> dropMetatables();
-        
-        if(! dropResult) {
-          cerr << "Unable to drop metatables" << endl;
-        } 
         
         bool createMetatables = cassandra -> createMetatables();
         
-        if(! createMetatables ) {
+        if(! createMetatables) {
           cerr << "Unable to create metatables" << endl;
+        } 
+        
+        bool truncateMetatables = cassandra -> truncateMetatables();
+        
+        if(! truncateMetatables ) {
+          cerr << "Unable to truncate metatables" << endl;
         } else {
           cout << "Metatables droped and recreated" << endl;
         }
         
-        resultValue = dropResult && createMetatables;
+        resultValue = truncateMetatables && createMetatables;
       }
       
       static_cast<CcBool*>(result.addr)->Set(true, resultValue);

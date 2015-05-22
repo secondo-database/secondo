@@ -892,7 +892,7 @@ bool CassandraAdapter::createMetatables() {
   return true;
 }
 
-bool CassandraAdapter::dropMetatables() {
+bool CassandraAdapter::truncateMetatables() {
   
   vector<string> queries;
   vector<TokenRange> ranges;
