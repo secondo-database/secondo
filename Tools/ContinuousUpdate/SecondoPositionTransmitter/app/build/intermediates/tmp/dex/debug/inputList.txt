@@ -1,0 +1,7 @@
+C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\classes\debug
+C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\support-annotations-21.0.3-ee4b588a93dc0b725e08bb4e77dcf195c77a76c9.jar
+C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\library-1.0.6-74d90fd5a4a80434cef1dd32fc76cd9f40d5ec19.jar
+C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\gson-1.7.2-64bda70aba6296743660d1ce96c9b6790e789ab6.jar
+C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\internal_impl-21.0.3-425e9214cdc835a0797f43cf14d5b8d3f1fddf12.jar
+C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\classes-90d4a086d863715d9ae76fa2a912da45f6cca3a7.jar
+C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\classes-9a5e1c23e4072820c889de3cf4b29fe98f17c020.jar

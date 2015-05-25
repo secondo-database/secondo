@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project basedir="." default="build" name="secondoRest">
+
+	<property environment="env" />
+
+	<path id="secondoRest.classpath">
+		<pathelement location="bin" />
+		<pathelement location="lib/org.restlet.jar" />
+		<pathelement location="lib/gson-2.3.1.jar" />
+		<pathelement location="lib/SecondoInterface.jar" />
+		<pathelement location="lib/org.restlet.ext.slf4j.jar" />
+		<pathelement location="lib/jul-to-slf4j-1.7.10.jar" />
+		<pathelement location="lib/slf4j-log4j12-1.7.10.jar" />
+		<pathelement location="lib/slf4j-api-1.7.10.jar" />
+		<pathelement location="lib/log4j2/log4j-1.2-api-2.1.jar" />
+		<pathelement location="lib/log4j2/log4j-api-2.1.jar" />
+		<pathelement location="lib/log4j2/log4j-core-2.1.jar" />
+	</path>
+
+	<target name="init">
+		<mkdir dir="bin" />
+		<mkdir dir="tmp" />
+		<mkdir dir="bin/lib" />
+		<copy includeemptydirs="false" todir="bin/lib">
+			<fileset dir="lib">
+				<include name="**/*.jar" />
+			</fileset>
+		</copy>
+		<copy file="restAccess.config" todir="bin" />
+	</target>
+
+	<target name="clean">
+		<delete dir="bin" />
+		<delete dir="tmp" />
+	</target>
+
+	<target depends="build-project" name="build" />
+
+	<target depends="init" name="build-project">
+		<echo message="${ant.project.name}: ${ant.file}" />
+
+		<javac destdir="tmp" includeantruntime="false">
+			<src path="src" />
+			<classpath refid="secondoRest.classpath" />
+		</javac>
+
+		<manifestclasspath property="lib.list" jarfile="bin/restServer.jar">
+			<classpath refid="secondoRest.classpath" />
+		</manifestclasspath>
+
+		<jar destfile="bin/restServer.jar">
+			<fileset dir="tmp" />
+			<fileset file="src/log4j2.xml" />
+			<manifest>
+				<attribute name="Main-Class" value="de.fernuni.dna.jwh.SecondoRestAccess" />
+				<attribute name="Class-Path" value="${lib.list}" />
+			</manifest>
+		</jar>
+
+	</target>
+</project>

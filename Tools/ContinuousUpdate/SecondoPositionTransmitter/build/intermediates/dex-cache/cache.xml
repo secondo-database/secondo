@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2">
+
+    <item
+        jar="C:\Users\Jerome\.gradle\caches\modules-2\files-2.1\com.google.code.gson\gson\1.7.2\112366d8158749e25532ebce162232c6e0fb20a5\gson-1.7.2.jar"
+        jumboMode="false" revision="21.1.2" sha1="112366d8158749e25532ebce162232c6e0fb20a5">
+        <dex
+            dex="C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\gson-1.7.2-64bda70aba6296743660d1ce96c9b6790e789ab6.jar" />
+    </item>
+    <item
+        jar="C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\exploded-aar\com.android.support\support-v4\21.0.3\classes.jar"
+        jumboMode="false" revision="21.1.2" sha1="2c91c949a45a21cdecf26e03951e46c7beec9ad8">
+        <dex
+            dex="C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\classes-9a5e1c23e4072820c889de3cf4b29fe98f17c020.jar" />
+    </item>
+    <item
+        jar="C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\exploded-aar\com.android.support\appcompat-v7\21.0.3\classes.jar"
+        jumboMode="false" revision="21.1.2" sha1="81d42bf983a8741f4888a6e333e454e4a5e0eeb7">
+        <dex
+            dex="C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\classes-90d4a086d863715d9ae76fa2a912da45f6cca3a7.jar" />
+    </item>
+    <item
+        jar="C:\Users\Jerome\.gradle\caches\modules-2\files-2.1\com.mcxiaoke.volley\library\1.0.6\b2e6988baeea1aed656995f973aaa2fc3feaf447\library-1.0.6.jar"
+        jumboMode="false" revision="21.1.2" sha1="b2e6988baeea1aed656995f973aaa2fc3feaf447">
+        <dex
+            dex="C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\library-1.0.6-74d90fd5a4a80434cef1dd32fc76cd9f40d5ec19.jar" />
+    </item>
+    <item
+        jar="C:\Users\Jerome\AppData\Local\Android\sdk\extras\android\m2repository\com\android\support\support-annotations\21.0.3\support-annotations-21.0.3.jar"
+        jumboMode="false" revision="21.1.2" sha1="4b74cefe1f0c1b819e7260c8627a14674e37fd35">
+        <dex
+            dex="C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\support-annotations-21.0.3-ee4b588a93dc0b725e08bb4e77dcf195c77a76c9.jar" />
+    </item>
+    <item
+        jar="C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\exploded-aar\com.android.support\support-v4\21.0.3\libs\internal_impl-21.0.3.jar"
+        jumboMode="false" revision="21.1.2" sha1="01ec05bfbafcc07646ba813000bf2ef11742dd03">
+        <dex
+            dex="C:\Users\Jerome\AndroidStudioProjects\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\internal_impl-21.0.3-425e9214cdc835a0797f43cf14d5b8d3f1fddf12.jar" />
+    </item>
+
+</items>

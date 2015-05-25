@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.7.0_71"/>
+	<classpathentry kind="lib" path="lib/org.restlet.jar"/>
+	<classpathentry kind="lib" path="lib/gson-2.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/SecondoInterface.jar"/>
+	<classpathentry kind="lib" path="lib/org.restlet.ext.slf4j.jar"/>
+	<classpathentry kind="lib" path="lib/jul-to-slf4j-1.7.10.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-log4j12-1.7.10.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-api-1.7.10.jar"/>
+	<classpathentry kind="lib" path="lib/log4j2/log4j-1.2-api-2.1.jar"/>
+	<classpathentry kind="lib" path="lib/log4j2/log4j-api-2.1.jar"/>
+	<classpathentry kind="lib" path="lib/log4j2/log4j-core-2.1.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
