@@ -1,0 +1,30 @@
+Database: opt
+Restore : No
+
+Operator : sendmessages
+Number   : 1
+Signature: stream -> (stream (tuple x))
+Example  : query Orte feed sendmessages count
+Result   : 506
+Remark   : Messages will be sent to the client
+
+Operator : providemessages
+Number   : 1
+Signature: (stream (tuple x)) x int -> (stream (tuple x))
+Example  : query Orte feed providemessages[9000] count
+Result   : 506
+Remark   : Server will be started and stopped, due to missing clients
+
+Operator : receivenlstream
+Number   : 1
+Signature: string x int -> (stream (tuple x))
+Example  : query receivenlstream("localhost",9000) count
+Result   : crashes
+Remark   : Cannot be tested in single user pattern
+
+Operator : owntransactioninsert
+Number   : 1
+Signature: (stream (tuple x)) x string -> (stream (tuple x))
+Example  : query Orte feed owntransactioninsert["Orte"] count
+Result   : 506
+Remark   : Cannot be tested in single user pattern*
