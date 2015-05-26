@@ -391,29 +391,10 @@ SecondoMonitor::CheckConfiguration()
     parmFile = GetArgValues()[2];
   }
   if (GetArgCount() >= 3 && secondParam != "-c") {
-    cout << "Error: Parameter " << secondParam << " is invalid." << endl;
+    cout << "Error: invalid call " << secondParam << " " << parmFile <<  endl;
     parmFile = "";
   }
-  if ( parmFile.length() > 0 )
-  {
-    cout << "Configuration file '" << parmFile;
-    found = FileSystem::FileOrFolderExists( parmFile );
-    if ( found )
-    {
-      cout << "':" << endl;
-    }
-    else
-    {
-      cout << "' not found!" << endl;
-    }
-  }
-  if ( !found )
-  {
-    cout << "Searching current directory for configuration file ..."
-          << endl;
-    string cwd = FileSystem::GetCurrentFolder();
-    FileSystem::AppendSlash( cwd );
-    parmFile = cwd + "SecondoConfig.ini";
+  if (parmFile.length() > 0) {
     cout << "Configuration file '" << parmFile;
     found = FileSystem::FileOrFolderExists( parmFile );
     if ( found )
@@ -446,6 +427,24 @@ SecondoMonitor::CheckConfiguration()
     else
     {
       cout << "Environment variable SECONDO_CONFIG not defined." << endl;
+    }
+  }
+  if ( !found )
+  {
+    cout << "Searching current directory for configuration file ..."
+          << endl;
+    string cwd = FileSystem::GetCurrentFolder();
+    FileSystem::AppendSlash( cwd );
+    parmFile = cwd + "SecondoConfig.ini";
+    cout << "Configuration file '" << parmFile;
+    found = FileSystem::FileOrFolderExists( parmFile );
+    if ( found )
+    {
+      cout << "':" << endl;
+    }
+    else
+    {
+      cout << "' not found!" << endl;
     }
   }
   if ( found )
