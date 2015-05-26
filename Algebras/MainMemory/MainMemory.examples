@@ -1,0 +1,27 @@
+Sequential: Yes
+Database  : berlintest
+Restore   : No
+
+Operator  : memload
+Number    : 1
+Signature : string -> bool
+Example   : query memload ("ten")
+Result    : TRUE
+
+Operator  : meminit
+Number    : 2
+Signature : int -> int
+Example   : query meminit (256)
+Result    : 256
+
+Operator  : mfeed
+Number    : 3
+Signature : string -> stream(tuple)
+Example   : query "ten" mfeed count
+Result    : 10
+
+Operator  : letmconsume
+Number    : 4
+Signature : stream(tuple(...)) x string -> string
+Example   : query "ten" mfeed letmconsume ["zehn"]
+Result    : "zehn"
