@@ -678,6 +678,7 @@ tree is built, the ~Destroy~ function should be called.
 
 */
 
+  bool IsCorrectTypeExpr( const ListExpr expr );
 
  private:
 
@@ -808,7 +809,6 @@ first successfully applied type mapping will be returned.
 */ 
 
 
-  bool IsCorrectTypeExpr( const ListExpr expr );
 
   OpTree Subtree( const ListExpr expr,
                   bool& first,
