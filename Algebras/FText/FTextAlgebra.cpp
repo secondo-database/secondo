@@ -4008,6 +4008,38 @@ int FTextSelectFunGetValueNL( ListExpr args )
 
 
 /*
+
+Type Mapping fucntion for toObject.
+
+
+
+*/
+ListExpr toObjectTM(ListExpr args){
+
+  string err = "{text,string} x ANY [x bool] expected";
+  if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  ListExpr first = nl->First(args); 
+  if(!CcString::checkType(first) && !FText::checkType(first)){
+     return listutils::typeError(err);
+  }
+  // the second attribute can be any valid type
+  if(!qp->IsCorrectTypeExpr(nl->Second(args))){
+    return listutils::typeError("second arg is not a valid secondo type");
+  }
+  if(nl->HasLength(args,3)){
+    if(!CcBool::checkType(nl->Third(args))){
+       return listutils::typeError(err);
+    }
+  }
+  return nl->Second(args);
+}
+
+
+
+
+/*
 Value Mapping Function for Operator ~toObject~
 
 */
@@ -4047,13 +4079,15 @@ int FTextValueMapToObject( Word* args, Word& result, int message,
 {
   T* InText= static_cast<T*>(args[0].addr);
   result = qp->ResultStorage( s );
-  Attribute* Res = static_cast<Attribute*>(result.addr);
+  bool isData = listutils::isDATA(qp->GetType(s));
 
   if(!InText->IsDefined())
   { // undefined text -> return undefined object
 //     cout << __PRETTY_FUNCTION__ << " (" << __FILE__ << " line "
 //          << __LINE__ << "): Text is undefined -> Undefined object."  << endl;
-    Res->SetDefined(false);
+    if(isData){
+       ((Attribute*)result.addr)->SetDefined(false);
+    }
     return 0;
   }
   // extract the text
@@ -4065,9 +4099,38 @@ int FTextValueMapToObject( Word* args, Word& result, int message,
 //     cout << __PRETTY_FUNCTION__ << " (" << __FILE__ << " line "
 //         << __LINE__ << "): Text does not produce a "
 //         "valid nested list expression -> Undefined object."  << endl;
-    Res->SetDefined(false);
+    if(isData){
+       ((Attribute*)result.addr)->SetDefined(false);
+    }
     return 0;
   }
+  bool typeIncluded = false;   
+  if(qp->GetNoSons(s)==3){
+    CcBool* ti = (CcBool*) args[2].addr;
+    if(ti->IsDefined() && ti->GetValue()){
+        typeIncluded = true;
+    }
+  }
+
+  if(typeIncluded){
+     if(!nl->HasLength(myTextNL,2)){
+        if(isData){
+           ((Attribute*)result.addr)->SetDefined(false);
+         }
+         return 0;
+     }
+     ListExpr myTextType = nl->First(myTextNL);
+     myTextNL = nl->Second(myTextNL);
+     if(!nl->Equal(myTextType,qp->GetType(s))){
+        if(isData){
+           ((Attribute*)result.addr)->SetDefined(false);
+         }
+         return 0;
+      }
+  }
+
+
+
   // get information on resulttype
   ListExpr myTypeNL = qp->GetType( s );
   // call InFunction
@@ -4089,7 +4152,9 @@ int FTextValueMapToObject( Word* args, Word& result, int message,
 //     cout << "\tmyTextNL  = " << nl->ToString(myTextNL) << endl;
 //     cout << "\terrorInfo = " << nl->ToString(errorInfo) << endl;
 //     cout << "\tErrorPos  = " << errorPos << endl;
-    Res->SetDefined(false);
+   if(isData){
+      ((Attribute*)result.addr)->SetDefined(false);
+    }
     return 0;
   }
 //   else
@@ -6589,14 +6654,17 @@ const string FTextGetValueNLSpec  =
 
 const string FTextToObjectSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>{text|string} x T -> T, T in DATA</text--->"
-    "<text>toObject( ValueList, TypePattern )</text--->"
+    "( <text>{text|string} x T [ x bool ]-> T, T in ANY</text--->"
+    "<text>toObject( ValueList, TypePattern, typeIncluded )</text--->"
     "<text>Creates an object of type T from a nested list expression "
     "'ValueList'. Argument 'TypePattern' is only needed to determine the type "
     "T of the result mapping, its value will otherwise be be ignored. 'list' "
-    "is a text whose value is a valid nested list value expression for type T. "
+    "is a text whose value is a valid nested list value expression for type T."
     "If the value expression does not match the type of 'TypePattern', the "
-    "result is an undefined object of type T.</text--->"
+    "result is a default object or undefined in case of an DATA type. "
+    "If the optional boolean argument is given and true, the expected list"
+    " format is (<type> <value>)."
+    "</text--->"
     "<text>query toObject('3.141592653589793116', 1.0)</text--->"
     ") )";
 
@@ -7298,7 +7366,7 @@ Operator ftexttoobject
     2,
     FText_VMMap_ToObject,
     FTextSelectFunToObject,
-    FTextTypeTextData_Data
+    toObjectTM 
     );
 
 /*
