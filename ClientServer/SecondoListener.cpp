@@ -79,7 +79,10 @@ SecondoListener::Execute()
   SetAbortMode( true );
 
   // --- Get configuration file
-  parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
+  if (GetArgCount() < 2) {
+    return EXIT_LISTENER_NOPF;
+  }
+  parmFile = GetArgValues()[1];
 
   // --- Load ruleSet
   string rulePolicy = SmiProfile::GetParameter( "Environment", 
@@ -94,55 +97,62 @@ SecondoListener::Execute()
   SocketRuleSet ipRules( policy );
   string ruleSetFile = SmiProfile::GetParameter( "Environment", 
                                                  "RuleSetFile", "", parmFile );
-  if ( ruleSetFile != "" )
-  {
-    ipRules.LoadFromFile( ruleSetFile );
+  if (ruleSetFile != "") {
+    ipRules.LoadFromFile(ruleSetFile);
   }
-
   // --- Get host and port of Secondo server
-  string host = SmiProfile::GetParameter( "Environment", 
-                                          "SecondoHost", "", parmFile );
-  string port = SmiProfile::GetParameter( "Environment", 
-                                          "SecondoPort", "", parmFile );
-
-  if ( host.length() == 0 || port.length() == 0 )
-  {
+  string host = SmiProfile::GetParameter("Environment", 
+                                         "SecondoHost", "", parmFile);
+  string port;
+  if (GetArgCount() > 2) {
+    istringstream iss(GetArgValues()[2]);
+    int portNum = 0;
+    if (!(iss >> portNum).fail()) {
+      port = GetArgValues()[2];
+    }
+  }
+   // --- Get dbDir
+  string dbDir;
+  if (GetArgCount() == 3) {
+    if (port.length() == 0) {
+      dbDir = GetArgValues()[2];
+    }
+  }
+  else if (GetArgCount() > 3) {
+    dbDir = GetArgValues()[3];
+  }
+  if (port.length() == 0) {
+    port = SmiProfile::GetParameter("Environment", "SecondoPort", "", parmFile);
+  }
+  if (host.length() == 0 || port.length() == 0) {
     return (EXIT_LISTENER_NOHOST);
   }
-
   // --- Get name of client server program
-  string section = (GetArgCount() > 2) ? GetArgValues()[2] : "BerkeleyDB";
-  string server  = SmiProfile::GetParameter( section, "ServerProgram", 
-                                             "", parmFile );
-  if ( server.length() == 0 )
-  {
+  string section = "BerkeleyDB";
+//   string section = (GetArgCount() > 2) ? GetArgValues()[2] : "BerkeleyDB";
+  string server = SmiProfile::GetParameter(section, "ServerProgram", 
+                                           "", parmFile);
+  if (server.length() == 0) {
+    cout << "Error: No server" << endl;
     return (EXIT_LISTENER_NOSERVER);
   }
-
   // --- Start up process factory
-  if ( !ProcessFactory::StartUp() )
-  {
+  if (!ProcessFactory::StartUp()) {
     return (EXIT_LISTENER_NOPF);
   }
-
   // --- Create listener socket
-
-  gate = Socket::CreateGlobal( host, port );
-  if ( gate && gate->IsOk() )
-  {
-    while (!ShouldAbort())
-    {
+  gate = Socket::CreateGlobal(host, port);
+  if (gate && gate->IsOk()) {
+    while (!ShouldAbort()) {
       client = gate->Accept();
-      if ( client && client->IsOk() )
-      {
-        if ( ipRules.Ok( SocketAddress( client->GetPeerAddress() ) ) )
-        {
+      if (client && client->IsOk()) {
+        if (ipRules.Ok(SocketAddress(client->GetPeerAddress()))) {
           // --- Spawn server for client
           int pidServer;
-          string pgmArgs = string( "\"-srv\" \"" ) + parmFile + "\""; 
-          if ( !ProcessFactory::SpawnProcess( server, pgmArgs,
-                                              pidServer, true, client ) )
-          {
+          string pgmArgs = string("\"-srv\" \"") + parmFile + "\" \"" + dbDir 
+                         + "\""; 
+          if (!ProcessFactory::SpawnProcess(server, pgmArgs, pidServer, true, 
+                                            client)) {
             // --- Start of server failed
             iostream& ss = client->GetSocketStream();
             ss << "<SecondoError>" << endl
@@ -150,40 +160,37 @@ SecondoListener::Execute()
                << "</SecondoError>" << endl;
             client->Close();
             delete client;
-            LogMessage( "Start of client server failed" );
+            LogMessage("Start of client server failed");
           }
-          WinUnix::sleep( 0 );
+          WinUnix::sleep(0);
         }
-        else
-        {
+        else {
           // --- Reject client
           iostream& ss = client->GetSocketStream();
-          ss << "<SecondoError>" << endl
-             << "SECONDO-0001: Connection rejected." << endl
-             << "</SecondoError>" << endl;
+          ss << "<SecondoError>" << endl << "SECONDO-0001: Connection rejected."
+             << endl << "</SecondoError>" << endl;
           client->Close();
           delete client;
-          string errmsg = string( "Client '" ) + client->GetPeerAddress() 
+          string errmsg = string("Client '") + client->GetPeerAddress() 
                           + "' not allowed.";
-          LogMessage( errmsg );
+          LogMessage(errmsg);
         }
       }
     }
     ProcessFactory::WaitForAll();
   }
-  else
-  {
+  else {
     string errbuf = gate->GetErrorText();
     delete gate;
-    LogMessage( "Failed to create global socket: " + errbuf );
+    LogMessage("Failed to create global socket: " + errbuf);
     rc = EXIT_LISTENER_NOSOCKET;
   }
-  if(client){
-      delete client;
+  if (client) {
+    delete client;
   }
-  if(gate){
-     gate->Close();
-     delete gate;
+  if (gate) {
+    gate->Close();
+    delete gate;
   }
   ProcessFactory::ShutDown();
   return (rc);

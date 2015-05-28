@@ -65,9 +65,11 @@ class SecondoMonitor : public Application
   static void HandleShutDown(int sig);
 
   SmiEnvironment::SmiType smiType;
-  string parmFile;
+  string cfgFile;
   string prompt;
   string line;
+  string port;
+  string dbDir;
   int  pidRegistrar;
   int  pidCheckpoint;
   int  pidListener;
@@ -88,7 +90,7 @@ SecondoMonitor::SecondoMonitor( const int argc, const char** argv )
   char **argvalues = (char**)argv;
   TTYParameter ttyp(argc, argvalues);
   smiType       = SmiEnvironment::GetImplementationType();
-  parmFile      = ttyp.parmFile;
+  cfgFile       = ttyp.parmFile;
   prompt        = "SEC_MON> ";
   line          = "";
   pidRegistrar  = 0;
@@ -153,30 +155,22 @@ SecondoMonitor::Usage()
   << "  QUIT           - shut down (if necessary) and exit" << endl << endl;
 }
 
-void
-SecondoMonitor::ExecStartUp()
-{
-  if ( !running )
-  {
+void SecondoMonitor::ExecStartUp() {
+  if (!running) {
     cout << "Startup in progress ... ";
-    string pgmListener = SmiProfile::GetParameter( "Environment", 
-                                                   "ListenerProgram", 
-                                                   "", parmFile );
-
-    string pgmArgs = string( "\"" ) + parmFile + "\"";
-    if ( ProcessFactory::SpawnProcess( pgmListener, pgmArgs, 
-                                       pidListener, true )   )
-    {
+    string pgmListener = SmiProfile::GetParameter("Environment", 
+                                                "ListenerProgram", "", cfgFile);
+    string pgmArgs = string( "\"" ) + cfgFile + "\" " + port + 
+                     (port.empty() ? "" : " ") + dbDir;
+    if (ProcessFactory::SpawnProcess(pgmListener, pgmArgs, pidListener, true)) {
       cout << "completed." << endl;
       running = true;
     }
-    else
-    {
+    else {
       cout << "failed." << endl;
     }
   }
-  else
-  {
+  else {
     cout << "Secondo Listener already running." << endl;
   }
 }
@@ -227,7 +221,7 @@ SecondoMonitor::ExecShow()
   else if ( cmdword == "DATABASES" ) cmd = "SHOWDATABASES";
   else if ( cmdword == "LOCKS"     ) cmd = "SHOWLOCKS";
  
-  string regName = SmiProfile::GetUniqueSocketName( parmFile );
+  string regName = SmiProfile::GetUniqueSocketName(cfgFile);
 
   Socket* msgClient = Socket::Connect( regName, "", Socket::SockLocalDomain );
   if ( msgClient && msgClient->IsOk() )
@@ -379,122 +373,141 @@ SecondoMonitor::CheckConfiguration()
 {
   bool found = false;
   cout << "Checking configuration ..." << endl;
-  // --- Find configuration file
-  parmFile = "";
-  string secondParam;
-  if (GetArgCount() > 3) {
-    secondParam = GetArgValues()[2];
-    parmFile = GetArgValues()[3];
+  int pos = 1;
+  string host, smi;
+  while (pos < GetArgCount()) {
+    string argValue(GetArgValues()[pos]);
+    if (argValue == "-c") {
+      pos++;
+      if (pos >= GetArgCount()) {
+        return false;
+      }
+      cfgFile = GetArgValues()[pos];
+    }
+    else if (argValue == "-d") {
+      pos++;
+      if (pos >= GetArgCount()) {
+        return false;
+      }
+      dbDir = GetArgValues()[pos];
+    }
+    else if (argValue == "-p") {
+      pos++;
+      if (pos >= GetArgCount()) {
+        return false;
+      }
+      port = GetArgValues()[pos];
+    }
+    else if (argValue == "-s") {}
+    else {
+      cout << "Invalid parameter " << GetArgValues()[pos] << endl;
+      return false;
+    }
+    pos++;
   }
-  if (GetArgCount() == 3) {
-    secondParam = GetArgValues()[1];
-    parmFile = GetArgValues()[2];
-  }
-  if (GetArgCount() >= 3 && secondParam != "-c") {
-    cout << "Error: invalid call " << secondParam << " " << parmFile <<  endl;
-    parmFile = "";
-  }
-  if (parmFile.length() > 0) {
-    cout << "Configuration file '" << parmFile;
-    found = FileSystem::FileOrFolderExists( parmFile );
-    if ( found )
-    {
+  if (cfgFile.length() > 0) {
+    cout << "Configuration file '" << cfgFile;
+    found = FileSystem::FileOrFolderExists(cfgFile);
+    if (found) {
       cout << "':" << endl;
     }
-    else
-    {
+    else {
       cout << "' not found!" << endl;
     }
   }
-  if ( !found )
-  {
+  if (!found) {
     cout << "Searching environment for configuration file ..." << endl;
     char* config = getenv( "SECONDO_CONFIG" );
-    if ( config != 0 )
-    {
-      parmFile = config;
-      cout << "Configuration file '" << parmFile;
-      found = FileSystem::FileOrFolderExists( parmFile );
-      if ( found )
-      {
+    if (config != 0) {
+      cfgFile = config;
+      cout << "Configuration file '" << cfgFile;
+      found = FileSystem::FileOrFolderExists(cfgFile);
+      if (found) {
         cout << "':" << endl;
       }
-      else
-      {
+      else {
         cout << "' not found!" << endl;
       }
     }
-    else
-    {
+    else {
       cout << "Environment variable SECONDO_CONFIG not defined." << endl;
     }
   }
-  if ( !found )
-  {
+  if (!found) {
     cout << "Searching current directory for configuration file ..."
           << endl;
     string cwd = FileSystem::GetCurrentFolder();
-    FileSystem::AppendSlash( cwd );
-    parmFile = cwd + "SecondoConfig.ini";
-    cout << "Configuration file '" << parmFile;
-    found = FileSystem::FileOrFolderExists( parmFile );
-    if ( found )
-    {
+    FileSystem::AppendSlash(cwd);
+    cfgFile = cwd + "SecondoConfig.ini";
+    cout << "Configuration file '" << cfgFile;
+    found = FileSystem::FileOrFolderExists(cfgFile);
+    if (found) {
       cout << "':" << endl;
     }
-    else
-    {
+    else {
       cout << "' not found!" << endl;
     }
   }
-  if ( found )
-  {
+  if (found) {
     string value, foundValue;
-    if ( SmiProfile::GetParameter( "Environment", 
-                                   "SecondoHome", "", parmFile ) == "" )
-    {
-      cout << "Error: Secondo home directory not specified." << endl;
+    if (dbDir.length() > 0) {
+      found = FileSystem::FileOrFolderExists(dbDir);
+    }
+    if (!found) {
+      cout << "Directory " << dbDir << " not found; using " << cfgFile << endl;
+      dbDir.clear();
+      if (SmiProfile::GetParameter("Environment",
+                                   "SecondoHome", "", cfgFile) == "") {
+        cout << "Error: Secondo home directory not specified." << endl;
+        found = false;
+      }
+      found = true;
+    }
+    if (port.length() > 0) {
+      istringstream iss(port);
+      int portNum = 0;
+      if ((iss >> portNum).fail()) {
+        cout << "Invalid port " << port << endl;
+        found = false;
+      }
+    }
+    else {
+      if (SmiProfile::GetParameter("Environment", 
+                                 "SecondoPort", "", cfgFile) == "") {
+        cout << "Error: Secondo port not specified." << endl;
+        found = false;
+      }
+      found = true;
+    }
+    if (SmiProfile::GetParameter("Environment", 
+                                 "SecondoHost", "", cfgFile) == "") {
+      cout << "Error: Secondo host not specified." << endl;
       found = false;
     }
-    if ( SmiProfile::GetParameter( "Environment", 
-                                   "SecondoHost", "", parmFile ) == "" ||
-         SmiProfile::GetParameter( "Environment", 
-                                   "SecondoPort", "", parmFile ) == ""    )
-    {
-      cout << "Error: Secondo host and/or port not specified." << endl;
-      found = false;
-    }
-    if ( smiType == SmiEnvironment::SmiBerkeleyDB )
-    {
-      value = SmiProfile::GetParameter( "BerkeleyDB", 
-                                        "ServerProgram", "", parmFile );
-      
-      if ( value == "" || !FileSystem::SearchPath( value, foundValue ) )
-      {
+    if (smiType == SmiEnvironment::SmiBerkeleyDB) {
+      value = SmiProfile::GetParameter("BerkeleyDB", "ServerProgram", "", 
+                                       cfgFile);
+      if (value == "" || !FileSystem::SearchPath(value, foundValue)) {
         cout << "Error: Server program '" << value << "' not found." << endl;
         found = false;
       }
-    } else {
+    } 
+    else {
       cout << "Unknown SMI-Type" << endl;
       exit(1);
     } 
-     
-    if ( found )
-    {
+    if (found) {
       cout << "Configuration seems to be ok." << endl << endl;
     }
-    else
-    {
+    else {
       cout << "Sorry, configuration parameters missing. Terminating program."
            << endl;
     }
   }
-  else
-  {
-    cout << "Sorry, no configuration file found. Terminating program."
-         << endl;
+  else {
+    cout << "Sorry, no configuration file found. Terminating program." << endl;
   }
-  return (found);
+  return found;
 }
 
 bool
@@ -512,26 +525,18 @@ SecondoMonitor::Initialize()
 
   // --- Check storage management interface
   cout << "Initializing storage management interface ... ";
-  if ( SmiEnvironment::StartUp( SmiEnvironment::MultiUserMaster, 
-                                parmFile, cout )                  )
-  {
+  if (SmiEnvironment::StartUp(SmiEnvironment::MultiUserMaster, cfgFile, cout)) {
     cout << "completed." << endl;
-    if ( smiType == SmiEnvironment::SmiBerkeleyDB )
-    {
+    if (smiType == SmiEnvironment::SmiBerkeleyDB) {
       cout << "Launching Checkpoint service ... ";
-      string pgmCheckpoint = SmiProfile::GetParameter( "BerkeleyDB", 
-                                                       "CheckpointProgram", 
-                                                       "", 
-                                                       parmFile );
-
-      string pgmArgs = string( "\"" ) + parmFile + "\"";
-      if ( ProcessFactory::SpawnProcess( pgmCheckpoint, 
-                                         pgmArgs, pidCheckpoint, true ) )
-      {
+      string pgmCheckpoint = SmiProfile::GetParameter("BerkeleyDB", 
+                                              "CheckpointProgram", "", cfgFile);
+      string pgmArgs = string( "\"" ) + cfgFile + "\"";
+      if ( ProcessFactory::SpawnProcess(pgmCheckpoint, 
+                                        pgmArgs, pidCheckpoint, true)) {
         cout << "completed." << endl;
       }
-      else
-      {
+      else {
         cout << "failed." << endl;
         ok = false;
       }
@@ -556,9 +561,9 @@ SecondoMonitor::Initialize()
     cout << "Launching Secondo Registrar ... ";
     string pgmRegistrar = SmiProfile::GetParameter( "Environment", 
                                                     "RegistrarProgram", 
-                                                    "", parmFile );
+                                                    "", cfgFile );
 
-    string pgmArgs = string( "\"" ) + parmFile + "\"";
+    string pgmArgs = string( "\"" ) + cfgFile + "\"";
     if ( ProcessFactory::SpawnProcess( pgmRegistrar, 
                                        pgmArgs, pidRegistrar, true ) )
     {
@@ -646,31 +651,40 @@ int main( const int argc, const char* argv[] )
   for(int i=1; i<argc && !done ;i++){ // start at 1, 0 is the program name
      string arg;
      arg = argv[i];
-     if( (arg=="-s") || (arg=="-startup") ){
+     if((arg=="-s") || (arg=="-startup")) {
         done = true;
         execute = true;
         autostartup = true;
-     } else if(arg=="--help"){
+     } 
+     else if (arg == "--help") {
         // list allowed arguments
-        cout << "Usage: " << argv[0] 
-	     << " [option]. Combinations are not supported!" 
-	     << endl;
+        cout << "Usage: " << argv[0] << " [option]. Combinations are not "
+                "supported!" << endl;
         cout << "Options:" << endl;
         cout << "   --help          Display this information and exit"
              << endl;
         cout << "   -s or -startup  Run Startup command automatically" 
 	     << endl;
-        cout << "   -sc1            Run Startup command and close stdin" 
-	     << endl;
         cout << "   -V or -version  Display version information and exit"
-             << endl;
+             << endl << endl;
+        cout << "The following parameters may be combined with \"-s\":" << endl;
+        cout << "   -c    Specify a configuration file" << endl;
+        cout << "   -d    Specify a database directory (override setting from "
+                "configuration file)" << endl;
+        cout << "   -p    Specify port (override setting from configuration "
+                "file)" << endl;
         done = true;
         execute = false;
-     } else if((arg=="-V") || (arg=="-version")){
+     }
+     else if ((arg == "-V") || (arg == "-version")) {
        cout << argv[0] << " version " << VersionInfo << endl;
-       execute = false;;
-     } else { // unknow command
-        cout << "unknow command line argument" << endl;
+       execute = false;
+     }
+     else if ((arg == "-c") || (arg == "-d") || (arg == "-p")) {
+       done = true;
+    }
+     else { // unknown command
+        cout << "unknown command line argument" << endl;
         cout << "try " << argv[0] << " --help" << endl;
         execute = false;
         return -1;

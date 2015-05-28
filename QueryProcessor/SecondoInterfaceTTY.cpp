@@ -276,15 +276,19 @@ SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
         __android_log_print(ANDROID_LOG_INFO,
                 "FU", "%s\n",dbversion.str().c_str());
 #endif
-
+  string cfgFile = parmFile;
+  string dbDir;
+  if (parmFile.find('|') != string::npos) {
+    cfgFile = parmFile.substr(0, parmFile.find('|'));
+    dbDir = parmFile.substr(parmFile.find('|') + 1);
+  }
 
   // initialize runtime flags
-  InitRTFlags(parmFile);
+  InitRTFlags(cfgFile);
 
   string value, foundValue;
-  if ( SmiProfile::GetParameter( "Environment",
-                                 "SecondoHome", "", parmFile ) == "" )
-  {
+  if (SmiProfile::GetParameter("Environment", "SecondoHome", "", cfgFile) == ""
+      && dbDir.empty()) {
 #ifndef SECONDO_ANDROID
     cout << "Error: Secondo home directory not specified." << endl;
 #else
@@ -294,22 +298,19 @@ SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
 
     errorMsg += "Secondo home directory not specified\n";
   }
-  else
-  {
+  else {
 #ifdef SECONDO_ANDROID
         __android_log_print(ANDROID_LOG_INFO,"FU", "Secondo Home directory ok");
 #endif
-
     ok = true;
   }
-
   // check username and password if enabled
   if(RTFlag::isActive("SI:UsePasswd")){
      // get the name of the file containing the passwords
      string passwd = SmiProfile::GetParameter( "Environment",
                                                "PASSWD_FILE",
                                                "passwd",
-                                                parmFile );
+                                                cfgFile );
      cout << "try to open file '" << passwd << "'" << endl;
      ifstream pwd(passwd.c_str());
      if(!pwd){
@@ -359,17 +360,14 @@ SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
                                     + progressConstantsFileDefault;
   }
 #else
-        string sbd = parmFile.substr(0,parmFile.find_last_of("\\/"));
+        string sbd = cfgFile.substr(0, cfgFile.find_last_of("\\/"));
         //string sbd ="/data/data/de.fernunihagen.dna.Secondo4Android";
         progressConstantsFileDefault = sbd 
                 + CFile::pathSep + progressConstantsFileDefault;
 #endif
 
-  string progressConstantsFile = SmiProfile::GetParameter(
-                                      "ProgressEstimation",
-                                      "PROGRESS_CONSTANTS_FILE",
-                                      progressConstantsFileDefault,
-                                      parmFile);
+  string progressConstantsFile = SmiProfile::GetParameter("ProgressEstimation",
+              "PROGRESS_CONSTANTS_FILE", progressConstantsFileDefault, cfgFile);
   trim(progressConstantsFile);
   expandVarRef(progressConstantsFile);
 
@@ -390,8 +388,7 @@ SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
 #ifndef SECONDO_ANDROID 
  string tempDir("tmp");
 #else
-        string tempDirPath = parmFile.substr(0,
-                parmFile.find_last_of("\\/"));        
+        string tempDirPath = cfgFile.substr(0, cfgFile.find_last_of("\\/"));
         string tempDir(tempDirPath+"tmp");
 #endif
 
@@ -451,17 +448,17 @@ SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
   long nodeMem = 2048;
   nodeMem =
     SmiProfile::GetParameter("QueryProcessor", "NodeMem",
-                             nodeMem, parmFile);
+                             nodeMem, cfgFile);
 
   long stringMem = 1024;
   stringMem =
     SmiProfile::GetParameter("QueryProcessor", "StringMem",
-                             stringMem, parmFile);
+                             stringMem, cfgFile);
 
   long textMem = 1024;
   textMem =
     SmiProfile::GetParameter("QueryProcessor", "TextMem",
-                             textMem, parmFile);
+                             textMem, cfgFile);
 
 
   size_t native_flobcache_maxSize = 0;
@@ -473,11 +470,11 @@ SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
   size_t persistent_flobcache_avgSize = 0;
 
   native_flobcache_maxSize =
-     SmiProfile::GetParameter("FlobCache", "Native_MaxSize", 0, parmFile);
+     SmiProfile::GetParameter("FlobCache", "Native_MaxSize", 0, cfgFile);
   native_flobcache_slotSize =
-     SmiProfile::GetParameter("FlobCache", "Native_SlotSize", 0, parmFile);
+     SmiProfile::GetParameter("FlobCache", "Native_SlotSize", 0, cfgFile);
   native_flobcache_avgSize =
-     SmiProfile::GetParameter("FlobCache", "Native_AvgSize", 0, parmFile);
+     SmiProfile::GetParameter("FlobCache", "Native_AvgSize", 0, cfgFile);
 
 
   if(native_flobcache_maxSize >0 && native_flobcache_slotSize >0 &&
@@ -495,11 +492,11 @@ SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
 
 
   persistent_flobcache_maxSize =
-     SmiProfile::GetParameter("FlobCache", "Persistent_MaxSize", 0, parmFile);
+     SmiProfile::GetParameter("FlobCache", "Persistent_MaxSize", 0, cfgFile);
   persistent_flobcache_slotSize =
-     SmiProfile::GetParameter("FlobCache", "Persistent_SlotSize", 0, parmFile);
+     SmiProfile::GetParameter("FlobCache", "Persistent_SlotSize", 0, cfgFile);
   persistent_flobcache_avgSize =
-     SmiProfile::GetParameter("FlobCache", "Persistent_AvgSize", 0, parmFile);
+     SmiProfile::GetParameter("FlobCache", "Persistent_AvgSize", 0, cfgFile);
 
 
   if(persistent_flobcache_maxSize >0 && persistent_flobcache_slotSize >0 &&
@@ -554,7 +551,7 @@ SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
 
     long keyVal =
       SmiProfile::GetParameter("QueryProcessor", "MaxMemPerOperator",
-                               16 * 1024, parmFile);   // in kB
+                               16 * 1024, cfgFile);   // in kB
     qp.SetMaxMemPerOperator(keyVal*1024);   // in bytes
     cmsg.info() << "Memory usage per operator limited by "
                 << keyVal << "kb" << endl;
@@ -562,14 +559,14 @@ SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
 
     size_t globalMem =
       SmiProfile::GetParameter("QueryProcessor", "GlobalMemory",
-                               512, parmFile);     // in MB
+                               512, cfgFile);     // in MB
     qp.SetGlobalMemory(globalMem);   // in MB
     cmsg.info() << "Global memory limited by "
                 << globalMem << " MB" << endl;
 
     keyVal =
       SmiProfile::GetParameter("System", "FLOBCacheSize",
-                               16*1024, parmFile);
+                               16*1024, cfgFile);
     //SecondoSystem::InitializeFLOBCache( keyVal*1024 );
 
     cmsg.info() << "FLOB Cache size "

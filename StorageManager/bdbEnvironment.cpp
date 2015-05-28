@@ -1148,143 +1148,111 @@ SmiEnvironment::DeleteTmpEnvironment()
 
 
 
-bool
-SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
-                         ostream& errStream)
-{
-  if ( smiStarted )
-    return (true);
-
+bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
+                             ostream& errStream) {
+  if (smiStarted) {
+    return true;
+  }
   cout << "Startup of the Storage Management Interface (SMI) ..." << endl;
-
-  if ( RTFlag::isActive("SMI:NoTransactions") ) {
+  if (RTFlag::isActive("SMI:NoTransactions")) {
     SmiEnvironment::Implementation::AutoCommitFlag = 0;
     cout << endl << "Transactions: unused" << endl;
   }
-
   int rc = 0;
   int errors = GetNumOfErrors();
   DbEnv* dbenv = instance.impl->bdbEnv;
   assert(dbenv);
-
-  configFile = parmFile;
-
+  string dbDir;
+  if (parmFile.find('|') != string::npos) {
+    configFile = parmFile.substr(0, parmFile.find('|'));
+    dbDir = parmFile.substr(parmFile.find('|') + 1);
+  }
+  else {
+    configFile = parmFile;
+  }
   // --- Set the name of the registrar for registering and locking databases
-
-  registrar = SmiProfile::GetUniqueSocketName( parmFile );
-
+  registrar = SmiProfile::GetUniqueSocketName(configFile);
   // --- Set output stream for error messages from Berkeley DB
   //     and the prefix string for these messages
-
-  dbenv->set_error_stream( &errStream );
-  dbenv->set_errpfx( "DbEnv" );
-
+  dbenv->set_error_stream(&errStream);
+  dbenv->set_errpfx("DbEnv");
   // --- Set time between checkpoints
-
   instance.impl->minutes =
-    SmiProfile::GetParameter( "BerkeleyDB", "CheckpointTime", 5, parmFile );
-
+    SmiProfile::GetParameter("BerkeleyDB", "CheckpointTime", 5, configFile);
   // --- Set cache size
-
-  u_int32_t cachesize =
-    SmiProfile::GetParameter( "BerkeleyDB",
-                              "CacheSize", CACHE_SIZE_STD, parmFile );
-  if ( cachesize < CACHE_SIZE_STD )
-  {
+  u_int32_t cachesize = SmiProfile::GetParameter("BerkeleyDB", "CacheSize", 
+                                                 CACHE_SIZE_STD, configFile);
+  if (cachesize < CACHE_SIZE_STD) {
     cachesize = CACHE_SIZE_STD;
   }
-  else if ( cachesize > CACHE_SIZE_MAX )
-  {
+  else if (cachesize > CACHE_SIZE_MAX) {
     cachesize = CACHE_SIZE_MAX;
   }
   cout << "Cachesize: " << cachesize << " kb." << endl;
   rc = dbenv->set_cachesize( 0, cachesize * 1024, 0 );
   SetBDBError(rc);
-
   // --- Set locking configuration
-
-    u_int32_t timeout_value;
-    timeout_value = SmiProfile::GetParameter( "BerkeleyDB",
-                                         "Timeout_LCK",
-                                          0, parmFile.c_str() );
-
-    db_timeout_t microSeconds = timeout_value;
-    rc = dbenv->set_timeout(microSeconds, DB_SET_LOCK_TIMEOUT);
-    cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
-
-    timeout_value = SmiProfile::GetParameter( "BerkeleyDB",
-                                              "Timeout_TXN",
-                                              0, parmFile.c_str() );
-
-    microSeconds = timeout_value;
-    rc = dbenv->set_timeout(microSeconds, DB_SET_TXN_TIMEOUT);
-    cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
-
-
-
-    u_int32_t lockValue;
-    lockValue = SmiProfile::GetParameter( "BerkeleyDB",
-                                          "MaxLockers",
-                                          0, parmFile.c_str() );
-    if ( lockValue > 0 )
-    {
-      rc = dbenv->set_lk_max_lockers( lockValue );
-      SetBDBError(rc);
-    }
-    lockValue = SmiProfile::GetParameter( "BerkeleyDB",
-                                          "MaxLocks",
-                                          0, parmFile.c_str() );
-    if ( lockValue > 0 )
-    {
-      rc = dbenv->set_lk_max_locks( lockValue );
-      SetBDBError(rc);
-    }
-    lockValue = SmiProfile::GetParameter( "BerkeleyDB",
-                                          "MaxLockObjects",
-                                          0, parmFile.c_str() );
-    if ( lockValue > 0 )
-    {
-      rc = dbenv->set_lk_max_objects( lockValue );
-      SetBDBError(rc);
-    }
-    rc = dbenv->set_lk_detect( DB_LOCK_DEFAULT );
-    SetBDBError(rc);
-
-  // --- Set log directory, if requested
-
-    string logDir = SmiProfile::GetParameter( "BerkeleyDB",
-                                              "LogDir",
-                                              "", parmFile.c_str() );
-    if ( logDir.length() > 0 )
-    {
-      rc = dbenv->set_lg_dir( logDir.c_str() );
-      SetBDBError(rc);
-    }
-
-  // --- Set log buffer size
-  u_int32_t lBufSize = 0;
-  lBufSize = SmiProfile::GetParameter( "BerkeleyDB",
-                                       "LogBufSize",
-                                       0 , parmFile.c_str() );
-  if ( lBufSize > 0 )
-  {
-    cout << "Log buffer size: " << lBufSize << " kb." << endl;
-    rc = dbenv->set_lg_max( 4 * lBufSize * 1024 );
-    SetBDBError(rc);
-    rc = dbenv->set_lg_bsize( lBufSize * 1024 );
+  u_int32_t timeout_value;
+  timeout_value = SmiProfile::GetParameter("BerkeleyDB", "Timeout_LCK", 0, 
+                                           configFile.c_str());
+  db_timeout_t microSeconds = timeout_value;
+  rc = dbenv->set_timeout(microSeconds, DB_SET_LOCK_TIMEOUT);
+  cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
+  timeout_value = SmiProfile::GetParameter("BerkeleyDB", "Timeout_TXN", 0,
+                                           configFile.c_str() );
+  microSeconds = timeout_value;
+  rc = dbenv->set_timeout(microSeconds, DB_SET_TXN_TIMEOUT);
+  cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
+  u_int32_t lockValue;
+  lockValue = SmiProfile::GetParameter("BerkeleyDB", "MaxLockers", 0, 
+                                       configFile.c_str() );
+  if (lockValue > 0) {
+    rc = dbenv->set_lk_max_lockers(lockValue);
     SetBDBError(rc);
   }
-
+  lockValue = SmiProfile::GetParameter("BerkeleyDB", "MaxLocks", 0,
+                                       configFile.c_str() );
+  if (lockValue > 0) {
+    rc = dbenv->set_lk_max_locks(lockValue);
+    SetBDBError(rc);
+  }
+  lockValue = SmiProfile::GetParameter("BerkeleyDB", "MaxLockObjects", 0,
+                                       configFile.c_str() );
+  if (lockValue > 0) {
+    rc = dbenv->set_lk_max_objects(lockValue);
+    SetBDBError(rc);
+  }
+  rc = dbenv->set_lk_detect(DB_LOCK_DEFAULT);
+  SetBDBError(rc);
+// --- Set log directory, if requested
+  string logDir = SmiProfile::GetParameter("BerkeleyDB", "LogDir", "",
+                                           configFile.c_str() );
+  if (logDir.length() > 0) {
+    rc = dbenv->set_lg_dir(logDir.c_str());
+    SetBDBError(rc);
+  }
+  // --- Set log buffer size
+  u_int32_t lBufSize = 0;
+  lBufSize = SmiProfile::GetParameter("BerkeleyDB", "LogBufSize", 0,
+                                      configFile.c_str() );
+  if (lBufSize > 0) {
+    cout << "Log buffer size: " << lBufSize << " kb." << endl;
+    rc = dbenv->set_lg_max(4 * lBufSize * 1024);
+    SetBDBError(rc);
+    rc = dbenv->set_lg_bsize(lBufSize * 1024);
+    SetBDBError(rc);
+  }
   // --- Open Berkeley DB environment
-
-  if ( rc == 0 )
-  {
-    if ( !SetHomeDir(parmFile) )
+  if (rc == 0) {
+    if (dbDir.length() > 0) {
+      instance.impl->bdbHome = dbDir;
+      cout << "DBDIR set to " << dbDir << "." << endl;
+    }
+    else if (!SetHomeDir(configFile)) {
       return false;
-
+    }
     u_int32_t flags = 0;
-    switch ( mode )
-    {
+    switch (mode) {
       case SmiEnvironment::SingleUserSimple:
         cout << "SMI-Mode: SingleUserSimple" << endl;
         singleUserMode  = true;
@@ -1338,52 +1306,42 @@ Transactions, logging and locking are enabled.
 */
         break;
     }
-    rc = dbenv->open( instance.impl->bdbHome.c_str(), flags, 0 );
+    rc = dbenv->open(instance.impl->bdbHome.c_str(), flags, 0);
     SetBDBError(rc);
-
     if (rc == 0) {
-    // --- Open Database Catalog
-
-    Db* dbctlg = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-    rc = dbctlg->open( 0, "databases", 0, DB_BTREE,
-                       DB_CREATE | Implementation::AutoCommitFlag, 0 );
-    SetBDBError(rc);
-    if ( rc == 0 )
-    {
-      smiStarted = true;
-      instance.impl->bdbDatabases = dbctlg;
-    }
-    else
-    {
-      rc = dbctlg->close( 0 );
+      // --- Open Database Catalog
+      Db* dbctlg = new Db(dbenv, DB_CXX_NO_EXCEPTIONS);
+      rc = dbctlg->open(0, "databases", 0, DB_BTREE,
+                        DB_CREATE | Implementation::AutoCommitFlag, 0);
       SetBDBError(rc);
-      delete dbctlg;
-      instance.impl->bdbDatabases = 0;
+      if (rc == 0) {
+        smiStarted = true;
+        instance.impl->bdbDatabases = dbctlg;
+      }
+      else {
+        rc = dbctlg->close( 0 );
+        SetBDBError(rc);
+        delete dbctlg;
+        instance.impl->bdbDatabases = 0;
+      }
     }
   }
-  }
-
   if (useTransactions) {
     db_timeout_t microSeconds = 0;
     rc = dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
     cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
-
     rc = dbenv->get_timeout(&microSeconds, DB_SET_TXN_TIMEOUT);
     cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
   }
-
   // --- Create temporary Berkeley DB environment
-
   rc = CreateTmpEnvironment(errStream);
   smiStarted = smiStarted && (rc == 0);
-
   if (GetNumOfErrors() > errors) {
     cout << "Some errors happend during startup!" << endl;
     string errorStack="";
     GetLastErrorCode(errorStack);
     cout << errorStack << endl;
   }
-
   return smiStarted;
 }
 

@@ -898,12 +898,11 @@ SecondoServer::Disconnect()
   quit = true;
 }
 
-int
-SecondoServer::Execute()
-{
+int SecondoServer::Execute() {
   int rc = 0;
   parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
   registrar = SmiProfile::GetUniqueSocketName( parmFile );
+  string dbDir = (GetArgCount() == 3) ? GetArgValues()[2] : "";
   si = new SecondoInterfaceTTY(true);
   cout << "Initialize the secondo interface " << endl;
 
@@ -985,7 +984,9 @@ SecondoServer::Execute()
          }
        quit = true; 
       }
-
+    if (dbDir.length() > 0) {
+      parmFile += "|" + dbDir;
+    }
     cout << "Try to initialize the secondo system " << endl; 
     string errorMsg("");
     if ( si->Initialize( user, pswd, "", "", parmFile,errorMsg,  true ) )
