@@ -95,9 +95,9 @@ void CassandraAdapter::connect(bool singleNodeLoadBalancing) {
 
      cass_cluster_set_contact_points(cluster, contactpoint.c_str());
 
-     // Set high bytes watermark to 1MB, so each connection can
+     // Set high bytes watermark to 2MB, so each connection can
      // have 1 MB of data pending        
-     cass_cluster_set_write_bytes_high_water_mark(cluster, 1024 * 1024);
+     cass_cluster_set_write_bytes_high_water_mark(cluster, 2 * 1024 * 1024);
      
      // Switch to single node policy
      if(singleNodeLoadBalancing) {
@@ -618,11 +618,16 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
 
 bool CassandraAdapter::dropTable(string tablename) {
     stringstream ss;
-    ss << "DROP TABLE IF EXISTS ";
+    
+  /*ss << "DROP TABLE IF EXISTS ";
     ss << tablename;
     ss << ";";
+   */
+   
+   // Only truncate table to avoid recreation issues
+   ss << "TRUNCATE " << tablename << ";";
 
-    return executeCQLSync(ss.str(), CASS_CONSISTENCY_ALL);
+   return executeCQLSync(ss.str(), CASS_CONSISTENCY_ALL);
 }
 
 void CassandraAdapter::waitForPendingFuturesIfNeeded() {

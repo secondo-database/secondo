@@ -1755,15 +1755,24 @@ public:
     
     while(result != NULL && result->hasNext()) {
       
-      string myResult;
-      result -> getStringValue(myResult, 0);
+      string relationName;
+      result -> getStringValue(relationName, 0);
       
       // Skip system tables
-      if(myResult.find("system_") == 0) {
+      if(relationName.find("system_") == 0) {
         continue;
       }
       
-      return new FText(true, myResult);
+      // Skip empty tables
+      string resultType = "";
+      bool tableExists = 
+        cassandra -> getTupleTypeFromTable(relationName, resultType);
+        
+      if(tableExists == false) {
+         continue;
+      }
+      
+      return new FText(true, relationName);
     }
     
     return NULL;
