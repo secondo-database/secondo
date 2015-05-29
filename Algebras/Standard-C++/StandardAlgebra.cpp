@@ -6125,6 +6125,7 @@ int true_falseVM (Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   CcBool* res = (CcBool*) result.addr;
   res->Set(true,v);
+  return 0;
 }
 
 /*
