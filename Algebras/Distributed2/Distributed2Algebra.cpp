@@ -4142,6 +4142,55 @@ stream(int) x {string.text} x {int} -> stream(tuple(Server : int, Resul : DATA))
 This operator uses argument evaluation in type mapping.
 
 */
+
+bool  getQueryType(const string& query1, int serverNo, 
+                   ListExpr& result, string& errMsg){
+   string query = query1 + " getTypeNL";
+   int error;
+   ListExpr reslist;
+   bool ok = algInstance->simpleCommand(serverNo, query, 
+                                        error, errMsg, reslist);
+   if(!ok){
+      errMsg = " determining type command failed (invalid server number)";
+      return false;
+   }
+   if(error!=0){
+      errMsg = " error in type detecting command (" + errMsg+")";
+      return false;
+   }
+   if(!nl->HasLength(reslist,2)){
+      errMsg = "Invalid result get from remote server";
+      return false;
+   }
+   if(!FText::checkType(nl->First(reslist))){
+      errMsg = "Invalid result type for getTypeNL";
+      return false;
+   }
+   if(nl->AtomType(nl->Second(reslist))!=TextType){
+     errMsg = "getTypeNL returns invalid/undefined result";
+     return false;
+   }
+   string typeList = nl->Text2String(nl->Second(reslist));
+   ListExpr resType;
+   nlparsemtx.lock();
+   if(!nl->ReadFromString(typeList,resType)){
+     nlparsemtx.unlock();
+     errMsg = "getTypeNL returns no valid list expression";
+     return false;
+   }   
+   nlparsemtx.unlock();
+   if(nl->HasLength(resType,2)){
+     ListExpr first = nl->First(resType);
+     if(listutils::isSymbol(first, Stream<Tuple>::BasicType())){
+        errMsg = "remote result is a stream";
+        return false;
+     }
+   }
+   result = resType;
+   errMsg = "";
+   return true;
+}
+
 ListExpr pqueryTM(ListExpr args){
   string err="stream(int) x {string.text} x {int} expected";
   if(!nl->HasLength(args,3)){
@@ -4180,42 +4229,13 @@ ListExpr pqueryTM(ListExpr args){
                                   "providing the type");
    }
 
-   query +=  " getTypeNL";
-   int error;
    string errMsg;
-   ListExpr reslist;
-   ok = algInstance->simpleCommand(server, query, error, errMsg, reslist);
-   if(!ok){
-     return listutils::typeError("found no connection for specified "
-                                 "connection number");
-   }
-   if(error!=0){
-     return listutils::typeError("Problem in determining result type : "
-                                 + errMsg);
-   }
-   if(!nl->HasLength(reslist,2)){
-      return listutils::typeError("Invalid result get from remote server");
-   }
-   if(!FText::checkType(nl->First(reslist))){
-      return listutils::typeError("Invalid result type for getTypeNL");
-   }
-   if(nl->AtomType(nl->Second(reslist))!=TextType){
-     return listutils::typeError("getTypeNL returns invalid/undefined result");
-   }
-   string typeList = nl->Text2String(nl->Second(reslist));
    ListExpr resType;
-   nlparsemtx.lock();
-   if(!nl->ReadFromString(typeList,resType)){
-     nlparsemtx.unlock();
-     return listutils::typeError("getTypeNL returns no valid list expression");
-   }   
-   nlparsemtx.unlock();
-   if(nl->HasLength(resType,2)){
-     ListExpr first = nl->First(resType);
-     if(listutils::isSymbol(first, Stream<Tuple>::BasicType())){
-        return listutils::typeError("remote result is a stream");
-     }
+   if(!getQueryType(query,server,resType,errMsg)){
+      return listutils::typeError(errMsg);
    }
+
+
    // check whether resType is in kind data
    if(!listutils::isDATA(resType)){
       return listutils::typeError("Query result " + nl->ToString(resType) + 
@@ -4491,6 +4511,436 @@ Operator pqueryOp (
      pquerySelect,   //trivial selection function
      pqueryTM        //type mapping
 );
+
+
+/*
+1.9 Operator ~pquery2~
+
+This operator works quite similar as the pquery operator. The difference is
+that the first argument is a tuple stream with at least two integer values.
+The first value corresponds to the server number (like in pquery), the 
+second number is a parameter for the remote query. The remote query contains 
+somewhere the keywords SERVER and PART which are replaced by the 
+corresponding values. For determining the result type, some
+default parameters for part and server are given.
+
+
+1.9.1 Type Mapping
+
+*/
+
+ListExpr pquery2TM(ListExpr args){
+
+  string err = "stream(tuple) x {string,text} x AttrName x AttrName "
+               "x int x int expected";
+  if(!nl->HasLength(args,6)){
+    return listutils::typeError(err + " (invalid number of args)");
+  }
+
+  ListExpr stream = nl->First(args);
+  if(!nl->HasLength(stream,2)){
+     return listutils::typeError("internal error");
+  }
+  stream = nl->First(stream);
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError(err + " (first arg is not a tuple stream)");
+  }
+  ListExpr query = nl->Second(args);
+  if(!nl->HasLength(query,2)){
+    return listutils::typeError("internal error");
+  }
+  query = nl->First(query);
+  if(!CcString::checkType(query) && !FText::checkType(query)){
+     return listutils::typeError(err + " (second arg is not of string or "
+                                 "text)");
+  }
+  ListExpr serverNo = nl->Third(args);
+  if(!nl->HasLength(serverNo,2)){
+     return listutils::typeError("internal error");
+  }
+  serverNo = nl->First(serverNo);
+  if(nl->AtomType(serverNo)!=SymbolType){
+     return listutils::typeError(err +" (third arg is not an attr name)");
+  }
+  ListExpr partNo = nl->Fourth(args);
+  if(!nl->HasLength(partNo,2)){
+     return listutils::typeError("internal error");
+  }
+  partNo = nl->First(partNo);
+  if(nl->AtomType(partNo)!=SymbolType){
+     return listutils::typeError(err +" (fourth arg is not an attr name)");
+  }
+  if(!CcInt::checkType(nl->First(nl->Fifth(args)))){
+     return listutils::typeError(err +" (fifth arg is not an int)");
+  }
+  if(!CcInt::checkType(nl->First(nl->Sixth(args)))){
+     return listutils::typeError(err +" (sixth arg is not an int)");
+  }
+  // check for presence and int type of attributes in tuple stream
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr attrType;
+  string sp = nl->SymbolValue(serverNo);
+  int serverPos = listutils::findAttribute(attrList, sp,  attrType);
+  if(!serverPos){
+     return listutils::typeError("attribute " + sp + " not found");
+  }
+  if(!CcInt::checkType(attrType)){
+    return listutils::typeError("attribute " + sp + " not of type int");
+  }
+  string pp = nl->SymbolValue(partNo);
+  int partPos = listutils::findAttribute(attrList, pp, attrType);
+  if(!partPos){
+     return listutils::typeError("attribute " + pp + " not found");
+  }
+  if(!CcInt::checkType(attrType)){
+     return listutils::typeError("attribute " + pp + " not of type int");
+  }
+
+  // get the query as well as the default numbers
+  string q;
+  bool ok;
+  if(CcString::checkType(nl->First(nl->Second(args)))){
+    ok = getValue<CcString>(nl->Second(nl->Second(args)),q);
+  } else {
+    ok = getValue<FText>(nl->Second(nl->Second(args)),q);
+  }
+  if(!ok){
+    return listutils::typeError("problem in determining query text");
+  }
+  int defaultPart;
+  if(!getValue(nl->Second(nl->Fifth(args)),defaultPart)){
+    return listutils::typeError("cannot determine default part");
+  }
+  int defaultServer;
+  if(!getValue(nl->Second(nl->Sixth(args)),defaultServer)){
+    return listutils::typeError("cannot determine default server");
+  }
+
+  // manipulate
+  q = stringutils::replaceAll(q,"SERVER",stringutils::int2str(defaultServer));
+  q = stringutils::replaceAll(q,"PART",stringutils::int2str(defaultPart));
+
+  
+  string errMsg;
+  ListExpr resType;
+
+  if(!getQueryType(q,defaultServer,resType, errMsg)){
+    listutils::typeError(errMsg);
+  }
+  if(!listutils::isDATA(resType)){
+     return listutils::typeError("result type not in kind DATA");
+  }
+  ListExpr resAttrList = listutils::concat(attrList, 
+                              nl->OneElemList( nl->TwoElemList( 
+                                        nl->SymbolAtom("Result"),resType))); 
+  if(!listutils::isAttrList(resAttrList)){
+    return listutils::typeError("Result already part of tuple ");
+  }
+
+  return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->TwoElemList( nl->IntAtom(serverPos-1), 
+                                nl->IntAtom(partPos-1)),
+               nl->TwoElemList(
+                     listutils::basicSymbol<Stream<Tuple> >(),
+                      nl->TwoElemList(
+                           listutils::basicSymbol<Tuple>(),
+                           resAttrList)));
+}
+
+/*
+1.9.2 LocalInfo Class
+
+*/
+class PQuery2Info : public CommandListener<ListExpr>{
+  public:
+    PQuery2Info(Word& _stream , const string& _query,  
+                int _serverAttr, int _partAttr, ListExpr _tt) : 
+      stream(_stream), serverAttr(_serverAttr), 
+      partAttr(_partAttr), query(_query) {
+    
+       stream.open();
+       stop = false;
+       noInputs=-1;
+       noOutputs = 0;
+       // run processing thread
+       string typeName;
+
+       // determine result type
+       ListExpr attrList = nl->Second(nl->Second(_tt));
+       while(!nl->HasLength(attrList,1)){
+          attrList = nl->Rest(attrList);
+       } 
+       resType = nl->Second(nl->First(attrList)); 
+
+       tt = new TupleType(
+              SecondoSystem::GetCatalog()->NumericType(nl->Second(_tt)));
+
+
+       string tname;
+       int algId, typeId;
+       SecondoSystem::GetCatalog()->LookUpTypeExpr(resType, tname, 
+                                                   algId, typeId);
+
+
+       AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+       inObject = am->InObj(algId,typeId);
+       createObject = am->CreateObj(algId,typeId);
+       runner = boost::thread(boost::bind(&PQuery2Info::run,this));
+    }
+
+    virtual ~PQuery2Info(){
+        stop = true;
+        runner.join();
+
+        map<int,ConnectionTask<ListExpr>*>::iterator it;
+        for(it = connectors.begin(); it!=connectors.end(); it++){
+           it->second->stop();
+        }
+        for(it = connectors.begin(); it!=connectors.end(); it++){
+           delete it->second;
+        }
+        while(!resultList.empty()){
+          Tuple* t = resultList.front();
+          resultList.pop_front();
+          t->DeleteIfAllowed();
+        }
+        stream.close();
+        tt->DeleteIfAllowed();
+        // delete non processed input tuples
+        boost::lock_guard<boost::mutex> gurad(mapmtx);
+        map<int,Tuple*>::iterator it2;
+        for(it2=inTuples.begin();it2!=inTuples.end();it2++){
+           it2->second->DeleteIfAllowed();
+        }
+    }
+
+    Tuple* next(){
+       boost::unique_lock<boost::mutex> lock(resmtx);
+       while(resultList.empty()){
+          cond.wait(lock);
+       }
+       Tuple* res = resultList.front();
+       resultList.pop_front();
+       return res;
+    }
+
+    virtual void jobDone(int id, string& command, size_t no, int error, 
+                       string& errMsg, ListExpr& valueList){
+
+       {
+
+
+          boost::lock_guard<boost::mutex> guard(resmtx);
+          bool correct;    
+          Word res;
+          Tuple* resTuple = new Tuple(tt);
+
+
+          mapmtx.lock();
+          map<int,Tuple*>::iterator it = inTuples.find(id);
+          if(it == inTuples.end()){
+              cerr << "Task with id " << id 
+                   << "finshed, but no input tuple is found" << endl;
+              return;
+          }
+          Tuple* inTuple = it->second;
+          inTuples.erase(it);
+          mapmtx.unlock();
+          // copy original tuples
+          int noAttributes = inTuple->GetNoAttributes();
+          for(int i=0;i<noAttributes;i++){
+            resTuple->CopyAttribute(i,inTuple,i);
+          }
+          inTuple->DeleteIfAllowed();
+
+          int errorPos = 0;
+          ListExpr errorInfo = listutils::emptyErrorInfo();
+          Attribute* resAttr;
+
+          if(nl->HasLength(valueList,2)){
+              res = inObject(resType, nl->Second(valueList), 
+                         errorPos, errorInfo, correct);
+          } else {
+             correct = false;
+          }
+      
+          if(correct){ // nested list could not read in correctly
+             resAttr = (Attribute*) res.addr; 
+          } else {
+             Attribute* attr = (Attribute*) createObject(resType).addr;
+             attr->SetDefined(false);
+             resAttr = attr;; 
+          }
+          resTuple->PutAttribute(noAttributes,resAttr);
+          resultList.push_back(resTuple);
+          noOutputs++;
+          if(noInputs==noOutputs){
+           resultList.push_back(0);
+          }
+       }
+       cond.notify_one();
+    }
+
+  private:
+    Stream<Tuple> stream;
+    int serverAttr;
+    int partAttr;
+    string query;
+    TupleType* tt;
+    int noInputs;
+    int noOutputs;
+    ListExpr resType;
+    list<Tuple*> resultList;
+    map<int, Tuple*> inTuples;
+    boost::mutex resmtx;
+    boost::thread runner;
+    bool stop;
+    map<int,ConnectionTask<ListExpr>*> connectors;
+    boost::mutex mapmtx;
+    boost::condition_variable cond;
+    InObject inObject;
+    ObjectCreation createObject; 
+    
+
+    
+    void run(){
+       Tuple* inTuple = stream.request();
+       int count =0;
+       while(inTuple && !stop){
+          CcInt* serverNo = (CcInt*) inTuple->GetAttribute(serverAttr);
+          CcInt* partNo = (CcInt*) inTuple->GetAttribute(partAttr);
+
+
+
+          if(serverNo->IsDefined() && partNo->IsDefined()){
+              int snum = serverNo->GetValue();
+              int pnum = partNo->GetValue();
+              if(algInstance->serverExists(snum)){
+                  startQuery(inTuple, snum,pnum, count);
+              } else {
+                 inTuple->DeleteIfAllowed();
+              } 
+          }  
+          inTuple = stream.request();
+       }
+       if(inTuple){
+          inTuple->DeleteIfAllowed();
+       }
+       noInputs = count;
+       if(noInputs==noOutputs){
+           {  boost::unique_lock<boost::mutex> lock(resmtx);
+              resultList.push_back(0);
+           }
+           cond.notify_one();
+       }
+    }
+
+    void startQuery(Tuple* inTuple,int s, int p, int &id){
+       boost::lock_guard<boost::mutex> guard(mapmtx);
+       inTuples[id] = inTuple;
+       if(connectors.find(s)==connectors.end()){
+          connectors[s] = new ConnectionTask<ListExpr>(s,this);
+       }
+       string q = stringutils::replaceAll(query,"PART",stringutils::int2str(p));
+       q = stringutils::replaceAll(q,"SERVER",stringutils::int2str(s));
+       connectors[s]->addCommand(id,q);
+       id++;
+     }
+};
+
+
+/*
+1.9.3 Value Mapping
+
+*/
+
+template<class T>
+int pquery2VMT(Word* args, Word& result, int message,
+                Word& local, Supplier s ){
+
+   PQuery2Info* li = (PQuery2Info*) local.addr;
+
+   switch(message){
+     case OPEN : {
+                   if(li) {
+                      delete li;
+                      local.addr = 0;
+                   }
+                   T* q = (T*) args[1].addr;
+                   if(!q->IsDefined()){
+                     return 0;
+                   }
+                   local.addr = new PQuery2Info(args[0], q->GetValue(),
+                                 ((CcInt*) args[6].addr)->GetValue(),
+                                 ((CcInt*) args[7].addr)->GetValue(),
+                                 qp->GetType(s));
+                   return 0;
+                 }
+      case REQUEST: 
+                 result.addr=li?li->next():0;
+                 return result.addr?YIELD:CANCEL;
+      case CLOSE:
+                 if(li){
+                    delete li;
+                    local.addr =0;
+                 }
+                 return 0;
+   }
+   return -1; 
+}
+
+
+/*
+1.9.4 Value Mapping and selection
+
+*/
+
+ValueMapping pquery2VM[] = {
+  pquery2VMT<CcString>,
+  pquery2VMT<FText>
+};
+
+int pquery2Select(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+/*
+1.8.5 Sepcification
+
+*/
+OperatorSpec pquery2Spec(
+     " stream(tuple(...)) x {text, string} x AttrName x AttrName x "
+     "int x int -> stream(tuple)",
+     " _ pquery2[_,_,_,_,_]  ",
+     " Performs a slightly different  query on a set of remote servers.  "
+     " The first argument is a stream of tuples containing the server numbers"
+     " as well as the modification number."
+     " The second argument is the query to execute. The parts SERVER and PART "
+     " are replaced by the corresponding numbers of the stream. "
+     " The third argument specifies the Attribute name of the server number,"
+     " the fourth argument specifies the attribute name for the part component."
+     " The last two arguments are integer numbers used in typemapping as "
+     " default values for server and part.",
+     " query serverparts feed  pquery2['query ten_SERVER_PART count', Server, "
+     "PART,0.5] sum[Result]");
+
+/*
+1.9.6
+
+Operator instance
+
+*/
+Operator pquery2Op (
+    "pquery2",             //name
+     pquery2Spec.getStr(),         //specification
+     2,
+     pquery2VM,        //value mapping
+     pquerySelect,   //trivial selection function
+     pquery2TM        //type mapping
+);
+
+
 
 
 /*
@@ -7018,6 +7468,266 @@ Operator DARRAY2ELEMOp (
       DARRAY2ELEMTM );
 
 
+/*
+1.8 Operator ~dsummarize2~
+
+This operator puts all parts of an darray2 instance into a single stream.
+If relations are stored within the darray, each tuple is a stream element.
+If attributes are stored, each element corresponds to a single token in 
+the resulting stream. Other subtypes are not supported.
+
+*/
+ListExpr dsummarize2TM(ListExpr args){
+
+  string err="darray2(X) with X in rel or DATA expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  ListExpr arg = nl->First(args);
+  if(!DArray2::checkType(arg)){
+    return listutils::typeError(err);
+  }
+  ListExpr subtype = nl->Second(arg);
+  if(!Relation::checkType(subtype) && !listutils::isDATA(subtype)){
+    return listutils::typeError("subtype not supported");
+  }
+  ListExpr streamtype;
+  if(Relation::checkType(subtype)){
+     streamtype = nl->Second(subtype);
+  } else {
+     streamtype = subtype;
+  }
+  return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                         streamtype);
+  
+}
+
+/*
+1.8.2 LocalInfo for Attributes
+
+*/
+class dsummarize2Listener{
+  public:
+     virtual void jobDone(int id, bool success)=0;
+};
+
+class dsummarize2AttrInfoRunner{
+
+  public:
+     dsummarize2AttrInfoRunner(DArray2Element& _elem, const string& _objName,
+                               ListExpr _resType,
+                               const string& _db, int _index,
+                               dsummarize2Listener* _listener): 
+       elem(_elem), objName(_objName), resType(_resType),db(_db),
+       index(_index), listener(_listener), 
+       attribute(0){
+
+     }
+
+     void start(){
+       runner = boost::thread(&dsummarize2AttrInfoRunner::run,this);
+     }
+      
+
+     ~dsummarize2AttrInfoRunner(){
+          runner.join();
+          if(attribute){
+              attribute->DeleteIfAllowed();
+          }
+      }
+
+      Attribute* getAttribute(){
+         Attribute* res = attribute;
+         attribute = 0;
+         return res;
+      }
+
+  private:
+     DArray2Element elem;
+     string objName;
+     ListExpr resType;
+     string db;
+     int index;
+     dsummarize2Listener* listener;
+     Attribute* attribute;
+     boost::thread runner;
+
+     void run(){
+         ConnectionInfo* ci = algInstance->getWorkerConnection(elem,db);
+         if(!ci){
+            listener->jobDone(index, false);
+            return;
+         } 
+         Word result;
+         bool ok = ci->retrieve(objName,resType, result);
+         if(!ok){
+           listener->jobDone(index,false);
+         } else {
+           attribute = (Attribute*) result.addr;
+           listener->jobDone(index,true);
+         }
+     }
+};
+
+class dsummarize2AttrInfo : public dsummarize2Listener{
+
+   public:
+      dsummarize2AttrInfo(DArray2* _array, ListExpr _resType) : 
+        array(_array), resType(_resType),stopped(false), pos(0){
+        runner = boost::thread(&dsummarize2AttrInfo::run, this);       
+      }
+
+      virtual ~dsummarize2AttrInfo(){
+         stopped = true;
+         runner.join();
+         for(size_t i=0;i<runners.size();i++){
+             if(runners[i].first){
+                 delete runners[i].first;
+             }
+         }
+      }
+
+      Attribute* next(){
+        while(pos < array->getSize()){
+           boost::unique_lock<boost::mutex> lock(mtx);
+           while(runners.size() <= pos || !runners[pos].second){
+               cond.wait(lock);
+           }
+           Attribute* result = runners[pos].first->getAttribute();
+           delete runners[pos].first;
+           runners[pos].first = 0;
+           pos++;
+           if(result){
+              return result;
+           }
+        }
+        return 0;
+      }
+
+      void jobDone(int index, bool success){
+         {
+            boost::lock_guard<boost::mutex> lock(mtx);
+            runners[index].second = true;
+         }
+         cond.notify_one();
+      } 
+   
+   private:
+      DArray2* array;
+      ListExpr resType;
+      bool stopped;
+      size_t pos;
+      vector<pair<dsummarize2AttrInfoRunner*,bool> > runners;
+      boost::thread runner;
+      boost::condition_variable cond;
+      boost::mutex mtx;
+      
+      void run(){
+           string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+           string aname = array->getName();
+           while(!stopped && runners.size() < array->getSize()){
+              int wnum = runners.size() % array->numOfWorkers();
+              DArray2Element elem = array->getWorker(wnum);
+              string objname = aname + "_" + 
+                               stringutils::int2str(runners.size());
+              dsummarize2AttrInfoRunner* r = new 
+                      dsummarize2AttrInfoRunner( elem, 
+                             objname, resType, dbname, runners.size(), this);
+              runners.push_back(make_pair(r,false));
+              r->start();
+           }
+      }
+};
+
+
+/*
+1.8.3 LocalInfo for Relations
+
+*/
+class dsummarize2RelInfo{
+
+  public:
+     dsummarize2RelInfo(DArray2* _array, ListExpr resType) {}
+
+     Tuple* next() { 
+        cerr << "dsummarize2 not implemented for relations yet" << endl;
+        return 0; // not implemented yet
+     }
+ 
+     ~dsummarize2RelInfo(){} 
+
+};
+
+
+template<class T>
+int dsummarize2VMT(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+
+   T* li = (T*) local.addr;
+   switch(message){
+     case OPEN: if(li) delete li;
+                local.addr = new T((DArray2*) args[0].addr, 
+                                    nl->Second(qp->GetType(s)));
+                return 0;
+     case REQUEST:
+                 result.addr = li?li->next():0;
+                 return result.addr?YIELD:CANCEL;
+     case CLOSE:
+            if(li){
+              delete li;
+              local.addr = 0;
+            }
+   }
+   return -1;
+}
+
+/*
+1.8.4 Selection and Value Mapping
+
+*/
+
+ValueMapping dsummarize2VM[] = {
+    dsummarize2VMT<dsummarize2RelInfo>,
+    dsummarize2VMT<dsummarize2AttrInfo>
+};
+
+
+int dsummarize2Select(ListExpr args){
+  return Relation::checkType(nl->Second(nl->First(args)))?0:1;
+}
+
+/*
+1.8.5 Specification
+
+*/
+
+OperatorSpec dsummarize2Spec(
+     "darray2(DATA) -> stream(DATA> , darray2(rel(X)) -> stream(X)",
+     "_ dsummarize",
+     "Produces a stream of the darray elements.",
+     "query da2 dsummarize2 count"
+     );
+
+/*
+1.8.6 Operator instance
+
+*/
+
+
+Operator dsummarize2Op(
+  "dsummarize2",
+  dsummarize2Spec.getStr(),
+  2,
+  dsummarize2VM,
+  dsummarize2Select,
+  dsummarize2TM
+);
+
+
+
+
+
+
 
 
 /*
@@ -7044,6 +7754,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&pconnectOp);
    AddOperator(&pqueryOp);
    pqueryOp.SetUsesArgsInTypeMapping();
+   AddOperator(&pquery2Op);
+   pquery2Op.SetUsesArgsInTypeMapping();
 
    AddOperator(&putOp);
    AddOperator(&getOp);
@@ -7064,6 +7776,9 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&dloop2Op);
    dloop2Op.SetUsesArgsInTypeMapping();
    AddOperator(&DARRAY2ELEMOp);
+
+   AddOperator(&dsummarize2Op);
+
 }
 
 

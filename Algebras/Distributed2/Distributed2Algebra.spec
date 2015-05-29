@@ -14,6 +14,7 @@ operator getRequestFolder alias GETREQUESTFOLDER pattern op(_)
 operator getSendFolder alias GETSENDFOLDER pattern op(_)
 operator pconnect alias PCONNECT pattern _ op[_,_,_]
 operator pquery alias PQUERY  pattern _ op[_,_]
+operator pquery2 alias PQUERY2  pattern _ op[_,_,_,_,_]
 
 operator put alias PUT pattern op (_,_,_)
 operator get alias GET pattern op (_,_)
@@ -33,6 +34,8 @@ operator closeWorkers alias closeWorkers pattern op(_)
 operator showWorkers alias showWorkers pattern op(_)
 
 operator dloop2 alias DLOOP2 pattern _ op[_,fun] implicit parameter darray2elem type DARRAY2ELEM
+
+operator dsummarize2 alias DSUMMARIZE2 pattern _ op
 
 
 
