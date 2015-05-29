@@ -1,4 +1,4 @@
-package viewer.hoese2.hoese;
+package viewer.hoese;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;

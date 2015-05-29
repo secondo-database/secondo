@@ -1,4 +1,4 @@
-package viewer.hoese2.algebras.continuousupdate;
+package viewer.hoese.algebras.continuousupdate;
 
 import gui.ViewerControl;
 import sj.lang.IntByReference;
