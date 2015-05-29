@@ -104,6 +104,9 @@ CTable<T>::TotalMemory( Cardinal &mem,
                         Cardinal &pageChanges, 
                         Cardinal &slotAccess  ) 
 {  
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
   mem = (Cardinal)(slotSize * elemCount);
   pageChanges = table->PageChanges(); 
   slotAccess = table->SlotAccess();
@@ -120,6 +123,9 @@ template<typename T>
 
 void
 CTable<T>::UpdateSlotCounters(Cardinal const n) {
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
 
   if ( n == leastFree ) { // find the next free slot
 
@@ -144,6 +150,9 @@ template<typename T>
 
 void
 CTable<T>::Put( Cardinal const n,  T& elem ) {
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
 
   if ( OutOfRange(n) ) { assert( 0 ); } 
   UpdateSlotCounters(n);
@@ -165,6 +174,9 @@ template<typename T>
 
 void
 CTable<T>::Get( Cardinal const n, T& elem ) {
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
 
   if ( OutOfRange(n) ) { assert( 0 ); }  
   table->Get(n-1, elem);
@@ -182,6 +194,9 @@ template<typename T>
 const T&
 CTable<T>::operator[]( Cardinal n ) {
 
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
   if ( OutOfRange(n) ) { assert( 0 ); }
 
   if ( lastAccessedIndex != n ) { // check if call of Get() is necessary
@@ -204,6 +219,9 @@ template<typename T>
 
 bool
 CTable<T>::IsValid( Cardinal const index ) {
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
 
   if ( OutOfRange(index) ) { assert( 0 ); }
 
@@ -219,6 +237,9 @@ template<typename T>
 
 const Cardinal
 CTable<T>::EmptySlot() { 
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
 
   if ( leastFree > elemCount ) { // initialize a new slot
     
@@ -260,6 +281,9 @@ template<typename T>
 
 void
 CTable<T>::Remove( Cardinal const index ) {
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
 
   cerr << "CTable::Remove called!" << endl;
 
@@ -295,6 +319,9 @@ CTable<T>::Remove( Cardinal const index ) {
 template<typename T>
 
 CTable<T>::Iterator::Iterator( CTable<T>* ctPtr ) {
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
 
   ct = ctPtr;
   current = 0;

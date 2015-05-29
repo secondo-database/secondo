@@ -176,6 +176,12 @@ parameter.
 #include <typeinfo>
 #include <stdint.h>
 
+#ifdef THREAD_SAFE
+#include <boost/thread.hpp>
+#endif
+
+
+
 #ifdef CTABLE_PERSISTENT
 #include "PagedArray.h"
 #else
@@ -548,7 +554,15 @@ Creates an iterator for this ~CTable~, pointing beyond the last valid slot.
 
 private:
 
+  #ifdef THREAD_SAFE
+   boost::recursive_mutex mtx;
+  #endif
+
+
   inline bool OutOfRange(Cardinal const n) { // check if a valid slot is used
+     #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(mtx);
+     #endif
    
     if ( !(n > 0 && n <= elemCount) ) {
        cerr << "CTable<" << typeid(T).name() << "> "
@@ -560,6 +574,9 @@ private:
   }
   
   void CalcSlotSize() { // Calculate the slot size
+     #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(mtx);
+     #endif
     
     T* ptrT = 0;
     bool* ptrb = 0; // vector<bool> may have a special implementation
@@ -623,7 +640,14 @@ private:
 template<typename T>
 
 Cardinal
-CTable<T>::Size() { return elemCount; }
+CTable<T>::Size() { 
+     #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(mtx);
+     #endif
+
+     return elemCount;
+
+ }
 
 /*
 
@@ -634,13 +658,22 @@ CTable<T>::Size() { return elemCount; }
 template<typename T>
 
 Cardinal
-CTable<T>::NoEntries() { return highestValid; }
+CTable<T>::NoEntries() { 
+     #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(mtx);
+     #endif
+     return highestValid;
+
+ }
 
 
 template<typename T>
 
 string
 CTable<T>::MemoryModel() {
+     #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(mtx);
+     #endif
 
   if ( !isPersistent) {
     return "NON-PERSISTENT";
@@ -655,6 +688,9 @@ template<typename T>
 const string
 CTable<T>::StateToStr() {
 
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
   stringstream st;
   st << "( elemCount=" << elemCount 
      << ", leastFree=" << leastFree
@@ -675,6 +711,9 @@ template<typename T>
 
 typename CTable<T>::Iterator
 CTable<T>::Begin() {
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
 
   return typename CTable<T>::Iterator( this );
 }
@@ -689,6 +728,9 @@ template<typename T>
 
 typename CTable<T>::Iterator
 CTable<T>::End() {
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
 
   return typename CTable<T>::Iterator( this, false );
 }
