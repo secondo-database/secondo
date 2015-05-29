@@ -787,7 +787,14 @@ ReadResponse( ListExpr& resultList,
 {
   // read next line
   string line="";
-  getline( iosock, line );
+  try{
+      getline( iosock, line );
+  } catch(...){
+    cerr << "Exception occurred during reading response from server"; 
+    errorCode = ERR_IN_SECONDO_PROTOCOL;
+    iosock.clear();
+    return errorCode;
+  }
   
   bool badbit = iosock.bad();
   bool success = false;
