@@ -601,7 +601,8 @@ class ConnectionInfo{
           }
 
           bool retrieveRelation(const string& objName, 
-                                 ListExpr& resType, Word& result){
+                                 ListExpr& resType, Word& result,
+                                 bool DeleteTempFile=true){
 
              boost::lock_guard<boost::mutex> guard(simtx);
              string fname1 = objName+".bin";
@@ -624,24 +625,30 @@ class ConnectionInfo{
              // delete remote file             
              cmd = "query removeFile('"+rfname+"')";
              si->Secondo(cmd,resList,serr);
+             result = createRelationFromFile(fname1, resType);
+             if(DeleteTempFile){
+               // remove local file
+               FileSystem::DeleteFileOrFolder(fname1);
+             }
+             return true;
+          }
 
-
+          Word createRelationFromFile(const string& fname, ListExpr resType){
              // create result relation
              ListExpr tType = nl->Second(resType);
              tType = SecondoSystem::GetCatalog()->NumericType(tType);
              TupleType* tt = new TupleType(tType);
              Relation* resultrel = new Relation(tt); 
-             ffeed5Info reader(fname1,resultrel->GetTupleType());
+             ffeed5Info reader(fname,resultrel->GetTupleType());
              Tuple* tuple;
              while((tuple=reader.next())){
                  resultrel->AppendTuple(tuple);
                  tuple->DeleteIfAllowed();
              }
              tt->DeleteIfAllowed();
+             Word result((void*) 0);
              result.addr = resultrel;
-             // remove local file
-             FileSystem::DeleteFileOrFolder(fname1);
-             return true;
+             return result;
           } 
 
   private:
@@ -7655,6 +7662,34 @@ class dsummarize2RelInfo{
      }
  
      ~dsummarize2RelInfo(){} 
+
+
+  private:
+   /*
+     Idea:
+     Task of a single thread:
+       Create relation files on remote side 
+       Transfer the relations files to local files
+       Delete remote relation file
+       inform abaout the avaible array index
+
+     next function:
+       while true{
+           if currentindex >= arraysize 
+               return 0
+           if there is a non finished file
+               return next tuple of the file
+           if file finished
+               delete the file
+               increase index
+
+           wait until next index is available
+           if file could be get
+              create file feeder
+       }
+   */
+
+
 
 };
 

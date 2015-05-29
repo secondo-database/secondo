@@ -319,9 +319,9 @@ CTable<T>::Remove( Cardinal const index ) {
 template<typename T>
 
 CTable<T>::Iterator::Iterator( CTable<T>* ctPtr ) {
- #ifdef THREAD_SAFE
- boost::lock_guard<boost::recursive_mutex> guard(mtx);
- #endif
+ //#ifdef THREAD_SAFE
+ //boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ //#endif
 
   ct = ctPtr;
   current = 0;
