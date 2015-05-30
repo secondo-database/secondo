@@ -191,8 +191,9 @@ testatinstantNoMove ()
   Point *p2 = new Point (true, 1.0, 0.0);
   Point *p3 = new Point (true, 0.0, 1.0);
   Region *result = new Region (*p1, *p2, *p3);
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, result, 0, 0, 0, 0, 0, 0);
-  Region *res2 = fmr.atinstant (2);
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *result, 0, 0, 0, 0, 0, 0);
+  Region *res2 = new Region(0);
+  fmr.atinstant (2, *res2);
   printf ("%s\n", (*result == *res2) ? "OK" : "FAILED");
   delete p1;
   delete p2;
@@ -212,6 +213,7 @@ printHS (HalfSegment hs)
 int
 gotPoint (const Point & p, const Point * list, int size)
 {
+  printf("Point: %d, %f\n", p.GetX(), p.GetY());
   for (int i = 0; i < size; i++)
     {
       if (p.Compare (list + i) == 0)
@@ -263,9 +265,10 @@ testatinstantLinearMove ()
     Point (true, 2.0, 5.0)
   };
 
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, result, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *result, 0, 0, 0,
                                    1, 2, 0);
-  Region *res = fmr.atinstant (2);
+  Region *res = new Region(0);
+  fmr.atinstant (2, *res);
   printf ("%s\n", (checkRegionPoints (res, expected, 3)) ? "OK" : "FAILED");
   delete p1;
   delete p2;
@@ -285,9 +288,10 @@ testatinstantRotate ()
     Point (true, 1.0, 1.0)
   };
 
-  FixedMRegion fmr = FixedMRegion (1, 0.5, 0.5, result, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (1, 0.5, 0.5, *result, 0, 0, 0,
                                    0, 0, M_PI);
-  Region *res = fmr.atinstant (1);
+  Region *res = new Region(0);
+  fmr.atinstant (1, *res);
   printf ("%s\n", (checkRegionPoints (res, expected, 3)) ? "OK" : "FAILED");
   delete p1;
   delete p2;
@@ -570,9 +574,9 @@ testMPoint ()
       res->Get (i, unit2);
 
     }
-  Point *p1 = new Point (true, 0.0, 0.0);
-  Point *p2 = new Point (true, 1.0, 0.0);
-  Point *p3 = new Point (true, 1.0, 1.0);
+  //Point *p1 = new Point (true, 0.0, 0.0);
+  //Point *p2 = new Point (true, 1.0, 0.0);
+  //Point *p3 = new Point (true, 1.0, 1.0);
   //Point *p4 = new Point( true, 0.0, 1.0);
 
   //Region *tv1 = new Region (*p1, *p2, *p3);
@@ -739,7 +743,7 @@ void testInside1()
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(rbig,
+  FixedMRegion fmr = FixedMRegion(*rbig,
                                   Point(true, 0, 0), 0.0, t_start,
                                   Point(true, 0, 1), 0.0, t_end,
                                   Point(true, 0, 0));
@@ -789,7 +793,7 @@ void testInside2()
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(rbig,
+  FixedMRegion fmr = FixedMRegion(*rbig,
                                   Point(true, 0, 0), 0.0, t_start,
                                   Point(true, 0, 1), 0.0, t_end,
                                   Point(true, 0, 0));
@@ -837,7 +841,7 @@ void testInside3()
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(rbig,
+  FixedMRegion fmr = FixedMRegion(*rbig,
                                   Point(true, 0, 0), 0.0, t_start,
                                   Point(true, 0, 1), 0.0, t_end,
                                   Point(true, 0, 0));
@@ -953,7 +957,7 @@ void testIntersection1()
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(rbig,
+  FixedMRegion fmr = FixedMRegion(*rbig,
                                   Point(true, 0, 0), 0.0, t_start,
                                   Point(true, 0, 1), 0.0, t_end,
                                   Point(true, 0, 0));
@@ -1002,7 +1006,7 @@ void testIntersection2()
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-   FixedMRegion fmr = FixedMRegion(rbig,
+   FixedMRegion fmr = FixedMRegion(*rbig,
                                   Point(true, 0, 0), 0.0, t_start,
                                   Point(true, 0, 1), 0.0, t_end,
                                   Point(true, 0, 0));
@@ -1049,7 +1053,7 @@ void testIntersection3()
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-   FixedMRegion fmr = FixedMRegion(rbig,
+   FixedMRegion fmr = FixedMRegion(*rbig,
                                   Point(true, 0, 0), 0.0, t_start,
                                   Point(true, 0, 1), 0.0, t_end,
                                   Point(true, 0, 0));
@@ -1160,14 +1164,14 @@ void FMRTest::testgenerateListOfRegionPoints(){
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
     0, 1, 0);
   vector<Point> v;
   v.push_back(Point(0.0,0.0));
   v.push_back(Point(1.0,0.0));
   v.push_back(Point(0.0,1.0));
   v.push_back(Point(1.0,1.0));
-  vector<Point> res = fmr.generateListOfRegionPoints(rbig);
+  vector<Point> res = fmr.generateListOfRegionPoints(*rbig);
   
   if (res==v) {
     printf("OK\n");
@@ -1181,7 +1185,7 @@ void FMRTest::testgetOneDistance(){
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
     0, 1, 0);
   Point p1 =  Point(true, 0.0,0.0);
   Point p2 = Point(true, 1.0,0.0);
@@ -1200,7 +1204,7 @@ void FMRTest::testgetDistancesForPoint(){
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
     0, 1, 0);
   vector<Point> v;
   v.push_back(Point(true, 0.0,0.0));
@@ -1226,7 +1230,7 @@ void FMRTest::testgenerateDistancesMatrix(){
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
     0, 1, 0);
   vector<Point> v;
   v.push_back(Point(true, 0.0,0.0));
@@ -1254,7 +1258,7 @@ void FMRTest::testidentifyPoint(){
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
     0, 1, 0);
   vector<double> v;
   v.push_back(0.0);
@@ -1279,7 +1283,7 @@ void FMRTest::testidentifyPoints(){
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
     0, 1, 0);
   vector<double> v;
   v.push_back(0.0);
@@ -1326,21 +1330,21 @@ runTestMethod ()
 {
 //  testMove();
 //  testLATransform();
-  //testRegion();
+//  testRegion();
 //  testRegionCompare();
 //  testatinstantNoMove();
-//  testatinstantLinearMove();
+//  testatinstantLinearMove(); //FIXME
 //  testatinstantRotate();
 //  testMBool();
-  //testQuatro();
-  //testCycle();
-  //  testTriangleQuatro();
-  //testUnion();
-//  runTestTraversedMethod();
-  //testconcaveQuadruple();
-  //  testMPoint();
-//  testLATransformInv ();
-//  testInside();
+//  testQuatro();
+//  testCycle();
+//  testTriangleQuatro(); //DEPRECATED
+//  testUnion();
+  runTestTraversedMethod();
+  testconcaveQuadruple();
+  testMPoint();
+  testLATransformInv ();
+  testInside();
   testIntersection();
-  testskeleton();
+//  testskeleton();
 }

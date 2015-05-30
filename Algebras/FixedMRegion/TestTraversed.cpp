@@ -11,9 +11,10 @@ testtraversed ()
   double min[] = { 0.0, 0.0 };
   double max[] = { 3.0, 3.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
                                    0, 0.5, 0);
-  Region *res2 = fmr.traversed (0.0, 1, 0.1);
+  Region *res2 = new Region();
+  fmr.traversed (*res2, 0.0, 1, 0.1);
 
   double min1[] = { 0.0, 0.0 };
   double max1[] = { 3.0, 3.5 };
@@ -38,9 +39,10 @@ createTestObject (double x = 0.0, double y = 0.0,
   double max1a[] = { 1.0, 0.001 };
   //geändert für Test, korrekt: (1.0, 0.001)
   Region *r_tmp = new Region (Rectangle < 2 > (true, min1a, max1a));
-  FixedMRegion fmr = FixedMRegion (0.0, 0.0, 0.0, r_tmp, 0.0, 0.0, 0.0,
+  FixedMRegion fmr = FixedMRegion (0.0, 0.0, 0.0, *r_tmp, 0.0, 0.0, 0.0,
                                    x, y, alpha);
-  Region *r = fmr.traversed (0.0, 1.0, 1.0);
+  Region *r = new Region(0);
+  fmr.traversed (*r, 0.0, 1.0, 1.0);
   double a = r->Area ();
   //printf("%f\n", a);
   bool res = (a >= area - 0.004) && (a <= area + 0.004);

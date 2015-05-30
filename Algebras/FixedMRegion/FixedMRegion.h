@@ -44,7 +44,7 @@ rot\_center: rotational center
 \_endt: end time 
 
 */
-  FixedMRegion(Region * _region, const Point _startp, 
+  FixedMRegion(const Region & _region, const Point _startp, 
   const double _startangle, Instant _startt, const Point _endp, 
   const double _endangle, Instant _endt, const Point & rot_center);
   
@@ -62,7 +62,7 @@ rot\_center: rotational center
 
 */
 
-  FixedMRegion(Region * _region, const Point _startp, 
+  FixedMRegion(const Region & _region, const Point _startp, 
   const double _startangle, double _startt, const Point _endp, 
   const double _endangle, double _endt, const Point & rot_center);
 
@@ -74,7 +74,7 @@ rot\_center: the center of the rotation. It will be moved with the object.
 starttime: the start time of the movement
 
 */
-    FixedMRegion (Region * _region, const Move & _move,
+    FixedMRegion (const Region & _region, const Move & _move,
                   const Point & rot_center, double _starttime);
 /*
 deprecated
@@ -93,7 +93,7 @@ information.
 
 */
     FixedMRegion (double _t, double _xm, double _ym,
-                  Region * _r, double _x0, double _y0, double _alpha0,
+     const Region & _r, double _x0, double _y0, double _alpha0,
                   double _vx, double _vy, double _valpha);
 
 
@@ -109,7 +109,7 @@ rot\_center: the rotational center of the object
 starttime: the start time of the movement
 
 */
-    FixedMRegion (Region * _region, const Point & _start,
+    FixedMRegion (const Region & _region, const Point & _start,
                   double alpha_start, const Point & _speed,
                   double alpha_speed, const Point & rot_center,
                   double _starttime = 0.0);
@@ -127,7 +127,7 @@ regions that can be transformed by a translation or rotation. The region itself
  cannot change its shape.
 
 */
-  Region interpolate (Region * spots);
+  static Region interpolate (const Region spots[]);
 //TODO
 
 /*
@@ -135,7 +135,7 @@ This method will return a region that the FMRegion will have at the given
 time ti.
 
 */
-  Region *atinstant (double ti);
+  void atinstant (double ti, Region & result);
 
 /*
 This method will calculate a MPoint with which is defined, if the MPoint mp 
@@ -161,25 +161,27 @@ intervall ta to te.
 deprecated!
 
 */
-  Region *traversed2 (double ta, double te, double precision = 0.001);
+ // void traversed2 (double ta, double te, double precision = 0.001,
+ //   Region & result  );
 /*
 This method will calculate the Region which contains all points / areas, that
 the FMRegion has at least on time (or more often) traversed in the given 
 intervall ta to te. 
 
 */
-Region *traversed (double ta, double te, double precision = 0.001);
+void traversed (Region & result, double ta, double te, double 
+  precision = 0.001);
 /*
 This method returns the non moving region.
 
 */
-  const Region *getRegion () const;
+  const void getRegion (Region & result) const;
 
 /*
 This method sets the non moving region.
 
 */
-  void setRegion (Region * _r);
+  void setRegion (const Region & _r);
 
 /*
 This method returns the time t.
@@ -199,7 +201,7 @@ private:
 
   double t;//time, never used
   Move m;
-  Region *r;//non moving region
+  Region r;//non moving region
   LATransform l;
   double xm;//rotational center
   double ym;//rotational center
@@ -242,8 +244,8 @@ This methods creates a region that contains the traversed area between the
 step's region at t\_step\_start and t\_step\_end.
 
 */
-  Region *getDiffRegion (const vector < HalfSegment > *resultold,
-                         const vector < HalfSegment > *resultnew);
+  Region * getDiffRegion (const vector < HalfSegment > *resultold,
+                         const vector < HalfSegment > *resultnew );
 /*
 This methods creates a polygon of the given Points.
 This method adds four edges, the given points, to a vector. This is a 
@@ -317,7 +319,8 @@ at the given
 time ti.
 
 */
-vector < HalfSegment > *atinstant (double ti, const vector < HalfSegment > &v);
+void atinstant (double ti, const vector < HalfSegment > &v,
+  vector < HalfSegment > & res);
 /*
 This method extracts a list of halfsegments from the region.
 
@@ -336,7 +339,7 @@ This method moves the given Point inverse to the movement of the FixedMRegion
 and gives it back.
 
 */
- Point getInv(double t, const Point & p) const;
+ void getInv(double t, const Point & p, Point & result) const;
 /*
 This method creates a non moving MRegion.
 
@@ -354,13 +357,13 @@ This method moves the given Point according to the movement of the FixedMRegion
 and gives it back.
 
 */
- Point getTransPoint (DateTime t, const Point & p) const;
+ void getTransPoint (DateTime t, const Point & p, Point & result) const;
 
 /*
 This method generates a list of all Points of the region.
 
 */
-vector<Point> generateListOfRegionPoints(const Region *r);
+vector<Point> generateListOfRegionPoints(const Region &r);
 /*
 This calculates the euclidian distance between the two points.
 

@@ -10,7 +10,7 @@ using namespace std;
 This is the default constructor. Do not use.
 
 */
-FixedMRegion::FixedMRegion():r (NULL){}
+FixedMRegion::FixedMRegion():r(){}
 
 /*
 This is the copy constructor.
@@ -32,10 +32,9 @@ rot\_center: rotational center
 
 */
 
-FixedMRegion::FixedMRegion(Region * _region, const Point _startp, 
+FixedMRegion::FixedMRegion(const Region & _region, const Point _startp, 
   const double _startangle, Instant _startt, const Point _endp, 
-  const double _endangle, Instant _endt, const Point & rot_center){
-  r = _region;
+  const double _endangle, Instant _endt, const Point & rot_center): r(_region){
   
   m = Move(_startp.GetX(), _startp.GetY(), _startangle, _startt, _endp.GetX(),
           _endp.GetY(), _endangle, _endt);
@@ -59,11 +58,10 @@ rot\_center: rotational center
 
 */
 
-FixedMRegion::FixedMRegion(Region * _region, const Point _startp, 
+FixedMRegion::FixedMRegion(const Region & _region, const Point _startp, 
   const double _startangle, double _startt, const Point _endp, 
-  const double _endangle, double _endt, const Point & rot_center){
-  r = _region;
-  
+  const double _endangle, double _endt, const Point & rot_center):
+  r(_region){
   m = Move(_startp.GetX(), _startp.GetY(), _startangle, _startt, _endp.GetX(),
           _endp.GetY(), _endangle, _endt);
   t = _startt;
@@ -81,10 +79,8 @@ rot\_center: the center of the rotation. It will be moved with the object.
 starttime: the start time of the movement
 
 */
-FixedMRegion::FixedMRegion(Region * _region, const Move & _move,
-const Point & rot_center, double _starttime){
-  r = _region;
-  m = _move;
+FixedMRegion::FixedMRegion(const Region & _region, const Move & _move,
+const Point & rot_center, double _starttime): m(_move), r(_region){
   t = _starttime;
   xm = rot_center.GetX ();
   ym = rot_center.GetY ();
@@ -107,12 +103,11 @@ $\_valpha$: the angle of movement.
 */
 
 FixedMRegion::FixedMRegion (double _t, double _xm, double _ym,
-Region * _r, double _x0, double _y0,double _alpha0, double _vx, double _vy,
-double _valpha){
+const Region & _r, double _x0, double _y0,double _alpha0, double _vx, 
+double _vy, double _valpha): r(_r){
   t = _t;
   xm = _xm;
   ym = _ym;
-  r = _r;
   m = Move (_x0, _y0, _alpha0, _vx, _vy, _valpha);
   calculateInternalVars ();
 }
@@ -128,10 +123,9 @@ rot\_center: the rotational center of the object
 starttime: the start time of the movement
 
 */
-FixedMRegion::FixedMRegion(Region * _region, const Point & _start,
+FixedMRegion::FixedMRegion(const Region & _region, const Point & _start,
 double alpha_start, const Point & _speed,double alpha_speed, 
-const Point & rot_center,double _starttime){
-  r = _region;
+const Point & rot_center,double _starttime): r(_region){
   m = Move (_start.GetX (), _start.GetY (), alpha_start, _speed.GetX (),
             _speed.GetY (), alpha_speed);
   t = _starttime;
@@ -144,10 +138,7 @@ const Point & rot_center,double _starttime){
 This is the standard destructor.
 
 */
-FixedMRegion::~FixedMRegion(){
-  if (r != NULL)
-    delete r;
-}
+FixedMRegion::~FixedMRegion(){}
 /*
 This is a method that accepts a list of regions. The regions represent 
 spots and the movement will be calculated. The constructor expects identical 
@@ -155,7 +146,7 @@ regions that can be transformed by a translation or rotation. The region itself
  cannot cahnge its shape.
 
 */
-Region FixedMRegion::interpolate(Region * spots){
+Region FixedMRegion::interpolate(const Region spots[]){
   Point *
     p1 = new Point (true, 0.0, 0.0);
   Point *
@@ -173,14 +164,14 @@ This method will return a region that the FMRegion will have at the given
 time ti.
 
 */
-Region *FixedMRegion::atinstant (double ti){
+void FixedMRegion::atinstant (double ti, Region &result){
   sett (ti);
-  Region *result = new Region (*r);
   HalfSegment hs;
-  result->StartBulkLoad ();
-  for (int i = 0; i < result->Size (); i++)
+  result=r;
+  result.StartBulkLoad ();
+  for (int i = 0; i < result.Size (); i++)
     {
-      result->Get (i, hs);
+      result.Get (i, hs);
 
       const Point lp = hs.GetLeftPoint ();
       double newx = l.getImgX (lp.GetX (), lp.GetY ());
@@ -193,36 +184,38 @@ Region *FixedMRegion::atinstant (double ti){
       Point newrp (true, newx, newy);
       hs.Set (hs.IsLeftDomPoint (), newlp, newrp);
 
-      result->Put (i, hs);
+      result.Put (i, hs);
     }
-  result->EndBulkLoad ();
-  return result;
+  result.EndBulkLoad ();
 }
 /*
 This method moves the given Point inverse to the movement of the FixedMRegion
 and gives it back.
 
 */
-Point FixedMRegion::getInv (double t, const Point & p) const{
+void FixedMRegion::getInv (double t, const Point & p, Point & result) const{
   double *coord = m.attime(t);
   LATransform lt (coord[0], coord[1], xm, ym, coord[2]);
   delete coord;
   double tmpx = lt.getOrigX (p.GetX (), p.GetY ());
   double tmpy = lt.getOrigY (p.GetX (), p.GetY ());
-  return Point (true, tmpx, tmpy);
+  result.SetDefined(true);
+  result.Set(tmpx, tmpy);
 }
 /*
 This method moves the given Point according to the movement of the FixedMRegion
 and gives it back.
 
 */
-Point FixedMRegion::getTransPoint(DateTime t, const Point & p) const{
+void FixedMRegion::getTransPoint(DateTime t, const Point & p, Point& result) 
+   const{
   double *coord = m.attime (t);
   LATransform lt (coord[0], coord[1], xm, ym, coord[2]);
   delete coord;
   double tmpx = lt.getImgX (p.GetX (), p.GetY ());
   double tmpy = lt.getImgY (p.GetX (), p.GetY ());
-  return Point (true, tmpx, tmpy);
+  result.SetDefined(true);
+  result.Set(tmpx, tmpy);
 }
 /*
 This method calculates the aprroximated movement of the given MPoint
@@ -247,14 +240,16 @@ MPoint FixedMRegion::approxMovement (const MPoint & p, double precision) const{
   res.StartBulkLoad ();
 
   DateTime to (ita);
-  Point po = getInv(ta, unit.p0);
+  Point po(0);
+  getInv(ta, unit.p0, po);
   //FIXME: MPoint-Intervalle nutzen und ev. die teilen, wenn sie zu lang sind!!
   for (int i=1; i<=steps; i++) {
     double now=((te-ta)/steps)*i+ta;
     DateTime tn(now);
     Intime < Point > tp;
     p.AtInstant (tn, tp);
-    Point pn = getInv(now, tp.value);
+    Point pn(0);
+    getInv(now, tp.value, pn);
     Interval < Instant > in (to, tn, true, false);
     UPoint up (in, po, pn);
     res.MergeAdd (up);
@@ -270,7 +265,8 @@ This method creates a non moving MRegion.
 */
 MRegion *FixedMRegion::buildMovingRegion(){
   MRegion *mr;
-  Region *r = atinstant (m.getStart (0.0));
+  Region r(0);
+  atinstant (m.getStart (0.0), r);
   MPoint rock (0);
   rock.Clear ();
   rock.StartBulkLoad ();
@@ -283,8 +279,7 @@ MRegion *FixedMRegion::buildMovingRegion(){
   rock.MergeAdd (ub);
   rock.EndBulkLoad ();
   //create non moving MRegion
-  mr = new MRegion (rock, *r);
-  delete r;
+  mr = new MRegion (rock, r);
   return mr;
 }
 /*
@@ -293,14 +288,10 @@ is inside the FMRegion at the given time and else not defined. The MPoint
 will be calculated for the time intervall ta to te.
 
 */
-MBool FixedMRegion::inside (const MPoint & mp)
-{
-  MRegion *
-    rfix = buildMovingRegion ();
-  MPoint
-    tmp = approxMovement (mp, 1e-5);
-  MBool
-  res (0);
+MBool FixedMRegion::inside (const MPoint & mp){
+  MRegion * rfix = buildMovingRegion ();
+  MPoint tmp = approxMovement (mp, 1e-5);
+  MBool res (0);
   rfix->Inside (tmp, res);
   delete
     rfix;
@@ -315,17 +306,16 @@ before from approxMovement.
 
 */
 //FIXME: Zeitintervalle aus p holen und Orte aus dem Orginalpunkt
-MPoint
-FixedMRegion::reverseMovement (const MPoint & p) const
-{
+MPoint FixedMRegion::reverseMovement (const MPoint & p) const{
   MPoint res (0);
   res.StartBulkLoad ();
   for (int i = 0; i < p.GetNoComponents (); i++)
     {
       UPoint unit;
       p.Get (i, unit);
-      Point p0 = getTransPoint (unit.getTimeInterval ().start, unit.p0);
-      Point p1 = getTransPoint (unit.getTimeInterval ().end, unit.p1);
+      Point p0, p1;
+      getTransPoint (unit.getTimeInterval ().start, unit.p0, p0);
+      getTransPoint (unit.getTimeInterval ().end, unit.p1, p1);
       UPoint u2 (unit.getTimeInterval (), p0, p1);
       res.MergeAdd (u2);
     }
@@ -347,10 +337,9 @@ MPoint FixedMRegion::intersection(MPoint & mp){
   MPoint
     res (0);
   //rfix->Intersection (tmp, res);
-  Region *r=atinstant(m.getStart(0.0));
-  tmp.AtRegion(r, res);
-  delete
-    r;
+  Region r;
+  atinstant(m.getStart(0.0), r);
+  tmp.AtRegion(&r, res);
   return reverseMovement (res);
 }
 
@@ -362,7 +351,8 @@ intervall ta to te.
 deprecated!
 
 */
-Region *FixedMRegion::traversed2 (double ta, double te, double precision){
+/*void FixedMRegion::traversed2 (double ta, double te, double precision,
+  Region & result){
   Region *res = NULL;
   for (double i = 0; i <= (te - ta); i = i + precision)
     {
@@ -382,7 +372,7 @@ Region *FixedMRegion::traversed2 (double ta, double te, double precision){
         }
     }
   return res;
-}
+}*/
 
 /*
 This method calculates the 
@@ -709,10 +699,10 @@ This method extracts a list of halfsegments from the region.
 */
 vector < HalfSegment > FixedMRegion::getHSFromRegion(){
   vector < HalfSegment > result;
-  for (int i = 0; i < r->Size (); i++)
+  for (int i = 0; i < r.Size (); i++)
     {
       HalfSegment tmp;
-      r->Get (i, tmp);
+      r.Get (i, tmp);
       if (tmp.IsLeftDomPoint ())
         {
           result.push_back (tmp);
@@ -725,10 +715,9 @@ This method will return a list of Halfsegments that the FMRegion will have at th
 time ti.
 
 */
-vector < HalfSegment > *FixedMRegion::atinstant (double ti,
- const vector < HalfSegment > &v){
+void FixedMRegion::atinstant (double ti,
+ const vector < HalfSegment > &v, vector < HalfSegment > & res){
   sett (ti);
-  vector < HalfSegment > *result = new vector < HalfSegment > (v.size ());
   HalfSegment hs;
   for (size_t i = 0; i < v.size (); i++)
     {
@@ -751,9 +740,8 @@ vector < HalfSegment > *FixedMRegion::atinstant (double ti,
       Point newrp (true, newx, newy);
       hs.Set (hs.IsLeftDomPoint (), newlp, newrp);
 
-      result->push_back (hs);
+      res.push_back (hs);
     }
-  return result;
 }
 
 
@@ -762,7 +750,7 @@ This methods creates a region that contains the traversed area between the
 step's region at t\_step\_start and t\_step\_end.
 
 */
-Region *FixedMRegion::getDiffRegion (const vector < HalfSegment >
+Region * FixedMRegion::getDiffRegion (const vector < HalfSegment >
  *resultold, const vector < HalfSegment > *resultnew){
   Region *diffregion = NULL;
   Region *tmp2 = NULL;
@@ -811,44 +799,47 @@ the FMRegion has at least on time (or more often) traversed in the given
 intervall ta to te. 
 
 */
-Region *FixedMRegion::traversed(double ta, double te, double precision){
-  Region *res = atinstant (ta);
+void FixedMRegion::traversed(Region & result,double ta, double te, 
+                             double precision){
+  Region res(0);
+  atinstant (ta, res);
   vector < HalfSegment > vhs = getHSFromRegion ();
-  vector < HalfSegment > *tiold = atinstant (ta, vhs);
+  vector < HalfSegment > tiold;
+  atinstant (ta, vhs, tiold);
   for (double i = 0; i <= (te - ta); i = i + precision)
     {
-      vector < HalfSegment > *tinew = atinstant (ta + i, vhs);
-      Region *tmp = getDiffRegion (tiold, tinew);
+      vector < HalfSegment > tinew;
+      atinstant (ta + i, vhs, tinew);
+      Region *tmp = getDiffRegion (&tiold, &tinew);
       if (tmp != NULL)
         {
-          Region *tmp2 = new Region (*res);
+          Region *tmp2 = new Region (res);
           tmp2->Clear ();
-          RobustPlaneSweep::robustUnion (*res, *tmp, *tmp2);
+          RobustPlaneSweep::robustUnion (res, *tmp, *tmp2);
           delete tmp;
-          delete res;
-          res = tmp2;
+          //sdelete res;
+          res = *tmp2;
         }
-      delete tiold;
+      //delete tiold;
       tiold = tinew;
     }
-  delete tiold;
-  return res;
+  //delete tiold;
+  result = res;
+  return;
 }
 
 /*
 This method returns the non moving region.
 
 */
-const Region *FixedMRegion::getRegion() const{
-  return r;
+const void FixedMRegion::getRegion(Region & result) const{
+  result= r;
 }
 /*
 This method sets the non moving region.
 
 */
-void FixedMRegion::setRegion(Region * _r){
-  if (r != NULL)
-    delete r;
+void FixedMRegion::setRegion(const Region & _r){
   r = _r;
 }
 /*
@@ -914,7 +905,7 @@ void FixedMRegion::setMove(const Move & _m){
 This method generates a list of all Points of the region.
 
 */
-vector<Point> FixedMRegion::generateListOfRegionPoints(const Region *r){
+vector<Point> FixedMRegion::generateListOfRegionPoints(const Region &r){
   return vector<Point>(0);
 }
 /*
