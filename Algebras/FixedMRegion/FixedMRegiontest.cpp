@@ -8,6 +8,7 @@ using namespace std;
 #include <vector>
 #include "../Spatial/RegionTools.h"
 #include "TestTraversed.h"
+#include "TestMove.h"
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
@@ -1341,6 +1342,7 @@ runTestMethod ()
 //  testTriangleQuatro(); //DEPRECATED
 //  testUnion();
   runTestTraversedMethod();
+  runTestMoveMethod();
   testconcaveQuadruple();
   testMPoint();
   testLATransformInv ();

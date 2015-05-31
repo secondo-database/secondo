@@ -108,13 +108,13 @@ Operators redefinition.
 
 */
     Point3& operator=( const Point3& p );
-    inline bool operator<=( const Point3& p ) const;
+    bool operator<=( const Point3& p ) const;
     bool operator<( const Point3& p ) const;
-    inline bool operator>=( const Point3& p ) const;
+    bool operator>=( const Point3& p ) const;
     bool operator>( const Point3& p ) const;
-    inline Point3 operator+( const Point3& p ) const;
-    inline Point3 operator-( const Point3& p ) const;
-    inline Point3 operator*( const double d ) const;
+    Point3 operator+( const Point3& p ) const;
+    Point3 operator-( const Point3& p ) const;
+    Point3 operator*( const double d ) const;
 /*
 4.3 Operations
 
@@ -273,7 +273,7 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-     size_t Sizeof() const;
+    inline size_t Sizeof() const { return sizeof(Point3); }
 
     inline size_t HashValue() const
     {

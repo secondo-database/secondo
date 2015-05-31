@@ -49,6 +49,43 @@ This class is a Point3.
 #include "Stack.h"
 #include "Point3.h"
 
+
+Point3::Point3( const bool d, const Coord& _x, const Coord& _y, 
+const Coord& _alpha): 
+                StandardSpatialAttribute<3>(d), x(_x), y(_y), alpha(_alpha) {}
+/*
+The second one receives a point ~p~ as argument and creates a point that is a
+copy of ~p~.
+
+*/
+Point3::Point3( const Point3& p ): 
+StandardSpatialAttribute<3>(p.IsDefined()), x(p.x), y(p.y), alpha(p.alpha) {}
+/*
+The destructor.
+
+*/
+//Point3::~Point3() {}
+
+const Rectangle<3> Point3::BoundingBox(const Geoid* geoid) const {
+  return Rectangle<3>(0);
+}
+/*
+Sets the value of the point object.
+
+*/
+void Point3::Set( const Coord& _x, const Coord& _y, const Coord& _alpha ) {
+    x=_x;
+    y=_y;
+    alpha=_alpha;
+}
+
+void Point3::Set( const Point3& p) {
+    x=p.x;
+    y=p.y;
+    alpha=p.alpha;
+}
+
+
 ostream& operator<<( ostream& o, const Point3& p )
 {
   ios_base::fmtflags oldOptions = o.flags();
@@ -568,5 +605,86 @@ bool AlmostContains( const DbArray<Point3>& points, const Point3& p,
   }
 }
 
+//FIXME
+Point3& Point3::operator=( const Point3& p ) { 
+    Set(p);
+    return *this;
+}
 
+bool Point3::operator<=( const Point3& p ) const {
+    if ((!IsDefined()) || (!p.IsDefined()))
+        return false;
+    if (x <= p.x)
+        return true;
+    if (y <= p.y)
+        return true;
+    if (alpha <= p.alpha)
+        return true;
+    return false;
+}
 
+bool Point3::operator<( const Point3& p ) const {
+    if ((!IsDefined()) || (!p.IsDefined()))
+        return false;
+    if (x < p.x)
+        return true;
+    if (y < p.y)
+        return true;
+    if (alpha < p.alpha)
+        return true;
+    return false;
+}
+
+bool Point3::operator>=( const Point3& p ) const {
+    if ((!IsDefined()) || (!p.IsDefined()))
+        return false;
+    if (x >= p.x)
+        return true;
+    if (y >= p.y)
+        return true;
+    if (alpha >= p.alpha)
+        return true;
+    return false;
+}
+
+bool Point3::operator==( const Point3& p ) const {
+    if ((!IsDefined()) || (!p.IsDefined()))
+        return false;
+    if (x == p.x)
+        return true;
+    if (y == p.y)
+        return true;
+    if (alpha == p.alpha)
+        return true;
+    return false;
+}
+
+bool Point3::operator>( const Point3& p ) const {
+    if ((!IsDefined()) || (!p.IsDefined()))
+        return false;
+    if (x > p.x)
+        return true;
+    if (y > p.y)
+        return true;
+    if (alpha > p.alpha)
+        return true;
+    return false;
+}
+
+Point3 Point3::operator+( const Point3& p ) const {
+    if ((!IsDefined()) || (!p.IsDefined()))
+        return Point3(false);
+    return Point3(true, p.x+x, p.y+y, p.alpha+alpha);
+}
+
+Point3 Point3::operator-( const Point3& p ) const {
+    if ((!IsDefined()) || (!p.IsDefined()))
+        return Point3(false);
+    return Point3(true, x-p.x, y-p.y, alpha-p.alpha);
+}
+
+Point3 Point3::operator*( const double d ) const {
+    if (!IsDefined())
+        return Point3(false);
+    return Point3(true, d*x, d*y, d*alpha);
+}
