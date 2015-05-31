@@ -221,7 +221,7 @@ public:
       return query;
    }
    
-   time_t vetVersion() {
+   time_t getVersion() {
       return version;
    }
 
