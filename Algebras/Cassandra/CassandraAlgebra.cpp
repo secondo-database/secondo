@@ -2197,9 +2197,13 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
         
         cassandra -> quoteCqlStatement(query);
         
+        time_t now;
+        time ( &now );
+        
         stringstream ss;
-        ss << "INSERT INTO system_queries (id, query) ";
-        ss << "values(" << queryid << ", '" << query << "');";
+        ss << "INSERT INTO system_queries (id, query, version) ";
+        ss << "values(" << queryid << ", '" << query << "', ";
+        ss << now << ");";
         
         bool insertResult = cassandra 
             -> executeCQLSync(ss.str(), CASS_CONSISTENCY_ALL);

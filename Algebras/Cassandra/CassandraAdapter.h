@@ -208,9 +208,10 @@ inline std::ostream& operator<<(std::ostream &strm,
 */
 class CassandraQuery {
 public:
-   CassandraQuery(size_t myQueryId, string &myQuery) 
-      : queryId(myQueryId), query(myQuery) 
-   {}
+   CassandraQuery(size_t myQueryId, string &myQuery, time_t myVersion) 
+      : queryId(myQueryId), query(myQuery), version(myVersion) {
+         
+      }
 
    size_t getQueryId() {
       return queryId;
@@ -219,10 +220,15 @@ public:
    string getQuery() {
       return query;
    }
+   
+   time_t vetVersion() {
+      return version;
+   }
 
 private:
    size_t queryId;
    string query;
+   time_t version;
 };
 
 /*

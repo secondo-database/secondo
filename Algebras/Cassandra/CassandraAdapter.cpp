@@ -858,7 +858,7 @@ bool CassandraAdapter::createMetatables() {
   
   queries.push_back(string(
     "CREATE TABLE IF NOT EXISTS system_queries (id INT, "
-    "query TEXT, PRIMARY KEY(id));"
+    "query TEXT, version BIGINT, PRIMARY KEY(id));"
   ));
   
   queries.push_back(string(
@@ -967,7 +967,8 @@ bool querySortFunction (CassandraQuery a, CassandraQuery b) {
 
 void CassandraAdapter::getQueriesToExecute(vector<CassandraQuery> &result) {
   CassandraResult* queries = readDataFromCassandra
-            ("SELECT id, query from system_queries", CASS_CONSISTENCY_ALL);
+            ("SELECT id, query, version from system_queries", 
+            CASS_CONSISTENCY_ALL);
   
   while(queries != NULL && queries->hasNext()) {
      
@@ -976,10 +977,14 @@ void CassandraAdapter::getQueriesToExecute(vector<CassandraQuery> &result) {
        return;
      }
      
-     size_t id = queries->getIntValue(0);
+     long long res;
      string myResult;
+
+     size_t id = queries->getIntValue(0);
      queries -> getStringValue(myResult, 1);
-     result.push_back(CassandraQuery(id, myResult));
+     res = queries->getBigIntValue(2);
+     
+     result.push_back(CassandraQuery(id, myResult, (time_t) res));
   }
   
   if(queries != NULL) {
