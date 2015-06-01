@@ -4,6 +4,7 @@ CFLAGS += -Wall
 CFLAGS += -g
 CFLAGS += -O2
 CFLAGS += -pthread 
+CFLAGS += $(shell curl-config --libs)
 
 CC = g++
 
