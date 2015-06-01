@@ -777,8 +777,35 @@ the write class is retired, if a recoverable error occurs.
       return false;
    }
    
+
 /*
-3.4 abstract method, need to be implemented in
+3.4 Convert a Position into a string representation
+      and send the object
+   
+*/   
+      bool formatAndSendData(Position *element) {
+      
+         stringstream ss;
+         string buffer;
+         char dateBuffer[80];
+      
+         strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",
+                  gmtime(&(element->time)));
+
+         ss << dateBuffer << DELIMITER;
+         ss << element->moid << DELIMITER;
+         ss << element->tripid << DELIMITER;
+         ss << element->x << DELIMITER;
+         ss << element->y << "\n";
+      
+         buffer = ss.str();
+         bool result = sendData(buffer);
+      
+         return result;
+      }
+   
+/*
+3.5 abstract method, need to be implemented in
 subclasses
    
 */
@@ -838,32 +865,26 @@ public:
    }
 
 /*
-4.1.2 Convert the element into a string
+4.1.2 Create the current position for the Trip
+      and send the data
    
 */
-   void formatElement(string &buffer, InputData *element, 
-       time_t currentSimulationTimeRun, char *dateBuffer) {
+   bool formatAndSendElement(string &buffer, InputData *element, 
+       time_t currentSimulationTimeRun) {
           
-      stringstream ss;
-      
-      float posx;
-      float posy;
-      float diff;
-      
-      diff = element->time_diff / 
+      Position *position = new Position();
+
+      float diff = element->time_diff / 
          (currentSimulationTimeRun - element->time_start);
       
-      posx = element->x_start * diff;
-      posy = element->y_start * diff;
-
-      ss << dateBuffer << DELIMITER;
-      ss << element->moid << DELIMITER;
-      ss << element->tripid << DELIMITER;
-      ss << posx << DELIMITER;
-      ss << posy << "\n";
-      
-      buffer.clear();
-      buffer = ss.str();
+      position->x = element->x_start * diff;
+      position->y = element->y_start * diff;
+      position->time = currentSimulationTimeRun;
+      position->moid = element->moid;
+      position->tripid = element->tripid;
+            
+      bool result = formatAndSendData(position);
+      return result;
    }
 
 /*
@@ -872,7 +893,6 @@ tcp socket
    
 */   
    virtual void dataConsumer() {
-      char dateBuffer[80];
       string buffer;
       time_t currentSimulationTimeRun;
       size_t counter;
@@ -896,19 +916,14 @@ tcp socket
          pthread_mutex_lock(&queueSync->queueMutex);
          counter = 0;
          currentSimulationTimeRun = simulation->getSimulationTime();
-         
-         strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S", 
-                   gmtime(&currentSimulationTimeRun));
       
          for(vector<InputData*>::iterator it = queue -> begin(); 
              it != queue -> end(); it++) {
          
             element = *it;
              
-            formatElement(buffer, element, 
-                 currentSimulationTimeRun, dateBuffer);
-            
-            bool res = sendData(buffer);
+            bool res = formatAndSendElement(buffer, element, 
+                 currentSimulationTimeRun);
 
             if(res == true) {
                statistics->send++;
@@ -979,26 +994,6 @@ public:
       return element;
    }
 
-/*
-4.2.2 Convert the element into a string
-   
-*/   
-   void formatData(string &buffer, Position *element) {
-      stringstream ss;
-      char dateBuffer[80];
-      
-      strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",
-               gmtime(&(element->time)));
-
-      ss << dateBuffer << DELIMITER;
-      ss << element->moid << DELIMITER;
-      ss << element->tripid << DELIMITER;
-      ss << element->x << DELIMITER;
-      ss << element->y << "\n";
-      
-      buffer.clear();
-      buffer = ss.str();
-   }
 
 /*
 4.2.3 Fetch the produced elements and send them on the output
@@ -1006,15 +1001,13 @@ tcp socket
    
 */    
    virtual void dataConsumer() {
-      string buffer;
-      
+
       Position *element = getQueueElement();
    
       while(element != NULL) {
          if(ready) {
             
-            formatData(buffer, element);
-            bool res = sendData(buffer);
+            bool res = formatAndSendData(element);
 
             if(res == true) {
                statistics->send++;
