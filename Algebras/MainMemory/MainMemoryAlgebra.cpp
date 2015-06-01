@@ -53,6 +53,7 @@ namespace mmalgebra {
 
     MemCatalog catalog;
 
+
 /*
 
 4 Auxiliary functions
@@ -445,7 +446,8 @@ int meminitValMap (Word* args, Word& result,
     int res=0;
 
     if (newMainMemorySize<0){
-    cout<< "die Größe des HS-bereichs kann nicht negativ sein:"<<endl;
+    cout<< "die Größe des HS-bereichs darf nicht negativ sein:"<<endl;
+    res=catalog.getMemSizeTotal();
     }
     else if ((size_t)newMainMemorySize<catalog.getUsedMemSize()/1024/1024){
             res = catalog.getUsedMemSize()/1024/1024;
@@ -460,6 +462,17 @@ int meminitValMap (Word* args, Word& result,
         catalog.setMemSizeTotal(newMainMemorySize);
     }
 
+    //nur zum Test bis memgetcatalog implementiert ist Katalogausgabe
+
+
+     cout <<"memcatolog beinhaltet: " <<endl;
+     map<string, MemoryObject*>::iterator itera = catalog.memContents.begin();
+     while (itera!=catalog.memContents.end())
+          {
+            cout<< "memcatalog[" <<itera->first << "]: ",
+            cout<<itera->second<<endl;
+            ++itera;
+          }
 
 
 
@@ -825,6 +838,97 @@ Operator letmconsumeOp (
 
 
 
+/*
+5.6 Operator ~memdelete~
+
+
+*/
+
+/*
+5.6.1 Type Mapping Functions of operator ~memdelet~
+
+*/
+ListExpr memdeleteTypeMap(ListExpr args)
+{
+   return tmStringBool(args);
+}
+
+
+/*
+
+5.6.3  The Value Mapping Functions of operator ~memdelete~
+
+*/
+
+
+
+int memdeleteValMap (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+    bool deletesucceed = false;
+    CcString* oN = (CcString*) args[0].addr;
+    if(!oN->IsDefined()){
+
+             return 0;
+        }
+    string objectName = oN->GetValue();
+
+    if(isMMObject(objectName)){
+
+        MemoryObject* mem = getMMObject(objectName);
+        delete mem;
+        deletesucceed=true;
+        mem=0;
+        catalog.memContents.erase(objectName);
+
+    }
+
+    result  = qp->ResultStorage(s);
+    CcBool* b = static_cast<CcBool*>(result.addr);
+    b->Set(true, deletesucceed);
+    return 0;
+
+}
+
+
+
+
+/*
+
+5.6.4 Description of operator ~memdelete~
+
+Similar to the ~property~ function of a type constructor, an operator needs to
+be described, e.g. for the ~list operators~ command.  This is now done by
+creating a subclass of class ~OperatorInfo~.
+
+*/
+
+
+
+OperatorSpec memdeleteSpec(
+    "string -> bool",
+    "memdelete (_)",
+    "deletes a main memory object",
+    "query memdelete ('ten')"
+);
+
+
+
+/*
+
+5.6.5 Instance of operator ~memdelete~
+
+*/
+
+Operator memdeleteOp (
+    "memdelete",
+    memdeleteSpec.getStr(),
+    memdeleteValMap,
+    Operator::SimpleSelect,
+    memdeleteTypeMap
+);
+
+
 
 
 class MainMemoryAlgebra : public Algebra
@@ -836,7 +940,7 @@ class MainMemoryAlgebra : public Algebra
         {
 /*
 
-5.2 Registration of Types
+6.2 Registration of Types
 
 
 */
@@ -846,7 +950,7 @@ class MainMemoryAlgebra : public Algebra
 
 
 /*
-5.3 Registration of Operators
+6.3 Registration of Operators
 
 */
         AddOperator (&memloadOp);
@@ -855,6 +959,7 @@ class MainMemoryAlgebra : public Algebra
         AddOperator (&mfeedOp);
         mfeedOp.SetUsesArgsInTypeMapping();
         AddOperator (&letmconsumeOp);
+        AddOperator (&memdeleteOp);
 
         }
         ~MainMemoryAlgebra() {};

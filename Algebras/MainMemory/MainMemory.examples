@@ -25,3 +25,10 @@ Number    : 4
 Signature : stream(tuple(...)) x string -> string
 Example   : query "ten" mfeed letmconsume ["zehn"]
 Result    : "zehn"
+
+Operator  : memdelete
+Number    : 5
+Signature : string -> bool
+Example   : query memdelete ("ten")
+Result    : TRUE
+
