@@ -56,11 +56,10 @@ of this software.
 */
 #define CMDLINE_INPUTFILE        1<<0
 #define CMDLINE_STATISTICS       1<<1
-#define CMDLINE_DESTHOST         1<<2
-#define CMDLINE_DESTPORT         1<<3
-#define CMDLINE_SIMULATION_MODE  1<<4
-#define CMDLINE_BEGINTIME        1<<5
-#define CMDLINE_ENDTIME          1<<6
+#define CMDLINE_DESTURL          1<<2
+#define CMDLINE_SIMULATION_MODE  1<<3
+#define CMDLINE_BEGINTIME        1<<4
+#define CMDLINE_ENDTIME          1<<5
 
 #define QUEUE_ELEMENTS 10000
 #define DELIMITER ","
@@ -70,7 +69,7 @@ of this software.
 
 #define EOT             "\004"
 
-#define VERSION         1.0
+#define VERSION         1.1
 
 using namespace std;
 
@@ -81,8 +80,7 @@ using namespace std;
 struct Configuration {
    string inputfile;
    string statisticsfile;
-   string desthost;
-   size_t destport;
+   string url;
    short simulationmode;
    time_t beginoffset;
    time_t endoffset;
@@ -163,6 +161,194 @@ public:
    
 private:
    Configuration *configuration;
+};
+
+
+/*
+2.0 Abstract output class 
+
+*/
+class AbstractOutput {
+public:
+   
+   AbstractOutput() : ready(false) {
+      
+   }
+   
+   virtual ~AbstractOutput() {
+   }
+   
+   bool isReady() {
+      return ready;
+   }
+   
+   virtual bool open() = 0;
+   virtual bool close() = 0;
+   virtual bool sendData(Position* position) = 0;
+   
+protected:
+   bool ready;
+   
+private:
+};
+
+/* 
+2.1 CSV output class - convert data into
+    csv and send it to a TCP socket
+
+*/
+class CSVOutput : public AbstractOutput {
+public:
+   
+   CSVOutput(string &url) : socketfd(-1) {
+      // tcp:// - 6 chars
+      string hostnameport = url.substr(6);
+     
+      size_t pos = hostnameport.find("/");
+      
+      // Missing / or missing port
+      if(pos == string::npos || pos+1 == hostnameport.length()) {
+         cerr << "Unable to parse CSV URL: " << url << endl;
+         cerr << "See help for more details" << endl;
+         exit(EXIT_FAILURE);
+      }
+
+      hostname = hostnameport.substr(0, pos);
+      string portString = hostnameport.substr(pos + 1, hostnameport.length());
+      port = atoi(portString.c_str());
+   }
+   
+   virtual bool sendData(Position* position) {
+      stringstream ss;
+      string buffer;
+      char dateBuffer[80];
+   
+      strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",
+               gmtime(&(position->time)));
+
+      ss << dateBuffer << DELIMITER;
+      ss << position->moid << DELIMITER;
+      ss << position->tripid << DELIMITER;
+      ss << position->x << DELIMITER;
+      ss << position ->y << "\n";
+   
+      buffer = ss.str();
+      bool result = sendData(buffer);
+   
+      return result;
+   }
+   
+   /*
+   3.1 Open the network socket for writing
+
+   */
+   bool open() {
+
+      struct hostent *server;
+      struct sockaddr_in server_addr;
+
+      socketfd = socket(AF_INET, SOCK_STREAM, 0); 
+
+      if(socketfd < 0) {
+         cerr << "Error opening socket" << endl;
+         return false;
+      }
+
+      // Resolve hostname
+      server = gethostbyname(hostname.c_str());
+   
+      if(server == NULL) {
+         cerr << "Error resolving hostname: " << hostname << endl;
+         return false; 
+      }   
+   
+      // Connect
+      memset(&server_addr, 0, sizeof(server_addr));
+      server_addr.sin_family = AF_INET;
+      server_addr.sin_port = htons(port);
+   
+      server_addr.sin_addr.s_addr = 
+        ((struct in_addr *)server->h_addr_list[0])->s_addr;
+  
+      if(connect(socketfd, (struct sockaddr*) &server_addr, 
+            sizeof(struct sockaddr)) < 0) {
+
+         cerr << "Error in connect() " << endl;
+         return false;
+      }   
+
+      ready = true;
+      return true;
+   }
+   
+   /*
+   3.2 Close the tcp socket
+   
+   */
+   bool close() {
+      if(socketfd == -1) {
+         return true;
+      }
+     
+      // Send EOT (End of Transmission)
+      int res = write(socketfd, EOT, sizeof(char));
+ 
+      if(res < 0) {
+         cerr << "Sending EOT failed" << endl;
+      }
+
+      shutdown(socketfd, 2);
+      socketfd = -1;
+      
+      return true;
+   }
+   
+   /*
+   3.3 Write the string on the tcp socket, ensured that
+   the write class is retired, if a recoverable error occurs.
+   
+   */
+      bool sendData(string &buffer) {
+         int ret = 0;
+         int toSend = buffer.length();
+         const char* buf = buffer.c_str();
+
+         for (int n = 0; n < toSend; ) {
+             ret = write(socketfd, (char *)buf + n, toSend - n);
+             if (ret < 0) {
+                  if (errno == EINTR || errno == EAGAIN) {
+                     continue;
+                  }
+                  break;
+             } else {
+                 n += ret;
+             }
+         }
+      
+         // All data was written successfully
+         if(ret > 0) {
+            return true;
+         }
+      
+         return false;
+      }
+   
+private:
+   int socketfd;
+   string hostname;
+   int port;
+};
+
+class OutputFactory {
+public:
+   static AbstractOutput* getOutputInstance(string &url) {
+      
+      if(url.compare(0, 6, "tcp://") == 0) {
+         return new CSVOutput(url);
+      }
+      
+      return NULL;
+   }
 };
 
 
@@ -674,133 +860,36 @@ public:
    
    AbstractConsumer(Configuration *myConfiguration, Statistics *myStatistics, 
            QueueSync* myQueueSync) : configuration(myConfiguration), 
-           statistics(myStatistics), queueSync(myQueueSync), socketfd(-1), 
-        ready(false) {
+           statistics(myStatistics), queueSync(myQueueSync) {
       
+           output = OutputFactory::getOutputInstance(configuration -> url);
+           
+           if(output == NULL) {
+              cerr << "Unable to find an output instance for URL: "
+                   << configuration -> url << endl; 
+           }
+           
+           bool res = output -> open();
+           
+           if(! res) {
+              cerr << "Unable to open output!" << endl;
+              exit(EXIT_FAILURE);
+           }
    }
    
    virtual ~AbstractConsumer() {
-      closeSocket();
+      if(output != NULL) {
+         output -> close();
+         delete output;
+      }
    }
    
 /*
-3.1 Open the network socket for writing
-
-*/
-   bool openSocket() {
-  
-      struct hostent *server;
-      struct sockaddr_in server_addr;
-   
-      socketfd = socket(AF_INET, SOCK_STREAM, 0); 
-
-      if(socketfd < 0) {
-         cerr << "Error opening socket" << endl;
-         return false;
-      }   
-   
-      // Resolve hostname
-      server = gethostbyname(configuration->desthost.c_str());
-   
-      if(server == NULL) {
-         cerr << "Error resolving hostname: " 
-              << configuration->desthost << endl;
-         return -1; 
-      }   
-   
-      // Connect
-      memset(&server_addr, 0, sizeof(server_addr));
-      server_addr.sin_family = AF_INET;
-      server_addr.sin_port = htons(configuration->destport);
-   
-      server_addr.sin_addr.s_addr = 
-        ((struct in_addr *)server->h_addr_list[0])->s_addr;
-  
-      if(connect(socketfd, (struct sockaddr*) &server_addr, 
-            sizeof(struct sockaddr)) < 0) {
-
-         cerr << "Error in connect() " << endl;
-         return false;
-      }   
-   
-      ready = true;
-      return true;
-   }
-   
-/*
-3.2 Close the tcp socket
-   
-*/
-   void closeSocket() {
-      if(socketfd == -1) {
-         return;
-      }
-     
-      // Send EOT (End of Transmission)
-      int res = write(socketfd, EOT, sizeof(char));
- 
-      if(res < 0) {
-         cerr << "Sending EOT failed" << endl;
-      }
-
-      shutdown(socketfd, 2);
-      socketfd = -1;
-   }
-   
-/*
-3.3 Write the string on the tcp socket, ensured that
-the write class is retired, if a recoverable error occurs.
-   
-*/
-   bool sendData(string &buffer) {
-      int ret = 0;
-      int toSend = buffer.length();
-      const char* buf = buffer.c_str();
-
-      for (int n = 0; n < toSend; ) {
-          ret = write(socketfd, (char *)buf + n, toSend - n);
-          if (ret < 0) {
-               if (errno == EINTR || errno == EAGAIN) {
-                  continue;
-               }
-               break;
-          } else {
-              n += ret;
-          }
-      }
-      
-      // All data was written successfully
-      if(ret > 0) {
-         return true;
-      }
-      
-      return false;
-   }
-   
-
-/*
-3.4 Convert a Position into a string representation
-      and send the object
+3.4 Send Position to output handler
    
 */   
-      bool formatAndSendData(Position *element) {
-      
-         stringstream ss;
-         string buffer;
-         char dateBuffer[80];
-      
-         strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",
-                  gmtime(&(element->time)));
-
-         ss << dateBuffer << DELIMITER;
-         ss << element->moid << DELIMITER;
-         ss << element->tripid << DELIMITER;
-         ss << element->x << DELIMITER;
-         ss << element->y << "\n";
-      
-         buffer = ss.str();
-         bool result = sendData(buffer);
-      
+      bool formatAndSendData(Position *position) {
+         bool result = output -> sendData(position);
          return result;
       }
    
@@ -816,8 +905,7 @@ protected:
    Configuration *configuration;
    Statistics *statistics;
    QueueSync *queueSync;
-   int socketfd;
-   bool ready;
+   AbstractOutput *output;
    
 private:
 };
@@ -874,11 +962,16 @@ public:
           
       Position *position = new Position();
 
-      float diff = element->time_diff / 
-         (currentSimulationTimeRun - element->time_start);
+
+      float diff = 0;
       
-      position->x = element->x_start * diff;
-      position->y = element->y_start * diff;
+      if(currentSimulationTimeRun != element->time_start) {
+         diff = element->time_diff / 
+         (currentSimulationTimeRun - element->time_start);
+      }
+      
+      position->x = element->x_start + (element->x_diff * diff);
+      position->y = element->y_start + (element->y_diff * diff);
       position->time = currentSimulationTimeRun;
       position->moid = element->moid;
       position->tripid = element->tripid;
@@ -903,8 +996,8 @@ tcp socket
       while(true) {
          removeOldElements();
          
-         if(! ready) {
-             cerr << "Socket not ready, skipping simulation run" << endl;
+         if(! output -> isReady()) {
+             cerr << "Output not ready, skipping simulation run" << endl;
              continue;
          }
          
@@ -1005,7 +1098,7 @@ tcp socket
       Position *element = getQueueElement();
    
       while(element != NULL) {
-         if(ready) {
+         if(output -> isReady()) {
             
             bool res = formatAndSendData(element);
 
@@ -1099,7 +1192,7 @@ public:
       cout << "\r\033[2K" << "Sec: " << getElapsedSeconds();
       cout << " \033[1m Read:\033[0m " << statistics -> read;
       cout << " \033[1m Send:\033[0m " << statistics -> send;
-      cout << " \033[1m Queuesize:\033[0m " << statistics -> queuesize;
+      cout << " \033[1m Queue size:\033[0m " << statistics -> queuesize;
       cout.flush();
    }
    
@@ -1193,13 +1286,6 @@ private:
 */
 void* startConsumerThreadInternal(void *ptr) {
   AbstractConsumer* consumer = (AbstractConsumer*) ptr;
-  
-  bool res = consumer->openSocket();
-  
-  if(! res) {
-     cerr << "Unable to open socket!" << endl;
-     exit(EXIT_FAILURE);
-  }
   
   consumer -> dataConsumer();
   
@@ -1359,24 +1445,29 @@ private:
       cerr << "Player for BerlinMod data, version " << VERSION << endl;
       cerr << endl;
       cerr << "Usage: " << progName << " -i <inputfile> -o <statisticsfile> ";
-      cerr << "-h <hostname> -p <port> -s <adaptive|fixed> -b <beginoffset> ";
+      cerr << "-u <connection url> -s <adaptive|fixed> -b <beginoffset> ";
       cerr << "-e <endoffset>";
       cerr << endl;
       cerr << endl;
       cerr << "Required parameter:" << endl;
       cerr << "-i is the CVS file with the trips to simulate" << endl;
       cerr << "-o is the output file for statistics" << endl;
-      cerr << "-h specifies the hostname to connect to" << endl;
-      cerr << "-p specifies the port to connect to" << endl;
+      cerr << "-u specifies the connection url" << endl;
       cerr << "-s sets the simulation mode" << endl;
       cerr << endl;
       cerr << "Optional parameter:" << endl;
       cerr << "-b is the begin time offset for the simulation" << endl;
       cerr << "-e is the end time offset for the simulation" << endl;
       cerr << endl;
+      cerr << "Supported connection URLs:" << endl;
+      cerr << "tcp://hostname/myport - Send csv lines to host ";
+      cerr << "'hostname' on port 'myport'" << endl;
+      cerr << "http://hostname/position - Send JSON requests to ";
+      cerr << "the specified URL" << endl;
+      cerr << endl;
       cerr << "For example: " << progName << " -i trips.csv ";
-      cerr << "-o statistics.txt -h localhost ";
-      cerr << "-p 10000 -s adaptive -b '2007-05-28 06:00:14'" << endl;
+      cerr << "-o statistics.txt -u tcp://localhost/10000 ";
+      cerr << "-s adaptive -b '2007-05-28 06:00:14' ";
       cerr << "-e '2007-05-28 08:22:31'" << endl;
       exit(-1);
    }
@@ -1394,7 +1485,7 @@ private:
       
       memset(&tm, 0, sizeof(struct tm));
    
-      while ((option = getopt(argc, argv,"i:o:h:p:s:b:e:")) != -1) {
+      while ((option = getopt(argc, argv,"i:o:u:s:b:e:")) != -1) {
           switch (option) {
              case 'i':
                 flags |= CMDLINE_INPUTFILE;
@@ -1406,14 +1497,9 @@ private:
                 configuration->statisticsfile = string(optarg);
              break;
           
-             case 'h':
-                flags |= CMDLINE_DESTHOST;
-                configuration->desthost = string(optarg);
-             break;
-          
-             case 'p':
-                flags |= CMDLINE_DESTPORT;
-                configuration->destport = atoi(optarg);
+             case 'u':
+                flags |= CMDLINE_DESTURL;
+                configuration->url = string(optarg);
              break;
 
              case 's':
@@ -1461,8 +1547,7 @@ private:
    
       unsigned int requiredFalgs = CMDLINE_INPUTFILE |
                                    CMDLINE_STATISTICS |
-                                   CMDLINE_DESTHOST |
-                                   CMDLINE_DESTPORT |
+                                   CMDLINE_DESTURL |
                                    CMDLINE_SIMULATION_MODE;
    
       if((flags & requiredFalgs) != requiredFalgs) {
