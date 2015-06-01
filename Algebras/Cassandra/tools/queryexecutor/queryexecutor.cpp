@@ -448,6 +448,7 @@ public:
    void mainLoop() {
  
      size_t lastCommandId = 0;
+     time_t version = 0;
      
      updateLastCommand(lastCommandId);       
      updateUuid();
@@ -458,29 +459,56 @@ public:
         
            vector<CassandraQuery> result;
            cassandra->getQueriesToExecute(result);
-           size_t seenCommands = 0;
         
            while(!result.empty()) {
            
              CassandraQuery &query = result.back();
-           
+   
              size_t id = query.getQueryId();
              string command = query.getQuery();
+  
+             // This is the first command, store version of
+             // the query plan
+             if(id == 1 && lastCommandId == 0) {
+                version = query.getVersion();
+             }
              
-             QEUtils::replaceShortcuts(command);
-          
-             QEUtils::replacePlaceholder(
-                command, "__NODEID__", instanceUuid);
-             QEUtils::replacePlaceholder(
-                command, "__CASSANDRAIP__", cmdline_args -> cassandraNodeIp);
-             QEUtils::replacePlaceholder(
-                command, "__KEYSPACE__", cmdline_args -> cassandraKeyspace);
+             // A new version of the query plan was submitted
+             // => cqueryreset is executed,
+             // clear secondo state and reset lastCommandId
+             if(id == 1 && version < query.getVersion()) {
+               cout << "Doing query reset (our version: " << version
+                    << " / new: " << query.getVersion() << ")" << endl;
+             
+               // Wait for system tables to be recreated
+               sleep(5); 
+               
+               executeSecondoCommand(string("close database"), 
+                   lastCommandId + 1);
+                   
+               lastCommandId = 0;
+             
+               updateLastCommand(lastCommandId);
+               updateUuid();
+                 
+               cout << "[Info] Reset complete, waiting for new queries" << endl;
+               break;
+             }
           
              // Is this the next query to execute
              if(id == lastCommandId + 1) {
 
                // Update global status
                ++lastCommandId;
+               
+               QEUtils::replaceShortcuts(command);
+          
+               QEUtils::replacePlaceholder(
+                  command, "__NODEID__", instanceUuid);
+               QEUtils::replacePlaceholder(
+                  command, "__CASSANDRAIP__", cmdline_args -> cassandraNodeIp);
+               QEUtils::replacePlaceholder(
+                  command, "__KEYSPACE__", cmdline_args -> cassandraKeyspace);
             
                // Simple query or token based query?
                if(QEUtils::containsPlaceholder(command, "__TOKENRANGE__")) {
@@ -494,28 +522,11 @@ public:
                updateLastCommand(lastCommandId);
                updateUuid();
              }
-          
-             result.pop_back();
-             ++seenCommands;
-           }
-        
-           // Command list is empty and we have processed 
-           // commands in the past. => cqueryreset is executed,
-           // clear secondo state and reset lastCommandId
-           if(seenCommands < lastCommandId && lastCommandId > 0) {
-             cout << "Doing query reset" << endl;
-             sleep(5); // Wait for system tables to be recreated
-             lastCommandId = 0;
-             executeSecondoCommand(string("close database"), seenCommands);
              
-             updateLastCommand(lastCommandId);
-             updateUuid();
-                 
-             cout << "[Info] Reset complete, waiting for new queries" << endl;
-           }
-        
-           sleep(5);
-     }
+             result.pop_back();
+         }
+         sleep(4);
+      }
    }
    
 private:
