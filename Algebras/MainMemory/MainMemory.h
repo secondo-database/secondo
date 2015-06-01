@@ -29,7 +29,7 @@ class MemCatalog {
     public:
         //Konstruktor;
         MemCatalog (){
-            memSizeTotal=1;  //die Hauptspeichergroesse in MB
+            memSizeTotal=256;  //die Hauptspeichergroesse in MB
             usedMemSize=0;     //die benutzte Speichergroesse in B
             };
 
