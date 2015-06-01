@@ -48,6 +48,8 @@ of this software.
 #include <sys/time.h>
 #include <netinet/in.h>
 
+#include <curl/curl.h>
+
 #include "timer.h"
 
 /*
@@ -300,6 +302,8 @@ public:
       shutdown(socketfd, 2);
       socketfd = -1;
       
+      ready = false;
+      
       return true;
    }
    
@@ -339,12 +343,135 @@ private:
    int port;
 };
 
+/* 
+2.2 HTTP output class - convert data into
+    json and generate a HTTP call
+
+*/
+
+static size_t curlWriteCallback(void *contents, size_t size, 
+              size_t nmemb, void *userp) { 
+
+    string curlReadBuffer;
+    size_t realsize = size * nmemb;
+    curlReadBuffer.append((char*) contents, realsize);
+    
+    cout << "Curl Result: " << curlReadBuffer;
+    
+    return realsize;
+}
+
+class HTTPJSonOutput : public AbstractOutput {
+public:
+   HTTPJSonOutput(string myURL) : url(myURL), headers(NULL) {
+      
+   }
+   
+   /*
+   2.2.1 Send position in JSON Format
+   
+   */
+   virtual bool sendData(Position* position) {
+      stringstream ss;
+      char dateBuffer[80];
+   
+      //  "i1":"2015-03-06T23:20:01.000",
+      strftime(dateBuffer,80,"%Y-%m-%dT%H:%M:%S.000",
+               gmtime(&(position->time)));
+   
+      // Build JSON data
+      ss << "{" << endl;
+      ss << "\"Id\":\"" << position -> moid << "\"," << endl;
+      ss << "\"Position\":{" << endl;
+      ss << "\"interval\":{" << endl;
+      ss << "\"i1\":" << dateBuffer << "\"," << endl; 
+      ss << "\"i1closed\":true," << endl;
+      ss << "\"i2\":" << dateBuffer << "\"," << endl; 
+      ss << "\"i2closed\":true," << endl;
+      ss << "}," << endl;
+      ss << "\"x1\":" << position->x << "," << endl;
+      ss << "\"y1\":" << position->y << "," << endl;
+      ss << "\"x2\":" << position->x << "," << endl;
+      ss << "\"x2\":" << position->y << endl;
+      ss << "}" << endl;
+      ss << "}" << endl;
+      
+      // Make HTTP request
+      CURLcode res;
+      string postdata = ss.str();
+      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata.c_str());
+      res = curl_easy_perform(curl);
+      
+      if(res != CURLE_OK) {
+            fprintf(stderr, "curl_easy_perform() failed: %s\n",
+                    curl_easy_strerror(res));
+      }
+      
+      return true;
+   }
+   
+   /*
+   2.2.2 Open output 
+   
+   */
+   virtual bool open() {
+      
+      // Init cURL
+      curl_global_init(CURL_GLOBAL_ALL);
+      curl = curl_easy_init();
+      if(curl) {
+          curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+          curl_easy_setopt(curl, CURLOPT_POST, 1L);
+          curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+          curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteCallback);
+      }
+          
+      // Init headers
+      curl_slist_append(headers, "Accept: application/json");  
+      curl_slist_append(headers, "Content-Type: application/json");
+      curl_slist_append(headers, "charsets: utf-8"); 
+      
+      ready = true;
+      return true;
+   }
+   
+   
+   /*
+   2.2.3 Close output
+   
+   */
+   virtual bool close() {
+      ready = false;
+      
+      if(curl != NULL) {
+         curl_easy_cleanup(curl);
+         curl = NULL;
+      }
+      
+      if(headers != NULL) {
+         curl_slist_free_all (headers);
+         headers = NULL;
+      }
+      
+      return true;
+   }
+
+private:
+   string url;
+   CURL *curl;
+   struct curl_slist *headers;
+};
+
 class OutputFactory {
 public:
    static AbstractOutput* getOutputInstance(string &url) {
       
       if(url.compare(0, 6, "tcp://") == 0) {
          return new CSVOutput(url);
+      }
+      
+      if(url.compare(0,7, "http://") == 0) {
+         return new HTTPJSonOutput(url);
       }
       
       return NULL;
@@ -962,7 +1089,6 @@ public:
           
       Position *position = new Position();
 
-
       float diff = 0;
       
       if(currentSimulationTimeRun != element->time_start) {
@@ -977,6 +1103,9 @@ public:
       position->tripid = element->tripid;
             
       bool result = formatAndSendData(position);
+      
+      delete position;
+      
       return result;
    }
 
