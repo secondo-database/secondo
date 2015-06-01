@@ -424,7 +424,7 @@ public:
       if(curl) {
           curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
           curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-	  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+          curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
           curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteCallback);
       }
           
