@@ -384,10 +384,10 @@ public:
       ss << "\"Id\":\"" << position -> moid << "\"," << endl;
       ss << "\"Position\":{" << endl;
       ss << "\"interval\":{" << endl;
-      ss << "\"i1\":" << dateBuffer << "\"," << endl; 
+      ss << "\"i1\":\"" << dateBuffer << "\"," << endl; 
       ss << "\"i1closed\":true," << endl;
-      ss << "\"i2\":" << dateBuffer << "\"," << endl; 
-      ss << "\"i2closed\":true," << endl;
+      ss << "\"i2\":\"" << dateBuffer << "\"," << endl; 
+      ss << "\"i2closed\":true" << endl;
       ss << "}," << endl;
       ss << "\"x1\":" << position->x << "," << endl;
       ss << "\"y1\":" << position->y << "," << endl;
@@ -395,7 +395,9 @@ public:
       ss << "\"x2\":" << position->y << endl;
       ss << "}" << endl;
       ss << "}" << endl;
-      
+     
+      cout << ss.str();
+
       // Make HTTP request
       CURLcode res;
       string postdata = ss.str();
