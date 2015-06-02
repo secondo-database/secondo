@@ -82,6 +82,9 @@ CassError CassandraAdapter::connect_session(CassSession* session,
    
    cass_future_free(future);
    
+   // suppress warn messages
+   cass_log_set_level(CASS_LOG_ERROR);
+
    return rc;
 }
 
