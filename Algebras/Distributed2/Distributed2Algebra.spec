@@ -37,5 +37,5 @@ operator dloop2 alias DLOOP2 pattern _ op[_,fun] implicit parameter darray2elem 
 
 operator dsummarize2 alias DSUMMARIZE2 pattern _ op
 
-
+operator getValue alias GETVALUE pattern op(_)
 

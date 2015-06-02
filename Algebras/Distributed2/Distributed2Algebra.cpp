@@ -40,6 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "Stream.h"
 #include "NList.h"
+#include "ArrayAlgebra.h"
 
 
   // use boost for thread handling
@@ -561,13 +562,18 @@ class ConnectionInfo{
 
 
           bool retrieve(const string& objName, ListExpr& resType, Word& result){
+              simtx.lock();
               if(Relation::checkType(resType)){
+                  simtx.unlock();
                   if(retrieveRelation(objName, resType, result)){
                      return true;
+                  } else{
+                     simtx.lock();
                   } 
                   cerr << "Could not use fast retrieval for a "
                        << " relation, failback" << endl;
               }
+              simtx.unlock();
 
               // TODO: special treatment for big objects
               boost::lock_guard<boost::mutex> guard(simtx);
@@ -601,11 +607,21 @@ class ConnectionInfo{
           }
 
           bool retrieveRelation(const string& objName, 
-                                 ListExpr& resType, Word& result,
-                                 bool DeleteTempFile=true){
+                                 ListExpr& resType, Word& result
+                                ){
 
-             boost::lock_guard<boost::mutex> guard(simtx);
              string fname1 = objName+".bin";
+             if(!retrieveRelationFile(objName, fname1)){
+                return false;
+             }
+             result = createRelationFromFile(fname1, resType);
+             FileSystem::DeleteFileOrFolder(fname1);
+             return true;
+          }
+
+          bool retrieveRelationFile(const string& objName,
+                                    const string& fname1){
+             boost::lock_guard<boost::mutex> guard(simtx);
              string rfname = si->getRequestFilePath() + "/"+fname1;
              // save the remove relation into a binary file
              string cmd = "query " + objName + " feed fconsume5['"
@@ -625,24 +641,27 @@ class ConnectionInfo{
              // delete remote file             
              cmd = "query removeFile('"+rfname+"')";
              si->Secondo(cmd,resList,serr);
-             result = createRelationFromFile(fname1, resType);
-             if(DeleteTempFile){
-               // remove local file
-               FileSystem::DeleteFileOrFolder(fname1);
-             }
              return true;
           }
 
           Word createRelationFromFile(const string& fname, ListExpr resType){
+             boost::lock_guard<boost::mutex> guard(simtx);
+
              // create result relation
              ListExpr tType = nl->Second(resType);
-             tType = SecondoSystem::GetCatalog()->NumericType(tType);
-             TupleType* tt = new TupleType(tType);
-             Relation* resultrel = new Relation(tt); 
-             ffeed5Info reader(fname,resultrel->GetTupleType());
+             tType = SecondoSystem::GetCatalog()->NumericType(resType);
+             TupleType* tt = new TupleType(nl->Second(tType));
+
+             createRelMut.lock();
+             Relation* resultrel = new Relation(tType); 
+             createRelMut.unlock();
+            
+             ffeed5Info reader(fname,tt);
              Tuple* tuple;
              while((tuple=reader.next())){
+                 createRelMut.lock();
                  resultrel->AppendTuple(tuple);
+                 createRelMut.unlock();
                  tuple->DeleteIfAllowed();
              }
              tt->DeleteIfAllowed();
@@ -658,7 +677,12 @@ class ConnectionInfo{
     SecondoInterfaceCS* si;
     NestedList* mynl;
     boost::mutex simtx; // mutex for synchronizing access to the interface
+
+    static boost::mutex createRelMut;
+
 };
+
+boost::mutex ConnectionInfo::createRelMut;
 
 template<class ResType>
 class CommandListener{
@@ -887,6 +911,7 @@ Closes all open connections and destroys them.
         }
         connections.clear();
         mtx.unlock();
+        closeAllWorkers();
      }
 
 /*
@@ -7651,46 +7676,147 @@ class dsummarize2AttrInfo : public dsummarize2Listener{
 1.8.3 LocalInfo for Relations
 
 */
-class dsummarize2RelInfo{
+class dsummarize2RelListener{
+  public:
+     virtual void connectionFailed(int id) = 0;
+     virtual void fileAvailable(int id, const string& fname)=0;
+};
+
+
+class RelationFileGetter{
+
+
 
   public:
-     dsummarize2RelInfo(DArray2* _array, ListExpr resType) {}
+     RelationFileGetter(DArray2* _array, int _index, 
+                        dsummarize2RelListener* _listener):
+      array(_array), index(_index), listener(_listener){
+     }
+
+     void operator()(){
+       // get the connection
+       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       DArray2Element elem = array->getWorker(index % array->numOfWorkers());
+       ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
+       if(!ci){ // connection failed
+          listener->connectionFailed(index);
+          return;
+       }
+       string objName = array->getName()+"_"+stringutils::int2str(index);
+       string fname = objName+".bin";
+       if(!ci->retrieveRelationFile(objName,fname)){
+          listener->connectionFailed(index);
+          return;
+       }
+       listener->fileAvailable(index, fname);
+     }
+
+   private:
+     DArray2* array;
+     int      index;
+     dsummarize2RelListener* listener;
+
+
+};
+
+
+
+class dsummarize2RelInfo: public dsummarize2RelListener{
+
+  public:
+     dsummarize2RelInfo(DArray2* _array, ListExpr _resType):
+         array(_array), currentIndex(0), currentFeeder(0), resType(_resType)
+    {
+        start();
+     }
 
      Tuple* next() { 
-        cerr << "dsummarize2 not implemented for relations yet" << endl;
-        return 0; // not implemented yet
+        while(true){
+           if(currentFeeder){
+              Tuple* res = currentFeeder->next();
+              if(res){
+                 return res;
+              } else {
+                 delete currentFeeder;
+                 currentFeeder = 0;
+                 currentIndex ++;
+              }
+           }
+           if(currentIndex >= array->getSize()){
+             return 0;
+           }  
+           boost::unique_lock<boost::mutex> lock(mtx);
+           while(getters[currentIndex]){
+               cond.wait(lock);
+           }
+           if(filenames[currentIndex].length()>0){
+              ListExpr tType = 
+                  SecondoSystem::GetCatalog()->NumericType(resType);
+              currentFeeder = new ffeed5Info(filenames[currentIndex],
+                     tType);
+           }
+         }
+         
+                
+
      }
  
-     ~dsummarize2RelInfo(){} 
+     virtual ~dsummarize2RelInfo(){
+        for(size_t i=0;i<runners.size();i++){
+           if(runners[i]){
+              runners[i]->join();
+              delete runners[i];
+           }
+           if(getters[i]){
+              delete getters[i];
+           }
+        }
+        if(currentFeeder){
+           delete currentFeeder;
+        }
+
+     } 
+
+     void connectionFailed(int index){
+       { boost::lock_guard<boost::mutex> guard(mtx);
+        delete getters[index];
+        getters[index] = 0;
+       } 
+       cond.notify_one();
+     }
+
+     void fileAvailable(int index, const string& filename){
+       { boost::lock_guard<boost::mutex> guard(mtx);
+         filenames[index] = filename;
+         delete getters[index];
+         getters[index] = 0;
+        }
+        cond.notify_one();
+     }
+
+
 
 
   private:
-   /*
-     Idea:
-     Task of a single thread:
-       Create relation files on remote side 
-       Transfer the relations files to local files
-       Delete remote relation file
-       inform abaout the avaible array index
-
-     next function:
-       while true{
-           if currentindex >= arraysize 
-               return 0
-           if there is a non finished file
-               return next tuple of the file
-           if file finished
-               delete the file
-               increase index
-
-           wait until next index is available
-           if file could be get
-              create file feeder
-       }
-   */
+     DArray2* array;
+     size_t currentIndex; 
+     ffeed5Info* currentFeeder;
+     ListExpr resType;
+     vector<boost::thread*> runners;
+     vector<RelationFileGetter*> getters;
+     vector<string> filenames;
+     boost::mutex mtx;
+     boost::condition_variable cond;
 
 
-
+     void start(){
+        for(size_t i=0;i< array->getSize();i++){
+           RelationFileGetter* getter = new RelationFileGetter(array,i,this);
+           getters.push_back(getter);
+           filenames.push_back("");
+           runners.push_back(new boost::thread(*getter));
+        }
+     }
 };
 
 
@@ -7759,10 +7885,183 @@ Operator dsummarize2Op(
 );
 
 
+/*
+1.10 Operator ~getValue~
+
+The getValue operator converts a distributed array into a 
+normal array from the ArrayAlgebra.
+
+*/
+
+ListExpr getValueTM(ListExpr args){
+  string err ="darray2 expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  ListExpr a1 = nl->First(args);
+  if(!DArray2::checkType(a1)){
+    return listutils::typeError(err);
+  }
+  return nl->TwoElemList( 
+              listutils::basicSymbol<arrayalgebra::Array>(),
+              nl->Second(a1));
+
+}
+
+class getValueListener{
+  public:
+    virtual void  jobDone(int index, Word result)=0;
+
+};
+
+class getValueGetter{
+  public:
+    getValueGetter(DArray2* _array, int _index, getValueListener* _listener, 
+      ListExpr _resType):
+       array(_array), index(_index), resType(_resType),listener(_listener){}
+       
+
+   void operator()(){
+
+      string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+      int workerIndex = index % array->numOfWorkers();
+      ConnectionInfo* ci = algInstance->getWorkerConnection(
+                              array->getWorker(workerIndex),dbname);
+      Word res((void*)0);
+      if(!ci){
+          cerr << "workerconnection not found";
+          listener->jobDone(index,res); 
+          return;
+      }
+      string name = array->getName()+"_"+stringutils::int2str(index);
+      ci->retrieve(name, resType, res);
+      listener->jobDone(index,res); 
+   }
+
+  private:
+    DArray2* array;
+    int index;
+    ListExpr resType;
+    getValueListener* listener;
+
+};
+
+
+class getValueInfo : public getValueListener{
+
+  public:
+   getValueInfo(DArray2* _arg, arrayalgebra::Array* _result, ListExpr _resType):
+    arg(_arg), result(_result), resType(_resType), algId(0),
+    typeId(0),n(-1),values(0){
+      isData = listutils::isDATA(nl->Second(_resType));
+   }
+
+   virtual ~getValueInfo(){
+      delete[] values;
+   }
+
+
+   void convert(){
+     if(!init()){
+        return;
+     }
+    vector<getValueGetter*> getters;
+    vector<boost::thread*> threads;
+    for(int i=0;i<n;i++){
+      getValueGetter* getter = new getValueGetter(arg,i,this,
+                                                  nl->Second(resType));
+      getters.push_back(getter);
+      boost::thread* t = new boost::thread(*getter); 
+      threads.push_back(t);
+    }
+    // for for finishing retrieving elements
+    for(size_t i =0 ;i<threads.size();i++){
+        threads[i]->join();
+    }
+    for(size_t i =0 ;i<threads.size();i++){
+        delete threads[i];
+    }
+    for(size_t i =0 ;i<getters.size();i++){
+       delete getters[i];  
+    }
+    result->initialize(algId,typeId,n,values);
+  } 
+
+  void jobDone(int id, Word value){
+    if(value.addr==0){ // problem in getting element
+       // set some default value 
+       value = am->CreateObj(algId,typeId)(nl->Second(resType));
+       if(isData){
+          ((Attribute*)value.addr)->SetDefined(false);
+       }
+    }
+
+    values[id] = value;
+
+  }
+
+  private:
+    DArray2* arg;
+    arrayalgebra::Array* result;
+    ListExpr resType;
+    int algId;
+    int typeId;
+    int n;
+    Word* values;
+    bool isData;
+    
+    bool init(){
+       if(!arg->IsDefined()){
+         return false;
+       }
+       string typeName;
+       if(!SecondoSystem::GetCatalog()->LookUpTypeExpr(nl->Second(resType), 
+                                                 typeName, algId, typeId)){
+          cerr << "internal error, could not determine algid and typeId"
+               << " for " << nl->ToString(nl->Second( resType)) << endl;
+          return false;
+       }
+       n = arg->getSize();
+       Word std((void*)0);
+       values = new Word[n];
+       for(int i=0;i<n;i++){
+         values[i] = std;
+       }
+       return true;
+    }
 
 
 
+};
 
+
+
+int getValueVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   getValueInfo info((DArray2*)args[0].addr, (arrayalgebra::Array*) result.addr,
+                   qp->GetType(s)); 
+   info.convert();
+   return 0;
+}
+
+
+OperatorSpec getValueSpec(
+     "darray2(T) -> array(T)",
+     "getValue(_)",
+     "Converts a distributed array into a normal one.",
+     "query getValue(da2)"
+     );
+
+
+Operator getValueOp(
+  "getValue",
+  getValueSpec.getStr(),
+  getValueVM,
+  Operator::SimpleSelect,
+  getValueTM
+);
 
 
 /*
@@ -7813,6 +8112,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&DARRAY2ELEMOp);
 
    AddOperator(&dsummarize2Op);
+   AddOperator(&getValueOp);
 
 }
 

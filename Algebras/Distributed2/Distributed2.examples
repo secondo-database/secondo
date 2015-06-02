@@ -210,4 +210,10 @@ Result    : bug
 Remark    : remote server required
 
 
+Operator : getValue
+Number   : 1
+Signature : darray2(X) -> array(X)
+Example   : query getValue(da2)
+Result    : bug
+Remark    : remote server required
 
