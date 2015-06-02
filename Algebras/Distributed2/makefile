@@ -30,6 +30,8 @@ CURRENT_ALGEBRA := FTextAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
 ALGEBRA_DEPENDENCIES += FunctionAlgebra
+ALGEBRA_DEPENDENCIES += ArrayAlgebra
+ALGEBRA_DEPENDENCIES += FTextAlgebra
 
 
 # include global definitions
