@@ -221,8 +221,7 @@ const CassPrepared* CassandraAdapter::prepareCQLInsert(string relation) {
         }
  
         string cqlQuery = getInsertCQL(relation, "?", "?", "?", "?");
-        cout << "Preparing insert query: "  << cqlQuery << endl;
-
+        
         CassFuture* future = cass_session_prepare(session, cqlQuery.c_str());
         cass_future_wait(future);
         rc = cass_future_error_code(future);
