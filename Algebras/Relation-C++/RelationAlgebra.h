@@ -251,6 +251,17 @@ expression. It sets all member variables, including the total size.
 
 */
 
+    TupleType(const TupleType& src):
+      noAttributes(src.noAttributes), attrTypeArray(0),
+      totalSize(src.totalSize), refs(1), coreSize(src.coreSize){
+       attrTypeArray = new AttributeType[noAttributes];
+       for(int i=0;i<noAttributes;i++){
+        attrTypeArray[i] = src.attrTypeArray[i];
+       }
+     }
+
+
+
     ~TupleType()
     {
       if(attrTypeArray){
