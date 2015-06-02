@@ -93,7 +93,10 @@ struct Statistics {
    unsigned long read;
    unsigned long send;
    unsigned long queuesize;
-   bool done;
+
+   // Done is shared across multiple threads
+   // so it needs to be volatile.
+   volatile bool done;
 };
 
 struct InputData {
