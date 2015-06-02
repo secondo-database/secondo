@@ -246,6 +246,12 @@ works with both implementaions.
 #include "CTable.h"
 #include "SecondoSMI.h"
 
+#ifdef THREAD_SAFE
+#include <boost/thread.hpp>
+#endif
+
+
+
 /*
 
 Nested lists are represented by four compact tables called
@@ -602,6 +608,10 @@ Returns "true"[4] if ~list~ is the empty list.
 */
   inline bool IsAtom( const ListExpr list ) const
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
+#endif
+
     if ( IsEmpty( list ) )
     {
        return (false);
@@ -617,6 +627,9 @@ Returns "true"[4] if ~list~ is an atom.
 */
   inline bool IsNodeType( const NodeType n, const ListExpr list ) const
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
     if ( IsEmpty( list ) )
     {
        return (false);
@@ -630,6 +643,9 @@ Returns "true"[4] if ~list~ is an atom.
 
   inline bool EndOfList( ListExpr list ) const
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
     if ( IsEmpty( list ) )
     {
       return (false);
@@ -730,6 +746,9 @@ Returns (a pointer to) the right son of ~list~. Result can be the empty list.
 
   inline void Replace( ListExpr oldList, ListExpr newList )
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
      NodeRecord tmpNode;
      nodeTable->Get(oldList, tmpNode);
      tmpNode = (*nodeTable)[newList];
@@ -813,17 +832,26 @@ etc. up to six elements.
 */
   inline ListExpr OneElemList( const ListExpr elem1 )
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
     return (Cons( elem1, TheEmptyList() )); };
 
   inline ListExpr TwoElemList( const ListExpr elem1,
                                const ListExpr elem2 )
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
     return (Cons( elem1, OneElemList(elem2) )); };
 
   inline ListExpr ThreeElemList( const ListExpr elem1,
                                  const ListExpr elem2,
                                  const ListExpr elem3 )
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
     return (Cons( elem1, TwoElemList(elem2, elem3) )); };
 
 
@@ -832,6 +860,9 @@ etc. up to six elements.
                                 const ListExpr elem3,
                                 const ListExpr elem4 )
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
     return (Cons( elem1, ThreeElemList(elem2, elem3, elem4) )); };
 
   inline ListExpr FiveElemList( const ListExpr elem1,
@@ -840,6 +871,9 @@ etc. up to six elements.
                                 const ListExpr elem4,
                                 const ListExpr elem5 )
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
     return (Cons( elem1, FourElemList(elem2, elem3, elem4, elem5) )); };
 
   inline ListExpr SixElemList( const ListExpr elem1,
@@ -849,6 +883,9 @@ etc. up to six elements.
                                const ListExpr elem5,
                                const ListExpr elem6 )
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
     return (Cons( elem1, FiveElemList(elem2, elem3, elem4, elem5, elem6) )); };
 
 /*
@@ -934,6 +971,9 @@ two operations are offered:
   ListExpr TextAtom();
   inline ListExpr TextAtom(const string& value)
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
     ListExpr l = TextAtom();
     AppendText(l,value);
     return l;
@@ -1042,6 +1082,9 @@ Transforms the text atom into C++ string object
   NodeType AtomType( const ListExpr atom ) const;
   void ExtractAtoms( const ListExpr list, vector<ListExpr>& atomVec) const
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
 
     if ( IsEmpty(list) )
        return;
@@ -1131,6 +1174,12 @@ Copies a nested list from ~this~ instance to the target instance.
 
 
  private:
+#ifdef THREAD_SAFE
+   mutable boost::recursive_mutex mtx;
+#endif
+
+
+
 
   void DestroyRecursive ( const ListExpr list );
   void DeleteListMemory(); // delete CTable pointers
@@ -1175,6 +1224,9 @@ template functions
                   const ListExpr list2,
                   const Tolerance& t    ) const
   {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard(mtx);
+#endif
    if ( IsEmpty( list1 ) && IsEmpty( list2 ) )
    {
      return true;

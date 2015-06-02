@@ -269,6 +269,9 @@ template<typename T>
 
 const Cardinal
 CTable<T>::Add( T& element ) {
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ #endif
 
   Cardinal index = EmptySlot();
   Put(index, element);
