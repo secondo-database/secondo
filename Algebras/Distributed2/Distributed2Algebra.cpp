@@ -8065,6 +8065,243 @@ Operator getValueOp(
 
 
 /*
+1.10 OPerator ~dloop2a~
+
+This operator performs a function on the elements of two darray2 values.
+The workerlist of both darray2 instances must be the same. The smaller
+darray2 instance determines the size of the result. Because the workerlist
+must be equal, the single elements of the arrays are on the same worker
+and no data must be tramsferred.
+
+1.10.1 Type Mapping
+
+darray2(X) x darray2(Y) x string x (fun: X x Y [->] Z) [->] darray2(Z)
+
+*/
+ListExpr dloop2aTM(ListExpr args){
+
+   string err ="darray2(X) x darray2(Y) x string x (X x Y ->Z) expected";
+   if(!nl->HasLength(args,4)){
+      return listutils::typeError(err);
+   } 
+   if(    !DArray2::checkType(nl->First(args)) 
+       || !DArray2::checkType(nl->Second(args))
+       || !CcString::checkType(nl->Third(args))
+       || !listutils::isMap<2>(nl->Fourth(args))){
+      return listutils::typeError(err);    
+   }
+   ListExpr fa1 = nl->Second(nl->First(args));
+   ListExpr fa2 = nl->Second(nl->Second(args));
+   ListExpr a1 = nl->Second(nl->Fourth(args));
+   ListExpr a2 = nl->Third(nl->Fourth(args));
+   if(   !nl->Equal(fa1,a1)
+      || !nl->Equal(fa2,a2)){
+     return listutils::typeError("function arguments does not fit "
+                                 "to the darray2 subtypes");
+   }
+   ListExpr funRes = nl->Fourth(nl->Fourth(args));
+   return nl->TwoElemList(
+                 listutils::basicSymbol<DArray2>(),
+                 funRes);
+}
+
+
+/*
+1.11 Operator fdistribute6
+
+1.11.1 TRype Mapping
+
+ stream(tuple) x {string,text} x int -> stream(tuple)
+
+
+*/
+
+ListExpr fdistribute6TM(ListExpr args){
+  string err = "stream(tuple) x {string,text} x int expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(!CcString::checkType(nl->Second(args)) &&
+     !FText::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  if(!CcInt::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+  }
+  return nl->First(args);
+}
+
+/*
+1.11.2 LocalInfo
+
+
+*/
+template<class T>
+class fdistribute6Info{
+  public:
+    fdistribute6Info(Word _stream, T* _fname, CcInt* _max, 
+                     ListExpr _resultType): 
+      stream(_stream){
+       counter = 0;
+       fileCounter = 0;
+       out = 0;
+       if(!_fname->IsDefined() || !_max->IsDefined()){
+            c = 0;
+            return;
+       }
+       bname = ( _fname->GetValue());
+       stringutils::trim(bname);
+       if(bname.length()==0){
+          c=0;
+          return;
+       } 
+       c = _max->GetValue();
+       if(c<0){
+          c = 0;
+       }
+       relType = nl->TwoElemList(listutils::basicSymbol<Relation>(),
+                                 nl->Second(_resultType));
+       stream.open();
+    }
+    
+    ~fdistribute6Info(){
+      finishCurrentFile();
+      stream.close();
+    }
+
+
+    Tuple* next(){
+      Tuple* in = stream.request();
+      if(c==0){
+         return in;
+      }
+      if(!c){
+        finishCurrentFile();
+      } else {
+        storeTuple(in);
+      }
+      return in;
+    }
+
+
+
+  private:
+    Stream<Tuple> stream;
+    string bname;
+    int c;
+    ListExpr relType;
+    int counter;
+    int fileCounter;
+    ofstream* out;
+
+
+    void finishCurrentFile(){
+       if(out){
+          BinRelWriter::finish(*out);
+          out->close();
+          delete out;
+          out=0;
+       }
+    }
+
+    void storeTuple(Tuple* tuple){
+       if(!tuple){
+          return;
+       }
+       if(!out){
+          createNextOutputFile();
+       }
+       BinRelWriter::writeNextTuple(*out,tuple);
+       counter++;
+       if(counter==c){
+         finishCurrentFile();
+         counter = 0;
+       }
+    } 
+
+    void createNextOutputFile(){
+      string fname = bname +"_"+stringutils::int2str(fileCounter);
+      fileCounter++;
+      out = new ofstream(fname.c_str(), ios::binary | ios::out);
+      BinRelWriter::writeHeader(*out,relType);
+    }
+
+};
+
+
+template<class T>
+int fdistribute6VMT(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  fdistribute6Info<T>* li = (fdistribute6Info<T>*) local.addr;
+
+  switch(message){
+     case OPEN:
+            if(li) delete li;
+            local.addr = new fdistribute6Info<T>(args[0], (T*) args[1].addr, 
+                                             (CcInt*) args[2].addr, 
+                                              qp->GetType(s));
+            return 0;
+     case REQUEST:
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+     case CLOSE:
+           if(li){
+              delete li;
+              local.addr = 0;
+           }
+           return 0;
+  }
+  return -1; 
+}
+
+/*
+11.3 Value Mapping and Selection
+
+*/
+
+int fdistribute6Select(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+ValueMapping fdistribute6VM[] = {
+   fdistribute6VMT<CcString>,
+   fdistribute6VMT<FText>
+};
+
+/*
+11.4 Specification
+
+*/
+
+OperatorSpec fdistribute6Spec(
+     " stream(tuple> x {string,text} x int -> stream(tuple)",
+     "_ fdistribute6[<filename>, <numElemsPerFile>]",
+     "Distributes a tuple stream into a set of files. " 
+     " The first <numOfElemsPerFile> elemenst of the stream "
+     " are stored into the first file and so on. "
+     "The given basicfilename is extended by an underscore and"
+     " a running number" ,
+     "query strassen feed fdistribute6['strassen',1000] count"
+     );
+
+/*
+11.5 Operator instance
+
+*/
+Operator fdistribute6Op(
+  "fdistribute6",
+  fdistribute6Spec.getStr(),
+  2,
+  fdistribute6VM,
+  fdistribute6Select,
+  fdistribute6TM
+);
+
+/*
 3 Implementation of the Algebra
 
 */
@@ -8105,6 +8342,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&pputOp);
    AddOperator(&ddistribute2Op);
    AddOperator(&fdistribute5Op);
+   AddOperator(&fdistribute6Op);
    AddOperator(&closeWorkersOp);
    AddOperator(&showWorkersOp);
    AddOperator(&dloop2Op);

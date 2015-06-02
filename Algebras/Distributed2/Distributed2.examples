@@ -198,9 +198,14 @@ Remark    : remote server required
 Operator  : fdistribute5 
 Number    : 1
 Signature : stream(tuple) x {string,text} x int x attrname -> stream(tuple)
-Example   : query (strassen feed addcounter[No,0] fdistribute5[strassen,5,No] count) = (strassen count)
+Example   : query (strassen feed addcounter[No,0] fdistribute5["strassen",5,No] count) = (strassen count)
 Result    : TRUE
 
+Operator  : fdistribute6 
+Number    : 1
+Signature : stream(tuple) x {string,text} x int -> stream(tuple)
+Example   : query (strassen feed  fdistribute6['strassen6',1000] count) = (strassen count)
+Result    : TRUE
 
 Operator : dsummarize2
 Number   : 1
