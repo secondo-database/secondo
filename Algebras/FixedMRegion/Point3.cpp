@@ -659,6 +659,10 @@ bool Point3::operator==( const Point3& p ) const {
     return false;
 }
 
+bool Point3::operator!=(const Point3 & p) const {
+    return !(*this==p);
+}
+
 bool Point3::operator>( const Point3& p ) const {
     if ((!IsDefined()) || (!p.IsDefined()))
         return false;

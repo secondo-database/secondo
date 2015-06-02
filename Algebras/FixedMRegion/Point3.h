@@ -156,7 +156,7 @@ Operators redefinition.
 *Complexity:* $O(1)$Algebras/RTree/RTree.examples
 
 */
-    inline bool operator!=( const Point3& p ) const;
+    bool operator!=( const Point3& p ) const;
 /*
 4.3.13 Operation ~distance~ (with ~point~)
 

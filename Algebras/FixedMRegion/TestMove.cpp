@@ -113,7 +113,81 @@ testmoveOperators()
   printf ("%s\n", ((r==v)) ? "OK" : "FAILED");  
 }
 
+void testUMove(){
+  printf ("Test testUMove: \n");
+  Point3 q = Point3(true, 1.0,1.0,1.0);
+  Point3 t = Point3(true, 0.0,0.0,0.0);  
+  
+  DateTime t1 (instanttype);
+  t1.Set (2015, 3, 30, 8, 01);
+  DateTime t2 (instanttype);
+  t2.Set (2015, 3, 30, 9, 02);
+  Interval < Instant > iv (t1, t2, false, true);
+  UMove u01param = UMove(iv, 0, 0, 0, 1, 1, 1);
+  UMove u02param = UMove(iv, 0, 0, 0, 2, 2, 2);
+  UMove u01point = UMove(iv, t, q);
+     
+  UMove ucopy = UMove(u01point);
+  
+  printf ("Test testumove==: ");
+  printf ("%s\n", ((u01param==u01point) ? "OK" : "FAILED"));
 
+  printf ("Test testumove!=: ");   
+  printf ("%s\n", ((u01param!=u02param) ? "OK" : "FAILED"));
+  
+  printf ("Test testumove=: ");
+  u02param=ucopy;
+  printf ("%s\n", ((u01param==u02param) ? "OK" : "FAILED"));
+
+
+}
+
+void testMMove(){
+  printf ("Test testMMove: \n");
+  Point3 q = Point3(true, 1.0,1.0,1.0);
+  Point3 t = Point3(true, 0.0,0.0,0.0);  
+  
+  DateTime t1 (instanttype);
+  t1.Set (2015, 3, 30, 8, 01);
+  DateTime t2 (instanttype);
+  t2.Set (2015, 3, 30, 9, 02);
+  Interval < Instant > iv (t1, t2, false, true);
+  UMove u01param = UMove(iv, 0, 0, 0, 1, 1, 1);
+  UMove u02param = UMove(iv, 0, 0, 0, 2, 2, 2);
+  UMove u01point = UMove(iv, t, q);
+     
+  UMove ucopy = UMove(u01point);
+  
+  MMove *res = new MMove (0);
+  res->Clear ();
+  res->StartBulkLoad ();
+  res->MergeAdd (u01param);
+  res->EndBulkLoad ();
+  
+  MMove *res2 = new MMove (0);
+  res->Clear ();
+  res->StartBulkLoad ();
+  res->MergeAdd (u02param);
+  res->EndBulkLoad ();
+  
+  printf ("Test testmmove==: ");
+  printf ("%s\n", ((res==res2) ? "FAILED" : "OK"));
+
+  printf ("Test testmmove!=: ");   
+  printf ("%s\n", ((res!=res2) ? "OK" : "FAILED"));
+  
+  printf ("Test testmmove=: ");
+  MMove r2 = MMove(0);
+  r2=*res;
+  printf ("%s\n", ((r2==*res) ? "OK" : "FAILED"));
+  
+  printf ("Test testmmoveatInstant ");
+  
+  Intime < Point3 > tp;
+  res->AtInstant (t2, tp);
+  Point3 pn = Point3(true, 2, 2, 2);
+  printf ("%s\n", ((tp.value==pn) ? "OK" : "FAILED"));
+}
 
 void
 testmoveNew ()
@@ -121,6 +195,8 @@ testmoveNew ()
   printf ("Test testmoveNew: \n");
   testmoveSetGet();
   testmoveOperators();
+  testUMove();
+  testMMove();
 }
 /*
 This is the only test method and contains all tests.

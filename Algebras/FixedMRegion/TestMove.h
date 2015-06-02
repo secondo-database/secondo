@@ -16,7 +16,8 @@ This my test methd.
 #include "LATransform.h"
 #include "FixedMRegion.h"
 #include "Point3.h"
-
+#include "UMove.h"
+#include "MMove.h"
 
 void runTestMoveMethod ();
 
