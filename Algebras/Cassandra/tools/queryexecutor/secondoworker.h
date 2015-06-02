@@ -344,8 +344,8 @@ private:
    string secondoHost;
    string secondoPort;
    string cassandraHost;
-   bool queryComplete;
-   bool shutdown;
+   volatile bool queryComplete;
+   volatile bool shutdown;
    string* query;
    size_t queryId;
    WorkerQueue *tokenQueue;
