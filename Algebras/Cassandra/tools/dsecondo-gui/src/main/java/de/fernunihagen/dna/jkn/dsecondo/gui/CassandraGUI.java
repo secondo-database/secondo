@@ -273,7 +273,7 @@ public class CassandraGUI {
         mainframe.setJMenuBar(menuBar);
 	}
 	
-	public void updateStatus() {
+	public synchronized void updateStatus() {
 		long curTime = System.currentTimeMillis();
 		
 		totalTokenRanges = cassandraClient.getTotalTokenRanges();

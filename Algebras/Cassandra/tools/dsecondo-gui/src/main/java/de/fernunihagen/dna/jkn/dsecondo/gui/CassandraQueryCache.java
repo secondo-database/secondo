@@ -21,7 +21,7 @@ public class CassandraQueryCache {
 		this.client = client;
 	}
 	
-	public void updateCache() {
+	public synchronized void updateCache() {
 		queries = new ArrayList<CassandraQuery>();
 		tokenRanges = new HashMap<String, Integer>();
 		
