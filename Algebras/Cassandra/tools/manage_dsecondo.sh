@@ -14,6 +14,9 @@ LANG=C
 # port for secondo (the port range $port - $port+$instances-1 will be used)
 port=12234
 
+# Max pending start / stop tasks
+max_pending=3
+
 # secondo worker instances (2 cores for the kernel and cassandra 
 # and the remaning cores for DSECONDO)
 instances=$(($(cat /proc/cpuinfo | grep processor | wc -l) - 3))
@@ -24,6 +27,7 @@ keyspace="keyspace_r3"
 # Cassandra Nodes
 nodes="node1 node2 node3 node4 node5 node6"
 #nodes="node1"
+#nodes="node6"
 
 # Variables
 screensessionServer="dsecondo-server"
@@ -184,27 +188,45 @@ stop_local() {
    done
 }
 
-# Start all descondo instances
-start() {
+function execute_parallel() {
+   command=$1
+   task=$2
+   
+   # Number of pending starts
+   pending=0
 
    for node in $nodes; do
-      echo -n "Starting DSECONDO on Node $node " 
-         ssh $node "source .secondorc; $scriptpath/$scriptname start_local > /dev/null"
-         #ssh $node "source .secondorc; bash -x $scriptpath/$scriptname start_local > /dev/null"
-      echo -e " $done"
+      echo "$task DSECONDO on Node $node "
+      ssh $node "$command" &
+      
+      pending=$((pending + 1)) 
+
+      if [ $pending -ge $max_pending ]; then
+         echo -n "Wait for pending commands to finish..."  
+         wait
+         pending=0
+         echo -e " $done"
+       fi
    done
+
+   if [ $pending -gt 0 ]; then
+      echo -n "Wait for pending commands to finish..."  
+      wait
+      echo -e " $done"
+   fi
+
+}
+
+# Start all descondo instances
+start() {
+   #execute_parallel "source .secondorc; bash -x $scriptpath/$scriptname start_local > /dev/null" "Starting"
+   execute_parallel "source .secondorc; bash $scriptpath/$scriptname start_local > /dev/null" "Starting"
 }
 
 # Stop all desecondo instances
 stop() {
-   for node in $nodes; do
-   
-      echo -n "Stopping DSECONDO on Node $node " 
-         ssh $node "source .secondorc; $scriptpath/$scriptname stop_local > /dev/null"
-         #ssh $node "source .secondorc; bash -x $scriptpath/$scriptname stop_local > /dev/null"
-      echo -e " $done"
-
-   done
+   #execute_parallel "source .secondorc; bash -x $scriptpath/$scriptname stop_local > /dev/null" "Stopping"
+   execute_parallel "source .secondorc; bash $scriptpath/$scriptname stop_local > /dev/null" "Stopping"
 }
 
 case "$1" in 
