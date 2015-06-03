@@ -200,16 +200,18 @@ init_cassandra() {
 	tmpfile=$(mktemp)
 	ip=$(ifconfig | grep "inet addr" | cut -d ":" -f 2 | awk {'print $1'} | head -1)
 
-cat << EOF > $tmpfile
-CREATE KEYSPACE keyspace_r1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};
-CREATE KEYSPACE keyspace_r2 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 2};
-CREATE KEYSPACE keyspace_r3 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3};
-CREATE KEYSPACE keyspace_r4 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 4};
-CREATE KEYSPACE keyspace_r5 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 5};
-CREATE KEYSPACE keyspace_r6 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 6};
-EOF
-
-	$cassandradir/bin/cqlsh $ip < $tmpfile
+        for i in $(seq 1 6); do
+            echo "Create keyspace keyspace_r$i"
+            echo "" > $tmpfile
+            echo "CREATE KEYSPACE keyspace_r$i WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : $i};" >> $tmpfile
+            echo "USE keyspace_r$i;" >> $tmpfile
+            echo "CREATE TABLE IF NOT EXISTS system_queries (id INT, query TEXT, version BIGINT, PRIMARY KEY(id));" >> $tmpfile
+            echo "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, node TEXT, heartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));" >> $tmpfile
+            echo "CREATE TABLE IF NOT EXISTS system_progress (queryid INT, ip TEXT, begintoken TEXT, endtoken TEXT, queryuuid TEXT, PRIMARY KEY(queryid, ip, begintoken));" >> $tmpfile
+            echo "CREATE TABLE IF NOT EXISTS system_tokenranges (begintoken TEXT, endtoken TEXT, ip TEXT, PRIMARY KEY(begintoken));" >> $tmpfile
+	    
+            $cassandradir/bin/cqlsh $ip < $tmpfile
+        done
 
 	rm $tmpfile
 }
