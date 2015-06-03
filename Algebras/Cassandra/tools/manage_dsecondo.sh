@@ -26,8 +26,11 @@ keyspace="keyspace_r3"
 
 # Cassandra Nodes
 nodes="node1 node2 node3 node4 node5 node6"
-#nodes="node1"
-#nodes="node6"
+
+# Overwrite nodes by cli argument
+if [ $# -eq 2 ]; then
+   nodes=$2
+fi
 
 # Variables
 screensessionServer="dsecondo-server"
