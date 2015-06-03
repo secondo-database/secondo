@@ -15,11 +15,12 @@ This class is a FixedMRegion.
 #include "Move.h"
 #include "LATransform.h"
 #include "FixedMRegiontest.h"
+#include "MMove.h"
 
 class FixedMRegion
 {
 friend class FMRTest;
-public:
+public:     
 /*
 This is the default constructor. Do not use.
 
@@ -32,6 +33,8 @@ This is the copy constructor.
 */
 
   FixedMRegion (const FixedMRegion & f);
+  
+  
 /*
 This is the constructor that gets necessary information. 
 region: object that shall be moved
@@ -74,7 +77,7 @@ rot\_center: the center of the rotation. It will be moved with the object.
 starttime: the start time of the movement
 
 */
-    FixedMRegion (const Region & _region, const Move & _move,
+    FixedMRegion (const Region & _region, const MMove & _move,
                   const Point & rot_center, double _starttime);
 /*
 deprecated
@@ -200,11 +203,12 @@ not used
 private:
 
   double t;//time, never used
-  Move m;
+  MMove m;
   Region r;//non moving region
   LATransform l;
   double xm;//rotational center
   double ym;//rotational center
+  
 
 /*
 This method calculates the 
@@ -296,7 +300,7 @@ void calculateInternalVars ();
 This method returns the LATransform.
 
 */
-const LATransform & getLATransform ();
+const LATransform & getLATransform () const;
 /*
 This method sets the LATransform.
 
@@ -306,12 +310,12 @@ void setLATransform (const LATransform & _l);
 This method returns the Move.
 
 */
-const Move & getMove ();
+const MMove & getMove ();
 /*
 This method sets the Move.
 
 */
-void setMove (const Move & _m);
+void setMove (const MMove & _m);
 
 /*
 This method will return a list of Halfsegments that the FMRegion will have 
@@ -321,6 +325,25 @@ time ti.
 */
 void atinstant (double ti, const vector < HalfSegment > &v,
   vector < HalfSegment > & res);
+
+/*
+This method will return a Point3 with the moving values x,y,alpha for the given 
+time t.
+
+*/
+Point3 getMovingForTimeFromMMove (const double t) const;
+/*
+This method will return a Point3 with the moving values x,y,alpha for the given 
+time t.
+
+*/
+Point3 getMovingForTimeFromMMove (const DateTime t) const;
+/*
+This method returns the start time of the valid interval as an double
+as absolute time.
+
+*/
+  double getMMoveStart (const double dummy) const;
 /*
 This method extracts a list of halfsegments from the region.
 
@@ -400,6 +423,21 @@ return value: starts with zero for the first element
 vector<int> identifyPoints(const vector<vector<double> > 
   &matrixOfDistancesOfRegion1, const vector<vector<double> > 
   &matrixOfDistancesOfRegion2);
+  
+  /*
+This method creates a MMove with the given values.
+
+*/ 
+  MMove createMMove(double _startX, double _startY, double _startangle, 
+  Instant _startt, double _endX, double _endY, double _endangle, Instant _endt);
+
+/*
+This method creates a MMove with the given values.
+
+*/ 
+  MMove createMMove(double _startX, double _startY, double _startangle, 
+  double _endX, double _endY, double _endangle);
+
 
 };
 #endif

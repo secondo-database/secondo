@@ -291,13 +291,14 @@ testatinstantRotate ()
 
   FixedMRegion fmr = FixedMRegion (1, 0.5, 0.5, *result, 0, 0, 0,
                                    0, 0, M_PI);
-  Region *res = new Region(0);
-  fmr.atinstant (1, *res);
-  printf ("%s\n", (checkRegionPoints (res, expected, 3)) ? "OK" : "FAILED");
+  Region res(0);
+  fmr.atinstant (1, res);
+  FMRTest t=FMRTest();
+  t.printLATransform(fmr);
+  printf ("%s\n", (checkRegionPoints (&res, expected, 3)) ? "OK" : "FAILED");
   delete p1;
   delete p2;
   delete p3;
-  delete res;
 }
 
 
@@ -327,19 +328,20 @@ testMBool ()
 
   DateTime test (instanttype);
   test.Set (2015, 3, 31, 9, 02);
-  printf ("(? %s\n", (res->Present (test)) ? "Wahr" : "Falsch");
+  printf ("testMBool (? %s\n", (res->Present (test)) ? "OK" : "FAILED");
 
   DateTime test1 (instanttype);
   test1.Set (2015, 4, 30, 8, 02);
-  printf ("]? %s\n", (res->Present (test1)) ? "Wahr" : "Falsch");
+  printf ("testMBool ]? %s\n", (res->Present (test1)) ? "OK" : "FAILED");
 
   DateTime test2 (instanttype);
   test2.Set (2015, 1, 30, 9, 02);
-  printf ("außerhalb %s\n", (res->Present (test2)) ? "Wahr" : "Falsch");
+  printf ("testMBool außerhalb %s\n", (res->Present (test2)) ? 
+  "OK" : "FAILED");
 
   DateTime test3 (instanttype);
   test3.Set (2015, 4, 8, 8, 02);
-  printf ("innerhalb %s\n", (res->Present (test3)) ? "Wahr" : "Falsch");
+  printf ("testMBool innerhalb %s\n", (res->Present (test3)) ? "OK" : "FAILED");
 }
 
 void
@@ -373,9 +375,9 @@ testQuatro ()
   delete t1;
   delete t2;
 
-  printf ("Test testQuatro6: \n");
+  //printf ("Test testQuatro6: \n");
   double m = v1->Area ();
-  printf ("Flächeninhalt kleines Viereck: %f\n", m);
+  printf ("Flächeninhalt kleines Viereck: %s\n", (m==1.0) ? "OK" : "FAILED");
 
   Point *p5 = new Point (true, 0.0, 2.0);
   Point *p6 = new Point (true, 1.0, 2.0);
@@ -400,16 +402,18 @@ testQuatro ()
   delete t3;
   delete t4;
 
-  printf ("Test testQuatro7: \n");
+  //printf ("Test testQuatro7: \n");
   double m2 = v2->Area ();
-  printf ("Flächeninhalt zweites kleines Viereck: %f\n", m2);
+  printf ("Flächeninhalt zweites kleines Viereck: 
+  %s\n", (m2==1.0) ? "OK" : "FAILED");
 
   Region *res = new Region (0);
   //v1->Union(*v2, *res);
   RobustPlaneSweep::robustUnion (*v1, *v2, *res);
-  printf ("Test testQuatro12: \n");
+  //printf ("Test testQuatro12: \n");
   double m3 = res->Area ();
-  printf ("Flächeninhalt großes Viereck: %f\n", m3);
+  printf ("Flächeninhalt großes Viereck: 
+  %s\n", (m3==2.0) ? "OK" : "FAILED");
   delete res;
 }
 
@@ -1309,6 +1313,11 @@ void FMRTest::testidentifyPoints(){
     printf("Failed\n");
   }
 }
+
+void FMRTest::printLATransform(const FixedMRegion & r) {
+    LATransform l(r.getLATransform());
+    l.print();
+}
   
 
 void testskeleton(){
@@ -1330,22 +1339,22 @@ void
 runTestMethod ()
 {
 //  testMove();
-//  testLATransform();
-//  testRegion();
-//  testRegionCompare();
-//  testatinstantNoMove();
-//  testatinstantLinearMove(); //FIXME
-//  testatinstantRotate();
-//  testMBool();
-//  testQuatro();
-//  testCycle();
+  testLATransform();
+  testRegion();
+  testRegionCompare();
+  testatinstantNoMove();
+  testatinstantLinearMove(); //FIXME
+  testatinstantRotate();
+  testMBool();
+  testQuatro();
+  testCycle();
 //  testTriangleQuatro(); //DEPRECATED
-//  testUnion();
+  testUnion();
   runTestTraversedMethod();
-  runTestMoveMethod();
-  testconcaveQuadruple();
-  testMPoint();
-  testLATransformInv ();
+//  runTestMoveMethod();
+//  testconcaveQuadruple();
+//  testMPoint();
+//  testLATransformInv ();
 //  testInside();
 //  testIntersection();
 //  testskeleton();

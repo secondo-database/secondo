@@ -19,6 +19,40 @@ This is the copy constructor.
 FixedMRegion::FixedMRegion(const FixedMRegion & f):t(f.t),m(f.m),r(f.r),
 l(f.l){}
 
+
+/*
+This method creates a MMove with the given values.
+
+*/ 
+MMove FixedMRegion::createMMove(double _startX, double _startY, 
+double _startangle, 
+Instant _startt, double _endX, double _endY, double _endangle, 
+Instant _endt){
+  Interval < Instant > iv (_startt, _endt, false, true);
+  UMove u01param = UMove(iv, _startX, _startY, _startangle, _endX, _endY,
+       _endangle);
+  MMove res(0);
+  res.Clear ();
+  res.StartBulkLoad ();
+  res.MergeAdd (u01param);
+  res.EndBulkLoad ();
+  return res;
+}
+
+/*
+This method creates a MMove with the given values.
+
+*/ 
+MMove FixedMRegion::createMMove(double _startX, double _startY, 
+double _startangle, 
+double _endX, double _endY, double _endangle){
+  DateTime t1 (instanttype);
+  t1.Set (0.0);
+  DateTime t2 (instanttype);
+  t2.Set (1.0);
+  return createMMove(_startX, _startY, _startangle, t1,
+                     _endX, _endY, _endangle, t2);
+}
 /*
 This is the constructor that gets necessary information. 
 region: object that shall be moved
@@ -36,7 +70,8 @@ FixedMRegion::FixedMRegion(const Region & _region, const Point _startp,
   const double _startangle, Instant _startt, const Point _endp, 
   const double _endangle, Instant _endt, const Point & rot_center): r(_region){
   
-  m = Move(_startp.GetX(), _startp.GetY(), _startangle, _startt, _endp.GetX(),
+  m = createMMove(_startp.GetX(), _startp.GetY(), _startangle, _startt, 
+     _endp.GetX(),
           _endp.GetY(), _endangle, _endt);
   t = _startt.ToDouble();
   
@@ -62,7 +97,8 @@ FixedMRegion::FixedMRegion(const Region & _region, const Point _startp,
   const double _startangle, double _startt, const Point _endp, 
   const double _endangle, double _endt, const Point & rot_center):
   r(_region){
-  m = Move(_startp.GetX(), _startp.GetY(), _startangle, _startt, _endp.GetX(),
+  m = createMMove(_startp.GetX(), _startp.GetY(), _startangle, 
+  _startt, _endp.GetX(),
           _endp.GetY(), _endangle, _endt);
   t = _startt;
   
@@ -79,7 +115,7 @@ rot\_center: the center of the rotation. It will be moved with the object.
 starttime: the start time of the movement
 
 */
-FixedMRegion::FixedMRegion(const Region & _region, const Move & _move,
+FixedMRegion::FixedMRegion(const Region & _region, const MMove & _move,
 const Point & rot_center, double _starttime): m(_move), r(_region){
   t = _starttime;
   xm = rot_center.GetX ();
@@ -104,11 +140,11 @@ $\_valpha$: the angle of movement.
 
 FixedMRegion::FixedMRegion (double _t, double _xm, double _ym,
 const Region & _r, double _x0, double _y0,double _alpha0, double _vx, 
-double _vy, double _valpha): r(_r){
+double _vy, double _valpha): r(_r), m(0){
   t = _t;
   xm = _xm;
   ym = _ym;
-  m = Move (_x0, _y0, _alpha0, _vx, _vy, _valpha);
+  m = createMMove (_x0, _y0, _alpha0, _vx, _vy, _valpha);
   calculateInternalVars ();
 }
 
@@ -126,7 +162,7 @@ starttime: the start time of the movement
 FixedMRegion::FixedMRegion(const Region & _region, const Point & _start,
 double alpha_start, const Point & _speed,double alpha_speed, 
 const Point & rot_center,double _starttime): r(_region){
-  m = Move (_start.GetX (), _start.GetY (), alpha_start, _speed.GetX (),
+  m = createMMove (_start.GetX (), _start.GetY (), alpha_start, _speed.GetX (),
             _speed.GetY (), alpha_speed);
   t = _starttime;
   xm = rot_center.GetX ();
@@ -166,11 +202,12 @@ time ti.
 */
 void FixedMRegion::atinstant (double ti, Region &result){
   sett (ti);
-  HalfSegment hs;
+  result.Clear();
   result=r;
   result.StartBulkLoad ();
   for (int i = 0; i < result.Size (); i++)
     {
+      HalfSegment hs;
       result.Get (i, hs);
 
       const Point lp = hs.GetLeftPoint ();
@@ -182,11 +219,43 @@ void FixedMRegion::atinstant (double ti, Region &result){
       newx = l.getImgX (rp.GetX (), rp.GetY ());
       newy = l.getImgY (rp.GetX (), rp.GetY ());
       Point newrp (true, newx, newy);
-      hs.Set (hs.IsLeftDomPoint (), newlp, newrp);
-
-      result.Put (i, hs);
+      HalfSegment hsnew(hs.IsLeftDomPoint (), newlp, newrp);
+      result.Put (i, hsnew);
     }
   result.EndBulkLoad ();
+}
+
+/*
+This method will return a Point3 with the moving values x,y,alpha for the given 
+time t.
+
+*/
+Point3 FixedMRegion::getMovingForTimeFromMMove (const double t) const{
+  DateTime t2 (instanttype);
+  t2.Set (t);
+  return getMovingForTimeFromMMove(t2);
+}
+/*
+This method will return a Point3 with the moving values x,y,alpha for the given 
+time t.
+
+*/
+Point3 FixedMRegion::getMovingForTimeFromMMove (const DateTime t) const{
+  Intime < Point3 > tp;
+  m.AtInstant (t, tp);
+  return tp.value;
+}
+/*
+This method returns the start time of the valid interval as an double
+as absolute time.
+
+*/
+double FixedMRegion::getMMoveStart (const double dummy) const{
+  //FIXME m nicht definiert oder 0 Komponenten
+  UMove unit(0);
+  m.Get (0, unit);
+  Instant ita = unit.getTimeInterval ().start;
+  return ita.ToDouble();
 }
 /*
 This method moves the given Point inverse to the movement of the FixedMRegion
@@ -194,9 +263,8 @@ and gives it back.
 
 */
 void FixedMRegion::getInv (double t, const Point & p, Point & result) const{
-  double *coord = m.attime(t);
-  LATransform lt (coord[0], coord[1], xm, ym, coord[2]);
-  delete coord;
+  Point3 coord = getMovingForTimeFromMMove(t);
+  LATransform lt (coord.GetX(), coord.GetY(), xm, ym, coord.GetAlpha());
   double tmpx = lt.getOrigX (p.GetX (), p.GetY ());
   double tmpy = lt.getOrigY (p.GetX (), p.GetY ());
   result.SetDefined(true);
@@ -209,9 +277,8 @@ and gives it back.
 */
 void FixedMRegion::getTransPoint(DateTime t, const Point & p, Point& result) 
    const{
-  double *coord = m.attime (t);
-  LATransform lt (coord[0], coord[1], xm, ym, coord[2]);
-  delete coord;
+  Point3 coord = getMovingForTimeFromMMove(t);
+  LATransform lt (coord.GetX(), coord.GetY(), xm, ym, coord.GetAlpha());
   double tmpx = lt.getImgX (p.GetX (), p.GetY ());
   double tmpy = lt.getImgY (p.GetX (), p.GetY ());
   result.SetDefined(true);
@@ -266,7 +333,7 @@ This method creates a non moving MRegion.
 MRegion *FixedMRegion::buildMovingRegion(){
   MRegion *mr;
   Region r(0);
-  atinstant (m.getStart (0.0), r);
+  atinstant (getMMoveStart(0.0), r);
   MPoint rock (0);
   rock.Clear ();
   rock.StartBulkLoad ();
@@ -338,7 +405,7 @@ MPoint FixedMRegion::intersection(MPoint & mp){
     res (0);
   //rfix->Intersection (tmp, res);
   Region r;
-  atinstant(m.getStart(0.0), r);
+  atinstant(getMMoveStart(0.0), r);
   tmp.AtRegion(&r, res);
   return reverseMovement (res);
 }
@@ -373,6 +440,8 @@ deprecated!
     }
   return res;
 }*/
+
+
 
 /*
 This method calculates the 
@@ -864,17 +933,16 @@ This method calculates the internal variables. It is used, when
 the time has changed.
 
 */
- //TODO   
 void FixedMRegion::calculateInternalVars(){
-  double *coord = m.attime (t);
-  l = LATransform (coord[0], coord[1], xm, ym, coord[2]);
-  delete coord;
+  Point3 coord = getMovingForTimeFromMMove(t);
+  LATransform l = LATransform (coord.GetX(), coord.GetY(), 
+       xm, ym, coord.GetAlpha());
 }
 /*
 This method returns the LATransform.
 
 */
-const LATransform &FixedMRegion::getLATransform(){
+const LATransform &FixedMRegion::getLATransform() const {
   return l;
 }
 /*
@@ -888,14 +956,14 @@ void FixedMRegion::setLATransform(const LATransform & _l){
 This method returns the Move.
 
 */
-const Move &FixedMRegion::getMove(){
+const MMove &FixedMRegion::getMove(){
   return m;
 }
 /*
 This method sets the Move.
 
 */
-void FixedMRegion::setMove(const Move & _m){
+void FixedMRegion::setMove(const MMove & _m){
   m = _m;
 }
 

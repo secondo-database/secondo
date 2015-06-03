@@ -17,6 +17,8 @@ This my test methd.
 #include "FixedMRegion.h"
 #include "MovingRegionAlgebra.h"
 
+class FixedMRegion;
+
 class FMRTest {
 public:
 void testgenerateListOfRegionPoints();
@@ -25,7 +27,7 @@ void testgetDistancesForPoint();
 void testgenerateDistancesMatrix();
 void testidentifyPoint();
 void testidentifyPoints();
-  
+void printLATransform(const FixedMRegion & r);  
 
 };
 

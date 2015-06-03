@@ -66,6 +66,11 @@ This method returns the turning points y value.
 */
   double getYM ();
 
+  void print() {
+    printf("(%f, %f, %f, %f) - (%f, %f) - (%f, %f) - (%f, %f)\n", 
+          a00, a01, a10, a11, cx, cy, dx, dy, xm, ym);
+  }
+
 private:
   double a00, a01, a10, a11;//matrix values
   double cx, cy;//movement (D-M*D+W) look up in constructor
