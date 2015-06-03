@@ -205,7 +205,7 @@ function execute_parallel() {
       pending=$((pending + 1)) 
 
       if [ $pending -ge $max_pending ]; then
-         echo -n "Wait for pending commands to finish..."  
+         echo -n "Waiting for pending commands to finish..."  
          wait
          pending=0
          echo -e " $done"
@@ -213,7 +213,7 @@ function execute_parallel() {
    done
 
    if [ $pending -gt 0 ]; then
-      echo -n "Wait for pending commands to finish..."  
+      echo -n "Waiting for pending commands to finish..."  
       wait
       echo -e " $done"
    fi
