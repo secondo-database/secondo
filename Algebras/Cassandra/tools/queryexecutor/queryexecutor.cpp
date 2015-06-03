@@ -557,10 +557,6 @@ CassandraAdapter* getCassandraAdapter(string &cassandraHostname,
     return NULL;
   }
   
-  if(! cassandra->createMetatables() ) {
-    return NULL;
-  }
-  
   return cassandra;
 }
 
