@@ -1,0 +1,31 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>de.fernunihangen.dna.jkn</groupId>
+  <artifactId>dsecondo-gui</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <description>Java GUI for DSECONDO</description>
+  <dependencies>
+  	<dependency>
+  		<groupId>com.datastax.cassandra</groupId>
+  		<artifactId>cassandra-driver-core</artifactId>
+  		<version>2.1.6</version>
+  	</dependency>
+  	<dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-api</artifactId>
+    <version>2.3</version>
+    </dependency>
+    <dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-core</artifactId>
+    <version>2.3</version>
+    </dependency>
+    <dependency>
+	<groupId>org.slf4j</groupId>
+	<artifactId>slf4j-log4j12</artifactId>
+	<version>1.7.12</version>
+    </dependency>
+ 
+  </dependencies>
+  <name>DSECONDO Gui</name>
+</project>
