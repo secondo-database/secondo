@@ -20,6 +20,10 @@ public class CassandraClient implements AutoCloseable {
 	private Cluster cluster;
 	private Session session;
 
+	/**
+	 * Connect to the cassandra cluster
+	 * @throws Exception
+	 */
 	public void connect() throws Exception {
 		
 		Properties prop = loadProperties();		
@@ -32,6 +36,12 @@ public class CassandraClient implements AutoCloseable {
 	    session.execute("USE " + keyspace + ";");
 	}
 
+	/**
+	 * Load properties data with the connection data for cassandra
+	 * @return Properties
+	 * @throws IOException
+	 * @throws FileNotFoundException
+	 */
 	protected Properties loadProperties() throws IOException,
 			FileNotFoundException {
 		Properties prop = new Properties();
@@ -47,21 +57,38 @@ public class CassandraClient implements AutoCloseable {
 		return prop;
 	}
 	
+	/**
+	 * Get all Hosts of the Cassandra cluster
+	 * @return Hosts of the Cassandra cluster
+	 */
 	Set<Host> getAllHosts() {		
 		Metadata metadata = cluster.getMetadata();
 		return metadata.getAllHosts();
 	}
 
+	/** 
+	 * Get Heartbeat data of the DSECONDO nodes
+	 * @return heartbeat data
+	 */
 	ResultSet getNodeHearbeat() {
 		ResultSet result = session.execute("SELECT ip, heartbeat, lastquery from system_state");
 		return result;
 	}
 	
+	/**
+	 * Get all schedules quries
+	 * @return The global execution plan of DSECONDO
+	 */
 	ResultSet getQueries() {
 		ResultSet result = session.execute("SELECT id, query, version from system_queries");
 		return result;
 	}
 	
+	/**
+	 * Get the processing status for a specific query
+	 * @param queryId
+	 * @return Processed Token Ranges for the query
+	 */
 	ResultSet getTokenProcessedRangesForQuery(int queryId) {
 		Statement statement = new SimpleStatement("SELECT ip, begintoken, endtoken from system_progress where queryid = " + queryId)
 		                             .setConsistencyLevel(ConsistencyLevel.QUORUM);
@@ -69,11 +96,18 @@ public class CassandraClient implements AutoCloseable {
 		return result;
 	}
 	
+	/**
+	 * Get the total amount of token ranges
+	 * @return Amount of token ranges
+	 */
 	int getTotalTokenRanges() {
 		ResultSet result = session.execute("SELECT ip from system_tokenranges");
 		return result.getAvailableWithoutFetching();
 	}
 
+	/**
+	 * Close the connection to the cassandra cluster
+	 */
 	public void close() {
 	      session.close();
 	      cluster.close();

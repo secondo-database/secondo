@@ -58,6 +58,10 @@ public class CassandraGUI {
 		cassandraClient = new CassandraClient();
 	}
 
+	/**
+	 * Build the DSECONDO dialog, init GUI components
+	 * and assemble the dialog
+	 */
 	public void run() {
 		
 		try {
@@ -72,9 +76,7 @@ public class CassandraGUI {
 		mainframe = new JFrame("Distributed SECONDO");
 		
 		setupMenu();
-
 		setupCassandraPanel();
-		
 		
 		tableModell = getTableModel();
 		final JTable table = new JTable(tableModell);
@@ -105,6 +107,10 @@ public class CassandraGUI {
 		mainframe.setVisible(true);
 	}
 
+	/**
+	 * Get the table model for the schedules queries
+	 * @return The table model
+	 */
 	private AbstractTableModel getTableModel() {
 		return new AbstractTableModel() {
 			
@@ -113,6 +119,10 @@ public class CassandraGUI {
 			@Override
 			public Object getValueAt(int rowIndex, int columnIndex) {
 				final CassandraQuery query = queryCache.getQueryCache().get(rowIndex);
+				
+				if(queryCache.getQueryCache().size() < rowIndex) {
+					return "";
+				}
 				
 				if(query == null) {
 					return "";
@@ -162,6 +172,10 @@ public class CassandraGUI {
 		};
 	}
 
+	/**
+	 * Initalize the cassandra GUI panel
+	 * 
+	 */
 	protected void setupCassandraPanel() {
 		cassandraPanel = new JPanel() {
 		
@@ -214,6 +228,9 @@ public class CassandraGUI {
 		insertCassandraNodes();
 	}
 
+	/**
+	 * Place the cassandra nodes on the GUI panel
+	 */
 	protected void insertCassandraNodes() {
 		cassandraNodes = new HashMap<String, CassandraNode>();
 		GuiRegistry.getInstance().setCassandraNodes(cassandraNodes);
@@ -252,6 +269,9 @@ public class CassandraGUI {
 		}
 	}
 
+	/**
+	 * Create the menu of the main window
+	 */
 	protected void setupMenu() {
 		menuBar = new JMenuBar();
 		JMenu menu = new JMenu("File");
@@ -264,6 +284,14 @@ public class CassandraGUI {
 
 			public void actionPerformed(ActionEvent e) {
 				shutdown = true;
+				
+				// Wait for pending gui updates to complete
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					// Ignore exception
+				}
+				
 				cassandraClient.close();
 				System.exit(0);
 			}
@@ -273,6 +301,10 @@ public class CassandraGUI {
         mainframe.setJMenuBar(menuBar);
 	}
 	
+	/**
+	 * Update the gui model, e.g. update token count,
+	 * heartbeat data...
+	 */
 	public synchronized void updateStatus() {
 		long curTime = System.currentTimeMillis();
 		
@@ -314,11 +346,19 @@ public class CassandraGUI {
 	
 	}
 	
+	/**
+	 * Update the view. This method should be called periodically
+	 */
 	private void updateView() {
 		updateStatus();
 		mainframe.repaint();
 	}
 	
+	/**
+	 * Main Method 
+	 * @param args
+	 * @throws InterruptedException
+	 */
 	public static void main(String[] args) throws InterruptedException {
 		final CassandraGUI cassandraGUI = new CassandraGUI();
 		cassandraGUI.run();

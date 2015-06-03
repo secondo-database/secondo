@@ -6,7 +6,7 @@ import java.awt.Frame;
 public class GuiHelper {
 	
 	/**
-     * Locates the frame on the screen center.
+     * Places the frame on the screen center.
      */
     public static void locateOnScreen(Frame frame) {
         Dimension paneSize   = frame.getSize();

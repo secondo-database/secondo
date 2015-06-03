@@ -21,6 +21,10 @@ public class CassandraQueryCache {
 		this.client = client;
 	}
 	
+	/**
+	 * A Cache for cassandra data, e.g. the GEP and 
+	 * the heartbeat data
+	 */
 	public synchronized void updateCache() {
 		queries = new ArrayList<CassandraQuery>();
 		tokenRanges = new HashMap<String, Integer>();
@@ -47,10 +51,18 @@ public class CassandraQueryCache {
 		}
 	}
 	
+	/**
+	 * Get the scheduled queries from cache
+	 * @return scheduled queries
+	 */
 	public List<CassandraQuery> getQueryCache() {
 		return Collections.unmodifiableList(queries);
 	}
 	
+	/**
+	 * Get the token ranges for the current observed query
+	 * @return
+	 */
 	public Map<String, Integer> getTokenCache() {
 		return Collections.unmodifiableMap(tokenRanges);
 	}

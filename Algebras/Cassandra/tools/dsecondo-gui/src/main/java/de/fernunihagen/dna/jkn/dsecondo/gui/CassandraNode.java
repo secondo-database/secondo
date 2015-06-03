@@ -53,6 +53,11 @@ public class CassandraNode {
 		this.tokenRangeCount = tokenRangeCount;
 	}
 
+	/**
+	 * Is the mouse event occoured over this node?
+	 * @param event
+	 * @return boolean
+	 */
 	public boolean isMouseOver(MouseEvent event) {
 		if(event.getX() > getPosition().getX() - CassandraNode.SIZE / 2 && 
 		   event.getX() < getPosition().getX() + CassandraNode.SIZE / 2 &&
@@ -64,6 +69,9 @@ public class CassandraNode {
 		return false;
 	}
 
+	/**
+	 * Consistency check for this object
+	 */
 	protected void checkState() {
 		if(position == null) {
 			throw new IllegalArgumentException("Position is null");
@@ -74,6 +82,10 @@ public class CassandraNode {
 		}
 	}
 	
+	/**
+	 * Paint this node on the graphics context
+	 * @param g
+	 */
 	protected void paintComponent(Graphics g) {
 		checkState();
 		
