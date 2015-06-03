@@ -2193,8 +2193,6 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
             getConnection(host, keyspace, true);
            
       if(cassandra != NULL && cassandra -> isConnected()) {
-        bool createMetatables = cassandra -> createMetatables();
-        
         cassandra -> quoteCqlStatement(query);
         
         time_t now;
@@ -2217,7 +2215,7 @@ int CQueryInsert(Word* args, Word& result, int message, Word& local, Supplier s)
           cassandra -> copyTokenRangesToSystemtable(host);
         }
         
-        resultValue = insertResult && createMetatables;
+        resultValue = insertResult;
       }
       
       static_cast<CcBool*>(result.addr)->Set(true, resultValue);
@@ -2583,12 +2581,6 @@ int CQueryReset(Word* args, Word& result, int message, Word& local, Supplier s)
            
       if(cassandra != NULL && cassandra -> isConnected()) {
         
-        bool createMetatables = cassandra -> createMetatables();
-        
-        if(! createMetatables) {
-          cerr << "Unable to create metatables" << endl;
-        } 
-        
         bool truncateMetatables = cassandra -> truncateMetatables();
         
         if(! truncateMetatables ) {
@@ -2597,7 +2589,7 @@ int CQueryReset(Word* args, Word& result, int message, Word& local, Supplier s)
           cout << "Metatables droped and recreated" << endl;
         }
         
-        resultValue = truncateMetatables && createMetatables;
+        resultValue = truncateMetatables;
       }
       
       static_cast<CcBool*>(result.addr)->Set(true, resultValue);

@@ -487,14 +487,9 @@ a valid result. False otherweise
 */    
   bool executeCQLASync(string cql, CassConsistency consistency);
 
-/*
-2.3.14 Create meta tables for queries and status information
-
-*/    
-  bool createMetatables();
 
 /*
-2.3.15 Drop metatables
+2.3.15 Truncate metatables
 
 */    
   bool truncateMetatables();

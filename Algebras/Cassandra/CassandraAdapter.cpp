@@ -853,52 +853,6 @@ bool CassandraAdapter::getPeerTokens(vector <CassandraToken> &result) {
     "SELECT tokens,peer FROM system.peers", result, string(""));
 }
 
-
-bool CassandraAdapter::createMetatables() {
-  
-  vector<string> queries;
-  
-  queries.push_back(string(
-    "CREATE TABLE IF NOT EXISTS system_queries (id INT, "
-    "query TEXT, version BIGINT, PRIMARY KEY(id));"
-  ));
-  
-  queries.push_back(string(
-    "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, node TEXT, "
-    "heartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));"
-  ));
-  
-  queries.push_back(string(
-    "CREATE TABLE IF NOT EXISTS system_progress (queryid INT, ip TEXT, "
-    "begintoken TEXT, endtoken TEXT, queryuuid TEXT, "
-    "PRIMARY KEY(queryid, ip, begintoken));"
-  ));
-  
-  queries.push_back(string(
-    "CREATE TABLE IF NOT EXISTS system_tokenranges (begintoken TEXT, "
-    "endtoken TEXT, ip TEXT, PRIMARY KEY(begintoken));"
-  ));
-  
-  for(vector<string>::iterator iter = queries.begin(); 
-      iter != queries.end(); ++iter) {
-    
-    string query = *iter;
- 
-    // Create queries table
-    bool result = executeCQLSync(
-      query, CASS_CONSISTENCY_ALL 
-    );
-  
-    if(! result) {
-      cout << "Unable to execute query: " << query << endl;
-      return false;
-    }  
-    
-  }
-  
-  return true;
-}
-
 bool CassandraAdapter::truncateMetatables() {
   
   vector<string> queries;
