@@ -325,6 +325,7 @@ class MemoryAttributeObject : public MemoryObject {
     public:
 
         void setAttributeObject(Attribute* attr);
+        Attribute* getAttributeObject();
 
         void toStringOut(){
             cout<<"MemoryAttributeObject, Membervariablen lauten: "<<endl;
@@ -338,10 +339,12 @@ class MemoryAttributeObject : public MemoryObject {
 
 };
 
- void MemoryAttributeObject::setAttributeObject(Attribute* attr){
+void MemoryAttributeObject::setAttributeObject(Attribute* attr){
             attributeObject=attr;
         }
-
+Attribute* MemoryAttributeObject::getAttributeObject(){
+        return attributeObject;
+}
 
 
 } //ende namespace mmalgebra

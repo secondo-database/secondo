@@ -26,11 +26,11 @@ Signature : stream(tuple(...)) x string -> string
 Example   : query "ten" mfeed letmconsume ["zehn"]
 Result    : "zehn"
 
-Operator  : memdelete
+Operator  : memobject
 Number    : 5
-Signature : string -> bool
-Example   : query memdelete ("ten")
-Result    : TRUE
+Signature : string -> m:MEMLOADABLE
+Example   : query memobject ("ten") count
+Result    : 10
 
 Operator  : memlet
 Number    : 6
@@ -38,5 +38,9 @@ Signature : string x m:MEMLOADABLE -> bool
 Example   : query memlet ("fuenf", ten)
 Result    : TRUE
 
-
+Operator  : memdelete
+Number    : 7
+Signature : string -> bool
+Example   : query memdelete ("ten")
+Result    : TRUE
 

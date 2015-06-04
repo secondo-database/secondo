@@ -102,6 +102,32 @@ string err = "string expected";
 
 }
 
+
+ListExpr tmStringMemloadBool (ListExpr args){
+
+    if(nl->ListLength(args)!=2){
+        return listutils::typeError("wrong number of arguments");
+    }
+    if (!CcString::checkType(nl->First(args))) {
+        return listutils::typeError("string expected as first argument");
+    };
+
+    if (listutils::isRelDescription(nl->Second(args))) {
+        return listutils::basicSymbol<CcBool>();
+    };
+
+    if (listutils::isDATA(nl->Second(args))) {
+        return listutils::basicSymbol<CcBool>();
+    }
+    if (listutils::isTupleStream(nl->Second(args))){
+        return listutils::basicSymbol<CcBool>();
+    }
+
+    return listutils::typeError ("the second argument has to "
+    "be of kind DATA or a relation or a tuplestream");
+
+}
+
 /*
 
 4.3 ~isMMObject~
@@ -1055,6 +1081,161 @@ Operator memdeleteOp (
 
 
 
+/*
+5.7 Operator ~memobject~
+
+
+*/
+
+/*
+5.7.1 Type Mapping Functions of operator ~memobject~
+
+*/
+ListExpr memobjectTypeMap(ListExpr args) {
+
+    if(nl->ListLength(args)!=1){
+        return listutils::typeError("wrong number of arguments");
+    }
+     ListExpr arg1 = nl->First(args);
+
+    if(!nl->HasLength(arg1,2)){
+        return listutils::typeError("internal error");
+    }
+
+    if (!CcString::checkType(nl->First(arg1))) {
+        return listutils::typeError("string expected as first argument");
+    };
+
+    // mfeedOp.SetUsesArgsInTypeMapping() benutzt;
+    // es wird auch die query mit übertragen
+
+    ListExpr str = nl->Second(arg1);
+
+    if(nl->AtomType(str)!=StringType){
+            return listutils::typeError("error");
+    }
+
+    string oN = nl->StringValue(str);
+
+
+    if(isMMObject(oN)){
+
+        ListExpr typeExpr = getMMObjectTypeExpr(oN);
+
+        if(listutils::isTupleDescription(typeExpr)){
+        ListExpr result =
+            nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()), typeExpr);
+        return result;
+        }
+
+        if(listutils::isDATA(typeExpr)) {
+          return typeExpr;
+        }
+    }
+return listutils::typeError("string does not belong to a main memory member");
+}
+
+
+/*
+
+5.7.3  The Value Mapping Functions of operator ~memobject~
+
+*/
+
+
+
+int memobjectValMap (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+        CcString* oN = (CcString*) args[0].addr;
+        if(!oN->IsDefined()){
+            return 0;
+        }
+        string objectName = oN->GetValue();
+        ListExpr typeExpr = getMMObjectTypeExpr(objectName);
+
+
+        if (listutils::isTupleDescription(typeExpr)) {
+            MemoryRelObject* memObject =
+                    (MemoryRelObject*)getMMObject(objectName);
+            GenericRelation* rel =
+                    (GenericRelation*)((qp->ResultStorage(s)).addr);
+            if(rel->GetNoTuples() > 0) {
+                rel->Clear();
+            }
+
+            vector<Tuple*>* relation;
+            relation = memObject->getmmrel();
+            vector<Tuple*>::iterator it;
+            it=relation->begin();
+
+
+            while( it!=relation->end()){
+                Tuple* tup = *it;
+                rel->AppendTuple(tup);
+                //tup->IncReference();
+                //tup->DeleteIfAllowed();
+                it++;
+            }
+
+            result.setAddr(rel);
+
+            return 0;
+
+        }
+
+        if (listutils::isDATA(typeExpr)) {
+
+            MemoryAttributeObject* memObject =
+                    (MemoryAttributeObject*)getMMObject(objectName);
+            Attribute* attr = (Attribute*)((qp->ResultStorage(s)).addr);
+            attr = memObject->getAttributeObject();
+            result.setAddr(attr);
+        return 0;
+        }
+    return 0;
+}
+
+
+
+
+/*
+
+5.7.4 Description of operator ~memobject~
+
+Similar to the ~property~ function of a type constructor, an operator needs to
+be described, e.g. for the ~list operators~ command.  This is now done by
+creating a subclass of class ~OperatorInfo~.
+
+*/
+
+
+
+OperatorSpec memobjectSpec(
+    "string -> memoryObject",
+    "memobject (_)",
+    "returns a persistent Object created from a main memory Object",
+    "query memobject ('Trains100')"
+);
+
+
+
+/*
+
+5.7.5 Instance of operator ~memobject~
+
+*/
+
+Operator memobjectOp (
+    "memobject",
+    memobjectSpec.getStr(),
+    memobjectValMap,
+    Operator::SimpleSelect,
+    memobjectTypeMap
+);
+
+
+
 
 /*
 5.9 Operator ~memlet~
@@ -1068,28 +1249,7 @@ Operator memdeleteOp (
 */
 ListExpr memletTypeMap(ListExpr args)
 {
-
-    if(nl->ListLength(args)!=2){
-        return listutils::typeError("wrong number of arguments");
-    }
-    if (!CcString::checkType(nl->First(args))) {
-        return listutils::typeError("string expected as first argument");
-    };
-
-    if (listutils::isRelDescription(nl->Second(args))) {
-        return listutils::basicSymbol<CcBool>();
-    };
-
-    if (listutils::isDATA(nl->Second(args))) {
-        return listutils::basicSymbol<CcBool>();
-    }
-    if (listutils::isTupleStream(nl->Second(args))){
-        return listutils::basicSymbol<CcBool>();
-    }
-
-    return listutils::typeError ("the second argument has to "
-    "be of kind DATA or a relation or a tuplestream");
-
+    return tmStringMemloadBool(args);
 }
 
 
@@ -1247,8 +1407,8 @@ class MainMemoryAlgebra : public Algebra
         mfeedOp.SetUsesArgsInTypeMapping();
         AddOperator (&letmconsumeOp);
         AddOperator (&memdeleteOp);
-        //AddOperator (&memobjectOp);
-      //  memobjectOp.SetUsesArgsInTypeMapping();
+        AddOperator (&memobjectOp);
+        memobjectOp.SetUsesArgsInTypeMapping();
         //AddOperator (&memgetcatalogOp);
         AddOperator (&memletOp);
 
