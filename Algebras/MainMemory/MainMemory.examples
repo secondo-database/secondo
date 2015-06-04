@@ -32,3 +32,11 @@ Signature : string -> bool
 Example   : query memdelete ("ten")
 Result    : TRUE
 
+Operator  : memlet
+Number    : 6
+Signature : string x m:MEMLOADABLE -> bool
+Example   : query memlet ("fuenf", ten)
+Result    : TRUE
+
+
+

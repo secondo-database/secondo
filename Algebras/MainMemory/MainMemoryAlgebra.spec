@@ -22,5 +22,6 @@ operator meminit alias MEMINIT pattern op (_)
 operator mfeed alias MFEED pattern _ op
 operator letmconsume alias LETMCONSUME pattern _ op [_]
 operator memdelete alias MEMDELETE pattern op (_)
+operator memlet alias MEMLET pattern op(_,_)
 
 

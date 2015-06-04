@@ -173,6 +173,131 @@ void swap() {
 
 /*
 
+4.7 ~relToVector~
+
+Function to fill a ~vector<tuple>~ with the tuples of a given relation
+
+*/
+
+MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0) {
+
+        GenericRelationIterator* rit;
+        rit = r->MakeScan();
+        Tuple* tup;
+        int tupleSize=0;
+
+//die Gesamtspeichergroesse in MB umgerechnet in Byte - usedMemsize
+        size_t availableMemSize =
+                    (catalog.memSizeTotal*1024*1024)-catalog.usedMemSize;
+        size_t usedMainMemory=0;
+        bool extStorage=false;
+        size_t extStorageSize=0;
+
+        vector<Tuple*>* mmrel = new vector<Tuple*>();
+
+        while ((tup = rit->GetNextTuple()) != 0)
+            {
+                tupleSize = tup->GetSize();
+                if ((size_t)tupleSize<availableMemSize){
+                        mmrel->push_back(tup);
+                        usedMainMemory += tupleSize;
+                        availableMemSize -= tupleSize;
+                }
+                else{
+
+                    swap();
+                    extStorage=true;
+                    extStorageSize=1;
+                break;
+
+                // nur solange swap() nicht richtig implementiert ist!
+                }
+            }
+
+        //das eigentliche HS-objekt wird angelegt und mit Werten gefüllt
+        MemoryRelObject* mmRelObject = new MemoryRelObject();
+        mmRelObject->setmmrel(mmrel);
+        mmRelObject->setmmrelDiskpart(0);
+        mmRelObject->setExtStorage(extStorage);
+        mmRelObject->setMemSize(usedMainMemory);
+        mmRelObject->setExtStorageSize(extStorageSize);
+        mmRelObject->
+            setObjectTypeExpr(nl->ToString(le));
+
+    return mmRelObject;
+
+}
+
+MemoryAttributeObject* attrToMM(Attribute* attr, ListExpr le){
+        // wird noch nicht verwendet, ich brauche erst die Attributgröße
+        //size_t availableMemSize =
+          //          (catalog.memSizeTotal*1024*1024)-catalog.usedMemSize;
+        size_t usedMainMemory=0;
+        bool extStorage=false;
+        size_t extStorageSize=0;
+
+usedMainMemory = 25; //nur damit irgendwas steht
+
+        MemoryAttributeObject* mmA = new MemoryAttributeObject();
+        mmA->setAttributeObject(attr);
+        mmA->setExtStorage(extStorage);
+        mmA->setMemSize(usedMainMemory);
+        mmA->setExtStorageSize(extStorageSize);
+        mmA->setObjectTypeExpr(nl->ToString(le));
+
+    return mmA;
+
+}
+
+
+MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le){
+
+ vector<Tuple*>* mmrel = new vector<Tuple*>();
+
+    Stream<Tuple> stream(arg);
+    size_t availableMemSize =
+                (catalog.memSizeTotal*1024*1024)-catalog.usedMemSize;
+    size_t usedMainMemory =0;
+    bool extStorage=false;
+    size_t extStorageSize=0;
+
+    stream.open();
+
+    Tuple* tup;
+    int tupleSize = 0;
+    while( (tup = stream.request()) != 0){
+        tupleSize = tup->GetSize();
+            if ((size_t)tupleSize<availableMemSize){
+                mmrel->push_back(tup);
+                usedMainMemory += tupleSize;
+                availableMemSize -= tupleSize;
+                }
+            else{
+                swap();
+                extStorage=true;
+                extStorageSize=1;
+                //break nur solange swap() nicht richtig implementiert ist!
+                break;
+                }
+            }
+
+    MemoryRelObject* mem = new MemoryRelObject();
+    mem->setmmrel(mmrel);
+        mem->setmmrelDiskpart(0);
+        mem->setExtStorage(extStorage);
+        mem->setMemSize(usedMainMemory);
+        mem->setExtStorageSize(extStorageSize);
+        mem->setObjectTypeExpr(nl->ToString(le));
+
+
+    stream.close();
+
+return mem;
+
+}
+
+/*
+
 5 Creating Operators
 
 5.1 Operator ~memload~
@@ -931,6 +1056,167 @@ Operator memdeleteOp (
 
 
 
+/*
+5.9 Operator ~memlet~
+
+
+*/
+
+/*
+5.9.1 Type Mapping Functions of operator ~memlet~
+
+*/
+ListExpr memletTypeMap(ListExpr args)
+{
+
+    if(nl->ListLength(args)!=2){
+        return listutils::typeError("wrong number of arguments");
+    }
+    if (!CcString::checkType(nl->First(args))) {
+        return listutils::typeError("string expected as first argument");
+    };
+
+    if (listutils::isRelDescription(nl->Second(args))) {
+        return listutils::basicSymbol<CcBool>();
+    };
+
+    if (listutils::isDATA(nl->Second(args))) {
+        return listutils::basicSymbol<CcBool>();
+    }
+    if (listutils::isTupleStream(nl->Second(args))){
+        return listutils::basicSymbol<CcBool>();
+    }
+
+    return listutils::typeError ("the second argument has to "
+    "be of kind DATA or a relation or a tuplestream");
+
+}
+
+
+/*
+
+5.7.3  The Value Mapping Functions of operator ~memlet~
+
+*/
+
+
+
+int memletValMap (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+
+    bool memletsucceed = false;
+
+    //der Name unter dem das Object im Hauptkatalog
+    // auftauchen soll ist objectName
+    CcString* oN = (CcString*) args[0].addr;
+    if(!oN->IsDefined()){
+        return 0;
+    }
+    string objectName = oN->GetValue();
+
+    if (isMMObject(objectName)){
+        cout<< "unter diesem Namen gibt es schon ein HS-objekt."<<endl;
+
+        result  = qp->ResultStorage(s);
+        CcBool* b = static_cast<CcBool*>(result.addr);
+        b->Set(true, memletsucceed);
+        return 0;
+    }
+
+    //jetzt brauche ich die Typbeschreibung des zweiten Objects:
+     //der zweite Sohn, enthält TypeExpression des Objects
+    Supplier t = qp->GetSon( s, 1 );
+    ListExpr le = qp->GetType(t);
+
+    if (listutils::isRelDescription(le)){
+
+        GenericRelation* rel= static_cast<Relation*>( args[1].addr );
+        //die Hilfsfunktion relToVector wird mit
+        //der Relation und der Tupelbeschreibung aufgerufen
+        MemoryRelObject* mmRelObject = relToVector(rel,nl->Second(le));
+
+        catalog.memContents[objectName] = mmRelObject;
+        catalog.setUsedMemSize(catalog.getUsedMemSize() +
+                mmRelObject->getMemSize());
+
+        memletsucceed =true;
+
+
+    }
+
+    if (listutils::isDATA(le)){
+
+        Attribute* attr = (Attribute*)args[1].addr;
+
+        MemoryAttributeObject* mmA = attrToMM(attr, le);
+
+        catalog.memContents[objectName] = mmA;
+        catalog.setUsedMemSize(catalog.getUsedMemSize() + mmA->getMemSize());
+
+        memletsucceed = true;
+    }
+
+    if (listutils::isTupleStream(le)){
+
+        MemoryRelObject* mem = tupelStreamToRel(args[1], nl->Second(le));
+
+        catalog.memContents[objectName] = mem;
+        catalog.setUsedMemSize(catalog.getUsedMemSize() + mem->getMemSize());
+
+        memletsucceed = true;
+    }
+
+
+    result  = qp->ResultStorage(s);
+    CcBool* b = static_cast<CcBool*>(result.addr);
+    b->Set(true, memletsucceed);
+
+    return 0;
+
+}
+
+
+
+
+/*
+
+5.7.4 Description of operator ~memlet~
+
+Similar to the ~property~ function of a type constructor, an operator needs to
+be described, e.g. for the ~list operators~ command.  This is now done by
+creating a subclass of class ~OperatorInfo~.
+
+*/
+
+
+
+OperatorSpec memletSpec(
+    "string x m:MEMLOADABLE -> bool",
+    "memlet (_,_)",
+    "creates a main memory object from a given MEMLOADABLE",
+    "query memlet ('Trains100', Trains feed head[100])"
+);
+
+
+
+/*
+
+5.7.5 Instance of operator ~memlet~
+
+*/
+
+Operator memletOp (
+    "memlet",
+    memletSpec.getStr(),
+    memletValMap,
+    Operator::SimpleSelect,
+    memletTypeMap
+);
+
+
+
+
 class MainMemoryAlgebra : public Algebra
 {
 
@@ -945,9 +1231,10 @@ class MainMemoryAlgebra : public Algebra
 
 */
 
-        AddTypeConstructor (&MemoryRelObjectTC);
-        MemoryRelObjectTC.AssociateKind( Kind::SIMPLE() );
-
+//        AddTypeConstructor (&MemoryRelObjectTC);
+//        MemoryRelObjectTC.AssociateKind( Kind::SIMPLE() );
+//        AddTypeConstructor (&MemoryObjectTC);
+//        MemoryObjectTC.AssociateKind( Kind::SIMPLE() );
 
 /*
 6.3 Registration of Operators
@@ -960,12 +1247,14 @@ class MainMemoryAlgebra : public Algebra
         mfeedOp.SetUsesArgsInTypeMapping();
         AddOperator (&letmconsumeOp);
         AddOperator (&memdeleteOp);
+        //AddOperator (&memobjectOp);
+      //  memobjectOp.SetUsesArgsInTypeMapping();
+        //AddOperator (&memgetcatalogOp);
+        AddOperator (&memletOp);
+
 
         }
         ~MainMemoryAlgebra() {};
-
-
-
 };
 
 
