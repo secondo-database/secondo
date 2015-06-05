@@ -384,18 +384,11 @@ public:
    
       // Build JSON data
       ss << "{" << endl;
-      ss << "\"Id\":\"" << position -> moid << "\"," << endl;
+      ss << "\"Moid\":\"" << position -> moid << "\"," << endl;
       ss << "\"Position\":{" << endl;
-      ss << "\"interval\":{" << endl;
-      ss << "\"i1\":\"" << dateBuffer << "\"," << endl; 
-      ss << "\"i1closed\":true," << endl;
-      ss << "\"i2\":\"" << dateBuffer << "\"," << endl; 
-      ss << "\"i2closed\":true" << endl;
-      ss << "}," << endl;
-      ss << "\"x1\":" << position->x << "," << endl;
-      ss << "\"y1\":" << position->y << "," << endl;
-      ss << "\"x2\":" << position->x << "," << endl;
-      ss << "\"x2\":" << position->y << endl;
+      ss << "\"instant\":\"" << dateBuffer << "\"," << endl; 
+      ss << "\"x\":" << position->x << "," << endl;
+      ss << "\"y\":" << position->y << endl;
       ss << "}" << endl;
       ss << "}" << endl;
      
@@ -1072,11 +1065,11 @@ public:
           it != queue -> end(); ) {
          
          InputData *element = *it;
-        
+
          if(element == NULL) {
-	   it++;
-	   continue;
-	 }
+           it++;
+           continue;
+         }
 
          if(element->time_end < currentSimulationTime) {
             it = queue -> erase(it);
@@ -1155,8 +1148,8 @@ tcp socket
             element = *it;
             
             if(element == NULL) {
-	       continue;
-	    }
+               continue;
+            }
 
             bool res = formatAndSendElement(buffer, element, 
                  currentSimulationTimeRun);
