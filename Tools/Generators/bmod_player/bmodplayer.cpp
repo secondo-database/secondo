@@ -359,7 +359,7 @@ static size_t curlWriteCallback(void *contents, size_t size,
     size_t realsize = size * nmemb;
     curlReadBuffer.append((char*) contents, realsize);
     
-    cout << "Curl Result: " << curlReadBuffer;
+    //cout << "Curl Result: " << curlReadBuffer;
     
     return realsize;
 }
@@ -392,8 +392,6 @@ public:
       ss << "}" << endl;
       ss << "}" << endl;
      
-      cout << ss.str();
-
       // Make HTTP request
       CURLcode res;
       string postdata = ss.str();
@@ -420,7 +418,8 @@ public:
       if(curl) {
           curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
           curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-          curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+// Uncoment to debug http requests
+//          curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
           curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteCallback);
       }
           
