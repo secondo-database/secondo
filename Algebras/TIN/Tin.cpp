@@ -1517,15 +1517,17 @@ ListExpr listreplist = nl->TextAtom();
 ListExpr examplelist = nl->TextAtom();
 ListExpr remarks = nl->TextAtom();
 nl->AppendText(listreplist,
-"( (maximumpartsize)  ( ((triangle1_x1 triangle1_y1 triangle1_z1)"
+"( (maximumpartsize)   ((triangle1_x1 triangle1_y1 triangle1_z1)"
 "(triangle1_x2 triangle1_y2 triangle1_z2)(triangle1_x3 triangle1_y3 "
-"triangle1_z3))* )* )");
+"triangle1_z3))* )");
 nl->AppendText(examplelist,
-"( (800)  ( ((-1.0 0.0 1.0)(0.0 1.0 1.0)(1.0 0.0 3.0)) )   "
-"( ((9.0 0.0 1.0)(10.0 1.0 1.0)(11.0 0.0 3.0)) ) )");
+"( (800) ((-1.0 0.0 1.0)(0.0 1.0 1.0)(1.0 0.0 3.0))    "
+" ((9.0 0.0 1.0)(10.0 1.0 1.0)(11.0 0.0 3.0))  )");
 nl->AppendText(remarks,
 "The tinattribute is actually a tin, but with the "
-"ability to be used as an attribute.");
+"ability to be used as an attribute. A tinattribute"
+"consistes just of one TinPart. Tins can be converted"
+"to tinattributes with operator tin2tinattribute.");
 
 return (nl->TwoElemList(
 nl->FiveElemList(nl->StringAtom("Signature"),
