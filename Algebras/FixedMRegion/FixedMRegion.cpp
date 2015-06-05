@@ -140,7 +140,7 @@ $\_valpha$: the angle of movement.
 
 FixedMRegion::FixedMRegion (double _t, double _xm, double _ym,
 const Region & _r, double _x0, double _y0,double _alpha0, double _vx, 
-double _vy, double _valpha): r(_r), m(0){
+double _vy, double _valpha): m(0), r(_r){
   t = _t;
   xm = _xm;
   ym = _ym;
@@ -220,6 +220,7 @@ void FixedMRegion::atinstant (double ti, Region &result){
       newy = l.getImgY (rp.GetX (), rp.GetY ());
       Point newrp (true, newx, newy);
       HalfSegment hsnew(hs.IsLeftDomPoint (), newlp, newrp);
+      hsnew.attr.edgeno = hs.attr.edgeno;
       result.Put (i, hsnew);
     }
   result.EndBulkLoad ();
