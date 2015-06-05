@@ -35,12 +35,18 @@ Result    : 10
 Operator  : memlet
 Number    : 6
 Signature : string x m:MEMLOADABLE -> bool
-Example   : query memlet ("fuenf", ten)
+Example   : query memlet ("fuenf", ten feed head[5])
 Result    : TRUE
 
 Operator  : memdelete
 Number    : 7
 Signature : string -> bool
 Example   : query memdelete ("ten")
+Result    : TRUE
+
+Operator  : memupdate
+Number    : 8
+Signature : string x m:MEMLOADABLE -> bool
+Example   : query memupdate ("fuenf", ten feed head[7])
 Result    : TRUE
 

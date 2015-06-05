@@ -101,12 +101,12 @@ class MemoryObject {
         }
 
     protected:
-        bool extStorage;                // ganzes Objekt im HS
-        size_t memSize;                 // Größe die das Objekt im HS belegt
-        size_t extStorageSize;          // Größe die das Objekt auf HD belegt
-        string objectTypeExpr;          // typeExpr des zu ladenden Objekts,
-                                        // bei Relation die Tupelbeschreibung,
-                                        // sonst die Attributbeschreibung
+        bool extStorage;             // ganzes Objekt im HS
+        size_t memSize;              // Größe die das Objekt im HS belegt in B
+        size_t extStorageSize;       // Größe die das Objekt auf HD belegt
+        string objectTypeExpr;       // typeExpr des zu ladenden Objekts,
+                                     // bei Relation die Tupelbeschreibung,
+                                     // sonst die Attributbeschreibung
 
 
 };

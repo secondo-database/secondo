@@ -624,6 +624,8 @@ int meminitValMap (Word* args, Word& result,
             cout<<itera->second<<endl;
             ++itera;
           }
+    cout <<"benutzterHauptspeicher: "<<catalog.getUsedMemSize()<<endl;
+    cout <<"gesamterHauptspeicher: "<<catalog.getMemSizeTotal()<<endl;
 
 
 
@@ -996,7 +998,7 @@ Operator letmconsumeOp (
 */
 
 /*
-5.6.1 Type Mapping Functions of operator ~memdelet~
+5.6.1 Type Mapping Functions of operator ~memdelete~
 
 */
 ListExpr memdeleteTypeMap(ListExpr args)
@@ -1019,14 +1021,18 @@ int memdeleteValMap (Word* args, Word& result,
     bool deletesucceed = false;
     CcString* oN = (CcString*) args[0].addr;
     if(!oN->IsDefined()){
-
-             return 0;
+            result  = qp->ResultStorage(s);
+            CcBool* b = static_cast<CcBool*>(result.addr);
+            b->Set(true, deletesucceed);
+            return 0;
         }
     string objectName = oN->GetValue();
 
     if(isMMObject(objectName)){
 
         MemoryObject* mem = getMMObject(objectName);
+        catalog.setUsedMemSize(catalog.getUsedMemSize()-mem->getMemSize());
+
         delete mem;
         deletesucceed=true;
         mem=0;
@@ -1255,7 +1261,7 @@ ListExpr memletTypeMap(ListExpr args)
 
 /*
 
-5.7.3  The Value Mapping Functions of operator ~memlet~
+5.9.3  The Value Mapping Functions of operator ~memlet~
 
 */
 
@@ -1341,7 +1347,7 @@ int memletValMap (Word* args, Word& result,
 
 /*
 
-5.7.4 Description of operator ~memlet~
+5.9.4 Description of operator ~memlet~
 
 Similar to the ~property~ function of a type constructor, an operator needs to
 be described, e.g. for the ~list operators~ command.  This is now done by
@@ -1362,7 +1368,7 @@ OperatorSpec memletSpec(
 
 /*
 
-5.7.5 Instance of operator ~memlet~
+5.9.5 Instance of operator ~memlet~
 
 */
 
@@ -1375,6 +1381,162 @@ Operator memletOp (
 );
 
 
+/*
+5.10 Operator ~memupdate~
+
+
+*/
+
+/*
+5.10.1 Type Mapping Functions of operator ~memupdate~
+
+*/
+ListExpr memupdateTypeMap(ListExpr args)
+{
+    return tmStringMemloadBool(args);
+}
+
+
+/*
+
+5.10.3  The Value Mapping Functions of operator ~memupdate~
+
+*/
+
+
+
+int memupdateValMap (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+
+    bool memupdatesucceed = false;
+
+    CcString* oN = (CcString*) args[0].addr;
+    if(!oN->IsDefined()){
+        return 0;
+    }
+    string objectName = oN->GetValue();
+
+    if (!isMMObject(objectName)){
+        cout<< "there is no main memory object: "<<objectName<<endl;
+
+        result  = qp->ResultStorage(s);
+        CcBool* b = static_cast<CcBool*>(result.addr);
+        b->Set(true, memupdatesucceed);
+        return 0;
+    }
+
+
+    ListExpr memType = getMMObjectTypeExpr(objectName);
+
+    Supplier t = qp->GetSon( s, 1 );
+    ListExpr le = qp->GetType(t);
+
+    if (listutils::isRelDescription(le) &&
+                listutils::isTupleDescription(memType) &&
+                nl->Equal(nl->Second(le), memType)){
+
+        MemoryRelObject* mem = (MemoryRelObject*)getMMObject(objectName);
+        catalog.setUsedMemSize(catalog.getUsedMemSize()-mem->getMemSize());
+
+        delete mem;
+        mem = 0;
+
+        GenericRelation* rel= static_cast<Relation*>( args[1].addr );
+        mem = relToVector(rel,nl->Second(le));
+
+        catalog.memContents[objectName] = mem;
+        catalog.setUsedMemSize(catalog.getUsedMemSize() +
+                mem->getMemSize());
+        memupdatesucceed =true;
+
+    }
+
+
+    if (listutils::isDATA(le) && listutils::isDATA(memType) &&
+        nl->Equal(le,memType)){
+
+        MemoryAttributeObject* mem =
+                (MemoryAttributeObject*)getMMObject(objectName);
+        catalog.setUsedMemSize(catalog.getUsedMemSize()-mem->getMemSize());
+
+        delete mem;
+        mem = 0;
+
+        Attribute* attr = (Attribute*)args[1].addr;
+        mem = attrToMM(attr, le);
+
+        catalog.memContents[objectName] = mem;
+        catalog.setUsedMemSize(catalog.getUsedMemSize() + mem->getMemSize());
+        memupdatesucceed = true;
+        }
+
+
+    if (listutils::isTupleStream(le) && listutils::isTupleDescription(memType)
+                && nl->Equal(nl->Second(le), memType)){
+
+        MemoryRelObject* mem = (MemoryRelObject*)getMMObject(objectName);
+        catalog.setUsedMemSize(catalog.getUsedMemSize()-mem->getMemSize());
+
+        delete mem;
+        mem = 0;
+
+        mem = tupelStreamToRel(args[1], nl->Second(le));
+
+        catalog.memContents[objectName] = mem;
+        catalog.setUsedMemSize(catalog.getUsedMemSize() + mem->getMemSize());
+        memupdatesucceed = true;
+    } else {
+    cout << "type of expression is different from type of object" << endl;
+    }
+
+
+
+    result  = qp->ResultStorage(s);
+    CcBool* b = static_cast<CcBool*>(result.addr);
+    b->Set(true, memupdatesucceed);
+
+    return 0;
+
+}
+
+
+
+
+/*
+
+5.10.4 Description of operator ~memupdate~
+
+Similar to the ~property~ function of a type constructor, an operator needs to
+be described, e.g. for the ~list operators~ command.  This is now done by
+creating a subclass of class ~OperatorInfo~.
+
+*/
+
+
+
+OperatorSpec memupdateSpec(
+    "string x m:MEMLOADABLE -> bool",
+    "memupdate (_,_)",
+    "updates a main memory object with a given MEMLOADABLE",
+    "query memupdate ('fuenf', ten feed head[7])"
+);
+
+
+
+/*
+
+5.10.5 Instance of operator ~memupdate~
+
+*/
+
+Operator memupdateOp (
+    "memupdate",
+    memupdateSpec.getStr(),
+    memupdateValMap,
+    Operator::SimpleSelect,
+    memupdateTypeMap
+);
 
 
 class MainMemoryAlgebra : public Algebra
@@ -1411,6 +1573,7 @@ class MainMemoryAlgebra : public Algebra
         memobjectOp.SetUsesArgsInTypeMapping();
         //AddOperator (&memgetcatalogOp);
         AddOperator (&memletOp);
+        AddOperator (&memupdateOp);
 
 
         }
