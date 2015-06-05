@@ -1,6 +1,7 @@
 package de.fernunihagen.dna.jkn.dsecondo.gui;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -96,7 +97,9 @@ public class CassandraNode {
 		checkState();
 		
 		final Graphics2D g2d = (Graphics2D) g;
+		
 		final Color oldColor = g.getColor();
+		final Font oldFont = g2d.getFont();
 		
 		switch(state) {
 		case ACTIVE:
@@ -127,18 +130,20 @@ public class CassandraNode {
 		final String description = name;
 		
 		// Calculate nodename bounding box
+		g2d.setFont(new Font(oldFont.getFontName(), Font.PLAIN, 10));
 		Rectangle2D bounds = g2d.getFontMetrics().getStringBounds(description, g2d);
 		int stringLen = (int) bounds.getWidth();
 		int stringHeight = ((int) bounds.getHeight());
 		
 		// Draw nodename background
 		g.setColor(defaultBackgroundColor);
-        g.fillRect(position.x - stringLen / 2, position.y + SIZE/2 + stringHeight / 2 - 2, stringLen, stringHeight);
+        g.fillRect(position.x - stringLen / 2, position.y + SIZE/2 + stringHeight / 2 - 2, stringLen + 6, stringHeight + 1);
 		
         // Draw nodename
         g.setColor(Color.BLACK);
 		g.drawString(description, position.x - stringLen / 2, position.y + 2 + SIZE/2 + stringHeight);
 		
 		g.setColor(oldColor);
+		g.setFont(oldFont);
 	}
 }
