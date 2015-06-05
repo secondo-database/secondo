@@ -1072,7 +1072,12 @@ public:
           it != queue -> end(); ) {
          
          InputData *element = *it;
-         
+        
+         if(element == NULL) {
+	   it++;
+	   continue;
+	 }
+
          if(element->time_end < currentSimulationTime) {
             it = queue -> erase(it);
             delete element;
@@ -1148,7 +1153,11 @@ tcp socket
              it != queue -> end(); it++) {
          
             element = *it;
-             
+            
+            if(element == NULL) {
+	       continue;
+	    }
+
             bool res = formatAndSendElement(buffer, element, 
                  currentSimulationTimeRun);
 
