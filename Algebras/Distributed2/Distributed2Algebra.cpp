@@ -7101,7 +7101,7 @@ OperatorSpec ddistribute3Spec(
 
 
 /*
-1.6.5 Operator instance
+1.7.5 Operator instance
 
 */
 Operator ddistribute3Op(
@@ -7111,6 +7111,164 @@ Operator ddistribute3Op(
   Operator::SimpleSelect,
   ddistribute3TM
 );
+
+
+/*
+1.8 Operator ~ddistribute4~
+
+This Operator uses a function: tuple -> int for distributing
+a tuple stream to an darray.
+
+1.8.1 Type Mapping
+
+*/
+ListExpr ddistribute4TM(ListExpr args){
+  string err ="stream(tuple) x (tuple->int) x darray2 x string   expected";
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError(err);
+  }
+  if(    !Stream<Tuple>::checkType(nl->First(args))
+      || !listutils::isMap<1>(nl->Second(args))
+      || !DArray2::checkType(nl->Third(args))
+      || !CcString::checkType(nl->Fourth(args))){
+    return listutils::typeError(err);
+  }
+  ListExpr funargType = nl->Second(nl->Second(args));
+  if(!nl->Equal(funargType, nl->Second(nl->First(args)))){
+    return listutils::typeError("tuple type and function arg type differ");
+  }
+  ListExpr funResType = nl->Third(nl->Second(args));
+  if(!CcInt::checkType(funResType)){
+    return listutils::typeError("result of function not an int");
+  }
+
+  return nl->TwoElemList(
+              listutils::basicSymbol<DArray2>(),
+              nl->TwoElemList(
+                  listutils::basicSymbol<Relation>(),
+                  nl->Second(nl->First(args))));
+}
+
+
+/*
+1.8.2 Value Mapping
+
+*/
+int ddistribute4VM(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   DArray2* res   = (DArray2*) result.addr;
+   DArray2* array = (DArray2*) args[2].addr;
+   CcString* n = (CcString*) args[3].addr;
+   if(!array->IsDefined() || !n->IsDefined()){
+     res->makeUndefined();
+     return 0;
+   }
+   string name = n->GetValue();
+   if(!stringutils::isIdent(name)){
+      res->makeUndefined();
+      return 0;
+   }
+
+   *res = *array;
+    res->setName(name);
+
+   if(!res->IsDefined() || (res->numOfWorkers()<1) || (res->getSize() < 1)){
+      res->makeUndefined();
+      return 0;
+   }
+
+   // distribute the incoming tuple stream to a set of files
+   // if the distribution number is not defined, the tuple is
+   // treated as for number 0
+   map<int , pair<string,ofstream*> > files;
+   Stream<Tuple> stream(args[0]);
+   stream.open();
+   Tuple* tuple;
+
+   ListExpr relType = nl->Second(qp->GetType(s));
+
+   ArgVectorPointer funargs = qp->Argument(args[1].addr);
+   Word funres;
+
+   while((tuple=stream.request())){
+      (* funargs[0]) = tuple;
+      qp->Request(args[1].addr, funres);
+
+      CcInt* fr = (CcInt*) funres.addr;
+      int index = fr->IsDefined()?fr->GetValue():0;
+      index = index % array->getSize();
+      
+
+      string fn = name + "_" + stringutils::int2str(index)+".bin";
+      if(files.find(index)==files.end()){
+          ofstream* out = new ofstream(fn.c_str(), ios::out | ios::binary);
+          pair<string,ofstream*> p(fn,out);
+          files[index] = p;
+          BinRelWriter::writeHeader(*out,relType); 
+      }
+      BinRelWriter::writeNextTuple(*(files[index].second),tuple);
+      tuple->DeleteIfAllowed();
+   }
+   stream.close();
+   // finalize files
+
+
+   vector<RelFileRestorer*> restorers;
+
+   
+   typename map<int, pair<string,ofstream*> >::iterator it;
+   for(it = files.begin(); it!=files.end();it++){
+      BinRelWriter::finish(*(it->second.second));
+      // close and delete ofstream
+      it->second.second->close();
+      delete it->second.second;
+      string objName = res->getName()+"_"+stringutils::int2str(it->first);
+      restorers.push_back(new RelFileRestorer(relType, objName,res, 
+                                              it->first, it->second.first));
+   }
+
+
+   // distribute the files to the workers and restore relations
+   for(size_t i=0;i<restorers.size();i++){
+     restorers[i]->start();
+   } 
+   // wait for finishing restore
+
+   
+   for(size_t i=0;i<restorers.size();i++){
+     delete restorers[i];
+   } 
+   for(it = files.begin(); it!=files.end();it++){
+      FileSystem::DeleteFileOrFolder(it->second.first);
+   }
+
+   return 0;   
+}
+
+OperatorSpec ddistribute4Spec(
+     " stream(tuple(X)) x (tuple->int) x darray2(Y) x string-> darray2(X) ",
+     " _ ddistribute4[ _, _,_]",
+     " Distributes a locally stored relation into a darray2 ",
+     " query strassen feed  ddistribute4[ hashvalue(.Name,2000),"
+     " da2, \"da8\"]  "
+     );
+
+/*
+1.7.5 Operator instance
+
+*/
+Operator ddistribute4Op(
+  "ddistribute4",
+  ddistribute4Spec.getStr(),
+  ddistribute4VM,
+  Operator::SimpleSelect,
+  ddistribute4TM
+);
+
+
+
 
 /*
 1.7 fdistribute
@@ -9096,6 +9254,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&pputOp);
    AddOperator(&ddistribute2Op);
    AddOperator(&ddistribute3Op);
+   AddOperator(&ddistribute4Op);
    AddOperator(&fdistribute5Op);
    AddOperator(&fdistribute6Op);
    AddOperator(&closeWorkersOp);
