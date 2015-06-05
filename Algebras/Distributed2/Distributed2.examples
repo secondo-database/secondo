@@ -194,6 +194,19 @@ Example   : query da dloop2["da3", fun( x : DARRAY2ELEM) x count ]
 Result    : bug
 Remark    : remote server required
 
+Operator  : dloop2a 
+Number    : 1
+Signature : darray2(X) x darray2(Y) x string x (X x Y -> Z) -> darray2(Z)
+Example   : query da1 da2  dloop2a["da3", . + .. ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : DARRAY2ELEM2 
+Number    : 1
+Signature : darray2(X) x darray2(Y) x string x (X x Y -> Z) -> darray2(Z)
+Example   : query da1 da2  dloop2a["da3", . + .. ]
+Result    : bug
+Remark    : remote server required
 
 Operator  : fdistribute5 
 Number    : 1
@@ -221,4 +234,12 @@ Signature : darray2(X) -> array(X)
 Example   : query getValue(da2)
 Result    : bug
 Remark    : remote server required
+
+Operator : deleteRemoteObjects
+Number   : 1
+Signature : darray2(X) [x int] -> int
+Example   : query deleteRemoteObjects(da2)
+Result    : bug
+Remark    : remote server required
+
 

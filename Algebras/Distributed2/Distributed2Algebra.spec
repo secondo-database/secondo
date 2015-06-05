@@ -36,7 +36,12 @@ operator showWorkers alias showWorkers pattern op(_)
 
 operator dloop2 alias DLOOP2 pattern _ op[_,fun] implicit parameter darray2elem type DARRAY2ELEM
 
+operator dloop2a alias DLOOP2A pattern _ _ op[_,fun] implicit parameters elem1, elem2 types DARRAY2ELEM, DARRAY2ELEM2
+
 operator dsummarize2 alias DSUMMARIZE2 pattern _ op
 
 operator getValue alias GETVALUE pattern op(_)
+
+operator deleteRemoteObjects alias DELETEREMOTEOBJECTS pattern op(_,_)
+
 

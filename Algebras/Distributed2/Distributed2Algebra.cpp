@@ -746,6 +746,9 @@ class DArray2Element{
               && (this->server == other.server)
               && (this->config == other.config); 
      }
+     bool operator!=(const DArray2Element& other) const{
+       return   !((*this) == other);
+     }
 
      bool operator<(const DArray2Element& other) const {
         if(this->port < other.port) return true;
@@ -7475,7 +7478,8 @@ Operator dloop2Op(
 ListExpr
 DARRAY2ELEMTM( ListExpr args )
 {
-  if(!nl->HasMinLength(args,2)){
+
+  if(!nl->HasMinLength(args,1)){
     return listutils::typeError("at least one argument required");
   }
   ListExpr first = nl->First(args);
@@ -7500,6 +7504,33 @@ Operator DARRAY2ELEMOp (
       DARRAY2ELEMTM );
 
 
+ListExpr
+DARRAY2ELEM2TM( ListExpr args )
+{
+  if(!nl->HasMinLength(args,2)){
+    return listutils::typeError("at least one argument required");
+  }
+  ListExpr second = nl->Second(args);
+  if(!DArray2::checkType(second)){
+    return listutils::typeError("darray2 expected");
+  }
+  ListExpr res =  nl->Second(second);
+  return res;
+}
+
+OperatorSpec DARRAY2ELEM2Spec(
+     "T x darray2(Y) x ... -> Y ",
+     "DARRAY2ELEM2(_)",
+     "Type Mapping Operator. Extract the type of a darray2.",
+     "query da2 da3 dloop2[\"da3\", .. count"
+     );
+
+Operator DARRAY2ELEM2Op (
+      "DARRAY2ELEM2",
+      DARRAY2ELEM2Spec.getStr(),
+      0,   
+      Operator::SimpleSelect,
+      DARRAY2ELEM2TM );
 /*
 1.8 Operator ~dsummarize2~
 
@@ -8079,31 +8110,224 @@ darray2(X) x darray2(Y) x string x (fun: X x Y [->] Z) [->] darray2(Z)
 
 */
 ListExpr dloop2aTM(ListExpr args){
-
    string err ="darray2(X) x darray2(Y) x string x (X x Y ->Z) expected";
    if(!nl->HasLength(args,4)){
       return listutils::typeError(err);
    } 
-   if(    !DArray2::checkType(nl->First(args)) 
-       || !DArray2::checkType(nl->Second(args))
-       || !CcString::checkType(nl->Third(args))
-       || !listutils::isMap<2>(nl->Fourth(args))){
+   // check wether each element consists of two elements
+   // uses args in type mapping
+   ListExpr args2 = args;
+   while(!nl->IsEmpty(args2)){
+      if(!nl->HasLength(nl->First(args2),2)){
+        return listutils::typeError("internal error");
+      }
+      args2 = nl->Rest(args2);
+   }
+   
+   if(    !DArray2::checkType(nl->First(nl->First(args))) 
+       || !DArray2::checkType(nl->First(nl->Second(args)))
+       || !CcString::checkType(nl->First(nl->Third(args)))
+       || !listutils::isMap<2>(nl->First(nl->Fourth(args)))){
       return listutils::typeError(err);    
    }
-   ListExpr fa1 = nl->Second(nl->First(args));
-   ListExpr fa2 = nl->Second(nl->Second(args));
-   ListExpr a1 = nl->Second(nl->Fourth(args));
-   ListExpr a2 = nl->Third(nl->Fourth(args));
+
+   ListExpr fa1 = nl->Second(nl->First(nl->First(args)));
+   ListExpr fa2 = nl->Second(nl->First(nl->Second(args)));
+   ListExpr a1 = nl->Second(nl->First(nl->Fourth(args)));
+   ListExpr a2 = nl->Third(nl->First(nl->Fourth(args)));
    if(   !nl->Equal(fa1,a1)
       || !nl->Equal(fa2,a2)){
      return listutils::typeError("function arguments does not fit "
                                  "to the darray2 subtypes");
    }
-   ListExpr funRes = nl->Fourth(nl->Fourth(args));
-   return nl->TwoElemList(
-                 listutils::basicSymbol<DArray2>(),
-                 funRes);
+
+   ListExpr funRes = nl->Fourth(nl->First(nl->Fourth(args)));
+   ListExpr resType = nl->TwoElemList(
+                        listutils::basicSymbol<DArray2>(),
+                        funRes);
+   ListExpr funQuery = nl->Second(nl->Fourth(args));
+
+ 
+   // replace eventually type mapping operators by the
+   // resulting types
+
+   ListExpr fa1o = nl->Second(funQuery);
+   fa1 = nl->TwoElemList(
+                       nl->First(fa1o),
+                       nl->Second(nl->First(nl->First(args))));
+   ListExpr fa2o = nl->Third(funQuery);
+   fa2 = nl->TwoElemList(
+                       nl->First(fa2o),
+                       nl->Second(nl->First(nl->Second(args))));
+   funQuery = nl->FourElemList(
+                   nl->First(funQuery),
+                   fa1, fa2, nl->Fourth(funQuery));
+ 
+
+   string funstr = nl->ToString(funQuery);
+ 
+   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                            nl->OneElemList(
+                               nl->TextAtom(funstr)),
+                            resType);
+      
 }
+
+class dloop2aRunner{
+  public:
+
+     dloop2aRunner(DArray2* _a1, DArray2* _a2, int _index, 
+                   const string& _fun, const string& _rname):
+       a1(_a1), a2(_a2), index(_index),fun(_fun), rname(_rname){
+     }
+
+     void operator()(){
+      string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+      int workerIndex = index % a1->numOfWorkers();
+      ConnectionInfo* ci = algInstance->getWorkerConnection(
+                              a1->getWorker(workerIndex),dbname);
+      if(!ci){
+         cmsg.error() << "could not open connection" ;
+         cmsg.send();
+         return;
+      }
+      // name of the function to create
+      string fn = rname + "_" + stringutils::int2str(index)+"_fun";
+      string cmd ="(let " + fn + " = " + fun +")";
+      int err;
+      string errMsg;
+      string strres;
+      // delete function if exists
+      ci->simpleCommand("delete " + fn , err,errMsg, strres);
+      // ignore error
+      // create new function
+      ci->simpleCommandFromList(cmd, err,errMsg, strres);
+      if(err!=0){
+         cerr << "error in creating function via " << cmd << endl;
+         cerr << errMsg << endl;
+         return;
+      }
+      // apply function to array elements
+      string tname = rname + "_" + stringutils::int2str(index);
+      // remove old stuff
+      ci->simpleCommand("delete " + tname , err,errMsg, strres);
+      // create new one
+      string a1o = a1->getName()+"_"+stringutils::int2str(index);
+      string a2o = a2->getName()+"_"+stringutils::int2str(index);
+      cmd = "let " + tname + " = " + fn +"("+ a1o + ", " + a2o+")";
+      ci->simpleCommand(cmd, err,errMsg, strres);
+      if(err!=0){
+         cerr << "error in creating result via " << cmd << endl;
+         cerr << errMsg << endl;
+         return;
+      }
+      ci->simpleCommand("delete " + fn , err,errMsg,strres); 
+     }
+
+
+
+  private:
+      DArray2* a1;
+      DArray2* a2;
+      int index;
+      string fun;
+      string rname;
+};
+
+
+
+int dloop2aVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  DArray2* a1 = (DArray2*) args[0].addr;
+  DArray2* a2 = (DArray2*) args[1].addr;
+  result = qp->ResultStorage(s);
+  DArray2* res = (DArray2*) result.addr;
+  CcString* name = (CcString*) args[2].addr;
+  FText* funQuery = (FText*) args[4].addr;
+
+  if(!a1->IsDefined() || !a2->IsDefined() || !name->IsDefined()){
+      res->makeUndefined();
+      return 0;
+  }
+  string n = name->GetValue();
+  if(!stringutils::isIdent(n)){
+      res->makeUndefined();
+      return 0;
+  }
+
+
+  // check whether workers of both arrays are the same
+  if(a1->numOfWorkers()!=a2->numOfWorkers()){
+    cmsg.error() << "Different workers in dloop2a";
+    cmsg.send();
+    res->makeUndefined();
+    return 0;
+  } 
+
+  vector<DArray2Element> workers;
+
+  for(size_t i=0;i<a1->numOfWorkers();i++){
+    if(a1->getWorker(i) != a2->getWorker(i)){
+        cmsg.error() << "Different workers in dloop2a";
+        cmsg.send();
+        res->makeUndefined();
+        return 0;
+    }
+    workers.push_back(a1->getWorker(i));
+  } 
+
+  int max = min(a1->getSize(), a2->getSize());
+
+  res->set(max,n,workers);
+
+  vector<dloop2aRunner*> runners;
+  vector<boost::thread*> threads;
+  string funstr = funQuery->GetValue();
+
+
+  for(int i=0;i<max;i++){
+      dloop2aRunner* runner = new dloop2aRunner(a1,a2,i,funstr, n);
+      runners.push_back(runner);
+      boost::thread* thread = new boost::thread(*runner);
+      threads.push_back(thread);
+  }
+
+  for(size_t i=0;i<threads.size(); i++){
+     threads[i]->join();
+     delete threads[i];
+     delete runners[i];
+  }
+
+  return 0;
+}
+
+/*
+11.3 Specification
+
+*/
+OperatorSpec dloop2aSpec(
+     "darray2(X) x darray2(Y) x string x (fun : X x Y -> Z) -> darray2(Z)",
+     "_ _ dloop2a[_,_]",
+     "Performs a funtion on the elements of two darray2 instances.",
+     "query da1 da2 dloop2a[\"newName\", fun(i1 : int, i2 : int) i1 + i2) "
+     );
+/*
+11.4 Operator instance
+
+*/
+
+
+Operator dloop2aOp(
+  "dloop2a",
+  dloop2aSpec.getStr(),
+  dloop2aVM,
+  Operator::SimpleSelect,
+  dloop2aTM
+);
+
+
+
 
 
 /*
@@ -8301,6 +8525,157 @@ Operator fdistribute6Op(
   fdistribute6TM
 );
 
+
+/*
+12 Operator ~deleteRemoteObjects~
+
+12.1 Type Mapping
+
+This operator get a darray2 instance and optionally an integer 
+value. If the integer value is given, only the object for the 
+specified index is deleted otherwise all objects handled by this
+darray2 object. The return value is the number of successfully
+deleted objects.
+
+*/
+ListExpr deleteRemoteObjectsTM(ListExpr args){
+  string err = " darray2 [x int] expected";
+  if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+    return listutils::typeError(err + ": invalid number of args" );
+  }
+  if(!DArray2::checkType(nl->First(args))){
+    return listutils::typeError(err + ": first arg not a darray2");
+  }
+  if(nl->HasLength(args,2)){
+    if(!CcInt::checkType(nl->Second(args))){
+       return listutils::typeError(err+  ": second arg is not an int");
+    }
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+class Object_Del{
+
+   public:
+
+      Object_Del(DArray2* _array, int _index):
+       array(_array),index(_index), del(0){
+      }
+
+      Object_Del(Object_Del& src): array(src.array),
+         index(src.index), del(src.del){}
+
+
+      void operator()(){
+        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+        int workerIndex = index % array->numOfWorkers();
+        ConnectionInfo* ci = algInstance->getWorkerConnection(
+                              array->getWorker(workerIndex),dbname);
+        if(!ci){
+           cmsg.error() << "could not open connection" ;
+           cmsg.send();
+           return;
+        }
+        string objName = array->getName() +"_" + stringutils::int2str(index);
+        int err;
+        string errMsg;
+        string resstr;
+        ci->simpleCommand("delete " + objName, err, errMsg, resstr);
+        if(err==0){
+          del = 1;
+        } 
+      }
+
+      int getNumber(){
+        return del;
+      }
+
+
+
+
+   private:
+      DArray2* array;
+      int index;
+      int del;
+
+};
+
+
+int deleteRemoteObjectsVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  DArray2* array = (DArray2*) args[0].addr;
+  if(!array->IsDefined()){
+     res->Set(true,0);
+     return 0;
+  }
+  bool all = true;
+  int index = 0;
+  if(qp->GetNoSons(s)==2){
+     all = false;
+     CcInt* i = (CcInt*) args[1].addr;
+     if(!i->IsDefined()){
+       res->Set(true,0);
+       return 0;
+     }
+     index = i->GetValue();
+     if(index < 0 || index >= (int) array->getSize()){
+        res->Set(true,0);
+        return 0;
+     }
+  }
+
+  vector<Object_Del*> deleters;
+  vector<boost::thread*> threads;
+  int count = 0;
+  if(!all){
+    Object_Del* del = new Object_Del(array,index);
+    deleters.push_back(del);
+    boost::thread* thread = new boost::thread(&Object_Del::operator(),del);
+    threads.push_back(thread);
+  } else {
+    for(size_t i=0;i<array->getSize();i++){
+       Object_Del* del = new Object_Del(array,i);
+       deleters.push_back(del);
+       boost::thread* thread = new boost::thread(&Object_Del::operator(),del);
+       threads.push_back(thread);
+    }
+  }
+
+  for(size_t i=0;i<threads.size();i++){
+     threads[i]->join();
+     delete threads[i];
+     count += deleters[i]->getNumber();
+     delete deleters[i];
+  }
+  res->Set(true,count);
+  return 0;
+}
+
+
+
+OperatorSpec deleteRemoteObjectsSpec(
+     " darray2 [x int] -> int",
+     "deleteRemoteObjects(_,_)",
+     "Deletes the remote objects managed by a darray2 object. " 
+     "If the optionally integer argument is given, only the "
+     "object at the specified index is deleted. ",
+     "query deleteRemoteObjects(da2)"
+ );
+
+Operator deleteRemoteObjectsOp(
+  "deleteRemoteObjects",
+  deleteRemoteObjectsSpec.getStr(),
+  deleteRemoteObjectsVM,
+  Operator::SimpleSelect,
+  deleteRemoteObjectsTM
+);
+
+
+
 /*
 3 Implementation of the Algebra
 
@@ -8347,10 +8722,14 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&showWorkersOp);
    AddOperator(&dloop2Op);
    dloop2Op.SetUsesArgsInTypeMapping();
+   AddOperator(&dloop2aOp);
+   dloop2aOp.SetUsesArgsInTypeMapping();
    AddOperator(&DARRAY2ELEMOp);
+   AddOperator(&DARRAY2ELEM2Op);
 
    AddOperator(&dsummarize2Op);
    AddOperator(&getValueOp);
+   AddOperator(&deleteRemoteObjectsOp);
 
 }
 
