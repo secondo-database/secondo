@@ -6,7 +6,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.datastax.driver.core.Host;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 
@@ -25,7 +27,7 @@ public class CassandraGUIModel {
 	 * A Cache for cassandra data, e.g. the GEP and 
 	 * the heartbeat data
 	 */
-	public synchronized void updateCache() {
+	public synchronized void updateModel() {
 		queries = new ArrayList<CassandraQuery>();
 		tokenRanges = new HashMap<String, Integer>();
 		
@@ -52,6 +54,15 @@ public class CassandraGUIModel {
 	}
 	
 	/**
+	 * Get all hosts
+	 * @return
+	 */
+	Set<Host> getAllHosts() {
+		return client.getAllHosts();
+	}
+	
+	
+	/**
 	 * Get the scheduled queries from cache
 	 * @return scheduled queries
 	 */
@@ -67,11 +78,34 @@ public class CassandraGUIModel {
 		return Collections.unmodifiableMap(tokenRanges);
 	}
 
+	/**
+	 * Get the observed query id
+	 */
 	public int getObservedQueryId() {
 		return observedQueryId;
 	}
 
+	/**
+	 * Set the observed query id
+	 * @param observedQueryId
+	 */
 	public void setObservedQueryId(int observedQueryId) {
 		this.observedQueryId = observedQueryId;
+	}
+
+	/**
+	 * Get the node heartbeat
+	 * @return
+	 */
+	public ResultSet getNodeHeartbeat() {
+		return client.getNodeHeartbeat();
+	}
+
+	/**
+	 * Get all token ranges
+	 * @return
+	 */
+	public int getTotalTokenRanges() {
+		return client.getTotalTokenRanges();
 	}
 }

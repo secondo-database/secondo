@@ -43,7 +43,6 @@ public class CassandraGUI {
 	protected JMenuBar menuBar;
 	protected AbstractTableModel tableModell;
 	protected Map<String, CassandraNode> cassandraNodes;
-	protected CassandraClient cassandraClient;
 	protected CassandraGUIModel guiModel;
 	protected int totalTokenRanges;
 	
@@ -55,7 +54,11 @@ public class CassandraGUI {
 	public volatile boolean shutdown = false;
 	
 	public CassandraGUI() {
-		cassandraClient = new CassandraClient();
+		
+	}
+
+	public CassandraGUI(CassandraGUIModel guiModel) {
+		this.guiModel = guiModel;
 	}
 
 	/**
@@ -63,15 +66,6 @@ public class CassandraGUI {
 	 * and assemble the dialog
 	 */
 	public void run() {
-		
-		try {
-			cassandraClient.connect();
-			guiModel = new CassandraGUIModel(cassandraClient);
-			guiModel.updateCache();
-		} catch (Exception e) {
-			logger.error("Exception while connecting to cassandra", e);
-			System.exit(-1);
-		}
 		
 		mainframe = new JFrame("Distributed SECONDO");
 		
@@ -107,6 +101,13 @@ public class CassandraGUI {
 		mainframe.setVisible(true);
 	}
 
+	/** 
+	 * Dispose the main frame
+	 */
+	public void dispose() {
+		mainframe.dispose();
+	}
+	
 	/**
 	 * Get the table model for the schedules queries
 	 * @return The table model
@@ -234,7 +235,7 @@ public class CassandraGUI {
 	protected void insertCassandraNodes() {
 		cassandraNodes = new HashMap<String, CassandraNode>();
 		
-		for(Host host : cassandraClient.getAllHosts()) {
+		for(Host host : guiModel.getAllHosts()) {
 			String ip = host.getAddress().getHostAddress();
 			
 			if(ip.equals("127.0.0.1")) {
@@ -283,16 +284,6 @@ public class CassandraGUI {
 
 			public void actionPerformed(ActionEvent e) {
 				shutdown = true;
-				
-				// Wait for pending gui updates to complete
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e1) {
-					// Ignore exception
-				}
-				
-				cassandraClient.close();
-				System.exit(0);
 			}
 			
 		});
@@ -307,8 +298,8 @@ public class CassandraGUI {
 	public synchronized void updateStatus() {
 		long curTime = System.currentTimeMillis();
 		
-		totalTokenRanges = cassandraClient.getTotalTokenRanges();
-		guiModel.updateCache();
+		totalTokenRanges = guiModel.getTotalTokenRanges();
+		guiModel.updateModel();
 		
 		for(CassandraNode node : cassandraNodes.values()) {
 			node.setState(CassandraNodeState.MISSING);
@@ -324,7 +315,7 @@ public class CassandraGUI {
 			node.setTokenRangeCount(guiModel.getTokenCache().get(ip));
 		}
 		
-		ResultSet result = cassandraClient.getNodeHearbeat();
+		ResultSet result = guiModel.getNodeHeartbeat();
 		for(Iterator<Row> iter = result.iterator(); iter.hasNext(); ) {
 			Row row = iter.next();
 			String ip = row.getString(0);
@@ -348,23 +339,9 @@ public class CassandraGUI {
 	/**
 	 * Update the view. This method should be called periodically
 	 */
-	private void updateView() {
+	public void updateView() {
 		updateStatus();
 		mainframe.repaint();
 	}
 	
-	/**
-	 * Main Method 
-	 * @param args
-	 * @throws InterruptedException
-	 */
-	public static void main(String[] args) throws InterruptedException {
-		final CassandraGUI cassandraGUI = new CassandraGUI();
-		cassandraGUI.run();
-		
-		while(! cassandraGUI.shutdown) {
-			cassandraGUI.updateView();
-			Thread.sleep(1000);
-		}
-	}
 }

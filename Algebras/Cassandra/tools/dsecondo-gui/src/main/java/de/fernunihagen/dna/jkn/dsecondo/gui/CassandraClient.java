@@ -70,7 +70,7 @@ public class CassandraClient implements AutoCloseable {
 	 * Get Heartbeat data of the DSECONDO nodes
 	 * @return heartbeat data
 	 */
-	ResultSet getNodeHearbeat() {
+	ResultSet getNodeHeartbeat() {
 		ResultSet result = session.execute("SELECT ip, heartbeat, lastquery from system_state");
 		return result;
 	}
@@ -104,6 +104,8 @@ public class CassandraClient implements AutoCloseable {
 		ResultSet result = session.execute("SELECT ip from system_tokenranges");
 		return result.getAvailableWithoutFetching();
 	}
+	
+	
 
 	/**
 	 * Close the connection to the cassandra cluster
