@@ -27,27 +27,26 @@
 namespace tin {
 
 Vector3D::~Vector3D() {
-	// TODO Auto-generated destructor stub
+// TODO Auto-generated destructor stub
 }
 
-
 VECTOR_DIR Vector3D::dzdx() {
-	//TODO no error calculated
-	if(dx == 0)
-		return 0;
-	return dz/dx;
+//TODO no error calculated
+if (dx == 0)
+return 0;
+return dz / dx;
 }
 
 VECTOR_DIR Vector3D::dzdy() {
-	return 0;
+return 0;
 }
- /* namespace tin */
+/* namespace tin */
 
 Vector3D Vector3D::operator*(const VECTOR_COMPONENT& f) const {
-	VECTOR_COMPONENT resultx = dx * f;
-	VECTOR_COMPONENT resulty = dy * f;
-	VECTOR_COMPONENT resultz = dz * f;
+VECTOR_COMPONENT resultx = dx * f;
+VECTOR_COMPONENT resulty = dy * f;
+VECTOR_COMPONENT resultz = dz * f;
 
-	    return Vector3D(resultx,resulty,resultz);
+return Vector3D(resultx, resulty, resultz);
 }
 }
