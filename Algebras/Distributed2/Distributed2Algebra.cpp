@@ -5137,6 +5137,10 @@ class DArray2{
      size_t getSize() const{
         return size;
      }
+
+     void setSize(size_t newSize){
+        size = newSize;
+     }
   
 
      DArray2Element getWorker(int i){
@@ -6862,6 +6866,9 @@ int ddistribute2VM(Word* args, Word& result, int message,
    for(size_t i=0;i<restorers.size();i++){
      delete restorers[i];
    } 
+   for(it = files.begin(); it!=files.end();it++){
+      FileSystem::DeleteFileOrFolder(it->second.first);
+   }
 
    return 0;   
 }
@@ -6891,6 +6898,219 @@ Operator ddistribute2Op(
 );
 
 
+
+/*
+1.7 Operator ~ddistribute3~
+
+Similar to the ddistribute2 operator, this operator distributes a tuple strean
+into a darray2 object. The difference is how the tuples of the incoming stream
+are distributed.  While the ddistribute2 operator requires an integer attribute
+signaling to which slow of the array the tuple should be stored, this operator
+get a partion size of the size of the array. The variant (meaning of the int
+argument) is chosen by a boolean argument.
+
+1.7.1 Type Mapping
+
+*/
+
+ListExpr ddistribute3TM(ListExpr args){
+
+
+  string err = "stream(tuple) x int x bool x darray2 x string expected";
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError(err+": wrong number of args");
+  }
+  if(   !Stream<Tuple>::checkType(nl->First(args))
+     || !CcInt::checkType(nl->Second(args))
+     || !CcBool::checkType(nl->Third(args))   
+     || !DArray2::checkType(nl->Fourth(args))
+     || !CcString::checkType(nl->Fifth(args))){
+    return listutils::typeError(err);
+  }
+  ListExpr relType = nl->TwoElemList(
+                        listutils::basicSymbol<Relation>(),
+                        nl->Second(nl->First(args)));
+
+  return nl->TwoElemList(
+                 listutils::basicSymbol<DArray2>(),
+                  relType); 
+}
+
+
+
+/*
+1.7.3 Value Mapping
+
+*/
+
+int ddistribute3VM(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   DArray2* res = (DArray2*) result.addr;
+
+   CcInt* size = (CcInt*) args[1].addr;
+   CcBool* method = (CcBool*) args[2].addr;
+   DArray2* array = (DArray2*) args[3].addr;
+   CcString* n = (CcString*) args[4].addr;
+
+   if(!size->IsDefined() || !method->IsDefined() 
+      || !array->IsDefined() || !n->IsDefined()){
+     res->makeUndefined();
+     return 0;
+   }
+
+   int sizei = size->GetValue();
+   if(sizei<=0){
+     res->makeUndefined();
+     return 0;
+   }
+   string name = n->GetValue();
+   if(!stringutils::isIdent(name)){
+     res->makeUndefined();
+     return 0;
+   }
+   if(array->numOfWorkers() < 1 ){
+     res->makeUndefined();
+     return 0;
+   }
+
+
+   // distribute incoming tuple stream 
+   // to files
+
+   bool methodb = method->GetValue();
+   *res = *array;
+
+   res->setName(name);
+    
+
+
+   vector<ofstream*> files;
+   Stream<Tuple> stream(args[0]);
+   stream.open();
+   Tuple* tuple;
+   ListExpr relType = nl->Second(qp->GetType(s));
+   if(methodb){ // size is the size of the darray
+      // circular distribution of 
+      res->setSize(sizei);
+      int index = 0;
+      ofstream* current=0;
+      while((tuple=stream.request())){
+         size_t index1 = index % sizei;
+         index++;
+         if(index1 >= files.size()){
+             string fn = name + "_" + stringutils::int2str(index1)+".bin";
+             current = new ofstream(fn.c_str(), ios::out | ios::binary);
+             files.push_back(current);
+             BinRelWriter::writeHeader(*current,relType); 
+          } else {
+              current = files[index1];
+          }
+          BinRelWriter::writeNextTuple(*current,tuple);
+         tuple->DeleteIfAllowed();
+      }
+      for(size_t i=0;i<files.size();i++){
+         BinRelWriter::finish(*(files[i]));
+         files[i]->close();
+         delete files[i];
+      }
+   } else {
+      int written = 0;
+      ofstream* current=0;
+      while((tuple=stream.request())){
+         if(written==0){
+           string fn = name + "_" + stringutils::int2str(files.size())+".bin";
+           current = new ofstream(fn.c_str(), ios::out | ios::binary);
+           files.push_back(current);
+           BinRelWriter::writeHeader(*current,relType); 
+         }
+         BinRelWriter::writeNextTuple(*current,tuple);
+         written++;
+         if(written==sizei){
+           BinRelWriter::finish(*current);
+           current->close();
+           delete current;
+           current=0;
+           written = 0;
+         }
+      }     
+      if(current){
+        BinRelWriter::finish(*current);
+        current->close();
+        delete current;
+        current=0;
+      } 
+      res->setSize(files.size());
+   }
+   stream.close();
+
+    // now, all tuples are distributed to files.
+    // we have to put the relations stored in these
+    // files to the workers
+
+   vector<RelFileRestorer*> restorers;
+
+   
+   for(size_t i = 0; i<files.size(); i++) {
+      string objName = res->getName()+"_"+stringutils::int2str(i);     
+      string fn = objName + ".bin";
+      restorers.push_back(new RelFileRestorer(relType, objName,res, 
+                                              i, fn));
+   }
+
+
+   // distribute the files to the workers and restore relations
+   for(size_t i=0;i<restorers.size();i++){
+     restorers[i]->start();
+   } 
+   // wait for finishing restore
+
+   
+   for(size_t i=0;i<restorers.size();i++){
+     delete restorers[i];
+   }
+   // delete local files
+   for(size_t i=0;i<files.size();i++){
+      string fn = res->getName()+"_"+stringutils::int2str(i)+".bin";     
+      FileSystem::DeleteFileOrFolder(fn); 
+   }
+ 
+
+   return 0;   
+}
+
+
+/*
+1.7.4 Specification
+
+*/
+OperatorSpec ddistribute3Spec(
+     " stream(tuple(X)) x int x bool x darray2(Y) x string-> darray2(X) ",
+     " _ ddistribute3[ _, _,_,_]",
+     " Distributes a ituple streanm into a darray. The boolean "
+     "flag controls the method of distribution. If the flag is set to "
+     " true, the integer argument specifies the target size of the "
+     " resulting darray and the tuples are distributed in a circular way."
+     "In the other case, this number represents the size of a single "
+     "array slot. A slot is filled until the size is reached. After that "
+     " a new slot is opened. The string attribute gives the name of the "
+     "result",
+     " query strassen feed ddistribute3[10, TRUE, da8, \"da28\" ]  "
+     );
+
+
+/*
+1.6.5 Operator instance
+
+*/
+Operator ddistribute3Op(
+  "ddistribute3",
+  ddistribute3Spec.getStr(),
+  ddistribute3VM,
+  Operator::SimpleSelect,
+  ddistribute3TM
+);
 
 /*
 1.7 fdistribute
@@ -8875,6 +9095,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&pputOp);
    AddOperator(&ddistribute2Op);
+   AddOperator(&ddistribute3Op);
    AddOperator(&fdistribute5Op);
    AddOperator(&fdistribute6Op);
    AddOperator(&closeWorkersOp);

@@ -167,6 +167,13 @@ Example   : query strassen feed addcounter[No,0] ddistribute2[No, da2]
 Result    : bug
 Remark    : remote server required
 
+Operator: ddistribute3
+Number  : 1
+Signature : rel(tuple(X)) x int x bool  x darray2(Y) x darray2 -> darray2(X) 
+Example   : query strassen feed  ddistribute3[100, TRUE, da2, "dstrassen"] 
+Result    : bug
+Remark    : remote server required
+
 Operator: closeWorkers
 Number  : 1
 Signature : -> int , darray2 -> int
