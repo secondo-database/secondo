@@ -44,7 +44,7 @@ public class CassandraGUI {
 	protected AbstractTableModel tableModell;
 	protected Map<String, CassandraNode> cassandraNodes;
 	protected CassandraClient cassandraClient;
-	protected CassandraQueryCache queryCache;
+	protected CassandraGUIModel guiModel;
 	protected int totalTokenRanges;
 	
 	protected final static Logger logger = LoggerFactory.getLogger(CassandraGUI.class);
@@ -66,8 +66,8 @@ public class CassandraGUI {
 		
 		try {
 			cassandraClient.connect();
-			queryCache = new CassandraQueryCache(cassandraClient);
-			queryCache.updateCache();
+			guiModel = new CassandraGUIModel(cassandraClient);
+			guiModel.updateCache();
 		} catch (Exception e) {
 			logger.error("Exception while connecting to cassandra", e);
 			System.exit(-1);
@@ -86,7 +86,7 @@ public class CassandraGUI {
 		
 		table.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
 	        public void valueChanged(ListSelectionEvent event) {
-	        	GuiRegistry.getInstance().setObservedQueryId(
+	        	guiModel.setObservedQueryId(
 	        			Integer.parseInt((table.getValueAt(table.getSelectedRow(), 0).toString())));
 	        }
 	    });
@@ -118,9 +118,9 @@ public class CassandraGUI {
 			
 			@Override
 			public Object getValueAt(int rowIndex, int columnIndex) {
-				final CassandraQuery query = queryCache.getQueryCache().get(rowIndex);
+				final CassandraQuery query = guiModel.getQueryCache().get(rowIndex);
 				
-				if(queryCache.getQueryCache().size() < rowIndex) {
+				if(guiModel.getQueryCache().size() < rowIndex) {
 					return "";
 				}
 				
@@ -146,7 +146,7 @@ public class CassandraGUI {
 			
 			@Override
 			public int getRowCount() {
-				return queryCache.getQueryCache().size();
+				return guiModel.getQueryCache().size();
 			}
 			
 			@Override
@@ -204,7 +204,7 @@ public class CassandraGUI {
 					processed = processed + node.getTokenRangeCount();
 				}
 				
-				g.drawString("Observed query: " + GuiRegistry.getInstance().getObservedQueryId(), 10, 470);
+				g.drawString("Observed query: " + guiModel.getObservedQueryId(), 10, 470);
 				g.drawString("Processed token ranges: " + processed + " of " + totalTokenRanges, 10, 490);
 
 			}
@@ -233,7 +233,6 @@ public class CassandraGUI {
 	 */
 	protected void insertCassandraNodes() {
 		cassandraNodes = new HashMap<String, CassandraNode>();
-		GuiRegistry.getInstance().setCassandraNodes(cassandraNodes);
 		
 		for(Host host : cassandraClient.getAllHosts()) {
 			String ip = host.getAddress().getHostAddress();
@@ -309,20 +308,20 @@ public class CassandraGUI {
 		long curTime = System.currentTimeMillis();
 		
 		totalTokenRanges = cassandraClient.getTotalTokenRanges();
-		queryCache.updateCache();
+		guiModel.updateCache();
 		
 		for(CassandraNode node : cassandraNodes.values()) {
 			node.setState(CassandraNodeState.MISSING);
 			node.setTokenRangeCount(0);
 		}
 
-		for(String ip : queryCache.getTokenCache().keySet()) {
+		for(String ip : guiModel.getTokenCache().keySet()) {
 			CassandraNode node = cassandraNodes.get(ip);
 			if(node == null) {
 				logger.warn("Node " + ip + " not found on GUI, ignoring");
 				continue;
 			}
-			node.setTokenRangeCount(queryCache.getTokenCache().get(ip));
+			node.setTokenRangeCount(guiModel.getTokenCache().get(ip));
 		}
 		
 		ResultSet result = cassandraClient.getNodeHearbeat();

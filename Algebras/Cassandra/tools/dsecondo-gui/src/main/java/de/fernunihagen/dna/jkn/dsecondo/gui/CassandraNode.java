@@ -137,7 +137,9 @@ public class CassandraNode {
 		
 		// Draw nodename background
 		g.setColor(defaultBackgroundColor);
-        g.fillRect(position.x - stringLen / 2, position.y + SIZE/2 + stringHeight / 2 - 2, stringLen + 6, stringHeight + 1);
+        g.fillRect(position.x - stringLen / 2, 
+        		   position.y + SIZE/2 + stringHeight / 2 - 2, 
+        		   stringLen + 6, stringHeight + 1);
 		
         // Draw nodename
         g.setColor(Color.BLACK);
