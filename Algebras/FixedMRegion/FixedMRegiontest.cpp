@@ -214,7 +214,7 @@ printHS (HalfSegment hs)
 int
 gotPoint (const Point & p, const Point * list, int size)
 {
-  printf("Point: %d, %f\n", p.GetX(), p.GetY());
+  printf("Point: %f, %f\n", p.GetX(), p.GetY());
   for (int i = 0; i < size; i++)
     {
       if (p.Compare (list + i) == 0)
@@ -404,16 +404,15 @@ testQuatro ()
 
   //printf ("Test testQuatro7: \n");
   double m2 = v2->Area ();
-  printf ("Flächeninhalt zweites kleines Viereck: 
-  %s\n", (m2==1.0) ? "OK" : "FAILED");
+  printf ("Flächeninhalt zweites kleines Viereck: %s\n",
+           (m2==1.0) ? "OK" : "FAILED");
 
   Region *res = new Region (0);
   //v1->Union(*v2, *res);
   RobustPlaneSweep::robustUnion (*v1, *v2, *res);
   //printf ("Test testQuatro12: \n");
   double m3 = res->Area ();
-  printf ("Flächeninhalt großes Viereck: 
-  %s\n", (m3==2.0) ? "OK" : "FAILED");
+  printf ("Flächeninhalt großes Viereck: %s\n", (m3==2.0) ? "OK" : "FAILED");
   delete res;
 }
 
