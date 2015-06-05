@@ -7,6 +7,8 @@ import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Rectangle2D;
 
+import javax.swing.JFrame;
+
 public class CassandraNode {
 	
 	protected final static int SIZE = 40;
@@ -15,10 +17,16 @@ public class CassandraNode {
 	protected CassandraNodeState state = null;
 	protected String name;
 	protected int tokenRangeCount = 0;
-	
+	protected Rectangle2D boundingBox;
+	protected final Color defaultBackgroundColor;
+
 	public CassandraNode(final String name) {
 		super();
 		this.name = name;
+		
+		// Determine default background color
+		final JFrame frame = new JFrame();
+		defaultBackgroundColor = frame.getContentPane().getBackground();
 	}
 
 	public Point getPosition() {
@@ -27,6 +35,11 @@ public class CassandraNode {
 
 	public void setPosition(Point position) {
 		this.position = position;
+
+		boundingBox = new Rectangle2D.Double(
+				getPosition().getX() - CassandraNode.SIZE / 2, 
+				getPosition().getY() - CassandraNode.SIZE / 2, 
+				SIZE, SIZE);
 	}
 
 	public CassandraNodeState getState() {
@@ -59,14 +72,7 @@ public class CassandraNode {
 	 * @return boolean
 	 */
 	public boolean isMouseOver(MouseEvent event) {
-		if(event.getX() > getPosition().getX() - CassandraNode.SIZE / 2 && 
-		   event.getX() < getPosition().getX() + CassandraNode.SIZE / 2 &&
-		   event.getY() > getPosition().getY() - CassandraNode.SIZE / 2 &&
-		   event.getY() < getPosition().getY() + CassandraNode.SIZE / 2) {
-			return true;
-		}
-		
-		return false;
+		return boundingBox.contains(event.getPoint());
 	}
 
 	/**
@@ -89,6 +95,7 @@ public class CassandraNode {
 	protected void paintComponent(Graphics g) {
 		checkState();
 		
+		final Graphics2D g2d = (Graphics2D) g;
 		final Color oldColor = g.getColor();
 		
 		switch(state) {
@@ -110,17 +117,28 @@ public class CassandraNode {
 		g.drawOval(position.x - SIZE/2, position.y - SIZE/2, SIZE, SIZE);
 		
 		if(state == CassandraNodeState.ACTIVE || state == CassandraNodeState.INACTIVE) {
-			Graphics2D g2d = (Graphics2D) g;
 			String value = Integer.toString(tokenRangeCount);
 			Rectangle2D bounds = g2d.getFontMetrics().getStringBounds(value, g2d);
 			int stringLen = (int) bounds.getWidth();
 			int stringHight = ((int) bounds.getHeight()) - 2;
-			
 			g.drawString(value, position.x - stringLen/2, position.y + stringHight / 2);
 		}
+
+		final String description = name;
+		
+		// Calculate nodename bounding box
+		Rectangle2D bounds = g2d.getFontMetrics().getStringBounds(description, g2d);
+		int stringLen = (int) bounds.getWidth();
+		int stringHeight = ((int) bounds.getHeight());
+		
+		// Draw nodename background
+		g.setColor(defaultBackgroundColor);
+        g.fillRect(position.x - stringLen / 2, position.y + SIZE/2 + stringHeight / 2 - 2, stringLen, stringHeight);
+		
+        // Draw nodename
+        g.setColor(Color.BLACK);
+		g.drawString(description, position.x - stringLen / 2, position.y + 2 + SIZE/2 + stringHeight);
 		
 		g.setColor(oldColor);
 	}
-	
-	
 }
