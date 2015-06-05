@@ -243,3 +243,11 @@ Result    : bug
 Remark    : remote server required
 
 
+Operator : clone 
+Number   : 1
+Signature : darray2(X) x string -> darray2(X)
+Example   : query da8 clone["da9"]
+Result    : bug
+Remark    : remote server required
+
+

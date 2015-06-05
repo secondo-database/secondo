@@ -600,9 +600,10 @@ class ConnectionInfo{
               int errorPos=0;
               ListExpr errorInfo = listutils::emptyErrorInfo();
               bool correct;
+              createRelMut.lock();
               result = ctlg->InObject(resType,value, errorPos, 
                                       errorInfo, correct);
-
+              createRelMut.unlock();
               return correct;
           }
 
@@ -6670,9 +6671,14 @@ Operator pputOp(
 */
 
 ListExpr ddistribute2TM(ListExpr args){
-  string err = "stream(tuple(X)) x ident x darray2(Y) expected";
-  if(!nl->HasLength(args,3)){
+  string err = "stream(tuple(X)) x ident x darray2(Y) [ x string] expected";
+  if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
      return listutils::typeError(err);
+  }
+  if(nl->HasLength(args,4)){
+    if(!CcString::checkType(nl->Fourth(args))){
+        return listutils::typeError(err);
+    }
   }
   if(!Stream<Tuple>::checkType(nl->First(args))){
      return listutils::typeError(err);
@@ -6776,9 +6782,27 @@ int ddistribute2VM(Word* args, Word& result, int message,
 
    result = qp->ResultStorage(s);
    DArray2* res = (DArray2*) result.addr;
-   int pos = ((CcInt*) args[3].addr)->GetValue();
    DArray2* temp = (DArray2*) args[2].addr;
+
+
+   int noSons = qp->GetNoSons(s);
+   int pos = ((CcInt*) args[noSons-1].addr)->GetValue();
    *res = *temp;
+
+   if(noSons==5){
+     CcString* n =  (CcString*) args[3].addr;
+     if(!n->IsDefined()){
+        res->makeUndefined();
+        return 0;
+     }
+     string name = n->GetValue();
+     if(!stringutils::isIdent(name)){
+        res->makeUndefined();
+        return 0;
+     }
+     res->setName(name);
+   }
+
    if(!res->IsDefined() || (res->numOfWorkers()<1) || (res->getSize() < 1)){
       res->makeUndefined();
       return 0;
@@ -6791,7 +6815,7 @@ int ddistribute2VM(Word* args, Word& result, int message,
    Stream<Tuple> stream(args[0]);
    stream.open();
    Tuple* tuple;
-   string name = temp->getName();
+   string name = res->getName();
 
    ListExpr relType = nl->Second(qp->GetType(s));
 
@@ -6865,6 +6889,8 @@ Operator ddistribute2Op(
   Operator::SimpleSelect,
   ddistribute2TM
 );
+
+
 
 /*
 1.7 fdistribute
@@ -8675,6 +8701,139 @@ Operator deleteRemoteObjectsOp(
 );
 
 
+/*
+12 Operator ~clone~
+
+This operator gets a darray2 and a string. It produces a new darray2 
+as a clone of the first argument having a new name.
+
+12.1 Type Mapping
+
+*/
+ListExpr cloneTM(ListExpr args){
+  string err = "darray2 x string expected";
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err + ": invalid number of args");
+  }
+  if(!DArray2::checkType(nl->First(args)) ||
+     !CcString::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return nl->First(args);
+}
+
+/*
+12.2 Class for a single task
+
+*/
+class cloneTask{
+
+  public:
+
+     cloneTask(DArray2* _array, int _index, const string& _name) :
+        array(_array), index(_index), name(_name){}
+
+
+     void run(){
+        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+        int workerIndex = index % array->numOfWorkers();
+        ConnectionInfo* ci = algInstance->getWorkerConnection(
+                              array->getWorker(workerIndex),dbname);
+        if(!ci){
+           cmsg.error() << "could not open connection" ;
+           cmsg.send();
+           return;
+        }
+        string objName = array->getName() +"_" + stringutils::int2str(index);
+        string newName = name + "_" + stringutils::int2str(index);
+        int err;
+        string errMsg;
+        string resstr;
+        ci->simpleCommand("let " + newName + " = " + objName , 
+                          err, errMsg, resstr);
+     }
+
+
+  private:
+      DArray2* array;
+      int index;
+      string name;
+};
+
+
+/*
+12.3 Value Mapping Function
+
+*/
+
+int cloneVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+   DArray2* array = (DArray2*) args[0].addr;
+   CcString* name = (CcString*) args[1].addr;
+   result = qp->ResultStorage(s);
+   DArray2* res = (DArray2*) result.addr;
+   (*res) = (*array);
+
+   if(!array->IsDefined() || !name->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }
+   string n = name->GetValue();
+
+   if(!stringutils::isIdent(n)){
+      res->makeUndefined();
+      return 0;
+   }
+   res->setName(n);
+
+   vector<cloneTask*> cloner;
+   vector<boost::thread*> threads;
+
+   for(size_t i=0; i<array->getSize();i++){
+      cloneTask* ct = new cloneTask(array,i,n);
+      cloner.push_back(ct);
+      boost::thread* t = new boost::thread(&cloneTask::run, ct);
+      threads.push_back(t);
+   }
+
+   for(size_t i=0;i<array->getSize(); i++){
+       threads[i]->join();
+       delete threads[i];
+       delete cloner[i];
+   }
+   return 0;
+}
+
+
+
+/*
+12.4 Specification
+
+*/
+OperatorSpec cloneSpec(
+     " darray2 x string -> darray2",
+     " _ clone[_]",
+     "Creates a copy of a darray2 with a new name. " ,
+     "let da9 = da8 clone[\"da9\"] "
+ );
+
+
+/*
+12.5 Operator instance
+
+*/
+Operator cloneOp(
+  "clone",
+  cloneSpec.getStr(),
+  cloneVM,
+  Operator::SimpleSelect,
+  cloneTM
+);
+
+
+
+
 
 /*
 3 Implementation of the Algebra
@@ -8730,6 +8889,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&dsummarize2Op);
    AddOperator(&getValueOp);
    AddOperator(&deleteRemoteObjectsOp);
+   AddOperator(&cloneOp);
 
 }
 

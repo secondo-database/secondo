@@ -44,4 +44,7 @@ operator getValue alias GETVALUE pattern op(_)
 
 operator deleteRemoteObjects alias DELETEREMOTEOBJECTS pattern op(_,_)
 
+operator clone alias CLONE pattern _ op[_]
+
+
 
