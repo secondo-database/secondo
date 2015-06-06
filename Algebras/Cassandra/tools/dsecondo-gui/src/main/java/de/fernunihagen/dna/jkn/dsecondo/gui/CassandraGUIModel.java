@@ -105,7 +105,7 @@ public class CassandraGUIModel {
 	 * Get the scheduled queries from cache
 	 * @return scheduled queries
 	 */
-	public List<CassandraQuery> getQueryCache() {
+	public List<CassandraQuery> getQueries() {
 		return Collections.unmodifiableList(queries);
 	}
 	

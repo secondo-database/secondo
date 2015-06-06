@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.AbstractAction;
@@ -40,7 +41,7 @@ public class CassandraGUI {
 	protected JFrame mainframe;
 	protected JPanel cassandraPanel;
 	protected JMenuBar menuBar;
-	protected AbstractTableModel tableModell;
+	protected CassandraQueryTableModel tableModel;
 	protected Map<String, CassandraNode> cassandraNodes;
 	protected CassandraGUIModel guiModel;
 	protected int totalTokenRanges;
@@ -53,10 +54,6 @@ public class CassandraGUI {
 	public final SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	public volatile boolean shutdown = false;
 	
-	public CassandraGUI() {
-		
-	}
-
 	public CassandraGUI(CassandraGUIModel guiModel) {
 		this.guiModel = guiModel;
 	}
@@ -72,8 +69,8 @@ public class CassandraGUI {
 		setupMenu();
 		setupCassandraPanel();
 		
-		tableModell = getTableModel();
-		final JTable table = new JTable(tableModell);
+		tableModel = getTableModel();
+		final JTable table = new JTable(tableModel);
 		table.getColumnModel().getColumn(0).setMaxWidth(40);
 		table.getColumnModel().getColumn(2).setMinWidth(100);
 		table.getColumnModel().getColumn(2).setMaxWidth(100);
@@ -111,65 +108,9 @@ public class CassandraGUI {
 	 * Get the table model for the schedules queries
 	 * @return The table model
 	 */
-	private AbstractTableModel getTableModel() {
-		return new AbstractTableModel() {
-			
-			private static final long serialVersionUID = 8593512480994197794L;
-			
-			@Override
-			public Object getValueAt(int rowIndex, int columnIndex) {
-				final CassandraQuery query = guiModel.getQueryCache().get(rowIndex);
-				
-				if(guiModel.getQueryCache().size() < rowIndex) {
-					return "";
-				}
-				
-				if(query == null) {
-					return "";
-				}
-				
-				if(columnIndex == 0) {
-					return query.getId();
-				}
-				
-				if(columnIndex == 1) {
-					return query.getQuery();
-				}
-				
-				if(columnIndex == 2) {
-					return query.getVersion();
-				}
-				
-				return "";
-				
-			}
-			
-			@Override
-			public int getRowCount() {
-				return guiModel.getQueryCache().size();
-			}
-			
-			@Override
-			public int getColumnCount() {
-				return 3;
-			}
-			
-			@Override
-			public boolean isCellEditable(int rowIndex, int columnIndex) {
-				return false;
-			}
-			
-			@Override
-			public String getColumnName(int column) {
-		   	   if(column == 0) {
-				   return "Id";
-			   } else if(column == 1) {
-					return "Query";
-			   } 
-				
-			   return "Version";
-			}
-		};
+	private CassandraQueryTableModel getTableModel() {
+		final List<CassandraQuery> cassandraQueries = guiModel.getQueries();
+		return new CassandraQueryTableModel(cassandraQueries);
 	}
 
 	/**
@@ -216,7 +157,7 @@ public class CassandraGUI {
 					if(node.isMouseOver(event)) {
 						final Map<String, CassandraSystemState> heartbeatData = guiModel.getNodeHeartbeat();
 						final CassandraSystemState systemState = heartbeatData.get(node.getName());
-			
+						
 						final StringBuilder sb = new StringBuilder();
 						sb.append("<html>");
 						
@@ -318,42 +259,41 @@ public class CassandraGUI {
 	 */
 	public synchronized void updateStatus() {
 		long curTime = System.currentTimeMillis();
+
+		List<CassandraQuery> oldQueries = guiModel.getQueries();
+		guiModel.updateModel();
+		List<CassandraQuery> newQueries = guiModel.getQueries();
+				
+		if(! oldQueries.equals(newQueries)) {
+			tableModel.setQueryCache(newQueries);
+			tableModel.fireTableDataChanged();
+		}
 		
 		totalTokenRanges = guiModel.getTotalTokenRanges();
-		guiModel.updateModel();
-		
-		for(CassandraNode node : cassandraNodes.values()) {
-			node.setState(CassandraNodeState.MISSING);
-			node.setTokenRangeCount(0);
-		}
 
-		for(String ip : guiModel.getTokenCache().keySet()) {
-			CassandraNode node = cassandraNodes.get(ip);
-			if(node == null) {
-				logger.warn("Node " + ip + " not found on GUI, ignoring");
-				continue;
-			}
-			node.setTokenRangeCount(guiModel.getTokenCache().get(ip));
-		}
-		
-		Map<String, CassandraSystemState> result = guiModel.getNodeHeartbeat();
-		for(String ip : result.keySet()) {
-			final CassandraSystemState state = result.get(ip);
-			long heartbeat = state.getHeartbeat();
-			CassandraNode node = cassandraNodes.get(ip);
+		for(CassandraNode node : cassandraNodes.values()) {
+			final String nodeIp = node.getName();
 			
-			if(node == null) {
-				logger.warn("Node " + ip + " not found on GUI, ignoring");
-				continue;
-			}
-			
-			if(curTime - 30 * 1000 > heartbeat) {
-				node.setState(CassandraNodeState.DOWN);
+			// Update Node Token range count
+			if(guiModel.getTokenCache().get(nodeIp) != null) {
+				node.setTokenRangeCount(guiModel.getTokenCache().get(nodeIp));
 			} else {
-				node.setState(CassandraNodeState.UP);
+				node.setTokenRangeCount(0);
+			}
+			
+			// Update node state
+			final CassandraSystemState state = guiModel.getNodeHeartbeat().get(nodeIp);
+			if(state == null) {
+				node.setState(CassandraNodeState.MISSING);
+			} else {
+				long heartbeat = state.getHeartbeat();
+				if(curTime - 30 * 1000 > heartbeat) {
+					node.setState(CassandraNodeState.DOWN);
+				} else {
+					node.setState(CassandraNodeState.UP);
+				}
 			}
 		}
-	
 	}
 	
 	/**

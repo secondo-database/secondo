@@ -19,7 +19,6 @@ public class Main {
 		cassandraGUI.run();
 		
 		while(! cassandraGUI.shutdown) {
-			guiModel.updateModel();
 			cassandraGUI.updateView();
 			Thread.sleep(1000);
 		}
