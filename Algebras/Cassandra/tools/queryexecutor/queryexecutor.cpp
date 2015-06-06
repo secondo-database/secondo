@@ -196,18 +196,65 @@ public:
   
      return true;
    }
+   
+   /*
+   2.2 Determine the CPU type of the system
+   
+   */
+   string getCpuType() {
+           string line;
+           ifstream file("/proc/cpuinfo");
+
+           while(getline(file,line)) {
+                   if(line.find("model name") != string::npos) {
+                           size_t pos = line.find(":");
+                           pos = pos + 2; // ignore ": "
+                           return line.substr(pos, line.size());
+                   }   
+           }   
+
+           file.close();
+           return "---";
+   }
+
+   /*
+   2.2 Determine the amount of memory of the system
+   
+   */
+   int getMemory() {
+      string token;
+      ifstream file("/proc/meminfo");
+      while(file >> token) {
+         if(token == "MemTotal:") {
+             long mem;
+             if(file >> mem) {
+                 return mem / 1024;
+              } else {
+                 return 0;       
+              }
+         }
+         file.close();
+      }
+      return 0;
+   }
 
    /*
    2.2 Update UUID Entry in global state table
 
    */
-   bool updateUuid() {  
+   bool updateSystemState() {  
       
      // Build CQL query
      stringstream ss;
      ss << "UPDATE system_state set node = '";
      ss << instanceUuid;
-     ss << "' WHERE ip = '";
+     ss << "', threads = ";
+     ss << cmdline_args->secondoPorts.size();
+     ss << ", cputype = '";
+     ss << getCpuType();
+     ss << "', memory=";
+     ss << getMemory();
+     ss << " WHERE ip = '";
      ss << cmdline_args->cassandraNodeIp;
      ss << "';";
   
@@ -451,7 +498,7 @@ public:
      time_t version = 0;
      
      updateLastCommand(lastCommandId);       
-     updateUuid();
+     updateSystemState();
   
      while(true) {
         
@@ -489,7 +536,6 @@ public:
                lastCommandId = 0;
              
                updateLastCommand(lastCommandId);
-               updateUuid();
                  
                cout << "[Info] Reset complete, waiting for new queries" << endl;
                break;
@@ -520,7 +566,6 @@ public:
                }
             
                updateLastCommand(lastCommandId);
-               updateUuid();
              }
              
              result.pop_back();
