@@ -80,8 +80,7 @@ public class CassandraGUI {
 		
 		table.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
 	        public void valueChanged(ListSelectionEvent event) {
-	        	guiModel.setObservedQueryId(
-	        			Integer.parseInt((table.getValueAt(table.getSelectedRow(), 0).toString())));
+	        	guiModel.setObservedQueryId(table.getSelectedRow() + 1);
 	        }
 	    });
 
@@ -218,19 +217,22 @@ public class CassandraGUI {
 						final Map<String, CassandraSystemState> heartbeatData = guiModel.getNodeHeartbeat();
 						final CassandraSystemState systemState = heartbeatData.get(node.getName());
 			
-						final Date heartbeat = new Date(systemState.getHeartbeat());
-			
 						final StringBuilder sb = new StringBuilder();
-						sb.append("<html>Heart beat: " + sdfDate.format(heartbeat) + "<br>");
+						sb.append("<html>");
 						
-						if(systemState.getCputype() != null)
-					   	   sb.append("CPU-Type: " + systemState.getCputype() + "<br>");
-						
-						if(systemState.getMemory() != 0) 
-						   sb.append("Memory (MB): " + systemState.getMemory() + "<br>");
-						
-						if(systemState.getThreads() != 0)
-						   sb.append("SECONDO Threads: " + systemState.getThreads() + "<br>");
+						if(systemState != null) {
+							final Date heartbeat = new Date(systemState.getHeartbeat());
+							sb.append("Heart beat: " + sdfDate.format(heartbeat) + "<br>");
+							
+							if(systemState.getCputype() != null)
+						   	   sb.append("CPU-Type: " + systemState.getCputype() + "<br>");
+							
+							if(systemState.getMemory() != 0) 
+							   sb.append("Memory (MB): " + systemState.getMemory() + "<br>");
+							
+							if(systemState.getThreads() != 0)
+							   sb.append("SECONDO Threads: " + systemState.getThreads() + "<br>");
+						}
 						
 						sb.append("State: " + node.getState());
 						sb.append("</html>");
