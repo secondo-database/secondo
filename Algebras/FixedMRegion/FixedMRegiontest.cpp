@@ -404,6 +404,7 @@ testQuatro ()
 
   //printf ("Test testQuatro7: \n");
   double m2 = v2->Area ();
+
   printf ("Flächeninhalt zweites kleines Viereck: %s\n",
            (m2==1.0) ? "OK" : "FAILED");
 
