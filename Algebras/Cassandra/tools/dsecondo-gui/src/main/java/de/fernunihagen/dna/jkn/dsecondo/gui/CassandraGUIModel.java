@@ -67,7 +67,7 @@ public class CassandraGUIModel {
 			if(newTokenRanges.get(ip) == null) {
 				newTokenRanges.put(ip, 1);
 			} else {
-				newTokenRanges.put(ip, (tokenRanges.get(ip)+1));
+				newTokenRanges.put(ip, (newTokenRanges.get(ip)+1));
 			}
 		}
 		tokenRanges = newTokenRanges;
