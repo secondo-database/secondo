@@ -15,12 +15,17 @@ import com.datastax.driver.core.Row;
 public class CassandraGUIModel {
 	protected List<CassandraQuery> queries;
 	protected Map<String, Integer> tokenRanges; 
+	protected Map<String, Long> heartbeat;
 	protected int observedQueryId = 1;
 	protected CassandraClient client;
 	
 	public CassandraGUIModel(CassandraClient client) {
 		super();
 		this.client = client;
+		
+		queries = new ArrayList<CassandraQuery>();
+		tokenRanges = new HashMap<String, Integer>();
+		heartbeat = new HashMap<String, Long>();
 	}
 	
 	/**
@@ -28,29 +33,58 @@ public class CassandraGUIModel {
 	 * the heartbeat data
 	 */
 	public synchronized void updateModel() {
-		queries = new ArrayList<CassandraQuery>();
-		tokenRanges = new HashMap<String, Integer>();
-		
+		updateQueries();
+		updateTokenranges();
+		updateHeartbeat();
+	}
+
+	/**
+	 * Update query data
+	 */
+	protected void updateQueries() {
+		final ArrayList<CassandraQuery> newQueries = new ArrayList<CassandraQuery>();
 		ResultSet queryResult = client.getQueries();
 		for(Row row : queryResult) {
-			queries.add(new CassandraQuery(row.getInt(0), row.getString(1), row.getLong(2)));
+			newQueries.add(new CassandraQuery(row.getInt(0), row.getString(1), row.getLong(2)));
 		}
 		
-		Collections.sort(queries, new Comparator<CassandraQuery>() {
+		Collections.sort(newQueries, new Comparator<CassandraQuery>() {
 			public int compare(CassandraQuery o1, CassandraQuery o2) {
 				return Integer.compare(o1.getId(), o2.getId());
 			}
 		});
-		
+		queries = newQueries;
+	}
+
+	/**
+	 * Update token range data
+	 */
+	protected void updateTokenranges() {
+		final HashMap<String, Integer> newTokenRanges = new HashMap<String, Integer>();
 		ResultSet tokenResult = client.getTokenProcessedRangesForQuery(observedQueryId);
 		for(Row row : tokenResult) {
 			String ip = row.getString(0);
-			if(tokenRanges.get(ip) == null) {
-				tokenRanges.put(ip, 1);
+			if(newTokenRanges.get(ip) == null) {
+				newTokenRanges.put(ip, 1);
 			} else {
-				tokenRanges.put(ip, (tokenRanges.get(ip)+1));
+				newTokenRanges.put(ip, (tokenRanges.get(ip)+1));
 			}
 		}
+		tokenRanges = newTokenRanges;
+	}
+
+	/**
+	 * Update heartbeat data
+	 */
+	protected void updateHeartbeat() {
+		final HashMap<String, Long> newHeartbeat = new HashMap<String, Long>();
+		ResultSet heartbeatSet = client.getNodeHeartbeat();
+		for(Row row: heartbeatSet) {
+			String ip = row.getString(0);
+			long heartbeatValue = row.getLong(1);
+			newHeartbeat.put(ip, heartbeatValue);
+		}
+		heartbeat = newHeartbeat;
 	}
 	
 	/**
@@ -97,8 +131,8 @@ public class CassandraGUIModel {
 	 * Get the node heartbeat
 	 * @return
 	 */
-	public ResultSet getNodeHeartbeat() {
-		return client.getNodeHeartbeat();
+	public Map<String, Long> getNodeHeartbeat() {
+		return heartbeat;
 	}
 
 	/**

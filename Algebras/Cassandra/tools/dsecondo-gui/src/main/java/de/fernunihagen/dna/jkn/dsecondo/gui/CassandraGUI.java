@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 import javax.swing.AbstractAction;
@@ -33,8 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.Host;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 
 public class CassandraGUI {
 	
@@ -49,7 +46,7 @@ public class CassandraGUI {
 	protected final static Logger logger = LoggerFactory.getLogger(CassandraGUI.class);
 
 	public final static int SIZE = 400;
-	public final Point upperPoint = new Point(200, 50);
+	public final Point upperPoint = new Point(200, 30);
 	public final Point centerPoint = new Point(upperPoint.x + SIZE/2,  upperPoint.y + SIZE/2);
 	public volatile boolean shutdown = false;
 	
@@ -215,7 +212,14 @@ public class CassandraGUI {
 				
 				for(CassandraNode node : cassandraNodes.values()) {
 					if(node.isMouseOver(event)) {
-						return node.getName();
+						final Map<String, Long> heartbeatData = guiModel.getNodeHeartbeat();
+						final StringBuilder sb = new StringBuilder();
+						sb.append("<html>Last heart beat: ");
+						sb.append(heartbeatData.get(node.getName()));
+						sb.append("<br>");
+						sb.append("State: " + node.getState());
+						sb.append("</html>");
+						return sb.toString();
 					}
 				}
 				
@@ -315,22 +319,20 @@ public class CassandraGUI {
 			node.setTokenRangeCount(guiModel.getTokenCache().get(ip));
 		}
 		
-		ResultSet result = guiModel.getNodeHeartbeat();
-		for(Iterator<Row> iter = result.iterator(); iter.hasNext(); ) {
-			Row row = iter.next();
-			String ip = row.getString(0);
-			long heartbeat = row.getLong(1);
-			
+		Map<String, Long> result = guiModel.getNodeHeartbeat();
+		for(String ip : result.keySet()) {
+			long heartbeat = result.get(ip);
 			CassandraNode node = cassandraNodes.get(ip);
+			
 			if(node == null) {
 				logger.warn("Node " + ip + " not found on GUI, ignoring");
 				continue;
 			}
 			
 			if(curTime - 30 * 1000 > heartbeat) {
-				node.setState(CassandraNodeState.INACTIVE);
+				node.setState(CassandraNodeState.DOWN);
 			} else {
-				node.setState(CassandraNodeState.ACTIVE);
+				node.setState(CassandraNodeState.UP);
 			}
 		}
 	

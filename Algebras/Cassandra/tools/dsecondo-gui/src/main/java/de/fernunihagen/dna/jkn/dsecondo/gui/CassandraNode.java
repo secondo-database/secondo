@@ -102,13 +102,13 @@ public class CassandraNode {
 		final Font oldFont = g2d.getFont();
 		
 		switch(state) {
-		case ACTIVE:
+		case UP:
 			g.setColor(Color.GREEN);
 			break;
 		case MISSING:
 			g.setColor(Color.YELLOW);
 			break;
-		case INACTIVE:
+		case DOWN:
 			g.setColor(Color.RED);
 			break;
 		default:
@@ -119,7 +119,7 @@ public class CassandraNode {
 		g.setColor(Color.BLACK);
 		g.drawOval(position.x - SIZE/2, position.y - SIZE/2, SIZE, SIZE);
 		
-		if(state == CassandraNodeState.ACTIVE || state == CassandraNodeState.INACTIVE) {
+		if(state == CassandraNodeState.UP || state == CassandraNodeState.DOWN) {
 			String value = Integer.toString(tokenRangeCount);
 			Rectangle2D bounds = g2d.getFontMetrics().getStringBounds(value, g2d);
 			int stringLen = (int) bounds.getWidth();
