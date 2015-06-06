@@ -8,14 +8,20 @@
 #
 #######################################
 
+# Scriptname and Path
+pushd `dirname $0` > /dev/null
+scriptpath=`pwd`
+scriptname=$(basename $0)
+popd > /dev/null
+
+# Include functions
+. $scriptpath/functions.sh
+
 # Set language to default
 LANG=C
 
 # port for secondo (the port range $port - $port+$instances-1 will be used)
 port=12234
-
-# Max pending start / stop tasks
-max_pending=3
 
 # secondo worker instances (2 cores for the kernel and cassandra 
 # and the remaning cores for DSECONDO)
@@ -35,24 +41,6 @@ fi
 # Variables
 screensessionServer="dsecondo-server"
 screensessionExecutor="dsecondo-executor"
-
-##
-# Other variables
-##
-done=" \x1b[33;32m[ Done ]\x1b[39;49;00m"
-failed=" \x1b[31;31m[ Failed ]\x1b[39;49;00m"
-
-
-# Scriptname and Path
-pushd `dirname $0` > /dev/null
-scriptpath=`pwd`
-scriptname=$(basename $0)
-popd > /dev/null
-
-# Get local IP
-function getIp {
-   /sbin/ifconfig | grep "inet addr" | grep -v "127.0.0.1" | cut -d ":" -f 2 | awk {'print $1'} | head -1
-}
 
 # Get ID for Screen
 function getScreenId {
@@ -104,7 +92,7 @@ start_local() {
    fi
  
    # local ip
-   ip=$(ifconfig | grep "inet addr" | cut -d ":" -f 2 | awk {'print $1'} | head -1)
+   ip=$(getIp)
   
    # username
    username=$(whoami)
@@ -191,45 +179,16 @@ stop_local() {
    done
 }
 
-function execute_parallel() {
-   command=$1
-   task=$2
-   
-   # Number of pending starts
-   pending=0
-
-   for node in $nodes; do
-      echo "$task DSECONDO on Node $node "
-      ssh $node "$command" &
-      
-      pending=$((pending + 1)) 
-
-      if [ $pending -ge $max_pending ]; then
-         echo -n "Waiting for pending commands to finish..."  
-         wait
-         pending=0
-         echo -e " $done"
-       fi
-   done
-
-   if [ $pending -gt 0 ]; then
-      echo -n "Waiting for pending commands to finish..."  
-      wait
-      echo -e " $done"
-   fi
-
-}
-
 # Start all descondo instances
 start() {
-   #execute_parallel "source .secondorc; bash -x $scriptpath/$scriptname start_local > /dev/null" "Starting"
-   execute_parallel "source .secondorc; bash $scriptpath/$scriptname start_local > /dev/null" "Starting"
+   #execute_parallel "source .secondorc; bash -x $scriptpath/$scriptname start_local > /dev/null" "Starting DSECONDO" "$nodes" $max_pending
+   execute_parallel "source .secondorc; bash $scriptpath/$scriptname start_local > /dev/null" "Starting DSECONDO" "$nodes" $max_pending
 }
 
 # Stop all desecondo instances
 stop() {
-   #execute_parallel "source .secondorc; bash -x $scriptpath/$scriptname stop_local > /dev/null" "Stopping"
-   execute_parallel "source .secondorc; bash $scriptpath/$scriptname stop_local > /dev/null" "Stopping"
+   #execute_parallel "source .secondorc; bash -x $scriptpath/$scriptname stop_local > /dev/null" "Stopping DSECONDO" "$nodes" $max_pending
+   execute_parallel "source .secondorc; bash $scriptpath/$scriptname stop_local > /dev/null" "Stopping DSECONDO" "$nodes" $max_pending
 }
 
 case "$1" in 

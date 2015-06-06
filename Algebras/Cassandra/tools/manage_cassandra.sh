@@ -8,10 +8,20 @@
 #
 #######################################
 
+# Scriptname and Path
+pushd `dirname $0` > /dev/null
+scriptpath=`pwd`
+scriptname=$(basename $0)
+popd > /dev/null
+
+# Include functions
+. $scriptpath/functions.sh
+
+# Set language to default
+LANG=C
 
 # Cassandra Nodes
 nodes="node1 node2 node3 node4 node5 node6"
-
 
 # Cassandra dir
 cassandrapath="/opt/psec/nidzwetzki/cassandra"
@@ -37,12 +47,6 @@ cassandra_commitlog_dir=/mnt/diskb/psec2/nidzwetzki/cassandra/commitlog
 
 # Cassandra seed master
 cassandra_seed="132.176.69.181"
-
-##
-# Other variables
-##
-done=" \x1b[33;32m[ Done ]\x1b[39;49;00m"
-failed=" \x1b[31;31m[ Failed ]\x1b[39;49;00m"
 
 # Start cassandra
 start() {
@@ -119,13 +123,7 @@ start_local() {
 
 # Stop cassandra
 stop() {
-for node in $nodes; do
-
-   echo -n "Killing Cassandra on node $node "
-   ssh $node "ps ux | grep CassandraDaemon | grep -v grep | awk {'print \$2'} | xargs kill 2> /dev/null"
-   echo -e $done 
-
-done
+   execute_parallel "ps ux | grep CassandraDaemon | grep -v grep | awk {'print \$2'} | xargs kill 2> /dev/null" "Stopping Cassandra" "$nodes" $max_pending
 }
 
 # Delete the data and the commit log of cassandra
@@ -168,7 +166,7 @@ install_cassandra_local() {
        
     tar zxvf apache-cassandra-${cassandra_version}-bin.tar.gz > /dev/null
     
-    ip=$(ifconfig | grep "inet addr" | cut -d ":" -f 2 | awk {'print $1'} | head -1)
+    ip=$(getIp)
 
     sed -i "s/num_tokens: .*/num_tokens: $cassandra_vnodes/" $cassandraconfig
     sed -i "s/# commitlog_directory/commitlog_directory/" $cassandraconfig
@@ -198,7 +196,7 @@ done
 # Init cassandra keyspaces
 init_cassandra() {
 	tmpfile=$(mktemp)
-	ip=$(ifconfig | grep "inet addr" | cut -d ":" -f 2 | awk {'print $1'} | head -1)
+	ip=$(getIp)
 
         for i in $(seq 1 6); do
             echo "Create keyspace keyspace_r$i"
@@ -206,7 +204,7 @@ init_cassandra() {
             echo "CREATE KEYSPACE keyspace_r$i WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : $i};" >> $tmpfile
             echo "USE keyspace_r$i;" >> $tmpfile
             echo "CREATE TABLE IF NOT EXISTS system_queries (id INT, query TEXT, version BIGINT, PRIMARY KEY(id));" >> $tmpfile
-            echo "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, node TEXT, heartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));" >> $tmpfile
+            echo "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, node TEXT, cputype TEXT, memory INT, threads INT, heartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));" >> $tmpfile
             echo "CREATE TABLE IF NOT EXISTS system_progress (queryid INT, ip TEXT, begintoken TEXT, endtoken TEXT, queryuuid TEXT, PRIMARY KEY(queryid, ip, begintoken));" >> $tmpfile
             echo "CREATE TABLE IF NOT EXISTS system_tokenranges (begintoken TEXT, endtoken TEXT, ip TEXT, PRIMARY KEY(begintoken));" >> $tmpfile
 	    
