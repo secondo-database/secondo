@@ -536,6 +536,7 @@ public:
                lastCommandId = 0;
              
                updateLastCommand(lastCommandId);
+               updateSystemState();
                  
                cout << "[Info] Reset complete, waiting for new queries" << endl;
                break;
