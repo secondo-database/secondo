@@ -15,7 +15,7 @@ import com.datastax.driver.core.Row;
 public class CassandraGUIModel {
 	protected List<CassandraQuery> queries;
 	protected Map<String, Integer> tokenRanges; 
-	protected Map<String, Long> heartbeat;
+	protected Map<String, CassandraSystemState> systemState;
 	protected int observedQueryId = 1;
 	protected CassandraClient client;
 	
@@ -25,7 +25,7 @@ public class CassandraGUIModel {
 		
 		queries = new ArrayList<CassandraQuery>();
 		tokenRanges = new HashMap<String, Integer>();
-		heartbeat = new HashMap<String, Long>();
+		systemState = new HashMap<String, CassandraSystemState>();
 	}
 	
 	/**
@@ -35,7 +35,7 @@ public class CassandraGUIModel {
 	public synchronized void updateModel() {
 		updateQueries();
 		updateTokenranges();
-		updateHeartbeat();
+		updateSystemState();
 	}
 
 	/**
@@ -76,15 +76,20 @@ public class CassandraGUIModel {
 	/**
 	 * Update heartbeat data
 	 */
-	protected void updateHeartbeat() {
-		final HashMap<String, Long> newHeartbeat = new HashMap<String, Long>();
-		ResultSet heartbeatSet = client.getNodeHeartbeat();
+	protected void updateSystemState() {
+		final HashMap<String, CassandraSystemState> newSystemState = new HashMap<String, CassandraSystemState>();
+		ResultSet heartbeatSet = client.getSystemState();
 		for(Row row: heartbeatSet) {
 			String ip = row.getString(0);
 			long heartbeatValue = row.getLong(1);
-			newHeartbeat.put(ip, heartbeatValue);
+			String cputype = row.getString(2);
+			int memory = row.getInt(3);
+			int threads = row.getInt(4);
+			
+			final CassandraSystemState systemState = new CassandraSystemState(heartbeatValue, cputype, memory, threads);
+			newSystemState.put(ip, systemState);
 		}
-		heartbeat = newHeartbeat;
+		systemState = newSystemState;
 	}
 	
 	/**
@@ -131,8 +136,8 @@ public class CassandraGUIModel {
 	 * Get the node heartbeat
 	 * @return
 	 */
-	public Map<String, Long> getNodeHeartbeat() {
-		return heartbeat;
+	public Map<String, CassandraSystemState> getNodeHeartbeat() {
+		return systemState;
 	}
 
 	/**

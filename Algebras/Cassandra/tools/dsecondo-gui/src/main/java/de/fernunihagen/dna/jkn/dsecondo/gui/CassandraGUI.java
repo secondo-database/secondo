@@ -10,9 +10,11 @@ import java.awt.RenderingHints;
 import java.awt.Stroke;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,6 +50,7 @@ public class CassandraGUI {
 	public final static int SIZE = 400;
 	public final Point upperPoint = new Point(200, 30);
 	public final Point centerPoint = new Point(upperPoint.x + SIZE/2,  upperPoint.y + SIZE/2);
+	public final SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	public volatile boolean shutdown = false;
 	
 	public CassandraGUI() {
@@ -212,11 +215,23 @@ public class CassandraGUI {
 				
 				for(CassandraNode node : cassandraNodes.values()) {
 					if(node.isMouseOver(event)) {
-						final Map<String, Long> heartbeatData = guiModel.getNodeHeartbeat();
+						final Map<String, CassandraSystemState> heartbeatData = guiModel.getNodeHeartbeat();
+						final CassandraSystemState systemState = heartbeatData.get(node.getName());
+			
+						final Date heartbeat = new Date(systemState.getHeartbeat());
+			
 						final StringBuilder sb = new StringBuilder();
-						sb.append("<html>Last heart beat: ");
-						sb.append(heartbeatData.get(node.getName()));
-						sb.append("<br>");
+						sb.append("<html>Heart beat: " + sdfDate.format(heartbeat) + "<br>");
+						
+						if(systemState.getCputype() != null)
+					   	   sb.append("CPU-Type: " + systemState.getCputype() + "<br>");
+						
+						if(systemState.getMemory() != 0) 
+						   sb.append("Memory (MB): " + systemState.getMemory() + "<br>");
+						
+						if(systemState.getThreads() != 0)
+						   sb.append("SECONDO Threads: " + systemState.getThreads() + "<br>");
+						
 						sb.append("State: " + node.getState());
 						sb.append("</html>");
 						return sb.toString();
@@ -319,9 +334,10 @@ public class CassandraGUI {
 			node.setTokenRangeCount(guiModel.getTokenCache().get(ip));
 		}
 		
-		Map<String, Long> result = guiModel.getNodeHeartbeat();
+		Map<String, CassandraSystemState> result = guiModel.getNodeHeartbeat();
 		for(String ip : result.keySet()) {
-			long heartbeat = result.get(ip);
+			final CassandraSystemState state = result.get(ip);
+			long heartbeat = state.getHeartbeat();
 			CassandraNode node = cassandraNodes.get(ip);
 			
 			if(node == null) {

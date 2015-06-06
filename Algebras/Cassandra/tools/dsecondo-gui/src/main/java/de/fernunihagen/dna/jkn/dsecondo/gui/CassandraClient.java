@@ -70,8 +70,8 @@ public class CassandraClient implements AutoCloseable {
 	 * Get Heartbeat data of the DSECONDO nodes
 	 * @return heartbeat data
 	 */
-	ResultSet getNodeHeartbeat() {
-		ResultSet result = session.execute("SELECT ip, heartbeat, lastquery from system_state");
+	ResultSet getSystemState() {
+		ResultSet result = session.execute("SELECT ip, heartbeat, cputype, memory, threads, lastquery from system_state");
 		return result;
 	}
 	
