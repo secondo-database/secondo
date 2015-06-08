@@ -1124,11 +1124,12 @@ tcp socket
       
       currentSimulationTimeRun = 0;
       
-      while(true) {
+      while(currentSimulationTimeRun < configuration->endoffset) {
          removeOldElements();
-         
+
          if(! output -> isReady()) {
              cerr << "Output not ready, skipping simulation run" << endl;
+             usleep(1000);
              continue;
          }
          
