@@ -29,7 +29,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.table.AbstractTableModel;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,7 +162,7 @@ public class CassandraGUI {
 						
 						if(systemState != null) {
 							final Date heartbeat = new Date(systemState.getHeartbeat());
-							sb.append("Heart beat: " + sdfDate.format(heartbeat) + "<br>");
+							sb.append("Heartbeat: " + sdfDate.format(heartbeat) + "<br>");
 							
 							if(systemState.getCputype() != null)
 						   	   sb.append("CPU-Type: " + systemState.getCputype() + "<br>");
