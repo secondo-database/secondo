@@ -72,8 +72,10 @@
 #include "CassandraResult.h"
 #include "CassandraConnectionPool.h"
 
-#define CASSANDRA_DEFAULT_IP        "127.0.0.1"
-#define CASSANDRA_DEFAULT_KEYSPACE  "keyspace_r3"
+#define CASSANDRA_DEFAULT_IP          "127.0.0.1"
+#define CASSANDRA_DEFAULT_KEYSPACE    "keyspace_r3"
+#define CASSANDRA_DEFAULT_NODENAME    "node1"
+#define CASSANDRA_DEFAILT_CONSISTENCY "QUORUM"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -692,7 +694,16 @@ Operator cassandradelete (
 
 The operator ~cspread~ feeds a tuple stream into
 a cassandra cluster.  The first parameter is the name 
-of the relation. The second parameter is the consistence level:
+of the relation. 
+         
+The second parameter is the attribute used for
+clustering.
+         
+The third parameter is the name of the local
+system. The name must be unique for each secondo
+node.         
+
+The fourth parameter is the consistence level:
 
 ANY    - Only a hinted handoff is created
 ONE    - One of the cassandra nodes has written the tuple
@@ -700,49 +711,47 @@ QUORUM - More then n/2+1 cassandra nodes have written the tuple
          n is the replication factor of the cluster
 ALL    - All cassandra nodes have written the tuple
 
-The third parameter is the name of the local
-system. The name must be unique for each secondo
-node
-
-The fourth parameter is the name of the local 
-system. The name must be unique for each secondo
-node
-
-The fifth parameter is the attribute used for
-clustering
-
 2.2.1 Type mapping function of operator ~cspread~
 
 Type mapping for ~cspread~ is
 
 ----
-  stream(tuple(...)) x text x text x text x attr -> int
+  stream(tuple(...)) x text x attr [x text [x text]]  -> int
                 
 ----
 
 */
-ListExpr CSpreadTypeMap( ListExpr args )
-{
+ListExpr CSpreadTypeMap( ListExpr args ) {
 
-  if(nl->ListLength(args) != 5){
-    return listutils::typeError("five arguments expected");
+  if(nl->ListLength(args) < 3 || nl->ListLength(args) > 5){
+    return listutils::typeError("3, 4 or 5 arguments expected");
   }
 
-  string err = " stream(tuple(...)) x text x text "
-    " x text x attr expected";
+  string err = " stream(tuple(...)) x text x attr [x text "
+    " [x text]] expected";
 
   ListExpr stream = nl->First(args);
   ListExpr relation = nl->Second(args);
-  ListExpr consistence = nl->Third(args);
-  ListExpr systemname = nl->Fourth(args);
-  ListExpr attr = nl->Fifth(args);
+  ListExpr attr = nl->Third(args);
   
   if(( !Stream<Tuple>::checkType(stream) &&
        !Stream<Attribute>::checkType(stream) ) ||
-       !FText::checkType(relation) ||
-       !FText::checkType(consistence) ||
-       !FText::checkType(systemname)) {
+       !FText::checkType(relation)) {
     return listutils::typeError(err);
+  }
+  
+  if(nl->ListLength(args) == 4) {
+     ListExpr systemname = nl->Fourth(args);
+     if(! FText::checkType(systemname)) {
+        return listutils::typeError(err + "(invalid system name");
+     }
+  }
+  
+  if(nl->ListLength(args) == 5) {
+     ListExpr consistence = nl->Fifth(args);
+     if(!FText::checkType(consistence)) {
+        return listutils::typeError(err + "(invalid consistence)");
+    }
   }
   
   // Check attribute name and append position
@@ -761,10 +770,26 @@ ListExpr CSpreadTypeMap( ListExpr args )
                      " is not an attribute of the stream");
   } 
   
-  ListExpr indexList = nl->OneElemList(nl->IntAtom(index-1));
+  string parmFile = expandVar("$(SECONDO_CONFIG)");
+  string nodename = SmiProfile::GetParameter("CassandraAlgebra", 
+     "CassandraDefaultNodename", CASSANDRA_DEFAULT_NODENAME, parmFile);
+  string consistency = SmiProfile::GetParameter("CassandraAlgebra", 
+     "CassandraConsistency", CASSANDRA_DEFAILT_CONSISTENCY, parmFile);
+
+  ListExpr defaults;
   
+  if(nl->ListLength(args) == 3) {
+     defaults = nl->ThreeElemList(nl->TextAtom(nodename), 
+     nl->TextAtom(consistency), nl->IntAtom(index-1));
+  } else if(nl->ListLength(args) == 4) {
+     defaults = nl->TwoElemList(nl->TextAtom(consistency), 
+     nl->IntAtom(index-1));
+  } else {
+     defaults = nl->OneElemList(nl->IntAtom(index-1));
+  }
+
   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
-                            indexList,
+                            defaults,
                             nl->SymbolAtom(CcInt::BasicType()));
 }
 
@@ -907,6 +932,13 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
   bool feedOk = true;
   bool parameterOk = true;
   
+  string parmFile = expandVar("$(SECONDO_CONFIG)");
+  string host = SmiProfile::GetParameter("CassandraAlgebra", 
+     "CassandraHost", CASSANDRA_DEFAULT_IP, parmFile);
+  string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+     "CassandraKeyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
+  
+  
   switch(message)
   {
     case OPEN: 
@@ -919,18 +951,19 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
       if (! ((FText*) args[1].addr)->IsDefined()) {
         cout << "Relationname is not defined" << endl;
         parameterOk = false;
-      } else if (! ((FText*) args[2].addr)->IsDefined()) {
-        cout << "Consistence level is not defined" << endl;
-        parameterOk = false;
       } else if (! ((FText*) args[3].addr)->IsDefined()) {
-        cout << "Systemname is not defined" << endl;
+        cout << "Nodename is not defined" << endl;
+        parameterOk = false;
+      } else if (! ((FText*) args[4].addr)->IsDefined()) {
+        cout << "Consistence is not defined" << endl;
         parameterOk = false;
       } else if (! ((CcInt*) args[5].addr)->IsDefined()) {
         cout << "Attr Index is not defined" << endl;
         parameterOk = false;
-      }
+      } 
       
-      string consistenceLevel = ((FText*) args[2].addr)->GetValue();
+      string nodename = ((FText*) args[3].addr)->GetValue();
+      string consistenceLevel = ((FText*) args[4].addr)->GetValue(); 
       
       if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel) ) {
         cout << "Unknown consistence level: " << consistenceLevel << endl;
@@ -943,22 +976,16 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
     
       string tupleType = nl->ToString(relTypeList);
       
-      string parmFile = expandVar("$(SECONDO_CONFIG)");
-      string host = SmiProfile::GetParameter("CassandraAlgebra", 
-         "CassandraHost", CASSANDRA_DEFAULT_IP, parmFile);
-      string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-         "CassandraKeyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
-      
       cli = new CSpreadLocalInfo(
                       host,
                       keyspace,
                       (((FText*)args[1].addr)->GetValue()),
-                      (((FText*)args[2].addr)->GetValue()),
-                      (((FText*)args[3].addr)->GetValue()),
+                      consistenceLevel,
+                      nodename,
                       (((CcInt*)args[5].addr)->GetValue()),
                       tupleType
                       );
-      
+  
       // Consume stream
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, elem);
@@ -1008,8 +1035,8 @@ int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
 const string CSpreadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>stream(tuple(...)) x text x text x text "
-                         "x text x text x attr -> int</text--->"
+                         "<text>stream(tuple(...)) x text x text x attr "
+                         "[x text [x text [x text]]] -> int</text--->"
                          "<text>cspread _ op [ _ , _ , _ , _ , _ ] </text--->"
                          "<text>The operator cspread feeds a tuple stream"
                          "into a cassandra cluster. The first parameter is "
@@ -1031,7 +1058,7 @@ const string CSpreadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "clustering"
                          "</text--->"
                          "<text>query plz feed cspread["
-                         "'plz', 'ANY'. 'node1', 'PLZ']</text--->"
+                         "'plz', PLZ]</text--->"
                               ") )";
 
 /*
@@ -1114,17 +1141,17 @@ enum CollectFetchMode {ALL, LOCAL, RANGE, QUERY};
 Type mapping for ~ccollect~ is
 
 ----
-   text x text -> stream(tuple(...))
+   text [x text] -> stream(tuple(...))
 ----
 
 */
 ListExpr CCollectTypeMap( ListExpr args ) {
 
-  if(nl->ListLength(args) != 2){
-    return listutils::typeError("two arguments expected");
+  if(nl->ListLength(args) != 1 && nl->ListLength(args) != 2){
+    return listutils::typeError("one or two arguments expected");
   }
 
-  string err = " text x text expected";
+  string err = " text [x text] expected";
 
   // arg evaluation is active
   // this means each argument is a two elem list (type value)
@@ -1137,11 +1164,17 @@ ListExpr CCollectTypeMap( ListExpr args ) {
   }
 
   ListExpr relationName = nl->First(args);
-  ListExpr consistenceLevel = nl->Second(args);
 
-  if(  !FText::checkType(nl->First(relationName)) ||
-       !FText::checkType(nl->First(consistenceLevel))) {
+
+  if(  !FText::checkType(nl->First(relationName))) {
     return listutils::typeError(err);
+  }
+  
+  if(nl->ListLength(args) == 2) {
+     ListExpr consistenceLevel = nl->Second(args);
+     if( !FText::checkType(nl->First(consistenceLevel))) {
+       return listutils::typeError(err);
+     }
   }
 
   string relationVal;  
@@ -1158,6 +1191,8 @@ ListExpr CCollectTypeMap( ListExpr args ) {
      "CassandraHost", CASSANDRA_DEFAULT_IP, parmFile);
   string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
      "CassandraKeyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
+  string consistency = SmiProfile::GetParameter("CassandraAlgebra", 
+        "CassandraConsistency", CASSANDRA_DEFAILT_CONSISTENCY, parmFile);
   
   CassandraAdapter* cassandra 
      = CassandraConnectionPool::Instance()->
@@ -1173,12 +1208,20 @@ ListExpr CCollectTypeMap( ListExpr args ) {
   
   ListExpr resList;
   nl->ReadFromString(tupleType, resList);
+  if(nl->ListLength(args) == 2) {
+     return resList;
+  }
+  
+  // Append default parameter
 
 #ifdef __DEBUG__
   cout << "Result: " << nl->ToString(resList) << endl;
 #endif
   
-  return resList;
+
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            nl->OneElemList(nl->TextAtom(consistency)),
+                            resList);  
 }
 
 /*
@@ -1187,17 +1230,17 @@ ListExpr CCollectTypeMap( ListExpr args ) {
 Type mapping for ~ccollectrange~ is
 
 ----
-   text x text x text x text -> stream(tuple(...))
+   text x text x text [x text] -> stream(tuple(...))
 ----
 
 */
 ListExpr CCollectRangeTypeMap( ListExpr args ) {
 
-  if(nl->ListLength(args) != 4){
-    return listutils::typeError("four arguments expected");
+  if(nl->ListLength(args) != 3 && nl->ListLength(args) != 4){
+    return listutils::typeError("three or four arguments expected");
   }
 
-  string err = " text x text x text x text expected";
+  string err = " text x text x text [x text] expected";
 
   // arg evaluation is active
   // this means each argument is a two elem list (type value)
@@ -1210,18 +1253,23 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
   }
   
   ListExpr relationName = nl->First(args);
-  ListExpr consistenceLevel = nl->Second(args);
-  ListExpr begin = nl->Third(args);
-  ListExpr end = nl->Fourth(args);
+
+  ListExpr begin = nl->Second(args);
+  ListExpr end = nl->Third(args);
 
   if(  !FText::checkType(nl->First(relationName)) ||
-       !FText::checkType(nl->First(consistenceLevel)) ||
        !FText::checkType(nl->First(begin)) ||
        !FText::checkType(nl->First(end))
     ) {
     return listutils::typeError(err);
   }
   
+  if(nl->ListLength(args) == 4) {
+     ListExpr consistenceLevel = nl->Fourth(args);
+     if(!FText::checkType(nl->First(consistenceLevel))) {
+        return listutils::typeError(err);
+     }
+  }
   
   // We need to evaluate the result list, contact cassandra
   // and read the tuple type of the table
@@ -1239,6 +1287,8 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
      "CassandraHost", CASSANDRA_DEFAULT_IP, parmFile);
   string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
      "CassandraKeyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
+  string consistency = SmiProfile::GetParameter("CassandraAlgebra", 
+       "CassandraConsistency", CASSANDRA_DEFAILT_CONSISTENCY, parmFile);
   
   CassandraAdapter* cassandra 
   = CassandraConnectionPool::Instance()->
@@ -1255,11 +1305,19 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
   ListExpr resList;
   nl->ReadFromString(tupleType, resList);
   
+  if(nl->ListLength(args) == 4) {
+     return resList;
+  }
+  
+  // Append default values
 #ifdef __DEBUG__
   cout << "Result: " << nl->ToString(resList) << endl;
 #endif
   
-  return resList;
+
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            nl->OneElemList(nl->TextAtom(consistency)),
+                            resList);  
 }
 
 
@@ -1269,17 +1327,17 @@ ListExpr CCollectRangeTypeMap( ListExpr args ) {
 Type mapping for ~ccollecquery~ is
 
 ----
-   text x text x int -> stream(tuple(...))
+   text x int [x text] -> stream(tuple(...))
 ----
 
 */
 ListExpr CCollectQueryTypeMap( ListExpr args ) {
 
-  if(nl->ListLength(args) != 3){
+  if(nl->ListLength(args) != 2 && nl->ListLength(args) != 3){
     return listutils::typeError("three arguments expected");
   }
 
-  string err = " text x text x int expected";
+  string err = " text x int [x text] expected";
 
   // arg evaluation is active
   // this means each argument is a two elem list (type value)
@@ -1292,14 +1350,19 @@ ListExpr CCollectQueryTypeMap( ListExpr args ) {
   }
   
   ListExpr relationName = nl->First(args);
-  ListExpr consistenceLevel = nl->Second(args);
-  ListExpr query = nl->Third(args);
+  ListExpr query = nl->Second(args);
 
   if(  !FText::checkType(nl->First(relationName)) ||
-       !FText::checkType(nl->First(consistenceLevel)) ||
        !CcInt::checkType(nl->First(query))
     ) {
     return listutils::typeError(err);
+  }
+  
+  if( nl->ListLength(args) == 3) {
+     ListExpr consistenceLevel = nl->Third(args);
+     if(!FText::checkType(nl->First(consistenceLevel))) {
+        return listutils::typeError(err);
+     }
   }
   
   
@@ -1319,6 +1382,8 @@ ListExpr CCollectQueryTypeMap( ListExpr args ) {
      "CassandraHost", CASSANDRA_DEFAULT_IP, parmFile);
   string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
      "CassandraKeyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
+  string consistency = SmiProfile::GetParameter("CassandraAlgebra", 
+           "CassandraConsistency", CASSANDRA_DEFAILT_CONSISTENCY, parmFile);
   
   CassandraAdapter* cassandra = CassandraConnectionPool::Instance()->
             getConnection(host, keyspace, false);
@@ -1334,11 +1399,18 @@ ListExpr CCollectQueryTypeMap( ListExpr args ) {
   ListExpr resList;
   nl->ReadFromString(tupleType, resList);
   
+  if( nl->ListLength(args) == 3) {
+     return resList;
+  }
+  
+  // Append default values
 #ifdef __DEBUG__
   cout << "Result: " << nl->ToString(resList) << endl;
 #endif
-  
-  return resList;
+
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            nl->OneElemList(nl->TextAtom(consistency)),
+                            resList);  
 }
 
 
@@ -1494,6 +1566,13 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
   Word elem;
   string consistenceLevel;
 
+  string parmFile = expandVar("$(SECONDO_CONFIG)");
+  string host = SmiProfile::GetParameter("CassandraAlgebra", 
+     "CassandraHost", CASSANDRA_DEFAULT_IP, parmFile);
+  string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
+     "CassandraKeyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
+ 
+
   cli = (CCollectLocalInfo<fetchMode>*)local.addr;
   
   ListExpr resultType = GetTupleResultType(s);
@@ -1503,7 +1582,13 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
 
      if ( cli ) delete cli;
      
-     consistenceLevel = ((FText*) args[1].addr)->GetValue();
+     if(fetchMode == ALL) {
+        consistenceLevel = ((FText*) args[1].addr)->GetValue();
+     } else if(fetchMode == RANGE) {
+        consistenceLevel = ((FText*) args[3].addr)->GetValue();
+     } else if(fetchMode == QUERY) {
+        consistenceLevel = ((FText*) args[2].addr)->GetValue();
+     }
      
      if (! ((FText*) args[0].addr)->IsDefined()) {
        cout << "Relation name is not defined" << endl;
@@ -1512,40 +1597,34 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
      } else if( ! CassandraHelper::checkConsistenceLevel(consistenceLevel)) {
        cout << "Unknown consistence level: " << consistenceLevel << endl; 
      } else {
-       
-        string parmFile = expandVar("$(SECONDO_CONFIG)");
-        string host = SmiProfile::GetParameter("CassandraAlgebra", 
-           "CassandraHost", CASSANDRA_DEFAULT_IP, parmFile);
-        string keyspace = SmiProfile::GetParameter("CassandraAlgebra", 
-           "CassandraKeyspace", CASSANDRA_DEFAULT_KEYSPACE, parmFile);
-       
+ 
         cli = new CCollectLocalInfo<fetchMode>(nl -> Second(resultType),
                       host,
                       keyspace,
                       (((FText*)args[0].addr)->GetValue()),
-                      (((FText*)args[1].addr)->GetValue())
+                      consistenceLevel
                  );
          
          // Parse additional parameter for RANGE MODE
          if(fetchMode == RANGE) {
-            if (! ((FText*) args[2].addr)->IsDefined()) {
+            if (! ((FText*) args[1].addr)->IsDefined()) {
                 cout << "Begin Token not defined" << endl;
-            } else if (! ((FText*) args[3].addr)->IsDefined()) {
+            } else if (! ((FText*) args[2].addr)->IsDefined()) {
                 cout << "End Token not defined" << endl;
             }
             
-            string begin = ((FText*)args[2].addr)->GetValue();
-            string end   = ((FText*)args[3].addr)->GetValue();
+            string begin = ((FText*)args[1].addr)->GetValue();
+            string end   = ((FText*)args[2].addr)->GetValue();
 
             cli -> setBeginEndToken(begin, end);
          }
          
          // Parse additional parameter for QUERY
          if(fetchMode == QUERY) {
-           if (! ((CcInt*) args[2].addr)->IsDefined()) {
+           if (! ((CcInt*) args[1].addr)->IsDefined()) {
                 cout << "QueryId is not defined" << endl;
            } else {
-             int queryId = ((CcInt*)args[2].addr)->GetValue();
+             int queryId = ((CcInt*)args[1].addr)->GetValue();
              cli -> setQueryId(queryId);
            }
          }
@@ -1613,7 +1692,7 @@ const string CCollectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 const string CCollectRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>text x text x text x text"
+                         "<text>text x text x text [x text]"
                          "-> stream(tuple(...))</text--->"
                          "<text>ccollectrange [ _ , _ , _ , _ ]"
                          "</text--->"
@@ -1621,11 +1700,12 @@ const string CCollectRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "from our cassandra cluster and create a stream of"
                          "tuples. The first parameter "
                          "contains the name of the relation to fetch. The "
-                         "second parameter specifies the consistence "
-                         "level used for reading. The third and the fourth"
-                         "parameter specifies the token range</text--->"
-                         "<text>query ccollectrange['plz', 'ANY', '1234',"
-                         " '5678'] count</text--->"
+                         "second and the third"
+                         "parameter specifies the token range. The "
+                         "fourth parameter specifies the consistence "
+                         "level used for reading. </text--->"
+                         "<text>query ccollectrange['plz', '1234',"
+                         " '5678', 'ANY'] count</text--->"
                               ") )";
 
 /*
@@ -1635,21 +1715,22 @@ const string CCollectRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 const string CCollectQuerySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( "
-                         "<text>text x text x int"
+                         "<text>text x int x text "
                          "-> stream(tuple(...))</text--->"
                          "<text>ccollectquery [ _ , _ , _ ] </text--->"
                          "<text>The operator ccollect fetches a relation from"
                          "our cassandra cluster and create a stream of"
                          "tuples. The third parameter "
                          "contains the name of the relation to fetch. The "
-                         "second parameter specifies the consistence "
-                         "level used for reading. The third parameter"
-                         "specifies the query id that produced the relation"
+                         "second parameter "
+                         "specifies the query id that produced the relation."
+                         "The second parameter specifies the consistence "
+                         "level used for reading. "
                          "Instead of ccollect this operator guarantees that"
                          "only data from error free nodes is fetched"
                          "</text--->"
                          "<text>query ccollectquery["
-                         "'plz', 'ANY', 3] count</text--->"
+                         "'plz', 3, 'ANY'] count</text--->"
                               ") )";
 
                          
