@@ -73,7 +73,7 @@ public class Dsplintimepoint extends Dsplpoint implements Timed {
    */
   public Shape getRenderObject (int num,AffineTransform at) {
     double t = RefLayer.getActualTime();
-    if (Math.abs(t - TimeBounds.getStart()) < 0.000001)
+    if (Math.abs(t - TimeBounds.getStart()) < 0.00001)
       return  super.getRenderObject(num,at); 
     else 
       return  null;
@@ -88,8 +88,8 @@ public class Dsplintimepoint extends Dsplpoint implements Timed {
   protected void ScanValue (ListExpr v) {
     double koord[] = new double[2];
     Double d;
-    if (v.listLength() != 3) {                  //perhaps changes later
-      Reporter.writeError("Error: No correct intimepoint expression: 3 elements needed");
+    if (v.listLength() != 2) {                  //perhaps changes later
+      Reporter.writeError("Error: No correct intimepoint expression: 2 elements needed");
       err = true;
       return;
     }
@@ -99,6 +99,7 @@ public class Dsplintimepoint extends Dsplpoint implements Timed {
       return;
     }
     v = v.rest();
+    v = v.first();
     TimeBounds = new Interval(d.doubleValue(), d.doubleValue(), true, true);
     for (int koordindex = 0; koordindex < 2; koordindex++) {
       d = LEUtils.readNumeric(v.first());
