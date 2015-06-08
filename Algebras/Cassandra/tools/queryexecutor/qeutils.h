@@ -106,14 +106,14 @@ static void createUUID(string &uuid) {
                          -> ccollect('roads', consistency)
   
       [readparallel roads]              
-                         -> ccollect('roads', ONE, __TOKENRANGE__)
+                         -> ccollect('roads', __TOKENRANGE__, ONE)
       [readparallel roads consistency] 
-                         -> ccollect('roads', consistency, __TOKENRANGE__)
+                         -> ccollect('roads', __TOKENRANGE__, consistency)
   
       [write roads N]           
-                         -> cspread['roads', 'ONE', __QUERYUUID__, N]
+                         -> cspread['roads', N, __QUERYUUID__, 'ONE']
       [write roads N consistency] 
-                         -> cspread['roads', consistency, __QUERYUUID__, N]
+                         -> cspread['roads', N, __QUERYUUID__, consistency]
   
   
   */
@@ -184,15 +184,17 @@ static void createUUID(string &uuid) {
      size_t fields = getShortcutFieldCount(query, pos);
      
      string relation = getShortcutField(query, pos, 1);
-     string consistency = "ONE";
+     string replacement;
      
-     if(fields == 2) {
-        consistency = getShortcutField(query, pos, 2);
+     if(fields == 1) {
+         replacement = "ccollect('" + relation + "')";
+     } else {
+        string consistency = getShortcutField(query, pos, 2);
+        replacement = "ccollect('" + relation + "', '" 
+            + consistency + "')";
      }
      
      string shortcut = getFirstShortcut(query, pos);
-     string replacement = "ccollect('" + relation + "', '" 
-         + consistency + "')";
      
      replacePlaceholder(query, shortcut, replacement);
      
@@ -215,15 +217,18 @@ static void createUUID(string &uuid) {
      size_t fields = getShortcutFieldCount(query, pos);
      
      string relation = getShortcutField(query, pos, 1);
-     string consistency = "ONE";
+     string replacement;
      
-     if(fields == 2) {
-        consistency = getShortcutField(query, pos, 2);
+     if(fields == 1) {
+        replacement = "ccollectrange('" + relation + "', " 
+            + "__TOKENRANGE__)";
+     } else {
+        string consistency = getShortcutField(query, pos, 2);
+        replacement = "ccollectrange('" + relation + "', " 
+            + "__TOKENRANGE__, '" + consistency + "')";
      }
      
      string shortcut = getFirstShortcut(query, pos);
-     string replacement = "ccollectrange('" + relation + "', '" 
-         + consistency + "', __TOKENRANGE__)";
      
      replacePlaceholder(query, shortcut, replacement);
      
@@ -247,19 +252,22 @@ static void createUUID(string &uuid) {
      
      string relation = getShortcutField(query, pos, 1);
      string partitionKey = getShortcutField(query, pos, 2);
-     string consistency = "ONE";
+     string replacement;
      
-     if(fields == 3) {
-        consistency = getShortcutField(query, pos, 3);
+     if(fields == 2) {
+        replacement = "cspread['" + relation + "', " 
+             + partitionKey
+             + ", '__QUERYUUID__']";
+     } else {
+        string consistency = getShortcutField(query, pos, 3);
+        replacement = "cspread['" + relation + "', " 
+             + partitionKey
+             + ", '__QUERYUUID__','"
+             + consistency + "']";   
      }
      
-     string shortcut = getFirstShortcut(query, pos);
-     string replacement = "cspread['" + relation + "', '" 
-         + consistency + "', '__QUERYUUID__'" + ", " 
-         + partitionKey + "]";
-     
+     string shortcut = getFirstShortcut(query, pos);    
      replacePlaceholder(query, shortcut, replacement);
-     
      return true;
   }
   
