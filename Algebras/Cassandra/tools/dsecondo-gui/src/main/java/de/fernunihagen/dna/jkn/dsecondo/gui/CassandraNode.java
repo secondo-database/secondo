@@ -127,7 +127,10 @@ public class CassandraNode {
 			g.drawString(value, position.x - stringLen/2, position.y + stringHight / 2);
 		}
 
-		final String description = name;
+		String description = name;
+		
+		// Anonymize node names, useful for screenshots
+		//description = description.replace("132.176", "XXX.XXX");
 		
 		// Calculate nodename bounding box
 		g2d.setFont(new Font(oldFont.getFontName(), Font.PLAIN, 10));
