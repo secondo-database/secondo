@@ -226,6 +226,7 @@ MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0) {
                 tupleSize = tup->GetSize();
                 if ((size_t)tupleSize<availableMemSize){
                         mmrel->push_back(tup);
+                       // tup->IncReference(); ???
                         usedMainMemory += tupleSize;
                         availableMemSize -= tupleSize;
                 }
@@ -1240,7 +1241,175 @@ Operator memobjectOp (
     memobjectTypeMap
 );
 
+/*
 
+5.8 Operator ~memgetcatalog~
+
+Returns a ~stream(tuple)~.
+Each tuple describes one element of the mainmemory catalog.
+
+
+5.8.1 Type Mapping Functions of operator ~memgetcatalog~
+
+A type mapping function checks whether the correct argument types are supplied
+for an operator; if so, it returns a list expression for the result type,
+otherwise the symbol ~typeerror~. (-> stream(tuple))
+
+*/
+
+
+ListExpr memgetcatalogTypeMap(ListExpr args)
+{
+
+
+
+    string stringlist = "(stream(tuple((TotMemSizInMB int)"
+            "(TotUsedMemSizInB int)(Name string)"
+            "(ObjectType string)(MemSizeInB int)"
+            "(ExtStor bool)(ExtStorSizeinB int))))";
+    ListExpr res =0;
+    if(nl->ReadFromString(stringlist, res)){};
+    return res;
+
+}
+
+
+/*
+
+5.8.3  The Value Mapping Functions of operator ~memgetcatalog~
+
+*/
+
+class memgetcatalogInfo{
+  public:
+
+       memgetcatalogInfo(ListExpr _resultType){
+       resultType = _resultType;
+       it = catalog.memContents.begin();
+       };
+       ~memgetcatalogInfo(){}
+
+
+    Tuple* next(){
+        if(it==catalog.memContents.end()) {
+            return 0;
+        }
+        string name = it->first;
+        MemoryObject* memobj = it->second;
+        string objTyp ="nn";
+
+        ListExpr objectType = getMMObjectTypeExpr(name);
+        if (listutils::isTupleDescription(objectType)){
+            objTyp = MemoryRelObject::BasicType();
+        }
+        if (listutils::isDATA(objectType)){
+            objTyp = MemoryAttributeObject::BasicType();
+        }
+
+        TupleType* tt = new TupleType(nl->Second(resultType));
+        Tuple *tup = new Tuple( tt );
+        tt->DeleteIfAllowed();
+
+        CcInt* totalMemSize = new CcInt (true, catalog.getMemSizeTotal());
+        CcInt* totalUsedMemSize = new CcInt (true, catalog.getUsedMemSize());
+        CcString* objectName = new CcString(true,name);
+        CcString* oT = new CcString(true,objTyp);
+        CcInt* memSize = new CcInt(true, (int)memobj->getMemSize());
+        CcBool* extSto = new CcBool(true, memobj->getExtStorage());
+        CcInt* extStoSize = new CcInt(true, (int)memobj->getExtStorageSize());
+
+        tup->PutAttribute(0,totalMemSize);
+        tup->PutAttribute(1,totalUsedMemSize);
+        tup->PutAttribute(2,objectName);
+        tup->PutAttribute(3,oT);
+        tup->PutAttribute(4,memSize);
+        tup->PutAttribute(5,extSto);
+        tup->PutAttribute(6,extStoSize);
+
+        it++;
+        return tup;
+    }
+ private:
+        map<string, MemoryObject*>::iterator it;
+        ListExpr resultType;
+
+};
+
+
+int memgetcatalogValMap (Word* args, Word& result,
+            int message, Word& local, Supplier s) {
+
+
+   memgetcatalogInfo* li = (memgetcatalogInfo*) local.addr;
+
+   switch (message)
+   {
+        case OPEN: {
+             if(li){
+             delete li;
+             local.addr=0;
+
+          }
+        ListExpr resultType;
+        resultType = GetTupleResultType( s );
+        local.addr= new memgetcatalogInfo(resultType);
+        return 0;
+        }
+
+        case REQUEST:
+
+            result.addr=(li?li->next():0);
+            return result.addr?YIELD:CANCEL;
+
+
+        case CLOSE:
+            if(li)
+            {
+            delete li;
+            local.addr = 0;
+            }
+            return 0;
+   }
+
+    return 0;
+
+}
+
+
+
+/*
+
+5.8.4 Description of operator ~memgetcatalog~
+
+Similar to the ~property~ function of a type constructor, an operator needs to
+be described, e.g. for the ~list operators~ command.  This is now done by
+creating a subclass of class ~OperatorInfo~.
+
+*/
+
+
+
+OperatorSpec memgetcatalogSpec(
+    " -> stream(tuple)",
+    "memgetcatalog",
+    "returns a stream(tuple) of the members of the mainmemory catalog",
+    "query memgetcatalog"
+);
+
+/*
+
+5.8.5 Instance of operator ~memgetcatalog~
+
+
+*/
+
+Operator memgetcatalogOp (
+    "memgetcatalog",
+    memgetcatalogSpec.getStr(),
+    memgetcatalogValMap,
+    Operator::SimpleSelect,
+    memgetcatalogTypeMap
+);
 
 
 /*
@@ -1539,6 +1708,89 @@ Operator memupdateOp (
 );
 
 
+
+/*
+5.10 Operator ~mcreateRtree~
+
+
+*/
+
+/*
+5.10.1 Type Mapping Functions of operator ~mcreateRtree~
+
+*/
+ListExpr mcreateRtreeTypeMap(ListExpr args)
+{
+    return tmStringStringString(args);
+}
+
+
+/*
+
+5.10.3  The Value Mapping Functions of operator ~mcreateRtree~
+
+*/
+
+
+
+int mcreateRtreeValMap (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+
+
+
+
+
+
+    string res ="ergebnis";
+
+    result  = qp->ResultStorage(s);
+    CcString* str = static_cast<CcString*>(result.addr);
+    str->Set(true, res);
+    return 0;
+
+}
+
+
+
+
+/*
+
+5.10.4 Description of operator ~mcreateRtree~
+
+Similar to the ~property~ function of a type constructor, an operator needs to
+be described, e.g. for the ~list operators~ command.  This is now done by
+creating a subclass of class ~OperatorInfo~.
+
+*/
+
+
+
+OperatorSpec mcreateRtreeSpec(
+    "string x string -> string",
+    "mcreateRtree (_,_)",
+    "creates an mrtree???? the first string describes the object,"
+    "the second string describs the attribute",
+    "query memupdate ('fuenf', ten feed head[7])"
+);
+
+
+
+/*
+
+5.10.5 Instance of operator ~mcreateRtree~
+
+*/
+
+Operator mcreateRtreeOp (
+    "mcreateRtree",
+    mcreateRtreeSpec.getStr(),
+    mcreateRtreeValMap,
+    Operator::SimpleSelect,
+    mcreateRtreeTypeMap
+);
+
+
 class MainMemoryAlgebra : public Algebra
 {
 
@@ -1571,9 +1823,10 @@ class MainMemoryAlgebra : public Algebra
         AddOperator (&memdeleteOp);
         AddOperator (&memobjectOp);
         memobjectOp.SetUsesArgsInTypeMapping();
-        //AddOperator (&memgetcatalogOp);
+        AddOperator (&memgetcatalogOp);
         AddOperator (&memletOp);
         AddOperator (&memupdateOp);
+        AddOperator (&mcreateRtreeOp);
 
 
         }

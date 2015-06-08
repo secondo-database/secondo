@@ -50,3 +50,16 @@ Signature : string x m:MEMLOADABLE -> bool
 Example   : query memupdate ("fuenf", ten feed head[7])
 Result    : TRUE
 
+Operator  : mcreateRtree
+Number    : 9
+Signature : string x string -> string
+Example   : query mcreateRtree ("fuenf", "zehn")
+Result    : "ergebnis"
+
+
+Operator  : memgetcatalog
+Number    : 10
+Signature : -> stream(tuple(...))
+Example   : query memgetcatalog () count
+Result    : 2
+

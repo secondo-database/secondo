@@ -65,6 +65,7 @@ class MemoryObject {
         }
 
         void setExtStorage(bool sES);
+        bool getExtStorage();
         size_t getObjectSize(); //die Gesamtgröße des Objekts
                                 //(extStorageSize+memSize)
         void setMemSize(size_t i);
@@ -102,8 +103,8 @@ class MemoryObject {
 
     protected:
         bool extStorage;             // ganzes Objekt im HS
-        size_t memSize;              // Größe die das Objekt im HS belegt in B
-        size_t extStorageSize;       // Größe die das Objekt auf HD belegt
+        size_t memSize;              // Größe des Objektes im HS belegt in B
+        size_t extStorageSize;       // Größe des Objektes auf HD belegt in B
         string objectTypeExpr;       // typeExpr des zu ladenden Objekts,
                                      // bei Relation die Tupelbeschreibung,
                                      // sonst die Attributbeschreibung
@@ -114,6 +115,9 @@ class MemoryObject {
 void MemoryObject::setExtStorage(bool sES){
     extStorage = sES;
 }
+bool MemoryObject::getExtStorage(){
+    return extStorage;
+};
 size_t MemoryObject::getObjectSize(){
     return memSize + extStorageSize;
 }
@@ -334,6 +338,9 @@ class MemoryAttributeObject : public MemoryObject {
             cout<<"3. extStorageSize: "<<extStorageSize<<endl;
             cout<<"4. objectTypeExpr: "<<objectTypeExpr<<endl;
             cout<<"5. Adresse des Attributs ist: "<<&attributeObject<<endl;}
+
+        static const string BasicType() { return "memoryAttributeObject"; }
+
     private:
          Attribute* attributeObject;
 
