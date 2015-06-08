@@ -43,7 +43,7 @@ operator dloop2a alias DLOOP2A pattern _ _ op[_,fun] implicit parameters elem1, 
 
 operator dsummarize2 alias DSUMMARIZE2 pattern _ op
 
-operator getValue alias GETVALUE pattern op(_)
+operator getValue alias GETVALUE pattern _op 
 
 operator deleteRemoteObjects alias DELETEREMOTEOBJECTS pattern op(_,_)
 
