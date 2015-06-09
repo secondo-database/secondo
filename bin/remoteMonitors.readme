@@ -8,7 +8,7 @@ of a file holding the server information. It is required to
 have an account on each server.
 Each line within the file is formatted as follows:
 
-<Server> <Configuration file>  [<user>]
+<Server> <Configuration file> [<home> [<port>[ [<user>] ]]]
 
 <server> 
 is just the name of the host on which the monitor should be started
@@ -17,8 +17,21 @@ is just the name of the host on which the monitor should be started
 is the name of a configuration file. This file must already exist
 on the remote host.
 
+<home>
+This entry specifies the database directory of Secondo.
+If this entry is given, it overwrites the values stored within
+the configuration file. If the value from the configuration file
+should be taken but later options (port, user) should be set,
+use a dollar sign as a placeholder.
+
+<port>
+If this entry is part of the line, the portvalue within the
+configuration file will overwritten by this value. If the 
+value should not be overwritten but a user name should be specified,
+use a $ as a placeholder.
+
 <user>
-This optionally argument specifies the user accessing the remote host.
+This argument specifies the user accessing the remote host.
 If this part is omitted, the current user name is used.
 
 
