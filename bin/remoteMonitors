@@ -6,7 +6,26 @@ if [ -z "$1" ]; then
 fi
 
 if [ "$1" == "--help" ]; then
-  echo not help available
+  echo "usage:  "
+  echo "remoteMonitors <Configfile> <action>"
+  echo "<action> can be start, stop, or check"
+  echo "start starts the monitors"
+  echo "stop stops running monitors"
+  echo "check shows status of monitors"
+  echo
+  echo "each line within the config file has to be in format"
+  echo "<server> <config> [<home> [<port> [<user>]]]"
+  echo "<server> : the host name at that the monitor should run"
+  echo "<config> : configuration file to use, must be exist on server side"
+  echo "<home> : overwrite the database directory specified in the configuration file"
+  echo "         if not used, but later arguments should be set, use a dollar sign "
+  echo "         as place holder"
+  echo "<port> : overwrite the monitor port specified in the configuration file"
+  echo "         if not used, but later arguments should be set, use a dollar sign "
+  echo "         as place holder"
+  echo "<user> : user which performs the command on the remote machine"
+
+ 
 
   exit
 fi
@@ -33,8 +52,6 @@ fi
 
 
 function startLine {
-  server=$1
-  config=$2
 
   if [ -z "$1" ]; then  # empty line
     return
@@ -44,8 +61,23 @@ function startLine {
     return
   fi
 
+  server=$1
+  config=$2
+
   if [ -n "$3" ]; then
-    user=$3@
+    if [ "$3" != "$" ]; then
+        home="-d $3"
+    fi
+  fi
+ 
+  if [ -n "$4" ]; then
+    if [ "$4" != "$" ]; then
+       port="-p $4"
+    fi
+  fi
+
+  if [ -n "$5" ]; then
+    user="$5@"
   fi
 
   script=runMonitortemp.sh
@@ -57,16 +89,20 @@ function startLine {
   echo ' echo configuration file $SECONDO_CONFIG not found an server ' $server >>$script
   echo ' exit' >>$script
   echo 'fi' >>$script
-  echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
-  echo 'if [ -z $TMPDIR ]; then' >>$script
+  if [ -z "$port" ]; then
+     echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
+  else 
+     echo "port=$4" >>$script
+  fi
+  echo 'if [ -z "$TMPDIR" ]; then' >>$script
   echo '  export TMPDIR=/tmp' >>$script
   echo 'fi' >>$script
-  echo 'tmpfile="/tmp/SM_${port}.lck"'  >>$script
+  echo 'tmpfile="$TMPDIR/SM_${port}.lck"'  >>$script
   echo 'if [ -e $tmpfile ]; then' >>$script
   echo 'echo "SecondoMonitor already running on port ${port}"'  >>$script
   echo 'exit 1' >>$script
   echo 'fi'  >>$script
-  echo 'nohup ./SecondoMonitor -s >SecondoMonitor.log 2>&1 &' >>$script
+  echo "nohup ./SecondoMonitor -s $home $port -c $config >SecondoMonitor.log "'2>&1 &' >>$script
   echo 'pid=$!' >>$script
   echo 'echo $pid >$tmpfile' >>$script
   echo 'w=$(ps -p $pid | wc -l )' >>$script
@@ -83,18 +119,33 @@ function startLine {
 
 
 function stopLine {
-  server=$1
-  config=$2
   if [ -z "$1" ]; then  # empty line
     return
   fi
-  if [ -z "$2" ]; then  # empty line
+  if [ -z "$2" ]; then  # at least server and config are required 
     echo "invalid format in line" $*
     return
   fi
+
+  server=$1
+  config=$2
+
   if [ -n "$3" ]; then
-    user=$3@
+    if [ "$3" != "$" ]; then
+        home="$-d $3"
+    fi
   fi
+ 
+  if [ -n "$4" ]; then
+    if [ "$4" != "$" ]; then
+       port="-p $4"
+    fi
+  fi
+
+  if [ -n "$5" ]; then
+    user="$5@"
+  fi
+
   script=stopMonitortemp.sh
   echo 'cd $HOME/secondo/bin' >$script
   echo export SECONDO_CONFIG=$config >>$script
@@ -102,11 +153,15 @@ function stopLine {
   echo ' echo configuration file $SECONDO_CONFIG not found an server ' $server >>$script
   echo ' exit' >>$script
   echo 'fi' >>$script
-  echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
-  echo 'if [ -z $TMPDIR ]; then' >>$script
+  if [ -z "$port" ]; then
+     echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
+  else 
+     echo port=$4 >>$script
+  fi
+  echo 'if [ -z "$TMPDIR" ]; then' >>$script
   echo '  export TMPDIR=/tmp' >>$script
   echo 'fi' >>$script
-  echo 'tmpfile="/tmp/SM_${port}.lck"'  >>$script
+  echo 'tmpfile="$TMPDIR/SM_${port}.lck"'  >>$script
   echo 'if [ ! -e $tmpfile ]; then' >>$script
   echo 'echo "SecondoMonitor not running on port ${port}"'  >>$script
   echo 'exit 1' >>$script
@@ -125,18 +180,32 @@ function stopLine {
 
 
 function checkLine {
-  server=$1
-  config=$2
   if [ -z "$1" ]; then  # empty line
     return
   fi
-  if [ -z "$2" ]; then  # empty line
+  if [ -z "$2" ]; then  # at least server and config are required 
     echo "invalid format in line" $*
     return
   fi
+
+  server=$1
+  config=$2
+
   if [ -n "$3" ]; then
-    user=$3@
+    if [ "$3" != "$" ]; then
+        home="-d $3"
+    fi
   fi
+ 
+  if [ -n "$4" ]; then
+    if [ "$4" != "$" ]; then
+       port="-p $4"
+    fi
+  fi
+  if [ -n "$5" ]; then
+    user="$5@"
+  fi
+
   script=checkMonitortemp.sh
   echo 'cd $HOME/secondo/bin' >$script
   echo export SECONDO_CONFIG=$config >>$script
@@ -144,11 +213,15 @@ function checkLine {
   echo ' echo configuration file $SECONDO_CONFIG not found on server ' $server >>$script
   echo ' exit' >>$script
   echo 'fi' >>$script
-  echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
-  echo 'if [ -z $TMPDIR ]; then' >>$script
+  if [ -z "$port" ]; then
+     echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
+  else 
+     echo port=$4 >>$script
+  fi
+  echo 'if [ -z "$TMPDIR" ]; then' >>$script
   echo '  export TMPDIR=/tmp' >>$script
   echo 'fi' >>$script
-  echo 'tmpfile="/tmp/SM_${port}.lck"'  >>$script
+  echo 'tmpfile="$TMPDIR/SM_${port}.lck"'  >>$script
   echo 'if [ ! -e $tmpfile ]; then' >>$script
   echo 'echo "SecondoMonitor not running on port ${port}  at " ' $server  >>$script
   echo 'exit 1' >>$script
