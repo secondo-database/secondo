@@ -1118,4 +1118,17 @@ inserts a new element into this inverted file
 
 };
 
+namespace triealg{
+
+Word CreateInvfile(const ListExpr typeInfo);
+
+void DeleteInvfile( const ListExpr typeInfo, Word& w );
+
+bool SaveInvfile(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
+
+bool OpenInvfile(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value);
+  
+}
 
