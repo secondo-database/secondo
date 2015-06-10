@@ -221,7 +221,13 @@ stored, this function can be used to assign each cycle to an outer cycle.
             }
         }
      }
-     assert(index >= 0);
+     if(index < 0){
+       cout << "internal error, found index < 0 in " 
+            << __FILE__ << "@" << __LINE__ << endl
+            << "in function" << __PRETTY_FUNCTION__ << endl;
+       throw string("invalid index");
+
+     }
      return index;
   }
 
