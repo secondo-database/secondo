@@ -36,11 +36,11 @@ SpecParser.tab.cpp SpecParser.tab.hpp: ../SpecParser.y
 	$(YACC) -d -o $@ $<
 
 Parser$(EXEEXT): SpecParser.tab.o lex.yy.o NestedText.o
-	$(CC) -o Parser$(EXEEXT) $^ $(DEFAULTCCFLAGS)
+	$(CC) -o Parser$(EXEEXT) $^ $(DEFAULTCCFLAGS) $(COMMON_LD_FLAGS)
 	$(CP) $@ ../$@ 
 
 Parser2$(EXEEXT): SpecParser.tab.o lex2.yy.o NestedText.o
-	$(CC) -o Parser2$(EXEEXT) $^ $(DEFAULTCCFLAGS)
+	$(CC) -o Parser2$(EXEEXT) $^ $(DEFAULTCCFLAGS) $(COMMON_LD_FLAGS)
 	$(CP) $@ ../$@
 
 ifneq ($(MAKECMDGOALS),clean)
