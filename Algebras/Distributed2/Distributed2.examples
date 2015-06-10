@@ -264,4 +264,10 @@ Example   : query da8 clone["da9"]
 Result    : bug
 Remark    : remote server required
 
+Operator : share 
+Number   : 1
+Signature : string x bool [ x darray2] -> text
+Example   : query share("ten", FALSE)
+Result    : bug
+Remark    : remote server required
 

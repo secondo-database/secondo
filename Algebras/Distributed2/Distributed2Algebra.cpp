@@ -21,6 +21,9 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+
+//[$][\$]
+
 */
 
 
@@ -244,6 +247,113 @@ bool readVar<string>(string& value, SmiRecord& record, size_t& offset){
 
 
 /*
+1.0.1 ~rewriteQuery~
+
+This function replaces occurences of [$]<Ident> within the string orig
+by corresponding const expressions. If one Ident does not represent
+a valid object name, the result will be false and the string is
+unchanged.
+
+*/
+
+string rewriteRelType(ListExpr relType){
+  if(!Relation::checkType(relType)){
+     return nl->ToString(relType);
+  }
+
+  ListExpr attrList = nl->Second(nl->Second(relType));
+
+  stringstream ss;
+  ss << "rel(tuple([";
+  bool first = true;
+  while(!nl->IsEmpty(attrList)){
+     if(!first){
+       ss << ", ";
+     } else {
+        first = false;
+     }
+     ListExpr attr = nl->First(attrList);
+     attrList = nl->Rest(attrList);
+     ss << nl->SymbolValue(nl->First(attr));
+     ss << " : ";
+     ss << nl->ToString(nl->Second(attr));
+  }
+  ss << "]))";
+  return ss.str();
+}
+
+bool getConstEx(const string& objName, string& result){
+
+   SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+   if(!ctlg->IsObjectName(objName)){
+       return false;
+   }
+   result = " [const " + rewriteRelType(ctlg->GetObjectTypeExpr(objName))
+          + " value " + nl->ToString(ctlg->GetObjectValue(objName)) + "] ";
+
+   return true;
+}
+
+
+bool rewriteQuery(const string& orig, string& result){
+
+  stringstream out;
+  size_t pos = 0;
+  size_t f = orig.find_first_of("$", pos);
+  map<string,string> used;
+  while(f!=string::npos){
+     size_t f2 = f +1;
+     if(f2 < orig.length()){
+        if(stringutils::isLetter(orig[f2])){
+           if(f>pos){
+              out << orig.substr(pos , f - pos);
+           }
+           stringstream ident;
+           ident << orig[f2];
+           f2++;
+           while(f2<orig.length() && (stringutils::isLetter(orig[f2]) || 
+                 stringutils::isDigit(orig[f2] || (orig[f2]=='_')))){
+              ident  << orig[f2];
+              f2++;
+           }
+           string constEx;
+           if(used.find(ident.str())!=used.end()){
+             constEx = used[ident.str()];
+           }  else {
+              if(!getConstEx(ident.str(),constEx)){
+                  result =  orig;
+                  return false;
+              }
+           }
+           out << constEx; 
+           pos = f2;
+        } else if(orig[f2]=='$'){ // masked dollar
+            out <<  orig.substr(pos,f2-pos);
+            pos = f2+1;
+        } else { // not a indent after $
+            out <<  orig.substr(pos,f2+1-pos);
+            pos = f2;
+           pos++;
+        } 
+     } else { // end of 
+       out << orig.substr(pos,string::npos);
+       pos = f2;
+     }
+     f = orig.find_first_of("$", pos);
+  }
+   out << orig.substr(pos,string::npos);
+   result = out.str();
+  return true;
+}
+
+
+
+
+
+
+
+
+/*
 1 Class Connection
 
 This class represents a connection to a remote Secondo Server.
@@ -289,7 +399,14 @@ class ConnectionInfo{
           return err.code==0;
        }
 
-       void simpleCommand(string command, int& err, string& result){
+       void simpleCommand(string command1, int& err, string& result, 
+                          bool rewrite){
+          string command;
+          if(rewrite){
+            rewriteQuery(command1,command);
+          } else {
+            command = command1;
+          }
           SecErrInfo serr;
           ListExpr resList;
           simtx.lock();
@@ -321,9 +438,15 @@ class ConnectionInfo{
        }
 
 
-       void simpleCommand(string command, int& error, string& errMsg, 
-                          string& resList){
+       void simpleCommand(const string& command1, int& error, string& errMsg, 
+                          string& resList, const bool rewrite){
 
+          string command;
+          if(rewrite){
+            rewriteQuery(command1,command);
+          } else {
+            command = command1;
+          }
           boost::lock_guard<boost::mutex> guard(simtx);;
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
@@ -335,9 +458,16 @@ class ConnectionInfo{
           mynl->Destroy(myResList);
        }
        
-       void simpleCommandFromList(string command, int& error, string& errMsg, 
-                          string& resList){
+       void simpleCommandFromList(const string& command1, int& error, 
+                                  string& errMsg, string& resList, 
+                                  const bool rewrite){
 
+          string command;
+          if(rewrite){
+            rewriteQuery(command1,command);
+          } else {
+            command = command1;
+          }
           boost::lock_guard<boost::mutex> guard(simtx);
           ListExpr cmd = mynl->TheEmptyList();
           nlparsemtx.lock();
@@ -367,8 +497,16 @@ class ConnectionInfo{
        }
 
 
-       void simpleCommand(string command, int& error, string& errMsg, 
-                          ListExpr& resList){
+       void simpleCommand(const string& command1, int& error, string& errMsg, 
+                          ListExpr& resList, const bool rewrite){
+
+
+          string command;
+          if(rewrite){
+            rewriteQuery(command1,command);
+          } else {
+            command = command1;
+          }
           boost::lock_guard<boost::mutex> guard(simtx);;
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
@@ -442,15 +580,9 @@ class ConnectionInfo{
 
          bool createOrUpdateObject(const string& name, 
                                    ListExpr typelist, Word& value){
-               if(Relation::checkType(typelist)){
-                  return createOrUpdateRelation(name, typelist, value);
-               }
-
-              // TODO: special treatment for big objects like relations
-              // idea store relation binary into a file using fconsume
-              // send the file to the server
-              // cretae the relation using ffeed
-              // delete local and remote file
+              if(Relation::checkType(typelist)){
+                 return createOrUpdateRelation(name, typelist, value);
+              }
 
               boost::lock_guard<boost::mutex> guard(simtx);
               SecErrInfo serr;
@@ -486,7 +618,8 @@ class ConnectionInfo{
          }
 
          bool createOrUpdateRelationFromBinFile(const string& name, 
-                                                const string& filename){
+                                                const string& filename,
+                                                const bool allowOverwrite=true){
              boost::lock_guard<boost::mutex> guard(simtx);
 
              SecErrInfo serr;
@@ -504,8 +637,9 @@ class ConnectionInfo{
              // delete existing object
 
              string cmd = "delete " + name;
-
-             si->Secondo(cmd, resList, serr);
+             if(allowOverwrite){
+                si->Secondo(cmd, resList, serr);
+             }
        
              cmd = "let " + name + " =  ffeed5('" 
                           + rfilename + "') consume ";
@@ -561,7 +695,8 @@ class ConnectionInfo{
          }        
 
 
-          bool retrieve(const string& objName, ListExpr& resType, Word& result){
+          bool retrieve(const string& objName, ListExpr& resType, Word& result, 
+                        bool checkType){
               simtx.lock();
               if(Relation::checkType(resType)){
                   simtx.unlock();
@@ -594,7 +729,11 @@ class ConnectionInfo{
               mynl->Destroy(myResList);
               copylistmutex.unlock();
 
-              resType = nl->First(resList);
+              ListExpr resType2 = nl->First(resList);
+              if(checkType && !nl->Equal(resType,resType2)){
+                 // other type than expected
+                 return false;
+              }
               ListExpr value = nl->Second(resList);
 
               int errorPos=0;
@@ -604,6 +743,9 @@ class ConnectionInfo{
               result = ctlg->InObject(resType,value, errorPos, 
                                       errorInfo, correct);
               createRelMut.unlock();
+              if(!correct){
+                 result.addr = 0;
+              }
               return correct;
           }
 
@@ -945,6 +1087,20 @@ Returns the number of connections
          mtx.unlock();
          return res;
      }
+/*
+~getConnections~
+
+Returns a connection
+
+*/
+
+     ConnectionInfo* getConnection(const int i){
+         mtx.lock();
+         ConnectionInfo* res =  connections[i];
+         mtx.unlock();
+         return res;
+     }
+
 
 /*
 ~noValidConnections~
@@ -1172,7 +1328,7 @@ Transfers a local file to a remove server.
 
 
     bool simpleCommand(int con, const string& cmd, int& error, 
-                       string& errMsg, ListExpr& resList){
+                       string& errMsg, ListExpr& resList, const bool rewrite){
       mtx.lock();
       if(con < 0 || con >= (int) connections.size()){
          mtx.unlock();
@@ -1189,13 +1345,13 @@ Transfers a local file to a remove server.
          resList = nl->TheEmptyList();
          return false;
       }
-      c->simpleCommand(cmd,error,errMsg,resList);
+      c->simpleCommand(cmd,error,errMsg,resList, rewrite);
       return true;
     }
     
 
     bool simpleCommand(int con, const string& cmd, int& error, 
-                       string& errMsg, string& resList){
+                       string& errMsg, string& resList, const bool rewrite){
       mtx.lock();
       if(con < 0 || con >= (int) connections.size()){
          mtx.unlock();
@@ -1212,7 +1368,7 @@ Transfers a local file to a remove server.
          resList = "()";
          return false;
       }
-      c->simpleCommand(cmd,error,errMsg,resList);
+      c->simpleCommand(cmd,error,errMsg,resList, rewrite);
       return true;
     }
 
@@ -1324,7 +1480,14 @@ specified DArray2Element.
     return it==workerconnections.end();
   } 
 
-    
+  size_t nextNameNumber(){
+     boost::lock_guard<boost::mutex> guard(namecounteraccess);
+     namecounter++;
+     return namecounter;
+  } 
+      
+
+ 
 
   private:
     // connections managed by the user
@@ -1338,6 +1501,10 @@ specified DArray2Element.
     // the ConnctionInfo the connection
     map<DArray2Element, pair<string,ConnectionInfo*> > workerconnections;
     boost::mutex workerMtx;
+
+    size_t namecounter;
+    boost::mutex namecounteraccess;
+
 
 
     bool createWorkerConnection(const DArray2Element& worker, pair<string, 
@@ -1430,7 +1597,7 @@ class ConnectionTask{
          string errMsg; 
          ResType resList;
          algInstance->simpleCommand(connection, cmd, 
-                                    error,errMsg, resList);
+                                    error,errMsg, resList, true);
 
          if(listener){
             listener->jobDone(id, cmd, no, error, errMsg, resList);
@@ -1772,7 +1939,7 @@ int rcmdVMT( Word* args, Word& result, int message,
            string result ="";
            string errMsg;
            bool ok = algInstance->simpleCommand(conv, cmd->GetValue(), 
-                                           errorCode, errMsg, result);
+                                           errorCode, errMsg, result, true);
            if(!ok){
              return 0;
            }
@@ -2006,19 +2173,28 @@ ListExpr rqueryTM(ListExpr args){
    }
 
 
+   stringutils::trim(query);
+   if(!stringutils::startsWith(query,"query")){
+     return listutils::typeError("command is not a query");
+   }
+   query = query.substr(5); // remove leading query
+   stringutils::trim(query);
+   
 
-   query +=  " getTypeNL";
+   query = "query (" + query + ") getTypeNL";
+
+
    int error;
    string errMsg;
    ListExpr reslist;
-   ok = algInstance->simpleCommand(sn, query, error, errMsg, reslist);
+   ok = algInstance->simpleCommand(sn, query, error, errMsg, reslist, true);
    if(!ok){
      return listutils::typeError("found no connection for specified "
                                  "connection number");
    }
    if(error!=0){
      return listutils::typeError("Problem in determining result type : "
-                                 + errMsg);
+                                 + errMsg + "\n" + query);
    }
    if(!nl->HasLength(reslist,2)){
       return listutils::typeError("Invalid result get from remote server");
@@ -2085,7 +2261,7 @@ int rqueryVMT( Word* args, Word& result, int message,
   string errMsg;
   ListExpr resList;
   bool ok = algInstance->simpleCommand(serv, query->GetValue(), error,
-                                       errMsg, resList);
+                                       errMsg, resList, true);
   if(!ok){
      sendMessage(msg, "Error during remote command" );
      return 0;
@@ -4181,11 +4357,20 @@ This operator uses argument evaluation in type mapping.
 
 bool  getQueryType(const string& query1, int serverNo, 
                    ListExpr& result, string& errMsg){
-   string query = query1 + " getTypeNL";
+   string query = query1; 
+
+   stringutils::trim(query);
+   if(!stringutils::startsWith(query,"query")){
+     return false;
+   }
+   query = query.substr(5); // remove leading query
+   stringutils::trim(query);
+   query = "query (" + query + ") getTypeNL";
+
    int error;
    ListExpr reslist;
    bool ok = algInstance->simpleCommand(serverNo, query, 
-                                        error, errMsg, reslist);
+                                        error, errMsg, reslist, true);
    if(!ok){
       errMsg = " determining type command failed (invalid server number)";
       return false;
@@ -5682,7 +5867,7 @@ int getVM(Word* args, Word& result, int message,
   ListExpr resType = qp->GetType(s);
   bool ok =  ci->retrieve(array->getName() + "_"
                                 + stringutils::int2str(i),
-                                resType, r);
+                                resType, r, true);
 
   if(!ok){ // in case of an error, res.addr point to 0A
      if(isData){
@@ -7795,26 +7980,26 @@ class dloop2Info{
        // delete eventually existing old function
        int err;
        string strres;
-       ci->simpleCommand("delete " + fn,err,strres);
+       ci->simpleCommand("delete " + fn,err,strres, false);
        // ignore error, standard case: object does not exist
        // create new function object
        string errMsg;
        string cmd = "(let " + fn + " = " + fun +")";
-       ci->simpleCommandFromList(cmd, err,errMsg, strres);
+       ci->simpleCommandFromList(cmd, err,errMsg, strres, true);
        if(err!=0){ 
            sendError(" Problem in command " + cmd + ":" + errMsg);
            return;
        }
        // delete old array content
-       ci->simpleCommand("delete "+ bn, err,strres);
+       ci->simpleCommand("delete "+ bn, err,strres, false);
        // ignore error, frequently entry is not there
        cmd = "let " + bn + " =  "  + fn + "("+ srcName + "_" 
                     + stringutils::int2str(index) +")";
-       ci->simpleCommand(cmd, err,errMsg, strres);
+       ci->simpleCommand(cmd, err,errMsg, strres, false);
        if(err!=0){ 
            sendError(" Problem in command " + cmd + ":" + errMsg);
        }
-       ci->simpleCommand("delete " + fn, err, strres);
+       ci->simpleCommand("delete " + fn, err, strres,false);
     }
     void sendError(const string&msg){
        cmsg.error() << msg;
@@ -7973,7 +8158,7 @@ ListExpr dsummarize2TM(ListExpr args){
 1.8.2 LocalInfo for Attributes
 
 */
-class dsummarize2Listener{
+class successListener{
   public:
      virtual void jobDone(int id, bool success)=0;
 };
@@ -7984,7 +8169,7 @@ class dsummarize2AttrInfoRunner{
      dsummarize2AttrInfoRunner(DArray2Element& _elem, const string& _objName,
                                ListExpr _resType,
                                const string& _db, int _index,
-                               dsummarize2Listener* _listener): 
+                               successListener* _listener): 
        elem(_elem), objName(_objName), resType(_resType),db(_db),
        index(_index), listener(_listener), 
        attribute(0){
@@ -8015,7 +8200,7 @@ class dsummarize2AttrInfoRunner{
      ListExpr resType;
      string db;
      int index;
-     dsummarize2Listener* listener;
+     successListener* listener;
      Attribute* attribute;
      boost::thread runner;
 
@@ -8026,7 +8211,7 @@ class dsummarize2AttrInfoRunner{
             return;
          } 
          Word result;
-         bool ok = ci->retrieve(objName,resType, result);
+         bool ok = ci->retrieve(objName,resType, result,true);
          if(!ok){
            listener->jobDone(index,false);
          } else {
@@ -8036,7 +8221,7 @@ class dsummarize2AttrInfoRunner{
      }
 };
 
-class dsummarize2AttrInfo : public dsummarize2Listener{
+class dsummarize2AttrInfo : public successListener{
 
    public:
       dsummarize2AttrInfo(DArray2* _array, ListExpr _resType) : 
@@ -8369,7 +8554,7 @@ class getValueGetter{
           return;
       }
       string name = array->getName()+"_"+stringutils::int2str(index);
-      ci->retrieve(name, resType, res);
+      ci->retrieve(name, resType, res,true);
       listener->jobDone(index,res); 
    }
 
@@ -8602,10 +8787,10 @@ class dloop2aRunner{
       string errMsg;
       string strres;
       // delete function if exists
-      ci->simpleCommand("delete " + fn , err,errMsg, strres);
+      ci->simpleCommand("delete " + fn , err,errMsg, strres, false);
       // ignore error
       // create new function
-      ci->simpleCommandFromList(cmd, err,errMsg, strres);
+      ci->simpleCommandFromList(cmd, err,errMsg, strres, true);
       if(err!=0){
          cerr << "error in creating function via " << cmd << endl;
          cerr << errMsg << endl;
@@ -8614,18 +8799,18 @@ class dloop2aRunner{
       // apply function to array elements
       string tname = rname + "_" + stringutils::int2str(index);
       // remove old stuff
-      ci->simpleCommand("delete " + tname , err,errMsg, strres);
+      ci->simpleCommand("delete " + tname , err,errMsg, strres, false);
       // create new one
       string a1o = a1->getName()+"_"+stringutils::int2str(index);
       string a2o = a2->getName()+"_"+stringutils::int2str(index);
       cmd = "let " + tname + " = " + fn +"("+ a1o + ", " + a2o+")";
-      ci->simpleCommand(cmd, err,errMsg, strres);
+      ci->simpleCommand(cmd, err,errMsg, strres, false);
       if(err!=0){
          cerr << "error in creating result via " << cmd << endl;
          cerr << errMsg << endl;
          return;
       }
-      ci->simpleCommand("delete " + fn , err,errMsg,strres); 
+      ci->simpleCommand("delete " + fn , err,errMsg,strres, false); 
      }
 
 
@@ -8985,7 +9170,7 @@ class Object_Del{
         int err;
         string errMsg;
         string resstr;
-        ci->simpleCommand("delete " + objName, err, errMsg, resstr);
+        ci->simpleCommand("delete " + objName, err, errMsg, resstr, false);
         if(err==0){
           del = 1;
         } 
@@ -9128,7 +9313,7 @@ class cloneTask{
         string errMsg;
         string resstr;
         ci->simpleCommand("let " + newName + " = " + objName , 
-                          err, errMsg, resstr);
+                          err, errMsg, resstr, false);
      }
 
 
@@ -9210,6 +9395,242 @@ Operator cloneOp(
 );
 
 
+/*
+13 Operator ~share~
+
+This operator stores a local object to all connections either of a given darray2
+or all user defined connections.
+
+*/
+
+ListExpr shareTM(ListExpr args){
+  string err = "string x bool [x darray2] expected";
+  if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  if(!CcString::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(!CcBool::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  if(nl->HasLength(args,3)){
+    if(!DArray2::checkType(nl->Third(args))){
+       return listutils::typeError(err);
+    }
+  }
+  return listutils::basicSymbol<FText>(); 
+}
+
+
+class shareRunner{
+
+ public:
+    shareRunner(ConnectionInfo* _ci, const string& _objName, 
+                const string& _fileName, const bool _relation, 
+                int _id, bool _allowOverwrite, successListener* _listener):
+            ci(_ci), objName(_objName), fileName(_fileName),relation(_relation),
+            id(_id), allowOverwrite(_allowOverwrite), listener(_listener) {}
+ 
+
+    void operator()(){
+      if(relation){
+         bool r = ci->createOrUpdateRelationFromBinFile(objName, 
+                                                 fileName, allowOverwrite);
+         listener->jobDone(id,r);
+      } else {
+          int err;
+          string res;
+          string cmd = "delete " + objName;
+          if(allowOverwrite){
+             ci->simpleCommand(cmd,err,res, false);
+          }
+          cmd = "restore " +  objName + " from '" + fileName +"'";           
+          ci->simpleCommand(cmd,err,res,false);
+          listener->jobDone(id, err==0);
+      }
+    }
+
+ private:
+     ConnectionInfo* ci;
+     string objName;
+     string fileName;
+     bool relation;
+     int id;
+     bool allowOverwrite;
+     successListener* listener;
+
+};
+
+
+class shareInfo: public successListener{
+
+  public:
+    shareInfo(const string& _name, const bool _allowOverwrite,
+              DArray2* _array, FText* _result): name(_name),
+              allowOverwrite(_allowOverwrite), array(_array),
+              result(_result), fileCreated(false) {
+      failed = 0;
+      success = 0;
+   }
+
+
+    void share(){
+       SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+       string tn;
+       bool defined;
+       bool hasTypeName;
+       if(!ctlg->GetObjectExpr(name, tn, typeList, value, 
+                               defined, hasTypeName)){
+          result->Set(true, "Name " + name + " is not on object");
+          return;
+       }
+       if(!defined){
+         result->Set("Undefined objects cannot be shared");
+         return;
+       }
+
+       if(array){
+         shareArray();
+       } else {
+         shareUser();
+       }
+   
+       for(size_t i=0;i<runners.size();i++){
+         runners[i]->join();
+         delete runners[i];
+       }
+       string t = "success : " + stringutils::int2str(success)+ ", failed "
+                  + stringutils::int2str(failed);
+       result->Set(true,t);
+       FileSystem::DeleteFileOrFolder(filename); 
+
+    }
+
+    void jobDone(int id, bool success){
+       if(success){
+          this->success++;
+       } else {
+          this->failed++;
+       }
+    }
+
+
+  private:
+    string name;
+    bool allowOverwrite;
+    DArray2* array;
+    FText* result;
+    bool fileCreated;
+    Word value;
+    ListExpr typeList;
+    set<pair <string, int> > cons;
+    string filename;
+    bool isRelation;
+    boost::mutex createFileMutex;
+    vector<boost::thread*> runners;
+    int failed;
+    int success;
+
+    void shareArray() {
+        
+       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       for(size_t i=0;i<array->numOfWorkers();i++){
+          ConnectionInfo* ci = algInstance->getWorkerConnection(
+                              array->getWorker(i),dbname);
+          share(ci);
+       }
+    }
+
+    void shareUser() {
+       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       for(size_t i=0; i< algInstance->noConnections(); i++){
+           ConnectionInfo* ci = algInstance->getConnection(i);
+           if(ci){
+              ci->switchDatabase(dbname, true);
+              share(ci); 
+           }
+       } 
+    }
+
+    void share(ConnectionInfo* ci){
+      pair<string,int> con(ci->getHost(), ci->getPort());
+      if(cons.find(con)==cons.end()){
+         cons.insert(con);
+         createFile(ci); 
+         shareRunner runner(ci,name,filename, isRelation, cons.size(), 
+                            allowOverwrite, this);
+         boost::thread * t = new boost::thread(runner);
+         runners.push_back(t);
+      }
+    }
+
+    void createFile(ConnectionInfo* ci){
+      boost::lock_guard<boost::mutex> guard(createFileMutex);
+      if(!fileCreated){
+          isRelation = Relation::checkType(typeList);
+          filename = name + "_" + stringutils::int2str(WinUnix::getpid()) 
+                     + ".bin";
+          if(isRelation){
+             ci->saveRelationToFile(typeList, value, filename);
+          } else {
+             ci->storeObjectToFile(name, value, typeList, filename); 
+          }
+          fileCreated=true;
+      }      
+    }
+
+};
+
+
+int shareVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  CcString* objName = (CcString*) args[0].addr;
+  CcBool* overwrite = (CcBool*) args[1].addr;
+  DArray2* array = qp->GetNoSons(s)==3?(DArray2*) args[2].addr: 0;
+  result = qp->ResultStorage(s);
+  FText* res = (FText*) result.addr;
+  if(array && !array->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  if(!objName->IsDefined() || !overwrite->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  shareInfo info(objName->GetValue(), overwrite->GetValue(), array, res);
+  info.share();
+  return 0;
+}
+
+
+OperatorSpec shareSpec(
+     "string x bool [x darray2] -> text",
+     "share(ObjectName, allowOverwrite, workerArray)",
+     "distributes an object from local database to the workers."
+     "The allowOverwrite flag controls whether existing objects "
+     "with the same name should be overwritten. Id the optional "
+     "darray2 argument is given, the object is stored at all "
+     "workers contained within this array. If this argument is "
+     "missing the user defined connections are used as workers.",
+     "query share(\"ten\", TRUE,da8) "
+ );
+
+
+/*
+12.5 Operator instance
+
+*/
+Operator shareOp(
+  "share",
+  shareSpec.getStr(),
+  shareVM,
+  Operator::SimpleSelect,
+  shareTM
+);
+
+
 
 
 
@@ -9218,6 +9639,8 @@ Operator cloneOp(
 
 */
 Distributed2Algebra::Distributed2Algebra(){
+   namecounter = 0;
+
    AddTypeConstructor(&DArray2TC);
    DArray2TC.AssociateKind(Kind::SIMPLE());
    
@@ -9270,7 +9693,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&getValueOp);
    AddOperator(&deleteRemoteObjectsOp);
    AddOperator(&cloneOp);
-
+   AddOperator(&shareOp);
 }
 
 
