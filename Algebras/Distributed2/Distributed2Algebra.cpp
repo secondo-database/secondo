@@ -2063,7 +2063,7 @@ OperatorSpec disconnectSpec(
      " int -> int , ->int",
      "disconnect(), disconnect(_)",
      "Closes a connection to a remote server. Without any argument"
-     " all connections are closed, otherwise only the specifyied one",
+     " all connections are closed, otherwise only the specified one",
      "query disconnect(0)");
 
 /*
@@ -6853,7 +6853,7 @@ Operator pputOp(
 
 
 /*
-1.6 Operator ddsitribute2
+1.6 Operator ddistribute2
 
 1.6.1 Type Mapping
 
@@ -6917,6 +6917,10 @@ class RelFileRestorer{
     relType(_relType), objName(_objName), array(_array), 
     arrayIndex(_arrayIndex), filename(_filename),
     started(false){
+    int workerIndex = arrayIndex % array->numOfWorkers();
+    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    ci = algInstance->getWorkerConnection(
+                         array->getWorker(workerIndex),dbname);
    }
 
    ~RelFileRestorer(){
@@ -6926,9 +6930,10 @@ class RelFileRestorer{
 
    void start(){
      boost::lock_guard<boost::mutex> guard(mtx);
-     if(!started){
+     if(!started && ci ){
         started = true;
         res = true;
+        checkServerFree();
         runner = boost::thread(&RelFileRestorer::run, this);
      }
    }
@@ -6943,23 +6948,47 @@ class RelFileRestorer{
     boost::mutex mtx;
     boost::thread runner;
     bool res;
+    ConnectionInfo* ci;
+
+    static map<pair<string,int>,boost::mutex*> serializer;
+    static boost::mutex sermtx;
+
 
     void run(){
-      int workerIndex = arrayIndex % array->numOfWorkers();
-      string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-      ConnectionInfo* ci = algInstance->getWorkerConnection(
-                                   array->getWorker(workerIndex),dbname);
       if(ci){
          res = ci->createOrUpdateRelationFromBinFile(objName,filename);
          if(!res){
            cerr << "createorUpdateObject failed" << endl;
          }
+         sermtx.lock();
+         pair<string,int> p(ci->getHost(), ci->getPort());
+         serializer[p]->unlock();
+         sermtx.unlock();
       } else {
         cerr << "connection failed" << endl;
       }
     }
+
+    void checkServerFree(){
+       sermtx.lock();
+       map<pair<string,int>,boost::mutex*>::iterator it;
+       pair<string,int> p(ci->getHost(), ci->getPort());
+       it = serializer.find(p);
+       if(it==serializer.end()){
+          boost::mutex* mtx = new boost::mutex();
+          serializer[p] = mtx;
+       }        
+       boost::mutex* m = serializer[p];
+       sermtx.unlock();
+       m->lock();
+    }
+
+
+
 };
 
+map<pair<string,int>,boost::mutex*> RelFileRestorer::serializer;
+boost::mutex RelFileRestorer::sermtx;
 
 /*
 1.6.3 Value Mapping
@@ -7065,7 +7094,7 @@ int ddistribute2VM(Word* args, Word& result, int message,
 OperatorSpec ddistribute2Spec(
      " stream(tuple(X)) x ident x darray2(Y) -> darray2(X) ",
      " _ ddistribute2[ _, _]",
-     " Distributes a locally stored relation into a darray2 ",
+     " Distributes a locally stored relation into a darray2.",
      " query strassen feed addcounter[No,1] ddistribute[No, da2]  "
      );
 
@@ -7622,8 +7651,8 @@ OperatorSpec fdistribute5Spec(
      " stream(tuple(X)) x string,text} x int x attrName ",
      " _ ddistribute2[ _, _,_]",
      " Distributes a locally stored relation into a set of files."
-     "The file name are given by the second attribute extended by"
-     " the array index ",
+     "The file names are given by the second attribute extended by"
+     " the array index.",
      " query strassen feed addcounter[No,1] ifdistribute5['strassen',10,No]"
      "  count"
      );
@@ -7854,8 +7883,9 @@ int showWorkersVM(Word* args, Word& result, int message,
 OperatorSpec showWorkersSpec(
      " -> stream(tuple), darray2 -> stream(tuple) ",
      " showWorkers([_])",
-     " Show information about either all connection to workers (no argument)  "
-     ", or connections of a specified darray2 instance.",
+     "This operator shows information about either all connections to workers "
+     "(no argument),  "
+     "or connections of a specified darray2 instance.",
      " query showWorkers()  consume "
      );
 
