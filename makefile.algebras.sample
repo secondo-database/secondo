@@ -288,7 +288,9 @@ ALGEBRAS      += NestedRelationAlgebra
 
 
 
-
+#ALGEBRA_DIRS += TIN
+#ALGEBRAS     += TinAlgebra
+#ALGEBRA_DEPS += quadmath gmp
 
 
 
