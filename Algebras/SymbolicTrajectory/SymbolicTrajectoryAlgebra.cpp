@@ -1750,7 +1750,7 @@ int atperiodsSymbolicVM(Word* args, Word& result, int message, Word& local,
   M *src = static_cast<M*>(args[0].addr);
   Periods *per = static_cast<Periods*>(args[1].addr);
   M *res = static_cast<M*>(result.addr);
-  src->Atperiods(*per, *res);
+  src->AtPeriods(*per, *res);
   return 0;
 }
 
@@ -2640,27 +2640,127 @@ Operator matches("matches", matchesSpec, 8, matchesVMs, matchesSelect,
                  matchesTM);
 
 /*
+\section{Operator ~createtupleindex~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr createtupleindexTM(ListExpr args) {
+  string err = "Operator expects a stream of tuples where at least one "
+               "attribute is a symbolic trajectory. Optionally, the user can "
+               "specify the name of the main attribute.";
+  if (!nl->HasLength(args, 1) && !nl->HasLength(args, 2)) {
+    return listutils::typeError(err + " (" 
+     + stringutils::int2str(nl->ListLength(args)) + " arguments instead of 1)");
+  }
+  if (!listutils::isTupleStream(nl->First(args))) {
+    return listutils::typeError(err + " (no tuple stream received)");
+  }
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  string attrName;
+  int pos = -1;
+  if (nl->HasLength(args, 1)) {
+    string symAttrNames[] = {"mlabel", "mlabels", "mplace", "mplaces"};
+    int found = 0;
+    for (int i = 0; i < 4; i++) {
+      found += listutils::findType(attrList, nl->SymbolAtom(symAttrNames[i]),
+                                   attrName);
+      if (found != 0 && pos == -1) {
+        pos = found;
+      }
+    }
+    if (found == 0) {
+      return listutils::typeError(err + " (no symbolic attribute found)");
+    }
+  }
+  else {
+    attrName = nl->SymbolValue(nl->Second(args));
+    ListExpr type;
+    int pos = listutils::findAttribute(attrList, attrName, type);
+    if (pos == 0 || !Tools::isSymbolicType(type)) {
+      return listutils::typeError(err + " (" + attrName + " is not the name of "
+             + "a symbolic attribute)");
+    }
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           nl->OneElemList(nl->IntAtom(pos - 1)),
+                           nl->SymbolAtom(TupleIndex::BasicType()));
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int createtupleindexVM(Word* args, Word& result, int message, Word& local, 
+                       Supplier s) {
+  result = qp->ResultStorage(s);
+  Stream<Tuple> stream = static_cast<Stream<Tuple> >(args[0].addr);
+  CcInt *attrno = static_cast<CcInt*>(args[2].addr);
+  TupleIndex* ti = static_cast<TupleIndex*>(result.addr);
+  stream.open();
+  Tuple* tuple = stream.request();
+  if (tuple) {
+    ti->initialize(tuple->GetTupleType(), attrno->GetIntval());
+  }
+  while (tuple) {
+    if (!ti->addTuple(tuple)) {
+      ti->deleteIndexes();
+      return 0;
+    }
+    tuple->DeleteIfAllowed();
+    tuple = stream.request();
+  }
+  stream.close();
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct createtupleindexInfo : OperatorInfo {
+  createtupleindexInfo() {
+    name      = "createtupleindex";
+    signature = "stream(tuple(X)) --> bool";
+    syntax    = "_ createtupleindex";
+    meaning   = "Creates a multiple index for all moving attributes of the "
+                "tuple stream.";
+  }
+};
+
+/*
 \section{Operator ~tmatches~}
 
 \subsection{Type Mapping}
 
 */
 ListExpr tmatchesTM(ListExpr args) {
-  string err = "the expected syntax is: tuple(X) x attrname x (text | pattern)";
-  if (!nl->HasLength(args, 3)) {
+  string err = "the expected syntax is: tuple(X) x attrname x (text | pattern) "
+               "\n or rel(tuple(X)) x attrname x (text | pattern) x tupleindex";
+  if (!nl->HasLength(args, 3) && !nl->HasLength(args, 4)) {
     return listutils::typeError(err + " (wrong number of arguments)");
   }
-  if (!nl->HasLength(nl->First(args), 2)) {
-    return listutils::typeError(err + " (first argument is not a tuple)");
+  ListExpr attrs;
+  ListExpr tList;
+  if (nl->HasLength(args, 3)) {
+    if (!Tuple::checkType(nl->First(nl->First(args)))) {
+      return listutils::typeError(err + " (first argument is not a tuple)");
+    }
+    attrs = nl->Second(nl->First(nl->First(args)));
   }
-  if (!Tuple::checkType(nl->First(nl->First(args))) || 
-      !listutils::isSymbol(nl->First(nl->Second(args))) ||
-     (!FText::checkType(nl->First(nl->Third(args))) && 
-      !PatPersistent::checkType(nl->First(nl->Third(args))))) {
-    return listutils::typeError(err);
+  else {
+    if (!Relation::checkType(nl->First(nl->First(args)))) {
+      return listutils::typeError(err + " (first argument is not a relation)");
+    }
+    tList = nl->Second(nl->First(nl->First(args)));
+    attrs = nl->Second(tList);
   }
-  cout << nl->ToString(nl->Second(nl->First(nl->First(args)))) << endl;
-  ListExpr attrs = nl->Second(nl->First(nl->First(args)));
+  if (!listutils::isSymbol(nl->First(nl->Second(args))) ||
+      (!FText::checkType(nl->First(nl->Third(args))) && 
+        !PatPersistent::checkType(nl->First(nl->Third(args))))) {
+    return listutils::typeError(err + " (error in 2nd or 3rd argument)");
+  }
+  
   string name = nl->SymbolValue(nl->First(nl->Second(args)));
   ListExpr type;
   int index = listutils::findAttribute(attrs, name, type);
@@ -2670,7 +2770,15 @@ ListExpr tmatchesTM(ListExpr args) {
   if (!MLabel::checkType(type) && !MLabels::checkType(type) &&
       !MPlace::checkType(type) && !MPlaces::checkType(type)) {
     return listutils::typeError("Attribute " + name + " is not a symbolic "
-                               "trajectory (MLabel, MLabels, MPlace, MPlaces)");
+                              "trajectory (MLabel, MLabels, MPlace, MPlaces)");
+  }
+  if (nl->HasLength(args, 4)) {
+    if (!TupleIndex::checkType(nl->First(nl->Fourth(args)))) {
+      return listutils::typeError(err + " (4th argument is not a tuple index)");
+    }
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                             nl->OneElemList(nl->IntAtom(index - 1)), 
+                      nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), tList));
   }
   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                            nl->OneElemList(nl->IntAtom(index - 1)), 
@@ -2682,7 +2790,12 @@ ListExpr tmatchesTM(ListExpr args) {
 
 */
 int tmatchesSelect(ListExpr args) {
-  return FText::checkType(nl->Third(args)) ? 0 : 1;
+  if (nl->HasLength(args, 3)) {
+    return FText::checkType(nl->Third(args)) ? 0 : 1;
+  }
+  else {
+    return FText::checkType(nl->Third(args)) ? 2 : 3;
+  }
 }
 
 /*
@@ -2719,6 +2832,53 @@ int tmatchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   return 0;
 }
 
+template<class P>
+int tmatchesindexVM(Word* args, Word& result, int message, Word& local, 
+                    Supplier s) {
+  cout << "start VM" << endl;
+  TMatchIndexLI *li = (TMatchIndexLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      cout << "OPEN" << endl;
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      local.addr = new TMatchIndexLI();
+      cout << "begin casts" << endl;
+//       Relation *rel = static_cast<Relation*>(args[0].addr);
+      CcInt *attrno = static_cast<CcInt*>(args[4].addr);
+//       TupleIndex *ti = static_cast<TupleIndex*>(args[3].addr);
+      P* pat = static_cast<P*>(args[2].addr);
+      Pattern *p = 0;
+      if (pat->IsDefined() && attrno->IsDefined()) {
+        Supplier s0 = qp->GetSon(s, 0);
+        ListExpr ttype = qp->GetType(s0);
+        cout << "ttype is " << nl->ToString(ttype) << endl;
+        p = Pattern::getPattern(pat->toText(), false, 0, ttype);
+        if (p) {
+
+        }
+        else {
+          cout << "invalid pattern" << endl;
+        }
+      }
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
 /*
 \subsection{Operator Info}
 
@@ -2733,9 +2893,10 @@ const string tmatchesSpec =
   "<text>query Part feed filter[. matches [ML, "
   "'* (_ _ superset{\"BKA\"}) *']] count </text--->) )";
 
-ValueMapping tmatchesVMs[] = {tmatchesVM<FText>, tmatchesVM<PatPersistent>};
+ValueMapping tmatchesVMs[] = {tmatchesVM<FText>, tmatchesVM<PatPersistent>,
+  tmatchesindexVM<FText>, tmatchesindexVM<PatPersistent>};
 
-Operator tmatches("tmatches", tmatchesSpec, 2, tmatchesVMs, tmatchesSelect,
+Operator tmatches("tmatches", tmatchesSpec, 4, tmatchesVMs, tmatchesSelect,
                   tmatchesTM);
 
 /*
@@ -4060,70 +4221,13 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,Supplier s){
   }
   appendcache::RecordAppendCache* cache = inv->createAppendCache(invCacheSize);
   TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
-  unsigned int counter = 0;
-  if (M::BasicType() == "mlabel") {
-    for (int i = 0; i < rel->GetNoTuples(); i++) {
-      tuple = rel->GetTuple(i + 1, false);
-      src = (M*)(tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval() - 1));
-      string value;
-      for (int j = 0; j < src->GetNoComponents(); j++) {
-        ((MLabel*)src)->GetValue(j, value);
-        inv->insertString(tuple->GetTupleId(), value, j, 0, cache, trieCache);
-      }
-      tuple->DeleteIfAllowed();
-    }
-  }
-  else if (M::BasicType() == "mplace") {
-    for (int i = 0; i < rel->GetNoTuples(); i++) {
-      tuple = rel->GetTuple(i + 1, false);
-      src = (M*)(tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval() - 1));
-      pair<string, charPosType> value;
-      for (int j = 0; j < src->GetNoComponents(); j++) {
-        ((MPlace*)src)->GetValue(j, value);
-        inv->insertString(tuple->GetTupleId(), value.first, j, value.second, 
-                          cache, trieCache);
-      }
-      tuple->DeleteIfAllowed();
-    }
-  }
-  else if (M::BasicType() == "mlabels") {
-    for (int i = 0; i < rel->GetNoTuples(); i++) {
-      tuple = rel->GetTuple(i + 1, false);
-      src = (M*)(tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval() - 1));
-      set<string> values;
-      for (int j = 0; j < src->GetNoComponents(); j++) {
-        ((MLabels*)src)->GetValues(j, values);
-        for (set<string>::iterator it = values.begin();it != values.end();it++){
-          inv->insertString(tuple->GetTupleId(), *it, j, 0, cache, trieCache);
-          counter++;
-          if (counter % 100000 == 0) {
-            cout << counter << " elements inserted, last was " << *it << endl;
-          }
-        }
-      }
-      tuple->DeleteIfAllowed();
-    }
-  }
-  else { // mplaces
-    for (int i = 0; i < rel->GetNoTuples(); i++) {
-      tuple = rel->GetTuple(i + 1, false);
-      src = (M*)(tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval() - 1));
-      set<pair<string, charPosType> > values;
-      for (int j = 0; j < src->GetNoComponents(); j++) {
-        ((MPlaces*)src)->GetValues(j, values);
-        for (set<pair<string, charPosType> >::iterator it = values.begin();
-                                                     it != values.end(); it++) {
-          inv->insertString(tuple->GetTupleId(), it->first, j, it->second, 
-                            cache, trieCache);
-          counter++;
-          if (counter % 100000 == 0) {
-            cout << counter << " elements inserted, last was (" << it->first
-                 << ", " << it->second << ")" << endl;
-          }
-        }
-      }
-      tuple->DeleteIfAllowed();
-    }
+  int attrno = ((CcInt*)args[2].addr)->GetIntval() - 1;
+  for (int i = 0; i < rel->GetNoTuples(); i++) {
+    tuple = rel->GetTuple(i + 1, false);
+    src = (M*)(tuple->GetAttribute(attrno));
+    TupleIndex::insertIntoTrie(inv, i + 1, src, 
+           Tools::getDataType(tuple->GetTupleType(), attrno), cache, trieCache);
+    tuple->DeleteIfAllowed();
   }
   delete trieCache;
   delete cache;
@@ -4322,6 +4426,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   mplaces.AssociateKind(Kind::TEMPORAL());
 
   AddTypeConstructor(&patternTC);
+  AddTypeConstructor(&tupleindexTC);
   AddTypeConstructor(&classifierTC);
 
   ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
@@ -4487,6 +4592,14 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
   AddOperator(&matches);
   matches.SetUsesArgsInTypeMapping();
+  
+//  AddOperator(createtupleindexInfo(), createtupleindexVM, createtupleindexTM);
+//   
+// Operator : createtupleindex
+// Number   : 1
+// Signature: stream(tuple(X)) -> tupleindex
+// Example  : query Dotraj feed createtupleindex[2]
+// Result   : TRUE
   
   AddOperator(&tmatches);
   tmatches.SetUsesArgsInTypeMapping();

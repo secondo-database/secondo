@@ -448,6 +448,12 @@ DataType Tools::getDataType(TupleType *ttype, const int attrno) {
   return getDataType(typeName);
 }
 
+string Tools::getTypeName(TupleType *ttype, const int attrno) {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  AttributeType attrType = ttype->GetAttributeType(attrno);
+  return sc->GetTypeName(attrType.algId, attrType.typeId);
+}
+
 bool Tools::isSymbolicType(ListExpr type) {
   return ((nl->ToString(type) == "mlabel") || (nl->ToString(type) == "mlabels")
      || (nl->ToString(type) == "mplace") || (nl->ToString(type) ==  "mplaces"));
@@ -993,14 +999,35 @@ bool Tools::checkAttrType(const string& typeName, const Word &value) {
 
 */
 bool Tools::isRelevantAttr(const string& name) {
-  string relevantAttrTypes[] = {"mlabel", "mlabels", "mplace", "mplaces",
-    "mpoint", "mreal", "mint", "mbool", "mregion"};
-  for (int i = 0; i < 9; i++) {
-    if (name == relevantAttrTypes[i]) {
-      return true;
-    }
+  set<string> relevantAttrTypes;
+  relevantAttrTypes.insert("mbool");
+  relevantAttrTypes.insert(relevantAttrTypes.end(), "mint");
+  relevantAttrTypes.insert(relevantAttrTypes.end(), "mlabel");
+  relevantAttrTypes.insert(relevantAttrTypes.end(), "mlabels");
+  relevantAttrTypes.insert(relevantAttrTypes.end(), "mplace");
+  relevantAttrTypes.insert(relevantAttrTypes.end(), "mplace");
+  relevantAttrTypes.insert(relevantAttrTypes.end(), "mpoint");
+  relevantAttrTypes.insert(relevantAttrTypes.end(), "mreal");
+  relevantAttrTypes.insert(relevantAttrTypes.end(), "mregion");
+  return relevantAttrTypes.find(name) != relevantAttrTypes.end();
+}
+
+/*
+\subsection{Function ~isMovingAttr~}
+
+*/
+bool Tools::isMovingAttr(const ListExpr ttype, const int attrno) {
+  if (!nl->HasLength(ttype, 2)) {
+    return false;
   }
-  return false;
+  if (attrno < 1 || attrno > nl->ListLength(nl->Second(ttype))) {
+    return false;
+  }
+  if (!nl->HasLength(nl->Nth(attrno, nl->Second(ttype)), 2)) {
+    return false;
+  }
+  return isRelevantAttr(nl->ToString(nl->Second(nl->Nth(attrno, 
+                                                        nl->Second(ttype)))));
 }
 
 /*

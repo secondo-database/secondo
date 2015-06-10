@@ -39,6 +39,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "RTreeAlgebra.h"
 #include "FTextAlgebra.h"
 #include "BasicTypes.h"
+#include "InvertedFile.h"
  
  using namespace std;
  
@@ -98,6 +99,7 @@ class Tools {
   static string getDataType(const int key);
   static DataType getDataType(const string& type);
   static DataType getDataType(TupleType *ttype, const int attrno);
+  static string getTypeName(TupleType *ttype, const int attrno);
   static bool isSymbolicType(ListExpr typeList);
   static string extractVar(const string& input);
   static string extendDate(string input, const bool start);
@@ -115,6 +117,7 @@ class Tools {
                              int &endpos, Word &value);
   static bool checkAttrType(const string& typeName, const Word &value);
   static bool isRelevantAttr(const string& name);
+  static bool isMovingAttr(const ListExpr ttype, const int attrno);
   static vector<pair<int, string> > getRelevantAttrs(TupleType *ttype, 
                                       const int majorAttrNo, int& majorValueNo);
   static void deleteValue(Word &value, const string &type);

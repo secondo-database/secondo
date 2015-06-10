@@ -386,6 +386,8 @@ Signature: mlabel x text -> bool
 Example  : query mlabel1 matches '(_ "Eving") * (_ "Innenstadt-Ost") +'
 Result   : TRUE
 
+
+
 Operator : tmatches
 Number   : 1
 Signature: tuple(X) x IDENT x (text | pattern) -> bool

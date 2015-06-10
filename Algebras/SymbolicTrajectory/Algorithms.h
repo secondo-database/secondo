@@ -48,7 +48,6 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "Stream.h"
-#include "InvertedFile.h"
 #include "RTreeAlgebra.h"
 #include "IntNfa.h"
 #include "TemporalUnitAlgebra.h"
@@ -85,6 +84,7 @@ void patternFlushBuffer();
 
 enum ExtBool {FALSE, TRUE, UNDEF};
 enum Wildcard {NO, STAR, PLUS};
+enum IndexType {TRIE, BTREE, RTREE1, RTREE2, NONE};
 
 /*
 \section{Class ~IBasic~}
@@ -255,7 +255,7 @@ class MBasic : public Attribute {
   void At(const B& basic, MBasic<B>& result) const;
   void DefTime(Periods& per) const;
   void Atinstant(const Instant& inst, IBasic<B>& result) const;
-  void Atperiods(const Periods& per, MBasic<B>& result) const;
+  void AtPeriods(const Periods& per, MBasic<B>& result) const;
   void Initial(IBasic<B>& result) const;
   void Final(IBasic<B>& result) const;
   void Inside(const typename B::coll& coll, MBool& result) const;
@@ -333,7 +333,7 @@ class MBasics : public Attribute {
   void At(const B& bs, MBasics<B>& result) const;
   void DefTime(Periods& per) const;
   void Atinstant(const Instant& inst, IBasics<B>& result) const;
-  void Atperiods(const Periods& per, MBasics<B>& result) const;
+  void AtPeriods(const Periods& per, MBasics<B>& result) const;
   void Initial(IBasics<B>& result) const;
   void Final(IBasics<B>& result) const;
   void Fill(MBasics<B>& result, DateTime& duration) const;
@@ -400,7 +400,7 @@ class Condition {
   int convertVarKey(const char *varKey, Tuple *t = 0, ListExpr tupleType = 0);
   void clear();
   static string getType(int t, Tuple *tuple = 0, ListExpr ttype = 0);
-  bool initOpTree(Tuple *tuple = 0);
+  bool initOpTree(Tuple *tuple = 0, ListExpr ttype = 0);
   void deleteOpTree();
   
   string  getText() const          {return text;}
@@ -437,15 +437,23 @@ class Condition {
   bool    isTreeOk()               {return treeOk;}
   void    setTreeOk(bool value)    {treeOk = value;}
   template<class M>
+  void    restrictPtr(const int pos, M *traj, const unsigned int from,
+                      const unsigned int to, Tuple *tuple, ListExpr ttype, 
+                      const int key);
+  template<class M>
   void    setPointerToValue(const int pos, M *traj, const int from, 
                             const int to);
   template<class M>
   void    setPointerToEmptyValue(const int pos, M *traj);
   template<class M>
   bool    evaluate(const map<string, pair<int, int> > &binding, M *traj,
-                   Tuple *tuple = 0);
+                   Tuple *tuple = 0, ListExpr ttype = 0);
 };
 
+/*
+\section{Class ~PatElem~}
+
+*/
 class PatElem {
   friend class TMatch;
  private:
@@ -506,6 +514,10 @@ class PatElem {
   void     deleteValues(vector<pair<int, string> > &relevantAttrs);
 };
 
+/*
+\section{Class ~Assign~}
+
+*/
 class Assign {
  private:
   int resultPos;
@@ -578,6 +590,10 @@ class Assign {
   void    setTreesOk(bool value)             {treesOk = value;}
 };
 
+/*
+\section{Class ~Pattern~}
+
+*/
 class Pattern {
   friend class TMatch;  
  public:
@@ -611,7 +627,7 @@ class Pattern {
   void deleteAssignOpTrees(bool conds);
   bool parseNFA();
   bool containsFinalState(set<int> &states);
-  bool initCondOpTrees(Tuple *tuple = 0);
+  bool initCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0);
   bool initEasyCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0);
   void deleteCondOpTrees();
   void deleteEasyCondOpTrees();
@@ -687,6 +703,10 @@ class Pattern {
   set<int> finalStates;
 };
 
+/*
+\section{Class ~PatPersistent~}
+
+*/
 class PatPersistent : public Label {
  public:
   PatPersistent() {}
@@ -717,6 +737,10 @@ class PatPersistent : public Label {
 
 extern TypeConstructor classifierTC;
 
+/*
+\section{Class ~Classifier~}
+
+*/
 class Classifier : public Attribute {
   friend class ClassifyLI;
  public:
@@ -790,6 +814,10 @@ class Classifier : public Attribute {
   bool defined;
 };
 
+/*
+\section{Struct ~BindingElem~}
+
+*/
 struct BindingElem {
   BindingElem() : from(-1), to(-1) {}
 
@@ -800,20 +828,27 @@ struct BindingElem {
   unsigned int from, to;
 };
 
+/*
+\section{Class ~TMatch~}
+
+*/
 class TMatch {
- public:
+ private:
   Pattern *p;
   Tuple *t;
+  ListExpr ttype;
   set<int>** matching;
   int attrno, valueno;
   DataType type;
   vector<pair<int, string> > relevantAttrs;
   set<unsigned int>** pathMatrix; // stores the whole matching process
   
-  TMatch(Pattern *pat, Tuple *tuple, const int _attrno, 
+ public:
+  TMatch(Pattern *pat, Tuple *tuple, ListExpr tt, const int _attrno, 
          vector<pair<int, string> >& _relevantAttrs, const int _valueno) {
     p = pat;
     t = tuple;
+    ttype = tt;
     attrno = _attrno;
     valueno = _valueno;
     matching = 0;
@@ -824,8 +859,8 @@ class TMatch {
   ~TMatch() {}
   
   ExtBool matches();
-  int GetNoMainComponents();
-  void GetInterval(const int u, SecInterval& iv);
+  int GetNoMainComponents() const;
+  void GetInterval(const int u, SecInterval& iv) const;
   bool labelsMatch(const set<string>& tlabels, const int atom, const int pos);
   bool placesMatch(const set<pair<string, unsigned int> >& tlabels, 
                    const int atom, const int pos);
@@ -841,6 +876,79 @@ class TMatch {
                    map<string, pair<int, int> > &binding);
 };
 
+extern TypeConstructor tupleindexTC;
+
+/*
+\section{Class ~TupleIndex~}
+
+*/
+class TupleIndex {
+ public:
+  TupleIndex() {}
+  TupleIndex(bool dummy) {cache = 0; trieCache = 0;}
+  TupleIndex(TupleIndex &src);
+  ~TupleIndex() {deleteIndexes();}
+  
+  static const string BasicType() {return "tupleindex";}
+  static bool checkType(const ListExpr list);
+  static ListExpr Property();
+  static Word In(const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word& w);
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static bool Open(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static void Close(const ListExpr typeInfo, Word& w);
+  static Word Clone(const ListExpr typeInfo, const Word& w);
+  static int SizeOfObj();
+  static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
+
+  void initialize(TupleType *ttype, int _mainAttr);
+  bool addTuple(Tuple *tuple);
+  static void insertIntoTrie(InvertedFile *inv, TupleId tid, Attribute *traj, 
+                           DataType type, appendcache::RecordAppendCache* cache,
+                             TrieNodeCacheType* trieCache);
+  static bool fillTimeIndex(RTree1TLLI* rt, TupleId tid, Attribute *traj,
+                            DataType type);
+  static void insertIntoBTree(BTree *bt, TupleId tid, MInt *mint);
+  static bool insertIntoRTree1(RTree1TLLI *rt, TupleId tid, Attribute *m);
+  static bool insertIntoRTree2(RTree2TLLI *rt, TupleId tid, Attribute *m,
+                               string type);
+  void deleteIndexes();
+
+ private:
+  vector<InvertedFile*> tries;
+  vector<BTree*> btrees;
+  vector<RTree1TLLI*> rtrees1;
+  vector<RTree2TLLI*> rtrees2;
+  RTree1TLLI *timeIndex;
+  map<int, pair<IndexType, int> > attrToIndex; // attrs start with 1; 0 is
+  map<pair<IndexType, int>, int> indexToAttr; // reserved for the time intervals
+  int mainAttr;
+  
+  appendcache::RecordAppendCache* cache;
+  TrieNodeCacheType* trieCache;
+};
+
+/*
+\section{Class ~TMatchIndexLI~}
+
+*/
+class TMatchIndexLI {
+ public:
+  TMatchIndexLI() {}
+  
+  Tuple* nextTuple() {return 0;}
+  
+};
+
+/*
+\section{Class ~Match~}
+
+*/
 template<class M>
 class Match {
  public:
@@ -908,6 +1016,10 @@ class Match {
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
 };
 
+/*
+\section{Struct ~BindingStackElem~}
+
+*/
 struct BindingStackElem {
   BindingStackElem(unsigned int ul, unsigned int pe) : ulId(ul), peId(pe) {}
 
@@ -915,6 +1027,10 @@ struct BindingStackElem {
 //   map<string, pair<int, int> > binding;
 };
 
+/*
+\section{Class ~RewriteLI~}
+
+*/
 template<class M>
 class RewriteLI {
  public:
@@ -937,6 +1053,10 @@ class RewriteLI {
   set<map<string, pair<int, int> > > rewBindings;
 };
 
+/*
+\section{Class ~ClassifyLI~}
+
+*/
 class ClassifyLI {
 
  friend class Match<MLabel>;
@@ -961,6 +1081,10 @@ class ClassifyLI {
   set<int> matchingPats;
 };
 
+/*
+\section{Class ~MultiRewriteLI~}
+
+*/
 template<class M>
 class MultiRewriteLI : public ClassifyLI, public RewriteLI<M> {
  public:
@@ -989,6 +1113,10 @@ class MultiRewriteLI : public ClassifyLI, public RewriteLI<M> {
   map<int, string> elemToVar;
 };
 
+/*
+\section{Class ~FilterMatchesLI~}
+
+*/
 template<class M>
 class FilterMatchesLI {
  public:
@@ -1005,6 +1133,10 @@ class FilterMatchesLI {
   bool streamOpen, deleteP;
 };
 
+/*
+\section{Struct ~IndexRetrieval~}
+
+*/
 struct IndexRetrieval {
   IndexRetrieval() : pred(0), succ(0) {}
   IndexRetrieval(unsigned int p, unsigned int s = 0) : pred(p), succ(s) {}
@@ -1015,6 +1147,10 @@ struct IndexRetrieval {
   set<int> units;
 };
 
+/*
+\section{Struct ~IndexMatchInfo~}
+
+*/
 struct IndexMatchInfo {
   IndexMatchInfo(bool r, int n = 0) : 
        range(r), next(n), prevElem(-1) {binding.clear();}
@@ -1031,6 +1167,10 @@ struct IndexMatchInfo {
   map<string, pair<int, int> > binding;
 };
 
+/*
+\section{Struct ~IndexMatchSlot~}
+
+*/
 struct IndexMatchSlot {
   IndexMatchSlot() : pred(0), succ(0) {}
   
@@ -1038,6 +1178,10 @@ struct IndexMatchSlot {
   vector<IndexMatchInfo> imis;
 };
 
+/*
+\section{Class ~IndexMatchesLI~}
+
+*/
 class IndexMatchesLI {
  public:
   IndexMatchesLI(Relation *rel, InvertedFile *inv, 
@@ -1098,6 +1242,10 @@ class IndexMatchesLI {
   DataType mtype;
 };
 
+/*
+\section{Class ~IndexClassifyLI~}
+
+*/
 class IndexClassifyLI : public IndexMatchesLI {
  public:
   IndexClassifyLI(Relation *rel, InvertedFile *inv, 
@@ -1116,6 +1264,10 @@ class IndexClassifyLI : public IndexMatchesLI {
   int currentPat;
 };
 
+/*
+\section{Class ~UnitsLI~}
+
+*/
 class UnitsLI {
  public:
   UnitsLI() : index(0) {}
@@ -1124,6 +1276,10 @@ class UnitsLI {
   int index;
 };
 
+/*
+\section{Class ~DeriveGroupsLI~}
+
+*/
 template<class M>
 class DeriveGroupsLI {
  public: 
@@ -2092,11 +2248,11 @@ void MBasic<B>::Atinstant(const Instant& inst, IBasic<B>& result) const {
 }
 
 /*
-\subsection{Function ~Atperiods~}
+\subsection{Function ~AtPeriods~}
 
 */
 template<class B>
-void MBasic<B>::Atperiods(const Periods& per, MBasic<B>& result) const {
+void MBasic<B>::AtPeriods(const Periods& per, MBasic<B>& result) const {
   result.Clear();
   result.SetDefined(IsDefined() && per.IsDefined());
   if (!IsDefined() || !per.IsDefined()) {
@@ -2732,9 +2888,6 @@ void MBasics<B>::GetValues(const int i, set<typename B::base>& result) const{
   pair<unsigned int, unsigned int> flobPos; // pos, size
   for (int j = unit.pos; j <= getUnitEndPos(i); j++) {
     flobPos = make_pair(0, 0);
-    if (pos.Size() == 0) {
-      cout << "try to get elem " << j << " of " << pos.Size();
-    }
     pos.Get(j, elem1);
     unsigned int start = B::getFlobPos(elem1);
     if (start != UINT_MAX) {
@@ -3040,11 +3193,11 @@ void MBasics<B>::Atinstant(const Instant& inst,
 }
 
 /*
-\subsection{Function ~Atperiods~}
+\subsection{Function ~AtPeriods~}
 
 */
 template<class B>
-void MBasics<B>::Atperiods(const Periods& per, MBasics<B>& result) const {
+void MBasics<B>::AtPeriods(const Periods& per, MBasics<B>& result) const {
   result.Clear();
   result.SetDefined(IsDefined() && per.IsDefined());
   if (!IsDefined() || !per.IsDefined()) {
@@ -3279,6 +3432,59 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
 }
 
 /*
+\subsection{Function ~restrict~}
+
+*/
+template<class M>
+void Condition::restrictPtr(const int pos, M *traj, const unsigned int from,
+           const unsigned int to, Tuple *tuple, ListExpr ttype, const int key) {
+  SecInterval iv(true), ivtemp(true);
+  traj->GetInterval(from, iv);
+  traj->GetInterval(to, ivtemp);
+  iv.end = ivtemp.end;
+  iv.rc = ivtemp.rc;
+  Periods per(true);
+  per.Add(iv);
+  string attrtype = nl->ToString(nl->Second(nl->Nth(key, nl->Second(ttype))));
+  if (attrtype == "mbool") {
+    ((MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
+                                                      *((MBool*)pointers[pos]));
+  }
+  else if (attrtype == "mint") {
+    ((MInt*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                                       *((MInt*)pointers[pos]));
+  }
+  else if (attrtype == "mlabel") {
+    ((MLabel*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                                     *((MLabel*)pointers[pos]));
+  }
+  else if (attrtype == "mlabels") {
+    ((MLabels*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                                    *((MLabels*)pointers[pos]));
+  }
+  else if (attrtype == "mplace") {
+    ((MPlace*)tuple->GetAttribute(key - 1))->AtPeriods(per,
+                                                     *((MPlace*)pointers[pos]));
+  }
+  else if (attrtype == "mplaces") {
+    ((MPlaces*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                                    *((MPlaces*)pointers[pos]));
+  }
+  else if (attrtype == "mpoint") {
+    ((MPoint*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                                     *((MPoint*)pointers[pos]));
+  }
+  else if (attrtype == "mreal") {
+    ((MReal*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                                      *((MReal*)pointers[pos]));
+  }
+  else if (attrtype == "mregion") {
+    ((MRegion*)tuple->GetAttribute(key - 1))->AtPeriods(&per, 
+                                                       (MRegion*)pointers[pos]);
+  }
+}
+
+/*
 \subsection{Function ~setPointerToValue~}
 
 */
@@ -3430,7 +3636,7 @@ binding matches a certain condition.
 */
 template<class M>
 bool Condition::evaluate(const map<string, pair<int, int> > &binding, M *traj,
-                         Tuple *tuple /* = 0 */) {
+                         Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
   Word qResult;
   unsigned int from, to;
   for (int i = 0; i < getVarKeysSize(); i++) {
@@ -3438,11 +3644,17 @@ bool Condition::evaluate(const map<string, pair<int, int> > &binding, M *traj,
     if ((var != "") && binding.count(var)) {
       from = binding.find(var)->second.first;
       to = binding.find(var)->second.second;
-      if (getKey(i) > 99) { // reference to attribute of tuple
-        if (!tuple) {
+      int key = getKey(i);
+      if (key > 99) { // reference to attribute of tuple
+        if (!tuple || !ttype) {
           return false;
         }
-        pointers[i]->CopyFrom(tuple->GetAttribute(getKey(i) - 100));
+        if (Tools::isMovingAttr(ttype, key - 99)) {
+          restrictPtr(i, traj, from, to, tuple, ttype, key - 99);
+        }
+        else {
+          pointers[i]->CopyFrom(tuple->GetAttribute(key - 100));
+        }
         getQP()->EvalS(getOpTree(), qResult, OPEN);
         return ((CcBool*)qResult.addr)->GetValue();
       }
@@ -3453,12 +3665,12 @@ bool Condition::evaluate(const map<string, pair<int, int> > &binding, M *traj,
     }
   }
   getQP()->EvalS(getOpTree(), qResult, OPEN);
-  if (!((CcBool*)qResult.addr)->GetValue()) {
-    cout << "FALSE result: FROM " << from << " TO " << to << "; result for |" 
-         << text 
-         << "| is " << (((CcBool*)qResult.addr)->GetValue() ? "TRUE" : "FALSE") 
-         << endl;
-  }
+//   if (!((CcBool*)qResult.addr)->GetValue()) {
+//     cout << "FALSE result: FROM " << from << " TO " << to << "; result for |"
+//          << text 
+//          << "| is " << (((CcBool*)qResult.addr)->GetValue() ? "TRUE":"FALSE")
+//          << endl;
+//   }
   return ((CcBool*)qResult.addr)->GetValue();
 }
  
