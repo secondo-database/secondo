@@ -36,4 +36,6 @@ operator transformstream alias TRANSFORMSTREAM pattern _ op
 operator use alias USE pattern _ op [ _ ] implicit parameter streamelem type STREAMELEM
 operator use2 alias USE2 pattern _ _ op [ _ ] implicit parameters streamelem1, streamelem2 types STREAMELEM, STREAMELEM2
 
+operator sbuffer alias SBUFFER pattern _ op
+
 operator isOrdered alias ISORDERED pattern _ op

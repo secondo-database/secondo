@@ -1761,8 +1761,7 @@ streamUse2Select( ListExpr args )
     resIsStream = false;
   bool
     xIsTuple = false,
-    yIsTuple = false,
-    resIsTuple = false;
+    yIsTuple = false;
   int index = 0;
 
   // examine first arg
@@ -1805,20 +1804,14 @@ streamUse2Select( ListExpr args )
   // examine mapping result type
   if( !nl->IsAtom(nl->Fourth(M)) &&
       TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == tuple )
-    { resIsTuple = true; resIsStream = false; }
+    {  resIsStream = false; }
   else if( !nl->IsAtom(nl->Fourth(M)) &&
       TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == stream )
     {
       resIsStream = true;
-      if(!nl->IsAtom(nl->Second(nl->Fourth(M))) &&
-         (nl->ListLength(nl->Second(nl->Fourth(M))) == 2) &&
-         TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == tuple )
-        resIsTuple = true;
-      else
-        resIsTuple = false;
     }
   else
-    { resIsTuple = false; resIsStream = false;}
+    { resIsStream = false;}
 
   // calculate appropriate index value
 
@@ -3203,10 +3196,9 @@ The operator filters the elements of an arbitrary stream by a predicate.
 ListExpr
 streamFilterType( ListExpr args )
 {
-  ListExpr stream, map, errorInfo;
+  ListExpr stream, map;
   string out, out2;
 
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
   if ( nl->ListLength(args) == 2 )
     {
@@ -4934,6 +4926,154 @@ Operator isOrdered (
       IsOrderedVM,
       Operator::SimpleSelect,
       IsOrderedTM );
+
+
+
+
+/*
+6.9 Operator ~sbuffer~
+
+This operator buffers an incoming stream of tuple or DATA.
+
+*/
+ListExpr sbufferTM(ListExpr args){
+ string err = "stream(tuple(X)) or stream(DATA) expected";
+ if(!nl->HasLength(args,1)){
+   return listutils::typeError("wrong number of args; " + err);
+ }
+ ListExpr arg = nl->First(args);
+ if(Stream<Attribute>::checkType(arg) || Stream<Tuple>::checkType(arg)){
+    return arg;
+ }
+ return listutils::typeError(err);
+}
+
+template<class T>
+class sbufferInfo{
+
+  public:
+     sbufferInfo(Word _stream, int _memSizeMB): stream(_stream), 
+                mem(_memSizeMB*1024*1024){
+        stream.open();
+        output = false;
+        opos = 0;
+        eos = false;
+     }
+
+     ~sbufferInfo(){
+        stream.close();
+        for(size_t i=0;i<buffer.size();i++){
+           if(buffer[i]){
+              buffer[i]->DeleteIfAllowed();
+              buffer[i] = 0;
+           }
+        }
+      }
+
+      T* next(){
+          if(!output){
+             if(eos || !fillBuffer()){
+                return 0;
+             }
+          } 
+          T* n = buffer[opos];
+          buffer[opos] = 0;
+          opos++;
+          if(opos==buffer.size()){
+            output= false;
+          }
+          return n;
+      }
+
+
+
+  private:
+     Stream<T> stream;
+     size_t mem;
+     vector<T*> buffer;
+     bool output;
+     size_t opos;
+     bool eos;
+
+     bool fillBuffer(){
+        T* t = stream.request();
+        if(!t){
+          return false;
+        }
+        buffer.clear();
+        size_t usedSize = sizeof(*this);
+        opos = 0;
+        buffer.push_back(t);
+        usedSize += t->GetMemSize()  + sizeof(void*);
+        while(usedSize < mem && t){
+            t = stream.request();
+            if(t){
+              buffer.push_back(t);
+              usedSize += t->GetMemSize()  + sizeof(void*);
+            }
+        }
+        if(t==0){
+          eos = true;
+        }
+        output = true;
+        return true;
+     }
+
+
+};
+
+template<class T>
+int sbufferVMT(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+  sbufferInfo<T>* li = (sbufferInfo<T>*) local.addr;
+  switch(message){
+     case OPEN: if(li) {
+                  delete li;
+                }
+                local.addr = new sbufferInfo<T>(args[0], qp->GetMemorySize(s));
+                return 0;
+     case REQUEST:
+                result.addr = li?li->next():0;
+                return result.addr?YIELD:CANCEL;
+     case CLOSE:
+             if(li){
+                delete li;
+                local.addr = 0;
+             }
+             return 0;
+  }
+  return -1;
+};
+
+int sbufferSelect(ListExpr args){
+  return Attribute::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping sbufferVM[] = {
+   sbufferVMT<Attribute>,
+   sbufferVMT<Tuple>
+};
+
+OperatorSpec sbufferSpec(
+           "stream(X) -> stream(X)",
+           "_ sbuffer",
+           "Buffers a DATA or a tuple stream. ",
+           " query strassen feed sbuffer count" );
+
+Operator sbufferOp(
+   "sbuffer",
+    sbufferSpec.getStr(),
+    2,
+    sbufferVM,
+    sbufferSelect,
+    sbufferTM
+);
+
+
+
+
+
 /*
 7 Creating the Algebra
 
@@ -4964,6 +5104,8 @@ public:
     AddOperator( &kinds);
     AddOperator( &timeout);
     AddOperator( &isOrdered);
+    AddOperator( &sbufferOp);
+    sbufferOp.SetUsesMemory();
 
     AddOperator(&intstream2);
 

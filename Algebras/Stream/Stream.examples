@@ -243,6 +243,11 @@ Signature: stream(DATA)  -> bool
 Example  : query intstream(10,1000) isOrdered
 Result   : TRUE
 
+Operator : sbuffer
+Number   : 1
+Signature: stream(X)  -> stream(X) , X in {tuple,DATA}
+Example  : query (strassen feed count) = (strassen feed sbuffer count)
+Result   : TRUE
 
 Operator : intstream2
 Number   : 1
