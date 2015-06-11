@@ -12,6 +12,7 @@
 #include <map>
 #include "RelationAlgebra.h"
 #include <vector>
+#include "MMRTree.h"
 
 using namespace std;
 
@@ -23,6 +24,7 @@ class Memory;
 class MemoryObject;
 class MemoryRelObject;
 class MemoryAttributeObject;
+class MemoryRtreeObject;
 
 class MemCatalog {
 
@@ -352,6 +354,32 @@ void MemoryAttributeObject::setAttributeObject(Attribute* attr){
 Attribute* MemoryAttributeObject::getAttributeObject(){
         return attributeObject;
 }
+
+
+class MemoryRtreeObject : public MemoryObject {
+
+    public:
+
+        void setRtree (mmrtree::RtreeT<2, size_t>* _rtree);
+
+        void toStringOut(){
+            cout<<"MemoryRtreeObject, Membervariablen lauten: "<<endl;
+            cout<<"1. extStorage: "<<extStorage<<endl;
+            cout<<"2. memsize: "<<memSize<<endl;
+            cout<<"3. extStorageSize: "<<extStorageSize<<endl;
+            cout<<"4. objectTypeExpr: "<<objectTypeExpr<<endl;
+            cout<<"5. Die Adresse des Indexes ist: "<<&rtree<<endl;}
+
+        static const string BasicType() { return "memoryRtreeObject"; }
+
+    private:
+         mmrtree::RtreeT<2, size_t>* rtree;
+
+};
+
+ void MemoryRtreeObject::setRtree(mmrtree::RtreeT<2, size_t>* _rtree){
+            rtree=_rtree;
+        }
 
 
 } //ende namespace mmalgebra

@@ -42,6 +42,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "MainMemory.h"
 #include "Stream.h"
+#include "MMRTree.h"
+#include "MovingRegionAlgebra.h"
+
 
 using namespace std;
 extern NestedList* nl;
@@ -426,6 +429,7 @@ int memloadValMap (Word* args, Word& result,
             {
                 //bekomme ich so die richtige Tupelgröße??
                 tupleSize = tup->GetSize();
+
                 if ((size_t)tupleSize<availableMemSize){
                         mmrel->push_back(tup);
                         usedMainMemory += tupleSize;
@@ -613,22 +617,6 @@ int meminitValMap (Word* args, Word& result,
         res = newMainMemorySize;
         catalog.setMemSizeTotal(newMainMemorySize);
     }
-
-    //nur zum Test bis memgetcatalog implementiert ist Katalogausgabe
-
-
-     cout <<"memcatolog beinhaltet: " <<endl;
-     map<string, MemoryObject*>::iterator itera = catalog.memContents.begin();
-     while (itera!=catalog.memContents.end())
-          {
-            cout<< "memcatalog[" <<itera->first << "]: ",
-            cout<<itera->second<<endl;
-            ++itera;
-          }
-    cout <<"benutzterHauptspeicher: "<<catalog.getUsedMemSize()<<endl;
-    cout <<"gesamterHauptspeicher: "<<catalog.getMemSizeTotal()<<endl;
-
-
 
     result  = qp->ResultStorage(s);
     CcInt* b = static_cast<CcInt*>(result.addr);
@@ -1305,6 +1293,11 @@ class memgetcatalogInfo{
         if (listutils::isDATA(objectType)){
             objTyp = MemoryAttributeObject::BasicType();
         }
+//        if (listutils::isRTreeDescription(objectType)){
+        if (listutils::isSymbol(objectType)){
+
+            objTyp = MemoryRtreeObject::BasicType();
+        }
 
         TupleType* tt = new TupleType(nl->Second(resultType));
         Tuple *tup = new Tuple( tt );
@@ -1736,20 +1729,103 @@ ListExpr mcreateRtreeTypeMap(ListExpr args)
 int mcreateRtreeValMap (Word* args, Word& result,
                 int message, Word& local, Supplier s) {
 
-
-
-
-
-
-
-    string res ="ergebnis";
+    string res ="undefined";
 
     result  = qp->ResultStorage(s);
     CcString* str = static_cast<CcString*>(result.addr);
+    str->Set(false, res);
+
+    CcString* roN = (CcString*) args[0].addr;
+    if(!roN->IsDefined()){
+        return 0;
+    }
+    string relObjectName = roN->GetValue();
+    ListExpr memType = getMMObjectTypeExpr(relObjectName);
+
+    if (!isMMObject(relObjectName)|| !listutils::isTupleDescription(memType)){
+        cout<< "there is no main memory object: "<<relObjectName<<
+        " or is not a MemoryRelObject"<<endl;
+        return 0;
+    }
+
+    CcString* aN = (CcString*) args[1].addr;
+    if (!aN->IsDefined()){
+        return 0;
+    }
+
+    string attrName = aN->GetValue();
+    ListExpr attrType = 0;
+    int attrPos = 0;
+    ListExpr attrList = nl->Second(memType);
+
+    if (listutils::isAttrList(attrList)){
+        attrPos = listutils::findAttribute(attrList, attrName, attrType);
+    }
+
+    if (attrPos == 0){
+    cout<<"der Attributname gehört zu keinem Attribut der Relation:"<< endl;
+    return 0;
+    }
+
+    // check for spatial attribute
+//  listutils::isSpatialType(attrType)|| listutils::isRectangle(attrType)
+    if (!listutils::isKind(attrType,Kind::SPATIAL2D()) &&
+        !listutils::isKind(attrType,Kind::SPATIAL3D()) &&
+        !listutils::isKind(attrType,Kind::SPATIAL4D()) &&
+        !listutils::isKind(attrType,Kind::SPATIAL8D())){
+        cout<<"Expects key attribute to be of kind SPATIAL,"
+        "SPATIAL3D, SPATIAL4D, SPATIAL8D"<<endl;
+        return 0;
+        }
+
+    MemoryRelObject* mmrel = (MemoryRelObject*)getMMObject(relObjectName);
+    vector<Tuple*>* relVec = mmrel->getmmrel();
+    vector<Tuple*>::iterator it;
+    it=relVec->begin();
+    unsigned int i=0;
+
+    if(listutils::isKind(attrType,Kind::SPATIAL2D())){
+        mmrtree::RtreeT<2, size_t>* rtree =
+                    new mmrtree::RtreeT<2, size_t>(4,8);
+        StandardSpatialAttribute<2>* attr=0;
+        size_t usedMainMemory=0;
+        while( it!=relVec->end()){
+            Tuple* tup = *it;
+            attr=(StandardSpatialAttribute<2>*)tup->GetAttribute(attrPos-1);
+            if (attr==0 || !attr->IsDefined()){
+                return 0;
+            }
+            Rectangle<2> box = attr->BoundingBox();
+            rtree->insert(box, i);
+            it++;
+            i++;
+            tup->DeleteIfAllowed();
+            } // end while
+
+        usedMainMemory = rtree->usedMem();
+        size_t extStorageSize = 0;
+        bool extStorage = false;
+
+        MemoryRtreeObject* mmRtreeObject = new MemoryRtreeObject();
+        mmRtreeObject->setRtree(rtree);
+        mmRtreeObject->setExtStorage(extStorage);
+        mmRtreeObject->setMemSize(usedMainMemory);
+        mmRtreeObject->setExtStorageSize(extStorageSize);
+        //vorerst!!!
+        mmRtreeObject->
+            setObjectTypeExpr("mmrtree");
+
+        res = relObjectName +"_"+attrName;
+        catalog.memContents[res] = mmRtreeObject;
+        catalog.setUsedMemSize(catalog.getUsedMemSize() + usedMainMemory);
+
+      } //end if spatial2D
+
+
     str->Set(true, res);
     return 0;
+    } //end mcreateRtreeValMap
 
-}
 
 
 
