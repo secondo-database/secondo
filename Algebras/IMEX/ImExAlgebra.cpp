@@ -3588,7 +3588,16 @@ will be 0.
         //cout << "part " << p << " has " << cycle.size() << " points " << endl;
         cycles.push_back(cycle);
      }
-     return buildRegion2(cycles);
+     try{
+         return buildRegion2(cycles);
+     } catch(const string& error){
+        cout << "error occured while creating a polygon" << endl;
+        cout << "Region shoul be create from " << cycles.size() << " cycles"
+             << endl;
+        Region* res = new Region(0);
+        res->SetDefined(false);
+        return res;
+     }
    }
 
 public:
