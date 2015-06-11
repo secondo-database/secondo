@@ -197,6 +197,8 @@ public:
    string getRequestFileFolder();
    string getRequestFilePath();
 
+   virtual int getPid();
+
 
   private:
      int  maxAttempts; // maximum number of attemps when connecting

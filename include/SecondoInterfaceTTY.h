@@ -178,6 +178,9 @@ public:
                  double& timeAt16MB,
                  double& a, double& b, double&c, double& d);
 
+   virtual int getPid();
+
+
 protected:
      virtual void StartCommand();
      virtual bool FinishCommand( SI_Error& errorCode, string& errorMessage);

@@ -2708,6 +2708,8 @@ bool SecondoInterfaceTTY::getFunction(const int algId,
            a,b,c,d);
 }
 
-
+int SecondoInterfaceTTY::getPid(){
+   return WinUnix::getpid();
+}
 
 

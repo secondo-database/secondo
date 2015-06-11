@@ -50,6 +50,7 @@ provides functions useful for the client and for the server implementation.
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "CSProtocol.h"
+#include "StringUtils.h"
 
 using namespace std;
 
@@ -835,7 +836,24 @@ string SecondoInterfaceCS::getSendFilePath(){
    return line; 
 }
 
+int SecondoInterfaceCS::getPid(){
 
+   cout << "called getPID" << endl;
+   iostream& iosock = server->GetSocketStream();
+   iosock << "<SERVER_PID>" << endl;
+   iosock.flush();
+   string line;
+   getline(iosock,line);
+
+   cout << "server sends line " << line << endl;
+
+   bool correct;
+   int res =  stringutils::str2int<int>(line, correct); 
+   if(correct){
+     return res;
+   }
+   return 0;
+}
 
 
 

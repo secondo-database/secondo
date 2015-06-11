@@ -117,6 +117,7 @@ class SecondoServer : public Application
   void CallRequestFilePath();
   void CallSendFileFolder();
   void CallSendFilePath();
+  void CallServerPid();
   void Connect();
   void Disconnect();
   void WriteResponse( const int errorCode, const int errorPos,
@@ -838,6 +839,12 @@ void SecondoServer::CallSendFilePath(){
   iosock.flush();
 }
 
+void SecondoServer::CallServerPid(){
+  iostream& iosock = client->GetSocketStream();
+  iosock << stringutils::int2str(WinUnix::getpid()) << endl;
+  iosock.flush();
+}
+
 void 
 SecondoServer::CallRequestFile(){
   initTransferFolders();
@@ -926,6 +933,8 @@ int SecondoServer::Execute() {
                = &SecondoServer::CallSendFileFolder;
   commandTable["<SEND_FILE_PATH>"] 
                = &SecondoServer::CallSendFilePath;
+  commandTable["<SERVER_PID>"] 
+               = &SecondoServer::CallServerPid;
   commandTable["<Connect>"]     = &SecondoServer::Connect;
   commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
   commandTable["<REQUESTOPERATORINDEXES>"] = 

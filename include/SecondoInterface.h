@@ -1050,6 +1050,10 @@ virtual bool getFunction(const int algId,
                  double& timeAt16MB,
                  double& a, double& b, double&c, double& d) = 0;
 
+
+virtual int getPid() = 0;
+
+
  protected:
   void Init();                // Inititalize to  default values
   void InitErrorMessages();
