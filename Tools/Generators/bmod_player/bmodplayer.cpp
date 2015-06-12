@@ -62,6 +62,8 @@ of this software.
 #define CMDLINE_SIMULATION_MODE  1<<3
 #define CMDLINE_BEGINTIME        1<<4
 #define CMDLINE_ENDTIME          1<<5
+#define CMDLINE_UPDATE_RATE      1<<6
+#define CMDLINE_SIMULATION_SPEED 1<<7
 
 #define QUEUE_ELEMENTS 10000
 #define DELIMITER ","
@@ -87,15 +89,16 @@ struct Configuration {
    time_t beginoffset;
    time_t endoffset;
    time_t programstart;
+   size_t updaterate;
+   size_t simulationspeed;
 };
 
+// Shared over multipe theads, so volatile is used to 
+// prevent caching issues
 struct Statistics {
-   unsigned long read;
-   unsigned long send;
-   unsigned long queuesize;
-
-   // Done is shared across multiple threads
-   // so it needs to be volatile.
+   volatile unsigned long read;
+   volatile unsigned long send;
+   volatile unsigned long queuesize;
    volatile bool done;
 };
 
@@ -158,9 +161,15 @@ public:
       timeval curtime;
       
       gettimeofday(&curtime, NULL);
+      
       time_t elapsedTime = (time_t) curtime.tv_sec 
                             - configuration->programstart;
       
+      elapsedTime = elapsedTime * configuration -> simulationspeed;
+      
+      elapsedTime = elapsedTime 
+           + (curtime.tv_usec / 1000000.0 * configuration -> simulationspeed);
+                  
       return elapsedTime + configuration->beginoffset;
    }
    
@@ -865,7 +874,7 @@ public:
           //      << buffer << " " << simulationTime << endl;
           
           if(lineDiff > 0) {
-             usleep(10000);
+             usleep(1000);
           }
 
       } while(lineDiff > 0);
@@ -1089,6 +1098,12 @@ public:
    bool formatAndSendElement(string &buffer, InputData *element, 
        time_t currentSimulationTimeRun) {
           
+      // The time is behind this unit, don't send a position update
+      // Element will be removed on next clanup call
+      if(currentSimulationTimeRun > element->time_end) {
+         return false;
+      }
+          
       Position *position = new Position();
 
       float diff = 0;
@@ -1129,13 +1144,15 @@ tcp socket
 
          if(! output -> isReady()) {
              cerr << "Output not ready, skipping simulation run" << endl;
-             usleep(1000);
+             usleep(10000);
              continue;
          }
          
-         // Wait for next second
-         while(currentSimulationTimeRun == simulation->getSimulationTime()) {
-            usleep(1000);
+         // Wait for update run
+         while(currentSimulationTimeRun + (int) configuration->updaterate 
+             > simulation->getSimulationTime()) {
+                
+            usleep(10000);
          }
          
          pthread_mutex_lock(&queueSync->queueMutex);
@@ -1156,15 +1173,16 @@ tcp socket
 
             if(res == true) {
                statistics->send++;
-            } else {
-               cerr << "Error occurred while calling write on socket" << endl;
             }
             
             // Check simulation time, break current run if the
             // next simulation second has begun and start a new
             // run.
             if(counter % 10 == 0) {
-               if(currentSimulationTimeRun < simulation->getSimulationTime()) {
+               time_t nextSimulationRun = currentSimulationTimeRun 
+                      + (int) configuration->updaterate;
+               
+               if(nextSimulationRun <= simulation->getSimulationTime()) {
                   break;
                }
             }
@@ -1329,6 +1347,7 @@ public:
       cout << " \033[1m Read:\033[0m " << statistics -> read;
       cout << " \033[1m Send:\033[0m " << statistics -> send;
       cout << " \033[1m Queue size:\033[0m " << statistics -> queuesize;
+      
       cout.flush();
    }
    
@@ -1484,6 +1503,8 @@ public:
       configuration->programstart = (time_t) curtime.tv_sec;
       configuration->beginoffset = 0;
       configuration->endoffset = 0;
+      configuration->updaterate = 1;
+      configuration->simulationspeed = 1;
    
       // Create and init statistics structure
       statistics = new Statistics();
@@ -1581,8 +1602,8 @@ private:
       cerr << "Player for BerlinMod data, version " << VERSION << endl;
       cerr << endl;
       cerr << "Usage: " << progName << " -i <inputfile> -o <statisticsfile> ";
-      cerr << "-u <connection url> -s <adaptive|fixed> -b <beginoffset> ";
-      cerr << "-e <endoffset>";
+      cerr << "-u <connection url> -s <adaptive|fixed> {-b <beginoffset>}";
+      cerr << "{-e <endoffset>} {-r update rate} {-f simulation speed up}";
       cerr << endl;
       cerr << endl;
       cerr << "Required parameter:" << endl;
@@ -1594,6 +1615,10 @@ private:
       cerr << "Optional parameter:" << endl;
       cerr << "-b is the begin time offset for the simulation" << endl;
       cerr << "-e is the end time offset for the simulation" << endl;
+      cerr << endl;
+      cerr << "Optional parameter for the adaptive simulation:" << endl;
+      cerr << "-r is the update rate (default: 1 second)" << endl;
+      cerr << "-f is the simulation speed up (default: 1)" << endl;
       cerr << endl;
       cerr << "Supported connection URLs:" << endl;
       cerr << "tcp://hostname/myport - Send csv lines to host ";
@@ -1621,7 +1646,7 @@ private:
       
       memset(&tm, 0, sizeof(struct tm));
    
-      while ((option = getopt(argc, argv,"i:o:u:s:b:e:")) != -1) {
+      while ((option = getopt(argc, argv,"i:o:u:s:b:e:r:f:")) != -1) {
           switch (option) {
              case 'i':
                 flags |= CMDLINE_INPUTFILE;
@@ -1674,6 +1699,16 @@ private:
                  }
                  
                  configuration->endoffset = mktime(&tm);
+             break;
+             
+             case 'r':
+                 flags |= CMDLINE_UPDATE_RATE;
+                 configuration->updaterate = atoi(optarg);
+             break;
+             
+             case 'f':
+                 flags |= CMDLINE_SIMULATION_SPEED;
+                 configuration->simulationspeed = atoi(optarg);
              break;
           
              default:
