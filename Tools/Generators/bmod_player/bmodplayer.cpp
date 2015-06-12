@@ -1003,7 +1003,8 @@ public:
            
            if(output == NULL) {
               cerr << "Unable to find an output instance for URL: "
-                   << configuration -> url << endl; 
+                   << configuration -> url << endl;
+              exit(EXIT_FAILURE);
            }
            
            bool res = output -> open();
