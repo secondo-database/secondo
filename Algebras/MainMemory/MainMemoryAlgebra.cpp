@@ -374,15 +374,13 @@ int memloadValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
 
-    //Prüfung ob der der Operation übergebene
-    //string zu einem Objekt im Secondokatalog gehört
     CcString* oN = (CcString*) args[0].addr;
           if(!oN->IsDefined()){
              return 0;
           }
+
     string objectName = oN->GetValue();
     SecondoCatalog* cat = SecondoSystem::GetCatalog();
-    // wird verwendet festzuhalten, ob das Laden in den HS erfolgreich war
     bool memloadSucceeded=false;
     // wird verwendet um das DB-Objekt darin zu speichern
     Word object;
@@ -391,16 +389,7 @@ int memloadValMap (Word* args, Word& result,
     //wird von der Funktion cat->GetObjectTypeExpr verwendet
     //und speichert darin den objectTypeName (meistens leer???)
     string objectTypeName="";
-    //die Gesamtspeichergroesse in MB umgerechnet in Byte - usedMemsize
-    size_t availableMemSize =
-                    (catalog.memSizeTotal*1024*1024)-catalog.usedMemSize;
-    // der verbrauchte Speicherplatz für das zu ladende Objekt - in Byte
-    size_t usedMainMemory=0;
-    bool extStorage=false;
-    size_t extStorageSize=0;
 
-    // das Laden in den HS findet nur statt, wenn der string zu einem Objekt
-    // des Systemkatalogs gehört und das Objekt noch nicht im HS steht
     if (!cat->IsObjectName(objectName)){
         cout<<"Der Name gehört zu keinem persistenten Datenbankobjekt"<<endl;
         }
@@ -418,109 +407,38 @@ int memloadValMap (Word* args, Word& result,
 //Das übergebene Object ist eine Relation
     if (Relation::checkType(objectTypeExpr)&&defined){
         GenericRelation* r= static_cast<Relation*>( object.addr );
-        GenericRelationIterator* rit;
-        rit = r->MakeScan();
-        Tuple* tup;
-        int tupleSize=0;
+        MemoryRelObject* mmRelObject =
+                relToVector(r, nl->Second(objectTypeExpr));
 
-        vector<Tuple*>* mmrel = new vector<Tuple*>();
-
-        while ((tup = rit->GetNextTuple()) != 0)
-            {
-                //bekomme ich so die richtige Tupelgröße??
-                tupleSize = tup->GetSize();
-
-                if ((size_t)tupleSize<availableMemSize){
-                        mmrel->push_back(tup);
-                        usedMainMemory += tupleSize;
-                        availableMemSize -= tupleSize;
-                }
-                else{
-
-                    swap();
-                    extStorage=true;
-                    //nur so zum ausprobieren
-                    extStorageSize=1;
-                break;
-
-                // nur solange swap() nicht richtig implementiert ist!
-                }
-            }
-
-        //das eigentliche HS-objekt wird angelegt und mit Werten gefüllt
-        MemoryRelObject* mmRelObject = new MemoryRelObject();
-        mmRelObject->setmmrel(mmrel);
-        mmRelObject->setmmrelDiskpart(0);
-        mmRelObject->setExtStorage(extStorage);
-        mmRelObject->setMemSize(usedMainMemory);
-        mmRelObject->setExtStorageSize(extStorageSize);
-        mmRelObject->
-            setObjectTypeExpr(nl->ToString(nl->Second(objectTypeExpr)));
-
-        //der Hauptspeicherkatalog wird aktualisiert
         catalog.memContents[objectName] = mmRelObject;
-        catalog.setUsedMemSize(catalog.getUsedMemSize() + usedMainMemory);
-
-
-        //die nicht mehr benötigten Variablen werden gelöscht
-        // ---  was muss hier gelöscht werden????
-
-        //delete rit;
-        //delete r;
-        //delete tup;
+        catalog.setUsedMemSize(catalog.getUsedMemSize() +
+                mmRelObject->getMemSize());
 
     } //Ende Objekt ist eine Relation
 
 // das Objekt ist ein Attribute
     if (Attribute::checkType(objectTypeExpr)&&defined){
-
-        //Objektgröße???, überprüfung ob genug HS-Platz etc...
-        usedMainMemory = 25;
-
-        cout<<"mit objectTypeExpr: "<<nl->ToString(objectTypeExpr)<<endl;
-        cout<<"Wert von objectName: "<<objectName<<endl;
-        cout<<"Wert von objectTypeName: "<<objectTypeName<<endl;
         Attribute* attr = (Attribute*)object.addr;
+        MemoryAttributeObject* mmA = attrToMM(attr, objectTypeExpr);
 
-        MemoryAttributeObject* mmA = new MemoryAttributeObject();
-        mmA->setAttributeObject(attr);
-        mmA->setExtStorage(extStorage);
-        mmA->setMemSize(usedMainMemory);
-        mmA->setExtStorageSize(extStorageSize);
-        mmA->setObjectTypeExpr(nl->ToString(objectTypeExpr));
-
-        //der Hauptspeicherkatalog wird aktualisiert
         catalog.memContents[objectName] = mmA;
-        catalog.setUsedMemSize(catalog.getUsedMemSize() + usedMainMemory);
+        catalog.setUsedMemSize(catalog.getUsedMemSize() + mmA->getMemSize());
         }
-
-
 
  // das Objekt ist weder ein Attributetyp noch eine Relation
     if (!Attribute::checkType(objectTypeExpr)
             &&!Relation::checkType(objectTypeExpr)){
-
         memloadSucceeded = false;
         cout<<"das Objekt ist weder eine Relation noch ein Attribut"<<endl;
-
     }
-
-
 
 }  // Ende  (cat->IsObjectName(objectName) && (!isMMObject(objectName)))
 
-
-
-    //ab hier nichts ändern ausser zweiten Parameter von Set(_, ..)
-
     result  = qp->ResultStorage(s);
     CcBool* b = static_cast<CcBool*>(result.addr);
-    //the first argument says the boolean value is defined,
-    //the second is the real boolean value
     b->Set(true, memloadSucceeded);
 
-
-    return 0;   //bei nicht Stromoperatoren stets 0
+    return 0;
 }
 
 
@@ -1294,9 +1212,10 @@ class memgetcatalogInfo{
             objTyp = MemoryAttributeObject::BasicType();
         }
 //        if (listutils::isRTreeDescription(objectType)){
-        if (listutils::isSymbol(objectType)){
+    //    if (listutils::isSymbol(objectType)){
+        if (listutils::stringValue(objectType)=="mmrtree"){
 
-            objTyp = MemoryRtreeObject::BasicType();
+                objTyp = MemoryRtreeObject::BasicType();
         }
 
         TupleType* tt = new TupleType(nl->Second(resultType));
