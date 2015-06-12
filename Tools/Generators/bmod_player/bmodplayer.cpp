@@ -77,6 +77,9 @@ of this software.
 
 using namespace std;
 
+// Forward declaration
+class Simulation;
+
 /*
 1.3 Structs
 
@@ -100,6 +103,7 @@ struct Statistics {
    volatile unsigned long send;
    volatile unsigned long queuesize;
    volatile bool done;
+   Simulation* simulation;
 };
 
 struct InputData {
@@ -1348,6 +1352,15 @@ public:
       cout << " \033[1m Send:\033[0m " << statistics -> send;
       cout << " \033[1m Queue size:\033[0m " << statistics -> queuesize;
       
+      if(configuration->simulationmode == SIMULATION_MODE_ADAPTIVE) {
+         if(statistics -> simulation != NULL) {
+            time_t simulationTime = 
+                 (statistics -> simulation) -> getSimulationTime();
+            strftime(dateBuffer,80,"%d-%m-%Y %H:%M:%S",gmtime(&simulationTime));
+            cout << " \033[1m Simulation time:\033[0m " << dateBuffer;
+         }
+      }
+      
       cout.flush();
    }
    
@@ -1433,6 +1446,7 @@ private:
       struct timeval lastrun;
       long long lastRead;
       long long lastSend;
+      char dateBuffer[80];
 };
 
 /*
@@ -1506,18 +1520,19 @@ public:
       configuration->updaterate = 1;
       configuration->simulationspeed = 1;
    
+      // Create and init timer
+      timer = new Timer();
+      
+      // Create and init new simulation
+      simulation = new Simulation(configuration);
+      
       // Create and init statistics structure
       statistics = new Statistics();
       statistics->read=0;
       statistics->send=0;
       statistics->queuesize=0;
       statistics->done = false;
-   
-      // Create and init timer
-      timer = new Timer();
-      
-      // Create and init new simulation
-      simulation = new Simulation(configuration);
+      statistics->simulation = simulation;
 
       // Init queuesync structure
       pthread_mutex_init(&queueSync.queueMutex, NULL);
