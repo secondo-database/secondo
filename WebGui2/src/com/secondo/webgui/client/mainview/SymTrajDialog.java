@@ -29,6 +29,7 @@ public class SymTrajDialog {
 
 		// Create a table to layout the content
 		dialogContents.getElement().getStyle().setPadding(5, Unit.PX);
+		dialogContents.setSize("410px", "410px");
 		helpDialogBox.setWidget(dialogContents);
 
 		symTrajInfo = new HTML(
@@ -50,6 +51,7 @@ public class SymTrajDialog {
 
 		// Add the text to the dialog
 		scrollContent.add(symTrajInfo);
+		scrollContent.setSize("390px", "375px");
 		dialogContents.add(scrollContent);
 
 		// Add a close button at the bottom of the dialog

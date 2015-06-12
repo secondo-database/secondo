@@ -289,8 +289,23 @@ public class MainView extends Composite {
 				} else {
 					mapView.removeDrawLayer();
 				}
-				stackpanel
-						.cleanResultInfoLabelsAndPanelWithNumberOfTrajectoriesToBeShown();
+				
+				switch(stackpanel.getSelectedIndex()){
+				case 0:stackpanel
+				.cleanResultInfoLabelsAndPanelWithNumberOfTrajectoriesToBeShown(0);
+				break;
+				case 1:stackpanel
+				.cleanResultInfoLabelsAndPanelWithNumberOfTrajectoriesToBeShown(1);
+				break;
+				case 2: stackpanel
+				.cleanResultInfoLabelsAndPanelWithNumberOfTrajectoriesToBeShown(2);
+				break;
+				case 3:stackpanel
+				.cleanResultInfoLabelsAndPanelWithNumberOfTrajectoriesToBeShown(3);
+				break;
+				default: break;
+				}
+				
 
 			}
 		}, ClickEvent.getType());

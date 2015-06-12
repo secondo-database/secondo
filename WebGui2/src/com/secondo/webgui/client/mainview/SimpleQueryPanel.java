@@ -2,10 +2,13 @@ package com.secondo.webgui.client.mainview;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.KeyCodes;
+import com.google.gwt.event.dom.client.KeyPressEvent;
+import com.google.gwt.event.dom.client.KeyPressHandler;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
 /**
@@ -13,12 +16,13 @@ import com.google.gwt.user.client.ui.VerticalPanel;
  *
  */
 public class SimpleQueryPanel extends VerticalPanel {
-	private DefaultTextBox textForQuery;
-	private Button queryButton;
-	private Button countButton;
+	private DefaultTextBox textForQuery;	
+	private Button defineButton;
 	private Label resultInfoLabel;
-	private ListBox numberOfTrajectoriesToBeShown;
-	private HorizontalPanel numberOfTrajectoriesToBeShownPanel;
+	private Label infoAboutTupleNo;
+	private VerticalPanel vertPanWithPreviousNextTuple = new VerticalPanel();
+	private Button previousTuple=new Button("<span></span> previous tuple");
+	private Button nextTuple=new Button("next tuple <span></span>");;
 
 	public SimpleQueryPanel(String textForHelpInfoLabel, String typeOfQuery,
 			String defaultText) {
@@ -38,60 +42,55 @@ public class SimpleQueryPanel extends VerticalPanel {
 		} else {
 			textForQuery = new DefaultTextBox(defaultText);
 			textForQuery.setWidth("90%");
+			textForQuery.addKeyPressHandler(new KeyPressHandler() {
+				@Override
+				public void onKeyPress(KeyPressEvent event) {
+					boolean enterPressed = KeyCodes.KEY_ENTER == event
+							.getNativeEvent().getKeyCode();
+					if (enterPressed) {
+						defineButton.click();
+					}
+				}
+			});
+			
 			this.add(textForQuery);
 		}
 
 		if (typeOfQuery.equals("passThrough") || typeOfQuery.equals("pass")) {
-			HorizontalPanel panelForButtons = new HorizontalPanel();
-			queryButton = new Button("retrieve");
-			queryButton.setStyleName("floatRight");
-			panelForButtons.add(queryButton);
-			countButton = new Button("count");
-			countButton.setStyleName("floatRight");
-			panelForButtons.add(countButton);
-			this.add(panelForButtons);
-
-			numberOfTrajectoriesToBeShownPanel = new HorizontalPanel();
-			Label numberOfTrajectoriesToShowBeforeLabel = new Label(
-					"Show up to ");
-			Label numberOfTrajectoriesToShowAfterLabel = new Label(
-					"     trajectories");
-			numberOfTrajectoriesToBeShown = new ListBox();
-			numberOfTrajectoriesToBeShown.addItem(" ");
-			numberOfTrajectoriesToBeShown.addItem("3");
-			numberOfTrajectoriesToBeShown.addItem("5");
-			numberOfTrajectoriesToBeShown.addItem("7");
-			numberOfTrajectoriesToBeShownPanel
-					.add(numberOfTrajectoriesToShowBeforeLabel);
-			numberOfTrajectoriesToBeShownPanel
-					.add(numberOfTrajectoriesToBeShown);
-			numberOfTrajectoriesToBeShownPanel
-					.add(numberOfTrajectoriesToShowAfterLabel);
-			numberOfTrajectoriesToBeShownPanel.getElement().setAttribute(
-					"cellpadding", "5px");
-			numberOfTrajectoriesToBeShownPanel.getElement().setAttribute(
-					"padding-left", "10px");
-			numberOfTrajectoriesToBeShownPanel.getElement().setAttribute(
-					"color", "#808080");
-			numberOfTrajectoriesToBeShownPanel.setVisible(false);
-			queryButton.addClickHandler(new ClickHandler() {
-				@Override
-				public void onClick(ClickEvent event) {
-					numberOfTrajectoriesToBeShownPanel.setVisible(true);
-				}
-			});
-			this.add(numberOfTrajectoriesToBeShownPanel);
-
-			resultInfoLabel = new Label();
+			
+			defineButton = new Button("define");
+			defineButton.setStyleName("floatRight");
+			defineButton.addStyleName("gwt-Button");
+			this.add(defineButton);
+			
+			resultInfoLabel=new Label();
 			this.add(resultInfoLabel);
+			
+			previousTuple.setStyleName("previousButton");
+			previousTuple.setEnabled(false);
+			
+			nextTuple.setStyleName("nextButton");
+			nextTuple.setEnabled(true);			
+			
+			FlexTable previousNextPanel = new FlexTable();
+			previousNextPanel.setWidget(0, 0, previousTuple);
+			previousNextPanel.setWidget(0, 1, nextTuple);			
+
+			infoAboutTupleNo = new Label();
+			vertPanWithPreviousNextTuple.add(infoAboutTupleNo);
+			vertPanWithPreviousNextTuple.add(previousNextPanel);
+			vertPanWithPreviousNextTuple.setVisible(false);
+			this.add(vertPanWithPreviousNextTuple);
 
 		} else {
-			queryButton = new Button("define");
-			queryButton.setStyleName("floatRight");
-			this.add(queryButton);
+			defineButton = new Button("define");
+			defineButton.setStyleName("floatRight");
+			defineButton.addStyleName("gwt-Button");
+			this.add(defineButton);			
+			
 			resultInfoLabel = new Label();
 			this.add(resultInfoLabel);
-		}
+		}		
 	}
 
 	/**
@@ -103,14 +102,7 @@ public class SimpleQueryPanel extends VerticalPanel {
 		return textForQuery;
 	}
 
-	/**
-	 * Returns the button "retrieve"
-	 * 
-	 * @return The button "retrieve"
-	 */
-	public Button getQueryButton() {
-		return queryButton;
-	}
+	
 
 	/**
 	 * Returns the label with result
@@ -119,31 +111,38 @@ public class SimpleQueryPanel extends VerticalPanel {
 	 */
 	public Label getResultInfoLabel() {
 		return resultInfoLabel;
-	}
-
-	/**
-	 * Returns the list box containing the number of trajectories to be shown
-	 * 
-	 * @return The number of trajectories to be shown
-	 */
-	public ListBox getNumberOfTrajectoriesToBeShown() {
-		return numberOfTrajectoriesToBeShown;
-	}
+	}	
 
 	/**
 	 * Returns the button "count"
 	 * 
 	 * @return The button "count"
 	 */
-	public Button getCountButton() {
-		return countButton;
+	public Button getDefineButton() {
+		return defineButton;
+	}
+
+	public Button getNextTuple() {
+		return nextTuple;
+	}
+
+	public Button getPreviousTuple() {
+		return previousTuple;
 	}
 
 	/**
-	 * Hides the option to select the number of trajectories to be shown
+	 * @return the vertPanWithPreviousNextTuple
 	 */
-	public void hideNumberOfTrajectoriesToBeShownPanel() {
-		numberOfTrajectoriesToBeShownPanel.setVisible(false);
+	public VerticalPanel getVertPanWithPreviousNextTuple() {
+		return vertPanWithPreviousNextTuple;
 	}
 
+	/**
+	 * @return the infoAboutTupleNo
+	 */
+	public Label getInfoAboutTupleNo() {
+		return infoAboutTupleNo;
+	}
+
+	
 }

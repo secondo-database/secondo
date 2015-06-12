@@ -38,6 +38,7 @@ public class LegendDialog {
 		scrollContent.add(legendInfo);
 		dialogContents.add(scrollContent);
 
+		closeButton.setStyleName("right-floated-button");
 		// Add a close button at the bottom of the dialog
 		closeButton.addClickHandler(new ClickHandler() {
 			@Override

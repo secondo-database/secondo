@@ -91,8 +91,7 @@ public class OptionsTabPanel extends Composite {
 	private HelpDialog helpDialog2;
 	private ListBox selectOptionsForExistingTrajectories = createBoxWithSelectOptionsForExistingTrajectories();
 	private Button getRelationButton = new Button("Get relation");
-	private Button retrieveButton = new Button("retrieve");
-	private Button countButton = new Button("count");
+	private Button matchButton = new Button("match");
 	private Button removeButton = new Button("remove");
 	private Button removeLastInPatternButton = new Button("remove last");
 	private FlexTable definedPatternWidget;
@@ -105,14 +104,30 @@ public class OptionsTabPanel extends Composite {
 	private SimpleQueriesStackPanel simpleQueriesStackPanel;
 
 	private FlexTable labelForInfoAboutOpenedRelation;
+
+	private Button previousTuple = new Button("<span></span> previous tuple");
+	private Button previousTupleInPattern = new Button(
+			"<span></span> previous tuple");
+	private Button nextTuple = new Button("next tuple <span></span>");
+	private Button nextTupleInPattern = new Button("next tuple <span></span>");
+	private int totalNumberOfTuplesInPatternResult = 0;
+	private int totalNumberOfTuplesInPassesResult = 0;
+	private int totalNumberOfTuplesInCurrentRelation = 0;
+	private int totalNumberOfTuplesInPassesThroughResult = 0;
+	private int tupleNo;
+	private int tupleNoInPattern;
+	private int tupleNoInPassesThroughRegion;
+
 	private Label numberOfTuplesInSampleRelation = new Label("");
 	private Label numberOfShownTuplesInSampleRelation = new Label("");
-	private HorizontalPanel numberOfTrajectoriesInPatternToShowPanel = new HorizontalPanel();
-	private ListBox numberOfTrajectoriesInPatternToShow = new ListBox();
+	private VerticalPanel previousNextTupleInPatternResultPanel = new VerticalPanel();
+	private Label labelWithNumberOfShownTupleInPatternResult = new Label("");
 
 	private boolean patternMatchingIsInitiated = false;
 	private boolean simpleQueryForPassesIsInitiated = false;
 	private boolean simpleQueryForPassesTrhoughRegionsInitiated = false;
+
+	private int tupleNoInPasses;
 
 	public OptionsTabPanel() {
 		initWidget(optionsTabPanel);
@@ -273,7 +288,7 @@ public class OptionsTabPanel extends Composite {
 		gridForExistingTrajectory.setWidget(3, 0,
 				labelForInfoAboutOpenedRelation);
 
-		gridForExistingTrajectory.getFlexCellFormatter().setColSpan(3, 0, 2);
+		gridForExistingTrajectory.getFlexCellFormatter().setColSpan(3, 0, 3);
 		gridForExistingTrajectory
 				.getFlexCellFormatter()
 				.setHorizontalAlignment(3, 0, HasHorizontalAlignment.ALIGN_LEFT);
@@ -364,6 +379,14 @@ public class OptionsTabPanel extends Composite {
 		Label numberOfShownTuplesLabel = new Label("On the map shown:");
 		numberOfShownTuplesLabel.setStyleName("labelTextInOneLineWithItalic");
 
+		previousTuple.setStyleName("previousButton");
+		previousTuple.setEnabled(false);
+
+		nextTuple.setStyleName("nextButton");
+		nextTuple.setEnabled(true);
+		nextTuple.getElement().setAttribute("padding-left", "5px");
+		nextTuple.setWidth("114px");
+
 		labelForInfoAboutOpenedRelation.setWidget(0, 0,
 				numberOfTuplesInRelationLabel);
 		labelForInfoAboutOpenedRelation.setWidget(0, 1,
@@ -372,6 +395,8 @@ public class OptionsTabPanel extends Composite {
 				numberOfShownTuplesLabel);
 		labelForInfoAboutOpenedRelation.setWidget(1, 1,
 				numberOfShownTuplesInSampleRelation);
+		labelForInfoAboutOpenedRelation.setWidget(2, 0, previousTuple);
+		labelForInfoAboutOpenedRelation.setWidget(2, 1, nextTuple);
 		labelForInfoAboutOpenedRelation.setVisible(false);
 
 		return labelForInfoAboutOpenedRelation;
@@ -392,11 +417,11 @@ public class OptionsTabPanel extends Composite {
 				"<h3>You can load and experiment with the following relations:</h3>"
 						+ "<dl>"
 						+ "<dt><h4 style=\"color:#009DD8\">Geotrips</h4></dt>"
-						+ "<dd>trajectories set with symbolic information containing road names (\"Alte Teichstraﬂe\", \"Grotenbachstraﬂe\")</dd>"
+						+ "<dd>trajectories set with symbolic information containing road names (\"Alte Teichstrasse\", \"Grotenbachstrasse\")</dd>"
 						+ "<dt><h4 style=\"color:#009DD8\">Geolife</h4></dt>"
 						+ "<dd>trajectories with transportation modes (\"bus\", \"taxi\", \"subway\") based on a real data set collected in the Geolife project by 182 users during a period of over five years</dd>"
-						+"<dt><h4 style=\"color:#009DD8\">Animals</h4></dt>"
-						+"<dd>trajectories based on roe deer GPS data with symbolic information representing either a home range (labels H0, H1, and H2), an excursion (label E0), or a stopover (labels S0 and S1).</dd>"
+						+ "<dt><h4 style=\"color:#009DD8\">Animals</h4></dt>"
+						+ "<dd>trajectories based on roe deer GPS data with symbolic information representing either a home range (labels H0, H1, and H2), an excursion (label E0), or a stopover (labels S0 and S1).</dd>"
 						+ "</dl>");
 		helpDialog = new HelpDialog("Sample relations to open", helpInfo);
 
@@ -409,9 +434,10 @@ public class OptionsTabPanel extends Composite {
 		});
 		return help;
 	}
-	
+
 	/**
-	 * Returns the help functionality to support visualization for symbolic trajectory
+	 * Returns the help functionality to support visualization for symbolic
+	 * trajectory
 	 * 
 	 * @return The image in the form of question mark with the help info
 	 */
@@ -427,8 +453,8 @@ public class OptionsTabPanel extends Composite {
 						+ "<dd>animate trajectory to see that animated point contains an always visible label representing symbolic information</dd>"
 						+ "<dt><h4 style=\"color:#009DD8\">Popup</h4></dt>"
 						+ "<dd>click on the shown on the map trajectory and popup will appear. To hide the popup click on any place of the map</dd>"
-						+"<dt><h4 style=\"color:#009DD8\">Color</h4></dt>"
-						+"<dd>each component of symbolic trajectory gets a separate color for display. The meaning of the color notation in \"legend\" (menu)  or in the popup. The left click of the mouse on the trajectory initiates a popup</dd>"
+						+ "<dt><h4 style=\"color:#009DD8\">Color</h4></dt>"
+						+ "<dd>each component of symbolic trajectory gets a separate color for display. The meaning of the color notation in \"legend\" (menu)  or in the popup. The left click of the mouse on the trajectory initiates a popup</dd>"
 						+ "</dl>");
 		helpDialog2 = new HelpDialog("Visualization options", helpInfo);
 
@@ -675,7 +701,7 @@ public class OptionsTabPanel extends Composite {
 				cleanWarningLabel();
 				cleanTextInResultOfPatternMatchingLabel();
 				definedPatternWidget.setVisible(false);
-				numberOfTrajectoriesInPatternToShowPanel.setVisible(false);
+				previousNextTupleInPatternResultPanel.setVisible(false);
 				variablesForPattern.clear();
 			}
 		});
@@ -695,54 +721,51 @@ public class OptionsTabPanel extends Composite {
 			}
 		});
 
-		retrieveButton.getElement().setAttribute("float", "right");
-		retrieveButton.setStyleName("SpecialWidth");
-		countButton.getElement().setAttribute("float", "right");
-		countButton.setStyleName("SpecialWidth");
-		removeButton.getElement().setAttribute("float", "right");
-		removeButton.setStyleName("SpecialWidth");
-		removeLastInPatternButton.getElement().setAttribute("float", "right");
-		removeLastInPatternButton.setStyleName("SpecialWidth");
+//		matchButton.getElement().setAttribute("float", "right");
+//		matchButton.setStyleName("SpecialWidth");
+		matchButton.setStyleName("gwt-Button");
+//		removeButton.getElement().setAttribute("float", "right");
+//		removeButton.setStyleName("SpecialWidth");
+		removeButton.setStyleName("gwt-Button");
+//		removeLastInPatternButton.getElement().setAttribute("float", "right");
+//		removeLastInPatternButton.setStyleName("SpecialWidth");
+		removeLastInPatternButton.setStyleName("gwt-Button");
+		removeLastInPatternButton.getElement().setAttribute("width", "100px");
+//		HorizontalPanel panelForButtons= new HorizontalPanel();
+//		panelForButtons.add(matchButton);
+//		panelForButtons.add(removeButton);
+//		panelForButtons.add(removeLastInPatternButton);
 
-		Label numberOfTrajectoriesToShowBeforeLabel = new Label("Show up to ");
-		Label numberOfTrajectoriesToShowAfterLabel = new Label(
-				"     trajectories");
+		previousTupleInPattern.setStyleName("previousButton");
+		previousTupleInPattern.setEnabled(false);
 
-		numberOfTrajectoriesInPatternToShow.addItem(" ");
-		numberOfTrajectoriesInPatternToShow.addItem("3");
-		numberOfTrajectoriesInPatternToShow.addItem("5");
-		numberOfTrajectoriesInPatternToShow.addItem("7");
+		nextTupleInPattern.setStyleName("nextButton");
+		nextTupleInPattern.setEnabled(true);
+		nextTupleInPattern.getElement().setAttribute("padding-left", "5px");
+		nextTupleInPattern.setWidth("114px");
 
-		numberOfTrajectoriesInPatternToShowPanel
-				.add(numberOfTrajectoriesToShowBeforeLabel);
-		numberOfTrajectoriesInPatternToShowPanel
-				.add(numberOfTrajectoriesInPatternToShow);
-		numberOfTrajectoriesInPatternToShowPanel
-				.add(numberOfTrajectoriesToShowAfterLabel);
-		numberOfTrajectoriesInPatternToShowPanel.getElement().setAttribute(
+		previousNextTupleInPatternResultPanel
+				.add(labelWithNumberOfShownTupleInPatternResult);
+		FlexTable previousNextTuplePan = new FlexTable();
+		previousNextTuplePan.setWidget(0, 0, previousTupleInPattern);
+		previousNextTuplePan.setWidget(0, 1,nextTupleInPattern);
+		previousNextTupleInPatternResultPanel.add(previousNextTuplePan);
+
+		previousNextTupleInPatternResultPanel.getElement().setAttribute(
 				"cellpadding", "5px");
-		numberOfTrajectoriesInPatternToShowPanel.getElement().setAttribute(
+		previousNextTupleInPatternResultPanel.getElement().setAttribute(
 				"padding-left", "10px");
-		numberOfTrajectoriesInPatternToShowPanel.getElement().setAttribute(
-				"color", "#808080");
 
 		definedPatternWidget.setWidget(2, 0,
-				numberOfTrajectoriesInPatternToShowPanel);
-		numberOfTrajectoriesInPatternToShowPanel.setVisible(false);
+				previousNextTupleInPatternResultPanel);
+		previousNextTupleInPatternResultPanel.setVisible(false);
 		definedPatternWidget.getFlexCellFormatter().setColSpan(2, 0, 3);
 
-		retrieveButton.addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				numberOfTrajectoriesInPatternToShowPanel.setVisible(true);
-			}
-		});
-
-		definedPatternWidget.setWidget(1, 0, retrieveButton);
-		definedPatternWidget.setWidget(1, 1, countButton);
-		definedPatternWidget.setWidget(1, 2, removeButton);
-		definedPatternWidget.setWidget(1, 3, removeLastInPatternButton);
+//		definedPatternWidget.getFlexCellFormatter().setColSpan(1, 0, 3);
+		definedPatternWidget.setWidget(1, 0, matchButton);
+		definedPatternWidget.setWidget(1, 1, removeButton);
+		definedPatternWidget.setWidget(1, 2, removeLastInPatternButton);
+		
 		return definedPatternWidget;
 	}
 
@@ -881,8 +904,7 @@ public class OptionsTabPanel extends Composite {
 	 */
 	private ListBox createBoxWithSelectOptionsForExistingTrajectories() {
 		ListBox selectOptionsForExistingTrajectories = new ListBox();
-		selectOptionsForExistingTrajectories.addItem("");
-		selectOptionsForExistingTrajectories.addItem("geotrips_part");
+		selectOptionsForExistingTrajectories.addItem("");		
 		selectOptionsForExistingTrajectories.addItem("geotrips");
 		selectOptionsForExistingTrajectories.addItem("geolife");
 		selectOptionsForExistingTrajectories.addItem("animals");
@@ -1080,7 +1102,7 @@ public class OptionsTabPanel extends Composite {
 	 * 
 	 * @return the animateButton
 	 */
-	public Button getAnimateButton() {
+	public Button getRelationButton() {
 		return getRelationButton;
 	}
 
@@ -1263,11 +1285,11 @@ public class OptionsTabPanel extends Composite {
 	 * @return The command to be sent to SECONDO
 	 */
 	public String getCommandForPatternMatching() {
+		tupleNoInPattern = 1;
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
-		String numberOfTrajToShow = getNumberOfTrajectoriesToShow().getValue(
-				getNumberOfTrajectoriesToShow().getSelectedIndex());
 		String command = "";
+
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
 			command = "query "
 					+ selectOptionsForExistingTrajectories
@@ -1275,9 +1297,109 @@ public class OptionsTabPanel extends Composite {
 			command = command + " feed filtermatches["
 					+ attributeNameOfMlabelInRelation + ",";
 			command = command + " '" + patternLabel.getText() + "'] head["
-					+ numberOfTrajToShow + "] consume";
+					+ tupleNoInPattern + "] consume";
 		}
 		return command;
+	}
+
+	public String getCommandForNextTupleInPattern() {
+		tupleNoInPattern++;
+		String command = "";
+		previousTupleInPattern.setEnabled(true);
+
+		if (tupleNoInPattern <= totalNumberOfTuplesInPatternResult) {
+			int selectedInd = selectOptionsForExistingTrajectories
+					.getSelectedIndex();
+			if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+				command = command + " feed filtermatches["
+						+ attributeNameOfMlabelInRelation + ",";
+				command = command + " '" + patternLabel.getText() + "'] head["
+						+ tupleNoInPattern + "] tail[1] consume";
+				labelWithNumberOfShownTupleInPatternResult.setText("tuple No. "
+						+ tupleNoInPattern);
+			}
+		} 
+		if (tupleNoInPattern == totalNumberOfTuplesInPatternResult){
+			nextTupleInPattern.setEnabled(false);
+		}
+		return command;
+	}
+
+	public String getCommandForNextTupleInPasses() {
+		tupleNoInPasses++;
+		String command = "";
+		simpleQueriesStackPanel.getPassesPanel().getPreviousTuple()
+				.setEnabled(true);
+
+		if (tupleNoInPasses <= totalNumberOfTuplesInPassesResult) {
+			int selectedInd = selectOptionsForExistingTrajectories
+					.getSelectedIndex();
+			String label = simpleQueriesStackPanel.getPassesPanel()
+					.getLabelTextForQuery().getText();
+			if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+				command = command + " feed filter[."
+						+ attributeNameOfMlabelInRelation
+						+ " passes tolabel(\"" + label + "\")] head["
+						+ tupleNoInPasses + "] tail[1] consume";
+				simpleQueriesStackPanel.getPassesPanel().getInfoAboutTupleNo()
+						.setText("tuple No. " + tupleNoInPasses);
+			}
+		} 
+		if (tupleNoInPasses == totalNumberOfTuplesInPassesResult) {
+			simpleQueriesStackPanel.getPassesPanel().getNextTuple()
+					.setEnabled(false);
+		}
+		return command;
+	}
+
+	public String getCommandForNextTupleInPassesThroughRegion(Vector drawLayer) {
+		tupleNoInPassesThroughRegion++;
+		String command = "";
+		if (tupleNoInPassesThroughRegion <= totalNumberOfTuplesInPassesThroughResult) {
+			int selectedInd = selectOptionsForExistingTrajectories
+					.getSelectedIndex();
+
+			removePreviousFeatures(drawLayer);
+
+			Point[] listOfPoints = drawLayer.getFeatures()[drawLayer
+					.getFeatures().length - 1].getGeometry().getVertices(false);
+
+			double[] coordinatesForPasses = coordinateValues(listOfPoints);
+
+			if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+
+				command = command + " feed filter[."
+						+ attributeNameOfMPointInRelation
+						+ " passes [const rect value("
+						+ coordinatesForPasses[0] + " "
+						+ coordinatesForPasses[1] + " "
+						+ coordinatesForPasses[2] + " "
+						+ coordinatesForPasses[3] + ")]] head["
+						+ tupleNoInPassesThroughRegion +"] tail[1] consume";
+				simpleQueriesStackPanel.getPassesThroughRegionPanel().getInfoAboutTupleNo()
+				.setText("tuple No. " + tupleNoInPassesThroughRegion);
+
+			}
+
+		} 
+		if (tupleNoInPassesThroughRegion == totalNumberOfTuplesInPassesThroughResult) {
+			simpleQueriesStackPanel.getPassesThroughRegionPanel()
+					.getNextTuple().setEnabled(false);
+		}
+		return command;
+
 	}
 
 	/**
@@ -1308,13 +1430,12 @@ public class OptionsTabPanel extends Composite {
 	public String getCommandForSimpleQueryPasses() {
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
-		ListBox numberOfTrajectoriesToBeShown = simpleQueriesStackPanel
-				.getPassesPanel().getNumberOfTrajectoriesToBeShown();
-		String numberOfTrajToShow = numberOfTrajectoriesToBeShown
-				.getValue(numberOfTrajectoriesToBeShown.getSelectedIndex());
+		tupleNoInPasses = 1;
 		String command = "";
 		String label = simpleQueriesStackPanel.getPassesPanel()
 				.getLabelTextForQuery().getText();
+		label.trim();
+		
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
 
 			command = "query "
@@ -1322,7 +1443,7 @@ public class OptionsTabPanel extends Composite {
 							.getItemText(selectedInd);
 			command = command + " feed filter[."
 					+ attributeNameOfMlabelInRelation + " passes tolabel(\""
-					+ label + "\")] head[" + numberOfTrajToShow + "] consume";
+					+ label + "\")] head[" + tupleNoInPasses + "] consume";
 		}
 		return command;
 	}
@@ -1338,6 +1459,8 @@ public class OptionsTabPanel extends Composite {
 		String command = "";
 		String label = simpleQueriesStackPanel.getPassesPanel()
 				.getLabelTextForQuery().getText();
+		label.trim();
+		
 		if (selectedInd != -1 && !(attributeNameOfMlabelInRelation == null)) {
 
 			command = "query "
@@ -1364,14 +1487,17 @@ public class OptionsTabPanel extends Composite {
 		String command = "";
 		String label = simpleQueriesStackPanel.getDeftimePanel()
 				.getLabelTextForQuery().getText();
+		label.trim();
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
 
-			command = "query deftime ("
+			command = "query "
 					+ selectOptionsForExistingTrajectories
 							.getItemText(selectedInd);
-			command = command + " feed extract["
-					+ attributeNameOfMlabelInRelation + "] at tolabel(\""
-					+ label + "\"))";
+			command = command + " feed filter[not(isempty(deftime(."
+					+ attributeNameOfMlabelInRelation + " at tolabel(\""
+					+ label + "\"))))] projectextend[; Periods: deftime(."
+					+ attributeNameOfMlabelInRelation + " at tolabel(\""
+					+ label + "\"))] consume";
 
 		}
 
@@ -1389,14 +1515,18 @@ public class OptionsTabPanel extends Composite {
 		String command = "";
 		String label = simpleQueriesStackPanel.getAtinstantPanel()
 				.getLabelTextForQuery().getText();
+		label.trim();
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
 
 			command = "query "
 					+ selectOptionsForExistingTrajectories
 							.getItemText(selectedInd);
-			command = command + " feed extract["
+			command = command + " feed filter[isdefined(."
 					+ attributeNameOfMlabelInRelation
-					+ "] atinstant [const instant value\"" + label + "\"]";
+					+ " atinstant [const instant value \"" + label
+					+ "\"])] projectextend[; ILabel: ."
+					+ attributeNameOfMlabelInRelation
+					+ " atinstant [const instant value \"" +label+ "\"] ] consume";
 		}
 		return command;
 	}
@@ -1413,7 +1543,7 @@ public class OptionsTabPanel extends Composite {
 			String typeOfRequest) {
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
-		System.out.println("Length of " + drawLayer.getFeatures().length);
+
 		removePreviousFeatures(drawLayer);
 
 		Point[] listOfPoints = drawLayer.getFeatures()[drawLayer.getFeatures().length - 1]
@@ -1423,12 +1553,7 @@ public class OptionsTabPanel extends Composite {
 
 		String command = "";
 		String commandForCount = "";
-
-		ListBox numberOfTrajectoriesToBeShown = simpleQueriesStackPanel
-				.getPassesThroughRegionPanel()
-				.getNumberOfTrajectoriesToBeShown();
-		String numberOfTrajToShow = numberOfTrajectoriesToBeShown
-				.getValue(numberOfTrajectoriesToBeShown.getSelectedIndex());
+		tupleNoInPassesThroughRegion = 1;
 
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
 
@@ -1447,7 +1572,7 @@ public class OptionsTabPanel extends Composite {
 					+ " passes [const rect value(" + coordinatesForPasses[0]
 					+ " " + coordinatesForPasses[1] + " "
 					+ coordinatesForPasses[2] + " " + coordinatesForPasses[3]
-					+ ")]] head[" + numberOfTrajToShow + "] consume";
+					+ ")]] head[" + tupleNoInPassesThroughRegion + "] consume";
 
 		}
 
@@ -1521,15 +1646,170 @@ public class OptionsTabPanel extends Composite {
 	 * @return The command for querying a sample relation
 	 */
 	public String getCommandForQuerySampleRelation() {
+		tupleNo = 1;
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
 		String command = "";
 		if (selectedInd != -1) {
 			command = "query "
 					+ selectOptionsForExistingTrajectories
-							.getItemText(selectedInd) + " feed head[3] consume";
-			numberOfShownTuplesInSampleRelation.setText("3 tuples");
+							.getItemText(selectedInd) + " feed head[" + tupleNo
+					+ "] consume";
+			numberOfShownTuplesInSampleRelation.setText("tuple No. " + tupleNo);
 		}
+		return command;
+	}
+
+	/**
+	 * Returns the command for querying the next tuple in a sample relation
+	 * 
+	 * @return The command for querying a sample relation
+	 */
+	public String getCommandForNextTupleInSampleRelation() {
+		tupleNo++;
+		String command = "";
+		previousTuple.setEnabled(true);
+
+		if (tupleNo <= totalNumberOfTuplesInCurrentRelation) {
+			int selectedInd = selectOptionsForExistingTrajectories
+					.getSelectedIndex();
+
+			if (selectedInd != -1) {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd)
+						+ " feed filter[.No = " + tupleNo + "] consume";
+				numberOfShownTuplesInSampleRelation.setText("tuple No. "
+						+ tupleNo);
+			}
+		} 
+		if (tupleNo == totalNumberOfTuplesInCurrentRelation) {
+			nextTuple.setEnabled(false);
+		}
+		return command;
+	}
+
+	/**
+	 * Returns the command for querying the next tuple in a sample relation
+	 * 
+	 * @return The command for querying a sample relation
+	 */
+	public String getCommandForPreviousTupleInSampleRelation() {
+		tupleNo--;
+		String command = "";
+
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+
+		if (selectedInd != -1) {
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd) + " feed head[" + tupleNo
+					+ "] consume";
+			numberOfShownTuplesInSampleRelation.setText("tuple No. " + tupleNo);
+		}
+
+		if (tupleNo == 1) {
+			previousTuple.setEnabled(false);
+		}
+
+		return command;
+	}
+
+	/**
+	 * Returns the command for querying the next tuple in pattern result
+	 * 
+	 * @return The command for querying a sample relation
+	 */
+	public String getCommandForPreviousTupleInPattern() {
+		tupleNoInPattern--;
+		String command = "";
+
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+
+		if (selectedInd != -1) {
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
+			command = command + " feed filtermatches["
+					+ attributeNameOfMlabelInRelation + ",";
+			command = command + " '" + patternLabel.getText() + "'] head["
+					+ tupleNoInPattern + "] tail[1] consume";
+			labelWithNumberOfShownTupleInPatternResult.setText("tuple No. "
+					+ tupleNoInPattern);
+		}
+
+		if (tupleNoInPattern == 1) {
+			previousTupleInPattern.setEnabled(false);
+		}
+
+		return command;
+	}
+	
+	public String getCommandForPreviousTupleInPassesThroughRegion(Vector drawLayer){
+		tupleNoInPassesThroughRegion--;
+		String command = "";
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+
+		removePreviousFeatures(drawLayer);
+
+		Point[] listOfPoints = drawLayer.getFeatures()[drawLayer
+				.getFeatures().length - 1].getGeometry().getVertices(false);
+
+		double[] coordinatesForPasses = coordinateValues(listOfPoints);
+
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
+
+			command = command + " feed filter[."
+					+ attributeNameOfMPointInRelation
+					+ " passes [const rect value("
+					+ coordinatesForPasses[0] + " "
+					+ coordinatesForPasses[1] + " "
+					+ coordinatesForPasses[2] + " "
+					+ coordinatesForPasses[3] + ")]] head["
+					+ tupleNoInPassesThroughRegion + "] consume";
+			simpleQueriesStackPanel.getPassesThroughRegionPanel().getInfoAboutTupleNo()
+			.setText("tuple No. " + tupleNoInPassesThroughRegion);
+
+		}
+		if (tupleNoInPassesThroughRegion == 1) {
+			simpleQueriesStackPanel.getPassesThroughRegionPanel().getPreviousTuple().setEnabled(false);
+		}
+
+		return command;
+	}
+
+	public String getCommandForPreviousTupleInPasses() {
+		tupleNoInPasses--;
+		String command = "";
+		String label = simpleQueriesStackPanel.getPassesPanel()
+				.getLabelTextForQuery().getText();
+
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+
+		if (selectedInd != -1) {
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd);
+			command = command + " feed filter[."
+					+ attributeNameOfMlabelInRelation + " passes tolabel(\""
+					+ label + "\")] head[" + tupleNoInPasses
+					+ "] tail[1] consume";
+			simpleQueriesStackPanel.getPassesPanel().getInfoAboutTupleNo()
+					.setText("tuple No. " + tupleNoInPasses);
+		}
+
+		if (tupleNoInPasses == 1) {
+			simpleQueriesStackPanel.getPassesPanel().getPreviousTuple().setEnabled(false);
+		}
+
 		return command;
 	}
 
@@ -1549,15 +1829,6 @@ public class OptionsTabPanel extends Composite {
 
 		}
 		return command;
-	}
-
-	/**
-	 * Returns the retrieve button
-	 * 
-	 * @return The retrieve button
-	 */
-	public Button getRetrieveButton() {
-		return retrieveButton;
 	}
 
 	/**
@@ -1656,17 +1927,8 @@ public class OptionsTabPanel extends Composite {
 	 * 
 	 * @return The "count" button
 	 */
-	public Button getCountButton() {
-		return countButton;
-	}
-
-	/**
-	 * Returns user defined number of trajectories
-	 * 
-	 * @return The user defined number of trajectories
-	 */
-	public ListBox getNumberOfTrajectoriesToShow() {
-		return numberOfTrajectoriesInPatternToShow;
+	public Button getMatchButton() {
+		return matchButton;
 	}
 
 	/**
@@ -1680,6 +1942,70 @@ public class OptionsTabPanel extends Composite {
 
 	public TabBar getTabBar() {
 		return optionsTabPanel.getTabBar();
+	}
+
+	public Button getPreviousTuple() {
+		return previousTuple;
+	}
+
+	public Button getNextTuple() {
+		return nextTuple;
+	}
+
+	public Button getPreviousTupleInPattern() {
+		return previousTupleInPattern;
+	}
+
+	public Button getNextTupleInPattern() {
+		return nextTupleInPattern;
+	}
+
+	public void setTotalNumberOfTuplesInCurrentRelation(
+			int totalNumberOfTuplesInCurrentRelation) {
+		this.totalNumberOfTuplesInCurrentRelation = totalNumberOfTuplesInCurrentRelation;
+		if (tupleNo >= this.totalNumberOfTuplesInCurrentRelation) {
+			nextTuple.setEnabled(false);
+		} else {
+			nextTuple.setEnabled(true);
+		}
+		previousTuple.setEnabled(false);
+	}
+
+	public void setTotalNumberOfTuplesInPatternResult(
+			int totalNumberOfTuplesInPatternResult) {
+		this.totalNumberOfTuplesInPatternResult = totalNumberOfTuplesInPatternResult;
+		if (this.totalNumberOfTuplesInPatternResult > 0) {
+			previousNextTupleInPatternResultPanel.setVisible(true);
+			labelWithNumberOfShownTupleInPatternResult.setText("tuple No. 1");
+		}
+	}
+
+	public void setTotalNumberOfTuplesInPassesResult(
+			int totalNumberOfTuplesInPassesResult) {
+		this.totalNumberOfTuplesInPassesResult = totalNumberOfTuplesInPassesResult;
+		if (this.totalNumberOfTuplesInPassesResult > 0) {
+			simpleQueriesStackPanel.getPassesPanel()
+					.getVertPanWithPreviousNextTuple().setVisible(true);
+			simpleQueriesStackPanel.getPassesPanel().getPreviousTuple().setEnabled(false);
+			simpleQueriesStackPanel.getPassesPanel().getInfoAboutTupleNo()
+					.setText("tuple No. 1");
+		}
+	}
+
+	/**
+	 * @param totalNumberOfTuplesInPassesThroughResult
+	 *            the totalNumberOfTuplesInPassesThroughResult to set
+	 */
+	public void setTotalNumberOfTuplesInPassesThroughResult(
+			int totalNumberOfTuplesInPassesThroughResult) {
+		this.totalNumberOfTuplesInPassesThroughResult = totalNumberOfTuplesInPassesThroughResult;
+		if (this.totalNumberOfTuplesInPassesThroughResult > 0) {
+			simpleQueriesStackPanel.getPassesThroughRegionPanel()
+					.getVertPanWithPreviousNextTuple().setVisible(true);
+			simpleQueriesStackPanel.getPassesThroughRegionPanel().getPreviousTuple().setEnabled(false);
+			simpleQueriesStackPanel.getPassesThroughRegionPanel()
+					.getInfoAboutTupleNo().setText("tuple No. 1");
+		}
 	}
 
 }

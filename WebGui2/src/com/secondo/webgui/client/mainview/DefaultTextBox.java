@@ -37,6 +37,10 @@ public class DefaultTextBox extends TextBox implements FocusHandler {
 		this.setText(defText);
 		this.setEnabled(false);
 	}
+	
+	public void setDefText(){
+		this.setText(defaultText);		
+	}
 
 	/**
 	 * Returns the default text

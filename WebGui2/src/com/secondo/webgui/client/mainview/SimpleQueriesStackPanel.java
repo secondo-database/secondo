@@ -81,11 +81,58 @@ public class SimpleQueriesStackPanel extends StackPanel {
 	 * Cleans result info labels in all sub-panels of simple queries stack panel
 	 * and hides panel with number of trajectories to be shown
 	 */
-	public void cleanResultInfoLabelsAndPanelWithNumberOfTrajectoriesToBeShown() {
-		passesPanel.getResultInfoLabel().setText("");
-		atinstantPanel.getResultInfoLabel().setText("");
-		deftimePanel.getResultInfoLabel().setText("");
+	public void cleanResultInfoLabelsAndPanelWithNumberOfTrajectoriesToBeShown(int numb) {
+		switch(numb){
+		case 0:{		
+		atinstantPanel.getResultInfoLabel().setText("");		
+				
+		deftimePanel.getResultInfoLabel().setText("");		
+				
 		passesThroughRegionPanel.getResultInfoLabel().setText("");
+		passesThroughRegionPanel.getVertPanWithPreviousNextTuple().setVisible(false);
+		atinstantPanel.getLabelTextForQuery().setDefText();
+		deftimePanel.getLabelTextForQuery().setDefText();		
+		break;
+		}
+		case 1:{
+			passesPanel.getResultInfoLabel().setText("");
+			passesPanel.getVertPanWithPreviousNextTuple().setVisible(false);		
+			
+			atinstantPanel.getResultInfoLabel().setText("");		
+					
+			deftimePanel.getResultInfoLabel().setText("");	
+			atinstantPanel.getLabelTextForQuery().setDefText();
+			deftimePanel.getLabelTextForQuery().setDefText();
+			passesPanel.getLabelTextForQuery().setDefText();
+			break;
+		}
+		case 2: {
+			passesPanel.getResultInfoLabel().setText("");
+			passesPanel.getVertPanWithPreviousNextTuple().setVisible(false);	
+			
+			deftimePanel.getResultInfoLabel().setText("");	
+			passesThroughRegionPanel.getResultInfoLabel().setText("");
+			passesThroughRegionPanel.getVertPanWithPreviousNextTuple().setVisible(false);
+			
+			deftimePanel.getLabelTextForQuery().setDefText();
+			passesPanel.getLabelTextForQuery().setDefText();
+			break;
+		}
+		case 3:{
+			passesPanel.getResultInfoLabel().setText("");			
+			passesPanel.getVertPanWithPreviousNextTuple().setVisible(false);		
+			
+			atinstantPanel.getResultInfoLabel().setText("");
+					
+			passesThroughRegionPanel.getResultInfoLabel().setText("");
+			passesThroughRegionPanel.getVertPanWithPreviousNextTuple().setVisible(false);
+			
+			atinstantPanel.getLabelTextForQuery().setDefText();
+			passesPanel.getLabelTextForQuery().setDefText();
+			break;
+		}
+		default:break;
+		}		
 	}
 
 	/**

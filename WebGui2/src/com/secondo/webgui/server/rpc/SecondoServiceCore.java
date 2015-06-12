@@ -25,7 +25,7 @@ import com.secondo.webgui.shared.model.UserData;
 
 /**
  * This class is responsible for the communication between the client and server
- * and support multi-threading.
+ * and supports multi-threading.
  * 
  * @author Irina Russkaya
  *

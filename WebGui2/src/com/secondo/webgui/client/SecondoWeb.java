@@ -127,7 +127,7 @@ public class SecondoWeb implements EntryPoint {
 				});
 
 		/* Adds an event handler to the button "get relation" of the options tab panel */
-		this.mainView.getOptionsTabPanel().getAnimateButton()
+		this.mainView.getOptionsTabPanel().getRelationButton()
 				.addClickHandler(new ClickHandler() {
 					public void onClick(ClickEvent event) {
 						String command = mainView.getOptionsTabPanel()
@@ -153,13 +153,60 @@ public class SecondoWeb implements EntryPoint {
 
 					}
 				});
+		
+		/* Adds an event handler to the button "next tuple" of the options tab panel */
+		this.mainView.getOptionsTabPanel().getNextTuple()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForNextTupleInSampleRelation();
+						String commandForCountTuples = "";
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+							
+							loadingPopup.center();
+							mainView.getOptionsTabPanel()
+									.getLabelForInfoAboutOpenedRelation()
+									.setVisible(true);
 
-		/* Adds an event handler to the button "retrieve" to match a defined pattern to the loaded relation */
-		this.mainView.getOptionsTabPanel().getNumberOfTrajectoriesToShow()
-				.addChangeHandler(new ChangeHandler() {
+						} 
+					}
+				});
+		
+		/* Adds an event handler to the button "previous tuple" of the options tab panel */
+		this.mainView.getOptionsTabPanel().getPreviousTuple()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForPreviousTupleInSampleRelation();
+						String commandForCountTuples = "";
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+							
+							loadingPopup.center();
+							mainView.getOptionsTabPanel()
+									.getLabelForInfoAboutOpenedRelation()
+									.setVisible(true);
+
+						} 
+					}
+				});
+
+		
+		/* Adds an event handler to the button "match" to match a defined pattern to the loaded relation */
+		this.mainView.getOptionsTabPanel().getMatchButton()
+				.addClickHandler(new ClickHandler() {
 
 					@Override
-					public void onChange(ChangeEvent event) {
+					public void onClick(ClickEvent event) {
 						if (!mainView.getOptionsTabPanel()
 								.isUnsuccessfulVerification()) {
 							String command = mainView.getOptionsTabPanel()
@@ -177,44 +224,58 @@ public class SecondoWeb implements EntryPoint {
 										mainView, loadingPopup);
 								
 								loadingPopup.center();
-							} else {
-								Window.alert("Please select relation and load it");
 							}
-
-						} else {
-							Window.alert("Please correct your pattern statement!");
-						}
-					}
-				});
-
-		/* Adds an event handler to the button "count" to match a defined pattern to the loaded relation */
-		this.mainView.getOptionsTabPanel().getCountButton()
-				.addClickHandler(new ClickHandler() {
-
-					@Override
-					public void onClick(ClickEvent event) {
-						if (!mainView.getOptionsTabPanel()
-								.isUnsuccessfulVerification()) {
-							String commandForCountResult = mainView
-									.getOptionsTabPanel()
-									.getCommandForCountPatternMatching();
-							mainView.getOptionsTabPanel()
-									.setPatternMatchingIsInitiated(true);
-							if (!commandForCountResult.isEmpty()) {
-								mainView.resetMapView();
-
-								rpcConnector
-										.setNumberOfTuplesInPatternMatchingResult(
-												commandForCountResult,
-												mainView, loadingPopup);
-
-								loadingPopup.center();
+							else {
+								Window.alert("Please select relation and load it");
 							}
 						}
 
 						else {
 							Window.alert("Please correct your pattern statement!");
 						}
+					}
+				});
+		
+		/* Adds an event handler to the button "next tuple" of the options tab panel (in pattern) */
+		this.mainView.getOptionsTabPanel().getNextTupleInPattern()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForNextTupleInPattern();
+						String commandForCountTuples = "";
+						mainView.getOptionsTabPanel()
+						.setPatternMatchingIsInitiated(true);
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+							
+							loadingPopup.center();							
+						} 
+					}
+				});
+		
+		/* Adds an event handler to the button "previous tuple" of the options tab panel (in pattern)*/
+		this.mainView.getOptionsTabPanel().getPreviousTupleInPattern()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForPreviousTupleInPattern();
+						String commandForCountTuples = "";
+						mainView.getOptionsTabPanel()
+						.setPatternMatchingIsInitiated(true);
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+							
+							loadingPopup.center();
+							
+						} 
 					}
 				});
 
@@ -231,14 +292,15 @@ public class SecondoWeb implements EntryPoint {
 
 					}
 				});
+		
 
-		/* Adds an event handler to the button "retrieve" in the simple queries panel (for operator passes) */
+		/* Adds an event handler to the button "define" in the simple queries panel (for operator passes)*/
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-				.getPassesPanel().getNumberOfTrajectoriesToBeShown()
-				.addChangeHandler(new ChangeHandler() {
+				.getPassesPanel().getDefineButton()
+				.addClickHandler(new ClickHandler() {
 
 					@Override
-					public void onChange(ChangeEvent event) {
+					public void onClick(ClickEvent event) {
 						String command = mainView.getOptionsTabPanel()
 								.getCommandForSimpleQueryPasses();
 						String commandForCountResult = mainView
@@ -246,7 +308,7 @@ public class SecondoWeb implements EntryPoint {
 								.getCommandForSimpleQueryPassesCount();
 						mainView.getOptionsTabPanel()
 								.setSimpleQueryForPassesIsInitiated(true);
-						if (!command.isEmpty()) {
+						if (!commandForCountResult.isEmpty()) {							
 							mainView.resetMapView();
 							
 							rpcConnector.sendCommandAndUpdateHistory(command,
@@ -254,41 +316,60 @@ public class SecondoWeb implements EntryPoint {
 									loadingPopup);
 							
 							loadingPopup.center();
-
 						} else {
 							Window.alert("Please select relation and load it");
 						}
+
 					}
-
 				});
-
-		/* Adds an event handler to the button "count" in the simple queries panel (for operator passes)*/
+		
+		/* Adds an event handler to the button "next tuple" of the options tab panel (for operator passes) */
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-				.getPassesPanel().getCountButton()
+		.getPassesPanel().getNextTuple()
 				.addClickHandler(new ClickHandler() {
-
-					@Override
 					public void onClick(ClickEvent event) {
-						String commandForCountResult = mainView
-								.getOptionsTabPanel()
-								.getCommandForSimpleQueryPassesCount();
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForNextTupleInPasses();
+						String commandForCountTuples = "";
 						mainView.getOptionsTabPanel()
-								.setSimpleQueryForPassesIsInitiated(true);
-						if (!commandForCountResult.isEmpty()) {							
-							rpcConnector
-									.setNumberOfTuplesInSimpleQueryResultPasses(
-											commandForCountResult, mainView,
-											loadingPopup);
-						} else {
-							Window.alert("Please select relation and load it");
-						}
-
+						.setSimpleQueryForPassesIsInitiated(true);
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+							
+							loadingPopup.center();							
+						} 
+					}
+				});
+		
+		/* Adds an event handler to the button "previous tuple" of the options tab panel (for operator passes) */
+		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+		.getPassesPanel().getPreviousTuple()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForPreviousTupleInPasses();
+						String commandForCountTuples = "";
+						mainView.getOptionsTabPanel()
+						.setSimpleQueryForPassesIsInitiated(true);
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+							
+							loadingPopup.center();							
+						} 
 					}
 				});
 
 		/* Adds an event handler to the button "define" in the simple queries panel (for operator deftime)*/
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-				.getDeftimePanel().getQueryButton()
+				.getDeftimePanel().getDefineButton()
 				.addClickHandler(new ClickHandler() {
 
 					@Override
@@ -307,7 +388,7 @@ public class SecondoWeb implements EntryPoint {
 
 		/* Adds an event handler to the button "define" in the simple queries panel (for operator atinstant)*/
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-				.getAtinstantPanel().getQueryButton()
+				.getAtinstantPanel().getDefineButton()
 				.addClickHandler(new ClickHandler() {
 
 					@Override
@@ -324,14 +405,14 @@ public class SecondoWeb implements EntryPoint {
 					}
 				});
 
-		/* Adds an event handler to the button "retrieve" in the simple queries panel (for operator passes through)*/
+		/* Adds an event handler to the button "define" in the simple queries panel (for operator passes through)*/
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 				.getPassesThroughRegionPanel()
-				.getNumberOfTrajectoriesToBeShown()
-				.addChangeHandler(new ChangeHandler() {
+				.getDefineButton()
+				.addClickHandler(new ClickHandler() {
 
 					@Override
-					public void onChange(ChangeEvent event) {
+					public void onClick(ClickEvent event) {
 						String command = mainView.getOptionsTabPanel()
 								.getCommandForSimpleQueryPassesThroughRegion(
 										mainView.getMapView().getDrawLayer(),
@@ -354,37 +435,56 @@ public class SecondoWeb implements EntryPoint {
 						} else {
 							Window.alert("Please select relation and load it");
 						}
-
-					}
+					}					
 				});
-
-		/* Adds an event handler on the button "count" in the simple queries panel (for operator passes)*/
+		
+		/* Adds an event handler to the button "next tuple" of the options tab panel (for operator passes through) */
 		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-				.getPassesThroughRegionPanel().getCountButton()
+		.getPassesThroughRegionPanel().getNextTuple()
 				.addClickHandler(new ClickHandler() {
-
-					@Override
 					public void onClick(ClickEvent event) {
-						String commandForCountResult = mainView
-								.getOptionsTabPanel()
-								.getCommandForSimpleQueryPassesThroughRegion(
-										mainView.getMapView().getDrawLayer(),
-										"count");
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForNextTupleInPassesThroughRegion(mainView.getMapView().getDrawLayer());
+						String commandForCountTuples = "";
 						mainView.getOptionsTabPanel()
-								.setSimpleQueryForPassesTrhoughRegionsInitiated(
-										true);
-						if (!commandForCountResult.isEmpty()) {							
-							rpcConnector
-									.setNumberOfTuplesInSimpleQueryResultPassesThrough(
-											commandForCountResult, mainView,
-											loadingPopup);
-
-						} else {
-							Window.alert("Please select relation and load it");
-						}
-
+						.setSimpleQueryForPassesTrhoughRegionsInitiated(
+								true);
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+							
+							loadingPopup.center();							
+						} 
 					}
 				});
+		
+		/* Adds an event handler to the button "previous tuple" of the options tab panel (for operator passes through) */
+		this.mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
+		.getPassesThroughRegionPanel().getPreviousTuple()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForPreviousTupleInPassesThroughRegion(mainView.getMapView().getDrawLayer());
+						String commandForCountTuples = "";
+						mainView.getOptionsTabPanel()
+						.setSimpleQueryForPassesTrhoughRegionsInitiated(
+								true);
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+							
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+							
+							loadingPopup.center();							
+						} 
+					}
+				});
+
+		
 
 		/* Adds an event handler to the menu item Support to send a user request to the support email*/
 		this.mainView.getMainheader().getSupportDialog().getSendButton()

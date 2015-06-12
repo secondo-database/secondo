@@ -20,7 +20,6 @@ public class HelpDialog {
 	private DialogBox helpDialogBox = new DialogBox();
 	private FlowPanel dialogContents = new FlowPanel();
 	private ScrollPanel scrollContent = new ScrollPanel();
-	private HTML helpInfo;
 	private Button closeButton = new Button("Close");
 
 	public HelpDialog(String header, HTML helpInfo) {
@@ -41,7 +40,7 @@ public class HelpDialog {
 				helpDialogBox.hide();
 			}
 		});
-		closeButton.setStyleName("right-floated-button");
+		closeButton.setStyleName("right-floated-button");		
 		dialogContents.add(closeButton);
 	}
 

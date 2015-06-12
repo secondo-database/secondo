@@ -4,8 +4,10 @@ import java.util.ArrayList;
 
 import org.gwtopenmaps.openlayers.client.Projection;
 import org.gwtopenmaps.openlayers.client.geometry.Point;
+
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.i18n.client.NumberFormat;
+import com.google.gwt.thirdparty.javascript.jscomp.Result;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -15,6 +17,7 @@ import com.secondo.webgui.client.mainview.MainView;
 import com.secondo.webgui.client.rpc.SecondoService;
 import com.secondo.webgui.client.rpc.SecondoServiceAsync;
 import com.secondo.webgui.shared.model.DataType;
+import com.sun.java.swing.plaf.windows.resources.windows;
 
 /**
  * This class is responsible for RPC-Calls to the server side of the
@@ -32,6 +35,7 @@ public class RPCConnector {
 	private String currentCommand = "";
 	private String commandForCount = "";
 	private boolean countLoaded = false;
+	private boolean countNeeded=false;
 
 	/**
 	 * The standard message displayed to the user when the server cannot be
@@ -69,6 +73,11 @@ public class RPCConnector {
 		this.currentCommand = command;
 		this.commandForCount = command2;
 		countLoaded = false;
+		if(!this.commandForCount.isEmpty()){
+			this.countNeeded=true;
+		}else{
+			this.countNeeded=false;
+		}
 
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
@@ -137,34 +146,33 @@ public class RPCConnector {
 	 */
 	private void executeCountCommandAndSetNumberOfTuples() {
 		if (mainView.getOptionsTabPanel().isPatternMatchingIsInitiated()) {
-			// setNumberOfTuplesInPatternMatchingResult(commandForCount,
-			// mainView, loadingPopup);
-			mainView.getOptionsTabPanel()
-					.setTextInResultOfPatternMatchingLabel(
-							"Result is shown on the map");
-			countLoaded = true;
-			// setNumberOfTuplesInRelationFromResultList( mainView);
+			if(countNeeded){
+			 setNumberOfTuplesInPatternMatchingResult(commandForCount);}
+			
+			countLoaded = true;	
+			return;
 		}
 		if (mainView.getOptionsTabPanel().isSimpleQueryForPassesIsInitiated()) {
-			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-					.getPassesPanel().getResultInfoLabel()
-					.setText("Result is shown on the map");
-			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-					.getPassesPanel().hideNumberOfTrajectoriesToBeShownPanel();
+			if(countNeeded){
+				 setNumberOfTuplesInSimpleQueryResultPasses(commandForCount,
+				 mainView, loadingPopup);}			
 			countLoaded = true;
+			return;
 
 		}
 		if (mainView.getOptionsTabPanel()
 				.isSimpleQueryForPassesTrhoughRegionsInitiated()) {
-			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-					.getPassesThroughRegionPanel().getResultInfoLabel()
-					.setText("Result is shown on the map");
-			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-					.getPassesThroughRegionPanel()
-					.hideNumberOfTrajectoriesToBeShownPanel();
+			if(countNeeded){
+				setNumberOfTuplesInSimpleQueryResultPassesThrough(commandForCount, mainView, loadingPopup);
+			}
+			
 			countLoaded = true;
+			return;
 		} else {
-			setNumberOfTuplesInSampleRelation(commandForCount);
+			if(countNeeded){
+			setNumberOfTuplesInSampleRelation(commandForCount);}
+			countLoaded = true;
+			return;
 		}
 	}
 
@@ -178,9 +186,7 @@ public class RPCConnector {
 	private void pasteTextInResultInfoLabel(String text) {
 		if (mainView.getOptionsTabPanel().isSimpleQueryForPassesIsInitiated()) {
 			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-					.getPassesPanel().getResultInfoLabel().setText(text);
-			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-					.getPassesPanel().hideNumberOfTrajectoriesToBeShownPanel();
+					.getPassesPanel().getResultInfoLabel().setText(text);			
 		}
 		if (mainView.getOptionsTabPanel().isPatternMatchingIsInitiated()) {
 			mainView.getOptionsTabPanel()
@@ -190,10 +196,7 @@ public class RPCConnector {
 				.isSimpleQueryForPassesTrhoughRegionsInitiated()) {
 			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 					.getPassesThroughRegionPanel().getResultInfoLabel()
-					.setText(text);
-			mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
-					.getPassesThroughRegionPanel()
-					.hideNumberOfTrajectoriesToBeShownPanel();
+					.setText(text);			
 		} else {
 			Window.alert(text);
 		}
@@ -367,7 +370,7 @@ public class RPCConnector {
 	 *            The name of the textfile
 	 * */
 	public void saveTextFile(String text, String filename) {
-
+		
 		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
 
 			@Override
@@ -542,7 +545,7 @@ public class RPCConnector {
 					+ resultRelationName
 					+ "= "
 					+ startRelationName
-					+ " feed addcounter[TrackId, 1] projectextend[TrackId, Trip; Traj: trajectory(.Trip), SymTraj: units(speed(gk(.Trip))) transformstream extend[Speed: the_unit(tolabel(getSpeedString(val(initial(.Elem)))), inst(initial(.Elem)), inst(final(.Elem)), TRUE, FALSE)] makemvalue[Speed]] consume";
+					+ " feed addcounter[No, 1] projectextend[No, Trip; Traj: trajectory(.Trip), SymTraj: units(speed(gk(.Trip))) transformstream extend[Speed: the_unit(tolabel(getSpeedString(val(initial(.Elem)))), inst(initial(.Elem)), inst(final(.Elem)), TRUE, FALSE)] makemvalue[Speed]] consume";
 			System.out.println("Command " + command);
 		}
 
@@ -553,7 +556,7 @@ public class RPCConnector {
 					+ resultRelationName
 					+ "= "
 					+ startRelationName
-					+ " feed addcounter[TrackId, 1] projectextend[TrackId, Trip; Traj: trajectory(.Trip), SymTraj: units(direction("
+					+ " feed addcounter[No, 1] projectextend[No, Trip; Traj: trajectory(.Trip), SymTraj: units(direction("
 					+ startRelationName
 					+ " feed extract[Trip])) transformstream extend[Direction: the_unit(tolabel(getDirectionString(val(initial(.Elem)))), inst(initial(.Elem)), inst(final(.Elem)), TRUE, FALSE)] makemvalue[Direction]] consume";
 			System.out.println("Command " + command);
@@ -571,7 +574,7 @@ public class RPCConnector {
 					+ resultRelationName
 					+ "= "
 					+ startRelationName
-					+ " feed addcounter[TrackId, 1] projectextend[TrackId, Trip; Traj: trajectory(.Trip), SymTraj: units(distance(gk(.Trip), gk(point ( "
+					+ " feed addcounter[No, 1] projectextend[No, Trip; Traj: trajectory(.Trip), SymTraj: units(distance(gk(.Trip), gk(point ( "
 					+ lon
 					+ " "
 					+ lat
@@ -587,7 +590,7 @@ public class RPCConnector {
 					+ "= "
 					+ " AdminDistrictsGermany feed "
 					+ startRelationName
-					+ " feed addcounter[TrackId, 1] itSpatialJoin[Gebiet, Trip] projectextend[TrackId, Trip, KName; Traj: trajectory(.Trip), Pieces: .Trip at .Gebiet] filter[not(isempty(deftime(.Pieces)))] projectextendstream[TrackId, Trip, Traj, KName; Time: components(deftime(.Pieces))] extend[Mintime: minimum(.Time), U: the_unit(tolabel(.KName), minimum(.Time), maximum(.Time), TRUE, FALSE)] sortby[TrackId, Mintime] groupby[TrackId;Trip : group feed extract[Trip], Traj : group feed extract[Traj], SymTrip : group feed makemvalue[U]] consume";
+					+ " feed addcounter[No, 1] itSpatialJoin[Gebiet, Trip] projectextend[No, Trip, KName; Traj: trajectory(.Trip), Pieces: .Trip at .Gebiet] filter[not(isempty(deftime(.Pieces)))] projectextendstream[No, Trip, Traj, KName; Time: components(deftime(.Pieces))] extend[Mintime: minimum(.Time), U: the_unit(tolabel(.KName), minimum(.Time), maximum(.Time), TRUE, FALSE)] sortby[No, Mintime] groupby[No;Trip : group feed extract[Trip], Traj : group feed extract[Traj], SymTrip : group feed makemvalue[U]] consume";
 			System.out.println("Command " + command);
 		}
 
@@ -771,7 +774,6 @@ public class RPCConnector {
 	public void sendCommandAndUpdateHistory(String command, String command2,
 			MainView mv, PopupPanel lp) {
 		sendCommand(command, command2, mv, lp);
-
 	}
 
 	/**
@@ -803,13 +805,8 @@ public class RPCConnector {
 
 					mainView.getOptionsTabPanel()
 							.getNumberOfTuplesInSampleRelation()
-							.setText(result + " tuples");
-					// on the map are shown only 3 tuples
-					if (Integer.parseInt(result) < 3) {
-						mainView.getOptionsTabPanel()
-								.getNumberOfShownTuplesInSampleRelation()
-								.setText(result + " tuples");
-					}
+							.setText(result + " tuples");	
+					mainView.getOptionsTabPanel().setTotalNumberOfTuplesInCurrentRelation(Integer.parseInt(result));
 				}
 				countLoaded = true;
 			}
@@ -825,8 +822,7 @@ public class RPCConnector {
 	 * @param mv
 	 * @param lp
 	 */
-	public void setNumberOfTuplesInPatternMatchingResult(String command,
-			final MainView mv, final PopupPanel lp) {
+	public void setNumberOfTuplesInPatternMatchingResult(String command) {
 
 		AsyncCallback<String> callback = new AsyncCallback<String>() {
 
@@ -837,16 +833,23 @@ public class RPCConnector {
 
 			@Override
 			public void onSuccess(String result) {
-				lp.hide();
-				if (result.contains("error") || result.contains("Error")) {
+				loadingPopup.hide();
+				
+				if (result.contains("error") || result.contains("Error") || result.isEmpty()) {
 					result = "Error in executing query";
+				} else {
+					result = result.replace("(", "");
+					result = result.replace(")", "");
+					result = result.replace("int", "");
+					result = result.trim();
+					
+					mainView.getOptionsTabPanel()
+							.setTotalNumberOfTuplesInPatternResult(
+									Integer.parseInt(result));
 				}
-				result = result.replace("(", "");
-				result = result.replace(")", "");
-				result = result.replace("int", "");
-				mv.getOptionsTabPanel().setTextInResultOfPatternMatchingLabel(
+				mainView.getOptionsTabPanel().setTextInResultOfPatternMatchingLabel(
 						"Result of pattern matching: " + result);
-				mv.getOptionsTabPanel().setPatternMatchingIsInitiated(false);
+				mainView.getOptionsTabPanel().setPatternMatchingIsInitiated(false);
 
 			}
 		};
@@ -880,9 +883,11 @@ public class RPCConnector {
 				result = result.replace("(", "");
 				result = result.replace(")", "");
 				result = result.replace("int", "");
+				result = result.trim();
 				mv.getOptionsTabPanel().getSimpleQueriesStackPanel()
 						.getPassesPanel().getResultInfoLabel()
 						.setText("Result: " + result);
+				mv.getOptionsTabPanel().setTotalNumberOfTuplesInPassesResult(Integer.parseInt(result));
 				mv.getOptionsTabPanel().setSimpleQueryForPassesIsInitiated(
 						false);
 			}
@@ -917,9 +922,11 @@ public class RPCConnector {
 				result = result.replace("(", "");
 				result = result.replace(")", "");
 				result = result.replace("int", "");
+				result = result.trim();
 				mv.getOptionsTabPanel().getSimpleQueriesStackPanel()
 						.getPassesThroughRegionPanel().getResultInfoLabel()
 						.setText("Result: " + result);
+				mv.getOptionsTabPanel().setTotalNumberOfTuplesInPassesThroughResult(Integer.parseInt(result));
 				mv.getOptionsTabPanel()
 						.setSimpleQueryForPassesTrhoughRegionsInitiated(false);
 			}
@@ -952,17 +959,26 @@ public class RPCConnector {
 					if (result.contains("error")) {
 						result = "Error in executing query";
 					}
+					if(result.length()<2000){
 					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 							.getAtinstantPanel().getResultInfoLabel()
-							.setText(result);
+							.setText(result);}
+					else{
+						Window.alert(result);
+					}					
 				}
 				if (typeOfCommand.equals("deftime")) {
 					if (result.contains("error")) {
 						result = "Error in executing query";
 					}
+					
+					if(result.length()<2000){
 					mainView.getOptionsTabPanel().getSimpleQueriesStackPanel()
 							.getDeftimePanel().getResultInfoLabel()
-							.setText(result);
+							.setText(result);}
+					else{
+						Window.alert(result);
+					}
 				}
 			}
 		};

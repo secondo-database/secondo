@@ -3,11 +3,15 @@ package com.secondo.webgui.server.rpc;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.google.gwt.thirdparty.guava.common.base.Charsets;
+import com.google.gwt.thirdparty.guava.common.io.Files;
 
 /**
  * This class represents a servlet to download text into a textfile.
@@ -45,9 +49,10 @@ public class DownloadServlet extends HttpServlet {
 
 		byte[] outputByte = new byte[4096];
 		// copy binary content to output stream
-		while (fileIn.read(outputByte, 0, 4096) != -1) {
-			out.write(outputByte, 0, 4096);
-		}
+		int length;
+		while ((length = fileIn.read(outputByte)) > 0){
+	        out.write(outputByte, 0, length);
+	    }
 		fileIn.close();
 		out.flush();
 		out.close();
