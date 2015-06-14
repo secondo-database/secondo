@@ -71,6 +71,8 @@ This method returns the turning points y value.
           a00, a01, a10, a11, cx, cy, dx, dy, xm, ym);
   }
 
+  void Set(double x, double y, double _xm, double _ym, double alpha);
+
 private:
   double a00, a01, a10, a11;//matrix values
   double cx, cy;//movement (D-M*D+W) look up in constructor

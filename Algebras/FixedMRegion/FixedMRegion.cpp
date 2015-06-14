@@ -10,7 +10,7 @@ using namespace std;
 This is the default constructor. Do not use.
 
 */
-FixedMRegion::FixedMRegion():r(){}
+FixedMRegion::FixedMRegion(): m(0), r(0){}
 
 /*
 This is the copy constructor.
@@ -203,28 +203,32 @@ time ti.
 void FixedMRegion::atinstant (double ti, Region &result){
   sett (ti);
   result.Clear();
-  result=r;
-  result.StartBulkLoad ();
-  for (int i = 0; i < result.Size (); i++)
+  Line tmp(r.Size());
+  tmp.StartBulkLoad ();
+  for (int i = 0; i < r.Size (); i++)
     {
       HalfSegment hs;
-      result.Get (i, hs);
-
+      r.Get (i, hs);
       const Point lp = hs.GetLeftPoint ();
+     // printf("Point old lp: %f, %f\n", (lp.GetX(), lp.GetY()));
       double newx = l.getImgX (lp.GetX (), lp.GetY ());
       double newy = l.getImgY (lp.GetX (), lp.GetY ());
       Point newlp (true, newx, newy);
-
+      //printf("Point new lp: %f, %f\n", (newlp.GetX(), newlp.GetY()));
       const Point rp = hs.GetRightPoint ();
+      //printf("Point old rp: %f, %f\n", rp.GetX(), rp.GetY());
       newx = l.getImgX (rp.GetX (), rp.GetY ());
       newy = l.getImgY (rp.GetX (), rp.GetY ());
       Point newrp (true, newx, newy);
+      //printf("Point new rp: %f, %f\n", (newrp.GetX(), newrp.GetY()));
       HalfSegment hsnew(hs.IsLeftDomPoint (), newlp, newrp);
       hsnew.attr.edgeno = hs.attr.edgeno;
-      result.Put (i, hsnew);
+      tmp+=hsnew;
     }
-  result.EndBulkLoad ();
+  tmp.EndBulkLoad();
+  tmp.Transform(result);
 }
+
 
 /*
 This method will return a Point3 with the moving values x,y,alpha for the given 
@@ -565,12 +569,13 @@ int FixedMRegion::getTraversedCase (const Point & p1, const Point & p2,
   if (AlmostEqual (t, 1))
     cc = 2;                     //Schnitt auf (x2, y2)
   //Fallunterscheidung nach (x3, y3), (x4, y4)
-  if ((s > 0) && (s < 1))
-    cc += 12;                   //Schnitt zwischen (x3, y3) und (x4, y4)
-  if (AlmostEqual (s, 0))
+  if (AlmostEqual (s, 0)) {
     cc += 4;                    //Schnitt auf (x3, y3)
-  if (AlmostEqual (s, 1))
+  } else if (AlmostEqual (s, 1)) {
     cc += 8;                    // Schnitt auf (x4, y4)
+  } else if ((s > 0) && (s < 1)) {
+    cc += 12;                   //Schnitt zwischen (x3, y3) und (x4, y4)
+  }
 
 #ifdef DEBUG_VERBOSE
   printf ("Schnittpunkt: %3.2f, %3.2f\n", x1 + (x2 - x1) * t,
@@ -658,7 +663,7 @@ vector < vector < Point > >FixedMRegion::traversedCalculateTwoTriangles(
 }
 
 /*
-This methods finds ou the correct case and calls other methods to calculate 
+This methods finds out the correct case and calls other methods to calculate 
 the polygon that was traversed in this step. It uses the halfsegments' start 
 and end position. It has to deal with al lot of different cases.
 
@@ -871,8 +876,8 @@ intervall ta to te.
 */
 void FixedMRegion::traversed(Region & result,double ta, double te, 
                              double precision){
-  Region res(0);
-  atinstant (ta, res);
+  Region * res= new Region(0);
+  atinstant (ta, *res);
   vector < HalfSegment > vhs = getHSFromRegion ();
   vector < HalfSegment > tiold;
   atinstant (ta, vhs, tiold);
@@ -883,18 +888,20 @@ void FixedMRegion::traversed(Region & result,double ta, double te,
       Region *tmp = getDiffRegion (&tiold, &tinew);
       if (tmp != NULL)
         {
-          Region *tmp2 = new Region (res);
+          Region *tmp2 = new Region (0);
           tmp2->Clear ();
-          RobustPlaneSweep::robustUnion (res, *tmp, *tmp2);
+          printf("union: %d,  %d\n", res->Size(), tmp->Size());
+          RobustPlaneSweep::robustUnion (*res, *tmp, *tmp2);
           delete tmp;
-          //sdelete res;
-          res = *tmp2;
+          delete res;
+          res = tmp2;
         }
       //delete tiold;
       tiold = tinew;
     }
   //delete tiold;
-  result = res;
+  result = *res;
+  delete res;
   return;
 }
 
@@ -936,7 +943,9 @@ the time has changed.
 */
 void FixedMRegion::calculateInternalVars(){
   Point3 coord = getMovingForTimeFromMMove(t);
-  LATransform l = LATransform (coord.GetX(), coord.GetY(), 
+  //printf("Point3(%f): (%f, %f, %f)\n", t, 
+    //     coord.GetX(), coord.GetY(), coord.GetAlpha());
+  l = LATransform (coord.GetX(), coord.GetY(), 
        xm, ym, coord.GetAlpha());
 }
 /*

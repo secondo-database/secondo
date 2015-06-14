@@ -111,4 +111,32 @@ LATransform::getYM(){
   return ym;
 }
 
+void LATransform::Set(double x, double y, double _xm, double _ym,
+  double alpha){
+  //A'=M*A+(D-M*D+W) is equation of movement.
+  //M is rotational matrix with angle alpha
+  //D=(xm, ym), rotaional center; D!=d completely different meaning!
+  //W=(x,y) linear movement
+  //A point to move
+  //M=(a00 a01)
+  //  (a10 a11)     
+  xm=_xm;
+  ym=_ym;
+  a00 = cos (alpha);
+  a01 = -sin (alpha);
+  a10 = sin (alpha);
+  a11 = cos (alpha);
+  //c=(D-M*D+W) for movement
+  cx = xm - (a00 * xm + a01 * ym) + x;
+  cy = ym - (a10 * xm + a11 * ym) + y;
+  //M'=M^(-1)
+  // because M is rotaional matrix: M'=M^T (transposed)
+  //inverse of movement is:
+  //A=M'*A'-(M'*(D+W)+D)
+  //d=-(M'*(D+W)+D)
+  dx = -(a00 * (x + xm) + a10 * (y + ym)) + xm;
+  dy = -(a01 * (x + xm) + a11 * (y + ym)) + ym;
+}
+
+
 ;

@@ -9,6 +9,7 @@ using namespace std;
 #include "../Spatial/RegionTools.h"
 #include "TestTraversed.h"
 #include "TestMove.h"
+#include "TestInsideIntersection.h"
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
@@ -214,7 +215,7 @@ printHS (HalfSegment hs)
 int
 gotPoint (const Point & p, const Point * list, int size)
 {
-  printf("Point: %f, %f\n", p.GetX(), p.GetY());
+  //printf("Point: %f, %f\n", p.GetX(), p.GetY());
   for (int i = 0; i < size; i++)
     {
       if (p.Compare (list + i) == 0)
@@ -235,6 +236,8 @@ checkRegionPoints (Region * r, const Point * list, int size)
       r->Get (i, hs);
       int tmp;
       tmp = gotPoint (hs.GetLeftPoint (), list, size);
+      Point tmp2 = hs.GetLeftPoint();
+      //printf("Point: %f, %f\n", tmp2.GetX(), tmp2.GetY());
       if (tmp == -1)
         return false;
       res[tmp] = true;
@@ -262,15 +265,17 @@ testatinstantLinearMove ()
   Point *p2 = new Point (true, 1.0, 0.0);
   Point *p3 = new Point (true, 0.0, 1.0);
   Region *result = new Region (*p1, *p2, *p3);
-  Point expected[] = { Point (true, 2.0, 4.0), Point (true, 3.0, 4.0),
-    Point (true, 2.0, 5.0)
+  Point expected[] = { Point (true, 1.0, 2.0), Point (true, 2.0, 2.0),
+    Point (true, 1.0, 3.0)
   };
 
   FixedMRegion fmr = FixedMRegion (0, 0, 0, *result, 0, 0, 0,
                                    1, 2, 0);
   Region *res = new Region(0);
-  fmr.atinstant (2, *res);
+  fmr.atinstant (1, *res);
   printf ("%s\n", (checkRegionPoints (res, expected, 3)) ? "OK" : "FAILED");
+  FMRTest t;
+  t.printLATransform(fmr);
   delete p1;
   delete p2;
   delete p3;
@@ -344,9 +349,7 @@ testMBool ()
   printf ("testMBool innerhalb %s\n", (res->Present (test3)) ? "OK" : "FAILED");
 }
 
-void
-testQuatro ()
-{
+void testQuatro (){
   printf ("Test testQuatro: \n");
   Point *p1 = new Point (true, 0.0, 0.0);
   Point *p2 = new Point (true, 1.0, 0.0);
@@ -736,433 +739,6 @@ testLATransformInv ()
 }
 
 
-void testInside1()
-{
-  //inside test 
-  //innerhalb+außerhalb
-  printf ("Test inside inner- und außerhalb: ");
-
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-
-  MPoint res (0);
-  res.Clear();
-  res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
-  UPoint ub (iv, 0, 0.5, 2, 1.5);
-  res.MergeAdd (ub);
-  res.EndBulkLoad ();
-
-  MBool expected (0);
-  expected.Clear();
-  expected.StartBulkLoad();
-  Interval < Instant > ive (t_start, DateTime(0.5), false, true);
-  UBool ube (ive, (CcBool) true);
-  expected.MergeAdd (ube);
-  expected.EndBulkLoad ();
-  
-  MBool result=fmr.inside(res);
-  
-  if (result==expected) {
-    printf("OK\n");
-  } else {
-    printf("Failed\n");
-    
-    for (int i=0; i<result.GetNoComponents(); i++) {
-      UPoint up;
-      //result.Get(i, up);
-      //printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
-      //up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
-      //up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
-    }
-  }
-}
-
-void testInside2()
-{
-  //inside test 
-  //außerhalb
-  printf ("Test inside kein Schnitt: ");
-    
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-  
-  MPoint res (0);
-  res.Clear();
-  res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
-  UPoint ub (iv, 0, -0.5, 2, -1.5);
-  res.MergeAdd (ub);
-  res.EndBulkLoad ();
-
-  MBool expected (0);
-  expected.Clear();
-  expected.StartBulkLoad();
-  expected.EndBulkLoad ();
-  
-  MBool result=fmr.inside(res);
-  
-
-  if (result==expected) {
-    printf("OK\n");
-  } else {
-    printf("Failed\n");
-    
-    for (int i=0; i<result.GetNoComponents(); i++) {
-      UPoint up;
-      //result.Get(i, up);
-      //printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
-      //up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
-      //up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
-    }
-  }
-}
-
-void testInside3()
-{
-  //inside test 
-  //innerhalb
-  printf ("Test inside nur innerhalb: ");
-  
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-
-  MPoint res (0);
-  res.Clear();
-  res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
-  UPoint ub (iv, 0, 0.5, 1.0, 1.5);
-  res.MergeAdd (ub);
-  res.EndBulkLoad ();
-
-  MBool expected (0);
-  expected.Clear();
-  expected.StartBulkLoad();
-  Interval < Instant > ive (t_start, t_end, false, true);
-  UBool ube (ive, (CcBool) true);
-  expected.MergeAdd (ube);
-  expected.EndBulkLoad ();
-  
-  MBool result=fmr.inside(res);
-  
-  if (result==expected) {
-    printf("OK\n");
-  } else {
-    printf("Failed\n");
-    
-    for (int i=0; i<result.GetNoComponents(); i++) {
-      UPoint up;
-      //result.Get(i, up);
-      //printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
-      //up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
-      //up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
-    }
-  }
-}
-/*
-void testInside4()
-{
-  //inside test 
-  //mehrfacher Wechsel
-  printf ("Test inside wechselt: ");
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
-    0, 1, 0);
-  
-  MPoint *res = new MPoint (0);
-  res->Clear ();
-  res->StartBulkLoad ();
-  
-  DateTime t1 (instanttype);
-  t1.Set (2015, 3, 30, 8, 01);
-  DateTime t2 (instanttype);
-  t2.Set (2015, 3, 30, 9, 00);
-  Interval < Instant > iv (t1, t2, false, true);
-  UPoint ub (iv, 0, 0.5, 1, 1.5);
-  res->MergeAdd (ub);
-
-  DateTime t3 (instanttype);
-  t3.Set (2015, 3, 30, 9, 01);
-  DateTime t4 (instanttype);
-  t4.Set (2015, 3, 30, 10, 00);
-  Interval < Instant > iv2 (t3, t4, false, true);
-  UPoint ub2 (iv2, 0, -1.0, 1, -1.5);
-  res->MergeAdd (ub2);
-  
-  DateTime t5 (instanttype);
-  t5.Set (2015, 3, 30, 10, 01);
-  DateTime t6 (instanttype);
-  t6.Set (2015, 3, 30, 11, 00);
-  Interval < Instant > iv3 (t5, t6, false, true);
-  UPoint ub3 (iv3, 0, 0.5, 1, 1.5);
-  res->MergeAdd (ub3);
-  
-  DateTime t7 (instanttype);
-  t7.Set (2015, 3, 30, 11, 01);
-  DateTime t8 (instanttype);
-  t8.Set (2015, 3, 30, 12, 00);
-  Interval < Instant > iv4 (t7, t8, false, true);
-  UPoint ub4 (iv4, 0, -0.5, 1, -1.5);
-  res->MergeAdd (ub4);
-  
-  res->EndBulkLoad ();
-
-
-  MBool result=fmr.inside(*res);
-  printf("innerhalb %s\n",(result->true(ub))?"Wahr":"Falsch");
-  
-}
-*/
-void testInside(){
-  printf ("Test inside\n");
-  testInside1();
-  testInside2();
-  testInside3();
-  //testInside4();
-}
-
-
-
-
-void testIntersection1()
-{
-  //intersection test 
-  //innerhalb+außerhalb
-  printf ("Test intersection inner- und außerhalb: ");
-
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-
-  MPoint res (0);
-  res.Clear();
-  res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
-  UPoint ub (iv, 0, 1, 0, 0);
-  res.MergeAdd (ub);
-  res.EndBulkLoad ();
-
-  MPoint expected (0);
-  expected.Clear();
-  expected.StartBulkLoad();
-  Interval < Instant > ive (t_start, DateTime(0.5), false, true);
-  UPoint ube (ive, 0, 0.5, 1, 1.0);
-  expected.MergeAdd (ube);
-  expected.EndBulkLoad ();
-  
-  MPoint result=fmr.intersection(res);
-  
-  if (result==expected) {
-    printf("OK\n");
-  } else {
-    printf("Failed\n");
-    
-    for (int i=0; i<result.GetNoComponents(); i++) {
-      UPoint up;
-      result.Get(i, up);
-      printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
-             up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
-             up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
-    }
-  }
-}
-
-void testIntersection2()
-{
-  //intersection test 
-  //außerhalb
-  printf ("Test intersection kein Schnitt: ");
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-   FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-  
-  MPoint res (0);
-  res.Clear();
-  res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
-  UPoint ub (iv, 0, -0.5, 1, -1.5);
-  res.MergeAdd (ub);
-  res.EndBulkLoad ();
-
-  MPoint expected (0);
-  expected.Clear();
-  expected.StartBulkLoad();
-
-  expected.EndBulkLoad ();
-  
-  MPoint result=fmr.intersection(res);
-  
-  if (result==expected) {
-    printf("OK\n");
-  } else {
-    printf("Failed\n");
-    
-    for (int i=0; i<result.GetNoComponents(); i++) {
-      UPoint up;
-      result.Get(i, up);
-      printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
-             up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
-             up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
-    }
-  }
-}
-
-void testIntersection3()
-{
-  //intersection test 
-  //innerhalb
-  printf ("Test intersection nur innerhalb: ");
-    DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-   FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-  
-  MPoint res (0);
-  res.Clear();
-  res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
-  UPoint ub (iv, 0, 0.5, 1, 1.5);
-  res.MergeAdd (ub);
-  res.EndBulkLoad ();
-
-  MPoint expected (0);
-  expected.Clear();
-  expected.StartBulkLoad();
-  Interval < Instant > ive (t_start, t_end, false, true);
-  UPoint ube (ive, 0, 0.5, 1, 1.5);
-  expected.MergeAdd (ube);
-  expected.EndBulkLoad ();
-  
-  MPoint result=fmr.intersection(res);
-  
-  if (result==expected) {
-    printf("OK\n");
-  } else {
-    printf("Failed\n");
-    
-    for (int i=0; i<result.GetNoComponents(); i++) {
-      UPoint up;
-      result.Get(i, up);
-      printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
-             up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
-             up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
-    }
-  }
-}
-/*
-void testIntersection4()
-{
-  //intersection test 
-  //mehrfacher Wechsel
-  printf ("Test intersection wechselt: ");
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
-    0, 1, 0);
-  
-  MPoint *res = new MPoint (0);
-  res->Clear ();
-  res->StartBulkLoad ();
-  
-  DateTime t1 (instanttype);
-  t1.Set (2015, 3, 30, 8, 01);
-  DateTime t2 (instanttype);
-  t2.Set (2015, 3, 30, 9, 00);
-  Interval < Instant > iv (t1, t2, false, true);
-  UPoint ub (iv, 0, 0.5, 1, 1.5);
-  res->MergeAdd (ub);
-
-  DateTime t3 (instanttype);
-  t3.Set (2015, 3, 30, 9, 01);
-  DateTime t4 (instanttype);
-  t4.Set (2015, 3, 30, 10, 00);
-  Interval < Instant > iv2 (t3, t4, false, true);
-  UPoint ub2 (iv2, 0, -1.0, 1, -1.5);
-  res->MergeAdd (ub2);
-  
-  DateTime t5 (instanttype);
-  t5.Set (2015, 3, 30, 10, 01);
-  DateTime t6 (instanttype);
-  t6.Set (2015, 3, 30, 11, 00);
-  Interval < Instant > iv3 (t5, t6, false, true);
-  UPoint ub3 (iv3, 0, 0.5, 1, 1.5);
-  res->MergeAdd (ub3);
-  
-  DateTime t7 (instanttype);
-  t7.Set (2015, 3, 30, 11, 01);
-  DateTime t8 (instanttype);
-  t8.Set (2015, 3, 30, 12, 00);
-  Interval < Instant > iv4 (t7, t8, false, true);
-  UPoint ub4 (iv4, 0, -0.5, 1, -1.5);
-  res->MergeAdd (ub4);
-  
-  res->EndBulkLoad ();
-
-
-  MPoint result=fmr.intersection(*res);
-  printf("innerhalb %s\n",(result->true(ub))?"Wahr":"Falsch");
-  
-}
-*/
-
-
-
-void testIntersection()
-{
-  //intersection tests
-  printf ("Test intersection\n");
-  testIntersection1();
-//  testIntersection2();
-//  testIntersection3();
-//  testIntersection4();
-}
 
 void FMRTest::testgenerateListOfRegionPoints(){
   printf ("Test generateListOfRegionPoints: ");
@@ -1331,6 +907,472 @@ void testskeleton(){
   t.testidentifyPoints();
 }
 
+void FMRTest::testgetIntersectionPoint(){
+  printf("testgetIntersectionPoint: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  Point p = fmr.getIntersectionPoint(Point(true, 0.0,0.0), Point(true, 2.0,0.0),
+  Point(true, 1.0,-1.0), Point(true, 1.0,1.0));
+  Point p2 = Point(true, 1.0, 0.0);
+  printf ("%s\n", (p == p2) ? "OK" : "FAILED");
+}
+
+void FMRTest::testgetTraversedCase(){
+  printf("testgetTraversedCase: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  Point p1=Point(true, 0.0,0.0);
+  Point p2=Point(true, 0.0,1.0);
+  Point p3=Point(true, 1.0,0.0);
+  Point p4=Point(true, 1.0,1.0);
+  int res = fmr.getTraversedCase(p1, p2, p3, p4);
+  printf ("%s\n", (res == -1) ? "OK" : "FAILED");
+}
+
+void FMRTest::testtraversedGetVectorVector(){
+  printf("testgettraversedGetVectorVector: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  
+  vector<Point> v;
+  v.push_back(Point(true, 0.0,0.0));
+  v.push_back(Point(true, 2.0,0.0));
+  vector<vector<Point> > vv(0);
+  vv.push_back(v);
+  vector<vector<Point> > result = fmr.traversedGetVectorVector (v);
+  printf ("%s\n", (result == vv) ? "OK" : "FAILED");
+}
+
+
+void FMRTest::testtraversedCalculateQuadrangle(){
+  printf("testtraversedCalculateQuadrangle: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  Point p1=Point(true, 1.0,1.0);
+  Point p2=Point(true, 2.0,1.0);
+  Point p3=Point(true, 3.0,1.0);
+  Point p4=Point(true, 4.0,1.0);
+  vector < vector < Point > > res = fmr.traversedCalculateQuadrangle(p1, p2, 
+     p3, p4);
+  vector < Point > v;
+  v.push_back (p1);
+  v.push_back (p2);
+  v.push_back (p3);
+  v.push_back (p4);
+  v.push_back (p1); //once again the first one
+  vector < vector < Point > > u=fmr.traversedGetVectorVector (v);
+  printf ("%s\n", (res == u) ? "OK" : "FAILED");
+}
+
+void FMRTest::testtraversedCalcTriangle(){
+  printf("testtraversedCalcTriangle: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  Point p1=Point(true, 1.0,1.0);
+  Point p2=Point(true, 2.0,1.0);
+  Point p3=Point(true, 3.0,1.0);
+  vector < Point > res = fmr.traversedCalcTriangle(p1, p2, p3);
+  vector < Point > v;
+  v.push_back (p1);
+  v.push_back (p2);
+  v.push_back (p3);
+  v.push_back (p1); //once again the first one
+  printf ("%s\n", (res == v) ? "OK" : "FAILED");
+}
+
+
+void FMRTest::testtraversedCalculateTriangle(){
+  printf("testtraversedCalculateTriangle: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  Point p1=Point(true, 1.0,1.0);
+  Point p2=Point(true, 2.0,1.0);
+  Point p3=Point(true, 3.0,1.0);
+  vector < vector < Point > > res = fmr.traversedCalculateTriangle(p1, p2, p3);
+  vector < Point > v;
+  v.push_back (p1);
+  v.push_back (p2);
+  v.push_back (p3);
+  v.push_back (p1); //once again the first one
+  vector < vector < Point > > u = fmr.traversedGetVectorVector (v);
+  printf ("%s\n", (res == u) ? "OK" : "FAILED");
+}
+
+void printPointVector(const vector<Point>& v) {
+  printf("(");
+  for (unsigned int i=0; i<v.size(); i++) {
+    printf("(%f, %f)", v[i].GetX(), v[i].GetY());
+    if (i!=v.size()-1)
+      printf(", ");
+  }
+  printf(")");
+}
+
+void printPointVectorVector(const vector<vector<Point> >& v) {
+  printf("(");
+  for (unsigned int i=0; i<v.size(); i++) {
+    printPointVector(v[i]);
+    if (i!=v.size()-1)
+      printf(", ");
+  }
+  printf(")");
+}
+
+void FMRTest::testtraversedCalculateTwoTriangles(){
+  printf("testtraversedCalculateTwoTriangles: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  Point p1=Point(true, 0.0,0.0);
+  Point p2=Point(true, 1.0,1.0);
+  Point p3=Point(true, 1.0,0.0);
+  Point p4=Point(true, 0.0,1.0);
+  Point z = Point(true, 0.5,0.5);
+  vector < vector < Point > > res = fmr.traversedCalculateTwoTriangles(p1, p2,
+       p3, p4);
+  vector < Point > v;
+  v.push_back (z);
+  v.push_back (p1);
+  v.push_back (p3);
+  v.push_back (z); //once again the first one
+  vector < Point > w;
+  w.push_back (z);
+  w.push_back (p2);
+  w.push_back (p4);
+  w.push_back (z); //once again the first one
+  vector < vector < Point > > u(0);
+  u.push_back(v);
+  u.push_back(w);
+  //printf("soll: ");
+  //printPointVectorVector(u);
+  //printf("\nist:  ");
+  //printPointVectorVector(res);  
+  //printf("\n");
+  printf ("%s\n", (res == u) ? "OK" : "FAILED");
+}
+
+void FMRTest::testgetTraversedArea(){
+  printf("testgetTraversedArea: ");
+  //vector < vector < Point > >FixedMRegion::getTraversedArea(
+  //const HalfSegment & hsold,const HalfSegment & hsnew)
+  //FIXME: Test?!
+}
+
+void FMRTest::testtraversedCreateCyclesNotHoles(){
+  printf("testtraversedCreateCyclesNotHoles: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  Point p1=Point(true, 0.0,0.0);
+  Point p2=Point(true, 1.0,1.0);
+  Point p3=Point(true, 1.0,0.0);
+  Point p4=Point(true, 0.0,1.0);
+  Point z = Point(true, 0.5,0.5);
+  vector < Point > v;
+  v.push_back (z);
+  v.push_back (p1);
+  v.push_back (p3);
+  v.push_back (z); //once again the first one
+  vector < Point > w;
+  w.push_back (z);
+  w.push_back (p2);
+  w.push_back (p4);
+  w.push_back (z); //once again the first one
+  vector < vector < Point > > u(0);
+  u.push_back(v);
+  u.push_back(w);
+  //printf("soll: ");
+  //printPointVectorVector(u);
+  //printf("\nist:  ");
+  //printPointVectorVector(res);  
+  //printf("\n");
+  fmr.traversedCreateCyclesNotHoles(u);
+  bool res=true;
+  for (size_t i = 0; i < u.size (); i++)
+    {
+      if (!getDir (u[i]))
+        {
+          res=false;
+        }
+    }
+  printf ("%s\n", (res == true) ? "OK" : "FAILED");
+}
+
+bool checkRegionHalfsegments (const vector < HalfSegment >& hs_list, 
+      const Point * list, int size){
+  bool *res = new bool[size];
+  for (int i = 0; i < size; i++)
+    res[i] = false;
+  for (unsigned int i = 0; i < hs_list.size(); i++){
+      HalfSegment hs;
+      //r->Get (i, hs);
+      hs=hs_list[i];
+      int tmp;
+      tmp = gotPoint (hs.GetLeftPoint (), list, size);
+      //Point tmp2 = hs.GetLeftPoint();
+      //printf("Point: %f, %f\n", tmp2.GetX(), tmp2.GetY());
+      if (tmp == -1)
+        return false;
+      res[tmp] = true;
+      tmp = gotPoint (hs.GetRightPoint (), list, size);
+      if (tmp == -1)
+        return false;
+      res[tmp] = true;
+    }
+  bool ret = true;
+  for (int i = 0; i < size; i++)
+    ret &= res[i];
+  delete res;
+  return ret;
+}
+
+void FMRTest::testgetHSFromRegion(){
+  printf("testgetHSFromRegion: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  Point p1=Point(true, 0.0,0.0);
+  Point p2=Point(true, 1.0,1.0);
+  Point p3=Point(true, 1.0,0.0);
+  Point p4=Point(true, 0.0,1.0);
+  Point *list = new Point[4];
+  list[0]=p1;
+  list[1]=p2;
+  list[2]=p3;
+  list[3]=p4;
+  vector < HalfSegment > hs_list = fmr.getHSFromRegion();
+  bool res = checkRegionHalfsegments(hs_list, list, 4);
+  printf ("%s\n", (res == true) ? "OK" : "FAILED");
+}
+
+void FMRTest::testatinstant(){
+  printf("testatinstant: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  vector < HalfSegment > vhs = fmr.getHSFromRegion ();
+  vector < HalfSegment > tiold;
+  fmr.atinstant (0.0, vhs, tiold);
+  
+  Point p1=Point(true, 0.0,0.0);
+  Point p2=Point(true, 1.0,1.0);
+  Point p3=Point(true, 1.0,0.0);
+  Point p4=Point(true, 0.0,1.0);
+  Point *list = new Point[4];
+  list[0]=p1;
+  list[1]=p2;
+  list[2]=p3;
+  list[3]=p4;
+  bool res = checkRegionHalfsegments(tiold, list, 4);
+  printf ("%s\n", (res == true) ? "OK" : "FAILED");
+}
+
+void FMRTest::testgetDiffRegion(){
+  printf("testgetDiffRegion: ");
+  HalfSegment h11(true, Point(true, 0, 0), Point(true, 1, 0));
+  HalfSegment h12(true, Point(true, 1, 0), Point(true, 2, 0));
+  HalfSegment h21(true, Point(true, 0, 1), Point(true, 1, 1));
+  HalfSegment h22(true, Point(true, 1, 1), Point(true, 2, 1));
+  vector < HalfSegment > vhs1(0);
+  vhs1.push_back(h11);
+  vhs1.push_back(h12);
+  vector < HalfSegment > vhs2(0);
+  vhs2.push_back(h21);
+  vhs2.push_back(h22);
+  Point p1=Point(true, 0.0,0.0);
+  Point p2=Point(true, 2.0,1.0);
+  Point p3=Point(true, 2.0,0.0);
+  Point p4=Point(true, 0.0,1.0);
+  Point *list = new Point[4];
+  list[0]=p1;
+  list[1]=p2;
+  list[2]=p3;
+  list[3]=p4;
+  FixedMRegion fmr1 = FixedMRegion();
+  Region * res1 = fmr1.getDiffRegion (&vhs1, &vhs2);
+  printf ("%s\n", (checkRegionPoints(res1, list, 4)) ? "OK" : "FAILED");
+}
+
+void FMRTest::testtraversed(){
+  printf("testtraversed: ");
+  double min[] = { 0.0, 0.0 };
+  double max[] = { 1.0, 1.0 };
+  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  Region * res = new Region(0);
+  fmr.traversed( *res, 0.0, 1.0, 0.1);
+  Point p1=Point(true, 0.0,0.0);
+  Point p2=Point(true, 1.0,1.0);
+  Point p3=Point(true, 1.0,0.0);
+  Point p4=Point(true, 0.0,1.0);
+  Point *list = new Point[4];
+  list[0]=p1;
+  list[1]=p2;
+  list[2]=p3;
+  list[3]=p4;
+  printf ("%s\n", (checkRegionPoints(res, list, 4)) ? "OK" : "FAILED");
+}
+
+void FMRTest::testRobustUnionGemeinsamerPunkt (){
+  printf ("testRobustUnionGemeinsamerPunkt: ");
+  Point *p1 = new Point (true, 0.0, 0.0);
+  Point *p2 = new Point (true, 1.0, 0.0);
+  Point *p3 = new Point (true, 1.0, 1.0);
+  Point *p4 = new Point (true, 0.0, 1.0);
+  Point *p5 = new Point (true, -1.0, 0.0);
+  Region *t1 = new Region (*p5, *p4, *p1);
+  Region *t2 = new Region (*p1, *p3, *p2);
+
+  Region *v1 = new Region (0);
+  RobustPlaneSweep::robustUnion (*t1, *t2, *v1);
+  delete p1;
+  delete p2;
+  delete p3;
+  delete p4;
+  delete p5;
+  delete t1;
+  delete t2;
+  double m = v1->Area ();
+  printf ("%s\n", (m==1.0) ? "OK" : "FAILED");
+}
+
+void FMRTest::testRobustUnionGemeinsameKante(){
+  printf ("testRobustUnionGemeinsameKante: ");
+  Point *p1 = new Point (true, 0.0, 0.0);
+  Point *p2 = new Point (true, 1.0, 0.0);
+  Point *p3 = new Point (true, 1.0, 1.0);
+  Point *p4 = new Point (true, 0.0, 1.0);
+  Region *t1 = new Region (*p3, *p1, *p4);
+  Region *t2 = new Region (*p1, *p3, *p2);
+
+  Region *v1 = new Region (0);
+  RobustPlaneSweep::robustUnion (*t1, *t2, *v1);
+  delete p1;
+  delete p2;
+  delete p3;
+  delete p4;
+  delete t1;
+  delete t2;
+  double m = v1->Area ();
+  printf ("%s\n", (m==1.0) ? "OK" : "FAILED");
+}
+
+void FMRTest::testRobustUnionIntersection1(){
+  printf ("testRobustUnionIntersection1: ");
+  Point *p1 = new Point (true, 0.0, 0.0);
+  Point *p3 = new Point (true, 1.0, 1.0);
+  Point *p4 = new Point (true, 0.0, 1.0);
+  Region *t1 = new Region (*p3, *p1, *p4);
+  Region *t2 = new Region (*p3, *p1, *p4);
+
+  Region *v1 = new Region (0);
+  RobustPlaneSweep::robustUnion (*t1, *t2, *v1);
+  delete p1;
+  delete p3;
+  delete p4;
+  delete t1;
+  delete t2;
+  double m = v1->Area ();
+  printf ("%s\n", (m==0.5) ? "OK" : "FAILED");  
+}
+
+void FMRTest::testRobustUnionIntersection2(){
+  printf ("testRobustUnionIntersection2: ");
+  Point *p1 = new Point (true, 0.0, 0.0);
+  Point *p2 = new Point (true, 1.0, 0.0);
+  Point *p3 = new Point (true, 1.0, 1.0);
+  Point *p4 = new Point (true, 0.0, 1.0);
+  Region *t1 = new Region (*p3, *p1, *p4);
+  Region *t2 = new Region (*p2, *p4, *p3);
+
+  Region *v1 = new Region (0);
+  RobustPlaneSweep::robustUnion (*t1, *t2, *v1);
+  delete p1;
+  delete p2;
+  delete p3;
+  delete p4;
+  delete t1;
+  delete t2;
+  double m = v1->Area ();
+  printf ("%s\n", (m==0.75) ? "OK" : "FAILED");  
+}
+
+void FMRTest::testRobustUnionDisjunkt(){
+  printf ("testRobustUnionDisjunkt: ");
+  Point *p2 = new Point (true, 1.0, 0.0);
+  Point *p3 = new Point (true, 1.0, 1.0);
+  Point *p4 = new Point (true, 0.0, 1.0);
+  Point *p_2 = new Point (true, -1.0, 0.0);
+  Point *p_3 = new Point (true, -1.0, 1.0);
+  Point *p_4 = new Point (true, 0.0, 0.0);  
+  Region *t1 = new Region (*p_4, *p_2, *p_3);
+  Region *t2 = new Region (*p2, *p4, *p3);
+
+  Region *v1 = new Region (0);
+  RobustPlaneSweep::robustUnion (*t1, *t2, *v1);
+  delete p2;
+  delete p3;
+  delete p4;
+  delete p_2;
+  delete p_3;
+  delete p_4;
+  delete t1;
+  delete t2;
+  double m = v1->Area ();
+  printf ("%s\n", (m==1.0) ? "OK" : "FAILED");    
+}
+
+
+void testTraversedComponents(){
+  printf("testTraversedComponents\n");
+  FMRTest t;
+  t.testgetIntersectionPoint();
+  t.testgetTraversedCase();
+  t.testtraversedGetVectorVector();
+  t.testtraversedCalculateQuadrangle();
+  t.testtraversedCalcTriangle();
+  t.testtraversedCalculateTriangle();
+  t.testtraversedCalculateTwoTriangles();
+  t.testgetTraversedArea();
+  t.testtraversedCreateCyclesNotHoles();
+  t.testgetHSFromRegion();
+  t.testatinstant();
+  t.testgetDiffRegion();
+  t.testtraversed();
+  t.testRobustUnionGemeinsamerPunkt();
+  t.testRobustUnionGemeinsameKante();
+  t.testRobustUnionIntersection1();
+  t.testRobustUnionIntersection2();
+  t.testRobustUnionDisjunkt();
+}
+
 /*
 This is the only test method and contains all tests.
 
@@ -1339,23 +1381,23 @@ void
 runTestMethod ()
 {
 //  testMove();
-  testLATransform();
-  testRegion();
-  testRegionCompare();
-  testatinstantNoMove();
-  testatinstantLinearMove(); //FIXME
-  testatinstantRotate();
-  testMBool();
-  testQuatro();
-  testCycle();
+//  testLATransform();
+//  testRegion();
+//  testRegionCompare();
+//  testatinstantNoMove();
+//  testatinstantLinearMove(); //FIXME
+//  testatinstantRotate();
+//  testMBool();
+//  testQuatro();
+//  testCycle();
 //  testTriangleQuatro(); //DEPRECATED
-  testUnion();
+//  testUnion();
   runTestTraversedMethod();
 //  runTestMoveMethod();
 //  testconcaveQuadruple();
 //  testMPoint();
 //  testLATransformInv ();
-//  testInside();
-//  testIntersection();
+//  runtestInsideIntersection();
 //  testskeleton();
+  testTraversedComponents();
 }

@@ -28,7 +28,24 @@ void testgenerateDistancesMatrix();
 void testidentifyPoint();
 void testidentifyPoints();
 void printLATransform(const FixedMRegion & r);  
-
+void testgetIntersectionPoint();
+void testgetTraversedCase();
+void testtraversedGetVectorVector();
+void testtraversedCalculateQuadrangle();
+void testtraversedCalcTriangle();
+void testtraversedCalculateTriangle();
+void testtraversedCalculateTwoTriangles();
+void testgetTraversedArea();
+void testtraversedCreateCyclesNotHoles();
+void testgetHSFromRegion();
+void testatinstant();
+void testgetDiffRegion();
+void testtraversed();
+void testRobustUnionGemeinsamerPunkt();
+void testRobustUnionGemeinsameKante();
+void testRobustUnionIntersection1();
+void testRobustUnionIntersection2();
+void testRobustUnionDisjunkt();
 };
 
 void runTestMethod ();
