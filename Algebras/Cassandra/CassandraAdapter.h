@@ -237,7 +237,7 @@ private:
 */
 struct QueryComperator {
    bool operator()(CassandraQuery a, CassandraQuery b) const { 
-      return (a.getQueryId() > b.getQueryId()); 
+      return (a.getQueryId() < b.getQueryId()); 
    }
 };
 
