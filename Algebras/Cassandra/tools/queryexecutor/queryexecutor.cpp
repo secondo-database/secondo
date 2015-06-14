@@ -455,7 +455,7 @@ public:
                mode = FOREIGN_TOKENRANGE;
              } else {
                LOG_DEBUG("Treat range as local, because node is dead: " 
-                 << range << " Hartbeat: " << heartbeatData[range.getIp()]);
+                 << range << " Heartbeat: " << heartbeatData[range.getIp()]);
              }
            }
         
@@ -486,6 +486,54 @@ public:
          waitForSecondoWorker();
       }
    }
+   
+   /*
+   2.3 Replace placeholder in the command and execute it
+
+   */
+   void prepareAndExecuteCommand(string &command, size_t commandId) {
+      QEUtils::replaceShortcuts(command);
+ 
+      QEUtils::replacePlaceholder(
+         command, "__NODEID__", instanceUuid);
+      QEUtils::replacePlaceholder(
+         command, "__CASSANDRAIP__", cmdline_args -> cassandraNodeIp);
+      QEUtils::replacePlaceholder(
+         command, "__KEYSPACE__", cmdline_args -> cassandraKeyspace);
+   
+      // Simple query or token based query?
+      if(QEUtils::containsPlaceholder(command, "__TOKENRANGE__")) {
+        executeSecondoCommand(command, commandId, false);
+        handleTokenQuery(command, commandId, 
+             cmdline_args -> cassandraNodeIp);
+      } else {
+         executeSecondoCommand(command, commandId);
+      }
+   }
+
+   /*
+   2.3 Execute a GEP reset 
+   
+   */
+   void executeGEPReset(size_t &lastCommandId, time_t &version, 
+      time_t newVersion) {
+         
+      cout << "Doing query reset (our version: " << version
+           << " / new: " << newVersion << ")" << endl;
+      
+      executeSecondoCommand(string("close database"), 
+          lastCommandId + 1);
+          
+      lastCommandId = 0;
+      
+      // Wait for system tables to be recreated
+      sleep(5); 
+    
+      updateLastCommand(lastCommandId);
+      updateSystemState();
+        
+      cout << "[Info] Reset complete, waiting for new queries" << endl;
+   }
 
    /*
    2.3 This is the main loop of the query executor. This method fetches
@@ -497,25 +545,24 @@ public:
      size_t lastCommandId = 0;
      time_t version = 0;
      
-     updateLastCommand(lastCommandId);       
+     updateLastCommand(lastCommandId);
      updateSystemState();
   
      while(true) {
-        
            cout << "Waiting for commands...." << endl;
         
            vector<CassandraQuery> result;
            cassandra->getQueriesToExecute(result);
-        
-           while(!result.empty()) {
            
-             CassandraQuery &query = result.back();
+           for(vector<CassandraQuery>::iterator iter = result.begin(); 
+              iter != result.end(); iter++) {
+                 
+             CassandraQuery &query = *iter;
    
              size_t id = query.getQueryId();
              string command = query.getQuery();
-  
-             // This is the first command, store version of
-             // the query plan
+             
+             // This is the first command, store QEP version
              if(id == 1 && lastCommandId == 0) {
                 version = query.getVersion();
              }
@@ -524,52 +571,19 @@ public:
              // => cqueryreset is executed,
              // clear secondo state and reset lastCommandId
              if(id == 1 && version < query.getVersion()) {
-               cout << "Doing query reset (our version: " << version
-                    << " / new: " << query.getVersion() << ")" << endl;
-             
-               // Wait for system tables to be recreated
-               sleep(5); 
-               
-               executeSecondoCommand(string("close database"), 
-                   lastCommandId + 1);
-                   
-               lastCommandId = 0;
-             
-               updateLastCommand(lastCommandId);
-               updateSystemState();
-                 
-               cout << "[Info] Reset complete, waiting for new queries" << endl;
+               executeGEPReset(lastCommandId, version, query.getVersion());
                break;
              }
-          
-             // Is this the next query to execute
-             if(id == lastCommandId + 1) {
-
-               // Update global status
-               ++lastCommandId;
-               
-               QEUtils::replaceShortcuts(command);
-          
-               QEUtils::replacePlaceholder(
-                  command, "__NODEID__", instanceUuid);
-               QEUtils::replacePlaceholder(
-                  command, "__CASSANDRAIP__", cmdline_args -> cassandraNodeIp);
-               QEUtils::replacePlaceholder(
-                  command, "__KEYSPACE__", cmdline_args -> cassandraKeyspace);
-            
-               // Simple query or token based query?
-               if(QEUtils::containsPlaceholder(command, "__TOKENRANGE__")) {
-                 executeSecondoCommand(command, lastCommandId, false);
-                 handleTokenQuery(command, lastCommandId, 
-                      cmdline_args -> cassandraNodeIp);
-               } else {
-                  executeSecondoCommand(command, lastCommandId);
-               }
-            
-               updateLastCommand(lastCommandId);
-             }
              
-             result.pop_back();
+             // Skip already processed queries of the GEP
+             if(id <= lastCommandId) {
+                continue;
+             }
+          
+             // Execute next query
+             prepareAndExecuteCommand(command, id);
+             lastCommandId = id;
+             updateLastCommand(lastCommandId);
          }
          sleep(4);
       }
