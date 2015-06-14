@@ -917,10 +917,6 @@ bool CassandraAdapter::truncateMetatables() {
   return true;
 }
 
-bool querySortFunction (CassandraQuery a, CassandraQuery b) { 
-   return (a.getQueryId() > b.getQueryId()); 
-}
-
 void CassandraAdapter::getQueriesToExecute(vector<CassandraQuery> &result) {
   CassandraResult* queries = readDataFromCassandra
             ("SELECT id, query, version from system_queries", 

@@ -232,6 +232,14 @@ private:
 };
 
 /*
+2.2.1 Helper functions
+
+*/
+bool querySortFunction (CassandraQuery a, CassandraQuery b) { 
+   return (a.getQueryId() > b.getQueryId()); 
+}
+
+/*
 2.3 Adapter for cassandra
 
 */
