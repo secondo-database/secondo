@@ -944,7 +944,7 @@ void CassandraAdapter::getQueriesToExecute(vector<CassandraQuery> &result) {
      queries = NULL;
   }
   
-  sort(result.begin(), result.end(), querySortFunction);
+  sort(result.begin(), result.end(), QueryComperator());
 }
 
 CassandraResult* CassandraAdapter::getGlobalQueryState(
