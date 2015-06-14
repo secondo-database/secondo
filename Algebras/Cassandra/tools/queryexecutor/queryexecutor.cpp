@@ -65,6 +65,9 @@ enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE};
 #define CMDLINE_SECONDO_HOST            1<<2
 #define CMDLINE_SECONDO_PORT            1<<3
 
+// Refresh heartbeat status all n seconds
+#define HEARTBEAT_REFRESH_INTERVAL 15
+
 /*
 1.2 Usings
 
@@ -130,22 +133,19 @@ public:
    
 
    /*
-   2.2 Refresh our heartbeat data
+   2.2 Refresh heartbeat data; only executed when lastUpdate is
+       older then HEARTBEAT_REFRESH_INTERVAL
 
    */
-   bool updateHeartbeatData(map<string, time_t> &heartbeatData) {
+   bool refreshHeartbeatData(map<string, time_t> &heartbeatData) {
 
-
-       // Timestamp of the last heartbeat update
-       // We update the heartbeat messages only 
-       // if the last update is older then
-       // HEARTBEAT_REFRESH_DATA
+       // Timestamp of the last heartbeat refresh
        static time_t lastUpdate = 0;
     
        time_t now = time(0);
 
        // Heartbeat data outdated, refresh
-       if(lastUpdate + HEARTBEAT_REFRESH_DATA < now) {
+       if(lastUpdate + HEARTBEAT_REFRESH_INTERVAL < now) {
      
          heartbeatData.clear();
 
@@ -190,7 +190,7 @@ public:
          return false;
        }
   
-      if( ! updateHeartbeatData(heartbeatData)) {
+      if( ! refreshHeartbeatData(heartbeatData)) {
          return false;
       }  
   
@@ -446,7 +446,7 @@ public:
            } else {
               LOG_DEBUG("Processing foreign token range: " << range);
              // refresh heartbeat data
-             if( ! updateHeartbeatData(heartbeatData)) {
+             if( ! refreshHeartbeatData(heartbeatData)) {
                 LOG_ERROR("Unable to refresh heartbeat data");
              }  
           

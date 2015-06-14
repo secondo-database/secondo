@@ -59,9 +59,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // Send heartbeat message to cassandra all n seconds
 #define HEARTBEAT_UPDATE 5
 
-// Refresh heartbeat status of other nodes all n seconds
-#define HEARTBEAT_REFRESH_DATA 15
-
 /*
 1.1 Usings
 
