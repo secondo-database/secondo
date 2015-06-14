@@ -203,18 +203,20 @@ public:
    */
    string getCpuType() {
            string line;
+           string result = "---";
            ifstream file("/proc/cpuinfo");
 
            while(getline(file,line)) {
                    if(line.find("model name") != string::npos) {
                            size_t pos = line.find(":");
                            pos = pos + 2; // ignore ": "
-                           return line.substr(pos, line.size());
+                           result = line.substr(pos, line.size());
+                           break;
                    }   
            }   
 
            file.close();
-           return "---";
+           return result;
    }
 
    /*
@@ -230,7 +232,7 @@ public:
              if(file >> mem) {
                  return mem / 1024;
               } else {
-                 return 0;       
+                 return 0;
               }
          }
          file.close();
