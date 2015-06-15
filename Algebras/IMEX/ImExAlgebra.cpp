@@ -91,6 +91,9 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
+#define FILE_BUFFER_SIZE 1048576 
+
+
 
 /*
 1 Operator ~csvexport~
@@ -3188,6 +3191,7 @@ class shpimportInfo{
  public:
 
    shpimportInfo( const ListExpr allowedType1, const FText* fname){
+      buffer = 0;
       int allowedType = -1;
       if(listutils::isSymbol(allowedType1,Point::BasicType())){
            allowedType=1;
@@ -3207,6 +3211,9 @@ class shpimportInfo{
        string name = fname->GetValue();
        this->filename = name;
        file.open(name.c_str(),ios::binary);
+       buffer = new char[FILE_BUFFER_SIZE];
+       file.rdbuf()->pubsetbuf(buffer, FILE_BUFFER_SIZE);
+
        if(!file.good()){
          defined = false;
          file.close();
@@ -3220,6 +3227,13 @@ class shpimportInfo{
        }
      }
    }
+
+   ~shpimportInfo(){
+      if(buffer){
+         delete[] buffer;
+      }
+   }
+
 
    Attribute* getNext(){
       if(!defined){
@@ -3247,6 +3261,8 @@ class shpimportInfo{
    string filename;
    uint32_t type;
    streampos fileend;
+   char* buffer;
+   size_t buffersize;
 
    bool readHeader(unsigned int allowedType){
       file.seekg(0,ios::end);
@@ -4198,6 +4214,9 @@ public:
    DbimportInfo(ListExpr type, FText* fname){
      BasicTuple = 0;
      tupleType = 0;
+     buffer1 = new char[FILE_BUFFER_SIZE];
+     buffer2 = new char[FILE_BUFFER_SIZE];
+
      ListExpr attrList = nl->Second(nl->Second(type));
      while(!nl->IsEmpty(attrList)){
         ListExpr type = nl->Second(nl->First(attrList));
@@ -4217,6 +4236,7 @@ public:
      }
      name = fname->GetValue();
      file.open((name).c_str(),ios::binary);
+     file.rdbuf()->pubsetbuf(buffer1,FILE_BUFFER_SIZE);
      if(!file.good()) {
         cerr << "DBIMPORT: error in reading file (open failed)" 
              << name << endl;
@@ -4263,6 +4283,7 @@ public:
           memoname = name +".dbt"; 
         }
         memofile.open(memoname.c_str(),ios::binary);
+        memofile.rdbuf()->pubsetbuf(buffer2,FILE_BUFFER_SIZE);
         if(!memofile.good()){
            cerr << "cannot open dbt file " + memoname << endl;
         }
@@ -4305,7 +4326,13 @@ public:
        tupleType->DeleteIfAllowed();
        tupleType=0;
      }
-   }
+     if(buffer1){
+        delete[] buffer1;
+     }
+     if(buffer2){
+       delete[] buffer2;
+     }
+   }  
 
    void close(){
       file.close();
@@ -4327,6 +4354,8 @@ private:
   Tuple* BasicTuple;
   TupleType* tupleType;
   unsigned int current;
+  char* buffer1;
+  char* buffer2;
 
   bool checkFile(){
     file.seekg(0,ios::beg);
