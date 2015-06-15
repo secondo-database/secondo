@@ -206,6 +206,7 @@ init_cassandra() {
             echo "CREATE TABLE IF NOT EXISTS system_queries (id INT, query TEXT, version BIGINT, PRIMARY KEY(id));" >> $tmpfile
             echo "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, node TEXT, cputype TEXT, memory INT, threads INT, heartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));" >> $tmpfile
             echo "CREATE TABLE IF NOT EXISTS system_progress (queryid INT, ip TEXT, begintoken TEXT, endtoken TEXT, queryuuid TEXT, PRIMARY KEY(queryid, begintoken));" >> $tmpfile
+            echo "CREATE TABLE IF NOT EXISTS system_pending (queryid INT, ip TEXT, begintoken TEXT, endtoken TEXT, PRIMARY KEY(queryid, begintoken, ip));" >> $tmpfile
             echo "CREATE TABLE IF NOT EXISTS system_tokenranges (begintoken TEXT, endtoken TEXT, ip TEXT, PRIMARY KEY(begintoken));" >> $tmpfile
 	    
             $cassandradir/bin/cqlsh $ip < $tmpfile
