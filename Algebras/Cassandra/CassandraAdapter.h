@@ -541,7 +541,7 @@ Replace all single quotes with double quotes
 */
   bool getProcessedTokenRangesForQuery (
       vector<TokenRange> &result, int queryId,
-      CassConsistency consistency = CASS_CONSISTENCY_ALL,
+      CassConsistency consistency = CASS_CONSISTENCY_QUORUM,
       bool printError = true);
 
 /*
@@ -555,7 +555,7 @@ Replace all single quotes with double quotes
 */  
   bool getTokenrangesFromQuery (
     vector<TokenRange> &result, string query, 
-    CassConsistency consistency = CASS_CONSISTENCY_ALL,
+    CassConsistency consistency = CASS_CONSISTENCY_QUORUM,
     bool printError = true);
 
 /*
@@ -622,6 +622,26 @@ IP to Noodename
 
 */
   void freePreparedStatement(const CassPrepared* preparedStatement);
+  
+/*
+2.3.28 Insert a pending token range processing
+  
+*/ 
+  bool insertPendingTokenRange(size_t queryId, string ip, 
+      TokenRange *tokenrange);
+
+/*
+2.3.29 Delete a pending token range processing
+  
+*/
+  void deletePendingTokenRange(size_t queryId, string ip, 
+       TokenRange *tokenrange);
+
+/* 
+2.3.30 Test if a token range processing is pending
+  
+*/
+  bool isTokenRangePending(size_t queryId, TokenRange *tokenrange);
  
 protected:
 

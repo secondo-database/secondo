@@ -275,6 +275,53 @@ CassandraResult* CassandraAdapter::getAllTables(string keyspace) {
   return readDataFromCassandra(ss.str(), CASS_CONSISTENCY_ONE);
 }
 
+bool CassandraAdapter::insertPendingTokenRange(size_t queryId, 
+   string ip, TokenRange *tokenrange) {
+      
+   stringstream ss;
+   ss << "INSERT INTO system_pending(queryid, ip, begintoken, endtoken)";
+   ss << " values(" << queryId << ", '" << ip << "', " << "'";
+   ss << tokenrange->getStart() << "', '" << tokenrange->getEnd() << "');";
+   
+   bool result = executeCQLSync(ss.str(), CASS_CONSISTENCY_QUORUM);
+   
+   return result;
+}
+
+void CassandraAdapter::deletePendingTokenRange(size_t queryId, 
+   string ip, TokenRange *tokenrange) {
+      
+   stringstream ss;
+   ss << "DELETE FROM system_pending where queryid=" << queryId;
+   ss << " and ip='" << ip << "' and begintoken='";
+   ss << tokenrange->getStart() << "';";
+   
+   executeCQLSync(ss.str(), CASS_CONSISTENCY_QUORUM);
+}
+
+bool CassandraAdapter::isTokenRangePending(size_t queryId,
+   TokenRange *tokenrange) {
+      
+   stringstream ss;
+   ss << "SELECT queryid FROM system_pending where queryid=" << queryId;
+   ss << " and begintoken='" << tokenrange->getStart() << "';";
+      
+   bool pending = false;
+   CassandraResult* result = readDataFromCassandra(
+        ss.str(), CASS_CONSISTENCY_ONE);
+   
+   while(result->hasNext()) {
+      pending = true;
+   }
+   
+   if(result != NULL) {
+      delete result;
+      result = NULL;
+   }
+   
+   return pending;
+}
+
 
 bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
     stringstream ss;
@@ -337,9 +384,7 @@ CassandraResult* CassandraAdapter::readTableRange(string relation,
     ss << "and token(partition) <= " << end;
     ss << ";";
     string query = ss.str();
-    
-    cout << "Query is: " << query << endl;
-    
+        
     return readDataFromCassandra(query, 
           CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
   
@@ -353,7 +398,6 @@ CassandraResult* CassandraAdapter::readTableCreatedByQuery(string relation,
     cerr << "Unable to fetch token ranges for query: " << queryId << endl;
     return NULL;
   }
-  
 
   map<string, string> nodeNames;
   if(! getNodeData(nodeNames) ) {
@@ -847,7 +891,6 @@ bool CassandraAdapter::getLocalTokens(vector <CassandraToken> &result) {
     "SELECT tokens FROM system.local", result, string("127.0.0.1"));
 }
 
-
 bool CassandraAdapter::getPeerTokens(vector <CassandraToken> &result) {
   return getTokensFromQuery(
     "SELECT tokens,peer FROM system.peers", result, string(""));
@@ -866,7 +909,8 @@ bool CassandraAdapter::truncateMetatables() {
   queries.push_back(string("TRUNCATE system_queries;"));
   queries.push_back(string("TRUNCATE system_state;"));
   queries.push_back(string("TRUNCATE system_progress;"));
-  queries.push_back(string("TRUNCATE system_tokenranges"));
+  queries.push_back(string("TRUNCATE system_pending;"));
+  queries.push_back(string("TRUNCATE system_tokenranges;"));
   
   do {
      if(clearTry > 20) {
@@ -967,7 +1011,7 @@ void CassandraAdapter::quoteCqlStatement(string &query) {
   }
 }
 
-bool CassandraAdapter::copyTokenRangesToSystemtable (string localip) {
+bool CassandraAdapter::copyTokenRangesToSystemtable(string localip) {
         vector<TokenRange> allIntervals;
         getAllTokenRanges(allIntervals);
 
