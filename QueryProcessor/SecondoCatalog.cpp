@@ -2199,6 +2199,15 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
   cout << endl
        << "Initializing operator specs ..." << endl;
 
+  const string bdir = 
+          Environment::getInstance().getString("SECONDO_BUILD_DIR");
+
+  if(bdir.compare("") == 0) {
+     cerr << "Unable to read environment variable: "
+             "SECONDO_BUILD_DIR, exiting" << endl;
+     exit(EXIT_FAILURE);
+  }
+
   while ( am->NextAlgebraId(algId))
   {
     string algName =  am->GetAlgebraName(algId);
@@ -2210,7 +2219,6 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
     string fileName = "";
     // dummy initialization! will be overwritten later
     ExampleWriter* examples = new ExampleWriter(fileName, "");
-    string bdir = Environment::getInstance().getString("SECONDO_BUILD_DIR");
 
 
     if (!skipExamples)

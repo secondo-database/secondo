@@ -129,6 +129,7 @@ transactions of errorneous queries were not aborted.
 #include "AlgebraManager.h"
 #include "Profiles.h"
 #include "FileSystem.h"
+#include "Environment.h"
 
 #include "RelationAlgebra.h"
 #include "StandardTypes.h"
@@ -353,13 +354,18 @@ SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
 
   string progressConstantsFileDefault="ProgressConstants.csv";
 #ifndef SECONDO_ANDROID 
-  string sbd = getenv("SECONDO_BUILD_DIR");
-  if(sbd.length()>0){
-     progressConstantsFileDefault = sbd + CFile::pathSep + "bin"
-                                    + CFile::pathSep
-                                    + progressConstantsFileDefault;
+
+  string sbd = Environment::getInstance().getString("SECONDO_BUILD_DIR");
+  if(sbd.compare("") == 0) {
+     cerr << "Unable to read environment variable: SECONDO_BUILD_DIR, exiting"
+          << endl;
+     exit(EXIT_FAILURE);
   }
-#else
+
+  progressConstantsFileDefault = sbd + CFile::pathSep + "bin"
+                               + CFile::pathSep
+                               + progressConstantsFileDefault;
+ #else
         string sbd = cfgFile.substr(0, cfgFile.find_last_of("\\/"));
         //string sbd ="/data/data/de.fernunihagen.dna.Secondo4Android";
         progressConstantsFileDefault = sbd 
