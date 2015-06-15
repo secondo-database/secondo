@@ -154,18 +154,18 @@ install_cassandra_local() {
     
     if [ ! -f apache-cassandra-${cassandra_version}-bin.tar.gz ]; then
         wget $cassandra_url
-        
-        if [ -d current ]; then
-           rm current
-        fi
-
-        ln -s apache-cassandra-${cassandra_version} current
     else
         rm -r apache-cassandra-${cassandra_version}
     fi
        
     tar zxvf apache-cassandra-${cassandra_version}-bin.tar.gz > /dev/null
-    
+ 
+    if [ -d current ]; then
+       rm current
+    fi
+
+    ln -s apache-cassandra-${cassandra_version} current
+   
     ip=$(getIp)
 
     sed -i "s/num_tokens: .*/num_tokens: $cassandra_vnodes/" $cassandraconfig
@@ -205,7 +205,7 @@ init_cassandra() {
             echo "USE keyspace_r$i;" >> $tmpfile
             echo "CREATE TABLE IF NOT EXISTS system_queries (id INT, query TEXT, version BIGINT, PRIMARY KEY(id));" >> $tmpfile
             echo "CREATE TABLE IF NOT EXISTS system_state (ip TEXT, node TEXT, cputype TEXT, memory INT, threads INT, heartbeat BIGINT, lastquery INT, PRIMARY KEY(ip));" >> $tmpfile
-            echo "CREATE TABLE IF NOT EXISTS system_progress (queryid INT, ip TEXT, begintoken TEXT, endtoken TEXT, queryuuid TEXT, PRIMARY KEY(queryid, ip, begintoken));" >> $tmpfile
+            echo "CREATE TABLE IF NOT EXISTS system_progress (queryid INT, ip TEXT, begintoken TEXT, endtoken TEXT, queryuuid TEXT, PRIMARY KEY(queryid, begintoken));" >> $tmpfile
             echo "CREATE TABLE IF NOT EXISTS system_tokenranges (begintoken TEXT, endtoken TEXT, ip TEXT, PRIMARY KEY(begintoken));" >> $tmpfile
 	    
             $cassandradir/bin/cqlsh $ip < $tmpfile
