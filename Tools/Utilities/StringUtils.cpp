@@ -315,7 +315,21 @@ bool isIdent(const std::string& s){
 }
 
 
-
+size_t hashCode(const std::string& str){
+    size_t  hash = 0;
+    size_t  strlen = str.length();
+    if (strlen == 0) {
+        return hash;
+    }
+    char c;
+    const char* str2 = str.c_str();
+    size_t offset =0;
+    for (size_t i = 0; i < strlen; i++) {
+        c = str2[offset++];
+        hash = (31 * hash) + c;
+    }
+    return hash; 
+}
 
 
 

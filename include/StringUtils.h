@@ -271,6 +271,10 @@ inttype str2int(std::string& str, bool& correct){
 
 }
 
+size_t hashCode(const std::string& str);
+
+
+
 } // end of namespace stringutils
 #endif
 
