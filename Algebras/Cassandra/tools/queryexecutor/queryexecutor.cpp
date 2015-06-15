@@ -49,6 +49,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "qeutils.h"
 #include "secondoworker.h"
 #include "state.h"
+#include "cassandrainfo.h"
 
 /*
 1.1 Defines
@@ -64,9 +65,6 @@ enum RANGE_MODE {LOCAL_TOKENRANGE, FOREIGN_TOKENRANGE};
 #define CMDLINE_CASSANDRA_KEYSPACE      1<<1
 #define CMDLINE_SECONDO_HOST            1<<2
 #define CMDLINE_SECONDO_PORT            1<<3
-
-// Refresh heartbeat status all n seconds
-#define HEARTBEAT_REFRESH_INTERVAL 15
 
 /*
 1.2 Usings
@@ -132,71 +130,6 @@ public:
    }
    
 
-   /*
-   2.2 Refresh heartbeat data; only executed when lastUpdate is
-       older then HEARTBEAT_REFRESH_INTERVAL
-
-   */
-   bool refreshHeartbeatData(map<string, time_t> &heartbeatData) {
-
-       // Timestamp of the last heartbeat refresh
-       static time_t lastUpdate = 0;
-    
-       time_t now = time(0);
-
-       // Heartbeat data outdated, refresh
-       if(lastUpdate + HEARTBEAT_REFRESH_INTERVAL < now) {
-     
-         heartbeatData.clear();
-
-         if (! cassandra -> getHeartbeatData(heartbeatData) ) {
-             cerr << "[Error] Unable to heartbeat from system table" << endl;
-             return false;
-         }
-
-         // Update last heartbeat refresh timestamp
-         lastUpdate = time(0); 
-       }
-
-       return true;
-   }
-
-   /*
-   2.2 Refresh our information about the cassandra ring
-
-   */
-   bool refreshRingInfo(vector<TokenRange> &allTokenRanges, 
-                        vector<TokenRange> &processedIntervals, 
-                        map<string, time_t> &heartbeatData, 
-                        size_t queryId) {
-  
-
-       // Clear transient data
-       allTokenRanges.clear();
-       processedIntervals.clear();
-
-       // Refresh data
-       if (! cassandra -> getTokenRangesFromSystemtable(allTokenRanges) ) {
-         cerr << "[Error] Unable to collect token ranges from system table" 
-              << endl;
-         return false;
-       }
-   
-       if (! cassandra -> getProcessedTokenRangesForQuery(
-                  processedIntervals, queryId) ) {
-      
-         cerr << "[Error] Unable to collect processed token ranges from "
-              << "system table" << endl;
-         return false;
-       }
-  
-      if( ! refreshHeartbeatData(heartbeatData)) {
-         return false;
-      }  
-  
-     return true;
-   }
-   
    /*
    2.2 Determine the CPU type of the system
    
@@ -281,12 +214,12 @@ public:
 
    */
    size_t findFirstLocalTokenrange(vector<TokenRange> &allTokenRanges, 
-                                 vector<TokenRange> &localTokenRanges) {
+                                 string &ip) {
          size_t offset = 0;
          for( ; offset < allTokenRanges.size(); ++offset) {
            TokenRange tryTokenRange = allTokenRanges[offset];
-           if(binary_search(localTokenRanges.begin(), 
-                            localTokenRanges.end(), tryTokenRange)) {
+           
+           if(tryTokenRange.isLocalTokenRange(ip)) {
              break;
            }
          }
@@ -298,11 +231,16 @@ public:
    2.2 Print total and processed tokens and sleep some time
     
    */
-   void printStatusMessage(vector<TokenRange> &allTokenRanges, 
-                           vector<TokenRange> &processedIntervals,
+   void printStatusMessage(CassandraInfo *cassandraInfo,
                            bool wait) {
         
-         cout << "[Info] RESULT: " << processedIntervals.size() << " of "
+        vector<TokenRange> allTokenRanges 
+           = cassandraInfo -> getAllTokenRanges();
+        
+        vector<TokenRange> processedTokenRanges 
+           = cassandraInfo -> getProcessedTokenRanges();
+        
+         cout << "[Info] RESULT: " << processedTokenRanges.size() << " of "
               << allTokenRanges.size() << " token ranges processed" << endl;
       
          if(wait) {
@@ -316,15 +254,16 @@ public:
        already processed 
 
    */
-   bool executeQueryForTokenrangeIfNeeded(string &query, 
-                                   size_t queryId, string &ip, 
-                                   vector<TokenRange> &processedIntervals,
+   bool executeQueryForTokenrangeIfNeeded(string &query, size_t queryId,
+                                   CassandraInfo *cassandraInfo,
                                    TokenRange tokenrange) {
-  
+                                      
+           const vector<TokenRange> &processedTokenRanges 
+                = cassandraInfo -> getProcessedTokenRanges();
   
            // Its query already processed for tokenrange?
-           if( binary_search(processedIntervals.begin(), 
-                             processedIntervals.end(), tokenrange))  {
+           if( binary_search(processedTokenRanges.begin(), 
+                             processedTokenRanges.end(), tokenrange))  {
           
              LOG_DEBUG("Skipping already processed range: " << tokenrange);
              return false;
@@ -340,14 +279,15 @@ public:
    2.2 Execute the given query for all local token ranges
 
    */
-   void executeQueryForTokenranges(string &query, 
+   void executeQueryForLocalTokenranges(string &query, 
                                    size_t queryId, string &ip,
-                                   vector<TokenRange> &allTokenRanges,
-                                   vector<TokenRange> &localTokenRanges,
-                                   vector<TokenRange> &processedIntervals) {
+                                   CassandraInfo *cassandraInfo) {
   
+       const vector<TokenRange> &allTokenRanges 
+            = cassandraInfo -> getAllTokenRanges();
+                                         
        // Generate token range queries for local tokenranges;
-       for(vector<TokenRange>::iterator 
+       for(vector<TokenRange>::const_iterator 
            iter = allTokenRanges.begin();
            iter != allTokenRanges.end(); ++iter) {
  
@@ -355,9 +295,8 @@ public:
     
          // It's a local token range
          if(tokenrange.isLocalTokenRange(ip)) {
-           localTokenRanges.push_back(tokenrange);
-           executeQueryForTokenrangeIfNeeded(query, queryId, ip, 
-                processedIntervals, tokenrange);
+           executeQueryForTokenrangeIfNeeded(query, queryId,
+                cassandraInfo, tokenrange);
          }
        }  
    }
@@ -376,61 +315,24 @@ public:
         'secondo', 'relation2', 'ONE',__TOKENRANGE__);
 
    */
-   void handleTokenQuery(string &query, 
-                         size_t queryId, string &ip) {
+   void handleTokenQuery(string &query, size_t queryId, string &ip) {
 
-       // Collecting ring configuration
-       vector<TokenRange> allTokenRanges;
-       vector<TokenRange> localTokenRanges;
-       vector<TokenRange> processedIntervals;
-       map<string, time_t> heartbeatData;
-    
-       queryExecutorState->setQuery(query);
-    
-       if (! refreshRingInfo(allTokenRanges, processedIntervals, 
-            heartbeatData, queryId) ) {
-      
-         cerr << "[Error] Unable to collect ring info" << endl;
-         return;
-       }
+       // Determine cassandra ring configuration
+       CassandraInfo cassandraInfo(cassandra);
+       cassandraInfo.refreshDataOrExit(queryId);
+       queryExecutorState -> setQuery(query);
     
        // Part 1: Execute query for all local token ranges
-       executeQueryForTokenranges(query, queryId, ip,
-                                allTokenRanges, localTokenRanges, 
-                                processedIntervals);
+       executeQueryForLocalTokenranges(query, queryId, ip, &cassandraInfo);
 
        // Part 2: Process other token ranges
-       while( true ) {
-         if (! refreshRingInfo(allTokenRanges, processedIntervals, 
-               heartbeatData, queryId) ) {
-        
-           cerr << "[Error] Unable to collect ring info" << endl;
-           return;
-         }
+       while( ! cassandraInfo.isQueryExecutedCompletely() ) {
       
-         // Reverse the data of the logical ring, so we can interate from
-         // MAX to MIN
-         reverse(allTokenRanges.begin(), allTokenRanges.end());
-           
-         // All TokenRanges are processed
-         if(processedIntervals.size() == allTokenRanges.size()) {
-           printStatusMessage(allTokenRanges, processedIntervals, false);
-        
-           WorkerQueue *tokenQueue = (worker->front()) -> getTokenQueue();
-
-           // Add Termination token
-           for(size_t i = 0; i < worker->size(); ++i) {
-              tokenQueue->push(TokenRange(0, 0, ip));
-           }
-    
-           waitForSecondoWorker();
-
-           return; 
-         }
-
+         cassandraInfo.refreshDataOrExit(queryId);
+         vector<TokenRange> allTokenRanges = cassandraInfo.getAllTokenRanges();
+         
          // Find start offset
-         size_t offset = findFirstLocalTokenrange(allTokenRanges, 
-                                                  localTokenRanges);
+         size_t offset = findFirstLocalTokenrange(allTokenRanges, ip);
       
          RANGE_MODE mode = LOCAL_TOKENRANGE;
       
@@ -441,35 +343,38 @@ public:
            TokenRange range = allTokenRanges[realPos];              
         
            if(range.isLocalTokenRange(ip)) {
-              LOG_DEBUG("Ignoring local token range: " << range);
               mode = LOCAL_TOKENRANGE;
-           } else {
-              LOG_DEBUG("Processing foreign token range: " << range);
-             // refresh heartbeat data
-             if( ! refreshHeartbeatData(heartbeatData)) {
-                LOG_ERROR("Unable to refresh heartbeat data");
-             }  
+              continue;
+           } 
           
-             time_t now = time(0) * 1000; // Convert to ms
-          
-             if(heartbeatData[range.getIp()] + HEARTBEAT_NODE_TIMEOUT > now) {
-               LOG_DEBUG("Set to foreign: " << range);
-               mode = FOREIGN_TOKENRANGE;
-             } else {
-               LOG_DEBUG("Treat range as local, because node is dead: " 
-                 << range << " Heartbeat: " << heartbeatData[range.getIp()]);
-             }
-           }
-        
-           // Process range - it's a local token range
            if(mode == LOCAL_TOKENRANGE) {
-             executeQueryForTokenrangeIfNeeded(
-              query, queryId, ip, processedIntervals, range);
+              if(cassandraInfo.isNodeAlive(range.getIp())) {
+               LOG_DEBUG("Set to foreign: " << range);
+                mode = FOREIGN_TOKENRANGE;
+                continue;
+              } 
+           
+              LOG_DEBUG("Treat range as local, because node is dead: "<< range);
+              executeQueryForTokenrangeIfNeeded(
+              query, queryId, &cassandraInfo, range);
            }
          }
             
-         printStatusMessage(allTokenRanges, processedIntervals, true);
+         cassandraInfo.refreshDataOrExit(queryId);
+       
+         printStatusMessage(&cassandraInfo, true);
        }
+       
+       // Execution is complete, notify secondo worker
+       printStatusMessage(&cassandraInfo, false);
+       WorkerQueue *tokenQueue = (worker->front()) -> getTokenQueue();
+
+       // Add Termination token for worker
+       for(size_t i = 0; i < worker->size(); ++i) {
+          tokenQueue->push(TokenRange(0, 0, ip));
+       }
+
+       waitForSecondoWorker();
    } 
 
       

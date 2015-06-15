@@ -53,9 +53,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1.2 Defines
 
 */
-// Timeout in ms for receiving heartbeat messages from other nodes
-#define HEARTBEAT_NODE_TIMEOUT 30000
-
 // Send heartbeat message to cassandra all n seconds
 #define HEARTBEAT_UPDATE 5
 
