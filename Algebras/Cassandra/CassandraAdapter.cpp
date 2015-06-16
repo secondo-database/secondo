@@ -545,11 +545,12 @@ bool CassandraAdapter::getAllTokenRanges(
       long long currentToken = (allTokens.at(i)).getToken();
       long long nextToken = (allTokens.at(i + 1)).getToken();        
       
-      TokenRange interval(currentToken, 
+      TokenRange tokenrange(currentToken, 
                               nextToken, 
                               (allTokens.at(i)).getIp());
+                              
       
-      allTokenRange.push_back(interval);
+      allTokenRange.push_back(tokenrange);
     }
     
     sort(allTokenRange.begin(), allTokenRange.end());
