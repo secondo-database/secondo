@@ -531,14 +531,12 @@ bool CassandraAdapter::getAllTokenRanges(
         (allTokens.at(0)).getIp());
       
       allTokenRange.push_back(interval2);
-      
     } else {
       // Add only the end interval
       TokenRange interval(
       (allTokens.at(lastTokenPos - 1)).getToken(), 
       LLONG_MAX, 
       (allTokens.at(lastTokenPos - 1)).getIp());
-      allTokenRange.push_back(interval);
     }
     
     // Find all local token ranges between nodes and add them
@@ -550,6 +548,7 @@ bool CassandraAdapter::getAllTokenRanges(
       TokenRange tokenrange(currentToken, 
                               nextToken, 
                               (allTokens.at(i)).getIp());
+                              
       
       allTokenRange.push_back(tokenrange);
     }
@@ -1109,15 +1108,15 @@ bool CassandraAdapter::getTokenrangesFromQuery (
          
          cass_value_get_string(cass_row_get_column(row, 0), 
            &result_string, &item_length);
-         ip.append(result_string);
+         ip.append(result_string, item_length);
 
          cass_value_get_string(cass_row_get_column(row, 1), 
            &result_string, &item_length);
-         beginToken.append(result_string);
+         beginToken.append(result_string, item_length);
           
          cass_value_get_string(cass_row_get_column(row, 2), 
            &result_string, &item_length);
-         endToken.append(result_string);
+         endToken.append(result_string, item_length);
  
          long long beginLong = atol(beginToken.c_str());
          long long endLong = atol(endToken.c_str());
@@ -1125,7 +1124,7 @@ bool CassandraAdapter::getTokenrangesFromQuery (
          if(containsQueryuuid) {
            cass_value_get_string(cass_row_get_column(row, 3), 
               &result_string, &item_length);
-           queryuuid.append(result_string);
+           queryuuid.append(result_string, item_length);
          }
          
          result.push_back(TokenRange(beginLong, endLong, ip, queryuuid));
