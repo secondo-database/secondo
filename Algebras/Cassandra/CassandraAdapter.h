@@ -84,11 +84,25 @@ public:
 */
   TokenRange(long long myStart, long long myEnd, string myIp) :
     start(myStart), end(myEnd), ip(myIp) {}
-    
+
+/*
+2.4.1 Construct a new token interval
+
+*/   
   TokenRange(long long myStart, long long myEnd, 
              string myIp, string myQueryuuid) :
     start(myStart), end(myEnd), ip(myIp), queryuuid(myQueryuuid) {}
   
+/*
+2.4.1 Copy constructor
+
+*/
+  TokenRange(const TokenRange &ref) {
+     start = ref.getStart();
+     end = ref.getEnd();
+     ip = ref.getIp();
+     queryuuid = ref.getQueryUUID();
+  }
   
 /*
 2.4.2 Get interval start
