@@ -531,12 +531,14 @@ bool CassandraAdapter::getAllTokenRanges(
         (allTokens.at(0)).getIp());
       
       allTokenRange.push_back(interval2);
+      
     } else {
       // Add only the end interval
       TokenRange interval(
       (allTokens.at(lastTokenPos - 1)).getToken(), 
       LLONG_MAX, 
       (allTokens.at(lastTokenPos - 1)).getIp());
+      allTokenRange.push_back(interval);
     }
     
     // Find all local token ranges between nodes and add them
@@ -548,7 +550,6 @@ bool CassandraAdapter::getAllTokenRanges(
       TokenRange tokenrange(currentToken, 
                               nextToken, 
                               (allTokens.at(i)).getIp());
-                              
       
       allTokenRange.push_back(tokenrange);
     }
