@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 // Refresh heartbeat status all n seconds
-#define HEARTBEAT_REFRESH_INTERVAL 15
+#define HEARTBEAT_REFRESH_INTERVAL 5 
 
 // Timeout in ms for receiving heartbeat messages from other nodes
 #define HEARTBEAT_NODE_TIMEOUT 30000
@@ -63,12 +63,23 @@ public:
    }
    
    /*
-   2.1 Refresh the ring info and the heartbeat info
+   2.1 Refresh the ring info and the heartbeat info; only executed 
+       when lastUpdate is older then HEARTBEAT_REFRESH_INTERVAL
    
    */
    bool refreshData(size_t queryId) {
       bool ringInfoResult = false;
       bool heartbeatDataResult = false;
+      
+      // Timestamp of the last heartbeat refresh
+      static time_t lastUpdate = 0;
+   
+      time_t now = time(0);
+
+      // Cache version is up-to-date
+      if(lastUpdate + HEARTBEAT_REFRESH_INTERVAL >= now) {
+         return true;
+      }
       
       for(size_t i = 0; i < CASSANDRA_REFRESH_RETRY; i++) {
          if(! ringInfoResult) {
@@ -83,9 +94,12 @@ public:
             break;
          }
          
-         // Wait one second and try agains
+         // Wait one second and try again
          sleep(1);
       }
+      
+      // Update last refresh timestamp
+      lastUpdate = time(0); 
 
       return ringInfoResult && heartbeatDataResult;
    }
@@ -128,32 +142,19 @@ public:
 private:
    
    /*
-   2.2 Refresh heartbeat data; only executed when lastUpdate is
-       older then HEARTBEAT_REFRESH_INTERVAL
+   2.2 Refresh heartbeat data
 
    */
    bool refreshHeartbeatData() {
 
-       // Timestamp of the last heartbeat refresh
-       static time_t lastUpdate = 0;
-    
-       time_t now = time(0);
+     heartbeatData.clear();
 
-       // Heartbeat data outdated, refresh
-       if(lastUpdate + HEARTBEAT_REFRESH_INTERVAL < now) {
-     
-         heartbeatData.clear();
+     if (! cassandra -> getHeartbeatData(heartbeatData) ) {
+        cerr << "[Error] Unable to heartbeat from system table" << endl;
+        return false;
+     }
 
-         if (! cassandra -> getHeartbeatData(heartbeatData) ) {
-             cerr << "[Error] Unable to heartbeat from system table" << endl;
-             return false;
-         }
-
-         // Update last heartbeat refresh timestamp
-         lastUpdate = time(0); 
-       }
-
-       return true;
+     return true;
    }
 
    /*

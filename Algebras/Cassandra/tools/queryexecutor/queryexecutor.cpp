@@ -231,19 +231,18 @@ public:
    2.2 Print total and processed tokens and sleep some time
     
    */
-   void printStatusMessage(CassandraInfo *cassandraInfo,
-                           bool wait) {
+   void printStatusMessage(CassandraInfo *cassandraInfo) {
         
-        vector<TokenRange> allTokenRanges 
+        const vector<TokenRange> &allTokenRanges 
            = cassandraInfo -> getAllTokenRanges();
         
-        vector<TokenRange> processedTokenRanges 
+        const vector<TokenRange> &processedTokenRanges 
            = cassandraInfo -> getProcessedTokenRanges();
         
          cout << "[Info] RESULT: " << processedTokenRanges.size() << " of "
               << allTokenRanges.size() << " token ranges processed" << endl;
       
-         if(wait) {
+         if(processedTokenRanges.size() != allTokenRanges.size()) {
            cout << "[Info] Sleep 5 seconds and check the ring again" << endl;
            sleep(5);
          }
@@ -257,8 +256,10 @@ public:
    bool executeQueryForTokenrangeIfNeeded(string &query, size_t queryId,
                                    CassandraInfo *cassandraInfo,
                                    TokenRange tokenrange) {
+           
+           cassandraInfo -> refreshDataOrExit(queryId);
                                       
-           const vector<TokenRange> &processedTokenRanges 
+           const vector<TokenRange> processedTokenRanges 
                 = cassandraInfo -> getProcessedTokenRanges();
   
            // Its query already processed for tokenrange?
@@ -283,11 +284,11 @@ public:
                                    size_t queryId, string &ip,
                                    CassandraInfo *cassandraInfo) {
   
-       const vector<TokenRange> &allTokenRanges 
+       vector<TokenRange> allTokenRanges 
             = cassandraInfo -> getAllTokenRanges();
                                          
        // Generate token range queries for local tokenranges;
-       for(vector<TokenRange>::const_iterator 
+       for(vector<TokenRange>::iterator 
            iter = allTokenRanges.begin();
            iter != allTokenRanges.end(); ++iter) {
  
@@ -299,6 +300,116 @@ public:
                 cassandraInfo, tokenrange);
          }
        }  
+   }
+   
+   /*
+   2.3 Execute the given query for all responsible token ranges
+
+   */
+   void executeQueryForResponsibleTokenranges(string &query, 
+                                   size_t queryId, string &ip,
+                                   CassandraInfo *cassandraInfo) {
+                                      
+      cassandraInfo->refreshDataOrExit(queryId);
+      vector<TokenRange> allTokenRanges = cassandraInfo->getAllTokenRanges();
+         
+      // Find start offset
+      size_t offset = findFirstLocalTokenrange(allTokenRanges, ip);
+      
+      RANGE_MODE mode = LOCAL_TOKENRANGE;
+      
+      for(size_t position = 0; position < allTokenRanges.size(); 
+                ++position) {
+             
+         size_t realPos = (position + offset) % allTokenRanges.size();
+         TokenRange range = allTokenRanges[realPos];              
+        
+         if(range.isLocalTokenRange(ip)) {
+            mode = LOCAL_TOKENRANGE;
+            continue;
+         } 
+       
+         if(mode == LOCAL_TOKENRANGE) {
+            if(cassandraInfo->isNodeAlive(range.getIp())) {
+               LOG_DEBUG("Set to foreign: " << range);
+               mode = FOREIGN_TOKENRANGE;
+              continue;
+           } 
+           
+           LOG_DEBUG("Treat range as local, because node is dead: " << range);
+           executeQueryForTokenrangeIfNeeded(
+               query, queryId, cassandraInfo, range);
+         }
+      }
+   }
+
+/*
+2.3 Get a vector with all unprocessed tokenranges for a queryid
+   
+*/   
+   void getUnprocessedTokenRanges(CassandraInfo *cassandraInfo, 
+        vector<TokenRange> *unprocessedTokenRange) {
+           
+         vector<TokenRange> allTokenRanges 
+                = cassandraInfo -> getAllTokenRanges();
+           
+         vector<TokenRange> processedTokenRanges 
+                = cassandraInfo -> getProcessedTokenRanges();
+           
+         for(vector<TokenRange>::iterator iter = allTokenRanges.begin(); 
+              iter != allTokenRanges.end(); iter++) {
+                 
+         TokenRange tokenrange = *iter;
+              
+         // Is query already processed for tokenrange?
+         if( ! binary_search(processedTokenRanges.begin(), 
+                    processedTokenRanges.end(), tokenrange)) {
+                       
+            unprocessedTokenRange->push_back(tokenrange);
+         }
+      }
+   }
+   
+   /*
+   2.3 Execute the given query for all responsible token ranges
+
+   */
+   void executeQueryForOtherTokenranges(string &query, 
+                                   size_t queryId, string &ip,
+                                   CassandraInfo *cassandraInfo) {
+                                      
+      cassandraInfo->refreshDataOrExit(queryId);
+      
+      while( ! cassandraInfo->isQueryExecutedCompletely() ) {
+
+            vector<TokenRange> unprocessedTokenRanges = vector<TokenRange>();
+            getUnprocessedTokenRanges(cassandraInfo, &unprocessedTokenRanges);
+            WorkerQueue *tokenQueue = (worker->front()) -> getTokenQueue();
+            
+            while(tokenQueue->isEmpty()) {
+
+                if( unprocessedTokenRanges.size() == 0) {
+                   break;
+                }
+                
+                int tokenPos = rand() % unprocessedTokenRanges.size();
+                
+                TokenRange tokenrange = unprocessedTokenRanges.at(tokenPos);
+                unprocessedTokenRanges.erase(
+                   unprocessedTokenRanges.begin()+tokenPos);
+                
+                if(cassandra -> isTokenRangePending(queryId, &tokenrange)) {
+                   continue;
+                }
+                
+                executeQueryForTokenrangeIfNeeded(
+                    query, queryId, cassandraInfo, tokenrange);
+                cassandra->insertPendingTokenRange(queryId, ip, &tokenrange);
+            }
+  
+            printStatusMessage(cassandraInfo);
+            cassandraInfo->refreshDataOrExit(queryId);
+      }
    }
 
    void waitForSecondoWorker() {
@@ -325,48 +436,15 @@ public:
        // Part 1: Execute query for all local token ranges
        executeQueryForLocalTokenranges(query, queryId, ip, &cassandraInfo);
 
-       // Part 2: Process other token ranges
-       while( ! cassandraInfo.isQueryExecutedCompletely() ) {
-      
-         cassandraInfo.refreshDataOrExit(queryId);
-         vector<TokenRange> allTokenRanges = cassandraInfo.getAllTokenRanges();
-         
-         // Find start offset
-         size_t offset = findFirstLocalTokenrange(allTokenRanges, ip);
-      
-         RANGE_MODE mode = LOCAL_TOKENRANGE;
-      
-         for(size_t position = 0; position < allTokenRanges.size(); 
-             ++position) {
-                
-           size_t realPos = (position + offset) % allTokenRanges.size();
-           TokenRange range = allTokenRanges[realPos];              
-        
-           if(range.isLocalTokenRange(ip)) {
-              mode = LOCAL_TOKENRANGE;
-              continue;
-           } 
-          
-           if(mode == LOCAL_TOKENRANGE) {
-              if(cassandraInfo.isNodeAlive(range.getIp())) {
-               LOG_DEBUG("Set to foreign: " << range);
-                mode = FOREIGN_TOKENRANGE;
-                continue;
-              } 
-           
-              LOG_DEBUG("Treat range as local, because node is dead: "<< range);
-              executeQueryForTokenrangeIfNeeded(
-              query, queryId, &cassandraInfo, range);
-           }
-         }
-            
-         cassandraInfo.refreshDataOrExit(queryId);
+       // Part 2: Process responsible token ranges
+       executeQueryForResponsibleTokenranges(query, queryId, ip, 
+           &cassandraInfo);
        
-         printStatusMessage(&cassandraInfo, true);
-       }
+       // Part 3: Process othertoken ranges
+       executeQueryForOtherTokenranges(query, queryId, ip, &cassandraInfo);
        
        // Execution is complete, notify secondo worker
-       printStatusMessage(&cassandraInfo, false);
+       printStatusMessage(&cassandraInfo);
        WorkerQueue *tokenQueue = (worker->front()) -> getTokenQueue();
 
        // Add Termination token for worker
@@ -425,7 +503,7 @@ public:
    void executeGEPReset(size_t &lastCommandId, time_t &version, 
       time_t newVersion) {
          
-      cout << "Doing query reset (our version: " << version
+      cout << "Detected a new GEP (our version: " << version
            << " / new: " << newVersion << ")" << endl;
       
       executeSecondoCommand(string("close database"), 
@@ -686,7 +764,8 @@ int main(int argc, char* argv[]){
   vector<SecondoWorker*> worker;
   QueryexecutorState queryExecutorState;
   Logger::open();
-
+  srand (time(NULL));
+  
   parseCommandline(argc, argv, cmdline_args);
   
   CassandraAdapter* cassandra = 
