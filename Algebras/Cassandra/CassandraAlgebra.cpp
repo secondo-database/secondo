@@ -2395,12 +2395,20 @@ public:
       open();
   }
   
+  virtual ~CQueryWaitLocalInfo() {
+     // Restore default log level
+     cass_log_set_level(CASS_LOG_ERROR);
+  }
+  
   void open(){
     if(cassandra == NULL) {
         cassandra = CassandraConnectionPool::Instance()->
             getConnection(contactPoint, keyspace, false);
     }
     
+    // Prevent logging of timeouts to the user
+    cass_log_set_level(CASS_LOG_CRITICAL);
+       
     vector <TokenRange> tokenRanges;
     cassandra -> getAllTokenRanges(tokenRanges);
     allTokenRanges = tokenRanges.size();
@@ -2424,10 +2432,6 @@ public:
   
   time_t getStartTime() {
     return startTime;
-  }
-  
-  virtual ~CQueryWaitLocalInfo() {
-
   }
   
 private:
