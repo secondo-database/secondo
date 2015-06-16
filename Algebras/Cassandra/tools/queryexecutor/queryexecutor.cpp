@@ -259,7 +259,7 @@ public:
            
            cassandraInfo -> refreshDataOrExit(queryId);
                                       
-           const vector<TokenRange> processedTokenRanges 
+           const vector<TokenRange> &processedTokenRanges 
                 = cassandraInfo -> getProcessedTokenRanges();
   
            // Its query already processed for tokenrange?
@@ -350,17 +350,17 @@ public:
    void getUnprocessedTokenRanges(CassandraInfo *cassandraInfo, 
         vector<TokenRange> *unprocessedTokenRange) {
            
-         vector<TokenRange> allTokenRanges 
+         const vector<TokenRange> &allTokenRanges 
                 = cassandraInfo -> getAllTokenRanges();
            
-         vector<TokenRange> processedTokenRanges 
+         const vector<TokenRange> &processedTokenRanges 
                 = cassandraInfo -> getProcessedTokenRanges();
            
-         for(vector<TokenRange>::iterator iter = allTokenRanges.begin(); 
+         for(vector<TokenRange>::const_iterator iter = allTokenRanges.begin(); 
               iter != allTokenRanges.end(); iter++) {
                  
          TokenRange tokenrange = *iter;
-              
+
          // Is query already processed for tokenrange?
          if( ! binary_search(processedTokenRanges.begin(), 
                     processedTokenRanges.end(), tokenrange)) {
