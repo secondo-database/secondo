@@ -34,12 +34,7 @@ fi
 
 
 # check if nice command is present
-ncmd=$(which nice)
-if [ $? -ne 0 ]; then
-   $runner $*
-else
-  nice -n 19 $runner $*
-fi
+$runner $*
 
 rc=$?
 
