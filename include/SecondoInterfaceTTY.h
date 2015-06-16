@@ -186,7 +186,8 @@ protected:
      virtual bool FinishCommand( SI_Error& errorCode, string& errorMessage);
      virtual void constructErrMsg(int& errorCode, string& errorMessage);
      virtual SI_Error Command_Query( const ListExpr list,
-                          ListExpr& result, string& errorMessage );
+                          ListExpr& result, string& errorMessage,
+                          bool autoTransaction );
      virtual SI_Error Command_Create( const ListExpr list,
                            ListExpr& result,
                            ListExpr& error, string& errorMessage );

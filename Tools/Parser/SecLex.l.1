@@ -123,6 +123,7 @@ update		{yylval = NestedText::Atom( yytext, yyleng ); return ZZUPDATE;}
 kill		{yylval = NestedText::Atom( yytext, yyleng ); return ZZKILL;}
 ":="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZASSIGN;}
 query		{yylval = NestedText::Atom( yytext, yyleng ); return ZZQUERY;}
+querynt		{yylval = NestedText::Atom( yytext, yyleng ); return ZZQUERYNT;}
 let		{yylval = NestedText::Atom( yytext, yyleng ); return ZZLET;}
 derive		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDERIVE;}
 persistent	{yylval = NestedText::Atom( yytext, yyleng ); return ZZPERSISTENT;}

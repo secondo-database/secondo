@@ -268,11 +268,12 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
 {
   bool isQuery = false;
   size_t pos = cmd.find("query");
+  size_t pos2 = cmd.find("querynt");
 
-  if (pos == string::npos)
+  if (pos == string::npos && pos2==string::npos)
     return isQuery;
 
-  if ( cmdWord == "QUERY" )
+  if ( cmdWord == "QUERY" || cmdWord == "QUERYNT" )
   {
     isQuery = true;
   }
@@ -281,7 +282,7 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
     if ( cmdWord == "(" )
     {
       cmdWord = ReadCommand(is);
-      if (cmdWord == "QUERY")
+      if (cmdWord == "QUERY" || cmdWord=="QUERYNT")
         isQuery = true;
       else
         isQuery = false;

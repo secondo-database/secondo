@@ -226,6 +226,14 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
         PRINTF(")\n");
         $$ = NestedText::AtomC(yacc_outtext->c_str());
         }
+    |    {paramno=0; emptystack();}
+      ZZQUERYNT valueexpr
+        {
+        CLEAR();
+        PRINTF("(querynt "); PRINT($3);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
 
     |    {paramno=0; emptystack();}
       ZZLET ZZIDENTIFIER ZZINFIXOP  valueexpr

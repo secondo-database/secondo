@@ -1497,7 +1497,11 @@ Command\_<name>.
 
     else if ( nl->IsEqual( first, "query" ) && (length == 2) )
     {
-      errorCode = Command_Query( list, resultList, errorMessage );
+      errorCode = Command_Query( list, resultList, errorMessage,true );
+    }
+    else if ( nl->IsEqual( first, "querynt" ) && (length == 2) )
+    {
+      errorCode = Command_Query( list, resultList, errorMessage, false );
     }
 
     // --- Set command
@@ -1752,7 +1756,8 @@ SecondoInterfaceTTY::constructErrMsg(int& errorCode, string& errorMessage)
 SI_Error
 SecondoInterfaceTTY::Command_Query( const ListExpr list,
                                  ListExpr& resultList,
-                                 string& errorMessage )
+                                 string& errorMessage,
+                                 bool autoTransaction )
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
@@ -1776,7 +1781,9 @@ SecondoInterfaceTTY::Command_Query( const ListExpr list,
   }
 
   StopWatch queryTime;
-  StartCommand();
+  if(autoTransaction){
+     StartCommand();
+  }
 
   try {
 
@@ -2227,7 +2234,7 @@ SecondoInterfaceTTY::Command_Conditional( const ListExpr list,
 
   command = nl->TwoElemList(nl->SymbolAtom("query"),nl->Second( list ));
   errorCode = SecondoInterfaceTTY::Command_Query( command, presult, 
-                                                  errorMessage );
+                                                  errorMessage, true );
   if(errorCode != ERR_NO_ERROR){
     return errorCode;
   } else { // check result type
@@ -2371,7 +2378,7 @@ SecondoInterfaceTTY::Command_WhileDoLoop( const ListExpr  list,
   while ( (errorCode == ERR_NO_ERROR) && pred_def && pred_val ){
     errorCode = SecondoInterfaceTTY::Command_Query( pred_command,
                                                  presult,
-                                                 errorMessage );
+                                                 errorMessage,true );
     if(errorCode == ERR_NO_ERROR){
       // check result type
       if(    (nl->ListLength(presult) != 2)
@@ -2480,15 +2487,19 @@ SecondoInterfaceTTY::StartCommand()
   if ( !activeTransaction )
   {
     SecondoSystem::BeginTransaction();
+    activeTransaction=true;
   }
 }
 
 bool
 SecondoInterfaceTTY::FinishCommand( SI_Error& errorCode, string& errMsg )
 {
+
   Flob::dropFiles();
-  if ( !activeTransaction )
+  if ( activeTransaction)
   {
+
+
     StopWatch commitTime;
     if ( errorCode == 0 )
     {
@@ -2498,6 +2509,7 @@ SecondoInterfaceTTY::FinishCommand( SI_Error& errorCode, string& errMsg )
                + "CommitTransaction() failed! "
                + "But the previous command was successful.";
         errorCode = ERR_COMMIT_OR_ABORT_FAILED;
+        activeTransaction = false;
         return false;
       }
     }
@@ -2511,6 +2523,7 @@ SecondoInterfaceTTY::FinishCommand( SI_Error& errorCode, string& errMsg )
                + GetErrorMessage(errorCode);
 
         errorCode = ERR_COMMIT_OR_ABORT_FAILED;
+        activeTransaction = false;
         return false;
       }
     }
@@ -2521,6 +2534,7 @@ SecondoInterfaceTTY::FinishCommand( SI_Error& errorCode, string& errMsg )
       cmsg.send();
     }
     commitReal = commitTime.diffSecondsReal();
+    activeTransaction = false;
   }
   return true;
 }
