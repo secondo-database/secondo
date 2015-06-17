@@ -426,6 +426,19 @@ class ConnectionInfo{
        }
 
 
+      bool cleanUp() {
+          string command = "query getcatalog() "
+                           "filter[.ObjectName startsWith \"TMP_\"] "
+                           "extends [OK : deleteObject(.ObjectName)] "
+                           " count";
+          int err;
+          string res;
+          simpleCommand(command, err, res, false);
+          return err==0;
+      }
+
+
+
        bool switchDatabase(const string& dbname, bool createifnotexists){
           boost::lock_guard<boost::mutex> guard(simtx);;
           // close database ignore errors
@@ -1576,6 +1589,46 @@ specified DArray2Element.
   }
 
 
+  void cleanUp(){
+    
+     set<pair<string,int> > used;
+     vector<ConnectionInfo*> unique;
+
+     for(size_t i=0;i<connections.size();i++){
+         ConnectionInfo* ci = connections[i];
+         if(ci){
+             pair<string,int> p(ci->getHost(), ci->getPort());
+             if(used.find(p)==used.end()){
+                  unique.push_back(ci);
+                  used.insert(p);
+             }
+         }
+     }
+     map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
+     for(it = workerconnections.begin();it!=workerconnections.end();it++){
+        ConnectionInfo* ci = it->second.second;
+        if(ci){
+            pair<string,int> p(ci->getHost(), ci->getPort());
+            if(used.find(p)==used.end()){
+                 unique.push_back(ci);
+                 used.insert(p);
+            }
+        }
+     }
+
+     vector<boost::thread*> runners;
+     for(size_t i=0;i<unique.size();i++){
+        ConnectionInfo* ci = unique[i];
+        boost::thread* r = new boost::thread(&ConnectionInfo::cleanUp, ci);
+        runners.push_back(r);
+     }
+     for(size_t i=0;i<runners.size();i++){
+        runners[i]->join();
+        delete runners[i];
+     }
+  }
+
+
   private:
     // connections managed by the user
     vector<ConnectionInfo*> connections;
@@ -2549,9 +2602,11 @@ class prcmdInfo: public CommandListener<string>{
        }
        // delete non processed input tuples
        map<int,Tuple*>::iterator it2;
+       inputTuplesMutex.lock();
        for(it2 = validInputTuples.begin(); it2!= validInputTuples.end(); it2++){
           it2->second->DeleteIfAllowed();
        }
+       inputTuplesMutex.unlock();
        inStream.close();
        tt->DeleteIfAllowed();
     }
@@ -2571,11 +2626,14 @@ class prcmdInfo: public CommandListener<string>{
 
     void jobDone(int id, string& command, size_t no, int error, 
                  string& errMsg, string& resList){
+       inputTuplesMutex.lock();
        if(validInputTuples.find(id)==validInputTuples.end()){
+          inputTuplesMutex.unlock();
           return;
        }
        Tuple* inTuple = validInputTuples[id];
        validInputTuples.erase(id);
+       inputTuplesMutex.unlock();
        createResultTuple(inTuple,error,errMsg, resList);
     }
 
@@ -2600,6 +2658,7 @@ class prcmdInfo: public CommandListener<string>{
     map<int, Tuple*>  validInputTuples;
 
     boost::mutex tupleCreationMutex;
+    boost::mutex inputTuplesMutex;
 
     void run(){
       Tuple* inTuple = inStream.request();
@@ -2653,7 +2712,9 @@ class prcmdInfo: public CommandListener<string>{
           return; 
        }
        // process a valid tuple
+       inputTuplesMutex.lock();
        validInputTuples[tupleId] = inTuple; // store input tuple
+       inputTuplesMutex.unlock();
        // create a ConnectionTask for server if not present  
        if(serverTasks.find(serverNo)==serverTasks.end()){
           serverTasks[serverNo] = new ConnectionTask<string>(serverNo, this);
@@ -7552,7 +7613,6 @@ int ddistribute4VM(Word* args, Word& result, int message,
    stream.close();
    // finalize files
 
-
    vector<RelFileRestorer*> restorers;
 
    
@@ -8227,7 +8287,8 @@ OperatorSpec dloop2Spec(
      " darray2(X) x string x  (X->Y) -> darray2(Y)",
      " _ dloop2[_,_]",
      "Performs a function on each element of an darray2 instance."
-     "The string argument specifies the name of the result.",
+     "The string argument specifies the name of the result. If the name"
+     " is undefined or an empty string, a name is generated automatically.",
      "query da2 dloop2[\"da3\", . count"
      );
 
@@ -9082,7 +9143,9 @@ int dloop2aVM(Word* args, Word& result, int message,
 OperatorSpec dloop2aSpec(
      "darray2(X) x darray2(Y) x string x (fun : X x Y -> Z) -> darray2(Z)",
      "_ _ dloop2a[_,_]",
-     "Performs a funtion on the elements of two darray2 instances.",
+     "Performs a funtion on the elements of two darray2 instances. The "
+     "string argument specifies the name of the resulting darray2." 
+     " If the string is undefined or empty, a name is generated automatically",
      "query da1 da2 dloop2a[\"newName\", fun(i1 : int, i2 : int) i1 + i2) "
      );
 /*
@@ -9821,7 +9884,10 @@ Operator shareOp(
 );
 
 
+/*
 
+
+*/
 
 
 /*
