@@ -3608,7 +3608,7 @@ will be 0.
          return buildRegion2(cycles);
      } catch(const string& error){
         cout << "error occured while creating a polygon" << endl;
-        cout << "Region shoul be create from " << cycles.size() << " cycles"
+        cout << "Region should be created from " << cycles.size() << " cycles"
              << endl;
         Region* res = new Region(0);
         res->SetDefined(false);
