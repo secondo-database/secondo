@@ -5359,12 +5359,8 @@ class DArray2{
         if(!stringutils::isIdent(name) || size ==0){ // invalid
            name = "";
            defined = false;
-           states = 0;
            return;
         }
-        states = new char[size];
-        char state = 2; // unknown whether element exists at worker
-        memset(states,state,size);
         defined = true;
      }
 
@@ -5377,12 +5373,8 @@ class DArray2{
         if(!stringutils::isIdent(name) || size ==0){ // invalid
            name = "";
            defined = false;
-           states = 0;
            return;
         }
-        states = new char[size];
-        char state = 2; // unknown whether element exists at worker
-        memset(states,state,size);
         defined = true;
      }
 
@@ -5391,26 +5383,14 @@ class DArray2{
  
      DArray2(const DArray2& src): 
              worker(src.worker), size(src.size), name(src.name), 
-             states(0), defined(src.defined)
+             defined(src.defined)
        {
-           if(src.states){
-              states = new char[size];
-              memcpy(states,src.states,size);              
-           } 
        }
 
      DArray2& operator=(const DArray2& src) {
         this->worker = src.worker;
         if(this->size != src.size){
            this->size = src.size;
-           if(states){
-             delete[] states;
-             states = 0;
-           }
-           if(src.states){
-              states = new char[size];
-              memcpy(states,src.states,size);              
-           } 
         }
         this->name = src.name;
         this->defined = src.defined;
@@ -5418,9 +5398,6 @@ class DArray2{
      }     
  
      ~DArray2() {
-        if(states){
-           delete[] states;
-        }
      }
       
 
@@ -5429,15 +5406,8 @@ class DArray2{
         if(!stringutils::isIdent(name) || size ==0){ // invalid
            this->name = "";
            this->defined = false;
-           this->states = 0;
            return;
         }
-        if(states){
-            delete[] states;
-        }
-        states = new char[size];
-        char state = 2; // unknown whether element exists at worker
-        memset(states,state,size);
         defined = true;
         this->name = name;
         this->size = size;
@@ -5664,10 +5634,6 @@ class DArray2{
         worker.clear();
         size = 0;
         name = "";
-        if(states){
-          delete[] states; 
-          states=0;
-        }
         defined = false;
      }
 
@@ -5689,12 +5655,6 @@ class DArray2{
     vector<DArray2Element> worker; // connection information
     size_t size;  // size of the array itselfs
     string name;  // the basic name used on workers
-    char* states; // information about the state of the element on 
-                  // the appropiate worker
-                  // not existing : 0
-                  // exists : 1
-                  // unknown : 2
-                  // invalid : 3
     bool defined; // defined state of this array
 };
 
