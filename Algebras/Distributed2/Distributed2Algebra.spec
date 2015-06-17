@@ -51,4 +51,6 @@ operator clone alias CLONE pattern _ op[_]
 
 operator share alias SHARE pattern op(_,_,_)
 
+operator cleanUp alias CLEANUP pattern op(_,_)
+
 

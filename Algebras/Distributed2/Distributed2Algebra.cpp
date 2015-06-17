@@ -429,7 +429,7 @@ class ConnectionInfo{
       bool cleanUp() {
           string command = "query getcatalog() "
                            "filter[.ObjectName startsWith \"TMP_\"] "
-                           "extends [OK : deleteObject(.ObjectName)] "
+                           "extend[OK : deleteObject(.ObjectName)] "
                            " count";
           int err;
           string res;
@@ -9885,9 +9885,99 @@ Operator shareOp(
 
 
 /*
+13 Operator ~cleanUp~
 
+This operators removes all temporarly objects from remote server
+either from a given darray2 object or all connected objects (including
+worker connections).
+
+13.1 Type Mapping
 
 */
+ListExpr cleanUpTM(ListExpr args){
+  string err= " no argument or darray2 expected";
+  if(!nl->HasLength(args,1) && !nl->IsEmpty(args)){
+     return listutils::typeError(err);
+  }
+  if(nl->HasLength(args,1)){
+     if(!DArray2::checkType(nl->First(args))){
+        return listutils::typeError(err);
+     }
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+/*
+13.2 Value Mapping
+
+*/
+int cleanUpVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  res->Set(true,true);
+
+  if(qp->GetNoSons(s)==0){
+    algInstance->cleanUp();
+  } else {
+    set<pair<string,int> > used;
+    DArray2* arg = (DArray2*) args[0].addr;
+    if(!arg->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+    }
+    
+    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    vector<boost::thread*> runners;
+    for(size_t i=0;i<arg->numOfWorkers();i++){
+      DArray2Element e = arg->getWorker(i);
+      pair<string,int> p(e.getHost(),e.getPort());
+      if(used.find(p)==used.end()){
+         used.insert(p);
+         ConnectionInfo* ci = algInstance->getWorkerConnection(e,dbname);
+         if(ci){
+             boost::thread* r = new boost::thread(&ConnectionInfo::cleanUp,ci);
+             runners.push_back(r);
+         }
+      }
+    }
+    for(size_t i=0;i<runners.size();i++){
+        runners[i]->join();
+        delete runners[i];
+    }
+  }
+  return 0;
+}
+
+
+/*
+13.3 Specification
+
+*/
+OperatorSpec cleanUpSpec(
+     "-> bool , darray2 -> bool",
+     "cleanUp(_)",
+     "Removes temporarly objects, i.e. objects whose name starts with TMP_, "
+     "from remote servers. If no argument is given, all open connections to "
+     "servers are used for removing objects. If the darray2 argument is "
+     "present, only the workers specified by this argument are used.",
+     "query cleanUp() "
+ );
+
+/*
+13.4 Operator instnace
+
+*/
+
+Operator cleanUpOp(
+  "cleanUp",
+  cleanUpSpec.getStr(),
+  cleanUpVM,
+  Operator::SimpleSelect,
+  cleanUpTM
+);
+
 
 
 /*
@@ -9950,6 +10040,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&deleteRemoteObjectsOp);
    AddOperator(&cloneOp);
    AddOperator(&shareOp);
+   AddOperator(&cleanUpOp);
 }
 
 

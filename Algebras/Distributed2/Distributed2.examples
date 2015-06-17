@@ -271,3 +271,9 @@ Example   : query share("ten", FALSE)
 Result    : bug
 Remark    : remote server required
 
+Operator : cleanUp 
+Number   : 1
+Signature : -> bool , darray2 -> bool
+Example   : query cleanUp(da8)
+Result    : bug
+Remark    : remote server required
