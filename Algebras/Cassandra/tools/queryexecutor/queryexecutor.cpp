@@ -400,6 +400,7 @@ public:
                    break;
                 }
                 
+                // Choose one random work unit 
                 int tokenPos = rand() % unprocessedTokenRanges.size();
                 
                 TokenRange tokenrange = unprocessedTokenRanges.at(tokenPos);
@@ -408,6 +409,7 @@ public:
                 
                 string ip;
                 
+                // Is the work unit already assigned to an other QPN?
                 if(cassandra -> getNodeForPendingTokenRange(ip, 
                      queryId, &tokenrange)) {
                         
