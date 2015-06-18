@@ -375,16 +375,16 @@ typedef uint16_t FILE_VERTEX_POINTER;
 namespace tin {
 
 enum MECHANISM {
-RECORD, SERIALIZE
+ RECORD, SERIALIZE
 };
 enum MemoryState {
-GRADUALFILE, GRADUALTEMPORARYFILE, INMEMORY, RANDOMACCESS
+ GRADUALFILE, GRADUALTEMPORARYFILE, INMEMORY, RANDOMACCESS
 };
 enum AbstractType {
-QUERY, MANIPULATE
+ QUERY, MANIPULATE
 };
 enum TinPartType {
-INDEX
+ INDEX
 };
 std::string AbstractTypeToString(AbstractType t);
 void max(mpq_t& result, mpq_t &v1, mpq_t &v2);
@@ -396,36 +396,36 @@ typedef int ERROR_VAL;
 class PreciseDouble {
 public:
 
-PRECISE_VAL u;
-PRECISE_VAL l;
-PreciseDouble();
-~PreciseDouble();
-PreciseDouble(PRECISE_VAL i);
-PreciseDouble(const PreciseDouble & pd);
-explicit PreciseDouble(const mpq_t& v);
+ PRECISE_VAL u;
+ PRECISE_VAL l;
+ PreciseDouble();
+ ~PreciseDouble();
+ PreciseDouble(PRECISE_VAL i);
+ PreciseDouble(const PreciseDouble & pd);
+ explicit PreciseDouble(const mpq_t& v);
 
-PRECISE_VAL getRoundedVal();
-PreciseDouble operator-() const;
-PreciseDouble abs() const;
-void makeAbs();
-PreciseDouble operator+(const PreciseDouble & b) const;
+ PRECISE_VAL getRoundedVal();
+ PreciseDouble operator-() const;
+ PreciseDouble abs() const;
+ void makeAbs();
+ PreciseDouble operator+(const PreciseDouble & b) const;
 //PreciseDouble operator+(const int & b)const;
-PreciseDouble operator-(const PreciseDouble & b) const;
+ PreciseDouble operator-(const PreciseDouble & b) const;
 //PreciseDouble operator-(const int & b)const;
-PreciseDouble operator*(const PreciseDouble & b) const;
-PreciseDouble operator/(const PreciseDouble & b) const;
-PreciseDouble& operator=(const PreciseDouble & b);
-PreciseDouble& operator=(const int & b);
-PreciseDouble& operator=(const double & b);
-PreciseDouble& operator+=(const PreciseDouble & b);
-PreciseDouble& operator-=(const PreciseDouble & b);
-bool operator<(const PreciseDouble & b) const;
-bool operator>(const PreciseDouble & b) const;
-bool operator>=(const PreciseDouble & b) const;
-bool operator<=(const PreciseDouble & b) const;
-bool operator==(const PreciseDouble & b) const;
-bool hasNoError() const;
-friend std::ostream& operator<<(std::ostream& os, const PreciseDouble &v);
+ PreciseDouble operator*(const PreciseDouble & b) const;
+ PreciseDouble operator/(const PreciseDouble & b) const;
+ PreciseDouble& operator=(const PreciseDouble & b);
+ PreciseDouble& operator=(const int & b);
+ PreciseDouble& operator=(const double & b);
+ PreciseDouble& operator+=(const PreciseDouble & b);
+ PreciseDouble& operator-=(const PreciseDouble & b);
+ bool operator<(const PreciseDouble & b) const;
+ bool operator>(const PreciseDouble & b) const;
+ bool operator>=(const PreciseDouble & b) const;
+ bool operator<=(const PreciseDouble & b) const;
+ bool operator==(const PreciseDouble & b) const;
+ bool hasNoError() const;
+ friend std::ostream& operator<<(std::ostream& os, const PreciseDouble &v);
 
 };
 
@@ -447,9 +447,9 @@ typedef PreciseDouble VECTOR_DIR;
 typedef int64_t TIN_SIZE;
 
 const PRECISE_VAL VERTICAL_UP =
-std::numeric_limits<PRECISE_VAL>::infinity();
+  std::numeric_limits<PRECISE_VAL>::infinity();
 const PRECISE_VAL VERTICAL_DOWN =
--std::numeric_limits<PRECISE_VAL>::infinity();
+  -std::numeric_limits<PRECISE_VAL>::infinity();
 
 float absolute(float n);
 
@@ -461,46 +461,46 @@ int absolute(int n);
 
 class SecureOperator {
 private:
-static bool secure;
+ static bool secure;
 public:
 
-SecureOperator() {
+ SecureOperator() {
 
-}
-;
-~SecureOperator() {
+ }
+ ;
+ ~SecureOperator() {
 
-}
-;
-static void startSecureCalc() {
-secure = true;
-}
-static void setInsecure() {
-secure = false;
-}
-static void setSecure(bool isec) {
-secure = isec;
-}
-static bool isSecureResult() {
-return secure;
-}
+ }
+ ;
+ static void startSecureCalc() {
+  secure = true;
+ }
+ static void setInsecure() {
+  secure = false;
+ }
+ static void setSecure(bool isec) {
+  secure = isec;
+ }
+ static bool isSecureResult() {
+  return secure;
+ }
 
-static const char* toString() {
-return (secure ? "Result is secure." : "Result is NOT secure.");
-}
+ static const char* toString() {
+  return (secure ? "Result is secure." : "Result is NOT secure.");
+ }
 };
 
 class PreciseArithmetic {
 public:
-static void error_mul(const PreciseDouble &a, const PreciseDouble &b,
-PreciseDouble &result);
-static void error_add(const PreciseDouble &a, const PreciseDouble &b,
-PreciseDouble &result);
-static void error_add(const int a, const PreciseDouble &b,
-PreciseDouble &result);
-static void error_div(const PreciseDouble &a, const PreciseDouble &b,
-PreciseDouble &result);
-static void error_sqrt(const PreciseDouble &a, PreciseDouble &result);
+ static void error_mul(const PreciseDouble &a, const PreciseDouble &b,
+   PreciseDouble &result);
+ static void error_add(const PreciseDouble &a, const PreciseDouble &b,
+   PreciseDouble &result);
+ static void error_add(const int a, const PreciseDouble &b,
+   PreciseDouble &result);
+ static void error_div(const PreciseDouble &a, const PreciseDouble &b,
+   PreciseDouble &result);
+ static void error_sqrt(const PreciseDouble &a, PreciseDouble &result);
 
 };
 
@@ -508,141 +508,141 @@ class PreciseComp: public SecureOperator {
 //TODO Precondition infinity +- exist check
 //TODO write test
 public:
-static const double MACHINE_EPSILON;
+ static const double MACHINE_EPSILON;
 
 public:
 
-static bool eq(const PreciseDouble& v1, const PreciseDouble& v2) {
+ static bool eq(const PreciseDouble& v1, const PreciseDouble& v2) {
 //assumed input is not NaN
 
-if (v1.hasNoError() && v2.hasNoError())
-return v1.l == v2.l;
+  if (v1.hasNoError() && v2.hasNoError())
+   return v1.l == v2.l;
 
-if (v1.u == std::numeric_limits<PRECISE_VAL>::infinity()
-&& v2.u == std::numeric_limits<PRECISE_VAL>::infinity())
-return true;
-if (v1.u == -std::numeric_limits<PRECISE_VAL>::infinity()
-&& v2.u == -std::numeric_limits<PRECISE_VAL>::infinity())
-return true;
-if (v1.u == std::numeric_limits<PRECISE_VAL>::infinity()
-|| v1.u == -std::numeric_limits<PRECISE_VAL>::infinity()
-|| v2.u == std::numeric_limits<PRECISE_VAL>::infinity()
-|| v2.u == -std::numeric_limits<PRECISE_VAL>::infinity())
-return false;
+  if (v1.u == std::numeric_limits<PRECISE_VAL>::infinity()
+    && v2.u == std::numeric_limits<PRECISE_VAL>::infinity())
+   return true;
+  if (v1.u == -std::numeric_limits<PRECISE_VAL>::infinity()
+    && v2.u == -std::numeric_limits<PRECISE_VAL>::infinity())
+   return true;
+  if (v1.u == std::numeric_limits<PRECISE_VAL>::infinity()
+    || v1.u == -std::numeric_limits<PRECISE_VAL>::infinity()
+    || v2.u == std::numeric_limits<PRECISE_VAL>::infinity()
+    || v2.u == -std::numeric_limits<PRECISE_VAL>::infinity())
+   return false;
 
-if (v1.u >= v2.l && v1.l <= v2.u) {
-SecureOperator::setInsecure();
-return true;
-}
+  if (v1.u >= v2.l && v1.l <= v2.u) {
+   SecureOperator::setInsecure();
+   return true;
+  }
 
-return false;
-}
-;
-static bool ge(const PreciseDouble& v1, const PreciseDouble& v2) {
+  return false;
+ }
+ ;
+ static bool ge(const PreciseDouble& v1, const PreciseDouble& v2) {
 //assumed input is not NaN
 
-if (v1.hasNoError() && v2.hasNoError())
-return v1.l >= v2.l;
+  if (v1.hasNoError() && v2.hasNoError())
+   return v1.l >= v2.l;
 
-if (v2.u == -std::numeric_limits<PRECISE_VAL>::infinity())
-return true;
-if (v1.l == std::numeric_limits<PRECISE_VAL>::infinity())
-return true;
-if (v1.u == -std::numeric_limits<PRECISE_VAL>::infinity()
-|| v2.l == std::numeric_limits<PRECISE_VAL>::infinity())
-return false;
+  if (v2.u == -std::numeric_limits<PRECISE_VAL>::infinity())
+   return true;
+  if (v1.l == std::numeric_limits<PRECISE_VAL>::infinity())
+   return true;
+  if (v1.u == -std::numeric_limits<PRECISE_VAL>::infinity()
+    || v2.l == std::numeric_limits<PRECISE_VAL>::infinity())
+   return false;
 
-if (v1.l >= v2.u) {
-return true;
-}
+  if (v1.l >= v2.u) {
+   return true;
+  }
 
-if (v1.u >= v2.l) {
-SecureOperator::setInsecure();
-return true;
-}
+  if (v1.u >= v2.l) {
+   SecureOperator::setInsecure();
+   return true;
+  }
 
-return false;
+  return false;
 
-}
-;
-static bool le(const PreciseDouble& v1, const PreciseDouble& v2) {
+ }
+ ;
+ static bool le(const PreciseDouble& v1, const PreciseDouble& v2) {
 //assumed input is not NaN
-if (v1.hasNoError() && v2.hasNoError())
-return v1.l <= v2.l;
+  if (v1.hasNoError() && v2.hasNoError())
+   return v1.l <= v2.l;
 
-if (v1.u == -std::numeric_limits<PRECISE_VAL>::infinity())
-return true;
-if (v2.l == std::numeric_limits<PRECISE_VAL>::infinity())
-return true;
-if (v2.u == -std::numeric_limits<PRECISE_VAL>::infinity()
-|| v1.l == std::numeric_limits<PRECISE_VAL>::infinity())
-return false;
+  if (v1.u == -std::numeric_limits<PRECISE_VAL>::infinity())
+   return true;
+  if (v2.l == std::numeric_limits<PRECISE_VAL>::infinity())
+   return true;
+  if (v2.u == -std::numeric_limits<PRECISE_VAL>::infinity()
+    || v1.l == std::numeric_limits<PRECISE_VAL>::infinity())
+   return false;
 
-if (v1.u <= v2.l) {
-return true;
-}
+  if (v1.u <= v2.l) {
+   return true;
+  }
 
-if (v1.l <= v2.u) {
-SecureOperator::setInsecure();
-return true;
-}
+  if (v1.l <= v2.u) {
+   SecureOperator::setInsecure();
+   return true;
+  }
 
-return false;
+  return false;
 
-}
-;
-static bool lt(const PreciseDouble& v1, const PreciseDouble& v2) {
-//assumed input is not NaN
-
-if (v1.hasNoError() && v2.hasNoError())
-return v1.l < v2.l;
-
-if (v2.u == -std::numeric_limits<PRECISE_VAL>::infinity())
-return false;
-if (v1.l == std::numeric_limits<PRECISE_VAL>::infinity())
-return false;
-if (v1.u == -std::numeric_limits<PRECISE_VAL>::infinity()
-|| v2.l == std::numeric_limits<PRECISE_VAL>::infinity())
-return true;
-
-if (v1.u < v2.l) {
-return true;
-}
-
-if (v1.l < v2.u) {
-SecureOperator::setInsecure();
-return true;
-}
-
-return false;
-
-}
-;
-static bool gt(const PreciseDouble& v2, const PreciseDouble& v1) {
+ }
+ ;
+ static bool lt(const PreciseDouble& v1, const PreciseDouble& v2) {
 //assumed input is not NaN
 
-if (v1.hasNoError() && v2.hasNoError())
-return v1.l < v2.l;
+  if (v1.hasNoError() && v2.hasNoError())
+   return v1.l < v2.l;
 
-if (v2.u == -std::numeric_limits<PRECISE_VAL>::infinity())
-return false;
-if (v1.l == std::numeric_limits<PRECISE_VAL>::infinity())
-return false;
-if (v1.u == -std::numeric_limits<PRECISE_VAL>::infinity()
-|| v2.l == std::numeric_limits<PRECISE_VAL>::infinity())
-return true;
+  if (v2.u == -std::numeric_limits<PRECISE_VAL>::infinity())
+   return false;
+  if (v1.l == std::numeric_limits<PRECISE_VAL>::infinity())
+   return false;
+  if (v1.u == -std::numeric_limits<PRECISE_VAL>::infinity()
+    || v2.l == std::numeric_limits<PRECISE_VAL>::infinity())
+   return true;
 
-if (v1.u < v2.l) {
-return true;
-}
-if (v1.l < v2.u) {
-SecureOperator::setInsecure();
-return true;
-}
+  if (v1.u < v2.l) {
+   return true;
+  }
 
-return false;
-}
-;
+  if (v1.l < v2.u) {
+   SecureOperator::setInsecure();
+   return true;
+  }
+
+  return false;
+
+ }
+ ;
+ static bool gt(const PreciseDouble& v2, const PreciseDouble& v1) {
+//assumed input is not NaN
+
+  if (v1.hasNoError() && v2.hasNoError())
+   return v1.l < v2.l;
+
+  if (v2.u == -std::numeric_limits<PRECISE_VAL>::infinity())
+   return false;
+  if (v1.l == std::numeric_limits<PRECISE_VAL>::infinity())
+   return false;
+  if (v1.u == -std::numeric_limits<PRECISE_VAL>::infinity()
+    || v2.l == std::numeric_limits<PRECISE_VAL>::infinity())
+   return true;
+
+  if (v1.u < v2.l) {
+   return true;
+  }
+  if (v1.l < v2.u) {
+   SecureOperator::setInsecure();
+   return true;
+  }
+
+  return false;
+ }
+ ;
 
 };
 
@@ -657,181 +657,177 @@ class Triangle;
 
 class Point_p {
 public:
-VERTEX_COORDINATE x;
-VERTEX_COORDINATE y;
+ VERTEX_COORDINATE x;
+ VERTEX_COORDINATE y;
 
-Point_p();
-Point_p(VERTEX_COORDINATE ix, VERTEX_COORDINATE iy);
-explicit Point_p(const Point& pt);
-explicit Point_p(const Vertex& c);
-Vector2D operator -(const Vertex& v) const;
-bool operator<(const Point_p& p) const {
-if (y < p.y)
-return true;
-if (y > p.y)
-return false;
+ Point_p();
+ Point_p(VERTEX_COORDINATE ix, VERTEX_COORDINATE iy);
+ explicit Point_p(const Point& pt);
+ explicit Point_p(const Vertex& c);
+ Vector2D operator -(const Vertex& v) const;
+ bool operator<(const Point_p& p) const {
+  if (y < p.y)
+   return true;
+  if (y > p.y)
+   return false;
 
-if (x < p.x)
-return true;
+  if (x < p.x)
+   return true;
 
-return false;
-}
-Vector2D_mp minus2D_mp(const Vertex& v) const;
-Point_p& operator=(const Point_mp& mpp);
-bool operator==(const Point_p & p);
-void print(std::ostream& os = std::cout) const {
-os << "\n x: " << x << " y: " << y;
-}
-;
+  return false;
+ }
+ Vector2D_mp minus2D_mp(const Vertex& v) const;
+ Point_p& operator=(const Point_mp& mpp);
+ bool operator==(const Point_p & p);
+ void print(std::ostream& os = std::cout) const {
+  os << "\n x: " << x << " y: " << y;
+ }
+ ;
 };
 
 class Rectangle {
 private:
-VERTEX_COORDINATE m_x1;
-VERTEX_COORDINATE m_y1;
-VERTEX_COORDINATE m_x2;
-VERTEX_COORDINATE m_y2;
+ VERTEX_COORDINATE m_x1;
+ VERTEX_COORDINATE m_y1;
+ VERTEX_COORDINATE m_x2;
+ VERTEX_COORDINATE m_y2;
 public:
-Rectangle() {
-m_x1 = 0;
-m_y1 = 0;
-m_x2 = 0;
-m_y2 = 0;
-}
-;
+ Rectangle() {
+  m_x1 = 0;
+  m_y1 = 0;
+  m_x2 = 0;
+  m_y2 = 0;
+ }
+ ;
 
-Rectangle(bool theEmptyOne) {
+ Rectangle(bool theEmptyOne) {
 
-}
-VERTEX_COORDINATE getX1() const {
-return m_x1;
-}
+ }
+ VERTEX_COORDINATE getX1() const {
+  return m_x1;
+ }
 
-VERTEX_COORDINATE getX2() const {
-return m_x2;
-}
+ VERTEX_COORDINATE getX2() const {
+  return m_x2;
+ }
 
-VERTEX_COORDINATE getY1() const {
-return m_y1;
-}
+ VERTEX_COORDINATE getY1() const {
+  return m_y1;
+ }
 
-VERTEX_COORDINATE getY2() const {
-return m_y2;
-}
+ VERTEX_COORDINATE getY2() const {
+  return m_y2;
+ }
 
-Rectangle(VERTEX_COORDINATE x1, VERTEX_COORDINATE y1, VERTEX_COORDINATE x2,
-VERTEX_COORDINATE y2) {
-if (!(x1 < x2 && y1 < y2))
-throw std::invalid_argument(E_RECTANGLE_SETXY);
-m_x1 = x1;
-m_x2 = x2;
-m_y1 = y1;
-m_y2 = y2;
-}
+ Rectangle(VERTEX_COORDINATE x1, VERTEX_COORDINATE y1,
+   VERTEX_COORDINATE x2, VERTEX_COORDINATE y2) {
+  if (!(x1 < x2 && y1 < y2))
+   throw std::invalid_argument(E_RECTANGLE_SETXY);
+  m_x1 = x1;
+  m_x2 = x2;
+  m_y1 = y1;
+  m_y2 = y2;
+ }
 
-bool hasIntersection(const Rectangle &r) const {
-return ((r.m_x1 <= m_x2 && r.m_x2 >= m_x1)
-&& (r.m_y1 <= m_y2 && r.m_y2 >= m_y1));
-}
-bool operator==(const Rectangle &r) const
-{
-if(m_x1 != r.m_x1 ||
-m_y1 != r.m_y1 ||
-m_x2 != r.m_x2 ||
-m_y2 != r.m_y2 )
-return false;
+ bool hasIntersection(const Rectangle &r) const {
+  return ((r.m_x1 <= m_x2 && r.m_x2 >= m_x1)
+    && (r.m_y1 <= m_y2 && r.m_y2 >= m_y1));
+ }
+ bool operator==(const Rectangle &r) const {
+  if (m_x1 != r.m_x1 || m_y1 != r.m_y1 || m_x2 != r.m_x2 || m_y2 != r.m_y2)
+   return false;
 
-return true;
-}
-bool contains(const Point_p& p) const {
-if ((p.x >= m_x1) && (p.x <= m_x2) && (p.y >= m_y1) && (p.y <= m_y2))
-return true;
-else
-return false;
-}
-static TIN_SIZE getSizeOnDisc() {
-return sizeof(m_x1) + sizeof(m_y1) + sizeof(m_x2) + sizeof(m_y2);
-}
+  return true;
+ }
+ bool contains(const Point_p& p) const {
+  if ((p.x >= m_x1) && (p.x <= m_x2) && (p.y >= m_y1) && (p.y <= m_y2))
+   return true;
+  else
+   return false;
+ }
+ static TIN_SIZE getSizeOnDisc() {
+  return sizeof(m_x1) + sizeof(m_y1) + sizeof(m_x2) + sizeof(m_y2);
+ }
 
 #ifndef UNIT_TEST
-void serialize(char* storage, size_t& offset) const {
-WriteVar<VERTEX_COORDINATE>(m_x1, storage, offset);
-WriteVar<VERTEX_COORDINATE>(m_y1, storage, offset);
-WriteVar<VERTEX_COORDINATE>(m_x2, storage, offset);
-WriteVar<VERTEX_COORDINATE>(m_y2, storage, offset);
+ void serialize(char* storage, size_t& offset) const {
+  WriteVar<VERTEX_COORDINATE>(m_x1, storage, offset);
+  WriteVar<VERTEX_COORDINATE>(m_y1, storage, offset);
+  WriteVar<VERTEX_COORDINATE>(m_x2, storage, offset);
+  WriteVar<VERTEX_COORDINATE>(m_y2, storage, offset);
 
-}
-void rebuild(char* state, size_t & offset) {
-ReadVar<VERTEX_COORDINATE>(m_x1, state, offset);
-ReadVar<VERTEX_COORDINATE>(m_y1, state, offset);
-ReadVar<VERTEX_COORDINATE>(m_x2, state, offset);
-ReadVar<VERTEX_COORDINATE>(m_y2, state, offset);
-}
-bool open(SmiRecord& valueRecord) {
-SmiSize noBytesTransferred = 0;
-noBytesTransferred = valueRecord.Read(m_x1);
-if (noBytesTransferred != sizeof(m_x1))
-return false;
-noBytesTransferred = valueRecord.Read(m_y1);
-if (noBytesTransferred != sizeof(m_y1))
-return false;
-noBytesTransferred = valueRecord.Read(m_x2);
-if (noBytesTransferred != sizeof(m_x2))
-return false;
-noBytesTransferred = valueRecord.Read(m_y2);
-if (noBytesTransferred != sizeof(m_y2))
-return false;
-return true;
+ }
+ void rebuild(char* state, size_t & offset) {
+  ReadVar<VERTEX_COORDINATE>(m_x1, state, offset);
+  ReadVar<VERTEX_COORDINATE>(m_y1, state, offset);
+  ReadVar<VERTEX_COORDINATE>(m_x2, state, offset);
+  ReadVar<VERTEX_COORDINATE>(m_y2, state, offset);
+ }
+ bool open(SmiRecord& valueRecord) {
+  SmiSize noBytesTransferred = 0;
+  noBytesTransferred = valueRecord.Read(m_x1);
+  if (noBytesTransferred != sizeof(m_x1))
+   return false;
+  noBytesTransferred = valueRecord.Read(m_y1);
+  if (noBytesTransferred != sizeof(m_y1))
+   return false;
+  noBytesTransferred = valueRecord.Read(m_x2);
+  if (noBytesTransferred != sizeof(m_x2))
+   return false;
+  noBytesTransferred = valueRecord.Read(m_y2);
+  if (noBytesTransferred != sizeof(m_y2))
+   return false;
+  return true;
 
-}
-;
+ }
+ ;
 
-bool save(SmiRecord& valueRecord) {
-SmiSize noBytesTransferred = 0;
-noBytesTransferred = valueRecord.Write(m_x1);
-if (noBytesTransferred != sizeof(m_x1))
-return false;
-noBytesTransferred = valueRecord.Write(m_y1);
-if (noBytesTransferred != sizeof(m_y1))
-return false;
-noBytesTransferred = valueRecord.Write(m_x2);
-if (noBytesTransferred != sizeof(m_x2))
-return false;
-noBytesTransferred = valueRecord.Write(m_y2);
-if (noBytesTransferred != sizeof(m_y2))
-return false;
+ bool save(SmiRecord& valueRecord) {
+  SmiSize noBytesTransferred = 0;
+  noBytesTransferred = valueRecord.Write(m_x1);
+  if (noBytesTransferred != sizeof(m_x1))
+   return false;
+  noBytesTransferred = valueRecord.Write(m_y1);
+  if (noBytesTransferred != sizeof(m_y1))
+   return false;
+  noBytesTransferred = valueRecord.Write(m_x2);
+  if (noBytesTransferred != sizeof(m_x2))
+   return false;
+  noBytesTransferred = valueRecord.Write(m_y2);
+  if (noBytesTransferred != sizeof(m_y2))
+   return false;
 
-return true;
-}
-;
+  return true;
+ }
+ ;
 
-ListExpr outRectangle() {
-return nl->TwoElemList(
-nl->StringAtom("Rectangle (left bottom right top):"),
-nl->FourElemList(nl->RealAtom(m_x1), nl->RealAtom(m_y1),
-nl->RealAtom(m_x2), nl->RealAtom(m_y2)));
-}
+ ListExpr outRectangle() {
+  return nl->TwoElemList(
+    nl->StringAtom("Rectangle (left bottom right top):"),
+    nl->FourElemList(nl->RealAtom(m_x1), nl->RealAtom(m_y1),
+      nl->RealAtom(m_x2), nl->RealAtom(m_y2)));
+ }
 #endif
-void setX1(VERTEX_COORDINATE x1) {
-m_x1 = x1;
-}
+ void setX1(VERTEX_COORDINATE x1) {
+  m_x1 = x1;
+ }
 
-void setX2(VERTEX_COORDINATE x2) {
-m_x2 = x2;
-}
+ void setX2(VERTEX_COORDINATE x2) {
+  m_x2 = x2;
+ }
 
-void setY1(VERTEX_COORDINATE y1) {
-m_y1 = y1;
-}
+ void setY1(VERTEX_COORDINATE y1) {
+  m_y1 = y1;
+ }
 
-void setY2(VERTEX_COORDINATE y2) {
-m_y2 = y2;
-}
+ void setY2(VERTEX_COORDINATE y2) {
+  m_y2 = y2;
+ }
 
-void print(std::ostream & os = std::cout) const {
-os << " x1: " << m_x1 << " y1: " << m_y1 << " x2: " << m_x2 << " y2: "
-<< m_y2 << "\n";
-}
+ void print(std::ostream & os = std::cout) const {
+  os << " x1: " << m_x1 << " y1: " << m_y1 << " x2: " << m_x2 << " y2: "
+    << m_y2 << "\n";
+ }
 };
 
 class AbstractTriangle;
@@ -839,225 +835,225 @@ class AbstractTinType;
 
 class TinFeatures {
 public:
-VERTEX_Z m_maxValue;
-VERTEX_Z m_minValue;
-Rectangle bbox;
-TinFeatures(bool theEmptyOne) :
-bbox(theEmptyOne) {
+ VERTEX_Z m_maxValue;
+ VERTEX_Z m_minValue;
+ Rectangle bbox;
+ TinFeatures(bool theEmptyOne) :
+   bbox(theEmptyOne) {
 
-}
-TinFeatures() {
-bbox.setX1(std::numeric_limits<VERTEX_Z>::max());
-bbox.setX2(-std::numeric_limits<VERTEX_Z>::max());
-bbox.setY1(std::numeric_limits<VERTEX_Z>::max());
-bbox.setY2(-std::numeric_limits<VERTEX_Z>::max());
+ }
+ TinFeatures() {
+  bbox.setX1(std::numeric_limits<VERTEX_Z>::max());
+  bbox.setX2(-std::numeric_limits<VERTEX_Z>::max());
+  bbox.setY1(std::numeric_limits<VERTEX_Z>::max());
+  bbox.setY2(-std::numeric_limits<VERTEX_Z>::max());
 
-m_maxValue = (-std::numeric_limits<VERTEX_Z>::max());
-m_minValue = std::numeric_limits<VERTEX_Z>::max();
-}
-void update(const Triangle * at);
-void update(const TinFeatures & f);
-void update(const Vertex& v);
-bool operator==(const TinFeatures & feat) const
-{
-if(m_maxValue != feat.m_maxValue ||
-m_minValue != feat.m_minValue )
-return false;
+  m_maxValue = (-std::numeric_limits<VERTEX_Z>::max());
+  m_minValue = std::numeric_limits<VERTEX_Z>::max();
+ }
+ void update(const Triangle * at);
+ void update(const TinFeatures & f);
+ void update(const Vertex& v);
+ bool operator==(const TinFeatures & feat) const {
+  if (m_maxValue != feat.m_maxValue || m_minValue != feat.m_minValue)
+   return false;
 
-if(!(bbox == feat.bbox))
-return false;
+  if (!(bbox == feat.bbox))
+   return false;
 
-return true;
-}
+  return true;
+ }
 #ifndef UNIT_TEST
-void rebuild(char* state, size_t &offset) {
-ReadVar<VERTEX_Z>(m_minValue, state, offset);
-ReadVar<VERTEX_Z>(m_maxValue, state, offset);
+ void rebuild(char* state, size_t &offset) {
+  ReadVar<VERTEX_Z>(m_minValue, state, offset);
+  ReadVar<VERTEX_Z>(m_maxValue, state, offset);
 
-bbox.rebuild(state, offset);
-}
-void serialize(char* storage, size_t& offset) const {
-WriteVar<VERTEX_Z>(m_minValue, storage, offset);
-WriteVar<VERTEX_Z>(m_maxValue, storage, offset);
+  bbox.rebuild(state, offset);
+ }
+ void serialize(char* storage, size_t& offset) const {
+  WriteVar<VERTEX_Z>(m_minValue, storage, offset);
+  WriteVar<VERTEX_Z>(m_maxValue, storage, offset);
 
-bbox.serialize(storage, offset);
-}
-bool open(SmiRecord& valueRecord) {
-SmiSize noBytesTransferred = 0;
-noBytesTransferred = valueRecord.Read(m_minValue);
-if (noBytesTransferred != sizeof(m_minValue))
-return false;
-noBytesTransferred = valueRecord.Read(m_maxValue);
-if (noBytesTransferred != sizeof(m_maxValue))
-return false;
+  bbox.serialize(storage, offset);
+ }
+ bool open(SmiRecord& valueRecord) {
+  SmiSize noBytesTransferred = 0;
+  noBytesTransferred = valueRecord.Read(m_minValue);
+  if (noBytesTransferred != sizeof(m_minValue))
+   return false;
+  noBytesTransferred = valueRecord.Read(m_maxValue);
+  if (noBytesTransferred != sizeof(m_maxValue))
+   return false;
 
-if (!bbox.open(valueRecord))
-return false;
+  if (!bbox.open(valueRecord))
+   return false;
 
 // this->print();
-return true;
+  return true;
 
-}
-;
-bool save(SmiRecord& valueRecord) {
-SmiSize noBytesTransferred = 0;
+ }
+ ;
+ bool save(SmiRecord& valueRecord) {
+  SmiSize noBytesTransferred = 0;
 
-noBytesTransferred = valueRecord.Write(m_minValue);
-if (noBytesTransferred != sizeof(m_minValue))
-return false;
-noBytesTransferred = valueRecord.Write(m_maxValue);
-if (noBytesTransferred != sizeof(m_maxValue))
-return false;
+  noBytesTransferred = valueRecord.Write(m_minValue);
+  if (noBytesTransferred != sizeof(m_minValue))
+   return false;
+  noBytesTransferred = valueRecord.Write(m_maxValue);
+  if (noBytesTransferred != sizeof(m_maxValue))
+   return false;
 
-if (!bbox.save(valueRecord))
-return false;
+  if (!bbox.save(valueRecord))
+   return false;
 
-return true;
+  return true;
 
-}
-;
+ }
+ ;
 
-ListExpr outFeatures() {
+ ListExpr outFeatures() {
 
-return nl->TwoElemList(
-nl->StringAtom("TinFeatures (minValue maxValue bbox):"),
-nl->ThreeElemList(nl->RealAtom(m_minValue), nl->RealAtom(m_maxValue),
-bbox.outRectangle()));
-}
+  return nl->TwoElemList(
+    nl->StringAtom("TinFeatures (minValue maxValue bbox):"),
+    nl->ThreeElemList(nl->RealAtom(m_minValue), nl->RealAtom(m_maxValue),
+      bbox.outRectangle()));
+ }
 #endif
-void reset() {
-bbox.setX1(std::numeric_limits<VERTEX_Z>::max());
-bbox.setX2(-std::numeric_limits<VERTEX_Z>::max());
-bbox.setY1(std::numeric_limits<VERTEX_Z>::max());
-bbox.setY2(-std::numeric_limits<VERTEX_Z>::max());
+ void reset() {
+  bbox.setX1(std::numeric_limits<VERTEX_Z>::max());
+  bbox.setX2(-std::numeric_limits<VERTEX_Z>::max());
+  bbox.setY1(std::numeric_limits<VERTEX_Z>::max());
+  bbox.setY2(-std::numeric_limits<VERTEX_Z>::max());
 
-m_maxValue = (-std::numeric_limits<VERTEX_Z>::max());
-m_minValue = std::numeric_limits<VERTEX_Z>::max();
-}
-void print(std::ostream& os = std::cout) const {
-os << "TinFeatures-----\n" << "maximum value: " << m_maxValue
-<< " minimum value: " << m_minValue << " bbox: ";
-bbox.print(os);
-}
+  m_maxValue = (-std::numeric_limits<VERTEX_Z>::max());
+  m_minValue = std::numeric_limits<VERTEX_Z>::max();
+ }
+ void print(std::ostream& os = std::cout) const {
+  os << "TinFeatures-----\n" << "maximum value: " << m_maxValue
+    << " minimum value: " << m_minValue << " bbox: ";
+  bbox.print(os);
+ }
 
-static TIN_SIZE getSizeOnDisc() {
-return Rectangle::getSizeOnDisc() + sizeof(m_maxValue) + sizeof(m_minValue);
-}
+ static TIN_SIZE getSizeOnDisc() {
+  return Rectangle::getSizeOnDisc() + sizeof(m_maxValue)
+    + sizeof(m_minValue);
+ }
 
 };
 
 class Point: public SecureOperator {
 public:
-POINT_COORDINATE x;
-POINT_COORDINATE y;
+ POINT_COORDINATE x;
+ POINT_COORDINATE y;
 
 public:
-Point() {
-x = 0;
-y = 0;
-}
+ Point() {
+  x = 0;
+  y = 0;
+ }
 
-Point(POINT_COORDINATE ix, POINT_COORDINATE iy) {
-x = ix;
-y = iy;
-}
-explicit Point(const Point_p& mp);
-Point(const Vertex * v);
+ Point(POINT_COORDINATE ix, POINT_COORDINATE iy) {
+  x = ix;
+  y = iy;
+ }
+ explicit Point(const Point_p& mp);
+ Point(const Vertex * v);
 
-explicit Point(const Vertex& v);
+ explicit Point(const Vertex& v);
 
-~Point() {
-}
+ ~Point() {
+ }
 
-Point operator +(const Vector2D& v) const;
-Vector2D operator -(const Vertex& v) const;
-Vector2D_mp minus2D_mp(const Vertex& v) const;
-Point& operator=(const Point_mp& mpp);
-Point& operator=(const Vertex& v);
-bool operator<(const Point &p) const;
+ Point operator +(const Vector2D& v) const;
+ Vector2D operator -(const Vertex& v) const;
+ Vector2D_mp minus2D_mp(const Vertex& v) const;
+ Point& operator=(const Point_mp& mpp);
+ Point& operator=(const Vertex& v);
+ bool operator<(const Point &p) const;
 
-void print(std::ostream& out = std::cout);
+ void print(std::ostream& out = std::cout);
 
 };
 
 class Point_mp {
 public:
-mpq_t x;
-mpq_t y;
+ mpq_t x;
+ mpq_t y;
 
 public:
-Point_mp();
-Point_mp(POINT_COORDINATE ix, POINT_COORDINATE iy);
-Point_mp(VERTEX_COORDINATE ix, VERTEX_COORDINATE iy);
-Point_mp(const Vertex * v);
-Point_mp(const Point_mp& p);
-explicit Point_mp(const Point& p);
-explicit Point_mp(const Point_p& p);
-~Point_mp();
+ Point_mp();
+ Point_mp(POINT_COORDINATE ix, POINT_COORDINATE iy);
+ Point_mp(VERTEX_COORDINATE ix, VERTEX_COORDINATE iy);
+ Point_mp(const Vertex * v);
+ Point_mp(const Point_mp& p);
+ explicit Point_mp(const Point& p);
+ explicit Point_mp(const Point_p& p);
+ ~Point_mp();
 
-Point_mp& operator=(const Point_mp& p);
-Point_mp& operator=(const Vertex& v);
-Point_mp operator+(const Vector2D_mp& v) const;
-Vector2D_mp minus2D_mp(const Vertex& v) const;
-void print(std::ostream& out = std::cout);
+ Point_mp& operator=(const Point_mp& p);
+ Point_mp& operator=(const Vertex& v);
+ Point_mp operator+(const Vector2D_mp& v) const;
+ Vector2D_mp minus2D_mp(const Vertex& v) const;
+ void print(std::ostream& out = std::cout);
 
 };
 
 class noncopyable {
 protected:
-noncopyable() {
-}
-~noncopyable() {
-}
+ noncopyable() {
+ }
+ ~noncopyable() {
+ }
 private:
-noncopyable(const noncopyable&);
-const noncopyable& operator=(const noncopyable&);
+ noncopyable(const noncopyable&);
+ const noncopyable& operator=(const noncopyable&);
 };
 
 class Op {
 public:
-static VERTEX_Z constant; //TODO make thread_local
+ static VERTEX_Z constant; //TODO make thread_local
 public:
-static VERTEX_Z add_const(VERTEX_Z z) {
-return z + constant;
-}
+ static VERTEX_Z add_const(VERTEX_Z z) {
+  return z + constant;
+ }
 
-static VERTEX_Z mul_const(VERTEX_Z z) {
-return z * constant;
-}
+ static VERTEX_Z mul_const(VERTEX_Z z) {
+  return z * constant;
+ }
 public:
-static VERTEX_Z add(VERTEX_Z z1, VERTEX_Z z2) {
-return z1 + z2;
-}
+ static VERTEX_Z add(VERTEX_Z z1, VERTEX_Z z2) {
+  return z1 + z2;
+ }
 };
 
 class TinConfiguration {
 public:
-TIN_SIZE maxSizePart;
-AbstractType abstractType;
-MemoryState memoryState;
+ TIN_SIZE maxSizePart;
+ AbstractType abstractType;
+ MemoryState memoryState;
 
-static const TinConfiguration DEFAULT;
-static const TinConfiguration ATTRIBUTE;
-TinConfiguration(bool theEmptyOne) {
+ static const TinConfiguration DEFAULT;
+ static const TinConfiguration ATTRIBUTE;
+ TinConfiguration(bool theEmptyOne) {
 
-}
-TinConfiguration(TIN_SIZE imaxSizePart = TIN_PART_STANDARD_SIZE,
-AbstractType iabstractType = MANIPULATE, MemoryState memstate = INMEMORY) {
-maxSizePart = imaxSizePart;
-abstractType = iabstractType;
-memoryState = memstate;
-}
+ }
+ TinConfiguration(TIN_SIZE imaxSizePart = TIN_PART_STANDARD_SIZE,
+   AbstractType iabstractType = MANIPULATE,
+   MemoryState memstate = INMEMORY) {
+  maxSizePart = imaxSizePart;
+  abstractType = iabstractType;
+  memoryState = memstate;
+ }
 
-bool operator==(const TinConfiguration & rhs) const {
-if (maxSizePart == rhs.maxSizePart && abstractType == rhs.abstractType
-&& memoryState == rhs.memoryState)
-return true;
-else
-return false;
+ bool operator==(const TinConfiguration & rhs) const {
+  if (maxSizePart == rhs.maxSizePart && abstractType == rhs.abstractType
+    && memoryState == rhs.memoryState)
+   return true;
+  else
+   return false;
 
-}
+ }
 };
 
 }
-#endif /* TINHELPER_H_ */
+#endif /* TINHELPER_H_*/

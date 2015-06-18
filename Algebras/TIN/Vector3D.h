@@ -31,34 +31,34 @@ namespace tin {
 
 class Vector3D: public tin::Vector2D {
 protected:
-VECTOR_COMPONENT dz;
+ VECTOR_COMPONENT dz;
 public:
-Vector3D() {
+ Vector3D() {
 
-}
-;
-Vector3D(const VECTOR_COMPONENT& idx, const VECTOR_COMPONENT& idy,
-const VECTOR_COMPONENT& idz) {
-this->dx = idx;
-this->dy = idy;
-this->dz = idz;
-}
-;
-~Vector3D();
+ }
+ ;
+ Vector3D(const VECTOR_COMPONENT& idx, const VECTOR_COMPONENT& idy,
+   const VECTOR_COMPONENT& idz) {
+  this->dx = idx;
+  this->dy = idy;
+  this->dz = idz;
+ }
+ ;
+ ~Vector3D();
 
-VECTOR_COMPONENT getDz() const {
-return dz;
-}
-;
+ VECTOR_COMPONENT getDz() const {
+  return dz;
+ }
+ ;
 
-void setDz(VECTOR_COMPONENT& dz) {
-this->dz = dz;
-}
-;
-VECTOR_DIR dzdx();
-VECTOR_DIR dzdy();
-Vector3D operator*(const VECTOR_COMPONENT &f) const;
+ void setDz(VECTOR_COMPONENT& dz) {
+  this->dz = dz;
+ }
+ ;
+ VECTOR_DIR dzdx();
+ VECTOR_DIR dzdy();
+ Vector3D operator*(const VECTOR_COMPONENT &f) const;
 };
 
-} /* namespace tin */
-#endif /* VECTOR3D_H_ */
+} /* namespace tin*/
+#endif /* VECTOR3D_H_*/

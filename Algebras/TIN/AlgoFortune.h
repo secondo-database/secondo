@@ -58,34 +58,34 @@ class VoronoiEdge;
 */
 class CircleEvent {
 protected:
-Point_p sweep;
-BeachLineNode * arc;
+ Point_p sweep;
+ BeachLineNode * arc;
 public:
-CircleEvent(Point_p ip, BeachLineNode *arc);
-~CircleEvent();
-bool isIdentical(CircleEvent * e) const;
-bool isIdentical(BeachLineNode * n) const;
-VERTEX_COORDINATE getY() const;
-Point_p getSweepPoint() const {
-return sweep;
-}
-void removeArcMultiEvent(Triangle ** t1, Triangle ** t2);
-void handleEvent(EventQueue & eq);
-void handleMultiEvent(EventQueue & eq,
-std::multimap<Point_p, CircleEvent*>::iterator from,
-std::multimap<Point_p, CircleEvent*>::iterator to);
-bool isEqual(CircleEvent * e) const;
-static Point_p calculateSweepPoint_mp(const Vertex * p1, const Vertex * p2,
-const Vertex * p3);
-static Point_p calculateSweepPoint(Point_p p1, Point_p p2, Point_p p3);
-inline static Point_p calculateSweepPoint_quad(const Vertex* sright,
-const Vertex* smid, const Vertex* sleft, const __float128 & precalc12,
-const __float128 & precalc23);
-static Point_p calculateCircle_mp(const Vertex & v1, const Vertex &v2,
-const Vertex & v3, double & r);
-static bool isVertexInside(Point_p & middle, double radius,
-const Vertex & v);
-void print(std::ostream& os = std::cout) const;
+ CircleEvent(Point_p ip, BeachLineNode *arc);
+ ~CircleEvent();
+ bool isIdentical(CircleEvent * e) const;
+ bool isIdentical(BeachLineNode * n) const;
+ VERTEX_COORDINATE getY() const;
+ Point_p getSweepPoint() const {
+  return sweep;
+ }
+ void removeArcMultiEvent(Triangle ** t1, Triangle ** t2);
+ void handleEvent(EventQueue & eq);
+ void handleMultiEvent(EventQueue & eq,
+   std::multimap<Point_p, CircleEvent*>::iterator from,
+   std::multimap<Point_p, CircleEvent*>::iterator to);
+ bool isEqual(CircleEvent * e) const;
+ static Point_p calculateSweepPoint_mp(const Vertex * p1,
+   const Vertex * p2, const Vertex * p3);
+ static Point_p calculateSweepPoint(Point_p p1, Point_p p2, Point_p p3);
+ inline static Point_p calculateSweepPoint_quad(const Vertex* sright,
+   const Vertex* smid, const Vertex* sleft, const __float128 & precalc12,
+   const __float128 & precalc23);
+ static Point_p calculateCircle_mp(const Vertex & v1, const Vertex &v2,
+   const Vertex & v3, double & r);
+ static bool isVertexInside(Point_p & middle, double radius,
+   const Vertex & v);
+ void print(std::ostream& os = std::cout) const;
 };
 
 /*
@@ -96,25 +96,25 @@ void print(std::ostream& os = std::cout) const;
 */
 class SiteEvent {
 public:
-static void handleEvent(std::set<Vertex>::reverse_iterator v,
-EventQueue & eq);
+ static void handleEvent(std::set<Vertex>::reverse_iterator v,
+   EventQueue & eq);
 
 };
 
 /*
-For performance reasons the direction of breakpoints is evaluated.
-This enum keeps the possible values.
+ For performance reasons the direction of breakpoints is evaluated.
+ This enum keeps the possible values.
 
 */
 
 enum BREAK_DIRECTION {
-BREAK_X_UNDEFINED,
-BREAK_X_LEFT,
-BREAK_X_RIGHT,
-BREAK_X_VERTICAL,
-BREAK_Y_HORIZONTAL,
-BREAK_Y_UP,
-BREAK_Y_DOWN
+ BREAK_X_UNDEFINED,
+ BREAK_X_LEFT,
+ BREAK_X_RIGHT,
+ BREAK_X_VERTICAL,
+ BREAK_Y_HORIZONTAL,
+ BREAK_Y_UP,
+ BREAK_Y_DOWN
 };
 
 /*
@@ -134,348 +134,348 @@ BREAK_Y_DOWN
 
 */
 class BeachLineNode {
-friend class BeachLine;
-friend class BeachLine_test;
+ friend class BeachLine;
+ friend class BeachLine_test;
 protected:
-const Vertex * site1; // for leafs and inner nodes
-const Vertex * site2; // for inner nodes
-std::multimap<Point_p, CircleEvent*>::iterator event; // for leafs
-BeachLineNode * pleftSon; // for inner nodes
-BeachLineNode * prightSon; // for inner nodes
-BeachLineNode * parent; // for leafs and inner nodes
+ const Vertex * site1; // for leafs and inner nodes
+ const Vertex * site2; // for inner nodes
+ std::multimap<Point_p, CircleEvent*>::iterator event; // for leafs
+ BeachLineNode * pleftSon; // for inner nodes
+ BeachLineNode * prightSon; // for inner nodes
+ BeachLineNode * parent; // for leafs and inner nodes
 
-VoronoiEdge * edge; // for inner nodes
+ VoronoiEdge * edge; // for inner nodes
 
-bool validIterator; // for leafs
-bool red; // inner nodes
+ bool validIterator; // for leafs
+ bool red; // inner nodes
 
-mutable VERTEX_COORDINATE break_x; // for inner nodes
-mutable __float128 precalc_circle; // for inner nodes
+ mutable VERTEX_COORDINATE break_x; // for inner nodes
+ mutable __float128 precalc_circle; // for inner nodes
 
-static const VERTEX_COORDINATE BREAK_X_UNSET;
+ static const VERTEX_COORDINATE BREAK_X_UNSET;
 
-static BeachLineNode nullnode;
+ static BeachLineNode nullnode;
 public:
-static const __float128 PRECALC_UNSET;
+ static const __float128 PRECALC_UNSET;
 
 ////////Construction/Destruction/////////////////////////////////
 protected:
-BeachLineNode(BeachLineNode * iparent, bool leftins, BeachLineNode * left,
-BeachLineNode * right); //inner node
-BeachLineNode(const Vertex * pV1, BeachLineNode * iparent); //Leaf
-BeachLineNode(); //root
+ BeachLineNode(BeachLineNode * iparent, bool leftins, BeachLineNode * left,
+   BeachLineNode * right); //inner node
+ BeachLineNode(const Vertex * pV1, BeachLineNode * iparent); //Leaf
+ BeachLineNode(); //root
 
-virtual ~BeachLineNode();
+ virtual ~BeachLineNode();
 ////////Manipulation/////////////////////////////////////////////
 protected:
-void setParent(BeachLineNode * p);
-void setLeft(BeachLineNode * nl);
-void setRight(BeachLineNode * nr);
-BeachLineNode* insert(const Vertex * pV);
-void balanceTree(); // red black tree balancing for insertion
-void balanceTreeDeletion(); // red black tree balancing for deletion
-void rotateLeft();
-void rotateRight();
-void setSite1(const Vertex * psite1);
-void setSite2(const Vertex * psite2);
-void resetBreakX() {
-break_x = BREAK_X_UNSET;
-}
+ void setParent(BeachLineNode * p);
+ void setLeft(BeachLineNode * nl);
+ void setRight(BeachLineNode * nr);
+ BeachLineNode* insert(const Vertex * pV);
+ void balanceTree(); // red black tree balancing for insertion
+ void balanceTreeDeletion(); // red black tree balancing for deletion
+ void rotateLeft();
+ void rotateRight();
+ void setSite1(const Vertex * psite1);
+ void setSite2(const Vertex * psite2);
+ void resetBreakX() {
+  break_x = BREAK_X_UNSET;
+ }
 public:
-void resetVoronoiEdge();
-void resetRescuedVoronoiEdge();
-void rescueVoronoiEdge(VoronoiEdge *e);
-void setVoronoiEdge(VoronoiEdge *e);
-BeachLineNode * remove(Triangle * t);
-BeachLineNode * removeMultiEvent(Triangle** t1, Triangle** t2);
-BeachLineNode* insert_no_split(const Vertex * pV,
-const VERTEX_COORDINATE sweepy);
-void setEvent(std::multimap<Point_p, CircleEvent*>::iterator & it) {
-if (validIterator)
-throw std::runtime_error(E_BEACHLINENODE_SETEVENT);
-validIterator = true;
-event = it;
-}
-void resetEvent() {
-validIterator = false;
-}
+ void resetVoronoiEdge();
+ void resetRescuedVoronoiEdge();
+ void rescueVoronoiEdge(VoronoiEdge *e);
+ void setVoronoiEdge(VoronoiEdge *e);
+ BeachLineNode * remove(Triangle * t);
+ BeachLineNode * removeMultiEvent(Triangle** t1, Triangle** t2);
+ BeachLineNode* insert_no_split(const Vertex * pV,
+   const VERTEX_COORDINATE sweepy);
+ void setEvent(std::multimap<Point_p, CircleEvent*>::iterator & it) {
+  if (validIterator)
+   throw std::runtime_error(E_BEACHLINENODE_SETEVENT);
+  validIterator = true;
+  event = it;
+ }
+ void resetEvent() {
+  validIterator = false;
+ }
 ///////Query/////////////////////////////////////////////////////
 protected:
-VERTEX_COORDINATE getBreakX() {
-return break_x;
-}
+ VERTEX_COORDINATE getBreakX() {
+  return break_x;
+ }
 
-BREAK_DIRECTION determineBreakXDirection(const Vertex* v1,
-const Vertex* v2) const;
-BREAK_DIRECTION determineBreakYDirection(const Vertex* v1,
-const Vertex* v2) const;
-BeachLineNode * getLeft() const;
-BeachLineNode * getRight() const;
-BeachLineNode * find(const VERTEX_COORDINATE x,
-const VERTEX_COORDINATE ySweepLine) const;
-bool isVirtualRoot() const;
-void check() const;
+ BREAK_DIRECTION determineBreakXDirection(const Vertex* v1,
+   const Vertex* v2) const;
+ BREAK_DIRECTION determineBreakYDirection(const Vertex* v1,
+   const Vertex* v2) const;
+ BeachLineNode * getLeft() const;
+ BeachLineNode * getRight() const;
+ BeachLineNode * find(const VERTEX_COORDINATE x,
+   const VERTEX_COORDINATE ySweepLine) const;
+ bool isVirtualRoot() const;
+ void check() const;
 public:
-__float128& getPrecalc()
-{
-return precalc_circle;
-}
-BREAK_DIRECTION getBreakXDirection() const {
-if (isLeaf())
-throw std::runtime_error(
-"Leafs have no Breakpoint !(BeachLineNode::getBreakXDirection)");
-if (*site1 == *site2)
-throw std::runtime_error(
-"BeachLine corrupted.(BeachLineNode::getBreakXDirection)");
+ __float128& getPrecalc()
+ {
+  return precalc_circle;
+ }
+ BREAK_DIRECTION getBreakXDirection() const {
+  if (isLeaf())
+  throw std::runtime_error(
+    "Leafs have no Breakpoint !(BeachLineNode::getBreakXDirection)");
+  if (*site1 == *site2)
+  throw std::runtime_error(
+    "BeachLine corrupted.(BeachLineNode::getBreakXDirection)");
 
-return determineBreakXDirection(site1, site2);
-}
-BREAK_DIRECTION getBreakYDirection() {
-if (isLeaf())
-throw std::runtime_error(
-"Leafs have no Breakpoint !(BeachLineNode::getBreakXDirection)");
-if (*site1 == *site2)
-throw std::runtime_error(
-"BeachLine corrupted.(BeachLineNode::getBreakXDirection)");
+  return determineBreakXDirection(site1, site2);
+ }
+ BREAK_DIRECTION getBreakYDirection() {
+  if (isLeaf())
+  throw std::runtime_error(
+    "Leafs have no Breakpoint !(BeachLineNode::getBreakXDirection)");
+  if (*site1 == *site2)
+  throw std::runtime_error(
+    "BeachLine corrupted.(BeachLineNode::getBreakXDirection)");
 
-return determineBreakYDirection(site1, site2);
-}
-VoronoiEdge* getVoronoiEdge() const;
-bool isLeftChild() const;
-bool isNull() const;
-bool isLeaf() const;
-bool isRoot() const;
-int isCollapsing_performance() const {
-BeachLineNode * lbp = getLeftBreakPoint();
-BeachLineNode * rbp = getRightBreakPoint();
+  return determineBreakYDirection(site1, site2);
+ }
+ VoronoiEdge* getVoronoiEdge() const;
+ bool isLeftChild() const;
+ bool isNull() const;
+ bool isLeaf() const;
+ bool isRoot() const;
+ int isCollapsing_performance() const {
+  BeachLineNode * lbp = getLeftBreakPoint();
+  BeachLineNode * rbp = getRightBreakPoint();
 
-if (!lbp || !rbp)
-return 0;
+  if (!lbp || !rbp)
+  return 0;
 
-BREAK_DIRECTION lx = lbp->getBreakXDirection();
-BREAK_DIRECTION ly = lbp->getBreakYDirection();
-BREAK_DIRECTION rx = rbp->getBreakXDirection();
-BREAK_DIRECTION ry = rbp->getBreakYDirection();
+  BREAK_DIRECTION lx = lbp->getBreakXDirection();
+  BREAK_DIRECTION ly = lbp->getBreakYDirection();
+  BREAK_DIRECTION rx = rbp->getBreakXDirection();
+  BREAK_DIRECTION ry = rbp->getBreakYDirection();
 
 //first try to find a solution without calculations
 
-if (((lx == BREAK_X_RIGHT && rx == BREAK_X_LEFT)
-|| (lx == BREAK_X_RIGHT && rx == BREAK_X_VERTICAL)
-|| (lx == BREAK_X_VERTICAL && rx == BREAK_X_LEFT)
-|| (((ly == BREAK_Y_UP||ly == BREAK_Y_HORIZONTAL) && (ry == BREAK_Y_DOWN))
-&& (lx == BREAK_X_RIGHT && rx == BREAK_X_RIGHT))
-|| ((ly == BREAK_Y_UP && (ry == BREAK_Y_DOWN||ry == BREAK_Y_HORIZONTAL))
-&& (lx == BREAK_X_RIGHT && rx == BREAK_X_RIGHT))
-|| (((ly == BREAK_Y_DOWN||ly==BREAK_Y_HORIZONTAL)&& (ry == BREAK_Y_UP))
-&& (lx == BREAK_X_LEFT && rx == BREAK_X_LEFT))
-|| (((ly == BREAK_Y_DOWN)&& (ry == BREAK_Y_UP||ry==BREAK_Y_HORIZONTAL))
-&& (lx == BREAK_X_LEFT && rx == BREAK_X_LEFT)))) {
-return 1;
-}
+  if (((lx == BREAK_X_RIGHT && rx == BREAK_X_LEFT)
+      || (lx == BREAK_X_RIGHT && rx == BREAK_X_VERTICAL)
+      || (lx == BREAK_X_VERTICAL && rx == BREAK_X_LEFT)
+      || (((ly == BREAK_Y_UP||ly == BREAK_Y_HORIZONTAL) && (ry == BREAK_Y_DOWN))
+        && (lx == BREAK_X_RIGHT && rx == BREAK_X_RIGHT))
+      || ((ly == BREAK_Y_UP && (ry == BREAK_Y_DOWN||ry == BREAK_Y_HORIZONTAL))
+        && (lx == BREAK_X_RIGHT && rx == BREAK_X_RIGHT))
+      || (((ly == BREAK_Y_DOWN||ly==BREAK_Y_HORIZONTAL)&& (ry == BREAK_Y_UP))
+        && (lx == BREAK_X_LEFT && rx == BREAK_X_LEFT))
+      || (((ly == BREAK_Y_DOWN)&& (ry == BREAK_Y_UP||ry==BREAK_Y_HORIZONTAL))
+        && (lx == BREAK_X_LEFT && rx == BREAK_X_LEFT)))) {
+   return 1;
+  }
 
-if (((lx == BREAK_X_LEFT && rx == BREAK_X_RIGHT)
-|| (lx == BREAK_X_LEFT && rx == BREAK_X_VERTICAL)
-|| (lx == BREAK_X_VERTICAL && rx == BREAK_X_RIGHT)
-|| (lx == BREAK_X_VERTICAL && rx == BREAK_X_VERTICAL)
-|| (((ly == BREAK_Y_DOWN||ly == BREAK_Y_HORIZONTAL) && ry == BREAK_Y_UP)
-&& (lx == BREAK_X_RIGHT && rx == BREAK_X_RIGHT))
-|| ((ly == BREAK_Y_DOWN && (ry == BREAK_Y_UP||ry == BREAK_Y_HORIZONTAL))
-&& (lx == BREAK_X_RIGHT && rx == BREAK_X_RIGHT))
-|| ((ly == BREAK_Y_UP && (ry == BREAK_Y_DOWN||ry == BREAK_Y_HORIZONTAL))
-&& (lx == BREAK_X_LEFT && rx == BREAK_X_LEFT))
-|| (((ly == BREAK_Y_UP||ly == BREAK_Y_HORIZONTAL) && ry == BREAK_Y_DOWN)
-&& (lx == BREAK_X_LEFT && rx == BREAK_X_LEFT))
-)) {
-return 0;
-}
+  if (((lx == BREAK_X_LEFT && rx == BREAK_X_RIGHT)
+      || (lx == BREAK_X_LEFT && rx == BREAK_X_VERTICAL)
+      || (lx == BREAK_X_VERTICAL && rx == BREAK_X_RIGHT)
+      || (lx == BREAK_X_VERTICAL && rx == BREAK_X_VERTICAL)
+      || (((ly == BREAK_Y_DOWN||ly == BREAK_Y_HORIZONTAL) && ry == BREAK_Y_UP)
+        && (lx == BREAK_X_RIGHT && rx == BREAK_X_RIGHT))
+      || ((ly == BREAK_Y_DOWN && (ry == BREAK_Y_UP||ry == BREAK_Y_HORIZONTAL))
+        && (lx == BREAK_X_RIGHT && rx == BREAK_X_RIGHT))
+      || ((ly == BREAK_Y_UP && (ry == BREAK_Y_DOWN||ry == BREAK_Y_HORIZONTAL))
+        && (lx == BREAK_X_LEFT && rx == BREAK_X_LEFT))
+      || (((ly == BREAK_Y_UP||ly == BREAK_Y_HORIZONTAL) && ry == BREAK_Y_DOWN)
+        && (lx == BREAK_X_LEFT && rx == BREAK_X_LEFT))
+    )) {
+   return 0;
+  }
 //some cases cannot be found without calculation
 
-PreciseDouble lbpdydx, rbpdydx;
+  PreciseDouble lbpdydx, rbpdydx;
 
-lbpdydx = ((PreciseDouble) lbp->site1->getY()
-- (PreciseDouble) lbp->site2->getY())
-/ ((PreciseDouble) lbp->site1->getX()
-- (PreciseDouble) lbp->site2->getX());
-rbpdydx = ((PreciseDouble) rbp->site1->getY()
-- (PreciseDouble) rbp->site2->getY())
-/ ((PreciseDouble) rbp->site1->getX()
-- (PreciseDouble) rbp->site2->getX());
+  lbpdydx = ((PreciseDouble) lbp->site1->getY()
+    - (PreciseDouble) lbp->site2->getY())
+  / ((PreciseDouble) lbp->site1->getX()
+    - (PreciseDouble) lbp->site2->getX());
+  rbpdydx = ((PreciseDouble) rbp->site1->getY()
+    - (PreciseDouble) rbp->site2->getY())
+  / ((PreciseDouble) rbp->site1->getX()
+    - (PreciseDouble) rbp->site2->getX());
 
-lbpdydx.makeAbs();
-rbpdydx.makeAbs();
+  lbpdydx.makeAbs();
+  rbpdydx.makeAbs();
 
-if (lx == BREAK_X_RIGHT) {
-SecureOperator::startSecureCalc();
-if (ly == BREAK_Y_DOWN && rbpdydx < lbpdydx) {
-if (SecureOperator::isSecureResult())
-return 1;
-else
-return -1;
-}
-SecureOperator::startSecureCalc();
-if ((ly == BREAK_Y_DOWN) && rbpdydx > lbpdydx) {
-if (SecureOperator::isSecureResult())
-return 0;
-else
-return -1;
-}
-SecureOperator::startSecureCalc();
-if ((ly == BREAK_Y_UP) && rbpdydx > lbpdydx) {
-if (SecureOperator::isSecureResult())
-return 1;
-}
-SecureOperator::startSecureCalc();
-if ((ly == BREAK_Y_UP) && rbpdydx < lbpdydx) {
-if (SecureOperator::isSecureResult())
-return 0;
-else
-return -1;
+  if (lx == BREAK_X_RIGHT) {
+   SecureOperator::startSecureCalc();
+   if (ly == BREAK_Y_DOWN && rbpdydx < lbpdydx) {
+    if (SecureOperator::isSecureResult())
+    return 1;
+    else
+    return -1;
+   }
+   SecureOperator::startSecureCalc();
+   if ((ly == BREAK_Y_DOWN) && rbpdydx > lbpdydx) {
+    if (SecureOperator::isSecureResult())
+    return 0;
+    else
+    return -1;
+   }
+   SecureOperator::startSecureCalc();
+   if ((ly == BREAK_Y_UP) && rbpdydx > lbpdydx) {
+    if (SecureOperator::isSecureResult())
+    return 1;
+   }
+   SecureOperator::startSecureCalc();
+   if ((ly == BREAK_Y_UP) && rbpdydx < lbpdydx) {
+    if (SecureOperator::isSecureResult())
+    return 0;
+    else
+    return -1;
 
-}
-}
-if (lx == BREAK_X_LEFT) {
-SecureOperator::startSecureCalc();
-if (ly == BREAK_Y_DOWN && rbpdydx > lbpdydx) {
-if (SecureOperator::isSecureResult())
-return 1;
-else
-return -1;
-}
-SecureOperator::startSecureCalc();
-if ((ly == BREAK_Y_DOWN) && rbpdydx < lbpdydx) {
-if (SecureOperator::isSecureResult())
-return 0;
-else
-return -1;
-}
-SecureOperator::startSecureCalc();
-if ((ly == BREAK_Y_UP) && rbpdydx < lbpdydx) {
-if (SecureOperator::isSecureResult())
-return 1;
-else
-return -1;
-}
-SecureOperator::startSecureCalc();
-if ((ly == BREAK_Y_UP) && rbpdydx > lbpdydx) {
-if (SecureOperator::isSecureResult())
-return 0;
-else
-return -1;
-}
-}
+   }
+  }
+  if (lx == BREAK_X_LEFT) {
+   SecureOperator::startSecureCalc();
+   if (ly == BREAK_Y_DOWN && rbpdydx > lbpdydx) {
+    if (SecureOperator::isSecureResult())
+    return 1;
+    else
+    return -1;
+   }
+   SecureOperator::startSecureCalc();
+   if ((ly == BREAK_Y_DOWN) && rbpdydx < lbpdydx) {
+    if (SecureOperator::isSecureResult())
+    return 0;
+    else
+    return -1;
+   }
+   SecureOperator::startSecureCalc();
+   if ((ly == BREAK_Y_UP) && rbpdydx < lbpdydx) {
+    if (SecureOperator::isSecureResult())
+    return 1;
+    else
+    return -1;
+   }
+   SecureOperator::startSecureCalc();
+   if ((ly == BREAK_Y_UP) && rbpdydx > lbpdydx) {
+    if (SecureOperator::isSecureResult())
+    return 0;
+    else
+    return -1;
+   }
+  }
 
-return -1;
+  return -1;
 
-}
-bool isCollapsing_mp(const VERTEX_COORDINATE y) const {
-BeachLineNode * lbp = getLeftBreakPoint();
-BeachLineNode * rbp = getRightBreakPoint();
+ }
+ bool isCollapsing_mp(const VERTEX_COORDINATE y) const {
+  BeachLineNode * lbp = getLeftBreakPoint();
+  BeachLineNode * rbp = getRightBreakPoint();
 // normal precision is not enough so try mp...
-mpq_class lbpdydx, rbpdydx, rsite1x, rsite1y, rsite2x, rsite2y, lsite1x,
-lsite1y, lsite2x, lsite2y;
+  mpq_class lbpdydx, rbpdydx, rsite1x, rsite1y, rsite2x, rsite2y, lsite1x,
+  lsite1y, lsite2x, lsite2y;
 
-rsite1y = rbp->site1->getY();
-rsite1x = rbp->site1->getX();
-rsite2y = rbp->site2->getY();
-rsite2x = rbp->site2->getX();
+  rsite1y = rbp->site1->getY();
+  rsite1x = rbp->site1->getX();
+  rsite2y = rbp->site2->getY();
+  rsite2x = rbp->site2->getX();
 
-lsite1y = lbp->site1->getY();
-lsite1x = lbp->site1->getX();
-lsite2y = lbp->site2->getY();
-lsite2x = lbp->site2->getX();
+  lsite1y = lbp->site1->getY();
+  lsite1x = lbp->site1->getX();
+  lsite2y = lbp->site2->getY();
+  lsite2x = lbp->site2->getX();
 
-BREAK_DIRECTION lx = lbp->getBreakXDirection();
-BREAK_DIRECTION ly = lbp->getBreakYDirection();
+  BREAK_DIRECTION lx = lbp->getBreakXDirection();
+  BREAK_DIRECTION ly = lbp->getBreakYDirection();
 
-lbpdydx = (lsite1x - lsite2x) / (lsite1y - lsite2y);
-rbpdydx = (rsite1x - rsite2x) / (rsite1y - rsite2y);
+  lbpdydx = (lsite1x - lsite2x) / (lsite1y - lsite2y);
+  rbpdydx = (rsite1x - rsite2x) / (rsite1y - rsite2y);
 
-if (lx == BREAK_X_RIGHT) {
-if (ly == BREAK_Y_DOWN && abs(rbpdydx) < abs(lbpdydx)) {
-return true;
-}
-if ((ly == BREAK_Y_DOWN) && abs(rbpdydx) > abs(lbpdydx)) {
-return false;
-}
-if ((ly == BREAK_Y_UP) && abs(rbpdydx) > abs(lbpdydx)) {
-return true;
-}
-if ((ly == BREAK_Y_UP) && abs(rbpdydx) < abs(lbpdydx)) {
-return false;
+  if (lx == BREAK_X_RIGHT) {
+   if (ly == BREAK_Y_DOWN && abs(rbpdydx) < abs(lbpdydx)) {
+    return true;
+   }
+   if ((ly == BREAK_Y_DOWN) && abs(rbpdydx) > abs(lbpdydx)) {
+    return false;
+   }
+   if ((ly == BREAK_Y_UP) && abs(rbpdydx) > abs(lbpdydx)) {
+    return true;
+   }
+   if ((ly == BREAK_Y_UP) && abs(rbpdydx) < abs(lbpdydx)) {
+    return false;
 
-}
-}
-if (lx == BREAK_X_LEFT) {
-if (ly == BREAK_Y_DOWN && abs(rbpdydx) > abs(lbpdydx)) {
-return true;
-}
-if ((ly == BREAK_Y_DOWN) && abs(rbpdydx) < abs(lbpdydx)) {
-return false;
-}
-if ((ly == BREAK_Y_UP) && abs(rbpdydx) < abs(lbpdydx)) {
-return true;
-}
-if ((ly == BREAK_Y_UP) && abs(rbpdydx) > abs(lbpdydx)) {
-return false;
-}
-}
+   }
+  }
+  if (lx == BREAK_X_LEFT) {
+   if (ly == BREAK_Y_DOWN && abs(rbpdydx) > abs(lbpdydx)) {
+    return true;
+   }
+   if ((ly == BREAK_Y_DOWN) && abs(rbpdydx) < abs(lbpdydx)) {
+    return false;
+   }
+   if ((ly == BREAK_Y_UP) && abs(rbpdydx) < abs(lbpdydx)) {
+    return true;
+   }
+   if ((ly == BREAK_Y_UP) && abs(rbpdydx) > abs(lbpdydx)) {
+    return false;
+   }
+  }
 
 //return false;
-mpq_class bp_left,bp_right;
+  mpq_class bp_left,bp_right;
 
-if (lbp)
-lbp->getParabolaIntersection_mp(y,bp_left);
-else
-throw std::runtime_error(E_EVENTQUEUE_CHECKEVENTANDINSERT);
+  if (lbp)
+  lbp->getParabolaIntersection_mp(y,bp_left);
+  else
+  throw std::runtime_error(E_EVENTQUEUE_CHECKEVENTANDINSERT);
 
-if (rbp)
-rbp->getParabolaIntersection_mp(y,bp_right);
-else
-throw std::runtime_error(E_EVENTQUEUE_CHECKEVENTANDINSERT);
+  if (rbp)
+  rbp->getParabolaIntersection_mp(y,bp_right);
+  else
+  throw std::runtime_error(E_EVENTQUEUE_CHECKEVENTANDINSERT);
 
-if ((abs(bp_left - bp_right) < 0.000001))
-{
-return true;
-}
+  if ((abs(bp_left - bp_right) < 0.000001))
+  {
+   return true;
+  }
 
-return false;
+  return false;
 
-}
-BeachLineNode * getLeftBreakPoint() const;
-BeachLineNode * getRightBreakPoint() const;
-BeachLineNode * getBrother() const;
-BeachLineNode * getLeftNeighbor() const;
-BeachLineNode * getLeftNeighbor(BeachLineNode** bp) const;
-BeachLineNode * getRightNeighbor() const;
-BeachLineNode * getRightNeighbor(BeachLineNode** bp) const;
-BeachLineNode * getLeftMost() const;
-BeachLineNode * getRightMost() const;
-BeachLineNode * getLeftNeighbor(POINT_COORDINATE & breakpoint,
-const VERTEX_COORDINATE sweepliney) const;
-BeachLineNode * getRightNeighbor(POINT_COORDINATE& breakpoint,
-const VERTEX_COORDINATE sweepliney) const;
-inline const Vertex * getSite() const {
-return site1;
-}
+ }
+ BeachLineNode * getLeftBreakPoint() const;
+ BeachLineNode * getRightBreakPoint() const;
+ BeachLineNode * getBrother() const;
+ BeachLineNode * getLeftNeighbor() const;
+ BeachLineNode * getLeftNeighbor(BeachLineNode** bp) const;
+ BeachLineNode * getRightNeighbor() const;
+ BeachLineNode * getRightNeighbor(BeachLineNode** bp) const;
+ BeachLineNode * getLeftMost() const;
+ BeachLineNode * getRightMost() const;
+ BeachLineNode * getLeftNeighbor(POINT_COORDINATE & breakpoint,
+   const VERTEX_COORDINATE sweepliney) const;
+ BeachLineNode * getRightNeighbor(POINT_COORDINATE& breakpoint,
+   const VERTEX_COORDINATE sweepliney) const;
+ inline const Vertex * getSite() const {
+  return site1;
+ }
 
-BeachLineNode * getParent() const;
-BeachLineNode * getGrandParent() const;
-BeachLineNode * getUncle() const;
-const std::multimap<Point_p, CircleEvent*>::iterator getEvent() const {
-return event;
-}
-bool isValidEvent() const {
-return validIterator;
-}
-POINT_COORDINATE getParabolaIntersection_sec(
-const VERTEX_COORDINATE ySweepLine) const;
-VERTEX_COORDINATE getParabolaIntersection(
-const VERTEX_COORDINATE ySweepLine) const;
-void getParabolaIntersection_mp(const VERTEX_COORDINATE ySweepLine,
-mpq_class & result) const;
+ BeachLineNode * getParent() const;
+ BeachLineNode * getGrandParent() const;
+ BeachLineNode * getUncle() const;
+ const std::multimap<Point_p, CircleEvent*>::iterator getEvent() const {
+  return event;
+ }
+ bool isValidEvent() const {
+  return validIterator;
+ }
+ POINT_COORDINATE getParabolaIntersection_sec(
+   const VERTEX_COORDINATE ySweepLine) const;
+ VERTEX_COORDINATE getParabolaIntersection(
+   const VERTEX_COORDINATE ySweepLine) const;
+ void getParabolaIntersection_mp(const VERTEX_COORDINATE ySweepLine,
+   mpq_class & result) const;
 ///////Presentation//////////////////////////////////////////////
-void print(std::ostream & os = std::cout, int tab = 1) const;
-void print_simple(std::ostream & os = std::cout) const;
+ void print(std::ostream & os = std::cout, int tab = 1) const;
+ void print_simple(std::ostream & os = std::cout) const;
 
 };
 
@@ -487,24 +487,24 @@ void print_simple(std::ostream & os = std::cout) const;
 */
 class BeachLine {
 protected:
-BeachLineNode root;
-VERTEX_COORDINATE ySweepLine;
+ BeachLineNode root;
+ VERTEX_COORDINATE ySweepLine;
 public:
-BeachLine();
-virtual ~BeachLine();
-void checkTree() const;
+ BeachLine();
+ virtual ~BeachLine();
+ void checkTree() const;
 
-VERTEX_COORDINATE getSweepLineY() const {
-return ySweepLine;
-}
+ VERTEX_COORDINATE getSweepLineY() const {
+  return ySweepLine;
+ }
 
-BeachLineNode* insert(const Vertex * psite, BeachLineNode* parabola);
-void setSweepLine(const VERTEX_COORDINATE ySweepLine);
-BeachLineNode * find(const VERTEX_COORDINATE x) const;
-void print(std::ostream & os = std::cout) const;
-void print_small(std::ostream & os = std::cout) const;
-void rescueVertices(VertexContainerSet* vertices);
-friend class BeachLine_test;
+ BeachLineNode* insert(const Vertex * psite, BeachLineNode* parabola);
+ void setSweepLine(const VERTEX_COORDINATE ySweepLine);
+ BeachLineNode * find(const VERTEX_COORDINATE x) const;
+ void print(std::ostream & os = std::cout) const;
+ void print_small(std::ostream & os = std::cout) const;
+ void rescueVertices(VertexContainerSet* vertices);
+ friend class BeachLine_test;
 
 };
 /*
@@ -524,74 +524,79 @@ friend class BeachLine_test;
 */
 class EventQueue {
 protected:
-std::set<Vertex>::reverse_iterator siteEventQueue;
-std::multimap<Point_p, CircleEvent*> circleEventQueue;
-BeachLine bl;
-Tin * tt;
-VertexContainerSet * verticesPriorSection;LOG_EXP(int eventId)
+ std::set<Vertex>::reverse_iterator siteEventQueue;
+ std::multimap<Point_p, CircleEvent*> circleEventQueue;
+ BeachLine bl;
+ Tin * tt;
+ VertexContainerSet * verticesPriorSection;LOG_EXP(int eventId)
 public:
-EventQueue(Tin * itt);
-~EventQueue();
+ EventQueue(Tin * itt);
+ ~EventQueue();
 
-bool isCircleAlreadyInQueue(const Point_p& sweeppoint) const;
-const std::multimap<Point_p, CircleEvent*>::iterator addCircleEvent(
-CircleEvent & e, bool & alreadyExists);
-/*
- The method doFortuneAlgorithm triangulates a section of vertices.
- The vertices are given by the container current section. The parameter finalSection
- indicates the last section. The final section call frees all memory occupied by the algorithm.
- The produced triangles will be delivered to the Tin given at construction time.
- The container currentSection has to be on the heap and will be freed by the algorithm !
- The sections have to be ordered by the y coordinate from top to bottom (top first) !
+ bool isCircleAlreadyInQueue(const Point_p& sweeppoint) const;
+ const std::multimap<Point_p, CircleEvent*>::iterator addCircleEvent(
+   CircleEvent & e, bool & alreadyExists);
+ /*
+  The method doFortuneAlgorithm triangulates a section of vertices.
+  The vertices are given by the container current section.
+  The parameter finalSection
+  indicates the last section. The final section call frees all
+  memory occupied by the algorithm.
+  The produced triangles will be delivered to the Tin given at
+  construction time.
+  The container currentSection has to be on the heap and will
+  be freed by the algorithm !
+  The sections have to be ordered by the y coordinate from top to
+  bottom (top first) !
 
-*/
-void doFortuneAlgorithm(VertexContainerSet * currentSection,
-bool finalSection = false);
-void createTriangle(const Vertex * v1, const Vertex * v2,
-const Vertex * v3, Triangle** newtriangle);
-BeachLine * getBeachLine() {
-return &bl;
-}
-Tin * getTinType() {
-return tt;
-}
-std::multimap<Point_p, CircleEvent*> * getCircleQueue() {
-return &circleEventQueue;
-}
-std::set<Vertex>::reverse_iterator getSiteQueue() {
-return siteEventQueue;
-}
-void print(std::ostream& os = std::cout);
-void print_small(std::ostream& os = std::cout) {
-os << "Events in the Queue.......................\n";
-std::multimap<Point_p, CircleEvent*>::reverse_iterator itc =
-circleEventQueue.rbegin();
+ */
+ void doFortuneAlgorithm(VertexContainerSet * currentSection,
+   bool finalSection = false);
+ void createTriangle(const Vertex * v1, const Vertex * v2,
+   const Vertex * v3, Triangle** newtriangle);
+ BeachLine * getBeachLine() {
+  return &bl;
+ }
+ Tin * getTinType() {
+  return tt;
+ }
+ std::multimap<Point_p, CircleEvent*> * getCircleQueue() {
+  return &circleEventQueue;
+ }
+ std::set<Vertex>::reverse_iterator getSiteQueue() {
+  return siteEventQueue;
+ }
+ void print(std::ostream& os = std::cout);
+ void print_small(std::ostream& os = std::cout) {
+  os << "Events in the Queue.......................\n";
+  std::multimap<Point_p, CircleEvent*>::reverse_iterator itc =
+    circleEventQueue.rbegin();
 
-os << "Current Event: \n";
-(*itc).second->print(os);
-(*siteEventQueue).print(os);
+  os << "Current Event: \n";
+  (*itc).second->print(os);
+  (*siteEventQueue).print(os);
 
-os << "..........................................\n";
+  os << "..........................................\n";
 
-bl.print_small(os);
+  bl.print_small(os);
 
-os << "..........................................\n";
-}
-void checkEventAndInsert(BeachLineNode* mid, Point_p& sweep);
-bool checkSiteCircleEvent(BeachLineNode* crneigh, const Vertex * vmid,
-BeachLineNode* clneigh, Point_p& sweep);
-void checkEventAndInsert(BeachLineNode* crneigh, BeachLineNode * cmid,
-BeachLineNode* clneigh, BeachLineNode* rbp, BeachLineNode* lbp);
-void insertSiteCircleEvent(BeachLineNode* arc);
-void removeEvent(BeachLineNode* arc);
+  os << "..........................................\n";
+ }
+ void checkEventAndInsert(BeachLineNode* mid, Point_p& sweep);
+ bool checkSiteCircleEvent(BeachLineNode* crneigh, const Vertex * vmid,
+   BeachLineNode* clneigh, Point_p& sweep);
+ void checkEventAndInsert(BeachLineNode* crneigh, BeachLineNode * cmid,
+   BeachLineNode* clneigh, BeachLineNode* rbp, BeachLineNode* lbp);
+ void insertSiteCircleEvent(BeachLineNode* arc);
+ void removeEvent(BeachLineNode* arc);
 private:
-EventQueue(const EventQueue & eq) {
-throw std::runtime_error("NOT IMPLEMENTED");
-}
-EventQueue& operator=(const EventQueue & ieq) {
-throw std::runtime_error("NOT IMPLEMENTED");
-}
-;
+ EventQueue(const EventQueue & eq) {
+  throw std::runtime_error("NOT IMPLEMENTED");
+ }
+ EventQueue& operator=(const EventQueue & ieq) {
+  throw std::runtime_error("NOT IMPLEMENTED");
+ }
+ ;
 };
 /*
  The class ~VoronoiEdge~ represents an edge in the Voronoi diagram.
@@ -613,113 +618,113 @@ throw std::runtime_error("NOT IMPLEMENTED");
 */
 class VoronoiEdge: public noncopyable {
 private:
-Triangle *t1;
-Triangle *t2;
+ Triangle *t1;
+ Triangle *t2;
 
-VoronoiEdge() {
-t1 = 0;
-t2 = 0;
+ VoronoiEdge() {
+  t1 = 0;
+  t2 = 0;
 //instanceCounter++;
-}
-~VoronoiEdge() {
+ }
+ ~VoronoiEdge() {
 //instanceCounter--;
-LOG("Delete VoronoiEdge")
-LOG(this)
+LOG ("Delete VoronoiEdge")
+ LOG(this)
 }
 public:
 
 //static int instanceCounter; // just to be safe
 void destroy() {
-addEnd(VORONOI_OPEN_END);
+ addEnd(VORONOI_OPEN_END);
 }
 
 void destroyHard() {
-if (t1 && t1 != VORONOI_OPEN_END)
-t1->deleteReference();
-if (t2 && t2 != VORONOI_OPEN_END)
-t2->deleteReference();
-delete this;
+ if (t1 && t1 != VORONOI_OPEN_END)
+ t1->deleteReference();
+ if (t2 && t2 != VORONOI_OPEN_END)
+ t2->deleteReference();
+ delete this;
 }
 
 static VoronoiEdge * getInstance(BeachLineNode * bp1, BeachLineNode * bp2 =
-0) {
-if (!bp1 && !bp2)
-throw std::runtime_error(
-"Tried to create a VoronoiEdge "
-"without any breakpoint.(VoronoiEdge::getInstance)");
+  0) {
+ if (!bp1 && !bp2)
+ throw std::runtime_error(
+   "Tried to create a VoronoiEdge "
+   "without any breakpoint.(VoronoiEdge::getInstance)");
 
-VoronoiEdge * newedge = new VoronoiEdge();
+ VoronoiEdge * newedge = new VoronoiEdge();
 
-if (bp1) {
-bp1->setVoronoiEdge(newedge);
-}
-if (bp2) {
-bp2->setVoronoiEdge(newedge);
-}
+ if (bp1) {
+  bp1->setVoronoiEdge(newedge);
+ }
+ if (bp2) {
+  bp2->setVoronoiEdge(newedge);
+ }
 
-return newedge;
+ return newedge;
 }
 
 Triangle * getOnlyEnd() {
-if (t1 && t2)
-throw std::runtime_error(
-"There are two ends.(VoronoiEdge::getOnlyEnd)");
+ if (t1 && t2)
+ throw std::runtime_error(
+   "There are two ends.(VoronoiEdge::getOnlyEnd)");
 
-if (t1)
-return t1;
-else
-return t2;
+ if (t1)
+ return t1;
+ else
+ return t2;
 }
 
 void setOnlyEnd(Triangle *t) {
-if (t1 && t2)
-throw std::runtime_error(
-"There are two ends.(VoronoiEdge::setOnlyEnd)");
+ if (t1 && t2)
+ throw std::runtime_error(
+   "There are two ends.(VoronoiEdge::setOnlyEnd)");
 
-if (t1)
-t1 = t;
-else
-t2 = t;
+ if (t1)
+ t1 = t;
+ else
+ t2 = t;
 
-if (t && t != VORONOI_OPEN_END)
-t->addReference();
+ if (t && t != VORONOI_OPEN_END)
+ t->addReference();
 }
 
 void addEnd(Triangle * t) {
 
-try {
+ try {
 
-if (!t)
-throw std::runtime_error(E_VORONOIEDGE_ADDEND0);
-if (t1 && t2)
-throw std::runtime_error(E_VORONOIEDGE_ADDEND);
+  if (!t)
+  throw std::runtime_error(E_VORONOIEDGE_ADDEND0);
+  if (t1 && t2)
+  throw std::runtime_error(E_VORONOIEDGE_ADDEND);
 
-if (t != VORONOI_OPEN_END)
-t->addReference();
+  if (t != VORONOI_OPEN_END)
+  t->addReference();
 
-if (!t1)
-t1 = t;
-else
-t2 = t;
+  if (!t1)
+  t1 = t;
+  else
+  t2 = t;
 
-if (t1 && t2) {
-if (!(t1 == VORONOI_OPEN_END)) {
-t1->addNeighbor(t2, false);
-t1->deleteReference();
-}
+  if (t1 && t2) {
+   if (!(t1 == VORONOI_OPEN_END)) {
+    t1->addNeighbor(t2, false);
+    t1->deleteReference();
+   }
 
-if (!(t2 == VORONOI_OPEN_END)) {
-t2->addNeighbor(t1, false);
-t2->deleteReference();
-}
+   if (!(t2 == VORONOI_OPEN_END)) {
+    t2->addNeighbor(t1, false);
+    t2->deleteReference();
+   }
 
-delete this;
-}
-} catch (std::exception & e) {
+   delete this;
+  }
+ } catch (std::exception & e) {
 
-LOG(e.what())
-delete this;
-}
+  LOG(e.what())
+  delete this;
+ }
 }
 
 };

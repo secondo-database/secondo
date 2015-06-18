@@ -37,52 +37,52 @@ namespace tin {
 
 #ifndef UNIT_TEST
 void TinPart::unaryOp(void* function) {
-loadContentData();
+ loadContentData();
 
-features.reset();
-pVertexContainer->unaryOp(function, features);
-setModified();
+ features.reset();
+ pVertexContainer->unaryOp(function, features);
+ setModified();
 }
 #endif
 
 void TinPart::addVerticesTo(VertexContainerSet& vc) {
-loadContentData();
-pVertexContainer->addVerticesTo(vc);
+ loadContentData();
+ pVertexContainer->addVerticesTo(vc);
 }
 #ifndef UNIT_TEST
 ListExpr TinPart::outPart() {
-LOGP
-ListExpr last, first;
+ LOGP
+ ListExpr last, first;
 
-loadContentData();
+ loadContentData();
 
-if (noTriangles > 0) {
-first = nl->OneElemList(arTriangles[0].outTriangle());
-} else {
-LOGP
-return nl->Empty();
-}
+ if (noTriangles > 0) {
+  first = nl->OneElemList(arTriangles[0].outTriangle());
+ } else {
+  LOGP
+  return nl->Empty();
+ }
 
-last = first;
+ last = first;
 
-for (int i = 1; i < noTriangles; i++) {
-last = nl->Append(last, arTriangles[i].outTriangle());
-}
+ for (int i = 1; i < noTriangles; i++) {
+  last = nl->Append(last, arTriangles[i].outTriangle());
+ }
 
-LOGP
-LOG(nl->ToString(first))
-return first;
+ LOGP
+ LOG(nl->ToString(first))
+ return first;
 }
 
 void TinPart::rebuild(char* state, size_t& offset) {
-LOGP
+ LOGP
 
-ReadVar<SmiRecordId>(recId, state, offset);
-ReadVar<TIN_SIZE>(noTriangles, state, offset);
-ReadVar<TIN_SIZE>(noVertices, state, offset);
-features.rebuild(state, offset);
+ ReadVar<SmiRecordId>(recId, state, offset);
+ ReadVar<TIN_SIZE>(noTriangles, state, offset);
+ ReadVar<TIN_SIZE>(noVertices, state, offset);
+ features.rebuild(state, offset);
 
-isRecInitialized = true;
+ isRecInitialized = true;
 
 LOG(recId)
 LOG(noTriangles)
@@ -90,512 +90,516 @@ LOG(noVertices)
 
 }
 void TinPart::serialize(char* storage, size_t& offset) {
-LOGP
-SmiRecord rec;
+ LOGP
+ SmiRecord rec;
 
-if (!isRecInitialized) {
-tin->getFile()->AppendRecord(recId, rec);
-isRecInitialized = true;
-rec.Finish();
-}
+ if (!isRecInitialized) {
+  tin->getFile()->AppendRecord(recId, rec);
+  isRecInitialized = true;
+  rec.Finish();
+ }
 
-if (isContentDataLoaded())
-noVertices = pVertexContainer->getNoVertices();
+ if (isContentDataLoaded())
+  noVertices = pVertexContainer->getNoVertices();
 
-WriteVar<SmiRecordId>(recId, storage, offset);
-WriteVar<TIN_SIZE>(noTriangles, storage, offset);
-WriteVar<TIN_SIZE>(noVertices, storage, offset);
+ WriteVar<SmiRecordId>(recId, storage, offset);
+ WriteVar<TIN_SIZE>(noTriangles, storage, offset);
+ WriteVar<TIN_SIZE>(noVertices, storage, offset);
 
-features.serialize(storage, offset);
+ features.serialize(storage, offset);
 
-if (isContentDataLoaded())
-save_content();
+ if (isContentDataLoaded())
+  save_content();
 
-LOGP
+ LOGP
 
-setModified(false);
+ setModified(false);
 }
 bool TinPart::save(SmiRecord& valueRecord) {
-if (config.memoryState == INMEMORY || config.memoryState == RANDOMACCESS)
-throw std::runtime_error(
-"Tried to save a tin part in state INMEMORY ¦¦ RANDOMACCESS.(TinPart::save)");
+ if (config.memoryState == INMEMORY || config.memoryState == RANDOMACCESS)
+  throw std::runtime_error(
+    "Tried to save a tin part in state INMEMORY"
+    " ¦¦ RANDOMACCESS.(TinPart::save)");
 
-LOGP
+ LOGP
 
-SmiRecord rec;
-SmiSize noBytesTransferred = 0;
-SmiSize currentPos;
+ SmiRecord rec;
+ SmiSize noBytesTransferred = 0;
+ SmiSize currentPos;
 
-if (isModified()) {
-if (!isRecInitialized) {
-tin->getFile()->AppendRecord(recId, rec);
-isRecInitialized = true;
-rec.Finish();
-}
-noBytesTransferred = valueRecord.Write(recId);
+ if (isModified()) {
+  if (!isRecInitialized) {
+   tin->getFile()->AppendRecord(recId, rec);
+   isRecInitialized = true;
+   rec.Finish();
+  }
+  noBytesTransferred = valueRecord.Write(recId);
 
-if (noBytesTransferred != sizeof(recId))
-return false;
+  if (noBytesTransferred != sizeof(recId))
+   return false;
 
-noBytesTransferred = valueRecord.Write(noTriangles);
-if (noBytesTransferred != sizeof(noTriangles))
-return false;
+  noBytesTransferred = valueRecord.Write(noTriangles);
+  if (noBytesTransferred != sizeof(noTriangles))
+   return false;
 
-if (isContentDataLoaded())
-noVertices = pVertexContainer->getNoVertices();
+  if (isContentDataLoaded())
+   noVertices = pVertexContainer->getNoVertices();
 
-noBytesTransferred = valueRecord.Write(noVertices);
-if (noBytesTransferred != sizeof(noVertices))
-return false;
+  noBytesTransferred = valueRecord.Write(noVertices);
+  if (noBytesTransferred != sizeof(noVertices))
+   return false;
 
-if (!features.save(valueRecord))
-return false;
+  if (!features.save(valueRecord))
+   return false;
 
-if (isContentDataLoaded())
-save_content();
+  if (isContentDataLoaded())
+   save_content();
 
-setModified(false);
+  setModified(false);
 
 LOGP} else {
-currentPos = valueRecord.GetPos();
-currentPos += TinPart::getSizeOnDisc_head();
-valueRecord.SetPos(currentPos);
+ currentPos = valueRecord.GetPos();
+ currentPos += TinPart::getSizeOnDisc_head();
+ valueRecord.SetPos(currentPos);
 }
 
-return true;
+ return true;
 }
 bool TinPart::open(SmiRecord& valueRecord) {
-SmiSize noBytesTransferred = 0;
-noBytesTransferred = valueRecord.Read(recId);
-if (noBytesTransferred != sizeof(recId))
-return false;
-isRecInitialized = true;
+ SmiSize noBytesTransferred = 0;
+ noBytesTransferred = valueRecord.Read(recId);
+ if (noBytesTransferred != sizeof(recId))
+  return false;
+ isRecInitialized = true;
 
-noBytesTransferred = valueRecord.Read(noTriangles);
-if (noBytesTransferred != sizeof(noTriangles))
-return false;
+ noBytesTransferred = valueRecord.Read(noTriangles);
+ if (noBytesTransferred != sizeof(noTriangles))
+  return false;
 
-noBytesTransferred = valueRecord.Read(noVertices);
-if (noBytesTransferred != sizeof(noVertices))
-return false;
+ noBytesTransferred = valueRecord.Read(noVertices);
+ if (noBytesTransferred != sizeof(noVertices))
+  return false;
 
-if (!features.open(valueRecord))
-return false;
+ if (!features.open(valueRecord))
+  return false;
 
-LOG(recId)
-LOG(noTriangles)
-LOG(noVertices)
-return true;
+ LOG(recId)
+ LOG(noTriangles)
+ LOG(noVertices)
+ return true;
 }
 bool TinPart::open_head(SmiRecord& valueRecord, uint32_t idx) {
-SmiSize noBytesTransferred = 0;
-LOGP
-LOG(idx * getSizeOnDisc_head()+tin->getPartHeadOrigin())
+ SmiSize noBytesTransferred = 0;
+ LOGP
+ LOG(idx * getSizeOnDisc_head()+tin->getPartHeadOrigin())
 
-valueRecord.SetPos(idx * getSizeOnDisc_head() + tin->getPartHeadOrigin());
+ valueRecord.SetPos(idx * getSizeOnDisc_head() + tin->getPartHeadOrigin());
 
-noBytesTransferred = valueRecord.Read(recId);
-if (noBytesTransferred != sizeof(recId))
-return false;
-isRecInitialized = true;
+ noBytesTransferred = valueRecord.Read(recId);
+ if (noBytesTransferred != sizeof(recId))
+  return false;
+ isRecInitialized = true;
 
-LOG(recId)
+ LOG(recId)
 
-noBytesTransferred = valueRecord.Read(noTriangles);
-if (noBytesTransferred != sizeof(noTriangles))
-return false;
+ noBytesTransferred = valueRecord.Read(noTriangles);
+ if (noBytesTransferred != sizeof(noTriangles))
+  return false;
 
-LOG(noTriangles)
+ LOG(noTriangles)
 
-noBytesTransferred = valueRecord.Read(noVertices);
-if (noBytesTransferred != sizeof(noVertices))
-return false;
+ noBytesTransferred = valueRecord.Read(noVertices);
+ if (noBytesTransferred != sizeof(noVertices))
+  return false;
 
-LOG(noVertices)
+ LOG(noVertices)
 
-if (!features.open(valueRecord))
-return false;
+ if (!features.open(valueRecord))
+  return false;
 
-LOGP
-return true;
+ LOGP
+ return true;
 }
 
 void TinPart::save_content() {
-LOGP
-SmiRecord rec;
-SmiSize noBytesTransferred = 0;
-SmiSize sz = 0;
-SmiSize offset = 0;
+ LOGP
+ SmiRecord rec;
+ SmiSize noBytesTransferred = 0;
+ SmiSize sz = 0;
+ SmiSize offset = 0;
 
-if (config.memoryState == INMEMORY)
-throw std::runtime_error(
-"Tried to save a tin part in state stay in memory.(TinPart::save_content)");
+ if (config.memoryState == INMEMORY)
+  throw std::runtime_error(
+    "Tried to save a tin part in state stay in memory.(TinPart::save_content)");
 
-if (!isRecInitialized) {
-tin->getFile()->AppendRecord(recId, rec);
-isRecInitialized = true;
-} else
-tin->getFile()->SelectRecord(recId, rec, SmiFile::Update);
+ if (!isRecInitialized) {
+  tin->getFile()->AppendRecord(recId, rec);
+  isRecInitialized = true;
+ } else
+  tin->getFile()->SelectRecord(recId, rec, SmiFile::Update);
 
-sz = getSizeOnDisc_content();
-char * buffer = new char[sz];
+ sz = getSizeOnDisc_content();
+ char * buffer = new char[sz];
 
-pVertexContainer->serialize(buffer, offset);
+ pVertexContainer->serialize(buffer, offset);
 
-LOG("Number of triangles:")
-LOG(noTriangles)
-LOGP
+ LOG("Number of triangles:")
+ LOG(noTriangles)
+ LOGP
 
-for (int i = 0; i < noTriangles; i++) {
-LOG(i)
-arTriangles[i].putSecondoRepresentation(pVertexContainer, buffer,
-(uint32_t &) offset);
-}
-LOGP
+ for (int i = 0; i < noTriangles; i++) {
+  LOG(i)
+  arTriangles[i].putSecondoRepresentation(pVertexContainer, buffer,
+    (uint32_t &) offset);
+ }
+ LOGP
 
-noBytesTransferred = rec.Write(buffer, sz, 0);
-if (noBytesTransferred != sz)
-throw std::runtime_error(
-"Error writing triangles to file.(TinPart::save_content)");
+ noBytesTransferred = rec.Write(buffer, sz, 0);
+ if (noBytesTransferred != sz)
+  throw std::runtime_error(
+    "Error writing triangles to file.(TinPart::save_content)");
 
-delete[] buffer;
+ delete[] buffer;
 
 LOGP}
 void TinPart::open_content() {
-SmiSize sz = 0;
-SmiSize offset = 0;
-SmiRecord rec;
-tin->getFile()->SelectRecord(recId, rec, SmiFile::ReadOnly);
+ SmiSize sz = 0;
+ SmiSize offset = 0;
+ SmiRecord rec;
+ tin->getFile()->SelectRecord(recId, rec, SmiFile::ReadOnly);
 
-sz = getSizeOnDisc_content();
-char * buffer = new char[sz];
+ sz = getSizeOnDisc_content();
+ char * buffer = new char[sz];
 
-rec.Read(buffer, sz, 0);
-pVertexContainer->rebuild(buffer, offset);
+ rec.Read(buffer, sz, 0);
+ pVertexContainer->rebuild(buffer, offset);
 
-LOGP
-if (noTriangles) {
-LOG(noTriangles)
-LOGP
-for (int i = 0; i < noTriangles; i++) {
-LOG(i)
-new (&arTriangles[i]) Triangle(pVertexContainer, buffer,
-(uint32_t &) offset, this);
-}
+ LOGP
+ if (noTriangles) {
+  LOG(noTriangles)
+  LOGP
+  for (int i = 0; i < noTriangles; i++) {
+   LOG(i)
+   new (&arTriangles[i]) Triangle(pVertexContainer, buffer,
+     (uint32_t &) offset, this);
+  }
 
 LOGP}
 
-delete[] buffer;
+ delete[] buffer;
 
-contentLoaded = true;
+ contentLoaded = true;
 
 LOGP}
 
 #endif
 std::set<Edge>* TinPart::getEdgeSet() {
 
-std::set<Edge>* setEdges = new std::set<Edge>();
-loadContentData();
+ std::set<Edge>* setEdges = new std::set<Edge>();
+ loadContentData();
 
-for (int i = 0; i < noTriangles; i++) {
-setEdges->insert(this->arTriangles[i].getEdge(1));
-setEdges->insert(this->arTriangles[i].getEdge(2));
-setEdges->insert(this->arTriangles[i].getEdge(3));
-}
-return setEdges;
+ for (int i = 0; i < noTriangles; i++) {
+  setEdges->insert(this->arTriangles[i].getEdge(1));
+  setEdges->insert(this->arTriangles[i].getEdge(2));
+  setEdges->insert(this->arTriangles[i].getEdge(3));
+ }
+ return setEdges;
 
 }
 bool TinPart::canAdd() {
-if (!pVertexContainer)
-return false;
+ if (!pVertexContainer)
+  return false;
 
-if (pVertexContainer->countVerticesAddable() < 3)
+ if (pVertexContainer->countVerticesAddable() < 3)
 //try to move memory to vertex container
-{
-TIN_SIZE memtomove = (3 - pVertexContainer->countVerticesAddable())
-* Vertex::getSizeOnDisc();
-TIN_SIZE trianglestoreduce = memtomove / Triangle::getSizeOnDisc();
+   {
+  TIN_SIZE memtomove = (3 - pVertexContainer->countVerticesAddable())
+    * Vertex::getSizeOnDisc();
+  TIN_SIZE trianglestoreduce = memtomove / Triangle::getSizeOnDisc();
 
-trianglestoreduce++;
+  trianglestoreduce++;
 
-if ((noTrianglesMax - noTriangles - 1) >= trianglestoreduce) {
-pVertexContainer->resize(pVertexContainer->getMaxSize() + memtomove);
-noTrianglesMax -= trianglestoreduce;
-} else
-return false;
+  if ((noTrianglesMax - noTriangles - 1) >= trianglestoreduce) {
+   pVertexContainer->resize(pVertexContainer->getMaxSize() + memtomove);
+   noTrianglesMax -= trianglestoreduce;
+  } else
+   return false;
 
-}
-if (noTrianglesMax == noTriangles)
-{
-return false;
+ }
+ if (noTrianglesMax == noTriangles) {
+  return false;
 
-}
+ }
 
-return true;
+ return true;
 
 }
 
 void TinPart::updateFeatures() {
 
-if (!isContentDataLoaded())
-loadContentData();
+ if (!isContentDataLoaded())
+  loadContentData();
 
-if (typeid(*pVertexContainer) != typeid(VertexContainerSet))
-throw std::runtime_error(
-"This only works for VertexContainerSet !(TinPart::updateFeatures)");
+ if (typeid(*pVertexContainer) != typeid(VertexContainerSet))
+  throw std::runtime_error(
+    "This only works for VertexContainerSet !(TinPart::updateFeatures)");
 
-VertexContainerSet * set =
-static_cast<VertexContainerSet*>(pVertexContainer);
+ VertexContainerSet * set =
+   static_cast<VertexContainerSet*>(pVertexContainer);
 
-features.update(set->getFeatures());
+ features.update(set->getFeatures());
 
 }
 bool TinPart::isValidTriangle(const Triangle & at,
-std::string & error_msg) {
+  std::string & error_msg) {
 
-loadContentData();
+ loadContentData();
 
-std::stringstream msg;
+ std::stringstream msg;
 
-for (int i = 0; i < noTriangles; i++) {
-if (!this->arTriangles[i].isCompatibleWith_sec(at)) {
-msg << "Existing triangle: \n ";
-arTriangles[i].print(msg);
-msg << " is not compatible with : \n";
-at.print(msg);
-error_msg = msg.str();
-return false;
-}
+ for (int i = 0; i < noTriangles; i++) {
+  if (!this->arTriangles[i].isCompatibleWith_sec(at)) {
+   msg << "Existing triangle: \n ";
+   arTriangles[i].print(msg);
+   msg << " is not compatible with : \n";
+   at.print(msg);
+   error_msg = msg.str();
+   return false;
+  }
 
-}
+ }
 
-return true;
+ return true;
 }
 bool TinPart::addTriangle(const Vertex& v1, const Vertex& v2,
-const Vertex& v3, Triangle** newtriangle) {
+  const Vertex& v3, Triangle** newtriangle) {
 
-bool nv1, nv2, nv3;
-std::string error_msg;
-const Vertex * pVr, *pV2r, *pV3r;
-Triangle *triangle2add;
+ bool nv1, nv2, nv3;
+ std::string error_msg;
+ const Vertex * pVr, *pV2r, *pV3r;
+ Triangle *triangle2add;
 
-if (canAdd()) {
+ if (canAdd()) {
 
-pVr = pVertexContainer->insertVertex(&v1, nv1);
-pV2r = pVertexContainer->insertVertex(&v2, nv2);
-pV3r = pVertexContainer->insertVertex(&v3, nv3);
+  pVr = pVertexContainer->insertVertex(&v1, nv1);
+  pV2r = pVertexContainer->insertVertex(&v2, nv2);
+  pV3r = pVertexContainer->insertVertex(&v3, nv3);
 
-triangle2add = constructTriangle(pVr, pV2r, pV3r);
+  triangle2add = constructTriangle(pVr, pV2r, pV3r);
 
-if (isValidTriangle(*triangle2add, error_msg)) {
+  if (isValidTriangle(*triangle2add, error_msg)) {
 
-features.update(triangle2add);
-*newtriangle = triangle2add;
-noVertices = pVertexContainer->getNoVertices();
-setModified();
-} else {
+   features.update(triangle2add);
+   *newtriangle = triangle2add;
+   noVertices = pVertexContainer->getNoVertices();
+   setModified();
+  } else {
 
-if (config.abstractType == MANIPULATE) {
-if (nv3)
-pVertexContainer->removeVertex(pV3r);
-if (nv2)
-pVertexContainer->removeVertex(pV2r);
-if (nv1)
-pVertexContainer->removeVertex(pVr);
-}
+   if (config.abstractType == MANIPULATE) {
+    if (nv3)
+     pVertexContainer->removeVertex(pV3r);
+    if (nv2)
+     pVertexContainer->removeVertex(pV2r);
+    if (nv1)
+     pVertexContainer->removeVertex(pVr);
+   }
 
 //std::cout<<*this;
-throw std::invalid_argument(E_ABSTRACTTINPART_ADDTRIANGLE + error_msg);
-}
-noTriangles++;
-return true;
-} else
-return false;
+   throw std::invalid_argument(E_ABSTRACTTINPART_ADDTRIANGLE + error_msg);
+  }
+  noTriangles++;
+  return true;
+ } else
+  return false;
 }
 bool TinPart::addTriangle_p(const Vertex& v1, const Vertex& v2,
-const Vertex& v3, Triangle** newtriangle) {
+  const Vertex& v3, Triangle** newtriangle) {
 
-bool nv1, nv2, nv3;
-const Vertex * pVr, *pV2r, *pV3r;
-Triangle *triangle2add;
+ bool nv1, nv2, nv3;
+ const Vertex * pVr, *pV2r, *pV3r;
+ Triangle *triangle2add;
 
-if (canAdd()) {
+ if (canAdd()) {
 
-pVr = pVertexContainer->insertVertex(&v1, nv1);
-pV2r = pVertexContainer->insertVertex(&v2, nv2);
-pV3r = pVertexContainer->insertVertex(&v3, nv3);
+  pVr = pVertexContainer->insertVertex(&v1, nv1);
+  pV2r = pVertexContainer->insertVertex(&v2, nv2);
+  pV3r = pVertexContainer->insertVertex(&v3, nv3);
 
-triangle2add = constructTriangle(pVr, pV2r, pV3r);
-*newtriangle = triangle2add;
-noVertices = pVertexContainer->getNoVertices();
-noTriangles++;
-setModified();
-return true;
-} else
-return false;
+  triangle2add = constructTriangle(pVr, pV2r, pV3r);
+  *newtriangle = triangle2add;
+  noVertices = pVertexContainer->getNoVertices();
+  noTriangles++;
+  setModified();
+  return true;
+ } else
+  return false;
 }
 bool TinPart::addTriangle_p2(const Vertex& v1, const Vertex& v2,
-const Vertex& v3, Triangle** newtriangle) {
-LOGP
-bool nv1, nv2, nv3;
-const Vertex * pVr, *pV2r, *pV3r;
-Triangle *triangle2add;
+  const Vertex& v3, Triangle** newtriangle) {
+ LOGP
+ bool nv1, nv2, nv3;
+ const Vertex * pVr, *pV2r, *pV3r;
+ Triangle *triangle2add;
 
-if (canAdd()) {
+ if (canAdd()) {
 
-pVr = pVertexContainer->insertVertex(&v1, nv1);
-pV2r = pVertexContainer->insertVertex(&v2, nv2);
-pV3r = pVertexContainer->insertVertex(&v3, nv3);
-LOGP
-triangle2add = constructTriangle(pVr, pV2r, pV3r);
-LOGP
-*newtriangle = triangle2add;
-LOGP
-features.update(triangle2add);
-LOGP
-noVertices = pVertexContainer->getNoVertices();
-LOGP
-noTriangles++;
-setModified();
-return true;
-} else
-return false;
+  pVr = pVertexContainer->insertVertex(&v1, nv1);
+  pV2r = pVertexContainer->insertVertex(&v2, nv2);
+  pV3r = pVertexContainer->insertVertex(&v3, nv3);
+  LOGP
+  triangle2add = constructTriangle(pVr, pV2r, pV3r);
+  LOGP
+  *newtriangle = triangle2add;
+  LOGP
+  features.update(triangle2add);
+  LOGP
+  noVertices = pVertexContainer->getNoVertices();
+  LOGP
+  noTriangles++;
+  setModified();
+  return true;
+ } else
+  return false;
 }
 void TinPart::deleteContentReference() {
-if (contentRefs > 0)
-contentRefs--;
+ if (contentRefs > 0)
+  contentRefs--;
 
 //std::cout<<"delete ref for "<<this<<" value "<<contentRefs<<endl;
 }
 void TinPart::addContentReference() {
-contentRefs++;
+ contentRefs++;
 
 //std::cout<<"add ref for "<<this<<" value "<<contentRefs<<endl;
 
 }
 VERTEX_Z TinPart::atlocation_brute_force(const Point_p& p) {
-LOGP
-loadContentData();
+ LOGP
+ loadContentData();
 
-int n = noTriangles;
-n--;
+ int n = noTriangles;
+ n--;
 
-while (n >= 0) {
-LOGP
-if (arTriangles[n].isInside_sec(p)) {
-LOG(*this)
-LOG("Dreieck nr:")
-LOG(n)
-LOG_EXP(arTriangles[n].print())
-return arTriangles[n].getValue(p);
-}
-n--;
-}
-LOGP
-return ERROR_VALUE;
+ while (n >= 0) {
+  LOGP
+  if (arTriangles[n].isInside_sec(p)) {
+   LOG(*this)
+   LOG("Dreieck nr:")
+   LOG(n)
+   LOG_EXP(arTriangles[n].print())
+   return arTriangles[n].getValue(p);
+  }
+  n--;
+ }
+ LOGP
+ return ERROR_VALUE;
 }
 
 VERTEX_Z TinPart::atlocation_bywalker(const Point_p& p) {
-LOGP
-loadContentData();
+ LOGP
+ loadContentData();
 
-Triangle * idxTriangle;
+ Triangle * idxTriangle;
 
-if (noTriangles > 0) {
+ if (noTriangles > 0) {
 
-idxTriangle = idxAtLocation.getAtLocationIndex(p);
+  idxTriangle = idxAtLocation.getAtLocationIndex(p);
 
-Triangle * t = idxTriangle->walkToTriangle_sec(p);
+  Triangle * t = idxTriangle->walkToTriangle_sec(p);
 
-LOGP
+  LOGP
 
-if (!t)
-return atlocation_brute_force(p);
-LOG_EXP(t->print())
-LOGP
-return t->getValue(p);
-} else
-return ERROR_VALUE;
+  if (!t)
+   return atlocation_brute_force(p);
+  LOG_EXP(t->print())
+  LOGP
+  return t->getValue(p);
+ } else
+  return ERROR_VALUE;
 
 }
 
 Triangle::triangleWalker TinPart::getWalker(Point_p * path, int noPoints) {
-loadContentData();
+ loadContentData();
 
-return Triangle::triangleWalker(idxAtLocation.getAtLocationIndex(path[0]),
-path, noPoints);
+ return Triangle::triangleWalker(idxAtLocation.getAtLocationIndex(path[0]),
+   path, noPoints);
 }
 Triangle* TinPart::findEdgeInPart(const Edge & e, Triangle* caller) {
-LOGP
-Point_p p1(*(e.getV1()));
-Point_p p2(*(e.getV2()));
+ LOGP
+ Point_p p1(*(e.getV1()));
+ Point_p p2(*(e.getV2()));
 
-if (!features.bbox.contains(p1) || !features.bbox.contains(p2))
-return 0;
+ if (!features.bbox.contains(p1) || !features.bbox.contains(p2))
+  return 0;
 
-loadContentData();
+ loadContentData();
 
-Triangle * idxTriangle, *resultTriangle;
-Point_p * pdest = new Point_p(p1);
+ Triangle * idxTriangle, *resultTriangle;
+ Point_p * pdest = new Point_p(p1);
 
-if (noTriangles > 0) {
+ if (noTriangles > 0) {
 
-idxTriangle = idxAtLocation.getAtLocationIndex(p1);
+  idxTriangle = idxAtLocation.getAtLocationIndex(p1);
 
-Triangle::triangleWalker walker(idxTriangle, pdest, 1, true, true,
-Triangle::triangleWalker::stopAtEdgeWalk, &e);
+  Triangle::triangleWalker walker(idxTriangle, pdest, 1, true, true,
+    Triangle::triangleWalker::stopAtEdgeWalk, &e);
 
-walker.walk_sec();
+  walker.walk_sec();
 
-resultTriangle = walker.getCurrentTriangle();
+  resultTriangle = walker.getCurrentTriangle();
 
 //if result could be determined via index without further loading
-if (resultTriangle && !resultTriangle->getEdge(e).isNull()
-&& resultTriangle != caller) {
-return resultTriangle;
-}
+  if (resultTriangle && !resultTriangle->getEdge(e).isNull()
+    && resultTriangle != caller) {
+   return resultTriangle;
+  }
 
 // fall back brute force in case the index could not determine a neighbor
-int n = noTriangles;
+  int n = noTriangles;
 
-n--;
+  n--;
 
-while (n >= 0) {
-LOGP
-if (arTriangles[n].hasEdge(e)) {
-if (&arTriangles[n] != caller)
-return &arTriangles[n];
-}
-n--;
-}
+  while (n >= 0) {
+   LOGP
+   if (arTriangles[n].hasEdge(e)) {
+    if (&arTriangles[n] != caller)
+     return &arTriangles[n];
+   }
+   n--;
+  }
 
-}
+ }
 
-return 0; // Edge is definitely not in this part
+ return 0; // Edge is definitely not in this part
 
 LOGP}
 
 Triangle* TinPart::getNeighbor(const Edge& commonEdge, Triangle* caller) {
-LOGP
-return tin->findNeighbor(commonEdge, caller);
+ LOGP
+ return tin->findNeighbor(commonEdge, caller);
 }
 TIN_SIZE TinPart::getSizeInMemory() {
-if (isContentDataLoaded())
-return sizeof(*this) + noTriangles * sizeof(Triangle)
-+ noTrianglesMax * sizeof(Triangle*) + pVertexContainer->getSizeInMemory();
-else
-return sizeof(*this);
+ if (isContentDataLoaded())
+return  sizeof(*this) + noTriangles * sizeof(Triangle)
+
+    + noTrianglesMax * sizeof(Triangle*)
+    + pVertexContainer->getSizeInMemory();
+ else
+  return sizeof(*this);
 }
 TIN_SIZE TinPart::estimateMaxSizeInMemory(const TinConfiguration & conf) {
 
-return sizeof(TinPart)
-+ TinPart::estimateNoTrianglesTotal(conf.maxSizePart) * sizeof(Triangle)
-+ TinPart::estimateNoTrianglesTotal(conf.maxSizePart) * sizeof(Triangle*)
-+ TinPart::estimateVertexContainerSizeOnDisc(conf.maxSizePart);
+return  sizeof(TinPart)
+
+   + TinPart::estimateNoTrianglesTotal(conf.maxSizePart) * sizeof(Triangle)
+   + TinPart::estimateNoTrianglesTotal(conf.maxSizePart)
+     * sizeof(Triangle*)
+   + TinPart::estimateVertexContainerSizeOnDisc(conf.maxSizePart);
 
 }
 TIN_SIZE TinPart::estimateVertexContainerSizeOnDisc(
-TIN_SIZE imaxSizePart) {
+  TIN_SIZE imaxSizePart) {
 
 //This method divides the ~imaxSizePart~ on disc in some memory for the Ver
 //texContainer
@@ -610,410 +614,412 @@ TIN_SIZE imaxSizePart) {
 //           and k is the number of vertices on the convex hull of the set
 //of vertices of the TinPart
 
-return double(imaxSizePart - (sizeof(int) + TinFeatures::getSizeOnDisc()))
-* (double(Vertex::getSizeOnDisc())
-/ double(
-(Vertex::getSizeOnDisc() + TRIANGLES_PER_VERTEX * Triangle::getSizeOnDisc())));
+ return double(imaxSizePart - (sizeof(int) + TinFeatures::getSizeOnDisc()))
+   * (double(Vertex::getSizeOnDisc())
+     / double(
+       (Vertex::getSizeOnDisc()
+         + TRIANGLES_PER_VERTEX * Triangle::getSizeOnDisc())));
 }
 void TinPart::initContentMemory() {
 
-TIN_SIZE containerSize = TinPart::estimateVertexContainerSizeOnDisc(
-config.maxSizePart);
+ TIN_SIZE containerSize = TinPart::estimateVertexContainerSizeOnDisc(
+   config.maxSizePart);
 
-switch (config.abstractType) {
-case QUERY:
-pVertexContainer = new VertexContainerArray(containerSize);
-break;
-case MANIPULATE:
-pVertexContainer = new VertexContainerSet(containerSize);
-break;
-default:
-LOGP
-LOG(config.abstractType)
-throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR);
-}
+ switch (config.abstractType) {
+  case QUERY:
+   pVertexContainer = new VertexContainerArray(containerSize);
+   break;
+  case MANIPULATE:
+   pVertexContainer = new VertexContainerSet(containerSize);
+   break;
+  default:
+   LOGP
+   LOG(config.abstractType)
+   throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR);
+ }
 
-arTriangles = new Triangle[TinPart::estimateNoTrianglesTotal(
-config.maxSizePart)];
-noTrianglesMax = TinPart::estimateNoTrianglesTotal(config.maxSizePart);
+ arTriangles = new Triangle[TinPart::estimateNoTrianglesTotal(
+   config.maxSizePart)];
+ noTrianglesMax = TinPart::estimateNoTrianglesTotal(config.maxSizePart);
 }
 void TinPart::initContentMemory(TIN_SIZE inoVertices,
-TIN_SIZE inoTriangles) {
-LOGP
-switch (config.abstractType) {
-case QUERY:
-pVertexContainer = new VertexContainerArray(-inoVertices);
-break;
-case MANIPULATE:
-pVertexContainer = new VertexContainerSet(-inoVertices);
-break;
-default:
-LOG(config.abstractType)
-throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR);
-}
+  TIN_SIZE inoTriangles) {
+ LOGP
+ switch (config.abstractType) {
+  case QUERY:
+   pVertexContainer = new VertexContainerArray(-inoVertices);
+   break;
+  case MANIPULATE:
+   pVertexContainer = new VertexContainerSet(-inoVertices);
+   break;
+  default:
+   LOG(config.abstractType)
+   throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR);
+ }
 
-arTriangles = new Triangle[inoTriangles];
-noTrianglesMax = inoTriangles;
+ arTriangles = new Triangle[inoTriangles];
+ noTrianglesMax = inoTriangles;
 }
 void TinPart::freeContentMemory() {
-LOGP
-if (pVertexContainer) {
-noVertices = pVertexContainer->getNoVertices();
-delete pVertexContainer;
-}
+ LOGP
+ if (pVertexContainer) {
+  noVertices = pVertexContainer->getNoVertices();
+  delete pVertexContainer;
+ }
 
-if (arTriangles) {
-delete[] arTriangles;
-}
-pVertexContainer = 0;
-arTriangles = 0;
+ if (arTriangles) {
+  delete[] arTriangles;
+ }
+ pVertexContainer = 0;
+ arTriangles = 0;
 
-noTrianglesMax = 0;
+ noTrianglesMax = 0;
 LOGP}
 void TinPart::unloadContentData() {
-LOGP
+ LOGP
 
-if (isContentDataLoaded() && contentRefs == 0
-&& (config.memoryState != INMEMORY)) {
-LOGP
-if (isModified()) {
+ if (isContentDataLoaded() && contentRefs == 0
+   && (config.memoryState != INMEMORY)) {
+  LOGP
+  if (isModified()) {
 #ifndef UNIT_TEST
-save_content();
+   save_content();
 #endif
-}
+  }
 
-freeContentMemory();
-contentLoaded = false;
-}
+  freeContentMemory();
+  contentLoaded = false;
+ }
 LOGP}
 void TinPart::loadContentData() {
-if (!isContentDataLoaded()) {
-initContentMemory(noVertices, noTriangles);
+ if (!isContentDataLoaded()) {
+  initContentMemory(noVertices, noTriangles);
 #ifndef UNIT_TEST
-open_content();
+  open_content();
 #endif
 
-}
+ }
 
 }
 bool TinPart::hasTriangle(Vertex &v1, Vertex &v2, Vertex &v3) {
 
-loadContentData();
+ loadContentData();
 
-for (int i = 0; i < noTriangles; i++) {
-if (arTriangles[i].isEqual(v1, v2, v3))
-return true;
-}
+ for (int i = 0; i < noTriangles; i++) {
+  if (arTriangles[i].isEqual(v1, v2, v3))
+   return true;
+ }
 
-return false;
+ return false;
 }
 bool TinPart::checkNeighborRelations() {
-TinPart::iterator it(this);
-loadContentData();
+ TinPart::iterator it(this);
+ loadContentData();
 
-while ((*it)) {
-if (!(*it)->checkNeighbors())
-return false;
-it++;
-}
+ while ((*it)) {
+  if (!(*it)->checkNeighbors())
+   return false;
+  it++;
+ }
 
-return true;
+ return true;
 }
 bool TinPart::checkDelaunay() {
-loadContentData();
-const Vertex* vcomp;
-Point_p middle;
-double radius;
+ loadContentData();
+ const Vertex* vcomp;
+ Point_p middle;
+ double radius;
 
-for (int i = 0; i < noTriangles; i++) {
-middle = CircleEvent::calculateCircle_mp(*arTriangles[i].getVertex(1),
-*arTriangles[i].getVertex(2), *arTriangles[i].getVertex(3), radius);
+ for (int i = 0; i < noTriangles; i++) {
+  middle = CircleEvent::calculateCircle_mp(*arTriangles[i].getVertex(1),
+    *arTriangles[i].getVertex(2), *arTriangles[i].getVertex(3), radius);
 
-for (int vi = 0; vi < pVertexContainer->getNoVertices(); vi++) {
-vcomp = pVertexContainer->getVertexByYIndex(vi);
-if ((!(*vcomp == *arTriangles[i].getVertex(1)
-|| *vcomp == *arTriangles[i].getVertex(2)
-|| *vcomp == *arTriangles[i].getVertex(3)))
-&& CircleEvent::isVertexInside(middle, radius, *vcomp)) {
-arTriangles[i].print();
-vcomp->print();
-std::cout << "\n";
-return false;
-}
-}
+  for (int vi = 0; vi < pVertexContainer->getNoVertices(); vi++) {
+   vcomp = pVertexContainer->getVertexByYIndex(vi);
+   if ((!(*vcomp == *arTriangles[i].getVertex(1)
+     || *vcomp == *arTriangles[i].getVertex(2)
+     || *vcomp == *arTriangles[i].getVertex(3)))
+     && CircleEvent::isVertexInside(middle, radius, *vcomp)) {
+    arTriangles[i].print();
+    vcomp->print();
+    std::cout << "\n";
+    return false;
+   }
+  }
 
-}
+ }
 
-return true;
+ return true;
 
 }
 TinPart* TinPart::unaryOp(VERTEX_Z (*op)(VERTEX_Z), TinFeatures & feat) {
-loadContentData();
-features.reset();
-pVertexContainer->unaryOp(op, features);
-feat.update(features);
-setModified();
-return this;
+ loadContentData();
+ features.reset();
+ pVertexContainer->unaryOp(op, features);
+ feat.update(features);
+ setModified();
+ return this;
 }
 std::ostream& operator <<(std::ostream& os, TinPart& a) {
 
-a.loadContentData();
+ a.loadContentData();
 
-os << "AbstractTinPart---- maximum size: " << a.config.maxSizePart
-<< " no. triangles: " << a.noTriangles << " current size on disc: "
-<< a.getSizeOnDisc() << " triangles total: " << a.noTrianglesMax << "\n";
+os  << "AbstractTinPart---- maximum size: " << a.config.maxSizePart
 
-a.features.print(os);
+   << " no. triangles: " << a.noTriangles << " current size on disc: "
+   << a.getSizeOnDisc() << " triangles total: " << a.noTrianglesMax
+   << "\n";
 
-os << "\n" << *(a.pVertexContainer) << "\n";
+ a.features.print(os);
 
-for (int i = 0; i < a.noTriangles; i++) {
-a.arTriangles[i].print(os);
-}
-os << "end AbstractTinPart\n";
-return os;
+ os << "\n" << *(a.pVertexContainer) << "\n";
+
+ for (int i = 0; i < a.noTriangles; i++) {
+  a.arTriangles[i].print(os);
+ }
+ os << "end AbstractTinPart\n";
+ return os;
 
 }
 TinPart* TinPart::getInstanceNew_fortestonly(Tin* tt,
-const Vertex *iarTriangles, int inoTriangles, int& noTrianglesAdded,
-const TinConfiguration& conf) {
+  const Vertex *iarTriangles, int inoTriangles, int& noTrianglesAdded,
+  const TinConfiguration& conf) {
 
-if (tt == 0)
-throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR2);
-if (iarTriangles == 0 && inoTriangles > 0)
-throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR0);
+ if (tt == 0)
+  throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR2);
+ if (iarTriangles == 0 && inoTriangles > 0)
+  throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR0);
 
-Triangle * newtriangle;
-TinPart* part = new TinPart();
+ Triangle * newtriangle;
+ TinPart* part = new TinPart();
 
 #ifndef UNIT_TEST
-part->isRecInitialized = false;
+ part->isRecInitialized = false;
 #endif
-part->tin = tt;
-noTrianglesAdded = 0;
-part->noTriangles = 0;
-part->config = conf;
+ part->tin = tt;
+ noTrianglesAdded = 0;
+ part->noTriangles = 0;
+ part->config = conf;
 
-part->initContentMemory();
+ part->initContentMemory();
 
-while (noTrianglesAdded < inoTriangles) {
-if (!part->addTriangle(iarTriangles[noTrianglesAdded * 3],
-iarTriangles[noTrianglesAdded * 3 + 1],
-iarTriangles[noTrianglesAdded * 3 + 2], &newtriangle))
-break;
+ while (noTrianglesAdded < inoTriangles) {
+  if (!part->addTriangle(iarTriangles[noTrianglesAdded * 3],
+    iarTriangles[noTrianglesAdded * 3 + 1],
+    iarTriangles[noTrianglesAdded * 3 + 2], &newtriangle))
+   break;
 
-noTrianglesAdded++;
-}
+  noTrianglesAdded++;
+ }
 
-part->contentLoaded = true;
-part->ismodified = true;
+ part->contentLoaded = true;
+ part->ismodified = true;
 
-LOG(part->config.abstractType)
-LOGP
+ LOG(part->config.abstractType)
+ LOGP
 
-return part;
+ return part;
 }
 TinPart* TinPart::getInstanceNew(Tin* tt, const TinConfiguration& conf) {
-if (tt == 0)
-throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR2);
+ if (tt == 0)
+  throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR2);
 
-if (conf.maxSizePart < MIN_CONFIG_SIZE
-|| conf.maxSizePart > MAX_CONFIG_SIZE)
-throw std::invalid_argument(
-"TinPart configured with size out of range.(TinPart::getInstanceNew)");
+ if (conf.maxSizePart < MIN_CONFIG_SIZE
+   || conf.maxSizePart > MAX_CONFIG_SIZE)
+  throw std::invalid_argument(
+    "TinPart configured with size out of range.(TinPart::getInstanceNew)");
 
-TinPart* part = new TinPart();
+ TinPart* part = new TinPart();
 
 #ifndef UNIT_TEST
-part->isRecInitialized = false;
+ part->isRecInitialized = false;
 #endif
-part->tin = tt;
-part->noTriangles = 0;
-part->config = conf;
-part->initContentMemory();
+ part->tin = tt;
+ part->noTriangles = 0;
+ part->config = conf;
+ part->initContentMemory();
 
-part->contentLoaded = true;
-part->ismodified = true;
+ part->contentLoaded = true;
+ part->ismodified = true;
 
-LOG(part->config.abstractType)
-LOGP
+ LOG(part->config.abstractType)
+ LOGP
 
-return part;
+ return part;
 }
 #ifndef UNIT_TEST
 TinPart* TinPart::getInstanceFromDisc(Tin* tt, SmiRecord& valueRecord,
-bool bulkload, const TinConfiguration& conf) {
-LOGP
-LOG(conf.abstractType)
+  bool bulkload, const TinConfiguration& conf) {
+ LOGP
+ LOG(conf.abstractType)
 
-if (tt == 0)
-throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR2);
+ if (tt == 0)
+  throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR2);
 
-if (conf.maxSizePart < MIN_CONFIG_SIZE
-|| conf.maxSizePart > MAX_CONFIG_SIZE)
-throw std::invalid_argument(
-"TinPart configured with size out of range.(TinPart::getInstanceNew)");
+ if (conf.maxSizePart < MIN_CONFIG_SIZE
+   || conf.maxSizePart > MAX_CONFIG_SIZE)
+  throw std::invalid_argument(
+    "TinPart configured with size out of range.(TinPart::getInstanceNew)");
 
-TinPart* part = new TinPart();
+ TinPart* part = new TinPart();
 
-part->tin = tt;
-part->noTriangles = 0;
-part->config = conf;
-part->pVertexContainer = 0;
-part->arTriangles = 0;
-part->contentLoaded = false;
-part->ismodified = false;
+ part->tin = tt;
+ part->noTriangles = 0;
+ part->config = conf;
+ part->pVertexContainer = 0;
+ part->arTriangles = 0;
+ part->contentLoaded = false;
+ part->ismodified = false;
 
-if (part->open(valueRecord) != true)
-throw std::runtime_error(E_ABSTRACTTINPART_INIT);
-if (bulkload)
-part->loadContentData();
+ if (part->open(valueRecord) != true)
+  throw std::runtime_error(E_ABSTRACTTINPART_INIT);
+ if (bulkload)
+  part->loadContentData();
 
-return part;
+ return part;
 }
 TinPart* TinPart::getInstanceFromBuffer(Tin* tt, char* buffer,
-uint32_t &offset, bool bulkload, const TinConfiguration& conf) {
-LOGP
-LOG(conf.abstractType)
+  uint32_t &offset, bool bulkload, const TinConfiguration& conf) {
+ LOGP
+ LOG(conf.abstractType)
 
-if (conf.maxSizePart < MIN_CONFIG_SIZE
-|| conf.maxSizePart > MAX_CONFIG_SIZE)
-throw std::invalid_argument(
-"TinPart configured with size out of range.(TinPart::getInstanceNew)");
-TinPart* part = new TinPart();
+ if (conf.maxSizePart < MIN_CONFIG_SIZE
+   || conf.maxSizePart > MAX_CONFIG_SIZE)
+  throw std::invalid_argument(
+    "TinPart configured with size out of range.(TinPart::getInstanceNew)");
+ TinPart* part = new TinPart();
 
-part->tin = tt;
-part->noTriangles = 0;
-part->config = conf;
-part->pVertexContainer = 0;
-part->arTriangles = 0;
-part->contentLoaded = false;
-part->ismodified = false;
+ part->tin = tt;
+ part->noTriangles = 0;
+ part->config = conf;
+ part->pVertexContainer = 0;
+ part->arTriangles = 0;
+ part->contentLoaded = false;
+ part->ismodified = false;
 
-part->rebuild(buffer, (unsigned long int&) offset);
+ part->rebuild(buffer, (unsigned long int&) offset);
 
-if (bulkload)
-part->loadContentData();
+ if (bulkload)
+  part->loadContentData();
 
-return part;
+ return part;
 }
 
 TinPart* TinPart::getInstanceFromDiscRandomAccess(Tin* tt,
-SmiRecord& valueRecord, uint32_t idx, const TinConfiguration& conf) {
-LOGP
-LOG(conf.abstractType)
+  SmiRecord& valueRecord, uint32_t idx, const TinConfiguration& conf) {
+ LOGP
+ LOG(conf.abstractType)
 
-if (tt == 0)
-throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR2);
+ if (tt == 0)
+  throw std::invalid_argument(E_ABSTRACTTINPART_CONSTRUCTOR2);
 
-if (conf.memoryState != RANDOMACCESS)
-throw std::invalid_argument(
-"Wrong configuration.(TinPart::getInstanceFromDiscRandomAccess)");
+ if (conf.memoryState != RANDOMACCESS)
+  throw std::invalid_argument(
+    "Wrong configuration.(TinPart::getInstanceFromDiscRandomAccess)");
 
-if (conf.maxSizePart < MIN_CONFIG_SIZE
-|| conf.maxSizePart > MAX_CONFIG_SIZE)
-throw std::invalid_argument(
-"TinPart configured with size out of range.(TinPart::getInstanceNew)");
+ if (conf.maxSizePart < MIN_CONFIG_SIZE
+   || conf.maxSizePart > MAX_CONFIG_SIZE)
+  throw std::invalid_argument(
+    "TinPart configured with size out of range.(TinPart::getInstanceNew)");
 
-TinPart* part = new TinPart();
+ TinPart* part = new TinPart();
 
-part->tin = tt;
-part->noTriangles = 0;
-part->config = conf;
-part->pVertexContainer = 0;
-part->arTriangles = 0;
-part->contentLoaded = false;
-part->ismodified = false;
+ part->tin = tt;
+ part->noTriangles = 0;
+ part->config = conf;
+ part->pVertexContainer = 0;
+ part->arTriangles = 0;
+ part->contentLoaded = false;
+ part->ismodified = false;
 
-if (part->open_head(valueRecord, idx) != true)
-throw std::runtime_error(E_ABSTRACTTINPART_INIT);
+ if (part->open_head(valueRecord, idx) != true)
+  throw std::runtime_error(E_ABSTRACTTINPART_INIT);
 
-part->loadContentData();
+ part->loadContentData();
 
-return part;
+ return part;
 }
 #endif
 
 TinPart* TinPart::clone(Tin*tt) {
-TinPart* result = new TinPart();
-bool n;
-const Vertex * v1, *v2, *v3;
-LOGP
-loadContentData();
+ TinPart* result = new TinPart();
+ bool n;
+ const Vertex * v1, *v2, *v3;
+ LOGP
+ loadContentData();
 
-result->tin = tt;
-result->config = tt->getConfiguration();
+ result->tin = tt;
+ result->config = tt->getConfiguration();
 
-if (config.maxSizePart > result->config.maxSizePart)
-throw std::runtime_error(
-"Tried to clone a part to a tin with smal"
-"ler parts. This is not possible.(TinPart::clone)");
+ if (config.maxSizePart > result->config.maxSizePart)
+  throw std::runtime_error("Tried to clone a part to a tin with smal"
+    "ler parts. This is not possible.(TinPart::clone)");
 
-if (config.abstractType != result->config.abstractType)
-throw std::runtime_error(
-"Tried to clone a part to a tin with different contain"
-"er type. This is not possible.(TinPart::clone)");
+ if (config.abstractType != result->config.abstractType)
+  throw std::runtime_error(
+    "Tried to clone a part to a tin with different contain"
+      "er type. This is not possible.(TinPart::clone)");
 
-result->noTriangles = 0;
-result->features = features;
-result->contentLoaded = true;
-result->ismodified = true;
-result->pVertexContainer = pVertexContainer->clone_empty();
+ result->noTriangles = 0;
+ result->features = features;
+ result->contentLoaded = true;
+ result->ismodified = true;
+ result->pVertexContainer = pVertexContainer->clone_empty();
 
-result->arTriangles = new Triangle[noTriangles];
+ result->arTriangles = new Triangle[noTriangles];
 
-for (int i = 0; i < noTriangles; i++) {
-v1 = result->pVertexContainer->insertVertex(arTriangles[i].getVertex(1),
-n);
-v2 = result->pVertexContainer->insertVertex(arTriangles[i].getVertex(2),
-n);
-v3 = result->pVertexContainer->insertVertex(arTriangles[i].getVertex(3),
-n);
+ for (int i = 0; i < noTriangles; i++) {
+  v1 = result->pVertexContainer->insertVertex(arTriangles[i].getVertex(1),
+    n);
+  v2 = result->pVertexContainer->insertVertex(arTriangles[i].getVertex(2),
+    n);
+  v3 = result->pVertexContainer->insertVertex(arTriangles[i].getVertex(3),
+    n);
 
-result->constructTriangle(v1, v2, v3);
-result->noTriangles++;
+  result->constructTriangle(v1, v2, v3);
+  result->noTriangles++;
 LOGP}
-result->noVertices = result->pVertexContainer->getNoVertices();
-result->contentRefs = 0;
-result->noTrianglesMax = noTrianglesMax;
+ result->noVertices = result->pVertexContainer->getNoVertices();
+ result->contentRefs = 0;
+ result->noTrianglesMax = noTrianglesMax;
 
 #ifndef UNIT_TEST
-result->isRecInitialized = false;
+ result->isRecInitialized = false;
 #endif
-LOGP
-return result;
+ LOGP
+ return result;
 
 }
 VERTEX_Z TinPart::atlocation(const Point_p& p) {
-LOGP
-return atlocation_bywalker(p);
+ LOGP
+ return atlocation_bywalker(p);
 }
 
 const Rectangle& TinPart::bbox() const {
-return features.bbox;
+ return features.bbox;
 }
 
 VERTEX_Z TinPart::minimum() const {
-return features.m_minValue;
+ return features.m_minValue;
 }
 
 VERTEX_Z TinPart::maximum() const {
-return features.m_maxValue;
+ return features.m_maxValue;
 }
 
 Triangle* TinPart::constructTriangle(const Vertex* v1, const Vertex* v2,
-const Vertex* v3) {
-LOGP
-LOG(this)
-return new (&arTriangles[noTriangles]) Triangle(const_cast<Vertex*>(v1),
-const_cast<Vertex*>(v2), const_cast<Vertex*>(v3), this);
+  const Vertex* v3) {
+ LOGP
+ LOG(this)
+ return new (&arTriangles[noTriangles]) Triangle(const_cast<Vertex*>(v1),
+   const_cast<Vertex*>(v2), const_cast<Vertex*>(v3), this);
 }
 
 TinPart * TinPart::binaryOp(AbstractTinType* tinResult,
-VERTEX_Z (*op)(VERTEX_Z z1, VERTEX_Z z2)) {
-return 0;
+  VERTEX_Z (*op)(VERTEX_Z z1, VERTEX_Z z2)) {
+ return 0;
 }
 
-/* namespace tin */
+/* namespace tin*/
 
 }

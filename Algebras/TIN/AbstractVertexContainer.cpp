@@ -26,24 +26,24 @@
 
 namespace tin {
 TIN_SIZE AbstractVertexContainer::getSizeOnDisc() const {
-return getContainerSizeOnDisc() + noVertices * Vertex::getSizeOnDisc();
+ return getContainerSizeOnDisc() + noVertices * Vertex::getSizeOnDisc();
 }
 
 TIN_SIZE AbstractVertexContainer::getMaxVertexCount() const {
 
-return ((((maxSize - getContainerSizeOnDisc()) / Vertex::getSizeOnDisc())));
+ return ((((maxSize - getContainerSizeOnDisc()) / Vertex::getSizeOnDisc())));
 }
 
 TIN_SIZE AbstractVertexContainer::countVerticesAddable() const {
-return getMaxVertexCount() - noVertices;
+ return getMaxVertexCount() - noVertices;
 }
 
 bool AbstractVertexContainer::isEmpty() const {
-return (noVertices == 0);
+ return (noVertices == 0);
 }
 
 bool AbstractVertexContainer::isFull() const {
-return (noVertices >= getMaxVertexCount());
+ return (noVertices >= getMaxVertexCount());
 }
 
 void AbstractVertexContainer::print(std::ostream& os) const {
@@ -51,8 +51,8 @@ void AbstractVertexContainer::print(std::ostream& os) const {
 }
 
 std::ostream& operator <<(std::ostream& os, AbstractVertexContainer& vc) {
-vc.print(os);
-return os;
+ vc.print(os);
+ return os;
 }
 
 }
