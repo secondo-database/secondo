@@ -1031,6 +1031,14 @@ return true;
 
 return false;
 }
+bool Triangle::operator==(const Triangle & t) const {
+if ((v1->equal3D(*t.v1) || v1->equal3D(*t.v2) || v1->equal3D(*t.v3))
+&& (v2->equal3D(*t.v1) || v2->equal3D(*t.v2) || v2->equal3D(*t.v3))
+&& (v3->equal3D(*t.v1) || v3->equal3D(*t.v2) || v3->equal3D(*t.v3)))
+return true;
+
+return false;
+}
 void Triangle::print(std::ostream & out) const {
 if (v1 == 0)
 throw std::runtime_error(E_TRIANGLE_UNINITIALIZED);

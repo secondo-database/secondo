@@ -114,6 +114,21 @@ return true;
 return false;
 
 }
+bool Vertex::smaller3D(const Vertex* v) const {
+
+if (this->y < v->y)
+return true;
+
+if (this->y == v->y && this->x < v->x) {
+return true;
+}
+
+if (this->y == v->y && this->x == v->x && this->z < v->z) {
+return true;
+}
+return false;
+
+}
 int Vertex::compareByX(const void * v1, const void * v2) {
 
 Vertex * pv1 = (*(Vertex**) v1);

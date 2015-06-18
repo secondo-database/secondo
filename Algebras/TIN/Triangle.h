@@ -302,6 +302,7 @@ static const Vertex* isTriangle_sec(const Vertex *iv1, const Vertex *iv2,
 const Vertex *iv3);
 bool isCompatibleWith_sec(const Triangle & iat) const;
 bool isInside_sec(const Point_p& p) const;
+bool operator==(const Triangle & t) const;
 bool isEqual(Vertex& v1, Vertex& v2, Vertex& v3);
 VERTEX_Z getValue(const Point_p& p) const;
 

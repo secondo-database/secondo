@@ -114,7 +114,7 @@ Vector2D operator -(const Point& p) const;
 Point operator +(const Vector2D& v) const;
 static int compareByX(const void * v1, const void * v2);
 bool operator <(const Vertex& v) const;
-
+bool smaller3D(const Vertex * v) const ;
 bool operator ==(const Vertex& v) const;
 bool operator ==(const Point_p& p) const;
 bool equal3D(const Vertex & v) const;

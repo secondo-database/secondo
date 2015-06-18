@@ -448,7 +448,91 @@ LOGP
 return sizeof(*this);
 }
 int Compare(const Attribute *rhs) const {
+TinAttribute * attr = (TinAttribute *) rhs;
+bool tok = false;
+bool tinisequal = true;
+const Vertex *av , *tv;
+
+//if rhs has more or less triangles -> unequal
+//the tin with more triangles is bigger
+if(this->noTriangles < attr->noTriangles)
+return -1;
+if(this->noTriangles > attr->noTriangles)
+return 1;
+
+const_cast<TinAttribute * >(this)->syncFlob(false);
+const_cast<TinAttribute * >(attr)->syncFlob(false);
+
+//bbox check -> unequal
+if(this->features == attr->features)
+{
+//compare all triangles of this with rhs
+
+for(uint32_t ithis = 0; ithis<this->noTriangles; ithis++)
+{
+
+tok = false;
+
+for(uint32_t iattr = 0; iattr< attr->noTriangles; iattr++)
+{
+if(attr->arTriangles[iattr] == this->arTriangles[ithis])
+{
+tok = true;
+break;
+}
+
+}
+
+if(!tok)
+{
+//if one is missing in rhs -> unequal
+tinisequal = false;
+break;
+}
+
+}
+
+}
+else
+tinisequal = false;
+
+if(tinisequal)
 return 0;
+
+//unequal then order defined by the first number deviating
+for(uint32_t index = 0; index<this->noTriangles; index++)
+{
+
+for(int vert = 1; vert<4; vert++)
+{
+av = attr->arTriangles[index].getVertex(vert);
+tv = this->arTriangles[index].getVertex(vert);
+
+if(av->getY()!=tv->getY())
+{
+if(av->getY()<tv->getY())
+return 1;
+else
+return -1;
+} else if(av->getX()!=tv->getX())
+{
+if(av->getX()<tv->getX())
+return 1;
+else
+return -1;
+} else if(av->getZ()!=tv->getZ())
+{
+if(av->getZ()<tv->getZ())
+return 1;
+else
+return -1;
+}
+}
+
+}
+
+throw std::runtime_error("This line"
+" should never be reached.(TinAttribute::Compare)");
 }
 Attribute * Clone() const {
 LOGP
@@ -489,7 +573,7 @@ newattr->syncFlob(true);
 return newattr;
 }
 size_t HashValue() const {
-return 1;
+return (uint)(features.m_maxValue-features.m_minValue);
 }
 void CopyFrom(const Attribute* right) {
 LOGP

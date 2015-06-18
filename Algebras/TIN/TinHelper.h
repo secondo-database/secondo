@@ -733,7 +733,16 @@ bool hasIntersection(const Rectangle &r) const {
 return ((r.m_x1 <= m_x2 && r.m_x2 >= m_x1)
 && (r.m_y1 <= m_y2 && r.m_y2 >= m_y1));
 }
+bool operator==(const Rectangle &r) const
+{
+if(m_x1 != r.m_x1 ||
+m_y1 != r.m_y1 ||
+m_x2 != r.m_x2 ||
+m_y2 != r.m_y2 )
+return false;
 
+return true;
+}
 bool contains(const Point_p& p) const {
 if ((p.x >= m_x1) && (p.x <= m_x2) && (p.y >= m_y1) && (p.y <= m_y2))
 return true;
@@ -849,6 +858,17 @@ m_minValue = std::numeric_limits<VERTEX_Z>::max();
 void update(const Triangle * at);
 void update(const TinFeatures & f);
 void update(const Vertex& v);
+bool operator==(const TinFeatures & feat) const
+{
+if(m_maxValue != feat.m_maxValue ||
+m_minValue != feat.m_minValue )
+return false;
+
+if(!(bbox == feat.bbox))
+return false;
+
+return true;
+}
 #ifndef UNIT_TEST
 void rebuild(char* state, size_t &offset) {
 ReadVar<VERTEX_Z>(m_minValue, state, offset);
