@@ -299,11 +299,11 @@ void CassandraAdapter::deletePendingTokenRange(size_t queryId,
    executeCQLSync(ss.str(), CASS_CONSISTENCY_QUORUM);
 }
 
-bool CassandraAdapter::isTokenRangePending(size_t queryId,
-   TokenRange *tokenrange) {
+bool CassandraAdapter::getNodeForPendingTokenRange(string &cassandraNode,
+   size_t queryId, TokenRange *tokenrange) {
       
    stringstream ss;
-   ss << "SELECT queryid FROM system_pending where queryid=" << queryId;
+   ss << "SELECT ip FROM system_pending where queryid=" << queryId;
    ss << " and begintoken='" << tokenrange->getStart() << "';";
       
    bool pending = false;
@@ -312,6 +312,7 @@ bool CassandraAdapter::isTokenRangePending(size_t queryId,
    
    while(result->hasNext()) {
       pending = true;
+      result->getStringValue(cassandraNode, 0);
    }
    
    if(result != NULL) {

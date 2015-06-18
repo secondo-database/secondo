@@ -341,6 +341,14 @@ public:
                query, queryId, cassandraInfo, range);
          }
       }
+
+// Uncomment this block to use the old algorithem with 2 phases
+// and without work unit reasignment      
+//      while( ! cassandraInfo->isQueryExecutedCompletely() ) {
+//            printStatusMessage(cassandraInfo);
+//            cassandraInfo->refreshDataOrExit(queryId);
+//      }
+      
    }
 
 /*
@@ -398,8 +406,14 @@ public:
                 unprocessedTokenRanges.erase(
                    unprocessedTokenRanges.begin()+tokenPos);
                 
-                if(cassandra -> isTokenRangePending(queryId, &tokenrange)) {
-                   continue;
+                string ip;
+                
+                if(cassandra -> getNodeForPendingTokenRange(ip, 
+                     queryId, &tokenrange)) {
+                        
+                   if(cassandraInfo->isNodeAlive(ip)) {
+                      continue;
+                   }
                 }
                 
                 executeQueryForTokenrangeIfNeeded(

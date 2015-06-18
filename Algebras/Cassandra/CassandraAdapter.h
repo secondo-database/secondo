@@ -652,10 +652,15 @@ IP to Noodename
        TokenRange *tokenrange);
 
 /* 
-2.3.30 Test if a token range processing is pending
+2.3.30 Test if a token range processing is pending.
+       Returns true if the token range is currently 
+       processed by QPN. The ip of the QPN will be 
+       strored in the variable cassandraNode. 
+       Returns false otherwise
   
 */
-  bool isTokenRangePending(size_t queryId, TokenRange *tokenrange);
+  bool getNodeForPendingTokenRange(string &cassandraNode, 
+      size_t queryId, TokenRange *tokenrange);
  
 protected:
 
