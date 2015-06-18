@@ -453,6 +453,9 @@ bool tok = false;
 bool tinisequal = true;
 const Vertex *av , *tv;
 
+if(!this->IsDefined() || !attr->IsDefined())
+return 1;
+
 //if rhs has more or less triangles -> unequal
 //the tin with more triangles is bigger
 if(this->noTriangles < attr->noTriangles)
