@@ -45,6 +45,7 @@
 #include <queue>
 #include "CassandraHelper.h"
 #include "CassandraAdapter.h"
+#include "CassandraToken.h"
 
 using namespace std;
 
@@ -223,72 +224,6 @@ private:
   vector<pthread_t> threads;
   bool firstCall;
 };
-
-
-/*
-2.5 Result objects for tokens
-
-*/
-class CassandraToken {
-  
-public:
-
-/*
-2.5.1 Default constructor
-
-*/
-  CassandraToken(long long myToken, string myIp) 
-    : token(myToken), ip(myIp) {
-      
-  }
-  
-/*
-2.5.2 Is IP local?
-
-*/  
-  bool isLocalToken() const {
-    return ip.compare("127.0.0.1");
-  }
-  
-/*
-2.5.3 Getter for token
-
-*/
-  long long getToken() const {
-    return token;
-  }
-
-/*
-2.5.4 Getter for ip
-
-*/
-  string getIp() const {
-    return ip;
-  }
-
-/*
-2.5.5 Operator <
-
-*/
-  bool operator<( const CassandraToken& val ) const { 
-        return getToken() < val.getToken(); 
-  }
-
-private:
-  long long token;
-  string ip;
-};
-
-/*
-2.5.6 Implementation for "toString"
-
-*/
-inline std::ostream& operator<<(std::ostream &strm, 
-                         const cassandra::CassandraToken &cassandraToken) {
-  
-  return strm << "CassandraToken[" << cassandraToken.getToken() 
-              << " / " << cassandraToken.getIp()  << "]" << endl;
-}
 
 } // Namespace
 

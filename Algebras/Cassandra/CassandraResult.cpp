@@ -63,9 +63,8 @@ bool SingleCassandraResult::hasNext() {
       futureWaitCalled = true;
       
       // Wait 30 seconds
-      
       if(! cass_future_wait_timed(future, 30 * 1000000)) {
-         cerr << "Future wait timed out" << endl;
+         cerr << "Future wait timed out!" << endl;
          return false;
       }
           
