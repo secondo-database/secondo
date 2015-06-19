@@ -57,6 +57,7 @@
 #include <limits.h>
 #include <vector>
 
+#include "CassandraTuplePrefetcher.h"
 #include "CassandraHelper.h"
 #include "CassandraResult.h"
 
@@ -68,6 +69,7 @@ namespace cassandra {
 // Prototype classes
 class CassandraResult;
 class CassandraToken;
+class CassandraTuplePrefetcher;
 
 /*
 2.4 Helper Class Token Interval
@@ -353,7 +355,7 @@ public:
 2. Parameter is the consistence level used for writing
 
 */
-    CassandraResult* readTable(string relation,
+    CassandraTuplePrefetcher* readTable(string relation,
         string consistenceLevel);
 
 /*
@@ -364,7 +366,7 @@ public:
 2. Parameter is the consistence level used for writing
 
 */
-    CassandraResult* readTableLocal(string relation,
+    CassandraTuplePrefetcher* readTableLocal(string relation,
         string consistenceLevel);
 
 /*
@@ -377,7 +379,7 @@ public:
 4. Parameter is the end token range
 
 */
-    CassandraResult* readTableRange(string relation,
+    CassandraTuplePrefetcher* readTableRange(string relation,
         string consistenceLevel, string begin, string end);
 
 
@@ -391,7 +393,7 @@ public:
 3. Parameter is the queryId
 
 */
-    CassandraResult* readTableCreatedByQuery(string relation,
+    CassandraTuplePrefetcher* readTableCreatedByQuery(string relation,
         string consistenceLevel, int queryId);
 
     

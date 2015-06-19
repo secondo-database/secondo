@@ -409,6 +409,8 @@ public:
                 
                 string ip;
                 
+                cout << "Check token range:" << tokenrange.getStart
+                
                 // Is the work unit already assigned to an other QPN?
                 if(cassandra -> getNodeForPendingTokenRange(ip, 
                      queryId, &tokenrange)) {

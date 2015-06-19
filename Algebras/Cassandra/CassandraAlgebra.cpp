@@ -1429,7 +1429,7 @@ public:
   
     : tupleType(myType), contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence),
-    cassandra(NULL), result(NULL), fetchedTuple("") {
+    cassandra(NULL), result(NULL) {
 
 #ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
@@ -1486,53 +1486,26 @@ public:
          cerr << "Unknown mode: " << fetchMode << endl;
          return;
       }
-      
     }
   }
   
-  bool fetchDataFromCassandra() {
-     // No result present
-     if(result == NULL) {
-       return false;
-     }
-    
-     while(result->hasNext()) {
-      
-       string key;
-       fetchedTuple = "";
-       
-       result -> getStringValue(key, 0);
-       result -> getStringValue(fetchedTuple, 1);
-      
-       // Metadata? Skip tuple
-       if(key.at(0) == '_') {
- #ifdef __DEBUG__
-         cout << "Skipping key: " << key << " value " << value << endl;
- #endif
-         continue;
-       }
-       
-       return true;
-    }
-    
-    return false;
-  }
-
   Tuple* fetchNextTuple() {
      
-      bool res = fetchDataFromCassandra();
+      string *fetchedTuple = result -> getNextTuple();
          
-      if(res == false) {
+      if(fetchedTuple == NULL) {
          return NULL;
       }
      
-      char *bytes = (char *)malloc(fetchedTuple.size() + 1);
-      memcpy(bytes, fetchedTuple.c_str(), fetchedTuple.size() + 1);
+      char *bytes = (char *)malloc(fetchedTuple->size() + 1);
+      memcpy(bytes, fetchedTuple->c_str(), fetchedTuple->size() + 1);
             
       // Build tuple and return
       Tuple* tuple = new Tuple(tupleType);
       tuple->ReadFromBin(bytes);
-      delete bytes;      
+      delete fetchedTuple;
+      delete bytes;
+      
       return tuple;
   }
   
@@ -1552,11 +1525,10 @@ private:
   string relationName;         // Relation name to delete
   string consistence;          // Consistence  
   CassandraAdapter* cassandra; // Our cassandra connection
-  CassandraResult* result;     // Query result
+  CassandraTuplePrefetcher* result;     // Query result
   string beginToken;           // Begin Token
   string endToken;             // End Token
   int    queryId;              // Queryid
-  string fetchedTuple;         // Fetched tuple
 };
 
 template<CollectFetchMode fetchMode>

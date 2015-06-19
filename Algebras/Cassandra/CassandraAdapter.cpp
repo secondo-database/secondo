@@ -48,9 +48,11 @@
 #include <cassert>
 #include <cassandra.h>
 
+
 #include "CassandraHelper.h"
 #include "CassandraAdapter.h"
 #include "CassandraResult.h"
+#include "CassandraTuplePrefetcher.h"
 
 // Activate debug messages
 //#define __DEBUG__
@@ -361,7 +363,7 @@ bool CassandraAdapter::getTupleTypeFromTable(string relation, string &result) {
 }
 
 
-CassandraResult* CassandraAdapter::readTable(string relation,
+CassandraTuplePrefetcher* CassandraAdapter::readTable(string relation,
         string consistenceLevel) {
 
     stringstream ss;
@@ -370,12 +372,14 @@ CassandraResult* CassandraAdapter::readTable(string relation,
     ss << ";";
     string query = ss.str();
     
-    return readDataFromCassandra(query, 
+    CassandraResult *result = readDataFromCassandra(query, 
             CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
+            
+    return new CassandraTuplePrefetcher(result);
 }
 
 
-CassandraResult* CassandraAdapter::readTableRange(string relation,
+CassandraTuplePrefetcher* CassandraAdapter::readTableRange(string relation,
         string consistenceLevel, string begin, string end) {
   
     stringstream ss;
@@ -386,13 +390,14 @@ CassandraResult* CassandraAdapter::readTableRange(string relation,
     ss << ";";
     string query = ss.str();
         
-    return readDataFromCassandra(query, 
-          CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
-  
+    CassandraResult *result = readDataFromCassandra(query, 
+            CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
+            
+    return new CassandraTuplePrefetcher(result);
 }
 
-CassandraResult* CassandraAdapter::readTableCreatedByQuery(string relation,
-        string consistenceLevel, int queryId) {
+CassandraTuplePrefetcher* CassandraAdapter::readTableCreatedByQuery(
+     string relation, string consistenceLevel, int queryId) {
    
   vector<TokenRange> ranges;
   if (! getProcessedTokenRangesForQuery(ranges, queryId) ) {
@@ -433,12 +438,71 @@ CassandraResult* CassandraAdapter::readTableCreatedByQuery(string relation,
       queries.push_back(ss.str());
   }
     
-  MultiCassandraResult* result = new MultiThreadedCassandraResult(queries, 
-            this,
-            CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
-  
-  return result;
+   CassConsistency casConsistenceLevel = 
+       CassandraHelper::convertConsistencyStringToEnum(consistenceLevel);
+    
+   CassandraResult* result = new CassandraResult(session, queries,
+        casConsistenceLevel);
+
+   return new CassandraTuplePrefetcher(result);  
 }
+
+
+CassandraTuplePrefetcher* CassandraAdapter::readTableLocal(string relation,
+        string consistenceLevel) {
+
+    // Lokal tokens
+    vector<TokenRange> localTokenRange;
+    vector<CassandraToken> localTokens;
+    vector<CassandraToken> peerTokens;
+    
+    getLocalTokenRanges(localTokenRange, localTokens, peerTokens);
+
+    vector<string> queries;
+    
+    // Generate token range queries;
+    for(vector<TokenRange>::iterator iter = localTokenRange.begin(); 
+        iter != localTokenRange.end(); ++iter) {
+      
+       stringstream ss;
+       ss << "SELECT key, value from ";
+       ss << relation << " ";
+       ss << "where ";
+      
+       TokenRange interval = *iter;
+       // Include token begin
+       if(interval.getStart() == LLONG_MIN) {
+         ss << "token(partition) >= " << interval.getStart() << " ";
+       } else {
+         ss << "token(partition) > " << interval.getStart() << " ";
+       }
+
+       ss << "and token(partition) <= " << interval.getEnd();        
+       ss << ";";
+        
+       queries.push_back(ss.str());
+    }
+    
+    CassConsistency casConsistenceLevel = 
+       CassandraHelper::convertConsistencyStringToEnum(consistenceLevel);
+    
+    CassandraResult* result = new CassandraResult(session, queries,
+            casConsistenceLevel);
+    
+    return new CassandraTuplePrefetcher(result); 
+}
+
+CassandraResult* CassandraAdapter::readDataFromCassandra(string cql, 
+         CassConsistency consistenceLevel, bool printError) {
+
+     if(! isConnected() ) {
+        cerr << "Cassandra session not ready" << endl;
+        return NULL;
+     }
+
+     return new CassandraResult(session, cql, consistenceLevel, printError);
+}
+
 
 bool CassandraAdapter::getLocalTokenRanges(
      vector<TokenRange> &localTokenRange, 
@@ -558,66 +622,6 @@ bool CassandraAdapter::getAllTokenRanges(
     
     return true;
 }
-
-
-CassandraResult* CassandraAdapter::readTableLocal(string relation,
-        string consistenceLevel) {
-
-    // Lokal tokens
-    vector<TokenRange> localTokenRange;
-    vector <CassandraToken> localTokens;
-    vector <CassandraToken> peerTokens;
-    
-    getLocalTokenRanges(localTokenRange, localTokens, peerTokens);
-
-    vector<string> queries;
-    
-    // Generate token range queries;
-    for(vector<TokenRange>::iterator iter = localTokenRange.begin(); 
-        iter != localTokenRange.end(); ++iter) {
-      
-       stringstream ss;
-       ss << "SELECT key, value from ";
-       ss << relation << " ";
-       ss << "where ";
-      
-       TokenRange interval = *iter;
-       // Include token begin
-       if(interval.getStart() == LLONG_MIN) {
-         ss << "token(partition) >= " << interval.getStart() << " ";
-       } else {
-         ss << "token(partition) > " << interval.getStart() << " ";
-       }
-
-       ss << "and token(partition) <= " << interval.getEnd();        
-       ss << ";";
-        
-       queries.push_back(ss.str());
-    }
-    
-    MultiCassandraResult* result = new MultiCassandraResult(queries, this, 
-            CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
-    
-    return result;
-}
-
-
-CassandraResult* CassandraAdapter::readDataFromCassandra(string cql, 
-         CassConsistency consistenceLevel, bool printError) {
-
-     if(! isConnected() ) {
-        cerr << "Cassandra session not ready" << endl;
-        return NULL;
-     }
-
-     CassStatement* statement = cass_statement_new(
-              cql.c_str(), 0);
-
-     cass_statement_set_consistency(statement, consistenceLevel);
-
-     return new SingleCassandraResult(session, statement, printError);
-}
-
 
 bool CassandraAdapter::createTable(string tablename, string tupleType) {
   
@@ -806,6 +810,11 @@ bool CassandraAdapter::executeCQLFutureSync(CassFuture* future) {
 
 CassFuture* CassandraAdapter::executeCQL
    (string cql, CassConsistency consistency) {
+      
+    if(! isConnected() ) {
+       cerr << "Cassandra session not ready" << endl;
+       return NULL;
+    }
 
     CassStatement* statement = 
           cass_statement_new(cql.c_str(), 0);

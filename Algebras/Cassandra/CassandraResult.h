@@ -43,6 +43,7 @@
 #define _CASSANDRA_RESULT_H
 
 #include <queue>
+#include "CassandraTuplePrefetcher.h"
 #include "CassandraHelper.h"
 #include "CassandraAdapter.h"
 #include "CassandraToken.h"
@@ -55,82 +56,49 @@ namespace cassandra {
 
 // Prototype class
 class CassandraAdapter;
-  
-/*
-2.1 This class is used as return value for CQL querys
-    You can use it to iteratate over the result set
-
-*/
-class CassandraResult {
-  
-public:
-     virtual ~CassandraResult() { }
-  
-     virtual bool hasNext() {
-       // To be implemented in subclasses
-       return false;
-     }
-    
-     virtual void getStringValue(string &resultString, int pos) {
-       // To be implemented in subclasses
-     }
-     
-     virtual cass_int32_t getIntValue(int pos) {
-       // To be implemented in subclasses
-       return -1;
-     }
-     
-     virtual cass_int64_t getBigIntValue(int pos) {
-       // To be implemented in subclasses
-       return -1;
-     }
-     
-};
      
 /*
 2.2 Result object for one cql query
 
 */
-class SingleCassandraResult : public CassandraResult {
+class CassandraResult {
   
 public:
 
-     SingleCassandraResult(CassSession* mySession, CassStatement* myStatement, 
-        bool printError = true) 
-        : session(mySession), statement(myStatement), future(NULL), 
-          result(NULL), iterator(NULL), row(NULL), futureWaitCalled(false) {
+     // Constructor with one query
+     CassandraResult(CassSession* mySession, string myStatement,
+        CassConsistency myConsistenceLevel, bool myPrintError = true)
+        : session(mySession), statement(NULL), future(NULL),
+          result(NULL), iterator(NULL), row(NULL), printError(myPrintError) {
 
-         cass_statement_set_paging_size(statement, 100);
-
-         future = cass_session_execute(session, statement);
-     
-         CassError rc = cass_future_error_code(future);
-    
-         if(rc != CASS_OK) {
-
-            if(printError) {
-               cerr << "Unable to execute statement " << endl;
-               CassandraHelper::print_error(future);
-            }   
- 
-            future = NULL;
-         }
+             queries.push_back(myStatement);
+             setupNextQuery();
      }
-     
+
+     // Constructor with query vector
+     CassandraResult(CassSession* mySession, vector<string> myQueries,
+        CassConsistency myConsistenceLevel, bool myPrintError = true)
+        : session(mySession), statement(NULL), future(NULL),
+          result(NULL), iterator(NULL), row(NULL),
+          queries(myQueries), printError(myPrintError) {
+
+         setupNextQuery();
+     }
+
      void freeIterator() {
         if(iterator != NULL) {
             cass_iterator_free(iterator);
             iterator = NULL;
         }
      }
-     
+
      void freeResult() {
         if(result != NULL) {
              cass_result_free(result);
              result = NULL;     
         }
      }
-     
+
      void freeFuture() {
         if(future != NULL) {
             cass_future_free(future);
@@ -145,17 +113,22 @@ public:
         }
      }
      
-     virtual ~SingleCassandraResult() {
-         freeIterator();
-         freeResult();
-         freeFuture();
-         freeStatement();
+     void freeAll() {
+        freeIterator();
+        freeResult();
+        freeFuture();
+        freeStatement();
+     }
+     
+     virtual ~CassandraResult() {
+        freeAll();
      }
      
      virtual bool hasNext();
      virtual void getStringValue(string &resultString, int pos);
      virtual cass_int32_t getIntValue(int pos);
      virtual cass_int64_t getBigIntValue(int pos);
+     void setupNextQuery();
      
 private:
      CassSession* session;
@@ -164,65 +137,9 @@ private:
      const CassResult* result;
      CassIterator* iterator;
      const CassRow* row;
-     bool futureWaitCalled;
-};
-
-/*
-2.3 Result object for multiple cql queries
-
-*/
-class MultiCassandraResult : public CassandraResult {
-  
-public:
-     
-  MultiCassandraResult(vector<string> myQueries, 
-                          CassandraAdapter* myCassandraAdapter,
-                          CassConsistency myConsistenceLevel);
-  
-  virtual ~MultiCassandraResult();
-  virtual bool setupNextQuery();
-  virtual bool hasNext();
-  virtual void getStringValue(string &resultString, int pos);
-  virtual cass_int32_t getIntValue(int pos);
-  virtual cass_int64_t getBigIntValue(int pos);
-  
-protected:
-  vector<string> queries;
-  CassandraAdapter* cassandraAdapter;
-  CassConsistency consistenceLevel;
-  CassandraResult* cassandraResult;
-};
-
-/*
-2.4 Result object for multiple cql queries
-
-Multi Threaded version
-
-*/
-class MultiThreadedCassandraResult : public MultiCassandraResult {
-  
-public:
-     
-  MultiThreadedCassandraResult(vector<string> myQueries, 
-                          CassandraAdapter* myCassandraAdapter,
-                          CassConsistency myConsistenceLevel
-                      );
-  
-  virtual ~MultiThreadedCassandraResult();
-  virtual bool hasNext();
-  virtual void getStringValue(string &resultString, int pos);
-  virtual cass_int32_t getIntValue(int pos);
-  virtual cass_int64_t getBigIntValue(int pos);
-  
-private:
-  queue< vector<string> > results;
-  pthread_mutex_t queryMutex;
-  pthread_mutex_t queueMutex;
-  pthread_cond_t queueCondition;
-  
-  size_t runningThreads;
-  vector<pthread_t> threads;
-  bool firstCall;
+     vector<string> queries;
+     queue< vector< CassRow*> > results;
+     bool printError;
 };
 
 } // Namespace
