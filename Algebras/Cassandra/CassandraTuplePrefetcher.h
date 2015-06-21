@@ -81,7 +81,6 @@ public:
              
       init();
    }
-         
       
    virtual ~CassandraTuplePrefetcher() {
       if(cassandraResult != NULL) {
@@ -96,10 +95,29 @@ public:
    void setProducerThread(pthread_t &thread) {
       producerThread = thread;
    }
-   
+
+/*
+2.1.1 Start the prefetching of tuples in an other thread.
+
+The prefetched tuples are placed in the tuples queue 
+
+*/   
    void startTuplePrefetch();
-   void prefetchTuple();
+   
+/*
+2.1.2 Get the next prefetched tuple
+
+Returns NULL if all tuples a emmited
+   
+*/
    string* getNextTuple();
+   
+/*
+2.1.3 Call back function after the prefetch thread is
+created
+
+*/  
+void prefetchTuple();
    
 private:
    
@@ -111,6 +129,10 @@ private:
       startTuplePrefetch();
    }
    
+/*
+2.1.4 Insert a tuple into the tuple queue
+   
+*/    
    void insertToQueue(string *fetchedTuple);
 
    CassandraResult *cassandraResult;
