@@ -42,6 +42,7 @@
 #define _CASSANDRA_TUPLEPREFETCH_H
 
 #define MAX_PREFETCH_TUPLES 200
+#define MAX_PREFETCH_THREADS 5
 
 #include "CassandraResult.h"
 #include "CassandraTuplePrefetcher.h"
@@ -64,36 +65,25 @@ public:
    
    CassandraTuplePrefetcher(CassSession* mySession, 
            string myStatement, CassConsistency myConsistenceLevel) 
-       : cassandraResult(NULL) {
+       : session(mySession), consistenceLevel(myConsistenceLevel), 
+           receivedTerminals(0) {
           
-      cassandraResult = new CassandraResult(mySession, 
-             myStatement, myConsistenceLevel);
-          
+      queries.push_back(myStatement);
       init();
    }
    
    CassandraTuplePrefetcher(CassSession* mySession, vector<string> myQueries,
       CassConsistency myConsistenceLevel) 
-       : cassandraResult(NULL) {
+       : session(mySession), consistenceLevel(myConsistenceLevel), 
+         queries(myQueries), receivedTerminals(0) {
           
-      cassandraResult = new CassandraResult(mySession, 
-             myQueries, myConsistenceLevel);
-             
       init();
    }
       
    virtual ~CassandraTuplePrefetcher() {
-      if(cassandraResult != NULL) {
-         delete cassandraResult;
-         cassandraResult = NULL;
-      }
-      
-      pthread_mutex_destroy(&queueMutex);
-      pthread_cond_destroy(&queueCondition);
-   }
-   
-   void setProducerThread(pthread_t &thread) {
-      producerThread = thread;
+      pthread_mutex_destroy(&tupleQueueMutex);
+      pthread_cond_destroy(&tupleQueueCondition);
+      pthread_mutex_destroy(&queryQueueMutex);
    }
 
 /*
@@ -122,10 +112,11 @@ void prefetchTuple();
 private:
    
    void init() {
-      // Init mutex and condition
-      pthread_mutex_init(&queueMutex, NULL);
-      pthread_cond_init(&queueCondition, NULL);
-   
+      // Init mutexes and conditions
+      pthread_mutex_init(&tupleQueueMutex, NULL);
+      pthread_cond_init(&tupleQueueCondition, NULL);
+      pthread_mutex_init(&queryQueueMutex, NULL);
+      
       startTuplePrefetch();
    }
    
@@ -134,12 +125,28 @@ private:
    
 */    
    void insertToQueue(string *fetchedTuple);
+   
+/*
+2.1.5 Get the next cassandra result to process
+   
+*/    
+   CassandraResult* getNextResult();
 
-   CassandraResult *cassandraResult;
+/*
+2.1.6 Join all prefetching threads
+   
+*/       
+   void joinThreads();
+
    queue<string*> tuples;
-   pthread_mutex_t queueMutex;
-   pthread_cond_t queueCondition;
-   pthread_t producerThread;
+   pthread_mutex_t tupleQueueMutex;
+   pthread_cond_t tupleQueueCondition;
+   vector<pthread_t*> producerThreads;
+   CassSession* session;
+   CassConsistency consistenceLevel;
+   vector<string> queries;   
+   pthread_mutex_t queryQueueMutex;
+   size_t receivedTerminals;
 };
 
 } // Namespace

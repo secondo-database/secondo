@@ -54,10 +54,10 @@ void* startPrefetchProducerThread(void *ptr) {
 }
 
 void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
-      pthread_mutex_lock(&queueMutex);
+      pthread_mutex_lock(&tupleQueueMutex);
       
       while(tuples.size() >= MAX_PREFETCH_TUPLES) {
-         pthread_cond_wait(&queueCondition, &queueMutex); 
+         pthread_cond_wait(&tupleQueueCondition, &tupleQueueMutex); 
       }
    
       bool wasEmpty = tuples.empty();
@@ -65,18 +65,29 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
       tuples.push(fetchedTuple);
    
       if(wasEmpty) {
-         pthread_cond_broadcast(&queueCondition);
+         pthread_cond_broadcast(&tupleQueueCondition);
       }
       
-      pthread_mutex_unlock(&queueMutex);
+      pthread_mutex_unlock(&tupleQueueMutex);
+   }
+   
+   void CassandraTuplePrefetcher::joinThreads() {
+      for(vector<pthread_t*>::iterator iter = producerThreads.begin(); 
+          iter != producerThreads.end(); iter++) {
+             pthread_t *thread = *iter;
+             pthread_join(*thread, NULL);
+             delete thread;
+      }
+      
+      producerThreads.clear();
    }
    
    string* CassandraTuplePrefetcher::getNextTuple() {
-      pthread_mutex_lock(&queueMutex);
+      pthread_mutex_lock(&tupleQueueMutex);
       int oldSize = tuples.size();
       
       while(tuples.empty()) {
-         pthread_cond_wait(&queueCondition, &queueMutex); 
+         pthread_cond_wait(&tupleQueueCondition, &tupleQueueMutex); 
       }
       
       // Remove one element
@@ -86,44 +97,84 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
       // Wakeup waiting producer threads
       if(oldSize >= MAX_PREFETCH_TUPLES) {
         //cout << "Wakeup waiting worker threads" << endl;
-        pthread_cond_broadcast(&queueCondition);
+        pthread_cond_broadcast(&tupleQueueCondition);
       }
   
-      pthread_mutex_unlock(&queueMutex);
+      pthread_mutex_unlock(&tupleQueueMutex);
       
-      // Producer thread is done and has inserted a NULL result into 
+      // One Producer thread is done and has inserted a NULL result into 
       // the queue
       if(result == NULL) {
-         pthread_join(producerThread, NULL);
+         receivedTerminals++;
+         
+         if(receivedTerminals == producerThreads.size()) {
+            joinThreads();
+         } else {
+            return getNextTuple(); // Fetch an other tuple
+         }
       }
       
       return result;
    }
    
+   CassandraResult* CassandraTuplePrefetcher::getNextResult() {
+      CassandraResult *cassandraResult = NULL;
+      
+      pthread_mutex_lock(&queryQueueMutex);
+      
+      if(queries.size() > 0) {
+         string query = queries.back();
+         queries.pop_back();
+         cassandraResult = new CassandraResult(session, 
+                query, consistenceLevel);
+      }
+  
+      pthread_mutex_unlock(&queryQueueMutex);
+      
+      return cassandraResult;
+   } 
+   
    void CassandraTuplePrefetcher::prefetchTuple() {
-      while(cassandraResult->hasNext()) {
+          
+      CassandraResult *cassandraResult = getNextResult();
       
-        string key;
-        string *fetchedTuple = new string();
+      while(cassandraResult != NULL) {
+      
+         while(cassandraResult->hasNext()) {
+      
+           string key;
+           string *fetchedTuple = new string();
        
-        cassandraResult -> getStringValue(key, 0);
-        cassandraResult -> getStringValue(*fetchedTuple, 1);
+           cassandraResult -> getStringValue(key, 0);
+           cassandraResult -> getStringValue(*fetchedTuple, 1);
       
-        // Metadata? Skip tuple
-        if(key.at(0) == '_') {
+           // Metadata? Skip tuple
+           if(key.at(0) == '_') {
   #ifdef __DEBUG__
-          cout << "Skipping key: " << key << " value " << value << endl;
+             cout << "Skipping key: " << key << " value " << value << endl;
   #endif
-          continue;
+             continue;
+           }
+           insertToQueue(fetchedTuple);
         }
-        insertToQueue(fetchedTuple);
+     
+        delete cassandraResult;
+        cassandraResult = getNextResult();
      }
      
+     // Notify consumer - all work is done
      insertToQueue(NULL);
    }
    
    void CassandraTuplePrefetcher::startTuplePrefetch() {
-      // Create producer thread
-      pthread_create(&producerThread, NULL, &startPrefetchProducerThread, this);
+      int totalQueries = queries.size();
+      size_t threads = min(MAX_PREFETCH_THREADS, totalQueries);
+      
+      // Create producer threads
+      for(size_t i = 0; i < threads; i++) {
+         pthread_t *thread = new pthread_t();
+         pthread_create(thread, NULL, &startPrefetchProducerThread, this);
+         producerThreads.push_back(thread);
+      }
    }
 }
