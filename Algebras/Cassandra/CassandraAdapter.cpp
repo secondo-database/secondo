@@ -372,10 +372,11 @@ CassandraTuplePrefetcher* CassandraAdapter::readTable(string relation,
     ss << ";";
     string query = ss.str();
     
-    CassandraResult *result = readDataFromCassandra(query, 
-            CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
-            
-    return new CassandraTuplePrefetcher(result);
+    CassConsistency casConsistenceLevel = 
+       CassandraHelper::convertConsistencyStringToEnum(consistenceLevel);
+    
+    return new CassandraTuplePrefetcher(session, query,
+            casConsistenceLevel); 
 }
 
 
@@ -389,11 +390,12 @@ CassandraTuplePrefetcher* CassandraAdapter::readTableRange(string relation,
     ss << "and token(partition) <= " << end;
     ss << ";";
     string query = ss.str();
-        
-    CassandraResult *result = readDataFromCassandra(query, 
-            CassandraHelper::convertConsistencyStringToEnum(consistenceLevel));
-            
-    return new CassandraTuplePrefetcher(result);
+    
+    CassConsistency casConsistenceLevel = 
+       CassandraHelper::convertConsistencyStringToEnum(consistenceLevel);
+    
+    return new CassandraTuplePrefetcher(session, query,
+            casConsistenceLevel); 
 }
 
 CassandraTuplePrefetcher* CassandraAdapter::readTableCreatedByQuery(
@@ -440,11 +442,9 @@ CassandraTuplePrefetcher* CassandraAdapter::readTableCreatedByQuery(
     
    CassConsistency casConsistenceLevel = 
        CassandraHelper::convertConsistencyStringToEnum(consistenceLevel);
-    
-   CassandraResult* result = new CassandraResult(session, queries,
-        casConsistenceLevel);
 
-   return new CassandraTuplePrefetcher(result);  
+   return new CassandraTuplePrefetcher(session, queries,
+        casConsistenceLevel);
 }
 
 
@@ -486,10 +486,8 @@ CassandraTuplePrefetcher* CassandraAdapter::readTableLocal(string relation,
     CassConsistency casConsistenceLevel = 
        CassandraHelper::convertConsistencyStringToEnum(consistenceLevel);
     
-    CassandraResult* result = new CassandraResult(session, queries,
-            casConsistenceLevel);
-    
-    return new CassandraTuplePrefetcher(result); 
+    return new CassandraTuplePrefetcher(session, queries,
+            casConsistenceLevel); 
 }
 
 CassandraResult* CassandraAdapter::readDataFromCassandra(string cql, 

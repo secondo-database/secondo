@@ -61,15 +61,27 @@ namespace cassandra {
 class CassandraTuplePrefetcher {
   
 public:
-   CassandraTuplePrefetcher(CassandraResult *myCassandraResult) 
-       : cassandraResult(myCassandraResult) {
+   
+   CassandraTuplePrefetcher(CassSession* mySession, 
+           string myStatement, CassConsistency myConsistenceLevel) 
+       : cassandraResult(NULL) {
           
-          // Init mutex and condition
-          pthread_mutex_init(&queueMutex, NULL);
-          pthread_cond_init(&queueCondition, NULL);
+      cassandraResult = new CassandraResult(mySession, 
+             myStatement, myConsistenceLevel);
           
-          startTuplePrefetch();
+      init();
    }
+   
+   CassandraTuplePrefetcher(CassSession* mySession, vector<string> myQueries,
+      CassConsistency myConsistenceLevel) 
+       : cassandraResult(NULL) {
+          
+      cassandraResult = new CassandraResult(mySession, 
+             myQueries, myConsistenceLevel);
+             
+      init();
+   }
+         
       
    virtual ~CassandraTuplePrefetcher() {
       if(cassandraResult != NULL) {
@@ -81,15 +93,24 @@ public:
       pthread_cond_destroy(&queueCondition);
    }
    
-   void startTuplePrefetch();
-   void prefetchTuple();
-   string* getNextTuple();
-   
    void setProducerThread(pthread_t &thread) {
       producerThread = thread;
    }
    
+   void startTuplePrefetch();
+   void prefetchTuple();
+   string* getNextTuple();
+   
 private:
+   
+   void init() {
+      // Init mutex and condition
+      pthread_mutex_init(&queueMutex, NULL);
+      pthread_cond_init(&queueCondition, NULL);
+   
+      startTuplePrefetch();
+   }
+   
    void insertToQueue(string *fetchedTuple);
 
    CassandraResult *cassandraResult;
