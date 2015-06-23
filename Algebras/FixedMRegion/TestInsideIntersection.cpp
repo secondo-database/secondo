@@ -12,17 +12,14 @@ void testInside1()
   //innerhalb+außerhalb
   printf ("Test inside inner- und außerhalb: ");
 
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  DateTime t_start(0.0);
+  DateTime t_end(1.0);
+  
   MPoint res (0);
   res.Clear();
   res.StartBulkLoad();
@@ -44,16 +41,17 @@ void testInside1()
   if (result==expected) {
     printf("OK\n");
   } else {
-    printf("Failed\n");
-    
+    printf("FAILED\n");
+    printf("Components:%d\n", result.GetNoComponents());
     for (int i=0; i<result.GetNoComponents(); i++) {
-      UPoint up;
-      //result.Get(i, up);
-      //printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
-      //up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
-      //up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
+      UBool up;
+      result.Get(i, up);
+      printf("%d: %s %f-%f\n", i, (up.constValue==(CcBool)true)?"true":"false",
+      up.getTimeInterval().start.ToDouble(),
+      up.getTimeInterval().end.ToDouble());
     }
   }
+  
 }
 
 void testInside2()
@@ -62,16 +60,13 @@ void testInside2()
   //außerhalb
   printf ("Test inside kein Schnitt: ");
     
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  DateTime t_start(0.0);
+  DateTime t_end(1.0);
   
   MPoint res (0);
   res.Clear();
@@ -92,14 +87,14 @@ void testInside2()
   if (result==expected) {
     printf("OK\n");
   } else {
-    printf("Failed\n");
+    printf("FAILED\n");
     
     for (int i=0; i<result.GetNoComponents(); i++) {
-      UPoint up;
-      //result.Get(i, up);
-      //printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
-      //up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
-      //up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
+      UBool up;
+      result.Get(i, up);
+      printf("%d: %s %f-%f\n", i, (up.constValue==(CcBool)true)?"true":"false", 
+      up.getTimeInterval().start.ToDouble(),
+      up.getTimeInterval().end.ToDouble());
     }
   }
 }
@@ -110,17 +105,13 @@ void testInside3()
   //innerhalb
   printf ("Test inside nur innerhalb: ");
   
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  DateTime t_start(0.0);
+  DateTime t_end(1.0);
   MPoint res (0);
   res.Clear();
   res.StartBulkLoad();
@@ -142,18 +133,18 @@ void testInside3()
   if (result==expected) {
     printf("OK\n");
   } else {
-    printf("Failed\n");
+    printf("FAILED\n");
     
     for (int i=0; i<result.GetNoComponents(); i++) {
-      UPoint up;
-      //result.Get(i, up);
-      //printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
-      //up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
-      //up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
+      UBool up;
+      result.Get(i, up);
+      printf("%d: %s %f-%f\n", i, (up.constValue==(CcBool)true)?"true":"false", 
+      up.getTimeInterval().start.ToDouble(),
+      up.getTimeInterval().end.ToDouble());
     }
   }
 }
-/*
+
 void testInside4()
 {
   //inside test 
@@ -162,12 +153,14 @@ void testInside4()
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
     0, 1, 0);
+  DateTime t_start(0.0);
+  DateTime t_end(1.0);
   
-  MPoint *res = new MPoint (0);
-  res->Clear ();
-  res->StartBulkLoad ();
+  MPoint res (0);
+  res.Clear ();
+  res.StartBulkLoad ();
   
   DateTime t1 (instanttype);
   t1.Set (2015, 3, 30, 8, 01);
@@ -175,7 +168,7 @@ void testInside4()
   t2.Set (2015, 3, 30, 9, 00);
   Interval < Instant > iv (t1, t2, false, true);
   UPoint ub (iv, 0, 0.5, 1, 1.5);
-  res->MergeAdd (ub);
+  res.MergeAdd (ub);
 
   DateTime t3 (instanttype);
   t3.Set (2015, 3, 30, 9, 01);
@@ -183,7 +176,7 @@ void testInside4()
   t4.Set (2015, 3, 30, 10, 00);
   Interval < Instant > iv2 (t3, t4, false, true);
   UPoint ub2 (iv2, 0, -1.0, 1, -1.5);
-  res->MergeAdd (ub2);
+  res.MergeAdd (ub2);
   
   DateTime t5 (instanttype);
   t5.Set (2015, 3, 30, 10, 01);
@@ -191,7 +184,7 @@ void testInside4()
   t6.Set (2015, 3, 30, 11, 00);
   Interval < Instant > iv3 (t5, t6, false, true);
   UPoint ub3 (iv3, 0, 0.5, 1, 1.5);
-  res->MergeAdd (ub3);
+  res.MergeAdd (ub3);
   
   DateTime t7 (instanttype);
   t7.Set (2015, 3, 30, 11, 01);
@@ -199,22 +192,22 @@ void testInside4()
   t8.Set (2015, 3, 30, 12, 00);
   Interval < Instant > iv4 (t7, t8, false, true);
   UPoint ub4 (iv4, 0, -0.5, 1, -1.5);
-  res->MergeAdd (ub4);
+  res.MergeAdd (ub4);
   
-  res->EndBulkLoad ();
+  res.EndBulkLoad ();
 
 
-  MBool result=fmr.inside(*res);
-  printf("innerhalb %s\n",(result->true(ub))?"Wahr":"Falsch");
-  
+  MBool result=fmr.inside(res);
+  //printf("innerhalb %s\n",(result->true(ub))?"Wahr":"Falsch");
+  printf("FAILED\n");
 }
-*/
+
 void testInside(){
   printf ("Test inside\n");
   testInside1();
   testInside2();
   testInside3();
-  //testInside4();
+  testInside4();
 }
 
 
@@ -226,17 +219,14 @@ void testIntersection1()
   //innerhalb+außerhalb
   printf ("Test intersection inner- und außerhalb: ");
 
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  DateTime t_start(0.0);
+  DateTime t_end(1.0);
+  
   MPoint res (0);
   res.Clear();
   res.StartBulkLoad();
@@ -253,21 +243,23 @@ void testIntersection1()
   expected.MergeAdd (ube);
   expected.EndBulkLoad ();
   
+  //printf("FAILED\n");
   MPoint result=fmr.intersection(res);
   
   if (result==expected) {
     printf("OK\n");
   } else {
-    printf("Failed\n");
+    printf("FAILED\n");
     
     for (int i=0; i<result.GetNoComponents(); i++) {
       UPoint up;
       result.Get(i, up);
-      printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
-             up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
-             up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
+  //    printf("%d: (%f, %f) @ %f - (%f, %f) @ %f\n", i,
+  //        up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
+  //       up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
     }
   }
+  
 }
 
 void testIntersection2()
@@ -275,17 +267,13 @@ void testIntersection2()
   //intersection test 
   //außerhalb
   printf ("Test intersection kein Schnitt: ");
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-   FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-  
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  DateTime t_start(0.0);
+  DateTime t_end(1.0);
   MPoint res (0);
   res.Clear();
   res.StartBulkLoad();
@@ -299,13 +287,14 @@ void testIntersection2()
   expected.StartBulkLoad();
 
   expected.EndBulkLoad ();
-  
+    printf("FAILED\n");
+  /*
   MPoint result=fmr.intersection(res);
   
   if (result==expected) {
     printf("OK\n");
   } else {
-    printf("Failed\n");
+    printf("FAILED\n");
     
     for (int i=0; i<result.GetNoComponents(); i++) {
       UPoint up;
@@ -314,7 +303,7 @@ void testIntersection2()
              up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
              up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
     }
-  }
+  }*/
 }
 
 void testIntersection3()
@@ -322,18 +311,15 @@ void testIntersection3()
   //intersection test 
   //innerhalb
   printf ("Test intersection nur innerhalb: ");
-    DateTime t_start(0.0);
-  DateTime t_end(1.0);
-
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-   FixedMRegion fmr = FixedMRegion(*rbig,
-                                  Point(true, 0, 0), 0.0, t_start,
-                                  Point(true, 0, 1), 0.0, t_end,
-                                  Point(true, 0, 0));
-  
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
+    0, 1, 0);
+  DateTime t_start(0.0);
+  DateTime t_end(1.0);
   MPoint res (0);
+  
   res.Clear();
   res.StartBulkLoad();
   Interval < Instant > iv (t_start, t_end, false, true);
@@ -348,13 +334,14 @@ void testIntersection3()
   UPoint ube (ive, 0, 0.5, 1, 1.5);
   expected.MergeAdd (ube);
   expected.EndBulkLoad ();
-  
+  printf("FAILED\n");
+  /*
   MPoint result=fmr.intersection(res);
   
   if (result==expected) {
     printf("OK\n");
   } else {
-    printf("Failed\n");
+    printf("FAILED\n");
     
     for (int i=0; i<result.GetNoComponents(); i++) {
       UPoint up;
@@ -363,9 +350,9 @@ void testIntersection3()
              up.p0.GetX(), up.p0.GetY(), up.getTimeInterval().start.ToDouble(),
              up.p1.GetX(), up.p1.GetY(), up.getTimeInterval().end.ToDouble());
     }
-  }
+  }*/
 }
-/*
+
 void testIntersection4()
 
 
@@ -376,8 +363,10 @@ void testIntersection4()
   double min[] = { 0.0, 0.0 };
   double max[] = { 1.0, 1.0 };
   Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, rbig, 0, 0, 0,
+  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
     0, 1, 0);
+  DateTime t_start(0.0);
+  DateTime t_end(1.0);
   
   MPoint *res = new MPoint (0);
   res->Clear ();
@@ -416,13 +405,13 @@ void testIntersection4()
   res->MergeAdd (ub4);
   
   res->EndBulkLoad ();
-
-
+  printf("FAILED\n");
+/*
   MPoint result=fmr.intersection(*res);
   printf("innerhalb %s\n",(result->true(ub))?"Wahr":"Falsch");
-  
+  */
 }
-*/
+
 
 
 
@@ -431,10 +420,12 @@ void testIntersection()
   //intersection tests
   printf ("Test intersection\n");
   testIntersection1();
-//  testIntersection2();
-//  testIntersection3();
-//  testIntersection4();
+  testIntersection2();
+  testIntersection3();
+  testIntersection4();
 }
+
+
 
 /*
 This is the only test method and contains all tests.
@@ -443,6 +434,7 @@ This is the only test method and contains all tests.
 void
 runtestInsideIntersection ()
 {
-  testIntersection();
   testInside();
+  testIntersection();
+
 }

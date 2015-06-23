@@ -332,6 +332,74 @@ MPoint FixedMRegion::approxMovement (const MPoint & p, double precision) const{
   return res;
 }
 /*
+This method calculates the step with depending on alpha.
+
+*/
+int FixedMRegion::calcStepWith(const double _ta, const double _te) const {
+  //double alpha_a;
+  //double alpha_e;
+  Intime<Point3> p(0);
+  m.AtInstant(_ta, p);
+  Point3 p3 = p.value;
+  double alpha_a = p3.GetAlpha();
+  m.AtInstant(_te, p);
+  p3 = p.value;
+  double alpha_e = p3.GetAlpha();
+  double tmp = (alpha_e - alpha_a);
+  ///(_te-_ta);
+  double kr = M_PI/16;
+  if(tmp <= kr){
+    return 1;
+  }
+  int steps=(int)ceil((tmp)/(kr));
+  return steps;
+}
+
+/*
+This method calculates the aprroximated movement of the given MPoint
+with the given precision unter the condition that the FixedMRegion does
+not move. Therefore, it uses an inverse movement of the Region and lets
+the MPoint move that way in addition to its own movement.
+
+*/
+MPoint FixedMRegion::approxMovementNew (const MPoint & p) const{
+  UPoint unit;
+  RefinementPartition<MPoint,MMove,UPoint,UMove> rp(p, m);
+  MPoint res (0);
+  res.StartBulkLoad ();
+  for (unsigned int i = 0; i < rp.Size(); i++) {
+    Interval<Instant> iv;
+    int urPos;
+    int upPos;
+    rp.Get(i, iv, urPos, upPos);
+    //te and ta are relatime
+    double ta = iv.start.ToDouble();
+    double te = iv.end.ToDouble();
+    printf("Intervall %d: von %f bis %f\n", i, ta, te);
+    int steps = calcStepWith(ta, te);
+    DateTime to (ta);
+    Intime < Point > tpo;
+    p.AtInstant (to, tpo);
+    Point po(0);
+    getInv(ta, tpo.value, po);
+    for (int i=1; i<=steps; i++) {
+      double now=((te-ta)/steps)*i+ta;
+      DateTime tn(now);
+      Intime < Point > tp;
+      p.AtInstant (tn, tp);
+      Point pn(0);
+      getInv(now, tp.value, pn);
+      Interval < Instant > in (to, tn, true, false);
+      UPoint up (in, po, pn);
+      res.MergeAdd (up);
+      to = tn;
+      po = pn;
+    }
+  }
+  res.EndBulkLoad();
+  return res;
+}
+/*
 This method creates a non moving MRegion.
 
 */
@@ -354,6 +422,56 @@ MRegion *FixedMRegion::buildMovingRegion(){
   mr = new MRegion (rock, r);
   return mr;
 }
+
+/*
+This method will join adjacent UBools, if they have got the same value.
+
+*/
+MBool FixedMRegion::joinBools(MBool a){
+  MBool res(0);
+  res.Clear();
+  res.StartBulkLoad();
+
+  if(a.GetNoComponents()==0){
+   res.EndBulkLoad ();
+  return res;
+  }
+  
+  bool start=true;
+  int i=0;   
+  UBool up;
+  a.Get(i, up);
+  DateTime t_start = up.getTimeInterval().start;
+  DateTime t_end = up.getTimeInterval().end;
+  CcBool val = up.constValue;
+  i++;
+  while(i<a.GetNoComponents()){
+   a.Get(i, up);
+   if((t_end == up.getTimeInterval().start) && (val == up.constValue)){
+     t_end = up.getTimeInterval().end;
+   }else{
+     if (t_start!=t_end) {
+       Interval < Instant > iv (t_start, t_end, start, true);
+       UBool ub (iv, (CcBool) val);
+       res.MergeAdd (ub);
+     }
+     start=false;
+     t_start = up.getTimeInterval().start;
+     t_end = up.getTimeInterval().end;
+     val = up.constValue;
+   }
+   i++;
+  }
+  if (t_start!=t_end) {
+    Interval < Instant > ive (t_start, t_end, start, true);
+    UBool ube (ive, (CcBool) val);
+    res.MergeAdd (ube);
+  }
+  
+  res.EndBulkLoad ();
+  return res;
+}
+
 /*
 This method will calculate a MPoint with which is defined, if the MPoint mp 
 is inside the FMRegion at the given time and else not defined. The MPoint 
@@ -362,12 +480,13 @@ will be calculated for the time intervall ta to te.
 */
 MBool FixedMRegion::inside (const MPoint & mp){
   MRegion * rfix = buildMovingRegion ();
-  MPoint tmp = approxMovement (mp, 1e-5);
+  //MPoint tmp = approxMovement (mp, 1e-5);
+  MPoint tmp = approxMovementNew(mp);
   MBool res (0);
   rfix->Inside (tmp, res);
-  delete
-    rfix;
-  return res;
+  delete rfix;
+  MBool result = joinBools(res);
+  return result;
 }
 
 
@@ -386,9 +505,9 @@ MPoint FixedMRegion::reverseMovement (const MPoint & p) const{
       UPoint unit;
       p.Get (i, unit);
       Point p0, p1;
-      getTransPoint (unit.getTimeInterval ().start, unit.p0, p0);
-      getTransPoint (unit.getTimeInterval ().end, unit.p1, p1);
-      UPoint u2 (unit.getTimeInterval (), p0, p1);
+      getTransPoint (unit.getTimeInterval().start, unit.p0, p0);
+      getTransPoint (unit.getTimeInterval().end, unit.p1, p1);
+      UPoint u2 (unit.getTimeInterval(), p0, p1);
       res.MergeAdd (u2);
     }
   res.EndBulkLoad ();
@@ -409,13 +528,44 @@ MPoint FixedMRegion::intersection(MPoint & mp){
   MPoint
     res (0);
   //rfix->Intersection (tmp, res);
-  Region r;
+  Region r(0);
   atinstant(getMMoveStart(0.0), r);
   tmp.AtRegion(&r, res);
   return reverseMovement (res);
 }
 
+/*
+This method will calculate a MPoint which is defined, if the MPoint mp 
+intersects with the FMRegion at the given time and else not defined. The 
+MPoint will be calculated for the time intervall ta to te.
 
+*/
+MPoint FixedMRegion::intersectionNew(MPoint & mp) {
+  MBool parts = inside(mp);
+  MPoint result(0);
+  result.Clear();
+  result.StartBulkLoad();
+  for (int i=0; i<parts.GetNoComponents(); i++) {
+    UBool up;
+    parts.Get(i, up);
+    if(up.constValue==(CcBool)true){
+      DateTime t_start = up.getTimeInterval().start;
+      DateTime t_end = up.getTimeInterval().end;
+      Interval < Instant > iv (t_start, t_end, false, true);
+      //FIXME richtige true fals übernehmen
+      Intime<Point> ip_start(0);
+      Intime<Point> ip_end(0);
+      mp.AtInstant(t_start, ip_start);
+      mp.AtInstant(t_end, ip_end);
+      Point p_start = ip_start.value;
+      Point p_end = ip_end.value;
+      UPoint ub(iv, p_start, p_end);
+      result.MergeAdd(ub);
+    }
+  }
+  result.EndBulkLoad();
+  return result;
+}
 /*
 This method will calculate the Region which contains all points / areas, that
 the FMRegion has at least on time (or more often) traversed in the given 
@@ -446,7 +596,13 @@ deprecated!
   return res;
 }*/
 
+/*
+This method calculates the mass center of the given points.
 
+*/
+Point calculateMassCenter(const vector<Point> &p){
+  return Point(false, -8.0, -9.0);
+}
 
 /*
 This method calculates the 

@@ -46,6 +46,8 @@ void testRobustUnionGemeinsameKante();
 void testRobustUnionIntersection1();
 void testRobustUnionIntersection2();
 void testRobustUnionDisjunkt();
+void testApproxMovement();
+void testInsideVersusApproxMovement();
 };
 
 void runTestMethod ();

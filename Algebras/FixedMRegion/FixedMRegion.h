@@ -17,6 +17,8 @@ This class is a FixedMRegion.
 #include "FixedMRegiontest.h"
 #include "MMove.h"
 
+
+
 class FixedMRegion
 {
 friend class FMRTest;
@@ -156,7 +158,13 @@ MPoint will be calculated for the time intervall ta to te.
 
 */
   MPoint intersection (MPoint & mp);
+/*
+This method will calculate a MPoint which is defined, if the MPoint mp 
+intersects with the FMRegion at the given time and else not defined. The 
+MPoint will be calculated for the time intervall ta to te.
 
+*/
+  MPoint intersectionNew(MPoint & mp);
 /*
 This method will calculate the Region which contains all points / areas, that
 the FMRegion has at least on time (or more often) traversed in the given 
@@ -209,6 +217,11 @@ private:
   double xm;//rotational center
   double ym;//rotational center
   
+/*
+This method calculates the mass center of the given points.
+
+*/
+Point calculateMassCenter(const vector<Point> &p);
 
 /*
 This method calculates the 
@@ -358,6 +371,19 @@ the MPoint move that way in addition to its own movement.
 */
   MPoint approxMovement (const MPoint & p, double precision) const;
 /*
+This method calculates the step with depending on alpha.
+
+*/
+  int calcStepWith(const double ta, const double te) const ;
+/*
+This method calculates the aprroximated movement of the given MPoint
+with the given precision unter the condition that the FixedMRegion does
+not move. Therefore, it uses an inverse movement of the Region and lets
+the MPoint move that way in addition to its own movement.
+
+*/
+  MPoint approxMovementNew (const MPoint & p) const;
+/*
 This method moves the given Point inverse to the movement of the FixedMRegion
 and gives it back.
 
@@ -369,11 +395,17 @@ This method creates a non moving MRegion.
 */
  MRegion *buildMovingRegion ();
 /*
+This method will join adjacent UBools, if they have got the same value.
+
+*/
+MBool joinBools(MBool a);
+/*
 This method will remove the inverse movement of the region from the given 
 MPoint. This movement of the Region should have been added some steps 
 before from approxMovement.
 
 */
+
  MPoint reverseMovement (const MPoint & mp) const;
 /*
 This method moves the given Point according to the movement of the FixedMRegion
