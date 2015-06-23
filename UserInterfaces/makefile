@@ -30,7 +30,7 @@ LIBXML2 :=
 
 ifeq ($(platform),android)
 CC := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-g++ -D__SECONDO_ANDROID__
-LD := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-ld â€“L$(HOME)/gsl/lib â€“L$(HOME)/readline/lib â€“L$(HOME)/jpeg-6b/
+LD := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-ld –L$(HOME)/gsl/lib –L$(HOME)/readline/lib –L$(HOME)/jpeg-6b/
 CCFLAGS += -I$(SECONDO_BUILD_DIR)/../readline/include/
 
 else
@@ -40,14 +40,17 @@ endif
 
 APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
-  SecondoTTYCS.$(OBJEXT) \
+	SecondoTTYCS.$(OBJEXT) \
+	SecondoTTYREPLAY.$(OBJEXT) \
 	DisplayTTY.$(OBJEXT) \
 	MainTTY.$(OBJEXT) \
 	cmsg.$(OBJEXT) \
-	MainTTYCS.$(OBJEXT)
+	MainTTYCS.$(OBJEXT) \
+        MainTTYREPLAY.$(OBJEXT) \
 
 APPLICATIONS := $(BINDIR)/Secondo$(SMIUP) \
-		$(BINDIR)/SecondoCS
+		$(BINDIR)/SecondoCS \
+                $(BINDIR)/SecondoREPLAY
 
 # some optional objects and applications
 ifneq ($(smitype),ora)
@@ -83,7 +86,7 @@ endif
 
 BDB_OBJECTS :=   ../ClientServer/SecondoServer.o
 		 
-ALG_LIST    :=  SecondoInterfaceTTY.o  SecondoInterfaceCS.o AlgebraList.o SecondoInterfaceGeneral.o
+ALG_LIST    :=  SecondoInterfaceTTY.o  SecondoInterfaceCS.o SecondoInterfaceREPLAY.o AlgebraList.o SecondoInterfaceGeneral.o
 
 
 COMMON_OBJECTS := cmsg.o SecondoInterfaceGeneral.o DisplayTTY.o
@@ -93,6 +96,9 @@ TTY_OBJECTS :=   MainTTY.o SecondoInterfaceTTY.o SecondoTTY.o  TestRunner.o
 FLOB := $(SECONDO_BUILD_DIR)/Tools/Flob/FlobManager.o
 
 CS_OBJECTS :=   MainTTYCS.o  SecondoInterfaceCS.o SecondoTTYCS.o TestRunnerCS.o
+
+REPLAY_OBJECTS := MainTTYREPLAY.o SecondoInterfaceCS.o SecondoInterfaceREPLAY.o SecondoTTYREPLAY.o TestRunnerREPLAY.o
+
 
 APP_LIB := ../lib/libappCommon.$(LIBEXT)
 
@@ -138,6 +144,10 @@ MainTTYCS.$(OBJEXT): MainTTY.$(OBJEXT)
 MainTTYCS.$(OBJEXT): MainTTY.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
 
+MainTTYREPLAY.$(OBJEXT): MainTTY.$(OBJEXT)
+MainTTYREPLAY.$(OBJEXT): MainTTY.cpp
+	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
+
 SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) 
@@ -145,12 +155,20 @@ SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 SecondoPLCS.$(OBJEXT): SecondoPL.cpp
 	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  
 
+SecondoPLREPLAY.$(OBJEXT): SecondoPL.cpp
+	$(CC) -c -DREPLAY -o $@ $< $(CCFLAGS)  
+
 SecondoTTYCS.$(OBJEXT): SecondoTTY.cpp 
 	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) 
+
+SecondoTTYREPLAY.$(OBJEXT): SecondoTTY.cpp 
+	$(CC) -c -DREPLAY -o $@ $< $(CCFLAGS) 
 
 TestRunnerCS.$(OBJEXT): TestRunner.cpp 
 	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) 
 
+TestRunnerREPLAY.$(OBJEXT): TestRunner.cpp 
+	$(CC) -c -DREPLAY -o $@ $< $(CCFLAGS) 
 
 # Rules for linkage
 #
@@ -170,9 +188,14 @@ $(BINDIR)/Secondo$(SMIUP)$(EXEEXT):  $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS
 # 
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
 $(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PLCS_OBJECTS) $(FLOB)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS)   $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
 
+$(BINDIR)/SecondoREPLAY$(EXEEXT): $(SECLIBFILES) $(FLOB)
+$(BINDIR)/SecondoREPLAY$(EXEEXT): $(REPLAY_OBJECTS) $(APP_LIB) $(PLCS_OBJECTS) $(FLOB)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
 
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES:.cpp=.dep)
 endif
+
+

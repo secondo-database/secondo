@@ -87,10 +87,15 @@ then you will be prompted for the filename.
 #include "FileSystem.h"
 #include "SecondoSystem.h"
 #include "SecondoInterface.h"
-#ifndef SECONDO_CLIENT_SERVER
-  #include "SecondoInterfaceTTY.h"
+
+#if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
+#include "SecondoInterfaceTTY.h"
+#elif defined(SECONDO_CLIENT_SERVER)
+#include "SecondoInterfaceCS.h"
+#elif defined(REPLAY)
+#include "SecondoInterfaceREPLAY.h"
 #else
-  #include "SecondoInterfaceCS.h"
+#include "SecondoInterfaceCS.h"
 #endif
 
 #include "SecondoSMI.h"
@@ -144,11 +149,15 @@ class SecondoTTY : public Application
   bool              quit;
   NestedList*       nl;
   bool              isQuery;
-#ifndef SECONDO_CLIENT_SERVER
+  #if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
   SecondoInterfaceTTY* si;
-#else
+  #elif defined(SECONDO_CLIENT_SERVER)
   SecondoInterfaceCS* si;
-#endif
+  #elif defined(REPLAY)
+  SecondoInterfaceREPLAY* si;
+  #else
+  SecondoInterfaceCS* si;
+  #endif
 };
 
 SecondoTTY::SecondoTTY( const TTYParameter& t )
@@ -270,10 +279,10 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
   size_t pos = cmd.find("query");
   size_t pos2 = cmd.find("querynt");
 
-  if (pos == string::npos && pos2==string::npos)
+  if ((pos == string::npos) && (pos2==string::npos))
     return isQuery;
 
-  if ( cmdWord == "QUERY" || cmdWord == "QUERYNT" )
+  if ( (cmdWord == "QUERY") || (cmdWord== "QUERYNT") )
   {
     isQuery = true;
   }
@@ -282,7 +291,7 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
     if ( cmdWord == "(" )
     {
       cmdWord = ReadCommand(is);
-      if (cmdWord == "QUERY" || cmdWord=="QUERYNT")
+      if ( (cmdWord == "QUERY") || (cmdWord == "QUERYNT"))
         isQuery = true;
       else
         isQuery = false;
@@ -718,11 +727,16 @@ SecondoTTY::Execute()
   ofstream fileOutput;
   bool useOutputFile = oFileName.length() > 0;
 
-  #ifndef SECONDO_CLIENT_SERVER
-  si = new SecondoInterfaceTTY( false);
+  #if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
+  si = new SecondoInterfaceTTY(false);
+  #elif defined(SECONDO_CLIENT_SERVER)
+  si = new SecondoInterfaceCS(true);
+  #elif defined(REPLAY)
+  si = new SecondoInterfaceREPLAY(true);
   #else
   si = new SecondoInterfaceCS(true);
   #endif
+
   string errorMsg("");
   if ( si->Initialize( user, pswd, host, port, parmFile, errorMsg  ) )
   {
@@ -941,7 +955,6 @@ int SecondoTTYMode(const TTYParameter& tp)
 #endif
   return (rc);
 }
-
 
 
 

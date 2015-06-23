@@ -76,8 +76,13 @@ This is the test enviroment for Secondo. The code is derived from SecondoTTY.
 
 #include "SecondoSystem.h"
 #include "SecondoInterface.h"
-#ifndef SECONDO_CLIENT_SERVER
+
+#if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
 #include "SecondoInterfaceTTY.h"
+#elif defined(SECONDO_CLIENT_SERVER)
+#include "SecondoInterfaceCS.h"
+#elif defined(REPLAY)
+#include "SecondoInterfaceREPLAY.h"
 #else
 #include "SecondoInterfaceCS.h"
 #endif
@@ -1468,11 +1473,16 @@ TestRunner::Execute()
     streambuf* oldOutputBuffer = 0;
     ifstream fileInput;
     ofstream fileOutput;
-    #ifndef SECONDO_CLIENT_SERVER
+    #if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
     si = new SecondoInterfaceTTY(false);
+    #elif defined(SECONDO_CLIENT_SERVER)
+    si = new SecondoInterfaceCS(false,0);
+    #elif defined(REPLAY)
+    si = new SecondoInterfaceREPLAY(false,0);
     #else
     si = new SecondoInterfaceCS(false,0);
     #endif
+
     string errorMsg("");
     if ( si->Initialize( user, pswd, host, port, parmFile, errorMsg ) )
     {
@@ -1567,3 +1577,4 @@ int SecondoTestRunner(const TTYParameter& tp)
   delete appPointer;
   return (rc);
 }
+

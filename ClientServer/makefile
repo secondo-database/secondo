@@ -25,9 +25,13 @@
 
 include ../makefile.env
 
+# needed for SecondoInterfaceREPLAY
+CCFLAGS += -std=c++11
+
 LD := g++
 
-LIBDIROBJECTS := $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT)
+LIBDIROBJECTS := $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT) \
+                 $(LIBDIR)/SecondoInterfaceREPLAY.$(OBJEXT)   
 
 APPLICATIONS =\
 	$(BINDIR)/SecondoRegistrar$(EXEEXT) \
@@ -83,4 +87,3 @@ endif
 .PHONY: clean
 clean:
 	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBDIROBJECTS) $(APPLICATIONS)
-

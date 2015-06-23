@@ -6,7 +6,7 @@ BD=$(SECONDO_BUILD_DIR)
 INCL=$(BD)/include
 LAT=$(BD)/Tools/ListsAndTables
 
-Interface1=$(INCL)/SecondoInterface.h $(INCL)/SecondoInterfaceTTY.h $(INCL)/SecondoInterfaceCS.h
+Interface1=$(INCL)/SecondoInterface.h $(INCL)/SecondoInterfaceTTY.h $(INCL)/SecondoInterfaceCS.h $(INCL)/SecondoInterfaceREPLAY.h
 Interface2=$(INCL)/Application.h
 
 HEADERS1=$$($(CPPC) -MM -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"  )
@@ -34,7 +34,7 @@ SECLIBS+=$(LIB2)
 
 
 # define object files
-SECOBJ:=$(LIBD)/SecondoInterfaceGeneral.o $(LIBD)/SecondoInterfaceTTY.o $(LIBD)/SecondoInterfaceCS.o
+SECOBJ:=$(LIBD)/SecondoInterfaceGeneral.o $(LIBD)/SecondoInterfaceTTY.o $(LIBD)/SecondoInterfaceCS.o $(LIBD)/SecondoInterfaceREPLAY.o
 SECOBJ+=$(BD)/lib/AlgebraList.o
 
 .PHONY: all
@@ -72,6 +72,5 @@ clean:
 	rm -rf lib
 	make -C example clean
 	rm -rf temp
-
 
 

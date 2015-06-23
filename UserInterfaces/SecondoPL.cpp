@@ -58,11 +58,17 @@ using namespace std;
 
 #include "NestedList.h"
 #include "SecondoInterface.h"
-#ifndef SECONDO_CLIENT_SERVER
+
+#if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
 #include "SecondoInterfaceTTY.h"
+#elif defined(SECONDO_CLIENT_SERVER)
+#include "SecondoInterfaceCS.h"
+#elif defined(REPLAY)
+#include "SecondoInterfaceREPLAY.h"
 #else
 #include "SecondoInterfaceCS.h"
 #endif
+
 #include "Profiles.h"
 #include "LogMsg.h"
 #include "License.h"
@@ -1266,8 +1272,12 @@ StartSecondoC(TTYParameter& tp)
     return false;
   }  
   //tp.Print(cout);  
-  #ifndef SECONDO_CLIENT_SERVER
+  #if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
   si = new SecondoInterfaceTTY();
+  #elif defined(SECONDO_CLIENT_SERVER)
+  si = new SecondoInterfaceCS();
+  #elif defined(REPLAY)
+  si = new SecondoInterfaceREPLAY();
   #else
   si = new SecondoInterfaceCS();
   #endif
@@ -1289,7 +1299,6 @@ StartSecondoC(TTYParameter& tp)
     return false;
   }
 }
-
 
 /* 
 
@@ -1316,6 +1325,5 @@ int registerSecondo(){
   PL_register_extensions(predicates);
   return 0;
 }
-
 
 
