@@ -163,20 +163,19 @@ FileSystem::SetCurrentFolder( const string& folder )
 }
 
 bool FileSystem::CreateFolderEx(string pathname){
-  stack<string> toCreate;
 
-  while(pathname.length()>0u && !IsDirectory(pathname)){
-      toCreate.push(pathname);
-      pathname = GetParentFolder(pathname);
-  }
-  while(!toCreate.empty()){
-    string next = toCreate.top();
-    toCreate.pop();
-    if(!CreateFolder(next)){
-       return false;
-    }
-  }
-  return true; 
+  size_t pos = 0;
+  bool ret_val = true;
+
+   while(ret_val && pos != std::string::npos) {
+     pos = pathname.find(PATH_SLASH[0], pos + 1);
+     if(pos==std::string::npos){
+        ret_val = CreateFolder(pathname.substr(0, pos));
+     } else {
+        CreateFolder(pathname.substr(0, pos));
+     }
+   }
+  return ret_val;
 }
 
 
