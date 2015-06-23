@@ -4853,7 +4853,7 @@ If so, it returns ~TRUE~, otherwise ~FALSE~
 
 9.1 Type Mapping Function ~stringORtext2boolTM~
 
-Used for operators ~isFile~, ~removeFile~, ~createDirectory~, ~isDirectory~
+Used for operators ~isFile~, ~removeFile~, ~isDirectory~
 
 ---- {text|string} -> bool
 ----
@@ -5021,11 +5021,36 @@ The operator creates the passed directory within the file system.
 
 11.1 Type Mapping for ~createDirectory~
 
-Uses ~stringORtext2boolTM~.
+*/
 
+ListExpr createDirectoryTM(ListExpr args){
+   string err = "{string,text} [ x bool] expected";
+   if(!nl->HasLength(args,2) && !nl->HasLength(args,1)){
+     return listutils::typeError("wrong number of arguments");
+   }
+   ListExpr arg1 = nl->First(args);
+   if(!FText::checkType(arg1) && !CcString::checkType(arg1)){
+     return listutils::typeError(err);
+   }
+   if(nl->HasLength(args,2)){
+     if(!CcBool::checkType(nl->Second(args))){
+        return listutils::typeError(err);
+     } 
+     return listutils::basicSymbol<CcBool>();
+   }
+   return nl->ThreeElemList(
+              nl->SymbolAtom(Symbols::APPEND()),
+              nl->OneElemList( nl->BoolAtom(false)),
+              listutils::basicSymbol<CcBool>());
+}
+
+
+/*
 11.2 Value Mapping for ~createDirectory~
 
 */
+
+
 
 template<class T>
 int createDirectoryVM(Word* args, Word& result,
@@ -5034,11 +5059,17 @@ int createDirectoryVM(Word* args, Word& result,
   result = qp->ResultStorage(s);
   CcBool* res = static_cast<CcBool*>(result.addr);
   T* objName = static_cast<T*>(args[0].addr);
-  if(!objName->IsDefined()){
+  CcBool* parents = (CcBool*) args[1].addr;
+  if(!objName->IsDefined()|| !parents->IsDefined()) {
     res->Set(false,false);
   } else {
     string fileNameS = objName->GetValue();
-    res->Set(true,FileSystem::CreateFolder(fileNameS));
+    bool p = parents->GetValue();
+    if(p){
+       res->Set(true,FileSystem::CreateFolderEx(fileNameS));
+    } else {
+       res->Set(true,FileSystem::CreateFolder(fileNameS));
+    }
   }
   return 0;
 }
@@ -5052,12 +5083,14 @@ ValueMapping createDirectoryvaluemap[] = {createDirectoryVM<CcString>,
 */
 const string createDirectorySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> {text|string} -> bool </text--->"
+    "( <text> {text|string} [x bool]-> bool </text--->"
     "<text> createDirectory( Name ) </text--->"
     "<text> Creates a directory with the given Name on"
     " the files system. Returns TRUE, if this succeeds, and FALSE if the "
     "directory could not be created or any error occurs. If the Name is\n"
-    "UNDEFINED, nothing is done and the result is UNDEFINED.</text--->"
+    "UNDEFINED, nothing is done and the result is UNDEFINED. If the oprional"
+    "boolean argument is specified, non-existent parent directories are"
+    " craeted automatocally.</text--->"
     "<text> query createDirectory('my_csv_directory')  </text--->"
     ") )";
 
@@ -5075,7 +5108,7 @@ Operator createDirectory ( "createDirectory",
                    2,
                    createDirectoryvaluemap,
                    stringORtextSelect,
-                   stringORtext2boolTM);
+                   createDirectoryTM);
 
 
 /*
