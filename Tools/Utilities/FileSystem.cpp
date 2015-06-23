@@ -139,6 +139,8 @@ FileSystem::GetParentFolder( const string& folder, int level /* =1 */)
 
   if ( n != string::npos ) { // erase path information
     parent.erase(n);
+  } else {
+     return ""; // no parent found
   }
 
   if (level-1) {
