@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -18,6 +21,9 @@ public class CassandraGUIModel {
 	protected Map<String, CassandraSystemState> systemState;
 	protected int observedQueryId = 1;
 	protected CassandraClient client;
+	
+	protected final static Logger logger = LoggerFactory.getLogger(CassandraGUIModel.class);
+
 	
 	public CassandraGUIModel(CassandraClient client) {
 		super();
@@ -33,9 +39,13 @@ public class CassandraGUIModel {
 	 * the heartbeat data
 	 */
 	public synchronized void updateModel() {
-		updateQueries();
-		updateTokenranges();
-		updateSystemState();
+		try {
+			updateQueries();
+			updateTokenranges();
+			updateSystemState();
+		} catch(Exception e) {
+			logger.info("Exception while updating view", e);
+		}
 	}
 
 	/**
