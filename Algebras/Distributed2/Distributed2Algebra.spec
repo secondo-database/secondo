@@ -29,7 +29,7 @@ operator createDarray2 alias CREATEDARRAY2 pattern _ op[_,_,_,_,_,_]
 operator pput alias PPUT pattern _ op [_,_]
 operator ddistribute2 alias DDISTRIBUTE2 pattern _ op [_,_]
 operator ddistribute3 alias DDISTRIBUTE3 pattern _ op [_,_,_,_]
-operator ddistribute4 alias DDISTRIBUTE4 pattern _ op [fun,_,_,_] implicit parameter elem type STREAMELEM
+operator ddistribute4 alias DDISTRIBUTE4 pattern _ op [fun,_,_] implicit parameter elem type STREAMELEM
 
 operator fdistribute5 alias FDISTRIBUTE5 pattern _ op [_,_,_]
 operator fdistribute6 alias FDISTRIBUTE6 pattern _ op [_,_]
@@ -52,5 +52,11 @@ operator clone alias CLONE pattern _ op[_]
 operator share alias SHARE pattern op(_,_,_)
 
 operator cleanUp alias CLEANUP pattern op(_,_)
+
+operator fddistribute2 alias FDDISTRIBUTE2 pattern _ op [_,_,_]
+operator fddistribute3 alias FDDISTRIBUTE3 pattern _ op [_,_,_,_]
+operator fddistribute4 alias FDDISTRIBUTE4 pattern _ op [fun,_,_] implicit parameter elem type STREAMELEM
+
+
 
 

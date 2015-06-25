@@ -177,7 +177,7 @@ Remark    : remote server required
 Operator: ddistribute4
 Number  : 1
 Signature : stream(tuple(X)) x (fun : tuple ->int) x darray2(Y) x string -> darray2(X) 
-Example   : query strassen feed  ddistribute4[hashvalue(.Name, 2000), TRUE, da2, "dstrassen4"] 
+Example   : query strassen feed  ddistribute4[hashvalue(.Name, 2000), da2, "dstrassen4"] 
 Result    : bug
 Remark    : remote server required
 
@@ -277,3 +277,34 @@ Signature : -> bool , darray2 -> bool
 Example   : query cleanUp(da8)
 Result    : bug
 Remark    : remote server required
+
+Operator: fddistribute2
+Number  : 1
+Signature : stream(tuple(X)) x ident x dfarray2(Y) x string -> dfarray2(X) 
+Example   : query strassen feed addcounter[No,0] fddistribute2[No, da2] 
+Result    : bug
+Remark    : remote server required
+
+Operator: fddistribute3
+Number  : 1
+Signature : stream(tuple(X)) x int x bool x dfarray2(Y) x string -> dfarray2(X) 
+Example   : query strassen feed fddistribute3[10, TRUE, df2] 
+Result    : bug
+Remark    : remote server required
+
+Operator: fddistribute4
+Number  : 1
+Signature : stream(tuple(X)) x (fun : tuple ->int) x darray2(Y) x string -> darray2(X) 
+Example   : query strassen feed  fddistribute4[hashvalue(.Name, 2000), df2, "dfstrassen4"] 
+Result    : bug
+Remark    : remote server required
+
+
+Operator  : convertdarray2
+Number    : 1
+Signature : darray2 -> dfarray2 , dfarray2 -> darray2
+Example   : query convertdarray2(da8)
+Result    : bug
+Remark    : in development
+
+

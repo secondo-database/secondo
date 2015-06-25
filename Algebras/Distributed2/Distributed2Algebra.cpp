@@ -133,8 +133,10 @@ class ffeed5Info{
     ffeed5Info(const string& filename, TupleType* _tt){
        tt = new TupleType(*_tt);
        in.open(filename.c_str(), ios::in | ios::binary);
+       inBuffer = new char[FILE_BUFFER_SIZE];
        ok = in.good();
        if(ok){
+          in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
           readHeader();
        }else{
           cerr << "could not open file " << filename << endl; 
@@ -373,6 +375,7 @@ class ConnectionInfo{
       host(_host), port(_port), config(_config), si(_si){
           mynl = _mynl;
           serverPID = 0;
+          secondoHome = "";
       }
 
       ~ConnectionInfo(){
@@ -424,6 +427,14 @@ class ConnectionInfo{
           }
           simtx.unlock();
        }
+
+       string getSecondoHome(){
+         if(secondoHome.length()==0){
+            retrieveSecondoHome();
+         }
+         return secondoHome;
+       }
+
 
 
       bool cleanUp() {
@@ -790,6 +801,71 @@ class ConnectionInfo{
              return true;
           }
 
+          bool retrieveRelationInFile(const string& fileName,
+                                      ListExpr& resType, 
+                                      Word& result){
+             boost::lock_guard<boost::mutex> guard(simtx);
+             result.addr = 0;
+             // get the full path for requesting files 
+             string rfpath = si->getRequestFilePath()+"/";
+             string base = FileSystem::Basename(fileName);
+             if(stringutils::startsWith(fileName,rfpath)){
+                 // we can just get the file without copying it
+                 if(!si->requestFile(fileName.substr(rfpath.length()),
+                                     base+".tmp",true)){
+                    return false;
+                 }
+                 result = createRelationFromFile(base+".tmp",resType);
+                 FileSystem::DeleteFileOrFolder(base+".tmp");
+                 return true;
+             }
+             // remote file located in a not accessible folder, send command
+             // to copy it into a such folder
+             string cmd = "query copyFile('"+fileName+ "', '" + 
+                                           rfpath + base +".tmp')";
+             SecErrInfo  serr;
+             ListExpr resList;
+             si->Secondo(cmd,resList,serr);
+
+             if(serr.code!=0){
+               cerr << "Command " << cmd << " failed with code " 
+                    << serr.code << endl;
+               cerr << serr.msg << endl;
+               return false;
+             }
+             if(    !mynl->HasLength(resList,2) 
+                 || mynl->AtomType(mynl->Second(resList))!=BoolType){
+               cerr << "command " << cmd << " returns unexpected result" 
+                    << endl;
+               cerr << mynl->ToString(resList) << endl;
+               return false;
+             }
+             if(!mynl->BoolValue(mynl->Second(resList))){
+                 mynl->Destroy(resList);
+                cout << "command " << cmd << " not successful" << endl;
+                 return false;
+             }
+
+             mynl->Destroy(resList);
+
+             // copy the file to local file system
+             if( si->requestFile(base +".tmp", base +".tmp", true)!=0){
+                cerr << "Requesting file " + base + ".tmp failed" << endl;
+                return false;
+             }
+             result = createRelationFromFile(base+".tmp",resType,false);
+             FileSystem::DeleteFileOrFolder(base+".tmp");
+             cmd = "query removeFile('"+rfpath + base +".tmp' )" ;
+             si->Secondo(cmd,resList,serr);
+             if(serr.code != 0){
+                cerr << "command " << cmd << " failed with code " + serr.code;
+                cerr << serr.msg;
+             }
+             return true; 
+          }
+
+
+
           bool retrieveRelationFile(const string& objName,
                                     const string& fname1){
              boost::lock_guard<boost::mutex> guard(simtx);
@@ -815,8 +891,12 @@ class ConnectionInfo{
              return true;
           }
 
-          Word createRelationFromFile(const string& fname, ListExpr resType){
-             boost::lock_guard<boost::mutex> guard(simtx);
+          Word createRelationFromFile(const string& fname, ListExpr resType, 
+                                      bool lock=true){
+            
+            if(lock){
+             simtx.lock();
+            }
 
              // create result relation
              ListExpr tType = nl->Second(resType);
@@ -838,6 +918,9 @@ class ConnectionInfo{
              tt->DeleteIfAllowed();
              Word result((void*) 0);
              result.addr = resultrel;
+             if(lock){
+               simtx.unlock();
+             }
              return result;
           } 
 
@@ -848,10 +931,32 @@ class ConnectionInfo{
     SecondoInterfaceCS* si;
     NestedList* mynl;
     int serverPID;
+    string secondoHome;
 
     boost::mutex simtx; // mutex for synchronizing access to the interface
 
     static boost::mutex createRelMut;
+
+
+    void retrieveSecondoHome(){
+       string cmd ="query secondoHome()";
+       int err;
+       string errmsg;
+       ListExpr result; 
+       simpleCommand(cmd,err,errmsg, result,false);
+       if(err!=0){
+            cerr << "command " << cmd << " failed" << endl;
+            cerr << err << " : " << errmsg << endl;
+            return;
+       }
+       if(    !nl->HasLength(result,2) 
+            || nl->AtomType(nl->Second(result))!=TextType){
+          cerr << "invalid result for secondoHome() query " << endl;
+          cerr << nl->ToString(result);
+          return;
+       }
+       secondoHome =  nl->Text2String(nl->Second(result));
+    }
 
 };
 
@@ -5350,10 +5455,10 @@ about a connection to a remote server. The actual connections are stored within
 the algebra instance.
 
 */
-
-class DArray2{
+template<bool isF>
+class DArray2T{
   public:
-     DArray2(size_t _size, const string& _name): 
+     DArray2T(size_t _size, const string& _name): 
            worker(),size(_size), name(_name) {
 
         if(!stringutils::isIdent(name) || size ==0){ // invalid
@@ -5366,7 +5471,7 @@ class DArray2{
 
      
 
-     DArray2(size_t _size, const string& _name, 
+     DArray2T(size_t _size, const string& _name, 
                const vector<DArray2Element>& _worker): 
          worker(_worker),size(_size), name(_name) {
 
@@ -5378,16 +5483,16 @@ class DArray2{
         defined = true;
      }
 
-     explicit DArray2(int dummy) {} // only for cast function
+     explicit DArray2T(int dummy) {} // only for cast function
 
  
-     DArray2(const DArray2& src): 
+     DArray2T(const DArray2T<isF>& src): 
              worker(src.worker), size(src.size), name(src.name), 
              defined(src.defined)
        {
        }
 
-     DArray2& operator=(const DArray2& src) {
+     DArray2T& operator=(const DArray2T<true>& src) {
         this->worker = src.worker;
         if(this->size != src.size){
            this->size = src.size;
@@ -5396,8 +5501,19 @@ class DArray2{
         this->defined = src.defined;
         return *this;
      }     
+
+     DArray2T& operator=(const DArray2T<false>& src) {
+        this->worker = src.worker;
+        if(this->size != src.size){
+           this->size = src.size;
+        }
+        this->name = src.name;
+        this->defined = src.defined;
+        return *this;
+     }     
+
  
-     ~DArray2() {
+     ~DArray2T() {
      }
       
 
@@ -5420,7 +5536,7 @@ class DArray2{
      }
 
      static const string BasicType() { 
-        return "darray2";
+        return  isF?"dfarray2":"darray2";
      }
 
      static const bool checkType(const ListExpr list){
@@ -5431,6 +5547,10 @@ class DArray2{
          if(!listutils::isSymbol(nl->First(list), BasicType())){
              return false;
          }
+         if(!isF){
+           return Relation::checkType(nl->Second(list));
+         }
+
          SecondoCatalog* ctl = SecondoSystem::GetCatalog();
          string name;
          int algid, type;
@@ -5487,9 +5607,9 @@ class DArray2{
      }
 
 
-     static DArray2* readFrom(ListExpr list){
+     static DArray2T<isF>* readFrom(ListExpr list){
         if(listutils::isSymbolUndefined(list)){
-           return new DArray2(0,"");
+           return new DArray2T<isF>(0,"");
         }
         if(!nl->HasLength(list,3)){
            return 0;
@@ -5522,7 +5642,7 @@ class DArray2{
            v.push_back(elem);
            Workers = nl->Rest(Workers);
         }
-        DArray2* result = new DArray2(size,name);
+        DArray2T<isF>* result = new DArray2T<isF>(size,name);
         swap(result->worker,v);
         result->defined = true;
         return result;
@@ -5553,7 +5673,7 @@ class DArray2{
            return false;
         } 
         if(!defined){
-          result.addr = new DArray2(0,"");
+          result.addr = new DArray2T<isF>(0,"");
           return true;
         }
         // array in smirecord is defined, read size
@@ -5572,7 +5692,7 @@ class DArray2{
           return false;
         }
         // create result
-        DArray2* res = new DArray2(size,name);
+        DArray2T<isF>* res = new DArray2T<isF>(size,name);
         int wn = 0;
         for(size_t i=0; i< numWorkers; i++){
            DArray2Element elem("",0,0,"");
@@ -5591,7 +5711,7 @@ class DArray2{
      static bool save(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Word& value) {
 
-         DArray2* a = (DArray2*) value.addr;
+         DArray2T<isF>* a = (DArray2T<isF>*) value.addr;
          if(!writeVar(a->defined,valueRecord,offset)){
            return false;
          }
@@ -5650,6 +5770,7 @@ class DArray2{
       }
 
 
+  friend class DArray2T<!isF>;
 
   private:
     vector<DArray2Element> worker; // connection information
@@ -5657,6 +5778,10 @@ class DArray2{
     string name;  // the basic name used on workers
     bool defined; // defined state of this array
 };
+
+typedef DArray2T<false> DArray2;
+typedef DArray2T<true> DFArray2;
+
 
 /*
 2.1.2.1 Property function
@@ -5678,17 +5803,32 @@ ListExpr DArray2Property(){
                               " ('localhost'  1235 'config.ini'))")));
 }
 
+ListExpr DFArray2Property(){
+   return nl->TwoElemList(
+            nl->FourElemList(
+                 nl->StringAtom("Signature"),
+                 nl->StringAtom("Example Type List"), 
+                 nl->StringAtom("List Rep"),
+                 nl->StringAtom("Example List")),
+            nl->FourElemList(
+                 nl->StringAtom(" -> SIMPLE"),
+                 nl->StringAtom(" (dfarray2 <basictype>)"),
+                 nl->TextAtom("(name size ( s1 s2  ...)) where "
+                                "s_i =(server port config)"),
+                 nl->TextAtom(" ( mydarray2 42 ('localhost' 1234 'config.ini')"
+                              " ('localhost'  1235 'config.ini'))")));
+}
 /*
 2.1.2.2 IN function
 
 */
 
-
+template<class A>
 Word InDArray2(const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct){
 
    Word res((void*)0);
-   res.addr = DArray2::readFrom(instance);
+   res.addr = A::readFrom(instance);
    correct = res.addr!=0;
    return res;
 }
@@ -5698,9 +5838,9 @@ Word InDArray2(const ListExpr typeInfo, const ListExpr instance,
 2.1.2.3 Out function
 
 */
-
+template<class A>
 ListExpr OutDArray2(ListExpr typeInfo, Word value){
-   DArray2* da = (DArray2*) value.addr;
+   A* da = (A*) value.addr;
    return da->toListExpr();
 }
 
@@ -5709,10 +5849,11 @@ ListExpr OutDArray2(ListExpr typeInfo, Word value){
 2.1.2.4 Create function
 
 */
+template <class A>
 Word CreateDArray2(const ListExpr typeInfo){
 
   Word w;
-  w.addr = new DArray2(0,"");
+  w.addr = new A(0,"");
   return w;
 }
 
@@ -5721,8 +5862,9 @@ Word CreateDArray2(const ListExpr typeInfo){
 2.1.2.4 Delete function
 
 */
+template <class A>
 void DeleteDArray2(const ListExpr typeInfo, Word& w){
-  DArray2* a = (DArray2*) w.addr;
+  A* a = (A*) w.addr;
   delete a;
   w.addr = 0;
 }
@@ -5734,27 +5876,29 @@ void DeleteDArray2(const ListExpr typeInfo, Word& w){
 
 */
 
-
+template<class A>
 void CloseDArray2(const ListExpr typeInfo, Word& w){
-  DArray2* a = (DArray2*) w.addr;
+  A* a = (A*) w.addr;
   delete a;
   w.addr = 0;
 }
 
-
+template<class A>
 Word CloneDArray2(const ListExpr typeInfo, const Word& w){
-    DArray2* a = (DArray2*) w.addr;
+    A* a = (A*) w.addr;
     Word res;
-    res.addr = new DArray2(*a);
+    res.addr = new A(*a);
     return res;
 }
 
+template<class A>
 void* CastDArray2(void* addr){
-   return (new (addr) DArray2(0));   
+   return (new (addr) A(0));   
 }
 
+template<class A>
 bool DArray2TypeCheck(ListExpr type, ListExpr& errorInfo){
-    return DArray2::checkType(type);
+    return A::checkType(type);
 }
 
 
@@ -5766,16 +5910,27 @@ int SizeOfDArray2(){
 TypeConstructor DArray2TC(
   DArray2::BasicType(),
   DArray2Property,
-  OutDArray2, InDArray2,
+  OutDArray2<DArray2>, InDArray2<DArray2>,
   0,0,
-  CreateDArray2, DeleteDArray2,
+  CreateDArray2<DArray2>, DeleteDArray2<DArray2>,
   DArray2::open, DArray2::save,
-  CloseDArray2, CloneDArray2,
-  CastDArray2,
+  CloseDArray2<DArray2>, CloneDArray2<DArray2>,
+  CastDArray2<DArray2>,
   SizeOfDArray2,
-  DArray2TypeCheck );
+  DArray2TypeCheck<DArray2> );
 
 
+TypeConstructor DFArray2TC(
+  DFArray2::BasicType(),
+  DFArray2Property,
+  OutDArray2<DFArray2>, InDArray2<DFArray2>,
+  0,0,
+  CreateDArray2<DFArray2>, DeleteDArray2<DFArray2>,
+  DFArray2::open, DFArray2::save,
+  CloseDArray2<DFArray2>, CloneDArray2<DFArray2>,
+  CastDArray2<DFArray2>,
+  SizeOfDArray2,
+  DArray2TypeCheck<DFArray2> );
 
 /*
 3. DArray2 Operators
@@ -7108,6 +7263,113 @@ class RelFileRestorer{
 
 };
 
+
+
+class FRelCopy{
+
+  public:
+
+     FRelCopy(ListExpr _relType, const string& _objName,
+              DFArray2* _array, int _arrayIndex, 
+              const string& _filename):
+     name(_filename), slot(_arrayIndex), array(_array), started(false),ci(0)
+     {
+
+        dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+        int workerIndex = slot % array->numOfWorkers();
+        ci = algInstance->getWorkerConnection(
+                                      array->getWorker(workerIndex), dbname);
+
+     }
+
+   ~FRelCopy(){
+     boost::lock_guard<boost::mutex> guard(mtx);
+     runner.join();
+    }
+
+
+
+   void start(){
+     boost::lock_guard<boost::mutex> guard(mtx);
+     if(!started && ci ){
+        started = true;
+        runner = boost::thread(&FRelCopy::run, this);
+     }
+   }
+
+
+
+  private:
+     string name;
+     int slot;
+     DFArray2* array;
+     bool started;
+     ConnectionInfo* ci;
+     string dbname;
+     boost::mutex mtx;
+     boost::thread runner;
+
+     void run(){
+        if(!ci){
+          cerr << "Connection failed" << endl;
+          return;
+        }
+        // send file to remote server
+        ci->sendFile(name,name,true);
+        // get target directory
+        string cmd ="query secondoHome()";
+        int err;
+        string errmsg;
+        ListExpr result; 
+        ci->simpleCommand(cmd,err,errmsg, result,false);
+        if(err!=0){
+            cerr << "command " << cmd << " failed" << endl;
+            cerr << err << " : " << errmsg << endl;
+            return;
+        }
+        if(    !nl->HasLength(result,2) 
+            || nl->AtomType(nl->Second(result))!=TextType){
+          cerr << "invalid result for secondoHome() query " << endl;
+          cerr << nl->ToString(result);
+          return;
+        }
+        string home = nl->Text2String(nl->Second(result));
+        string targetDir = home +"/dfarrays/"+dbname;
+        // create target directory
+        cmd = "query createDirectory('"+targetDir+"', TRUE)";
+        ci->simpleCommand(cmd,err,errmsg, result,false);
+        if(err!=0){
+            cerr << "command " << cmd << " failed" << endl;
+            cerr << err << " : " << errmsg << endl;
+            return;
+        }
+        // result will be false, if directory already exists
+        // hence ignore result here
+        string sendDir = ci->getSendFolder();
+        string src = home+'/'+sendDir + "/"+name;
+        string target = targetDir+"/"+name;
+        cmd = "query moveFile('"+src+"','"+target+"')";
+        ci->simpleCommand(cmd,err,errmsg, result,false);
+        if(err!=0){
+            cerr << "command " << cmd << " failed" << endl;
+            cerr << err << " : " << errmsg << endl;
+            return;
+        }
+        if(!nl->HasLength(result,2) || 
+            nl->AtomType(nl->Second(result))!=BoolType){
+            cerr << "moveFile returns unexpected result: " 
+                 << nl->ToString(result) << endl;
+            return;
+        }
+        if(!nl->BoolValue(nl->Second(result))){
+           cerr << "moving file from: " << src << endl
+                << "to " << target << endl
+                << "failed" << endl;   
+        
+        }
+     }
+};
+
 map<pair<string,int>,boost::mutex*> RelFileRestorer::serializer;
 boost::mutex RelFileRestorer::sermtx;
 
@@ -7115,13 +7377,13 @@ boost::mutex RelFileRestorer::sermtx;
 1.6.3 Value Mapping
 
 */
-
+template<class AType, class DType>
 int ddistribute2VM(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
-   DArray2* res = (DArray2*) result.addr;
-   DArray2* temp = (DArray2*) args[2].addr;
+   AType* res = (AType*) result.addr;
+   AType* temp = (AType*) args[2].addr;
 
 
    int noSons = qp->GetNoSons(s);
@@ -7182,7 +7444,7 @@ int ddistribute2VM(Word* args, Word& result, int message,
    // finalize files
 
 
-   vector<RelFileRestorer*> restorers;
+   vector<DType*> restorers;
 
    
    typename map<int, pair<string,pair<ofstream*, char*> > >::iterator it;
@@ -7193,7 +7455,7 @@ int ddistribute2VM(Word* args, Word& result, int message,
       delete it->second.second.first;
       delete[] it->second.second.second;
       string objName = res->getName()+"_"+stringutils::int2str(it->first);
-      restorers.push_back(new RelFileRestorer(relType, objName,res, 
+      restorers.push_back(new DType(relType, objName,res, 
                                               it->first, it->second.first));
    }
 
@@ -7234,7 +7496,7 @@ OperatorSpec ddistribute2Spec(
 Operator ddistribute2Op(
   "ddistribute2",
   ddistribute2Spec.getStr(),
-  ddistribute2VM,
+  ddistribute2VM<DArray2,RelFileRestorer>,
   Operator::SimpleSelect,
   ddistribute2TM
 );
@@ -7285,15 +7547,16 @@ ListExpr ddistribute3TM(ListExpr args){
 
 */
 
+template<class AType, class DType>
 int ddistribute3VM(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
-   DArray2* res = (DArray2*) result.addr;
+   AType* res = (AType*) result.addr;
 
    CcInt* size = (CcInt*) args[1].addr;
    CcBool* method = (CcBool*) args[2].addr;
-   DArray2* array = (DArray2*) args[3].addr;
+   AType* array = (AType*) args[3].addr;
    CcString* n = (CcString*) args[4].addr;
 
    if(!size->IsDefined() || !method->IsDefined() 
@@ -7403,14 +7666,14 @@ int ddistribute3VM(Word* args, Word& result, int message,
     // we have to put the relations stored in these
     // files to the workers
 
-   vector<RelFileRestorer*> restorers;
+   vector<DType*> restorers;
 
    
    for(size_t i = 0; i<files.size(); i++) {
       string objName = res->getName()+"_"+stringutils::int2str(i);     
       string fn = objName + ".bin";
-      restorers.push_back(new RelFileRestorer(relType, objName,res, 
-                                              i, fn));
+      restorers.push_back(new DType(relType, objName,res, 
+                                    i, fn));
    }
 
 
@@ -7429,8 +7692,6 @@ int ddistribute3VM(Word* args, Word& result, int message,
       string fn = res->getName()+"_"+stringutils::int2str(i)+".bin";     
       FileSystem::DeleteFileOrFolder(fn); 
    }
- 
-
    return 0;   
 }
 
@@ -7461,7 +7722,7 @@ OperatorSpec ddistribute3Spec(
 Operator ddistribute3Op(
   "ddistribute3",
   ddistribute3Spec.getStr(),
-  ddistribute3VM,
+  ddistribute3VM<DArray2,RelFileRestorer>,
   Operator::SimpleSelect,
   ddistribute3TM
 );
@@ -7508,12 +7769,13 @@ ListExpr ddistribute4TM(ListExpr args){
 1.8.2 Value Mapping
 
 */
+template<class AType, class DType>
 int ddistribute4VM(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
-   DArray2* res   = (DArray2*) result.addr;
-   DArray2* array = (DArray2*) args[2].addr;
+   AType* res   = (AType*) result.addr;
+   AType* array = (AType*) args[2].addr;
    CcString* n = (CcString*) args[3].addr;
    if(!array->IsDefined() || !n->IsDefined()){
      res->makeUndefined();
@@ -7573,7 +7835,7 @@ int ddistribute4VM(Word* args, Word& result, int message,
    stream.close();
    // finalize files
 
-   vector<RelFileRestorer*> restorers;
+   vector<DType*> restorers;
 
    
    typename map<int, pair<string, pair<ofstream*, char*> > >::iterator it;
@@ -7584,7 +7846,7 @@ int ddistribute4VM(Word* args, Word& result, int message,
       delete it->second.second.first;
       delete[] it->second.second.second;
       string objName = res->getName()+"_"+stringutils::int2str(it->first);
-      restorers.push_back(new RelFileRestorer(relType, objName,res, 
+      restorers.push_back(new DType(relType, objName,res, 
                                               it->first, it->second.first));
    }
 
@@ -7621,7 +7883,7 @@ OperatorSpec ddistribute4Spec(
 Operator ddistribute4Op(
   "ddistribute4",
   ddistribute4Spec.getStr(),
-  ddistribute4VM,
+  ddistribute4VM<DArray2, RelFileRestorer>,
   Operator::SimpleSelect,
   ddistribute4TM
 );
@@ -8711,12 +8973,12 @@ normal array from the ArrayAlgebra.
 */
 
 ListExpr getValueTM(ListExpr args){
-  string err ="darray2 expected";
+  string err ="darray2 or dfarray2 expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
   ListExpr a1 = nl->First(args);
-  if(!DArray2::checkType(a1)){
+  if(!DArray2::checkType(a1) && !DFArray2::checkType(a1)){
     return listutils::typeError(err);
   }
   return nl->TwoElemList( 
@@ -8731,6 +8993,10 @@ class getValueListener{
 
 };
 
+/*
+1.10.2 Class retrieving a single slot from a darray2
+
+*/
 class getValueGetter{
   public:
     getValueGetter(DArray2* _array, int _index, getValueListener* _listener, 
@@ -8764,10 +9030,51 @@ class getValueGetter{
 };
 
 
+/*
+1.10.3 Class retrieving a single slot from a dfarray2
+
+*/
+class getValueFGetter{
+  public:
+    getValueFGetter(DFArray2* _array, int _index, getValueListener* _listener, 
+      ListExpr _resType):
+       array(_array), index(_index), resType(_resType),listener(_listener){}
+       
+
+   void operator()(){
+
+      string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+      int workerIndex = index % array->numOfWorkers();
+      ConnectionInfo* ci = algInstance->getWorkerConnection(
+                              array->getWorker(workerIndex),dbname);
+      Word res((void*)0);
+      if(!ci){
+          cerr << "workerconnection not found";
+          listener->jobDone(index,res); 
+          return;
+      }
+      string name = array->getName()+"_"+stringutils::int2str(index);
+      string home = ci->getSecondoHome();
+      string fname = home +"/dfarrays/"+dbname+"/"+name+".bin"; 
+      ci->retrieveRelationInFile(fname, resType, res);
+      listener->jobDone(index,res); 
+   }
+
+  private:
+    DFArray2* array;
+    int index;
+    ListExpr resType;
+    getValueListener* listener;
+
+};
+
+
+
+template<class AType, class GType>
 class getValueInfo : public getValueListener{
 
   public:
-   getValueInfo(DArray2* _arg, arrayalgebra::Array* _result, ListExpr _resType):
+   getValueInfo(AType* _arg, arrayalgebra::Array* _result, ListExpr _resType):
     arg(_arg), result(_result), resType(_resType), algId(0),
     typeId(0),n(-1),values(0){
       isData = listutils::isDATA(nl->Second(_resType));
@@ -8782,11 +9089,10 @@ class getValueInfo : public getValueListener{
      if(!init()){
         return;
      }
-    vector<getValueGetter*> getters;
+    vector<GType*> getters;
     vector<boost::thread*> threads;
     for(int i=0;i<n;i++){
-      getValueGetter* getter = new getValueGetter(arg,i,this,
-                                                  nl->Second(resType));
+      GType* getter = new GType(arg,i,this, nl->Second(resType));
       getters.push_back(getter);
       boost::thread* t = new boost::thread(*getter); 
       threads.push_back(t);
@@ -8807,7 +9113,9 @@ class getValueInfo : public getValueListener{
   void jobDone(int id, Word value){
     if(value.addr==0){ // problem in getting element
        // set some default value 
-       value = am->CreateObj(algId,typeId)(nl->Second(resType));
+       boost::lock_guard<boost::mutex> guard(createObjMtx);
+       ListExpr numresType = SecondoSystem::GetCatalog()->NumericType(resType);
+       value = am->CreateObj(algId,typeId)(nl->Second(numresType));
        if(isData){
           ((Attribute*)value.addr)->SetDefined(false);
        }
@@ -8818,7 +9126,7 @@ class getValueInfo : public getValueListener{
   }
 
   private:
-    DArray2* arg;
+    AType* arg;
     arrayalgebra::Array* result;
     ListExpr resType;
     int algId;
@@ -8826,6 +9134,7 @@ class getValueInfo : public getValueListener{
     int n;
     Word* values;
     bool isData;
+    boost::mutex createObjMtx;
     
     bool init(){
        if(!arg->IsDefined()){
@@ -8846,26 +9155,33 @@ class getValueInfo : public getValueListener{
        }
        return true;
     }
-
-
-
 };
 
 
-
-int getValueVM(Word* args, Word& result, int message,
+template<class AType, class GType>
+int getValueVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
-   getValueInfo info((DArray2*)args[0].addr, (arrayalgebra::Array*) result.addr,
-                   qp->GetType(s)); 
+   getValueInfo<AType,GType> info((AType*)args[0].addr,
+                                  (arrayalgebra::Array*) result.addr,
+                                  qp->GetType(s)); 
    info.convert();
    return 0;
 }
 
 
+int getValueSelect(ListExpr args){
+  return DArray2::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping getValueVM[] = {
+  getValueVMT<DArray2,getValueGetter>,
+  getValueVMT<DFArray2,getValueFGetter>
+};
+
 OperatorSpec getValueSpec(
-     "darray2(T) -> array(T)",
+     "{darray2(T),dfarray2(T)} -> array(T)",
      "getValue(_)",
      "Converts a distributed array into a normal one.",
      "query getValue(da2)"
@@ -8875,8 +9191,9 @@ OperatorSpec getValueSpec(
 Operator getValueOp(
   "getValue",
   getValueSpec.getStr(),
+  2,
   getValueVM,
-  Operator::SimpleSelect,
+  getValueSelect,
   getValueTM
 );
 
@@ -9938,6 +10255,245 @@ Operator cleanUpOp(
   cleanUpTM
 );
 
+/*
+14 Operators acting on dfarrays
+
+14.1 ~fddistribute2~
+
+14.1.1 Type Mapping
+
+The operator takes a stream of tuples, an attribute name
+having int type, a dfarray (for extracting size and workers)
+as well a a new name. 
+
+*/
+
+ListExpr fddistribute2TM(ListExpr args){
+
+  string err = "expected stream(tuple) x attrName x dfarray x string";
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(    !Stream<Tuple>::checkType(nl->First(args))
+      || (nl->AtomType(nl->Second(args))!=SymbolType)
+      || !DFArray2::checkType(nl->Third(args))
+      || !CcString::checkType(nl->Fourth(args))){
+   return listutils::typeError(err);
+ }
+ ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+ ListExpr type;
+ string name = nl->SymbolValue(nl->Second(args));
+ int pos = listutils::findAttribute(attrList, name,  type); 
+ if(!pos){
+   return listutils::typeError("Attribute " + name + " not part of the tuple");
+ }
+ if(!CcInt::checkType(type)){
+   return listutils::typeError("Attribute " + name + " not of type int");
+ }
+ ListExpr relType = nl->TwoElemList(
+                       listutils::basicSymbol<Relation>(),
+                       nl->Second(nl->First(args)));
+ return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->IntAtom(pos-1)),
+               nl->TwoElemList(listutils::basicSymbol<DFArray2>(), relType)); 
+}
+
+
+OperatorSpec fddistribute2Spec(
+     "stream(tuple) x attrName x dfarray2 x string -> dfarray2",
+     "_ fddistribute[_,_,_]",
+     "Distributes a tuple stream to remote servers.  "
+     "The reslation on the remote server is represented in a  "
+     "file not as a database object",
+     "query strassen feed addcounter[N0,0] fddistribute[No,dfa8,\"dfa9\"] "
+ );
+
+/*
+13.4 Operator instnace
+
+*/
+
+Operator fddistribute2Op(
+  "fddistribute2",
+  fddistribute2Spec.getStr(),
+  ddistribute2VM<DFArray2, FRelCopy>,
+  Operator::SimpleSelect,
+  fddistribute2TM
+);
+
+
+/*
+15 Operator fddistribute3
+
+Destributes a tuple stream to an fdarray2. The dsitribution to the slots
+of the array is done using the same mechanism as for the ddistribute3
+operator.
+
+*/
+
+ListExpr fddistribute3TM(ListExpr args){
+  string err ="stream(tuple) x int x bool x dfarray x string expected";
+  if(!nl->HasLength(args,5)){
+   return listutils::typeError(err + "( wrong number of args)");
+  }
+  if(   !Stream<Tuple>::checkType(nl->First(args))
+     || !CcInt::checkType(nl->Second(args))
+     || !CcBool::checkType(nl->Third(args))
+     || !DFArray2::checkType(nl->Fourth(args))){
+    return listutils::typeError(err);
+  }
+  return nl->TwoElemList(listutils::basicSymbol<DFArray2>(),
+                         nl->TwoElemList(
+                             listutils::basicSymbol<Relation>(),
+                             nl->Second(nl->First(args))));
+}
+
+
+OperatorSpec fddistribute3Spec(
+     " stream(tuple(X)) x int x bool x dfarray2(Y) x string-> darray2(X) ",
+     " _ fddistribute3[ _, _,_,_]",
+     " Distributes a tuple streanm into a dfarray. The boolean "
+     "flag controls the method of distribution. If the flag is set to "
+     " true, the integer argument specifies the target size of the "
+     " resulting darray and the tuples are distributed in a circular way."
+     "In the other case, this number represents the size of a single "
+     "array slot. A slot is filled until the size is reached. After that "
+     " a new slot is opened. The string attribute gives the name of the "
+     "result",
+     " query strassen feed fddistribute3[10, TRUE, da8, \"dfa28\" ]  "
+     );
+
+Operator fddistribute3Op(
+  "fddistribute3",
+  fddistribute3Spec.getStr(),
+  ddistribute3VM<DFArray2, FRelCopy>,
+  Operator::SimpleSelect,
+  fddistribute3TM
+);
+
+/*
+Operator fdistribute4
+
+*/
+
+ListExpr fddistribute4TM(ListExpr args){
+  string err ="stream(tuple) x (tuple->int) x dfarray2 x string   expected";
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError(err);
+  }
+  if(    !Stream<Tuple>::checkType(nl->First(args))
+      || !listutils::isMap<1>(nl->Second(args))
+      || !DFArray2::checkType(nl->Third(args))
+      || !CcString::checkType(nl->Fourth(args))){
+    return listutils::typeError(err);
+  }
+  ListExpr funargType = nl->Second(nl->Second(args));
+  if(!nl->Equal(funargType, nl->Second(nl->First(args)))){
+    return listutils::typeError("tuple type and function arg type differ");
+  }
+  ListExpr funResType = nl->Third(nl->Second(args));
+  if(!CcInt::checkType(funResType)){
+    return listutils::typeError("result of function not an int");
+  }
+
+  return nl->TwoElemList(
+              listutils::basicSymbol<DArray2>(),
+              nl->TwoElemList(
+                  listutils::basicSymbol<Relation>(),
+                  nl->Second(nl->First(args))));
+}
+
+
+OperatorSpec fddistribute4Spec(
+     " stream(tuple(X)) x (tuple->int) x dfarray2(Y) x string-> darray2(X) ",
+     " _ fddistribute4[ _, _,_]",
+     " Distributes a locally stored relation into a dfarray2 ",
+     " query strassen feed  fddistribute4[ hashvalue(.Name,2000),"
+     " df2, \"df8\"]  "
+     );
+
+Operator fddistribute4Op(
+  "fddistribute4",
+  fddistribute4Spec.getStr(),
+  ddistribute4VM<DFArray2, FRelCopy>,
+  Operator::SimpleSelect,
+  fddistribute4TM
+);
+
+
+
+/*
+14 Operator ~convertDArray2~
+
+This operator converts a darray2 into a dfarray2 and vice versa.
+
+*/
+ListExpr convertdarray2TM(ListExpr args){
+
+ string err = "darray2 or dfarray2 expected";
+
+ if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + " ( wrong number of args)");
+ }
+ ListExpr arg = nl->First(args);
+ if(DFArray2::checkType(arg)){
+   return nl->TwoElemList(
+               listutils::basicSymbol<DArray2>(),
+               nl->Second(arg));
+ }
+ if(!DArray2::checkType(arg)){
+    return listutils::typeError(err + " ( wrong number of args)");
+ }
+ ListExpr subtype = nl->Second(arg);
+ if(!Relation::checkType(subtype)){
+    return listutils::typeError("subtype must be a relation");
+ }
+ return nl->TwoElemList( listutils::basicSymbol<DFArray2>(),
+                         subtype);
+}
+
+template<class A, class R>
+int convertdarray2VMT(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  A* arg = (A*) args[0].addr;
+  R* res = (R*) result.addr;
+  (*res) = (*arg);
+  return 0;
+}
+
+int convertdarray2Select(ListExpr args){
+  return DArray2::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping convertdarray2VM[] = {
+   convertdarray2VMT<DArray2,DFArray2>,
+   convertdarray2VMT<DFArray2,DArray2>
+};
+
+OperatorSpec convertdarray2Spec(
+     "darray2 -> dfarray2, dfarray2 -> darray2 ",
+     "convertdarray2(_)",
+     "Converts a darray2 into a dfarray2 and vice versa. "
+     "Note that this only converts the root of the array, "
+     "i.e. the slots of the result are empty even if the "
+     "slots of the argument are not.",
+     "query convertdarray2(da8) "
+ );
+
+
+Operator convertdarray2Op(
+  "convertdarray2",
+  convertdarray2Spec.getStr(),
+  2,
+  convertdarray2VM,
+  convertdarray2Select,
+  convertdarray2TM
+);
+
+
+
 
 
 /*
@@ -9949,6 +10505,8 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddTypeConstructor(&DArray2TC);
    DArray2TC.AssociateKind(Kind::SIMPLE());
+   AddTypeConstructor(&DFArray2TC);
+   DFArray2TC.AssociateKind(Kind::SIMPLE());
    
    AddOperator(&connectOp);
    AddOperator(&checkConnectionsOp);
@@ -10001,6 +10559,13 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&cloneOp);
    AddOperator(&shareOp);
    AddOperator(&cleanUpOp);
+
+   AddOperator(&fddistribute2Op);
+   AddOperator(&fddistribute3Op);
+   AddOperator(&fddistribute4Op);
+
+   AddOperator(&convertdarray2Op);
+
 }
 
 
