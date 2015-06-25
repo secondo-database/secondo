@@ -246,6 +246,14 @@ Signature: text x text -> bool
 Example  : query moveFile('opt4','opt')
 Result   : TRUE
 
+
+Operator : copyFile
+Number   : 1
+Signature: {string,text} x {string,text} -> bool
+Example  : query copyFile("opt","opt2")
+Result   : TRUE
+
+
 Operator : getDirectory
 Number   : 1
 Signature: string [ x int ] -> stream(text)

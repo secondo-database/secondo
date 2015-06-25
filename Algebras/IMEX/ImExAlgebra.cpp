@@ -5609,8 +5609,8 @@ ListExpr stringORtext_stringORtext2boolTM(ListExpr args){
 
 */
 
-template<class T, class S>
-int moveFileVM(Word* args, Word& result,
+template<class T, class S, bool isMOVE>
+int moveOrCopyFileVM(Word* args, Word& result,
                int message, Word& local, Supplier s){
 
   result = qp->ResultStorage(s);
@@ -5630,15 +5630,18 @@ int moveFileVM(Word* args, Word& result,
     res->Set(true,false);
     return 0;
   }
-  bool boolresult = FileSystem::RenameFileOrFolder(fileNameOldS,fileNameNewS);
+  bool  boolresult = isMOVE 
+                     ?  FileSystem::RenameFileOrFolder(fileNameOldS,
+                                                       fileNameNewS)
+                     : FileSystem::Copy_File(fileNameOldS, fileNameNewS); 
   res->Set(true,boolresult);
   return 0;
 }
 
-ValueMapping moveFilevaluemap[] = {moveFileVM<CcString, CcString>,
-                                   moveFileVM<CcString, FText>,
-                                   moveFileVM<FText,    CcString>,
-                                   moveFileVM<FText,    FText>};
+ValueMapping moveFilevaluemap[] = {moveOrCopyFileVM<CcString, CcString, true>,
+                                   moveOrCopyFileVM<CcString, FText, true>,
+                                   moveOrCopyFileVM<FText,    CcString, true>,
+                                   moveOrCopyFileVM<FText,    FText, true>};
 
 /*
 16.3 Specification for ~moveFile~
@@ -5670,6 +5673,28 @@ Operator moveFile ( "moveFile",
                    moveFilevaluemap,
                    stringORtext_stringORtext_Select,
                    stringORtext_stringORtext2boolTM);
+
+
+OperatorSpec copyFileSpec(
+  "{string,text} x {string,text} -> bool ",
+  "copyFile(source, dest)",
+  "Copyies the file source to a file named dest. "
+  "Returns the success of this operation.",
+  "query copyFile('data.csv','data1.csv')"
+);
+
+ValueMapping copyFileVM[] = {moveOrCopyFileVM<CcString, CcString, false>,
+                             moveOrCopyFileVM<CcString, FText, false>,
+                             moveOrCopyFileVM<FText,    CcString, false>,
+                             moveOrCopyFileVM<FText,    FText, false>};
+
+Operator copyFile( "copyFile",
+                   copyFileSpec.getStr(),
+                   4,
+                   copyFileVM,
+                   stringORtext_stringORtext_Select,
+                   stringORtext_stringORtext2boolTM);
+                   
 
 /*
 17 Operator ~getDirectory~
@@ -6743,6 +6768,7 @@ public:
     AddOperator( &writeFile);
     AddOperator( &readFile);
     AddOperator( &moveFile);
+    AddOperator( &copyFile);
     AddOperator( &getDirectory);
     AddOperator( &toCSVtext);
     AddOperator( &fromCSVtext);
