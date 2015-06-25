@@ -166,15 +166,40 @@ public class RelViewer extends SecondoViewer{
    
    File file = filechooser.getSelectedFile();
    
-   String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Import: Delimiter input",
+   
+   int choice = 0;
+   Object[] opts = {"Update", "Insert", "Cancel"};
+   
+   int select = JOptionPane.showOptionDialog(null, "Please choose...(Return for Update)", "Select Update/Insert",
+                                                            JOptionPane.DEFAULT_OPTION, 
+                                                            JOptionPane.INFORMATION_MESSAGE, 
+                                                            null, opts, opts[0]);
+  choice = select; 
+  if (choice == 2) 
+   {
+     Reporter.showInfo("Insert or update failure - User abort");
+     return false;
+   }
+  
+  
+  String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Import: Delimiter input",
                                                              JOptionPane.PLAIN_MESSAGE);
+                                                             
+  if (delim.equals(""))
+  { Reporter.showInfo("Empty delimiter inserted");
+    return  false;                                                      
+  }      
+  
+                                                             
+  String skip = JOptionPane.showInputDialog(null,"Insert number >= 0 of rows to be skipped-OK for 0 skips", "Import: Skip rows",JOptionPane.PLAIN_MESSAGE);
+     
+     
    
+  ListExpr result = importCSV(file,types, delim, skip);
    
-   ListExpr result = importCSV(file,types, delim);
+      
    
-    
-   
-   if(result==null)
+  if(result==null)
    { 
      Reporter.debug("csv file import");
      return false;
@@ -182,40 +207,93 @@ public class RelViewer extends SecondoViewer{
    
    ListExpr relHeader = getHeader(types, Tables.get(index).table);   
    
-   ListExpr objList = ListExpr.twoElemList(relHeader,result);
+   ListExpr objList = ListExpr.twoElemList(relHeader,result);      
    
    
+   
+   
+   
+   //Constructing the new table or insert into the table
    
    String update = "update";
+   String let = "let";  
+   String query = "query";
+   String insert = "insert";
+   String consume = "consume";
+   String feed = "feed";
+   
+   
+   String noitalerpmet = "noitalerpmet";
+   
+   String ins1 = "(query(consume(insert(feed noitalerpmet)";
+   String ins3= ")))";   
+   String que = "(query noitalerpmet)"; 
+   String del = "delete noitalerpmet";   
+   
    String assign = ":=";
+   String assign2 = "=";
    
    String eingabe = JOptionPane.showInputDialog(null,"Confirm update of the selected relation by typing in its name and pressing OK.\nOtherwise the update will not take place.",
                                                              "Relation Update",
                                                              JOptionPane.PLAIN_MESSAGE);
    
+  String ins2 = eingabe; 
    
-   ListExpr updaterel = ListExpr.fourElemList(ListExpr.symbolAtom(update), ListExpr.symbolAtom(eingabe), ListExpr.symbolAtom(assign), objList);
+  ListExpr updaterel = ListExpr.fourElemList(ListExpr.symbolAtom(update), ListExpr.symbolAtom(eingabe), ListExpr.symbolAtom(assign), objList);
+  ListExpr letrel = ListExpr.fourElemList(ListExpr.symbolAtom(let), ListExpr.symbolAtom(noitalerpmet), ListExpr.symbolAtom(assign2), objList);
+   
+   
+  String ins = ins1 + ins2 + ins3;
+  
+   
+   
    
    String text = updaterel.toString();
+   String text2 = letrel.toString();   
+ 
+     
+   
+  SecondoObject obj = new SecondoObject(file.getName(), objList);
+  SecondoObject obj2 = new SecondoObject(file.getName(), objList); 
    
    
    
-   SecondoObject obj = new SecondoObject(file.getName(), objList);
+   
+   if (choice == 1)  
+    {   
+     VC.addObject(obj2);
+     this.addObject(obj2);
+     int rval = VC.execCommand(text2);
+     int rval4 = VC.execCommand(ins);
+     int rval3 = VC.execCommand(del);
+   
+      if ( (rval==0) && (rval4==0) && (rval4==0))
+      {
+       return true;   
+      }
+    }
+   
+   else { 
+   
+          VC.addObject(obj);
+          this.addObject(obj);
+          int rval2 = VC.execCommand(text);
+          if (rval2==0)
+          {
+           return true;   
+          }
+   
+        }  
    
    
-      
    
-   VC.addObject(obj);
-   this.addObject(obj);
-   int rval = VC.execCommand(text);
-   if (rval==0)
-   {
-   return true;   
-   }
+  
    
    
-  Reporter.showInfo("Secondo error");
-  Reporter.debug("Secondo errorcode: " +rval );
+   
+   
+   
+  Reporter.showInfo("Insert or update failure - Secondo error");
   return false;
    
  }
@@ -264,14 +342,13 @@ private boolean checkCSVTypes(ListExpr[] types)
  
 
  
+  
  
  
  
  
  
- 
- 
- private ListExpr importCSV(File file, ListExpr[] types, String delm)
+ private ListExpr importCSV(File file, ListExpr[] types, String delm, String inskip)
  {
  
     try
@@ -291,10 +368,71 @@ private boolean checkCSVTypes(ListExpr[] types)
      int read = test.read();      
      int read2 = test.read();
      int readbom = -2;
+     int skip = 0;
+     
+     
+     
+     
+     if (read == 65279)  
+      {
+      readbom = in.read();                                            //skipping the BOM in the in buffer
+      }
+   
+   
+   
+     
+   if (!inskip.equals(""))                                            //empty skip is a skip of 0 rows  
+    {
+     
+     
+      try
+      {
+       skip = Integer.parseInt(inskip);
+      
+      }
+       catch(Exception e)
+       {  
+         Reporter.showInfo("Skip Rows: A number must be inserted");
+         return null;
+        
+       }
+     
+     } 
+     
+   else   skip = 0;
+     
+          
+     if (skip < 0) skip = 0;                                       // negativ skips are skips of 0 rows 
      
      
     
-          
+      //skipping inserted number of lines
+      
+      for (int i=1; i<=skip; i++)
+       {
+        dummyheader = in.readLine().trim();  
+        
+       if (!in.ready()) 
+         {
+          Reporter.showInfo("Skip Rows: You wanna skip more rows than you have");
+          return null;
+        
+         }
+        
+        
+       }
+      
+      
+      
+      
+      // end of  skipping inserted number of lines
+         
+         
+         
+   
+     
+     
+     //Skipping  #-comment lines  
      
     
      while ( (read == 35 && readloop==-2) || (read2 == 35 && readloop==-2) || readloop == 35)  //maybe there is a BOM before a "#"
@@ -303,24 +441,23 @@ private boolean checkCSVTypes(ListExpr[] types)
        readloop = test.read();       
        countcomments++;
       }
-      
+            
      
-      
-      
-      
-      
-     if (read == 65279)  
+     if (skip<countcomments)
       {
-      readbom = in.read();                                            //skipping the BOM in the in buffer
-      }
-      
-      
-     
-      
-      for (int i=1; i<=countcomments; i++)
+            
+      for (int i=1; i<=countcomments-skip; i++)
        {
         dummyheader = in.readLine().trim();                           //skipping the # rows
        }
+      }
+     
+      
+    // end of   #-comment lines  
+      
+      
+    
+      
       
       
       
@@ -392,7 +529,7 @@ private boolean checkCSVTypes(ListExpr[] types)
      }
      catch(Exception e)
      {  
-        Reporter.debug("Empty delimiter inserted");
+        Reporter.showInfo("Empty delimiter inserted");
         return  null;
      }
     
@@ -407,22 +544,16 @@ private boolean checkCSVTypes(ListExpr[] types)
     int count2 = lang2.countTokens();
     int typelenght = types.length;
     int delimnumber = CountDelims (line, delimchar);
-    String tokentest = "dummy"; 
-    
-    
-    
+    String tokentest = "dummy";     
     
     
     while (lang.hasMoreTokens())
      {     
       count++;
-      tokentest = lang.nextToken();
-      
+      tokentest = lang.nextToken();      
      }
     
-    
        
-   
     
      
    if ((count2 > typelenght) || ( (count2 == count) &&  (count > typelenght)) || (count > typelenght) 
@@ -430,13 +561,11 @@ private boolean checkCSVTypes(ListExpr[] types)
     
     
     {     
-       Reporter.debug("Table mismatch or delimiter mismatch");
+       Reporter.showInfo("Table mismatch or delimiter mismatch");
        return null;   
     }
     
-    
-    
-    
+      
       
     
     ListExpr res = null;
@@ -448,11 +577,6 @@ private boolean checkCSVTypes(ListExpr[] types)
     int trigger= 0;
     
     String token = "dummy";
-    
-    
-    
-    
-    
     
     
     
@@ -495,7 +619,6 @@ private boolean checkCSVTypes(ListExpr[] types)
     }
     
        
-        
     return res;
  }
  
@@ -504,7 +627,7 @@ private boolean checkCSVTypes(ListExpr[] types)
  
  
  
- 
+// Hilfsmethoden
  
  
   private int CountDelims (String input, char c) 
@@ -526,6 +649,11 @@ private boolean checkCSVTypes(ListExpr[] types)
  
  
  
+ 
+ 
+
+ 
+ //------------------------------------------------------
  
   
  
@@ -802,7 +930,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
      }
      catch(Exception e)
      {  
-        Reporter.debug("Empty delimiter inserted");
+        Reporter.showInfo("Empty delimiter inserted");
         return  false;
      }
     
