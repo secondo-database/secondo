@@ -5694,6 +5694,67 @@ Operator copyFile( "copyFile",
                    copyFileVM,
                    stringORtext_stringORtext_Select,
                    stringORtext_stringORtext2boolTM);
+
+/*
+17 Operator ~basename~
+
+*/
+ListExpr basenameTM(ListExpr args){
+  string err ="string or text expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + "(wrong number of args)");
+  }
+  ListExpr arg = nl->First(args);
+  if(!FText::checkType(arg) && ! CcString::checkType(arg)){
+    return listutils::typeError(err);
+  }
+  return arg;
+}
+
+template<class T>
+int basenameVMT(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  result =  qp->ResultStorage(s);
+  T* res = (T*) result.addr;
+  T* arg = (T*) args[0].addr;
+  if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  res->Set(true, FileSystem::Basename(arg->GetValue()));
+  return 0;
+}
+
+ValueMapping basenameVM[] = {
+   basenameVMT<CcString>,
+   basenameVMT<FText>
+};
+
+int basenameSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec basenameSpec(
+  "n -> n, n in {string,text}",
+  "basename(_)",
+  "Extract the filename without leading path from a pathname",
+  "query basename('/home/secondo/secondo.txt')"
+);
+
+Operator basenameOp(
+  "basename",
+  basenameSpec.getStr(),
+  2,
+  basenameVM,
+  basenameSelect,
+  basenameTM
+);
+
+
+
+
+
                    
 
 /*
@@ -6769,6 +6830,7 @@ public:
     AddOperator( &readFile);
     AddOperator( &moveFile);
     AddOperator( &copyFile);
+    AddOperator( &basenameOp);
     AddOperator( &getDirectory);
     AddOperator( &toCSVtext);
     AddOperator( &fromCSVtext);

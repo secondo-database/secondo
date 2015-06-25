@@ -354,6 +354,11 @@ Signature: text -> stream(tuple([R : rect, V : int))
 Example  : query importHGT1('N51E007.hgt') count
 Result  : 1442401
 
+Operator  : basename
+Number    : 1
+Signature :  n -> n , n in {string,text}
+Example   : query basename("/home/secondo/secondo/makefile")
+Result    : "makefile"
 
 
 

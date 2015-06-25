@@ -46,4 +46,4 @@ operator getPID alias GETPID pattern op ( _ )
 operator getSecondoPlatform alias GETSECONDOPLATFORM pattern op ( _ )
 operator getPageSize alias GETPAGESIZE pattern op ( _ )
 operator sqlExport alias SQLEXPORT pattern _ op [ _,_,_] 
-
+operator basename alias BASENAME pattern op(_)

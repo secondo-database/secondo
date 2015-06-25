@@ -288,6 +288,14 @@ slash, depending on the operating system used. The second form also adds the giv
 subitem.
 
 */
+  static string Basename(const string& pathName);
+
+/*
+Returns the filename without the leading path.
+
+*/
+
+
 
  protected:
  private:

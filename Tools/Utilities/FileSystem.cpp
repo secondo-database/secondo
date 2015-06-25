@@ -657,6 +657,27 @@ FileSystem::AppendSlash( string& pathName )
   AppendItem(pathName,"");
 }
 
+string FileSystem::Basename(const string& pathName){
+   string path_sep = PATH_SLASH;
+   #ifdef SECONDO_WIN32
+      path_sep += "/";
+   #endif 
+   string::size_type n = pathName.find_last_of(path_sep);
+
+   if(n == string::npos){
+     return pathName;
+   }
+   if(n + 1 == pathName.length()){
+     if(n==0){
+        return pathName;
+     } else {
+        return Basename(pathName.substr(0,n));
+     }
+   }
+   return pathName.substr(n+1);
+}
+
+
 
 #ifdef SECONDO_WIN32
 void
