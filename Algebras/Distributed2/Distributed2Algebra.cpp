@@ -6365,11 +6365,12 @@ Operator getWorkers
 
 */
 ListExpr getWorkersTM(ListExpr args){
-  string err = "darray2  expected";
+  string err = "darray2  or dfarray2  expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
-  if(!DArray2::checkType(nl->First(args))){
+  if(!DArray2::checkType(nl->First(args))
+     && !DFArray2::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
 
@@ -6394,9 +6395,10 @@ ListExpr getWorkersTM(ListExpr args){
          attrList));
 }
 
+template<class A>
 class getWorkersInfo{
   public:
-     getWorkersInfo(DArray2* _array, ListExpr _tt):
+     getWorkersInfo(A* _array, ListExpr _tt):
         array(_array), pos(0){
          tt = new TupleType(_tt);
      }
@@ -6420,26 +6422,26 @@ class getWorkersInfo{
      }
 
   private:
-     DArray2* array;
+     A* array;
      size_t pos;
      TupleType* tt;
 
 };
 
-
-int getWorkersVM(Word* args, Word& result, int message,
+template<class A>
+int getWorkersVMT(Word* args, Word& result, int message,
           Word& local, Supplier s ){
 
-   getWorkersInfo* li = (getWorkersInfo*) local.addr;
+   getWorkersInfo<A>* li = (getWorkersInfo<A>*) local.addr;
    switch(message){
       case OPEN:{
             if(li){
                delete li;
                local.addr = 0;
             }
-            DArray2* arg = (DArray2*) args[0].addr;
+            A* arg = (A*) args[0].addr;
             if(arg->IsDefined()){
-              local.addr = new getWorkersInfo(arg, 
+              local.addr = new getWorkersInfo<A>(arg, 
                               nl->Second(GetTupleResultType(s)));
             }
             return 0;
@@ -6459,7 +6461,7 @@ int getWorkersVM(Word* args, Word& result, int message,
 
 
 OperatorSpec getWorkersSpec(
-     " darray2(T) -> stream(tuple(...)) ",
+     " darray2(T) -> stream(tuple(...)) , dfarray2(T) - stream(tuple(...))",
      " getWorkers(_)",
      " Returns information about workers in a darray2.",
      " query getWorkers([const darray2(int) value"
@@ -6467,12 +6469,23 @@ OperatorSpec getWorkersSpec(
      "           (\"host2\" 1234 \"Config2.ini\")))] ) count"
      );
 
+ValueMapping getWorkersVM[] = {
+  getWorkersVMT<DArray2>,
+  getWorkersVMT<DFArray2>
+};
+
+int getWorkersSelect(ListExpr args){
+  return DArray2::checkType(nl->First(args))?0:1;
+
+}
+
 
 Operator getWorkersOp(
            "getWorkers",
            getWorkersSpec.getStr(),
+           2,
            getWorkersVM,
-           Operator::SimpleSelect,
+           getWorkersSelect,
            getWorkersTM);
 
 
@@ -8272,11 +8285,12 @@ are shown, otherwise infos about all existing workers.
 */
 
 ListExpr showWorkersTM(ListExpr args){
-  string err = "nothing or darray2 expected" ;
+  string err = "nothing or darray2 or dfarray2 expected" ;
   if(!nl->IsEmpty(args) && !nl->HasLength(args,1)){
      return listutils::typeError(err);
   }
-  if(nl->HasLength(args,1) && !DArray2::checkType(nl->First(args))){
+  if(nl->HasLength(args,1) && !DArray2::checkType(nl->First(args))
+    && !DFArray2::checkType(nl->First(args))){
      return listutils::typeError(err);
   }
   ListExpr attrList = nl->SixElemList(
@@ -8301,6 +8315,7 @@ ListExpr showWorkersTM(ListExpr args){
 }
 
 
+template<class A>
 class showWorkersInfo{
 
   public:
@@ -8308,7 +8323,7 @@ class showWorkersInfo{
        iter = algInstance->workersIterator();
        tt = new TupleType(resType);
     }
-    showWorkersInfo(DArray2* _array, ListExpr resType): array(_array), pos(0){
+    showWorkersInfo(A* _array, ListExpr resType): array(_array), pos(0){
        tt = new TupleType(resType);
     }
     ~showWorkersInfo(){
@@ -8325,7 +8340,7 @@ class showWorkersInfo{
 
 
   private:
-    DArray2* array;
+    A* array;
     size_t pos;
     typename map<DArray2Element, pair<string, ConnectionInfo*> >::iterator iter;
     TupleType* tt;
@@ -8372,11 +8387,11 @@ class showWorkersInfo{
 };
 
 
-
-int showWorkersVM(Word* args, Word& result, int message,
+template<class A>
+int showWorkersVMT(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
-  showWorkersInfo* li = (showWorkersInfo*) local.addr;
+  showWorkersInfo<A>* li = (showWorkersInfo<A>*) local.addr;
   switch(message){
     case OPEN: {
 
@@ -8386,9 +8401,9 @@ int showWorkersVM(Word* args, Word& result, int message,
                  }
                  ListExpr tt = nl->Second(GetTupleResultType(s));
                  if(qp->GetNoSons(s)==0){
-                   local.addr = new showWorkersInfo(tt);
+                   local.addr = new showWorkersInfo<A>(tt);
                  } else {
-                   local.addr = new showWorkersInfo((DArray2*) args[0].addr,tt);
+                   local.addr = new showWorkersInfo<A>((A*) args[0].addr,tt);
                  }
                  return 0;
     }
@@ -8406,7 +8421,7 @@ int showWorkersVM(Word* args, Word& result, int message,
 }
 
 OperatorSpec showWorkersSpec(
-     " -> stream(tuple), darray2 -> stream(tuple) ",
+     " -> stream(tuple), {darray2,dfarray2} -> stream(tuple) ",
      " showWorkers([_])",
      "This operator shows information about either all connections to workers "
      "(no argument),  "
@@ -8414,11 +8429,25 @@ OperatorSpec showWorkersSpec(
      " query showWorkers()  consume "
      );
 
+ValueMapping showWorkersVM[]={
+  showWorkersVMT<DArray2>,
+  showWorkersVMT<DFArray2>
+};
+
+int showWorkersSelect(ListExpr args){
+
+  return nl->IsEmpty(args) || DArray2::checkType(nl->First(args)) ?0:1;
+
+}
+
+
+
 Operator showWorkersOp(
   "showWorkers",
   showWorkersSpec.getStr(),
+  2,
   showWorkersVM,
-  Operator::SimpleSelect,
+  showWorkersSelect,
   showWorkersTM
 );
 
