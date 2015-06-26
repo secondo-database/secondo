@@ -149,6 +149,14 @@ class ffeed5Info{
       delete[] inBuffer;
     }
 
+    ListExpr getRelType(){
+      return fileTypeList;
+    }
+
+    bool isOK()const{
+       return ok;
+    }
+
     Tuple* next(){
        if(!ok) {
          return 0;
@@ -178,6 +186,7 @@ class ffeed5Info{
      char* inBuffer;
      TupleType* tt; 
      bool ok;
+     ListExpr fileTypeList;
 
 
   void readHeader(){
@@ -193,8 +202,11 @@ class ffeed5Info{
      char* buffer = new char[length];
      in.read(buffer,length);
      string list(buffer,length);
-     delete[] buffer; 
-     ok = in.good();
+     delete[] buffer;
+     nlparsemtx.lock();
+     ok = nl->ReadFromString(list,fileTypeList); 
+     nlparsemtx.unlock();
+     ok = ok && in.good();
   }
 
 };
@@ -853,7 +865,10 @@ class ConnectionInfo{
                 cerr << "Requesting file " + base + ".tmp failed" << endl;
                 return false;
              }
+             cout << "resType before : " << nl->ToString(resType) << endl;
              result = createRelationFromFile(base+".tmp",resType,false);
+             cout << "resType after : " << nl->ToString(resType) << endl;
+
              FileSystem::DeleteFileOrFolder(base+".tmp");
              cmd = "query removeFile('"+rfpath + base +".tmp' )" ;
              si->Secondo(cmd,resList,serr);
@@ -891,23 +906,47 @@ class ConnectionInfo{
              return true;
           }
 
-          Word createRelationFromFile(const string& fname, ListExpr resType, 
+          Word createRelationFromFile(const string& fname, ListExpr& resType, 
                                       bool lock=true){
             
             if(lock){
              simtx.lock();
             }
 
+             Word result((void*) 0);
              // create result relation
+
+            
              ListExpr tType = nl->Second(resType);
              tType = SecondoSystem::GetCatalog()->NumericType(resType);
              TupleType* tt = new TupleType(nl->Second(tType));
+             ffeed5Info reader(fname,tt);
+
+             if(!reader.isOK()){
+               tt->DeleteIfAllowed();
+               if(lock){
+                 simtx.unlock();
+               }
+               return result;
+             }
+
+             ListExpr typeInFile = reader.getRelType();
+             if(!nl->Equal(resType, typeInFile)){
+                cerr << "Type conflict between expected type and tyoe in file"
+                     << endl;
+                cerr << "Expected : " << nl->ToString(resType) << endl;
+                cerr << "Type in  File " << nl->ToString(typeInFile) << endl;
+                tt->DeleteIfAllowed();
+                if(lock){
+                  simtx.unlock();
+                }
+                return result;
+             }
 
              createRelMut.lock();
              Relation* resultrel = new Relation(tType); 
              createRelMut.unlock();
-            
-             ffeed5Info reader(fname,tt);
+
              Tuple* tuple;
              while((tuple=reader.next())){
                  createRelMut.lock();
@@ -916,7 +955,6 @@ class ConnectionInfo{
                  tuple->DeleteIfAllowed();
              }
              tt->DeleteIfAllowed();
-             Word result((void*) 0);
              result.addr = resultrel;
              if(lock){
                simtx.unlock();
@@ -6072,12 +6110,14 @@ Signature is darray2(T) x int -> T
 */
 ListExpr getTM(ListExpr args){
 
-  string err = "darray2(T) x int expected";
+  string err = "{darray2(T), dfarray(T)} x int expected";
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err + " (invalid number of args)");
   }
-  if(!DArray2::checkType(nl->First(args))){
-     return listutils::typeError(err+" ( first is not a darray2)");
+  if(    !DArray2::checkType(nl->First(args)) 
+      && !DFArray2::checkType(nl->First(args))){
+     return listutils::typeError(err+
+                          " ( first is not a darray2 or a dfarray2)");
   }
   if(!CcInt::checkType(nl->Second(args))){
      return listutils::typeError(err+"(second arg is not of type int)");
@@ -6089,7 +6129,7 @@ ListExpr getTM(ListExpr args){
 3.2.2 Value Mapping
 
 */
-int getVM(Word* args, Word& result, int message,
+int getVMDA(Word* args, Word& result, int message,
           Word& local, Supplier s ){
 
   DArray2* array = (DArray2*) args[0].addr;
@@ -6173,26 +6213,89 @@ int getVM(Word* args, Word& result, int message,
   qp->DeleteResultStorage(s);
   qp->ChangeResultStorage(s,r);
   result = qp->ResultStorage(s);
-
-
   return 0;
 }
 
 
+int getVMDFA(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  DFArray2* array = (DFArray2*) args[0].addr;
+  CcInt* ccpos = (CcInt*) args[1].addr;
+
+  if(!array->IsDefined() || !ccpos->IsDefined()){
+    return 0;
+  }
+  int pos = ccpos->GetValue();
+  if(pos < 0 || (size_t) pos >= array->getSize()){
+     return 0;
+  }
+  DArray2Element elem = array->getWorker(pos % array->numOfWorkers());
+  string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+  ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+  if(!ci){
+     return 0;
+  }
+  ListExpr resType = qp->GetType(s);;
+  string fileName = ci->getSecondoHome() + "/dfarrays/"+dbname+"/"
+                    + array->getName()+"_"+stringutils::int2str(pos)+".bin";  
+  Word relResult;
+  ci->retrieveRelationInFile(fileName, resType, relResult);
+  if(relResult.addr == 0){
+     return 0;
+  }
+  if(!nl->Equal(resType, qp->GetType(s))){
+    cerr << "Type of remote object does not fit the sub type of dfarray." 
+         << endl;
+    string typeName; 
+    int algebraId;
+    int typeId;
+    SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+    if( ctlg->LookUpTypeExpr( resType, typeName, algebraId, typeId ) ){
+        am->DeleteObj(algebraId, typeId)(resType,relResult);    
+    } else {
+       cerr << "internal error leads to memory leak" << endl;
+    }
+    return 0;
+  }
+  cout << "change result storage" << endl;
+  qp->DeleteResultStorage(s);
+  qp->ChangeResultStorage(s,relResult);
+  result = qp->ResultStorage(s);
+  return 0;
+}
+
+
+
 OperatorSpec getSpec(
-     " darray2(T) x int -> T ",
+     " {darray2(T), dfarray(T)}  x int -> T ",
      " get(_,_)",
-     " Retrieves an element at a specific position of a darray2.  ",
+     " Retrieves an element at a specific position "
+     "of a darray2 or a dfarray2.",
      " query get([const darray2(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] , 1, )"
      );
 
+ValueMapping getVM[] = {
+  getVMDA,
+  getVMDFA
+};
+
+int getSelect(ListExpr args){
+ return DArray2::checkType(nl->First(args))?0:1;
+}
+
+
+
 Operator getOp(
            "get",
            getSpec.getStr(),
+           2,
            getVM,
-           Operator::SimpleSelect,
+           getSelect,
            getTM);
 
 
@@ -6203,23 +6306,25 @@ This operator just asks for the size of a darray2 instance.
 
 */
 ListExpr sizeTM(ListExpr args){
-  string err  = "darray2 expected";
+  string err  = "darray2  or dfarray2expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
-  if(!DArray2::checkType(nl->First(args))){
+  if(!DArray2::checkType(nl->First(args))
+    && !DFArray2::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
   return listutils::basicSymbol<CcInt>();
 }
 
-int sizeVM(Word* args, Word& result, int message,
+template<class A>
+int sizeVMT(Word* args, Word& result, int message,
           Word& local, Supplier s ){
 
   result = qp->ResultStorage(s);
   CcInt* res = (CcInt*) result.addr;
 
-  DArray2* arg  = (DArray2*) args[0].addr;
+  A* arg  = (A*) args[0].addr;
   if(!arg->IsDefined()){
     res->SetDefined(false);
   } else {
@@ -6229,7 +6334,7 @@ int sizeVM(Word* args, Word& result, int message,
 }
 
 OperatorSpec sizeSpec(
-     " darray2(T) -> int ",
+     " darray2(T) -> int , dfarray2(T) - int ",
      " size(_)",
      " Returns the number of slots of a darray2.",
      " query size([const darray2(int) value"
@@ -6237,12 +6342,22 @@ OperatorSpec sizeSpec(
      "           (\"host2\" 1234 \"Config2.ini\")))] )"
      );
 
+int sizeSelect(ListExpr args){
+  return DArray2::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping sizeVM[] = {
+  sizeVMT<DArray2>,
+  sizeVMT<DFArray2>
+};
+
 
 Operator sizeOp(
            "size",
            sizeSpec.getStr(),
+           2,
            sizeVM,
-           Operator::SimpleSelect,
+           sizeSelect,
            sizeTM);
 
 /*
