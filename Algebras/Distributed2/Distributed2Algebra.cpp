@@ -62,6 +62,7 @@ always if a nested list is parsed.
 
 */
 boost::mutex nlparsemtx;
+boost::mutex createRelMut;
 
 
 #define FILE_BUFFER_SIZE 1048576
@@ -854,7 +855,7 @@ class ConnectionInfo{
              }
              if(!mynl->BoolValue(mynl->Second(resList))){
                  mynl->Destroy(resList);
-                cout << "command " << cmd << " not successful" << endl;
+               // cout << "command " << cmd << " not successful" << endl;
                  return false;
              }
 
@@ -973,7 +974,6 @@ class ConnectionInfo{
 
     boost::mutex simtx; // mutex for synchronizing access to the interface
 
-    static boost::mutex createRelMut;
 
 
     void retrieveSecondoHome(){
@@ -998,7 +998,6 @@ class ConnectionInfo{
 
 };
 
-boost::mutex ConnectionInfo::createRelMut;
 
 template<class ResType>
 class CommandListener{
@@ -9257,7 +9256,7 @@ class getValueInfo : public getValueListener{
   void jobDone(int id, Word value){
     if(value.addr==0){ // problem in getting element
        // set some default value 
-       boost::lock_guard<boost::mutex> guard(createObjMtx);
+       boost::lock_guard<boost::mutex> guard(createRelMut);
        ListExpr numresType = SecondoSystem::GetCatalog()->NumericType(resType);
        value = am->CreateObj(algId,typeId)(nl->Second(numresType));
        if(isData){
@@ -9278,7 +9277,6 @@ class getValueInfo : public getValueListener{
     int n;
     Word* values;
     bool isData;
-    boost::mutex createObjMtx;
     
     bool init(){
        if(!arg->IsDefined()){
@@ -9802,12 +9800,14 @@ deleted objects.
 
 */
 ListExpr deleteRemoteObjectsTM(ListExpr args){
-  string err = " darray2 [x int] expected";
+  string err = " {darray2,dfarray2} [x int] expected";
   if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
     return listutils::typeError(err + ": invalid number of args" );
   }
-  if(!DArray2::checkType(nl->First(args))){
-    return listutils::typeError(err + ": first arg not a darray2");
+  if(!DArray2::checkType(nl->First(args))
+     && !DFArray2::checkType(nl->First(args))){
+    return listutils::typeError(err + ": first arg not a darray2 "
+                                "or a dfarray");
   }
   if(nl->HasLength(args,2)){
     if(!CcInt::checkType(nl->Second(args))){
@@ -9823,14 +9823,37 @@ class Object_Del{
    public:
 
       Object_Del(DArray2* _array, int _index):
-       array(_array),index(_index), del(0){
+       array(_array), farray(0), index(_index), del(0){
+      }
+      
+      Object_Del(DFArray2* _array, int _index):
+       array(0), farray(_array), index(_index), del(0){
       }
 
-      Object_Del(Object_Del& src): array(src.array),
+      Object_Del(Object_Del& src): array(src.array),farray(src.farray),
          index(src.index), del(src.del){}
-
+      
 
       void operator()(){
+         if(array){
+           deleteArray();
+         } else {
+           deleteFArray();
+         }
+      }
+
+
+      int getNumber(){
+        return del;
+      }
+
+   private:
+      DArray2* array;
+      DFArray2* farray;
+      int index;
+      int del;
+
+    void deleteArray(){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         int workerIndex = index % array->numOfWorkers();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
@@ -9848,29 +9871,43 @@ class Object_Del{
         if(err==0){
           del = 1;
         } 
-      }
+     }
 
-      int getNumber(){
-        return del;
-      }
-
-
-
-
-   private:
-      DArray2* array;
-      int index;
-      int del;
+    void deleteFArray(){
+        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+        int workerIndex = index % farray->numOfWorkers();
+        ConnectionInfo* ci = algInstance->getWorkerConnection(
+                              farray->getWorker(workerIndex),dbname);
+        if(!ci){
+           cmsg.error() << "could not open connection" ;
+           cmsg.send();
+           return;
+        }
+         
+        string fileName = ci->getSecondoHome()+ "/dfarrays/"+dbname+"/"
+                  + farray->getName() +"_" + stringutils::int2str(index)
+                  + ".bin";
+        int err;
+        string errMsg;
+        string resstr;
+        ci->simpleCommand("query removeFile('"+fileName+"')", err, 
+                          errMsg, resstr, false);
+        if(err==0){
+          del = 1;
+        } 
+    }
 
 };
 
 
-int deleteRemoteObjectsVM(Word* args, Word& result, int message,
+
+template<class A>
+int deleteRemoteObjectsVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
   result = qp->ResultStorage(s);
   CcInt* res = (CcInt*) result.addr;
-  DArray2* array = (DArray2*) args[0].addr;
+  A* array = (A*) args[0].addr;
   if(!array->IsDefined()){
      res->Set(true,0);
      return 0;
@@ -9921,19 +9958,30 @@ int deleteRemoteObjectsVM(Word* args, Word& result, int message,
 
 
 OperatorSpec deleteRemoteObjectsSpec(
-     " darray2 [x int] -> int",
+     " {darray2, dfarray2} [x int] -> int",
      "deleteRemoteObjects(_,_)",
-     "Deletes the remote objects managed by a darray2 object. " 
+     "Deletes the remote objects managed by a darray2  or a dfarray2 object. "
      "If the optionally integer argument is given, only the "
      "object at the specified index is deleted. ",
      "query deleteRemoteObjects(da2)"
  );
 
+ValueMapping deleteRemoteObjectsVM[] = {
+  deleteRemoteObjectsVMT<DArray2>,
+  deleteRemoteObjectsVMT<DFArray2>
+};
+
+int deleteRemoteObjectsSelect(ListExpr args){
+  return DArray2::checkType(nl->First(args))?0:1;
+}
+
+
 Operator deleteRemoteObjectsOp(
   "deleteRemoteObjects",
   deleteRemoteObjectsSpec.getStr(),
+  2,
   deleteRemoteObjectsVM,
-  Operator::SimpleSelect,
+  deleteRemoteObjectsSelect,
   deleteRemoteObjectsTM
 );
 
