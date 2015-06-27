@@ -43,8 +43,9 @@ createTestObject (double x = 0.0, double y = 0.0,
                                    x, y, alpha);
   Region *r = new Region(0);
   fmr.traversed (*r, 0.0, 1.0, 1.0);
+  //fmr.traversedNew(*r, 0.0, 1.0);
   double a = r->Area ();
-  //printf("%f\n", a);
+  //printf("exp: %f calc: %f\n", area, a);
   bool res = (a >= area - 0.004) && (a <= area + 0.004);
   return res;
 }

@@ -16,12 +16,14 @@ This class is a FixedMRegion.
 #include "LATransform.h"
 #include "FixedMRegiontest.h"
 #include "MMove.h"
+#include "TestInterpolate.h"
 
 
 
 class FixedMRegion
 {
 friend class FMRTest;
+friend class TestInterpolate;
 public:     
 /*
 This is the default constructor. Do not use.
@@ -125,6 +127,7 @@ This is the standard destructor.
 */
    ~FixedMRegion ();
 
+
 /*
 This is a method that accepts a list of regions. The regions represent 
 spots and the movement will be calculated. The constructor expects identical 
@@ -183,6 +186,13 @@ intervall ta to te.
 void traversed (Region & result, double ta, double te, double 
   precision = 0.001);
 /*
+This method will calculate the Region which contains all points / areas, that
+the FMRegion has at least on time (or more often) traversed in the given 
+intervall ta to te. 
+
+*/
+void traversedNew(Region & result, double ta, double te);
+/*
 This method returns the non moving region.
 
 */
@@ -216,7 +226,49 @@ private:
   LATransform l;
   double xm;//rotational center
   double ym;//rotational center
-  
+  Region refRegion;//reference region for interpolate
+/*
+This method calculates the mass point of the given points.
+
+*/
+Point calcMassPoint(vector < HalfSegment >);
+/*
+This method sets the given object as a reference. The (0,0) will be the 
+calculated, not the given mass point.
+
+*/
+void setReferenceRegion(Region _r, Point _calcMasspoint);
+/*
+This method returns the reference region.
+
+*/
+Region getReferenceRegion();
+/*
+This method calculates the orientation vector of the given Region and uses the
+given, calculated mass point as the central point.
+
+*/
+//void calcOrientationVector(Region _r, Point _calcMasspoint);
+/*
+This method calculates the point, that has got the maximum distance from
+\_calcMasspoint. If this does not exist, it will return the point with 
+the minimum distance from \_calcMasspoint.
+
+*/
+Point calcMaxMinDistPoint(Region _r, Point _calcMasspoint);
+/*
+This method calculates the distance vector for all points of \_r to
+\_calcMasspoint. It permutates the vector until it finds a solution that equals 
+distVector and it will return the first point of it.
+
+*/
+Point calcDistVectorsIdentSmallestRotFirstPoint(vector<double> distVector, 
+  Region _r, Point _calcMasspoint);
+/*
+This method calculates the angle between the given region and the x-axis.
+
+*/
+double calculateAngleToXAxis(Region _r, Point _calcMasspoint);
 /*
 This method calculates the mass center of the given points.
 
@@ -375,6 +427,14 @@ This method calculates the step with depending on alpha.
 
 */
   int calcStepWith(const double ta, const double te) const ;
+/*
+This method calculates the aprroximated movement of the given MPoint
+with the given precision unter the condition that the FixedMRegion does
+not move. Therefore, it uses an inverse movement of the Region and lets
+the MPoint move that way in addition to its own movement.
+
+*/
+MPoint approxMovementNew2(const MPoint & p) const;
 /*
 This method calculates the aprroximated movement of the given MPoint
 with the given precision unter the condition that the FixedMRegion does

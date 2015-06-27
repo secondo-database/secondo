@@ -237,7 +237,7 @@ checkRegionPoints (Region * r, const Point * list, int size)
       int tmp;
       tmp = gotPoint (hs.GetLeftPoint (), list, size);
       Point tmp2 = hs.GetLeftPoint();
-      //printf("Point: %f, %f\n", tmp2.GetX(), tmp2.GetY());
+      printf("Point: %f, %f\n", tmp2.GetX(), tmp2.GetY());
       if (tmp == -1)
         return false;
       res[tmp] = true;
@@ -1197,14 +1197,22 @@ void FMRTest::testgetDiffRegion(){
   printf("testgetDiffRegion: ");
   HalfSegment h11(true, Point(true, 0, 0), Point(true, 1, 0));
   HalfSegment h12(true, Point(true, 1, 0), Point(true, 2, 0));
+  HalfSegment h11_1(true, Point(true, 2, 0), Point(true, 2, 0.01));
+  HalfSegment h12_1(true, Point(true, 2, 0.01), Point(true, 0, 0));
   HalfSegment h21(true, Point(true, 0, 1), Point(true, 1, 1));
   HalfSegment h22(true, Point(true, 1, 1), Point(true, 2, 1));
+  HalfSegment h21_2(true, Point(true, 2, 1), Point(true, 2, 1.01));
+  HalfSegment h22_2(true, Point(true, 2, 1.01), Point(true, 0, 1.01));
   vector < HalfSegment > vhs1(0);
   vhs1.push_back(h11);
   vhs1.push_back(h12);
+  vhs1.push_back(h11_1);
+  vhs1.push_back(h12_1);
   vector < HalfSegment > vhs2(0);
   vhs2.push_back(h21);
   vhs2.push_back(h22);
+  vhs2.push_back(h21_2);
+  vhs2.push_back(h22_2);  
   Point p1=Point(true, 0.0,0.0);
   Point p2=Point(true, 2.0,1.0);
   Point p3=Point(true, 2.0,0.0);
@@ -1216,6 +1224,18 @@ void FMRTest::testgetDiffRegion(){
   list[3]=p4;
   FixedMRegion fmr1 = FixedMRegion();
   Region * res1 = fmr1.getDiffRegion (&vhs1, &vhs2);
+  for(size_t i=0;i<vhs1.size();i++){
+    HalfSegment hs;
+    hs = vhs1[i];
+    printf("Erster Teil:\n");
+    printHS(hs);
+  }
+  for(size_t i=0;i<vhs2.size();i++){
+    HalfSegment hs;
+    hs = vhs2[i];
+    printf("Zweiter Teil:\n");
+    printHS(hs);
+  }
   printf ("%s\n", (checkRegionPoints(res1, list, 4)) ? "OK" : "FAILED");
 }
 
@@ -1485,8 +1505,9 @@ runTestMethod ()
 //  testconcaveQuadruple();
 //  testMPoint();
 //  testLATransformInv ();
-  testTraversedComponents();
-  runtestInsideIntersection();
+  runTestInterpolateMethod();
+//  testTraversedComponents();
+//  runtestInsideIntersection();
 //  testskeleton();
 
 }

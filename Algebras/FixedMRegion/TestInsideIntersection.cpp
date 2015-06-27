@@ -24,14 +24,15 @@ void testInside1()
   res.Clear();
   res.StartBulkLoad();
   Interval < Instant > iv (t_start, t_end, false, true);
-  UPoint ub (iv, 0, 0.5, 2, 1.5);
+  UPoint ub (iv, 0, 1.0, 2, 1.0);
   res.MergeAdd (ub);
   res.EndBulkLoad ();
 
   MBool expected (0);
   expected.Clear();
   expected.StartBulkLoad();
-  Interval < Instant > ive (t_start, DateTime(0.5), false, true);
+  DateTime tt(0.5);
+  Interval < Instant > ive (t_start, tt, false, true);
   UBool ube (ive, (CcBool) true);
   expected.MergeAdd (ube);
   expected.EndBulkLoad ();

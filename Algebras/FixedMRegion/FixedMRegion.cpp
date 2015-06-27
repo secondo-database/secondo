@@ -46,10 +46,8 @@ This method creates a MMove with the given values.
 MMove FixedMRegion::createMMove(double _startX, double _startY, 
 double _startangle, 
 double _endX, double _endY, double _endangle){
-  DateTime t1 (instanttype);
-  t1.Set (0.0);
-  DateTime t2 (instanttype);
-  t2.Set (1.0);
+  DateTime t1 (0.0);
+  DateTime t2 (1.0);
   return createMMove(_startX, _startY, _startangle, t1,
                      _endX, _endY, _endangle, t2);
 }
@@ -175,6 +173,66 @@ This is the standard destructor.
 
 */
 FixedMRegion::~FixedMRegion(){}
+/*
+This method calculates the mass point of the given points.
+
+*/
+Point FixedMRegion::calcMassPoint(vector < HalfSegment >){
+  
+  return Point(0);
+}
+/*
+This method sets the given object as a reference. The (0,0) will be the 
+calculated, not the given mass point.
+
+*/
+void FixedMRegion::setReferenceRegion(Region _r, Point _calcMasspoint){
+  
+}
+/*
+This method returns the reference region.
+
+*/
+Region FixedMRegion::getReferenceRegion(){
+  Region tmp(refRegion);
+  return tmp;
+}
+/*
+This method calculates the orientation vector of the given Region and uses the
+given, calculated mass point as the central point.
+
+*/
+//void FixedMRegion::calcOrientationVector(Region _r, Point _calcMasspoint){
+  
+//}
+/*
+This method calculates the point, that has got the maximum distance from
+\_calcMasspoint. If this does not exist, it will return the point with 
+the minimum distance from \_calcMasspoint.
+
+*/
+Point calcMaxMinDistPoint(Region _r, Point _calcMasspoint){
+  return Point(0);
+}
+/*
+This method calculates the distance vector for all points of \_r to
+\_calcMasspoint. It permutates the vector until it finds a solution that equals 
+distVector and it will return the first point of it.
+
+*/
+Point calcDistVectorsIdentSmallestRotFirstPoint(vector<double> distVector, 
+  Region _r, Point _calcMasspoint){
+  return Point(0);
+}
+/*
+This method calculates the angle between the given region and the x-axis.
+
+*/
+double FixedMRegion::calculateAngleToXAxis(Region _r, Point _calcMasspoint
+){
+  return 0.0;
+}
+
 /*
 This is a method that accepts a list of regions. The regions represent 
 spots and the movement will be calculated. The constructor expects identical 
@@ -354,7 +412,49 @@ int FixedMRegion::calcStepWith(const double _ta, const double _te) const {
   int steps=(int)ceil((tmp)/(kr));
   return steps;
 }
+/*
+This method calculates the aprroximated movement of the given MPoint
+with the given precision unter the condition that the FixedMRegion does
+not move. Therefore, it uses an inverse movement of the Region and lets
+the MPoint move that way in addition to its own movement.
 
+*/
+MPoint FixedMRegion::approxMovementNew2(const MPoint & p) 
+const{
+  UPoint unit;
+  p.Get (p.GetNoComponents () - 1, unit);
+  Instant ite = unit.getTimeInterval ().end;
+  p.Get (0, unit);
+  Instant ita = unit.getTimeInterval ().start;
+
+  //te and ta are relatime
+  double ta = ita.ToDouble ();
+  double te = ite.ToDouble ();
+  //int steps=(int)ceil((te-ta)/precision);
+  int steps = calcStepWith(ta, te);
+  MPoint res (0);
+  res.StartBulkLoad ();
+
+  DateTime to (ita);
+  Point po(0);
+  getInv(ta, unit.p0, po);
+  //FIXME: MPoint-Intervalle nutzen und ev. die teilen, wenn sie zu lang sind!!
+  for (int i=1; i<=steps; i++) {
+    double now=((te-ta)/steps)*i+ta;
+    DateTime tn(now);
+    Intime < Point > tp;
+    p.AtInstant (tn, tp);
+    Point pn(0);
+    getInv(now, tp.value, pn);
+    Interval < Instant > in (to, tn, true, false);
+    UPoint up (in, po, pn);
+    res.MergeAdd (up);
+    to = tn;
+    po = pn;
+  }
+  res.EndBulkLoad();
+  return res;
+}
 /*
 This method calculates the aprroximated movement of the given MPoint
 with the given precision unter the condition that the FixedMRegion does
@@ -481,7 +581,8 @@ will be calculated for the time intervall ta to te.
 MBool FixedMRegion::inside (const MPoint & mp){
   MRegion * rfix = buildMovingRegion ();
   //MPoint tmp = approxMovement (mp, 1e-5);
-  MPoint tmp = approxMovementNew(mp);
+  //MPoint tmp = approxMovementNew(mp);
+  MPoint tmp = approxMovementNew2(mp);
   MBool res (0);
   rfix->Inside (tmp, res);
   delete rfix;
@@ -993,7 +1094,7 @@ Region * FixedMRegion::getDiffRegion (const vector < HalfSegment >
       hsold = (*resultold)[i];
       hsnew = (*resultnew)[i];
       vector < vector < Point > >tmp_polygons = getTraversedArea (hsold, hsnew);
-
+      //printf("tmp_polygons.size (): %d\n",tmp_polygons.size ());
       if (tmp_polygons.size () > 0)
         {
           //FIXME: routine zum orientierung prüfen und korrigieren
@@ -1046,7 +1147,7 @@ void FixedMRegion::traversed(Region & result,double ta, double te,
         {
           Region *tmp2 = new Region (0);
           tmp2->Clear ();
-          printf("union: %d,  %d\n", res->Size(), tmp->Size());
+          //printf("union: %d,  %d\n", res->Size(), tmp->Size());
           RobustPlaneSweep::robustUnion (*res, *tmp, *tmp2);
           delete tmp;
           delete res;
@@ -1060,7 +1161,67 @@ void FixedMRegion::traversed(Region & result,double ta, double te,
   delete res;
   return;
 }
+/*
+This method will calculate the Region which contains all points / areas, that
+the FMRegion has at least on time (or more often) traversed in the given 
+intervall ta to te. 
 
+*/
+void FixedMRegion::traversedNew(Region & result,double ta, double te){
+   result.Clear();
+  //RefinementPartition<MMove,MMove,UMove,UMove> rp(m, m);
+  //printf("Size: %d\n", m.size);
+  for ( int i = 0; i < m.GetNoComponents(); i++) {
+    //int urPos;
+    //int upPos;
+    //m.Get(i, iv, urPos, upPos);
+    UMove um(0);
+    m.Get(i, um);
+    Interval<Instant> iv=um.getTimeInterval();
+    //iv=um.value;
+    //te and ta are relatime
+    double _ta = iv.start.ToDouble();
+    double _te = iv.end.ToDouble();
+    printf("Int %d: %f, %f, %f, %f\n", i, ta, te, _ta, _te);
+    if (_ta<ta)
+      _ta=ta;
+    if (_te>te)
+      _te=te;
+    if(_ta<_te){
+  Region * res= new Region(0);
+  atinstant (_ta, *res);
+  vector < HalfSegment > vhs = getHSFromRegion ();
+  vector < HalfSegment > tiold;
+  atinstant (_ta, vhs, tiold);
+      printf("Intervall %d: von %f bis %f\n", i, ta, te);
+      int steps = calcStepWith(_ta, _te);
+      for(int i=1; i<=steps; i++){
+        vector < HalfSegment > tinew;
+        atinstant (_ta + (_te-_ta)/steps*i, vhs, tinew);
+        Region *tmp = getDiffRegion (&tiold, &tinew);
+        if (tmp != NULL){
+          Region *tmp2 = new Region (0);
+          tmp2->Clear ();
+          //printf("union: %d,  %d\n", res->Size(), tmp->Size());
+          RobustPlaneSweep::robustUnion (*res, *tmp, *tmp2);
+          delete tmp;
+          delete res;
+          res = tmp2;
+        }
+        //delete tiold;
+        tiold = tinew;
+      }
+    Region tmp(result);
+    result.Clear();
+    RobustPlaneSweep::robustUnion (*res, tmp, result);
+    delete res;
+    }
+  }
+  //delete tiold;
+  //result = *res;
+  //delete res;
+  return;
+}
 /*
 This method returns the non moving region.
 
@@ -1098,7 +1259,7 @@ the time has changed.
 
 */
 void FixedMRegion::calculateInternalVars(){
-  Point3 coord = getMovingForTimeFromMMove(t);
+  Point3 coord = getMovingForTimeFromMMove(DateTime(t));
   //printf("Point3(%f): (%f, %f, %f)\n", t, 
     //     coord.GetX(), coord.GetY(), coord.GetAlpha());
   l = LATransform (coord.GetX(), coord.GetY(), 
