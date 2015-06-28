@@ -217,7 +217,11 @@ not used
 
 */ 
   void sett (double _t);
+/*
+This method extracts a list of halfsegments from the given region.
 
+*/
+ vector < HalfSegment > getHSFromRegion (Region reg);
 private:
 
   double t;//time, never used
@@ -226,54 +230,6 @@ private:
   LATransform l;
   double xm;//rotational center
   double ym;//rotational center
-  Region refRegion;//reference region for interpolate
-/*
-This method calculates the mass point of the given points.
-
-*/
-Point calcMassPoint(vector < HalfSegment >);
-/*
-This method sets the given object as a reference. The (0,0) will be the 
-calculated, not the given mass point.
-
-*/
-void setReferenceRegion(Region _r, Point _calcMasspoint);
-/*
-This method returns the reference region.
-
-*/
-Region getReferenceRegion();
-/*
-This method calculates the orientation vector of the given Region and uses the
-given, calculated mass point as the central point.
-
-*/
-//void calcOrientationVector(Region _r, Point _calcMasspoint);
-/*
-This method calculates the point, that has got the maximum distance from
-\_calcMasspoint. If this does not exist, it will return the point with 
-the minimum distance from \_calcMasspoint.
-
-*/
-Point calcMaxMinDistPoint(Region _r, Point _calcMasspoint);
-/*
-This method calculates the distance vector for all points of \_r to
-\_calcMasspoint. It permutates the vector until it finds a solution that equals 
-distVector and it will return the first point of it.
-
-*/
-Point calcDistVectorsIdentSmallestRotFirstPoint(vector<double> distVector, 
-  Region _r, Point _calcMasspoint);
-/*
-This method calculates the angle between the given region and the x-axis.
-
-*/
-double calculateAngleToXAxis(Region _r, Point _calcMasspoint);
-/*
-This method calculates the mass center of the given points.
-
-*/
-Point calculateMassCenter(const vector<Point> &p);
 
 /*
 This method calculates the 
@@ -283,6 +239,12 @@ intersection point of the given lines p1p2 and p3p4.
   Point getIntersectionPoint (const Point & p1, const Point & p2,
                               const Point & p3, const Point & p4);
 
+/*
+This method extracts a list of halfsegments from the region.
+
+*/
+ vector < HalfSegment > getHSFromRegion ();
+ 
 /*
 This methods calculates the case of the intersection type. There are
 a lot of different cases. This method will find out, which case the 
@@ -409,11 +371,7 @@ as absolute time.
 
 */
   double getMMoveStart (const double dummy) const;
-/*
-This method extracts a list of halfsegments from the region.
 
-*/
- vector < HalfSegment > getHSFromRegion ();
 /*
 This method calculates the aprroximated movement of the given MPoint
 with the given precision unter the condition that the FixedMRegion does

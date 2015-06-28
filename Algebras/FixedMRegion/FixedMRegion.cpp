@@ -173,65 +173,6 @@ This is the standard destructor.
 
 */
 FixedMRegion::~FixedMRegion(){}
-/*
-This method calculates the mass point of the given points.
-
-*/
-Point FixedMRegion::calcMassPoint(vector < HalfSegment >){
-  
-  return Point(0);
-}
-/*
-This method sets the given object as a reference. The (0,0) will be the 
-calculated, not the given mass point.
-
-*/
-void FixedMRegion::setReferenceRegion(Region _r, Point _calcMasspoint){
-  
-}
-/*
-This method returns the reference region.
-
-*/
-Region FixedMRegion::getReferenceRegion(){
-  Region tmp(refRegion);
-  return tmp;
-}
-/*
-This method calculates the orientation vector of the given Region and uses the
-given, calculated mass point as the central point.
-
-*/
-//void FixedMRegion::calcOrientationVector(Region _r, Point _calcMasspoint){
-  
-//}
-/*
-This method calculates the point, that has got the maximum distance from
-\_calcMasspoint. If this does not exist, it will return the point with 
-the minimum distance from \_calcMasspoint.
-
-*/
-Point calcMaxMinDistPoint(Region _r, Point _calcMasspoint){
-  return Point(0);
-}
-/*
-This method calculates the distance vector for all points of \_r to
-\_calcMasspoint. It permutates the vector until it finds a solution that equals 
-distVector and it will return the first point of it.
-
-*/
-Point calcDistVectorsIdentSmallestRotFirstPoint(vector<double> distVector, 
-  Region _r, Point _calcMasspoint){
-  return Point(0);
-}
-/*
-This method calculates the angle between the given region and the x-axis.
-
-*/
-double FixedMRegion::calculateAngleToXAxis(Region _r, Point _calcMasspoint
-){
-  return 0.0;
-}
 
 /*
 This is a method that accepts a list of regions. The regions represent 
@@ -294,8 +235,7 @@ time t.
 
 */
 Point3 FixedMRegion::getMovingForTimeFromMMove (const double t) const{
-  DateTime t2 (instanttype);
-  t2.Set (t);
+  DateTime t2 (t);
   return getMovingForTimeFromMMove(t2);
 }
 /*
@@ -583,6 +523,15 @@ MBool FixedMRegion::inside (const MPoint & mp){
   //MPoint tmp = approxMovement (mp, 1e-5);
   //MPoint tmp = approxMovementNew(mp);
   MPoint tmp = approxMovementNew2(mp);
+  //**TestCode**
+  for (int i=0; i<tmp.GetNoComponents(); i++) {
+    UPoint t;
+    tmp.Get(i, t);
+    printf("%2d: (%f, %f)@%f - (%f, %f)@%f\n",
+    i, t.p0.GetX(), t.p0.GetY(), t.getTimeInterval().start.ToDouble(),
+    t.p1.GetX(), t.p1.GetY(), t.getTimeInterval().end.ToDouble());
+  }
+  //**End TestCode**
   MBool res (0);
   rfix->Inside (tmp, res);
   delete rfix;
@@ -1042,6 +991,24 @@ vector < HalfSegment > FixedMRegion::getHSFromRegion(){
     }
   return result;
 }
+/*
+This method extracts a list of halfsegments from the given region.
+
+*/
+vector < HalfSegment > FixedMRegion::getHSFromRegion (Region reg){
+   vector < HalfSegment > result;
+  for (int i = 0; i < reg.Size (); i++)
+    {
+      HalfSegment tmp;
+      reg.Get (i, tmp);
+      if (tmp.IsLeftDomPoint ())
+        {
+          result.push_back (tmp);
+        }
+    }
+  return result;
+}
+
 /*
 This method will return a list of Halfsegments that the FMRegion will have at the given 
 time ti.

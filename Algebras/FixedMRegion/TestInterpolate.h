@@ -15,13 +15,17 @@ This my test methd.
 #include "Move.h"
 #include "LATransform.h"
 #include "FixedMRegion.h"
+#include "FMRInterpolator.h"
 
 class TestInterpolate {
 public:
-  void testcalcMassPoint();
+  void testcalcMasspoint();
   void testsetReferenceRegion();
-  void testcalcMaxMinDistPoint();
-  void testcalcDistVectorsIdentSmallestRotFirstPoint();
+  void testcalcMaxMinDistPoint1();
+  void testcalcMaxMinDistPoint2();
+  void testcalcMaxMinDistPoint3();
+  void testCalcDistVector();
+  void testmatchVectors();
   void testcalculateAngleToXAxis();
 };
 

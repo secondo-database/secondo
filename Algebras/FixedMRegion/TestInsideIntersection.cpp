@@ -32,9 +32,12 @@ void testInside1()
   expected.Clear();
   expected.StartBulkLoad();
   DateTime tt(0.5);
-  Interval < Instant > ive (t_start, tt, false, true);
+  Interval < Instant > ive (t_start, tt, false, false);
   UBool ube (ive, (CcBool) true);
   expected.MergeAdd (ube);
+  Interval<Instant> ive2(tt, t_end, true, true);
+  UBool ube2(ive2, (CcBool) false);
+  expected.MergeAdd (ube2);
   expected.EndBulkLoad ();
   
   MBool result=fmr.inside(res);
@@ -47,9 +50,10 @@ void testInside1()
     for (int i=0; i<result.GetNoComponents(); i++) {
       UBool up;
       result.Get(i, up);
-      printf("%d: %s %f-%f\n", i, (up.constValue==(CcBool)true)?"true":"false",
+      printf("%d: %s %f-%f\n", i, (up.constValue==(CcBool)false)?"false":"true",
       up.getTimeInterval().start.ToDouble(),
       up.getTimeInterval().end.ToDouble());
+      cout << up.constValue << "\n";
     }
   }
   
@@ -436,6 +440,6 @@ void
 runtestInsideIntersection ()
 {
   testInside();
-  testIntersection();
+//  testIntersection();
 
 }

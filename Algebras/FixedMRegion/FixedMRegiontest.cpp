@@ -1507,7 +1507,7 @@ runTestMethod ()
 //  testLATransformInv ();
   runTestInterpolateMethod();
 //  testTraversedComponents();
-//  runtestInsideIntersection();
+  runtestInsideIntersection();
 //  testskeleton();
 
 }
