@@ -885,6 +885,9 @@ extern TypeConstructor tupleindexTC;
 class TupleIndex {
  public:
   TupleIndex() {}
+  TupleIndex(vector<InvertedFile*> t, vector<BTree*> b, vector<RTree1TLLI*> r1,
+    vector<RTree2TLLI*> r2, RTree1TLLI *tI, map<int, pair<IndexType, int> > aI,
+    map<pair<IndexType, int>, int> iA, int mA);
   TupleIndex(bool dummy) {cache = 0; trieCache = 0;}
   TupleIndex(TupleIndex &src);
   ~TupleIndex() {deleteIndexes();}

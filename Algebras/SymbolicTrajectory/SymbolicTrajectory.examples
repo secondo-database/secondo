@@ -387,6 +387,11 @@ Example  : query mlabel1 matches '(_ "Eving") * (_ "Innenstadt-Ost") +'
 Result   : TRUE
 
 
+Operator : createtupleindex
+Number   : 1
+Signature: stream(tuple(X)) -> tupleindex
+Example  : query Dotraj tmatches[Trajectory, '()', (Dotraj feed createtupleindex[Trajectory])] count
+Result   : 0
 
 Operator : tmatches
 Number   : 1

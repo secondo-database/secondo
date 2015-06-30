@@ -1235,7 +1235,23 @@ bool TMatch::findMatchingBinding(const int startState) {
 \subsection{auxiliary Functions for Secondo support}
 
 */
+TupleIndex::TupleIndex(vector<InvertedFile*> t, vector<BTree*> b, 
+  vector<RTree1TLLI*> r1, vector<RTree2TLLI*> r2, RTree1TLLI *tI, 
+  map<int, pair<IndexType,int> > aI, map<pair<IndexType,int>, int> iA, int mA) {
+  tries = t;
+  btrees = b;
+  rtrees1 = r1;
+  rtrees2 = r2;
+  timeIndex = tI;
+  attrToIndex = aI;
+  indexToAttr = iA;
+  mainAttr = mA;
+  cache = 0;
+  trieCache = 0;
+}
+
 TupleIndex::TupleIndex(TupleIndex &src) {
+  assert(false);
   tries = src.tries;
   btrees = src.btrees;
   rtrees1 = src.rtrees1;
@@ -1273,27 +1289,33 @@ ListExpr TupleIndex::Out(ListExpr typeInfo, Word value) {
   ListExpr overviewlist, rtree1list, rtree2list, last1, last2;
   TupleIndex *ti = (TupleIndex*)value.addr;
   stringstream overview;
-  overview << (ti->tries).size() << " invFiles," << endl << ti->btrees.size()
+  Word val;
+  overview << ti->tries.size() << " Tries," << endl << ti->btrees.size()
            << " BTrees," << endl << ti->rtrees1.size() << " 1-dim RTrees," 
            << endl << ti->rtrees2.size() << " 2-dim RTrees. More:" << endl;
     overviewlist = nl->TextAtom(overview.str());
+  cout << overview.str() << endl;
   if (ti->rtrees1.size() > 0) {
+    val.addr = ti->rtrees1[0];
     rtree1list = nl->OneElemList(OutRTree<1>(nl->FourElemList(nl->Empty(),
-                nl->Empty(), nl->Empty(), nl->BoolAtom(true)), ti->rtrees1[0]));
+                nl->Empty(), nl->Empty(), nl->BoolAtom(true)), val));
     last1 = rtree1list;
   }
   for (unsigned int i = 1; i < ti->rtrees1.size(); i++) {
+    val.addr = ti->rtrees1[i];
     last1 = nl->Append(last1, OutRTree<1>(nl->FourElemList(nl->Empty(),
-                nl->Empty(), nl->Empty(), nl->BoolAtom(true)), ti->rtrees1[i]));
+                nl->Empty(), nl->Empty(), nl->BoolAtom(true)), val));
   }
   if (ti->rtrees2.size() > 0) {
+    val.addr = ti->rtrees2[0];
     rtree2list = nl->OneElemList(OutRTree<2>(nl->FourElemList(nl->Empty(),
-                nl->Empty(), nl->Empty(), nl->BoolAtom(true)), ti->rtrees2[0]));
+                nl->Empty(), nl->Empty(), nl->BoolAtom(true)), val));
     last2 = rtree2list;
   }
   for (unsigned int i = 1; i < ti->rtrees2.size(); i++) {
+    val.addr = ti->rtrees2[i];
     last2 = nl->Append(last2, OutRTree<2>(nl->FourElemList(nl->Empty(),
-                nl->Empty(), nl->Empty(), nl->BoolAtom(true)), ti->rtrees2[i]));
+                nl->Empty(), nl->Empty(), nl->BoolAtom(true)), val));
   }  
   return nl->ThreeElemList(overviewlist, rtree1list, rtree2list);
 }
@@ -1320,11 +1342,11 @@ bool TupleIndex::Save(SmiRecord& valueRecord, size_t& offset,
   }
   offset += sizeof(unsigned int);
   Word val;
-  ListExpr newTypeInfo;
+  ListExpr tList = sc->NumericType(nl->SymbolAtom(InvertedFile::BasicType()));
   for (unsigned int i = 0; i < noComponents; i++) {
     val.addr = ti->tries[i];
-    newTypeInfo = sc->NumericType(nl->SymbolAtom(InvertedFile::BasicType()));
-    if (!triealg::SaveInvfile(valueRecord, offset, newTypeInfo, val)) {
+    cout << "save trie # " << i + 1 << " of " << noComponents << endl;
+    if (!triealg::SaveInvfile(valueRecord, offset, tList, val)) {
       cout << "error saving trie " << i << endl;
       return false;
     }
@@ -1334,9 +1356,10 @@ bool TupleIndex::Save(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(unsigned int);
+  tList = sc->NumericType(nl->SymbolAtom(BTree::BasicType()));
   for (unsigned int i = 0; i < noComponents; i++) {
-    newTypeInfo = sc->NumericType(nl->SymbolAtom(BTree::BasicType()));
-    if (!ti->btrees[i]->Save(valueRecord, offset, newTypeInfo)) {
+    cout << "save btree # " << i + 1 << " of " << noComponents << endl;
+    if (!ti->btrees[i]->Save(valueRecord, offset, tList)) {
       cout << "error saving btree " << i << endl;
       return false;
     }
@@ -1346,11 +1369,12 @@ bool TupleIndex::Save(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(unsigned int);
-  newTypeInfo = nl->FourElemList(nl->Empty(), nl->Empty(), nl->Empty(), 
-                                 nl->BoolAtom(true));
+  tList = nl->FourElemList(nl->Empty(), nl->Empty(), nl->Empty(), 
+                           nl->BoolAtom(true));
   for (unsigned int i = 0; i < noComponents; i++) {
     val.addr = ti->rtrees1[i];
-    if (!SaveRTree<1>(valueRecord, offset, newTypeInfo, value)) {
+    cout << "save rtree1 # " << i + 1 << " of " << noComponents << endl;
+    if (!SaveRTree<1>(valueRecord, offset, tList, val)) {
       cout << "error saving rtree1 " << i << endl;
       return false;
     }
@@ -1362,13 +1386,15 @@ bool TupleIndex::Save(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(unsigned int);
   for (unsigned int i = 0; i < noComponents; i++) {
     val.addr = ti->rtrees2[i];
-    if (!SaveRTree<2>(valueRecord, offset, newTypeInfo, value)) {
+    cout << "save rtree2 # " << i + 1 << " of " << noComponents << endl;
+    if (!SaveRTree<2>(valueRecord, offset, tList, val)) {
       cout << "error saving rtree2 " << i << endl;
       return false;
     }
   }
   val.addr = ti->timeIndex;
-  if (!SaveRTree<1>(valueRecord, offset, newTypeInfo, value)) {
+  cout << "save time index" << endl;
+  if (!SaveRTree<1>(valueRecord, offset, tList, val)) {
     cout << "error saving timeIndex" << endl;
     return false;
   }
@@ -1393,13 +1419,14 @@ bool TupleIndex::Save(SmiRecord& valueRecord, size_t& offset,
     offset += sizeof(int);
     it1++;
   }
+  cout << "attrToIndex saved" << endl;
   noComponents = ti->indexToAttr.size();
   if (!valueRecord.Write(&noComponents, sizeof(unsigned int), offset)) {
     return false;
   }
   offset += sizeof(unsigned int);
   map<pair<IndexType, int>, int>::iterator it2 = ti->indexToAttr.begin();
-  while (it1 != ti->attrToIndex.end()) {
+  while (it2 != ti->indexToAttr.end()) {
     if (!valueRecord.Write(&it2->first.first, sizeof(IndexType), offset)) {
       return false;
     }
@@ -1414,16 +1441,136 @@ bool TupleIndex::Save(SmiRecord& valueRecord, size_t& offset,
     offset += sizeof(int);
     it2++;
   }
+  cout << "indexToAttr saved" << endl;
   if (!valueRecord.Write(&(ti->mainAttr), sizeof(int), offset)) {
     return false;
   }
+  cout << "mainAttr = " << ti->mainAttr << " saved" << endl;
   offset += sizeof(int);
   return true;
 }
 
 bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Word& value) {
-  
+  SecondoCatalog *sc = SecondoSystem::GetCatalog();
+  TupleIndex *ti = new TupleIndex();
+  Word val;
+  ListExpr tList = sc->NumericType(nl->SymbolAtom(InvertedFile::BasicType()));
+  unsigned int noComponents;
+  if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  cout << "There are " << noComponents << " tries" << endl;
+  for (unsigned int i = 0; i < noComponents; i++) {
+    if (!triealg::OpenInvfile(valueRecord, offset, tList, val)) {
+      cout << "error opening trie" << endl;
+      return false;
+    }
+    ti->tries.push_back((InvertedFile*)val.addr);
+    cout << "Trie # " << ti->tries.size() << " opened" << endl;
+  }
+  if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  cout << "There are " << noComponents << " btrees" << endl;
+  tList = sc->NumericType(nl->SymbolAtom(BTree::BasicType()));
+  for (unsigned int i = 0; i < noComponents; i++) {
+    if (!((BTree*)(val.addr))->Open(valueRecord, offset, tList)) {
+      cout << "error opening btree" << endl;
+      return false;
+    }
+    ti->btrees.push_back((BTree*)val.addr);
+    cout << "BTree # " << ti->btrees.size() << " opened" << endl;
+  }
+  if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  cout << "There are " << noComponents << " rtree1s" << endl;
+  tList = nl->FourElemList(nl->Empty(), nl->Empty(), nl->Empty(), 
+                           nl->BoolAtom(true));
+  for (unsigned int i = 0; i < noComponents; i++) {
+    if (!OpenRTree<1>(valueRecord, offset, tList, val)) {
+      cout << "error opening rtree1" << endl;
+      return false;
+    }
+    ti->rtrees1.push_back((RTree1TLLI*)val.addr);
+    cout << "RTree1 # " << ti->rtrees1.size() << " opened" << endl;
+  }
+  if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  cout << "There are " << noComponents << " rtree2s" << endl;
+  for (unsigned int i = 0; i < noComponents; i++) {
+    if (!OpenRTree<2>(valueRecord, offset, tList, val)) {
+      cout << "error opening rtree2" << endl;
+      return false;
+    }
+    ti->rtrees2.push_back((RTree2TLLI*)val.addr);
+    cout << "RTree2 # " << ti->rtrees2.size() << " opened" << endl;
+  }
+  if (!OpenRTree<1>(valueRecord, offset, tList, val)) {
+    cout << "error opening time index" << endl;
+    return false;
+  }
+  ti->timeIndex = (RTree1TLLI*)val.addr;
+  cout << "Time index opened" << endl;
+  if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  cout << "noComponents = " << noComponents << endl;
+  offset += sizeof(unsigned int);
+  int attr;
+  pair<IndexType, int> indexPos;
+  for (unsigned int i = 0; i < noComponents; i++) {
+    if (!valueRecord.Read(&attr, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    if (!valueRecord.Read(&indexPos.first, sizeof(IndexType), offset)) {
+      return false;
+    }
+    offset += sizeof(IndexType);
+    if (!valueRecord.Read(&indexPos.second, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    ti->attrToIndex[attr] = indexPos;
+  }
+  if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  cout << "noComponents = " << noComponents << endl;
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noComponents; i++) {
+    if (!valueRecord.Read(&(indexPos.first), sizeof(IndexType), offset)) {
+      return false;
+    }
+    offset += sizeof(IndexType);
+    if (!valueRecord.Read(&(indexPos.second), sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    if (!valueRecord.Read(&attr, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    ti->indexToAttr[indexPos] = attr;
+    cout << "indexToAttr: (" << indexPos.first << ", " << indexPos.second 
+         << ") |---> " << attr << endl;
+  }
+  if (!valueRecord.Read(&(ti->mainAttr), sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  cout << "mainAttr = " << ti->mainAttr << endl;
+  ti->cache = 0;
+  ti->trieCache = 0;
+  value = SetWord(ti);
+  cout << "TupleIndex opened succesfully" << endl;
   return true;
 }
 
@@ -1468,7 +1615,7 @@ void TupleIndex::initialize(TupleType *ttype, int _mainAttr) {
   mainAttr = _mainAttr;
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   ListExpr typeInfo = nl->FourElemList(nl->Empty(), nl->Empty(), 
-                                           nl->Empty(), nl->BoolAtom(true));
+                                       nl->Empty(), nl->BoolAtom(true));
   timeIndex = (RTree1TLLI*)((CreateRTree<1>(typeInfo)).addr);
   cout << "RTree1 for time intervals created" << endl;
   for (int i = 0; i < ttype->GetNoAttributes(); i++) {
@@ -1499,6 +1646,7 @@ void TupleIndex::initialize(TupleType *ttype, int _mainAttr) {
         }
         cache = inv->createAppendCache(invCacheSize);
         trieCache = inv->createTrieCache(trieCacheSize);
+        cout << "caches initialized" << endl;
       }
       tries.push_back(inv);
       cout << "Trie for attr " << i << " created and appended" << endl;
@@ -1770,37 +1918,27 @@ bool TupleIndex::addTuple(Tuple *tuple) {
 
 */
 void TupleIndex::deleteIndexes() {
-  SecondoCatalog *sc = SecondoSystem::GetCatalog();
-  Word val;
-  ListExpr tInfo = sc->NumericType(nl->SymbolAtom(InvertedFile::BasicType()));
+  if (trieCache) {
+    delete trieCache;
+    trieCache = 0;
+  }
+  if (cache) {
+    delete cache;
+    cache = 0;
+  }
   for (unsigned int i = 0; i < tries.size(); i++) {
-    val.addr = tries[i];
-    triealg::DeleteInvfile(tInfo, val);
-//     delete tries[i];
+    delete tries[i];
   }
   for (unsigned int i = 0; i < btrees.size(); i++) {
     delete btrees[i];
   }
-  tInfo = nl->FourElemList(nl->Empty(), nl->Empty(), nl->Empty(), 
-                           nl->BoolAtom(true));
-  Word value;
   for (unsigned int i = 0; i < rtrees1.size(); i++) {
-    value.addr = rtrees1[i];
-    DeleteRTree<1>(tInfo, value);
-    //delete rtrees1[i];
+    delete rtrees1[i];
   }
   for (unsigned int i = 0; i < rtrees2.size(); i++) {
-    value.addr = rtrees2[i];
-    DeleteRTree<2>(tInfo, value);
-    //delete rtrees2[i];
+    delete rtrees2[i];
   }
-  // delete timeIndex;
-  value.addr = timeIndex;
-  DeleteRTree<1>(tInfo, value);
-  delete trieCache;
-  trieCache = 0;
-  delete cache;
-  cache = 0;
+  delete timeIndex;
 }
 
 /*

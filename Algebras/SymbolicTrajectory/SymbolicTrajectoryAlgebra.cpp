@@ -2676,7 +2676,7 @@ ListExpr createtupleindexTM(ListExpr args) {
   else {
     attrName = nl->SymbolValue(nl->Second(args));
     ListExpr type;
-    int pos = listutils::findAttribute(attrList, attrName, type);
+    pos = listutils::findAttribute(attrList, attrName, type);
     if (pos == 0 || !Tools::isSymbolicType(type)) {
       return listutils::typeError(err + " (" + attrName + " is not the name of "
              + "a symbolic attribute)");
@@ -2846,9 +2846,9 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
       }
       local.addr = new TMatchIndexLI();
       cout << "begin casts" << endl;
-//       Relation *rel = static_cast<Relation*>(args[0].addr);
+      Relation *rel = static_cast<Relation*>(args[0].addr);
       CcInt *attrno = static_cast<CcInt*>(args[4].addr);
-//       TupleIndex *ti = static_cast<TupleIndex*>(args[3].addr);
+      TupleIndex *ti = static_cast<TupleIndex*>(args[3].addr);
       P* pat = static_cast<P*>(args[2].addr);
       Pattern *p = 0;
       if (pat->IsDefined() && attrno->IsDefined()) {
@@ -4593,14 +4593,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&matches);
   matches.SetUsesArgsInTypeMapping();
   
-//  AddOperator(createtupleindexInfo(), createtupleindexVM, createtupleindexTM);
-//   
-// Operator : createtupleindex
-// Number   : 1
-// Signature: stream(tuple(X)) -> tupleindex
-// Example  : query Dotraj feed createtupleindex[2]
-// Result   : TRUE
-  
+  AddOperator(createtupleindexInfo(), createtupleindexVM, createtupleindexTM);
+   
   AddOperator(&tmatches);
   tmatches.SetUsesArgsInTypeMapping();
   
