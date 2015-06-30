@@ -149,6 +149,19 @@ Signature: text -> bool
 Example  : query removeFile('Blabberblubb.dir')
 Result   : FALSE
 
+Operator : rtf2txt
+Number   : 1
+Signature: string -> bool
+Example  : query rtf2txt("test.rtf")
+Result   : FALSE
+
+Operator : rtf2txt
+Number   : 2
+Signature: text -> bool
+Example  : query rtf2txt("test.rtf")
+Result   : FALSE
+
+
 Operator : createDirectory
 Number   : 1
 Signature: string -> bool

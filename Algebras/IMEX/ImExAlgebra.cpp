@@ -5014,6 +5014,153 @@ Operator removeFile ( "removeFile",
                    stringORtext2boolTM);
 
 
+
+
+/*
+
+10.2  Operator ~rtf2text~
+
+This operator converts a given rtf file into a text file and save it in txt format 
+
+10.2.1 Type Mapping for ~rtf2txt~
+
+Uses ~stringORtext2boolTM~
+
+10.2.2 Value Mapping for ~rtf2txt~
+
+*/
+#ifndef SECONDO_WIN32
+ 
+template<class T>
+int rtf2txtVM(Word* args, Word& result,
+                 int message, Word& local, Supplier s)
+{
+
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  T* objName = static_cast<T*>(args[0].addr);
+  
+  if(!objName->IsDefined())
+   {
+    res->Set(false,false);
+   } 
+   
+   else 
+    {       
+      
+     string fileNameS = objName->GetValue();    
+     
+     string::size_type size;
+     size = fileNameS.size();   
+     string str3 = fileNameS.substr (size-4);     
+     
+     if (!(str3 == ".rtf")) 
+     {
+       res->Set(false,false);
+       return 0;
+     }
+     
+     
+     
+     string sourcefile = fileNameS;
+     size_t f = fileNameS.find(".rtf");
+     string filetarget = sourcefile.replace(f, std::string(".rtf").length(),
+                                            ".txt");
+    
+     string call = "unrtf --text " + fileNameS + " > " + filetarget;        
+     const char * cll = call.c_str();
+     string deltxt = "rm " + filetarget;
+     const char * del = deltxt.c_str();
+     
+     
+     int back = system(cll);    
+    
+         
+    
+     if (back == 0) 
+     {
+       res->Set(true,true);
+       
+       return 0;
+     }
+    
+      else 
+       {
+         res->Set(true,false);
+         system(del);
+         return 0;
+       } 
+    
+     
+  }
+  return 0;
+} 
+  
+  
+
+ValueMapping rtf2txtvaluemap[] = {rtf2txtVM<CcString>,
+                                  rtf2txtVM<FText>};
+
+/*
+10.2.3 Selection Function for ~rtf2txt~
+
+Uses ~stringORtextSelect~
+
+*/
+
+
+
+/*
+10.2.4 Specification  for ~rtf2txt~
+
+*/
+
+
+
+const string rtf2txtSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text|string} -> bool </text--->"
+    "<text> rtf2text ( Name ) </text--->"
+    "<text>Converts a given rtf file and creats a txt file with the same name" 
+    " using unrtf linux tool. Returns TRUE, if this succeeds and FALSE if the "
+    "file could not be converted or opened. And UNDEFINED if any "
+    "error occurs.</text--->"
+    "<text> query rtf2txt('text.rtf')  </text--->"
+    ") )";
+
+
+ 
+ 
+ 
+
+
+/*
+10.2.5 Operator Instance for operator ~rtf2txt~
+
+*/
+
+
+Operator rtf2txt ( "rtf2txt",
+                   rtf2txtSpec,
+                   2,
+                   rtf2txtvaluemap,
+                   stringORtextSelect,
+                   stringORtext2boolTM);
+
+
+
+
+
+
+
+
+#endif
+
+
+
+
+
+
 /*
 11 Operator ~createDirectory~
 
@@ -5097,7 +5244,7 @@ const string createDirectorySpec  =
 /*
 11.4 Selection Function for ~createDirectory~
 
-Uses ~stringORtextSelect~.
+Uses ~stringORtextSelect~
 
 11.5
 Operator Instance for operator ~createDirectory~
@@ -6845,9 +6992,10 @@ public:
     nmeaimport_line.SetUsesArgsInTypeMapping();
     AddOperator( &get_lines);
     AddOperator( &sqlExport);
-
     AddOperator( &importGHT1);
-
+    #ifndef SECONDO_WIN32
+    AddOperator( &rtf2txt);
+    #endif
   }
   ~ImExAlgebra() {};
 };
