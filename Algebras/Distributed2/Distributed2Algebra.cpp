@@ -52,6 +52,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/date_time.hpp>
 
 
+
+namespace distributed2 {
+
 /*
 0 Workaround to the nested list parser
 
@@ -102,6 +105,8 @@ class BinRelWriter{
        char* buffer = new char[blocksize];
        tuple->WriteToBin(buffer, coreSize, extensionSize, flobSize); 
        uint32_t tsize = blocksize;
+       TupleId id = out.tellp();
+       tuple->SetTupleId(id);
        out.write((char*) &tsize, sizeof(uint32_t));
        out.write(buffer, tsize);
        delete[] buffer;
@@ -171,6 +176,24 @@ class ffeed5Info{
           cerr << "could not open file " << filename << endl; 
        }
     }
+
+    ffeed5Info(const string& filename){
+       in.open(filename.c_str(), ios::in | ios::binary);
+       inBuffer = new char[FILE_BUFFER_SIZE];
+       ok = in.good();
+       if(ok){
+          in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
+          readHeader();
+       }else{
+          cerr << "could not open file " << filename << endl; 
+       }
+       if(ok){
+         ListExpr tupleType = nl->Second(fileTypeList);
+         tupleType = SecondoSystem::GetCatalog()->NumericType(tupleType);
+         tt = new TupleType(tupleType);
+       } 
+    }
+
     
     ~ffeed5Info(){
       tt->DeleteIfAllowed();
@@ -182,9 +205,16 @@ class ffeed5Info{
       return fileTypeList;
     }
 
-    bool isOK()const{
+    bool isOK(){
+       ok = ok && in.good();
        return ok;
     }
+
+    void changePosition(size_t pos){
+       in.seekg(pos);
+       ok = in.good();
+    }
+
 
     Tuple* next(){
        if(!ok) {
@@ -193,6 +223,7 @@ class ffeed5Info{
        if(!in.good() || in.eof()){
           return 0;
        }
+       TupleId id = in.tellg();
        uint32_t size;
        in.read( (char*) &size, sizeof(uint32_t));
        if(size==0){
@@ -206,6 +237,7 @@ class ffeed5Info{
        }
        Tuple* res = new Tuple(tt);
        res->ReadFromBin(buffer );
+       res->SetTupleId(id);
        delete[] buffer;
        return res;
     }
@@ -10874,6 +10906,232 @@ Operator convertdarray2Op(
 
 
 
+/*
+15 Operator ~gettuples~
+
+Retrieves tuples from a relation file created with fconsume5
+
+*/
+
+ListExpr gettuplesTM(ListExpr args){
+  string err = "stream(Tuple) x {string,text} expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  // check for usesArginTypeMapping
+  if(    !nl->HasLength(nl->First(args),2) 
+      || !nl->HasLength(nl->Second(args),2)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr arg1Type = nl->First(nl->First(args)); 
+
+  if(!Stream<Tuple>::checkType(arg1Type)){
+    return listutils::typeError(err + " (first arg is not a tuple stream)");
+  }
+  ListExpr arg2Type = nl->First(nl->Second(args));
+  if(!CcString::checkType(arg2Type) && !FText::checkType(arg2Type)){
+    return listutils::typeError(err + " (second arg not a string "
+                                "and not a text)");
+  }
+  string name;
+  ListExpr tid = listutils::basicSymbol<TupleIdentifier>();
+  ListExpr attrList = nl->Second(nl->Second(arg1Type));
+  int pos = listutils::findType( attrList, tid, name);
+  if(!pos){
+    return listutils::typeError("tuple stream does not contain "
+                                "a tid attribute");
+  }
+  ListExpr arg2q = nl->Second(nl->Second(args));
+  string filename;
+  if(CcString::checkType(arg2Type)){
+    if(!getValue<CcString>(arg2q,filename)){
+      return listutils::typeError("could not get filename from " 
+                                  + nl->ToString(arg2q));
+    }
+  } else {
+    if(!getValue<FText>(arg2q,filename)){
+      return listutils::typeError("could not get filename from " 
+                                  + nl->ToString(arg2q));
+    }
+  }
+
+  ffeed5Info info(filename);
+  if(!info.isOK()){
+    return listutils::typeError("file " + filename + 
+                           " not present or not a binary relation file");
+  }
+  ListExpr relType = info.getRelType(); 
+ 
+  ListExpr conAttrList;
+
+  if(nl->HasLength(attrList,1)){ // only a tid attribute
+     conAttrList = nl->Second(nl->Second(relType));
+  } else {
+    ListExpr head;
+    ListExpr last;
+    set<string> names;
+    names.insert(name);
+    listutils::removeAttributes(attrList,names,head,last);
+    ListExpr fattrList = nl->Second(nl->Second(relType));
+    while(!nl->IsEmpty(fattrList)){
+       ListExpr first = nl->First(fattrList);
+       fattrList = nl->Rest(fattrList);
+       last = nl->Append(last,first);
+    }
+    if(!listutils::isAttrList(head)){
+       return listutils::typeError("name conflicts in attributes");
+    }
+    conAttrList = head;
+  }
+  ListExpr resType = nl->TwoElemList(
+                          listutils::basicSymbol<Stream<Tuple> >(),
+                          nl->TwoElemList(
+                             listutils::basicSymbol<Tuple>(),
+                             conAttrList));
+  return nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            nl->OneElemList( nl->IntAtom(pos-1)),
+            resType);
+}
+
+
+class gettuplesInfo{
+
+public:
+  gettuplesInfo(Word _stream, int _tidPos, const string& _filename, 
+               ListExpr _tt):
+    stream(_stream), tidPos(_tidPos), filename(_filename) ,tt(0),
+    reader(_filename){
+     tt = new TupleType(_tt);
+     stream.open();
+  }
+
+
+  ~gettuplesInfo(){
+     stream.close();
+     tt->DeleteIfAllowed();
+   }
+
+  Tuple* next(){
+     if(!reader.isOK()){
+        cerr << "problem in reading file";
+        return 0;
+     }
+     Tuple* inTuple = stream.request();
+     Tuple* resTuple;
+     if(inTuple){
+       resTuple = createResTuple(inTuple);
+       inTuple->DeleteIfAllowed();
+     } else {
+       resTuple = 0;
+     }
+     return resTuple;
+  }
+
+private:
+   Stream<Tuple> stream;
+   int tidPos;
+   string filename;
+   TupleType* tt;
+   ffeed5Info reader;
+
+
+   Tuple* createResTuple(Tuple* inTuple){
+      TupleIdentifier* Tid = (TupleIdentifier*) inTuple->GetAttribute(tidPos);
+      TupleId id = Tid->GetTid();
+      reader.changePosition(id);
+      if(!reader.isOK()){
+         cerr << "problem in repositioning file pointer" << endl;
+         return 0;
+      }
+      Tuple* t = reader.next();
+      if(inTuple->GetNoAttributes()==1){
+         return t;
+      }
+      Tuple* res = new Tuple(tt);
+      int p = 0;
+      // copy attributes of inTuple to res
+      for(int i=0;i<inTuple->GetNoAttributes(); i++){
+          if(i!=tidPos){
+            res->CopyAttribute(i,inTuple,p);
+            p++;
+          }
+      }
+      // copy attributes of t to res
+      for(int i=0;i<t->GetNoAttributes();i++){
+          res->CopyAttribute(i,t,i+p);
+      }
+      t->DeleteIfAllowed();
+      return res;
+   }
+};
+
+
+template<class T>
+int gettuplesVMT(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  gettuplesInfo* li = (gettuplesInfo*) local.addr;
+  switch(message){
+     case OPEN: {
+        if(li){
+           delete li;
+        }
+        int pos = ((CcInt*)args[2].addr)->GetValue();
+        string filename = ((T*) args[1].addr)->GetValue();
+        ListExpr tt = nl->Second(GetTupleResultType(s));
+        local.addr = new gettuplesInfo(args[0], pos, filename, tt);
+        return 0;
+     }
+     case REQUEST:
+         result.addr = li?li->next():0;
+         return result.addr?YIELD:CANCEL;
+     case CLOSE:
+          if(li){
+             delete li;
+             local.addr = 0;
+          }
+          return 0;
+  }
+  return -1;
+}
+
+
+ValueMapping gettuplesVM[] = {
+   gettuplesVMT<CcString>,
+   gettuplesVMT<FText>
+};
+
+int gettuplesSelect(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+OperatorSpec gettuplesSpec(
+  "stream(tuple(X)) x {string,text} -> stream(tuple(Y))",
+  "_ _ getTuples",
+  "Retrieves tuples from a binary relation file.",
+  "query tree exactmatch[3] 'file' gettuples consume"
+);
+
+Operator gettuplesOp(
+  "gettuples",
+  gettuplesSpec.getStr(),
+  2,
+  gettuplesVM,
+  gettuplesSelect,
+  gettuplesTM  
+);
+
+
+
+/*
+16 Operator ~map~
+
+This operator maps the content of a dfarray to another value.
+Depending on the result of the function (allowed is relation and
+DATA), the result is a dfarray2 or a darray2.
+
+*/
 
 
 /*
@@ -10946,8 +11204,13 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&convertdarray2Op);
 
+   AddOperator(&gettuplesOp);
+   gettuplesOp.SetUsesArgsInTypeMapping();
+
 }
 
+
+}
 
 extern "C"
 Algebra*
@@ -10955,8 +11218,8 @@ Algebra*
                              QueryProcessor* qpRef,
                              AlgebraManager* amRef ) {
 
-   algInstance = new Distributed2Algebra();
-   return algInstance;
+   distributed2::algInstance = new distributed2::Distributed2Algebra();
+   return distributed2::algInstance;
 }
 
 

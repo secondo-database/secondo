@@ -57,6 +57,6 @@ operator fddistribute2 alias FDDISTRIBUTE2 pattern _ op [_,_,_]
 operator fddistribute3 alias FDDISTRIBUTE3 pattern _ op [_,_,_,_]
 operator fddistribute4 alias FDDISTRIBUTE4 pattern _ op [fun,_,_] implicit parameter elem type STREAMELEM
 
-
+operator gettuples alias GETTUPLES pattern _ _ op
 
 

@@ -308,3 +308,17 @@ Result    : bug
 Remark    : in development
 
 
+Operator  : convertdarray2
+Number    : 1
+Signature : darray2 -> dfarray2 , dfarray2 -> darray2
+Example   : query convertdarray2(da8)
+Result    : bug
+Remark    : in development
+
+Operator : gettuples
+Number   : 1
+Signature : stream(tuple) x {string,text} -> stream(tuple)
+Example   : query strassenfile_btree exactmatch["Hohe Strasse"] 'strassen.bin' gettuples consume
+Result    : bug
+Remark    : in development
+
