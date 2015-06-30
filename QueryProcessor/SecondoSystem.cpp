@@ -789,6 +789,9 @@ SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
 
 SecondoSystem::~SecondoSystem()
 {
+  delete algebraManager;
+  algebraManager=0;
+
   delete nl;
   nl = 0;
   delete al;
@@ -814,7 +817,6 @@ SecondoSystem::~SecondoSystem()
 
   delete catalog;
   delete queryProcessor;
-  delete algebraManager;
 
   instance = 0;
 
@@ -862,7 +864,6 @@ SecondoSystem::ShutDown()
 
   if ( instance->initialized )
   {
-    instance->algebraManager->UnloadAlgebras();
     delete instance->catalog;
     instance->catalog = 0;
     instance->initialized  = false;
