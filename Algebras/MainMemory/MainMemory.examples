@@ -56,16 +56,26 @@ Signature : string -> bool
 Example   : query memload ("WFlaechen")
 Result    : TRUE
 
-Operator  : mcreateRtree
+Operator  : memgetcatalog
 Number    : 10
+Signature : -> stream(tuple(...))
+Example   : query memgetcatalog () count
+Result    : 3
+
+Operator  : memlet
+Number    : 11
+Signature : string x m:MEMLOADABLE -> bool
+Example   : query memlet ("fuenf2", ten feed head[5])
+Result    : TRUE
+
+Operator  : mcreateRtree
+Number    : 12
 Signature : string x string -> string
 Example   : query mcreateRtree ("WFlaechen", "GeoData")
 Result    : "WFlaechen_GeoData"
 
-
-Operator  : memgetcatalog
-Number    : 11
-Signature : -> stream(tuple(...))
-Example   : query memgetcatalog () count
-Result    : 4
-
+Operator  : memsize
+Number    : 13
+Signature : -> int
+Example   : query memsize ()
+Result    : 256

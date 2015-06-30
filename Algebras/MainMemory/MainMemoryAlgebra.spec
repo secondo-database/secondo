@@ -27,4 +27,4 @@ operator memlet alias MEMLET pattern op(_,_)
 operator memupdate alias MEMUPDATE pattern op(_,_)
 operator mcreateRtree alias MCREATERTREE pattern op(_,_)
 operator memgetcatalog alias MEMGETCATALOG pattern op()
-
+operator memsize alias MEMSIZE pattern op()
