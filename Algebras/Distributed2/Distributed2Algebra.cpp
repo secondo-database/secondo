@@ -113,6 +113,34 @@ class BinRelWriter{
            out.write((char*) &marker, sizeof(uint32_t));
            return out.good();
     }
+
+
+    static bool writeRelationToFile(Relation* rel, ListExpr relType, 
+                      const string& fileName){
+
+       ofstream out(fileName.c_str(), ios::out | ios::binary);
+       if(!writeHeader(out,relType)){
+           out.close();
+           return false;
+       }
+       GenericRelationIterator* it = rel->MakeScan();
+       Tuple* tuple;
+       while((tuple = it->GetNextTuple())){
+           if(!writeNextTuple(out,tuple)){
+               out.close();
+               tuple->DeleteIfAllowed();
+               delete it;
+               return false;
+           }
+           tuple->DeleteIfAllowed();
+       }
+       delete it;
+       bool res = finish(out);
+       out.close();
+       return res;
+    }
+
+
 };
 
 
@@ -389,6 +417,9 @@ class ConnectionInfo{
           mynl = _mynl;
           serverPID = 0;
           secondoHome = "";
+          requestFolder ="";
+          sendFolder="";
+          sendPath="";
       }
 
       ~ConnectionInfo(){
@@ -591,17 +622,30 @@ class ConnectionInfo{
         }
 
         string getRequestFolder(){
-          simtx.lock();
-          string res =  si->getRequestFileFolder();
-          simtx.unlock();
-          return res;
+          if(requestFolder.length()==0){
+             simtx.lock();
+             requestFolder =  si->getRequestFileFolder();
+             simtx.unlock();
+          }
+          return requestFolder;
         }
         
         string getSendFolder(){
-          simtx.lock();
-          string res =  si->getSendFileFolder();
-          simtx.unlock();
-          return res;
+          if(sendFolder.length()==0){
+             simtx.lock();
+             sendFolder =  si->getSendFileFolder();
+             simtx.unlock();
+          }
+          return sendFolder;
+        }
+        
+        string getSendPath(){
+          if(sendPath.length()==0){
+             simtx.lock();
+             sendPath =  si->getSendFilePath();
+             simtx.unlock();
+          }
+          return sendPath;
         }
 
         static ConnectionInfo* createConnection(const string& host, 
@@ -971,6 +1015,9 @@ class ConnectionInfo{
     NestedList* mynl;
     int serverPID;
     string secondoHome;
+    string requestFolder;
+    string sendFolder;
+    string sendPath;
 
     boost::mutex simtx; // mutex for synchronizing access to the interface
 
@@ -5984,13 +6031,15 @@ the signature is darray2(t) x int x t -> darray2(t)
 
 */
 ListExpr putTM(ListExpr args){
-   string err = "darray2(t) x int x t expected";
+   string err = "{darray2(t), dfarray(t)}  x int x t expected";
 
    if(!nl->HasLength(args,3)){
      return listutils::typeError(err + " (invalid number of args)");
    } 
-   if( !DArray2::checkType(nl->First(args))){
-     return listutils::typeError(err + " ( first arg is not a darray)");
+   if( !DArray2::checkType(nl->First(args))&&
+       !DFArray2::checkType(nl->First(args))){
+     return listutils::typeError(err + " ( first arg is not a "
+                                       "darray or dfarray2)");
    }
    if( !CcInt::checkType(nl->Second(args))){
      return listutils::typeError(err + " ( second arg is not an int)");
@@ -6015,7 +6064,7 @@ remote server;
 
 */
 
-int putVM(Word* args, Word& result, int message,
+int putVMA(Word* args, Word& result, int message,
                 Word& local, Supplier s ){
 
 
@@ -6066,6 +6115,84 @@ int putVM(Word* args, Word& result, int message,
 }
 
 
+int putVMFA(Word* args, Word& result, int message,
+                Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  DFArray2* res = (DFArray2*) result.addr; 
+  DFArray2* array = (DFArray2*) args[0].addr;
+  (*res) = (*array);
+  if(!array->IsDefined()){ // never put something intop an undefined array
+    return 0;
+  }
+  CcInt* ccIndex = (CcInt*) args[1].addr;
+  if(!ccIndex->IsDefined()){
+     return 0;
+  }
+  int index = ccIndex->GetValue();
+  if(index<0 || (size_t) index >= array->getSize()){
+     return 0;
+  }
+  // step 1 write relation to local file
+  Relation* rel = (Relation*) args[2].addr;
+  string fname = array->getName() + "_" + stringutils::int2str(index)+".bin";
+  ListExpr relType = nl->Second(qp->GetType(s));
+  if(!BinRelWriter::writeRelationToFile(rel,relType, fname)){
+     cerr << "error in writing relation" << endl;
+     res->makeUndefined();
+     return 0;
+  }
+  // get ConnectionInfo
+  int now = array->numOfWorkers();
+  string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+  ConnectionInfo* ci = algInstance->getWorkerConnection( 
+                         array->getWorker(index % now),dbname);
+  if(!ci){
+     cerr << "could not get connection to server" << endl;
+     res->makeUndefined();
+     return 0;
+  }
+  // send file
+  if(ci->sendFile(fname,fname,true)!=0){
+     cerr << "error in sending file" << fname << endl;
+     res->makeUndefined();
+     return 0;
+  }
+  FileSystem::DeleteFileOrFolder(fname);
+  // move File to target position
+  string f1 = ci->getSendPath()+"/"+fname;
+  string f2 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"+fname;
+  string cmd = "query moveFile('"+f1+"', '"+ f2 +"')";
+
+  cout << "copy cmd : " << cmd << endl;
+
+  int err;
+  string errMsg;
+  ListExpr resList;
+  ci->simpleCommand(cmd,err,errMsg,resList,false);
+  if(err!=0){
+     cerr << "error in command " << cmd << endl;
+     cerr << " error code : " << err << endl;
+     cerr << "error Messahe " << errMsg << endl;
+     res->makeUndefined();
+     return 0;
+  }
+  if(    !nl->HasLength(resList,2) 
+      || (nl->AtomType(nl->Second(resList))!=BoolType)){
+    cerr << "command " << cmd << " returns unexpected result" << endl;
+    cerr << nl->ToString(resList) << endl;
+    res->makeUndefined();
+    return 0;
+  }
+
+  if(!nl->BoolValue(nl->Second(resList))){
+     cerr << "move file failed" << endl;
+     res->makeUndefined();
+  }
+  return 0;
+}
+
+
 /*
 3.1.3 Specification
 
@@ -6084,6 +6211,14 @@ OperatorSpec putSpec(
      );
 
 
+ValueMapping putVM[] ={ putVMA, putVMFA };
+
+int putSelect(ListExpr args){
+  return DArray2::checkType(nl->First(args))?0:1;
+}
+
+
+
 /*
 3.1.4 Operator Instance
 
@@ -6092,8 +6227,9 @@ OperatorSpec putSpec(
 Operator putOp(
            "put",
            putSpec.getStr(),
+           2,
            putVM,
-           Operator::SimpleSelect,
+           putSelect,
            putTM);
 
 
@@ -9996,12 +10132,13 @@ as a clone of the first argument having a new name.
 
 */
 ListExpr cloneTM(ListExpr args){
-  string err = "darray2 x string expected";
+  string err = "{darray2, dfarray2} x string expected";
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err + ": invalid number of args");
   }
-  if(!DArray2::checkType(nl->First(args)) ||
-     !CcString::checkType(nl->Second(args))){
+  if(   (    !DArray2::checkType(nl->First(args)) 
+          && !DFArray2::checkType(nl->First(args))) 
+     || !CcString::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
   return nl->First(args);
@@ -10016,20 +10153,36 @@ class cloneTask{
   public:
 
      cloneTask(DArray2* _array, int _index, const string& _name) :
-        array(_array), index(_index), name(_name){}
-
+        darray(_array), farray(0), index(_index), name(_name){}
+     
+     cloneTask(DFArray2* _array, int _index, const string& _name) :
+        darray(0), farray(_array), index(_index), name(_name){}
 
      void run(){
+         if(darray){
+            runDArray();
+         } else {
+            runFArray();
+         }
+     }
+
+  private:
+      DArray2* darray;
+      DFArray2* farray;
+      int index;
+      string name;
+
+      void runDArray(){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-        int workerIndex = index % array->numOfWorkers();
+        int workerIndex = index % darray->numOfWorkers();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              array->getWorker(workerIndex),dbname);
+                              darray->getWorker(workerIndex),dbname);
         if(!ci){
            cmsg.error() << "could not open connection" ;
            cmsg.send();
            return;
         }
-        string objName = array->getName() +"_" + stringutils::int2str(index);
+        string objName = darray->getName() +"_" + stringutils::int2str(index);
         string newName = name + "_" + stringutils::int2str(index);
         int err;
         string errMsg;
@@ -10038,11 +10191,35 @@ class cloneTask{
                           err, errMsg, resstr, false);
      }
 
+     void runFArray(){
+        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+        int workerIndex = index % farray->numOfWorkers();
+        ConnectionInfo* ci = algInstance->getWorkerConnection(
+                              farray->getWorker(workerIndex),dbname);
+        if(!ci){
+           cmsg.error() << "could not open connection" ;
+           cmsg.send();
+           return;
+        }
+        string objName = farray->getName() +"_" + stringutils::int2str(index)
+                         + ".bin";
+        string newName = name + "_" + stringutils::int2str(index) + ".bin";
+ 
+        string path = ci->getSecondoHome()+"/dfarrays/"+dbname+"/";
 
-  private:
-      DArray2* array;
-      int index;
-      string name;
+        int err;
+        string errMsg;
+        string resstr;
+        string cmd = "query copyFile('"+path+objName+"', '"+path+newName+"')";
+        ci->simpleCommand(cmd,  err, errMsg, resstr, false);
+        if(err!=0){
+           cerr << "copyFile command failed with code " << err << endl;
+           cerr << " Msg " << errMsg << endl;
+        }
+
+     }
+
+
 };
 
 
@@ -10050,14 +10227,14 @@ class cloneTask{
 12.3 Value Mapping Function
 
 */
-
-int cloneVM(Word* args, Word& result, int message,
+template<class A>
+int cloneVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
-   DArray2* array = (DArray2*) args[0].addr;
+   A* array = (A*) args[0].addr;
    CcString* name = (CcString*) args[1].addr;
    result = qp->ResultStorage(s);
-   DArray2* res = (DArray2*) result.addr;
+   A* res = (A*) result.addr;
    (*res) = (*array);
 
    if(!array->IsDefined() || !name->IsDefined()){
@@ -10104,6 +10281,16 @@ OperatorSpec cloneSpec(
  );
 
 
+ValueMapping cloneVM[] = {
+  cloneVMT<DArray2>,
+  cloneVMT<DFArray2>
+};
+
+int cloneSelect(ListExpr args){
+  return DArray2::checkType(nl->First(args))?0:1;
+}
+
+
 /*
 12.5 Operator instance
 
@@ -10111,8 +10298,9 @@ OperatorSpec cloneSpec(
 Operator cloneOp(
   "clone",
   cloneSpec.getStr(),
+  2,
   cloneVM,
-  Operator::SimpleSelect,
+  cloneSelect,
   cloneTM
 );
 
