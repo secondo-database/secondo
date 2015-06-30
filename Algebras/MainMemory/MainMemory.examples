@@ -79,3 +79,9 @@ Number    : 13
 Signature : -> int
 Example   : query memsize ()
 Result    : 256
+
+Operator  : memclear
+Number    : 14
+Signature : -> bool
+Example   : query memclear ()
+Result    : TRUE

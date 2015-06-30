@@ -38,12 +38,8 @@ extern MemCatalog catalog;
 
 MemCatalog::~MemCatalog(){
 cout<<"START Destruktor MemCatalog!"<<endl;
-    map<string,MemoryObject*>::iterator it;
-    it = memContents.begin();
-    while (it!=memContents.end()){
-        deleteObject(it->first);
-        it++;
-    }
+   clear();
+    //delete memContents;
 cout<<"ENDE Destruktor MemCatalog!"<<endl;
 };
 
@@ -94,6 +90,15 @@ bool MemCatalog::deleteObject (const string& name){
         return true;
      }
     return false;
+}
+
+void MemCatalog::clear (){
+    map<string,MemoryObject*>::iterator it;
+    it = memContents.begin();
+    while (it!=memContents.end()){
+        deleteObject(it->first);
+        it++;
+    }
 }
 
 bool MemCatalog::isMMObject(const string& objectName){

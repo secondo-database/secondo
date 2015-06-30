@@ -56,6 +56,8 @@ class MemCatalog {
 
         bool deleteObject (const string& name);
 
+        void clear ();
+
         bool isMMObject(const string& objectName);
 
         //*Precondition*: "isMMObject( objectName ) == true"

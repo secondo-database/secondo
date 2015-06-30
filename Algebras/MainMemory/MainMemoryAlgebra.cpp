@@ -1578,6 +1578,76 @@ Operator memsizeOp (
 
 
 
+/*
+5.12 Operator ~memclear~
+
+deletes all main memory objects
+
+*/
+
+/*
+5.12.1 Type Mapping Functions of operator ~memclear~ (-> bool)
+
+*/
+
+ListExpr memclearTypeMap(ListExpr args)
+{
+
+  if(nl->ListLength(args)!=0){
+     return listutils::typeError("no argument expected");
+  }
+
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+/*
+
+5.12.3  The Value Mapping Functions of operator ~memclear~
+
+*/
+
+int memclearValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+    bool res = false;
+    catalog.clear();
+    res = true;
+    result  = qp->ResultStorage(s);
+    CcBool* b = static_cast<CcBool*>(result.addr);
+    b->Set(true, res);
+
+
+    return 0;
+}
+
+/*
+
+5.12.4 Description of operator ~memclear~
+
+*/
+
+OperatorSpec memclearSpec(
+    "-> bool",
+    "memclear()",
+    "deletes all main memory objects",
+    "query memclear()"
+);
+
+/*
+
+5.12.5 Instance of operator ~memclear~
+
+*/
+
+Operator memclearOp (
+    "memclear",
+    memclearSpec.getStr(),
+    memclearValMap,
+    Operator::SimpleSelect,
+    memclearTypeMap
+);
+
 class MainMemoryAlgebra : public Algebra
 {
 
@@ -1615,7 +1685,7 @@ class MainMemoryAlgebra : public Algebra
         AddOperator (&memupdateOp);
         AddOperator (&mcreateRtreeOp);
         AddOperator (&memsizeOp);
-
+        AddOperator (&memclearOp);
 
         }
         ~MainMemoryAlgebra() {};
