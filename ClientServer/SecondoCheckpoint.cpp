@@ -72,16 +72,20 @@ int
 SecondoCheckpoint::Execute()
 {
   string parmFile;
-  if ( GetArgCount() > 1 )
-  {
+  if (GetArgCount() > 1) {
     parmFile = GetArgValues()[1];
   }
-  else
-  {
+  else {
     parmFile = "SecondoConfig.ini";
   }
-  string bdbHome = SmiProfile::GetParameter( "Environment", 
-                                                "SecondoHome", "", parmFile );
+  string dbDir;
+  if (GetArgCount() > 2) {
+    dbDir = GetArgValues()[2];
+  }
+  else {
+    dbDir = SmiProfile::GetParameter("Environment", "SecondoHome", "",parmFile);
+  }
+  cout << "dbDir set to " << dbDir << endl;
   
   u_int32_t minutes = SmiProfile::GetParameter( "BerkeleyDB", 
                                                 "CheckpointTime", 
@@ -96,8 +100,8 @@ SecondoCheckpoint::Execute()
   f.open("Checkpoint.msg");
   bdbEnv->set_error_stream( &f );
   bdbEnv->set_errpfx( "SecondoCheckpoint" );
-  f << "Opening environment " << bdbHome << endl;
-  rc = bdbEnv->open( bdbHome.c_str(), DB_JOINENV | DB_USE_ENVIRON, 0 );
+  f << "Opening environment " << dbDir << endl;
+  rc = bdbEnv->open(dbDir.c_str(), DB_JOINENV | DB_USE_ENVIRON, 0 );
   if ( rc != 0 )
   {
     bdbEnv->err(rc, "%s", "Environment open failed!");

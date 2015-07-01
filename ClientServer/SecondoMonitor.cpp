@@ -531,7 +531,7 @@ SecondoMonitor::Initialize()
       cout << "Launching Checkpoint service ... ";
       string pgmCheckpoint = SmiProfile::GetParameter("BerkeleyDB", 
                                               "CheckpointProgram", "", cfgFile);
-      string pgmArgs = string( "\"" ) + cfgFile + "\"";
+      string pgmArgs = string( "\"" ) + cfgFile + "\"" + dbDir;
       if ( ProcessFactory::SpawnProcess(pgmCheckpoint, 
                                         pgmArgs, pidCheckpoint, true)) {
         cout << "completed." << endl;
