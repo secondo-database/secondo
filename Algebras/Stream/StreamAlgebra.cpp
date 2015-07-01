@@ -4937,12 +4937,13 @@ This operator buffers an incoming stream of tuple or DATA.
 
 */
 ListExpr sbufferTM(ListExpr args){
- string err = "stream(tuple(X)) or stream(DATA) expected";
- if(!nl->HasLength(args,1)){
+ string err = "{stream(tuple(X)) , stream(DATA)} x int expected";
+ if(!nl->HasLength(args,2)){
    return listutils::typeError("wrong number of args; " + err);
  }
  ListExpr arg = nl->First(args);
- if(Stream<Attribute>::checkType(arg) || Stream<Tuple>::checkType(arg)){
+ if(   (Stream<Attribute>::checkType(arg) || Stream<Tuple>::checkType(arg))
+     && CcInt::checkType(nl->Second(args)) ){
     return arg;
  }
  return listutils::typeError(err);
@@ -4952,8 +4953,8 @@ template<class T>
 class sbufferInfo{
 
   public:
-     sbufferInfo(Word _stream, int _memSizeMB): stream(_stream), 
-                mem(_memSizeMB*1024*1024){
+     sbufferInfo(Word _stream, size_t _buffersize): stream(_stream), 
+                buffersize(_buffersize){
         stream.open();
         output = false;
         opos = 0;
@@ -4971,6 +4972,10 @@ class sbufferInfo{
       }
 
       T* next(){
+          if(buffersize==0){
+             return stream.request();
+          }         
+ 
           if(!output){
              if(eos || !fillBuffer()){
                 return 0;
@@ -4989,7 +4994,7 @@ class sbufferInfo{
 
   private:
      Stream<T> stream;
-     size_t mem;
+     size_t buffersize;
      vector<T*> buffer;
      bool output;
      size_t opos;
@@ -5001,15 +5006,12 @@ class sbufferInfo{
           return false;
         }
         buffer.clear();
-        size_t usedSize = sizeof(*this);
         opos = 0;
         buffer.push_back(t);
-        usedSize += t->GetMemSize()  + sizeof(void*);
-        while(usedSize < mem && t){
+        while(buffer.size() < (size_t) buffersize && t){
             t = stream.request();
             if(t){
               buffer.push_back(t);
-              usedSize += t->GetMemSize()  + sizeof(void*);
             }
         }
         if(t==0){
@@ -5028,11 +5030,18 @@ int sbufferVMT(Word* args, Word& result,
 
   sbufferInfo<T>* li = (sbufferInfo<T>*) local.addr;
   switch(message){
-     case OPEN: if(li) {
-                  delete li;
-                }
-                local.addr = new sbufferInfo<T>(args[0], qp->GetMemorySize(s));
-                return 0;
+     case OPEN: { 
+           if(li) {
+              delete li;
+            }
+            CcInt* bs = (CcInt*) args[1].addr;
+            size_t size = 0;
+            if(bs->IsDefined() && bs->GetValue()>0){
+               size = bs->GetValue();
+             }
+             local.addr = new sbufferInfo<T>(args[0], size);
+             return 0;
+       }
      case REQUEST:
                 result.addr = li?li->next():0;
                 return result.addr?YIELD:CANCEL;
@@ -5047,7 +5056,7 @@ int sbufferVMT(Word* args, Word& result,
 };
 
 int sbufferSelect(ListExpr args){
-  return Attribute::checkType(nl->First(args))?0:1;
+  return Attribute::checkType(nl->Second(nl->First(args)))?0:1;
 }
 
 ValueMapping sbufferVM[] = {
@@ -5105,7 +5114,6 @@ public:
     AddOperator( &timeout);
     AddOperator( &isOrdered);
     AddOperator( &sbufferOp);
-    sbufferOp.SetUsesMemory();
 
     AddOperator(&intstream2);
 

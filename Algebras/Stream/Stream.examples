@@ -246,7 +246,7 @@ Result   : TRUE
 Operator : sbuffer
 Number   : 1
 Signature: stream(X)  -> stream(X) , X in {tuple,DATA}
-Example  : query (strassen feed count) = (strassen feed sbuffer count)
+Example  : query (strassen feed count) = (strassen feed sbuffer[2000] count)
 Result   : TRUE
 
 Operator : intstream2
