@@ -85,3 +85,5 @@ Number    : 14
 Signature : -> bool
 Example   : query memclear ()
 Result    : TRUE
+
+

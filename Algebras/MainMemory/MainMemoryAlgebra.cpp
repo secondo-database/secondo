@@ -53,7 +53,7 @@ extern QueryProcessor *qp;
 
 namespace mmalgebra {
 
-MemCatalog catalog;
+MemCatalog* catalog;
 
 
 /*
@@ -145,7 +145,7 @@ MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0) {
     rit = r->MakeScan();
     Tuple* tup;
     int tupleSize=0;
-    size_t availableMemSize = catalog.getAvailabeMemSize();
+    size_t availableMemSize = catalog->getAvailabeMemSize();
     size_t usedMainMemory=0;
 
     vector<Tuple*>* mmrel = new vector<Tuple*>();
@@ -176,7 +176,7 @@ MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0) {
 
 MemoryAttributeObject* attrToMM(Attribute* attr, ListExpr le){
 
-    size_t availableMemSize = catalog.getAvailabeMemSize();
+    size_t availableMemSize = catalog->getAvailabeMemSize();
     size_t usedMainMemory=0;
     usedMainMemory = attr->GetMemSize();
     if (usedMainMemory>availableMemSize){
@@ -195,7 +195,7 @@ MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le){
 
     vector<Tuple*>* mmrel = new vector<Tuple*>();
     Stream<Tuple> stream(arg);
-    size_t availableMemSize = catalog.getAvailabeMemSize();
+    size_t availableMemSize = catalog->getAvailabeMemSize();
     size_t usedMainMemory =0;
     Tuple* tup;
     int tupleSize = 0;
@@ -273,7 +273,7 @@ int memloadValMap (Word* args, Word& result,
         b->Set(true, memloadSucceeded);
         return 0;
         }
-    if (catalog.isMMObject(objectName)){
+    if (catalog->isMMObject(objectName)){
         memloadSucceeded =true;
         cout<<"the object is already a main memory member"<<endl;
         b->Set(true, memloadSucceeded);
@@ -291,8 +291,7 @@ int memloadValMap (Word* args, Word& result,
         GenericRelation* r= static_cast<Relation*>( object.addr );
         MemoryRelObject* mmRelObject =
                 relToVector(r, nl->Second(objectTypeExpr));
-
-        catalog.insert(objectName,mmRelObject);
+        catalog->insert(objectName,mmRelObject);
     }
 
     // object is attribute
@@ -301,7 +300,7 @@ int memloadValMap (Word* args, Word& result,
         MemoryAttributeObject* mmA = attrToMM(attr, objectTypeExpr);
 
         if (mmA!=0){
-        catalog.insert(objectName,mmA);
+        catalog->insert(objectName,mmA);
         }
     }
 
@@ -393,19 +392,19 @@ int meminitValMap (Word* args, Word& result,
 
     if (newMainMemorySize<0){
     cout<< "the size must be >0"<<endl;
-    res=catalog.getMemSizeTotal();
+    res=catalog->getMemSizeTotal();
     }
-    else if ((size_t)newMainMemorySize<catalog.getUsedMemSize()/1024/1024){
-            res = catalog.getUsedMemSize()/1024/1024;
-            catalog.setMemSizeTotal(catalog.getUsedMemSize()/1024/1024);
+    else if ((size_t)newMainMemorySize<catalog->getUsedMemSize()/1024/1024){
+            res = catalog->getUsedMemSize()/1024/1024;
+            catalog->setMemSizeTotal(catalog->getUsedMemSize()/1024/1024);
         }
     else if (newMainMemorySize>maxSystemMainMemory){
             res = maxSystemMainMemory;
-            catalog.setMemSizeTotal(maxSystemMainMemory);
+            catalog->setMemSizeTotal(maxSystemMainMemory);
     }
     else {
         res = newMainMemorySize;
-        catalog.setMemSizeTotal(newMainMemorySize);
+        catalog->setMemSizeTotal(newMainMemorySize);
     }
 
     result  = qp->ResultStorage(s);
@@ -482,9 +481,9 @@ ListExpr mfeedTypeMap(ListExpr args) {
     }
 
     string oN = nl->StringValue(fn);
-    ListExpr oTeList = catalog.getMMObjectTypeExpr(oN);
+    ListExpr oTeList = catalog->getMMObjectTypeExpr(oN);
 
-    if(!catalog.isMMObject(oN) ||
+    if(!catalog->isMMObject(oN) ||
             !listutils::isTupleDescription(oTeList))
     {
       return listutils::typeError("not a MainMemory member or not a relation");
@@ -546,7 +545,7 @@ int mfeedValMap (Word* args, Word& result,
 
           //the type mapping assures that it is a main memory member
           MemoryRelObject* mro =
-                    (MemoryRelObject*)catalog.getMMObject(objectName);
+                    (MemoryRelObject*)catalog->getMMObject(objectName);
           relation = mro->getmmrel();
 
           local.addr= new mfeedInfo(relation);
@@ -660,7 +659,7 @@ int letmconsumeValMap (Word* args, Word& result,
           }
     string res = oN->GetValue();
     //im TypeMapping abfangen falls identifier already in use???
-    if(catalog.insert(res,mem)){
+    if(catalog->insert(res,mem)){
      str->Set(true,res);
     }
     else{
@@ -742,7 +741,7 @@ int memdeleteValMap (Word* args, Word& result,
             return 0;
         }
     string objectName = oN->GetValue();
-    deletesucceed = catalog.deleteObject(objectName);
+    deletesucceed = catalog->deleteObject(objectName);
 
     b->Set(true, deletesucceed);
     return 0;
@@ -820,9 +819,9 @@ ListExpr memobjectTypeMap(ListExpr args) {
     string oN = nl->StringValue(str);
 
 
-    if(catalog.isMMObject(oN)){
+    if(catalog->isMMObject(oN)){
 
-        ListExpr typeExpr = catalog.getMMObjectTypeExpr(oN);
+        ListExpr typeExpr = catalog->getMMObjectTypeExpr(oN);
 
         if(listutils::isTupleDescription(typeExpr)){
         ListExpr result =
@@ -854,12 +853,12 @@ int memobjectValMap (Word* args, Word& result,
             return 0;
         }
         string objectName = oN->GetValue();
-        ListExpr typeExpr = catalog.getMMObjectTypeExpr(objectName);
+        ListExpr typeExpr = catalog->getMMObjectTypeExpr(objectName);
 
 
         if (listutils::isTupleDescription(typeExpr)) {
             MemoryRelObject* memObject =
-                    (MemoryRelObject*)catalog.getMMObject(objectName);
+                    (MemoryRelObject*)catalog->getMMObject(objectName);
             GenericRelation* rel =
                     (GenericRelation*)((qp->ResultStorage(s)).addr);
             if(rel->GetNoTuples() > 0) {
@@ -889,7 +888,7 @@ int memobjectValMap (Word* args, Word& result,
         if (listutils::isDATA(typeExpr)) {
 
             MemoryAttributeObject* memObject =
-                    (MemoryAttributeObject*)catalog.getMMObject(objectName);
+                    (MemoryAttributeObject*)catalog->getMMObject(objectName);
             Attribute* attr = (Attribute*)((qp->ResultStorage(s)).addr);
             attr = memObject->getAttributeObject();
             result.setAddr(attr);
@@ -974,7 +973,7 @@ class memgetcatalogInfo{
 
        memgetcatalogInfo(ListExpr _resultType){
        resultType = _resultType;
-       memContents = catalog.getMemContent();
+       memContents = catalog->getMemContent();
        it = memContents->begin();
        };
        ~memgetcatalogInfo(){}
@@ -988,7 +987,7 @@ class memgetcatalogInfo{
         MemoryObject* memobj = it->second;
         string objTyp ="nn";
 
-        ListExpr objectType = catalog.getMMObjectTypeExpr(name);
+        ListExpr objectType = catalog->getMMObjectTypeExpr(name);
         if (listutils::isTupleDescription(objectType)){
             objTyp = MemoryRelObject::BasicType();
         }
@@ -1005,12 +1004,12 @@ class memgetcatalogInfo{
         tt->DeleteIfAllowed();
 
         CcInt* totalMemSizeB =
-            new CcInt (true, catalog.getMemSizeTotal()*1024*1024);
-        CcInt* usedMemSizeB = new CcInt (true, catalog.getUsedMemSize());
+            new CcInt (true, catalog->getMemSizeTotal()*1024*1024);
+        CcInt* usedMemSizeB = new CcInt (true, catalog->getUsedMemSize());
         CcString* trenner = new CcString(true,"_______________");
-        CcInt* totalMemSizeMB = new CcInt (true, catalog.getMemSizeTotal());
+        CcInt* totalMemSizeMB = new CcInt (true, catalog->getMemSizeTotal());
         CcReal* usedMemSizeMB =
-            new CcReal (true, (double)catalog.getUsedMemSize()/1024.0/1024.0);
+            new CcReal (true, (double)catalog->getUsedMemSize()/1024.0/1024.0);
         CcString* trenne = new CcString(true,"_______________");
         CcString* objectName = new CcString(true,name);
         CcString* oT = new CcString(true,objTyp);
@@ -1150,7 +1149,7 @@ int memletValMap (Word* args, Word& result,
     }
     string objectName = oN->GetValue();
 
-    if (catalog.isMMObject(objectName)){
+    if (catalog->isMMObject(objectName)){
         cout<< "identifier already in use"<<endl;
         b->Set(true, memletsucceed);
         return 0;
@@ -1164,7 +1163,7 @@ int memletValMap (Word* args, Word& result,
         GenericRelation* rel= static_cast<Relation*>( args[1].addr );
         MemoryRelObject* mmRelObject = relToVector(rel,nl->Second(le));
 
-        catalog.insert(objectName, mmRelObject);
+        catalog->insert(objectName, mmRelObject);
         memletsucceed =true;
     }
 
@@ -1173,7 +1172,7 @@ int memletValMap (Word* args, Word& result,
         Attribute* attr = (Attribute*)args[1].addr;
         MemoryAttributeObject* mmA = attrToMM(attr, le);
 
-        catalog.insert(objectName,mmA);
+        catalog->insert(objectName,mmA);
         memletsucceed = true;
     }
 
@@ -1181,7 +1180,7 @@ int memletValMap (Word* args, Word& result,
 
         MemoryRelObject* mem = tupelStreamToRel(args[1], nl->Second(le));
 
-        catalog.insert(objectName,mem);
+        catalog->insert(objectName,mem);
         memletsucceed = true;
     }
 
@@ -1262,13 +1261,13 @@ int memupdateValMap (Word* args, Word& result,
     }
     string objectName = oN->GetValue();
 
-    if (!catalog.isMMObject(objectName)){
+    if (!catalog->isMMObject(objectName)){
         cout<< "there is no main memory object: "<<objectName<<endl;
         b->Set(true, memupdatesucceed);
         return 0;
     }
 
-    ListExpr memType = catalog.getMMObjectTypeExpr(objectName);
+    ListExpr memType = catalog->getMMObjectTypeExpr(objectName);
 
     Supplier t = qp->GetSon( s, 1 );
     ListExpr le = qp->GetType(t);
@@ -1279,12 +1278,12 @@ int memupdateValMap (Word* args, Word& result,
                 listutils::isTupleDescription(memType) &&
                 nl->Equal(nl->Second(le), memType)){
 
-        catalog.deleteObject(objectName);
+        catalog->deleteObject(objectName);
 
         GenericRelation* rel= static_cast<Relation*>( args[1].addr );
         MemoryRelObject* mem = relToVector(rel,nl->Second(le));
 
-        catalog.insert(objectName,mem);
+        catalog->insert(objectName,mem);
         memupdatesucceed =true;
     }
 
@@ -1292,12 +1291,12 @@ int memupdateValMap (Word* args, Word& result,
     if (listutils::isDATA(le) && listutils::isDATA(memType) &&
         nl->Equal(le,memType)){
 
-        catalog.deleteObject(objectName);
+        catalog->deleteObject(objectName);
 
         Attribute* attr = (Attribute*)args[1].addr;
         MemoryAttributeObject* mem = attrToMM(attr, le);
         if (mem!=0){
-            catalog.insert(objectName,mem);
+            catalog->insert(objectName,mem);
             memupdatesucceed = true;
         }
 
@@ -1307,10 +1306,10 @@ int memupdateValMap (Word* args, Word& result,
     if (listutils::isTupleStream(le) && listutils::isTupleDescription(memType)
                 && nl->Equal(nl->Second(le), memType)){
 
-        catalog.deleteObject(objectName);
+        catalog->deleteObject(objectName);
         MemoryRelObject* mem = tupelStreamToRel(args[1], nl->Second(le));
 
-        catalog.insert(objectName,mem);
+        catalog->insert(objectName,mem);
         memupdatesucceed = true;
     }
 
@@ -1393,9 +1392,9 @@ int mcreateRtreeValMap (Word* args, Word& result,
         return 0;
     }
     string relObjectName = roN->GetValue();
-    ListExpr memType = catalog.getMMObjectTypeExpr(relObjectName);
+    ListExpr memType = catalog->getMMObjectTypeExpr(relObjectName);
 
-    if (!catalog.isMMObject(relObjectName)||
+    if (!catalog->isMMObject(relObjectName)||
             !listutils::isTupleDescription(memType)){
         cout<< "there is no main memory object: "<<relObjectName<<
         " or is not a MemoryRelObject"<<endl;
@@ -1433,7 +1432,7 @@ int mcreateRtreeValMap (Word* args, Word& result,
         }
 
     MemoryRelObject* mmrel =
-        (MemoryRelObject*)catalog.getMMObject(relObjectName);
+        (MemoryRelObject*)catalog->getMMObject(relObjectName);
     vector<Tuple*>* relVec = mmrel->getmmrel();
     vector<Tuple*>::iterator it;
     it=relVec->begin();
@@ -1454,7 +1453,7 @@ int mcreateRtreeValMap (Word* args, Word& result,
             rtree->insert(box, i);
             it++;
             i++;
-            tup->DeleteIfAllowed();
+          //  tup->DeleteIfAllowed();
             } // end while
 
         usedMainMemory = rtree->usedMem();
@@ -1463,7 +1462,7 @@ int mcreateRtreeValMap (Word* args, Word& result,
                 new MemoryRtreeObject(rtree, usedMainMemory,"mmrtree");
 
         res = relObjectName +"_"+attrName;
-        catalog.insert(res,mmRtreeObject);
+        catalog->insert(res,mmRtreeObject);
 
       } //end if spatial2D
 
@@ -1539,7 +1538,7 @@ ListExpr memsizeTypeMap(ListExpr args)
 int memsizeValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
-    int res = catalog.getMemSizeTotal();
+    int res = catalog->getMemSizeTotal();
 
     result  = qp->ResultStorage(s);
     CcInt* b = static_cast<CcInt*>(result.addr);
@@ -1611,7 +1610,7 @@ int memclearValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
     bool res = false;
-    catalog.clear();
+    catalog->clear();
     res = true;
     result  = qp->ResultStorage(s);
     CcBool* b = static_cast<CcBool*>(result.addr);
@@ -1648,6 +1647,122 @@ Operator memclearOp (
     memclearTypeMap
 );
 
+
+/*
+5.13 Operator ~minsert~
+
+inserts the tuple of a stream into a existing main memory relation
+
+*/
+
+/*
+5.13.1 Type Mapping Functions of operator ~minsert~
+    (stream(tuple(x)) x string -> stream(tuple(x))
+    the second argument identifies the main memory relation
+
+*/
+
+ListExpr minsertTypeMap(ListExpr args)
+{
+    if(nl->ListLength(args)!=2){
+        return listutils::typeError("two arguments expected");
+    }
+    cout<<"ARGS:"<<nl->ToString(args)<<endl;
+    cout<<"ARGSFirst:"<<nl->ToString(nl->First(args))<<endl;
+    cout<<"ARGSSecond:"<<nl->ToString(nl->Second(args))<<endl;
+    cout<<"ARGSRest:"<<nl->ToString(nl->Rest(args))<<endl;
+
+    ListExpr argFir = nl->First(args); //stream + query
+    ListExpr stream = nl->First(argFir);
+
+    ListExpr argSec = nl->Second(args); //string + query
+
+    if (!Stream<Tuple>::checkType(stream)) {
+        return listutils::typeError
+            ("stream(Tuple) as first argument expected");
+    }
+
+    if(!nl->HasLength(argSec,2)){
+        return listutils::typeError("internal error");
+    }
+
+    if (!CcString::checkType(nl->First(argSec))) {
+        return listutils::typeError("string expected");
+    };
+
+    ListExpr fn = nl->Second(argSec);
+
+    if(nl->AtomType(fn)!=StringType){
+        return listutils::typeError("error");
+    }
+
+    string oN = nl->StringValue(fn);
+    ListExpr oTeList = catalog->getMMObjectTypeExpr(oN);
+
+    if(!catalog->isMMObject(oN) ||
+            !listutils::isTupleDescription(oTeList))
+    {
+      return listutils::typeError("not a MainMemory member or not a relation");
+    }
+    cout <<"tupel?"<<nl->ToString(nl->Second(stream))<<endl;
+    if (!nl->Equal(nl->Second(stream), oTeList))
+    {
+      return listutils::typeError("the stream tuple description "
+                "does not match the main memory relation ");
+    }
+cout<<"Scheint allses zu staimmem"<<endl;
+cout<<"oteList"<<nl->ToString(oTeList)<<endl;
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),oTeList);
+
+}
+
+
+/*
+
+5.13.3  The Value Mapping Functions of operator ~minsert~
+
+*/
+
+int minsertValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+cout<<"anfang minsert ValMap"<<endl;
+    bool res = false;
+
+    result  = qp->ResultStorage(s);
+    CcBool* b = static_cast<CcBool*>(result.addr);
+    b->Set(true, res);
+
+
+    return 0;
+}
+
+/*
+
+5.13.4 Description of operator ~minsert~
+
+*/
+
+OperatorSpec minsertSpec(
+    "stream(tuple) x string -> stream(tuple)",
+    "minsert(_,_)",
+    "inserts the tuple of a stream into a "
+    "existing main memory relation",
+    "query Grossstaedte mfeed Kleinstaedte1 minsert count"
+);
+
+/*
+
+5.13.5 Instance of operator ~minsert~
+
+*/
+
+Operator minsertOp (
+    "minsert",
+    minsertSpec.getStr(),
+    minsertValMap,
+    Operator::SimpleSelect,
+    minsertTypeMap
+);
 class MainMemoryAlgebra : public Algebra
 {
 
@@ -1655,6 +1770,8 @@ class MainMemoryAlgebra : public Algebra
     public:
         MainMemoryAlgebra() : Algebra()
         {
+            catalog = new MemCatalog();
+
 /*
 
 6.2 Registration of Types
@@ -1686,9 +1803,14 @@ class MainMemoryAlgebra : public Algebra
         AddOperator (&mcreateRtreeOp);
         AddOperator (&memsizeOp);
         AddOperator (&memclearOp);
+//        AddOperator (&minsertOp);
+//        minsertOp.SetUsesArgsInTypeMapping();
 
         }
-        ~MainMemoryAlgebra() {};
+        ~MainMemoryAlgebra() {
+          delete catalog;
+          catalog = 0;
+        };
 };
 
 

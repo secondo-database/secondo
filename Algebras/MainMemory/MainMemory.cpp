@@ -96,6 +96,7 @@ void MemCatalog::clear (){
     map<string,MemoryObject*>::iterator it;
     it = memContents.begin();
     while (it!=memContents.end()){
+cout<<"Objekt: "<<it->first<<endl;
         deleteObject(it->first);
         it++;
     }
@@ -206,8 +207,9 @@ cout<<"start destruktor memoryrel:"<<endl;
     vector<Tuple*>::iterator it = mmrel->begin();
     while (it!=mmrel->end()){
         Tuple* tup = *it;
-        delete tup;
-        //tup->DeleteIfAllowed();
+        tup->DeleteIfAllowed();
+        //delete tup;
+        tup = 0;
         it++;
     }
     delete mmrel;
