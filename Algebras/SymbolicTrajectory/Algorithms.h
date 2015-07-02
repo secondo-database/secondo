@@ -456,6 +456,7 @@ class Condition {
 */
 class PatElem {
   friend class TMatch;
+  friend class TMatchIndexLI;
  private:
   string var;
   set<string> ivs;
@@ -509,6 +510,7 @@ class PatElem {
   bool     hasRealInterval() const;
   bool     hasIndexableContents() const {return (hasLabel() || hasPlace() ||
                                                  hasRealInterval());}
+  int      getNoValues() const                           {return values.size();}
   bool     extractValues(string &input, Tuple *tuple);
   vector<pair<Word, SetRel> > getValues() const           {return values;}
   void     deleteValues(vector<pair<int, string> > &relevantAttrs);
@@ -887,7 +889,7 @@ extern TypeConstructor tupleindexTC;
 
 */
 class TupleIndex {
-  friend class TMatchesIndexLI;
+  friend class TMatchIndexLI;
  public:
   TupleIndex() {}
   TupleIndex(vector<InvertedFile*> t, vector<BTree*> b, vector<RTree1TLLI*> r1,
@@ -951,7 +953,11 @@ class IndexMatchSuper {
  public:
   Relation *rel;
   Pattern *p;
+  set<int> indexMismatch;
+  vector<TupleId> matches;
+  int activeTuples, unitCtr;
   vector<vector<IndexRetrieval> > indexResult;
+  vector<bool> deactivated;
   int attrNo;
 };
 
@@ -963,8 +969,10 @@ class TMatchIndexLI : public IndexMatchSuper {
  public:
   TMatchIndexLI(Relation *r, TupleIndex *t, int a, Pattern *pat);
   
-  void initialize();
-  Tuple* nextTuple() {return 0;}
+  bool tiCompatibleToRel();
+  void storeIndexResult(int atomNo);
+  bool initialize();
+  Tuple* nextTuple();
   
  private:
   TupleIndex *ti;
@@ -1246,11 +1254,7 @@ class IndexMatchesLI : public IndexMatchSuper {
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
 
  protected:
-  set<int> indexMismatch;
-  vector<TupleId> matches;
   vector<int> trajSize;
-  vector<bool> deactivated;
-  int activeTuples, counter;
   vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo;
   vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
   InvertedFile* invFile;
@@ -5038,7 +5042,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
     if (imi.matches(unit) && match.valuesMatch(unit, elem) &&
         timesMatch(id, unit, elem) &&
         match.easyCondsMatch(unit, elem, p->easyConds, p->getEasyCondPos(e))) {
-      if (unit + 1 >= counter) {
+      if (unit + 1 >= unitCtr) {
         IndexMatchInfo newIMI(false, unit + 1, imi.binding, imi.prevElem);
         extendBinding(newIMI, e);
 //         if (newIMI.finished(trajSize[id])) {
@@ -5069,7 +5073,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
     for (int i = imi.next; i < trajSize[id]; i++) {
       if (match.valuesMatch(i, elem) && timesMatch(id, i, elem) &&
           match.easyCondsMatch(i, elem, p->easyConds, p->getEasyCondPos(e))) {
-        if (i + 1 >= counter) {
+        if (i + 1 >= unitCtr) {
           IndexMatchInfo newIMI(false, i + 1, imi.binding, imi.prevElem);
           extendBinding(newIMI, e);
           if (p->isFinalState(newState) && imi.finished(trajSize[id]) &&
@@ -5097,7 +5101,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
   else {
     if (match.valuesMatch(imi.next, elem) && timesMatch(id, imi.next, elem) &&
      match.easyCondsMatch(imi.next, elem, p->easyConds, p->getEasyCondPos(e))) {
-      if (imi.next + 1 >= counter) {
+      if (imi.next + 1 >= unitCtr) {
         IndexMatchInfo newIMI(false, imi.next + 1, imi.binding, imi.prevElem);
         extendBinding(newIMI, e);
         if (p->isFinalState(newState) && imi.finished(trajSize[id]) && 

@@ -2049,13 +2049,124 @@ TMatchIndexLI::TMatchIndexLI(Relation *r, TupleIndex *t, int a, Pattern *pat) {
   ti = t;
   attrNo = a;
   p = pat;
+  activeTuples = 0;
+  unitCtr = 0;
+}
+
+/*
+\subsection{Function ~tiCompatibleToRel~}
+
+*/
+bool TMatchIndexLI::tiCompatibleToRel() {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  TupleType *ttype = rel->GetTupleType();
+  IndexType indexType;
+  int pos;
+  pair<AttributeType, string> attrType;
+  for (int i = 0; i < ttype->GetNoAttributes(); i++) {
+    attrType.first = ttype->GetAttributeType(i);
+    attrType.second = sc->GetTypeName(attrType.first.algId,
+                                      attrType.first.typeId);
+    indexType = ti->attrToIndex[i].first;
+    pos = ti->attrToIndex[i].second;
+    switch (indexType) {
+      case TRIE: {
+        if (attrType.second != "mlabel" && attrType.second != "mplace" &&
+            attrType.second != "mlabels" && attrType.second != "mplaces") {
+          return false;
+        }
+        if (pos >= ti->tries.size()) {
+          return false;
+        }
+        break;
+      }
+      case BTREE: {
+        if (attrType.second != "mint") {
+          return false;
+        }
+        if (pos >= ti->btrees.size()) {
+          return false;
+        }
+        break;
+      }
+      case RTREE1: {
+        if (attrType.second != "mreal") {
+          return false;
+        }
+        if (pos >= ti->rtrees1.size()) {
+          return false;
+        }
+        break;
+      }
+      case RTREE2: {
+        if (attrType.second != "mpoint" && attrType.second != "mregion") {
+          return false;
+        }
+        if (pos >= ti->rtrees2.size()) {
+          return false;
+        }
+        break;
+      }
+      default: { // case NONE
+        break;
+      }
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~storeIndexResult~}
+
+*/
+void TMatchIndexLI::storeIndexResult(int atomNo) {
+  PatElem atom;
+  p->getElem(atomNo, atom);
+  if (ti->attrToIndex.size() != atom.getNoValues()) {
+    cout << "Error: " << ti->attrToIndex.size() << " != " << atom.getNoValues()
+         << endl;
+    return;
+  }
+  pair<Word, SetRel> value;
+  int pos = 0;
+  map<int, pair<IndexType, int> >::iterator it;
+  for (it = ti->attrToIndex.begin(); it != ti->attrToIndex.end(); it++) {
+    switch (it->second.first) {
+      case TRIE: {
+        // hole Attributtyp aus Tupeltyp, caste value.first.addr entsprechend,
+        // extrahiere strings und erhalte Indexergebnisse
+        break;
+      }
+      case BTREE: {
+        
+        break;
+      }
+      case RTREE1: {
+        
+        break;
+      }
+      case RTREE2: {
+        
+        break;
+      }
+      default: { // case NONE
+        break;
+      }
+    }
+    
+    pos++;
+  }
 }
 
 /*
 \subsection{Function ~initialize~}
 
 */
-void TMatchIndexLI::initialize() {
+bool TMatchIndexLI::initialize() {
+  if (!tiCompatibleToRel()) {
+    cout << "Error: Tuple index is not compatible with relation" << endl;
+    return false;
+  }
   vector<map<int, int> > simpleNFA;
   p->simplifyNFA(simpleNFA);
   set<pair<set<int>, int> > paths;
@@ -2063,17 +2174,30 @@ void TMatchIndexLI::initialize() {
   set<int> cruElems;
   p->getCrucialElems(paths, cruElems);
   indexResult.resize(p->getSize());
-//   deactivated.resize(mRel->GetNoTuples() + 1, false);
-//   for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++){
-//     storeIndexResult(*it);
-//   }
-//   deactivated.resize(mRel->GetNoTuples() + 1, true);
+  deactivated.resize(rel->GetNoTuples() + 1, false);
+  matches[0] = 0;
+  for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
+    storeIndexResult(*it);
+  }
   p->initEasyCondOpTrees();
   p->initCondOpTrees();
 //   matchInfoPtr = &matchInfo;
 //   newMatchInfoPtr = &newMatchInfo;
-//   activeTuples = 0;
 //   initMatchInfo(cruElems);
+  return true;
+}
+
+/*
+\subsection{Function ~nextTuple~}
+
+*/
+Tuple* TMatchIndexLI::nextTuple() {
+  if (matches[0] == 0 || matches[0] >= matches.size()) {
+    return 0;
+  }
+  Tuple *result = rel->GetTuple(matches[matches[0]], false);
+  matches[0]++;
+  return result;
 }
 
 
@@ -2500,9 +2624,10 @@ void Classifier::buildMultiNFA(vector<Pattern*> patterns,
 */
 IndexMatchesLI::IndexMatchesLI(Relation *_rel, InvertedFile *inv,
  R_Tree<1, NewPair<TupleId, int> > *rt, int _attrNr, Pattern *_p, DataType type)
-           : counter(0), invFile(inv), rtree(rt), mtype(type) {
+           : invFile(inv), rtree(rt), mtype(type) {
   rel = _rel;
-  p = _p; 
+  p = _p;
+  unitCtr = 0;
   attrNo = _attrNr;
   if (p) {
     if (rel->GetNoTuples() > 0) {
@@ -2549,7 +2674,7 @@ void IndexMatchesLI::applyNFA() {
   set<int>::reverse_iterator is;
   map<int, int>::reverse_iterator im;
   while ((activeTuples > 0) && !states.empty()) {
-    counter++;
+    unitCtr++;
 //     cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
 //          << matches.size() << " matches; states:";
     for (is = states.rbegin(); is != states.rend(); is++) {
@@ -3242,8 +3367,8 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
     unsigned int i = 0;
     while (!deactivated[id] && (i < numOfIMIs)) {
       imiPtr = &((*matchInfoPtr)[state][id].imis[i]);
-//       cout << imiPtr->next + 1 << " | " << counter << endl;
-      if (imiPtr->next + 1 >= counter) {
+//       cout << imiPtr->next + 1 << " | " << unitCtr << endl;
+      if (imiPtr->next + 1 >= unitCtr) {
         bool match = false;
         IndexMatchInfo newIMI(true, imiPtr->next + 1, imiPtr->binding, 
                               imiPtr->prevElem);

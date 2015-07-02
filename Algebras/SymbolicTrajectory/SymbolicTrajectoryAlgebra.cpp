@@ -2855,7 +2855,11 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
         p = Pattern::getPattern(pat->toText(), false, rel->GetTuple(1, false),
                                 nl->Second(ttype));
         if (p) {
-          local.addr = new TMatchIndexLI(rel, ti, attrno->GetIntval(), p);
+          li = new TMatchIndexLI(rel, ti, attrno->GetIntval(), p);
+          if (li->initialize()) {
+            delete li;
+            local.addr = 0;
+          }
         }
         else {
           cout << "invalid pattern" << endl;
