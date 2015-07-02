@@ -626,6 +626,10 @@ class Pattern {
   bool initAssignOpTrees();
   void deleteAssignOpTrees(bool conds);
   bool parseNFA();
+  void simplifyNFA(vector<map<int, int> >& result);
+  void findNFApaths(vector<map<int, int> >& simpleNFA, 
+                    set<pair<set<int>, int> >& result);
+  void getCrucialElems(const set<pair<set<int>,int> >& paths, set<int>& result);
   bool containsFinalState(set<int> &states);
   bool initCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0);
   bool initEasyCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0);
@@ -883,6 +887,7 @@ extern TypeConstructor tupleindexTC;
 
 */
 class TupleIndex {
+  friend class TMatchesIndexLI;
  public:
   TupleIndex() {}
   TupleIndex(vector<InvertedFile*> t, vector<BTree*> b, vector<RTree1TLLI*> r1,
@@ -936,16 +941,33 @@ class TupleIndex {
   TrieNodeCacheType* trieCache;
 };
 
+struct IndexRetrieval;
+
+/*
+\section{class ~IndexMatchSuper~}
+
+*/
+class IndexMatchSuper {
+ public:
+  Relation *rel;
+  Pattern *p;
+  vector<vector<IndexRetrieval> > indexResult;
+  int attrNo;
+};
+
 /*
 \section{Class ~TMatchIndexLI~}
 
 */
-class TMatchIndexLI {
+class TMatchIndexLI : public IndexMatchSuper {
  public:
-  TMatchIndexLI() {}
+  TMatchIndexLI(Relation *r, TupleIndex *t, int a, Pattern *pat);
   
+  void initialize();
   Tuple* nextTuple() {return 0;}
   
+ private:
+  TupleIndex *ti;
 };
 
 /*
@@ -1185,19 +1207,15 @@ struct IndexMatchSlot {
 \section{Class ~IndexMatchesLI~}
 
 */
-class IndexMatchesLI {
+class IndexMatchesLI : public IndexMatchSuper {
  public:
-  IndexMatchesLI(Relation *rel, InvertedFile *inv, 
-    R_Tree<1, NewPair<TupleId, int> > *rt, int _attrNr, Pattern *_p, 
-    bool deleteP, DataType type);
+  IndexMatchesLI(Relation *_rel, InvertedFile *inv, 
+    R_Tree<1, NewPair<TupleId, int> > *rt, int _attrNr, Pattern *_p,
+    DataType type);
 
-  ~IndexMatchesLI() {mRel = 0;}
+  ~IndexMatchesLI();
 
   Tuple* nextTuple();
-  void simplifyNFA(vector<map<int, int> >& result);
-  void findNFApaths(const vector<map<int, int> >& nfa, 
-                const set<int>& finalStates, set<pair<set<int>, int> >& result);
-  void getCrucialElems(const set<pair<set<int>, int> >& paths,set<int>& result);
   void retrieveValue(vector<set<int> >& part, vector<set<int> >& part2,
                      SetRel rel, bool first, const string& label,
                      unsigned int ref = UINT_MAX);
@@ -1228,9 +1246,6 @@ class IndexMatchesLI {
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
 
  protected:
-  Pattern p;
-  Relation *mRel;
-  vector<vector<IndexRetrieval> > indexResult;
   set<int> indexMismatch;
   vector<TupleId> matches;
   vector<int> trajSize;
@@ -1240,7 +1255,6 @@ class IndexMatchesLI {
   vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
   InvertedFile* invFile;
   R_Tree<1, NewPair<TupleId, int> > *rtree;
-  int attrNr;
   size_t maxMLsize;
   DataType mtype;
 };
@@ -4978,14 +4992,14 @@ Tuple* IndexClassifyLI::nextResultTuple() {
     cout << "results empty, fill now. currentPat=" << currentPat << ", " 
          << c->getPatText(currentPat) << endl;
     Pattern *pat = Pattern::getPattern(c->getPatText(currentPat), false);
-    p = *pat;
+    p = pat;
     delete pat;
     initialize();
     applyNFA();
     for (unsigned int i = 0; i < matches.size(); i++) {
       results.push(make_pair(c->getDesc(currentPat), matches[i]));
     }
-    p.deleteCondOpTrees();
+    p->deleteCondOpTrees();
     cout << "desc for " << currentPat << " is " << c->getDesc(currentPat)<<endl;
     currentPat++;
   }
@@ -4994,17 +5008,14 @@ Tuple* IndexClassifyLI::nextResultTuple() {
   cout << "tuple id " << resultPair.second << " popped, " << results.size() 
        << " left" << endl;
    
-  Tuple* tuple = mRel->GetTuple(resultPair.second, false);
-  int noValues = ((MLabels*)(tuple->GetAttribute(attrNr)))->GetNoValues();
+  Tuple* tuple = rel->GetTuple(resultPair.second, false);
+  int noValues = ((MLabels*)(tuple->GetAttribute(attrNo)))->GetNoValues();
   cout << "Trajectory has "
-       << ((MLabels*)(tuple->GetAttribute(attrNr)))->GetNoComponents()
+       << ((MLabels*)(tuple->GetAttribute(attrNo)))->GetNoComponents()
        << " units and " << noValues << " labels" << endl;
 
-  ((MLabels*)(tuple->GetAttribute(attrNr)))->Print(cout);
-  
-  
-  
-  Attribute* traj = (tuple->GetAttribute(attrNr))->Copy();
+  ((MLabels*)(tuple->GetAttribute(attrNo)))->Print(cout);
+  Attribute* traj = (tuple->GetAttribute(attrNo))->Copy();
   Tuple *result = new Tuple(classifyTT);
   result->PutAttribute(0, new FText(true, resultPair.first));
   result->PutAttribute(1, traj);
@@ -5018,22 +5029,22 @@ Tuple* IndexClassifyLI::nextResultTuple() {
 */
 template<class M>
 bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
-                      IndexMatchInfo& imi, const int unit, const int newState) {
+                     IndexMatchInfo& imi, const int unit, const int newState) {
   PatElem elem;
-  p.getElem(e, elem);
+  p->getElem(e, elem);
   if (unit >= 0) { // exact position from index
 //     cout << "   unit=" << unit << ", imi: next=" << imi.next << ", range=" 
 //          << (imi.range ? "TRUE" : "FALSE") << endl;
     if (imi.matches(unit) && match.valuesMatch(unit, elem) &&
         timesMatch(id, unit, elem) &&
-        match.easyCondsMatch(unit, elem, p.easyConds, p.getEasyCondPos(e))) {
+        match.easyCondsMatch(unit, elem, p->easyConds, p->getEasyCondPos(e))) {
       if (unit + 1 >= counter) {
         IndexMatchInfo newIMI(false, unit + 1, imi.binding, imi.prevElem);
         extendBinding(newIMI, e);
 //         if (newIMI.finished(trajSize[id])) {
 //           newIMI.print(true); cout << "   ";
 //         }
-        if (p.isFinalState(newState) && newIMI.finished(trajSize[id]) && 
+        if (p->isFinalState(newState) && newIMI.finished(trajSize[id]) && 
             checkConditions(id, newIMI)) { // complete match
           removeIdFromIndexResult(id);
           removeIdFromMatchInfo(id);
@@ -5057,11 +5068,11 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
     int numOfNewIMIs = 0;
     for (int i = imi.next; i < trajSize[id]; i++) {
       if (match.valuesMatch(i, elem) && timesMatch(id, i, elem) &&
-          match.easyCondsMatch(i, elem, p.easyConds, p.getEasyCondPos(e))) {
+          match.easyCondsMatch(i, elem, p->easyConds, p->getEasyCondPos(e))) {
         if (i + 1 >= counter) {
           IndexMatchInfo newIMI(false, i + 1, imi.binding, imi.prevElem);
           extendBinding(newIMI, e);
-          if (p.isFinalState(newState) && imi.finished(trajSize[id]) &&
+          if (p->isFinalState(newState) && imi.finished(trajSize[id]) &&
               checkConditions(id, newIMI)) { // complete match
             removeIdFromMatchInfo(id);
   //           cout << id << " removed (range match) " << activeTuples 
@@ -5072,7 +5083,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
           }
           else if (!newIMI.exhausted(trajSize[id])) { // continue
             if ((*newMatchInfoPtr)[newState].size() == 0) {
-              (*newMatchInfoPtr)[newState].resize(mRel->GetNoTuples());
+              (*newMatchInfoPtr)[newState].resize(rel->GetNoTuples());
             }
             (*newMatchInfoPtr)[newState][id].imis.push_back(newIMI);
             numOfNewIMIs++;
@@ -5085,11 +5096,11 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
   }
   else {
     if (match.valuesMatch(imi.next, elem) && timesMatch(id, imi.next, elem) &&
-        match.easyCondsMatch(imi.next, elem, p.easyConds, p.getEasyCondPos(e))){
+     match.easyCondsMatch(imi.next, elem, p->easyConds, p->getEasyCondPos(e))) {
       if (imi.next + 1 >= counter) {
         IndexMatchInfo newIMI(false, imi.next + 1, imi.binding, imi.prevElem);
         extendBinding(newIMI, e);
-        if (p.isFinalState(newState) && imi.finished(trajSize[id]) && 
+        if (p->isFinalState(newState) && imi.finished(trajSize[id]) && 
             checkConditions(id, newIMI)) { // complete match
           removeIdFromMatchInfo(id);
   //         cout << id << " removed (match) " << activeTuples
@@ -5099,7 +5110,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
         }
         else if (!newIMI.exhausted(trajSize[id])) { // continue
           if ((*newMatchInfoPtr)[newState].size() == 0) {
-            (*newMatchInfoPtr)[newState].resize(mRel->GetNoTuples());
+            (*newMatchInfoPtr)[newState].resize(rel->GetNoTuples());
           }
           (*newMatchInfoPtr)[newState][id].imis.push_back(newIMI);
           return true;

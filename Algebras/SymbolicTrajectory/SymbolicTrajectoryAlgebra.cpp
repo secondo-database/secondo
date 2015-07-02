@@ -2835,7 +2835,6 @@ int tmatchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 template<class P>
 int tmatchesindexVM(Word* args, Word& result, int message, Word& local, 
                     Supplier s) {
-  cout << "start VM" << endl;
   TMatchIndexLI *li = (TMatchIndexLI*)local.addr;
   switch (message) {
     case OPEN: {
@@ -2844,20 +2843,19 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
         delete li;
         local.addr = 0;
       }
-      local.addr = new TMatchIndexLI();
-      cout << "begin casts" << endl;
       Relation *rel = static_cast<Relation*>(args[0].addr);
       CcInt *attrno = static_cast<CcInt*>(args[4].addr);
       TupleIndex *ti = static_cast<TupleIndex*>(args[3].addr);
       P* pat = static_cast<P*>(args[2].addr);
       Pattern *p = 0;
-      if (pat->IsDefined() && attrno->IsDefined()) {
+      if (pat->IsDefined() && attrno->IsDefined() && rel->GetNoTuples() > 0) {
         Supplier s0 = qp->GetSon(s, 0);
         ListExpr ttype = qp->GetType(s0);
-        cout << "ttype is " << nl->ToString(ttype) << endl;
-        p = Pattern::getPattern(pat->toText(), false, 0, ttype);
+        cout << "ttype is " << nl->ToString(nl->Second(ttype)) << endl;
+        p = Pattern::getPattern(pat->toText(), false, rel->GetTuple(1, false),
+                                nl->Second(ttype));
         if (p) {
-
+          local.addr = new TMatchIndexLI(rel, ti, attrno->GetIntval(), p);
         }
         else {
           cout << "invalid pattern" << endl;
@@ -2865,10 +2863,12 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
       }
     }
     case REQUEST: {
+      cout << "REQUEST" << endl;
       result.addr = li ? li->nextTuple() : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
+      cout << "CLOSE" << endl;
       if (li) {
         delete li;
         local.addr = 0;
@@ -3120,6 +3120,7 @@ int indexmatchesVM(Word* args, Word& result, int message, Word& local,
         delete li;
         local.addr = 0;
       }
+      Pattern *p = 0;
       P *pText = static_cast<P*>(args[4].addr);
       CcInt *attr = static_cast<CcInt*>(args[5].addr);
       InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
@@ -3127,11 +3128,11 @@ int indexmatchesVM(Word* args, Word& result, int message, Word& local,
                   static_cast<R_Tree<1, NewPair<TupleId, int> >*>(args[3].addr);
       Relation *rel = static_cast<Relation*>(args[0].addr);
       if (pText->IsDefined() && attr->IsDefined()) {
-        Pattern *p = Pattern::getPattern(pText->toText(), false);
+        p = Pattern::getPattern(pText->toText(), false);
         if (p) {
           if (p->isValid(M::BasicType())) {
             local.addr = new IndexMatchesLI(rel, inv, rt, attr->GetIntval(), p,
-                                      true, Tools::getDataType(M::BasicType()));
+                                            Tools::getDataType(M::BasicType()));
           }
           else {
             local.addr = 0;

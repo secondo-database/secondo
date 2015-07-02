@@ -331,6 +331,110 @@ bool Pattern::parseNFA() {
 }
 
 /*
+\subsection{Function ~simplifyNFA~}
+
+*/
+void Pattern::simplifyNFA(vector<map<int, int> >& result) {
+  result.clear();
+  string ptext = GetText();
+  for (unsigned int i = 1; i < ptext.length(); i++) {
+    if ((ptext[i - 1] == ']') && ((ptext[i] == '*') || (ptext[i] == '+'))) {
+      ptext[i] = ' '; // eliminate repetition of regular expressions
+    }
+  }
+  Pattern *pnew = Pattern::getPattern(ptext, false);
+  vector<map<int, int> > oldNFA;
+  pnew->getNFA(oldNFA);
+  delete pnew;
+  result.resize(oldNFA.size());
+  map<int, int>::iterator im;
+  for (int i = 0; i < (int)oldNFA.size(); i++) {
+    for (im = oldNFA[i].begin(); im != oldNFA[i].end(); im++) {
+      if (im->second != i) { // eliminate * and + loops
+        result[i][im->first] = im->second;
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~findNFApaths~}
+
+*/
+void Pattern::findNFApaths(vector<map<int, int> >& simpleNFA, 
+                           set<pair<set<int>, int> >& result) {
+  result.clear();
+  set<pair<set<int>, int> > newPaths;
+  set<int> elems;
+  set<pair<set<int>, int> >::iterator is;
+  map<int, int>::iterator im;
+  result.insert(make_pair(elems, 0));
+  bool proceed = true;
+  while (proceed) {
+    for (is = result.begin(); is != result.end(); is++) {
+      map<int, int> trans = simpleNFA[is->second];
+      for (im = trans.begin(); im != trans.end(); im++) {
+        elems = is->first; // get old transition set
+        elems.insert(im->first); // add new transition
+        newPaths.insert(make_pair(elems, im->second)); // and new state
+      }
+      if (simpleNFA[is->second].empty()) { // no transition available
+        newPaths.insert(*is); // keep path
+      }
+    }
+    result = newPaths;
+    newPaths.clear();
+    proceed = false;
+    for (is = result.begin(); is != result.end(); is++) {
+      if (finalStates.find(is->second) == finalStates.end()) { // no final state
+        proceed = true; // continue pathfinding
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~getCrucialElems~}
+
+*/
+void Pattern::getCrucialElems(const set<pair<set<int>, int> >& paths,
+                              set<int>& result) {
+  set<int> elems, temp;
+  set<pair<set<int>, int> >::iterator is;
+  set<int>::iterator it;
+  is = paths.begin();
+  elems = is->first;
+  is++;
+  while (is != paths.end()) { // collect crucial elems
+//     cout << "{";
+//     for (it = is->first.begin(); it != is->first.end(); it++) {
+//       cout << *it << " ";
+//     }
+//     cout << "} {";
+//     for (it = elems.begin(); it != elems.end(); it++) {
+//       cout << *it << " ";
+//     }    
+//     cout << "}";
+    set_intersection(is->first.begin(), is->first.end(), elems.begin(), 
+                     elems.end(), std::inserter(temp, temp.begin()));
+//     cout << "  -->  {";
+//     for (it = temp.begin(); it != temp.end(); it++) {
+//       cout << *it << " ";
+//     }  
+//     cout << "}" << endl;
+    elems = temp;
+    temp.clear();
+    is++;
+  }
+//   cout << "crucial elements: {";
+  for (it = elems.begin(); it != elems.end(); it++) {
+//     cout << *it << " ";
+    result.insert(*it);
+  }
+//   cout << "}" << endl;
+}
+
+/*
 \subsection{Function ~tmatches~}
 
 Computes whether a tuple with several trajectories of different types matches
@@ -1468,7 +1572,6 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     ti->tries.push_back((InvertedFile*)val.addr);
-    cout << "Trie # " << ti->tries.size() << " opened" << endl;
   }
   if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
     return false;
@@ -1482,7 +1585,6 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     ti->btrees.push_back((BTree*)val.addr);
-    cout << "BTree # " << ti->btrees.size() << " opened" << endl;
   }
   if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
     return false;
@@ -1497,7 +1599,6 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     ti->rtrees1.push_back((RTree1TLLI*)val.addr);
-    cout << "RTree1 # " << ti->rtrees1.size() << " opened" << endl;
   }
   if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
     return false;
@@ -1510,7 +1611,6 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     ti->rtrees2.push_back((RTree2TLLI*)val.addr);
-    cout << "RTree2 # " << ti->rtrees2.size() << " opened" << endl;
   }
   if (!OpenRTree<1>(valueRecord, offset, tList, val)) {
     cout << "error opening time index" << endl;
@@ -1559,14 +1659,11 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
     }
     offset += sizeof(int);
     ti->indexToAttr[indexPos] = attr;
-    cout << "indexToAttr: (" << indexPos.first << ", " << indexPos.second 
-         << ") |---> " << attr << endl;
   }
   if (!valueRecord.Read(&(ti->mainAttr), sizeof(int), offset)) {
     return false;
   }
   offset += sizeof(int);
-  cout << "mainAttr = " << ti->mainAttr << endl;
   ti->cache = 0;
   ti->trieCache = 0;
   value = SetWord(ti);
@@ -1940,6 +2037,45 @@ void TupleIndex::deleteIndexes() {
   }
   delete timeIndex;
 }
+
+/*
+\section{Functions for class ~TMatchIndexLI~}
+
+\subsection{Constructor}
+
+*/
+TMatchIndexLI::TMatchIndexLI(Relation *r, TupleIndex *t, int a, Pattern *pat) {
+  rel = r;
+  ti = t;
+  attrNo = a;
+  p = pat;
+}
+
+/*
+\subsection{Function ~initialize~}
+
+*/
+void TMatchIndexLI::initialize() {
+  vector<map<int, int> > simpleNFA;
+  p->simplifyNFA(simpleNFA);
+  set<pair<set<int>, int> > paths;
+  p->findNFApaths(simpleNFA, paths);
+  set<int> cruElems;
+  p->getCrucialElems(paths, cruElems);
+  indexResult.resize(p->getSize());
+//   deactivated.resize(mRel->GetNoTuples() + 1, false);
+//   for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++){
+//     storeIndexResult(*it);
+//   }
+//   deactivated.resize(mRel->GetNoTuples() + 1, true);
+  p->initEasyCondOpTrees();
+  p->initCondOpTrees();
+//   matchInfoPtr = &matchInfo;
+//   newMatchInfoPtr = &newMatchInfo;
+//   activeTuples = 0;
+//   initMatchInfo(cruElems);
+}
+
 
 /*
 \section{Functions for class ~ClassifyLI~} 
@@ -2362,21 +2498,30 @@ void Classifier::buildMultiNFA(vector<Pattern*> patterns,
 \subsection{Constructor for class ~IndexMatchesLI~}
 
 */
-IndexMatchesLI::IndexMatchesLI(Relation *rel, InvertedFile *inv,
- R_Tree<1, NewPair<TupleId, int> > *rt, int _attrNr, Pattern *_p, bool deleteP, 
-   DataType type):
- mRel(rel), counter(0), invFile(inv), rtree(rt), attrNr(_attrNr), mtype(type) {
-  if (_p) {
-    if (mRel->GetNoTuples() > 0) {
-      p = *_p;
+IndexMatchesLI::IndexMatchesLI(Relation *_rel, InvertedFile *inv,
+ R_Tree<1, NewPair<TupleId, int> > *rt, int _attrNr, Pattern *_p, DataType type)
+           : counter(0), invFile(inv), rtree(rt), mtype(type) {
+  rel = _rel;
+  p = _p; 
+  attrNo = _attrNr;
+  if (p) {
+    if (rel->GetNoTuples() > 0) {
       initialize();
       applyNFA();
-      p.deleteEasyCondOpTrees();
-      p.deleteCondOpTrees();
-      if (deleteP) {
-        delete _p;
-      }
+      p->deleteEasyCondOpTrees();
+      p->deleteCondOpTrees();
     }
+  }
+}
+
+/*
+\subsection{Destructor}
+
+*/
+IndexMatchesLI::~IndexMatchesLI() {
+  rel = 0;
+  if (p) {
+    delete p;
   }
 }
 
@@ -2388,7 +2533,7 @@ Tuple* IndexMatchesLI::nextTuple() {
   if (!matches.empty()) {
     TupleId result = matches.back();
     matches.pop_back();
-    return mRel->GetTuple(result, false);
+    return rel->GetTuple(result, false);
   }
   return 0;
 }
@@ -2408,9 +2553,9 @@ void IndexMatchesLI::applyNFA() {
 //     cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
 //          << matches.size() << " matches; states:";
     for (is = states.rbegin(); is != states.rend(); is++) {
-      map<int, int> trans = p.getTransitions(*is);
+      map<int, int> trans = p->getTransitions(*is);
       for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++) {
-        p.getElem(im->first, elem);
+        p->getElem(im->first, elem);
         if (elem.getW() == NO) { // no wildcard
 //            cout << "call simpleMatch for transition " << *is << " --" 
 //                 << im->first << "--> " << im->second << endl;
@@ -2584,9 +2729,9 @@ This constructor is used for the operator ~indexclassify~.
 IndexClassifyLI::IndexClassifyLI(Relation *rel, InvertedFile *inv,
   R_Tree<1, NewPair<TupleId, int> > *rt, Word _classifier, int _attrNr, 
   DataType type) : 
-         IndexMatchesLI::IndexMatchesLI(rel, inv, rt, _attrNr, 0, false, type),
+         IndexMatchesLI::IndexMatchesLI(rel, inv, rt, _attrNr, 0, type),
          classifyTT(0), c(0) {
-  if (mRel->GetNoTuples() > 0) {
+  if (rel->GetNoTuples() > 0) {
     c = (Classifier*)_classifier.addr;
     for (int i = 0; i < c->getNumOfP(); i++) { // check patterns
       Pattern *p = Pattern::getPattern(c->getPatText(i), false);
@@ -2638,7 +2783,7 @@ IndexClassifyLI::~IndexClassifyLI() {
 
 */
 void IndexMatchesLI::clearMatchInfo() {
-  for (int i = 0; i < p.getNFAsize(); i++) {
+  for (int i = 0; i < p->getNFAsize(); i++) {
 //     cout << "size of (*matchInfoPtr)[" << i << "] is " 
 //          << (*matchInfoPtr)[i].size() << endl;
     TupleId id = (*matchInfoPtr)[i][0].succ;
@@ -2658,22 +2803,22 @@ void IndexMatchesLI::clearMatchInfo() {
 */
 void IndexMatchesLI::getInterval(const TupleId tId, const int pos, 
                                   SecInterval& iv) {
-  Tuple *tuple = mRel->GetTuple(tId, false);
+  Tuple *tuple = rel->GetTuple(tId, false);
   switch (mtype) {
     case MLABEL: {
-      ((MLabel*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
+      ((MLabel*)tuple->GetAttribute(attrNo))->GetInterval(pos, iv);
       break;
     }
     case MLABELS: {
-      ((MLabels*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
+      ((MLabels*)tuple->GetAttribute(attrNo))->GetInterval(pos, iv);
       break;
     }
     case MPLACE: {
-      ((MPlace*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
+      ((MPlace*)tuple->GetAttribute(attrNo))->GetInterval(pos, iv);
       break;
     }
     case MPLACES: {
-      ((MPlaces*)tuple->GetAttribute(attrNr))->GetInterval(pos, iv);
+      ((MPlaces*)tuple->GetAttribute(attrNo))->GetInterval(pos, iv);
       break;
     }
     default: {
@@ -2681,110 +2826,6 @@ void IndexMatchesLI::getInterval(const TupleId tId, const int pos,
     }
   }
   tuple->DeleteIfAllowed();
-}
-
-/*
-\subsection{Function ~simplifyNFA~}
-
-*/
-void IndexMatchesLI::simplifyNFA(vector<map<int, int> >& result) {
-  result.clear();
-  string ptext = p.GetText();
-  for (unsigned int i = 1; i < ptext.length(); i++) {
-    if ((ptext[i-1] == ']') && ((ptext[i] == '*') || (ptext[i] == '+'))) {
-      ptext[i] = ' '; // eliminate repetition of regular expressions
-    }
-  }
-  Pattern *pnew = Pattern::getPattern(ptext, false);
-  vector<map<int, int> > oldNFA;
-  pnew->getNFA(oldNFA);
-  delete pnew;
-  result.resize(oldNFA.size());
-  map<int, int>::iterator im;
-  for (int i = 0; i < (int)oldNFA.size(); i++) {
-    for (im = oldNFA[i].begin(); im != oldNFA[i].end(); im++) {
-      if (im->second != i) { // eliminate * and + loops
-        result[i][im->first] = im->second;
-      }
-    }
-  }
-}
-
-/*
-\subsection{Function ~findNFApaths~}
-
-*/
-void IndexMatchesLI::findNFApaths(const vector<map<int, int> >& nfa, 
-               const set<int>& finalStates, set<pair<set<int>, int> >& result) {
-  result.clear();
-  set<pair<set<int>, int> > newPaths;
-  set<int> elems;
-  set<pair<set<int>, int> >::iterator is;
-  map<int, int>::iterator im;
-  result.insert(make_pair(elems, 0));
-  bool proceed = true;
-  while (proceed) {
-    for (is = result.begin(); is != result.end(); is++) {
-      map<int, int> trans = nfa[is->second];
-      for (im = trans.begin(); im != trans.end(); im++) {
-        elems = is->first; // get old transition set
-        elems.insert(im->first); // add new transition
-        newPaths.insert(make_pair(elems, im->second)); // and new state
-      }
-      if (nfa[is->second].empty()) { // no transition available
-        newPaths.insert(*is); // keep path
-      }
-    }
-    result = newPaths;
-    newPaths.clear();
-    proceed = false;
-    for (is = result.begin(); is != result.end(); is++) {
-      if (finalStates.find(is->second) == finalStates.end()) { // no final state
-        proceed = true; // continue pathfinding
-      }
-    }
-  }
-}
-
-/*
-\subsection{Function ~getCrucialElems~}
-
-*/
-void IndexMatchesLI::getCrucialElems(const set<pair<set<int>, int> >& paths,
-                                      set<int>& result) {
-  set<int> elems, temp;
-  set<pair<set<int>, int> >::iterator is;
-  set<int>::iterator it;
-  is = paths.begin();
-  elems = is->first;
-  is++;
-  while (is != paths.end()) { // collect crucial elems
-//     cout << "{";
-//     for (it = is->first.begin(); it != is->first.end(); it++) {
-//       cout << *it << " ";
-//     }
-//     cout << "} {";
-//     for (it = elems.begin(); it != elems.end(); it++) {
-//       cout << *it << " ";
-//     }    
-//     cout << "}";
-    set_intersection(is->first.begin(), is->first.end(), elems.begin(), 
-                     elems.end(), std::inserter(temp, temp.begin()));
-//     cout << "  -->  {";
-//     for (it = temp.begin(); it != temp.end(); it++) {
-//       cout << *it << " ";
-//     }  
-//     cout << "}" << endl;
-    elems = temp;
-    temp.clear();
-    is++;
-  }
-//   cout << "crucial elements: {";
-  for (it = elems.begin(); it != elems.end(); it++) {
-//     cout << *it << " ";
-    result.insert(*it);
-  }
-//   cout << "}" << endl;
 }
 
 /*
@@ -2863,8 +2904,8 @@ void IndexMatchesLI::retrieveTime(vector<set<int> >& oldPart,
                               vector<set<int> >& newPart, const string& ivstr) {
   bool init = false;
   if (oldPart.empty()) {
-    oldPart.resize(mRel->GetNoTuples() + 1);
-    newPart.resize(mRel->GetNoTuples() + 1);
+    oldPart.resize(rel->GetNoTuples() + 1);
+    newPart.resize(rel->GetNoTuples() + 1);
     init = true;
   }
   R_TreeLeafEntry<1, NewPair<TupleId, int> > leaf;
@@ -2896,7 +2937,7 @@ void IndexMatchesLI::retrieveTime(vector<set<int> >& oldPart,
 
 */
 void IndexMatchesLI::removeIdFromIndexResult(const TupleId id) {
-  for (int i = 0; i < p.getSize(); i++) {
+  for (int i = 0; i < p->getSize(); i++) {
     if (indexResult[i].size() > 0) {
       if (!indexResult[i][id].units.empty() &&
           (indexResult[i][indexResult[i][id].pred].succ == id)) {
@@ -2913,7 +2954,7 @@ void IndexMatchesLI::removeIdFromIndexResult(const TupleId id) {
 */
 void IndexMatchesLI::removeIdFromMatchInfo(const TupleId id) {
   bool removed = false;
-  for (int s = 0; s < p.getNFAsize(); s++) {
+  for (int s = 0; s < p->getNFAsize(); s++) {
     if ((*newMatchInfoPtr)[s].size() > 0) {
 //         cout << "Elem " << i << ", Tuple " << id << ":" << endl;
       (*newMatchInfoPtr)[s][(*newMatchInfoPtr)[s][id].pred].succ = 
@@ -2955,7 +2996,7 @@ void IndexMatchesLI::storeIndexResult(const int e) {
     return;
   }
   PatElem elem;
-  p.getElem(e, elem);
+  p->getElem(e, elem);
   if (!elem.hasIndexableContents()) {
     return;
   }
@@ -2970,8 +3011,8 @@ void IndexMatchesLI::storeIndexResult(const int e) {
       elem.getL(lbs);
       set<string>::iterator is = lbs.begin();
       if (!lbs.empty()) {
-        part.resize(mRel->GetNoTuples() + 1);
-        part2.resize(mRel->GetNoTuples() + 1);
+        part.resize(rel->GetNoTuples() + 1);
+        part2.resize(rel->GetNoTuples() + 1);
         retrieveValue(part, part2, elem.getSetRel(), true, *is);
         is++;
       }
@@ -2984,8 +3025,8 @@ void IndexMatchesLI::storeIndexResult(const int e) {
       elem.getP(pls);
       set<pair<string, unsigned int> >::iterator ip = pls.begin();
       if (!pls.empty()) {
-        part.resize(mRel->GetNoTuples() + 1);
-        part2.resize(mRel->GetNoTuples() + 1);
+        part.resize(rel->GetNoTuples() + 1);
+        part2.resize(rel->GetNoTuples() + 1);
         retrieveValue(part, part2, elem.getSetRel(), true, 
                       ip->first, ip->second);
         ip++;
@@ -3008,7 +3049,7 @@ void IndexMatchesLI::storeIndexResult(const int e) {
       is++;
     }
   }
-  indexResult[e].resize(mRel->GetNoTuples() + 1);
+  indexResult[e].resize(rel->GetNoTuples() + 1);
   unsigned int pred = 0;
   IndexRetrieval ir(pred);
   indexResult[e][0] = ir; // first entry points to first active entry
@@ -3043,23 +3084,23 @@ void IndexMatchesLI::storeIndexResult(const int e) {
 */
 void IndexMatchesLI::initMatchInfo(const set<int>& cruElems) {
   matchInfo.clear();
-  matchInfo.resize(p.getNFAsize());
+  matchInfo.resize(p->getNFAsize());
   matchInfoPtr = &matchInfo;
   newMatchInfo.clear();
-  newMatchInfo.resize(p.getNFAsize());
+  newMatchInfo.resize(p->getNFAsize());
   newMatchInfoPtr = &newMatchInfo;
-  trajSize.resize(mRel->GetNoTuples() + 1, 0);
+  trajSize.resize(rel->GetNoTuples() + 1, 0);
   vector<bool> trajInfo, newTrajInfo;
-  trajInfo.assign(mRel->GetNoTuples() + 1, true);
+  trajInfo.assign(rel->GetNoTuples() + 1, true);
   PatElem elem;
   for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
-    p.getElem(*it, elem);
+    p->getElem(*it, elem);
     if (elem.hasIndexableContents()) {
       if (indexMismatch.find(*it) != indexMismatch.end()) {
         cout << "index mismatch at crucial element " << *it << endl;
         return;
       }
-      newTrajInfo.assign(mRel->GetNoTuples() + 1, false);
+      newTrajInfo.assign(rel->GetNoTuples() + 1, false);
       TupleId id = indexResult[*it][0].succ; // first active tuple id
       while (id > 0) {
         if (trajInfo[id]) {
@@ -3073,9 +3114,9 @@ void IndexMatchesLI::initMatchInfo(const set<int>& cruElems) {
       trajInfo.swap(newTrajInfo);
     }
   }
-  for (int i = 0; i < p.getNFAsize(); i++) {
-    (*matchInfoPtr)[i].resize(mRel->GetNoTuples() + 1);
-    (*newMatchInfoPtr)[i].resize(mRel->GetNoTuples() + 1);
+  for (int i = 0; i < p->getNFAsize(); i++) {
+    (*matchInfoPtr)[i].resize(rel->GetNoTuples() + 1);
+    (*newMatchInfoPtr)[i].resize(rel->GetNoTuples() + 1);
   }
   unsigned int pred = 0;
   for (unsigned int id = 1; id < trajInfo.size(); id++) {
@@ -3084,12 +3125,12 @@ void IndexMatchesLI::initMatchInfo(const set<int>& cruElems) {
       IndexMatchInfo imi(false);
       (*matchInfoPtr)[0][id].imis.push_back(imi);
       deactivated[id] = false;
-      for (int s = 0; s < p.getNFAsize(); s++) {
+      for (int s = 0; s < p->getNFAsize(); s++) {
         (*matchInfoPtr)[s][pred].succ = id;
         (*matchInfoPtr)[s][id].pred = pred;
         (*newMatchInfoPtr)[s][pred].succ = id;
         (*newMatchInfoPtr)[s][id].pred = pred;
-        if ((int)indexResult[s].size() == mRel->GetNoTuples() + 1) {
+        if ((int)indexResult[s].size() == rel->GetNoTuples() + 1) {
           for (unsigned int i = pred + 1; i < id; i++) { // deactivate indexRes.
             indexResult[s][i].pred = 0;
             indexResult[s][i].succ = 0;
@@ -3103,8 +3144,8 @@ void IndexMatchesLI::initMatchInfo(const set<int>& cruElems) {
   }
   (*matchInfoPtr)[0][pred].succ = 0;
   (*newMatchInfoPtr)[0][pred].succ = 0;
-  for (int s = 0; s < p.getSize(); s++) {
-    if ((int)indexResult[s].size() == mRel->GetNoTuples() + 1) {
+  for (int s = 0; s < p->getSize(); s++) {
+    if ((int)indexResult[s].size() == rel->GetNoTuples() + 1) {
       indexResult[s][pred].succ = 0;
     }
   }
@@ -3119,20 +3160,19 @@ according to the index information.
 */
 void IndexMatchesLI::initialize() {
   vector<map<int, int> > simpleNFA;
-  simplifyNFA(simpleNFA);
-  set<int> finalStates = p.getFinalStates();
+  p->simplifyNFA(simpleNFA);
   set<pair<set<int>, int> > paths;
-  findNFApaths(simpleNFA, finalStates, paths);
+  p->findNFApaths(simpleNFA, paths);
   set<int> cruElems;
-  getCrucialElems(paths, cruElems);
-  indexResult.resize(p.getSize());
-  deactivated.resize(mRel->GetNoTuples() + 1, false);
+  p->getCrucialElems(paths, cruElems);
+  indexResult.resize(p->getSize());
+  deactivated.resize(rel->GetNoTuples() + 1, false);
   for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
     storeIndexResult(*it);
   }
-  deactivated.resize(mRel->GetNoTuples() + 1, true);
-  p.initEasyCondOpTrees();
-  p.initCondOpTrees();
+  deactivated.resize(rel->GetNoTuples() + 1, true);
+  p->initEasyCondOpTrees();
+  p->initCondOpTrees();
   matchInfoPtr = &matchInfo;
   newMatchInfoPtr = &newMatchInfo;
   activeTuples = 0;
@@ -3144,23 +3184,23 @@ void IndexMatchesLI::initialize() {
 
 */
 int IndexMatchesLI::getMsize(TupleId tId) {
-  Tuple* tuple = mRel->GetTuple(tId, false);
+  Tuple* tuple = rel->GetTuple(tId, false);
   int result = -1;
   switch (mtype) {
     case MLABEL: {
-      result = ((MLabel*)tuple->GetAttribute(attrNr))->GetNoComponents();
+      result = ((MLabel*)tuple->GetAttribute(attrNo))->GetNoComponents();
       break;
     }
     case MLABELS: {
-      result = ((MLabels*)tuple->GetAttribute(attrNr))->GetNoComponents();
+      result = ((MLabels*)tuple->GetAttribute(attrNo))->GetNoComponents();
       break;
     }
     case MPLACE: {
-      result = ((MPlace*)tuple->GetAttribute(attrNr))->GetNoComponents();
+      result = ((MPlace*)tuple->GetAttribute(attrNo))->GetNoComponents();
       break;
     }
     default: { // places
-      result = ((MPlaces*)tuple->GetAttribute(attrNr))->GetNoComponents();
+      result = ((MPlaces*)tuple->GetAttribute(attrNo))->GetNoComponents();
       break;
     }
   }
@@ -3174,7 +3214,7 @@ int IndexMatchesLI::getMsize(TupleId tId) {
 */
 bool IndexMatchesLI::hasIdIMIs(const TupleId id, const int state /* = -1 */) {
   if (state == -1) { // check all states
-    for (int s = 0; s < p.getNFAsize(); s++) {
+    for (int s = 0; s < p->getNFAsize(); s++) {
       if (!(*matchInfoPtr)[s][id].imis.empty() || 
           !(*newMatchInfoPtr)[s][id].imis.empty()) {
         return true;
@@ -3207,10 +3247,10 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
         bool match = false;
         IndexMatchInfo newIMI(true, imiPtr->next + 1, imiPtr->binding, 
                               imiPtr->prevElem);
-        if (p.hasConds()) { // extend binding for a complete match
+        if (p->hasConds()) { // extend binding for a complete match
           extendBinding(newIMI, trans.first);
-          if (p.isFinalState(trans.second) && imiPtr->finished(trajSize[id])) {
-            string var = p.getVarFromElem(p.getElemFromAtom(trans.first));
+          if (p->isFinalState(trans.second) && imiPtr->finished(trajSize[id])) {
+            string var = p->getVarFromElem(p->getElemFromAtom(trans.first));
             int oldEnd = newIMI.binding[var].second;
             newIMI.binding[var].second = trajSize[id] - 1;
             match = checkConditions(id, newIMI);
@@ -3222,7 +3262,7 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
         else { // no conditions
 //          cout << "   " << p.isFinalState(trans.second) << " *** "
 //               << newIMI.finished(trajSize[id]) << endl;
-          match = p.isFinalState(trans.second) && newIMI.finished(trajSize[id]);
+          match = p->isFinalState(trans.second) &&newIMI.finished(trajSize[id]);
         }
         if (match) {
           matches.push_back(id); // complete match
@@ -3259,14 +3299,14 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
 
 */
 void IndexMatchesLI::extendBinding(IndexMatchInfo& imi, const int e) {
-  if (!p.hasConds()) {
+  if (!p->hasConds()) {
     return;
   }
   PatElem elem, prevElem;
   string var, prevVar;
-  p.getElem(e, elem);
+  p->getElem(e, elem);
   if (imi.prevElem > -1) {
-    p.getElem(imi.prevElem, prevElem);
+    p->getElem(imi.prevElem, prevElem);
     prevElem.getV(prevVar);
   }
   elem.getV(var);
@@ -3358,29 +3398,29 @@ bool IndexMatchesLI::valuesMatch(const int e, const TupleId id,
   if (imi.next >= trajSize[id]) {
     return false;
   }
-  Tuple *tuple = mRel->GetTuple(id, false);
+  Tuple *tuple = rel->GetTuple(id, false);
   bool result = false;
   switch (mtype) {
     case MLABEL: {
-      MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNr));
+      MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNo));
       Match<MLabel> match(0, ml);
       result = imiMatch(match, e, id, imi, unit, newState);
       break;
     }
     case MLABELS: {
-      MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNr));
+      MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNo));
       Match<MLabels> match(0, mls);
       result = imiMatch(match, e, id, imi, unit, newState);
       break;
     }
     case MPLACE: {
-      MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNr));
+      MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNo));
       Match<MPlace> match(0, mp);
       result = imiMatch(match, e, id, imi, unit, newState);
       break;
     }
     default: { // PLACES
-      MPlaces *mps = (MPlaces*)(tuple->GetAttribute(attrNr));
+      MPlaces *mps = (MPlaces*)(tuple->GetAttribute(attrNo));
       Match<MPlaces> match(0, mps);
       result = imiMatch(match, e, id, imi, unit, newState);
       break;
@@ -3519,37 +3559,37 @@ bool IndexMatchesLI::timesMatch(const TupleId id, const unsigned int unit,
 
 */
 bool IndexMatchesLI::checkConditions(const TupleId id, IndexMatchInfo& imi) {
-  if (!p.hasConds()) {
+  if (!p->hasConds()) {
     return true;
   }
-  Tuple *tuple = mRel->GetTuple(id, false);
+  Tuple *tuple = rel->GetTuple(id, false);
 //   cout << "checkConditions: size = " << getMsize(id) 
 //        << "; binding(lastVar) = (" << imi.binding[imi.prevVar].first << ", " 
 //        << imi.binding[imi.prevVar].second << ")" << endl;
   bool result = false;
   switch (mtype) {
     case MLABEL: {
-      MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNr));
-      Match<MLabel> match(&p, ml);
-      result = match.conditionsMatch(*(p.getConds()), imi.binding);
+      MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNo));
+      Match<MLabel> match(p, ml);
+      result = match.conditionsMatch(*(p->getConds()), imi.binding);
       break;
     }
     case MLABELS: {
-      MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNr));
-      Match<MLabels> match(&p, mls);
-      result = match.conditionsMatch(*(p.getConds()), imi.binding);
+      MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNo));
+      Match<MLabels> match(p, mls);
+      result = match.conditionsMatch(*(p->getConds()), imi.binding);
       break;
     }
     case MPLACE: {
-      MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNr));
-      Match<MPlace> match(&p, mp);
-      result = match.conditionsMatch(*(p.getConds()), imi.binding);
+      MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNo));
+      Match<MPlace> match(p, mp);
+      result = match.conditionsMatch(*(p->getConds()), imi.binding);
       break;
     }
     default: { // PLACES
-      MPlaces *mps = (MPlaces*)(tuple->GetAttribute(attrNr));
-      Match<MPlaces> match(&p, mps);
-      result = match.conditionsMatch(*(p.getConds()), imi.binding);
+      MPlaces *mps = (MPlaces*)(tuple->GetAttribute(attrNo));
+      Match<MPlaces> match(p, mps);
+      result = match.conditionsMatch(*(p->getConds()), imi.binding);
       break;
     }
   }
