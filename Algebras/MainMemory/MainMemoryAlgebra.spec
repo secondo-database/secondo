@@ -29,4 +29,4 @@ operator mcreateRtree alias MCREATERTREE pattern op(_,_)
 operator memgetcatalog alias MEMGETCATALOG pattern op()
 operator memsize alias MEMSIZE pattern op()
 operator memclear alias MEMCLEAR pattern op()
-
+operator minsert alias MINSERT pattern op(_,_)

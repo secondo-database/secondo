@@ -86,4 +86,14 @@ Signature : -> bool
 Example   : query memclear ()
 Result    : TRUE
 
+Operator  : memload
+Number    : 15
+Signature : string -> bool
+Example   : query memload ("ten")
+Result    : TRUE
 
+Operator  : minsert
+Number    : 16
+Signature : stream(tuple) x string -> stream(tuple)
+Example   : query minsert (ten feed head [5], "ten") count
+Result    : 15

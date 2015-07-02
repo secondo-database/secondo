@@ -236,7 +236,10 @@ void MemoryRelObject::addTuple(Tuple* tup){
     if ((size_t)tupleSize<availableMemSize){
                 mmrel->push_back(tup);
                 memSize += tupleSize;
-                //catalog.usedMemSize += tupleSize;
+
+            //Die usedMemSize des Katalogs wird noch nicht angepasst!!
+            // soll das immer neu berechnet werden??
+             //   catalog->usedMemSize += tupleSize;
 
            }
     else{

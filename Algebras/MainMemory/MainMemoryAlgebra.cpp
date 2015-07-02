@@ -1667,10 +1667,6 @@ ListExpr minsertTypeMap(ListExpr args)
     if(nl->ListLength(args)!=2){
         return listutils::typeError("two arguments expected");
     }
-    cout<<"ARGS:"<<nl->ToString(args)<<endl;
-    cout<<"ARGSFirst:"<<nl->ToString(nl->First(args))<<endl;
-    cout<<"ARGSSecond:"<<nl->ToString(nl->Second(args))<<endl;
-    cout<<"ARGSRest:"<<nl->ToString(nl->Rest(args))<<endl;
 
     ListExpr argFir = nl->First(args); //stream + query
     ListExpr stream = nl->First(argFir);
@@ -1710,11 +1706,32 @@ ListExpr minsertTypeMap(ListExpr args)
       return listutils::typeError("the stream tuple description "
                 "does not match the main memory relation ");
     }
-cout<<"Scheint allses zu staimmem"<<endl;
-cout<<"oteList"<<nl->ToString(oTeList)<<endl;
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),oTeList);
 
 }
+
+
+class minsertInfo{
+  public:
+     minsertInfo(vector<Tuple*>* _relation):relation(_relation){
+          it = relation->begin();
+     }
+
+    ~minsertInfo(){}
+
+     Tuple* next(){
+       if(it==relation->end()) return 0;
+       Tuple* res = *it;
+       it++;
+       res->IncReference();
+       return res;
+     }
+
+  private:
+     vector<Tuple*>* relation;
+     vector<Tuple*>::iterator it;
+
+};
 
 
 /*
@@ -1725,15 +1742,51 @@ cout<<"oteList"<<nl->ToString(oTeList)<<endl;
 
 int minsertValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
-cout<<"anfang minsert ValMap"<<endl;
-    bool res = false;
 
-    result  = qp->ResultStorage(s);
-    CcBool* b = static_cast<CcBool*>(result.addr);
-    b->Set(true, res);
+    minsertInfo* li = (minsertInfo*) local.addr;
 
+    switch (message)
+    {
+        case OPEN: {
+            if(li){
+            delete li;
+            local.addr=0;
+            }
+            CcString* oN = (CcString*) args[1].addr;
+            if(!oN->IsDefined()){
+                return 0;
+            }
+            string objectName = oN->GetValue();
+            vector<Tuple*>* relation;
+            MemoryRelObject* mro =
+                    (MemoryRelObject*)catalog->getMMObject(objectName);
 
-    return 0;
+            Stream<Tuple> stream(args[0]);
+            Tuple* tup;
+            stream.open();
+            while( (tup = stream.request()) != 0){
+                mro->addTuple(tup);
+            }
+        stream.close();
+        relation = mro->getmmrel();
+        local.addr= new minsertInfo(relation);
+        return 0;
+        }
+
+        case REQUEST:
+            result.addr=(li?li->next():0);
+            return result.addr?YIELD:CANCEL;
+
+        case CLOSE:
+            if(li)
+            {
+            delete li;
+            local.addr = 0;
+            }
+            return 0;
+   }
+
+   return 0;
 }
 
 /*
@@ -1747,7 +1800,7 @@ OperatorSpec minsertSpec(
     "minsert(_,_)",
     "inserts the tuple of a stream into a "
     "existing main memory relation",
-    "query Grossstaedte mfeed Kleinstaedte1 minsert count"
+    "query minsert (ten feed head[5],'ten') count"
 );
 
 /*
@@ -1803,8 +1856,8 @@ class MainMemoryAlgebra : public Algebra
         AddOperator (&mcreateRtreeOp);
         AddOperator (&memsizeOp);
         AddOperator (&memclearOp);
-//        AddOperator (&minsertOp);
-//        minsertOp.SetUsesArgsInTypeMapping();
+        AddOperator (&minsertOp);
+        minsertOp.SetUsesArgsInTypeMapping();
 
         }
         ~MainMemoryAlgebra() {
