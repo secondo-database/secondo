@@ -625,7 +625,12 @@ and a new transaction starts.
 
 
 
+  string getLabel(Supplier s);
 
+/*
+Returns a short name for a given supplier.
+
+*/
 
 
 
