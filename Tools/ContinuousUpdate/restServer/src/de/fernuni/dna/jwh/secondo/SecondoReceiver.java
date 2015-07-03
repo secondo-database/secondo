@@ -3,6 +3,8 @@ package de.fernuni.dna.jwh.secondo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import de.fernuni.dna.jwh.Configuration;
+
 /**
  * Thread implementation which is used to run the Secondo-Command which is used
  * to receive the Tuples from this service
@@ -14,9 +16,7 @@ class SecondoReceiver extends Thread {
 	private static final Logger log4j = LogManager
 			.getLogger(SecondoReceiver.class.getName());
 
-	private int sendPort;
-	private String sendHost;
-	private String sendRelation;
+	private String handler;
 	private SecondoConnection secondoConnection;
 	private boolean isActive;
 	private boolean isFailed;
@@ -28,12 +28,9 @@ class SecondoReceiver extends Thread {
 	 * @param relation
 	 * @param secondoConn
 	 */
-	public SecondoReceiver(String host, int port, String relation,
-			SecondoConnection secondoConn) {
+	public SecondoReceiver(String handler, SecondoConnection secondoConn) {
 		super();
-		sendHost = host;
-		sendPort = port;
-		sendRelation = relation;
+		this.handler = handler;
 		secondoConnection = secondoConn;
 		isActive = false;
 		isFailed = false;
@@ -56,9 +53,20 @@ class SecondoReceiver extends Thread {
 
 		isActive = true;
 
+		String ipointConversion = Configuration.values.handlers.get(handler).useipointconversion ? "ipointstoupoint[\""
+				+ Configuration.values.handlers.get(handler).ipointconversionattribute
+				+ "\"]"
+				: "";
+
 		try {
-			String stmt = "query receivenlstream(\"" + sendHost + "\","
-					+ sendPort + ") owntransactioninsert[\"" + sendRelation
+			String stmt = "query receivenlstream(\""
+					+ Configuration.values.hostname
+					+ "\","
+					+ Configuration.values.handlers.get(handler).nestedListPort
+					+ ") "
+					+ ipointConversion
+					+ " owntransactioninsert[\""
+					+ Configuration.values.handlers.get(handler).secondoRelation
 					+ "\"] providemessages[9000] count";
 			log4j.info("Statement:" + stmt);
 

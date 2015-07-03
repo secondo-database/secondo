@@ -90,10 +90,7 @@ public class SecondoConnection {
 		// Create the Receiver-Thread according to the configuratio
 		// of the handler and start it
 		if (receiver == null) {
-			receiver = new SecondoReceiver(Configuration.values.hostname,
-					Configuration.values.handlers.get(handler).nestedListPort,
-					Configuration.values.handlers.get(handler).secondoRelation,
-					this);
+			receiver = new SecondoReceiver(handler,	this);
 			receiver.start();
 		}
 

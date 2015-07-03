@@ -18,8 +18,9 @@ import de.fernuni.dna.jwh.Configuration.Handler;
 import de.fernuni.dna.jwh.secondo.SecondoManager;
 
 /**
- * Main Class - Simple Rest server which streams the received JSON-Objects
- * to the Secondo-Server
+ * Main Class - Simple Rest server which streams the received JSON-Objects to
+ * the Secondo-Server
+ * 
  * @author Jerome White
  *
  */
@@ -27,16 +28,20 @@ public class SecondoRestAccess {
 
 	private static final Logger log4j = LogManager
 			.getLogger(SecondoRestAccess.class.getName());
-	
+
 	private static Component component;
 
 	/**
-	 * main - Adds the handlers to the internal Restlet-Server and starts the HTTP-Server
-	 * @param args First argument can be the name of the configuration file
+	 * main - Adds the handlers to the internal Restlet-Server and starts the
+	 * HTTP-Server
+	 * 
+	 * @param args
+	 *            First argument can be the name of the configuration file
 	 */
 	public static void main(final String[] args) {
-		System.setProperty("org.restlet.engine.loggerFacadeClass", "org.restlet.ext.slf4j.Slf4jLoggerFacade");
-		
+		System.setProperty("org.restlet.engine.loggerFacadeClass",
+				"org.restlet.ext.slf4j.Slf4jLoggerFacade");
+
 		log4j.debug("Loading Configuration");
 		try {
 			if (args.length > 1) {
@@ -54,10 +59,10 @@ public class SecondoRestAccess {
 
 		log4j.info("Add a new HTTP server listening on port "
 				+ Configuration.values.httpPort);
-		
-		Server server = component.getServers()
-				.add(Protocol.HTTP, Configuration.values.httpPort);
-		
+
+		Server server = component.getServers().add(Protocol.HTTP,
+				Configuration.values.httpPort);
+
 		server.getContext().getParameters().add("minThreads", "4");
 
 		Router router = new Router(component.getContext().createChildContext());
@@ -80,25 +85,24 @@ public class SecondoRestAccess {
 			log4j.fatal("Unable to start HTTP-Services, exiting");
 			System.exit(3);
 		}
-		
-		//Shutdown-Hook to handle SIGTERM
-		Runtime.getRuntime().addShutdownHook(new Thread()
-        {
-            @Override
-            public void run()
-            {
-                try {
+
+		// Shutdown-Hook to handle SIGTERM
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				try {
 					SecondoRestAccess.shutdown();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-            }
-        });
+			}
+		});
 	}
 
 	/**
-	 * Shuts down the application
-	 * HTTP-Server stops after all SecondoManagers have been destroyed 
+	 * Shuts down the application HTTP-Server stops after all SecondoManagers
+	 * have been destroyed
+	 * 
 	 * @throws Exception
 	 */
 	public static void shutdown() throws Exception {
@@ -114,8 +118,11 @@ public class SecondoRestAccess {
 
 	/**
 	 * Dynamically sets up the configured handlers
-	 * @param router Restlet-Router to which the handlers will be attached
-	 * @throws ClassNotFoundException Will be thrown when the configured class cannot be loaded
+	 * 
+	 * @param router
+	 *            Restlet-Router to which the handlers will be attached
+	 * @throws ClassNotFoundException
+	 *             Will be thrown when the configured class cannot be loaded
 	 */
 	@SuppressWarnings("unchecked")
 	private static void setupHandlers(Router router)
@@ -129,9 +136,9 @@ public class SecondoRestAccess {
 			log4j.info("Adding Router /" + pair.getKey() + " handeld by "
 					+ pair.getValue().handlerClass);
 			try {
-				router.attach("/" + pair.getKey(),
-						(Class<? extends ServerResource>) Class.forName(pair
-								.getValue().handlerClass));
+				Class<? extends ServerResource> handler = (Class<? extends ServerResource>) Class
+						.forName(pair.getValue().handlerClass);
+				router.attach("/" + pair.getKey(), handler);
 			} catch (ClassNotFoundException e) {
 				log4j.fatal(e);
 				log4j.fatal("Unable to find class " + pair.getValue());
