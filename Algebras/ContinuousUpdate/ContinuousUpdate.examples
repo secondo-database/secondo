@@ -6,7 +6,7 @@ Number   : 1
 Signature: stream -> (stream (tuple x))
 Example  : query Orte feed sendmessages count
 Result   : 506
-Remark   : Messages will be sent to the client
+Remark   : Messages, containing the tuple, will be sent to the client
 
 Operator : providemessages
 Number   : 1
@@ -27,4 +27,10 @@ Number   : 1
 Signature: (stream (tuple x)) x string -> (stream (tuple x))
 Example  : query Orte feed owntransactioninsert["Orte"] count
 Result   : 506
-Remark   : Cannot be tested in single user pattern*
+Remark   : Might cause issues due to synchronization
+
+Operator : ipointstoupoint
+Number   : 1
+Signature: (stream (tuple x)) -> (stream (tuple x))
+Example  : query Orte feed ipointstoupoint["Kennzeichen"] count
+Result   : 506

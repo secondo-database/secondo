@@ -43,19 +43,285 @@ extern QueryProcessor *qp;
 using namespace std;
 
 /*
-Mutex used for locking of nl->WriteStringTo() against nl->ReadFromString()
-which internally use the same memory structures.
-Not using the mutex "could" lead to a crash when
-using providemessages and receivenlstream in the same query.
+ Mutex used for locking of nl->WriteStringTo() against nl->ReadFromString()
+ which internally use the same memory structures.
+ Not using the mutex "could" lead to a crash when
+ using providemessages and receivenlstream in the same query.
 
 */
 static std::mutex g_nl_lock;
 
+/*
+ ----
+ 1 Operator ipointstoupoint
+ ----
+
+*/
+class ipointstoupointLocalInfo {
+private:
+    Word stream;
+    ListExpr tupleType;
+    int mergeAttributeIndex;
+    int ipointIndex;
+    string mergeAttribute;
+    queue<Tuple*> mergedQueue;
+    vector<Tuple*> mergeCandidates;
+
+    /**
+     * Merges the two tuples while constructing a new upoint from two ipoints
+     * and using the attributes of the new tuple
+
+    */
+    Tuple* mergeTuples(Tuple* oldT, Tuple* newT) {
+        Tuple* t = new Tuple(tupleType);
+
+        for (int i = 0; i < t->GetNoAttributes(); i++) {
+            if (i == ipointIndex) {
+                double oldInstant =
+                    ((IPoint*) oldT->GetAttribute(i))->instant.ToDouble();
+                double newInstant =
+                    ((IPoint*) newT->GetAttribute(i))->instant.ToDouble();
+                Point oldPosition =
+                    ((IPoint*) oldT->GetAttribute(i)->Clone())->value;
+                Point newPosition =
+                    ((IPoint*) newT->GetAttribute(i)->Clone())->value;
+                UPoint * upoint = new UPoint(
+                    Interval<Instant>(oldInstant, newInstant,
+                    true, true), oldPosition, newPosition);
+                t->PutAttribute(i, upoint);
+
+            } else {
+                t->PutAttribute(i, newT->GetAttribute(i)->Clone());
+            }
+        }
+
+        return t;
+    }
+
+    /**
+     * Searches for the tuple to merge it
+
+    */
+    void proposeMerge(Tuple* tuple) {
+
+        for (vector<Tuple*>::iterator it = mergeCandidates.begin();
+            it != mergeCandidates.end(); ++it) {
+
+            if ((*it)->GetAttribute(mergeAttributeIndex)->Compare(
+                tuple->GetAttribute(mergeAttributeIndex)) == 0) {
+                mergedQueue.push(mergeTuples(*it, tuple));
+                (*it)->DeleteIfAllowed();
+                it = mergeCandidates.erase(it);
+                break;
+            }
+        }
+
+        tuple->IncReference();
+        mergeCandidates.push_back(tuple);
+
+    }
+
+    /**
+     * Returns true if a newly constructed tuple is available
+
+    */
+    bool tupleAvailable() {
+        return mergedQueue.size() > 0 ? true : false;
+    }
+
+    /**
+     * Get the next tuple from the Queue
+
+    */
+    Tuple* getMergedTuple() {
+
+        Tuple* t = mergedQueue.front();
+        mergedQueue.pop();
+        return t;
+    }
+
+public:
+
+    ipointstoupointLocalInfo(Word& pstream, string& pmergeAttribute,
+        int& pipointIndex, ListExpr & pstreamType) {
+        qp->Open(pstream.addr);
+        stream = pstream;
+        mergeAttribute = pmergeAttribute;
+        tupleType = nl->Second(pstreamType);
+        ipointIndex = pipointIndex;
+
+        ListExpr search = AntiNumericType(tupleType);
+
+        //Determine index of the merge attribute
+        for (int i = 1; i <= nl->ListLength(nl->Second(search));
+            i++) {
+
+            if (nl->ToString(
+                nl->First(nl->Nth(i, nl->Second(search)))).compare(
+                mergeAttribute) == 0) {
+                mergeAttributeIndex = i - 1;
+                break;
+            }
+        }
+    }
+
+    ~ipointstoupointLocalInfo() {
+    }
+
+    /**
+     * Try to get a newly constructed tuple
+     * otherwise wait until a new tuple is available
+
+    */
+    Word next() {
+        Word tupleWord;
+        Tuple * tuple;
+
+        while (!tupleAvailable()) {
+            qp->Request(stream.addr, tupleWord);
+            if (qp->Received(stream.addr)) {
+                tuple = (Tuple*) tupleWord.addr;
+                proposeMerge(tuple);
+            } else {
+                return SetWord((void*) 0);
+            }
+        }
+
+        return SetWord((void*) getMergedTuple());
+
+    }
+};
+
+ListExpr ipointstoupointTM(ListExpr inargs) {
+
+    NList args(inargs);
+
+    if (!args.hasLength(2))
+        return args.typeError("Expected 1 argument");
+
+    NList stream_desc = args.first();
+
+    if (!stream_desc.hasLength(2)
+        || !stream_desc.first().first().isSymbol(sym.STREAM()))
+        return args.typeError("Input is no stream");
+
+    NList tupleDesc = stream_desc.first().second();
+
+    if (!nl->IsEqual(tupleDesc.first().listExpr(), Tuple::BasicType())
+        || tupleDesc.length() != 2)
+        return args.typeError("No Tuple Description found in stream");
+
+    NList mergeAttribute = args.second();
+
+    if (!CcString::checkType(mergeAttribute.first().listExpr())) {
+        return listutils::typeError(
+            "second argument must be a string");
+    }
+
+    string mergeAttributeName = mergeAttribute.second().str();
+
+    NList attributeList = tupleDesc.second();
+
+    //Check if ther is an attribute with the same name as specified by
+    //the parameter
+    bool found = false;
+    while (!attributeList.isEmpty()) {
+        if (mergeAttributeName.compare(
+            attributeList.first().first().str()) == 0) {
+            found = true;
+            break;
+        }
+        attributeList.rest();
+    }
+
+    if (!found)
+        return listutils::typeError(
+            "second argument must be the name of an attribute");
+
+    //Replace the ipoint with upoint
+    found = false;
+    int ipointIndex = 0;
+    for (int i = 1;
+        i <= (int) stream_desc.first().second().second().length();
+        i++) {
+
+        if (stream_desc.first().second().second().elem(i).second()
+            .str().compare("ipoint") == 0) {
+            nl->Replace(
+                stream_desc.first().second().second().elem(i)
+                    .second().listExpr(),
+                nl->StringAtom("upoint", false));
+            ipointIndex = i - 1;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+        return listutils::typeError(
+            "One of the attributes of the input stream must be an ipoint");
+
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+        nl->TwoElemList(nl->StringAtom(mergeAttribute.first().str()),
+            nl->IntAtom(ipointIndex)), stream_desc.first().listExpr());
+}
+
+int ipointstoupointVM(Word* args, Word& result, int message,
+    Word& local, Supplier s) {
+
+    ipointstoupointLocalInfo* li =
+        (ipointstoupointLocalInfo*) local.addr;
+
+    switch (message) {
+    case OPEN: {
+        ListExpr tupleType;
+
+        if (li) {
+            delete li;
+        }
+
+        // Get the expected tupleType
+        tupleType = GetTupleResultType(s);
+
+        string mergeAttribute =
+            (string) (char*) ((CcString*) args[1].addr)->GetStringval();
+
+        int ipointAttributeIndex =
+            ((CcInt*) args[3].addr)->GetIntval();
+
+        li = new ipointstoupointLocalInfo(args[0], mergeAttribute,
+            ipointAttributeIndex, tupleType);
+
+        local.addr = li;
+        return 0;
+    }
+    case REQUEST: {
+        result.addr = li ? li->next().addr : 0;
+        return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+        if (li) {
+            delete li;
+            local.addr = 0;
+        }
+        return 0;
+    }
+    default:
+        assert(false);
+        return 0;
+    }
+}
+
+OperatorSpec ipointstoupointSpec("stream -> stream",
+    "ipointstoupoint",
+    "Merges two tuples while converting one attribute"
+    " of the type ipoint to a upoint",
+    "query Orte feed ipointstoupoint count");
 
 /*
-----
-1 Operator sendmessages
-----
+ ----
+ 1 Operator sendmessages
+ ----
 
 */
 class sendmessagesLocalInfo {
@@ -63,7 +329,7 @@ private:
     Word stream;
     ListExpr tupleType;
     MessageCenter* msg;
-public:
+    public:
 
     sendmessagesLocalInfo(Word& pstream, ListExpr & pstreamType) {
         qp->Open(pstream.addr);
@@ -79,7 +345,7 @@ public:
      * Get the next tuple from the QP
      * and send it to the client by using the MessageCenter
 
-     */
+    */
     Word next() {
         Word tupleWord;
 
@@ -111,20 +377,20 @@ ListExpr sendmessagesTM(ListExpr inargs) {
     NList stream_desc = args.first();
 
     if (!stream_desc.hasLength(2)
-            || !stream_desc.first().first().isSymbol(sym.STREAM()))
+        || !stream_desc.first().first().isSymbol(sym.STREAM()))
         return args.typeError("Input is no stream");
 
     ListExpr tuple_desc = stream_desc.first().second().listExpr();
 
     if (!nl->IsEqual(nl->First(tuple_desc), Tuple::BasicType())
-            || nl->ListLength(tuple_desc) != 2)
+        || nl->ListLength(tuple_desc) != 2)
         return args.typeError("No Tuple Description found in stream");
 
     return stream_desc.first().listExpr();
 }
 
 int sendmessagesVM(Word* args, Word& result, int message, Word& local,
-        Supplier s) {
+    Supplier s) {
 
     sendmessagesLocalInfo* li = (sendmessagesLocalInfo*) local.addr;
 
@@ -162,13 +428,13 @@ int sendmessagesVM(Word* args, Word& result, int message, Word& local,
 }
 
 OperatorSpec sendmessagesSpec("stream -> stream", "sendmessages",
-        "Send the tuples to the client using the messagecenter",
-        "query Orte feed sendmessages count");
+    "Send the tuples to the client using the messagecenter",
+    "query Orte feed sendmessages count");
 
 /*
-----
-1 Operator providemessages
-----
+ ----
+ 1 Operator providemessages
+ ----
 
 */
 ListExpr providemessagesTM(ListExpr inargs) {
@@ -182,13 +448,13 @@ ListExpr providemessagesTM(ListExpr inargs) {
     NList port = args.second();
 
     if (!stream_desc.hasLength(2)
-            || !stream_desc.first().first().isSymbol(sym.STREAM()))
+        || !stream_desc.first().first().isSymbol(sym.STREAM()))
         return args.typeError("Input is no stream");
 
     ListExpr tuple_desc = stream_desc.first().second().listExpr();
 
     if (!nl->IsEqual(nl->First(tuple_desc), Tuple::BasicType())
-            || nl->ListLength(tuple_desc) != 2)
+        || nl->ListLength(tuple_desc) != 2)
         return args.typeError("No Tuple Description found in stream");
 
     if (!CcInt::checkType(port.first().listExpr())) {
@@ -200,7 +466,7 @@ ListExpr providemessagesTM(ListExpr inargs) {
 }
 
 /**
-Handels the Client-Connection after it was established with the Server
+ Handels the Client-Connection after it was established with the Server
 
 */
 class providemessageHandler {
@@ -214,7 +480,7 @@ private:
     /*
      Main thread method
 
-     */
+    */
     void run() {
         Tuple * tuple;
         keepRunning = true;
@@ -224,8 +490,7 @@ private:
         // Create the iostream and prepare it for exception usage
         iostream & stream = client->GetSocketStream();
         stream.exceptions(
-                ifstream::failbit | ifstream::badbit
-                | ifstream::eofbit);
+            ifstream::failbit | ifstream::badbit | ifstream::eofbit);
 
         while (keepRunning) {
 
@@ -236,8 +501,7 @@ private:
             } else {
                 // No tuple could be received,
                 //sleep for a short while
-                std::this_thread::sleep_for(
-                std::chrono::milliseconds(
+                std::this_thread::sleep_for(std::chrono::milliseconds(
                 PROVIDEMESSAGES_HANDLER_SLEEP_MS));
             }
 
@@ -249,7 +513,7 @@ private:
      and sends it over the socket
      A lock on g_nl_lock secures the interaction with nl.
 
-     */
+    */
     void sendTuple(Tuple* tuple, iostream & stream) {
         try {
             //The following Block ist used for the lock_guard
@@ -260,9 +524,8 @@ private:
                 //Cannot write directly to the
                 //stream because of error handling...
                 nl->WriteToString(s, l);
-                stream << s;
+                stream << s << endl;
             }
-            stream << endl;
         } catch (ios_base::failure & e) {
             keepRunning = false;
         }
@@ -273,21 +536,19 @@ private:
     /**
      * Initalizes the client connection according to the defined protocol
 
-     */
+    */
     void initalize() {
         iostream & stream = client->GetSocketStream();
         stream.exceptions(
-                ifstream::failbit | ifstream::badbit
-                | ifstream::eofbit);
+            ifstream::failbit | ifstream::badbit | ifstream::eofbit);
         string in;
 
         try {
             getline(stream, in);
             if (in.compare("<GET_TYPE>") == 0) {
                 stream << "<TYPE>" << endl;
-                stream
-                << nl->ToString(AntiNumericType(streamType))
-                << endl;
+                stream << nl->ToString(AntiNumericType(streamType))
+                    << endl;
                 stream << "</TYPE>" << endl;
             } else {
                 throw 20;
@@ -295,7 +556,7 @@ private:
 
             getline(stream, in);
             if (in.compare("</GET_TYPE>") != 0) {
-                throw 20;
+                throw 30;
             }
         } catch (ios_base::failure &e) {
             keepRunning = false;
@@ -305,7 +566,7 @@ private:
     }
 public:
     providemessageHandler(Socket* psocket, ListExpr pstreamType,
-            ListExpr ptupleType) {
+        ListExpr ptupleType) {
         queue = moodycamel::ConcurrentQueue<Tuple*>();
         streamType = pstreamType;
         tupleType = ptupleType;
@@ -318,7 +579,7 @@ public:
     /**
      Appends the Tuple to the queue
 
-     */
+    */
     void appendTuple(Tuple * tuple) {
         tuple->IncReference();
         queue.enqueue(tuple);
@@ -327,7 +588,7 @@ public:
     /**
      Start the thread
 
-     */
+    */
     void start() {
         thread = std::thread(&providemessageHandler::run, this);
     }
@@ -336,7 +597,7 @@ public:
      Returns true if the handler should be done
      handling the client connection
 
-     */
+    */
     bool finished() {
         return !keepRunning;
     }
@@ -344,7 +605,7 @@ public:
     /**
      Stop the thread
 
-     */
+    */
     void stop() {
         keepRunning = false;
         if (thread.joinable()) {
@@ -354,9 +615,9 @@ public:
 };
 
 /*
-Accepts Client-Connections
-After establishing a connection with the client
-a providemessageHandler is created to handle the transfer
+ Accepts Client-Connections
+ After establishing a connection with the client
+ a providemessageHandler is created to handle the transfer
 
 */
 class providemessageServer {
@@ -365,13 +626,13 @@ private:
     ListExpr streamType, tupleType;
     std::atomic<bool> keepRunning;
     vector<providemessageHandler*> handlers;
-public:
-    providemessageServer(int pport, ListExpr pstreamType
-                , ListExpr ptupleType) {
+    public:
+    providemessageServer(int pport, ListExpr pstreamType,
+        ListExpr ptupleType) {
         streamType = pstreamType;
         tupleType = ptupleType;
         serverSocket = Socket::CreateGlobal("localhost",
-                            int2string(pport));
+            int2string(pport));
         handlers = vector<providemessageHandler*>();
     }
 
@@ -380,7 +641,7 @@ public:
         delete serverSocket;
 
         for (std::vector<providemessageHandler*>::iterator it =
-                handlers.begin(); it != handlers.end(); ++it) {
+            handlers.begin(); it != handlers.end(); ++it) {
             delete *it;
         }
         handlers.clear();
@@ -397,8 +658,8 @@ public:
             Socket* client = serverSocket->Accept();
             if (client && client->IsOk()) {
                 providemessageHandler * newHandler =
-                    new providemessageHandler(
-                        client, streamType, tupleType);
+                    new providemessageHandler(client, streamType,
+                        tupleType);
                 handlers.push_back(newHandler);
                 newHandler->start();
             }
@@ -414,7 +675,7 @@ public:
         keepRunning = false;
         serverSocket->CancelAccept();
         for (std::vector<providemessageHandler*>::iterator it =
-                handlers.begin(); it != handlers.end(); ++it) {
+            handlers.begin(); it != handlers.end(); ++it) {
             (*it)->stop();
         }
     }
@@ -451,19 +712,19 @@ private:
     Word stream;
     providemessageServer * server;
     thread localThread;
-public:
+    public:
 
-    providemessagesLocalInfo(Word& pstream,
-                int& pport,
-                ListExpr pstreamType) {
+    providemessagesLocalInfo(Word& pstream, int& pport,
+        ListExpr pstreamType) {
         qp->Open(pstream.addr);
         streamType = pstreamType;
         tupleType = nl->OneElemList(nl->Second(streamType));
         port = pport;
         stream = pstream;
-        server = new providemessageServer(port, streamType, tupleType);
-        localThread = thread(&providemessageServer::acceptConnections
-                   , server);
+        server = new providemessageServer(port, streamType,
+            tupleType);
+        localThread = thread(&providemessageServer::acceptConnections,
+            server);
     }
 
     ~providemessagesLocalInfo() {
@@ -495,10 +756,11 @@ public:
     }
 };
 
-int providemessagesVM(Word* args, Word& result, int message, Word& local,
-        Supplier s) {
+int providemessagesVM(Word* args, Word& result, int message,
+    Word& local, Supplier s) {
 
-    providemessagesLocalInfo* li = (providemessagesLocalInfo*) local.addr;
+    providemessagesLocalInfo* li =
+        (providemessagesLocalInfo*) local.addr;
 
     ListExpr resultTupleNL;
 
@@ -512,7 +774,8 @@ int providemessagesVM(Word* args, Word& result, int message, Word& local,
 
         int port = ((CcInt*) args[1].addr)->GetIntval();
 
-        li = new providemessagesLocalInfo(args[0], port, resultTupleNL);
+        li = new providemessagesLocalInfo(args[0], port,
+            resultTupleNL);
 
         local.addr = li;
         return 0;
@@ -536,16 +799,16 @@ int providemessagesVM(Word* args, Word& result, int message, Word& local,
 }
 
 OperatorSpec providemessagesSpec("stream x int -> stream",
-        "_ providemessages [ port ]",
-        "Receives a Tuple-Stream and provides a"
+    "_ providemessages [ port ]",
+    "Receives a Tuple-Stream and provides a"
         "multithreaded server to send the tuples"
         "to clients who are interested",
-        "query Orte feed providemessages[9000] count");
+    "query Orte feed providemessages[9000] count");
 
 /*
-----
-1 Operator owntransactioninsert
-----
+ ----
+ 1 Operator owntransactioninsert
+ ----
 
 */
 ListExpr owntransactioninsertTM(ListExpr inargs) {
@@ -560,21 +823,22 @@ ListExpr owntransactioninsertTM(ListExpr inargs) {
     NList relation = args.second();
 
     if (!stream_desc.hasLength(2)
-            || !stream_desc.first().first().isSymbol(sym.STREAM()))
-        return args.typeError("Input is no stream");
+        || !stream_desc.first().first().isSymbol(sym.STREAM()))
+        return listutils::typeError("Input is no stream");
 
     ListExpr tuple_desc = stream_desc.first().second().listExpr();
 
     if (!nl->IsEqual(nl->First(tuple_desc), Tuple::BasicType())
-            || nl->ListLength(tuple_desc) != 2)
-        return args.typeError("No Tuple Description found in stream");
+        || nl->ListLength(tuple_desc) != 2)
+        return listutils::typeError(
+            "No Tuple Description found in stream");
 
     if (!CcString::checkType(relation.first().listExpr())) {
         return listutils::typeError(
             "second argument must be the name of a relation");
     }
 
-    //Check if the received tupleType fits the relation
+//Check if the received tupleType fits the relation
     string relName = relation.second().str();
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
 
@@ -589,22 +853,22 @@ ListExpr owntransactioninsertTM(ListExpr inargs) {
     bool hasTypeName;
 
     catalog->GetObjectExpr(relName, typeName, relType, word, defined,
-            hasTypeName);
+        hasTypeName);
 
     if (!nl->Equal(stream_desc.first().second().listExpr(),
-            nl->Second(relType))) {
+        nl->Second(relType))) {
         return listutils::typeError(
-                "Stream-Type and Relation-Type are not equal!");
+            "Stream-Type and Relation-Type are not equal!");
     }
 
     return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-            nl->OneElemList(nl->StringAtom(relName)),
-            stream_desc.first().listExpr());
+        nl->OneElemList(nl->StringAtom(relName)),
+        stream_desc.first().listExpr());
 }
 
 /**
-Implements a thread which caches a bunch op tuples in a queue,
-and periodically inserts them into the given relation
+ Implements a thread which caches a bunch op tuples in a queue,
+ and periodically inserts them into the given relation
 
 */
 class asyncInsertThread {
@@ -619,10 +883,9 @@ private:
     /**
      Append the tuple to the queue
 
-     */
+    */
     void insertTuples(Relation& r) {
         Tuple * tuple;
-
 
         while (queue.try_dequeue(tuple)) {
             tupleCounter--;
@@ -634,7 +897,7 @@ private:
     /**
      Opens the relation
 
-     */
+    */
     Relation* openRelation() {
         if (catalog->IsObjectName(relationName)) {
             bool defined;
@@ -648,7 +911,7 @@ private:
     /**
      Ends the current transaction and starts a new one
 
-     */
+    */
     void commitAndBegin() {
         SmiEnvironment::CommitTransaction();
 
@@ -660,7 +923,7 @@ private:
     /**
      Inserts the tuples into the relation
 
-     */
+    */
     void insertAndCommit(bool commit = true) {
         insertTuples(*rel);
 
@@ -685,7 +948,7 @@ public:
     /**
      Appends the tuple to the queue to insert it later
 
-     */
+    */
     void pushTuple(Tuple * t) {
         t->IncReference();
         queue.enqueue(t);
@@ -695,7 +958,7 @@ public:
     /**
      Stop the thread
 
-     */
+    */
     void quit() {
         keepRunning = false;
     }
@@ -703,19 +966,17 @@ public:
     /**
      Start the thread
 
-     */
+    */
     void startInserts() {
 
         while (keepRunning) {
-            std::this_thread::sleep_for(
-            std::chrono::milliseconds(OWNTRANSACTIONINSERT_SLEEP_MS)
-            );
+            std::this_thread::sleep_for(std::chrono::milliseconds(
+            OWNTRANSACTIONINSERT_SLEEP_MS));
             sleepCounter++;
-            if (
-            (tupleCounter >
-                OWNTRANSACTIONINSERT_COMMIT_TUPLE_COUNT)
-            || (sleepCounter % OWNTRANSACTIONINSERT_SLEEP_COUNT)
-            == 0) {
+            if ((tupleCounter >
+            OWNTRANSACTIONINSERT_COMMIT_TUPLE_COUNT)
+                || (sleepCounter % OWNTRANSACTIONINSERT_SLEEP_COUNT)
+                    == 0) {
 
                 // Insert the tuples into the relation an commit
                 insertAndCommit();
@@ -738,8 +999,7 @@ private:
 public:
 
     NLStreamOwntransactioninsertLocalInfo(Word& pstream,
-                ListExpr & ptupleType,
-                string& prelationName) {
+        ListExpr & ptupleType, string& prelationName) {
         qp->Open(pstream.addr);
         stream = pstream;
         tupleType = nl->OneElemList(ptupleType);
@@ -747,9 +1007,8 @@ public:
 
         // Create and start the inserter
         inserter = new asyncInsertThread(relationName);
-        insertThread = thread(
-                &asyncInsertThread::startInserts,
-                inserter);
+        insertThread = thread(&asyncInsertThread::startInserts,
+            inserter);
     }
 
     ~NLStreamOwntransactioninsertLocalInfo() {
@@ -763,7 +1022,7 @@ public:
     /**
      Return the next tuple and send it to the inserter thread
 
-     */
+    */
     Word next() {
         Word tupleWord;
 
@@ -780,11 +1039,11 @@ public:
     }
 };
 
-int owntransactioninsertVM(Word* args, Word& result, int message, Word& local,
-        Supplier s) {
+int owntransactioninsertVM(Word* args, Word& result, int message,
+    Word& local, Supplier s) {
 
     NLStreamOwntransactioninsertLocalInfo* li =
-            (NLStreamOwntransactioninsertLocalInfo*) local.addr;
+        (NLStreamOwntransactioninsertLocalInfo*) local.addr;
 
     switch (message) {
     case OPEN: {
@@ -799,14 +1058,11 @@ int owntransactioninsertVM(Word* args, Word& result, int message, Word& local,
         tupleType = nl->Second(GetTupleResultType(s));
 
         relationName =
-        (string) (char*)
-        ((CcString*) args[1].addr)->GetStringval();
+            (string) (char*) ((CcString*) args[1].addr)->GetStringval();
 
         // Start the receiver
-        li = new NLStreamOwntransactioninsertLocalInfo(
-                args[0],
-                tupleType,
-                relationName);
+        li = new NLStreamOwntransactioninsertLocalInfo(args[0],
+            tupleType, relationName);
 
         local.addr = li;
         return 0;
@@ -829,14 +1085,14 @@ int owntransactioninsertVM(Word* args, Word& result, int message, Word& local,
 }
 
 OperatorSpec owntransactioninsertSpec("stream x string -> stream",
-        "owntransactioninsert [relation]",
-        "Inserts the Tuples in a new transaction",
-        "query Orte feed owntransactioninsert[\"Orte\"] count");
+    "owntransactioninsert [relation]",
+    "Inserts the Tuples in a new transaction",
+    "query Orte feed owntransactioninsert[\"Orte\"] count");
 
 /*
-----
-1 Operator receivenlstream
-----
+ ----
+ 1 Operator receivenlstream
+ ----
 
 */
 
@@ -851,68 +1107,65 @@ ListExpr receivenlstreamTM(ListExpr args) {
 
     if (!CcString::checkType(nl->First(host))) {
         return listutils::typeError(
-        "first argument must be an hostname or ip-address");
+            "first argument must be an hostname or ip-address");
     }
     if (!CcInt::checkType(nl->First(port))) {
         return listutils::typeError(
-        "second argument must be an portnumber");
+            "second argument must be an portnumber");
     }
 
-    Socket *client = Socket::Connect(nl->StringValue(nl->Second(host)),
-            int2string(nl->IntValue(nl->Second(port))),
-            Socket::SockGlobalDomain);
+    Socket *client = Socket::Connect(
+        nl->StringValue(nl->Second(host)),
+        int2string(nl->IntValue(nl->Second(port))),
+        Socket::SockGlobalDomain);
 
     if (!client || !client->IsOk())
         return listutils::typeError("unable to connect.");
 
-    // Connection initialization procol:
-    // Client (NLStream):             <GET_TYPE>
-    // Server (Provides Stream):    <TYPE>
-    // Server: TupleInfo as NL-String (ex. stream(tuple((Id string))) )
-    // Server:                        </TYPE>
-    // Client:                        </GET_TYPE>
+// Connection initialization procol:
+// Client (NLStream):             <GET_TYPE>
+// Server (Provides Stream):    <TYPE>
+// Server: TupleInfo as NL-String (ex. stream(tuple((Id string))) )
+// Server:                        </TYPE>
+// Client:                        </GET_TYPE>
     string tupleInfo, msg;
 
-    // Initiate Contact
+// Initiate Contact
     client->GetSocketStream() << "<GET_TYPE>" << endl;
-    cout << "<GET_TYPE>" << endl;
     getline(client->GetSocketStream(), msg);
-    cout << msg << endl;
     if (msg != "<TYPE>") {
         client->Close();
         return listutils::typeError(
-    "unable getting handshake message <TYPE> from the server.");
+            "unable getting handshake message <TYPE> from the server.");
     }
 
-    // Get TupleInfo and parse it
+// Get TupleInfo and parse it
     getline(client->GetSocketStream(), tupleInfo);
-    cout << tupleInfo << endl;
+
     ListExpr streamType;
     if (!nl->ReadFromString(tupleInfo, streamType)) {
         client->Close();
         return listutils::typeError(
-    "TupleInfo is no valid NestedList-Expression");
+            "TupleInfo is no valid NestedList-Expression");
     }
 
-    // Finalize initialization
+// Finalize initialization
     getline(client->GetSocketStream(), msg);
-    cout << msg << endl;
     if (msg != "</TYPE>") {
         client->Close();
         return listutils::typeError(
-    "unable getting handshake-completion message </TYPE> from the server.");
+            "unable getting handshake-completion "
+            "message </TYPE> from the server.");
     }
 
     client->GetSocketStream() << "</GET_TYPE>" << endl;
-    cout << "<GET_TYPE>" << endl;
 
     streamType = AntiNumericType(streamType);
 
     //Client-Descriptor will not deleted!
     return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-            nl->OneElemList(nl->IntAtom(
-                                          client->GetDescriptor()
-                                       )), streamType);
+        nl->TwoElemList(nl->IntAtom(client->GetDescriptor()),
+            nl->TextAtom(nl->ToString(streamType))), streamType);
 }
 
 class NLStreamReceiveStreamLocalInfo {
@@ -938,7 +1191,7 @@ public:
     /**
      Get the next tuple from the Server
 
-     */
+    */
     Tuple* getNextTuple() {
         string input = "";
         ListExpr output, errInfo;
@@ -952,8 +1205,8 @@ public:
             nl->ReadFromString(input, output);
 
             //Create the Tuple
-            tuple = Tuple::In(tupleType, output,
-                                          errPos, errInfo, status);
+            tuple = Tuple::In(tupleType, output, errPos, errInfo,
+                status);
         }
 
         return tuple;
@@ -962,7 +1215,7 @@ public:
     /**
      Return the next tuple and send it to the inserter thread
 
-     */
+    */
     Word next() {
         // Get the next Tuple
         Tuple* t = getNextTuple();
@@ -976,11 +1229,11 @@ public:
     }
 };
 
-int receivenlstreamVM(Word* args, Word& result, int message, Word& local,
-        Supplier s) {
+int receivenlstreamVM(Word* args, Word& result, int message,
+    Word& local, Supplier s) {
 
     NLStreamReceiveStreamLocalInfo* receiver =
-            (NLStreamReceiveStreamLocalInfo*) local.addr;
+        (NLStreamReceiveStreamLocalInfo*) local.addr;
 
     switch (message) {
     case OPEN: {
@@ -992,15 +1245,18 @@ int receivenlstreamVM(Word* args, Word& result, int message, Word& local,
         }
 
         // Get the expected tupleType
-        tupleType = nl->Second(GetTupleResultType(s));
+        nl->ReadFromString(((FText*) args[3].addr)->GetValue(),
+            tupleType);
+
+        tupleType = SecondoSystem::GetCatalog()->NumericType(
+            nl->Second(tupleType));
 
         // Get the appended Clinet-SD
         clientSocketDescriptor = ((CcInt*) args[2].addr)->GetIntval();
 
         // Start the receiver
         receiver = new NLStreamReceiveStreamLocalInfo(
-                                clientSocketDescriptor,
-                tupleType);
+            clientSocketDescriptor, tupleType);
 
         local.addr = receiver;
         return 0;
@@ -1023,28 +1279,33 @@ int receivenlstreamVM(Word* args, Word& result, int message, Word& local,
 }
 
 OperatorSpec receivenlstreamSpec("string x int -> stream",
-        "receivenlstream ( host, port )",
-        "Receives a Tuple-Stream from the specified server",
-        "query receivenlstream(\"localhost\", 9000) count");
-
+    "receivenlstream ( host, port )",
+    "Receives a Tuple-Stream from the specified server",
+    "query receivenlstream(\"localhost\", 9000) count");
 
 Operator sendmessagesOP("sendmessages", sendmessagesSpec.getStr(),
-        sendmessagesVM, Operator::SimpleSelect, sendmessagesTM);
+    sendmessagesVM, Operator::SimpleSelect, sendmessagesTM);
 
-Operator providemessagesOP("providemessages", providemessagesSpec.getStr(),
-        providemessagesVM, Operator::SimpleSelect, providemessagesTM);
+Operator providemessagesOP("providemessages",
+    providemessagesSpec.getStr(), providemessagesVM,
+    Operator::SimpleSelect, providemessagesTM);
 
-Operator receivenlstreamOP("receivenlstream", receivenlstreamSpec.getStr(),
-        receivenlstreamVM, Operator::SimpleSelect, receivenlstreamTM);
+Operator receivenlstreamOP("receivenlstream",
+    receivenlstreamSpec.getStr(), receivenlstreamVM,
+    Operator::SimpleSelect, receivenlstreamTM);
 
 Operator owntransactioninsertOP("owntransactioninsert",
-        owntransactioninsertSpec.getStr(), owntransactioninsertVM,
-        Operator::SimpleSelect, owntransactioninsertTM);
+    owntransactioninsertSpec.getStr(), owntransactioninsertVM,
+    Operator::SimpleSelect, owntransactioninsertTM);
+
+Operator ipointstoupointOP("ipointstoupoint",
+    ipointstoupointSpec.getStr(), ipointstoupointVM,
+    Operator::SimpleSelect, ipointstoupointTM);
 
 class ContinuousUpdateAlgebra: public Algebra {
 public:
     ContinuousUpdateAlgebra() :
-            Algebra() {
+        Algebra() {
         AddOperator(&sendmessagesOP);
         sendmessagesOP.SetUsesMemory();
         sendmessagesOP.SetUsesArgsInTypeMapping();
@@ -1057,6 +1318,9 @@ public:
         AddOperator(&owntransactioninsertOP);
         owntransactioninsertOP.SetUsesArgsInTypeMapping();
         owntransactioninsertOP.SetUsesMemory();
+        AddOperator(&ipointstoupointOP);
+        ipointstoupointOP.SetUsesArgsInTypeMapping();
+        ipointstoupointOP.SetUsesMemory();
 
     }
     ~ContinuousUpdateAlgebra() {
@@ -1065,7 +1329,8 @@ public:
 };
 
 extern "C" Algebra*
-InitializeContinuousUpdateAlgebra(NestedList* nlRef, QueryProcessor* qpRef) {
+InitializeContinuousUpdateAlgebra(NestedList* nlRef,
+    QueryProcessor* qpRef) {
     nl = nlRef;
     qp = qpRef;
     return (new ContinuousUpdateAlgebra());

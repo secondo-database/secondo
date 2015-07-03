@@ -44,6 +44,7 @@ Mar 2015 White
 #include "AlgebraClassDef.h"
 #include "AlgebraTypes.h"
 #include "ArrayAlgebra.h"
+#include "FTextAlgebra.h"
 #include "ListUtils.h"
 #include "Messages.h"
 #include "NestedList.h"

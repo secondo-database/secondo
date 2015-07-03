@@ -24,3 +24,5 @@ operator owntransactioninsert alias OWNTRANSACTIONINSERT pattern _ op [_]
 operator providemessages alias PROVIDEMESSAGES pattern _ op [_]
 
 operator sendmessages alias SENDMESSAGES pattern _ op
+
+operator ipointstoupoint alias IPOINTSTOUPOINT pattern _ op [_]
