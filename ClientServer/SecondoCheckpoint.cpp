@@ -85,7 +85,6 @@ SecondoCheckpoint::Execute()
   else {
     dbDir = SmiProfile::GetParameter("Environment", "SecondoHome", "",parmFile);
   }
-  cout << "dbDir set to " << dbDir << endl;
   
   u_int32_t minutes = SmiProfile::GetParameter( "BerkeleyDB", 
                                                 "CheckpointTime", 
