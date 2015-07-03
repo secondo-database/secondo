@@ -4,12 +4,19 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Date;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JSeparator;
+import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.SpinnerDateModel;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingConstants;
 
 import viewer.HoeseViewer;
 
@@ -35,6 +42,17 @@ public class HoeseOnlineDialog extends JDialog {
 	private JTextField limitTextField;
 	private JLabel rateLabel;
 	private JTextField rateTextField;
+	private JLabel rtLabel;
+	private JCheckBox rtCheckBox;
+	private JLabel rtSpeedFactor;
+	private SpinnerNumberModel rtSpeedFactorSpinnerModel;
+	private JSpinner rtSpeedFactorSpinner;
+	private SpinnerDateModel rtCurrentTimeModel;
+	private JSpinner rtCurrentTimeSpinner;
+	private JLabel rtSimulationTimeLabel;
+	private JLabel rtCurrentTimeOffset;
+	private SpinnerNumberModel rtCurrentTimeOffsetSpinnerModel;
+	private JSpinner rtCurrentTimeOffsetSpinner;
 
 	/**
 	 * Default constructor to start this Dialog
@@ -49,7 +67,7 @@ public class HoeseOnlineDialog extends JDialog {
 		OkBtn = new JButton("ok");
 		CancelBtn = new JButton("cancel");
 		
-		JPanel P1 = new JPanel(new GridLayout(4, 2));
+		JPanel P1 = new JPanel(new GridLayout(8, 2));
 		
 		JPanel P2 = new JPanel();
 		P2.add(OkBtn);
@@ -82,6 +100,34 @@ public class HoeseOnlineDialog extends JDialog {
 		rateTextField = new JTextField(10);
 		rateTextField.setText("2500");
 		P1.add(rateTextField);
+		
+		rtLabel = new JLabel("RealTime Simulation");
+		P1.add(rtLabel);
+		
+		rtCheckBox = new JCheckBox();
+		P1.add(rtCheckBox);
+		
+		rtSpeedFactor = new JLabel("Geschwindigkeitsfaktor:");
+		P1.add(rtSpeedFactor);
+		
+		rtSpeedFactorSpinnerModel = new SpinnerNumberModel(1.0, 0.1, 10.0, 0.1);
+		rtSpeedFactorSpinner = new JSpinner(rtSpeedFactorSpinnerModel);
+		P1.add(rtSpeedFactorSpinner);
+		
+		rtSimulationTimeLabel = new JLabel("Simulationszeit:");
+		P1.add(rtSimulationTimeLabel);
+		
+		rtCurrentTimeModel = new SpinnerDateModel();
+		rtCurrentTimeSpinner = new JSpinner(rtCurrentTimeModel);
+		P1.add(rtCurrentTimeSpinner);
+		
+		rtCurrentTimeOffset = new JLabel("Zeitversatz:");
+		P1.add(rtCurrentTimeOffset);
+		
+		rtCurrentTimeOffsetSpinnerModel = new SpinnerNumberModel(10, 5, Integer.MAX_VALUE, 1);
+		rtCurrentTimeOffsetSpinner = new JSpinner(rtCurrentTimeOffsetSpinnerModel);
+		P1.add(rtCurrentTimeOffsetSpinner);
+		
 		getContentPane().add(P2, BorderLayout.SOUTH);
 
 		ActionListener ButtonControl = new ActionListener() {
@@ -154,5 +200,36 @@ public class HoeseOnlineDialog extends JDialog {
 		}else{
 			return Integer.parseInt(s);
 		}
+	}
+	
+	/**
+	 * Returns if this run sould be treated as simulation 
+	 * @return
+	 */
+	public boolean isSimulation(){
+		return rtCheckBox.isSelected();
+	}
+	
+	/**
+	 * Returns the speedFactor entered by the user
+	 * @return
+	 */
+	public double getSpeedFactor(){
+		return (double)rtSpeedFactorSpinner.getValue();
+	}
+	
+	/**
+	 * Returns the Time that should be used for the Simulation
+	 * @return
+	 */
+	public Date getCurrentTime(){
+		return (Date)rtCurrentTimeSpinner.getValue();
+	}
+	
+	/**
+	 * Returns te TimeOffset used while playing the simulation
+	 */
+	public int getCurrentTimeOffset(){
+		return (int)rtCurrentTimeOffsetSpinner.getValue();
 	}
 }

@@ -55,6 +55,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.Date;
 import java.util.ListIterator;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -120,6 +121,7 @@ import viewer.hoese.TimeInputDialog;
 import viewer.hoese.TimePanel;
 import viewer.hoese.Timed;
 import viewer.hoese.algebras.Dsplpointsequence;
+import viewer.hoese.algebras.continuousupdate.AnimSimulationCtrlListener;
 import viewer.hoese.algebras.continuousupdate.OnlineResultsReceiver;
 import components.ChangeValueEvent;
 import components.ChangeValueListener;
@@ -282,6 +284,8 @@ public class HoeseViewer extends SecondoViewer {
 	private AbstractAction AALabelAttr;
 	private String tok, PickTok;
 
+	private JButton ctrls[];
+	
 	/** a FileChooser for Sessions */
 	private JFileChooser FC_Session = new JFileChooser();
 	/** a FileChooser for Categories */
@@ -518,7 +522,7 @@ public class HoeseViewer extends SecondoViewer {
 		JToolBar jtb = new JToolBar();
 		jtb.putClientProperty("JToolBar.isRollover", Boolean.TRUE);
 		jtb.setFloatable(false);
-		JButton ctrls[] = new JButton[6];
+		ctrls = new JButton[6];
 		Button_File = configuration.getProperty("PlayIcon");
 		if (Button_File != null)
 			ctrls[0] = new JButton(new ImageIcon(
@@ -2525,15 +2529,16 @@ public class HoeseViewer extends SecondoViewer {
 	 *            The rate (in ms) at which the GUI should be updated
 	 */
 	private void runOnlineResults(String relationName, String filter,
-			Integer tupleLimit, Integer updateRate) {
+			Integer tupleLimit, Integer updateRate, Boolean isSimulation,
+			Date currentTime, int currentTimeOffset, double speedFactor) {
 
-		//Set tail function, if tupleLimit > 0
+		// Set tail function, if tupleLimit > 0
 		String tail = tupleLimit > 0 ? "tail[" + tupleLimit + "]" : "";
-		
+
 		// Query the Relation, to get the inital Results
 		if (((MainWindow) getMainFrame()).execUserCommand("query "
 				+ relationName + " feed " + filter + " " + tail + " consume")) {
-			// If we received any tuples from the Query start the continues
+			// If we received any tuples from the Query start the continuous
 			// updates
 			if (CurrentQueryResult.getListExpr().second().listLength() > 0) {
 				CurrentQueryResult.reduceModels(tupleLimit, this);
@@ -2545,10 +2550,32 @@ public class HoeseViewer extends SecondoViewer {
 					OnlineBtn.removeActionListener(al);
 				}
 				OnlineBtn.addActionListener(new RunOnlineListnerEnabled());
+
+				// If the Simulationmode is enabled, replace the ActionListener
+				// for the Buttons and disable them (excluding start/stop)
+				if (isSimulation) {
+					ActionListener al = new AnimSimulationCtrlListener(this,
+							currentTime, currentTimeOffset, speedFactor);
+
+					for (int i = 0; i < ctrls.length; i++) {
+						for (ActionListener a : ctrls[i].getActionListeners()) {
+							ctrls[i].removeActionListener(a);
+						}
+						ctrls[i].addActionListener(al);
+					}
+
+					DecrementSpeedBtn.setEnabled(false);
+					IncrementSpeedBtn.setEnabled(false);
+					ctrls[1].setEnabled(false);
+					ctrls[2].setEnabled(false);
+					ctrls[3].setEnabled(false);
+					ctrls[4].setEnabled(false);
+				}
 			} else {
 				// Display ErrorMessage
-				JOptionPane.showMessageDialog(getMainFrame(),
-						"Relation needs at least one entry.\nFilter argument wrong?");
+				JOptionPane
+						.showMessageDialog(getMainFrame(),
+								"Relation needs at least one entry.\nFilter argument wrong?");
 			}
 		}
 	}
@@ -2558,10 +2585,31 @@ public class HoeseViewer extends SecondoViewer {
 	 */
 	private void stopOnlineResults() {
 		onlineReceiver.disable();
+		
 		for (ActionListener al : OnlineBtn.getActionListeners()) {
 			OnlineBtn.removeActionListener(al);
 		}
 		OnlineBtn.addActionListener(new RunOnlineListnerDisabled());
+		
+		// In Simulationmode the listener was replaced
+		// lets reset it
+		AnimCtrlListener al = new AnimCtrlListener();
+		for (int i = 0; i < ctrls.length; i++) {
+			for (ActionListener a : ctrls[i].getActionListeners()) {
+				if(a instanceof AnimSimulationCtrlListener){
+					((AnimSimulationCtrlListener)a).stop();
+				}
+				ctrls[i].removeActionListener(a);
+			}
+			ctrls[i].addActionListener(al);
+		}
+		
+		DecrementSpeedBtn.setEnabled(true);
+		IncrementSpeedBtn.setEnabled(true);
+		ctrls[1].setEnabled(true);
+		ctrls[2].setEnabled(true);
+		ctrls[3].setEnabled(true);
+		ctrls[4].setEnabled(true);
 	}
 
 	/**
@@ -2574,10 +2622,14 @@ public class HoeseViewer extends SecondoViewer {
 		public void actionPerformed(ActionEvent e) {
 			HoeseOnlineDialog dialog = new HoeseOnlineDialog(HoeseViewer.this);
 			dialog.setVisible(true);
-			if (dialog.getResult() == dialog.OK) {
+			if (dialog.getResult() == HoeseOnlineDialog.OK) {
+				
 				runOnlineResults(dialog.getRelationName(),
 						dialog.getFilterCommand(), dialog.getMaxTuples(),
-						dialog.getUpdateRate());
+						dialog.getUpdateRate(), dialog.isSimulation(),
+						dialog.getCurrentTime(), dialog.getCurrentTimeOffset(),
+						dialog.getSpeedFactor());
+
 			}
 		}
 	}
