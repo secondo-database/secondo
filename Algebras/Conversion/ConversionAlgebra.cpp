@@ -188,9 +188,9 @@ int rtftxt2txtVM(Word* args, Word& result,
  size_t len = in.tellg();
  in.seekg (0, in.beg); 
   
- char * buffer = new char [len+1];
- buffer[len] = 0; 
- in.read (buffer,len);
+ char * buffer = new char [len];
+ buffer[len-1] = 0; 
+ in.read (buffer,len-1);
  in.close(); 
  FileSystem::DeleteFileOrFolder("tempfile.rtf");
  FileSystem::DeleteFileOrFolder("tempfile1.txt");
