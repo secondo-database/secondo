@@ -5,5 +5,5 @@ Restore  : NO
 Operator : rtftxt2txt
 Number   : 1
 Signature: FText -> FText
-Example  : query rtftxt2txt ('texttest')
-Result   : 'texttest'
+Example  : query rtftxt2txt ('{\rtf1\ansi\deff3\adeflang1025 {\rtlch \ltrch\loch This is a converter}}')
+Result   : 'This is a converter'
