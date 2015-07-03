@@ -1,0 +1,9 @@
+Database : berlintest
+Restore  : NO
+
+
+Operator : rtftxt2txt
+Number   : 1
+Signature: FText -> FText
+Example  : query rtftxt2txt ('texttest')
+Result   : 'texttest'
