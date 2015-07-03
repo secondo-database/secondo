@@ -3212,6 +3212,8 @@ QueryProcessor::Subtree( const ListExpr expr,
       {
         node->u.op.isStream = true;
         node->evaluable = false;
+      } else {
+         node->u.op.isStream = false;
       }
       if( !nl->IsAtom(nl->Second(expr)) &&
           TypeOfSymbol(nl->First(nl->Second(expr))) == QP_MAP )
@@ -4038,22 +4040,24 @@ must be handled.
 arguments of a parameter function. In order to support also streams as arguments
 for a parameter function, an indirect object can also be an operator.
 
-If the indirect object represents a stream, the argument vector contains at
+If the indirect object represents a stream and the FUNMSG mechanism should be 
+used, the argument vector contains at
 position MAXARG-argIndex the node of the operator which will then be used to
 request the next element.
+
 
 */
       case IndirectObject:
       {
         const int argIndex = tree->u.iobj.argIndex;
 
-        if ( (*tree->u.iobj.vector)[MAXARG-argIndex].addr == 0 ) {
-          result = (*tree->u.iobj.vector)[argIndex-1];
-        }
-        else
-        {
-          // A stream! Request next element
-          OpTree caller =
+        bool isStream = (tree->u.op.isStream);
+
+        //cout << "Indirect object isStream : " << isStream << endl;
+
+        if(  (*tree->u.iobj.vector)[MAXARG-argIndex].addr != 0 ){
+           // within an operator requiring FUNMSG mechanism
+           OpTree caller =
             (OpTree) (*tree->u.iobj.vector)[MAXARG-argIndex].addr;
 
                         if (traceNodes)
@@ -4069,7 +4073,22 @@ request the next element.
                                             caller );
 
           tree->u.received = (status == YIELD);
-    //cerr << "iobj = " << (status == YIELD) << endl;
+        } else if(!isStream){
+           //  no stream, no funmsg
+           result = (*tree->u.iobj.vector)[argIndex-1];
+        } else {
+          // normal stream operator
+          OpTree caller =
+            (OpTree) (*tree->u.iobj.vector)[argIndex-1].addr;
+
+                        if (traceNodes)
+                        cerr << fn <<
+                        "Parameter function's caller node = "
+                        << caller->id << endl;
+
+         Eval(caller, result,message);
+         
+         tree->u.received = caller->u.received;
         }
                         if (traceNodes)
                         cerr << fn <<
@@ -4722,6 +4741,12 @@ in the tree rooted by s are written to disc, the current transaction is committe
 and a new transaction starts.
 
 */
+
+
+string QueryProcessor::getLabel(Supplier s){
+   OpTree node = (OpTree) s;
+   return node->nodeLabelStr();
+}
 
 
 
