@@ -53,7 +53,7 @@ Result    : TRUE
 Operator  : memload
 Number    : 9
 Signature : string -> bool
-Example   : query memload ("WFlaechen")
+Example   : query memload ("strassen")
 Result    : TRUE
 
 Operator  : memgetcatalog
@@ -71,8 +71,8 @@ Result    : TRUE
 Operator  : mcreateRtree
 Number    : 12
 Signature : string x string -> string
-Example   : query mcreateRtree ("WFlaechen", "GeoData")
-Result    : "WFlaechen_GeoData"
+Example   : query mcreateRtree ("strassen", "GeoData")
+Result    : "strassen_GeoData"
 
 Operator  : memsize
 Number    : 13
@@ -80,20 +80,27 @@ Signature : -> int
 Example   : query memsize ()
 Result    : 256
 
-Operator  : memclear
-Number    : 14
-Signature : -> bool
-Example   : query memclear ()
-Result    : TRUE
-
 Operator  : memload
-Number    : 15
+Number    : 14
 Signature : string -> bool
 Example   : query memload ("ten")
 Result    : TRUE
 
 Operator  : minsert
-Number    : 16
+Number    : 15
 Signature : stream(tuple) x string -> stream(tuple)
 Example   : query minsert (ten feed head [5], "ten") count
 Result    : 15
+
+Operator  : mwindowintersects
+Number    : 16
+Signature : string x string x T -> stream(tuple) where T in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D
+Example   : query mwindowintersects("strassen_GeoData", "strassen", bbox(thecenter)) count
+Result    : 1266
+
+Operator  : memclear
+Number    : 17
+Signature : -> bool
+Example   : query memclear ()
+Result    : TRUE
+

@@ -76,8 +76,6 @@ class MemCatalog {
 
 class MemoryObject {
     public:
-        //virtual damit erste späte Bindung darüber entscheidet
-        // welcher Destruktor verwendet werden soll
         virtual ~MemoryObject();
 
         void setMemSize(size_t i);
@@ -91,10 +89,6 @@ class MemoryObject {
             cout<<"4. objectTypeExpr: "<<objectTypeExpr<<endl;
         }
 
-
-//        static Word In( const ListExpr typeInfo, const ListExpr instance,
-//                        const int errorPos, ListExpr& errorInfo,
-//                        bool& correct );
 
         static ListExpr Out( ListExpr typeInfo, Word value );
 
@@ -202,6 +196,8 @@ class MemoryRtreeObject : public MemoryObject {
 
         void setRtree (mmrtree::RtreeT<2, size_t>* _rtree);
 
+        mmrtree::RtreeT<2, size_t>* getrtree();
+
         void toStringOut(){
             cout<<"MemoryRtreeObject, Membervariablen lauten: "<<endl;
             cout<<"2. memsize: "<<memSize<<endl;
@@ -209,6 +205,11 @@ class MemoryRtreeObject : public MemoryObject {
             cout<<"5. Die Adresse des Indexes ist: "<<&rtree<<endl;}
 
         static const string BasicType() { return "memoryRtreeObject"; }
+
+        static const bool checkType(const ListExpr type){
+            return (nl->ToString(type)==BasicType());
+        }
+
 
     private:
          mmrtree::RtreeT<2, size_t>* rtree;

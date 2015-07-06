@@ -37,10 +37,7 @@ extern MemCatalog catalog;
 
 
 MemCatalog::~MemCatalog(){
-cout<<"START Destruktor MemCatalog!"<<endl;
-   clear();
-    //delete memContents;
-cout<<"ENDE Destruktor MemCatalog!"<<endl;
+    clear();
 };
 
 void MemCatalog::setMemSizeTotal(size_t size) {
@@ -96,7 +93,6 @@ void MemCatalog::clear (){
     map<string,MemoryObject*>::iterator it;
     it = memContents.begin();
     while (it!=memContents.end()){
-cout<<"Objekt: "<<it->first<<endl;
         deleteObject(it->first);
         it++;
     }
@@ -203,17 +199,14 @@ MemoryRelObject::MemoryRelObject(vector<Tuple*>* _mmrel,
 };
 
 MemoryRelObject::~MemoryRelObject(){
-cout<<"start destruktor memoryrel:"<<endl;
     vector<Tuple*>::iterator it = mmrel->begin();
     while (it!=mmrel->end()){
         Tuple* tup = *it;
         tup->DeleteIfAllowed();
-        //delete tup;
         tup = 0;
         it++;
     }
     delete mmrel;
-cout<<"ende destruktor MemoryRelObject"<< endl;
 }
 
 vector<Tuple*>* MemoryRelObject::getmmrel(){
@@ -331,7 +324,7 @@ MemoryAttributeObject::MemoryAttributeObject(Attribute* _attr,
 
 MemoryAttributeObject::~MemoryAttributeObject(){
 
-cout<<"Destruktor von MemoryAttributObject - nicht fertig "<<endl;
+cout<<"Destruktor von MemoryAttributObject"<<endl;
 
 }
 
@@ -353,11 +346,16 @@ MemoryRtreeObject::MemoryRtreeObject (mmrtree::RtreeT<2, size_t>* _rtree,
     objectTypeExpr =_objectTypeExpr;
 };
 MemoryRtreeObject::~MemoryRtreeObject(){
-cout<<"Destruktor von MemoryRtreeObject - nicht fertig "<<endl;
+cout<<"Destruktor von MemoryRtreeObject"<<endl;
 }
 
 void MemoryRtreeObject::setRtree(mmrtree::RtreeT<2, size_t>* _rtree){
             rtree=_rtree;
         }
+
+mmrtree::RtreeT<2, size_t>* MemoryRtreeObject::getrtree(){
+        return rtree;
+}
+
 }//end namespace mmalgebra
 

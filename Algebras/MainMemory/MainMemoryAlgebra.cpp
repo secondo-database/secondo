@@ -44,6 +44,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Stream.h"
 #include "MMRTree.h"
 #include "MovingRegionAlgebra.h"
+#include "RectangleAlgebra.h"
+
 
 
 using namespace std;
@@ -1459,7 +1461,7 @@ int mcreateRtreeValMap (Word* args, Word& result,
         usedMainMemory = rtree->usedMem();
 
         MemoryRtreeObject* mmRtreeObject =
-                new MemoryRtreeObject(rtree, usedMainMemory,"mmrtree");
+            new MemoryRtreeObject(rtree, usedMainMemory,"memoryRtreeObject");
 
         res = relObjectName +"_"+attrName;
         catalog->insert(res,mmRtreeObject);
@@ -1816,6 +1818,212 @@ Operator minsertOp (
     Operator::SimpleSelect,
     minsertTypeMap
 );
+
+/*
+5.14 Operator ~mwindowintersects~
+        Uses the given MemoryRtreeObject (as first argument)to find all tuples
+        in the given MemoryRelObject (as second argument)
+        with intersects the third argument value's bounding box.
+
+
+*/
+
+/*
+5.14.1 Type Mapping Functions of operator ~mwindowintersects~
+    string x string x T -> stream(tuple)
+    where T in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D
+
+*/
+
+ListExpr mwindowintersectsTypeMap(ListExpr args)
+{
+    cout<<"ARGS: "<<nl->ToString(args)<<endl;
+    if(nl->ListLength(args)!=3){
+     return listutils::typeError("three arguments expected");
+    }
+
+      /* Split argument in three parts */
+  ListExpr memoryRtreeDescription = nl->First(args);
+  ListExpr memoryRelDescription = nl->Second(args);
+  ListExpr searchWindow = nl->Third(args);
+
+  // first must be an rtree<dim>
+//  if(!listutils::isRTreeDescription(rtreeDescription)){
+//    return listutils::typeError("Expects 1st argument to be of type "
+//                                "'rtree<dim>(<tuple-type>,bool)'.");
+//  }
+
+    if (!CcString::checkType(nl->First(memoryRtreeDescription))) {
+        return listutils::typeError("string as first argument expected");
+    }
+    string oN_Rtree = nl->StringValue(nl->Second(memoryRtreeDescription));
+    ListExpr oTE_Rtree = catalog->getMMObjectTypeExpr(oN_Rtree);
+
+    if (!catalog->isMMObject(oN_Rtree) ||
+            !MemoryRtreeObject::checkType(oTE_Rtree)){
+        return listutils::typeError
+                ("first string does not identify a MemoryRTreeObject");
+    }
+
+  // second a relation
+   if (!CcString::checkType(nl->First(memoryRelDescription))) {
+        return listutils::typeError("string as second argument expected");
+    }
+   string oN_Rel = nl->StringValue(nl->Second(memoryRelDescription));
+    ListExpr oTE_Rel = catalog->getMMObjectTypeExpr(oN_Rel);
+    if (!catalog->isMMObject(oN_Rel) ||
+                !listutils::isTupleDescription(oTE_Rel)){
+        return listutils::typeError
+                ("second string does not identify a MemoryRelObject");
+    }
+
+
+  // third a type with an MBR
+  if(!(    listutils::isSpatialType(nl->First(searchWindow))
+        || listutils::isRectangle(nl->First(searchWindow)))){
+    return listutils::typeError("expects 3nd argument to be of a type of kind "
+      "SPATIAL, SPATIAL3D, SPATIAL4D, SPATIAL8D; or of type 'rect', 'rect3', "
+      "'rect4', or 'rect8'.");
+  }
+
+
+return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),oTE_Rel);
+}
+
+
+class mwiInfo{
+  public:
+     mwiInfo(mmrtree::RtreeT<2, size_t>* _rtree,
+                vector<Tuple*>* _relation, Rectangle<2> _searchBox)
+     :relation(_relation),rtree(_rtree),searchBox(_searchBox)
+     {
+        rtree->findAll(searchBox,res);
+        it = res.begin();
+     }
+
+    ~mwiInfo(){
+        res.clear();
+    }
+
+
+     Tuple* next(){
+     if(it==res.end()) return 0;
+     Tuple* result = relation->at(*it);
+     result->IncReference();
+     it++;
+     return result;
+
+     }
+
+  private:
+     vector<Tuple*>* relation;
+     mmrtree::RtreeT<2, size_t>* rtree;
+     Rectangle<2> searchBox;
+     set<size_t> res;
+     set<size_t>::iterator it;
+};
+
+/*
+
+5.14.3  The Value Mapping Functions of operator ~mwindowintersects~
+
+*/
+
+int mwindowintersectsValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+   mwiInfo* li = (mwiInfo*) local.addr;
+
+   switch (message)
+   {
+        case OPEN: {
+             if(li){
+             delete li;
+             local.addr=0;
+          }
+          //first argument MemoryRtreeObject
+            CcString* oN_0 = (CcString*) args[0].addr;
+          if(!oN_0->IsDefined()){
+             return 0;
+          }
+          string objectName_0 = oN_0->GetValue();
+          mmrtree::RtreeT<2, size_t>* rtree;
+
+          MemoryRtreeObject* mrTreeO =
+                    (MemoryRtreeObject*)catalog->getMMObject(objectName_0);
+          rtree = mrTreeO->getrtree();
+
+          //second argument MemoryRelObject
+          CcString* oN_1 = (CcString*) args[1].addr;
+          if(!oN_1->IsDefined()){
+             return 0;
+          }
+          string objectName_1 = oN_1->GetValue();
+          vector<Tuple*>* relation;
+
+          MemoryRelObject* mro =
+                    (MemoryRelObject*)catalog->getMMObject(objectName_1);
+          relation = mro->getmmrel();
+
+          //third argument Searchwindow
+
+          StandardSpatialAttribute<2>* attr =
+                    (StandardSpatialAttribute<2>*)args[2].addr;
+          Rectangle<2> box = attr->BoundingBox();
+          local.addr= new mwiInfo(rtree,relation,box);
+          return 0;
+        }
+
+        case REQUEST:
+            result.addr=(li?li->next():0);
+            return result.addr?YIELD:CANCEL;
+
+
+        case CLOSE:
+            if(li)
+            {
+            delete li;
+            local.addr = 0;
+
+            }
+            return 0;
+   }
+
+    return 0;
+}
+
+/*
+
+5.12.4 Description of operator ~mwindowintersects~
+
+*/
+
+OperatorSpec mwindowintersectsSpec(
+    "string x string x T -> stream(tuple) "
+    "where T in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D",
+    "mwindowintersects(_,_,_)",
+    "Uses the given rtree to find all tuples"
+      " in the given relation which intersects the "
+      " argument value's bounding box.",
+    "query mwindowintersects"
+    "('strassen_GeoData', 'strassen', bbox(thecenter)) count"
+);
+
+/*
+
+5.12.5 Instance of operator ~mwindowintersects~
+
+*/
+
+Operator mwindowintersectsOp (
+    "mwindowintersects",
+    mwindowintersectsSpec.getStr(),
+    mwindowintersectsValMap,
+    Operator::SimpleSelect,
+    mwindowintersectsTypeMap
+);
+
+
 class MainMemoryAlgebra : public Algebra
 {
 
@@ -1858,6 +2066,8 @@ class MainMemoryAlgebra : public Algebra
         AddOperator (&memclearOp);
         AddOperator (&minsertOp);
         minsertOp.SetUsesArgsInTypeMapping();
+        AddOperator (&mwindowintersectsOp);
+        mwindowintersectsOp.SetUsesArgsInTypeMapping();
 
         }
         ~MainMemoryAlgebra() {
