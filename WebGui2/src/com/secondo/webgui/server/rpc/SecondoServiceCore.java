@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Properties;
 
 import javax.mail.Message;
@@ -41,6 +42,7 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 	// temporary data
 	private UserData sd = new UserData();
 	private ArrayList<String> secondoConnectionData = new ArrayList<String>();
+	private Date creationDate =  new Date();
 
 	public SecondoServiceCore() {
 	}
@@ -361,4 +363,12 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 	public ArrayList<String> getFormattedResultForSymTraj() {
 		return sc.getFormattedListWithMlabel();
 	}
+
+	/**
+	 * @return the creationDate
+	 */
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
 }

@@ -21,6 +21,7 @@ package com.secondo.webgui.server.rpc;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,20 +48,45 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	}
 
 	/**
+	 * @return
+	 */
+	private String getSessionId() {
+		return this.getThreadLocalRequest().getSession().getId();
+	}
+
+	/**
 	 * Returns SecondoServiceCore object. Each session gets its own object.
 	 * 
 	 * @return The SecondoServiceCore object
 	 */
 	private SecondoServiceCore getSecondoServiceCore() {
-		String sid = this.getThreadLocalRequest().getSession().getId();
+		String sid = getSessionId();
 		System.out.println("Session id: " + sid);
+		removeOldPreviousCoreInstances();
 
 		SecondoServiceCore coreInstance = coreInstances.get(sid);
 		if (coreInstance == null) {
 			coreInstance = new SecondoServiceCore();
 			coreInstances.put(sid, coreInstance);
 		}
+
 		return coreInstance;
+	}
+
+	/**
+	 * 
+	 */
+	private void removeOldPreviousCoreInstances() {
+		for (Map.Entry<String, SecondoServiceCore> entry : coreInstances
+				.entrySet()) {
+			if (tooOld(entry.getValue().getCreationDate())) {
+				entry.getValue().logout();
+				coreInstances.remove(entry.getKey());
+				System.out.println("Removed core instance with id "
+						+ entry.getKey());
+			}
+
+		}
 	}
 
 	/**
@@ -68,7 +94,7 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 * be removed
 	 */
 	public void closeSession() {
-		String sid = this.getThreadLocalRequest().getSession().getId();
+		String sid = getSessionId();
 		SecondoServiceCore coreInstance = coreInstances.get(sid);
 		if (coreInstance != null) {
 			coreInstance.close();
@@ -151,7 +177,12 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public String logout() {
 
-		return getSecondoServiceCore().logout();
+		String sid = getSessionId();
+		SecondoServiceCore secondoServiceCore = coreInstances.get(sid);
+		coreInstances.remove(sid);
+		System.out.println("Removed core instance with id " + sid);
+
+		return secondoServiceCore.logout();
 	}
 
 	/**
@@ -276,12 +307,25 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 		return getSecondoServiceCore().sendMail(html);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.secondo.webgui.client.rpc.SecondoService#getFormattedResultForSymTraj()
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * com.secondo.webgui.client.rpc.SecondoService#getFormattedResultForSymTraj
+	 * ()
 	 */
 	@Override
-	public ArrayList<String> getFormattedResultForSymTraj() {		
+	public ArrayList<String> getFormattedResultForSymTraj() {
 		return getSecondoServiceCore().getFormattedResultForSymTraj();
+	}
+
+	private boolean tooOld(Date date) {
+		Date currentDate = new Date();
+		long diffInMilliseconds = currentDate.getTime() - date.getTime();
+		if (diffInMilliseconds > 24 * 60 * 60 * 1000) {
+			return true;
+		}
+		return false;
 	}
 
 }
