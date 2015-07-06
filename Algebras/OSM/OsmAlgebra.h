@@ -75,7 +75,7 @@ class FullOsmImport {
     void storeRelations(bool all);
     void storeRel(string name, ListExpr type, Relation *rel);
     void divideOSMfile(const string& fileName);
-    const char* getFileName(LongInt dest);
+    string getFileName(LongInt dest);
     string trim(const string &s);
     bool isWhitespace(const char c);
     bool isFileSwitchAllowed(const string& line);

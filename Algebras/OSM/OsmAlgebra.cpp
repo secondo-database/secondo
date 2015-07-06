@@ -1423,7 +1423,7 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& _subFileName,
   divideOSMfile(fileName);
 }
 
-const char* FullOsmImport::getFileName(LongInt dest) {
+string FullOsmImport::getFileName(LongInt dest) {
   stringstream result;
   result << subFileName << "_" << dest;
   return result.str().c_str();
@@ -1468,14 +1468,14 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
   source.open(fileName.c_str(), ios::in);
   getline(source, line);
   for (LongInt i = 0; i < size; i++) { // clear destination files if existing
-    dest.open(getFileName(i), ios::trunc);
+    dest.open(getFileName(i).c_str(), ios::trunc);
     dest.close();
   }
   line = trim(line);
   while (!source.eof() && source.good() &&
          (trim(line).substr(0, 5) != "<node")) { // copy head
     for (LongInt file = 0; file < size; file++) {
-      dest.open(getFileName(file), ios::app);
+      dest.open(getFileName(file).c_str(), ios::app);
       dest << line << endl;
       dest.close();
     }
@@ -1490,7 +1490,7 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
   charCounter -= line.length();
   nextLimit = charCounter;
   LongInt partSize = (numOfChars - source.tellg() - 1) / size + 1;
-  dest.open(getFileName(0), ios::app);
+  dest.open(getFileName(0).c_str(), ios::app);
   dest << line << endl;
   dest.close();
   while (!source.eof() && source.good()) { // copy rest
@@ -1501,7 +1501,7 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
       }
       nextLimit += partSize;
       destId++;
-      dest.open(getFileName(destId), ios::app);
+      dest.open(getFileName(destId).c_str(), ios::app);
     }
     getline(source, line);
     charCounter += line.length();
