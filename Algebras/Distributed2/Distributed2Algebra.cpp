@@ -931,7 +931,6 @@ class ConnectionInfo{
              }
              if(!mynl->BoolValue(mynl->Second(resList))){
                  mynl->Destroy(resList);
-               // cout << "command " << cmd << " not successful" << endl;
                  return false;
              }
 
@@ -942,9 +941,7 @@ class ConnectionInfo{
                 cerr << "Requesting file " + base + ".tmp failed" << endl;
                 return false;
              }
-             cout << "resType before : " << nl->ToString(resType) << endl;
              result = createRelationFromFile(base+".tmp",resType,false);
-             cout << "resType after : " << nl->ToString(resType) << endl;
 
              FileSystem::DeleteFileOrFolder(base+".tmp");
              cmd = "query removeFile('"+rfpath + base +".tmp' )" ;
@@ -5656,14 +5653,13 @@ class DArray2T{
      }
 
      static const bool checkType(const ListExpr list){
-
          if(!nl->HasLength(list,2)){
             return false;
          }  
          if(!listutils::isSymbol(nl->First(list), BasicType())){
              return false;
          }
-         if(!isF){
+         if(isF){
            return Relation::checkType(nl->Second(list));
          }
 
@@ -6196,7 +6192,6 @@ int putVMFA(Word* args, Word& result, int message,
   string f2 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"+fname;
   string cmd = "query moveFile('"+f1+"', '"+ f2 +"')";
 
-  cout << "copy cmd : " << cmd << endl;
 
   int err;
   string errMsg;
@@ -6427,7 +6422,6 @@ int getVMDFA(Word* args, Word& result, int message,
     }
     return 0;
   }
-  cout << "change result storage" << endl;
   qp->DeleteResultStorage(s);
   qp->ChangeResultStorage(s,relResult);
   result = qp->ResultStorage(s);
@@ -9286,7 +9280,7 @@ normal array from the ArrayAlgebra.
 ListExpr getValueTM(ListExpr args){
   string err ="darray2 or dfarray2 expected";
   if(!nl->HasLength(args,1)){
-    return listutils::typeError(err);
+    return listutils::typeError(err + " (wrong number of args)");
   }
   ListExpr a1 = nl->First(args);
   if(!DArray2::checkType(a1) && !DFArray2::checkType(a1)){
@@ -11128,10 +11122,403 @@ Operator gettuplesOp(
 16 Operator ~map~
 
 This operator maps the content of a dfarray to another value.
-Depending on the result of the function (allowed is relation and
-DATA), the result is a dfarray2 or a darray2.
+Depending on the result of the function, the result is a 
+dfarray2 (result is a relation) or a darray2 (result is 
+something other).
 
 */
+
+ListExpr dmapTM(ListExpr args){
+  string err = "dfarray2(X)  x string x fun expected";
+  if(!nl->HasLength(args,3)){
+    return  listutils::typeError(err + " (wrong number of args)");
+  }
+  // check for internal correctness
+  if(   !nl->HasLength(nl->First(args),2)
+      ||!nl->HasLength(nl->Second(args),2)
+      ||!nl->HasLength(nl->Third(args),2)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr arg1Type = nl->First(nl->First(args));
+  ListExpr arg2Type = nl->First(nl->Second(args));
+  ListExpr arg3Type = nl->First(nl->Third(args));
+
+  if(  !DFArray2::checkType(arg1Type)
+     ||!CcString::checkType(arg2Type)
+     ||!listutils::isMap<1>(arg3Type)){
+    return listutils::typeError(err);
+  }
+
+  ListExpr stream = nl->TwoElemList(
+                     listutils::basicSymbol<Stream<Tuple> >(),
+                     nl->Second(nl->Second(arg1Type)));
+
+  ListExpr funArg = nl->Second(arg3Type);
+
+  if(!nl->Equal(stream,funArg)){
+     return listutils::typeError("type mismatch between function argument and "
+                                 " subtype of dfarray2");
+  }
+
+
+  ListExpr funq = nl->Second(nl->Third(args));
+
+  ListExpr funargs = nl->Second(funq);
+  ListExpr rfunargs = nl->TwoElemList(
+                         nl->First(funargs),
+                          stream);
+
+  ListExpr rfun = nl->ThreeElemList(
+                    nl->First(funq),
+                    rfunargs,
+                    nl->Third(funq)
+                  );
+
+  ListExpr funRes = nl->Third(arg3Type);
+  
+  bool isRel = Relation::checkType(funRes);
+  bool isStream = Stream<Tuple>::checkType(funRes);
+
+  if(listutils::isStream(funRes) && !isStream){
+    return listutils::typeError("function produces a stream of non-tuples.");
+  }
+
+  if(isStream){
+    funRes = nl->TwoElemList(
+               listutils::basicSymbol<Relation>(),
+               nl->Second(funRes));
+  }
+  
+
+  ListExpr resType = nl->TwoElemList(
+              isRel||isStream?listutils::basicSymbol<DFArray2>()
+                   :listutils::basicSymbol<DArray2>(),
+               funRes);
+
+  return nl->ThreeElemList(
+          nl->SymbolAtom(Symbols::APPEND()),
+          nl->ThreeElemList( nl->TextAtom(nl->ToString(rfun)),
+                            nl->BoolAtom(isRel),
+                            nl->BoolAtom(isStream)),
+          resType
+       ); 
+}
+
+
+class Mapper{
+ public: 
+   Mapper(DFArray2* _array, CcString* _name, FText* _funText ,
+          bool _isRel, bool _isStream, void* res):
+          array(_array), ccname(_name), funText(_funText), isRel(_isRel),
+          isStream(_isStream) {
+       if(isRel || isStream){
+         dfarray = (DFArray2*) res;
+         darray = 0; 
+       } else {
+         dfarray = 0;
+         darray = (DArray2*) res;
+       }
+   }
+
+   void start(){
+       if(dfarray){
+          startDFArray();
+       } else {
+          startDArray();
+       }
+    }
+
+ private:
+    DFArray2* array;
+    CcString* ccname;
+    FText* funText;
+    bool isRel;
+    bool isStream;
+    DFArray2* dfarray;
+    DArray2* darray;
+    string name;
+
+
+    void startDArray(){
+       if(!array->IsDefined()){
+         darray->makeUndefined();
+       }
+       *darray = (*array);
+       if(array->numOfWorkers()<1){
+         darray->makeUndefined();
+       }
+       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       if(!ccname->IsDefined() || ccname->GetValue().length()==0){
+          algInstance->getWorkerConnection(array->getWorker(0),dbname);
+          name = algInstance->getTempName();            
+       } else {
+          name = ccname->GetValue();
+       }
+       if(!stringutils::isIdent(name)){
+           darray->makeUndefined();
+           return;
+       }
+       darray->setName(name);
+       if(array->getSize()<1){
+          // no slots -> nothing to do
+          return;
+       }
+       int now = array->numOfWorkers();
+       vector<dRun*> w;
+       vector<boost::thread*> runners;
+       for( size_t i=0;i< array->getSize();i++){
+          ConnectionInfo* ci = algInstance->getWorkerConnection(
+                                 array->getWorker(i % now), dbname);
+          dRun* r = new dRun(ci,dbname, i, this);
+          w.push_back(r);
+          boost::thread* runner = new boost::thread(&dRun::run, r);
+          runners.push_back(runner);
+       }
+       for( size_t i=0;i< array->getSize();i++){
+          runners[i]->join();
+          delete runners[i];
+          delete w[i];
+       }
+       
+    }
+
+
+    void startDFArray(){
+       if(!array->IsDefined()){
+           dfarray->makeUndefined();
+           return;
+       }
+      *dfarray = *array;
+       
+       if(array->numOfWorkers()<1){
+          dfarray->makeUndefined();
+          return;
+       }
+
+       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       if(!ccname->IsDefined() || ccname->GetValue().length()==0){
+          algInstance->getWorkerConnection(array->getWorker(0),dbname);
+          name = algInstance->getTempName();            
+       } else {
+          name = ccname->GetValue();
+       }
+
+
+       if(!stringutils::isIdent(name)){
+           dfarray->makeUndefined();
+           return;
+       }
+       dfarray->setName(name);
+       if(array->getSize()<1){
+          return;
+       }
+
+       int now = array->numOfWorkers();
+       vector<fRun*> w;
+       vector<boost::thread*> runners;
+       for( size_t i=0;i< array->getSize();i++){
+          ConnectionInfo* ci = algInstance->getWorkerConnection(
+                                 array->getWorker(i % now), dbname);
+          fRun* r = new fRun(ci,dbname, i, this);
+          w.push_back(r);
+          boost::thread* runner = new boost::thread(&fRun::run, r);
+          runners.push_back(runner);
+       }
+       for( size_t i=0;i< array->getSize();i++){
+          runners[i]->join();
+          delete runners[i];
+          delete w[i];
+       }
+    }
+
+   
+    class fRun{
+      public:
+        fRun(ConnectionInfo* _ci, const string& _dbname, int _nr, 
+             Mapper* _mapper):
+           ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {}
+
+        void run(){
+          if(ci){
+             // create temporal function
+             string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
+                               + "_"+ stringutils::int2str(nr);
+             string cmd = "(let " + funName + " = " 
+                        + mapper->funText->GetValue() +")";
+             int err; string errMsg; string r;
+             ci->simpleCommand("delete "+funName,err,errMsg,r,false);
+             ci->simpleCommandFromList(cmd,err,errMsg,r,true);
+             if(err!=0){
+               cerr << "problem in command " << cmd;
+               cerr << "code : " << err << endl;
+               cerr << "msg : " << errMsg << endl;
+             } else {
+               string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                       + mapper->array->getName()+"_"+stringutils::int2str(nr)
+                       + ".bin";
+               string fname2 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                       + mapper->name + "_" + stringutils::int2str(nr)+".bin";
+               cmd = "query "+ funName +"( ffeed5 ('" + fname1+"'))";
+
+               if(mapper->isRel) {
+                 cmd += " feed fconsume5['"+fname2+"'] count";
+               } else {
+                 cmd += "fconsume5['"+fname2+"'] count";
+               }
+
+               ci->simpleCommand(cmd,err,errMsg,r,false);
+               if((err!=0) && (err!=2)){ // ignore type map errors
+                                         // because reason is a missing file
+                  cerr << "command " + cmd << " failed with code " << err 
+                       << endl;
+                  cerr << "message is " << errMsg;  
+               }
+               ci->simpleCommand("delete "+funName,err,errMsg,r,false);
+             } 
+          }
+
+        }
+
+      private:
+        ConnectionInfo* ci;
+        string dbname;
+        size_t nr;
+        Mapper* mapper;
+
+    };
+
+ 
+    class dRun{
+      public:
+        dRun(ConnectionInfo* _ci, const string& _dbname, int _nr, 
+             Mapper* _mapper):
+           ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {}
+
+        void run(){
+          if(ci){
+             // create temporal function
+             string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
+                              + "_" + stringutils::int2str(nr);
+             string cmd = "(let " + funName + " = " 
+                        + mapper->funText->GetValue() +")";
+             int err; string errMsg; string r;
+             ci->simpleCommand("delete "+funName,err,errMsg,r,false);
+             ci->simpleCommandFromList(cmd,err,errMsg,r,true);
+             if(err!=0){
+               cerr << "problem in command " << cmd;
+               cerr << "code : " << err << endl;
+               cerr << "msg : " << errMsg << endl;
+             } else {
+               string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                       + mapper->array->getName()+"_"+stringutils::int2str(nr)
+                       + ".bin";
+               string name2 = mapper->name + "_" + stringutils::int2str(nr);
+               cmd = "let "+ name2 +" = " + funName +"( ffeed5 ('" 
+                   + fname1+"'))";
+
+               ci->simpleCommand(cmd,err,errMsg,r,false);
+               if((err!=0) && (err!=2) ){ // ignore type map errors
+                                         // because reason is a missing file
+                  cerr << "command " + cmd << " failed with code " << err 
+                       << endl;
+                  cerr << "message is " << errMsg;  
+               }
+               ci->simpleCommand("delete "+funName,err,errMsg,r,false);
+             } 
+          }
+
+        }
+
+      private:
+        ConnectionInfo* ci;
+        string dbname;
+        size_t nr;
+        Mapper* mapper;
+
+    };
+
+
+
+
+ 
+};
+
+int dmapVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  DFArray2* array = (DFArray2*) args[0].addr;
+  CcString* name = (CcString*) args[1].addr;
+   // ignore original fun at args[2];
+  FText* funText = (FText*) args[3].addr;
+  bool isRel = ((CcBool*) args[4].addr)->GetValue();
+  bool isStream = ((CcBool*) args[5].addr)->GetValue();
+  Mapper mapper(array, name, funText, isRel, isStream, result.addr);
+  mapper.start();
+  return 0;
+}
+
+
+OperatorSpec dmapSpec(
+  "dfarray2 x string x fun -> d[f]array2",
+  "_ dmap[_,_]",
+  "Performs a function on a Distributed file array. "
+  "If the string argument is empty or undefined, a name for "
+  "the result is chosen automatically. If not, the string "
+  "specifyies the name. The result is of type dfarray2 if "
+  "the function produces a tuple stream or a relation "
+  "otherwise the result is a darray.",
+  "query dfa8 dmap[\"\", . head[23]] "
+);
+
+Operator dmapOp(
+  "dmap",
+  dmapSpec.getStr(),
+  dmapVM,
+  Operator::SimpleSelect,
+  dmapTM
+);
+
+/*
+19 TypeMapOperator DFARRAYSTREAM
+
+*/
+
+ListExpr DFARRAYSTREAMTM(ListExpr args){
+
+
+  if(!nl->HasMinLength(args,1)){
+    return listutils::typeError("too less elements");
+  }
+  ListExpr arg = nl->First(args);
+  if(!DFArray2::checkType(arg)){
+    return listutils::typeError("dfarray2 expected");
+  }
+  ListExpr res =  nl->TwoElemList(
+                      listutils::basicSymbol<Stream<Tuple> >(),
+                      nl->Second(nl->Second(arg)));
+  return res;
+
+}
+
+
+OperatorSpec DFARRAYSTREAMSPEC(
+  "DFARRAYSTREAMSPEC",
+  "dfarray(rel(X)) x ... -> stream(X) ",
+  "Type map operator.",
+  "query da8 dmap[\"\", . feed head[23]]"
+);
+
+Operator DFARRAYSTREAMOP(
+  "DFARRAYSTREAM",
+   DFARRAYSTREAMSPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   DFARRAYSTREAMTM
+);
+
+
+
+
 
 
 /*
@@ -11206,6 +11593,11 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&gettuplesOp);
    gettuplesOp.SetUsesArgsInTypeMapping();
+
+   
+   AddOperator(&dmapOp);
+   dmapOp.SetUsesArgsInTypeMapping();
+   AddOperator(&DFARRAYSTREAMOP);
 
 }
 
