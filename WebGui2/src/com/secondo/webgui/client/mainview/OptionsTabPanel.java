@@ -447,14 +447,14 @@ public class OptionsTabPanel extends Composite {
 		help.ensureDebugId("helpButton");
 		help.setVisible(true);
 		HTML helpInfo = new HTML(
-				"<h3>You can one of three options to visualize a symbolic trajectroy:</h3>"
+				"<h3>You can choose one of three options to visualize a symbolic trajectory:</h3>"
 						+ "<dl>"
 						+ "<dt><h4 style=\"color:#009DD8\">Label</h4></dt>"
 						+ "<dd>animate trajectory to see that animated point contains an always visible label representing symbolic information</dd>"
 						+ "<dt><h4 style=\"color:#009DD8\">Popup</h4></dt>"
-						+ "<dd>click on the shown on the map trajectory and popup will appear. To hide the popup click on any place of the map</dd>"
+						+ "<dd>animate trajectory. Press \"pause\" at any place where you need to get a symbolic information. The left mouse click on the animated point will show a popup with information. To hide the popup click on any part of the map</dd>"
 						+ "<dt><h4 style=\"color:#009DD8\">Color</h4></dt>"
-						+ "<dd>each component of symbolic trajectory gets a separate color for display. The meaning of the color notation in \"legend\" (menu)  or in the popup. The left click of the mouse on the trajectory initiates a popup</dd>"
+						+ "<dd>each component of symbolic trajectory gets a separate color for display. The meaning of the color notation in \"legend\" (menu)  or in the popup. The left mouse click on the trajectory will show a popup with legend info</dd>"
 						+ "</dl>");
 		helpDialog2 = new HelpDialog("Visualization options", helpInfo);
 
@@ -702,6 +702,8 @@ public class OptionsTabPanel extends Composite {
 				cleanTextInResultOfPatternMatchingLabel();
 				definedPatternWidget.setVisible(false);
 				previousNextTupleInPatternResultPanel.setVisible(false);
+				previousTupleInPattern.setEnabled(false);
+				nextTupleInPattern.setEnabled(true);
 				variablesForPattern.clear();
 			}
 		});
@@ -1986,7 +1988,7 @@ public class OptionsTabPanel extends Composite {
 		if (this.totalNumberOfTuplesInPassesResult > 0) {
 			simpleQueriesStackPanel.getPassesPanel()
 					.getVertPanWithPreviousNextTuple().setVisible(true);
-			simpleQueriesStackPanel.getPassesPanel().getPreviousTuple().setEnabled(false);
+			simpleQueriesStackPanel.getPassesPanel().getPreviousTuple().setEnabled(true);
 			simpleQueriesStackPanel.getPassesPanel().getInfoAboutTupleNo()
 					.setText("tuple No. 1");
 		}
@@ -2002,7 +2004,7 @@ public class OptionsTabPanel extends Composite {
 		if (this.totalNumberOfTuplesInPassesThroughResult > 0) {
 			simpleQueriesStackPanel.getPassesThroughRegionPanel()
 					.getVertPanWithPreviousNextTuple().setVisible(true);
-			simpleQueriesStackPanel.getPassesThroughRegionPanel().getPreviousTuple().setEnabled(false);
+			simpleQueriesStackPanel.getPassesThroughRegionPanel().getPreviousTuple().setEnabled(true);
 			simpleQueriesStackPanel.getPassesThroughRegionPanel()
 					.getInfoAboutTupleNo().setText("tuple No. 1");
 		}

@@ -38,13 +38,13 @@ public class SimpleQueriesStackPanel extends StackPanel {
 
 		String atinstantHeader = getHeaderStringLevel2("atinstant", queryIcon);
 		atinstantPanel = new SimpleQueryPanel(
-				"Through what does the trip pass at defined time?",
+				"Through what do the trips pass at defined time?",
 				"atinstant", "i.e. 2012-01-01-01:15");
 		this.add(atinstantPanel, atinstantHeader, true);
 
 		String deftimeHeader = getHeaderStringLevel2("deftime", queryIcon);
 		deftimePanel = new SimpleQueryPanel(
-				"Determine the time intervals when the trip was at ... (i.e. specified street, southeast, moderate tempo)",
+				"Determine the time intervals when the trips were at ... (i.e. specified street, southeast, moderate tempo)",
 				"deftime", "i.e. Baker St");
 		this.add(deftimePanel, deftimeHeader, true);
 
