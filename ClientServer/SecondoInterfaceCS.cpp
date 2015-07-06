@@ -838,14 +838,11 @@ string SecondoInterfaceCS::getSendFilePath(){
 
 int SecondoInterfaceCS::getPid(){
 
-   cout << "called getPID" << endl;
    iostream& iosock = server->GetSocketStream();
    iosock << "<SERVER_PID>" << endl;
    iosock.flush();
    string line;
    getline(iosock,line);
-
-   cout << "server sends line " << line << endl;
 
    bool correct;
    int res =  stringutils::str2int<int>(line, correct); 
