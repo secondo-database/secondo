@@ -233,11 +233,11 @@ int rtf2txtVM(Word* args, Word& result,
 const string rtf2txtSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> text -> text </text--->"
-    "<text> rtf2txt ( Name ) </text--->"
-    "<text>Converts a given rtf FText into FText text" 
-    " using unrtf linux tool. Returns the FText text, if this succeeds "
+    "<text> rtf2txt ( text ) </text--->"
+    "<text>Converts a given rtf text into a sinple text" 
+    " using the unrtf linux tool. Returns the simple text, if this succeeds "
     "and UNDEFINED if any error occurs.</text--->"
-    "<text> query rtf2txt('anyFtext')  </text--->"
+    "<text> query rtf2txt('anyrtftext')  </text--->"
     ") )";
 
 
