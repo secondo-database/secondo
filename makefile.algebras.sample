@@ -382,6 +382,12 @@ ALGEBRAS     += JNetAlgebra
 #JNI_ALGEBRA_DIRS += Rose
 #JNIALGEBRAS      += RoseAlgebra
 
+#see readme.txt in the Conversion folder for further information
+#ALGEBRA_DIRS += Conversion
+#ALGEBRAS     += ConversionAlgebra
+
+
+
 endif
 
 ALGEBRA_DEPS := $(sort $(ALGEBRA_DEPS))
