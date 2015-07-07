@@ -232,7 +232,7 @@ int rtf2txtVM(Word* args, Word& result,
 
 const string rtf2txtSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> {text} -> text </text--->"
+    "( <text> text -> text </text--->"
     "<text> rtf2txt ( Name ) </text--->"
     "<text>Converts a given rtf FText into FText text" 
     " using unrtf linux tool. Returns the FText text, if this succeeds "
