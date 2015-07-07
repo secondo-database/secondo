@@ -10,7 +10,7 @@
 # make
 # sudo make install
 #
-# If this does not work on Ubuntu, you can use
+# If this do not work on Ubuntu, you can use
 # 
 # make all
 # sudo apt-get install unrtf
