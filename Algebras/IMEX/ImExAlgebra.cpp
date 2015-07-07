@@ -5022,17 +5022,17 @@ Operator removeFile ( "removeFile",
 
 This operator converts a given rtf file into a text file and save it in txt format 
 
-10.2.1 Type Mapping for ~rtf2txt~
+10.2.1 Type Mapping for ~rtf2txtfile~
 
 Uses ~stringORtext2boolTM~
 
-10.2.2 Value Mapping for ~rtf2txt~
+10.2.2 Value Mapping for ~rtf2txtfile~
 
 */
 #ifndef SECONDO_WIN32
  
 template<class T>
-int rtf2txtVM(Word* args, Word& result,
+int rtf2txtfileVM(Word* args, Word& result,
                  int message, Word& local, Supplier s)
 {
 
@@ -5097,12 +5097,13 @@ int rtf2txtVM(Word* args, Word& result,
 } 
   
   
+  
 
-ValueMapping rtf2txtvaluemap[] = {rtf2txtVM<CcString>,
-                                  rtf2txtVM<FText>};
+ValueMapping rtf2txtfilevaluemap[] = {rtf2txtfileVM<CcString>,
+                                  rtf2txtfileVM<FText>};
 
 /*
-10.2.3 Selection Function for ~rtf2txt~
+10.2.3 Selection Function for ~rtf2txtfile~
 
 Uses ~stringORtextSelect~
 
@@ -5111,13 +5112,13 @@ Uses ~stringORtextSelect~
 
 
 /*
-10.2.4 Specification  for ~rtf2txt~
+10.2.4 Specification  for ~rtf2txtfile~
 
 */
 
 
 
-const string rtf2txtSpec  =
+const string rtf2txtfileSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> {text|string} -> bool </text--->"
     "<text> rtf2text ( Name ) </text--->"
@@ -5125,7 +5126,7 @@ const string rtf2txtSpec  =
     " using unrtf linux tool. Returns TRUE, if this succeeds and FALSE if the "
     "file could not be converted or opened. And UNDEFINED if any "
     "error occurs.</text--->"
-    "<text> query rtf2txt('text.rtf')  </text--->"
+    "<text> query rtf2txtfile('text.rtf')  </text--->"
     ") )";
 
 
@@ -5135,15 +5136,15 @@ const string rtf2txtSpec  =
 
 
 /*
-10.2.5 Operator Instance for operator ~rtf2txt~
+10.2.5 Operator Instance for operator ~rtf2txtfile~
 
 */
 
 
-Operator rtf2txt ( "rtf2txt",
-                   rtf2txtSpec,
+Operator rtf2txtfile ( "rtf2txtfile",
+                   rtf2txtfileSpec,
                    2,
-                   rtf2txtvaluemap,
+                   rtf2txtfilevaluemap,
                    stringORtextSelect,
                    stringORtext2boolTM);
 
@@ -6994,7 +6995,7 @@ public:
     AddOperator( &sqlExport);
     AddOperator( &importGHT1);
     #ifndef SECONDO_WIN32
-    AddOperator( &rtf2txt);
+    AddOperator( &rtf2txtfile);
     #endif
   }
   ~ImExAlgebra() {};

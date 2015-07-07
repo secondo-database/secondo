@@ -149,16 +149,16 @@ Signature: text -> bool
 Example  : query removeFile('Blabberblubb.dir')
 Result   : FALSE
 
-Operator : rtf2txt
+Operator : rtf2txtfile
 Number   : 1
 Signature: string -> bool
-Example  : query rtf2txt("test.rtf")
+Example  : query rtf2txtfile("test.rtf")
 Result   : FALSE
 
-Operator : rtf2txt
+Operator : rtf2txtfile
 Number   : 2
 Signature: text -> bool
-Example  : query rtf2txt("test.rtf")
+Example  : query rtf2txtfile("test.rtf")
 Result   : FALSE
 
 
