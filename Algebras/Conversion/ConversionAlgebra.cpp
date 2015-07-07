@@ -99,18 +99,17 @@ extern AlgebraManager* am;
 
 
 
-
 /*
 
-1  Operator ~rtftxt2text~
+1  Operator ~rtf2txt~
 
 This operator converts a given Ftext into a text  FileSystem::DeleteFileOrFolder(fileNameS)
 
-1.1 Type Mapping for ~rtftxt2txt~
+1.1 Type Mapping for ~rtf2txt~
 
 */
 
-ListExpr rtftxt2txttypemap( ListExpr args )
+ListExpr rtf2txttypemap( ListExpr args )
 {
   if(!nl->HasLength(args,1))
    {
@@ -137,13 +136,13 @@ ListExpr rtftxt2txttypemap( ListExpr args )
 
 /*
 
-1.2 Value Mapping for ~rtftxt2txt~
+1.2 Value Mapping for ~rtf2txt~
 
 */
 #ifndef SECONDO_WIN32
  
 
-int rtftxt2txtVM(Word* args, Word& result,
+int rtf2txtVM(Word* args, Word& result,
                  int message, Word& local, Supplier s)
 {
 
@@ -207,13 +206,13 @@ int rtftxt2txtVM(Word* args, Word& result,
  
   
   
-//ValueMapping rtftxt2txtvaluemap[] = {rtftxt2txtVM<FText>};
+//ValueMapping rtf2txtvaluemap[] = {rtf2txtVM<FText>};
 
 
 
 
 /*
-1.3 Selection Function for ~rtftxt2txt~
+1.3 Selection Function for ~rtf2txt~
 
 */
 
@@ -225,18 +224,18 @@ int rtftxt2txtVM(Word* args, Word& result,
 
 
 /*
-1.4 Specification  for ~rtftxt2txt~
+1.4 Specification  for ~rtf2txt~
 
 */
 
 
 
-const string rtftxt2txtSpec  =
+const string rtf2txtSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> {FText} -> FText </text--->"
-    "<text> rtftxt2text ( Name ) </text--->"
+    "( <text> {text} -> text </text--->"
+    "<text> rtf2txt ( Name ) </text--->"
     "<text>Converts a given rtf FText into FText text" 
-    " using unrtf linux tool. Returns the FText text, if this succeeds"
+    " using unrtf linux tool. Returns the FText text, if this succeeds "
     "and UNDEFINED if any error occurs.</text--->"
     "<text> query rtf2txt('anyFtext')  </text--->"
     ") )";
@@ -246,7 +245,6 @@ const string rtftxt2txtSpec  =
  
  
 
-
 /*
 1.5 Operator Instance for operator ~rtf2txt~
 
@@ -254,11 +252,11 @@ const string rtftxt2txtSpec  =
 
 
 
-Operator rtftxt2txt ( "rtftxt2txt",
-                   rtftxt2txtSpec,
-                   rtftxt2txtVM,
+Operator rtf2txt ( "rtf2txt",
+                   rtf2txtSpec,
+                   rtf2txtVM,
                    Operator::SimpleSelect,
-                   rtftxt2txttypemap );
+                   rtf2txttypemap );
          
                   
 
@@ -288,7 +286,7 @@ public:
   {
     
     #ifndef SECONDO_WIN32
-    AddOperator( &rtftxt2txt);
+    AddOperator( &rtf2txt);
     #endif
   }
   ~ConversionAlgebra() {};

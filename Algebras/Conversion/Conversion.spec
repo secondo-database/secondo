@@ -17,4 +17,4 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator rtftxt2txt alias RTFTXT2TXT pattern  op( _ )
+operator rtf2txt alias RTF2TXT pattern  op( _ )
