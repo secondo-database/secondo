@@ -101,11 +101,32 @@ public class AttributeFormatter
 				return ListExpr.stringAtom(pValue);
 			if (pType.equals("text"))
 				return ListExpr.textAtom(pValue);
+	
+					
+			
+			
+			if(pType.equals("date"))
+			
+			 { String date = "date";  
+			 
+			  ListExpr tt = ListExpr.twoElemList (ListExpr.symbolAtom(date), ListExpr.stringAtom(pValue.trim()));
+			           
+                          
+                          return tt;
+                          
+			 }
+			
 			
 			// non-atomar attributes
 			ListExpr le = new ListExpr();
 			le.readFromString("(" + pType + " " + pValue + ")");
 			return le;
+			
+			
+			
+			
+			
+			
 		}
 		catch (Exception e)
 		{

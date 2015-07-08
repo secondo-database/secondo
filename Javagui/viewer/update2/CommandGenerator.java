@@ -150,6 +150,7 @@ public class CommandGenerator
 					{
 						value = tuple.getValueAt(i);
 						ListExpr LE = AttributeFormatter.fromStringToListExpr(type, value);
+						
 						if(LE==null)
 						{
 							throw new InvalidFormatException("Invalid Format for " + type, j*tupleSize+i, 2);
@@ -271,15 +272,18 @@ public class CommandGenerator
 				updateCommand.append("(" + name);
 				updateCommand.append("( fun ( tuple" + (index+1) + " TUPLE )");
 				
-				ListExpr le = AttributeFormatter.fromStringToListExpr(type, value);
-				
+				ListExpr le = AttributeFormatter.fromStringToListExpr(type, value);			  
+				  
+				 
+								
 				if(le==null)
 				{
 					throw new InvalidFormatException("Invalid Format for " + type, tid*tupleSize+index, 2);
 				}
 					
 				leString = le.writeListExprToString();				
-				updateCommand.append("( " + type + " " + leString + ") ");		
+				//updateCommand.append("( " + type + " " + leString + ") ");	
+				updateCommand.append(leString.toString());
 				updateCommand.append("))");
 			}
 			
