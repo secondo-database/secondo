@@ -42,6 +42,7 @@ of this software.
 #include <unistd.h>
 #include <netdb.h>
 #include <errno.h>
+#include <limits>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -1517,7 +1518,7 @@ public:
       gettimeofday(&curtime, NULL);
       configuration->programstart = (time_t) curtime.tv_sec;
       configuration->beginoffset = 0;
-      configuration->endoffset = 0;
+      configuration->endoffset = numeric_limits<time_t>::max();
       configuration->updaterate = 1;
       configuration->simulationspeed = 1;
    
