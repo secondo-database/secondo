@@ -60,6 +60,7 @@ public class Configuration {
 		public String secondoHost;
 		public String secondoDatabase;
 		public String secondoRelation;
+		public int transferPort;
 		public Boolean useipointconversion;
 		public String ipointconversionattribute;
 		public String representationClass;

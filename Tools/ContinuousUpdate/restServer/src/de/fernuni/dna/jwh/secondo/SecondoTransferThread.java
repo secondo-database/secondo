@@ -79,17 +79,17 @@ public class SecondoTransferThread extends Thread {
 				// Get the next tuple and send it
 				try {
 					NLRepresentation o = manager.getTuple();
-					
-					//Check if the connection is still available
+
+					// Check if the connection is still available
 					if (!connection.isReceiving()) {
 						throw new SecondoException("Receive-Statement failed");
 					}
-					
-					//Transfer the tuple
+
+					// Transfer the tuple
 					transfer(o);
-					//Mark the tuple as processed
+					// Mark the tuple as processed
 					manager.processedOK();
-					
+
 					log4j.debug("Sent: " + o);
 				} catch (InterruptedException e) {
 					log4j.info("Transfer-Thread was Interrupted, quitting");
@@ -107,9 +107,20 @@ public class SecondoTransferThread extends Thread {
 				socket.close();
 				serverSocket.close();
 				if (!(e instanceof InterruptedException)) {
-					manager.restartTransfer(handler);
+					boolean retry = true;
+					while (retry) {
+						try {
+							Thread.sleep(1000);
+							manager.restartTransfer(handler);
+							retry = false;
+						} catch (IOException | SecondoException e2) {
+							log4j.error(e2);
+						} catch (InterruptedException e1) {
+							retry = false;
+						}
+					}
 				}
-			} catch (IOException | SecondoException e1) {
+			} catch (IOException e1) {
 				log4j.error(e1);
 			}
 			connection.closeConnection();

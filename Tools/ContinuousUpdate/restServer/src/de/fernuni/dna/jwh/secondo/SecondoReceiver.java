@@ -67,7 +67,9 @@ class SecondoReceiver extends Thread {
 					+ ipointConversion
 					+ " owntransactioninsert[\""
 					+ Configuration.values.handlers.get(handler).secondoRelation
-					+ "\"] providemessages[9000] count";
+					+ "\"] providemessages["
+					+ Configuration.values.handlers.get(handler).transferPort
+					+ "] count";
 			log4j.info("Statement:" + stmt);
 
 			secondoConnection.call(stmt, true);
