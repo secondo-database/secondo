@@ -2529,7 +2529,7 @@ public class HoeseViewer extends SecondoViewer {
 	 *            The rate (in ms) at which the GUI should be updated
 	 */
 	private void runOnlineResults(String relationName, String filter,
-			Integer tupleLimit, Integer updateRate, Boolean isSimulation,
+			Integer tupleLimit, Integer updateRate, String remotePort, Boolean isSimulation,
 			Date currentTime, int currentTimeOffset, double speedFactor) {
 
 		// Set tail function, if tupleLimit > 0
@@ -2543,7 +2543,7 @@ public class HoeseViewer extends SecondoViewer {
 			if (CurrentQueryResult.getListExpr().second().listLength() > 0) {
 				CurrentQueryResult.reduceModels(tupleLimit, this);
 				onlineReceiver = new OnlineResultsReceiver(this, filter,
-						tupleLimit, updateRate, OnlineBtn, CurrentQueryResult);
+						tupleLimit, updateRate, remotePort, OnlineBtn, CurrentQueryResult);
 
 				// Update the Button Listeners
 				for (ActionListener al : OnlineBtn.getActionListeners()) {
@@ -2626,7 +2626,7 @@ public class HoeseViewer extends SecondoViewer {
 				
 				runOnlineResults(dialog.getRelationName(),
 						dialog.getFilterCommand(), dialog.getMaxTuples(),
-						dialog.getUpdateRate(), dialog.isSimulation(),
+						dialog.getUpdateRate(), dialog.getRemotePort(), dialog.isSimulation(),
 						dialog.getCurrentTime(), dialog.getCurrentTimeOffset(),
 						dialog.getSpeedFactor());
 

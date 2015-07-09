@@ -9,9 +9,11 @@ import java.util.Date;
 import javax.swing.JButton;
 
 import sj.lang.ESInterface;
+import sj.lang.IntByReference;
 import sj.lang.ListExpr;
 import sj.lang.MessageListener;
 import viewer.HoeseViewer;
+import viewer.hoese.HoeseOnlineDialog;
 import viewer.hoese.QueryResult;
 
 /**
@@ -27,6 +29,7 @@ public class OnlineResultsReceiver implements MessageListener {
 	private JButton button;
 	private ListExpr cache;
 	private ListExpr lastCachedItem;
+	private String remotePort;
 	private Integer tupleLimit;
 	private Integer updateRate;
 	private long lastUpdate;
@@ -46,13 +49,14 @@ public class OnlineResultsReceiver implements MessageListener {
 	 *            The QueryResult which sould be used
 	 */
 	public OnlineResultsReceiver(HoeseViewer hoese, String filter,
-			Integer tupleLimit, Integer updateRate, JButton button,
-			final QueryResult qr) {
+			Integer tupleLimit, Integer updateRate, String remotePort,
+			JButton button, final QueryResult qr) {
 		this.qr = qr;
 		this.hoese = hoese;
 		this.button = button;
 		this.tupleLimit = tupleLimit;
 		this.updateRate = updateRate;
+		this.remotePort = remotePort;
 
 		// Initialize the cache
 		resetCache();
@@ -62,7 +66,7 @@ public class OnlineResultsReceiver implements MessageListener {
 
 		// Register this instance to receive incoming tuples
 		hoese.getViewerControl().addMessageListener(this);
-		cmdThread = new AsyncRequestThread(this, filter,
+		cmdThread = new AsyncRequestThread(this, filter, remotePort,
 				hoese.getViewerControl());
 		cmdThread.start();
 	}
@@ -111,9 +115,6 @@ public class OnlineResultsReceiver implements MessageListener {
 		qr.addTuples(hoese, cache, tupleLimit);
 		Date d = new Date();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		System.out.println("PERF;addTuples; " + sdf.format(d) + ";"
-				+ (System.currentTimeMillis() - start) + ";"
-				+ cache.listLength());
 		resetCache();
 	}
 
@@ -139,12 +140,31 @@ public class OnlineResultsReceiver implements MessageListener {
 		enabled = false;
 
 		// Reconnect
-		((ESInterface) MainWindow.getUpdateInterface()).connect();
+		((ESInterface) MainWindow.getUpdateInterface()).terminate();
+
 		cmdThread.interrupt();
 		try {
 			cmdThread.join();
 		} catch (InterruptedException e) {
 		}
+
+		while (!((ESInterface) MainWindow.getUpdateInterface()).isConnected()) {
+			((ESInterface) MainWindow.getUpdateInterface()).connect();
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+			}
+		}
+
+		// Open the previous database
+		ListExpr l = new ListExpr();
+		IntByReference i1 = new IntByReference();
+		IntByReference i2 = new IntByReference();
+		StringBuffer sb = new StringBuffer();
+
+		((ESInterface) MainWindow.getUpdateInterface()).secondo(
+				"open database " + HoeseOnlineDialog.lastValues.database, l,
+				i1, i2, sb);
 	}
 
 	/**

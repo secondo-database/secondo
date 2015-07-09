@@ -6,28 +6,36 @@ import sj.lang.ListExpr;
 
 /**
  * Starts a thread to run a Query which provieds the online updates
+ * 
  * @author secondo
  *
  */
-public class AsyncRequestThread extends Thread{
+public class AsyncRequestThread extends Thread {
 
 	private ViewerControl vc;
 	private OnlineResultsReceiver receiver;
 	private String filter;
-	
+	private String remotePort;
+
 	/**
 	 * Constructor
-	 * @param receiver Receiver which controls the handling of the received tuples
-	 * @param filter Filter command to be used in the query
-	 * @param vc ViewerControl running the query
+	 * 
+	 * @param receiver
+	 *            Receiver which controls the handling of the received tuples
+	 * @param filter
+	 *            Filter command to be used in the query
+	 * @param vc
+	 *            ViewerControl running the query
 	 */
-	public AsyncRequestThread(OnlineResultsReceiver receiver, String filter, ViewerControl vc){
+	public AsyncRequestThread(OnlineResultsReceiver receiver, String filter,
+			String remotePort, ViewerControl vc) {
 		super();
 		this.vc = vc;
 		this.receiver = receiver;
 		this.filter = filter;
+		this.remotePort = remotePort;
 	}
-	
+
 	/**
 	 * Method run by the Thread-Framework
 	 */
@@ -38,7 +46,8 @@ public class AsyncRequestThread extends Thread{
 		IntByReference errorCode = new IntByReference();
 		IntByReference errorPos = new IntByReference();
 		StringBuffer errorMessage = new StringBuffer();
-		vc.execCommand("query receivenlstream(\"localhost\",9000) " + filter + " sendmessages count");
+		vc.execCommand("query receivenlstream(\"localhost\"," + remotePort
+				+ ") " + filter + " sendmessages count");
 		System.out.println(resultList.toString());
 		System.out.println(errorCode.value);
 		System.out.println(errorPos.value);
@@ -46,5 +55,4 @@ public class AsyncRequestThread extends Thread{
 		receiver.disable();
 	}
 
-	
 }
