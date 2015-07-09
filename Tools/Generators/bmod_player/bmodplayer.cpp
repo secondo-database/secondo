@@ -1618,7 +1618,7 @@ private:
       cerr << "Player for BerlinMod data, version " << VERSION << endl;
       cerr << endl;
       cerr << "Usage: " << progName << " -i <inputfile> -o <statisticsfile> ";
-      cerr << "-u <connection url> -s <adaptive|fixed> {-b <beginoffset>}";
+      cerr << "-u <connection url> -s <adaptive|fixed> {-b <beginoffset>} ";
       cerr << "{-e <endoffset>} {-r update rate} {-f simulation speed up}";
       cerr << endl;
       cerr << endl;
