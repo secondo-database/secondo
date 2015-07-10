@@ -31,6 +31,7 @@ class MemoryRelObject;
 class MemoryAttributeObject;
 class MemoryRtreeObject;
 
+
 class MemCatalog {
 
     public:
@@ -82,24 +83,14 @@ class MemoryObject {
         size_t getMemSize ();
 
         string getObjectTypeExpr();
-        void setObjectTypeExpr(string oTE);
+       // void setObjectTypeExpr(string oTE);
         void toStringOut(){
             cout<<"MemoryObject und die Membervariablen lauten: "<<endl;
             cout<<"2. memsize: "<<memSize<<endl;
             cout<<"4. objectTypeExpr: "<<objectTypeExpr<<endl;
         }
 
-
-        static ListExpr Out( ListExpr typeInfo, Word value );
-
-        static ListExpr Property();
-
         static const string BasicType() { return "memoryObject"; }
-
-        static const bool checkType(const ListExpr type){
-            return listutils::isSymbol(type, BasicType());
-           // return nl->IsEqual(type, BasicType());
-        }
 
     protected:
         size_t memSize;              // object size in main memory in byte
@@ -121,6 +112,7 @@ class MemoryRelObject : public MemoryObject {
         MemoryRelObject();
         MemoryRelObject(vector<Tuple*>* _mmrel,
                     size_t _memSize, string _objectTypeExpr);
+        MemoryRelObject (string _objectTypeExpr);
         ~MemoryRelObject();
 
         vector<Tuple*>* getmmrel();
@@ -135,30 +127,32 @@ class MemoryRelObject : public MemoryObject {
             cout<<"5. Adresse des TupleVektors ist: "<<&mmrel<<endl;
         }
 
+        ListExpr toListExpr();
 
-//        static Word In( const ListExpr typeInfo, const ListExpr instance,
-//                        const int errorPos, ListExpr& errorInfo,
-//                        bool& correct );
+        static Word In( const ListExpr typeInfo, const ListExpr instance,
+                        const int errorPos, ListExpr& errorInfo,
+                        bool& correct );
 
         static ListExpr Out( ListExpr typeInfo, Word value );
+
+        static bool KindCheck( ListExpr type, ListExpr& errorInfo );
+
+        static Word create(const ListExpr typeInfo);
+
+        static int SizeOfObj();
+
+        static void deleteMemoryRelObject(const ListExpr typeInfo, Word& w);
 
         static ListExpr Property();
 
         static const string BasicType() { return "memoryRelObject"; }
 
-        static const bool checkType(const ListExpr type){
-            return listutils::isSymbol(type, BasicType());
-           // return nl->IsEqual(type, BasicType());
-        }
+        static const bool checkType(const ListExpr type);
 
     private:
         vector<Tuple*>* mmrel;
 
 };
-
-
-
-
 
 
 class MemoryAttributeObject : public MemoryObject {

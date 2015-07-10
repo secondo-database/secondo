@@ -98,8 +98,15 @@ Signature : string x string x T -> stream(tuple) where T in {rect<d>} U SPATIAL2
 Example   : query mwindowintersects("strassen_GeoData", "strassen", bbox(thecenter)) count
 Result    : 1266
 
-Operator  : memclear
+Operator  : mconsume
 Number    : 17
+Signature : stream(tuple) -> memoryRelObject
+Example   : query "ten" mfeed mconsume
+Result    : TRUE
+
+
+Operator  : memclear
+Number    : 18
 Signature : -> bool
 Example   : query memclear ()
 Result    : TRUE

@@ -31,3 +31,4 @@ operator memsize alias MEMSIZE pattern op()
 operator memclear alias MEMCLEAR pattern op()
 operator minsert alias MINSERT pattern op(_,_)
 operator mwindowintersects alias MWINDOWINTERSECTS pattern op(_,_,_)
+operator mconsume alias MCONSUME pattern _ op

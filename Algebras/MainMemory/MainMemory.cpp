@@ -145,70 +145,39 @@ size_t MemoryObject::getMemSize (){
 string MemoryObject::getObjectTypeExpr(){
     return objectTypeExpr;
 }
-void MemoryObject::setObjectTypeExpr(string oTE){
-    objectTypeExpr=oTE;
-};
-
-//Testweise
-ListExpr MemoryObject::Out( ListExpr typeInfo, Word value ){
-
-    ListExpr li = nl->IntAtom(23);
-    return li;
-
-}
-
-
-//nochmal!!!
-ListExpr MemoryObject::Property(){
-    return (nl->TwoElemList (
-        nl->FourElemList (
-            nl->StringAtom("Signature"),
-            nl->StringAtom("Example Type List"),
-            nl->StringAtom("List Rep"),
-            nl->StringAtom("Example List")),
-        nl->FourElemList (
-            nl->StringAtom("-> SIMPLE"), //nicht doch eher rel -> ja nach was??
-            nl->StringAtom(MemoryObject::BasicType()),
-            nl->StringAtom("??A List of tuples"),
-            nl->StringAtom(("Meyer, 7"),("Muller, 5"))
-            )));
-}
+//void MemoryObject::setObjectTypeExpr(string oTE){
+//    objectTypeExpr=oTE;
+//};
 
 
 
-TypeConstructor MemoryObjectTC(
-    MemoryObject::BasicType(),     // name of the type in SECONDO
-    MemoryObject::Property,        // property function describing signature
-    MemoryObject::Out, 0,          // out und in functions
-    0, 0,                             // SaveToList, RestoreFromList functions
-    0,0,                             // object creation and deletion
-    0, 0,                            // object open, save
-    0,0,                             // close and clone
-    0,                                // cast function
-    0,                        // sizeof function
-    0);                          // kind checking function
-
-
+// MEMORYRELOBJECT
 
 MemoryRelObject::MemoryRelObject(){};
 MemoryRelObject::MemoryRelObject(vector<Tuple*>* _mmrel,
                 size_t _memSize, string _objectTypeExpr){
         mmrel = _mmrel;
         memSize = _memSize;
-        objectTypeExpr =_objectTypeExpr;
+        objectTypeExpr = _objectTypeExpr;
+};
+MemoryRelObject::MemoryRelObject (string _objectTypeExpr){
+        objectTypeExpr = _objectTypeExpr;
+        mmrel = 0;
+        memSize = 0;
 };
 
 MemoryRelObject::~MemoryRelObject(){
-    vector<Tuple*>::iterator it = mmrel->begin();
-    while (it!=mmrel->end()){
-        Tuple* tup = *it;
-        tup->DeleteIfAllowed();
-        tup = 0;
-        it++;
-    }
+    if (!mmrel==0){
+        vector<Tuple*>::iterator it = mmrel->begin();
+        while (it!=mmrel->end()){
+            Tuple* tup = *it;
+            tup->DeleteIfAllowed();
+            tup = 0;
+            it++;
+        }
     delete mmrel;
+    }
 }
-
 vector<Tuple*>* MemoryRelObject::getmmrel(){
     return mmrel;
 };
@@ -221,11 +190,14 @@ void MemoryRelObject::setmmrel(vector<Tuple*>* _mmrel){
 
 void MemoryRelObject::addTuple(Tuple* tup){
 
+    if(mmrel==0){
+    mmrel = new vector<Tuple*>();
+    }
+
     int tupleSize = 0;
     tupleSize = tup->GetMemSize();
     size_t availableMemSize =
             (catalog.getMemSizeTotal()*1024*1024)-catalog.getUsedMemSize();
-
     if ((size_t)tupleSize<availableMemSize){
                 mmrel->push_back(tup);
                 memSize += tupleSize;
@@ -241,49 +213,121 @@ void MemoryRelObject::addTuple(Tuple* tup){
                                                 }
 }
 
-
-
-
-//
-// Word MemoryRelObject::In( const ListExpr typeInfo, const ListExpr instance,
-//                       const int errorPos, ListExpr& errorInfo,
-//                        bool& correct ){
-//
-//  correct = false;
-//    Word result = SetWord(Address(0));
-//    const string errMsg = "Leider ist in noch nicht implementiert";
-//    return result;
-//
-//}
-
-ListExpr MemoryRelObject::Out( ListExpr typeInfo, Word value ){
-
-    MemoryRelObject* memRel = static_cast<MemoryRelObject*>( value.addr );
-    int vectorSize = memRel->mmrel->size();
-    ListExpr objectTypeExpr = 0;
-    string type = memRel->getObjectTypeExpr();
-    nl->ReadFromString(type, objectTypeExpr);
-
-    Tuple* t = memRel->mmrel->at(0);
-    ListExpr l=0;
-    l=t->Out(objectTypeExpr);
-    ListExpr last = l;
-    ListExpr temp = 0;;
-
-    cout << "erstes Tupel: "<<nl->ToString(l);
-    cout << "VectorGrösse"<< vectorSize << endl;
-
+ListExpr MemoryRelObject::toListExpr(){
+    int vectorSize = mmrel->size();
+    ListExpr typeListExpr = 0;
+    string typeString = objectTypeExpr;
+    nl->ReadFromString(typeString, typeListExpr);
+    //speichere ich insgesamt falsche objectTypeExpr????
+    //ohne folgende Zeile Fehler in der Tupel out Methode
+    ListExpr oTE = nl->OneElemList(typeListExpr);
+    Tuple* t = mmrel->at(0);
+    ListExpr li=nl->OneElemList(t->Out(oTE));
+    ListExpr last = li;
     for (int i=1; i<vectorSize; i++){
-        t=memRel->mmrel->at(i);
-        temp=t->Out(objectTypeExpr);
-        last = nl->Append(last,temp);
+        t=mmrel->at(i);
+        last = nl->Append(last, t->Out(oTE));
     }
-    cout<< "meine MemoryRelObject out-Funktion..."<<nl->ToString(last)<< endl;
-    return last;
+    ListExpr memoryObjectdescription = nl->TwoElemList(nl->SymbolAtom
+                    (MemoryRelObject::BasicType()), typeListExpr);
+
+    return nl->TwoElemList(memoryObjectdescription, li);
 };
 
 
 
+ Word MemoryRelObject::In( const ListExpr typeInfo, const ListExpr instance,
+                       const int errorPos, ListExpr& errorInfo,
+                        bool& correct ){
+cout<<"Start MemoryRelObject::in"<<endl;
+    // ToDO list is correct?
+
+    Word result;
+
+    correct = true;
+    Tuple* tup;
+    ListExpr tupleList;
+    ListExpr tupleTypeInfo;
+    ListExpr first;
+    int tupleno;
+    bool tupleCorrect;
+    MemoryRelObject* mmrelObj =
+            new MemoryRelObject(nl->ToString(nl->Second(typeInfo)));
+
+
+    tupleList = instance;
+    tupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
+        nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
+    tupleno = 0;
+
+    while (!nl->IsEmpty(tupleList)){
+        first = nl->First(tupleList);
+        tupleList = nl->Rest(tupleList);
+        tupleno++;
+        tup = Tuple::In(tupleTypeInfo, first, tupleno,
+                            errorInfo, tupleCorrect);
+
+        if (tupleCorrect){
+            mmrelObj->addTuple(tup);
+
+           // tup->DeleteIfAllowed();             ????????????
+    //        count++;
+        }
+        else {
+            correct = false;
+        }
+    }
+
+    if(!correct){
+        result = SetWord(Address(0));
+    } else {
+
+        result.addr = mmrelObj;
+    }
+    cout<<"Ende MemoryRelObject::in"<<endl;
+    return result;
+}
+
+
+ListExpr MemoryRelObject::Out( ListExpr typeInfo, Word value ){
+    MemoryRelObject* memRel = static_cast<MemoryRelObject*>( value.addr );
+    return memRel->toListExpr();
+
+};
+
+bool MemoryRelObject::KindCheck( ListExpr type, ListExpr& errorInfo )
+{
+    ListExpr first = nl->First(type);
+    ListExpr second = nl->Second(type);
+    return (listutils::isTupleDescription(second) &&
+        (nl ->IsEqual(first,BasicType())));
+}
+
+const bool MemoryRelObject::checkType(const ListExpr type){
+    ListExpr first = nl->First(type);
+    ListExpr second = nl->Second(type);
+    return (listutils::isTupleDescription(second) &&
+        (nl ->IsEqual(first,BasicType())));
+        }
+
+
+Word MemoryRelObject::create(const ListExpr typeInfo) {
+    //muss eventuell Second(typeInfo) sein??
+    MemoryRelObject* mmrelObject = new MemoryRelObject
+        ( nl->ToString(nl->Second(typeInfo)));
+    return (SetWord(mmrelObject));
+}
+
+int MemoryRelObject::SizeOfObj(){
+
+    return 1111111111;
+};
+
+void MemoryRelObject::deleteMemoryRelObject(const ListExpr typeInfo, Word& w){
+    MemoryRelObject* memRelO = (MemoryRelObject*)w.addr;
+    delete memRelO;
+    w.addr = 0;
+};
 
 //nochmal!!!
 ListExpr MemoryRelObject::Property(){
@@ -294,26 +338,18 @@ ListExpr MemoryRelObject::Property(){
             nl->StringAtom("List Rep"),
             nl->StringAtom("Example List")),
         nl->FourElemList (
-            nl->StringAtom("-> SIMPLE"), //nicht doch eher rel -> ja nach was??
+            nl->StringAtom("-> SIMPLE"),
             nl->StringAtom(MemoryRelObject::BasicType()),
-            nl->StringAtom("??A List of tuples"),
+            nl->StringAtom("List of tuples"),
             nl->StringAtom(("Meyer, 7"),("Muller, 5"))
             )));
 }
 
 
 
-TypeConstructor MemoryRelObjectTC(
-    MemoryRelObject::BasicType(),     // name of the type in SECONDO
-    MemoryRelObject::Property,        // property function describing signature
-    MemoryRelObject::Out, 0,          // out und in functions
-    0, 0,                             // SaveToList, RestoreFromList functions
-    0,0,                             // object creation and deletion
-    0, 0,                            // object open, save
-    0,0,                             // close and clone
-    0,                                // cast function
-    0,      // sizeof function
-    0);      // kind checking function
+
+// MEMORYATTRIBUTEOBJECT
+
 
 MemoryAttributeObject::MemoryAttributeObject(Attribute* _attr,
                     size_t _memSize, string _objectTypeExpr){

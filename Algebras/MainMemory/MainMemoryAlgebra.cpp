@@ -1886,7 +1886,6 @@ ListExpr mwindowintersectsTypeMap(ListExpr args)
       "'rect4', or 'rect8'.");
   }
 
-
 return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),oTE_Rel);
 }
 
@@ -1994,7 +1993,7 @@ int mwindowintersectsValMap (Word* args, Word& result,
 
 /*
 
-5.12.4 Description of operator ~mwindowintersects~
+5.14.4 Description of operator ~mwindowintersects~
 
 */
 
@@ -2011,7 +2010,7 @@ OperatorSpec mwindowintersectsSpec(
 
 /*
 
-5.12.5 Instance of operator ~mwindowintersects~
+5.14.5 Instance of operator ~mwindowintersects~
 
 */
 
@@ -2022,6 +2021,111 @@ Operator mwindowintersectsOp (
     Operator::SimpleSelect,
     mwindowintersectsTypeMap
 );
+
+
+/*
+
+5.15 Operator ~mconsume~
+
+~mconsume~ Collects objects from a stream in a ~MemoryRelObject~
+
+*/
+
+/*
+
+5.4.1 Type Mapping Functions of operator ~mconsume~
+        (stream(tuple) -> memoryRelObject)
+
+*/
+ListExpr mconsumeTypeMap(ListExpr args)
+{
+    if(nl->ListLength(args)!=1){
+        return listutils::typeError("(wrong number of arguments)");
+    }
+
+    if (!Stream<Tuple>::checkType(nl->First(args))) {
+        return listutils::typeError ("stream(Tuple) expected!");
+        }
+
+    ListExpr l1 = nl->Second(nl->First(args));
+    ListExpr l2 = nl->SymbolAtom(MemoryRelObject::BasicType());
+
+    return nl->TwoElemList (l2,l1);;
+}
+
+
+/*
+
+5.15.3  The Value Mapping Functions of operator ~mconsume~
+
+*/
+
+int mconsumeValMap (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+    Supplier t = qp->GetSon( s, 0 );
+    ListExpr le = qp->GetType(t);
+    MemoryRelObject* mrel = new MemoryRelObject(nl->ToString(nl->Second(le)));
+    Stream<Tuple> stream(args[0]);
+    stream.open();
+    Tuple* tup=0;
+    while( (tup = stream.request()) != 0){
+        mrel->addTuple(tup);
+        tup->DeleteIfAllowed();
+    }
+    stream.close();
+    result  = qp->ResultStorage(s);
+    result.setAddr(mrel);
+    return 0;
+}
+
+
+
+
+/*
+
+5.15.4 Description of operator ~mconsume~
+
+*/
+
+OperatorSpec mconsumeSpec(
+    "stream(tuple) -> memoryrelobject",
+    "_ mconsume",
+    "collects the objects from a stream(tuple)",
+    "query 'ten' mfeed mconsume"
+);
+
+
+
+/*
+
+5.4.5 Instance of operator ~mconsume~
+
+*/
+
+Operator mconsumeOp (
+    "mconsume",
+    mconsumeSpec.getStr(),
+    mconsumeValMap,
+    Operator::SimpleSelect,
+    mconsumeTypeMap
+);
+
+
+
+TypeConstructor MemoryRelObjectTC(
+    MemoryRelObject::BasicType(),     // name of the type in SECONDO
+    MemoryRelObject::Property,        // property function describing signature
+    MemoryRelObject::Out, MemoryRelObject::In,          // out und in functions
+    0, 0,                             // SaveToList, RestoreFromList functions
+    // object creation and deletion create und delete
+    MemoryRelObject::create,MemoryRelObject::deleteMemoryRelObject,
+    0, 0,                            // object open, save
+    0, 0,                             // close and clone
+    0,                                // cast function
+    MemoryRelObject::SizeOfObj,      // sizeof function
+    MemoryRelObject::KindCheck);      // kind checking
+
 
 
 class MainMemoryAlgebra : public Algebra
@@ -2040,10 +2144,8 @@ class MainMemoryAlgebra : public Algebra
 
 */
 
-//        AddTypeConstructor (&MemoryRelObjectTC);
-//        MemoryRelObjectTC.AssociateKind( Kind::SIMPLE() );
-//        AddTypeConstructor (&MemoryObjectTC);
-//        MemoryObjectTC.AssociateKind( Kind::SIMPLE() );
+        AddTypeConstructor (&MemoryRelObjectTC);
+        MemoryRelObjectTC.AssociateKind( Kind::SIMPLE() );
 
 /*
 6.3 Registration of Operators
@@ -2068,6 +2170,8 @@ class MainMemoryAlgebra : public Algebra
         minsertOp.SetUsesArgsInTypeMapping();
         AddOperator (&mwindowintersectsOp);
         mwindowintersectsOp.SetUsesArgsInTypeMapping();
+        AddOperator (&mconsumeOp);
+
 
         }
         ~MainMemoryAlgebra() {
