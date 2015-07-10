@@ -3755,11 +3755,15 @@ public void addMessageListener(MessageListener ml){
 }
 
 public static void enableCommandPanel(){
-    ComPanel.setEnabled(true);
+    ComPanel.SystemArea.setEnabled(true);
 }
 
 public static void disableCommandPanel(){
-    ComPanel.setEnabled(false);
+    ComPanel.SystemArea.setEnabled(false);
+}
+
+public static String getCurrentDatabase(){
+	return ComPanel.getOpenedDatabase();
 }
 
 
