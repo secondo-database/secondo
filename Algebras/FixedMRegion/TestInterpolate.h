@@ -21,12 +21,23 @@ class TestInterpolate {
 public:
   void testcalcMasspoint();
   void testsetReferenceRegion();
-  void testcalcMaxMinDistPoint1();
-  void testcalcMaxMinDistPoint2();
-  void testcalcMaxMinDistPoint3();
+  void testsetMasspoint();
+  void testcalcMaxDistPoint1();
+  void testcalcMinDistPoint2();
+  void testcalcMaxDistPoint3();
+  void testcalcMinDistPoint3();
+  void testInList();
+  void testCreatePointList();
   void testCalcDistVector();
   void testmatchVectors();
+  void test_calcAngle(double x, double y);
+  void test_getTurnDir(double a1, double a2);
+  void testSortList();
+  void testGetSortedList();
+  void testCalcAngle();
+  void testGetTurnDir();
   void testcalculateAngleToXAxis();
+  void testinterpolatetest();
 };
 
 void runTestInterpolateMethod();

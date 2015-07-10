@@ -1500,14 +1500,14 @@ runTestMethod ()
 //  testCycle();
 //  testTriangleQuatro(); //DEPRECATED
 //  testUnion();
-  runTestTraversedMethod();
+//  runTestTraversedMethod();
 //  runTestMoveMethod();
 //  testconcaveQuadruple();
 //  testMPoint();
 //  testLATransformInv ();
   runTestInterpolateMethod();
 //  testTraversedComponents();
-  runtestInsideIntersection();
+//  runtestInsideIntersection();
 //  testskeleton();
 
 }
