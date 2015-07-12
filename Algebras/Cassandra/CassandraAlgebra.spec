@@ -20,6 +20,8 @@
 
 operator sleep alias SLEEP pattern _ op [ _ ]
 operator statistics alias STATISTICS pattern _ op [ _ , _ ]
+operator faultcrash alias FAULTCRASH pattern _ op [ _ ]
+operator faultloop alias FAULTLOOP pattern _ op [ _ ]
 
 
 operator cdelete alias CDELETE pattern op ( _ )

@@ -13,6 +13,18 @@ Signature: stream(T) x text x int -> stream(T)
 Example  : query intstream(1,10) transformstream statistics['/tmp/statistics.csv', 1000] count
 Result   : 10
 
+Operator : faultcrash
+Number   : 1
+Signature: stream(T) x int -> stream(T)
+Example  : query Trains feed faultcrash[100] head[7] count
+Result   : 7 or crashes
+
+Operator : faultloop
+Number   : 1
+Signature: stream(T) x int -> stream(T)
+Example  : query Trains feed faultloop[100] head[7] count
+Result   : 7 or crashes
+
 Operator : cdelete
 Number   : 1
 Signature: (text) -> bool

@@ -304,6 +304,209 @@ Operator cassandrasleep (
 );                         
      
 
+
+/*
+2.1 Operator ~faultcrash~ 
+
+This operator crashes after forwarning n tuples 
+
+2.1.1 Type mapping function of operator ~faultcrash~
+
+Type mapping for ~faultcrash~ is
+
+----  ((stream (tuple ((x1 t1)...(xn tn))) int)   ->
+              ((stream (tuple ((x1 t1)...(xn tn))))
+
+  or ((stream T) int) -> (stream T)  for T in kind DATA
+----
+
+*/
+ListExpr FaultCrashTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args) != 2){
+    return listutils::typeError("two arguments expected");
+  }
+
+  string err = " stream(tuple(...) x int or stream(DATA) x int expected";
+
+  ListExpr stream = nl->First(args);
+  ListExpr delay = nl->Second(args);
+
+  if(( !Stream<Tuple>::checkType(stream) &&
+       !Stream<Attribute>::checkType(stream) ) ||
+     !CcInt::checkType(delay) ){
+    return listutils::typeError(err);
+  }
+  return stream;
+}
+
+/*
+2.1.2 Cost estimation
+
+*/
+CostEstimation* FaultCostEstimation() {
+  return new ForwardCostEstimation();
+}
+
+/*
+2.1.2 Local Info for fault function
+
+*/
+enum CrashType {CRASH, LOOP};
+
+template <CrashType crashType>
+class FaultLocalInfo {
+
+public:
+   FaultLocalInfo(size_t myCrashAfter) : 
+     crashAfter(myCrashAfter), forwardedTuples(0) { 
+
+     // Init random number generator
+     srand(time(NULL)); 
+   }
+
+   void forwardTuple() {
+      forwardedTuples++;
+    
+      #pragma GCC diagnostic push
+      #pragma GCC diagnostic ignored "-Wdiv-by-zero"
+      #pragma GCC diagnostic ignored "-Wunused-variable"
+      if(rand() % crashAfter == 0) {
+          if(crashType == CRASH) {
+             // Execute division by zero to crash the software
+             int res = 10 / 0; 
+          } else {
+             // Loop forever! 
+             while(true) {
+                sleep(1);
+             }
+          }
+      } 
+      #pragma GCC diagnostic pop
+   }
+
+private:
+   size_t crashAfter;
+   size_t forwardedTuples;
+};
+
+/*
+2.1.3 Value mapping function of operator ~faultcrash~
+
+*/
+template <CrashType crashType>
+int InjectFault(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  FaultLocalInfo<crashType> *li;
+  size_t crashAfter = 0;
+  Word tupleWord;
+
+  li = (FaultLocalInfo<crashType>*) local.addr;
+
+  switch(message)
+  {
+    case OPEN: 
+
+      if(li) delete li;
+
+      crashAfter = (size_t) ((CcInt*)args[1].addr)->GetIntval();
+      li = new FaultLocalInfo<crashType>(crashAfter); 
+      local.setAddr( li );
+
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST:
+      li -> forwardTuple();
+      qp->Request(args[0].addr, tupleWord);
+      if(qp->Received(args[0].addr))
+      {     
+        result = tupleWord;
+        return YIELD;
+      } else  {     
+        return CANCEL;
+      }     
+
+    case CLOSE:
+      if(li) {
+         delete li;
+         li = NULL;
+      }
+      qp->Close(args[0].addr);
+      return 0;
+  }
+  return 0;
+}
+
+
+/*
+2.1.4 Specification of operator ~faultloop~
+
+*/
+const string FaultLoopSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>((stream (tuple([a1:d1, ... ,an:dn]"
+                         "))) x int) -> (stream (tuple([a1:d1, ... ,"
+                         "an:dn]))) or \n"
+                         "((stream T) int) -> (stream T), "
+                         "for T in kind DATA.</text--->"
+                         "<text>_ faultloop [ _ ]</text--->"
+                         "<text> This operator enters a endless loop "
+                         " on average after forwarding n tuples "
+                         " </text--->"
+                         "<text>query cities feed faultloop[100] consume"
+                         "</text--->"
+                              ") )";
+
+
+/*
+2.1.4 Specification of operator ~faultcrash~
+
+*/
+const string FaultCrashSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>((stream (tuple([a1:d1, ... ,an:dn]"
+                         "))) x int) -> (stream (tuple([a1:d1, ... ,"
+                         "an:dn]))) or \n"
+                         "((stream T) int) -> (stream T), "
+                         "for T in kind DATA.</text--->"
+                         "<text>_ faultcrash [ _ ]</text--->"
+                         "<text> This operator crashes the whole system "
+                         " on average after forwarding n tuples "
+                         " </text--->"
+                         "<text>query cities feed faultcrash[10] consume"
+                         "</text--->"
+                              ") )";
+
+/*
+2.1.5 Definition of operator ~faultcrash~
+
+*/
+Operator faultcrash (
+         "faultcrash",            // name
+         FaultCrashSpec,          // specification
+         InjectFault<CRASH>,      // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         FaultCrashTypeMap,       // type mapping
+         FaultCostEstimation      // Cost estimation
+);                         
+
+/*
+2.1.6 Definition of operator ~faultloop~
+
+*/
+Operator faultloop ( 
+         "faultloop",             // name
+         FaultLoopSpec,           // specification
+         InjectFault<LOOP>,       // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         FaultCrashTypeMap,       // type mapping
+         FaultCostEstimation      // Cost estimation
+);                         
+
 /*
 2.2 Operator ~statistics~
 
@@ -2705,6 +2908,8 @@ public:
      7.2 Registration of Operators
 
      */
+    AddOperator(&faultloop);
+    AddOperator(&faultcrash);
     AddOperator(&cassandrasleep);
     AddOperator(&cassandrastatistics);
     AddOperator(&cassandradelete);
