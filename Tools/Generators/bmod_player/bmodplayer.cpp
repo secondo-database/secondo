@@ -1106,19 +1106,19 @@ public:
           
       // The time is behind this unit, don't send a position update
       // Element will be removed on next clanup call
-      if(currentSimulationTimeRun > element->time_end) {
+      if(currentSimulationTimeRun >= element->time_end) {
          return false;
       }
           
       Position *position = new Position();
 
       float diff = 0;
-      
+
       if(currentSimulationTimeRun != element->time_start) {
-         diff = element->time_diff / 
-         (currentSimulationTimeRun - element->time_start);
+         diff = (float) (currentSimulationTimeRun - element->time_start) / 
+	 (float) element->time_diff;
       }
-      
+
       position->x = element->x_start + (element->x_diff * diff);
       position->y = element->y_start + (element->y_diff * diff);
       position->time = currentSimulationTimeRun;
@@ -1154,7 +1154,7 @@ tcp socket
              continue;
          }
          
-         // Wait for update run
+         // Wait for next simulation run
          while(currentSimulationTimeRun + (int) configuration->updaterate 
              > simulation->getSimulationTime()) {
                 
