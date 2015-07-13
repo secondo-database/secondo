@@ -96,7 +96,7 @@ public class AttributeFormatter
 			if (pType.equals("int"))
 				return ListExpr.intAtom((pValue.length() == 0) ? 0 : Integer.parseInt(pValue));
 			if (pType.equals("real"))
-				return ListExpr.realAtom((pValue.length() == 0) ? 0.0 : Float.parseFloat(pValue));
+				return ListExpr.realAtom((pValue.length() == 0) ? 0.0 : Double.parseDouble(pValue.trim()));
 			if (pType.equals("string"))
 				return ListExpr.stringAtom(pValue);
 			if (pType.equals("text"))
