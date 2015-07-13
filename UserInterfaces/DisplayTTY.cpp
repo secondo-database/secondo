@@ -71,16 +71,19 @@ which will be read.
 #include <iterator>
 #include <map>
 #include <algorithm>
+#include <iomanip>
 
-#include "DisplayTTY.h"
-#include "NestedList.h"
-#include "NList.h"
-#include "SecondoInterface.h"
-#include "AlgebraTypes.h"
-#include "Base64.h"
-#include "CharTransform.h"
-#include "NList.h"
-#include "Symbols.h"
+
+#include "../include/DisplayTTY.h"
+#include "../include/NestedList.h"
+#include "../include/NList.h"
+#include "../include/SecondoInterface.h"
+#include "../include/AlgebraTypes.h"
+#include "../include/Base64.h"
+#include "../include/CharTransform.h"
+#include "../include/NList.h"
+#include "../include/Symbols.h"
+#include "../include/StandardTypes.h"
 
 #include "../Algebras/Raster2/DisplaySType.h"
 #include "../Algebras/Raster2/Displaymstype.h"
@@ -834,7 +837,7 @@ struct DisplayRational : DisplayFunction {
          ListExpr i1 = nl->First(args);
          ListExpr i2 = nl->Second(args);
          if(nl->AtomType(i1)!=IntType || nl->AtomType(i2)!=IntType){
-           cerr << "Invalid representation found " 
+           cerr << "Invalid representation found "
                 << __PRETTY_FUNCTION__ << endl;
            return 0;
          }
@@ -3317,8 +3320,8 @@ struct DisplayRegEx : DisplayFunction{
         final[n] = true;
      }
      set<int>* table[numStates][numStates];
-     memset(table, 0, numStates*numStates*sizeof(void*)); 
-     
+     memset(table, 0, numStates*numStates*sizeof(void*));
+
      while(!nl->IsEmpty(transitions)){
          ListExpr transition = nl->First(transitions);
          transitions = nl->Rest(transitions);
@@ -3327,7 +3330,7 @@ struct DisplayRegEx : DisplayFunction{
          int target = nl->IntValue(nl->Third(transition));
          if(!table[source][target]){
            table[source][target] = new set<int>();
-         }    
+         }
          (table[source][target])->insert(value);
      }
      for(int s=0;s<numStates;s++){
@@ -3526,6 +3529,101 @@ struct DisplayFileList : DisplayFunction {
 };
 
 /*
+Display LUBool
+
+*/
+struct DisplayLUType : DisplayFunction {
+
+    virtual void Display (ListExpr type, ListExpr numType, ListExpr value)
+    {
+        if (nl->IsAtom(value)
+            && nl->AtomType(value) == SymbolType
+            && nl->SymbolValue(value) == "undef")
+            {
+                cout << "UNDEFINED";
+            }
+        else
+        {
+            ListExpr first = nl->First(value);
+            ListExpr second = nl->Second(value);
+            double Start = nl->RealValue(nl->First(first));
+            double End = nl->RealValue(nl->Second(first));
+            bool lc = nl->BoolValue(nl->Third(first));
+            bool rc = nl->BoolValue(nl->Fourth(first));
+            if (nl->IsAtom(second))
+            {
+                cout << nl->ToString(type)
+                     << " -> interval: "
+                     << (lc ? "[ " : "( ")
+                     << std::setprecision(3)
+                     << std::fixed
+                     << Start
+                     << " , "
+                     << End
+                     << (rc ? " ]" : " )")
+                     << " value: "
+                     << nl->ToString(value);
+            }
+            else
+            {
+                double m = nl->RealValue(nl->First(second));
+                double n = nl->RealValue(nl->Second(second));
+
+                cout << "lureal -> interval: "
+                     << (lc ? "[ " : "( ")
+                     << std::setprecision(3)
+                     << std::fixed
+                     << Start
+                     << " , "
+                     << End
+                     << (rc ? " ]" : " )")
+                     << " function: "
+                     << "f(x) = " << m << " x + " << n;
+            }
+        }
+    }
+};
+
+struct DisplayLType : DisplayFunction
+{
+virtual void Display(ListExpr type,  ListExpr numType, ListExpr value)
+    {
+        int No = 1;
+        string unittype;
+        if (nl->SymbolValue(type) == "lbool")
+            unittype = "lubool";
+        if (nl->SymbolValue(type) == "lint")
+            unittype = "luint";
+        if (nl->SymbolValue(type) == "lstring")
+            unittype = "lustring";
+        if (nl->SymbolValue(type) == "lreal")
+            unittype = "lureal";
+
+        cout << "*****************************BEGIN "
+             << nl->ToString(type)
+             << "********************************************** \n \n";
+        ListExpr subtype = nl->TheEmptyList();
+        nl->ReadFromString(unittype, subtype);
+        if (!nl->IsEmpty(value))
+        {
+            ListExpr rest = value;
+            while (!nl->IsEmpty(rest))
+            {
+                cout << No++ << ": ";
+                DisplayTTY::GetInstance().DisplayResult(
+                    subtype, nl->First(rest));
+                rest = nl->Rest(rest);
+            }
+        }
+        else
+            cout << "Empty LType!";
+        cout << endl << "*******************************END "
+             << nl->ToString(type)
+             << "**********************************************"
+             << endl;
+    }
+};
+/*
 4 Initialization
 
 After implementing a new subclass of base ~DisplayFunction~ the new type
@@ -3645,6 +3743,15 @@ DisplayTTY::Initialize()
   d.Insert("isstring", new raster2::Displayistype());
   d.Insert("grid2", new raster2::Displaygrid2());
   d.Insert("grid3", new raster2::Displaygrid3());
+
+  d.Insert("lubool", new DisplayLUType);
+  d.Insert("luint", new DisplayLUType);
+  d.Insert("lustring", new DisplayLUType);
+  d.Insert("lureal", new DisplayLUType);
+  d.Insert("lbool", new DisplayLType);
+  d.Insert("lint", new DisplayLType);
+  d.Insert("lstring", new DisplayLType);
+  d.Insert("lreal", new DisplayLType);
 
 }
 
