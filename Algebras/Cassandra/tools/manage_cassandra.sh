@@ -34,7 +34,7 @@ cassandradir=$cassandrapath/current
 cassandraconfig=$cassandradir/conf/cassandra.yaml
 
 # Cassandra version and download URL
-cassandra_version="2.1.6"
+cassandra_version="2.1.8"
 cassandra_url="http://artfiles.org/apache.org/cassandra/${cassandra_version}/apache-cassandra-${cassandra_version}-bin.tar.gz"
 
 ##
@@ -204,7 +204,7 @@ init_cassandra() {
 	ip=$(getIp)
 
         for i in $(seq 1 6); do
-            echo "Create keyspace keyspace_r$i"
+            echo -n "Creating keyspace keyspace_r$i "
             echo "" > $tmpfile
             echo "CREATE KEYSPACE keyspace_r$i WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : $i};" >> $tmpfile
             echo "USE keyspace_r$i;" >> $tmpfile
@@ -215,6 +215,7 @@ init_cassandra() {
             echo "CREATE TABLE IF NOT EXISTS system_tokenranges (begintoken TEXT, endtoken TEXT, ip TEXT, PRIMARY KEY(begintoken));" >> $tmpfile
 	    
             $cassandradir/bin/cqlsh $ip < $tmpfile
+            echo -e $done
         done
 
 	rm $tmpfile
