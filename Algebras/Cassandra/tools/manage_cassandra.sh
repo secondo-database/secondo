@@ -21,7 +21,12 @@ popd > /dev/null
 LANG=C
 
 # Cassandra Nodes
-nodes="node1 node2 node3 node4 node5 node6"
+nodes=$DSECONDO_SN
+
+if [ -z "$nodes" ]; then
+   echo "Your environment variable \$(DSECONDO_SN) is empty. Please check your .secondorc"
+   exit -1
+fi
 
 # Cassandra dir
 cassandrapath="/opt/psec/nidzwetzki/cassandra"
