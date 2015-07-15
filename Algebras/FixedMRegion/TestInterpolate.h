@@ -38,6 +38,15 @@ public:
   void testGetTurnDir();
   void testcalculateAngleToXAxis();
   void testinterpolatetest();
+  void testsetDistVector();
+  void testsetAngleInit();
+  void testsetRotcenter();
+  void testdetermineAngleAlgorithm();
+  void testcalcThisAngle();
+  void testcalcAngles();
+  void testcalcTranslations();
+  void testcalcFinalAngles();
+  void testcreateMMove();
 };
 
 void runTestInterpolateMethod();

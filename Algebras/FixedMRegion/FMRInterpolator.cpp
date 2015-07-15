@@ -12,7 +12,7 @@ FMRInterpolator::FMRInterpolator(): refRegion(0) {}
 This method calculates the mass point of the given points.
 
 */
-Point FMRInterpolator::calcMasspoint(vector<HalfSegment> a){
+Point FMRInterpolator::calcMasspoint(const vector<HalfSegment>& a){
   double x = 0.0;
   double y = 0.0;
   int s = 0;
@@ -26,6 +26,25 @@ Point FMRInterpolator::calcMasspoint(vector<HalfSegment> a){
     const Point rp = hs.GetRightPoint();
     x += rp.GetX();
     y += rp.GetY();
+    s++;
+  }
+  x=x/s;
+  y=y/s;
+  Point res(true, x, y);
+  return res;
+}
+/*
+This method calculates the mass point of the given points.
+
+*/
+Point FMRInterpolator::calcMasspoint(vector<Point> a){
+  double x = 0.0;
+  double y = 0.0;
+  int s = 0;
+  for(size_t i = 0; i < a.size(); i++){
+    const Point lp = a[i];
+    x += lp.GetX();
+    y += lp.GetY();
     s++;
   }
   x=x/s;
@@ -319,7 +338,7 @@ It returns the following values: $1$ maximum, $2$ minimum, $3$ vector.
 */
 int FMRInterpolator::determineAngleAlgorithm(){
   Region r = getReferenceRegion();
-  Point m = calculateMassCenter(getSortedList(r));//getRotcenter();
+  Point m = calcMasspoint(getSortedList(r));//getRotcenter();
   Point  p = calcMaxDistPoint(r, m);
   if(p.IsDefined())
     return 1;
@@ -336,7 +355,7 @@ method.
 */
 double FMRInterpolator::calcThisAngle(Region r, int method){
   double d = 0;
-  Point m = calculateMassCenter(getSortedList(r));
+  Point m = calcMasspoint(getSortedList(r));
   Point p(0);
   switch(method){
     case 1:
@@ -352,8 +371,12 @@ double FMRInterpolator::calcThisAngle(Region r, int method){
       printf("Error non standard case");
       break;
   }
-  d = calcAngle(m.GetX()-p.GetX(), m.GetY()-p.GetY());
+  d = calcAngle(p.GetX()-m.GetX(), p.GetY()-m.GetY());
   d -= getAngleInit();
+  while (d>=M_PI)
+    d-=2*M_PI;
+  while (d<-M_PI)
+    d+=2*M_PI;
   return d;
 }
 /*
@@ -361,8 +384,12 @@ This method calculates the angles for all given objects and returns them in
 the angle vector.
 
 */
-void FMRInterpolator::calcAngles(vector<Region> rs, double method, 
+void FMRInterpolator::calcAngles(vector<Region> rs, int method, 
    vector<double> &angles){
+   //FIXME: Quick& dirty
+   while (angles.size()<rs.size()) 
+     angles.push_back(0.0);
+     
   for(unsigned int i = 0; i<rs.size(); i++){
     angles[i] = calcThisAngle(rs[i], method);
   }
@@ -374,8 +401,11 @@ the translation vector.
 */
 void FMRInterpolator::calcTranslations(vector<Region> rs, 
   vector<Point> &translations){
+   //FIXME: Quick& dirty
+   while (translations.size()<rs.size()) 
+     translations.push_back(Point(0));
   for(unsigned int i = 0; i<rs.size(); i++){
-    translations[i] = calculateMassCenter(getSortedList(rs[i]));
+    translations[i] = calcMasspoint(getSortedList(rs[i]));
   }
 }
 /*
@@ -383,9 +413,11 @@ This method calculates the translation from the rotational center for all
 given objects and returns them in the final translation vector.
 
 */
-void FMRInterpolator::calcTranslationFromRotcenter(vector<Point> translations,
-  Point rotcenter, vector<Point> *final_translations){
+void FMRInterpolator::calcTranslationFromRotcenter(vector<Point>& translations,
+  Point rotcenter, vector<Point> &final_translations){
 //FIXME
+  for (int i=0; i<translations.size(); i++)
+    final_translations.push_back(translations[i]);
     
 }
 /*
@@ -413,6 +445,7 @@ This method creates all UMoves and puts them into a MMove that will be returned.
 */
 MMove FMRInterpolator::createMMove(const vector<DateTime>&times, 
 vector<Point> fin, vector<double> angles){
+  assert((times.size()==fin.size()) && (times.size()==angles.size()));
   MMove res(0);
   res.Clear ();
   res.StartBulkLoad ();
@@ -420,6 +453,9 @@ vector<Point> fin, vector<double> angles){
     Interval < Instant > iv (times[i-1], times[i], false, true);
     UMove u01param = UMove(iv, fin[i-1].GetX(), fin[i-1].GetY(), angles[i-1],
       fin[i].GetX(), fin[i].GetY(), angles[i]);
+    printf("%d: (%f, %f, %f) - (%f, %f, %f)\n", i,
+           fin[i-1].GetX(), fin[i-1].GetY(), angles[i-1],
+           fin[i].GetX(), fin[i].GetY(), angles[i]);
     res.MergeAdd (u01param);
   }
   res.EndBulkLoad ();
@@ -433,9 +469,9 @@ FixedMRegion FMRInterpolator::interpolatetest(const vector<Region>& regions,
   const vector<DateTime>& times, const Region* ref_Region, 
   const Point* start_Point){
   FixedMRegion result;
-  MMove res_move;
+//  MMove res_move;
   
-  Point m1 = calculateMassCenter(getSortedList(regions[0]));
+  Point m1 = calcMasspoint(getSortedList(regions[0]));
   if (start_Point==NULL) {
     setRotcenter(m1);
   } else {
@@ -456,11 +492,20 @@ FixedMRegion FMRInterpolator::interpolatetest(const vector<Region>& regions,
   calcTranslations(regions, translations);
   vector<Point> final_translations;
   calcTranslationFromRotcenter(translations, getRotcenter(), 
-    &final_translations);//FIXME
+    final_translations);
   calcFinalAngles(angles);
-  MMove mym(0);
-  mym = createMMove(times, final_translations, angles);
+  MMove mym(createMMove(times, final_translations, angles));
   FixedMRegion fmr(getReferenceRegion(), mym,
     Point(true, 0.0, 0.0), times[0].ToDouble());
   return fmr;
+}
+
+FixedMRegion FMRInterpolator::interpolate(const std::vector<IRegion> &spots){
+  vector<Region> regions(0);
+  vector<DateTime> times(0);
+  for (int i=0; i<spots.size(); i++) {
+    regions.push_back(spots[i].value);
+    times.push_back(spots[i].instant);
+  }
+  return interpolatetest(regions, times);
 }

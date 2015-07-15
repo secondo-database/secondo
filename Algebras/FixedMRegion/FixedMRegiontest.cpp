@@ -1488,22 +1488,22 @@ This is the only test method and contains all tests.
 void
 runTestMethod ()
 {
-//  testMove();
-//  testLATransform();
+  testMove();
+  testLATransform();
 //  testRegion();
 //  testRegionCompare();
-//  testatinstantNoMove();
+  testatinstantNoMove();
 //  testatinstantLinearMove(); //FIXME
-//  testatinstantRotate();
-//  testMBool();
+  testatinstantRotate();
+  testMBool();
 //  testQuatro();
 //  testCycle();
 //  testTriangleQuatro(); //DEPRECATED
 //  testUnion();
 //  runTestTraversedMethod();
-//  runTestMoveMethod();
+  runTestMoveMethod();
 //  testconcaveQuadruple();
-//  testMPoint();
+  testMPoint();
 //  testLATransformInv ();
   runTestInterpolateMethod();
 //  testTraversedComponents();

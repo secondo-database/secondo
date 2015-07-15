@@ -12,3 +12,33 @@ Number   : 1
 Signature: int -> int
 Example  : query testoperatora(0)
 Result   : 1
+
+Operator : atinstant
+Number   : 1
+Signature: fixedmregion x instant -> region
+Example  : query val(mrain atinstant six30)
+Result   : file
+
+Operator : fmr_traversed
+Number   : 1
+Signature: fixedmregion x double x double -> region
+Example  : query val(fmr_traversed (mrain , six30 , six31))
+Result   : file
+
+Operator : inside
+Number   : 1
+Signature: mpoint x fixedmregion -> mbool
+Example  : query val(initial(train7 inside mrain2))
+Result   : FALSE
+
+Operator : fmr_intersection
+Number   : 1
+Signature: (mpoint fixedmregion) -> mpoint
+Example  : query val(train7 fmr_intersection mrain2)
+Result   : file
+
+Operator : interpolate
+Number   : 1
+Signature: (region* ) -> fixedmregion
+Example  : query val(interpolate(thecenter))
+Result   : file

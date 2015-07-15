@@ -17,5 +17,6 @@ blabla
 #include "FixedMRegion1.h"
 #include "Move.h"
 #include "FixedMRegion.h"
+#include "FMRInterpolator.h"
 
 #endif

@@ -20,7 +20,7 @@ This class is a FixedMRegion.
 
 
 
-class FixedMRegion
+class FixedMRegion: public Attribute
 {
 friend class FMRTest;
 friend class TestInterpolate;
@@ -222,6 +222,32 @@ This method extracts a list of halfsegments from the given region.
 
 */
  vector < HalfSegment > getHSFromRegion (Region reg);
+/*
+Return the name of the Secondo type.
+
+*/
+static string BasicType(){ return "fixedmregion"; }
+/*
+This method returns the Move.
+
+*/
+const MMove & getMove () const;
+/*
+This method sets the Move.
+
+*/
+void setMove (const MMove & _m);
+
+inline Point getRotCenter() const {
+  return Point(true, xm, ym);
+}
+
+virtual Attribute* Clone() const;
+static const bool checkType(const ListExpr type){
+  return listutils::isSymbol(type, BasicType());
+}
+virtual void CopyFrom(const Attribute*);
+
 private:
 
   double t;//time, never used
@@ -333,16 +359,6 @@ This method sets the LATransform.
 
 */
 void setLATransform (const LATransform & _l);
-/*
-This method returns the Move.
-
-*/
-const MMove & getMove ();
-/*
-This method sets the Move.
-
-*/
-void setMove (const MMove & _m);
 
 /*
 This method will return a list of Halfsegments that the FMRegion will have 
@@ -474,7 +490,7 @@ vector<int> identifyPoints(const vector<vector<double> >
   &matrixOfDistancesOfRegion1, const vector<vector<double> > 
   &matrixOfDistancesOfRegion2);
   
-  /*
+/*
 This method creates a MMove with the given values.
 
 */ 
@@ -489,5 +505,17 @@ This method creates a MMove with the given values.
   double _endX, double _endY, double _endangle);
 
 
+virtual size_t Sizeof() const;
+virtual int Compare(const Attribute*) const;
+virtual bool Adjacent(const Attribute*) const;
+virtual size_t HashValue() const;
+
+
+virtual int NumOfFLOBs() const;
+Flob* GetFLOB(const int i);
+
+
+
+ostream& Print(ostream &os) const;
 };
 #endif

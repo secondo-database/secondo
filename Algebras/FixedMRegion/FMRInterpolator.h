@@ -32,7 +32,7 @@ This is the default constructor. Do not use.
 
 */
   FMRInterpolator();
-  Region interpolate(const Region spots[]);
+  FixedMRegion interpolate(const std::vector<IRegion> &spots);
 /*
 This method creates the FixedMRegion from the sights.
 
@@ -71,8 +71,12 @@ double getAngleInit();
 This method calculates the mass point of the given points.
 
 */
-Point calcMasspoint(vector<HalfSegment>);
+Point calcMasspoint(const vector<HalfSegment> &v);
+/*
+This method calculates the mass point of the given points.
 
+*/
+Point calcMasspoint(vector<Point> a);
 /*
 This method sets the given object as a reference. The (0,0) will be the 
 calculated, not the given mass point.
@@ -97,13 +101,6 @@ This method returns the masspoint.
 Point getRotcenter();
 
 
-
-/*
-This method calculates the orientation vector of the given Region and uses the
-given, calculated mass point as the central point.
-
-*/
-//void calcOrientationVector(Region _r, Point _calcMasspoint);
 /*
 This method calculates the distance between the two points.
 
@@ -166,12 +163,6 @@ distVector and it will return the first point of it.
 Point matchVectors(vector<double> distVector, 
   Region r, Point calcMasspoint);
 
-/*
-This method calculates the mass center of the given points.
-
-*/
-Point calculateMassCenter(const vector<Point> &p);
-
 
 /*
 This method calculates the orientation between two angles. It will give back
@@ -200,7 +191,7 @@ This method calculates the angles for all given objects and returns them in
 the angle vector.
 
 */
-void calcAngles(vector<Region> rs, double method, 
+void calcAngles(vector<Region> rs, int method, 
   vector<double> &angles);
 /*
 This method calculates the translation for all given objects and returns them in 
@@ -213,8 +204,8 @@ This method calculates the translation from the rotational center for all
 given objects and returns them in the final translation vector.
 
 */
-void calcTranslationFromRotcenter(vector<Point> translations,
-  Point rotcenter, vector<Point> *final_translations);
+void calcTranslationFromRotcenter(vector<Point>& translations,
+  Point rotcenter, vector<Point>& final_translations);
 /*
 This method calculates the final angles. the result will always be the angle
 with the shortest path from the angle before to this one.

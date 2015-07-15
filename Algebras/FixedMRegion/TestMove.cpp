@@ -187,6 +187,8 @@ void testMMove(){
   res->AtInstant (t2, tp);
   Point3 pn = Point3(true, 2, 2, 2);
   printf ("%s\n", ((tp.value==pn) ? "OK" : "FAILED"));
+  delete res;
+  delete res2;
 }
 
 void

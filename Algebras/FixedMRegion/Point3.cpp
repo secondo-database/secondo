@@ -60,11 +60,6 @@ copy of ~p~.
 */
 Point3::Point3( const Point3& p ): 
 StandardSpatialAttribute<3>(p.IsDefined()), x(p.x), y(p.y), alpha(p.alpha) {}
-/*
-The destructor.
-
-*/
-//Point3::~Point3() {}
 
 const Rectangle<3> Point3::BoundingBox(const Geoid* geoid) const {
   return Rectangle<3>(0);
@@ -114,43 +109,6 @@ string Point3::toString(const Geoid* geoid) const {
   s << *this;
   return s.str();
 }
-
-//bool Point3::Inside( const Region& r,
-//                    const Geoid* geoid /*=0*/ ) const
-//{
-//  return r.Contains(*this,geoid);
-//}
-
-//bool Point3::Inside( const Line& l,
-//                    const Geoid* geoid /*=0*/ ) const
-//{
-//  return l.Contains(*this,geoid);
-//}
-
-//bool Point3::Inside(const SimpleLine& l, const Geoid* geoid /*=0*/) const
-//{
-//  return l.Contains(*this,geoid);
-//}
-
-//bool Point3::Inside( const Points& ps,
-//                    const Geoid* geoid /*=0*/ ) const
-//{
-//  return ps.Contains(*this,geoid);
-//}
-
-//FIXME: Anpassen
-//bool Point3::Inside( const Rectangle<3>& r, const Geoid* geoid =0 ) const
-//{
-//  assert( r.IsDefined() );
-//  if( !IsDefined() || !r.IsDefined() || (geoid && !geoid->IsDefined()) ){
-//    return false;
-//  }
-//  if( x < r.MinD(0) || x > r.MaxD(0) )
-//    return false;
-//  else if( y < r.MinD(1) || y > r.MaxD(1) )
-//    return false;
-//  return true;
-//}
 
 void Point3::ReadFromString(string value) {
 
@@ -222,57 +180,6 @@ bool Point3::Intersects(const Rectangle<3>& r, const Geoid* geoid/*=0*/) const{
 
 
 
-  // calculate the enclosed angle between (a,b) and (b,c) in degrees
-//double Point3::calcEnclosedAngle( const Point3 &a,
-  //      const Point3 &b,
-    //    const Point3 &c,
-      //  const Geoid* geoid /* = 0 */){
-//  double beta = 0.0;
-  //errno = 0;
-    //double la = b.Distance(c);
-//    double lb = a.Distance(c);
-  //  double lc = a.Distance(b);
-    //double cosb = (la*la + lc*lc - lb*lb) / (2*la*lc);
-//    cosb = max(cosb, -1.0);
-  //  cosb = min(cosb, 1.0);
-    //beta = radToDeg( acos(cosb) );
-    //assert(errno == 0);
- // return beta;
-//}
-
-
-//bool isBetween(const double value, const double bound1, const double bound2){
-//  return ( (MIN(bound1,bound2)<=value) && (value<=MAX(bound1,bound2)) );
-//}
-
-
-
-//void Point3::Rotate(const Coord& x, const Coord& y,
-//                          const double alpha, Point& res) const{
-
-//  if(!IsDefined()){
-  //   res.SetDefined(false);
-    // return;
-  //}
-
-//  double s = sin(alpha);
-  //double c = cos(alpha);
-
-//  double m00 = c;
-  //double m01 = -s;
-//  double m02 = x - x*c + y*s;
-//  double m10 = s;
-  //double m11 = c;
-  //double m12 = y - x*s-y*c;
-
- // res.Set(  m00*this->x + m01*this->y + m02,
-   //         m10*this->x + m11*this->y + m12);
-
-//}
-
-
-
-
 
 Point3 Point3::MidpointTo(const Point3& p, const Geoid* geoid /* = 0 */ ) const
 {
@@ -316,181 +223,6 @@ Point3 Point3::MidpointTo(const Point3& p, const Coord& f,
 }
 
 
-
-
-/*
-4.2 List Representation
-
-The list representation of a point is
-
-----  (x y)
-----
-
-4.3 ~Out~-function
-
-*/
-//FIXME: Hier forsetzen
-ListExpr
-OutPoint3( ListExpr typeInfo, Word value )
-{
-  Point3* point = (Point3*)(value.addr);
-  if( point->IsDefined() )
-    //FIXME 
-    return nl->ThreeElemList(
-               nl->RealAtom( point->GetX() ),
-               nl->RealAtom( point->GetY() ),
-               nl->RealAtom( point->GetAlpha() ));
-  else
-    return nl->SymbolAtom( Symbol::UNDEFINED() );
-}
-
-/*
-4.4 ~In~-function
-
-*/
-Word
-InPoint3( const ListExpr typeInfo, const ListExpr instance,
-       const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  correct = true;
-  if( nl->ListLength( instance ) == 3 ) {
-    ListExpr first = nl->First(instance);
-    ListExpr second = nl->Second(instance);
-    ListExpr third = nl->Third(instance);
-    
-    correct = listutils::isNumeric(first) && listutils::isNumeric(second);
-    if(!correct){
-       return SetWord( Address(0) );
-    } else {
-      return SetWord(new Point3(true, listutils::getNumValue(first),
-                                     listutils::getNumValue(second),
-                                     listutils::getNumValue(third)));
-    }
-  } else if( listutils::isSymbolUndefined( instance ) ){
-     return SetWord(new Point3(false));
-  }
-  correct = false;
-  return SetWord( Address(0) );
-}
-
-/*
-4.5 ~Create~-function
-
-*/
-Word
-CreatePoint3( const ListExpr typeInfo )
-{
-  return SetWord( new Point3( false ) );
-}
-
-/*
-4.6 ~Delete~-function
-
-*/
-void
-DeletePoint3( const ListExpr typeInfo,
-             Word& w )
-{
-  ((Point3 *)w.addr)->DeleteIfAllowed();
-  w.addr = 0;
-}
-
-/*
-4.7 ~Close~-function
-
-*/
-void
-ClosePoint3( const ListExpr typeInfo,
-            Word& w )
-{
-  ((Point3 *)w.addr)->DeleteIfAllowed();
-  w.addr = 0;
-}
-
-/*
-4.8 ~Clone~-function
-
-*/
-Word
-ClonePoint3( const ListExpr typeInfo,
-            const Word& w )
-{
-  return SetWord( new Point3( *((Point3 *)w.addr) ) );
-}
-
-/*
-4.8 ~SizeOf~-function
-
-*/
-int
-SizeOfPoint3()
-{
-  return sizeof(Point3);
-}
-
-/*
-4.9 Function describing the signature of the type constructor
-
-*/
-ListExpr
-Point3Property()
-{
-  return nl->TwoElemList(
-           nl->FourElemList(
-             nl->StringAtom("Signature"),
-             nl->StringAtom("Example Type List"),
-             nl->StringAtom("List Rep"),
-             nl->StringAtom("Example List")),
-           nl->FourElemList(
-             nl->StringAtom("-> DATA"),
-             nl->StringAtom(Point::BasicType()),
-             nl->StringAtom("(x y a)"),
-             nl->StringAtom("(10 5 2)")));
-}
-
-/*
-4.10 Kind Checking Function
-
-This function checks whether the type constructor is applied correctly. Since
-type constructor ~point~ does not have arguments, this is trivial.
-
-*/
-bool
-CheckPoint3( ListExpr type, ListExpr& errorInfo )
-{
-  return (listutils::isSymbol( type, Point3::BasicType() ));
-}
-
-/*
-4.11 ~Cast~-function
-
-*/
-void* CastPoint3(void* addr)
-{
-  return (new (addr) Point3());
-}
-
-/*
-4.12 Creation of the type constructor instance
-
-*/
-TypeConstructor point3(
-  Point3::BasicType(),                    //name
-  Point3Property,              //property function describing signature
-  OutPoint3,      InPoint3,     //Out and In functions
-  0,             0,           //SaveToList and RestoreFromList functions
-  CreatePoint3,   DeletePoint3, //object creation and deletion
-  OpenAttribute<Point3>,
-  SaveAttribute<Point3>,  // object open and save
-  ClosePoint3,    ClonePoint3,  //object close, and clone
-  CastPoint3,                  //cast function
-  SizeOfPoint3,                //sizeof function
-  CheckPoint3);               //kind checking function
-
-
-
-
-
 //use this when adding and sorting the DBArray
 int Point3Compare( const void *a, const void *b )
 {
@@ -516,7 +248,6 @@ int Point3CompareAlmost( const void *a, const void *b )
 
   assert(pa->IsDefined());
   assert(pb->IsDefined());
-  //FIXME: almostequal fehlt
   if( AlmostEqual( *pa, *pb ) )
     return 0;
 
@@ -525,25 +256,6 @@ int Point3CompareAlmost( const void *a, const void *b )
 
   return 1;
 }
-
-
-
-// // use this when adding and sorting the DBArray
-// int PointHalfSegmentCompare( const void *a, const void *b )
-// {
-//   const Point *pa = (const Point *)a;
-//   const HalfSegment *hsb = (const HalfSegment *)b;
-//
-//   if( *pa == hsb->GetDomPoint() )
-//     return 0;
-//
-//   if( *pa < hsb->GetDomPoint() )
-//     return -1;
-//
-//   return 1;
-// }
-
-
 
 /*
 Function supporting the RemoveDuplicates function.

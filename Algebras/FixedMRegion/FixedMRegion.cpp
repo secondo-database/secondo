@@ -16,7 +16,8 @@ FixedMRegion::FixedMRegion(): m(0), r(0){}
 This is the copy constructor.
 
 */
-FixedMRegion::FixedMRegion(const FixedMRegion & f):t(f.t),m(f.m),r(f.r),
+FixedMRegion::FixedMRegion(const FixedMRegion & f):
+Attribute(true),t(f.t),m(f.m),r(f.r),
 l(f.l){}
 
 
@@ -66,7 +67,8 @@ rot\_center: rotational center
 
 FixedMRegion::FixedMRegion(const Region & _region, const Point _startp, 
   const double _startangle, Instant _startt, const Point _endp, 
-  const double _endangle, Instant _endt, const Point & rot_center): r(_region){
+  const double _endangle, Instant _endt, const Point & rot_center):
+Attribute(true), r(_region){
   
   m = createMMove(_startp.GetX(), _startp.GetY(), _startangle, _startt, 
      _endp.GetX(),
@@ -94,6 +96,7 @@ rot\_center: rotational center
 FixedMRegion::FixedMRegion(const Region & _region, const Point _startp, 
   const double _startangle, double _startt, const Point _endp, 
   const double _endangle, double _endt, const Point & rot_center):
+Attribute(true),
   r(_region){
   m = createMMove(_startp.GetX(), _startp.GetY(), _startangle, 
   _startt, _endp.GetX(),
@@ -114,7 +117,8 @@ starttime: the start time of the movement
 
 */
 FixedMRegion::FixedMRegion(const Region & _region, const MMove & _move,
-const Point & rot_center, double _starttime): m(_move), r(_region){
+const Point & rot_center, double _starttime):
+Attribute(true), m(_move), r(_region){
   t = _starttime;
   xm = rot_center.GetX ();
   ym = rot_center.GetY ();
@@ -138,7 +142,8 @@ $\_valpha$: the angle of movement.
 
 FixedMRegion::FixedMRegion (double _t, double _xm, double _ym,
 const Region & _r, double _x0, double _y0,double _alpha0, double _vx, 
-double _vy, double _valpha): m(0), r(_r){
+double _vy, double _valpha):
+Attribute(true), m(0), r(_r){
   t = _t;
   xm = _xm;
   ym = _ym;
@@ -159,7 +164,8 @@ starttime: the start time of the movement
 */
 FixedMRegion::FixedMRegion(const Region & _region, const Point & _start,
 double alpha_start, const Point & _speed,double alpha_speed, 
-const Point & rot_center,double _starttime): r(_region){
+const Point & rot_center,double _starttime):
+Attribute(true), r(_region){
   m = createMMove (_start.GetX (), _start.GetY (), alpha_start, _speed.GetX (),
             _speed.GetY (), alpha_speed);
   t = _starttime;
@@ -334,8 +340,6 @@ This method calculates the step with depending on alpha.
 
 */
 int FixedMRegion::calcStepWith(const double _ta, const double _te) const {
-  //double alpha_a;
-  //double alpha_e;
   Intime<Point3> p(0);
   m.AtInstant(_ta, p);
   Point3 p3 = p.value;
@@ -520,8 +524,6 @@ will be calculated for the time intervall ta to te.
 */
 MBool FixedMRegion::inside (const MPoint & mp){
   MRegion * rfix = buildMovingRegion ();
-  //MPoint tmp = approxMovement (mp, 1e-5);
-  //MPoint tmp = approxMovementNew(mp);
   MPoint tmp = approxMovementNew2(mp);
   //**TestCode**
   for (int i=0; i<tmp.GetNoComponents(); i++) {
@@ -571,13 +573,10 @@ MPoint will be calculated for the time intervall ta to te.
 
 */
 MPoint FixedMRegion::intersection(MPoint & mp){
-  //MRegion *
-//    rfix = buildMovingRegion ();
   MPoint
     tmp = approxMovement (mp, 1e-2);
   MPoint
     res (0);
-  //rfix->Intersection (tmp, res);
   Region r(0);
   atinstant(getMMoveStart(0.0), r);
   tmp.AtRegion(&r, res);
@@ -616,35 +615,6 @@ MPoint FixedMRegion::intersectionNew(MPoint & mp) {
   result.EndBulkLoad();
   return result;
 }
-/*
-This method will calculate the Region which contains all points / areas, that
-the FMRegion has at least on time (or more often) traversed in the given 
-intervall ta to te. 
-deprecated!
-
-*/
-/*void FixedMRegion::traversed2 (double ta, double te, double precision,
-  Region & result){
-  Region *res = NULL;
-  for (double i = 0; i <= (te - ta); i = i + precision)
-    {
-      Region *tmp = atinstant (ta + i);
-      if (res == NULL)
-        {
-          res = tmp;
-        }
-      else
-        {
-          Region *tmp2 = new Region (*res);
-          tmp2->Clear ();
-          RobustPlaneSweep::robustUnion (*res, *tmp, *tmp2);
-          delete tmp;
-          delete res;
-          res = tmp2;
-        }
-    }
-  return res;
-}*/
 
 /*
 This method calculates the mass center of the given points.
@@ -1061,7 +1031,6 @@ Region * FixedMRegion::getDiffRegion (const vector < HalfSegment >
       hsold = (*resultold)[i];
       hsnew = (*resultnew)[i];
       vector < vector < Point > >tmp_polygons = getTraversedArea (hsold, hsnew);
-      //printf("tmp_polygons.size (): %d\n",tmp_polygons.size ());
       if (tmp_polygons.size () > 0)
         {
           //FIXME: routine zum orientierung prüfen und korrigieren
@@ -1114,16 +1083,13 @@ void FixedMRegion::traversed(Region & result,double ta, double te,
         {
           Region *tmp2 = new Region (0);
           tmp2->Clear ();
-          //printf("union: %d,  %d\n", res->Size(), tmp->Size());
           RobustPlaneSweep::robustUnion (*res, *tmp, *tmp2);
           delete tmp;
           delete res;
           res = tmp2;
         }
-      //delete tiold;
       tiold = tinew;
     }
-  //delete tiold;
   result = *res;
   delete res;
   return;
@@ -1136,17 +1102,10 @@ intervall ta to te.
 */
 void FixedMRegion::traversedNew(Region & result,double ta, double te){
    result.Clear();
-  //RefinementPartition<MMove,MMove,UMove,UMove> rp(m, m);
-  //printf("Size: %d\n", m.size);
   for ( int i = 0; i < m.GetNoComponents(); i++) {
-    //int urPos;
-    //int upPos;
-    //m.Get(i, iv, urPos, upPos);
     UMove um(0);
     m.Get(i, um);
     Interval<Instant> iv=um.getTimeInterval();
-    //iv=um.value;
-    //te and ta are relatime
     double _ta = iv.start.ToDouble();
     double _te = iv.end.ToDouble();
     printf("Int %d: %f, %f, %f, %f\n", i, ta, te, _ta, _te);
@@ -1169,13 +1128,11 @@ void FixedMRegion::traversedNew(Region & result,double ta, double te){
         if (tmp != NULL){
           Region *tmp2 = new Region (0);
           tmp2->Clear ();
-          //printf("union: %d,  %d\n", res->Size(), tmp->Size());
           RobustPlaneSweep::robustUnion (*res, *tmp, *tmp2);
           delete tmp;
           delete res;
           res = tmp2;
         }
-        //delete tiold;
         tiold = tinew;
       }
     Region tmp(result);
@@ -1184,9 +1141,6 @@ void FixedMRegion::traversedNew(Region & result,double ta, double te){
     delete res;
     }
   }
-  //delete tiold;
-  //result = *res;
-  //delete res;
   return;
 }
 /*
@@ -1227,8 +1181,6 @@ the time has changed.
 */
 void FixedMRegion::calculateInternalVars(){
   Point3 coord = getMovingForTimeFromMMove(DateTime(t));
-  //printf("Point3(%f): (%f, %f, %f)\n", t, 
-    //     coord.GetX(), coord.GetY(), coord.GetAlpha());
   l = LATransform (coord.GetX(), coord.GetY(), 
        xm, ym, coord.GetAlpha());
 }
@@ -1250,7 +1202,7 @@ void FixedMRegion::setLATransform(const LATransform & _l){
 This method returns the Move.
 
 */
-const MMove &FixedMRegion::getMove(){
+const MMove &FixedMRegion::getMove() const{
   return m;
 }
 /*
@@ -1351,5 +1303,76 @@ vector<int> FixedMRegion::identifyPoints(const vector<vector<double> >
   }
   return ret;
 }
+size_t FixedMRegion::Sizeof() const{
+  return sizeof(*this); 
+}
+int FixedMRegion::Compare(const Attribute* x) const{
+  FixedMRegion *other=(FixedMRegion*)x;
+  Region m;
+  Region o;
+  this->getRegion(m);
+  other->getRegion(o);
+  MMove v(0);
+  v=this->getMove();
+  MMove p(0);
+  p=getMove();
+  if(m.Compare(&o)!=0)
+    return m.Compare(&o);
+  if(v.Compare(&p))
+    return v.Compare(&p);
+  if (xm<other->xm)
+    return -1;
+  if (xm>other->xm)
+    return 1;
+  if (ym<other->ym)
+    return -1;
+  if (ym>other->ym)
+    return 1;
+  return 0;
+}
+bool FixedMRegion::Adjacent(const Attribute* x) const{
+  FixedMRegion *other=(FixedMRegion*)x;
+  Region m;
+  Region o;
+  this->getRegion(m);
+  other->getRegion(o);
+  MMove v(0);
+  v=this->getMove();
+  MMove p(0);
+  p=getMove();
+  return ((m.Adjacent(&o)) && (v.Adjacent(&p)));
+}
+Attribute* FixedMRegion::Clone() const{
+  return new FixedMRegion(*this);
+}
+size_t FixedMRegion::HashValue() const{
+  return m.HashValue() + r.HashValue(); 
+}
+void FixedMRegion::CopyFrom(const Attribute* x){
+  FixedMRegion *other=(FixedMRegion*)x;
+  m.CopyFrom(&(other->m));
+  l=other->l;
+  r.CopyFrom(&(other->r));
+  t=other->t;
+  xm=other->xm;
+  ym=other->ym;
+}
+
+
+int FixedMRegion::NumOfFLOBs() const{
+  return 1;
+}
+
+Flob* FixedMRegion::GetFLOB(const int i) {
+  assert(i == 0);
+  return r.GetFLOB(0); 
+}
+
+
+ostream& FixedMRegion::Print(ostream &os) const{
+  os << "( FixedMRegionEmb NOT IMPLEMENTED YET )";
+  return os;
+}
+
 
 ;
