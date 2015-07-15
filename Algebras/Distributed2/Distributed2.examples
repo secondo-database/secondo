@@ -162,22 +162,22 @@ Remark    : remote server required
 
 Operator: ddistribute2
 Number  : 1
-Signature : stream(tuple(X)) x ident x darray2(Y) -> darray2(X) 
-Example   : query strassen feed addcounter[No,0] ddistribute2[No, da2] 
+Signature : stream(tuple(X)) x ident x int x rel x string -> darray2(X) 
+Example   : query strassen feed addcounter[No,0] ddistribute2[No, 5, workers, "dstrassen"] 
 Result    : bug
 Remark    : remote server required
 
 Operator: ddistribute3
 Number  : 1
-Signature : stream(tuple(X)) x int x bool  x darray2(Y) x string -> darray2(X) 
-Example   : query strassen feed  ddistribute3[100, TRUE, da2, "dstrassen"] 
+Signature : stream(tuple(X)) x int x bool  x rel x string -> darray2(rel(tuple(X))) 
+Example   : query strassen feed  ddistribute3[10, TRUE, workers, "dstrassen3"] 
 Result    : bug
 Remark    : remote server required
 
 Operator: ddistribute4
 Number  : 1
-Signature : stream(tuple(X)) x (fun : tuple ->int) x darray2(Y) x string -> darray2(X) 
-Example   : query strassen feed  ddistribute4[hashvalue(.Name, 2000), da2, "dstrassen4"] 
+Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray2(X) 
+Example   : query strassen feed  ddistribute4[hashvalue(.Name, 2000), 5 , workers, "dstrassen4"] 
 Result    : bug
 Remark    : remote server required
 
@@ -221,6 +221,27 @@ Operator  : dloop2a
 Number    : 1
 Signature : darray2(X) x darray2(Y) x string x (X x Y -> Z) -> darray2(Z)
 Example   : query da1 da2  dloop2a["da3", . + .. ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : dmap2 
+Number    : 1
+Signature : d[f]array2(X) x d[f]array2(Y) x string x (X x Y -> Z) -> d[f]array2(Z)
+Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : ARRAYFUNARG1 
+Number    : 1
+Signature : d[f]array2(X) x d[f]array2(Y) x string x (X x Y -> Z) -> d[f]array2(Z)
+Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : ARRAYFUNARG2
+Number    : 1
+Signature : d[f]array2(X) x d[f]array2(Y) x string x (X x Y -> Z) -> d[f]array2(Z)
+Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
 Result    : bug
 Remark    : remote server required
 
@@ -289,22 +310,23 @@ Remark    : remote server required
 
 Operator: fddistribute2
 Number  : 1
-Signature : stream(tuple(X)) x ident x dfarray2(Y) x string -> dfarray2(X) 
-Example   : query strassen feed addcounter[No,0] fddistribute2[No, da2] 
+Signature : stream(tuple(X)) x ident x int x rel x string -> dfarray2(X) 
+Example   : query strassen feed addcounter[No,0] fddistribute2[No, 5, workers, "fstrassen"] 
 Result    : bug
 Remark    : remote server required
 
 Operator: fddistribute3
 Number  : 1
-Signature : stream(tuple(X)) x int x bool x dfarray2(Y) x string -> dfarray2(X) 
-Example   : query strassen feed fddistribute3[10, TRUE, df2] 
+Signature : stream(tuple(X)) x int x bool x rel x string -> dfarray2(rel(tuple(X))) 
+Example   : query strassen feed fddistribute3[10, TRUE, workers, "fstrassen3" ] 
 Result    : bug
 Remark    : remote server required
 
+
 Operator: fddistribute4
 Number  : 1
-Signature : stream(tuple(X)) x (fun : tuple ->int) x darray2(Y) x string -> darray2(X) 
-Example   : query strassen feed  fddistribute4[hashvalue(.Name, 2000), df2, "dfstrassen4"] 
+Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray2(X) 
+Example   : query strassen feed  fddistribute4[hashvalue(.Name, 2000), 5, workers, "dfstrassen4"] 
 Result    : bug
 Remark    : remote server required
 
@@ -315,9 +337,6 @@ Signature : darray2 -> dfarray2 , dfarray2 -> darray2
 Example   : query convertdarray2(da8)
 Result    : bug
 Remark    : in development
-
-
-
 
 Operator  : DFARRAYSTREAM 
 Number    : 1
