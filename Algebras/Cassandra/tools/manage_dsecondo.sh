@@ -30,12 +30,27 @@ instances=$(($(cat /proc/cpuinfo | grep processor | wc -l) - 3))
 # Keyspace to use
 keyspace="keyspace_r3"
 
-# Cassandra Nodes
-nodes="node1 node2 node3 node4 node5 node6"
+# QPN Nodes
+nodes="${DSECONDO_QPN}"
+
+if [ -z "$nodes" ]; then
+   echo "Your environment variable \$(DSECONDO_QPN) is empty. Please check your .secondorc"
+   exit -1
+fi
 
 # Overwrite nodes by cli argument
 if [ $# -eq 2 ]; then
    nodes=$2
+fi
+
+if [ -z "$DSECONDO_QPN_DIR" ]; then
+   echo "Your environment variable \${DSECONDO_QPN_DIR} is empty. Please check your .secondorc"
+   exit -1
+fi
+
+if [ -z "$DSECONDO_DIR" ]; then
+   echo "Your environment variable \${DSECONDO_DIR} is empty. Please check your .secondorc"
+   exit -1
 fi
 
 # Variables
@@ -181,18 +196,79 @@ stop_local() {
 
 # Start all descondo instances
 start() {
-   #execute_parallel "source .secondorc; bash -x $scriptpath/$scriptname start_local > /dev/null" "Starting DSECONDO" "$nodes" $max_pending
-   execute_parallel "source .secondorc; bash $scriptpath/$scriptname start_local > /dev/null" "Starting DSECONDO" "$nodes" $max_pending
+   #execute_parallel "bash -x $scriptpath/$scriptname start_local > /dev/null" "Starting DSECONDO" "$nodes" $max_pending
+   execute_parallel "source .secondorc; export SECONDO_BUILD_DIR=$DSECONDO_QPN_DIR/secondo; export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini; \$SECONDO_BUILD_DIR/Algebras/Cassandra/tools/$scriptname start_local > /dev/null" "Starting DSECONDO" "$nodes" $max_pending
 }
 
 # Stop all desecondo instances
 stop() {
-   #execute_parallel "source .secondorc; bash -x $scriptpath/$scriptname stop_local > /dev/null" "Stopping DSECONDO" "$nodes" $max_pending
-   execute_parallel "source .secondorc; bash $scriptpath/$scriptname stop_local > /dev/null" "Stopping DSECONDO" "$nodes" $max_pending
+   #execute_parallel "bash -x $scriptpath/$scriptname stop_local > /dev/null" "Stopping DSECONDO" "$nodes" $max_pending
+   execute_parallel "source .secondorc; export SECONDO_BUILD_DIR=$DSECONDO_QPN_DIR/secondo; export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini; \$SECONDO_BUILD_DIR/Algebras/Cassandra/tools/$scriptname stop_local > /dev/null" "Stopping DSECONDO" "$nodes" $max_pending
 }
 
-case "$1" in 
+# Install SECONDO on all QPNs
+install() {
+   
+   execute_parallel "mkdir -p $DSECONDO_QPN_DIR" "Creating DSECONDO directory" "$nodes" $max_pending
+   
+   for node in $nodes; do
+      echo "Copy .secondorc to Node $node"
+      scp ~/.secondorc ${node}:
+   done
+   
+   execute_parallel "if [ $(cat ~/.bashrc | grep .secondorc | wc -l) -eq 0 ]; then echo 'source ~/.secondorc' >> ~/.bashrc; fi" "Adding SECONDO environment variables" "$nodes" $max_pending
+   
+   # Upgrade DSECONDO Build on all QPNs
+   upgrade
+}
 
+# Upgrade the SECONDO installation and all drivers on all QPNs
+upgrade() {
+   for node in $nodes; do
+      echo "Upgrading drivers on Node $node"
+      rsync --progress -l -H -p -o -g -D -t -r  -e "ssh" ${DSECONDO_DIR}/driver/ $node:${DSECONDO_QPN_DIR}/driver > /dev/null
+      echo "Upgrading QPN-SECONDO on Node $node"
+      rsync --progress -l -H -p -o -g -D -t -r  -e "ssh" ${DSECONDO_DIR}/secondo/ $node:${DSECONDO_QPN_DIR}/secondo > /dev/null
+   done
+}
+
+# Download and install the CPP driver and all dependencies
+install_driver() {
+   
+   # Install LIBUV
+   if [ -d ${DSECONDO_DIR}/driver/libuv ]; then
+      echo "LibUV is already installed";
+   else
+      mkdir -p ${DSECONDO_DIR}/driver
+      cd ${DSECONDO_DIR}/driver
+      git clone https://github.com/libuv/libuv.git 
+      cd libuv
+      sh autogen.sh
+      ./configure
+      make
+      cd ..
+   fi
+   
+   # Install the CPP Driver
+   if [ -d ${DSECONDO_DIR}/driver/cpp-driver ]; then
+      echo "cpp-driver is already installed";
+   else
+      mkdir -p ${DSECONDO_DIR}/driver
+      cd ${DSECONDO_DIR}/driver
+      git clone https://github.com/datastax/cpp-driver.git 
+      cd cpp-driver
+      wget https://raw.githubusercontent.com/jnidzwetzki/misc/master/cpp-driver/0001-Added-single-node-loadbalancing.patch 
+      git am < 0001-Added-single-node-loadbalancing.patch  
+      export LIBUV_ROOT_DIR=${DSECONDO_DIR}/driver/libuv/.libs
+      cmake .
+      make
+      cd ..
+   fi
+}
+
+
+case "$1" in 
+   
 start)
    start
    ;;
@@ -205,8 +281,17 @@ start_local)
 stop_local)
    stop_local
    ;;
+install_driver)
+   install_driver
+   ;;
+install)
+   install
+   ;;
+upgrade)
+   upgrade
+   ;;
 *)
-   echo "Usage $0 {start|stop}"
+   echo "Usage $0 {start | stop | install | upgrade | install_driver}"
    ;;
 esac
 
