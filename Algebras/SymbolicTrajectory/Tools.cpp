@@ -412,7 +412,7 @@ int Tools::getKey(const string& type, Tuple *tuple /* = 0 */,
     return pos + 99;
   }
   else {
-    cout << "Error: type " << type << " is invalid" << endl;
+    cout << "Error: type " << type << " is invalid without tuple" << endl;
   }
   return -1; // should not occur
 }
@@ -452,6 +452,28 @@ string Tools::getTypeName(TupleType *ttype, const int attrno) {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   AttributeType attrType = ttype->GetAttributeType(attrno);
   return sc->GetTypeName(attrType.algId, attrType.typeId);
+}
+
+int Tools::getNoComponents(Relation *rel, const TupleId tid, const string &type,
+                           const int attrno) {
+  Tuple *tuple = rel->GetTuple(tid, true);
+  if (type == "mreal") {
+    ((MReal*)tuple->GetAttribute(attrno))->GetNoComponents();
+  }
+  else if (type == "mint") {
+    ((MInt*)tuple->GetAttribute(attrno))->GetNoComponents();
+  }
+  else if (type == "mpoint") {
+    ((MPoint*)tuple->GetAttribute(attrno))->GetNoComponents();
+  }
+  else if (type == "mregion") {
+    ((MRegion*)tuple->GetAttribute(attrno))->GetNoComponents();
+  }
+  else if (type == "mbool") {
+    ((MBool*)tuple->GetAttribute(attrno))->GetNoComponents();
+  }
+  tuple->DeleteIfAllowed();
+  return -1;
 }
 
 bool Tools::isSymbolicType(ListExpr type) {
@@ -1076,6 +1098,71 @@ void Tools::deleteValue(Word &value, const string &type) {
   }
   else { // cannot occur
     cout << "cannot delete invalid type " << type << endl;
+  }
+}
+
+/*
+\subsection{Function ~queryTrie~}
+
+*/
+void Tools::queryTrie(InvertedFile *inv, string str, vector<set<int> > &result){
+  InvertedFile::exactIterator* eit = 0;
+  TupleId id;
+  wordPosType wc;
+  charPosType cc;
+  eit = inv->getExactIterator(str, 16777216);
+  while (eit->next(id, wc, cc)) {
+    result[id].insert(wc);
+  }
+  delete eit;
+}
+
+void Tools::queryTrie(InvertedFile *inv, pair<string, unsigned int> place,
+                      vector<set<int> > &result){
+  InvertedFile::exactIterator* eit = 0;
+  TupleId id;
+  wordPosType wc;
+  charPosType cc;
+  eit = inv->getExactIterator(place.first, 16777216);
+  while (eit->next(id, wc, cc)) {
+    if (cc == place.second) {
+      result[id].insert(wc);
+    }
+  }
+  delete eit;
+}
+
+/*
+\subsection{Function ~queryRtree1~}
+
+*/
+void Tools::queryRtree1(RTree1TLLI *rtree, Interval<CcReal> &iv, 
+                        vector<set<int> > &result) {
+  R_TreeLeafEntry<1, TwoLayerLeafInfo> leaf;
+  double min[1], max[1];
+  min[0] = iv.start.GetValue();
+  max[0] = iv.end.GetValue();
+  Rectangle<1> rect1(true, min, max);
+  if (rtree->First(rect1, leaf)) {
+    result[leaf.info.tupleId].insert(leaf.info.low);
+  }
+  while (rtree->Next(leaf)) {
+    result[leaf.info.tupleId].insert(leaf.info.low);
+  }
+}
+
+/*
+\subsection{Function ~queryRtree2~}
+
+*/
+void Tools::queryRtree2(RTree2TLLI *rtree, Rectangle<2> &box, 
+                        vector<set<int> > &result) {
+  R_TreeLeafEntry<2, TwoLayerLeafInfo> leaf;
+  if (rtree->First(box, leaf)) {
+    result[leaf.info.tupleId].insert(leaf.info.low);
+  }
+  while (rtree->Next(leaf)) {
+    result[leaf.info.tupleId].insert(leaf.info.low);
   }
 }
 

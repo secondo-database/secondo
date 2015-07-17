@@ -935,8 +935,8 @@ class TupleIndex {
   vector<RTree1TLLI*> rtrees1;
   vector<RTree2TLLI*> rtrees2;
   RTree1TLLI *timeIndex;
-  map<int, pair<IndexType, int> > attrToIndex; // attrs start with 1; 0 is
-  map<pair<IndexType, int>, int> indexToAttr; // reserved for the time intervals
+  map<int, pair<IndexType, int> > attrToIndex;
+  map<pair<IndexType, int>, int> indexToAttr;
   int mainAttr;
   
   appendcache::RecordAppendCache* cache;
@@ -951,14 +951,19 @@ struct IndexRetrieval;
 */
 class IndexMatchSuper {
  public:
+  IndexMatchSuper(Relation *r, Pattern *_p, int a) : rel(r), p(_p), attrNo(a),
+    activeTuples(0), unitCtr(0) {}
+  
+  int getTrajSize(const TupleId tId, const DataType type);
+  
   Relation *rel;
   Pattern *p;
+  int attrNo;
   set<int> indexMismatch;
   vector<TupleId> matches;
   int activeTuples, unitCtr;
   vector<vector<IndexRetrieval> > indexResult;
   vector<bool> deactivated;
-  int attrNo;
 };
 
 /*
@@ -967,14 +972,24 @@ class IndexMatchSuper {
 */
 class TMatchIndexLI : public IndexMatchSuper {
  public:
-  TMatchIndexLI(Relation *r, TupleIndex *t, int a, Pattern *pat);
+  TMatchIndexLI(Relation *r, ListExpr tt, TupleIndex *t, int a, Pattern *pat);
+  
+  ~TMatchIndexLI() {};
   
   bool tiCompatibleToRel();
+  bool getSingleIndexResult(pair<int, pair<IndexType, int> > indexInfo, 
+             pair<Word, SetRel> values, int valueNo, vector<set<int> > &result);
+  int getNoComponents(const TupleId tId, const int attrNo);
+  void getResultForAtomPart(pair<int, pair<IndexType, int> > indexInfo, 
+                          pair<Word, SetRel> values, vector<set<int> > &result);
+  void getResultForAtomTime(const int atomNo, vector<set<int> > &result);
   void storeIndexResult(int atomNo);
   bool initialize();
   Tuple* nextTuple();
+  void deletePattern();
   
  private:
+  ListExpr ttList;
   TupleIndex *ti;
 };
 
@@ -1235,7 +1250,6 @@ class IndexMatchesLI : public IndexMatchSuper {
   void storeIndexResult(const int e);
   void initMatchInfo(const set<int>& cruElems);
   void initialize();
-  int getMsize(TupleId tId);
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
   void extendBinding(IndexMatchInfo& imi, const int e);
   void applyNFA();

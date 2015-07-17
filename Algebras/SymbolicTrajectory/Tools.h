@@ -100,6 +100,8 @@ class Tools {
   static DataType getDataType(const string& type);
   static DataType getDataType(TupleType *ttype, const int attrno);
   static string getTypeName(TupleType *ttype, const int attrno);
+  static int getNoComponents(Relation *rel, const TupleId tid, 
+                             const string &type, const int attrno);
   static bool isSymbolicType(ListExpr typeList);
   static string extractVar(const string& input);
   static string extendDate(string input, const bool start);
@@ -121,6 +123,14 @@ class Tools {
   static vector<pair<int, string> > getRelevantAttrs(TupleType *ttype, 
                                       const int majorAttrNo, int& majorValueNo);
   static void deleteValue(Word &value, const string &type);
+  static void queryTrie(InvertedFile *inv, string str, 
+                        vector<set<int> > &result);
+  static void queryTrie(InvertedFile *inv, pair<string, unsigned int> place, 
+                        vector<set<int> > &result);
+  static void queryRtree1(RTree1TLLI *rtree, Interval<CcReal> &iv,
+                          vector<set<int> > &result);
+  static void queryRtree2(RTree2TLLI *rtree, Rectangle<2> &box,
+                          vector<set<int> > &result);
   static bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
   // static Word evaluate(string input);

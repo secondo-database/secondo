@@ -2846,25 +2846,29 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
       Relation *rel = static_cast<Relation*>(args[0].addr);
       CcInt *attrno = static_cast<CcInt*>(args[4].addr);
       TupleIndex *ti = static_cast<TupleIndex*>(args[3].addr);
-      P* pat = static_cast<P*>(args[2].addr);
+      FText* pText = static_cast<FText*>(args[2].addr);
       Pattern *p = 0;
-      if (pat->IsDefined() && attrno->IsDefined() && rel->GetNoTuples() > 0) {
+      if (pText->IsDefined() && attrno->IsDefined() && rel->GetNoTuples() > 0) {
         Supplier s0 = qp->GetSon(s, 0);
-        ListExpr ttype = qp->GetType(s0);
-        cout << "ttype is " << nl->ToString(nl->Second(ttype)) << endl;
-        p = Pattern::getPattern(pat->toText(), false, rel->GetTuple(1, false),
-                                nl->Second(ttype));
+        ListExpr ttype = nl->Second(qp->GetType(s0));
+        cout << "ttype is " << nl->ToString(ttype) << endl;
+        Tuple *firstTuple = rel->GetTuple(1, false);
+        p = Pattern::getPattern(pText->GetValue(), false, firstTuple, ttype);
+        firstTuple->DeleteIfAllowed();
         if (p) {
-          li = new TMatchIndexLI(rel, ti, attrno->GetIntval(), p);
-          if (li->initialize()) {
+          li = new TMatchIndexLI(rel, ttype, ti, attrno->GetIntval(), p);
+          if (!li->initialize()) {
             delete li;
             local.addr = 0;
+            cout << "initialize failed" << endl;
           }
         }
         else {
           cout << "invalid pattern" << endl;
         }
       }
+      local.addr = li;
+      return 0;
     }
     case REQUEST: {
       cout << "REQUEST" << endl;
@@ -2874,6 +2878,7 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
     case CLOSE: {
       cout << "CLOSE" << endl;
       if (li) {
+        li->deletePattern();
         delete li;
         local.addr = 0;
       }
