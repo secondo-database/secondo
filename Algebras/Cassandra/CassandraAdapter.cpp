@@ -422,21 +422,8 @@ CassandraTuplePrefetcher* CassandraAdapter::readTableCreatedByQuery(
   
       stringstream ss;
       ss << "SELECT key, value from ";
-      ss << relation << " where ";
-  
-      // Begin of range must be included
-      if(range.getStart() == LLONG_MIN) {
-        ss << "token(partition) >= " << range.getStart() << " ";
-      } else {
-        ss << "token(partition) > " << range.getStart() << " ";
-      }
-  
-      // Get the name of the node
-      string node = nodeNames[range.getIp()];
-  
-      ss << "and token(partition) <= " << range.getEnd() << " " ;
-      ss << "and node = '" << range.getQueryUUID()  << "' ";
-      ss << "ALLOW FILTERING;";
+      ss << relation << " where node = '" << range.getQueryUUID()  << "';";
+
       queries.push_back(ss.str());
   }
     
@@ -630,7 +617,7 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
     ss << " value blob, PRIMARY KEY(partition, node, key));";
 
     bool resultCreate = executeCQLSync(ss.str(), CASS_CONSISTENCY_ALL);
-    
+
     // Write tupletype
     if(resultCreate) {
        // Use a prepared statement to handle the blob correctly
@@ -657,9 +644,17 @@ bool CassandraAdapter::createTable(string tablename, string tupleType) {
        }
 
       if(resultInsert) {
-        // New table is created and the 
-        // tuple type is stored successfully
-        return true; 
+         // New table is created and the 
+         // tuple type is stored successfully
+         
+         stringstream ss_index;
+         ss_index << "CREATE INDEX ON ";
+         ss_index << tablename;
+         ss_index << " (node);";
+         executeCQLSync(ss_index.str(), CASS_CONSISTENCY_ALL);
+         cout << "<<<< INDEX " << ss_index.str() << endl;
+         
+         return true; 
       }
     }
     
