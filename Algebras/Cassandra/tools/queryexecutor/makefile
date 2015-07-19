@@ -45,7 +45,7 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 
 
 Queryexecutor$(EXEEXT): queryexecutor.o heartbeat.o
-	$(CPPC) -o Queryexecutor$(EXEEXT) queryexecutor.o heartbeat.o ../../CassandraAdapter.o ../../CassandraResult.o $(LDFLAGS)
+	$(CPPC) -o Queryexecutor$(EXEEXT) queryexecutor.o heartbeat.o ../../CassandraAdapter.o ../../CassandraResult.o ../../CassandraTuplePrefetcher.o $(LDFLAGS)
 	rm -rf nltemp
 	mkdir nltemp
 
