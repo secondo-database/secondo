@@ -39,7 +39,7 @@
 #include "CassandraAdapter.h"
 
 // Activate debug messages
-#define __DEBUG__
+// #define __DEBUG__
 
 //namespace to avoid name conflicts
 namespace cassandra {
