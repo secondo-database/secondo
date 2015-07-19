@@ -84,11 +84,13 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
    
    string* CassandraTuplePrefetcher::getNextTuple() {
       pthread_mutex_lock(&tupleQueueMutex);
-      int oldSize = tuples.size();
       
       while(tuples.empty()) {
          pthread_cond_wait(&tupleQueueCondition, &tupleQueueMutex); 
       }
+      
+      // Store tuple size
+      int oldSize = tuples.size();
       
       // Remove one element
       string *result = tuples.front();
