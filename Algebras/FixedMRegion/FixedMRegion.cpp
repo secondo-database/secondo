@@ -10,7 +10,7 @@ using namespace std;
 This is the default constructor. Do not use.
 
 */
-FixedMRegion::FixedMRegion(): m(0), r(0){}
+FixedMRegion::FixedMRegion(): Attribute(true), m(0), r(0){}
 
 /*
 This is the copy constructor.
@@ -181,26 +181,6 @@ This is the standard destructor.
 FixedMRegion::~FixedMRegion(){}
 
 /*
-This is a method that accepts a list of regions. The regions represent 
-spots and the movement will be calculated. The constructor expects identical 
-regions that can be transformed by a translation or rotation. The region itself
- cannot cahnge its shape.
-
-*/
-Region FixedMRegion::interpolate(const Region spots[]){
-  Point *
-    p1 = new Point (true, 0.0, 0.0);
-  Point *
-    p2 = new Point (true, 1.0, 0.0);
-  Point *
-    p3 = new Point (true, 0.0, 1.0);
-  Region
-    result = Region (*p1, *p2, *p3);
-  return result;
-  //TODO
-}
-
-/*
 This method will return a region that the FMRegion will have at the given 
 time ti.
 
@@ -294,48 +274,6 @@ void FixedMRegion::getTransPoint(DateTime t, const Point & p, Point& result)
   result.Set(tmpx, tmpy);
 }
 /*
-This method calculates the aprroximated movement of the given MPoint
-with the given precision unter the condition that the FixedMRegion does
-not move. Therefore, it uses an inverse movement of the Region and lets
-the MPoint move that way in addition to its own movement.
-
-*/
-MPoint FixedMRegion::approxMovement (const MPoint & p, double precision) const{
-  UPoint unit;
-  p.Get (p.GetNoComponents () - 1, unit);
-  Instant ite = unit.getTimeInterval ().end;
-  p.Get (0, unit);
-  Instant ita = unit.getTimeInterval ().start;
-
-  //te and ta are relatime
-  double ta = ita.ToDouble ();
-  double te = ite.ToDouble ();
-  int steps=(int)ceil((te-ta)/precision);
-
-  MPoint res (0);
-  res.StartBulkLoad ();
-
-  DateTime to (ita);
-  Point po(0);
-  getInv(ta, unit.p0, po);
-  //FIXME: MPoint-Intervalle nutzen und ev. die teilen, wenn sie zu lang sind!!
-  for (int i=1; i<=steps; i++) {
-    double now=((te-ta)/steps)*i+ta;
-    DateTime tn(now);
-    Intime < Point > tp;
-    p.AtInstant (tn, tp);
-    Point pn(0);
-    getInv(now, tp.value, pn);
-    Interval < Instant > in (to, tn, true, false);
-    UPoint up (in, po, pn);
-    res.MergeAdd (up);
-    to = tn;
-    po = pn;
-  }
-  res.EndBulkLoad();
-  return res;
-}
-/*
 This method calculates the step with depending on alpha.
 
 */
@@ -356,6 +294,7 @@ int FixedMRegion::calcStepWith(const double _ta, const double _te) const {
   int steps=(int)ceil((tmp)/(kr));
   return steps;
 }
+
 /*
 This method calculates the aprroximated movement of the given MPoint
 with the given precision unter the condition that the FixedMRegion does
@@ -363,50 +302,7 @@ not move. Therefore, it uses an inverse movement of the Region and lets
 the MPoint move that way in addition to its own movement.
 
 */
-MPoint FixedMRegion::approxMovementNew2(const MPoint & p) 
-const{
-  UPoint unit;
-  p.Get (p.GetNoComponents () - 1, unit);
-  Instant ite = unit.getTimeInterval ().end;
-  p.Get (0, unit);
-  Instant ita = unit.getTimeInterval ().start;
-
-  //te and ta are relatime
-  double ta = ita.ToDouble ();
-  double te = ite.ToDouble ();
-  //int steps=(int)ceil((te-ta)/precision);
-  int steps = calcStepWith(ta, te);
-  MPoint res (0);
-  res.StartBulkLoad ();
-
-  DateTime to (ita);
-  Point po(0);
-  getInv(ta, unit.p0, po);
-  //FIXME: MPoint-Intervalle nutzen und ev. die teilen, wenn sie zu lang sind!!
-  for (int i=1; i<=steps; i++) {
-    double now=((te-ta)/steps)*i+ta;
-    DateTime tn(now);
-    Intime < Point > tp;
-    p.AtInstant (tn, tp);
-    Point pn(0);
-    getInv(now, tp.value, pn);
-    Interval < Instant > in (to, tn, true, false);
-    UPoint up (in, po, pn);
-    res.MergeAdd (up);
-    to = tn;
-    po = pn;
-  }
-  res.EndBulkLoad();
-  return res;
-}
-/*
-This method calculates the aprroximated movement of the given MPoint
-with the given precision unter the condition that the FixedMRegion does
-not move. Therefore, it uses an inverse movement of the Region and lets
-the MPoint move that way in addition to its own movement.
-
-*/
-MPoint FixedMRegion::approxMovementNew (const MPoint & p) const{
+MPoint FixedMRegion::approxMovement(const MPoint & p) const{
   UPoint unit;
   RefinementPartition<MPoint,MMove,UPoint,UMove> rp(p, m);
   MPoint res (0);
@@ -474,13 +370,12 @@ This method will join adjacent UBools, if they have got the same value.
 MBool FixedMRegion::joinBools(MBool a){
   MBool res(0);
   res.Clear();
-  res.StartBulkLoad();
 
-  if(a.GetNoComponents()==0){
-   res.EndBulkLoad ();
-  return res;
+  if (a.GetNoComponents()==0) {
+    return res;
   }
   
+  res.StartBulkLoad();
   bool start=true;
   int i=0;   
   UBool up;
@@ -496,7 +391,7 @@ MBool FixedMRegion::joinBools(MBool a){
    }else{
      if (t_start!=t_end) {
        Interval < Instant > iv (t_start, t_end, start, true);
-       UBool ub (iv, (CcBool) val);
+       UBool ub (iv, val);
        res.MergeAdd (ub);
      }
      start=false;
@@ -508,7 +403,7 @@ MBool FixedMRegion::joinBools(MBool a){
   }
   if (t_start!=t_end) {
     Interval < Instant > ive (t_start, t_end, start, true);
-    UBool ube (ive, (CcBool) val);
+    UBool ube (ive, val);
     res.MergeAdd (ube);
   }
   
@@ -524,7 +419,7 @@ will be calculated for the time intervall ta to te.
 */
 MBool FixedMRegion::inside (const MPoint & mp){
   MRegion * rfix = buildMovingRegion ();
-  MPoint tmp = approxMovementNew2(mp);
+  MPoint tmp = approxMovement(mp);
   //**TestCode**
   for (int i=0; i<tmp.GetNoComponents(); i++) {
     UPoint t;
@@ -566,22 +461,7 @@ MPoint FixedMRegion::reverseMovement (const MPoint & p) const{
   return res;
 
 }
-/*
-This method will calculate a MPoint which is defined, if the MPoint mp 
-intersects with the FMRegion at the given time and else not defined. The 
-MPoint will be calculated for the time intervall ta to te.
 
-*/
-MPoint FixedMRegion::intersection(MPoint & mp){
-  MPoint
-    tmp = approxMovement (mp, 1e-2);
-  MPoint
-    res (0);
-  Region r(0);
-  atinstant(getMMoveStart(0.0), r);
-  tmp.AtRegion(&r, res);
-  return reverseMovement (res);
-}
 
 /*
 This method will calculate a MPoint which is defined, if the MPoint mp 
@@ -589,7 +469,7 @@ intersects with the FMRegion at the given time and else not defined. The
 MPoint will be calculated for the time intervall ta to te.
 
 */
-MPoint FixedMRegion::intersectionNew(MPoint & mp) {
+MPoint FixedMRegion::intersection(MPoint & mp) {
   MBool parts = inside(mp);
   MPoint result(0);
   result.Clear();
@@ -1374,5 +1254,3 @@ ostream& FixedMRegion::Print(ostream &os) const{
   return os;
 }
 
-
-;

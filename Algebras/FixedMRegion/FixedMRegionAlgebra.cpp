@@ -1133,17 +1133,38 @@ ListExpr InterpolateTM(ListExpr args){
 
 int InterpolateVM(Word* args, Word& result, int message,
 Word& local, Supplier s){
-  //Region* fmr = (Region*) args[0].addr;//FIXME
-  vector<IRegion> fmr(0);
-  FMRInterpolator fi;
-  
-  result = qp->ResultStorage(s);
-  FixedMRegion* res  __attribute__ ((unused))= (FixedMRegion*) result.addr;
-  FixedMRegion r(fi.interpolate(fmr));
-  res->CopyFrom(&r);
-  return 0;
+  Word tuple;
+  FMRInterpolator *fmri=(FMRInterpolator*)local.addr;
+  switch(message){
+    case OPEN:
+      qp->Open(args[0].addr);
+      fmri=new FMRInterpolator();
+      fmri->start();
+      local.setAddr(fmri);
+      return 0;
+    case REQUEST:
+      qp->Request(args[0].addr, tuple);
+      if(qp->Received(args[0].addr)){
+        IRegion* ir = (IRegion*) tuple.addr;
+        fmri->addObservation(*ir);
+      }
+      return CANCEL;
+    case CLOSE:
+      if(local.addr){
+        fmri->end();
+        FixedMRegion r = fmri->getResult();
+        result = qp->ResultStorage(s);
+        FixedMRegion* res = (FixedMRegion*) result.addr;
+        *res = r;
+        delete fmri;
+        local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      return YIELD;
   }
-//FIXME
+  return 0;
+}
+  
 OperatorSpec InterpolateSpec(
 "region[] -> fixedmregion",
 "interpolate _",

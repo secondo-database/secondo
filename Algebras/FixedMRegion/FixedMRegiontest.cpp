@@ -10,6 +10,7 @@ using namespace std;
 #include "TestTraversed.h"
 #include "TestMove.h"
 #include "TestInsideIntersection.h"
+#include "FMRInterpolator.h"
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
@@ -1370,45 +1371,6 @@ void FMRTest::testRobustUnionDisjunkt(){
 }
 
 
-void FMRTest::testApproxMovement()
-{
-  //inside test 
-  //innerhalb+außerhalb
-  printf ("Test ApproxMovement inner- und außerhalb: ");
-
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
-    0, 1, 0);
-  DateTime t_start(0.0);
-  DateTime t_end(1.0);
-  
-  MPoint res (0);
-  res.Clear();
-  res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
-  UPoint ub (iv, 0, 0.5, 2, 1.5);
-  res.MergeAdd (ub);
-  res.EndBulkLoad ();
-
-  MPoint result=fmr.approxMovement(res, 0.1);
-  
-  if (result==res) {
-    printf("OK\n");
-  } else {
-    printf("FAILED\n");
-    printf("Components:%d\n", result.GetNoComponents());
-    for (int i=0; i<result.GetNoComponents(); i++) {
-      UPoint up;
-      result.Get(i, up);
-      printf("%d: %f-%f\n", i, 
-      up.getTimeInterval().start.ToDouble(),
-      up.getTimeInterval().end.ToDouble());
-    }
-  }
-  
-}
 void FMRTest::testInsideVersusApproxMovement()
 {
   //inside test 
@@ -1477,7 +1439,6 @@ void testTraversedComponents(){
   t.testRobustUnionIntersection1();
   t.testRobustUnionIntersection2();
   t.testRobustUnionDisjunkt();
-  t.testApproxMovement();
   t.testInsideVersusApproxMovement();
 }
 
@@ -1490,24 +1451,24 @@ runTestMethod ()
 {
   testMove();
   testLATransform();
-//  testRegion();
-//  testRegionCompare();
+  testRegion();
+  testRegionCompare();
   testatinstantNoMove();
 //  testatinstantLinearMove(); //FIXME
   testatinstantRotate();
   testMBool();
-//  testQuatro();
-//  testCycle();
+  testQuatro();
+  testCycle();
 //  testTriangleQuatro(); //DEPRECATED
-//  testUnion();
-//  runTestTraversedMethod();
+  testUnion();
+  runTestTraversedMethod();
   runTestMoveMethod();
-//  testconcaveQuadruple();
+  testconcaveQuadruple();
   testMPoint();
-//  testLATransformInv ();
+  testLATransformInv ();
   runTestInterpolateMethod();
-//  testTraversedComponents();
-//  runtestInsideIntersection();
-//  testskeleton();
+  testTraversedComponents();
+  runtestInsideIntersection();
+  testskeleton();
 
 }

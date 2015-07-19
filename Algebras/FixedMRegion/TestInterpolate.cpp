@@ -30,74 +30,6 @@ void TestInterpolate::testcalcMasspoint(){
     printf ("calculated: (%f,%f)\n", res.GetX(),res.GetY());
   }
 }
-
-void TestInterpolate::testsetReferenceRegion(){
-  printf("setReferenceRegion: ");
-  double min1a[] = { 0.0, 0.0 };
-  double max1a[] = { 1.0, 1.0 };
-  Region *r_tmp = new Region (Rectangle < 2 > (true, min1a, max1a));
-  Point m(true, 0.5, 0.5);
-  double min1b[] = { -0.5, -0.5 };
-  double max1b[] = { 0.5, 0.5 };
-  Region *exp = new Region (Rectangle < 2 > (true, min1b, max1b));
-  FMRInterpolator fmr;
-  fmr.setReferenceRegion(*r_tmp, m);
-  Region res = fmr.getReferenceRegion();
-  printf("%s\n", (res == *exp) ? "OK" : "FAILED");
-  if(res != *exp){
-    printf("expected region points:\n");
-    for (int i = 0; i < (*exp).Size (); i++){
-      HalfSegment hs;
-      (*exp).Get (i, hs);
-      const Point lp = hs.GetLeftPoint ();
-      printf("Point lp: %f, %f\n", lp.GetX(), lp.GetY());
-      const Point rp = hs.GetRightPoint ();
-      //printf("Point rp: %f, %f\n", rp.GetX(), rp.GetY());
-    }
-    printf("calculated region points:\n");
-    for (int i = 0; i < res.Size (); i++){
-      HalfSegment hs;
-      res.Get (i, hs);
-      const Point lp = hs.GetLeftPoint ();
-      printf("Point lp: %f, %f\n", lp.GetX(), lp.GetY());
-      const Point rp = hs.GetRightPoint ();
-      //printf("Point rp: %f, %f\n", rp.GetX(), rp.GetY());
-    }
-  }
-}
-
-
-void TestInterpolate::testsetMasspoint(){
-  printf("setMasspoint: ");
-  Point exp(true, 1.0, 3.0);
-  Point p(true, 1.0, 3.0);
-  FMRInterpolator fmr;
-  fmr.setRotcenter(p);
-  Point res = fmr.getRotcenter();
-  printf("%s\n", (res == exp) ? "OK" : "FAILED");
-  if(res != exp){
-    printf("expected:\n");
-    printf("Point exp: %f, %f\n", (exp.GetX(), exp.GetY()));
-    printf("calculated:\n");
-    printf("Point res: %f, %f\n", (res.GetX(), res.GetY()));
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void TestInterpolate::testcalcMaxDistPoint1(){
   printf("calcMaxDistPoint: ");
   Point *p1 = new Point (true, 6.0, 0.0);
@@ -326,7 +258,8 @@ void TestInterpolate::testmatchVectors(){
   Region *r_tmpb = new Region (*p1b, *p2b, *p3b);
   Point mb(true, -1.0, -1.0);
   Point res (0);
-  res = fmr.matchVectors(t, *r_tmpb, mb);
+  fmr.distVector=t;
+  res = fmr.matchVectors(*r_tmpb, mb);
   Point e(true, 0.0, 0.0);
   printf ("%s\n", (res == e) ? "OK" : "FAILED");
   if(res != e){
@@ -462,7 +395,15 @@ void TestInterpolate::testinterpolatetest(){
   
   FMRInterpolator fmr;
   //vector<double> t;
-  fmr.interpolatetest(regions, dates);
+  fmr.start();
+  IRegion ir1(t1, r_tmp1);
+  fmr.addObservation(ir1);
+  IRegion ir2(t2, r_tmp2);
+  fmr.addObservation(ir2);
+  IRegion ir3(t3, r_tmp3);
+  fmr.addObservation(ir3);
+  fmr.end();
+  FixedMRegion res1 = fmr.getResult();
   //FIXME: Erwartungswert?
   
   Point m(true, 0.0, 0.0);
@@ -472,10 +413,16 @@ void TestInterpolate::testinterpolatetest(){
   Region r(*p1r, *p2r, *p3r);
   
   
-  fmr.interpolatetest(regions, dates, &r);
-  //FIXME: Erwartungswert?
+  fmr.start();
+  IRegion ir11(t1, r);
+  fmr.addObservation(ir11);
+  IRegion ir21(t2, r);
+  fmr.addObservation(ir21);
+  IRegion ir31(t3, r);
+  fmr.addObservation(ir31);
+  fmr.end();
+  FixedMRegion res11 = fmr.getResult();
   
-  fmr.interpolatetest(regions, dates, &r, &m);
   //FIXME: Erwartungswert?
   
   /*printf ("%s\n", (res == e) ? "OK" : "FAILED");
@@ -498,8 +445,8 @@ void TestInterpolate::testsetDistVector(){
   a.push_back(2.0);
   a.push_back(1.0);
   FMRInterpolator fmr;
-  fmr.setDistVector(a);
-  vector<double> b = fmr.getDistVector();
+  fmr.distVector=a;
+  vector<double> b = fmr.distVector;
   printf ("%s\n", (a == b) ? "OK" : "FAILED");
   if(a != b){
     for (unsigned int i = 0; i < a.size(); i++){
@@ -508,32 +455,6 @@ void TestInterpolate::testsetDistVector(){
     }
   }
 }
-
-void TestInterpolate::testsetAngleInit(){
-  printf("testsetAngleInit: ");
-  double a=3.3;
-  FMRInterpolator fmr;
-  fmr.setAngleInit(a);
-  double b=fmr.getAngleInit();
-  printf ("%s\n", (a == b) ? "OK" : "FAILED");
-  if(a != b){
-    printf ("expected: %f\n", a);
-    printf ("calculated: %f\n", b);
-  }
-}
-void TestInterpolate::testsetRotcenter(){
-  printf("testsetRotcenter: ");
-  Point a(true, 6.0, 4.0);
-  FMRInterpolator fmr;
-  fmr.setRotcenter(a);
-  Point b = fmr.getRotcenter();
-  printf ("%s\n", (a == b) ? "OK" : "FAILED");
-  if(a != b){
-    printf ("expected: (%f,%f)\n", a.GetX(), a.GetY());
-    printf ("calculated: (%f,%f)\n", b.GetX(), b.GetY());
-  }
-}
-
 void TestInterpolate::testdetermineAngleAlgorithm(){
   printf("testdetermineAngleAlgorithm: ");
   Point *p1 = new Point (true, 6.0, 0.0);
@@ -573,8 +494,9 @@ void TestInterpolate::testcalcThisAngle(){
   Region *r_tmp = new Region (*p1, *p2, *p3);
   Point pd(true, 1.0, 1.0);
   FMRInterpolator fmr;
-  fmr.setAngleInit(0);
-  double p=fmr.calcThisAngle(*r_tmp, 1);
+  fmr.angle_init=0;
+  fmr.angle_method=1;
+  double p=fmr.calcThisAngle(*r_tmp);
   double res =1.815775;
   if (fabs(p-res)<0.0001) {
     printf("OK\n");
@@ -585,100 +507,6 @@ void TestInterpolate::testcalcThisAngle(){
   }
 }
 
-void TestInterpolate::testcalcAngles(){
-  printf("testcalcAngles: ");
-  Point *p1 = new Point (true, 6.0, 1.0);
-  Point *p2 = new Point (true, 1.0, 9.0);
-  Point *p3 = new Point (true, 0.0, 1.0);
-  Region *r_tmp = new Region (*p1, *p2, *p3);
-  Point pd(true, 1.0, 1.0);
-  Point *p11 = new Point (true, 1.0, 6.0);
-  Point *p21 = new Point (true, -8.0, 1.0);
-  Point *p31 = new Point (true, 1.0, 0.0);
-  Region *r_tmp1 = new Region (*p11, *p21, *p31);
-  vector<Region> v;
-  v.push_back(*r_tmp);
-  v.push_back(*r_tmp1);
-  FMRInterpolator fmr;
-  fmr.setAngleInit(0.0);
-  vector<double> p;
-  fmr.calcAngles(v,1,p);
-  vector<double> res;
-  res.push_back(1.815775);
-  res.push_back(-2.922924);
-  if ((fabs(p[0]-res[0])<0.0001) && (fabs(p[1]-res[1])<0.0001)){
-    printf("OK\n");
-  } else {
-    printf ("Failed\n");
-    for (unsigned int i = 0; i < res.size(); i++){
-      printf ("expected: %f\n", res[i]);
-      printf ("calculated: %f\n", p[i]);
-    }
-  }
-}
-
-void TestInterpolate::testcalcTranslations(){
-  printf("testcalcTranslations: ");
-  Point *p1 = new Point (true, -1.0, 0.0);
-  Point *p2 = new Point (true, 1.0, 0.0);
-  Point *p3 = new Point (true, 0.0, 3.0);
-  Region *r_tmp = new Region (*p1, *p2, *p3);
-  Point pd(true, 1.0, 1.0);
-  Point *p11 = new Point (true, -1.0, 2.0);
-  Point *p21 = new Point (true, 1.0, 2.0);
-  Point *p31 = new Point (true, 0.0, 5.0);
-  Region *r_tmp1 = new Region (*p11, *p21, *p31);
-  vector<Region> v;
-  v.push_back(*r_tmp);
-  v.push_back(*r_tmp1);
-  FMRInterpolator fmr;
-  vector<Point> p;
-  fmr.calcTranslations(v,p);
-  vector<Point> res;
-  res.push_back(Point(true,0.0, 1.0));
-  res.push_back(Point(true,0.0, 3.0));
-  printf ("%s\n", (res == p) ? "OK" : "FAILED");
-  if(res!=p){    
-    for (unsigned int i = 0; i < res.size(); i++){
-      printf ("expected: (%f,%f)\n", res[i].GetX(), res[i].GetY());
-      printf ("calculated: (%f,%f)\n", p[i].GetX(), p[i].GetY());
-    }
-  }
-}
-/*
-This method calculates the translation from the rotational center for all 
-given objects and returns them in the final translation vector.
-
-*/
-//void calcTranslationFromRotcenter(vector<Point>& translations,
-  //Point rotcenter, vector<Point>& final_translations);
-  //FIXME
-  
-
-void TestInterpolate::testcalcFinalAngles(){
-  printf("testcalcFinalAngles: ");
-  FMRInterpolator fmr;
-  vector<double> p;
-  p.push_back(0.0);
-  p.push_back(M_PI/2);
-  p.push_back(M_PI);
-  p.push_back(-M_PI/2);
-  p.push_back(0);
-  vector<double> res;
-  res.push_back(0.0);
-  res.push_back(M_PI/2);
-  res.push_back(M_PI);
-  res.push_back(3*M_PI/2);
-  res.push_back(2*M_PI);
-  fmr.calcFinalAngles(p);
-  printf ("%s\n", (res == p) ? "OK" : "FAILED");
-  if(res!=p){    
-    for (unsigned int i = 0; i < res.size(); i++){
-      printf ("expected: %f\n", res[i]);
-      printf ("calculated: %f\n", p[i]);
-    }
-  }
-}
 /*
 This method creates all UMoves and puts them into a MMove that will be returned.
 
@@ -706,7 +534,10 @@ void TestInterpolate::testcreateMMove(){
   a.push_back(M_PI/2);
   a.push_back(M_PI);
   FMRInterpolator fmr;
-  MMove res = fmr.createMMove(t,v,a);
+  fmr.observations.push_back(FMRObservation(v[0], a[0],t[0]));
+  fmr.observations.push_back(FMRObservation(v[1], a[1],t[1]));
+  fmr.observations.push_back(FMRObservation(v[2], a[2],t[2]));
+  MMove res = fmr.createMMove();
   bool success=true;
   for (unsigned int i=0; i<t.size(); i++) {
     Intime<Point3> r1;
@@ -744,8 +575,6 @@ void runTestInterpolateMethod(){
   testPointStore();
   TestInterpolate t ;
   t.testcalcMasspoint();
-  t.testsetReferenceRegion();
-  t.testsetMasspoint();
   t.testcalcMaxDistPoint1();
   t.testcalcMinDistPoint2();
   t.testcalcMaxDistPoint3();
@@ -759,13 +588,8 @@ void runTestInterpolateMethod(){
   t.testCalcAngle();
   t.testGetTurnDir();
   t.testsetDistVector();
-  t.testsetAngleInit();
-  t.testsetRotcenter();
   t.testdetermineAngleAlgorithm();
   t.testcalcThisAngle();
-  t.testcalcAngles();
-  t.testcalcTranslations();
-  t.testcalcFinalAngles();
   t.testcreateMMove();
   //FIXME
   t.testcalculateAngleToXAxis();

@@ -16,8 +16,9 @@ This class is a FixedMRegion.
 #include "LATransform.h"
 #include "FixedMRegiontest.h"
 #include "MMove.h"
-#include "TestInterpolate.h"
+//#include "TestInterpolate.h"
 
+class TestInterpolate;
 
 
 class FixedMRegion: public Attribute
@@ -126,18 +127,6 @@ This is the standard destructor.
 
 */
    ~FixedMRegion ();
-
-
-/*
-This is a method that accepts a list of regions. The regions represent 
-spots and the movement will be calculated. The constructor expects identical 
-regions that can be transformed by a translation or rotation. The region itself
- cannot change its shape.
-
-*/
-  static Region interpolate (const Region spots[]);
-//TODO
-
 /*
 This method will return a region that the FMRegion will have at the given 
 time ti.
@@ -153,21 +142,13 @@ will be calculated for the time intervall ta to te.
 */
   MBool inside (const MPoint & mp);
 
-
 /*
 This method will calculate a MPoint which is defined, if the MPoint mp 
 intersects with the FMRegion at the given time and else not defined. The 
 MPoint will be calculated for the time intervall ta to te.
 
 */
-  MPoint intersection (MPoint & mp);
-/*
-This method will calculate a MPoint which is defined, if the MPoint mp 
-intersects with the FMRegion at the given time and else not defined. The 
-MPoint will be calculated for the time intervall ta to te.
-
-*/
-  MPoint intersectionNew(MPoint & mp);
+  MPoint intersection(MPoint & mp);
 /*
 This method will calculate the Region which contains all points / areas, that
 the FMRegion has at least on time (or more often) traversed in the given 
@@ -388,14 +369,7 @@ as absolute time.
 */
   double getMMoveStart (const double dummy) const;
 
-/*
-This method calculates the aprroximated movement of the given MPoint
-with the given precision unter the condition that the FixedMRegion does
-not move. Therefore, it uses an inverse movement of the Region and lets
-the MPoint move that way in addition to its own movement.
 
-*/
-  MPoint approxMovement (const MPoint & p, double precision) const;
 /*
 This method calculates the step with depending on alpha.
 
@@ -408,15 +382,8 @@ not move. Therefore, it uses an inverse movement of the Region and lets
 the MPoint move that way in addition to its own movement.
 
 */
-MPoint approxMovementNew2(const MPoint & p) const;
-/*
-This method calculates the aprroximated movement of the given MPoint
-with the given precision unter the condition that the FixedMRegion does
-not move. Therefore, it uses an inverse movement of the Region and lets
-the MPoint move that way in addition to its own movement.
+MPoint approxMovement(const MPoint & p) const;
 
-*/
-  MPoint approxMovementNew (const MPoint & p) const;
 /*
 This method moves the given Point inverse to the movement of the FixedMRegion
 and gives it back.
