@@ -13172,7 +13172,47 @@ OperatorSpec countMtSpec(
 
 
 
+/*
+Operator bringToMemory
 
+*/
+
+ListExpr bringToMemoryTM(ListExpr args){
+
+  string err = "tuple expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(!Tuple::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+int bringToMemoryVM( Word* args, Word& result, int message,
+		   Word& local, Supplier s ) {
+  Tuple* tuple = (Tuple*) args[0].addr;
+  tuple->bringToMemory();
+  result=qp->ResultStorage(s);
+  ((CcBool*) result.addr)->Set(true,true);
+  return 0; 
+}
+
+
+OperatorSpec bringToMemorySpec(
+     " tuple->tuple ",
+     " _ bringToMemory",
+     "Brings all parts of a tuple into main memory.",
+     " query strassen feed extend[Dummy : . bringToMemory] consume ");
+
+
+ Operator bringToMemoryOP(
+      "bringToMemory",
+      bringToMemorySpec.getStr(),
+      bringToMemoryVM,
+      Operator::SimpleSelect,
+      bringToMemoryTM
+ );
 
 
 /*
@@ -13285,6 +13325,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&pfilter);
     AddOperator(&extendXOP);
     AddOperator(&countMtOP);
+    AddOperator(&bringToMemoryOP);
 
 #ifdef USE_PROGRESS
 // support for progress queries

@@ -95,5 +95,6 @@ operator extendX alias EXTENDX pattern _ op[list ; fun ; _] implicit parameter t
 
 operator countMt alias COUNTMT pattern _op [_]
 
+operator bringToMemory alias BRINGTOMEMORY pattern _ op
 
 

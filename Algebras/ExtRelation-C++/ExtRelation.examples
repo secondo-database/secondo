@@ -428,3 +428,10 @@ Signature : stream(tuple) x int -> int
 Example   : query (strassen feed countMt[100]) = (strassen count)
 Result    : TRUE
 
+
+Operator  : bringToMemory 
+Number    : 1
+Signature : tuple -> bool
+Example   : query strassen feed extend[MS1 : .GeoData memattrsize] extend[OK : . bringToMemory] extend[MS2 : .GeoData memattrsize] count
+Result    : 3212
+
