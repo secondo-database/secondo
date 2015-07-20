@@ -254,6 +254,20 @@ Returns the size of the flob data not under management of the FlobManager;
     inline SmiSize getUncontrolledSize() const { return dataPointer?size:0; }
 
 
+/*
+~bringToMemory~
+
+stores the flob's data into the dataPointer.
+
+*/
+    void bringToMemory(){
+        if(dataPointer){
+           return;
+        }
+        dataPointer = getData();
+    }
+
+
 
 /*
 ~resize~
