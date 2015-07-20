@@ -264,7 +264,9 @@ stores the flob's data into the dataPointer.
         if(dataPointer){
            return;
         }
-        dataPointer = getData();
+        char* tmp = (char*) malloc(size);
+        read(tmp, size);
+        dataPointer = tmp;
     }
 
 

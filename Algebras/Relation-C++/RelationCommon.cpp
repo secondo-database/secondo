@@ -237,6 +237,15 @@ void Tuple::SetCounterValues()
 }
 
 
+void Tuple::bringToMemory()
+{
+   for(int i=0;i<GetNoAttributes();i++){
+      GetAttribute(i)->bringToMemory();
+   }
+
+}
+
+
 
 ostream &operator<< (ostream &os, Attribute &attrib)
 {

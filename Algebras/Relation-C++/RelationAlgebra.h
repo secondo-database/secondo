@@ -732,6 +732,10 @@ Update Relation Algebra.
       }
     }
 
+
+    void bringToMemory();
+
+
     inline int GetRootSize() const
     {
       return tupleType->GetCoreSize();

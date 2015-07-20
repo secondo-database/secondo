@@ -208,6 +208,17 @@ Returns the size of the object in main memory
 
 */
 
+   virtual void bringToMemory(){
+      for(int i=0;i<NumOfFLOBs();i++){
+         this->GetFLOB(i)->bringToMemory();
+      }
+   }
+
+/*
+transfers the flob data from disk to main memory.
+
+*/
+
 
 
 
