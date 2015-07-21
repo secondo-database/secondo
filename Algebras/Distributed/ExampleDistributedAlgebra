@@ -1,0 +1,835 @@
+/*
+//paragraph [10] title:    [{\Large \bf ]    [}]
+//characters [1] formula:     [$]     [$]
+//[ae] [\"{a}]
+//[oe] [\"{o}]
+//[ue] [\"{u}]
+//[ss] [{\ss}]
+//[Ae] [\"{A}]
+//[Oe] [\"{O}]
+//[Ue] [\"{U}]
+//[**] [$**$]
+//[toc] [\tableofcontents]
+//[=>] [\verb+=>+]
+//[:Section Translation] [\label{sec:translation}]
+//[Section Translation] [Section~\ref{sec:translation}]
+//[:Section 4.1.1] [\label{sec:4.1.1}]
+//[Section 4.1.1] [Section~\ref{sec:4.1.1}]
+//[Figure pog1] [Figure~\ref{fig:pog1.eps}]
+//[Figure pog2] [Figure~\ref{fig:pog2.eps}]
+//[newpage] [\newpage]
+
+[10] Example: Creating a Distributed Spatial Database
+
+Ralf Hartmut G[ue]ting, February 2015
+
+[toc]
+
+[newpage]
+
+1 Introduction
+
+In this example, we set up a small distributed spatial database, using the DistributedAlgebra of Secondo. We will use a cluster of six computers each with six cores and two disks. On each disk we use one Secondo server resulting in 12 nodes (called ~workers~). A controlling Secondo master sits on another computer.
+
+On all systems the platform is Linux, more specifically Ubuntu 14.04. 
+
+2 Passphrase-less Connection
+
+The first thing is to set up an ssh connection from the master to the workers so that the system on the master can log in to the workers without the user having to enter a password. This is done as follows.
+
+(1) In the master's home directory, enter
+
+----	ssh-keygen -t dsa
+----
+
+This generates a public key. The system asks for a password, just type return for an empty password. Also type return for the default location to store the public key.
+
+(2) Configure ssh to know the worker computers. Into a file .ssh/config, we put the following:
+
+----
+Host *node1
+HostName 132.176.69.181
+User gueting
+Host *node2
+HostName 132.176.69.182
+User gueting
+Host *node3
+HostName 132.176.69.183
+User gueting
+Host *node4
+HostName 132.176.69.184
+User gueting
+Host *node5
+HostName 132.176.69.185
+User gueting
+Host *node6
+HostName 132.176.69.186
+User gueting
+----
+
+This makes the worker computers available with names node1, node2, etc. and also sets the user name and home directory on these computers.
+
+(3) Transmit the public key to the target computers. In this case, the home directory on node1 is mapped to all other nodes, so it suffices to do this on node1.
+
+----	
+ssh-copy-id -i .ssh/id_dsa.pub <user>@server 
+
+ssh-copy-id -i .ssh/id_rsa.pub gueting@132.176.69.181
+----
+
+If the master system does not have the command ssh-copy-id, one can use instead:
+
+----	
+cat ~/.ssh/*.pub | ssh <user>@<server> 'umask 077; cat >>.ssh/authorized_keys' 
+----
+
+At this point the system on node1 asks once for a password.
+
+Subsequently it is possible to log in on node1 by simply typing
+
+----	ssh node1
+----
+
+One should log in once on each of the nodes because the system on the master needs to enter each node into its list of known hosts.
+
+
+3 Getting Spatial Data to the Master
+
+We use OpenStreetMap data about the German state of North-Rhine-Westphalia obtained in the form of shapefiles from GeoFabrik.
+
+On http://download.geofabrik.de/ one can navigate a bit selecting Europe, then Germany. Then from the table Sub Regions in the row for Nordrhein-Westfalen, download 
+
+http://download.geofabrik.de/europe/germany/nordrhein-westfalen-latest.shp.zip
+
+You can also use this link to download directly, if it is still available. Unpack the zip file into a directory nrw within secondo/bin.
+
+The database has 8 kinds of objects, for example, Roads, Buildings, Waterways.
+
+In directory secondo/bin start a Secondo system without transactions (for loading data) using the command
+
+----	SecondoTTYNT
+----
+
+At the prompt, enter
+
+----
+Secondo => @Scripts/nrwImportShape.SEC
+----
+
+The contents of the file nrwImportShape are shown here:
+
+----	
+# Importing NRW Data
+
+close database
+
+create database nrw
+
+open database nrw
+
+let Roads = dbimport2('../bin/nrw/roads.dbf') addcounter[No, 1] 
+shpimport2('../bin/nrw/roads.shp') namedtransformstream[GeoData] 
+addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] 
+filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Waterways = dbimport2('../bin/nrw/waterways.dbf') addcounter[No, 1] 
+shpimport2('../bin/nrw/waterways.shp') namedtransformstream[GeoData] 
+addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] 
+filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Railways = dbimport2('../bin/nrw/railways.dbf') addcounter[No, 1] 
+shpimport2('../bin/nrw/railways.shp') namedtransformstream[GeoData] 
+addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] 
+filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Points = dbimport2('../bin/nrw/points.dbf') addcounter[No, 1] 
+shpimport2('../bin/nrw/points.shp') namedtransformstream[GeoData] 
+addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] 
+filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Places = dbimport2('../bin/nrw/places.dbf') addcounter[No, 1] 
+shpimport2('../bin/nrw/places.shp') namedtransformstream[GeoData] 
+addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] 
+filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Natural = dbimport2('../bin/nrw/natural.dbf') addcounter[No, 1] 
+shpimport2('../bin/nrw/natural.shp') namedtransformstream[GeoData] 
+addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] 
+filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Buildings = dbimport2('../bin/nrw/buildings.dbf') addcounter[No, 1] 
+shpimport2('../bin/nrw/buildings.shp') namedtransformstream[GeoData] 
+addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] 
+filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Landuse = dbimport2('../bin/nrw/landuse.dbf') addcounter[No, 1] 
+shpimport2('../bin/nrw/landuse.shp') namedtransformstream[GeoData] 
+addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] 
+filter[isdefined(bbox(.GeoData))] validateAttr consume
+----
+
+This creates relations Roads, Waterways, etc. within a new database nrw.
+
+Recently, this database is fairly large, for example, has 5.8 mio buildings. It took more than 3 hours to run this script.
+
+4 Selecting a More Convenient Smaller Area
+
+For our example, we do not want long waiting times and restrict to the area of the city of Dortmund. By some method (for example, loading some of the data into the GUI of Secondo and either reading coordinates or creating a rectangle there), we define a rectangle
+
+----	
+let Dortmund = [const rect value (7.344992561477086 7.7006749345239855 
+51.42492667118238 51.610366440983924)]
+----
+
+The rectangle coordinates in parentheses follow the format (x1 x2 y1 y2).
+
+We create a directory Dortmund located in the home directory of the user. We then run a script with contents
+
+----
+let BuildingsDo = Buildings feed filter[bbox(.GeoData) intersects Dortmund] 
+consume
+
+query BuildingsDo count
+
+save BuildingsDo to '../../Dortmund/Buildings'
+
+
+let LanduseDo = Landuse feed filter[bbox(.GeoData) intersects Dortmund] 
+consume
+
+query LanduseDo count
+
+save LanduseDo to '../../Dortmund/Landuse'
+
+
+let NaturalDo = Natural feed filter[bbox(.GeoData) intersects Dortmund] 
+consume
+
+query NaturalDo count
+
+save NaturalDo to '../../Dortmund/Natural'
+
+
+let PlacesDo = Places feed filter[bbox(.GeoData) intersects Dortmund] 
+consume
+
+query PlacesDo count
+
+save PlacesDo to '../../Dortmund/Places'
+
+
+let PointsDo = Points feed filter[bbox(.GeoData) intersects Dortmund] 
+consume
+
+query PointsDo count
+
+save PointsDo to '../../Dortmund/Points'
+
+
+let RailwaysDo = Railways feed filter[bbox(.GeoData) intersects Dortmund] 
+consume
+
+query RailwaysDo count
+
+save RailwaysDo to '../../Dortmund/Railways'
+
+
+let RoadsDo = Roads feed filter[bbox(.GeoData) intersects Dortmund] 
+consume
+
+query RoadsDo count
+
+save RoadsDo to '../../Dortmund/Roads'
+
+
+let WaterwaysDo = Waterways feed filter[bbox(.GeoData) intersects Dortmund] 
+consume
+
+query WaterwaysDo count
+
+save WaterwaysDo to '../../Dortmund/Waterways'
+----
+
+Now subsets of all relations intersecting the area of rectangle Dortmund have been selected and saved in the directory Dortmund.
+
+We close the database nrw and create a new database dortmund. This is done by a script with the following contents:
+
+----
+close database
+
+create database dortmund
+
+open database dortmund
+
+restore Buildings from '../../Dortmund/Buildings'
+
+restore Landuse from '../../Dortmund/Landuse'
+
+restore Natural from '../../Dortmund/Natural'
+
+restore Places from '../../Dortmund/Places'
+
+restore Points from '../../Dortmund/Points'
+
+restore Railways from '../../Dortmund/Railways'
+
+restore Roads from '../../Dortmund/Roads'
+
+restore Waterways from '../../Dortmund/Waterways'
+
+# Runtime for ../../Scripts/buildDortmund.sec: Times (elapsed / cpu): 5:39min 
+# (339.269sec) /194.8sec = 1.74163
+----
+
+Of course, you may apply the same techniques to select an area you are interested in anywhere on the earth (as far as OSM and GeoFabrik data are available).
+
+5 Preparations for the Distributed Database
+
+In the cluster, we need to set up configuration files for the Secondo instances to be used as servers on the 12 disks. We assume, Secondo is already installed on node1 in the home directory of user gueting. The configuration files are slight variations of the standard SecondoConfig.ini and are to be located in directory secondo/bin as well. We call them SecondoConfig.ini.SM1 and SecondoConfig.ini.SM2. The essential entries in these configuration files that need to be changed are the path to the secondo-database directory to be used and the port number.
+
+Here we use:
+
+----
+SecondoConfig.ini.SM1:
+=====================
+
+# Note: On windows you need absolute path names, e.g.
+# C:\msys\1.0\home\user\secondo-dbtest
+SecondoHome=/opt/psec/gueting-databases
+
+# Port of the Secondo server (default: )
+SecondoPort=31234
+
+SecondoConfig.ini.SM2:
+=====================
+
+# Note: On windows you need absolute path names, e.g.
+# C:\msys\1.0\home\user\secondo-dbtest
+SecondoHome=/mnt/diskb/psec2/gueting-databases
+
+# Port of the Secondo server (default: )
+SecondoPort=34321
+----
+
+The files must also be put into the secondo/bin directory of the master and must be the same in the secondo/bin directory of the master and in the secondo/bin directory of node1 !!
+
+In the database dortmund, we now set up two relations describing the cluster.
+
+To be used for startup:
+
+----
+let StartCluster = [const rel(tuple([Server: string, Port: int, SecConf:string])) 
+value ( 
+	("node1" 31234 "SecondoConfig.ini.SM1") 
+	("node2" 31234 "SecondoConfig.ini.SM1") 
+	("node3" 31234 "SecondoConfig.ini.SM1")
+	("node4" 31234 "SecondoConfig.ini.SM1")
+	("node5" 31234 "SecondoConfig.ini.SM1")
+	("node6" 31234 "SecondoConfig.ini.SM1") 
+	("node1" 34321 "SecondoConfig.ini.SM2")
+	("node2" 34321 "SecondoConfig.ini.SM2") 
+	("node3" 34321 "SecondoConfig.ini.SM2") 
+	("node4" 34321 "SecondoConfig.ini.SM2") 
+	("node5" 34321 "SecondoConfig.ini.SM2") 
+	("node6" 34321 "SecondoConfig.ini.SM2")
+)]
+----
+
+For use in queries, we set up the relation:
+
+----
+let Cluster = [const rel(tuple([Server: string, Port: int])) value (
+  ("132.176.69.181" 31234)
+  ("132.176.69.182" 31234)
+  ("132.176.69.183" 31234)
+  ("132.176.69.184" 31234)
+  ("132.176.69.185" 31234)
+  ("132.176.69.186" 31234)
+  ("132.176.69.181" 34321)
+  ("132.176.69.182" 34321)
+  ("132.176.69.183" 34321)
+  ("132.176.69.184" 34321)
+  ("132.176.69.185" 34321)
+  ("132.176.69.186" 34321)
+)]
+----
+
+6 Starting the Cluster
+
+From now on, within all Secondo systems the DistributedAlgebra must have been activated. It is also important to ensure that the Secondo system on the master and the cluster node Secondos have the same algebras activated. Otherwise it may happen that a query that runs on the master does not work on the servers.
+
+We start all the servers listed in relation StartCluster by the query:
+
+----	
+query StartCluster feed extend[Started: startup(.Server, .Port, .SecConf, FALSE)] 
+consume
+----
+
+The query uses the startup operator of the DistributedAlgebra. The last parameter says whether the database Distributed should be created/restored to empty on the cluster. So it should be set to TRUE when using the cluster the first time and FALSE when restarting with an existing Distributed database.
+
+[At the moment, automatic construction of the database Distributed does not work. It has to be constructed manually on each server. The query can only be used with parameter FALSE, or omitting this parameter.]
+
+We can check whether all workers are ok:
+
+----
+query Cluster feed check_workers consume
+----
+
+It should have a result:
+
+----
+Server : 132.176.69.181
+  Port : 31234
+Status : OK
+
+Server : 132.176.69.182
+  Port : 31234
+Status : OK
+
+Server : 132.176.69.183
+  Port : 31234
+Status : OK
+
+Server : 132.176.69.184
+  Port : 31234
+Status : OK
+
+Server : 132.176.69.185
+  Port : 31234
+Status : OK
+
+Server : 132.176.69.186
+  Port : 31234
+Status : OK
+
+Server : 132.176.69.181
+  Port : 34321
+Status : OK
+
+Server : 132.176.69.182
+  Port : 34321
+Status : OK
+
+Server : 132.176.69.183
+  Port : 34321
+Status : OK
+
+Server : 132.176.69.184
+  Port : 34321
+Status : OK
+
+Server : 132.176.69.185
+  Port : 34321
+Status : OK
+
+Server : 132.176.69.186
+  Port : 34321
+Status : OK
+----
+
+If this result appears, the cluster is ready for use.
+
+If in the Status field we have an entry ERROR: bnl, it means that the database Distributed does not exist.
+
+Finally, we can shut down all servers by
+
+----
+query StartCluster feed extend[Stop: shutdown(.Server, .Port)] consume
+----
+
+As an abbreviation, we can define functions:
+
+----
+let ClusterOn = fun() StartCluster feed 
+  extend[Started: startup(.Server, .Port, .SecConf, FALSE)] consume;
+let ClusterCheck = fun() Cluster feed check_workers consume;
+let ClusterOff = fun() StartCluster feed 
+  extend[Stop: shutdown(.Server, .Port)] consume;
+----
+
+We can then for example start the cluster simply by typing:
+
+----
+query ClusterOn()
+----
+
+We now assume the cluster is active with the result shown above for check\_workers.
+
+
+7 Creating the Distributed Database dortmund
+
+7.1 Random distribution
+
+The most simple way to distribute relations is a random distribution.
+
+----
+let Buildings12r = Buildings feed extend[N: randint(12)] ddistribute[N, 12, Cluster]
+----
+
+Time: 1:36 min
+
+This creates a distributed array of relations called Buildings12r. The naming convention says that it is the relation ~Buildings~, distributed into 12 array slots (one per worker in this case) and it is a random distribution (signified by ~r~).
+
+Distribution is relatively slow, taking 1:36 minutes.
+
+We can check how the random function has distributed elements into array slots:
+
+----
+query Buildings12r dloop[. count] 
+----
+
+The dloop operator does not really loop but applies in parallel its parameter query ``. count'' to each element of the array, which is a relation with the same schema as ~Buildings~. The element of the array is referred to by ``.''.
+
+Result of the dloop operation is a distributed array with fields of the result type of the query, hence an array of int in this case. The result is displayed as follows.
+
+----
++++++++++++++++ BEGIN DARRAY +++++++++++++++
++++++++++++++++  Workers:  +++++++++++++++
+("132.176.69.181" 31234)
+("132.176.69.182" 31234)
+("132.176.69.183" 31234)
+("132.176.69.184" 31234)
+("132.176.69.185" 31234)
+("132.176.69.186" 31234)
+("132.176.69.181" 34321)
+("132.176.69.182" 34321)
+("132.176.69.183" 34321)
+("132.176.69.184" 34321)
+("132.176.69.185" 34321)
+("132.176.69.186" 34321)
+
+++++++++++++ DArray Index: 0 +++++++++++++++
+23877
+++++++++++++ DArray Index: 1 +++++++++++++++
+23480
+++++++++++++ DArray Index: 2 +++++++++++++++
+23480
+++++++++++++ DArray Index: 3 +++++++++++++++
+23874
+++++++++++++ DArray Index: 4 +++++++++++++++
+23909
+++++++++++++ DArray Index: 5 +++++++++++++++
+23655
+++++++++++++ DArray Index: 6 +++++++++++++++
+23779
+++++++++++++ DArray Index: 7 +++++++++++++++
+23502
+++++++++++++ DArray Index: 8 +++++++++++++++
+23734
+++++++++++++ DArray Index: 9 +++++++++++++++
+23729
+++++++++++++ DArray Index: 10 +++++++++++++++
+23678
+++++++++++++ DArray Index: 11 +++++++++++++++
+23714
++++++++++++++++  END DARRAY  +++++++++++++++
+----
+
+
+The total number of elements of the original ~Buildings~ relation is obtained by:
+
+----
+query Buildings count
+----
+
+The result is 284411.
+
+We can check whether the sum of the numbers of all array fields is the same:
+
+----
+query Buildings12r dloop[. count] dtie[. + ..]
+----
+
+Result: 284411
+Time: 32.35 seconds
+
+The dtie operator applies an aggregate function to all fields of the distributed array to which it is applied. The aggregate function is specified by showing how it combines two arguments. These are refereed to by ``.'' and ``..'', respectively.
+
+The running time for this query is about 32 seconds. As the time for executing the count query on a relation is practically 0, one can observe that there is considerable overhead in establishing connections to workers (to be improved).
+
+As an example of executing a query on the distributed relation, suppose we want to find all Buildings of type "school".
+
+----
+query Buildings12r dloop[. feed filter[.Type contains "school"] consume] 
+dsummarize consume
+----
+
+Time: 36.65 seconds
+
+Here in the dloop operator, we construct a distributed relation containing all school buildings. The dsummarize operator reads a distributed relation from all workers into a stream of tuples on the master. This stream is then collected into a relation by consume and returned.
+
+As an example of a spatial query (a range query) we want to find all buildings in the suburb "Eichlinghofen". In the GUI, we create a rectangle around this suburb (as seen on the background map) and name it "Eichlinghofen".
+
+A query on the master alone can the be written as:
+
+----	
+query Buildings feed filter[bbox(.GeoData) inside Eichlinghofen] consume
+----
+
+Time: 2.56 seconds
+
+It returns 2198 buildings.
+
+The parallel query is:
+
+----
+query Buildings12r dloop[. feed filter[bbox(.GeoData) inside 
+  [const rect value (7.39815473431277 7.420728205382089 
+  51.473026681164775 51.48697825360396)]]
+consume] dsummarize consume
+----
+
+Time: 29.95 seconds
+
+It returns exactly the same 2198 buildings. The running time corresponds to the overhead of the parallel query in connecting with servers.
+
+Note that we need to replace the database object Eichlinghofen by a constant in the distributed query, because Eichlinghofen is only known in the master database. By
+
+----
+query Eichlinghofen
+----
+
+we can get the values of the constant. A future version of the DistributedAlgebra should  automatically provide this replacement.
+
+
+7.2 Distribution by Standard Attribute
+
+A random distribution is not suitable for performing joins between distributed relations as it would be necessary to consider in the join all pairs of partitions (144 in our case) with the need of moving data between nodes.
+
+If we want to support joins by some standard attribute (i.e., int, real, string) we may distribute based on hash values of the attributes.
+
+For example, we distribute Roads by their Osm\_id key value.
+
+----	
+let Roads12_Osm_id = 
+  Roads feed extend[N: hashvalue(.Osm_id, 999997) mod 12] ddistribute[N]
+----
+
+Time: 24.94 sec
+
+A join on the Roads via Osm\_id can now be executed in parallel on the partitions, without losing any join tuples. We first perform the join locally on the master:
+
+----
+query Roads feed {r1} Roads feed {r2} itHashJoin[Osm_id_r1, Osm_id_r2] 
+count 
+----
+
+Result: 67892
+
+----
+query Roads count
+----
+
+Result: 67892
+
+The join combines each tuple exactly with itself because Osm\_id is a key. The parallel version is:
+
+----
+query Roads12_Osm_id Roads12_Osm_id dloopa[. feed {r1} .. feed {r2} 
+itHashJoin[Osm_id_r1, Osm_id_r2] count] dtie[. + ..]
+----
+
+Time: 53.91 seconds, 51.38
+Result: 67892
+
+The dloopa operator performs a binary operation on two distributed arrays, using slots with the same index on each worker. Indeed, the result number of tuples is the same as in the non-distributed join. - Why this query takes such a long time, is not clear.
+
+
+
+
+7.3 Distribution by Spatial Attribute
+
+Distribution by a spatial attribute is more complex but will enable us to perform spatial joins within partitions without losing join pairs.
+
+First we need to determine a grid covering all spatial objects in the database. We could define a grid within the rectangle of nrw, but here we show how to determine the bounding box of just the elements of the Dortmund database.
+
+----
+query 
+  Buildings feed projectextend[; Box: bbox(.GeoData)]
+  Landuse feed projectextend[; Box: bbox(.GeoData)] concat
+  Natural feed projectextend[; Box: bbox(.GeoData)] concat
+  Places feed projectextend[; Box: bbox(.GeoData)] concat
+  Points feed projectextend[; Box: bbox(.GeoData)] concat
+  Railways feed projectextend[; Box: bbox(.GeoData)] concat
+  Roads feed projectextend[; Box: bbox(.GeoData)] concat
+  Waterways feed projectextend[; Box: bbox(.GeoData)] concat
+  aggregateB[Box; fun(r1: rect, r2: rect) r1 union r2; [const rect value undef]]
+----
+
+The result is: [const rect value (7.29786 7.75405 51.3778 51.6712)]
+
+Next we create a 20 x 20 grid covering this area. It is no problem if the grid is a bit larger than the enclosing rectangle.
+
+----
+let grid = [const cellgrid2d value (7.29 51.37 0.025 0.025 20)]
+----
+
+Here the five parameters for the grid are the left bottom corner (7.29 51.37), the cellwidth and cellheight (each 0.25) and the number of cells in a row (20).
+
+With an operator called cellnumber we can now assign to each spatial object in the area of the grid the numbers of the grid cells which are covered by its bounding box. The cellnumber operator takes a rectangle and a grid definition and returns a stream of numbers of the cells covered by the rectangle.
+
+----
+let Buildings12s = Buildings feed 
+  extendstream[Cell: cellnumber(bbox(.GeoData), grid)] 
+  extend[N: .Cell mod 12] ddistribute[N, 12, Cluster]
+----
+
+Time: 2:15 min
+
+Each node is in charge of the objects intersecting the grid cells that are mapped to its number between 0 and 11.
+
+The query
+
+----
+query Buildings12s dloop[. count] dtie[. + ..]
+----
+
+returns 287754 whereas the original Buildings relation has 284411 objects. The reason is that some objects fall on cell boundaries and so are mapped to more than one node.
+
+We use the spatial distribution as the main organisation of the database and therefore also distribute the other classes of objects in the same way:
+
+----
+let Landuse12s = Landuse feed 
+  extendstream[Cell: cellnumber(bbox(.GeoData), grid)] 
+  extend[N: .Cell mod 12] ddistribute[N, 12, Cluster]
+
+let Natural12s = Natural feed 
+  extendstream[Cell: cellnumber(bbox(.GeoData), grid)] 
+  extend[N: .Cell mod 12] ddistribute[N, 12, Cluster]
+
+let Places12s = Places feed 
+  extendstream[Cell: cellnumber(bbox(.GeoData), grid)] 
+  extend[N: .Cell mod 12] ddistribute[N, 12, Cluster]
+
+let Points12s = Points feed 
+  extendstream[Cell: cellnumber(bbox(.GeoData), grid)] 
+  extend[N: .Cell mod 12] ddistribute[N, 12, Cluster]
+
+let Railways12s = Railways feed 
+  extendstream[Cell: cellnumber(bbox(.GeoData), grid)] 
+  extend[N: .Cell mod 12] ddistribute[N, 12, Cluster]
+
+let Roads12s = Roads feed 
+  extendstream[Cell: cellnumber(bbox(.GeoData), grid)] 
+  extend[N: .Cell mod 12] ddistribute[N, 12, Cluster]
+
+let Waterways12s = Waterways feed 
+  extendstream[Cell: cellnumber(bbox(.GeoData), grid)] 
+  extend[N: .Cell mod 12] ddistribute[N, 12, Cluster]
+----
+
+We can see the objects that have been assigned to a single server using the get operation.
+
+----
+query get(Buildings12s, 8);
+query get(Waterways12s, 8)
+----
+
+
+The get operation returns just one field of a distributed array, in this case field 8,  containing a relation. 
+
+% If we use these commands in the Javagui, we get a figure like the following:
+
+% 		Figure 1: Buildings and Waterways assigned to Server no. 8. [Server8.eps]
+
+
+The spatial distribution supports spatial join which can now be done within each partition. For example, suppose we want to find intersections between Roads and Waterways. The query on the master alone is:
+
+----
+query Roads feed {r} Waterways feed {w} 
+  itSpatialJoin[GeoData_r, GeoData_w] 
+  filter[.GeoData_r intersects .GeoData_w] 
+  extend[C: crossings(.GeoData_r, .GeoData_w)] count
+
+
+Time: 9.6 sec
+Result: 1328
+----
+
+The parallel query looks like this:
+
+----
+query Roads12s Waterways12s dloopa[. feed {r} .. feed {w} 
+  itSpatialJoin[GeoData_r, GeoData_w] 
+  filter[.GeoData_r intersects .GeoData_w] 
+  extend[C: crossings(.GeoData_r, .GeoData_w)] count] 
+  dtie[. + ..]
+
+
+Time: 1:09 min
+Result: 1408
+----
+
+We can observe that the resulting number is a bit higher than on the master. The reason is that some objects are duplicated at cell boundaries and we also get duplicate results in the spatial join (because the same two objects meet in  different cells). However, there is a technique to avoid these duplicates.
+
+
+----
+query Roads12s Waterways12s dloopa[. feed {r} .. feed {w} 
+  itSpatialJoin[GeoData_r, GeoData_w] 
+  filter[(.Cell_r = .Cell_w) and
+    gridintersects([const cellgrid2d value (7.29 51.37 0.025 0.025 20)],
+      bbox(.GeoData_r), bbox(.GeoData_w), .Cell_r)]
+  filter[.GeoData_r intersects .GeoData_w] 
+  extend[C: crossings(.GeoData_r, .GeoData_w)] count] 
+  dtie[. + ..]
+
+Time: 1:04 min
+Result: 1328
+----
+
+First, we want to compute the spatial join only within cells. There may be objects assigned to one server within different cells that overlap. We remove these pairs by the condition 
+
+----	(.Cell_r = .Cell_w)
+----
+
+Second, the same objects may meet within different cells even on different servers. The operator gridintersects takes a grid definition, two bounding boxes, and a cell number. It computes the smallest intersection point of the two boxes. This point can lie only within one cell. If this is the cell whose cell number is given, the predicate returns TRUE, otherwise FALSE. That means that only for one cell and only one server will the intersection of these two objects be considered. In this way duplicates across servers are avoided.
+
+We can see that the result number from the join is indeed the same as on a single machine.
+
+
+
+7.4 Shuffling
+
+Sometimes it is necessary to repartition a given distributed relation because a subsequent join requires another partitioning. This can be done by the dshuffle operator.
+
+For example, suppose we are given the distributed relation Buildings12r (randomly distributed) of Section 7.1 but want to perform the join via Osm\_id of Section 7.2.
+
+----
+query 
+  Buildings12r dshuffle1[hashvalue(.Osm_id, 999997) mod 12]
+  Buildings12r dshuffle1[hashvalue(.Osm_id, 999997) mod 12]
+  dloopa[. feed {r1} .. feed {r2} 
+    itHashJoin[Osm_id_r1, Osm_id_r2] count] dtie[. + ..]
+----
+
+Unfortunately, this query does not finish on the cluster because the DistributedAlgebra creates 8 Secondo instances on a given node wheras only 6 cores are available. (To be improved.)
+
+----
+let Temp2 = Buildings12r dshuffle1[hashvalue(.Osm_id, 999997) mod 12]
+
+query Temp2 Temp2 dloopa[. feed {r1} .. feed {r2} 
+    itHashJoin[Osm_id_r1, Osm_id_r2] count] dtie[. + ..]
+----
+
+Result: 284411
+
+The result shows that the join has been executed correctly on the partitioning of Temp2. The first query uses 4 cores, the second 6.
+
+The dshuffle1 operator redistributes to the same workers and number of slots as the input distributed array has. There are variants to use a different number of slots or even another set of workers.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
