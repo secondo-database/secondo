@@ -44,6 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Stream.h"
 #include "NList.h"
 #include "ArrayAlgebra.h"
+#include "SocketIO.h"
 
 
   // use boost for thread handling
@@ -11530,6 +11531,9 @@ class Mapper{
        int now = array->numOfWorkers();
        vector<dRun*> w;
        vector<boost::thread*> runners;
+
+       cout << "create runners" << endl;
+
        for( size_t i=0;i< array->getSize();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
                                  array->getWorker(i % now), dbname);
@@ -11538,8 +11542,12 @@ class Mapper{
           boost::thread* runner = new boost::thread(&dRun::run, r);
           runners.push_back(runner);
        }
+       cout << "runners are running, wait for finish" << endl;
+
        for( size_t i=0;i< array->getSize();i++){
+         cout << "wait for finishing " << i << endl;
           runners[i]->join();
+          cout << "runner " << i << " finished" << endl;
           delete runners[i];
           delete w[i];
        }
@@ -12168,6 +12176,600 @@ Operator ARRAYFUNARG2OP(
 );
 
 
+/*
+4. File Transfer between workers
+
+The following code implements the filetransfer between different workers 
+without using the master. For that purpose, an operator is provided which
+creates a server and waits for the request of a client. If a client is 
+connected, the client may either send a file to this server or request a
+file from the server. The client itselfs is also created by an operator.
+
+In the first implementation, the server allowes only a single client to 
+connect. After transferring a single file, the connection is terminated.
+
+If the overhead for creating a server is big, this will be canged in the
+future.
+
+*/
+
+class FileTransferKeywords{
+ public:
+ static string FileTransferServer(){ return "<FILETRANSFERSERVER>";}
+ static string FileTransferClient(){ return "<FILETRANSFERCLIENT>";}
+ static string SendFile(){ return "<SENDFILE>";}
+ static string ReceiveFile(){ return "<RECEIVEFILE>";}
+ static string Data(){ return "<DATA>";}
+ static string EndData(){ return "</DATA>";}
+ static string FileNotFound(){ return "<FILENOTFOUND>";}
+ static string Cancel(){ return "<CANCEL>";}
+
+};
+
+
+class FileTransferServer{
+
+  public:
+    FileTransferServer(int _port): port(_port), listener(0), server(0){}
+
+    ~FileTransferServer(){
+       if(server){
+         server->ShutDown();
+         delete server;
+       }
+       if(listener){
+         listener->ShutDown();
+         delete listener;
+       }
+     }
+
+    int start(){
+       listener = Socket::CreateGlobal("localhost", stringutils::int2str(port));
+       if(!listener->IsOk()){
+            return 1;
+       }
+       cout << "listener running" << endl;
+       server = listener->Accept();
+       cout << "client connected" << endl;
+       if(!server->IsOk()){
+          return 2;
+       }
+       return communicate();
+    }
+
+  private:
+     int port;
+     Socket* listener;
+     Socket* server;
+
+     int communicate(){
+       cout << "start communicate on port "  << port << endl;
+       try{
+          iostream& io = server->GetSocketStream(); 
+          io << FileTransferKeywords::FileTransferServer() << endl;
+          io.flush();
+          string line;
+          getline(io,line);
+          cout << "received line:" << line << endl;
+          if(line==FileTransferKeywords::Cancel()){
+             return true;
+          }
+          if(line!=FileTransferKeywords::FileTransferClient()){ 
+            cerr << "Protocol error" << endl;
+            return 3;
+          }
+          getline(io, line);
+          if(line==FileTransferKeywords::SendFile()){
+            return sendFile(io);
+          } else if(line==FileTransferKeywords::ReceiveFile()){
+            return receiveFile(io);
+          } else {
+             cerr << "protocol error" << endl;
+             return 4;
+          }
+       }catch(...){
+          cerr << "Exception in server occured during communination" << endl;
+          return 5;
+       }
+     }
+
+     int sendFile(iostream& io) {
+        // client ask for a file
+        string filename;
+        getline(io,filename);
+        ifstream in(filename.c_str(), ios::binary);
+        if(!in){
+           io << FileTransferKeywords::FileNotFound() << endl;
+           io.flush();
+           return 6;
+        }
+        in.seekg(0,in.end);
+        size_t length = in.tellg();
+        in.seekg(0,in.beg);
+        io << FileTransferKeywords::Data() << endl;
+        io << stringutils::any2str(length) << endl;
+        io.flush();
+        size_t bufsize = 1048576;
+        char buffer[bufsize];
+        while(!in.eof() && in.good()){
+            in.read(buffer, bufsize);
+            size_t r = in.gcount();
+            io.write(buffer, r);
+        }
+        in.close();
+        io << FileTransferKeywords::EndData() << endl;
+        io.flush();
+        return 0;
+     }
+
+     bool receiveFile(iostream& io){
+        // not implemented yet
+        return 7;
+     }
+
+};
+
+
+class FileTransferClient{
+
+  public:
+
+     FileTransferClient(string& _server, int _port, bool _receive, 
+                        string& _localName, string& _remoteName):
+        server(_server), port(_port), receive(_receive), localName(_localName),
+        remoteName(_remoteName){
+     }
+
+     ~FileTransferClient(){
+         if(socket){
+           socket->ShutDown();
+           delete socket;
+         }
+      }
+     int start(){
+        cout << "connect woth " << server << "@" << port << endl;
+        socket = Socket::Connect(server, stringutils::int2str(port), 
+                                 Socket::SockGlobalDomain, 3, 1);
+        if(!socket){
+           return 8;
+        }
+        if(!socket->IsOk()){
+          return 9;
+        }
+        if(receive){
+           return receiveFile();
+        } else {
+           return sendFile();
+        }
+     }
+
+    private:
+      string server;
+      int port;
+      bool receive;
+      string localName;
+      string remoteName;
+      Socket* socket;
+    
+
+      int sendFile(){
+          return 10; // not implemented yet
+      }
+
+      int receiveFile(){
+         iostream& io = socket->GetSocketStream();
+         string line;
+         getline(io,line);
+         if(line!=FileTransferKeywords::FileTransferServer()){
+            return 11;
+         }
+         io << FileTransferKeywords::FileTransferClient() << endl;
+         io << FileTransferKeywords::SendFile() << endl;
+         io << remoteName << endl;
+         io.flush();
+         getline(io,line);
+         if(line==FileTransferKeywords::FileNotFound()){
+            return 12;
+         }
+         if(line!=FileTransferKeywords::Data()){
+            return 13;
+         }
+         getline(io,line);
+         bool ok;
+         size_t t = stringutils::str2int<size_t>(line,ok);
+   
+         if(!ok || t<1){
+           return 14;
+         }
+
+         size_t bufsize = 4096;
+         char buffer[bufsize]; 
+
+         // read in data
+         ofstream out(localName.c_str(),ios::binary|ios::trunc);
+         while(t>0){
+             size_t s = min(t,bufsize);
+             if(!io.read(buffer, s)){
+                return 15;
+             }
+             t -= s;
+             out.write(buffer,s);
+         }
+         out.close();
+         getline(io,line);
+         if(line!=FileTransferKeywords::EndData()){
+             return 16;
+         } 
+         return 0;
+      }
+};
+
+/*
+4.1 Operator ~fileTransferServer~
+
+*/
+
+ListExpr fileTransferServerTM(ListExpr args){
+
+  string err = "int expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if(!CcInt::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+int fileTransferServerVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  CcInt* Port = (CcInt*) args[0].addr;
+  CcBool* res = (CcBool*) result.addr;
+  if(!Port->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  int port = Port->GetValue();
+  if(port<=0){
+     res->Set(true,false);
+     return 0;
+  }
+  FileTransferServer server(port);
+  res->Set(true,server.start()==0);
+  return 0;
+}
+
+
+OperatorSpec fileTransferServerSpec(
+  " int -> bool)",
+  " fileTransferServer(_)",
+  "Starts a server waiting for a client requesting a file from server."
+  "See also operator requestFileClient",
+  "query fileTransferServer(1238)"
+);
+
+
+Operator fileTransferServerOP(
+  "fileTransferServer",
+   fileTransferServerSpec.getStr(),
+   fileTransferServerVM,
+   Operator::SimpleSelect,
+   fileTransferServerTM
+);
+
+/*
+4.2 operator ~receiveFileClient~
+
+*/
+
+bool isTextOrString(ListExpr a){
+  return CcString::checkType(a) || FText::checkType(a);
+}
+
+ListExpr receiveFileClientTM(ListExpr args){
+  string err = "{text,string} x int x {text,string} x {text,string} expected";
+  if(!nl->HasLength(args,4)){
+   return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  ListExpr server = nl->First(args);
+  ListExpr port = nl->Second(args);
+  ListExpr remote = nl->Third(args);
+  ListExpr local = nl->Fourth(args);
+
+  if(    !isTextOrString(server)
+      || !CcInt::checkType(port) 
+      || !isTextOrString(remote)
+      || !isTextOrString(local)){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+template<class S, class R, class L>
+int receiveFileClientVMT(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   S* Server = (S*) args[0].addr;
+   CcInt* Port = (CcInt*) args[1].addr;
+   R* Remote = (R*) args[2].addr;
+   L* Local = (L*) args[3].addr;
+ 
+   if(     !Server->IsDefined() || !Port->IsDefined() 
+        || !Remote->IsDefined() || !Local->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   string server = Server->GetValue();
+   int port = Port->GetValue();
+   string remoteName = Remote->GetValue();
+   string localName = Local->GetValue();
+
+   if(port <=0){
+      res->SetDefined(false);
+      return 0;
+   }
+ 
+  FileTransferClient client(server, port,true,  localName, remoteName);
+  int code = client.start();
+
+  res->Set(true,code==0); 
+  cout << "Errorcode is " << code << endl;
+  return 0;
+}
+
+
+ValueMapping receiveFileClientVM[] = {
+   receiveFileClientVMT<CcString, CcString, CcString>,
+   receiveFileClientVMT<CcString, CcString, FText>,
+   receiveFileClientVMT<CcString, FText, CcString>,
+   receiveFileClientVMT<CcString, FText, FText>,
+   receiveFileClientVMT<FText, CcString, CcString>,
+   receiveFileClientVMT<FText, CcString, FText>,
+   receiveFileClientVMT<FText, FText, CcString>,
+   receiveFileClientVMT<FText, FText, FText>
+  };
+
+int receiveFileClientSelect(ListExpr args){
+
+  int s = CcString::checkType(nl->First(args))?0:4;
+  int r = CcString::checkType(nl->Third(args))?0:2;
+  int l = CcString::checkType(nl->Fourth(args))?0:1;
+  return s+r+l;
+}
+
+
+OperatorSpec receiveFileClientSpec(
+  " {string, text} x int x {string,text} x {string,text} -> bool",
+  "receiveFileClient(server, port, remoteFile, localFile)",
+  "Copies a file from a remote server to the local file system."
+  "On the remote host, a query using transferFileServer should be "
+  "started.",
+  "query recieveFileClient('server', 1238,'remote.txt', 'local.txt')"
+);
+
+Operator recieveFileClientOP(
+  "receiveFileClient",
+  receiveFileClientSpec.getStr(),
+  8,
+  receiveFileClientVM,
+  receiveFileClientSelect,
+  receiveFileClientTM
+);
+
+
+/*
+4.4 Operator ~transferFile~
+
+This operator copies a file from one connected worker to another
+one using a tcp connection. 
+
+*/
+
+ListExpr transferFileTM(ListExpr args){
+  string err ="int x int x int x {string,text} x {string,text} expected";
+  // worker1 worker2 port <file on w1> <file on w2>
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError(err + " (wrong number of argumnents)");
+  }
+  if(   !CcInt::checkType(nl->First(args))
+     || !CcInt::checkType(nl->Second(args))
+     || !CcInt::checkType(nl->Third(args))
+     || !isTextOrString(nl->Fourth(args))
+     || !isTextOrString(nl->Fifth(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+class FileTransferServerStarter{
+
+ public:
+    FileTransferServerStarter(ConnectionInfo* _ci,
+                int _port): ci(_ci),port(_port),error(0){} 
+
+
+    ~FileTransferServerStarter(){
+        cerr << "destruct ~FileTransferServerStarter" << endl;
+        cancel();
+        cerr << "wait for join" << endl;
+        runner.join();
+        cerr << "join success" << endl;
+     }
+
+
+    void start(){
+       runner = boost::thread(&FileTransferServerStarter::run,this);
+    }
+     
+
+
+ private:
+    ConnectionInfo* ci;
+    int port;
+    int error;
+    boost::thread runner;
+
+
+    void run(){
+        string serverQuery = "query fileTransferServer("
+                             +stringutils::int2str(port)+")";
+        int err;
+        string errMsg;
+        string result;
+        ci->simpleCommand(serverQuery,err,errMsg,result,false);
+    }
+
+    void cancel(){
+       if(!runner.timed_join(boost::posix_time::seconds(0))){
+          sendCancel();
+       }
+    }
+
+    void sendCancel(){
+        Socket* socket = Socket::Connect(ci->getHost(), 
+                                 stringutils::int2str(port), 
+                                 Socket::SockGlobalDomain, 3, 1);
+        if(!socket){
+           return;
+        }
+        if(!socket->IsOk()){
+          return;
+        }
+        iostream& io = socket->GetSocketStream();
+        string line;
+        getline(io,line); // should be <FILETRANSFERSERVER>
+        io << FileTransferKeywords::Cancel() << endl;
+        socket->ShutDown();
+        delete socket;
+    }    
+
+};
+
+
+
+template<class S, class T>
+int transferFileVMT(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  result=qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  CcInt* Server1 = (CcInt*) args[0].addr;
+  CcInt* Server2 =  (CcInt*) args[1].addr;
+  CcInt* Port = (CcInt*) args[2].addr;
+  S* SrcFile = (S*) args[3].addr;
+  T* TargetFile = (T*) args[4].addr;
+
+  if(    !Server1->IsDefined() || !Server2->IsDefined() || !Port->IsDefined()
+      || !SrcFile->IsDefined() || !TargetFile->IsDefined()){
+    res->SetDefined(false);
+  }  
+
+  int server1 = Server1->GetValue();
+  int server2 = Server2->GetValue();
+  int port = Port->GetValue();
+  string srcFile = SrcFile->GetValue();
+  string targetFile = TargetFile->GetValue();
+
+  if(    !algInstance->serverExists(server1)
+      || !algInstance->serverExists(server2)
+      || port <=0){
+     res->Set(true,false);
+  } 
+
+
+  ConnectionInfo* ci1 = algInstance->getConnection(server1);
+  ConnectionInfo* ci2 = algInstance->getConnection(server2); 
+
+  if(server1==server2){
+      // copying on a single server
+      string q = "query copyFile('"+srcFile+"','"+targetFile+"')";
+      int err;
+      string errMsg;
+      ListExpr resList;
+      ci1->simpleCommand(q,err,errMsg,resList,false);
+      if(err!=0){
+          cerr << "command " << q << " failed with code " << err << endl;
+          cerr << errMsg << endl;
+          res->Set(true,false);
+          return 0;
+      }
+      if(   !nl->HasLength(resList,2) 
+         || (nl->AtomType(nl->Second(resList))!=BoolType)){
+         cerr << "unexpected result in " << q << endl;
+         cerr << nl->ToString(resList) << endl;
+         res->Set(true,false);
+         return 0;
+      }
+      res->Set(true, nl->BoolValue(nl->Second(resList)));
+      return 0;
+  } 
+ 
+  string clientQuery = "query receiveFileClient( '" + ci1->getHost() +"', "
+                       + stringutils::int2str(port) +", '"
+                       + srcFile +"', '" + targetFile+"')";
+
+  FileTransferServerStarter starter(ci1,port);
+  starter.start();
+
+  int err;
+  string errMsg;
+  ListExpr resList;
+  ci2->simpleCommand(clientQuery, err,errMsg, resList, false);  
+  if(err!=0){
+     cerr << "Client command " << clientQuery << " failed with code " 
+          << err << endl;
+     cerr << errMsg << endl;
+     res->Set(true,false);
+     return 0;
+  } 
+  if(    !nl->HasLength(resList,2) 
+      || ((nl->AtomType(nl->Second(resList))!=BoolType))){
+     cerr << "command " << clientQuery << " has unexpected result" << endl;
+     cerr << nl->ToString(resList) << endl;
+     res->Set(true,false);
+     return 0;
+  }
+  res->Set(true, nl->BoolValue(nl->Second(resList)));
+  return 0;
+}
+
+
+ValueMapping transferFileVM[] = {
+   transferFileVMT<CcString, CcString>,
+   transferFileVMT<CcString, FText>,
+   transferFileVMT<FText, CcString>,
+   transferFileVMT<FText, FText>
+};
+
+int transferFileSelect(ListExpr args){
+  int r1 = CcString::checkType(nl->Fourth(args))?0:2;
+  int r2 = CcString::checkType(nl->Fifth(args))?0:1;
+  return r1+r2;
+}
+
+OperatorSpec transferFileSpec(
+  "int x int x int x {string,text} x {string,text} -> bool",
+  "transferFile( serverno1, serverno2, port, srcfile, targetfile)",
+  "transfers a file from a server to another one. "
+  "the result shows the success of the operation.",
+  "query transferFile(0,1,1238,'Staedte.txt','Staedte3.txt')"
+);
+
+Operator transferFileOP(
+   "transferFile",
+   transferFileSpec.getStr(),
+   4,
+   transferFileVM,
+   transferFileSelect,
+   transferFileTM
+);
 
 
 
@@ -12256,11 +12858,14 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&ARRAYFUNARG1OP);
    AddOperator(&ARRAYFUNARG2OP);
 
+   AddOperator(&fileTransferServerOP);
+   AddOperator(&recieveFileClientOP);
+   AddOperator(&transferFileOP);
 
 }
 
 
-}
+} // end of namespace distributed2
 
 extern "C"
 Algebra*

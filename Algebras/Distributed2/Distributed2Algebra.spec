@@ -62,8 +62,11 @@ operator fddistribute4 alias FDDISTRIBUTE4 pattern _ op [fun,_,_,_] implicit par
 
 operator gettuples alias GETTUPLES pattern _ _ op
 
+operator transferFileServer alias TRANSFERFILESERVER pattern op(_)
 
+operator receiveFileClient alias RECEIVEFILECLIENT pattern op(_,_,_,_)
 
+operator transferFile alias TRANSFERFILE pattern op(_,_,_,_,_)
 
 
 

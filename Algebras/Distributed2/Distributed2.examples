@@ -352,3 +352,24 @@ Example   : query strassenfile_btree exactmatchS["Hohe Strasse"] 'strassen.bin' 
 Result    : bug
 Remark    : in development
 
+Operator  : fileTransferServer
+Number    : 1
+Signature : int -> bool
+Example   : query fileTransferServer(1238)
+Result    : crashes
+Remark    : Comes never back if no client connect to this server
+
+Operator  : receiveFileClient
+Number    : 1 
+Signature : {string, text} x int x {string,text} x {string,text} -> bool
+Example   : query receiveFileClient('server', 1238, 'remote.txt', 'local.txt')
+Result    : FALSE
+
+Operator  : transferFile
+Number    : 1
+Signature : int x int x int x {string,text} x {string,text}
+Example   : query transferFile(0,1,1238,'Staedte.txt', "Staedte3.txt")
+Result    : FALSE
+
+
+
