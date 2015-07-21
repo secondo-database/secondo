@@ -952,10 +952,9 @@ ListExpr memgetcatalogTypeMap(ListExpr args)
         return listutils::typeError("no argument expected");
     }
 
-    string stringlist = "(stream(tuple((TotMemSizeInB int)"
-        "(UsedMemSizeInB int)(O________________ string)(TotMemSizeInMB int)"
-        "(UsedMemSizeInMB real)(X________________ string)(Name string)"
-        "(ObjectType string)(MemSizeInB int)(MemSizeInMB real))))";
+    string stringlist = "(stream(tuple((TotalMB int)"
+        "(UsedMB real)(Name string)"
+        "(ObjectType string)(ObjSizeInB int)(ObjSizeInMB real))))";
 
     ListExpr res =0;
     if(nl->ReadFromString(stringlist, res)){};
@@ -1005,30 +1004,21 @@ class memgetcatalogInfo{
         Tuple *tup = new Tuple( tt );
         tt->DeleteIfAllowed();
 
-        CcInt* totalMemSizeB =
-            new CcInt (true, catalog->getMemSizeTotal()*1024*1024);
-        CcInt* usedMemSizeB = new CcInt (true, catalog->getUsedMemSize());
-        CcString* trenner = new CcString(true,"_______________");
-        CcInt* totalMemSizeMB = new CcInt (true, catalog->getMemSizeTotal());
-        CcReal* usedMemSizeMB =
+        CcInt* totalMB = new CcInt (true, catalog->getMemSizeTotal());
+        CcReal* usedMB =
             new CcReal (true, (double)catalog->getUsedMemSize()/1024.0/1024.0);
-        CcString* trenne = new CcString(true,"_______________");
         CcString* objectName = new CcString(true,name);
         CcString* oT = new CcString(true,objTyp);
         CcInt* memSizeB = new CcInt(true, (int)memobj->getMemSize());
         CcReal* memSizeMB =
             new CcReal(true, (double)memobj->getMemSize()/1024.0/1024.0);
 
-        tup->PutAttribute(0,totalMemSizeB);
-        tup->PutAttribute(1,usedMemSizeB);
-        tup->PutAttribute(2,trenner);
-        tup->PutAttribute(3,totalMemSizeMB);
-        tup->PutAttribute(4,usedMemSizeMB);
-        tup->PutAttribute(5,trenne);
-        tup->PutAttribute(6,objectName);
-        tup->PutAttribute(7,oT);
-        tup->PutAttribute(8,memSizeB);
-        tup->PutAttribute(9,memSizeMB);
+        tup->PutAttribute(0,totalMB);
+        tup->PutAttribute(1,usedMB);
+        tup->PutAttribute(2,objectName);
+        tup->PutAttribute(3,oT);
+        tup->PutAttribute(4,memSizeB);
+        tup->PutAttribute(5,memSizeMB);
 
         it++;
         return tup;
