@@ -202,14 +202,17 @@ NestedList::DeleteListMemory()
    //cerr << "nodeTable = " << (void*) nodeTable << endl;
    //cerr << "textTable = " << (void*) textTable << endl;
    
-   if (stringTable && nodeTable && textTable) {
-
+   if(stringTable){
      delete stringTable;
-                 stringTable = 0;
-     delete nodeTable;
-                 nodeTable = 0;
+     stringTable = 0;
+   }
+   if(nodeTable){
+      delete nodeTable;
+      nodeTable = 0;
+   }
+   if(textTable){
      delete textTable;
-                 textTable = 0;
+     textTable = 0;
    }
 }
 

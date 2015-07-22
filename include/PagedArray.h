@@ -142,9 +142,9 @@ public:
 
 
   ~RecordBuffer() {
-
     if (filePtr) {
       filePtr->Close();
+      filePtr->Remove();
       delete filePtr;
       filePtr = 0;
     }
@@ -191,13 +191,14 @@ public:
     
        // if no record file was created, open a file.
        if ( filePtr == 0 ) {
-       bool ok = false;
-       if (trace)
-               os << "NL: creating record file " 
-      << "for persistent storage!" << endl;
-       filePtr = new SmiRecordFile(true,REC_SIZE,true);
-       ok = filePtr->Create();
-       assert( ok == true ); 
+          bool ok =false;
+    
+          if(trace){
+             os << "NL: creating record file for persistent storage!" << endl;
+          }   
+          filePtr = new SmiRecordFile(true,REC_SIZE,true);
+          ok = filePtr->Create();
+          assert( ok == true ); 
        }
 
        // select buffer number to replace
