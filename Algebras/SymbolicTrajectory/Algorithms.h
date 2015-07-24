@@ -511,6 +511,8 @@ class PatElem {
   bool     hasIndexableContents() const {return (hasLabel() || hasPlace() ||
                                                  hasRealInterval());}
   int      getNoValues() const                           {return values.size();}
+  bool     hasValues() const                         {return values.size() > 0;}
+  bool     isRelevantForTupleIndex() const;
   bool     extractValues(string &input, Tuple *tuple);
   vector<pair<Word, SetRel> > getValues() const           {return values;}
   void     deleteValues(vector<pair<int, string> > &relevantAttrs);
@@ -943,7 +945,50 @@ class TupleIndex {
   TrieNodeCacheType* trieCache;
 };
 
-struct IndexRetrieval;
+/*
+\section{Struct ~IndexRetrieval~}
+
+*/
+struct IndexRetrieval {
+  IndexRetrieval() : pred(0), succ(0) {}
+  IndexRetrieval(unsigned int p, unsigned int s = 0) : pred(p), succ(s) {}
+  IndexRetrieval(unsigned int p, unsigned int s, set<int>& u) : 
+                 pred(p), succ(s), units(u) {}
+  
+  unsigned int pred, succ;
+  set<int> units;
+};
+
+/*
+\section{Struct ~IndexMatchInfo~}
+
+*/
+struct IndexMatchInfo {
+  IndexMatchInfo(bool r, int n = 0) : 
+       range(r), next(n), prevElem(-1) {binding.clear();}
+  IndexMatchInfo(bool r, int n, const map<string, pair<int, int> >& b, int e) :
+       range(r), next(n), prevElem(e) {if (b.size() > 0) {binding = b;}}
+  
+  void print(const bool printBinding);
+  bool finished(const int size) const {return range || (next >= size);}
+  bool exhausted(const int size) const {return next >= size;}
+  bool matches(const int unit) const {return (range ? next<=unit : next==unit);}
+
+  bool range;
+  int next, prevElem;
+  map<string, pair<int, int> > binding;
+};
+
+/*
+\section{Struct ~IndexMatchSlot~}
+
+*/
+struct IndexMatchSlot {
+  IndexMatchSlot() : pred(0), succ(0) {}
+  
+  unsigned int pred, succ;
+  vector<IndexMatchInfo> imis;
+};
 
 /*
 \section{class ~IndexMatchSuper~}
@@ -955,15 +1000,21 @@ class IndexMatchSuper {
     activeTuples(0), unitCtr(0) {}
   
   int getTrajSize(const TupleId tId, const DataType type);
+  void removeIdFromIndexResult(const TupleId id);
+  void clearMatchInfo();
+  bool hasIdIMIs(const TupleId id, const int state = -1);
   
   Relation *rel;
   Pattern *p;
   int attrNo;
-  set<int> indexMismatch;
+  DataType type;
   vector<TupleId> matches;
+  vector<int> trajSize;
   int activeTuples, unitCtr;
   vector<vector<IndexRetrieval> > indexResult;
-  vector<bool> deactivated;
+  vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo;
+  vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
+  
 };
 
 /*
@@ -984,6 +1035,10 @@ class TMatchIndexLI : public IndexMatchSuper {
                           pair<Word, SetRel> values, vector<set<int> > &result);
   void getResultForAtomTime(const int atomNo, vector<set<int> > &result);
   void storeIndexResult(int atomNo);
+  void initMatchInfo(set<int> &cruElems);
+  void removeIdFromMatchInfo(const TupleId id);
+  bool atomMatch(int state, pair<int, int> trans);
+  void applyNFA();
   bool initialize();
   Tuple* nextTuple();
   void deletePattern();
@@ -991,6 +1046,7 @@ class TMatchIndexLI : public IndexMatchSuper {
  private:
   ListExpr ttList;
   TupleIndex *ti;
+  vector<bool> active;
 };
 
 /*
@@ -1182,51 +1238,6 @@ class FilterMatchesLI {
 };
 
 /*
-\section{Struct ~IndexRetrieval~}
-
-*/
-struct IndexRetrieval {
-  IndexRetrieval() : pred(0), succ(0) {}
-  IndexRetrieval(unsigned int p, unsigned int s = 0) : pred(p), succ(s) {}
-  IndexRetrieval(unsigned int p, unsigned int s, set<int>& u) : 
-                 pred(p), succ(s), units(u) {}
-  
-  unsigned int pred, succ;
-  set<int> units;
-};
-
-/*
-\section{Struct ~IndexMatchInfo~}
-
-*/
-struct IndexMatchInfo {
-  IndexMatchInfo(bool r, int n = 0) : 
-       range(r), next(n), prevElem(-1) {binding.clear();}
-  IndexMatchInfo(bool r, int n, const map<string, pair<int, int> >& b, int e) :
-       range(r), next(n), prevElem(e) {if (b.size() > 0) {binding = b;}}
-  
-  void print(const bool printBinding);
-  bool finished(const int size) const {return range || (next >= size);}
-  bool exhausted(const int size) const {return next >= size;}
-  bool matches(const int unit) const {return (range ? next<=unit : next==unit);}
-
-  bool range;
-  int next, prevElem;
-  map<string, pair<int, int> > binding;
-};
-
-/*
-\section{Struct ~IndexMatchSlot~}
-
-*/
-struct IndexMatchSlot {
-  IndexMatchSlot() : pred(0), succ(0) {}
-  
-  unsigned int pred, succ;
-  vector<IndexMatchInfo> imis;
-};
-
-/*
 \section{Class ~IndexMatchesLI~}
 
 */
@@ -1244,9 +1255,7 @@ class IndexMatchesLI : public IndexMatchSuper {
                      unsigned int ref = UINT_MAX);
   void retrieveTime(vector<set<int> >& oldPart, vector<set<int> >& newPart, 
                     const string& ivstr);
-  void removeIdFromIndexResult(const TupleId id);
   void removeIdFromMatchInfo(const TupleId id);
-  void clearMatchInfo();
   void storeIndexResult(const int e);
   void initMatchInfo(const set<int>& cruElems);
   void initialize();
@@ -1262,19 +1271,17 @@ class IndexMatchesLI : public IndexMatchSuper {
                    vector<set<pair<TupleId, int> > >& valuePosVec,
                    set<pair<TupleId, int> >*& result);
   bool simpleMatch(const int e, const int state, const int newState);
-  bool hasIdIMIs(const TupleId id, const int state = -1);
   bool wildcardMatch(const int state, pair<int, int> trans);
   bool timesMatch(const TupleId id,const unsigned int unit,const PatElem& elem);
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
 
  protected:
-  vector<int> trajSize;
-  vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo;
-  vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
+  set<int> indexMismatch;
   InvertedFile* invFile;
   R_Tree<1, NewPair<TupleId, int> > *rtree;
   size_t maxMLsize;
   DataType mtype;
+  vector<bool> deactivated;
 };
 
 /*
