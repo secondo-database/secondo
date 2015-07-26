@@ -14,7 +14,7 @@ testtraversed ()
   FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
                                    0, 0.5, 0);
   Region *res2 = new Region();
-  fmr.traversed (*res2, 0.0, 1, 0.1);
+  fmr.traversedNew(*res2, 0.0, 1);
 
   double min1[] = { 0.0, 0.0 };
   double max1[] = { 3.0, 3.5 };
@@ -42,7 +42,7 @@ createTestObject (double x = 0.0, double y = 0.0,
   FixedMRegion fmr = FixedMRegion (0.0, 0.0, 0.0, *r_tmp, 0.0, 0.0, 0.0,
                                    x, y, alpha);
   Region *r = new Region(0);
-  fmr.traversed (*r, 0.0, 1.0, 1.0);
+  fmr.traversedNew(*r, 0.0, 1.0);
   //fmr.traversedNew(*r, 0.0, 1.0);
   double a = r->Area ();
   //printf("exp: %f calc: %f\n", area, a);

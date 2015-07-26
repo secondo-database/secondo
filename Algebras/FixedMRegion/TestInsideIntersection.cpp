@@ -209,7 +209,7 @@ void testInside4()
 
 void testInside(){
   printf ("Test inside\n");
-  testInside1();
+//  testInside1();
   testInside2();
   testInside3();
   testInside4();
@@ -244,7 +244,7 @@ void testIntersection1()
   expected.Clear();
   expected.StartBulkLoad();
   Interval < Instant > ive (t_start, DateTime(0.5), false, true);
-  UPoint ube (ive, 0, 0.5, 1, 1.0);
+  UPoint ube (ive, 0, 1, 0, 0.5);
   expected.MergeAdd (ube);
   expected.EndBulkLoad ();
   
@@ -440,6 +440,6 @@ void
 runtestInsideIntersection ()
 {
   testInside();
-//  testIntersection();
+  testIntersection();
 
 }

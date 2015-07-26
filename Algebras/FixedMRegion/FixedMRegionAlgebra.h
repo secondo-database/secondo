@@ -1,5 +1,5 @@
 /*
-blabla
+This is my FixedMRegionAlgebra. It is supported by other classes.
 
 */
 #ifndef __FIXEDMREGIONALGEBRA_H

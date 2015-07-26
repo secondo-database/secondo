@@ -16,156 +16,130 @@ This class is a FixedMRegion.
 #include "LATransform.h"
 #include "FixedMRegiontest.h"
 #include "MMove.h"
-//#include "TestInterpolate.h"
 
 class TestInterpolate;
 
 
-class FixedMRegion: public Attribute
-{
-friend class FMRTest;
-friend class TestInterpolate;
+class FixedMRegion: public Attribute{
+  friend class FMRTest;
+  friend class TestInterpolate;
 public:     
 /*
 This is the default constructor. Do not use.
 
 */
+FixedMRegion ();
 
-  FixedMRegion ();
 /*
 This is the copy constructor.
 
 */
+FixedMRegion (const FixedMRegion & f);
 
-  FixedMRegion (const FixedMRegion & f);
-  
-  
 /*
 This is the constructor that gets necessary information. 
-region: object that shall be moved
+\_region: object that shall be moved
 \_startp: start point at starttime for the movement
 \_startangle: start angle at starttime for the movement
+\_startt: start time
 \_endp: end point at endtime for the movement
 \_endangle: end angle at endtime for the movement
-rot\_center: rotational center
-\_startt: start time
 \_endt: end time 
+rot\_center: rotational center
 
 */
-  FixedMRegion(const Region & _region, const Point _startp, 
-  const double _startangle, Instant _startt, const Point _endp, 
-  const double _endangle, Instant _endt, const Point & rot_center);
-  
+FixedMRegion(const Region & _region, const Point _startp, 
+const double _startangle, const Instant _startt, const Point _endp, 
+const double _endangle, const Instant _endt, const Point & rot_center);
   
 /*
 This is the constructor that gets necessary information. 
-region: object that shall be moved
+\_region: object that shall be moved
 \_startp: start point at starttime for the movement
 \_startangle: start angle at starttime for the movement
+\_startt: start time
 \_endp: end point at endtime for the movement
 \_endangle: end angle at endtime for the movement
+\_endt: end time
 rot\_center: rotational center
-\_startt: start time
-\_endt: end time 
 
 */
-
-  FixedMRegion(const Region & _region, const Point _startp, 
-  const double _startangle, double _startt, const Point _endp, 
-  const double _endangle, double _endt, const Point & rot_center);
+FixedMRegion(const Region & _region, const Point _startp, 
+const double _startangle, const double _startt, const Point _endp, 
+const double _endangle, const double _endt, const Point & rot_center);
 
 /*
 This is the constructor that gets necessary information. 
-region: object that shall be moved
-move: the move object
+\_region: object that shall be moved
+\_move: the move object
 rot\_center: the center of the rotation. It will be moved with the object.
-starttime: the start time of the movement
+\_starttime: the start time of the movement
 
 */
-    FixedMRegion (const Region & _region, const MMove & _move,
-                  const Point & rot_center, double _starttime);
+FixedMRegion (const Region & _region, const MMove & _move,
+const Point & rot_center, const double _starttime);
+
 /*
 deprecated
-This is the constructor that should not be used externally. It gets necessary 
-information. 
-\_t: never used
-\_xm: x-value of the rotation center, that will be moved, too
-\_ym: y-value of the rotation center, that will be moved, too
-\_r: the region to be moved
-\_x0: the x-startvalue of the linear movement
-\_y0: the y-startvalue of the linear movement
-\_alpha0: the starting angle
-\_vx: x-value of the linear movement
-\_vy: y-value of the linear movement
-\_valpha: the angle of movement
+This is the constructor that should not be used externally. It gets necessary information. 
+$\_t$: never used
+$\_xm$: x-value of the rotation center, that will be moved, too
+$\_ym$: y-value of the rotation center, that will be moved, too
+$\_r$: the region to be moved
+$\_x0$: the x-startvalue of the linear movement
+$\_y0$: the y-startvalue of the linear movement
+$\_alpha0$: the starting angle
+$\_vx$: x-value of the linear movement
+$\_vy$: y-value of the linear movement
+$\_valpha$: the angle of movement.
 
 */
-    FixedMRegion (double _t, double _xm, double _ym,
-     const Region & _r, double _x0, double _y0, double _alpha0,
-                  double _vx, double _vy, double _valpha);
-
+FixedMRegion (const double _t, const double _xm, const double _ym, 
+const Region & _r, const double _x0, const double _y0, const double _alpha0,
+const double _vx, const double _vy, const double _valpha);
 
 /*
-This is the constructor that should be used externally. It gets necessary 
-information.
-region: object that shall be moved
-start: point at which the object ist placed at the beginning $t=0$
+This is the constructor that should be used externally. It gets necessary information.
+\_region: object that shall be moved
+\_start: point at which the object ist placed at the beginning $t=0$
 alpha\_start: angle of object at the bginning $t=0$
-speed: speed or velociy (v) of the movement
+\_speed: speed or velociy (v) of the movement
 alpha\_speed: speed or velociy (v) of the angle movement
 rot\_center: the rotational center of the object
-starttime: the start time of the movement
+\_starttime: the start time of the movement
 
 */
-    FixedMRegion (const Region & _region, const Point & _start,
-                  double alpha_start, const Point & _speed,
-                  double alpha_speed, const Point & rot_center,
-                  double _starttime = 0.0);
+FixedMRegion (const Region & _region, const Point & _start,
+const double alpha_start, const Point & _speed, const double alpha_speed, 
+const Point & rot_center, const double _starttime = 0.0);
 
 /*
 This is the standard destructor.
 
 */
-   ~FixedMRegion ();
+~FixedMRegion ();
+
 /*
-This method will return a region that the FMRegion will have at the given 
+This method will return the region that the FMRegion will have at the given 
 time ti.
 
 */
-  void atinstant (double ti, Region & result);
-
-/*
-This method will calculate a MPoint with which is defined, if the MPoint mp 
-is inside the FMRegion at the given time and else not defined. The MPoint 
-will be calculated for the time intervall ta to te.
-
-*/
-  MBool inside (const MPoint & mp);
+void atinstant (const double ti, Region & result);
 
 /*
 This method will calculate a MPoint which is defined, if the MPoint mp 
-intersects with the FMRegion at the given time and else not defined. The 
-MPoint will be calculated for the time intervall ta to te.
+is inside the FMRegion at the given time and otherwise not defined.
 
 */
-  MPoint intersection(MPoint & mp);
+MBool inside (const MPoint & mp);
+
 /*
-This method will calculate the Region which contains all points / areas, that
-the FMRegion has at least on time (or more often) traversed in the given 
-intervall ta to te. 
-deprecated!
+This method will calculate a MPoint which is defined, if the MPoint mp 
+intersects with the FMRegion at the given time and else not defined.
 
 */
- // void traversed2 (double ta, double te, double precision = 0.001,
- //   Region & result  );
-/*
-This method will calculate the Region which contains all points / areas, that
-the FMRegion has at least on time (or more often) traversed in the given 
-intervall ta to te. 
+MPoint intersection(const MPoint & mp);
 
-*/
-void traversed (Region & result, double ta, double te, double 
-  precision = 0.001);
 /*
 This method will calculate the Region which contains all points / areas, that
 the FMRegion has at least on time (or more often) traversed in the given 
@@ -173,46 +147,50 @@ intervall ta to te.
 
 */
 void traversedNew(Region & result, double ta, double te);
-/*
-This method returns the non moving region.
-
-*/
-  const void getRegion (Region & result) const;
 
 /*
-This method sets the non moving region.
+This method returns the region of the FixedMRegion.
 
 */
-  void setRegion (const Region & _r);
+const void getRegion (Region & result) const;
+
+/*
+This method sets the region of the FixedMRegion.
+
+*/
+void setRegion (const Region & _r);
 
 /*
 This method returns the time t.
 not used
 
 */ 
-  const double gett () const;
+const double gett () const;
 
 /*
 This method sets the time t.
-not used
 
 */ 
-  void sett (double _t);
+void sett (double _t);
+
 /*
 This method extracts a list of halfsegments from the given region.
 
 */
- vector < HalfSegment > getHSFromRegion (Region reg);
+vector < HalfSegment > getHSFromRegion(const Region reg) const;
+
 /*
 Return the name of the Secondo type.
 
 */
 static string BasicType(){ return "fixedmregion"; }
+
 /*
 This method returns the Move.
 
 */
 const MMove & getMove () const;
+
 /*
 This method sets the Move.
 
@@ -223,10 +201,24 @@ inline Point getRotCenter() const {
   return Point(true, xm, ym);
 }
 
+/*
+This method implements the clone functionality.
+
+*/
 virtual Attribute* Clone() const;
+
+/*
+This method implements the checkType function.
+
+*/
 static const bool checkType(const ListExpr type){
   return listutils::isSymbol(type, BasicType());
 }
+
+/*
+This method copies all internal information from another FixedMRegion.
+
+*/
 virtual void CopyFrom(const Attribute*);
 
 private:
@@ -243,14 +235,14 @@ This method calculates the
 intersection point of the given lines p1p2 and p3p4.
 
 */
-  Point getIntersectionPoint (const Point & p1, const Point & p2,
-                              const Point & p3, const Point & p4);
+Point getIntersectionPoint (const Point & p1, const Point & p2,
+const Point & p3, const Point & p4) const;
 
 /*
 This method extracts a list of halfsegments from the region.
 
 */
- vector < HalfSegment > getHSFromRegion ();
+vector < HalfSegment > getHSFromRegion() const;
  
 /*
 This methods calculates the case of the intersection type. There are
@@ -260,56 +252,61 @@ in getTraversedArea. A two digit value in a number system of base 4 is
 the result.
 
 */
-  int getTraversedCase (const Point & p1, const Point & p2,
-                        const Point & p3, const Point & p4);
+int getTraversedCase (const Point & p1, const Point & p2,
+const Point & p3, const Point & p4) const;
+
 /*
 This methods finds out the correct case and calls other methods to calculate 
 the polygon that was traversed in this step. It uses the halfsegments' start 
 and end position. It has to deal with al lot of different cases.
 
 */
-    vector < vector < Point > >getTraversedArea (const HalfSegment & hsold,
-                                                 const HalfSegment & hsnew);
+vector < vector < Point > >getTraversedArea (const HalfSegment & hsold,
+const HalfSegment & hsnew) const;
 
 /*
 This method orientates the given polygons clockwise. Therefore, they will be 
 faces.
 
 */
-  void traversedCreateCyclesNotHoles (vector < vector < Point > >&v_list);
+void traversedCreateCyclesNotHoles(vector < vector < Point > >&v_list) const;
+
 /*
-This methods creates a region that contains the traversed area between the 
-step's region at t\_step\_start and t\_step\_end.
+This methods creates a region that contains the traversed area between 
+resultold and resultnew.
 
 */
-  Region * getDiffRegion (const vector < HalfSegment > *resultold,
-                         const vector < HalfSegment > *resultnew );
+Region * getDiffRegion(const vector < HalfSegment > *resultold,
+const vector < HalfSegment > *resultnew) const;
+
 /*
 This methods creates a polygon of the given Points.
 This method adds four edges, the given points, to a vector. This is a 
 preparation to create a quadrangle.
 
 */
-vector < vector < Point > >traversedCalculateQuadrangle (const Point & p1, 
-const Point & p2, const Point & p3, const Point & p4);
+vector < vector < Point > >traversedCalculateQuadrangle(const Point & p1, 
+const Point & p2, const Point & p3, const Point & p4) const;
+
 /*
 This methods creates a polygon of the given Points.
 This method adds three edges, the given points, to a vector. This is a 
 preparation to create a triangle.
 
 */
- vector < vector < Point > >traversedCalculateTriangle (const Point & p1,
- const Point & p2,const Point & p3);
+vector < vector < Point > >traversedCalculateTriangle (const Point & p1,
+const Point & p2,const Point & p3) const;
 
 /*
-This is an Internal method that is used from traversedCalculateTriangle.
+This is an internal method that is used from traversedCalculateTriangle.
 This methods creates a polygon of the given Points.
 This method adds three edges, the given points, to a vector. This is a 
 preparation to create a triangle.
 
 */
 vector < Point > traversedCalcTriangle (const Point & p1,
-        const Point & p2, const Point & p3);
+const Point & p2, const Point & p3) const;
+
 /*
 This methods creates two polygons of the given Points, using the intersection
 of the lines p1p2 and p3p4.
@@ -317,29 +314,22 @@ It will prepare two vectors with triangles and gives them back in a
 vectorvector.
 
 */
-    vector < vector < Point > >traversedCalculateTwoTriangles (Point p1,
-    Point p2, Point p3, Point p4);
+vector < vector < Point > >traversedCalculateTwoTriangles (const Point p1,
+const Point p2, const Point p3, const Point p4) const;
+
 /*
 This method creates a vectorvector and puts the given vector into it.
 
 */
-    vector < vector < Point > >traversedGetVectorVector (vector < Point > v);
+vector < vector < Point > > traversedGetVectorVector(
+const vector < Point > v) const;
+
 /*
 This method calculates the internal variables. It is used, when
 the time has changed.
 
 */
 void calculateInternalVars ();
-/*
-This method returns the LATransform.
-
-*/
-const LATransform & getLATransform () const;
-/*
-This method sets the LATransform.
-
-*/
-void setLATransform (const LATransform & _l);
 
 /*
 This method will return a list of Halfsegments that the FMRegion will have 
@@ -347,34 +337,36 @@ at the given
 time ti.
 
 */
-void atinstant (double ti, const vector < HalfSegment > &v,
-  vector < HalfSegment > & res);
+void atinstant (const double ti, const vector < HalfSegment > &v,
+vector < HalfSegment > & res);
 
 /*
-This method will return a Point3 with the moving values x,y,alpha for the given 
-time t.
+This method will return a Point3 with the moving values x, y and alpha for the 
+given double with time t.
 
 */
 Point3 getMovingForTimeFromMMove (const double t) const;
+
 /*
-This method will return a Point3 with the moving values x,y,alpha for the given 
-time t.
+This method will return a Point3 with the moving values x, y and alpha for the given 
+DateTime t.
 
 */
 Point3 getMovingForTimeFromMMove (const DateTime t) const;
+
 /*
 This method returns the start time of the valid interval as an double
 as absolute time.
 
 */
-  double getMMoveStart (const double dummy) const;
-
+double getMMoveStart(const double dummy) const;
 
 /*
 This method calculates the step with depending on alpha.
 
 */
-  int calcStepWith(const double ta, const double te) const ;
+int calcStepWith(const double ta, const double te) const;
+
 /*
 This method calculates the aprroximated movement of the given MPoint
 with the given precision unter the condition that the FixedMRegion does
@@ -386,56 +378,37 @@ MPoint approxMovement(const MPoint & p) const;
 
 /*
 This method moves the given Point inverse to the movement of the FixedMRegion
-and gives it back.
+for time t and gives it back.
 
 */
- void getInv(double t, const Point & p, Point & result) const;
+void getInv(const double t, const Point & p, Point & result) const;
+
 /*
 This method creates a non moving MRegion.
 
 */
- MRegion *buildMovingRegion ();
+MRegion *buildMovingRegion();
+
 /*
 This method will join adjacent UBools, if they have got the same value.
 
 */
-MBool joinBools(MBool a);
-/*
-This method will remove the inverse movement of the region from the given 
-MPoint. This movement of the Region should have been added some steps 
-before from approxMovement.
+MBool joinBools(const MBool a) const;
 
-*/
-
- MPoint reverseMovement (const MPoint & mp) const;
-/*
-This method moves the given Point according to the movement of the FixedMRegion
-and gives it back.
-
-*/
- void getTransPoint (DateTime t, const Point & p, Point & result) const;
-
-/*
-This method generates a list of all Points of the region.
-
-*/
-vector<Point> generateListOfRegionPoints(const Region &r);
 /*
 This calculates the euclidian distance between the two points.
 
 */
-double getOneDistance(const Point  &p1, const Point &p2);
+double getOneDistance(const Point  &p1, const Point &p2) const;
+
 /*
-This method calculates the euclidian distance between the points. One Point 
-willl always be the given one.
+This method calculates the euclidian distance between the points and the 
+one indicated by numberOfPoint.
 
 */
-vector<double> getDistancesForPoint(int numberOfPoint, const vector<Point> &p);
-/*
-This method calculates the distance matrix of the points.
+vector<double> getDistancesForPoint(const int numberOfPoint, 
+const vector<Point> &p) const;
 
-*/
-vector<vector<double> > generateDistancesMatrix(const vector<Point> &p);
 /*
 This method identifies the line of the matrix, which equals the given 
 line of distances.
@@ -444,45 +417,77 @@ return value: starts with zero for the first element
 
 */
 int identifyPoint(const vector<vector<double> > &matrixOfDistancesOfRegion1, 
-                  const vector<double> &listOfDistancesOfRegion2);
+const vector<double> &listOfDistancesOfRegion2) const;
+
 /*
-This method returns a list that has got the numbers of matrix lines two whom
-correspond to the given [i]-line of matrix2.
+This method compares all vectors with each other and generates a list, that shows
+equalities. The result vector indicates, that the i-th position of the result vector 
+and matrixOfDistancesOfRegion2 can be found at the stord position in vector 
+matrixOfDistancesOfRegion1.
 return value: starts with zero for the first element
 -1 in case of error
 
 */
-//FIXME: erläutern, wer mit wem
-vector<int> identifyPoints(const vector<vector<double> > 
-  &matrixOfDistancesOfRegion1, const vector<vector<double> > 
-  &matrixOfDistancesOfRegion2);
-  
-/*
-This method creates a MMove with the given values.
-
-*/ 
-  MMove createMMove(double _startX, double _startY, double _startangle, 
-  Instant _startt, double _endX, double _endY, double _endangle, Instant _endt);
+vector<int> identifyPoints(
+const vector<vector<double> > &matrixOfDistancesOfRegion1, 
+const vector<vector<double> > &matrixOfDistancesOfRegion2) const;
 
 /*
 This method creates a MMove with the given values.
 
-*/ 
-  MMove createMMove(double _startX, double _startY, double _startangle, 
-  double _endX, double _endY, double _endangle);
+*/
+MMove createMMove(const double _startX, const double _startY, 
+const double _startangle, const Instant _startt, const double _endX, 
+const double _endY, const double _endangle, const Instant _endt) const;
 
+/*
+This method creates a MMove with the given values.
 
+*/
+MMove createMMove(const double _startX, const double _startY, 
+const double _startangle, const double _endX, const double _endY, 
+const double _endangle) const;
+
+/*
+This method returns the size of the object.
+
+*/
 virtual size_t Sizeof() const;
+
+/*
+This method implements the compare functionality.
+
+*/
 virtual int Compare(const Attribute*) const;
+
+/*
+This method implements the adjacent functionality.
+
+*/
 virtual bool Adjacent(const Attribute*) const;
+
+/*
+This method implements the HashValue functionality.
+
+*/
 virtual size_t HashValue() const;
 
+/*
+This method implements the NumOfFLOBs functionality.
 
+*/
 virtual int NumOfFLOBs() const;
+
+/*
+This method implements the GetFLOB functionality.
+
+*/
 Flob* GetFLOB(const int i);
 
+/*
+This method implements the Print functionality.
 
-
+*/
 ostream& Print(ostream &os) const;
 };
 #endif

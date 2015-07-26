@@ -275,8 +275,6 @@ testatinstantLinearMove ()
   Region *res = new Region(0);
   fmr.atinstant (1, *res);
   printf ("%s\n", (checkRegionPoints (res, expected, 3)) ? "OK" : "FAILED");
-  FMRTest t;
-  t.printLATransform(fmr);
   delete p1;
   delete p2;
   delete p3;
@@ -299,8 +297,6 @@ testatinstantRotate ()
                                    0, 0, M_PI);
   Region res(0);
   fmr.atinstant (1, res);
-  FMRTest t=FMRTest();
-  t.printLATransform(fmr);
   printf ("%s\n", (checkRegionPoints (&res, expected, 3)) ? "OK" : "FAILED");
   delete p1;
   delete p2;
@@ -753,13 +749,13 @@ void FMRTest::testgenerateListOfRegionPoints(){
   v.push_back(Point(1.0,0.0));
   v.push_back(Point(0.0,1.0));
   v.push_back(Point(1.0,1.0));
-  vector<Point> res = fmr.generateListOfRegionPoints(*rbig);
+  /*vector<Point> res = fmr.generateListOfRegionPoints(*rbig);
   
   if (res==v) {
     printf("OK\n");
   } else {
     printf("Failed\n");
-  }
+  }*/
 }
 
 void FMRTest::testgetOneDistance(){
@@ -807,33 +803,6 @@ void FMRTest::testgetDistancesForPoint(){
   }
 }
 
-void FMRTest::testgenerateDistancesMatrix(){
-  printf ("Test generateDistancesMatrix: ");
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
-    0, 1, 0);
-  vector<Point> v;
-  v.push_back(Point(true, 0.0,0.0));
-  v.push_back(Point(true, 1.0,0.0));
-  vector<vector<double> > calc = fmr.generateDistancesMatrix(v);
-  vector<double> res1;
-  res1.push_back(0.0);
-  res1.push_back(1.0);
-  vector<double> res2;
-  res2.push_back(1.0);
-  res2.push_back(0.0);
-  vector<vector<double> > result(0);
-  result.push_back(res1);
-  result.push_back(res2);
-  
-  if (result==calc) {
-    printf("OK\n");
-  } else {
-    printf("Failed\n");
-  }
-}
 
 void FMRTest::testidentifyPoint(){
   printf ("Test identifyPoint: ");
@@ -891,19 +860,12 @@ void FMRTest::testidentifyPoints(){
   }
 }
 
-void FMRTest::printLATransform(const FixedMRegion & r) {
-    LATransform l(r.getLATransform());
-    l.print();
-}
-  
-
 void testskeleton(){
   printf ("Test intersection\n");
   FMRTest t;
   t.testgenerateListOfRegionPoints();
   t.testgetOneDistance();
   t.testgetDistancesForPoint();
-  t.testgenerateDistancesMatrix();
   t.testidentifyPoint();
   t.testidentifyPoints();
 }
@@ -1248,7 +1210,7 @@ void FMRTest::testtraversed(){
   FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
     0, 1, 0);
   Region * res = new Region(0);
-  fmr.traversed( *res, 0.0, 1.0, 0.1);
+  fmr.traversedNew( *res, 0.0, 1.0);
   Point p1=Point(true, 0.0,0.0);
   Point p2=Point(true, 1.0,1.0);
   Point p3=Point(true, 1.0,0.0);

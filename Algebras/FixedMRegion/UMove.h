@@ -613,7 +613,7 @@ Attention: UNDEFINED units my be appended!
                   const Geoid* geoid    = 0,
                   const double epsilon  = 0.0000001) const;
 
-  static const string BasicType(){ return "upoint"; }
+  static const string BasicType(){ return "umove"; }
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }
