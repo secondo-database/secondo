@@ -127,7 +127,7 @@ public class LocalLocationManager {
     public synchronized LocationInfo getCurrentLocationInfo() {
         LocationInfo info = currentLocationInfo;
         currentLocationInfo = new LocationInfo();
-        currentLocationInfo.start = info.end;
+        currentLocationInfo.start = info.start;
         currentLocationInfo.end = info.end;
         return info;
     }
