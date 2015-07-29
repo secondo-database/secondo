@@ -1,16 +1,10 @@
 package com.secondo.webgui.client;
 
 import java.util.ArrayList;
-
-import com.allen_sauer.gwt.dnd.client.PickupDragController;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.event.dom.client.ChangeEvent;
-import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.logical.shared.CloseEvent;
-import com.google.gwt.event.logical.shared.CloseHandler;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.Window.ClosingEvent;
@@ -25,7 +19,6 @@ import com.secondo.webgui.client.mainview.MainView;
 import com.secondo.webgui.client.rpc.SecondoService;
 import com.secondo.webgui.client.rpc.SecondoServiceAsync;
 import com.secondo.webgui.utils.config.Resources;
-import com.secondo.webgui.utils.config.SecondoConstants;
 
 /**
  * This is the Entry point class which defines the onModuleLoad()-Method to
@@ -71,9 +64,6 @@ public class SecondoWeb implements EntryPoint {
 	public void onModuleLoad() {
 		Resources.INSTANCE.css().ensureInjected();
 
-		/* set default values in login textfields using properties */
-		SecondoConstants constantsToConnect = GWT
-				.create(SecondoConstants.class);
 
 		if (!logindata.isEmpty()) {
 			logindata.clear();
@@ -81,11 +71,12 @@ public class SecondoWeb implements EntryPoint {
 		// get the content of the login text fields
 		logindata.add("");
 		logindata.add("");
-		logindata.add(constantsToConnect.IP());
-		logindata.add(constantsToConnect.port());
+
 
 		// connect to secondo with logindata
-		sendLogin(logindata, constantsToConnect.DB());
+
+		sendLogin();
+		
 
 		/* initialize the loading popup */
 		loadingPopup.setAnimationEnabled(true);
@@ -470,6 +461,7 @@ public class SecondoWeb implements EntryPoint {
 						} else {
 							Window.alert("Please select relation and load it");
 						}
+						mainView.getMapView().removeDrawLayer();
 					}
 				});
 
@@ -584,7 +576,7 @@ public class SecondoWeb implements EntryPoint {
 	 * @param userDataList
 	 *            List with logindata of the user
 	 * */
-	public void sendLogin(ArrayList<String> userDataList, final String db) {
+	public void sendLogin() {
 
 		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
 
@@ -596,13 +588,13 @@ public class SecondoWeb implements EntryPoint {
 
 			@Override
 			public void onSuccess(Void result) {
-				openDatabase(db);
+				openDatabase();
 			}
 		};
 
 		// Make the call. Control flow will continue immediately and later
 		// 'callback' will be invoked when the RPC completes.
-		secondoService.setSecondoConnectionData(userDataList, callback);
+		secondoService.setSecondoConnectionData(callback);
 	}
 
 	/**
@@ -612,9 +604,9 @@ public class SecondoWeb implements EntryPoint {
 	 * @param database
 	 *            The database to be opened
 	 * */
-	public void openDatabase(String database) {
+	public void openDatabase() {
 
-		AsyncCallback<String> callback = new AsyncCallback<String>() {
+		AsyncCallback<ArrayList<String>> callback = new AsyncCallback<ArrayList<String>>() {
 
 			@Override
 			public void onFailure(Throwable caught) {
@@ -622,15 +614,15 @@ public class SecondoWeb implements EntryPoint {
 			}
 
 			@Override
-			public void onSuccess(String openDatabase) {
+			public void onSuccess(ArrayList<String> confInfo) {
 
 				// set database info to info dialog
 				mainView.getMainheader().getDatabaseInfo().getHost()
-						.setText(logindata.get(2));
+						.setText(confInfo.get(0));
 				mainView.getMainheader().getDatabaseInfo().getPort()
-						.setText(logindata.get(3));
+						.setText(confInfo.get(1));
 				mainView.getMainheader().getDatabaseInfo().getDb()
-						.setText(openDatabase);
+						.setText(confInfo.get(2));
 
 				// reset text view
 				mainView.getMainheader().getTextViewOfTrajInDialog()
@@ -648,7 +640,7 @@ public class SecondoWeb implements EntryPoint {
 				setContent(2);
 			}
 		};
-		secondoService.openDatabase(database, callback);
+		secondoService.openDatabase(callback);
 	}
 
 	/**

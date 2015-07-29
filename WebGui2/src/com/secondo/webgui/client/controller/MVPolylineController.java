@@ -278,11 +278,11 @@ public class MVPolylineController {
 	 *            The bounds object
 	 * */
 	public void showPolylineOverlays(Map map, Bounds bounds,
-			boolean showWithColors) {
+			boolean withBounds, boolean showWithColors) {
 		if (!showWithColors) {
-			addLineLayersToMap(polylineMap, map, bounds);
+			addLineLayersToMap(polylineMap, map, withBounds, bounds);
 		} else {
-			addPopupToShowLegend(coloredPolylineMap, map, bounds);
+			addPopupToShowLegend(coloredPolylineMap, map, withBounds, bounds);
 		}
 	}
 
@@ -292,7 +292,7 @@ public class MVPolylineController {
 	 * @param bounds
 	 */
 	private void addPopupToShowLegend(HashMap<Number, Vector> lineMap,
-			final Map map, Bounds bounds) {
+			final Map map, boolean withBounds, Bounds bounds) {
 
 		System.out.println("LineMap " + lineMap.size());
 		if (!lineMap.isEmpty()) {
@@ -330,7 +330,9 @@ public class MVPolylineController {
 			final SelectFeature selectFeature = new SelectFeature(overlays);
 			selectFeature.setAutoActivate(true);
 			map.addControl(selectFeature);
-			map.zoomToExtent(bounds);
+			if (withBounds) {
+				map.zoomToExtent(bounds);
+			}
 		}
 
 	}
@@ -340,15 +342,17 @@ public class MVPolylineController {
 	 * @param bounds
 	 */
 	private void addLineLayersToMap(HashMap<Number, Vector> lineMap, Map map,
-			Bounds bounds) {
-		System.out.println(lineMap.size());
+			boolean withBounds, Bounds bounds) {
+
 		if (!lineMap.isEmpty()) {
 
 			for (Vector lineLayer : lineMap.values()) {
 
 				map.addLayer(lineLayer);
 			}
-			map.zoomToExtent(bounds);
+			if (withBounds) {
+				map.zoomToExtent(bounds);
+			}
 		}
 	}
 
@@ -424,7 +428,9 @@ public class MVPolylineController {
 		return polylineMap;
 	}
 
-	/**Adds to the map an mpoint id and list with its line segments
+	/**
+	 * Adds to the map an mpoint id and list with its line segments
+	 * 
 	 * @param key
 	 * @param arrayWithLines
 	 */
@@ -446,7 +452,9 @@ public class MVPolylineController {
 		return coloredPolylineMap;
 	}
 
-	/**Generates legend to display
+	/**
+	 * Generates legend to display
+	 * 
 	 * @param mapWithLabelToColor
 	 *            The map binding label name to color in hex
 	 * @return The HTML to display as legend
@@ -481,8 +489,11 @@ public class MVPolylineController {
 		return legend_firstPart + html + legend_lastPart;
 	}
 
-	/**Sets to the global map mpoint ID and asociated color list
-	 * @param mapFromMP The map with colors  
+	/**
+	 * Sets to the global map mpoint ID and asociated color list
+	 * 
+	 * @param mapFromMP
+	 *            The map with colors
 	 */
 	public void setListWithColorsToMP(
 			HashMap<Number, ArrayList<String>> mapFromMP) {
@@ -493,8 +504,12 @@ public class MVPolylineController {
 		}
 	}
 
-	/**Adds a new entry to the map with mpoint id and successive labels and colors
-	 * @param The mapFromMP
+	/**
+	 * Adds a new entry to the map with mpoint id and successive labels and
+	 * colors
+	 * 
+	 * @param The
+	 *            mapFromMP
 	 */
 	public void setMapWithMpToLegend(
 			HashMap<Number, HashMap<String, String>> mapFromMP) {
@@ -505,7 +520,9 @@ public class MVPolylineController {
 		}
 	}
 
-	/**Returns the legend to display in the dialog 
+	/**
+	 * Returns the legend to display in the dialog
+	 * 
 	 * @return The completeLegendForMap
 	 */
 	public String getCompleteLegendForMap() {

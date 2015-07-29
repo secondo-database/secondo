@@ -178,7 +178,7 @@ public class MVMPointController {
 	 * @param bounds
 	 *            The bounds object
 	 * */
-	public void drawFirstMovingPoint(Map map, Bounds bounds) {
+	public void drawFirstMovingPoint(Map map, boolean withBounds, Bounds bounds) {
 
 		// if the timer is still running, stop it
 		if (timerIsRunning == true) {
@@ -196,7 +196,9 @@ public class MVMPointController {
 				}
 
 			}
-			map.zoomToExtent(bounds);
+			if (withBounds) {
+				map.zoomToExtent(bounds);
+			}
 		}
 	}
 
@@ -569,8 +571,8 @@ public class MVMPointController {
 	/** Stops all timers for animations */
 	public void stopAllAnimations() {
 		if (timerIsRunning) {
-			timeTimer.cancel();			
-			tabpanel.resetAnimationPanel();			
+			timeTimer.cancel();
+			tabpanel.resetAnimationPanel();
 		}
 		if (!mpointTimerList.isEmpty()) {
 			for (Timer timer : mpointTimerList) {
