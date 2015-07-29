@@ -879,17 +879,17 @@ private:
     Relation* rel;
     string relationName;
     int sleepCounter, tupleCounter;
+    Word relationWord;
 
     /**
      Append the tuple to the queue
 
     */
-    void insertTuples(Relation& r) {
+    void insertTuples(Relation* r) {
         Tuple * tuple;
 
         while (queue.try_dequeue(tuple)) {
-            tupleCounter--;
-            r.AppendTuple(tuple);
+            r->AppendTuple(tuple);
             tuple->DeleteIfAllowed();
         }
     }
@@ -903,6 +903,7 @@ private:
             bool defined;
             Word word;
             catalog->GetObject(relationName, word, defined);
+            relationWord = word;
             return (Relation*) word.addr;
         }
         return 0;
@@ -925,7 +926,14 @@ private:
 
     */
     void insertAndCommit(bool commit = true) {
-        insertTuples(*rel);
+
+        insertTuples(rel);
+
+        //Needed to update the relation record
+        catalog->ModifyObject(relationName, relationWord);
+        catalog->CleanUp(false, false);
+
+        tupleCounter = 0;
 
         if (commit) {
             commitAndBegin();
