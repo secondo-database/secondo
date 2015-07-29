@@ -67,6 +67,8 @@ public class MapView extends Composite {
 	 * query
 	 */
 	private Bounds boundsLast = new Bounds();
+	
+	private boolean withBounds = true;
 
 	/** Controller for polyline objects */
 	private MVPolylineController polylineController = new MVPolylineController();
@@ -394,10 +396,10 @@ public class MapView extends Composite {
 				}
 
 				if (zoomToAll == true) {
-					polylineController.showPolylineOverlays(map, boundsAll,
+					polylineController.showPolylineOverlays(map, boundsAll, withBounds,
 							showWithDifColors);
 				} else {
-					polylineController.showPolylineOverlays(map, boundsLast,
+					polylineController.showPolylineOverlays(map, boundsLast, withBounds,
 							showWithDifColors);
 				}
 			}
@@ -413,9 +415,9 @@ public class MapView extends Composite {
 			if (!mpointController.getMpointArray().isEmpty()) {
 				mpointController.stopAllAnimations();
 				if (zoomToAll == true) {
-					mpointController.drawFirstMovingPoint(map, boundsAll);
+					mpointController.drawFirstMovingPoint(map, withBounds, boundsAll);
 				} else {
-					mpointController.drawFirstMovingPoint(map, boundsLast);
+					mpointController.drawFirstMovingPoint(map, withBounds, boundsLast);
 				}
 			}
 
@@ -453,15 +455,16 @@ public class MapView extends Composite {
 	public void removeDrawLayer() {
 		if (drawLayer != null && drawRegularPolygon != null) {
 
+			
+
+			drawLayer.destroyFeatures();
+//			map.removeLayer(drawLayer);
+			drawLayer = null;
+
 			drawRegularPolygon.deactivate();
 			drawRegularPolygon.disable();
 			map.removeControl(drawRegularPolygon);
 			drawRegularPolygon = null;
-
-			drawLayer.destroyFeatures();
-			map.removeLayer(drawLayer);
-			drawLayer = null;
-
 		}
 	}
 
@@ -639,6 +642,13 @@ public class MapView extends Composite {
 	 */
 	public String getAttributeNameOfMPoint() {
 		return attributeNameOfMPoint;
+	}
+
+	/**
+	 * @param withBounds the withBounds to set
+	 */
+	public void setWithBounds(boolean withBounds) {
+		this.withBounds = withBounds;
 	}
 
 }

@@ -126,6 +126,7 @@ public class OptionsTabPanel extends Composite {
 	private boolean patternMatchingIsInitiated = false;
 	private boolean simpleQueryForPassesIsInitiated = false;
 	private boolean simpleQueryForPassesTrhoughRegionsInitiated = false;
+	private static double[] coordinatesForPasses;
 
 	private int tupleNoInPasses;
 
@@ -723,20 +724,21 @@ public class OptionsTabPanel extends Composite {
 			}
 		});
 
-//		matchButton.getElement().setAttribute("float", "right");
-//		matchButton.setStyleName("SpecialWidth");
+		// matchButton.getElement().setAttribute("float", "right");
+		// matchButton.setStyleName("SpecialWidth");
 		matchButton.setStyleName("gwt-Button");
-//		removeButton.getElement().setAttribute("float", "right");
-//		removeButton.setStyleName("SpecialWidth");
+		// removeButton.getElement().setAttribute("float", "right");
+		// removeButton.setStyleName("SpecialWidth");
 		removeButton.setStyleName("gwt-Button");
-//		removeLastInPatternButton.getElement().setAttribute("float", "right");
-//		removeLastInPatternButton.setStyleName("SpecialWidth");
+		// removeLastInPatternButton.getElement().setAttribute("float",
+		// "right");
+		// removeLastInPatternButton.setStyleName("SpecialWidth");
 		removeLastInPatternButton.setStyleName("gwt-Button");
 		removeLastInPatternButton.getElement().setAttribute("width", "100px");
-//		HorizontalPanel panelForButtons= new HorizontalPanel();
-//		panelForButtons.add(matchButton);
-//		panelForButtons.add(removeButton);
-//		panelForButtons.add(removeLastInPatternButton);
+		// HorizontalPanel panelForButtons= new HorizontalPanel();
+		// panelForButtons.add(matchButton);
+		// panelForButtons.add(removeButton);
+		// panelForButtons.add(removeLastInPatternButton);
 
 		previousTupleInPattern.setStyleName("previousButton");
 		previousTupleInPattern.setEnabled(false);
@@ -750,7 +752,7 @@ public class OptionsTabPanel extends Composite {
 				.add(labelWithNumberOfShownTupleInPatternResult);
 		FlexTable previousNextTuplePan = new FlexTable();
 		previousNextTuplePan.setWidget(0, 0, previousTupleInPattern);
-		previousNextTuplePan.setWidget(0, 1,nextTupleInPattern);
+		previousNextTuplePan.setWidget(0, 1, nextTupleInPattern);
 		previousNextTupleInPatternResultPanel.add(previousNextTuplePan);
 
 		previousNextTupleInPatternResultPanel.getElement().setAttribute(
@@ -763,11 +765,11 @@ public class OptionsTabPanel extends Composite {
 		previousNextTupleInPatternResultPanel.setVisible(false);
 		definedPatternWidget.getFlexCellFormatter().setColSpan(2, 0, 3);
 
-//		definedPatternWidget.getFlexCellFormatter().setColSpan(1, 0, 3);
+		// definedPatternWidget.getFlexCellFormatter().setColSpan(1, 0, 3);
 		definedPatternWidget.setWidget(1, 0, matchButton);
 		definedPatternWidget.setWidget(1, 1, removeButton);
 		definedPatternWidget.setWidget(1, 2, removeLastInPatternButton);
-		
+
 		return definedPatternWidget;
 	}
 
@@ -906,7 +908,7 @@ public class OptionsTabPanel extends Composite {
 	 */
 	private ListBox createBoxWithSelectOptionsForExistingTrajectories() {
 		ListBox selectOptionsForExistingTrajectories = new ListBox();
-		selectOptionsForExistingTrajectories.addItem("");		
+		selectOptionsForExistingTrajectories.addItem("");
 		selectOptionsForExistingTrajectories.addItem("geotrips");
 		selectOptionsForExistingTrajectories.addItem("geolife");
 		selectOptionsForExistingTrajectories.addItem("animals");
@@ -1324,8 +1326,8 @@ public class OptionsTabPanel extends Composite {
 				labelWithNumberOfShownTupleInPatternResult.setText("tuple No. "
 						+ tupleNoInPattern);
 			}
-		} 
-		if (tupleNoInPattern == totalNumberOfTuplesInPatternResult){
+		}
+		if (tupleNoInPattern == totalNumberOfTuplesInPatternResult) {
 			nextTupleInPattern.setEnabled(false);
 		}
 		return command;
@@ -1354,7 +1356,7 @@ public class OptionsTabPanel extends Composite {
 				simpleQueriesStackPanel.getPassesPanel().getInfoAboutTupleNo()
 						.setText("tuple No. " + tupleNoInPasses);
 			}
-		} 
+		}
 		if (tupleNoInPasses == totalNumberOfTuplesInPassesResult) {
 			simpleQueriesStackPanel.getPassesPanel().getNextTuple()
 					.setEnabled(false);
@@ -1365,16 +1367,12 @@ public class OptionsTabPanel extends Composite {
 	public String getCommandForNextTupleInPassesThroughRegion(Vector drawLayer) {
 		tupleNoInPassesThroughRegion++;
 		String command = "";
+		simpleQueriesStackPanel.getPassesThroughRegionPanel()
+				.getPreviousTuple().setEnabled(true);
+
 		if (tupleNoInPassesThroughRegion <= totalNumberOfTuplesInPassesThroughResult) {
 			int selectedInd = selectOptionsForExistingTrajectories
 					.getSelectedIndex();
-
-			removePreviousFeatures(drawLayer);
-
-			Point[] listOfPoints = drawLayer.getFeatures()[drawLayer
-					.getFeatures().length - 1].getGeometry().getVertices(false);
-
-			double[] coordinatesForPasses = coordinateValues(listOfPoints);
 
 			if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
 
@@ -1389,13 +1387,14 @@ public class OptionsTabPanel extends Composite {
 						+ coordinatesForPasses[1] + " "
 						+ coordinatesForPasses[2] + " "
 						+ coordinatesForPasses[3] + ")]] head["
-						+ tupleNoInPassesThroughRegion +"] tail[1] consume";
-				simpleQueriesStackPanel.getPassesThroughRegionPanel().getInfoAboutTupleNo()
-				.setText("tuple No. " + tupleNoInPassesThroughRegion);
+						+ tupleNoInPassesThroughRegion + "] tail[1] consume";
+				simpleQueriesStackPanel.getPassesThroughRegionPanel()
+						.getInfoAboutTupleNo()
+						.setText("tuple No. " + tupleNoInPassesThroughRegion);
 
 			}
 
-		} 
+		}
 		if (tupleNoInPassesThroughRegion == totalNumberOfTuplesInPassesThroughResult) {
 			simpleQueriesStackPanel.getPassesThroughRegionPanel()
 					.getNextTuple().setEnabled(false);
@@ -1437,7 +1436,7 @@ public class OptionsTabPanel extends Composite {
 		String label = simpleQueriesStackPanel.getPassesPanel()
 				.getLabelTextForQuery().getText();
 		label.trim();
-		
+
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
 
 			command = "query "
@@ -1462,7 +1461,7 @@ public class OptionsTabPanel extends Composite {
 		String label = simpleQueriesStackPanel.getPassesPanel()
 				.getLabelTextForQuery().getText();
 		label.trim();
-		
+
 		if (selectedInd != -1 && !(attributeNameOfMlabelInRelation == null)) {
 
 			command = "query "
@@ -1528,7 +1527,8 @@ public class OptionsTabPanel extends Composite {
 					+ " atinstant [const instant value \"" + label
 					+ "\"])] projectextend[; ILabel: ."
 					+ attributeNameOfMlabelInRelation
-					+ " atinstant [const instant value \"" +label+ "\"] ] consume";
+					+ " atinstant [const instant value \"" + label
+					+ "\"] ] consume";
 		}
 		return command;
 	}
@@ -1551,7 +1551,7 @@ public class OptionsTabPanel extends Composite {
 		Point[] listOfPoints = drawLayer.getFeatures()[drawLayer.getFeatures().length - 1]
 				.getGeometry().getVertices(false);
 
-		double[] coordinatesForPasses = coordinateValues(listOfPoints);
+		coordinateValues(listOfPoints);
 
 		String command = "";
 		String commandForCount = "";
@@ -1593,7 +1593,8 @@ public class OptionsTabPanel extends Composite {
 	 *            specified layer
 	 */
 	private void removePreviousFeatures(Vector layer) {
-		if (layer.getFeatures().length > 1) {
+
+		if (layer.getFeatures() != null || layer.getFeatures().length > 1) {
 			System.out.println("Length " + layer.getFeatures().length);
 			for (int i = 0; i < layer.getFeatures().length - 2; i++) {
 				layer.removeFeature(layer.getFeatures()[i]);
@@ -1607,9 +1608,10 @@ public class OptionsTabPanel extends Composite {
 	 * 
 	 * @param The
 	 *            list of user defined points
+	 * @return
 	 * @return The ordered and transformed list of user defined coordinates
 	 */
-	private static double[] coordinateValues(Point[] listOfPoints) {
+	private void coordinateValues(Point[] listOfPoints) {
 		Projection OSM_PROJECTION = new Projection("EPSG:4326");
 		Projection GEO_PROJECTION = new Projection("EPSG:900913");
 		for (Point each : listOfPoints) {
@@ -1638,8 +1640,7 @@ public class OptionsTabPanel extends Composite {
 		for (Point each : listOfPoints) {
 			each.transform(OSM_PROJECTION, GEO_PROJECTION);
 		}
-		double[] result = new double[] { minX, maxX, minY, maxY };
-		return result;
+		coordinatesForPasses = new double[] { minX, maxX, minY, maxY };
 	}
 
 	/**
@@ -1684,7 +1685,7 @@ public class OptionsTabPanel extends Composite {
 				numberOfShownTuplesInSampleRelation.setText("tuple No. "
 						+ tupleNo);
 			}
-		} 
+		}
 		if (tupleNo == totalNumberOfTuplesInCurrentRelation) {
 			nextTuple.setEnabled(false);
 		}
@@ -1748,19 +1749,13 @@ public class OptionsTabPanel extends Composite {
 
 		return command;
 	}
-	
-	public String getCommandForPreviousTupleInPassesThroughRegion(Vector drawLayer){
+
+	public String getCommandForPreviousTupleInPassesThroughRegion(
+			Vector drawLayer) {
 		tupleNoInPassesThroughRegion--;
 		String command = "";
 		int selectedInd = selectOptionsForExistingTrajectories
 				.getSelectedIndex();
-
-		removePreviousFeatures(drawLayer);
-
-		Point[] listOfPoints = drawLayer.getFeatures()[drawLayer
-				.getFeatures().length - 1].getGeometry().getVertices(false);
-
-		double[] coordinatesForPasses = coordinateValues(listOfPoints);
 
 		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
 
@@ -1770,18 +1765,18 @@ public class OptionsTabPanel extends Composite {
 
 			command = command + " feed filter[."
 					+ attributeNameOfMPointInRelation
-					+ " passes [const rect value("
-					+ coordinatesForPasses[0] + " "
-					+ coordinatesForPasses[1] + " "
-					+ coordinatesForPasses[2] + " "
-					+ coordinatesForPasses[3] + ")]] head["
-					+ tupleNoInPassesThroughRegion + "] consume";
-			simpleQueriesStackPanel.getPassesThroughRegionPanel().getInfoAboutTupleNo()
-			.setText("tuple No. " + tupleNoInPassesThroughRegion);
+					+ " passes [const rect value(" + coordinatesForPasses[0]
+					+ " " + coordinatesForPasses[1] + " "
+					+ coordinatesForPasses[2] + " " + coordinatesForPasses[3]
+					+ ")]] head[" + tupleNoInPassesThroughRegion + "] consume";
+			simpleQueriesStackPanel.getPassesThroughRegionPanel()
+					.getInfoAboutTupleNo()
+					.setText("tuple No. " + tupleNoInPassesThroughRegion);
 
 		}
 		if (tupleNoInPassesThroughRegion == 1) {
-			simpleQueriesStackPanel.getPassesThroughRegionPanel().getPreviousTuple().setEnabled(false);
+			simpleQueriesStackPanel.getPassesThroughRegionPanel()
+					.getPreviousTuple().setEnabled(false);
 		}
 
 		return command;
@@ -1809,7 +1804,8 @@ public class OptionsTabPanel extends Composite {
 		}
 
 		if (tupleNoInPasses == 1) {
-			simpleQueriesStackPanel.getPassesPanel().getPreviousTuple().setEnabled(false);
+			simpleQueriesStackPanel.getPassesPanel().getPreviousTuple()
+					.setEnabled(false);
 		}
 
 		return command;
@@ -1988,7 +1984,8 @@ public class OptionsTabPanel extends Composite {
 		if (this.totalNumberOfTuplesInPassesResult > 0) {
 			simpleQueriesStackPanel.getPassesPanel()
 					.getVertPanWithPreviousNextTuple().setVisible(true);
-			simpleQueriesStackPanel.getPassesPanel().getPreviousTuple().setEnabled(true);
+			simpleQueriesStackPanel.getPassesPanel().getPreviousTuple()
+					.setEnabled(false);
 			simpleQueriesStackPanel.getPassesPanel().getInfoAboutTupleNo()
 					.setText("tuple No. 1");
 		}
@@ -2004,7 +2001,8 @@ public class OptionsTabPanel extends Composite {
 		if (this.totalNumberOfTuplesInPassesThroughResult > 0) {
 			simpleQueriesStackPanel.getPassesThroughRegionPanel()
 					.getVertPanWithPreviousNextTuple().setVisible(true);
-			simpleQueriesStackPanel.getPassesThroughRegionPanel().getPreviousTuple().setEnabled(true);
+			simpleQueriesStackPanel.getPassesThroughRegionPanel()
+					.getPreviousTuple().setEnabled(false);
 			simpleQueriesStackPanel.getPassesThroughRegionPanel()
 					.getInfoAboutTupleNo().setText("tuple No. 1");
 		}

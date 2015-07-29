@@ -2,6 +2,8 @@ package com.secondo.webgui.client.mainview;
 
 import com.google.gwt.dom.client.Style;
 import com.google.gwt.dom.client.Style.Unit;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Anchor;
@@ -13,6 +15,7 @@ import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.MenuBar;
 import com.google.gwt.user.client.ui.MenuItem;
+import com.google.gwt.user.client.ui.PushButton;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
 /**
@@ -53,6 +56,7 @@ public class Header extends Composite {
 	private LocationDialog locationDialog = new LocationDialog();
 	private SupportDialog supportDialog = new SupportDialog();
 	private PatternDialog patternDialog = new PatternDialog();
+	private boolean autozoomOn=true;
 
 	public Header() {
 
@@ -76,6 +80,30 @@ public class Header extends Composite {
 		mainGrid.setWidget(0, 2, notePanel);
 		mainGrid.getFlexCellFormatter().setRowSpan(0, 2, 3);
 		mainGrid.getColumnFormatter().setWidth(2, "350px");
+		
+		Image zoomImage = new Image("resources/images/auto-zoom.png");
+		final PushButton autozoom = new PushButton(zoomImage);
+		
+		autozoom.setTitle("auto-zoom off");
+		autozoom.setWidth("36px");
+		autozoom.setHeight("36px");		
+		autozoom.getElement().setAttribute("float", "right");
+		autozoom.addClickHandler(new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+				if (autozoomOn) {
+					autozoomOn = false;
+					autozoom.setTitle("auto-zoom on");
+				} else {
+					autozoomOn = true;
+					autozoom.setTitle("auto-zoom off");
+				}
+
+			}
+		});
+		mainGrid.setWidget(0, 3, autozoom);
+		mainGrid.getFlexCellFormatter().setRowSpan(0, 3, 3);
 
 		MenuItem homeMenu = new MenuItem("Secondo", new Command() {
 			@Override
@@ -339,5 +367,12 @@ public class Header extends Composite {
 
 	public MenuItem getPlainSymTraj() {
 		return plainSymTraj;
+	}
+
+	/**
+	 * @return the autozoomOn
+	 */
+	public boolean isAutozoomOn() {
+		return autozoomOn;
 	}
 }

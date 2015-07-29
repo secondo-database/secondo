@@ -18,9 +18,9 @@ public interface SecondoService extends RemoteService {
 	// secondo connection
 	String sendCommand(String command);
 
-	void setSecondoConnectionData(ArrayList<String> data);
+	void setSecondoConnectionData();
 
-	String openDatabase(String database);
+	ArrayList<String> openDatabase();
 
 	String closeDatabase(String database);
 

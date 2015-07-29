@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
@@ -42,7 +43,7 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 	// temporary data
 	private UserData sd = new UserData();
 	private ArrayList<String> secondoConnectionData = new ArrayList<String>();
-	private Date creationDate =  new Date();
+	private Date creationDate = new Date();
 
 	public SecondoServiceCore() {
 	}
@@ -97,19 +98,36 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 	 *            The list with the connection data of the user
 	 * */
 	@Override
-	public void setSecondoConnectionData(ArrayList<String> secondoConnectionData) {
+	public void setSecondoConnectionData() {
+		ArrayList<String> secondoConnectionData = new ArrayList<String>();
+
+		InputStream is = this.getClass().getClassLoader()
+				.getResourceAsStream("DB.properties");
+		Properties myProps = new Properties();
+
+		try {
+			myProps.load(is);
+		} catch (IOException e) {
+
+			e.printStackTrace();
+		}
+
+		secondoConnectionData.add("");
+		secondoConnectionData.add("");
+		secondoConnectionData.add(myProps.getProperty("IP"));
+		secondoConnectionData.add(myProps.getProperty("port"));
 		this.secondoConnectionData = secondoConnectionData;
 
-		sc.setConnection(secondoConnectionData.get(0),
-				secondoConnectionData.get(1), secondoConnectionData.get(2),
-				new Integer(secondoConnectionData.get(3)));
+		sc.setConnection("", "", myProps.getProperty("IP"),
+				new Integer(myProps.getProperty("port")));
 
 		// set data in sessiondata object
-		sd.setUsername(secondoConnectionData.get(0));
-		sd.setPassword(secondoConnectionData.get(1));
-		sd.setSecondoIP(secondoConnectionData.get(2));
-		sd.setSecondoPort(secondoConnectionData.get(3));
+		sd.setUsername("");
+		sd.setPassword("");
+		sd.setSecondoIP(myProps.getProperty("IP"));
+		sd.setSecondoPort(myProps.getProperty("port"));
 		sd.setLoggedIn(true);
+
 	}
 
 	/**
@@ -121,10 +139,25 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 	 * @return The name of the open database or failed
 	 * */
 	@Override
-	public String openDatabase(String database) {
+	public ArrayList<String> openDatabase() {
+		ArrayList<String> result = new ArrayList<String>();
+		result.add(secondoConnectionData.get(2));
+		result.add(secondoConnectionData.get(3));
+		InputStream is = this.getClass().getClassLoader()
+				.getResourceAsStream("DB.properties");
+		Properties myProps = new Properties();
+		try {
+			myProps.load(is);
+		} catch (IOException e) {
+
+			e.printStackTrace();
+		}
+		String database = myProps.getProperty("DB");
+		
 
 		if (sd.isLoggedIn() == false) {
-			return "failed";
+			result.add("failed");
+			return result;
 		}
 
 		boolean ok = sc.openDatabase(database);
@@ -135,9 +168,12 @@ public class SecondoServiceCore extends RemoteServiceServlet implements
 			sc.getFormattedList().clear();
 			sc.getFormattedListWithMlabel().clear();
 			sc.getResultTypeList().clear();
-			return database;
-		} else
-			return "failed";
+			result.add(database);
+			return result;
+		} else {
+			result.add("failed");
+			return result;
+		}
 	}
 
 	/**

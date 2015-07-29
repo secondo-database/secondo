@@ -16,13 +16,14 @@ import com.google.gwt.user.client.ui.VerticalPanel;
  *
  */
 public class SimpleQueryPanel extends VerticalPanel {
-	private DefaultTextBox textForQuery;	
+	private DefaultTextBox textForQuery;
 	private Button defineButton;
 	private Label resultInfoLabel;
 	private Label infoAboutTupleNo;
 	private VerticalPanel vertPanWithPreviousNextTuple = new VerticalPanel();
-	private Button previousTuple=new Button("<span></span> previous tuple");
-	private Button nextTuple=new Button("next tuple <span></span>");;
+	private Button previousTuple = new Button("<span></span> previous tuple");
+	private Button nextTuple = new Button("next tuple <span></span>");
+	private Button startDrawing = new Button("start drawing");
 
 	public SimpleQueryPanel(String textForHelpInfoLabel, String typeOfQuery,
 			String defaultText) {
@@ -36,7 +37,7 @@ public class SimpleQueryPanel extends VerticalPanel {
 
 		if (typeOfQuery.equals("passThrough")) {
 			Label helpInfoLevel2 = new Label(
-					"Define with your mouse a region on the map");
+					"Define with your mouse a rectangle on the map. Click left mouse button and drag a mouse defining rectangle corners ");
 			helpInfoLevel2.setStylePrimaryName("labelForPasses");
 			this.add(helpInfoLevel2);
 		} else {
@@ -52,29 +53,41 @@ public class SimpleQueryPanel extends VerticalPanel {
 					}
 				}
 			});
-			
+
 			this.add(textForQuery);
 		}
 
 		if (typeOfQuery.equals("passThrough") || typeOfQuery.equals("pass")) {
-			
-			defineButton = new Button("define");
-			defineButton.setStyleName("floatRight");
-			defineButton.addStyleName("gwt-Button");
-			this.add(defineButton);
-			
-			resultInfoLabel=new Label();
+
+			if (typeOfQuery.equals("passThrough")) {
+				FlexTable panelForButtonsInPassThrough = new FlexTable();
+				startDrawing.addStyleName("gwt-Button");
+				panelForButtonsInPassThrough.setWidget(0, 0, startDrawing);
+
+				defineButton = new Button("define");
+				defineButton.addStyleName("gwt-Button");
+				panelForButtonsInPassThrough.setWidget(0, 1, defineButton);
+				this.add(panelForButtonsInPassThrough);
+			} else {
+
+				defineButton = new Button("define");
+				defineButton.setStyleName("floatRight");
+				defineButton.addStyleName("gwt-Button");
+				this.add(defineButton);
+			}
+
+			resultInfoLabel = new Label();
 			this.add(resultInfoLabel);
-			
+
 			previousTuple.setStyleName("previousButton");
 			previousTuple.setEnabled(false);
-			
+
 			nextTuple.setStyleName("nextButton");
-			nextTuple.setEnabled(true);			
-			
+			nextTuple.setEnabled(true);
+
 			FlexTable previousNextPanel = new FlexTable();
 			previousNextPanel.setWidget(0, 0, previousTuple);
-			previousNextPanel.setWidget(0, 1, nextTuple);			
+			previousNextPanel.setWidget(0, 1, nextTuple);
 
 			infoAboutTupleNo = new Label();
 			vertPanWithPreviousNextTuple.add(infoAboutTupleNo);
@@ -86,11 +99,11 @@ public class SimpleQueryPanel extends VerticalPanel {
 			defineButton = new Button("define");
 			defineButton.setStyleName("floatRight");
 			defineButton.addStyleName("gwt-Button");
-			this.add(defineButton);			
-			
+			this.add(defineButton);
+
 			resultInfoLabel = new Label();
 			this.add(resultInfoLabel);
-		}		
+		}
 	}
 
 	/**
@@ -102,8 +115,6 @@ public class SimpleQueryPanel extends VerticalPanel {
 		return textForQuery;
 	}
 
-	
-
 	/**
 	 * Returns the label with result
 	 * 
@@ -111,7 +122,7 @@ public class SimpleQueryPanel extends VerticalPanel {
 	 */
 	public Label getResultInfoLabel() {
 		return resultInfoLabel;
-	}	
+	}
 
 	/**
 	 * Returns the button "count"
@@ -144,5 +155,11 @@ public class SimpleQueryPanel extends VerticalPanel {
 		return infoAboutTupleNo;
 	}
 
-	
+	/**
+	 * @return the startDrawing
+	 */
+	public Button getStartDrawing() {
+		return startDrawing;
+	}
+
 }

@@ -136,8 +136,8 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 *            The list with the connection data of the user
 	 * */
 	@Override
-	public void setSecondoConnectionData(ArrayList<String> secondoConnectionData) {
-		getSecondoServiceCore().setSecondoConnectionData(secondoConnectionData);
+	public void setSecondoConnectionData() {
+		getSecondoServiceCore().setSecondoConnectionData();
 	}
 
 	/**
@@ -149,9 +149,9 @@ public class SecondoServiceImpl extends RemoteServiceServlet implements
 	 * @return The name of the open database or failed
 	 * */
 	@Override
-	public String openDatabase(String database) {
+	public ArrayList<String> openDatabase() {
 
-		return getSecondoServiceCore().openDatabase(database);
+		return getSecondoServiceCore().openDatabase();
 	}
 
 	/**

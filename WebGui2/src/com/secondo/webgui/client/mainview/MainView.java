@@ -273,6 +273,17 @@ public class MainView extends Composite {
 								.setVisible(true);
 					}
 				});
+		
+		this.optionsTabPanel.getSimpleQueriesStackPanel()
+				.getPassesThroughRegionPanel().getStartDrawing()
+				.addClickHandler(new ClickHandler() {
+
+					@Override
+					public void onClick(ClickEvent event) {
+						mapView.initDrawLayer();
+					}
+				});		
+		
 
 		/**
 		 * This event is fired on click on the SimpleQueriesStackPanel. If it is
@@ -283,11 +294,10 @@ public class MainView extends Composite {
 		stackpanel.addHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-
-				if (stackpanel.getSelectedIndex() == 1) {
-					mapView.initDrawLayer();
-				} else {
-					mapView.removeDrawLayer();
+			
+				if(stackpanel.getSelectedIndex()!=1){
+//					only "start drawing"-button initiates drawing layer
+					mapView.removeDrawLayer();		
 				}
 				
 				switch(stackpanel.getSelectedIndex()){
@@ -310,6 +320,8 @@ public class MainView extends Composite {
 			}
 		}, ClickEvent.getType());
 	}
+	
+	
 
 	/**
 	 * On resizing of the browser window the elements of the main view are
@@ -342,6 +354,7 @@ public class MainView extends Composite {
 		int windowWidth = Window.getClientWidth();
 		int windowHeight = Window.getClientHeight();
 
+		mapView.setWithBounds(header.isAutozoomOn());
 		view.add(mapView.getContentPanel());
 		resizeToFullScreen(windowWidth, windowHeight);
 		mapView.updateView();

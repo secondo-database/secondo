@@ -19,10 +19,9 @@ public interface SecondoServiceAsync {
 
 	void sendCommandWithoutResult(String s, AsyncCallback<String> callback);
 
-	void setSecondoConnectionData(ArrayList<String> data,
-			AsyncCallback<Void> callback);
+	void setSecondoConnectionData(AsyncCallback<Void> callback);
 
-	void openDatabase(String database, AsyncCallback<String> callback);
+	void openDatabase( AsyncCallback<ArrayList<String>> callback);
 
 	void closeDatabase(String database, AsyncCallback<String> callback);
 
