@@ -63,12 +63,13 @@
  1.3 members
 
 */
-     int minPts, attrPos;
+     int minPts, attrPos,pos;
      double eps;
      TupleBuffer* buffer;
      GenericRelationIterator* resIt;  // iterator 
      TupleType* tt;   // the result tuple type
-     vector <MEMB_TYP_CLASS> membArray;
+     vector <MEMB_TYP_CLASS*> membArrayUntouched;
+     vector <MEMB_TYP_CLASS*> membArrayPtr;
      Cluster<MEMB_TYP_CLASS, TYPE>* cluster;
      
      
@@ -88,18 +89,29 @@
     {
       tt = new TupleType(_tupleResultType);
       init(_maxMem,_inStream);
-      cluster = dbDacScan(membArray,0,membArray.size()-1,eps,minPts);
+//       cluster = dbDacScan(membArray,0,membArray.size()-1,eps,minPts);
+      
+//       for( int i=0; i< membArrayPtr.size();i++){
+//         cout << "membArray at Pos i= " << i;
+//         membArrayUntouched[i]->printPoint();
+//         cout << endl;
+//         cout << "membArrayPtr at Pos i= " << i;
+//         membArrayPtr[i]->printPoint();
+//         cout << endl;
+//       }
+      
+      cluster = dbDacScan(membArrayPtr,0,membArrayPtr.size()-1,eps,minPts);
       
 //       cout << "Clustering finished!!-----------------------" << endl;
 //       cluster->printAll();
 //       cout << "Count of elements before clustering: " 
-//       << membArray.size() << endl;
+//       << membArrayUntouched.size() << endl;
 //       cout << "Count of elements after clustering: " 
 //       << cluster->getCntMembers() <<"\n" << endl;
 //       cout << "Count of Clusters: " 
 //       << cluster->getClusterArraySize() << endl;
-//       cluster->findEqualElements(membArray);
-      
+//       cluster->findEqualElements(membArrayUntouched);
+//       
       
       initOutput(); 
     }
@@ -117,6 +129,7 @@
         delete resIt;
       if(tt) 
         tt->DeleteIfAllowed();
+      //TODO delete membArray
     }
     
 /*
@@ -126,7 +139,8 @@ Starts the begin of returning tuples.
 */
     void initOutput(){
       if(resIt) delete resIt;
-      resIt = buffer->MakeScan();  
+      resIt = buffer->MakeScan(); 
+      pos=0;
     }
     
 /*
@@ -149,10 +163,10 @@ Starts the begin of returning tuples.
         }
         tuple->DeleteIfAllowed();
         resTuple->PutAttribute(noAttr, new CcInt(true, 
-                                                 membArray[id].getClusterNo()));
+                               membArrayUntouched[id]->getClusterNo()));
         resTuple->PutAttribute(noAttr+1, 
                                new CcBool(true,
-                                          membArray[id].isDensityReachable()));
+                               membArrayUntouched[id]->isDensityReachable()));
         return resTuple;
       } else {
         return 0;
@@ -172,11 +186,12 @@ Starts the begin of returning tuples.
        Stream<Tuple> inStream(_stream);
        inStream.open();
        while((tuple = inStream.request())){
-         buffer->AppendTuple(tuple);
+          buffer->AppendTuple(tuple);
          TYPE* obj = (TYPE*) tuple->GetAttribute(attrPos);
          if(obj->IsDefined()){
-           MEMB_TYP_CLASS member(obj);
-           membArray.push_back(member);
+           MEMB_TYP_CLASS* member = new MEMB_TYP_CLASS(obj);
+           membArrayUntouched.push_back(member);
+           membArrayPtr.push_back(member);
          }
          tuple->DeleteIfAllowed();
        }
@@ -189,9 +204,9 @@ Starts the begin of returning tuples.
  
 */
      Cluster<MEMB_TYP_CLASS, TYPE>* 
-     dbDacScan(vector<MEMB_TYP_CLASS>& _membArray, 
-                                              int left , int right , 
-                                              double eps, int minPts)
+        dbDacScan(vector<MEMB_TYP_CLASS*>& _membArray, 
+                                                  int left , int right , 
+                                                  double eps, int minPts)
      {
        if(right==left){//Array contains only one element
          return 0;
@@ -211,20 +226,19 @@ Starts the begin of returning tuples.
          if( rightCluster ==0 && leftCluster==0)
          {// right or left isn´t a cluster yet
            newCluster =
-           new Cluster<MEMB_TYP_CLASS, TYPE>(&_membArray[globMedian],
-                                             &_membArray[right], eps,minPts);
+            new Cluster<MEMB_TYP_CLASS, TYPE>(_membArray[globMedian],
+                                               _membArray[right], eps,minPts);
            return newCluster;
            
          } else
            if(leftCluster !=0){
              if(rightCluster !=0){ //there exists two clusters
-               
                leftCluster->meltClusters(rightCluster,
-                                         _membArray[globMedian].getPoint(),
-                                         _membArray[globMedian+1].getPoint());
+                                         _membArray[globMedian]->getPoint(),
+                                         _membArray[globMedian+1]->getPoint());
                return leftCluster;
              }else{ // right Cluster == 0
-               leftCluster->addMember(&(_membArray[right]));
+               leftCluster->addMember((_membArray[right]));
                return leftCluster;
              }
            }
@@ -237,8 +251,8 @@ Starts the begin of returning tuples.
 * sort an array in ascending order
 
 */
-     void mergeSort(vector<MEMB_TYP_CLASS>& array,int left, int right){
-       MEMB_TYP_CLASS * auxiliaryArray = new MEMB_TYP_CLASS[right-left+1];
+     void mergeSort(vector<MEMB_TYP_CLASS*>& array,int left, int right){
+       MEMB_TYP_CLASS ** auxiliaryArray = new MEMB_TYP_CLASS*[right-left+1];
        if(auxiliaryArray!= 0){
          mergeSort(array,left,right,auxiliaryArray);
          
@@ -251,8 +265,8 @@ Starts the begin of returning tuples.
 * sort an array in ascending order
 
 */
-     void mergeSort(vector<MEMB_TYP_CLASS>& array,int left, 
-                    int right,MEMB_TYP_CLASS* auxiliaryArray){
+     void mergeSort(vector<MEMB_TYP_CLASS*>& array,int left, 
+                    int right,MEMB_TYP_CLASS** auxiliaryArray){
        if(right == left+1)
          return ; //mergeSort finisch
          else{
@@ -293,10 +307,12 @@ Starts the begin of returning tuples.
 * auxiliary fuction to compare the maximum Object with the left object
 
 */
-     bool leftIsMax(vector<MEMB_TYP_CLASS>& array,int left, int right){
+     bool leftIsMax(vector<MEMB_TYP_CLASS*>& array,int left, int right){
        bool retVal = false;
-       double leftXVal = array[left].getXVal();
-       double rightXVal = array[right].getXVal();
+       
+       double leftXVal = array[left]->getXVal();
+       double rightXVal = array[right]->getXVal();
+       
        leftXVal > rightXVal ? retVal = true : retVal = false;
        return retVal;
      }
