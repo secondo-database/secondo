@@ -647,6 +647,8 @@ class iterator{
 
   public:
 
+    iterator():thestack(){}
+
     iterator(const iterator& it){
        __AVL_TRACE__
        this->thestack = it.thestack;
