@@ -991,8 +991,6 @@ Constructor
     
     while(rightNoiseNeighborIt != rightNoisePoint->getEpsNeighborhood(false)){
       if(!(*rightNoiseNeighborIt)->isClusterMember()){
-        //point is not in cluster //TODO NEW
-        
         if(destListIt== destList.end()) 
           // if it is on last position you can´t acces any point
           destListIt--;
@@ -1085,9 +1083,12 @@ Constructor
                         this->getList(pos,NOISE),j);
               updateNeighbor(*noiseListIt,*clusterListIt);
               
-              meltedClusters=
-              meltRightClusterWithLeftNoise(j+1,rightCluster,
-                                            noiseListIt, rightOuterPoint);
+              if((*clusterListIt)->updateInnerPnt(minPts))        //TODO NEW
+              {
+                meltedClusters=
+                meltRightClusterWithLeftNoise(j+1,rightCluster,
+                                              noiseListIt, rightOuterPoint);
+              }
               
               noiseListIt = this->eraseItem(pos,noiseListIt,NOISE);
               
@@ -1143,13 +1144,16 @@ Constructor
         {
           if((*noiseListIt)->calcDistanz(*clusterListIt) <=eps){
             updateNeighbor(*noiseListIt,*clusterListIt);
-            rightCluster->meltListsOfCluster(destList, helpInd);
-            //TODO increment clusters
-            //             TODO TEST
-            rightCluster->eraseList(helpInd);
-            retVal++; //TODO NEW TEST
-            listAppended = true;
-            
+            //TODO NEW test if points are inner or dens reachable points
+            if((*clusterListIt)->updateInnerPnt(minPts))        //TODO NEW
+            {
+              rightCluster->meltListsOfCluster(destList, helpInd);
+              rightCluster->eraseList(helpInd);
+              retVal++;
+              listAppended = true;
+            }else{
+              ++clusterListIt;
+            }
           }else{
             ++clusterListIt;
           }
@@ -1172,7 +1176,6 @@ Constructor
   {
     typename list<MEMB_TYP_CLASS*>::iterator clusterListIt, noiseListIt;
     int pos=-1,meltedClusters=0,cntNoisePnt=0;
-    //     bool endOfList = false,noiseAdded=false;
     
     for(int j=0; j<this->getClusterArraySize();j++){
       clusterListIt=this->getIterator(j,false,CLUSTER);
@@ -1198,9 +1201,12 @@ Constructor
                         rightCluster->getList(pos,NOISE),j);
               updateNeighbor(*noiseListIt,*clusterListIt);
               
-              meltedClusters=
-              meltLeftClusterWithRightNoise(j+1,this,
-                                            noiseListIt, leftOuterPoint);
+              if((*clusterListIt)->updateInnerPnt(minPts))        //TODO NEW
+              {
+                meltedClusters=
+                meltLeftClusterWithRightNoise(j+1,this,
+                                              noiseListIt, leftOuterPoint);
+              }
               
               noiseListIt = rightCluster->eraseItem(pos,noiseListIt,NOISE);
               
@@ -1259,12 +1265,16 @@ Constructor
         {
           if((*noiseListIt)->calcDistanz(*clusterListIt) <=eps){
             updateNeighbor(*noiseListIt,*clusterListIt);
-            this->meltListsOfCluster(destList,helpInd);
-            //             TODO TEST
-            clusterArray.erase(clusterArray.begin()+(helpInd));
-            retVal++; //TODO NEW TEST
-            listAppended = true;
-            helpInd=startPos;
+            if((*clusterListIt)->updateInnerPnt(minPts))        //TODO NEW
+            {
+              this->meltListsOfCluster(destList,helpInd);
+              clusterArray.erase(clusterArray.begin()+(helpInd));
+              retVal++;
+              listAppended = true;
+              helpInd=startPos;
+            }else{
+              --clusterListIt;
+            }
           }else{
             --clusterListIt;
           }
@@ -1342,12 +1352,14 @@ Constructor
                   if((*itLeft)->calcDistanz(*itRight) <= eps){
                     memberAdded=true;
                     newClusterFoundInL = true;
-                    
-                    //TODO test dens reachability
-                    
-                    //remember cluster listNo
-                    clusterToMeltRight[i].push_back(j);
-                    clusterToMeltLeft[j].push_back(i);
+                    updateNeighbor(*itLeft,*itRight); //TODO new
+                    if((*itLeft)->updateInnerPnt(minPts) &&
+                      (*itRight)->updateInnerPnt(minPts))
+                    {
+                      //remember cluster listNo
+                      clusterToMeltRight[i].push_back(j);
+                      clusterToMeltLeft[j].push_back(i);
+                    }
                   }
                   ++itRight;
                 }
@@ -1408,7 +1420,6 @@ Constructor
     //append cluster list
     for (unsigned int i = 0; i< clusterArray.size(); i++){
       if(clusterToMeltRight[i].size()>=1) 
-        //TODO hier eventuell nicht merh komplette lister wegen merge
       {
         //append right list to left list
         borderIt = --this->getIterator(i,false,CLUSTER); 
@@ -1490,7 +1501,7 @@ Constructor
 * meltListsOfCluster
 
 */
-  template <class MEMB_TYP_CLASS, class TYPE> //TODO TEST
+  template <class MEMB_TYP_CLASS, class TYPE> 
   void Cluster<MEMB_TYP_CLASS,TYPE>::
   meltListsOfCluster(int destInd, int sourceInd)
   {
@@ -1531,16 +1542,8 @@ Constructor
     }
     
     clusterIt=clusterArray.begin()+(destInd);
-    //TODO TEST - clusterUpdate löscht leere listen
     clusterArray.at(sourceInd).clear();
-    
-    //     if(destInd<sourceInd){
-    //       clusterArray.erase(clusterArray.begin()+(sourceInd));
     clusterArray.erase(clusterArray.begin()+(destInd));
-    //     } else{
-    //       clusterArray.erase(clusterArray.begin()+(sourceInd));
-    //       clusterArray.erase(clusterArray.begin()+(destInd));
-    //     }
     clusterArray.insert(clusterIt,destList);
   }
   
