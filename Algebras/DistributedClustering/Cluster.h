@@ -123,10 +123,10 @@ add the committed member to the cluster
     }
     
     //find equal elements 
-    bool findEqualElements(vector<MEMB_TYP_CLASS>& membArray){
+    bool findEqualElements(vector<MEMB_TYP_CLASS*>& membArray){
       bool retVal=false;
       for( int i=0;i<membArray.size();i++){
-        MEMB_TYP_CLASS* ptr = &membArray.at(i);
+        MEMB_TYP_CLASS* ptr = membArray.at(i);
         int cntMemebs=0;
         //search cluster
         for(int j =0;j<clusterArray.size();j++){
@@ -673,6 +673,67 @@ Constructor
       (*it)->printPoint(); cout  << ", ";
     }
     
+    cout << endl;
+    cout << "-----" << endl;
+    cout << "epsNeighborhood for eps= "<< eps << " and minPts = " 
+    << minPts << ": \n " << endl;
+    for(unsigned int i = 0; i<clusterArray.size(); i++){
+      cout << "epsNeighborhood in Cluster Number " << i << ": " << endl;
+      cout << "------------------------------------"<< endl;
+      typename list<MEMB_TYP_CLASS*>::iterator it =clusterArray.at(i).begin();
+      for (;it!=clusterArray.at(i).end();it++){
+        cout << "Member: "; (*it)->printPoint();
+        //cout << " isDensityReachable = " << (*it)->isDensityReachable();
+        cout <<" Cnt neighbors :" << (*it)->getCountNeighbors() <<
+        "  ClusterNo= " << (*it)->getClusterNo() << endl;
+        cout <<" neighbors :";
+        typename list<MEMB_TYP_CLASS*>::iterator nIt = 
+        (*it)->getEpsNeighborhood(true);
+        while (nIt!= (*it)->getEpsNeighborhood(false)){
+          (*nIt)->printPoint(); cout << " DR: "
+          << (*nIt)->isDensityReachable() <<
+          " ClNo: " << (*nIt)->getClusterNo() << ", ";
+          nIt++;
+        }
+        cout <<endl;
+        
+      }
+      cout << "\n" <<endl;
+    }
+    
+    cout << "epsNeighborhood in Noise List : " << endl;
+    cout << "------------------------------------"<< endl;
+    typename list<MEMB_TYP_CLASS*>::iterator NoisIt =noiseList.begin();
+    for (;NoisIt!=noiseList.end();NoisIt++){
+      cout << "Member: "; (*NoisIt)->printPoint();
+      //cout << " isDensityReachable = " << (*NoisIt)->isDensityReachable();
+      cout <<" Cnt neighbors :"<< (*NoisIt)->getCountNeighbors() <<
+      "  ClusterNo= " << (*NoisIt)->getClusterNo() << endl;
+      cout <<" neighbors :";
+      typename list<MEMB_TYP_CLASS*>::iterator nIt = 
+      (*NoisIt)->getEpsNeighborhood(true);
+      while (nIt!= (*NoisIt)->getEpsNeighborhood(false)){
+        (*nIt)->printPoint(); cout <<  " DR: "
+        << (*nIt)->isDensityReachable() <<
+        " ClNo: " << (*nIt)->getClusterNo() << ", ";
+        nIt++;
+      }
+      cout <<endl;
+      
+    }
+    
+    
+    cout << "length of clusters and noiseList" << endl;
+    for( unsigned int i = 0; i<clusterArray.size(); i++){
+      cout << "Cluster Number " << i << ": "<<
+      clusterArray.at(i).size() << endl;
+    }
+    cout << endl;
+     it = noiseList.begin();
+    cout << "Noise List: " << noiseList.size() << endl;
+    
+    
+    
     cout << "\n--------------------cluster END --------------------\n" << endl;
   }
   
@@ -729,22 +790,34 @@ Constructor
     while (pos < clusterArray.size()){
       clusterIt = clusterArray.at(pos).begin();
       clusterNo = pos;
-      while(clusterIt!=clusterArray.at(pos).end()){
-        if(!(*clusterIt)->updateInnerPnt(minPts)){
-          if(!(*clusterIt)->updateDensityReachable(minPts)){
-            // update ClusterNO to Noise
-            (*clusterIt)->setClusterNo(-1); // clusterNo -1 is noise 
-            //add point to noise and delete from cluster
-            noiseList.push_back(*clusterIt);
-            clusterIt = clusterArray.at(pos).erase(clusterIt);
-            
+      
+      //TODO NEW
+      if(clusterArray.at(pos).size()< minPts){
+        while(clusterIt!=clusterArray.at(pos).end()){
+          (*clusterIt)->setClusterNo(-1);
+          noiseList.push_back(*clusterIt);
+          clusterIt = clusterArray.at(pos).erase(clusterIt);
+        }
+      }else{
+        
+        
+        while(clusterIt!=clusterArray.at(pos).end()){
+          if(!(*clusterIt)->updateInnerPnt(minPts)){
+            if(!(*clusterIt)->updateDensityReachable(minPts)){
+              // update ClusterNO to Noise
+              (*clusterIt)->setClusterNo(-1); // clusterNo -1 is noise 
+              //add point to noise and delete from cluster
+              noiseList.push_back(*clusterIt);
+              clusterIt = clusterArray.at(pos).erase(clusterIt);
+              
+            } else {
+              (*clusterIt)->setClusterNo(clusterNo);
+              clusterIt++;
+            }
           } else {
             (*clusterIt)->setClusterNo(clusterNo);
             clusterIt++;
           }
-        } else {
-          (*clusterIt)->setClusterNo(clusterNo);
-          clusterIt++;
         }
       }
       // delete clusterlist at position pos if it is empty
