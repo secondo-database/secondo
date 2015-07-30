@@ -89,30 +89,8 @@
     {
       tt = new TupleType(_tupleResultType);
       init(_maxMem,_inStream);
-//       cluster = dbDacScan(membArray,0,membArray.size()-1,eps,minPts);
-      
-//       for( int i=0; i< membArrayPtr.size();i++){
-//         cout << "membArray at Pos i= " << i;
-//         membArrayUntouched[i]->printPoint();
-//         cout << endl;
-//         cout << "membArrayPtr at Pos i= " << i;
-//         membArrayPtr[i]->printPoint();
-//         cout << endl;
-//       }
-      
+      mergeSort(membArrayPtr,0,membArrayPtr.size()); //TODO new
       cluster = dbDacScan(membArrayPtr,0,membArrayPtr.size()-1,eps,minPts);
-      
-//       cout << "Clustering finished!!-----------------------" << endl;
-//       cluster->printAll();
-//       cout << "Count of elements before clustering: " 
-//       << membArrayUntouched.size() << endl;
-//       cout << "Count of elements after clustering: " 
-//       << cluster->getCntMembers() <<"\n" << endl;
-//       cout << "Count of Clusters: " 
-//       << cluster->getClusterArraySize() << endl;
-//       cluster->findEqualElements(membArrayUntouched);
-//       
-      
       initOutput(); 
     }
     
@@ -212,16 +190,13 @@ Starts the begin of returning tuples.
          return 0;
        }else{
          int globMedian = (right + left)/2;//position to the right subarray
-         
-         // sort the splitted array
-         mergeSort(_membArray,left,right+1);
-         
+
          //get left and right cluster
          Cluster<MEMB_TYP_CLASS, TYPE> *rightCluster, *leftCluster;
          leftCluster = dbDacScan(_membArray,left,globMedian,eps,minPts);
          rightCluster = dbDacScan(_membArray,globMedian+1,right,eps,minPts);
          
-         Cluster<MEMB_TYP_CLASS, TYPE>* newCluster;
+         Cluster<MEMB_TYP_CLASS, TYPE>* newCluster = 0;
          
          if( rightCluster ==0 && leftCluster==0)
          {// right or left isn´t a cluster yet
@@ -237,10 +212,12 @@ Starts the begin of returning tuples.
                                          _membArray[globMedian]->getPoint(),
                                          _membArray[globMedian+1]->getPoint());
                return leftCluster;
-             }else{ // right Cluster == 0
+             }else{ // right Cluster == 0 //TODO try also with leftCluster==0
                leftCluster->addMember((_membArray[right]));
                return leftCluster;
              }
+           }else{
+             cout << "leftCluster == 0" << endl;
            }
        }
        return 0; //should never reached
