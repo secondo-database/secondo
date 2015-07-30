@@ -132,8 +132,8 @@ namespace distributedClustering{
       + CcInt::BasicType() + ", " 
       + CcReal::BasicType() + ", " 
       + Point::BasicType() + ", " 
-      + CcString::BasicType() + " or " 
-      + Picture::BasicType()
+//       + CcString::BasicType() + " or " 
+//       + Picture::BasicType()
       +"!";
       return listutils::typeError(errMsg);
       }
@@ -292,18 +292,18 @@ namespace distributedClustering{
     string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
     int found = FindAttribute(attrList, attrName, attrType);
     assert(found > 0);
-    
     if(CcInt::checkType(attrType)) {
       return 0;
     } else if(CcReal::checkType(attrType)) {
       return 1;
     } else if(Point::checkType(attrType)) {
       return 2;
-    } else if(CcString::checkType(attrType)) {
-      return 3;
-    } else if(Picture::checkType(attrType)) {
-      return 4;
-    }
+    } 
+//     else if(CcString::checkType(attrType)) {
+//       return 3;
+//     } else if(Picture::checkType(attrType)) {
+//       return 4;
+//     }
     
     return -1; 
   };
