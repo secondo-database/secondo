@@ -5,5 +5,5 @@ Operator : dbdacscan
 Number   : 1
 Signature: stream(Tuple) x Id x Id x real x int  -> stream(Tuple)
 Example  : query Kneipen feed  dbdacscan [GeoData, No, 500.0, 5] sortby[No] groupby[No ; C : group count] count
-Result   : 10
+Result   : 9
 
