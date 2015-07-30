@@ -17,6 +17,7 @@
 #include "RelationAlgebra.h"
 #include <vector>
 #include "MMRTree.h"
+#include "AvlTree.h"
 
 using namespace std;
 
@@ -207,6 +208,32 @@ class MemoryRtreeObject : public MemoryObject {
 
     private:
          mmrtree::RtreeT<2, size_t>* rtree;
+
+};
+
+
+
+class MemoryAVLObject : public MemoryObject {
+
+    public:
+        MemoryAVLObject();
+        ~MemoryAVLObject();
+
+        void toStringOut(){
+            cout<<"MemoryAVLObject, Membervariablen lauten: "<<endl;
+            cout<<"2. memsize: "<<memSize<<endl;
+            cout<<"4. objectTypeExpr: "<<objectTypeExpr<<endl;
+            cout<<"5. Die Adresse des Indexes ist: "<<&tree<<endl;}
+
+        static const string BasicType() { return "memoryAVLObject"; }
+
+        static const bool checkType(const ListExpr type){
+            return (nl->ToString(type)==BasicType());
+        }
+
+
+    private:
+         avltree::AVLTree< pair<Attribute*,size_t> > tree;
 
 };
 

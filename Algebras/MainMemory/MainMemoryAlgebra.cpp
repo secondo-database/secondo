@@ -153,7 +153,7 @@ MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0) {
     vector<Tuple*>* mmrel = new vector<Tuple*>();
 
     while ((tup = rit->GetNextTuple()) != 0){
-
+           // tup->bringToMemory();
             tupleSize = tup->GetMemSize();
             if ((size_t)tupleSize<availableMemSize){
                 mmrel->push_back(tup);
