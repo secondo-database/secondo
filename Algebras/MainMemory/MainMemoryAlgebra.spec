@@ -32,3 +32,5 @@ operator memclear alias MEMCLEAR pattern op()
 operator minsert alias MINSERT pattern op(_,_)
 operator mwindowintersects alias MWINDOWINTERSECTS pattern op(_,_,_)
 operator mconsume alias MCONSUME pattern _ op
+operator mcreateAVLtree alias MCREATEAVLTREE pattern op(_,_)
+operator mexactmatch alias MEXACTMATCH pattern _ _ op [_]

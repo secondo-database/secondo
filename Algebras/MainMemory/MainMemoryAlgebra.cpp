@@ -46,11 +46,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MovingRegionAlgebra.h"
 #include "RectangleAlgebra.h"
 
+#include "AvlTree.h"
+
+
+
+
 
 
 using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
+extern SecondoSystem* instance;
 // extern AlgebraManager *am;
 
 namespace mmalgebra {
@@ -2089,7 +2095,7 @@ OperatorSpec mconsumeSpec(
 
 /*
 
-5.4.5 Instance of operator ~mconsume~
+5.15.5 Instance of operator ~mconsume~
 
 */
 
@@ -2100,6 +2106,382 @@ Operator mconsumeOp (
     Operator::SimpleSelect,
     mconsumeTypeMap
 );
+
+
+
+/*
+5.16 Operator ~mcreateAVLtree~
+creates a an AVLTree over a given main memory relation
+
+*/
+
+/*
+5.16.1 Type Mapping Functions of operator ~mcreateAVLtree~
+        (string x string -> string)
+
+        the first parameter identifies the main memory relation, the
+        second parameter identifies the attribute
+
+*/
+
+ListExpr mcreateAVLtreeTypeMap(ListExpr args){
+
+    if(nl->ListLength(args)!=2){
+     return listutils::typeError("two arguments expected");
+    }
+
+// Split argument in two parts
+    ListExpr memoryRelDescription = nl->First(args);
+    ListExpr attributeDescription = nl->Second(args);
+
+// first must be a relation
+    if (!CcString::checkType(nl->First(memoryRelDescription))) {
+        return listutils::typeError("string as first argument expected");
+    }
+    string oN_Rel = nl->StringValue(nl->Second(memoryRelDescription));
+    ListExpr oTE_Rel = catalog->getMMObjectTypeExpr(oN_Rel);
+    if (!listutils::isTupleDescription(oTE_Rel)){
+        return listutils::typeError
+                ("string does not identify a MemoryRelObject");
+    }
+
+    if (!CcString::checkType(nl->First(attributeDescription))) {
+        return listutils::typeError("string as second argument expected");
+    }
+
+    string attrName = nl->StringValue(nl->Second(attributeDescription));
+    ListExpr attrType = 0;
+    int attrPos = 0;
+    ListExpr attrList = nl->Second(oTE_Rel);
+
+    if (listutils::isAttrList(attrList)){
+        attrPos = listutils::findAttribute(attrList, attrName, attrType);
+    }
+
+    if (attrPos == 0){
+    return listutils::typeError("there is no attribute with the given name");
+    }
+
+    return nl->ThreeElemList(
+                nl->SymbolAtom(Symbols::APPEND()),
+                nl->TwoElemList
+                (nl->IntAtom(attrPos),nl->StringAtom(nl->ToString(attrType))),
+                listutils::basicSymbol<CcString>());
+}
+
+/*
+
+5.16.3  The Value Mapping Functions of operator ~mcreateAVLtree~
+
+*/
+
+int mcreateAVLtreeValMap (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+    result  = qp->ResultStorage(s);
+    CcString* str = static_cast<CcString*>(result.addr);
+
+// the main memory relation
+    CcString* roN = (CcString*) args[0].addr;
+    if(!roN->IsDefined()){
+        return 0;
+    }
+    string relObjectName = roN->GetValue();
+
+//the attribute
+    CcString* attrN = (CcString*) args[1].addr;
+    if(!attrN->IsDefined()){
+        return 0;
+    }
+    string attrName = attrN->GetValue();
+
+// the appended value attribute Position and attribute type
+    CcInt* append = (CcInt*) args[2].addr;
+
+    int attrPos = append->GetValue();
+
+    CcString* aT = (CcString*)args[3].addr;
+    string attrType = aT->GetValue();
+
+    MemoryRelObject* mmrel =
+        (MemoryRelObject*)catalog->getMMObject(relObjectName);
+    vector<Tuple*>* relVec = mmrel->getmmrel();
+    vector<Tuple*>::iterator it;
+    it=relVec->begin();
+    unsigned int i=0;
+
+    avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree
+            = new avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >;
+    Attribute* attr;
+    pair<Attribute*,size_t> aPair;
+    size_t usedMainMemory = 0;
+
+    while ( it!=relVec->end()){
+        Tuple* tup = *it;
+        attr=tup->GetAttribute(attrPos-1);
+        if(attr==0 || !attr->IsDefined()){
+            return 0;
+        }
+        aPair = pair<Attribute*,size_t>(attr,i);
+        tree->insert(aPair);
+        it++;
+        i++;
+//        tup->DeleteIfAllowed();
+    }
+
+    // berechnen wie groß ein pair ist und aufaddieren...!!!!!!!!
+    usedMainMemory = 1000;
+
+    string  res = relObjectName +"_"+attrName;
+    MemoryAVLObject* avlObject =
+        new MemoryAVLObject(tree, usedMainMemory,"memoryAVLObject",attrType);
+    catalog->insert(res,avlObject);
+
+    str->Set(true, res);
+    return 0;
+    } //end mcreateAVLtreeValMap
+
+
+
+
+
+/*
+
+5.16.4 Description of operator ~mcreateAVLtree~
+
+*/
+
+OperatorSpec mcreateAVLtreeSpec(
+    "string x string -> string",
+    "mcreateAVLtree (_,_)",
+    "creates an AVLtree over a main memory relation given by the"
+    "first string and an attribute given by the second string",
+    "query mcreateAVLtree ('Staedte', 'SName')"
+);
+
+
+
+/*
+
+5.16.5 Instance of operator ~mcreateAVLtree~
+
+*/
+
+Operator mcreateAVLtreeOp (
+    "mcreateAVLtree",
+    mcreateAVLtreeSpec.getStr(),
+    mcreateAVLtreeValMap,
+    Operator::SimpleSelect,
+    mcreateAVLtreeTypeMap
+);
+
+
+/*
+5.17 Operator ~mexactmatch~
+        Uses the given MemoryAVLObject (as first argument)to find all tuples
+        in the given MemoryRelObject (as second argument)
+        with the same key value
+
+
+*/
+
+/*
+5.17.1 Type Mapping Functions of operator ~mexactmatch~
+    string x string x key -> stream(tuple)
+
+
+*/
+
+ListExpr mexactmatchTypeMap(ListExpr args)
+{
+    if(nl->ListLength(args)!=3){
+        return listutils::typeError("three arguments expected");
+    }
+
+    /* Split argument in three parts */
+    ListExpr memoryAVLDescription = nl->First(args);
+    ListExpr memoryRelDescription = nl->Second(args);
+    ListExpr keyDescription = nl->Third(args);
+
+
+    if (!CcString::checkType(nl->First(memoryAVLDescription))) {
+        return listutils::typeError("string as first argument expected");
+    }
+    string oN_AVL = nl->StringValue(nl->Second(memoryAVLDescription));
+    ListExpr oTE_AVL = catalog->getMMObjectTypeExpr(oN_AVL);
+
+    if (!catalog->isMMObject(oN_AVL) ||
+            !MemoryAVLObject::checkType(oTE_AVL)){
+        return listutils::typeError
+                ("first string does not identify a MemoryAVLObject");
+    }
+
+    // second a relation
+    if (!CcString::checkType(nl->First(memoryRelDescription))) {
+        return listutils::typeError("string as second argument expected");
+    }
+    string oN_Rel = nl->StringValue(nl->Second(memoryRelDescription));
+    ListExpr oTE_Rel = catalog->getMMObjectTypeExpr(oN_Rel);
+    if (!catalog->isMMObject(oN_Rel) ||
+                !listutils::isTupleDescription(oTE_Rel)){
+        return listutils::typeError
+                ("second string does not identify a MemoryRelObject");
+    }
+
+
+    // third a key
+    string keyTypeAttr = nl->ToString(nl->First(keyDescription));
+    if(!listutils::isDATA(nl->First(keyDescription))){
+    return listutils::typeError("key attribute expected");
+    }
+
+    MemoryAVLObject* avlobj =(MemoryAVLObject*)(catalog->getMMObject(oN_AVL));
+    string keyTypeAVL = avlobj->getKeyType();
+
+    if (keyTypeAttr!=keyTypeAVL){
+        return listutils::typeError ("type conflict between keys");
+    }
+
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),oTE_Rel);
+}
+
+
+class mexactmatchLI{
+    public:
+        mexactmatchLI(avltree::AVLTree< pair<Attribute*,size_t>,
+           KeyComparator >* _tree,vector<Tuple*>* _relation, Attribute* _attr)
+           :relation(_relation),tree(_tree),attr(_attr){
+
+            if (tree->Size()!=0){
+                it = tree->tail(pair<Attribute*,size_t>(attr,0));
+            }
+
+            }
+
+        ~mexactmatchLI(){}
+
+
+        Tuple* next(){
+            if(it.onEnd()) return 0;
+            hit = it.Get();
+            if((hit->first)->Compare(attr)==0){
+                Tuple* result = relation->at(hit->second);
+                result->IncReference(); //richtig???
+                it.Next();
+                return result;
+            }
+            return 0;
+
+        }
+
+    private:
+        vector<Tuple*>* relation;
+        avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
+        Attribute* attr;
+        avltree::AVLTree< pair<Attribute*, size_t>,
+                            KeyComparator >::iterator it;
+        const pair<Attribute*,size_t>* hit;
+};
+
+/*
+
+5.17.3  The Value Mapping Functions of operator ~mexactmatch~
+
+*/
+
+int mexactmatchValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+    mexactmatchLI* li = (mexactmatchLI*) local.addr;
+
+    switch (message)
+    {
+        case OPEN: {
+            if(li){
+                delete li;
+                local.addr=0;
+            }
+            //first argument MemoryAVLObject
+            CcString* oN_0 = (CcString*) args[0].addr;
+            if(!oN_0->IsDefined()){
+                return 0;
+            }
+            string objectName_0 = oN_0->GetValue();
+            avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
+            MemoryAVLObject* avlObject =
+                    (MemoryAVLObject*)catalog->getMMObject(objectName_0);
+            tree = avlObject->getAVLtree();
+
+            //second argument MemoryRelObject
+            CcString* oN_1 = (CcString*) args[1].addr;
+            if(!oN_1->IsDefined()){
+                return 0;
+            }
+            string objectName_1 = oN_1->GetValue();
+            vector<Tuple*>* relation;
+            MemoryRelObject* mro =
+                    (MemoryRelObject*)catalog->getMMObject(objectName_1);
+            relation = mro->getmmrel();
+
+            // third argument key value
+            Attribute* attr = (Attribute*)args[2].addr;
+            local.addr= new mexactmatchLI(tree,relation,attr);
+            return 0;
+        }
+
+        case REQUEST:
+            result.addr=(li?li->next():0);
+            return result.addr?YIELD:CANCEL;
+
+
+        case CLOSE:
+            if(li)
+            {
+            delete li;
+            local.addr = 0;
+            }
+            return 0;
+   }
+
+    return 0;
+}
+
+/*
+
+5.17.4 Description of operator ~mexactmatch~
+
+*/
+
+OperatorSpec mexactmatchSpec(
+    "string x string x key -> stream(tuple) ",
+    "_ _ mexactmatch [_]",
+    "Uses the given avltree to find all tuples"
+      " in the given relation with the same key value.",
+    "query 'Staedte_SName''Staedte' mexactmatch"
+    "['Wuppertal'] count"
+);
+
+/*
+
+5.17.5 Instance of operator ~mexactmatch~
+
+*/
+
+Operator mexactmatchOp (
+    "mexactmatch",
+    mexactmatchSpec.getStr(),
+    mexactmatchValMap,
+    Operator::SimpleSelect,
+    mexactmatchTypeMap
+);
+
+
+
+//////// für Range Abfrage:
+//////// if(!nl->Equal(keyDescription, secondKeyDescription)){
+////////       return listutils::typeError("different key types");
+////////    }
+
 
 
 
@@ -2161,8 +2543,10 @@ class MainMemoryAlgebra : public Algebra
         AddOperator (&mwindowintersectsOp);
         mwindowintersectsOp.SetUsesArgsInTypeMapping();
         AddOperator (&mconsumeOp);
-
-
+        AddOperator (&mcreateAVLtreeOp);
+        mcreateAVLtreeOp.SetUsesArgsInTypeMapping();
+        AddOperator (&mexactmatchOp);
+        mexactmatchOp.SetUsesArgsInTypeMapping();
         }
         ~MainMemoryAlgebra() {
           delete catalog;

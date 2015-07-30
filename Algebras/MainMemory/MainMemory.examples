@@ -111,3 +111,20 @@ Signature : -> bool
 Example   : query memclear ()
 Result    : TRUE
 
+Operator  : memload
+Number    : 19
+Signature : string -> bool
+Example   : query memload ("Staedte")
+Result    : TRUE
+
+Operator  : mcreateAVLtree
+Number    : 20
+Signature : string x string -> string
+Example   : query mcreateAVLtree ("Staedte", "SName")
+Result    : "Staedte_SName"
+
+Operator  : mexactmatch
+Number    : 21
+Signature : string x string x key -> stream(tuple)
+Example   : query "Staedte_SName" "Staedte" mexactmatch ["Aachen"] count;
+Result    : 1

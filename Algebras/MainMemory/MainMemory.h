@@ -31,6 +31,7 @@ class MemoryObject;
 class MemoryRelObject;
 class MemoryAttributeObject;
 class MemoryRtreeObject;
+class KeyComparator;
 
 
 class MemCatalog {
@@ -217,7 +218,14 @@ class MemoryAVLObject : public MemoryObject {
 
     public:
         MemoryAVLObject();
+        MemoryAVLObject( avltree::AVLTree< pair<Attribute*,size_t>,
+            KeyComparator >* tree, size_t _memSize, string _objectTypeExpr,
+            string _keyType );
         ~MemoryAVLObject();
+
+        avltree::AVLTree< pair<Attribute*,size_t>,KeyComparator >* getAVLtree();
+
+        string getKeyType();
 
         void toStringOut(){
             cout<<"MemoryAVLObject, Membervariablen lauten: "<<endl;
@@ -233,11 +241,74 @@ class MemoryAVLObject : public MemoryObject {
 
 
     private:
-         avltree::AVLTree< pair<Attribute*,size_t> > tree;
-
+         avltree::AVLTree< pair<Attribute*,size_t>,KeyComparator >* tree;
+         string keyType;
 };
 
+class KeyComparator{
 
+    public:
+        static bool smaller(const pair<Attribute*,size_t>& o1,
+                                const pair<Attribute*,size_t>& o2){
+
+
+            Attribute* thisAttr = o1.first;
+            Attribute* rhs = o2.first;
+            int ergebnis = thisAttr->Compare(rhs);
+
+            if (ergebnis == -1) {
+
+                return true;
+            }
+
+            if (ergebnis == 0 && (o1.second < o2.second)){
+
+                return true;
+            }
+
+            return false;
+        }
+
+
+        static bool equal(const pair<Attribute*,size_t>& o1,
+                                const pair<Attribute*,size_t>& o2){
+
+                    Attribute* thisAttr = o1.first;
+                    Attribute* rhs = o2.first;
+                    int ergebnis = thisAttr->Compare(rhs);
+
+
+
+                    if (ergebnis == 0 && (o1.second == o2.second)){
+                        return true;
+                    }
+
+                    return false;
+        }
+
+
+        static bool greater(const pair<Attribute*,size_t>& o1,
+                                const pair<Attribute*,size_t>& o2){
+
+                    Attribute* thisAttr = o1.first;
+                    Attribute* rhs = o2.first;
+                    int ergebnis = thisAttr->Compare(rhs);
+
+                    if (ergebnis == 1) {
+
+                        return true;
+                    }
+
+                    if (ergebnis == 0 && (o1.second > o2.second)){
+
+                        return true;
+                    }
+
+                    return false;
+
+     }
+
+};
 
 
 } //ende namespace mmalgebra

@@ -393,5 +393,29 @@ mmrtree::RtreeT<2, size_t>* MemoryRtreeObject::getrtree(){
         return rtree;
 }
 
+MemoryAVLObject::MemoryAVLObject(){};
+MemoryAVLObject::MemoryAVLObject( avltree::AVLTree< pair<Attribute*,size_t>,
+            KeyComparator >* _tree, size_t _memSize, string _objectTypeExpr,
+            string _keyType ){
+
+            tree = _tree;
+            memSize = _memSize;
+            objectTypeExpr = _objectTypeExpr;
+            keyType = _keyType;
+            };
+MemoryAVLObject::~MemoryAVLObject(){
+cout<<"Destruktor von MemoryAVLObject"<<endl;
+}
+
+avltree::AVLTree< pair<Attribute*,size_t>,KeyComparator >*
+                                MemoryAVLObject::getAVLtree(){
+        return tree;
+};
+
+string MemoryAVLObject::getKeyType(){
+
+        return keyType;
+};
+
 }//end namespace mmalgebra
 
