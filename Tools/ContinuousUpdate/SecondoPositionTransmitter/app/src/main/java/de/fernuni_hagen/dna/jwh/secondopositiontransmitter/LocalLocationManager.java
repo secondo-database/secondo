@@ -125,24 +125,43 @@ public class LocalLocationManager {
 
 
     public synchronized LocationInfo getCurrentLocationInfo() {
-        LocationInfo info = currentLocationInfo;
+        LocationInfo info = new LocationInfo(currentLocationInfo);
         currentLocationInfo = new LocationInfo();
-        currentLocationInfo.start = info.start;
-        currentLocationInfo.end = info.end;
+        currentLocationInfo.start = info.end;
         return info;
     }
 
     public boolean significantMovement() {
-        if (currentLocationInfo == null || currentLocationInfo.start == null || currentLocationInfo.start.distanceTo(currentLocationInfo.end) < significantDistance) {
-            return false;
-        } else {
+        if(movementAvailable() && currentLocationInfo.start.distanceTo(currentLocationInfo.end) >= significantDistance){
             return true;
+        }else{
+            return false;
         }
+    }
+
+    public boolean movementAvailable(){
+        return (currentLocationInfo != null && currentLocationInfo.start != null &&  currentLocationInfo.end != null && currentLocationInfo.start.getTime() < currentLocationInfo.end.getTime());
     }
 
 
     public class LocationInfo {
         public Location start;
         public Location end;
+
+        LocationInfo(LocationInfo newInfo) {
+            super();
+            if (newInfo != null) {
+                if (newInfo.start != null) {
+                    this.start = new Location(newInfo.start);
+                }
+                if (newInfo.end != null) {
+                    this.end = new Location(newInfo.end);
+                }
+            }
+        }
+
+        LocationInfo() {
+            super();
+        }
     }
 }

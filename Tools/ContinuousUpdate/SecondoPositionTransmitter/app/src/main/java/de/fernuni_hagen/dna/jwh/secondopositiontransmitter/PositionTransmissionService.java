@@ -122,12 +122,12 @@ public class PositionTransmissionService extends Service {
         position.Position.interval = new TimeInterval();
 
         position.Position.x1 = info.start.getLongitude();
-        position.Position.y1 = info.start.getLongitude();
+        position.Position.y1 = info.start.getLatitude();
         position.Position.interval.i1 = new Date(info.start.getTime());
         position.Position.interval.i1closed = true;
 
         position.Position.x2 = info.end.getLongitude();
-        position.Position.y2 = info.end.getLongitude();
+        position.Position.y2 = info.end.getLatitude();
         position.Position.interval.i2 = new Date(info.end.getTime());
         position.Position.interval.i2closed = true;
     }
@@ -144,7 +144,11 @@ public class PositionTransmissionService extends Service {
         @Override
         public void run() {
 
-            if (!locationManager.significantMovement()) {
+            if(!locationManager.movementAvailable()){
+                return;
+            }
+
+            if (prefs.getBoolean("goodLocation",true) && !locationManager.significantMovement()) {
                 Log.d(getClass().getSimpleName(), "No significant movement!");
                 return;
             } else {
