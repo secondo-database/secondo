@@ -56,7 +56,7 @@ public class PositionTransmissionService extends Service {
     public void sendMessage(String message) {
         Intent intent = new Intent(this.getClass().getName());
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        if (message != null)
+        if(message != null)
             intent.putExtra("message", df.format(Calendar.getInstance().getTime()) + ": " + message);
         broadcaster.sendBroadcast(intent);
     }
@@ -65,11 +65,11 @@ public class PositionTransmissionService extends Service {
     public void onCreate() {
         super.onCreate();
         broadcaster = LocalBroadcastManager.getInstance(this);
-        if (Build.FINGERPRINT.startsWith("generic")) {
+        if(Build.FINGERPRINT.startsWith("generic")){
             /* Generate a random ID for the Emulator */
             imei = UUID.randomUUID().toString();
-        } else {
-            imei = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getDeviceId();
+        }else{
+            imei = ((TelephonyManager)getSystemService(TELEPHONY_SERVICE)).getDeviceId();
         }
     }
 
@@ -106,7 +106,7 @@ public class PositionTransmissionService extends Service {
 
         Gson g = new GsonBuilder().serializeNulls().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").create();
         try {
-            Log.d("JSON", g.toJson(position));
+            Log.d("JSON",g.toJson(position));
             return new JSONObject(g.toJson(position));
         } catch (JSONException e) {
             e.printStackTrace();
@@ -122,12 +122,12 @@ public class PositionTransmissionService extends Service {
         position.Position.interval = new TimeInterval();
 
         position.Position.x1 = info.start.getLongitude();
-        position.Position.y1 = info.start.getLatitude();
+        position.Position.y1 = info.start.getLongitude();
         position.Position.interval.i1 = new Date(info.start.getTime());
         position.Position.interval.i1closed = true;
 
         position.Position.x2 = info.end.getLongitude();
-        position.Position.y2 = info.end.getLatitude();
+        position.Position.y2 = info.end.getLongitude();
         position.Position.interval.i2 = new Date(info.end.getTime());
         position.Position.interval.i2closed = true;
     }
@@ -136,7 +136,7 @@ public class PositionTransmissionService extends Service {
 
         String url;
 
-        public PositionTimerTask() {
+        public PositionTimerTask(){
             url = "http://" + prefs.getString("host", "") + ":" + prefs.getString("port", "") + "/" + prefs.getString("relation", "");
             Log.i(getClass().getSimpleName(), "Response-URL:" + url);
         }
@@ -144,15 +144,11 @@ public class PositionTransmissionService extends Service {
         @Override
         public void run() {
 
-            if(!locationManager.movementAvailable()){
+            if(!locationManager.significantMovement()){
+                Log.d(getClass().getSimpleName(),"No significant movement!");
                 return;
-            }
-
-            if (prefs.getBoolean("goodLocation",true) && !locationManager.significantMovement()) {
-                Log.d(getClass().getSimpleName(), "No significant movement!");
-                return;
-            } else {
-                Log.d(getClass().getSimpleName(), "Significant movement!");
+            }else{
+                Log.d(getClass().getSimpleName(),"Significant movement!");
             }
 
             JsonObjectRequest putRequest = new JsonObjectRequest(JsonObjectRequest.Method.PUT, url, getNewJsonObject(), new Response.Listener<JSONObject>() {
@@ -174,10 +170,10 @@ public class PositionTransmissionService extends Service {
                             return Response.success(new JSONObject("{\"status\":204}"), HttpHeaderParser.parseCacheHeaders(response));
                         } else {
                             String jsonString =
-                                    new String(response.data, HttpHeaderParser.parseCharset(response.headers));
-                            return Response.success(new JSONObject(jsonString),
-                                    HttpHeaderParser.parseCacheHeaders(response));
-                        }
+                                new String(response.data, HttpHeaderParser.parseCharset(response.headers));
+                        return Response.success(new JSONObject(jsonString),
+                                HttpHeaderParser.parseCacheHeaders(response));
+                    }
                     } catch (UnsupportedEncodingException e) {
                         return Response.error(new ParseError(e));
                     } catch (JSONException je) {

@@ -3,9 +3,8 @@
 
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
-    <string name="Title">Secondo Position Transmitter!</string>
+    <string name="Title">Secondo Position Transmitter</string>
     <string name="position_transmission">Position transmission</string>
-    <string name="betterLocationToggle">Transmit only while moving</string>
     <string name="hostname">Hostname</string>
     <string name="Port">Port</string>
     <string name="relation_name">Relation</string>

@@ -60,9 +60,9 @@ ADDED from AndroidManifest.xml:22:17
 service#de.fernuni_hagen.dna.jwh.secondopositiontransmitter.PositionTransmissionService
 ADDED from AndroidManifest.xml:25:9
 	android:isolatedProcess
-		ADDED from AndroidManifest.xml:27:13
+		ADDED from AndroidManifest.xml:25:62
 	android:name
-		ADDED from AndroidManifest.xml:26:13
+		ADDED from AndroidManifest.xml:25:18
 uses-sdk
 INJECTED from AndroidManifest.xml:0:0 reason: use-sdk injection requested
 MERGED from com.android.support:appcompat-v7:21.0.3:15:5

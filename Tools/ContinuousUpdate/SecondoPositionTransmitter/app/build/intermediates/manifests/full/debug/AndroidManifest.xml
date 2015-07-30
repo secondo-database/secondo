@@ -30,7 +30,8 @@
 
         <service
             android:name="de.fernuni_hagen.dna.jwh.secondopositiontransmitter.PositionTransmissionService"
-            android:isolatedProcess="false" />
+            android:isolatedProcess="false" >
+        </service>
     </application>
 
 </manifest>
