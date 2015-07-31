@@ -60,7 +60,7 @@ public:
    LongInt(int64_t v):IndexableAttribute(true),value(v){}
    LongInt(int32_t v):IndexableAttribute(true),value(v){}
    LongInt(bool defined, int64_t v):IndexableAttribute(defined),value(v){}
-   LongInt(const LongInt& s): IndexableAttribute(s),value(s.value) {}
+   LongInt(const LongInt& s): IndexableAttribute(s.IsDefined()),value(s.value){}
    LongInt(const CcInt& s):IndexableAttribute(s.IsDefined()),value(0) {
       if(IsDefined()){
         value = s.GetValue();
