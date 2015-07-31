@@ -128,3 +128,10 @@ Number    : 21
 Signature : string x string x key -> stream(tuple)
 Example   : query "Staedte_SName" "Staedte" mexactmatch ["Aachen"] count;
 Result    : 1
+
+Operator  : mrange
+Number    : 22
+Signature : string x string x key x key-> stream(tuple)
+Example   : query "Staedte_SName" "Staedte" mrange ["Aachen", "Dortmund"] count;
+Result    : 10
+

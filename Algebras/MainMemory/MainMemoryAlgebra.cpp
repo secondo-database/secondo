@@ -2349,12 +2349,26 @@ ListExpr mexactmatchTypeMap(ListExpr args)
 class mexactmatchLI{
     public:
         mexactmatchLI(avltree::AVLTree< pair<Attribute*,size_t>,
-           KeyComparator >* _tree,vector<Tuple*>* _relation, Attribute* _attr)
-           :relation(_relation),tree(_tree),attr(_attr){
+           KeyComparator >* _tree,vector<Tuple*>* _relation, Attribute* _attr1)
+           :relation(_relation),tree(_tree),attr1(_attr1){
 
+            //diese Abfrage nötig???
             if (tree->Size()!=0){
-                it = tree->tail(pair<Attribute*,size_t>(attr,0));
+                it = tree->tail(pair<Attribute*,size_t>(attr1,0));
             }
+            attr2 = attr1;
+
+            }
+    mexactmatchLI(avltree::AVLTree< pair<Attribute*,size_t>,
+           KeyComparator >* _tree,vector<Tuple*>* _relation, Attribute* _attr1,
+           Attribute* _attr2)
+           :relation(_relation),tree(_tree),attr1(_attr1),attr2(_attr2){
+
+            //diese Abfrage nötig???
+            if (tree->Size()!=0){
+                it = tree->tail(pair<Attribute*,size_t>(attr1,0));
+            }
+
 
             }
 
@@ -2364,7 +2378,10 @@ class mexactmatchLI{
         Tuple* next(){
             if(it.onEnd()) return 0;
             hit = it.Get();
-            if((hit->first)->Compare(attr)==0){
+            if(((hit->first)->Compare(attr1)==0 ||
+                        (hit->first)->Compare(attr1)==1) &&
+                    ((hit->first)->Compare(attr2)==0 ||
+                        (hit->first)->Compare(attr2)== -1)){
                 Tuple* result = relation->at(hit->second);
                 result->IncReference(); //richtig???
                 it.Next();
@@ -2377,7 +2394,8 @@ class mexactmatchLI{
     private:
         vector<Tuple*>* relation;
         avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
-        Attribute* attr;
+        Attribute* attr1;
+        Attribute* attr2;
         avltree::AVLTree< pair<Attribute*, size_t>,
                             KeyComparator >::iterator it;
         const pair<Attribute*,size_t>* hit;
@@ -2477,11 +2495,177 @@ Operator mexactmatchOp (
 
 
 
+/*
+5.18 Operator ~mrange~
+        Uses the given MemoryAVLObject (as first argument)to find all tuples
+        in the given MemoryRelObject (as second argument)
+        which are between the first and the second attribute value
+        (as third and fourth argument)
+
+*/
+
+/*
+5.18.1 Type Mapping Functions of operator ~mrange~
+    string x string x key x key -> stream(tuple)
+
+
+*/
+
+ListExpr mrangeTypeMap(ListExpr args)
+{
+    if(nl->ListLength(args)!=4){
+        return listutils::typeError("four arguments expected");
+    }
+
+    /* Split argument in three parts */
+    ListExpr memoryAVLDescription = nl->First(args);
+    ListExpr memoryRelDescription = nl->Second(args);
+    ListExpr keyDescription1 = nl->Third(args);
+    ListExpr keyDescription2 = nl->Fourth(args);
+
+
+    if (!CcString::checkType(nl->First(memoryAVLDescription))) {
+        return listutils::typeError("string as first argument expected");
+    }
+    string oN_AVL = nl->StringValue(nl->Second(memoryAVLDescription));
+    ListExpr oTE_AVL = catalog->getMMObjectTypeExpr(oN_AVL);
+
+    if (!catalog->isMMObject(oN_AVL) ||
+            !MemoryAVLObject::checkType(oTE_AVL)){
+        return listutils::typeError
+                ("first string does not identify a MemoryAVLObject");
+    }
+
+    // second a relation
+    if (!CcString::checkType(nl->First(memoryRelDescription))) {
+        return listutils::typeError("string as second argument expected");
+    }
+    string oN_Rel = nl->StringValue(nl->Second(memoryRelDescription));
+    ListExpr oTE_Rel = catalog->getMMObjectTypeExpr(oN_Rel);
+    if (!catalog->isMMObject(oN_Rel) ||
+                !listutils::isTupleDescription(oTE_Rel)){
+        return listutils::typeError
+                ("second string does not identify a MemoryRelObject");
+    }
+
+
+    // third a key
+    string keyTypeAttr1 = nl->ToString(nl->First(keyDescription1));
+    string keyTypeAttr2 = nl->ToString(nl->First(keyDescription2));
+    if(!listutils::isDATA(nl->First(keyDescription1)) ||
+            !listutils::isDATA(nl->First(keyDescription2))){
+        return listutils::typeError("key attribute expected");
+    }
+
+    MemoryAVLObject* avlobj =(MemoryAVLObject*)(catalog->getMMObject(oN_AVL));
+    string keyTypeAVL = avlobj->getKeyType();
+
+    if (keyTypeAttr1!=keyTypeAVL || (keyTypeAttr2!=keyTypeAVL)){
+        return listutils::typeError ("type conflict between keys");
+    }
+
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),oTE_Rel);
+}
+
 //////// für Range Abfrage:
 //////// if(!nl->Equal(keyDescription, secondKeyDescription)){
 ////////       return listutils::typeError("different key types");
 ////////    }
 
+/*
+
+5.18.3  The Value Mapping Functions of operator ~mrange~
+
+*/
+
+int mrangeValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+    mexactmatchLI* li = (mexactmatchLI*) local.addr;
+
+    switch (message)
+    {
+        case OPEN: {
+            if(li){
+                delete li;
+                local.addr=0;
+            }
+            //first argument MemoryAVLObject
+            CcString* oN_0 = (CcString*) args[0].addr;
+            if(!oN_0->IsDefined()){
+                return 0;
+            }
+            string objectName_0 = oN_0->GetValue();
+            avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
+            MemoryAVLObject* avlObject =
+                    (MemoryAVLObject*)catalog->getMMObject(objectName_0);
+            tree = avlObject->getAVLtree();
+
+            //second argument MemoryRelObject
+            CcString* oN_1 = (CcString*) args[1].addr;
+            if(!oN_1->IsDefined()){
+                return 0;
+            }
+            string objectName_1 = oN_1->GetValue();
+            vector<Tuple*>* relation;
+            MemoryRelObject* mro =
+                    (MemoryRelObject*)catalog->getMMObject(objectName_1);
+            relation = mro->getmmrel();
+
+            // third argument key value
+            Attribute* attr1 = (Attribute*)args[2].addr;
+            Attribute* attr2 = (Attribute*)args[3].addr;
+            local.addr= new mexactmatchLI(tree,relation,attr1, attr2);
+            return 0;
+        }
+
+        case REQUEST:
+            result.addr=(li?li->next():0);
+            return result.addr?YIELD:CANCEL;
+
+
+        case CLOSE:
+            if(li)
+            {
+            delete li;
+            local.addr = 0;
+            }
+            return 0;
+   }
+
+    return 0;
+}
+
+
+/*
+
+5.18.4 Description of operator ~range~
+
+*/
+
+OperatorSpec mrangeSpec(
+    "string x string x key x key -> stream(tuple) ",
+    "_ _ mrange[_,_]",
+    "Uses the given rtree to find all tuples"
+      " in the given relation which are between "
+      "the first and the second attribute value.",
+    "query 'Staedte_SName' 'Staedte' mrange ['Aachen','Dortmund'] count"
+
+);
+
+/*
+
+5.18.5 Instance of operator ~mrange~
+
+*/
+
+Operator mrangeOp (
+    "mrange",
+    mrangeSpec.getStr(),
+    mrangeValMap,
+    Operator::SimpleSelect,
+    mrangeTypeMap
+);
 
 
 
@@ -2547,6 +2731,8 @@ class MainMemoryAlgebra : public Algebra
         mcreateAVLtreeOp.SetUsesArgsInTypeMapping();
         AddOperator (&mexactmatchOp);
         mexactmatchOp.SetUsesArgsInTypeMapping();
+        AddOperator (&mrangeOp);
+        mrangeOp.SetUsesArgsInTypeMapping();
         }
         ~MainMemoryAlgebra() {
           delete catalog;

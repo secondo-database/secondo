@@ -34,3 +34,4 @@ operator mwindowintersects alias MWINDOWINTERSECTS pattern op(_,_,_)
 operator mconsume alias MCONSUME pattern _ op
 operator mcreateAVLtree alias MCREATEAVLTREE pattern op(_,_)
 operator mexactmatch alias MEXACTMATCH pattern _ _ op [_]
+operator mrange alias MRANGE pattern _ _ op [_, _]
