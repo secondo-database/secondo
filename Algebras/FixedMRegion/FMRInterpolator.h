@@ -38,16 +38,15 @@ const Instant& _time, bool _valid=true): translation(_translation),
 angle(_angle), time(_time), valid(_valid){}
 
 /*
-This constructor does not expects anny values and sets the to the default value 0.
+This constructor does not expect any values and sets the to the default value
+0.
 
- 
 */
 FMRObservation(): translation(Point(0)), angle(0), time(Instant(0.0)),
 valid(false){}
 
 /*
 This is the copy constructor.
-
  
 */
 FMRObservation(const FMRObservation& o): translation(o.translation), 
@@ -55,7 +54,6 @@ angle(o.angle), time(o.time){}
 
 /*
 This method returns the translation.
-
  
 */
 inline Point getTranslation() const{ return translation; }
@@ -63,7 +61,6 @@ inline Point getTranslation() const{ return translation; }
 /*
 This method sets the translation.
 
- 
 */
 inline void setTranslation(Point & _translation){
   translation=_translation;
@@ -71,7 +68,6 @@ inline void setTranslation(Point & _translation){
 
 /*
 This method returns the angle.
-
  
 */
 inline double getAngle() const{ return angle; }
@@ -79,7 +75,6 @@ inline double getAngle() const{ return angle; }
 /*
 This method sets the angle.
 
- 
 */
 inline void setAngle(double _angle){
   angle=_angle;
@@ -87,7 +82,6 @@ inline void setAngle(double _angle){
 
 /*
 This method returns the time.
-
  
 */
 inline Instant getTime() const{ return time; }
@@ -95,14 +89,12 @@ inline Instant getTime() const{ return time; }
 /*
 This method returns the validation status.
 
- 
 */
 bool isValid() const{return valid;}
 
 /*
 This method sets the validation status.
 
- 
 */
 void setValid(bool _valid=true){
   valid=_valid;
@@ -111,7 +103,6 @@ void setValid(bool _valid=true){
 /*
 This is the less than operator and compares the time of the objects.
 
- 
 */
 inline bool operator<(const FMRObservation& o) const{
   return time<o.time;
@@ -120,15 +111,14 @@ inline bool operator<(const FMRObservation& o) const{
 /*
 This is the greater than operator and compares the time of the objects.
 
- 
 */
 inline bool operator>(const FMRObservation &o) const{
   return time>o.time;
 }
+
 /*
 This is the euality check operator and compares the time of the objects.
 
- 
 */
 inline bool operator==(const FMRObservation& o) const{
   return time==o.time;
@@ -142,8 +132,7 @@ private:
 };
 
 /*
-
-This file contains a FixedMRegionIntepolator who creates a FixedMRegion of sights.
+This class contains a FixedMRegionIntepolator who creates a FixedMRegion of sights.
 
 */
 class FMRInterpolator{
@@ -231,7 +220,7 @@ Point calcMaxDistPoint(const Region &r, const Point &masspoint) const;
 
 /*
 This method calculates the point of the region r, that has got the minimum 
-distance from masspoint. If this does not exist, it will return the point 
+distance from thhe masspoint. If this does not exist, it will return the point 
 with false.
 
 */
@@ -269,8 +258,8 @@ This method calculates the vector of distances to the masspoint.
 vector<double> calcDistVector(const Region &r, const Point &masspoint) const;
 
 /*
-This method calculates the distance vector for all points of \_r to
-\_calcMasspoint. It permutates the vector until it finds a solution that equals 
+This method calculates the distance vector for all points of r to masspoint. 
+It permutates the vector until it finds a solution that equals 
 distVector and it will return the first point of it.
 
 */

@@ -327,7 +327,7 @@ bool matchAtPosition(const vector<double>& d1, const vector<double>& d2,
 
 /*
 This method calculates the distance vector for all points of r to
-calcMasspoint. It permutates the vector until it finds a solution that equals 
+masspoint. It permutates the vector until it finds a solution that equals 
 distVector and it will return the first point of it.
 
 */

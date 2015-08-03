@@ -7,7 +7,7 @@ using namespace std;
 #include "LATransform.h"
 /*
 This is the constructor. It gets a linear movement (x,y), the 
-middle of a circle (xm, ym) and an ankle alpha. 
+middle of a circle (xm, ym) and an angle alpha. 
 This is possible because another class knows t and therefore does 
 already know alpha, x and y. 
 Later on, the methods of this class can be called for various points,
@@ -53,8 +53,7 @@ LATransform::getImgX(double x, double y){
 
 /*
 This method calculates the new y value that the given point will 
-get after its 
-movement.
+get after its movement.
 
 */
 double
@@ -64,8 +63,8 @@ LATransform::getImgY(double x, double y){
   return tmp;
 }
 /*
-This method calculates the original x value that the given point would have before its movement.
-It undoes the movement, that is caused from LATransform.
+This method calculates the original x value that the given point would have before 
+its movement. It undoes the movement, that is caused from LATransform.
 
 */
 double
@@ -75,8 +74,8 @@ LATransform::getOrigX(double x, double y){
   return tmp;
 }
 /*
-This method calculates the original y value that the given point would have before its movement.
-It undoes the movement, that is caused from LATransform.
+This method calculates the original y value that the given point would have before 
+its movement. It undoes the movement, that is caused from LATransform.
 
 */
 double
@@ -94,7 +93,7 @@ LATransform::~LATransform(){
 }
 
 /*
-This method returns the turning points x value.
+This method returns the rotational point's x value.
 
 */
 double
@@ -103,14 +102,17 @@ LATransform::getXM(){
 }
 
 /*
-This method returns the turning points y value.
+This method returns the rotational point's y value.
 
 */
 double
 LATransform::getYM(){
   return ym;
 }
+/*
+This methods sets the values x, y, \_xm, \_ym and alpha.
 
+*/
 void LATransform::Set(double x, double y, double _xm, double _ym,
   double alpha){
   //A'=M*A+(D-M*D+W) is equation of movement.

@@ -183,7 +183,7 @@ vector < HalfSegment > getHSFromRegion(const Region reg) const;
 Return the name of the Secondo type.
 
 */
-static string BasicType(){ return "fixedmregion"; }
+static const string BasicType(){ return "fixedmregion"; }
 
 /*
 This method returns the Move.

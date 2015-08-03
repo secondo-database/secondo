@@ -387,7 +387,7 @@ geometry is used, otherwise spherical geometry is applied.
                             MMove& result,
                             const bool skipSplit = false) const;
 
-  static const string BasicType(){ return "mpoint"; }
+  static const string BasicType(){ return "mmove"; }
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }
