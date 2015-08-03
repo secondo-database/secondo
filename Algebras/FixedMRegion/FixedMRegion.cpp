@@ -961,47 +961,6 @@ const vector<Point> &p) const{
 }
 
 /*
-This method identifies the first line of the matrix, which equals the given 
-line of distances.
-return value: starts with zero for the first element
--1 in case of error
-
-*/
-int FixedMRegion::identifyPoint(
-const vector<vector<double> > &matrixOfDistancesOfRegion1, 
-const vector<double> &listOfDistancesOfRegion2) const{
-  int ret =-1;
-  for(size_t i=0;i<=matrixOfDistancesOfRegion1.size();i++){
-    ret=i;
-    if(listOfDistancesOfRegion2==matrixOfDistancesOfRegion1[i]){
-      return ret;
-    }
-  }
-  return ret;
-}
-
-/*
-This method compares all vectors with each other and generates a list, that shows
-equalities. The result vector indicates, that the i-th position of the result vector 
-and matrixOfDistancesOfRegion2 can be found at the stord position in vector 
-matrixOfDistancesOfRegion1.
-return value: starts with zero for the first element
--1 in case of error
-
-*/
-vector<int> FixedMRegion::identifyPoints(
-const vector<vector<double> > &matrixOfDistancesOfRegion1, 
-const vector<vector<double> > &matrixOfDistancesOfRegion2) const{
-  vector<int> ret= vector<int>(0);
-  for(size_t i=0;i<=matrixOfDistancesOfRegion2.size();i++){
-    int tmp= identifyPoint(matrixOfDistancesOfRegion1, 
-      matrixOfDistancesOfRegion2[i]);
-    ret.push_back(tmp);
-  }
-  return ret;
-}
-
-/*
 This method returns the size of the object.
 
 */

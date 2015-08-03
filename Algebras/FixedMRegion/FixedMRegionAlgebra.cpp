@@ -382,7 +382,7 @@ ListExpr MMoveProperty(){
             nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mmove) "),
                              nl->StringAtom("( u1 ... un ) "),
-    nl->StringAtom("(((i1 i2 TRUE FALSE) (1.0 2.2 2.5 2.1 0.0 1.0)) ...)"))));
+        nl->StringAtom("(((i1 i2 TRUE FALSE) (1.0 2.2 2.5 2.1)) ...)"))));
 }
 
 /*
@@ -428,9 +428,9 @@ ListExpr FixedMRegionProperty(){
         nl->StringAtom("Example List")),
       nl->FourElemList (
         nl->StringAtom("-> MAPPING"),
-        nl->StringAtom("(fixedmregion)"),
-        nl->StringAtom("(region mmove point double)"),
-        nl->StringAtom ("r m (1.2 1.4) (2.0))")
+        nl->StringAtom("fixedmregion"),
+        nl->StringAtom("(fixedmregion real) = (x,y)"),
+        nl->StringAtom ("(fmr 2.0)")
       )
     );
 }

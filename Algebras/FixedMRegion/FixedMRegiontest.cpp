@@ -804,70 +804,12 @@ void FMRTest::testgetDistancesForPoint(){
 }
 
 
-void FMRTest::testidentifyPoint(){
-  printf ("Test identifyPoint: ");
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
-    0, 1, 0);
-  vector<double> v;
-  v.push_back(0.0);
-  v.push_back(1.0);
-  vector<double> v2;
-  v2.push_back(1.0);
-  v2.push_back(0.0);
-  vector<vector<double> > vv(0);
-  vv.push_back(v);
-  vv.push_back(v2);
-  int calc = fmr.identifyPoint(vv, v);
-    
-  if (calc==0) {
-    printf("OK\n");
-  } else {
-    printf("Failed\n");
-  }
-}
-
-void FMRTest::testidentifyPoints(){
-  printf ("Test identifyPoints: ");
-  double min[] = { 0.0, 0.0 };
-  double max[] = { 1.0, 1.0 };
-  Region *rbig = new Region (Rectangle < 2 > (true, min, max));
-  FixedMRegion fmr = FixedMRegion (0, 0, 0, *rbig, 0, 0, 0,
-    0, 1, 0);
-  vector<double> v;
-  v.push_back(0.0);
-  v.push_back(1.0);
-  vector<double> v2;
-  v2.push_back(1.0);
-  v2.push_back(0.0);
-  vector<vector<double> > vv(0);
-  vv.push_back(v);
-  vv.push_back(v2);
-  vector<vector<double> > vv2(0);
-  vv2.push_back(v2);
-  vv2.push_back(v);
-  vector<int> res(0);
-  res.push_back(1);
-  res.push_back(0);
-  vector<int> result = fmr.identifyPoints(vv,vv2);
-  //FIXME: Wird die Reihenfolge beachtet?
-  if (result==res) {
-    printf("OK\n");
-  } else {
-    printf("Failed\n");
-  }
-}
-
 void testskeleton(){
   printf ("Test intersection\n");
   FMRTest t;
   t.testgenerateListOfRegionPoints();
   t.testgetOneDistance();
   t.testgetDistancesForPoint();
-  t.testidentifyPoint();
-  t.testidentifyPoints();
 }
 
 void FMRTest::testgetIntersectionPoint(){

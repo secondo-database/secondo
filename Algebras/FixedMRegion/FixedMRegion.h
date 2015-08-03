@@ -410,29 +410,6 @@ vector<double> getDistancesForPoint(const int numberOfPoint,
 const vector<Point> &p) const;
 
 /*
-This method identifies the line of the matrix, which equals the given 
-line of distances.
-return value: starts with zero for the first element
--1 in case of error
-
-*/
-int identifyPoint(const vector<vector<double> > &matrixOfDistancesOfRegion1, 
-const vector<double> &listOfDistancesOfRegion2) const;
-
-/*
-This method compares all vectors with each other and generates a list, that shows
-equalities. The result vector indicates, that the i-th position of the result vector 
-and matrixOfDistancesOfRegion2 can be found at the stord position in vector 
-matrixOfDistancesOfRegion1.
-return value: starts with zero for the first element
--1 in case of error
-
-*/
-vector<int> identifyPoints(
-const vector<vector<double> > &matrixOfDistancesOfRegion1, 
-const vector<vector<double> > &matrixOfDistancesOfRegion2) const;
-
-/*
 This method creates a MMove with the given values.
 
 */
