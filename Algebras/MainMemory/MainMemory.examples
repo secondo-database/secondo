@@ -135,3 +135,21 @@ Signature : string x string x key x key-> stream(tuple)
 Example   : query "Staedte_SName" "Staedte" mrange ["Aachen", "Dortmund"] count;
 Result    : 10
 
+Operator  : memload
+Number    : 23
+Signature : string -> bool
+Example   : query memload ("ten")
+Result    : TRUE
+
+Operator  : mcreateAVLtree
+Number    : 24
+Signature : string x string -> string
+Example   : query mcreateAVLtree ("ten", "No")
+Result    : "ten_No"
+
+Operator  : matchbelow
+Number    : 25
+Signature : string x string x key -> stream(tuple)
+Example   : query "ten_No" "ten" matchbelow [2] count;
+Result    : 1
+

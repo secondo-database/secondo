@@ -35,3 +35,4 @@ operator mconsume alias MCONSUME pattern _ op
 operator mcreateAVLtree alias MCREATEAVLTREE pattern op(_,_)
 operator mexactmatch alias MEXACTMATCH pattern _ _ op [_]
 operator mrange alias MRANGE pattern _ _ op [_, _]
+operator matchbelow alias MATCHBELOW pattern _ _ op [_]
