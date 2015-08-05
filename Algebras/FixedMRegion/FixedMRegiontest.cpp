@@ -11,6 +11,7 @@ using namespace std;
 #include "TestMove.h"
 #include "TestInsideIntersection.h"
 #include "FMRInterpolator.h"
+#include "FixedMRegionAlgebra.h"
 extern NestedList *nl;
 extern QueryProcessor *qp;
 /*
@@ -259,6 +260,27 @@ testatinstantRotate ()
   delete p3;
 }
 
+//Forward Declaration
+ListExpr OutFixedMRegion(ListExpr typeInfo, Word value);
+
+void
+testOutFixedMRegion()
+{
+  printf ("Test OutFixedMRegion: ");
+  Point *p1 = new Point (true, 0.0, 0.0);
+  Point *p2 = new Point (true, 1.0, 0.0);
+  Point *p3 = new Point (true, 0.0, 1.0);
+  Region *result = new Region (*p1, *p2, *p3);
+
+  FixedMRegion fmr = FixedMRegion (1, 0.5, 0.5, *result, 0, 0, 0,
+                                   0, 0, M_PI);
+
+  ListExpr fmrl=OutFixedMRegion(nl->TheEmptyList(), SetWord(&fmr));
+  cout << nl->ToString(fmrl) << "\n";
+  delete p1;
+  delete p2;
+  delete p3;
+}
 
 void
 testMBool ()
@@ -1329,5 +1351,6 @@ runTestMethod ()
   testTraversedComponents();
   runtestInsideIntersection();
   testskeleton();
+  testOutFixedMRegion();
 
 }

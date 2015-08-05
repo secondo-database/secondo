@@ -435,6 +435,8 @@ ListExpr FixedMRegionProperty(){
     );
 }
 
+ListExpr OutFixedMRegion(ListExpr typeInfo, Word value);
+
 /*
 This is the in function.
 
@@ -494,13 +496,16 @@ Word InFixedMRegion(const ListExpr typeInfo, const ListExpr instance,
   }
 
   double t = listutils::getNumValue(nl->Fourth(instance));
-
+  //Anfang testcode
   FixedMRegion* fmr = new FixedMRegion(*cr, *mm, *p, t);
   cr->DeleteIfAllowed();
   mm->DeleteIfAllowed();
   p->DeleteIfAllowed();
-
+  //Anfang testcode
   printf("%s\n", (fmr->IsDefined())?"true":"false");
+  ListExpr regionNL = OutFixedMRegion(nl->TheEmptyList(), SetWord(fmr));
+  cout <<nl->ToString(regionNL) << "\n";
+  //Ende Textcode
   correct=true;
   return SetWord(fmr);
 }
@@ -832,13 +837,15 @@ int fmr_InsideVM(Word* args, Word& result, int message,
 Word& local, Supplier s){
   FixedMRegion* fmr = (FixedMRegion*) args[0].addr;
   MPoint* d = (MPoint*) args[1].addr;
+  MBool *res=(MBool*) result.addr;
   
-  MBool r(0);
-  r = fmr->inside(*d);
-  
-  result = qp->ResultStorage(s);
-  MBool* res  __attribute__ ((unused))= (MBool*) result.addr;
-  res = &r;
+  if ((!fmr->IsDefined()) ||
+      (!d->IsDefined())) {
+    res->SetDefined(false);
+    return 0;
+  }
+
+  *res = fmr->inside(*d);
   return 0;  
 }
 

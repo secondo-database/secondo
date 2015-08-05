@@ -9,14 +9,16 @@ using namespace std;
 This is the default constructor. Do not use.
 
 */
-FixedMRegion::FixedMRegion(): Attribute(false), m(0), r(0){}
+FixedMRegion::FixedMRegion() {}
+
+FixedMRegion::FixedMRegion(int i): Attribute(false), m(0), r(0){}
 
 /*
 This is the copy constructor.
 
 */
 FixedMRegion::FixedMRegion(const FixedMRegion & f):
-Attribute(true),t(f.t),m(f.m),r(f.r),
+Attribute(f),t(f.t),m(f.m),r(f.r),
 l(f.l){}
 
 /*
@@ -108,7 +110,8 @@ rot\_center: the center of the rotation. It will be moved with the object.
 */
 FixedMRegion::FixedMRegion(const Region & _region, const MMove & _move,
 const Point & rot_center, const double _starttime):
-Attribute(true), m(_move), r(_region){
+Attribute(true), m(0), r(_region){
+  m.CopyFrom(&_move);
   t = _starttime;
   xm = rot_center.GetX ();
   ym = rot_center.GetY ();
@@ -876,7 +879,7 @@ This method returns the region of the FixedMRegion.
 
 */
 const void FixedMRegion::getRegion(Region & result) const{
-  result= r;
+  result.CopyFrom(&r);
 }
 
 /*

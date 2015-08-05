@@ -29,6 +29,8 @@ This is the default constructor. Do not use.
 */
 FixedMRegion ();
 
+FixedMRegion (int i);
+
 /*
 This is the copy constructor.
 
