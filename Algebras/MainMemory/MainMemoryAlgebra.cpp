@@ -379,8 +379,8 @@ int memloadValMap (Word* args, Word& result,
 OperatorSpec memloadSpec(
     "string -> bool",
     "memload(_)",
-    "loads a persistent object to main memory (without flobs)"
-    "if there is not enough space, the loaded object may be not complete"
+    "loads a persistent object to main memory (without flobs) "
+    "if there is not enough space, the loaded object may be not complete "
     "but usable",
     "query memload('plz')"
 );
