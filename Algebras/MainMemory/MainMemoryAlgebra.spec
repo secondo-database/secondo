@@ -18,6 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator memload alias MEMLOAD pattern op (_)
+operator memloadflob alias MEMLOADFLOB pattern op (_)
 operator meminit alias MEMINIT pattern op (_)
 operator mfeed alias MFEED pattern _ op
 operator letmconsume alias LETMCONSUME pattern _ op [_]

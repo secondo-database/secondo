@@ -153,3 +153,8 @@ Signature : string x string x key -> stream(tuple)
 Example   : query "ten_No" "ten" matchbelow [2] count;
 Result    : 1
 
+Operator  : memloadflob
+Number    : 26
+Signature : string -> bool
+Example   : query memloadflob ("Trains")
+Result    : TRUE

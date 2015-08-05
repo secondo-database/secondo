@@ -133,6 +133,13 @@ ListExpr MemCatalog::getMMObjectTypeExpr(const string& oN){
     return listutils::typeError();
 };
 
+bool MemCatalog::isAccessible(const string& name) {
+    SecondoSystem* sys = SecondoSystem::GetInstance();
+    return   (isMMObject(name) &&
+        ((getMMObject(name)->getDatabase()==sys->GetDatabaseName())
+            || getMMObject(name)->hasflob()) );
+}
+
 MemoryObject::~MemoryObject(){}
 
 void MemoryObject::setMemSize(size_t i){
@@ -145,6 +152,16 @@ size_t MemoryObject::getMemSize (){
 string MemoryObject::getObjectTypeExpr(){
     return objectTypeExpr;
 }
+
+string MemoryObject::getDatabase(){
+    return database;
+}
+
+bool MemoryObject::hasflob(){
+    return flob;
+}
+
+
 //void MemoryObject::setObjectTypeExpr(string oTE){
 //    objectTypeExpr=oTE;
 //};
@@ -155,10 +172,13 @@ string MemoryObject::getObjectTypeExpr(){
 
 MemoryRelObject::MemoryRelObject(){};
 MemoryRelObject::MemoryRelObject(vector<Tuple*>* _mmrel,
-                size_t _memSize, string _objectTypeExpr){
+                size_t _memSize, string _objectTypeExpr, bool _flob,
+                string _database){
         mmrel = _mmrel;
         memSize = _memSize;
         objectTypeExpr = _objectTypeExpr;
+        flob = _flob;
+        database = _database;
 };
 MemoryRelObject::MemoryRelObject (string _objectTypeExpr){
         objectTypeExpr = _objectTypeExpr;
@@ -352,10 +372,13 @@ ListExpr MemoryRelObject::Property(){
 
 
 MemoryAttributeObject::MemoryAttributeObject(Attribute* _attr,
-                    size_t _memSize, string _objectTypeExpr){
+                    size_t _memSize, string _objectTypeExpr, bool _flob,
+                    string _database){
         attributeObject = _attr;
         memSize = _memSize;
         objectTypeExpr =_objectTypeExpr;
+        flob = _flob;
+        database = _database;
 }
 
 MemoryAttributeObject::~MemoryAttributeObject(){

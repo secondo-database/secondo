@@ -45,7 +45,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MMRTree.h"
 #include "MovingRegionAlgebra.h"
 #include "RectangleAlgebra.h"
-
 #include "AvlTree.h"
 
 
@@ -139,6 +138,12 @@ ListExpr tmStringMemloadBool (ListExpr args){
 }
 
 
+string getDBname() {
+    SecondoSystem* sys = SecondoSystem::GetInstance();
+    return sys->GetDatabaseName();
+}
+
+
 /*
 
 4.7 ~relToVector~
@@ -147,7 +152,9 @@ Function to fill a ~vector<tuple>~ with the tuples of a given relation
 
 */
 
-MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0) {
+
+MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0,
+                        string database = "", bool flob = false) {
 
     GenericRelationIterator* rit;
     rit = r->MakeScan();
@@ -159,7 +166,10 @@ MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0) {
     vector<Tuple*>* mmrel = new vector<Tuple*>();
 
     while ((tup = rit->GetNextTuple()) != 0){
-           // tup->bringToMemory();
+           //
+            if (flob){
+            tup->bringToMemory();
+            }
             tupleSize = tup->GetMemSize();
             if ((size_t)tupleSize<availableMemSize){
                 mmrel->push_back(tup);
@@ -176,30 +186,36 @@ MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0) {
 
 
     MemoryRelObject* mmRelObject =
-        new MemoryRelObject(mmrel, usedMainMemory, nl->ToString(le));
+        new MemoryRelObject(mmrel, usedMainMemory,
+                    nl->ToString(le),flob,database);
 
 
     return mmRelObject;
 }
 
-MemoryAttributeObject* attrToMM(Attribute* attr, ListExpr le){
+
+MemoryAttributeObject* attrToMM(Attribute* attr, ListExpr le,
+                        string database, bool flob){
 
     size_t availableMemSize = catalog->getAvailabeMemSize();
     size_t usedMainMemory=0;
+    if(flob){
+    attr->bringToMemory();
+    }
     usedMainMemory = attr->GetMemSize();
     if (usedMainMemory>availableMemSize){
             cout <<"the available main memory size is not enough"<<endl;
             return 0;
         }
         MemoryAttributeObject* mmA =
-            new MemoryAttributeObject(attr, usedMainMemory, nl->ToString(le));
+            new MemoryAttributeObject(attr, usedMainMemory,
+                                nl->ToString(le),flob, database);
 
     return mmA;
 
 }
 
-
-MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le){
+MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le, bool flob){
 
     vector<Tuple*>* mmrel = new vector<Tuple*>();
     Stream<Tuple> stream(arg);
@@ -211,6 +227,9 @@ MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le){
     stream.open();
 
     while( (tup = stream.request()) != 0){
+        if (flob){
+            tup->bringToMemory();
+        }
         tupleSize = tup->GetMemSize();
             if ((size_t)tupleSize<availableMemSize){
                 mmrel->push_back(tup);
@@ -225,41 +244,17 @@ MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le){
     }
 
     MemoryRelObject* mem =
-            new MemoryRelObject(mmrel, usedMainMemory, nl->ToString(le));
+            new MemoryRelObject(mmrel, usedMainMemory, nl->ToString(le),
+                        flob, getDBname());
 
     stream.close();
 
     return mem;
 }
 
-/*
 
-5 Creating Operators
-
-5.1 Operator ~memload~
-
-Load a persistent relation into main memory. If there is not enough space
-it breaks up. The created ~MemoryRelObject~ is usable but not complete.
-
-5.1.1 Type Mapping Functions of operator ~memload~ (string -> bool)
-
-
-*/
-ListExpr memloadTypeMap(ListExpr args)
-{
- return tmStringBool(args);
-}
-
-
-
-
-/*
-5.1.3  The Value Mapping Functions of operator ~memload~
-
-*/
-
-int memloadValMap (Word* args, Word& result,
-                    int message, Word& local, Supplier s) {
+int memload (Word* args, Word& result,
+                    int message, Word& local, Supplier s, bool flob) {
 
 
     CcString* oN = (CcString*) args[0].addr;
@@ -271,6 +266,8 @@ int memloadValMap (Word* args, Word& result,
 
     string objectName = oN->GetValue();
     SecondoCatalog* cat = SecondoSystem::GetCatalog();
+
+
     bool memloadSucceeded=false;
     Word object; //save the persistent object
     ListExpr objectTypeExpr=0; //type expression of the persistent object
@@ -298,14 +295,16 @@ int memloadValMap (Word* args, Word& result,
     if (Relation::checkType(objectTypeExpr)&&defined){
         GenericRelation* r= static_cast<Relation*>( object.addr );
         MemoryRelObject* mmRelObject =
-                relToVector(r, nl->Second(objectTypeExpr));
+                relToVector(r, nl->Second(objectTypeExpr)
+                                ,getDBname(), flob);
         catalog->insert(objectName,mmRelObject);
     }
 
     // object is attribute
     if (Attribute::checkType(objectTypeExpr)&&defined){
         Attribute* attr = (Attribute*)object.addr;
-        MemoryAttributeObject* mmA = attrToMM(attr, objectTypeExpr);
+        MemoryAttributeObject* mmA = attrToMM(attr, objectTypeExpr,
+                                getDBname(),flob);
 
         if (mmA!=0){
         catalog->insert(objectName,mmA);
@@ -326,6 +325,51 @@ int memloadValMap (Word* args, Word& result,
 }
 
 
+
+/*
+
+5 Creating Operators
+
+5.1 Operator ~memload~
+
+Load a persistent relation into main memory. If there is not enough space
+it breaks up. The created ~MemoryRelObject~ is usable but not complete.
+
+5.1.1 Type Mapping Functions of operator ~memload~ (string -> bool)
+
+
+*/
+ListExpr memloadTypeMap(ListExpr args)
+{
+
+string err = "string expected";
+  if(nl->ListLength(args)!=1){
+     return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if (!CcString::checkType(nl->First(args))) {
+  return listutils::typeError(err);
+    }
+  return listutils::basicSymbol<CcBool>();
+ //return tmStringBool(args);
+}
+
+
+
+
+/*
+5.1.3  The Value Mapping Functions of operator ~memload~
+
+*/
+
+
+int memloadValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+    return memload(args, result, message, local, s, false);
+
+}
+
+
 /*
 
 5.1.4 Description of operator ~memload~
@@ -335,7 +379,7 @@ int memloadValMap (Word* args, Word& result,
 OperatorSpec memloadSpec(
     "string -> bool",
     "memload(_)",
-    "loads a persistent object to main memory "
+    "loads a persistent object to main memory (without flobs)"
     "if there is not enough space, the loaded object may be not complete"
     "but usable",
     "query memload('plz')"
@@ -356,7 +400,59 @@ Operator memloadOp (
 );
 
 /*
-5.2 Operator ~meminit~
+5.2 Operator ~memloadflob~
+
+Like ~memload~ but loads also the flob part into the main memory
+
+*/
+
+
+/*
+5.2.3  The Value Mapping Functions of operator ~memloadflob~
+
+*/
+
+
+int memloadflobValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+
+    return memload(args, result, message, local, s, true);
+
+}
+
+
+/*
+
+5.2.4 Description of operator ~memloadflob~
+
+*/
+
+OperatorSpec memloadflobSpec(
+    "string -> bool",
+    "memloadflob(_)",
+    "loads a persistent object together with the associated flobs to  "
+    "main memory. If there is not enough space, the loaded object "
+    "may be not complete but usable",
+    "query memloadflob('Trains')"
+);
+
+/*
+
+5.2.5 Instance of operator ~memloadflob~
+
+*/
+
+Operator memloadflobOp (
+    "memloadflob",
+    memloadflobSpec.getStr(),
+    memloadflobValMap,
+    Operator::SimpleSelect,
+    memloadTypeMap
+);
+
+/*
+5.3 Operator ~meminit~
 
 Initialises the main memory which is used within the main memory algebra.
 The default value is 256MB.
@@ -368,7 +464,7 @@ without deleting any main memory objects.
 */
 
 /*
-5.2.1 Type Mapping Functions of operator ~meminit~ (int->int)
+5.3.1 Type Mapping Functions of operator ~meminit~ (int->int)
 
 */
 
@@ -387,7 +483,7 @@ string err = "int expected";
 
 /*
 
-5.2.3  The Value Mapping Functions of operator ~meminit~
+5.3.3  The Value Mapping Functions of operator ~meminit~
 
 */
 
@@ -425,7 +521,7 @@ int meminitValMap (Word* args, Word& result,
 
 /*
 
-5.2.4 Description of operator ~meminit~
+5.3.4 Description of operator ~meminit~
 
 */
 
@@ -439,7 +535,7 @@ OperatorSpec meminitSpec(
 
 /*
 
-5.2.5 Instance of operator ~meminit~
+5.3.5 Instance of operator ~meminit~
 
 */
 
@@ -453,7 +549,7 @@ Operator meminitOp (
 
 
 /*
-5.3 Operator ~mfeed~
+5.4 Operator ~mfeed~
 
 ~mfeed~ produces a stream of tuples from a main memory relation,
 similar to the ~feed~-operator
@@ -461,7 +557,7 @@ similar to the ~feed~-operator
 */
 
 /*
-5.3.1 Type Mapping Functions of operator ~mfeed~ (string -> stream(tuple))
+5.4.1 Type Mapping Functions of operator ~mfeed~ (string -> stream(tuple))
 
 */
 
@@ -497,13 +593,17 @@ ListExpr mfeedTypeMap(ListExpr args) {
       return listutils::typeError("not a MainMemory member or not a relation");
     }
 
+    if(!catalog->isAccessible(oN)){
+        return listutils::typeError("MainMemory object not accessible");
+    }
+
     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),oTeList);
 }
 
 
 /*
-s
-5.3.3  The Value Mapping Functions of operator ~mfeed~
+
+5.4.3  The Value Mapping Functions of operator ~mfeed~
 
 */
 
@@ -582,7 +682,7 @@ int mfeedValMap (Word* args, Word& result,
 
 /*
 
-5.3.4 Description of operator ~mfeed~
+5.4.4 Description of operator ~mfeed~
 
 
 */
@@ -598,7 +698,7 @@ OperatorSpec mfeedSpec(
 
 /*
 
-5.3.5 Instance of operator ~mfeed~
+5.4.5 Instance of operator ~mfeed~
 
 */
 
@@ -615,7 +715,7 @@ Operator mfeedOp (
 
 /*
 
-5.4 Operator ~letmconsume~
+5.5 Operator ~letmconsume~
 
 ~letmconsume~ produces a main memory relation from a stream(tuples),
 similar to the ~consume~-operator. The name of the main memory relation is given
@@ -625,7 +725,7 @@ by the second parameter.
 
 /*
 
-5.4.1 Type Mapping Functions of operator ~letmconsume~
+5.5.1 Type Mapping Functions of operator ~letmconsume~
         (stream(tuple) x string -> string)
 
 */
@@ -646,7 +746,7 @@ ListExpr letmconsumeTypeMap(ListExpr args)
 
 /*
 
-5.4.3  The Value Mapping Functions of operator ~letmconsume~
+5.5.3  The Value Mapping Functions of operator ~letmconsume~
 
 */
 
@@ -659,7 +759,7 @@ int letmconsumeValMap (Word* args, Word& result,
     Supplier t = qp->GetSon( s, 0 );
     ListExpr le = qp->GetType(t);
 
-    MemoryRelObject* mem = tupelStreamToRel(args[0],nl->Second(le));
+    MemoryRelObject* mem = tupelStreamToRel(args[0],nl->Second(le),false);
 
     CcString* oN = (CcString*) args[1].addr;
     if(!oN->IsDefined()){
@@ -683,7 +783,7 @@ int letmconsumeValMap (Word* args, Word& result,
 
 /*
 
-5.4.4 Description of operator ~letmconsume~
+5.5.4 Description of operator ~letmconsume~
 
 */
 
@@ -698,7 +798,7 @@ OperatorSpec letmconsumeSpec(
 
 /*
 
-5.4.5 Instance of operator ~letmconsume~
+5.5.5 Instance of operator ~letmconsume~
 
 */
 
@@ -827,7 +927,7 @@ ListExpr memobjectTypeMap(ListExpr args) {
     string oN = nl->StringValue(str);
 
 
-    if(catalog->isMMObject(oN)){
+    if(catalog->isMMObject(oN) && catalog->isAccessible(oN)){
 
         ListExpr typeExpr = catalog->getMMObjectTypeExpr(oN);
 
@@ -841,7 +941,8 @@ ListExpr memobjectTypeMap(ListExpr args) {
           return typeExpr;
         }
     }
-return listutils::typeError("string does not belong to a main memory member");
+return listutils::typeError("string does not belong to a main memory member "
+        "or object is not accessible");
 }
 
 
@@ -960,7 +1061,8 @@ ListExpr memgetcatalogTypeMap(ListExpr args)
 
     string stringlist = "(stream(tuple((TotalMB int)"
         "(UsedMB real)(Name string)"
-        "(ObjectType string)(ObjSizeInB int)(ObjSizeInMB real))))";
+        "(ObjectType string)(ObjSizeInB int)(ObjSizeInMB real)"
+            "(Database string)(Accessible bool)(FlobsLoaded bool))))";
 
     ListExpr res =0;
     if(nl->ReadFromString(stringlist, res)){};
@@ -1018,6 +1120,11 @@ class memgetcatalogInfo{
         CcInt* memSizeB = new CcInt(true, (int)memobj->getMemSize());
         CcReal* memSizeMB =
             new CcReal(true, (double)memobj->getMemSize()/1024.0/1024.0);
+        CcString* database = new CcString(true,(string)memobj->getDatabase());
+        CcBool* accessible =
+                new CcBool(true, (bool)(memobj->getDatabase()==getDBname()
+                    || memobj->hasflob()));
+        CcBool* flobs = new CcBool(true, (bool)memobj->hasflob());
 
         tup->PutAttribute(0,totalMB);
         tup->PutAttribute(1,usedMB);
@@ -1025,6 +1132,9 @@ class memgetcatalogInfo{
         tup->PutAttribute(3,oT);
         tup->PutAttribute(4,memSizeB);
         tup->PutAttribute(5,memSizeMB);
+        tup->PutAttribute(6,database);
+        tup->PutAttribute(7,accessible);
+        tup->PutAttribute(8,flobs);
 
         it++;
         return tup;
@@ -1156,10 +1266,12 @@ int memletValMap (Word* args, Word& result,
     Supplier t = qp->GetSon( s, 1 );
     ListExpr le = qp->GetType(t);
 
+
     if (listutils::isRelDescription(le)){
 
         GenericRelation* rel= static_cast<Relation*>( args[1].addr );
-        MemoryRelObject* mmRelObject = relToVector(rel,nl->Second(le));
+        MemoryRelObject* mmRelObject =
+                relToVector(rel,nl->Second(le),getDBname(), false);
 
         catalog->insert(objectName, mmRelObject);
         memletsucceed =true;
@@ -1168,7 +1280,8 @@ int memletValMap (Word* args, Word& result,
     if (listutils::isDATA(le)){
 
         Attribute* attr = (Attribute*)args[1].addr;
-        MemoryAttributeObject* mmA = attrToMM(attr, le);
+        MemoryAttributeObject* mmA =
+                attrToMM(attr, le,getDBname(),false);
 
         catalog->insert(objectName,mmA);
         memletsucceed = true;
@@ -1176,7 +1289,7 @@ int memletValMap (Word* args, Word& result,
 
     if (listutils::isTupleStream(le)){
 
-        MemoryRelObject* mem = tupelStreamToRel(args[1], nl->Second(le));
+        MemoryRelObject* mem = tupelStreamToRel(args[1], nl->Second(le),false);
 
         catalog->insert(objectName,mem);
         memletsucceed = true;
@@ -1266,9 +1379,13 @@ int memupdateValMap (Word* args, Word& result,
     }
 
     ListExpr memType = catalog->getMMObjectTypeExpr(objectName);
+    bool flob = catalog->getMMObject(objectName)->hasflob();
 
     Supplier t = qp->GetSon( s, 1 );
     ListExpr le = qp->GetType(t);
+
+    catalog->deleteObject(objectName);
+
 
     //the object shall be updated by a relation, the object itself is
     //a MemoryRelObject and the tuple descriptions are the same
@@ -1276,10 +1393,12 @@ int memupdateValMap (Word* args, Word& result,
                 listutils::isTupleDescription(memType) &&
                 nl->Equal(nl->Second(le), memType)){
 
-        catalog->deleteObject(objectName);
+
+//        catalog->deleteObject(objectName);
 
         GenericRelation* rel= static_cast<Relation*>( args[1].addr );
-        MemoryRelObject* mem = relToVector(rel,nl->Second(le));
+        MemoryRelObject* mem =
+                relToVector(rel,nl->Second(le),getDBname(),flob);
 
         catalog->insert(objectName,mem);
         memupdatesucceed =true;
@@ -1289,10 +1408,11 @@ int memupdateValMap (Word* args, Word& result,
     if (listutils::isDATA(le) && listutils::isDATA(memType) &&
         nl->Equal(le,memType)){
 
-        catalog->deleteObject(objectName);
+//        catalog->deleteObject(objectName);
 
         Attribute* attr = (Attribute*)args[1].addr;
-        MemoryAttributeObject* mem = attrToMM(attr, le);
+        MemoryAttributeObject* mem =
+                attrToMM(attr, le,getDBname(),flob);
         if (mem!=0){
             catalog->insert(objectName,mem);
             memupdatesucceed = true;
@@ -1304,8 +1424,8 @@ int memupdateValMap (Word* args, Word& result,
     if (listutils::isTupleStream(le) && listutils::isTupleDescription(memType)
                 && nl->Equal(nl->Second(le), memType)){
 
-        catalog->deleteObject(objectName);
-        MemoryRelObject* mem = tupelStreamToRel(args[1], nl->Second(le));
+//        catalog->deleteObject(objectName);
+        MemoryRelObject* mem = tupelStreamToRel(args[1], nl->Second(le),flob);
 
         catalog->insert(objectName,mem);
         memupdatesucceed = true;
@@ -1762,8 +1882,15 @@ int minsertValMap (Word* args, Word& result,
             Stream<Tuple> stream(args[0]);
             Tuple* tup;
             stream.open();
-            while( (tup = stream.request()) != 0){
-                mro->addTuple(tup);
+            if (mro->hasflob()){
+                while( (tup = stream.request()) != 0){
+                    tup->bringToMemory();
+                    mro->addTuple(tup);
+                }
+            } else {
+                while( (tup = stream.request()) != 0){
+                    mro->addTuple(tup);
+                }
             }
         stream.close();
         relation = mro->getmmrel();
@@ -1871,6 +1998,10 @@ ListExpr mwindowintersectsTypeMap(ListExpr args)
                 !listutils::isTupleDescription(oTE_Rel)){
         return listutils::typeError
                 ("second string does not identify a MemoryRelObject");
+    }
+    if(!catalog->isAccessible(oN_Rel)){
+        return listutils::typeError
+                ("MemoryRelObject is not accessible");
     }
 
 
@@ -2327,6 +2458,10 @@ ListExpr mexactmatchTypeMap(ListExpr args)
         return listutils::typeError
                 ("second string does not identify a MemoryRelObject");
     }
+    if (!catalog->isAccessible(oN_Rel)){
+        return listutils::typeError
+                ("MemoryRelObject is not accessible");
+    }
 
 
     // third a key
@@ -2566,6 +2701,10 @@ ListExpr mrangeTypeMap(ListExpr args)
         return listutils::typeError
                 ("second string does not identify a MemoryRelObject");
     }
+     if (!catalog->isAccessible(oN_Rel)){
+        return listutils::typeError
+                ("MemoryRelObject is not accessible");
+    }
 
 
     // third a key
@@ -2735,6 +2874,10 @@ ListExpr matchbelowTypeMap(ListExpr args)
                 ("second string does not identify a MemoryRelObject");
     }
 
+     if (!catalog->isAccessible(oN_Rel)){
+        return listutils::typeError
+                ("MemoryRelObject is not accessible");
+    }
 
     // third a key
     string keyTypeAttr = nl->ToString(nl->First(keyDescription));
@@ -2886,6 +3029,8 @@ class MainMemoryAlgebra : public Algebra
 
 */
         AddOperator (&memloadOp);
+        //memloadOp.SetUsesArgsInTypeMapping();
+        AddOperator (&memloadflobOp);
         AddOperator (&meminitOp);
         meminitOp.SetUsesMemory();
         AddOperator (&mfeedOp);

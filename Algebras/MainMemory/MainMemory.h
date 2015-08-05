@@ -34,6 +34,7 @@ class MemoryRtreeObject;
 class KeyComparator;
 
 
+
 class MemCatalog {
 
     public:
@@ -68,6 +69,7 @@ class MemCatalog {
 
         ListExpr getMMObjectTypeExpr(const string& oN);
 
+        bool isAccessible(const string& name);
 
     private:
         size_t usedMemSize;  //in Byte
@@ -85,6 +87,9 @@ class MemoryObject {
         size_t getMemSize ();
 
         string getObjectTypeExpr();
+        string getDatabase();
+        bool hasflob();
+
        // void setObjectTypeExpr(string oTE);
         void toStringOut(){
             cout<<"MemoryObject und die Membervariablen lauten: "<<endl;
@@ -94,11 +99,14 @@ class MemoryObject {
 
         static const string BasicType() { return "memoryObject"; }
 
+
     protected:
         size_t memSize;              // object size in main memory in byte
         string objectTypeExpr;       // the tuple description for relations,
                                      // or the attribute description
 
+        bool flob;
+        string database="";
 
 };
 
@@ -113,7 +121,8 @@ class MemoryRelObject : public MemoryObject {
 
         MemoryRelObject();
         MemoryRelObject(vector<Tuple*>* _mmrel,
-                    size_t _memSize, string _objectTypeExpr);
+                    size_t _memSize, string _objectTypeExpr, bool _flob,
+                    string _database);
         MemoryRelObject (string _objectTypeExpr);
         ~MemoryRelObject();
 
@@ -161,7 +170,8 @@ class MemoryAttributeObject : public MemoryObject {
 
     public:
         MemoryAttributeObject(Attribute* _attr,
-                size_t _memSize, string _objectTypeExpr);
+                size_t _memSize, string _objectTypeExpr, bool _flob,
+                string _database);
         ~MemoryAttributeObject();
 
         void setAttributeObject(Attribute* attr);
