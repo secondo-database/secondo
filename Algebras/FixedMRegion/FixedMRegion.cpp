@@ -9,7 +9,7 @@ using namespace std;
 This is the default constructor. Do not use.
 
 */
-FixedMRegion::FixedMRegion(): Attribute(true), m(0), r(0){}
+FixedMRegion::FixedMRegion(): Attribute(false), m(0), r(0){}
 
 /*
 This is the copy constructor.

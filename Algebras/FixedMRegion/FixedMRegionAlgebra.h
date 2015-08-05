@@ -15,7 +15,6 @@ This is my FixedMRegionAlgebra. It is supported by other classes.
 #include "Secondo_Include.h"
 #include "FixedMRegiontest.h"
 #include "FixedMRegion1.h"
-#include "Move.h"
 #include "FixedMRegion.h"
 #include "FMRInterpolator.h"
 

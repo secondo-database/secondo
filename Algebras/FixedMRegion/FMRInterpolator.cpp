@@ -372,7 +372,7 @@ int FMRInterpolator::determineAngleAlgorithm() {
   if(p.IsDefined())
     return (angle_method=1);
   p = calcMinDistPoint(refRegion, m);
-  if(p.IsDefined())
+  if ((p.IsDefined() && (!AlmostEqual(getDist(p, m), 0))))
     return (angle_method=2);
   distVector=calcDistVector(refRegion, m);
   return (angle_method=3);

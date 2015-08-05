@@ -12,7 +12,6 @@ This class is a FixedMRegion.
 #include <assert.h>
 #include "Secondo_Include.h"
 #include "MovingRegionAlgebra.h"
-#include "Move.h"
 #include "LATransform.h"
 #include "FixedMRegiontest.h"
 #include "MMove.h"

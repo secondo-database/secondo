@@ -442,29 +442,66 @@ This is the in function.
 Word InFixedMRegion(const ListExpr typeInfo, const ListExpr instance,
   const int errorPos, ListExpr & errorInfo, bool & correct){
   if(nl->ListLength(instance) != 4){
-    string strErrorMessage = "FMRA: List length must be 4";
+    string strErrorMessage = "FMR in: List length must be 4";
     errorInfo = nl->Append(errorInfo,nl->StringAtom(strErrorMessage));
     correct = false;
     return SetWord(Address(0));
   }
-  
+
+  correct=true;
+  bool corr;
+
   Word reg_addr= InRegion(typeInfo,nl->First(instance),errorPos,
-    errorInfo,correct);
+    errorInfo,corr);
   Region* cr = (Region*)reg_addr.addr; 
-  
+
+  if ((!corr) || (!cr->IsDefined())) {
+    string err="FMR in: Invalid Region in argument 1";
+    errorInfo = nl->Append(errorInfo,nl->StringAtom(err));
+    correct=false;
+  }
+
   Word mm_addr= InMapping<MMove, UMove, InUMove>(
-    typeInfo,nl->Second(instance),errorPos,errorInfo,correct);
+    typeInfo,nl->Second(instance),errorPos,errorInfo,corr);
   MMove* mm = (MMove*)mm_addr.addr; 
-  
+  if ((!corr) || (!mm->IsDefined())) {
+    string err="FMR in: Invalid MMove in argument 2";
+    errorInfo = nl->Append(errorInfo,nl->StringAtom(err));
+    correct=false;
+  }
+
   Word p_addr= InPoint(typeInfo,nl->Third(instance),errorPos,
-    errorInfo,correct);
+    errorInfo,corr);
   Point* p = (Point*)p_addr.addr; 
-  
+  if ((!corr) || (!p->IsDefined())) {
+    string err="FMR in: Invalid Point in argument 3";
+    errorInfo = nl->Append(errorInfo,nl->StringAtom(err));
+    correct=false;
+  }
+
+  if (!(nl->AtomType(nl->Fourth(instance))==IntType) &&
+      !(nl->AtomType(nl->Fourth(instance))==RealType)) {
+    string err="FMR in: numeric value expected as argument 4";
+    errorInfo = nl->Append(errorInfo,nl->StringAtom(err));
+    correct=false;
+  }
+
+  if (!correct) {
+    cr->DeleteIfAllowed();
+    mm->DeleteIfAllowed();
+    p->DeleteIfAllowed();
+    return SetWord(Address(0));
+  }
+
   double t = listutils::getNumValue(nl->Fourth(instance));
-    
+
   FixedMRegion* fmr = new FixedMRegion(*cr, *mm, *p, t);
-  
-  correct = true;
+  cr->DeleteIfAllowed();
+  mm->DeleteIfAllowed();
+  p->DeleteIfAllowed();
+
+  printf("%s\n", (fmr->IsDefined())?"true":"false");
+  correct=true;
   return SetWord(fmr);
 }
 
@@ -575,7 +612,7 @@ This is the type checking functin.
 */
 bool FixedMRegionTypeCheck(ListExpr type, ListExpr & errorInfo){
   return nl->IsEqual(type, MRegion::BasicType())
-        || nl->IsEqual(type, "fixedmovingregion");
+        || nl->IsEqual(type, FixedMRegion::BasicType());
 }
 
 /*
@@ -646,15 +683,17 @@ This is the type mapping function.
 
 */
 ListExpr AtInstantTM(ListExpr args){
-  string err = "region and time expected";
+  string err1= "fixedmregion expected as first argument";
+  string err2= "instant expected as second argument";
+  string err = "fixedmregion and time expected";
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
   if(!FixedMRegion::checkType(nl->First(args))){
-    return listutils::typeError(err);
+    return listutils::typeError(err1);
   }
-  if(!CcReal::checkType(nl->Second(args))){
-    return listutils::typeError(err);
+  if(!Instant::checkType(nl->Second(args))){
+    return listutils::typeError(err2);
   }
   return listutils::basicSymbol<Region>();
 }
@@ -705,18 +744,22 @@ This is the type mapping function.
 
 */
 ListExpr TraversedTM(ListExpr args){
+  string err1 = "fixedmregion expected as first argument";
+  string err2 = "instant expected as second argument";
+  string err3 = "instant expected as third argument";
+  
   string err = "region and start and end time are expected";
   if(!nl->HasLength(args,3)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
   if(!FixedMRegion::checkType(nl->First(args))){
-    return listutils::typeError(err);
+    return listutils::typeError(err1);
   }
-  if(!CcReal::checkType(nl->Second(args))){
-    return listutils::typeError(err);
+  if(!Instant::checkType(nl->Second(args))){
+    return listutils::typeError(err2);
   }
-  if(!CcReal::checkType(nl->Third(args))){
-    return listutils::typeError(err);
+  if(!Instant::checkType(nl->Third(args))){
+    return listutils::typeError(err3);
   }
   return listutils::basicSymbol<Region>();
 }

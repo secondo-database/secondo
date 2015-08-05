@@ -14,7 +14,6 @@ and a FMRObservation to aggregate important information of a FixedMRegion's sigh
 #include "FixedMRegion.h"
 #include "Secondo_Include.h"
 #include "MovingRegionAlgebra.h"
-#include "Move.h"
 #include "LATransform.h"
 #include "FixedMRegiontest.h"
 #include "MMove.h"
