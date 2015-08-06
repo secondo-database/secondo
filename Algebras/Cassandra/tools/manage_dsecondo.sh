@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# This script starts and stops a 
-# local DSECONDO installation. This Script
-# can also manage all DSECONDO worker nodes.
+# This script is used to install, upgrade,
+# start and stop the query processing
+# nodes (QPNs) of a DSECONDO installation.
 #
 # Jan Kristof Nidzwetzki
 #
