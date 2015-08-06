@@ -385,8 +385,9 @@ public:
    void executeQueryForOtherTokenranges(string &query, 
                                    size_t queryId, string &ip,
                                    CassandraInfo *cassandraInfo) {
-                                      
+      
       cassandraInfo->refreshDataOrExit(queryId);
+      vector<TokenRange> processedTokenRanges = vector<TokenRange>();
       
       while( ! cassandraInfo->isQueryExecutedCompletely() ) {
 
@@ -394,12 +395,8 @@ public:
             getUnprocessedTokenRanges(cassandraInfo, &unprocessedTokenRanges);
             WorkerQueue *tokenQueue = (worker->front()) -> getTokenQueue();
             
-            while(tokenQueue->isEmpty()) {
+            while(tokenQueue->isEmpty() && unprocessedTokenRanges.size() > 0) {
 
-                if( unprocessedTokenRanges.size() == 0) {
-                   break;
-                }
-                
                 // Choose one random work unit 
                 int tokenPos = rand() % unprocessedTokenRanges.size();
                 
@@ -408,9 +405,7 @@ public:
                    unprocessedTokenRanges.begin()+tokenPos);
                 
                 string ip;
-                
-                cout << "Check token range:" << tokenrange.getStart
-                
+     
                 // Is the work unit already assigned to an other QPN?
                 if(cassandra -> getNodeForPendingTokenRange(ip, 
                      queryId, &tokenrange)) {
@@ -418,10 +413,17 @@ public:
                    if(cassandraInfo->isNodeAlive(ip)) {
                       continue;
                    }
+                   
+                   if(find(processedTokenRanges.begin(), 
+                           processedTokenRanges.end(), 
+                           tokenrange) != processedTokenRanges.end()) {
+                      continue;
+                   }
                 }
                 
                 executeQueryForTokenrangeIfNeeded(
                     query, queryId, cassandraInfo, tokenrange);
+                processedTokenRanges.push_back(tokenrange);
                 cassandra->insertPendingTokenRange(queryId, ip, &tokenrange);
             }
   
