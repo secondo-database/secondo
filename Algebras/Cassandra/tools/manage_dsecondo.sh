@@ -228,7 +228,7 @@ upgrade() {
       echo "Upgrading drivers on Node $node"
       rsync --progress -l -H -p -o -g -D -t -r  -e "ssh" ${DSECONDO_DIR}/driver/ $node:${DSECONDO_QPN_DIR}/driver > /dev/null
       echo "Upgrading QPN-SECONDO on Node $node"
-      rsync --progress -l -H -p -o -g -D -t -r  -e "ssh" ${DSECONDO_DIR}/secondo/ $node:${DSECONDO_QPN_DIR}/secondo > /dev/null
+      rsync --progress -l -H -p -o -g -D -t -r --files-from=${DSECONDO_DIR}/secondo/Algebras/Cassandra/tools/qpnfiles -e "ssh" ${DSECONDO_DIR}/secondo/ $node:${DSECONDO_QPN_DIR}/secondo > /dev/null
    done
 }
 
