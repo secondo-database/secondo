@@ -176,6 +176,7 @@ FixedMRegion getResult();
 private:
 
   vector<FMRObservation> observations;
+  bool isValid;
   FixedMRegion result;
   
   double angle_init;

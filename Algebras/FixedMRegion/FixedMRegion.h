@@ -12,6 +12,7 @@ This class is a FixedMRegion.
 #include <assert.h>
 #include "Secondo_Include.h"
 #include "MovingRegionAlgebra.h"
+#include "MovingRegion3Algebra.h"
 #include "LATransform.h"
 #include "FixedMRegiontest.h"
 #include "MMove.h"
@@ -346,14 +347,16 @@ This method will return a Point3 with the moving values x, y and alpha for the
 given double with time t.
 
 */
-Point3 getMovingForTimeFromMMove (const double t) const;
+Point3 getMovingForTimeFromMMove (const double t, const bool noLimits=false)
+const;
 
 /*
 This method will return a Point3 with the moving values x, y and alpha for the given 
 DateTime t.
 
 */
-Point3 getMovingForTimeFromMMove (const DateTime t) const;
+Point3 getMovingForTimeFromMMove (const DateTime t, const bool noLimits=false)
+const;
 
 /*
 This method returns the start time of the valid interval as an double

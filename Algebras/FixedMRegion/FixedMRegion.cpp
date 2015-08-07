@@ -208,9 +208,10 @@ This method will return a Point3 with the moving values x, y and alpha for the
 given double with time t.
 
 */
-Point3 FixedMRegion::getMovingForTimeFromMMove(const double t) const{
+Point3 FixedMRegion::getMovingForTimeFromMMove(const double t, 
+const bool noLimits) const{
   DateTime t2(t);
-  return getMovingForTimeFromMMove(t2);
+  return getMovingForTimeFromMMove(t2, noLimits);
 }
 
 /*
@@ -218,10 +219,11 @@ This method will return a Point3 with the moving values x, y and alpha for the g
 DateTime t.
 
 */
-Point3 FixedMRegion::getMovingForTimeFromMMove (const DateTime t) const{
-  Intime < Point3 > tp;
-  m.AtInstant (t, tp);
-  return tp.value;
+Point3 FixedMRegion::getMovingForTimeFromMMove (const DateTime t, 
+const bool noLimits) const{
+  Point3 tp(0);
+  m.TemporalFunction(t, tp, noLimits);
+  return tp;
 }
 
 /*
@@ -244,7 +246,7 @@ to the movement of the FixedMRegion for time t and returns it.
 */
 void FixedMRegion::getInv(const double t, const Point & p, Point & result) 
 const{
-  Point3 coord = getMovingForTimeFromMMove(t);
+  Point3 coord = getMovingForTimeFromMMove(t, true);
   LATransform lt (coord.GetX(), coord.GetY(), xm, ym, coord.GetAlpha());
   double tmpx = lt.getOrigX (p.GetX (), p.GetY ());
   double tmpy = lt.getOrigY (p.GetX (), p.GetY ());
@@ -287,30 +289,44 @@ MPoint FixedMRegion::approxMovement(const MPoint & p) const{
   MPoint res (0);
   res.StartBulkLoad ();
   for (unsigned int i = 0; i < rp.Size(); i++) {
-    Interval<Instant> iv;
+    Interval<Instant> iv(0);
     int urPos;
     int upPos;
     rp.Get(i, iv, urPos, upPos);
     double ta = iv.start.ToDouble();
     double te = iv.end.ToDouble();
-    int steps = calcStepWith(ta, te);
-    DateTime to (ta);
-    Intime < Point > tpo;
-    p.AtInstant (to, tpo);
-    Point po(0);
-    getInv(ta, tpo.value, po);
-    for (int i=1; i<=steps; i++) {
-      double now=((te-ta)/steps)*i+ta;
-      DateTime tn(now);
-      Intime < Point > tp;
-      p.AtInstant (tn, tp);
-      Point pn(0);
-      getInv(now, tp.value, pn);
-      Interval < Instant > in (to, tn, true, false);
-      UPoint up (in, po, pn);
-      res.MergeAdd (up);
-      to = tn;
-      po = pn;
+    Instant ti((te+ta)/2);
+    //Instant ti(iv.start);
+    Intime <Point> tpa(0);
+    p.AtInstant(ti, tpa);
+    Intime <Point3> tpb(0);
+    m.AtInstant(ti, tpb);
+    cout << "ti: " << ti << "\n";
+    cout << "tpa: " << tpa << "\n";
+    cout << "tpb: " << tpb << "\n";
+    if (tpa.IsDefined() && tpb.IsDefined()) {
+      int steps = calcStepWith(ta, te);
+      DateTime to (iv.start);
+      Point tpo(0);
+      p.TemporalFunction (to, tpo, true);
+      Point po(0);
+      getInv(ta, tpo, po);
+      cout << "tpo: "<<tpo << ", " << tpo.IsDefined() <<"\n";
+      cout << "po: "<<po << ", " << po.IsDefined() <<"\n";
+      for (int i=1; i<=steps; i++) {
+        double now=((te-ta)/steps)*i+ta;
+        DateTime tn(now);
+        Point tp(0);
+        p.TemporalFunction(tn, tp, true);
+        Point pn(0);
+        getInv(now, tp, pn);
+        Interval < Instant > in (to, tn, true, false);
+        UPoint up (in, po, pn);
+        cout << "Adding UPoint "<<up <<"\n";
+        res.MergeAdd (up);
+        to = tn;
+        po = pn;
+      }
     }
   }
   res.EndBulkLoad();
@@ -321,20 +337,19 @@ MPoint FixedMRegion::approxMovement(const MPoint & p) const{
 This method creates a non moving MRegion.
 
 */
+
 MRegion *FixedMRegion::buildMovingRegion(){
   MRegion *mr;
-  Region r(0);
-  atinstant (getMMoveStart(0.0), r);
   MPoint rock (0);
   rock.Clear ();
   rock.StartBulkLoad ();
-  DateTime t1 (instanttype);
-  t1.Set (0, 1, 1, 0, 0);
-  DateTime t2 (instanttype);
-  t2.Set (3999, 12, 31, 23, 59);
-  Interval < Instant > iv (t1, t2, false, true);
-  UPoint ub (iv, 0, 0, 0, 0);
-  rock.MergeAdd (ub);
+  for (unsigned int i=0; i< m.GetNoComponents(); i++) {
+    UMove um(0);
+    m.Get(i, um);
+    Interval<Instant> iv=um.getTimeInterval();
+    UPoint ub (iv, 0, 0, 0, 0);
+    rock.MergeAdd (ub);
+  }
   rock.EndBulkLoad ();
   mr = new MRegion (rock, r);
   return mr;
@@ -353,7 +368,7 @@ MBool FixedMRegion::joinBools(const MBool a) const{
   res.StartBulkLoad();
   bool start=true;
   int i=0;   
-  UBool up;
+  UBool up(0);
   a.Get(i, up);
   DateTime t_start = up.getTimeInterval().start;
   DateTime t_end = up.getTimeInterval().end;
@@ -393,11 +408,51 @@ and false for all other times.
 
 */
 MBool FixedMRegion::inside (const MPoint & mp){
+
   MRegion * rfix = buildMovingRegion ();
   MPoint tmp = approxMovement(mp);
+  cout << "Input: " << tmp << "\n";
+  cout << "Region: " << r << "\n" << r.IsDefined() << "\n";
   MBool res (0);
-  rfix->Inside (tmp, res);
+  try {
+    rfix->Inside (tmp, res);
+  } catch (invalid_argument &e) {
+    cerr << "Calculation aborted due to errors in MovingRegion::inside\n";
+    res.SetDefined(false);
+  }
   delete rfix;
+
+
+//  MPoint tmp(approxMovement(mp));
+//  MPoint tmp2(0);
+//  cout << "Input: " << tmp << "\n";
+//  cout << "Region: " << r << "\n" << r.IsDefined() << "\n";
+//  tmp.AtRegion(&r, tmp2);
+//  cout << "Output MPoint: " << tmp2 << "\n";
+//  MBool res(0);
+//  RefinementPartition<MPoint,MPoint,UPoint,UPoint> rp(mp, tmp2);
+//  res.StartBulkLoad();
+//  for (unsigned int i = 0; i < rp.Size(); i++) {
+//    Interval<Instant> iv;
+//    int urPos;
+//    int upPos;
+//    rp.Get(i, iv, urPos, upPos);
+//    double ta = iv.start.ToDouble();
+//    double te = iv.end.ToDouble();
+//    Instant ti((te+ta)/2);
+//    Instant ti(iv.start);
+//    Intime <Point> tpa(0);
+//    tmp2.AtInstant(ti, tpa);
+//    printf("%s\n", (tpa.IsDefined())?"ja":"nein");
+//    UBool ube (iv, CcBool(true, tpa.IsDefined()));
+//    res.MergeAdd (ube);
+//  }
+//  res.EndBulkLoad();
+  
+  if (!res.IsDefined()) {
+    return res;
+  }
+  cout << res << "\n";
   MBool result = joinBools(res);
   printf("Inside: \n");
   cout << result << "\n";
@@ -413,6 +468,9 @@ inside the FixedMRegion.
 */
 MPoint FixedMRegion::intersection(const MPoint & mp){
   MBool parts = inside(mp);
+  if (!parts.IsDefined()) {
+    return MPoint(false);
+  }
   MPoint result(0);
   result.Clear();
   result.StartBulkLoad();
@@ -1039,20 +1097,23 @@ This method copies all internal information from another FixedMRegion.
 */
 void FixedMRegion::CopyFrom(const Attribute* x){
   FixedMRegion *other=(FixedMRegion*)x;
-  m.CopyFrom(&(other->m));
-  l=other->l;
-  r.CopyFrom(&(other->r));
-  t=other->t;
-  xm=other->xm;
-  ym=other->ym;
+  SetDefined(other->IsDefined());
+  if (IsDefined()) {
+    m.CopyFrom(&(other->m));
+    l=other->l;
+    r.CopyFrom(&(other->r));
+    t=other->t;
+    xm=other->xm;
+    ym=other->ym;
+  }
 }
 
 /*
 This method implements the NumOfFLOBs functionality.
 
 */
-int FixedMRegion::NumOfFLOBs() const{
-  return 1;
+int FixedMRegion::NumOfFLOBs() const {
+  return r.NumOfFLOBs()+m.NumOfFLOBs();
 }
 
 /*
@@ -1060,8 +1121,10 @@ This method implements the GetFLOB functionality.
 
 */
 Flob* FixedMRegion::GetFLOB(const int i) {
-  assert(i == 0);
-  return r.GetFLOB(0); 
+  assert(i < r.NumOfFLOBs()+m.NumOfFLOBs());
+  if (i<r.NumOfFLOBs())
+    return r.GetFLOB(i); 
+  return m.GetFLOB(i-r.NumOfFLOBs());
 }
 
 /*

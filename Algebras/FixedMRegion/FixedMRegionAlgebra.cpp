@@ -542,7 +542,7 @@ This is the create function.
 */
 Word CreateFixedMRegion(const ListExpr typeInfo){
   Word w;
-  w.addr = (new FixedMRegion());
+  w.addr = (new FixedMRegion(0));
   return w;
 }
 
@@ -682,6 +682,128 @@ Operator testoperatoraOp ("testoperatora",
                           testoperatoraVM,
                           Operator::SimpleSelect, testoperatoraTM);
 
+/*
+This is the type mapping function.
+
+*/
+ListExpr tripstommoveTM (ListExpr args){
+  string err = "one mpoint is expected";
+  if (!nl->HasLength (args, 1)){
+    return listutils::typeError (err + " (wrong number of arguments)");  
+  }
+  if(!MPoint::checkType(nl->First(args))){
+    return listutils::typeError("MPoint expected");
+  }
+  return listutils::basicSymbol<MMove>();
+}
+
+/*
+This is the value mapping function.
+
+*/
+int tripstommoveVM (Word * args, Word & result, int message,
+Word & local, Supplier s){
+  result = qp->ResultStorage (s);
+  MMove *res = (MMove *) result.addr;
+  MPoint* mp = (MPoint*) args[0].addr;
+  res->SetDefined(mp->IsDefined());
+  if (!mp->IsDefined())
+    return 0;
+  res->StartBulkLoad();
+  int le = mp->Length();
+  double angle1=(std::rand()%4096)*M_PI/1024-2*M_PI;
+  for(int i=0; i<le; i++){
+    UPoint utmp1(0);
+    mp->Get(i, utmp1);
+    double angle2=(std::rand()%4096)*M_PI/1024-2*M_PI;
+    Point3 p1 = Point3(true, utmp1.p0.GetX(),utmp1.p0.GetY(),angle1);
+    Point3 p2 = Point3(true, utmp1.p1.GetX(),utmp1.p1.GetY(),angle2);
+    UMove u01point = UMove(utmp1.getTimeInterval(), p1, p2);
+    res->MergeAdd(u01point);
+    angle1=angle2;
+  }
+  res->EndBulkLoad();
+  return 0;
+}
+
+/*
+This is the operator specification function.
+
+*/
+OperatorSpec tripstommoveSpec ("mpoint -> mmove",
+            "tripstommove(_)",
+            "Computes mmove from mpoint.",
+            "query tripstommove(mpoint)");
+
+/*
+This is the operator function.
+
+*/
+Operator tripstommoveOp ("tripstommove",
+                          tripstommoveSpec.getStr (),
+                          tripstommoveVM,
+                          Operator::SimpleSelect, tripstommoveTM);
+
+
+/*
+This is the type mapping function.
+
+*/
+ListExpr makefmrTM (ListExpr args){
+  string err = "one regin and one mpoint are expected";
+  if (!nl->HasLength (args, 3)){
+    return listutils::typeError (err + " (wrong number of arguments)");  
+  }
+  if(!Region::checkType(nl->First(args))){
+    return listutils::typeError("Region expected");
+  }
+  if(!MMove::checkType(nl->Second(args))){
+    return listutils::typeError("MMove expected");
+  }
+  if(!Point::checkType(nl->Third(args))){
+    return listutils::typeError("Point expected");
+  }
+  return listutils::basicSymbol<FixedMRegion>();
+}
+
+/*
+This is the value mapping function.
+
+*/
+int makefmrVM (Word * args, Word & result, int message,
+Word & local, Supplier s){
+  result = qp->ResultStorage (s);
+  FixedMRegion *res = (FixedMRegion *) result.addr;
+  Region* r = (Region*) args[0].addr;
+  MMove* mm = (MMove*) args[1].addr;
+  Point* p = (Point*) args[2].addr;
+  if ((!r->IsDefined()) &&
+      (!mm->IsDefined()) &&
+      (!p->IsDefined()))
+    return 0;
+  
+  FixedMRegion tmp(*r, *mm, *p, 0);
+  *res=tmp;
+  return 0;
+}
+
+/*
+This is the operator specification function.
+
+*/
+OperatorSpec makefmrSpec ("region x mmove x point -> fixedmregion",
+            "makefmr(_,_,_)",
+            "Computes fixedmregion from region, mmove and point.",
+            "query makefmr(region,mmove,point)");
+
+/*
+This is the operator function.
+
+*/
+Operator makefmrOp ("makefmr",
+                          makefmrSpec.getStr (),
+                          makefmrVM,
+                          Operator::SimpleSelect, makefmrTM);
 
 /*
 This is the type mapping function.
@@ -709,16 +831,18 @@ This is the value mapping function.
 */
 int AtInstantVM(Word* args, Word& result, int message,
 Word& local, Supplier s){
+  result=qp->ResultStorage(s);
   FixedMRegion* fmr = (FixedMRegion*) args[0].addr;
-  double* d = (double*) args[1].addr;
-  double e = *d;
-  Region r(0);
-  fmr->atinstant(e, r);
+  Instant* d = (Instant*) args[1].addr;
+  Region *res=(Region*) result.addr;
   
-  result = qp->ResultStorage(s);
-  Region* res  __attribute__ ((unused))= (Region*) result.addr;
-  res = &r;
-  return 0;  
+  if (!fmr->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+
+  fmr->atinstant(d->ToDouble(), *res);
+  return 0;
 }
 
 /*
@@ -780,11 +904,9 @@ Word& local, Supplier s){
   double t_start = *d;
   double* e = (double*) args[2].addr;
   double t_end = *e;
-  Region r(0);
-  fmr->traversedNew(r, t_start, t_end);
   result = qp->ResultStorage(s);
-  Region* res  __attribute__ ((unused))= (Region*) result.addr;
-  res = &r;
+  Region* res  = (Region*) result.addr;
+  fmr->traversedNew(*res, t_start, t_end);
   return 0;  
 }
 
@@ -820,10 +942,10 @@ ListExpr fmr_InsideTM(ListExpr args){
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
-  if(!FixedMRegion::checkType(nl->First(args))){
+  if(!MPoint::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
-  if(!MPoint::checkType(nl->Second(args))){
+  if(!FixedMRegion::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
   return listutils::basicSymbol<MBool>();
@@ -835,8 +957,9 @@ This is the value mapping function.
 */
 int fmr_InsideVM(Word* args, Word& result, int message,
 Word& local, Supplier s){
-  FixedMRegion* fmr = (FixedMRegion*) args[0].addr;
-  MPoint* d = (MPoint*) args[1].addr;
+  result=qp->ResultStorage(s);
+  FixedMRegion* fmr = (FixedMRegion*) args[1].addr;
+  MPoint* d = (MPoint*) args[0].addr;
   MBool *res=(MBool*) result.addr;
   
   if ((!fmr->IsDefined()) ||
@@ -844,8 +967,8 @@ Word& local, Supplier s){
     res->SetDefined(false);
     return 0;
   }
-
-  *res = fmr->inside(*d);
+  MBool rx=fmr->inside(*d);
+  res->CopyFrom(&rx);
   return 0;  
 }
 
@@ -881,10 +1004,10 @@ ListExpr IntersectionTM(ListExpr args){
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
-  if(!FixedMRegion::checkType(nl->First(args))){
+  if(!MPoint::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
-  if(!MPoint::checkType(nl->Second(args))){
+  if(!FixedMRegion::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
   return listutils::basicSymbol<MPoint>();
@@ -896,14 +1019,19 @@ This is the value mapping function.
 */
 int IntersectionVM(Word* args, Word& result, int message,
 Word& local, Supplier s){
-  FixedMRegion* fmr = (FixedMRegion*) args[0].addr;
-  MPoint* d = (MPoint*) args[1].addr;
-  MPoint r(0);
-  r = fmr->intersection(*d);
-  result = qp->ResultStorage(s);
-  MPoint* res  __attribute__ ((unused))= (MPoint*) result.addr;
-  res = &r;
-  return 0;
+  result=qp->ResultStorage(s);
+  FixedMRegion* fmr = (FixedMRegion*) args[1].addr;
+  MPoint* d = (MPoint*) args[0].addr;
+  MPoint *res=(MPoint*) result.addr;
+  
+  if ((!fmr->IsDefined()) ||
+      (!d->IsDefined())) {
+    res->SetDefined(false);
+    return 0;
+  }
+
+  *res = fmr->intersection(*d);
+  return 0;  
 }
 
 /*
@@ -963,7 +1091,8 @@ Word& local, Supplier s){
       qp->Request(args[0].addr, tuple);
       if(qp->Received(args[0].addr)){
         IRegion* ir = (IRegion*) tuple.addr;
-        fmri->addObservation(*ir);
+        if (ir->IsDefined()) 
+          fmri->addObservation(*ir);
       }
       return CANCEL;
     case CLOSE:
@@ -1030,6 +1159,8 @@ This is the constructor.
     FixedMRegionTC.AssociateKind(Kind::DATA());
 
     AddOperator(&testoperatoraOp);
+    AddOperator(&tripstommoveOp);
+    AddOperator(&makefmrOp);
     AddOperator(&AtInstantOp);
     AddOperator(&TraversedOp);
     AddOperator(&fmr_InsideOp);

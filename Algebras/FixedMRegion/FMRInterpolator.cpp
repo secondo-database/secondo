@@ -10,7 +10,7 @@ This is a constructor who expects a reference Region and the rotational center.
 
 */
 FMRInterpolator::FMRInterpolator(const Region* _refRegion,
-const Point* _rotCenter): refRegion(0){
+const Point* _rotCenter): refRegion(0), isValid(false) {
   if(_refRegion!=NULL){
     setReferenceRegion(*_refRegion, *_rotCenter);
   }else{
@@ -25,6 +25,7 @@ this start method and finish with end.
 */
 void FMRInterpolator::start() {
   observations.clear();
+  isValid=true;
 }
 
 /*
@@ -33,6 +34,10 @@ before calling this end method to finish.
 
 */
 void FMRInterpolator::end() {
+  if ((observations.size()<2) || (!isValid)) {
+    result=FixedMRegion(0);
+    return;
+  }
   std::sort(observations.begin(), observations.end());
   calcFinalAngles();
   MMove mym(createMMove());

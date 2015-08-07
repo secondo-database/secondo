@@ -1331,26 +1331,26 @@ This is the only test method and contains all tests.
 void
 runTestMethod ()
 {
-  testLATransform();
-  testRegion();
-  testRegionCompare();
-  testatinstantNoMove();
+//  testLATransform();
+//  testRegion();
+//  testRegionCompare();
+//  testatinstantNoMove();
 //  testatinstantLinearMove(); //FIXME
-  testatinstantRotate();
-  testMBool();
-  testQuatro();
-  testCycle();
+//  testatinstantRotate();
+//  testMBool();
+//  testQuatro();
+//  testCycle();
 //  testTriangleQuatro(); //DEPRECATED
-  testUnion();
-  runTestTraversedMethod();
-  runTestMoveMethod();
-  testconcaveQuadruple();
-  testMPoint();
-  testLATransformInv ();
-  runTestInterpolateMethod();
-  testTraversedComponents();
+//  testUnion();
+//  runTestTraversedMethod();
+//  runTestMoveMethod();
+//  testconcaveQuadruple();
+//  testMPoint();
+//  testLATransformInv ();
+//  runTestInterpolateMethod();
+//  testTraversedComponents();
   runtestInsideIntersection();
-  testskeleton();
-  testOutFixedMRegion();
+//  testskeleton();
+//  testOutFixedMRegion();
 
 }

@@ -55,8 +55,7 @@ void testInside1()
       up.getTimeInterval().end.ToDouble());
       cout << up.constValue << "\n";
     }
-  }
-  
+  }  
 }
 
 void testInside2()
@@ -76,8 +75,8 @@ void testInside2()
   MPoint res (0);
   res.Clear();
   res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
-  UPoint ub (iv, 0, -0.5, 2, -1.5);
+  Interval < Instant > iv (t_start, t_end, true, true);
+  UPoint ub (iv, 0, -0.6, 2, -1.4);
   res.MergeAdd (ub);
   res.EndBulkLoad ();
 
@@ -120,7 +119,7 @@ void testInside3()
   MPoint res (0);
   res.Clear();
   res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
+  Interval < Instant > iv (t_start, t_end, true, true);
   UPoint ub (iv, 0, 0.5, 1.0, 1.5);
   res.MergeAdd (ub);
   res.EndBulkLoad ();
@@ -128,7 +127,7 @@ void testInside3()
   MBool expected (0);
   expected.Clear();
   expected.StartBulkLoad();
-  Interval < Instant > ive (t_start, t_end, false, true);
+  Interval < Instant > ive (t_start, t_end, true, true);
   UBool ube (ive, (CcBool) true);
   expected.MergeAdd (ube);
   expected.EndBulkLoad ();
@@ -171,7 +170,7 @@ void testInside4()
   t1.Set (2015, 3, 30, 8, 01);
   DateTime t2 (instanttype);
   t2.Set (2015, 3, 30, 9, 00);
-  Interval < Instant > iv (t1, t2, false, true);
+  Interval < Instant > iv (t1, t2, true, true);
   UPoint ub (iv, 0, 0.5, 1, 1.5);
   res.MergeAdd (ub);
 
@@ -235,7 +234,7 @@ void testIntersection1()
   MPoint res (0);
   res.Clear();
   res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
+  Interval < Instant > iv (t_start, t_end, true, true);
   UPoint ub (iv, 0, 1, 0, 0);
   res.MergeAdd (ub);
   res.EndBulkLoad ();
@@ -282,7 +281,7 @@ void testIntersection2()
   MPoint res (0);
   res.Clear();
   res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
+  Interval < Instant > iv (t_start, t_end, true, true);
   UPoint ub (iv, 0, -0.5, 1, -1.5);
   res.MergeAdd (ub);
   res.EndBulkLoad ();
@@ -327,7 +326,7 @@ void testIntersection3()
   
   res.Clear();
   res.StartBulkLoad();
-  Interval < Instant > iv (t_start, t_end, false, true);
+  Interval < Instant > iv (t_start, t_end, true, true);
   UPoint ub (iv, 0, 0.5, 1, 1.5);
   res.MergeAdd (ub);
   res.EndBulkLoad ();
@@ -381,7 +380,7 @@ void testIntersection4()
   t1.Set (2015, 3, 30, 8, 01);
   DateTime t2 (instanttype);
   t2.Set (2015, 3, 30, 9, 00);
-  Interval < Instant > iv (t1, t2, false, true);
+  Interval < Instant > iv (t1, t2, true, true);
   UPoint ub (iv, 0, 0.5, 1, 1.5);
   res->MergeAdd (ub);
 

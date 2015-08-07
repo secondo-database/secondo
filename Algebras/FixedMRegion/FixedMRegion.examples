@@ -1,4 +1,4 @@
-Database: berlintest
+Database: fmrdb
 Restore : No
 
 Operator : =
@@ -41,4 +41,16 @@ Operator : interpolate
 Number   : 1
 Signature: (region* ) -> fixedmregion
 Example  : query val(interpolate(thecenter))
+Result   : file
+
+Operator : tripstommove
+Number   : 1
+Signature: mpoint -> mmove
+Example  : query tripstommove(train7)
+Result   : file
+
+Operator : makefmr
+Number   : 1
+Signature: region x mmove x point -> fixedmregion
+Example  : query makefmr(thecenter,mmo,[const  pstpoint value(1.2 1.4)])
 Result   : file
