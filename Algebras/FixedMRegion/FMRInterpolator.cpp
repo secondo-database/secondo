@@ -10,7 +10,7 @@ This is a constructor who expects a reference Region and the rotational center.
 
 */
 FMRInterpolator::FMRInterpolator(const Region* _refRegion,
-const Point* _rotCenter): refRegion(0), isValid(false) {
+const Point* _rotCenter): result(0), refRegion(0), isValid(false) {
   if(_refRegion!=NULL){
     setReferenceRegion(*_refRegion, *_rotCenter);
   }else{
@@ -51,6 +51,9 @@ and the end method to finish.
 
 */
 void FMRInterpolator::addObservation(const IRegion& obs) {
+  ListExpr n=OutIntime<Region, OutRegion>(nl->TheEmptyList(), 
+  SetWord(Address(&obs)));
+  cout <<"IRegion:\n" << nl->ToString(n) << "\n";
   const Region& reg=obs.value;
   const Instant& ins=obs.instant;
   Point translation=calcMasspoint(getSortedList(reg));
@@ -64,7 +67,11 @@ void FMRInterpolator::addObservation(const IRegion& obs) {
   Point mp=calcMasspoint(getSortedList(refRegion));
   Point corr(true, l.getImgX(mp.GetX(), mp.GetY()),
                    l.getImgY(mp.GetX(), mp.GetY()));
-  observations.push_back(FMRObservation(translation-corr, angle, ins));
+  vector<PointStore> tmp=calcRefVector(reg);
+  bool obsvalid=checkRegion(tmp, angle);
+  printf("Observation added, result: %s\n", (obsvalid)?"Gülig":"Ungültig");
+  if (obsvalid) 
+    observations.push_back(FMRObservation(translation-corr, angle, ins));
 }
  
 /*
@@ -122,6 +129,85 @@ Point FMRInterpolator::calcMasspoint(const vector<Point> & a) const{
 }
 
 /*
+This method calculates a list of all regionpoints, sorted bei their angle and
+distance to the masspoint.
+
+*/
+vector<PointStore> FMRInterpolator::calcRefVector(const Region& r) const {
+  vector<PointStore> res(0);
+  vector<HalfSegment> a = FixedMRegion::getHSFromRegion(r);
+  vector<Point> tmp(0);
+  createPointList(a, tmp);
+  Point mass = calcMasspoint(a);
+  for (size_t i=0; i<tmp.size(); i++) {
+    res.push_back(PointStore(tmp[i], mass));
+  }
+  std::sort(tmp.begin(), tmp.end());
+  return res;
+}
+
+/*
+This method will return the sum of the angles alpha and beta and take care of 
+over- and underflows. The result will be between -M\_PI and +M\_PI.
+
+*/
+double FMRInterpolator::addAngles(double alpha, double beta) const {
+  double tmp=alpha+beta;
+  while (tmp>=M_PI)
+    tmp-=2*M_PI;
+  while (tmp<-M_PI)
+    tmp+=2*M_PI;
+  return tmp;
+}
+
+/*
+This method will compare two angles and take care of the limits 
+of -M\_PI and +M\_PI.
+
+*/
+bool FMRInterpolator::AlmostEqualAngles(double alpha, double beta) const {
+  double tmp=addAngles(alpha, -beta);
+  return AlmostEqual(tmp, 0);
+}
+
+/*
+This method will check, if the observation of the region equals the reference region.
+
+*/
+bool FMRInterpolator::checkRegion(const vector<PointStore> & v, 
+                                  double alpha) const {
+  //Fall 1: Anzahl Punkte nicht identisch
+  if (v.size()!=refVector.size()) {
+    return false;
+  }
+  
+  //Verschiebung finden
+  unsigned int i=0;
+  double lDist=refVector[0].getDist();
+  double lAlpha=addAngles(refVector[0].getAlpha(), alpha);
+  while (((!AlmostEqual(v[i].getDist(),lDist)) || 
+         (!AlmostEqualAngles(v[i].getAlpha(),lAlpha))) &&
+         (i<v.size()))
+    i++;
+  //Fall 2: Verschiebung nicht gefunden
+  if (i==v.size()) {
+    return false;
+  }
+  //Fall 3: Vektorvergleich
+  for (unsigned int j=0; j<v.size(); j++) {
+    //Fall 3a: Längen stimmen nicht
+    if (!AlmostEqual(refVector[j].getDist(), v[i].getDist())) {
+      return false;
+    }
+    //Fall 3b: Winkel stimmen nicht
+    if (!AlmostEqualAngles(refVector[j].getAlpha()+alpha, v[i].getAlpha())) {
+      return false;
+    }
+    i=(i+1)%v.size();
+  }
+  return true;
+}
+/*
 This method sets the given object as a reference. The zero point will be the 
 calculated mass point, not the given rotational center.
 
@@ -132,6 +218,7 @@ const Point &masspoint){
   r.Translate(-masspoint.GetX(), -masspoint.GetY(), refRegion);
   determineAngleAlgorithm();
   angle_init=calcThisAngle(refRegion);
+  refVector=calcRefVector(refRegion);
 }
 
 /*
@@ -150,8 +237,7 @@ with false.
 */
 Point FMRInterpolator::calcMaxDistPoint(const Region &r, 
 const Point &masspoint) const{
-  FixedMRegion fmr;
-  vector<HalfSegment> a = fmr.getHSFromRegion(r);
+  vector<HalfSegment> a = FixedMRegion::getHSFromRegion(r);
   HalfSegment hs;
   hs = a[0];
   double maxDist = getDist(hs.GetLeftPoint(), masspoint);
@@ -199,8 +285,7 @@ with false.
 */
 Point FMRInterpolator::calcMinDistPoint(const Region &r, 
 const Point & masspoint) const{
-  FixedMRegion fmr;
-  vector<HalfSegment> a = fmr.getHSFromRegion(r);
+  vector<HalfSegment> a = FixedMRegion::getHSFromRegion(r);
   HalfSegment hs;
   hs = a[0];
   double minDist = getDist(hs.GetLeftPoint(), masspoint);
@@ -292,8 +377,7 @@ This method creates a clockwise sorted list of region points.
 
 */
 vector<Point> FMRInterpolator::getSortedList(const Region &re) const{
-  FixedMRegion fmr;
-  vector<HalfSegment> a = fmr.getHSFromRegion(re);
+  vector<HalfSegment> a = FixedMRegion::getHSFromRegion(re);
   vector<Point> tmp(0);
   createPointList(a, tmp);
   Point mass = calcMasspoint(a);

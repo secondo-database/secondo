@@ -28,7 +28,7 @@ This method creates a MMove with the given values.
 MMove FixedMRegion::createMMove(const double _startX, const double _startY, 
 const double _startangle, const Instant _startt, const double _endX, 
 const double _endY, const double _endangle, const Instant _endt) const{
-  Interval < Instant > iv (_startt, _endt, false, true);
+  Interval < Instant > iv (_startt, _endt, true, true);
   UMove u01param = UMove(iv, _startX, _startY, _startangle, _endX, _endY,
     _endangle);
   MMove res(0);
@@ -813,7 +813,8 @@ vector < HalfSegment > FixedMRegion::getHSFromRegion() const{
 This method extracts a list of halfsegments from the given region.
 
 */
-vector < HalfSegment > FixedMRegion::getHSFromRegion(const Region reg) const{
+//static
+vector < HalfSegment > FixedMRegion::getHSFromRegion(const Region reg) {
   vector < HalfSegment > result;
   for(int i = 0; i < reg.Size(); i++){
     HalfSegment tmp;

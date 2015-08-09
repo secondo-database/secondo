@@ -183,6 +183,7 @@ private:
   int angle_method;
   Region refRegion;//reference region for interpolate
   vector<double> distVector;
+  vector<PointStore> refVector;
 
 /*
 This method calculates the mass point of the given points in the 
@@ -288,6 +289,32 @@ method.
 
 */
 double calcThisAngle(const Region &r) const;
+
+/*
+This method calculates a list of all regionpoints, sorted bei their angle and
+distance to the masspoint.
+
+*/
+vector<PointStore> calcRefVector(const Region & r) const;
+
+/*
+This method will check, if the observation of the region equals the reference region.
+
+*/
+bool checkRegion(const vector<PointStore> & r, double alpha) const;
+
+/*
+This method will return the sum of the angles alpha and beta and take care of 
+over- and underflows. The result will be between -M\_PI and +M\_PI.
+
+*/
+double addAngles(double alpha, double beta) const;
+
+/*
+This method will compare two angles and take care of the limits of -M\_PI and +M\_PI.
+
+*/
+bool AlmostEqualAngles(double alpha, double beta) const;
 
 /*
 This method calculates the final angles. the result will always be the angle

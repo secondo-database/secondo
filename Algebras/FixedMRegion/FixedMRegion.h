@@ -179,7 +179,7 @@ void sett (double _t);
 This method extracts a list of halfsegments from the given region.
 
 */
-vector < HalfSegment > getHSFromRegion(const Region reg) const;
+static vector < HalfSegment > getHSFromRegion(const Region reg);
 
 /*
 Return the name of the Secondo type.

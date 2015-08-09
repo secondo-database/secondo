@@ -91,6 +91,8 @@ This method returns the point..
 
 */
   inline Point getPoint() const { return p;}
+  inline double getDist() const { return dist;}
+  inline double getAlpha() const { return alpha;}
 private:
   Point p;
   double alpha;

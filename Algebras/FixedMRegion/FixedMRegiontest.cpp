@@ -1347,9 +1347,9 @@ runTestMethod ()
 //  testconcaveQuadruple();
 //  testMPoint();
 //  testLATransformInv ();
-//  runTestInterpolateMethod();
+  runTestInterpolateMethod();
 //  testTraversedComponents();
-  runtestInsideIntersection();
+//  runtestInsideIntersection();
 //  testskeleton();
 //  testOutFixedMRegion();
 

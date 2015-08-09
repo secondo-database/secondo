@@ -502,9 +502,9 @@ Word InFixedMRegion(const ListExpr typeInfo, const ListExpr instance,
   mm->DeleteIfAllowed();
   p->DeleteIfAllowed();
   //Anfang testcode
-  printf("%s\n", (fmr->IsDefined())?"true":"false");
-  ListExpr regionNL = OutFixedMRegion(nl->TheEmptyList(), SetWord(fmr));
-  cout <<nl->ToString(regionNL) << "\n";
+  //printf("%s\n", (fmr->IsDefined())?"true":"false");
+  //ListExpr regionNL = OutFixedMRegion(nl->TheEmptyList(), SetWord(fmr));
+  //cout <<nl->ToString(regionNL) << "\n";
   //Ende Textcode
   correct=true;
   return SetWord(fmr);
@@ -750,7 +750,7 @@ This is the type mapping function.
 
 */
 ListExpr makefmrTM (ListExpr args){
-  string err = "one regin and one mpoint are expected";
+  string err = "one region and one mpoint are expected";
   if (!nl->HasLength (args, 3)){
     return listutils::typeError (err + " (wrong number of arguments)");  
   }
@@ -804,6 +804,61 @@ Operator makefmrOp ("makefmr",
                           makefmrSpec.getStr (),
                           makefmrVM,
                           Operator::SimpleSelect, makefmrTM);
+
+/*
+This is the type mapping function.
+
+*/
+ListExpr makeiregionTM (ListExpr args){
+  string err = "one region and one instant are expected";
+  if (!nl->HasLength (args, 2)){
+    return listutils::typeError (err + " (wrong number of arguments)");  
+  }
+  if(!Region::checkType(nl->First(args))){
+    return listutils::typeError("Region expected");
+  }
+  if(!Instant::checkType(nl->Second(args))){
+    return listutils::typeError("instant expected");
+  }
+  return listutils::basicSymbol<FixedMRegion>();
+}
+
+/*
+This is the value mapping function.
+
+*/
+int makeiregionVM (Word * args, Word & result, int message,
+Word & local, Supplier s){
+  result = qp->ResultStorage (s);
+  IRegion *res = (IRegion *) result.addr;
+  Region* r = (Region*) args[0].addr;
+  Instant* i = (Instant*) args[1].addr;
+  if ((!r->IsDefined()) &&
+      (!i->IsDefined()))
+    return 0;
+  res->value.CopyFrom(r);
+  res->instant.CopyFrom(i);
+  res->SetDefined(true);
+  return 0;
+}
+
+/*
+This is the operator specification function.
+
+*/
+OperatorSpec makeiregionSpec ("region x instant -> iregion",
+            "makeiregion(_,_)",
+            "Computes iregion from region and instant.",
+            "query makeiregion(region,instant)");
+
+/*
+This is the operator function.
+
+*/
+Operator makeiregionOp ("makeiregion",
+                          makeiregionSpec.getStr (),
+                          makeiregionVM,
+                          Operator::SimpleSelect, makeiregionTM);
 
 /*
 This is the type mapping function.
@@ -1062,11 +1117,11 @@ This is the type mapping function.
 
 */
 ListExpr InterpolateTM(ListExpr args){
-  string err = "fixedmregion and mpoint are expected";
+  string err = "Stream(IRegion) erwartet";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
-  if(!Region::checkType(nl->First(args))){
+  if(!Stream<IRegion>::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
   return listutils::basicSymbol<FixedMRegion>();
@@ -1078,36 +1133,25 @@ This is the value mapping function.
 */
 int InterpolateVM(Word* args, Word& result, int message,
 Word& local, Supplier s){
-  Word tuple;
-  FMRInterpolator *fmri=(FMRInterpolator*)local.addr;
-  switch(message){
-    case OPEN:
-      qp->Open(args[0].addr);
-      fmri=new FMRInterpolator();
-      fmri->start();
-      local.setAddr(fmri);
-      return 0;
-    case REQUEST:
-      qp->Request(args[0].addr, tuple);
-      if(qp->Received(args[0].addr)){
-        IRegion* ir = (IRegion*) tuple.addr;
-        if (ir->IsDefined()) 
-          fmri->addObservation(*ir);
-      }
-      return CANCEL;
-    case CLOSE:
-      if(local.addr){
-        fmri->end();
-        FixedMRegion r = fmri->getResult();
-        result = qp->ResultStorage(s);
-        FixedMRegion* res = (FixedMRegion*) result.addr;
-        *res = r;
-        delete fmri;
-        local.setAddr(0);
-      }
-      qp->Close(args[0].addr);
-      return YIELD;
+
+  qp->Open(args[0].addr);
+  Stream<IRegion> stream(args[0]);
+  stream.open();
+  
+  FMRInterpolator fmri;
+  fmri.start();
+  
+  IRegion *current=stream.request();
+  while (current!=0) {
+    fmri.addObservation(*current);
+    current->DeleteIfAllowed();
+    current=stream.request();
   }
+  stream.close();
+  fmri.end();
+  result=qp->ResultStorage(s);
+  FixedMRegion *res=(FixedMRegion*)result.addr;
+  *res=fmri.getResult();
   return 0;
 }
 
@@ -1116,10 +1160,10 @@ This is the operator specification function.
 
 */
 OperatorSpec InterpolateSpec(
-"region[] -> fixedmregion",
-"interpolate _",
+"stream(iregion) -> fixedmregion",
+"_ interpolate",
 "Computes the fixedmregion.",
-"query interpolate [region[]]"
+"query b interpolate"
 );
 
 /*
@@ -1161,6 +1205,7 @@ This is the constructor.
     AddOperator(&testoperatoraOp);
     AddOperator(&tripstommoveOp);
     AddOperator(&makefmrOp);
+    AddOperator(&makeiregionOp);
     AddOperator(&AtInstantOp);
     AddOperator(&TraversedOp);
     AddOperator(&fmr_InsideOp);

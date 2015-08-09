@@ -21,4 +21,5 @@
 operator testoperatora alias TESTOPERATORA pattern op (_)
 operator tripstommove alias TRIPSTOMMOVE pattern op (_)
 operator makefmr alias MAKEFMR pattern op (_,_,_)
+operator makeiregion alias MAKEIREGION pattern op (_,_)
 # End FixedMRegionAlgebra.spec

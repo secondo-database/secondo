@@ -423,6 +423,7 @@ void TestInterpolate::testinterpolatetest(){
   fmr.end();
   FixedMRegion res11 = fmr.getResult();
   
+  cout << "Resultat: " << res11 << "\\n";
   //FIXME: Erwartungswert?
   
   /*printf ("%s\n", (res == e) ? "OK" : "FAILED");
@@ -566,12 +567,41 @@ void TestInterpolate::testcreateMMove(){
   }
 }
 
+ListExpr OutFixedMRegion(ListExpr typeInfo, Word value);
+
+void createTestFMR() {
+  cout << "testFMR\n";
+  vector<Point> a(0);
+  a.push_back(Point(true,0,10));
+  a.push_back(Point(true,3,6));
+  a.push_back(Point(true,3,-10));
+  a.push_back(Point(true,-3,-10));
+  a.push_back(Point(true,-3,6));
+  a.push_back(Point(true,0,10));
+  vector<vector<Point> > b(0);
+  b.push_back(a);
+  Region * tmpRegion=buildRegion2(b);
+  FixedMRegion r(0, 20, 0, *tmpRegion, 0, 0, 0, 0, 0, -M_PI/2);
+  ListExpr n=OutFixedMRegion(nl->TheEmptyList(), SetWord(&r));
+  cout << "FMR: " << nl->ToString(n) << "\n";
+  cout << "IRegions:\n(";
+  for (double t=0; t<1.05; t+=0.1) {
+    Region res(0);
+    r.atinstant(t, res);
+    IRegion res2(Instant(t), res);
+    n=OutIntime<Region, OutRegion>(nl->TheEmptyList(), SetWord(&res2));
+    cout << "(" <<nl->ToString(n) << ")";
+  }
+  cout << ")\n";
+}
+
 /*
 This is the only test method and contains all tests.
 
 */
 void runTestInterpolateMethod(){
   printf ("testInterpolateMethods: \n");
+/*
   testPointStore();
   TestInterpolate t ;
   t.testcalcMasspoint();
@@ -594,4 +624,6 @@ void runTestInterpolateMethod(){
   //FIXME
   t.testcalculateAngleToXAxis();
   t.testinterpolatetest();
+  */
+  createTestFMR();
 }

@@ -39,8 +39,8 @@ Result   : file
 
 Operator : interpolate
 Number   : 1
-Signature: (region* ) -> fixedmregion
-Example  : query val(interpolate(thecenter))
+Signature: ((stream iregion)) -> fixedmregion
+Example  : query observations feed transformstream interpolate
 Result   : file
 
 Operator : tripstommove
@@ -53,4 +53,10 @@ Operator : makefmr
 Number   : 1
 Signature: region x mmove x point -> fixedmregion
 Example  : query makefmr(thecenter,mmo,[const  pstpoint value(1.2 1.4)])
+Result   : file
+
+Operator : makeiregion
+Number   : 1
+Signature: region x instant -> iregion
+Example  : query makeiregion(thecenter,six30)
 Result   : file
