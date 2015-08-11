@@ -259,8 +259,15 @@ install_driver() {
       cd cpp-driver
       wget https://raw.githubusercontent.com/jnidzwetzki/misc/master/cpp-driver/0001-Added-single-node-loadbalancing.patch 
       git am < 0001-Added-single-node-loadbalancing.patch  
-      export LIBUV_ROOT_DIR=${DSECONDO_DIR}/driver/libuv
+      
+      # Fix for LIBUV detection, the first cmake call fails, 
+      # the second is successful. If you remove the first
+      # call, the second will fail.
+      export LIBUV_ROOT_DIR=${DSECONDO_DIR}/driver/libuv/.libs
       cmake .
+      export LIBUV_ROOT_DIR=${DSECONDO_DIR}/driver/libuv/
+      cmake .
+
       make
       cd ..
    fi
