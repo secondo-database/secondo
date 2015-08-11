@@ -13,13 +13,13 @@ import com.android.volley.toolbox.Volley;
 public class SecondoRequestQueue {
 
     private static SecondoRequestQueue instance;
-        private static Context ctx;
-        private RequestQueue requestQueue;
+    private static Context ctx;
+    private RequestQueue requestQueue;
 
-        private SecondoRequestQueue(Context context) {
-            ctx = context;
-            requestQueue = getRequestQueue();
-        }
+    private SecondoRequestQueue(Context context) {
+        ctx = context;
+        requestQueue = getRequestQueue();
+    }
 
     public static synchronized SecondoRequestQueue getInstance(Context context) {
         if (instance == null) {

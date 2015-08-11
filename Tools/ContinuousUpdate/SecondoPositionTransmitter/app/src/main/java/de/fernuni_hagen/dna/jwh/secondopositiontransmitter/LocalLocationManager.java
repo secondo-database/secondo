@@ -21,7 +21,7 @@ public class LocalLocationManager {
     private LocationInfo currentLocationInfo;
 
 
-    public LocalLocationManager(Context ctx, Integer updateRate){
+    public LocalLocationManager(Context ctx, Integer updateRate) {
         this.ctx = ctx;
         this.updateRate = updateRate;
         this.currentLocationInfo = new LocationInfo();
@@ -61,16 +61,16 @@ public class LocalLocationManager {
 
     private synchronized void handleNewLocation(Location location) {
         Log.i(this.getClass().getSimpleName(), "Location Update Received");
-        if(isBetterLocation(location, bestLocation)){
-            Log.d(getClass().getSimpleName(),"Location is better");
+        if (isBetterLocation(location, bestLocation)) {
+            Log.d(getClass().getSimpleName(), "Location is better");
             bestLocation = location;
-        }else{
-            Log.d(getClass().getSimpleName(),"Location is not better");
+        } else {
+            Log.d(getClass().getSimpleName(), "Location is not better");
         }
-        if(currentLocationInfo.start == null){
+        if (currentLocationInfo.start == null) {
             currentLocationInfo.start = bestLocation;
             currentLocationInfo.end = bestLocation;
-        }else{
+        } else {
             currentLocationInfo.end = bestLocation;
         }
     }
@@ -113,7 +113,9 @@ public class LocalLocationManager {
         return false;
     }
 
-    /** Checks if the two providers are the same */
+    /**
+     * Checks if the two providers are the same
+     */
     private boolean isSameProvider(String provider1, String provider2) {
         if (provider1 == null || provider2 == null) {
             return false;
@@ -123,24 +125,43 @@ public class LocalLocationManager {
 
 
     public synchronized LocationInfo getCurrentLocationInfo() {
-        LocationInfo info = currentLocationInfo;
+        LocationInfo info = new LocationInfo(currentLocationInfo);
         currentLocationInfo = new LocationInfo();
         currentLocationInfo.start = info.end;
-        currentLocationInfo.end = info.end;
         return info;
     }
 
     public boolean significantMovement() {
-        if(currentLocationInfo == null || currentLocationInfo.start == null || currentLocationInfo.start.distanceTo(currentLocationInfo.end) < significantDistance){
-            return false;
-        }else{
+        if(movementAvailable() && currentLocationInfo.start.distanceTo(currentLocationInfo.end) >= significantDistance){
             return true;
+        }else{
+            return false;
         }
     }
 
+    public boolean movementAvailable(){
+        return (currentLocationInfo != null && currentLocationInfo.start != null &&  currentLocationInfo.end != null && currentLocationInfo.start.getTime() < currentLocationInfo.end.getTime());
+    }
 
-    public class LocationInfo{
+
+    public class LocationInfo {
         public Location start;
         public Location end;
+
+        LocationInfo(LocationInfo newInfo) {
+            super();
+            if (newInfo != null) {
+                if (newInfo.start != null) {
+                    this.start = new Location(newInfo.start);
+                }
+                if (newInfo.end != null) {
+                    this.end = new Location(newInfo.end);
+                }
+            }
+        }
+
+        LocationInfo() {
+            super();
+        }
     }
 }
