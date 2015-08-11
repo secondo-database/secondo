@@ -259,7 +259,7 @@ install_driver() {
       cd cpp-driver
       wget https://raw.githubusercontent.com/jnidzwetzki/misc/master/cpp-driver/0001-Added-single-node-loadbalancing.patch 
       git am < 0001-Added-single-node-loadbalancing.patch  
-      export LIBUV_ROOT_DIR=${DSECONDO_DIR}/driver/libuv/.libs
+      export LIBUV_ROOT_DIR=${DSECONDO_DIR}/driver/libuv
       cmake .
       make
       cd ..
