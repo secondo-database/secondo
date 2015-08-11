@@ -282,7 +282,7 @@ public class HoeseOnlineDialog extends JDialog {
 	 * @return
 	 */
 	public double getSpeedFactor() {
-		lastValues.speedFactor = (double) rtSpeedFactorSpinner.getValue();
+		lastValues.speedFactor = (Double) rtSpeedFactorSpinner.getValue();
 		return lastValues.speedFactor;
 	}
 
@@ -300,7 +300,7 @@ public class HoeseOnlineDialog extends JDialog {
 	 * Returns the TimeOffset used while playing the simulation
 	 */
 	public int getCurrentTimeOffset() {
-		lastValues.timeOffset = (int) rtCurrentTimeOffsetSpinner.getValue();
+		lastValues.timeOffset = (Integer) rtCurrentTimeOffsetSpinner.getValue();
 		return lastValues.timeOffset;
 	}
 
