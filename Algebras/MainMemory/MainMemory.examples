@@ -158,3 +158,16 @@ Number    : 26
 Signature : string -> bool
 Example   : query memloadflob ("Trains")
 Result    : TRUE
+
+Operator  : letmconsumeflob
+Number    : 27
+Signature : stream(tuple(...)) x string -> string
+Example   : query Trains feed letmconsumeflob ["trainsFlob"]
+Result    : "trainsFlob"
+
+Operator  : memletflob
+Number    : 28
+Signature : string x m:MEMLOADABLE -> bool
+Example   : query memletflob ("trains5", Trains feed head[5])
+Result    : TRUE
+

@@ -47,11 +47,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RectangleAlgebra.h"
 #include "AvlTree.h"
 
-
-
-
-
-
 using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -144,6 +139,22 @@ string getDBname() {
 }
 
 
+string rtrim(string s, const string& delim = " \t\r\n")
+{
+  string::size_type last = s.find_last_not_of(delim.c_str());
+  return last == string::npos ? "" : s.erase(last + 1);
+}
+
+string ltrim(string s, const string& delim = " \t\r\n")
+{
+  return s.erase(0, s.find_first_not_of(delim.c_str()));
+}
+
+string trim(string s, const string& delim = " \t\r\n")
+{
+  return ltrim(rtrim(s, delim), delim);
+}
+
 /*
 
 4.7 ~relToVector~
@@ -160,26 +171,27 @@ MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0,
     rit = r->MakeScan();
     Tuple* tup;
     int tupleSize=0;
-    size_t availableMemSize = catalog->getAvailabeMemSize();
-    size_t usedMainMemory=0;
-
+    unsigned long availableMemSize = catalog->getAvailabeMemSize();
+    unsigned long usedMainMemory=0;
     vector<Tuple*>* mmrel = new vector<Tuple*>();
 
     while ((tup = rit->GetNextTuple()) != 0){
-           //
-            if (flob){
+        if (flob){
             tup->bringToMemory();
+        }
+        tupleSize = tup->GetMemSize();
+        if ((size_t)tupleSize<availableMemSize){
+            mmrel->push_back(tup);
+            usedMainMemory += tupleSize;
+            availableMemSize -= tupleSize;
+        }
+        else{
+            if (mmrel->size()==0){
+                cout<<"no memory left"<<endl;
+                return 0;
             }
-            tupleSize = tup->GetMemSize();
-            if ((size_t)tupleSize<availableMemSize){
-                mmrel->push_back(tup);
-                // tup->IncReference(); ???
-                usedMainMemory += tupleSize;
-                availableMemSize -= tupleSize;
-            }
-            else{
-             cout<< "the memSize is not enough, the object"
-            "might be usable but not complete"<<endl;
+             cout<< "the available main memory is not enough, the object"
+            " might be usable but not complete"<<endl;
              break;
             }
     }
@@ -198,9 +210,9 @@ MemoryAttributeObject* attrToMM(Attribute* attr, ListExpr le,
                         string database, bool flob){
 
     size_t availableMemSize = catalog->getAvailabeMemSize();
-    size_t usedMainMemory=0;
+    unsigned long usedMainMemory=0;
     if(flob){
-    attr->bringToMemory();
+        attr->bringToMemory();
     }
     usedMainMemory = attr->GetMemSize();
     if (usedMainMemory>availableMemSize){
@@ -220,7 +232,7 @@ MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le, bool flob){
     vector<Tuple*>* mmrel = new vector<Tuple*>();
     Stream<Tuple> stream(arg);
     size_t availableMemSize = catalog->getAvailabeMemSize();
-    size_t usedMainMemory =0;
+    unsigned long usedMainMemory =0;
     Tuple* tup;
     int tupleSize = 0;
 
@@ -231,16 +243,20 @@ MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le, bool flob){
             tup->bringToMemory();
         }
         tupleSize = tup->GetMemSize();
-            if ((size_t)tupleSize<availableMemSize){
-                mmrel->push_back(tup);
-                usedMainMemory += tupleSize;
-                availableMemSize -= tupleSize;
+        if ((size_t)tupleSize<availableMemSize){
+            mmrel->push_back(tup);
+            usedMainMemory += tupleSize;
+            availableMemSize -= tupleSize;
+        }
+        else{
+            if (mmrel->size()==0){
+                cout<<"no memory left"<<endl;
+                return 0;
             }
-            else{
-                cout<< "the memSize is not enough, the object "
-                        " might be usable but not complete"<<endl;
-                break;
-            }
+            cout<< "the memSize is not enough, the object"
+            " might be usable but not complete"<<endl;
+            break;
+        }
     }
 
     MemoryRelObject* mem =
@@ -256,38 +272,20 @@ MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le, bool flob){
 int memload (Word* args, Word& result,
                     int message, Word& local, Supplier s, bool flob) {
 
-
     CcString* oN = (CcString*) args[0].addr;
           if(!oN->IsDefined()){
              return 0;
           }
-    result  = qp->ResultStorage(s);
-    CcBool* b = static_cast<CcBool*>(result.addr);
 
     string objectName = oN->GetValue();
     SecondoCatalog* cat = SecondoSystem::GetCatalog();
-
-
     bool memloadSucceeded=false;
     Word object; //save the persistent object
     ListExpr objectTypeExpr=0; //type expression of the persistent object
     string objectTypeName=""; //used by cat->GetObjectTypeExpr
-
-    if (!cat->IsObjectName(objectName)){
-        cout<<"identifier is not in use"<<endl;
-        b->Set(true, memloadSucceeded);
-        return 0;
-        }
-    if (catalog->isMMObject(objectName)){
-        memloadSucceeded =true;
-        cout<<"the object is already a main memory member"<<endl;
-        b->Set(true, memloadSucceeded);
-        return 0;
-    }
-
-        bool defined = false;
-        bool hasTypeName = false;
-        memloadSucceeded = cat->GetObjectExpr(objectName,
+    bool defined = false;
+    bool hasTypeName = false;
+    memloadSucceeded = cat->GetObjectExpr(objectName,
                 objectTypeName,objectTypeExpr,object,defined,hasTypeName);
 
 
@@ -297,7 +295,12 @@ int memload (Word* args, Word& result,
         MemoryRelObject* mmRelObject =
                 relToVector(r, nl->Second(objectTypeExpr)
                                 ,getDBname(), flob);
+        if (mmRelObject == 0) {
+            memloadSucceeded = false;
+        } else {
         catalog->insert(objectName,mmRelObject);
+        }
+
     }
 
     // object is attribute
@@ -305,8 +308,9 @@ int memload (Word* args, Word& result,
         Attribute* attr = (Attribute*)object.addr;
         MemoryAttributeObject* mmA = attrToMM(attr, objectTypeExpr,
                                 getDBname(),flob);
-
-        if (mmA!=0){
+        if (mmA==0){
+            memloadSucceeded = false;
+        } else {
         catalog->insert(objectName,mmA);
         }
     }
@@ -318,7 +322,8 @@ int memload (Word* args, Word& result,
         cout<<"a relation or an attribute expected"<<endl;
     }
 
-
+    result  = qp->ResultStorage(s);
+    CcBool* b = static_cast<CcBool*>(result.addr);
     b->Set(true, memloadSucceeded);
 
     return 0;
@@ -339,28 +344,38 @@ it breaks up. The created ~MemoryRelObject~ is usable but not complete.
 
 
 */
-ListExpr memloadTypeMap(ListExpr args)
-{
+ListExpr memloadTypeMap(ListExpr args) {
 
-string err = "string expected";
-  if(nl->ListLength(args)!=1){
-     return listutils::typeError(err + " (wrong number of arguments)");
-  }
-  if (!CcString::checkType(nl->First(args))) {
-  return listutils::typeError(err);
+    if (nl->ListLength(args)!=1){
+        return listutils::typeError("wrong number of arguments");
     }
-  return listutils::basicSymbol<CcBool>();
- //return tmStringBool(args);
+    ListExpr arg1 = nl->First(args);
+    if (!CcString::checkType(nl->First(arg1))) {
+        return listutils::typeError("string expected");
+    }
+    //check for database object
+    ListExpr str = nl->Second(arg1);
+    string objectName = nl->StringValue(str);
+    SecondoCatalog* cat = SecondoSystem::GetCatalog();
+
+    if (!cat->IsObjectName(objectName)){
+        return listutils::typeError("identifier is not in use");
+    }
+
+    //already main memory object?
+    if (catalog->isMMObject(objectName)){
+        return listutils::typeError("identifier is "
+        " already used for a main memory object");
+    }
+
+    return listutils::basicSymbol<CcBool>();
 }
-
-
 
 
 /*
 5.1.3  The Value Mapping Functions of operator ~memload~
 
 */
-
 
 int memloadValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
@@ -406,7 +421,6 @@ Like ~memload~ but loads also the flob part into the main memory
 
 */
 
-
 /*
 5.2.3  The Value Mapping Functions of operator ~memloadflob~
 
@@ -415,7 +429,6 @@ Like ~memload~ but loads also the flob part into the main memory
 
 int memloadflobValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
-
 
     return memload(args, result, message, local, s, true);
 
@@ -470,12 +483,11 @@ without deleting any main memory objects.
 
 ListExpr meminitTypeMap(ListExpr args)
 {
-string err = "int expected";
   if(nl->ListLength(args)!=1){
-     return listutils::typeError(err + " (wrong number of arguments)");
+     return listutils::typeError("wrong number of arguments");
   }
   if (!CcInt::checkType(nl->First(args))) {
-  return listutils::typeError(err);
+  return listutils::typeError("int expected");
   }
   return listutils::basicSymbol<CcInt>();
 }
@@ -495,12 +507,12 @@ int meminitValMap (Word* args, Word& result,
     int res=0;
 
     if (newMainMemorySize<0){
-    cout<< "the size must be >0"<<endl;
-    res=catalog->getMemSizeTotal();
+        cout<< "the size must be >0"<<endl;
+        res=catalog->getMemSizeTotal();
     }
-    else if ((size_t)newMainMemorySize<catalog->getUsedMemSize()/1024/1024){
-            res = catalog->getUsedMemSize()/1024/1024;
-            catalog->setMemSizeTotal(catalog->getUsedMemSize()/1024/1024);
+    else if ((size_t)newMainMemorySize<(catalog->getUsedMemSize()/1024/1024)){
+            res = (catalog->getUsedMemSize()/1024/1024)+1;
+            catalog->setMemSizeTotal(catalog->getUsedMemSize()/1024/1024+1);
         }
     else if (newMainMemorySize>maxSystemMainMemory){
             res = maxSystemMainMemory;
@@ -514,8 +526,6 @@ int meminitValMap (Word* args, Word& result,
     result  = qp->ResultStorage(s);
     CcInt* b = static_cast<CcInt*>(result.addr);
     b->Set(true, res);
-
-
     return 0;
 }
 
@@ -529,7 +539,7 @@ OperatorSpec meminitSpec(
     "int -> int",
     "meminit(_)",
     "initialises the main memory, the maximum size "
-    " is limited by the global memory, set in SecondoConfig.ini",
+    " is limited by the global memory which is set in SecondoConfig.ini",
     "query meminit(256)"
 );
 
@@ -578,7 +588,6 @@ ListExpr mfeedTypeMap(ListExpr args) {
     };
 
     ListExpr fn = nl->Second(arg);
-
 
     if(nl->AtomType(fn)!=StringType){
         return listutils::typeError("error");
@@ -711,6 +720,33 @@ Operator mfeedOp (
 );
 
 
+int letmconsume (Word* args, Word& result,
+                int message, Word& local, Supplier s, bool flob) {
+
+    result  = qp->ResultStorage(s);
+    CcString* str = static_cast<CcString*>(result.addr);
+
+    Supplier t = qp->GetSon( s, 0 );
+    ListExpr le = qp->GetType(t);
+
+    MemoryRelObject* mem = tupelStreamToRel(args[0],nl->Second(le),flob);
+
+    CcString* oN = (CcString*) args[1].addr;
+    if(!oN->IsDefined()){
+                return 0;
+          }
+    string res = oN->GetValue();
+    //im TypeMapping abfangen falls identifier already in use???
+    if(catalog->insert(res,mem)){
+     str->Set(true,res);
+    }
+    else{
+    str->Set(false,res);
+    delete mem;
+    }
+
+   return 0;
+}
 
 
 /*
@@ -753,29 +789,7 @@ ListExpr letmconsumeTypeMap(ListExpr args)
 int letmconsumeValMap (Word* args, Word& result,
                 int message, Word& local, Supplier s) {
 
-    result  = qp->ResultStorage(s);
-    CcString* str = static_cast<CcString*>(result.addr);
-
-    Supplier t = qp->GetSon( s, 0 );
-    ListExpr le = qp->GetType(t);
-
-    MemoryRelObject* mem = tupelStreamToRel(args[0],nl->Second(le),false);
-
-    CcString* oN = (CcString*) args[1].addr;
-    if(!oN->IsDefined()){
-                return 0;
-          }
-    string res = oN->GetValue();
-    //im TypeMapping abfangen falls identifier already in use???
-    if(catalog->insert(res,mem)){
-     str->Set(true,res);
-    }
-    else{
-    str->Set(false,res);
-    delete mem;
-    }
-
-   return 0;
+    return letmconsume(args, result, message, local, s, false);
 }
 
 
@@ -811,8 +825,60 @@ Operator letmconsumeOp (
 );
 
 
+/*
+
+5.5 Operator ~letmconsumeflob~
+
+~letmconsumeflob~ produces a main memory relation from a stream(tuples),
+similar to the ~consume~-operator. The name of the main memory relation is given
+by the second parameter. The associated flobs will be loaded to main memory too.
+
+*/
+
+/*
+
+5.5.3  The Value Mapping Functions of operator ~letmconsumeflob~
+
+*/
+
+int letmconsumeflobValMap (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+    return letmconsume(args, result, message, local, s, true);
+}
 
 
+
+
+/*
+
+5.5.4 Description of operator ~letmconsume~
+
+*/
+
+OperatorSpec letmconsumeflobSpec(
+    "stream(tuple) x string -> string",
+    "(_) letmconsumeflob [_]",
+    "produces a main memory relation from a stream(tuple)"
+    "and load the associated flobs",
+    "query trains feed letmconsumeflob ['trains1']"
+);
+
+
+
+/*
+
+5.5.5 Instance of operator ~letmconsumeflob~
+
+*/
+
+Operator letmconsumeflobOp (
+    "letmconsumeflob",
+    letmconsumeflobSpec.getStr(),
+    letmconsumeflobValMap,
+    Operator::SimpleSelect,
+    letmconsumeTypeMap
+);
 
 /*
 5.6 Operator ~memdelete~
@@ -827,7 +893,33 @@ Operator letmconsumeOp (
 */
 ListExpr memdeleteTypeMap(ListExpr args)
 {
-   return tmStringBool(args);
+ if(nl->ListLength(args)!=1){
+        return listutils::typeError("wrong number of arguments");
+    }
+
+    ListExpr arg = nl->First(args);
+
+    if(!nl->HasLength(arg,2)){
+        return listutils::typeError("internal error");
+    }
+
+    if (!CcString::checkType(nl->First(arg))) {
+        return listutils::typeError("string expected");
+    };
+
+    ListExpr fn = nl->Second(arg);
+
+    if(nl->AtomType(fn)!=StringType){
+        return listutils::typeError("error");
+    }
+
+    string oN = nl->StringValue(fn);
+
+    if(!catalog->isMMObject(oN))
+    {
+      return listutils::typeError("not a MainMemory member");
+    }
+     return listutils::basicSymbol<CcBool>();
 }
 
 
@@ -983,8 +1075,7 @@ int memobjectValMap (Word* args, Word& result,
             while( it!=relation->end()){
                 Tuple* tup = *it;
                 rel->AppendTuple(tup);
-                //tup->IncReference();
-                //tup->DeleteIfAllowed();
+                tup->IncReference();
                 it++;
             }
 
@@ -1061,7 +1152,7 @@ ListExpr memgetcatalogTypeMap(ListExpr args)
 
     string stringlist = "(stream(tuple((TotalMB int)"
         "(UsedMB real)(Name string)"
-        "(ObjectType string)(ObjSizeInB int)(ObjSizeInMB real)"
+        "(ObjectType string)(ObjSizeInB string)(ObjSizeInMB real)"
             "(Database string)(Accessible bool)(FlobsLoaded bool))))";
 
     ListExpr res =0;
@@ -1078,20 +1169,25 @@ ListExpr memgetcatalogTypeMap(ListExpr args)
 */
 
 class memgetcatalogInfo{
-  public:
+    public:
 
-       memgetcatalogInfo(ListExpr _resultType){
-       resultType = _resultType;
-       memContents = catalog->getMemContent();
-       it = memContents->begin();
-       };
-       ~memgetcatalogInfo(){}
+        memgetcatalogInfo(ListExpr _resultType){
+        resultType = _resultType;
+        memContents = catalog->getMemContent();
+        it = memContents->begin();
+        };
+        ~memgetcatalogInfo(){}
 
-
-    Tuple* next(){
-        if(it==memContents->end()) {
-            return 0;
+        string long_to_string(unsigned long value) {
+            std::ostringstream stream;
+            stream << value;
+            return stream.str();
         }
+
+        Tuple* next(){
+            if(it==memContents->end()) {
+                return 0;
+            }
         string name = it->first;
         MemoryObject* memobj = it->second;
         string objTyp ="nn";
@@ -1103,10 +1199,11 @@ class memgetcatalogInfo{
         if (listutils::isDATA(objectType)){
             objTyp = MemoryAttributeObject::BasicType();
         }
-
-        if (listutils::stringValue(objectType)=="mmrtree"){
-
-                objTyp = MemoryRtreeObject::BasicType();
+        if (nl->ToString(objectType)=="memoryRtreeObject"){
+                objTyp = "memoryRtreeObject";
+        }
+        if (nl->ToString(objectType)=="memoryAVLObject"){
+                objTyp = "memoryAVLObject";
         }
         TupleType* tt = new TupleType(nl->Second(resultType));
         Tuple *tup = new Tuple( tt );
@@ -1117,7 +1214,8 @@ class memgetcatalogInfo{
             new CcReal (true, (double)catalog->getUsedMemSize()/1024.0/1024.0);
         CcString* objectName = new CcString(true,name);
         CcString* oT = new CcString(true,objTyp);
-        CcInt* memSizeB = new CcInt(true, (int)memobj->getMemSize());
+        CcString* memSizeB = new CcString
+                            (true, long_to_string(memobj->getMemSize()));
         CcReal* memSizeMB =
             new CcReal(true, (double)memobj->getMemSize()/1024.0/1024.0);
         CcString* database = new CcString(true,(string)memobj->getDatabase());
@@ -1216,6 +1314,61 @@ Operator memgetcatalogOp (
 );
 
 
+int memlet (Word* args, Word& result,
+                int message, Word& local, Supplier s, bool flob) {
+
+    result  = qp->ResultStorage(s);
+    CcBool* b = static_cast<CcBool*>(result.addr);
+    bool memletsucceed = false;
+
+    CcString* oN = (CcString*) args[0].addr;
+    if(!oN->IsDefined()){
+        return 0;
+    }
+    string objectName = oN->GetValue();
+    Supplier t = qp->GetSon( s, 1 );
+    ListExpr le = qp->GetType(t);
+
+    if (listutils::isRelDescription(le)){
+
+        GenericRelation* rel= static_cast<Relation*>( args[1].addr );
+        MemoryRelObject* mmRelObject =
+                relToVector(rel,nl->Second(le),getDBname(), flob);
+        if (mmRelObject!=0){
+        catalog->insert(objectName, mmRelObject);
+        memletsucceed =true;
+        }
+    }
+
+    if (listutils::isDATA(le)){
+
+        Attribute* attr = (Attribute*)args[1].addr;
+        MemoryAttributeObject* mmA =
+                attrToMM(attr, le,getDBname(),flob);
+
+        if (mmA!=0){
+        catalog->insert(objectName,mmA);
+        memletsucceed = true;
+        }
+    }
+
+    if (listutils::isTupleStream(le)){
+
+        MemoryRelObject* mem = tupelStreamToRel(args[1], nl->Second(le),flob);
+
+        if (mem!=0){
+            catalog->insert(objectName,mem);
+            memletsucceed = true;
+        }
+    }
+
+    b->Set(true, memletsucceed);
+
+    return 0;
+
+}
+
+
 /*
 5.9 Operator ~memlet~
 creates a new main memory object. The first parameter is the
@@ -1232,7 +1385,26 @@ MEMLOADABLE object from which the mm-object will be created.
 */
 ListExpr memletTypeMap(ListExpr args)
 {
-    return tmStringMemloadBool(args);
+    if(nl->ListLength(args)!=2){
+        return listutils::typeError("wrong number of arguments");
+    }
+    ListExpr arg1 = nl->First(args);
+    if (!CcString::checkType(nl->First(arg1))) {
+        return listutils::typeError("string expected");
+    }
+    ListExpr str = nl->Second(arg1);
+    string objectName = nl->StringValue(str);
+    if (catalog->isMMObject(objectName)){
+        return listutils::typeError("identifier already in use");
+    }
+    ListExpr arg2 = nl->Second(args);
+    if (listutils::isRelDescription(nl->First(arg2)) ||
+        listutils::isDATA(nl->First(arg2)) ||
+        listutils::isTupleStream(nl->First(arg2))){
+            return listutils::basicSymbol<CcBool>();
+    }
+    return listutils::typeError ("the second argument has to "
+    " be of kind DATA or a relation or a tuplestream");
 }
 
 
@@ -1242,63 +1414,10 @@ ListExpr memletTypeMap(ListExpr args)
 
 */
 
-
-
 int memletValMap (Word* args, Word& result,
                 int message, Word& local, Supplier s) {
 
-    result  = qp->ResultStorage(s);
-    CcBool* b = static_cast<CcBool*>(result.addr);
-    bool memletsucceed = false;
-
-    CcString* oN = (CcString*) args[0].addr;
-    if(!oN->IsDefined()){
-        return 0;
-    }
-    string objectName = oN->GetValue();
-
-    if (catalog->isMMObject(objectName)){
-        cout<< "identifier already in use"<<endl;
-        b->Set(true, memletsucceed);
-        return 0;
-    }
-
-    Supplier t = qp->GetSon( s, 1 );
-    ListExpr le = qp->GetType(t);
-
-
-    if (listutils::isRelDescription(le)){
-
-        GenericRelation* rel= static_cast<Relation*>( args[1].addr );
-        MemoryRelObject* mmRelObject =
-                relToVector(rel,nl->Second(le),getDBname(), false);
-
-        catalog->insert(objectName, mmRelObject);
-        memletsucceed =true;
-    }
-
-    if (listutils::isDATA(le)){
-
-        Attribute* attr = (Attribute*)args[1].addr;
-        MemoryAttributeObject* mmA =
-                attrToMM(attr, le,getDBname(),false);
-
-        catalog->insert(objectName,mmA);
-        memletsucceed = true;
-    }
-
-    if (listutils::isTupleStream(le)){
-
-        MemoryRelObject* mem = tupelStreamToRel(args[1], nl->Second(le),false);
-
-        catalog->insert(objectName,mem);
-        memletsucceed = true;
-    }
-
-    b->Set(true, memletsucceed);
-
-    return 0;
-
+   return memlet(args, result, message, local,s, false);
 }
 
 
@@ -1333,6 +1452,59 @@ Operator memletOp (
     memletTypeMap
 );
 
+/*
+5.9 Operator ~memletflob~
+creates a new main memory object. The first parameter is the
+name of the new main memory object, the second is the query/the
+MEMLOADABLE object from which the mm-object will be created.
+The associated flobs will be loaded to main memory too.
+
+*/
+
+
+/*
+
+5.9.3  The Value Mapping Functions of operator ~memletflob~
+
+*/
+
+int memletflobValMap (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+   return memlet(args, result, message, local, s,true);
+}
+
+
+/*
+
+5.9.4 Description of operator ~memletflob~
+
+*/
+
+OperatorSpec memletflobSpec(
+    "string x m:MEMLOADABLE -> bool",
+    "memletflob (_,_)",
+    "creates a main memory object from a given MEMLOADABLE."
+    "the associated flobs will be loaded",
+    "query memletflob ('Trains100', Trains feed head[100])"
+);
+
+
+
+/*
+
+5.9.5 Instance of operator ~memletflob~
+
+*/
+
+Operator memletflobOp (
+    "memletflob",
+    memletflobSpec.getStr(),
+    memletflobValMap,
+    Operator::SimpleSelect,
+    memletTypeMap
+);
+
 
 /*
 5.10 Operator ~memupdate~
@@ -1349,7 +1521,41 @@ must be the same as the one of the main memory object.
 */
 ListExpr memupdateTypeMap(ListExpr args)
 {
-    return tmStringMemloadBool(args);
+
+    if(nl->ListLength(args)!=2){
+        return listutils::typeError("wrong number of arguments");
+    }
+
+    ListExpr arg1 = nl->First(args);
+    if (!CcString::checkType(nl->First(arg1))) {
+        return listutils::typeError("string expected");
+    }
+    ListExpr str = nl->Second(arg1);
+    string objectName = nl->StringValue(str);
+
+    if (!catalog->isMMObject(objectName)){
+        return listutils::typeError("identifier is not a main memory object");
+    }
+    ListExpr arg2 = nl->Second(args);
+    ListExpr memType = catalog->getMMObjectTypeExpr(objectName);
+    if (listutils::isRelDescription(nl->First(arg2)) &&
+        listutils::isTupleDescription(memType) &&
+        nl->Equal(nl->Second(nl->First(arg2)), memType)) {
+        return listutils::basicSymbol<CcBool>();
+    };
+    if (listutils::isDATA(nl->First(arg2)) &&
+        listutils::isDATA(memType) &&
+        nl->Equal(nl->First(arg2), memType)) {
+        return listutils::basicSymbol<CcBool>();
+    }
+    if (listutils::isTupleStream(nl->First(arg2)) &&
+        listutils::isTupleDescription(memType) &&
+        nl->Equal(nl->Second(nl->First(arg2)), memType)) {
+        return listutils::basicSymbol<CcBool>();
+    }
+    return listutils::typeError ("the second argument has to "
+    " be of kind DATA or a relation or a tuplestream and the type expressions "
+    " or the tuple description have to match");
 }
 
 
@@ -1371,44 +1577,30 @@ int memupdateValMap (Word* args, Word& result,
         return 0;
     }
     string objectName = oN->GetValue();
-
-    if (!catalog->isMMObject(objectName)){
-        cout<< "there is no main memory object: "<<objectName<<endl;
-        b->Set(true, memupdatesucceed);
-        return 0;
-    }
-
-    ListExpr memType = catalog->getMMObjectTypeExpr(objectName);
     bool flob = catalog->getMMObject(objectName)->hasflob();
 
     Supplier t = qp->GetSon( s, 1 );
     ListExpr le = qp->GetType(t);
 
-    catalog->deleteObject(objectName);
 
+    if (listutils::isRelDescription(le)) {
 
-    //the object shall be updated by a relation, the object itself is
-    //a MemoryRelObject and the tuple descriptions are the same
-    if (listutils::isRelDescription(le) &&
-                listutils::isTupleDescription(memType) &&
-                nl->Equal(nl->Second(le), memType)){
-
-
-//        catalog->deleteObject(objectName);
+        catalog->deleteObject(objectName);
 
         GenericRelation* rel= static_cast<Relation*>( args[1].addr );
         MemoryRelObject* mem =
                 relToVector(rel,nl->Second(le),getDBname(),flob);
 
-        catalog->insert(objectName,mem);
-        memupdatesucceed =true;
+        if (mem!=0){
+            catalog->insert(objectName,mem);
+            memupdatesucceed =true;
+        }
     }
 
 
-    if (listutils::isDATA(le) && listutils::isDATA(memType) &&
-        nl->Equal(le,memType)){
+    if (listutils::isDATA(le)){
 
-//        catalog->deleteObject(objectName);
+        catalog->deleteObject(objectName);
 
         Attribute* attr = (Attribute*)args[1].addr;
         MemoryAttributeObject* mem =
@@ -1417,18 +1609,18 @@ int memupdateValMap (Word* args, Word& result,
             catalog->insert(objectName,mem);
             memupdatesucceed = true;
         }
+    }
 
-        }
 
+    if (listutils::isTupleStream(le)) {
 
-    if (listutils::isTupleStream(le) && listutils::isTupleDescription(memType)
-                && nl->Equal(nl->Second(le), memType)){
+        catalog->deleteObject(objectName);
 
-//        catalog->deleteObject(objectName);
         MemoryRelObject* mem = tupelStreamToRel(args[1], nl->Second(le),flob);
-
-        catalog->insert(objectName,mem);
-        memupdatesucceed = true;
+        if (mem!=0){
+            catalog->insert(objectName,mem);
+            memupdatesucceed = true;
+        }
     }
 
     b->Set(true, memupdatesucceed);
@@ -1436,8 +1628,6 @@ int memupdateValMap (Word* args, Word& result,
     return 0;
 
 }
-
-
 
 
 /*
@@ -1485,46 +1675,30 @@ creates a an mmRTree over a given main memory relation
 
 ListExpr mcreateRtreeTypeMap(ListExpr args){
 
-    return tmStringStringString(args);
-}
-
-/*
-
-5.10.3  The Value Mapping Functions of operator ~mcreateRtree~
-
-*/
-
-
-
-int mcreateRtreeValMap (Word* args, Word& result,
-                int message, Word& local, Supplier s) {
-
-    string res ="undefined";
-
-    result  = qp->ResultStorage(s);
-    CcString* str = static_cast<CcString*>(result.addr);
-    str->Set(false, res);
-
-    CcString* roN = (CcString*) args[0].addr;
-    if(!roN->IsDefined()){
-        return 0;
-    }
-    string relObjectName = roN->GetValue();
-    ListExpr memType = catalog->getMMObjectTypeExpr(relObjectName);
-
-    if (!catalog->isMMObject(relObjectName)||
-            !listutils::isTupleDescription(memType)){
-        cout<< "there is no main memory object: "<<relObjectName<<
-        " or is not a MemoryRelObject"<<endl;
-        return 0;
+    if(nl->ListLength(args)!=2){
+        return listutils::typeError("wrong number of arguments");
     }
 
-    CcString* aN = (CcString*) args[1].addr;
-    if (!aN->IsDefined()){
-        return 0;
+    ListExpr arg1 = nl->First(args);
+    ListExpr arg2 = nl->Second(args);
+
+    if (!CcString::checkType(nl->First(arg1))
+            ||(!CcString::checkType(nl->First(arg2)))) {
+        return listutils::typeError("string as arguments expected");
     }
 
-    string attrName = aN->GetValue();
+    ListExpr str1 = nl->Second(arg1);
+    string objectName = nl->StringValue(str1);
+    ListExpr memType = catalog->getMMObjectTypeExpr(objectName);
+
+    if (!catalog->isMMObject(objectName) ||
+        !listutils::isTupleDescription(memType)){
+        return listutils::typeError("identifier is not a main memory object"
+         "or is not a MemoryRelObject");
+    }
+
+    ListExpr str2 = nl->Second(arg2);
+    string attrName = nl->StringValue(str2);
     ListExpr attrType = 0;
     int attrPos = 0;
     ListExpr attrList = nl->Second(memType);
@@ -1534,20 +1708,65 @@ int mcreateRtreeValMap (Word* args, Word& result,
     }
 
     if (attrPos == 0){
-    cout<<"there is no attribute with the name: "<<attrName<< endl;
-    return 0;
+        return listutils::typeError("the second string "
+        " does not identify an attribute");
     }
 
-    // check for spatial attribute
-//  listutils::isSpatialType(attrType)|| listutils::isRectangle(attrType)
     if (!listutils::isKind(attrType,Kind::SPATIAL2D()) &&
         !listutils::isKind(attrType,Kind::SPATIAL3D()) &&
         !listutils::isKind(attrType,Kind::SPATIAL4D()) &&
         !listutils::isKind(attrType,Kind::SPATIAL8D())){
-        cout<<"Expects key attribute to be of kind SPATIAL,"
-        "SPATIAL3D, SPATIAL4D, SPATIAL8D"<<endl;
+
+            return listutils::typeError("Expects key attribute to "
+            "be of kind SPATIAL, SPATIAL3D, SPATIAL4D, SPATIAL8D");
+       }
+    return nl->ThreeElemList(
+                nl->SymbolAtom(Symbols::APPEND()),
+                nl->TwoElemList
+                (nl->IntAtom(attrPos),nl->StringAtom(nl->ToString(attrType))),
+                listutils::basicSymbol<CcString>());
+}
+
+/*
+
+5.10.3  The Value Mapping Functions of operator ~mcreateRtree~
+
+*/
+
+
+template <int dim>
+int mcreateRtreeValMapT (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+
+
+    result  = qp->ResultStorage(s);
+    CcString* str = static_cast<CcString*>(result.addr);
+    string res = "undefined";
+
+// the main memory relation
+    CcString* roN = (CcString*) args[0].addr;
+    if(!roN->IsDefined()){
         return 0;
-        }
+    }
+    string relObjectName = roN->GetValue();
+
+//the attribute
+    CcString* attrN = (CcString*) args[1].addr;
+    if(!attrN->IsDefined()){
+        return 0;
+    }
+    string attrName = attrN->GetValue();
+
+// the appended value attribute Position and attribute type
+    CcInt* append = (CcInt*) args[2].addr;
+
+    int attrPos = append->GetValue();
+
+    CcString* aT = (CcString*)args[3].addr;
+    string attrType = aT->GetValue();
+    ListExpr attrTypeAsList;
+    nl->ReadFromString(attrType, attrTypeAsList);
 
     MemoryRelObject* mmrel =
         (MemoryRelObject*)catalog->getMMObject(relObjectName);
@@ -1556,22 +1775,22 @@ int mcreateRtreeValMap (Word* args, Word& result,
     it=relVec->begin();
     unsigned int i=0;
 
-    if(listutils::isKind(attrType,Kind::SPATIAL2D())){
-        mmrtree::RtreeT<2, size_t>* rtree =
-                    new mmrtree::RtreeT<2, size_t>(4,8);
-        StandardSpatialAttribute<2>* attr=0;
+
+//    if(listutils::isKind(attrTypeAsList,Kind::SPATIAL2D())){
+        mmrtree::RtreeT<dim, size_t>* rtree =
+                    new mmrtree::RtreeT<dim, size_t>(4,8);
+        StandardSpatialAttribute<dim>* attr=0;
         size_t usedMainMemory=0;
         while( it!=relVec->end()){
             Tuple* tup = *it;
-            attr=(StandardSpatialAttribute<2>*)tup->GetAttribute(attrPos-1);
+            attr=(StandardSpatialAttribute<dim>*)tup->GetAttribute(attrPos-1);
             if (attr==0 || !attr->IsDefined()){
                 return 0;
             }
-            Rectangle<2> box = attr->BoundingBox();
+            Rectangle<dim> box = attr->BoundingBox();
             rtree->insert(box, i);
             it++;
             i++;
-          //  tup->DeleteIfAllowed();
             } // end while
 
         usedMainMemory = rtree->usedMem();
@@ -1582,7 +1801,7 @@ int mcreateRtreeValMap (Word* args, Word& result,
         res = relObjectName +"_"+attrName;
         catalog->insert(res,mmRtreeObject);
 
-      } //end if spatial2D
+//      } //end if spatial2D
 
 
     str->Set(true, res);
@@ -1590,8 +1809,46 @@ int mcreateRtreeValMap (Word* args, Word& result,
     } //end mcreateRtreeValMap
 
 
+ValueMapping mcreateRtreeValMap[] =
+{
+    mcreateRtreeValMapT<2>,
+//    mcreateRtreeValMapT<3>,
+//    mcreateRtreeValMapT<4>,
+//    mcreateRtreeValMapT<8>,
+};
 
+/*
+1.3 Selection method for value mapping array ~mcreateRtree~
 
+*/
+ int mcreateRtreeSelect(ListExpr args)
+ {
+
+//  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+//  ListExpr attrType;
+//  string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
+//  int found = FindAttribute(attrList, attrName, attrType);
+//  assert(found > 0);
+//
+//  if(Rectangle<2>::checkType(attrType))
+//  {
+//   return 0;
+//  }
+//  else if(Rectangle<3>::checkType(attrType))
+//  {
+//   return 1;
+//  }
+//  else if(Rectangle<4>::checkType(attrType))
+//  {
+//   return 2;
+//  }
+//  else if(Rectangle<8>::checkType(attrType))
+//  {
+//   return 3;
+//  }
+
+  return 0;
+ }
 
 /*
 
@@ -1616,13 +1873,13 @@ OperatorSpec mcreateRtreeSpec(
 */
 
 Operator mcreateRtreeOp (
-    "mcreateRtree",
-    mcreateRtreeSpec.getStr(),
-    mcreateRtreeValMap,
-    Operator::SimpleSelect,
-    mcreateRtreeTypeMap
+    "mcreateRtree",             //operator's name
+    mcreateRtreeSpec.getStr(),  //specification
+    1,                          //number of Value Mappings
+    mcreateRtreeValMap,         // value mapping array
+    mcreateRtreeSelect,         //selection function
+    mcreateRtreeTypeMap         //type mapping
 );
-
 
 /*
 5.11 Operator ~memsize~
@@ -1818,7 +2075,7 @@ ListExpr minsertTypeMap(ListExpr args)
     {
       return listutils::typeError("not a MainMemory member or not a relation");
     }
-    cout <<"tupel?"<<nl->ToString(nl->Second(stream))<<endl;
+
     if (!nl->Equal(nl->Second(stream), oTeList))
     {
       return listutils::typeError("the stream tuple description "
@@ -2175,7 +2432,8 @@ ListExpr mconsumeTypeMap(ListExpr args)
         }
 
     ListExpr l1 = nl->Second(nl->First(args));
-    ListExpr l2 = nl->SymbolAtom(MemoryRelObject::BasicType());
+//    ListExpr l2 = nl->SymbolAtom(MemoryRelObject::BasicType());
+    ListExpr l2 = nl->SymbolAtom(Relation::BasicType());
 
     return nl->TwoElemList (l2,l1);;
 }
@@ -2346,6 +2604,8 @@ int mcreateAVLtreeValMap (Word* args, Word& result,
     Attribute* attr;
     pair<Attribute*,size_t> aPair;
     size_t usedMainMemory = 0;
+    int attrSize=0;
+    unsigned long availableMemSize = catalog->getAvailabeMemSize();
 
     while ( it!=relVec->end()){
         Tuple* tup = *it;
@@ -2353,15 +2613,21 @@ int mcreateAVLtreeValMap (Word* args, Word& result,
         if(attr==0 || !attr->IsDefined()){
             return 0;
         }
+        attrSize=attr->GetMemSize();
         aPair = pair<Attribute*,size_t>(attr,i);
-        tree->insert(aPair);
-        it++;
-        i++;
-//        tup->DeleteIfAllowed();
-    }
+        if (((size_t)attrSize+8)<availableMemSize){
+            tree->insert(aPair);
+            usedMainMemory += (attrSize+8);
+            availableMemSize -= (attrSize+8);
+            it++;
+            i++;
+        } else {
 
-    // berechnen wie groß ein pair ist und aufaddieren...!!!!!!!!
-    usedMainMemory = 1000;
+            cout<<"there is not enough main memory available"
+            " to create an AVLTree"<<endl;
+            return 0;
+        }
+    }
 
     string  res = relObjectName +"_"+attrName;
     MemoryAVLObject* avlObject =
@@ -2483,8 +2749,11 @@ ListExpr mexactmatchTypeMap(ListExpr args)
 
 class avlOperLI{
     public:
+        //dieser Konstruktor ohne keyType kann
+        //eventuell später gelöscht werden!!!!!!
         avlOperLI(avltree::AVLTree< pair<Attribute*,size_t>,
-           KeyComparator >* _tree,vector<Tuple*>* _relation, Attribute* _attr1)
+           KeyComparator >* _tree,vector<Tuple*>* _relation,
+           Attribute* _attr1)
            :relation(_relation),tree(_tree),attr1(_attr1){
 
             //diese Abfrage nötig???
@@ -2493,7 +2762,24 @@ class avlOperLI{
             }
             attr2 = attr1;
             itbegin = tree->begin();
+        }
+
+
+        avlOperLI(avltree::AVLTree< pair<Attribute*,size_t>,
+           KeyComparator >* _tree,vector<Tuple*>* _relation,
+           Attribute* _attr1, string _keyType)
+           :relation(_relation),tree(_tree),attr1(_attr1),keyType(_keyType){
+
+            //diese Abfrage nötig???
+            if (tree->Size()!=0){
+                it = tree->tail(pair<Attribute*,size_t>(attr1,0));
             }
+            attr2 = attr1;
+            //brauche ich in Konstruktor mit nur einem Attribut den Iterator??
+            itbegin = tree->begin();
+
+        }
+
         avlOperLI(avltree::AVLTree< pair<Attribute*,size_t>,
            KeyComparator >* _tree,vector<Tuple*>* _relation, Attribute* _attr1,
            Attribute* _attr2)
@@ -2503,9 +2789,8 @@ class avlOperLI{
             if (tree->Size()!=0){
                 it = tree->tail(pair<Attribute*,size_t>(attr1,0));
             }
+        }
 
-
-            }
 
         ~avlOperLI(){}
 
@@ -2513,6 +2798,23 @@ class avlOperLI{
         Tuple* next(){
             if(it.onEnd()) return 0;
             hit = it.Get();
+            if (keyType=="string"){
+                string attr1ToString = ((CcString*) attr1)->GetValue();
+                string attr2ToString = ((CcString*) attr2)->GetValue();
+                string hitString = ((CcString*)(hit->first))->GetValue();
+                hitString=trim(hitString);
+
+                if((hitString==attr1ToString || hitString > attr1ToString) &&
+                    (hitString==attr2ToString || hitString < attr2ToString)) {
+
+                    Tuple* result = relation->at(hit->second);
+                    result->IncReference(); //richtig???
+                    it.Next();
+                    return result;
+                }
+                return 0;
+            }
+
             if(((hit->first)->Compare(attr1)==0 ||
                     (hit->first)->Compare(attr1)==1) &&
                     ((hit->first)->Compare(attr2)==0 ||
@@ -2523,7 +2825,7 @@ class avlOperLI{
                 it.Next();
                 return result;
             }
-                        return 0;
+            return 0;
         }
 
 
@@ -2548,6 +2850,7 @@ class avlOperLI{
         avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
         Attribute* attr1;
         Attribute* attr2;
+        string keyType;
         avltree::AVLTree< pair<Attribute*, size_t>,
                             KeyComparator >::iterator it;
         avltree::AVLTree< pair<Attribute*, size_t>,
@@ -2582,6 +2885,7 @@ int mexactmatchValMap (Word* args, Word& result,
             avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
             MemoryAVLObject* avlObject =
                     (MemoryAVLObject*)catalog->getMMObject(objectName_0);
+            string keyType = avlObject->getKeyType();
             tree = avlObject->getAVLtree();
 
             //second argument MemoryRelObject
@@ -2597,7 +2901,7 @@ int mexactmatchValMap (Word* args, Word& result,
 
             // third argument key value
             Attribute* attr = (Attribute*)args[2].addr;
-            local.addr= new avlOperLI(tree,relation,attr);
+            local.addr= new avlOperLI(tree,relation,attr,keyType);
             return 0;
         }
 
@@ -3029,20 +3333,28 @@ class MainMemoryAlgebra : public Algebra
 
 */
         AddOperator (&memloadOp);
-        //memloadOp.SetUsesArgsInTypeMapping();
+        memloadOp.SetUsesArgsInTypeMapping();
         AddOperator (&memloadflobOp);
+        memloadflobOp.SetUsesArgsInTypeMapping();
         AddOperator (&meminitOp);
         meminitOp.SetUsesMemory();
         AddOperator (&mfeedOp);
         mfeedOp.SetUsesArgsInTypeMapping();
         AddOperator (&letmconsumeOp);
+        AddOperator (&letmconsumeflobOp);
         AddOperator (&memdeleteOp);
+        memdeleteOp.SetUsesArgsInTypeMapping();
         AddOperator (&memobjectOp);
         memobjectOp.SetUsesArgsInTypeMapping();
         AddOperator (&memgetcatalogOp);
         AddOperator (&memletOp);
+        memletOp.SetUsesArgsInTypeMapping();
+        AddOperator (&memletflobOp);
+        memletflobOp.SetUsesArgsInTypeMapping();
         AddOperator (&memupdateOp);
+        memupdateOp.SetUsesArgsInTypeMapping();
         AddOperator (&mcreateRtreeOp);
+        mcreateRtreeOp.SetUsesArgsInTypeMapping();
         AddOperator (&memsizeOp);
         AddOperator (&memclearOp);
         AddOperator (&minsertOp);

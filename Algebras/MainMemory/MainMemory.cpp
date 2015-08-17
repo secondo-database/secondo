@@ -48,11 +48,11 @@ size_t MemCatalog::getMemSizeTotal(){
             return memSizeTotal;
 }
 
-size_t MemCatalog::getUsedMemSize() {
+unsigned long MemCatalog::getUsedMemSize() {
             return usedMemSize;
 }
 
-size_t MemCatalog::getAvailabeMemSize() {
+unsigned long MemCatalog::getAvailabeMemSize() {
 
     return (memSizeTotal*1024*1024)-(usedMemSize);
 }
@@ -62,9 +62,7 @@ map<string,MemoryObject*>* MemCatalog::getMemContent(){
 
             return &memContents;
 }
-//void MemCatalog::setUsedMemSize(size_t size) {
-//            usedMemSize = size;
-//    }
+
 
 bool MemCatalog::insert (const string& name, MemoryObject* obj){
      if (isMMObject(name)){
@@ -145,7 +143,7 @@ MemoryObject::~MemoryObject(){}
 void MemoryObject::setMemSize(size_t i){
     memSize = i;
 }
-size_t MemoryObject::getMemSize (){
+unsigned long MemoryObject::getMemSize (){
     return memSize;
 };
 
@@ -172,7 +170,7 @@ bool MemoryObject::hasflob(){
 
 MemoryRelObject::MemoryRelObject(){};
 MemoryRelObject::MemoryRelObject(vector<Tuple*>* _mmrel,
-                size_t _memSize, string _objectTypeExpr, bool _flob,
+                unsigned long _memSize, string _objectTypeExpr, bool _flob,
                 string _database){
         mmrel = _mmrel;
         memSize = _memSize;
@@ -214,9 +212,9 @@ void MemoryRelObject::addTuple(Tuple* tup){
     mmrel = new vector<Tuple*>();
     }
 
-    int tupleSize = 0;
+    size_t tupleSize = 0;
     tupleSize = tup->GetMemSize();
-    size_t availableMemSize =
+    unsigned long availableMemSize =
             (catalog.getMemSizeTotal()*1024*1024)-catalog.getUsedMemSize();
     if ((size_t)tupleSize<availableMemSize){
                 mmrel->push_back(tup);
@@ -248,8 +246,10 @@ ListExpr MemoryRelObject::toListExpr(){
         t=mmrel->at(i);
         last = nl->Append(last, t->Out(oTE));
     }
+//    ListExpr memoryObjectdescription = nl->TwoElemList(nl->SymbolAtom
+//                    (MemoryRelObject::BasicType()), typeListExpr);
     ListExpr memoryObjectdescription = nl->TwoElemList(nl->SymbolAtom
-                    (MemoryRelObject::BasicType()), typeListExpr);
+                        (Relation::BasicType()), typeListExpr);
 
     return nl->TwoElemList(memoryObjectdescription, li);
 };
@@ -372,7 +372,7 @@ ListExpr MemoryRelObject::Property(){
 
 
 MemoryAttributeObject::MemoryAttributeObject(Attribute* _attr,
-                    size_t _memSize, string _objectTypeExpr, bool _flob,
+                    unsigned long _memSize, string _objectTypeExpr, bool _flob,
                     string _database){
         attributeObject = _attr;
         memSize = _memSize;

@@ -22,9 +22,11 @@ operator memloadflob alias MEMLOADFLOB pattern op (_)
 operator meminit alias MEMINIT pattern op (_)
 operator mfeed alias MFEED pattern _ op
 operator letmconsume alias LETMCONSUME pattern _ op [_]
+operator letmconsumeflob alias LETMCONSUMEFLOB pattern _ op [_]
 operator memdelete alias MEMDELETE pattern op (_)
 operator memobject alias MEMOBJECT pattern op (_)
 operator memlet alias MEMLET pattern op(_,_)
+operator memletflob alias MEMLETFLOB pattern op(_,_)
 operator memupdate alias MEMUPDATE pattern op(_,_)
 operator mcreateRtree alias MCREATERTREE pattern op(_,_)
 operator memgetcatalog alias MEMGETCATALOG pattern op()
