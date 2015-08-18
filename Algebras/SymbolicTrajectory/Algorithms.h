@@ -853,16 +853,7 @@ class TMatch {
   
  public:
   TMatch(Pattern *pat, Tuple *tuple, ListExpr tt, const int _attrno, 
-         vector<pair<int, string> >& _relevantAttrs, const int _valueno) {
-    p = pat;
-    t = tuple;
-    ttype = tt;
-    attrno = _attrno;
-    valueno = _valueno;
-    matching = 0;
-    type = Tools::getDataType(t->GetTupleType(), attrno);
-    relevantAttrs = _relevantAttrs;
-  }
+         vector<pair<int, string> >& _relevantAttrs, const int _valueno);
   
   ~TMatch() {}
   
@@ -996,10 +987,11 @@ struct IndexMatchSlot {
 */
 class IndexMatchSuper {
  public:
-  IndexMatchSuper(Relation *r, Pattern *_p, int a) : rel(r), p(_p), attrNo(a),
-    activeTuples(0), unitCtr(0) {}
+  IndexMatchSuper(Relation *r, Pattern *_p, int a, DataType t) :
+    rel(r), p(_p), attrNo(a), mtype(t), activeTuples(0), unitCtr(0) {}
   
   int getTrajSize(const TupleId tId, const DataType type);
+  void getInterval(const TupleId tId, const int pos, SecInterval& iv);
   void removeIdFromIndexResult(const TupleId id);
   void clearMatchInfo();
   bool hasIdIMIs(const TupleId id, const int state = -1);
@@ -1007,12 +999,12 @@ class IndexMatchSuper {
   Relation *rel;
   Pattern *p;
   int attrNo;
-  DataType type;
+  DataType mtype;
   vector<TupleId> matches;
   vector<int> trajSize;
   int activeTuples, unitCtr;
-  vector<vector<IndexRetrieval> > indexResult;
-  vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo;
+  vector<vector<IndexRetrieval> > indexResult; // atom, tupleid
+  vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo; // state, tupleid
   vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
   
 };
@@ -1023,7 +1015,8 @@ class IndexMatchSuper {
 */
 class TMatchIndexLI : public IndexMatchSuper {
  public:
-  TMatchIndexLI(Relation *r, ListExpr tt, TupleIndex *t, int a, Pattern *pat);
+  TMatchIndexLI(Relation *r, ListExpr tt, TupleIndex *t, int a, Pattern *pat,
+                int majorValueNo, DataType type);
   
   ~TMatchIndexLI() {};
   
@@ -1047,6 +1040,7 @@ class TMatchIndexLI : public IndexMatchSuper {
   ListExpr ttList;
   TupleIndex *ti;
   vector<bool> active;
+  int valueNo;
 };
 
 /*
@@ -1259,7 +1253,6 @@ class IndexMatchesLI : public IndexMatchSuper {
   void storeIndexResult(const int e);
   void initMatchInfo(const set<int>& cruElems);
   void initialize();
-  void getInterval(const TupleId tId, const int pos, SecInterval& iv);
   void extendBinding(IndexMatchInfo& imi, const int e);
   void applyNFA();
   template<class M>
@@ -1280,7 +1273,6 @@ class IndexMatchesLI : public IndexMatchSuper {
   InvertedFile* invFile;
   R_Tree<1, NewPair<TupleId, int> > *rtree;
   size_t maxMLsize;
-  DataType mtype;
   vector<bool> deactivated;
 };
 

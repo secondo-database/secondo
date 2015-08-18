@@ -2850,22 +2850,31 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
       Pattern *p = 0;
       if (pText->IsDefined() && attrno->IsDefined() && rel->GetNoTuples() > 0) {
         Supplier s0 = qp->GetSon(s, 0);
-        ListExpr ttype = nl->Second(qp->GetType(s0));
-        cout << "ttype is " << nl->ToString(ttype) << endl;
+        ListExpr ttList = nl->Second(qp->GetType(s0));
+        cout << "ttype is " << nl->ToString(ttList) << endl;
         Tuple *firstTuple = rel->GetTuple(1, false);
-        p = Pattern::getPattern(pText->GetValue(), false, firstTuple, ttype);
-        firstTuple->DeleteIfAllowed();
+        p = Pattern::getPattern(pText->GetValue(), false, firstTuple, ttList);
         if (p) {
-          li = new TMatchIndexLI(rel, ttype, ti, attrno->GetIntval(), p);
-          if (!li->initialize()) {
-            delete li;
-            local.addr = 0;
-            cout << "initialize failed" << endl;
+          vector<pair<int, string> > relevantAttrs;
+          int majorValueNo = -1;
+          TupleType *tt = firstTuple->GetTupleType();
+          if (p->isCompatible(tt, attrno->GetIntval(), relevantAttrs, 
+                              majorValueNo)) {
+            
+            DataType mtype = Tools::getDataType(tt, attrno->GetIntval());
+            li = new TMatchIndexLI(rel, ttList, ti, attrno->GetIntval(), p, 
+                                   majorValueNo, mtype);
+            if (!li->initialize()) {
+              delete li;
+              local.addr = 0;
+              cout << "initialize failed" << endl;
+            }
           }
         }
         else {
           cout << "invalid pattern" << endl;
         }
+        firstTuple->DeleteIfAllowed();
       }
       local.addr = li;
       return 0;
