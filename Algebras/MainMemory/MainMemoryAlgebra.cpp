@@ -2782,8 +2782,9 @@ class avlOperLI{
 
         avlOperLI(avltree::AVLTree< pair<Attribute*,size_t>,
            KeyComparator >* _tree,vector<Tuple*>* _relation, Attribute* _attr1,
-           Attribute* _attr2)
-           :relation(_relation),tree(_tree),attr1(_attr1),attr2(_attr2){
+           Attribute* _attr2, string _keyType)
+           :relation(_relation),tree(_tree),attr1(_attr1),attr2(_attr2),
+           keyType(_keyType){
 
             //diese Abfrage nötig???
             if (tree->Size()!=0){
@@ -2808,7 +2809,7 @@ class avlOperLI{
                     (hitString==attr2ToString || hitString < attr2ToString)) {
 
                     Tuple* result = relation->at(hit->second);
-                    result->IncReference(); //richtig???
+                    result->IncReference();
                     it.Next();
                     return result;
                 }
@@ -2829,21 +2830,55 @@ class avlOperLI{
         }
 
 
+
+
         Tuple* matchbelow(){
-        if(it.onEnd() || (((*itbegin)->first)->Compare(attr1)==0) ||
-        ((*itbegin)->first)->Compare(attr1)== 1){
-            return 0;
-        }
-            while(itbegin.hasNext() &&
-                    (((*itbegin)->first)->Compare(attr1)== -1)){
-                hit = *itbegin;
-                itbegin.Next();
+            if (keyType=="string"){
+                    string attr1ToString = ((CcString*) attr1)->GetValue();
+
+                if (itbegin.onEnd()||((trim(((CcString*)((*itbegin)->first))
+                                    ->GetValue())) > attr1ToString)){
+                        return 0;
                 }
-             Tuple* result = relation->at(hit->second);
+                while(!itbegin.onEnd() &&
+                    (((trim(((CcString*)((*itbegin)->first))
+                                            ->GetValue())) <  attr1ToString) ||
+                     ((trim(((CcString*)((*itbegin)->first))
+                                            ->GetValue())) == attr1ToString))){
+
+                    hit = *itbegin;
+                    if (itbegin.hasNext()){
+                        itbegin.Next();
+                    }
+                    else {
+                        itbegin=NULL;
+                    }
+                }
+            Tuple* result = relation->at(hit->second);
             result->IncReference();
             return result;
+            }  // end keyType string
 
+
+
+            if(itbegin.onEnd() || ((*itbegin)->first)->Compare(attr1)==1){
+                return 0;
+            }
+            while(!itbegin.onEnd()&&((((*itbegin)->first)->Compare(attr1)==-1)
+                            || (((*itbegin)->first)->Compare(attr1)== 0))){
+                hit = *itbegin;
+                if (itbegin.hasNext()){
+                    itbegin.Next();
+                }
+                else {
+                    itbegin=NULL;
+                }
+            }
+            Tuple* result = relation->at(hit->second);
+            result->IncReference();
+            return result;
         }
+
 
     private:
         vector<Tuple*>* relation;
@@ -3057,6 +3092,7 @@ int mrangeValMap (Word* args, Word& result,
             avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
             MemoryAVLObject* avlObject =
                     (MemoryAVLObject*)catalog->getMMObject(objectName_0);
+            string keyType = avlObject->getKeyType();
             tree = avlObject->getAVLtree();
 
             //second argument MemoryRelObject
@@ -3073,7 +3109,7 @@ int mrangeValMap (Word* args, Word& result,
             // third argument key value
             Attribute* attr1 = (Attribute*)args[2].addr;
             Attribute* attr2 = (Attribute*)args[3].addr;
-            local.addr= new avlOperLI(tree,relation,attr1, attr2);
+            local.addr= new avlOperLI(tree,relation,attr1, attr2, keyType);
             return 0;
         }
 
@@ -3127,10 +3163,10 @@ Operator mrangeOp (
 
 /*
 5.19 Operator ~matchbelow~
-        Uses the given MemoryAVLObject (as first argument)to find the tuple
-        in the given MemoryRelObject (as second argument)
-        which is one left (in the avl-tree) of the attribute value
 
+        returns for a key X (third argument)
+        the tuple which contains the biggest attribute value in the AVLtree (first argument)
+        which is smaller or equal X.
 
 */
 
@@ -3227,6 +3263,7 @@ int matchbelowValMap (Word* args, Word& result,
             avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
             MemoryAVLObject* avlObject =
                     (MemoryAVLObject*)catalog->getMMObject(objectName_0);
+            string keyType = avlObject->getKeyType();
             tree = avlObject->getAVLtree();
 
             //second argument MemoryRelObject
@@ -3242,7 +3279,7 @@ int matchbelowValMap (Word* args, Word& result,
 
             // third argument key value
             Attribute* attr = (Attribute*)args[2].addr;
-            local.addr= new avlOperLI(tree,relation,attr);
+            local.addr= new avlOperLI(tree,relation,attr,keyType);
             return 0;
         }
 
@@ -3272,10 +3309,10 @@ int matchbelowValMap (Word* args, Word& result,
 OperatorSpec matchbelowSpec(
     "string x string x key -> stream(tuple) ",
     "_ _ matchbelow[_]",
-    "Uses the given avl-tree to find the tuple"
-      " in the given relation which is one left of "
-      "the argument value in the avl-tree",
-     "query 'Staedte_SName' 'Staedte' matchbelow ['Dortmund'] count"
+    "returns for a key X (third argument) the tuple which "
+    " contains the biggest attribute value in the AVLtree (first argument) "
+    " which is smaller or equal X",
+    "query 'Staedte_SName' 'Staedte' matchbelow ['Dortmund'] count"
 
 );
 
