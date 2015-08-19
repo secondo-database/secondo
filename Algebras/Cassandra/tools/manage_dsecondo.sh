@@ -132,6 +132,7 @@ start_local() {
      # Start screen in deamon mode 
      screenId=${screensessionServer}_${instance}
      screen -dmS $screenId
+     sleep 1
      execCommandsInScreen $screenId "cd $SECONDO_BUILD_DIR/bin; ./SecondoMonitor -s -c ${configuration}"
      
      instance=$((instance+1))
