@@ -1707,7 +1707,7 @@ public:
       Tuple* tuple = new Tuple(tupleType);
       tuple->ReadFromBin(bytes);
       delete fetchedTuple;
-      delete bytes;
+      free(bytes);
       
       return tuple;
   }
