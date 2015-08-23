@@ -145,8 +145,10 @@
     <integer name="abc_max_action_buttons">2</integer>
     <!-- From: file:/C:/Users/Jerome/Dropbox/Source/secondo/Tools/ContinuousUpdate/SecondoPositionTransmitter/app/src/main/res/values/strings.xml -->
     <eat-comment/>
+    <string name="NotificationText">Show Secondo Position Transmitter</string>
     <string name="Port">Port</string>
-    <string name="Title">Secondo Position Transmitter!</string>
+    <string name="Title">Secondo Position Transmitter</string>
+    <string name="User">Username</string>
     <!-- From: file:/C:/Users/Jerome/Dropbox/Source/secondo/Tools/ContinuousUpdate/SecondoPositionTransmitter/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/21.0.3/res/values/values.xml -->
     <eat-comment/>
     <string name="abc_action_bar_home_description">Navigate home</string>
@@ -170,7 +172,6 @@
     <string name="action_settings">Settings</string>
     <string name="app_name">SecondoPositionTransmitter</string>
     <string name="betterLocationToggle">Transmit only while moving</string>
-    <string name="hello_world">Hello world!</string>
     <string name="hostname">Hostname</string>
     <string name="logging_title">Logging:</string>
     <string name="position_transmission">Position transmission</string>

@@ -108,13 +108,13 @@
             android:inputType="number" />
 
         <TextView
-            android:id="@+id/textViewRelation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_column="0"
-            android:layout_row="5"
-            android:text="@string/relation_name"
-            android:textAppearance="?android:attr/textAppearanceMedium" />
+        android:id="@+id/textViewRelation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_column="0"
+        android:layout_row="5"
+        android:text="@string/relation_name"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
 
         <EditText
             android:id="@+id/editTextRelation"
@@ -125,11 +125,28 @@
             android:inputType="text" />
 
         <TextView
-            android:id="@+id/textViewInterval"
+            android:id="@+id/textViewUser"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_column="0"
             android:layout_row="6"
+            android:text="@string/User"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+
+        <EditText
+            android:id="@+id/editTextUser"
+            android:layout_width="215dp"
+            android:layout_height="wrap_content"
+            android:layout_column="1"
+            android:layout_row="6"
+            android:inputType="text" />
+
+        <TextView
+            android:id="@+id/textViewInterval"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="0"
+            android:layout_row="7"
             android:text="@string/transmissionInterval"
             android:textAppearance="?android:attr/textAppearanceMedium" />
 
@@ -138,7 +155,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_column="1"
-            android:layout_row="6"
+            android:layout_row="7"
             android:ems="10"
             android:inputType="number" />
 
@@ -147,7 +164,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_column="0"
-            android:layout_row="7"
+            android:layout_row="8"
             android:text="@string/logging_title"
             android:textAppearance="?android:attr/textAppearanceMedium" />
 

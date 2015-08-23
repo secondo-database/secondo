@@ -2,20 +2,6 @@
 <items version="2" >
 
     <item
-        jar="C:\Users\Jerome\.gradle\caches\modules-2\files-2.1\com.mcxiaoke.volley\library\1.0.6\b2e6988baeea1aed656995f973aaa2fc3feaf447\library-1.0.6.jar"
-        jumboMode="false"
-        revision="21.1.2"
-        sha1="b2e6988baeea1aed656995f973aaa2fc3feaf447">
-        <dex dex="C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\library-1.0.6-74d90fd5a4a80434cef1dd32fc76cd9f40d5ec19.jar" />
-    </item>
-    <item
-        jar="C:\Users\Jerome\AppData\Local\Android\sdk\extras\android\m2repository\com\android\support\support-annotations\21.0.3\support-annotations-21.0.3.jar"
-        jumboMode="false"
-        revision="21.1.2"
-        sha1="4b74cefe1f0c1b819e7260c8627a14674e37fd35">
-        <dex dex="C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\support-annotations-21.0.3-ee4b588a93dc0b725e08bb4e77dcf195c77a76c9.jar" />
-    </item>
-    <item
         jar="C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\exploded-aar\com.android.support\appcompat-v7\21.0.3\classes.jar"
         jumboMode="false"
         revision="21.1.2"
@@ -42,6 +28,20 @@
         revision="21.1.2"
         sha1="01ec05bfbafcc07646ba813000bf2ef11742dd03">
         <dex dex="C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\internal_impl-21.0.3-51ef11157e31df70a58af9895287588953baf853.jar" />
+    </item>
+    <item
+        jar="C:\Users\Jerome\.gradle\caches\modules-2\files-2.1\com.mcxiaoke.volley\library\1.0.6\b2e6988baeea1aed656995f973aaa2fc3feaf447\library-1.0.6.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="b2e6988baeea1aed656995f973aaa2fc3feaf447">
+        <dex dex="C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\library-1.0.6-74d90fd5a4a80434cef1dd32fc76cd9f40d5ec19.jar" />
+    </item>
+    <item
+        jar="C:\Users\Jerome\AppData\Local\Android\sdk\extras\android\m2repository\com\android\support\support-annotations\21.0.3\support-annotations-21.0.3.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="4b74cefe1f0c1b819e7260c8627a14674e37fd35">
+        <dex dex="C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\support-annotations-21.0.3-ee4b588a93dc0b725e08bb4e77dcf195c77a76c9.jar" />
     </item>
 
 </items>

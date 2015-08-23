@@ -1314,7 +1314,7 @@ containing a value of this type.
         public static final int action_mode_bar=0x7f09002e;
         public static final int action_mode_bar_stub=0x7f09002d;
         public static final int action_mode_close_button=0x7f090020;
-        public static final int action_settings=0x7f090050;
+        public static final int action_settings=0x7f090052;
         public static final int activity_chooser_view_content=0x7f090021;
         public static final int always=0x7f090016;
         public static final int beginning=0x7f090013;
@@ -1326,9 +1326,10 @@ containing a value of this type.
         public static final int disableHome=0x7f09000c;
         public static final int dropdown=0x7f09001c;
         public static final int editTextHost=0x7f090043;
-        public static final int editTextInterval=0x7f09004c;
+        public static final int editTextInterval=0x7f09004e;
         public static final int editTextPort=0x7f090048;
         public static final int editTextRelation=0x7f09004a;
+        public static final int editTextUser=0x7f09004c;
         public static final int edit_query=0x7f090033;
         public static final int end=0x7f090014;
         public static final int expand_activities_button=0x7f090022;
@@ -1348,7 +1349,7 @@ containing a value of this type.
         public static final int progress_circular=0x7f090005;
         public static final int progress_horizontal=0x7f090006;
         public static final int radio=0x7f09002b;
-        public static final int scrollView=0x7f09004e;
+        public static final int scrollView=0x7f090050;
         public static final int search_badge=0x7f090035;
         public static final int search_bar=0x7f090034;
         public static final int search_button=0x7f090036;
@@ -1369,11 +1370,12 @@ containing a value of this type.
         public static final int textHeading=0x7f090040;
         public static final int textView=0x7f090045;
         public static final int textViewHostname=0x7f090046;
-        public static final int textViewInterval=0x7f09004b;
-        public static final int textViewLogging=0x7f09004f;
-        public static final int textViewLoggingHeading=0x7f09004d;
+        public static final int textViewInterval=0x7f09004d;
+        public static final int textViewLogging=0x7f090051;
+        public static final int textViewLoggingHeading=0x7f09004f;
         public static final int textViewPort=0x7f090047;
         public static final int textViewRelation=0x7f090049;
+        public static final int textViewUser=0x7f09004b;
         public static final int textviewEnableTransmission=0x7f090044;
         public static final int title=0x7f090027;
         public static final int toggleButton=0x7f090041;
@@ -1420,33 +1422,34 @@ containing a value of this type.
         public static final int ic_launcher=0x7f030000;
     }
     public static final class string {
-        public static final int Port=0x7f0b0000;
-        public static final int Title=0x7f0b0001;
-        public static final int abc_action_bar_home_description=0x7f0b0002;
-        public static final int abc_action_bar_home_description_format=0x7f0b0003;
-        public static final int abc_action_bar_home_subtitle_description_format=0x7f0b0004;
-        public static final int abc_action_bar_up_description=0x7f0b0005;
-        public static final int abc_action_menu_overflow_description=0x7f0b0006;
-        public static final int abc_action_mode_done=0x7f0b0007;
-        public static final int abc_activity_chooser_view_see_all=0x7f0b0008;
-        public static final int abc_activitychooserview_choose_application=0x7f0b0009;
-        public static final int abc_searchview_description_clear=0x7f0b000a;
-        public static final int abc_searchview_description_query=0x7f0b000b;
-        public static final int abc_searchview_description_search=0x7f0b000c;
-        public static final int abc_searchview_description_submit=0x7f0b000d;
-        public static final int abc_searchview_description_voice=0x7f0b000e;
-        public static final int abc_shareactionprovider_share_with=0x7f0b000f;
-        public static final int abc_shareactionprovider_share_with_application=0x7f0b0010;
-        public static final int abc_toolbar_collapse_description=0x7f0b0011;
-        public static final int action_settings=0x7f0b0012;
-        public static final int app_name=0x7f0b0013;
-        public static final int betterLocationToggle=0x7f0b0014;
-        public static final int hello_world=0x7f0b0015;
-        public static final int hostname=0x7f0b0016;
-        public static final int logging_title=0x7f0b0017;
-        public static final int position_transmission=0x7f0b0018;
-        public static final int relation_name=0x7f0b0019;
-        public static final int transmissionInterval=0x7f0b001a;
+        public static final int NotificationText=0x7f0b0000;
+        public static final int Port=0x7f0b0001;
+        public static final int Title=0x7f0b0002;
+        public static final int User=0x7f0b0003;
+        public static final int abc_action_bar_home_description=0x7f0b0004;
+        public static final int abc_action_bar_home_description_format=0x7f0b0005;
+        public static final int abc_action_bar_home_subtitle_description_format=0x7f0b0006;
+        public static final int abc_action_bar_up_description=0x7f0b0007;
+        public static final int abc_action_menu_overflow_description=0x7f0b0008;
+        public static final int abc_action_mode_done=0x7f0b0009;
+        public static final int abc_activity_chooser_view_see_all=0x7f0b000a;
+        public static final int abc_activitychooserview_choose_application=0x7f0b000b;
+        public static final int abc_searchview_description_clear=0x7f0b000c;
+        public static final int abc_searchview_description_query=0x7f0b000d;
+        public static final int abc_searchview_description_search=0x7f0b000e;
+        public static final int abc_searchview_description_submit=0x7f0b000f;
+        public static final int abc_searchview_description_voice=0x7f0b0010;
+        public static final int abc_shareactionprovider_share_with=0x7f0b0011;
+        public static final int abc_shareactionprovider_share_with_application=0x7f0b0012;
+        public static final int abc_toolbar_collapse_description=0x7f0b0013;
+        public static final int action_settings=0x7f0b0014;
+        public static final int app_name=0x7f0b0015;
+        public static final int betterLocationToggle=0x7f0b0016;
+        public static final int hostname=0x7f0b0017;
+        public static final int logging_title=0x7f0b0018;
+        public static final int position_transmission=0x7f0b0019;
+        public static final int relation_name=0x7f0b001a;
+        public static final int transmissionInterval=0x7f0b001b;
     }
     public static final class style {
         /**  Customize your theme here. 

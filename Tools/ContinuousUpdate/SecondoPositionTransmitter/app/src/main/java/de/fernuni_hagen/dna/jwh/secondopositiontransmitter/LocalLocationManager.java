@@ -28,6 +28,9 @@ public class LocalLocationManager {
         getLocationManager();
     }
 
+    /**
+     * Registers the Instance for Location Updates
+     */
     private void getLocationManager() {
         LocationManager locationManager = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
 
@@ -59,6 +62,10 @@ public class LocalLocationManager {
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, updateRate, 0, locationListener);
     }
 
+    /**
+     * Handler for new Locations, called by the LocationManager
+     * @param location
+     */
     private synchronized void handleNewLocation(Location location) {
         Log.i(this.getClass().getSimpleName(), "Location Update Received");
         if (isBetterLocation(location, bestLocation)) {
@@ -75,7 +82,12 @@ public class LocalLocationManager {
         }
     }
 
-
+    /**
+     * Dertermine if the received location is better than the currently available
+     * @param location
+     * @param currentBestLocation
+     * @return
+     */
     protected boolean isBetterLocation(Location location, Location currentBestLocation) {
         if (currentBestLocation == null) {
             /* First location, is always better than none at all */
@@ -114,7 +126,7 @@ public class LocalLocationManager {
     }
 
     /**
-     * Checks if the two providers are the same
+     * Checks if the two providers are the same, used by isBetterLocation
      */
     private boolean isSameProvider(String provider1, String provider2) {
         if (provider1 == null || provider2 == null) {
@@ -124,6 +136,10 @@ public class LocalLocationManager {
     }
 
 
+    /**
+     *
+     * @return current Location Info (Start/End)
+     */
     public synchronized LocationInfo getCurrentLocationInfo() {
         LocationInfo info = new LocationInfo(currentLocationInfo);
         currentLocationInfo = new LocationInfo();
@@ -131,19 +147,30 @@ public class LocalLocationManager {
         return info;
     }
 
+    /**
+     * Determine if the movement was enough
+     * @return
+     */
     public boolean significantMovement() {
-        if(movementAvailable() && currentLocationInfo.start.distanceTo(currentLocationInfo.end) >= significantDistance){
+        if (movementAvailable() && currentLocationInfo.start.distanceTo(currentLocationInfo.end) >= significantDistance) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
 
-    public boolean movementAvailable(){
-        return (currentLocationInfo != null && currentLocationInfo.start != null &&  currentLocationInfo.end != null && currentLocationInfo.start.getTime() < currentLocationInfo.end.getTime());
+    /**
+     * Used to tell if a new Position is available
+     * @return
+     */
+    public boolean movementAvailable() {
+        return (currentLocationInfo != null && currentLocationInfo.start != null && currentLocationInfo.end != null && currentLocationInfo.start.getTime() < currentLocationInfo.end.getTime());
     }
 
 
+    /**
+     * Local Class to represent the start/end Location of a movement
+     */
     public class LocationInfo {
         public Location start;
         public Location end;
