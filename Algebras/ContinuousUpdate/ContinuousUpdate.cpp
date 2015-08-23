@@ -238,32 +238,54 @@ ListExpr ipointstoupointTM(ListExpr inargs) {
         return listutils::typeError(
             "second argument must be the name of an attribute");
 
-    //Replace the ipoint with upoint
+    // Create result type
     found = false;
     int ipointIndex = 0;
-    for (int i = 1;
-        i <= (int) stream_desc.first().second().second().length();
-        i++) {
+    ListExpr inputAttr = nl->Second(nl->Second(nl->First(nl->First(inargs))));
 
-        if (stream_desc.first().second().second().elem(i).second()
-            .str().compare("ipoint") == 0) {
-            nl->Replace(
-                stream_desc.first().second().second().elem(i)
-                    .second().listExpr(),
-                nl->StringAtom("upoint", false));
-            ipointIndex = i - 1;
-            found = true;
-            break;
-        }
+    // Pointer to the head and the tail of the result list
+    ListExpr resultAttr = nl->TheEmptyList();
+    ListExpr lastResultAttr = resultAttr;
+
+    while(! (nl->IsEmpty(inputAttr))) {
+        ListExpr attr = nl->First(inputAttr);
+       inputAttr = nl->Rest(inputAttr);
+
+        // Change first ipoint to upoint
+       if(! found) {
+           if(nl->IsEqual(nl->Second(attr), IPoint::BasicType())) {
+             attr = nl->TwoElemList(
+                        nl->First(attr),
+                        nl->SymbolAtom(UPoint::BasicType()));
+
+              ipointIndex = nl->ListLength(resultAttr);
+              found = true;
+          }
+       }
+
+        // First call, create new NListExpr.
+        // Otherwise append attr to existing list
+       if( nl -> IsEmpty(resultAttr) ) {
+          resultAttr = nl->OneElemList(attr);
+          lastResultAttr = resultAttr;
+       } else {
+           lastResultAttr = nl->Append(lastResultAttr, attr);
+       }
     }
 
-    if (!found)
+    ListExpr resultType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), resultAttr));
+
+    if (!found) {
         return listutils::typeError(
             "One of the attributes of the input stream must be an ipoint");
+    }
 
-    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+    return nl->ThreeElemList(
+        nl->SymbolAtom(Symbol::APPEND()),
         nl->TwoElemList(nl->StringAtom(mergeAttribute.first().str()),
-            nl->IntAtom(ipointIndex)), stream_desc.first().listExpr());
+            nl->IntAtom(ipointIndex)),
+       resultType);
 }
 
 int ipointstoupointVM(Word* args, Word& result, int message,
