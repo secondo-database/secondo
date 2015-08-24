@@ -261,65 +261,76 @@ public class GraphWindow extends JLayeredPane
    * @param grob
    * @return The layertoggle of this layer
    */
-  public JToggleButton addLayerObjects (Vector grob, boolean changeZoom) {
-    Category acat;
-    int catSelMode = CurrentState.getCatSelectionMode();
+  public JToggleButton addLayerObjects (QueryResult qr, boolean changeZoom) {
 
-    switch(catSelMode){
-       case CurrentState.CATEGORY_AUTO: {
-                acat = createAutoCat();
-                ListIterator li = grob.listIterator();
-                while (li.hasNext()) {
-                   DsplGraph dg = ((DsplGraph)li.next());
-                   if(dg==null){
-                        Reporter.writeError("viewer.hoese.GraphWindow .addLayerObjects"+
-                                            " has received a null object");
-                   } else {
-                      dg.setCategory(acat);
-                   }
-                }
-                break;
-            }
-      case CurrentState.CATEGORY_MANUAL: {
-               newQueryRepresentation(grob);
-               break;
-           }
-      case CurrentState.CATEGORY_BY_NAME: {
-              int size = grob.size();
-              Vector remaining = new Vector(size); // objects which have no category with
-                                                   // the same name
-              for(int i=0;i<size;i++){
-                 DsplGraph dg = (DsplGraph)grob.get(i);
-                 if(dg==null){
-                    Reporter.writeError("GraphWindow.addLayerObjects received a NULL object");
-                 } else{
-                    String attrName = dg.getAttrName();
-                    Category cat = getCategory(attrName);
-                    if(cat==null){
-                       remaining.add(dg);
-                    } else {
-                        dg.setCategory(cat);
-                    }
-                 }
-              }
-              // process remaining objects
-              if(remaining.size()>0){
-               newQueryRepresentation(remaining);
-              }
-              break;
-           }
-      default : {
-                  Reporter.writeError("GraphWindow.addLayerObjects: unknown category selection mode");
-                  newQueryRepresentation(grob);
-                }
-    }
+	Vector grob = qr.getGraphObjects();
+	  
+    handleCategory(grob);
+    
     Layer lay = new Layer(grob, this);
     int Laynr = ++highest;
+    qr.setResultLayer(lay);
     add(lay, new Integer(Laynr));
     mw.updateViewParameter(changeZoom);
     JToggleButton res =  lay.CreateLayerButton(LayerButtonListener, Laynr);
     return res; 
   }
+
+  /**
+   * Sets the Category by the provided selection mode
+   * @param grob
+   */
+	private void handleCategory(Vector grob) {
+		Category acat;
+		switch(CurrentState.getCatSelectionMode()){
+	       case CurrentState.CATEGORY_AUTO: {
+	                acat = createAutoCat();
+	                ListIterator li = grob.listIterator();
+	                while (li.hasNext()) {
+	                   DsplGraph dg = ((DsplGraph)li.next());
+	                   if(dg==null){
+	                        Reporter.writeError("viewer.hoese.GraphWindow .addLayerObjects"+
+	                                            " has received a null object");
+	                   } else {
+	                      dg.setCategory(acat);
+	                   }
+	                }
+	                break;
+	            }
+	      case CurrentState.CATEGORY_MANUAL: {
+	               newQueryRepresentation(grob);
+	               break;
+	           }
+	      case CurrentState.CATEGORY_BY_NAME: {
+	              int size = grob.size();
+	              Vector remaining = new Vector(size); // objects which have no category with
+	                                                   // the same name
+	              for(int i=0;i<size;i++){
+	                 DsplGraph dg = (DsplGraph)grob.get(i);
+	                 if(dg==null){
+	                    Reporter.writeError("GraphWindow.addLayerObjects received a NULL object");
+	                 } else{
+	                    String attrName = dg.getAttrName();
+	                    Category cat = getCategory(attrName);
+	                    if(cat==null){
+	                       remaining.add(dg);
+	                    } else {
+	                        dg.setCategory(cat);
+	                    }
+	                 }
+	              }
+	              // process remaining objects
+	              if(remaining.size()>0){
+	               newQueryRepresentation(remaining);
+	              }
+	              break;
+	           }
+	      default : {
+	                  Reporter.writeError("GraphWindow.addLayerObjects: unknown category selection mode");
+	                  newQueryRepresentation(grob);
+	                }
+	    }
+	}
 
   /** Computes the category with the given name.
     * If not such category is found, NULL is returned.

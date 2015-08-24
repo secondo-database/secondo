@@ -3754,6 +3754,17 @@ public void addMessageListener(MessageListener ml){
   ComPanel.addMessageListener(ml);
 }
 
+public static void enableCommandPanel(){
+    ComPanel.SystemArea.setEnabled(true);
+}
+
+public static void disableCommandPanel(){
+    ComPanel.SystemArea.setEnabled(false);
+}
+
+public static String getCurrentDatabase(){
+	return ComPanel.getOpenedDatabase();
+}
 
 
 /** returns a small interface to secondo needed by the 'UpdateViewer'*/
