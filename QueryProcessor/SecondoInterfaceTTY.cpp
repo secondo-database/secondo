@@ -2487,7 +2487,7 @@ SecondoInterfaceTTY::StartCommand()
   if ( !activeTransaction )
   {
     SecondoSystem::BeginTransaction();
-    activeTransaction=true;
+    //activeTransaction=true;
   }
 }
 
@@ -2496,7 +2496,7 @@ SecondoInterfaceTTY::FinishCommand( SI_Error& errorCode, string& errMsg )
 {
 
   Flob::dropFiles();
-  if ( activeTransaction)
+  if ( !activeTransaction)
   {
 
 
