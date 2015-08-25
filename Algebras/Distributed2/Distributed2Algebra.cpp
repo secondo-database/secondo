@@ -7962,15 +7962,15 @@ OperatorSpec ddistribute2Spec(
      " stream(tuple(X)) x ident x int x rel x string -> darray2(X) ",
      " _ ddistribute2[ _, _,_,_]",
      " Distributes a locally stored relation into a darray2. "
-     "The firts argument is the tuple stream to distribute. The second "
+     "The first argument is the tuple stream to distribute. The second "
      "Argument is an attribute within this stream of type int. "
      "This attribute controls in which slot of the resulting array "
      "is the corresponding tuple inserted. The third argument specifies "
      "the size of the resulting array. The relation argument specifies "
      "the workers for this array. It must be a relation having attributes "
-     "Host, Port, and Config. Host and Port must be of type string or text. "
+     "Host, Port, and Config. Host and Config must be of type string or text, "
      "the Port attribute must be of type int. " 
-     "The fifth attribute specified the name of the resulting array.",
+     "The fifth attribute specifies the name of the resulting array.",
      " query strassen feed addcounter[No,1] ddistribute2[No, 5, workers, "
      " \"dstrassen\"]  "
      );
@@ -8241,16 +8241,16 @@ int distribute3VMT(Word* args, Word& result, int message,
 OperatorSpec ddistribute3Spec(
      " stream(tuple(X)) x int x bool x rel x string-> darray2(X) ",
      " _ ddistribute3[ _, _,_,_]",
-     " Distributes a tuple streanm into a darray. The boolean "
+     " Distributes a tuple stream into a darray. The boolean "
      "flag controls the method of distribution. If the flag is set to "
      " true, the integer argument specifies the target size of the "
-     " resulting darray and the tuples are distributed in a circular way."
+     " resulting darray and the tuples are distributed in a circular way. "
      "In the other case, this number represents the size of a single "
      "array slot. A slot is filled until the size is reached. After that "
      " a new slot is opened. The string attribute gives the name of the "
      "result. The fourth attribute is a relation with attributes "
-     "Host (string,text), Port(int), and Config(string,text) containing"
-     "the woirkers for the resultng array.",
+     "Host (string,text), Port(int), and Config(string,text) containing "
+     "the workers for the resulting array.",
      " query strassen feed ddistribute3[10, TRUE, workers, \"da28\" ]  "
      );
 
@@ -9129,7 +9129,7 @@ int dloop2VM(Word* args, Word& result, int message,
 OperatorSpec dloop2Spec(
      " darray2(X) x string x  (X->Y) -> darray2(Y)",
      " _ dloop2[_,_]",
-     "Performs a function on each element of an darray2 instance."
+     "Performs a function on each element of a darray2 instance."
      "The string argument specifies the name of the result. If the name"
      " is undefined or an empty string, a name is generated automatically.",
      "query da2 dloop2[\"da3\", . count"
@@ -9563,7 +9563,7 @@ int dsummarize2Select(ListExpr args){
 */
 
 OperatorSpec dsummarize2Spec(
-     "darray2(DATA) -> stream(DATA> , darray2(rel(X)) -> stream(X)",
+     "darray2(DATA) -> stream(DATA) , darray2(rel(X)) -> stream(X)",
      "_ dsummarize",
      "Produces a stream of the darray elements.",
      "query da2 dsummarize2 count"
@@ -10040,9 +10040,10 @@ int dloop2aVM(Word* args, Word& result, int message,
 OperatorSpec dloop2aSpec(
      "darray2(X) x darray2(Y) x string x (fun : X x Y -> Z) -> darray2(Z)",
      "_ _ dloop2a[_,_]",
-     "Performs a funtion on the elements of two darray2 instances. The "
+     "Performs a function on the elements of two darray2 instances. The "
      "string argument specifies the name of the resulting darray2." 
-     " If the string is undefined or empty, a name is generated automatically",
+     " If the string is undefined or empty, a name is generated "
+     "automatically.",
      "query da1 da2 dloop2a[\"newName\", fun(i1 : int, i2 : int) i1 + i2) "
      );
 /*
@@ -10244,9 +10245,9 @@ OperatorSpec fdistribute6Spec(
      " stream(tuple> x {string,text} x int -> stream(tuple)",
      "_ fdistribute6[<filename>, <numElemsPerFile>]",
      "Distributes a tuple stream into a set of files. " 
-     " The first <numOfElemsPerFile> elemenst of the stream "
+     " The first <numOfElemsPerFile> element of the stream "
      " are stored into the first file and so on. "
-     "The given basicfilename is extended by an underscore and"
+     "The given basic filename is extended by an underscore and"
      " a running number" ,
      "query strassen feed fdistribute6['strassen',1000] count"
      );
@@ -10957,7 +10958,7 @@ int cleanUpVM(Word* args, Word& result, int message,
 OperatorSpec cleanUpSpec(
      "-> bool , darray2 -> bool",
      "cleanUp(_)",
-     "Removes temporarly objects, i.e. objects whose name starts with TMP_, "
+     "Removes temporary objects, i.e. objects whose name starts with TMP_, "
      "from remote servers. If no argument is given, all open connections to "
      "servers are used for removing objects. If the darray2 argument is "
      "present, only the workers specified by this argument are used.",
@@ -10986,17 +10987,17 @@ Operator cleanUpOp(
 
 OperatorSpec fddistribute2Spec(
      " stream(tuple(X)) x ident x int x rel x string -> dfarray2(X) ",
-     " _ fddistribute2[ _, _,_,_]",
-     " Distributes a locally stored relation into a darray2. "
-     "The firts argument is the tuple stream to distribute. The second "
-     "Argument is an attribute within this stream of type int. "
+     " _ fddistribute2[ attrname, size, workers, name]",
+     " Distributes a locally stored relation into a dfarray2. "
+     "The first argument is the tuple stream to distribute. The second "
+     "argument is an attribute within this stream of type int. "
      "This attribute controls in which slot of the resulting array "
      "is the corresponding tuple inserted. The third argument specifies "
      "the size of the resulting array. The relation argument specifies "
      "the workers for this array. It must be a relation having attributes "
-     "Host, Port, and Config. Host and Port must be of type string or text. "
+     "Host, Port, and Config. Host and Config must be of type string or text, "
      "the Port attribute must be of type int. " 
-     "The fifth attribute specified the name of the resulting array.",
+     "The fifth attribute specifies the name of the resulting dfarray.",
      " query strassen feed addcounter[No,1] fddistribute2[No, 5, "
      "workers,\"fstrassem\"]  "
  );
@@ -11034,12 +11035,12 @@ operator.
 
 
 OperatorSpec fddistribute3Spec(
-     " stream(tuple(X)) x int x bool x rel x string-> darray2(X) ",
-     " _ fddistribute3[ _, _,_,_]",
-     " Distributes a tuple streanm into a dfarray. The boolean "
+     " stream(tuple(X)) x int x bool x rel x string-> dfarray2(X) ",
+     " _ fddistribute3[ size, <meaning of size>, workers, name]",
+     " Distributes a tuple stream into a dfarray. The boolean "
      "flag controls the method of distribution. If the flag is set to "
      " true, the integer argument specifies the target size of the "
-     " resulting darray and the tuples are distributed in a circular way."
+     " resulting darray and the tuples are distributed in a circular way. "
      "In the other case, this number represents the size of a single "
      "array slot. A slot is filled until the size is reached. After that "
      " a new slot is opened. The string attribute gives the name of the "
@@ -11069,8 +11070,8 @@ Operator fdistribute4
 
 */
 OperatorSpec fddistribute4Spec(
-     " stream(tuple(X)) x (tuple->int) x int x rel x string-> darray2(X) ",
-     " stream fddistribute4[ fun, size, wrokers, name ]",
+     " stream(tuple(X)) x (tuple->int) x int x rel x string-> dfarray2(X) ",
+     " stream fddistribute4[ fun, size, workers, name ]",
      " Distributes a locally stored relation into a dfarray2 ",
      " query strassen feed  fddistribute4[ hashvalue(.Name,2000),"
      " 8, workers, \"df8\"]  "
@@ -11408,11 +11409,17 @@ ListExpr dmapTM(ListExpr args){
   ListExpr arg2Type = nl->First(nl->Second(args));
   ListExpr arg3Type = nl->First(nl->Third(args));
 
-  if(  !DFArray2::checkType(arg1Type)
+  if(  (!DFArray2::checkType(arg1Type) && !DArray2::checkType(arg1Type))
      ||!CcString::checkType(arg2Type)
      ||!listutils::isMap<1>(arg3Type)){
     return listutils::typeError(err);
   }
+
+  if(   DArray2::checkType(arg1Type) 
+     && !Relation::checkType(nl->Second(arg1Type))){
+     return listutils::typeError("subtype of darray is not a relation");
+  }
+
 
   ListExpr stream = nl->TwoElemList(
                      listutils::basicSymbol<Stream<Tuple> >(),
@@ -11469,10 +11476,10 @@ ListExpr dmapTM(ListExpr args){
        ); 
 }
 
-
+template<class A>
 class Mapper{
  public: 
-   Mapper(DFArray2* _array, CcString* _name, FText* _funText ,
+   Mapper(A* _array, CcString* _name, FText* _funText ,
           bool _isRel, bool _isStream, void* res):
           array(_array), ccname(_name), funText(_funText), isRel(_isRel),
           isStream(_isStream) {
@@ -11494,7 +11501,7 @@ class Mapper{
     }
 
  private:
-    DFArray2* array;
+    A* array;
     CcString* ccname;
     FText* funText;
     bool isRel;
@@ -11625,12 +11632,19 @@ class Mapper{
                cerr << "code : " << err << endl;
                cerr << "msg : " << errMsg << endl;
              } else {
-               string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
-                       + mapper->array->getName()+"_"+stringutils::int2str(nr)
-                       + ".bin";
+
+               string cmd;
+               string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
+               if(mapper->array->isFileBased()){
+                   string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                       + n + ".bin";
+                   cmd = "query "+ funName +"( ffeed5 ('" + fname1+"'))";
+               } else {
+                   cmd = "query " + funName+"( " + n +" feed )";
+               }
                string fname2 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
                        + mapper->name + "_" + stringutils::int2str(nr)+".bin";
-               cmd = "query "+ funName +"( ffeed5 ('" + fname1+"'))";
+
 
                if(mapper->isRel) {
                  cmd += " feed fconsume5['"+fname2+"'] count";
@@ -11681,12 +11695,20 @@ class Mapper{
                cerr << "code : " << err << endl;
                cerr << "msg : " << errMsg << endl;
              } else {
-               string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
-                       + mapper->array->getName()+"_"+stringutils::int2str(nr)
-                       + ".bin";
+             
+               string stream;
+               string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
+
+               if(mapper->array->isFileBased()){  
+                   string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                                   + n + + ".bin";
+                    stream = "ffeed5 ('"+fname1 + "')";
+               } else {
+                    stream = n + " feed";
+               }
+
                string name2 = mapper->name + "_" + stringutils::int2str(nr);
-               cmd = "let "+ name2 +" = " + funName +"( ffeed5 ('" 
-                   + fname1+"'))";
+               cmd = "let "+ name2 +" = " + funName +"( " + stream + ")";
 
                ci->simpleCommand(cmd,err,errMsg,r,false);
                if((err!=0) && (err!=2) ){ // ignore type map errors
@@ -11708,45 +11730,57 @@ class Mapper{
         Mapper* mapper;
 
     };
-
-
-
-
- 
 };
 
-int dmapVM(Word* args, Word& result, int message,
+template<class A>
+int dmapVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
   result = qp->ResultStorage(s);
-  DFArray2* array = (DFArray2*) args[0].addr;
+  A* array = (A*) args[0].addr;
   CcString* name = (CcString*) args[1].addr;
    // ignore original fun at args[2];
   FText* funText = (FText*) args[3].addr;
   bool isRel = ((CcBool*) args[4].addr)->GetValue();
   bool isStream = ((CcBool*) args[5].addr)->GetValue();
-  Mapper mapper(array, name, funText, isRel, isStream, result.addr);
+  Mapper<A> mapper(array, name, funText, isRel, isStream, result.addr);
   mapper.start();
   return 0;
 }
 
 
+ValueMapping dmapVM[] = {
+   dmapVMT<DArray2>,
+   dmapVMT<DFArray2>
+};
+
+int dmapSelect(ListExpr args){
+
+  return DArray2::checkType(nl->First(args))?0:1;
+
+}
+
+
 OperatorSpec dmapSpec(
-  "dfarray2 x string x fun -> d[f]array2",
+  "d[f]array2 x string x fun -> d[f]array2",
   "_ dmap[_,_]",
-  "Performs a function on a Distributed file array. "
+  "Performs a function on a distributed file array. "
   "If the string argument is empty or undefined, a name for "
   "the result is chosen automatically. If not, the string "
-  "specifyies the name. The result is of type dfarray2 if "
-  "the function produces a tuple stream or a relation "
+  "specifies the name. The result is of type dfarray2 if "
+  "the function produces a tuple stream or a relationi; "
   "otherwise the result is a darray.",
   "query dfa8 dmap[\"\", . head[23]] "
 );
 
+
+
+
 Operator dmapOp(
   "dmap",
   dmapSpec.getStr(),
+  2,
   dmapVM,
-  Operator::SimpleSelect,
+  dmapSelect,
   dmapTM
 );
 
@@ -12105,7 +12139,7 @@ ValueMapping map2VM[] = {
 OperatorSpec map2Spec(
   "d[f]array2 x d[f]array2 x string x fun -> d[f]array2",
   "_ _ dmap2[_,_]",
-  "Joins the slots of two distribvuted arrays",
+  "Joins the slots of two distributed arrays",
   "query df1 df2 map2 [\"df3\" . .. product]"
 
 );
@@ -12874,6 +12908,7 @@ Algebra*
                              AlgebraManager* amRef ) {
 
    distributed2::algInstance = new distributed2::Distributed2Algebra();
+   
    return distributed2::algInstance;
 }
 
