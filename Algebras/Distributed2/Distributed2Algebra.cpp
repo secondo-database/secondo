@@ -45,6 +45,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NList.h"
 #include "ArrayAlgebra.h"
 #include "SocketIO.h"
+#include "StopWatch.h"
 
 
   // use boost for thread handling
@@ -485,7 +486,7 @@ class ConnectionInfo{
        }
 
        void simpleCommand(string command1, int& err, string& result, 
-                          bool rewrite){
+                          bool rewrite, double& runtime){
           string command;
           if(rewrite){
             rewriteQuery(command1,command);
@@ -495,7 +496,9 @@ class ConnectionInfo{
           SecErrInfo serr;
           ListExpr resList;
           simtx.lock();
+          StopWatch sw;
           si->Secondo(command, resList, serr);
+          runtime = sw.diffSecondsReal();
           err = serr.code;
           if(err==0){
              result = mynl->ToString(resList);
@@ -521,7 +524,8 @@ class ConnectionInfo{
                            " count";
           int err;
           string res;
-          simpleCommand(command, err, res, false);
+          double rt;
+          simpleCommand(command, err, res, false, rt);
           return err==0;
       }
 
@@ -545,7 +549,7 @@ class ConnectionInfo{
 
 
        void simpleCommand(const string& command1, int& error, string& errMsg, 
-                          string& resList, const bool rewrite){
+                          string& resList, const bool rewrite, double& runtime){
 
           string command;
           if(rewrite){
@@ -556,7 +560,9 @@ class ConnectionInfo{
           boost::lock_guard<boost::mutex> guard(simtx);;
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
+          StopWatch sw;
           si->Secondo(command, myResList, serr);
+          runtime = sw.diffSecondsReal();
           error = serr.code;
           errMsg = serr.msg;
 
@@ -566,7 +572,7 @@ class ConnectionInfo{
        
        void simpleCommandFromList(const string& command1, int& error, 
                                   string& errMsg, string& resList, 
-                                  const bool rewrite){
+                                  const bool rewrite, double& runtime){
 
           string command;
           if(rewrite){
@@ -587,7 +593,9 @@ class ConnectionInfo{
 
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
+          StopWatch sw;
           si->Secondo(cmd, myResList, serr);
+          runtime = sw.diffSecondsReal();
           error = serr.code;
           errMsg = serr.msg;
 
@@ -604,7 +612,8 @@ class ConnectionInfo{
 
 
        void simpleCommand(const string& command1, int& error, string& errMsg, 
-                          ListExpr& resList, const bool rewrite){
+                          ListExpr& resList, const bool rewrite,
+                          double& runtime){
 
 
           string command;
@@ -616,7 +625,9 @@ class ConnectionInfo{
           boost::lock_guard<boost::mutex> guard(simtx);;
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
+          StopWatch sw;
           si->Secondo(command, myResList, serr);
+          runtime = sw.diffSecondsReal();
           error = serr.code;
           errMsg = serr.msg;
           // copy resultlist from local nested list to global nested list
@@ -1058,7 +1069,8 @@ class ConnectionInfo{
        int err;
        string errmsg;
        ListExpr result; 
-       simpleCommand(cmd,err,errmsg, result,false);
+       double rt;
+       simpleCommand(cmd,err,errmsg, result,false,rt);
        if(err!=0){
             cerr << "command " << cmd << " failed" << endl;
             cerr << err << " : " << errmsg << endl;
@@ -1081,9 +1093,8 @@ class CommandListener{
  public:
 
   virtual void jobDone(int id, string& command, size_t no, int error, 
-                       string& errMsg, ResType& resList)=0;
+                       string& errMsg, ResType& resList, double runtime)=0;
 };
-
 
 
 
@@ -1371,6 +1382,10 @@ Returns a connection
 
      ConnectionInfo* getConnection(const int i){
          mtx.lock();
+         if(i<0 || ((size_t) i>=connections.size())){
+           mtx.unlock();
+           return 0;
+         }
          ConnectionInfo* res =  connections[i];
          mtx.unlock();
          return res;
@@ -1619,13 +1634,15 @@ Transfers a local file to a remove server.
 
 
     bool simpleCommand(int con, const string& cmd, int& error, 
-                       string& errMsg, ListExpr& resList, const bool rewrite){
+                       string& errMsg, ListExpr& resList, const bool rewrite,
+                       double& runtime){
       mtx.lock();
       if(con < 0 || con >= (int) connections.size()){
          mtx.unlock();
          error = -3;
          errMsg = "invalid connection number";
          resList = nl->TheEmptyList();
+         runtime = 0;
          return false;
       }
       ConnectionInfo* c = connections[con];
@@ -1634,21 +1651,24 @@ Transfers a local file to a remove server.
          error = -3;
          errMsg = "invalid connection number";
          resList = nl->TheEmptyList();
+         runtime = 0;
          return false;
       }
-      c->simpleCommand(cmd,error,errMsg,resList, rewrite);
+      c->simpleCommand(cmd,error,errMsg,resList, rewrite, runtime);
       return true;
     }
     
 
     bool simpleCommand(int con, const string& cmd, int& error, 
-                       string& errMsg, string& resList, const bool rewrite){
+                       string& errMsg, string& resList, const bool rewrite,
+                       double& runtime){
       mtx.lock();
       if(con < 0 || con >= (int) connections.size()){
          mtx.unlock();
          error = -3;
          errMsg = "invalid connection number";
          resList = "()";
+         runtime = 0;
          return false;
       }
       ConnectionInfo* c = connections[con];
@@ -1657,9 +1677,10 @@ Transfers a local file to a remove server.
          error = -3;
          errMsg = "invalid connection number";
          resList = "()";
+         runtime = 0;
          return false;
       }
-      c->simpleCommand(cmd,error,errMsg,resList, rewrite);
+      c->simpleCommand(cmd,error,errMsg,resList, rewrite, runtime);
       return true;
     }
 
@@ -1986,11 +2007,12 @@ class ConnectionTask{
          int error;
          string errMsg; 
          ResType resList;
+         double runtime;
          algInstance->simpleCommand(connection, cmd, 
-                                    error,errMsg, resList, true);
+                                    error,errMsg, resList, true, runtime);
 
          if(listener){
-            listener->jobDone(id, cmd, no, error, errMsg, resList);
+            listener->jobDone(id, cmd, no, error, errMsg, resList, runtime);
          }
       }
      }
@@ -2302,13 +2324,15 @@ ListExpr rcmdTM(ListExpr args){
   if(!FText::checkType(cmdt) && !CcString::checkType(cmdt)){
     return listutils::typeError(err);
   }
-  ListExpr attrList = nl->ThreeElemList(
+  ListExpr attrList = nl->FourElemList(
          nl->TwoElemList( nl->SymbolAtom("Connection"), 
                           listutils::basicSymbol<CcInt>()),
          nl->TwoElemList( nl->SymbolAtom("ErrorCode"), 
                           listutils::basicSymbol<CcInt>()),
          nl->TwoElemList( nl->SymbolAtom("Result"), 
-                          listutils::basicSymbol<FText>()));
+                          listutils::basicSymbol<FText>()),
+         nl->TwoElemList( nl->SymbolAtom("Runtime"), 
+                          listutils::basicSymbol<CcReal>()));
   return nl->TwoElemList( 
             listutils::basicSymbol<Stream<Tuple> >(),
             nl->TwoElemList(
@@ -2334,8 +2358,10 @@ int rcmdVMT( Word* args, Word& result, int message,
            int errorCode = 0;
            string result ="";
            string errMsg;
+           double runtime;
            bool ok = algInstance->simpleCommand(conv, cmd->GetValue(), 
-                                           errorCode, errMsg, result, true);
+                                           errorCode, errMsg, result, true,
+                                           runtime);
            if(!ok){
              return 0;
            }
@@ -2345,6 +2371,7 @@ int rcmdVMT( Word* args, Word& result, int message,
            resTuple->PutAttribute(0, new CcInt(true,conv));
            resTuple->PutAttribute(1, new CcInt(true,errorCode));
            resTuple->PutAttribute(2, new FText(true, result));
+           resTuple->PutAttribute(3, new CcReal(true,runtime));
            local.addr = resTuple;
             return 0;
        }
@@ -2387,12 +2414,12 @@ int rcmdSelect(ListExpr args){
 
 */
 OperatorSpec rcmdSpec(
-     "int x {text,string} -> stream(Tuple(C,E,R))",
+     "int x {text,string} -> stream(Tuple(C,E,R,T))",
      "rcmd(Connection, Command)",
      "Performs a remote command at given connection. Small Objects existing "
      "only in the local database, can be used by prefixing the object name "
      " with a dollar sign. ",
-     "query rcmd(1,'list algebras')"); 
+     "query rcmd(1,'list algebras') consume"); 
 
 /*
 1.3.7 Operator instance
@@ -2585,7 +2612,9 @@ ListExpr rqueryTM(ListExpr args){
    int error;
    string errMsg;
    ListExpr reslist;
-   ok = algInstance->simpleCommand(sn, query, error, errMsg, reslist, true);
+   double runtime;
+   ok = algInstance->simpleCommand(sn, query, error, errMsg, reslist, true,
+                                   runtime);
    if(!ok){
      return listutils::typeError("found no connection for specified "
                                  "connection number");
@@ -2658,8 +2687,9 @@ int rqueryVMT( Word* args, Word& result, int message,
   int error; 
   string errMsg;
   ListExpr resList;
+  double runtime;
   bool ok = algInstance->simpleCommand(serv, query->GetValue(), error,
-                                       errMsg, resList, true);
+                                       errMsg, resList, true, runtime);
   if(!ok){
      sendMessage(msg, "Error during remote command" );
      return 0;
@@ -2795,13 +2825,15 @@ ListExpr prcmdTM(ListExpr args){
                                 " not of type string or text");
   }
 
-  ListExpr extAttr = nl->ThreeElemList(
+  ListExpr extAttr = nl->FourElemList(
               nl->TwoElemList( nl->SymbolAtom("ErrorCode"), 
                                listutils::basicSymbol<CcInt>()),
               nl->TwoElemList( nl->SymbolAtom("ErrorMsg") , 
                                listutils::basicSymbol<FText>()),
               nl->TwoElemList( nl->SymbolAtom("ResultList"), 
-                               listutils::basicSymbol<FText>()));
+                               listutils::basicSymbol<FText>()),
+              nl->TwoElemList( nl->SymbolAtom("Runtime"),
+                                 listutils::basicSymbol<CcReal>()));
 
   ListExpr resAttrList = listutils::concat(attrList, extAttr);
   if(!listutils::isAttrList(resAttrList)){
@@ -2872,7 +2904,7 @@ class prcmdInfo: public CommandListener<string>{
     
 
     void jobDone(int id, string& command, size_t no, int error, 
-                 string& errMsg, string& resList){
+                 string& errMsg, string& resList, double runtime){
        inputTuplesMutex.lock();
        if(validInputTuples.find(id)==validInputTuples.end()){
           inputTuplesMutex.unlock();
@@ -2881,7 +2913,7 @@ class prcmdInfo: public CommandListener<string>{
        Tuple* inTuple = validInputTuples[id];
        validInputTuples.erase(id);
        inputTuplesMutex.unlock();
-       createResultTuple(inTuple,error,errMsg, resList);
+       createResultTuple(inTuple,error,errMsg, resList, runtime);
     }
 
 
@@ -2950,12 +2982,12 @@ class prcmdInfo: public CommandListener<string>{
        CcInt* ServerNo = (CcInt*) inTuple->GetAttribute(serverAttrPos);
        T* Query = (T*) inTuple->GetAttribute(queryAttrPos);
        if(!ServerNo->IsDefined() || !Query->IsDefined()){
-          createResultTuple(inTuple,-3, "Undefined Argument found", "");
+          createResultTuple(inTuple,-3, "Undefined Argument found", "",0.0);
           return;
        }
        int serverNo = ServerNo->GetValue();
        if(!algInstance->isValidServerNumber(serverNo)){
-          createResultTuple(inTuple, -2, "Invalid server number", "");
+          createResultTuple(inTuple, -2, "Invalid server number", "",0.0);
           return; 
        }
        // process a valid tuple
@@ -2972,7 +3004,7 @@ class prcmdInfo: public CommandListener<string>{
 
 
     void createResultTuple(Tuple* inTuple, int error, const string& errMsg, 
-                           const string& resList){
+                           const string& resList, double runtime){
 
        stopMutex.lock();
        if(stopped){
@@ -2993,6 +3025,7 @@ class prcmdInfo: public CommandListener<string>{
        resTuple->PutAttribute(noAttr, new CcInt(error));
        resTuple->PutAttribute(noAttr+1, new FText(true,errMsg));
        resTuple->PutAttribute(noAttr+2, new FText(true,resList));
+       resTuple->PutAttribute(noAttr+3, new CcReal(true,runtime));
        noOutTuples++;
        {
          boost::lock_guard<boost::mutex> lock(resultMutex);
@@ -3072,8 +3105,9 @@ OperatorSpec prcmdSpec(
      " _ prcmd [ _,_]",
      " Performs a a set of remote queries in parallel. Each incoming tuple "
      "is extended by some status information in attributes ErrorCode (int)"
-     "and ErrorMsg (text) as well as the result of the query in form of "
-     "a nested list (text attribute). If small local stored objects should "
+     "and ErrorMsg (text),  the result of the query in form of "
+     "a nested list (text attribute) as well as the runtime for processing "
+     "the query. If small local stored objects should "
      "be used at the remote machine, the object name can be prefixed with "
      "a dollar sign.",
      " query intstream(0,3) namedtransformstream[S] "
@@ -4777,8 +4811,9 @@ bool  getQueryType(const string& query1, int serverNo,
 
    int error;
    ListExpr reslist;
+   double runtime;
    bool ok = algInstance->simpleCommand(serverNo, query, 
-                                        error, errMsg, reslist, true);
+                                 error, errMsg, reslist, true, runtime);
    if(!ok){
       errMsg = " determining type command failed (invalid server number)";
       return false;
@@ -4969,7 +5004,7 @@ class PQueryInfo : public CommandListener<ListExpr>{
     }
 
     virtual void jobDone(int id, string& command, size_t no, int error, 
-                       string& errMsg, ListExpr& valueList){
+                       string& errMsg, ListExpr& valueList, double runtime){
 
        {
       
@@ -5355,7 +5390,7 @@ class PQuery2Info : public CommandListener<ListExpr>{
     }
 
     virtual void jobDone(int id, string& command, size_t no, int error, 
-                       string& errMsg, ListExpr& valueList){
+                       string& errMsg, ListExpr& valueList, double runtime){
 
        {
 
@@ -6288,7 +6323,8 @@ int putVMFA(Word* args, Word& result, int message,
   int err;
   string errMsg;
   ListExpr resList;
-  ci->simpleCommand(cmd,err,errMsg,resList,false);
+  double runtime;
+  ci->simpleCommand(cmd,err,errMsg,resList,false, runtime);
   if(err!=0){
      cerr << "error in command " << cmd << endl;
      cerr << " error code : " << err << endl;
@@ -7554,7 +7590,7 @@ bool isWorkerRelDesc(ListExpr rel, ListExpr& positions, string& errMsg){
     errMsg = "Attribute Port not present in relation";
     return false;
   }
-	if(!CcInt::checkType(type)){
+  if(!CcInt::checkType(type)){
      errMsg = "Attribute Port not of type int";
      return false;
   }
@@ -7788,7 +7824,8 @@ class FRelCopy{
         int err;
         string errmsg;
         ListExpr result; 
-        ci->simpleCommand(cmd,err,errmsg, result,false);
+        double runtime;
+        ci->simpleCommand(cmd,err,errmsg, result,false, runtime);
         if(err!=0){
             cerr << "command " << cmd << " failed" << endl;
             cerr << err << " : " << errmsg << endl;
@@ -7804,7 +7841,7 @@ class FRelCopy{
         string targetDir = home +"/dfarrays/"+dbname;
         // create target directory
         cmd = "query createDirectory('"+targetDir+"', TRUE)";
-        ci->simpleCommand(cmd,err,errmsg, result,false);
+        ci->simpleCommand(cmd,err,errmsg, result,false, runtime);
         if(err!=0){
             cerr << "command " << cmd << " failed" << endl;
             cerr << err << " : " << errmsg << endl;
@@ -7816,7 +7853,7 @@ class FRelCopy{
         string src = home+'/'+sendDir + "/"+name;
         string target = targetDir+"/"+name;
         cmd = "query moveFile('"+src+"','"+target+"')";
-        ci->simpleCommand(cmd,err,errmsg, result,false);
+        ci->simpleCommand(cmd,err,errmsg, result,false, runtime);
         if(err!=0){
             cerr << "command " << cmd << " failed" << endl;
             cerr << err << " : " << errmsg << endl;
@@ -9050,26 +9087,27 @@ class dloop2Info{
        // delete eventually existing old function
        int err;
        string strres;
-       ci->simpleCommand("delete " + fn,err,strres, false);
+       double runtime;
+       ci->simpleCommand("delete " + fn,err,strres, false, runtime);
        // ignore error, standard case: object does not exist
        // create new function object
        string errMsg;
        string cmd = "(let " + fn + " = " + fun +")";
-       ci->simpleCommandFromList(cmd, err,errMsg, strres, true);
+       ci->simpleCommandFromList(cmd, err,errMsg, strres, true, runtime);
        if(err!=0){ 
            sendError(" Problem in command " + cmd + ":" + errMsg);
            return;
        }
        // delete old array content
-       ci->simpleCommand("delete "+ bn, err,strres, false);
+       ci->simpleCommand("delete "+ bn, err,strres, false, runtime);
        // ignore error, frequently entry is not there
        cmd = "let " + bn + " =  "  + fn + "("+ srcName + "_" 
                     + stringutils::int2str(index) +")";
-       ci->simpleCommand(cmd, err,errMsg, strres, false);
+       ci->simpleCommand(cmd, err,errMsg, strres, false, runtime);
        if(err!=0){ 
            sendError(" Problem in command " + cmd + ":" + errMsg);
        }
-       ci->simpleCommand("delete " + fn, err, strres,false);
+       ci->simpleCommand("delete " + fn, err, strres,false, runtime);
     }
     void sendError(const string&msg){
        cmsg.error() << msg;
@@ -9921,10 +9959,11 @@ class dloop2aRunner{
       string errMsg;
       string strres;
       // delete function if exists
-      ci->simpleCommand("delete " + fn , err,errMsg, strres, false);
+      double runtime;
+      ci->simpleCommand("delete " + fn , err,errMsg, strres, false, runtime);
       // ignore error
       // create new function
-      ci->simpleCommandFromList(cmd, err,errMsg, strres, true);
+      ci->simpleCommandFromList(cmd, err,errMsg, strres, true, runtime);
       if(err!=0){
          cerr << "error in creating function via " << cmd << endl;
          cerr << errMsg << endl;
@@ -9933,18 +9972,18 @@ class dloop2aRunner{
       // apply function to array elements
       string tname = rname + "_" + stringutils::int2str(index);
       // remove old stuff
-      ci->simpleCommand("delete " + tname , err,errMsg, strres, false);
+      ci->simpleCommand("delete " + tname , err,errMsg, strres, false, runtime);
       // create new one
       string a1o = a1->getName()+"_"+stringutils::int2str(index);
       string a2o = a2->getName()+"_"+stringutils::int2str(index);
       cmd = "let " + tname + " = " + fn +"("+ a1o + ", " + a2o+")";
-      ci->simpleCommand(cmd, err,errMsg, strres, false);
+      ci->simpleCommand(cmd, err,errMsg, strres, false, runtime);
       if(err!=0){
          cerr << "error in creating result via " << cmd << endl;
          cerr << errMsg << endl;
          return;
       }
-      ci->simpleCommand("delete " + fn , err,errMsg,strres, false); 
+      ci->simpleCommand("delete " + fn , err,errMsg,strres, false, runtime); 
      }
 
 
@@ -10346,7 +10385,9 @@ class Object_Del{
         int err;
         string errMsg;
         string resstr;
-        ci->simpleCommand("delete " + objName, err, errMsg, resstr, false);
+        double runtime;
+        ci->simpleCommand("delete " + objName, err, errMsg, resstr, 
+                          false, runtime);
         if(err==0){
           del = 1;
         } 
@@ -10369,8 +10410,9 @@ class Object_Del{
         int err;
         string errMsg;
         string resstr;
+        double runtime;
         ci->simpleCommand("query removeFile('"+fileName+"')", err, 
-                          errMsg, resstr, false);
+                          errMsg, resstr, false, runtime);
         if(err==0){
           del = 1;
         } 
@@ -10530,8 +10572,9 @@ class cloneTask{
         int err;
         string errMsg;
         string resstr;
+        double runtime;
         ci->simpleCommand("let " + newName + " = " + objName , 
-                          err, errMsg, resstr, false);
+                          err, errMsg, resstr, false, runtime);
      }
 
      void runFArray(){
@@ -10554,7 +10597,8 @@ class cloneTask{
         string errMsg;
         string resstr;
         string cmd = "query copyFile('"+path+objName+"', '"+path+newName+"')";
-        ci->simpleCommand(cmd,  err, errMsg, resstr, false);
+        double runtime;
+        ci->simpleCommand(cmd,  err, errMsg, resstr, false, runtime);
         if(err!=0){
            cerr << "copyFile command failed with code " << err << endl;
            cerr << " Msg " << errMsg << endl;
@@ -10695,11 +10739,12 @@ class shareRunner{
           int err;
           string res;
           string cmd = "delete " + objName;
+          double runtime;
           if(allowOverwrite){
-             ci->simpleCommand(cmd,err,res, false);
+             ci->simpleCommand(cmd,err,res, false, runtime);
           }
           cmd = "restore " +  objName + " from '" + fileName +"'";           
-          ci->simpleCommand(cmd,err,res,false);
+          ci->simpleCommand(cmd,err,res,false, runtime);
           listener->jobDone(id, err==0);
       }
     }
@@ -11625,8 +11670,9 @@ class Mapper{
              string cmd = "(let " + funName + " = " 
                         + mapper->funText->GetValue() +")";
              int err; string errMsg; string r;
-             ci->simpleCommand("delete "+funName,err,errMsg,r,false);
-             ci->simpleCommandFromList(cmd,err,errMsg,r,true);
+             double runtime;
+             ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+             ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
              if(err!=0){
                cerr << "problem in command " << cmd;
                cerr << "code : " << err << endl;
@@ -11652,14 +11698,14 @@ class Mapper{
                  cmd += "fconsume5['"+fname2+"'] count";
                }
 
-               ci->simpleCommand(cmd,err,errMsg,r,false);
+               ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
                if((err!=0) && (err!=2)){ // ignore type map errors
                                          // because reason is a missing file
                   cerr << "command " + cmd << " failed with code " << err 
                        << endl;
                   cerr << "message is " << errMsg;  
                }
-               ci->simpleCommand("delete "+funName,err,errMsg,r,false);
+               ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
              } 
           }
 
@@ -11688,8 +11734,9 @@ class Mapper{
              string cmd = "(let " + funName + " = " 
                         + mapper->funText->GetValue() +")";
              int err; string errMsg; string r;
-             ci->simpleCommand("delete "+funName,err,errMsg,r,false);
-             ci->simpleCommandFromList(cmd,err,errMsg,r,true);
+             double runtime;
+             ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+             ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
              if(err!=0){
                cerr << "problem in command " << cmd;
                cerr << "code : " << err << endl;
@@ -11710,14 +11757,14 @@ class Mapper{
                string name2 = mapper->name + "_" + stringutils::int2str(nr);
                cmd = "let "+ name2 +" = " + funName +"( " + stream + ")";
 
-               ci->simpleCommand(cmd,err,errMsg,r,false);
+               ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
                if((err!=0) && (err!=2) ){ // ignore type map errors
                                          // because reason is a missing file
                   cerr << "command " + cmd << " failed with code " << err 
                        << endl;
                   cerr << "message is " << errMsg;  
                }
-               ci->simpleCommand("delete "+funName,err,errMsg,r,false);
+               ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
              } 
           }
 
@@ -12014,8 +12061,9 @@ class map2Info{
              string cmd = "(let " + funName + " = " 
                         + mi->funtext+")";
              int err; string errMsg; string r;
-             ci->simpleCommand("delete "+funName,err,errMsg,r,false);
-             ci->simpleCommandFromList(cmd,err,errMsg,r,true);
+             double runtime;
+             ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+             ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
              if(err!=0){
                cerr << "problem in command " << cmd;
                cerr << "code : " << err << endl;
@@ -12040,13 +12088,14 @@ class map2Info{
 
              cout << "Create remote command via " << endl << cmd << endl; 
 
-             ci->simpleCommand(cmd,err,errMsg,r,true);
+             ci->simpleCommand(cmd,err,errMsg,r,true, runtime);
              if(err!=0){
                 cout << "command : " << cmd << endl;
                 cout << "command failed with rc " << err << endl;
                 cout << errMsg << endl;
              }
-             ci->simpleCommand("delete " + funName , err,errMsg,r,false);
+             ci->simpleCommand("delete " + funName , err,errMsg,r,false,
+                                runtime);
       }
 
       private:
@@ -12657,7 +12706,8 @@ class FileTransferServerStarter{
         int err;
         string errMsg;
         string result;
-        ci->simpleCommand(serverQuery,err,errMsg,result,false);
+        double runtime;
+        ci->simpleCommand(serverQuery,err,errMsg,result,false, runtime);
     }
 
     void cancel(){
@@ -12703,6 +12753,7 @@ int transferFileVMT(Word* args, Word& result, int message,
   if(    !Server1->IsDefined() || !Server2->IsDefined() || !Port->IsDefined()
       || !SrcFile->IsDefined() || !TargetFile->IsDefined()){
     res->SetDefined(false);
+    return 0;
   }  
 
   int server1 = Server1->GetValue();
@@ -12713,13 +12764,17 @@ int transferFileVMT(Word* args, Word& result, int message,
 
   if(    !algInstance->serverExists(server1)
       || !algInstance->serverExists(server2)
-      || port <=0){
+      || (port <=0)){
      res->Set(true,false);
+     return 0;
   } 
-
 
   ConnectionInfo* ci1 = algInstance->getConnection(server1);
   ConnectionInfo* ci2 = algInstance->getConnection(server2); 
+
+  assert(ci1);
+  assert(ci2);
+
 
   if(server1==server2){
       // copying on a single server
@@ -12727,7 +12782,8 @@ int transferFileVMT(Word* args, Word& result, int message,
       int err;
       string errMsg;
       ListExpr resList;
-      ci1->simpleCommand(q,err,errMsg,resList,false);
+      double runtime;
+      ci1->simpleCommand(q,err,errMsg,resList,false, runtime);
       if(err!=0){
           cerr << "command " << q << " failed with code " << err << endl;
           cerr << errMsg << endl;
@@ -12755,7 +12811,8 @@ int transferFileVMT(Word* args, Word& result, int message,
   int err;
   string errMsg;
   ListExpr resList;
-  ci2->simpleCommand(clientQuery, err,errMsg, resList, false);  
+  double runtime;
+  ci2->simpleCommand(clientQuery, err,errMsg, resList, false, runtime);  
   if(err!=0){
      cerr << "Client command " << clientQuery << " failed with code " 
           << err << endl;
