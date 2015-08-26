@@ -97,6 +97,7 @@ public class HoeseOnlineDialog extends JDialog {
 		getContentPane().add(P1, BorderLayout.CENTER);
 
 		relationLabel = new JLabel("Relation Name:");
+		relationLabel.setToolTipText("Relation which should be watched for updates");
 		P1.add(relationLabel);
 
 		relationTextField = new JTextField(10);
@@ -104,6 +105,7 @@ public class HoeseOnlineDialog extends JDialog {
 		P1.add(relationTextField);
 
 		filterLabel = new JLabel("Filter command:");
+		filterLabel.setToolTipText("Secondo filter command to reduce the tuples which should be watched");
 		P1.add(filterLabel);
 
 		filterTextField = new JTextField(10);
@@ -111,6 +113,7 @@ public class HoeseOnlineDialog extends JDialog {
 		P1.add(filterTextField);
 
 		limitLabel = new JLabel("Max. Tuples:");
+		limitLabel.setToolTipText("The maximum number of tuples in the result set");
 		P1.add(limitLabel);
 
 		limitTextField = new JTextField(10);
@@ -119,6 +122,7 @@ public class HoeseOnlineDialog extends JDialog {
 		P1.add(limitTextField);
 
 		rateLabel = new JLabel("Update Rate (ms):");
+		rateLabel.setToolTipText("Interval at which the Javagui is updated with newly received tuples");
 		P1.add(rateLabel);
 
 		rateTextField = new JTextField(10);
@@ -127,6 +131,7 @@ public class HoeseOnlineDialog extends JDialog {
 		P1.add(rateTextField);
 
 		remotePortLabel = new JLabel("Remote Port:");
+		remotePortLabel.setToolTipText("The port under which the Secondo-Server delivers updates for the realtion. Should corrospond to the configuration of the webserver.");
 		P1.add(remotePortLabel);
 
 		remotePortTextField = new JTextField(10);
@@ -134,7 +139,8 @@ public class HoeseOnlineDialog extends JDialog {
 				: lastValues.remotePort.toString());
 		P1.add(remotePortTextField);
 
-		rtLabel = new JLabel("RealTime Simulation");
+		rtLabel = new JLabel("Realtime Simulation");
+		rtLabel.setToolTipText("Enables the realtime simulation mode");
 		P1.add(rtLabel);
 
 		rtCheckBox = new JCheckBox();
@@ -142,7 +148,8 @@ public class HoeseOnlineDialog extends JDialog {
 				: lastValues.checkBox);
 		P1.add(rtCheckBox);
 
-		rtSpeedFactor = new JLabel("Geschwindigkeitsfaktor:");
+		rtSpeedFactor = new JLabel("Speed factor:");
+		rtSpeedFactor.setToolTipText("Speedfactor of the simulation time. Defining a value of 1 would use playback in realtime speed, 2 would make it two times faster");
 		P1.add(rtSpeedFactor);
 
 		rtSpeedFactorSpinnerModel = new SpinnerNumberModel(1.0, 0.1, 10.0, 0.1);
@@ -152,7 +159,8 @@ public class HoeseOnlineDialog extends JDialog {
 		}
 		P1.add(rtSpeedFactorSpinner);
 
-		rtSimulationTimeLabel = new JLabel("Simulationszeit:");
+		rtSimulationTimeLabel = new JLabel("Simulation time:");
+		rtSimulationTimeLabel.setToolTipText("Time used in the simulation");
 		P1.add(rtSimulationTimeLabel);
 
 		rtCurrentTimeModel = new SpinnerDateModel();
@@ -162,7 +170,8 @@ public class HoeseOnlineDialog extends JDialog {
 		}
 		P1.add(rtCurrentTimeSpinner);
 
-		rtCurrentTimeOffset = new JLabel("Zeitversatz:");
+		rtCurrentTimeOffset = new JLabel("Time delay:");
+		rtCurrentTimeOffset.setToolTipText("Delay used for the simulation mode, playback will start x seconds before the currently defined simulation time");
 		P1.add(rtCurrentTimeOffset);
 
 		rtCurrentTimeOffsetSpinnerModel = new SpinnerNumberModel(10, 5,
@@ -273,7 +282,7 @@ public class HoeseOnlineDialog extends JDialog {
 	 * @return
 	 */
 	public double getSpeedFactor() {
-		lastValues.speedFactor = (double) rtSpeedFactorSpinner.getValue();
+		lastValues.speedFactor = (Double) rtSpeedFactorSpinner.getValue();
 		return lastValues.speedFactor;
 	}
 
@@ -291,7 +300,7 @@ public class HoeseOnlineDialog extends JDialog {
 	 * Returns the TimeOffset used while playing the simulation
 	 */
 	public int getCurrentTimeOffset() {
-		lastValues.timeOffset = (int) rtCurrentTimeOffsetSpinner.getValue();
+		lastValues.timeOffset = (Integer) rtCurrentTimeOffsetSpinner.getValue();
 		return lastValues.timeOffset;
 	}
 
