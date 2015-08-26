@@ -4,8 +4,8 @@ The dblp2secondo Converter
 ==============
 
 This set of tools converts the dblp XML database
-into a set of relations which can be restored
-in SECONDO. The dblp database contains a lot of
+into a set of relations in csv format which can be read in
+into SECONDO. The dblp database contains a lot of
 information about computer scientific documents
 (like a BibTex Database).
 
@@ -47,10 +47,13 @@ The execution of the script will take a few minutes.
 After that, you will find some new files in the directory of the script.
 
 Move the following files into your $SECONDO_BUILD_DIR/bin directory:
-   author authordoc document keyword
-The files can be restored via
-     restore xxx from xxx;
-(Don't forget to open a database before.)
+   author authordoc document keyword 
+Furthermore, copy the file restore_objs into that directory.
+
+Start the secondo system and open a database (create one if necessary).
+After that eter:
+  @restore_objs 
+for creating the relations from the generated files.
 
 5 Cleanup
 =========
