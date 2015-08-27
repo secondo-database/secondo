@@ -34,6 +34,7 @@ operator union1 alias UNION1 pattern _ infixop _
 operator no_components alias NO_COMPONENTS pattern  op ( _ )
 operator no_segments alias NO_SEGMENTS pattern  op ( _ )
 operator components alias COMPONENTS pattern op(_)
+operator elements alias ELEMENTS pattern op(_)
 operator boundary alias BOUNDARY pattern op(_)
 operator atpoint alias ATPOINT pattern op(_,_)
 operator atposition alias ATPOSITION pattern op(_,_)

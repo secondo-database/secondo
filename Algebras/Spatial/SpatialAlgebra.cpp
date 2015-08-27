@@ -19514,7 +19514,7 @@ const string SpatialSpecScale  =
 
 const string SpatialSpecComponents  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>points -> stream(point), region -> stream(region), "
+  "( <text>points -> stream(points), region -> stream(region), "
   "line -> stream(line)</text--->"
   "<text>components( _ )</text--->"
   "<text>Returns the components of a points (the contained point values) or "
@@ -25354,6 +25354,83 @@ Operator berlin2wgs(
 );
 
 
+
+/*
+10.132 Operator ~elements~
+
+*/
+ListExpr elementsTM(ListExpr args){
+  string err="points expected";
+  if(  !nl->HasLength(args,1) ||
+       !Points::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return nl->TwoElemList( listutils::basicSymbol<Stream<Point> >(),
+                          listutils::basicSymbol<Point>());
+}
+
+class elementsInfo{
+  public:
+     elementsInfo(Points* _ps): ps(_ps), pos(0){
+        max = ps->Size();
+     }
+
+     Point* next(){
+        if(pos>=max){
+           return 0;
+        }
+        Point* p = new Point(0,0);
+        ps->Get(pos,*p);
+        pos++;
+        return p;
+     }
+
+   private:
+      Points* ps;
+      size_t pos;
+      size_t max;
+}; 
+
+int elementsVM(Word* args, Word& result, int message, Word& local,Supplier s){
+   elementsInfo* li = (elementsInfo*) local.addr;
+   switch(message){
+      case OPEN: 
+            if(li){
+               delete li;
+             }
+             local.addr = new elementsInfo((Points*) args[0].addr);
+             return 0;
+      case REQUEST:
+             result.addr=li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+      case CLOSE :
+             if(li){
+                delete li;
+                local.addr = 0;
+             }     
+   }
+   return -1;
+}
+
+
+OperatorSpec elementsSpec(
+  " points -> stream(point)",
+  " elements( _ )",
+  " Puts the elements of a points object into a stream.",
+  " query elements(train7stations) count"
+);
+
+
+Operator elementsOP(
+  "elements",
+  elementsSpec.getStr(),
+  elementsVM,
+  Operator::SimpleSelect,
+  elementsTM
+);
+
+
+
 /*
 11 Creating the Algebra
 
@@ -25527,6 +25604,9 @@ class SpatialAlgebra : public Algebra
     AddOperator(&createDiscOP);
     
     AddOperator(&berlin2wgs);
+
+    AddOperator(&elementsOP);
+
   }
   ~SpatialAlgebra() {};
 };
