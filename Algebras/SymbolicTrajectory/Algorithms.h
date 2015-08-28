@@ -995,6 +995,7 @@ class IndexMatchSuper {
   void removeIdFromIndexResult(const TupleId id);
   void clearMatchInfo();
   bool hasIdIMIs(const TupleId id, const int state = -1);
+  void extendBinding(IndexMatchInfo& imi, const int e);
   
   Relation *rel;
   Pattern *p;
@@ -1253,7 +1254,6 @@ class IndexMatchesLI : public IndexMatchSuper {
   void storeIndexResult(const int e);
   void initMatchInfo(const set<int>& cruElems);
   void initialize();
-  void extendBinding(IndexMatchInfo& imi, const int e);
   void applyNFA();
   template<class M>
   bool imiMatch(Match<M>& match, const int e, const TupleId id, 
