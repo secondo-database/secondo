@@ -47,6 +47,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "StopWatch.h"
 
+#include "Bash.h"
+
 
   // use boost for thread handling
 
@@ -484,6 +486,11 @@ class ConnectionInfo{
           simtx.unlock();
           return err.code==0;
        }
+
+        void setId(const int i){
+            si->setId(i);;
+        }
+
 
        void simpleCommand(string command1, int& err, string& result, 
                           bool rewrite, double& runtime){
@@ -1319,6 +1326,180 @@ bool InDArray2Element(ListExpr list, DArray2Element& result){
 }
 
 
+/*
+Class ProgressView
+
+*/
+
+class PProgressInfo{
+
+
+  public:
+     PProgressInfo(){
+       lastValue = -1;
+       w = new StopWatch(); 
+       lastT = 0;
+     }
+   
+    ~PProgressInfo(){
+        delete w;
+    }
+
+    int getLastValue(){
+        return lastValue;
+    }
+    void setLastValue(int i){
+       lastValue = i;
+    }
+
+    void reset(){
+       delete w;
+       w = new StopWatch();
+       lastT = 0;
+       lastValue = -1;
+    }
+
+    double getTime(){
+      return  w->diffSecondsReal();
+    }
+
+    void setLast(){
+       lastT = getTime();
+    }
+  
+    double getLastT(){
+       return lastT;
+    }
+
+
+
+  private:
+     int lastValue;
+     StopWatch* w;
+     double lastT;
+
+
+};
+
+
+class PProgressView: public MessageHandler{
+
+
+  public:
+
+     PProgressView(){
+        infos = 0;
+     }
+
+     ~PProgressView(){
+        if(infos){
+          for(int i=0;i<noServers;i++){
+            if(infos[i]){
+              delete infos[i];
+            }
+          }
+          delete[] infos;
+        }
+     }
+
+     bool handleMsg(NestedList* nl, ListExpr list, int source) {
+        if(source <= 0) return false;
+        if(source > noServers) return false;
+
+
+        boost::lock_guard<boost::mutex> guard(mtx);
+        if(!nl->HasMinLength(list,2)){
+           return false;
+        }
+        if ( !nl->IsEqual(nl->First(list),"progress") ){
+           return false;
+        }
+        ListExpr second = nl->Second(list);
+        if(!nl->HasMinLength(second,2)){
+           return false;
+        }
+        if(nl->AtomType(nl->First(second))!=IntType){
+           return false;
+        }
+        if(nl->AtomType(nl->Second(second))!=IntType){
+          return false;
+        }
+
+        int actValue = nl->IntValue(nl->First(second));
+        int totalValue = nl->IntValue(nl->Second(second));
+        write(source, actValue, totalValue);
+        return true;
+     }
+
+     void enable(bool on){
+        enabled = on;
+     }
+
+     void init(int _noServers){
+         noServers = _noServers; 
+         boost::lock_guard<boost::mutex> guard(mtx);
+         cout << endl << endl;
+         infos = new PProgressInfo*[noServers];
+         for(int i=0;i<noServers;i++){
+             cout << (i) << " \t: " <<  endl;
+             infos[i] = new PProgressInfo(); 
+         }
+         Bash::cursorUp(noServers+1);
+     }
+
+     void finish(){
+         boost::lock_guard<boost::mutex> guard(mtx);
+         Bash::cursorDown(noServers); 
+         cout << "\n\n";
+     }
+
+
+   private:
+      bool enabled;
+      int noServers;
+      PProgressInfo** infos;
+      boost::mutex mtx;
+
+      void write(int source, int actValue, int totalValue){
+         if(!infos[source-1]){
+             infos[source-1] = new PProgressInfo();
+          }
+          PProgressInfo* info = infos[source-1];
+
+          double lastT = info->getLastT(); 
+          double t = info->getTime();
+          if( (totalValue >=0) &&  (t - lastT < 0.5)){
+              return;
+          }
+          info->setLast();
+
+          Bash::cursorDown(source);
+          cout << (source-1) << " \t: ";
+          if(actValue >=0){
+              if(totalValue<=0){
+                 cout << "done, total time: " << (int) t << " seconds" ;
+              } else {
+                 int value = ((actValue * 100 ) / totalValue);
+                 int tt = (t * 100) / value; // total time
+                 int rt = (tt * (100-value)) / 100; // remaining time
+                 cout << value << "% remaining time " << rt << " seconds" ;
+              }
+          }  else {
+             cout << "started";
+          }
+          Bash::clearRestOfLine();
+          cout << "\r"; 
+          Bash::cursorUp(source);
+          cout.flush();
+      }
+
+
+
+
+};
+
+
+
 class Distributed2Algebra: public Algebra{
 
   public:
@@ -1344,6 +1525,9 @@ Closes all open connections and destroys them.
         connections.clear();
         mtx.unlock();
         closeAllWorkers();
+        if(pprogView){
+           delete pprogView;
+        }
      }
 
 /*
@@ -1356,6 +1540,7 @@ Adds a new connection to the connection pool.
        mtx.lock();
        int res = connections.size();
        connections.push_back(ci);
+       ci->setId(connections.size());
        mtx.unlock();
        return res; 
      }
@@ -1387,6 +1572,7 @@ Returns a connection
            return 0;
          }
          ConnectionInfo* res =  connections[i];
+         res->setId(i);;
          mtx.unlock();
          return res;
      }
@@ -1581,6 +1767,19 @@ Transfers a local file to a remove server.
       }
       return c->getSendFolder(); 
     }
+
+
+    void initProgress(){
+        pprogView->enable(true);
+        pprogView->init(connections.size());
+    }
+
+    void finishProgress(){
+        pprogView->finish();
+        pprogView->enable(false);
+
+    }
+
 
 
     string getHost(int con){
@@ -1910,6 +2109,9 @@ specified DArray2Element.
 
     size_t namecounter;
     boost::mutex namecounteraccess;
+
+    PProgressView* pprogView;
+
 
 
    size_t nextNameNumber(){
@@ -3061,6 +3263,7 @@ int prcmdVMT( Word* args, Word& result, int message,
                                   ((CcInt*)args[3].addr)->GetValue(),
                                   ((CcInt*)args[4].addr)->GetValue(),
                                   nl->Second(GetTupleResultType(s)));
+       algInstance->initProgress();
        return 0;
     }
     case REQUEST:
@@ -3071,6 +3274,7 @@ int prcmdVMT( Word* args, Word& result, int message,
         //   boost::thread k(del<prcmdInfo<T> >,li); 
            delete li;
            local.addr =0;
+           algInstance->finishProgress();
          }
          return 0;
   } 
@@ -12866,6 +13070,171 @@ Operator transferFileOP(
 
 
 /*
+The following operators are for testing the 
+bash control sequences.
+
+*/
+
+ListExpr setColorTM(ListExpr args){
+  string err =" no arg or string x bool expected";
+  if(nl->IsEmpty(args)){
+     return listutils::basicSymbol<CcBool>();
+  }
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(   !CcString::checkType(nl->First(args))
+     || !CcBool::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+int setColorVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  result=qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  if(qp->GetNoSons(s)==0){
+    Bash::normalColors();
+    res->Set(true,true);
+    return 0;
+  }
+  CcString* name = (CcString*) args[0].addr;
+  CcBool* bg = (CcBool*) args[1].addr;
+
+  if(!name->IsDefined() || !bg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+
+  string v = name->GetValue();
+  BashColor c = Bash::string2color(v);
+  if(c==Unknown){
+     stringutils::toLower(v);
+     if(v=="bold"){
+       Bash::setBold();
+       res->Set(true,true);
+     } else if(v=="underline"){
+       Bash::setUnderline();
+       res->Set(true,true);
+     } else {
+         res->Set(true,false);
+     }
+     return 0;
+  }
+
+  if(bg->GetValue()){
+     Bash::setBGColor(c);
+  } else {
+     Bash::setFGColor(c);
+  }
+  res->Set(true,true);
+  return 0;
+}
+
+
+OperatorSpec setColorSpec(
+  "-> bool, string x bool -> bool",
+  "setColor(_,_)",
+  "Sets the color of the underlying bash. If called without any "
+  "argument, the default colors are used. " 
+  "If there are arguments, the first argument is the name "
+  "of the color, the second one specifies whether the "
+  "foreground (false) or the background (true) should be "
+  " changed. Available colors are black, white, red, green, blue, "
+  "cyan, yellow, violet. Additionally, the keyword bold and underline "
+  "are accepted.",
+  "query setColor(\"YELLOW\", FALSE)"
+);
+
+Operator setColorOp(
+  "setColor",
+  setColorSpec.getStr(),
+  setColorVM,
+  Operator::SimpleSelect,
+  setColorTM
+);
+
+
+ListExpr moveCursorTM(ListExpr args){
+  string err ="string x int expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(   !CcString::checkType(nl->First(args))
+     || !CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+int moveCursorVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  result=qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  CcString* dir = (CcString*) args[0].addr;
+  CcInt* num = (CcInt*) args[1].addr;
+  if(!dir->IsDefined() || !num->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  int n = num->GetValue();
+  string d = dir->GetValue();
+  if(n<=0){
+    res->Set(true,false);
+    return 0;
+  }
+  stringutils::toLower(d);
+  stringutils::trim(d);
+  res->Set(true,true);
+  if(d=="up"){
+     Bash::cursorUp(n);
+     return 0;
+  }
+  if(d=="down"){
+     Bash::cursorDown(n);
+     return 0;
+  }
+  if(d=="back"){
+    Bash::cursorBackward(n);
+    return 0;
+  }
+  if(d=="forward"){
+    Bash::cursorForward(n);
+    return 0;
+  }
+  res->Set(true,false);
+  return 0;
+}
+
+OperatorSpec moveCursorSpec(
+  " string x int -> bool",
+  "moveCursor(_,_)",
+  "Moves the current cursor position within a bash. "
+  "The first argument gives the direction and can take "
+  "the value up, down, back, and forward. "  
+  "The second argument specifies how many steps "
+  "the cursor should be moved. ",
+  "query moveCursor(\"up\",13)"
+);
+
+
+Operator moveCursorOp(
+  "moveCursor",
+  moveCursorSpec.getStr(),
+  moveCursorVM,
+  Operator::SimpleSelect,
+  moveCursorTM
+);
+
+
+
+
+
+/*
 3 Implementation of the Algebra
 
 */
@@ -12952,6 +13321,15 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&fileTransferServerOP);
    AddOperator(&recieveFileClientOP);
    AddOperator(&transferFileOP);
+
+
+   AddOperator(&setColorOp);
+   AddOperator(&moveCursorOp);
+
+
+   pprogView = new PProgressView();
+   MessageCenter::GetInstance()->AddHandler(pprogView);
+
 
 }
 

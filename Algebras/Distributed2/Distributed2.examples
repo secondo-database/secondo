@@ -373,3 +373,23 @@ Result    : FALSE
 
 
 
+Operator : setColor
+Number   : 1
+Signature : string x bool -> bool
+Example   : query setColor("blue",FALSE)
+Result    : TRUE
+
+Operator : setColor
+Number   : 2
+Signature : -> bool
+Example   : query setColor()
+Result    : TRUE
+
+
+Operator : moveCursor
+Number : 1
+Signature : string x int -> bool
+Example   : query moveCursor("up",13)
+Result : TRUE
+
+
