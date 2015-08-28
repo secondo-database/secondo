@@ -105,7 +105,7 @@ class ProgressView
       msgList = NList(NList("progress"), 
                          NList(NList(-1), 
                          NList(PROGRESS_NORM)));
-      msg->Send(nl,msgList.listExpr());
+      msg->Send(nl,msgList.listExpr(),-1);
     }
   }
 
@@ -141,7 +141,7 @@ class ProgressView
        msgList = NList( NList("progress"),
               NList( NList((int) (currentProgress*PROGRESS_NORM)), 
                      NList(PROGRESS_NORM)));
-       msg->Send(nl,msgList.listExpr());
+       msg->Send(nl,msgList.listExpr(),-1);
               
       if (DETPROT & 2)
       {
@@ -191,12 +191,12 @@ class ProgressView
       msgList = NList( NList("progress"),
                            NList(NList(PROGRESS_NORM), 
                            NList(PROGRESS_NORM)));
-      msg->Send(nl,msgList.listExpr());
+      msg->Send(nl,msgList.listExpr(), -1);
     
 
       // mark end of progress messages
       msgList = NList(NList("progress"), NList(NList(0), NList(-1)));
-      msg->Send(nl,msgList.listExpr());
+      msg->Send(nl,msgList.listExpr(),-1);
 
       if (DETPROT & 2) {
             ofs << endl;

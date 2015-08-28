@@ -55,7 +55,7 @@ of a message handler.
 class MessageHandler {
 
   public:
-  virtual bool handleMsg(NestedList* nl, ListExpr list) = 0;
+  virtual bool handleMsg(NestedList* nl, ListExpr list, int source) = 0;
   virtual void Flush() {} 
   MessageHandler() {}
   virtual ~MessageHandler() {}
@@ -86,7 +86,7 @@ purposes. Your own message handler classes can do more complex things.
 class SimpleHandler : public MessageHandler {
 
   public:
-  virtual bool handleMsg(NestedList* nl, ListExpr list){
+  virtual bool handleMsg(NestedList* nl, ListExpr list, int source){
      #ifdef THREAD_SAFE
      boost::lock_guard<boost::mutex> guard(mtx);
      #endif
@@ -129,7 +129,7 @@ class ProgMesHandler : public MessageHandler
   }
 
   //virtual bool handleMsg(NList msgList);
-  virtual bool handleMsg(NestedList* nl, ListExpr list);
+  virtual bool handleMsg(NestedList* nl, ListExpr list, int source);
   ProgMesHandler():total(50),highest(-1),s(0) {};
 
   int total;  // len of the progress bar 
@@ -180,7 +180,7 @@ class MessageCenter {
        delete *it;
   } 
   
-  void CallHandler(NestedList* nl, ListExpr message) 
+  void CallHandler(NestedList* nl, ListExpr message, int source) 
   {
     #ifdef THREAD_SAFE
     boost::lock_guard<boost::mutex> guard(mtx); 
@@ -188,7 +188,7 @@ class MessageCenter {
      
      HandlerList::const_iterator it = msgHandler.begin();
      for(; it != msgHandler.end(); it++) {
-        (*it)->handleMsg(nl, message);
+        (*it)->handleMsg(nl, message, source);
      } 
   } 
   
@@ -204,10 +204,10 @@ class MessageCenter {
      } 
   } 
 
-  void Send(NestedList* nl, ListExpr message) 
+  void Send(NestedList* nl, ListExpr message, int source=-1) 
   {
     //message.showNLRefs();
-    CallHandler(nl, message); 
+    CallHandler(nl, message, source); 
   } 
   
   void AddHandler(MessageHandler* handler) {

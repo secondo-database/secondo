@@ -183,7 +183,8 @@ public:
 
 protected:
      virtual void StartCommand();
-     virtual bool FinishCommand( SI_Error& errorCode, string& errorMessage);
+     virtual bool FinishCommand( SI_Error& errorCode, string& errorMessage, 
+                                 bool autoTransaction = true);
      virtual void constructErrMsg(int& errorCode, string& errorMessage);
      virtual SI_Error Command_Query( const ListExpr list,
                           ListExpr& result, string& errorMessage,

@@ -1054,6 +1054,11 @@ virtual bool getFunction(const int algId,
 virtual int getPid() = 0;
 
 
+   void setId(const int i){
+      id = i;
+   }
+
+
  protected:
   void Init();                // Inititalize to  default values
   void InitErrorMessages();
@@ -1090,6 +1095,7 @@ virtual int getPid() = 0;
   double commitReal;
   double outObjReal;
   double copyReal;
+  int    id;   // id of this interface
 
 };
 

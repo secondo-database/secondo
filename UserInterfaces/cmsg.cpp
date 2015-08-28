@@ -203,11 +203,15 @@ Implementation of Class ProgMesHandler
 */
 
 bool
-ProgMesHandler::handleMsg(NestedList* nl, ListExpr list)
+ProgMesHandler::handleMsg(NestedList* nl, ListExpr list, int source)
 {
   #ifdef THREAD_SAFE
   boost::lock_guard<boost::mutex> guard(mtx);
   #endif
+
+  if(source>=0){
+    return false;
+  }
 
   if(!nl->HasMinLength(list,2)){
      return false;

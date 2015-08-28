@@ -478,7 +478,7 @@ class ServerMessage : public MessageHandler {
   bool ignore;
   
   public:
-  virtual bool handleMsg(NestedList* nl, ListExpr msg) {
+  virtual bool handleMsg(NestedList* nl, ListExpr msg, int source) {
 
    if (ignore) {
      cerr << "Warning: Last request was not <Secondo>! "
@@ -783,7 +783,8 @@ int
 ReadResponse( ListExpr& resultList,
               int& errorCode,
               int& errorPos,
-              string& errorMessage )
+              string& errorMessage,
+              int source )
 {
   // read next line
   string line="";
@@ -805,7 +806,7 @@ ReadResponse( ListExpr& resultList,
   {
     success = ReadList(endMessage, messageList, errorCode);
     if (success) {
-      msg->Send(nl,messageList);
+      msg->Send(nl,messageList, source);
       getline( iosock, line );
       badbit = iosock.bad();
     }  

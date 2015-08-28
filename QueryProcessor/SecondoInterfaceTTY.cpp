@@ -1034,7 +1034,7 @@ Command\_<name>.
             // Problem in writing to file
             errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE;
           }
-          fc = FinishCommand( errorCode, errorMessage );
+          fc = FinishCommand( errorCode, errorMessage);
         }
       }
       else if ( nfirst.isEqual("restore") &&
@@ -1867,7 +1867,7 @@ SecondoInterfaceTTY::Command_Query( const ListExpr list,
 
   qp.Destroy( tree, true );
   SmiEnvironment::SetFlag_NOSYNC(true);
-  FinishCommand( errorCode, errorMessage );
+  FinishCommand( errorCode, errorMessage, autoTransaction );
   SmiEnvironment::SetFlag_NOSYNC(false);
 
   return errorCode;
@@ -2492,11 +2492,12 @@ SecondoInterfaceTTY::StartCommand()
 }
 
 bool
-SecondoInterfaceTTY::FinishCommand( SI_Error& errorCode, string& errMsg )
+SecondoInterfaceTTY::FinishCommand( SI_Error& errorCode, string& errMsg, 
+                                    bool autoTransaction )
 {
 
   Flob::dropFiles();
-  if ( !activeTransaction)
+  if ( !activeTransaction && autoTransaction)
   {
 
 

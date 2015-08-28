@@ -360,7 +360,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage         );
+                                       errorMessage , id        );
 
         if (errorCode == ERR_NO_ERROR) {
           nl->WriteToFile( filename.c_str(), resultList );
@@ -418,7 +418,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage         );
+                                       errorMessage , id  );
 
         if (errorCode == ERR_NO_ERROR) {
           cout << "writing file " << filename << endl;
@@ -482,7 +482,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage         );
+                                       errorMessage , id        );
       }
       else
       {
@@ -541,7 +541,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage         );
+                                       errorMessage , id        );
       }
       else
       {
@@ -565,7 +565,7 @@ For an explanation of the error codes refer to SecondoInterface.h
     // Receive result
     errorCode = csp->ReadResponse( resultList,
                                    errorCode, errorPos,
-                                   errorMessage         );
+                                   errorMessage , id        );
   }
 
   iosock.exceptions(s);
@@ -753,7 +753,7 @@ int SecondoInterfaceCS::sendFile( const string& localfilename,
    string errorMessage;
    errorCode = csp->ReadResponse( resultList,
                                   errorCode, errorPos,
-                                  errorMessage         );
+                                  errorMessage , id        );
    return errorCode;
 }
 

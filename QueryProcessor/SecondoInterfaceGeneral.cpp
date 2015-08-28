@@ -62,6 +62,7 @@ SecondoInterface::SecondoInterface(bool isServer, NestedList* _nl)
     externalNL = true;
   }
   csp = 0;
+  id = -1;
 }
 
 
