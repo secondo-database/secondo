@@ -11813,13 +11813,9 @@ query2ListVM( Word* args, Word& result, int message, Word& local, Supplier s )
   FText* res = (FText*) result.addr;
   if ( ((FText*)args[0].addr)->IsDefined() )
   {
-    cout << "defined" << endl;
     string querystring = ((FText*)args[0].addr)->GetValue();
     int returnValue = 0;
     returnValue = mySecParser.Text2List(querystring, querystringParsed);
-
-    cout << "returnvalue = " << returnValue << endl;
-
     if(returnValue != 0)
     {
       res->Set(true, "INVALID QUERY");
