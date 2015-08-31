@@ -1268,7 +1268,7 @@ Result   : TRUE
 Operator : query2list
 Number   : 1
 Signature: text -> text
-Example  : query query2list( 'query 3 + 4' )
+Example  : query replace(query2list('query 3 +  4'), charToText(10),'')
 Result   : '(query (+ 3 4))'
 
 
