@@ -23,6 +23,7 @@ import unittests.mmdb.suites.TestSuiteData;
 import unittests.mmdb.suites.TestSuiteOperator;
 import unittests.mmdb.suites.TestSuiteQuery;
 import unittests.mmdb.suites.TestSuiteService;
+import unittests.mmdb.suites.TestSuiteStreamProcessing;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -36,7 +37,7 @@ import org.junit.runners.Suite.SuiteClasses;
  */
 @RunWith(Suite.class)
 @SuiteClasses({ TestSuiteData.class, TestSuiteOperator.class, TestSuiteQuery.class,
-		TestSuiteService.class })
+		TestSuiteService.class, TestSuiteStreamProcessing.class })
 public class MMDBTestRunner {
 
 }
