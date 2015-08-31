@@ -11818,7 +11818,7 @@ query2ListVM( Word* args, Word& result, int message, Word& local, Supplier s )
     returnValue = mySecParser.Text2List(querystring, querystringParsed);
     if(returnValue != 0)
     {
-      res->Set(true, "INVALID QUERY");
+      res->Set(true, "INVALID QUERY " + SecParser::error);
     }
     else
     {
