@@ -11794,6 +11794,73 @@ Operator secondoHomeOP(
   secondoHomeTM
 );
 
+/*
+4.44 Operator ~query2list~
+
+4.44.1 Type Mapping is TypeMap_text__text
+
+4.44.2 Value Mapping
+
+*/
+
+int
+query2ListVM( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  SecParser mySecParser;
+  string querystringParsed = "";
+
+  result = qp->ResultStorage( s );
+  FText* res = (FText*) result.addr;
+  if ( ((FText*)args[0].addr)->IsDefined() )
+  {
+    cout << "defined" << endl;
+    string querystring = ((FText*)args[0].addr)->GetValue();
+    int returnValue = 0;
+    returnValue = mySecParser.Text2List(querystring, querystringParsed);
+
+    cout << "returnvalue = " << returnValue << endl;
+
+    if(returnValue != 0)
+    {
+      res->Set(true, "INVALID QUERY");
+    }
+    else
+    {
+      res->Set(true, querystringParsed);
+    }
+  } else {
+     res->SetDefined(false);
+  }
+  return (0);
+}
+
+/*
+4.44.3 Specification
+
+*/
+
+OperatorSpec query2ListSpec(
+  " text -> text",
+  " query2list ( _ )",
+  " Converts query to NL.",
+  " query query2list('query 3 + 4')"
+);
+
+/*
+4.44.4 Operator Instance
+
+*/
+Operator query2ListOP(
+  "query2list",
+  query2ListSpec.getStr(),
+  query2ListVM,
+  Operator::SimpleSelect,
+  TypeMap_text__text
+);
+
+
+
+
 
 /*
 5 Creating the algebra
@@ -11934,6 +12001,10 @@ Operator secondoHomeOP(
       AddOperator(&text2filepathOP);
       
       AddOperator(&secondoHomeOP);
+
+      AddOperator(&query2ListOP);
+
+
 
 
 #ifdef RECODE

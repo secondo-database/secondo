@@ -119,4 +119,8 @@ operator text2filepath alias TEXTTOFILEPATH pattern op(_)
 
 operator secondoHome alias SECONDOHOME pattern op()
 
+operator query2list alias QUERY2LIST pattern op (_)
+
+
+
 

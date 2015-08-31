@@ -1265,4 +1265,10 @@ Signature : -> text
 Example  : query length(secondoHome() ) > 0
 Result   : TRUE
 
+Operator : query2list
+Number   : 1
+Signature: text -> text
+Example  : query query2list( 'query 3 + 4' )
+Result   : '(query (+ 3 4))'
+
 
