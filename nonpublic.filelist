@@ -17,6 +17,7 @@ PartitionedStreamAlgebra PartitionedStream
 TrafficAlgebra Traffic
 RIndexAlgebra RIndex
 PreciseAlgebra Precise
+Distributed2Algebra Distributed2
 
 
 # Plugins
