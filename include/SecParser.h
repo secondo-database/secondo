@@ -105,6 +105,8 @@ in text form into textual nested list representation.
 #ifndef SEC_PARSER_H
 #define SEC_PARSER_H
 
+#include <string>
+
 class SecParser
 {
  public:
@@ -120,8 +122,8 @@ Creates a Secondo command parser.
 Destroys a Secondo parser.
 
 */
-  int Text2List( const string& inputString,
-                 string& outputString );
+  int Text2List( const std::string& inputString,
+                 std::string& outputString );
 /*
 Parses the Secondo command in ~inputString~ and returns a nested list
 representation of the command in ~outputString~. 
@@ -134,6 +136,9 @@ Returns an error code as follows:
   * 2 -- parsing was aborted due to stack overflow
 
 */
+
+ static std::string error;
+
 };
 
 #endif

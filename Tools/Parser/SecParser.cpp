@@ -32,13 +32,13 @@ During implementation of ~xxerror~ this was confusing.
 */
 
 
+#include "SecParser.h"
 #include <stdlib.h>
 #include <iostream>
 #include <sstream>
 #include <string>
 
 #include "NestedText.h"
-#include "SecParser.h"
 #include "LogMsg.h"
 
 using namespace std;
@@ -47,6 +47,8 @@ using namespace std;
 #define yyFlexLexer xxFlexLexer
 #include <FlexLexer.h>
 #endif
+
+string SecParser::error;
 
 extern string* yacc_outtext;
 extern int xxparse();
@@ -95,12 +97,15 @@ int xxlex()
 
 void xxerror( const char* s )
 {
-  cmsg.error() << "SECONDO Parser: " << s 
-               << " in line " 
-               << dynamic_cast<Text2ListScan*>(lexPtr)->getLine() 
-               << " at symbol '" 
-               << dynamic_cast<Text2ListScan*>(lexPtr)->YYText() << "'"
-               << endl;
+  stringstream ss;
+  ss << "SECONDO Parser: " << s 
+     << " in line " 
+     << dynamic_cast<Text2ListScan*>(lexPtr)->getLine() 
+     << " at symbol '" 
+     << dynamic_cast<Text2ListScan*>(lexPtr)->YYText() << "'"
+     << endl;
+  SecParser::error = ss.str();
+  cmsg.error() << SecParser::error;
   cmsg.send();
 }
 
@@ -112,11 +117,13 @@ SecParser::~SecParser()
 {
 }
 
+
 int
 SecParser::Text2List( const string& inputString, string& outputString )
 {
   istringstream is( inputString );
   outputString = "";
+  error = "";
   
   Text2ListScan lex( &is );
  
