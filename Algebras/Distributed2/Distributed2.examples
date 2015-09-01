@@ -372,24 +372,17 @@ Example   : query transferFile(0,1,1238,'Staedte.txt', "Staedte3.txt")
 Result    : FALSE
 
 
-
-Operator : setColor
+Operator : traceCommands
 Number   : 1
-Signature : string x bool -> bool
-Example   : query setColor("blue",FALSE)
-Result    : TRUE
-
-Operator : setColor
-Number   : 2
-Signature : -> bool
-Example   : query setColor()
-Result    : TRUE
+Signature : bool -> bool
+Example   : query traceCommands(FALSE);
+Result    : TRUE;
 
 
-Operator : moveCursor
-Number : 1
-Signature : string x int -> bool
-Example   : query moveCursor("up",13)
-Result : TRUE
+Operator : showProgress 
+Number   : 1
+Signature : bool -> bool
+Example   : query ishowProgress(TRUE)
+Result    : TRUE;
 
 

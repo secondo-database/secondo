@@ -68,6 +68,5 @@ operator receiveFileClient alias RECEIVEFILECLIENT pattern op(_,_,_,_)
 
 operator transferFile alias TRANSFERFILE pattern op(_,_,_,_,_)
 
+operator traceCommands alias TRACECOMMANDS pattern op(_)
 
-operator setColor alias SETCOLOR pattern op(_,_)
-operator moveCursor alias MOVECURSOR pattern op(_,_)

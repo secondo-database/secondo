@@ -75,6 +75,19 @@ boost::mutex createRelMut;
 #define FILE_BUFFER_SIZE 1048576
 
 
+bool showCommands;
+boost::mutex showCommandMtx;
+
+void showCommand(void* src, const string& host, const int port, 
+                 const string& cmd, bool start){
+    if(showCommands){
+       boost::lock_guard<boost::mutex> guard(showCommandMtx);
+       string s = start ? "start " : "finish ";
+       cout << src << " = " << host << ":" << port << " : " << s << cmd << endl;
+    }
+}
+
+
 
 /*
 Some Helper functions.
@@ -482,7 +495,9 @@ class ConnectionInfo{
           string cmd = "list databases";
           SecErrInfo err;
           simtx.lock();
+          showCommand(si,host,port,cmd, true);
           si->Secondo(cmd,res,err);
+          showCommand(si,host,port,cmd, false);
           simtx.unlock();
           return err.code==0;
        }
@@ -504,7 +519,9 @@ class ConnectionInfo{
           ListExpr resList;
           simtx.lock();
           StopWatch sw;
+          showCommand(si,host,port,command, true);
           si->Secondo(command, resList, serr);
+          showCommand(si,host,port,command, false);
           runtime = sw.diffSecondsReal();
           err = serr.code;
           if(err==0){
@@ -543,13 +560,22 @@ class ConnectionInfo{
           // close database ignore errors
           SecErrInfo serr;
           ListExpr resList;
-          si->Secondo("close database", resList, serr);
+          string cmd = "close database";
+          showCommand(si,host,port,cmd, true);
+          si->Secondo(cmd, resList, serr);
+          showCommand(si,host,port,cmd, false);
           // create database ignore errors
           if(createifnotexists){
-              si->Secondo("create database " + dbname, resList, serr);
+              cmd = "create database " + dbname;
+              showCommand(si,host,port,cmd, true);
+              si->Secondo(cmd, resList, serr);
+              showCommand(si,host,port,cmd, false);
           }
           // open database 
-          si->Secondo("open database "+ dbname, resList, serr);
+          cmd = "open database "+ dbname;
+          showCommand(si,host,port,cmd, true);
+          si->Secondo(cmd, resList, serr);
+          showCommand(si,host,port,cmd, false);
           bool res = serr.code==0;   
           return res;
        }
@@ -568,7 +594,9 @@ class ConnectionInfo{
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
           StopWatch sw;
+          showCommand(si,host,port,command,true);
           si->Secondo(command, myResList, serr);
+          showCommand(si,host,port,command,false);
           runtime = sw.diffSecondsReal();
           error = serr.code;
           errMsg = serr.msg;
@@ -601,7 +629,9 @@ class ConnectionInfo{
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
           StopWatch sw;
+          showCommand(si,host,port,command, true);
           si->Secondo(cmd, myResList, serr);
+          showCommand(si,host,port,command, false);
           runtime = sw.diffSecondsReal();
           error = serr.code;
           errMsg = serr.msg;
@@ -633,7 +663,9 @@ class ConnectionInfo{
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
           StopWatch sw;
+          showCommand(si,host,port,command, true);
           si->Secondo(command, myResList, serr);
+          showCommand(si,host,port,command, false);
           runtime = sw.diffSecondsReal();
           error = serr.code;
           errMsg = serr.msg;
@@ -729,14 +761,19 @@ class ConnectionInfo{
               boost::lock_guard<boost::mutex> guard(simtx);
               SecErrInfo serr;
               ListExpr resList;
-              si->Secondo("delete " + name, resList, serr);
+              string cmd = "delete " + name;
+              showCommand(si,host,port,cmd,true);
+              si->Secondo(cmd, resList, serr);
+              showCommand(si,host,port,cmd,false);
               // ignore error (object must not exist)
               string filename = name + "_" + 
                                 stringutils::int2str(WinUnix::getpid())
                                  + ".obj";
               storeObjectToFile(name, value, typelist, filename);
-              string cmd = "restore " + name + " from '" + filename + "'";
+              cmd = "restore " + name + " from '" + filename + "'";
+              showCommand(si,host,port,cmd,true);
               si->Secondo(cmd, resList, serr);
+              showCommand(si,host,port,cmd,false);
               FileSystem::DeleteFileOrFolder(filename);
               return serr.code==0;
          }
@@ -780,13 +817,17 @@ class ConnectionInfo{
 
              string cmd = "delete " + name;
              if(allowOverwrite){
+                showCommand(si,host,port,cmd,true);
                 si->Secondo(cmd, resList, serr);
+                showCommand(si,host,port,cmd,false);
              }
        
              cmd = "let " + name + " =  ffeed5('" 
                           + rfilename + "') consume ";
 
+             showCommand(si,host,port,cmd,true);
              si->Secondo(cmd, resList, serr);
+             showCommand(si,host,port,cmd,false);
 
              bool ok = serr.code == 0;
 
@@ -861,7 +902,10 @@ class ConnectionInfo{
               boost::lock_guard<boost::mutex> guard(simtx);
               SecErrInfo serr;
               ListExpr myResList;
-              si->Secondo("query " + objName, myResList, serr);
+              string cmd = "query " + objName;
+              showCommand(si,host,port,cmd,true);
+              si->Secondo(cmd, myResList, serr);
+              showCommand(si,host,port,cmd,false);
               SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
               if(serr.code!=0){
                  return false;
@@ -933,7 +977,9 @@ class ConnectionInfo{
                                            rfpath + base +".tmp')";
              SecErrInfo  serr;
              ListExpr resList;
+             showCommand(si,host,port,cmd,true);
              si->Secondo(cmd,resList,serr);
+             showCommand(si,host,port,cmd,false);
 
              if(serr.code!=0){
                cerr << "Command " << cmd << " failed with code " 
@@ -964,7 +1010,9 @@ class ConnectionInfo{
 
              FileSystem::DeleteFileOrFolder(base+".tmp");
              cmd = "query removeFile('"+rfpath + base +".tmp' )" ;
+             showCommand(si,host,port,cmd, true);
              si->Secondo(cmd,resList,serr);
+             showCommand(si,host,port,cmd, false);
              if(serr.code != 0){
                 cerr << "command " << cmd << " failed with code " + serr.code;
                 cerr << serr.msg;
@@ -984,7 +1032,9 @@ class ConnectionInfo{
 
              SecErrInfo serr;
              ListExpr resList;
+             showCommand(si,host,port,cmd,true);
              si->Secondo(cmd,resList,serr);
+             showCommand(si,host,port,cmd,false);
              if(serr.code!=0){
                  return false;
              }
@@ -995,7 +1045,9 @@ class ConnectionInfo{
 
              // delete remote file             
              cmd = "query removeFile('"+rfname+"')";
+             showCommand(si,host,port,cmd,true);
              si->Secondo(cmd,resList,serr);
+             showCommand(si,host,port,cmd,false);
              return true;
           }
 
@@ -1377,8 +1429,6 @@ class PProgressInfo{
      int lastValue;
      StopWatch* w;
      double lastT;
-
-
 };
 
 
@@ -1389,6 +1439,7 @@ class PProgressView: public MessageHandler{
 
      PProgressView(){
         infos = 0;
+        enabled = true;
      }
 
      ~PProgressView(){
@@ -1403,6 +1454,7 @@ class PProgressView: public MessageHandler{
      }
 
      bool handleMsg(NestedList* nl, ListExpr list, int source) {
+        if(!enabled) return false;
         if(source <= 0) return false;
         if(source > noServers) return false;
 
@@ -1431,11 +1483,9 @@ class PProgressView: public MessageHandler{
         return true;
      }
 
-     void enable(bool on){
-        enabled = on;
-     }
 
      void init(int _noServers){
+         if(!enabled) return;
          noServers = _noServers; 
          boost::lock_guard<boost::mutex> guard(mtx);
          cout << endl << endl;
@@ -1451,6 +1501,10 @@ class PProgressView: public MessageHandler{
          boost::lock_guard<boost::mutex> guard(mtx);
          Bash::cursorDown(noServers); 
          cout << "\n\n";
+     }
+
+     void enable(bool on){
+        enabled = on;
      }
 
 
@@ -1474,7 +1528,7 @@ class PProgressView: public MessageHandler{
           info->setLast();
 
           Bash::cursorDown(source);
-          cout << (source-1) << " \t: ";
+          cout << formatNumber( (source-1),3,' ') << " : ";
           if(actValue >=0){
               if(totalValue<=0){
                  cout << "done, total time: " << (int) t << " seconds" ;
@@ -1523,11 +1577,11 @@ class PProgressView: public MessageHandler{
           return ss.str();
       }
 
-      string formatNumber(int number, int digits){
+      string formatNumber(int number, int digits, char f = '0'){
           string n = stringutils::int2str(number);
           stringstream ss;
           for(int i=0;i<digits-(int)n.length(); i++){
-            ss << "0";
+            ss << f;
           }
           return ss.str() + n;
       }
@@ -1546,6 +1600,8 @@ class PProgressView: public MessageHandler{
          }
          return ss.str();
       }
+     
+
 };
 
 
@@ -1576,6 +1632,7 @@ Closes all open connections and destroys them.
         mtx.unlock();
         closeAllWorkers();
         if(pprogView){
+           MessageCenter::GetInstance()->RemoveHandler(pprogView);
            delete pprogView;
         }
      }
@@ -1626,6 +1683,21 @@ Returns a connection
          mtx.unlock();
          return res;
      }
+
+/*
+~showProgress~
+
+*/     
+    void showProgress(bool enable){
+       if(pprogView){
+           pprogView->enable(enable);
+           MessageCenter::GetInstance()->RemoveHandler(pprogView);
+           if(enable){
+               MessageCenter::GetInstance()->AddHandler(pprogView);
+           }
+       } 
+    }
+
 
 
 /*
@@ -1820,14 +1892,11 @@ Transfers a local file to a remove server.
 
 
     void initProgress(){
-        pprogView->enable(true);
         pprogView->init(connections.size());
     }
 
     void finishProgress(){
         pprogView->finish();
-        pprogView->enable(false);
-
     }
 
 
@@ -13117,171 +13186,89 @@ Operator transferFileOP(
 );
 
 
-
-
 /*
-The following operators are for testing the 
-bash control sequences.
+Operator ~traceCommands~
 
 */
-
-ListExpr setColorTM(ListExpr args){
-  string err =" no arg or string x bool expected";
-  if(nl->IsEmpty(args)){
-     return listutils::basicSymbol<CcBool>();
+ListExpr traceCommandsTM(ListExpr args){
+  if(nl->HasLength(args,1) && CcBool::checkType(nl->First(args))){
+    return listutils::basicSymbol<CcBool>();
   }
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError(err);
-  }
-  if(   !CcString::checkType(nl->First(args))
-     || !CcBool::checkType(nl->Second(args))){
-    return listutils::typeError(err);
-  }
-  return listutils::basicSymbol<CcBool>();
-}
-
-int setColorVM(Word* args, Word& result, int message,
-            Word& local, Supplier s ){
-
-  result=qp->ResultStorage(s);
-  CcBool* res = (CcBool*) result.addr;
-  if(qp->GetNoSons(s)==0){
-    Bash::normalColors();
-    res->Set(true,true);
-    return 0;
-  }
-  CcString* name = (CcString*) args[0].addr;
-  CcBool* bg = (CcBool*) args[1].addr;
-
-  if(!name->IsDefined() || !bg->IsDefined()){
-    res->SetDefined(false);
-    return 0;
-  }
-
-  string v = name->GetValue();
-  BashColor c = Bash::string2color(v);
-  if(c==Unknown){
-     stringutils::toLower(v);
-     if(v=="bold"){
-       Bash::setBold();
-       res->Set(true,true);
-     } else if(v=="underline"){
-       Bash::setUnderline();
-       res->Set(true,true);
-     } else {
-         res->Set(true,false);
-     }
-     return 0;
-  }
-
-  if(bg->GetValue()){
-     Bash::setBGColor(c);
-  } else {
-     Bash::setFGColor(c);
-  }
-  res->Set(true,true);
-  return 0;
+  return listutils::typeError("bool expected");
 }
 
 
-OperatorSpec setColorSpec(
-  "-> bool, string x bool -> bool",
-  "setColor(_,_)",
-  "Sets the color of the underlying bash. If called without any "
-  "argument, the default colors are used. " 
-  "If there are arguments, the first argument is the name "
-  "of the color, the second one specifies whether the "
-  "foreground (false) or the background (true) should be "
-  " changed. Available colors are black, white, red, green, blue, "
-  "cyan, yellow, violet. Additionally, the keyword bold and underline "
-  "are accepted.",
-  "query setColor(\"YELLOW\", FALSE)"
-);
-
-Operator setColorOp(
-  "setColor",
-  setColorSpec.getStr(),
-  setColorVM,
-  Operator::SimpleSelect,
-  setColorTM
-);
-
-
-ListExpr moveCursorTM(ListExpr args){
-  string err ="string x int expected";
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError(err);
-  }
-  if(   !CcString::checkType(nl->First(args))
-     || !CcInt::checkType(nl->Second(args))){
-    return listutils::typeError(err);
-  }
-  return listutils::basicSymbol<CcBool>();
-}
-
-
-int moveCursorVM(Word* args, Word& result, int message,
-            Word& local, Supplier s ){
-
-  result=qp->ResultStorage(s);
-  CcBool* res = (CcBool*) result.addr;
-  CcString* dir = (CcString*) args[0].addr;
-  CcInt* num = (CcInt*) args[1].addr;
-  if(!dir->IsDefined() || !num->IsDefined()){
+int traceCommandsVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+   result = qp->ResultStorage(s);
+   CcBool* arg = (CcBool*) args[0].addr;
+   CcBool* res = (CcBool*) result.addr;
+   if(arg->IsDefined()){
+     showCommands = arg->GetValue();
+     res->Set(true,true);
+   } else {
      res->SetDefined(false);
-     return 0;
-  }
-  int n = num->GetValue();
-  string d = dir->GetValue();
-  if(n<=0){
-    res->Set(true,false);
-    return 0;
-  }
-  stringutils::toLower(d);
-  stringutils::trim(d);
-  res->Set(true,true);
-  if(d=="up"){
-     Bash::cursorUp(n);
-     return 0;
-  }
-  if(d=="down"){
-     Bash::cursorDown(n);
-     return 0;
-  }
-  if(d=="back"){
-    Bash::cursorBackward(n);
-    return 0;
-  }
-  if(d=="forward"){
-    Bash::cursorForward(n);
-    return 0;
-  }
-  res->Set(true,false);
-  return 0;
+   }
+   return 0;
 }
 
-OperatorSpec moveCursorSpec(
-  " string x int -> bool",
-  "moveCursor(_,_)",
-  "Moves the current cursor position within a bash. "
-  "The first argument gives the direction and can take "
-  "the value up, down, back, and forward. "  
-  "The second argument specifies how many steps "
-  "the cursor should be moved. ",
-  "query moveCursor(\"up\",13)"
+OperatorSpec traceCommandsSpec(
+  "bool -> bool",
+  "traceCommands(_)",
+  "Enables or disables tracing of remote commands.",
+  "query traceCommands(false)"
 );
 
 
-Operator moveCursorOp(
-  "moveCursor",
-  moveCursorSpec.getStr(),
-  moveCursorVM,
+Operator traceCommandsOp(
+  "traceCommands",
+  traceCommandsSpec.getStr(),
+  traceCommandsVM,
   Operator::SimpleSelect,
-  moveCursorTM
+  traceCommandsTM
+);
+
+/*
+Operator ~showProgress~
+
+*/
+ListExpr showProgressTM(ListExpr args){
+  if(nl->HasLength(args,1) && CcBool::checkType(nl->First(args))){
+    return listutils::basicSymbol<CcBool>();
+  }
+  return listutils::typeError("bool expected");
+}
+
+int showProgressVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+   result = qp->ResultStorage(s);
+   CcBool* arg = (CcBool*) args[0].addr;
+   CcBool* res = (CcBool*) result.addr;
+   if(arg->IsDefined()){
+     algInstance->showProgress(arg->GetValue());
+     res->Set(true,true);
+   } else {
+     res->SetDefined(false);
+   }
+   return 0;
+}
+
+
+OperatorSpec showProgressSpec(
+  "bool -> bool",
+  "showProgress(_)",
+  "Enables or disables progress view.",
+  "query showProgress(false)"
 );
 
 
-
+Operator showProgressOp(
+  "showProgress",
+  showProgressSpec.getStr(),
+  showProgressVM,
+  Operator::SimpleSelect,
+  showProgressTM
+);
 
 
 /*
@@ -13373,8 +13360,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&transferFileOP);
 
 
-   AddOperator(&setColorOp);
-   AddOperator(&moveCursorOp);
+   AddOperator(&traceCommandsOp);
+   AddOperator(&showProgressOp);
 
 
    pprogView = new PProgressView();
@@ -13393,7 +13380,7 @@ Algebra*
                              AlgebraManager* amRef ) {
 
    distributed2::algInstance = new distributed2::Distributed2Algebra();
-   
+   distributed2::showCommands = false;   
    return distributed2::algInstance;
 }
 
