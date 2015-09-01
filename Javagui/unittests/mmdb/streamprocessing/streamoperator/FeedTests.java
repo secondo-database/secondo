@@ -53,7 +53,7 @@ public class FeedTests {
 	
 	@Test(expected = TypeException.class)
 	public void testFeedInvalidRelation() throws TypeException {
-		List<RelationHeaderItem> header = new ArrayList<>();
+		List<RelationHeaderItem> header = new ArrayList<RelationHeaderItem>();
 		header.add(new RelationHeaderItem("Test", "string"));
 		header.add(new RelationHeaderItem("Test", "string"));
 		MemoryRelation rel = new MemoryRelation(header);
