@@ -23,7 +23,9 @@ import gui.SecondoObject;
 
 import java.util.List;
 
+import mmdb.data.MemoryObject;
 import mmdb.data.MemoryRelation;
+import mmdb.data.attributes.MemoryAttribute;
 import mmdb.error.memory.MemoryException;
 import sj.lang.ListExpr;
 
@@ -147,26 +149,35 @@ public final class MemoryWatcher {
 		String[][] result = new String[objects.size()][5];
 		int counter = 0;
 		for (SecondoObject object : objects) {
-			MemoryRelation relation = (MemoryRelation) object.getMemoryObject();
+			MemoryObject memoryObject = object.getMemoryObject();
 			ListExpr list = object.toListExpr();
 			result[counter][0] = object.getName();
-			if (relation != null && !relation.getTuples().isEmpty()) {
-				result[counter][1] = String.valueOf(relation.getTuples().size());
-				result[counter][3] = "X";
-			} else {
-				result[counter][1] = "n/a";
-				result[counter][3] = "";
-			}
 			if (list != null) {
 				result[counter][2] = "X";
 			} else {
 				result[counter][2] = "";
 			}
-			if (relation != null && !relation.getIndices().keySet().isEmpty()) {
-				result[counter][4] = "X";
+			if (memoryObject != null) {
+				result[counter][3] = "X";
 			} else {
-				result[counter][4] = "";
+				result[counter][3] = "";
 			}
+			if(object.getMemoryObject() instanceof MemoryAttribute) {
+				result[counter][1] = "(attr)";
+				result[counter][4] = "(attr)";
+			} else {				
+				MemoryRelation relation = (MemoryRelation) memoryObject;
+				if (relation != null && !relation.getTuples().isEmpty()) {
+					result[counter][1] = String.valueOf(relation.getTuples().size());
+				} else {
+					result[counter][1] = "n/a";
+				}
+				if (relation != null && !relation.getIndices().keySet().isEmpty()) {
+					result[counter][4] = "X";
+				} else {
+					result[counter][4] = "";
+				}
+			} 
 			counter++;
 		}
 		return result;

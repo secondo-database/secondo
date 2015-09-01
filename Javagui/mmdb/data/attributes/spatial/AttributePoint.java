@@ -72,6 +72,9 @@ public class AttributePoint extends MemoryAttribute implements Matchable, Parsab
 		if (obj == null) {
 			return false;
 		}
+		if (!(obj instanceof AttributePoint)) {
+			return false;
+		}
 		AttributePoint other = (AttributePoint) obj;
 		if (Float.floatToIntBits(getXValue()) != Float.floatToIntBits(other.getXValue()))
 			return false;

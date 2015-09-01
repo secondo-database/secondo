@@ -110,6 +110,9 @@ public class AttributeDate extends MemoryAttribute implements Orderable, Parsabl
 		if (attribute == null) {
 			return false;
 		}
+		if (!(attribute instanceof AttributeDate)) {
+			return false;
+		}
 		AttributeDate dateOther = (AttributeDate) attribute;
 		if (getDate().equals(dateOther.getDate())) {
 			return true;

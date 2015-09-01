@@ -30,12 +30,29 @@ import sj.lang.ListExpr;
  *
  * @author Alexander Castor
  */
-public class AttributeInt extends MemoryAttribute implements Orderable, Parsable, Summable {
+public class AttributeInt extends MemoryAttribute implements Orderable,
+		Parsable, Summable {
 
 	/**
 	 * The attribute's value
 	 */
 	private int value;
+
+	/**
+	 * Explicit Standard Constructor
+	 */
+	public AttributeInt() {
+	}
+
+	/**
+	 * Create AttributeInt from int
+	 * 
+	 * @param value
+	 *            The int value to encapsulate
+	 */
+	public AttributeInt(int value) {
+		this.value = value;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -67,6 +84,9 @@ public class AttributeInt extends MemoryAttribute implements Orderable, Parsable
 		if (attribute == null) {
 			return false;
 		}
+		if (!(attribute instanceof AttributeInt)) {
+			return false;
+		}
 		int valueOther = ((AttributeInt) attribute).getValue();
 		if (getValue() == valueOther) {
 			return true;
@@ -92,7 +112,8 @@ public class AttributeInt extends MemoryAttribute implements Orderable, Parsable
 	@Override
 	public int compareTo(Orderable attribute) {
 		int valueOther = ((AttributeInt) attribute).getValue();
-		return (getValue() < valueOther) ? -1 : ((getValue() == valueOther) ? 0 : 1);
+		return (getValue() < valueOther) ? -1 : ((getValue() == valueOther) ? 0
+				: 1);
 	}
 
 	/*

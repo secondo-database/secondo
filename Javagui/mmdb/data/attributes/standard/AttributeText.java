@@ -80,6 +80,9 @@ public class AttributeText extends MemoryAttribute implements Orderable, Parsabl
 		if (attribute == null) {
 			return false;
 		}
+		if (!(attribute instanceof AttributeText)) {
+			return false;
+		}
 		AttributeText attributeOther = (AttributeText) attribute;
 		if (getValue().equals(attributeOther.getValue())) {
 			return true;

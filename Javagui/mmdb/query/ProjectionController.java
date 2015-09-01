@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mmdb.data.MemoryRelation;
-import mmdb.data.MemoryRelation.RelationHeaderItem;
+import mmdb.data.RelationHeaderItem;
 import mmdb.error.memory.MemoryException;
 import mmdb.error.query.ProjectionException;
 import mmdb.error.query.QueryException;

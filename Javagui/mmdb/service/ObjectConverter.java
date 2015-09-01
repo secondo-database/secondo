@@ -27,8 +27,9 @@ import java.util.List;
 
 import mmdb.data.MemoryObject;
 import mmdb.data.MemoryRelation;
-import mmdb.data.MemoryRelation.RelationHeaderItem;
 import mmdb.data.MemoryTuple;
+import mmdb.data.RelationHeaderItem;
+import mmdb.data.attributes.MemoryAttribute;
 import mmdb.error.convert.ConversionException;
 import mmdb.error.convert.ConvertToListException;
 import mmdb.error.convert.ConvertToObjectException;
@@ -72,25 +73,39 @@ public final class ObjectConverter {
 	 * @throws ConvertToObjectException
 	 * @throws MemoryException
 	 */
-	public MemoryRelation convertListToObject(ListExpr nestedList) throws ConvertToObjectException,
+	public MemoryObject convertListToObject(ListExpr nestedList) throws ConvertToObjectException,
 			MemoryException {
-		if (!isListRelation(nestedList)) {
-			throw new ConvertToObjectException(
-					"-> Nested list to be converted is not a valid relation.");
-		}
-		List<RelationHeaderItem> header = createHeaderFromList(nestedList);
-		MemoryRelation relation = new MemoryRelation(header);
-		ListExpr tuples = nestedList.second();
-		int count = 0;
-		while (!tuples.isEmpty()) {
-			relation.createTupleFromList(tuples.first());
-			tuples = tuples.rest();
-			count++;
-			if (count % MemoryWatcher.MEMORY_CHECK_FREQUENCY == 0) {
-				MemoryWatcher.getInstance().checkMemoryStatus();
+		MemoryObject resultObject = null;
+		if(isListAttribute(nestedList)) {
+			MemoryAttribute attribute = null;
+			Class<? extends MemoryAttribute> attrClass = MemoryAttribute.getTypeClass(nestedList.first().symbolValue());
+			try {
+				attribute = attrClass.newInstance();
+				attribute.fromList(nestedList.second());
+			} catch (InstantiationException | IllegalAccessException | ConversionException e) {
+				throw new ConvertToObjectException("-> Nested list could not be converted to an attribute.");
 			}
+			resultObject = attribute;
+		} else {
+			if (!isListRelation(nestedList)) {
+				throw new ConvertToObjectException(
+						"-> Nested list to be converted is not a valid relation.");
+			}
+			List<RelationHeaderItem> header = createHeaderFromList(nestedList);
+			MemoryRelation relation = new MemoryRelation(header);
+			ListExpr tuples = nestedList.second();
+			int count = 0;
+			while (!tuples.isEmpty()) {
+				relation.createTupleFromList(tuples.first());
+				tuples = tuples.rest();
+				count++;
+				if (count % MemoryWatcher.MEMORY_CHECK_FREQUENCY == 0) {
+					MemoryWatcher.getInstance().checkMemoryStatus();
+				}
+			}
+			resultObject = relation;
 		}
-		return relation;
+		return resultObject;
 	}
 
 	/**
@@ -106,16 +121,34 @@ public final class ObjectConverter {
 			MemoryException {
 		ListExpr resultList = null;
 		try {
-			MemoryRelation memoryRelation = (MemoryRelation) memoryObject;
-			List<RelationHeaderItem> header = memoryRelation.getHeader();
-			List<MemoryTuple> tuples = memoryRelation.getTuples();
-			ListExpr headerList = createHeaderList(header);
-			ListExpr tuplesList = createTuplesList(header, tuples);
-			resultList = ListExpr.twoElemList(headerList, tuplesList);
+			if (memoryObject instanceof MemoryAttribute) {
+				ListExpr typename = ListExpr.symbolAtom(MemoryAttribute.getTypeName(memoryObject.getClass()));
+				ListExpr value = ((MemoryAttribute) memoryObject).toList();
+				resultList = ListExpr.twoElemList(typename, value);
+			} else {
+				MemoryRelation memoryRelation = (MemoryRelation) memoryObject;
+				List<RelationHeaderItem> header = memoryRelation.getHeader();
+				List<MemoryTuple> tuples = memoryRelation.getTuples();
+				ListExpr headerList = createHeaderList(header);
+				ListExpr tuplesList = createTuplesList(header, tuples);
+				resultList = ListExpr.twoElemList(headerList, tuplesList);
+			}
 		} catch (Throwable e) {
 			throw new ConvertToListException("-> Technical conversion failed.");
 		}
 		return resultList;
+	}
+
+	/**
+	 * Creates a NestedList representation for an undefined MemoryAttribute
+	 * 
+	 * @param attributeType
+	 * 		the typecheck instance of the undefined attribute
+	 */
+	public ListExpr convertUndefinedAttributeToList(MemoryAttribute attributeType) {
+		return ListExpr.twoElemList(ListExpr.symbolAtom(MemoryAttribute
+				.getTypeName(attributeType.getClass())), ListExpr
+				.symbolAtom("undefined"));
 	}
 
 	/**
@@ -293,6 +326,31 @@ public final class ObjectConverter {
 		}
 		return isRelation;
 	}
+	
+	private boolean isListAttribute(ListExpr nestedList) throws ConvertToObjectException {
+		boolean isAttribute = true;
+		if (nestedList.listLength() != 2) {
+			isAttribute = false;
+		} else {
+			ListExpr attrType = nestedList.first();
+			if (!attrType.isAtom()
+					|| attrType.atomType() != ListExpr.SYMBOL_ATOM) {
+				isAttribute = false;
+			} else {
+				String typeName = attrType.symbolValue();
+				if(MemoryAttribute.getTypeClass(typeName) == null) {
+					isAttribute = false;
+				} else {
+					ListExpr attrVal = nestedList.second();
+					if(attrVal.isAtom() && attrVal.atomType() == ListExpr.SYMBOL_ATOM
+							&& attrVal.symbolValue().toUpperCase().equals("UNDEFINED")) {
+						throw new ConvertToObjectException("-> Cannot convert undefined attributes!");
+					}
+				}
+			}
+		}
+		return isAttribute;
+	}	
 
 	/**
 	 * Creates the relation's header from a nested list.

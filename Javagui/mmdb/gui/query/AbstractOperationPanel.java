@@ -40,7 +40,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import mmdb.data.MemoryRelation;
-import mmdb.data.MemoryRelation.RelationHeaderItem;
+import mmdb.data.RelationHeaderItem;
 import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.gui.QueryDialog;
 import mmdb.operator.OperationController;

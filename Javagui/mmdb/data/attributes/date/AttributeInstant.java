@@ -131,6 +131,9 @@ public class AttributeInstant extends MemoryAttribute implements Orderable, Pars
 		if (attribute == null) {
 			return false;
 		}
+		if (!(attribute instanceof AttributeInstant)) {
+			return false;
+		}
 		AttributeInstant instantOther = (AttributeInstant) attribute;
 		if (getDate().equals(instantOther.getDate())) {
 			return true;

@@ -22,6 +22,7 @@ package mmdb.data.attributes;
 import java.util.HashSet;
 import java.util.Set;
 
+import mmdb.data.MemoryObject;
 import mmdb.data.attributes.date.AttributeDate;
 import mmdb.data.attributes.date.AttributeInstant;
 import mmdb.data.attributes.instant.AttributeIbool;
@@ -66,7 +67,7 @@ import sj.lang.ListExpr;
  *
  * @author Alexander Castor
  */
-public abstract class MemoryAttribute {
+public abstract class MemoryAttribute extends MemoryObject {
 
 	/**
 	 * Enum for collecting all attribute types.

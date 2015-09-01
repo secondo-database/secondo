@@ -198,7 +198,7 @@ public final class MemoryDialog extends JDialog {
 	 *            the dialog's content pane
 	 */
 	private void addTablePanel(Container container) {
-		String[] columnNames = { "NAME", "TUPLES", "NESTED-LIST", "RELATION", "INDICES" };
+		String[] columnNames = { "NAME", "TUPLES", "NESTED-LIST", "MMOBJECT", "INDICES" };
 		table = new JTable(objectStatistics, columnNames);
 		table.setPreferredScrollableViewportSize(new Dimension(600, 200));
 		table.setFillsViewportHeight(true);
@@ -230,15 +230,15 @@ public final class MemoryDialog extends JDialog {
 		JPanel panel = new JPanel(new FlowLayout());
 		JButton removeObject = new JButton("OBJECT");
 		JButton removeNL = new JButton("NESTED-LIST");
-		JButton removeMemRelation = new JButton("RELATION");
+		JButton removeMemObject = new JButton("MMOBJECT");
 		JButton removeIndex = new JButton("INDICES");
 		addActionListener(removeObject, Command.OBJ);
 		addActionListener(removeNL, Command.NES);
-		addActionListener(removeMemRelation, Command.REL);
+		addActionListener(removeMemObject, Command.REL);
 		addActionListener(removeIndex, Command.IDX);
 		panel.add(removeObject);
 		panel.add(removeNL);
-		panel.add(removeMemRelation);
+		panel.add(removeMemObject);
 		panel.add(removeIndex);
 		panel.setBorder(BorderFactory.createTitledBorder("REMOVE"));
 		panel.setMinimumSize(new Dimension(100, 60));

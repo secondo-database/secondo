@@ -24,8 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mmdb.data.MemoryRelation;
-import mmdb.data.MemoryRelation.RelationHeaderItem;
 import mmdb.data.MemoryTuple;
+import mmdb.data.RelationHeaderItem;
 import mmdb.data.attributes.MemoryAttribute;
 import mmdb.error.memory.MemoryException;
 import mmdb.error.query.AggregationException;

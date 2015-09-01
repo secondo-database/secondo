@@ -22,6 +22,7 @@ package mmdb.gui;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 
@@ -40,23 +41,30 @@ public class MMDBMenu extends JMenu {
 	 * Enum for collecting all menu entries.
 	 */
 	public enum MenuEntry {
-		LOAD_QUERY(1, "Load Object from Query", false), LOAD_EXPLORER(2,
-				"Load Object from Explorer", false), LOAD_DATABASE(3,
-				"Load Objects from Database", true), CONVERT_ONE(4,
-				"Convert selected Object to NL", false), CONVERT_ALL(5,
-				"Convert all Objects to NL", true), INDEX(6, "Generate Index",
-				false), QUERY(7, "Execute Query", false), MEMORY(8,
-				"Manage Memory", true), TYPES(9, "Supported Types", false), HELP(
-				10, "Help", false);
+		LOAD_QUERY(1, "Load Object from Query", false, false), LOAD_EXPLORER(2,
+				"Load Object from Explorer", false, false), LOAD_DATABASE(3,
+				"Load Objects from Database", true, false), CONVERT_ONE(4,
+				"Convert selected Object to NL", false, false), CONVERT_ALL(5,
+				"Convert all Objects to NL", false, false), TEXT_AUTOCONVERT(6,
+				"Autoconvert query results to NL format", true, true), INDEX(7, "Generate Index",
+				false, false), QUERY(8, "Execute Query", false, false), MEMORY(9,
+				"Manage Memory", true, false), TYPES(10, "Supported Types", false, false), HELP(
+				11, "Help", false, false);
 
 		final int position;
 		final boolean followedBySeparator;
+		final boolean isCheckbox;
 		final JMenuItem item;
 
-		private MenuEntry(int position, String name, boolean followedBySeparator) {
+		private MenuEntry(int position, String name, boolean followedBySeparator, boolean isCheckbox) {
 			this.position = position;
-			this.item = new JMenuItem(name);
+			this.isCheckbox = isCheckbox;
 			this.followedBySeparator = followedBySeparator;
+			if(isCheckbox) {
+				this.item = new JCheckBoxMenuItem(name, true);
+			} else {
+				this.item = new JMenuItem(name);
+			}
 		}
 	}
 

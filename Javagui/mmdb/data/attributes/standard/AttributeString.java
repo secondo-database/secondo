@@ -35,7 +35,22 @@ public class AttributeString extends MemoryAttribute implements Orderable, Parsa
 	 * The attribute's value
 	 */
 	private String value;
-
+	
+	/**
+	 * Explicit Standard Constructor
+	 */
+	public AttributeString() {}
+	
+	/**
+	 * Create AttributeString from String
+	 * 
+	 * @param value
+	 * 			The int value to encapsulate
+	 */
+	public AttributeString(String value) {
+		this.value = value;
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -64,6 +79,9 @@ public class AttributeString extends MemoryAttribute implements Orderable, Parsa
 	@Override
 	public boolean equals(Object attribute) {
 		if (attribute == null) {
+			return false;
+		}
+		if (!(attribute instanceof AttributeString)) {
 			return false;
 		}
 		String valueOther = ((AttributeString) attribute).getValue();

@@ -85,6 +85,9 @@ public class AttributeRect extends MemoryAttribute implements Matchable {
 		if (obj == null) {
 			return false;
 		}
+		if (!(obj instanceof AttributeRect)) {
+			return false;
+		}
 		AttributeRect other = (AttributeRect) obj;
 		if (Float.floatToIntBits(bottomValue) != Float.floatToIntBits(other.bottomValue))
 			return false;

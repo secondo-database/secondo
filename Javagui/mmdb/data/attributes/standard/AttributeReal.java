@@ -36,6 +36,21 @@ public class AttributeReal extends MemoryAttribute implements Orderable, Parsabl
 	 * The attribute's value
 	 */
 	private float value;
+	
+	/**
+	 * Explicit Standard Constructor
+	 */
+	public AttributeReal() {}
+	
+	/**
+	 * Create AttributeReal from float
+	 * 
+	 * @param value
+	 * 			The float value to encapsulate
+	 */
+	public AttributeReal(float value) {
+		this.value = value;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -65,6 +80,9 @@ public class AttributeReal extends MemoryAttribute implements Orderable, Parsabl
 	@Override
 	public boolean equals(Object attribute) {
 		if (attribute == null) {
+			return false;
+		}
+		if (!(attribute instanceof AttributeReal)) {
 			return false;
 		}
 		float valueOther = ((AttributeReal) attribute).getValue();

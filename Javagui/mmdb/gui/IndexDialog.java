@@ -48,7 +48,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import mmdb.data.MemoryRelation;
-import mmdb.data.MemoryRelation.RelationHeaderItem;
+import mmdb.data.RelationHeaderItem;
 import mmdb.data.attributes.MemoryAttribute;
 import mmdb.data.features.Matchable;
 import mmdb.data.features.Orderable;

@@ -20,6 +20,7 @@
 package mmdb.data;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import mmdb.data.attributes.MemoryAttribute;
@@ -30,12 +31,41 @@ import mmdb.data.attributes.MemoryAttribute;
  *
  * @author Alexander Castor
  */
-public class MemoryTuple {
+public class MemoryTuple extends MemoryObject {
+
+	/**
+	 * Typecheck Info
+	 */
+	private List<RelationHeaderItem> typecheckInfo;
 
 	/**
 	 * The tuple's attributes.
 	 */
 	private List<MemoryAttribute> attributes = new ArrayList<MemoryAttribute>();
+	
+	/**
+	 * Explicit Standard Constructor
+	 */
+	public MemoryTuple() {}
+	
+	/**
+	 * Private constructor for TypecheckInstance Factorymethod
+	 * 
+	 * @param typecheckInfo
+	 */
+	private MemoryTuple(List<RelationHeaderItem> typecheckInfo) {
+		this.typecheckInfo = typecheckInfo;
+	}
+
+	/**
+	 * Create MemoryTuple from multiple MemoryAttributes
+	 * 
+	 * @param attributes
+	 * 			an Array of all Attributes to add
+	 */
+	public MemoryTuple(MemoryAttribute... attributes) {
+		this.attributes.addAll(0, Arrays.asList(attributes));
+	}
 
 	/**
 	 * Adds an attribute to the tuple.
@@ -67,6 +97,27 @@ public class MemoryTuple {
 	 */
 	public List<MemoryAttribute> getAttributes() {
 		return attributes;
+	}
+
+	/**
+	 * Factorymethod for Typechecking-Instance
+	 * 
+	 * @param info
+	 *            TypecheckInfo
+	 * @return Typechecking Instance
+	 */
+	public static MemoryTuple createTypecheckInstance(
+			List<RelationHeaderItem> info) {
+		return new MemoryTuple(info);
+	}
+
+	/**
+	 * Returns the Typechecking Info
+	 * 
+	 * @return Typechecking Info
+	 */
+	public List<RelationHeaderItem> getTypecheckInfo() {
+		return typecheckInfo;
 	}
 
 }

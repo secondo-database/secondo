@@ -36,6 +36,22 @@ public class AttributeBool extends MemoryAttribute implements Orderable, Parsabl
 	 */
 	private boolean value;
 
+	/**
+	 * Explicit Standard Constructor
+	 */
+	public AttributeBool() {
+	}
+
+	/**
+	 * Create AttributeBool from boolean
+	 * 
+	 * @param value
+	 *            The boolean value to encapsulate
+	 */
+	public AttributeBool(boolean value) {
+		this.value = value;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -64,6 +80,9 @@ public class AttributeBool extends MemoryAttribute implements Orderable, Parsabl
 	@Override
 	public boolean equals(Object attribute) {
 		if (attribute == null) {
+			return false;
+		}
+		if (!(attribute instanceof AttributeBool)) {
 			return false;
 		}
 		boolean valueOther = ((AttributeBool) attribute).isValue();

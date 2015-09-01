@@ -29,7 +29,7 @@ import java.util.List;
 
 import javax.swing.JTextArea;
 
-import mmdb.data.MemoryRelation;
+import mmdb.data.MemoryObject;
 import mmdb.error.convert.ConversionException;
 import mmdb.error.load.LoadDatabaseException;
 import mmdb.error.load.LoadException;
@@ -68,7 +68,7 @@ public final class ObjectLoader {
 	}
 
 	/**
-	 * Reads commands from the command panel. Command must end with ';'.
+	 * Reads commands from the command panel. Command may end with ';'.
 	 * 
 	 * @param systemArea
 	 *            the text area of command panel
@@ -128,9 +128,9 @@ public final class ObjectLoader {
 		SecondoObject secondoObject = new SecondoObject(IDManager.getNextID());
 		secondoObject.fromList(queryResult);
 		try {
-			MemoryRelation relationObject = ObjectConverter.getInstance().convertListToObject(
+			MemoryObject memoryObject = ObjectConverter.getInstance().convertListToObject(
 					queryResult);
-			secondoObject.setMemoryObject(relationObject);
+			secondoObject.setMemoryObject(memoryObject);
 			secondoObject.setName(command + " [++]");
 		} catch (ConversionException e) {
 			throw new LoadException(
@@ -152,9 +152,9 @@ public final class ObjectLoader {
 	public void addMemoryObject(SecondoObject secondoObject) throws LoadFromExplorerException,
 			MemoryException {
 		try {
-			MemoryRelation relationObject = ObjectConverter.getInstance().convertListToObject(
+			MemoryObject memoryObject = ObjectConverter.getInstance().convertListToObject(
 					secondoObject.toListExpr());
-			secondoObject.setMemoryObject(relationObject);
+			secondoObject.setMemoryObject(memoryObject);
 			secondoObject.setName(secondoObject.getName() + " [++]");
 		} catch (ConversionException e) {
 			throw new LoadFromExplorerException("-> Error when loading object, caused by:\n"
