@@ -1478,13 +1478,16 @@ class PProgressView: public MessageHandler{
           if(actValue >=0){
               if(totalValue<=0){
                  cout << "done, total time: " << (int) t << " seconds" ;
+                 info->reset();
               } else {
                  int value = ((actValue * 100 ) / totalValue);
                  int tt = (t * 100) / value; // total time
                  int rt = (tt * (100-value)) / 100; // remaining time
-                 cout << value << "% remaining time " << rt << " seconds" ;
+                 cout << progbar(value,20) << "  " << value 
+                      << "% remaining time " << formatTime(rt) ;
               }
           }  else {
+             info->reset();
              cout << "started";
           }
           Bash::clearRestOfLine();
@@ -1494,8 +1497,55 @@ class PProgressView: public MessageHandler{
       }
 
 
+      string formatTime(int seconds){
+          int days = seconds / 86400;
+          seconds = seconds % 86400;
+          int hours = seconds / 3600;
+          seconds = seconds % 3600;
+          int minutes = seconds / 60;
+          seconds = seconds % 60;
 
+          bool force = false;
+          stringstream ss;
+          if(days > 0){
+             ss << days << " days ";  
+             force = true;
+          }
+          if(force || hours > 0){
+              ss << hours << " hours ";
+              force = true;
+          }
+          if( force || minutes > 0){
+              ss << minutes << ":" << formatNumber(seconds,2) << " min";
+          } else {
+              ss << seconds << " seconds";
+          }
+          return ss.str();
+      }
 
+      string formatNumber(int number, int digits){
+          string n = stringutils::int2str(number);
+          stringstream ss;
+          for(int i=0;i<digits-(int)n.length(); i++){
+            ss << "0";
+          }
+          return ss.str() + n;
+      }
+
+      string progbar( int percent, int length){
+         double full = (length*percent) / 100.0;
+         int fulli = (int) (full+0.5);
+         stringstream ss;
+         char b ='*';
+         char e = '-';
+         for(int i=0;i<fulli;i++){
+             ss << b;
+         }
+         for(int i=0;i<length-fulli;i++){
+             ss << e;
+         }
+         return ss.str();
+      }
 };
 
 
