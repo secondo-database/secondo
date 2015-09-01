@@ -28,8 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mmdb.data.MemoryRelation;
-import mmdb.data.MemoryRelation.RelationHeaderItem;
 import mmdb.data.MemoryTuple;
+import mmdb.data.RelationHeaderItem;
 import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.error.convert.ConvertToListException;
 import mmdb.error.convert.ConvertToObjectException;
@@ -68,7 +68,7 @@ public class ObjectConverterTests {
 	@Test
 	public void testConvertListToObjectValidRelation() throws Exception {
 		ListExpr list = TestUtilRelation.getValidRelationList();
-		MemoryRelation relation = ObjectConverter.getInstance().convertListToObject(list);
+		MemoryRelation relation = (MemoryRelation) ObjectConverter.getInstance().convertListToObject(list);
 		List<RelationHeaderItem> header = relation.getHeader();
 		List<MemoryTuple> tuples = relation.getTuples();
 		assertEquals(1, header.size());

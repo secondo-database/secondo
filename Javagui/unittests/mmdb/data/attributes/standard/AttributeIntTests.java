@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import mmdb.data.attributes.standard.AttributeInt;
+import mmdb.data.features.Summable;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -89,6 +90,14 @@ public class AttributeIntTests {
 	public void testParseInvalid() {
 		AttributeInt attribute = (AttributeInt) attribute1.parse("invalid");
 		assertNull(attribute);
+	}
+
+	@Test
+	public void testSumIntInt() {
+		AttributeInt attrInt1 = new AttributeInt(5);
+		AttributeInt attrInt2 = new AttributeInt(7);
+		Summable sum = attrInt1.sum(attrInt2);
+		assertEquals((AttributeInt) sum, new AttributeInt(12));
 	}
 
 }

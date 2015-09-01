@@ -23,9 +23,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mmdb.data.MemoryRelation;
-import mmdb.data.MemoryRelation.RelationHeaderItem;
 import mmdb.data.MemoryTuple;
+import mmdb.data.RelationHeaderItem;
 import mmdb.data.attributes.standard.AttributeInt;
+import mmdb.data.attributes.standard.AttributeReal;
 import mmdb.data.attributes.standard.AttributeString;
 import sj.lang.ListExpr;
 
@@ -63,6 +64,39 @@ public class TestUtilRelation {
 			} else {
 				tuple.addAttribute(attributeString);
 				tuple.addAttribute(attributeInt);
+			}
+			relation.getTuples().add(tuple);
+		}
+		return relation;
+	}
+	
+	public static MemoryRelation getRealStringRelation(int tupleCount, boolean stringFirst,
+			boolean reversed) {
+		RelationHeaderItem realHeaderItem = new RelationHeaderItem("identifierReal", "real");
+		RelationHeaderItem stringHeaderItem = new RelationHeaderItem("identifierString", "string");
+		List<RelationHeaderItem> header = new ArrayList<RelationHeaderItem>();
+		if (!stringFirst) {
+			header.add(realHeaderItem);
+			header.add(stringHeaderItem);
+		} else {
+			header.add(stringHeaderItem);
+			header.add(realHeaderItem);
+		}
+		MemoryRelation relation = new MemoryRelation(header);
+		int fromCount = reversed ? (tupleCount * (-1)) : 1;
+		int toCount = reversed ? -1 : tupleCount;
+		for (int i = fromCount; i <= toCount; i++) {
+			AttributeReal attributeReal = new AttributeReal();
+			attributeReal.setValue((float)Math.abs(i));
+			AttributeString attributeString = new AttributeString();
+			attributeString.setValue("string_" + Math.abs(i));
+			MemoryTuple tuple = new MemoryTuple();
+			if (!stringFirst) {
+				tuple.addAttribute(attributeReal);
+				tuple.addAttribute(attributeString);
+			} else {
+				tuple.addAttribute(attributeString);
+				tuple.addAttribute(attributeReal);
 			}
 			relation.getTuples().add(tuple);
 		}

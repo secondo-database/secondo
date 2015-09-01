@@ -54,7 +54,7 @@ public class ObjectLoaderTests {
 		JTextArea textArea = new JTextArea();
 		textArea.setText("Sec>command;");
 		String command = ObjectLoader.getInstance().readCommandFromPanel(textArea);
-		assertEquals("command", command);
+		assertEquals("command;", command);
 	}
 
 	@Test(expected = LoadFromQueryException.class)
@@ -67,7 +67,7 @@ public class ObjectLoaderTests {
 	@Test
 	public void testExecuteRemoteCommandValid() throws Exception {
 		CommandPanelMock commandPanel = new CommandPanelMock();
-		ListExpr result = ObjectLoader.getInstance().executeRemoteCommand("command", commandPanel);
+		ListExpr result = ObjectLoader.getInstance().executeRemoteCommand("command;", commandPanel);
 		assertNotNull(result);
 		assertTrue(commandPanel.history.contains("command;"));
 	}
@@ -82,7 +82,7 @@ public class ObjectLoaderTests {
 	public void testCreateSecondoObjectValid() throws Exception {
 		ListExpr queryResult = TestUtilRelation.getValidRelationList();
 		SecondoObject object = ObjectLoader.getInstance().createSecondoObject(queryResult,
-				"command");
+				"command;");
 		assertNotNull(object.toListExpr());
 		assertNotNull(object.getMemoryObject());
 		assertEquals("command; [++]", object.getName());

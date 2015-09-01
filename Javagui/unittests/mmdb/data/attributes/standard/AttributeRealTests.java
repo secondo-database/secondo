@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import mmdb.data.attributes.standard.AttributeReal;
+import mmdb.data.features.Summable;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -89,6 +90,14 @@ public class AttributeRealTests {
 	public void testParseInvalid() {
 		AttributeReal attribute = (AttributeReal) attribute1.parse("invalid");
 		assertNull(attribute);
+	}
+
+	@Test
+	public void testSumRealReal() {
+		AttributeReal attrReal1 = new AttributeReal(5);
+		AttributeReal attrReal2 = new AttributeReal(7);
+		Summable sum = attrReal1.sum(attrReal2);
+		assertEquals((AttributeReal) sum, new AttributeReal(12));
 	}
 
 }
