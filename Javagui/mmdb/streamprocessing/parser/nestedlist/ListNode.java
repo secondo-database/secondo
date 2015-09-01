@@ -6,7 +6,7 @@ import java.util.List;
 
 public class ListNode extends NestedListNode {
 
-	List<NestedListNode> children = new ArrayList<>();
+	List<NestedListNode> children = new ArrayList<NestedListNode>();
 
 	public ListNode(ArrayList<NestedListNode> children) {
 		this.children = children;

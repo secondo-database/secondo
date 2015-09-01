@@ -15,11 +15,11 @@ public class Environment {
 	private Map<String, ObjectNode> map;
 
 	public Environment() {
-		this.map = new HashMap<>();
+		this.map = new HashMap<String, ObjectNode>();
 	}
 
 	public Environment(List<SecondoObject> existingObjects) {
-		this.map = new HashMap<>();
+		this.map = new HashMap<String, ObjectNode>();
 		for (SecondoObject sobject : existingObjects) {
 			if (sobject.getMemoryObject() != null) {
 				ObjectNode objNode = ConstantNode.createConstantNode(
@@ -52,7 +52,7 @@ public class Environment {
 		if (map.containsKey(name)) {
 			throw new ParsingException("Identifier already in use: " + name);
 		}
-		Map<String, ObjectNode> newMap = new HashMap<>();
+		Map<String, ObjectNode> newMap = new HashMap<String, ObjectNode>();
 		newMap.putAll(map);
 		newMap.put(name, object);
 		return new Environment(newMap);

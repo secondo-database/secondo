@@ -59,7 +59,7 @@ public class OperatorLookup {
 	}
 
 	private Map<String, Class<? extends Node>> fillmap() {
-		HashMap<String, Class<? extends Node>> operatorMap = new HashMap<>();
+		HashMap<String, Class<? extends Node>> operatorMap = new HashMap<String, Class<? extends Node>>();
 		// FunctionOperators
 		operatorMap.put("fun", ParameterFunction.class);
 

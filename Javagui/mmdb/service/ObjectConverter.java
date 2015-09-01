@@ -82,7 +82,7 @@ public final class ObjectConverter {
 			try {
 				attribute = attrClass.newInstance();
 				attribute.fromList(nestedList.second());
-			} catch (InstantiationException | IllegalAccessException | ConversionException e) {
+			} catch (Exception e) {
 				throw new ConvertToObjectException("-> Nested list could not be converted to an attribute.");
 			}
 			resultObject = attribute;

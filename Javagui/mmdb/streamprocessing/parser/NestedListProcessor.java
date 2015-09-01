@@ -137,7 +137,7 @@ public class NestedListProcessor {
 					+ nestedListNode.printValueList());
 		}
 		ListNode listNode = (ListNode) nestedListNode;
-		Map<String, String> retVal = new LinkedHashMap<>();
+		Map<String, String> retVal = new LinkedHashMap<String, String>();
 		for (NestedListNode nlNode : listNode.getChildren()) {
 			if (!(nlNode instanceof ListNode)) {
 				throw new ParsingException(
@@ -168,7 +168,7 @@ public class NestedListProcessor {
 							+ nestedListNode.printValueList());
 		}
 		ListNode listNode = (ListNode) nestedListNode;
-		Map<String, Node> retVal = new LinkedHashMap<>();
+		Map<String, Node> retVal = new LinkedHashMap<String, Node>();
 		for (NestedListNode nlNode : listNode.getChildren()) {
 			if (!(nlNode instanceof ListNode)) {
 				throw new ParsingException(
