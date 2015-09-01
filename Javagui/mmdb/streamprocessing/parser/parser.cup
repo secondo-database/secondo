@@ -1,0 +1,90 @@
+package mmdb.streamprocessing.parser;
+
+import java_cup10.runtime.*;
+import java.util.Stack;
+import java.util.ArrayList;
+import java.io.FileInputStream;
+import java.io.StringReader;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import mmdb.streamprocessing.parser.nestedlist.*;
+
+action code {:
+	public String removeQuotes(String quotedString) {
+		int length = quotedString.length();
+		if(length >= 3) {
+			if(quotedString.charAt(length-1) == '"') {
+				quotedString = quotedString.substring(0,length-1);
+			}
+			if(quotedString.charAt(0) == '"') {
+				quotedString = quotedString.substring(1);
+			}
+			
+		}
+		return quotedString;		
+	}
+:}
+
+parser code {:	
+	public parser(String parseString) {
+		super();
+		Yylex yyl = new Yylex(new StringReader(parseString)); 
+		setScanner(yyl);
+	}
+	
+	public NestedListNode parseToNestedList() throws Exception {
+		Symbol s = parse();
+		return (NestedListNode) s.value;
+	}
+:}
+
+terminal OPEN, CLOSE;
+terminal Integer INT;
+terminal Float REAL;
+terminal String STRING, SYMBOL;
+terminal Boolean BOOL;
+
+non terminal NestedListNode s_exp, list, atom;
+non terminal ArrayListWrapper s_exp_list;
+
+s_exp		::= list:l {:
+				RESULT = l;
+				:}
+			| atom:a {: 
+				RESULT = a;
+				:}
+			;
+list		::= OPEN s_exp_list:sel CLOSE {:
+				ListNode interNode = new ListNode(sel);
+				RESULT = interNode;
+				:}
+			| OPEN CLOSE {:
+				RESULT = new ListNode(new ArrayListWrapper());
+				:}
+			;
+s_exp_list	::= s_exp:se {:
+				ArrayListWrapper list = new ArrayListWrapper();
+				list.add(se);
+				RESULT = list;
+				:}
+			| s_exp_list:sel s_exp:se {:
+				sel.add(se);
+				RESULT = sel;
+				:}
+			;
+atom		::= INT:i {:
+				RESULT = new IntegerAtom(i);
+				:}
+			| REAL:r {:
+				RESULT = new RealAtom(r);
+				:}
+			| STRING:s {:
+				RESULT = new StringAtom(removeQuotes(s));
+				:}
+			| BOOL:b {:
+				RESULT = new BooleanAtom(b);
+				:}
+			| SYMBOL:s {:
+				RESULT = new SymbolAtom(s);
+				:}
+			;
