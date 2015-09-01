@@ -22,6 +22,7 @@ package mmdb;
 import gui.CommandPanel;
 import gui.ObjectList;
 import gui.SecondoObject;
+import gui.ViewerControl;
 import gui.idmanager.IDManager;
 
 import java.util.ArrayList;
@@ -52,6 +53,8 @@ import mmdb.gui.QueryDialog;
 import mmdb.service.MemoryWatcher;
 import mmdb.service.ObjectConverter;
 import mmdb.service.ObjectLoader;
+import mmdb.streamprocessing.parser.ParserController;
+import sj.lang.ESInterface;
 import sj.lang.ListExpr;
 import tools.Reporter;
 
@@ -119,9 +122,11 @@ public final class MMDBUserInterfaceController {
 	 * @param comPanel
 	 *            the main window's command panel
 	 */
-	public void injectElementsToMMDB(ObjectList objectList, CommandPanel commandPanel) {
+	public void injectElementsToMMDB(ObjectList objectList, CommandPanel commandPanel, ViewerControl viewerControl) {
 		this.objectList = objectList;
 		this.commandPanel = commandPanel;
+		ParserController.getInstance().injectGuiElements(objectList,
+				commandPanel, viewerControl);
 	}
 
 	/**
@@ -147,6 +152,9 @@ public final class MMDBUserInterfaceController {
 				break;
 			case CONVERT_ALL:
 				processConvertAllEvent();
+				break;
+			case TEXT_AUTOCONVERT:
+				processTextAutoconvert();
 				break;
 			case INDEX:
 				processIndexEvent();
@@ -566,6 +574,15 @@ public final class MMDBUserInterfaceController {
 	public void processMemoryException(MemoryException exception) {
 		Reporter.showWarning(exception.getMessage());
 		processMemoryEvent();
+	}
+
+	private void processTextAutoconvert() {
+		ParserController.getInstance().processTextAutoconvert();
+	}
+
+	public void processMMDBQuery(String command, ESInterface secondoInterface) {
+		ParserController.getInstance().processMMDBQuery(command,
+				secondoInterface);
 	}
 
 }
