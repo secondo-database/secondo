@@ -31,7 +31,6 @@ public abstract class TypecheckTools {
 		}
 	}
 
-	@SafeVarargs
 	public static void checkMultipleNodeTypes(Node node,
 			Class<? extends Node> caller, int inputNumber,
 			Class<? extends Node>... expectedTypes) throws TypeException {

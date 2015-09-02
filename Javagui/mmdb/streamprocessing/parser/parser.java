@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.io.FileInputStream;
 import java.io.StringReader;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import mmdb.streamprocessing.parser.nestedlist.*;
 
 /** CUP v0.10k generated parser.
