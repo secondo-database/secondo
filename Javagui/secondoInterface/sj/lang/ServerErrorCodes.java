@@ -83,6 +83,12 @@ The following public fields are defined in the ServerErrorCodes class.
     public static final int FILE_READ_ERROR_CODE = 28;
     // This two error codes were defined in addition to the error codes
     // returned by the Secondo Server.
+
+    public static final int ERR_IN_SECONDO_PROTOCOL = 80;
+    public static final int ERR_IN_FILETRANSFER = 86;;
+    public static final int ERR_INVALID_FILE_NAME = 87;
+    public static final int ERR_FILE_EXISTS = 88;
+   
     public static final int NETWORK_ERROR_CODE = 98;
     public static final int INTERNAL_ERROR_CODE = 99;
 
@@ -162,7 +168,8 @@ None private fields are defined in the ServerErrorCodes class.
       errors[71]="Specific error for type constructor in value list. ";
       errors[72]="Value list is not a representation for type constructor. ";
       errors[73]="Error at a position within value list for type constructor. ";
-
+      errors[87]="Invalid filename";
+      errors[88]="File exists";
       // This two error codes were defined in addition to the error codes
       // returned by the Secondo Server.
       errors[98]="Network error in SecondoInterface. ";
@@ -172,6 +179,7 @@ None private fields are defined in the ServerErrorCodes class.
 
       // error code for the list algebra xxx operator
       errors[85]="Algebra not know or currently not included";
+      errors[86]="Error in file transfer";
 
       // section for client errors
       errors[COMMAND_NOT_SUPPORTED]="command not supported by client server protocol";

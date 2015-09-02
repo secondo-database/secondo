@@ -43,6 +43,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -870,7 +871,293 @@ private class MyBufferedOutputStream extends BufferedOutputStream{
             flush();
      }
 
+     public void writeln(String s) throws IOException{
+        write(s +"\n");
+     }
+
 }
+
+public int sendFile( String localfilename,
+                                  String serverFileName,
+                                  boolean allowOverwrite ){
+
+   if((localfilename.length()==0) || (serverFileName.length()==0)){
+       return ServerErrorCodes.ERR_INVALID_FILE_NAME;
+   }
+   try{
+      outSocketStream.writeln("<FileTransfer>");
+      outSocketStream.writeln(serverFileName);   
+      String allow = allowOverwrite?"<ALLOW_OVERWRITE>":"<DISALLOW_OVERWRITE>";
+      outSocketStream.writeln(allow);
+      outSocketStream.flush();
+   } catch(Exception e){
+      e.printStackTrace();
+      return ServerErrorCodes.ERR_IN_SECONDO_PROTOCOL;
+   }
+
+   String line;
+   try{
+     line = inSocketStream.readLine();
+     if(line.equals("<SecondoError>")){
+        int errCode = ServerErrorCodes.ERR_FILE_EXISTS;
+        line = inSocketStream.readLine();
+        line = line.trim();
+         try{
+            errCode = Integer.parseInt(line);
+         } catch(NumberFormatException e){
+         }
+         line = inSocketStream.readLine();
+         if(!line.equals("</SecondoError>")){
+          return ServerErrorCodes.ERR_IN_SECONDO_PROTOCOL;
+         }    
+         return errCode;
+     }
+
+     if(!line.equals("<SecondoOK>")){
+       return ServerErrorCodes.ERR_IN_SECONDO_PROTOCOL;
+     }
+
+     sendFile(localfilename);
+     outSocketStream.writeln("</FileTransfer>");
+     ListExpr resultList = new ListExpr();
+     IntByReference errorCode= new IntByReference(); 
+     IntByReference errorPos = new IntByReference();
+     StringBuffer errorMessage = new StringBuffer();
+     receiveResponse( resultList, errorCode, errorPos,
+                    errorMessage );   
+     return errorCode.value;
+   } catch(Exception e){
+      e.printStackTrace();
+      return ServerErrorCodes.ERR_IN_SECONDO_PROTOCOL;
+   }
+}
+
+
+
+private boolean sendFile(String filename) {
+
+  String line = "";  
+
+  BufferedInputStream in;
+
+  try{
+     in = new BufferedInputStream(new FileInputStream(filename));
+  } catch(Exception e){
+     try{
+         outSocketStream.writeln("<SendFileError/>");
+     } catch(IOException e2){
+        return false;
+     }
+     return false;
+  }
+
+  try{ 
+     // send begin file sequence
+     outSocketStream.writeln("<FileData>");
+     File file = new File(filename);
+  
+     try {
+         long length = file.length();
+         int bufSize =512;
+         byte[]  buf = new byte[bufSize];    
+
+         // send file size
+         outSocketStream.writeln(""+length);
+         while(in.available()>0){
+            int len = Math.min(bufSize,in.available());
+            in.read(buf,0,len);
+            outSocketStream.write(buf,0,len);
+         }
+         in.close(); 
+         // send end sequence => empty file;
+         outSocketStream.writeln("</FileData>");
+         outSocketStream.flush();
+     } catch (Exception e) {
+        e.printStackTrace();
+        return false;
+     }   
+     return true;
+  } catch(Exception e2){
+     e2.printStackTrace();
+     return false;
+  }
+} 
+
+
+public int requestFile(String serverFilename,
+                String localFilename,
+                boolean allowOverwrite ){
+
+  File localFile = new File(localFilename);
+  if(!allowOverwrite && localFile.exists()){
+     return ServerErrorCodes.ERR_FILE_EXISTS;
+  }
+  try{
+     outSocketStream.writeln("<RequestFile>");
+     outSocketStream.writeln(serverFilename);
+     outSocketStream.writeln("</RequestFile>");
+     outSocketStream.flush();
+
+     String line;
+     line = inSocketStream.readLine();
+
+     if(line.equals("<SecondoError>")){
+         int code= -1;
+         line = inSocketStream.readLine();
+         line = line.trim();
+         try{
+           code = Integer.parseInt(line);
+         } catch(Exception e) {}
+
+         line = inSocketStream.readLine();
+         if(!line.equals("</SecondoError>")){
+            return ServerErrorCodes.ERR_IN_SECONDO_PROTOCOL;
+         } else {
+           return code;
+         }
+      }
+
+      if(!line.equals("<SecondoOK>")){
+        return ServerErrorCodes.ERR_IN_SECONDO_PROTOCOL;
+      }
+
+      // the answer may be SecondoError or SecondoResponse
+      boolean  ok = receiveFile(localFilename);
+
+      if(ok){
+          return 0;
+      } else {
+          return ServerErrorCodes.ERR_IN_FILETRANSFER;
+      }
+   } catch(Exception e2){
+       e2.printStackTrace();
+       return ServerErrorCodes.ERR_IN_SECONDO_PROTOCOL;
+   }
+}
+
+
+private boolean receiveFile( String localFileName ) throws IOException
+{
+  
+  String errMsg = ""; 
+  String line="";
+  line = inSocketStream.readLine();
+  if(line.equals("<SendFileError/>")){  
+     return false;
+  }
+  if(!line.equals("<FileData>")){
+    // protocol error
+    return false;
+  }
+  // read file sizeA
+  int size;
+  line = inSocketStream.readLine();
+  line = line.trim();
+  try{
+    size = Integer.parseInt(line);
+  } catch(Exception e){
+     return false;
+  } 
+
+  BufferedOutputStream out;  
+  try{
+     out = new BufferedOutputStream(new FileOutputStream(localFileName));
+  } catch(Exception e){
+     out = null;
+  }
+  
+  int bufSize=512;
+  byte[] buf = new byte[bufSize]; 
+  int size2=size;
+
+  // get data and write them to local file
+  try{
+      while(size>0) {
+         if (size < bufSize){
+            bufSize = size;  
+         }  
+         int read =  inSocketStream.read(buf,0,bufSize); 
+         out.write(buf, 0, read);
+         size -= read; 
+      }
+      out.close();
+  } catch(Exception e){
+     e.printStackTrace();
+     return false;
+  }
+  line = inSocketStream.readLine();
+  return line.equals("</FileData>");
+}
+
+
+
+public String getRequestFileFolder(){
+   try{
+      outSocketStream.writeln("<REQUEST_FILE_FOLDER>"); 
+      outSocketStream.flush();
+      String line = inSocketStream.readLine();
+      return line;
+   } catch(Exception e){
+      return null;
+   }
+}
+
+public String getRequestFilePath(){
+   try{
+      outSocketStream.writeln("<REQUEST_FILE_PATH>");
+      outSocketStream.flush();
+      return inSocketStream.readLine();
+   } catch(Exception e){
+      return null;
+   }
+}
+
+public String getSendFileFolder(){
+   try{
+      outSocketStream.writeln("<SEND_FILE_FOLDER>");
+      outSocketStream.flush();
+      return inSocketStream.readLine();
+   } catch(Exception e){
+      return null;
+   }
+}
+
+public String getSendFilePath(){
+   try{
+      outSocketStream.writeln("<SEND_FILE_PATH>");
+      outSocketStream.flush();
+      return inSocketStream.readLine();
+   } catch(Exception e){
+      return null;
+   }
+}
+
+public int getPid(){
+   try{
+      outSocketStream.writeln("<SERVER_PID>");
+      outSocketStream.flush();
+      String line = inSocketStream.readLine();
+      try{
+         return Integer.parseInt(line);
+      } catch(Exception e){
+         e.printStackTrace();
+         return 0;
+      }
+   } catch(Exception e2){
+      return -1;
+   }
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 }
