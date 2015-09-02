@@ -576,7 +576,7 @@ struct CSProtocol {
    startFileTransfer("<FileTransfer>"),
    endFileTransfer("</FileTransfer>"),
    startRequestFile("<RequestFile>"),
-   endRequestFile("<RequestFile>")
+   endRequestFile("</RequestFile>")
  {
    ignoreMsg = true;
    nl = instance;
