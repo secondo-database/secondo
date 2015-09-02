@@ -1489,7 +1489,7 @@ struct DisplayArray : DisplayFunction {
       while(nl->AtomType(nl->First(idpair))!=IntType)
         idpair = nl->First(idpair);
 
-      int No = 1;
+      int No = 0;
       cout << "*************** BEGIN ARRAY ***************" << endl;
       while( !nl->IsEmpty(value)){
         cout << "--------------- Field No: ";
