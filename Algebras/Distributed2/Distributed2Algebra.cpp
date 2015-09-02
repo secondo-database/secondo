@@ -3378,11 +3378,11 @@ int prcmdVMT( Word* args, Word& result, int message,
        if(li){
          delete li;
        }
+       algInstance->initProgress();
        local.addr = new prcmdInfo<T>(args[0], 
                                   ((CcInt*)args[3].addr)->GetValue(),
                                   ((CcInt*)args[4].addr)->GetValue(),
                                   nl->Second(GetTupleResultType(s)));
-       algInstance->initProgress();
        return 0;
     }
     case REQUEST:
@@ -5438,6 +5438,7 @@ int pqueryVMT(Word* args, Word& result, int message,
            if(!query->IsDefined()){
               return 0;
            }
+           algInstance->initProgress();
            local.addr = new PQueryInfo(args[0], query->GetValue(), tt);
            return 0;
        }
@@ -5448,6 +5449,7 @@ int pqueryVMT(Word* args, Word& result, int message,
             if(li){
                delete li;
                local.addr = 0;
+               algInstance->finishProgress();
             }
             return 0;
    }
@@ -5858,6 +5860,7 @@ int pquery2VMT(Word* args, Word& result, int message,
                    if(!q->IsDefined()){
                      return 0;
                    }
+                   algInstance->initProgress();
                    local.addr = new PQuery2Info(args[0], q->GetValue(),
                                  ((CcInt*) args[6].addr)->GetValue(),
                                  ((CcInt*) args[7].addr)->GetValue(),
@@ -5871,6 +5874,7 @@ int pquery2VMT(Word* args, Word& result, int message,
                  if(li){
                     delete li;
                     local.addr =0;
+                    algInstance->finishProgress();
                  }
                  return 0;
    }
