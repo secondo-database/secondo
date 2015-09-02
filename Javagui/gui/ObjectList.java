@@ -199,7 +199,11 @@ private void showSelectionInViewer(String viewerName){
      return;
    } 
    SecondoObject o = (SecondoObject) Objects.get(index);
-   VC.displayAt(viewerName, o);
+   if(o == null || o.toListExpr() == null) {
+	   Reporter.showError("Object has no nested-list representation!");
+   } else {
+	   VC.displayAt(viewerName, o);
+   }
 }
 
 
@@ -1094,7 +1098,10 @@ private class RenamePanel extends JPanel{
    } // setObject
 
   private void cancel(){
+      ObjectList.this.updateList();
       ObjectList.this.setRenameMode(false);
+      ObjectList.this.revalidate();
+      ObjectList.this.repaint();
   }
 
   private void accept(){

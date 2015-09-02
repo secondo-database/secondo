@@ -866,7 +866,7 @@ public MainWindow(String Title,String user,String passwd, String configFile){
       } 
     };
     Toolkit.getDefaultToolkit().addAWTEventListener(SnapshotKL,AWTEvent.KEY_EVENT_MASK);
-    MMDBUserInterfaceController.getInstance().injectElementsToMMDB(OList, MainWindow.ComPanel);
+    MMDBUserInterfaceController.getInstance().injectElementsToMMDB(OList, MainWindow.ComPanel, this);
 }
 
 private void showUserSettings(StringBuffer u, StringBuffer p){

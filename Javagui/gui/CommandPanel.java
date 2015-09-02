@@ -29,6 +29,7 @@ import sj.lang.*;
 import communication.optimizer.*;
 import tools.Reporter;
 import java.io.File;
+import mmdb.MMDBUserInterfaceController;
 
 /**
  * The command area is a component of the GUI. Here the user
@@ -927,6 +928,19 @@ public class CommandPanel extends JScrollPane {
           return expectedResult==null;
        }
     }
+
+ 		if (command.startsWith("mmdb ")) {
+      addToHistory(command);
+      try {
+        MMDBUserInterfaceController.getInstance().processMMDBQuery(command, Secondointerface);
+      } catch (Exception e) {
+         appendText("\n\n  Unexpected Exception caught on MMDB query execution: "
+                    + e.getMessage());
+         showPrompt();
+      }
+      return true;
+		}
+
   
     // command designates for the optimizer 
     boolean eval=false; 
