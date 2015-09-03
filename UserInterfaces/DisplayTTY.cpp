@@ -417,19 +417,19 @@ DisplayTTY::DisplayResult2( ListExpr value )
   else if(TypeName=="objects")
   {
     ListExpr tmp = nl->Rest(v); // ignore the OBJECTS
+    cout << " complete list " << endl;
+    nl->WriteListExpr(v,cout);
+    cout << endl << "---------------" << endl;
     if(! nl->IsEmpty(tmp))
     {
-      cout << " short list " << endl;
+      cout << " short list " << endl << endl;
       while(!nl->IsEmpty(tmp))
       {
         cout << "  * " << nl->SymbolValue(nl->Second(nl->First(tmp)));
         cout << endl;
         tmp = nl->Rest(tmp);
       }
-      cout << endl << "---------------" << endl;
-      cout << " complete list " << endl;
     }
-    nl->WriteListExpr(v,cout);
     return;
   }
   else if(TypeName=="constructors" || TypeName=="operators")
