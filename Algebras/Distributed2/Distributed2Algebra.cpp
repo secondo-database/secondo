@@ -8287,15 +8287,27 @@ int ddistribute2VMT(Word* args, Word& result, int message,
 
    
    typename map<int, pair<string,pair<ofstream*, char*> > >::iterator it;
-   for(it = files.begin(); it!=files.end();it++){
-      BinRelWriter::finish(*(it->second.second.first));
-      // close and delete ofstream
-      it->second.second.first->close();
-      delete it->second.second.first;
-      delete[] it->second.second.second;
-      string objName = res->getName()+"_"+stringutils::int2str(it->first);
-      restorers.push_back(new DType(relType, objName,res, 
-                                              it->first, it->second.first));
+
+   for(int i=0;i<res->getSize();i++){
+      it = files.find(i); 
+      string objName = res->getName()+"_"+stringutils::int2str(i);
+      string fn;
+      if(it==files.end()){
+         // create empty file
+         fn = name + "_" + stringutils::int2str(i)+".bin";
+         ofstream out(fn.c_str(), ios::out | ios::binary);
+         BinRelWriter::writeHeader(out,relType);
+         BinRelWriter::finish(out);
+         out.close();
+      } else {
+         BinRelWriter::finish(*(it->second.second.first));
+         fn = it->second.first;
+         // close and delete ofstream
+         it->second.second.first->close();
+         delete it->second.second.first;
+         delete[] it->second.second.second;
+      }
+      restorers.push_back(new DType(relType, objName,res, i, fn));
    }
 
 
@@ -8309,8 +8321,9 @@ int ddistribute2VMT(Word* args, Word& result, int message,
    for(size_t i=0;i<restorers.size();i++){
      delete restorers[i];
    } 
-   for(it = files.begin(); it!=files.end();it++){
-      FileSystem::DeleteFileOrFolder(it->second.first);
+   for(int i=0;i<res->getSize();i++){
+      FileSystem::DeleteFileOrFolder(name + "_" 
+                                + stringutils::int2str(i)+".bin");
    }
 
    DType::cleanUp();
@@ -8785,15 +8798,27 @@ int distribute4VMT(Word* args, Word& result, int message,
 
    
    typename map<int, pair<string, pair<ofstream*, char*> > >::iterator it;
-   for(it = files.begin(); it!=files.end();it++){
-      BinRelWriter::finish(*(it->second.second.first));
-      // close and delete ofstream
-      it->second.second.first->close();
-      delete it->second.second.first;
-      delete[] it->second.second.second;
-      string objName = res->getName()+"_"+stringutils::int2str(it->first);
-      restorers.push_back(new DType(relType, objName,res, 
-                                              it->first, it->second.first));
+
+   for(int i=0;i<res->getSize();i++){
+      it = files.find(i); 
+      string objName = res->getName()+"_"+stringutils::int2str(i);
+      string fn;
+      if(it==files.end()){
+         // create empty file
+         fn = name + "_" + stringutils::int2str(i)+".bin";
+         ofstream out(fn.c_str(), ios::out | ios::binary);
+         BinRelWriter::writeHeader(out,relType);
+         BinRelWriter::finish(out);
+         out.close();
+      } else {
+         BinRelWriter::finish(*(it->second.second.first));
+         fn = it->second.first;
+         // close and delete ofstream
+         it->second.second.first->close();
+         delete it->second.second.first;
+         delete[] it->second.second.second;
+      }
+      restorers.push_back(new DType(relType, objName,res, i, fn));
    }
 
 
@@ -8807,8 +8832,10 @@ int distribute4VMT(Word* args, Word& result, int message,
    for(size_t i=0;i<restorers.size();i++){
      delete restorers[i];
    } 
-   for(it = files.begin(); it!=files.end();it++){
-      FileSystem::DeleteFileOrFolder(it->second.first);
+   // delete local files
+   for(size_t i=0;i<files.size();i++){
+      string fn = res->getName()+"_"+stringutils::int2str(i)+".bin";     
+      FileSystem::DeleteFileOrFolder(fn); 
    }
 
    DType::cleanUp();
@@ -11911,8 +11938,6 @@ class Mapper{
        vector<dRun*> w;
        vector<boost::thread*> runners;
 
-       cout << "create runners" << endl;
-
        for( size_t i=0;i< array->getSize();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
                                  array->getWorker(i % now), dbname);
@@ -11921,12 +11946,9 @@ class Mapper{
           boost::thread* runner = new boost::thread(&dRun::run, r);
           runners.push_back(runner);
        }
-       cout << "runners are running, wait for finish" << endl;
 
        for( size_t i=0;i< array->getSize();i++){
-         cout << "wait for finishing " << i << endl;
           runners[i]->join();
-          cout << "runner " << i << " finished" << endl;
           delete runners[i];
           delete w[i];
        }
@@ -12413,8 +12435,6 @@ class map2Info{
                cmd += " fconsume5['" + fname+"'] count";
              }
 
-             cout << "Create remote command via " << endl << cmd << endl; 
-
              ci->simpleCommand(cmd,err,errMsg,r,true, runtime);
              if(err!=0){
                 cout << "command : " << cmd << endl;
@@ -12638,9 +12658,7 @@ class FileTransferServer{
        if(!listener->IsOk()){
             return 1;
        }
-       cout << "listener running" << endl;
        server = listener->Accept();
-       cout << "client connected" << endl;
        if(!server->IsOk()){
           return 2;
        }
@@ -12653,14 +12671,12 @@ class FileTransferServer{
      Socket* server;
 
      int communicate(){
-       cout << "start communicate on port "  << port << endl;
        try{
           iostream& io = server->GetSocketStream(); 
           io << FileTransferKeywords::FileTransferServer() << endl;
           io.flush();
           string line;
           getline(io,line);
-          cout << "received line:" << line << endl;
           if(line==FileTransferKeywords::Cancel()){
              return true;
           }
@@ -12737,7 +12753,6 @@ class FileTransferClient{
          }
       }
      int start(){
-        cout << "connect woth " << server << "@" << port << endl;
         socket = Socket::Connect(server, stringutils::int2str(port), 
                                  Socket::SockGlobalDomain, 3, 1);
         if(!socket){
@@ -12929,7 +12944,6 @@ int receiveFileClientVMT(Word* args, Word& result, int message,
   int code = client.start();
 
   res->Set(true,code==0); 
-  cout << "Errorcode is " << code << endl;
   return 0;
 }
 
