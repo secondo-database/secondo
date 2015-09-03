@@ -4,7 +4,7 @@
         (tuple 
             (
                 (Name_w string) 
-                (geoData_w region) 
+                (GeoData_w region) 
                 (Name_f string) 
                 (GeoData_f region) 
                 (Touch points)))) 
