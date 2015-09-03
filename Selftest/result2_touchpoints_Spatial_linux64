@@ -6,7 +6,7 @@
                 (Name_w string) 
                 (geoData_w region) 
                 (Name_f string) 
-                (geoData_f region) 
+                (GeoData_f region) 
                 (Touch points)))) 
     (
         ("Schlachtensee" 
