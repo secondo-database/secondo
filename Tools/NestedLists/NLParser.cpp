@@ -36,6 +36,12 @@ it calls the external function ~yyparse~ provided by bison.
 #include "NLScanner.h"
 #include "NLParser.h"
 
+#ifdef THREAD_SAFE
+#include <boost/thread.hpp>
+#endif
+
+
+
 using namespace std;
 
 extern NestedList* nl;
@@ -57,6 +63,12 @@ extern string scanNL_str;
 extern int yydebug;
 extern int yyparse();
 
+#ifdef THREAD_SAFE
+  static boost::recursive_mutex NLParserMtx;
+#endif
+
+
+
 
 /*
 Before we can call yyparse we need to construct a new scanner instance.
@@ -68,6 +80,11 @@ static NLScanner* nlScanner = 0;
 int
 NLParser::parse() 
 {
+
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(NLParserMtx);
+  #endif
+
   if(!nlScanner){ 
      nlScanner = new NLScanner( nl, isp, osp );
   }
@@ -104,6 +121,9 @@ Providing function ~yyerror~
 void
 yyerror(const char* s )
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(NLParserMtx);
+  #endif
   cmsg.error() 
     << "Nested-List Parser: " << endl << "  " << s
     << " processing token ~" << nlScanner->YYText() << "~"
