@@ -2427,9 +2427,10 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
 \subsection{Function ~initMatchInfo~}
 
 */
-void TMatchIndexLI::initMatchInfo(set<int> &cruElems) {
+void TMatchIndexLI::initMatchInfo() {
   PatElem atom;
-  for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
+  for (set<int>::iterator it = crucialAtoms.begin(); it != crucialAtoms.end();
+       it++) {
     cout << "removed ids ";
     p->getElem(*it, atom);
     TupleId oldId = 0;
@@ -2552,8 +2553,9 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
          << indexResult[trans.first][id].units.size() << " units" << endl;
     while (id > 0) {
       bool totalMatch = false;
-      set<int>::iterator it = indexResult[trans.first][id].units.begin();
-      while (active[id] && it != indexResult[trans.first][id].units.end()) {
+      set<int>::reverse_iterator it = 
+                                    indexResult[trans.first][id].units.rbegin();
+      while (active[id] && it != indexResult[trans.first][id].units.rend()) {
         unsigned int numOfIMIs = (*matchInfoPtr)[state][id].imis.size();
         cout << "  while loop: consider unit " << *it << " and " << numOfIMIs 
              << " imis" << endl;
@@ -2601,6 +2603,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 (*newMatchInfoPtr)[trans.second][id].imis.push_back(newIMI);
               }
             }
+            unitCtr = *it; //set counter to minimum of index results
           }
           t->DeleteIfAllowed();
         }
@@ -2822,19 +2825,20 @@ bool TMatchIndexLI::initialize() {
   set<pair<set<int>, int> > paths;
   p->findNFApaths(simpleNFA, paths);
   set<int> cruElems;
-  p->getCrucialElems(paths, cruElems);
+  p->getCrucialElems(paths, crucialAtoms);
   indexResult.resize(p->getSize());
   active.resize(rel->GetNoTuples() + 1, true);
   matches.push_back(1);
   trajSize.resize(rel->GetNoTuples() + 1, 0);
-  for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
+  for (set<int>::iterator it = crucialAtoms.begin(); it != crucialAtoms.end(); 
+       it++) {
     storeIndexResult(*it);
   }
   Tuple *firstTuple = rel->GetTuple(1, false);
   p->initEasyCondOpTrees(firstTuple, ttList);
   p->initCondOpTrees(firstTuple, ttList);
   firstTuple->DeleteIfAllowed();
-  initMatchInfo(cruElems);
+  initMatchInfo();
   applyNFA();
   return true;
 }
@@ -4129,13 +4133,12 @@ void IndexMatchSuper::extendBinding(IndexMatchInfo& imi, const int e) {
           else { // X () Y *
             imi.binding[var] = make_pair(imi.binding[prevVar].second + 1, 
                                          imi.next - 1);
-            cout << "var " << var << " set to (" << imi.binding[var].first 
-                 << ", " << imi.binding[var].second << ")" << endl;
+            imi.binding[prevVar].second = imi.binding[prevVar].first;
           }
         }
       }
     }
-    if (prevVar != "") {
+    if (prevVar != "" && prevElem.getW() != NO) {
       imi.binding[prevVar].second = imi.next - 2;
     }
   }

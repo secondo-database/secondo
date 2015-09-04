@@ -1029,7 +1029,7 @@ class TMatchIndexLI : public IndexMatchSuper {
                           pair<Word, SetRel> values, vector<set<int> > &result);
   void getResultForAtomTime(const int atomNo, vector<set<int> > &result);
   void storeIndexResult(int atomNo);
-  void initMatchInfo(set<int> &cruElems);
+  void initMatchInfo();
   void removeIdFromMatchInfo(const TupleId id);
   bool atomMatch(int state, pair<int, int> trans);
   void applyNFA();
@@ -1042,6 +1042,7 @@ class TMatchIndexLI : public IndexMatchSuper {
   TupleIndex *ti;
   vector<bool> active;
   int valueNo;
+  set<int> crucialAtoms;
 };
 
 /*

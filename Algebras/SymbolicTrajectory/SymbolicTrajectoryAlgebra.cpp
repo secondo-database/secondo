@@ -2838,7 +2838,6 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
   TMatchIndexLI *li = (TMatchIndexLI*)local.addr;
   switch (message) {
     case OPEN: {
-      cout << "OPEN" << endl;
       if (li) {
         delete li;
         local.addr = 0;
@@ -2860,7 +2859,6 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
           TupleType *tt = firstTuple->GetTupleType();
           if (p->isCompatible(tt, attrno->GetIntval(), relevantAttrs, 
                               majorValueNo)) {
-            
             DataType mtype = Tools::getDataType(tt, attrno->GetIntval());
             li = new TMatchIndexLI(rel, ttList, ti, attrno->GetIntval(), p, 
                                    majorValueNo, mtype);
@@ -2880,12 +2878,10 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
       return 0;
     }
     case REQUEST: {
-      cout << "REQUEST" << endl;
       result.addr = li ? li->nextTuple() : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
-      cout << "CLOSE" << endl;
       if (li) {
         li->deletePattern();
         delete li;
