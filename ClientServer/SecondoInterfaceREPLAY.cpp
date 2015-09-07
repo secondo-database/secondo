@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2015, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 The Implementation-Module SecondoInterfaceREPLAY
 
-June 2015 Matthias Kunsmann ReplayVersion of the ~SecondoInterfaceCS~
+September 2015 Matthias Kunsmann ReplayVersion of the ~SecondoInterfaceCS~
 
 [TOC]
 
@@ -42,11 +42,45 @@ June 2015 Matthias Kunsmann ReplayVersion of the ~SecondoInterfaceCS~
 #include "Profiles.h"
 #include "CSProtocol.h"
 #include "StringUtils.h"
+#include "FileSystem.h"
 
 #include <thread>
 #include <future>
 
+#include <algorithm>
+#include <iterator>
+
+#include <ctime>
+
 using namespace std;
+
+/*
+Callback function for FileSystem::FileSearch in
+SecondoInterfaceREPLAY::executeReplayIMGImport
+
+Checks if filename ends with an image-format extension
+for later use in replay import.
+
+*/
+bool callBackFileSearch(const string& absolutePath,
+                        const string& filename,
+                        FileAttributes attribs) {
+  bool found = false;
+
+  string checkFilename = filename;
+  stringutils::toUpper(checkFilename);
+
+  // JPG
+  found = stringutils::endsWith(checkFilename, "JPG");
+ 
+  if (found == false) found = stringutils::endsWith(checkFilename, "GIF");
+  if (found == false) found = stringutils::endsWith(checkFilename, "TIF");
+  if (found == false) found = stringutils::endsWith(checkFilename, "BMP");
+  if (found == false) found = stringutils::endsWith(checkFilename, "BMP");
+  if (found == false) found = stringutils::endsWith(checkFilename, "PNG");
+
+  return found;
+}
 
 SecondoInterfaceREPLAY::SecondoInterfaceREPLAY(bool isServer, /*= false*/
                                                NestedList* _nl /*=0 */):
@@ -87,7 +121,8 @@ in the instance variable for later use.
 
 bool
 SecondoInterfaceREPLAY::getNodesConfig(const string& parmFile, 
-                       const string &delimPart, const string &delimFull) {
+                                       const string &delimPart,
+                                       const string &delimFull) {
 /*
 Read the configuration of all nodes from the configuration file and save it
 in the instance variable (vector) for later use.
@@ -165,7 +200,8 @@ Display the configuration of every node.
 
 bool
 SecondoInterfaceREPLAY::connectNode(const unsigned int nodeNo, 
-                                  const string& user, const string& pswd) {
+                                    const string& user,
+                                    const string& pswd) {
 /*
 Connect client with the node in nodes-vector with the index nodeNo.
 
@@ -340,6 +376,74 @@ async-Feature from C++ 11.
   return true;
 }
 
+
+bool
+SecondoInterfaceREPLAY::checkReplayImport(const string& cmdText,
+                                          string& replayImpCommand)
+{
+/*
+Check the assigned command if it a command for the replay
+import feature
+
+*/
+
+  std::size_t found; 
+  found = cmdText.find("replayOSMImport");
+  if (found != std::string::npos) {
+      replayImpCommand = "replayOSMImport";
+      return true;
+  }
+
+  found = cmdText.find("replayCSVImport");
+  if (found != std::string::npos) {
+     replayImpCommand = "replayCSVImport";
+     return true;
+  }
+
+  found = cmdText.find("replaySHPImport");
+  if (found != std::string::npos) {
+     replayImpCommand = "replaySHPImport";
+     return true;
+  }
+
+  found = cmdText.find("replayDBLPImport");
+  if (found != std::string::npos) {
+     replayImpCommand = "replayDBLPImport";
+     return true;
+  }
+
+  found = cmdText.find("replayIMGImport");
+  if (found != std::string::npos) {
+     replayImpCommand = "replayIMGImport";
+     return true;
+  }
+
+  return false;
+}
+
+bool
+SecondoInterfaceREPLAY::getReplayImportPrmList(std::vector<string>& paramlist, 
+                                               const string& cmdText) 
+{
+/* 
+Split the params of special import commands to an array
+
+*/
+
+  std::size_t foundleft; 
+  std::size_t foundright;
+  foundleft = cmdText.find("(");
+  foundright = cmdText.find(")");
+  string params = cmdText.substr(foundleft + 1, foundright - foundleft - 1);
+
+  stringutils::StringTokenizer token(params, ",");
+  while (token.hasNextToken()) {
+      paramlist.push_back(token.nextToken());
+  }
+ 
+  return true;  
+}
+
 bool
 SecondoInterfaceREPLAY::checkReplayCommand(string& cmdText)
 {
@@ -419,7 +523,52 @@ and all nodes.
   return onlyMasterCommand;
 }
 
-  
+unsigned int
+SecondoInterfaceREPLAY::getMaxCoresFromNodes() {
+/*
+Get the maximum number of cores from all nodes
+
+*/
+
+  unsigned int maxCores = 0;
+  unsigned int curCores = 0;
+
+  for (unsigned int i=0; i<nodes.size(); ++i) {
+    try {
+      curCores = stoi(nodes[i].cores);
+    } catch (const exception& e) {
+      curCores = 0;
+    }
+
+    if (maxCores < curCores) {
+      maxCores = curCores;
+    }
+  }
+  return maxCores;
+}  
+
+unsigned int
+SecondoInterfaceREPLAY::getSumAllCoresFromNodes() {
+/*
+Get the sum of all cores from all nodes
+
+*/
+
+  unsigned int sumCores = 0;
+  unsigned int curCores = 0;
+
+  for (unsigned int i=0; i<nodes.size(); ++i) {
+    try {
+      curCores = stoi(nodes[i].cores);
+    } catch (const exception& e) {
+      curCores = 0;
+    }
+
+    sumCores += curCores;
+  }
+  return sumCores;
+}
+
 void
 SecondoInterfaceREPLAY::Terminate()
 {
@@ -453,10 +602,13 @@ SecondoInterfaceREPLAY::Terminate()
 }
 
 bool
-SecondoInterfaceREPLAY::Initialize( const string& user, const string& pswd,
-                                    const string& host, const string& port,
-                                    string& parmFile, string& errorMsg,
-                                    const bool multiUser )
+SecondoInterfaceREPLAY::Initialize(const string& user,
+                                   const string& pswd,
+                                   const string& host,
+                                   const string& port,
+                                   string& parmFile,
+                                   string& errorMsg,
+                                   const bool multiUser)
 {
   // variables for replay-version
   bool checkMaster;
@@ -615,6 +767,11 @@ SecondoInterfaceREPLAY::Initialize( const string& user, const string& pswd,
     // If connect to master failed, don't connect to the nodes
     if (checkMaster && initialized) {
       connectReplayNodes(user, pswd);
+        
+      // Can overwritten with call parameter
+      replayImportMode = SmiProfile::GetParameter("Replay", "ReplayImportMode",
+                                                   "", parmFile);
+      cout << "Default Replay Import mode: " << replayImportMode;
     }
   }
 
@@ -623,7 +780,13 @@ SecondoInterfaceREPLAY::Initialize( const string& user, const string& pswd,
 
 bool 
 SecondoInterfaceREPLAY::sendCommandToNode(const unsigned int nodeNo, 
-                                const int commandType, const string& cmdText) {
+                                          const int commandType,
+                                          const string& cmdText) {
+/*
+Send a secondo command to the node
+
+*/
+
   ListExpr nodeResultList;
   int nodeErrorCode;
   int nodeErrorPos;
@@ -659,7 +822,7 @@ SecondoInterfaceREPLAY::sendCommandToNode(const unsigned int nodeNo,
      // Receive result
      nodeErrorCode = nodes[nodeNo].csp->ReadResponse( nodeResultList,
                                        nodeErrorCode, nodeErrorPos,
-                                        nodeErrorMessage , id        );
+                                        nodeErrorMessage         );
 
      iosocknode.exceptions(s);
 
@@ -672,18 +835,1193 @@ SecondoInterfaceREPLAY::sendCommandToNode(const unsigned int nodeNo,
   return true; 
 }
 
+bool
+SecondoInterfaceREPLAY::sendAllCommandsToNode(const unsigned int nodeNo,
+                                              std::vector<string> commandList) {
+/* 
+Send the commands from commandList sequential to the node. At the moment
+no parallel execution on the nodes itself of the commands.
+
+*/
+
+  int commandType = 1;
+
+  for (unsigned int i=0; i < commandList.size(); ++i) {
+    sendCommandToNode(nodeNo, commandType, commandList[i]);
+  }
+
+  return true;
+}
+
+bool
+SecondoInterfaceREPLAY::sendFileToNode(const unsigned int nodeNo,
+                                       const string& localfilename,
+                                       const string& serverFileName,
+                                       const bool allowOverwrite ){
+/*
+Send a file from local filesystem of the master to an node
+
+*/
+
+   if(localfilename.empty() || serverFileName.empty()){
+        return ERR_INVALID_FILE_NAME;
+   }
+
+   iostream& iosocknode = nodes[nodeNo].server->GetSocketStream();
+
+   iosocknode << nodes[nodeNo].csp->startFileTransfer << endl;
+   iosocknode << serverFileName << endl;
+   string allow = allowOverwrite?"<ALLOW_OVERWRITE>":"<DISALLOW_OVERWRITE>";
+   iosocknode << allow << endl;
+   iosocknode.flush();
+
+   string line;
+   getline(iosocknode,line);
+
+   if(line == "<SecondoError>"){
+      int errCode = ERR_FILE_EXISTS;
+      iosocknode >> errCode;
+      nodes[nodeNo].csp->skipRestOfLine();
+      getline(iosocknode,line);
+
+      if(line != "</SecondoError>"){
+
+        return ERR_IN_SECONDO_PROTOCOL;
+      }
+
+      return errCode;
+   }
+
+   if(line != "<SecondoOK>"){
+     return ERR_IN_SECONDO_PROTOCOL;
+   }
+
+   nodes[nodeNo].csp->SendFile(localfilename);
+   iosocknode << nodes[nodeNo].csp->endFileTransfer << endl;
+   ListExpr resultList;
+   int errorCode; 
+   int errorPos;
+   string errorMessage;
+   errorCode = nodes[nodeNo].csp->ReadResponse( resultList,
+                                  errorCode, errorPos,
+                                  errorMessage         );
+   // return errorCode;
+   return true;
+}
+
+bool
+SecondoInterfaceREPLAY::sendAllFilesToNode(const unsigned int nodeNo, 
+                                           const unsigned int startWithFileNo,
+                                           const unsigned int noSplitFiles, 
+                                           const string basePath, 
+                                           const string filePrefix) {
+/*
+Send all files of an splitting process to an Node. There is the
+possibility to send all files to all nodes (replication) or send
+a number of files to every node.
+
+*/
+
+  string transferFileName;
+  string destFileName;
+
+  for (unsigned int i = startWithFileNo; 
+       i < startWithFileNo + noSplitFiles; ++i) {
+    transferFileName = basePath + "/" + filePrefix + stringutils::int2str(i);
+    destFileName = filePrefix + stringutils::int2str(i);
+
+    sendFileToNode(nodeNo, transferFileName, destFileName, true);
+
+    // no special tread handling needed, because the threads only fill 
+    // a new element into the array
+    transferFilePath.push_back(stringutils::int2str(nodeNo) + 
+                               ":" + 
+                               getNodeLastSendFilePath(nodeNo) + 
+                               "/" + 
+                               filePrefix + 
+                               stringutils::int2str(i)
+                              );
+  }
+
+  return true;
+}
+
+bool 
+SecondoInterfaceREPLAY::sendAllShapesToNode(const unsigned int nodeNo, 
+                                            const unsigned int startWithFileNo,
+                                            const unsigned int noSplitFiles, 
+                                            const string basePath, 
+                                            const string filePrefix) {
+/*
+Send all shapre files (shp+dbf) of an splitting process to an Node.
+There is the possibility to send all files to all nodes (replication) 
+or send a number of files to every node.
+
+*/
+
+  string transferFileName;
+  string destFileName;
+
+  for (unsigned int i = startWithFileNo; 
+       i < startWithFileNo + noSplitFiles; ++i) {
+    transferFileName = basePath + "/" + filePrefix + stringutils::int2str(i);
+    destFileName = filePrefix + stringutils::int2str(i);
+
+    sendFileToNode(nodeNo, transferFileName + ".shp", destFileName 
+                   + ".shp", true);
+    sendFileToNode(nodeNo, transferFileName + ".dbf", destFileName 
+                   + ".dbf", true);
+
+    // no special tread handling needed, because the threads only fill 
+    // a new element into the array
+    transferFilePath.push_back(stringutils::int2str(nodeNo) + 
+                               ":" + 
+                               getNodeLastSendFilePath(nodeNo) + 
+                               "/" + 
+                               filePrefix + 
+                               stringutils::int2str(i) +
+                               ".shp"
+                              );
+    transferFilePath.push_back(stringutils::int2str(nodeNo) + 
+                               ":" + 
+                               getNodeLastSendFilePath(nodeNo) + 
+                               "/" + 
+                               filePrefix + 
+                               stringutils::int2str(i) +
+                               ".dbf"
+                              );
+
+  }
+
+  return true;
+}
+
+
+
+
+bool 
+SecondoInterfaceREPLAY::sendAllImagesToNode(const unsigned int nodeNo,
+                                            std::vector<string> imageList) {
+/* 
+Send all images from search result to the node
+
+*/
+  std::size_t found;
+  string serverFileName;
+
+  for (unsigned int i = 0; i < imageList.size(); ++i) {
+     found = imageList[i].rfind("/");
+     serverFileName = imageList[i].substr(found + 1);
+     sendFileToNode(nodeNo, imageList[i], serverFileName, true);
+
+    // no special tread handling needed, because the threads only fill 
+    // a new element into the array
+    transferFilePath.push_back(stringutils::int2str(nodeNo) + 
+                               ":" + 
+                               getNodeLastSendFilePath(nodeNo) + 
+                               "/" + 
+                               serverFileName
+                              );
+
+  }
+  
+  return true;
+}
+
+string
+SecondoInterfaceREPLAY::getNodeLastSendFilePath(const unsigned int nodeNo) {
+/*
+Get the last send file path from sending an file to an node
+
+*/
+  iostream& iosocknode = nodes[nodeNo].server->GetSocketStream();
+  iosocknode << "<SEND_FILE_PATH>" << endl;
+  iosocknode.flush();
+  string line;
+  getline(iosocknode,line);
+  return line;
+}
+
+bool 
+SecondoInterfaceREPLAY::controllerTransferFile(const unsigned int noSplitFiles,
+                                               const string& subFileName) {
+/*
+
+Controls sending of files to the nodes. The function can differentiate 
+between "Replication" - all files on all nodes - and partitioning, send only 
+part of the file to an node, so that every node has different files.
+
+*/
+  bool futureRes;
+  vector<std::future<bool>> futures;
+
+  if (replayImportMode == "Replication") {
+    for (unsigned int i=0; i<nodes.size(); ++i) {
+      futures.push_back(async(std::launch::async,
+                      &SecondoInterfaceREPLAY::sendAllFilesToNode,
+                      this, i, 0, noSplitFiles,
+                      FileSystem::GetCurrentFolder(), 
+                      subFileName + "_"));
+    }
+  } else {
+    int startWithFileNo = 0;
+    int partNoOfSplitFiles;
+    for (unsigned int i=0; i<nodes.size(); ++i) {
+      partNoOfSplitFiles = stoi(nodes[i].cores);       
+      futures.push_back(async(std::launch::async,
+                        &SecondoInterfaceREPLAY::sendAllFilesToNode,
+                        this, i, startWithFileNo, partNoOfSplitFiles,
+                        FileSystem::GetCurrentFolder(),
+                        subFileName + "_"));
+      startWithFileNo += partNoOfSplitFiles;
+    }
+  }
+
+ // wait until all files send to all nodes
+  for (unsigned int i=0; i<futures.size(); ++i) {
+    try {
+      futureRes = futures[i].get();
+      if (futureRes == false) {
+        cout << "Error while sending file to node : " 
+             << nodes[i].hostname << endl;
+      }
+    } catch (const exception& e) {
+      cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what() 
+           << " for sending file to node: " << nodes[i].hostname
+           << "with ip:" << nodes[i].ip;
+    }
+  }
+
+  return true;
+}
+
+bool 
+SecondoInterfaceREPLAY::controllerTransferShapeFile(
+                          const unsigned int noSplitFiles,
+                          const string& subFileName) {
+  /*
+
+  Controls sending of files (ShapeFiles) to the nodes. The function can 
+  differentiate between "Replication" - all files on all nodes - and 
+  partitioning, send only part of the file to an node, so that every nodei
+   has different
+  files.
+
+  */
+
+  bool futureRes;
+  vector<std::future<bool>> futures;
+
+  if (replayImportMode == "Replication") {
+    for (unsigned int i=0; i<nodes.size(); ++i) {
+      futures.push_back(async(std::launch::async,
+                      &SecondoInterfaceREPLAY::sendAllShapesToNode,
+                      this, i, 0, noSplitFiles,
+                      FileSystem::GetCurrentFolder(), 
+                      subFileName + "_"));
+    }
+  } else {
+    int startWithFileNo = 0;
+    int partNoOfSplitFiles;
+    for (unsigned int i=0; i<nodes.size(); ++i) {
+      partNoOfSplitFiles = stoi(nodes[i].cores);       
+      futures.push_back(async(std::launch::async,
+                        &SecondoInterfaceREPLAY::sendAllShapesToNode,
+                        this, i, startWithFileNo, partNoOfSplitFiles,
+                        FileSystem::GetCurrentFolder(),
+                        subFileName + "_"));
+      startWithFileNo += partNoOfSplitFiles;
+    }
+  }
+
+  // wait until all files send to all nodes
+  for (unsigned int i=0; i<futures.size(); ++i) {
+    try {
+      futureRes = futures[i].get();
+      if (futureRes == false) {
+        cout << "Error while sending file to node : " 
+             << nodes[i].hostname << endl;
+      }
+    } catch (const exception& e) {
+      cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what() 
+           << " for importing file on node: " << nodes[i].hostname
+           << "with ip:" << nodes[i].ip;
+    }
+  }
+
+  return true;
+}
+
+
+bool 
+SecondoInterfaceREPLAY::executeReplayOsmImport(std::vector<string>& paramlist,
+                                           const unsigned int noSplitFiles) {
+/*
+Execute of ReplayOsmImport.
+
+1) Split an OSM-File
+2) Transfer the splitted OSM-Files to the nodes
+3) Import these files on the nodes
+4) Garbage Collection for temporary objects
+
+*/
+  iostream& iosock = server->GetSocketStream();
+  string cmdText="";
+  ListExpr resultList   = nl->TheEmptyList();
+  int errorCode;
+  int errorPos;
+  string errorMessage;
+  string subFileName;
+  string prefix;
+  int commandType = 1;
+
+  // if filename length lower then 3 characters, use default value
+  // for subFileName
+  if (paramlist[0].size() < 3) {
+    subFileName = "osm";
+    prefix = "OSM";
+  } else {
+    // find position of filename
+    std::size_t found = paramlist[0].rfind("/");
+
+    // use first 3 characters of import filename for subFileName
+    // and prefix
+    if (found!=std::string::npos) {
+      subFileName = paramlist[0].substr(found + 1, 3);
+    } else {
+      subFileName = paramlist[0].substr(0, 3);
+    }
+
+    // use lower characters for subFileName
+    std::transform(subFileName.begin(), subFileName.end(), 
+                   subFileName.begin(), ::tolower);
+
+    // use upper characters for prefix 
+    prefix = subFileName;
+    std::transform(prefix.begin(), prefix.end(), prefix.begin(), ::toupper);
+
+  }
+
+  // Split of full OSM file (on master)
+  cout << endl << "Splitting OSM file..." << endl;
+  cmdText = "query divide_osm('" + paramlist[0] + "',\"" + 
+        subFileName + "\", " + 
+        stringutils::int2str(noSplitFiles) + ", \"" + 
+        prefix + "\")";
+  
+  iosock << "<Secondo>" << endl
+         << commandType << endl
+         << cmdText << endl
+         << "</Secondo>" << endl;
+ 
+  // Receive result
+  errorCode = csp->ReadResponse( resultList,
+                                 errorCode, errorPos,
+                                 errorMessage         );
+
+  cout << errorCode << endl;
+
+  // Transfer files to nodes
+  cout << "Transfer files to nodes ..." << endl;
+  controllerTransferFile(noSplitFiles, subFileName);
+
+  // Full OSM Import on nodes
+  cout << "Import files on nodes ..." << endl;
+  unsigned int currentNode;
+  string currentFilePath;
+
+  // Initialize vector for saving import files per node
+  vector< vector<string> > commandsPerNode;
+
+  for (unsigned int i=0; i < nodes.size(); ++i) {
+    commandsPerNode.push_back(vector <string>());
+  }
+
+  // Now add the commands for the nodes to the array
+  for (unsigned int i=0; i<transferFilePath.size(); ++i) {
+     stringutils::StringTokenizer token(transferFilePath[i], ":");
+     currentNode = stoi(token.nextToken());
+     currentFilePath = token.nextToken();
+     cmdText = "query fullosmimport('" + currentFilePath + "',\"" 
+               + subFileName + stringutils::int2str(i) +"\")";
+     commandsPerNode[currentNode].push_back(cmdText);
+  }
+
+  // Now send array element with commands to every node
+  bool futureRes;
+  vector<std::future<bool>> futures;
+
+  for (unsigned int i=0; i < nodes.size(); ++i) {
+    futures.push_back(async(std::launch::async,
+                    &SecondoInterfaceREPLAY::sendAllCommandsToNode,
+                    this, i, commandsPerNode[i]));
+  }
+
+  for (unsigned int i=0; i<futures.size(); ++i) {
+    try {
+      futureRes = futures[i].get();
+      if (futureRes == false) {
+        cout << "Error while importing file on node : "
+             << nodes[i].hostname << endl;
+      }
+    } catch (const exception& e) {
+      cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what()
+           << " for sending file to node: " << nodes[i].hostname
+           << "with ip:" << nodes[i].ip;
+    }
+  }
+
+  // Remove filelocations from transferFilePath for current instance
+  transferFilePath.clear();
+
+  // cleanup system from temp data (splitted files)
+  cout << "Garbage collection from OSM-Import..." << endl;
+  string filename;
+  for (unsigned int i=0; i<noSplitFiles; ++i) {
+    filename = FileSystem::GetCurrentFolder() + "/" + subFileName + "_" 
+                                              + stringutils::int2str(i);
+    if (FileSystem::FileOrFolderExists(filename)) {
+      FileSystem::DeleteFileOrFolder(filename);
+    }
+  }
+
+  // added types from divide_osm, must be deleted after splitting
+  // delete typename
+  // prefixNodes_type, prefixNodeTags_type
+  // prefixWays_type, prefixWayTags_type
+  // prefixRelations_type, prefixRelationTags_type
+  array<string, 6> delTypes = {"Nodes_type", "NodeTags_type", "Ways_type",
+                      "WayTags_type", "Relations_type",
+                      "RelationTags_type"};
+
+  for (unsigned int i = 0; i < delTypes.size(); ++i) {
+    cmdText = "delete " + prefix + delTypes[i];
+    cout << cmdText << endl;
+
+    iosock << "<Secondo>" << endl
+           << commandType << endl
+           << cmdText << endl
+           << "</Secondo>" << endl;
+  }
+
+  return true;
+
+}
+
+bool
+SecondoInterfaceREPLAY::splitCSV(const std::string& filename,
+                                 const unsigned int headersize,
+                                 const bool multiline,
+                                 const std::string& subFileName,
+                                 const unsigned int noSplitFiles) {
+/*
+Split a csv file in noSplitFiles files
+
+*/
+  string line;
+  ifstream aFile(filename);
+  std::size_t lines_count = 0;
+  std::size_t lines_per_file = 0;
+  std::size_t current_line = 0;
+  vector<string> headerlines;
+
+  // count total lines in file without header
+  lines_count=std::count(std::istreambuf_iterator<char>(aFile), 
+                         std::istreambuf_iterator<char>(), '\n');
+  lines_per_file = (lines_count - headersize) / noSplitFiles;
+
+  ofstream outputFile;
+  aFile.seekg (0, ios::beg);
+
+  // get header from csv file
+  for (unsigned int i = 0; i < headersize; ++i) {
+    if (aFile.is_open()) {
+      getline(aFile,line);
+      headerlines.push_back(line);
+    }
+  }  
+
+  // split file in noSplitFiles
+  for (unsigned int i = 0; i <= noSplitFiles; ++i) {
+    outputFile.open(subFileName + "_" + stringutils::int2str(i));
+    current_line = 0;
+    if (aFile.is_open()) {
+      // write header
+      for (unsigned int he=0; he < headerlines.size(); he++) {
+        if (outputFile.is_open()) {
+          outputFile << headerlines[he] << '\n';
+        }
+      }
+
+      // write datasets in files
+      int mode = 0;
+
+      while ( current_line < lines_per_file && getline (aFile,line) ) {
+        if (outputFile.is_open()) {
+          outputFile << line << '\n';
+          
+          if (multiline) {
+            do {
+              for (unsigned int lc=0; lc < line.length(); ++lc) {
+                if (line[lc] == '"') {
+                  if (mode == 1) {
+                    mode = 0;
+                  } else {
+                    mode = 1;
+                  }
+                }
+               }
+               if (mode == 1) {
+                 getline(aFile,line);
+                 outputFile << line << '\n';
+                 ++current_line;
+               }
+            } while (mode == 1); 
+          }
+          ++current_line;
+        } else {
+          cout << "Split CSV: Unable to open output file";
+          return false;
+        }
+      }
+    } else {
+      cout << "Split CSV: Unable to open file";
+      return false;
+    }
+    outputFile.close(); 
+  } 
+  aFile.close(); 
+  return true;    
+}
+
+bool
+SecondoInterfaceREPLAY::executeReplayCSVImport(std::vector<string>& paramlist,
+                                             const unsigned int noSplitFiles) {
+/*
+Execute of ReplayCSVImport.
+
+1) Split an CSV-File
+2) Transfer the splitted CSV-Files to the nodes
+3) Import these files on the nodes
+4) Garbage Collection for temporary objects
+
+*/
+
+  string cmdText="";
+  string subFileName;
+
+  // if filename length lower then 3 characters, use default value
+  // for subFileName
+  if (paramlist[0].size() < 3) {
+    subFileName = "csv";
+  } else {
+    // find position of filename
+    std::size_t found = paramlist[0].rfind("/");
+
+    // use first 3 characters of import filename for subFileName
+    if (found!=std::string::npos) {
+      subFileName = paramlist[0].substr(found + 1, 3);
+    } else {
+      subFileName = paramlist[0].substr(0, 3);
+    }
+
+    // use lower characters for subFileName
+    std::transform(subFileName.begin(), subFileName.end(), 
+                    subFileName.begin(), ::tolower);
+  }
+
+  // Split of full CSV file (on master)
+  cout << endl << "Splitting CSV file ..." << endl;
+
+  bool b;
+  istringstream(paramlist[5]) >> std::boolalpha >> b;
+
+  splitCSV(paramlist[0], stoi(paramlist[1]), b, subFileName, noSplitFiles);
+
+  // Transfer files to nodes
+  cout << "Transfer files to nodes ..." << endl;
+  controllerTransferFile(noSplitFiles, subFileName);
+
+  // CSV Import on nodes
+  // Params: filename, headersize, comment, separator, uses_quotes, multiline
+  cout << "Import files on nodes ..." << endl;
+
+  unsigned int currentNode;
+  string currentFilePath;
+
+  // Initialize vector for saving import files per node
+  vector< vector<string> > commandsPerNode;
+  for (unsigned int i=0; i < nodes.size(); ++i) {
+    commandsPerNode.push_back(vector <string>());  
+  }
+
+  // Now add the commands for the nodes to the array
+  for (unsigned int i=0; i<transferFilePath.size(); ++i) {
+     stringutils::StringTokenizer token(transferFilePath[i], ":");
+     currentNode = stoi(token.nextToken());
+     currentFilePath = token.nextToken();
+     cmdText = "query csvimport2('" + currentFilePath + "', " + paramlist[1] + 
+               ",\"" + paramlist[2] +"\",\"" + paramlist[3] +"\"," + 
+               paramlist[4] + "," + paramlist[5] + ") count";
+
+     commandsPerNode[currentNode].push_back(cmdText);
+  }  
+
+  // Now send array element with commands to every node
+  bool futureRes;
+  vector<std::future<bool>> futures;
+
+  for (unsigned int i=0; i < nodes.size(); ++i) {
+     futures.push_back(async(std::launch::async,
+                     &SecondoInterfaceREPLAY::sendAllCommandsToNode,
+                     this, i, commandsPerNode[i]));
+  }
+
+  for (unsigned int i=0; i<futures.size(); ++i) {
+    try {
+      futureRes = futures[i].get();
+      if (futureRes == false) {
+        cout << "Error while importing file on node : " 
+             << nodes[i].hostname << endl;
+      }
+    } catch (const exception& e) {
+      cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what() 
+           << " for sending file to node: " << nodes[i].hostname
+           << "with ip:" << nodes[i].ip;
+    }
+  }
+
+  cout << "Garbage collection from CSV-Import..." << endl;
+
+  // Remove filelocations from transferFilePath for current instance
+  transferFilePath.clear();
+
+  // cleanup system from temp data (splitted files)
+  string filename;
+  for (unsigned int i=0; i<noSplitFiles; ++i) {
+    filename = FileSystem::GetCurrentFolder() + "/" + subFileName 
+               + "_" + stringutils::int2str(i);
+    if (FileSystem::FileOrFolderExists(filename)) {
+      FileSystem::DeleteFileOrFolder(filename);
+    }
+  }
+
+  return true;
+}
+
+bool 
+SecondoInterfaceREPLAY::splitSHP(const std::string& filename,
+                                 const std::string& subFileName,
+                                 const unsigned int noSplitFiles) {
+/*
+Split an shape file in noSplitFiles files (shp+dbf-File)
+
+*/
+  // @TODO!!!
+  // Shapefile
+  // Header:
+  // 100 Byte (fix)
+  // Byte 24 des Headers - Größe der Datei
+  // Datensätze
+  // Variable Größe
+  // Header je Datensatz:
+  // 8 Byte (fix)
+  // Byte 4 des Headers des Datensatzes - Größe des Datensatzes
+  // 
+  // DBF-File
+  // Header: 32 Byte
+  // Field Descriptor: je Feld 32 Byte, maximal 15 Felder
+  // Abschluss Field Descriptor: Newline-Zeichen
+  // Einzelnen Datensätze in gesplittete Dateien übertragen
+  // Jeder Datensatz hat 102 Bytes
+
+  cout << "Split of shape file not implemented yet! You must split ";
+  cout << "the files manually before you execute the import!" << endl;
+
+  return true;
+}
+
+bool
+SecondoInterfaceREPLAY::executeReplaySHPImport(std::vector<string>& paramlist,
+                                            const unsigned int noSplitFiles) {
+/*
+Execute of ReplaySHPImport.
+
+1) Split an SHP-File
+2) Transfer the splitted SHP-Files to the nodes
+3) Import these files on the nodes
+4) Garbage Collection for temporary objects
+
+*/
+
+  string cmdText="";
+  string subFileName;
+
+  // if filename length lower then 3 characters, use default value
+  // for subFileName
+  if (paramlist[0].size() < 3) {
+    subFileName = "shp";
+  } else {
+    // find position of filename
+    std::size_t found = paramlist[0].rfind("/");
+
+    // use first 3 characters of import filename for subFileName
+    if (found!=std::string::npos) {
+      subFileName = paramlist[0].substr(found + 1, 3);
+    } else {
+      subFileName = paramlist[0].substr(0, 3);
+    }
+
+    // use lower characters for subFileName
+    std::transform(subFileName.begin(), subFileName.end(), 
+                   subFileName.begin(), ::tolower);
+  }
+
+  // Split of full SHP file (on master)
+  cout << endl << "Splitting SHP file ...TODO..." << endl;
+  splitSHP(paramlist[0], subFileName, noSplitFiles);
+
+  // Transfer files to nodes
+  cout << "Transfer files to nodes ..." << endl;
+  controllerTransferShapeFile(noSplitFiles, subFileName);
+
+  // Full SHP+DBF Import on nodes
+  cout << "Import files on nodes ..." << endl;
+  unsigned int currentNode;
+  string currentFilePath;
+  string currentType;
+
+  // Initialize vector for saving import files per node
+  vector< vector<string> > commandsPerNode;
+
+  for (unsigned int i=0; i < nodes.size(); ++i) {
+    commandsPerNode.push_back(vector <string>());
+  }
+
+  // Now add the commands for the nodes to the array
+  for (unsigned int i=0; i<transferFilePath.size(); ++i) {
+     stringutils::StringTokenizer token(transferFilePath[i], ":");
+     currentNode = stoi(token.nextToken());
+     currentFilePath = token.nextToken();
+     currentType = currentFilePath.substr(currentFilePath.size() - 3);
+     if (currentType == "dbf") {
+       cmdText = "query dbimport2('" + currentFilePath + "') count";
+     } else {
+       cmdText = "query shpimport2('" + currentFilePath + "') count";
+     }
+
+     commandsPerNode[currentNode].push_back(cmdText);
+  }
+
+  // Now send array element with commands to every node
+  bool futureRes;
+  vector<std::future<bool>> futures;
+
+  for (unsigned int i=0; i < nodes.size(); ++i) {
+    futures.push_back(async(std::launch::async,
+                    &SecondoInterfaceREPLAY::sendAllCommandsToNode,
+                    this, i, commandsPerNode[i]));
+  }
+
+  for (unsigned int i=0; i<futures.size(); ++i) {
+    try {
+      futureRes = futures[i].get();
+      if (futureRes == false) {
+        cout << "Error while importing file on node : "
+             << nodes[i].hostname << endl;
+      }
+    } catch (const exception& e) {
+      cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what()
+           << " for importing file on node: " << nodes[i].hostname
+           << "with ip:" << nodes[i].ip;
+    }
+  }
+  
+  cout << "Garbage collection from SHP-Import..." << endl;
+
+  // Remove filelocations from transferFilePath for current instance
+  transferFilePath.clear();
+
+  // cleanup system from temp data (splitted files)
+
+  string filename;
+  for (unsigned int i=0; i<noSplitFiles; ++i) {
+    filename = FileSystem::GetCurrentFolder() + "/" + subFileName + "_" 
+               + stringutils::int2str(i) + ".shp";
+    if (FileSystem::FileOrFolderExists(filename)) {
+      FileSystem::DeleteFileOrFolder(filename);
+    }
+    filename = FileSystem::GetCurrentFolder() + "/" + subFileName + "_" 
+               + stringutils::int2str(i) + ".dbf";
+    if (FileSystem::FileOrFolderExists(filename)) {
+      FileSystem::DeleteFileOrFolder(filename);
+    }
+  }
+
+  return true;
+}
+
+bool
+SecondoInterfaceREPLAY::splitDBLP(const std::string& filename, 
+                                 const std::string& subFileName,
+                                 const unsigned int noSplitFiles) {
+/*
+Split an dblp file in noSplitFiles files
+
+*/
+
+  string line;
+  std::size_t bytes_per_file = 0;
+  vector<string> headerlines;
+
+  ofstream outputFile;
+  
+  ifstream aFile(filename, ios::ate);
+  bytes_per_file = aFile.tellg() / noSplitFiles;
+  aFile.seekg (0, ios::beg);
+
+  // get header from dblp file
+  while (line != "<dblp>") {
+    if (aFile.is_open()) {
+      getline(aFile,line);
+      headerlines.push_back(line);
+    }
+  }  
+  
+  // split file in noSplitFiles
+  for (unsigned int i = 0; i < noSplitFiles; ++i) {
+    outputFile.open(subFileName + "_" + stringutils::int2str(i));
+
+    // write header
+    for (unsigned int he=0; he < headerlines.size(); he++) {
+      if (outputFile.is_open()) {
+        outputFile << headerlines[he] << '\n';
+      }
+    }
+
+    // write content
+    while (aFile.tellg() <= bytes_per_file * (i + 1)) {
+      getline(aFile,line);
+      outputFile << line << endl;
+    } 
+
+    // write until current tag is closed
+    while (line[1] != '/') {
+      getline(aFile,line);
+      outputFile << line << endl;
+    }
+ 
+    // In last file the tag came from original file
+    if (i < noSplitFiles - 1) {
+      outputFile << "</dblp>" << endl;
+    }
+
+    outputFile.close();
+  }
+  aFile.close(); 
+
+  return true;
+}
+
+bool
+SecondoInterfaceREPLAY::executeReplayDBLPImport(std::vector<string>& paramlist,
+                                           const unsigned int noSplitFiles) {
+/*
+Execute of ReplayDBLPImport.
+
+1) Split an DBLP-File
+2) Transfer the splitted DBLP-Files to the nodes
+3) Import these files on the nodes
+4) Garbage  Collection for temporary objects
+
+*/
+
+  string cmdText="";
+  string subFileName;
+
+  // if filename length lower then 3 characters, use default value
+  // for subFileName
+  if (paramlist[0].size() < 3) {
+    subFileName = "xml";
+  } else {
+    // find position of filename
+    std::size_t found = paramlist[0].rfind("/");
+
+    // use first 3 characters of import filename for subFileName
+    if (found!=std::string::npos) {
+      subFileName = paramlist[0].substr(found + 1, 3);
+    } else {
+      subFileName = paramlist[0].substr(0, 3);
+    }
+
+    // use lower characters for subFileName
+    std::transform(subFileName.begin(), subFileName.end(), 
+                   subFileName.begin(), ::tolower);
+  }
+
+  // Split of full DBLP file (on master)
+  cout << endl << "Splitting DBLP file..." << endl;
+  splitDBLP(paramlist[0], subFileName, noSplitFiles);
+
+  // Transfer files to nodes
+  // @TODO: Vorher konvertieren in CSV-Format???
+
+  cout << "Transfer files to nodes ..." << endl;
+  controllerTransferFile(noSplitFiles, subFileName);
+
+  // Import files on nodes
+  // @TODO: Import als CSV-Format??? Konvertieren vor Transfer???
+  cout << "Import files on nodes ...TODO..." << endl;
+
+  cout << "Garbage collection from DBLP-Import..." << endl;
+
+  // Remove filelocations from transferFilePath for current instance
+  transferFilePath.clear();
+
+  // cleanup system from temp data (splitted files)
+  string filename;
+  for (unsigned int i=0; i<noSplitFiles; ++i) {
+    filename = FileSystem::GetCurrentFolder() + "/" + subFileName + "_" 
+               + stringutils::int2str(i);
+    if (FileSystem::FileOrFolderExists(filename)) {
+      FileSystem::DeleteFileOrFolder(filename);
+    }
+  }
+
+  // @TODO: Import -> keine Algebra vorhanden, unter tools/converter 
+  // gibt es jedoch ein Beispiel auf nicht
+  // Algebra Basis. Hier müsste man prüfen, ob man dies irgendwie 
+  // verwenden könnte.
+
+  return true;
+}
+
+bool
+SecondoInterfaceREPLAY::importImgOnNode(const unsigned int nodeNo,
+                                        const string relDesc,
+                                        const string relName) {
+/*
+Write the file with the relation object for the node,
+transfer it to the node and restore (import) it
+
+*/
+
+  ofstream outputFile;
+  string relFileName; 
+
+  relFileName = "relation_" + stringutils::int2str(nodeNo);
+  outputFile.open(relFileName);
+  outputFile << relDesc << endl;
+  outputFile.close();
+  sendFileToNode(nodeNo, FileSystem::GetCurrentFolder() + "/" 
+                + relFileName, relFileName, true);
+
+  string cmdText = "restore " + relName + " from '" 
+                   + getNodeLastSendFilePath(nodeNo) + "/" + relFileName + "'";
+ 
+  sendCommandToNode(nodeNo, 1, cmdText);
+
+  return true;
+}
+
+bool
+SecondoInterfaceREPLAY::executeReplayIMGImport(std::vector<string>& paramlist) {
+/*
+Execute of ReplayIMGImport.
+
+1) Get all images of an directory structur with an specified level of recursion
+2) Transfer the files of the directory structur to the nodes
+3) Import these images on the nodes
+4) Garbage Collection for temporary objects
+
+*/
+  FilenameList theList;
+
+  unsigned int numFiles;
+  unsigned int filesPerNode;
+  unsigned int currentFileNo = 0;
+  unsigned int startFileNo = 0;
+  unsigned int remainder = 0;
+
+  string relObject;
+
+  // Initialize vector for saving files per node
+  vector< vector<string> > elementsPerNode;
+
+  // Step 1: Get all images of the directory from the parameter
+  cout << endl << "Searching in filepath for images..." << endl;
+
+  FileSystem::FileSearch( paramlist[0],
+                          theList,
+                          0,
+                          stoi(paramlist[1]),
+                          false,
+                          true,
+                          *callBackFileSearch );
+
+  cout << "Transfering images files to the nodes..." << endl;
+
+  // Create a filelist for every node
+  if (replayImportMode == "Replication") {
+    for (unsigned int i=0; i < nodes.size(); i++) {
+      sendAllImagesToNode(i, theList);
+    }
+  } else {
+    numFiles = theList.size();
+    filesPerNode = numFiles / nodes.size();
+    remainder = numFiles % nodes.size();
+
+    for (unsigned int i=0; i < nodes.size(); ++i) {
+      elementsPerNode.push_back(vector <string>());
+    }
+
+    for (unsigned int i=0; i < nodes.size(); i++) {
+      startFileNo = currentFileNo;
+      for (unsigned int j=startFileNo; j < startFileNo + filesPerNode; ++j) {
+         elementsPerNode[i].push_back(theList[j]);
+         ++currentFileNo;
+      }
+    }
+
+    // Now send the rest of the files (remainder), one file for every node
+    startFileNo = theList.size() - remainder;
+    for (unsigned int i=0; i < remainder; ++i) {
+         elementsPerNode[i].push_back(theList[startFileNo + i]);
+    }
+
+    // Now send array element with files to every node
+    bool futureRes;
+    vector<std::future<bool>> futures;
+
+    for (unsigned int i=0; i < nodes.size(); ++i) {
+       futures.push_back(async(std::launch::async,
+                       &SecondoInterfaceREPLAY::sendAllImagesToNode,
+                       this, i, elementsPerNode[i]));
+    }
+
+    for (unsigned int i=0; i<futures.size(); ++i) {
+      try {
+        futureRes = futures[i].get();
+        if (futureRes == false) {
+          cout << "Error while transferring images to node : " 
+               << nodes[i].hostname << endl;
+        }
+      } catch (const exception& e) {
+        cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what() 
+             << " for sending image to node: " << nodes[i].hostname
+             << "with ip:" << nodes[i].ip;
+      }
+    }
+  }
+
+  cout << "Import images on nodes..." << endl;
+
+  unsigned int currentNode;
+  string currentFilePath;
+  std::size_t found;
+  string filename;
+  vector<string> relation;
+
+  // create relation file for every node
+  for (unsigned int i = 0; i < nodes.size(); i++) {
+    relObject = "(OBJECT " + paramlist[2] + "() ";
+    relObject = relObject + R"X*X(
+
+      (rel (tuple ( (Filename filepath)(Picture picture ) ))) (
+ 
+    )X*X";
+
+    relation.push_back(relObject);
+  }
+
+  // create relation file for every node
+  time_t now = time(0);
+  tm *ltm = localtime(&now);
+  string currentDate = stringutils::int2str(1900 + ltm->tm_year) + "-" + 
+                       stringutils::int2str(1 + ltm->tm_mon) + "-" + 
+                       stringutils::int2str(ltm->tm_mday);
+
+  for (unsigned int i=0; i<transferFilePath.size(); ++i) {
+    stringutils::StringTokenizer token(transferFilePath[i], ":");
+    currentNode = stoi(token.nextToken());
+    currentFilePath = token.nextToken();
+    found = currentFilePath.rfind("/");
+    filename = currentFilePath.substr(found + 1);
+    relObject = "";
+    relObject = relObject + "  ( <text>" + currentFilePath + "</text--->\n";
+    relObject = relObject + "    ( \"" + filename + "\" \n";
+    relObject = relObject + "      \"" + currentDate + "\" \n";
+    relObject = relObject + "      \"unknown\"\n";
+    relObject = relObject + "      TRUE \n";
+    relObject = relObject + "      <file>" + currentFilePath + "</file--->) \n";
+    relObject = relObject + "  ) \n";
+    relation[currentNode] = relation[currentNode] + relObject; 
+  }
+
+  for (unsigned int i = 0; i < nodes.size(); i++) {
+    relObject = relation[i];
+    relObject = relObject + R"X*X(
+    ))
+    )X*X";
+    relation[i] = relObject;
+  }
+
+  // Now write the file with the relation object for every node,
+  // transfer it to the node and restore (import) it
+  bool futureRes;
+  vector<std::future<bool>> futures;
+
+  for (unsigned int i = 0; i < nodes.size(); i++) {
+    futures.push_back(async(std::launch::async,
+                    &SecondoInterfaceREPLAY::importImgOnNode,
+                    this, i, relation[i], paramlist[2]));
+  }
+
+  for (unsigned int i=0; i<futures.size(); ++i) {
+    try {
+      futureRes = futures[i].get();
+      if (futureRes == false) {
+        cout << "Error while importing file on node : "
+             << nodes[i].hostname << endl;
+      }
+    } catch (const exception& e) {
+      cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what()
+           << " for importing file on node: " << nodes[i].hostname
+           << "with ip:" << nodes[i].ip;
+    }
+  }
+
+  // Remove filelocations from transferFilePath for current instance
+  transferFilePath.clear();
+
+  // cleanup system from temp data (relation description for every node)
+  // no deletion of images
+  string relFileName;
+  for (unsigned int i = 0; i < nodes.size(); i++) {
+    relFileName = "relation_" + stringutils::int2str(i);
+    filename = FileSystem::GetCurrentFolder() + "/" + relFileName;
+
+    if (FileSystem::FileOrFolderExists(filename)) {
+      FileSystem::DeleteFileOrFolder(filename);
+    }
+  }
+
+  return true;
+}
+
+
 void
-SecondoInterfaceREPLAY::Secondo( const string& commandText,
-                             const ListExpr commandLE,
-                             const int commandType,
-                             const bool commandAsText,
-                             const bool resultAsText,
-                             ListExpr& resultList,
-                             int& errorCode,
-                             int& errorPos,
-                             string& errorMessage,
-                             const string& resultFileName /*="SecondoResult"*/,
-                             const bool isApplicationLevelCommand /* = true */ )
+SecondoInterfaceREPLAY::Secondo(const string& commandText,
+                            const ListExpr commandLE,
+                            const int commandType,
+                            const bool commandAsText,
+                            const bool resultAsText,
+                            ListExpr& resultList,
+                            int& errorCode,
+                            int& errorPos,
+                            string& errorMessage,
+                            const string& resultFileName /*="SecondoResult"*/,
+                            const bool isApplicationLevelCommand /* = true */ )
 {
 /*
 ~Secondo~ reads a command and executes it; it possibly returns a result.
@@ -701,8 +2039,14 @@ For an explanation of the error codes refer to SecondoInterface.h
   resultList   = nl->TheEmptyList();
 
   // variables for replay-version
-  bool onlyMasterCommand = false;
+  bool onlyMasterCommand = true;
+  bool isReplayImportCommand = false;
+  int noSplitFiles; 
   bool futureRes;
+  string replayImpCommand;
+  std::vector<string> paramlist;
+  bool paramsOK;
+
   // ---
 
   if ( server == 0 )
@@ -796,7 +2140,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id        );
+                                       errorMessage         );
 
         if (errorCode == ERR_NO_ERROR) {
           nl->WriteToFile( filename.c_str(), resultList );
@@ -854,7 +2198,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id  );
+                                       errorMessage         );
 
         if (errorCode == ERR_NO_ERROR) {
           cout << "writing file " << filename << endl;
@@ -918,7 +2262,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id   );
+                                       errorMessage         );
       }
       else
       {
@@ -977,7 +2321,7 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage  , id       );
+                                       errorMessage         );
       }
       else
       {
@@ -995,6 +2339,102 @@ For an explanation of the error codes refer to SecondoInterface.h
   {
     // Send Secondo command
 
+    // Check for Replay Import Command
+    isReplayImportCommand = checkReplayImport(cmdText, replayImpCommand);
+
+    if (isReplayImportCommand == true) {
+      // At the moment supported formats for Replay Import:
+      // Open Street Map (osm)
+      // CSV
+      // Shape-Files (shp)
+      // DBLP
+      // Directory tree with images
+
+      // Commands:
+      // If import do replication or partitioning on the nodes is specified
+      // in SecondoConfig.ini (ReplayModus)
+      // Can overwritten with every replayImportCommand with an optional 
+      // last parameter
+      // Parameter value: Replication or Partitioning
+
+      // replayOSMImport(filename[,replayImportMode])
+      // replayCSVImport(filename, headersize, comment, separator, uses_quotes, 
+      //                 multiline[,replayImportMode])
+      // replaySHPImport(filename[,replayImportMode])
+      // replayDBLPImport(filename[,replayImportMode])
+      // replayIMGImport(startDirectory, recursiveLevel, 
+      // relationName [,replayImportMode])
+       
+      // Parse params and save it in param list array
+      paramsOK = getReplayImportPrmList(paramlist, cmdText);   
+
+      // Check if user overwriten the default replayImportMode
+
+      if ( (replayImpCommand == "replayOSMImport") ||
+           (replayImpCommand == "replaySHPImport") ||
+           (replayImpCommand == "replayDBLPImport") 
+         ) {
+        // Second parameter for replayOSMImport, 
+        // replaySHPImport, replayDBLPImport      
+
+        if (paramlist.size() == 2) {
+          if ( (paramlist[1] == "Replication") ||
+               (paramlist[1] == "Partitioning") ) {
+
+            replayImportMode = paramlist[1];
+          }
+        }
+      } else if (replayImpCommand == "replayIMGImport") {
+        // Fourth parameter for replayIMGImport
+        if (paramlist.size() == 4) {
+          if ( (paramlist[3] == "Replication") ||
+               (paramlist[3] == "Partitioning") ) {
+            replayImportMode = paramlist[3];
+          }
+         }
+      } else if (replayImpCommand == "replayCSVImport") {
+        // Seventh parameter for replayCSVImport
+        if (paramlist.size() == 7) {
+          if ( (paramlist[6] == "Replication") ||
+               (paramlist[6] == "Partitioning") ) {
+            replayImportMode = paramlist[6];
+          }
+        }
+      }
+
+      if (replayImportMode == "Replication") {
+        // every node gets the number of files of the node
+        // with the most cores, so this node can import
+        // all files at the same time
+        noSplitFiles = getMaxCoresFromNodes();
+      } else {
+        // every node gets the number of files of his cores
+        noSplitFiles = getSumAllCoresFromNodes();
+      }
+
+      if (paramsOK) {
+        // OSM
+        if (replayImpCommand == "replayOSMImport") {
+          executeReplayOsmImport(paramlist, noSplitFiles);
+        // CSV
+        } else if (replayImpCommand == "replayCSVImport") {
+          executeReplayCSVImport(paramlist, noSplitFiles);
+        // SHP
+        } else if (replayImpCommand == "replaySHPImport") {
+          executeReplaySHPImport(paramlist, noSplitFiles);
+        // DBLP
+        } else if (replayImpCommand == "replayDBLPImport") {
+          executeReplayDBLPImport(paramlist, noSplitFiles);
+        // Images
+        } else if (replayImpCommand == "replayIMGImport") {
+          executeReplayIMGImport(paramlist);       
+        }
+      } 
+      // After an replyImport no other command will be executed
+      cout << "replayImport closed!";
+      cmdText = "query \"READY!\"";
+   } 
+
     // check command if execute only on master or on master and note
     // remove prefix s from s-commands
     onlyMasterCommand = checkReplayCommand(cmdText);
@@ -1007,7 +2447,7 @@ For an explanation of the error codes refer to SecondoInterface.h
     // Receive result
     errorCode = csp->ReadResponse( resultList,
                                    errorCode, errorPos,
-                                   errorMessage , id    );
+                                   errorMessage         );
   }
 
   iosock.exceptions(s);
@@ -1041,5 +2481,4 @@ For an explanation of the error codes refer to SecondoInterface.h
     }
   }
 }
-
 
