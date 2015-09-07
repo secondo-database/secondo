@@ -784,7 +784,7 @@ ReadResponse( ListExpr& resultList,
               int& errorCode,
               int& errorPos,
               string& errorMessage,
-              int source )
+              int source  = -1)
 {
   // read next line
   string line="";
