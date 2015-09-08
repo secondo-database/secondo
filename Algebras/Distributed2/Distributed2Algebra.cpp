@@ -78,12 +78,13 @@ boost::mutex createRelMut;
 bool showCommands;
 boost::mutex showCommandMtx;
 
-void showCommand(void* src, const string& host, const int port, 
+void showCommand(SecondoInterfaceCS* src, const string& host, const int port, 
                  const string& cmd, bool start){
     if(showCommands){
        boost::lock_guard<boost::mutex> guard(showCommandMtx);
        string s = start ? "start " : "finish ";
-       cout << src << " = " << host << ":" << port << " : " << s << cmd << endl;
+       cout << src << "_" << src->getPid() << " = " << host << ":" << port 
+            << " : " << s << cmd << endl;
     }
 }
 
@@ -476,6 +477,7 @@ class ConnectionInfo{
           si->Terminate();
           simtx.unlock();
           delete si;
+          si = 0;
           delete mynl;
        }
 
@@ -503,7 +505,10 @@ class ConnectionInfo{
        }
 
         void setId(const int i){
-            si->setId(i);;
+           cout << "si = " << si << endl;
+            if(si){
+               si->setId(i);;
+            }
         }
 
 
@@ -745,6 +750,7 @@ class ConnectionInfo{
                        stringutils::int2str(port), config, 
                        errMsg, true)){
                   delete si;
+                  si = 0;
                   delete mynl;
                   return 0;
              } else {
@@ -1647,7 +1653,9 @@ Adds a new connection to the connection pool.
        mtx.lock();
        int res = connections.size();
        connections.push_back(ci);
-       ci->setId(connections.size());
+       if(ci){
+           ci->setId(connections.size());
+       }
        mtx.unlock();
        return res; 
      }
@@ -2432,6 +2440,7 @@ int connectVMT( Word* args, Word& result, int message,
       msgcenter->Send(nl, nl->TwoElemList( nl->SymbolAtom("simple"),
                                        nl->TextAtom(errMsg)));
      delete si;
+     si = 0;
      delete mynl;
      res->Set(true,false);
    } else {
@@ -4778,6 +4787,7 @@ class Connector{
                            config,errMsg, true)){
            listener->connectionDone(inTuple, inTupleNo, 0);
            delete si;
+           si = 0;
            delete mynl;
         } else {
            ConnectionInfo* ci = new ConnectionInfo(host,port,config,si,mynl);
@@ -8147,27 +8157,14 @@ class FRelCopy{
         // send file to remote server
         ci->sendFile(name,name,true);
         // get target directory
-        string cmd ="query secondoHome()";
         int err;
         string errmsg;
         ListExpr result; 
         double runtime;
-        ci->simpleCommand(cmd,err,errmsg, result,false, runtime);
-        if(err!=0){
-            cerr << "command " << cmd << " failed" << endl;
-            cerr << err << " : " << errmsg << endl;
-            return;
-        }
-        if(    !nl->HasLength(result,2) 
-            || nl->AtomType(nl->Second(result))!=TextType){
-          cerr << "invalid result for secondoHome() query " << endl;
-          cerr << nl->ToString(result);
-          return;
-        }
-        string home = nl->Text2String(nl->Second(result));
+        string home = ci->getSecondoHome();;
         string targetDir = home +"/dfarrays/"+dbname;
         // create target directory
-        cmd = "query createDirectory('"+targetDir+"', TRUE)";
+        string cmd = "query createDirectory('"+targetDir+"', TRUE)";
         ci->simpleCommand(cmd,err,errmsg, result,false, runtime);
         if(err!=0){
             cerr << "command " << cmd << " failed" << endl;
@@ -13020,11 +13017,8 @@ class FileTransferServerStarter{
 
 
     ~FileTransferServerStarter(){
-        cerr << "destruct ~FileTransferServerStarter" << endl;
         cancel();
-        cerr << "wait for join" << endl;
         runner.join();
-        cerr << "join success" << endl;
      }
 
 
@@ -13287,6 +13281,164 @@ Operator showProgressOp(
   Operator::SimpleSelect,
   showProgressTM
 );
+
+
+/*
+3 static filetransfer
+
+The following code can be used for creating a 
+file reciever. This is a server accpting to receive a file 
+from a client. After the server is startet. it works in 
+parallel to running secondo queries. A server can be killed 
+by another query. If so, no new commections are accepted. If the
+last running transfer is done, the server is shut down.
+
+
+
+*/
+  
+  // forward declaration
+
+  /*
+
+class staticFileReceiver;
+
+map<int, staticFileReceiver*>  startFileReceivers;
+
+
+class staticFileReceiver{
+
+
+   public:
+      static staticFileReceiver* getInstance(int port, int noTransfers){
+          if(startFileReceivers.find(port) != startFileReceivers.end()){
+             return 0;
+          }
+          staticFileReceiver* res = new staticFileReceiver(port,int);
+          if(res->running()){
+             startFileReceivers[port] = res;
+             return res;
+          }
+          delete res;
+          return 0;
+      }
+
+      static bool finishInstance(int port) {
+         typename map<int,startFileReceiver*>::iterator it;
+         it = startFileReceivers.find(port);
+         if(it==startFileReceivers.end()){
+            return false;
+         }
+         startFileReceiver* k = it->second;
+         startFileReceivers.erase(it);
+         delete k;
+         return true;
+      }
+
+      ~startFileReceiver(){
+         running = false;
+         listener->cancelAccept();
+         listthread.join();
+         // todo wait for active transfers
+         delete listener;
+         // todo : delete remaining connections 
+      }
+
+
+   private;
+
+      bool running;
+      int maxTransfers;
+      Socket* listener;
+      boost::thread* listthread;
+      vector<socket*> connections;
+      set<transferator*> activeTransfers;
+
+
+      startFileReceiver(int port, int maxTransfers){
+         listener = Socket::CreateGlobal("localhost", 
+                                         stringutils::int2str(port));
+         running = listener->IsOk();
+         listthread = new boost::thread(staticFileReceiver::listen , this);
+      }
+
+
+      void listen(){
+        while(running){
+           Socket* socket = listener-Accept();
+           if(!socket || !socket->IsOk()){
+              delete socket;
+           } else{
+              addTransfer(socket);
+           }
+        }
+      }
+
+      
+      void addTransfer( Socket* socket){
+         connections.push_back(socket);
+         activeTransfers.add(new transferator(socket, 
+                             connections.size()-1,this));
+      }
+
+
+
+     class transferator{
+       public:
+          transferator(Socket* _socket, int _index, 
+                       startFileReceiver* _listener){
+            socket = _socket;
+            index = _index;
+            listener = _listener;
+            runner = new boost::thread(transferator::transfer, this);
+          }
+
+          ~transferator(){
+              runner->join();
+              delete runner;
+          }
+
+
+       private:
+          Socket* socket;
+          int index;
+          startFileReceiver* listener;
+          boost::thread* runner; 
+
+
+          void transfer(){
+              iostream& io = server->GetSocketStream();
+              io << FileTransferKeywords::FileTransferServer() << endl;
+              // todo
+          }
+     };
+
+
+ 
+
+
+
+};
+
+
+
+
+  */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /*
