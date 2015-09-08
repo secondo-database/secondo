@@ -203,6 +203,7 @@ public:
   private:
      int  maxAttempts; // maximum number of attemps when connecting
      int  timeout; // timeout in second per connection attemp 
+     int  server_pid;
 
 };
 

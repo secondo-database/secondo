@@ -60,6 +60,7 @@ SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
     externalNL = _nl!=0;
     maxAttempts = DEFAULT_CONNECT_MAX_ATTEMPTS;
     timeout = DEFAULT_RECONNECT_TIMEOUT;
+    server_pid = -1;
  }
 
 
@@ -81,6 +82,7 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
   string secHost = host;
   string secPort = port;
   string line = "";
+  server_pid = -1;  
   if ( !initialized )
   {
     cout << "Initializing the Secondo system ..." << endl;
@@ -207,6 +209,7 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
 void
 SecondoInterfaceCS::Terminate()
 {
+  server_pid = -1;
   if ( server != 0 )
   {
     iostream& iosock = server->GetSocketStream();
@@ -838,6 +841,10 @@ string SecondoInterfaceCS::getSendFilePath(){
 
 int SecondoInterfaceCS::getPid(){
 
+   if(server_pid > 0){
+     return server_pid;
+   }
+
    iostream& iosock = server->GetSocketStream();
    iosock << "<SERVER_PID>" << endl;
    iosock.flush();
@@ -847,9 +854,11 @@ int SecondoInterfaceCS::getPid(){
    bool correct;
    int res =  stringutils::str2int<int>(line, correct); 
    if(correct){
-     return res;
+     server_pid = res;
+   } else { // error
+     server_pid = -1;
    }
-   return 0;
+   return server_pid;
 }
 
 
