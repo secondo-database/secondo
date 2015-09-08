@@ -116,6 +116,12 @@ string         SmiEnvironment::database;
 string         SmiEnvironment::registrar;
 
 
+#ifdef THREAD_SAFE
+boost::recursive_mutex SmiEnvironment::Implementation::env_impl_mtx;
+boost::recursive_mutex SmiEnvironment::env_mtx;
+#endif
+
+
 bool traceDBHandles = RTFlag::isActive("SMI:traceHandles");
 
 SmiEnvironment::SmiType SmiEnvironment::smiType = SmiEnvironment::SmiBerkeleyDB;
@@ -163,6 +169,9 @@ SmiEnvironment::Implementation::~Implementation()
 DbHandleIndex
 SmiEnvironment::Implementation::AllocateDbHandle()
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   DbHandleIndex idx = instance.impl->firstFreeDbHandle;
 
   if (traceDBHandles)
@@ -247,6 +256,9 @@ SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 void
 SmiEnvironment::Implementation::CloseDbHandles()
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   SmiEnvironment::Implementation& env = (*(instance.impl));
   unsigned int size = env.dbHandles.size();
   int closed = 0;
@@ -299,6 +311,9 @@ to the highest used number plus 1.
 
 */
 bool SmiEnvironment::Implementation::CorrectFileId(){
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   if ( !dbOpened ) {
     SetError( E_SMI_DB_NOTOPEN );
     return false;
@@ -331,6 +346,9 @@ bool SmiEnvironment::Implementation::CorrectFileId(){
 }
 
 bool SmiEnvironment::Implementation::SetFileId(SmiFileId id){
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   if ( !dbOpened ) {
     SetError( E_SMI_DB_NOTOPEN );
     return false;
@@ -401,6 +419,11 @@ bool SmiEnvironment::Implementation::SetFileId(SmiFileId id){
 SmiFileId
 SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
 {
+
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
+
   SmiFileId newFileId = 0;
 
   if ( isTemporary )
@@ -516,6 +539,9 @@ bool
 SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
                                                SmiCatalogEntry& entry )
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   TRACE_ENTER
   if ( !dbOpened )
   {
@@ -613,6 +639,9 @@ bool
 SmiEnvironment::Implementation::InsertIntoCatalog(
                                    const SmiCatalogEntry& entry, DbTxn* tid )
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   if ( !dbOpened )
   {
     SetError( E_SMI_DB_NOTOPEN );
@@ -659,6 +688,9 @@ bool
 SmiEnvironment::
 Implementation::DeleteFromCatalog( const SmiCatalogEntry& entry, DbTxn* tid )
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   if ( !dbOpened )
   {
     SetError( E_SMI_DB_NOTOPEN );
@@ -690,6 +722,9 @@ Implementation::DeleteFromCatalog( const SmiCatalogEntry& entry, DbTxn* tid )
 bool
 SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   if ( !dbOpened )
   {
     SetError( E_SMI_DB_NOTOPEN );
@@ -781,6 +816,9 @@ bool
 SmiEnvironment::Implementation::EraseFiles( bool onCommit,
                                             const bool dontReportError )
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   if ( !dbOpened )
   {
     SetError( E_SMI_DB_NOTOPEN );
@@ -924,6 +962,9 @@ SmiEnvironment::Implementation::LookUpDatabase( const string& dbname )
 bool
 SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   const int MAX = 1024;
   bool  ok = false;
   int  rc = 0;
@@ -951,6 +992,9 @@ SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
 bool
 SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+  #endif
   const int MAX = 1024;
   bool   ok = false;
   int    rc = 0, len;
@@ -1082,6 +1126,9 @@ string SmiEnvironment::GetSecondoHome(){
 int
 SmiEnvironment::CreateTmpEnvironment(ostream& errStream)
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+  #endif
     int rc = 0;
 
     assert(instance.impl);
@@ -1125,6 +1172,9 @@ SmiEnvironment::CreateTmpEnvironment(ostream& errStream)
 int
 SmiEnvironment::DeleteTmpEnvironment()
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+  #endif
  // --- Remove the temporary environment
 
   DbEnv* dbtmp  = instance.impl->tmpEnv;
@@ -1157,6 +1207,9 @@ SmiEnvironment::DeleteTmpEnvironment()
 
 bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
                              ostream& errStream) {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+  #endif
   if (smiStarted) {
     return true;
   }
@@ -1355,6 +1408,9 @@ Transactions, logging and locking are enabled.
 bool
 SmiEnvironment::ShutDown()
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+  #endif
 
   if ( !smiStarted )
   {
@@ -1411,6 +1467,9 @@ SmiEnvironment::ShutDown()
 bool
 SmiEnvironment::CreateDatabase( const string& dbname )
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+  #endif
   bool ok = false;
 
   if ( dbOpened )
@@ -1567,6 +1626,9 @@ SmiEnvironment::CloseDatabase()
 bool
 SmiEnvironment::EraseDatabase( const string& dbname )
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+  #endif
   bool ok = true;
   if ( !dbOpened )
   {
@@ -1757,6 +1819,9 @@ SmiEnvironment::AbortTransaction()
 bool
 SmiEnvironment::InitializeDatabase()
 {
+  #ifdef THREAD_SAFE
+     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+  #endif
   TRACE_ENTER
 
   int rc = 0;

@@ -253,6 +253,10 @@ The class ~SmiKey~ provides the following methods:
 #include "SecondoConfig.h"
 #include "CacheInfo.h"
 
+#ifdef THREAD_SAFE
+#include <boost/thread.hpp>
+#endif
+
 
 using namespace std;
 
@@ -1137,6 +1141,10 @@ Translate an SMI error code into a message!
 
  
  private:
+
+  #ifdef THREAD_SAFE
+  static boost::recursive_mutex env_mtx;
+  #endif
 
   SmiEnvironment();
 /*

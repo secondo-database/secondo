@@ -143,6 +143,11 @@ All other implementation classes provide only data members.
 
 #include <db_cxx.h>
 
+#ifdef THREAD_SAFE
+#include <boost/thread.hpp>
+#endif
+
+
 const u_int32_t CACHE_SIZE_STD = 128;
 /*
 Default cache size is 128 kB
@@ -444,6 +449,11 @@ A "catastrophic recovery" is not available in  this case.
 
   static bool LookUpCatalog( Dbt& key,
                              SmiCatalogEntry& entry );
+
+  #ifdef THREAD_SAFE
+  static  boost::recursive_mutex env_impl_mtx;
+  #endif
+
 
 
   string    bdbHome;         // Home directory
