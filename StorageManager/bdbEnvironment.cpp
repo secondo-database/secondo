@@ -1086,6 +1086,11 @@ SmiEnvironment::CreateTmpEnvironment(ostream& errStream)
 
     assert(instance.impl);
 
+    if(instance.impl->tmpEnv){
+       // temporary environment already exists
+       return 0;
+    }
+
     instance.impl->tmpEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
     DbEnv* dbtmp = instance.impl->tmpEnv;
 
@@ -1098,6 +1103,8 @@ SmiEnvironment::CreateTmpEnvironment(ostream& errStream)
     FileSystem::SetCurrentFolder( instance.impl->bdbHome );
     ostringstream tmpHome;
     tmpHome << "0tmp" << WinUnix::getpid();
+
+    FileSystem::EraseFolder(tmpHome.str());
     FileSystem::CreateFolder( tmpHome.str() );
 
     instance.impl->tmpHome = tmpHome.str();
