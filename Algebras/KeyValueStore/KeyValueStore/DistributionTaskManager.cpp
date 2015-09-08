@@ -276,26 +276,21 @@ void DistributionTaskManager::restructure() {
       // testdist3, 'command'];
       // Questions:    -How do we know RELATIONNAME, .GeoData (Distribution
       // Attribute), LocalDistributionName, ClientCommand
-      //				=> We could make the 2 unknown a
-      // constant
-      //				=> Does Distribution TaskManager need to
-      // store this information by RelationName? Can a relation only be involved
-      // in ONE Distribution Task?
-      //				AT SOME POINT YOU NEED TO MAKE
-      // RESTRICTIONS
+      //        => We could make the 2 unknown a constant
+      //        => Does Distribution TaskManager need to store this information
+      //        by RelationName? Can a relation only be involved in ONE
+      //        Distribution Task?
+      //        AT SOME POINT YOU NEED TO MAKE RESTRICTIONS
       //
-      //				=> We would need to store how to
-      // Retrieve the serverId either by saving the string command in relation
-      // to
-      // the distribution name OR
+      //        => We would need to store how to Retrieve the serverId either by
+      //        saving the string command in relation to the distribution name
+      //        OR
 
       // New Option?: query RELATIONNAME feed kvsDistribute[distribution,
       // region, 'command'] leaves out extension part BUT DOESNT ABSTRACT FROM
       // DISTRIBUTION TYPE !!!
-      //				-We would need the RegionName to reuse
-      // it
-      //				-It's not clear yet wether this even
-      // works?
+      //        -We would need the RegionName to reuse it
+      //        -It's not clear yet wether this even works?
 
       ROUT << "Updating Serverlists on involved Servers" << endl;
 

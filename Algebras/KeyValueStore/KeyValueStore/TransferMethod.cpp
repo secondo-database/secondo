@@ -232,6 +232,11 @@ bool TransferMethodTCP::retry() {
   return endStream();  // && import();
 }
 
+// expecting:
+// streamType
+// sshAddress : USER@IP
+// destinationBasePath : scp transfer folder on remote host
+
 TransferMethodSCP::TransferMethodSCP(Connection* connection, string streamType)
     : TransferMethod(connection),
       streamType(streamType),
