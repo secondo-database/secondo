@@ -85,6 +85,9 @@ RTFlags += SI:NoQueryTimers
 # Suppress the output of the command in NL format before execution
 RTFlags += SI:NoCommandEcho
 
+# Repeats the command and its starting time before execution
+RTFlags += SI:ShowCommandTime
+
 # Various statistical information about tuples and relations.
 #RTFlags += SI:RelStatistics
 

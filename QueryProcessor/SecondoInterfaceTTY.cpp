@@ -735,6 +735,15 @@ Command\_<name>.
   //assert( SmiEnvironment::GetNumOfErrors() == 0 );
   SHOW(activeTransaction)
 
+
+
+  if(RTFlag::isActive("SI:ShowCommandTime")) {
+     cout << "command " << endl <<"'"
+          << commandText << "'" << endl << "started at: " 
+          << StopWatch::currentTime() << endl;
+  } 
+
+
   // reset errors
   SmiEnvironment::ResetSmiErrors();
   cmsg.resetErrors();
