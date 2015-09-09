@@ -9,11 +9,17 @@ LAT=$(BD)/Tools/ListsAndTables
 Interface1=$(INCL)/SecondoInterface.h $(INCL)/SecondoInterfaceTTY.h $(INCL)/SecondoInterfaceCS.h $(INCL)/SecondoInterfaceREPLAY.h
 Interface2=$(INCL)/Application.h
 
+
+
 HEADERS1=$$($(CPPC) -MM -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"  )
 DEPS1=$(HEADERS1)
 
+ifeq ($(platform),win32)
+USEWIN:=-D SECONDO_WIN32
+endif
 
-HEADERS2=$$($(CPPC) -MM -D CTABLE_PERSISTENT -D NL_PERSISTENT -D SECONDO_WIN32 -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"  )
+
+HEADERS2 := $$($(CPPC) -MM -D CTABLE_PERSISTENT -D NL_PERSISTENT $(USEWIN)  -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"  )
 DEPS2=$(HEADERS2)
 
 
