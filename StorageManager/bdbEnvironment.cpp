@@ -256,9 +256,6 @@ SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 void
 SmiEnvironment::Implementation::CloseDbHandles()
 {
-  #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
-  #endif
   SmiEnvironment::Implementation& env = (*(instance.impl));
   unsigned int size = env.dbHandles.size();
   int closed = 0;
