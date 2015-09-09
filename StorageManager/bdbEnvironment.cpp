@@ -1555,6 +1555,7 @@ SmiEnvironment::OpenDatabase( const string& dbname )
     ok = E_SMI_DB_INVALIDNAME;
   }
 
+  SmiEnvironment::Implementation::CorrectFileId();
   TRACE_LEAVE
   return (ok);
 }
