@@ -384,8 +384,9 @@ bool SmiEnvironment::Implementation::SetFileId(SmiFileId id){
         }
         return false;
       } else {
-        cout << "stored value is " << sid << endl;
-        cout << "change to       " << id << endl;
+        //cout << "stored value is " << sid << endl;
+        //cout << "change to       " << id << endl;
+        ;
       }
       sid = id; 
       rc = dbseq->put( tid, &key, &data, 0 );
