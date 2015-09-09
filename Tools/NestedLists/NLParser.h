@@ -36,7 +36,7 @@ class NLParser
   list(0), 
   isp( ip ), 
   osp( op ), 
-  nl( nestedList )
+  yaccnl( nestedList )
   {}
 
   virtual ~NLParser() {};
@@ -50,7 +50,7 @@ class NLParser
   std::istream*  isp;  // istream being parsed
   std::ostream*  osp;  // ostream being output to
   
-  NestedList*    nl;  // reference to the global NestedList instance
+  NestedList*    yaccnl;  // reference to the global NestedList instance
 
 };
 

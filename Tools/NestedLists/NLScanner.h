@@ -92,7 +92,7 @@ class NLScanner: public yyFlexLexer
   // no assignment either
   NLScanner &operator=( NLScanner const &other );   
 
-  NestedList* nl;
+  NestedList* lexnl;
 };
 
 #endif

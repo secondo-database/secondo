@@ -44,7 +44,6 @@ it calls the external function ~yyparse~ provided by bison.
 
 using namespace std;
 
-extern NestedList* nl;
 extern CMsg cmsg;
 
 
@@ -85,9 +84,11 @@ NLParser::parse()
      boost::lock_guard<boost::recursive_mutex> guard(NLParserMtx);
   #endif
 
-  if(!nlScanner){ 
-     nlScanner = new NLScanner( nl, isp, osp );
-  }
+  if(nlScanner){
+    nlScanner->DeleteAllBuffers(); 
+    delete nlScanner;
+  } 
+  nlScanner = new NLScanner( yaccnl, isp, osp );
   if ( RTFlag::isActive("NLParser:Debug") ) {
     yydebug = 1;
   } else {
@@ -103,8 +104,8 @@ NLParser::parse()
   scanNL_lines = 1;
   scanNL_cols = 0;
   scanNL_str = "";
-  parseNL_nl = nl;
-  parseNL_list = nl->Empty();  
+  parseNL_nl = yaccnl;
+  parseNL_list = yaccnl->Empty();  
   int rc = yyparse();
   list = parseNL_list;
   nlScanner->DeleteAllBuffers(); 

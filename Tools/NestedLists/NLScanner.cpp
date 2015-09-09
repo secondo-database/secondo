@@ -32,5 +32,5 @@ NLScanner::NLScanner( NestedList* nestedList,
                       std::ostream* yyout )
 {
   switch_streams( yyin, yyout );
-  nl = nestedList;
+  lexnl = nestedList;
 }

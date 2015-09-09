@@ -116,23 +116,23 @@ file		"<file>"[^<]+"</file--->"
 <INITIAL>[ \a\b\f\t\v]+   { UPDATE_COL }
 
 <INITIAL>-?[0-9]+       { UPDATE_COL
-                        yylval = nl->IntAtom( atoi( yytext ) );
+                        yylval = lexnl->IntAtom( atoi( yytext ) );
                         return (ZZINTEGER);
                         }
 
 <INITIAL>{number}       { UPDATE_COL
                         f = atof( yytext );
-                        yylval = nl->RealAtom( f );
+                        yylval = lexnl->RealAtom( f );
 			return (ZZREAL);
 		        }
 
 <INITIAL>"TRUE"         { UPDATE_COL
-			yylval = nl->BoolAtom( true );
+			yylval = lexnl->BoolAtom( true );
 			return (ZZBOOLEAN);
 		        }
 
 <INITIAL>"FALSE"        { UPDATE_COL
-			yylval = nl->BoolAtom( false );
+			yylval = lexnl->BoolAtom( false );
 			return (ZZBOOLEAN);
 		        }
 
@@ -177,8 +177,8 @@ file		"<file>"[^<]+"</file--->"
 
 <TEXT>"</text--->"      { UPDATE_COL
                         BEGIN(INITIAL);
-                        ListExpr newText = nl->TextAtom();
-                        nl->AppendText( newText, text->str() );
+                        ListExpr newText = lexnl->TextAtom();
+                        lexnl->AppendText( newText, text->str() );
                         delete text;
                         /* pass text node and token to the parser */
                         yylval = newText;
@@ -210,8 +210,8 @@ file		"<file>"[^<]+"</file--->"
 
 <TEXTSIMPLE>"'"      { UPDATE_COL
                         BEGIN(INITIAL);
-                        ListExpr newText = nl->TextAtom();
-                        nl->AppendText( newText, text->str() );
+                        ListExpr newText = lexnl->TextAtom();
+                        lexnl->AppendText( newText, text->str() );
                         delete text;
                         /* pass text node and token to the parser */
                         yylval = newText;
@@ -230,7 +230,7 @@ file		"<file>"[^<]+"</file--->"
                           cmsg.send();
 			}
       s = s.substr(1,yyleng-2);
-			yylval = nl->StringAtom( s );
+			yylval = lexnl->StringAtom( s );
 			return (ZZSTRING);
 		        }
 
@@ -242,13 +242,13 @@ file		"<file>"[^<]+"</file--->"
                        cmsg.send();
                        return(ZZERROR);
 		     }
-                     yylval = nl->SymbolAtom( yytext );
+                     yylval = lexnl->SymbolAtom( yytext );
                      return (ZZSYMBOL);
                    }
 
 <INITIAL>{file}  { /* files are expanded to base64 encoded text atoms */
                  UPDATE_COL
-                 ListExpr newText = nl->TextAtom();
+                 ListExpr newText = lexnl->TextAtom();
 
                  string fileNameStr(yytext);
                  static const int textStartLen = string("<file>").size();
@@ -275,7 +275,7 @@ file		"<file>"[^<]+"</file--->"
                    delete encoder;
                  }
 
-		 nl->AppendText(newText,textStream.str());
+		 lexnl->AppendText(newText,textStream.str());
 
 		 /* pass text node and token to the parser */
 		 yylval = newText;
