@@ -710,7 +710,7 @@ Word & local, Supplier s){
   if (!mp->IsDefined())
     return 0;
   res->StartBulkLoad();
-  int le = mp->Length();
+  int le = mp->GetNoComponents();
   double angle1=(std::rand()%4096)*M_PI/1024-2*M_PI;
   for(int i=0; i<le; i++){
     UPoint utmp1(0);
@@ -820,7 +820,7 @@ ListExpr makeiregionTM (ListExpr args){
   if(!Instant::checkType(nl->Second(args))){
     return listutils::typeError("instant expected");
   }
-  return listutils::basicSymbol<FixedMRegion>();
+  return listutils::basicSymbol<IRegion>();
 }
 
 /*
