@@ -923,10 +923,10 @@ The simple constructor.
 
 */
 
-  Intime(const int i):instant((int64_t)i),value(false){}
+  Intime(const int i):Attribute(false),instant((int64_t)i),value(false){}
 
   Intime( const Instant& _instant, const Alpha& alpha ):
-    instant( _instant ), value(alpha)
+    Attribute(true), instant( _instant ), value(alpha)
   {
     //value.CopyFrom( &alpha );
     SetDefined( instant.IsDefined());
@@ -937,6 +937,7 @@ The first constructor.
 */
 
   Intime( const Intime<Alpha>& intime ):
+    Attribute(intime),
     instant( intime.instant ), value(intime.value)
   {
     if( intime.IsDefined() ){
