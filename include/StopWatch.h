@@ -84,6 +84,8 @@ class StopWatch {
 
     const string minutesAndSeconds(const double seconds);
 
+    static string currentTime();
+
   private:
 
 #ifdef SECONDO_WIN32

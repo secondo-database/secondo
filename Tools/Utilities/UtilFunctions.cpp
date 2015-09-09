@@ -101,7 +101,13 @@ StopWatch& StopWatch::operator=(const StopWatch& src){
 StopWatch::~StopWatch(){
 }
 
-
+string StopWatch::currentTime(){
+  time_t t;
+  struct tm* timeinfo;
+  time(&t);
+  timeinfo = localtime(&t);
+  return asctime(timeinfo);
+}
 
 
 
