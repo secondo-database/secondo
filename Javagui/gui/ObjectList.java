@@ -1019,6 +1019,23 @@ public SecondoObject getSelectedObject() {
 		return (SecondoObject) Objects.get(index);
 }
 
+ /** returns the currently selected objects **/
+public SecondoObject[] getSelectedObjects() {
+	int[] indices = Content.getSelectedIndices();
+	if (indices.length == 0) {
+		Reporter.showWarning("No item selected!");
+		return new SecondoObject[0];
+	} else {
+		SecondoObject[] selectedObjects = new SecondoObject[indices.length];
+		for (int i = 0; i < indices.length; i++) {
+			selectedObjects[i] = (SecondoObject) Objects.get(indices[i]);
+		}
+		return selectedObjects;
+	}
+}
+
+
+
 /** returns all secondo objects **/
 public List<SecondoObject> getAllObjects() {
 	List<SecondoObject> result = new ArrayList<SecondoObject>();
