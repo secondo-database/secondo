@@ -737,31 +737,60 @@ bool ReceiveFile( const string& localFileName )
 
 
 bool 
-ReadList(const string& endTag, ListExpr& resultList, int& errorCode) {
+ReadList(const string& endTag, ListExpr& resultList, 
+         int& errorCode, bool debug, void* caller, 
+         int callerID) {
 
+  if(debug){
+    cout << callerID  << "::" << caller << ":: start ReadList" << endl;
+  }
   string line = "";
   string result = "";
   bool success = false;
   if ( !RTFlag::isActive("Server:BinaryTransfer") ) { 
+    if(debug){
+      cout << callerID  << "::" << caller << ":: textual list transfer" 
+          << endl;
+    }
     // textual data transfer
-    do
-    {
+    do {
       getline( iosock, line );
       if ( line != endTag )
       {
         result += line + "\n";
       }
-    }
-    while (line != endTag && !iosock.fail());      
+    } while (line != endTag && !iosock.fail()); 
+    if(debug){
+       cout << callerID  << "::" << caller 
+            << ":: list read as string, parse it" << endl;
+    }     
     nl->ReadFromString( result, resultList );
+    if(debug){
+        cout << callerID  << "::" << caller << ":: list parsing finsihed"
+             << endl;
+    }
     success = true;
     
   } else { // binary data transfer
-  
+    if(debug){
+      cout << callerID  << "::" << caller << ":: binary  list transfer" 
+          << endl;
+    }
     nl->ReadBinaryFrom(iosock, resultList);
-    ofstream outFile("TTYCS.bnl");
-    nl->WriteBinaryTo(resultList, outFile);
+    if(debug){
+      cout << callerID  << "::" << caller << ":: list transfer finished" 
+          << endl;
+    }
+    
+    //ofstream outFile("TTYCS.bnl");
+    //nl->WriteBinaryTo(resultList, outFile);
+    
     getline( iosock, line );
+    if(debug){
+      cout << callerID  << "::" << caller << ":: end tag read" 
+          << endl;
+    }
+
     
     if (line != endTag ) 
     {
@@ -775,6 +804,10 @@ ReadList(const string& endTag, ListExpr& resultList, int& errorCode) {
       success = true;
     }  
   }
+  if(debug){
+    cout << callerID  << "::" << caller << ":: ReadList finsihed with "  
+         << success << endl;
+  }
   return success;  
 } 
 
@@ -784,8 +817,16 @@ ReadResponse( ListExpr& resultList,
               int& errorCode,
               int& errorPos,
               string& errorMessage,
-              int source  = -1)
+              int source  = -1,
+              bool debug = false,
+              void* caller = 0,
+              int callerID = 1)
 {
+
+  if(debug){
+     cout  << callerID  << "::" << caller << ": called ReadResponse" << endl;
+  }
+
   // read next line
   string line="";
   try{
@@ -796,6 +837,9 @@ ReadResponse( ListExpr& resultList,
     iosock.clear();
     return errorCode;
   }
+  if(debug){
+     cout  << callerID  << "::" << caller << ":: Read first line" << endl;
+  }
   
   bool badbit = iosock.bad();
   bool success = false;
@@ -804,46 +848,96 @@ ReadResponse( ListExpr& resultList,
   ListExpr messageList = nl->Empty();
   while ( !badbit && line == startMessage ) 
   {
-    success = ReadList(endMessage, messageList, errorCode);
+    if(debug){
+       cout << callerID  << "::" << caller << ": receive message" << endl;
+    }
+    success = ReadList(endMessage, messageList, errorCode, debug, 
+                       caller, callerID);
+    if(debug){
+       cout << callerID  << "::" << caller << ": message received " 
+            << (success?"successful":"with problems") << endl;
+    }
     if (success) {
+      if(debug){
+         cout << callerID  << "::" << caller 
+              << ": Send message to message center" << endl;
+      }
       msg->Send(nl,messageList, source);
       getline( iosock, line );
       badbit = iosock.bad();
+      if(debug){
+         cout << callerID  << "::" << caller 
+              << ": sending message finished" << endl;
+      }  
     }  
   } 
 
   // network error 
   if (badbit) {
     errorCode = ERR_IN_SECONDO_PROTOCOL;
+    if(debug){
+       cout << callerID  << "::" << caller << ": network error" << endl;
+    }
     return errorCode;
   }   
     
   
   if ( line == startResponse )
   {
-    success = ReadList(endResponse, resultList, errorCode);
+    if(debug){
+       cout << callerID  << "::" << caller << ": read response list" << endl;
+    }
+    success = ReadList(endResponse, resultList, errorCode, 
+                       debug, caller, callerID);
+    if(debug){
+        cout << callerID  << "::" << caller << ": resultlist received " 
+             << (success?"ok":"problem") << endl;
+    }
     
     if (success) 
     {
      errorCode = nl->IntValue( nl->First( resultList ) );
      errorPos  = nl->IntValue( nl->Second( resultList ) );
+     if(debug){
+       cout << callerID  << "::" << caller << ": extract error message" 
+            << endl;
+     }
      TextScan ts = nl->CreateTextScan( nl->Third( resultList ) );
      nl->GetText( ts, nl->TextLength( nl->Third( resultList ) ), 
                   errorMessage );
-
      nl->DestroyTextScan( ts );
+     if(debug){
+        cout << callerID  << "::" << caller 
+             << ": error extracted, extract result" << endl;
+     }
      resultList = nl->Fourth( resultList );
+     if(debug){
+        cout << callerID  << "::" << caller << ": result extracted" << endl;
+     }
     }
   }
   else if ( line == startError )
   {
+    if(debug){
+       cout << callerID  << "::" << caller << ": receive error" << endl;
+    }
     getline( iosock, errorMessage );
     getline( iosock, line ); // eat up end tag
     errorCode = ERR_IN_SECONDO_PROTOCOL;
+    if(debug){
+       cout << callerID  << "::" << caller << ": protocol error" << endl;
+    }
   }
   else
   {
+    if(debug){
+       cout << callerID  << "::" << caller << ": protocol error" << endl;
+    }
     errorCode = ERR_IN_SECONDO_PROTOCOL;
+  }
+  if(debug){
+     cout << callerID  << "::" << caller << ": ReadResponse finished " 
+          << endl;
   }
   return errorCode;
 }

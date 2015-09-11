@@ -83,7 +83,7 @@ void showCommand(SecondoInterfaceCS* src, const string& host, const int port,
     if(showCommands){
        boost::lock_guard<boost::mutex> guard(showCommandMtx);
        string s = start ? "start " : "finish ";
-       cout << src << "_" << src->getPid() << " = " << host << ":" << port 
+       cout << src->getPid() << "::" << src << " = " << host << ":" << port 
             << " : " << s << cmd << endl;
     }
 }

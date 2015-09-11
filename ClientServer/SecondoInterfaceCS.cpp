@@ -268,8 +268,10 @@ The command is one of the set of SECONDO commands.
 For an explanation of the error codes refer to SecondoInterface.h
 
 */
+ int pid = getPid();
+
  if (debugSecondoMethod){
-    cout << getPid() << "::" << this << "::called Secondo with command "
+    cout << pid << "::" << this << "::called Secondo with command "
          << commandText << endl;
  }
 
@@ -282,13 +284,13 @@ For an explanation of the error codes refer to SecondoInterface.h
   resultList   = nl->TheEmptyList();
 
   if (debugSecondoMethod){
-    cout << getPid() << "::" << this << ":: start" << endl;
+    cout << pid << "::" << this << ":: start" << endl;
   }
 
   if ( server == 0 )
   {
     if (debugSecondoMethod){
-      cout << getPid() << "::" << this << ":: server does not exist" << endl;
+      cout << pid << "::" << this << ":: server does not exist" << endl;
     }
     errorCode = ERR_IN_SECONDO_PROTOCOL;
   }
@@ -299,24 +301,24 @@ For an explanation of the error codes refer to SecondoInterface.h
       case 0:  // list form
       {
         if (debugSecondoMethod){
-             cout << getPid() << "::" << this << ":: commandType = 0" << endl;
+             cout << pid << "::" << this << ":: commandType = 0" << endl;
         }
         if ( commandAsText )
         {
           if (debugSecondoMethod){
-            cout << getPid() << "::" << this << ":: commandAsText" << endl;
+            cout << pid << "::" << this << ":: commandAsText" << endl;
           }
           cmdText = commandText;
         }
         else
         {
           if (debugSecondoMethod){
-             cout << getPid() << "::" << this << ":: write List to String " 
+             cout << pid << "::" << this << ":: write List to String " 
                   << endl;
           }
           bool ok = nl->WriteToString( cmdText, commandLE );
           if (debugSecondoMethod){
-             cout << getPid() << "::" << this << ":: write List " 
+             cout << pid << "::" << this << ":: write List " 
                   << (ok?" successful":"failed") << endl;
           }
           if(!ok) {
@@ -330,7 +332,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       case 1:  // text form
       {
         if (debugSecondoMethod){
-             cout << getPid() << "::" << this << ":: commandType = 1" << endl;
+             cout << pid << "::" << this << ":: commandType = 1" << endl;
         }
         cmdText = commandText;
         break;
@@ -338,7 +340,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       default:
       {
         if (debugSecondoMethod){
-             cout << getPid() << "::" << this << ":: commandType is unknown"
+             cout << pid << "::" << this << ":: commandType is unknown"
                   << endl;
         }
        // Command type not implemented
@@ -368,7 +370,7 @@ For an explanation of the error codes refer to SecondoInterface.h
   string::size_type posTo       = cmdText.find( "to " );
   string::size_type posFrom     = cmdText.find( "from " );
   if (debugSecondoMethod){
-      cout << getPid() << "::" << this << ":: try to find out command" << endl;
+      cout << pid << "::" << this << ":: try to find out command" << endl;
   }
 
   if ( posDatabase != string::npos &&
@@ -382,17 +384,17 @@ For an explanation of the error codes refer to SecondoInterface.h
     }
    
     if (debugSecondoMethod){
-      cout << getPid() << "::" << this << ":: read list from string " << endl;
+      cout << pid << "::" << this << ":: read list from string " << endl;
     }
     bool ok = nl->ReadFromString( cmdText, list );
     if (debugSecondoMethod){
-      cout << getPid() << "::" << this << ":: read list "
+      cout << pid << "::" << this << ":: read list "
                        << (ok?"successful":"failed") << endl;
     }
 
     if(ok) {
       if (debugSecondoMethod){
-         cout << getPid() << "::" << this << ":: check for save database "
+         cout << pid << "::" << this << ":: check for save database "
                          << endl;
       }
       if ( nl->ListLength( list ) == 4 &&
@@ -406,7 +408,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       {
 
         if (debugSecondoMethod){
-           cout << getPid() << "::" << this << ":: save database recognized "
+           cout << pid << "::" << this << ":: save database recognized "
                          << endl;
         }
         
@@ -420,7 +422,7 @@ For an explanation of the error codes refer to SecondoInterface.h
         }
         
         if (debugSecondoMethod){
-           cout << getPid() << "::" << this << ":: start communication "
+           cout << pid << "::" << this << ":: start communication "
                          << endl;
         }
         // request for save database
@@ -428,16 +430,17 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id        );
+                                       errorMessage , id,
+                                       debugSecondoMethod, this, pid );
 
         if (debugSecondoMethod){
-           cout << getPid() << "::" << this << ":: communication finished"
+           cout << pid << "::" << this << ":: communication finished"
                          << endl;
         }
 
         if (errorCode == ERR_NO_ERROR) {
           if (debugSecondoMethod){
-            cout << getPid() << "::" << this 
+            cout << pid << "::" << this 
                              << ":: db file received, save to disk"
                              << endl;
           }
@@ -445,7 +448,7 @@ For an explanation of the error codes refer to SecondoInterface.h
           nl->WriteToFile( filename.c_str(), resultList );
           resultList=nl->TheEmptyList();
           if (debugSecondoMethod){
-            cout << getPid() << "::" << this << ":: db written to disk"
+            cout << pid << "::" << this << ":: db written to disk"
                          << endl;
           }
         }
@@ -453,7 +456,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       else
       {
         if (debugSecondoMethod){
-           cout << getPid() << "::" << this << ":: not a valid save database "
+           cout << pid << "::" << this << ":: not a valid save database "
                          << endl;
         }
         // Not a valid 'save database' command
@@ -463,7 +466,7 @@ For an explanation of the error codes refer to SecondoInterface.h
     else
     {
         if (debugSecondoMethod){
-           cout << getPid() << "::" << this << ":: could not read list "
+           cout << pid << "::" << this << ":: could not read list "
                          << endl;
         }
       // Syntax error in list
@@ -476,7 +479,7 @@ For an explanation of the error codes refer to SecondoInterface.h
             posSave < posTo )
   {
     if (debugSecondoMethod){
-        cout << getPid() << "::" << this << ":: may be a save object command "
+        cout << pid << "::" << this << ":: may be a save object command "
                          << endl;
     }
 
@@ -486,13 +489,13 @@ For an explanation of the error codes refer to SecondoInterface.h
       cmdText = string( "(" ) + commandText + ")";
     }
     if (debugSecondoMethod){
-        cout << getPid() << "::" << this << ":: parse list "
+        cout << pid<< "::" << this << ":: parse list "
                          << endl;
     }
 
     bool ok =  nl->ReadFromString( cmdText, list );
     if (debugSecondoMethod){
-        cout << getPid() << "::" << this << "::  list parsing "
+        cout << pid << "::" << this << "::  list parsing "
                          << (ok?"successful":"failed")
                          << endl;
     }
@@ -510,7 +513,7 @@ For an explanation of the error codes refer to SecondoInterface.h
            (nl->AtomType( nl->Fourth( list )) == TextType)))
       {
         if (debugSecondoMethod){
-            cout << getPid() << "::" << this << "::  valid save object "
+            cout << pid << "::" << this << "::  valid save object "
                              << endl;
         }
         switch(nl->AtomType(nl->Fourth(list))){
@@ -522,14 +525,14 @@ For an explanation of the error codes refer to SecondoInterface.h
                            break;
         }
         if (debugSecondoMethod){
-            cout << getPid() << "::" << this << "::  file name extracted "
+            cout << pid << "::" << this << "::  file name extracted "
                              << endl;
         }
 
         objName = nl->SymbolValue( nl->Second( list ) );
 
         if (debugSecondoMethod){
-            cout << getPid() << "::" << this << "::  start cummunication  "
+            cout << pid << "::" << this << "::  start cummunication  "
                              << endl;
         }
         
@@ -541,21 +544,22 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id  );
+                                       errorMessage , id, 
+                                       debugSecondoMethod, this, pid  );
         if (debugSecondoMethod){
-            cout << getPid() << "::" << this << ":: cummunication finished "
+            cout << pid << "::" << this << ":: cummunication finished "
                              << endl;
         }
 
         if (errorCode == ERR_NO_ERROR) {
           if (debugSecondoMethod){
-            cout << getPid() << "::" << this << ":: write file "  
+            cout << pid << "::" << this << ":: write file "  
                              << filename << endl;
           }
           nl->WriteToFile( filename.c_str(), resultList );
           resultList=nl->TheEmptyList();
           if (debugSecondoMethod){
-            cout << getPid() << "::" << this << ":: file written "  
+            cout << pid << "::" << this << ":: file written "  
                              << endl;
           }
         }
@@ -563,7 +567,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       else
       {
         if (debugSecondoMethod){
-          cout << getPid() << "::" << this << ":: invalid save object "  
+          cout << pid << "::" << this << ":: invalid save object "  
                            << endl;
          }
         // Not a valid 'save database' command
@@ -573,7 +577,7 @@ For an explanation of the error codes refer to SecondoInterface.h
     else
     {
      if (debugSecondoMethod){
-        cout << getPid() << "::" << this << ":: error in parsing list "  
+        cout << pid << "::" << this << ":: error in parsing list "  
                          << endl;
       }
       // Syntax error in list
@@ -587,7 +591,7 @@ For an explanation of the error codes refer to SecondoInterface.h
             posRestore < posFrom )
   {
     if (debugSecondoMethod){
-      cout << getPid() << "::" << this << ":: may be restore db cmd "  
+      cout << pid << "::" << this << ":: may be restore db cmd "  
                        << endl;
     }
     if ( commandType == 1 )
@@ -595,12 +599,12 @@ For an explanation of the error codes refer to SecondoInterface.h
       cmdText = string( "(" ) + commandText + ")";
     }
     if (debugSecondoMethod){
-      cout << getPid() << "::" << this << ":: parse list "  
+      cout << pid << "::" << this << ":: parse list "  
                        << endl;
     }
     bool ok = nl->ReadFromString( cmdText, list ) ;
     if (debugSecondoMethod){
-      cout << getPid() << "::" << this << ":: list parsing "  
+      cout <<  pid << "::" << this << ":: list parsing "  
                        << (ok?"successful":"failed") << endl;
     }
     if ( ok )
@@ -616,7 +620,7 @@ For an explanation of the error codes refer to SecondoInterface.h
            (nl->AtomType( nl->Fourth( list )) == TextType))   )
       {
         if (debugSecondoMethod){
-           cout << getPid() << "::" << this << ":: valid restore object cmd"  
+           cout << pid << "::" << this << ":: valid restore object cmd"  
                             << endl;
         }
         // send object symbol
@@ -631,9 +635,9 @@ For an explanation of the error codes refer to SecondoInterface.h
            default : assert(false);
         }
         if (debugSecondoMethod){
-           cout << getPid() << "::" << this << ":: file name extracted"  
+           cout << pid << "::" << this << ":: file name extracted"  
                             << endl;
-           cout << getPid() << "::" << this << ":: start communication"  
+           cout << pid << "::" << this << ":: start communication"  
                             << endl;
         }
         iosock << csp->startObjectRestore << endl
@@ -647,16 +651,17 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id        );
+                                       errorMessage , id, 
+                                       debugSecondoMethod, this, pid );
         if (debugSecondoMethod){
-           cout << getPid() << "::" << this << ":: end communication"  
+           cout << pid << "::" << this << ":: end communication"  
                             << endl;
         }
       }
       else
       {
         if (debugSecondoMethod){
-           cout << getPid() << "::" << this 
+           cout << pid << "::" << this 
                 << ":: invalid restore object cmd "  
                 << endl;
         }
@@ -667,7 +672,7 @@ For an explanation of the error codes refer to SecondoInterface.h
     else
     {
       if (debugSecondoMethod){
-         cout << getPid() << "::" << this << ":: error in parsing list "  
+         cout << pid << "::" << this << ":: error in parsing list "  
                           << endl;
       }
       // Syntax error in list
@@ -681,7 +686,7 @@ For an explanation of the error codes refer to SecondoInterface.h
             posRestore < posDatabase && posDatabase < posFrom )
   {
     if (debugSecondoMethod){
-       cout << getPid() << "::" << this << ":: may be restore db "  
+       cout << pid << "::" << this << ":: may be restore db "  
                         << endl;
     }
 
@@ -691,12 +696,12 @@ For an explanation of the error codes refer to SecondoInterface.h
       cmdText = string( "(" ) + commandText + ")";
     }
     if (debugSecondoMethod){
-       cout << getPid() << "::" << this << ":: parse list "  
+       cout << pid << "::" << this << ":: parse list "  
                         << endl;
     }
     bool ok = nl->ReadFromString( cmdText, list );
     if (debugSecondoMethod){
-       cout << getPid() << "::" << this << ":: parsing list "  
+       cout << pid << "::" << this << ":: parsing list "  
                         << (ok?"successful":"failed")
                         << endl;
     }
@@ -716,7 +721,7 @@ For an explanation of the error codes refer to SecondoInterface.h
            (nl->AtomType( nl->Fifth( list )) == TextType))   )
       {
          if (debugSecondoMethod){
-            cout << getPid() << "::" << this << ":: valid restore db "  
+            cout << pid << "::" << this << ":: valid restore db "  
                              << endl;
          }
          filename =  "";
@@ -730,9 +735,9 @@ For an explanation of the error codes refer to SecondoInterface.h
             default : assert(false);
           }
          if (debugSecondoMethod){
-            cout << getPid() << "::" << this << ":: filename extracted "  
+            cout << pid << "::" << this << ":: filename extracted "  
                              << endl;
-            cout << getPid() << "::" << this << ":: start communication "  
+            cout << pid << "::" << this << ":: start communication "  
                              << endl;
          }
          // send object symbol
@@ -747,10 +752,11 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         errorCode = csp->ReadResponse( resultList,
                                        errorCode, errorPos,
-                                       errorMessage , id        );
+                                       errorMessage , id, 
+                                       debugSecondoMethod, this, pid );
 
          if (debugSecondoMethod){
-            cout << getPid() << "::" << this << ":: communication finished"  
+            cout << pid << "::" << this << ":: communication finished"  
                              << endl;
          }
 
@@ -758,7 +764,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       else
       {
          if (debugSecondoMethod){
-            cout << getPid() << "::" << this << ":: invalid restore db cmd"  
+            cout << pid << "::" << this << ":: invalid restore db cmd"  
                              << endl;
          }
         // Not a valid 'restore database' command
@@ -768,7 +774,7 @@ For an explanation of the error codes refer to SecondoInterface.h
     else
     {
        if (debugSecondoMethod){
-          cout << getPid() << "::" << this << ":: error in parsing list"  
+          cout << pid << "::" << this << ":: error in parsing list"  
                            << endl;
        }
       // Syntax error in list
@@ -778,7 +784,7 @@ For an explanation of the error codes refer to SecondoInterface.h
   else
   {
     if (debugSecondoMethod){
-      cout << getPid() << "::" << this << ":: usual secondo command "  
+      cout << pid << "::" << this << ":: usual secondo command "  
                        << endl;
     }
     // Send Secondo command
@@ -789,29 +795,31 @@ For an explanation of the error codes refer to SecondoInterface.h
     // Receive result
     errorCode = csp->ReadResponse( resultList,
                                    errorCode, errorPos,
-                                   errorMessage , id        );
+                                   errorMessage , id, 
+                                   debugSecondoMethod, this, pid );
     if (debugSecondoMethod){
-      cout << getPid() << "::" << this << ":: usual secondo command finished "  
+      cout << pid << "::" << this << ":: usual secondo command finished "  
                        << endl;
     }
   }
 
   iosock.exceptions(s);
   if (debugSecondoMethod){
-    cout << getPid() << "::" << this << ":: secondo nearly finsihed"  
+    cout << pid << "::" << this << ":: secondo nearly finsihed"  
                      << endl;
   }
   if ( resultAsText )
   {
     if (debugSecondoMethod){
-      cout << getPid() << "::" << this << ":: write result to file"  
+      cout << pid << "::" << this << ":: write result to file"  
                        << endl;
     }
     nl->WriteToFile( resultFileName, resultList );
   }
   if (debugSecondoMethod){
-    cout << getPid() << "::" << this << ":: secondo completetly finsihed"  
+    cout << pid << "::" << this << ":: secondo completetly finsihed"  
                      << endl;
+    cout << std::dec;
   }
 }
 
