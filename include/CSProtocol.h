@@ -453,8 +453,12 @@ The client can close the connection by sending
 #include "Messages.h"
 #include "TraceMacros.h"
 #include "limits.h"
+#include "DebugWriter.h"
 
 using namespace std;
+
+extern DebugWriter dwriter;
+
 
 /*
 Utility functions
@@ -741,17 +745,12 @@ ReadList(const string& endTag, ListExpr& resultList,
          int& errorCode, bool debug, void* caller, 
          int callerID) {
 
-  if(debug){
-    cout << callerID  << "::" << caller << ":: start ReadList" << endl;
-  }
+  dwriter.write(debug, cout, caller, callerID, "start ReadList");
   string line = "";
   string result = "";
   bool success = false;
   if ( !RTFlag::isActive("Server:BinaryTransfer") ) { 
-    if(debug){
-      cout << callerID  << "::" << caller << ":: textual list transfer" 
-          << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "itextual list transfer");
     // textual data transfer
     do {
       getline( iosock, line );
@@ -760,42 +759,25 @@ ReadList(const string& endTag, ListExpr& resultList,
         result += line + "\n";
       }
     } while (line != endTag && !iosock.fail()); 
-    if(debug){
-       cout << callerID  << "::" << caller 
-            << ":: list read as string, parse it" << endl;
-    }     
+    dwriter.write(debug, cout, caller, callerID, "text received, parse it");
     nl->ReadFromString( result, resultList );
-    if(debug){
-        cout << callerID  << "::" << caller << ":: list parsing finsihed"
-             << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "list parsing finished");
     success = true;
     
   } else { // binary data transfer
-    if(debug){
-      cout << callerID  << "::" << caller << ":: binary  list transfer" 
-          << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "binary list transfer");
     nl->ReadBinaryFrom(iosock, resultList);
-    if(debug){
-      cout << callerID  << "::" << caller << ":: list transfer finished" 
-          << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "list transfer finished");
     
     //ofstream outFile("TTYCS.bnl");
     //nl->WriteBinaryTo(resultList, outFile);
     
     getline( iosock, line );
-    if(debug){
-      cout << callerID  << "::" << caller << ":: end tag read" 
-          << endl;
-    }
-
+    dwriter.write(debug, cout, caller, callerID, "end tag read");
     
     if (line != endTag ) 
     {
-      cerr << "Error: No " << endTag << " found after "
-           << "receiving a binary list!" << endl;
+      dwriter.write(true, cerr, caller, callerID, "end tag invalid");
       errorCode = ERR_IN_SECONDO_PROTOCOL;
       resultList = nl->TheEmptyList();
     } 
@@ -804,10 +786,7 @@ ReadList(const string& endTag, ListExpr& resultList,
       success = true;
     }  
   }
-  if(debug){
-    cout << callerID  << "::" << caller << ":: ReadList finsihed with "  
-         << success << endl;
-  }
+  dwriter.write(debug, cout, caller, callerID, "finished methjod ReadList");
   return success;  
 } 
 
@@ -823,23 +802,20 @@ ReadResponse( ListExpr& resultList,
               int callerID = 1)
 {
 
-  if(debug){
-     cout  << callerID  << "::" << caller << ": called ReadResponse" << endl;
-  }
+  dwriter.write(debug, cout, caller, callerID, "called ReadResponse");
 
   // read next line
   string line="";
   try{
       getline( iosock, line );
   } catch(...){
+    dwriter.write(debug, cerr, caller, callerID, "exception occured");
     cerr << "Exception occurred during reading response from server"; 
     errorCode = ERR_IN_SECONDO_PROTOCOL;
     iosock.clear();
     return errorCode;
   }
-  if(debug){
-     cout  << callerID  << "::" << caller << ":: Read first line" << endl;
-  }
+  dwriter.write(debug, cout, caller, callerID, "read first line");
   
   bool badbit = iosock.bad();
   bool success = false;
@@ -848,97 +824,64 @@ ReadResponse( ListExpr& resultList,
   ListExpr messageList = nl->Empty();
   while ( !badbit && line == startMessage ) 
   {
-    if(debug){
-       cout << callerID  << "::" << caller << ": receive message" << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "receive message");
     success = ReadList(endMessage, messageList, errorCode, debug, 
                        caller, callerID);
-    if(debug){
-       cout << callerID  << "::" << caller << ": message received " 
-            << (success?"successful":"with problems") << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "message received", success);
     if (success) {
-      if(debug){
-         cout << callerID  << "::" << caller 
-              << ": Send message to message center" << endl;
-      }
+      dwriter.write(debug, cout, caller, callerID, "send message to center");
       msg->Send(nl,messageList, source);
       getline( iosock, line );
       badbit = iosock.bad();
-      if(debug){
-         cout << callerID  << "::" << caller 
-              << ": sending message finished" << endl;
-      }  
+      dwriter.write(debug, cout, caller, callerID, "sending message finished");
     }  
   } 
 
   // network error 
   if (badbit) {
     errorCode = ERR_IN_SECONDO_PROTOCOL;
-    if(debug){
-       cout << callerID  << "::" << caller << ": network error" << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "network error");
     return errorCode;
   }   
     
   
   if ( line == startResponse )
   {
-    if(debug){
-       cout << callerID  << "::" << caller << ": read response list" << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "read response list");
+   
     success = ReadList(endResponse, resultList, errorCode, 
                        debug, caller, callerID);
-    if(debug){
-        cout << callerID  << "::" << caller << ": resultlist received " 
-             << (success?"ok":"problem") << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "reading list", success);
     
     if (success) 
     {
      errorCode = nl->IntValue( nl->First( resultList ) );
      errorPos  = nl->IntValue( nl->Second( resultList ) );
-     if(debug){
-       cout << callerID  << "::" << caller << ": extract error message" 
-            << endl;
-     }
+     dwriter.write(debug, cout, caller, callerID, "extract error");
      TextScan ts = nl->CreateTextScan( nl->Third( resultList ) );
      nl->GetText( ts, nl->TextLength( nl->Third( resultList ) ), 
                   errorMessage );
      nl->DestroyTextScan( ts );
-     if(debug){
-        cout << callerID  << "::" << caller 
-             << ": error extracted, extract result" << endl;
-     }
+     dwriter.write(debug, cout, caller, callerID, 
+                   "error extracted, extract result");
      resultList = nl->Fourth( resultList );
-     if(debug){
-        cout << callerID  << "::" << caller << ": result extracted" << endl;
-     }
+     dwriter.write(debug, cout, caller, callerID, "result extracted");
     }
   }
   else if ( line == startError )
   {
-    if(debug){
-       cout << callerID  << "::" << caller << ": receive error" << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "receive error");
     getline( iosock, errorMessage );
     getline( iosock, line ); // eat up end tag
     errorCode = ERR_IN_SECONDO_PROTOCOL;
-    if(debug){
-       cout << callerID  << "::" << caller << ": protocol error" << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "protocol error");
   }
   else
   {
-    if(debug){
-       cout << callerID  << "::" << caller << ": protocol error" << endl;
-    }
+    dwriter.write(debug, cout, caller, callerID, "protocol error");
     errorCode = ERR_IN_SECONDO_PROTOCOL;
   }
-  if(debug){
-     cout << callerID  << "::" << caller << ": ReadResponse finished " 
-          << endl;
-  }
+  dwriter.write(debug, cout, caller, callerID, "readResponse finsihed");
   return errorCode;
 }
 

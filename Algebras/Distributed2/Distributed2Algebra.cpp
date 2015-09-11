@@ -48,6 +48,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StopWatch.h"
 
 #include "Bash.h"
+#include "DebugWriter.h"
 
 
   // use boost for thread handling
@@ -55,6 +56,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/thread.hpp>
 #include <boost/date_time.hpp>
 
+
+extern DebugWriter dwriter;
 
 
 namespace distributed2 {
@@ -80,12 +83,13 @@ boost::mutex showCommandMtx;
 
 void showCommand(SecondoInterfaceCS* src, const string& host, const int port, 
                  const string& cmd, bool start){
-    if(showCommands){
-       boost::lock_guard<boost::mutex> guard(showCommandMtx);
-       string s = start ? "start " : "finish ";
-       cout << src->getPid() << "::" << src << " = " << host << ":" << port 
-            << " : " << s << cmd << endl;
-    }
+
+   if(showCommands){
+      dwriter.write(showCommands,cout, src, src->getPid(), "= " + host + ":" 
+              + stringutils::int2str(port)+ ":" + (start?"start ":"finish ") 
+              + cmd);
+   }
+
 }
 
 
@@ -505,7 +509,6 @@ class ConnectionInfo{
        }
 
         void setId(const int i){
-           cout << "si = " << si << endl;
             if(si){
                si->setId(i);;
             }
@@ -13299,7 +13302,7 @@ last running transfer is done, the server is shut down.
   
   // forward declaration
 
-  /*
+ /* 
 
 class staticFileReceiver;
 
@@ -13310,15 +13313,21 @@ class staticFileReceiver{
 
 
    public:
-      static staticFileReceiver* getInstance(int port, int noTransfers){
+      static staticFileReceiver* getInstance(int port, int& noTransfers){
+          typename map<int, staticFileReceiver*>::iterator it;
+          it = startFileReceivers.find(port);
           if(startFileReceivers.find(port) != startFileReceivers.end()){
-             return 0;
+             staticFileReceiver* res = it->second;
+             noTransfers = res->maxTransfers;
+             return res;
           }
-          staticFileReceiver* res = new staticFileReceiver(port,int);
+          staticFileReceiver* res = new staticFileReceiver(port,noTransfers);
           if(res->running()){
+             // able to listen at the specified port
              startFileReceivers[port] = res;
              return res;
           }
+          // some problems, e.g., security problems
           delete res;
           return 0;
       }
@@ -13326,7 +13335,7 @@ class staticFileReceiver{
       static bool finishInstance(int port) {
          typename map<int,startFileReceiver*>::iterator it;
          it = startFileReceivers.find(port);
-         if(it==startFileReceivers.end()){
+         if(it==startFileReceivers.end()){ // there is no such receiver
             return false;
          }
          startFileReceiver* k = it->second;
@@ -13347,12 +13356,11 @@ class staticFileReceiver{
 
    private;
 
-      bool running;
-      int maxTransfers;
-      Socket* listener;
-      boost::thread* listthread;
-      vector<socket*> connections;
-      set<transferator*> activeTransfers;
+      bool running;      // flag for activity
+      int maxTransfers;  // maximum number of parallel transfers
+      Socket* listener;  // the listener object
+      boost::thread* listthread; // thread for listener
+      vector<Socket*> connections; // active connections
 
 
       startFileReceiver(int port, int maxTransfers){
@@ -13421,9 +13429,8 @@ class staticFileReceiver{
 };
 
 
-
-
   */
+
 
 
 
