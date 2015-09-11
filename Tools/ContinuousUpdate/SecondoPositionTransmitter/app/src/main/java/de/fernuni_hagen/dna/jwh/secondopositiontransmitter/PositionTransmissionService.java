@@ -34,7 +34,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
-import de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation.DatabaseManager;
 import de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation.Position;
 import de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation.TimeInterval;
 import de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation.UPoint;
@@ -52,6 +51,11 @@ public class PositionTransmissionService extends Service {
     private LocalBroadcastManager broadcaster;
     private LocalLocationManager locationManager;
     private DatabaseManager db;
+    private LogFileManager logfile;
+    private Calendar lastSend;
+    private Calendar lastPosition;
+    private Integer sendInterval;
+    private Integer logInterval;
 
     public static boolean isRunning = false;
 
@@ -82,6 +86,7 @@ public class PositionTransmissionService extends Service {
         super.onCreate();
         isRunning = true;
         db = new DatabaseManager(getApplicationContext());
+        logfile = new LogFileManager();
         broadcaster = LocalBroadcastManager.getInstance(this);
     }
 
@@ -108,9 +113,19 @@ public class PositionTransmissionService extends Service {
         isRunning = true;
         prefs = getApplicationContext().getSharedPreferences("configuration", MODE_PRIVATE);
         requestQueue = SecondoRequestQueue.getInstance(getApplicationContext());
-        locationManager = new LocalLocationManager(this, prefs.getInt("updateInterval", 60) * 1000);
+        locationManager = new LocalLocationManager(this, prefs.getInt("logInterval", 60) * 1000);
 
         setUser();
+
+        sendInterval = prefs.getInt("sendInterval", 60);
+        lastSend = Calendar.getInstance();
+        lastSend.add(Calendar.SECOND, sendInterval);
+        Log.e(this.getClass().getSimpleName(), "Send interval" + sendInterval + "s");
+
+        logInterval = prefs.getInt("logInterval", 60);
+        lastPosition = Calendar.getInstance();
+        lastPosition.add(Calendar.SECOND, logInterval);
+        Log.e(this.getClass().getSimpleName(), "Update interval" + logInterval + "s");
 
         Toast.makeText(this, "Service Started " + prefs.getString("host", "no-host"), Toast.LENGTH_LONG).show();
 
@@ -128,7 +143,8 @@ public class PositionTransmissionService extends Service {
         timer = new Timer();
 
         requestQueue.getRequestQueue().start();
-        timer.scheduleAtFixedRate(new PositionTimerTask(), 0, prefs.getInt("updateInterval", 60) * 1000);
+        Log.e(this.getClass().getSimpleName(), "Schedule interval " + (Math.min(sendInterval, logInterval) * 1000) + "ms");
+        timer.scheduleAtFixedRate(new PositionTimerTask(), 0, Math.min(sendInterval, logInterval) * 1000);
         return START_STICKY;
     }
 
@@ -137,6 +153,8 @@ public class PositionTransmissionService extends Service {
         super.onDestroy();
         isRunning = false;
         timer.cancel();
+        db.close();
+        logfile.close();
         Toast.makeText(this, "Service Destroyed", Toast.LENGTH_LONG).show();
     }
 
@@ -147,6 +165,7 @@ public class PositionTransmissionService extends Service {
     private JSONObject getNewJsonObject() {
         Position position = new Position();
         getPositionFromLocation(position);
+        logfile.write(position.getSecondoValue());
 
         Gson g = new GsonBuilder().serializeNulls().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").create();
         try {
@@ -195,6 +214,21 @@ public class PositionTransmissionService extends Service {
         @Override
         public void run() {
 
+            if(Calendar.getInstance().compareTo(lastPosition) > 0){
+                lastPosition = Calendar.getInstance();
+                lastPosition.add(Calendar.SECOND, logInterval);
+                createPositionUpdate();
+            }
+
+            if(Calendar.getInstance().compareTo(lastSend) > 0){
+                lastSend = Calendar.getInstance();
+                lastSend.add(Calendar.SECOND, sendInterval);
+                requestQueue.dispatchRequestQueue();
+            }
+
+        }
+
+        private void createPositionUpdate() {
             if (!locationManager.movementAvailable()) {
                 Log.e(getClass().getSimpleName(), "No movement available");
                 return;
@@ -204,7 +238,6 @@ public class PositionTransmissionService extends Service {
                 Log.d(getClass().getSimpleName(), "No significant movement!");
                 return;
             } else {
-                Log.d(getClass().getSimpleName(), "Significant movement!");
             }
 
             JsonObjectRequest putRequest = new JsonObjectRequest(JsonObjectRequest.Method.PUT, url, getNewJsonObject(), new Response.Listener<JSONObject>() {

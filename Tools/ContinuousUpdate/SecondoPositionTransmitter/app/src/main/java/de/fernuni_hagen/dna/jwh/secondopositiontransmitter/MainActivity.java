@@ -17,8 +17,6 @@ import android.widget.ToggleButton;
 
 import java.util.ArrayList;
 
-import de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation.DatabaseManager;
-
 
 public class MainActivity extends Activity {
 
@@ -102,7 +100,9 @@ public class MainActivity extends Activity {
         editText.addTextChangedListener(watcher);
         editText = (EditText) findViewById(R.id.editTextPort);
         editText.addTextChangedListener(watcher);
-        editText = (EditText) findViewById(R.id.editTextInterval);
+        editText = (EditText) findViewById(R.id.editTextSendInterval);
+        editText.addTextChangedListener(watcher);
+        editText = (EditText) findViewById(R.id.editTextLogInterval);
         editText.addTextChangedListener(watcher);
         editText = (EditText) findViewById(R.id.editTextRelation);
         editText.addTextChangedListener(watcher);
@@ -123,7 +123,9 @@ public class MainActivity extends Activity {
         editText.removeTextChangedListener(watcher);
         editText = (EditText) findViewById(R.id.editTextPort);
         editText.removeTextChangedListener(watcher);
-        editText = (EditText) findViewById(R.id.editTextInterval);
+        editText = (EditText) findViewById(R.id.editTextSendInterval);
+        editText.removeTextChangedListener(watcher);
+        editText = (EditText) findViewById(R.id.editTextLogInterval);
         editText.removeTextChangedListener(watcher);
         editText = (EditText) findViewById(R.id.editTextRelation);
         editText.removeTextChangedListener(watcher);
@@ -140,13 +142,15 @@ public class MainActivity extends Activity {
         ((EditText) findViewById(R.id.editTextRelation)).setText(prefs.getString("relation", "orte"));
         ((EditText) findViewById(R.id.editTextUser)).setText(prefs.getString("user", ""));
         ((ToggleButton) findViewById(R.id.toggleMoving)).setChecked(prefs.getBoolean("goodLocation", true));
-        ((EditText) findViewById(R.id.editTextInterval)).setText(Integer.toString(prefs.getInt("updateInterval", 60)));
+        ((EditText) findViewById(R.id.editTextSendInterval)).setText(Integer.toString(prefs.getInt("sendInterval", 60)));
+        ((EditText) findViewById(R.id.editTextLogInterval)).setText(Integer.toString(prefs.getInt("logInterval", 60)));
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         LocalBroadcastManager.getInstance(this).registerReceiver((receiver), new IntentFilter(PositionTransmissionService.class.getName()));
+        loadMessagesFromDB();
     }
 
     @Override
@@ -154,6 +158,7 @@ public class MainActivity extends Activity {
         super.onStop();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
         removeWatches();
+        db.close();
     }
 
     @Override
@@ -165,6 +170,7 @@ public class MainActivity extends Activity {
         toggleButton.setChecked(PositionTransmissionService.isRunning);
 
         addWatches();
+        loadMessagesFromDB();
     }
 
     @Override
@@ -181,7 +187,8 @@ public class MainActivity extends Activity {
         ed.putString("user", ((EditText) findViewById(R.id.editTextUser)).getText().toString());
         ed.putString("relation", ((EditText) findViewById(R.id.editTextRelation)).getText().toString());
         ed.putBoolean("goodLocation", ((ToggleButton) findViewById(R.id.toggleMoving)).isChecked());
-        ed.putInt("updateInterval", Integer.parseInt(((EditText) findViewById(R.id.editTextInterval)).getText().toString()));
+        ed.putInt("sendInterval", Integer.parseInt(((EditText) findViewById(R.id.editTextSendInterval)).getText().toString()));
+        ed.putInt("logInterval", Integer.parseInt(((EditText) findViewById(R.id.editTextLogInterval)).getText().toString()));
         ed.commit();
     }
 }

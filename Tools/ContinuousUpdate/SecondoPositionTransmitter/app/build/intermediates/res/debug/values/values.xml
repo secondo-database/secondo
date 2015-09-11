@@ -173,10 +173,11 @@
     <string name="app_name">SecondoPositionTransmitter</string>
     <string name="betterLocationToggle">Transmit only while moving</string>
     <string name="hostname">Hostname</string>
+    <string name="logInterval">Log Interval</string>
     <string name="logging_title">Logging:</string>
     <string name="position_transmission">Position transmission</string>
     <string name="relation_name">Relation</string>
-    <string name="transmissionInterval">Interval</string>
+    <string name="sendInterval">Send Interval</string>
     <!-- From: file:/C:/Users/Jerome/Dropbox/Source/secondo/Tools/ContinuousUpdate/SecondoPositionTransmitter/app/src/main/res/values/styles.xml -->
     <eat-comment/>
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">

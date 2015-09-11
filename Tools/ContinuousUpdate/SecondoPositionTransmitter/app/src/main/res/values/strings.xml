@@ -10,6 +10,7 @@
     <string name="Port">Port</string>
     <string name="User">Username</string>
     <string name="relation_name">Relation</string>
-    <string name="transmissionInterval">Interval</string>
+    <string name="sendInterval">Send Interval</string>
+    <string name="logInterval">Log Interval</string>
     <string name="logging_title">Logging:</string>
 </resources>
