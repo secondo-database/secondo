@@ -1651,10 +1651,6 @@ NestedList::ReadBinarySubLists( ListExpr& LE, istream& in,
 */
 bool
 NestedList::ReadBinaryRec(ListExpr& result, istream& in, unsigned long& pos) {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
-
   static const bool debug = RTFlag::isActive("NL:BinaryListDebug");
   unsigned long len = 0;
   string str = "";
@@ -1837,10 +1833,6 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in, unsigned long& pos) {
 
 bool
 NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
-
   static const bool debug = RTFlag::isActive("NL:BinaryListDebug");
   static const int floatLen=sizeof(float);
   static const int doubleLen=sizeof(double);
@@ -2471,9 +2463,6 @@ NestedList::StringSymbolValue( const ListExpr atom ) const
 string
 NestedList::StringValue( const ListExpr atom ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( AtomType( atom ) == StringType );
   return StringSymbolValue(atom);
 }
@@ -2481,9 +2470,6 @@ NestedList::StringValue( const ListExpr atom ) const
 string
 NestedList::SymbolValue( const ListExpr atom ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( AtomType( atom ) == SymbolType );
   return StringSymbolValue(atom);
 }
