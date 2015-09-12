@@ -12,6 +12,9 @@
       </layout>
     </layouts>
   </component>
+  <component name="AndroidLogFilters">
+    <option name="TOOL_WINDOW_CONFIGURED_FILTER" value="Show only selected application" />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="650aa171-6c67-4893-88dd-0fe088cb772d" name="Default" comment="" />
     <ignored path="SecondoPositionTransmitter.iws" />
@@ -56,13 +59,28 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="PositionTransmissionService.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="PositionTransmissionService.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/PositionTransmissionService.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="273" column="55" selection-start-line="273" selection-start-column="55" selection-end-line="273" selection-end-column="55" />
+            <state vertical-scroll-proportion="0.37913042">
+              <caret line="157" column="32" selection-start-line="157" selection-start-column="32" selection-end-line="157" selection-end-column="32" />
               <folding>
                 <element signature="imports" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="LocalLocationManager.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/LocalLocationManager.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="172" column="56" selection-start-line="172" selection-start-column="56" selection-end-line="172" selection-end-column="56" />
+              <folding>
+                <element signature="e#5526#5527#0" expanded="true" />
+                <element signature="e#5589#5590#0" expanded="true" />
+                <element signature="e#6164#6165#0" expanded="true" />
+                <element signature="e#6195#6196#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -82,7 +100,7 @@
         <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/DatabaseManager.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="78" column="118" selection-start-line="78" selection-start-column="118" selection-end-line="78" selection-end-column="118" />
+              <caret line="72" column="0" selection-start-line="72" selection-start-column="0" selection-end-line="72" selection-end-column="0" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -97,34 +115,6 @@
               <caret line="172" column="29" selection-start-line="172" selection-start-column="29" selection-end-line="172" selection-end-column="29" />
               <folding />
             </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="activity_main.xml" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/app/src/main/res/layout/activity_main.xml">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-14.724138">
-              <caret line="200" column="51" selection-start-line="200" selection-start-column="51" selection-end-line="200" selection-end-column="51" />
-              <folding>
-                <element signature="e#229#262#0" expanded="true" />
-                <element signature="e#287#322#0" expanded="true" />
-                <element signature="e#348#383#0" expanded="true" />
-                <element signature="e#407#440#0" expanded="true" />
-                <element signature="e#1261#1276#0" expanded="true" />
-                <element signature="e#2797#2828#0" expanded="true" />
-                <element signature="e#3157#3187#0" expanded="true" />
-                <element signature="e#3524#3542#0" expanded="true" />
-                <element signature="e#3875#3889#0" expanded="true" />
-                <element signature="e#4505#4528#0" expanded="true" />
-                <element signature="e#5126#5140#0" expanded="true" />
-                <element signature="e#5746#5768#0" expanded="true" />
-                <element signature="e#6419#6440#0" expanded="true" />
-                <element signature="e#7093#7116#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-          <provider editor-type-id="android-designer">
-            <state />
           </provider>
         </entry>
       </file>
@@ -143,8 +133,8 @@
       <file leaf-file-name="Position.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/Position.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="25" column="65" selection-start-line="25" selection-start-column="50" selection-end-line="25" selection-end-column="65" />
+            <state vertical-scroll-proportion="-7.48">
+              <caret line="11" column="18" selection-start-line="11" selection-start-column="18" selection-end-line="11" selection-end-column="18" />
               <folding />
             </state>
           </provider>
@@ -153,18 +143,18 @@
       <file leaf-file-name="UPoint.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/UPoint.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="20" column="39" selection-start-line="20" selection-start-column="39" selection-end-line="20" selection-end-column="39" />
+            <state vertical-scroll-proportion="-10.88">
+              <caret line="16" column="18" selection-start-line="16" selection-start-column="18" selection-end-line="16" selection-end-column="18" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="TimeInterval.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="TimeInterval.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/TimeInterval.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.26086956">
-              <caret line="13" column="20" selection-start-line="13" selection-start-column="20" selection-end-line="13" selection-end-column="20" />
+            <state vertical-scroll-proportion="-8.84">
+              <caret line="16" column="18" selection-start-line="16" selection-start-column="18" selection-end-line="16" selection-end-column="18" />
               <folding />
             </state>
           </provider>
@@ -173,12 +163,12 @@
       <file leaf-file-name="NLRepresentation.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/NLRepresentation.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="41" column="34" selection-start-line="41" selection-start-column="34" selection-end-line="41" selection-end-column="34" />
+            <state vertical-scroll-proportion="-12.92">
+              <caret line="41" column="32" selection-start-line="41" selection-start-column="32" selection-end-line="41" selection-end-column="32" />
               <folding>
                 <element signature="imports" expanded="true" />
-                <element signature="e#970#1114#0" expanded="true" />
-                <element signature="e#1113#1114#0" expanded="true" />
+                <element signature="e#1240#1483#0" expanded="true" />
+                <element signature="e#1482#1483#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -1270,19 +1260,21 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/LocalLocationManager.java" />
         <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/DatabaseManager.java" />
         <option value="$PROJECT_DIR$/app/src/main/AndroidManifest.xml" />
         <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/DateTime.java" />
-        <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/DatabaseManager.java" />
         <option value="$PROJECT_DIR$/app/src/main/res/values/strings.xml" />
         <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/SecondoRequestQueue.java" />
         <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/MainActivity.java" />
-        <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/PositionTransmissionService.java" />
-        <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/NLRepresentation.java" />
         <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/LogFileManager.java" />
         <option value="$PROJECT_DIR$/app/src/main/res/layout/activity_main.xml" />
+        <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/DatabaseManager.java" />
         <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/TimeInterval.java" />
+        <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/UPoint.java" />
+        <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/Position.java" />
+        <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/NLRepresentation.java" />
+        <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/LocalLocationManager.java" />
+        <option value="$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/PositionTransmissionService.java" />
       </list>
     </option>
   </component>
@@ -1331,10 +1323,10 @@
       <sortByType />
     </navigator>
     <panes>
-      <pane id="ProjectPane" />
+      <pane id="Scope" />
       <pane id="Scratches" />
       <pane id="PackagesPane" />
-      <pane id="Scope" />
+      <pane id="ProjectPane" />
       <pane id="AndroidView">
         <subPane>
           <PATH>
@@ -1702,8 +1694,8 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="false" />
+    <frame x="-8" y="-8" width="1936" height="1056" extended-state="7" />
+    <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32925472" sideWeight="0.4978678" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32925472" sideWeight="0.4978678" order="15" side_tool="false" content_ui="tabs" />
@@ -1712,7 +1704,6 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32925472" sideWeight="0.51492536" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32995737" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32995737" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32925472" sideWeight="0.48400852" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32925472" sideWeight="0.49573562" order="10" side_tool="false" content_ui="tabs" />
@@ -1732,6 +1723,7 @@
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.39933258" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32995737" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Memory Monitor" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="14" side_tool="true" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32925472" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
@@ -1752,6 +1744,71 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/MainActivity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="172" column="29" selection-start-line="172" selection-start-column="29" selection-end-line="172" selection-end-column="29" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/res/layout/activity_main.xml">
+      <provider editor-type-id="android-designer">
+        <state />
+      </provider>
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="200" column="51" selection-start-line="200" selection-start-column="51" selection-end-line="200" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/LogFileManager.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="45" column="68" selection-start-line="45" selection-start-column="68" selection-end-line="45" selection-end-column="68" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/Position.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="25" column="65" selection-start-line="25" selection-start-column="50" selection-end-line="25" selection-end-column="65" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/UPoint.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="20" column="39" selection-start-line="20" selection-start-column="39" selection-end-line="20" selection-end-column="39" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/TimeInterval.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="13" column="20" selection-start-line="13" selection-start-column="20" selection-end-line="13" selection-end-column="20" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/NLRepresentation.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="41" column="34" selection-start-line="41" selection-start-column="34" selection-end-line="41" selection-end-column="34" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#1240#1483#0" expanded="true" />
+            <element signature="e#1482#1483#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/PositionTransmissionService.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -1797,29 +1854,14 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/res/layout/activity_main.xml">
+      <provider editor-type-id="android-designer">
+        <state />
+      </provider>
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="180" column="35" selection-start-line="180" selection-start-column="35" selection-end-line="180" selection-end-column="35" />
-          <folding>
-            <element signature="e#229#262#0" expanded="true" />
-            <element signature="e#287#322#0" expanded="true" />
-            <element signature="e#348#383#0" expanded="true" />
-            <element signature="e#407#440#0" expanded="true" />
-            <element signature="e#1261#1276#0" expanded="true" />
-            <element signature="e#2797#2828#0" expanded="true" />
-            <element signature="e#3157#3187#0" expanded="true" />
-            <element signature="e#3524#3542#0" expanded="true" />
-            <element signature="e#3875#3889#0" expanded="true" />
-            <element signature="e#4505#4528#0" expanded="true" />
-            <element signature="e#5126#5140#0" expanded="true" />
-            <element signature="e#5746#5768#0" expanded="true" />
-            <element signature="e#6419#6440#0" expanded="true" />
-            <element signature="e#7093#7116#0" expanded="true" />
-          </folding>
+          <folding />
         </state>
-      </provider>
-      <provider editor-type-id="android-designer">
-        <state />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/PositionTransmissionService.java">
@@ -2026,14 +2068,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/LocalLocationManager.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="108" column="36" selection-start-line="108" selection-start-column="36" selection-end-line="108" selection-end-column="36" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/res/values/strings.xml">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.4018182">
@@ -2042,10 +2076,29 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/PositionTransmissionService.java">
+    <entry file="file://$PROJECT_DIR$/app/src/main/res/layout/activity_main.xml">
+      <provider editor-type-id="android-designer">
+        <state />
+      </provider>
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="273" column="55" selection-start-line="273" selection-start-column="55" selection-end-line="273" selection-end-column="55" />
+          <caret line="200" column="51" selection-start-line="200" selection-start-column="51" selection-end-line="200" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/MainActivity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="172" column="29" selection-start-line="172" selection-start-column="29" selection-end-line="172" selection-end-column="29" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/DatabaseManager.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="72" column="0" selection-start-line="72" selection-start-column="0" selection-end-line="72" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
@@ -2054,9 +2107,37 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/Position.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="25" column="65" selection-start-line="25" selection-start-column="50" selection-end-line="25" selection-end-column="65" />
+        <state vertical-scroll-proportion="-7.48">
+          <caret line="11" column="18" selection-start-line="11" selection-start-column="18" selection-end-line="11" selection-end-column="18" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/UPoint.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-10.88">
+          <caret line="16" column="18" selection-start-line="16" selection-start-column="18" selection-end-line="16" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/TimeInterval.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-8.84">
+          <caret line="16" column="18" selection-start-line="16" selection-start-column="18" selection-end-line="16" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/NLRepresentation.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-12.92">
+          <caret line="41" column="32" selection-start-line="41" selection-start-column="32" selection-end-line="41" selection-end-column="32" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#1240#1483#0" expanded="true" />
+            <element signature="e#1482#1483#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -2064,50 +2145,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="51" column="45" selection-start-line="51" selection-start-column="45" selection-end-line="51" selection-end-column="45" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/DatabaseManager.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="78" column="118" selection-start-line="78" selection-start-column="118" selection-end-line="78" selection-end-column="118" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/res/layout/activity_main.xml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-14.724138">
-          <caret line="200" column="51" selection-start-line="200" selection-start-column="51" selection-end-line="200" selection-end-column="51" />
-          <folding>
-            <element signature="e#229#262#0" expanded="true" />
-            <element signature="e#287#322#0" expanded="true" />
-            <element signature="e#348#383#0" expanded="true" />
-            <element signature="e#407#440#0" expanded="true" />
-            <element signature="e#1261#1276#0" expanded="true" />
-            <element signature="e#2797#2828#0" expanded="true" />
-            <element signature="e#3157#3187#0" expanded="true" />
-            <element signature="e#3524#3542#0" expanded="true" />
-            <element signature="e#3875#3889#0" expanded="true" />
-            <element signature="e#4505#4528#0" expanded="true" />
-            <element signature="e#5126#5140#0" expanded="true" />
-            <element signature="e#5746#5768#0" expanded="true" />
-            <element signature="e#6419#6440#0" expanded="true" />
-            <element signature="e#7093#7116#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-      <provider editor-type-id="android-designer">
-        <state />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/MainActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="172" column="29" selection-start-line="172" selection-start-column="29" selection-end-line="172" selection-end-column="29" />
           <folding />
         </state>
       </provider>
@@ -2122,31 +2159,26 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/UPoint.java">
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/LocalLocationManager.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="20" column="39" selection-start-line="20" selection-start-column="39" selection-end-line="20" selection-end-column="39" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/NLRepresentation.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="41" column="34" selection-start-line="41" selection-start-column="34" selection-end-line="41" selection-end-column="34" />
+          <caret line="172" column="56" selection-start-line="172" selection-start-column="56" selection-end-line="172" selection-end-column="56" />
           <folding>
-            <element signature="imports" expanded="true" />
-            <element signature="e#970#1114#0" expanded="true" />
-            <element signature="e#1113#1114#0" expanded="true" />
+            <element signature="e#5526#5527#0" expanded="true" />
+            <element signature="e#5589#5590#0" expanded="true" />
+            <element signature="e#6164#6165#0" expanded="true" />
+            <element signature="e#6195#6196#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/representation/TimeInterval.java">
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/de/fernuni_hagen/dna/jwh/secondopositiontransmitter/PositionTransmissionService.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.26086956">
-          <caret line="13" column="20" selection-start-line="13" selection-start-column="20" selection-end-line="13" selection-end-column="20" />
-          <folding />
+        <state vertical-scroll-proportion="0.37913042">
+          <caret line="157" column="32" selection-start-line="157" selection-start-column="32" selection-end-line="157" selection-end-column="32" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

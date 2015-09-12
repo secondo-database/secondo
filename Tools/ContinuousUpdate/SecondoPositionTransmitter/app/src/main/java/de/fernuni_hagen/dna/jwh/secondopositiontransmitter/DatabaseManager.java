@@ -17,17 +17,18 @@ import java.util.Date;
 public class DatabaseManager extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "secptm.db";
+    public static final Integer SCHEMA_VERSION = 2;
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public DatabaseManager(Context context) {
-        super(context, DATABASE_NAME, null, 1);
+        super(context, DATABASE_NAME, null, SCHEMA_VERSION);
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(
                 "create table log " +
-                        "(id integer primary key autoincrement, message text, time text)"
+                        "(message text, time DATETIME)"
         );
     }
 
@@ -60,7 +61,7 @@ public class DatabaseManager extends SQLiteOpenHelper {
         ArrayList<String> array_list = new ArrayList<String>();
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res = db.rawQuery("select * from log order by id asc", null);
+        Cursor res = db.rawQuery("select * from log order by datetime(time) asc", null);
         res.moveToFirst();
 
         while (res.isAfterLast() == false) {
@@ -76,6 +77,6 @@ public class DatabaseManager extends SQLiteOpenHelper {
      */
     public void deleteOld(Integer keep) {
         SQLiteDatabase db = this.getWritableDatabase();
-        Log.i(getClass().getSimpleName(), "Deleted:" + db.delete("log", "id not in (select id from log order by id asc limit ?)", new String[]{keep.toString()}));
+        Log.i(getClass().getSimpleName(), "Deleted: " + db.delete("log", "time not in (select time from log order by datetime(time) asc limit ?)", new String[]{keep.toString()}));
     }
 }

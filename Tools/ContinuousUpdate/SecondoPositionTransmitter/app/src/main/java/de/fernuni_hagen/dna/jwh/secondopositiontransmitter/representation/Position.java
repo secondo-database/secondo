@@ -7,7 +7,9 @@ package de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation;
  *
  */
 public class Position extends NLRepresentation {
+	@Order(pos = 0)
 	public String Id;
+	@Order(pos = 1)
 	public UPoint Position;
 	
 	public Position() {

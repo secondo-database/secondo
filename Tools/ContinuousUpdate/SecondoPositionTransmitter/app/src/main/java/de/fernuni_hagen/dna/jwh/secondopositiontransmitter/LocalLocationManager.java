@@ -19,6 +19,8 @@ public class LocalLocationManager {
     private Integer updateRate;
     private Location bestLocation;
     private LocationInfo currentLocationInfo;
+    private LocationManager locationManager;
+    private LocationListener locationListener;
 
 
     public LocalLocationManager(Context ctx, Integer updateRate) {
@@ -32,11 +34,11 @@ public class LocalLocationManager {
      * Registers the Instance for Location Updates
      */
     private void getLocationManager() {
-        LocationManager locationManager = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
+        locationManager = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
 
         /* Listener for location Updates
          */
-        LocationListener locationListener = new LocationListener() {
+        locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
                 handleNewLocation(location);
             }
@@ -165,6 +167,10 @@ public class LocalLocationManager {
      */
     public boolean movementAvailable() {
         return (currentLocationInfo != null && currentLocationInfo.start != null && currentLocationInfo.end != null && currentLocationInfo.start.getTime() < currentLocationInfo.end.getTime());
+    }
+
+    public void close(){
+        locationManager.removeUpdates(locationListener);
     }
 
 

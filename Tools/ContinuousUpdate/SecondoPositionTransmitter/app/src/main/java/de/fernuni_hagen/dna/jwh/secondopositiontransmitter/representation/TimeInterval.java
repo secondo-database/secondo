@@ -8,10 +8,14 @@ import java.util.Date;
  *
  */
 public class TimeInterval extends NLRepresentation {
+	@Order(pos = 0)
 	public Date i1;
+	@Order(pos = 1)
 	public Date i2;
-	public Boolean j1closed;
-	public Boolean j2closed;
+	@Order(pos = 2)
+	public Boolean i1closed;
+	@Order(pos = 3)
+	public Boolean i2closed;
 	
 	public TimeInterval() {
 	}
@@ -27,7 +31,7 @@ public class TimeInterval extends NLRepresentation {
 	
 	@Override
 	public boolean isValid() {
-		if(i1.before(i2) && j1closed != null && j2closed != null){
+		if(i1.before(i2) && i1closed != null && i2closed != null){
 			return true;
 		}else{
 			return false;

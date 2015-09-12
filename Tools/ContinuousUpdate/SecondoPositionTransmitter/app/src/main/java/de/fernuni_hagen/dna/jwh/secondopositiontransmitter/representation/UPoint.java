@@ -6,10 +6,15 @@ package de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation;
  *
  */
 public class UPoint extends NLRepresentation {
+	@Order(pos = 0)
 	public TimeInterval interval;
+	@Order(pos = 1)
 	public Double x1;
+	@Order(pos = 2)
 	public Double x2;
+	@Order(pos = 3)
 	public Double y1;
+	@Order(pos = 4)
 	public Double y2;
 	
 	public UPoint() {

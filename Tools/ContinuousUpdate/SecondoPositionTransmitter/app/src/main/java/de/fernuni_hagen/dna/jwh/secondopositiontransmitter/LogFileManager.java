@@ -43,7 +43,9 @@ public class LogFileManager {
         try {
             if(writeable) {
                 fileWriter.write(text + "\n");
-                fileWriter.flush();
+                Log.e(this.getClass().getSimpleName(), text + "\n");
+                        fileWriter.flush();
+                Log.d(LogFileManager.class.getSimpleName(), text);
             }else{
                 Log.d(LogFileManager.class.getSimpleName(), "File no longer writable");
                             }
