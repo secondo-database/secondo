@@ -33,7 +33,7 @@ using namespace std;
 #include "MainMemory.h"
 namespace mmalgebra {
 
-extern MemCatalog catalog;
+extern MemCatalog* catalog;
 
 
 MemCatalog::~MemCatalog(){
@@ -86,6 +86,7 @@ bool MemCatalog::deleteObject (const string& name){
      }
     return false;
 }
+
 
 void MemCatalog::clear (){
     map<string,MemoryObject*>::iterator it;
@@ -160,28 +161,27 @@ bool MemoryObject::hasflob(){
 }
 
 
-//void MemoryObject::setObjectTypeExpr(string oTE){
-//    objectTypeExpr=oTE;
-//};
-
 
 
 // MEMORYRELOBJECT
 
-MemoryRelObject::MemoryRelObject(){};
+MemoryRelObject::MemoryRelObject(){
+};
+
 MemoryRelObject::MemoryRelObject(vector<Tuple*>* _mmrel,
                 unsigned long _memSize, string _objectTypeExpr, bool _flob,
                 string _database){
-        mmrel = _mmrel;
-        memSize = _memSize;
-        objectTypeExpr = _objectTypeExpr;
-        flob = _flob;
-        database = _database;
+    mmrel = _mmrel;
+    memSize = _memSize;
+    objectTypeExpr = _objectTypeExpr;
+    flob = _flob;
+    database = _database;
 };
+
 MemoryRelObject::MemoryRelObject (string _objectTypeExpr){
-        objectTypeExpr = _objectTypeExpr;
-        mmrel = 0;
-        memSize = 0;
+    objectTypeExpr = _objectTypeExpr;
+    mmrel = 0;
+    memSize = 0;
 };
 
 MemoryRelObject::~MemoryRelObject(){
@@ -196,48 +196,37 @@ MemoryRelObject::~MemoryRelObject(){
     delete mmrel;
     }
 }
+
 vector<Tuple*>* MemoryRelObject::getmmrel(){
     return mmrel;
-};
-
-void MemoryRelObject::setmmrel(vector<Tuple*>* _mmrel){
-    mmrel = _mmrel;
-};
-
-
+}
 
 void MemoryRelObject::addTuple(Tuple* tup){
-
     if(mmrel==0){
-    mmrel = new vector<Tuple*>();
+        mmrel = new vector<Tuple*>();
     }
 
     size_t tupleSize = 0;
     tupleSize = tup->GetMemSize();
     unsigned long availableMemSize =
-            (catalog.getMemSizeTotal()*1024*1024)-catalog.getUsedMemSize();
+            catalog->getAvailabeMemSize();
     if ((size_t)tupleSize<availableMemSize){
-                mmrel->push_back(tup);
-                memSize += tupleSize;
-
-            //Die usedMemSize des Katalogs wird noch nicht angepasst!!
-            // soll das immer neu berechnet werden??
-             //   catalog->usedMemSize += tupleSize;
-
-           }
+        mmrel->push_back(tup);
+        memSize += tupleSize;
+        catalog->addToUsedMemSize(tupleSize);
+    }
     else{
-    cout<< "the memSize is not enough, the object"
-    "is usable but not complete"<<endl;
-                                                }
+        cout<< "the memSize is not enough, the object"
+        "is usable but not complete"<<endl;
+    }
 }
 
 ListExpr MemoryRelObject::toListExpr(){
+
     int vectorSize = mmrel->size();
     ListExpr typeListExpr = 0;
     string typeString = objectTypeExpr;
     nl->ReadFromString(typeString, typeListExpr);
-    //speichere ich insgesamt falsche objectTypeExpr????
-    //ohne folgende Zeile Fehler in der Tupel out Methode
     ListExpr oTE = nl->OneElemList(typeListExpr);
     Tuple* t = mmrel->at(0);
     ListExpr li=nl->OneElemList(t->Out(oTE));
@@ -246,24 +235,13 @@ ListExpr MemoryRelObject::toListExpr(){
         t=mmrel->at(i);
         last = nl->Append(last, t->Out(oTE));
     }
-//    ListExpr memoryObjectdescription = nl->TwoElemList(nl->SymbolAtom
-//                    (MemoryRelObject::BasicType()), typeListExpr);
-    ListExpr memoryObjectdescription = nl->TwoElemList(nl->SymbolAtom
-                        (Relation::BasicType()), typeListExpr);
-
-    return nl->TwoElemList(memoryObjectdescription, li);
+    return li;
 };
 
-
-
- Word MemoryRelObject::In( const ListExpr typeInfo, const ListExpr instance,
+Word MemoryRelObject::In( const ListExpr typeInfo, const ListExpr instance,
                        const int errorPos, ListExpr& errorInfo,
                         bool& correct ){
-cout<<"Start MemoryRelObject::in"<<endl;
-    // ToDO list is correct?
-
     Word result;
-
     correct = true;
     Tuple* tup;
     ListExpr tupleList;
@@ -273,13 +251,10 @@ cout<<"Start MemoryRelObject::in"<<endl;
     bool tupleCorrect;
     MemoryRelObject* mmrelObj =
             new MemoryRelObject(nl->ToString(nl->Second(typeInfo)));
-
-
     tupleList = instance;
     tupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
         nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
     tupleno = 0;
-
     while (!nl->IsEmpty(tupleList)){
         first = nl->First(tupleList);
         tupleList = nl->Rest(tupleList);
@@ -289,30 +264,26 @@ cout<<"Start MemoryRelObject::in"<<endl;
 
         if (tupleCorrect){
             mmrelObj->addTuple(tup);
-
-           // tup->DeleteIfAllowed();             ????????????
-    //        count++;
         }
         else {
             correct = false;
         }
     }
-
     if(!correct){
         result = SetWord(Address(0));
     } else {
-
         result.addr = mmrelObj;
     }
-    cout<<"Ende MemoryRelObject::in"<<endl;
     return result;
 }
 
 
 ListExpr MemoryRelObject::Out( ListExpr typeInfo, Word value ){
     MemoryRelObject* memRel = static_cast<MemoryRelObject*>( value.addr );
+    if (memRel->getmmrel()==0){
+    return 0;
+    }
     return memRel->toListExpr();
-
 };
 
 bool MemoryRelObject::KindCheck( ListExpr type, ListExpr& errorInfo )
@@ -330,17 +301,57 @@ const bool MemoryRelObject::checkType(const ListExpr type){
         (nl ->IsEqual(first,BasicType())));
         }
 
-
 Word MemoryRelObject::create(const ListExpr typeInfo) {
-    //muss eventuell Second(typeInfo) sein??
     MemoryRelObject* mmrelObject = new MemoryRelObject
         ( nl->ToString(nl->Second(typeInfo)));
     return (SetWord(mmrelObject));
 }
 
+bool MemoryRelObject::Save(SmiRecord& valueRecord, size_t& offset,
+                            const ListExpr typeInfo, Word& value){
+
+    size_t size = sizeof(int);
+    int v = 7;
+    bool ok = valueRecord.Write(&v, size, offset);
+    offset += size;
+    return ok;
+};
+
+bool MemoryRelObject::Open (SmiRecord& valueRecord, size_t& offset,
+                            const ListExpr typeInfo, Word& value){
+    int i;
+    size_t size = sizeof(int);
+    bool ok = valueRecord.Read(&i, size, offset);
+    offset += size;
+    if(ok){
+        value.addr = new MemoryRelObject();
+    } else {
+        value.addr = 0;
+    }
+    return ok;
+};
+
+void MemoryRelObject::Close (const ListExpr typeInfo, Word& w){
+    MemoryRelObject *k = (MemoryRelObject *)w.addr;
+    delete k;
+    w.addr = 0;
+};
+
+Word MemoryRelObject::Clone (const ListExpr typeInfo, const Word& w){
+    MemoryRelObject* m = (MemoryRelObject*) w.addr;
+    MemoryRelObject* n = m;
+    Word res;
+    res.addr = n;
+    return res;
+};
+
+void* MemoryRelObject::Cast (void* addr){
+    return (new (addr) MemoryRelObject);
+};
+
 int MemoryRelObject::SizeOfObj(){
 
-    return 1111111111;
+    return sizeof(int);
 };
 
 void MemoryRelObject::deleteMemoryRelObject(const ListExpr typeInfo, Word& w){
@@ -349,7 +360,7 @@ void MemoryRelObject::deleteMemoryRelObject(const ListExpr typeInfo, Word& w){
     w.addr = 0;
 };
 
-//nochmal!!!
+
 ListExpr MemoryRelObject::Property(){
     return (nl->TwoElemList (
         nl->FourElemList (
@@ -360,8 +371,8 @@ ListExpr MemoryRelObject::Property(){
         nl->FourElemList (
             nl->StringAtom("-> SIMPLE"),
             nl->StringAtom(MemoryRelObject::BasicType()),
-            nl->StringAtom("List of tuples"),
-            nl->StringAtom(("Meyer, 7"),("Muller, 5"))
+            nl->StringAtom("(<tuple>*)where <tuple> is (<attr1>...<attrn>)"),
+            nl->StringAtom("((\"Meyer\" 7),(\"Muller\" 5))")
             )));
 }
 
@@ -382,39 +393,14 @@ MemoryAttributeObject::MemoryAttributeObject(Attribute* _attr,
 }
 
 MemoryAttributeObject::~MemoryAttributeObject(){
-
-cout<<"Destruktor von MemoryAttributObject"<<endl;
-
+attributeObject->DeleteIfAllowed();
 }
 
 
-void MemoryAttributeObject::setAttributeObject(Attribute* attr){
-            attributeObject=attr;
-        }
 Attribute* MemoryAttributeObject::getAttributeObject(){
         return attributeObject;
 }
 
-
-MemoryRtreeObject::MemoryRtreeObject(){};
-MemoryRtreeObject::MemoryRtreeObject (mmrtree::RtreeT<2, size_t>* _rtree,
-            size_t _memSize, string _objectTypeExpr){
-
-    rtree = _rtree;
-    memSize = _memSize;
-    objectTypeExpr =_objectTypeExpr;
-};
-MemoryRtreeObject::~MemoryRtreeObject(){
-cout<<"Destruktor von MemoryRtreeObject"<<endl;
-}
-
-void MemoryRtreeObject::setRtree(mmrtree::RtreeT<2, size_t>* _rtree){
-            rtree=_rtree;
-        }
-
-mmrtree::RtreeT<2, size_t>* MemoryRtreeObject::getrtree(){
-        return rtree;
-}
 
 MemoryAVLObject::MemoryAVLObject(){};
 MemoryAVLObject::MemoryAVLObject( avltree::AVLTree< pair<Attribute*,size_t>,
@@ -427,7 +413,9 @@ MemoryAVLObject::MemoryAVLObject( avltree::AVLTree< pair<Attribute*,size_t>,
             keyType = _keyType;
             };
 MemoryAVLObject::~MemoryAVLObject(){
-cout<<"Destruktor von MemoryAVLObject"<<endl;
+    if (tree){
+        delete tree;
+    }
 }
 
 avltree::AVLTree< pair<Attribute*,size_t>,KeyComparator >*
