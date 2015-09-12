@@ -1,4 +1,4 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -8,7 +8,8 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity">
 
-    <GridLayout
+    <GridLayout android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
         android:id="@+id/gridLayout"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
@@ -186,23 +187,22 @@
             android:text="@string/logging_title"
             android:textAppearance="?android:attr/textAppearanceMedium" />
 
-    </GridLayout>
-
-    <ScrollView
-        android:id="@+id/scrollView"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_below="@+id/gridLayout">
-
-        <TextView
-            android:id="@+id/textViewLogging"
+        <ScrollView
+            android:id="@+id/scrollView"
             android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:singleLine="false"
-            android:textAppearance="?android:attr/textAppearanceSmall" />
-    </ScrollView>
+            android:layout_height="fill_parent"
+            android:layout_column="0"
+            android:layout_columnSpan="2"
+            android:layout_row="10">
 
-</RelativeLayout>
+            <TextView
+                android:id="@+id/textViewLogging"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="false"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+        </ScrollView>
+
+    </GridLayout>
+</ScrollView>
 <!-- From: file:/C:/Users/Jerome/Dropbox/Source/secondo/Tools/ContinuousUpdate/SecondoPositionTransmitter/app/src/main/res/layout/activity_main.xml -->

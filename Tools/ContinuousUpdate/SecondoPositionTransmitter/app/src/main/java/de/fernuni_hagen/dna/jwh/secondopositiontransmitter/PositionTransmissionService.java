@@ -191,12 +191,12 @@ public class PositionTransmissionService extends Service {
         position.Position.x1 = info.start.getLongitude();
         position.Position.y1 = info.start.getLatitude();
         position.Position.interval.i1 = new Date(info.start.getTime());
-        position.Position.interval.i1closed = true;
+        position.Position.interval.j1closed = true;
 
         position.Position.x2 = info.end.getLongitude();
         position.Position.y2 = info.end.getLatitude();
         position.Position.interval.i2 = new Date(info.end.getTime());
-        position.Position.interval.i2closed = false;
+        position.Position.interval.j2closed = false;
     }
 
     /**

@@ -21,7 +21,7 @@ public class LogFileManager {
         }
 
         if(writeable){
-            File logfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath(), "positiontrnasmitter.log");
+            File logfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath(), "Positiontransmitter.log");
             try {
                 fileWriter = new FileWriter(logfile, true);
             } catch (IOException e) {
@@ -42,9 +42,8 @@ public class LogFileManager {
     public void write(String text){
         try {
             if(writeable) {
-                fileWriter.write(text);
+                fileWriter.write(text + "\n");
                 fileWriter.flush();
-                Log.d(LogFileManager.class.getSimpleName(), text);
             }else{
                 Log.d(LogFileManager.class.getSimpleName(), "File no longer writable");
                             }

@@ -3,7 +3,11 @@ package de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation;
 import android.util.Log;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Abstract Class which must be extended by all Secondo-Representation-Objects
@@ -23,10 +27,19 @@ public abstract class NLRepresentation {
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
+
+		List<Field> list = Arrays.asList(this.getClass().getDeclaredFields());
+		Collections.sort( list, new Comparator<Field>( ){
+			@Override
+			public int compare(Field lhs, Field rhs) {
+				return lhs.getName().compareTo(rhs.getName());
+			}
+		} );
+
 		// open NestedList
 		sb.append("(");
 
-		for (Field field : this.getClass().getDeclaredFields()) {
+		for (Field field : list) {
 			try {
 
 				switch (field.getType().getSimpleName()) {
