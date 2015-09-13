@@ -249,7 +249,6 @@ public class PositionTransmissionService extends Service {
             }, new Response.ErrorListener() {
                 @Override
                 public void onErrorResponse(VolleyError error) {
-                    Log.e("RESPONSE-ERROR", error.toString());
                     sendMessage("-!- Transfer error -!-");
                 }
             }) {

@@ -61,7 +61,7 @@ public class DatabaseManager extends SQLiteOpenHelper {
         ArrayList<String> array_list = new ArrayList<String>();
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res = db.rawQuery("select * from log order by datetime(time) asc", null);
+        Cursor res = db.rawQuery("select * from log order by datetime(time) desc", null);
         res.moveToFirst();
 
         while (res.isAfterLast() == false) {
@@ -77,6 +77,6 @@ public class DatabaseManager extends SQLiteOpenHelper {
      */
     public void deleteOld(Integer keep) {
         SQLiteDatabase db = this.getWritableDatabase();
-        Log.i(getClass().getSimpleName(), "Deleted: " + db.delete("log", "time not in (select time from log order by datetime(time) asc limit ?)", new String[]{keep.toString()}));
+        Log.i(getClass().getSimpleName(), "Deleted: " + db.delete("log", "time not in (select time from log order by datetime(time) desc limit ?)", new String[]{keep.toString()}));
     }
 }
