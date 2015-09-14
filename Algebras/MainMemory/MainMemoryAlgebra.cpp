@@ -441,9 +441,11 @@ int meminitValMap (Word* args, Word& result,
         cout<< "the size must be >0"<<endl;
         res=catalog->getMemSizeTotal();
     }
-    else if ((size_t)newMainMemorySize<(catalog->getUsedMemSize()/1024/1024)){
-            res = (catalog->getUsedMemSize()/1024/1024)+1;
-            catalog->setMemSizeTotal(catalog->getUsedMemSize()/1024/1024+1);
+    else if ((double)newMainMemorySize <
+                    (catalog->getUsedMemSize()/1024.0/1024.0)){
+            res = (catalog->getUsedMemSize()/1024.0/1024.0)+1;
+            catalog->setMemSizeTotal
+                        (catalog->getUsedMemSize()/1024.0/1024.0+1);
         }
     else if (newMainMemorySize>maxSystemMainMemory){
             res = maxSystemMainMemory;
@@ -1128,7 +1130,7 @@ class memgetcatalogInfo{
             objTyp = MemoryRelObject::BasicType();
         }
         if (listutils::isDATA(objectType)){
-            objTyp = MemoryAttributeObject::BasicType();
+            objTyp = "memoryAttributeObject";
         }
         if (nl->ToString(objectType)=="memoryRtreeObject"){
                 objTyp = "memoryRtreeObject";
@@ -1686,29 +1688,21 @@ bool mcreateRtree(MemoryRelObject* mmrel, int attrPos, string rtreeName){
             return 0;
         }
         Rectangle<dim> box = attr->BoundingBox();
-
-
-        if ((sizeof(Rectangle<dim>)+4)<availableMemSize){
-
         rtree->insert(box, i);
         it++;
         i++;
-
-        usedMainMemory += sizeof(Rectangle<dim>)+4;
-        availableMemSize -= sizeof(Rectangle<dim>)+4;
-
-        }
     } // end while
 
-   int rusedMainMemory = rtree->usedMem();
-   cout<<"Größe RTree selber: "<<usedMainMemory<<endl;
-   cout<<"Größe RTree rtree->usedMem(): "<<rusedMainMemory<<endl;
-
+    usedMainMemory = rtree->usedMem();
     MemoryRtreeObject<dim>* mmRtreeObject =
         new MemoryRtreeObject<dim>(rtree, usedMainMemory,
                         "memoryRtreeObject", flob, database);
 
-    if (catalog->insert(rtreeName,mmRtreeObject)){
+    if (usedMainMemory>availableMemSize){
+        cout<<"there is not enough memory left to create the rtree";
+    }
+    if (catalog->insert(rtreeName,mmRtreeObject)
+                    && usedMainMemory<=availableMemSize){
         return true;
     }else {
        delete mmRtreeObject;
@@ -2142,11 +2136,6 @@ ListExpr mwindowintersectsTypeMap(ListExpr args)
   ListExpr memoryRelDescription = nl->Second(args);
   ListExpr searchWindow = nl->Third(args);
 
-  // first must be an rtree<dim>
-//  if(!listutils::isRTreeDescription(rtreeDescription)){
-//    return listutils::typeError("Expects 1st argument to be of type "
-//                                "'rtree<dim>(<tuple-type>,bool)'.");
-//  }
 
     if (!CcString::checkType(nl->First(memoryRtreeDescription))) {
         return listutils::typeError("string as first argument expected");
@@ -2154,8 +2143,13 @@ ListExpr mwindowintersectsTypeMap(ListExpr args)
     string oN_Rtree = nl->StringValue(nl->Second(memoryRtreeDescription));
     ListExpr oTE_Rtree = catalog->getMMObjectTypeExpr(oN_Rtree);
 
+//    if (!catalog->isMMObject(oN_Rtree) ||
+//            !MemoryRtreeObject<2>::checkType(oTE_Rtree)){
+//        return listutils::typeError
+//                ("first string does not identify a MemoryRTreeObject");
+//    }
     if (!catalog->isMMObject(oN_Rtree) ||
-            !MemoryRtreeObject<2>::checkType(oTE_Rtree)){
+            !(nl->ToString(oTE_Rtree)=="memoryRtreeObject")){
         return listutils::typeError
                 ("first string does not identify a MemoryRTreeObject");
     }
@@ -2175,7 +2169,6 @@ ListExpr mwindowintersectsTypeMap(ListExpr args)
         return listutils::typeError
                 ("MemoryRelObject is not accessible");
     }
-
 
   // third a type with an MBR
   if(!(    listutils::isSpatialType(nl->First(searchWindow))
@@ -3264,7 +3257,7 @@ TypeConstructor MemoryRelObjectTC(
     MemoryRelObject::Out, MemoryRelObject::In,          // out und in functions
     0, 0,                             // SaveToList, RestoreFromList functions
     // object creation and deletion create und delete
-    MemoryRelObject::create,MemoryRelObject::deleteMemoryRelObject,
+    MemoryRelObject::create,MemoryRelObject::Delete,
     MemoryRelObject::Open, MemoryRelObject::Save,        // object open, save
     MemoryRelObject::Close, MemoryRelObject::Clone,      // close and clone
     MemoryRelObject::Cast,                                // cast function

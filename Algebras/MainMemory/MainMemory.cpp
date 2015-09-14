@@ -354,7 +354,7 @@ int MemoryRelObject::SizeOfObj(){
     return sizeof(int);
 };
 
-void MemoryRelObject::deleteMemoryRelObject(const ListExpr typeInfo, Word& w){
+void MemoryRelObject::Delete(const ListExpr typeInfo, Word& w){
     MemoryRelObject* memRelO = (MemoryRelObject*)w.addr;
     delete memRelO;
     w.addr = 0;

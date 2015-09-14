@@ -155,7 +155,7 @@ class MemoryRelObject : public MemoryObject {
 
         static int SizeOfObj();
 
-        static void deleteMemoryRelObject(const ListExpr typeInfo, Word& w);
+        static void Delete(const ListExpr typeInfo, Word& w);
 
         static ListExpr Property();
 
@@ -178,8 +178,6 @@ class MemoryAttributeObject : public MemoryObject {
         ~MemoryAttributeObject();
 
         Attribute* getAttributeObject();
-
-        static const string BasicType() { return "memoryAttributeObject"; }
 
     private:
          Attribute* attributeObject;
@@ -210,21 +208,9 @@ class MemoryRtreeObject : public MemoryObject {
             }
         };
 
-
-        void setRtree (mmrtree::RtreeT<dim, size_t>* _rtree){
-            rtree=_rtree;
-        };
-
         mmrtree::RtreeT<dim, size_t>* getrtree(){
             return rtree;
         };
-
-        static const string BasicType() { return "memoryRtreeObject"; }
-
-        static const bool checkType(const ListExpr type){
-            return (nl->ToString(type)==BasicType());
-        }
-
 
     private:
          mmrtree::RtreeT<dim, size_t>* rtree;
