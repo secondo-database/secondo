@@ -1871,7 +1871,7 @@ Split an dblp file in noSplitFiles files
     }
 
     // write content
-    while (aFile.tellg() <= bytes_per_file * (i + 1)) {
+    while (aFile.tellg() <= (int) (bytes_per_file * (i + 1))) {
       getline(aFile,line);
       outputFile << line << endl;
     } 
