@@ -750,7 +750,7 @@ ReadList(const string& endTag, ListExpr& resultList,
   string result = "";
   bool success = false;
   if ( !RTFlag::isActive("Server:BinaryTransfer") ) { 
-    dwriter.write(debug, cout, caller, callerID, "itextual list transfer");
+    dwriter.write(debug, cout, caller, callerID, "textual list transfer");
     // textual data transfer
     do {
       getline( iosock, line );
