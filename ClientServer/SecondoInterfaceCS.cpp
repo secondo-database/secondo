@@ -82,7 +82,7 @@ bool
 SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                               const string& host, const string& port,
                               string& parmFile, string& errorMsg,
-                              const bool multiUser )
+                              const bool multiUser)
 {
   string secHost = host;
   string secPort = port;
@@ -93,7 +93,9 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
     cout << "Initializing the Secondo system ..." << endl;
 
     // initialize runtime flags
-    InitRTFlags(parmFile);
+    if(RTFlag::empty()){
+       InitRTFlags(parmFile);
+    }
 
     
     debugSecondoMethod = RTFlag::isActive("SI:DebugSecondoMethod");

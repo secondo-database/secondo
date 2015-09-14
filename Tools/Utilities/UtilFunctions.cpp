@@ -260,8 +260,6 @@ StopWatch::diffTimes() {
 
 */
 
-map<string,bool>::iterator RTFlag::it;
-
 map<string,bool> RTFlag::flagMap;
 
 
@@ -272,6 +270,7 @@ RTFlag::showActiveFlags(ostream& os) {
   if ( flagMap.size() == 0 ) {
     os << "  -none- " << endl;
   }
+  map<string,bool>::iterator it;
   for ( it = flagMap.begin(); it != flagMap.end(); it++ ) {
     os << "  -" << it->first << "-" << endl;
   }
@@ -319,6 +318,7 @@ RTFlag::initByString( const string &keyList ) {
 bool
 RTFlag::isActive( const string& key ) {
 
+  map<string,bool>::iterator it;
   if ( (it=flagMap.find( key )) != flagMap.end() ) {
 
     return it->second;
@@ -332,8 +332,8 @@ RTFlag::isActive( const string& key ) {
 void
 RTFlag::setFlag( const string& key, const bool value ) {
 
+  map<string,bool>::iterator it;
   if ( (it=flagMap.find( key )) != flagMap.end() ) {
-
     it->second = value;
   }
   else {

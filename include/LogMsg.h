@@ -142,13 +142,15 @@ public:
 
   static void setFlag( const string& key, const bool value );
 
+  static bool empty() {
+     return flagMap.empty();
+  }
+
 private:
 
   RTFlag(){}
   ~RTFlag(){}
-
   static map<string,bool> flagMap;
-  static map<string,bool>::iterator it;
 
 };
 
