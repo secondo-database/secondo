@@ -967,10 +967,10 @@ or send a number of files to every node.
     transferFileName = basePath + "/" + filePrefix + stringutils::int2str(i);
     destFileName = filePrefix + stringutils::int2str(i);
 
-    sendFileToNode(nodeNo, transferFileName + ".shp", destFileName 
-                   + ".shp", true);
-    sendFileToNode(nodeNo, transferFileName + ".dbf", destFileName 
-                   + ".dbf", true);
+    sendFileToNode(nodeNo, transferFileName + ".shp", 
+                   destFileName + ".shp", true);
+    sendFileToNode(nodeNo, transferFileName + ".dbf", 
+                   destFileName + ".dbf", true);
 
     // no special tread handling needed, because the threads only fill 
     // a new element into the array
@@ -1046,7 +1046,6 @@ bool
 SecondoInterfaceREPLAY::controllerTransferFile(const unsigned int noSplitFiles,
                                                const string& subFileName) {
 /*
-
 Controls sending of files to the nodes. The function can differentiate 
 between "Replication" - all files on all nodes - and partitioning, send only 
 part of the file to an node, so that every node has different files.
@@ -1097,17 +1096,15 @@ part of the file to an node, so that every node has different files.
 
 bool 
 SecondoInterfaceREPLAY::controllerTransferShapeFile(
-                          const unsigned int noSplitFiles,
-                          const string& subFileName) {
-  /*
+                            const unsigned int noSplitFiles,
+                            const string& subFileName) {
+/*
+Controls sending of files (ShapeFiles) to the nodes. The function can 
+differentiate between "Replication" - all files on all nodes - and 
+partitioning, send only part of the file to an node, so that every node
+ has different files.
 
-  Controls sending of files (ShapeFiles) to the nodes. The function can 
-  differentiate between "Replication" - all files on all nodes - and 
-  partitioning, send only part of the file to an node, so that every nodei
-   has different
-  files.
-
-  */
+*/
 
   bool futureRes;
   vector<std::future<bool>> futures;
@@ -1155,7 +1152,7 @@ SecondoInterfaceREPLAY::controllerTransferShapeFile(
 
 bool 
 SecondoInterfaceREPLAY::executeReplayOsmImport(std::vector<string>& paramlist,
-                                           const unsigned int noSplitFiles) {
+                                             const unsigned int noSplitFiles) {
 /*
 Execute of ReplayOsmImport.
 
@@ -1278,8 +1275,8 @@ Execute of ReplayOsmImport.
   cout << "Garbage collection from OSM-Import..." << endl;
   string filename;
   for (unsigned int i=0; i<noSplitFiles; ++i) {
-    filename = FileSystem::GetCurrentFolder() + "/" + subFileName + "_" 
-                                              + stringutils::int2str(i);
+    filename = FileSystem::GetCurrentFolder() + "/" 
+               + subFileName + "_" + stringutils::int2str(i);
     if (FileSystem::FileOrFolderExists(filename)) {
       FileSystem::DeleteFileOrFolder(filename);
     }
@@ -1427,7 +1424,7 @@ Execute of ReplayCSVImport.
 
     // use lower characters for subFileName
     std::transform(subFileName.begin(), subFileName.end(), 
-                    subFileName.begin(), ::tolower);
+                   subFileName.begin(), ::tolower);
   }
 
   // Split of full CSV file (on master)
@@ -1499,8 +1496,8 @@ Execute of ReplayCSVImport.
   // cleanup system from temp data (splitted files)
   string filename;
   for (unsigned int i=0; i<noSplitFiles; ++i) {
-    filename = FileSystem::GetCurrentFolder() + "/" + subFileName 
-               + "_" + stringutils::int2str(i);
+    filename = FileSystem::GetCurrentFolder() + "/" 
+               + subFileName + "_" + stringutils::int2str(i);
     if (FileSystem::FileOrFolderExists(filename)) {
       FileSystem::DeleteFileOrFolder(filename);
     }
@@ -1517,38 +1514,212 @@ SecondoInterfaceREPLAY::splitSHP(const std::string& filename,
 Split an shape file in noSplitFiles files (shp+dbf-File)
 
 */
-  // @TODO!!!
-  // Shapefile
-  // Header:
-  // 100 Byte (fix)
-  // Byte 24 des Headers - Größe der Datei
-  // Datensätze
-  // Variable Größe
-  // Header je Datensatz:
-  // 8 Byte (fix)
-  // Byte 4 des Headers des Datensatzes - Größe des Datensatzes
-  // 
-  // DBF-File
-  // Header: 32 Byte
-  // Field Descriptor: je Feld 32 Byte, maximal 15 Felder
-  // Abschluss Field Descriptor: Newline-Zeichen
-  // Einzelnen Datensätze in gesplittete Dateien übertragen
-  // Jeder Datensatz hat 102 Bytes
 
-  cout << "Split of shape file not implemented yet! You must split ";
-  cout << "the files manually before you execute the import!" << endl;
+  // Split of the Shape-File (shp)
+  const unsigned int shpHeaderSize = 100;
+
+  string errorMessage;
+  unsigned int bytesPerFile;
+
+  ofstream outfile;
+  fstream inoutfile;
+
+  char* header = new char[shpHeaderSize];
+  unsigned int writeBytes;
+  uint32_t recnumHeader;
+  uint32_t recnum;
+  uint32_t contLength;
+  uint32_t contLengthBin;
+  vector<unsigned int> recordsNode;
+
+  ifstream file(filename, ios::binary|ios::in);
+
+  if(!file.good()){
+     errorMessage = "problem in reading shp file";
+     cout << errorMessage << endl;
+     return false;
+  }
+
+  file.seekg(0,ios::end);
+  std::size_t flen = file.tellg();
+  if(flen < shpHeaderSize){
+     errorMessage = "not a valid shape file";
+     cout << errorMessage << endl;
+     file.close();
+     return false;
+  }
+
+  bytesPerFile = (flen - shpHeaderSize) / noSplitFiles;
+
+  file.seekg(0,ios::beg);
+
+  // split file in noSplitFiles
+  for (unsigned int i = 0; i < noSplitFiles; ++i) {
+    writeBytes = 0;
+    recnum = 1;
+    outfile.open(subFileName + "_" + stringutils::int2str(i) + ".shp",
+                  ios::binary|ios::out);
+  
+    if (i == 0) {
+      file.read(header, shpHeaderSize);
+    }
+    outfile.write(header, shpHeaderSize);
+
+    do {
+
+      file.read(reinterpret_cast<char*>(&recnumHeader), 4);
+      file.read(reinterpret_cast<char*>(&contLength), 4);
+      contLengthBin = contLength;
+      if (!file.eof()) { 
+        if (WinUnix::isLittleEndian()){
+          contLength = WinUnix::convertEndian(contLength) * 2;
+          recnumHeader = WinUnix::convertEndian(recnum);
+        } else {
+          contLength = contLength * 2;
+        }
+        // recnum begins with 1 in every splitted file, so recnum
+        // has to change
+        outfile.write(reinterpret_cast<char*>(&recnumHeader), 4);
+        outfile.write(reinterpret_cast<char*>(&contLengthBin), 4);
+      }
+      writeBytes += 8;
+
+      char* dataset = new char[contLength];
+      file.read(dataset, contLength);
+      if (!file.eof()) { 
+        outfile.write(dataset, contLength);
+        ++recnum;
+      }
+      writeBytes += contLength;
+
+      delete[] dataset;
+    } while (!file.eof() and writeBytes <= bytesPerFile);
+    outfile.close();
+    // save the number of records in splitted file, in dbase
+    // file there must be the same order
+    recordsNode.push_back(recnum - 1);
+  }
+
+  file.close();
+  delete[] header;
+
+  // change File Length in all Fileheader of splitted files
+  // to the correct size
+  uint32_t fileLength;
+  for (unsigned int i = 0; i < noSplitFiles; ++i) {
+    inoutfile.open(subFileName + "_" + stringutils::int2str(i), 
+                   ios::binary|ios::in|ios::out);
+    inoutfile.seekg(0,ios::end);
+    fileLength = inoutfile.tellg() / 2;
+    if (WinUnix::isLittleEndian()){
+      fileLength = WinUnix::convertEndian(fileLength);
+    }
+    inoutfile.seekg(24,ios::beg);    
+    inoutfile.write(reinterpret_cast<char*>(&fileLength), 4);
+    inoutfile.close();
+  }
+
+  // Split of the dBASE-File (dbf)
+  uint32_t noRecords_dbf;
+  uint16_t headerLength_dbf;
+  uint16_t recordSize_dbf;
+  uint16_t noAttributes_dbf;
+
+  string dbfFileName = filename.substr(0, filename.rfind(".shp")) + ".dbf";
+
+  ifstream file_dbf(dbfFileName, ios::binary|ios::in); 
+
+  file_dbf.seekg(0,ios::beg);
+  unsigned char code;
+  file_dbf.read(reinterpret_cast<char*>(&code),1);
+ 
+  if(!file_dbf.good() || ( (code!=3) && (code!=0x83) )) {
+     errorMessage = "problem in reading dbf file";
+     cout << errorMessage << endl;
+     return false;
+  }
+
+  file_dbf.seekg(4,ios::beg);
+  file_dbf.read(reinterpret_cast<char*>(&noRecords_dbf),4);
+  file_dbf.read(reinterpret_cast<char*>(&headerLength_dbf),2);
+  file_dbf.read(reinterpret_cast<char*>(&recordSize_dbf),2);
+
+  if(!WinUnix::isLittleEndian()) {
+    noRecords_dbf = WinUnix::convertEndian(noRecords_dbf);
+    headerLength_dbf = WinUnix::convertEndian(headerLength_dbf);
+    recordSize_dbf = WinUnix::convertEndian(recordSize_dbf);
+  }
+
+  if ( (headerLength_dbf-1) % 32  != 0) {
+    errorMessage = "invalid length for the header (" 
+                   + stringutils::int2str(headerLength_dbf) + ")";
+    cout << errorMessage << endl;
+    file_dbf.close();
+    return false;
+  }
+
+  noAttributes_dbf = (headerLength_dbf - 32) / 32;
+  if (noAttributes_dbf < 1) {
+    errorMessage = "numer of attributes invalid(" 
+                   + stringutils::int2str(noAttributes_dbf) + ")";
+    cout << errorMessage << endl;
+    file_dbf.close();
+    return false;
+  }
+
+  char* header_dbf = new char[headerLength_dbf];
+  for (unsigned int i = 0; i < recordsNode.size(); ++i) {
+    ofstream outfile_dbf;
+    fstream inoutfile_dbf;
+
+    outfile_dbf.open(subFileName + "_" + stringutils::int2str(i) + ".dbf",
+                      ios::binary|ios::out);
+
+    // read header and store it in local variable, nedded in every file
+    if (i == 0) {
+      file_dbf.seekg(0,ios::beg);
+      file_dbf.read(header_dbf, headerLength_dbf);
+    }
+    outfile_dbf.write(header_dbf, headerLength_dbf);
+
+    // get the same records as in correspending shp-File
+    for (unsigned int j = 0; j < recordsNode[i]; ++j) {
+      char* record_dbf = new char[recordSize_dbf];
+      file_dbf.read(record_dbf, recordSize_dbf);
+      outfile_dbf.write(record_dbf, recordSize_dbf);
+      delete[] record_dbf;
+    }
+
+    outfile_dbf.close();
+  }
+
+  // change recordSize to the new value in every file
+  fstream inoutfile_dbf;
+  for (unsigned int i = 0; i < recordsNode.size(); ++i) {
+
+    inoutfile_dbf.open(subFileName + "_" + stringutils::int2str(i) + ".dbf",
+                        ios::binary|ios::in|ios::out);
+    noRecords_dbf = recordsNode[i];
+
+    if (!WinUnix::isLittleEndian()) {
+      noRecords_dbf = WinUnix::convertEndian(noRecords_dbf);
+    }
+    inoutfile_dbf.seekg(4,ios::beg);    
+    inoutfile_dbf.write(reinterpret_cast<char*>(&noRecords_dbf), 4);
+    inoutfile_dbf.close();
+  } 
 
   return true;
 }
 
 bool
 SecondoInterfaceREPLAY::executeReplaySHPImport(std::vector<string>& paramlist,
-                                            const unsigned int noSplitFiles) {
+                                             const unsigned int noSplitFiles) {
 /*
 Execute of ReplaySHPImport.
 
-1) Split an SHP-File
-2) Transfer the splitted SHP-Files to the nodes
+1) Split an SHP-File/DBF-File
+2) Transfer the splitted SHP/DBF-Files to the nodes
 3) Import these files on the nodes
 4) Garbage Collection for temporary objects
 
@@ -1578,7 +1749,7 @@ Execute of ReplaySHPImport.
   }
 
   // Split of full SHP file (on master)
-  cout << endl << "Splitting SHP file ...TODO..." << endl;
+  cout << endl << "Splitting SHP file..." << endl;
   splitSHP(paramlist[0], subFileName, noSplitFiles);
 
   // Transfer files to nodes
@@ -1646,8 +1817,8 @@ Execute of ReplaySHPImport.
 
   string filename;
   for (unsigned int i=0; i<noSplitFiles; ++i) {
-    filename = FileSystem::GetCurrentFolder() + "/" + subFileName + "_" 
-               + stringutils::int2str(i) + ".shp";
+    filename = FileSystem::GetCurrentFolder() + "/" + subFileName 
+               + "_" + stringutils::int2str(i) + ".shp";
     if (FileSystem::FileOrFolderExists(filename)) {
       FileSystem::DeleteFileOrFolder(filename);
     }
@@ -1725,7 +1896,7 @@ Split an dblp file in noSplitFiles files
 
 bool
 SecondoInterfaceREPLAY::executeReplayDBLPImport(std::vector<string>& paramlist,
-                                           const unsigned int noSplitFiles) {
+                                            const unsigned int noSplitFiles) {
 /*
 Execute of ReplayDBLPImport.
 
@@ -1789,9 +1960,8 @@ Execute of ReplayDBLPImport.
   }
 
   // @TODO: Import -> keine Algebra vorhanden, unter tools/converter 
-  // gibt es jedoch ein Beispiel auf nicht
-  // Algebra Basis. Hier müsste man prüfen, ob man dies irgendwie 
-  // verwenden könnte.
+  // gibt es jedoch ein Beispiel auf nicht Algebra Basis. Hier müsste
+  //  man prüfen, ob man dies irgendwie verwenden könnte.
 
   return true;
 }
@@ -1813,11 +1983,12 @@ transfer it to the node and restore (import) it
   outputFile.open(relFileName);
   outputFile << relDesc << endl;
   outputFile.close();
-  sendFileToNode(nodeNo, FileSystem::GetCurrentFolder() + "/" 
-                + relFileName, relFileName, true);
+  sendFileToNode(nodeNo, FileSystem::GetCurrentFolder() + "/" + relFileName,
+                  relFileName, true);
 
   string cmdText = "restore " + relName + " from '" 
-                   + getNodeLastSendFilePath(nodeNo) + "/" + relFileName + "'";
+                   + getNodeLastSendFilePath(nodeNo) 
+                   + "/" + relFileName + "'"; 
  
   sendCommandToNode(nodeNo, 1, cmdText);
 
@@ -1948,13 +2119,14 @@ Execute of ReplayIMGImport.
     found = currentFilePath.rfind("/");
     filename = currentFilePath.substr(found + 1);
     relObject = "";
-    relObject = relObject + "  ( <text>" + currentFilePath + "</text--->\n";
-    relObject = relObject + "    ( \"" + filename + "\" \n";
-    relObject = relObject + "      \"" + currentDate + "\" \n";
-    relObject = relObject + "      \"unknown\"\n";
-    relObject = relObject + "      TRUE \n";
-    relObject = relObject + "      <file>" + currentFilePath + "</file--->) \n";
-    relObject = relObject + "  ) \n";
+    relObject = relObject + "   ( <text>" + currentFilePath + "</text--->\n";
+    relObject = relObject + "     ( \"" + filename + "\" \n";
+    relObject = relObject + "       \"" + currentDate + "\" \n";
+    relObject = relObject + "       \"unknown\"\n";
+    relObject = relObject + "       TRUE \n";
+    relObject = relObject + "       <file>" + currentFilePath 
+                + "</file--->) \n";
+    relObject = relObject + "   ) \n";
     relation[currentNode] = relation[currentNode] + relObject; 
   }
 
@@ -2353,8 +2525,8 @@ For an explanation of the error codes refer to SecondoInterface.h
       // Commands:
       // If import do replication or partitioning on the nodes is specified
       // in SecondoConfig.ini (ReplayModus)
-      // Can overwritten with every replayImportCommand with an optional 
-      // last parameter
+      // Can overwritten with every replayImportCommand with an optional last
+      //  parameter
       // Parameter value: Replication or Partitioning
 
       // replayOSMImport(filename[,replayImportMode])
@@ -2362,8 +2534,8 @@ For an explanation of the error codes refer to SecondoInterface.h
       //                 multiline[,replayImportMode])
       // replaySHPImport(filename[,replayImportMode])
       // replayDBLPImport(filename[,replayImportMode])
-      // replayIMGImport(startDirectory, recursiveLevel, 
-      // relationName [,replayImportMode])
+      // replayIMGImport(startDirectory, recursiveLevel, relationName
+      //  [,replayImportMode])
        
       // Parse params and save it in param list array
       paramsOK = getReplayImportPrmList(paramlist, cmdText);   
