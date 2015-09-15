@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TTYParameter.h"
 #include "FileSystem.h"
 #include "LogMsg.h"
+#include "WinUnix.h"
 
 using namespace std;
 
@@ -406,6 +407,7 @@ TTYParameter::CheckConfiguration()
   else
   {
     cmsg.info() << "Using configuration file" << parmFile << endl; 
+    WinUnix::setenv("SECONDO_CONFIG", parmFile.c_str());
   } 
   cmsg.send();
 

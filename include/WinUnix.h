@@ -50,6 +50,8 @@ public:
    static int getPageSize( void );
    static int getpid( void );
 
+   static void setenv(const char *name, const char *value);
+
    static inline bool isLittleEndian() { return *(char *)&endian_detect == 1;}
 
    static inline int rand(void) { return ::rand(); }

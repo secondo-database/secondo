@@ -89,6 +89,16 @@ WinUnix::getpid() {
 #endif
 }
 
+void
+WinUnix::setenv(const char *name, const char *value) 
+{
+#ifdef SECONDO_WIN32
+   _putenv_s(name, value);
+#else
+   // set or overwrite
+   ::setenv(name, value, 1);
+#endif
+}
 
 void
 WinUnix::sleep( const int seconds )

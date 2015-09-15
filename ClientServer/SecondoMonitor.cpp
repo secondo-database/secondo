@@ -410,6 +410,7 @@ SecondoMonitor::CheckConfiguration()
     found = FileSystem::FileOrFolderExists(cfgFile);
     if (found) {
       cout << "':" << endl;
+      WinUnix::setenv("SECONDO_CONFIG", cfgFile.c_str());
     }
     else {
       cout << "' not found!" << endl;
