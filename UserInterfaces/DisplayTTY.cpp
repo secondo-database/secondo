@@ -3643,6 +3643,7 @@ DisplayTTY::Initialize()
   d.Insert( "bool",    new DisplayBoolean() );
   d.Insert( "string",  new DisplayString() );
   d.Insert( "rel",     new DisplayRelation() );
+  d.Insert( "memoryRelObject",     new DisplayRelation() );
   d.Insert( "orel",    new DisplayRelation() );
   d.Insert( "trel",    new DisplayRelation() );
   d.Insert( "mrel",    new DisplayRelation() );
