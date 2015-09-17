@@ -9,12 +9,13 @@
 #
 # running times and result sizes refer to arnsberg-regbez.osm, using 
 # GlobalMemory = 2 GB
+# GlobalMemory = 6 GB (Version von arnsberg 14.09.2015, aktuelles Secondo)
 #
 ###########################################################################
 
 # Database arnsberg
 
-query fullosmimport('arnsberg-regbez.osm', "City")
+query fullosmimport('arnsberg-regbez-latest.osm', "City")
 
 # 155 secs
 
@@ -24,6 +25,17 @@ query fullosmimport('arnsberg-regbez.osm', "City")
 # relation CityWayTags with 2193352 tuples stored
 # relation CityRelations with 355347 tuples stored
 # relation CityRelationTags with 52448 tuples stored
+
+# 482 secs
+
+# file arnsberg-regbez-latest.osm opened successfully
+# relation CityNodes with 12088760 tuples stored
+# relation CityNodeTags with 817775 tuples stored
+# relation CityWays with 15922663 tuples stored
+# relation CityWayTags with 5419221 tuples stored
+# relation CityRelations with 788797 tuples stored
+# relation CityRelationTags with 112188 tuples stored
+
 
 
 let CityNodesNew = CityNodes feed
@@ -35,6 +47,7 @@ let CityNodesNew = CityNodes feed
   consume
 
 # 213 secs
+# 576 secs
 
 # query nodes(CityNodesNew feed addid bulkloadrtree[Pos]) consume
 
@@ -50,11 +63,13 @@ let Ways =
   consume
 
 # 3339 secs
+# 4414 secs
 
 
 derive Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # 10 secs
+# 25 secs
 
 
 
@@ -64,6 +79,9 @@ derive Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] 
 # query Ways feed filter[.WayInfo afeed filter[(.WayTagKey = "aeroway") and (.WayTagValue = "runway")] count > 0] consume
 
 let Ways_WayTag = Ways feed addid project[TID, WayInfo] unnest[WayInfo] extend[WayTag: tostring(.WayTagKey + "#" + .WayTagValue)] sortby[WayTag] createbtree[WayTag]
+
+# - secs
+# 210 secs
 
 # query Ways_WayTag exactmatchS["aeroway#runway"] Ways gettuples consume
 
@@ -82,10 +100,12 @@ let Ways_WayTag = Ways feed addid project[TID, WayInfo] unnest[WayInfo] extend[W
 let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] consume
 
 # 113 secs
+# 182 secs
 
 derive Roads_Curve_rtree = Roads feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # 3.56 secs
+# 4.67 secs
 
 # compute Nodes as the union of start points, end points and intersections of roads
 
@@ -116,6 +136,7 @@ Roads feed
   consume
 
 # 269 secs
+# 655 secs
 
 
 
@@ -142,9 +163,9 @@ let EdgesUp =
           attr(u, TargetNodeCounter)] ]
         projecttransformstream[Pos_r]
         collect_sline[TRUE],
-      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "Name"] extract
+      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "name"] extract
        [WayTagValue_r],
-      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "Typ"] extract
+      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "highway"] extract
        [WayTagValue_r]
     ]
     aconsume ]
@@ -152,6 +173,7 @@ let EdgesUp =
   consume
 
 # 337 secs
+# 560 secs
 
 
 
@@ -178,9 +200,9 @@ let EdgesDown =
           attr(u, SourceNodeCounter)] ]
         projecttransformstream[Pos_r]
         collect_sline[TRUE],
-      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "Name"] extract
+      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "name"] extract
        [WayTagValue_r],
-      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "Typ"] extract
+      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "highway"] extract
        [WayTagValue_r]
     ]
     aconsume ]
@@ -188,6 +210,7 @@ let EdgesDown =
   consume
 
 # 372 secs
+# 631 secs
 
 
 
@@ -197,6 +220,7 @@ let Edges = EdgesUp feed EdgesDown feed concat
   oconsume[Source, Target]
 
 # 169 secs
+# 107 secs
 
 
 
@@ -208,6 +232,7 @@ let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: 
   consume
 
 # 99 secs
+# 118 secs
 
 
 # query nodes(EdgeIndex feed addid bulkloadrtree[Box]) consume
@@ -215,6 +240,7 @@ let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: 
 derive EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 
 # 9 secs
+# 11.4 secs
 
 
 # Queries
@@ -235,6 +261,9 @@ derive EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 
 # Runtime for Scripts/OrderedRelationGraphFromFullOSMImport.SEC: Times (elapsed / cpu): 
 # 84:56min (5095.72sec) /2510.84sec = 2.02949
+
+# Runtime for Scripts/OrderedRelationGraphFromFullOSMImport.SEC: Times (elapsed / cpu): 
+# 133:07min (7986.96sec) /5679.17sec = 1.40636
 
 
 
