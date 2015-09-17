@@ -45,6 +45,21 @@ public class AttributeText extends MemoryAttribute implements Orderable, Parsabl
 	 * The attribute's value
 	 */
 	private String value;
+	
+	/**
+	 * Explicit Standard Constructor
+	 */
+	public AttributeText() {}
+	
+	/**
+	 * Create AttributeText from String
+	 * 
+	 * @param value
+	 * 			The String value to encapsulate
+	 */
+	public AttributeText(String value) {
+		this.value = value;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -66,8 +81,7 @@ public class AttributeText extends MemoryAttribute implements Orderable, Parsabl
 	 */
 	@Override
 	public ListExpr toList() {
-		String listValue = PREFIX + getValue() + SUFFIX;
-		return ListExpr.textAtom(listValue);
+		return ListExpr.textAtom(getValue());
 	}
 
 	/*
@@ -143,6 +157,21 @@ public class AttributeText extends MemoryAttribute implements Orderable, Parsabl
 	 */
 	public void setValue(String value) {
 		this.value = value;
+	}
+
+	/**
+	 * Retrieve a String representation of the attribute in nested list format.
+	 * For testing purpose.
+	 * 
+	 * @return Nested list representation
+	 */
+	@Override
+	public String toString() {
+		if (this.value == null) {
+			return "(text undefined)";
+		} else {
+			return "(text " + this.value + ")";
+		}
 	}
 
 }

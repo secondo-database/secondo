@@ -3,7 +3,9 @@ package mmdb.data;
 import mmdb.data.attributes.MemoryAttribute;
 
 /**
- * Inner class representing a relation's header item.
+ * Class representing a relation's header item.
+ * 
+ * @author Alexander Castor
  */
 public class RelationHeaderItem {
 

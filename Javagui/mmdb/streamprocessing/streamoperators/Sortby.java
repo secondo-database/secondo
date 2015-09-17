@@ -9,34 +9,66 @@ import mmdb.data.MemoryObject;
 import mmdb.data.MemoryTuple;
 import mmdb.data.RelationHeaderItem;
 import mmdb.data.features.Orderable;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.ParsingException;
 import mmdb.error.streamprocessing.StreamStateException;
 import mmdb.error.streamprocessing.TypeException;
+import mmdb.service.MemoryWatcher;
 import mmdb.streamprocessing.Node;
+import mmdb.streamprocessing.parser.Environment;
 import mmdb.streamprocessing.parser.NestedListProcessor;
-import mmdb.streamprocessing.parser.nestedlist.NestedListNode;
-import mmdb.streamprocessing.parser.tools.Environment;
 import mmdb.streamprocessing.tools.HeaderTools;
 import mmdb.streamprocessing.tools.ParserTools;
 import mmdb.streamprocessing.tools.TypecheckTools;
+import sj.lang.ListExpr;
 
+/**
+ * Operator sortby resembling the operator in the core.<br>
+ * Sorts a stream of tuples by the given columns in the given directions.
+ * 
+ * @author Björn Clasen
+ */
 public class Sortby implements StreamOperator {
 
+	/**
+	 * The operator's parameter Node.
+	 */
 	private Node input1;
 
+	/**
+	 * The parameter map containing columns and directions.
+	 */
 	private Map<String, String> input2;
 
+	/**
+	 * The operator's first parameter as a StreamOperator.
+	 */
 	private StreamOperator streamInput;
 
+	/**
+	 * The operator's output type.
+	 */
 	private MemoryTuple outputType;
 
+	/**
+	 * The identifiers to sort by.
+	 */
 	private String[] identifiers;
 
+	/**
+	 * The positions of the sort identifiers in the incoming tuples.
+	 */
 	private int[] identifierPositions;
 
+	/**
+	 * An iterator over the sorted tuple list.
+	 */
 	private Iterator<MemoryTuple> iterator;
 
-	public static Node fromNL(NestedListNode[] params, Environment environment)
+	/**
+	 * @see mmdb.streamprocessing.Nodes#fromNL(ListExpr[], Environment)
+	 */
+	public static Node fromNL(ListExpr[] params, Environment environment)
 			throws ParsingException {
 		ParserTools.checkListElemCount(params, 2, Sortby.class);
 		Node node1 = NestedListProcessor.nlToNode(params[0], environment);
@@ -45,11 +77,23 @@ public class Sortby implements StreamOperator {
 		return new Sortby(node1, paramMap);
 	}
 
+	/**
+	 * Constructor, called by fromNL(...)
+	 * 
+	 * @param input1
+	 *            operator's first parameter
+	 * @param input2
+	 *            operator's second parameter
+	 * 
+	 */
 	public Sortby(Node input1, Map<String, String> input2) {
 		this.input1 = input1;
 		this.input2 = input2;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void typeCheck() throws TypeException {
 		this.input1.typeCheck();
@@ -87,18 +131,20 @@ public class Sortby implements StreamOperator {
 		this.outputType = (MemoryTuple) this.streamInput.getOutputType();
 	}
 
+	/**
+	 * {@inheritDoc}<br>
+	 * Completely loads all tuples into a sorted list.
+	 */
 	@Override
-	public MemoryObject getOutputType() {
-		return this.outputType;
-	}
-
-	@Override
-	public void open() {
+	public void open() throws MemoryException {
 		this.streamInput.open();
 
 		this.iterator = createIterator();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public MemoryObject getNext() {
 		if (this.iterator == null) {
@@ -113,11 +159,26 @@ public class Sortby implements StreamOperator {
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void close() {
 		this.streamInput.close();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public MemoryObject getOutputType() {
+		return this.outputType;
+	}
+
+	/**
+	 * Calculates the positions of the sorting attributes in the incoming
+	 * MemoryTuples.
+	 */
 	private void initIdentifierPositions() {
 		this.identifierPositions = new int[identifiers.length];
 		List<RelationHeaderItem> inputHeader = ((MemoryTuple) this.streamInput
@@ -132,17 +193,39 @@ public class Sortby implements StreamOperator {
 		}
 	}
 
-	private Iterator<MemoryTuple> createIterator() {
+	/**
+	 * Adds all tuples of the input stream to a sorted list.<br>
+	 * Sorts on add.
+	 * 
+	 * @return an iterator over the sorted list.
+	 * @throws MemoryException
+	 *             if while storing all incoming tuples memory tended to run
+	 *             out.
+	 */
+	private Iterator<MemoryTuple> createIterator() throws MemoryException {
 		ArrayList<MemoryTuple> sortedList = new ArrayList<MemoryTuple>();
 
 		MemoryTuple currentTuple;
+		int memorywatch_counter = 0;
 		while ((currentTuple = (MemoryTuple) this.streamInput.getNext()) != null) {
+			memorywatch_counter++;
+			if (memorywatch_counter % MemoryWatcher.MEMORY_CHECK_FREQUENCY == 0) {
+				MemoryWatcher.getInstance().checkMemoryStatus();
+			}
 			addTupleToList(currentTuple, sortedList);
 		}
 
 		return sortedList.iterator();
 	}
 
+	/**
+	 * Adds a single tuple at the right position in the sorted list.
+	 * 
+	 * @param currentTuple
+	 *            the tuple to add to the sorted list
+	 * @param sortedList
+	 *            the sorted list to add the tuple to
+	 */
 	private void addTupleToList(MemoryTuple currentTuple,
 			ArrayList<MemoryTuple> sortedList) {
 		int left = 0;
@@ -158,6 +241,14 @@ public class Sortby implements StreamOperator {
 		sortedList.add(left, currentTuple);
 	}
 
+	/**
+	 * Compares two tuples.<br>
+	 * For each sorting attribute values are compared.
+	 * 
+	 * @param firstTuple
+	 * @param secondTuple
+	 * @return true if the first tuple is further right, false otherwise
+	 */
 	private boolean isFirstTupleFurhterRight(MemoryTuple firstTuple,
 			MemoryTuple secondTuple) {
 		for (int i = 0; i < this.identifiers.length; i++) {

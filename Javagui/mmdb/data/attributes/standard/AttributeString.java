@@ -146,4 +146,19 @@ public class AttributeString extends MemoryAttribute implements Orderable, Parsa
 		this.value = value;
 	}
 
+	/**
+	 * Retrieve a String representation of the attribute in nested list format.
+	 * For testing purpose.
+	 * 
+	 * @return Nested list representation
+	 */
+	@Override
+	public String toString() {
+		if (this.value == null) {
+			return "(string undefined)";
+		} else {
+			return "(string " + this.value + ")";
+		}
+	}
+
 }

@@ -6,13 +6,19 @@ import gui.SecondoObject;
 import gui.ViewerControl;
 import gui.idmanager.IDManager;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.List;
 
 import mmdb.data.MemoryObject;
+import mmdb.data.MemoryRelation;
 import mmdb.data.attributes.MemoryAttribute;
+import mmdb.error.MMDBException;
 import mmdb.error.convert.ConvertToListException;
 import mmdb.error.memory.MemoryException;
+import mmdb.error.streamprocessing.InvalidQueryException;
 import mmdb.error.streamprocessing.ParsingException;
+import mmdb.error.streamprocessing.TransformQueryException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.service.ObjectConverter;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
@@ -20,144 +26,282 @@ import sj.lang.ESInterface;
 import sj.lang.IntByReference;
 import sj.lang.ListExpr;
 
+/**
+ * A singleton class controlling the parse process during query procession.<br>
+ * 
+ * @author Björn Clasen
+ */
 public class ParserController {
 
+	/**
+	 * Boolean indicating if query results are to be directly transformed to
+	 * nested list format.
+	 */
 	private boolean autoconvert = true;
 
-	private static ParserController instance;
+	/**
+	 * Integer indicating the maximum size of relation results to be
+	 * automatically shown in the current viewer.<br>
+	 * Prevents long wait times for displaying results after calculation.
+	 */
+	private static final int MAX_VIEWNUM = 100;
 
+	/**
+	 * The current GUI's ObjectList (being injected).
+	 */
 	private ObjectList objectList;
 
+	/**
+	 * The current GUI's CommandPanel (being injected).
+	 */
 	private CommandPanel commandPanel;
 
+	/**
+	 * The current GUI's ViewerContol (being injected).
+	 */
 	private ViewerControl viewerControl;
 
+	/**
+	 * The String prefix of an answer to an invalid query sent to the core for
+	 * transformation.
+	 */
 	private static final String invalidQueryString = "INVALID QUERY ";
 
-	private static final String q2lErrorString = "Q2L ERROR ";
-
+	/**
+	 * The frame an main memory query is to be embedded in to be transformed by
+	 * the core.
+	 */
 	private static final String q2lQueryString = "query query2list('%s');";
 
-	private ParserController() {
+	/**
+	 * The singleton instance.
+	 */
+	private static ParserController instance = new ParserController();
 
+	/**
+	 * Private constructor for singleton.
+	 */
+	private ParserController() {
 	}
 
+	/**
+	 * Retrieves the singleton instance.
+	 * 
+	 * @return the singleton.
+	 */
 	public static ParserController getInstance() {
-		if (instance == null) {
-			instance = new ParserController();
-		}
 		return instance;
 	}
 
+	/**
+	 * Injects the current GUI elements to the ParserController.
+	 * 
+	 * @param objectList
+	 *            the current GUI's ObjectList
+	 * @param commandPanel
+	 *            the current GUI's CommandPanel
+	 * @param viewerControl
+	 *            the current GUI's ViewerControl
+	 */
 	public void injectGuiElements(ObjectList objectList,
 			CommandPanel commandPanel, ViewerControl viewerControl) {
 		this.objectList = objectList;
 		this.commandPanel = commandPanel;
 		this.viewerControl = viewerControl;
-
 	}
 
-	public void processTextAutoconvert() {
+	/**
+	 * Toggles the autoconvert option to directly convert query results to
+	 * nested list format.
+	 */
+	public void processResultAutoconvert() {
 		this.autoconvert = !this.autoconvert;
 	}
 
+	/**
+	 * Processes a command in nested list or standard query format.<br>
+	 * Converts the query to nested list format if necessary.<br>
+	 * Adds the result to the GUI's {@link ObjectList} and prints occuring
+	 * errors to the {@link CommandPanel}.
+	 * 
+	 * @param command
+	 * @param secondoInterface
+	 */
 	public void processMMDBQuery(String command, ESInterface secondoInterface) {
-		// Remove "mmdb "
-		String commandContent = command.substring(5);
-
-		// Remove ";"
-		if (commandContent.endsWith(";")) {
-			commandContent = commandContent.substring(0,
-					commandContent.length() - 1);
-		}
-
-		commandContent = commandContent.trim();
+		long startTime = System.currentTimeMillis();
+		long calcTime;
+		String commandContent = extractContent(command);
 
 		if (!commandContent.startsWith("(")) {
-			commandContent = translateQueryToNL(commandContent,
-					secondoInterface);
-			if (commandContent.startsWith(q2lErrorString)) {
-				commandContent = commandContent.substring(10);
-				commandPanel.SystemArea
-						.append("\n\n  Query could not be transformed to nested list format: "
-								+ commandContent);
-				commandPanel.showPrompt();
-				return;
-			}
-			if (commandContent.startsWith(invalidQueryString)) {
-				commandContent = commandContent.substring(14);
-				commandPanel.SystemArea.append("\n\n  Query was invalid:\n"
-						+ commandContent);
-				commandPanel.showPrompt();
+			try {
+				commandContent = translateQueryToNL(commandContent,
+						secondoInterface);
+			} catch (MMDBException e) {
+				handleTranslateError(e);
 				return;
 			}
 		}
 
 		List<SecondoObject> existingObjects = objectList.getAllObjects();
-		ObjectNode resultObjectNode = null;
+		ObjectNode resultObjectNode;
+		MemoryObject resultMemoryObject;
 		try {
 			resultObjectNode = NestedListProcessor.buildOperatorTree(
 					commandContent, existingObjects);
-		} catch (ParsingException e) {
-			commandPanel.SystemArea.append("\n\n  NL-Parser-Error: "
-					+ e.getMessage());
-			commandPanel.showPrompt();
-			return;
-		}
-		try {
 			resultObjectNode.typeCheck();
-		} catch (TypeException e) {
-			commandPanel.SystemArea.append("\n\n  Typecheck-Error: "
-					+ e.getMessage());
-			commandPanel.showPrompt();
+			resultMemoryObject = resultObjectNode.getResult();
+			calcTime = System.currentTimeMillis();
+		} catch (MMDBException e) {
+			handleGetResultException(e);
 			return;
 		}
-		MemoryObject resultMemoryObject = resultObjectNode.getResult();
+
 		SecondoObject resultSecondoObject = new SecondoObject(
 				IDManager.getNextID());
 		if (this.autoconvert || resultMemoryObject == null) {
 			try {
 				ListExpr resultExpr = null;
-				if (resultMemoryObject == null
-						&& resultObjectNode.getOutputType() instanceof MemoryAttribute) {
-					commandPanel.SystemArea
-							.append("\n\n  UNDEFINED attributes are always converted to NL!");
-					resultExpr = ObjectConverter.getInstance()
-							.convertUndefinedAttributeToList(
-									(MemoryAttribute) resultObjectNode
-											.getOutputType());
+				if (isUndefinedResult(resultObjectNode, resultMemoryObject)) {
+					resultExpr = getUndefinedResult(resultObjectNode);
 				} else {
 					resultExpr = ObjectConverter.getInstance()
 							.convertObjectToList(resultMemoryObject);
 				}
 				resultSecondoObject.fromList(resultExpr);
-				resultSecondoObject.setName(command + " [++]");
 			} catch (ConvertToListException e) {
 				commandPanel.SystemArea.append("\n\n  List conversion failed: "
 						+ e.getMessage());
 				commandPanel.showPrompt();
-				return;
-			} catch (MemoryException e) {
-				commandPanel.SystemArea.append("\n\n  No more memory: "
-						+ e.getMessage());
-				commandPanel.showPrompt();
-				return;
 			}
-		} else {
-			resultSecondoObject.setName(command + " [+]");
 		}
+		resultSecondoObject.setName(Environment.nextResultLabel() + command
+				+ Environment.getMMIndicator(resultSecondoObject));
 		resultSecondoObject.setMemoryObject(resultMemoryObject);
 		objectList.addEntry(resultSecondoObject);
-		if (this.autoconvert) {
+		String time = getTimeMeasureResults(startTime, calcTime,
+				resultSecondoObject);
+		commandPanel.SystemArea.append("\n\n  Successfully loaded to MMDB! "
+				+ time);
+		commandPanel.showPrompt();
+		// Show result if viewer might be able to do that quickly
+		if (this.autoconvert && isDirectlyShow(resultSecondoObject)) {
 			this.viewerControl.showObject(resultSecondoObject);
 		}
-		commandPanel.SystemArea
-				.append("\n\n  Result successfully loaded to MMDB!");
-		commandPanel.showPrompt();
 	}
 
+	/**
+	 * Determines if a result represents a valid undefined object:<br>
+	 * The MemoryObject itself is {@code null} but it's wrapping ObjectNode
+	 * knows its type.
+	 * 
+	 * @param resultObjectNode
+	 *            the ObjectNode wrapping the result MemoryObject.
+	 * @param resultMemoryObject
+	 *            the MemoryObject itself.
+	 * @return true if the result MemoryObject is null and represents a
+	 *         MemoryAttribute.
+	 */
+	private boolean isUndefinedResult(ObjectNode resultObjectNode,
+			MemoryObject resultMemoryObject) {
+		return resultMemoryObject == null
+				&& resultObjectNode.getOutputType() instanceof MemoryAttribute;
+	}
+
+	/**
+	 * Converts an undefined result to a ListExpr.
+	 * 
+	 * @param resultObjectNode
+	 *            the undefined result's wrapping ObjectNode.
+	 * @return the ListExpr representing the undefined MemoryAttribute.
+	 */
+	private ListExpr getUndefinedResult(ObjectNode resultObjectNode) {
+		ListExpr resultExpr;
+		if (!this.autoconvert) {
+			commandPanel.SystemArea
+					.append("\n\n  UNDEFINED attributes are always converted to NL!");
+		}
+		resultExpr = ObjectConverter.getInstance()
+				.convertUndefinedAttributeToList(
+						(MemoryAttribute) resultObjectNode.getOutputType());
+		return resultExpr;
+	}
+
+	/**
+	 * Determines if the given SecondoObject is to be displayed automatically
+	 * after conversion.
+	 * 
+	 * @param resultSecondoObject
+	 *            the object that is to be shown or not.
+	 * @return true if the object is to be shown, false otherwise.
+	 */
+	private boolean isDirectlyShow(SecondoObject resultSecondoObject) {
+		MemoryObject mobject = resultSecondoObject.getMemoryObject();
+		if (mobject instanceof MemoryAttribute) {
+			return true;
+		} else if (mobject instanceof MemoryRelation) {
+			MemoryRelation mrelation = (MemoryRelation) mobject;
+			return mrelation.getTuples().size() < MAX_VIEWNUM;
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * Performs calculation and formatting of time measuring results.
+	 * 
+	 * @param startTime
+	 *            the time the query procession started.
+	 * @param calcTime
+	 *            the time when result calculation was finished.
+	 * @param sobject
+	 *            the resulting SecondoObject to check if transformation was
+	 *            done.
+	 * @return a formatted String containing timing information.
+	 */
+	private String getTimeMeasureResults(long startTime, long calcTime,
+			SecondoObject sobject) {
+		long completeTime = System.currentTimeMillis();
+		long calculation = calcTime - startTime;
+		float calculationSeconds = (float) calculation / 1000f;
+
+		DecimalFormat df = new DecimalFormat("#.###");
+		df.setRoundingMode(RoundingMode.CEILING);
+
+		if (sobject.toListExpr() == null) {
+			return String.format("(%ss)", df.format(calculationSeconds));
+		} else {
+			long transform = completeTime - calcTime;
+			float transformSeconds = (float) transform / 1000f;
+			return String.format("(Calc: %ss, Trans: %ss)",
+					df.format(calculationSeconds), df.format(transformSeconds));
+		}
+
+	}
+
+	/**
+	 * Translates a query in SECONDO QUERY LANGUAGE to its nested list
+	 * representation.<br>
+	 * The SECONDO core performs this step, thus a connection to the core is
+	 * vital.<br>
+	 * Also a database must be openend in the gui, since the core otherwise does
+	 * not execute queries.
+	 * 
+	 * @param command
+	 *            The command in SECONDO QUERS LANGUAGE.
+	 * @param secondointerface
+	 *            the interface to the core to send queries through.
+	 * @return the nested list representation of the query as a String.
+	 * @throws InvalidQueryException
+	 *             if the query in SECONDO QUERY LANGUAGE format was invalid and
+	 *             this not transformed by the core.
+	 * @throws TransformQueryException
+	 *             if there was a (allegedly technical) error while trying to
+	 *             let the core transform the query
+	 */
 	private String translateQueryToNL(String command,
-			ESInterface secondointerface) {
+			ESInterface secondointerface) throws InvalidQueryException,
+			TransformQueryException {
+		command = command.replace("'", "\\'");
 		String query2listCommand = String.format(q2lQueryString, command);
 
 		ListExpr resultList = new ListExpr();
@@ -168,16 +312,98 @@ public class ParserController {
 				errorPos, errorMessage);
 
 		String resultQuery;
-		if (errorMessage.length() != 0) {
-			resultQuery = q2lErrorString + errorMessage.toString();
-		} else {
+		switch (errorCode.value) {
+		case 0:
 			resultQuery = resultList.second().textValue();
+			if (resultQuery.startsWith(invalidQueryString)) {
+				throw new InvalidQueryException(
+						resultQuery.substring(invalidQueryString.length()));
+			}
 			if (resultQuery.endsWith("\n")) {
 				resultQuery = resultQuery
 						.substring(0, resultQuery.length() - 1);
 			}
+			return resultQuery;
+		case 6:
+			throw new TransformQueryException("No database opened?");
+		case 80:
+			throw new TransformQueryException(
+					"Not connected to secondo server?");
+		default:
+			if ("".equals(errorMessage.toString())) {
+				throw new TransformQueryException("Unknown Error!");
+			} else {
+				throw new TransformQueryException(errorMessage.toString());
+			}
 		}
-		return resultQuery;
+	}
+
+	/**
+	 * Extracts the command content from a command received directly from the
+	 * CommandPanel.<br>
+	 * - Removes leading "mmdb "<br>
+	 * - Removes trailing ";"<br>
+	 * - Trims the remaining query
+	 * 
+	 * @param command
+	 *            The command to extract the mmdb command from
+	 * @return the extracted mmdb command.
+	 */
+	private String extractContent(String command) {
+		// Remove "mmdb "
+		String commandContent = command.substring(5);
+
+		// Remove ";"
+		if (commandContent.endsWith(";")) {
+			commandContent = commandContent.substring(0,
+					commandContent.length() - 1);
+		}
+
+		// Remove blanks
+		commandContent = commandContent.trim();
+
+		return commandContent;
+	}
+
+	/**
+	 * Handles Exceptions thrown during result calculation.<br>
+	 * This method keeps the main code easier to read.
+	 * 
+	 * @param e
+	 *            the MMDBException to be handled.
+	 */
+	private void handleGetResultException(MMDBException e) {
+		String errorName;
+		if (e instanceof ParsingException) {
+			errorName = "NL-Parser";
+		} else if (e instanceof TypeException) {
+			errorName = "Typecheck";
+		} else if (e instanceof MemoryException) {
+			errorName = "Memory";
+		} else {
+			errorName = "Unknown";
+		}
+		commandPanel.SystemArea.append("\n\n  " + errorName + "-Error: "
+				+ e.getMessage());
+		commandPanel.showPrompt();
+	}
+
+	/**
+	 * Handles Exceptions thrown during query translation.<br>
+	 * This method keeps the main code easier to read.
+	 * 
+	 * @param e
+	 *            the MMDBException to be handled.
+	 */
+	private void handleTranslateError(MMDBException e) {
+		String generalMessage = "\n\n  ";
+		if (e instanceof InvalidQueryException) {
+			generalMessage += "Query was invalid:\n";
+		} else {
+			generalMessage += "Query could not be transformed to nested list format: ";
+		}
+		commandPanel.SystemArea.append(generalMessage + e.getMessage());
+		commandPanel.showPrompt();
 	}
 
 }

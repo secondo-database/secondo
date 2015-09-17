@@ -3,26 +3,44 @@ package mmdb.streamprocessing.objectnodes.condition;
 import mmdb.data.MemoryObject;
 import mmdb.data.attributes.MemoryAttribute;
 import mmdb.data.attributes.standard.AttributeBool;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.ParsingException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.Node;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
+import mmdb.streamprocessing.parser.Environment;
 import mmdb.streamprocessing.parser.NestedListProcessor;
-import mmdb.streamprocessing.parser.nestedlist.NestedListNode;
-import mmdb.streamprocessing.parser.tools.Environment;
 import mmdb.streamprocessing.tools.ParserTools;
 import mmdb.streamprocessing.tools.TypecheckTools;
+import sj.lang.ListExpr;
 
-// TODO MemoryObjects? Or only MemoryAttributes?
+/**
+ * Implementation of operator equals resembling the core operator.<br>
+ * Checks if the first parameter equals the second.
+ * 
+ * @author Björn Clasen
+ */
 public class Equals implements ObjectNode {
 
+	/**
+	 * The operator's parameter Nodes.
+	 */
 	private Node input1, input2;
 
+	/**
+	 * The operators parameters as ObjectNodes.
+	 */
 	private ObjectNode objectInput1, objectInput2;
 
+	/**
+	 * The operator's output type.
+	 */
 	private MemoryAttribute outputType;
 
-	public static Node fromNL(NestedListNode[] params, Environment environment)
+	/**
+	 * @see mmdb.streamprocessing.Nodes#fromNL(ListExpr[], Environment)
+	 */
+	public static Node fromNL(ListExpr[] params, Environment environment)
 			throws ParsingException {
 		ParserTools.checkListElemCount(params, 2, Equals.class);
 		Node node1 = NestedListProcessor.nlToNode(params[0], environment);
@@ -30,11 +48,22 @@ public class Equals implements ObjectNode {
 		return new Equals(node1, node2);
 	}
 
+	/**
+	 * Constructor, called by fromNL(...)
+	 * 
+	 * @param input1
+	 *            operator's first parameter
+	 * @param input2
+	 *            operator's second parameter
+	 */
 	public Equals(Node input1, Node input2) {
 		this.input1 = input1;
 		this.input2 = input2;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void typeCheck() throws TypeException {
 		this.input1.typeCheck();
@@ -53,8 +82,11 @@ public class Equals implements ObjectNode {
 		this.outputType = new AttributeBool();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public MemoryAttribute getResult() {
+	public MemoryAttribute getResult() throws MemoryException {
 		MemoryObject object1 = objectInput1.getResult();
 		MemoryObject object2 = objectInput2.getResult();
 
@@ -70,6 +102,9 @@ public class Equals implements ObjectNode {
 		return new AttributeBool(result);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public MemoryAttribute getOutputType() {
 		return this.outputType;

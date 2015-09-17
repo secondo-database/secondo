@@ -1,23 +1,38 @@
 package mmdb.streamprocessing.streamoperators;
 
-import mmdb.data.MemoryTuple;
+import mmdb.data.MemoryObject;
 import mmdb.error.streamprocessing.QueueClosedException;
-import mmdb.error.streamprocessing.TypeException;
 
+/**
+ * Abstract base class for buffered StreamOperators that support multithreaded
+ * evaluation.<br>
+ * There are none implemented yet.
+ * 
+ * @author Björn Clasen
+ *
+ */
 public abstract class BufferedStreamOperator implements StreamOperator {
 
-	private Queue buffer;
+	/**
+	 * The buffer this operator stores results in.
+	 */
+	private Queue buffer = new Queue();
 
-	public BufferedStreamOperator() throws TypeException {
-		this.buffer = new Queue();
+	/**
+	 * Adds a result the the resultbuffer.
+	 * 
+	 * @param object
+	 *            the result to add.
+	 */
+	protected final void addResult(MemoryObject object) {
+		this.buffer.put(object);
 	}
 
-	protected final void addResult(MemoryTuple tuple) {
-		this.buffer.put(tuple);
-	}
-
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public final MemoryTuple getNext() {
+	public final MemoryObject getNext() {
 		try {
 			return buffer.get();
 		} catch (QueueClosedException e) {

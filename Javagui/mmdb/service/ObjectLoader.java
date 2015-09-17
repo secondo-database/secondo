@@ -36,6 +36,7 @@ import mmdb.error.load.LoadException;
 import mmdb.error.load.LoadFromExplorerException;
 import mmdb.error.load.LoadFromQueryException;
 import mmdb.error.memory.MemoryException;
+import mmdb.streamprocessing.parser.Environment;
 import sj.lang.ListExpr;
 
 /**
@@ -113,7 +114,7 @@ public final class ObjectLoader {
 
 	/**
 	 * Creates a secondo object from a query result containing both the nested
-	 * list representation and the memory relation.
+	 * list representation and the memory object.
 	 * 
 	 * @param queryResult
 	 *            the query result as nested list
@@ -131,7 +132,8 @@ public final class ObjectLoader {
 			MemoryObject memoryObject = ObjectConverter.getInstance().convertListToObject(
 					queryResult);
 			secondoObject.setMemoryObject(memoryObject);
-			secondoObject.setName(command + " [++]");
+			String namePrefix = Environment.nextResultLabel();
+			secondoObject.setName(namePrefix + command + " [++]");
 		} catch (ConversionException e) {
 			throw new LoadException(
 					"-> Could not convert nested list to memory object, caused by:\n"
@@ -155,7 +157,9 @@ public final class ObjectLoader {
 			MemoryObject memoryObject = ObjectConverter.getInstance().convertListToObject(
 					secondoObject.toListExpr());
 			secondoObject.setMemoryObject(memoryObject);
-			secondoObject.setName(secondoObject.getName() + " [++]");
+			String namePrefix = Environment.nextResultLabel();
+			secondoObject.setName(namePrefix + secondoObject.getName()
+					+ " [++]");
 		} catch (ConversionException e) {
 			throw new LoadFromExplorerException("-> Error when loading object, caused by:\n"
 					+ e.getMessage());

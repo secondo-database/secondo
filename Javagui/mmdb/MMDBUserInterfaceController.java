@@ -44,6 +44,7 @@ import mmdb.error.index.IndexingException;
 import mmdb.error.load.LoadException;
 import mmdb.error.memory.MemoryException;
 import mmdb.gui.HelpWindow;
+import mmdb.gui.ImportExportGui;
 import mmdb.gui.IndexDialog;
 import mmdb.gui.MMDBMenu;
 import mmdb.gui.MMDBMenu.MenuEntry;
@@ -121,8 +122,11 @@ public final class MMDBUserInterfaceController {
 	 *            the main window's object explorer
 	 * @param comPanel
 	 *            the main window's command panel
+	 * @param viewerControl
+	 *            the main window's viewer control
 	 */
-	public void injectElementsToMMDB(ObjectList objectList, CommandPanel commandPanel, ViewerControl viewerControl) {
+	public void injectElementsToMMDB(ObjectList objectList,
+			CommandPanel commandPanel, ViewerControl viewerControl) {
 		this.objectList = objectList;
 		this.commandPanel = commandPanel;
 		ParserController.getInstance().injectGuiElements(objectList,
@@ -153,8 +157,14 @@ public final class MMDBUserInterfaceController {
 			case CONVERT_ALL:
 				processConvertAllEvent();
 				break;
-			case TEXT_AUTOCONVERT:
-				processTextAutoconvert();
+			case RESULT_AUTOCONVERT:
+				processResultAutoconvertEvent();
+				break;
+			case EXPORT:
+				processExportEvent();
+				break;
+			case IMPORT:
+				processImportEvent();
 				break;
 			case INDEX:
 				processIndexEvent();
@@ -187,14 +197,19 @@ public final class MMDBUserInterfaceController {
 		ListExpr queryResult;
 		SecondoObject object;
 		try {
-			command = ObjectLoader.getInstance().readCommandFromPanel(commandPanel.SystemArea);
-			queryResult = ObjectLoader.getInstance().executeRemoteCommand(command, commandPanel);
-			object = ObjectLoader.getInstance().createSecondoObject(queryResult, command);
+			command = ObjectLoader.getInstance().readCommandFromPanel(
+					commandPanel.SystemArea);
+			queryResult = ObjectLoader.getInstance().executeRemoteCommand(
+					command, commandPanel);
+			object = ObjectLoader.getInstance().createSecondoObject(
+					queryResult, command);
 			objectList.addEntry(object);
-			commandPanel.SystemArea.append("\nObject successfully loaded to MMDB!");
+			commandPanel.SystemArea
+					.append("\nObject successfully loaded to MMDB!");
 		} catch (LoadException e) {
-			Reporter.reportWarning("Error when loading object from query, caused by:", e, false,
-					false, false);
+			Reporter.reportWarning(
+					"Error when loading object from query, caused by:", e,
+					false, false, false);
 		} catch (MemoryException e) {
 			processMemoryException(e);
 		} finally {
@@ -219,8 +234,9 @@ public final class MMDBUserInterfaceController {
 			objectList.removeObject(object);
 			ObjectLoader.getInstance().addMemoryObject(object);
 		} catch (LoadException e) {
-			Reporter.reportWarning("Error when loading object from explorer, caused by:", e, false,
-					false, false);
+			Reporter.reportWarning(
+					"Error when loading object from explorer, caused by:", e,
+					false, false, false);
 		} catch (MemoryException e) {
 			processMemoryException(e);
 		} finally {
@@ -233,16 +249,17 @@ public final class MMDBUserInterfaceController {
 	 */
 	private void processLoadDatabaseEvent() {
 		try {
-			ListExpr queryResultListObjects = ObjectLoader.getInstance().executeRemoteCommand(
-					"list objects", commandPanel);
-			List<String> objects = ObjectLoader.getInstance().getObjectList(queryResultListObjects);
-			int reply = JOptionPane.showConfirmDialog(null, "There are " + objects.size()
-					+ " objects in the current database.\n"
-					+ "Do you really want to load all of them?", "Please confirm operation",
-					JOptionPane.YES_NO_OPTION);
+			ListExpr queryResultListObjects = ObjectLoader.getInstance()
+					.executeRemoteCommand("list objects", commandPanel);
+			List<String> objects = ObjectLoader.getInstance().getObjectList(
+					queryResultListObjects);
+			int reply = JOptionPane.showConfirmDialog(null, "There are "
+					+ objects.size() + " objects in the current database.\n"
+					+ "Do you really want to load all of them?",
+					"Please confirm operation", JOptionPane.YES_NO_OPTION);
 			if (reply == JOptionPane.YES_OPTION) {
-				List<String> failures = ObjectLoader.getInstance().loadAllObjects(objects,
-						commandPanel, objectList);
+				List<String> failures = ObjectLoader.getInstance()
+						.loadAllObjects(objects, commandPanel, objectList);
 				String message = (objects.size() - failures.size())
 						+ " objects successfully loaded to MMDB. See results in object explorer.";
 				if (!failures.isEmpty()) {
@@ -251,8 +268,9 @@ public final class MMDBUserInterfaceController {
 				Reporter.showInfo(message);
 			}
 		} catch (LoadException e) {
-			Reporter.reportWarning("Error when loading all objects from database, caused by:", e,
-					false, false, false);
+			Reporter.reportWarning(
+					"Error when loading all objects from database, caused by:",
+					e, false, false, false);
 		} catch (MemoryException e) {
 			processMemoryException(e);
 		}
@@ -277,8 +295,8 @@ public final class MMDBUserInterfaceController {
 			ObjectConverter.getInstance().addNestedListToSecondoObject(object);
 		} catch (ConversionException e) {
 			Reporter.reportWarning(
-					"Error when converting memory object to nested list, caused by:", e, false,
-					false, false);
+					"Error when converting memory object to nested list, caused by:",
+					e, false, false, false);
 		} catch (MemoryException e) {
 			processMemoryException(e);
 		} finally {
@@ -298,8 +316,8 @@ public final class MMDBUserInterfaceController {
 					objects.add(object);
 				}
 			}
-			List<String> failures = ObjectConverter.getInstance().convertAllObjects(objects,
-					objectList);
+			List<String> failures = ObjectConverter.getInstance()
+					.convertAllObjects(objects, objectList);
 			String message = (objects.size() - failures.size())
 					+ " objects successfully converted. See results in object explorer.";
 			if (!failures.isEmpty()) {
@@ -308,11 +326,33 @@ public final class MMDBUserInterfaceController {
 			Reporter.showInfo(message);
 		} catch (ConversionException e) {
 			Reporter.reportWarning(
-					"Error when converting memory objects to nested lists, caused by:", e, false,
-					false, false);
+					"Error when converting memory objects to nested lists, caused by:",
+					e, false, false, false);
 		} catch (MemoryException e) {
 			processMemoryException(e);
 		}
+	}
+
+	/**
+	 * Toggles the autoconvert option of the {@link ParserController}.
+	 */
+	private void processResultAutoconvertEvent() {
+		ParserController.getInstance().processResultAutoconvert();
+	}
+
+	/**
+	 * Starts export process for MemoryObjects.
+	 */
+	private void processExportEvent() {
+		ImportExportGui.getInstance().processExportCommand(
+				objectList.getSelectedObjects());
+	}
+
+	/**
+	 * Starts import process for MemoryObjects.
+	 */
+	private void processImportEvent() {
+		ImportExportGui.getInstance().processImportCommand(objectList);
 	}
 
 	/**
@@ -333,7 +373,8 @@ public final class MMDBUserInterfaceController {
 			relation.createIndex(dialogAnswer[1], dialogAnswer[2]);
 			Reporter.showInfo("Index successfully created.");
 		} catch (IndexingException e) {
-			Reporter.reportWarning("Error when creating index, caused by:", e, false, false, false);
+			Reporter.reportWarning("Error when creating index, caused by:", e,
+					false, false, false);
 		} catch (MemoryException e) {
 			processMemoryException(e);
 		}
@@ -349,23 +390,26 @@ public final class MMDBUserInterfaceController {
 			return;
 		}
 		try {
-			Object[] dialogAnswer = QueryDialog.showDialog(relations, commandPanel);
+			Object[] dialogAnswer = QueryDialog.showDialog(relations,
+					commandPanel);
 			if (dialogAnswer[0] == null) {
 				return;
 			}
 			MemoryRelation resultRelation = (MemoryRelation) dialogAnswer[0];
 			String objectName = (String) dialogAnswer[1];
 			Boolean convertToList = (Boolean) dialogAnswer[2];
-			SecondoObject secondoObject = new SecondoObject(IDManager.getNextID());
+			SecondoObject secondoObject = new SecondoObject(
+					IDManager.getNextID());
 			secondoObject.setMemoryObject(resultRelation);
 			if (convertToList) {
 				try {
-					ObjectConverter.getInstance().addNestedListToSecondoObject(secondoObject);
+					ObjectConverter.getInstance().addNestedListToSecondoObject(
+							secondoObject);
 					secondoObject.setName(objectName + "; [++]");
 				} catch (ConversionException e) {
 					Reporter.reportWarning(
-							"Error when converting memory object to nested list, caused by:", e,
-							false, false, false);
+							"Error when converting memory object to nested list, caused by:",
+							e, false, false, false);
 					secondoObject.setName(objectName + "; [+]");
 				}
 			} else {
@@ -376,7 +420,8 @@ public final class MMDBUserInterfaceController {
 					+ resultRelation.getTuples().size()
 					+ " tuple(s).\nSee result in object explorer.");
 		} catch (Exception e) {
-			Reporter.reportWarning("Error when executing query, caused by:", e, false, false, false);
+			Reporter.reportWarning("Error when executing query, caused by:", e,
+					false, false, false);
 		}
 	}
 
@@ -389,17 +434,19 @@ public final class MMDBUserInterfaceController {
 				Reporter.showInfo("There are currently no objects available.");
 				break;
 			}
-			String[][] objectStatistics = MemoryWatcher.getInstance().getObjectStatistics(
-					objectList.getAllObjects());
-			Object[] dialogAnswer = MemoryDialog.showDialog(objectStatistics, commandPanel);
+			String[][] objectStatistics = MemoryWatcher.getInstance()
+					.getObjectStatistics(objectList.getAllObjects());
+			Object[] dialogAnswer = MemoryDialog.showDialog(objectStatistics,
+					commandPanel);
 			if (dialogAnswer[1] == null) {
 				break;
 			}
-			SecondoObject object = objectList.getSingleObject((String)dialogAnswer[0]);
+			SecondoObject object = objectList
+					.getSingleObject((String) dialogAnswer[0]);
 			if (object == null) {
 				break;
 			}
-			Command command = (Command)dialogAnswer[1];
+			Command command = (Command) dialogAnswer[1];
 			switch (command) {
 			case OBJ:
 				objectList.removeObject(object.getName(), false);
@@ -421,7 +468,8 @@ public final class MMDBUserInterfaceController {
 	 * Displays a window showing all supported types.
 	 */
 	private void processTypesEvent() {
-		List<String> types = new ArrayList<String>(MemoryAttribute.getAllTypeNames());
+		List<String> types = new ArrayList<String>(
+				MemoryAttribute.getAllTypeNames());
 		Collections.sort(types);
 		String message = "SUPPORTED TYPES:\n";
 		int counter = 0;
@@ -460,7 +508,8 @@ public final class MMDBUserInterfaceController {
 			String name = object.getName();
 			MemoryObject memoryObject = object.getMemoryObject();
 			if (memoryObject != null && memoryObject instanceof MemoryRelation) {
-				MemoryRelation relation = (MemoryRelation) object.getMemoryObject();
+				MemoryRelation relation = (MemoryRelation) object
+						.getMemoryObject();
 				relations.put(name, relation);
 			}
 		}
@@ -476,7 +525,8 @@ public final class MMDBUserInterfaceController {
 	 *            the failures that occurred
 	 * @return the extended message
 	 */
-	private String createExtendedErrorMessage(String message, List<String> failures) {
+	private String createExtendedErrorMessage(String message,
+			List<String> failures) {
 		String theMessage = message;
 		theMessage += "\nErrors occured for the following objects: ";
 		boolean moreThanTen = false;
@@ -504,8 +554,10 @@ public final class MMDBUserInterfaceController {
 	 */
 	private void removeRelation(SecondoObject object) {
 		if (object.toListExpr() == null) {
-			int reply = JOptionPane.showConfirmDialog(null, "If you remove the memory representation the "
-					+ "whole object will be removed.", "Please confirm operation", JOptionPane.YES_NO_OPTION);
+			int reply = JOptionPane.showConfirmDialog(null,
+					"If you remove the memory representation the "
+							+ "whole object will be removed.",
+					"Please confirm operation", JOptionPane.YES_NO_OPTION);
 			if (reply == JOptionPane.YES_OPTION) {
 				objectList.removeObject(object.getName(), false);
 			}
@@ -526,8 +578,10 @@ public final class MMDBUserInterfaceController {
 	 */
 	private void removeNestedList(SecondoObject object) {
 		if (object.getMemoryObject() == null) {
-			int reply = JOptionPane.showConfirmDialog(null, "If you remove the list representation the "
-					+ "whole object will be removed.", "Please confirm operation", JOptionPane.YES_NO_OPTION);
+			int reply = JOptionPane.showConfirmDialog(null,
+					"If you remove the list representation the "
+							+ "whole object will be removed.",
+					"Please confirm operation", JOptionPane.YES_NO_OPTION);
 			if (reply == JOptionPane.YES_OPTION) {
 				objectList.removeObject(object.getName(), false);
 			}
@@ -576,10 +630,14 @@ public final class MMDBUserInterfaceController {
 		processMemoryEvent();
 	}
 
-	private void processTextAutoconvert() {
-		ParserController.getInstance().processTextAutoconvert();
-	}
-
+	/**
+	 * Processes a query designated to the mmdb.
+	 * 
+	 * @param command
+	 *            the query string itself
+	 * @param secondoInterface
+	 *            the SecondoInterface to process further queries
+	 */
 	public void processMMDBQuery(String command, ESInterface secondoInterface) {
 		ParserController.getInstance().processMMDBQuery(command,
 				secondoInterface);

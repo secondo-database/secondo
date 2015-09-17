@@ -177,4 +177,15 @@ public class AttributeInt extends MemoryAttribute implements Orderable,
 		this.value = value;
 	}
 
+	/**
+	 * Retrieve a String representation of the attribute in nested list format.
+	 * For testing purpose.
+	 * 
+	 * @return Nested list representation
+	 */
+	@Override
+	public String toString() {
+		return "(int " + Integer.toString(this.value) + ")";
+	}
+
 }

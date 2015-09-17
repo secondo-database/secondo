@@ -10,40 +10,69 @@ import mmdb.data.MemoryObject;
 import mmdb.data.MemoryTuple;
 import mmdb.data.RelationHeaderItem;
 import mmdb.data.attributes.MemoryAttribute;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.ParsingException;
 import mmdb.error.streamprocessing.StreamStateException;
 import mmdb.error.streamprocessing.TypeException;
+import mmdb.service.MemoryWatcher;
 import mmdb.streamprocessing.Node;
+import mmdb.streamprocessing.parser.Environment;
 import mmdb.streamprocessing.parser.NestedListProcessor;
-import mmdb.streamprocessing.parser.nestedlist.NestedListNode;
-import mmdb.streamprocessing.parser.tools.Environment;
 import mmdb.streamprocessing.tools.HeaderTools;
 import mmdb.streamprocessing.tools.ParserTools;
 import mmdb.streamprocessing.tools.TypecheckTools;
+import sj.lang.ListExpr;
 
 /**
- * Implemented like in the core: Second Stream is taken for Hashmap
+ * The HashJoin operator resembling the operator in the core.<br>
+ * Like the core operator it takes the second input stream for the stored
+ * Hashmap.
  * 
  * @author bjorn
  *
  */
 public class Hashjoin implements StreamOperator {
 
+	/**
+	 * The operator's parameter Nodes.
+	 */
 	private Node input1, input2;
 
+	/**
+	 * The operator's identifier parameters.
+	 */
 	private String identifier1, identifier2;
 
+	/**
+	 * The operators parameters as StreamOperators.
+	 */
 	private StreamOperator streamInput1, streamInput2;
 
+	/**
+	 * The indices of the identifiers in the incoming tuple streams.
+	 */
 	private int columnIndex1, columnIndex2;
 
+	/**
+	 * The operator's output type.
+	 */
 	private MemoryTuple outputType;
 
+	/**
+	 * The stored hashmap containing the second input stream.
+	 */
 	private Map<MemoryAttribute, List<MemoryTuple>> map;
 
+	/**
+	 * A temporary queue to store tuples that have already been joined but not
+	 * put out.
+	 */
 	private ConcurrentLinkedQueue<MemoryTuple> tupleStore;
 
-	public static Node fromNL(NestedListNode[] params, Environment environment)
+	/**
+	 * @see mmdb.streamprocessing.Nodes#fromNL(ListExpr[], Environment)
+	 */
+	public static Node fromNL(ListExpr[] params, Environment environment)
 			throws ParsingException {
 		ParserTools.checkListElemCount(params, 4, Hashjoin.class);
 		Node node1 = NestedListProcessor.nlToNode(params[0], environment);
@@ -53,6 +82,18 @@ public class Hashjoin implements StreamOperator {
 		return new Hashjoin(node1, node2, string1, string2);
 	}
 
+	/**
+	 * Constructor, called by fromNL(...)
+	 * 
+	 * @param input1
+	 *            operator's first parameter
+	 * @param input2
+	 *            operator's second parameter
+	 * @param identifier1
+	 *            operator's third parameter
+	 * @param identifier2
+	 *            operator's fourth parameter
+	 */
 	public Hashjoin(Node input1, Node input2, String identifier1,
 			String identifier2) {
 		this.input1 = input1;
@@ -61,6 +102,9 @@ public class Hashjoin implements StreamOperator {
 		this.identifier2 = identifier2;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void typeCheck() throws TypeException {
 		this.input1.typeCheck();
@@ -105,20 +149,25 @@ public class Hashjoin implements StreamOperator {
 		this.outputType = calcOutputType();
 	}
 
+	/**
+	 * {@inheritDoc}<br>
+	 * Loads the complete second input stream into a map mapping the join
+	 * attribute's value to all matching tuples.
+	 */
 	@Override
-	public MemoryObject getOutputType() {
-		return this.outputType;
-	}
-
-	@Override
-	public void open() {
+	public void open() throws MemoryException {
 		this.streamInput1.open();
 
 		// Create Map
 		this.map = new HashMap<MemoryAttribute, List<MemoryTuple>>();
 		this.streamInput2.open();
 		MemoryTuple curTuple;
+		int memorywatch_counter = 0;
 		while ((curTuple = (MemoryTuple) this.streamInput2.getNext()) != null) {
+			memorywatch_counter++;
+			if (memorywatch_counter % MemoryWatcher.MEMORY_CHECK_FREQUENCY == 0) {
+				MemoryWatcher.getInstance().checkMemoryStatus();
+			}
 			addTupleToMap(curTuple);
 		}
 		this.streamInput2.close();
@@ -127,8 +176,11 @@ public class Hashjoin implements StreamOperator {
 		this.tupleStore = new ConcurrentLinkedQueue<MemoryTuple>();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public MemoryObject getNext() {
+	public MemoryObject getNext() throws MemoryException {
 		if (this.map == null || this.tupleStore == null) {
 			throw new StreamStateException(
 					"Stream was accessed while being closed!");
@@ -156,12 +208,31 @@ public class Hashjoin implements StreamOperator {
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void close() {
 		this.streamInput1.close();
 		this.map = null;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public MemoryObject getOutputType() {
+		return this.outputType;
+	}
+
+	/**
+	 * Checks if the types of the columns identified by the two parameters
+	 * match.<br>
+	 * They have to to make joining possible.
+	 * 
+	 * @throws TypeException
+	 *             if types do not match.
+	 */
 	private void checkAttributeTypesMatch() throws TypeException {
 		Class<? extends MemoryAttribute> class1 = HeaderTools
 				.getClassForHeaderItem(((MemoryTuple) this.streamInput1
@@ -180,6 +251,12 @@ public class Hashjoin implements StreamOperator {
 		}
 	}
 
+	/**
+	 * Check if there would be any identifier collisions in the output tuples.
+	 * 
+	 * @throws TypeException
+	 *             if any collisions would occur.
+	 */
 	private void checkIdentifierCollisions() throws TypeException {
 		List<RelationHeaderItem> header1 = ((MemoryTuple) this.streamInput1
 				.getOutputType()).getTypecheckInfo();
@@ -198,6 +275,11 @@ public class Hashjoin implements StreamOperator {
 		}
 	}
 
+	/**
+	 * Determines the OutputType by adding all columns of both input streams.
+	 * 
+	 * @return the determined OutputType.
+	 */
 	private MemoryTuple calcOutputType() {
 		List<RelationHeaderItem> header1 = ((MemoryTuple) this.streamInput1
 				.getOutputType()).getTypecheckInfo();
@@ -210,6 +292,14 @@ public class Hashjoin implements StreamOperator {
 		return MemoryTuple.createTypecheckInstance(outputHeader);
 	}
 
+	/**
+	 * Adds a tuple to the joining map.<br>
+	 * If there are already tuples with the same value in the join column the
+	 * new tuple is added to their list. If this is the first tuple with this
+	 * value a new list is created.
+	 * 
+	 * @param curTuple
+	 */
 	private void addTupleToMap(MemoryTuple curTuple) {
 		MemoryAttribute joinAttribute = curTuple.getAttribute(columnIndex2);
 		List<MemoryTuple> curList = this.map.get(joinAttribute);
@@ -222,6 +312,16 @@ public class Hashjoin implements StreamOperator {
 		}
 	}
 
+	/**
+	 * Joins the current tuple with all join candidates and stores the resulst
+	 * in a queue.
+	 * 
+	 * @param curTuple
+	 *            the tuple to join.
+	 * @param joinCandidates
+	 *            the join candidates.
+	 * @return the queue containing all joined tuples.
+	 */
 	private ConcurrentLinkedQueue<MemoryTuple> joinTuples(MemoryTuple curTuple,
 			List<MemoryTuple> joinCandidates) {
 		ConcurrentLinkedQueue<MemoryTuple> newTupleStore = new ConcurrentLinkedQueue<MemoryTuple>();

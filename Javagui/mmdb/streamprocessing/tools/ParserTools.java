@@ -2,16 +2,35 @@ package mmdb.streamprocessing.tools;
 
 import mmdb.error.streamprocessing.ParsingException;
 import mmdb.streamprocessing.Node;
-import mmdb.streamprocessing.parser.nestedlist.NestedListNode;
+import sj.lang.ListExpr;
 
+/**
+ * Tool class for checks during parsing (buildup of the operator tree).
+ * 
+ * @author Björn Clasen
+ */
 public class ParserTools {
 
-	public static void checkListElemCount(NestedListNode[] list, int target,
+	/**
+	 * Checks if the given ListExpr contains the right amount of parameters for
+	 * the caller.
+	 * 
+	 * @param listExpressions
+	 *            the ListExpr representation of the parameters to count.
+	 * @param target
+	 *            the target number of parameters.
+	 * @param caller
+	 *            the class of the calling operator (for exception message
+	 *            purposes).
+	 * @throws ParsingException
+	 *             if the ListExpr contains a wrong number of parameters.
+	 */
+	public static void checkListElemCount(ListExpr[] listExpressions, int target,
 			Class<? extends Node> caller) throws ParsingException {
-		if (list.length != target) {
+		if (listExpressions.length != target) {
 			throw new ParsingException(
 					"%s has wrong number of params! Expects %d but got %d.",
-					caller.getSimpleName(), target, list.length);
+					caller.getSimpleName(), target, listExpressions.length);
 		}
 	}
 

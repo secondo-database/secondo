@@ -75,14 +75,15 @@ public class MemoryRelation extends MemoryObject {
 	 *            the nested list containing the tuple's values
 	 * @throws ConvertToObjectException
 	 */
-	public void createTupleFromList(ListExpr list) throws ConvertToObjectException {
+	public void createTupleFromList(ListExpr list)
+			throws ConvertToObjectException {
 		ListExpr tmp = list;
 		MemoryTuple tuple = new MemoryTuple();
 		for (RelationHeaderItem headerItem : header) {
 			Class<? extends MemoryAttribute> type = headerItem.getType();
 			if (type == null) {
-				throw new ConvertToObjectException("-> Type '" + headerItem.getTypeName()
-						+ "' is not supported.");
+				throw new ConvertToObjectException("-> Type '"
+						+ headerItem.getTypeName() + "' is not supported.");
 			}
 			try {
 				MemoryAttribute attribute = type.newInstance();
@@ -90,7 +91,8 @@ public class MemoryRelation extends MemoryObject {
 				tuple.addAttribute(attribute);
 				tmp = tmp.rest();
 			} catch (Exception e) {
-				throw new ConvertToObjectException("-> Could not create tuples from nested list.");
+				throw new ConvertToObjectException(
+						"-> Could not create tuples from nested list.");
 			}
 		}
 		tuples.add(tuple);
@@ -125,11 +127,12 @@ public class MemoryRelation extends MemoryObject {
 	 * @throws IndexingException
 	 * @throws MemoryException
 	 */
-	public void createIndex(String identifier, String indexType) throws IndexingException,
-			MemoryException {
+	public void createIndex(String identifier, String indexType)
+			throws IndexingException, MemoryException {
 		MemoryIndex<?> index = null;
 		try {
-			Class<? extends MemoryIndex<?>> indexClass = IndexType.valueOf(indexType).indexClass;
+			Class<? extends MemoryIndex<?>> indexClass = IndexType
+					.valueOf(indexType).indexClass;
 			index = indexClass.newInstance();
 		} catch (Exception e) {
 			throw new IndexingException("-> Could not instantiate index class.");
@@ -213,12 +216,53 @@ public class MemoryRelation extends MemoryObject {
 		return result;
 	}
 
+	/**
+	 * Factorymethod creating a typecheck instance for MemoryRelations. This
+	 * instance contains only the type of the relation (its header) but not any
+	 * data.
+	 * 
+	 * @param typecheckInfo
+	 *            the typecheck instance's header.
+	 * @return the typecheckInstance.
+	 */
 	public static MemoryRelation createTypecheckInstance(
 			List<RelationHeaderItem> typecheckInfo) {
 		return new MemoryRelation(typecheckInfo);
 	}
 
+	/**
+	 * Retrieves the typecheck instance's info, its header.
+	 * 
+	 * @return the header stored in this typecheck instance.
+	 */
 	public List<RelationHeaderItem> getTypecheckInfo() {
 		return header;
 	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object other) {
+		if (other == this) {
+			return true;
+		}
+		if (other == null) {
+			return false;
+		}
+		if (!(other instanceof MemoryRelation)) {
+			return false;
+		}
+		MemoryRelation otherRel = (MemoryRelation) other;
+		if (!otherRel.getHeader().equals(header)) {
+			return false;
+		}
+		if (!otherRel.getTuples().equals(tuples)) {
+			return false;
+		}
+		return true;
+	}
+
 }

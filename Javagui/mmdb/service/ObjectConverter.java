@@ -65,11 +65,11 @@ public final class ObjectConverter {
 	}
 
 	/**
-	 * Converts a given nested list to a memory relation object.
+	 * Converts a given nested list to a memory object.
 	 * 
 	 * @param nestedList
 	 *            the nested list to be converted
-	 * @return the converted memory relation
+	 * @return the converted memory object
 	 * @throws ConvertToObjectException
 	 * @throws MemoryException
 	 */
@@ -117,8 +117,8 @@ public final class ObjectConverter {
 	 * @throws ConvertToListException
 	 * @throws MemoryException
 	 */
-	public ListExpr convertObjectToList(MemoryObject memoryObject) throws ConvertToListException,
-			MemoryException {
+	public ListExpr convertObjectToList(MemoryObject memoryObject)
+			throws ConvertToListException {
 		ListExpr resultList = null;
 		try {
 			if (memoryObject instanceof MemoryAttribute) {
@@ -133,6 +133,8 @@ public final class ObjectConverter {
 				ListExpr tuplesList = createTuplesList(header, tuples);
 				resultList = ListExpr.twoElemList(headerList, tuplesList);
 			}
+		} catch (MemoryException e) {
+			throw new ConvertToListException(e.getMessage());
 		} catch (Throwable e) {
 			throw new ConvertToListException("-> Technical conversion failed.");
 		}
@@ -140,10 +142,11 @@ public final class ObjectConverter {
 	}
 
 	/**
-	 * Creates a NestedList representation for an undefined MemoryAttribute
+	 * Creates a NestedList representation for an undefined MemoryAttribute.
 	 * 
 	 * @param attributeType
-	 * 		the typecheck instance of the undefined attribute
+	 *            the typecheck instance of the undefined attribute.
+	 * @return the nested list representation.
 	 */
 	public ListExpr convertUndefinedAttributeToList(MemoryAttribute attributeType) {
 		return ListExpr.twoElemList(ListExpr.symbolAtom(MemoryAttribute
@@ -210,7 +213,7 @@ public final class ObjectConverter {
 	 * @return the header as nested list
 	 * @throws ConvertToListException
 	 */
-	private ListExpr createHeaderList(List<RelationHeaderItem> header)
+	protected ListExpr createHeaderList(List<RelationHeaderItem> header)
 			throws ConvertToListException {
 		ListExpr relList = null;
 		try {
@@ -327,6 +330,14 @@ public final class ObjectConverter {
 		return isRelation;
 	}
 	
+	/**
+	 * Checks whether a given nested list is an attribute.
+	 * 
+	 * @param nestedList
+	 *            the nested list to check.
+	 * @return true if it represents an attribute, false otherwise.
+	 * @throws ConvertToObjectException
+	 */
 	private boolean isListAttribute(ListExpr nestedList) throws ConvertToObjectException {
 		boolean isAttribute = true;
 		if (nestedList.listLength() != 2) {
@@ -360,7 +371,7 @@ public final class ObjectConverter {
 	 * @return the header
 	 * @throws ConvertToObjectException
 	 */
-	private List<RelationHeaderItem> createHeaderFromList(ListExpr nestedList)
+	protected List<RelationHeaderItem> createHeaderFromList(ListExpr nestedList)
 			throws ConvertToObjectException {
 		List<RelationHeaderItem> header = new ArrayList<RelationHeaderItem>();
 		try {

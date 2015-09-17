@@ -174,4 +174,15 @@ public class AttributeReal extends MemoryAttribute implements Orderable, Parsabl
 		this.value = value;
 	}
 
+	/**
+	 * Retrieve a String representation of the attribute in nested list format.
+	 * For testing purpose.
+	 * 
+	 * @return Nested list representation
+	 */
+	@Override
+	public String toString() {
+		return "(real " + Float.toString(this.value) + ")";
+	}
+
 }

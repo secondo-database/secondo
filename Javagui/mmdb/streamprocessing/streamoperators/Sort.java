@@ -7,35 +7,64 @@ import java.util.Map;
 import mmdb.data.MemoryObject;
 import mmdb.data.MemoryTuple;
 import mmdb.data.RelationHeaderItem;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.ParsingException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.Node;
+import mmdb.streamprocessing.parser.Environment;
 import mmdb.streamprocessing.parser.NestedListProcessor;
-import mmdb.streamprocessing.parser.nestedlist.NestedListNode;
-import mmdb.streamprocessing.parser.tools.Environment;
 import mmdb.streamprocessing.tools.ParserTools;
 import mmdb.streamprocessing.tools.TypecheckTools;
+import sj.lang.ListExpr;
 
+/**
+ * Simple sort operator resembling the core operator.<br>
+ * Sorts a stream of MemoryTuples by all their columns in ascending order.<br>
+ * Internally uses a delegation to the sortby operator.
+ * 
+ * @author Björn Clasen
+ *
+ */
 public class Sort implements StreamOperator {
 
+	/**
+	 * The operator's parameter Node.
+	 */
 	private Node input;
 
+	/**
+	 * The operator's parameter as a StreamOperator.
+	 */
 	private StreamOperator streamInput;
 
+	/**
+	 * The instance of the sortby operator to delegate to.
+	 */
 	private Sortby sortby;
 
-	public static Node fromNL(NestedListNode[] params, Environment environment)
+	/**
+	 * @see mmdb.streamprocessing.Nodes#fromNL(ListExpr[], Environment)
+	 */
+	public static Node fromNL(ListExpr[] params, Environment environment)
 			throws ParsingException {
 		ParserTools.checkListElemCount(params, 1, Sort.class);
 		Node node1 = NestedListProcessor.nlToNode(params[0], environment);
 		return new Sort(node1);
 	}
 
-	// TODO: Sort non-tuple streams?
+	/**
+	 * Constructor, called by fromNL(...)
+	 * 
+	 * @param input
+	 *            operator's parameter
+	 */
 	public Sort(Node input) {
 		this.input = input;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void typeCheck() throws TypeException {
 		this.input.typeCheck();
@@ -54,26 +83,44 @@ public class Sort implements StreamOperator {
 		this.sortby.typeCheck();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public MemoryObject getOutputType() {
 		return this.sortby.getOutputType();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void open() {
+	public void open() throws MemoryException {
 		this.sortby.open();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public MemoryObject getNext() {
 		return this.sortby.getNext();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void close() {
 		this.sortby.close();
 	}
 
+	/**
+	 * Calculates the sort attributes to pass to the sortby delegate.<br>
+	 * Just uses all column names in their original order and adds "asc".
+	 * 
+	 * @return the parameter map for sortby.
+	 */
 	private Map<String, String> calcSortAttributes() {
 		Map<String, String> sortAttributes = new LinkedHashMap<String, String>();
 

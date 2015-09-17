@@ -42,12 +42,13 @@ public class MemoryTuple extends MemoryObject {
 	 * The tuple's attributes.
 	 */
 	private List<MemoryAttribute> attributes = new ArrayList<MemoryAttribute>();
-	
+
 	/**
 	 * Explicit Standard Constructor
 	 */
-	public MemoryTuple() {}
-	
+	public MemoryTuple() {
+	}
+
 	/**
 	 * Private constructor for TypecheckInstance Factorymethod
 	 * 
@@ -61,7 +62,7 @@ public class MemoryTuple extends MemoryObject {
 	 * Create MemoryTuple from multiple MemoryAttributes
 	 * 
 	 * @param attributes
-	 * 			an Array of all Attributes to add
+	 *            an Array of all Attributes to add
 	 */
 	public MemoryTuple(MemoryAttribute... attributes) {
 		this.attributes.addAll(0, Arrays.asList(attributes));
@@ -100,11 +101,13 @@ public class MemoryTuple extends MemoryObject {
 	}
 
 	/**
-	 * Factorymethod for Typechecking-Instance
+	 * Factorymethod creating a typecheck instance for MemoryTuples. This
+	 * instance contains only the type of the tuple (its [relation's] header)
+	 * but not any data.
 	 * 
-	 * @param info
-	 *            TypecheckInfo
-	 * @return Typechecking Instance
+	 * @param typecheckInfo
+	 *            the typecheck instance's header.
+	 * @return the typecheckInstance.
 	 */
 	public static MemoryTuple createTypecheckInstance(
 			List<RelationHeaderItem> info) {
@@ -112,12 +115,40 @@ public class MemoryTuple extends MemoryObject {
 	}
 
 	/**
-	 * Returns the Typechecking Info
+	 * Retrieves the typecheck instance's info, its header.
 	 * 
-	 * @return Typechecking Info
+	 * @return the header stored in this typecheck instance.
 	 */
 	public List<RelationHeaderItem> getTypecheckInfo() {
 		return typecheckInfo;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object other) {
+		if (other == this) {
+			return true;
+		}
+		if (other == null) {
+			return false;
+		}
+		if (!(other instanceof MemoryTuple)) {
+			return false;
+		}
+		MemoryTuple otherTuple = (MemoryTuple) other;
+		if (attributes.size() != otherTuple.getAttributes().size()) {
+			return false;
+		}
+		for (int i = 0; i < attributes.size(); i++) {
+			if (!attributes.get(i).equals(otherTuple.getAttribute(i))) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 }

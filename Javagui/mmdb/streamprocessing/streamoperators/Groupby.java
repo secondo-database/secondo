@@ -10,38 +10,70 @@ import mmdb.data.MemoryRelation;
 import mmdb.data.MemoryTuple;
 import mmdb.data.RelationHeaderItem;
 import mmdb.data.attributes.MemoryAttribute;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.ParsingException;
 import mmdb.error.streamprocessing.StreamStateException;
 import mmdb.error.streamprocessing.TypeException;
+import mmdb.service.MemoryWatcher;
 import mmdb.streamprocessing.Node;
 import mmdb.streamprocessing.functionoperators.ParameterFunction;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
+import mmdb.streamprocessing.parser.Environment;
 import mmdb.streamprocessing.parser.NestedListProcessor;
-import mmdb.streamprocessing.parser.nestedlist.NestedListNode;
-import mmdb.streamprocessing.parser.tools.Environment;
 import mmdb.streamprocessing.tools.HeaderTools;
 import mmdb.streamprocessing.tools.ParserTools;
 import mmdb.streamprocessing.tools.TypecheckTools;
+import sj.lang.ListExpr;
 
+/**
+ * The groupby operator resembling the operator in the core.<br>
+ * Groups a (presorted) stream of tuples by the given identifiers. Calculates
+ * aggregates of other columns and adds them as new columns.
+ * 
+ * @author Björn Clasen
+ */
 public class Groupby implements StreamOperator {
 
+	/**
+	 * The operator's first parameter as a Node.
+	 */
 	private Node input1;
 
+	/**
+	 * The identifiers to group by.
+	 */
 	private String[] identifiers;
 
+	/**
+	 * The operator's third parameter.<br>
+	 * A map mapping the new identifiers to their aggregation functions.
+	 */
 	private Map<String, Node> input3;
 
-	private Map<Integer, Integer> columnPositions;
-
+	/**
+	 * The operator's first parameter as a StreamOperator.
+	 */
 	private StreamOperator streamInput;
 
+	/**
+	 * Positions of the grouping columns in the incoming tuples.
+	 */
+	private Map<Integer, Integer> columnPositions;
+
+	/**
+	 * The operator's output type.
+	 */
 	private MemoryTuple outputType;
 
-	// Needed for evaluation
-
+	/**
+	 * Stores tuples matching in the grouping columns
+	 */
 	private List<MemoryTuple> tupleStore;
 
-	public static Node fromNL(NestedListNode[] params, Environment environment)
+	/**
+	 * @see mmdb.streamprocessing.Nodes#fromNL(ListExpr[], Environment)
+	 */
+	public static Node fromNL(ListExpr[] params, Environment environment)
 			throws ParsingException {
 		ParserTools.checkListElemCount(params, 3, Groupby.class);
 		Node node1 = NestedListProcessor.nlToNode(params[0], environment);
@@ -51,12 +83,25 @@ public class Groupby implements StreamOperator {
 		return new Groupby(node1, identList, paramMap);
 	}
 
+	/**
+	 * Constructor, called by fromNL(...)
+	 * 
+	 * @param input1
+	 *            operator's first parameter
+	 * @param identifiers
+	 *            operator's second parameter
+	 * @param input3
+	 *            operator's third parameter
+	 */
 	public Groupby(Node input1, String[] identifiers, Map<String, Node> input3) {
 		this.input1 = input1;
 		this.identifiers = identifiers;
 		this.input3 = input3;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void typeCheck() throws TypeException {
 		this.input1.typeCheck();
@@ -100,13 +145,12 @@ public class Groupby implements StreamOperator {
 		this.outputType = calculateOutputType();
 	}
 
+	/**
+	 * {@inheritDoc}<br>
+	 * Initializes the tuple store.
+	 */
 	@Override
-	public MemoryObject getOutputType() {
-		return this.outputType;
-	}
-
-	@Override
-	public void open() {
+	public void open() throws MemoryException {
 		this.streamInput.open();
 		this.tupleStore = new ArrayList<MemoryTuple>();
 		MemoryTuple firstTuple = (MemoryTuple) this.streamInput.getNext();
@@ -115,8 +159,11 @@ public class Groupby implements StreamOperator {
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public MemoryObject getNext() {
+	public MemoryObject getNext() throws MemoryException {
 		// Is stream opened?
 		if (this.tupleStore == null) {
 			throw new StreamStateException(
@@ -130,8 +177,13 @@ public class Groupby implements StreamOperator {
 
 		// Collect matching tuples in tupleStore
 		MemoryTuple inputTuple;
+		int memorywatch_counter = 0;
 		while ((inputTuple = (MemoryTuple) this.streamInput.getNext()) != null
 				&& tuplesMatchOnGroupingColumns(inputTuple, tupleStore.get(0))) {
+			memorywatch_counter++;
+			if (memorywatch_counter % MemoryWatcher.MEMORY_CHECK_FREQUENCY == 0) {
+				MemoryWatcher.getInstance().checkMemoryStatus();
+			}
 			this.tupleStore.add(inputTuple);
 		}
 
@@ -146,11 +198,30 @@ public class Groupby implements StreamOperator {
 		return outputTuple;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void close() {
 		this.streamInput.close();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public MemoryObject getOutputType() {
+		return this.outputType;
+	}
+
+	/**
+	 * Determines the output type by creating a new header containing the
+	 * grouping columns and the aggregate columns.
+	 * 
+	 * @return the determinded OutputType.
+	 * @throws TypeException
+	 *             if identifier duplications were found.
+	 */
 	private MemoryTuple calculateOutputType() throws TypeException {
 		this.initPositions();
 
@@ -185,6 +256,12 @@ public class Groupby implements StreamOperator {
 		return MemoryTuple.createTypecheckInstance(newTypecheckInfo);
 	}
 
+	/**
+	 * Calculates the postions of the grouping columns in the incoming tuples.
+	 * 
+	 * @throws TypeException
+	 *             if any grouping columns were not present.
+	 */
 	private void initPositions() throws TypeException {
 		this.columnPositions = new HashMap<Integer, Integer>();
 		List<RelationHeaderItem> oldHeader = ((MemoryTuple) this.streamInput
@@ -196,6 +273,14 @@ public class Groupby implements StreamOperator {
 		}
 	}
 
+	/**
+	 * Checks if two tuples match on all grouping columns.
+	 * 
+	 * @param tuple1
+	 * @param tuple2
+	 * @return true if the tuples match on all grouping columns, false
+	 *         otherwise.
+	 */
 	private boolean tuplesMatchOnGroupingColumns(MemoryTuple tuple1,
 			MemoryTuple tuple2) {
 		for (int position : this.columnPositions.values()) {
@@ -207,7 +292,14 @@ public class Groupby implements StreamOperator {
 		return true;
 	}
 
-	private MemoryTuple calculateOutputTuple() {
+	/**
+	 * Calculates a single output tuple (group) by using the tuple store.
+	 * 
+	 * @return the tuple to put out.
+	 * @throws MemoryException
+	 *             if memory tended to run out during calculation.
+	 */
+	private MemoryTuple calculateOutputTuple() throws MemoryException {
 		MemoryTuple outputTuple = new MemoryTuple();
 
 		// Add all grouping columns (in correct order)
