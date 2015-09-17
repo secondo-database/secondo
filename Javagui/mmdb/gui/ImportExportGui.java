@@ -73,11 +73,8 @@ public class ImportExportGui {
 			}
 			if (sobjects.length > 0) {
 				try {
-					long startTime = System.currentTimeMillis();
 					ObjectExport.getInstance()
 							.exportObjects(sobjects, filePath);
-					long duration = System.currentTimeMillis() - startTime;
-					System.out.println("Took (ms): " + duration);
 				} catch (ExportException e) {
 					Reporter.showError(e.getMessage());
 				}
@@ -96,14 +93,11 @@ public class ImportExportGui {
 			return;
 		}
 		try {
-			long startTime = System.currentTimeMillis();
 			SecondoObject[] sobjects = ObjectImport.getInstance()
 					.importObjects(filePath);
 			for (SecondoObject sobject : sobjects) {
 				objectList.addEntry(sobject);
 			}
-			long duration = System.currentTimeMillis() - startTime;
-			System.out.println("Took (ms): " + duration);
 		} catch (ImportException e) {
 			Reporter.showError(e.getMessage());
 		}

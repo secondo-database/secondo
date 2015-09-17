@@ -365,7 +365,7 @@ public class ObjectExport {
 			throws ExportException {
 		try {
 			if (!filePath.toUpperCase().endsWith(FILE_EXTENSION.toUpperCase())) {
-				filePath += FILE_EXTENSION;
+				filePath += "." + FILE_EXTENSION;
 			}
 			File destinationFile = new File(filePath);
 			FileOutputStream fos = new FileOutputStream(destinationFile);
