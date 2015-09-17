@@ -18362,26 +18362,27 @@ to ~d~ are removed.
 */
 ListExpr fillGapsTM(ListExpr args){
   int len = nl->ListLength(args);
-  string err = "periods [x duration] expected";
+  string err = "{periods, mpoint} [x duration] expected";
   if( (len!=1) && (len!=2)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
-  if(!Periods::checkType(nl->First(args))){
+  if(!Periods::checkType(nl->First(args))
+     && !MPoint::checkType(nl->First(args))){
     return listutils::typeError(err 
-                             + " (first argument not of type periods)");
+                 + " (first argument not of type periods or mpoint)");
   }
   if( (len==2) && !Duration::checkType(nl->Second(args))){
     return listutils::typeError(err 
                           + " ( second parameter is not a duration)");
   }
-  return nl->SymbolAtom(Periods::BasicType());
+  return nl->First(args);
 }
 
 /*
 5.2.4.2 Value Mapping
 
 */
-int fillGapsVM( Word* args, Word& result, int message, Word&
+int fillGapsVM_per( Word* args, Word& result, int message, Word&
               local, Supplier s ){
 
   result = qp->ResultStorage(s);
@@ -18435,6 +18436,71 @@ int fillGapsVM( Word* args, Word& result, int message, Word&
   return 0; 
 }
 
+
+
+int fillGapsVM_MP( Word* args, Word& result, int message, Word&
+              local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   MPoint* res = (MPoint*) result.addr;
+   MPoint* mp = (MPoint*) args[0].addr;
+   DateTime* d = qp->GetNoSons(s)==2?(DateTime*) args[1].addr:0;
+
+   if(!mp->IsDefined() || (d && !d->IsDefined())){
+     res->SetDefined(false);
+     return 0;
+   }
+   res->Clear();
+   int m = mp->GetNoComponents();
+   if(m==0){ // no elements -> no gap
+     return 0;
+   }
+
+   UPoint u1(false);
+   res->StartBulkLoad();
+   mp->Get(0,u1);
+   res->MergeAdd(u1); 
+   UPoint u2(false);
+
+   for(int i=1;i<m; i++){
+      mp->Get(i,u2);
+      bool connect=true;
+      DateTime dist = u2.timeInterval.start - u1.timeInterval.end;
+      if(d){
+        if(dist > *d){
+           connect = false;
+        }
+      }
+      if(connect){
+        if(dist.IsZero()){
+           if(!u1.timeInterval.rc && !u2.timeInterval.lc){
+               // instant gap
+               u2.timeInterval.lc = true;
+           }
+        } else { // additional unit required
+            Interval<Instant> iv (u1.timeInterval.end , u2.timeInterval.start,
+                                  !u1.timeInterval.rc , !u2.timeInterval.lc);
+            UPoint gap (iv, u1.p1, u2.p0);
+            res->MergeAdd(gap);
+        } 
+      }
+      res->MergeAdd(u2);
+      u1 = u2;
+   }
+   res->EndBulkLoad();
+   return 0;
+}
+
+ValueMapping fillGapsVM[] = {
+   fillGapsVM_per,
+   fillGapsVM_MP
+};
+
+int fillGapsSelect(ListExpr args){
+  return Periods::checkType(nl->First(args))?0:1;
+}
+
+
 /*
 5.2.4.3 Specification
 
@@ -18442,10 +18508,10 @@ int fillGapsVM( Word* args, Word& result, int message, Word&
 
 const string fillGapsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> periods [x duration] -> periods"
+    "( <text> T  [x duration] -> T, T in {periods,mpoint}"
     "</text---> "
     "<text> fillGaps(_ [,_] ) </text--->"
-    "<text>Fills gaps within a periods value. If the optional  "
+    "<text>Fills gaps within a periods or mpoint  value. If the optional  "
     " argument d is given, only gaps shorter or having the same"
     " duration as d are removed."
     "</text--->"
@@ -18459,8 +18525,9 @@ const string fillGapsSpec =
 Operator fillGaps(
            "fillGaps",
            fillGapsSpec,
+           2,
            fillGapsVM,
-           Operator::SimpleSelect,
+           fillGapsSelect,
            fillGapsTM);
 
 
