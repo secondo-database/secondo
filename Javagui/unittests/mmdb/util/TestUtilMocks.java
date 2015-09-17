@@ -22,12 +22,18 @@ package unittests.mmdb.util;
 import gui.CommandPanel;
 import gui.ObjectList;
 import gui.SecondoObject;
+import gui.ViewerChangeListener;
+import gui.ViewerControl;
 
+import java.awt.Frame;
 import java.util.ArrayList;
 import java.util.List;
 
+import sj.lang.IntByReference;
 import sj.lang.ListExpr;
+import sj.lang.MessageListener;
 import viewer.QueryViewer;
+import viewer.SecondoViewer;
 
 /**
  * This class provides commonly used mock objects.
@@ -55,15 +61,21 @@ public class TestUtilMocks {
 			objects.add(SO);
 		}
 
+		@Override
+		public List<SecondoObject> getAllObjects() {
+			return objects;
+		}
+
 	}
 
 	@SuppressWarnings("serial")
 	public static class CommandPanelMock extends CommandPanel {
 
-		public List<String> history = new ArrayList<String>();
+		public List<String> history;
 
 		public CommandPanelMock() {
 			super(null, "test", "test");
+			history = new ArrayList<String>();
 		}
 
 		@Override
@@ -77,6 +89,105 @@ public class TestUtilMocks {
 		@Override
 		public void addToHistory(String S) {
 			history.add(S);
+		}
+
+	}
+
+	public static class ViewerControlMock implements ViewerControl {
+
+		SecondoObject currentlyShown = null;
+
+		@Override
+		public boolean canActualDisplay(SecondoObject SO) {
+			return false;
+		}
+
+		@Override
+		public boolean isActualDisplayed(SecondoObject SO) {
+			return currentlyShown == SO;
+		}
+
+		@Override
+		public boolean showObject(SecondoObject SO) {
+			currentlyShown = SO;
+			return true;
+		}
+
+		@Override
+		public void hideObject(Object Sender, SecondoObject SO) {
+		}
+
+		@Override
+		public void removeObject(SecondoObject SO) {
+		}
+
+		@Override
+		public void selectObject(Object Sender, SecondoObject SO) {
+		}
+
+		@Override
+		public boolean displayAt(String viewerName, SecondoObject o) {
+			return false;
+		}
+
+		@Override
+		public void updateMenu() {
+		}
+
+		@Override
+		public Frame getMainFrame() {
+			return null;
+		}
+
+		@Override
+		public void updateObject(SecondoObject SO) {
+		}
+
+		@Override
+		public boolean addObject(SecondoObject SO) {
+			return false;
+		}
+
+		@Override
+		public void updateMarks() {
+		}
+
+		@Override
+		public SecondoViewer[] getViewers() {
+			return null;
+		}
+
+		@Override
+		public void addViewerChangeListener(ViewerChangeListener VCL) {
+		}
+
+		@Override
+		public void removeViewerChangeListener(ViewerChangeListener VCL) {
+		}
+
+		@Override
+		public int execCommand(String cmd) {
+			return 0;
+		}
+
+		@Override
+		public ListExpr getCommandResult(String cmd) {
+			return null;
+		}
+
+		@Override
+		public boolean execUserCommand(String cmd) {
+			return false;
+		}
+
+		@Override
+		public boolean execCommand(String cmd, IntByReference errorCode,
+				ListExpr resultList, StringBuffer errorMessage) {
+			return false;
+		}
+
+		@Override
+		public void addMessageListener(MessageListener ml) {
 		}
 
 	}

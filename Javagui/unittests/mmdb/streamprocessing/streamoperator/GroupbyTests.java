@@ -2,16 +2,19 @@ package unittests.mmdb.streamprocessing.streamoperator;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import gui.SecondoObject;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import mmdb.data.MemoryObject;
 import mmdb.data.MemoryRelation;
 import mmdb.data.MemoryTuple;
 import mmdb.data.RelationHeaderItem;
 import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.data.attributes.standard.AttributeString;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.StreamStateException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.Node;
@@ -20,15 +23,18 @@ import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.FunctionEnvironment;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
 import mmdb.streamprocessing.objectnodes.aggregation.Max;
+import mmdb.streamprocessing.parser.NestedListProcessor;
 import mmdb.streamprocessing.streamoperators.Feed;
 import mmdb.streamprocessing.streamoperators.Groupby;
 
 import org.junit.Test;
 
+import unittests.mmdb.util.TestUtilParser;
+
 public class GroupbyTests {
 
 	@Test
-	public void testGroupbyStandard() throws TypeException {
+	public void testGroupbyStandard() throws TypeException, MemoryException {
 		Groupby groupBy = getGroupBy();
 		groupBy.typeCheck();
 
@@ -55,11 +61,38 @@ public class GroupbyTests {
 	}
 
 	@Test(expected = StreamStateException.class)
-	public void testGroupbyStreamState() throws TypeException {
+	public void testGroupbyStreamState() throws TypeException, MemoryException {
 		Groupby groupBy = getGroupBy();
 		groupBy.typeCheck();
 
 		groupBy.getNext();
+	}
+
+	@Test
+	public void testQuery() throws Exception {
+		MemoryRelation rel = getTestRelation();
+		SecondoObject sobject = TestUtilParser.getSecondoObject(rel, "REL");
+		String query = "(query (consume (groupby (feed REL) (Augenfarbe) ("
+				+ "(Gesamtgroesse (fun (group1 GROUP) (sum (feed group1) Groesse)))))))";
+		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
+				TestUtilParser.getList(sobject));
+		result.typeCheck();
+		MemoryObject mobject = result.getResult();
+
+		MemoryRelation expected = getTestRelation();
+		expected.getHeader().remove(0);
+		expected.getHeader().remove(1);
+		expected.getHeader()
+				.add(new RelationHeaderItem("Gesamtgroesse", "int"));
+
+		expected.getTuples().removeAll(rel.getTuples());
+		expected.getTuples().add(
+				new MemoryTuple(new AttributeString("Blau"), new AttributeInt(
+						550)));
+		expected.getTuples().add(
+				new MemoryTuple(new AttributeString("Braun"), new AttributeInt(
+						316)));
+		assertEquals(expected, mobject);
 	}
 
 	private Groupby getGroupBy() {
@@ -71,7 +104,8 @@ public class GroupbyTests {
 		FunctionEnvironment funEnv = new FunctionEnvironment();
 		Feed feedFun = new Feed(funEnv);
 		Max max = new Max(feedFun, "Groesse");
-		ParameterFunction fun = new ParameterFunction(new Node[] {funEnv}, max);
+		ParameterFunction fun = new ParameterFunction(new Node[] { funEnv },
+				max);
 
 		// Hashmap
 		LinkedHashMap<String, Node> map = new LinkedHashMap<String, Node>();

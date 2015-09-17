@@ -4,6 +4,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import unittests.mmdb.data.MemoryObjectsTests;
+import unittests.mmdb.service.ObjectExportTests;
+import unittests.mmdb.service.ObjectImportTests;
 import unittests.mmdb.streamprocessing.NodesTests;
 import unittests.mmdb.streamprocessing.functionoperators.ParameterFunctionTests;
 import unittests.mmdb.streamprocessing.objectnodes.AttrTests;
@@ -26,6 +29,9 @@ import unittests.mmdb.streamprocessing.objectnodes.logic.NotTests;
 import unittests.mmdb.streamprocessing.objectnodes.logic.OrTests;
 import unittests.mmdb.streamprocessing.objectnodes.maths.MinusTests;
 import unittests.mmdb.streamprocessing.objectnodes.maths.PlusTests;
+import unittests.mmdb.streamprocessing.parser.EnvironmentTests;
+import unittests.mmdb.streamprocessing.parser.NestedListProcessorTest;
+import unittests.mmdb.streamprocessing.parser.ParserControllerTests;
 import unittests.mmdb.streamprocessing.streamoperator.ExtendTests;
 import unittests.mmdb.streamprocessing.streamoperator.FeedProjectTests;
 import unittests.mmdb.streamprocessing.streamoperator.FeedTests;
@@ -40,6 +46,7 @@ import unittests.mmdb.streamprocessing.streamoperator.SortTests;
 import unittests.mmdb.streamprocessing.streamoperator.SortbyTests;
 import unittests.mmdb.streamprocessing.streamoperator.TailTests;
 import unittests.mmdb.streamprocessing.tools.HeaderToolsTests;
+import unittests.mmdb.streamprocessing.tools.ParserToolsTest;
 import unittests.mmdb.streamprocessing.tools.TypecheckToolsTests;
 
 @RunWith(Suite.class)
@@ -54,7 +61,11 @@ import unittests.mmdb.streamprocessing.tools.TypecheckToolsTests;
 		GroupbyTests.class, SortbyTests.class, SortTests.class,
 		HashjoinTests.class, NotTests.class, AndTests.class, OrTests.class,
 		ContainsTests.class, GreaterTests.class, LessTests.class,
-		EqualsGreaterTests.class, EqualsLessTests.class })
+		EqualsGreaterTests.class, EqualsLessTests.class,
+		EnvironmentTests.class, ParserToolsTest.class,
+		NestedListProcessorTest.class, MemoryObjectsTests.class,
+		ObjectExportTests.class, ObjectImportTests.class,
+		ParserControllerTests.class })
 public class TestSuiteStreamProcessing {
 
 }

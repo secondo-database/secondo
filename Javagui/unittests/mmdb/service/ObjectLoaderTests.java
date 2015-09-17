@@ -85,7 +85,7 @@ public class ObjectLoaderTests {
 				"command;");
 		assertNotNull(object.toListExpr());
 		assertNotNull(object.getMemoryObject());
-		assertEquals("command; [++]", object.getName());
+		assertEquals("command; [++]", object.getName().substring(4));
 	}
 
 	@Test(expected = LoadException.class)
@@ -99,7 +99,7 @@ public class ObjectLoaderTests {
 		SecondoObject object = new SecondoObject("name", TestUtilRelation.getValidRelationList());
 		ObjectLoader.getInstance().addMemoryObject(object);
 		assertNotNull(object.getMemoryObject());
-		assertEquals("name [++]", object.getName());
+		assertEquals("name [++]", object.getName().substring(4));
 	}
 
 	@Test(expected = LoadFromExplorerException.class)

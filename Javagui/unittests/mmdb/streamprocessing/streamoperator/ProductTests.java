@@ -1,13 +1,17 @@
 package unittests.mmdb.streamprocessing.streamoperator;
 
 import static org.junit.Assert.assertEquals;
+import gui.SecondoObject;
+import mmdb.data.MemoryObject;
 import mmdb.data.MemoryRelation;
 import mmdb.data.MemoryTuple;
 import mmdb.data.attributes.standard.AttributeInt;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.Count;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
+import mmdb.streamprocessing.parser.NestedListProcessor;
 import mmdb.streamprocessing.streamoperators.Feed;
 import mmdb.streamprocessing.streamoperators.Product;
 import mmdb.streamprocessing.streamoperators.Rename;
@@ -15,6 +19,7 @@ import mmdb.streamprocessing.streamoperators.Rename;
 import org.junit.Before;
 import org.junit.Test;
 
+import unittests.mmdb.util.TestUtilParser;
 import unittests.mmdb.util.TestUtilRelation;
 
 public class ProductTests {
@@ -50,14 +55,15 @@ public class ProductTests {
 	}
 
 	@Test
-	public void testProductTuplesCount() throws TypeException {
+	public void testProductTuplesCount() throws TypeException, MemoryException {
 		Count count = new Count(product);
 		count.typeCheck();
 		assertEquals(9, ((AttributeInt) count.getResult()).getValue());
 	}
 
 	@Test
-	public void testProductLeftStreamEmpty() throws TypeException {
+	public void testProductLeftStreamEmpty() throws TypeException,
+			MemoryException {
 		// Left stream empty
 		MemoryRelation rel1 = TestUtilRelation.getIntStringRelation(0, false,
 				false);
@@ -75,7 +81,8 @@ public class ProductTests {
 	}
 
 	@Test
-	public void testProductRightStreamEmpty() throws TypeException {
+	public void testProductRightStreamEmpty() throws TypeException,
+			MemoryException {
 		MemoryRelation rel1 = TestUtilRelation.getIntStringRelation(5, false,
 				false);
 		MemoryRelation rel2 = TestUtilRelation.getIntStringRelation(0, false,
@@ -106,6 +113,22 @@ public class ProductTests {
 		feed2 = new Feed(relNode2);
 		product = new Product(feed1, feed2);
 		product.typeCheck();
+	}
+
+	@Test
+	public void testQuery() throws Exception {
+		MemoryRelation rel = TestUtilRelation.getIntStringRelation(4, false,
+				false);
+		SecondoObject sobject1 = TestUtilParser.getSecondoObject(rel, "REL1");
+		SecondoObject sobject2 = TestUtilParser.getSecondoObject(rel, "REL2");
+		String query = "(query (count (product (rename (feed REL1) a) (feed REL2))))";
+		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
+				TestUtilParser.getList(sobject1, sobject2));
+		result.typeCheck();
+		MemoryObject mobject = result.getResult();
+
+		MemoryObject expected = new AttributeInt(16);
+		assertEquals(expected, mobject);
 	}
 
 }

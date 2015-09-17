@@ -3,19 +3,24 @@ package unittests.mmdb.streamprocessing.streamoperator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import gui.SecondoObject;
+import mmdb.data.MemoryObject;
 import mmdb.data.MemoryRelation;
 import mmdb.data.MemoryTuple;
 import mmdb.data.attributes.standard.AttributeInt;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.Count;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
+import mmdb.streamprocessing.parser.NestedListProcessor;
 import mmdb.streamprocessing.streamoperators.Feed;
 import mmdb.streamprocessing.streamoperators.Head;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import unittests.mmdb.util.TestUtilParser;
 import unittests.mmdb.util.TestUtilRelation;
 
 public class HeadTests {
@@ -37,7 +42,7 @@ public class HeadTests {
 	}
 
 	@Test
-	public void testHead() throws TypeException {
+	public void testHead() throws TypeException, MemoryException {
 		head = new Head(feed, attrNode);
 		head.typeCheck();
 
@@ -55,7 +60,7 @@ public class HeadTests {
 	}
 
 	@Test
-	public void testHeadEmpty() throws TypeException {
+	public void testHeadEmpty() throws TypeException, MemoryException {
 		rel = TestUtilRelation.getIntStringRelation(0, true, false);
 		relNode = ConstantNode.createConstantNode(rel, rel);
 		feed = new Feed(relNode);
@@ -69,7 +74,7 @@ public class HeadTests {
 	}
 
 	@Test
-	public void testHeadNegative() throws TypeException {
+	public void testHeadNegative() throws TypeException, MemoryException {
 		attrNode = ConstantNode.createConstantNode(new AttributeInt(-7),
 				new AttributeInt());
 		head = new Head(feed, attrNode);
@@ -92,7 +97,7 @@ public class HeadTests {
 	}
 
 	@Test
-	public void testHeadWithCount() throws TypeException {
+	public void testHeadWithCount() throws TypeException, MemoryException {
 		head = new Head(feed, attrNode);
 		count = new Count(head);
 		count.typeCheck();
@@ -101,7 +106,8 @@ public class HeadTests {
 	}
 
 	@Test
-	public void testHeadWithCountMultiple() throws TypeException {
+	public void testHeadWithCountMultiple() throws TypeException,
+			MemoryException {
 		head = new Head(feed, attrNode);
 		count = new Count(head);
 		count.typeCheck();
@@ -111,7 +117,8 @@ public class HeadTests {
 	}
 
 	@Test
-	public void testNullObjectNodeReaction() throws TypeException {
+	public void testNullObjectNodeReaction() throws TypeException,
+			MemoryException {
 		this.attrNode = ConstantNode.createConstantNode(null,
 				new AttributeInt());
 		head = new Head(feed, attrNode);
@@ -121,6 +128,22 @@ public class HeadTests {
 		assertNull(head.getNext());
 		assertNull(head.getNext());
 		head.close();
+	}
+
+	@Test
+	public void testQuery() throws Exception {
+		MemoryRelation rel = TestUtilRelation.getIntStringRelation(5, false,
+				false);
+		SecondoObject sobject = TestUtilParser.getSecondoObject(rel, "REL");
+		String query = "(query (consume (head (feed REL) 2)))";
+		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
+				TestUtilParser.getList(sobject));
+		result.typeCheck();
+		MemoryObject mobject = result.getResult();
+
+		MemoryRelation expected = TestUtilRelation.getIntStringRelation(2,
+				false, false);
+		assertEquals(expected, mobject);
 	}
 
 }

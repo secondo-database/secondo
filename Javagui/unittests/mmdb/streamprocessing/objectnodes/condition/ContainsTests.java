@@ -2,20 +2,26 @@ package unittests.mmdb.streamprocessing.objectnodes.condition;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import gui.SecondoObject;
+
+import java.util.ArrayList;
+
 import mmdb.data.attributes.standard.AttributeBool;
 import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.data.attributes.standard.AttributeString;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
 import mmdb.streamprocessing.objectnodes.condition.Contains;
+import mmdb.streamprocessing.parser.NestedListProcessor;
 
 import org.junit.Test;
 
 public class ContainsTests {
 
 	@Test
-	public void testContains() throws TypeException {
+	public void testContains() throws TypeException, MemoryException {
 		// True
 		Contains contains = getContains("Haus", "au");
 		contains.typeCheck();
@@ -29,7 +35,7 @@ public class ContainsTests {
 	}
 
 	@Test
-	public void testNullReaction() throws TypeException {
+	public void testNullReaction() throws TypeException, MemoryException {
 		ObjectNode string1Node = ConstantNode.createConstantNode(
 				new AttributeString("aaa"), new AttributeString());
 		ObjectNode string2Node = ConstantNode.createConstantNode(null,
@@ -49,7 +55,7 @@ public class ContainsTests {
 	}
 
 	@Test(expected = TypeException.class)
-	public void testContainsFail() throws TypeException {
+	public void testContainsFail() throws TypeException, MemoryException {
 		AttributeInt integer = new AttributeInt(3);
 		ObjectNode integerNode = ConstantNode.createConstantNode(integer,
 				integer);
@@ -70,6 +76,15 @@ public class ContainsTests {
 				string2);
 
 		return new Contains(stringNode1, stringNode2);
+	}
+
+	@Test
+	public void testQuery() throws Exception {
+		String query = "(query (contains \"aaabc\" \"ab\"))";
+		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
+				new ArrayList<SecondoObject>());
+		result.typeCheck();
+		assertEquals(new AttributeBool(true), result.getResult());
 	}
 
 }

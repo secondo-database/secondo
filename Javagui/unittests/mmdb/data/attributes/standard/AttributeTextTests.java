@@ -56,7 +56,7 @@ public class AttributeTextTests {
 	@Test
 	public void testToList() {
 		ListExpr list = attributeA.toList();
-		assertEquals("<text>A</text--->", list.textValue());
+		assertEquals("A", list.textValue());
 	}
 
 	@Test

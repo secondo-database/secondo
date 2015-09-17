@@ -57,9 +57,11 @@ public class ObjectConverterTests {
 		objectList = new ObjectListMock();
 		objects = new ArrayList<SecondoObject>();
 		SecondoObject firstObject = new SecondoObject("object_1 [+]", null);
-		firstObject.setMemoryObject(TestUtilRelation.getIntStringRelation(1, false, false));
+		firstObject.setMemoryObject(TestUtilRelation.getIntStringRelation(1,
+				false, false));
 		SecondoObject secondObject = new SecondoObject("object_2 [+]", null);
-		secondObject.setMemoryObject(TestUtilRelation.getIntStringRelation(1, true, false));
+		secondObject.setMemoryObject(TestUtilRelation.getIntStringRelation(1,
+				true, false));
 		objects.add(firstObject);
 		objects.add(secondObject);
 		objectList.objects.addAll(objects);
@@ -68,29 +70,42 @@ public class ObjectConverterTests {
 	@Test
 	public void testConvertListToObjectValidRelation() throws Exception {
 		ListExpr list = TestUtilRelation.getValidRelationList();
-		MemoryRelation relation = (MemoryRelation) ObjectConverter.getInstance().convertListToObject(list);
+		MemoryRelation relation = (MemoryRelation) ObjectConverter
+				.getInstance().convertListToObject(list);
 		List<RelationHeaderItem> header = relation.getHeader();
 		List<MemoryTuple> tuples = relation.getTuples();
 		assertEquals(1, header.size());
 		assertEquals("identifier", header.get(0).getIdentifier());
 		assertEquals("int", header.get(0).getTypeName());
 		assertEquals(2, tuples.size());
-		AttributeInt firstAttribute = (AttributeInt) tuples.get(0).getAttribute(0);
-		AttributeInt secondAttribute = (AttributeInt) tuples.get(1).getAttribute(0);
+		AttributeInt firstAttribute = (AttributeInt) tuples.get(0)
+				.getAttribute(0);
+		AttributeInt secondAttribute = (AttributeInt) tuples.get(1)
+				.getAttribute(0);
 		assertEquals(1, firstAttribute.getValue());
 		assertEquals(2, secondAttribute.getValue());
 	}
 
 	@Test(expected = ConvertToObjectException.class)
 	public void testConvertListToObjectInvalidRelation() throws Exception {
-		ObjectConverter.getInstance()
-				.convertListToObject(TestUtilRelation.getInvalidRelationList());
+		ObjectConverter.getInstance().convertListToObject(
+				TestUtilRelation.getInvalidRelationList());
+	}
+
+	@Test
+	public void testConvertListToObjectAttribute() throws Exception {
+		ListExpr listExpr = new ListExpr();
+		listExpr.readFromString("(int 12)");
+		assertEquals(new AttributeInt(12), ObjectConverter.getInstance()
+				.convertListToObject(listExpr));
 	}
 
 	@Test
 	public void testConvertObjectToList() throws Exception {
-		MemoryRelation relation = TestUtilRelation.getIntStringRelation(2, false, false);
-		ListExpr list = ObjectConverter.getInstance().convertObjectToList(relation);
+		MemoryRelation relation = TestUtilRelation.getIntStringRelation(2,
+				false, false);
+		ListExpr list = ObjectConverter.getInstance().convertObjectToList(
+				relation);
 		ListExpr type = list.first();
 		ListExpr reltype = type.first();
 		ListExpr tupletype = type.second();
@@ -114,8 +129,25 @@ public class ObjectConverterTests {
 	}
 
 	@Test
+	public void testConvertObjectToListAttribute() throws Exception {
+		ListExpr listExpr = new ListExpr();
+		listExpr.readFromString("(int 12)");
+		assertEquals(listExpr, ObjectConverter.getInstance()
+				.convertObjectToList(new AttributeInt(12)));
+	}
+
+	@Test
+	public void testConvertUndefinedAttributeToList() throws Exception {
+		ListExpr listExpr = new ListExpr();
+		listExpr.readFromString("(int undefined)");
+		assertEquals(listExpr, ObjectConverter.getInstance()
+				.convertUndefinedAttributeToList(new AttributeInt()));
+	}
+
+	@Test
 	public void testAddNestedListToSecondoObject() throws Exception {
-		MemoryRelation relation = TestUtilRelation.getIntStringRelation(1, false, false);
+		MemoryRelation relation = TestUtilRelation.getIntStringRelation(1,
+				false, false);
 		SecondoObject object = new SecondoObject("object [+]", null);
 		object.setMemoryObject(relation);
 		ObjectConverter.getInstance().addNestedListToSecondoObject(object);
@@ -125,7 +157,8 @@ public class ObjectConverterTests {
 
 	@Test(expected = ConvertToListException.class)
 	public void testConvertAllObjectsEmptyList() throws Exception {
-		ObjectConverter.getInstance().convertAllObjects(new ArrayList<SecondoObject>(), null);
+		ObjectConverter.getInstance().convertAllObjects(
+				new ArrayList<SecondoObject>(), null);
 	}
 
 	@Test

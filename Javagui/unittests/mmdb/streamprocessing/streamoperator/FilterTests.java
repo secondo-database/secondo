@@ -2,11 +2,14 @@ package unittests.mmdb.streamprocessing.streamoperator;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import gui.SecondoObject;
+import mmdb.data.MemoryObject;
 import mmdb.data.MemoryRelation;
 import mmdb.data.MemoryTuple;
 import mmdb.data.attributes.MemoryAttribute;
 import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.data.attributes.standard.AttributeString;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.Node;
 import mmdb.streamprocessing.functionoperators.ParameterFunction;
@@ -15,17 +18,19 @@ import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.FunctionEnvironment;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
 import mmdb.streamprocessing.objectnodes.condition.Equals;
+import mmdb.streamprocessing.parser.NestedListProcessor;
 import mmdb.streamprocessing.streamoperators.Feed;
 import mmdb.streamprocessing.streamoperators.Filter;
 
 import org.junit.Test;
 
+import unittests.mmdb.util.TestUtilParser;
 import unittests.mmdb.util.TestUtilRelation;
 
 public class FilterTests {
 
 	@Test
-	public void testFilterInt() throws TypeException {
+	public void testFilterInt() throws TypeException, MemoryException {
 		MemoryRelation rel = TestUtilRelation.getIntStringRelation(5, false,
 				false);
 		Filter filter = createFilter(rel, new AttributeInt(3), "identifierInt");
@@ -42,7 +47,7 @@ public class FilterTests {
 	}
 
 	@Test
-	public void testFilterString() throws TypeException {
+	public void testFilterString() throws TypeException, MemoryException {
 		MemoryRelation rel = TestUtilRelation.getIntStringRelation(5, true,
 				true);
 		Filter filter = createFilter(rel, new AttributeString("string_4"),
@@ -57,7 +62,7 @@ public class FilterTests {
 	}
 
 	@Test
-	public void testFilterIntMultiple() throws TypeException {
+	public void testFilterIntMultiple() throws TypeException, MemoryException {
 		MemoryRelation rel = TestUtilRelation.getIntStringRelation(5, false,
 				false);
 		// Should never be done
@@ -96,19 +101,22 @@ public class FilterTests {
 		ObjectNode attrConst = ConstantNode.createConstantNode(
 				new AttributeString("a"), new AttributeString());
 		FunctionEnvironment funEnv = new FunctionEnvironment();
-		ParameterFunction fun = new ParameterFunction(new Node[] {funEnv}, attrConst);
+		ParameterFunction fun = new ParameterFunction(new Node[] { funEnv },
+				attrConst);
 
 		Filter filter = new Filter(feed, fun);
 		filter.typeCheck();
 	}
 
 	@Test
-	public void testNullObjectNodeReaction() throws TypeException {
+	public void testNullObjectNodeReaction() throws TypeException,
+			MemoryException {
 		MemoryRelation rel = TestUtilRelation.getIntStringRelation(5, false,
 				false);
-		Filter filter = createFilter(rel, null, new AttributeInt(), "identifierInt");
+		Filter filter = createFilter(rel, null, new AttributeInt(),
+				"identifierInt");
 		filter.typeCheck();
-		
+
 		filter.open();
 		assertNull(filter.getNext());
 		filter.close();
@@ -126,7 +134,8 @@ public class FilterTests {
 		FunctionEnvironment funEnv = new FunctionEnvironment();
 		Attr attr = new Attr(funEnv, identifier);
 		Equals equals = new Equals(attr, attrConst);
-		ParameterFunction fun = new ParameterFunction(new Node[] {funEnv}, equals);
+		ParameterFunction fun = new ParameterFunction(new Node[] { funEnv },
+				equals);
 
 		// Filter
 		return new Filter(feed, fun);
@@ -144,10 +153,28 @@ public class FilterTests {
 		FunctionEnvironment funEnv = new FunctionEnvironment();
 		Attr attr = new Attr(funEnv, identifier);
 		Equals equals = new Equals(attr, attrConst);
-		ParameterFunction fun = new ParameterFunction(new Node[] {funEnv}, equals);
+		ParameterFunction fun = new ParameterFunction(new Node[] { funEnv },
+				equals);
 
 		// Filter
 		return new Filter(feed, fun);
+	}
+
+	@Test
+	public void testQuery() throws Exception {
+		MemoryRelation rel = TestUtilRelation.getIntStringRelation(5, false,
+				false);
+		SecondoObject sobject = TestUtilParser.getSecondoObject(rel, "REL");
+		String query = "(query (consume (filter (feed REL) (fun (tuple1 TUPLE)"
+				+ "(= (attr tuple1 identifierInt) 1)))))";
+		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
+				TestUtilParser.getList(sobject));
+		result.typeCheck();
+		MemoryObject mobject = result.getResult();
+
+		MemoryRelation expected = TestUtilRelation.getIntStringRelation(1,
+				false, false);
+		assertEquals(expected, mobject);
 	}
 
 }

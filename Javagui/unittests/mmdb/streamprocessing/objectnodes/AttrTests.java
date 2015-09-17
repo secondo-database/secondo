@@ -6,6 +6,7 @@ import mmdb.data.MemoryRelation;
 import mmdb.data.MemoryTuple;
 import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.data.attributes.standard.AttributeString;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.objectnodes.Attr;
 import mmdb.streamprocessing.objectnodes.ConstantNode;
@@ -19,7 +20,7 @@ import unittests.mmdb.util.TestUtilRelation;
 public class AttrTests {
 
 	@Test
-	public void testAttr() throws TypeException {
+	public void testAttr() throws TypeException, MemoryException {
 		MemoryRelation rel = TestUtilRelation.getIntStringRelation(5, false,
 				false);
 		ObjectNode relNode = ConstantNode.createConstantNode(rel, rel);
@@ -46,7 +47,7 @@ public class AttrTests {
 	}
 	
 	@Test
-	public void testNullReaction() throws TypeException {
+	public void testNullReaction() throws TypeException, MemoryException {
 		MemoryRelation rel = TestUtilRelation.getIntStringRelation(5, false,
 				false);
 		ObjectNode tupNode = ConstantNode.createConstantNode(null,
@@ -60,7 +61,7 @@ public class AttrTests {
 	}
 
 	@Test(expected = TypeException.class)
-	public void testAttrFail() throws TypeException {
+	public void testAttrFail() throws TypeException, MemoryException {
 		MemoryRelation rel = TestUtilRelation.getIntStringRelation(1, false,
 				false);
 		ObjectNode relNode = ConstantNode.createConstantNode(rel, rel);

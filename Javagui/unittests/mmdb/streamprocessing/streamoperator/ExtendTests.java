@@ -2,15 +2,18 @@ package unittests.mmdb.streamprocessing.streamoperator;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import gui.SecondoObject;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import mmdb.data.MemoryObject;
 import mmdb.data.MemoryRelation;
 import mmdb.data.MemoryTuple;
 import mmdb.data.RelationHeaderItem;
 import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.data.attributes.standard.AttributeString;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.Node;
 import mmdb.streamprocessing.functionoperators.ParameterFunction;
@@ -19,17 +22,19 @@ import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.FunctionEnvironment;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
 import mmdb.streamprocessing.objectnodes.maths.Plus;
+import mmdb.streamprocessing.parser.NestedListProcessor;
 import mmdb.streamprocessing.streamoperators.Extend;
 import mmdb.streamprocessing.streamoperators.Feed;
 
 import org.junit.Test;
 
+import unittests.mmdb.util.TestUtilParser;
 import unittests.mmdb.util.TestUtilRelation;
 
 public class ExtendTests {
 
 	@Test
-	public void testExtendIntString() throws TypeException {
+	public void testExtendIntString() throws TypeException, MemoryException {
 		MemoryRelation rel = TestUtilRelation.getIntStringRelation(2, false,
 				false);
 		ObjectNode relNode = ConstantNode.createConstantNode(rel, rel);
@@ -124,6 +129,25 @@ public class ExtendTests {
 		// Extend
 		Extend extend = new Extend(feed, map);
 		extend.typeCheck();
+	}
+
+	@Test
+	public void testQuery() throws Exception {
+		MemoryRelation rel = TestUtilRelation.getIntStringRelation(1, false,
+				false);
+		SecondoObject sobject = TestUtilParser.getSecondoObject(rel, "REL");
+		String query = "(query (consume (extend (feed REL) ((intplus1 "
+				+ "(fun (tuple1 TUPLE) (+ (attr tuple1 identifierInt) 1)))))))";
+		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
+				TestUtilParser.getList(sobject));
+		result.typeCheck();
+		MemoryObject mobject = result.getResult();
+
+		MemoryRelation expected = TestUtilRelation.getIntStringRelation(1,
+				false, false);
+		expected.getHeader().add(new RelationHeaderItem("intplus1", "int"));
+		expected.getTuples().get(0).addAttribute(new AttributeInt(2));
+		assertEquals(expected, mobject);
 	}
 
 }

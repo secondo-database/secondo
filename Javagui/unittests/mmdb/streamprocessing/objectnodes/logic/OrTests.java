@@ -3,19 +3,25 @@ package unittests.mmdb.streamprocessing.objectnodes.logic;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import gui.SecondoObject;
+
+import java.util.ArrayList;
+
 import mmdb.data.attributes.standard.AttributeBool;
 import mmdb.data.attributes.standard.AttributeInt;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
 import mmdb.streamprocessing.objectnodes.logic.Or;
+import mmdb.streamprocessing.parser.NestedListProcessor;
 
 import org.junit.Test;
 
 public class OrTests {
 
 	@Test
-	public void testOr() throws TypeException {
+	public void testOr() throws TypeException, MemoryException {
 		// True True
 		Or or = getOr(true, true);
 		or.typeCheck();
@@ -39,7 +45,7 @@ public class OrTests {
 	}
 
 	@Test
-	public void testNullReaction() throws TypeException {
+	public void testNullReaction() throws TypeException, MemoryException {
 		ObjectNode node1 = ConstantNode.createConstantNode(new AttributeBool(
 				true), new AttributeBool());
 		ObjectNode node2 = ConstantNode.createConstantNode(null,
@@ -84,6 +90,15 @@ public class OrTests {
 		ObjectNode boolNode2 = ConstantNode.createConstantNode(bool2, bool2);
 
 		return new Or(boolNode1, boolNode2);
+	}
+
+	@Test
+	public void testQuery() throws Exception {
+		String query = "(query (or TRUE FALSE))";
+		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
+				new ArrayList<SecondoObject>());
+		result.typeCheck();
+		assertEquals(new AttributeBool(true), result.getResult());
 	}
 
 }

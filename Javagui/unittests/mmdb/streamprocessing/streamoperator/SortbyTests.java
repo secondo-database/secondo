@@ -2,29 +2,36 @@ package unittests.mmdb.streamprocessing.streamoperator;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import gui.SecondoObject;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import mmdb.data.MemoryObject;
 import mmdb.data.MemoryRelation;
 import mmdb.data.MemoryTuple;
 import mmdb.data.RelationHeaderItem;
 import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.data.attributes.standard.AttributeString;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.StreamStateException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
+import mmdb.streamprocessing.parser.NestedListProcessor;
 import mmdb.streamprocessing.streamoperators.Feed;
 import mmdb.streamprocessing.streamoperators.Sortby;
 
 import org.junit.Test;
 
+import unittests.mmdb.util.TestUtilParser;
+import unittests.mmdb.util.TestUtilRelation;
+
 public class SortbyTests {
 
 	@Test
-	public void testSortbyInt() throws TypeException {
+	public void testSortbyInt() throws TypeException, MemoryException {
 		MemoryRelation rel = getTestRelation();
 		ObjectNode relNode = ConstantNode.createConstantNode(rel, rel);
 		Feed feed = new Feed(relNode);
@@ -87,7 +94,8 @@ public class SortbyTests {
 	}
 
 	@Test
-	public void testSortAttributeNullReaction() throws TypeException {
+	public void testSortAttributeNullReaction() throws TypeException,
+			MemoryException {
 		List<RelationHeaderItem> header = new ArrayList<RelationHeaderItem>();
 		header.add(new RelationHeaderItem("Name", "string"));
 		header.add(new RelationHeaderItem("Augenfarbe", "string"));
@@ -129,6 +137,22 @@ public class SortbyTests {
 				(MemoryTuple) sortBy.getNext());
 		assertNull(sortBy.getNext());
 		sortBy.close();
+	}
+
+	@Test
+	public void testQuery() throws Exception {
+		MemoryRelation rel = TestUtilRelation.getIntStringRelation(5, false,
+				true);
+		SecondoObject sobject = TestUtilParser.getSecondoObject(rel, "REL");
+		String query = "(query (consume (sortby (feed REL) ((identifierString asc)))))";
+		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
+				TestUtilParser.getList(sobject));
+		result.typeCheck();
+		MemoryObject mobject = result.getResult();
+
+		MemoryRelation expected = TestUtilRelation.getIntStringRelation(5,
+				false, false);
+		assertEquals(expected, mobject);
 	}
 
 	private MemoryRelation getTestRelation() {

@@ -2,20 +2,26 @@ package unittests.mmdb.streamprocessing.objectnodes.maths;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import gui.SecondoObject;
+
+import java.util.ArrayList;
+
 import mmdb.data.attributes.standard.AttributeBool;
 import mmdb.data.attributes.standard.AttributeInt;
 import mmdb.data.attributes.standard.AttributeReal;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
 import mmdb.streamprocessing.objectnodes.maths.Minus;
+import mmdb.streamprocessing.parser.NestedListProcessor;
 
 import org.junit.Test;
 
 public class MinusTests {
 
 	@Test
-	public void testIntInt() throws TypeException {
+	public void testIntInt() throws TypeException, MemoryException {
 		ObjectNode attrNode1 = ConstantNode.createConstantNode(
 				new AttributeInt(5), new AttributeInt());
 		ObjectNode attrNode2 = ConstantNode.createConstantNode(
@@ -28,7 +34,7 @@ public class MinusTests {
 	}
 
 	@Test
-	public void testIntReal() throws TypeException {
+	public void testIntReal() throws TypeException, MemoryException {
 		ObjectNode attrNode1 = ConstantNode.createConstantNode(
 				new AttributeInt(9), new AttributeInt());
 		ObjectNode attrNode2 = ConstantNode.createConstantNode(
@@ -41,7 +47,7 @@ public class MinusTests {
 	}
 
 	@Test
-	public void testRealInt() throws TypeException {
+	public void testRealInt() throws TypeException, MemoryException {
 		ObjectNode attrNode1 = ConstantNode.createConstantNode(
 				new AttributeReal(6), new AttributeReal());
 		ObjectNode attrNode2 = ConstantNode.createConstantNode(
@@ -54,7 +60,7 @@ public class MinusTests {
 	}
 
 	@Test
-	public void testRealReal() throws TypeException {
+	public void testRealReal() throws TypeException, MemoryException {
 		ObjectNode attrNode1 = ConstantNode.createConstantNode(
 				new AttributeReal(600), new AttributeReal());
 		ObjectNode attrNode2 = ConstantNode.createConstantNode(
@@ -68,7 +74,7 @@ public class MinusTests {
 	}
 
 	@Test
-	public void testNullReaction() throws TypeException {
+	public void testNullReaction() throws TypeException, MemoryException {
 		ObjectNode node1 = ConstantNode.createConstantNode(new AttributeInt(3),
 				new AttributeInt());
 		ObjectNode node2 = ConstantNode.createConstantNode(null,
@@ -101,6 +107,15 @@ public class MinusTests {
 				new AttributeBool(true), new AttributeBool());
 		Minus minus = new Minus(attrNode1, attrNode2);
 		minus.typeCheck();
+	}
+
+	@Test
+	public void testQuery() throws Exception {
+		String query = "(query (- 7.0 4.0))";
+		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
+				new ArrayList<SecondoObject>());
+		result.typeCheck();
+		assertEquals(new AttributeReal(3), result.getResult());
 	}
 
 }

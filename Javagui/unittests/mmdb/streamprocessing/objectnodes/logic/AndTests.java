@@ -2,19 +2,25 @@ package unittests.mmdb.streamprocessing.objectnodes.logic;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import gui.SecondoObject;
+
+import java.util.ArrayList;
+
 import mmdb.data.attributes.standard.AttributeBool;
 import mmdb.data.attributes.standard.AttributeInt;
+import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.TypeException;
 import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
 import mmdb.streamprocessing.objectnodes.logic.And;
+import mmdb.streamprocessing.parser.NestedListProcessor;
 
 import org.junit.Test;
 
 public class AndTests {
 
 	@Test
-	public void testAnd() throws TypeException {
+	public void testAnd() throws TypeException, MemoryException {
 		// True True
 		And and = getAnd(true, true);
 		and.typeCheck();
@@ -38,7 +44,7 @@ public class AndTests {
 	}
 
 	@Test
-	public void testNullReaction() throws TypeException {
+	public void testNullReaction() throws TypeException, MemoryException {
 		ObjectNode node1 = ConstantNode.createConstantNode(new AttributeBool(
 				true), new AttributeBool());
 		ObjectNode node2 = ConstantNode.createConstantNode(null,
@@ -83,6 +89,15 @@ public class AndTests {
 		ObjectNode boolNode2 = ConstantNode.createConstantNode(bool2, bool2);
 
 		return new And(boolNode1, boolNode2);
+	}
+
+	@Test
+	public void testQuery() throws Exception {
+		String query = "(query (and TRUE FALSE))";
+		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
+				new ArrayList<SecondoObject>());
+		result.typeCheck();
+		assertEquals(new AttributeBool(false), result.getResult());
 	}
 
 }
