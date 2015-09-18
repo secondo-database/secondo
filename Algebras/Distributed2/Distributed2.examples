@@ -376,13 +376,46 @@ Operator : traceCommands
 Number   : 1
 Signature : bool -> bool
 Example   : query traceCommands(FALSE);
-Result    : TRUE;
+Result    : TRUE
 
 
 Operator : showProgress 
 Number   : 1
 Signature : bool -> bool
 Example   : query ishowProgress(TRUE)
-Result    : TRUE;
+Result    : TRUE
+
+Operator  : staticFileTransferator
+Number    : 1
+Signature : int x int -> bool
+Example   : query staticFileTransferator(1238,10)
+Result    : TRUE
+
+Operator  : killStaticFileTransferator
+Number    : 1
+Signature : int -> bool
+Example   : query killStaticFileTransferator(1238)
+Result    : TRUE
+
+Operator  : putFileTCP
+Number    : 1
+Signature : {string,text} x {string,text} x int x bool x {string,text} -> bool
+Example   : query putFileTCP('berlintest', "localhost", 1238, FALSE, 'berlintest_copy')
+Result    : FALSE
+
+Operator  : getFileTCP
+Number    : 1
+Signature : {string,text} x {string,text} x int x bool x {string,text} -> bool
+Example   : query getFileTCP('berlintest_copy', "localhost", 1238, FALSE, 'berlintest_copy3')
+Result    : FALSE
+
+Operator  : fsfeed5
+Number    : 1
+Signature : stream({text,string}) x {rel, text, string} -> stream(tuple)
+Example   : query getDirectory('.') filter [ . startsWith "strassen_" ] fsfeed5[strassen] count
+Result    : 3142
+
+
+
 
 

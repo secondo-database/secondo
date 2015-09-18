@@ -73,6 +73,7 @@ always if a nested list is parsed.
 */
 boost::mutex nlparsemtx;
 boost::mutex createRelMut;
+boost::mutex copylistmutex;
 
 
 #define FILE_BUFFER_SIZE 1048576
@@ -181,7 +182,7 @@ class ffeed5Info{
        ok = in.good();
        if(ok){
           in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
-          readHeader();
+          readHeader(tt);
        }
     }
 
@@ -193,7 +194,7 @@ class ffeed5Info{
        ok = in.good();
        if(ok){
           in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
-          readHeader();
+          readHeader(tt);
        }else{
           cerr << "could not open file " << filename << endl; 
        }
@@ -205,7 +206,7 @@ class ffeed5Info{
        ok = in.good();
        if(ok){
           in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
-          readHeader();
+          readHeader(0);
        }else{
           cerr << "could not open file " << filename << endl; 
        }
@@ -272,7 +273,7 @@ class ffeed5Info{
      ListExpr fileTypeList;
 
 
-  void readHeader(){
+  void readHeader(TupleType* tt){
      char marker[4];
      in.read(marker,4);
      string ms(marker,4);
@@ -286,9 +287,18 @@ class ffeed5Info{
      in.read(buffer,length);
      string list(buffer,length);
      delete[] buffer;
-     nlparsemtx.lock();
-     ok = nl->ReadFromString(list,fileTypeList); 
-     nlparsemtx.unlock();
+     {
+        boost::lock_guard<boost::mutex> guard(nlparsemtx);
+        ok = nl->ReadFromString(list,fileTypeList); 
+        ListExpr tupleType = nl->Second(fileTypeList);
+        if(tt){
+           tupleType = SecondoSystem::GetCatalog()->NumericType(tupleType);
+           TupleType ftt(tupleType);
+           if(!ftt.equalSchema(*tt)){
+               ok = false;
+           }
+        }
+     }
      ok = ok && in.good();
   }
 
@@ -334,6 +344,8 @@ bool readVar<string>(string& value, SmiRecord& record, size_t& offset){
   if(!readVar<size_t>(len,record,offset)){
     return false;
   }
+  //assert(len<=48);
+
   if(len==0){
      value = "";
      return true;
@@ -477,9 +489,10 @@ class ConnectionInfo{
       }
 
       ~ConnectionInfo(){
-          simtx.lock();
-          si->Terminate();
-          simtx.unlock();
+          {
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);
+             si->Terminate();
+          }
           delete si;
           si = 0;
           delete mynl;
@@ -500,11 +513,12 @@ class ConnectionInfo{
           ListExpr res;
           string cmd = "list databases";
           SecErrInfo err;
-          simtx.lock();
-          showCommand(si,host,port,cmd, true);
-          si->Secondo(cmd,res,err);
-          showCommand(si,host,port,cmd, false);
-          simtx.unlock();
+          {
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);
+             showCommand(si,host,port,cmd, true);
+             si->Secondo(cmd,res,err);
+             showCommand(si,host,port,cmd, false);
+          }  
           return err.code==0;
        }
 
@@ -525,19 +539,20 @@ class ConnectionInfo{
           }
           SecErrInfo serr;
           ListExpr resList;
-          simtx.lock();
-          StopWatch sw;
-          showCommand(si,host,port,command, true);
-          si->Secondo(command, resList, serr);
-          showCommand(si,host,port,command, false);
-          runtime = sw.diffSecondsReal();
-          err = serr.code;
-          if(err==0){
-             result = mynl->ToString(resList);
-          } else {
-             result = si->GetErrorMessage(err);
+          {
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);
+             StopWatch sw;
+             showCommand(si,host,port,command, true);
+             si->Secondo(command, resList, serr);
+             showCommand(si,host,port,command, false);
+             runtime = sw.diffSecondsReal();
+             err = serr.code;
+             if(err==0){
+                result = mynl->ToString(resList);
+             } else {
+                result = si->GetErrorMessage(err);
+             }
           }
-          simtx.unlock();
        }
 
        string getSecondoHome(){
@@ -564,7 +579,7 @@ class ConnectionInfo{
 
 
        bool switchDatabase(const string& dbname, bool createifnotexists){
-          boost::lock_guard<boost::mutex> guard(simtx);;
+          boost::lock_guard<boost::recursive_mutex> guard(simtx);;
           // close database ignore errors
           SecErrInfo serr;
           ListExpr resList;
@@ -598,7 +613,7 @@ class ConnectionInfo{
           } else {
             command = command1;
           }
-          boost::lock_guard<boost::mutex> guard(simtx);;
+          boost::lock_guard<boost::recursive_mutex> guard(simtx);;
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
           StopWatch sw;
@@ -623,17 +638,16 @@ class ConnectionInfo{
           } else {
             command = command1;
           }
-          boost::lock_guard<boost::mutex> guard(simtx);
+          boost::lock_guard<boost::recursive_mutex> guard(simtx);
           ListExpr cmd = mynl->TheEmptyList();
-          nlparsemtx.lock();
-          if(! mynl->ReadFromString(command,cmd)){
-              nlparsemtx.unlock();
-              error = 3;
-              errMsg = "error in parsing list";
-              return;
+          {
+              boost::lock_guard<boost::mutex> guard(nlparsemtx);
+              if(! mynl->ReadFromString(command,cmd)){
+                 error = 3;
+                 errMsg = "error in parsing list";
+                 return;
+              }
           }
-          nlparsemtx.unlock();
-
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
           StopWatch sw;
@@ -667,7 +681,7 @@ class ConnectionInfo{
           } else {
             command = command1;
           }
-          boost::lock_guard<boost::mutex> guard(simtx);;
+          boost::lock_guard<boost::recursive_mutex> guard(simtx);;
           SecErrInfo serr;
           ListExpr myResList = mynl->TheEmptyList();
           StopWatch sw;
@@ -678,16 +692,16 @@ class ConnectionInfo{
           error = serr.code;
           errMsg = serr.msg;
           // copy resultlist from local nested list to global nested list
-          static boost::mutex copylistmutex;
-          copylistmutex.lock();
-          assert(mynl!=nl);
-          resList =  mynl->CopyList(myResList, nl);
-          mynl->Destroy(myResList);
-          copylistmutex.unlock();
+          {
+              boost::lock_guard<boost::mutex> guard(copylistmutex);   
+              assert(mynl!=nl);
+              resList =  mynl->CopyList(myResList, nl);
+              mynl->Destroy(myResList);
+          }
        }
 
         int serverPid(){
-           boost::lock_guard<boost::mutex> guard(simtx);
+           boost::lock_guard<boost::recursive_mutex> guard(simtx);
            if(serverPID==0){
              serverPID = si->getPid(); 
            }
@@ -697,44 +711,39 @@ class ConnectionInfo{
 
         int sendFile( const string& local, const string& remote, 
                       const bool allowOverwrite){
-          simtx.lock();
+          boost::lock_guard<boost::recursive_mutex> guard(simtx);   
           int res =  si->sendFile(local,remote, allowOverwrite);
-          simtx.unlock();
           return res;
         }
         
 
         int requestFile( const string& remote, const string& local,
                          const bool allowOverwrite){
-          simtx.lock();
+          boost::lock_guard<boost::recursive_mutex> guard(simtx);   
           int res =  si->requestFile(remote, local, allowOverwrite);
-          simtx.unlock();
           return res;
         }
 
         string getRequestFolder(){
           if(requestFolder.length()==0){
-             simtx.lock();
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);   
              requestFolder =  si->getRequestFileFolder();
-             simtx.unlock();
           }
           return requestFolder;
         }
         
         string getSendFolder(){
           if(sendFolder.length()==0){
-             simtx.lock();
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);   
              sendFolder =  si->getSendFileFolder();
-             simtx.unlock();
           }
           return sendFolder;
         }
         
         string getSendPath(){
           if(sendPath.length()==0){
-             simtx.lock();
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);   
              sendPath =  si->getSendFilePath();
-             simtx.unlock();
           }
           return sendPath;
         }
@@ -767,7 +776,7 @@ class ConnectionInfo{
                  return createOrUpdateRelation(name, typelist, value);
               }
 
-              boost::lock_guard<boost::mutex> guard(simtx);
+              boost::lock_guard<boost::recursive_mutex> guard(simtx);
               SecErrInfo serr;
               ListExpr resList;
               string cmd = "delete " + name;
@@ -808,7 +817,7 @@ class ConnectionInfo{
          bool createOrUpdateRelationFromBinFile(const string& name, 
                                                 const string& filename,
                                                 const bool allowOverwrite=true){
-             boost::lock_guard<boost::mutex> guard(simtx);
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);
 
              SecErrInfo serr;
              ListExpr resList;
@@ -894,21 +903,15 @@ class ConnectionInfo{
 
           bool retrieve(const string& objName, ListExpr& resType, Word& result, 
                         bool checkType){
-              simtx.lock();
+              boost::lock_guard<boost::recursive_mutex> guard(simtx);
               if(Relation::checkType(resType)){
-                  simtx.unlock();
                   if(retrieveRelation(objName, resType, result)){
                      return true;
-                  } else{
-                     simtx.lock();
                   } 
                   cerr << "Could not use fast retrieval for a "
                        << " relation, failback" << endl;
               }
-              simtx.unlock();
 
-              // TODO: special treatment for big objects
-              boost::lock_guard<boost::mutex> guard(simtx);
               SecErrInfo serr;
               ListExpr myResList;
               string cmd = "query " + objName;
@@ -923,12 +926,12 @@ class ConnectionInfo{
                 return false;
               }
               // copy result list into global list memory
-              static boost::mutex copylistmutex;
-              copylistmutex.lock();
-              ListExpr resList =  mynl->CopyList(myResList, nl);
-              mynl->Destroy(myResList);
-              copylistmutex.unlock();
-
+              ListExpr resList;
+              {
+                 boost::lock_guard<boost::mutex> guard(copylistmutex);
+                 resList =  mynl->CopyList(myResList, nl);
+                 mynl->Destroy(myResList);
+              }
               ListExpr resType2 = nl->First(resList);
               if(checkType && !nl->Equal(resType,resType2)){
                  // other type than expected
@@ -939,10 +942,11 @@ class ConnectionInfo{
               int errorPos=0;
               ListExpr errorInfo = listutils::emptyErrorInfo();
               bool correct;
-              createRelMut.lock();
-              result = ctlg->InObject(resType,value, errorPos, 
+              {
+                 boost::lock_guard<boost::mutex> guard(createRelMut);
+                 result = ctlg->InObject(resType,value, errorPos, 
                                       errorInfo, correct);
-              createRelMut.unlock();
+              }
               if(!correct){
                  result.addr = 0;
               }
@@ -965,7 +969,7 @@ class ConnectionInfo{
           bool retrieveRelationInFile(const string& fileName,
                                       ListExpr& resType, 
                                       Word& result){
-             boost::lock_guard<boost::mutex> guard(simtx);
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);
              result.addr = 0;
              // get the full path for requesting files 
              string rfpath = si->getRequestFilePath()+"/";
@@ -1015,7 +1019,7 @@ class ConnectionInfo{
                 cerr << "Requesting file " + base + ".tmp failed" << endl;
                 return false;
              }
-             result = createRelationFromFile(base+".tmp",resType,false);
+             result = createRelationFromFile(base+".tmp",resType);
 
              FileSystem::DeleteFileOrFolder(base+".tmp");
              cmd = "query removeFile('"+rfpath + base +".tmp' )" ;
@@ -1033,7 +1037,7 @@ class ConnectionInfo{
 
           bool retrieveRelationFile(const string& objName,
                                     const string& fname1){
-             boost::lock_guard<boost::mutex> guard(simtx);
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);
              string rfname = si->getRequestFilePath() + "/"+fname1;
              // save the remove relation into a binary file
              string cmd = "query " + objName + " feed fconsume5['"
@@ -1060,12 +1064,9 @@ class ConnectionInfo{
              return true;
           }
 
-          Word createRelationFromFile(const string& fname, ListExpr& resType, 
-                                      bool lock=true){
+          Word createRelationFromFile(const string& fname, ListExpr& resType){
             
-            if(lock){
-             simtx.lock();
-            }
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);
 
              Word result((void*) 0);
              // create result relation
@@ -1078,9 +1079,6 @@ class ConnectionInfo{
 
              if(!reader.isOK()){
                tt->DeleteIfAllowed();
-               if(lock){
-                 simtx.unlock();
-               }
                return result;
              }
 
@@ -1091,28 +1089,22 @@ class ConnectionInfo{
                 cerr << "Expected : " << nl->ToString(resType) << endl;
                 cerr << "Type in  File " << nl->ToString(typeInFile) << endl;
                 tt->DeleteIfAllowed();
-                if(lock){
-                  simtx.unlock();
-                }
                 return result;
              }
-
-             createRelMut.lock();
-             Relation* resultrel = new Relation(tType); 
-             createRelMut.unlock();
+             Relation* resultrel;
+             {
+                 boost::lock_guard<boost::mutex> guard2(createRelMut);
+                 resultrel = new Relation(tType); 
+             }
 
              Tuple* tuple;
              while((tuple=reader.next())){
-                 createRelMut.lock();
+                 boost::lock_guard<boost::mutex> guard2(createRelMut);
                  resultrel->AppendTuple(tuple);
-                 createRelMut.unlock();
                  tuple->DeleteIfAllowed();
              }
              tt->DeleteIfAllowed();
              result.addr = resultrel;
-             if(lock){
-               simtx.unlock();
-             }
              return result;
           } 
 
@@ -1128,7 +1120,8 @@ class ConnectionInfo{
     string sendFolder;
     string sendPath;
 
-    boost::mutex simtx; // mutex for synchronizing access to the interface
+    boost::recursive_mutex simtx; 
+                // mutex for synchronizing access to the interface
 
 
 
@@ -1173,7 +1166,7 @@ Forward declaration of class DArray2Element.
 
 2.1.1 Class ~DArray2Element~
 
-This class represents information about a single connection of a DArray.
+This class represents information about a single worker of a DArray.
 
 */
 
@@ -1632,19 +1625,8 @@ class Distributed2Algebra: public Algebra{
 Closes all open connections and destroys them.
 
 */
-     ~Distributed2Algebra(){
-        mtx.lock();
-        for(size_t i=0;i<connections.size();i++){
-           delete connections[i];
-        }
-        connections.clear();
-        mtx.unlock();
-        closeAllWorkers();
-        if(pprogView){
-           MessageCenter::GetInstance()->RemoveHandler(pprogView);
-           delete pprogView;
-        }
-     }
+     ~Distributed2Algebra();
+
 
 /*
 ~addConnection~
@@ -1653,13 +1635,12 @@ Adds a new connection to the connection pool.
 
 */
      int addConnection(ConnectionInfo* ci){
-       mtx.lock();
+       boost::lock_guard<boost::mutex> guard(mtx);
        int res = connections.size();
        connections.push_back(ci);
        if(ci){
            ci->setId(connections.size());
        }
-       mtx.unlock();
        return res; 
      }
 
@@ -1671,9 +1652,8 @@ Returns the number of connections
 */
 
      size_t noConnections(){
-         mtx.lock();
+         boost::lock_guard<boost::mutex> guard(mtx);
          size_t res =  connections.size();
-         mtx.unlock();
          return res;
      }
 /*
@@ -1684,14 +1664,12 @@ Returns a connection
 */
 
      ConnectionInfo* getConnection(const int i){
-         mtx.lock();
+         boost::lock_guard<boost::mutex> guard(mtx);
          if(i<0 || ((size_t) i>=connections.size())){
-           mtx.unlock();
            return 0;
          }
          ConnectionInfo* res =  connections[i];
          res->setId(i);;
-         mtx.unlock();
          return res;
      }
 
@@ -1719,12 +1697,11 @@ Returns the number of non-null connections.
 */    
 
    size_t noValidConnections(){
+     boost::lock_guard<boost::mutex> guard(mtx);
      size_t count = 0;
-     mtx.lock();
      for(size_t i=0;i<connections.size();i++){
        if(connections[i]) count++;
      }
-     mtx.unlock();
      return count;
    }
 
@@ -1737,7 +1714,7 @@ The return value is the number of closed connections.
 */
      int disconnect(){
         int count = 0;
-        mtx.lock();
+        boost::lock_guard<boost::mutex> guard(mtx);
         for(size_t i=0;i<connections.size();i++){
           if(connections[i]){
              delete connections[i];
@@ -1745,7 +1722,6 @@ The return value is the number of closed connections.
           }
         }
         connections.clear();
-        mtx.unlock();
         return count;
      }
      
@@ -1759,18 +1735,15 @@ given argument specifies an existing connection.
 
 */
      int disconnect( unsigned int position){
-        mtx.lock();
+        boost::lock_guard<boost::mutex> guard(mtx);
         if( position >= connections.size()){
-           mtx.unlock();
            return 0;
         }
         if(!connections[position]){
-           mtx.unlock();
            return 0;
         }
         delete connections[position];
         connections[position] = 0;
-        mtx.unlock();
         return 1;
      }
 
@@ -1784,9 +1757,8 @@ checks whether an given integer points to a server
       if(no < 0){
         return false;
       }
-      mtx.lock();
+      boost::lock_guard<boost::mutex> guard(mtx);
       bool res = no < (int) connections.size();
-      mtx.unlock();
       return res; 
    }
 
@@ -1829,13 +1801,14 @@ Transfers a local file to a remove server.
        return -3;
       }
       unsigned int con2 = con;
-      mtx.lock();
-      if(con2 >= connections.size()){
-        mtx.unlock();
-        return -3;
+      ConnectionInfo* c;
+      {
+         boost::lock_guard<boost::mutex> guard(mtx);
+         if(con2 >= connections.size()){
+           return -3;
+         }
+         c = connections[con2];
       }
-      ConnectionInfo* c = connections[con2];
-      mtx.unlock();
       if(!c){
          return -3;
       }
@@ -1851,13 +1824,14 @@ Transfers a local file to a remove server.
        return -3;
       }
       unsigned int con2 = con;
-      mtx.lock();
-      if(con2 >= connections.size()){
-        mtx.unlock();
-        return -3;
+      ConnectionInfo* c;
+      {
+         boost::lock_guard<boost::mutex> guard(mtx);
+         if(con2 >= connections.size()){
+            return -3;
+         }
+         c = connections[con2];
       }
-      ConnectionInfo* c = connections[con2];
-      mtx.unlock();
       if(!c){
         return -3;
       }
@@ -1870,13 +1844,14 @@ Transfers a local file to a remove server.
        return "";
       }
       unsigned int con2 = con;
-      mtx.lock();
-      if(con2 >= connections.size()){
-        mtx.unlock();
-        return "";
+      ConnectionInfo* c;
+      {
+         boost::lock_guard<boost::mutex> guard(mtx);
+         if(con2 >= connections.size()){
+           return "";
+         }
+         c = connections[con2];
       }
-      ConnectionInfo* c = connections[con2];
-      mtx.unlock();
       if(!c){
          return "";
       }
@@ -1888,13 +1863,14 @@ Transfers a local file to a remove server.
        return "";
       }
       unsigned int con2 = con;
-      mtx.lock();
-      if(con2 >= connections.size()){
-        mtx.unlock();
-        return "";
+      ConnectionInfo* c;
+      {
+         boost::lock_guard<boost::mutex> guard(mtx);
+         if(con2 >= connections.size()){
+           return "";
+         }
+         c = connections[con2];
       }
-      ConnectionInfo* c = connections[con2];
-      mtx.unlock();
       if(!c){
         return "";
       }
@@ -1913,49 +1889,53 @@ Transfers a local file to a remove server.
 
 
     string getHost(int con){
-      mtx.lock();
-      if(con < 0 || con >= (int) connections.size()){
-         mtx.unlock();
-         return "";
+      ConnectionInfo* c;
+      {
+         boost::lock_guard<boost::mutex> guard(mtx);
+         if(con < 0 || con >= (int) connections.size()){
+            return "";
+         }
+         c = connections[con];
       }
-      ConnectionInfo* c = connections[con];
-      mtx.unlock();
       if(!c) return "";
       return c->getHost();
     }
     
     int getPort(int con){
-      mtx.lock();
-      if(con < 0 || con >= (int) connections.size()){
-         mtx.unlock();
-         return -3;
+      ConnectionInfo* c;
+      {
+         boost::lock_guard<boost::mutex> guard(mtx);
+         if(con < 0 || con >= (int) connections.size()){
+            return -3;
+         }
+         c = connections[con];
       }
-      ConnectionInfo* c = connections[con];
-      mtx.unlock();
       if(!c) return -3;
       return c->getPort();
     }
     
     string getConfig(int con){
-      mtx.lock();
-      if(con < 0 || con >= (int) connections.size()){
-         mtx.unlock();
-         return "";
+      ConnectionInfo* c;
+      {
+         boost::lock_guard<boost::mutex> guard(mtx);
+         if(con < 0 || con >= (int) connections.size()){
+            return "";
+         }
+         c = connections[con];
       }
-      ConnectionInfo* c = connections[con];
-      mtx.unlock();
       if(!c) return "";
       return c->getConfig();
     }
 
     bool check(int con){
-      mtx.lock();
-      if(con < 0 || con >= (int) connections.size()){
-         mtx.unlock();
-         return false;
+      ConnectionInfo* c;
+      {
+         boost::lock_guard<boost::mutex> guard(mtx);
+         if(con < 0 || con >= (int) connections.size()){
+             return false;
+         }
+         c = connections[con];
       }
-      ConnectionInfo* c = connections[con];
-      mtx.unlock();
       if(!c) return false;
       return c->check();
     }
@@ -1965,17 +1945,18 @@ Transfers a local file to a remove server.
     bool simpleCommand(int con, const string& cmd, int& error, 
                        string& errMsg, ListExpr& resList, const bool rewrite,
                        double& runtime){
-      mtx.lock();
-      if(con < 0 || con >= (int) connections.size()){
-         mtx.unlock();
-         error = -3;
-         errMsg = "invalid connection number";
-         resList = nl->TheEmptyList();
-         runtime = 0;
-         return false;
+      ConnectionInfo* c;
+      {
+         boost::lock_guard<boost::mutex> guard(mtx);
+         if(con < 0 || con >= (int) connections.size()){
+            error = -3;
+            errMsg = "invalid connection number";
+            resList = nl->TheEmptyList();
+            runtime = 0;
+            return false;
+         }
+         c = connections[con];
       }
-      ConnectionInfo* c = connections[con];
-      mtx.unlock();
       if(!c) {
          error = -3;
          errMsg = "invalid connection number";
@@ -1991,17 +1972,18 @@ Transfers a local file to a remove server.
     bool simpleCommand(int con, const string& cmd, int& error, 
                        string& errMsg, string& resList, const bool rewrite,
                        double& runtime){
-      mtx.lock();
-      if(con < 0 || con >= (int) connections.size()){
-         mtx.unlock();
-         error = -3;
-         errMsg = "invalid connection number";
-         resList = "()";
-         runtime = 0;
-         return false;
+      ConnectionInfo* c;
+      {
+         boost::lock_guard<boost::mutex> guard(mtx);
+         if(con < 0 || con >= (int) connections.size()){
+            error = -3;
+            errMsg = "invalid connection number";
+            resList = "()";
+            runtime = 0;
+           return false;
+         }
+         c = connections[con];
       }
-      ConnectionInfo* c = connections[con];
-      mtx.unlock();
       if(!c) {
          error = -3;
          errMsg = "invalid connection number";
@@ -2967,12 +2949,13 @@ ListExpr rqueryTM(ListExpr args){
    }
    string typeList = nl->Text2String(nl->Second(reslist));
    ListExpr resType;
-   nlparsemtx.lock(); 
-   if(!nl->ReadFromString(typeList,resType)){
-      nlparsemtx.unlock();
-     return listutils::typeError("getTypeNL returns no valid list expression");
-   }   
-   nlparsemtx.unlock();
+   {
+      boost::lock_guard<boost::mutex> guard(nlparsemtx);
+      if(!nl->ReadFromString(typeList,resType)){
+        return listutils::typeError("getTypeNL returns no "
+                                    "valid list expression");
+      }   
+   }
    if(nl->HasLength(resType,2)){
      first = nl->First(resType);
      if(listutils::isSymbol(first, Stream<Tuple>::BasicType())){
@@ -3202,9 +3185,10 @@ class prcmdInfo: public CommandListener<string>{
     }
 
     virtual ~prcmdInfo(){
-       stopMutex.lock();
-       stopped = true;
-       stopMutex.unlock();
+       {
+          boost::lock_guard<boost::mutex> guard(stopMutex);
+          stopped = true;
+       }
        // wait until runner is ready
        runner.join();
        // stop and delete running connectionTasks
@@ -3214,11 +3198,13 @@ class prcmdInfo: public CommandListener<string>{
        }
        // delete non processed input tuples
        map<int,Tuple*>::iterator it2;
-       inputTuplesMutex.lock();
-       for(it2 = validInputTuples.begin(); it2!= validInputTuples.end(); it2++){
-          it2->second->DeleteIfAllowed();
+       {
+          boost::lock_guard<boost::mutex> guard(inputTuplesMutex);
+          for(it2 = validInputTuples.begin(); 
+              it2!= validInputTuples.end(); it2++){
+             it2->second->DeleteIfAllowed();
+          } 
        }
-       inputTuplesMutex.unlock();
        inStream.close();
        tt->DeleteIfAllowed();
     }
@@ -3238,14 +3224,15 @@ class prcmdInfo: public CommandListener<string>{
 
     void jobDone(int id, string& command, size_t no, int error, 
                  string& errMsg, string& resList, double runtime){
-       inputTuplesMutex.lock();
-       if(validInputTuples.find(id)==validInputTuples.end()){
-          inputTuplesMutex.unlock();
-          return;
+       Tuple* inTuple;
+       {
+          boost::lock_guard<boost::mutex> guard(inputTuplesMutex);
+          if(validInputTuples.find(id)==validInputTuples.end()){
+              return;
+          }
+          inTuple = validInputTuples[id];
+          validInputTuples.erase(id);
        }
-       Tuple* inTuple = validInputTuples[id];
-       validInputTuples.erase(id);
-       inputTuplesMutex.unlock();
        createResultTuple(inTuple,error,errMsg, resList, runtime);
     }
 
@@ -3324,9 +3311,10 @@ class prcmdInfo: public CommandListener<string>{
           return; 
        }
        // process a valid tuple
-       inputTuplesMutex.lock();
-       validInputTuples[tupleId] = inTuple; // store input tuple
-       inputTuplesMutex.unlock();
+       {
+          boost::lock_guard<boost::mutex> guard(inputTuplesMutex);
+          validInputTuples[tupleId] = inTuple; // store input tuple
+       }
        // create a ConnectionTask for server if not present  
        if(serverTasks.find(serverNo)==serverTasks.end()){
           serverTasks[serverNo] = new ConnectionTask<string>(serverNo, this);
@@ -3340,34 +3328,35 @@ class prcmdInfo: public CommandListener<string>{
                            const string& resList, double runtime){
 
        stopMutex.lock();
-       if(stopped){
-          inTuple->DeleteIfAllowed();
-          stopMutex.unlock();
-          return;
-       }
-       stopMutex.unlock();
-
-       tupleCreationMutex.lock();
-
-       Tuple* resTuple = new Tuple(tt);
-       int noAttr = inTuple->GetNoAttributes();
-       for(int i=0;i<noAttr;i++){
-         resTuple->CopyAttribute(i,inTuple,i);
-       }
-       inTuple->DeleteIfAllowed();
-       resTuple->PutAttribute(noAttr, new CcInt(error));
-       resTuple->PutAttribute(noAttr+1, new FText(true,errMsg));
-       resTuple->PutAttribute(noAttr+2, new FText(true,resList));
-       resTuple->PutAttribute(noAttr+3, new CcReal(true,runtime));
-       noOutTuples++;
        {
-         boost::lock_guard<boost::mutex> lock(resultMutex);
-         pendingResults.push_back(resTuple);
-         if(noInTuples==noOutTuples){
-            pendingResults.push_back(0);
-         }
+          boost::lock_guard<boost::mutex> guard(stopMutex);
+          if(stopped){
+             inTuple->DeleteIfAllowed();
+             return;
+          }
        }
-       tupleCreationMutex.unlock();
+
+       {
+          boost::lock_guard<boost::mutex> guard(tupleCreationMutex);
+          Tuple* resTuple = new Tuple(tt);
+          int noAttr = inTuple->GetNoAttributes();
+          for(int i=0;i<noAttr;i++){
+            resTuple->CopyAttribute(i,inTuple,i);
+          }
+          inTuple->DeleteIfAllowed();
+          resTuple->PutAttribute(noAttr, new CcInt(error));
+          resTuple->PutAttribute(noAttr+1, new FText(true,errMsg));
+          resTuple->PutAttribute(noAttr+2, new FText(true,resList));
+          resTuple->PutAttribute(noAttr+3, new CcReal(true,runtime));
+          noOutTuples++;
+          {
+           boost::lock_guard<boost::mutex> lock(resultMutex);
+            pendingResults.push_back(resTuple);
+            if(noInTuples==noOutTuples){
+               pendingResults.push_back(0);
+            }
+          }
+       }
        // inform about a new result tuple
        cond.notify_one();
     }
@@ -3893,6 +3882,10 @@ struct transfer{
     inTuple(_tuple), local(_local), remote(_remote), 
     allowOverwrite(_allowOverwrite){}
 
+  transfer(): inTuple(0),local(""),remote(""),allowOverwrite(false){
+
+  }
+
   Tuple* inTuple;
   string local;
   string remote;
@@ -3958,13 +3951,14 @@ destroying this object.
      ~fileTransferator(){
         stop();
         runnerThread.join();
-        listAccess.lock();
-        while(!pendingtransfers.empty()){
-           transfer t = pendingtransfers.front();
-           t.inTuple->DeleteIfAllowed();
-           pendingtransfers.pop_front();
-        }
-        listAccess.unlock();
+        {
+           boost::lock_guard<boost::mutex> guard(listAccess);
+           while(!pendingtransfers.empty()){
+              transfer t = pendingtransfers.front();
+              t.inTuple->DeleteIfAllowed();
+              pendingtransfers.pop_front();
+           }
+       }
      }
 
 /*
@@ -3997,12 +3991,13 @@ will be handled as the last one.
       void addTransfer(Tuple* inTuple, const string& local, 
                        const string& remote, const bool allowOverwrite) {
           transfer newTransfer(inTuple, local, remote, allowOverwrite);
-          listAccess.lock();
           {
-            boost::lock_guard<boost::mutex> lock(condmtx);
-            pendingtransfers.push_back(newTransfer);
+            boost::lock_guard<boost::mutex> lock(listAccess);
+            {
+                boost::lock_guard<boost::mutex> lock(condmtx);
+                pendingtransfers.push_back(newTransfer);
+              }
           }
-          listAccess.unlock();
           cond.notify_one();
       }
 
@@ -4028,10 +4023,12 @@ are available, tankes the first one, and starts the transfer.
                }
                listAccess.unlock();
                if(!stopped){
-                   listAccess.lock();
-                   transfer t = pendingtransfers.front();
-                   pendingtransfers.pop_front();   
-                   listAccess.unlock();
+                   transfer t;
+                   {
+                      boost::lock_guard<boost::mutex> guard(listAccess);
+                      t = pendingtransfers.front();
+                      pendingtransfers.pop_front();   
+                   }
                    int ret = functor(server, t.local, t.remote, 
                                      t.allowOverwrite);
                    if(listener){
@@ -4362,12 +4359,10 @@ This function is called if the number of input tuples is known.
 */   
      virtual void setInputTupleNumber(int i){
         if(i==0){ // we cannot expect any results
-           listAccess.lock();
            {
              boost::lock_guard<boost::mutex> lock(resultMutex);
              resultList.push_back(0);
            }
-           listAccess.unlock();
            // inform about new tuple.
            resultAvailable.notify_one(); 
         } else {
@@ -5172,13 +5167,13 @@ bool  getQueryType(const string& query1, int serverNo,
    }
    string typeList = nl->Text2String(nl->Second(reslist));
    ListExpr resType;
-   nlparsemtx.lock();
-   if(!nl->ReadFromString(typeList,resType)){
-     nlparsemtx.unlock();
-     errMsg = "getTypeNL returns no valid list expression";
-     return false;
+   {
+      boost::lock_guard<boost::mutex> guard(nlparsemtx);
+      if(!nl->ReadFromString(typeList,resType)){
+         errMsg = "getTypeNL returns no valid list expression";
+         return false;
+      }
    }   
-   nlparsemtx.unlock();
    if(nl->HasLength(resType,2)){
      ListExpr first = nl->First(resType);
      if(listutils::isSymbol(first, Stream<Tuple>::BasicType())){
@@ -5738,17 +5733,18 @@ class PQuery2Info : public CommandListener<ListExpr>{
           Word res;
           Tuple* resTuple = new Tuple(tt);
 
-
-          mapmtx.lock();
-          map<int,Tuple*>::iterator it = inTuples.find(id);
-          if(it == inTuples.end()){
-              cerr << "Task with id " << id 
-                   << "finshed, but no input tuple is found" << endl;
-              return;
+          Tuple* inTuple = 0;
+          {
+             boost::lock_guard<boost::mutex> guard(mapmtx);
+             map<int,Tuple*>::iterator it = inTuples.find(id);
+             if(it == inTuples.end()){
+                 cerr << "Task with id " << id 
+                      << "finshed, but no input tuple is found" << endl;
+                 return;
+             }
+             inTuple = it->second;
+             inTuples.erase(it);
           }
-          Tuple* inTuple = it->second;
-          inTuples.erase(it);
-          mapmtx.unlock();
           // copy original tuples
           int noAttributes = inTuple->GetNoAttributes();
           for(int i=0;i<noAttributes;i++){
@@ -5974,71 +5970,103 @@ about a connection to a remote server. The actual connections are stored within
 the algebra instance.
 
 */
-template<bool isF>
+
+enum arrayType{DARRAY,DFARRAY,DMATRIX};
+
+template<arrayType Type>
 class DArray2T{
   public:
-     DArray2T(size_t _size, const string& _name): 
-           worker(),size(_size), name(_name) {
-
-        if(!stringutils::isIdent(name) || size ==0){ // invalid
+     DArray2T(const vector<uint32_t>& _map, const string& _name): 
+           worker(),map(_map), size(map.size()),name(_name) {
+        if(!stringutils::isIdent(name) || map.size() ==0 ){ // invalid
            name = "";
            defined = false;
+           map.clear();
+           size = 0;
+           return;
+        }
+        defined = true;
+     }
+     DArray2T(const size_t _size , const string& _name): 
+           worker(),map(), size(_size),name(_name) {
+        assert(Type == DMATRIX);
+        if(!stringutils::isIdent(name) || size ==0 ){ // invalid
+           name = "";
+           defined = false;
+           map.clear();
+           size = 0;
            return;
         }
         defined = true;
      }
 
+     DArray2T(const vector<uint32_t>& _map, const string& _name, 
+               const vector<DArray2Element>& _worker): 
+         worker(_worker),map(_map), size(map.size),name(_name) {
+
+        if(!stringutils::isIdent(name) || map.size() ==0 || !checkMap()){ 
+           // invalid
+           name = "";
+           defined = false;
+           map.clear();
+           size = 0;
+           return;
+        }
+        defined = true;
+     }
+
+     DArray2T(const size_t _size, const string& _name, 
+               const vector<DArray2Element>& _worker): 
+         worker(_worker),map(), size(_size),name(_name) {
+ 
+        assert(Type == DMATRIX);
+        if(!stringutils::isIdent(name) || size ==0 ){ 
+           // invalid
+           name = "";
+           defined = false;
+           map.clear();
+           size = 0;
+           return;
+        }
+        defined = true;
+     }
      
 
-     DArray2T(size_t _size, const string& _name, 
-               const vector<DArray2Element>& _worker): 
-         worker(_worker),size(_size), name(_name) {
 
-        if(!stringutils::isIdent(name) || size ==0){ // invalid
-           name = "";
-           defined = false;
-           return;
-        }
-        defined = true;
-     }
 
      explicit DArray2T(int dummy) {} // only for cast function
 
  
-     DArray2T(const DArray2T<isF>& src): 
-             worker(src.worker), size(src.size), name(src.name), 
+     DArray2T(const DArray2T<Type>& src): 
+             worker(src.worker), map(src.map), name(src.name), 
              defined(src.defined)
        {
        }
 
-     DArray2T& operator=(const DArray2T<true>& src) {
+     template<arrayType T>
+     DArray2T& operator=(const DArray2T<T>& src) {
         this->worker = src.worker;
-        if(this->size != src.size){
-           this->size = src.size;
-        }
+        this->map = src.map;
+        this->size = src.size;
         this->name = src.name;
         this->defined = src.defined;
         return *this;
      }     
-
-     DArray2T& operator=(const DArray2T<false>& src) {
-        this->worker = src.worker;
-        if(this->size != src.size){
-           this->size = src.size;
-        }
-        this->name = src.name;
-        this->defined = src.defined;
-        return *this;
-     }     
-
  
      ~DArray2T() {
      }
 
 
-     bool isFileBased() const{
-        return isF;
-     }      
+    uint32_t getWorkerNum(uint32_t index){
+       assert(Type!=DMATRIX);
+       return map[index];
+    }
+
+
+    arrayType getType(){
+       return Type;
+    }
+
 
      void set(const size_t size, const string& name, 
               const vector<DArray2Element>& worker){
@@ -6050,7 +6078,49 @@ class DArray2T{
         defined = true;
         this->name = name;
         this->size = size;
+        if(Type!=DMATRIX){
+             this->map = createStdMap(size,worker.size());
+        } else {
+             map.clear();
+        }
         this->worker = worker;
+     }
+
+     bool equalMapping(DArray2T<Type>& a, bool ignoreSize ){
+        if(Type==DMATRIX){ // mapping does not exist in DMATRIX
+           return true;
+        }
+        if(!ignoreSize && (map.size()!=a.map.size())){
+           return false;
+        }
+        size_t maxV = max(map.size(), a.map.size());
+        for(size_t i=0;i<maxV;i++){
+           if(map[i]!=a.map[i]){
+              return false;
+           }
+        }
+        return true;
+     }
+
+     
+
+    void set(const vector<uint32_t>& m, const string& name, 
+              const vector<DArray2Element>& worker){
+        if(!stringutils::isIdent(name) || m.size() ==0){ // invalid
+           makeUndefined(); 
+           return;
+        }
+        defined = true;
+        this->name = name;
+        this->map = m;
+        this.size = m.size();
+        this->worker = worker;
+        if(Type==DMATRIX){
+           map.clear();
+        }
+        if(!checkMap()){
+             makeUndefined();
+        }
      }
 
 
@@ -6059,7 +6129,13 @@ class DArray2T{
      }
 
      static const string BasicType() { 
-        return  isF?"dfarray2":"darray2";
+       switch(Type){
+          case DARRAY : return "darray2";
+          case DFARRAY : return "dfarray2";
+          case DMATRIX : return "dmatrix2";
+       }
+       assert(false);
+       return "typeerror";
      }
 
      static const bool checkType(const ListExpr list){
@@ -6069,10 +6145,13 @@ class DArray2T{
          if(!listutils::isSymbol(nl->First(list), BasicType())){
              return false;
          }
-         if(isF){
+         // for dfarrays and dmatrices, only relations 
+         // are allowed as subtype
+         if((Type == DFARRAY) || (Type==DMATRIX)){
            return Relation::checkType(nl->Second(list));
          }
 
+         // for a darray, each type is allowed
          SecondoCatalog* ctl = SecondoSystem::GetCatalog();
          string name;
          int algid, type;
@@ -6094,10 +6173,24 @@ class DArray2T{
         return size;
      }
 
-     void setSize(size_t newSize){
-        size = newSize;
+     void setStdMap(size_t size){
+         if(Type!=DMATRIX){
+            map = createStdMap(size, worker.size());
+            this->size = size;
+         } else {
+            this->size = size;
+            map.clear();
+         }
      }
-  
+
+ 
+     DArray2Element getWorkerForIndex(int i){
+        assert(Type!=DMATRIX);
+        if(i<0 || i>= map.size()){
+           assert(false);
+        }
+        return getWorker(map[i]);
+     } 
 
      DArray2Element getWorker(int i){
         if(i< 0 || i >= (int) worker.size()){
@@ -6113,11 +6206,9 @@ class DArray2T{
        }
 
        ListExpr wl;
-
        if(worker.empty()){
          wl =  nl->TheEmptyList();
        } else {
-       
            wl = nl->OneElemList(
                         worker[0].toListExpr());
            ListExpr last = wl;
@@ -6125,31 +6216,41 @@ class DArray2T{
              last = nl->Append(last, worker[i].toListExpr());
            }
        }
-       return nl->ThreeElemList(nl->SymbolAtom(name), nl->IntAtom(size), wl); 
+       if(isStdMap() || (Type==DMATRIX)){  
+          return nl->ThreeElemList(nl->SymbolAtom(name), 
+                                   nl->IntAtom(size), 
+                                   wl); 
+       } else if(map.empty()) {
+          return nl->ThreeElemList(nl->SymbolAtom(name), 
+                                   nl->TheEmptyList(), 
+                                   wl);
+       } else {
+          ListExpr lmap = nl->OneElemList(nl->IntAtom(map[0]));
+          ListExpr last = lmap;
+          for(size_t i=1;i<map.size();i++){
+             last = nl->Append(last, nl->IntAtom(map[i]));
+          }
+          return nl->ThreeElemList(nl->SymbolAtom(name), lmap, wl);
+       }
      }
 
 
-     static DArray2T<isF>* readFrom(ListExpr list){
+     static DArray2T<Type>* readFrom(ListExpr list){
         if(listutils::isSymbolUndefined(list)){
-           return new DArray2T<isF>(0,"");
+           vector<uint32_t> m;
+           return new DArray2T<Type>(m,"");
         }
         if(!nl->HasLength(list,3)){
            return 0;
         }
         ListExpr Name = nl->First(list);
-        ListExpr Size = nl->Second(list);
         ListExpr Workers = nl->Third(list);
         if(   (nl->AtomType(Name) != SymbolType)
-            ||(nl->AtomType(Size) != IntType)
             ||(nl->AtomType(Workers)!=NoAtom)){
            return 0;
         }
         string name = nl->SymbolValue(Name);
         if(!stringutils::isIdent(name)){
-           return 0;
-        }
-        int size = nl->IntValue(Size);
-        if(size <=0){
            return 0;
         }
         vector<DArray2Element> v;
@@ -6164,38 +6265,46 @@ class DArray2T{
            v.push_back(elem);
            Workers = nl->Rest(Workers);
         }
-        DArray2T<isF>* result = new DArray2T<isF>(size,name);
+        vector<uint32_t> m;
+        if(nl->AtomType(nl->Second(list)==IntType)){
+           int size = nl->IntValue(nl->Second(list));
+           if(size <=0){
+              return 0;
+           }
+           m = createStdMap(size,v.size());
+        } else if(nl->AtomType(nl->Second(list))!=NoAtom){
+           return 0;
+        } else {
+           ListExpr lm = nl->Second(list);
+           while(!nl->IsEmpty(lm)){
+               ListExpr first = nl->First(lm);
+               lm = nl->Rest(lm);
+               if(nl->AtomType(first)!=IntType){
+                  return 0;
+               }
+               int mv = nl->IntValue(first);
+               if(mv<0 || mv>=v.size()){
+                  return 0;
+               }
+               m.push_back(mv);
+           }
+        }
+        DArray2T<Type>* result = new DArray2T<Type>(m,name);
         swap(result->worker,v);
         result->defined = true;
         return result;
      }
 
-
-
-     bool saveTo(SmiRecord& valueRecord, size_t& offset){
-        size_t size = worker.size();
-        if(!valueRecord.Write(&size,sizeof(size),offset)){
-            return false;
-        }  
-        offset += sizeof(size);
-        for(size_t i=0;i<worker.size();i++){
-           if(!worker[i].saveTo(valueRecord,offset)){
-               return false;
-           }
-        }
-        return true;
-     }
-
      static bool open(SmiRecord& valueRecord, size_t& offset, 
                       const ListExpr typeInfo, Word& result){
-
         bool defined;
         result.addr = 0;
         if(!readVar<bool>(defined,valueRecord,offset)){
            return false;
         } 
         if(!defined){
-          result.addr = new DArray2T<isF>(0,"");
+          vector<uint32_t> m;
+          result.addr = new DArray2T<Type>(m,"");
           return true;
         }
         // array in smirecord is defined, read size
@@ -6208,14 +6317,31 @@ class DArray2T{
         if(!readVar<string>(name,valueRecord, offset)){
             return false;
         }
+
+        cout << "<<<<<< OPEN with nsize " << size << endl;
+
+        // read  map
+        uint32_t me;
+        vector<uint32_t> m;
+        DArray2T<Type>* res = 0; 
+
+        if(Type!=DMATRIX){
+           for(size_t i=0;i<size;i++){
+               if(!readVar<uint32_t>(me,valueRecord,offset)){
+                  return false;
+               }
+               m.push_back(me);
+           }
+           res = new DArray2T<Type>(m,name);
+        } else {
+           res = new DArray2T<Type>(size,name);
+        }
+        int wn = 0;
         // append workers
         size_t numWorkers;
         if(!readVar<size_t>(numWorkers,valueRecord, offset)){
           return false;
         }
-        // create result
-        DArray2T<isF>* res = new DArray2T<isF>(size,name);
-        int wn = 0;
         for(size_t i=0; i< numWorkers; i++){
            DArray2Element elem("",0,0,"");
            if(!elem.readFrom(valueRecord, offset)){
@@ -6226,6 +6352,7 @@ class DArray2T{
            wn++;
            res->worker.push_back(elem);
         }
+
         result.addr = res;
         return true;
      }
@@ -6233,19 +6360,32 @@ class DArray2T{
      static bool save(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Word& value) {
 
-         DArray2T<isF>* a = (DArray2T<isF>*) value.addr;
+         DArray2T<Type>* a = (DArray2T<Type>*) value.addr;
+         // defined flag
          if(!writeVar(a->defined,valueRecord,offset)){
            return false;
          }
          if(!a->defined){
             return true;
          }
-         if(!writeVar(a->size,valueRecord,offset)){
+         // size
+         size_t s = a->size;
+         if(!writeVar(s,valueRecord,offset)){
            return false;
          }
+         // name
          if(!writeVar(a->name, valueRecord, offset)){
            return false;
          }
+         if(Type!=DMATRIX){
+           // map
+           for(size_t i=0;i<a->map.size();i++){
+               if(!writeVar(a->map[i], valueRecord,offset)){
+                  return false;
+               }
+           }
+         }
+         // workers
          if(!writeVar(a->worker.size(), valueRecord, offset)){
            return false;
          }
@@ -6257,23 +6397,47 @@ class DArray2T{
          return true; 
      }
 
+
+     static vector<uint32_t> createStdMap(const uint32_t size, 
+                                          const int numWorkers){
+        vector<uint32_t> map;
+        if(Type!=DMATRIX){
+           for(uint32_t i=0;i<size;i++){
+              map.push_back(i%numWorkers);
+           }
+        } 
+        return map;
+     }
+
+
      void print(ostream& out){
        if(!defined){
           out << "undefined";
           return;
        }
 
-       out << "Name : " << name <<", size : " << size 
+       out << "Name : " << name <<", size : " << map.size()
            << " workers : [" ;
        for(size_t i =0;i<worker.size();i++){
           if(i>0) out << ", ";
           worker[i].print(out);
        }
        out << "]";
+       if(Type != DMATRIX){
+         out << "map = [";
+         for(uint32_t i=0;i<map.size();i++){
+           if(i>0){
+             out << ", ";
+           }
+           out << i << " -> " << map[i];
+         }
+         out << "]";
+       }
      }
 
      void makeUndefined(){
         worker.clear();
+        map.clear();
         size = 0;
         name = "";
         defined = false;
@@ -6291,18 +6455,17 @@ class DArray2T{
         return true;
       }
 
-      bool equalWorker(const DArray2T<true>& a) const{
+      template<class TE>
+      bool equalWorker(const TE& a) const{
          return equalWorker(a.worker);
       }
 
-      bool equalWorker(const DArray2T<false>& a) const{
-         return equalWorker(a.worker);
-      }
 
       template<class H, class C>
-      static DArray2T<isF> createFromRel(Relation* rel, int size, string name,
+      static DArray2T<Type> createFromRel(Relation* rel, int size, string name,
                               int hostPos, int portPos, int configPos){
-          DArray2T<isF> result(0,"");
+          vector<uint32_t> m;
+          DArray2T<Type> result(m,"");
           if(size<=0){
              result.defined = false;
              return result;
@@ -6312,7 +6475,6 @@ class DArray2T{
              return result;
           }
           result.defined = true;
-          result.size = size;
           result.name = name;
 
           GenericRelationIterator* it = rel->MakeScan();
@@ -6329,19 +6491,50 @@ class DArray2T{
              }
           } 
           delete it;
+          result.setStdMap(size);
           return result;
 
       }
 
 
 
-  friend class DArray2T<!isF>;
+  friend class DArray2T<DARRAY>;
+  friend class DArray2T<DFARRAY>;
+  friend class DArray2T<DMATRIX>;
 
   private:
     vector<DArray2Element> worker; // connection information
-    size_t size;  // size of the array itselfs
+    vector<uint32_t> map;  // map from index to worker
+    size_t  size; // corresponds with map size except map is empty
     string name;  // the basic name used on workers
     bool defined; // defined state of this array
+
+
+   bool checkMap(){
+     if(Type!=DMATRIX){
+        for(int i=0;i<map.size();i++){
+           if(map[i] >= worker.size()){
+              return false;
+           }
+        }
+        return true;
+     }
+     return map.empty();
+   }
+
+   bool isStdMap(){
+     if(Type!=DMATRIX){
+        int s = worker.size();
+        for(size_t i=0;i<map.size();i++){
+             if(map[i]!= i%s){
+                 return false;
+             }
+        }
+        return true;
+     }
+     return map.empty();
+   }
+
 
 
    bool equalWorker(const vector<DArray2Element>& w) const{
@@ -6358,8 +6551,9 @@ class DArray2T{
 
 };
 
-typedef DArray2T<false> DArray2;
-typedef DArray2T<true> DFArray2;
+typedef DArray2T<DARRAY> DArray2;
+typedef DArray2T<DFARRAY> DFArray2;
+typedef DArray2T<DMATRIX> DMatrix2;
 
 
 /*
@@ -6376,9 +6570,10 @@ ListExpr DArray2Property(){
             nl->FourElemList(
                  nl->StringAtom(" -> SIMPLE"),
                  nl->StringAtom(" (darray2 <basictype>)"),
-                 nl->TextAtom("(name size ( s1 s2  ...)) where "
+                 nl->TextAtom("(name <map> ( s1 s2  ...)) where "
                                 "s_i =(server port config)"),
-                 nl->TextAtom(" ( mydarray2 42 ('localhost' 1234 'config.ini')"
+                 nl->TextAtom(" ( mydarray2 (0 1 0 1) ('localhost' 1234 "
+                              "'config.ini')"
                               " ('localhost'  1235 'config.ini'))")));
 }
 
@@ -6392,9 +6587,27 @@ ListExpr DFArray2Property(){
             nl->FourElemList(
                  nl->StringAtom(" -> SIMPLE"),
                  nl->StringAtom(" (dfarray2 <basictype>)"),
+                 nl->TextAtom("(name <map> ( s1 s2  ...)) where "
+                                "s_i =(server port config)"),
+                 nl->TextAtom(" ( mydfarray2 (0 1 0 1 1) ('localhost' 1234 "
+                              "'config.ini')"
+                              " ('localhost'  1235 'config.ini'))")));
+}
+
+
+ListExpr DMatrix2Property(){
+   return nl->TwoElemList(
+            nl->FourElemList(
+                 nl->StringAtom("Signature"),
+                 nl->StringAtom("Example Type List"), 
+                 nl->StringAtom("List Rep"),
+                 nl->StringAtom("Example List")),
+            nl->FourElemList(
+                 nl->StringAtom(" -> SIMPLE"),
+                 nl->StringAtom(" (dmatrix2 <basictype>)"),
                  nl->TextAtom("(name size ( s1 s2  ...)) where "
                                 "s_i =(server port config)"),
-                 nl->TextAtom(" ( mydarray2 42 ('localhost' 1234 'config.ini')"
+                 nl->TextAtom(" ( mymatrix 42  ('localhost' 1234 'config.ini')"
                               " ('localhost'  1235 'config.ini'))")));
 }
 /*
@@ -6432,7 +6645,8 @@ template <class A>
 Word CreateDArray2(const ListExpr typeInfo){
 
   Word w;
-  w.addr = new A(0,"");
+  vector<uint32_t> m;
+  w.addr = new A(m,"");
   return w;
 }
 
@@ -6511,6 +6725,21 @@ TypeConstructor DFArray2TC(
   SizeOfDArray2,
   DArray2TypeCheck<DFArray2> );
 
+
+
+TypeConstructor DMatrix2TC(
+  DMatrix2::BasicType(),
+  DMatrix2Property,
+  OutDArray2<DMatrix2>, InDArray2<DMatrix2>,
+  0,0,
+  CreateDArray2<DMatrix2>, DeleteDArray2<DMatrix2>,
+  DMatrix2::open, DMatrix2::save,
+  CloseDArray2<DMatrix2>, CloneDArray2<DMatrix2>,
+  CastDArray2<DMatrix2>,
+  SizeOfDArray2,
+  DArray2TypeCheck<DMatrix2> );
+
+
 /*
 3. DArray2 Operators
 
@@ -6582,14 +6811,13 @@ int putVMA(Word* args, Word& result, int message,
        res->makeUndefined();
   }
 
-  int workerindex =  i % array->numOfWorkers();
 
   // retrieve the current database name on the master
 
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
 
   
-  DArray2Element elem = array->getWorker(workerindex);
+  DArray2Element elem = array->getWorkerForIndex(i);
 
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
 
@@ -6638,10 +6866,9 @@ int putVMFA(Word* args, Word& result, int message,
      return 0;
   }
   // get ConnectionInfo
-  int now = array->numOfWorkers();
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   ConnectionInfo* ci = algInstance->getWorkerConnection( 
-                         array->getWorker(index % now),dbname);
+                      array->getWorkerForIndex(index),dbname);
   if(!ci){
      cerr << "could not get connection to server" << endl;
      res->makeUndefined();
@@ -6656,7 +6883,8 @@ int putVMFA(Word* args, Word& result, int message,
   FileSystem::DeleteFileOrFolder(fname);
   // move File to target position
   string f1 = ci->getSendPath()+"/"+fname;
-  string f2 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"+fname;
+  string f2 = ci->getSecondoHome()+"/dfarrays/"+dbname
+            + "/"+array->getName()+"/" + fname;
   string cmd = "query moveFile('"+f1+"', '"+ f2 +"')";
 
 
@@ -6795,7 +7023,7 @@ int getVMDA(Word* args, Word& result, int message,
   }
 
 
-  DArray2Element elem = array->getWorker(i % array->numOfWorkers());
+  DArray2Element elem = array->getWorkerForIndex(i);
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
   if(!ci){ // problem with connection the monitor or opening the databaseA
@@ -6861,7 +7089,7 @@ int getVMDFA(Word* args, Word& result, int message,
   if(pos < 0 || (size_t) pos >= array->getSize()){
      return 0;
   }
-  DArray2Element elem = array->getWorker(pos % array->numOfWorkers());
+  DArray2Element elem = array->getWorkerForIndex(pos);
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
   if(!ci){
@@ -6869,6 +7097,7 @@ int getVMDFA(Word* args, Word& result, int message,
   }
   ListExpr resType = qp->GetType(s);;
   string fileName = ci->getSecondoHome() + "/dfarrays/"+dbname+"/"
+                    + array->getName() + "/"
                     + array->getName()+"_"+stringutils::int2str(pos)+".bin";  
   Word relResult;
   ci->retrieveRelationInFile(fileName, resType, relResult);
@@ -7375,13 +7604,13 @@ ListExpr ffeed5TM(ListExpr args){
   string typeS(buffer, typeLength);
   delete [] buffer;
   ListExpr relType;
-  nlparsemtx.lock();
-  if(!nl->ReadFromString(typeS, relType)){
-    nlparsemtx.unlock();
-    in.close();
-    return listutils::typeError("problem in determining rel type");
-  } 
-  nlparsemtx.unlock();
+  {
+     boost::lock_guard<boost::mutex> guard(nlparsemtx);
+     if(!nl->ReadFromString(typeS, relType)){
+         in.close();
+         return listutils::typeError("problem in determining rel type");
+      } 
+  }
 
   if(!Relation::checkType(relType)){
      in.close();
@@ -7747,7 +7976,7 @@ class SinglePutter{
     void run(){
       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
       DArray2Element elem = 
-                    array->getWorker(arrayIndex % array->numOfWorkers());
+                    array->getWorkerForIndex(arrayIndex);
       ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
       if(!ci){
            cerr << "could not connect to server " << elem << endl;
@@ -8028,10 +8257,9 @@ class RelFileRestorer{
     relType(_relType), objName(_objName), array(_array), 
     arrayIndex(_arrayIndex), filename(_filename),
     started(false){
-    int workerIndex = arrayIndex % array->numOfWorkers();
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     ci = algInstance->getWorkerConnection(
-                         array->getWorker(workerIndex),dbname);
+                         array->getWorkerForIndex(arrayIndex),dbname);
    }
 
    ~RelFileRestorer(){
@@ -8118,9 +8346,8 @@ class FRelCopy{
      {
 
         dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-        int workerIndex = slot % array->numOfWorkers();
         ci = algInstance->getWorkerConnection(
-                                      array->getWorker(workerIndex), dbname);
+                                      array->getWorkerForIndex(slot), dbname);
 
      }
 
@@ -8164,10 +8391,13 @@ class FRelCopy{
         string errmsg;
         ListExpr result; 
         double runtime;
-        string home = ci->getSecondoHome();;
-        string targetDir = home +"/dfarrays/"+dbname;
+        string home = ci->getSecondoHome();
+
+        string targetDir = home +"/dfarrays/"+dbname+ "/" + array->getName();
         // create target directory
         string cmd = "query createDirectory('"+targetDir+"', TRUE)";
+
+        
         ci->simpleCommand(cmd,err,errmsg, result,false, runtime);
         if(err!=0){
             cerr << "command " << cmd << " failed" << endl;
@@ -8192,6 +8422,7 @@ class FRelCopy{
                  << nl->ToString(result) << endl;
             return;
         }
+
         if(!nl->BoolValue(nl->Second(result))){
            cerr << "moving file from: " << src << endl
                 << "to " << target << endl
@@ -8265,7 +8496,7 @@ int ddistribute2VMT(Word* args, Word& result, int message,
    while((tuple=stream.request())){
       CcInt* D = (CcInt*) tuple->GetAttribute(pos);
       int index = D->IsDefined()?D->GetValue():0;
-      index = index % res->getSize();
+      index = index % res->getSize(); // adopt to array size
       string fn = name + "_" + stringutils::int2str(index)+".bin";
       if(files.find(index)==files.end()){
           ofstream* out = new ofstream(fn.c_str(), ios::out | ios::binary);
@@ -8510,13 +8741,13 @@ int distribute3VMT(Word* args, Word& result, int message,
    ListExpr relType = nl->Second(qp->GetType(s));
    if(methodb){ // size is the size of the darray
       // circular distribution of 
-      res->setSize(sizei);
+      res->setStdMap(sizei);
       int index = 0;
       ofstream* current=0;
       size_t bufsize = max(4096, (FILE_BUFFER_SIZE*16) / sizei);
 
       while((tuple=stream.request())){
-         size_t index1 = index % sizei;
+         size_t index1 = index % sizei; // adopt to array size
          index++;
          if(index1 >= files.size()){
              string fn = name + "_" + stringutils::int2str(index1)+".bin";
@@ -8571,9 +8802,11 @@ int distribute3VMT(Word* args, Word& result, int message,
         delete[] buf;
         current=0;
       } 
-      res->setSize(files.size());
+      res->setStdMap(files.size());
    }
    stream.close();
+
+
 
     // now, all tuples are distributed to files.
     // we have to put the relations stored in these
@@ -8589,17 +8822,17 @@ int distribute3VMT(Word* args, Word& result, int message,
                                     i, fn));
    }
 
-
    // distribute the files to the workers and restore relations
    for(size_t i=0;i<restorers.size();i++){
      restorers[i]->start();
    } 
    // wait for finishing restore
 
-   
+
    for(size_t i=0;i<restorers.size();i++){
      delete restorers[i];
    }
+
    // delete local files
    for(size_t i=0;i<files.size();i++){
       string fn = res->getName()+"_"+stringutils::int2str(i)+".bin";     
@@ -9409,8 +9642,7 @@ class dloop2Info{
   public:
    dloop2Info(DArray2* _array, int _index, string& _resName,string& _fun) : 
      index(_index), resName(_resName), fun(_fun), elem("",0,0,""){
-     int wn = _index % _array->numOfWorkers();
-     elem = _array->getWorker(wn);
+     elem = _array->getWorkerForIndex(index);
      srcName = _array->getName();
      runner = boost::thread(&dloop2Info::run, this);
   }
@@ -9435,33 +9667,20 @@ class dloop2Info{
           sendError("Cannot find connection ");
           return;
        }
-
        string bn = resName + "_" + stringutils::int2str(index);
-       string fn = bn+"_fun";
-       // delete eventually existing old function
        int err;
        string strres;
        double runtime;
-       ci->simpleCommand("delete " + fn,err,strres, false, runtime);
-       // ignore error, standard case: object does not exist
-       // create new function object
        string errMsg;
-       string cmd = "(let " + fn + " = " + fun +")";
-       ci->simpleCommandFromList(cmd, err,errMsg, strres, true, runtime);
-       if(err!=0){ 
-           sendError(" Problem in command " + cmd + ":" + errMsg);
-           return;
-       }
        // delete old array content
        ci->simpleCommand("delete "+ bn, err,strres, false, runtime);
-       // ignore error, frequently entry is not there
-       cmd = "let " + bn + " =  "  + fn + "("+ srcName + "_" 
-                    + stringutils::int2str(index) +")";
-       ci->simpleCommand(cmd, err,errMsg, strres, false, runtime);
+       // create new object by applying the function
+       string cmd =   "(let "+bn+" = ("+fun+" " + srcName + "_" 
+                    + stringutils::int2str(index) +"))";
+       ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime);
        if(err!=0){ 
            sendError(" Problem in command " + cmd + ":" + errMsg);
        }
-       ci->simpleCommand("delete " + fn, err, strres,false, runtime);
     }
     void sendError(const string&msg){
        cmsg.error() << msg;
@@ -9750,8 +9969,7 @@ class dsummarize2AttrInfo : public successListener{
            string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
            string aname = array->getName();
            while(!stopped && runners.size() < array->getSize()){
-              int wnum = runners.size() % array->numOfWorkers();
-              DArray2Element elem = array->getWorker(wnum);
+              DArray2Element elem = array->getWorkerForIndex(runners.size());
               string objname = aname + "_" + 
                                stringutils::int2str(runners.size());
               dsummarize2AttrInfoRunner* r = new 
@@ -9788,7 +10006,7 @@ class RelationFileGetter{
      void operator()(){
        // get the connection
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-       DArray2Element elem = array->getWorker(index % array->numOfWorkers());
+       DArray2Element elem = array->getWorkerForIndex(index);
        ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
        if(!ci){ // connection failed
           listener->connectionFailed(index);
@@ -10020,9 +10238,8 @@ class getValueGetter{
    void operator()(){
 
       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-      int workerIndex = index % array->numOfWorkers();
       ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              array->getWorker(workerIndex),dbname);
+                              array->getWorkerForIndex(index),dbname);
       Word res((void*)0);
       if(!ci){
           cerr << "workerconnection not found";
@@ -10057,9 +10274,8 @@ class getValueFGetter{
    void operator()(){
 
       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-      int workerIndex = index % array->numOfWorkers();
       ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              array->getWorker(workerIndex),dbname);
+                              array->getWorkerForIndex(index),dbname);
       Word res((void*)0);
       if(!ci){
           cerr << "workerconnection not found";
@@ -10068,7 +10284,8 @@ class getValueFGetter{
       }
       string name = array->getName()+"_"+stringutils::int2str(index);
       string home = ci->getSecondoHome();
-      string fname = home +"/dfarrays/"+dbname+"/"+name+".bin"; 
+      string fname = home +"/dfarrays/"+dbname+"/"+array->getName()
+                     + "/" + name + ".bin"; 
       ci->retrieveRelationInFile(fname, resType, res);
       listener->jobDone(index,res); 
    }
@@ -10298,49 +10515,31 @@ class dloop2aRunner{
 
      void operator()(){
       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-      int workerIndex = index % a1->numOfWorkers();
       ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              a1->getWorker(workerIndex),dbname);
+                              a1->getWorkerForIndex(index),dbname);
       if(!ci){
          cmsg.error() << "could not open connection" ;
          cmsg.send();
          return;
       }
-      // name of the function to create
-      string fn = rname + "_" + stringutils::int2str(index)+"_fun";
-      string cmd ="(let " + fn + " = " + fun +")";
       int err;
       string errMsg;
       string strres;
-      // delete function if exists
       double runtime;
-      ci->simpleCommand("delete " + fn , err,errMsg, strres, false, runtime);
-      // ignore error
-      // create new function
-      ci->simpleCommandFromList(cmd, err,errMsg, strres, true, runtime);
-      if(err!=0){
-         cerr << "error in creating function via " << cmd << endl;
-         cerr << errMsg << endl;
-         return;
-      }
-      // apply function to array elements
       string tname = rname + "_" + stringutils::int2str(index);
       // remove old stuff
       ci->simpleCommand("delete " + tname , err,errMsg, strres, false, runtime);
       // create new one
       string a1o = a1->getName()+"_"+stringutils::int2str(index);
       string a2o = a2->getName()+"_"+stringutils::int2str(index);
-      cmd = "let " + tname + " = " + fn +"("+ a1o + ", " + a2o+")";
-      ci->simpleCommand(cmd, err,errMsg, strres, false, runtime);
+      string cmd ="(let " + tname + " = ( " + fun + " " + a1o + " " + a2o +"))";
+      ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime);
       if(err!=0){
          cerr << "error in creating result via " << cmd << endl;
          cerr << errMsg << endl;
          return;
       }
-      ci->simpleCommand("delete " + fn , err,errMsg,strres, false, runtime); 
      }
-
-
 
   private:
       DArray2* a1;
@@ -10402,6 +10601,13 @@ int dloop2aVM(Word* args, Word& result, int message,
   } 
 
   int max = min(a1->getSize(), a2->getSize());
+
+  if(!a1->equalMapping(*a2,true)){
+     cmsg.error() << "Different mappings in dloop2a";
+     cmsg.send();
+     res->makeUndefined();
+     return 0;
+  }
 
   res->set(max,n,workers);
 
@@ -10727,9 +10933,8 @@ class Object_Del{
 
     void deleteArray(){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-        int workerIndex = index % array->numOfWorkers();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              array->getWorker(workerIndex),dbname);
+                              array->getWorkerForIndex(index),dbname);
         if(!ci){
            cmsg.error() << "could not open connection" ;
            cmsg.send();
@@ -10749,9 +10954,8 @@ class Object_Del{
 
     void deleteFArray(){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-        int workerIndex = index % farray->numOfWorkers();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              farray->getWorker(workerIndex),dbname);
+                              farray->getWorkerForIndex(index),dbname);
         if(!ci){
            cmsg.error() << "could not open connection" ;
            cmsg.send();
@@ -10759,6 +10963,7 @@ class Object_Del{
         }
          
         string fileName = ci->getSecondoHome()+ "/dfarrays/"+dbname+"/"
+                  + farray->getName() + "/"
                   + farray->getName() +"_" + stringutils::int2str(index)
                   + ".bin";
         int err;
@@ -10913,9 +11118,8 @@ class cloneTask{
 
       void runDArray(){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-        int workerIndex = index % darray->numOfWorkers();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              darray->getWorker(workerIndex),dbname);
+                              darray->getWorkerForIndex(index),dbname);
         if(!ci){
            cmsg.error() << "could not open connection" ;
            cmsg.send();
@@ -10933,9 +11137,8 @@ class cloneTask{
 
      void runFArray(){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-        int workerIndex = index % farray->numOfWorkers();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              farray->getWorker(workerIndex),dbname);
+                              farray->getWorkerForIndex(index),dbname);
         if(!ci){
            cmsg.error() << "could not open connection" ;
            cmsg.send();
@@ -10945,7 +11148,7 @@ class cloneTask{
                          + ".bin";
         string newName = name + "_" + stringutils::int2str(index) + ".bin";
  
-        string path = ci->getSecondoHome()+"/dfarrays/"+dbname+"/";
+        string path = ci->getSecondoHome()+"/dfarrays/"+dbname+"/" + name + "/";
 
         int err;
         string errMsg;
@@ -11934,13 +12137,12 @@ class Mapper{
           // no slots -> nothing to do
           return;
        }
-       int now = array->numOfWorkers();
        vector<dRun*> w;
        vector<boost::thread*> runners;
 
        for( size_t i=0;i< array->getSize();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
-                                 array->getWorker(i % now), dbname);
+                                 array->getWorkerForIndex(i), dbname);
           dRun* r = new dRun(ci,dbname, i, this);
           w.push_back(r);
           boost::thread* runner = new boost::thread(&dRun::run, r);
@@ -11986,12 +12188,11 @@ class Mapper{
           return;
        }
 
-       int now = array->numOfWorkers();
        vector<fRun*> w;
        vector<boost::thread*> runners;
        for( size_t i=0;i< array->getSize();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
-                                 array->getWorker(i % now), dbname);
+                                 array->getWorkerForIndex(i), dbname);
           fRun* r = new fRun(ci,dbname, i, this);
           w.push_back(r);
           boost::thread* runner = new boost::thread(&fRun::run, r);
@@ -12012,51 +12213,55 @@ class Mapper{
            ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {}
 
         void run(){
-          if(ci){
-             // create temporal function
-             string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
-                               + "_"+ stringutils::int2str(nr);
-             string cmd = "(let " + funName + " = " 
-                        + mapper->funText->GetValue() +")";
-             int err; string errMsg; string r;
-             double runtime;
-             ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
-             ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
-             if(err!=0){
-               cerr << "problem in command " << cmd;
-               cerr << "code : " << err << endl;
-               cerr << "msg : " << errMsg << endl;
-             } else {
+           if(!ci){
+             return;
+           }
 
-               string cmd;
-               string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
-               if(mapper->array->isFileBased()){
-                   string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
-                       + n + ".bin";
-                   cmd = "query "+ funName +"( ffeed5 ('" + fname1+"'))";
-               } else {
-                   cmd = "query " + funName+"( " + n +" feed )";
-               }
-               string fname2 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
-                       + mapper->name + "_" + stringutils::int2str(nr)+".bin";
+           // create temporal function
+           string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
+                             + "_"+ stringutils::int2str(nr);
+
+           string fun = mapper->funText->GetValue();
+
+           string cmd = "(let " + funName + " = " + fun +")";
+           int err; string errMsg; string r;
+           double runtime;
+           ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+           ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
+           if(err!=0){
+             cerr << "problem in command " << cmd;
+             cerr << "code : " << err << endl;
+             cerr << "msg : " << errMsg << endl;
+             return;
+           } 
+           string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
+           if(mapper->array->getType()==DFARRAY){
+               string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                   + mapper->array->getName() + "/"
+                   + n + ".bin";
+               cmd = "query "+ funName +"( ffeed5 ('" + fname1+"'))";
+           } else {
+               cmd = "query " + funName+"( " + n +" feed )";
+           }
+           string fname2 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                   + mapper->name + "/"
+                   + mapper->name + "_" + stringutils::int2str(nr)+".bin";
 
 
-               if(mapper->isRel) {
-                 cmd += " feed fconsume5['"+fname2+"'] count";
-               } else {
-                 cmd += "fconsume5['"+fname2+"'] count";
-               }
+           if(mapper->isRel) {
+             cmd += " feed fconsume5['"+fname2+"'] count";
+           } else {
+             cmd += "fconsume5['"+fname2+"'] count";
+           }
 
-               ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
-               if((err!=0) && (err!=2)){ // ignore type map errors
-                                         // because reason is a missing file
-                  cerr << "command " + cmd << " failed with code " << err 
-                       << endl;
-                  cerr << "message is " << errMsg;  
-               }
-               ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
-             } 
-          }
+           ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
+           if((err!=0) && (err!=2)){ // ignore type map errors
+                                     // because reason is a missing file
+              cerr << "command " + cmd << " failed with code " << err 
+                   << endl;
+              cerr << "message is " << errMsg;  
+           }
+           ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
 
         }
 
@@ -12076,47 +12281,48 @@ class Mapper{
            ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {}
 
         void run(){
-          if(ci){
+          if(!ci){
+             return;
+          }
              // create temporal function
-             string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
-                              + "_" + stringutils::int2str(nr);
-             string cmd = "(let " + funName + " = " 
-                        + mapper->funText->GetValue() +")";
-             int err; string errMsg; string r;
-             double runtime;
-             ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
-             ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
-             if(err!=0){
-               cerr << "problem in command " << cmd;
-               cerr << "code : " << err << endl;
-               cerr << "msg : " << errMsg << endl;
-             } else {
+          string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
+                           + "_" + stringutils::int2str(nr);
+          string cmd = "(let " + funName + " = " 
+                     + mapper->funText->GetValue() +")";
+          int err; string errMsg; string r;
+          double runtime;
+          ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+          ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
+          if(err!=0){
+           cerr << "problem in command " << cmd;
+           cerr << "code : " << err << endl;
+           cerr << "msg : " << errMsg << endl;
+           return;
+          } 
              
-               string stream;
-               string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
+          string stream;
+          string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
 
-               if(mapper->array->isFileBased()){  
-                   string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
-                                   + n + + ".bin";
-                    stream = "ffeed5 ('"+fname1 + "')";
-               } else {
-                    stream = n + " feed";
-               }
-
-               string name2 = mapper->name + "_" + stringutils::int2str(nr);
-               cmd = "let "+ name2 +" = " + funName +"( " + stream + ")";
-
-               ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
-               if((err!=0) && (err!=2) ){ // ignore type map errors
-                                         // because reason is a missing file
-                  cerr << "command " + cmd << " failed with code " << err 
-                       << endl;
-                  cerr << "message is " << errMsg;  
-               }
-               ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
-             } 
+          if(mapper->array->getType()==DFARRAY){  
+              string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                              + mapper->array->getName() + "/"
+                              + n + ".bin";
+               stream = "ffeed5 ('"+fname1 + "')";
+          } else {
+               stream = n + " feed";
           }
 
+          string name2 = mapper->name + "_" + stringutils::int2str(nr);
+          cmd = "let "+ name2 +" = " + funName +"( " + stream + ")";
+
+          ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
+          if((err!=0) && (err!=2) ){ // ignore type map errors
+                                    // because reason is a missing file
+             cerr << "command " + cmd << " failed with code " << err 
+                  << endl;
+             cerr << "message is " << errMsg;  
+          }
+          ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
         }
 
       private:
@@ -12364,7 +12570,7 @@ class map2Info{
        res->setName(objName);
        size_t resSize = min(array1->getSize(), array2->getSize());
        if(resSize==0){
-         res->setSize(resSize);
+         res->setStdMap(resSize);
          return;
        }
 
@@ -12372,7 +12578,7 @@ class map2Info{
        vector<boost::thread*> runners;
        for(size_t i=0;i< resSize; i++) {
            ConnectionInfo* ci = algInstance->getWorkerConnection(
-                     array1->getWorker(i % array1->numOfWorkers()), dbname);
+                     array1->getWorkerForIndex(i), dbname);
            if(ci){
               Run* r = new Run(this,i,ci);
               w.push_back(r);
@@ -12421,11 +12627,12 @@ class map2Info{
              } 
              string fa1 = getFunArg(mi->array1);
              string fa2 = getFunArg(mi->array2);
-             if(!mi->res->isFileBased()){
+             if(!mi->res->getType()==DFARRAY){
                cmd = "let " + mi->objName + "_"+stringutils::int2str(i)
                      + " = " + funName + "(" + fa1+ ", " + fa2+")";   
              } else {
                string fname = ci->getSecondoHome()+"/dfarrays/"+mi->dbname+"/"
+                       + mi->res->getName() + "/"
                        + mi->res->getName() + "_" 
                        + stringutils::int2str(i) + ".bin";
                cmd ="query " + funName+"("+fa1+", " + fa2+")";
@@ -12437,9 +12644,9 @@ class map2Info{
 
              ci->simpleCommand(cmd,err,errMsg,r,true, runtime);
              if(err!=0){
-                cout << "command : " << cmd << endl;
-                cout << "command failed with rc " << err << endl;
-                cout << errMsg << endl;
+                cerr << "command : " << cmd << endl;
+                cerr << "command failed with rc " << err << endl;
+                cerr << errMsg << endl;
              }
              ci->simpleCommand("delete " + funName , err,errMsg,r,false,
                                 runtime);
@@ -12457,6 +12664,7 @@ class map2Info{
         
         string getFunArg(const DFArray2* array){
           string fname = ci->getSecondoHome()+"/dfarrays/"+mi->dbname+"/"
+                       + array->getName() + "/"
                        + array->getName()+"_"+stringutils::int2str(i)
                        + ".bin";
            return "ffeed5('" + fname+"')";
@@ -12633,6 +12841,17 @@ class FileTransferKeywords{
  static string EndData(){ return "</DATA>";}
  static string FileNotFound(){ return "<FILENOTFOUND>";}
  static string Cancel(){ return "<CANCEL>";}
+ static string OK(){ return "<OK>";}
+
+ static bool isBool(string s){
+     stringutils::toLower(s);
+     return (s=="true") || (s=="false");
+ }
+
+ static bool getBool(string s){
+     stringutils::toLower(s);
+     return s=="true";
+ }
 
 };
 
@@ -13302,29 +13521,31 @@ last running transfer is done, the server is shut down.
   
   // forward declaration
 
- /* 
+  
 
-class staticFileReceiver;
+class staticFileTransferator;
 
-map<int, staticFileReceiver*>  startFileReceivers;
+map<int, staticFileTransferator*>  staticFileTransferators;
 
 
-class staticFileReceiver{
+class staticFileTransferator{
 
 
    public:
-      static staticFileReceiver* getInstance(int port, int& noTransfers){
-          typename map<int, staticFileReceiver*>::iterator it;
-          it = startFileReceivers.find(port);
-          if(startFileReceivers.find(port) != startFileReceivers.end()){
-             staticFileReceiver* res = it->second;
-             noTransfers = res->maxTransfers;
-             return res;
+      static staticFileTransferator* getInstance(int port, int& noTransfers){
+          typename map<int, staticFileTransferator*>::iterator it;
+          it = staticFileTransferators.find(port);
+          if(   staticFileTransferators.find(port) 
+             != staticFileTransferators.end()){
+                staticFileTransferator* res = it->second;
+                noTransfers = res->maxTransfers;
+                return res;
           }
-          staticFileReceiver* res = new staticFileReceiver(port,noTransfers);
-          if(res->running()){
+          staticFileTransferator* res = 
+                   new staticFileTransferator(port,noTransfers);
+          if(res->running){
              // able to listen at the specified port
-             startFileReceivers[port] = res;
+             staticFileTransferators[port] = res;
              return res;
           }
           // some problems, e.g., security problems
@@ -13333,113 +13554,982 @@ class staticFileReceiver{
       }
 
       static bool finishInstance(int port) {
-         typename map<int,startFileReceiver*>::iterator it;
-         it = startFileReceivers.find(port);
-         if(it==startFileReceivers.end()){ // there is no such receiver
+         typename map<int,staticFileTransferator*>::iterator it;
+         it = staticFileTransferators.find(port);
+         if(it==staticFileTransferators.end()){ // there is no such receiver
             return false;
          }
-         startFileReceiver* k = it->second;
-         startFileReceivers.erase(it);
+         staticFileTransferator* k = it->second;
+         staticFileTransferators.erase(it);
          delete k;
          return true;
       }
 
-      ~startFileReceiver(){
+      ~staticFileTransferator(){
          running = false;
-         listener->cancelAccept();
-         listthread.join();
-         // todo wait for active transfers
+
+         set<transferator*>::iterator it;
+         for(it = activeTransfers.begin();it!=activeTransfers.end();it++){
+            delete *it;
+         }
+
+         listener->CancelAccept();
+         listthread->join();
+         delete listthread;
+         
          delete listener;
-         // todo : delete remaining connections 
+         deleteFinishedTransfers();
+            
+      }
+
+      void deleteFinishedTransfers(){
+         boost::lock_guard<boost::recursive_mutex> guard(mtx);
+         typename set<transferator*>::iterator it;
+         for(it=finishedTransfers.begin(); it!=finishedTransfers.end();
+             it++){
+            delete *it;
+         }
+         finishedTransfers.clear();
       }
 
 
-   private;
+   private:
+      class transferator;
 
       bool running;      // flag for activity
       int maxTransfers;  // maximum number of parallel transfers
       Socket* listener;  // the listener object
       boost::thread* listthread; // thread for listener
       vector<Socket*> connections; // active connections
+      set<transferator*> activeTransfers;
+      set<transferator*> finishedTransfers;
+      boost::recursive_mutex mtx;  // synchronize access to transfer sets 
 
 
-      startFileReceiver(int port, int maxTransfers){
+      staticFileTransferator(int port, int maxTransfers){
          listener = Socket::CreateGlobal("localhost", 
                                          stringutils::int2str(port));
          running = listener->IsOk();
-         listthread = new boost::thread(staticFileReceiver::listen , this);
+         listthread = new boost::thread(&staticFileTransferator::listen , this);
       }
 
 
       void listen(){
         while(running){
-           Socket* socket = listener-Accept();
-           if(!socket || !socket->IsOk()){
-              delete socket;
-           } else{
-              addTransfer(socket);
+           Socket* socket = listener->Accept();
+           if(socket){
+               if(!socket->IsOk()){
+                  delete socket;
+               } else{
+                  addTransfer(socket);
+               }
            }
         }
       }
 
       
       void addTransfer( Socket* socket){
+         boost::lock_guard<boost::recursive_mutex> guard(mtx);
          connections.push_back(socket);
-         activeTransfers.add(new transferator(socket, 
+         activeTransfers.insert(new transferator(socket, 
                              connections.size()-1,this));
       }
 
-
+      void finish(transferator* t, bool success){
+          if(running){
+             boost::lock_guard<boost::recursive_mutex> guard(mtx);
+             activeTransfers.erase(t);
+             finishedTransfers.insert(t);
+          }
+          if(!success){
+             cerr << "File Transfer failed" << endl;
+          } else {
+             cerr << "File received correctly" << endl;
+          }
+      }
 
      class transferator{
        public:
           transferator(Socket* _socket, int _index, 
-                       startFileReceiver* _listener){
+                       staticFileTransferator* _listener){
             socket = _socket;
             index = _index;
             listener = _listener;
-            runner = new boost::thread(transferator::transfer, this);
+            runner = new boost::thread(&transferator::transfer, this);
           }
 
           ~transferator(){
               runner->join();
               delete runner;
+              delete socket;
           }
 
 
        private:
           Socket* socket;
           int index;
-          startFileReceiver* listener;
-          boost::thread* runner; 
+          staticFileTransferator* listener;
+          boost::thread* runner;
 
 
+          void join(){
+             runner->join();
+          }
+          
           void transfer(){
-              iostream& io = server->GetSocketStream();
-              io << FileTransferKeywords::FileTransferServer() << endl;
-              // todo
+            bool ok = true;
+            try{
+              iostream& io = socket->GetSocketStream();
+              string line;
+              getline(io,line);
+
+              if(line!=FileTransferKeywords::ReceiveFile()
+                 && line!=FileTransferKeywords::SendFile()){
+                 ok = false; // protocol error
+                 socket->Close();
+                 listener->finish(this,false);
+                  return;
+              }
+              if(line==FileTransferKeywords::ReceiveFile()){
+                 receive(io,ok);
+              } else {
+                 send(io,ok); // not implemented yet
+              }
+              io.flush();
+            } catch(...){
+               ok = false;
+            }
+            socket->Close();
+            listener->finish(this,ok);
+          }
+
+          void send(iostream& io, bool& ok){
+              string filename;
+              string line;
+              getline(io,filename);
+              ifstream in(filename.c_str(), ios::binary|ios::in);
+              if(!in.good()){
+                 io << FileTransferKeywords::Cancel() << endl;
+                 ok = false;
+                 return;  
+              }
+              io << FileTransferKeywords::OK() << endl;
+              in.seekg(0,in.end);
+              size_t length = in.tellg();
+              in.seekg(0,in.beg);
+              io << length << endl;
+              io << FileTransferKeywords::Data() << endl;
+              size_t bs = 1024*16;
+              char buffer[bs];
+              while(length>0 && io.good() && in.good()){
+                 if(bs>length){
+                     bs = length;
+                 }
+                 in.read(buffer, bs);
+                 size_t r = in.gcount();
+                 io.write(buffer,r);
+                 length -=r;
+              }
+              ok = io.good();
+              io << FileTransferKeywords::EndData() << endl;
+          }
+
+          void receive(iostream& io, bool& ok){
+              string filename;
+              string line;
+              getline(io,filename);
+              getline(io,line);
+              if(!FileTransferKeywords::isBool(line)){
+                ok = false;
+                return;
+              }
+              bool overwrite = FileTransferKeywords::getBool(line);
+              if(!overwrite){
+                 if(FileSystem::FileOrFolderExists(filename)){
+                    io << FileTransferKeywords::Cancel() << endl;
+                    ok = false;
+                    return;
+                 }
+              }
+              ofstream out(filename.c_str(), ios::binary| ios::trunc);
+              if(out.good()){
+                 io << FileTransferKeywords::OK() << endl;
+              }  else {
+                 io << FileTransferKeywords::Cancel() << endl;
+                 ok = false;
+                 return;
+               }
+               size_t length=0;
+               getline(io,line);
+               length = stringutils::str2int<size_t>(line,ok);
+               if(!ok) {
+                 return;
+               }
+               getline(io,line);
+               if(line!=FileTransferKeywords::Data()){
+                    ok = false; // protocol error
+                    return;
+               }
+               // get data
+               size_t bs = 1024;
+               char buffer[bs];
+               while(length>0 &&!io.eof()){
+                  if(bs > length){
+                     bs = length;
+                   } 
+                   io.read(buffer,bs);
+                   size_t r = io.gcount();
+                   out.write(buffer,r);
+                   length -= r;
+                }
+                ok = io.good() && out.good();
+                out.close();
+                getline(io,line);
+                ok = line == FileTransferKeywords::EndData(); 
+                if(ok){
+                   io << FileTransferKeywords::OK() << endl;
+                } else {
+                   io << FileTransferKeywords::Cancel() << endl;
+                }
+                io.flush();
           }
      };
+};
 
 
- 
+ListExpr staticFileTransferatorTM(ListExpr args){
+  string err = "int x int expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(!CcInt::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
 
 
+int staticFileTransferatorVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*)result.addr;
+  CcInt*  port = (CcInt*)args[0].addr;
+  CcInt*  count = (CcInt*) args[1].addr;
+  if(!port->IsDefined() || !count->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  int p = port->GetValue();
+  int c = count->GetValue();
+  res->Set(true, staticFileTransferator::getInstance(p,c )!=0);
+  return 0;
+}
+
+
+
+OperatorSpec staticFileTransferatorSpec(
+  "int x int -> bool",
+  "staticFileTransferator(port, maxConnections)",
+  "Creates a file receiver running in parallel to the rest "
+  "of the SecondoSystem. It can handle several connections "
+  "in parallel. If more than the specified number of connections"
+  " is required, some connections go into a queue until a new "
+  "slot is available.",
+  "query staticFileTransferator(1238,10)"
+);
+
+
+Operator staticFileTransferatorOp(
+  "staticFileTransferator",
+  staticFileTransferatorSpec.getStr(),
+  staticFileTransferatorVM,
+  Operator::SimpleSelect,
+  staticFileTransferatorTM
+);
+
+
+
+
+
+ListExpr killStaticFileTransferatorTM(ListExpr args){
+  string err = "int expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(!CcInt::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+int killStaticFileTransferatorVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  CcInt* port = (CcInt*) args[0].addr;
+  if(!port->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  res->Set(true, staticFileTransferator::finishInstance(port->GetValue()));  
+  return 0;
+}
+
+
+OperatorSpec killStaticFileTransferatorSpec(
+  "int -> bool",
+  "killStaticFileTransferator(port)",
+  "Finishes a running file receiver instance. "
+  "Pending file transfers are finished before "
+  "terminating the receiver. ",
+  "query killStaticFileTransferator(1238)"
+);
+  
+
+Operator killStaticFileTransferatorOp(
+  "killStaticFileTransferator",
+  killStaticFileTransferatorSpec.getStr(),
+  killStaticFileTransferatorVM,
+  Operator::SimpleSelect,
+  killStaticFileTransferatorTM
+);
+
+
+/*
+12.1 Operators ~putFileTCP~ amd ~getFileTCP~
+
+This operator copies a file to a remote server on which a
+staticFileTransferator is started before.
+
+*/
+
+ListExpr putOrGetFileTCPTM(ListExpr args){
+
+   // localFile adress port overwrite remoteFile -> success
+   string err = "{string,text} x {string,text} x int x bool x {string, text} "
+                "expected";
+   if(!nl->HasLength(args,5)){
+      return listutils::typeError(err);
+   }
+   if(   !isTextOrString(nl->First(args))
+      || !isTextOrString(nl->Second(args))
+      || !CcInt::checkType(nl->Third(args))
+      || !CcBool::checkType(nl->Fourth(args))
+      || !isTextOrString(nl->Fifth(args))){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<CcBool>();
+}
+
+
+class fileCopy{
+  public:
+    fileCopy(const string& _local, const string& _host, 
+             const int _port, const bool _overwrite,
+              const string& _remote): local(_local),
+             host(_host), port(_port), overwrite(_overwrite),
+             remote(_remote){}
+
+
+    bool send(string& errMsg){
+      ifstream in(local.c_str(),ios::binary|ios::in);
+      if(!in){
+        errMsg = "Could not find local file";
+        return false;
+      }
+      // determine length of the input stream
+      in.seekg(0,in.end);
+      size_t length = in.tellg();
+      in.seekg(0,in.beg);
+      
+
+      // connect to server
+      Socket* socket = Socket::Connect(host, stringutils::int2str(port), 
+                              Socket::SockGlobalDomain, 3, 1);
+      if(!socket){
+        errMsg = "could not open connection";
+        return false;
+      }
+      if(!socket->IsOk()){
+        errMsg = "could not open connection";
+        delete socket;
+        return false;
+      }
+      iostream& io = socket->GetSocketStream();
+      io << FileTransferKeywords::ReceiveFile() << endl;
+      io << remote << endl;
+      io << (overwrite?"true":"false") << endl;
+      io.flush();
+      string line;
+      getline(io,line);
+      if(line!=FileTransferKeywords::OK()){
+         socket->Close();
+         delete socket;
+         errMsg = "Problem in creating remote file";
+         in.close();
+         return false;
+      }
+      io << length << endl;
+      io << FileTransferKeywords::Data() << endl;
+      size_t bufsize = 1048576;
+      char buffer[bufsize];
+      while(!in.eof() && in.good()){
+          in.read(buffer, bufsize);
+          size_t r = in.gcount();
+          io.write(buffer, r);
+      }
+      in.close();
+      io << FileTransferKeywords::EndData() << endl;
+      io.flush();
+      getline(io,line);
+      in.close();
+      if(line!=FileTransferKeywords::OK()){
+         errMsg = "Problem during file transfer";
+         return false;
+      }
+      socket->Close();
+      delete socket;
+      return true;
+
+    }
+    
+
+   bool get(string& errMsg){
+      if(!overwrite && FileSystem::FileOrFolderExists(local)){
+         errMsg = "local file already exists";
+         return false;
+      }
+      ofstream out(local.c_str(), ios::binary|ios::trunc);
+      if(!out.good()){
+         errMsg = "could not create local file";
+         return false;
+      }
+      // connect to server
+      Socket* socket = Socket::Connect(host, stringutils::int2str(port), 
+                              Socket::SockGlobalDomain, 3, 1);
+
+      if(!socket){
+           errMsg = "could not connect";
+           return false;
+      }
+      if(!socket->IsOk()){
+         socket->Close();
+         delete socket;       
+         errMsg = "could not connect";
+         return false;
+      }
+      iostream& io = socket->GetSocketStream();
+      io << FileTransferKeywords::SendFile() << endl;
+      io << remote << endl;
+      io.flush();
+      string line;
+      getline(io,line);
+      if(line != FileTransferKeywords::OK()){
+        if(line==FileTransferKeywords::Cancel()){
+          errMsg = "remote file not found";
+        } else {
+            errMsg = "protocol error";
+        }
+        socket->Close();
+        delete socket;       
+        return false;
+      }
+      getline(io,line);
+      bool ok;
+      size_t length = stringutils::str2int<size_t>(line,ok);
+      if(!ok){
+        errMsg = "protocol error";
+        socket->Close();
+        delete socket;       
+        return false;
+      }
+      getline(io,line);
+      if(line!=FileTransferKeywords::Data()){
+        errMsg = "protocol error";
+        socket->Close();
+        delete socket;       
+        return false;
+      }
+      size_t bs = 1024 * 16;
+      char buffer[bs];
+      while(length>0 && io.good() && out.good()){
+           if(bs > length){
+             bs = length;
+           }
+           io.read(buffer,bs);
+           size_t r = io.gcount();
+           out.write(buffer,r);
+           length -= r;  
+      }
+      out.close();
+      getline(io,line);
+      socket->Close();
+      delete socket;
+      if(line != FileTransferKeywords::EndData()){
+         errMsg = "protocol error";
+         return false;
+      }
+      errMsg = "";
+      return true;
+   }
+
+  private:
+     string local;
+     string host;
+     int port;
+     bool overwrite;
+     string remote;
 
 };
 
 
-  */
+template<class S, class H, class T, bool send>
+int putOrGetFileTCPVMT(Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   S* Source = (S*) args[0].addr;
+   H* Host  = (H*) args[1].addr;
+   CcInt* Port = (CcInt*) args[2].addr;
+   CcBool* Over = (CcBool*) args[3].addr;
+   T* Target = (T*) args[4].addr; 
+   if(   !Source->IsDefined() || !Host->IsDefined() || !Port->IsDefined() 
+      || !Target->IsDefined() || !Over->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   string errmsg="";
+   bool success;
+   if(send){
+     fileCopy fc(Source->GetValue(), Host->GetValue(), Port->GetValue(), 
+               Over->GetValue(),Target->GetValue());
+      success = fc.send(errmsg);
+   } else {
+     fileCopy fc(Target->GetValue(), Host->GetValue(), Port->GetValue(), 
+               Over->GetValue(),Source->GetValue());
+      success = fc.get(errmsg);
+   }
+   if(!success){
+      cerr << "Error : " << errmsg << endl;
+   }
+   res->Set(true, success);  
+   return 0;
+}
+
+
+ValueMapping putFileTCPVM[] = {
+    putOrGetFileTCPVMT<CcString, CcString, CcString,true>,
+    putOrGetFileTCPVMT<CcString, CcString, FText,true>,
+    putOrGetFileTCPVMT<CcString, FText, CcString,true>,
+    putOrGetFileTCPVMT<CcString, FText, FText,true>,
+    putOrGetFileTCPVMT<FText, CcString, CcString,true>,
+    putOrGetFileTCPVMT<FText, CcString, FText,true>,
+    putOrGetFileTCPVMT<FText, FText, CcString,true>,
+    putOrGetFileTCPVMT<FText, FText, FText,true>
+ };
+
+int putOrGetFileTCPSelect(ListExpr args){
+   ListExpr l = nl->First(args);
+   ListExpr h = nl->Second(args);
+   ListExpr r = nl->Fifth(args);
+   int l1 = CcString::checkType(l)?0:4; 
+   int h1 = CcString::checkType(h)?0:2; 
+   int r1 = CcString::checkType(r)?0:1; 
+   return l1 + h1 + r1;
+}
 
 
 
+OperatorSpec putFileTCPSpec(
+  "{string,text} x {string,text} x int x bool x {string,text} -> bool",
+  "putFileTCP(local, host, port, overwrite, remote)",
+  "Copies a file to a remote server via TCP. On the remote server, "
+  "a staticFileTransferator has to run. The result shows the success of ",
+  "the transfer.",
+  "query putFileTCP('berlintest', Host, 1239, TRUE, 'berlintestCopy')"
+);
+
+Operator putFileTCPOp(
+  "putFileTCP",
+  putFileTCPSpec.getStr(),
+  8,
+  putFileTCPVM,
+  putOrGetFileTCPSelect,
+  putOrGetFileTCPTM
+);
+
+
+ValueMapping getFileTCPVM[] = {
+    putOrGetFileTCPVMT<CcString, CcString, CcString,false>,
+    putOrGetFileTCPVMT<CcString, CcString, FText,false>,
+    putOrGetFileTCPVMT<CcString, FText, CcString,false>,
+    putOrGetFileTCPVMT<CcString, FText, FText,false>,
+    putOrGetFileTCPVMT<FText, CcString, CcString,false>,
+    putOrGetFileTCPVMT<FText, CcString, FText,false>,
+    putOrGetFileTCPVMT<FText, FText, CcString,false>,
+    putOrGetFileTCPVMT<FText, FText, FText,false>
+ };
+
+
+OperatorSpec getFileTCPSpec(
+  "{string,text} x {string,text} x int x bool x {string,text} -> bool",
+  "copyFileTCP(remote, host, port, overwrite, ilocal)",
+  "Gets a file from a remote server. On the remote server, "
+  "a staticFileTransferator has to run. The result shows the success of ",
+  "the transfer.",
+  "query getFileTCP('berlintest_copy3', Host, 1239, TRUE, 'berlintest')"
+);
+
+Operator getFileTCPOp(
+  "getFileTCP",
+  getFileTCPSpec.getStr(),
+  8,
+  getFileTCPVM,
+  putOrGetFileTCPSelect,
+  putOrGetFileTCPTM
+);
+
+
+/*
+13 Operator ~fsfeed5~
+
+13.1 Type Mapping
+
+*/
+ListExpr fsfeed5TM(ListExpr args){
+
+  string err = "stream({text,string}) x {rel, text, string} expected";
+
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + "( wrong number of args)");
+  }
+  ListExpr s1 = nl->First(args);
+  if(!nl->HasLength(s1,2)){ // uses args in tm
+    return listutils::typeError("internal error");
+  }
+  ListExpr s = nl->First(s1);
+  if(     !Stream<FText>::checkType(s) 
+      &&  !Stream<CcString>::checkType(s)){
+    return listutils::typeError(err);
+  }
+  ListExpr t1 = nl->Second(args);
+  if(!nl->HasLength(t1,2)){
+     return listutils::typeError("internal error");
+  }
+  ListExpr t = nl->First(t1);
+  if(   !Relation::checkType(t) && !FText::checkType(t) 
+     && !CcString::checkType(t)){
+    return listutils::typeError(err + "( wrong number of args");
+  }
+  if(Relation::checkType(t)){ // template function given
+     return nl->TwoElemList(
+                   listutils::basicSymbol<Stream<Tuple> >(),
+                   nl->Second(t));
+  }
+
+  // filename given for template
+  string filename;
+  ListExpr t2 = nl->Second(t1);
+  if(FText::checkType(t)){
+     if(!getValue<FText>(t2,filename)){
+       return listutils::typeError("could not extract filename");
+     }
+  } else {
+     if(!getValue<CcString>(t2,filename)){
+       return listutils::typeError("could not extract filename");
+     }
+  }
+  // get the type stored in file
+  ffeed5Info fi(filename);
+  if(!fi.isOK()){
+    return listutils::typeError("could not determine type from file " 
+                                + filename);
+  }
+  ListExpr relType = fi.getRelType();
+  return nl->TwoElemList(
+                listutils::basicSymbol<Stream<Tuple> >(),
+                nl->Second(relType));
+}
+
+template<class T>
+class fsfeed5Info{
+   public:
+      fsfeed5Info(Word& _stream, ListExpr _tt): stream(_stream){
+         tt = new TupleType(_tt);
+         stream.open();
+         fi = 0;
+      }
+
+      ~fsfeed5Info(){
+         stream.close();
+         tt->DeleteIfAllowed();
+         if(fi){
+           delete fi;
+         }
+       }
+
+       Tuple* next(){
+           while(true){
+              if(!fi){
+                openNextFile();
+              }
+              if(!fi){
+                 return 0;
+              }
+              Tuple* res = fi->next();
+              if(!res){
+                 delete fi;
+                 fi = 0;
+              } else {
+                 return res;
+              }
+           }
+       }
+
+   private:
+      Stream<T> stream;
+      TupleType* tt;
+      ffeed5Info* fi;
+      
+      void openNextFile(){
+          while(!fi){
+              T* fn = stream.request();
+              if(!fn){
+                 return;
+              }
+              if(fn->IsDefined()){
+                 fi = new ffeed5Info(fn->GetValue(),tt);
+                 if(!fi->isOK()){
+                     cerr << "ignore file" << fn->GetValue() << endl;
+                     delete fi;
+                     fi = 0;
+                 }
+              }
+              fn->DeleteIfAllowed();
+          }
+      }
+};
+
+
+template<class T>
+int fsfeed5VMT(Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+
+  fsfeed5Info<T>* li = (fsfeed5Info<T>*) local.addr;
+  switch(message){
+     case OPEN : if(li){
+                   delete li;
+                 }
+                 local.addr = new fsfeed5Info<T>(args[0], 
+                      nl->Second(GetTupleResultType(s)));
+                 return 0;
+     case REQUEST:
+                result.addr = li?li->next():0;
+                return result.addr?YIELD:CANCEL;
+     case CLOSE:{
+              if(li){
+                delete li;
+                local.addr = 0;
+              }
+              return 0;
+     }
+  } 
+  return -1;
+}
 
 
 
+ValueMapping fsfeed5VM[] = {
+  fsfeed5VMT<CcString>,
+  fsfeed5VMT<FText>
+};
+
+int fsfeed5Select(ListExpr args){
+  return Stream<CcString>::checkType(nl->First(args))?0:1;
+}
 
 
 
+OperatorSpec fsfeed5Spec(
+  "istream({sring,text}) x {rel,text,string} -> stream(tuple)",
+  "_ fsfeed5[_]",
+  "Creates a tuple stream from relations stored in binary files. "
+  "The first argument contains the file names of the file from which "
+  "the tuples should be extracted. Non existing files, files having "
+  "wrong format or a different relation scheme are ignored. "
+  "The second argument speicfies the tuple type expected in the files. "
+  "This may be a relation (the content of the relation is ignored) or "
+  "a text/string specifiing a filename of a binary stored relation.",
+  "query getDirectory(\".\") filter[ . startsWith 'strassen_'] "
+  "fsfeed5[strassen] count"
+);
 
+Operator fsfeed5Op(
+  "fsfeed5",
+  fsfeed5Spec.getStr(),
+  2,
+  fsfeed5VM,
+  fsfeed5Select,
+  fsfeed5TM
+);
+
+
+
+/*
+14 Operator ~partition~
+
+This operator partioned the slots of a d[f]array2 on the clusters.
+
+*/
+
+ListExpr partition(ListExpr args){
+
+ string err ="d[f]array2(rel(tuple)) x (tuple -> int) x string expected";
+ if(!nl->HasLength(args,3)){
+   return listutils::typeError(err + "(wrong number of args)");
+ }
+
+ ListExpr a0 = nl->First(args);
+ ListExpr f0 = nl->Second(args);
+ ListExpr n0 = nl->Third(args);
+ 
+ if(   !nl->HasLength(a0,2) || !nl->HasLength(f0,2) 
+    || !nl->HasLength(n0,2)){
+   return listutils::typeError("internal error");
+ }
+
+ ListExpr a1 = nl->First(a0);
+ ListExpr f1 = nl->First(f0);
+ ListExpr n1 = nl->First(n0);
+
+ if(!DFArray2::checkType(a1)){
+   return listutils::typeError(err + "(first attr of wrong type)");
+ }
+ ListExpr r = nl->Second(a1);
+ if(!Relation::checkType(r)){
+   return listutils::typeError(err + "(array subtype is not a relation)");
+ }
+ if(!listutils::isMap<1>(f1)){
+   return listutils::typeError(err + "(second arg is not a fun)");
+ } 
+ if(!CcString::checkType(n1)){
+   return listutils::typeError(err + "(third arg is not a string)");
+ }
+ if(!CcInt::checkType(nl->Third(f1))){
+    return listutils::typeError(err + "(fun result is not an int");
+ }
+ if(!nl->Equal(nl->Second(r), nl->Second(f1))){
+    return listutils::typeError(" (function arg type does not fit"
+                                " the relation type");
+ }
+
+ ListExpr funquery = nl->Second(f0);
+  
+ ListExpr funargs = nl->Second(funquery);
+
+ ListExpr dat = nl->Second(r);
+
+ ListExpr rfunargs = nl->TwoElemList(
+                       nl->First(funargs),
+                       dat);
+ ListExpr rfun = nl->ThreeElemList(
+                        nl->First(funquery),
+                        rfunargs,
+                        nl->Third(funquery));   
+
+
+  ListExpr res =  nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
+               nl->TwoElemList( listutils::basicSymbol<DMatrix2>(),
+                                 r));
+  return res;
+}
+
+
+class partitionInfo{
+
+  public:
+
+    partitionInfo( ConnectionInfo* _ci, const string& _fun, string& _tname, 
+                   const string& _sname):
+        ci(_ci), fun(_fun), tname(_tname), sname(_sname),runner(0){
+        runner = new boost::thread(&partitionInfo::run,this);
+    }
+
+    ~partitionInfo(){
+        runner->join();
+        delete runner;
+     }
+
+  private:
+     ConnectionInfo* ci;
+     string fun;
+     string tname;
+     string sname;
+     boost::thread* runner;
+      
+     void run(){
+        if(!ci){
+           return;
+        }
+        // construct target directory on ci
+        string targetDir = ci->getSecondoHome()+"/dfarrays/"+tname;
+        int err;
+        string errMsg;
+        double runtime;
+        ListExpr resList;
+        ci->simpleCommand("query createDirectory('"+targetDir+"')", 
+                          err, errMsg, 
+                          resList, false,runtime);
+        if(err!=0){
+           cerr << "command for creating directory failed : " << errMsg;
+           return;
+        }
+        if(!nl->HasLength(resList,2)){
+           cerr << "unexpected result during creation of directory" << endl;
+           return;
+        } 
+        if(nl->AtomType(nl->Second(resList))!=BoolType){
+           cerr << "unexpected result during creation of directory" << endl;
+           return;
+        }
+        if(!nl->BoolValue(nl->Second(resList))){
+            cerr << "creating directory failed";
+            return;
+        }
+        string cmd = constructQuery(targetDir);
+        string res;
+        ci->simpleCommandFromList(cmd, err,errMsg, res, false, runtime);
+        if(err!=0){
+           cerr << "command failed with " << endl;
+        }
+     }
+
+     string constructQuery(const string& dir){
+
+        // construct query in nested list form,
+
+        // getDirectory(sourceDir) filter[. startsWith (sname+"_")] 
+        //      fsfeed5[ [const rel(...) value () ]
+        //      fdistribute7[ fun , size] count
+
+        string sourceDir = ci->getSecondoHome()+"/dfarrays/"+sname+"/";
+
+        assert(false);
+        return "";
+     }
+
+
+
+};
 
 
 
@@ -13459,6 +14549,8 @@ Distributed2Algebra::Distributed2Algebra(){
    DArray2TC.AssociateKind(Kind::SIMPLE());
    AddTypeConstructor(&DFArray2TC);
    DFArray2TC.AssociateKind(Kind::SIMPLE());
+   AddTypeConstructor(&DMatrix2TC);
+   DMatrix2TC.AssociateKind(Kind::SIMPLE());
    
    AddOperator(&connectOp);
    AddOperator(&checkConnectionsOp);
@@ -13541,10 +14633,39 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&showProgressOp);
 
 
+   AddOperator(&staticFileTransferatorOp);
+   AddOperator(&killStaticFileTransferatorOp);
+   AddOperator(&putFileTCPOp);
+   AddOperator(&getFileTCPOp);
+
+   AddOperator (&fsfeed5Op);
+   fsfeed5Op.SetUsesArgsInTypeMapping();
+
+
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);
 
 
+}
+
+
+Distributed2Algebra::~Distributed2Algebra(){
+   typename map<int,staticFileTransferator*>::iterator it;
+   for(it=staticFileTransferators.begin();
+       it!=staticFileTransferators.end();it++){
+     delete it->second;
+   }
+
+   boost::lock_guard<boost::mutex> guard(mtx);
+   for(size_t i=0;i<connections.size();i++){
+      delete connections[i];
+   }
+   connections.clear();
+   closeAllWorkers();
+   if(pprogView){
+      MessageCenter::GetInstance()->RemoveHandler(pprogView);
+      delete pprogView;
+   }
 }
 
 

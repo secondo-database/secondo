@@ -70,3 +70,13 @@ operator transferFile alias TRANSFERFILE pattern op(_,_,_,_,_)
 
 operator traceCommands alias TRACECOMMANDS pattern op(_)
 
+
+operator staticFileTransferator alias STATICFILETRANSFERATOR pattern op(_,_)
+operator killStaticFileTransferator alias KILLSTATICFILETRANSFERATOR pattern op(_)
+operator putFileTCP alias PUTFILETCP pattern op(_,_,_,_,_)
+operator getFileTCP alias GETFILETCP pattern op(_,_,_,_,_)
+
+operator fsfeed5 alias FSFEED5 pattern _ op[_]
+
+
+
