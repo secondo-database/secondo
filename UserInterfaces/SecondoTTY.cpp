@@ -149,15 +149,7 @@ class SecondoTTY : public Application
   bool              quit;
   NestedList*       nl;
   bool              isQuery;
-  #if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
-  SecondoInterfaceTTY* si;
-  #elif defined(SECONDO_CLIENT_SERVER)
-  SecondoInterfaceCS* si;
-  #elif defined(REPLAY)
-  SecondoInterfaceREPLAY* si;
-  #else
-  SecondoInterfaceCS* si;
-  #endif
+  SecondoInterface* si;
 };
 
 SecondoTTY::SecondoTTY( const TTYParameter& t )
