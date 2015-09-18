@@ -19,7 +19,7 @@ import sj.lang.ListExpr;
  * Filters a Stream if elements by evaluating a boolean function over each
  * element. Uses a ParameterFunction for this purpose.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public class Filter implements StreamOperator {

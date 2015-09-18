@@ -8,7 +8,7 @@ import mmdb.error.streamprocessing.TypeException;
  * This is done to hide and obliviate the fact if an Operator's parameter is a
  * constant or a calculated object.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class ConstantNode implements ObjectNode {
 

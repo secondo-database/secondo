@@ -18,7 +18,7 @@ import sj.lang.ListExpr;
  * Operator Count resembling the core operator.<br>
  * Counts streams and relations.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Count implements ObjectNode {
 

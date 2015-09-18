@@ -19,7 +19,7 @@ import sj.lang.ListExpr;
  * @see mmdb.streamprocessing.streamoperators.Feed
  * @see mmdb.streamprocessing.streamoperators.Project
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class FeedProject implements StreamOperator {
 

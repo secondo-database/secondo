@@ -19,7 +19,7 @@ import sj.lang.ListExpr;
  * Operator rename resembling the operator in the core.<br>
  * Renames all columns in a stream of MemoryTuples by adding a given postfix.<br>
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public class Rename implements StreamOperator {

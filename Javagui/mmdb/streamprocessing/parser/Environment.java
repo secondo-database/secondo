@@ -15,7 +15,7 @@ import mmdb.streamprocessing.objectnodes.ObjectNode;
  * Supports a simple scoping mechanism by artificially making the map of objects
  * unmodifiable.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Environment {
 

@@ -6,7 +6,7 @@ import mmdb.error.MMDBException;
  * This exception indicates an error while letting the core transform a query to
  * nested list format.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class TransformQueryException extends MMDBException{
 

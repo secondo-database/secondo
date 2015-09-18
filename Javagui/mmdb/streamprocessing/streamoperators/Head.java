@@ -17,7 +17,7 @@ import sj.lang.ListExpr;
  * Operator head resembling the operator in the core.<br>
  * Only forwards the first X elements of a stream.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public class Head implements StreamOperator {

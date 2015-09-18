@@ -10,7 +10,7 @@ import mmdb.streamprocessing.functionoperators.ParameterFunction;
 /**
  * Tool class for general typecheck operations.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public abstract class TypecheckTools {
 

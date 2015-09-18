@@ -22,7 +22,7 @@ import sj.lang.ListExpr;
  * Sorts a stream of MemoryTuples by all their columns in ascending order.<br>
  * Internally uses a delegation to the sortby operator.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public class Sort implements StreamOperator {

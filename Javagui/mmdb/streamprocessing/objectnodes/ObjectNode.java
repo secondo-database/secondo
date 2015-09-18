@@ -7,7 +7,7 @@ import mmdb.streamprocessing.Node;
 /**
  * Base class for all ObjectNodes, mainly Operators that have a single result.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public interface ObjectNode extends Node {

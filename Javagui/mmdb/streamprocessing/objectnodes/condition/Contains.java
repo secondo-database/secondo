@@ -18,7 +18,7 @@ import sj.lang.ListExpr;
  * Implementation of operator contains resembling the core operator.<br>
  * Checks if the first parameter contains the second.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Contains implements ObjectNode {
 

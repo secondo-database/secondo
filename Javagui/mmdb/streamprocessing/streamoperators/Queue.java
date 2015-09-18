@@ -10,7 +10,7 @@ import mmdb.error.streamprocessing.QueueClosedException;
  * A blocking queue for storing operator results as MemoryObjects.<br>
  * Not yet in use.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Queue {
 

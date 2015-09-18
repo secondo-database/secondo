@@ -22,7 +22,7 @@ import sj.lang.ListExpr;
  * Operator Consume resembling the core operator.<br>
  * Collects a tuple stream into a MemoryRelation.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Consume implements ObjectNode {
 

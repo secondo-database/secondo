@@ -12,7 +12,7 @@ import sj.lang.ListExpr;
  * Implementation of logical OR operator resembling the core operator.<br>
  * Checks if at least one of the boolean parameters is true.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Or extends LogicalOperator {
 

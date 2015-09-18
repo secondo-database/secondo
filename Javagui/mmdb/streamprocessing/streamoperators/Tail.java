@@ -20,7 +20,7 @@ import sj.lang.ListExpr;
  * Operator tail resembling the operator in the core.<br>
  * Only forwards the last X elements of a stream.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public class Tail implements StreamOperator {

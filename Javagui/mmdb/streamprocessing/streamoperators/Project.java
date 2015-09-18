@@ -25,7 +25,7 @@ import sj.lang.ListExpr;
  * Removes all but the selected columns from a stream of MemoryTuples.<br>
  * Represents SQL SELECT statement.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public class Project implements StreamOperator {

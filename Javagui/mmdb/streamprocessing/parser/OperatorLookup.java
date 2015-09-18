@@ -40,7 +40,7 @@ import mmdb.streamprocessing.streamoperators.Tail;
 /**
  * A (static only) class that helps finding Operator.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class OperatorLookup {
 	

@@ -9,7 +9,7 @@ import mmdb.error.streamprocessing.TypeException;
  * This class states an environment that is present inside the ParameterFunction
  * and contains the current parameter passed to the ParameterFunction.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class FunctionEnvironment implements ObjectNode {
 

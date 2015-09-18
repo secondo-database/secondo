@@ -26,7 +26,7 @@ import sj.lang.ListExpr;
  * Operator sortby resembling the operator in the core.<br>
  * Sorts a stream of tuples by the given columns in the given directions.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Sortby implements StreamOperator {
 

@@ -20,7 +20,7 @@ import sj.lang.ListExpr;
  * Simple product operator resembling the core operator.<br>
  * Creates the cartesian product of two tuple streams.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public class Product implements StreamOperator {

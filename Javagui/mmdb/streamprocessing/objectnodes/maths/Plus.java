@@ -22,7 +22,7 @@ import sj.lang.ListExpr;
  * Operator plus(+) resembling the core operator.<br>
  * Adds up two numbers or concatenates text/strings.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public class Plus implements ObjectNode {

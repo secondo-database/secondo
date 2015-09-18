@@ -6,7 +6,7 @@ import mmdb.error.streamprocessing.TypeException;
 /**
  * Base interface for all Nodes.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public interface Node {
 

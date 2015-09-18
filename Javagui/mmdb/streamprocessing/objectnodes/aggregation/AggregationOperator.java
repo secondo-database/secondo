@@ -16,7 +16,7 @@ import mmdb.streamprocessing.tools.TypecheckTools;
 /**
  * Abstract base class for aggregation operators on tuple streams.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public abstract class AggregationOperator implements ObjectNode {

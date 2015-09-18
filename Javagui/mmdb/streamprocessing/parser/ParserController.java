@@ -29,7 +29,7 @@ import sj.lang.ListExpr;
 /**
  * A singleton class controlling the parse process during query procession.<br>
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class ParserController {
 

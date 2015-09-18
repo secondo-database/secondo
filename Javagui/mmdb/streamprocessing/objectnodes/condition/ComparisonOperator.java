@@ -12,7 +12,7 @@ import mmdb.streamprocessing.tools.TypecheckTools;
 /**
  * Abstract base class for comparison operators with two parameters.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public abstract class ComparisonOperator implements ObjectNode {

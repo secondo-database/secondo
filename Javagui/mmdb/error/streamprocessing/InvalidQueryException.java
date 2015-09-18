@@ -6,7 +6,7 @@ import mmdb.error.MMDBException;
  * This exception indicates that a query sent to the core for transformation to
  * nested list was invalid.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class InvalidQueryException extends MMDBException {
 

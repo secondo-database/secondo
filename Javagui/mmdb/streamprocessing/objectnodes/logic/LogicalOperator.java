@@ -12,7 +12,7 @@ import mmdb.streamprocessing.tools.TypecheckTools;
 /**
  * Abstract base class for logical operators with two parameters.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public abstract class LogicalOperator implements ObjectNode {

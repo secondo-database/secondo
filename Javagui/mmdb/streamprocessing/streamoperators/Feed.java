@@ -26,7 +26,7 @@ import sj.lang.ListExpr;
  * Implementation of operator feed resembling the core operator.<br>
  * Transforms a MemoryRelation into a stream of MemoryTuples.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Feed implements StreamOperator {
 

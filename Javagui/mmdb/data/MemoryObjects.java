@@ -5,7 +5,7 @@ import mmdb.data.attributes.MemoryAttribute;
 /**
  * Class to store and manage all subclasses of MemoryObject.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public abstract class MemoryObjects {
 

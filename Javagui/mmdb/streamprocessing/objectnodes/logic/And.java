@@ -12,7 +12,7 @@ import sj.lang.ListExpr;
  * Implementation of logical AND operator resembling the core operator.<br>
  * Checks if both boolean parameters are true.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class And extends LogicalOperator {
 

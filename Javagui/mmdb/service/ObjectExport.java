@@ -25,7 +25,7 @@ import sj.lang.ListExpr;
 /**
  * A singleton class to handle export of MemoryObjects.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class ObjectExport {
 

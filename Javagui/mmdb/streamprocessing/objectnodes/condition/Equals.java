@@ -18,7 +18,7 @@ import sj.lang.ListExpr;
  * Implementation of operator equals resembling the core operator.<br>
  * Checks if the first parameter equals the second.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Equals implements ObjectNode {
 

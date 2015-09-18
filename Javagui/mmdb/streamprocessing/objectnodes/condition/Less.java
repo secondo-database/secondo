@@ -14,7 +14,7 @@ import sj.lang.ListExpr;
  * Implementation of comparison operator Less(<) resembling the core operator.<br>
  * Checks if first comparable is less than the second.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Less extends ComparisonOperator {
 

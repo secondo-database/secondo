@@ -7,7 +7,7 @@ import mmdb.error.MMDBException;
  * present. It is meant for parallel procession of queries, which has not yet
  * been implemented!
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class QueueClosedException extends MMDBException {
 

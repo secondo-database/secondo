@@ -18,7 +18,7 @@ import tools.Reporter;
  * A class managing any gui components needed while importing or exporting main
  * memory objects.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class ImportExportGui {
 

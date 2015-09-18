@@ -6,7 +6,7 @@ import mmdb.error.MMDBException;
  * This exception indicates an error during parse phase of query processing
  * (while building up the operator tree).
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class ParsingException extends MMDBException {
 

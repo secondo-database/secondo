@@ -8,7 +8,7 @@ import mmdb.error.streamprocessing.QueueClosedException;
  * evaluation.<br>
  * There are none implemented yet.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public abstract class BufferedStreamOperator implements StreamOperator {

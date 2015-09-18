@@ -20,7 +20,7 @@ import sj.lang.ListExpr;
  * Operator minus(-) resembling the core operator.<br>
  * Subtracts two numbers.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public class Minus implements ObjectNode {

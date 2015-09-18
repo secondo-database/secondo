@@ -23,7 +23,7 @@ import sj.lang.ListExpr;
 /**
  * Class for any operations on nested lists during operator tree buildup.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class NestedListProcessor {
 

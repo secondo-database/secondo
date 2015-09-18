@@ -10,7 +10,7 @@ import sj.lang.ListExpr;
 /**
  * Class to store and manage all subclasses of Node.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public abstract class Nodes {
 

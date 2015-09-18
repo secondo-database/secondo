@@ -8,7 +8,7 @@ import mmdb.streamprocessing.Node;
  * Interface for all StreamNodes/StreamOperators.<br>
  * Implements the iterator interface open, getNext, close.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  *
  */
 public interface StreamOperator extends Node {

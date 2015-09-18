@@ -15,7 +15,7 @@ import sj.lang.ListExpr;
  * operator.<br>
  * Checks if first comparable is greater than or equal to the second.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class EqualsGreater extends ComparisonOperator {
 

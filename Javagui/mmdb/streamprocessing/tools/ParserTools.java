@@ -7,7 +7,7 @@ import sj.lang.ListExpr;
 /**
  * Tool class for checks during parsing (buildup of the operator tree).
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class ParserTools {
 

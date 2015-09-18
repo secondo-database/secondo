@@ -4,7 +4,7 @@ package mmdb.error.streamprocessing;
  * This exception indicates that a stream was accessed while being closed. This
  * should never happen.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class StreamStateException extends RuntimeException {
 

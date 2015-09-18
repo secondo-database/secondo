@@ -30,7 +30,7 @@ import sj.lang.ListExpr;
  * Groups a (presorted) stream of tuples by the given identifiers. Calculates
  * aggregates of other columns and adds them as new columns.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Groupby implements StreamOperator {
 

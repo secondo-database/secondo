@@ -5,7 +5,7 @@ import mmdb.error.MMDBException;
 /**
  * This exception indicates any exception during typecheck of an operator tree.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class TypeException extends MMDBException {
 

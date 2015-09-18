@@ -18,7 +18,7 @@ import sj.lang.ListExpr;
  * Implementation of logical NOT operator resembling the core operator.<br>
  * Returns the opposite of the boolean parameter.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Not implements ObjectNode {
 

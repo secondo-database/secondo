@@ -5,7 +5,7 @@ import mmdb.error.MMDBException;
 /**
  * This exception indicates an error during export of a any MemoryObject.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class ExportException extends MMDBException {
 

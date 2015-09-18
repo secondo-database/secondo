@@ -17,7 +17,7 @@ import sj.lang.ListExpr;
  * A parameter function gets passed elements of a stream by a caller and returns
  * a sub-operator-tree that a caller can evaluate based on the current element.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class ParameterFunction implements Node {
 

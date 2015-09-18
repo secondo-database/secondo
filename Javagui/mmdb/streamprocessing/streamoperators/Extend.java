@@ -26,7 +26,7 @@ import sj.lang.ListExpr;
  * Adds columns to tuples in a stream by performing calculations on the existing
  * columns.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Extend implements StreamOperator {
 

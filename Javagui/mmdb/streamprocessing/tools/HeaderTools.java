@@ -10,7 +10,7 @@ import mmdb.streamprocessing.Node;
 /**
  * Tool class for typecheck operations on Relation- or TupleHeaders.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public abstract class HeaderTools {
 

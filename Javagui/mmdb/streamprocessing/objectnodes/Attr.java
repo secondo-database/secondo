@@ -20,7 +20,7 @@ import sj.lang.ListExpr;
  * Operator attr resembling the core operator.<br>
  * Extracts a single MemoryAttribute by its name from a MemoryTuple.
  * 
- * @author Björn Clasen
+ * @author Bjoern Clasen
  */
 public class Attr implements ObjectNode {
 
