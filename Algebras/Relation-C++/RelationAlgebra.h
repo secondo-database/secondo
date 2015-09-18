@@ -205,6 +205,13 @@ This constructor should not be used.
     extStorage( in_extStorage ),
     offset( in_offset )
     {}
+
+
+   inline bool equalType(const AttributeType& t){
+      return (algId == t.algId) && (typeId = t.typeId);
+   }
+
+
 /*
 The constructor.
 
@@ -284,6 +291,20 @@ The destructor.
          return false;
       }
     }
+
+    inline bool equalSchema(const TupleType& tt){
+        if(noAttributes != tt.noAttributes){
+            return false;
+        }
+        for(int i=0;i<noAttributes;i++){
+            if(!attrTypeArray[i].equalType(tt.attrTypeArray[i])){
+              return false;
+            }
+        }
+        return true;
+    }
+
+
 /*
 Deletes the tuple type if allowed, i.e. there are no more
 references to it.
