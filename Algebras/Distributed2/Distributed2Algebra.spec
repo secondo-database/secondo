@@ -78,5 +78,7 @@ operator getFileTCP alias GETFILETCP pattern op(_,_,_,_,_)
 
 operator fsfeed5 alias FSFEED5 pattern _ op[_]
 
+operator fdistribute7 alias FDISTRIBUTE7 pattern _ op[fun,_,_,_] implicit parameter elem type STREAMELEM
+
 
 

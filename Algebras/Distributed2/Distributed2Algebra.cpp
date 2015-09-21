@@ -10865,6 +10865,207 @@ Operator fdistribute6Op(
 );
 
 
+
+/*
+12 Operator ~fdistribute7~
+
+This operator distributes a tuple stream according to a function from
+tuple to int and a maximum size.
+
+*/
+ListExpr fdistribute7TM(ListExpr args){
+
+  string err = "stream(tuple) x (tuple->int) x int x {string,text}  "
+               "x bool expected";
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if(    !Stream<Tuple>::checkType(nl->First(args) )
+      || !listutils::isMap<1>(nl->Second(args)) 
+      || !CcInt::checkType(nl->Third(args))
+      || (    !FText::checkType(nl->Fourth(args))
+           && !CcString::checkType(nl->Fourth(args)))
+      || !CcBool::checkType(nl->Fifth(args))){
+    return listutils::typeError(err);
+  }
+
+  if(!nl->Equal(nl->Second(nl->First(args)),
+                nl->Second(nl->Second(args)))){
+    return listutils::typeError("type mismatch between tuple type "
+                                "and function arg");
+  }
+  if(!CcInt::checkType(nl->Third(nl->Second(args)))) {
+    return listutils::typeError("function does not results in an integer");
+  }
+  return nl->First(args);
+}
+
+template<class T>
+class fdistribute7Info{
+  public:
+  fdistribute7Info(Word _stream, Supplier _fun, CcInt* _max, T* _fn,
+                   CcBool* _createEmpty,ListExpr _relType):
+       stream(_stream), fun(_fun){
+
+     if(!_max->IsDefined() || !_fn->IsDefined()){
+         max = -1;
+         fn = "";
+     } else {
+        max = _max->GetValue();
+        fn = _fn->GetValue();
+     }
+     stream.open();
+     relType = _relType;
+     if(   _createEmpty->IsDefined()  
+        && _createEmpty->GetValue() 
+        && (max > 0)){
+       for(int i=0;i<max;i++){
+          getStream(i);
+       }
+     }
+     funArgs = qp->Argument(fun);
+
+
+  }
+
+
+  ~fdistribute7Info(){
+      typename map<int,ofstream*>::iterator it;
+      for(it = files.begin();it!=files.end();it++){
+         if(it->second){
+            BinRelWriter::finish(*(it->second));
+            it->second->close();
+            delete it->second;
+         }
+      }
+      stream.close();
+   }
+
+   Tuple* next(){
+     Tuple* t = stream.request();
+     if(!t || max <=0){
+        return t;
+     }
+     (*funArgs)[0] = t;
+     Word r;
+     qp->Request(fun,r);
+     CcInt* res = (CcInt*) r.addr;
+     int resi = res->IsDefined()?res->GetValue():0;
+     ofstream* out = getStream(resi % max);
+     if(out){
+        BinRelWriter::writeNextTuple(*out,t);
+     }
+     return t;
+   }
+
+
+
+  private:
+     Stream<Tuple> stream;
+     Supplier fun;
+     ArgVectorPointer funArgs;
+     string fn;
+     int max;
+     map<int,ofstream*> files;
+     ListExpr relType;
+
+
+    ofstream* getStream(int i){
+       typename map<int,ofstream*>::iterator it;
+       it=files.find(i);
+       if(it!=files.end()){
+          return it->second;
+       }
+       string name = fn +"_" + stringutils::int2str(i)+".bin";
+       ofstream* out = new ofstream(name.c_str(),ios::binary|ios::trunc);
+       if(!out->good()){
+          delete out;
+          out=0;
+       } else {
+           BinRelWriter::writeHeader(*out,relType);
+       }
+       files[i] = out;
+       return out;
+    }
+};
+
+
+template<class T>
+int fdistribute7VMT(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+  fdistribute7Info<T>* li = (fdistribute7Info<T>*) local.addr;
+  switch(message){
+    case OPEN :{
+         if(li){
+           delete li;
+         }
+         local.addr = new fdistribute7Info<T>(
+                            args[0],
+                            qp->GetSon(s,1),
+                            (CcInt*) args[2].addr,
+                            (T*) args[3].addr,
+                            (CcBool*) args[4].addr,
+                            nl->TwoElemList(
+                               listutils::basicSymbol<Relation>(),
+                               nl->Second(qp->GetType(s))));
+    }
+    case REQUEST:
+       result.addr = li?li->next():0;
+       return result.addr?YIELD:CANCEL;
+    case CLOSE:
+        if(li){
+          delete li;
+          local.addr = 0;
+        }
+        return 0;
+  }
+  return -1;
+}
+
+
+
+ValueMapping fdistribute7VM[] = {
+   fdistribute7VMT<CcString>,
+   fdistribute7VMT<FText>
+};
+
+int fdistribute7Select(ListExpr args){
+  return CcString::checkType(nl->Fourth(args))?0:1;
+}
+
+
+
+OperatorSpec fdistribute7Spec(
+     " stream(tuple> x (tuple->int) x int {string,text} x "
+     "bool -> stream(tuple)",
+     "_ fdistribute7[fun, maxfiles, filename, createEmpty]",
+     "Distributes a tuple stream into a set of files. " 
+     "The tuples are distributed according a function given "
+     "by the user. The used slot for a tuple is the result of this "
+     "function modulo maxfiles. The tuples are written in files "
+     "with name prefixed by the user given name followed by an "
+     "underscore and the slotnumber extended by .bin. "
+     "If the boolean argument is set to TRUE, also empty slots are "
+     "created by files, otherwise empty relations are omitted.",
+     "query strassen feed fdistribute7[hashvalue(.Name), 12, "
+     "'strassen',TRUE] count"
+ );
+
+
+Operator fdistribute7Op(
+   "fdistribute7",
+   fdistribute7Spec.getStr(),
+   2,
+   fdistribute7VM,
+   fdistribute7Select,
+   fdistribute7TM
+);
+
+
+
+
+
 /*
 12 Operator ~deleteRemoteObjects~
 
@@ -14640,6 +14841,8 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator (&fsfeed5Op);
    fsfeed5Op.SetUsesArgsInTypeMapping();
+
+   AddOperator(&fdistribute7Op);
 
 
    pprogView = new PProgressView();

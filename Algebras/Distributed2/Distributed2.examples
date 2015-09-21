@@ -413,9 +413,13 @@ Operator  : fsfeed5
 Number    : 1
 Signature : stream({text,string}) x {rel, text, string} -> stream(tuple)
 Example   : query getDirectory('.') filter [ . startsWith "strassen_" ] fsfeed5[strassen] count
-Result    : 3142
+Result    : 3212
 
-
+Operator  : fdistribute7
+Number    : 1
+Signature : stream(tuple) x (tuple->int) x int x {string,text} x bool -> stream(tuple)
+Example   : query strassen feed fdistribute7[ hashvalue(.Name), 12, "strassen", TRUE] count
+Result    : 3212
 
 
 
