@@ -295,15 +295,19 @@ struct heightatpositionInfo : OperatorInfo
     heightatpositionInfo ()
     {
         name      = "heightatposition";
-        signature = raster2::sint::BasicType () + " x "
-                    + Point::BasicType ()
-                    + " -> real";
-        appendSignature (raster2::sreal::BasicType () + " x "
-                         + Point::BasicType ()
-                         + " -> real");
+        signature = 	raster2::sint::BasicType () 
+			+ " heightatposition "
+                    	+ Point::BasicType ()
+                    	+ " -> real";
+        appendSignature (	
+			raster2::sreal::BasicType () 
+			+ " heightatposition "
+                       	+ Point::BasicType ()
+                       	+ " -> real");
 
         syntax    = "_ heightatposition _ ";
-        meaning   = "returns the interpolated height at the raster postion.";
+        meaning   = 	"This function returns the interpolated "
+			"height at the raster position.";
     }
 };
 
@@ -388,26 +392,26 @@ struct lcomposeInfo : OperatorInfo
     signature = raster2::sbool::BasicType()
         + " lcompose "
         + SimpleLine::BasicType()
-        + " x "
+        + " , "
         + CcBool::BasicType() + "-> lbool";
     appendSignature(raster2::sreal::BasicType() + " lcompose "
         + SimpleLine::BasicType()
-        + " x "
+        + " , "
         + CcBool::BasicType() + "-> lreal");
     appendSignature(raster2::sint::BasicType() + " lcompose "
         + SimpleLine::BasicType()
-        + " x "
+        + " , "
         + CcBool::BasicType() + "-> lint");
     appendSignature(raster2::sstring::BasicType() + " lcompose "
         + SimpleLine::BasicType()
-        + " x "
+        + " , "
         + CcBool::BasicType() + "-> lstring");
 
     syntax    = "_ lcompose [_,_]";
-    meaning   = "merges sline, sT and boolean into lT. If the bool parameter is"
-                "TRUE the Distance between two points on the "
-                "line is calculated "
-                "by orthodrome distance, otherwise by the euclidean distance";
+    meaning   = "This function merges sline, sT and boolean into lT. "
+		"If the bool parameter is TRUE, the Distance between "
+		"two points on the line is calculated by orthodrome "
+		"distance, otherwise by the euclidean distance.";
     }
 };
 
@@ -857,33 +861,37 @@ struct lfdistanceInfo : OperatorInfo
         name      = "lfdistance";
         signature = "lfdistance ("
         	+ Point::BasicType()
-        	+ ", "
+        	+ " , "
         	+ Point::BasicType()
-            + ", "
+            	+ ", "
         	+ raster2::sint::BasicType()
-        	+ ", "
+        	+ " , "
         	+ CcInt::BasicType()
         	+ "-> Real";
         appendSignature("lfdistance ("
             	+ Point::BasicType()
-            	+ ", "
+            	+ " , "
             	+ Point::BasicType()
-                + ", "
+                + " , "
             	+ raster2::sreal::BasicType()
-            	+ ", "
+            	+ " , "
                 + CcInt::BasicType()
                 + "-> Real");
 
-        syntax    = "lfdistance ( _ , _ , _ , _ )";
-        meaning   = "computes the distance between two points "
-                    "including their height"
-                   "The First two parameters are the two points "
-                   "between the distance"
-                   "should be calculated and the third parameter is a raster"
-                   "from which the height could be get. The fourth parameter is"
-                   "1 or 2 - 1 for computing the pure driving distance and "
-                   "2 for computing the driving distance depending "
-                   "on the gradient";
+        syntax    = 	"lfdistance ( _ , _ , _ , _ )";
+        meaning   = 	"This function computes the distance "
+			"between two points including their height. "
+			"The First two parameters are "
+		    	"the two points, between the distance "
+			"should be calculated "
+		    	"and the third parameter is a raster, "
+			"from which the height "
+			"could be get. "
+			"The fourth parameter is 1 or 2: "
+			"1 for computing the pure "
+			"driving distance or "
+			"2 for computing the driving distance, "
+			"depending on the gradient.";
       }
     };
 
@@ -1021,105 +1029,106 @@ struct lfdistanceparamInfo : OperatorInfo
         name      = "lfdistanceparam";
         signature = "lfdistanceparam ("
         	+ Point::BasicType()
-        	+ ", "
+        	+ " , "
         	+ Point::BasicType()
-            + ", "
+            	+ " , "
         	+ raster2::sint::BasicType()
-            + ", "
-            + CcString::BasicType()
-            + ", "
-            + CcString::BasicType()
-            + ", "
-            + CcString::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            +", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + "-> Real )";
+            	+ " , "
+            	+ CcString::BasicType()
+            	+ " , "
+            	+ CcString::BasicType()
+            	+ " , "
+            	+ CcString::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ "-> Real )";
         appendSignature("lfdistanceparam ("
-            + Point::BasicType()
-            + ", "
-            + Point::BasicType()
-            + ", "
-            + raster2::sreal::BasicType()
-            + ", "
-            + CcString::BasicType()
-            + ", "
-            + CcString::BasicType()
-            + ", "
-            + CcString::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + ", "
-            + CcReal::BasicType()
-            + "-> Real )");
+            	+ Point::BasicType()
+            	+ " , "
+            	+ Point::BasicType()
+            	+ " , "
+            	+ raster2::sreal::BasicType()
+            	+ " , "
+            	+ CcString::BasicType()
+            	+ " , "
+            	+ CcString::BasicType()
+            	+ " , "
+            	+ CcString::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ " , "
+            	+ CcReal::BasicType()
+            	+ "-> Real )");
 
         syntax    = "lfdistanceparam ( _ , _ , _ , _ , _ , _ , "
             "_ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _ )";
-        meaning   = "computes the distance between two points"
-                    "including their height."
-                   "The First two parameters are the two points"
-                   "between the distance"
-                   "should be calculated and the third parameter is a raster"
-                   "from which the height could be get."
-                   "Parameter fith, six and seven is used"
-                   "to pass the sort of way, "
-                   "the dependence to a cycle route and the surface."
-                   "With the last parameters the dependence on the sort of way,"
-                   "the gradient and the surface can be set."
-                   "Put in Zero for default value.";
+        meaning   = 	"This function computes the distance "
+			"between two points including their height. "
+                   	"The First two parameters are the two points, "
+                   	"between the distance should be calculated "
+			"and the third parameter is a raster, "
+			"from which the height could be get. "
+                   	"Parameter fith, six and seven is used "
+                   	"to pass the sort of way, the dependence to "
+			"a cycle route and the surface. "
+                   	"With the last parameters the dependence "
+			"on the sort of way, "
+                   	"the gradient and the surface can be set. "
+                   	"Put in Zero for default value.";
 
       }
     };
