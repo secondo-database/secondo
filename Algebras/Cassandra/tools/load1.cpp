@@ -153,10 +153,11 @@ void fillBuffer(char *buffer, int columns, int sizePerColumn) {
        ++pos;
      }
      
+     int arrayPos = fastrand() & 0x3F; 
+     
      for(size_t charNum = 0; charNum < sizePerColumn; ++charNum) {
        // Access to the charArray 64 Byte
        // 0x3F = 00111111 (Coveres the last 64 Byte)
-       int arrayPos = fastrand() & 0x3F; 
        *(buffer + pos) = charArray[arrayPos];
        ++pos;
      }
