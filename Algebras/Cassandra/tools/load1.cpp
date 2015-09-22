@@ -210,6 +210,10 @@ void parseCommandline(int argc, char* argv[],
   
    unsigned int flags = 0;
    
+   // Default values
+   commandline_args.acknowledgeAfter = -1;
+   commandline_args.delay = 0;
+   
    int option = 0;
    while ((option = getopt(argc, argv,"h:p:l:d:c:s:a:")) != -1) {
      switch (option) {
@@ -236,20 +240,20 @@ void parseCommandline(int argc, char* argv[],
       case 's':
           commandline_args.sizePerColumn = atoi(optarg);
           flags |= CMDLINE_SIZE;
+        break;
       case 'a':
           commandline_args.acknowledgeAfter = atoi(optarg);
           flags |= CMDLINE_ACK;
         break;
       default:
         printUsageAndExit(argv[0]);
-     } 
+     }   
    }
    
    unsigned int requriedFlags = CMDLINE_HOST | CMDLINE_PORT | CMDLINE_LINES 
-                                | CMDLINE_DELAY | CMDLINE_COLUMNS 
-                                | CMDLINE_SIZE | CMDLINE_ACK; 
+                                | CMDLINE_COLUMNS | CMDLINE_SIZE ; 
                                 
-   if(flags != requriedFlags) {
+   if(flags & requriedFlags != requriedFlags) {
      printUsageAndExit(argv[0]);
    }
 }
