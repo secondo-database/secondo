@@ -93,6 +93,30 @@ struct commandline_args_t {
    int acknowledgeAfter;// Wait for ack after n lines
 };
 
+// Allowed chars to send
+static const char charArray[] = 
+   "0123456789"
+   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+   "abcdefghijlkmnopqrstuvwxyz"
+   "01"; // Padding to 64 Byte
+
+
+static unsigned int g_seed;
+
+//Used to seed the generator.
+//Code from: https://software.intel.com/en-us/articles/
+//           fast-random-number-generator-on-the-intel-pentiumr-4-processor/
+
+inline void fast_srand( int seed ) {
+   g_seed = seed;
+}
+
+//fastrand routine returns one integer, similar output value range as C lib.
+inline int fastrand() {
+	g_seed = (214013*g_seed+2531011);
+   return (g_seed>>16)&0x7FFF;
+}
+   
 /*
 2.1 Print usage fuction
 
@@ -119,29 +143,26 @@ void printUsageAndExit(char* progname) {
 2.2 Fill the send buffer with the specified content
 
 */
-void fillBuffer(string &result, int columns, int sizePerColumn) {
+void fillBuffer(char *buffer, int columns, int sizePerColumn) {
+  size_t pos = 0;
   
-   // Allowed chars to send
-   static const char charArray[] = 
-      "0123456789"
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-      "abcdefghijlkmnopqrstuvwxyz";
-     
-  result.clear();
- 
-  for(int i = 0; i < columns; i++) {
+  for(size_t i = 0; i < columns; i++) {
      
      if(i != 0) {
-       result.append(",");
+       *(buffer + pos) = ',';
+       ++pos;
      }
      
-     for(int charNum = 0; charNum < sizePerColumn; charNum++) {
-       char aChar = charArray[rand() % (sizeof(charArray) - 1)];
-       result.push_back(aChar);
+     for(size_t charNum = 0; charNum < sizePerColumn; ++charNum) {
+       // Access to the charArray 64 Byte
+       // 0x3F = 00111111 (Coveres the last 64 Byte)
+       int arrayPos = fastrand() & 0x3F; 
+       *(buffer + pos) = charArray[arrayPos];
+       ++pos;
      }
    }
    
-   result.append("\n");
+   *(buffer + pos) = '\n';
 }
 
 /*
@@ -297,15 +318,12 @@ int main(int argc, char* argv[]) {
    // Our output socket
    int socketfd;       
    
-   // Buffer for writing
-   string buffer;      
-   
    // Commandline args
    commandline_args_t commandline_args;
    parseCommandline(argc, argv, commandline_args);
  
    // Initalize Rand
-   srand (time(NULL));
+   fast_srand (time(NULL));
   
    // Open socket
    if(! openSocket(socketfd, commandline_args.hostname, 
@@ -317,10 +335,15 @@ int main(int argc, char* argv[]) {
    }
    
    // Prepare buffer
+   size_t bufferSize = commandline_args.columns 
+         * commandline_args.sizePerColumn + commandline_args.columns;
+   
+   char *buffer = (char*) malloc(bufferSize * sizeof(char));
+   
    fillBuffer(buffer, commandline_args.columns, 
               commandline_args.sizePerColumn);
    
-   cout << "The size of the buffer is: " << buffer.length() 
+   cout << "The size of the buffer is: " << bufferSize 
         << " bytes " << endl;
    cout << "The buffer contains: " << buffer << endl;
 
@@ -339,7 +362,7 @@ int main(int argc, char* argv[]) {
       fillBuffer(buffer, commandline_args.columns, 
                  commandline_args.sizePerColumn);
       
-      writeData(socketfd, buffer.c_str(), buffer.length());
+      writeData(socketfd, buffer, bufferSize);
    
       // Calculate progess (ii)
       if(i % fivePercents == 0) {
@@ -364,5 +387,11 @@ int main(int argc, char* argv[]) {
    // Send EOT (End of Transmission)
    writeData(socketfd, EOT, sizeof(char));
    shutdown(socketfd, 2);
+   
+   if(buffer != NULL) {
+      free(buffer);
+      buffer = NULL;
+   }
+   
    return EXIT_SUCCESS;
 }
