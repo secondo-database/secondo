@@ -52,9 +52,16 @@ using namespace std;
 
 void handleRead(int connfd) {
    char buffer[BUFFERSIZE];
-   size_t bytesRead = 0;
+   size_t bytesRead = 1;
    
-   while(bytesRead >= 0) {
+   cout << "[Info] Handling new client connection" << endl;
+   
+   // Set socket to blocking mode
+   int flags = fcntl(connfd, F_GETFL, 0);
+   flags = (flags&~O_NONBLOCK);
+   fcntl(connfd, F_SETFL, flags);
+   
+   while(bytesRead > 0) {
       bytesRead = read(connfd, buffer, BUFFERSIZE);
    }
    
