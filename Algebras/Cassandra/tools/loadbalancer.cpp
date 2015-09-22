@@ -55,6 +55,7 @@ qbts  = Queue based threaded scheduling
 #include <queue>
 #include <algorithm>
 
+#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -444,9 +445,24 @@ protected:
 6.9 Send data to the socket
 
 */  
-  void _sendData(string data) {
-    if(isSocketOpen()) {
-       write(socketfd, data.c_str(), strlen(data.c_str()));
+  void _sendData(string toSend) {
+     int ret = 0; 
+     
+     size_t len = strlen(toSend.c_str());
+     const char *data = toSend.c_str();
+     
+     if(isSocketOpen()) {
+       for (int n = 0; n < len; ) {
+           ret = write(socketfd, (char *)data + n, len - n);
+           if (ret < 0) { 
+                if (errno == EINTR || errno == EAGAIN) {
+                   continue;
+                }    
+                break;
+           } else {
+               n += ret; 
+           }    
+       }    
     }
   }
   
