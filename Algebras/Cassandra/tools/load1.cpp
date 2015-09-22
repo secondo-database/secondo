@@ -51,6 +51,7 @@ like delay, number of columns or the size of a column.
 #include <string.h>
 #include <time.h>
 #include <netdb.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -150,7 +151,7 @@ void fillBuffer(string &result, int columns, int sizePerColumn) {
 void waitForAck(int socketfd) {
   
   char buffer[255];
-  read(socketfd, buffer, sizeof(buffer));
+  size_t bytes = read(socketfd, buffer, sizeof(buffer));
   
   /*if(strncmp(buffer,ACK,1) == 0) {
     cout << "[Info] Got ack";
@@ -259,7 +260,34 @@ void parseCommandline(int argc, char* argv[],
 }
 
 /*
-2.6 Main function
+2.6 Write data to the socket
+
+*/
+bool writeData(const int socketfd, const char *data, const size_t len) {
+   int ret = 0; 
+
+   for (int n = 0; n < len; ) {
+       ret = write(socketfd, (char *)data + n, len - n);
+       if (ret < 0) { 
+            if (errno == EINTR || errno == EAGAIN) {
+               continue;
+            }    
+            break;
+       } else {
+           n += ret; 
+       }    
+   }    
+
+   // All data was written successfully
+   if(ret > 0) { 
+      return true;
+   }    
+
+   return false;
+}
+
+/*
+2.7 Main function
 
 The function open a socket, generate requested data and close the socket
 
@@ -311,7 +339,7 @@ int main(int argc, char* argv[]) {
       fillBuffer(buffer, commandline_args.columns, 
                  commandline_args.sizePerColumn);
       
-      write(socketfd, buffer.c_str(), buffer.length());
+      writeData(socketfd, buffer.c_str(), buffer.length());
    
       // Calculate progess (ii)
       if(i % fivePercents == 0) {
@@ -334,7 +362,7 @@ int main(int argc, char* argv[]) {
    cout << "Total execution time (ms): " << timer.getDiff() / 1000 << endl;
    
    // Send EOT (End of Transmission)
-   write(socketfd, EOT, sizeof(char));
+   writeData(socketfd, EOT, sizeof(char));
    shutdown(socketfd, 2);
    return EXIT_SUCCESS;
 }

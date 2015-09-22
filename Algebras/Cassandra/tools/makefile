@@ -6,4 +6,4 @@ loadbalancer:	loadbalancer.cpp timer.h
 
 
 load:	load1.cpp timer.h
-	g++ load1.cpp -o load
+	g++ load1.cpp -o load -O3
