@@ -779,7 +779,7 @@ void stopSeconcoWorker(vector<SecondoWorker*> &worker) {
 */
 int main(int argc, char* argv[]){
     
-  WorkerQueue tokenQueue(2);
+  WorkerQueue tokenQueue(1);
   cmdline_args_t cmdline_args;
   vector<SecondoWorker*> worker;
   QueryexecutorState queryExecutorState;
