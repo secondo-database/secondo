@@ -422,4 +422,17 @@ Example   : query strassen feed fdistribute7[ hashvalue(.Name), 12, "strassen", 
 Result    : 3212
 
 
+Operator  : partition
+Number    : 1
+Signature : dfarray x fun x string -> dmatrix
+Example   : query getSize(s7 partition[ hashvalue(.,23) , "m7"] )
+Result    : 7
+
+Operator  : DFARRAYTUPLE
+Number    : 1
+Signature : dfarray(rel(X)) -> X 
+Example   : query getSize(s7 partition[ hashvalue(.,23) , "m7"] )
+Result    : 7
+
+
 

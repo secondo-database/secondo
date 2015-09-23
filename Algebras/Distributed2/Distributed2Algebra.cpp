@@ -6318,8 +6318,6 @@ class DArray2T{
             return false;
         }
 
-        cout << "<<<<<< OPEN with nsize " << size << endl;
-
         // read  map
         uint32_t me;
         vector<uint32_t> m;
@@ -13016,6 +13014,34 @@ Operator ARRAYFUNARG2OP(
 );
 
 
+ListExpr DFARRAYTUPLETM(ListExpr args){
+
+  if(!nl->HasMinLength(args,1)){
+    return listutils::typeError("at least one arg required");
+  }
+  if(!DFArray2::checkType(nl->First(args))){
+    return listutils::typeError("first arg must be of type dfarray2");
+  }
+  return nl->Second(nl->Second(nl->First(args)));
+}
+
+
+OperatorSpec DFARRAYTUPLESPEC(
+  "dfarray((rel(X)) x ... -> X",
+  "DFARRAYTUPLE1(_)",
+  "Type mapping operator.",
+  "query s7 partition[hashvlaue(.,23], \"m7\"]"
+);
+
+
+Operator DFARRAYTUPLEOP(
+  "DFARRAYTUPLE",
+   DFARRAYTUPLESPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   DFARRAYTUPLETM
+);
+
 /*
 4. File Transfer between workers
 
@@ -14592,9 +14618,9 @@ This operator partioned the slots of a d[f]array2 on the clusters.
 
 */
 
-ListExpr partition(ListExpr args){
+ListExpr partitionTM(ListExpr args){
 
- string err ="d[f]array2(rel(tuple)) x (tuple -> int) x string expected";
+ string err ="dfarray2(rel(tuple)) x (tuple -> int) x string expected";
  if(!nl->HasLength(args,3)){
    return listutils::typeError(err + "(wrong number of args)");
  }
@@ -14661,9 +14687,12 @@ class partitionInfo{
 
   public:
 
-    partitionInfo( ConnectionInfo* _ci, const string& _fun, string& _tname, 
-                   const string& _sname):
-        ci(_ci), fun(_fun), tname(_tname), sname(_sname),runner(0){
+    partitionInfo(DFArray2* _array,ConnectionInfo* _ci, const string& _fun, 
+                 string& _tname, ListExpr _relType,
+                 const string& _dbname):
+        array(_array),
+        ci(_ci), fun(_fun), tname(_tname), sname(array->getName()),
+        relType(_relType),dbname(_dbname),runner(0){
         runner = new boost::thread(&partitionInfo::run,this);
     }
 
@@ -14673,10 +14702,13 @@ class partitionInfo{
      }
 
   private:
+     DFArray2* array;
      ConnectionInfo* ci;
      string fun;
      string tname;
      string sname;
+     ListExpr relType;
+     string dbname;
      boost::thread* runner;
       
      void run(){
@@ -14684,7 +14716,7 @@ class partitionInfo{
            return;
         }
         // construct target directory on ci
-        string targetDir = ci->getSecondoHome()+"/dfarrays/"+tname;
+        string targetDir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"+tname;
         int err;
         string errMsg;
         double runtime;
@@ -14706,13 +14738,13 @@ class partitionInfo{
         }
         if(!nl->BoolValue(nl->Second(resList))){
             cerr << "creating directory failed";
-            return;
+            // may be directory already exists, TODO: check if it is a directory
         }
         string cmd = constructQuery(targetDir);
         string res;
         ci->simpleCommandFromList(cmd, err,errMsg, res, false, runtime);
         if(err!=0){
-           cerr << "command failed with " << endl;
+           cerr << "command failed with " << errMsg << endl;
         }
      }
 
@@ -14720,19 +14752,158 @@ class partitionInfo{
 
         // construct query in nested list form,
 
-        // getDirectory(sourceDir) filter[. startsWith (sname+"_")] 
-        //      fsfeed5[ [const rel(...) value () ]
-        //      fdistribute7[ fun , size] count
+        cout << "called construcvt query" << endl;
 
-        string sourceDir = ci->getSecondoHome()+"/dfarrays/"+sname+"/";
 
-        assert(false);
-        return "";
+        string sourceDir = ci->getSecondoHome() + "/dfarrays/"
+                           + dbname + "/" + sname + "/";
+
+        // getDirectory
+
+        cout << "build getdir" << endl;
+        ListExpr getdir = nl->TwoElemList(
+                              nl->SymbolAtom("getDirectory"),
+                              nl->TextAtom(sourceDir));
+
+
+        cout << "build finterfun" << endl;
+        // filter the filename startting with sname
+        ListExpr filterFun = nl->ThreeElemList(
+                                nl->SymbolAtom("fun"),
+                                nl->TwoElemList(
+                                      nl->SymbolAtom("streamelem1"),
+                                      nl->SymbolAtom("STREAMELEM")),
+                                nl->ThreeElemList(
+                                      nl->SymbolAtom("startsWith"),
+                                      nl->TwoElemList(
+                                                nl->SymbolAtom("basename"),
+                                                nl->SymbolAtom("streamelem1")),
+                                      nl->TextAtom(sname+"_")));
+
+        ListExpr relTemp = nl->TwoElemList( relType, nl->TheEmptyList());
+        ListExpr filter = nl->ThreeElemList(nl->SymbolAtom("filter"),getdir,
+                                            filterFun);
+        ListExpr fsfeed = nl->ThreeElemList(
+                                nl->SymbolAtom("fsfeed5"),
+                                filter,
+                                relTemp);
+
+        ListExpr dfun;
+        
+        { boost::lock_guard<boost::mutex> guard(nlparsemtx);
+          bool ok = nl->ReadFromString(fun, dfun); 
+          if(!ok){
+              cerr << "problem in parseing function" << endl;
+              return "";
+          }
+        }
+
+        ListExpr fdistribute = nl->SixElemList(
+                                     nl->SymbolAtom("fdistribute7"),
+                                     fsfeed,
+                                     dfun,
+                                     nl->IntAtom(array->getSize()),
+                                     nl->TextAtom(dir+"/"+tname),
+                                     nl->BoolAtom(true)
+                                   );
+
+       
+
+
+      
+
+        ListExpr query =
+                  nl->TwoElemList(
+                    nl->SymbolAtom("query"),
+                    nl->TwoElemList(
+                       nl->SymbolAtom("count"),
+                       fdistribute));
+
+        cout << "final query = " << endl << nl->ToString(query) << endl << endl;
+
+        return nl->ToString(query);
      }
 
-
-
 };
+
+
+
+
+
+int partitionVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+
+
+   DFArray2* array = (DFArray2*) args[0].addr;
+   CcString* name = (CcString*) args[2].addr;
+   string funtext = ((FText*) args[3].addr)->GetValue();
+   result = qp->ResultStorage(s);
+   DMatrix2* res = (DMatrix2*) result.addr;
+
+   if(!array->IsDefined() || !name->IsDefined()){
+       res->makeUndefined();
+       return 0;
+   }
+
+   string tname = name->GetValue();
+   if(!stringutils::isIdent(tname)){
+     res->makeUndefined();
+     return 0;
+   }
+
+   if(tname == array->getName()){
+     res->makeUndefined();
+     return 0;
+   }
+
+   (*res) = (*array);
+
+   res->setName(tname);
+   
+   vector<partitionInfo*> infos;
+   set<pair<string,string> > used; 
+
+   ListExpr relType = nl->Second(qp->GetType(qp->GetSon(s,0)));
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   for(size_t i=0;i<array->numOfWorkers();i++){
+      DArray2Element de = array->getWorker(i);
+      ConnectionInfo* ci = algInstance->getWorkerConnection(de,dbname);
+      string ip = ci->getHost();
+      string home = ci->getSecondoHome();
+      pair<string,string> p(ip,home);
+      if(used.find(p)==used.end()){
+         used.insert(p);
+         partitionInfo* info = new partitionInfo(array,ci,funtext,tname, 
+                                                 relType, dbname);
+         infos.push_back(info);
+      }
+   }
+
+   for(size_t i=0;i<infos.size();i++){
+       delete infos[i];
+   }
+   return 0;
+}
+
+
+OperatorSpec partitionSpec(
+  "dfarray2(rel(tuple)) x (tuple->int) x string -> dmatrix2",
+  "_ partition[_,_]",
+  "Redistributes the contents of a dfarray2 value. "
+  "The new slot contents are keept on the worker where "
+  "the values was before redistributing them. ",
+  "query da2 partition[ hashValue(.Name,2000) + 23, \"dm2\"]"
+);
+
+Operator partitionOp(
+  "partition",
+  partitionSpec.getStr(),
+  partitionVM,
+  Operator::SimpleSelect,
+  partitionTM
+);
+
+
 
 
 
@@ -14845,6 +15016,10 @@ Distributed2Algebra::Distributed2Algebra(){
    fsfeed5Op.SetUsesArgsInTypeMapping();
 
    AddOperator(&fdistribute7Op);
+
+   AddOperator(&partitionOp);
+   partitionOp.SetUsesArgsInTypeMapping();
+   AddOperator(&DFARRAYTUPLEOP);
 
 
    pprogView = new PProgressView();
