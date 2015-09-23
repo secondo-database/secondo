@@ -1027,7 +1027,7 @@ class ConnectionInfo{
              si->Secondo(cmd,resList,serr);
              showCommand(si,host,port,cmd, false);
              if(serr.code != 0){
-                cerr << "command " << cmd << " failed with code " + serr.code;
+                cerr << "command " << cmd << " failed with code " << serr.code;
                 cerr << serr.msg;
              }
              return true; 
@@ -2066,7 +2066,7 @@ specified DArray2Element.
 */ 
   bool closeWorker(const DArray2Element& elem){
     boost::lock_guard<boost::mutex> guard(workerMtx);
-     typename map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
+     map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
      it = workerconnections.find(elem);
      if(it==workerconnections.end()){
         return false;
@@ -2083,7 +2083,7 @@ specified DArray2Element.
   bool workerConnection(const DArray2Element& elem, string& dbname,
                          ConnectionInfo*& ci){
     boost::lock_guard<boost::mutex> guard(workerMtx);
-     typename map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
+     map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
      it = workerconnections.find(elem);
      if(it == workerconnections.end()){
         return false;
@@ -6113,7 +6113,7 @@ class DArray2T{
         defined = true;
         this->name = name;
         this->map = m;
-        this.size = m.size();
+        this->size = m.size();
         this->worker = worker;
         if(Type==DMATRIX){
            map.clear();
@@ -7997,7 +7997,7 @@ class PPutter{
       this->type = _type;
       this->source = _arg;
       set<int> used;
-      typename vector<pair<int,Word> >::iterator it;
+      vector<pair<int,Word> >::iterator it;
       for(it = _values.begin(); it!=_values.end(); it++){
             pair<int,Word> p = *it;
             int index = p.first;
@@ -8254,7 +8254,8 @@ class RelFileRestorer{
    RelFileRestorer(ListExpr _relType, const string& _objName,
                    DArray2* _array, int _arrayIndex, 
                    const string& _filename):
-    relType(_relType), objName(_objName), array(_array), 
+    //relType(_relType), 
+    objName(_objName), array(_array), 
     arrayIndex(_arrayIndex), filename(_filename),
     started(false){
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
@@ -8287,7 +8288,7 @@ class RelFileRestorer{
 
 
  private:
-    ListExpr relType;
+    //ListExpr relType;
     string objName;
     DArray2* array;
     int arrayIndex;
@@ -12828,7 +12829,7 @@ class map2Info{
              } 
              string fa1 = getFunArg(mi->array1);
              string fa2 = getFunArg(mi->array2);
-             if(!mi->res->getType()==DFARRAY){
+             if(mi->res->getType()!=DFARRAY){
                cmd = "let " + mi->objName + "_"+stringutils::int2str(i)
                      + " = " + funName + "(" + fa1+ ", " + fa2+")";   
              } else {
@@ -13436,7 +13437,8 @@ class FileTransferServerStarter{
 
  public:
     FileTransferServerStarter(ConnectionInfo* _ci,
-                int _port): ci(_ci),port(_port),error(0){} 
+                int _port): ci(_ci),port(_port)//,error(0)
+               {} 
 
 
     ~FileTransferServerStarter(){
@@ -13454,7 +13456,7 @@ class FileTransferServerStarter{
  private:
     ConnectionInfo* ci;
     int port;
-    int error;
+    //int error;
     boost::thread runner;
 
 
@@ -13734,7 +13736,7 @@ class staticFileTransferator{
 
    public:
       static staticFileTransferator* getInstance(int port, int& noTransfers){
-          typename map<int, staticFileTransferator*>::iterator it;
+          map<int, staticFileTransferator*>::iterator it;
           it = staticFileTransferators.find(port);
           if(   staticFileTransferators.find(port) 
              != staticFileTransferators.end()){
@@ -13755,7 +13757,7 @@ class staticFileTransferator{
       }
 
       static bool finishInstance(int port) {
-         typename map<int,staticFileTransferator*>::iterator it;
+         map<int,staticFileTransferator*>::iterator it;
          it = staticFileTransferators.find(port);
          if(it==staticFileTransferators.end()){ // there is no such receiver
             return false;
@@ -13785,7 +13787,7 @@ class staticFileTransferator{
 
       void deleteFinishedTransfers(){
          boost::lock_guard<boost::recursive_mutex> guard(mtx);
-         typename set<transferator*>::iterator it;
+         set<transferator*>::iterator it;
          for(it=finishedTransfers.begin(); it!=finishedTransfers.end();
              it++){
             delete *it;
@@ -14853,7 +14855,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
 
 Distributed2Algebra::~Distributed2Algebra(){
-   typename map<int,staticFileTransferator*>::iterator it;
+   map<int,staticFileTransferator*>::iterator it;
    for(it=staticFileTransferators.begin();
        it!=staticFileTransferators.end();it++){
      delete it->second;
