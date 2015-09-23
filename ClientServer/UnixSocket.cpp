@@ -246,7 +246,7 @@ UnixSocket::Open( const int listenQueueSize,
     int on = 1;
     setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, (char*) &on, sizeof(on) );
 
-    if ( bind( fd, &u.sock, sa_len ) < 0 )
+    if ( ::bind( fd, &u.sock, sa_len ) < 0 )
     {
       lastError = errno;
       ::close(fd);
