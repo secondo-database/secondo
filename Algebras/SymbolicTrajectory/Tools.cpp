@@ -1110,8 +1110,10 @@ void Tools::queryTrie(InvertedFile *inv, string str, vector<set<int> > &result){
   TupleId id;
   wordPosType wc;
   charPosType cc;
+  cout << "query \"" << str << "\"" << endl;
   eit = inv->getExactIterator(str, 16777216);
   while (eit->next(id, wc, cc)) {
+    cout << "insert (" << id << ", " << wc << ")" << endl;
     result[id].insert(wc);
   }
   delete eit;

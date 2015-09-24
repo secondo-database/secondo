@@ -511,7 +511,7 @@ class PatElem {
   bool     hasIndexableContents() const {return (hasLabel() || hasPlace() ||
                                                  hasRealInterval());}
   int      getNoValues() const                           {return values.size();}
-  bool     hasValues() const                         {return values.size() > 0;}
+  bool     hasValuesWithContent() const;
   bool     isRelevantForTupleIndex() const;
   bool     extractValues(string &input, Tuple *tuple);
   vector<pair<Word, SetRel> > getValues() const           {return values;}
@@ -888,7 +888,7 @@ class TupleIndex {
   TupleIndex(vector<InvertedFile*> t, vector<BTree*> b, vector<RTree1TLLI*> r1,
     vector<RTree2TLLI*> r2, RTree1TLLI *tI, map<int, pair<IndexType, int> > aI,
     map<pair<IndexType, int>, int> iA, int mA);
-  TupleIndex(bool dummy) {cache = 0; trieCache = 0;}
+  TupleIndex(bool dummy) {}
   TupleIndex(TupleIndex &src);
   ~TupleIndex() {deleteIndexes();}
   
@@ -931,9 +931,6 @@ class TupleIndex {
   map<int, pair<IndexType, int> > attrToIndex;
   map<pair<IndexType, int>, int> indexToAttr;
   int mainAttr;
-  
-  appendcache::RecordAppendCache* cache;
-  TrieNodeCacheType* trieCache;
 };
 
 /*
@@ -1027,7 +1024,7 @@ class TMatchIndexLI : public IndexMatchSuper {
   int getNoComponents(const TupleId tId, const int attrNo);
   void getResultForAtomPart(pair<int, pair<IndexType, int> > indexInfo, 
                           pair<Word, SetRel> values, vector<set<int> > &result);
-  void getResultForAtomTime(const int atomNo, vector<set<int> > &result);
+  bool getResultForAtomTime(const int atomNo, vector<set<int> > &result);
   void storeIndexResult(int atomNo);
   void initMatchInfo();
   void removeIdFromMatchInfo(const TupleId id);

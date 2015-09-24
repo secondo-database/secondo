@@ -705,12 +705,20 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
       }
       case '"': {
         endpos = input.find('"', pos + 1);
+        if (value.addr == 0) {
+          value.addr = new Labels(true);
+        }
         ((Labels*)value.addr)->Append(input.substr(pos, pos - endpos + 1));
+        pos = input.find_first_not_of(", ", endpos + 1);
         break;
       }
       case '\'': {
         endpos = input.find('\'', pos + 1);
+        if (value.addr == 0) {
+          value.addr = new Labels(true);
+        }
         ((Labels*)value.addr)->Append(input.substr(pos, pos - endpos + 1));
+        pos = input.find_first_not_of(", ", endpos + 1);
         break;
       }
       case '{': {
