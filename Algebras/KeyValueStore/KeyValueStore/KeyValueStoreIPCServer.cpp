@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "windows.h"
 #else
 #include <sys/file.h>
+#include <unistd.h>
 #endif
 
 namespace KVS {
@@ -46,12 +47,23 @@ KeyValueStoreIPCServer::KeyValueStoreIPCServer(string appPath, int appId,
   if (!useConsole) {
     cout << "Application initialized.\n";
 
+    char hostname[255];
+    hostname[0] = '\0';
+
+#ifndef SECONDO_WIN32
+    gethostname(hostname, 255);
+#endif
+
+    stringstream extStr;
+    extStr << "_" << hostname << ".log";
+
     kvsLogfile = new ofstream(
-        appPath.substr(0, appPath.find_last_of('.')) + ".log", ios::app);
+        appPath.substr(0, appPath.find_last_of('.')) + extStr.str(), ios::app);
     KOUT.rdbuf(kvsLogfile->rdbuf());
 
     restructureLogfile = new ofstream(
-        kvs.getRestructurePath() + PATH_SLASH + "kvsRestructure.log", ios::app);
+        kvs.getRestructurePath() + PATH_SLASH + "kvsRestructure" + extStr.str(),
+        ios::app);
     ROUT.rdbuf(restructureLogfile->rdbuf());
   } else {
     kvsLogfile = 0;
@@ -91,8 +103,12 @@ bool KeyValueStoreIPCServer::checkExclusive() {
 }
 #else
 bool KeyValueStoreIPCServer::checkExclusive() {
+  char hostname[255];
+  hostname[0] = '\0';
+  gethostname(hostname, 255);
+
   stringstream lockfileName;
-  lockfileName << appPath << "_lock" << appId;
+  lockfileName << appPath << "_lock_" << hostname << "_" << appId;
 
   int fd = open(lockfileName.str().c_str(), O_RDWR | O_CREAT,
                 0666);  // open or create lockfile
