@@ -208,7 +208,7 @@ This constructor should not be used.
 
 
    inline bool equalType(const AttributeType& t){
-      return (algId == t.algId) && (typeId = t.typeId);
+      return (algId == t.algId) && (typeId == t.typeId);
    }
 
 
