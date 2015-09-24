@@ -70,6 +70,25 @@ int kvsTransferIdVM(Word* args, Word& result, int message, Word& local,
 }
 
 /* **********************
+ * Operator: kvsGlobalId()
+ *
+ */
+
+ListExpr kvsGlobalIdTM(ListExpr args) {
+  return listutils::basicSymbol<CcInt>();
+}
+
+int kvsGlobalIdVM(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  result = qp->ResultStorage(s);
+  CcInt* res = static_cast<CcInt*>(result.addr);
+
+  res->Set(kvsIPC->getGlobalTupelId());
+
+  return 0;
+}
+
+/* **********************
  * Operator: kvsInitClients(host, interfacePort, kvsPort)
  *
  */

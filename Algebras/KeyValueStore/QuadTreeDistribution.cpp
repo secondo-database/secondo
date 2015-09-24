@@ -31,18 +31,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace KVS {
 
-QuadNode::QuadNode(double x, double y, int width, int height)
+QuadNode::QuadNode(double x, double y, double width, double height)
     : QuadNode(0, x, y, width, height) {}
 
-QuadNode::QuadNode(QuadNode* parent, double x, double y, int width, int height)
+QuadNode::QuadNode(QuadNode* parent, double x, double y, double width,
+                   double height)
     : parent(parent),
       x(x),
       y(y),
       width(width),
       height(height),
       serverId(-1),
-      weight(0) {
+      weight(0),
+      maxGlobalId(0) {
   children[0] = children[1] = children[2] = children[3] = 0;
+}
+
+QuadNode::QuadNode(QuadNode* node)
+    : parent(0),
+      x(node->x),
+      y(node->y),
+      width(node->width),
+      height(node->height),
+      serverId(node->serverId),
+      weight(node->weight),
+      maxGlobalId(node->maxGlobalId) {
+  for (int i = 0; i < 4; ++i) {
+    if (node->children[i]) {
+      children[i] = new QuadNode(node->children[i]);
+      children[i]->parent = this;
+    }
+  }
+}
+
+QuadNode::~QuadNode() {
+  for (int i = 0; i < 4; ++i) {
+    delete children[i];
+  }
 }
 
 bool QuadNode::isLeaf() {
@@ -57,8 +82,28 @@ bool QuadNode::isLeaf() {
 }*/
 
 bool QuadNode::isOverlapping(double* mbb) {
+  return (mbb[0] < x + width && mbb[2] >= x) &&
+         (mbb[1] < y + height && mbb[3] >= y);
+}
+
+bool QuadNode::isOverlappingDebug(double* mbb) {
+  cout << mbb[0] << " < " << x + width << " && " << mbb[2] << " > " << x
+       << endl;
+  cout << mbb[1] << " < " << y + height << " && " << mbb[3] << " > " << y
+       << endl;
+  cout << "=> " << ((mbb[0] < x + width && mbb[2] > x) &&
+                    (mbb[1] < y + height && mbb[3] > y))
+       << endl;
+
   return (mbb[0] < x + width && mbb[2] > x) &&
          (mbb[1] < y + height && mbb[3] > y);
+}
+
+bool QuadNode::isInside(double* mbb) {
+  return ((mbb[0] >= x && mbb[0] <= x + width) &&
+          (mbb[2] >= x && mbb[2] <= x + width)) &&
+         ((mbb[1] > y && mbb[1] < y + height) &&
+          (mbb[3] > y && mbb[3] < y + height));
 }
 
 QuadNode* QuadNode::get(const int& i) {
@@ -76,6 +121,7 @@ void QuadNode::init(QuadNode* prototype) {
   height = prototype->height;
   serverId = prototype->serverId;
   weight = prototype->weight;
+  maxGlobalId = prototype->maxGlobalId;
 
   for (int i = 0; i < 4; ++i) {
     if (prototype->children[i]) {
@@ -123,16 +169,20 @@ void QuadNode::levels(QuadNode* node, const int& level, int* maxLevel) {
 }
 
 void QuadNode::split() {
-  children[0] = new QuadNode(this, x, y, width / 2, height / 2);
-  children[1] = new QuadNode(this, x + width / 2, y, width / 2, height / 2);
-  children[2] = new QuadNode(this, x, y + height / 2, width / 2, height / 2);
-  children[3] =
-      new QuadNode(this, x + width / 2, y + height / 2, width / 2, height / 2);
+  children[0] = new QuadNode(this, x, y, width / 2.0, height / 2.0);
+  children[1] =
+      new QuadNode(this, x + width / 2.0, y, width / 2.0, height / 2.0);
+  children[2] =
+      new QuadNode(this, x, y + height / 2.0, width / 2.0, height / 2.0);
+  children[3] = new QuadNode(this, x + width / 2.0, y + height / 2.0,
+                             width / 2.0, height / 2.0);
 
   for (int i = 0; i < 4; ++i) {
     children[i]->weight = weight / 4;
     children[i]->serverId = serverId;
+    children[i]->maxGlobalId = maxGlobalId;
   }
+  maxGlobalId = 0;
 }
 
 void propagateUp(QuadNode* node, function<void(QuadNode*)> f) {
@@ -216,20 +266,24 @@ QuadTreeDistribution::QuadTreeDistribution(int initialWidth, int initialHeight,
       initialWidth(initialWidth),
       initialHeight(initialHeight) {
   needsSync = true;
-  serverIdMapping.assign(nrServers, 0);
-  serverWeight.assign(nrServers, 0);
+  serverIdOrder.assign(nrServers, 0);
 }
 
 QuadTreeDistribution::QuadTreeDistribution(const QuadTreeDistribution& qtd)
-    : Distribution(TYPE_QUADTREE, qtd.serverIdMapping, qtd.serverWeight),
-      root(qtd.root),
+    : Distribution(TYPE_QUADTREE, qtd.serverIdOrder, qtd.serverWeight),
       initialWidth(qtd.initialWidth),
       initialHeight(qtd.initialHeight) {
+  if (qtd.root) {
+    root = new QuadNode(qtd.root);
+  }
+
   needsSync = true;
 }
 
 QuadTreeDistribution::~QuadTreeDistribution() {
-  // delete root and children...
+  if (root) {
+    delete root;
+  }
 }
 
 string QuadTreeDistribution::toBin() {
@@ -238,10 +292,10 @@ string QuadTreeDistribution::toBin() {
   data.write((char*)&initialWidth, sizeof(initialWidth));
   data.write((char*)&initialHeight, sizeof(initialHeight));
 
-  unsigned int listLen = serverIdMapping.size();
+  unsigned int listLen = serverIdOrder.size();
   data.write((char*)&listLen, sizeof(listLen));
   for (unsigned int i = 0; i < listLen; ++i) {
-    int tempData = serverIdMapping[i];
+    int tempData = serverIdOrder[i];
     data.write((char*)&tempData, sizeof(tempData));
   }
 
@@ -266,6 +320,7 @@ string QuadTreeDistribution::quadnodeToBin(QuadNode* node) {
     data.write((char*)&node->height, sizeof(node->height));
     data.write((char*)&node->weight, sizeof(node->weight));
     data.write((char*)&node->serverId, sizeof(node->serverId));
+    data.write((char*)&node->maxGlobalId, sizeof(node->maxGlobalId));
     data << quadnodeToBin(node->children[0]);
     data << quadnodeToBin(node->children[1]);
     data << quadnodeToBin(node->children[2]);
@@ -285,21 +340,21 @@ bool QuadTreeDistribution::fromBin(const string& data) {
     dataStream.read((char*)&initialWidth, sizeof(initialWidth));
     dataStream.read((char*)&initialHeight, sizeof(initialHeight));
 
-    serverIdMapping.clear();
+    serverIdOrder.clear();
 
     unsigned int listLen = 0;
     dataStream.read((char*)&listLen, sizeof(listLen));
     for (unsigned int i = 0; i < listLen; ++i) {
       int tempData = 0;
       dataStream.read((char*)&tempData, sizeof(tempData));
-      serverIdMapping.push_back(tempData);
+      serverIdOrder.push_back(tempData);
     }
 
     delete root;
     root = quadnodeFromBin(dataStream, 0);
 
-    serverWeight.resize(serverIdMapping.size());
     updateWeightVector();
+    fixNodeWeights();
 
     return true;
   } else {
@@ -316,10 +371,11 @@ QuadNode* QuadTreeDistribution::quadnodeFromBin(stringstream& data,
   if (available) {
     double x = 0;
     double y = 0;
-    int width = 0;
-    int height = 0;
+    double width = 0;
+    double height = 0;
     int weight = 0;
     int serverId = -1;
+    unsigned int maxGlobalId = 0;
 
     data.read((char*)&x, sizeof(x));
     data.read((char*)&y, sizeof(y));
@@ -327,10 +383,12 @@ QuadNode* QuadTreeDistribution::quadnodeFromBin(stringstream& data,
     data.read((char*)&height, sizeof(height));
     data.read((char*)&weight, sizeof(weight));
     data.read((char*)&serverId, sizeof(serverId));
+    data.read((char*)&maxGlobalId, sizeof(maxGlobalId));
 
     QuadNode* temp = new QuadNode(parent, x, y, width, height);
     temp->weight = weight;
     temp->serverId = serverId;
+    temp->maxGlobalId = maxGlobalId;
     for (int i = 0; i < 4; ++i) {
       temp->children[i] = quadnodeFromBin(data, temp);
     }
@@ -345,12 +403,12 @@ void QuadTreeDistribution::init(QuadTreeDistribution* prototype) {
   initialHeight = prototype->initialHeight;
 
   serverWeight.clear();
-  serverWeight.assign(prototype->serverWeight.begin(),
+  serverWeight.insert(prototype->serverWeight.begin(),
                       prototype->serverWeight.end());
 
-  serverIdMapping.clear();
-  serverIdMapping.assign(prototype->serverIdMapping.begin(),
-                         prototype->serverIdMapping.end());
+  serverIdOrder.clear();
+  serverIdOrder.assign(prototype->serverIdOrder.begin(),
+                       prototype->serverIdOrder.end());
 
   if (prototype->root) {
     // root = new QuadNode(prototype->root->x, prototype->root->y,
@@ -363,14 +421,12 @@ void QuadTreeDistribution::init(QuadTreeDistribution* prototype) {
 void QuadTreeDistribution::resetWeight() {
   if (root) {
     propagateDown(root, [](QuadNode* node) { node->weight = 0; });
-
-    serverWeight.assign(serverWeight.size(), 0);
   }
 }
 
 void QuadTreeDistribution::updateWeightVector() {
   if (root) {
-    serverWeight.assign(serverWeight.size(), 0);
+    serverWeight.clear();
 
     propagateDown(root, [this](QuadNode* node) {
       if (node->isLeaf()) {
@@ -390,29 +446,113 @@ void QuadTreeDistribution::addWeight(Distribution* dist, const int& id) {
 
 void QuadTreeDistribution::addWeightNode(QuadNode* base, QuadNode* add,
                                          const int& id) {
-  if (base->serverId == id && add->serverId == id) {
-    base->weight += add->weight;
+  if (base && add) {
+    if (base->serverId == id && add->serverId == id) {
+      base->weight += add->weight;
+    }
+
+    for (int childIdx = 0; childIdx < 4; ++childIdx) {
+      if (base->children[childIdx] && add->children[childIdx]) {
+        addWeightNode(base->children[childIdx], add->children[childIdx], id);
+      }
+    }
+  }
+}
+
+void QuadTreeDistribution::resetMaxGlobalIds() {
+  if (root) {
+    propagateDown(root, [this](QuadNode* node) { node->maxGlobalId = 0; });
+  }
+}
+
+void QuadTreeDistribution::addMaxGlobalIds(Distribution* dist, const int& id) {
+  QuadTreeDistribution* qtd = static_cast<QuadTreeDistribution*>(dist);
+
+  addGlobalIdNode(root, qtd->root, id);
+}
+
+void QuadTreeDistribution::addGlobalIdNode(QuadNode* base, QuadNode* add,
+                                           const int& id) {
+  if (base && add) {
+    if (base->serverId == id && add->serverId == id) {
+      if (add->maxGlobalId > base->maxGlobalId) {
+        base->maxGlobalId = add->maxGlobalId;
+      }
+    }
+
+    for (int childIdx = 0; childIdx < 4; ++childIdx) {
+      if (base->children[childIdx] && add->children[childIdx]) {
+        addGlobalIdNode(base->children[childIdx], add->children[childIdx], id);
+      }
+    }
+  }
+}
+
+bool QuadTreeDistribution::filter(int nrcoords, double* coords,
+                                  const unsigned int& globalId, bool update) {
+  bool result = false;
+  if (root) {
+    if (update) {
+      filterUpdate(root, coords, globalId);
+    } else {
+      filterCheck(root, coords, globalId, result);
+    }
   }
 
-  for (int childIdx = 0; childIdx < 4; ++childIdx) {
-    if (base->children[childIdx] && add->children[childIdx]) {
-      addWeightNode(base->children[childIdx], add->children[childIdx], id);
+  return result;
+}
+
+void QuadTreeDistribution::filterUpdate(QuadNode* node, double* mbb,
+                                        const unsigned int& globalId) {
+  if (node->isLeaf()) {
+    if (node->isInside(mbb)) {
+      if (node->maxGlobalId < globalId) {
+        node->maxGlobalId = globalId;
+      }
+    }
+  } else {
+    for (int i = 0; i < 4; ++i) {
+      if (node->children[i] && node->children[i]->isInside(mbb)) {
+        filterUpdate(node->children[i], mbb, globalId);
+      }
+    }
+  }
+}
+
+void QuadTreeDistribution::filterCheck(QuadNode* node, double* mbb,
+                                       const unsigned int& globalId,
+                                       bool& result) {
+  if (!result) {
+    if (node->isLeaf()) {
+      if (globalId > node->maxGlobalId) {
+        result = true;
+      }
+    } else {
+      for (int i = 0; i < 4; ++i) {
+        if (node->children[i] && node->children[i]->isOverlapping(mbb)) {
+          filterCheck(node->children[i], mbb, globalId, result);
+        }
+      }
     }
   }
 }
 
 string QuadTreeDistribution::serverIdAssignment(string attributeName,
-                                                string distributionName) {
-  string result("extendstream[" + attributeName + ": kvsServerId('" +
-                distributionName + "', bbox(.GeoData), TRUE)] ");
-
-  return result;
+                                                string distributionName,
+                                                bool requestOnly) {
+  if (requestOnly) {
+    return string("extendstream[" + attributeName + ": kvsServerId('" +
+                  distributionName + "', bbox(.GeoData), TRUE)] ");
+  } else {
+    return string("extendstream[" + attributeName + ": kvsServerId('" +
+                  distributionName + "', bbox(.GeoData), FALSE)] ");
+  }
 }
 
 int QuadTreeDistribution::nextServerId() {
-  unsigned int id = serverIdMapping.size();
-  while (find(serverIdMapping.begin(), serverIdMapping.end(), id) !=
-         serverIdMapping.end()) {
+  unsigned int id = 0;
+  while (find(serverIdOrder.begin(), serverIdOrder.end(), id) !=
+         serverIdOrder.end()) {
     id++;
   }
   return id;
@@ -421,11 +561,11 @@ int QuadTreeDistribution::nextServerId() {
 // left first
 int QuadTreeDistribution::neighbourId(int id) {
   vector<int>::iterator idPosition =
-      find(serverIdMapping.begin(), serverIdMapping.end(), id);
+      find(serverIdOrder.begin(), serverIdOrder.end(), id);
 
-  if (idPosition != serverIdMapping.end()) {
-    if (idPosition == serverIdMapping.begin()) {
-      if ((idPosition + 1) != serverIdMapping.end()) {
+  if (idPosition != serverIdOrder.end()) {
+    if (idPosition == serverIdOrder.begin()) {
+      if ((idPosition + 1) != serverIdOrder.end()) {
         return *(idPosition + 1);
       } else {
         return -1;
@@ -439,66 +579,87 @@ int QuadTreeDistribution::neighbourId(int id) {
 }
 
 void QuadTreeDistribution::changeServerId(int oldid, int newid) {
-  vector<int>::iterator idPos =
-      find(serverIdMapping.begin(), serverIdMapping.end(), oldid);
+  if (root) {
+    vector<int>::iterator idPos =
+        find(serverIdOrder.begin(), serverIdOrder.end(), oldid);
 
-  if (idPos != serverIdMapping.end()) {
-    serverIdMapping.erase(idPos);
-  }
+    if (idPos != serverIdOrder.end()) {
+      *idPos = newid;
 
-  propagateDown(root, [oldid, newid](QuadNode* node) {
-    if (node->serverId == oldid) {
-      node->serverId = newid;
+      propagateDown(root, [oldid, newid](QuadNode* node) {
+        if (node->serverId == oldid) {
+          node->serverId = newid;
+        }
+      });
     }
-  });
+  }
 }
 
 int QuadTreeDistribution::pointId(double x, double y) {
   int result = -1;
 
-  propagateDownB(root, [x, y, &result](QuadNode* node) -> bool {
-    if ((node->x <= x && x <= node->x + node->width) &&
-        (node->y <= y && y <= node->y + node->height)) {
-      if (node->isLeaf()) {
-        result = node->serverId;
+  if (root) {
+    propagateDownB(root, [x, y, &result](QuadNode* node) -> bool {
+      if ((node->x <= x && x < node->x + node->width) &&
+          (node->y <= y && y < node->y + node->height)) {
+        if (node->isLeaf()) {
+          result = node->serverId;
 
-        return true;  // stop node found
+          return true;  // stop node found
+        }
+        return false;  // continue search
+      } else {
+        return true;  // stop
       }
-      return false;  // continue search
-    } else {
-      return true;  // stop
-    }
-  });
+    });
+  }
 
   return result;
 }
 
 void QuadTreeDistribution::fixNodeServerIds() {
   // assign server numbers for non leafs
-  propagateDownPost(root, [](QuadNode* node) {
-    int serverId = -2;
-    int assignments = 0;
+  if (root) {
+    propagateDownPost(root, [](QuadNode* node) {
+      int serverId = -2;
+      int assignments = 0;
 
-    for (int i = 0; i < 4; ++i) {
-      if (node->children[i] != 0 && node->children[i]->serverId != serverId) {
-        serverId = node->children[i]->serverId;
-        assignments++;
+      for (int i = 0; i < 4; ++i) {
+        if (node->children[i] != 0 && node->children[i]->serverId != serverId) {
+          serverId = node->children[i]->serverId;
+          assignments++;
+        }
       }
-    }
 
-    if (assignments == 1) {
-      node->serverId = serverId;
-    } else if (assignments > 1) {
-      node->serverId = -1;
-    }
-  });
+      if (assignments == 1) {
+        node->serverId = serverId;
+      } else if (assignments > 1) {
+        node->serverId = -1;
+      }
+    });
+  }
+}
+
+void QuadTreeDistribution::fixNodeWeights() {
+  if (root) {
+    propagateDownPost(root, [](QuadNode* node) {
+      if (!node->isLeaf()) {
+        node->weight = 0;
+        for (int i = 0; i < 4; ++i) {
+          if (node->children[i]) {
+            node->weight += node->children[i]->weight;
+          }
+        }
+      }
+    });
+  }
 }
 
 void QuadTreeDistribution::expand(double* mbb) {
   int leftright = -1;
   int updown = -1;
-  int moveleft = 0;
-  int moveup = 0;
+  double moveleft = 0;
+  double moveup = 0;
 
   // left right?
   if (root->x > mbb[0]) {
@@ -548,7 +709,51 @@ void QuadTreeDistribution::expand(double* mbb) {
 
 void QuadTreeDistribution::insert(QuadNode* node, double* mbb,
                                   set<int>* results) {
-  if (node->isLeaf() && node->width <= initialWidth) {
+  if (node->isLeaf()) { 
+
+    propagateUp(node, [](QuadNode* node) { node->weight++; });
+
+    if (node->serverId < 0) {
+      // this might be a bit expensive : go through all leafes in cluster order,
+      // when we reach the insert node assign last used serverId
+      int lastId = -1;
+      QuadNode* insertNode = node;
+
+      leafesInClusterOrder(root, [insertNode, &lastId](QuadNode* node) -> bool {
+        if (node == insertNode) {
+          insertNode->serverId = lastId;
+        } else if (node->serverId > -1) {
+          lastId = node->serverId;
+        }
+        return true;  // we don't want the tree to split so we always return
+                      // true
+      });
+
+      if (node->serverId == -1) {
+        node->serverId = 0;
+      }
+    }
+
+    serverWeight[node->serverId]++;
+
+    // TODO:remove
+    assert(node->serverId >= 0 && node->serverId < 100);
+
+    results->insert(node->serverId);
+  } else {
+    for (int i = 0; i < 4; ++i) {
+      QuadNode* child = node->get(i);
+      if (child->isOverlapping(mbb)) {
+        insert(child, mbb, results);
+      }
+    }
+  }
+}
+
+void QuadTreeDistribution::insertDebug(QuadNode* node, double* mbb,
+                                       set<int>* results) {
+  if (node->isLeaf()) { 
+    cout << "Reached Leaf..." << endl;
     propagateUp(node, [](QuadNode* node) { node->weight++; });
 
     if (node->serverId < 0) {
@@ -578,8 +783,8 @@ void QuadTreeDistribution::insert(QuadNode* node, double* mbb,
   } else {
     for (int i = 0; i < 4; ++i) {
       QuadNode* child = node->get(i);
-      if (child->isOverlapping(mbb)) {
-        insert(child, mbb, results);
+      if (child->isOverlappingDebug(mbb)) {
+        insertDebug(child, mbb, results);
       }
     }
   }
@@ -587,7 +792,7 @@ void QuadTreeDistribution::insert(QuadNode* node, double* mbb,
 
 void QuadTreeDistribution::retrieveIds(QuadNode* node, double* mbb,
                                        set<int>* results) {
-  if (node->isLeaf() && node->width <= initialWidth) {
+  if (node->isLeaf()) { 
     if (node->serverId >= 0) {
       results->insert(node->serverId);
     }
@@ -596,6 +801,26 @@ void QuadTreeDistribution::retrieveIds(QuadNode* node, double* mbb,
       if (node->children[i]) {
         if (node->children[i]->isOverlapping(mbb)) {
           retrieveIds(node->children[i], mbb, results);
+        }
+      }
+    }
+  }
+}
+
+void QuadTreeDistribution::retrieveIdsDebug(QuadNode* node, double* mbb,
+                                            set<int>* results) {
+  if (node->isLeaf()) { 
+    cout << "reached leaf" << endl;
+    if (node->serverId >= 0) {
+      results->insert(node->serverId);
+    } else {
+      cout << "but server isnt assigned..." << endl;
+    }
+  } else {
+    for (int i = 0; i < 4; ++i) {
+      if (node->children[i]) {
+        if (node->children[i]->isOverlappingDebug(mbb)) {
+          retrieveIdsDebug(node->children[i], mbb, results);
         }
       }
     }
@@ -614,12 +839,30 @@ void QuadTreeDistribution::add(int nrcoords, double* coords,
   insert(root, coords, resultIds);
 }
 
+void QuadTreeDistribution::addDebug(int nrcoords, double* coords,
+                                    set<int>* resultIds) {
+  if (root == 0) {
+    root = new QuadNode(coords[0], coords[1], initialWidth, initialHeight);
+  }
+
+  expand(coords);
+  cout << "calling insertDebug..." << endl;
+  insertDebug(root, coords, resultIds);
+}
+
 void QuadTreeDistribution::request(int value, set<int>* resultIds) {}
 
 void QuadTreeDistribution::request(int nrcoords, double* coords,
                                    set<int>* resultIds) {
-  if (root != 0) {
+  if (root) {
     retrieveIds(root, coords, resultIds);
+  }
+}
+
+void QuadTreeDistribution::requestDebug(int nrcoords, double* coords,
+                                        set<int>* resultIds) {
+  if (root != 0) {
+    retrieveIdsDebug(root, coords, resultIds);
   }
 }
 
@@ -673,56 +916,58 @@ bool {
 }*/
 
 int QuadTreeDistribution::split(int serverId) {
-  if (root && serverId >= 0 &&
-      serverId < static_cast<int>(serverIdMapping.size())) {
-    updateWeightVector();
+  if (root && serverId >= 0) {
+    vector<int>::iterator idPos =
+        find(serverIdOrder.begin(), serverIdOrder.end(), serverId);
 
-    int idx = nextServerId();
+    if (idPos != serverIdOrder.end()) {
+      updateWeightVector();
 
-    vector<int>::iterator insertPos = serverIdMapping.insert(
-        find(serverIdMapping.begin(), serverIdMapping.end(), serverId), idx);
-    serverWeight.push_back(0);
+      int idx = nextServerId();
 
-    int targetWeight = serverWeight[serverId] / 2;
-    int currentWeight = targetWeight;
+      vector<int>::iterator insertPos = serverIdOrder.insert(idPos, idx);
 
-    // assign
-    leafesInClusterOrder(root, [&targetWeight, &currentWeight, &insertPos,
-                                serverId](QuadNode* node) -> bool {
-      if (node->serverId == serverId) {
-        // arbitrary 5% margin (fewer splits)
-        int margin = targetWeight * 0.05;
+      int targetWeight = serverWeight[serverId] / 2;
+      int currentWeight = targetWeight;
 
-        if (node->weight < currentWeight + margin) {
-          node->serverId = *insertPos;
-          currentWeight -= node->weight;
+      // assign
+      leafesInClusterOrder(root, [&targetWeight, &currentWeight, &insertPos,
+                                  serverId](QuadNode* node) -> bool {
+        if (node->serverId == serverId) {
+          // arbitrary 5% margin (fewer splits)
+          int margin = targetWeight * 0.05;
 
-          if (currentWeight <= 0) {
-            currentWeight = targetWeight;
-            insertPos++;
+          if (node->weight < currentWeight + margin) {
+            node->serverId = *insertPos;
+            currentWeight -= node->weight;
+
+            if (currentWeight <= 0) {
+              currentWeight = targetWeight;
+              insertPos++;
+            }
+            return true;
           }
-          return true;
+          return false;
         }
-        return false;
-      }
-      return true;
-    });
+        return true;
+      });
 
-    fixNodeServerIds();
-    return idx;
+      fixNodeServerIds();
+      return idx;
+    }
   }
 
   return -1;
 }
 
-// n: number of servers after serverId (referencing serverIdMapping order)
+// n: number of servers after serverId (referencing serverIdOrder)
 void QuadTreeDistribution::redistribute(int serverId, int n) {
   if (root && serverId >= 0 &&
-      serverId < static_cast<int>(serverIdMapping.size())) {
+      serverId < static_cast<int>(serverIdOrder.size())) {
     updateWeightVector();
 
     vector<int>::iterator currentPos =
-        find(serverIdMapping.begin(), serverIdMapping.end(), serverId);
+        find(serverIdOrder.begin(), serverIdOrder.end(), serverId);
     set<int> idSet;
 
     int targetWeight = 0;
@@ -733,7 +978,7 @@ void QuadTreeDistribution::redistribute(int serverId, int n) {
     targetWeight = targetWeight / n;
 
     int currentWeight = targetWeight;
-
+    cout << "!starting redistribute:" << targetWeight << endl;
     // assign
     leafesInClusterOrder(root, [&targetWeight, &currentWeight, &currentPos,
                                 &idSet](QuadNode* node) -> bool {
@@ -743,6 +988,9 @@ void QuadTreeDistribution::redistribute(int serverId, int n) {
 
         if (node->weight < currentWeight + margin) {
           node->serverId = *currentPos;
+          // TODO:
+          assert(node->serverId > -1);
+
           currentWeight -= node->weight;
 
           if (currentWeight <= 0) {
@@ -751,12 +999,51 @@ void QuadTreeDistribution::redistribute(int serverId, int n) {
           }
           return true;
         }
+        cout << "!Splitting while restructuring: POS:" << *currentPos
+             << " currentWeight:" << currentWeight
+             << " node->weight:" << node->weight
+             << " node->serverid:" << node->serverId << " margin:" << margin
+             << endl;
         return false;
       }
       return true;
     });
 
     fixNodeServerIds();
+  }
+}
+
+// bugged!
+void QuadTreeDistribution::consolidateLayers() {
+  if (root) {
+    propagateDownPost(root, [](QuadNode* node) {
+      int serverId = -2;
+      int assignments = 0;
+      int weight = 0;
+
+      for (int i = 0; i < 4; ++i) {
+        if (node->children[i] && (node->children[i]->serverId != -1 &&
+                                  node->children[i]->serverId != serverId)) {
+          serverId = node->children[i]->serverId;
+          weight += node->children[i]->weight;
+          assignments++;
+        }
+      }
+
+      if (assignments == 1) {
+        node->serverId = serverId;
+        node->weight = weight;
+
+        for (int i = 0; i < 4; ++i) {
+          if (node->children[i]) {
+            delete node->children[i];
+            node->children[i] = 0;
+          }
+        }
+      } else if (assignments > 1) {
+        node->serverId = -1;
+      }
+    });
   }
 }
 
@@ -855,9 +1142,9 @@ void QuadTreeDistribution::redistributeCluster() {
          << "vs weightcheck: " << weightcheck << "\n";
 
     // assign server numbers for all leafs
-    int targetWeight = (weightcheck / serverIdMapping.size());
+    int targetWeight = (weightcheck / serverIdOrder.size());
     int currentWeight = targetWeight;
-    vector<int>::iterator currentServerId(serverIdMapping.begin());
+    vector<int>::iterator currentServerId(serverIdOrder.begin());
 
     cout << "targetWeight:" << targetWeight << "\n";
 
@@ -892,7 +1179,10 @@ void QuadTreeDistribution::leafesInClusterOrder(QuadNode* node,
   QuadNode* lastVisited;
 
   if (node->isLeaf()) {
-    f(node);
+    if (!f(node)) {
+      node->split();
+      leafesInClusterOrder(node, f);
+    }
   } else {
     if (node->children[0] != 0) {
       leafesInClusterOrderR(node->children[0], 0, 1, &lastVisited, f);

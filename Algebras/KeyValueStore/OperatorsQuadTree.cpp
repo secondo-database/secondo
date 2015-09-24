@@ -207,12 +207,12 @@ int qtserveridLocalVM(Word* args, Word& result, int message, Word& local,
 
       /*set<int>* outputSet = &res->outputServerIds;
       propagateDownB(qtd->root,  [outputSet, mbb] (QuadNode* node) -> bool {
-          if(node->isOverlapping(mbb) && node->serverId != 0) {
-                  outputSet->insert(node->serverId);
-                  return true;
-          } else {
-                  return false;
-          }});*/
+        if(node->isOverlapping(mbb) && node->serverId != 0) {
+          outputSet->insert(node->serverId);
+          return true;
+        } else {
+          return false;
+        }});*/
 
       if (outputSet->size() > 0) {
         res->iter = res->outputServerIds.begin();
@@ -536,4 +536,81 @@ int qtintersectsVM(Word* args, Word& result, int message, Word& local,
 
   return 0;
 }
+
+ListExpr qtDistinctTM(ListExpr args) {
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError(
+        "2 arguments expected. [{distribution,text} x rect  = (distribution, "
+        "rect)].");
+  }
+
+  if (!QuadTreeDistributionType::checkType(nl->First(nl->First(args))) &&
+      !FText::checkType(nl->First(nl->First(args)))) {
+    return listutils::typeError(
+        "1st argument should be qtdistribution OR text.  [{distribution,text} "
+        "x rect  = (distribution, rect)].");
+  }
+
+  if (!Rectangle<2>::checkType(nl->First(nl->Second(args)))) {
+    return listutils::typeError(
+        "2nd argument should be rectangle. [{distribution,text} x rect  = "
+        "(distribution, rect)].");
+  }
+
+  if (!kvsIPC->connected()) {
+    return listutils::typeError(
+        "IPC-Connection Error: Not connected to Key-Value Store application.");
+  }
+
+  ListExpr dist_name;
+
+  if (FText::checkType(nl->First(nl->First(args)))) {
+    dist_name = nl->Second(nl->First(args));  // ((text 'distname')...)
+  } else {
+    dist_name = nl->TextAtom(nl->SymbolValue(
+        nl->Second(nl->First(args))));  // ( (..) (distribution distname))
+  }
+
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->OneElemList(dist_name),
+                           listutils::basicSymbol<CcBool>());  // return bool
+}
+
+int qtDistinctVM(Word* args, Word& result, int message, Word& local,
+                 Supplier s) {
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+
+  // Distribution:
+  string distributionName = static_cast<FText*>(args[2].addr)->GetValue();
+  int distRef = kvsIPC->getDistributionRef(distributionName);
+  if (distRef < 0) {
+    ListExpr distributionType = qp->GetSupplierTypeExpr(qp->GetSon(s, 0));
+    if (Distribution::checkType(distributionType)) {
+      Distribution* dist = static_cast<Distribution*>(args[0].addr);
+
+      distRef = kvsIPC->getDistributionRef(distributionName, dist->type,
+                                           dist->toBin());
+    } else {
+      cout << "Error: No Distribution specified";
+      res->Set(true, false);
+      return CANCEL;
+    }
+  }
+
+  if (distRef >= 0) {
+    Rectangle<2>* rect = static_cast<Rectangle<2>*>(args[1].addr);
+
+    double x = rect->MinD(0) * 1000;
+    double y = rect->MinD(1) * 1000;
+
+    res->Set(true, kvsIPC->qtDistinct(distRef, x, y));
+
+    return 0;
+  } else {
+    res->Set(true, false);
+    return CANCEL;
+  }
+}
+
 }

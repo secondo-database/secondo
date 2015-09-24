@@ -513,10 +513,10 @@ int kvsDistributeVM(Word* args, Word& result, int message, Word& local,
         // Optional Arguments
         string deleteCommand("");
         bool restructure = true;
-        if (noSons == 7 + 3) {
+        if (noSons == 7 + 4) {
           deleteCommand = static_cast<FText*>(args[5].addr)->GetValue();
           restructure = static_cast<CcBool*>(args[6].addr)->GetValue();
-        } else if (noSons == 6 + 3) {
+        } else if (noSons == 6 + 4) {
           ListExpr sixthArgType = qp->GetSupplierTypeExpr(qp->GetSon(s, 5));
           if (FText::checkType(sixthArgType)) {
             deleteCommand = static_cast<FText*>(args[5].addr)->GetValue();
@@ -524,6 +524,12 @@ int kvsDistributeVM(Word* args, Word& result, int message, Word& local,
             restructure = static_cast<CcBool*>(args[5].addr)->GetValue();
           }
         }
+
+        cout << "streamType:" << streamType << endl;
+        cout << "baseAttributeList:" << baseAttributeList << endl;
+        cout << "targetRelation:" << targetRelation << endl;
+        cout << "insertCommand:" << insertCommand << endl;
+        cout << "deleteCommand:" << deleteCommand << endl;
 
         // open new local ipc connection to handle distribution
         IPCConnection* distributeConn = IPCConnection::connect(0);
@@ -533,6 +539,8 @@ int kvsDistributeVM(Word* args, Word& result, int message, Word& local,
 
         if (disIPC->init(distRef, streamType, baseAttributeList, targetRelation,
                          insertCommand, deleteCommand, restructure)) {
+          cout << "Distribution successfully initialized" << endl;
+
           Stream<Tuple> inTupleStream(args[0].addr);
           inTupleStream.open();
           Tuple* tuple;
@@ -611,10 +619,10 @@ int kvsDistributeVM(Word* args, Word& result, int message, Word& local,
       return CANCEL;
     }
     case REQUEST: {
-      cout << "Getting Result..." << endl;
+      // cout<<"Getting Result..."<<endl;
       if (disIPC != 0 && disIPC->getResult()) {
-        cout << "Distribution ended with (" << disIPC->resultCode
-             << "):" << disIPC->resultMessage << endl;
+        // cout<<"Distribution ended with
+        // ("<<disIPC->resultCode<<"):"<<disIPC->resultMessage<<endl;
 
         int n = 0;
         char* tupleBuffer = disIPC->nextTuple(&n);

@@ -34,14 +34,19 @@ namespace KVS {
 
 class QuadNode {
  public:
-  QuadNode(double x, double y, int width, int height);
+  QuadNode(double x, double y, double width, double height);
+  QuadNode(QuadNode* parent, double x, double y, double width, double height);
+  QuadNode(QuadNode* node);
 
-  QuadNode(QuadNode* parent, double x, double y, int width, int height);
+  ~QuadNode();
 
   bool isLeaf();
 
   // bool isOverlapping(Rectangle<2>* mbb);
   bool isOverlapping(double* mbb);
+  bool isOverlappingDebug(double* mbb);
+
+  bool isInside(double* mbb);
 
   QuadNode* get(const int& i);
 
@@ -56,10 +61,12 @@ class QuadNode {
   QuadNode* children[4];
 
   double x, y;
-  int width, height;
+  double width, height;
 
   int serverId;
   int weight;
+
+  unsigned int maxGlobalId;
 
  private:
   void levels(QuadNode* node, const int& level, int* maxLevel);
@@ -90,8 +97,10 @@ class QuadTreeDistribution : public Distribution {
 
   void expand(double* mbb);
   void insert(QuadNode* node, double* mbb, set<int>* results);
+  void insertDebug(QuadNode* node, double* mbb, set<int>* results);
 
   void retrieveIds(QuadNode* node, double* mbb, set<int>* results);
+  void retrieveIdsDebug(QuadNode* node, double* mbb, set<int>* results);
 
   void redistributeCluster();
   void leafesInClusterOrder(QuadNode* node, function<bool(QuadNode*)> f);
@@ -109,13 +118,22 @@ class QuadTreeDistribution : public Distribution {
   void updateWeightVector();
   void addWeight(Distribution* dist, const int& id);
 
+  void resetMaxGlobalIds();
+  void addMaxGlobalIds(Distribution* dist, const int& id);
+
+  bool filter(int nrcoords, double* coords, const unsigned int& globalId,
+              bool update);
+
   void add(int value, set<int>* resultIds);
   void add(int nrcoords, double* coords, set<int>* resultIds);
+  void addDebug(int nrcoords, double* coords, set<int>* resultIds);
 
   void request(int value, set<int>* resultIds);
   void request(int nrcoords, double* coords, set<int>* resultIds);
+  void requestDebug(int nrcoords, double* coords, set<int>* resultIds);
 
-  string serverIdAssignment(string attributeName, string distributionName);
+  string serverIdAssignment(string attributeName, string distributionName,
+                            bool requestOnly);
 
   string toBin();
   bool fromBin(const string& data);
@@ -129,8 +147,15 @@ class QuadTreeDistribution : public Distribution {
 
   void addWeightNode(QuadNode* base, QuadNode* add, const int& id);
 
+  void addGlobalIdNode(QuadNode* base, QuadNode* add, const int& id);
+  void filterUpdate(QuadNode* node, double* mbb, const unsigned int& globalId);
+  void filterCheck(QuadNode* node, double* mbb, const unsigned int& globalId,
+                   bool& result);
+
   int nextServerId();
   void fixNodeServerIds();
+  void fixNodeWeights();
+  void consolidateLayers();
   void leafesInClusterOrderR(QuadNode* node, const int& currentIdx,
                              const int& nextIdx, QuadNode** lastVisited,
                              function<bool(QuadNode*)> f);

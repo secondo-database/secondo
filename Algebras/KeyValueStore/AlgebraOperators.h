@@ -113,6 +113,18 @@ ListExpr kvsReconnectTM(ListExpr args);
 int kvsReconnectVM(Word* args, Word& result, int message, Word& local,
                    Supplier s);
 
+struct kvsSetDatabaseInfo : OperatorInfo {
+  kvsSetDatabaseInfo() {
+    name = "kvsSetDatabase";
+    signature = FText::BasicType() + " -> " + CcBool::BasicType();
+    syntax = "kvsSetDatabase( databaseName )";
+    meaning = "??";
+  }
+};
+ListExpr kvsSetDatabaseTM(ListExpr args);
+int kvsSetDatabaseVM(Word* args, Word& result, int message, Word& local,
+                     Supplier s);
+
 struct kvsUseDatabaseInfo : OperatorInfo {
   kvsUseDatabaseInfo() {
     name = "kvsUseDatabase";
@@ -232,6 +244,21 @@ ListExpr qtintersectsTM(ListExpr args);
 int qtintersectsVM(Word* args, Word& result, int message, Word& local,
                    Supplier s);
 
+struct qtDistinctInfo : OperatorInfo {
+  qtDistinctInfo() : OperatorInfo() {
+    name = "qtDistinct";
+    signature = QuadTreeDistributionType::BasicType() + " x " +
+                Rectangle<2>::BasicType() + " -> " + CcBool::BasicType();
+    syntax = "qtDistinct(qtdistribution, rect )";
+    meaning = "";
+    example = "... filter[qtDistinct(qtdistribution, bbox(.GeoData))] ...";
+    usesArgsInTypeMapping = true;
+  }
+};
+ListExpr qtDistinctTM(ListExpr args);
+int qtDistinctVM(Word* args, Word& result, int message, Word& local,
+                 Supplier s);
+
 //
 //
 // DISTRIBUTION
@@ -305,6 +332,18 @@ struct kvsTransferIdInfo : OperatorInfo {
 ListExpr kvsTransferIdTM(ListExpr args);
 int kvsTransferIdVM(Word* args, Word& result, int message, Word& local,
                     Supplier s);
+
+struct kvsGlobalIdInfo : OperatorInfo {
+  kvsGlobalIdInfo() {
+    name = "kvsGlobalId";
+    signature = " -> " + CcInt::BasicType();
+    syntax = "kvsGlobalId()";
+    meaning = "??";
+  }
+};
+ListExpr kvsGlobalIdTM(ListExpr args);
+int kvsGlobalIdVM(Word* args, Word& result, int message, Word& local,
+                  Supplier s);
 
 struct kvsInitClientsInfo : OperatorInfo {
   kvsInitClientsInfo() {
@@ -394,6 +433,22 @@ struct kvsExecInfo : OperatorInfo {
 };
 ListExpr kvsExecTM(ListExpr args);
 int kvsExecVM(Word* args, Word& result, int message, Word& local, Supplier s);
+
+struct kvsFilterInfo : OperatorInfo {
+  kvsFilterInfo() {
+    name = "kvsFilter";
+    signature = Stream<Tuple>::BasicType() +
+                " x distribution x region x int x bool -> " +
+                Stream<Tuple>::BasicType();
+    syntax =
+        "_ kvsFilter( {distribution, distributionName} ,region ,globalId "
+        "[,updateDistribution] )";
+    meaning = "??";
+    usesArgsInTypeMapping = true;
+  }
+};
+ListExpr kvsFilterTM(ListExpr args);
+int kvsFilterVM(Word* args, Word& result, int message, Word& local, Supplier s);
 
 //
 //
@@ -506,8 +561,6 @@ struct kvsDataSourceSCPInfo : OperatorInfo {
 ListExpr kvsDataSourceSCPTM(ListExpr args);
 int kvsDataSourceSCPVM(Word* args, Word& result, int message, Word& local,
                        Supplier s);
-
-
 }
 
-#endif
+#endif /* ALGEBRAOPERATORS_H_ */

@@ -220,6 +220,39 @@ int kvsListVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 }
 
 /* **********************
+ * Operator: kvsSetDatabase( databaseName )
+ *
+ */
+
+ListExpr kvsSetDatabaseTM(ListExpr args) {
+  // string err = "text x int = (host, port) expected";
+
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(
+        "1 argument expected. [text = (databaseName)].");
+  }
+
+  if (!FText::checkType(nl->First(args))) {
+    return listutils::typeError(
+        "1st argument should be text. [text = (databaseName)].");
+  }
+
+  return listutils::basicSymbol<CcBool>();
+}
+
+int kvsSetDatabaseVM(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
+  FText* databaseName = static_cast<FText*>(args[0].addr);
+
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+
+  res->Set(true, kvsIPC->setDatabase(databaseName->GetValue()));
+
+  return 0;
+}
+
+/* **********************
  * Operator: kvsUseDatabase( databaseName )
  *
  */
