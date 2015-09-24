@@ -46,111 +46,73 @@ IPCLoopBuffer::IPCLoopBuffer()
 bool IPCLoopBuffer::avail() { return totalWritten != totalRead; }
 
 bool IPCLoopBuffer::read(char* data, unsigned int n, double timeout) {
-  int readed = 0;  // ;)
-  time_t lastWrite = time(NULL);
+  int offset = 0;
   while (true) {
-    int available;
-
-    int tempWriteIndex = writeIndex;
-    if (readIndex < tempWriteIndex) {
-      available = tempWriteIndex - readIndex;
-    } else {
-      if (totalWritten == totalRead) {
-        available = 0;
-      } else {
-        available = bufferSize - readIndex;
-      }
-    }
+    int available = totalWritten - totalRead;
 
     if (available == 0) {
-      //      if(difftime(time(NULL), lastWrite) > timeout) {
-      //        return false;
-      //      } else {
-      //        //boost::this_thread::sleep( boost::posix_time::milliseconds(10)
-      //        );
-      //        continue;
-      //      }
       continue;
     }
 
-    if (static_cast<int>(n) <= available) {
-      memcpy(data + readed, buffer + readIndex, n);
-
-      totalRead += n;
-      readIndex += n;
-      if (readIndex == bufferSize) {
-        readIndex = 0;
-      }
-
-      // cout<<"Read: readIndex:"<<readIndex<<" writeIndex:"<<writeIndex<<"
-      // totalRead:"<<totalRead<<" totalWritten:"<<totalWritten<<endl;
-      return true;
-    } else {
-      memcpy(data + readed, buffer + readIndex, available);
-
-      totalRead += available;
-      readIndex += available;
-      if (readIndex == bufferSize) {
-        readIndex = 0;
-      }
-
-      n -= available;
-      readed += available;
+    if (available > n) {
+      available = n;
     }
-    lastWrite = time(NULL);
+
+    if (readIndex + available >= bufferSize) {
+      available = bufferSize - readIndex;
+      assert(available > 0);
+    }
+
+    memcpy(data + offset, buffer + readIndex, available);
+
+    totalRead += available;
+    readIndex += available;
+    if (readIndex == bufferSize) {
+      readIndex = 0;
+    }
+
+    n -= available;
+    if (n == 0) {
+      return true;
+    }
+    offset += available;
   }
 }
 
 bool IPCLoopBuffer::write(const char* data, unsigned int n, double timeout) {
-  int written = 0;
-  time_t lastRead = time(NULL);
-  while (true) {
-    int space;
+  int offset = 0;
 
-    int tempReadIndex = readIndex;
-    if (writeIndex > tempReadIndex ||
-        (writeIndex == tempReadIndex && totalWritten == totalRead)) {
-      space = bufferSize - writeIndex;
-    } else {
-      space = tempReadIndex - writeIndex;
-    }
+  while (true) {
+    int space = bufferSize - (totalWritten - totalRead);
+    assert(space >= 0);
 
     if (space == 0) {
-      //      if(difftime(time(NULL),lastRead) > timeout) {
-      //        return false;
-      //      } else {
-      //        //boost::this_thread::sleep( boost::posix_time::milliseconds(10)
-      //        );
-      //        continue;
-      //      }
       continue;
     }
 
-    if (static_cast<int>(n) <= space) {
-      memcpy(buffer + writeIndex, data + written, n);
-
-      totalWritten += n;
-      writeIndex += n;
-      if (writeIndex == bufferSize) {
-        writeIndex = 0;
-      }
-
-      // cout<<"Write: readIndex:"<<readIndex<<" writeIndex:"<<writeIndex<<"
-      // totalRead:"<<totalRead<<" totalWritten:"<<totalWritten<<endl;
-      return true;
-    } else {
-      memcpy(buffer + writeIndex, data + written, space);
-
-      totalWritten += space;
-      writeIndex += space;
-      if (writeIndex == bufferSize) {
-        writeIndex = 0;
-      }
-
-      n -= space;
-      written += space;
+    if (space > n) {
+      space = n;
     }
-    lastRead = time(NULL);
+
+    if (writeIndex + space >= bufferSize) {
+      space = bufferSize - writeIndex;
+      assert(space > 0);
+    }
+
+    memcpy(buffer + writeIndex, data + offset, space);
+
+    totalWritten += space;
+    writeIndex += space;
+
+    if (writeIndex == bufferSize) {
+      writeIndex = 0;
+    }
+
+    n -= space;
+    if (n == 0) {
+      return true;
+    }
+    offset += space;
   }
 }
 
@@ -229,10 +191,16 @@ bool IPCConnection::write(const double* data) {
 bool IPCConnection::read(string* data) {
   int len = 0;
   if (read(&len)) {
-    char* temp = new char[len];
-    if (read(temp, len)) {
-      data->assign(temp, len);
-      delete temp;
+    if (len > 0) {
+      char* temp = new char[len];
+      if (read(temp, len)) {
+        data->assign(temp, len);
+        delete[] temp;
+        return true;
+      }
+      delete[] temp;
+    } else {
+      data->clear();
       return true;
     }
   }

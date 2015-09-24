@@ -107,18 +107,20 @@ void Batch::updateTransferList() {
   int serverIdx;
 
   vector<int>::iterator maxId =
-      max_element(dist->serverIdMapping.begin(), dist->serverIdMapping.end());
+      max_element(dist->serverIdOrder.begin(), dist->serverIdOrder.end());
   if (*maxId >= static_cast<int>(transferList.size())) {
     transferList.resize(*maxId + 1, 0);
   }
 
   for (unsigned int transferIdx = 0; transferIdx < transferList.size();
        ++transferIdx) {
-    vector<int>::iterator mappingPos =
-        find(dist->serverIdMapping.begin(), dist->serverIdMapping.end(),
-             transferIdx);
-    if (mappingPos != dist->serverIdMapping.end()) {
+    vector<int>::iterator mappingPos = find(
+        dist->serverIdOrder.begin(), dist->serverIdOrder.end(), transferIdx);
+    if (mappingPos != dist->serverIdOrder.end()) {
+      // cout<<"transferIdx = "<<transferIdx<<" vs instance->id =
+      // "<<instance->id<<endl;
       if (static_cast<int>(transferIdx) != instance->id) {
+        // cout<<"-> creating transfer"<<endl;
         // transferIdx == serverId
         serverIdx = sm->getConnectionIndex(transferIdx);
 
@@ -133,6 +135,9 @@ void Batch::updateTransferList() {
         if (serverIdx >= 0) {
           if (!serverList[serverIdx]->check() ||
               !serverList[serverIdx]->kvsConn->check()) {
+            KOUT << instance->localHost << " : " << instance->localInterfacePort
+                 << " : " << instance->localKvsPort << " : "
+                 << instance->currentDatabaseName << endl;
             if (!serverList[serverIdx]->initInterface(
                     instance->localHost, instance->localInterfacePort,
                     instance->localKvsPort, instance->currentDatabaseName)) {
@@ -166,7 +171,7 @@ bool Batch::finishTransfer(TransferMethod* transfer, int serverId) {
       !transfer->import(distParams->targetRelation,
                         distParams->insertCommand)) {
     // recovery
-
+    KOUT << "Recovery :(" << endl;
     if (transfer->connection->id != serverId) {
       // has serverId assignment changed?
       Connection* newConn =

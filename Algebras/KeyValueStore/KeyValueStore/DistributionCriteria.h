@@ -33,11 +33,12 @@ using namespace std;
 
 namespace KVS {
 
+class KeyValueStore;
 class Distribution;
 
 class DistributionCriteria {
  public:
-  DistributionCriteria(unsigned int minTuplePerServer);
+  DistributionCriteria(KeyValueStore* instance);
   void evaluateCriteria(Distribution* dist, int availableServers);
   void addTuple(unsigned int serverId);
   void addBytesTransferred(unsigned int serverId, int n);
@@ -50,19 +51,19 @@ class DistributionCriteria {
   unsigned int distributedBytes();
 
  private:
-  void checkTupleInsertPercentage(Distribution* dist);
   void checkTupleDistribution(Distribution* dist, const double& average);
+  void checkTupleCapacity(Distribution* dist);
 
-  void checkMaxData(Distribution* dist);
-  void checkDataDistribution(Distribution* dist);
   void evaluate(Distribution* dist, const double& average,
                 int availableServers);
+
+  void checkTupleInsertPercentage(Distribution* dist);
+  void checkMaxData(Distribution* dist);
+  void checkDataDistribution(Distribution* dist);
 
   time_t insertIntervalStart;        // to calculate insert frequency
   double insertIntervalLength;       // in seconds
   double insertPercentageThreshold;  // expected + threshold
-
-  int minSize;  // min amount on server before split
 
   int insertsOverall;
   vector<unsigned int> insertDistribution;
@@ -73,6 +74,8 @@ class DistributionCriteria {
   vector<unsigned int> dataDistribution;
 
   vector<bool> restructurePotential;
+
+  KeyValueStore* instance;
 };
 }
 

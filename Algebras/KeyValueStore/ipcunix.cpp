@@ -95,7 +95,7 @@ IPCConnection* IPCConnection::connect(int id) {
 
       time_t timeout = time(NULL);
       while (init->magicId != IPC_MAGIC_ID) {
-        if (difftime(time(NULL), timeout) > 10.0) {
+        if (difftime(time(NULL), timeout) > 3.0) {
           cout << "Could not connect to IPC-Server (timeout)" << endl;
           shmdt(initBuffer);
           return 0;
@@ -105,7 +105,7 @@ IPCConnection* IPCConnection::connect(int id) {
 
       timeout = time(NULL);
       while (!init->currentIdxMutex.try_lock()) {
-        if (difftime(time(NULL), timeout) > 10.0) {
+        if (difftime(time(NULL), timeout) > 3.0) {
           cout << "Could not connect to IPC-Server (timeout)" << endl;
           shmdt(initBuffer);
           return 0;
@@ -120,7 +120,7 @@ IPCConnection* IPCConnection::connect(int id) {
       // wait for memory to be initialized
       timeout = time(NULL);
       while (connectionId >= init->confirmIdx) {
-        if (difftime(time(NULL), timeout) > 10.0) {
+        if (difftime(time(NULL), timeout) > 3.0) {
           cout << "Could not connect to IPC-Server (timeout)" << endl;
           shmdt(initBuffer);
           return 0;

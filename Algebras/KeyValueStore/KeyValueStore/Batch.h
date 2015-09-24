@@ -71,8 +71,7 @@ class Batch {
 
   time_t batchStartTime;              // to calculate insert frequency
   const double MAX_BATCH_TIME = 180;  // in seconds
-  bool endReceived;
-  const int MAX_BATCH_COUNT = 100;
+  const int MAX_BATCH_COUNT = 1000;
 
   bool useSCP;
   bool firstBatch;

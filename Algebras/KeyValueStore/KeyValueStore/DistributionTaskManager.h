@@ -52,12 +52,17 @@ class DistributionTaskManager : public DistributionUpdateListener {
   void distributionUpdated();
 
   void syncDistributions(bool* run);
-  void syncDistributionsDataExchange(Connection* server,
-                                     vector<DistributionParameter> distParams,
-                                     Distribution* dist, string distName,
-                                     string distData);
+  void syncDistributionsThread(Connection* server,
+                               vector<DistributionParameter> distParams,
+                               Distribution* dist, string distName,
+                               string distData);
 
-  void restructure();
+  void syncDataState();
+  void syncDataStateThread(Connection* server,
+                           vector<DistributionParameter> distParams,
+                           string distName, string distData);
+
+  void restructure(bool* run);
   void restructurePhaseTwo(vector<Connection*> involvedServers);
 
   void restructureRedistribute(Connection* server,
@@ -84,6 +89,7 @@ class DistributionTaskManager : public DistributionUpdateListener {
   DistributionCriteria criteria;
 
   vector<DistributionTask*> tasks;
+  vector<DistributionTask*> removedTasks;
 
   vector<DistributionTask*> newTasks;
   boost::mutex newTasksMutex;

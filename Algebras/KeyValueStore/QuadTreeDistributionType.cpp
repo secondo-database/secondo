@@ -36,9 +36,7 @@ QuadTreeDistributionType::QuadTreeDistributionType(
     const QuadTreeDistributionType& qtd)
     : QuadTreeDistribution(qtd) {}
 
-QuadTreeDistributionType::~QuadTreeDistributionType() {
-  // delete root and children...
-}
+QuadTreeDistributionType::~QuadTreeDistributionType() {}
 
 const string QuadTreeDistributionType::BasicType() { return "qtdistribution"; }
 
@@ -70,11 +68,11 @@ Word QuadTreeDistributionType::In(const ListExpr typeInfo,
             nl->IntValue(First), nl->IntValue(Second), nl->ListLength(Third));
         temp->root = parseQuadNode(nl->Fourth(instance), 0);
 
-        // serverIdMapping list
+        // serverIdOrder list
         for (int i = 0; i < nl->ListLength(Third); ++i) {
           ListExpr tempElem = nl->Nth(i + 1, Third);
           if (nl->IsAtom(tempElem) && nl->AtomType(tempElem) == IntType) {
-            temp->serverIdMapping[i] = nl->IntValue(tempElem);
+            temp->serverIdOrder[i] = nl->IntValue(tempElem);
           } else {
             cmsg.inFunError("Third Paramter should be list of Int Atoms.");
             return w;
@@ -100,27 +98,34 @@ Word QuadTreeDistributionType::In(const ListExpr typeInfo,
 QuadNode* QuadTreeDistributionType::parseQuadNode(const ListExpr instance,
                                                   QuadNode* parent) {
   if (!nl->IsAtom(instance)) {
-    if (nl->ListLength(instance) == 10) {
+    if (nl->ListLength(instance) == 11) {
       ListExpr x = nl->First(instance);
       ListExpr y = nl->Second(instance);
       ListExpr width = nl->Third(instance);
       ListExpr height = nl->Fourth(instance);
       ListExpr weight = nl->Fifth(instance);
       ListExpr serverId = nl->Sixth(instance);
+      ListExpr maxGlobalId = nl->Seventh(instance);
 
       if (nl->IsAtom(x) && nl->AtomType(x) == RealType && nl->IsAtom(y) &&
           nl->AtomType(y) == RealType && nl->IsAtom(width) &&
-          nl->AtomType(width) == IntType && nl->IsAtom(height) &&
-          nl->AtomType(height) == IntType && nl->IsAtom(weight) &&
+          nl->AtomType(width) == RealType && nl->IsAtom(height) &&
+          nl->AtomType(height) == RealType && nl->IsAtom(weight) &&
           nl->AtomType(weight) == IntType && nl->IsAtom(serverId) &&
-          nl->AtomType(serverId) == IntType) {
+          nl->AtomType(serverId) == IntType && nl->IsAtom(maxGlobalId) &&
+          nl->AtomType(maxGlobalId) == IntType) {
         QuadNode* temp =
             new QuadNode(0, nl->RealValue(x), nl->RealValue(y),
-                         nl->IntValue(width), nl->IntValue(height));
-        temp->children[0] = parseQuadNode(nl->Seventh(instance), temp);
-        temp->children[1] = parseQuadNode(nl->Eigth(instance), temp);
-        temp->children[2] = parseQuadNode(nl->Ninth(instance), temp);
-        temp->children[3] = parseQuadNode(nl->Tenth(instance), temp);
+                         nl->RealValue(width), nl->RealValue(height));
+
+        temp->weight = nl->IntValue(weight);
+        temp->serverId = nl->IntValue(serverId);
+        temp->maxGlobalId = nl->IntValue(maxGlobalId);
+
+        temp->children[0] = parseQuadNode(nl->Eigth(instance), temp);
+        temp->children[1] = parseQuadNode(nl->Ninth(instance), temp);
+        temp->children[2] = parseQuadNode(nl->Tenth(instance), temp);
+        temp->children[3] = parseQuadNode(nl->Eleventh(instance), temp);
 
         return temp;
       } else {
@@ -142,9 +147,9 @@ ListExpr QuadTreeDistributionType::Out(ListExpr typeInfo, Word value) {
 
   ListExpr idMappingList = nl->TheEmptyList();
 
-  for (unsigned int i = qtd->serverIdMapping.size(); i > 0; i--) {
+  for (unsigned int i = qtd->serverIdOrder.size(); i > 0; i--) {
     idMappingList =
-        nl->Cons(nl->IntAtom(qtd->serverIdMapping[i - 1]), idMappingList);
+        nl->Cons(nl->IntAtom(qtd->serverIdOrder[i - 1]), idMappingList);
   }
 
   return nl->FourElemList(nl->IntAtom(qtd->initialWidth),
@@ -157,9 +162,18 @@ ListExpr QuadTreeDistributionType::serializeQuadNode(QuadNode* node) {
     return nl->IntAtom(0);
   } else {
     return nl->TwoElemList(
-        nl->SixElemList(nl->RealAtom(node->x), nl->RealAtom(node->y),
-                        nl->IntAtom(node->width), nl->IntAtom(node->height),
-                        nl->IntAtom(node->weight), nl->IntAtom(node->serverId)),
+        nl->Cons(
+            nl->RealAtom(node->x),
+            nl->SixElemList(
+                nl->RealAtom(node->y), nl->RealAtom(node->width),
+                nl->RealAtom(node->height), nl->IntAtom(node->weight),
+                nl->IntAtom(node->serverId), nl->IntAtom(node->maxGlobalId))),
+        //          nl->TwoElemList(
+        //            nl->SixElemList(
+        //              nl->RealAtom(node->x), nl->RealAtom(node->y),
+        //              nl->IntAtom(node->width), nl->IntAtom(node->height),
+        //              nl->IntAtom(node->weight), nl->IntAtom(node->serverId)),
+        //            nl->IntAtom(node->maxGlobalId)),
         nl->FourElemList(serializeQuadNode(node->children[0]),
                          serializeQuadNode(node->children[1]),
                          serializeQuadNode(node->children[2]),
@@ -187,7 +201,7 @@ bool QuadTreeDistributionType::Open(SmiRecord& valueRecord, size_t& offset,
     int elem = 0;
     ok = ok && valueRecord.Read(&elem, sizeof(int), offset);
     offset += sizeof(int);
-    temp->serverIdMapping[i] = elem;
+    temp->serverIdOrder[i] = elem;
   }
 
   ok = ok && valueRecord.Read(&root, sizeof(bool), offset);
@@ -202,23 +216,26 @@ bool QuadTreeDistributionType::Open(SmiRecord& valueRecord, size_t& offset,
 
 QuadNode* QuadTreeDistributionType::OpenNode(SmiRecord& valueRecord,
                                              size_t& offset, QuadNode* parent) {
-  double x = 0, y = 0;
-  int width = 0, height = 0, weight = 0, serverId = 0;
+  double x = 0, y = 0, width = 0, height = 0;
+  int weight = 0, serverId = 0;
   bool children[4] = {false, false, false, false};
+  unsigned int maxGlobalId = 0;
 
   bool ok = true;
   ok = ok && valueRecord.Read(&x, sizeof(double), offset);
   offset += sizeof(double);
   ok = ok && valueRecord.Read(&y, sizeof(double), offset);
   offset += sizeof(double);
-  ok = ok && valueRecord.Read(&width, sizeof(int), offset);
-  offset += sizeof(int);
-  ok = ok && valueRecord.Read(&height, sizeof(int), offset);
-  offset += sizeof(int);
+  ok = ok && valueRecord.Read(&width, sizeof(double), offset);
+  offset += sizeof(double);
+  ok = ok && valueRecord.Read(&height, sizeof(double), offset);
+  offset += sizeof(double);
   ok = ok && valueRecord.Read(&weight, sizeof(int), offset);
   offset += sizeof(int);
   ok = ok && valueRecord.Read(&serverId, sizeof(int), offset);
   offset += sizeof(int);
+  ok = ok && valueRecord.Read(&maxGlobalId, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
   ok = ok && valueRecord.Read(&children[0], sizeof(bool), offset);
   offset += sizeof(bool);
   ok = ok && valueRecord.Read(&children[1], sizeof(bool), offset);
@@ -232,6 +249,7 @@ QuadNode* QuadTreeDistributionType::OpenNode(SmiRecord& valueRecord,
     QuadNode* temp = new QuadNode(parent, x, y, width, height);
     temp->weight = weight;
     temp->serverId = serverId;
+    temp->maxGlobalId = maxGlobalId;
     for (int i = 0; i < 4; ++i) {
       if (children[i]) {
         temp->children[i] = OpenNode(valueRecord, offset, parent);
@@ -247,7 +265,7 @@ bool QuadTreeDistributionType::Save(SmiRecord& valueRecord, size_t& offset,
                                     const ListExpr typeInfo, Word& value) {
   QuadTreeDistributionType* qtd =
       static_cast<QuadTreeDistributionType*>(value.addr);
-  unsigned int nrServers = qtd->serverIdMapping.size();
+  unsigned int nrServers = qtd->serverIdOrder.size();
   bool root = (qtd->root != 0);
   size_t size = sizeof(int);
 
@@ -259,9 +277,9 @@ bool QuadTreeDistributionType::Save(SmiRecord& valueRecord, size_t& offset,
   ok = ok && valueRecord.Write(&nrServers, sizeof(unsigned int), offset);
   offset += sizeof(unsigned int);
 
-  // serverIdMapping list
+  // serverIdOrder list
   for (unsigned int i = 0; i < nrServers; ++i) {
-    int temp = qtd->serverIdMapping[i];
+    int temp = qtd->serverIdOrder[i];
     ok = ok && valueRecord.Write(&temp, size, offset);
     offset += size;
   }
@@ -287,14 +305,17 @@ void QuadTreeDistributionType::SaveNode(SmiRecord& valueRecord, size_t& offset,
   offset += dsize;
   ok = ok && valueRecord.Write(&node->y, dsize, offset);
   offset += dsize;
-  ok = ok && valueRecord.Write(&node->width, isize, offset);
-  offset += isize;
-  ok = ok && valueRecord.Write(&node->height, isize, offset);
-  offset += isize;
+  ok = ok && valueRecord.Write(&node->width, dsize, offset);
+  offset += dsize;
+  ok = ok && valueRecord.Write(&node->height, dsize, offset);
+  offset += dsize;
   ok = ok && valueRecord.Write(&node->weight, isize, offset);
   offset += isize;
   ok = ok && valueRecord.Write(&node->serverId, isize, offset);
   offset += isize;
+  ok =
+      ok && valueRecord.Write(&node->maxGlobalId, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
 
   for (int i = 0; i < 4; ++i) {
     bool temp = node->children[i];

@@ -108,18 +108,16 @@ int KeyValueStoreIPCServer::run() {
   IPCGate gate(appId);
   vector<IPCConnection*> connections;
 
-  bool active = true;
+  unsigned int idleCounter = 0;
 
   if (gate.open()) {
     KOUT << "Gate opened. Waiting for new connections." << endl;
     while (true) {
-      active = false;
       IPCConnection* newConn = gate.nextConnection();
 
       if (newConn) {
-        active = true;
         if (newConn->health()) {
-          KOUT << "New Connection established.." << endl;
+          // KOUT<<"New Connection established.."<<endl;
           connections.push_back(newConn);
         } else {
           delete newConn;
@@ -133,23 +131,23 @@ int KeyValueStoreIPCServer::run() {
           int result = dispatch(connections[connIdx]);
           if (result != NORESULT) {
             if (result == REMOVECONNECTION) {
-              KOUT << "Removing Connection..." << endl;
+              // KOUT<<"Removing Connection..."<<endl;
               connections.erase(connections.begin() + connIdx);
               connIdx--;
             }
           }
 
-          active = true;
+          idleCounter = 0;
         } else if (!connections[connIdx]->health()) {
           connections.erase(connections.begin() + connIdx);
           connIdx--;
-          KOUT << "Connection removed...\n";
+          KOUT << "Connection removed..." << endl;
         }
       }
 
-      if (!active) {
-        // TODO: maybe every n commands?
-        // boost::this_thread::sleep( boost::posix_time::milliseconds(5) );
+      idleCounter++;
+      if (idleCounter > 50000) {
+        boost::this_thread::sleep(boost::posix_time::milliseconds(5));
       }
     }
   } else {
@@ -167,9 +165,12 @@ int KeyValueStoreIPCServer::dispatch(IPCConnection* conn) {
   auto dispatchItr = dispatchMap.find(messageType);
 
   if (dispatchItr != dispatchMap.end()) {
+    lastMessage = messageType;
+    // KOUT<<"Message:"<<messageType<<endl;
     return dispatchItr->second(&kvs, conn);
   } else {
-    KOUT << "Error: Unknown message type (" << messageType << ").\n";
+    KOUT << "Error: Unknown message type (" << messageType << ")."
+         << " Last Message:" << lastMessage << endl;
   }
 
   return NORESULT;

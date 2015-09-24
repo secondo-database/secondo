@@ -38,7 +38,7 @@ DistributionTaskManager::DistributionTaskManager(KeyValueStore* instance)
       instance(instance),
       currentDistributionId(-1),
       syncDistribution(false),
-      criteria(10000) {
+      criteria(instance) {
   time(&lastRestructure);
   RESTRUCTURE_INTERVAL = 10;  // in seconds
 }
@@ -56,7 +56,7 @@ void DistributionTaskManager::processDistributions(bool* run, unsigned int n) {
   for (unsigned int taskIdx = 0; taskIdx < tasks.size(); ++taskIdx) {
     // process(n) make n scale with nr of tasks, so that many taks will lower n?
     if (tasks[taskIdx]->process(n) > 0) {
-      delete tasks[taskIdx];
+      removedTasks.push_back(tasks[taskIdx]);
       removeTask(taskIdx);
       taskIdx--;
 
@@ -75,7 +75,7 @@ void DistributionTaskManager::exec(bool* run) {
   // TODO: find out ideal n, writing seems much slower than expected
   int n = 5;
 
-  KOUT << "Starting Distribution Loop...\n";
+  KOUT << "Starting Distribution Loop..." << endl;
 
   time(&lastRestructure);
 
@@ -94,15 +94,48 @@ void DistributionTaskManager::exec(bool* run) {
 
     if (syncDistribution) {
       syncDistributions(run);
+      syncDistribution = false;
     }
 
-    restructure();
+    if (restructureProcess != 0) {
+      if (restructureProcess->joinable()) {
+        restructureProcess->join();
+        restructureProcess = 0;
+      }
+    } else {
+      if (removedTasks.size() > 0) {
+        for (unsigned int i = 0; i < removedTasks.size(); ++i) {
+          delete removedTasks[i];
+        }
+        removedTasks.clear();
+      }
+
+      restructure(run);
+    }
   }
+
+  KOUT << "Distribution Loop stopped..." << endl;
+
+  if (restructureProcess) {
+    KOUT << "Waiting for restructure process...";
+    restructureProcess->join();
+    delete restructureProcess;
+  }
+
+  for (unsigned int i = 0; i < removedTasks.size(); ++i) {
+    delete removedTasks[i];
+  }
+  removedTasks.clear();
 
   KOUT << "Transferred " << criteria.distributedBytes() << " bytes / "
        << setprecision(10) << criteria.distributedBytes() / (1024.0 * 1024.0)
        << " MB" << endl;
-  KOUT << "Distribution Loop stopped...\n";
+
+  if (currentDistributionId > -1) {
+    Distribution* currentDist =
+        instance->getDistribution(currentDistributionId);
+    SaveDebugFile(instance->getRestructureFilePath("finished"), currentDist);
+  }
 }
 
 bool DistributionTaskManager::addTask(DistributionTask* task) {
@@ -142,6 +175,7 @@ bool DistributionTaskManager::removeTask(unsigned int index) {
 }
 
 void DistributionTaskManager::distributionUpdated() {
+  ROUT << "Syncing updates Distribution..." << endl;
   vector<Connection*>& serverList = instance->sm.getConnectionList();
 
   Distribution* currentDist = instance->getDistribution(currentDistributionId);
@@ -153,8 +187,10 @@ void DistributionTaskManager::distributionUpdated() {
     for (unsigned int serverIdx = 0; serverIdx < serverList.size();
          ++serverIdx) {
       if (!serverList[serverIdx]->restructureInProgress) {
-        serverList[serverIdx]->kvsConn->sendDistributionUpdate(distName,
-                                                               distData);
+        if (serverList[serverIdx]->kvsConn->sendDistributionUpdate(distName,
+                                                                   distData)) {
+          serverList[serverIdx]->updateDistributionObject(distName);
+        }
       }
     }
   }
@@ -168,18 +204,9 @@ void DistributionTaskManager::resetRedistribtionProgress() {
   }
 }
 
-void DistributionTaskManager::restructure() {
+void DistributionTaskManager::restructure(bool* run) {
   if (currentDistributionId > -1 && !noRestructure &&
       difftime(time(NULL), lastRestructure) > RESTRUCTURE_INTERVAL) {
-    if (restructureProcess != 0) {
-      if (restructureProcess->joinable()) {
-        restructureProcess->join();
-        restructureProcess = 0;
-      } else {
-        return;
-      }
-    }
-
     time(&lastRestructure);
 
     vector<Connection*>& serverList = instance->sm.getConnectionList();
@@ -189,11 +216,15 @@ void DistributionTaskManager::restructure() {
     criteria.evaluateCriteria(current, serverList.size());
 
     if ((criteria.split.size() > 0 &&
-         (serverList.size() - current->serverIdMapping.size() > 0)) ||
+         (serverList.size() - current->serverIdOrder.size() > 0)) ||
         criteria.localRestructure.size() > 0) {
       criteria.reset();
 
       ROUT << DebugTime() << "Starting Restructure." << endl;
+
+      current->syncMutex.lock();
+
+      processDistributions(run, 100);
 
       vector<Connection*> involvedServers;
 
@@ -205,7 +236,7 @@ void DistributionTaskManager::restructure() {
       // directly be transferred to correct sever
       for (unsigned int splitIdx = 0; splitIdx < criteria.split.size();
            ++splitIdx) {
-        if (serverList.size() - current->serverIdMapping.size() > 0) {
+        if (serverList.size() - current->serverIdOrder.size() > 0) {
           ROUT << "Splitting: " << splitIdx << endl;
           int serverId = criteria.split[splitIdx];
           int serverIdx = instance->sm.getConnectionIndex(serverId);
@@ -218,6 +249,10 @@ void DistributionTaskManager::restructure() {
             serverList[newServerIdx]->id = newServerId;
             if (!serverList[serverIdx]->check() ||
                 !serverList[serverIdx]->kvsConn->check()) {
+              cout << instance->localHost << " : "
+                   << instance->localInterfacePort << " : "
+                   << instance->localKvsPort << " : "
+                   << instance->currentDatabaseName << endl;
               if (!serverList[serverIdx]->initInterface(
                       instance->localHost, instance->localInterfacePort,
                       instance->localKvsPort, instance->currentDatabaseName)) {
@@ -239,13 +274,20 @@ void DistributionTaskManager::restructure() {
            restructureIdx < criteria.localRestructure.size();
            ++restructureIdx) {
         int serverId = criteria.localRestructure[restructureIdx].first;
-        int serverIdx = instance->sm.getConnectionIndex(serverId);
+        int n = criteria.localRestructure[restructureIdx].second;
 
-        current->redistribute(serverId,
-                              criteria.localRestructure[restructureIdx].second);
+        current->redistribute(serverId, n);
 
-        serverList[serverIdx]->rLock.startRestructuring();
-        involvedServers.push_back(serverList[serverIdx]);
+        // we don't know which servers are affected so all are selected
+        vector<int>::iterator currentPos =
+            find(current->serverIdOrder.begin(), current->serverIdOrder.end(),
+                 serverId);
+
+        for (int i = 0; i < n; ++i) {
+          int serverIdx = instance->sm.getConnectionIndex(*(currentPos + i));
+          serverList[serverIdx]->rLock.startRestructuring();
+          involvedServers.push_back(serverList[serverIdx]);
+        }
 
         ROUT << "Redistribution starting with:" << serverId << " +"
              << criteria.localRestructure[restructureIdx].second << endl;
@@ -254,11 +296,13 @@ void DistributionTaskManager::restructure() {
       // 1.1 force finish all running batches?
       for (unsigned int taskIdx = 0; taskIdx < tasks.size(); ++taskIdx) {
         if (!tasks[taskIdx]->finishBatch()) {
-          delete tasks[taskIdx];
+          removedTasks.push_back(tasks[taskIdx]);
           removeTask(taskIdx);
           taskIdx--;
         }
       }
+
+      current->syncMutex.unlock();
 
       debugPath = instance->getRestructureFilePath("after");
       SaveDebugFile(debugPath, current);
@@ -299,6 +343,10 @@ void DistributionTaskManager::restructure() {
         involvedServers[serverIdx]->exec("query kvsSyncServerList()", true);
       }
 
+      ROUT << "Start Distribution Data State (global-IDs)";
+
+      syncDataState();
+
       ROUT << "Sending Distribution Updates" << endl;
 
       string distData = current->toBin();
@@ -311,9 +359,21 @@ void DistributionTaskManager::restructure() {
                                                                     distData);
       }
 
-      ROUT << "Starting async restructure phase." << endl;
-      restructureProcess = new boost::thread(
-          &DistributionTaskManager::restructurePhaseTwo, this, involvedServers);
+      ROUT << "Enabling continuous batches until restructure is complete..."
+           << endl;
+      for (unsigned int taskIdx = 0; taskIdx < tasks.size(); ++taskIdx) {
+        tasks[taskIdx]->setContinueCurrentBatch(true);
+      }
+
+      // ROUT<<"Starting async restructure phase."<<endl;
+      // restructureProcess = new
+      // boost::thread(&DistributionTaskManager::restructurePhaseTwo, this,
+      // involvedServers);
+
+      ROUT << "Starting restructure phase." << endl;
+      restructurePhaseTwo(involvedServers);
+
+      ROUT << "Continuing normal operation..." << endl;
     }
   }
 }
@@ -356,6 +416,11 @@ void DistributionTaskManager::restructurePhaseTwo(
 
   ROUT << "Redistribution threads finished..." << endl;
 
+  ROUT << "Disabling continuous batches ..." << endl;
+  for (unsigned int taskIdx = 0; taskIdx < tasks.size(); ++taskIdx) {
+    tasks[taskIdx]->setContinueCurrentBatch(false);
+  }
+
   // 4.when distribute is finished we are ready to UPDATE distribution again
   // same as 2. just different distribution
 
@@ -393,6 +458,7 @@ void DistributionTaskManager::restructurePhaseTwo(
     ROUT << "Distribution needs synchronisation." << endl;
     syncDistribution = true;
   }
+  time(&lastRestructure);
 }
 
 void DistributionTaskManager::restructureRedistribute(
@@ -402,11 +468,12 @@ void DistributionTaskManager::restructureRedistribute(
   for (unsigned int distIdx = 0; distIdx < distParams.size(); ++distIdx) {
     // TODO: command
     server->exec(
-        "query " + distParams[distIdx].targetRelation + " feed " +
-        current->serverIdAssignment("ServerId", "restructureUpdateDist") +
+        "query " + distParams[distIdx].targetRelation +
+        " feed kvsFilter['restructureUpdateDist', GeoData, GlobalId, FALSE] " +
+        current->serverIdAssignment("ServerId", "restructureUpdateDist", true) +
         " kvsDistribute[ServerId, 'restructureUpdateDist', '" +
         distParams[distIdx].targetRelation + "', '" +
-        distParams[distIdx].insertCommand + "', FALSE] consume; )");
+        distParams[distIdx].insertCommand + "', FALSE] count");
   }
 }
 
@@ -448,7 +515,8 @@ void DistributionTaskManager::syncDistributions(bool* run) {
     // 2.1 force finish all running batches?
     for (unsigned int taskIdx = 0; taskIdx < tasks.size(); ++taskIdx) {
       if (!tasks[taskIdx]->finishBatch()) {
-        delete tasks[taskIdx];
+        removedTasks.push_back(tasks[taskIdx]);
+
         removeTask(taskIdx);
         taskIdx--;
       }
@@ -460,7 +528,11 @@ void DistributionTaskManager::syncDistributions(bool* run) {
     distCopy->resetWeight();
     string distCopyData = distCopy->toBin();
 
-    string debugPath = instance->getRestructureFilePath("sync_before");
+    string debugPath = instance->getRestructureFilePath("sync_empty");
+    SaveDebugFile(debugPath, distCopy);
+
+    debugPath = instance->getRestructureFilePath("sync__before");
+    SaveDebugFile(debugPath, current);
     ROUT << "Debug saved snapshot:" << debugPath << endl;
 
     // 3.1 Prepare to send snapshot
@@ -475,8 +547,8 @@ void DistributionTaskManager::syncDistributions(bool* run) {
     for (unsigned int serverIdx = 0; serverIdx < serverList.size();
          ++serverIdx) {
       distThreads.push_back(
-          boost::thread(&DistributionTaskManager::syncDistributionsDataExchange,
-                        this, serverList[serverIdx], distParams, distCopy,
+          boost::thread(&DistributionTaskManager::syncDistributionsThread, this,
+                        serverList[serverIdx], distParams, distCopy,
                         distributionName, distCopyData));
     }
 
@@ -494,6 +566,11 @@ void DistributionTaskManager::syncDistributions(bool* run) {
 
         ROUT << "Merge data..." << endl;
         Distribution* tempDist = Distribution::getInstance(tempData);
+
+        debugPath = instance->getRestructureFilePath(
+            "sync_" + stringutils::int2str(serverIdx) + "_mid");
+        SaveDebugFile(debugPath, tempDist);
+
         if (tempDist) {
           distCopy->addWeight(tempDist, serverList[serverIdx]->id);
 
@@ -509,12 +586,16 @@ void DistributionTaskManager::syncDistributions(bool* run) {
     current->fromBin(distCopy->toBin());
     current->syncMutex.unlock();
 
+    debugPath = instance->getRestructureFilePath("sync_after");
+    SaveDebugFile(debugPath, current);
+    ROUT << "Debug saved snapshot:" << debugPath << endl;
+
     delete distCopy;
     ROUT << "Sync finished ...(" << DebugTime() << ")" << endl;
   }
 }
 
-void DistributionTaskManager::syncDistributionsDataExchange(
+void DistributionTaskManager::syncDistributionsThread(
     Connection* server, vector<DistributionParameter> distParams,
     Distribution* dist, string distName, string distData) {
   // 3. Send Snapshot
@@ -522,8 +603,94 @@ void DistributionTaskManager::syncDistributionsDataExchange(
 
   // 4. Update Snapshot on Clients
   for (unsigned int distIdx = 0; distIdx < distParams.size(); ++distIdx) {
+    ROUT << "Executing:"
+         << "query " << distParams[distIdx].targetRelation << " feed "
+         << dist->serverIdAssignment("ServerId", distName, false) << "count"
+         << endl;
     server->exec("query " + distParams[distIdx].targetRelation + " feed " +
-                 dist->serverIdAssignment("ServerId", distName) + "count");
+                 dist->serverIdAssignment("ServerId", distName, false) +
+                 "count");
+  }
+}
+
+void DistributionTaskManager::syncDataState() {
+  if (currentDistributionId > -1) {
+    ROUT << "Data State Sync process started. (" << DebugTime() << ")" << endl;
+    Distribution* current = instance->getDistribution(currentDistributionId);
+    string distributionName =
+        "Sync" + instance->getDistributionName(currentDistributionId);
+
+    current->resetMaxGlobalIds();
+
+    string debugPath = instance->getRestructureFilePath("id_state_sync_before");
+    SaveDebugFile(debugPath, current);
+    ROUT << "Debug saved snapshot:" << debugPath << endl;
+
+    vector<DistributionParameter> distParams;
+    for (unsigned int taskIdx = 0; taskIdx < tasks.size(); ++taskIdx) {
+      distParams.push_back(tasks[taskIdx]->distParams);
+    }
+
+    string distData = current->toBin();
+    Distribution* distCopy = Distribution::getInstance(distData);
+
+    ROUT << "Exchange sync data in threads.." << endl;
+    vector<boost::thread> distThreads;
+    vector<Connection*>& serverList = instance->sm.getConnectionList();
+    for (unsigned int serverIdx = 0; serverIdx < serverList.size();
+         ++serverIdx) {
+      distThreads.push_back(boost::thread(
+          &DistributionTaskManager::syncDataStateThread, this,
+          serverList[serverIdx], distParams, distributionName, distData));
+    }
+
+    ROUT << "Join threads..." << endl;
+    for (unsigned int serverIdx = 0; serverIdx < serverList.size();
+         ++serverIdx) {
+      distThreads[serverIdx].join();
+
+      ROUT << "Requesting Data.." << endl;
+      // 5. Request updated Snapshots
+      string tempData;
+      if (serverList[serverIdx]->kvsConn->requestDistribution(distributionName,
+                                                              tempData)) {
+        // 6.Merge Updates into distCopy
+
+        ROUT << "Merge data..." << endl;
+        Distribution* tempDist = Distribution::getInstance(tempData);
+
+        debugPath = instance->getRestructureFilePath(
+            "id_state_sync_" + stringutils::int2str(serverIdx) + "_mid");
+        SaveDebugFile(debugPath, tempDist);
+
+        if (tempDist) {
+          current->addMaxGlobalIds(tempDist, serverList[serverIdx]->id);
+
+          delete tempDist;
+        }
+      }
+    }
+
+    debugPath = instance->getRestructureFilePath("id_state_sync_after");
+    SaveDebugFile(debugPath, current);
+    ROUT << "Debug saved snapshot:" << debugPath << endl;
+
+    delete distCopy;
+    ROUT << "Sync finished ...(" << DebugTime() << ")" << endl;
+  }
+}
+
+void DistributionTaskManager::syncDataStateThread(
+    Connection* server, vector<DistributionParameter> distParams,
+    string distName, string distData) {
+  // 3. Send Snapshot
+  server->kvsConn->sendDistributionUpdate(distName, distData);
+
+  // 4. Update Snapshot on Clients
+  for (unsigned int distIdx = 0; distIdx < distParams.size(); ++distIdx) {
+    server->exec("query " + distParams[distIdx].targetRelation +
+                 " feed kvsFilter['" + distName +
+                 "', GeoData, GlobalId, TRUE] count");
   }
 }
 }

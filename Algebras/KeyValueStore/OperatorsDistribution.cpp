@@ -69,6 +69,11 @@ ListExpr kvsServerIdTM(ListExpr args) {
         "[,requestOnly])].");
   }
 
+  if (!kvsIPC->connected()) {
+    return listutils::typeError(
+        "IPC-Connection Error: Not connected to Key-Value Store application.");
+  }
+
   ListExpr distname;
 
   if (FText::checkType(firstType)) {
@@ -135,17 +140,24 @@ int kvsServerIdVM(Word* args, Word& result, int message, Word& local,
           Rectangle<2>* mbb = (Rectangle<2>*)args[1].addr;
 
           double coords[4];
-          coords[0] = mbb->MinD(0);
-          coords[1] = mbb->MinD(1);
-          coords[2] = mbb->MaxD(0);
-          coords[3] = mbb->MaxD(1);
+          coords[0] = mbb->MinD(0) * 1000;
+          coords[1] = mbb->MinD(1) * 1000;
+          coords[2] = mbb->MaxD(0) * 1000;
+          coords[3] = mbb->MaxD(1) * 1000;
 
+          // cout<<"distAddRect"<<endl;
           if (kvsIPC->distAddRect(distRef, 4, coords, outputSet, requestOnly)) {
             if (outputSet->size() > 0) {
               res->iter = res->outputServerIds.begin();
               local.addr = res;
               return 0;
+            } else {
+              cout << "Error: 0 results" << endl;
+              // getchar();
             }
+          } else {
+            cout << "Error: distAddRect failed" << endl;
+            // getchar();
           }
         } else if (CcInt::checkType(inputType)) {
           CcInt* val = static_cast<CcInt*>(args[1].addr);
@@ -158,9 +170,10 @@ int kvsServerIdVM(Word* args, Word& result, int message, Word& local,
               return 0;
             }
           }
+        } else {
+          cout << "Error: Handling input type failed.\n";
         }
 
-        cout << "Error: Handling input type failed.\n";
       } else {
         cout << "Error: Distribution couldn't be loaded.\n";
       }
@@ -222,35 +235,258 @@ int kvsSaveDistVM(Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
   CcBool* res = static_cast<CcBool*>(result.addr);
 
-  // Distribution
-  Distribution* dist = static_cast<Distribution*>(args[0].addr);
+  if (!kvsIPC->connected()) {
+    // Distribution
+    Distribution* dist = static_cast<Distribution*>(args[0].addr);
 
-  int noSons = qp->GetNoSons(s);
-  string distributionName =
-      static_cast<FText*>(args[noSons - 1].addr)->GetValue();
+    int noSons = qp->GetNoSons(s);
+    string distributionName =
+        static_cast<FText*>(args[noSons - 1].addr)->GetValue();
 
-  int distRef = kvsIPC->getDistributionRef(distributionName);
-  if (distRef < 0) {
-    distRef =
-        kvsIPC->getDistributionRef(distributionName, dist->type, dist->toBin());
+    int distRef = kvsIPC->getDistributionRef(distributionName);
+    if (distRef < 0) {
+      distRef = kvsIPC->getDistributionRef(distributionName, dist->type,
+                                           dist->toBin());
+    }
+
+    if (distRef >= 0) {
+      string data;
+
+      if (kvsIPC->getDistributionData(distRef, &data)) {
+        if (dist->fromBin(data)) {
+          qp->SetModified(qp->GetSon(s, 0));
+          res->Set(true, true);
+
+          return 0;
+        }
+      }
+    }
+
+    cout << "Error: Couldn't load distribution." << endl;
+  } else {
+    cout << "Error: No IPC-Connection" << endl;
   }
 
-  if (distRef >= 0) {
-    string data;
+  res->Set(true, false);
 
-    if (kvsIPC->getDistributionData(distRef, &data)) {
-      if (dist->fromBin(data)) {
-        qp->SetModified(qp->GetSon(s, 0));
-        res->Set(true, true);
+  return 0;
+}
 
-        return 0;
-      }
+//_ kvsFilter( {distribution, distributionName} ,region ,globalId
+//[,updateDistribution] )
+
+ListExpr kvsFilterTM(ListExpr args) {
+  if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
+    return listutils::typeError(
+        "4 OR 5 arguments expected. [stream (tuple (...)) x  distribution x "
+        "region x int x bool = _ ({distribution, distributionName} ,region "
+        ",globalId [,updateDistribution])].");
+  }
+
+  ListExpr firstType = nl->First(nl->First(args));
+  if (!Stream<Tuple>::checkType(firstType)) {
+    return listutils::typeError(
+        "1st argument should be stream (tuple (...)). [stream (tuple (...)) x  "
+        "distribution x region x int x bool = _ ({distribution, "
+        "distributionName} ,region ,globalId [,updateDistribution])].");
+  }
+
+  ListExpr secondType = nl->First(nl->Second(args));
+  if (!FText::checkType(secondType) && !Distribution::checkType(secondType)) {
+    return listutils::typeError(
+        "2nd argument should be distribution OR text. [stream (tuple (...)) x  "
+        "distribution x region x int x bool = _ ({distribution, "
+        "distributionName} ,region ,globalId [,updateDistribution])].");
+  }
+
+  ListExpr thirdType = nl->First(nl->Third(args));
+  if (nl->AtomType(thirdType) != SymbolType) {
+    return listutils::typeError(
+        "3rd argument should be symbol. [stream (tuple (...)) x  distribution "
+        "x region x int x bool = _ ({distribution, distributionName} ,region "
+        ",globalId [,updateDistribution])].");
+  }
+
+  ListExpr fouthType = nl->First(nl->Fourth(args));
+  if (nl->AtomType(fouthType) != SymbolType) {
+    return listutils::typeError(
+        "4th argument should be symbol. [stream (tuple (...)) x  distribution "
+        "x region x int x bool = _ ({distribution, distributionName} ,region "
+        ",globalId [,updateDistribution])].");
+  }
+
+  if (nl->HasLength(args, 5)) {
+    ListExpr fifthType = nl->First(nl->Fifth(args));
+    if (!CcBool::checkType(fifthType)) {
+      return listutils::typeError(
+          "5th argument should be bool. [stream (tuple (...)) x  distribution "
+          "x region x int x bool = _ ({distribution, distributionName} ,region "
+          ",globalId [,updateDistribution])].");
     }
   }
 
-  cout << "Error: Couldn't load distribution.\n";
-  res->Set(true, false);
+  if (!kvsIPC->connected()) {
+    return listutils::typeError(
+        "IPC-Connection Error: Not connected to Key-Value Store application.");
+  }
 
+  ListExpr dist_name;
+  if (FText::checkType(secondType)) {
+    dist_name = nl->Second(nl->Second(args));  // ((text 'distname')...)
+  } else {
+    dist_name = nl->TextAtom(nl->SymbolValue(
+        nl->Second(nl->Second(args))));  // ( (..) (distribution distname))
+  }
+
+  // cout<<"Debug:"<<nl->ToString(args)<<endl;
+  // Debug:(((stream (tuple ((Osm_id string) (Name string) (Type string)
+  // (GeoData region) (ServerId int)))) (extendstream (head (feed Buildings) 1)
+  // ((ServerId (fun (tuple1 TUPLE) (kvsServerId testdist4 (bbox (attr tuple1
+  // GeoData)) TRUE)))))) (ServerId ServerId))
+
+  ListExpr tuple_desc = nl->Second(nl->First(nl->First(args)));
+  if (nl->IsEqual(nl->First(tuple_desc), Tuple::BasicType()) &&
+      nl->ListLength(tuple_desc) == 2) {
+    ListExpr attrL = nl->Second(tuple_desc);
+
+    // cout<<"tuple_desc: "<<nl->ToString(tuple_desc)<<"\n";
+    // cout<<"attrL:"<<nl->ToString(attrL)<<"\n";
+
+    if (IsTupleDescription(attrL)) {
+      string geo_attr_name = nl->SymbolValue(thirdType);
+      string id_attr_name = nl->SymbolValue(fouthType);
+
+      ListExpr attrType;
+      int geo_attr_index = FindAttribute(attrL, geo_attr_name, attrType);
+      int id_attr_index = FindAttribute(attrL, id_attr_name, attrType);
+
+      if (geo_attr_index > 0 && id_attr_index > 0) {
+        return nl->ThreeElemList(
+            nl->SymbolAtom(Symbol::APPEND()),
+            nl->ThreeElemList(nl->IntAtom(geo_attr_index),
+                              nl->IntAtom(id_attr_index), dist_name),
+            nl->First(nl->First(args)));  // return input stream
+      } else {
+        return listutils::typeError(
+            "input not as expected: Attributes not found in tuple...");
+      }
+    } else {
+      return listutils::typeError(
+          "input not as expected: Tuple description not recognized...");
+    }
+  } else {
+    return listutils::typeError(
+        "input not as expected: TupleType not recognized...");
+  }
+}
+
+int kvsFilterVM(Word* args, Word& result, int message, Word& local,
+                Supplier s) {
+  class FilterLocal {
+   public:
+    FilterLocal(Address streamAddr, int distRef)
+        : distRef(distRef),
+          inTupleStream(streamAddr),
+          filtered(0),
+          notfiltered(0) {}
+    int distRef;
+    Stream<Tuple> inTupleStream;
+
+    int filtered, notfiltered;
+  };
+
+  FilterLocal* filter = static_cast<FilterLocal*>(local.addr);
+
+  switch (message) {
+    case OPEN: {
+      delete filter;
+
+      int noSons = qp->GetNoSons(s);
+
+      // Distribution:
+      string distributionName =
+          static_cast<FText*>(args[noSons - 1].addr)->GetValue();
+      int distRef = kvsIPC->getDistributionRef(distributionName);
+      if (distRef < 0) {
+        ListExpr distributionType = qp->GetSupplierTypeExpr(qp->GetSon(s, 1));
+        if (Distribution::checkType(distributionType)) {
+          Distribution* dist = static_cast<Distribution*>(args[1].addr);
+
+          distRef = kvsIPC->getDistributionRef(distributionName, dist->type,
+                                               dist->toBin());
+        } else {
+          cout << "Error: No Distribution specified";
+          return CANCEL;
+        }
+      }
+
+      if (distRef >= 0) {
+        filter = new FilterLocal(args[0].addr, distRef);
+        filter->inTupleStream.open();
+
+        local.addr = filter;
+        return 0;
+      } else {
+        local.addr = 0;
+        return CANCEL;
+      }
+    }
+    case REQUEST: {
+      if (filter != 0) {
+        int noSons = qp->GetNoSons(s);
+
+        int geoAttrIndex = ((CcInt*)(args[noSons - 3].addr))->GetIntval() - 1;
+        int idAttrIndex = ((CcInt*)(args[noSons - 2].addr))->GetIntval() - 1;
+        bool updateDistribution = false;
+        if (noSons == 5 + 3) {
+          updateDistribution = ((CcBool*)(args[4].addr))->GetValue();
+        }
+
+        Tuple* tuple;
+
+        cout << "kvsFilter: Starting to process stream..." << endl;
+        while ((tuple = filter->inTupleStream.request()) != 0) {
+          const Rectangle<2> mbb =
+              static_cast<Region*>(tuple->GetAttribute(geoAttrIndex))
+                  ->BoundingBox();
+          const unsigned int globalId =
+              static_cast<CcInt*>(tuple->GetAttribute(idAttrIndex))->GetValue();
+
+          double coords[4];
+
+          coords[0] = mbb.MinD(0) * 1000;
+          coords[1] = mbb.MinD(1) * 1000;
+          coords[2] = mbb.MaxD(0) * 1000;
+          coords[3] = mbb.MaxD(1) * 1000;
+
+          set<int> results;
+          if (kvsIPC->distFilter(filter->distRef, 4, coords, globalId,
+                                 updateDistribution)) {
+            filter->notfiltered++;
+            result.addr = tuple;
+            return YIELD;
+          } else {
+            filter->filtered++;
+          }
+        }
+
+        filter->inTupleStream.close();
+
+        cout << "Finished kvsFilter - filtered:" << filter->filtered
+             << " not filtered:" << filter->notfiltered << endl;
+
+        delete filter;
+        local.addr = 0;
+      }
+      result.addr = 0;
+      return CANCEL;
+    }
+    case CLOSE: {
+      delete filter;
+      local.addr = 0;
+    }
+      return 0;
+  }
   return 0;
 }
 }

@@ -66,6 +66,7 @@ class KeyValueStore {
   bool updateServerList(string separatedList);
   bool retryConnection(unsigned int index);
   string serverInformationString();
+  void setDatabase(string databaseName);
   string useDatabase(string databaseName);
 
   int tryRestructureLock();
@@ -85,7 +86,14 @@ class KeyValueStore {
 
   bool distAddRect(int refId, int nrcoords, double* coords, set<int>* resultIds,
                    bool requestOnly);
+  bool distAddRectDebug(int refId, int nrcoords, double* coords,
+                        set<int>* resultIds, bool requestOnly);
   bool distAddInt(int refId, int value, set<int>* resultIds, bool requestOnly);
+
+  bool distFilter(const int& refId, const int& nrcoords, double* coords,
+                  const unsigned int& globalId, const bool& update);
+
+  bool qtDistinct(const int& refId, const double& x, const double& y);
 
   void lockRemove();
   void unlockRemove();
@@ -95,6 +103,8 @@ class KeyValueStore {
   string getSCPTransferPath();
   string getSCPSourcePath();
   unsigned int getTransferId();
+
+  unsigned int getGlobalTupelId();
 
   // should be executed AFTER task was added
   void startDistributionThread();
@@ -134,6 +144,9 @@ class KeyValueStore {
   map<int, Distribution*> distributionsMap;
   map<int, string> distributionsIdNameMap;
   map<string, int> distributionsNameIdMap;
+
+  unsigned int globalTupelId;
+  boost::mutex globalTupelIdMutex;
 };
 }
 

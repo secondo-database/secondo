@@ -73,7 +73,7 @@ class TransferMethodTCP : public TransferMethod {
   void changeConnection(Connection* connection);
 
  private:
-  static const int MAX_BUFFER_SIZE = 1440;
+  static const int MAX_BUFFER_SIZE = 32 * 1024;  // 1440;
 
   char buffer[MAX_BUFFER_SIZE];
   unsigned int bufferPos;

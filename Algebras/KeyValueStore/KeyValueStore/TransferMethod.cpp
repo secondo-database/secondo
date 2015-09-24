@@ -188,7 +188,8 @@ bool TransferMethodTCP::endStream() {
 
   int transferredTuples = connection->kvsConn->transferCount(transferId);
 
-  KOUT << "Stream Ended..\n";
+  KOUT << "Stream Ended comparring transferredTuples = " << transferredTuples
+       << " vs tupleCounter = " << tupleCounter << endl;
   return (transferredTuples == tupleCounter);
 }
 
@@ -197,7 +198,9 @@ bool TransferMethodTCP::cleanUp() {
 }
 
 bool TransferMethodTCP::import(string targetRelation, string clientCommand) {
+  // KOUT<<"calling import"<<endl;
   if (tupleCounter > 0) {
+    // KOUT<<"relationExists?"<<endl;
     if (creationCheck && !connection->relationExists(targetRelation)) {
       if (connection->exec("let " + targetRelation + " = kvsRemoteStream(" +
                            stringutils::int2str(transferId) + ") project[" +
@@ -212,12 +215,14 @@ bool TransferMethodTCP::import(string targetRelation, string clientCommand) {
         return false;
       }
     }
+    // KOUT<<"kvsRemoteStream"<<endl;
 
-    return connection->exec("query kvsRemoteStream(" +
-                            stringutils::int2str(transferId) + ") project[" +
-                            baseAttributeList + "] " + targetRelation +
-                            " insert " + clientCommand);
+    return connection->exec(
+        "query kvsRemoteStream(" + stringutils::int2str(transferId) +
+        ") project[" + baseAttributeList + "] sort " + targetRelation +
+        " feed sort mergediff " + targetRelation + " insert " + clientCommand);
   } else {
+    KOUT << "no touples" << endl;
     return true;
   }
 }

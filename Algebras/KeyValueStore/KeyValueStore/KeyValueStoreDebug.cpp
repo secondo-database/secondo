@@ -54,8 +54,9 @@ void SaveDebugQuadNode(ofstream& out, QuadNode* node) {
   if (node == 0) {
     out << "0 ";
   } else {
-    out << "\n((" << node->x << " " << node->y << " " << node->width << " "
-        << node->height << " " << node->weight << " " << node->serverId << ") ";
+    out << "\r\n((" << node->x << " " << node->y << " " << node->width << " "
+        << node->height << " " << node->weight << " " << node->serverId << " "
+        << node->maxGlobalId << ") ";
     SaveDebugQuadNode(out, node->children[0]);
     SaveDebugQuadNode(out, node->children[1]);
     SaveDebugQuadNode(out, node->children[2]);
@@ -67,20 +68,20 @@ void SaveDebugQuadNode(ofstream& out, QuadNode* node) {
 void SaveDebugFile(string path, QuadTreeDistribution* dist) {
   ofstream out(path);
   if (out.is_open()) {
-    out << "\n\n\n\n(" << dist->initialWidth << " " << dist->initialHeight
-        << "\n(";
+    out << "\r\n\r\n\r\n\r\n(" << dist->initialWidth << " "
+        << dist->initialHeight << "\r\n(";
 
-    for (unsigned int serverIdx = 0; serverIdx < dist->serverIdMapping.size();
+    for (unsigned int serverIdx = 0; serverIdx < dist->serverIdOrder.size();
          ++serverIdx) {
       if (serverIdx > 0) {
         out << " ";
       }
-      out << dist->serverIdMapping[serverIdx];
+      out << dist->serverIdOrder[serverIdx];
     }
-    out << ")\n";
-    out << "(\n";
+    out << ")\r\n";
+    out << "(\r\n";
     SaveDebugQuadNode(out, dist->root);
-    out << "\n)";
+    out << "\r\n)";
   }
 }
 

@@ -25,6 +25,7 @@ operator kvsRemove alias KVSREMOVE pattern op (_)
 operator kvsReconnect alias KVSRECONNECT pattern op (_)
 operator kvsUpdateServerList alias KVSUPDATESERVERLIST pattern op (_)
 operator kvsSyncServerList alias KVSSYNCSERVERLIST pattern op()
+operator kvsSetDatabase alias KVSSETDATABASE pattern op (_)
 operator kvsUseDatabase alias KVSUSEDATABASE pattern op (_)
 operator kvsList alias KVSLIST pattern op()
 
@@ -36,18 +37,21 @@ operator qtserveridLocal alias QTSERVERIDLOCAL pattern op (_, _)
 operator qtserverid alias QTSERVERID pattern op (_, _)
 operator qtintersectsLocal alias QTINTERSECTSLOCAL pattern op (_, _, _)
 operator qtintersects alias QTINTERSECTS pattern op (_, _, _)
+operator qtDistinct alias QTDISTINCT pattern op (_, _)
 
 #
 #DISTRIBUTION
 #
 operator kvsServerId alias KVSSERVERID pattern op (_, _, _)
 operator kvsSaveDist alias KVSSAVEDIST pattern op (_)
+operator kvsFilter alias KVSFILTER pattern _ op [_, _, _, _]
 
 #
 #KEY VALUE STORE
 #
 operator kvsStartApp alias KVSSTARTAPP pattern op()
 operator kvsTransferId alias KVSTRANSFERID pattern op()
+operator kvsGlobalId alias KVSGLOBALID pattern op()
 operator kvsInitClients alias KVSINITCLIENTS pattern op(_, _, _)
 operator kvsStartClient alias KVSSTARTCLIENT pattern op (_)
 operator kvsStopClient alias KVSSTOPCLIENT pattern op (_)

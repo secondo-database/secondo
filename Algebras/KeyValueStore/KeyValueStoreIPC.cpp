@@ -48,7 +48,7 @@ KeyValueStoreIPC::~KeyValueStoreIPC() {
     if (connection->health()) {
       connection->write(IPC_MSG_CLOSECONNECTION);
     }
-    connection->close();
+    delete connection;
   }
 }
 
@@ -110,8 +110,11 @@ bool KeyValueStoreIPC::connect(string execPath) {
   return connection != 0;
 }
 
+bool KeyValueStoreIPC::connected() { return (connection != 0); }
+
 bool KeyValueStoreIPC::cmd(IPCMessage msg) {
   if (connection) {
+    // cout<<"Message:"<<msg<<endl;
     connection->write(msg);
     return true;
   } else {
@@ -132,6 +135,17 @@ bool KeyValueStoreIPC::getResult(bool* res) {
 }
 
 bool KeyValueStoreIPC::getResult(int* res) {
+  IPCMessage responseType;
+  connection->read(&responseType);
+  if (responseType == IPC_MSG_RESULT) {
+    return connection->read(res);
+  } else {
+    cout << "Error: Wrong IPC response type.\n";
+  }
+  return false;
+}
+
+bool KeyValueStoreIPC::getResult(unsigned int* res) {
   IPCMessage responseType;
   connection->read(&responseType);
   if (responseType == IPC_MSG_RESULT) {
@@ -297,6 +311,27 @@ string KeyValueStoreIPC::getInformationString() {
   return "";
 }
 
+bool KeyValueStoreIPC::setDatabase(string databaseName) {
+  if (connection) {
+    connection->write(IPC_MSG_SETDATABASE);
+    connection->write(&databaseName);
+
+    IPCMessage responseType;
+    connection->read(&responseType);
+    if (responseType == IPC_MSG_RESULT) {
+      bool result;
+      if (connection->read(&result)) {
+        return result;
+      }
+    } else {
+      cout << "Error: Wrong IPC response type.\n";
+    }
+  } else {
+    cout << "Error: No IPC Connection.\n";
+  }
+  return false;
+}
+
 string KeyValueStoreIPC::useDatabase(string databaseName) {
   if (connection) {
     connection->write(IPC_MSG_USEDATABASE);
@@ -329,7 +364,7 @@ unsigned int KeyValueStoreIPC::getTransferId() {
       if (connection->read(&result)) {
         return result;
       } else {
-        return -1;
+        return 0;
       }
     } else {
       cout << "Error: Wrong IPC response type.\n";
@@ -337,7 +372,17 @@ unsigned int KeyValueStoreIPC::getTransferId() {
   } else {
     cout << "Error: No IPC Connection.\n";
   }
-  return -1;
+  return 0;
+}
+
+unsigned int KeyValueStoreIPC::getGlobalTupelId() {
+  if (cmd(IPC_MSG_GLOBALTUPELID)) {
+    unsigned int globalTupelId = 0;
+    if (getResult(&globalTupelId)) {
+      return globalTupelId;
+    }
+  }
+  return 0;
 }
 
 bool KeyValueStoreIPC::initClients(string localIp, int localInterfacePort,
@@ -405,26 +450,16 @@ bool KeyValueStoreIPC::stopClient(int port) {
 }
 
 bool KeyValueStoreIPC::setId(int id) {
-  if (connection) {
-    connection->write(IPC_MSG_SETID);
+  if (cmd(IPC_MSG_SETID)) {
     connection->write(&id);
 
-    IPCMessage responseType;
-    connection->read(&responseType);
-    if (responseType == IPC_MSG_RESULT) {
-      bool result = false;
-      if (connection->read(&result)) {
-        if (result) {
-          localId = id;
-        }
-
-        return result;
+    bool result = false;
+    if (getResult(&result)) {
+      if (result) {
+        localId = id;
       }
-    } else {
-      cout << "Error: Wrong IPC response type.\n";
+      return result;
     }
-  } else {
-    cout << "Error: No IPC Connection.\n";
   }
   return false;
 }
@@ -486,49 +521,27 @@ bool KeyValueStoreIPC::unlockRestructureLock() {
 }
 
 int KeyValueStoreIPC::getDistributionRef(string name) {
-  if (connection) {
-    connection->write(IPC_MSG_DISTRIBUTIONREF);
+  if (cmd(IPC_MSG_DISTRIBUTIONREF)) {
     connection->write(&name);
 
-    IPCMessage responseType;
-    connection->read(&responseType);
-    if (responseType == IPC_MSG_RESULT) {
-      int result;
-      if (connection->read(&result)) {
-        return result;
-      } else {
-        return -1;
-      }
-    } else {
-      cout << "Error: Wrong IPC response type.\n";
+    int result = -1;
+    if (getResult(&result)) {
+      return result;
     }
-  } else {
-    cout << "Error: No IPC Connection.\n";
   }
   return -1;
 }
 
 int KeyValueStoreIPC::getDistributionRef(string name, int typeId, string data) {
-  if (connection) {
-    connection->write(IPC_MSG_DISTRIBUTIONREFSET);
+  if (cmd(IPC_MSG_DISTRIBUTIONREFSET)) {
     connection->write(&name);
     connection->write(&typeId);
     connection->write(&data);
 
-    IPCMessage responseType;
-    connection->read(&responseType);
-    if (responseType == IPC_MSG_RESULT) {
-      int result;
-      if (connection->read(&result)) {
-        return result;
-      } else {
-        return -1;
-      }
-    } else {
-      cout << "Error: Wrong IPC response type.\n";
+    int result = -1;
+    if (getResult(&result)) {
+      return result;
     }
-  } else {
-    cout << "Error: No IPC Connection.\n";
   }
   return -1;
 }
@@ -590,14 +603,28 @@ bool KeyValueStoreIPC::qtDistRequest(int refId, int nrcoords, double* coords,
   }
 }
 
+bool KeyValueStoreIPC::qtDistinct(int refId, double x, double y) {
+  if (cmd(IPC_MSG_QTDISTINCT)) {
+    connection->write(&refId);
+    connection->write(&x);
+    connection->write(&y);
+
+    bool result = false;
+    if (getResult(&result)) {
+      return result;
+    }
+  }
+  return false;
+}
+
 bool KeyValueStoreIPC::distAddRect(int refId, int nrcoords, double* coords,
                                    set<int>* resultIds, bool requestOnly) {
   if (cmd(IPC_MSG_ADDDISTRIBUTIONRECT)) {
-    connection->write(&refId);
-    connection->write(&requestOnly);
-    connection->write(&nrcoords);
+    assert(connection->write(&refId));
+    assert(connection->write(&requestOnly));
+    assert(connection->write(&nrcoords));
     for (int i = 0; i < nrcoords; ++i) {
-      connection->write((char*)&coords[i], sizeof(double));
+      assert(connection->write((char*)&coords[i], sizeof(double)));
     }
     return getResult(resultIds);
   } else {
@@ -616,6 +643,30 @@ bool KeyValueStoreIPC::distAddInt(int refId, int value, set<int>* resultIds,
   } else {
     return false;
   }
+}
+
+bool KeyValueStoreIPC::distFilter(const int& refId, const int& nrcoords,
+                                  double* coords, const unsigned int& globalId,
+                                  const bool& update) {
+  if (cmd(IPC_MSG_FILTERDISTRIBUTION)) {
+    assert(connection->write(&refId));
+    assert(connection->write(&update));
+    assert(connection->write(&globalId));
+    assert(connection->write(&nrcoords));
+
+    assert(nrcoords == 4);
+
+    for (int i = 0; i < nrcoords; ++i) {
+      assert(connection->write((char*)&coords[i], sizeof(double)));
+    }
+
+    bool result = false;
+    if (getResult(&result)) {
+      return result;
+    }
+  }
+
+  return false;
 }
 
 /*bool KeyValueStoreIPC::qtDistAdd(int refId, int nrcoords, double* coords,

@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "QuadTreeDistributionType.h"
 
+#include "KeyValueStoreDebug.h"
+
 namespace KVS {
 
 KeyValueStore::KeyValueStore(string appPath)
@@ -43,7 +45,8 @@ KeyValueStore::KeyValueStore(string appPath)
       transferId(0),
       distributionThreadRunning(false),
       distributionThread(0),
-      distributionId(0) {
+      distributionId(0),
+      globalTupelId(0) {
   localKvsPort = 0;
   localInterfacePort = 0;
 }
@@ -94,7 +97,7 @@ string KeyValueStore::getRestructureFilePath(string suffix) {
   struct tm* timeparts = localtime(&now);
 
   char buffer[32];
-  strftime(buffer, 32, "%Y%m%d%H%M%S ", timeparts);
+  strftime(buffer, 32, "%Y%m%d_%H%M%S ", timeparts);
 
   string resultBasePath(getRestructurePath() + PATH_SLASH + string(buffer));
 
@@ -120,6 +123,12 @@ bool KeyValueStore::setMaster(string host, int interfacePort, int kvsPort) {
 
     delete masterConn;
   }
+
+  KOUT << "Setting master..." << endl;
+
+  localHost = host;
+  localInterfacePort = interfacePort;
+  localKvsPort = kvsPort;
 
   masterConn =
       new Connection(host, interfacePort, kvsPort, "SecondoConfig.ini");
@@ -164,6 +173,12 @@ unsigned int KeyValueStore::getTransferId() {
   }*/
 
   return transferId;
+}
+
+unsigned int KeyValueStore::getGlobalTupelId() {
+  boost::lock_guard<boost::mutex> guard(globalTupelIdMutex);
+  globalTupelId++;
+  return globalTupelId;
 }
 
 void KeyValueStore::startDistributionThread() {
@@ -261,10 +276,15 @@ string KeyValueStore::serverInformationString() {
   return output.str();
 }
 
+void KeyValueStore::setDatabase(string databaseName) {
+  currentDatabaseName = databaseName;
+  KOUT << "Setting current db:" << currentDatabaseName << endl;
+}
+
 string KeyValueStore::useDatabase(string databaseName) {
   vector<Connection*> connList(sm.getConnectionList());
 
-  KOUT << "Changing client databases...\n";
+  KOUT << "Changing client databases..." << endl;
 
   // data
   int errResult;
@@ -273,6 +293,8 @@ string KeyValueStore::useDatabase(string databaseName) {
   stringstream output;
 
   currentDatabaseName = databaseName;
+
+  cout << "Setting current db:" << currentDatabaseName << endl;
 
   string openCmd("open database ");
   openCmd += databaseName;
@@ -296,7 +318,7 @@ int KeyValueStore::tryRestructureLock() {
   if (masterConn) {
     return masterConn->kvsConn->tryRestructureLock(id);
   } else {
-    KOUT << "Error: Master-Server unknown.\n";
+    KOUT << "Error: Master-Server unknown.<<endl";
     return -1;
   }
 }
@@ -305,7 +327,7 @@ bool KeyValueStore::updateRestructureLock() {
   if (masterConn) {
     return masterConn->kvsConn->updateRestructureLock();
   } else {
-    KOUT << "Error: Master-Server unknown.\n";
+    KOUT << "Error: Master-Server unknown.<<endl";
     return -1;
   }
 }
@@ -314,7 +336,7 @@ bool KeyValueStore::unlockRestructureLock() {
   if (masterConn) {
     return masterConn->kvsConn->unlockRestructureLock(id);
   } else {
-    KOUT << "Error: Master-Server unknown.\n";
+    KOUT << "Error: Master-Server unknown.<<endl";
     return -1;
   }
 }
@@ -433,6 +455,33 @@ bool KeyValueStore::distAddRect(int refId, int nrcoords, double* coords,
   }
 }
 
+bool KeyValueStore::distAddRectDebug(int refId, int nrcoords, double* coords,
+                                     set<int>* resultIds, bool requestOnly) {
+  map<int, Distribution*>::iterator item = distributionsMap.find(refId);
+
+  cout << "calling distAddRectDebug" << endl;
+
+  if (item != distributionsMap.end()) {
+    Distribution* dist = item->second;
+    boost::lock_guard<boost::mutex> guard(dist->syncMutex);
+
+    string debugPath = getRestructureFilePath("error");
+    SaveDebugFile(debugPath, dist);
+
+    if (requestOnly) {
+      cout << "calling request" << endl;
+      dist->requestDebug(nrcoords, coords, resultIds);
+    } else {
+      cout << "calling add" << endl;
+      dist->addDebug(nrcoords, coords, resultIds);
+    }
+
+    return true;
+  } else {
+    return false;
+  }
+}
+
 bool KeyValueStore::distAddInt(int refId, int value, set<int>* resultIds,
                                bool requestOnly) {
   map<int, Distribution*>::iterator item = distributionsMap.find(refId);
@@ -455,6 +504,40 @@ bool KeyValueStore::distAddInt(int refId, int value, set<int>* resultIds,
   } else {
     return false;
   }
+}
+
+bool KeyValueStore::distFilter(const int& refId, const int& nrcoords,
+                               double* coords, const unsigned int& globalId,
+                               const bool& update) {
+  map<int, Distribution*>::iterator item = distributionsMap.find(refId);
+
+  if (item != distributionsMap.end()) {
+    Distribution* dist = (Distribution*)item->second;
+    boost::lock_guard<boost::mutex> guard(dist->syncMutex);
+
+    return dist->filter(nrcoords, coords, globalId, update);
+  } else {
+    return false;
+  }
+}
+
+bool KeyValueStore::qtDistinct(const int& refId, const double& x,
+                               const double& y) {
+  map<int, Distribution*>::iterator item = distributionsMap.find(refId);
+
+  if (item != distributionsMap.end()) {
+    Distribution* dist = (Distribution*)item->second;
+    boost::lock_guard<boost::mutex> guard(dist->syncMutex);
+
+    if (dist->type == Distribution::TYPE_QUADTREE) {
+      QuadTreeDistribution* qtd = (QuadTreeDistribution*)dist;
+
+      return (id == qtd->pointId(x, y));
+    } else {
+      KOUT << "Error: qtDistinct wrong type" << endl;
+    }
+  }
+  return false;
 }
 
 bool KeyValueStore::initClients(string localIp, int localInterfacePort,
@@ -516,7 +599,7 @@ bool KeyValueStore::execCommand(string command) {
   for (unsigned int serverIdx = 0; serverIdx < serverList.size(); ++serverIdx) {
     int error = 0;
     string result;
-    KOUT << "Server " << serverIdx << ":\n";
+    KOUT << "Server " << serverIdx << ":" << endl;
     serverList[serverIdx]->simpleCommand(command, error, result);
     if (error != 0) {
       KOUT << "Command failed:" << result << endl;
@@ -537,9 +620,10 @@ bool KeyValueStore::startClient(int port) {
           Socket::CreateGlobal("localhost", stringutils::int2str(port));
 
       if (gate && gate->IsOk()) {
-        localHost = gate->GetSocketAddress();
+        // ToDo: Doesnt work.
+        // localHost = gate->GetSocketAddress();
 
-        KOUT << left << setw(5) << port << ": Created gate.\n";
+        KOUT << left << setw(5) << port << ": Created gate." << endl;
         listenThreads.insert(make_pair(
             port, make_pair(new boost::thread(&KeyValueStore::listenThread,
                                               this, port, gate),
@@ -547,11 +631,11 @@ bool KeyValueStore::startClient(int port) {
         return true;
       }
     } else {
-      KOUT << left << setw(5) << port << ": Client already started.\n";
+      KOUT << left << setw(5) << port << ": Client already started." << endl;
       return true;
     }
 
-    KOUT << left << setw(5) << port << ": startClient failed.\n";
+    KOUT << left << setw(5) << port << ": startClient failed." << endl;
   }
   return false;
 }
@@ -621,7 +705,7 @@ void KeyValueStore::connectionThread(Socket* client) {
             iosock.read(tempTypeBuffer, typeLen);
 
             string streamType = tempTypeBuffer;
-            delete tempTypeBuffer;
+            delete[] tempTypeBuffer;
 
             stream->setStreamType(streamType);
 
@@ -658,6 +742,8 @@ void KeyValueStore::connectionThread(Socket* client) {
           int id;
           iosock.read((char*)&id, sizeof(id));
 
+          // cout<<"Receiving Stream ID:"<<id<<endl;
+
           NetworkStream* stream = nsb.createStream(id);
           unsigned int tupleSize = 0;
           char* tupleBuffer = 0;
@@ -688,10 +774,11 @@ void KeyValueStore::connectionThread(Socket* client) {
           iosock.read(tempTypeBuffer, typeLen);
 
           string streamType(tempTypeBuffer, typeLen);
-          delete tempTypeBuffer;
+          delete[] tempTypeBuffer;
           // cout<<"Setting StreamType:"<<streamType<<endl;
           stream->setStreamType(streamType);
         } else if (cmd.compare("<EndRemoteStream>") == 0) {
+          // cout<<"Ending Stream ID:"<<id<<endl;
           int id;
           iosock.read((char*)&id, sizeof(id));
 
@@ -705,6 +792,7 @@ void KeyValueStore::connectionThread(Socket* client) {
           iosock.write((char*)&result, sizeof(result));
           iosock.flush();
         } else if (cmd.compare("<RemoteStreamCount>") == 0) {
+          // cout<<"Counting Stream ID:"<<id<<endl;
           int id;
           iosock.read((char*)&id, sizeof(id));
 
@@ -832,6 +920,7 @@ void KeyValueStore::connectionThread(Socket* client) {
           iosock.write((char*)&result, sizeof(bool));
           iosock.flush();
         } else if (cmd.compare("<RequestDistribution/>") == 0) {
+          cout << "Answering distribution Request..." << endl;
           unsigned int len = 0;
 
           iosock.read((char*)&len, sizeof(len));
@@ -847,7 +936,7 @@ void KeyValueStore::connectionThread(Socket* client) {
 
             len = distDataBuffer.size();
             iosock.write((char*)&len, sizeof(len));
-            iosock.write(distDataBuffer.c_str(), sizeof(len));
+            iosock.write(distDataBuffer.c_str(), len);
           } else {
             // error send 0 len
             len = 0;
@@ -855,6 +944,7 @@ void KeyValueStore::connectionThread(Socket* client) {
           }
 
           iosock.flush();
+          cout << "Finished Answering distribution Request..." << endl;
         } else if (cmd.compare("<RequestSCPPath/>") == 0) {
           iosock << "<RequestSCPPath>" << endl;
           iosock << getSCPTransferPath() << endl;

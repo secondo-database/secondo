@@ -38,6 +38,7 @@ class KeyValueStoreIPC {
 
   bool connect();
   bool connect(string execPath);
+  bool connected();
 
   bool addConnection(string host, int interfacePort, int kvsPort,
                      string config);
@@ -48,9 +49,12 @@ class KeyValueStoreIPC {
   bool syncServerList();
   string getInformationString();
 
+  bool setDatabase(string databaseName);
   string useDatabase(string databaseName);
 
   unsigned int getTransferId();
+
+  unsigned int getGlobalTupelId();
 
   bool initClients(string localIp, int localInterfacePort, int localKvsPort);
 
@@ -78,10 +82,14 @@ class KeyValueStoreIPC {
   int qtDistPointId(int refId, double interx, double intery);
   bool qtDistRequest(int refId, int nrcoords, double* coords,
                      set<int>* resultIds);
+  bool qtDistinct(int refId, double x, double y);
 
   bool distAddRect(int refId, int nrcoords, double* coords, set<int>* resultIds,
                    bool requestOnly);
   bool distAddInt(int refId, int value, set<int>* resultIds, bool requestOnly);
+
+  bool distFilter(const int& refId, const int& nrcoords, double* coords,
+                  const unsigned int& globalId, const bool& update);
 
   string getAppName();
   string getSCPTransferPath();
@@ -95,6 +103,7 @@ class KeyValueStoreIPC {
   bool cmd(IPCMessage msg);
   bool getResult(bool* res);
   bool getResult(int* res);
+  bool getResult(unsigned int* res);
   bool getResult(string* data);
   bool getResult(set<int>* res);
 

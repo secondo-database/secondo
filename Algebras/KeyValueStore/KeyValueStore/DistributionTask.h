@@ -74,6 +74,8 @@ class DistributionTask {
   int process(int n);
   bool finishBatch();
 
+  void setContinueCurrentBatch(bool value);
+
   // Tuple* nextResult();
   void setDistributionCriteria(DistributionCriteria* criteria);
 
@@ -95,6 +97,13 @@ class DistributionTask {
   unsigned int resultIndex;
 
   bool provideResult;
+
+  bool continueCurrentBatch;
+
+  string startTime;
+  unsigned int tupleCounter;
+  unsigned int dataCounter;
+  map<int, int> detailedCounter;
 };
 }
 

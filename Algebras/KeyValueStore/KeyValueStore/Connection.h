@@ -102,12 +102,14 @@ class Connection {
   bool check();
   bool initInterface(string localIp, int localInterfacePort, int localKvsPort,
                      string databaseName);
+  bool setId(int id);
 
   bool exec(string command);
   bool exec(string command, const bool& expected);
   bool exec(string command, const int& expected);
 
   bool relationExists(string relationName);
+  bool updateDistributionObject(string distributionName);
 
   void simpleCommand(string command, int& err, string& result);
   void simpleCommand(string command, int& error, string& errMsg,
@@ -121,6 +123,7 @@ class Connection {
   int interfacePort;
   int kvsPort;
   string config;
+  unsigned int tupleCapacity;
 
   int status;
   SecondoInterfaceCS* interfaceConn;

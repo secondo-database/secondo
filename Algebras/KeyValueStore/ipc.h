@@ -59,8 +59,8 @@ class IPCLoopBuffer {
   int bufferSize;
   int readIndex;
   int writeIndex;
-  unsigned int totalWritten;
-  unsigned int totalRead;
+  unsigned long long int totalWritten;
+  unsigned long long int totalRead;
   char buffer[IPC_QUEUE_BUFFER_SIZE];
 
   bool avail();

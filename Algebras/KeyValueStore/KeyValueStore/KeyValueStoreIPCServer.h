@@ -61,6 +61,8 @@ class KeyValueStoreIPCServer {
 
   KVS::KeyValueStore kvs;
 
+  IPCMessage lastMessage;
+
   ofstream* kvsLogfile;
   ofstream* restructureLogfile;
 };

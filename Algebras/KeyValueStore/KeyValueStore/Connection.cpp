@@ -37,7 +37,6 @@ KVSConnection::KVSConnection(string host, string port)
 KVSConnection::~KVSConnection() { close(); }
 
 bool KVSConnection::connect() {
-  boost::lock_guard<boost::mutex> guard(mtx);
   connection = Socket::Connect(host, port, Socket::SockGlobalDomain);
 
   if (connection && connection->IsOk()) {
@@ -55,18 +54,13 @@ bool KVSConnection::connect() {
 }
 
 bool KVSConnection::check() {
-  bool health = true;
-  mtx.lock();
-  if (!connection || !connection->IsOk()) {
-    health = false;
-  }
-  mtx.unlock();
-
-  if (!health && !connect()) {
-    return false;
-  }
-
   boost::lock_guard<boost::mutex> guard(mtx);
+
+  if (!connection || !connection->IsOk()) {
+    if (!connect()) {
+      return false;
+    }
+  }
 
   string ping;
 
@@ -146,228 +140,290 @@ SyncPseudoQueue<Tuple*>* queue, bool* result) {
 
 bool KVSConnection::sendStream(const int& id, const string& streamType,
                                const vector<pair<char*, unsigned int> >& data) {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<RemoteStream>" << endl;
-    iosock.write((char*)&id, sizeof(id));
-    unsigned int len = streamType.length();
-    iosock.write((char*)&len, sizeof(len));
-    iosock.write((char*)streamType.c_str(), len);
-
-    int sendTupleCount = 0;
-
-    for (unsigned int tupleIdx = 0; tupleIdx < data.size(); ++tupleIdx) {
-      iosock.write((char*)&data[tupleIdx].second, sizeof(unsigned int));
-      iosock.write(data[tupleIdx].first, data[tupleIdx].second);
-
-      sendTupleCount++;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return false;
     }
-
-    unsigned int close = 0;
-    iosock.write((char*)&close, sizeof(close));
-    iosock.flush();
-
-    // get confirmation that all tuple have been received
-
-    int receiveTupleCount = 0;
-
-    iosock.read((char*)&receiveTupleCount, sizeof(receiveTupleCount));
-
-    return (sendTupleCount == receiveTupleCount);
-  } else {
-    return false;
   }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<RemoteStream>" << endl;
+  iosock.write((char*)&id, sizeof(id));
+  unsigned int len = streamType.length();
+  iosock.write((char*)&len, sizeof(len));
+  iosock.write((char*)streamType.c_str(), len);
+
+  int sendTupleCount = 0;
+
+  for (unsigned int tupleIdx = 0; tupleIdx < data.size(); ++tupleIdx) {
+    iosock.write((char*)&data[tupleIdx].second, sizeof(unsigned int));
+    iosock.write(data[tupleIdx].first, data[tupleIdx].second);
+
+    sendTupleCount++;
+  }
+
+  unsigned int close = 0;
+  iosock.write((char*)&close, sizeof(close));
+  iosock.flush();
+
+  // get confirmation that all tuple have been received
+
+  int receiveTupleCount = 0;
+
+  iosock.read((char*)&receiveTupleCount, sizeof(receiveTupleCount));
+
+  return (sendTupleCount == receiveTupleCount);
 }
 
 bool KVSConnection::sendStream(const int& id, const char* data,
                                const unsigned int& dataLen) {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    // cout<<"Sending StreamPart ("<<dataLen<<")"<<endl;
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<RemoteStreamPart>" << endl;
-    iosock.write((char*)&id, sizeof(id));
-    // iosock.write((char*)&dataLen, sizeof(int)); //data should end in 0 so we
-    // don#t need the length
-    iosock.write(data, dataLen);
-    unsigned int close = 0;
-    iosock.write((char*)&close, sizeof(close));
-    iosock.flush();
-    return true;
-  } else {
-    return false;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return false;
+    }
   }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  // cout<<"Sending StreamPart ("<<dataLen<<")"<<endl;
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<RemoteStreamPart>" << endl;
+  iosock.write((char*)&id, sizeof(id));
+  // iosock.write((char*)&dataLen, sizeof(int)); //data should end in 0 so we
+  // don#t need the length
+  iosock.write(data, dataLen);
+  unsigned int close = 0;
+  iosock.write((char*)&close, sizeof(close));
+  iosock.flush();
+  return true;
 }
 
 bool KVSConnection::sendStreamType(const int& id, const string& streamType) {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<RemoteStreamType>" << endl;
-    iosock.write((char*)&id, sizeof(id));
-
-    unsigned int len = streamType.length();
-    iosock.write((char*)&len, sizeof(len));
-    iosock.write(streamType.c_str(), len);
-    iosock.flush();
-    return true;
-  } else {
-    return false;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return false;
+    }
   }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<RemoteStreamType>" << endl;
+  iosock.write((char*)&id, sizeof(id));
+
+  unsigned int len = streamType.length();
+  iosock.write((char*)&len, sizeof(len));
+  iosock.write(streamType.c_str(), len);
+  iosock.flush();
+  return true;
 }
 
 bool KVSConnection::endStream(const int& id) {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<EndRemoteStream>" << endl;
-    iosock.write((char*)&id, sizeof(id));
-    iosock.flush();
-    return true;
-  } else {
-    return false;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return false;
+    }
   }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<EndRemoteStream>" << endl;
+  iosock.write((char*)&id, sizeof(id));
+  iosock.flush();
+  return true;
 }
 unsigned int KVSConnection::transferCount(const int& id) {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<RemoteStreamCount>" << endl;
-    iosock.write((char*)&id, sizeof(id));
-    iosock.flush();
-
-    unsigned int result = 0;
-    iosock.read((char*)&result, sizeof(result));
-    return result;
-  } else {
-    return 0;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return 0;
+    }
   }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<RemoteStreamCount>" << endl;
+  iosock.write((char*)&id, sizeof(id));
+  iosock.flush();
+
+  unsigned int result = 0;
+  iosock.read((char*)&result, sizeof(result));
+  return result;
 }
 
 bool KVSConnection::removeStream(const int& id) {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<RemoveRemoteStream>" << endl;
-    iosock.write((char*)&id, sizeof(id));
-    iosock.flush();
-
-    bool result = false;
-    iosock.read((char*)&result, sizeof(result));
-    return result;
-  } else {
-    return false;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return false;
+    }
   }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<RemoveRemoteStream>" << endl;
+  iosock.write((char*)&id, sizeof(id));
+  iosock.flush();
+
+  bool result = false;
+  iosock.read((char*)&result, sizeof(result));
+  return result;
 }
 
 bool KVSConnection::sendDistributionUpdate(const string& distributionName,
                                            const string& data) {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<SendDistributionUpdate/>" << endl;
-    unsigned int len = 0;
-
-    len = distributionName.length();
-    iosock.write((char*)&len, sizeof(len));
-    iosock.write(distributionName.c_str(), len);
-
-    len = data.length();
-    iosock.write((char*)&len, sizeof(len));
-    iosock.write(data.c_str(), len);
-    iosock.flush();
-
-    bool result = false;
-    iosock.read((char*)&result, sizeof(bool));
-    return result;
-  } else {
-    return false;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return false;
+    }
   }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<SendDistributionUpdate/>" << endl;
+  unsigned int len = 0;
+
+  len = distributionName.length();
+  iosock.write((char*)&len, sizeof(len));
+  iosock.write(distributionName.c_str(), len);
+
+  len = data.length();
+  iosock.write((char*)&len, sizeof(len));
+  iosock.write(data.c_str(), len);
+  iosock.flush();
+
+  bool result = false;
+  iosock.read((char*)&result, sizeof(bool));
+  return result;
 }
 
 bool KVSConnection::requestDistribution(const string& distributionName,
                                         string& data) {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<RequestDistribution/>" << endl;
-
-    unsigned int len = distributionName.length();
-    iosock.write((char*)&len, sizeof(len));
-    iosock.write(distributionName.c_str(), len);
-
-    len = 0;
-    iosock.read((char*)&len, sizeof(len));
-
-    if (len > 0) {
-      char* tempData = new char[len];
-      iosock.read(tempData, len);
-      data.assign(tempData, len);
-      delete[] tempData;
-      return true;
-    } else {
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
       return false;
     }
+  }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<RequestDistribution/>" << endl;
+
+  unsigned int len = distributionName.length();
+  iosock.write((char*)&len, sizeof(len));
+  iosock.write(distributionName.c_str(), len);
+  iosock.flush();
+
+  len = 0;
+  iosock.read((char*)&len, sizeof(len));
+
+  if (len > 0) {
+    char* tempData = new char[len];
+    iosock.read(tempData, len);
+    data.assign(tempData, len);
+    delete[] tempData;
+    return true;
   } else {
     return false;
   }
 }
 
 unsigned int KVSConnection::requestTransferId() {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<RequestTransferId/>" << endl;
-
-    string response;
-
-    getline(iosock, response);
-
-    if (response.compare("<TransferId>") == 0) {
-      unsigned int transferId;
-      iosock.read((char*)&transferId, sizeof(transferId));
-      return transferId;
-    } else {
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
       return 0;
     }
+  }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<RequestTransferId/>" << endl;
+
+  string response;
+
+  getline(iosock, response);
+
+  if (response.compare("<TransferId>") == 0) {
+    unsigned int transferId;
+    iosock.read((char*)&transferId, sizeof(transferId));
+    return transferId;
   } else {
     return 0;
   }
 }
 
 string KVSConnection::requestServerList() {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<RequestServerList/>" << endl;
-
-    string response;
-    getline(iosock, response);
-
-    if (response.compare("<RequestServerList>") == 0) {
-      string serverList;
-      getline(iosock, serverList);
-      return serverList;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return "";
     }
   }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<RequestServerList/>" << endl;
+
+  string response;
+  getline(iosock, response);
+
+  if (response.compare("<RequestServerList>") == 0) {
+    string serverList;
+    getline(iosock, serverList);
+    return serverList;
+  }
+
   return "";
 }
 
 string KVSConnection::requestSCPPath() {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<RequestSCPPath/>" << endl;
-
-    string response;
-    getline(iosock, response);
-
-    if (response.compare("<RequestSCPPath>") == 0) {
-      string scpPath;
-      getline(iosock, scpPath);
-      return scpPath;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      // default
+      return "/home/secondo/bin/kvs";
     }
+  }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<RequestSCPPath/>" << endl;
+
+  string response;
+  getline(iosock, response);
+
+  if (response.compare("<RequestSCPPath>") == 0) {
+    string scpPath;
+    getline(iosock, scpPath);
+    return scpPath;
   }
 
   // default
@@ -375,51 +431,73 @@ string KVSConnection::requestSCPPath() {
 }
 
 int KVSConnection::tryRestructureLock(int id) {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<TryRestructureLock/>" << endl;
-    iosock.write((char*)&id, sizeof(id));
-    iosock.flush();
-
-    string response;
-    getline(iosock, response);
-
-    if (response.compare("<TryRestructureLock>") == 0) {
-      int response = -1;
-      iosock.read((char*)&response, sizeof(response));
-      return response;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return -1;
     }
   }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<TryRestructureLock/>" << endl;
+  iosock.write((char*)&id, sizeof(id));
+  iosock.flush();
+
+  string response;
+  getline(iosock, response);
+
+  if (response.compare("<TryRestructureLock>") == 0) {
+    int response = -1;
+    iosock.read((char*)&response, sizeof(response));
+    return response;
+  }
+
   return -1;
 }
 
 bool KVSConnection::updateRestructureLock() {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<UpdateRestructureLock/>" << endl;
-    return true;
-  }
-  return false;
-}
-bool KVSConnection::unlockRestructureLock(int id) {
-  boost::lock_guard<boost::mutex> guard(mtx);
-  if (connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock << "<UnlockRestructureLock/>" << endl;
-    iosock.write((char*)&id, sizeof(id));
-    iosock.flush();
-
-    string response;
-    getline(iosock, response);
-
-    if (response.compare("<UnlockRestructureLock>") == 0) {
-      bool response = false;
-      iosock.read((char*)&response, sizeof(bool));
-      return response;
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return false;
     }
   }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<UpdateRestructureLock/>" << endl;
+  return true;
+}
+bool KVSConnection::unlockRestructureLock(int id) {
+  if (!connection) {
+    if (!check()) {
+      KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
+           << endl;
+      return false;
+    }
+  }
+
+  boost::lock_guard<boost::mutex> guard(mtx);
+
+  iostream& iosock = connection->GetSocketStream();
+  iosock << "<UnlockRestructureLock/>" << endl;
+  iosock.write((char*)&id, sizeof(id));
+  iosock.flush();
+
+  string response;
+  getline(iosock, response);
+
+  if (response.compare("<UnlockRestructureLock>") == 0) {
+    bool response = false;
+    iosock.read((char*)&response, sizeof(bool));
+    return response;
+  }
+
   return false;
 }
 
@@ -430,6 +508,7 @@ Connection::Connection(const string& host, const int interfacePort,
       interfacePort(interfacePort),
       kvsPort(kvsPort),
       config(config),
+      tupleCapacity(0),
       status(Connection::Unknown),
       interfaceConn(0),
       restructureInProgress(false),
@@ -505,7 +584,7 @@ bool Connection::initInterface(string localIp, int localInterfacePort,
       interfaceConn->setTimeout(1);
     }
 
-    KOUT << "Connecting to Interface:";
+    KOUT << "Connecting to Interface:" << endl;
     if (!interfaceConn->Initialize("", "", host,
                                    stringutils::int2str(interfacePort), config,
                                    errorMsg, true)) {
@@ -518,8 +597,9 @@ bool Connection::initInterface(string localIp, int localInterfacePort,
 
   // init commands
   exec("close database");
+  KOUT << "trying to open database:" << databaseName << endl;
   if (!exec("open database " + databaseName)) {
-    KOUT << "open database " << databaseName << " failed." << endl;
+    return false;
   }
 
   if (!exec("query kvsStartApp()", true)) {
@@ -528,6 +608,10 @@ bool Connection::initInterface(string localIp, int localInterfacePort,
 
   if (!exec("query kvsStartClient(" + stringutils::int2str(kvsPort) + ")",
             true)) {
+    return false;
+  }
+
+  if (!exec("query kvsSetDatabase('" + databaseName + "')", true)) {
     return false;
   }
 
@@ -545,6 +629,15 @@ bool Connection::initInterface(string localIp, int localInterfacePort,
   if (!exec("query kvsSyncServerList()", true)) {
     return false;
   }
+  return true;
+}
+
+bool Connection::setId(int id) {
+  if (!exec("query kvsSetId(" + stringutils::int2str(id) + ")", true)) {
+    return false;
+  }
+
+  this->id = id;
   return true;
 }
 
@@ -676,5 +769,12 @@ bool Connection::exec(string command, const int& expected) {
 bool Connection::relationExists(string relationName) {
   // TODO: use actual exists function that's probably hiding somewhere?
   return exec("query " + relationName + " feed head[0] count", 0);
+}
+
+bool Connection::updateDistributionObject(string distributionName) {
+  // try to create simple base distribution
+  exec("let " + distributionName +
+       " = [const qtdistribution value (20 20 (0) 0)]");
+  return exec("query kvsSaveDist(" + distributionName + ")", true);
 }
 }

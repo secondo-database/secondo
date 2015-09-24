@@ -38,7 +38,11 @@ DistributionTask::DistributionTask(KeyValueStore* instance,
       conn(localConn),
       criteria(0),
       resultIndex(0),
-      provideResult(false) {
+      provideResult(false),
+      continueCurrentBatch(false),
+      startTime(DebugTime()),
+      tupleCounter(0),
+      dataCounter(0) {
   currentBatch = new Batch(instance, &distParams, true);
 }
 
@@ -47,10 +51,25 @@ DistributionTask::~DistributionTask() {
        ++resultIdx) {
     delete[] resultStream[resultIdx].first;
   }
+
+  KOUT << "\n\n\nStart:" << startTime << endl;
+  KOUT << "Ende:" << DebugTime() << endl;
+  KOUT << "Relation:" << distParams.targetRelation << endl;
+  KOUT << "Tupel:" << tupleCounter << endl;
+  map<int, int>::iterator item;
+  for (item = detailedCounter.begin(); item != detailedCounter.end(); item++) {
+    KOUT << item->first << ": " << item->second << endl;
+  }
+  KOUT << "Bytes:" << dataCounter << " MB:" << setprecision(10)
+       << dataCounter / (1024.0 * 1024.0) << endl;
 }
 
 void DistributionTask::setDistributionCriteria(DistributionCriteria* criteria) {
   this->criteria = criteria;
+}
+
+void DistributionTask::setContinueCurrentBatch(bool value) {
+  continueCurrentBatch = value;
 }
 
 int DistributionTask::process(int n) {
@@ -78,17 +97,25 @@ int DistributionTask::process(int n) {
         // cout<<"DistributionTask::process ID:"<<serverId<<"
         // Len:"<<tupleLen<<endl;
 
-        if (currentBatch->transferList[serverId]->sendTuple(tupleBuffer,
-                                                            tupleLen)) {
-          currentBatch->tupleCount++;
-
-          criteria->addTuple(serverId);
-          criteria->addBytesTransferred(serverId, tupleLen);
+        if (currentBatch->transferList[serverId] == 0) {
+          resultStream.push_back(make_pair(tupleBuffer, tupleLen));
         } else {
-          resultCode = 1;
-          resultMessage.assign("Could not send tuple.");
-          prepareResult = true;
+          if (currentBatch->transferList[serverId]->sendTuple(tupleBuffer,
+                                                              tupleLen)) {
+            tupleCounter++;
+            detailedCounter[serverId]++;
+            dataCounter += tupleLen;
+            currentBatch->tupleCount++;
+
+            criteria->addTuple(serverId);
+            criteria->addBytesTransferred(serverId, tupleLen);
+          } else {
+            resultCode = 1;
+            resultMessage.assign("Could not send tuple.");
+            prepareResult = true;
+          }
         }
+
       } else if (msgType == IPC_MSG_ENDDISTRIBUTE) {
         KOUT << "Ending Distribution" << endl;
         prepareResult = true;
@@ -102,10 +129,7 @@ int DistributionTask::process(int n) {
         prepareResult = true;
       }
     } else if (provideResult) {
-      KOUT << "Try writing result..\n";
       if (resultIndex < resultStream.size()) {
-        KOUT << "resultIndex:" << resultIndex << " vs " << resultStream.size()
-             << endl;
         conn->write(&resultStream[resultIndex].second);
         conn->write(resultStream[resultIndex].first,
                     resultStream[resultIndex].second);
@@ -113,7 +137,7 @@ int DistributionTask::process(int n) {
       } else {
         int close = 0;
         conn->write(&close);
-        KOUT << "Close written...\n";
+        KOUT << "Close written..." << endl;
         provideResult = false;
       }
     } else {
@@ -134,7 +158,6 @@ int DistributionTask::process(int n) {
       prepareResult = true;
     } else {
       KOUT << "Batch finished..." << endl;
-      KOUT << "Creating new Batch.." << endl;
       delete currentBatch;
       currentBatch = new Batch(instance, &distParams);
     }

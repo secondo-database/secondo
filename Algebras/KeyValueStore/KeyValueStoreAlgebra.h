@@ -99,6 +99,7 @@ class KeyValueStoreAlgebra : public Algebra {
                 kvsUpdateServerListTM);
     AddOperator(kvsSyncServerListInfo(), kvsSyncServerListVM,
                 kvsSyncServerListTM);
+    AddOperator(kvsSetDatabaseInfo(), kvsSetDatabaseVM, kvsSetDatabaseTM);
     AddOperator(kvsUseDatabaseInfo(), kvsUseDatabaseVM, kvsUseDatabaseTM);
     AddOperator(kvsListInfo(), kvsListVM, kvsListTM);
 
@@ -111,18 +112,21 @@ class KeyValueStoreAlgebra : public Algebra {
     AddOperator(qtintersectsLocalInfo(), qtintersectsLocalVM,
                 qtintersectsLocalTM);
     AddOperator(qtintersectsInfo(), qtintersectsVM, qtintersectsTM);
+    AddOperator(qtDistinctInfo(), qtDistinctVM, qtDistinctTM);
 
     /*
      * Distribution
      */
     AddOperator(kvsServerIdInfo(), kvsServerIdVM, kvsServerIdTM);
     AddOperator(kvsSaveDistInfo(), kvsSaveDistVM, kvsSaveDistTM);
+    AddOperator(kvsFilterInfo(), kvsFilterVM, kvsFilterTM);
 
     /*
      * Key Value Store
      */
     AddOperator(kvsStartAppInfo(), kvsStartAppVM, kvsStartAppTM);
     AddOperator(kvsTransferIdInfo(), kvsTransferIdVM, kvsTransferIdTM);
+    AddOperator(kvsGlobalIdInfo(), kvsGlobalIdVM, kvsGlobalIdTM);
     AddOperator(kvsInitClientsInfo(), kvsInitClientsVM, kvsInitClientsTM);
     AddOperator(kvsStartClientInfo(), kvsStartClientVM, kvsStartClientTM);
     AddOperator(kvsStopClientInfo(), kvsStopClientVM, kvsStopClientTM);

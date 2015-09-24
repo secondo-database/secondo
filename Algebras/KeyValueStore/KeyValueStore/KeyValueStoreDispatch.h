@@ -52,7 +52,7 @@ int addConnection(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -68,7 +68,7 @@ int removeConnection(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -84,7 +84,7 @@ int retryConnection(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -98,7 +98,7 @@ int syncServerList(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -114,7 +114,7 @@ int updateServerList(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -127,7 +127,26 @@ int serverInformationString(KeyValueStore* instance,
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
+  }
+
+  return KeyValueStoreIPCServer::NORESULT;
+}
+
+int setDatabase(KeyValueStore* instance, IPCConnection* connection) {
+  string databaseName;
+
+  cout << "Dispatching setDatabase" << endl;
+
+  if (connection) {
+    connection->read(&databaseName);
+
+    instance->setDatabase(databaseName);
+    bool result = true;
+    connection->write(IPC_MSG_RESULT);
+    connection->write(&result);
+  } else {
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -136,6 +155,8 @@ int serverInformationString(KeyValueStore* instance,
 int useDatabase(KeyValueStore* instance, IPCConnection* connection) {
   string databaseName;
 
+  cout << "Dispatching useDatabase" << endl;
+
   if (connection) {
     connection->read(&databaseName);
 
@@ -143,7 +164,7 @@ int useDatabase(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -155,7 +176,19 @@ unsigned int transferId(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
+  }
+
+  return KeyValueStoreIPCServer::NORESULT;
+}
+
+unsigned int globalTupelId(KeyValueStore* instance, IPCConnection* connection) {
+  if (connection) {
+    unsigned int result = instance->getGlobalTupelId();
+    connection->write(IPC_MSG_RESULT);
+    connection->write(&result);
+  } else {
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -187,7 +220,7 @@ int startClient(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -203,7 +236,7 @@ int stopClient(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -220,7 +253,7 @@ int setId(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -240,7 +273,7 @@ int setMaster(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -252,7 +285,7 @@ int tryRestructureLock(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -264,7 +297,7 @@ int updateRestructureLock(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -276,7 +309,7 @@ int unlockRestructureLock(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -292,7 +325,7 @@ int distributionRef(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -312,7 +345,7 @@ int distributionRefSet(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -333,7 +366,7 @@ int distributionData(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -364,7 +397,7 @@ int addDistributionElement(KeyValueStore* instance, IPCConnection* connection) {
       connection->write(&tempRes);
     }
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -378,10 +411,14 @@ int addDistributionRect(KeyValueStore* instance, IPCConnection* connection) {
   set<int> resultIds;
 
   if (connection) {
-    connection->read(&refId);
-    connection->read(&requestOnly);
-    connection->read(&nrcoords);
+    assert(connection->read(&refId));
+    assert(connection->read(&requestOnly));
+    assert(connection->read(&nrcoords));
     coords = new double[nrcoords];
+
+    // TODO:
+    assert(nrcoords == 4);
+
     for (int i = 0; i < nrcoords; ++i) {
       connection->read((char*)&coords[i], sizeof(double));
     }
@@ -396,8 +433,17 @@ int addDistributionRect(KeyValueStore* instance, IPCConnection* connection) {
       int tempRes = *it;
       connection->write(&tempRes);
     }
+
+    if (nrResults == 0) {
+      KOUT << "Error: 0 results" << endl;
+      for (int i = 0; i < nrcoords; ++i) {
+        KOUT << "coords[" << i << "] = " << coords[i] << endl;
+      }
+      instance->distAddRectDebug(refId, nrcoords, coords, &resultIds,
+                                 requestOnly);
+    }
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -425,7 +471,58 @@ int addDistributionInt(KeyValueStore* instance, IPCConnection* connection) {
       connection->write(&tempRes);
     }
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
+  }
+
+  return KeyValueStoreIPCServer::NORESULT;
+}
+
+int filterDistribution(KeyValueStore* instance, IPCConnection* connection) {
+  int refId;
+  bool update;
+  unsigned int globalId;
+  int nrcoords;
+  double* coords;
+
+  if (connection) {
+    assert(connection->read(&refId));
+    assert(connection->read(&update));
+    assert(connection->read(&globalId));
+    assert(connection->read(&nrcoords));
+
+    // TODO:
+    assert(nrcoords == 4);
+
+    coords = new double[nrcoords];
+    for (int i = 0; i < nrcoords; ++i) {
+      connection->read((char*)&coords[i], sizeof(double));
+    }
+
+    bool result =
+        instance->distFilter(refId, nrcoords, coords, globalId, update);
+    connection->write(IPC_MSG_RESULT);
+    connection->write(&result);
+  } else {
+    KOUT << "Error: Not connected." << endl;
+  }
+
+  return KeyValueStoreIPCServer::NORESULT;
+}
+
+int qtDistinct(KeyValueStore* instance, IPCConnection* connection) {
+  int refId;
+  double x, y;
+
+  if (connection) {
+    connection->read(&refId);
+    connection->read(&x);
+    connection->read(&y);
+
+    bool result = instance->qtDistinct(refId, x, y);
+    connection->write(IPC_MSG_RESULT);
+    connection->write(&result);
+  } else {
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -457,7 +554,7 @@ int requestDistributionElement(KeyValueStore* instance,
       connection->write(&tempRes);
     }
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -473,7 +570,7 @@ int execCommand(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -494,6 +591,8 @@ int initDistribute(KeyValueStore* instance, IPCConnection* connection) {
     connection->read(&deleteCommand);
     connection->read(&restructure);
 
+    cout << "Creating Task with current db:" << instance->currentDatabaseName
+         << endl;
     DistributionTask* task = new DistributionTask(
         instance, connection,
         DistributionParameter(distributionId, streamType, baseAttributeList,
@@ -514,7 +613,7 @@ int initDistribute(KeyValueStore* instance, IPCConnection* connection) {
 
     return KeyValueStoreIPCServer::REMOVECONNECTION;
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -534,7 +633,7 @@ int initNetworkStream(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(&result);
     // KOUT<<"initNetworkStream OUT"<<endl;
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -554,7 +653,7 @@ int getNetworkStreamType(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(&result);
     // KOUT<<"getNetworkStreamType OUT"<<endl;
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -581,7 +680,7 @@ int requestNetworkStream(KeyValueStore* instance, IPCConnection* connection) {
       stream->serveIPC(connection);
     }
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -599,7 +698,7 @@ int removeNetworkStream(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(&result);
     // cout<<"removeNetworkStream OUT"<<endl;
   } else {
-    KOUT << "Error: Not connected.\n";
+    KOUT << "Error: Not connected." << endl;
   }
 
   return KeyValueStoreIPCServer::NORESULT;
@@ -617,8 +716,10 @@ void buildDispatchMap(
   dispatchMap.insert(make_pair(IPC_MSG_UPDATESERVERLIST, updateServerList));
   dispatchMap.insert(
       make_pair(IPC_MSG_SERVERINFORMATIONSTRING, serverInformationString));
+  dispatchMap.insert(make_pair(IPC_MSG_SETDATABASE, setDatabase));
   dispatchMap.insert(make_pair(IPC_MSG_USEDATABASE, useDatabase));
   dispatchMap.insert(make_pair(IPC_MSG_TRANSFERID, transferId));
+  dispatchMap.insert(make_pair(IPC_MSG_GLOBALTUPELID, globalTupelId));
   dispatchMap.insert(make_pair(IPC_MSG_INITCLIENTS, initClients));
   dispatchMap.insert(make_pair(IPC_MSG_STARTCLIENT, startClient));
   dispatchMap.insert(make_pair(IPC_MSG_STOPCLIENT, stopClient));
@@ -638,7 +739,10 @@ void buildDispatchMap(
   dispatchMap.insert(
       make_pair(IPC_MSG_ADDDISTRIBUTIONRECT, addDistributionRect));
   dispatchMap.insert(make_pair(IPC_MSG_ADDDISTRIBUTIONINT, addDistributionInt));
+  dispatchMap.insert(make_pair(IPC_MSG_FILTERDISTRIBUTION, filterDistribution));
   dispatchMap.insert(make_pair(IPC_MSG_DISTRIBUTIONDATA, distributionData));
+
+  dispatchMap.insert(make_pair(IPC_MSG_QTDISTINCT, qtDistinct));
 
   dispatchMap.insert(make_pair(IPC_MSG_EXECCOMMAND, execCommand));
 

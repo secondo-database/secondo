@@ -181,8 +181,10 @@ bool ServerManager::requestRemove(Connection* conn) {
 
 bool ServerManager::updateServerList(string separatedList) {
   std::istringstream inputStream(separatedList);
-  std::string idStr, host, interfacePortStr, kvsPortStr, config;
+  std::string idStr, host, interfacePortStr, kvsPortStr, config,
+      tupleCapacityStr;
   int id, interfacePort, kvsPort;
+  int tupleCapacity = 0;
 
   bool check;
 
@@ -190,10 +192,12 @@ bool ServerManager::updateServerList(string separatedList) {
          std::getline(inputStream, host, ';') &&
          std::getline(inputStream, interfacePortStr, ';') &&
          std::getline(inputStream, kvsPortStr, ';') &&
-         std::getline(inputStream, config, ';')) {
+         std::getline(inputStream, config, ';') &&
+         std::getline(inputStream, tupleCapacityStr, ';')) {
     id = stringutils::str2int<int>(idStr, check);
     interfacePort = stringutils::str2int<int>(interfacePortStr, check);
     kvsPort = stringutils::str2int<int>(kvsPortStr, check);
+    tupleCapacity = stringutils::str2int<unsigned int>(tupleCapacityStr, check);
 
     // if(id == -1 || id != instance->id) {
     // check if host exists
@@ -211,6 +215,7 @@ bool ServerManager::updateServerList(string separatedList) {
       connectionList[hostIdx]->id = id;
       connectionList[hostIdx]->kvsPort = kvsPort;
       connectionList[hostIdx]->config = config;
+      connectionList[hostIdx]->tupleCapacity = tupleCapacity;
 
       if (connectionList[hostIdx]->kvsPort != kvsPort) {
         connectionList[hostIdx]->kvsConn->close();
@@ -225,6 +230,7 @@ bool ServerManager::updateServerList(string separatedList) {
       // add
       Connection* conn = new Connection(host, interfacePort, kvsPort, config);
       conn->id = id;
+      conn->tupleCapacity = tupleCapacity;
 
       addConnection(conn);
     }
@@ -242,7 +248,8 @@ string ServerManager::getServerListString() {
               << connectionList[serverIdx]->host << ";"
               << connectionList[serverIdx]->interfacePort << ";"
               << connectionList[serverIdx]->kvsPort << ";"
-              << connectionList[serverIdx]->config << ";";
+              << connectionList[serverIdx]->config << ";"
+              << connectionList[serverIdx]->tupleCapacity << ";";
   }
   return resultStr.str();
 }
