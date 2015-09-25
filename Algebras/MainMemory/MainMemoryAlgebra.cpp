@@ -2902,13 +2902,13 @@ class avlOperLI{
            KeyComparator >* _tree,vector<Tuple*>* _relation,
            Attribute* _attr1, string _keyType)
            :relation(_relation),tree(_tree),attr1(_attr1),keyType(_keyType){
-
+            res = true;
             if (tree->Size()!=0){
      //       tree->Print(cout);
                 it = tree->tail(pair<Attribute*,size_t>(attr1,0));
             }
             attr2 = attr1;
-            itbegin = tree->begin();
+       //     itbegin = tree->begin();
         }
 
         avlOperLI(avltree::AVLTree< pair<Attribute*,size_t>,
@@ -2965,52 +2965,20 @@ class avlOperLI{
 
 
         Tuple* matchbelow(){
-            if (keyType=="string"){
-                    string attr1ToString = ((CcString*) attr1)->GetValue();
-
-                if (itbegin.onEnd()||((trim(((CcString*)((*itbegin)->first))
-                                    ->GetValue())) > attr1ToString)){
-                        return 0;
+            if (res){
+                int i = relation->size();
+                hit = tree->GetNearestSmallerOrEqual
+                            (pair<Attribute*,size_t>(attr1,i));
+                if (hit==0){
+                    return 0;
                 }
-                while(!itbegin.onEnd() &&
-                   (((trim(((CcString*)((*itbegin)->first))
-                                           ->GetValue())) <  attr1ToString) ||
-                    ((trim(((CcString*)((*itbegin)->first))
-                                           ->GetValue())) == attr1ToString))){
-
-                    hit = *itbegin;
-                    if (itbegin.hasNext()){
-                        itbegin.Next();
-                    }
-                    else {
-                        itbegin=NULL;
-                    }
-                }
-            Tuple* result = relation->at(hit->second);
-            result->IncReference();
-            return result;
-            }  // end keyType string
-
-
-
-            if(itbegin.onEnd() || ((*itbegin)->first)->Compare(attr1)==1){
-                return 0;
+                Tuple* result = relation->at(hit->second);
+                result->IncReference();
+                res = false;
+                return result;
             }
-            while(!itbegin.onEnd()&&((((*itbegin)->first)->Compare(attr1)==-1)
-                            || (((*itbegin)->first)->Compare(attr1)== 0))){
-                hit = *itbegin;
-                if (itbegin.hasNext()){
-                    itbegin.Next();
-                }
-                else {
-                    itbegin=NULL;
-                }
-            }
-            Tuple* result = relation->at(hit->second);
-            result->IncReference();
-            return result;
             return 0;
-        }
+            }
 
 
     private:
@@ -3024,6 +2992,7 @@ class avlOperLI{
         avltree::AVLTree< pair<Attribute*, size_t>,
                             KeyComparator >::iterator itbegin;
         const pair<Attribute*,size_t>* hit;
+        bool res;
 };
 
 /*
@@ -3387,6 +3356,7 @@ int matchbelowValMap (Word* args, Word& result,
                 delete li;
                 local.addr=0;
             }
+            cout<<"Zeile3408"<<endl;
             //first argument MemoryAVLObject
             CcString* oN_0 = (CcString*) args[0].addr;
             if(!oN_0->IsDefined()){
@@ -3413,11 +3383,14 @@ int matchbelowValMap (Word* args, Word& result,
             // third argument key value
             Attribute* attr = (Attribute*)args[2].addr;
             local.addr= new avlOperLI(tree,relation,attr,keyType);
+            cout<<"Zeile3435"<<endl;
             return 0;
         }
 
         case REQUEST:
+        cout<<"Zeile3440"<<endl;
             result.addr=(li?li->matchbelow():0);
+            cout<<"Zeile3442"<<endl;
             return result.addr?YIELD:CANCEL;
 
 
