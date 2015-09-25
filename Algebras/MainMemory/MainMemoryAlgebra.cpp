@@ -2908,7 +2908,6 @@ class avlOperLI{
                 it = tree->tail(pair<Attribute*,size_t>(attr1,0));
             }
             attr2 = attr1;
-       //     itbegin = tree->begin();
         }
 
         avlOperLI(avltree::AVLTree< pair<Attribute*,size_t>,
@@ -2938,8 +2937,12 @@ class avlOperLI{
                 string hitString = ((CcString*)(hit->first))->GetValue();
                 hitString=trim(hitString);
 
-                if((hitString==attr1ToString || hitString > attr1ToString) &&
-                    (hitString==attr2ToString || hitString < attr2ToString)) {
+                if (hitString > attr2ToString) {
+                    return 0;
+                }
+                if (hitString == attr1ToString ||
+                    hitString < attr2ToString  ||
+                    hitString == attr2ToString ){
 
                     Tuple* result = relation->at(hit->second);
                     result->IncReference();
@@ -2947,17 +2950,21 @@ class avlOperLI{
                     return result;
                 }
                 return 0;
-            }
+            } //end keyType string
 
-            if(((hit->first)->Compare(attr1)==0 ||
-                    (hit->first)->Compare(attr1)==1) &&
-                    ((hit->first)->Compare(attr2)==0 ||
-                    (hit->first)->Compare(attr2)== -1)){
+             if ((hit->first)->Compare(attr2) == 1){
+                return 0;
+            }
+            if ((hit->first)->Compare(attr1) == 0 ||
+                (hit->first)->Compare(attr2) == -1 ||
+                (hit->first)->Compare(attr2) == 0){
+
                 Tuple* result = relation->at(hit->second);
                 result->IncReference();
                 it.Next();
                 return result;
             }
+
             return 0;
         }
 
@@ -3356,7 +3363,6 @@ int matchbelowValMap (Word* args, Word& result,
                 delete li;
                 local.addr=0;
             }
-            cout<<"Zeile3408"<<endl;
             //first argument MemoryAVLObject
             CcString* oN_0 = (CcString*) args[0].addr;
             if(!oN_0->IsDefined()){
@@ -3383,14 +3389,11 @@ int matchbelowValMap (Word* args, Word& result,
             // third argument key value
             Attribute* attr = (Attribute*)args[2].addr;
             local.addr= new avlOperLI(tree,relation,attr,keyType);
-            cout<<"Zeile3435"<<endl;
             return 0;
         }
 
         case REQUEST:
-        cout<<"Zeile3440"<<endl;
             result.addr=(li?li->matchbelow():0);
-            cout<<"Zeile3442"<<endl;
             return result.addr?YIELD:CANCEL;
 
 
