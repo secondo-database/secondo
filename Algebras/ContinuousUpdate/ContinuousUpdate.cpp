@@ -150,7 +150,7 @@ public:
         tupleType = nl->Second(pstreamType);
         ipointIndex = pipointIndex;
 
-        ListExpr search = AntiNumericType(tupleType);
+        ListExpr search = AntiNumericType2(tupleType);
 
         //Determine index of the merge attribute
         for (int i = 1; i <= nl->ListLength(nl->Second(search));
@@ -569,7 +569,7 @@ private:
             getline(stream, in);
             if (in.compare("<GET_TYPE>") == 0) {
                 stream << "<TYPE>" << endl;
-                stream << nl->ToString(AntiNumericType(streamType))
+                stream << nl->ToString(AntiNumericType2(streamType))
                     << endl;
                 stream << "</TYPE>" << endl;
             } else {
@@ -1190,7 +1190,7 @@ ListExpr receivenlstreamTM(ListExpr args) {
 
     client->GetSocketStream() << "</GET_TYPE>" << endl;
 
-    streamType = AntiNumericType(streamType);
+    streamType = AntiNumericType2(streamType);
 
     //Client-Descriptor will not deleted!
     return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),

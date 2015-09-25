@@ -98,7 +98,7 @@ The following function was copied from the HadoopParallelAlgebra
 Due to compilation errors in the HadoopParallelAlgebra it could not be included the usual way
 
 */
-ListExpr AntiNumericType(ListExpr type) {
+ListExpr AntiNumericType2(ListExpr type) {
     if (nl->IsEmpty(type)) {
         return type;
     } else if (nl->ListLength(type) == 2) {
@@ -113,15 +113,16 @@ ListExpr AntiNumericType(ListExpr type) {
                 return nl->SymbolAtom("ERROR");
             return nl->SymbolAtom(sc->GetTypeName(algID, typID));
         } else
-            return (nl->Cons(AntiNumericType(nl->First(type)),
-                    AntiNumericType(nl->Rest(type))));
+            return (nl->Cons(AntiNumericType2(nl->First(type)),
+                    AntiNumericType2(nl->Rest(type))));
     } else if (nl->IsAtom(type)) {
         return type;
     } else {
-        return (nl->Cons(AntiNumericType(nl->First(type)),
-                AntiNumericType(nl->Rest(type))));
+        return (nl->Cons(AntiNumericType2(nl->First(type)),
+                AntiNumericType2(nl->Rest(type))));
     }
 }
+
 
 /**
 Tries to read from the given filedescriptor until "\\n"
