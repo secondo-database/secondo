@@ -3682,6 +3682,8 @@ bool Condition::evaluate(const map<string, pair<int, int> > &binding, M *traj,
           return false;
         }
         if (Tools::isMovingAttr(ttype, key - 99)) {
+//           cout << "restrict: " << var << " " << from << " " << to << " " 
+//                << key-99 << endl;
           restrictPtr(i, traj, from, to, tuple, ttype, key - 99);
         }
         else {

@@ -2864,8 +2864,9 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
                                    majorValueNo, mtype);
             if (!li->initialize()) {
               delete li;
+              li = 0;
               local.addr = 0;
-              cout << "initialize failed" << endl;
+              cout << "initialization failed" << endl;
             }
           }
         }

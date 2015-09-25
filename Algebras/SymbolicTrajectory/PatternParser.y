@@ -708,7 +708,7 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
         if (value.addr == 0) {
           value.addr = new Labels(true);
         }
-        ((Labels*)value.addr)->Append(input.substr(pos, pos - endpos + 1));
+        ((Labels*)value.addr)->Append(input.substr(pos + 1, endpos - pos - 1));
         pos = input.find_first_not_of(", ", endpos + 1);
         break;
       }
