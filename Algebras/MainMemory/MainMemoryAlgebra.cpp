@@ -45,6 +45,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MMRTree.h"
 #include "MovingRegionAlgebra.h"
 #include "RectangleAlgebra.h"
+
+
+ostream& operator<<(ostream& o, const pair<Attribute*,size_t>& t);
+
 #include "AvlTree.h"
 
 using namespace std;
@@ -52,6 +56,14 @@ extern NestedList* nl;
 extern QueryProcessor *qp;
 extern SecondoSystem* instance;
 // extern AlgebraManager *am;
+
+ostream& operator<<(ostream& o, const pair<Attribute*,size_t>& t){
+  o << "(";
+  t.first->Print(o);
+  o << ", " << t.second   << ")";
+  return o;
+}
+
 
 namespace mmalgebra {
 
@@ -2915,8 +2927,11 @@ class avlOperLI{
 
 
         Tuple* next(){
-            if(it.onEnd()) return 0;
+            if(it.onEnd()){
+                 return 0;
+            }
             hit = it.Get();
+
             if (keyType=="string"){
                 string attr1ToString = ((CcString*) attr1)->GetValue();
                 string attr2ToString = ((CcString*) attr2)->GetValue();
@@ -2938,7 +2953,6 @@ class avlOperLI{
                     (hit->first)->Compare(attr1)==1) &&
                     ((hit->first)->Compare(attr2)==0 ||
                     (hit->first)->Compare(attr2)== -1)){
-
                 Tuple* result = relation->at(hit->second);
                 result->IncReference();
                 it.Next();
@@ -3056,7 +3070,7 @@ int mexactmatchValMap (Word* args, Word& result,
 
             // third argument key value
             Attribute* attr = (Attribute*)args[2].addr;
-            local.addr= new avlOperLI(tree,relation,attr,keyType);
+            local.addr= new avlOperLI(tree,relation,attr,attr,keyType);
             return 0;
         }
 
