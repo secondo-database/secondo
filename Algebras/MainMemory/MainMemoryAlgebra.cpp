@@ -2778,7 +2778,6 @@ int mcreateAVLtreeValMap (Word* args, Word& result,
             return 0;
         }
     }
-cout<<"Größe des Baums: "<<tree->Size()<<endl;
     string  res = relObjectName +"_"+attrName;
     MemoryAVLObject* avlObject =
         new MemoryAVLObject(tree, usedMainMemory,"memoryAVLObject",attrType);
@@ -2905,6 +2904,7 @@ class avlOperLI{
            :relation(_relation),tree(_tree),attr1(_attr1),keyType(_keyType){
 
             if (tree->Size()!=0){
+     //       tree->Print(cout);
                 it = tree->tail(pair<Attribute*,size_t>(attr1,0));
             }
             attr2 = attr1;
@@ -2965,51 +2965,50 @@ class avlOperLI{
 
 
         Tuple* matchbelow(){
-//            if (keyType=="string"){
-//                    string attr1ToString = ((CcString*) attr1)->GetValue();
-//
-//                if (itbegin.onEnd()||((trim(((CcString*)((*itbegin)->first))
-//                                    ->GetValue())) > attr1ToString)){
-//                        return 0;
-//                }
-//                while(!itbegin.onEnd() &&
-//                   (((trim(((CcString*)((*itbegin)->first))
-//                                           ->GetValue())) <  attr1ToString) ||
-//                    ((trim(((CcString*)((*itbegin)->first))
-//                                           ->GetValue())) == attr1ToString))){
-//
-//                    hit = *itbegin;
-//                    if (itbegin.hasNext()){
-//                        itbegin.Next();
-//                    }
-//                    else {
-//                        itbegin=NULL;
-//                    }
-//                }
-//            Tuple* result = relation->at(hit->second);
-//            result->IncReference();
-//            return result;
-//            }  // end keyType string
-//
-//
-//
-//            if(itbegin.onEnd() || ((*itbegin)->first)->Compare(attr1)==1){
-//                return 0;
-//            }
-//            while(!itbegin.onEnd()&&((((*itbegin)->first)->Compare(attr1)==-1)
-//                            || (((*itbegin)->first)->Compare(attr1)== 0))){
-//                hit = *itbegin;
-//                if (itbegin.hasNext()){
-//                    itbegin.Next();
-//                }
-//                else {
-//                    itbegin=NULL;
-//                }
-//            }
-//            Tuple* result = relation->at(hit->second);
-//            result->IncReference();
-//            return result;
-            cout<<"Matchbelow anfang"<<endl;
+            if (keyType=="string"){
+                    string attr1ToString = ((CcString*) attr1)->GetValue();
+
+                if (itbegin.onEnd()||((trim(((CcString*)((*itbegin)->first))
+                                    ->GetValue())) > attr1ToString)){
+                        return 0;
+                }
+                while(!itbegin.onEnd() &&
+                   (((trim(((CcString*)((*itbegin)->first))
+                                           ->GetValue())) <  attr1ToString) ||
+                    ((trim(((CcString*)((*itbegin)->first))
+                                           ->GetValue())) == attr1ToString))){
+
+                    hit = *itbegin;
+                    if (itbegin.hasNext()){
+                        itbegin.Next();
+                    }
+                    else {
+                        itbegin=NULL;
+                    }
+                }
+            Tuple* result = relation->at(hit->second);
+            result->IncReference();
+            return result;
+            }  // end keyType string
+
+
+
+            if(itbegin.onEnd() || ((*itbegin)->first)->Compare(attr1)==1){
+                return 0;
+            }
+            while(!itbegin.onEnd()&&((((*itbegin)->first)->Compare(attr1)==-1)
+                            || (((*itbegin)->first)->Compare(attr1)== 0))){
+                hit = *itbegin;
+                if (itbegin.hasNext()){
+                    itbegin.Next();
+                }
+                else {
+                    itbegin=NULL;
+                }
+            }
+            Tuple* result = relation->at(hit->second);
+            result->IncReference();
+            return result;
             return 0;
         }
 
@@ -3384,37 +3383,27 @@ int matchbelowValMap (Word* args, Word& result,
     switch (message)
     {
         case OPEN: {
-        cout<<"Matchbelow open"<<endl;
             if(li){
                 delete li;
                 local.addr=0;
             }
-                cout<<"Matchbelow open 3378"<<endl;
             //first argument MemoryAVLObject
             CcString* oN_0 = (CcString*) args[0].addr;
-                cout<<"Matchbelow open 3381"<<endl;
             if(!oN_0->IsDefined()){
-                cout<<"Matchbelow open 3382"<<endl;
                 return 0;
             }
-           cout<<"Matchbelow open 3383"<<endl;
             string objectName_0 = oN_0->GetValue();
-                cout<<"Matchbelow open 3388"<<endl;
             avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
-                cout<<"Matchbelow open 3390"<<endl;
             MemoryAVLObject* avlObject =
                     (MemoryAVLObject*)catalog->getMMObject(objectName_0);
-                        cout<<"Matchbelow open 3393"<<endl;
             string keyType = avlObject->getKeyType();
-                cout<<"Matchbelow open 3395"<<endl;
             tree = avlObject->getAVLtree();
-    cout<<"Matchbelow open 3397"<<endl;
+
             //second argument MemoryRelObject
             CcString* oN_1 = (CcString*) args[1].addr;
             if(!oN_1->IsDefined()){
                 return 0;
             }
-                cout<<"Matchbelow open 3403"<<endl;
             string objectName_1 = oN_1->GetValue();
             vector<Tuple*>* relation;
             MemoryRelObject* mro =
@@ -3422,22 +3411,17 @@ int matchbelowValMap (Word* args, Word& result,
             relation = mro->getmmrel();
 
             // third argument key value
-                cout<<"Matchbelow open 3411"<<endl;
             Attribute* attr = (Attribute*)args[2].addr;
-                cout<<"Matchbelow open 3413"<<endl;
             local.addr= new avlOperLI(tree,relation,attr,keyType);
-                 cout<<"Matchbelow open 3415"<<endl;
             return 0;
         }
 
         case REQUEST:
-         cout<<"Matchbelow request"<<endl;
             result.addr=(li?li->matchbelow():0);
             return result.addr?YIELD:CANCEL;
 
 
         case CLOSE:
-        cout<<"Matchbelow close"<<endl;
             if(li)
             {
             delete li;
