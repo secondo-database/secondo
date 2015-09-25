@@ -1,6 +1,10 @@
 package de.fernuni_hagen.dna.jwh.secondopositiontransmitter;
 
 import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -20,14 +24,20 @@ public class LocalLocationManager {
     private Location bestLocation;
     private LocationInfo currentLocationInfo;
     private LocationManager locationManager;
+    private SensorManager sensorManager;
+    private Sensor pressureSensor;
     private LocationListener locationListener;
+    private SensorEventListener sensorListner;
+    private Double currentAltitude;
 
 
     public LocalLocationManager(Context ctx, Integer updateRate) {
         this.ctx = ctx;
         this.updateRate = updateRate;
         this.currentLocationInfo = new LocationInfo();
+        currentAltitude = 0.0;
         getLocationManager();
+        getSensorManager();
     }
 
     /**
@@ -62,6 +72,29 @@ public class LocalLocationManager {
         /* Register the listener for network and GPS providers */
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, updateRate, 0, locationListener);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, updateRate, 0, locationListener);
+    }
+
+    private void getSensorManager(){
+        sensorManager = (SensorManager) ctx.getSystemService(Context.SENSOR_SERVICE);
+        pressureSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
+
+        sensorListner = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent event) {
+                currentAltitude = (double)SensorManager.getAltitude(SensorManager.PRESSURE_STANDARD_ATMOSPHERE, event.values[0]);
+            }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+            }
+        };
+
+        sensorManager.registerListener(sensorListner, pressureSensor, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    public Double getCurrentAltitude(){
+        return currentAltitude;
     }
 
     /**
@@ -171,6 +204,7 @@ public class LocalLocationManager {
 
     public void close(){
         locationManager.removeUpdates(locationListener);
+        sensorManager.unregisterListener(sensorListner);
     }
 
 

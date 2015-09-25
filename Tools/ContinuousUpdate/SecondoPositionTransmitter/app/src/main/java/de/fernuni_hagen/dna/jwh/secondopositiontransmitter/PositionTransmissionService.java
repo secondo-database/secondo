@@ -34,6 +34,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
+import de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation.ExtendedPosition;
 import de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation.Position;
 import de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation.TimeInterval;
 import de.fernuni_hagen.dna.jwh.secondopositiontransmitter.representation.UPoint;
@@ -165,8 +166,9 @@ public class PositionTransmissionService extends Service {
      */
     private JSONObject getNewJsonObject() {
         Position position = new Position();
-        getPositionFromLocation(position);
-        logfile.write(position.getSecondoValue());
+        ExtendedPosition ePosition = new ExtendedPosition();
+        getPositionFromLocation(position, ePosition);
+        logfile.write(ePosition.getSecondoValue());
 
         Gson g = new GsonBuilder().serializeNulls().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").create();
         try {
@@ -182,7 +184,7 @@ public class PositionTransmissionService extends Service {
      * Creates a new Position to be used in the JSON-Request
      * @param position
      */
-    private void getPositionFromLocation(Position position) {
+    private void getPositionFromLocation(Position position, ExtendedPosition ePosition) {
         LocalLocationManager.LocationInfo info = locationManager.getCurrentLocationInfo();
 
         position.Id = userName;
@@ -198,6 +200,19 @@ public class PositionTransmissionService extends Service {
         position.Position.y2 = info.end.getLatitude();
         position.Position.interval.i2 = new Date(info.end.getTime());
         position.Position.interval.i2closed = false;
+
+        ePosition.Id = userName;
+        ePosition.Position = position.Position;
+        if(info.start.hasAltitude()){
+            ePosition.altitude = info.start.getAltitude();
+            ePosition.satellites = info.start.getExtras().getInt("satellites");
+        }else if(info.end.hasAltitude()) {
+            ePosition.altitude = info.end.getAltitude();
+            ePosition.satellites = info.end.getExtras().getInt("satellites");
+        }else{
+            ePosition.altitude = locationManager.getCurrentAltitude();
+            ePosition.satellites = 0;
+        }
     }
 
     /**

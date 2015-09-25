@@ -24,4 +24,4 @@
     <item android:state_focused="true"                                                             android:drawable="@drawable/abc_list_focused_holo" />
     <item                                                                                          android:drawable="@android:color/transparent" />
 </selector>
-<!-- From: file:/C:/Users/Jerome/Dropbox/Source/secondo/Tools/ContinuousUpdate/SecondoPositionTransmitter/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/21.0.3/res/drawable/abc_item_background_holo_light.xml -->
+<!-- From: file:/C:/Users/Jerome/Dropbox/source/secondo/Tools/ContinuousUpdate/SecondoPositionTransmitter/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/21.0.3/res/drawable/abc_item_background_holo_light.xml -->

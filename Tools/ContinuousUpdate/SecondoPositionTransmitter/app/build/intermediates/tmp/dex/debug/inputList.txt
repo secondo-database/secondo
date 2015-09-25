@@ -1,7 +1,7 @@
-C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\classes\debug
-C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\support-annotations-21.0.3-ee4b588a93dc0b725e08bb4e77dcf195c77a76c9.jar
-C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\library-1.0.6-74d90fd5a4a80434cef1dd32fc76cd9f40d5ec19.jar
-C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\gson-1.7.2-64bda70aba6296743660d1ce96c9b6790e789ab6.jar
-C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\internal_impl-21.0.3-51ef11157e31df70a58af9895287588953baf853.jar
-C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\classes-c1b76133b1795178eb47b13b8a121385927d5d29.jar
-C:\Users\Jerome\Dropbox\Source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\classes-a81f892542f9537fd2d152c74a78c898e1d71baa.jar
+C:\Users\Jerome\Dropbox\source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\classes\debug
+C:\Users\Jerome\Dropbox\source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\support-annotations-21.0.3-ee4b588a93dc0b725e08bb4e77dcf195c77a76c9.jar
+C:\Users\Jerome\Dropbox\source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\library-1.0.6-74d90fd5a4a80434cef1dd32fc76cd9f40d5ec19.jar
+C:\Users\Jerome\Dropbox\source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\gson-1.7.2-64bda70aba6296743660d1ce96c9b6790e789ab6.jar
+C:\Users\Jerome\Dropbox\source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\internal_impl-21.0.3-a492032f8a91659d887b70029a0ce1c08cbfe9a2.jar
+C:\Users\Jerome\Dropbox\source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\classes-56b9a507661ac16d9317b291a55bc2a6ef0e40d4.jar
+C:\Users\Jerome\Dropbox\source\secondo\Tools\ContinuousUpdate\SecondoPositionTransmitter\app\build\intermediates\pre-dexed\debug\classes-151107461140ea4cc88c818d39799962c122f0cb.jar

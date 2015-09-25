@@ -20,4 +20,4 @@
     <item android:state_enabled="true" android:drawable="@drawable/abc_textfield_search_default_mtrl_alpha"/>
     <item android:drawable="@drawable/abc_textfield_search_default_mtrl_alpha"/>
 </selector>
-<!-- From: file:/C:/Users/Jerome/Dropbox/Source/secondo/Tools/ContinuousUpdate/SecondoPositionTransmitter/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/21.0.3/res/drawable/abc_textfield_search_material.xml -->
+<!-- From: file:/C:/Users/Jerome/Dropbox/source/secondo/Tools/ContinuousUpdate/SecondoPositionTransmitter/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/21.0.3/res/drawable/abc_textfield_search_material.xml -->

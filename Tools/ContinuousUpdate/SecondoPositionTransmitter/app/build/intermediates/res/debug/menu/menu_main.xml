@@ -4,4 +4,4 @@
     <item android:id="@+id/action_settings" android:title="@string/action_settings"
         android:orderInCategory="100" app:showAsAction="never" />
 </menu>
-<!-- From: file:/C:/Users/Jerome/Dropbox/Source/secondo/Tools/ContinuousUpdate/SecondoPositionTransmitter/app/src/main/res/menu/menu_main.xml -->
+<!-- From: file:/C:/Users/Jerome/Dropbox/source/secondo/Tools/ContinuousUpdate/SecondoPositionTransmitter/app/src/main/res/menu/menu_main.xml -->
