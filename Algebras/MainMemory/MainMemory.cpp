@@ -211,6 +211,8 @@ void MemoryRelObject::addTuple(Tuple* tup){
     unsigned long availableMemSize =
             catalog->getAvailabeMemSize();
     if ((size_t)tupleSize<availableMemSize){
+        tup->SetTupleId(mmrel->size());
+        tup->IncReference();
         mmrel->push_back(tup);
         memSize += tupleSize;
         catalog->addToUsedMemSize(tupleSize);

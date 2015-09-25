@@ -179,6 +179,7 @@ class MemoryAttributeObject : public MemoryObject {
 
         Attribute* getAttributeObject();
 
+
     private:
          Attribute* attributeObject;
 
@@ -231,13 +232,6 @@ class MemoryAVLObject : public MemoryObject {
         avltree::AVLTree< pair<Attribute*,size_t>,KeyComparator >* getAVLtree();
 
         string getKeyType();
-
-        static const string BasicType() { return "memoryAVLObject"; }
-
-        static const bool checkType(const ListExpr type){
-            return (nl->ToString(type)==BasicType());
-        }
-
 
     private:
          avltree::AVLTree< pair<Attribute*,size_t>,KeyComparator >* tree;

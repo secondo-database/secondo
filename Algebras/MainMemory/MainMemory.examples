@@ -171,3 +171,14 @@ Signature : string x m:MEMLOADABLE -> bool
 Example   : query memletflob ("trains5", Trains feed head[5])
 Result    : TRUE
 
+Operator  : memload
+Number    : 29
+Signature : string -> bool
+Example   : query memload ("strassen")
+Result    : TRUE
+
+Operator  : mcreateRtree2
+Number    : 30
+Signature : stream(Tuple) x T x string -> string
+Example   : query "strassen" mfeed projectextend [Name,Typ, GeoData; TID: tupleid(.)] mcreateRtree2 [GeoData, "strassen_GeoData"]
+Result    : "strassen_GeoData"

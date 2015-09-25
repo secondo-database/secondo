@@ -112,9 +112,11 @@ MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0,
         }
         tupleSize = tup->GetMemSize();
         if ((size_t)tupleSize<availableMemSize){
+            tup->SetTupleId(mmrel->size());
             mmrel->push_back(tup);
             usedMainMemory += tupleSize;
             availableMemSize -= tupleSize;
+            tup->IncReference();
         }
         else{
             if (mmrel->size()==0){
@@ -175,6 +177,8 @@ MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le, bool flob){
         }
         tupleSize = tup->GetMemSize();
         if ((size_t)tupleSize<availableMemSize){
+            tup->SetTupleId(mmrel->size());
+            tup->IncReference();
             mmrel->push_back(tup);
             usedMainMemory += tupleSize;
             availableMemSize -= tupleSize;
@@ -538,7 +542,6 @@ ListExpr mfeedTypeMap(ListExpr args) {
     if(!catalog->isAccessible(oN)){
         return listutils::typeError("MainMemory object not accessible");
     }
-
     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),oTeList);
 }
 
@@ -1023,7 +1026,7 @@ int memobjectValMap (Word* args, Word& result,
             MemoryAttributeObject* memObject =
                     (MemoryAttributeObject*)catalog->getMMObject(objectName);
             Attribute* attr = (Attribute*)((qp->ResultStorage(s)).addr);
-            attr = memObject->getAttributeObject();
+            attr = (memObject->getAttributeObject())->Copy();
             result.setAddr(attr);
         return 0;
         }
@@ -1793,6 +1796,202 @@ Operator mcreateRtreeOp (
 );
 
 /*
+
+5.10 Operator ~mcreateRtree2~
+creates a an mmRTree the keytype must be of Kind SPATIAL2D,
+SPATIAL3D, SPATIAL4D, SPATIAL8D, or of type rect
+
+*/
+
+/*
+5.10.1 Type Mapping Functions of operator ~mcreateRtree2~
+        (stream(Tuple) x T x string-> string) mit T of KIND SPATIAL2D,
+        SPATIAL3D, SPATIAL4D, SPATIAL8D, or of type rect
+
+*/
+
+ListExpr mcreateRtree2TypeMap(ListExpr args){
+    string err = "stream(tuple) x attrName x string expected";
+    if(!nl->HasLength(args,3)){
+        return listutils::typeError("wrong number of arguments");
+    }
+    // first arg stream(tuple)?
+    if(!Stream<Tuple>::checkType(nl->First(args))){
+        return listutils::typeError("first argument must be a stream(tuple)");
+    }
+    // second Arg ein AttrName?
+    if(nl->AtomType(nl->Second(args))!=SymbolType){
+        return listutils::typeError("second argument must be an attribute");
+    }
+    // third arg string (name of the rtree)?
+    if(!CcString::checkType(nl->Third(args))){
+        return listutils::typeError("third argument must be a string");
+    }
+    string name = nl->SymbolValue(nl->Second(args));
+    // get attributelist
+    ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+    ListExpr type;
+    int j = listutils::findAttribute(attrList,name,type);
+    if(j==0){
+        return listutils::typeError("Attr not found");
+    }
+    if( !Rectangle<2>::checkType(type) &&
+        !Rectangle<3>::checkType(type) &&
+        !Rectangle<4>::checkType(type) &&
+        !Rectangle<8>::checkType(type) &&
+        !listutils::isKind(type,Kind::SPATIAL2D()) &&
+        !listutils::isKind(type,Kind::SPATIAL3D()) &&
+        !listutils::isKind(type,Kind::SPATIAL4D()) &&
+        !listutils::isKind(type,Kind::SPATIAL8D()))
+        return listutils::typeError("Attr is not a rect or of kind spatial");
+
+    ListExpr tid = listutils::basicSymbol<TupleIdentifier>();
+    // find a tid in the attribute list
+    string tidn;
+    int k = listutils::findType(attrList, tid, tidn);
+    if(k==0){
+        return listutils::typeError("no tid in tuple");
+    }
+    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                   nl->TwoElemList( nl->IntAtom(j-1),
+                                    nl->IntAtom(k-1)),
+                   listutils::basicSymbol<CcString>());
+}
+
+
+
+/*
+
+5.10.3  The Value Mapping Functions of operator ~mcreateRtree2~
+
+*/
+template <int dim>
+int mcreateRtree2ValMapT (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+    result  = qp->ResultStorage(s);
+    CcString* str = static_cast<CcString*>(result.addr);
+    bool succeed = false;
+    size_t usedMainMemory=0;
+    unsigned long availableMemSize = catalog->getAvailabeMemSize();
+
+    //get r-tree name
+    string name = ((CcString*)args[2].addr)->GetValue();
+
+    // erzeugen des mainmemory rtrees mit gegebenem Namen
+    mmrtree::RtreeT<dim, size_t>* rtree =
+                    new mmrtree::RtreeT<dim, size_t>(4,8);
+
+    // Attribut-Indexe extrahieren
+    int MBRIndex = ((CcInt*) args[3].addr)->GetValue();
+    int TIDIndex = ((CcInt*) args[4].addr)->GetValue();
+
+    Stream<Tuple> stream(args[0]);
+    stream.open();
+    Tuple* t;
+
+    while( (t=stream.request())!=0){
+        int tid = ((TupleIdentifier*)t->GetAttribute(TIDIndex))->GetTid();
+        StandardSpatialAttribute<dim>* attr
+            =(StandardSpatialAttribute<dim>*) t->GetAttribute(MBRIndex);
+
+        Rectangle<dim> rect = attr->BoundingBox();
+        // Einfügen des rect,id -Paares in den Baum
+        rtree->insert(rect, tid);
+   //     t->DeleteIfAllowed();
+    }
+
+    stream.close();
+    usedMainMemory = rtree->usedMem();
+    MemoryRtreeObject<dim>* mmRtreeObject =
+        new MemoryRtreeObject<dim>(rtree, usedMainMemory,
+                        "memoryRtreeObject", false, "");
+
+    if (usedMainMemory>availableMemSize){
+        cout<<"there is not enough memory left to create the rtree";
+    }
+    if (usedMainMemory<=availableMemSize &&
+                catalog->insert(name,mmRtreeObject)){
+        succeed = true;
+    }else {
+       delete mmRtreeObject;
+       succeed = false;
+    }
+    str->Set(succeed, name);
+    return 0;
+
+}
+
+ValueMapping mcreateRtree2ValMap[] =
+{
+    mcreateRtree2ValMapT<2>,
+    mcreateRtree2ValMapT<3>,
+    mcreateRtree2ValMapT<4>,
+    mcreateRtree2ValMapT<8>,
+};
+
+/*
+1.3 Selection method for value mapping array ~mcreateRtree2~
+
+*/
+ int mcreateRtree2Select(ListExpr args)
+ {
+    ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+    ListExpr type;
+    string name = nl->SymbolValue(nl->Second(args));
+    listutils::findAttribute(attrList,name,type);
+
+    if(listutils::isKind(type,Kind::SPATIAL2D()) ||
+        Rectangle<2>::checkType(type)){
+        return 0;
+    }
+    if(listutils::isKind(type,Kind::SPATIAL3D()) ||
+        Rectangle<3>::checkType(type)){
+        return 1;
+    }
+    if(listutils::isKind(type,Kind::SPATIAL4D()) ||
+        Rectangle<4>::checkType(type)){
+        return 2;
+    }
+    if(listutils::isKind(type,Kind::SPATIAL8D()) ||
+        Rectangle<8>::checkType(type)){
+        return 3;
+    }
+  return -1;
+ }
+/*
+
+5.10.4 Description of operator ~mcreateRtree2~
+
+*/
+
+OperatorSpec mcreateRtree2Spec(
+    "stream(Tuple) x T x string -> string",
+    "_ mcreateRtree2 [_,_]",
+    "creates an mmrtree<d>, the key type must be of kind SPATAL2D"
+    "SPATIAL3D, SPATIAL4D, SPATIAL8D, or of type rect>d>",
+    "query strassen feed head[5] mcreateRtree2 [GeoData, 'strassen_GeoData']"
+);
+
+
+
+/*
+
+5.10.5 Instance of operator ~mcreateRtree2~
+
+*/
+
+Operator mcreateRtree2Op (
+    "mcreateRtree2",             //operator's name
+    mcreateRtree2Spec.getStr(),  //specification
+    4,
+    mcreateRtree2ValMap,         // value mapping array
+    mcreateRtree2Select,    //selection function
+    mcreateRtree2TypeMap         //type mapping
+);
+
+
+/*
 5.11 Operator ~memsize~
 
 returns the currently set main memory size
@@ -2053,6 +2252,7 @@ int minsertValMap (Word* args, Word& result,
             if (mro->hasflob()){
                 while( (tup = stream.request()) != 0){
                     tup->bringToMemory();
+        tup->IncReference();
                     mro->addTuple(tup);
                 }
             } else {
@@ -2143,11 +2343,6 @@ ListExpr mwindowintersectsTypeMap(ListExpr args)
     string oN_Rtree = nl->StringValue(nl->Second(memoryRtreeDescription));
     ListExpr oTE_Rtree = catalog->getMMObjectTypeExpr(oN_Rtree);
 
-//    if (!catalog->isMMObject(oN_Rtree) ||
-//            !MemoryRtreeObject<2>::checkType(oTE_Rtree)){
-//        return listutils::typeError
-//                ("first string does not identify a MemoryRTreeObject");
-//    }
     if (!catalog->isMMObject(oN_Rtree) ||
             !(nl->ToString(oTE_Rtree)=="memoryRtreeObject")){
         return listutils::typeError
@@ -2543,8 +2738,10 @@ int mcreateAVLtreeValMap (Word* args, Word& result,
             = new avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >;
     Attribute* attr;
     pair<Attribute*,size_t> aPair;
+
+
+
     size_t usedMainMemory = 0;
-    int attrSize=0;
     unsigned long availableMemSize = catalog->getAvailabeMemSize();
 
     while ( it!=relVec->end()){
@@ -2553,21 +2750,23 @@ int mcreateAVLtreeValMap (Word* args, Word& result,
         if(attr==0 || !attr->IsDefined()){
             return 0;
         }
-        attrSize=attr->GetMemSize();
         aPair = pair<Attribute*,size_t>(attr,i);
-        if (((size_t)attrSize+8)<availableMemSize){
+        // size for a pair is 16 bytes, plus an additional pointer 8 bytes
+        int entrySize = 24;
+        if (entrySize<availableMemSize){
             tree->insert(aPair);
-            usedMainMemory += (attrSize+8);
-            availableMemSize -= (attrSize+8);
+            usedMainMemory += (entrySize);
+            availableMemSize -= (entrySize);
             it++;
             i++;
         } else {
             cout<<"there is not enough main memory available"
             " to create an AVLTree"<<endl;
+            delete tree;
             return 0;
         }
     }
-
+cout<<"Größe des Baums: "<<tree->Size()<<endl;
     string  res = relObjectName +"_"+attrName;
     MemoryAVLObject* avlObject =
         new MemoryAVLObject(tree, usedMainMemory,"memoryAVLObject",attrType);
@@ -2647,7 +2846,7 @@ ListExpr mexactmatchTypeMap(ListExpr args)
     ListExpr oTE_AVL = catalog->getMMObjectTypeExpr(oN_AVL);
 
     if (!catalog->isMMObject(oN_AVL) ||
-            !MemoryAVLObject::checkType(oTE_AVL)){
+    !(nl->ToString(oTE_AVL)=="memoryAVLObject")){
         return listutils::typeError
                 ("first string does not identify a MemoryAVLObject");
     }
@@ -2684,7 +2883,6 @@ ListExpr mexactmatchTypeMap(ListExpr args)
 
     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),oTE_Rel);
 }
-
 
 class avlOperLI{
     public:
@@ -2753,50 +2951,52 @@ class avlOperLI{
 
 
         Tuple* matchbelow(){
-            if (keyType=="string"){
-                    string attr1ToString = ((CcString*) attr1)->GetValue();
-
-                if (itbegin.onEnd()||((trim(((CcString*)((*itbegin)->first))
-                                    ->GetValue())) > attr1ToString)){
-                        return 0;
-                }
-                while(!itbegin.onEnd() &&
-                    (((trim(((CcString*)((*itbegin)->first))
-                                            ->GetValue())) <  attr1ToString) ||
-                     ((trim(((CcString*)((*itbegin)->first))
-                                            ->GetValue())) == attr1ToString))){
-
-                    hit = *itbegin;
-                    if (itbegin.hasNext()){
-                        itbegin.Next();
-                    }
-                    else {
-                        itbegin=NULL;
-                    }
-                }
-            Tuple* result = relation->at(hit->second);
-            result->IncReference();
-            return result;
-            }  // end keyType string
-
-
-
-            if(itbegin.onEnd() || ((*itbegin)->first)->Compare(attr1)==1){
-                return 0;
-            }
-            while(!itbegin.onEnd()&&((((*itbegin)->first)->Compare(attr1)==-1)
-                            || (((*itbegin)->first)->Compare(attr1)== 0))){
-                hit = *itbegin;
-                if (itbegin.hasNext()){
-                    itbegin.Next();
-                }
-                else {
-                    itbegin=NULL;
-                }
-            }
-            Tuple* result = relation->at(hit->second);
-            result->IncReference();
-            return result;
+//            if (keyType=="string"){
+//                    string attr1ToString = ((CcString*) attr1)->GetValue();
+//
+//                if (itbegin.onEnd()||((trim(((CcString*)((*itbegin)->first))
+//                                    ->GetValue())) > attr1ToString)){
+//                        return 0;
+//                }
+//                while(!itbegin.onEnd() &&
+//                   (((trim(((CcString*)((*itbegin)->first))
+//                                           ->GetValue())) <  attr1ToString) ||
+//                    ((trim(((CcString*)((*itbegin)->first))
+//                                           ->GetValue())) == attr1ToString))){
+//
+//                    hit = *itbegin;
+//                    if (itbegin.hasNext()){
+//                        itbegin.Next();
+//                    }
+//                    else {
+//                        itbegin=NULL;
+//                    }
+//                }
+//            Tuple* result = relation->at(hit->second);
+//            result->IncReference();
+//            return result;
+//            }  // end keyType string
+//
+//
+//
+//            if(itbegin.onEnd() || ((*itbegin)->first)->Compare(attr1)==1){
+//                return 0;
+//            }
+//            while(!itbegin.onEnd()&&((((*itbegin)->first)->Compare(attr1)==-1)
+//                            || (((*itbegin)->first)->Compare(attr1)== 0))){
+//                hit = *itbegin;
+//                if (itbegin.hasNext()){
+//                    itbegin.Next();
+//                }
+//                else {
+//                    itbegin=NULL;
+//                }
+//            }
+//            Tuple* result = relation->at(hit->second);
+//            result->IncReference();
+//            return result;
+            cout<<"Matchbelow anfang"<<endl;
+            return 0;
         }
 
 
@@ -2944,7 +3144,7 @@ ListExpr mrangeTypeMap(ListExpr args)
     ListExpr oTE_AVL = catalog->getMMObjectTypeExpr(oN_AVL);
 
     if (!catalog->isMMObject(oN_AVL) ||
-            !MemoryAVLObject::checkType(oTE_AVL)){
+            !(nl->ToString(oTE_AVL)=="memoryAVLObject")){
         return listutils::typeError
                 ("first string does not identify a MemoryAVLObject");
     }
@@ -3117,7 +3317,7 @@ ListExpr matchbelowTypeMap(ListExpr args)
     ListExpr oTE_AVL = catalog->getMMObjectTypeExpr(oN_AVL);
 
     if (!catalog->isMMObject(oN_AVL) ||
-            !MemoryAVLObject::checkType(oTE_AVL)){
+        !(nl->ToString(oTE_AVL)=="memoryAVLObject")) {
         return listutils::typeError
                 ("first string does not identify a MemoryAVLObject");
     }
@@ -3170,27 +3370,37 @@ int matchbelowValMap (Word* args, Word& result,
     switch (message)
     {
         case OPEN: {
+        cout<<"Matchbelow open"<<endl;
             if(li){
                 delete li;
                 local.addr=0;
             }
+                cout<<"Matchbelow open 3378"<<endl;
             //first argument MemoryAVLObject
             CcString* oN_0 = (CcString*) args[0].addr;
+                cout<<"Matchbelow open 3381"<<endl;
             if(!oN_0->IsDefined()){
+                cout<<"Matchbelow open 3382"<<endl;
                 return 0;
             }
+           cout<<"Matchbelow open 3383"<<endl;
             string objectName_0 = oN_0->GetValue();
+                cout<<"Matchbelow open 3388"<<endl;
             avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
+                cout<<"Matchbelow open 3390"<<endl;
             MemoryAVLObject* avlObject =
                     (MemoryAVLObject*)catalog->getMMObject(objectName_0);
+                        cout<<"Matchbelow open 3393"<<endl;
             string keyType = avlObject->getKeyType();
+                cout<<"Matchbelow open 3395"<<endl;
             tree = avlObject->getAVLtree();
-
+    cout<<"Matchbelow open 3397"<<endl;
             //second argument MemoryRelObject
             CcString* oN_1 = (CcString*) args[1].addr;
             if(!oN_1->IsDefined()){
                 return 0;
             }
+                cout<<"Matchbelow open 3403"<<endl;
             string objectName_1 = oN_1->GetValue();
             vector<Tuple*>* relation;
             MemoryRelObject* mro =
@@ -3198,17 +3408,22 @@ int matchbelowValMap (Word* args, Word& result,
             relation = mro->getmmrel();
 
             // third argument key value
+                cout<<"Matchbelow open 3411"<<endl;
             Attribute* attr = (Attribute*)args[2].addr;
+                cout<<"Matchbelow open 3413"<<endl;
             local.addr= new avlOperLI(tree,relation,attr,keyType);
+                 cout<<"Matchbelow open 3415"<<endl;
             return 0;
         }
 
         case REQUEST:
+         cout<<"Matchbelow request"<<endl;
             result.addr=(li?li->matchbelow():0);
             return result.addr?YIELD:CANCEL;
 
 
         case CLOSE:
+        cout<<"Matchbelow close"<<endl;
             if(li)
             {
             delete li;
@@ -3312,6 +3527,7 @@ class MainMemoryAlgebra : public Algebra
         memupdateOp.SetUsesArgsInTypeMapping();
         AddOperator (&mcreateRtreeOp);
         mcreateRtreeOp.SetUsesArgsInTypeMapping();
+        AddOperator (&mcreateRtree2Op);
         AddOperator (&memsizeOp);
         AddOperator (&memclearOp);
         AddOperator (&minsertOp);
