@@ -26,6 +26,7 @@ Additionally some specialized functions are provided.
 
 #include <iostream>
 #include <assert.h>
+#include <stdlib.h>
 #include <stack>
 
 using namespace std;
@@ -818,10 +819,13 @@ any elements, i.e. whether Get or [*] would return NULL.
        return root;
    } else if(Comparator::smaller(root->content , min)){
       const AvlNode<contenttype,Comparator>* node = root->getRightSon();
+      thestack.pop();
       if(node){
         node = tail(node,min);
         if(!node){
-           thestack.pop();
+           if(!thestack.empty()){
+               thestack.pop();
+           }
            return 0;
         } else {
            return node;
@@ -829,7 +833,9 @@ any elements, i.e. whether Get or [*] would return NULL.
       } else {
         // the subtree specified by root contains only
         // elements smaller than min
-        thestack.pop();
+        if(!thestack.empty()){
+           thestack.pop();
+        }
         return 0;
       } 
    } else { // root.content > min 
