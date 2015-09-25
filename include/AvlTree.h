@@ -814,43 +814,26 @@ any elements, i.e. whether Get or [*] would return NULL.
          const contenttype& min){
     __AVL_TRACE__
    assert(root);
-   thestack.push(root);
    if(Comparator::equal(root->content,min)){
+       thestack.push(root);
        return root;
-   } else if(Comparator::smaller(root->content , min)){
-      const AvlNode<contenttype,Comparator>* node = root->getRightSon();
-      thestack.pop();
-      if(node){
-        node = tail(node,min);
-        if(!node){
-           if(!thestack.empty()){
-               thestack.pop();
-           }
-           return 0;
-        } else {
-           return node;
-        }
+   } else if(Comparator::smaller(root->content , min)){ 
+      // root.content < min
+      // may be in the right subtree there is the node
+      // searched for
+      const AvlNode<contenttype,Comparator>* son = root->getRightSon();
+      if(!son){
+         return 0;
       } else {
-        // the subtree specified by root contains only
-        // elements smaller than min
-        if(!thestack.empty()){
-           thestack.pop();
-        }
-        return 0;
-      } 
-   } else { // root.content > min 
-      // in the left subtree may be an element nearer to min
-      const AvlNode<contenttype,Comparator>* node = root->getLeftSon();
-      if(!node){ // no better element available
-         return root;
-      } else {
-         node = tail(node,min);
-         if(node){ // found a better element
-           return node;
-         } else {
-           return root;
-         }
+         return tail(son,min);
       }
+   } else { // root.content > min 
+      // may be within the left subtree there is a better
+      // node
+      thestack.push(root);
+      const AvlNode<contenttype,Comparator>* son = root->getLeftSon();
+      const AvlNode<contenttype,Comparator>* best = tail(son,min);
+      return best?best:root;
    }
  } 
 
