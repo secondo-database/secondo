@@ -832,8 +832,12 @@ any elements, i.e. whether Get or [*] would return NULL.
       // node
       thestack.push(root);
       const AvlNode<contenttype,Comparator>* son = root->getLeftSon();
-      const AvlNode<contenttype,Comparator>* best = tail(son,min);
-      return best?best:root;
+      if(son){
+        const AvlNode<contenttype,Comparator>* best = tail(son,min);
+        return best?best:root;
+      } else {
+        return 0;
+      }
    }
  } 
 
