@@ -40,7 +40,7 @@ DistributionTaskManager::DistributionTaskManager(KeyValueStore* instance)
       syncDistribution(false),
       criteria(instance) {
   time(&lastRestructure);
-  RESTRUCTURE_INTERVAL = 10;  // in seconds
+  RESTRUCTURE_INTERVAL = 30;  // in seconds
 }
 
 DistributionTaskManager::~DistributionTaskManager() {

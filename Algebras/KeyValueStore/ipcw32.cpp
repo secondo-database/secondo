@@ -30,9 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifdef SECONDO_WIN32
 
 #include "windows.h"
-//#include <stdio.h>
-//#include <conio.h>
-//#include <tchar.h>
 
 IPCConnection::IPCConnection(void* handle, bool server, double timeout)
     : handle(handle), server(server), timeout(timeout), timedout(false) {
