@@ -592,6 +592,7 @@ void DistributionTaskManager::syncDistributions(bool* run) {
 
     delete distCopy;
     ROUT << "Sync finished ...(" << DebugTime() << ")" << endl;
+    time(&lastRestructure);
   }
 }
 
