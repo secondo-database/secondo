@@ -1,6 +1,7 @@
 package mmdb.streamprocessing.objectnodes.condition;
 
 import mmdb.data.MemoryObject;
+import mmdb.data.MemoryObjects;
 import mmdb.data.attributes.MemoryAttribute;
 import mmdb.data.attributes.standard.AttributeBool;
 import mmdb.error.memory.MemoryException;
@@ -79,6 +80,9 @@ public class Equals implements ObjectNode {
 				this.getClass(), 2);
 		this.objectInput2 = (ObjectNode) this.input2;
 
+		// Are both outputTypes the same?
+		checkOutputTypesMatch();
+
 		this.outputType = new AttributeBool();
 	}
 
@@ -108,6 +112,25 @@ public class Equals implements ObjectNode {
 	@Override
 	public MemoryAttribute getOutputType() {
 		return this.outputType;
+	}
+
+	/**
+	 * Checks if the OutputTypes of the parameters match so they can be
+	 * compared.
+	 * 
+	 * @throws TypeException
+	 *             if the OutputTypes do not match.
+	 */
+	private void checkOutputTypesMatch() throws TypeException {
+		Class<?> class1 = this.objectInput1.getOutputType().getClass();
+		Class<?> class2 = this.objectInput2.getOutputType().getClass();
+		if (class1 != class2) {
+			throw new TypeException(
+					"%s's inputs are of different types: %s != %s", this
+							.getClass().getSimpleName(),
+					MemoryObjects.getTypeName(class1),
+					MemoryObjects.getTypeName(class2));
+		}
 	}
 
 }

@@ -41,13 +41,12 @@ public class EqualsTests {
 		assertEquals(false, ((AttributeBool) equals.getResult()).isValue());
 	}
 
-	@Test
+	@Test(expected = TypeException.class)
 	public void testEqualsDifferentTypes() throws TypeException,
 			MemoryException {
 		Equals equals = getEquals(new AttributeReal(3), new AttributeReal(),
 				new AttributeInt(9), new AttributeInt());
 		equals.typeCheck();
-		assertEquals(false, ((AttributeBool) equals.getResult()).isValue());
 	}
 
 	@Test

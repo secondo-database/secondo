@@ -83,7 +83,7 @@ public abstract class ComparisonOperator implements ObjectNode {
 	}
 
 	/**
-	 * Checks if the OutputTypes of the parameters matches so they can be
+	 * Checks if the OutputTypes of the parameters match so they can be
 	 * compared.
 	 * 
 	 * @throws TypeException

@@ -171,7 +171,7 @@ public abstract class HeaderTools {
 		}
 		if (headerIndex == -1) {
 			throw new TypeException("%s: Identifier \"%s\" not present!",
-					caller, identifier);
+					caller.getSimpleName(), identifier);
 		}
 		return headerIndex;
 	}

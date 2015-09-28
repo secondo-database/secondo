@@ -1,6 +1,7 @@
 package unittests.mmdb.streamprocessing.streamoperator;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import gui.SecondoObject;
 
 import java.util.ArrayList;
@@ -16,21 +17,29 @@ import mmdb.data.attributes.standard.AttributeString;
 import mmdb.error.memory.MemoryException;
 import mmdb.error.streamprocessing.StreamStateException;
 import mmdb.error.streamprocessing.TypeException;
+import mmdb.streamprocessing.Node;
+import mmdb.streamprocessing.functionoperators.ParameterFunction;
+import mmdb.streamprocessing.objectnodes.Attr;
 import mmdb.streamprocessing.objectnodes.ConstantNode;
 import mmdb.streamprocessing.objectnodes.Consume;
+import mmdb.streamprocessing.objectnodes.FunctionEnvironment;
 import mmdb.streamprocessing.objectnodes.ObjectNode;
+import mmdb.streamprocessing.objectnodes.condition.Contains;
+import mmdb.streamprocessing.objectnodes.condition.Equals;
 import mmdb.streamprocessing.parser.NestedListProcessor;
 import mmdb.streamprocessing.streamoperators.Feed;
-import mmdb.streamprocessing.streamoperators.Hashjoin;
+import mmdb.streamprocessing.streamoperators.Rename;
+import mmdb.streamprocessing.streamoperators.Symmjoin;
 
 import org.junit.Test;
 
 import unittests.mmdb.util.TestUtilParser;
+import unittests.mmdb.util.TestUtilRelation;
 
-public class HashjoinTests {
+public class SymmjoinTests {
 
 	@Test
-	public void testHashjoin() throws TypeException, MemoryException {
+	public void testSymmjoin() throws TypeException, MemoryException {
 		MemoryRelation rel1 = getRel1();
 		MemoryRelation rel2 = getRel2();
 
@@ -40,10 +49,20 @@ public class HashjoinTests {
 		ObjectNode relNode2 = ConstantNode.createConstantNode(rel2, rel2);
 		Feed feed2 = new Feed(relNode2);
 
-		Hashjoin hashjoin = new Hashjoin(feed1, feed2, "Augenfarbe",
-				"Wandfarbe");
+		FunctionEnvironment fe1 = new FunctionEnvironment();
+		FunctionEnvironment fe2 = new FunctionEnvironment();
 
-		Consume consume = new Consume(hashjoin);
+		Attr attr1 = new Attr(fe1, "Augenfarbe");
+		Attr attr2 = new Attr(fe2, "Wandfarbe");
+
+		Equals equals = new Equals(attr1, attr2);
+
+		ParameterFunction function = new ParameterFunction(new Node[] { fe1,
+				fe2 }, equals);
+
+		Symmjoin symmjoin = new Symmjoin(feed1, feed2, function);
+
+		Consume consume = new Consume(symmjoin);
 
 		consume.typeCheck();
 
@@ -54,7 +73,7 @@ public class HashjoinTests {
 	}
 
 	@Test(expected = StreamStateException.class)
-	public void testHashjoinUnopened() throws TypeException, MemoryException {
+	public void testSymmjoinUnopened() throws TypeException, MemoryException {
 		MemoryRelation rel1 = getRel1();
 		MemoryRelation rel2 = getRel2();
 
@@ -64,32 +83,26 @@ public class HashjoinTests {
 		ObjectNode relNode2 = ConstantNode.createConstantNode(rel2, rel2);
 		Feed feed2 = new Feed(relNode2);
 
-		Hashjoin hashjoin = new Hashjoin(feed1, feed2, "Augenfarbe",
-				"Wandfarbe");
+		FunctionEnvironment fe1 = new FunctionEnvironment();
+		FunctionEnvironment fe2 = new FunctionEnvironment();
 
-		hashjoin.typeCheck();
-		hashjoin.getNext();
+		Attr attr1 = new Attr(fe1, "Augenfarbe");
+		Attr attr2 = new Attr(fe2, "Wandfarbe");
+
+		Equals equals = new Equals(attr1, attr2);
+
+		ParameterFunction function = new ParameterFunction(new Node[] { fe1,
+				fe2 }, equals);
+
+		Symmjoin symmjoin = new Symmjoin(feed1, feed2, function);
+
+		symmjoin.typeCheck();
+		symmjoin.getNext();
 	}
 
 	@Test(expected = TypeException.class)
-	public void testIdentifierDuplication() throws TypeException {
-		MemoryRelation rel1 = getRel1();
-		MemoryRelation rel2 = getRel1();
-
-		ObjectNode relNode1 = ConstantNode.createConstantNode(rel1, rel1);
-		Feed feed1 = new Feed(relNode1);
-
-		ObjectNode relNode2 = ConstantNode.createConstantNode(rel2, rel2);
-		Feed feed2 = new Feed(relNode2);
-
-		Hashjoin hashjoin = new Hashjoin(feed1, feed2, "Augenfarbe",
-				"Augenfarbe");
-
-		hashjoin.typeCheck();
-	}
-
-	@Test(expected = TypeException.class)
-	public void testIdentifierTypeMismatch() throws TypeException {
+	public void testIdentifierTypeMismatch() throws TypeException,
+			MemoryException {
 		MemoryRelation rel1 = getRel1();
 		MemoryRelation rel2 = getRel2();
 
@@ -99,9 +112,82 @@ public class HashjoinTests {
 		ObjectNode relNode2 = ConstantNode.createConstantNode(rel2, rel2);
 		Feed feed2 = new Feed(relNode2);
 
-		Hashjoin hashjoin = new Hashjoin(feed1, feed2, "Augenfarbe", "Preis");
+		FunctionEnvironment fe1 = new FunctionEnvironment();
+		FunctionEnvironment fe2 = new FunctionEnvironment();
 
-		hashjoin.typeCheck();
+		Attr attr1 = new Attr(fe1, "Augenfarbe");
+		Attr attr2 = new Attr(fe2, "Preis");
+
+		Equals equals = new Equals(attr1, attr2);
+
+		ParameterFunction function = new ParameterFunction(new Node[] { fe1,
+				fe2 }, equals);
+
+		Symmjoin symmjoin = new Symmjoin(feed1, feed2, function);
+
+		symmjoin.typeCheck();
+	}
+
+	@Test
+	public void testRightStreamEmpty() throws Exception {
+		MemoryRelation rel1 = TestUtilRelation.getIntStringRelation(0, false,
+				false);
+		MemoryRelation rel2 = TestUtilRelation.getIntStringRelation(5,
+				false, false);
+
+		ObjectNode relNode1 = ConstantNode.createConstantNode(rel1, rel1);
+		Feed feed1 = new Feed(relNode1);
+		Rename rename1 = new Rename(feed1, "a");
+
+		ObjectNode relNode2 = ConstantNode.createConstantNode(rel2, rel2);
+		Feed feed2 = new Feed(relNode2);
+
+		FunctionEnvironment fe1 = new FunctionEnvironment();
+		FunctionEnvironment fe2 = new FunctionEnvironment();
+
+		Attr attr1 = new Attr(fe1, "identifierString_a");
+		Attr attr2 = new Attr(fe2, "identifierString");
+
+		Contains contains = new Contains(attr1, attr2);
+		ParameterFunction function = new ParameterFunction(new Node[] { fe1,
+				fe2 }, contains);
+
+		Symmjoin symmjoin = new Symmjoin(rename1, feed2, function);
+
+		symmjoin.typeCheck();
+		symmjoin.open();
+		assertNull(symmjoin.getNext());
+	}
+
+	@Test
+	public void testLeftStreamEmpty() throws Exception {
+		MemoryRelation rel1 = TestUtilRelation.getIntStringRelation(5, false,
+				false);
+		MemoryRelation rel2 = TestUtilRelation.getIntStringRelation(0, false,
+				false);
+
+		ObjectNode relNode1 = ConstantNode.createConstantNode(rel1, rel1);
+		Feed feed1 = new Feed(relNode1);
+		Rename rename1 = new Rename(feed1, "a");
+
+		ObjectNode relNode2 = ConstantNode.createConstantNode(rel2, rel2);
+		Feed feed2 = new Feed(relNode2);
+
+		FunctionEnvironment fe1 = new FunctionEnvironment();
+		FunctionEnvironment fe2 = new FunctionEnvironment();
+
+		Attr attr1 = new Attr(fe1, "identifierString_a");
+		Attr attr2 = new Attr(fe2, "identifierString");
+
+		Contains contains = new Contains(attr1, attr2);
+		ParameterFunction function = new ParameterFunction(new Node[] { fe1,
+				fe2 }, contains);
+
+		Symmjoin symmjoin = new Symmjoin(rename1, feed2, function);
+
+		symmjoin.typeCheck();
+		symmjoin.open();
+		assertNull(symmjoin.getNext());
 	}
 
 	@Test
@@ -110,14 +196,14 @@ public class HashjoinTests {
 				"REL1");
 		SecondoObject sobject2 = TestUtilParser.getSecondoObject(getRel2(),
 				"REL2");
-		String query = "(query (consume (hashjoin (feed REL1) (feed REL2) Augenfarbe Wandfarbe)))";
+		String query = "(query (consume (symmjoin (feed REL1) (feed REL2) (fun (tuple1 TUPLE1) (tuple2 TUPLE2) (= (attr tuple1 Augenfarbe) (attr tuple2 Wandfarbe))))))";
 		ObjectNode result = NestedListProcessor.buildOperatorTree(query,
 				TestUtilParser.getList(sobject1, sobject2));
 		result.typeCheck();
 		MemoryObject mobject = result.getResult();
 
-		MemoryObject expected = getExpectedOutputRelation();
-		assertEquals(expected, mobject);
+		MemoryObject expectedResult = getExpectedOutputRelation();
+		assertEquals(expectedResult, mobject);
 	}
 
 	private MemoryRelation getRel1() {

@@ -17,6 +17,7 @@ import mmdb.service.ObjectImport;
 
 import org.junit.Test;
 
+import unittests.mmdb.util.TestUtilMocks.ImportExportGuiMock;
 import unittests.mmdb.util.TestUtilRelation;
 
 public class ObjectImportTests {
@@ -34,11 +35,14 @@ public class ObjectImportTests {
 		SecondoObject so = new SecondoObject(IDManager.getNextID());
 		so.setName("EinString");
 		so.setMemoryObject(attr);
-		ObjectExport.getInstance().exportObjects(new SecondoObject[] { so },
-				temp.getAbsolutePath());
+		ObjectExport objectExport = new ObjectExport(
+				new SecondoObject[] { so }, temp.getAbsolutePath(),
+				new ImportExportGuiMock());
+		objectExport.doInBackground();
 
-		SecondoObject[] imported = ObjectImport.getInstance().importObjects(
-				temp.getAbsolutePath());
+		ObjectImport objectImport = new ObjectImport(temp.getAbsolutePath(),
+				new ImportExportGuiMock());
+		SecondoObject[] imported = objectImport.doInBackground();
 		assertEquals(attr, imported[0].getMemoryObject());
 		temp.delete();
 	}
@@ -63,12 +67,14 @@ public class ObjectImportTests {
 		so1.setName("EinString");
 		so1.setMemoryObject(attr);
 
-		ObjectExport.getInstance().exportObjects(
-				new SecondoObject[] { so0, so1 }, temp.getAbsolutePath());
+		ObjectExport objectExport = new ObjectExport(new SecondoObject[] { so0,
+				so1 }, temp.getAbsolutePath(), new ImportExportGuiMock());
+		objectExport.doInBackground();
 
-		SecondoObject[] imported = ObjectImport.getInstance().importObjects(
-				temp.getAbsolutePath());
-		
+		ObjectImport objectImport = new ObjectImport(temp.getAbsolutePath(),
+				new ImportExportGuiMock());
+		SecondoObject[] imported = objectImport.doInBackground();
+
 		assertEquals(so0.getMemoryObject(), imported[0].getMemoryObject());
 		assertEquals(so1.getMemoryObject(), imported[1].getMemoryObject());
 		temp.delete();
@@ -76,7 +82,7 @@ public class ObjectImportTests {
 
 	@Test(expected = ImportException.class)
 	public void testImportObjectsFail1() throws Exception {
-		ObjectImport.getInstance().importObjects("");
+		ObjectImport.checkFile("");
 	}
 
 	@Test(expected = ImportException.class)
@@ -88,7 +94,7 @@ public class ObjectImportTests {
 			fail("Could not create temp file! Cannot test MM-Import...");
 		}
 		try {
-			ObjectImport.getInstance().importObjects(temp.getAbsolutePath());
+			ObjectImport.checkFile(temp.getAbsolutePath());
 		} finally {
 			temp.delete();
 		}

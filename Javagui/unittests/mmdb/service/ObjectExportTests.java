@@ -16,6 +16,7 @@ import mmdb.service.ObjectExport;
 
 import org.junit.Test;
 
+import unittests.mmdb.util.TestUtilMocks.ImportExportGuiMock;
 import unittests.mmdb.util.TestUtilRelation;
 
 public class ObjectExportTests {
@@ -34,8 +35,10 @@ public class ObjectExportTests {
 		SecondoObject so = new SecondoObject(IDManager.getNextID());
 		so.setName("Tabelle1");
 		so.setMemoryObject(rel);
-		ObjectExport.getInstance().exportObjects(new SecondoObject[] { so },
-				temp.getAbsolutePath());
+		ObjectExport objectExport = new ObjectExport(
+				new SecondoObject[] { so }, temp.getAbsolutePath(),
+				new ImportExportGuiMock());
+		objectExport.doInBackground();
 		temp.delete();
 	}
 
@@ -52,8 +55,10 @@ public class ObjectExportTests {
 		SecondoObject so = new SecondoObject(IDManager.getNextID());
 		so.setName("EinString");
 		so.setMemoryObject(attr);
-		ObjectExport.getInstance().exportObjects(new SecondoObject[] { so },
-				temp.getAbsolutePath());
+		ObjectExport objectExport = new ObjectExport(
+				new SecondoObject[] { so }, temp.getAbsolutePath(),
+				new ImportExportGuiMock());
+		objectExport.doInBackground();
 		temp.delete();
 	}
 
@@ -77,8 +82,9 @@ public class ObjectExportTests {
 		so2.setName("EinString [++]");
 		so2.setMemoryObject(attr);
 
-		ObjectExport.getInstance().exportObjects(
-				new SecondoObject[] { so1, so2 }, temp.getAbsolutePath());
+		ObjectExport objectExport = new ObjectExport(new SecondoObject[] { so1,
+				so2 }, temp.getAbsolutePath(), new ImportExportGuiMock());
+		objectExport.doInBackground();
 		temp.delete();
 	}
 
@@ -95,8 +101,7 @@ public class ObjectExportTests {
 			SecondoObject so1 = new SecondoObject(IDManager.getNextID());
 			so1.setName("Tabelle1");
 
-			ObjectExport.getInstance().exportObjects(
-					new SecondoObject[] { so1 }, temp.getAbsolutePath());
+			ObjectExport.checkObjectsExportable(new SecondoObject[] { so1 });
 		} finally {
 			temp.delete();
 		}
@@ -116,8 +121,7 @@ public class ObjectExportTests {
 			so1.setName("Tabelle1");
 			so1.setMemoryObject(new MemoryTuple());
 
-			ObjectExport.getInstance().exportObjects(
-					new SecondoObject[] { so1 }, temp.getAbsolutePath());
+			ObjectExport.checkObjectsExportable(new SecondoObject[] { so1 });
 		} finally {
 			temp.delete();
 		}

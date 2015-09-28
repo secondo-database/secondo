@@ -47,8 +47,8 @@ public class MMDBMenu extends JMenu {
 				"Convert selected Object to NL", false, false), CONVERT_ALL(5,
 				"Convert all Objects to NL", true, false), RESULT_AUTOCONVERT(
 				6, "Autoconvert query results to NL format", false, true), EXPORT(
-				7, "Export MMObject", false, false), IMPORT(8,
-				"Import MMObject", true, false), INDEX(9, "Generate Index",
+				7, "Export MMObject(s)", false, false), IMPORT(8,
+				"Import MMObject(s)", true, false), INDEX(9, "Generate Index",
 				false, false), QUERY(10, "Execute Query", false, false), MEMORY(
 				11, "Manage Memory", true, false), TYPES(120,
 				"Supported Types", false, false), HELP(13, "Help", false, false);

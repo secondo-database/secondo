@@ -44,6 +44,7 @@ import unittests.mmdb.streamprocessing.streamoperator.ProjectTests;
 import unittests.mmdb.streamprocessing.streamoperator.RenameTests;
 import unittests.mmdb.streamprocessing.streamoperator.SortTests;
 import unittests.mmdb.streamprocessing.streamoperator.SortbyTests;
+import unittests.mmdb.streamprocessing.streamoperator.SymmjoinTests;
 import unittests.mmdb.streamprocessing.streamoperator.TailTests;
 import unittests.mmdb.streamprocessing.tools.HeaderToolsTests;
 import unittests.mmdb.streamprocessing.tools.ParserToolsTest;
@@ -65,7 +66,7 @@ import unittests.mmdb.streamprocessing.tools.TypecheckToolsTests;
 		EnvironmentTests.class, ParserToolsTest.class,
 		NestedListProcessorTest.class, MemoryObjectsTests.class,
 		ObjectExportTests.class, ObjectImportTests.class,
-		ParserControllerTests.class })
+		ParserControllerTests.class, SymmjoinTests.class })
 public class TestSuiteStreamProcessing {
 
 }

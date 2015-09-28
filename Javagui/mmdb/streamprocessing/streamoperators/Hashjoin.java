@@ -28,7 +28,7 @@ import sj.lang.ListExpr;
  * Like the core operator it takes the second input stream for the stored
  * Hashmap.
  * 
- * @author bjorn
+ * @author Bjoern Clasen
  *
  */
 public class Hashjoin implements StreamOperator {
@@ -44,7 +44,7 @@ public class Hashjoin implements StreamOperator {
 	private String identifier1, identifier2;
 
 	/**
-	 * The operators parameters as StreamOperators.
+	 * The operator's parameters as StreamOperators.
 	 */
 	private StreamOperator streamInput1, streamInput2;
 
@@ -157,10 +157,10 @@ public class Hashjoin implements StreamOperator {
 	@Override
 	public void open() throws MemoryException {
 		this.streamInput1.open();
+		this.streamInput2.open();
 
 		// Create Map
 		this.map = new HashMap<MemoryAttribute, List<MemoryTuple>>();
-		this.streamInput2.open();
 		MemoryTuple curTuple;
 		int memorywatch_counter = 0;
 		while ((curTuple = (MemoryTuple) this.streamInput2.getNext()) != null) {
@@ -186,11 +186,16 @@ public class Hashjoin implements StreamOperator {
 					"Stream was accessed while being closed!");
 		}
 
+		// If right stream was empty from the start...
+		if (this.map.isEmpty()) {
+			return null;
+		}
+
 		// If Store is not empty just put out first element in store
 		if (!this.tupleStore.isEmpty()) {
 			return this.tupleStore.poll();
 		} else {
-			// Fill Store with next match
+			// Fill Store with next match(es)
 			MemoryTuple curTuple;
 			boolean foundMatch = false;
 			while (!foundMatch
@@ -244,7 +249,7 @@ public class Hashjoin implements StreamOperator {
 						this.getClass());
 		if (class1 != class2) {
 			throw new TypeException(
-					"%s: cannot join attribute types: %s != %s", this
+					"%s: cannot equi-join attribute types: %s != %s", this
 							.getClass().getSimpleName(),
 					MemoryAttribute.getTypeName(class1),
 					MemoryAttribute.getTypeName(class2));
@@ -321,10 +326,13 @@ public class Hashjoin implements StreamOperator {
 	 * @param joinCandidates
 	 *            the join candidates.
 	 * @return the queue containing all joined tuples.
+	 * @throws MemoryException
+	 *             if during joining memory tended to run out.
 	 */
 	private ConcurrentLinkedQueue<MemoryTuple> joinTuples(MemoryTuple curTuple,
-			List<MemoryTuple> joinCandidates) {
+			List<MemoryTuple> joinCandidates) throws MemoryException {
 		ConcurrentLinkedQueue<MemoryTuple> newTupleStore = new ConcurrentLinkedQueue<MemoryTuple>();
+		int memorywatch_counter = 0;
 		for (MemoryTuple joinCandidate : joinCandidates) {
 			MemoryTuple newTuple = new MemoryTuple();
 			for (MemoryAttribute attribute : curTuple.getAttributes()) {
@@ -334,6 +342,10 @@ public class Hashjoin implements StreamOperator {
 				newTuple.addAttribute(attribute);
 			}
 			newTupleStore.add(newTuple);
+			memorywatch_counter++;
+			if (memorywatch_counter % MemoryWatcher.MEMORY_CHECK_FREQUENCY == 0) {
+				MemoryWatcher.getInstance().checkMemoryStatus();
+			}
 		}
 		return newTupleStore;
 	}

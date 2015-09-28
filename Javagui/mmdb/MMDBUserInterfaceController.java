@@ -344,15 +344,16 @@ public final class MMDBUserInterfaceController {
 	 * Starts export process for MemoryObjects.
 	 */
 	private void processExportEvent() {
-		ImportExportGui.getInstance().processExportCommand(
-				objectList.getSelectedObjects());
+		ImportExportGui iegui = new ImportExportGui(commandPanel);
+		iegui.processExportCommand(objectList.getSelectedObjects());
 	}
 
 	/**
 	 * Starts import process for MemoryObjects.
 	 */
 	private void processImportEvent() {
-		ImportExportGui.getInstance().processImportCommand(objectList);
+		ImportExportGui iegui = new ImportExportGui(commandPanel);
+		iegui.processImportCommand(objectList);
 	}
 
 	/**

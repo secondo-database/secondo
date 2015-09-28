@@ -29,6 +29,7 @@ import java.awt.Frame;
 import java.util.ArrayList;
 import java.util.List;
 
+import mmdb.gui.ImportExportGui;
 import sj.lang.IntByReference;
 import sj.lang.ListExpr;
 import sj.lang.MessageListener;
@@ -190,6 +191,19 @@ public class TestUtilMocks {
 		public void addMessageListener(MessageListener ml) {
 		}
 
+	}
+
+	public static class ImportExportGuiMock extends ImportExportGui {
+		private static final long serialVersionUID = 1474100768268060242L;
+
+		public ImportExportGuiMock() {
+			super(null);
+		}
+
+		@Override
+		public void processProgressUpdate(List<Integer> processedIndices) {
+			// Do nothing
+		}
 	}
 
 }

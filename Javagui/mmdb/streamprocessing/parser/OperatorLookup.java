@@ -35,6 +35,7 @@ import mmdb.streamprocessing.streamoperators.Project;
 import mmdb.streamprocessing.streamoperators.Rename;
 import mmdb.streamprocessing.streamoperators.Sort;
 import mmdb.streamprocessing.streamoperators.Sortby;
+import mmdb.streamprocessing.streamoperators.Symmjoin;
 import mmdb.streamprocessing.streamoperators.Tail;
 
 /**
@@ -120,6 +121,7 @@ public class OperatorLookup {
 		operatorMap.put("rename", Rename.class);
 		operatorMap.put("sort", Sort.class);
 		operatorMap.put("sortby", Sortby.class);
+		operatorMap.put("symmjoin", Symmjoin.class);
 		operatorMap.put("tail", Tail.class);
 
 		return operatorMap;
