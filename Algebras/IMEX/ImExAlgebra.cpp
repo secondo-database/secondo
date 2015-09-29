@@ -6942,6 +6942,103 @@ Operator importGHT1(
    importHGT1VM,
    Operator::SimpleSelect,
    importHGT1TM);
+
+
+
+/*
+24.26 Operator ~removeDirectory~
+
+*/
+
+ListExpr removeDirectoryTM(ListExpr args){
+
+ string err = "{string,text} [ x bool] expected";
+ if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+   return listutils::typeError(err + " (wrong number of args)");
+ }
+ ListExpr f = nl->First(args);
+ if(!CcString::checkType(f) && !FText::checkType(f)){
+   return listutils::typeError(err);
+ } 
+
+ if(nl->HasLength(args,1)){
+    return nl->ThreeElemList(
+                nl->SymbolAtom(Symbols::APPEND()),
+                nl->OneElemList(nl->BoolAtom(false)),
+                listutils::basicSymbol<CcBool>());
+ }
+  
+ if(!CcBool::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+ }
+ return listutils::basicSymbol<CcBool>();
+}
+
+template<class T>
+int removeDirectoryVMT(Word* args, Word& result,
+                  int message, Word& local, Supplier s){
+
+  T* file = (T*) args[0].addr;
+  CcBool* rek = (CcBool*) args[1].addr;
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+
+  if(!file->IsDefined() || !rek->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+
+  string fn = file->GetValue();
+  bool r = rek->GetValue();
+
+  if(!FileSystem::IsDirectory(fn)){
+     res->Set(true,false);
+     return 0;
+  }
+
+  if(r){
+     res->Set(true,FileSystem::EraseFolder(fn));
+  } else {
+     res->Set(true,FileSystem::DeleteFileOrFolder(fn));
+  }
+  return 0;
+}
+
+int removeDirectorySelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping removeDirectoryVM[] = {
+   removeDirectoryVMT<CcString>,
+   removeDirectoryVMT<FText>
+};
+
+OperatorSpec removeDirectorySpec(
+  "{string,text} [x bool] -> bool",
+  "removeDirectory( filename, recursive)",
+  "Removes a directory on the filesystem. "
+  "If the boolean argument is true, all subfolders "
+  "of that directory will be removed too. Otherwise "
+  "only empty directories will be deleted. The default "
+  "value for the flag is false.",
+  "query removeDirectory('Blub.dir', TRUE)"
+);
+
+Operator removeDirectoryOp(
+  "removeDirectory",
+  removeDirectorySpec.getStr(),
+  2,
+  removeDirectoryVM,
+  removeDirectorySelect,
+  removeDirectoryTM
+);
+
+
+
+
+
+
+
    
 
 /*
@@ -6994,6 +7091,7 @@ public:
     AddOperator( &get_lines);
     AddOperator( &sqlExport);
     AddOperator( &importGHT1);
+    AddOperator( &removeDirectoryOp);
     #ifndef SECONDO_WIN32
     AddOperator( &rtf2txtfile);
     #endif

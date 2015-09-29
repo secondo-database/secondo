@@ -374,5 +374,11 @@ Example   : query basename("/home/secondo/secondo/makefile")
 Result    : "makefile"
 
 
+Operator  : removeDirectory
+Number    : 1
+Signature : {text, string} [x bool] -> bool
+Example   : query removeDirectory("Blub.dir",FALSE)
+Result    : FALSE
+
 
 

@@ -48,3 +48,5 @@ operator getPageSize alias GETPAGESIZE pattern op ( _ )
 operator sqlExport alias SQLEXPORT pattern _ op [ _,_,_] 
 operator rtf2txtfile alias rtf2txtfile pattern op( _ )
 operator basename alias BASENAME pattern op(_)
+operator removeDirectory alias REMOVEDIRECTORY pattern op(_,_)
+
