@@ -52,7 +52,7 @@ Example   : query tokenize('hello hello hello', " ") namedtransformstream[T] ext
 Result    : ( (trel(tuple((Word text)(Count int)))) ( ('hello' 3))) 
 
 
-Operator  : defaultInvFileFileSeparators
+Operator  : defaultInvFileSeparators
 Number    : 1
 Signature : -> string
 Example   : query defaultInvFileSeparators() contains " "
