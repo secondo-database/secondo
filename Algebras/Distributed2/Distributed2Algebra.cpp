@@ -176,6 +176,7 @@ class ffeed5Info{
 
   public:
     ffeed5Info(const string& filename, const ListExpr _tt){
+
        tt = new TupleType(_tt);
        inBuffer = new char[FILE_BUFFER_SIZE];
        in.open(filename.c_str(), ios::in | ios::binary);
@@ -295,6 +296,8 @@ class ffeed5Info{
            tupleType = SecondoSystem::GetCatalog()->NumericType(tupleType);
            TupleType ftt(tupleType);
            if(!ftt.equalSchema(*tt)){
+               cerr << "expected scheme does not fit the stored scheme." 
+                    << endl;
                ok = false;
            }
         }
@@ -6068,6 +6071,13 @@ class DArray2T{
     }
 
 
+    void setSize(size_t newSize){
+       assert(newSize > 0);
+       assert(Type == DMATRIX);
+       this->size = newSize;
+    }
+
+
      void set(const size_t size, const string& name, 
               const vector<DArray2Element>& worker){
         if(!stringutils::isIdent(name) || size ==0){ // invalid
@@ -7167,7 +7177,8 @@ ListExpr sizeTM(ListExpr args){
     return listutils::typeError(err);
   }
   if(!DArray2::checkType(nl->First(args))
-    && !DFArray2::checkType(nl->First(args))){
+    && !DFArray2::checkType(nl->First(args))
+    && !DMatrix2::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
   return listutils::basicSymbol<CcInt>();
@@ -7199,19 +7210,24 @@ OperatorSpec sizeSpec(
      );
 
 int sizeSelect(ListExpr args){
-  return DArray2::checkType(nl->First(args))?0:1;
+  ListExpr a = nl->First(args);
+  if(DArray2::checkType(a)) return 0;
+  if(DFArray2::checkType(a)) return 1;
+  if(DMatrix2::checkType(a)) return 2;
+  return -1;
 }
 
 ValueMapping sizeVM[] = {
   sizeVMT<DArray2>,
-  sizeVMT<DFArray2>
+  sizeVMT<DFArray2>,
+  sizeVMT<DMatrix2>
 };
 
 
 Operator sizeOp(
            "size",
            sizeSpec.getStr(),
-           2,
+           3,
            sizeVM,
            sizeSelect,
            sizeTM);
@@ -11070,18 +11086,25 @@ Operator fdistribute7Op(
 
 12.1 Type Mapping
 
-This operator get a darray2 instance and optionally an integer 
+This operator gets a darray2 instance and optionally an integer 
 value. If the integer value is given, only the object for the 
 specified index is deleted otherwise all objects handled by this
 darray2 object. The return value is the number of successfully
-deleted objects.
+deleted objects. A distributed matrix can be removed only 
+completely.
 
 */
 ListExpr deleteRemoteObjectsTM(ListExpr args){
-  string err = " {darray2,dfarray2} [x int] expected";
+  string err = " {darray2,dfarray2} [x int] or dmatrix2 expected";
   if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
     return listutils::typeError(err + ": invalid number of args" );
   }
+  
+  if(nl->HasLength(args,1) && DMatrix2::checkType(nl->First(args))){
+     return listutils::basicSymbol<CcInt>();
+  } 
+
+
   if(!DArray2::checkType(nl->First(args))
      && !DFArray2::checkType(nl->First(args))){
     return listutils::typeError(err + ": first arg not a darray2 "
@@ -11236,30 +11259,105 @@ int deleteRemoteObjectsVMT(Word* args, Word& result, int message,
 }
 
 
+class MatrixKiller{
+  public:
+
+    MatrixKiller(ConnectionInfo* _ci, const string& _dbname, 
+                 const string& _mname):
+       ci(_ci), dbname(_dbname), mname(_mname){
+      runner = new boost::thread(&MatrixKiller::run,this);
+    }
+
+    ~MatrixKiller(){
+       runner->join();
+       delete runner;
+    }
+
+    private:
+       ConnectionInfo* ci;
+       string dbname;
+       string mname;
+       boost::thread* runner;
+
+       void run(){
+          string dir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"+mname;
+          string cmd = "query removeDirectory('"+dir+"', TRUE)";
+          int err;
+          string errMsg;
+          double runtime;
+          string res;
+          ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+          if(err){
+            cerr << "command failed: " << cmd << endl;
+            cerr << errMsg << endl;
+          }
+       }
+};
+
+
+int deleteRemoteObjectsVM_Matrix(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   DMatrix2* matrix = (DMatrix2*) args[0].addr;
+   set<string> usedHosts;
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   vector<MatrixKiller*> killers;
+
+   for(size_t i=0;i<matrix->numOfWorkers();i++){
+     ConnectionInfo* ci = 
+            algInstance->getWorkerConnection(matrix->getWorker(i),dbname);
+     string host = ci->getHost();
+     if(usedHosts.find(host)==usedHosts.end()){
+         usedHosts.insert(host);
+         MatrixKiller* killer = new MatrixKiller(ci,dbname, matrix->getName());
+         killers.push_back(killer);        
+     }
+   }
+   for(size_t i=0;i<killers.size();i++){
+      delete killers[i];
+   }
+   res->Set(true,matrix->getSize());
+   return 0;
+}
+
+
 
 OperatorSpec deleteRemoteObjectsSpec(
-     " {darray2, dfarray2} [x int] -> int",
+     " {darray2, dfarray2} [x int] | dmatrix2 -> int",
      "deleteRemoteObjects(_,_)",
      "Deletes the remote objects managed by a darray2  or a dfarray2 object. "
      "If the optionally integer argument is given, only the "
-     "object at the specified index is deleted. ",
+     "object at the specified index is deleted. For a dmatrix2 object, "
+     " only the deletion of all slots is possible.",
      "query deleteRemoteObjects(da2)"
  );
 
 ValueMapping deleteRemoteObjectsVM[] = {
   deleteRemoteObjectsVMT<DArray2>,
-  deleteRemoteObjectsVMT<DFArray2>
+  deleteRemoteObjectsVMT<DFArray2>,
+  deleteRemoteObjectsVM_Matrix
 };
 
 int deleteRemoteObjectsSelect(ListExpr args){
-  return DArray2::checkType(nl->First(args))?0:1;
+  if(DArray2::checkType(nl->First(args))) {
+    return 0;
+  }
+  if(DFArray2::checkType(nl->First(args))){
+    return 1;
+  }
+  if(DMatrix2::checkType(nl->First(args))){
+    return 2;
+  }
+  return  -1; 
 }
 
 
 Operator deleteRemoteObjectsOp(
   "deleteRemoteObjects",
   deleteRemoteObjectsSpec.getStr(),
-  2,
+  3,
   deleteRemoteObjectsVM,
   deleteRemoteObjectsSelect,
   deleteRemoteObjectsTM
@@ -14620,9 +14718,19 @@ This operator partioned the slots of a d[f]array2 on the clusters.
 
 ListExpr partitionTM(ListExpr args){
 
- string err ="dfarray2(rel(tuple)) x (tuple -> int) x string expected";
- if(!nl->HasLength(args,3)){
+ string err ="dfarray2(rel(tuple)) x (tuple -> int) x string x int expected";
+ if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
    return listutils::typeError(err + "(wrong number of args)");
+ }
+
+ if(nl->HasLength(args,4) ){
+   ListExpr s = nl->Fourth(args);
+   if(!nl->HasLength(s,2)){
+     return listutils::typeError("internal error");
+   }
+   if(!CcInt::checkType(nl->First(s))){
+       return listutils::typeError(err+ " (fourth arg is not an int)");
+   }
  }
 
  ListExpr a0 = nl->First(args);
@@ -14674,9 +14782,15 @@ ListExpr partitionTM(ListExpr args){
                         nl->Third(funquery));   
 
 
+ ListExpr append = nl->HasLength(args,4) 
+                  ? nl->OneElemList(nl->TextAtom(nl->ToString(rfun)))
+                  : nl->TwoElemList(
+                         nl->IntAtom(0),
+                         nl->TextAtom(nl->ToString(rfun)));
+
   ListExpr res =  nl->ThreeElemList(
                nl->SymbolAtom(Symbols::APPEND()),
-               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
+               append,
                nl->TwoElemList( listutils::basicSymbol<DMatrix2>(),
                                  r));
   return res;
@@ -14687,10 +14801,11 @@ class partitionInfo{
 
   public:
 
-    partitionInfo(DFArray2* _array,ConnectionInfo* _ci, const string& _fun, 
+    partitionInfo(DFArray2* _array,int _resSize, size_t _wnum,
+                  ConnectionInfo* _ci, const string& _fun, 
                  string& _tname, ListExpr _relType,
                  const string& _dbname):
-        array(_array),
+        array(_array), resSize(_resSize), workerNumber(_wnum),
         ci(_ci), fun(_fun), tname(_tname), sname(array->getName()),
         relType(_relType),dbname(_dbname),runner(0){
         runner = new boost::thread(&partitionInfo::run,this);
@@ -14703,6 +14818,8 @@ class partitionInfo{
 
   private:
      DFArray2* array;
+     int resSize;
+     size_t workerNumber;
      ConnectionInfo* ci;
      string fun;
      string tname;
@@ -14716,7 +14833,9 @@ class partitionInfo{
            return;
         }
         // construct target directory on ci
-        string targetDir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"+tname;
+        string targetDir = ci->getSecondoHome() + "/dfarrays/" + dbname 
+                           + "/" + tname + "/"
+                           + stringutils::int2str(workerNumber) + "/";
         int err;
         string errMsg;
         double runtime;
@@ -14752,21 +14871,16 @@ class partitionInfo{
 
         // construct query in nested list form,
 
-        cout << "called construcvt query" << endl;
-
-
         string sourceDir = ci->getSecondoHome() + "/dfarrays/"
                            + dbname + "/" + sname + "/";
 
         // getDirectory
 
-        cout << "build getdir" << endl;
         ListExpr getdir = nl->TwoElemList(
                               nl->SymbolAtom("getDirectory"),
                               nl->TextAtom(sourceDir));
 
 
-        cout << "build finterfun" << endl;
         // filter the filename startting with sname
         ListExpr filterFun = nl->ThreeElemList(
                                 nl->SymbolAtom("fun"),
@@ -14802,7 +14916,7 @@ class partitionInfo{
                                      nl->SymbolAtom("fdistribute7"),
                                      fsfeed,
                                      dfun,
-                                     nl->IntAtom(array->getSize()),
+                                     nl->IntAtom(resSize),
                                      nl->TextAtom(dir+"/"+tname),
                                      nl->BoolAtom(true)
                                    );
@@ -14819,8 +14933,6 @@ class partitionInfo{
                        nl->SymbolAtom("count"),
                        fdistribute));
 
-        cout << "final query = " << endl << nl->ToString(query) << endl << endl;
-
         return nl->ToString(query);
      }
 
@@ -14836,7 +14948,15 @@ int partitionVM(Word* args, Word& result, int message,
 
    DFArray2* array = (DFArray2*) args[0].addr;
    CcString* name = (CcString*) args[2].addr;
-   string funtext = ((FText*) args[3].addr)->GetValue();
+   CcInt* newSize = (CcInt*) args[3].addr;
+   int size = array->getSize();
+
+   if(newSize->IsDefined() &&
+      newSize->GetValue() > 0){
+      size = newSize->GetValue();
+   }
+
+   string funtext = ((FText*) args[4].addr)->GetValue();
    result = qp->ResultStorage(s);
    DMatrix2* res = (DMatrix2*) result.addr;
 
@@ -14859,6 +14979,7 @@ int partitionVM(Word* args, Word& result, int message,
    (*res) = (*array);
 
    res->setName(tname);
+   res->setSize(size);
    
    vector<partitionInfo*> infos;
    set<pair<string,string> > used; 
@@ -14873,8 +14994,8 @@ int partitionVM(Word* args, Word& result, int message,
       pair<string,string> p(ip,home);
       if(used.find(p)==used.end()){
          used.insert(p);
-         partitionInfo* info = new partitionInfo(array,ci,funtext,tname, 
-                                                 relType, dbname);
+         partitionInfo* info = new partitionInfo(array, size, i, ci,funtext,
+                                                 tname, relType, dbname);
          infos.push_back(info);
       }
    }
@@ -14905,7 +15026,527 @@ Operator partitionOp(
 
 
 
+/*
+18 Operator ~reduce~
 
+*/
+
+ListExpr reduceTM(ListExpr args){
+
+  string err = "dmatrix(rel(t)) x string x (stream(t)-Y) x int expected";
+  if(!nl->HasLength(args,4)){
+   return listutils::typeError(err + " (wrong number of args)");
+  }
+
+  // check SetUsesArgsInTypeMapping
+  if(   !nl->HasLength(nl->First(args),2)
+     || !nl->HasLength(nl->Second(args),2)
+     || !nl->HasLength(nl->Third(args),2)
+     || !nl->HasLength(nl->Fourth(args),2)){
+    return listutils::typeError(err);
+  }
+
+  ListExpr m = nl->First(args);
+  ListExpr n = nl->Second(args);
+  ListExpr f = nl->Third(args);
+  ListExpr p = nl->Fourth(args);
+
+  ListExpr m1 = nl->First(m);
+  ListExpr n1 = nl->First(n);
+  ListExpr f1 = nl->First(f);
+  ListExpr p1 = nl->First(p);
+
+
+
+  if(   !DMatrix2::checkType(m1)
+     || !CcString::checkType(n1)
+     || !listutils::isMap<1>(f1)
+     || !CcInt::checkType(p1)){
+    return listutils::typeError(err);
+  }
+
+  // check function argument
+  ListExpr tupleType = nl->Second(m1);
+  ListExpr tupleStream = nl->TwoElemList(
+                             listutils::basicSymbol<Stream<Tuple> >(),
+                             tupleType);
+
+  ListExpr funArg = nl->Second(f1);
+
+  if(!nl->Equal(tupleStream,funArg)){
+     return listutils::typeError("function arg does not fit to"
+                                 " the dmatrix subtype");
+  }
+
+  // check funres for allowed type
+  // allowed are non-stream objects and stream(tuple)
+  ListExpr funres = nl->Third(f1);
+
+  bool isF = false;
+  bool isStream=false;
+  if(    nl->HasLength(funres,2) 
+      && nl->IsEqual(nl->First(funres),Stream<Tuple>::BasicType())){
+
+     // funtion result is s stream, allow only tuple stream to be
+     // the result
+     if(!Stream<Tuple>::checkType(funres)){
+        return listutils::typeError("function result is a stream "
+                                    "of non-tuples");
+     }
+     isF = true; // can be stored within a dfarray
+     isStream = true;
+  }
+  if(!isF){
+    isF = Relation::checkType(funres);
+  }
+  
+
+  ListExpr funquery = nl->Second(f);
+  
+  ListExpr funargs = nl->Second(funquery);
+
+  ListExpr dat = nl->Second(tupleStream);
+
+  ListExpr rfunargs = nl->TwoElemList(
+                       nl->First(funargs),
+                       dat);
+  ListExpr rfun = nl->ThreeElemList(
+                        nl->First(funquery),
+                        rfunargs,
+                        nl->Third(funquery));
+
+  ListExpr res;
+  if(!isF){
+    res = nl->TwoElemList( listutils::basicSymbol<DArray2>(),
+                            funres);
+  } else {
+    if(!isStream){
+       res = nl->TwoElemList( listutils::basicSymbol<DFArray2>(),
+                              funres);
+    } else {
+       res = nl->TwoElemList( listutils::basicSymbol<DFArray2>(),
+                              nl->TwoElemList(
+                                listutils::basicSymbol<Relation>(),
+                                nl->Second(funres)));
+    }
+  }
+
+  
+   return nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            nl->TwoElemList( nl->TextAtom(nl->ToString(rfun)),
+                             nl->BoolAtom(isStream)),
+            res);
+
+}
+
+
+class transferatorStarter{
+  public:
+  transferatorStarter(ConnectionInfo* _ci, int _port): ci(_ci), port(_port){
+     runner = new boost::thread(&transferatorStarter::run, this);  
+  }
+
+  ~transferatorStarter(){
+       runner->join();
+       delete runner;
+   }
+
+  private: 
+     ConnectionInfo* ci;
+     int port;
+     boost::thread* runner;
+
+     void run(){
+        
+        string cmd = "query staticFileTransferator("
+                     + stringutils::int2str(port) + ",10)";
+        int err;
+        string errMsg; 
+        string res;
+        double runtime;
+        ci->simpleCommand(cmd, err,errMsg, res, false, runtime);
+        if(err!=0){
+           cerr << "command " << cmd << " faile with code " << err << endl
+                << errMsg << endl;
+        }
+        // TODO check result
+
+     }
+
+
+};
+
+bool startFileTransferators( DMatrix2* matrix, int port){
+
+   assert(port>0);
+   set<string> usedIPs;
+   vector<transferatorStarter*> starters;
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   for(size_t i=0;i<matrix->numOfWorkers();i++){
+     DArray2Element e = matrix->getWorker(i);
+     string host = e.getHost();
+     if(usedIPs.find(host)==usedIPs.end()){
+        ConnectionInfo* ci = algInstance->getWorkerConnection(e,dbname);
+        if(ci){
+           usedIPs.insert(host);
+           starters.push_back(new transferatorStarter(ci,port));
+        }
+     }
+   }
+   for(size_t i=0;i<starters.size();i++){
+      delete starters[i];
+   }
+   starters.clear();
+   return true;
+
+}
+
+
+
+
+template<class R>
+int reduceVM1(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+
+   result = qp->ResultStorage(s);
+   R* res = (R*) result.addr;
+   set<string> usedIPs;
+   DMatrix2* matrix = (DMatrix2*) args[0].addr;
+   CcString* ResName = (CcString*) args[1].addr;
+   // args[2] points to the original function
+   CcInt* Port = (CcInt*) args[3].addr;
+   if(!matrix->IsDefined() || !Port->IsDefined()||
+      !ResName->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }
+   int port = Port->GetValue();
+   if(port<=0){
+      res->makeUndefined();
+      return 0;
+
+   }
+   string resName = ResName->GetValue();
+   if(!stringutils::isIdent(resName)){
+      res->makeUndefined();
+      return 0;
+   }
+
+   (*res) = *matrix;
+   res->setName(resName);
+
+
+   // step1 create base for asynchron file transfer
+   startFileTransferators(matrix,port);
+   // step2 build initially queue
+
+   // dummy implementation
+   return 0;
+}
+
+
+OperatorSpec reduceSpec(
+   "dmatrix2(rel(t)) x string x (stream(t)->Y) x int -> d[f]array2(Y)",
+   "matrix reduce[newname, function, port]",
+   "Performs a function on the distributed slots of an array. "
+   "The task distribution is dynamicalle, meaning that a fast "
+   "worker will handle more slots than a slower one. "
+   "The result type depends on the result of the function. "
+   "For a relation or a tuple stream, a dfarray will be created. "
+   "For other non-stream results, a darray2 is the resulting type.",
+   "The integer argument specifies the port for transferring files.",
+   "query m8 reduce[ . count, 1237]"
+);
+
+ValueMapping reduceVM [] = {
+   reduceVM1<DArray2>
+};
+
+int reduceSelect(ListExpr args){
+  return 0;
+}
+
+
+Operator reduceOp(
+  "reduce",
+  reduceSpec.getStr(),
+  1,
+  reduceVM,
+  reduceSelect,
+  reduceTM
+);
+
+
+
+/*
+29 collect2
+
+*/
+
+string getUDRelType(ListExpr r){
+
+  assert(Relation::checkType(r));
+  ListExpr attrList = nl->Second(nl->Second(r));
+  string res = "rel(tuple([";
+  bool first = true;
+  while(!nl->IsEmpty(attrList)){
+    if(!first){
+      res += ", ";
+    } else {
+      first = false;
+    }
+    ListExpr attr = nl->First(attrList);
+    attrList = nl->Rest(attrList);
+    res += nl->SymbolValue(nl->First(attr));
+    res += " : " + nl->ToString(nl->Second(attr));
+  }
+  res +="]))";
+  return res;
+}
+
+
+
+ListExpr collect2TM(ListExpr args){
+  string err = "dmatrix2 x string x int expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err+" (wrong number of args)");
+  }
+  if(   !DMatrix2::checkType(nl->First(args))
+     || !CcString::checkType(nl->Second(args))
+     || !CcInt::checkType(nl->Third(args))){
+     return  listutils::typeError(err);
+  }
+
+  return nl->TwoElemList( 
+              listutils::basicSymbol<DFArray2>(),
+              nl->Second(nl->First(args)));
+}
+
+
+class slotGetter{
+
+  public:
+    slotGetter(int _myNumber, string& _sname, string& _tname,
+               int _size, 
+               const vector<ConnectionInfo*>& _workers, int _port,
+               string _constrel ):
+       myNumber(_myNumber), sname(_sname), tname(_tname),
+       size(_size), workers(_workers), port(_port), constrel(_constrel){
+      
+       runner = new boost::thread(&slotGetter::run, this);
+     }
+
+
+     ~slotGetter(){
+        runner->join();
+        delete runner;
+     }
+
+
+
+  private:
+     int   myNumber; // workers number
+     string sname;
+     string tname;
+     int   size;     // size of the array
+     const vector<ConnectionInfo*>& workers; // all workers
+     int port; // where listen the transferators
+     boost::thread* runner;
+     string constrel;
+
+
+
+
+     void run(){
+       // firstly, create a temp directory for all of my slots
+       ConnectionInfo* ci = workers[myNumber];
+       // temoporal directory for partitined slots
+       string dir = "tmp/"+tname+"/"+stringutils::int2str(myNumber)+"/";
+       // final directory for dfarray
+       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       string tdir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"+tname+"/";
+       int err;
+       string errMsg;
+       double runtime;
+       string res;
+       string cmd = "query createDirectory('"+dir+"',TRUE)";
+       ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+       if(err!=0){
+          cerr << "error during cmd " << cmd << endl;
+          return;
+       }
+       cmd = "query createDirectory('"+tdir+"',TRUE)";
+       ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+       if(err!=0){
+          cerr << "error during cmd " << cmd << endl;
+          return;
+       }
+
+       // get all slots managed by worker with mynumber  from all workers
+       for(size_t w=0;w<workers.size();w++){
+          getFilesFromWorker(w, dir, ci);
+       } 
+
+       // create slots from distributed slots
+       int slot = myNumber;
+       while(slot < size){
+          createSlot(slot, dir,tdir, ci);
+          slot += workers.size(); 
+       }
+
+       cmd = "query  removeDirectory('"+dir+"', TRUE)";
+       ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+       if(err){
+          cerr << "Error in command " << cmd << endl;
+          cerr << errMsg;
+       }
+
+     }
+
+
+     void getFilesFromWorker(size_t worker, const string& myDir, 
+                             ConnectionInfo* ci){
+
+           
+         int err;
+         string errMsg;
+         double runtime;
+         string res;
+         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+         
+         ConnectionInfo* w = workers[worker];
+         string sbasename = w->getSecondoHome() + "/dfarrays/" + dbname + "/"
+                            + sname + "/" + stringutils::int2str(worker) + "/"
+                            + sname+"_";
+         string frel = "[const rel(tuple([S : text, T:text])) value (";
+    
+         int slot = myNumber;
+         string ws = stringutils::int2str(worker);
+
+         while(slot<size){
+            string n = stringutils::int2str(slot);
+            frel += "( '"+ sbasename + n+".bin'  '"+myDir+"s_"+n+"_"+ws+"')";
+            slot += workers.size();
+         }
+         frel += ")]";
+ 
+         string cmd = "query  "+ frel + " feed extend[ OK : getFileTCP(.S, '" 
+                       + w->getHost() + "', " + stringutils::int2str(port) 
+                       + ", TRUE, .T )] count";
+
+         
+         ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+         if(err){
+            cerr << "Error in command " << cmd << endl;
+            cerr << errMsg;
+         }
+     } 
+
+
+     void createSlot(int num, const string& sdir, const string& tdir, 
+                     ConnectionInfo* ci){
+
+        string cmd = " query getDirectory('" + sdir + "') "
+                     + "filter[basename(.) startsWith \"s_" 
+                     + stringutils::int2str(num) + "_\"]"
+                     + " fsfeed5[" + constrel + "] fconsume5['" + tdir 
+                     + tname+"_" + stringutils::int2str(num) + ".bin'] count";
+       int err;
+       string errMsg;
+       double runtime;
+       string res;
+       ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+       if(err!=0){
+          cerr << "command failed " << cmd << endl; 
+          cerr << errMsg << endl;
+       }
+     
+     }
+};
+
+
+int collect2VM(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   DMatrix2* matrix = (DMatrix2*) args[0].addr;
+   CcString* name   = (CcString*) args[1].addr;
+   CcInt* port = (CcInt*) args[2].addr;
+   DFArray2* res = (DFArray2*) result.addr;
+
+   if(!matrix->IsDefined() || !name->IsDefined() || !port->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }
+   string n = name->GetValue();
+   int p = port->GetValue();
+
+   if(n==""){
+      n = algInstance->getTempName();
+   }
+
+   if(!stringutils::isIdent(n) || (port<=0)){
+     res->makeUndefined();
+     return 0;
+   }
+   (*res) = (*matrix);
+   res->setName(n);
+
+   ListExpr relType = nl->Second(qp->GetType(s));
+
+   string constRel = "[ const " + getUDRelType(relType)+" value ()]";
+
+
+   // step 1 create base for file transfer 
+   startFileTransferators(matrix,p);
+   // copy slots parts from other workers to target worker
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   vector<ConnectionInfo*> cis;
+   for(size_t i=0;i<matrix->numOfWorkers();i++){
+       ConnectionInfo* ci  = 
+               algInstance->getWorkerConnection(matrix->getWorker(i), dbname);
+       if(ci){
+          cis.push_back(ci);
+       }
+   }
+
+   vector<slotGetter*> getters;
+   string sname = matrix->getName();
+    
+   for(size_t i=0;i<cis.size();i++){
+      slotGetter* getter = new slotGetter(i, sname,n, matrix->getSize(), 
+                                          cis, p, constRel);
+      getters.push_back(getter);
+   }
+
+   for(size_t i=0;i<cis.size();i++){
+      delete getters[i];
+   }
+
+   res->setStdMap(matrix->getSize());
+
+   return 0;
+}
+
+OperatorSpec collect2Spec(
+  "dmatrix2 x string x int -> dfarray2",
+  " _ collect2[ _ , _] ",
+  "Collects the slots of a matrix into a "
+  " dfarray2. The string is the name of the "
+  "resulting array, the int value specified a "
+  "port for file transfer.",
+  "query m8 collect2[\"a8\",1238]"
+);
+
+Operator collect2Op(
+  "collect2",
+  collect2Spec.getStr(),
+  collect2VM,
+  Operator::SimpleSelect,
+  collect2TM
+);
 
 
 
@@ -15020,6 +15661,10 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&partitionOp);
    partitionOp.SetUsesArgsInTypeMapping();
    AddOperator(&DFARRAYTUPLEOP);
+
+ //  AddOperator (&reduceOp);
+
+   AddOperator(&collect2Op);
 
 
    pprogView = new PProgressView();

@@ -37,7 +37,7 @@ Operator  : prcmd
 Number    : 1
 Signature : stream(tuple) x attrName x attrName -> stream(tuple + E)
 Example   : query intstream(0,5) namedtransformstream[Server] extend[ W : 'open database berlintest'] prcmd[Server,W] consume
-Result    : bug
+Result    : crashes
 Remark    : requires a remote server
 
 Operator : sendFile
@@ -135,7 +135,7 @@ Result   : 2
 Operator  : fconsume5
 Number    : 1
 Signature : stream(TUPLE) x {string, text} -> stream(TUPLE)
-Example   : query ten fconsume5['ten.bin'] count
+Example   : query ten feed fconsume5['ten.bin'] count
 Result    : 10
 
 
@@ -164,21 +164,21 @@ Operator: ddistribute2
 Number  : 1
 Signature : stream(tuple(X)) x ident x int x rel x string -> darray2(X) 
 Example   : query strassen feed addcounter[No,0] ddistribute2[No, 5, workers, "dstrassen"] 
-Result    : bug
+Result    : crashes
 Remark    : remote server required
 
 Operator: ddistribute3
 Number  : 1
 Signature : stream(tuple(X)) x int x bool  x rel x string -> darray2(rel(tuple(X))) 
 Example   : query strassen feed  ddistribute3[10, TRUE, workers, "dstrassen3"] 
-Result    : bug
+Result    : crashes
 Remark    : remote server required
 
 Operator: ddistribute4
 Number  : 1
 Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray2(X) 
 Example   : query strassen feed  ddistribute4[hashvalue(.Name, 2000), 5 , workers, "dstrassen4"] 
-Result    : bug
+Result    : crashes
 Remark    : remote server required
 
 Operator: closeWorkers
@@ -312,14 +312,14 @@ Operator: fddistribute2
 Number  : 1
 Signature : stream(tuple(X)) x ident x int x rel x string -> dfarray2(X) 
 Example   : query strassen feed addcounter[No,0] fddistribute2[No, 5, workers, "fstrassen"] 
-Result    : bug
+Result    : crashes
 Remark    : remote server required
 
 Operator: fddistribute3
 Number  : 1
 Signature : stream(tuple(X)) x int x bool x rel x string -> dfarray2(rel(tuple(X))) 
 Example   : query strassen feed fddistribute3[10, TRUE, workers, "fstrassen3" ] 
-Result    : bug
+Result    : crashes
 Remark    : remote server required
 
 
@@ -327,7 +327,7 @@ Operator: fddistribute4
 Number  : 1
 Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray2(X) 
 Example   : query strassen feed  fddistribute4[hashvalue(.Name, 2000), 5, workers, "dfstrassen4"] 
-Result    : bug
+Result    : crashes
 Remark    : remote server required
 
 
@@ -382,7 +382,7 @@ Result    : TRUE
 Operator : showProgress 
 Number   : 1
 Signature : bool -> bool
-Example   : query ishowProgress(TRUE)
+Example   : query showProgress(TRUE)
 Result    : TRUE
 
 Operator  : staticFileTransferator
@@ -395,7 +395,8 @@ Operator  : killStaticFileTransferator
 Number    : 1
 Signature : int -> bool
 Example   : query killStaticFileTransferator(1238)
-Result    : TRUE
+Result    : bug
+Remark    : depends on success of operation staticFileTransferator
 
 Operator  : putFileTCP
 Number    : 1
@@ -413,26 +414,36 @@ Operator  : fsfeed5
 Number    : 1
 Signature : stream({text,string}) x {rel, text, string} -> stream(tuple)
 Example   : query getDirectory('.') filter [ . startsWith "strassen_" ] fsfeed5[strassen] count
-Result    : 3212
+Result    : bug
+Remark    : depends on existence of appropriate files
 
 Operator  : fdistribute7
 Number    : 1
 Signature : stream(tuple) x (tuple->int) x int x {string,text} x bool -> stream(tuple)
-Example   : query strassen feed fdistribute7[ hashvalue(.Name), 12, "strassen", TRUE] count
+Example   : query strassen feed fdistribute7[ hashvalue(.Name,997), 12, "strassen", TRUE] count
 Result    : 3212
 
 
 Operator  : partition
 Number    : 1
 Signature : dfarray x fun x string -> dmatrix
-Example   : query getSize(s7 partition[ hashvalue(.,23) , "m7"] )
-Result    : 7
+Example   : query size(s7 partition[ hashvalue(.Attr,23) , "m7", 0 ] )
+Result    : bug
+Remark    : remote server required
 
 Operator  : DFARRAYTUPLE
 Number    : 1
 Signature : dfarray(rel(X)) -> X 
-Example   : query getSize(s7 partition[ hashvalue(.,23) , "m7"] )
-Result    : 7
+Example   : query size(s7 partition[ hashvalue(.Attr,23) , "m7", 0] )
+Result    : bug
+Remark    : requires a remote server
+
+Operator  : collect2
+Number    : 1
+Signature : dmatrix2 x string x int -> dfarray2
+Example   : query size(s7 partition[hashvalue(.Attr,23), "m7", 0]  collect2["mys7", 1238] )
+Result    : bug
+Remark    : requires a remote server
 
 
 
