@@ -60,7 +60,7 @@ struct kvsAddInfo : OperatorInfo {
     signature = FText::BasicType() + " x " + CcInt::BasicType() + " x " +
                 CcInt::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsAdd( host, interfacePort, kvsPort )";
-    meaning = "??";
+    meaning = "adds server to server list";
   }
 };
 ListExpr kvsAddTM(ListExpr args);
@@ -71,7 +71,7 @@ struct kvsRemoveInfo : OperatorInfo {
     name = "kvsRemove";
     signature = CcInt::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsRemove( idx )";
-    meaning = "??";
+    meaning = "removes server from server list";
   }
 };
 ListExpr kvsRemoveTM(ListExpr args);
@@ -82,7 +82,9 @@ struct kvsUpdateServerListInfo : OperatorInfo {
     name = "kvsUpdateServerList";
     signature = FText::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsUpdateServerList( separatedList )";
-    meaning = "??";
+    meaning =
+        "updates entire server list (doesnt delete, just adds and changes "
+        "information)";
   }
 };
 ListExpr kvsUpdateServerListTM(ListExpr args);
@@ -94,7 +96,9 @@ struct kvsSyncServerListInfo : OperatorInfo {
     name = "kvsSyncServerList";
     signature = " -> " + CcBool::BasicType();
     syntax = "kvsSyncServerList()";
-    meaning = "??";
+    meaning =
+        "syncs server list with master-server (needs to be set by kvsSetMaster "
+        "Operator first)";
   }
 };
 ListExpr kvsSyncServerListTM(ListExpr args);
@@ -106,7 +110,7 @@ struct kvsReconnectInfo : OperatorInfo {
     name = "kvsReconnect";
     signature = CcInt::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsReconnect( idx )";
-    meaning = "??";
+    meaning = "(not needed anymore)";
   }
 };
 ListExpr kvsReconnectTM(ListExpr args);
@@ -118,7 +122,7 @@ struct kvsSetDatabaseInfo : OperatorInfo {
     name = "kvsSetDatabase";
     signature = FText::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsSetDatabase( databaseName )";
-    meaning = "??";
+    meaning = "sets database name for all clients";
   }
 };
 ListExpr kvsSetDatabaseTM(ListExpr args);
@@ -130,7 +134,7 @@ struct kvsUseDatabaseInfo : OperatorInfo {
     name = "kvsUseDatabase";
     signature = FText::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsUseDatabase( databaseName )";
-    meaning = "??";
+    meaning = "open database on all clients";
   }
 };
 ListExpr kvsUseDatabaseTM(ListExpr args);
@@ -142,7 +146,7 @@ struct kvsListInfo : OperatorInfo {
     name = "kvsList";
     signature = " -> " + CcBool::BasicType();
     syntax = "kvsList( )";
-    meaning = "??";
+    meaning = "lists servers";
   }
 };
 ListExpr kvsListTM(ListExpr args);
@@ -162,7 +166,7 @@ struct qtcreatedistInfo : OperatorInfo {
                 QuadTreeDistributionType::BasicType() + ")" + +" -> " +
                 QuadTreeDistributionType::BasicType();
     syntax = "_ qtcreatedist [ _ , _ ]";
-    meaning = "Assignes MBB to QuadTreeDistribution";
+    meaning = "Assignes MBB to QuadTreeDistribution (not need anymore)";
     example =
         "Buildings feed extend[MBBox: bbox(.GeoData)] qtcreatedist[MBBox, "
         "distObj]";
@@ -180,7 +184,8 @@ struct qtserveridLocalInfo : OperatorInfo {
                 QuadTreeDistributionType::BasicType() + " -> stream(int)";
     syntax = "qtserveridLocal( box, qtdistribution )";
     meaning =
-        "Returns a stream of server ids of all quad tree nodes containing box ";
+        "Returns a stream of server ids of all quad tree nodes containing box  "
+        "(not need anymore)";
     example =
         "Buildings feed extendstream[ServerId: qtserveridLocal(bbox(.GeoData), "
         "distribution)] ddistribute[ServerId, 12, Cluster]";
@@ -196,7 +201,8 @@ struct qtserveridInfo : OperatorInfo {
     signature = Rectangle<2>::BasicType() + " x distribution -> stream(int)";
     syntax = "qtserverid( box, qtdistribution )";
     meaning =
-        "Returns a stream of server ids of all quad tree nodes containing box ";
+        "Returns a stream of server ids of all quad tree nodes containing box  "
+        "(not need anymore)";
     example =
         "Buildings feed extendstream[ServerId: qtserverid(bbox(.GeoData), "
         "distribution)] ddistribute[ServerId, 12, Cluster]";
@@ -215,7 +221,7 @@ struct qtintersectsLocalInfo : OperatorInfo {
     syntax = "qtintersectsLocal( rectA, rectB, qtdistribution )";
     meaning =
         "Returns whether the current server contains the smallest common point "
-        "of two overlapping rectangles";
+        "of two overlapping rectangles  (not need anymore)";
     example =
         "... filter[qtintersectsLocal(bbox(.GeoData_A), bbox(.GeoData_B), "
         "qtdistribution)] ...";
@@ -234,7 +240,7 @@ struct qtintersectsInfo : OperatorInfo {
     syntax = "qtintersects( rectA, rectB, qtdistribution )";
     meaning =
         "Returns whether the current server contains the smallest common point "
-        "of two overlapping rectangles";
+        "of two overlapping rectangles  (not need anymore)";
     example =
         "... filter[qtintersects(bbox(.GeoData_A), bbox(.GeoData_B), "
         "qtdistribution)] ...";
@@ -250,8 +256,10 @@ struct qtDistinctInfo : OperatorInfo {
     signature = QuadTreeDistributionType::BasicType() + " x " +
                 Rectangle<2>::BasicType() + " -> " + CcBool::BasicType();
     syntax = "qtDistinct(qtdistribution, rect )";
-    meaning = "";
-    example = "... filter[qtDistinct(qtdistribution, bbox(.GeoData))] ...";
+    meaning =
+        "checks if rectangle origin is currently assigned to server by quad "
+        "tree";
+    example = " ...";
     usesArgsInTypeMapping = true;
   }
 };
@@ -294,7 +302,9 @@ struct kvsSaveDistInfo : OperatorInfo {
     name = "kvsSaveDist";
     signature = "distribution -> bool";
     syntax = "kvsSaveDist( distribution )";
-    meaning = "?? ";
+    meaning =
+        "retrieves distribution object information from application and saves "
+        "it";
     example = "query kvsSaveDist(distribution)";
     usesArgsInTypeMapping = true;
   }
@@ -314,7 +324,7 @@ struct kvsStartAppInfo : OperatorInfo {
     name = "kvsStartApp";
     signature = " -> " + CcBool::BasicType();
     syntax = "kvsStartApp( )";
-    meaning = "??";
+    meaning = "connects algebra to application";
   }
 };
 ListExpr kvsStartAppTM(ListExpr args);
@@ -326,7 +336,7 @@ struct kvsTransferIdInfo : OperatorInfo {
     name = "kvsTransferId";
     signature = " -> " + CcInt::BasicType();
     syntax = "kvsTransferId()";
-    meaning = "??";
+    meaning = "creates transfer id for kvsRemoteStream (not used)";
   }
 };
 ListExpr kvsTransferIdTM(ListExpr args);
@@ -338,7 +348,7 @@ struct kvsGlobalIdInfo : OperatorInfo {
     name = "kvsGlobalId";
     signature = " -> " + CcInt::BasicType();
     syntax = "kvsGlobalId()";
-    meaning = "??";
+    meaning = "creates global id (over multiple algebra instances)";
   }
 };
 ListExpr kvsGlobalIdTM(ListExpr args);
@@ -350,7 +360,7 @@ struct kvsInitClientsInfo : OperatorInfo {
     name = "kvsInitClients";
     signature = CcInt::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsInitClients( port )";
-    meaning = "??";
+    meaning = "trys to connect to all known clients";
   }
 };
 ListExpr kvsInitClientsTM(ListExpr args);
@@ -362,7 +372,7 @@ struct kvsStartClientInfo : OperatorInfo {
     name = "kvsStartClient";
     signature = CcInt::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsStartClient( port )";
-    meaning = "??";
+    meaning = "opens key-value-store port";
   }
 };
 ListExpr kvsStartClientTM(ListExpr args);
@@ -374,7 +384,7 @@ struct kvsStopClientInfo : OperatorInfo {
     name = "kvsStopClient";
     signature = CcInt::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsStopClient( port )";
-    meaning = "??";
+    meaning = "closes key-value-store port";
   }
 };
 ListExpr kvsStopClientTM(ListExpr args);
@@ -386,7 +396,7 @@ struct kvsSetIdInfo : OperatorInfo {
     name = "kvsSetId";
     signature = CcInt::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsSetId( id )";
-    meaning = "??";
+    meaning = "sets server id which is assigned by distribution";
   }
 };
 ListExpr kvsSetIdTM(ListExpr args);
@@ -398,7 +408,7 @@ struct kvsSetMasterInfo : OperatorInfo {
     signature = FText::BasicType() + " x " + CcInt::BasicType() + " x " +
                 CcInt::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsSetMaster( host, interfacePort, kvsPort )";
-    meaning = "??";
+    meaning = "sets master-server conneciton information";
   }
 };
 ListExpr kvsSetMasterTM(ListExpr args);
@@ -412,7 +422,7 @@ struct kvsRetrieveInfo : OperatorInfo {
                 Stream<Tuple>::BasicType() + "\n" + Stream<Tuple>::BasicType() +
                 " x symbol -> " + Stream<Tuple>::BasicType() + "\n";
     syntax = "_ kvsRetrieve( {serverIdAttribute, distribution} [,region] )";
-    meaning = "??";
+    meaning = "supposed to sync queries with master server (not tested)";
     usesArgsInTypeMapping = true;
   }
 };
@@ -428,7 +438,7 @@ struct kvsExecInfo : OperatorInfo {
     name = "kvsExec";
     signature = FText::BasicType() + " -> " + CcBool::BasicType();
     syntax = "kvsExec( command )";
-    meaning = "??";
+    meaning = "execute command on clients (not tested)";
   }
 };
 ListExpr kvsExecTM(ListExpr args);
@@ -443,7 +453,9 @@ struct kvsFilterInfo : OperatorInfo {
     syntax =
         "_ kvsFilter( {distribution, distributionName} ,region ,globalId "
         "[,updateDistribution] )";
-    meaning = "??";
+    meaning =
+        "used to update data state or filter data thats known by target "
+        "clients";
     usesArgsInTypeMapping = true;
   }
 };
@@ -462,7 +474,7 @@ struct kvsRemoteStreamInfo : OperatorInfo {
     signature = CcInt::BasicType() + " -> " +
                 Stream<Tuple>::BasicType();  // returns stream tupel
     syntax = "kvsRemoteStream ( streamId )";
-    meaning = "??";
+    meaning = "used to receive data";
     usesArgsInTypeMapping = true;
   }
 };
@@ -477,7 +489,7 @@ struct kvsRemoteStreamSCPInfo : OperatorInfo {
     signature = CcInt::BasicType() + " -> " +
                 Stream<Tuple>::BasicType();  // returns stream tupel
     syntax = "kvsRemoteStreamSCP ( streamId )";
-    meaning = "??";
+    meaning = "(not tested)";
     usesArgsInTypeMapping = true;
   }
 };
@@ -534,7 +546,7 @@ struct kvsDistributeInfo : OperatorInfo {
     syntax =
         "_ kvsDistribute [ serverIdAttribute, {distribution, distributionName} "
         ", targetRelationName, clientCommand, [deleteCommand,] [restructure] ]";
-    meaning = "??";
+    meaning = "distribute data stream";
     usesArgsInTypeMapping = true;
   }
 };
@@ -553,7 +565,7 @@ struct kvsDataSourceSCPInfo : OperatorInfo {
     name = "kvsDataSourceSCP";
     signature = " -> " + Stream<Tuple>::BasicType();
     syntax = "kvsDataSourceSCP ( )";
-    meaning = "??";
+    meaning = "(not tested)";
     usesArgsInTypeMapping = true;
   }
 };
