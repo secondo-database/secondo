@@ -24,6 +24,8 @@ public class SimpleQueryPanel extends VerticalPanel {
 	private Button previousTuple = new Button("<span></span> previous tuple");
 	private Button nextTuple = new Button("next tuple <span></span>");
 	private Button startDrawing = new Button("start drawing");
+	private GroupsToShowPanel groupsToShowPanel;
+	private FlexTable previousNextPanel;
 
 	public SimpleQueryPanel(String textForHelpInfoLabel, String typeOfQuery,
 			String defaultText) {
@@ -85,12 +87,16 @@ public class SimpleQueryPanel extends VerticalPanel {
 			nextTuple.setStyleName("nextButton");
 			nextTuple.setEnabled(true);
 
-			FlexTable previousNextPanel = new FlexTable();
+			previousNextPanel = new FlexTable();
 			previousNextPanel.setWidget(0, 0, previousTuple);
 			previousNextPanel.setWidget(0, 1, nextTuple);
 
-			infoAboutTupleNo = new Label();
+			infoAboutTupleNo = new Label();			
 			vertPanWithPreviousNextTuple.add(infoAboutTupleNo);
+			
+			groupsToShowPanel= new GroupsToShowPanel(); 
+			vertPanWithPreviousNextTuple.add(groupsToShowPanel);
+			
 			vertPanWithPreviousNextTuple.add(previousNextPanel);
 			vertPanWithPreviousNextTuple.setVisible(false);
 			this.add(vertPanWithPreviousNextTuple);
@@ -160,6 +166,22 @@ public class SimpleQueryPanel extends VerticalPanel {
 	 */
 	public Button getStartDrawing() {
 		return startDrawing;
+	}
+
+	/**
+	 * @return the groupsToShowPanel
+	 */
+	public GroupsToShowPanel getGroupsToShowPanel() {
+		return groupsToShowPanel;
+	}
+	
+	public void changeTupleToGroup(){
+		vertPanWithPreviousNextTuple.remove(previousNextPanel);
+		vertPanWithPreviousNextTuple.add(groupsToShowPanel.getPreviousNextGroupPan());
+	}
+	
+	public void disableNextButton(){
+		groupsToShowPanel.getNextGroupButton().setEnabled(false);
 	}
 
 }

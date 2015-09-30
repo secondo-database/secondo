@@ -3,6 +3,8 @@ package com.secondo.webgui.client;
 import java.util.ArrayList;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Command;
@@ -84,7 +86,6 @@ public class SecondoWeb implements EntryPoint {
 		loadingPopup.setWidget(loadingImage);
 		loadingPopup.setGlassEnabled(true);
 		loadingPopup.getElement().setClassName("loadingpopup");
-		
 
 		/* Allows to download a raw data result */
 		this.mainView.getMainheader().getExport()
@@ -97,7 +98,7 @@ public class SecondoWeb implements EntryPoint {
 								.getText(), "secondo-text.txt");
 					}
 				});
-		
+
 		/* Adds an event handler to the button "create symtraj" */
 		this.mainView.getOptionsTabPanel().getCreateSymTrajButton()
 				.addClickHandler(new ClickHandler() {
@@ -120,7 +121,10 @@ public class SecondoWeb implements EntryPoint {
 					}
 				});
 
-		/* Adds an event handler to the button "get relation" of the options tab panel */
+		/*
+		 * Adds an event handler to the button "get relation" of the options tab
+		 * panel
+		 */
 		this.mainView.getOptionsTabPanel().getRelationButton()
 				.addClickHandler(new ClickHandler() {
 					public void onClick(ClickEvent event) {
@@ -131,11 +135,11 @@ public class SecondoWeb implements EntryPoint {
 								.getCommandForCountTuplesInSampleRelation();
 						if (!command.isEmpty()) {
 							mainView.resetMapView();
-							
+
 							rpcConnector.sendCommandAndUpdateHistory(command,
 									commandForCountTuples, mainView,
 									loadingPopup);
-							
+
 							loadingPopup.center();
 							mainView.getOptionsTabPanel()
 									.getLabelForInfoAboutOpenedRelation()
@@ -145,6 +149,316 @@ public class SecondoWeb implements EntryPoint {
 							Window.alert("Please select relation");
 						}
 
+					}
+				});
+
+		/*
+		 * Adds an event handler to the button "groups" to show the wanted
+		 * number of traj in sample relation
+		 */
+		this.mainView.getOptionsTabPanel().getNumberOfTrajectoriesToShow()
+				.addChangeHandler(new ChangeHandler() {
+
+					@Override
+					public void onChange(ChangeEvent event) {
+						String command = mainView
+								.getOptionsTabPanel()
+								.getCommandToShowTrajectoriesFromSampleRelationInGroup();
+						String commandForCountTuples = "";
+
+						if (!command.isEmpty()) {
+							mainView.getOptionsTabPanel().showGroupButtons();
+							mainView.resetMapView();
+
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+
+							loadingPopup.center();
+
+						} else {
+							Window.alert("Please select relation");
+						}
+
+					}
+				});
+
+		/*
+		 * Adds an event handler to the button "groups" to show the wanted
+		 * number of traj in pattern result
+		 */
+		this.mainView.getOptionsTabPanel().getGroupsInPatternToShow()
+				.addChangeHandler(new ChangeHandler() {
+
+					@Override
+					public void onChange(ChangeEvent event) {
+						String command = mainView
+								.getOptionsTabPanel()
+								.getCommandToShowTrajectoriesFromPatternInGroup();
+						String commandForCountTuples = "";
+
+						if (!command.isEmpty()) {
+							mainView.getOptionsTabPanel()
+									.showGroupButtonsInPattern();
+							mainView.resetMapView();
+
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+
+							loadingPopup.center();
+
+						} else {
+							Window.alert("Please select relation");
+						}
+
+					}
+				});
+		
+		/*
+		 * Adds an event handler to the button "groups" to show the wanted
+		 * number of traj in passes
+		 */
+		this.mainView.getOptionsTabPanel().getListBoxWithGroupsInPasses()
+		.addChangeHandler(new ChangeHandler() {
+
+			@Override
+			public void onChange(ChangeEvent event) {
+				String command = mainView
+						.getOptionsTabPanel()
+						.getCommandToShowTrajectoriesFromPassesInGroup();
+				String commandForCountTuples = "";
+				mainView.getOptionsTabPanel()
+				.setSimpleQueryForPassesIsInitiated(true);
+				
+				if (!command.isEmpty()) {
+					mainView.getOptionsTabPanel()
+							.showGroupButtonsInPasses();
+					mainView.resetMapView();
+
+					rpcConnector.sendCommandAndUpdateHistory(command,
+							commandForCountTuples, mainView,
+							loadingPopup);
+
+					loadingPopup.center();
+
+				} else {
+					Window.alert("Please select relation");
+				}
+
+			}
+		});
+		
+		/*
+		 * Adds an event handler to the button "groups" (passes through)
+		 */
+		this.mainView.getOptionsTabPanel().getListBoxWithGroupsInPassesThrough()
+		.addChangeHandler(new ChangeHandler() {
+
+			@Override
+			public void onChange(ChangeEvent event) {
+				String command = mainView
+						.getOptionsTabPanel()
+						.getCommandToShowTrajectoriesFromPassesThroughInGroup();
+				String commandForCountTuples = "";
+				mainView.getOptionsTabPanel()
+				.setSimpleQueryForPassesTrhoughRegionsInitiated(true);				
+				if (!command.isEmpty()) {
+					mainView.getOptionsTabPanel()
+							.showGroupButtonsInPassesThrough();
+					mainView.resetMapView();
+
+					rpcConnector.sendCommandAndUpdateHistory(command,
+							commandForCountTuples, mainView,
+							loadingPopup);
+
+					loadingPopup.center();
+
+				} else {
+					Window.alert("Please select relation");
+				}
+
+			}
+		});
+
+		/*
+		 * Adds an event handler to the button "next group" of the options tab
+		 * panel
+		 */
+		this.mainView.getOptionsTabPanel().getNextGroupInSampleRel()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForNextGroupInSampleRelation();
+						String commandForCountTuples = "";
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+
+							loadingPopup.center();
+							mainView.getOptionsTabPanel()
+									.getLabelForInfoAboutOpenedRelation()
+									.setVisible(true);
+
+						}
+					}
+				});
+
+		/*
+		 * Adds an event handler to the button "next group" (pattern)
+		 */
+		this.mainView.getOptionsTabPanel().getNextGroupButtonInPattern()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForNextGroupInPattern();
+						String commandForCountTuples = "";
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+
+							loadingPopup.center();
+
+						}
+					}
+				});
+
+		/*
+		 * Adds an event handler to the button "next group" (passes)
+		 */
+		this.mainView.getOptionsTabPanel().getNextGroupButtonInPasses()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForNextGroupInPasses();
+						String commandForCountTuples = "";
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+
+							loadingPopup.center();
+
+						}
+					}
+				});
+		
+		/*
+		 * Adds an event handler to the button "next group" (passes through)
+		 */
+		this.mainView.getOptionsTabPanel().getNextGroupButtonInPassesThrough()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForNextGroupInPassesThrough();
+						String commandForCountTuples = "";
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+
+							loadingPopup.center();
+
+						}
+					}
+				});
+		/*
+		 * Adds an event handler to the button "previous group" of the options
+		 * tab panel
+		 */
+		this.mainView.getOptionsTabPanel().getPreviousGroupInSampleRel()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForPreviousGroupInSampleRelation();
+						String commandForCountTuples = "";
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+
+							loadingPopup.center();
+							mainView.getOptionsTabPanel()
+									.getLabelForInfoAboutOpenedRelation()
+									.setVisible(true);
+
+						}
+					}
+				});
+
+		/*
+		 * Adds an event handler to the button "previous group" (pattern)
+		 */
+		this.mainView.getOptionsTabPanel().getPreviousGroupButtonInPattern()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForPreviousGroupInPattern();
+						String commandForCountTuples = "";
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+
+							loadingPopup.center();							
+						}
+					}
+				});
+
+		
+		/*
+		 * Adds an event handler to the button "previous group" (passes)
+		 */
+		this.mainView.getOptionsTabPanel().getPreviousGroupButtonInPasses()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForPreviousGroupInPasses();
+						String commandForCountTuples = "";
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+
+							loadingPopup.center();							
+						}
+					}
+				});
+		
+		/*
+		 * Adds an event handler to the button "previous group" (passes through)
+		 */
+		this.mainView.getOptionsTabPanel().getPreviousGroupButtonInPassesThrough()
+				.addClickHandler(new ClickHandler() {
+					public void onClick(ClickEvent event) {
+						String command = mainView.getOptionsTabPanel()
+								.getCommandForPreviousGroupInPassesThrough();
+						String commandForCountTuples = "";
+						if (!command.isEmpty()) {
+							mainView.resetMapView();
+
+							rpcConnector.sendCommandAndUpdateHistory(command,
+									commandForCountTuples, mainView,
+									loadingPopup);
+
+							loadingPopup.center();							
+						}
 					}
 				});
 
@@ -218,6 +532,8 @@ public class SecondoWeb implements EntryPoint {
 									.getCommandForCountPatternMatching();
 							mainView.getOptionsTabPanel()
 									.setPatternMatchingIsInitiated(true);
+							mainView.getOptionsTabPanel()
+									.showTupleButtonsInPattern();
 							if (!command.isEmpty()) {
 								mainView.resetMapView();
 

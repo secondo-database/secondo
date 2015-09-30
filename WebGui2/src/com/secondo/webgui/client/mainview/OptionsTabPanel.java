@@ -7,8 +7,9 @@ import org.gwtopenmaps.openlayers.client.Projection;
 import org.gwtopenmaps.openlayers.client.geometry.Point;
 import org.gwtopenmaps.openlayers.client.layer.Vector;
 
-import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.Style.Unit;
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
@@ -97,24 +98,48 @@ public class OptionsTabPanel extends Composite {
 	private FlexTable definedPatternWidget;
 	private ArrayList<String> variablesForPattern = new ArrayList<String>();
 	private boolean unsuccessfulVerification = false;
+	private GroupsToShowPanel groupsInPattern;
 
 	private String attributeNameOfMlabelInRelation;
 	private String attributeNameOfMPointInRelation;
 	private DecoratorPanel decPanelForStackWithSimpleQueries = new DecoratorPanel();
 	private SimpleQueriesStackPanel simpleQueriesStackPanel;
-
-	private FlexTable labelForInfoAboutOpenedRelation;
+	private FlexTable previousNextTuplePanInPattern;
 
 	private Button previousTuple = new Button("<span></span> previous tuple");
+	private Button previousGroupInSampleRel = new Button(
+			"<span></span> previous group");
+	private FlexTable labelForInfoAboutOpenedRelation = new FlexTable();
+
+	/**
+	 * @return the previousGroupInSampleRel
+	 */
+	public Button getPreviousGroupInSampleRel() {
+		return previousGroupInSampleRel;
+	}
+
 	private Button previousTupleInPattern = new Button(
 			"<span></span> previous tuple");
 	private Button nextTuple = new Button("next tuple <span></span>");
 	private Button nextTupleInPattern = new Button("next tuple <span></span>");
+	private Button nextGroupInSampleRel = new Button("next group <span></span>");
+
+	/**
+	 * @return the nextGroupInSampleRel
+	 */
+	public Button getNextGroupInSampleRel() {
+		return nextGroupInSampleRel;
+	}
+
 	private int totalNumberOfTuplesInPatternResult = 0;
 	private int totalNumberOfTuplesInPassesResult = 0;
 	private int totalNumberOfTuplesInCurrentRelation = 0;
 	private int totalNumberOfTuplesInPassesThroughResult = 0;
 	private int tupleNo;
+	private int groupNo;
+	private int groupNoInPattern;
+	private int numberOfTrajInGroup;
+	private int numberOfTrajInGroupInPattern;
 	private int tupleNoInPattern;
 	private int tupleNoInPassesThroughRegion;
 
@@ -123,12 +148,22 @@ public class OptionsTabPanel extends Composite {
 	private VerticalPanel previousNextTupleInPatternResultPanel = new VerticalPanel();
 	private Label labelWithNumberOfShownTupleInPatternResult = new Label("");
 
+	private ListBox numberOfTrajectoriesToShow = new ListBox();
+
 	private boolean patternMatchingIsInitiated = false;
 	private boolean simpleQueryForPassesIsInitiated = false;
 	private boolean simpleQueryForPassesTrhoughRegionsInitiated = false;
 	private static double[] coordinatesForPasses;
 
 	private int tupleNoInPasses;
+
+	private int groupNoInPasses;
+
+	private int numberOfTrajInGroupInPasses;
+
+	private int groupNoInPassesThrough;
+
+	private int numberOfTrajInGroupInPassesThrough;
 
 	public OptionsTabPanel() {
 		initWidget(optionsTabPanel);
@@ -366,7 +401,6 @@ public class OptionsTabPanel extends Composite {
 	 * @return The flex table with label
 	 */
 	private FlexTable createLabelForInfoAboutOpenedRelation() {
-		FlexTable labelForInfoAboutOpenedRelation = new FlexTable();
 
 		Label numberOfTuplesInRelationLabel = new Label("The relation has:");
 		numberOfTuplesInRelationLabel
@@ -379,6 +413,41 @@ public class OptionsTabPanel extends Composite {
 
 		Label numberOfShownTuplesLabel = new Label("On the map shown:");
 		numberOfShownTuplesLabel.setStyleName("labelTextInOneLineWithItalic");
+
+		Label numberOfTrajectoriesToShowBeforeLabel = new Label(
+				"Show in groups of: ");
+		numberOfTrajectoriesToShowBeforeLabel
+				.setStyleName("labelTextInOneLineWithItalic");
+		Label numberOfTrajectoriesToShowAfterLabel = new Label("     tuples");
+		numberOfTrajectoriesToShowAfterLabel
+				.setStyleName("labelTextInOneLineWithItalic");
+
+		numberOfTrajectoriesToShow.addItem(" ");
+		numberOfTrajectoriesToShow.addItem("3");
+		numberOfTrajectoriesToShow.addItem("5");
+		numberOfTrajectoriesToShow.addItem("10");
+		numberOfTrajectoriesToShow.addItem("15");
+
+		previousGroupInSampleRel.setStyleName("previousButton");
+		previousGroupInSampleRel.setEnabled(false);
+		nextGroupInSampleRel.setStyleName("nextButton");
+		nextGroupInSampleRel.setEnabled(true);
+		nextGroupInSampleRel.getElement().setAttribute("padding-left", "5px");
+		nextGroupInSampleRel.setWidth("114px");
+
+		HorizontalPanel numberOfTrajectoriesInSampleRelToShowPanel = new HorizontalPanel();
+		numberOfTrajectoriesInSampleRelToShowPanel
+				.add(numberOfTrajectoriesToShowBeforeLabel);
+		numberOfTrajectoriesInSampleRelToShowPanel
+				.add(numberOfTrajectoriesToShow);
+		numberOfTrajectoriesInSampleRelToShowPanel
+				.add(numberOfTrajectoriesToShowAfterLabel);
+		// numberOfTrajectoriesInPatternToShowPanel.getElement().setAttribute(
+		// "cellpadding", "5px");
+		numberOfTrajectoriesInSampleRelToShowPanel.getElement().setAttribute(
+				"padding-left", "10px");
+		numberOfTrajectoriesInSampleRelToShowPanel.getElement().setAttribute(
+				"color", "#808080");
 
 		previousTuple.setStyleName("previousButton");
 		previousTuple.setEnabled(false);
@@ -396,12 +465,235 @@ public class OptionsTabPanel extends Composite {
 				numberOfShownTuplesLabel);
 		labelForInfoAboutOpenedRelation.setWidget(1, 1,
 				numberOfShownTuplesInSampleRelation);
-		labelForInfoAboutOpenedRelation.setWidget(2, 0, previousTuple);
-		labelForInfoAboutOpenedRelation.setWidget(2, 1, nextTuple);
+		labelForInfoAboutOpenedRelation.setWidget(2, 0,
+				numberOfTrajectoriesInSampleRelToShowPanel);
+		labelForInfoAboutOpenedRelation.getFlexCellFormatter().setColSpan(2, 0,
+				2);
+		labelForInfoAboutOpenedRelation.setWidget(3, 0, previousTuple);
+		labelForInfoAboutOpenedRelation.setWidget(3, 1, nextTuple);
 		labelForInfoAboutOpenedRelation.setVisible(false);
 
 		return labelForInfoAboutOpenedRelation;
 
+	}
+
+	/**
+	 * @param labelForInfoAboutOpenedRelation
+	 */
+	public void showGroupButtons() {
+		labelForInfoAboutOpenedRelation.remove(previousTuple);
+		labelForInfoAboutOpenedRelation.remove(nextTuple);
+		labelForInfoAboutOpenedRelation.setWidget(3, 0,
+				previousGroupInSampleRel);
+		labelForInfoAboutOpenedRelation.setWidget(3, 1, nextGroupInSampleRel);
+	}
+
+	public void showGroupButtonsInPattern() {
+		previousNextTupleInPatternResultPanel
+				.remove(previousNextTuplePanInPattern);
+		previousNextTupleInPatternResultPanel.add(groupsInPattern
+				.getPreviousNextGroupPan());
+	}
+
+	public void showGroupButtonsInPasses() {
+		simpleQueriesStackPanel.getPassesPanel().changeTupleToGroup();
+	}
+
+	public void showGroupButtonsInPassesThrough() {
+		simpleQueriesStackPanel.getPassesThroughRegionPanel()
+				.changeTupleToGroup();
+	}
+
+	public void showTupleButtonsInPattern() {
+		previousNextTupleInPatternResultPanel
+				.add(previousNextTuplePanInPattern);
+		previousNextTupleInPatternResultPanel.remove(groupsInPattern
+				.getPreviousNextGroupPan());
+	}
+
+	public String getCommandToShowTrajectoriesFromSampleRelationInGroup() {
+		groupNo = 1;
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		numberOfTrajInGroup = Integer.parseInt(getNumberOfTrajectoriesToShow()
+				.getValue(getNumberOfTrajectoriesToShow().getSelectedIndex()));
+		String command = "";
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+			// command = "query "
+			// + selectOptionsForExistingTrajectories
+			// .getItemText(selectedInd);
+			// command = command + " feed filtermatches["
+			// + attributeNameOfMlabelInRelation + ",";
+			// command = command + " '" + patternLabel.getText() + "'] head["
+			// + numberOfTrajToShow + "] consume";
+
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd) + " feed head["
+					+ numberOfTrajInGroup + "] consume";
+			numberOfShownTuplesInSampleRelation.setText("tuple No. "
+					+ (((groupNo - 1) * numberOfTrajInGroup) + 1) + " - "
+					+ groupNo * numberOfTrajInGroup);
+		}
+		return command;
+	}
+
+	public String getCommandToShowTrajectoriesFromPatternInGroup() {
+		groupNoInPattern = 1;
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		numberOfTrajInGroupInPattern = Integer
+				.parseInt(getGroupsInPatternToShow().getValue(
+						getGroupsInPatternToShow().getSelectedIndex()));
+		String command = "";
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+
+			if (numberOfTrajInGroupInPattern > totalNumberOfTuplesInPatternResult) {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+				command = command + " feed filtermatches["
+						+ attributeNameOfMlabelInRelation + ",";
+				command = command + " '" + patternLabel.getText() + "'] head["
+						+ totalNumberOfTuplesInPatternResult + "] consume";
+				labelWithNumberOfShownTupleInPatternResult
+						.setText("tuple No. "
+								+ (((groupNoInPattern - 1) * numberOfTrajInGroupInPattern) + 1)
+								+ " - " + totalNumberOfTuplesInPatternResult);
+				getNextGroupButtonInPattern().setEnabled(false);
+			} else {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+				command = command + " feed filtermatches["
+						+ attributeNameOfMlabelInRelation + ",";
+				command = command + " '" + patternLabel.getText() + "'] head["
+						+ numberOfTrajInGroupInPattern + "] consume";
+
+				labelWithNumberOfShownTupleInPatternResult
+						.setText("tuple No. "
+								+ (((groupNoInPattern - 1) * numberOfTrajInGroupInPattern) + 1)
+								+ " - " + groupNoInPattern
+								* numberOfTrajInGroupInPattern);
+			}
+		}
+		return command;
+	}
+
+	public String getCommandToShowTrajectoriesFromPassesInGroup() {
+		groupNoInPasses = 1;
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		numberOfTrajInGroupInPasses = Integer
+				.parseInt(getListBoxWithGroupsInPasses().getValue(
+						getListBoxWithGroupsInPasses().getSelectedIndex()));
+		String label = simpleQueriesStackPanel.getPassesPanel()
+				.getLabelTextForQuery().getText();
+		label.trim();
+		String command = "";
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+
+			if (numberOfTrajInGroupInPasses > totalNumberOfTuplesInPassesResult) {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+				command = command + " feed filter[."
+						+ attributeNameOfMlabelInRelation
+						+ " passes tolabel(\"" + label + "\")] head["
+						+ totalNumberOfTuplesInPassesResult + "] consume";
+				simpleQueriesStackPanel
+						.getPassesPanel()
+						.getInfoAboutTupleNo()
+						.setText(
+								"tuple No. "
+										+ (((groupNoInPasses - 1) * numberOfTrajInGroupInPasses) + 1)
+										+ " - "
+										+ totalNumberOfTuplesInPassesResult);
+				simpleQueriesStackPanel.getPassesPanel().disableNextButton();
+			} else {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+				command = command + " feed filter[."
+						+ attributeNameOfMlabelInRelation
+						+ " passes tolabel(\"" + label + "\")] head["
+						+ numberOfTrajInGroupInPasses + "] consume";
+
+				simpleQueriesStackPanel
+						.getPassesPanel()
+						.getInfoAboutTupleNo()
+						.setText(
+								"tuple No. "
+										+ (((groupNoInPasses - 1) * numberOfTrajInGroupInPasses) + 1)
+										+ " - " + groupNoInPasses
+										* numberOfTrajInGroupInPasses);
+			}
+		}
+		return command;
+	}
+
+	public String getCommandToShowTrajectoriesFromPassesThroughInGroup() {
+		groupNoInPassesThrough = 1;
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+		numberOfTrajInGroupInPassesThrough = Integer
+				.parseInt(getListBoxWithGroupsInPassesThrough().getValue(
+						getListBoxWithGroupsInPassesThrough()
+								.getSelectedIndex()));
+		String label = simpleQueriesStackPanel.getPassesThroughRegionPanel()
+				.getLabelTextForQuery().getText();
+		label.trim();
+		String command = "";
+		if (selectedInd != -1 && !attributeNameOfMlabelInRelation.isEmpty()) {
+
+			if (numberOfTrajInGroupInPassesThrough > totalNumberOfTuplesInPassesThroughResult) {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+				command = command + " feed filter[."
+						+ attributeNameOfMPointInRelation
+						+ " passes [const rect value("
+						+ coordinatesForPasses[0] + " "
+						+ coordinatesForPasses[1] + " "
+						+ coordinatesForPasses[2] + " "
+						+ coordinatesForPasses[3] + ")]] head["
+						+ totalNumberOfTuplesInPassesThroughResult
+						+ "] consume";
+
+				simpleQueriesStackPanel
+						.getPassesThroughRegionPanel()
+						.getInfoAboutTupleNo()
+						.setText(
+								"tuple No. "
+										+ (((groupNoInPassesThrough - 1) * numberOfTrajInGroupInPassesThrough) + 1)
+										+ " - "
+										+ totalNumberOfTuplesInPassesThroughResult);
+				simpleQueriesStackPanel.getPassesThroughRegionPanel()
+						.disableNextButton();
+			} else {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+				command = command + " feed filter[."
+						+ attributeNameOfMPointInRelation
+						+ " passes [const rect value("
+						+ coordinatesForPasses[0] + " "
+						+ coordinatesForPasses[1] + " "
+						+ coordinatesForPasses[2] + " "
+						+ coordinatesForPasses[3] + ")]] head["
+						+ numberOfTrajInGroupInPassesThrough + "] consume";
+
+				simpleQueriesStackPanel
+						.getPassesThroughRegionPanel()
+						.getInfoAboutTupleNo()
+						.setText(
+								"tuple No. "
+										+ (((groupNoInPassesThrough - 1) * numberOfTrajInGroupInPassesThrough) + 1)
+										+ " - " + groupNoInPassesThrough
+										* numberOfTrajInGroupInPassesThrough);
+			}
+		}
+		return command;
 	}
 
 	/**
@@ -750,10 +1042,15 @@ public class OptionsTabPanel extends Composite {
 
 		previousNextTupleInPatternResultPanel
 				.add(labelWithNumberOfShownTupleInPatternResult);
-		FlexTable previousNextTuplePan = new FlexTable();
-		previousNextTuplePan.setWidget(0, 0, previousTupleInPattern);
-		previousNextTuplePan.setWidget(0, 1, nextTupleInPattern);
-		previousNextTupleInPatternResultPanel.add(previousNextTuplePan);
+
+		groupsInPattern = new GroupsToShowPanel();
+		previousNextTupleInPatternResultPanel.add(groupsInPattern);
+
+		previousNextTuplePanInPattern = new FlexTable();
+		previousNextTuplePanInPattern.setWidget(0, 0, previousTupleInPattern);
+		previousNextTuplePanInPattern.setWidget(0, 1, nextTupleInPattern);
+		previousNextTupleInPatternResultPanel
+				.add(previousNextTuplePanInPattern);
 
 		previousNextTupleInPatternResultPanel.getElement().setAttribute(
 				"cellpadding", "5px");
@@ -1692,6 +1989,181 @@ public class OptionsTabPanel extends Composite {
 		return command;
 	}
 
+	public String getCommandForNextGroupInSampleRelation() {
+		groupNo++;
+		String command = "";
+		previousGroupInSampleRel.setEnabled(true);
+
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+
+		if ((groupNo * numberOfTrajInGroup) <= totalNumberOfTuplesInCurrentRelation) {
+
+			if (selectedInd != -1) {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd) + " feed head["
+						+ groupNo * numberOfTrajInGroup + "] tail["
+						+ numberOfTrajInGroup + "] consume";
+				numberOfShownTuplesInSampleRelation.setText("tuple No. "
+						+ (((groupNo - 1) * numberOfTrajInGroup) + 1) + " - "
+						+ groupNo * numberOfTrajInGroup);
+			}
+		}
+		if (groupNo * numberOfTrajInGroup >= totalNumberOfTuplesInCurrentRelation) {
+			nextGroupInSampleRel.setEnabled(false);
+		}
+
+		if ((groupNo * numberOfTrajInGroup) > totalNumberOfTuplesInCurrentRelation) {
+			nextGroupInSampleRel.setEnabled(false);
+
+			command = "query "
+					+ selectOptionsForExistingTrajectories
+							.getItemText(selectedInd) + " feed tail["
+					+ totalNumberOfTuplesInCurrentRelation
+					% numberOfTrajInGroup + "] consume";
+			numberOfShownTuplesInSampleRelation.setText("tuple No. "
+					+ (((groupNo - 1) * numberOfTrajInGroup) + 1) + " - "
+					+ totalNumberOfTuplesInCurrentRelation);
+
+		}
+		return command;
+	}
+
+	public String getCommandForNextGroupInPattern() {
+		groupNoInPattern++;
+		return getCommandForNextGroup(getPreviousGroupButtonInPattern(),
+				getNextGroupButtonInPattern(),
+				labelWithNumberOfShownTupleInPatternResult, groupNoInPattern,
+				numberOfTrajInGroupInPattern,
+				totalNumberOfTuplesInPatternResult, "pattern");
+	}
+
+	public String getCommandForNextGroupInPasses() {
+		groupNoInPasses++;
+		return getCommandForNextGroup(getPreviousGroupButtonInPasses(),
+				getNextGroupButtonInPasses(), simpleQueriesStackPanel
+						.getPassesPanel().getInfoAboutTupleNo(),
+				groupNoInPasses, numberOfTrajInGroupInPasses,
+				totalNumberOfTuplesInPassesResult, "passes");
+	}
+
+	public String getCommandForNextGroupInPassesThrough() {
+		groupNoInPassesThrough++;
+		return getCommandForNextGroup(getPreviousGroupButtonInPassesThrough(),
+				getNextGroupButtonInPassesThrough(), simpleQueriesStackPanel
+						.getPassesThroughRegionPanel().getInfoAboutTupleNo(),
+				groupNoInPassesThrough, numberOfTrajInGroupInPassesThrough,
+				totalNumberOfTuplesInPassesThroughResult, "passesThrough");
+	}
+
+	private String getCommandForNextGroup(Button previousGroup,
+			Button nextGroup, Label openedTuple, int groupNum,
+			int numOfTrajInGroup, int totalNum, String typeOfCommand) {
+
+		String command = "";
+		previousGroup.setEnabled(true);
+
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+
+		if ((groupNum * numOfTrajInGroup) <= totalNum) {
+
+			if (selectedInd != -1) {
+
+				if (typeOfCommand.equalsIgnoreCase("pattern")) {
+					command = "query "
+							+ selectOptionsForExistingTrajectories
+									.getItemText(selectedInd);
+					command = command + " feed filtermatches["
+							+ attributeNameOfMlabelInRelation + ",";
+					command = command + " '" + patternLabel.getText() + "']";
+				}
+
+				if (typeOfCommand.equalsIgnoreCase("passes")) {
+					String label = simpleQueriesStackPanel.getPassesPanel()
+							.getLabelTextForQuery().getText();
+
+					command = "query "
+							+ selectOptionsForExistingTrajectories
+									.getItemText(selectedInd);
+					command = command + " feed filter[."
+							+ attributeNameOfMlabelInRelation
+							+ " passes tolabel(\"" + label + "\")] ";
+				}
+				if (typeOfCommand.equalsIgnoreCase("passesThrough")) {
+					command = "query "
+							+ selectOptionsForExistingTrajectories
+									.getItemText(selectedInd);
+
+					command = command + " feed filter[."
+							+ attributeNameOfMPointInRelation
+							+ " passes [const rect value("
+							+ coordinatesForPasses[0] + " "
+							+ coordinatesForPasses[1] + " "
+							+ coordinatesForPasses[2] + " "
+							+ coordinatesForPasses[3] + ")]] ";
+				}
+
+				command += "head[" + groupNum * numOfTrajInGroup + "] tail["
+						+ numOfTrajInGroup + "] consume";
+
+				openedTuple.setText("tuple No. "
+						+ (((groupNum - 1) * numOfTrajInGroup) + 1) + " - "
+						+ groupNum * numOfTrajInGroup);
+			}
+		}
+		if (groupNum * numOfTrajInGroup >= totalNum) {
+			nextGroup.setEnabled(false);
+		}
+
+		if ((groupNum * numOfTrajInGroup) > totalNum) {
+			nextGroup.setEnabled(false);
+
+			if (typeOfCommand.equalsIgnoreCase("pattern")) {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd)
+						+ " feed filtermatches["
+						+ attributeNameOfMlabelInRelation + ",";
+				command = command + " '" + patternLabel.getText() + "'] ";
+			}
+			if (typeOfCommand.equalsIgnoreCase("passes")) {
+				String label = simpleQueriesStackPanel.getPassesPanel()
+						.getLabelTextForQuery().getText();
+
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+				command = command + " feed filter[."
+						+ attributeNameOfMlabelInRelation
+						+ " passes tolabel(\"" + label + "\")] ";
+			}
+			if (typeOfCommand.equalsIgnoreCase("passesThrough")) {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+
+				command = command + " feed filter[."
+						+ attributeNameOfMPointInRelation
+						+ " passes [const rect value("
+						+ coordinatesForPasses[0] + " "
+						+ coordinatesForPasses[1] + " "
+						+ coordinatesForPasses[2] + " "
+						+ coordinatesForPasses[3] + ")]] ";
+			}
+
+			command += "head[" + groupNum * numOfTrajInGroup + "] tail["
+					+ totalNum % numOfTrajInGroup + "] consume";
+
+			openedTuple.setText("tuple No. "
+					+ (((groupNum - 1) * numOfTrajInGroup) + 1) + " - "
+					+ totalNum);
+
+		}
+		return command;
+	}
+
 	/**
 	 * Returns the command for querying the next tuple in a sample relation
 	 * 
@@ -1716,6 +2188,122 @@ public class OptionsTabPanel extends Composite {
 			previousTuple.setEnabled(false);
 		}
 
+		return command;
+	}
+
+	public String getCommandForPreviousGroupInSampleRelation() {
+		groupNo--;
+		String command = "";
+
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+
+		if ((groupNo * numberOfTrajInGroup) <= totalNumberOfTuplesInCurrentRelation) {
+
+			if (selectedInd != -1) {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd) + " feed head["
+						+ groupNo * numberOfTrajInGroup + "] tail["
+						+ numberOfTrajInGroup + "] consume";
+				numberOfShownTuplesInSampleRelation.setText("tuple No. "
+						+ (((groupNo - 1) * numberOfTrajInGroup) + 1) + " - "
+						+ groupNo * numberOfTrajInGroup);
+			}
+		}
+
+		if (groupNo == 1) {
+			previousGroupInSampleRel.setEnabled(false);
+
+		}
+		return command;
+	}
+
+	public String getCommandForPreviousGroupInPattern() {
+		groupNoInPattern--;
+		return getCommandForPreviousGroup(groupNoInPattern,
+				numberOfTrajInGroupInPattern,
+				totalNumberOfTuplesInPatternResult,
+				getPreviousGroupButtonInPattern(),
+				getNextGroupButtonInPattern(),
+				labelWithNumberOfShownTupleInPatternResult, "pattern");
+	}
+
+	public String getCommandForPreviousGroupInPasses() {
+		groupNoInPasses--;
+		return getCommandForPreviousGroup(groupNoInPasses,
+				numberOfTrajInGroupInPasses, totalNumberOfTuplesInPassesResult,
+				getPreviousGroupButtonInPasses(), getNextGroupButtonInPasses(),
+				simpleQueriesStackPanel.getPassesPanel().getInfoAboutTupleNo(),
+				"passes");
+	}
+
+	public String getCommandForPreviousGroupInPassesThrough() {
+		groupNoInPassesThrough--;
+		return getCommandForPreviousGroup(groupNoInPassesThrough,
+				numberOfTrajInGroupInPassesThrough,
+				totalNumberOfTuplesInPassesThroughResult,
+				getPreviousGroupButtonInPassesThrough(),
+				getNextGroupButtonInPassesThrough(), simpleQueriesStackPanel
+						.getPassesThroughRegionPanel().getInfoAboutTupleNo(),
+				"passesThrough");
+	}
+
+	private String getCommandForPreviousGroup(int groupNo,
+			int numberOfTrajInGroup, int totalNumberOfTuples,
+			Button previousGroup, Button nextGroup, Label numberOfShownTuples,
+			String typeOfCommand) {
+
+		String command = "";
+
+		int selectedInd = selectOptionsForExistingTrajectories
+				.getSelectedIndex();
+
+		if ((groupNo * numberOfTrajInGroup) <= totalNumberOfTuples) {
+			nextGroup.setEnabled(true);
+			if (selectedInd != -1) {
+				command = "query "
+						+ selectOptionsForExistingTrajectories
+								.getItemText(selectedInd);
+				if (typeOfCommand.equalsIgnoreCase("pattern")) {
+
+					command = command + " feed filtermatches["
+							+ attributeNameOfMlabelInRelation + ",";
+					command = command + " '" + patternLabel.getText() + "'] ";
+				}
+
+				if (typeOfCommand.equalsIgnoreCase("passes")) {
+					String label = simpleQueriesStackPanel.getPassesPanel()
+							.getLabelTextForQuery().getText();
+
+					command = command + " feed filter[."
+							+ attributeNameOfMlabelInRelation
+							+ " passes tolabel(\"" + label + "\")] ";
+				}
+
+				if (typeOfCommand.equalsIgnoreCase("passesThrough")) {
+
+					command = command + " feed filter[."
+							+ attributeNameOfMPointInRelation
+							+ " passes [const rect value("
+							+ coordinatesForPasses[0] + " "
+							+ coordinatesForPasses[1] + " "
+							+ coordinatesForPasses[2] + " "
+							+ coordinatesForPasses[3] + ")]] ";
+				}
+				command += "head[" + groupNo * numberOfTrajInGroup + "] tail["
+						+ numberOfTrajInGroup + "] consume";
+
+				numberOfShownTuples.setText("tuple No. "
+						+ (((groupNo - 1) * numberOfTrajInGroup) + 1) + " - "
+						+ groupNo * numberOfTrajInGroup);
+			}
+		}
+
+		if (groupNo == 1) {
+			previousGroup.setEnabled(false);
+
+		}
 		return command;
 	}
 
@@ -1958,6 +2546,13 @@ public class OptionsTabPanel extends Composite {
 		return nextTupleInPattern;
 	}
 
+	/**
+	 * @return the numberOfTrajectoriesInPatternToShow
+	 */
+	public ListBox getNumberOfTrajectoriesToShow() {
+		return numberOfTrajectoriesToShow;
+	}
+
 	public void setTotalNumberOfTuplesInCurrentRelation(
 			int totalNumberOfTuplesInCurrentRelation) {
 		this.totalNumberOfTuplesInCurrentRelation = totalNumberOfTuplesInCurrentRelation;
@@ -2008,4 +2603,45 @@ public class OptionsTabPanel extends Composite {
 		}
 	}
 
+	public ListBox getGroupsInPatternToShow() {
+		return groupsInPattern.getNumberOfTrajectoriesInGroup();
+	}
+
+	public ListBox getListBoxWithGroupsInPasses() {
+		return simpleQueriesStackPanel.getPassesPanel().getGroupsToShowPanel()
+				.getNumberOfTrajectoriesInGroup();
+	}
+
+	public ListBox getListBoxWithGroupsInPassesThrough() {
+		return simpleQueriesStackPanel.getPassesThroughRegionPanel()
+				.getGroupsToShowPanel().getNumberOfTrajectoriesInGroup();
+	}
+
+	public Button getNextGroupButtonInPattern() {
+		return groupsInPattern.getNextGroupButton();
+	}
+
+	public Button getNextGroupButtonInPasses() {
+		return simpleQueriesStackPanel.getPassesPanel().getGroupsToShowPanel()
+				.getNextGroupButton();
+	}
+
+	public Button getPreviousGroupButtonInPattern() {
+		return groupsInPattern.getPreviousGroupButton();
+	}
+
+	public Button getPreviousGroupButtonInPasses() {
+		return simpleQueriesStackPanel.getPassesPanel().getGroupsToShowPanel()
+				.getPreviousGroupButton();
+	}
+
+	public Button getPreviousGroupButtonInPassesThrough() {
+		return simpleQueriesStackPanel.getPassesThroughRegionPanel()
+				.getGroupsToShowPanel().getPreviousGroupButton();
+	}
+
+	public Button getNextGroupButtonInPassesThrough() {
+		return simpleQueriesStackPanel.getPassesThroughRegionPanel()
+				.getGroupsToShowPanel().getNextGroupButton();
+	}
 }

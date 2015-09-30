@@ -274,14 +274,14 @@ public class MapView extends Composite {
 	public void resizeToFullScreen(int width, int height,
 			int heightOfOptionsTabPanel) {
 
-		if (width > 850) {
+		if (width > 910) {
 
 			contentPanel.setWidth(width + "px");
 			mapWidget.setWidth(width + "px");
 		} else {
 
-			contentPanel.setWidth(850 + "px");
-			mapWidget.setWidth(850 + "px");
+			contentPanel.setWidth(910 + "px");
+			mapWidget.setWidth(910 + "px");
 		}
 		if (height > heightOfOptionsTabPanel) {
 

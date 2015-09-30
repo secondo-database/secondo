@@ -582,7 +582,17 @@ html>body .gwt-DecoratedTabBar {
     font-weight: normal;
     color: #808080; 
     width:120px;   
-font-style: italic;}
+	font-style: italic;}
+	
+	.smallLabelTextInOneLineWithItalic
+{
+	clear: both;
+    display: inline-block;
+    overflow: hidden;    
+    font-weight: normal;
+    color: #808080; 
+    width:70px;   
+	font-style: italic;}
 
 .fileUploadInOneLine{
 	clear: both;
@@ -776,7 +786,7 @@ border:1px solid #b6c7cc;
  background-image: linear-gradient(to bottom, #d4dee1, #a9c0c8);filter:progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr=#d4dee1, endColorstr=#a9c0c8);
  }
  
-.previousButton:disabled, nextButton:disabled {
+.previousButton:disabled, .nextButton:disabled {
 	background-color:#ededed;
 	-moz-border-radius:6px;
 	-webkit-border-radius:6px;

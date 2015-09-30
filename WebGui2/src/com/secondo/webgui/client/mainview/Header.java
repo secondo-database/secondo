@@ -231,11 +231,11 @@ public class Header extends Composite {
 	 * */
 	public void resizeWidth(int width) {
 
-		if (width > 950) {
+		if (width > 1010) {
 			mainGrid.setWidth(width + "px");
 			mainMenuBar.getElement().getStyle().setMarginLeft(300, Unit.PX);
 		} else {
-			mainGrid.setWidth("950px");
+			mainGrid.setWidth("1010px");
 			if (width < 680) {
 				mainMenuBar.getElement().getStyle().setMarginLeft(0, Unit.PX);
 			} else {
