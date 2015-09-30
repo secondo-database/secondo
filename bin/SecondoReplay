@@ -1,0 +1,24 @@
+
+
+replay="ReplayConfig.ini"
+r=false
+
+while getopts "r:" opt; do
+  case "opt" in
+   r) replay=$OPTARG
+      r=true;;
+  esac
+done
+
+
+remoteMonitorsReplay $replay start
+
+if [ "$r" != "true" ]; then
+  R="-r $replay"
+fi
+
+
+SecondoREPLAY $* $R
+
+
+
