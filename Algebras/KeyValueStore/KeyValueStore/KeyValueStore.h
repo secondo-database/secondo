@@ -44,6 +44,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace KVS {
 
+//
+// Counterpart to KeyValueStoreIPC but also does other things.
+// Listen and responds to client connections by KvsConnection.
+//
 class KeyValueStore {
  public:
   KeyValueStore(string appPath);

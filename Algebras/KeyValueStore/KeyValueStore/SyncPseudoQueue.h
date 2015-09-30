@@ -40,6 +40,9 @@ namespace KVS {
 template <typename T>
 class SyncPseudoQueue;
 
+//
+// Used to buffer streams ... probably stupid, but works
+//
 template <typename T>
 class SyncPseudoQueue<T*> {
  public:

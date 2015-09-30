@@ -165,13 +165,6 @@ unsigned int KeyValueStore::getTransferId() {
 
   transferId++;
 
-  /*string folderPath = getSCPTransferPath() + PATH_SLASH;
-
-  while(FileSystem::FileOrFolderExists( folderPath +
-  stringutils::int2str(transferId))) {
-    transferId++;
-  }*/
-
   return transferId;
 }
 
@@ -254,15 +247,7 @@ string KeyValueStore::serverInformationString() {
   string alias("");
   string status("");
 
-  // data
   for (unsigned int i = 0; i < connList.size(); i++) {
-    // if the connection istn even established this error code stuff makes 0
-    // sense.
-    /*ListExpr res;
-    string cmd = "list databases";
-    SecErrInfo err;
-    connList[i]->interfaceConn->Secondo(cmd,res,err);*/
-
     string ipStr = connList[i]->host + string(":") +
                    stringutils::int2str(connList[i]->interfacePort);
     output << " " << left << setw(3) << i << " " << left << setw(21) << ipStr
@@ -360,21 +345,6 @@ int KeyValueStore::getDistributionRef(string name, int typeId, string data) {
   } else {
     Distribution* tempDist = Distribution::getInstance(data);
     if (tempDist != 0) {
-      //      set<int> stupidTest;
-      //
-      //      double coords[4];
-      //      coords[0] = 2312.0;
-      //      coords[1] = 2312.0;
-      //      coords[2] = 2314.0;
-      //      coords[3] = 2314.0;
-      //
-      //      tempDist->add(4, coords, &stupidTest);
-      //
-      //      cout<<"Debug: size:"<<distributionsMap.size()<<endl;
-      //
-      //      //
-      //
-      //      distributionsMap.insert(make_pair(distributionId, tempDist));
       result = addDistribution(tempDist, name);
     }
   }
@@ -620,9 +590,6 @@ bool KeyValueStore::startClient(int port) {
           Socket::CreateGlobal("localhost", stringutils::int2str(port));
 
       if (gate && gate->IsOk()) {
-        // ToDo: Doesnt work.
-        // localHost = gate->GetSocketAddress();
-
         KOUT << left << setw(5) << port << ": Created gate." << endl;
         listenThreads.insert(make_pair(
             port, make_pair(new boost::thread(&KeyValueStore::listenThread,
@@ -742,8 +709,6 @@ void KeyValueStore::connectionThread(Socket* client) {
           int id;
           iosock.read((char*)&id, sizeof(id));
 
-          // cout<<"Receiving Stream ID:"<<id<<endl;
-
           NetworkStream* stream = nsb.createStream(id);
           unsigned int tupleSize = 0;
           char* tupleBuffer = 0;
@@ -751,7 +716,6 @@ void KeyValueStore::connectionThread(Socket* client) {
           do {
             iosock.read((char*)&tupleSize, sizeof(tupleSize));
 
-            // cout<<"Receiving Socket ("<<tupleSize<<") ID "<<id<<endl;
             if (tupleSize > 0) {
               tupleBuffer = new char[tupleSize];
 
@@ -775,10 +739,9 @@ void KeyValueStore::connectionThread(Socket* client) {
 
           string streamType(tempTypeBuffer, typeLen);
           delete[] tempTypeBuffer;
-          // cout<<"Setting StreamType:"<<streamType<<endl;
+
           stream->setStreamType(streamType);
         } else if (cmd.compare("<EndRemoteStream>") == 0) {
-          // cout<<"Ending Stream ID:"<<id<<endl;
           int id;
           iosock.read((char*)&id, sizeof(id));
 
@@ -792,7 +755,6 @@ void KeyValueStore::connectionThread(Socket* client) {
           iosock.write((char*)&result, sizeof(result));
           iosock.flush();
         } else if (cmd.compare("<RemoteStreamCount>") == 0) {
-          // cout<<"Counting Stream ID:"<<id<<endl;
           int id;
           iosock.read((char*)&id, sizeof(id));
 

@@ -50,6 +50,10 @@ Distributed2Algebra
 
 namespace KVS {
 
+//
+// Connection between Key-Value-Store applications.
+// Used to send data and retrieve information.
+//
 class KVSConnection {
  public:
   KVSConnection(string host, string port);
@@ -60,8 +64,6 @@ class KVSConnection {
   void close();
 
   // add queue parameter
-  // void sendStream(const string& id, const string& streamType,
-  // SyncPseudoQueue<Tuple*>* queue, bool* result);
 
   bool sendStream(const int& id, const string& streamType,
                   const vector<pair<char*, unsigned int> >& data);
@@ -92,6 +94,10 @@ class KVSConnection {
   boost::mutex mtx;
 };
 
+//
+// Connection betweens Secondo-Instances.
+// Used to execute secondo queries.
+//
 class Connection {
  public:
   Connection(const string& host, const int interfacePort, const int kvsPort,

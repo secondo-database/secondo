@@ -125,9 +125,7 @@ TransferMethodTCP::TransferMethodTCP(Connection* connection, string streamType,
       bufferPos(0),
       streamType(streamType),
       baseAttributeList(baseAttributeList),
-      creationCheck(creationCheck) {
-  // cout<<"Initialized with Type:"<<streamType<<endl;
-}
+      creationCheck(creationCheck) {}
 
 TransferMethodTCP::~TransferMethodTCP() {}
 
@@ -146,8 +144,6 @@ bool TransferMethodTCP::init(unsigned int tId) {
 bool TransferMethodTCP::sendTuple(char* data, unsigned int dataLen) {
   unsigned int tempLen = dataLen + sizeof(unsigned int);
 
-  // KOUT<<"Adding Tuple ("<<dataLen<<")"<<endl;
-
   if (tempLen > MAX_BUFFER_SIZE - bufferPos) {
     if (bufferPos > 0) {
       connection->kvsConn->sendStream(transferId, buffer, bufferPos);
@@ -159,8 +155,6 @@ bool TransferMethodTCP::sendTuple(char* data, unsigned int dataLen) {
       memcpy(tempData, (char*)&dataLen, sizeof(dataLen));
       memcpy(tempData + sizeof(dataLen), data, dataLen);
       connection->kvsConn->sendStream(transferId, tempData, tempLen);
-      // delete data;
-      // data = tempData;
       delete[] tempData;
     } else {
       memcpy(buffer, (char*)&dataLen, sizeof(dataLen));
@@ -198,9 +192,7 @@ bool TransferMethodTCP::cleanUp() {
 }
 
 bool TransferMethodTCP::import(string targetRelation, string clientCommand) {
-  // KOUT<<"calling import"<<endl;
   if (tupleCounter > 0) {
-    // KOUT<<"relationExists?"<<endl;
     if (creationCheck && !connection->relationExists(targetRelation)) {
       if (connection->exec("let " + targetRelation + " = kvsRemoteStream(" +
                            stringutils::int2str(transferId) + ") project[" +
@@ -215,8 +207,8 @@ bool TransferMethodTCP::import(string targetRelation, string clientCommand) {
         return false;
       }
     }
-    // KOUT<<"kvsRemoteStream"<<endl;
 
+    // stream might contain duplicates ... this is super slow
     return connection->exec(
         "query kvsRemoteStream(" + stringutils::int2str(transferId) +
         ") project[" + baseAttributeList + "] sort " + targetRelation +

@@ -73,7 +73,6 @@ ListExpr qtcreatedistTM(ListExpr inargs) {
                   nl->SymbolAtom(Symbol::APPEND()),
                   nl->OneElemList(nl->IntAtom(attrIndex)),
                   nl->SymbolAtom(QuadTreeDistributionType::BasicType()));
-              // NList(QuadTreeDistributionType::BasicType()).listExpr());
             } else {
               return args.typeError(
                   "input not as expected: Attribute not found in tuple...");
@@ -121,9 +120,6 @@ int qtcreatedistVM(Word* args, Word& result, int message, Word& local,
     coords[1] = mbb->MinD(1) * 1000;
     coords[2] = mbb->MaxD(0) * 1000;
     coords[3] = mbb->MaxD(1) * 1000;
-
-    // cout<<"MBB: x:"<<mbb->MinD(0)<<" y:"<<mbb->MinD(1)<<"
-    // w:"<<mbb->MaxD(0)-mbb->MinD(0)<<" h:"<<mbb->MaxD(1)-mbb->MinD(1)<<"\n";
 
     // initialized?
     if (resultQtd->root == 0) {
@@ -204,15 +200,6 @@ int qtserveridLocalVM(Word* args, Word& result, int message, Word& local,
       qtd->insert(qtd->root, coords, outputSet);
 
       qp->SetModified(qp->GetSon(s, 1));
-
-      /*set<int>* outputSet = &res->outputServerIds;
-      propagateDownB(qtd->root,  [outputSet, mbb] (QuadNode* node) -> bool {
-        if(node->isOverlapping(mbb) && node->serverId != 0) {
-          outputSet->insert(node->serverId);
-          return true;
-        } else {
-          return false;
-        }});*/
 
       if (outputSet->size() > 0) {
         res->iter = res->outputServerIds.begin();
@@ -612,5 +599,4 @@ int qtDistinctVM(Word* args, Word& result, int message, Word& local,
     return CANCEL;
   }
 }
-
 }

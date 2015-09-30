@@ -38,6 +38,7 @@ IPCInit::IPCInit() : magicId(0), confirmIdx(0), nextIdx(0) {}
 IPCLoopBuffer::IPCLoopBuffer()
     : magicId(0),
       bufferSize(IPC_QUEUE_BUFFER_SIZE),
+      ownerId(0),
       readIndex(0),
       writeIndex(0),
       totalWritten(0),
@@ -45,7 +46,7 @@ IPCLoopBuffer::IPCLoopBuffer()
 
 bool IPCLoopBuffer::avail() { return totalWritten != totalRead; }
 
-bool IPCLoopBuffer::read(char* data, unsigned int n, double timeout) {
+bool IPCLoopBuffer::read(char* data, unsigned int n) {
   int offset = 0;
   while (true) {
     int available = totalWritten - totalRead;
@@ -54,7 +55,7 @@ bool IPCLoopBuffer::read(char* data, unsigned int n, double timeout) {
       continue;
     }
 
-    if (available > n) {
+    if (available > static_cast<int>(n)) {
       available = n;
     }
 
@@ -79,7 +80,7 @@ bool IPCLoopBuffer::read(char* data, unsigned int n, double timeout) {
   }
 }
 
-bool IPCLoopBuffer::write(const char* data, unsigned int n, double timeout) {
+bool IPCLoopBuffer::write(const char* data, unsigned int n) {
   int offset = 0;
 
   while (true) {
@@ -90,7 +91,7 @@ bool IPCLoopBuffer::write(const char* data, unsigned int n, double timeout) {
       continue;
     }
 
-    if (space > n) {
+    if (space > static_cast<int>(n)) {
       space = n;
     }
 
@@ -121,35 +122,25 @@ bool IPCConnection::avail() {
 }
 
 bool IPCConnection::read(char* data, unsigned int n) {
-  if (!timedout) {
+  if (writeBuffer->ownerId == ownerId) {
     if (n > 0) {
-      if (readBuffer->read(data, n, timeout)) {
-        return true;
-      } else {
-        timedout = true;
-        return false;
-      }
-    } else {
-      return true;
+      return readBuffer->read(data, n);
     }
+    return true;
   } else {
+    cout << "IPC-Error: Ownership corrupted..." << endl;
     return false;
   }
 }
 
 bool IPCConnection::write(const char* data, unsigned int n) {
-  if (!timedout) {
+  if (writeBuffer->ownerId == ownerId) {
     if (n > 0) {
-      if (writeBuffer->write(data, n, timeout)) {
-        return true;
-      } else {
-        timedout = true;
-        return false;
-      }
-    } else {
-      return true;
+      return writeBuffer->write(data, n);
     }
+    return true;
   } else {
+    cout << "IPC-Error: Ownership corrupted..." << endl;
     return false;
   }
 }
@@ -191,7 +182,7 @@ bool IPCConnection::write(const double* data) {
 bool IPCConnection::read(string* data) {
   int len = 0;
   if (read(&len)) {
-    if (len > 0) {
+    if (len > 0 && len < IPC_MAX_STRING_SIZE) {
       char* temp = new char[len];
       if (read(temp, len)) {
         data->assign(temp, len);
@@ -201,7 +192,7 @@ bool IPCConnection::read(string* data) {
       delete[] temp;
     } else {
       data->clear();
-      return true;
+      return (len == 0);
     }
   }
   return false;
@@ -216,6 +207,66 @@ bool IPCConnection::write(const string* data) {
   }
 }
 
+bool IPCConnection::read(IPCArray<double>* data) {
+  if (read(&data->size)) {
+    if (data->size < IPC_MAX_ARRAY_SIZE) {
+      delete[] data->array;
+
+      bool result = true;
+      data->array = new double[data->size];
+      for (unsigned int i = 0; i < data->size; ++i) {
+        result &= read((char*)&data->array[i], sizeof(double));
+      }
+
+      return result;
+    }
+  }
+
+  return false;
+}
+
+bool IPCConnection::write(const IPCArray<double>* data) {
+  if (write(&data->size)) {
+    bool result = true;
+    for (unsigned int i = 0; i < data->size; ++i) {
+      result &= write((char*)&data->array[i], sizeof(double));
+    }
+    return result;
+  }
+  return false;
+}
+
+bool IPCConnection::read(set<int>* data) {
+  unsigned int nrResults;
+  if (read(&nrResults)) {
+    bool result = true;
+    int tempElem;
+    for (unsigned int i = 0; i < nrResults; ++i) {
+      result &= read(&tempElem);
+      if (result) {
+        data->insert(tempElem);
+      }
+    }
+    return result;
+  }
+  return false;
+}
+
+bool IPCConnection::write(const set<int>* data) {
+  unsigned int nrResults = data->size();
+  if (write(&nrResults)) {
+    bool result = true;
+    if (nrResults > 0) {
+      for (auto it = data->begin(); it != data->end(); ++it) {
+        auto tempResult = *it;
+        result &= write(&tempResult);
+      }
+    }
+    return result;
+  }
+  return false;
+}
+
 bool IPCConnection::read(bool* data) { return read((char*)data, sizeof(bool)); }
 
 bool IPCConnection::write(const bool* data) {
@@ -224,4 +275,4 @@ bool IPCConnection::write(const bool* data) {
 
 IPCConnection::~IPCConnection() { close(); }
 
-bool IPCConnection::health() { return connected && !timedout; }
+bool IPCConnection::health() { return connected; }

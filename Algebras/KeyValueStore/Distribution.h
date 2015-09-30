@@ -38,12 +38,19 @@ using namespace std;
 
 namespace KVS {
 
+//
+// Keep clients up to date on state of distribution
+//
 class DistributionUpdateListener {
  public:
   virtual ~DistributionUpdateListener() {}
   virtual void distributionUpdated() = 0;
 };
 
+//
+// Distribution base type to support different types of distributions
+// currently only based on quadtree needs
+//
 class Distribution {
  public:
   enum DistributionType { TYPE_NONE, TYPE_QUADTREE, TYPE_CONSISTENT };

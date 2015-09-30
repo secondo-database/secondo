@@ -74,13 +74,6 @@ bool QuadNode::isLeaf() {
   return !(children[0] || children[1] || children[2] || children[3]);
 }
 
-// does origin matter? upper left VS lower right?
-
-/*bool QuadNode::isOverlapping(Rectangle<2>* mbb) {
-  return (mbb->MinD(0) < x + width && mbb->MaxD(0) > x)
-      && (mbb->MinD(1) < y + height && mbb->MaxD(1) > y);
-}*/
-
 bool QuadNode::isOverlapping(double* mbb) {
   return (mbb[0] < x + width && mbb[2] >= x) &&
          (mbb[1] < y + height && mbb[3] >= y);
@@ -411,8 +404,6 @@ void QuadTreeDistribution::init(QuadTreeDistribution* prototype) {
                        prototype->serverIdOrder.end());
 
   if (prototype->root) {
-    // root = new QuadNode(prototype->root->x, prototype->root->y,
-    // prototype->root->width, prototype->root->height);
     root = new QuadNode(0, 0, 0, 0);
     root->init(prototype->root);
   }
@@ -709,7 +700,7 @@ void QuadTreeDistribution::expand(double* mbb) {
 
 void QuadTreeDistribution::insert(QuadNode* node, double* mbb,
                                   set<int>* results) {
-  if (node->isLeaf()) { 
+  if (node->isLeaf()) {  // && node->width <= initialWidth) {
 
     propagateUp(node, [](QuadNode* node) { node->weight++; });
 
@@ -752,7 +743,7 @@ void QuadTreeDistribution::insert(QuadNode* node, double* mbb,
 
 void QuadTreeDistribution::insertDebug(QuadNode* node, double* mbb,
                                        set<int>* results) {
-  if (node->isLeaf()) { 
+  if (node->isLeaf()) {  // && node->width <= initialWidth) {
     cout << "Reached Leaf..." << endl;
     propagateUp(node, [](QuadNode* node) { node->weight++; });
 
@@ -792,7 +783,7 @@ void QuadTreeDistribution::insertDebug(QuadNode* node, double* mbb,
 
 void QuadTreeDistribution::retrieveIds(QuadNode* node, double* mbb,
                                        set<int>* results) {
-  if (node->isLeaf()) { 
+  if (node->isLeaf()) {  // && node->width <= initialWidth) {
     if (node->serverId >= 0) {
       results->insert(node->serverId);
     }
@@ -809,7 +800,7 @@ void QuadTreeDistribution::retrieveIds(QuadNode* node, double* mbb,
 
 void QuadTreeDistribution::retrieveIdsDebug(QuadNode* node, double* mbb,
                                             set<int>* results) {
-  if (node->isLeaf()) { 
+  if (node->isLeaf()) {  // && node->width <= initialWidth) {
     cout << "reached leaf" << endl;
     if (node->serverId >= 0) {
       results->insert(node->serverId);
@@ -865,55 +856,6 @@ void QuadTreeDistribution::requestDebug(int nrcoords, double* coords,
     retrieveIdsDebug(root, coords, resultIds);
   }
 }
-
-/*void QuadTreeDistribution::addServer() {
-  if (root) {
-
-    updateWeightVector();
-
-    int newId = nextServerId();
-
-    //always add in front of max element
-    int maxId = distance(serverWeight.begin(),
-        max_element(serverWeight.begin(), serverWeight.end()));
-
-    vector<int>::iterator insertPos = serverIdMapping.insert(
-        find(serverIdMapping.begin(), serverIdMapping.end(), maxId),
-        newId);
-
-    if(newId > serverWeight.size()) {
-      serverWeight.resize(newId+1, 0);
-    }
-
-    int targetWeight = serverWeight[maxId] / 2;
-    int currentWeight = targetWeight;
-
-    //assign
-    leafesInClusterOrder(root,
-        [&targetWeight, &currentWeight, &insertPos, maxId] (QuadNode* node) ->
-bool {
-      if(node->serverId == maxId) {
-        //arbitrary 5% margin (fewer splits)
-        int margin = targetWeight*0.05;
-
-        if(node->weight < currentWeight+margin ) {
-          node->serverId = *insertPos;
-          currentWeight-=node->weight;
-
-          if(currentWeight <= 0) {
-            currentWeight = targetWeight;
-            insertPos++;
-          }
-          return true;
-        }
-        return false;
-      }
-      return true;
-    });
-
-    fixNodeServerIds();
-  }
-}*/
 
 int QuadTreeDistribution::split(int serverId) {
   if (root && serverId >= 0) {
@@ -1046,84 +988,6 @@ void QuadTreeDistribution::consolidateLayers() {
     });
   }
 }
-
-/*void QuadTreeDistribution::removeServer(int serverId) {
-  if (root) {
-
-    if (serverIdMapping.size() > 1) {
-      updateWeightVector();
-
-      vector<int>::iterator item = find(serverIdMapping.begin(),
-          serverIdMapping.end(), serverId);
-      vector<int>::iterator startIdx;
-      //assign everything to one server
-      int targetWeight = serverWeight[*item] * 1.05;
-      int currentWeight = targetWeight;
-
-      if (item == serverIdMapping.begin()) {
-        //item +1 100%
-        startIdx = item;
-      } else if (item + 1 == serverIdMapping.end()) {
-        //item -1 100%
-        startIdx = item - 1;
-      } else {
-        startIdx = item - 1;
-
-        //for first server
-        currentWeight = (serverWeight[*(item - 1)] + serverWeight[*item]
-                                      + serverWeight[*(item + 1)]) / 2
-                                          - serverWeight[*(item - 1)];
-
-        if (currentWeight < 0) {
-          startIdx = item + 1;
-        }
-      }
-
-      serverWeight[*item] = 0;
-      serverIdMapping.erase(item);
-
-      //assign
-      leafesInClusterOrder(root,
-          [&targetWeight, &currentWeight, &startIdx, serverId] (QuadNode* node)
--> bool {
-        if(node->serverId == serverId) {
-          //arbitrary 5% margin (fewer splits)
-          int margin = targetWeight*0.05;
-
-          if(node->weight < currentWeight+margin ) {
-            node->serverId = *startIdx;
-            currentWeight-=node->weight;
-
-            if(currentWeight <= 0) {
-              currentWeight = targetWeight;
-              startIdx++;
-            }
-            return true;
-          }
-
-          return false;
-        }
-        return true;
-      });
-
-      //lower ids
-      leafesInClusterOrder(root, [serverId] (QuadNode* node) -> bool {
-        if(node->serverId > serverId) {
-          node->serverId--;
-        }
-        return true;
-      });
-
-      for (unsigned int i = 0; i < serverIdMapping.size(); ++i) {
-        if (serverIdMapping[i] > serverId) {
-          serverIdMapping[i]--;
-        }
-      }
-
-      fixNodeServerIds();
-    }
-  }
-}*/
 
 void QuadTreeDistribution::redistributeCluster() {
   if (root) {

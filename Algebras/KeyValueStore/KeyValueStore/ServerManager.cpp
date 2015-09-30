@@ -78,10 +78,7 @@ ServerManager::ServerManager(KeyValueStore* instance)
     : monitorRunning(false),
       monitorThread(0),
       backupCout(0),
-      instance(instance) {
-  // connectionList.push_back(new
-  // ConnectionInformation("127.0.0.1","28543","test entry"));
-}
+      instance(instance) {}
 
 ServerManager::~ServerManager() {
   killAllThreads();
@@ -96,34 +93,7 @@ ServerManager::~ServerManager() {
   }
 }
 
-bool ServerManager::initialize() {
-  return true;
-  /*logFile = new ofstream(logPath);
-
-  if(logFile->is_open()) {
-    //redirect cout, since SecondoInterface uses cout
-    backupCout = cout.rdbuf();
-    cout.rdbuf(logFile->rdbuf());
-
-    //bdbEnvironment uses cerr
-    cerr.rdbuf(logFile->rdbuf());
-
-    //start connection threads
-    for(unsigned int i=0; i < connectionList.size(); i++) {
-
-      if(connectionList[i]->si == 0) {
-        //serverList[i]->si = new SecondoInterface();
-      }
-
-      connect(connectionList[i]);
-    }
-
-    return true;
-  } else {
-    cout<<"Couldn't open file...\n";
-    return false;
-  }*/
-}
+bool ServerManager::initialize() { return true; }
 
 bool ServerManager::addConnection(Connection* conn) {
   connectionList.push_back(conn);

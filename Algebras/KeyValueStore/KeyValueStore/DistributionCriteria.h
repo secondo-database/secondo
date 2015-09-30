@@ -36,6 +36,14 @@ namespace KVS {
 class KeyValueStore;
 class Distribution;
 
+//
+// Checks if redistributions are needed and decides
+// which servers will be involved and if split or redistribute occurs
+//
+// Used in DistributionTaskManager
+//
+// Contains lots of stuff thats currently not used
+//
 class DistributionCriteria {
  public:
   DistributionCriteria(KeyValueStore* instance);

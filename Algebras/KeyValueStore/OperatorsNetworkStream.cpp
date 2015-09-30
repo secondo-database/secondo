@@ -60,20 +60,13 @@ ListExpr kvsRemoteStreamTM(ListExpr args) {
     return listutils::typeError("Undefined stream id.");
   }
 
-  // cout<<"Getting Stream (TM)"<<endl;
   NetworkStreamIPC* nstreamIPC =
       kvsIPC->getNetworkStream(streamIdVal->GetIntval());
-  // cout<<"Got Stream (TM)"<<endl;
 
   if (nstreamIPC) {
     ListExpr streamType;
-    // cout<<"Getting Type (TM)"<<endl;
-
     string streamTypeStr = nstreamIPC->getStreamType();
-    // cout<<"Type:"<<streamTypeStr<<endl;
-
     nl->ReadFromString(streamTypeStr, streamType);
-    // cout<<"Got Type (TM)"<<endl;
 
     streamIdVal->DeleteIfAllowed();
 
@@ -90,14 +83,10 @@ int kvsRemoteStreamVM(Word* args, Word& result, int message, Word& local,
   switch (message) {
     case OPEN: {
       CcInt* streamId = static_cast<CcInt*>(args[0].addr);
-      // cout<<"Getting Stream (VM)"<<endl;
       nstreamIPC = kvsIPC->getNetworkStream(streamId->GetIntval());
-      // cout<<"Got Stream (VM)"<<endl;
 
       if (nstreamIPC) {
-        // cout<<"Requesting Stream (VM)"<<endl;
         if (nstreamIPC->requestStream()) {
-          // cout<<"Got Stream (VM)"<<endl;
           local.addr = nstreamIPC;
           return 0;
         }
@@ -108,11 +97,7 @@ int kvsRemoteStreamVM(Word* args, Word& result, int message, Word& local,
     case REQUEST: {
       if (nstreamIPC) {
         unsigned int n = 0;
-        // cout<<"Requesting Tupel (VM)"<<endl;
         char* tupleBuffer = nstreamIPC->nextTuple(&n);
-        // cout<<"Got Tupel (VM)"<<endl;
-
-        // cout<<"Requesting Tupel ("<<n<<")"<<endl;
 
         if (n > 0) {
           TupleType* tupleType;
@@ -120,20 +105,6 @@ int kvsRemoteStreamVM(Word* args, Word& result, int message, Word& local,
           tupleType = new TupleType(nl->Second(resultType));
 
           Tuple* tempTuple = new Tuple(tupleType);
-          // TODO:
-          // compare Buffer with what was send form client, seems to be
-          // mismatch, or find out why there is mismatch
-          // cout<<"Receiving ("<<n<<"): ";
-          /*for(unsigned int i=0; i < n;++i) {
-            int temp = (int)tupleBuffer[i];
-            cout<<hex<<temp<<" ";
-            if(i%4 == 3) {
-              cout<<" ";
-            }
-          }
-          cout<<dec;
-          cout<<endl<<endl;*/
-
           tempTuple->ReadFromBin(tupleBuffer);
 
           delete[] tupleBuffer;
@@ -148,20 +119,12 @@ int kvsRemoteStreamVM(Word* args, Word& result, int message, Word& local,
       return CANCEL;
     }
     case CLOSE: {
-      // cout<<"Closing (VM)"<<endl;
       if (nstreamIPC) {
-        // nstreamIPC->remove();
-
-        // cout<<"Closing kvsRemoteStream."<<endl;
-
         kvsIPC->removeNetworkStream(nstreamIPC->streamid);
         local.setAddr(0);
       }
-      // cout<<"Closed (VM)"<<endl;
 
       result.setAddr(0);
-      // cleanup?
-      // remove from NetworkStreamBuffer?
       return 0;
     }
   }
@@ -231,7 +194,6 @@ ListExpr kvsRemoteStreamSCPTM(ListExpr args) {
 
 int kvsRemoteStreamSCPVM(Word* args, Word& result, int message, Word& local,
                          Supplier s) {
-  // ifstream* dataFile = static_cast<NetworkStream*>(local.addr);
   ifstream* dataFile = static_cast<ifstream*>(local.addr);
 
   switch (message) {
@@ -304,7 +266,7 @@ int kvsRemoteStreamSCPVM(Word* args, Word& result, int message, Word& local,
  * distributionName}, targetRelationName, insertCommand [, deleteCommand] [,
  * restructure])
  *
- * mindestens 5 max 7
+ *
  *
  *
  */
@@ -352,7 +314,6 @@ ListExpr kvsDistributeTM(ListExpr args) {
         "restructure])]");
   }
 
-  // if(!listutils::isTupleStream(nl->First(args))){
   if (!Stream<Tuple>::checkType(nl->First(nl->First(args)))) {
     return listutils::typeError(
         "1st argument should be stream (tuple (...)). [stream (tuple (...)) x "
@@ -533,6 +494,11 @@ int kvsDistributeVM(Word* args, Word& result, int message, Word& local,
 
         // open new local ipc connection to handle distribution
         IPCConnection* distributeConn = IPCConnection::connect(0);
+        if (distributeConn) {
+          cout << "Opened Connection Id (kvsDistribute):"
+               << distributeConn->connectionId << endl;
+        }
+
         disIPC = new DistributeIPC(distributeConn);
 
         cout << "StreamType:" << streamType << endl;
@@ -583,17 +549,6 @@ int kvsDistributeVM(Word* args, Word& result, int message, Word& local,
 
             tuple->WriteToBin(tupleBuffer, coreSize, extensionSize, flobSize);
 
-            // cout<<"Sending ("<<tupleBlockSize<<"): ";
-            /*for(unsigned int i=0; i < tupleBlockSize;++i) {
-              int temp = (int)tupleBuffer[i];
-              cout<<hex<<temp<<" ";
-              if(i%4 == 3) {
-                cout<<" ";
-              }
-            }
-            cout<<dec;
-            cout<<endl<<endl;*/
-
             disIPC->sendTuple(serverId, tupleBuffer, tupleBlockSize);
             before = Clock::now();
           }
@@ -619,30 +574,13 @@ int kvsDistributeVM(Word* args, Word& result, int message, Word& local,
       return CANCEL;
     }
     case REQUEST: {
-      // cout<<"Getting Result..."<<endl;
       if (disIPC != 0 && disIPC->getResult()) {
-        // cout<<"Distribution ended with
-        // ("<<disIPC->resultCode<<"):"<<disIPC->resultMessage<<endl;
-
         int n = 0;
         char* tupleBuffer = disIPC->nextTuple(&n);
-
-        // cout<<"Result ("<<n<<"): ";
-        /*for(unsigned int i=0; i < n;++i) {
-          int temp = (int)tupleBuffer[i];
-          cout<<hex<<temp<<" ";
-          if(i%4 == 3) {
-            cout<<" ";
-          }
-        }
-        cout<<dec;
-        cout<<endl<<endl;*/
 
         if (n > 0) {
           TupleType* tupleType;
           ListExpr resultType = GetTupleResultType(s);
-
-          // cout<<"ResultType:"<<nl->ToString(nl->Second(resultType))<<endl;
 
           tupleType = new TupleType(nl->Second(resultType));
 

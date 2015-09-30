@@ -28,9 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecondoSystem.h"
 #include "AlgebraManager.h"
 
-// extern AlgebraListEntry& GetAlgebraEntry( const int j );
-// extern NestedList* nl;
-
 namespace KVS {
 
 KeyValueStore* kvsInstance;
@@ -52,6 +49,8 @@ int main(int argc, char* argv[]) {
   int id = 0;
   bool useConsole = false;
 
+  srand(time(NULL));
+
   // set application id (to enable more than one instance)
   char* idParam = getCmdOption(argv, argv + argc, "-id");
   if (idParam != 0) {
@@ -69,9 +68,6 @@ int main(int argc, char* argv[]) {
   KVS::kvsInstance = kvsApp.getKVSInstance();
 
   if (kvsApp.checkExclusive()) {
-    // SecondoSystem::CreateInstance( &GetAlgebraEntry );
-    // nl = new NestedList();//SecondoSystem::GetNestedList();
-
     return kvsApp.run();
     ;
   } else {

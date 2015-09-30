@@ -145,7 +145,6 @@ int kvsServerIdVM(Word* args, Word& result, int message, Word& local,
           coords[2] = mbb->MaxD(0) * 1000;
           coords[3] = mbb->MaxD(1) * 1000;
 
-          // cout<<"distAddRect"<<endl;
           if (kvsIPC->distAddRect(distRef, 4, coords, outputSet, requestOnly)) {
             if (outputSet->size() > 0) {
               res->iter = res->outputServerIds.begin();
@@ -153,11 +152,9 @@ int kvsServerIdVM(Word* args, Word& result, int message, Word& local,
               return 0;
             } else {
               cout << "Error: 0 results" << endl;
-              // getchar();
             }
           } else {
             cout << "Error: distAddRect failed" << endl;
-            // getchar();
           }
         } else if (CcInt::checkType(inputType)) {
           CcInt* val = static_cast<CcInt*>(args[1].addr);
@@ -338,7 +335,6 @@ ListExpr kvsFilterTM(ListExpr args) {
         nl->Second(nl->Second(args))));  // ( (..) (distribution distname))
   }
 
-  // cout<<"Debug:"<<nl->ToString(args)<<endl;
   // Debug:(((stream (tuple ((Osm_id string) (Name string) (Type string)
   // (GeoData region) (ServerId int)))) (extendstream (head (feed Buildings) 1)
   // ((ServerId (fun (tuple1 TUPLE) (kvsServerId testdist4 (bbox (attr tuple1
@@ -348,9 +344,6 @@ ListExpr kvsFilterTM(ListExpr args) {
   if (nl->IsEqual(nl->First(tuple_desc), Tuple::BasicType()) &&
       nl->ListLength(tuple_desc) == 2) {
     ListExpr attrL = nl->Second(tuple_desc);
-
-    // cout<<"tuple_desc: "<<nl->ToString(tuple_desc)<<"\n";
-    // cout<<"attrL:"<<nl->ToString(attrL)<<"\n";
 
     if (IsTupleDescription(attrL)) {
       string geo_attr_name = nl->SymbolValue(thirdType);
@@ -449,7 +442,7 @@ int kvsFilterVM(Word* args, Word& result, int message, Word& local,
           const Rectangle<2> mbb =
               static_cast<Region*>(tuple->GetAttribute(geoAttrIndex))
                   ->BoundingBox();
-          const unsigned int globalId =
+          unsigned int globalId =
               static_cast<CcInt*>(tuple->GetAttribute(idAttrIndex))->GetValue();
 
           double coords[4];
@@ -460,7 +453,8 @@ int kvsFilterVM(Word* args, Word& result, int message, Word& local,
           coords[3] = mbb.MaxD(1) * 1000;
 
           set<int> results;
-          if (kvsIPC->distFilter(filter->distRef, 4, coords, globalId,
+          int nrCoords = 4;
+          if (kvsIPC->distFilter(filter->distRef, nrCoords, coords, globalId,
                                  updateDistribution)) {
             filter->notfiltered++;
             result.addr = tuple;

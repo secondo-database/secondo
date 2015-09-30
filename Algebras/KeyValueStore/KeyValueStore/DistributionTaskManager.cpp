@@ -310,31 +310,6 @@ void DistributionTaskManager::restructure(bool* run) {
            << endl;
 
       // 2.send updated version to involved servers
-      // retrieve server
-      // use kvs to transfer Distribution
-      // think of name?
-      // think of full command!
-      // query RELATIONNAME feed
-      // Default:      query RELATIONNAME feed extendstream[ServerId:
-      // qtserverid(bbox(.GeoData), testdist3)] kvsDistribute[ServerId,
-      // testdist3, 'command'];
-      // Questions:    -How do we know RELATIONNAME, .GeoData (Distribution
-      // Attribute), LocalDistributionName, ClientCommand
-      //        => We could make the 2 unknown a constant
-      //        => Does Distribution TaskManager need to store this information
-      //        by RelationName? Can a relation only be involved in ONE
-      //        Distribution Task?
-      //        AT SOME POINT YOU NEED TO MAKE RESTRICTIONS
-      //
-      //        => We would need to store how to Retrieve the serverId either by
-      //        saving the string command in relation to the distribution name
-      //        OR
-
-      // New Option?: query RELATIONNAME feed kvsDistribute[distribution,
-      // region, 'command'] leaves out extension part BUT DOESNT ABSTRACT FROM
-      // DISTRIBUTION TYPE !!!
-      //        -We would need the RegionName to reuse it
-      //        -It's not clear yet wether this even works?
 
       ROUT << "Updating Serverlists on involved Servers" << endl;
 
@@ -366,6 +341,8 @@ void DistributionTaskManager::restructure(bool* run) {
       }
 
       // ROUT<<"Starting async restructure phase."<<endl;
+      // currently doesnt use threads since connection mutex will be blocked
+      // anyway
       // restructureProcess = new
       // boost::thread(&DistributionTaskManager::restructurePhaseTwo, this,
       // involvedServers);
@@ -378,18 +355,10 @@ void DistributionTaskManager::restructure(bool* run) {
   }
 }
 
-// TODO: synchronization needed for task list? + maybe server list?
-
 void DistributionTaskManager::restructurePhaseTwo(
     vector<Connection*> involvedServers) {
   // splitting off - first steps done
-  // 3.initiate distribute (there might currently be a different distribution in
-  // use! -> no if  there are manual distributions they can fuck off)
-  // call exec but in a different thread? WILL MAKE other execs impossible! We
-  // would need second line of commands? No so (Optional)
-  //(Optional)WOULD HALT DISTRIBUTION EVENTUALLY BUT WE COULD JUST SET BATCH
-  // SIZES TO INFINITE FOR THE DURATION!
-  //
+  // 3.initiate distribute
 
   vector<boost::thread> distThreads;
   vector<DistributionParameter> distParams;

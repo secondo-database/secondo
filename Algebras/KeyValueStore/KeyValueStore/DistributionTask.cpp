@@ -94,9 +94,6 @@ int DistributionTask::process(int n) {
         char* tupleBuffer = new char[tupleLen];
         conn->read(tupleBuffer, tupleLen);
 
-        // cout<<"DistributionTask::process ID:"<<serverId<<"
-        // Len:"<<tupleLen<<endl;
-
         if (currentBatch->transferList[serverId] == 0) {
           resultStream.push_back(make_pair(tupleBuffer, tupleLen));
         } else {
@@ -145,10 +142,6 @@ int DistributionTask::process(int n) {
     }
   }
 
-  if (processedTuples > 0) {
-    // KOUT<<"Processed "<<processedTuples<<" Tuples."<<endl;
-  }
-
   if (currentBatch->batchReady() || prepareResult) {
     KOUT << "Finishing Batch" << endl;
 
@@ -179,9 +172,6 @@ bool DistributionTask::finishBatch() {
   bool result = true;
 
   if (!currentBatch->finishBatch()) {
-    // conn->write(IPC_MSG_ERROR);
-    // string errMsg("Could not finish batch.\n");
-    // conn->write(&errMsg);
     // TODO:consequence ?
     result = false;
   }

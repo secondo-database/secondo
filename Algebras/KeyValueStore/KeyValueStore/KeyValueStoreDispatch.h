@@ -29,9 +29,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ipc.h"
 #include "KeyValueStore.h"
 #include "KeyValueStoreIPCServer.h"
-#include "IPCMessages.h"
+#include "IPCProtocol.h"
 
 namespace KVS {
+
+//
+// LINK between KeyValueStore and KeyValueStoreIPC
+// 1. KeyValueStoreIPC
+// 2. KeyValueStoreIPCServer::run
+// 3. THIS
+// 4. KeyValueStore
+//
 
 int closeConnection(KeyValueStore* instance, IPCConnection* connection) {
   delete connection;
@@ -387,6 +395,7 @@ int addDistributionElement(KeyValueStore* instance, IPCConnection* connection) {
     }
 
     instance->qtDistAdd(refId, nrcoords, coords, &resultIds);
+    delete[] coords;
 
     connection->write(IPC_MSG_RESULT);
     unsigned int nrResults = resultIds.size();
@@ -406,41 +415,28 @@ int addDistributionElement(KeyValueStore* instance, IPCConnection* connection) {
 int addDistributionRect(KeyValueStore* instance, IPCConnection* connection) {
   int refId;
   bool requestOnly;
-  int nrcoords;
-  double* coords;
   set<int> resultIds;
 
   if (connection) {
-    assert(connection->read(&refId));
-    assert(connection->read(&requestOnly));
-    assert(connection->read(&nrcoords));
-    coords = new double[nrcoords];
+    IPCArray<double> tempArray(0, 0);
+    if (IPCMessageDistAddRect::read(connection, &refId, &requestOnly,
+                                    &tempArray)) {
+      instance->distAddRect(refId, tempArray.size, tempArray.array, &resultIds,
+                            requestOnly);
 
-    // TODO:
-    assert(nrcoords == 4);
+      IPCMessage resultMsg = IPC_MSG_RESULT;
+      IPCMessageIntSetResult::write(connection, &resultMsg, &resultIds);
 
-    for (int i = 0; i < nrcoords; ++i) {
-      connection->read((char*)&coords[i], sizeof(double));
-    }
-
-    instance->distAddRect(refId, nrcoords, coords, &resultIds, requestOnly);
-
-    connection->write(IPC_MSG_RESULT);
-    unsigned int nrResults = resultIds.size();
-    connection->write(&nrResults);
-    for (set<int>::iterator it = resultIds.begin(); it != resultIds.end();
-         ++it) {
-      int tempRes = *it;
-      connection->write(&tempRes);
-    }
-
-    if (nrResults == 0) {
-      KOUT << "Error: 0 results" << endl;
-      for (int i = 0; i < nrcoords; ++i) {
-        KOUT << "coords[" << i << "] = " << coords[i] << endl;
+      if (tempArray.size == 0) {
+        KOUT << "Error: 0 results" << endl;
+        for (unsigned int i = 0; i < tempArray.size; ++i) {
+          KOUT << "coords[" << i << "] = " << tempArray.array[i] << endl;
+        }
+        instance->distAddRectDebug(refId, tempArray.size, tempArray.array,
+                                   &resultIds, requestOnly);
       }
-      instance->distAddRectDebug(refId, nrcoords, coords, &resultIds,
-                                 requestOnly);
+
+      delete[] tempArray.array;
     }
   } else {
     KOUT << "Error: Not connected." << endl;
@@ -478,30 +474,21 @@ int addDistributionInt(KeyValueStore* instance, IPCConnection* connection) {
 }
 
 int filterDistribution(KeyValueStore* instance, IPCConnection* connection) {
-  int refId;
-  bool update;
-  unsigned int globalId;
-  int nrcoords;
-  double* coords;
-
   if (connection) {
-    assert(connection->read(&refId));
-    assert(connection->read(&update));
-    assert(connection->read(&globalId));
-    assert(connection->read(&nrcoords));
+    int refId;
+    bool update;
+    unsigned int globalId;
+    IPCArray<double> tempArray(0, 0);
 
-    // TODO:
-    assert(nrcoords == 4);
+    if (IPCMessageDistFilter::read(connection, &refId, &update, &globalId,
+                                   &tempArray)) {
+      IPCMessage resultMsg = IPC_MSG_RESULT;
+      bool result = instance->distFilter(refId, tempArray.size, tempArray.array,
+                                         globalId, update);
+      delete[] tempArray.array;
 
-    coords = new double[nrcoords];
-    for (int i = 0; i < nrcoords; ++i) {
-      connection->read((char*)&coords[i], sizeof(double));
+      IPCMessageBoolResult::write(connection, &resultMsg, &result);
     }
-
-    bool result =
-        instance->distFilter(refId, nrcoords, coords, globalId, update);
-    connection->write(IPC_MSG_RESULT);
-    connection->write(&result);
   } else {
     KOUT << "Error: Not connected." << endl;
   }
@@ -544,6 +531,7 @@ int requestDistributionElement(KeyValueStore* instance,
     }
 
     instance->qtDistRequest(refId, nrcoords, coords, &resultIds);
+    delete[] coords;
 
     connection->write(IPC_MSG_RESULT);
     unsigned int nrResults = resultIds.size();
@@ -623,7 +611,6 @@ int initNetworkStream(KeyValueStore* instance, IPCConnection* connection) {
   int streamId;
 
   if (connection) {
-    // KOUT<<"initNetworkStream IN"<<endl;
     connection->read(&streamId);
 
     NetworkStream* stream = instance->nsb.getNetworkStream(streamId);
@@ -631,7 +618,6 @@ int initNetworkStream(KeyValueStore* instance, IPCConnection* connection) {
     bool result = (stream != 0);
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
-    // KOUT<<"initNetworkStream OUT"<<endl;
   } else {
     KOUT << "Error: Not connected." << endl;
   }
@@ -643,7 +629,6 @@ int getNetworkStreamType(KeyValueStore* instance, IPCConnection* connection) {
   int streamId;
 
   if (connection) {
-    // KOUT<<"getNetworkStreamType IN"<<endl;
     connection->read(&streamId);
 
     NetworkStream* stream = instance->nsb.getNetworkStream(streamId);
@@ -651,7 +636,6 @@ int getNetworkStreamType(KeyValueStore* instance, IPCConnection* connection) {
     string result = stream->getStreamType();
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
-    // KOUT<<"getNetworkStreamType OUT"<<endl;
   } else {
     KOUT << "Error: Not connected." << endl;
   }
@@ -663,7 +647,6 @@ int requestNetworkStream(KeyValueStore* instance, IPCConnection* connection) {
   int streamId;
 
   if (connection) {
-    // KOUT<<"requestNetworkStream IN"<<endl;
     connection->read(&streamId);
 
     NetworkStream* stream = instance->nsb.getNetworkStream(streamId);
@@ -672,11 +655,7 @@ int requestNetworkStream(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
 
-    // KOUT<<"requestNetworkStream OUT"<<endl;
     if (result) {
-      // boost::thread serveDataThread(&NetworkStream::serveIPC, stream,
-      // connection); //don't think branching out is a good idea
-
       stream->serveIPC(connection);
     }
   } else {
@@ -690,13 +669,11 @@ int removeNetworkStream(KeyValueStore* instance, IPCConnection* connection) {
   int streamId;
 
   if (connection) {
-    // cout<<"removeNetworkStream IN"<<endl;
     connection->read(&streamId);
 
     bool result = instance->nsb.removeStream(streamId);
     connection->write(IPC_MSG_RESULT);
     connection->write(&result);
-    // cout<<"removeNetworkStream OUT"<<endl;
   } else {
     KOUT << "Error: Not connected." << endl;
   }

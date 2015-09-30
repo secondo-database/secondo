@@ -73,21 +73,10 @@ bool DistributeIPC::init(int distributionId, string streamType,
 
 bool DistributeIPC::sendTuple(int serverId, const char* data, unsigned int n) {
   if (conn) {
-    // cout<<"DistributeIPC::sendTuple "<<n<<endl;
-
     conn->write(IPC_MSG_SENDTUPLE);
     conn->write(&serverId);
     conn->write(&n);
     conn->write(data, n);
-
-    /*int responseType;
-    conn->read(&responseType);
-    if(responseType == IPC_MSG_RESULT) {
-      bool result = false;
-      return conn->read(&result);
-    } else {
-      cout<<"Error: Wrong IPC response type.\n";
-    }*/
   } else {
     cout << "Error: No IPC Connection.\n";
   }
@@ -195,9 +184,6 @@ bool DistributeIPC::getResult() {
     if (responseType == IPC_MSG_RESULT) {
       conn->read(&resultCode);
       conn->read(&resultMessage);
-
-      // cout<<"Distribute ended: Code("<<resultCode<<"),
-      // Message("<<resultMessage<<")"<<endl;
 
       resultAvailable = true;
     }

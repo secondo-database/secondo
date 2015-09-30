@@ -42,6 +42,9 @@ class ServerManager;
 class QuadTreeDistribution;
 class DistributionParameter;
 
+//
+// Represents a part of the tuple stream created by kvsDistribute
+//
 class Batch {
  public:
   Batch(KeyValueStore* instance, DistributionParameter* distParams,

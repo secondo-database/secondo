@@ -32,6 +32,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace KVS {
 
+//
+// Helps implement different ways to transfer data.
+// Like TCP vs SCP (not supported anymore)
+//
 class TransferMethod {
  public:
   TransferMethod(Connection* connection);
@@ -57,6 +61,9 @@ class TransferMethod {
  protected:
 };
 
+//
+// To transfer data via TCP (data = tuple streams)
+//
 class TransferMethodTCP : public TransferMethod {
  public:
   TransferMethodTCP(Connection* connection, string streamType,
@@ -84,6 +91,9 @@ class TransferMethodTCP : public TransferMethod {
   bool creationCheck;
 };
 
+//
+// Was originally supported but isnt anymore
+//
 class TransferMethodSCP : public TransferMethod {
  public:
   TransferMethodSCP(Connection* connection, string streamType);

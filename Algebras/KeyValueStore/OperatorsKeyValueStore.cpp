@@ -142,8 +142,6 @@ int kvsInitClientsVM(Word* args, Word& result, int message, Word& local,
  */
 
 ListExpr kvsStartClientTM(ListExpr args) {
-  // string err = "text x int = (host, port) expected";
-
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError("1 argument expected. [int = (port)].");
   }
@@ -171,8 +169,6 @@ int kvsStartClientVM(Word* args, Word& result, int message, Word& local,
  *
  */
 ListExpr kvsStopClientTM(ListExpr args) {
-  // string err = "text x int = (host, port) expected";
-
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError("1 argument expected. [int = (port)].");
   }
@@ -345,7 +341,6 @@ ListExpr kvsRetrieveTM(ListExpr args) {
 
   string attr_name = nl->SymbolValue(attr_desc);
 
-  // cout<<"Debug:"<<nl->ToString(args)<<endl;
   // Debug:(((stream (tuple ((Osm_id string) (Name string) (Type string)
   // (GeoData region) (ServerId int)))) (extendstream (head (feed Buildings) 1)
   // ((ServerId (fun (tuple1 TUPLE) (kvsServerId testdist4 (bbox (attr tuple1
@@ -355,9 +350,6 @@ ListExpr kvsRetrieveTM(ListExpr args) {
   if (nl->IsEqual(nl->First(tuple_desc), Tuple::BasicType()) &&
       nl->ListLength(tuple_desc) == 2) {
     ListExpr attrL = nl->Second(tuple_desc);
-
-    // cout<<"tuple_desc: "<<nl->ToString(tuple_desc)<<"\n";
-    // cout<<"attrL:"<<nl->ToString(attrL)<<"\n";
 
     if (IsTupleDescription(attrL)) {
       int attrIndex;

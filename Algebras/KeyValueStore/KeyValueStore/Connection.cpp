@@ -83,61 +83,6 @@ void KVSConnection::close() {
   }
 }
 
-// add queue parameter
-/*void KVSConnection::sendStream(const string& id, const string& streamType,
-SyncPseudoQueue<Tuple*>* queue, bool* result) {
-  if(connection) {
-    iostream& iosock = connection->GetSocketStream();
-    iosock<<"<RemoteStream>"<<endl;
-    iosock<<id<<endl;
-    iosock<<streamType<<endl;
-
-    Tuple* tuple;
-
-    size_t tupleBufferSize = 0;
-    char* tupleBuffer = 0;
-
-    size_t tupleBlockSize;
-    size_t coreSize = 0;
-    size_t extensionSize = 0;
-    size_t flobSize = 0;
-
-    int sendTupleCount = 0;
-
-    while( (tuple = queue->next()) != 0) {
-      tupleBlockSize = tuple->GetBlockSize(coreSize, extensionSize, flobSize);
-
-      if(tupleBlockSize > tupleBufferSize) {
-        delete[] tupleBuffer;
-        tupleBuffer = new char[tupleBlockSize];
-        tupleBufferSize = tupleBlockSize;
-      }
-
-      tuple->WriteToBin(tupleBuffer, coreSize, extensionSize, flobSize);
-
-      iosock.write((char*)&tupleBlockSize, sizeof(tupleBlockSize));
-      iosock.write(tupleBuffer, tupleBlockSize);
-
-      sendTupleCount++;
-    }
-
-    unsigned int close = 0;
-    iosock.write((char*)&close, sizeof(close));
-
-    iosock.flush();
-
-    //get confirmation that all tuple have been received
-
-    int receiveTupleCount = 0;
-
-    iosock.read((char*)&receiveTupleCount, sizeof(receiveTupleCount));
-
-    *result = (sendTupleCount == receiveTupleCount);
-  } else {
-    *result = false;
-  }
-}*/
-
 bool KVSConnection::sendStream(const int& id, const string& streamType,
                                const vector<pair<char*, unsigned int> >& data) {
   if (!connection) {
@@ -191,12 +136,10 @@ bool KVSConnection::sendStream(const int& id, const char* data,
 
   boost::lock_guard<boost::mutex> guard(mtx);
 
-  // cout<<"Sending StreamPart ("<<dataLen<<")"<<endl;
   iostream& iosock = connection->GetSocketStream();
   iosock << "<RemoteStreamPart>" << endl;
   iosock.write((char*)&id, sizeof(id));
-  // iosock.write((char*)&dataLen, sizeof(int)); //data should end in 0 so we
-  // don#t need the length
+
   iosock.write(data, dataLen);
   unsigned int close = 0;
   iosock.write((char*)&close, sizeof(close));

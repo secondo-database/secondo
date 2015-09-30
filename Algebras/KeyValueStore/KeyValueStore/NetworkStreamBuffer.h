@@ -38,6 +38,9 @@ class Tuple;
 
 namespace KVS {
 
+//
+// Buffers remote streams and serves them to kvsRemoteStream Operator
+//
 class NetworkStream {
  public:
   NetworkStream(unsigned int id);
@@ -59,6 +62,9 @@ class NetworkStream {
   bool streamTypeSet;
 };
 
+//
+// Manages buffered remote streams
+//
 class NetworkStreamBuffer {
  public:
   NetworkStreamBuffer() : dataSourceStream(0) {}

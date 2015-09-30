@@ -37,6 +37,10 @@ class DistributionCriteria;
 class ServerManager;
 class QuadTreeDistribution;
 
+//
+// Contains all parameters that are submitted by kvsDistribute Operator
+// and used all throughout distribution and restructure process.
+//
 class DistributionParameter {
  public:
   DistributionParameter(int distributionId, string streamType,
@@ -65,6 +69,10 @@ class DistributionParameter {
   string deleteCommand;
 };
 
+//
+// Represents active secondo-query that calls kvsDistribute Operator.
+// This sends tuple data via TransferMethod and manages batches.
+//
 class DistributionTask {
  public:
   DistributionTask(KeyValueStore* instance, IPCConnection* localConn,

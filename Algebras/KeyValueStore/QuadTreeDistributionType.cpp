@@ -168,12 +168,6 @@ ListExpr QuadTreeDistributionType::serializeQuadNode(QuadNode* node) {
                 nl->RealAtom(node->y), nl->RealAtom(node->width),
                 nl->RealAtom(node->height), nl->IntAtom(node->weight),
                 nl->IntAtom(node->serverId), nl->IntAtom(node->maxGlobalId))),
-        //          nl->TwoElemList(
-        //            nl->SixElemList(
-        //              nl->RealAtom(node->x), nl->RealAtom(node->y),
-        //              nl->IntAtom(node->width), nl->IntAtom(node->height),
-        //              nl->IntAtom(node->weight), nl->IntAtom(node->serverId)),
-        //            nl->IntAtom(node->maxGlobalId)),
         nl->FourElemList(serializeQuadNode(node->children[0]),
                          serializeQuadNode(node->children[1]),
                          serializeQuadNode(node->children[2]),

@@ -45,8 +45,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 static const key_t IPC_INIT_KEY = 487348423;
 static const key_t IPC_CONNECTION_KEY = 23423522;
 
-IPCConnection::IPCConnection(void* handle, bool server, double timeout)
-    : handle(handle), server(server), timeout(timeout), timedout(false) {
+IPCConnection::IPCConnection(void* handle, bool server, int connectionId)
+    : connectionId(connectionId),
+      handle(handle),
+      server(server),
+      ownerId(rand()) {
   sharedBuffer = (char*)handle;
   connected = (handle != MAP_FAILED);
 
@@ -66,6 +69,9 @@ IPCConnection::IPCConnection(void* handle, bool server, double timeout)
       boost::this_thread::sleep(boost::posix_time::milliseconds(20));
     }
   }
+
+  // debug
+  writeBuffer->ownerId = ownerId;
 }
 
 void IPCConnection::close() {
@@ -105,7 +111,6 @@ IPCConnection* IPCConnection::connect(int id) {
     if (ftruncate(initId, sizeof(IPCInit)) != -1) {
       void* initBuffer = (char*)mmap(
           NULL, sizeof(IPCInit), PROT_READ | PROT_WRITE, MAP_SHARED, initId, 0);
-      // cout<<"Client Inithandle:"<<initBuffer<<endl;
 
       if (initBuffer != MAP_FAILED) {
         IPCInit* init = (IPCInit*)initBuffer;
@@ -158,11 +163,9 @@ IPCConnection* IPCConnection::connect(int id) {
           if (ftruncate(fd, sizeof(IPCLoopBuffer) * 2) != -1) {
             connectionHandle = mmap(NULL, sizeof(IPCLoopBuffer) * 2,
                                     PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-            // cout<<"Client Handle:"<<connectionHandle<<endl;
-            // cout<<"Client Connname:"<<connectionName.str()<<endl;
 
             if (connectionHandle != MAP_FAILED) {
-              return new IPCConnection(connectionHandle, false);
+              return new IPCConnection(connectionHandle, false, connectionId);
             } else {
               cout
                   << "Could not create shared memory object (Connection) (mmap)"
@@ -272,8 +275,9 @@ IPCConnection* IPCGate::nextConnection() {
         // cout<<"Server Handle:"<<sharedBuffer<<endl;
         // cout<<"Server Connname:"<<name.str()<<endl;
         if (sharedBuffer != MAP_FAILED) {
+          int connectionId = initData->confirmIdx;
           initData->confirmIdx++;
-          return new IPCConnection(sharedBuffer, true);
+          return new IPCConnection(sharedBuffer, true, connectionId);
         } else {
           cout << "Could not map shared memory object (nextConnection)" << endl;
         }

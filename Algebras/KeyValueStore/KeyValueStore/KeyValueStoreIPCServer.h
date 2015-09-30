@@ -36,6 +36,10 @@ using namespace std;
 
 namespace KVS {
 
+//
+// IPC-Server. This is what algebras connect to when calling kvsStartApp()
+//=> Contains main-loop of KeyValueStore application.
+//
 class KeyValueStoreIPCServer {
  public:
   KeyValueStoreIPCServer(string appPath, int appId, bool useConsole);

@@ -42,7 +42,6 @@ class QuadNode {
 
   bool isLeaf();
 
-  // bool isOverlapping(Rectangle<2>* mbb);
   bool isOverlapping(double* mbb);
   bool isOverlappingDebug(double* mbb);
 

@@ -33,6 +33,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace KVS {
 
+//
+// Used by kvsRetrieve (not really tested yet)
+//
 class RestructureLock {
  public:
   RestructureLock() : restructuring(false), retrieveCounter(0), lastUpdate(0) {}

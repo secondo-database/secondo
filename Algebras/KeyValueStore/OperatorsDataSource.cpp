@@ -34,10 +34,10 @@ namespace KVS {
 
 extern KeyValueStoreIPC* kvsIPC;
 
-/* **********************
- * Operator: kvsDataSourceSCP()
- *
- */
+// **********************
+// Operator: kvsDataSourceSCP()
+//
+//
 
 ListExpr kvsDataSourceSCPTM(ListExpr args) {
   // get type
@@ -150,61 +150,4 @@ int kvsDataSourceSCPVM(Word* args, Word& result, int message, Word& local,
   /* should not happen */
   return -1;
 }
-
-/* **********************
- * Operator: kvsDataSourceTCP()
- *
- */
-
-/*ListExpr kvsDataSourceTCPTM( ListExpr args )
-{
-  NetworkStream* nstream = kvsInstance->nsb.getDataSourceStream();
-  ListExpr streamType;
-  nl->ReadFromString(nstream->getStreamType(), streamType);
-
-  return streamType;
-}
-
-int kvsDataSourceTCPVM(Word* args, Word& result, int message, Word& local,
-Supplier s) {
-
-  NetworkStream* nstream = static_cast<NetworkStream*>(local.addr);
-
-  switch (message) {
-    case OPEN: {
-      nstream = kvsInstance->nsb.getDataSourceStream();
-
-      local.addr = nstream;
-      return 0;
-    }
-    case REQUEST:
-    {
-      char* tupleBuffer = nstream->tupleQueue.next();
-
-      if(tupleBuffer != 0) {
-        TupleType* tupleType;
-        ListExpr resultType = GetTupleResultType(s);
-        tupleType = new TupleType(nl->Second(resultType));
-
-        Tuple* tempTuple = new Tuple(tupleType);
-        tempTuple->ReadFromBin(tupleBuffer);
-
-        delete[] tupleBuffer;
-
-        result = SetWord(tempTuple);
-        return YIELD;
-      } else {
-        result.setAddr(0);
-        return CANCEL;
-      }
-    }
-    case CLOSE:
-    {
-      //cleanup?
-      //remove from NetworkStreamBuffer?
-      return 0;
-    }
-  }
-  return -1;
-}*/
 }

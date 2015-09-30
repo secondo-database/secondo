@@ -41,7 +41,11 @@ namespace KVS {
 
 KeyValueStoreIPCServer::KeyValueStoreIPCServer(string appPath, int appId,
                                                bool useConsole)
-    : appId(appId), appPath(appPath), appMutexHandle(NULL), kvs(appPath) {
+    : appId(appId),
+      appPath(appPath),
+      appMutexHandle(NULL),
+      kvs(appPath),
+      lastMessage(IPC_MSG_RESULT) {
   buildDispatchMap(dispatchMap);
 
   if (!useConsole) {
@@ -132,6 +136,8 @@ int KeyValueStoreIPCServer::run() {
       IPCConnection* newConn = gate.nextConnection();
 
       if (newConn) {
+        KOUT << "Opened IPC-Connection:" << newConn->connectionId << endl;
+
         if (newConn->health()) {
           // KOUT<<"New Connection established.."<<endl;
           connections.push_back(newConn);
@@ -182,7 +188,6 @@ int KeyValueStoreIPCServer::dispatch(IPCConnection* conn) {
 
   if (dispatchItr != dispatchMap.end()) {
     lastMessage = messageType;
-    // KOUT<<"Message:"<<messageType<<endl;
     return dispatchItr->second(&kvs, conn);
   } else {
     KOUT << "Error: Unknown message type (" << messageType << ")."

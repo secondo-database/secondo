@@ -30,6 +30,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace KVS {
 
+//
+// Used by kvsRemoteStream Operator to retrieve stream data from application
+//
+
 class NetworkStreamIPC {
  public:
   NetworkStreamIPC(IPCConnection* conn, int streamid);

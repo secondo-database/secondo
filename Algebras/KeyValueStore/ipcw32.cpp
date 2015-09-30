@@ -31,8 +31,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "windows.h"
 
-IPCConnection::IPCConnection(void* handle, bool server, double timeout)
-    : handle(handle), server(server), timeout(timeout), timedout(false) {
+IPCConnection::IPCConnection(void* handle, bool server, int connectionId)
+    : connectionId(connectionId),
+      handle(handle),
+      server(server),
+      ownerId(rand()) {
   sharedBuffer =
       (char*)MapViewOfFile(handle,               // handle to map object
                            FILE_MAP_ALL_ACCESS,  // read/write permission
@@ -56,6 +59,9 @@ IPCConnection::IPCConnection(void* handle, bool server, double timeout)
       boost::this_thread::sleep(boost::posix_time::milliseconds(20));
     }
   }
+
+  // debug
+  writeBuffer->ownerId = ownerId;
 }
 
 void IPCConnection::close() {
@@ -117,7 +123,7 @@ IPCConnection* IPCConnection::connect(int id) {
           connectionName.str().c_str());  // name of mapping object
 
       if (w32ConnectionHandle != NULL) {
-        return new IPCConnection(w32ConnectionHandle, false);
+        return new IPCConnection(w32ConnectionHandle, false, connectionId);
       } else {
         cout << "Could not create file mapping object (Connection) ("
              << GetLastError() << ")" << endl;
@@ -188,8 +194,9 @@ IPCConnection* IPCGate::nextConnection() {
         name.str().c_str());        // name of mapping object
 
     if (tempHandle != NULL) {
+      int connectionid = initData->confirmIdx;
       initData->confirmIdx++;
-      return new IPCConnection(tempHandle, true);
+      return new IPCConnection(tempHandle, true, connectionid);
     } else {
       cout << "Could not create file mapping object (" << GetLastError() << ")"
            << endl;

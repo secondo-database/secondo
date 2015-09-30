@@ -117,10 +117,7 @@ void Batch::updateTransferList() {
     vector<int>::iterator mappingPos = find(
         dist->serverIdOrder.begin(), dist->serverIdOrder.end(), transferIdx);
     if (mappingPos != dist->serverIdOrder.end()) {
-      // cout<<"transferIdx = "<<transferIdx<<" vs instance->id =
-      // "<<instance->id<<endl;
       if (static_cast<int>(transferIdx) != instance->id) {
-        // cout<<"-> creating transfer"<<endl;
         // transferIdx == serverId
         serverIdx = sm->getConnectionIndex(transferIdx);
 
@@ -170,7 +167,7 @@ bool Batch::finishTransfer(TransferMethod* transfer, int serverId) {
   if (!transfer->endStream() ||
       !transfer->import(distParams->targetRelation,
                         distParams->insertCommand)) {
-    // recovery
+    // recovery (doesnt work yet... )
     KOUT << "Recovery :(" << endl;
     if (transfer->connection->id != serverId) {
       // has serverId assignment changed?
@@ -259,8 +256,6 @@ bool Batch::recoveryInterface(TransferMethod* transfer, int serverId) {
 
           return true;
         } else {
-          // neighbor already processed so we need new transferID and stuff - we
-          // reuse old ID - this will be deleted before the next batch
           int neighborServerIdx = sm->getConnectionIndex(neighborId);
 
           transfer->changeConnection(sm->getConnectionIdx(neighborServerIdx));

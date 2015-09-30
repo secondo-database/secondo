@@ -37,6 +37,12 @@ namespace KVS {
 
 class KeyValueStore;
 
+//
+// Manages DistributionTask objects created by kvsDistribute Operator.
+// Controlls how much "compute-time" each Task gets and initiates
+// redistributions
+// between Task processing.
+//
 class DistributionTaskManager : public DistributionUpdateListener {
  public:
   DistributionTaskManager(KeyValueStore* instance);

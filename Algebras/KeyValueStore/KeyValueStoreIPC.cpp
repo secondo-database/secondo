@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "KeyValueStoreIPC.h"
 #include "IPCMessages.h"
+#include "IPCProtocol.h"
 
 #include "Application.h"
 #include "FileSystem.h"
@@ -32,9 +33,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifdef SECONDO_WIN32
 #include "windows.h"
 #else
-/*#include <cstring>
-#include "spawn.h"
-extern char **environ;*/
 #include <unistd.h>
 #endif
 
@@ -86,6 +84,10 @@ string KeyValueStoreIPC::getSCPSourcePath() {
 
 bool KeyValueStoreIPC::connect() {
   connection = IPCConnection::connect(appId);
+  if (connection) {
+    cout << "Opened Connection Id:" << connection->connectionId << endl;
+  }
+
   return connection != 0;
 }
 bool KeyValueStoreIPC::connect(string execPath) {
@@ -107,6 +109,10 @@ bool KeyValueStoreIPC::connect(string execPath) {
     connection = IPCConnection::connect(appId);
   }
 
+  if (connection) {
+    cout << "Opened Connection Id:" << connection->connectionId << endl;
+  }
+
   return connection != 0;
 }
 
@@ -114,7 +120,6 @@ bool KeyValueStoreIPC::connected() { return (connection != 0); }
 
 bool KeyValueStoreIPC::cmd(IPCMessage msg) {
   if (connection) {
-    // cout<<"Message:"<<msg<<endl;
     connection->write(msg);
     return true;
   } else {
@@ -620,16 +625,15 @@ bool KeyValueStoreIPC::qtDistinct(int refId, double x, double y) {
 bool KeyValueStoreIPC::distAddRect(int refId, int nrcoords, double* coords,
                                    set<int>* resultIds, bool requestOnly) {
   if (cmd(IPC_MSG_ADDDISTRIBUTIONRECT)) {
-    assert(connection->write(&refId));
-    assert(connection->write(&requestOnly));
-    assert(connection->write(&nrcoords));
-    for (int i = 0; i < nrcoords; ++i) {
-      assert(connection->write((char*)&coords[i], sizeof(double)));
+    IPCArray<double> tempArray(coords, nrcoords);
+
+    if (IPCMessageDistAddRect::write(connection, &refId, &requestOnly,
+                                     &tempArray)) {
+      IPCMessage resultMsg = IPC_MSG_RESULT;
+      return IPCMessageIntSetResult::read(connection, &resultMsg, resultIds);
     }
-    return getResult(resultIds);
-  } else {
-    return false;
   }
+  return false;
 }
 
 bool KeyValueStoreIPC::distAddInt(int refId, int value, set<int>* resultIds,
@@ -645,62 +649,27 @@ bool KeyValueStoreIPC::distAddInt(int refId, int value, set<int>* resultIds,
   }
 }
 
-bool KeyValueStoreIPC::distFilter(const int& refId, const int& nrcoords,
-                                  double* coords, const unsigned int& globalId,
-                                  const bool& update) {
+bool KeyValueStoreIPC::distFilter(int& refId, int& nrcoords, double* coords,
+                                  unsigned int& globalId, bool& update) {
   if (cmd(IPC_MSG_FILTERDISTRIBUTION)) {
-    assert(connection->write(&refId));
-    assert(connection->write(&update));
-    assert(connection->write(&globalId));
-    assert(connection->write(&nrcoords));
+    IPCArray<double> tempArray(coords, nrcoords);
 
-    assert(nrcoords == 4);
-
-    for (int i = 0; i < nrcoords; ++i) {
-      assert(connection->write((char*)&coords[i], sizeof(double)));
-    }
-
-    bool result = false;
-    if (getResult(&result)) {
-      return result;
+    if (IPCMessageDistFilter::write(connection, &refId, &update, &globalId,
+                                    &tempArray)) {
+      IPCMessage message;
+      bool result = false;
+      if (IPCMessageBoolResult::read(connection, &message, &result)) {
+        if (message == IPC_MSG_RESULT) {
+          return result;
+        } else {
+          cout << "Error: Wrong IPC-Message result..." << endl;
+        }
+      }
     }
   }
 
   return false;
 }
-
-/*bool KeyValueStoreIPC::qtDistAdd(int refId, int nrcoords, double* coords,
-set<int>* resultIds) {
-  if(connection) {
-    connection->write(IPC_MSG_ADDDISTRIBUTIONELEM);
-    connection->write(&refId);
-
-    for(int i=0; i < nrcoords; ++i) {
-      connection->write((char*)&coords[i], sizeof(double));
-    }
-
-    IPCMessage responseType;
-    connection->read(&responseType);
-    if(responseType == IPC_MSG_RESULT) {
-      int nrResults;
-      if(connection->read(&nrResults)) {
-        if(nrResults > 0) {
-          int tempResult;
-          for(int i=0; i < nrResults; ++i) {
-            connection->read(&tempResult);
-            resultIds->insert(tempResult);
-          }
-          return true;
-        }
-      }
-    } else {
-      cout<<"Error: Wrong IPC response type.\n";
-    }
-  } else {
-    cout<<"Error: No IPC Connection.\n";
-  }
-  return false;
-}*/
 
 int KeyValueStoreIPC::qtDistPointId(int refId, double interx, double intery) {
   if (connection) {
@@ -728,6 +697,12 @@ int KeyValueStoreIPC::qtDistPointId(int refId, double interx, double intery) {
 NetworkStreamIPC* KeyValueStoreIPC::getNetworkStream(unsigned int id) {
   if (streams.find(id) == streams.end()) {
     IPCConnection* distributeConn = IPCConnection::connect(0);
+
+    if (distributeConn) {
+      cout << "Opened Connection Id (NW):" << distributeConn->connectionId
+           << endl;
+    }
+
     NetworkStreamIPC* nstreamIPC = new NetworkStreamIPC(distributeConn, id);
 
     if (nstreamIPC->init()) {
@@ -773,13 +748,6 @@ void KeyValueStoreIPC::ipcServerStart(string execPath) {
   if (pid == 0) {
     execl(execPath.c_str(), getAppName().c_str(), (char*)0);
   }
-
-  // char *argv[] = {"sh", "-c", cmd, NULL};
-  /*int status = posix_spawn(&pid, execPath.c_str(), NULL, NULL, argv, environ);
-
-  if(status != 0) {
-    cout<<"Failed to start KeyValueStore process:"<<strerror(status)<<endl;
-  }*/
 }
 
 #endif

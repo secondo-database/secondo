@@ -33,6 +33,7 @@ www.codeproject.com/Articles/10618/Loop-buffer-an-efficient-way-of-using-shared-
 #define IPC_H_
 
 #include "boost/thread.hpp"
+#include <set>
 
 #include "IPCMessages.h"
 
@@ -40,13 +41,19 @@ using namespace std;
 
 static const int IPC_QUEUE_BUFFER_SIZE = 1024 * 32;
 static const int IPC_MAGIC_ID = 54923;
+static const int IPC_MAX_STRING_SIZE = 1024 * 1024 * 10;
+static const int IPC_MAX_ARRAY_SIZE = 1024 * 1024 * 10;
+
+//
+// Used to connect algebra and application
+//
 
 class IPCInit {
  public:
   IPCInit();
 
   int magicId;                   // magic number initialized last (sync)
-  boost::mutex currentIdxMutex;  // to modify currentIdx
+  boost::mutex currentIdxMutex;  // to modify nextIdx
   int confirmIdx;                // modified by server
   int nextIdx;                   // modified by client
 };
@@ -57,6 +64,7 @@ class IPCLoopBuffer {
 
   int magicId;
   int bufferSize;
+  int ownerId;
   int readIndex;
   int writeIndex;
   unsigned long long int totalWritten;
@@ -64,13 +72,22 @@ class IPCLoopBuffer {
   char buffer[IPC_QUEUE_BUFFER_SIZE];
 
   bool avail();
-  bool read(char* data, unsigned int n, double timeout = 30);
-  bool write(const char* data, unsigned int n, double timeout = 30);
+  bool read(char* data, unsigned int n);
+  bool write(const char* data, unsigned int n);
+};
+
+// to help transfer basic arrays
+template <typename T>
+struct IPCArray {
+  IPCArray(T* array, unsigned int size) : array(array), size(size) {}
+
+  T* array;
+  unsigned int size;
 };
 
 class IPCConnection {
  public:
-  IPCConnection(void* handle, bool server, double timeout = 30);
+  IPCConnection(void* handle, bool server, int connectionId);
   ~IPCConnection();
 
   void close();
@@ -97,8 +114,15 @@ class IPCConnection {
   bool read(bool* data);
   bool read(double* data);
 
+  bool read(IPCArray<double>* data);
+  bool write(const IPCArray<double>* data);
+  bool read(set<int>* data);
+  bool write(const set<int>* data);
+
   IPCLoopBuffer* writeBuffer;
   IPCLoopBuffer* readBuffer;
+
+  int connectionId;
 
  private:
   void* handle;
@@ -106,8 +130,8 @@ class IPCConnection {
 
   bool server;
   bool connected;
-  double timeout;
-  bool timedout;
+
+  int ownerId;
 };
 
 class IPCGate {

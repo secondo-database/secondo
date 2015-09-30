@@ -35,8 +35,6 @@ extern KeyValueStoreIPC* kvsIPC;
  */
 
 ListExpr kvsAddTM(ListExpr args) {
-  // string err = "text x int = (host, port) expected";
-
   if (!nl->HasLength(args, 3)) {
     return listutils::typeError(
         "3 arguments expected. [text x int x int = (host, interfacePort, "
@@ -90,8 +88,6 @@ int kvsAddVM(Word* args, Word& result, int message, Word& local, Supplier s) {
  */
 
 ListExpr kvsRemoveTM(ListExpr args) {
-  // string err = "text x int = (host, port) expected";
-
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError("1 argument expected. [int = (idx)].");
   }
@@ -121,8 +117,6 @@ int kvsRemoveVM(Word* args, Word& result, int message, Word& local,
  */
 
 ListExpr kvsUpdateServerListTM(ListExpr args) {
-  // string err = "text x int = (host, port) expected";
-
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError(
         "1 argument expected. [text = (separatedList)].");
@@ -171,8 +165,6 @@ int kvsSyncServerListVM(Word* args, Word& result, int message, Word& local,
  */
 
 ListExpr kvsReconnectTM(ListExpr args) {
-  // string err = "text x int = (host, port) expected";
-
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError("1 argument expected. [int = (idx)].");
   }
@@ -201,11 +193,7 @@ int kvsReconnectVM(Word* args, Word& result, int message, Word& local,
  *
  */
 
-ListExpr kvsListTM(ListExpr args) {
-  // string err = "text x int = (host, port) expected";
-
-  return listutils::basicSymbol<CcBool>();
-}
+ListExpr kvsListTM(ListExpr args) { return listutils::basicSymbol<CcBool>(); }
 
 int kvsListVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   result = qp->ResultStorage(s);
@@ -225,8 +213,6 @@ int kvsListVM(Word* args, Word& result, int message, Word& local, Supplier s) {
  */
 
 ListExpr kvsSetDatabaseTM(ListExpr args) {
-  // string err = "text x int = (host, port) expected";
-
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError(
         "1 argument expected. [text = (databaseName)].");
@@ -258,8 +244,6 @@ int kvsSetDatabaseVM(Word* args, Word& result, int message, Word& local,
  */
 
 ListExpr kvsUseDatabaseTM(ListExpr args) {
-  // string err = "text x int = (host, port) expected";
-
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError(
         "1 argument expected. [text = (databaseName)].");

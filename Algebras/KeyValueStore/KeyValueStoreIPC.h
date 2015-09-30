@@ -31,6 +31,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace KVS {
 
+//
+// Interface to application.
+// Almost all commands are dispatched to Key-Value-Store application.
+//
+
 class KeyValueStoreIPC {
  public:
   KeyValueStoreIPC(int appId);
@@ -88,8 +93,8 @@ class KeyValueStoreIPC {
                    bool requestOnly);
   bool distAddInt(int refId, int value, set<int>* resultIds, bool requestOnly);
 
-  bool distFilter(const int& refId, const int& nrcoords, double* coords,
-                  const unsigned int& globalId, const bool& update);
+  bool distFilter(int& refId, int& nrcoords, double* coords,
+                  unsigned int& globalId, bool& update);
 
   string getAppName();
   string getSCPTransferPath();
