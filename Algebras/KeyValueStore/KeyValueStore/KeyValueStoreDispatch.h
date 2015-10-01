@@ -656,7 +656,11 @@ int requestNetworkStream(KeyValueStore* instance, IPCConnection* connection) {
     connection->write(&result);
 
     if (result) {
-      stream->serveIPC(connection);
+      boost::thread serveDataThread(&NetworkStream::serveIPC, stream,
+                                    connection);
+      // stream->serveIPC(connection);
+
+      return KeyValueStoreIPCServer::REMOVECONNECTION;
     }
   } else {
     KOUT << "Error: Not connected." << endl;
