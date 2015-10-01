@@ -34,9 +34,9 @@ NetworkStreamIPC::NetworkStreamIPC(IPCConnection* conn, int streamid)
     : streamid(streamid), conn(conn) {}
 NetworkStreamIPC::~NetworkStreamIPC() {
   if (conn) {
-    //    if(conn->health()) {
-    //      conn->write(IPC_MSG_CLOSECONNECTION);
-    //    }
+    if (conn->health()) {
+      conn->write(IPC_MSG_CLOSECONNECTION);
+    }
     delete conn;
   }
 }

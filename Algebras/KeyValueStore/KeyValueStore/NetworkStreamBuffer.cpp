@@ -67,7 +67,7 @@ void NetworkStream::serveIPC(IPCConnection* conn) {
   unsigned int close = 0;
   conn->write(&close);
 
-  delete conn;
+  // delete conn;
 }
 
 bool NetworkStreamBuffer::addNetworkStream(unsigned int id,

@@ -142,7 +142,7 @@ IPCConnection* IPCConnection::connect(int id) {
         // wait for memory to be initialized
         timeout = time(NULL);
         while (connectionId >= init->confirmIdx) {
-          if (difftime(time(NULL), timeout) > 3.0) {
+          if (difftime(time(NULL), timeout) > 5.0) {
             cout << "Could not connect to IPC-Server (timeout)" << endl;
             munmap(initBuffer, sizeof(IPCInit));
             return 0;
