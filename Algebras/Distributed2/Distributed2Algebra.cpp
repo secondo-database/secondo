@@ -6194,13 +6194,22 @@ class DArray2T{
      }
 
  
-     DArray2Element getWorkerForIndex(int i){
+     DArray2Element getWorkerForSlot(int i){
         assert(Type!=DMATRIX);
         if(i<0 || i>= map.size()){
            assert(false);
         }
         return getWorker(map[i]);
-     } 
+     }
+
+     size_t getWorkerIndexForSlot(int i){
+        assert(Type!=DMATRIX);
+        if(i<0 || i>= map.size()){
+           assert(false);
+        }
+        return map[i];
+     }
+ 
 
      DArray2Element getWorker(int i){
         if(i< 0 || i >= (int) worker.size()){
@@ -6209,6 +6218,15 @@ class DArray2T{
         }
         return worker[i];
      }
+
+     void setResponsible(size_t slot, size_t _worker){
+       assert(size == map.size());
+       assert(slot < size);
+       assert(_worker < worker.size());
+       assert(Type!=DMATRIX);
+       map[slot] = _worker;
+     }
+
 
      ListExpr toListExpr(){
        if(!defined){
@@ -6825,7 +6843,7 @@ int putVMA(Word* args, Word& result, int message,
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
 
   
-  DArray2Element elem = array->getWorkerForIndex(i);
+  DArray2Element elem = array->getWorkerForSlot(i);
 
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
 
@@ -6876,7 +6894,7 @@ int putVMFA(Word* args, Word& result, int message,
   // get ConnectionInfo
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   ConnectionInfo* ci = algInstance->getWorkerConnection( 
-                      array->getWorkerForIndex(index),dbname);
+                      array->getWorkerForSlot(index),dbname);
   if(!ci){
      cerr << "could not get connection to server" << endl;
      res->makeUndefined();
@@ -7031,7 +7049,7 @@ int getVMDA(Word* args, Word& result, int message,
   }
 
 
-  DArray2Element elem = array->getWorkerForIndex(i);
+  DArray2Element elem = array->getWorkerForSlot(i);
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
   if(!ci){ // problem with connection the monitor or opening the databaseA
@@ -7097,7 +7115,7 @@ int getVMDFA(Word* args, Word& result, int message,
   if(pos < 0 || (size_t) pos >= array->getSize()){
      return 0;
   }
-  DArray2Element elem = array->getWorkerForIndex(pos);
+  DArray2Element elem = array->getWorkerForSlot(pos);
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
   if(!ci){
@@ -7990,7 +8008,7 @@ class SinglePutter{
     void run(){
       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
       DArray2Element elem = 
-                    array->getWorkerForIndex(arrayIndex);
+                    array->getWorkerForSlot(arrayIndex);
       ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
       if(!ci){
            cerr << "could not connect to server " << elem << endl;
@@ -8274,7 +8292,7 @@ class RelFileRestorer{
     started(false){
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     ci = algInstance->getWorkerConnection(
-                         array->getWorkerForIndex(arrayIndex),dbname);
+                         array->getWorkerForSlot(arrayIndex),dbname);
    }
 
    ~RelFileRestorer(){
@@ -8362,7 +8380,7 @@ class FRelCopy{
 
         dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         ci = algInstance->getWorkerConnection(
-                                      array->getWorkerForIndex(slot), dbname);
+                                      array->getWorkerForSlot(slot), dbname);
 
      }
 
@@ -9657,7 +9675,7 @@ class dloop2Info{
   public:
    dloop2Info(DArray2* _array, int _index, string& _resName,string& _fun) : 
      index(_index), resName(_resName), fun(_fun), elem("",0,0,""){
-     elem = _array->getWorkerForIndex(index);
+     elem = _array->getWorkerForSlot(index);
      srcName = _array->getName();
      runner = boost::thread(&dloop2Info::run, this);
   }
@@ -9984,7 +10002,7 @@ class dsummarize2AttrInfo : public successListener{
            string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
            string aname = array->getName();
            while(!stopped && runners.size() < array->getSize()){
-              DArray2Element elem = array->getWorkerForIndex(runners.size());
+              DArray2Element elem = array->getWorkerForSlot(runners.size());
               string objname = aname + "_" + 
                                stringutils::int2str(runners.size());
               dsummarize2AttrInfoRunner* r = new 
@@ -10021,7 +10039,7 @@ class RelationFileGetter{
      void operator()(){
        // get the connection
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-       DArray2Element elem = array->getWorkerForIndex(index);
+       DArray2Element elem = array->getWorkerForSlot(index);
        ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
        if(!ci){ // connection failed
           listener->connectionFailed(index);
@@ -10254,7 +10272,7 @@ class getValueGetter{
 
       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
       ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              array->getWorkerForIndex(index),dbname);
+                              array->getWorkerForSlot(index),dbname);
       Word res((void*)0);
       if(!ci){
           cerr << "workerconnection not found";
@@ -10290,7 +10308,7 @@ class getValueFGetter{
 
       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
       ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              array->getWorkerForIndex(index),dbname);
+                              array->getWorkerForSlot(index),dbname);
       Word res((void*)0);
       if(!ci){
           cerr << "workerconnection not found";
@@ -10531,7 +10549,7 @@ class dloop2aRunner{
      void operator()(){
       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
       ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              a1->getWorkerForIndex(index),dbname);
+                              a1->getWorkerForSlot(index),dbname);
       if(!ci){
          cmsg.error() << "could not open connection" ;
          cmsg.send();
@@ -11157,7 +11175,7 @@ class Object_Del{
     void deleteArray(){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              array->getWorkerForIndex(index),dbname);
+                              array->getWorkerForSlot(index),dbname);
         if(!ci){
            cmsg.error() << "could not open connection" ;
            cmsg.send();
@@ -11178,7 +11196,7 @@ class Object_Del{
     void deleteFArray(){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              farray->getWorkerForIndex(index),dbname);
+                              farray->getWorkerForSlot(index),dbname);
         if(!ci){
            cmsg.error() << "could not open connection" ;
            cmsg.send();
@@ -11417,7 +11435,7 @@ class cloneTask{
       void runDArray(){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              darray->getWorkerForIndex(index),dbname);
+                              darray->getWorkerForSlot(index),dbname);
         if(!ci){
            cmsg.error() << "could not open connection" ;
            cmsg.send();
@@ -11436,7 +11454,7 @@ class cloneTask{
      void runFArray(){
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         ConnectionInfo* ci = algInstance->getWorkerConnection(
-                              farray->getWorkerForIndex(index),dbname);
+                              farray->getWorkerForSlot(index),dbname);
         if(!ci){
            cmsg.error() << "could not open connection" ;
            cmsg.send();
@@ -12440,7 +12458,7 @@ class Mapper{
 
        for( size_t i=0;i< array->getSize();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
-                                 array->getWorkerForIndex(i), dbname);
+                                 array->getWorkerForSlot(i), dbname);
           dRun* r = new dRun(ci,dbname, i, this);
           w.push_back(r);
           boost::thread* runner = new boost::thread(&dRun::run, r);
@@ -12490,7 +12508,7 @@ class Mapper{
        vector<boost::thread*> runners;
        for( size_t i=0;i< array->getSize();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
-                                 array->getWorkerForIndex(i), dbname);
+                                 array->getWorkerForSlot(i), dbname);
           fRun* r = new fRun(ci,dbname, i, this);
           w.push_back(r);
           boost::thread* runner = new boost::thread(&fRun::run, r);
@@ -12876,7 +12894,7 @@ class map2Info{
        vector<boost::thread*> runners;
        for(size_t i=0;i< resSize; i++) {
            ConnectionInfo* ci = algInstance->getWorkerConnection(
-                     array1->getWorkerForIndex(i), dbname);
+                     array1->getWorkerForSlot(i), dbname);
            if(ci){
               Run* r = new Run(this,i,ci);
               w.push_back(r);
@@ -14840,7 +14858,7 @@ class partitionInfo{
         string errMsg;
         double runtime;
         ListExpr resList;
-        ci->simpleCommand("query createDirectory('"+targetDir+"')", 
+        ci->simpleCommand("query createDirectory('"+targetDir+"', TRUE)", 
                           err, errMsg, 
                           resList, false,runtime);
         if(err!=0){
@@ -14860,10 +14878,16 @@ class partitionInfo{
             // may be directory already exists, TODO: check if it is a directory
         }
         string cmd = constructQuery(targetDir);
+        if(cmd==""){
+           cerr << "worker " << workerNumber 
+                << " does not contain a slot" << endl;
+           return;
+        }
         string res;
         ci->simpleCommandFromList(cmd, err,errMsg, res, false, runtime);
         if(err!=0){
-           cerr << "command failed with " << errMsg << endl;
+           cerr << " Command : " << cmd << " failed " << endl;
+           cerr << errMsg << endl;
         }
      }
 
@@ -14874,32 +14898,51 @@ class partitionInfo{
         string sourceDir = ci->getSecondoHome() + "/dfarrays/"
                            + dbname + "/" + sname + "/";
 
-        // getDirectory
-
-        ListExpr getdir = nl->TwoElemList(
-                              nl->SymbolAtom("getDirectory"),
-                              nl->TextAtom(sourceDir));
-
-
-        // filter the filename startting with sname
-        ListExpr filterFun = nl->ThreeElemList(
-                                nl->SymbolAtom("fun"),
-                                nl->TwoElemList(
-                                      nl->SymbolAtom("streamelem1"),
-                                      nl->SymbolAtom("STREAMELEM")),
-                                nl->ThreeElemList(
-                                      nl->SymbolAtom("startsWith"),
-                                      nl->TwoElemList(
-                                                nl->SymbolAtom("basename"),
-                                                nl->SymbolAtom("streamelem1")),
-                                      nl->TextAtom(sname+"_")));
-
+        // create a relation containing the filenames
+        
         ListExpr relTemp = nl->TwoElemList( relType, nl->TheEmptyList());
-        ListExpr filter = nl->ThreeElemList(nl->SymbolAtom("filter"),getdir,
-                                            filterFun);
+
+        ListExpr fnrelType = nl->TwoElemList(
+                                 listutils::basicSymbol<Relation>(),
+                                 nl->TwoElemList(
+                                    listutils::basicSymbol<Tuple>(),
+                                    nl->OneElemList(
+                                       nl->TwoElemList(
+                                            nl->SymbolAtom("T"),
+                                            listutils::basicSymbol<FText>()))));
+
+        // build all texts
+        bool first = true;
+        ListExpr value = nl->TheEmptyList();
+        ListExpr last = value;
+        for(size_t i=0;i<array->getSize();i++){
+            if(array->getWorkerIndexForSlot(i)==workerNumber){
+                 ListExpr F  = nl->OneElemList(
+                                   nl->TextAtom(sourceDir+sname + "_"
+                                   + stringutils::int2str(i) + ".bin"));
+                 if(first){
+                     value = nl->OneElemList(F );
+                     last = value;
+                     first = false;
+                 } else {
+                     last = nl->Append(last,F);
+                 }
+            }
+        }
+        if(nl->IsEmpty(value)){
+           return "";
+        }
+        ListExpr fnrel = nl->TwoElemList(fnrelType, value);
+        ListExpr feed = nl->TwoElemList(nl->SymbolAtom("feed"), fnrel);
+
+        ListExpr stream = nl->ThreeElemList(
+                              nl->SymbolAtom("projecttransformstream"),
+                              feed,
+                              nl->SymbolAtom("T"));
+
         ListExpr fsfeed = nl->ThreeElemList(
                                 nl->SymbolAtom("fsfeed5"),
-                                filter,
+                                stream,
                                 relTemp);
 
         ListExpr dfun;
@@ -14982,22 +15025,20 @@ int partitionVM(Word* args, Word& result, int message,
    res->setSize(size);
    
    vector<partitionInfo*> infos;
-   set<pair<string,string> > used; 
 
    ListExpr relType = nl->Second(qp->GetType(qp->GetSon(s,0)));
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+
+
    for(size_t i=0;i<array->numOfWorkers();i++){
       DArray2Element de = array->getWorker(i);
       ConnectionInfo* ci = algInstance->getWorkerConnection(de,dbname);
       string ip = ci->getHost();
       string home = ci->getSecondoHome();
       pair<string,string> p(ip,home);
-      if(used.find(p)==used.end()){
-         used.insert(p);
-         partitionInfo* info = new partitionInfo(array, size, i, ci,funtext,
+      partitionInfo* info = new partitionInfo(array, size, i, ci,funtext,
                                                  tname, relType, dbname);
-         infos.push_back(info);
-      }
+      infos.push_back(info);
    }
 
    for(size_t i=0;i<infos.size();i++){
@@ -15178,7 +15219,6 @@ class transferatorStarter{
 };
 
 bool startFileTransferators( DMatrix2* matrix, int port){
-
    assert(port>0);
    set<string> usedIPs;
    vector<transferatorStarter*> starters;
@@ -15203,18 +15243,175 @@ bool startFileTransferators( DMatrix2* matrix, int port){
 }
 
 
+class ReduceListener{
+
+  public:
+     virtual void ready(int slot, int worker)=0;
+
+};
+
+
+
+template<class R>
+class ReduceTask{
+
+  public:
+     ReduceTask(DMatrix2* _matrix, int _worker, R* _result, string& _funtext, 
+                bool _isStream, ReduceListener* _listener):
+          matrix(_matrix), worker(_worker), result(_result), funtext(_funtext),
+          isStream(_isStream), listener(_listener)
+      {
+         dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+         ci = algInstance->getWorkerConnection(
+                                          matrix->getWorker(worker),dbname); 
+      }
+
+
+      
+
+     void process(int slot){
+          assert(!running);
+          if(runner){
+            runner->join();
+            delete runner;
+          } 
+          currentSlot = slot;
+          runner = new boost::thread(&ReduceTask::run, this);
+     }
+
+  private:
+     DMatrix2* matrix;
+     int worker;
+     R* result;
+     string funtext;
+     bool isStream;
+     ReduceListener* listener;
+
+     ConnectionInfo* ci;
+     string dbname;
+
+     int currentSlot;
+     boost::thread* runner;
+     bool running;
+
+     void run(){
+          int err;
+          string errMsg;
+          string res;
+          double runtime;
+          // create a temporal directory on ci for slot files
+          string dir = "tmp/" + matrix->getName() + "/"
+                       + stringutils::int2str(currentSlot);
+          string cmd = "query createDirectory('"+dir+"')";
+          ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+          if(err!=0){
+             cerr << "error in command " << cmd << endl;
+             cerr << errMsg << endl;
+             listener->ready( currentSlot, worker);
+             return;
+          }
+          string rel = buildRelString();
+          
+ 
+
+     }
+
+
+
+    string buildRelString(){
+      string reltype="rel(tuple([S: text, H : text, T : text]))";
+      string value = "(";
+      for(size_t i=0;i<matrix->numOfWorkers();i++){
+         DArray2Element elem = matrix->getWorker(i);
+         ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
+         string s = ci->getSecondoHome() + "/dfarrays/" + dbname + "/"
+                    + matrix->getName() + value += "(";
+      }
+      value +=")";
+      return "[ const " + reltype+" value " + value + "]";
+
+
+
+    }
+
+
+     
+
+
+
+};
+
+
+template<class R>
+class Reducer: public ReduceListener{
+  public:
+    Reducer(DMatrix2* _matrix, R* _result, int _port, 
+            const string& _funtext, bool _isStream):
+      matrix(_matrix), result(_result), port(_port), 
+      funtext(_funtext),isStream(_isStream) {
+      targetName = result->getName();
+      isFile = result->getType()==DFARRAY; 
+
+   }
+
+   void reduce(){
+       for(size_t i=0;i<matrix->numOfWorkers();i++){
+          tasks.push_back(new ReduceTask<R>(matrix,i,result,
+                          funtext,isStream,this));
+       } 
+       slot = matrix->numOfWorkers();
+       for(size_t i=0; i<matrix->numOfWorkers();i++){
+         tasks[i]->process(i);  
+       }
+       size_t all = matrix->getSize(); 
+       boost::unique_lock<boost::mutex> lock(mtx);
+       while(slot < all){
+          cond.wait(lock);
+          tasks[free]->process(slot);
+          slot++;       
+       }
+       // for all slots, a taks was started
+       // wait for finish
+       for(size_t i=0;i<tasks.size();i++){
+          delete tasks[i];
+       }
+
+   }
+
+   void ready(int slot, int worker){
+      boost::lock_guard<boost::mutex> guard(mtx);
+      free = worker;
+      result->setResponsible(slot, worker);
+      cond.notify_one(); 
+   }
+
+
+  private:
+    DMatrix2* matrix;
+    R*        result;
+    int       port;
+    string    funtext;
+    bool      isStream;
+    string    targetName;
+    bool      isFile;
+    int       slot;
+    int       free; // next free worker
+    vector<ReduceTask<R>*> tasks;
+    boost::condition_variable cond;
+    boost::mutex mtx;
+
+};
 
 
 template<class R>
 int reduceVM1(Word* args, Word& result, int message,
              Word& local, Supplier s ){
-
-
+   
    result = qp->ResultStorage(s);
    R* res = (R*) result.addr;
-   set<string> usedIPs;
    DMatrix2* matrix = (DMatrix2*) args[0].addr;
    CcString* ResName = (CcString*) args[1].addr;
+
    // args[2] points to the original function
    CcInt* Port = (CcInt*) args[3].addr;
    if(!matrix->IsDefined() || !Port->IsDefined()||
@@ -15237,12 +15434,16 @@ int reduceVM1(Word* args, Word& result, int message,
    (*res) = *matrix;
    res->setName(resName);
 
-
-   // step1 create base for asynchron file transfer
+   
    startFileTransferators(matrix,port);
-   // step2 build initially queue
+   // now, on each worker host, a file transferator is listen
 
-   // dummy implementation
+   string funtext = ((FText*) args[4].addr)->GetValue();
+   bool isStream = ((CcBool*) args[5].addr)->GetValue();
+   
+   Reducer<R> reducer(matrix, res, port, funtext, isStream);
+
+   reducer.reduce();
    return 0;
 }
 
