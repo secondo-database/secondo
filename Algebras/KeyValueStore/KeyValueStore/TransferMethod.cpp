@@ -109,11 +109,11 @@ int copyFile(string source, string dest, bool cfn /* = false*/) {
 TransferMethod::TransferMethod(Connection* connection)
     : transferId(0), tupleCounter(0), connection(connection) {}
 
-TransferMethod::~TransferMethod() {}
+TransferMethod::~TransferMethod() { clearUnconfirmed(); }
 
 void TransferMethod::clearUnconfirmed() {
   for (unsigned int tupleIdx = 0; tupleIdx < unconfirmed.size(); ++tupleIdx) {
-    delete unconfirmed[tupleIdx].first;
+    delete[] unconfirmed[tupleIdx].first;
   }
   unconfirmed.clear();
 }
@@ -127,7 +127,7 @@ TransferMethodTCP::TransferMethodTCP(Connection* connection, string streamType,
       baseAttributeList(baseAttributeList),
       creationCheck(creationCheck) {}
 
-TransferMethodTCP::~TransferMethodTCP() {}
+TransferMethodTCP::~TransferMethodTCP() { clearUnconfirmed(); }
 
 void TransferMethodTCP::changeConnection(Connection* connection) {
   this->connection = connection;
@@ -184,6 +184,10 @@ bool TransferMethodTCP::endStream() {
 
   KOUT << "Stream Ended comparring transferredTuples = " << transferredTuples
        << " vs tupleCounter = " << tupleCounter << endl;
+  if (transferredTuples == tupleCounter) {
+    clearUnconfirmed();
+  }
+
   return (transferredTuples == tupleCounter);
 }
 

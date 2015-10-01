@@ -49,6 +49,7 @@ class Batch {
  public:
   Batch(KeyValueStore* instance, DistributionParameter* distParams,
         bool firstBatch = false);
+  ~Batch();
 
   bool initBatch();
   bool finishBatch();

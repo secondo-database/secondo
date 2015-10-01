@@ -43,6 +43,15 @@ Batch::Batch(KeyValueStore* instance, DistributionParameter* distParams,
   initBatch();
 }
 
+Batch::~Batch() {
+  for (unsigned int transferIdx = 0; transferIdx < transferList.size();
+       ++transferIdx) {
+    if (transferList[transferIdx] != 0) {
+      delete transferList[transferIdx];
+    }
+  }
+}
+
 bool Batch::initBatch() {
   updateTransferList();
 
