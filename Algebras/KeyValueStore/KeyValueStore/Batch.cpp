@@ -177,42 +177,13 @@ bool Batch::finishTransfer(TransferMethod* transfer, int serverId) {
       !transfer->import(distParams->targetRelation,
                         distParams->insertCommand)) {
     // recovery (doesnt work yet... )
-    KOUT << "Recovery :(" << endl;
-    if (transfer->connection->id != serverId) {
-      // has serverId assignment changed?
-      Connection* newConn =
-          sm->getConnectionIdx(sm->getConnectionIndex(serverId));
-      transfer->changeConnection(newConn);
-      if (newConn && newConn->check()) {
-        transfer->resendUnconfirmed(newConn->kvsConn->requestTransferId());
-        return finishTransfer(transfer, serverId);
-      }
-    }
 
-    if (!transfer->connection->check()) {
-      // interface down
-      // move to available or neighbor or false
-      return recoveryInterface(transfer, serverId);
-    } else if (!transfer->connection->kvsConn->check()) {
-      // kvs connection down
-      if (transfer->connection->exec(
-              "query kvsStartClient(" +
-              stringutils::int2str(transfer->connection->kvsPort) + ");") &&
-          transfer->connection->kvsConn->check()) {
-        transfer->resendUnconfirmed(
-            transfer->connection->kvsConn->requestTransferId());
-        return finishTransfer(transfer, serverId);
-      } else {
-        // try to restart interface
-        return recoveryInterface(transfer, serverId);
-      }
-      // TODO: check if this makes sence for SCP
-      /*} else if(!transfer->dataMismatch()) {
-        return true;*/
-    } else {
-      // unknown move to available or neighbor or false
-      return recoveryInterface(transfer, serverId);
-    }
+    KOUT << "Recovery :(" << endl;
+
+    // this makes no sense
+    return transfer->import(distParams->targetRelation,
+                            distParams->insertCommand);
+
   } else {
     KOUT << "Sucessfully transferred " << transfer->tupleCounter
          << " tuples to server " << transfer->connection->id << endl;
