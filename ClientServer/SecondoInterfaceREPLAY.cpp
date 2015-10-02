@@ -52,6 +52,8 @@ September 2015 Matthias Kunsmann ReplayVersion of the ~SecondoInterfaceCS~
 
 #include <ctime>
 
+#include <array>
+
 using namespace std;
 
 /*
