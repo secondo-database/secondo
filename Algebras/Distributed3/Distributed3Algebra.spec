@@ -38,7 +38,6 @@ operator closeWorkers alias closeWorkers pattern op(_)
 operator showWorkers alias showWorkers pattern op(_)
 
 operator dloop2 alias DLOOP2 pattern _ op[_,fun] implicit parameter darray2elem type DARRAY2ELEM
-operator dmap alias DMAP pattern _ op[_,fun] implicit parameter dmapelem type DFARRAYSTREAM
 
 operator dloop2a alias DLOOP2A pattern _ _ op[_,fun] implicit parameters elem1, elem2 types DARRAY2ELEM, DARRAY2ELEM2
 
@@ -82,9 +81,8 @@ operator fdistribute7 alias FDISTRIBUTE7 pattern _ op[fun,_,_,_] implicit parame
 
 operator fsfeed5 alias FSFEED5 pattern _ op[_]
 
-operator dloop2schedule alias DLOOP2SCHEDULE _ _ op[_,fun]
-operator schedule alias SCHEDULE _ _ op()
-
+operator dloop2schedule alias DLOOP2SCHEDULE pattern _ _ op[_,fun] implicit parameters elem1, elem2 types DARRAY2ELEM,  DARRAY2ELEM2
+operator schedule alias SCHEDULE pattern _ _ op
 
 
 
