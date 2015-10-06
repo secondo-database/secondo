@@ -30,7 +30,7 @@ help:
 doc: removedoc 
 	@make -s all
 	@mkdir $(DOCPATH)
-	$(JAVADOC)  -d $(DOCPATH) -sourcepath $(CLASSPATH):$(JARS) -classpath $(CLASSPATH):$(JARS) $(shell find -type d -not -name "*CVS" -not -name tmp -not -iname "[0-9]*" -not -ipath "*/[0-9]*"  -printf '%P\n' | sed "s#/#.#g" )   
+	$(JAVADOC)  -d $(DOCPATH) -sourcepath $(CLASSPATH):$(JARS):secondoInterface  -classpath $(CLASSPATH):$(JARS) $(shell find -type d -not -name "*CVS" -not -name tmp -not -iname "[0-9]*" -not -ipath "*/[0-9]*" -not -iname "*-*"  -printf '%P\n' | sed "s#/#.#g" | sed "s#secondoInterface.##g" )   
 
 
 .PHONY: demo
