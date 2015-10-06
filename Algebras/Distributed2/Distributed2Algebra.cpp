@@ -6220,6 +6220,7 @@ class DArray2T{
      }
 
      void setResponsible(size_t slot, size_t _worker){
+
        assert(size == map.size());
        assert(slot < size);
        assert(_worker < worker.size());
@@ -6244,7 +6245,7 @@ class DArray2T{
              last = nl->Append(last, worker[i].toListExpr());
            }
        }
-       if(isStdMap() || (Type==DMATRIX)){  
+       if(isStdMap() || (Type==DMATRIX)){ 
           return nl->ThreeElemList(nl->SymbolAtom(name), 
                                    nl->IntAtom(size), 
                                    wl); 
@@ -9427,19 +9428,24 @@ ListExpr showWorkersTM(ListExpr args){
     && !DFArray2::checkType(nl->First(args))){
      return listutils::typeError(err);
   }
-  ListExpr attrList = nl->SixElemList(
-    nl->TwoElemList( nl->SymbolAtom("Host"), 
+  ListExpr attrList = 
+      nl->Cons(
+         nl->TwoElemList( nl->SymbolAtom("Host"), 
                      listutils::basicSymbol<FText>()),
-    nl->TwoElemList( nl->SymbolAtom("Port"), 
-                     listutils::basicSymbol<CcInt>()),
-    nl->TwoElemList( nl->SymbolAtom("ConfigFile"), 
+         nl->SixElemList(
+             nl->TwoElemList( nl->SymbolAtom("Port"), 
+                      listutils::basicSymbol<CcInt>()),
+         nl->TwoElemList( nl->SymbolAtom("ConfigFile"), 
                      listutils::basicSymbol<FText>()),
-    nl->TwoElemList( nl->SymbolAtom("Num"),
+         nl->TwoElemList( nl->SymbolAtom("Num"),
                      listutils::basicSymbol<CcInt>()),
-    nl->TwoElemList( nl->SymbolAtom("DBName"),
+         nl->TwoElemList( nl->SymbolAtom("DBName"),
                       listutils::basicSymbol<CcString>()),
-    nl->TwoElemList( nl->SymbolAtom("OK"), 
-                     listutils::basicSymbol<CcBool>()));
+         nl->TwoElemList( nl->SymbolAtom("PID"),
+                     listutils::basicSymbol<CcInt>()),
+         nl->TwoElemList( nl->SymbolAtom("OK"), 
+                     listutils::basicSymbol<CcBool>()))
+      );
     return nl->TwoElemList(
              listutils::basicSymbol<Stream<Tuple> >(),
              nl->TwoElemList(
@@ -9513,8 +9519,9 @@ class showWorkersInfo{
       res->PutAttribute(2, new FText(true, elem.getConfig()));
       res->PutAttribute(3, new CcInt(true, elem.getNum()));
       res->PutAttribute(4, new CcString(true, dbname));
+      res->PutAttribute(5, new CcInt(true, ci->serverPid()));
       bool ok = ci?ci->check():false;
-      res->PutAttribute(5, new CcBool(true,ok));
+      res->PutAttribute(6, new CcBool(true,ok));
       return res;
     }
 
@@ -13081,6 +13088,8 @@ TypeMapOperators ARRAYFUNARG1 and ARRAYFUNARG2
 */
 template<int pos>
 ListExpr ARRAYFUNARG(ListExpr args){
+
+
   if(!nl->HasMinLength(args,pos)){
     return listutils::typeError("too less arguments");
   }
@@ -13091,10 +13100,13 @@ ListExpr ARRAYFUNARG(ListExpr args){
   if(DArray2::checkType(arg)){
      return nl->Second(arg);
   }
-  if(DFArray2::checkType(arg)){
-    return nl->TwoElemList(
+  if(DFArray2::checkType(arg) ||
+     DMatrix2::checkType(arg)){
+     ListExpr res = nl->TwoElemList(
                listutils::basicSymbol<Stream<Tuple> >(),
                nl->Second(nl->Second(arg)));
+     return res;
+
   }
   return listutils::typeError("Invalid type found");
 
@@ -15072,7 +15084,7 @@ Operator partitionOp(
 
 */
 
-ListExpr reduceTM(ListExpr args){
+ListExpr areduceTM(ListExpr args){
 
   string err = "dmatrix(rel(t)) x string x (stream(t)-Y) x int expected";
   if(!nl->HasLength(args,4)){
@@ -15107,7 +15119,7 @@ ListExpr reduceTM(ListExpr args){
   }
 
   // check function argument
-  ListExpr tupleType = nl->Second(m1);
+  ListExpr tupleType = nl->Second(nl->Second(m1));
   ListExpr tupleStream = nl->TwoElemList(
                              listutils::basicSymbol<Stream<Tuple> >(),
                              tupleType);
@@ -15142,15 +15154,19 @@ ListExpr reduceTM(ListExpr args){
   }
   
 
+
+
   ListExpr funquery = nl->Second(f);
   
+
   ListExpr funargs = nl->Second(funquery);
 
-  ListExpr dat = nl->Second(tupleStream);
+  ListExpr dat = tupleStream;
 
   ListExpr rfunargs = nl->TwoElemList(
                        nl->First(funargs),
                        dat);
+  
   ListExpr rfun = nl->ThreeElemList(
                         nl->First(funquery),
                         rfunargs,
@@ -15173,11 +15189,13 @@ ListExpr reduceTM(ListExpr args){
   }
 
   
-   return nl->ThreeElemList(
+   ListExpr fres =  nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()),
             nl->TwoElemList( nl->TextAtom(nl->ToString(rfun)),
                              nl->BoolAtom(isStream)),
             res);
+
+   return fres;
 
 }
 
@@ -15243,49 +15261,62 @@ bool startFileTransferators( DMatrix2* matrix, int port){
 }
 
 
-class ReduceListener{
+class AReduceListener{
 
   public:
-     virtual void ready(int slot, int worker)=0;
+     virtual void ready(int slot, int worker, boost::thread* runner)=0;
 
 };
 
 
 
 template<class R>
-class ReduceTask{
+class AReduceTask{
 
   public:
-     ReduceTask(DMatrix2* _matrix, int _worker, R* _result, string& _funtext, 
-                bool _isStream, ReduceListener* _listener):
-          matrix(_matrix), worker(_worker), result(_result), funtext(_funtext),
+     AReduceTask(DMatrix2* _matrix, int _worker, R* _result, int _port,
+              string& _funtext, ListExpr _relType,
+              bool _isStream, AReduceListener* _listener):
+          matrix(_matrix), worker(_worker), result(_result), port(_port),
+          funtext(_funtext), relType(_relType),
           isStream(_isStream), listener(_listener)
       {
          dbname = SecondoSystem::GetInstance()->GetDatabaseName();
          ci = algInstance->getWorkerConnection(
                                           matrix->getWorker(worker),dbname); 
+         runner = 0;
+         running = false;
       }
 
+
+      ~AReduceTask(){
+          if(runner){
+             runner->join();
+             delete runner;
+          }
+       }
 
       
 
      void process(int slot){
-          assert(!running);
           if(runner){
-            runner->join();
-            delete runner;
-          } 
+             runner->join();
+             delete runner;
+          }
           currentSlot = slot;
-          runner = new boost::thread(&ReduceTask::run, this);
+          runner = new boost::thread(&AReduceTask::run, this);
      }
+
 
   private:
      DMatrix2* matrix;
      int worker;
      R* result;
+     int port;
      string funtext;
+     ListExpr relType;
      bool isStream;
-     ReduceListener* listener;
+     AReduceListener* listener;
 
      ConnectionInfo* ci;
      string dbname;
@@ -15294,25 +15325,116 @@ class ReduceTask{
      boost::thread* runner;
      bool running;
 
+
      void run(){
+          // dummy implementation
+         stringstream ss;
+          ss << "process slot " << currentSlot << " on worker " 
+             << worker << endl;
+          result->setResponsible(currentSlot,worker);
+          cout << ss.str() ;
+          /*
+          int t = (worker+1)*(rand() % 4000) + 400;
+          boost::this_thread::sleep(boost::posix_time::milliseconds(t));
+          */
+          // step 1: create a temporal directory for the slot
+          string dir =   "tmp/w_" + stringutils::int2str(worker) + "_s_"
+                       + stringutils::int2str(currentSlot);
           int err;
           string errMsg;
           string res;
           double runtime;
-          // create a temporal directory on ci for slot files
-          string dir = "tmp/" + matrix->getName() + "/"
-                       + stringutils::int2str(currentSlot);
-          string cmd = "query createDirectory('"+dir+"')";
+          string cmd="query createDirectory('"+dir+"', TRUE)";
           ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
-          if(err!=0){
-             cerr << "error in command " << cmd << endl;
-             cerr << errMsg << endl;
-             listener->ready( currentSlot, worker);
-             return;
+          if(err){
+               cerr << "creating directory " << dir << " on worker " 
+                    << worker << "failed" << endl;
+               listener->ready(currentSlot,worker, runner);
+               return;
           }
-          string rel = buildRelString();
+
+          // step 2. build a relation containing the file, ip for each worker
           
- 
+          string rt = "rel(tuple([ R : text, IP: text, L : text ]))";
+          string nlrt ="(rel(tuple(( R text)(IP text)(L text))))";
+
+          string rv = "(";
+          for(size_t i=0;i<matrix->numOfWorkers();i++){
+             ConnectionInfo* wi = algInstance->getWorkerConnection(
+                                               matrix->getWorker(i), dbname);
+             string remote =   wi->getSecondoHome() + "/dfarrays/" + dbname 
+                             + "/" 
+                             + matrix->getName()+"/" + stringutils::int2str(i)
+                             + "/" + matrix->getName() + "_"  
+                             + stringutils::int2str(currentSlot) + ".bin";
+             string local =   dir + "/" + matrix->getName() + "_"
+                            + stringutils::int2str(i) + ".bin";
+             rv += "( '" + remote +"' '" + wi->getHost() +"' '" + local+"' )";
+          }
+          rv += ")";
+
+          string rel = "[const " + rt + " value " + rv+ "]";
+          string nlrel="(" + nlrt + " " + rv +")";
+          cmd =   "query " + rel + " feed extend[ OK : getFileTCP( .R, .IP, " 
+                + stringutils::int2str(port) + ", TRUE, .L)] count";
+          ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+          if(err){
+               cerr << "command  " << cmd  << " on worker " 
+                    << worker << "failed" << endl;
+               cerr << errMsg << endl;
+               listener->ready(currentSlot,worker, runner);
+               return;
+          }
+          // produce query  doing the actually work, the query 
+          // must be given in nested list syntax 
+          // because the function is in nl
+          string tuplestream =   "fsfeed5 (projecttransformstream (feed "
+                               + nlrel + ") L ) (" + nl->ToString(relType) 
+                               + " ())";
+          if(result->getType()==DARRAY){ // a usual let command
+              string objname =    result->getName() + "_" 
+                                + stringutils::int2str(currentSlot);
+              ci->simpleCommand("delete " + objname, err, errMsg, res, false, 
+                                runtime);
+              cmd =   "( let " + objname+"  =  (" + funtext + "( "
+                    + tuplestream + ")))";
+          } else {
+              string feed1 =isStream?"":" feed (";
+              string feed2 =isStream?"":" ) ";
+                
+              string tdir =   ci->getSecondoHome() + "/dfarrays/" + dbname
+                            + "/" + result->getName()+"/";
+              string filename =  tdir + result->getName() + "_"
+                                + stringutils::int2str(currentSlot) + ".bin";
+              cmd = "query createDirectory('"+tdir+"', TRUE)";
+              ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+              if(err){
+                      cerr << "command  " << cmd  << " on worker " 
+                           << worker << "failed" << endl;
+                      cerr << errMsg << endl;
+              }
+              cmd =   "( query ( count ( fconsume5 (" + feed1 +  "" + funtext 
+                    + "( " + tuplestream + ") )" + feed2 + "'" 
+                    + filename + "')))";
+          }
+          ci->simpleCommandFromList(cmd,err,errMsg, res, false, runtime);
+          if(err){
+              cerr << " command " << cmd <<  " failed " << endl
+                   << errMsg;
+          } 
+         
+          cmd="query removeDirectory('"+dir+"', TRUE)";
+          ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+          if(err){
+               cerr << "removing directory " << dir << " on worker " 
+                    << worker << "failed" << endl;
+               cerr << errMsg << endl;
+          }
+
+
+
+          listener->ready(currentSlot,worker, runner);
+          return;
 
      }
 
@@ -15329,9 +15451,6 @@ class ReduceTask{
       }
       value +=")";
       return "[ const " + reltype+" value " + value + "]";
-
-
-
     }
 
 
@@ -15343,46 +15462,59 @@ class ReduceTask{
 
 
 template<class R>
-class Reducer: public ReduceListener{
+class AReducer: public AReduceListener{
   public:
-    Reducer(DMatrix2* _matrix, R* _result, int _port, 
-            const string& _funtext, bool _isStream):
+    AReducer(DMatrix2* _matrix, R* _result, int _port, 
+            const string& _funtext, bool _isStream, ListExpr _relType):
       matrix(_matrix), result(_result), port(_port), 
-      funtext(_funtext),isStream(_isStream) {
+      funtext(_funtext),isStream(_isStream), relType(_relType) {
       targetName = result->getName();
       isFile = result->getType()==DFARRAY; 
 
    }
 
    void reduce(){
+
+       // create Reduce Objects for each worker
        for(size_t i=0;i<matrix->numOfWorkers();i++){
-          tasks.push_back(new ReduceTask<R>(matrix,i,result,
-                          funtext,isStream,this));
+          tasks.push_back(new AReduceTask<R>(matrix,i,result,
+                          port, funtext, relType, isStream,this));
        } 
+
+       // start a task on each worker (one by one, slot, worker)
        slot = matrix->numOfWorkers();
        for(size_t i=0; i<matrix->numOfWorkers();i++){
          tasks[i]->process(i);  
        }
+
        size_t all = matrix->getSize(); 
-       boost::unique_lock<boost::mutex> lock(mtx);
-       while(slot < all){
-          cond.wait(lock);
-          tasks[free]->process(slot);
-          slot++;       
+
+       while(slot < all){ // not all slots are processed
+           boost::unique_lock<boost::mutex> lock(mtx);
+           while(freeWorkers.empty()){
+              cond.wait(lock);
+           }
+           // there is a new free worker
+           int w = freeWorkers.front();
+           freeWorkers.pop();
+           tasks[w]->process(slot);
+           slot++;
        }
+
        // for all slots, a taks was started
        // wait for finish
+
        for(size_t i=0;i<tasks.size();i++){
           delete tasks[i];
        }
-
    }
 
-   void ready(int slot, int worker){
-      boost::lock_guard<boost::mutex> guard(mtx);
-      free = worker;
-      result->setResponsible(slot, worker);
-      cond.notify_one(); 
+   void ready(int slot, int worker, boost::thread* theThread){
+       {
+          boost::lock_guard<boost::mutex> lock(mtx);
+          freeWorkers.push(worker); 
+       }
+       cond.notify_one();
    }
 
 
@@ -15392,11 +15524,12 @@ class Reducer: public ReduceListener{
     int       port;
     string    funtext;
     bool      isStream;
+    ListExpr  relType;
     string    targetName;
     bool      isFile;
     int       slot;
-    int       free; // next free worker
-    vector<ReduceTask<R>*> tasks;
+    queue<int> freeWorkers; 
+    vector<AReduceTask<R>*> tasks;
     boost::condition_variable cond;
     boost::mutex mtx;
 
@@ -15404,7 +15537,7 @@ class Reducer: public ReduceListener{
 
 
 template<class R>
-int reduceVM1(Word* args, Word& result, int message,
+int areduceVM1(Word* args, Word& result, int message,
              Word& local, Supplier s ){
    
    result = qp->ResultStorage(s);
@@ -15433,6 +15566,7 @@ int reduceVM1(Word* args, Word& result, int message,
 
    (*res) = *matrix;
    res->setName(resName);
+   res->setStdMap(matrix->getSize());
 
    
    startFileTransferators(matrix,port);
@@ -15440,17 +15574,21 @@ int reduceVM1(Word* args, Word& result, int message,
 
    string funtext = ((FText*) args[4].addr)->GetValue();
    bool isStream = ((CcBool*) args[5].addr)->GetValue();
+
+   ListExpr relType = nl->Second( qp->GetType(qp->GetSon(s,0)));
    
-   Reducer<R> reducer(matrix, res, port, funtext, isStream);
+   AReducer<R> reducer(matrix, res, port, funtext, isStream, relType);
 
    reducer.reduce();
+
+
    return 0;
 }
 
 
-OperatorSpec reduceSpec(
+OperatorSpec areduceSpec(
    "dmatrix2(rel(t)) x string x (stream(t)->Y) x int -> d[f]array2(Y)",
-   "matrix reduce[newname, function, port]",
+   "matrix areduce[newname, function, port]",
    "Performs a function on the distributed slots of an array. "
    "The task distribution is dynamicalle, meaning that a fast "
    "worker will handle more slots than a slower one. "
@@ -15458,25 +15596,32 @@ OperatorSpec reduceSpec(
    "For a relation or a tuple stream, a dfarray will be created. "
    "For other non-stream results, a darray2 is the resulting type.",
    "The integer argument specifies the port for transferring files.",
-   "query m8 reduce[ . count, 1237]"
+   "query m8 areduce[ . count, 1237]"
 );
 
-ValueMapping reduceVM [] = {
-   reduceVM1<DArray2>
+ValueMapping areduceVM [] = {
+   areduceVM1<DFArray2>,
+   areduceVM1<DArray2>
 };
 
-int reduceSelect(ListExpr args){
-  return 0;
+int areduceSelect(ListExpr args){
+
+  ListExpr funRes =  nl->Third(nl->Third(args));
+  if(Stream<Tuple>::checkType(funRes) ||
+     Relation::checkType(funRes)){
+    return 0;
+  }
+  return 1;
 }
 
 
 Operator reduceOp(
-  "reduce",
-  reduceSpec.getStr(),
-  1,
-  reduceVM,
-  reduceSelect,
-  reduceTM
+  "areduce",
+  areduceSpec.getStr(),
+  2,
+  areduceVM,
+  areduceSelect,
+  areduceTM
 );
 
 
@@ -15863,7 +16008,9 @@ Distributed2Algebra::Distributed2Algebra(){
    partitionOp.SetUsesArgsInTypeMapping();
    AddOperator(&DFARRAYTUPLEOP);
 
- //  AddOperator (&reduceOp);
+   AddOperator (&reduceOp);
+   reduceOp.SetUsesArgsInTypeMapping();
+
 
    AddOperator(&collect2Op);
 

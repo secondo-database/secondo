@@ -38,7 +38,9 @@ operator closeWorkers alias closeWorkers pattern op(_)
 operator showWorkers alias showWorkers pattern op(_)
 
 operator dloop2 alias DLOOP2 pattern _ op[_,fun] implicit parameter darray2elem type DARRAY2ELEM
-operator dmap alias DMAP pattern _ op[_,fun] implicit parameter dmapelem type DFARRAYSTREAM
+
+
+operator dmap alias DMAP pattern _ op[_,fun] implicit parameter dmapelem type ARRAYFUNARG1
 
 operator dloop2a alias DLOOP2A pattern _ _ op[_,fun] implicit parameters elem1, elem2 types DARRAY2ELEM, DARRAY2ELEM2
 
@@ -83,6 +85,8 @@ operator fdistribute7 alias FDISTRIBUTE7 pattern _ op[fun,_,_,_] implicit parame
 operator partition alias PARTITION pattern _ op[fun,_,_] implicit parameter elem type DFARRAYTUPLE 
 
 operator collect2 alias COLLECT2 pattern _ op[_,_]
+
+operator areduce alias AREDUCE pattern _ op [_ , fun, _] implicit parameter elem type ARRAYFUNARG1 
 
 
 

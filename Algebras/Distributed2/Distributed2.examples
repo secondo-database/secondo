@@ -445,5 +445,12 @@ Example   : query size(s7 partition[hashvalue(.Attr,23), "m7", 0]  collect2["mys
 Result    : bug
 Remark    : requires a remote server
 
+Operator  : areduce
+Number    : 1
+Signature : dmatrix2(rel(x))  x string x (stream(x)-Y) x int -> d[f]array2
+Example   : query m8 areduce2["a9", . count, 1236] getValue
+Result    : crashes
+Remark   : under develeopment
+
 
 
