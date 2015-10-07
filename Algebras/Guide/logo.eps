@@ -1,0 +1,69 @@
+%!PS-Adobe-2.0 EPSF-2.0
+%%Creator: Thomas Behr 
+%%Title: Logo
+%%BoundingBox: 0 0 420 420
+%%EndComments
+
+%%  Definiere  Grundfarbe als array
+/basiccolor [0 0 0] def
+
+%% faktor muß auf stack stehen
+/changecolor { 1 sub neg dup dup   
+               1 basiccolor 0 get sub mul basiccolor 0 get add 3 1 roll 
+               1 basiccolor 1 get sub mul basiccolor 1 get add exch 
+               1 basiccolor 2 get sub mul basiccolor 2 get add  
+               setrgbcolor
+             } def
+
+%% Setze Grundfarbe
+basiccolor aload pop  setrgbcolor 
+
+
+%% verschiebe (0 0) zum Mittelpunkt
+210 210 translate
+
+%% Definiere Kreis als Clippath
+0 0 210  0 360 arc clip
+%% aendere Linienstaerke
+20 setlinewidth
+
+%% erzeuge Pfad line -> halbkreis -> linie
+newpath
+-120 210 moveto
+-120 0 lineto
+0 0 120 180 0 arc 
+120 210 lineto
+stroke
+%% erzeuge Pfad ein wenig groesser
+newpath
+-160 210 moveto
+-160 0 lineto
+0 0 160 180 0 arc 
+160 210 lineto
+stroke
+%% erzeuge Pfad noch ein wenig groesser
+newpath
+-200 210 moveto
+-200 0 lineto
+0 0 200 180 0 arc 
+200 210 lineto
+stroke
+%% definiere kleineren Clippath
+newpath
+0 0 90 0 360 arc clip
+%% zeichne einen Kreis
+newpath
+0 0 90 0 360 arc fill
+newpath
+
+1 setlinewidth
+
+%% Zeichne Schattierung
+100 -1 0
+{ 
+  dup 100.0 div  changecolor
+  1.2 div
+  -20 20  3 2 roll  0 360 arc fill
+}
+for
+

@@ -269,7 +269,7 @@ If you want to use this interface, please take a look to the
 file ~NList.h~ within the ~include~ directory of Secondo.
 
 
-0.3 What is an algebra
+0.3 What is an Algebra
 
 An algebra contains types and/or  operators. It uses the types defined in the algebra
 itself and --if required-- types of other algebras. Secondo provides a well defined 
@@ -278,7 +278,7 @@ with the kernel of Secondo. Each type and each operator extends Secondo's execut
 language.
 
 
-0.4 	Preliminary steps
+0.4 	Preliminary Steps
 
 For creating a new algebra, some steps are required.
 Firstly, create a new subdirectory having the algebra's name within the
@@ -502,7 +502,7 @@ All other functions and members are usual C++ stuff.
   };
 
 /*
-1.2 The Property function
+1.2 The Property Function
 
 The ~Property~ function provides a description of the Secondo type 
 to the user. It returns a nested list, which must be have exactly 
@@ -599,7 +599,7 @@ zero.
   }
 
 /*
-1.4 Out function
+1.4 Out Function
 
 This function is used to create the external representation of an object 
 as nested list. Note that the ~IN~ function must be able to read in the
@@ -627,7 +627,7 @@ ListExpr OutSCircle( ListExpr typeInfo, Word value ) {
 }
 
 /*
-1.5 Create function
+1.5 Create Function
 
 This function creates an object instance having an arbitrary value. The ~typeInfo~
 argument represents the type of the object and is required for nested types like
@@ -641,7 +641,7 @@ Word CreateSCircle( const ListExpr typeInfo ) {
 }
 
 /*
-1.6 Delete function
+1.6 Delete Function
 
 Removes the complete object (inclusive disc parts if there are any, see section
 \ref{largeStructures}). 
@@ -660,7 +660,7 @@ void DeleteSCircle( const ListExpr typeInfo, Word& w ) {
 }
 
 /*
-1.7 Open function
+1.7 Open Function
 
 Reads an object from disc  via an ~SmiRecord~.
 
@@ -706,7 +706,7 @@ bool OpenSCircle( SmiRecord& valueRecord,
 }
 
 /*
-1.8 Save function
+1.8 Save Function
 
 Saves an object to disc (via SmiRecord). This function has to be symmetrically
 to the ~OPEN~ function. The result reports the success of the call. The arguments are
@@ -742,7 +742,7 @@ bool SaveSCircle( SmiRecord& valueRecord, size_t& offset,
 }
 
 /*
-1.9 Close function
+1.9 Close Function
 
 Removes the main memory part of an object. In contrast to delete, the
 disc part of the object is untouched (if there is one).
@@ -759,7 +759,7 @@ void CloseSCircle( const ListExpr typeInfo, Word& w ) {
 }
 
 /*
-1.10 Clone function
+1.10 Clone Function
 
 Creates a depth copy (inclusive disc parts) of an object.
 
@@ -776,7 +776,7 @@ Word CloneSCircle( const ListExpr typeInfo, const Word& w ){
 }
 
 /*
-1.11 Cast function
+1.11 Cast Function
 
 Casts a void pointer to the type using a special call of new operator.
 The argument points to a memory block which is to cast to the object.
@@ -803,7 +803,7 @@ bool SCircleTypeCheck(ListExpr type, ListExpr& errorInfo){
 }
 
 /*
-1.13 SizeOf function
+1.13 SizeOf Function
 
 Returns the size required to store an instance of this object to disc
 using the ~Save~ function from above. Because an ~scircle~ is represented
@@ -815,7 +815,7 @@ int SizeOfSCircle() {
 }
 
 /*
-1.14 The TypeConstructor instance
+1.14 The TypeConstructor Instance
 
 We define a Secondo type by creating an instance of  ~TypeConstructor~ feeded with
 the functions defined before.
@@ -894,7 +894,7 @@ SecondoTTYBDB --valgrindlc
 
 
 /*
-2 Operator implementation
+2 Operator Implementation
 
 
 Each operator implementation in Secondo contains of a type mapping,
@@ -995,7 +995,7 @@ argument can provide some remark to this operator.
 
 
 /*
-2.4 Operator instance
+2.4 Operator Instance
 
 Here, we create an instance of the operator using a constructor
 of the class ~Operator~ and feeding it with the defined functions.
@@ -1121,7 +1121,7 @@ value mapping functions.
  }  
 
 /*
-3.3 Value Mapping array and selection function
+3.3 Value Mapping Array and Selection Function
 
 Each type combination has its own value mapping. Each value mapping
 is put into an array of value mappings. The Selection function
@@ -1165,7 +1165,7 @@ each accepted type combination must be recognized from the description.
   );
 
 /*
-3.5 operator instance
+3.5 Operator Instance
 
 For an overloaded operator, another ~Operator~ constructor is used.
 
@@ -1288,7 +1288,7 @@ The specification is implemented as usual.
   );
 
 /*
-4.4 Operator instance
+4.4 Operator Instance
 
 Also the operator instance has no specials.
 
@@ -1329,7 +1329,7 @@ query intstream(1,10) intstream(2,10) concat countNumber[8]
 
 
 /*
-5 Streams as result of operators (stream-operators)
+5 Streams as Results of Operators (stream operators)
 
 If a stream is the result of an operator, we call such an operator
 stream-operator.  The main difference to other operators is in the
@@ -1362,7 +1362,7 @@ ListExpr getCharsTM(ListExpr args){
 }
 
 /*
-5.2 LocalInfo class 
+5.2 LocalInfo Class 
 
 The value mapping of a stream operator is called many times during the 
 execution of a query. We need a structure, storing the current state
@@ -1497,7 +1497,7 @@ As usual, the final steps are:
 
 
 /*
-6 Streams as both, Arguments and Result
+6 Streams as Both, Arguments and Results
 
 Some operators have a stream as an argument and return also a stream.  The 
 implementation combines stream consuming with stream producing operators. 
@@ -1524,7 +1524,7 @@ ListExpr startsWithSTM(ListExpr args){
 }
 
 /*
-6.2 Local Info
+6.2 LocalInfo Class
 
 As for other stream operators, we create a local info class storing the
 state of this operator and computing the next result element.
@@ -1611,7 +1611,7 @@ int startsWithSVM( Word* args, Word& result, int message,
   );
 
 /*
-6.5 Operator instance
+6.5 Operator Instance
 
 */
 Operator startsWithSOp(
@@ -1772,7 +1772,7 @@ OperatorSpec replaceElemSpec(
 );
 
 /*
-7.5 Operator instance
+7.5 Operator Instance
 
 */
 Operator replaceElemOp(
@@ -1803,7 +1803,7 @@ support ~sort~ operators. To mark a type as an attribute data type, it must
 be in the kind ~DATA~. Attributes can be defined or not. In operators using 
 attribute data types, always a check of the defined state is required.
 
-8.1 Restricted structure
+8.1 Restricted Structure
 
 Firstly, an attribute data type must be derived from the class ~Attribute~.
 Because of the frequent use of void pointers in secondo, multiple inheritance 
@@ -1847,7 +1847,7 @@ If you don't take these rules to heart, Secondo will run instable.
 
 /*
 
-8.2 Additional functions
+8.2 Additional Functions
 
 Besides the normal functions of the class, the following functions are required to form the internal structure of an
 attribute data type. 
@@ -2253,7 +2253,7 @@ inserted into kind ~DATA~ to mark it as an attribute data type. See section
 */
 
 /*
-8.3 Attribute data type -- the Modern Way
+8.3 Attribute Data Type -- the Modern Way
 
 When defining an attribute data type in the way described above, a 
 lot of functions having a standard implementation must be implemented.
@@ -2767,7 +2767,7 @@ OperatorSpec attrIndexSpec (
 );
 
 /*
-10.4 Operator instance
+10.4 Operator Instance
 
 */
 
@@ -2804,7 +2804,7 @@ binary searchtree. Because pointers are not possible within persistent structure
 simulated by ~RecordID~s. For simplicity, we allow to store only integer values within the 
 tree. 
 
-11.1 Node class
+11.1 Node Class
 
 A node of an AVL-tree consists of its content, pointers to the two sons and a value denoting 
 the height which is used for balancing these nodes.  Each node corresponds to a record
@@ -2950,7 +2950,7 @@ This function writes the current values of this node to the given record.
 };
 
 /*
-11.2 Tree class
+11.2 Tree Class
 
 The class tree contains the file and the ~RecordID~ of the root node.
 If the tree is empty, this id is 0.
@@ -3516,7 +3516,7 @@ ListExpr PAVLTree::toListExpr(SmiRecordId root){
 
 
 /*
-11.3 Secondo Supporting function
+11.3 Secondo Supporting Functions
 
 11.3.1 Property function
 
@@ -3706,7 +3706,7 @@ PAVLTypeCheck );
 
 
 /*
-11.4 Operators creating a PAVL tree
+11.4 Operators Creating a PAVL Tree
 
 11.4.1 Creation of a pavltree
 
@@ -3815,7 +3815,7 @@ must be marked. otherwise the changes are not written back to the disc.
 The implementation of update operators is explained at the example of
 an ~insert~ operator inserting new elementes into an existing avl-tree.
  
-12.1 Type mapping
+12.1 Type Mapping
 
 The type mapping of an update operator has no special features.
 
@@ -3868,7 +3868,7 @@ int insertVM ( Word * args , Word & result , int message ,
 }
 
 /*
-12.3 Specification and Operator instance
+12.3 Specification and Operator Instance
 
 Here, no specials must be considered.
 
@@ -4028,7 +4028,7 @@ OperatorSpec importObjectSpec (
 );
 
 /*
-9.4 Operator instance
+9.4 Operator Instance
 
 Also the definition of the operator instance is as usual.
 
@@ -4044,7 +4044,7 @@ Operator importObjectOp (
 );
 
 /*
-9.5 More flexible variant of accessing values in type mappings
+9.5 More Flexible Variant of Accessing Values in Type Mappings
 
 The operator importObject only accepts a constant text as its input. 
 Sometimes, the argument is build by an expression build from constants
@@ -4145,7 +4145,7 @@ ListExpr importObject2TM(ListExpr args){
 }
 
 /*
-9.5 Operator instance
+9.5 Operator Instance
 
 Here, we use the specification and the value maping for importObject.
 
@@ -4411,7 +4411,7 @@ and be happy that the first result is greater than the second one.
 
 
 /*
-11 Variable Size Attributes without FLOBs
+11 Variable Size Attributes Without FLOBs
 
 The storage mechanism describe in the last section can also be used for
 storing attribute data types of variable length. Even the usage of pointers
@@ -4821,7 +4821,7 @@ algebras's namespace. Thus the namespace should end here.
 
 
 /*
-9 Initialization of the algebra
+9 Initialization of the Algebra
 
 This piece of code returns a new instance of the algebra.
 

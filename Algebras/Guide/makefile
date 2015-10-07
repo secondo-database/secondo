@@ -52,7 +52,26 @@ endif
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
 
-doc: GuideAlgebra.doc.pdf
+
+
+
+doc: GuideAlgebra.pdf
+
+GuideAlgebra.pdf: title.pdf GuideAlgebra.doc.pdf
+	pdftk title.pdf GuideAlgebra.doc.pdf cat output GuideAlgebra.pdf
+
+
+
+
+title.pdf: title.ps
+	ps2pdf $<
+
+title.ps: title.dvi
+	dvips $<
+
+title.dvi: title.tex
+	latex $<
+
 
 GuideAlgebra.doc.pdf: GuideAlgebra.doc
 	pd2pdf $<
@@ -89,4 +108,4 @@ GuideAlgebra.doc: GuideAlgebra.cpp SpecificationDescription.pd Guide.spec Exampl
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	rm -f GuideAlgebra.doc GuideAlgebra.doc.pdf GuideAlgebra.doc.dvi GuideAlgebra.doc.log GuideAlgebra.doc.aux GuideAlgebra.doc.tex GuideAlgebra.doc.toc
+	rm -f GuideAlgebra.doc GuideAlgebra.doc.pdf GuideAlgebra.doc.dvi GuideAlgebra.doc.log GuideAlgebra.doc.aux GuideAlgebra.doc.tex GuideAlgebra.doc.toc rm title.ps title.pdf title.aux title.log title.dvi  GuideAlgebra.pdf
