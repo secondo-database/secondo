@@ -15061,12 +15061,15 @@ int partitionVM(Word* args, Word& result, int message,
 
 
 OperatorSpec partitionSpec(
-  "dfarray2(rel(tuple)) x (tuple->int) x string -> dmatrix2",
-  "_ partition[_,_]",
+  "dfarray2(rel(tuple)) x (tuple->int) x string x int-> dmatrix2",
+  "_ partition[_,_,_]",
   "Redistributes the contents of a dfarray2 value. "
-  "The new slot contents are keept on the worker where "
-  "the values was before redistributing them. ",
-  "query da2 partition[ hashValue(.Name,2000) + 23, \"dm2\"]"
+  "The new slot contents are kept on the worker where "
+  "the values were stored before redistributing them. "
+  "The last argument (int) determines the number of slots "
+  "of the redistribution. If this value is smaller or equal to "
+  "zero, the number of slots is overtaken from the array argument.",
+  "query da2 partition[ hashValue(.Name,2000) + 23, \"dm2\",0]"
 );
 
 Operator partitionOp(
@@ -15882,7 +15885,9 @@ OperatorSpec collect2Spec(
   "Collects the slots of a matrix into a "
   " dfarray2. The string is the name of the "
   "resulting array, the int value specified a "
-  "port for file transfer.",
+  "port for file transfer. The port value can be any "
+  "port usable on all workers. A corresponding file transfer "
+  "server is started automatically.",
   "query m8 collect2[\"a8\",1238]"
 );
 
