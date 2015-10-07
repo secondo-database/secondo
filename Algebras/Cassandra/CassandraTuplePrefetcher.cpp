@@ -137,7 +137,11 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
    } 
    
    void CassandraTuplePrefetcher::prefetchTuple() {
-          
+
+#ifdef __DEBUG__
+   cout << "Starting new prefetch thread" << endl;
+#endif
+
       CassandraResult *cassandraResult = getNextResult();
       
       while(cassandraResult != NULL) {
@@ -166,12 +170,22 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
      
      // Notify consumer - all work is done
      insertToQueue(NULL);
+
+
+#ifdef __DEBUG__
+   cout << "Prefetch thread ended" << endl;
+#endif
    }
    
    void CassandraTuplePrefetcher::startTuplePrefetch() {
       int totalQueries = queries.size();
       size_t threads = min(MAX_PREFETCH_THREADS, totalQueries);
-      
+
+      // Ensure that at least one thread is running, even in case
+      // there are no queries to be executed. This thread will
+      // insert the NULL token into the result and exit afterwards.
+      threads = max((size_t) 1, threads);
+
       // Create producer threads
       for(size_t i = 0; i < threads; i++) {
          pthread_t *thread = new pthread_t();
