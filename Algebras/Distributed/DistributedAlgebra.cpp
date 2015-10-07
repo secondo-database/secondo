@@ -4211,16 +4211,16 @@ static int loopValueMap
 const string loopSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>((darray t) (map t u)) -> (darray u)</text--->"
-      "<text>_ dloopa [ fun ]</text--->"
+      "<text>_ dloopa_old [ fun ]</text--->"
       "<text>Evaluates each element with a function, "
       "that needs to be given"
       "as paremeter function </text--->"
-      "<text>query plz_a20 dloop[. count]</text--->))";
+      "<text>query plz_a20 dloop_old[. count]</text--->))";
 struct loopaSpec : OperatorInfo {
   loopaSpec() : OperatorInfo() {
-    name = "dloopa";
+    name = "dloopa_old";
     signature = "((darray t) (darray u) (map t u r)) -> (darray r)";
-    syntax = "_ _ dloopa [ fun ]";
+    syntax = "_ _ dloopa_old [ fun ]";
     meaning =
       "Evaluates each element of each darray with a function, "
       "that needs to be given as paremeter function";
@@ -4229,7 +4229,7 @@ struct loopaSpec : OperatorInfo {
 
 
 Operator loopA (
-      "dloop",
+      "dloop_old",
       loopSpec,
       loopValueMap<1>,
       Operator::SimpleSelect,
@@ -4590,9 +4590,9 @@ Operator dtie(
 
 
 /*
-5.12 Operator ~dsummarize~
+5.12 Operator ~dsummarize[_]old~
 
-The operator ~dsummarize~ provides a stream of tuples from a 
+The operator ~dsummarize[_]old~ provides a stream of tuples from a 
 darray of relations. For this purpose, the operator scans 
 all relations beginning with the first relation of the array.
 
@@ -4603,7 +4603,7 @@ The formal specification of type mapping is:
      at which t is of the type tuple
 ----
 
-Note that the operator ~dsummarize~ is not exactly inverse
+Note that the operator ~dsummarize[_]old~ is not exactly inverse
 to the operator ~ddistribute~ because the indexy of the relation
 is not appended to the attributes of the outgoing tuples. If the
 darray has been constructed by the operator ~ddistribute~ the 
@@ -4640,7 +4640,7 @@ dsummarizeTypeMap( ListExpr args )
   }
 
   ErrorReporter::ReportError(
-     "dsummarize: Input type darray( rel( tuple(...))) expected!");
+     "dsummarize_old: Input type darray( rel( tuple(...))) expected!");
   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
@@ -4808,13 +4808,13 @@ dsummarizeFun( Word* args, Word& result, int message,
 const string dsummarizeSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>((darray (rel t))) -> (stream t)</text--->"
-      "<text>_ dsummarize</text--->"
+      "<text>_ dsummarize_old</text--->"
  "<text>Produces a stream of the tuples from all relations in the "
       "darray.</text--->"
-      "<text>query prel dsummarize consume</text---> ))";
+      "<text>query prel dsummarize_old consume</text---> ))";
 
 Operator dsummarize (
-      "dsummarize",
+      "dsummarize_old",
       dsummarizeSpec,
       dsummarizeFun,
       Operator::SimpleSelect,

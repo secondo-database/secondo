@@ -133,7 +133,7 @@ public:
   void setRelType() { m_isRelation = true; }
   void setNoRelType() { m_isRelation = false; }
 
-  static const string BasicType() { return string("darray"); }
+  static const string BasicType() { return string("darray_old"); }
 
   static const bool checkType(ListExpr inType){
     ListExpr errorInfo = listutils::emptyErrorInfo();

@@ -51,15 +51,15 @@ operator dshuffle1 alias DSHUFFLE1 pattern _ op [fun]
 
 operator d_idx alias DAINDEX pattern op ()
 
-operator dloop alias DLOOP pattern _ op [ fun ] implicit parameter element type DELEMENT
+operator dloop_old alias DLOOP_OLD pattern _ op [ fun ] implicit parameter element type DELEMENT
 
-operator dloopa alias DLOOPA pattern _ _ op [ fun ] 
+operator dloopa_old alias DLOOPA_OLD pattern _ _ op [ fun ] 
          implicit parameters first, second types DELEMENT, DELEMENT2
 
 operator dtie alias DTIE pattern _ op [ fun ] 
          implicit parameters first, second types DELEMENT, DELEMENT 
 
-operator dsummarize alias DSUMMARIZE pattern _ op
+operator dsummarize_old alias DSUMMARIZE_OLD pattern _ op
 
 operator check_workers alias CHECKWORKERS pattern _ op
 

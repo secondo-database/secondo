@@ -33,10 +33,10 @@ Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) xi int (rel(tuple([Server:str
 Example  : let plz_dd2 = plz feed head [10] extend [N: .PLZ mod 2 ] ddistribute [N,2, workers ]
 Result   : ()
 
-Operator : dsummarize
+Operator : dsummarize_old
 Number   : 6
 Signature: ((darray (rel t))) -> (stream t)
-Example  : query plz_dd dsummarize count;
+Example  : query plz_dd dsummarize_old count;
 Result   : (int 10)
 
 Operator : d_send_rel
@@ -50,21 +50,21 @@ Remark   : Internal operator only. Used in the operator get
 Operator : d_receive_rel
 Number   : 8
 Signature: ( hostname port t) -> int
-Example  : query plz feed head [10] extend [N:1] ddistribute [N,1, workers ] dsummarize count;
+Example  : query plz feed head [10] extend [N:1] ddistribute [N,1, workers ] dsummarize_old count;
 Result   : (int 10)
 Remark   : Internal operator only. Used in the operator ddistribute
 
 Operator : d_send_shuffle
 Number   : 9
 Signature: ( hostname port t) -> int
-Example  : query plz_dd2 dshuffle1[randint(2)] dloop [. count] dtie[. + ..]
+Example  : query plz_dd2 dshuffle1[randint(2)] dloop_old [. count] dtie[. + ..]
 Result   : (int 10)
 Remark   : Internal operator only. Used in the operator dshuffle
 
 Operator : d_receive_shuffle
 Number   : 10
 Signature: ( hostname port) -> t
-Example  : query plz_dd2 dshuffle1[randint(2)] dloop [. count] dtie[. + ..]
+Example  : query plz_dd2 dshuffle1[randint(2)] dloop_old [. count] dtie[. + ..]
 Result   : (int 10)
 Remark   : Internal operator only. Used in the operator dshuffle
 
@@ -78,38 +78,38 @@ Remark   : Index operator for use in the index function of the operator dshuffle
 Operator : DRELATION
 Number   : 12
 Signature: (darray t) ... ) -> t
-Example  : query plz_dd2 dshuffle1[d_idx()] dloop [. count] dtie[. + ..]
+Example  : query plz_dd2 dshuffle1[d_idx()] dloop_old [. count] dtie[. + ..]
 Result   : (int 10)
 Remark   : Internal operator only.
 
-Operator : dloop
+Operator : dloop_old
 Number   : 13
 Signature: ((darray t) (map t u)) -> (darray u)
-Example  : query plz_dd dloop[. count]
+Example  : query plz_dd dloop_old[. count]
 Result   : ((darray int) ((("localhost" 3333)) 10))
 
-Operator : dloopa
+Operator : dloopa_old
 Number   : 14
 Signature: ((darray t) (darray r) (map t r u)) -> (darray u)
-Example  : query plz_dd plz_dd dloopa[. count + .. count]
+Example  : query plz_dd plz_dd dloopa_old[. count + .. count]
 Result   : ((darray int) ((("localhost" 3333)) 20))
 
 Operator : dshuffle
 Number   : 15
 Signature: ((darray t) ((map t int)  int (rel(tuple [Server:string, Port: int]))) ) -> darray t 
-Example  : query plz_dd2 dshuffle [randint(2),2, workers] dloop [. count] dtie[. + ..]
+Example  : query plz_dd2 dshuffle [randint(2),2, workers] dloop_old [. count] dtie[. + ..]
 Result   : (int 10)
 
 Operator : dshuffle2
 Number   : 16
 Signature: ((darray t) ((map t int)  int ) ) -> darray t 
-Example  : query plz_dd2 dshuffle2[randint(2),2] dloop [. count] dtie[. + ..]
+Example  : query plz_dd2 dshuffle2[randint(2),2] dloop_old [. count] dtie[. + ..]
 Result   : (int 10)
 
 Operator : dshuffle1
 Number   : 17
 Signature: ((darray t) (map t int) ) -> darray t 
-Example  : query plz_dd2 dshuffle1[randint(2)] dloop [. count] dtie[. + ..]
+Example  : query plz_dd2 dshuffle1[randint(2)] dloop_old [. count] dtie[. + ..]
 Result   : (int 10)
 
 
