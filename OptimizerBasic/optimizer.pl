@@ -956,19 +956,12 @@ plan_to_atom(attr(Name, Arg, Case), Result) :-
 plan_to_atom(attrname(attr(Name, Arg, Case)), Result) :-
   plan_to_atom(a(Name, Arg, Case), Result).
 
-plan_to_atom(a(A:B, _, l), Result) :-
-  concat_atom([B, '_', A], '', Result),
-  !.
-
-plan_to_atom(a(A:B, _, u), Result) :-
+plan_to_atom(a(A:B, _, _), Result) :-
   upper(B, B2),
   concat_atom([B2, '_', A], Result),
   !.
 
-plan_to_atom(a(X, _, l), X) :-
-  !.
-
-plan_to_atom(a(X, _, u), X2) :-
+plan_to_atom(a(X, _, _), X2) :-
   upper(X, X2),
   !.
 
