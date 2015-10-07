@@ -107,28 +107,28 @@ Remark   : Requires a remote server
 
 Operator : put
 Number   : 1
-Signature: darray2(T) x int x T -> darray2(T)
-Example  : query put([const darray2(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3,27)
+Signature: darray(T) x int x T -> darray(T)
+Example  : query put([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3,27)
 Result   : bug
 Remark   : Requires a remote server
 
 Operator : get
 Number   : 1
-Signature: darray2(T) x int -> T
-Example  : query get([const darray2(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3)
+Signature: darray(T) x int -> T
+Example  : query get([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3)
 Result   : bug
 Remark   : Requires a remote server
 
 Operator : size
 Number   : 1
-Signature: darray2(T) -> int 
-Example  : query size([const darray2(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))])
+Signature: darray(T) -> int 
+Example  : query size([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))])
 Result   : 4
 
 Operator : getWorkers 
 Number   : 1
-Signature: darray2(T) -> stream(tuple)
-Example  : query getWorkers([const darray2(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))]) count
+Signature: darray(T) -> stream(tuple)
+Example  : query getWorkers([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))]) count
 Result   : 2
 
 
@@ -145,16 +145,16 @@ Signature : {string, text} -> stream(TUPLE)
 Example   : query ffeed5('ten.bin') count
 Result    : 10
 
-Operator  : createDarray2
+Operator  : createDArray
 Number    : 1 
-Signature : stream(TUPLE) x int x string x ANY x Ident x Ident x Ident -> darray2
-Example   : query workers feed createDarray2[8,"DA1",strassen, Host, Port, Config]
+Signature : stream(TUPLE) x int x string x ANY x Ident x Ident x Ident -> darray
+Example   : query workers feed createDArray[8,"DA1",strassen, Host, Port, Config]
 Result    : bug
 Remark    : in development
 
 Operator: pput
 Number  : 1
-Signature : darray2(T) x (int x t)+ -> darray2(T)
+Signature : darray(T) x (int x t)+ -> darray(T)
 Example   : query da3 feed pput[0,ten,1,ten]
 Result    : bug
 Remark    : remote server required
@@ -162,93 +162,93 @@ Remark    : remote server required
 
 Operator: ddistribute2
 Number  : 1
-Signature : stream(tuple(X)) x ident x int x rel x string -> darray2(X) 
+Signature : stream(tuple(X)) x ident x int x rel x string -> darray(X) 
 Example   : query strassen feed addcounter[No,0] ddistribute2[No, 5, workers, "dstrassen"] 
 Result    : crashes
 Remark    : remote server required
 
 Operator: ddistribute3
 Number  : 1
-Signature : stream(tuple(X)) x int x bool  x rel x string -> darray2(rel(tuple(X))) 
+Signature : stream(tuple(X)) x int x bool  x rel x string -> darray(rel(tuple(X))) 
 Example   : query strassen feed  ddistribute3[10, TRUE, workers, "dstrassen3"] 
 Result    : crashes
 Remark    : remote server required
 
 Operator: ddistribute4
 Number  : 1
-Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray2(X) 
+Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray(X) 
 Example   : query strassen feed  ddistribute4[hashvalue(.Name, 2000), 5 , workers, "dstrassen4"] 
 Result    : crashes
 Remark    : remote server required
 
 Operator: closeWorkers
 Number  : 1
-Signature : -> int , darray2 -> int
+Signature : -> int , darray -> int
 Example   : query closeWorkers() 
 Result    : 0
 
 Operator: showWorkers
 Number  : 1
-Signature : -> stream(tuple) , darray2 -> stream(tuple)
+Signature : -> stream(tuple) , darray -> stream(tuple)
 Example   : query showWorkers() count
 Result    : 0
 
-Operator  : DARRAY2ELEM
+Operator  : DARRAYELEM
 Number    : 1
-Signature : darray2(X) -> X
-Example   : query da dloop2["da3", fun( x : DARRAY2ELEM) x count ]
+Signature : darray(X) -> X
+Example   : query da dloop["da3", fun( x : DARRAYELEM) x count ]
 Result    : bug
 Remark    : remote server required, Type Mapping Operator
 
 
-Operator  : dloop2 
+Operator  : dloop 
 Number    : 1
-Signature : darray2(X) x string x (X -> Y) -> darray2(Y)
-Example   : query da dloop2["da3", fun( x : DARRAY2ELEM) x count ]
+Signature : darray(X) x string x (X -> Y) -> darray(Y)
+Example   : query da dloop["da3", fun( x : DARRAYELEM) x count ]
 Result    : bug
 Remark    : remote server required
 
 
 Operator  : dmap
 Number    : 1
-Signature : dfarray2 x string x fun -> d[f]array2
+Signature : dfarray x string x fun -> d[f]array
 Example   : query da8 dmap["", . head[25] ]
 Result    : bug
 Remark    : in development
 
 
-Operator  : dloop2a 
+Operator  : dloopa 
 Number    : 1
-Signature : darray2(X) x darray2(Y) x string x (X x Y -> Z) -> darray2(Z)
-Example   : query da1 da2  dloop2a["da3", . + .. ]
+Signature : darray(X) x darray(Y) x string x (X x Y -> Z) -> darray(Z)
+Example   : query da1 da2  dloopa["da3", . + .. ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : dmap2 
 Number    : 1
-Signature : d[f]array2(X) x d[f]array2(Y) x string x (X x Y -> Z) -> d[f]array2(Z)
+Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
 Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : ARRAYFUNARG1 
 Number    : 1
-Signature : d[f]array2(X) x d[f]array2(Y) x string x (X x Y -> Z) -> d[f]array2(Z)
+Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
 Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : ARRAYFUNARG2
 Number    : 1
-Signature : d[f]array2(X) x d[f]array2(Y) x string x (X x Y -> Z) -> d[f]array2(Z)
+Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
 Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
 Result    : bug
 Remark    : remote server required
 
-Operator  : DARRAY2ELEM2 
+Operator  : DARRAYELEM2 
 Number    : 1
-Signature : darray2(X) x darray2(Y) x string x (X x Y -> Z) -> darray2(Z)
-Example   : query da1 da2  dloop2a["da3", . + .. ]
+Signature : darray(X) x darray(Y) x string x (X x Y -> Z) -> darray(Z)
+Example   : query da1 da2  dloopa["da3", . + .. ]
 Result    : bug
 Remark    : remote server required
 
@@ -264,24 +264,24 @@ Signature : stream(tuple) x {string,text} x int -> stream(tuple)
 Example   : query (strassen feed  fdistribute6['strassen6',1000] count) = (strassen count)
 Result    : TRUE
 
-Operator : dsummarize2
+Operator : dsummarize
 Number   : 1
-Signature : darray2(DATA) -> stream(DATA)
-Example   : query da2 dsummarize2 count
+Signature : darray(DATA) -> stream(DATA)
+Example   : query da2 dsummarize count
 Result    : bug
 Remark    : remote server required
 
 
 Operator : getValue
 Number   : 1
-Signature : darray2(X) -> array(X)
+Signature : darray(X) -> array(X)
 Example   : query da2 getValue
 Result    : bug
 Remark    : remote server required
 
 Operator : deleteRemoteObjects
 Number   : 1
-Signature : darray2(X) [x int] -> int
+Signature : darray(X) [x int] -> int
 Example   : query deleteRemoteObjects(da2)
 Result    : bug
 Remark    : remote server required
@@ -289,58 +289,58 @@ Remark    : remote server required
 
 Operator : clone 
 Number   : 1
-Signature : darray2(X) x string -> darray2(X)
+Signature : darray(X) x string -> darray(X)
 Example   : query da8 clone["da9"]
 Result    : bug
 Remark    : remote server required
 
 Operator : share 
 Number   : 1
-Signature : string x bool [ x darray2] -> text
+Signature : string x bool [ x darray] -> text
 Example   : query share("ten", FALSE)
 Result    : bug
 Remark    : remote server required
 
 Operator : cleanUp 
 Number   : 1
-Signature : -> bool , darray2 -> bool
+Signature : -> bool , darray -> bool
 Example   : query cleanUp(da8)
 Result    : bug
 Remark    : remote server required
 
-Operator: fddistribute2
+Operator: dfdistribute2
 Number  : 1
-Signature : stream(tuple(X)) x ident x int x rel x string -> dfarray2(X) 
-Example   : query strassen feed addcounter[No,0] fddistribute2[No, 5, workers, "fstrassen"] 
+Signature : stream(tuple(X)) x ident x int x rel x string -> dfarray(X) 
+Example   : query strassen feed addcounter[No,0] dfdistribute[No, 5, workers, "fstrassen"] 
 Result    : crashes
 Remark    : remote server required
 
-Operator: fddistribute3
+Operator: dfdistribute3
 Number  : 1
-Signature : stream(tuple(X)) x int x bool x rel x string -> dfarray2(rel(tuple(X))) 
-Example   : query strassen feed fddistribute3[10, TRUE, workers, "fstrassen3" ] 
-Result    : crashes
-Remark    : remote server required
-
-
-Operator: fddistribute4
-Number  : 1
-Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray2(X) 
-Example   : query strassen feed  fddistribute4[hashvalue(.Name, 2000), 5, workers, "dfstrassen4"] 
+Signature : stream(tuple(X)) x int x bool x rel x string -> dfarray(rel(tuple(X))) 
+Example   : query strassen feed dfdistribute3[10, TRUE, workers, "fstrassen3" ] 
 Result    : crashes
 Remark    : remote server required
 
 
-Operator  : convertdarray2
+Operator: dfdistribute4
+Number  : 1
+Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray(X) 
+Example   : query strassen feed  dfdistribute4[hashvalue(.Name, 2000), 5, workers, "dfstrassen4"] 
+Result    : crashes
+Remark    : remote server required
+
+
+Operator  : convertdarray
 Number    : 1
-Signature : darray2 -> dfarray2 , dfarray2 -> darray2
-Example   : query convertdarray2(da8)
+Signature : darray -> dfarray , dfarray -> darray
+Example   : query convertdarray(da8)
 Result    : bug
 Remark    : in development
 
 Operator  : DFARRAYSTREAM 
 Number    : 1
-Signature : dfarray2(rel(X)) x ... -> stream(X)
+Signature : dfarray(rel(X)) x ... -> stream(X)
 Example   : query da8 dmap["", . head[25] ]
 Result    : bug
 Remark    : in development
@@ -440,15 +440,15 @@ Remark    : requires a remote server
 
 Operator  : collect2
 Number    : 1
-Signature : dmatrix2 x string x int -> dfarray2
+Signature : dmatrix x string x int -> dfarray
 Example   : query size(s7 partition[hashvalue(.Attr,23), "m7", 0]  collect2["mys7", 1238] )
 Result    : bug
 Remark    : requires a remote server
 
 Operator  : areduce
 Number    : 1
-Signature : dmatrix2(rel(x))  x string x (stream(x)-Y) x int -> d[f]array2
-Example   : query m8 areduce2["a9", . count, 1236] getValue
+Signature : dmatrix(rel(x))  x string x (stream(x)-Y) x int -> d[f]array
+Example   : query m8 areduce["a9", . count, 1236] getValue
 Result    : crashes
 Remark   : under develeopment
 

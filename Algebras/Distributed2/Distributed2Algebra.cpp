@@ -1165,25 +1165,25 @@ class CommandListener{
 
 
 /*
-Forward declaration of class DArray2Element.
+Forward declaration of class DArrayElement.
 
-2.1.1 Class ~DArray2Element~
+2.1.1 Class ~DArrayElement~
 
 This class represents information about a single worker of a DArray.
 
 */
 
-class DArray2Element{
+class DArrayElement{
   public:
-     DArray2Element(const string& _server, const int _port,
+     DArrayElement(const string& _server, const int _port,
                     const int _num, const string& _config):
         server(_server), port(_port), num(_num),config(_config) {}
 
-     DArray2Element(const DArray2Element& src):
+     DArrayElement(const DArrayElement& src):
       server(src.server), port(src.port), num(src.num),
       config(src.config) {}
 
-     DArray2Element& operator=(const DArray2Element& src){
+     DArrayElement& operator=(const DArrayElement& src){
         this->server = src.server;
         this->port = src.port;
         this->num = src.num;
@@ -1191,7 +1191,7 @@ class DArray2Element{
         return *this;
      }     
 
-     ~DArray2Element() {}
+     ~DArrayElement() {}
 
 
       void setNum(const int num){
@@ -1207,17 +1207,17 @@ class DArray2Element{
      }
 
 
-     bool operator==(const DArray2Element& other) const{
+     bool operator==(const DArrayElement& other) const{
        return    (this->port == other.port)
               && (this->num == other.num)
               && (this->server == other.server)
               && (this->config == other.config); 
      }
-     bool operator!=(const DArray2Element& other) const{
+     bool operator!=(const DArrayElement& other) const{
        return   !((*this) == other);
      }
 
-     bool operator<(const DArray2Element& other) const {
+     bool operator<(const DArrayElement& other) const {
         if(this->port < other.port) return true;
         if(this->port > other.port) return false;
         if(this->num < other.num) return true;
@@ -1229,7 +1229,7 @@ class DArray2Element{
         return false;
      }
 
-     bool operator>(const DArray2Element& other) const {
+     bool operator>(const DArrayElement& other) const {
         if(this->port > other.port) return true;
         if(this->port < other.port) return false;
         if(this->num > other.num) return true;
@@ -1295,7 +1295,7 @@ class DArray2Element{
 
 
      template<class H, class C>
-     static DArray2Element* createFromTuple(Tuple* tuple, int num, 
+     static DArrayElement* createFromTuple(Tuple* tuple, int num, 
                                    int hostPos, int portPos, int configPos){
 
          if(!tuple || (num < 0) ) {
@@ -1316,7 +1316,7 @@ class DArray2Element{
          if(port<=0){
             return 0;
          }
-         return new DArray2Element(host,port,num,config);
+         return new DArrayElement(host,port,num,config);
      }
 
 
@@ -1328,14 +1328,14 @@ class DArray2Element{
 };
 
 
-ostream& operator<<(ostream& out, const DArray2Element& elem){
+ostream& operator<<(ostream& out, const DArrayElement& elem){
   elem.print(out);
   return out;
 }
 
 
 
-bool InDArray2Element(ListExpr list, DArray2Element& result){
+bool InDArrayElement(ListExpr list, DArrayElement& result){
    if(!nl->HasLength(list,3)){
      return false;
    }
@@ -2001,13 +2001,13 @@ Transfers a local file to a remove server.
 
 /*
 The next functions are for interacting with workers, i.e.
-connections coming from darray2 elements.
+connections coming from darray elements.
 
 */
-  ConnectionInfo* getWorkerConnection( const DArray2Element& info,
+  ConnectionInfo* getWorkerConnection( const DArrayElement& info,
                                        const string& dbname ){
      boost::lock_guard<boost::mutex> guard(workerMtx);
-     map<DArray2Element, pair<string, ConnectionInfo*> >::iterator it;
+     map<DArrayElement, pair<string, ConnectionInfo*> >::iterator it;
      it = workerconnections.find(info);
      pair<string,ConnectionInfo*> pr("",0);
      if(it==workerconnections.end()){
@@ -2032,9 +2032,9 @@ connections coming from darray2 elements.
   }
 
 
-  string getDBName(const DArray2Element& info){
+  string getDBName(const DArrayElement& info){
      boost::lock_guard<boost::mutex> guard(workerMtx);
-     map<DArray2Element, pair<string, ConnectionInfo*> >::iterator it;
+     map<DArrayElement, pair<string, ConnectionInfo*> >::iterator it;
      it = workerconnections.find(info);
      string db = "";
      if(it!=workerconnections.end()){
@@ -2051,7 +2051,7 @@ It returns the numer of closed workers
 */
  int closeAllWorkers(){
     boost::lock_guard<boost::mutex> guard(workerMtx);
-    map<DArray2Element, pair<string,ConnectionInfo*> > ::iterator it;
+    map<DArrayElement, pair<string,ConnectionInfo*> > ::iterator it;
     int count = 0;
     for(it=workerconnections.begin(); it!=workerconnections.end(); it++){
        ConnectionInfo* ci = it->second.second;
@@ -2064,12 +2064,12 @@ It returns the numer of closed workers
 
 /*
 The operator ~closeWorker~ closes the connections for a 
-specified DArray2Element.
+specified DArrayElement.
 
 */ 
-  bool closeWorker(const DArray2Element& elem){
+  bool closeWorker(const DArrayElement& elem){
     boost::lock_guard<boost::mutex> guard(workerMtx);
-     map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
+     map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
      it = workerconnections.find(elem);
      if(it==workerconnections.end()){
         return false;
@@ -2083,10 +2083,10 @@ specified DArray2Element.
      return true;
   }
 
-  bool workerConnection(const DArray2Element& elem, string& dbname,
+  bool workerConnection(const DArrayElement& elem, string& dbname,
                          ConnectionInfo*& ci){
     boost::lock_guard<boost::mutex> guard(workerMtx);
-     map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
+     map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
      it = workerconnections.find(elem);
      if(it == workerconnections.end()){
         return false;
@@ -2096,12 +2096,12 @@ specified DArray2Element.
      return true;
   }
 
-  map<DArray2Element, pair<string,ConnectionInfo*> >::iterator
+  map<DArrayElement, pair<string,ConnectionInfo*> >::iterator
   workersIterator(){
     return workerconnections.begin();
   }
 
-  bool isEnd( map<DArray2Element, pair<string,ConnectionInfo*> >::iterator& it){
+  bool isEnd( map<DArrayElement, pair<string,ConnectionInfo*> >::iterator& it){
     boost::lock_guard<boost::mutex> guard(workerMtx);
     return it==workerconnections.end();
   } 
@@ -2123,9 +2123,9 @@ specified DArray2Element.
     return ss.str();
   } 
 
-  string getTempName(const DArray2Element& elem){
+  string getTempName(const DArrayElement& elem){
      boost::lock_guard<boost::mutex> guard(workerMtx);
-     map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
+     map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
      it = workerconnections.find(elem);
      if(it==workerconnections.end()){
         return "";
@@ -2144,7 +2144,7 @@ specified DArray2Element.
      for(size_t i=0;i<connections.size() && !ci; i++){
          ci = connections[i];
      }
-     map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
+     map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
      for(it = workerconnections.begin(); 
         it !=workerconnections.end() && !ci; 
         it++){
@@ -2184,7 +2184,7 @@ specified DArray2Element.
              }
          }
      }
-     map<DArray2Element, pair<string,ConnectionInfo*> >::iterator it;
+     map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
      for(it = workerconnections.begin();it!=workerconnections.end();it++){
         ConnectionInfo* ci = it->second.second;
         if(ci){
@@ -2215,11 +2215,11 @@ specified DArray2Element.
     boost::mutex mtx;
 
     // connections managed automatically 
-    // for darray2 type
+    // for darray type
     // the key represents the connection information,
     // the string the used database
     // the ConnctionInfo the connection
-    map<DArray2Element, pair<string,ConnectionInfo*> > workerconnections;
+    map<DArrayElement, pair<string,ConnectionInfo*> > workerconnections;
     boost::mutex workerMtx;
 
     size_t namecounter;
@@ -2235,7 +2235,7 @@ specified DArray2Element.
       return namecounter;
    } 
 
-    bool createWorkerConnection(const DArray2Element& worker, pair<string, 
+    bool createWorkerConnection(const DArrayElement& worker, pair<string, 
                                 ConnectionInfo*>& res){
       string host = worker.getHost();
       int port = worker.getPort();
@@ -5952,23 +5952,23 @@ Operator pquery2Op (
 Here, the functionality of the Distributed algebra is implemented using the
 parts from before.
 
-2.1 Type ~darray2~
+2.1 Type ~darray~
 
-A ~darray2~ contains the remote type as well as a server configuration 
+A ~darray~ contains the remote type as well as a server configuration 
 consiting of the name of the server, the used port, and the used 
 configuration file.  When accessing a  ~darray~ element, it is checked 
 whether there is already a connection to the remote server. To avoid
  conflicts between user defined connections and connections used by 
-darray2 values, a second structure is hold within the algebra
+darray values, a second structure is hold within the algebra
 which opens and closes connections automatically.
 
 */
 
 
 /*
-2.1.2 Class ~DArray2~
+2.1.2 Class ~DArray~
 
-This class represents the Secondo type ~darray2~. It just stores the information
+This class represents the Secondo type ~darray~. It just stores the information
 about a connection to a remote server. The actual connections are stored within
 the algebra instance.
 
@@ -5977,9 +5977,9 @@ the algebra instance.
 enum arrayType{DARRAY,DFARRAY,DMATRIX};
 
 template<arrayType Type>
-class DArray2T{
+class DArrayT{
   public:
-     DArray2T(const vector<uint32_t>& _map, const string& _name): 
+     DArrayT(const vector<uint32_t>& _map, const string& _name): 
            worker(),map(_map), size(map.size()),name(_name) {
         if(!stringutils::isIdent(name) || map.size() ==0 ){ // invalid
            name = "";
@@ -5990,7 +5990,7 @@ class DArray2T{
         }
         defined = true;
      }
-     DArray2T(const size_t _size , const string& _name): 
+     DArrayT(const size_t _size , const string& _name): 
            worker(),map(), size(_size),name(_name) {
         assert(Type == DMATRIX);
         if(!stringutils::isIdent(name) || size ==0 ){ // invalid
@@ -6003,8 +6003,8 @@ class DArray2T{
         defined = true;
      }
 
-     DArray2T(const vector<uint32_t>& _map, const string& _name, 
-               const vector<DArray2Element>& _worker): 
+     DArrayT(const vector<uint32_t>& _map, const string& _name, 
+               const vector<DArrayElement>& _worker): 
          worker(_worker),map(_map), size(map.size),name(_name) {
 
         if(!stringutils::isIdent(name) || map.size() ==0 || !checkMap()){ 
@@ -6018,8 +6018,8 @@ class DArray2T{
         defined = true;
      }
 
-     DArray2T(const size_t _size, const string& _name, 
-               const vector<DArray2Element>& _worker): 
+     DArrayT(const size_t _size, const string& _name, 
+               const vector<DArrayElement>& _worker): 
          worker(_worker),map(), size(_size),name(_name) {
  
         assert(Type == DMATRIX);
@@ -6037,17 +6037,17 @@ class DArray2T{
 
 
 
-     explicit DArray2T(int dummy) {} // only for cast function
+     explicit DArrayT(int dummy) {} // only for cast function
 
  
-     DArray2T(const DArray2T<Type>& src): 
+     DArrayT(const DArrayT<Type>& src): 
              worker(src.worker), map(src.map), name(src.name), 
              defined(src.defined)
        {
        }
 
      template<arrayType T>
-     DArray2T& operator=(const DArray2T<T>& src) {
+     DArrayT& operator=(const DArrayT<T>& src) {
         this->worker = src.worker;
         this->map = src.map;
         this->size = src.size;
@@ -6056,7 +6056,7 @@ class DArray2T{
         return *this;
      }     
  
-     ~DArray2T() {
+     ~DArrayT() {
      }
 
 
@@ -6079,7 +6079,7 @@ class DArray2T{
 
 
      void set(const size_t size, const string& name, 
-              const vector<DArray2Element>& worker){
+              const vector<DArrayElement>& worker){
         if(!stringutils::isIdent(name) || size ==0){ // invalid
            this->name = "";
            this->defined = false;
@@ -6096,7 +6096,7 @@ class DArray2T{
         this->worker = worker;
      }
 
-     bool equalMapping(DArray2T<Type>& a, bool ignoreSize ){
+     bool equalMapping(DArrayT<Type>& a, bool ignoreSize ){
         if(Type==DMATRIX){ // mapping does not exist in DMATRIX
            return true;
         }
@@ -6115,7 +6115,7 @@ class DArray2T{
      
 
     void set(const vector<uint32_t>& m, const string& name, 
-              const vector<DArray2Element>& worker){
+              const vector<DArrayElement>& worker){
         if(!stringutils::isIdent(name) || m.size() ==0){ // invalid
            makeUndefined(); 
            return;
@@ -6140,9 +6140,9 @@ class DArray2T{
 
      static const string BasicType() { 
        switch(Type){
-          case DARRAY : return "darray2";
-          case DFARRAY : return "dfarray2";
-          case DMATRIX : return "dmatrix2";
+          case DARRAY : return "darray";
+          case DFARRAY : return "dfarray";
+          case DMATRIX : return "dfmatrix";
        }
        assert(false);
        return "typeerror";
@@ -6194,7 +6194,7 @@ class DArray2T{
      }
 
  
-     DArray2Element getWorkerForSlot(int i){
+     DArrayElement getWorkerForSlot(int i){
         assert(Type!=DMATRIX);
         if(i<0 || i>= map.size()){
            assert(false);
@@ -6211,7 +6211,7 @@ class DArray2T{
      }
  
 
-     DArray2Element getWorker(int i){
+     DArrayElement getWorker(int i){
         if(i< 0 || i >= (int) worker.size()){
             assert(false);
            // throw "Invalid worker number";
@@ -6264,10 +6264,10 @@ class DArray2T{
      }
 
 
-     static DArray2T<Type>* readFrom(ListExpr list){
+     static DArrayT<Type>* readFrom(ListExpr list){
         if(listutils::isSymbolUndefined(list)){
            vector<uint32_t> m;
-           return new DArray2T<Type>(m,"");
+           return new DArrayT<Type>(m,"");
         }
         if(!nl->HasLength(list,3)){
            return 0;
@@ -6282,11 +6282,11 @@ class DArray2T{
         if(!stringutils::isIdent(name)){
            return 0;
         }
-        vector<DArray2Element> v;
+        vector<DArrayElement> v;
         int wn = 0;
         while(!nl->IsEmpty(Workers)){
-           DArray2Element elem("",0,0,"");
-           if(!InDArray2Element(nl->First(Workers), elem)){
+           DArrayElement elem("",0,0,"");
+           if(!InDArrayElement(nl->First(Workers), elem)){
               return 0;
            }
            elem.setNum(wn);
@@ -6318,7 +6318,7 @@ class DArray2T{
                m.push_back(mv);
            }
         }
-        DArray2T<Type>* result = new DArray2T<Type>(m,name);
+        DArrayT<Type>* result = new DArrayT<Type>(m,name);
         swap(result->worker,v);
         result->defined = true;
         return result;
@@ -6333,7 +6333,7 @@ class DArray2T{
         } 
         if(!defined){
           vector<uint32_t> m;
-          result.addr = new DArray2T<Type>(m,"");
+          result.addr = new DArrayT<Type>(m,"");
           return true;
         }
         // array in smirecord is defined, read size
@@ -6350,7 +6350,7 @@ class DArray2T{
         // read  map
         uint32_t me;
         vector<uint32_t> m;
-        DArray2T<Type>* res = 0; 
+        DArrayT<Type>* res = 0; 
 
         if(Type!=DMATRIX){
            for(size_t i=0;i<size;i++){
@@ -6359,9 +6359,9 @@ class DArray2T{
                }
                m.push_back(me);
            }
-           res = new DArray2T<Type>(m,name);
+           res = new DArrayT<Type>(m,name);
         } else {
-           res = new DArray2T<Type>(size,name);
+           res = new DArrayT<Type>(size,name);
         }
         int wn = 0;
         // append workers
@@ -6370,7 +6370,7 @@ class DArray2T{
           return false;
         }
         for(size_t i=0; i< numWorkers; i++){
-           DArray2Element elem("",0,0,"");
+           DArrayElement elem("",0,0,"");
            if(!elem.readFrom(valueRecord, offset)){
                delete res;
                return false;
@@ -6387,7 +6387,7 @@ class DArray2T{
      static bool save(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Word& value) {
 
-         DArray2T<Type>* a = (DArray2T<Type>*) value.addr;
+         DArrayT<Type>* a = (DArrayT<Type>*) value.addr;
          // defined flag
          if(!writeVar(a->defined,valueRecord,offset)){
            return false;
@@ -6489,10 +6489,10 @@ class DArray2T{
 
 
       template<class H, class C>
-      static DArray2T<Type> createFromRel(Relation* rel, int size, string name,
+      static DArrayT<Type> createFromRel(Relation* rel, int size, string name,
                               int hostPos, int portPos, int configPos){
           vector<uint32_t> m;
-          DArray2T<Type> result(m,"");
+          DArrayT<Type> result(m,"");
           if(size<=0){
              result.defined = false;
              return result;
@@ -6507,8 +6507,8 @@ class DArray2T{
           GenericRelationIterator* it = rel->MakeScan();
           Tuple* tuple;
           while((tuple = it->GetNextTuple())){
-             DArray2Element* elem = 
-                    DArray2Element::createFromTuple<H,C>(tuple,
+             DArrayElement* elem = 
+                    DArrayElement::createFromTuple<H,C>(tuple,
                     result.worker.size(),hostPos, 
                     portPos, configPos);
              tuple->DeleteIfAllowed();
@@ -6525,12 +6525,12 @@ class DArray2T{
 
 
 
-  friend class DArray2T<DARRAY>;
-  friend class DArray2T<DFARRAY>;
-  friend class DArray2T<DMATRIX>;
+  friend class DArrayT<DARRAY>;
+  friend class DArrayT<DFARRAY>;
+  friend class DArrayT<DMATRIX>;
 
   private:
-    vector<DArray2Element> worker; // connection information
+    vector<DArrayElement> worker; // connection information
     vector<uint32_t> map;  // map from index to worker
     size_t  size; // corresponds with map size except map is empty
     string name;  // the basic name used on workers
@@ -6564,7 +6564,7 @@ class DArray2T{
 
 
 
-   bool equalWorker(const vector<DArray2Element>& w) const{
+   bool equalWorker(const vector<DArrayElement>& w) const{
       if(worker.size() != w.size()){
           return false;
       }
@@ -6578,16 +6578,16 @@ class DArray2T{
 
 };
 
-typedef DArray2T<DARRAY> DArray2;
-typedef DArray2T<DFARRAY> DFArray2;
-typedef DArray2T<DMATRIX> DMatrix2;
+typedef DArrayT<DARRAY> DArray;
+typedef DArrayT<DFARRAY> DFArray;
+typedef DArrayT<DMATRIX> DMatrix;
 
 
 /*
 2.1.2.1 Property function
 
 */
-ListExpr DArray2Property(){
+ListExpr DArrayProperty(){
    return nl->TwoElemList(
             nl->FourElemList(
                  nl->StringAtom("Signature"),
@@ -6596,15 +6596,15 @@ ListExpr DArray2Property(){
                  nl->StringAtom("Example List")),
             nl->FourElemList(
                  nl->StringAtom(" -> SIMPLE"),
-                 nl->StringAtom(" (darray2 <basictype>)"),
+                 nl->StringAtom(" (darray <basictype>)"),
                  nl->TextAtom("(name <map> ( s1 s2  ...)) where "
                                 "s_i =(server port config)"),
-                 nl->TextAtom(" ( mydarray2 (0 1 0 1) ('localhost' 1234 "
+                 nl->TextAtom(" ( mydarray (0 1 0 1) ('localhost' 1234 "
                               "'config.ini')"
                               " ('localhost'  1235 'config.ini'))")));
 }
 
-ListExpr DFArray2Property(){
+ListExpr DFArrayProperty(){
    return nl->TwoElemList(
             nl->FourElemList(
                  nl->StringAtom("Signature"),
@@ -6613,16 +6613,16 @@ ListExpr DFArray2Property(){
                  nl->StringAtom("Example List")),
             nl->FourElemList(
                  nl->StringAtom(" -> SIMPLE"),
-                 nl->StringAtom(" (dfarray2 <basictype>)"),
+                 nl->StringAtom(" (dfarray <basictype>)"),
                  nl->TextAtom("(name <map> ( s1 s2  ...)) where "
                                 "s_i =(server port config)"),
-                 nl->TextAtom(" ( mydfarray2 (0 1 0 1 1) ('localhost' 1234 "
+                 nl->TextAtom(" ( mydfarray (0 1 0 1 1) ('localhost' 1234 "
                               "'config.ini')"
                               " ('localhost'  1235 'config.ini'))")));
 }
 
 
-ListExpr DMatrix2Property(){
+ListExpr DMatrixProperty(){
    return nl->TwoElemList(
             nl->FourElemList(
                  nl->StringAtom("Signature"),
@@ -6631,7 +6631,7 @@ ListExpr DMatrix2Property(){
                  nl->StringAtom("Example List")),
             nl->FourElemList(
                  nl->StringAtom(" -> SIMPLE"),
-                 nl->StringAtom(" (dmatrix2 <basictype>)"),
+                 nl->StringAtom(" (dfmatrix <basictype>)"),
                  nl->TextAtom("(name size ( s1 s2  ...)) where "
                                 "s_i =(server port config)"),
                  nl->TextAtom(" ( mymatrix 42  ('localhost' 1234 'config.ini')"
@@ -6643,7 +6643,7 @@ ListExpr DMatrix2Property(){
 */
 
 template<class A>
-Word InDArray2(const ListExpr typeInfo, const ListExpr instance,
+Word InDArray(const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct){
 
    Word res((void*)0);
@@ -6658,7 +6658,7 @@ Word InDArray2(const ListExpr typeInfo, const ListExpr instance,
 
 */
 template<class A>
-ListExpr OutDArray2(ListExpr typeInfo, Word value){
+ListExpr OutDArray(ListExpr typeInfo, Word value){
    A* da = (A*) value.addr;
    return da->toListExpr();
 }
@@ -6669,7 +6669,7 @@ ListExpr OutDArray2(ListExpr typeInfo, Word value){
 
 */
 template <class A>
-Word CreateDArray2(const ListExpr typeInfo){
+Word CreateDArray(const ListExpr typeInfo){
 
   Word w;
   vector<uint32_t> m;
@@ -6683,7 +6683,7 @@ Word CreateDArray2(const ListExpr typeInfo){
 
 */
 template <class A>
-void DeleteDArray2(const ListExpr typeInfo, Word& w){
+void DeleteDArray(const ListExpr typeInfo, Word& w){
   A* a = (A*) w.addr;
   delete a;
   w.addr = 0;
@@ -6697,14 +6697,14 @@ void DeleteDArray2(const ListExpr typeInfo, Word& w){
 */
 
 template<class A>
-void CloseDArray2(const ListExpr typeInfo, Word& w){
+void CloseDArray(const ListExpr typeInfo, Word& w){
   A* a = (A*) w.addr;
   delete a;
   w.addr = 0;
 }
 
 template<class A>
-Word CloneDArray2(const ListExpr typeInfo, const Word& w){
+Word CloneDArray(const ListExpr typeInfo, const Word& w){
     A* a = (A*) w.addr;
     Word res;
     res.addr = new A(*a);
@@ -6712,63 +6712,63 @@ Word CloneDArray2(const ListExpr typeInfo, const Word& w){
 }
 
 template<class A>
-void* CastDArray2(void* addr){
+void* CastDArray(void* addr){
    return (new (addr) A(0));   
 }
 
 template<class A>
-bool DArray2TypeCheck(ListExpr type, ListExpr& errorInfo){
+bool DArrayTypeCheck(ListExpr type, ListExpr& errorInfo){
     return A::checkType(type);
 }
 
 
-int SizeOfDArray2(){
+int SizeOfDArray(){
   return 42; // a magic number
 }
 
 
-TypeConstructor DArray2TC(
-  DArray2::BasicType(),
-  DArray2Property,
-  OutDArray2<DArray2>, InDArray2<DArray2>,
+TypeConstructor DArrayTC(
+  DArray::BasicType(),
+  DArrayProperty,
+  OutDArray<DArray>, InDArray<DArray>,
   0,0,
-  CreateDArray2<DArray2>, DeleteDArray2<DArray2>,
-  DArray2::open, DArray2::save,
-  CloseDArray2<DArray2>, CloneDArray2<DArray2>,
-  CastDArray2<DArray2>,
-  SizeOfDArray2,
-  DArray2TypeCheck<DArray2> );
+  CreateDArray<DArray>, DeleteDArray<DArray>,
+  DArray::open, DArray::save,
+  CloseDArray<DArray>, CloneDArray<DArray>,
+  CastDArray<DArray>,
+  SizeOfDArray,
+  DArrayTypeCheck<DArray> );
 
 
-TypeConstructor DFArray2TC(
-  DFArray2::BasicType(),
-  DFArray2Property,
-  OutDArray2<DFArray2>, InDArray2<DFArray2>,
+TypeConstructor DFArrayTC(
+  DFArray::BasicType(),
+  DFArrayProperty,
+  OutDArray<DFArray>, InDArray<DFArray>,
   0,0,
-  CreateDArray2<DFArray2>, DeleteDArray2<DFArray2>,
-  DFArray2::open, DFArray2::save,
-  CloseDArray2<DFArray2>, CloneDArray2<DFArray2>,
-  CastDArray2<DFArray2>,
-  SizeOfDArray2,
-  DArray2TypeCheck<DFArray2> );
+  CreateDArray<DFArray>, DeleteDArray<DFArray>,
+  DFArray::open, DFArray::save,
+  CloseDArray<DFArray>, CloneDArray<DFArray>,
+  CastDArray<DFArray>,
+  SizeOfDArray,
+  DArrayTypeCheck<DFArray> );
 
 
 
-TypeConstructor DMatrix2TC(
-  DMatrix2::BasicType(),
-  DMatrix2Property,
-  OutDArray2<DMatrix2>, InDArray2<DMatrix2>,
+TypeConstructor DMatrixTC(
+  DMatrix::BasicType(),
+  DMatrixProperty,
+  OutDArray<DMatrix>, InDArray<DMatrix>,
   0,0,
-  CreateDArray2<DMatrix2>, DeleteDArray2<DMatrix2>,
-  DMatrix2::open, DMatrix2::save,
-  CloseDArray2<DMatrix2>, CloneDArray2<DMatrix2>,
-  CastDArray2<DMatrix2>,
-  SizeOfDArray2,
-  DArray2TypeCheck<DMatrix2> );
+  CreateDArray<DMatrix>, DeleteDArray<DMatrix>,
+  DMatrix::open, DMatrix::save,
+  CloseDArray<DMatrix>, CloneDArray<DMatrix>,
+  CastDArray<DMatrix>,
+  SizeOfDArray,
+  DArrayTypeCheck<DMatrix> );
 
 
 /*
-3. DArray2 Operators
+3. DArray Operators
 
 3.1 Operator ~put~
 
@@ -6778,19 +6778,19 @@ the resulting array will be undefined.
 
 3.1.1 Type Mapping
 
-the signature is darray2(t) x int x t -> darray2(t)
+the signature is darray(t) x int x t -> darray(t)
 
 */
 ListExpr putTM(ListExpr args){
-   string err = "{darray2(t), dfarray(t)}  x int x t expected";
+   string err = "{darray(t), dfarray(t)}  x int x t expected";
 
    if(!nl->HasLength(args,3)){
      return listutils::typeError(err + " (invalid number of args)");
    } 
-   if( !DArray2::checkType(nl->First(args))&&
-       !DFArray2::checkType(nl->First(args))){
+   if( !DArray::checkType(nl->First(args))&&
+       !DFArray::checkType(nl->First(args))){
      return listutils::typeError(err + " ( first arg is not a "
-                                       "darray or dfarray2)");
+                                       "darray or dfarray)");
    }
    if( !CcInt::checkType(nl->Second(args))){
      return listutils::typeError(err + " ( second arg is not an int)");
@@ -6799,7 +6799,7 @@ ListExpr putTM(ListExpr args){
 
    ListExpr subtype = nl->Second(nl->First(args));
    if(!nl->Equal(subtype, nl->Third(args))){
-    return listutils::typeError("type conflic between darray2 "
+    return listutils::typeError("type conflic between darray "
                                  "and argument type");
    }
    return nl->First(args);
@@ -6819,10 +6819,10 @@ int putVMA(Word* args, Word& result, int message,
                 Word& local, Supplier s ){
 
 
-  DArray2* array = (DArray2*) args[0].addr;
+  DArray* array = (DArray*) args[0].addr;
   CcInt* index = (CcInt*) args[1].addr;
   result = qp->ResultStorage(s);
-  DArray2* res = (DArray2*) result.addr;
+  DArray* res = (DArray*) result.addr;
   if(!array->IsDefined() || !index->IsDefined()){
      res->makeUndefined();
      return 0;
@@ -6844,7 +6844,7 @@ int putVMA(Word* args, Word& result, int message,
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
 
   
-  DArray2Element elem = array->getWorkerForSlot(i);
+  DArrayElement elem = array->getWorkerForSlot(i);
 
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
 
@@ -6869,8 +6869,8 @@ int putVMFA(Word* args, Word& result, int message,
                 Word& local, Supplier s ){
 
   result = qp->ResultStorage(s);
-  DFArray2* res = (DFArray2*) result.addr; 
-  DFArray2* array = (DFArray2*) args[0].addr;
+  DFArray* res = (DFArray*) result.addr; 
+  DFArray* array = (DFArray*) args[0].addr;
   (*res) = (*array);
   if(!array->IsDefined()){ // never put something intop an undefined array
     return 0;
@@ -6949,13 +6949,13 @@ int putVMFA(Word* args, Word& result, int message,
 */
 
 OperatorSpec putSpec(
-     " darray2(T) x int x T -> darray2(T) ",
+     " darray(T) x int x T -> darray(T) ",
      " put(_,_,_)",
-     "Puts an element at a specific position of a darray2. "
+     "Puts an element at a specific position of a darray. "
      "If there is some problem, the result is undefined; otherwise "
      "the result represents the same array as before with "
      "a changed element",
-     "query put([const darray2(int) value"
+     "query put([const darray(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] , 1, 27)"
      );
@@ -6964,7 +6964,7 @@ OperatorSpec putSpec(
 ValueMapping putVM[] ={ putVMA, putVMFA };
 
 int putSelect(ListExpr args){
-  return DArray2::checkType(nl->First(args))?0:1;
+  return DArray::checkType(nl->First(args))?0:1;
 }
 
 
@@ -6990,19 +6990,19 @@ This operator retrieves an remove object from a server
 
 3.2.1 Type Mapping
 
-Signature is darray2(T) x int -> T
+Signature is darray(T) x int -> T
 
 */
 ListExpr getTM(ListExpr args){
 
-  string err = "{darray2(T), dfarray(T)} x int expected";
+  string err = "{darray(T), dfarray(T)} x int expected";
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err + " (invalid number of args)");
   }
-  if(    !DArray2::checkType(nl->First(args)) 
-      && !DFArray2::checkType(nl->First(args))){
+  if(    !DArray::checkType(nl->First(args)) 
+      && !DFArray::checkType(nl->First(args))){
      return listutils::typeError(err+
-                          " ( first is not a darray2 or a dfarray2)");
+                          " ( first is not a darray or a dfarray)");
   }
   if(!CcInt::checkType(nl->Second(args))){
      return listutils::typeError(err+"(second arg is not of type int)");
@@ -7017,7 +7017,7 @@ ListExpr getTM(ListExpr args){
 int getVMDA(Word* args, Word& result, int message,
           Word& local, Supplier s ){
 
-  DArray2* array = (DArray2*) args[0].addr;
+  DArray* array = (DArray*) args[0].addr;
   CcInt* index = (CcInt*) args[1].addr;
   result = qp->ResultStorage(s);
   bool isData = listutils::isDATA(qp->GetType(s));
@@ -7050,7 +7050,7 @@ int getVMDA(Word* args, Word& result, int message,
   }
 
 
-  DArray2Element elem = array->getWorkerForSlot(i);
+  DArrayElement elem = array->getWorkerForSlot(i);
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
   if(!ci){ // problem with connection the monitor or opening the databaseA
@@ -7078,7 +7078,7 @@ int getVMDA(Word* args, Word& result, int message,
   }
   if(!nl->Equal(resType, qp->GetType(s))){
      // result type  differs from expected type
-     cerr << "Types in darray2 differs from type in remote db" << endl;
+     cerr << "Types in darray differs from type in remote db" << endl;
      string typeName; 
      int algebraId;
      int typeId;
@@ -7106,7 +7106,7 @@ int getVMDFA(Word* args, Word& result, int message,
              Word& local, Supplier s ){
 
   result = qp->ResultStorage(s);
-  DFArray2* array = (DFArray2*) args[0].addr;
+  DFArray* array = (DFArray*) args[0].addr;
   CcInt* ccpos = (CcInt*) args[1].addr;
 
   if(!array->IsDefined() || !ccpos->IsDefined()){
@@ -7116,7 +7116,7 @@ int getVMDFA(Word* args, Word& result, int message,
   if(pos < 0 || (size_t) pos >= array->getSize()){
      return 0;
   }
-  DArray2Element elem = array->getWorkerForSlot(pos);
+  DArrayElement elem = array->getWorkerForSlot(pos);
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
   if(!ci){
@@ -7155,11 +7155,11 @@ int getVMDFA(Word* args, Word& result, int message,
 
 
 OperatorSpec getSpec(
-     " {darray2(T), dfarray(T)}  x int -> T ",
+     " {darray(T), dfarray(T)}  x int -> T ",
      " get(_,_)",
      " Retrieves an element at a specific position "
-     "of a darray2 or a dfarray2.",
-     " query get([const darray2(int) value"
+     "of a darray or a dfarray.",
+     " query get([const darray(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] , 1, )"
      );
@@ -7170,7 +7170,7 @@ ValueMapping getVM[] = {
 };
 
 int getSelect(ListExpr args){
- return DArray2::checkType(nl->First(args))?0:1;
+ return DArray::checkType(nl->First(args))?0:1;
 }
 
 
@@ -7187,17 +7187,17 @@ Operator getOp(
 /*
 3.4.4 Operator size
 
-This operator just asks for the size of a darray2 instance.
+This operator just asks for the size of a darray instance.
 
 */
 ListExpr sizeTM(ListExpr args){
-  string err  = "darray2  or dfarray2expected";
+  string err  = "darray  or dfarrayexpected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
-  if(!DArray2::checkType(nl->First(args))
-    && !DFArray2::checkType(nl->First(args))
-    && !DMatrix2::checkType(nl->First(args))){
+  if(!DArray::checkType(nl->First(args))
+    && !DFArray::checkType(nl->First(args))
+    && !DMatrix::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
   return listutils::basicSymbol<CcInt>();
@@ -7220,26 +7220,26 @@ int sizeVMT(Word* args, Word& result, int message,
 }
 
 OperatorSpec sizeSpec(
-     " darray2(T) -> int , dfarray2(T) - int ",
+     " darray(T) -> int , dfarray(T) - int ",
      " size(_)",
-     " Returns the number of slots of a darray2.",
-     " query size([const darray2(int) value"
+     " Returns the number of slots of a darray.",
+     " query size([const darray(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] )"
      );
 
 int sizeSelect(ListExpr args){
   ListExpr a = nl->First(args);
-  if(DArray2::checkType(a)) return 0;
-  if(DFArray2::checkType(a)) return 1;
-  if(DMatrix2::checkType(a)) return 2;
+  if(DArray::checkType(a)) return 0;
+  if(DFArray::checkType(a)) return 1;
+  if(DMatrix::checkType(a)) return 2;
   return -1;
 }
 
 ValueMapping sizeVM[] = {
-  sizeVMT<DArray2>,
-  sizeVMT<DFArray2>,
-  sizeVMT<DMatrix2>
+  sizeVMT<DArray>,
+  sizeVMT<DFArray>,
+  sizeVMT<DMatrix>
 };
 
 
@@ -7256,12 +7256,12 @@ Operator getWorkers
 
 */
 ListExpr getWorkersTM(ListExpr args){
-  string err = "darray2  or dfarray2  expected";
+  string err = "darray  or dfarray  expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
-  if(!DArray2::checkType(nl->First(args))
-     && !DFArray2::checkType(nl->First(args))){
+  if(!DArray::checkType(nl->First(args))
+     && !DFArray::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
 
@@ -7302,7 +7302,7 @@ class getWorkersInfo{
          if(pos >= array->numOfWorkers()){
             return 0;
          }
-         DArray2Element e = array->getWorker(pos);
+         DArrayElement e = array->getWorker(pos);
          pos++;
          Tuple* tuple = new Tuple(tt);
          tuple->PutAttribute(0, new FText(true,e.getHost()));
@@ -7352,21 +7352,21 @@ int getWorkersVMT(Word* args, Word& result, int message,
 
 
 OperatorSpec getWorkersSpec(
-     " darray2(T) -> stream(tuple(...)) , dfarray2(T) - stream(tuple(...))",
+     " darray(T) -> stream(tuple(...)) , dfarray(T) - stream(tuple(...))",
      " getWorkers(_)",
-     " Returns information about workers in a darray2.",
-     " query getWorkers([const darray2(int) value"
+     " Returns information about workers in a darray.",
+     " query getWorkers([const darray(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] ) count"
      );
 
 ValueMapping getWorkersVM[] = {
-  getWorkersVMT<DArray2>,
-  getWorkersVMT<DFArray2>
+  getWorkersVMT<DArray>,
+  getWorkersVMT<DFArray>
 };
 
 int getWorkersSelect(ListExpr args){
-  return DArray2::checkType(nl->First(args))?0:1;
+  return DArray::checkType(nl->First(args))?0:1;
 
 }
 
@@ -7741,15 +7741,15 @@ Operator ffeed5Op(
 );
 
 /*
-1.5 Operator create darray2
+1.5 Operator create darray
 
-This operator creates a darray2 from a stream specifying the workers. 
+This operator creates a darray from a stream specifying the workers. 
 As well as a template type.
 
 1.5.1 Type Mapping 
 
 */ 
-ListExpr createDarray2TM(ListExpr args){
+ListExpr createDArrayTM(ListExpr args){
    string err = "stream(tuple) x int x string x any "
                                "x Ident x Ident x Ident expected";
    if(!nl->HasLength(args,7)){
@@ -7819,10 +7819,10 @@ ListExpr createDarray2TM(ListExpr args){
    }
 
    ListExpr resType = nl->TwoElemList(
-                           listutils::basicSymbol<DArray2>(),
+                           listutils::basicSymbol<DArray>(),
                            nl->Fourth(args));
 
-   if(!DArray2::checkType(resType)){
+   if(!DArray::checkType(resType)){
       return listutils::typeError("the fourth element does not "
                                   "describe a valid type");
    } 
@@ -7841,7 +7841,7 @@ ListExpr createDarray2TM(ListExpr args){
 
 */
 template<class H, class C>
-int createDarray2VMT(Word* args, Word& result, int message,
+int createDArrayVMT(Word* args, Word& result, int message,
           Word& local, Supplier s ){
 
    int host = ((CcInt*) args[7].addr)->GetValue();
@@ -7850,7 +7850,7 @@ int createDarray2VMT(Word* args, Word& result, int message,
 
 
    result = qp->ResultStorage(s);
-   DArray2* res = (DArray2*) result.addr;
+   DArray* res = (DArray*) result.addr;
 
    CcInt* size = (CcInt*) args[1].addr;
    CcString* name = (CcString*) args[2].addr;
@@ -7864,7 +7864,7 @@ int createDarray2VMT(Word* args, Word& result, int message,
       res->makeUndefined();
       return 0; 
    }
-   vector<DArray2Element> v;
+   vector<DArrayElement> v;
    Stream<Tuple> stream(args[0]);
    stream.open();
    Tuple* tuple;
@@ -7878,7 +7878,7 @@ int createDarray2VMT(Word* args, Word& result, int message,
         int po = p->GetValue();
         string co = c->GetValue();
         if(po>0){
-           DArray2Element elem(ho,po,count,co);
+           DArrayElement elem(ho,po,count,co);
             count++;
             v.push_back(elem);
         }
@@ -7894,14 +7894,14 @@ int createDarray2VMT(Word* args, Word& result, int message,
 1.4.5 Value Mapping Array and Selection Function
 
 */
-ValueMapping createDarray2VM[] = {
-   createDarray2VMT<CcString,CcString>,
-   createDarray2VMT<CcString,FText>,
-   createDarray2VMT<FText,CcString>,
-   createDarray2VMT<FText,FText>
+ValueMapping createDArrayVM[] = {
+   createDArrayVMT<CcString,CcString>,
+   createDArrayVMT<CcString,FText>,
+   createDArrayVMT<FText,CcString>,
+   createDArrayVMT<FText,FText>
 };
 
-int createDarray2Select(ListExpr args){
+int createDArraySelect(ListExpr args){
   ListExpr H = nl->Fifth(args);
   ListExpr C = nl->Seventh(args);
 
@@ -7921,26 +7921,26 @@ int createDarray2Select(ListExpr args){
 1.4.6 Specification
 
 */
-OperatorSpec createDarray2Spec(
+OperatorSpec createDArraySpec(
      " stream<TUPLE> x int x string x ANY x attrName x "
-     "attrName x attrName  -> darray2",
-     " _ createDarray2[size, name, type template , HostAttr, "
+     "attrName x attrName  -> darray",
+     " _ createDArray[size, name, type template , HostAttr, "
                      "PortAttr, ConfigAttr]",
      " Creates a darray 2. The workers are given by the input stream. ",
-     " query workers feed createDarray2[6,\"obj\",streets, Host, Port, Config] "
+     " query workers feed createDArray[6,\"obj\",streets, Host, Port, Config] "
      );
 
 /*
 1.4.7 Operator instance
 
 */
-Operator createDarray2Op(
-  "createDarray2",
-  createDarray2Spec.getStr(),
+Operator createDArrayOp(
+  "createDArray",
+  createDArraySpec.getStr(),
   4,
-  createDarray2VM,
-  createDarray2Select,
-  createDarray2TM
+  createDArrayVM,
+  createDArraySelect,
+  createDArrayTM
 );
 
 
@@ -7953,13 +7953,13 @@ This operator sets some values of the dbarray in parallel.
 
 */
 ListExpr pputTM(ListExpr args){
-  string err = "darray2(T) x (int x T)+ expected";
+  string err = "darray(T) x (int x T)+ expected";
   if(nl->ListLength(args) <2){
     return listutils::typeError(err);
   }
   ListExpr darray = nl->First(args);
   ListExpr pairs = nl->Rest(args);
-  if(!DArray2::checkType(darray)){
+  if(!DArray::checkType(darray)){
     return listutils::typeError(err);
   }
   ListExpr subType = nl->Second(darray);
@@ -7987,7 +7987,7 @@ ListExpr pputTM(ListExpr args){
 class SinglePutter{
 
   public:
-    SinglePutter(ListExpr _type, DArray2* _array, 
+    SinglePutter(ListExpr _type, DArray* _array, 
                  int _arrayIndex, Word& _value):
      type(_type), array(_array), arrayIndex(_arrayIndex), value(_value){
        runner = boost::thread(&SinglePutter::run,this);
@@ -8000,7 +8000,7 @@ class SinglePutter{
 
   private:
      ListExpr type;
-     DArray2* array;
+     DArray* array;
      int arrayIndex;
      Word value;
      boost::thread runner;
@@ -8008,7 +8008,7 @@ class SinglePutter{
 
     void run(){
       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-      DArray2Element elem = 
+      DArrayElement elem = 
                     array->getWorkerForSlot(arrayIndex);
       ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
       if(!ci){
@@ -8026,7 +8026,7 @@ class PPutter{
   public:
 
     PPutter(ListExpr _type,
-            DArray2* _arg, vector<pair<int,Word> >& _values){
+            DArray* _arg, vector<pair<int,Word> >& _values){
       this->type = _type;
       this->source = _arg;
       set<int> used;
@@ -8063,7 +8063,7 @@ class PPutter{
 
   private:
     ListExpr type;
-    DArray2* source;
+    DArray* source;
     vector<pair<int,Word> > values;
     vector<SinglePutter*> putters;
     bool started;
@@ -8080,9 +8080,9 @@ int pputVM(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
-   DArray2* res = (DArray2*) result.addr;
+   DArray* res = (DArray*) result.addr;
 
-   DArray2* arg = (DArray2*) args[0].addr;
+   DArray* arg = (DArray*) args[0].addr;
 
    // collect the value to set into an vector
    // ignoring undefined indexes or indexes 
@@ -8126,9 +8126,9 @@ int pputVM(Word* args, Word& result, int message,
 
 
 OperatorSpec pputSpec(
-     " darray2(T) x (int x T)+ -> darray2 ",
+     " darray(T) x (int x T)+ -> darray ",
      " _ pput[ index , value , index, value ,...]",
-     " Puts elements into a darray2 in parallel. ",
+     " Puts elements into a darray in parallel. ",
      " query da pput[0, streets1, 1, streets2]  "
      );
 
@@ -8285,7 +8285,7 @@ class RelFileRestorer{
 
  public:
    RelFileRestorer(ListExpr _relType, const string& _objName,
-                   DArray2* _array, int _arrayIndex, 
+                   DArray* _array, int _arrayIndex, 
                    const string& _filename):
     //relType(_relType), 
     objName(_objName), array(_array), 
@@ -8323,7 +8323,7 @@ class RelFileRestorer{
  private:
     //ListExpr relType;
     string objName;
-    DArray2* array;
+    DArray* array;
     int arrayIndex;
     string filename;
     bool started;
@@ -8374,7 +8374,7 @@ class FRelCopy{
   public:
 
      FRelCopy(ListExpr _relType, const string& _objName,
-              DFArray2* _array, int _arrayIndex, 
+              DFArray* _array, int _arrayIndex, 
               const string& _filename):
      name(_filename), slot(_arrayIndex), array(_array), started(false),ci(0)
      {
@@ -8406,7 +8406,7 @@ class FRelCopy{
   private:
      string name;
      int slot;
-     DFArray2* array;
+     DFArray* array;
      bool started;
      ConnectionInfo* ci;
      string dbname;
@@ -8601,9 +8601,9 @@ int ddistribute2VMT(Word* args, Word& result, int message,
 
 */
 OperatorSpec ddistribute2Spec(
-     " stream(tuple(X)) x ident x int x rel x string -> darray2(X) ",
+     " stream(tuple(X)) x ident x int x rel x string -> darray(X) ",
      " _ ddistribute2[ _, _,_,_]",
-     " Distributes a locally stored relation into a darray2. "
+     " Distributes a locally stored relation into a darray. "
      "The first argument is the tuple stream to distribute. The second "
      "Argument is an attribute within this stream of type int. "
      "This attribute controls in which slot of the resulting array "
@@ -8620,10 +8620,10 @@ OperatorSpec ddistribute2Spec(
 
 
 ValueMapping ddistribute2VM[] = {
-  ddistribute2VMT<DArray2,RelFileRestorer, CcString,CcString>,
-  ddistribute2VMT<DArray2,RelFileRestorer, CcString,FText>,
-  ddistribute2VMT<DArray2,RelFileRestorer, FText,CcString>,
-  ddistribute2VMT<DArray2,RelFileRestorer, FText,FText>,
+  ddistribute2VMT<DArray,RelFileRestorer, CcString,CcString>,
+  ddistribute2VMT<DArray,RelFileRestorer, CcString,FText>,
+  ddistribute2VMT<DArray,RelFileRestorer, FText,CcString>,
+  ddistribute2VMT<DArray,RelFileRestorer, FText,FText>,
 };
 
 
@@ -8652,7 +8652,7 @@ Operator ddistribute2Op(
   4,
   ddistribute2VM,
   distribute2Select,
-  ddistribute2TMT<DArray2>
+  ddistribute2TMT<DArray>
 );
 
 
@@ -8661,7 +8661,7 @@ Operator ddistribute2Op(
 1.7 Operator ~ddistribute3~
 
 Similar to the ddistribute2 operator, this operator distributes a tuple strean
-into a darray2 object. The difference is how the tuples of the incoming stream
+into a darray object. The difference is how the tuples of the incoming stream
 are distributed.  While the ddistribute2 operator requires an integer attribute
 signaling to which slot of the array the tuple should be stored, this operator
 get a partion size of the size of the array. The variant (meaning of the int
@@ -8883,7 +8883,7 @@ int distribute3VMT(Word* args, Word& result, int message,
 
 */
 OperatorSpec ddistribute3Spec(
-     " stream(tuple(X)) x int x bool x rel x string-> darray2(X) ",
+     " stream(tuple(X)) x int x bool x rel x string-> darray(X) ",
      " _ ddistribute3[ _, _,_,_]",
      " Distributes a tuple stream into a darray. The boolean "
      "flag controls the method of distribution. If the flag is set to "
@@ -8904,10 +8904,10 @@ OperatorSpec ddistribute3Spec(
 
 */
 ValueMapping ddistribute3VM[] = {
-  distribute3VMT<DArray2,RelFileRestorer, CcString, CcString>,   
-  distribute3VMT<DArray2,RelFileRestorer, CcString, FText>,   
-  distribute3VMT<DArray2,RelFileRestorer, FText, CcString>,   
-  distribute3VMT<DArray2,RelFileRestorer, FText, FText>   
+  distribute3VMT<DArray,RelFileRestorer, CcString, CcString>,   
+  distribute3VMT<DArray,RelFileRestorer, CcString, FText>,   
+  distribute3VMT<DArray,RelFileRestorer, FText, CcString>,   
+  distribute3VMT<DArray,RelFileRestorer, FText, FText>   
 };
 
 int distribute3Select(ListExpr args){
@@ -8929,7 +8929,7 @@ Operator ddistribute3Op(
   4,
   ddistribute3VM,
   distribute3Select,
-  distribute3TM<DArray2>
+  distribute3TM<DArray>
 );
 
 
@@ -9111,9 +9111,9 @@ int distribute4VMT(Word* args, Word& result, int message,
 }
 
 OperatorSpec ddistribute4Spec(
-     " stream(tuple(X)) x (tuple->int) x int x rel x string-> darray2(X) ",
+     " stream(tuple(X)) x (tuple->int) x int x rel x string-> darray(X) ",
      " stream  ddistribute4[ fun, size, workers, name ]",
-     " Distributes a locally stored relation into a darray2 ",
+     " Distributes a locally stored relation into a darray ",
      " query strassen feed  ddistribute4[ hashvalue(.Name,2000),"
      " 5, workers,  \"da8\"]  "
      );
@@ -9130,10 +9130,10 @@ int distribute4Select(ListExpr args){
 }
 
 ValueMapping ddistribute4VM[] = {
-    distribute4VMT<DArray2, RelFileRestorer, CcString, CcString>,
-    distribute4VMT<DArray2, RelFileRestorer, CcString, FText>,
-    distribute4VMT<DArray2, RelFileRestorer, FText, CcString>,
-    distribute4VMT<DArray2, RelFileRestorer, FText, FText>,
+    distribute4VMT<DArray, RelFileRestorer, CcString, CcString>,
+    distribute4VMT<DArray, RelFileRestorer, CcString, FText>,
+    distribute4VMT<DArray, RelFileRestorer, FText, CcString>,
+    distribute4VMT<DArray, RelFileRestorer, FText, FText>,
 };
 
 
@@ -9148,7 +9148,7 @@ Operator ddistribute4Op(
   4,
   ddistribute4VM,
   distribute4Select,
-  distribute4TMT<DArray2>
+  distribute4TMT<DArray>
 );
 
 
@@ -9350,16 +9350,16 @@ Operator fdistribute5Op(
 1.7 Operator closeWorkers
 
 This operator closes the worker connections either dor a spoecified
-darray2 instance or all existing connections.
+darray instance or all existing connections.
 
 */
 ListExpr closeWorkersTM(ListExpr args){
-  string err = " no argument or darray2 expected";
+  string err = " no argument or darray expected";
   if(!nl->IsEmpty(args) && !nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
   if(nl->HasLength(args,1)){
-    if(!DArray2::checkType(nl->First(args))){
+    if(!DArray::checkType(nl->First(args))){
        return listutils::typeError(err);
     }
   }
@@ -9375,7 +9375,7 @@ int closeWorkersVM(Word* args, Word& result, int message,
     if(qp->GetNoSons(s)==0){
        res->Set(true, algInstance->closeAllWorkers());  
     } else {
-       DArray2* arg = (DArray2*) args[0].addr;
+       DArray* arg = (DArray*) args[0].addr;
        if(!arg->IsDefined()){
          res->SetDefined(false);
          return 0;
@@ -9394,10 +9394,10 @@ int closeWorkersVM(Word* args, Word& result, int message,
 
 
 OperatorSpec closeWorkersSpec(
-     " -> int, darray2 -> int ",
+     " -> int, darray -> int ",
      " closeWorkers(_)",
      " Closes either all connections to workers (no argument)"
-     ", or connections of a specified darray2 instance.",
+     ", or connections of a specified darray instance.",
      " query closeWorkerConnections()  "
      );
 
@@ -9420,12 +9420,12 @@ are shown, otherwise infos about all existing workers.
 */
 
 ListExpr showWorkersTM(ListExpr args){
-  string err = "nothing or darray2 or dfarray2 expected" ;
+  string err = "nothing or darray or dfarray expected" ;
   if(!nl->IsEmpty(args) && !nl->HasLength(args,1)){
      return listutils::typeError(err);
   }
-  if(nl->HasLength(args,1) && !DArray2::checkType(nl->First(args))
-    && !DFArray2::checkType(nl->First(args))){
+  if(nl->HasLength(args,1) && !DArray::checkType(nl->First(args))
+    && !DFArray::checkType(nl->First(args))){
      return listutils::typeError(err);
   }
   ListExpr attrList = 
@@ -9482,7 +9482,7 @@ class showWorkersInfo{
   private:
     A* array;
     size_t pos;
-    typename map<DArray2Element, pair<string, ConnectionInfo*> >::iterator iter;
+    typename map<DArrayElement, pair<string, ConnectionInfo*> >::iterator iter;
     TupleType* tt;
 
     Tuple* nextFromArray(){
@@ -9490,7 +9490,7 @@ class showWorkersInfo{
          return 0;
       }
       while(pos < array->numOfWorkers()){
-        DArray2Element elem = array->getWorker(pos);
+        DArrayElement elem = array->getWorker(pos);
         pos++;
         string dbname = algInstance->getDBName(elem);
         ConnectionInfo* connectionInfo;
@@ -9511,7 +9511,7 @@ class showWorkersInfo{
       return res;
     }
 
-    Tuple* createTuple(const DArray2Element& elem, string& dbname,
+    Tuple* createTuple(const DArrayElement& elem, string& dbname,
                         ConnectionInfo* ci){
       Tuple* res = new Tuple(tt);
       res->PutAttribute(0, new FText(true, elem.getHost()));
@@ -9562,22 +9562,22 @@ int showWorkersVMT(Word* args, Word& result, int message,
 }
 
 OperatorSpec showWorkersSpec(
-     " -> stream(tuple), {darray2,dfarray2} -> stream(tuple) ",
+     " -> stream(tuple), {darray,dfarray} -> stream(tuple) ",
      " showWorkers([_])",
      "This operator shows information about either all connections to workers "
      "(no argument),  "
-     "or connections of a specified darray2 instance.",
+     "or connections of a specified darray instance.",
      " query showWorkers()  consume "
      );
 
 ValueMapping showWorkersVM[]={
-  showWorkersVMT<DArray2>,
-  showWorkersVMT<DFArray2>
+  showWorkersVMT<DArray>,
+  showWorkersVMT<DFArray>
 };
 
 int showWorkersSelect(ListExpr args){
 
-  return nl->IsEmpty(args) || DArray2::checkType(nl->First(args)) ?0:1;
+  return nl->IsEmpty(args) || DArray::checkType(nl->First(args)) ?0:1;
 
 }
 
@@ -9594,17 +9594,17 @@ Operator showWorkersOp(
 
 
 /*
-1.9 Operator dloop2
+1.9 Operator dloop
 
-This operator performs a function over all entries of a darray2.
+This operator performs a function over all entries of a darray.
 
 1.9.1 Type Mpping
 
-Signature: darray2(X) x string x (X->Y) -> darray2(Y)
+Signature: darray(X) x string x (X->Y) -> darray(Y)
 
 */
 
-ListExpr dloop2TM(ListExpr args){
+ListExpr dloopTM(ListExpr args){
 
 
   string err = "darray(X) x string x fun: X -> Y  expected";
@@ -9631,22 +9631,22 @@ ListExpr dloop2TM(ListExpr args){
   ListExpr funType = nl->First(fun);
   ListExpr arrayType = nl->First(darray);
 
-  if(!DArray2::checkType(arrayType)){
-    return listutils::typeError(err + ": first arg not a darray2");
+  if(!DArray::checkType(arrayType)){
+    return listutils::typeError(err + ": first arg not a darray");
   }
   if(!listutils::isMap<1>(funType)){
     return listutils::typeError(err + ": last arg is not a function");
   }
 
   if(!nl->Equal(nl->Second(arrayType), nl->Second(funType))){
-    return listutils::typeError("type mismatch between darray2 and "
+    return listutils::typeError("type mismatch between darray and "
                                 "function arg");
   }
 
-  ListExpr result = nl->TwoElemList(listutils::basicSymbol<DArray2>(),
+  ListExpr result = nl->TwoElemList(listutils::basicSymbol<DArray>(),
                                     nl->Third(funType));
 
-  if(!DArray2::checkType(result)){
+  if(!DArray::checkType(result)){
     return listutils::typeError("Invalid function result");
   }
 
@@ -9677,17 +9677,17 @@ ListExpr dloop2TM(ListExpr args){
 
 
 
-class dloop2Info{
+class dloopInfo{
 
   public:
-   dloop2Info(DArray2* _array, int _index, string& _resName,string& _fun) : 
+   dloopInfo(DArray* _array, int _index, string& _resName,string& _fun) : 
      index(_index), resName(_resName), fun(_fun), elem("",0,0,""){
      elem = _array->getWorkerForSlot(index);
      srcName = _array->getName();
-     runner = boost::thread(&dloop2Info::run, this);
+     runner = boost::thread(&dloopInfo::run, this);
   }
 
-  ~dloop2Info(){
+  ~dloopInfo(){
      runner.join();
   }
 
@@ -9696,7 +9696,7 @@ class dloop2Info{
     int index;
     string resName;
     string fun;
-    DArray2Element elem;
+    DArrayElement elem;
     string srcName;
     boost::thread runner;
 
@@ -9730,13 +9730,13 @@ class dloop2Info{
 };
 
 
-int dloop2VM(Word* args, Word& result, int message,
+int dloopVM(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-   DArray2* array = (DArray2*) args[0].addr;
+   DArray* array = (DArray*) args[0].addr;
    result = qp->ResultStorage(s);
-   DArray2* res = (DArray2*) result.addr;
+   DArray* res = (DArray*) result.addr;
    
   if(!array->IsDefined()){
       res->makeUndefined();
@@ -9762,11 +9762,11 @@ int dloop2VM(Word* args, Word& result, int message,
    (*res) = (*array);
    res->setName(n);
 
-   vector<dloop2Info*> runners;
+   vector<dloopInfo*> runners;
    string f = fun->GetValue();
 
    for(size_t i=0; i<array->getSize(); i++){
-     dloop2Info* r = new dloop2Info(array,i,n,f);
+     dloopInfo* r = new dloopInfo(array,i,n,f);
      runners.push_back(r);
    }
 
@@ -9777,97 +9777,97 @@ int dloop2VM(Word* args, Word& result, int message,
 }
 
 
-OperatorSpec dloop2Spec(
-     " darray2(X) x string x  (X->Y) -> darray2(Y)",
-     " _ dloop2[_,_]",
-     "Performs a function on each element of a darray2 instance."
+OperatorSpec dloopSpec(
+     " darray(X) x string x  (X->Y) -> darray(Y)",
+     " _ dloop[_,_]",
+     "Performs a function on each element of a darray instance."
      "The string argument specifies the name of the result. If the name"
      " is undefined or an empty string, a name is generated automatically.",
-     "query da2 dloop2[\"da3\", . count"
+     "query da2 dloop[\"da3\", . count"
      );
 
-Operator dloop2Op(
-  "dloop2",
-  dloop2Spec.getStr(),
-  dloop2VM,
+Operator dloopOp(
+  "dloop",
+  dloopSpec.getStr(),
+  dloopVM,
   Operator::SimpleSelect,
-  dloop2TM
+  dloopTM
 );
 
 
 ListExpr
-DARRAY2ELEMTM( ListExpr args )
+DARRAYELEMTM( ListExpr args )
 {
 
   if(!nl->HasMinLength(args,1)){
     return listutils::typeError("at least one argument required");
   }
   ListExpr first = nl->First(args);
-  if(!DArray2::checkType(first)){
-    return listutils::typeError("darray2 expected");
+  if(!DArray::checkType(first)){
+    return listutils::typeError("darray expected");
   }
   return nl->Second(first);
 }
 
-OperatorSpec DARRAY2ELEMSpec(
-     "darray2(X) -> X ",
-     "DARRAY2ELEM(_)",
-     "Type Mapping Operator. Extract the type of a darray2.",
-     "query da2 dloop2[\"da3\", . count"
+OperatorSpec DARRAYELEMSpec(
+     "darray(X) -> X ",
+     "DARRAYELEM(_)",
+     "Type Mapping Operator. Extract the type of a darray.",
+     "query da2 dloop[\"da3\", . count"
      );
 
-Operator DARRAY2ELEMOp (
-      "DARRAY2ELEM",
-      DARRAY2ELEMSpec.getStr(),
+Operator DARRAYELEMOp (
+      "DARRAYELEM",
+      DARRAYELEMSpec.getStr(),
       0,   
       Operator::SimpleSelect,
-      DARRAY2ELEMTM );
+      DARRAYELEMTM );
 
 
 ListExpr
-DARRAY2ELEM2TM( ListExpr args )
+DARRAYELEM2TM( ListExpr args )
 {
   if(!nl->HasMinLength(args,2)){
     return listutils::typeError("at least one argument required");
   }
   ListExpr second = nl->Second(args);
-  if(!DArray2::checkType(second)){
-    return listutils::typeError("darray2 expected");
+  if(!DArray::checkType(second)){
+    return listutils::typeError("darray expected");
   }
   ListExpr res =  nl->Second(second);
   return res;
 }
 
-OperatorSpec DARRAY2ELEM2Spec(
-     "T x darray2(Y) x ... -> Y ",
-     "DARRAY2ELEM2(_)",
-     "Type Mapping Operator. Extract the type of a darray2.",
-     "query da2 da3 dloop2[\"da3\", .. count"
+OperatorSpec DARRAYELEM2Spec(
+     "T x darray(Y) x ... -> Y ",
+     "DARRAYELEM2(_)",
+     "Type Mapping Operator. Extract the type of a darray.",
+     "query da2 da3 dloop[\"da3\", .. count"
      );
 
-Operator DARRAY2ELEM2Op (
-      "DARRAY2ELEM2",
-      DARRAY2ELEM2Spec.getStr(),
+Operator DARRAYELEM2Op (
+      "DARRAYELEM2",
+      DARRAYELEM2Spec.getStr(),
       0,   
       Operator::SimpleSelect,
-      DARRAY2ELEM2TM );
+      DARRAYELEM2TM );
 /*
-1.8 Operator ~dsummarize2~
+1.8 Operator ~dsummarize~
 
-This operator puts all parts of an darray2 instance into a single stream.
+This operator puts all parts of an darray instance into a single stream.
 If relations are stored within the darray, each tuple is a stream element.
 If attributes are stored, each element corresponds to a single token in 
 the resulting stream. Other subtypes are not supported.
 
 */
-ListExpr dsummarize2TM(ListExpr args){
+ListExpr dsummarizeTM(ListExpr args){
 
-  string err="darray2(X) with X in rel or DATA expected";
+  string err="darray(X) with X in rel or DATA expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
   ListExpr arg = nl->First(args);
-  if(!DArray2::checkType(arg)){
+  if(!DArray::checkType(arg)){
     return listutils::typeError(err);
   }
   ListExpr subtype = nl->Second(arg);
@@ -9894,10 +9894,10 @@ class successListener{
      virtual void jobDone(int id, bool success)=0;
 };
 
-class dsummarize2AttrInfoRunner{
+class dsummarizeAttrInfoRunner{
 
   public:
-     dsummarize2AttrInfoRunner(DArray2Element& _elem, const string& _objName,
+     dsummarizeAttrInfoRunner(DArrayElement& _elem, const string& _objName,
                                ListExpr _resType,
                                const string& _db, int _index,
                                successListener* _listener): 
@@ -9908,11 +9908,11 @@ class dsummarize2AttrInfoRunner{
      }
 
      void start(){
-       runner = boost::thread(&dsummarize2AttrInfoRunner::run,this);
+       runner = boost::thread(&dsummarizeAttrInfoRunner::run,this);
      }
       
 
-     ~dsummarize2AttrInfoRunner(){
+     ~dsummarizeAttrInfoRunner(){
           runner.join();
           if(attribute){
               attribute->DeleteIfAllowed();
@@ -9926,7 +9926,7 @@ class dsummarize2AttrInfoRunner{
       }
 
   private:
-     DArray2Element elem;
+     DArrayElement elem;
      string objName;
      ListExpr resType;
      string db;
@@ -9952,15 +9952,15 @@ class dsummarize2AttrInfoRunner{
      }
 };
 
-class dsummarize2AttrInfo : public successListener{
+class dsummarizeAttrInfo : public successListener{
 
    public:
-      dsummarize2AttrInfo(DArray2* _array, ListExpr _resType) : 
+      dsummarizeAttrInfo(DArray* _array, ListExpr _resType) : 
         array(_array), resType(_resType),stopped(false), pos(0){
-        runner = boost::thread(&dsummarize2AttrInfo::run, this);       
+        runner = boost::thread(&dsummarizeAttrInfo::run, this);       
       }
 
-      virtual ~dsummarize2AttrInfo(){
+      virtual ~dsummarizeAttrInfo(){
          stopped = true;
          runner.join();
          for(size_t i=0;i<runners.size();i++){
@@ -9996,11 +9996,11 @@ class dsummarize2AttrInfo : public successListener{
       } 
    
    private:
-      DArray2* array;
+      DArray* array;
       ListExpr resType;
       bool stopped;
       size_t pos;
-      vector<pair<dsummarize2AttrInfoRunner*,bool> > runners;
+      vector<pair<dsummarizeAttrInfoRunner*,bool> > runners;
       boost::thread runner;
       boost::condition_variable cond;
       boost::mutex mtx;
@@ -10009,11 +10009,11 @@ class dsummarize2AttrInfo : public successListener{
            string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
            string aname = array->getName();
            while(!stopped && runners.size() < array->getSize()){
-              DArray2Element elem = array->getWorkerForSlot(runners.size());
+              DArrayElement elem = array->getWorkerForSlot(runners.size());
               string objname = aname + "_" + 
                                stringutils::int2str(runners.size());
-              dsummarize2AttrInfoRunner* r = new 
-                      dsummarize2AttrInfoRunner( elem, 
+              dsummarizeAttrInfoRunner* r = new 
+                      dsummarizeAttrInfoRunner( elem, 
                              objname, resType, dbname, runners.size(), this);
               runners.push_back(make_pair(r,false));
               r->start();
@@ -10026,7 +10026,7 @@ class dsummarize2AttrInfo : public successListener{
 1.8.3 LocalInfo for Relations
 
 */
-class dsummarize2RelListener{
+class dsummarizeRelListener{
   public:
      virtual void connectionFailed(int id) = 0;
      virtual void fileAvailable(int id, const string& fname)=0;
@@ -10038,15 +10038,15 @@ class RelationFileGetter{
 
 
   public:
-     RelationFileGetter(DArray2* _array, int _index, 
-                        dsummarize2RelListener* _listener):
+     RelationFileGetter(DArray* _array, int _index, 
+                        dsummarizeRelListener* _listener):
       array(_array), index(_index), listener(_listener){
      }
 
      void operator()(){
        // get the connection
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-       DArray2Element elem = array->getWorkerForSlot(index);
+       DArrayElement elem = array->getWorkerForSlot(index);
        ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
        if(!ci){ // connection failed
           listener->connectionFailed(index);
@@ -10062,19 +10062,19 @@ class RelationFileGetter{
      }
 
    private:
-     DArray2* array;
+     DArray* array;
      int      index;
-     dsummarize2RelListener* listener;
+     dsummarizeRelListener* listener;
 
 
 };
 
 
 
-class dsummarize2RelInfo: public dsummarize2RelListener{
+class dsummarizeRelInfo: public dsummarizeRelListener{
 
   public:
-     dsummarize2RelInfo(DArray2* _array, ListExpr _resType):
+     dsummarizeRelInfo(DArray* _array, ListExpr _resType):
          array(_array), currentIndex(0), currentFeeder(0), resType(_resType)
     {
         start();
@@ -10111,7 +10111,7 @@ class dsummarize2RelInfo: public dsummarize2RelListener{
 
      }
  
-     virtual ~dsummarize2RelInfo(){
+     virtual ~dsummarizeRelInfo(){
         for(size_t i=0;i<runners.size();i++){
            if(runners[i]){
               runners[i]->join();
@@ -10148,7 +10148,7 @@ class dsummarize2RelInfo: public dsummarize2RelListener{
 
 
   private:
-     DArray2* array;
+     DArray* array;
      size_t currentIndex; 
      ffeed5Info* currentFeeder;
      ListExpr resType;
@@ -10171,13 +10171,13 @@ class dsummarize2RelInfo: public dsummarize2RelListener{
 
 
 template<class T>
-int dsummarize2VMT(Word* args, Word& result, int message,
+int dsummarizeVMT(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
    T* li = (T*) local.addr;
    switch(message){
      case OPEN: if(li) delete li;
-                local.addr = new T((DArray2*) args[0].addr, 
+                local.addr = new T((DArray*) args[0].addr, 
                                     nl->Second(qp->GetType(s)));
                 return 0;
      case REQUEST:
@@ -10197,13 +10197,13 @@ int dsummarize2VMT(Word* args, Word& result, int message,
 
 */
 
-ValueMapping dsummarize2VM[] = {
-    dsummarize2VMT<dsummarize2RelInfo>,
-    dsummarize2VMT<dsummarize2AttrInfo>
+ValueMapping dsummarizeVM[] = {
+    dsummarizeVMT<dsummarizeRelInfo>,
+    dsummarizeVMT<dsummarizeAttrInfo>
 };
 
 
-int dsummarize2Select(ListExpr args){
+int dsummarizeSelect(ListExpr args){
   return Relation::checkType(nl->Second(nl->First(args)))?0:1;
 }
 
@@ -10212,11 +10212,11 @@ int dsummarize2Select(ListExpr args){
 
 */
 
-OperatorSpec dsummarize2Spec(
-     "darray2(DATA) -> stream(DATA) , darray2(rel(X)) -> stream(X)",
+OperatorSpec dsummarizeSpec(
+     "darray(DATA) -> stream(DATA) , darray(rel(X)) -> stream(X)",
      "_ dsummarize",
      "Produces a stream of the darray elements.",
-     "query da2 dsummarize2 count"
+     "query da2 dsummarize count"
      );
 
 /*
@@ -10225,13 +10225,13 @@ OperatorSpec dsummarize2Spec(
 */
 
 
-Operator dsummarize2Op(
-  "dsummarize2",
-  dsummarize2Spec.getStr(),
+Operator dsummarizeOp(
+  "dsummarize",
+  dsummarizeSpec.getStr(),
   2,
-  dsummarize2VM,
-  dsummarize2Select,
-  dsummarize2TM
+  dsummarizeVM,
+  dsummarizeSelect,
+  dsummarizeTM
 );
 
 
@@ -10244,12 +10244,12 @@ normal array from the ArrayAlgebra.
 */
 
 ListExpr getValueTM(ListExpr args){
-  string err ="darray2 or dfarray2 expected";
+  string err ="darray or dfarray expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err + " (wrong number of args)");
   }
   ListExpr a1 = nl->First(args);
-  if(!DArray2::checkType(a1) && !DFArray2::checkType(a1)){
+  if(!DArray::checkType(a1) && !DFArray::checkType(a1)){
     return listutils::typeError(err);
   }
   return nl->TwoElemList( 
@@ -10265,12 +10265,12 @@ class getValueListener{
 };
 
 /*
-1.10.2 Class retrieving a single slot from a darray2
+1.10.2 Class retrieving a single slot from a darray
 
 */
 class getValueGetter{
   public:
-    getValueGetter(DArray2* _array, int _index, getValueListener* _listener, 
+    getValueGetter(DArray* _array, int _index, getValueListener* _listener, 
       ListExpr _resType):
        array(_array), index(_index), resType(_resType),listener(_listener){}
        
@@ -10292,7 +10292,7 @@ class getValueGetter{
    }
 
   private:
-    DArray2* array;
+    DArray* array;
     int index;
     ListExpr resType;
     getValueListener* listener;
@@ -10301,12 +10301,12 @@ class getValueGetter{
 
 
 /*
-1.10.3 Class retrieving a single slot from a dfarray2
+1.10.3 Class retrieving a single slot from a dfarray
 
 */
 class getValueFGetter{
   public:
-    getValueFGetter(DFArray2* _array, int _index, getValueListener* _listener, 
+    getValueFGetter(DFArray* _array, int _index, getValueListener* _listener, 
       ListExpr _resType):
        array(_array), index(_index), resType(_resType),listener(_listener){}
        
@@ -10331,7 +10331,7 @@ class getValueFGetter{
    }
 
   private:
-    DFArray2* array;
+    DFArray* array;
     int index;
     ListExpr resType;
     getValueListener* listener;
@@ -10441,16 +10441,16 @@ int getValueVMT(Word* args, Word& result, int message,
 
 
 int getValueSelect(ListExpr args){
-  return DArray2::checkType(nl->First(args))?0:1;
+  return DArray::checkType(nl->First(args))?0:1;
 }
 
 ValueMapping getValueVM[] = {
-  getValueVMT<DArray2,getValueGetter>,
-  getValueVMT<DFArray2,getValueFGetter>
+  getValueVMT<DArray,getValueGetter>,
+  getValueVMT<DFArray,getValueFGetter>
 };
 
 OperatorSpec getValueSpec(
-     "{darray2(T),dfarray2(T)} -> array(T)",
+     "{darray(T),dfarray(T)} -> array(T)",
      "getValue(_)",
      "Converts a distributed array into a normal one.",
      "query getValue(da2)"
@@ -10468,21 +10468,21 @@ Operator getValueOp(
 
 
 /*
-1.10 OPerator ~dloop2a~
+1.10 OPerator ~dloopa~
 
-This operator performs a function on the elements of two darray2 values.
-The workerlist of both darray2 instances must be the same. The smaller
-darray2 instance determines the size of the result. Because the workerlist
+This operator performs a function on the elements of two darray values.
+The workerlist of both darray instances must be the same. The smaller
+darray instance determines the size of the result. Because the workerlist
 must be equal, the single elements of the arrays are on the same worker
 and no data must be tramsferred.
 
 1.10.1 Type Mapping
 
-darray2(X) x darray2(Y) x string x (fun: X x Y [->] Z) [->] darray2(Z)
+darray(X) x darray(Y) x string x (fun: X x Y [->] Z) [->] darray(Z)
 
 */
-ListExpr dloop2aTM(ListExpr args){
-   string err ="darray2(X) x darray2(Y) x string x (X x Y ->Z) expected";
+ListExpr dloopaTM(ListExpr args){
+   string err ="darray(X) x darray(Y) x string x (X x Y ->Z) expected";
    if(!nl->HasLength(args,4)){
       return listutils::typeError(err);
    } 
@@ -10496,8 +10496,8 @@ ListExpr dloop2aTM(ListExpr args){
       args2 = nl->Rest(args2);
    }
    
-   if(    !DArray2::checkType(nl->First(nl->First(args))) 
-       || !DArray2::checkType(nl->First(nl->Second(args)))
+   if(    !DArray::checkType(nl->First(nl->First(args))) 
+       || !DArray::checkType(nl->First(nl->Second(args)))
        || !CcString::checkType(nl->First(nl->Third(args)))
        || !listutils::isMap<2>(nl->First(nl->Fourth(args)))){
       return listutils::typeError(err);    
@@ -10510,12 +10510,12 @@ ListExpr dloop2aTM(ListExpr args){
    if(   !nl->Equal(fa1,a1)
       || !nl->Equal(fa2,a2)){
      return listutils::typeError("function arguments does not fit "
-                                 "to the darray2 subtypes");
+                                 "to the darray subtypes");
    }
 
    ListExpr funRes = nl->Fourth(nl->First(nl->Fourth(args)));
    ListExpr resType = nl->TwoElemList(
-                        listutils::basicSymbol<DArray2>(),
+                        listutils::basicSymbol<DArray>(),
                         funRes);
    ListExpr funQuery = nl->Second(nl->Fourth(args));
 
@@ -10545,10 +10545,10 @@ ListExpr dloop2aTM(ListExpr args){
       
 }
 
-class dloop2aRunner{
+class dloopaRunner{
   public:
 
-     dloop2aRunner(DArray2* _a1, DArray2* _a2, int _index, 
+     dloopaRunner(DArray* _a1, DArray* _a2, int _index, 
                    const string& _fun, const string& _rname):
        a1(_a1), a2(_a2), index(_index),fun(_fun), rname(_rname){
      }
@@ -10582,8 +10582,8 @@ class dloop2aRunner{
      }
 
   private:
-      DArray2* a1;
-      DArray2* a2;
+      DArray* a1;
+      DArray* a2;
       int index;
       string fun;
       string rname;
@@ -10591,13 +10591,13 @@ class dloop2aRunner{
 
 
 
-int dloop2aVM(Word* args, Word& result, int message,
+int dloopaVM(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
-  DArray2* a1 = (DArray2*) args[0].addr;
-  DArray2* a2 = (DArray2*) args[1].addr;
+  DArray* a1 = (DArray*) args[0].addr;
+  DArray* a2 = (DArray*) args[1].addr;
   result = qp->ResultStorage(s);
-  DArray2* res = (DArray2*) result.addr;
+  DArray* res = (DArray*) result.addr;
   CcString* name = (CcString*) args[2].addr;
   FText* funQuery = (FText*) args[4].addr;
   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
@@ -10622,17 +10622,17 @@ int dloop2aVM(Word* args, Word& result, int message,
 
   // check whether workers of both arrays are the same
   if(a1->numOfWorkers()!=a2->numOfWorkers()){
-    cmsg.error() << "Different workers in dloop2a";
+    cmsg.error() << "Different workers in dloopa";
     cmsg.send();
     res->makeUndefined();
     return 0;
   } 
 
-  vector<DArray2Element> workers;
+  vector<DArrayElement> workers;
 
   for(size_t i=0;i<a1->numOfWorkers();i++){
     if(a1->getWorker(i) != a2->getWorker(i)){
-        cmsg.error() << "Different workers in dloop2a";
+        cmsg.error() << "Different workers in dloopa";
         cmsg.send();
         res->makeUndefined();
         return 0;
@@ -10643,7 +10643,7 @@ int dloop2aVM(Word* args, Word& result, int message,
   int max = min(a1->getSize(), a2->getSize());
 
   if(!a1->equalMapping(*a2,true)){
-     cmsg.error() << "Different mappings in dloop2a";
+     cmsg.error() << "Different mappings in dloopa";
      cmsg.send();
      res->makeUndefined();
      return 0;
@@ -10651,13 +10651,13 @@ int dloop2aVM(Word* args, Word& result, int message,
 
   res->set(max,n,workers);
 
-  vector<dloop2aRunner*> runners;
+  vector<dloopaRunner*> runners;
   vector<boost::thread*> threads;
   string funstr = funQuery->GetValue();
 
 
   for(int i=0;i<max;i++){
-      dloop2aRunner* runner = new dloop2aRunner(a1,a2,i,funstr, n);
+      dloopaRunner* runner = new dloopaRunner(a1,a2,i,funstr, n);
       runners.push_back(runner);
       boost::thread* thread = new boost::thread(*runner);
       threads.push_back(thread);
@@ -10676,14 +10676,14 @@ int dloop2aVM(Word* args, Word& result, int message,
 11.3 Specification
 
 */
-OperatorSpec dloop2aSpec(
-     "darray2(X) x darray2(Y) x string x (fun : X x Y -> Z) -> darray2(Z)",
-     "_ _ dloop2a[_,_]",
-     "Performs a function on the elements of two darray2 instances. The "
-     "string argument specifies the name of the resulting darray2." 
+OperatorSpec dloopaSpec(
+     "darray(X) x darray(Y) x string x (fun : X x Y -> Z) -> darray(Z)",
+     "_ _ dloopa[_,_]",
+     "Performs a function on the elements of two darray instances. The "
+     "string argument specifies the name of the resulting darray." 
      " If the string is undefined or empty, a name is generated "
      "automatically.",
-     "query da1 da2 dloop2a[\"newName\", fun(i1 : int, i2 : int) i1 + i2) "
+     "query da1 da2 dloopa[\"newName\", fun(i1 : int, i2 : int) i1 + i2) "
      );
 /*
 11.4 Operator instance
@@ -10691,12 +10691,12 @@ OperatorSpec dloop2aSpec(
 */
 
 
-Operator dloop2aOp(
-  "dloop2a",
-  dloop2aSpec.getStr(),
-  dloop2aVM,
+Operator dloopaOp(
+  "dloopa",
+  dloopaSpec.getStr(),
+  dloopaVM,
   Operator::SimpleSelect,
-  dloop2aTM
+  dloopaTM
 );
 
 
@@ -11111,28 +11111,28 @@ Operator fdistribute7Op(
 
 12.1 Type Mapping
 
-This operator gets a darray2 instance and optionally an integer 
+This operator gets a darray instance and optionally an integer 
 value. If the integer value is given, only the object for the 
 specified index is deleted otherwise all objects handled by this
-darray2 object. The return value is the number of successfully
+darray object. The return value is the number of successfully
 deleted objects. A distributed matrix can be removed only 
 completely.
 
 */
 ListExpr deleteRemoteObjectsTM(ListExpr args){
-  string err = " {darray2,dfarray2} [x int] or dmatrix2 expected";
+  string err = " {darray,dfarray} [x int] or dfmatrix expected";
   if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
     return listutils::typeError(err + ": invalid number of args" );
   }
   
-  if(nl->HasLength(args,1) && DMatrix2::checkType(nl->First(args))){
+  if(nl->HasLength(args,1) && DMatrix::checkType(nl->First(args))){
      return listutils::basicSymbol<CcInt>();
   } 
 
 
-  if(!DArray2::checkType(nl->First(args))
-     && !DFArray2::checkType(nl->First(args))){
-    return listutils::typeError(err + ": first arg not a darray2 "
+  if(!DArray::checkType(nl->First(args))
+     && !DFArray::checkType(nl->First(args))){
+    return listutils::typeError(err + ": first arg not a darray "
                                 "or a dfarray");
   }
   if(nl->HasLength(args,2)){
@@ -11148,11 +11148,11 @@ class Object_Del{
 
    public:
 
-      Object_Del(DArray2* _array, int _index):
+      Object_Del(DArray* _array, int _index):
        array(_array), farray(0), index(_index), del(0){
       }
       
-      Object_Del(DFArray2* _array, int _index):
+      Object_Del(DFArray* _array, int _index):
        array(0), farray(_array), index(_index), del(0){
       }
 
@@ -11174,8 +11174,8 @@ class Object_Del{
       }
 
    private:
-      DArray2* array;
-      DFArray2* farray;
+      DArray* array;
+      DFArray* farray;
       int index;
       int del;
 
@@ -11325,7 +11325,7 @@ int deleteRemoteObjectsVM_Matrix(Word* args, Word& result, int message,
 
    result = qp->ResultStorage(s);
    CcInt* res = (CcInt*) result.addr;
-   DMatrix2* matrix = (DMatrix2*) args[0].addr;
+   DMatrix* matrix = (DMatrix*) args[0].addr;
    set<string> usedHosts;
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
    vector<MatrixKiller*> killers;
@@ -11350,29 +11350,29 @@ int deleteRemoteObjectsVM_Matrix(Word* args, Word& result, int message,
 
 
 OperatorSpec deleteRemoteObjectsSpec(
-     " {darray2, dfarray2} [x int] | dmatrix2 -> int",
+     " {darray, dfarray} [x int] | dfmatrix -> int",
      "deleteRemoteObjects(_,_)",
-     "Deletes the remote objects managed by a darray2  or a dfarray2 object. "
+     "Deletes the remote objects managed by a darray  or a dfarray object. "
      "If the optionally integer argument is given, only the "
-     "object at the specified index is deleted. For a dmatrix2 object, "
+     "object at the specified index is deleted. For a dfmatrix object, "
      " only the deletion of all slots is possible.",
      "query deleteRemoteObjects(da2)"
  );
 
 ValueMapping deleteRemoteObjectsVM[] = {
-  deleteRemoteObjectsVMT<DArray2>,
-  deleteRemoteObjectsVMT<DFArray2>,
+  deleteRemoteObjectsVMT<DArray>,
+  deleteRemoteObjectsVMT<DFArray>,
   deleteRemoteObjectsVM_Matrix
 };
 
 int deleteRemoteObjectsSelect(ListExpr args){
-  if(DArray2::checkType(nl->First(args))) {
+  if(DArray::checkType(nl->First(args))) {
     return 0;
   }
-  if(DFArray2::checkType(nl->First(args))){
+  if(DFArray::checkType(nl->First(args))){
     return 1;
   }
-  if(DMatrix2::checkType(nl->First(args))){
+  if(DMatrix::checkType(nl->First(args))){
     return 2;
   }
   return  -1; 
@@ -11392,19 +11392,19 @@ Operator deleteRemoteObjectsOp(
 /*
 12 Operator ~clone~
 
-This operator gets a darray2 and a string. It produces a new darray2 
+This operator gets a darray and a string. It produces a new darray 
 as a clone of the first argument having a new name.
 
 12.1 Type Mapping
 
 */
 ListExpr cloneTM(ListExpr args){
-  string err = "{darray2, dfarray2} x string expected";
+  string err = "{darray, dfarray} x string expected";
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err + ": invalid number of args");
   }
-  if(   (    !DArray2::checkType(nl->First(args)) 
-          && !DFArray2::checkType(nl->First(args))) 
+  if(   (    !DArray::checkType(nl->First(args)) 
+          && !DFArray::checkType(nl->First(args))) 
      || !CcString::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
@@ -11419,10 +11419,10 @@ class cloneTask{
 
   public:
 
-     cloneTask(DArray2* _array, int _index, const string& _name) :
+     cloneTask(DArray* _array, int _index, const string& _name) :
         darray(_array), farray(0), index(_index), name(_name){}
      
-     cloneTask(DFArray2* _array, int _index, const string& _name) :
+     cloneTask(DFArray* _array, int _index, const string& _name) :
         darray(0), farray(_array), index(_index), name(_name){}
 
      void run(){
@@ -11434,8 +11434,8 @@ class cloneTask{
      }
 
   private:
-      DArray2* darray;
-      DFArray2* farray;
+      DArray* darray;
+      DFArray* farray;
       int index;
       string name;
 
@@ -11541,20 +11541,20 @@ int cloneVMT(Word* args, Word& result, int message,
 
 */
 OperatorSpec cloneSpec(
-     " darray2 x string -> darray2",
+     " darray x string -> darray",
      " _ clone[_]",
-     "Creates a copy of a darray2 with a new name. " ,
+     "Creates a copy of a darray with a new name. " ,
      "let da9 = da8 clone[\"da9\"] "
  );
 
 
 ValueMapping cloneVM[] = {
-  cloneVMT<DArray2>,
-  cloneVMT<DFArray2>
+  cloneVMT<DArray>,
+  cloneVMT<DFArray>
 };
 
 int cloneSelect(ListExpr args){
-  return DArray2::checkType(nl->First(args))?0:1;
+  return DArray::checkType(nl->First(args))?0:1;
 }
 
 
@@ -11575,13 +11575,13 @@ Operator cloneOp(
 /*
 13 Operator ~share~
 
-This operator stores a local object to all connections either of a given darray2
+This operator stores a local object to all connections either of a given darray
 or all user defined connections.
 
 */
 
 ListExpr shareTM(ListExpr args){
-  string err = "string x bool [x darray2] expected";
+  string err = "string x bool [x darray] expected";
   if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
     return listutils::typeError(err);
   }
@@ -11592,7 +11592,7 @@ ListExpr shareTM(ListExpr args){
     return listutils::typeError(err);
   }
   if(nl->HasLength(args,3)){
-    if(!DArray2::checkType(nl->Third(args))){
+    if(!DArray::checkType(nl->Third(args))){
        return listutils::typeError(err);
     }
   }
@@ -11645,7 +11645,7 @@ class shareInfo: public successListener{
 
   public:
     shareInfo(const string& _name, const bool _allowOverwrite,
-              DArray2* _array, FText* _result): name(_name),
+              DArray* _array, FText* _result): name(_name),
               allowOverwrite(_allowOverwrite), array(_array),
               result(_result), fileCreated(false) {
       failed = 0;
@@ -11697,7 +11697,7 @@ class shareInfo: public successListener{
   private:
     string name;
     bool allowOverwrite;
-    DArray2* array;
+    DArray* array;
     FText* result;
     bool fileCreated;
     Word value;
@@ -11766,7 +11766,7 @@ int shareVM(Word* args, Word& result, int message,
 
   CcString* objName = (CcString*) args[0].addr;
   CcBool* overwrite = (CcBool*) args[1].addr;
-  DArray2* array = qp->GetNoSons(s)==3?(DArray2*) args[2].addr: 0;
+  DArray* array = qp->GetNoSons(s)==3?(DArray*) args[2].addr: 0;
   result = qp->ResultStorage(s);
   FText* res = (FText*) result.addr;
   if(array && !array->IsDefined()){
@@ -11784,12 +11784,12 @@ int shareVM(Word* args, Word& result, int message,
 
 
 OperatorSpec shareSpec(
-     "string x bool [x darray2] -> text",
+     "string x bool [x darray] -> text",
      "share(ObjectName, allowOverwrite, workerArray)",
      "distributes an object from local database to the workers."
      "The allowOverwrite flag controls whether existing objects "
      "with the same name should be overwritten. Id the optional "
-     "darray2 argument is given, the object is stored at all "
+     "darray argument is given, the object is stored at all "
      "workers contained within this array. If this argument is "
      "missing the user defined connections are used as workers.",
      "query share(\"ten\", TRUE,da8) "
@@ -11813,19 +11813,19 @@ Operator shareOp(
 13 Operator ~cleanUp~
 
 This operators removes all temporarly objects from remote server
-either from a given darray2 object or all connected objects (including
+either from a given darray object or all connected objects (including
 worker connections).
 
 13.1 Type Mapping
 
 */
 ListExpr cleanUpTM(ListExpr args){
-  string err= " no argument or darray2 expected";
+  string err= " no argument or darray expected";
   if(!nl->HasLength(args,1) && !nl->IsEmpty(args)){
      return listutils::typeError(err);
   }
   if(nl->HasLength(args,1)){
-     if(!DArray2::checkType(nl->First(args))){
+     if(!DArray::checkType(nl->First(args))){
         return listutils::typeError(err);
      }
   }
@@ -11847,7 +11847,7 @@ int cleanUpVM(Word* args, Word& result, int message,
     algInstance->cleanUp();
   } else {
     set<pair<string,int> > used;
-    DArray2* arg = (DArray2*) args[0].addr;
+    DArray* arg = (DArray*) args[0].addr;
     if(!arg->IsDefined()){
       res->SetDefined(false);
       return 0;
@@ -11856,7 +11856,7 @@ int cleanUpVM(Word* args, Word& result, int message,
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     vector<boost::thread*> runners;
     for(size_t i=0;i<arg->numOfWorkers();i++){
-      DArray2Element e = arg->getWorker(i);
+      DArrayElement e = arg->getWorker(i);
       pair<string,int> p(e.getHost(),e.getPort());
       if(used.find(p)==used.end()){
          used.insert(p);
@@ -11881,11 +11881,11 @@ int cleanUpVM(Word* args, Word& result, int message,
 
 */
 OperatorSpec cleanUpSpec(
-     "-> bool , darray2 -> bool",
+     "-> bool , darray -> bool",
      "cleanUp(_)",
      "Removes temporary objects, i.e. objects whose name starts with TMP_, "
      "from remote servers. If no argument is given, all open connections to "
-     "servers are used for removing objects. If the darray2 argument is "
+     "servers are used for removing objects. If the darray argument is "
      "present, only the workers specified by this argument are used.",
      "query cleanUp() "
  );
@@ -11906,14 +11906,14 @@ Operator cleanUpOp(
 /*
 14 Operators acting on dfarrays
 
-14.1 ~fddistribute2~
+14.1 ~dfdistribute2~
 
 */
 
-OperatorSpec fddistribute2Spec(
-     " stream(tuple(X)) x ident x int x rel x string -> dfarray2(X) ",
-     " _ fddistribute2[ attrname, size, workers, name]",
-     " Distributes a locally stored relation into a dfarray2. "
+OperatorSpec dfdistribute2Spec(
+     " stream(tuple(X)) x ident x int x rel x string -> dfarray(X) ",
+     " _ dfdistribute2[ attrname, size, workers, name]",
+     " Distributes a locally stored relation into a dfarray. "
      "The first argument is the tuple stream to distribute. The second "
      "argument is an attribute within this stream of type int. "
      "This attribute controls in which slot of the resulting array "
@@ -11923,7 +11923,7 @@ OperatorSpec fddistribute2Spec(
      "Host, Port, and Config. Host and Config must be of type string or text, "
      "the Port attribute must be of type int. " 
      "The fifth attribute specifies the name of the resulting dfarray.",
-     " query strassen feed addcounter[No,1] fddistribute2[No, 5, "
+     " query strassen feed addcounter[No,1] dfdistribute2[No, 5, "
      "workers,\"fstrassem\"]  "
  );
 
@@ -11932,36 +11932,36 @@ OperatorSpec fddistribute2Spec(
 
 */
 ValueMapping fdistribute2VM [] = {
-   ddistribute2VMT<DFArray2, FRelCopy, CcString,CcString>,
-   ddistribute2VMT<DFArray2, FRelCopy, CcString,FText>,
-   ddistribute2VMT<DFArray2, FRelCopy, FText,CcString>,
-   ddistribute2VMT<DFArray2, FRelCopy, FText,FText>
+   ddistribute2VMT<DFArray, FRelCopy, CcString,CcString>,
+   ddistribute2VMT<DFArray, FRelCopy, CcString,FText>,
+   ddistribute2VMT<DFArray, FRelCopy, FText,CcString>,
+   ddistribute2VMT<DFArray, FRelCopy, FText,FText>
 };
 
 
-Operator fddistribute2Op(
-  "fddistribute2",
-  fddistribute2Spec.getStr(),
+Operator dfdistribute2Op(
+  "dfdistribute2",
+  dfdistribute2Spec.getStr(),
   4, 
   fdistribute2VM,
   distribute2Select,
-  ddistribute2TMT<DFArray2>
+  ddistribute2TMT<DFArray>
 );
 
 
 /*
-15 Operator fddistribute3
+15 Operator dfdistribute3
 
-Destributes a tuple stream to an fdarray2. The dsitribution to the slots
+Destributes a tuple stream to an fdarray. The dsitribution to the slots
 of the array is done using the same mechanism as for the ddistribute3
 operator.
 
 */
 
 
-OperatorSpec fddistribute3Spec(
-     " stream(tuple(X)) x int x bool x rel x string-> dfarray2(X) ",
-     " _ fddistribute3[ size, <meaning of size>, workers, name]",
+OperatorSpec dfdistribute3Spec(
+     " stream(tuple(X)) x int x bool x rel x string-> dfarray(X) ",
+     " _ dfdistribute3[ size, <meaning of size>, workers, name]",
      " Distributes a tuple stream into a dfarray. The boolean "
      "flag controls the method of distribution. If the flag is set to "
      " true, the integer argument specifies the target size of the "
@@ -11971,87 +11971,87 @@ OperatorSpec fddistribute3Spec(
      " a new slot is opened. The string attribute gives the name of the "
      "result. The relation has to contain attributes Host(string or text), "
      "Port(int), and Config(string or text).",
-     " query strassen feed fddistribute3[10, TRUE, workers, \"dfa28\" ]  "
+     " query strassen feed dfdistribute3[10, TRUE, workers, \"dfa28\" ]  "
      );
 
-ValueMapping fddistribute3VM[] = {
-  distribute3VMT<DFArray2, FRelCopy, CcString, CcString>,
-  distribute3VMT<DFArray2, FRelCopy, CcString, FText>,
-  distribute3VMT<DFArray2, FRelCopy, FText, CcString>,
-  distribute3VMT<DFArray2, FRelCopy, FText, FText>
+ValueMapping dfdistribute3VM[] = {
+  distribute3VMT<DFArray, FRelCopy, CcString, CcString>,
+  distribute3VMT<DFArray, FRelCopy, CcString, FText>,
+  distribute3VMT<DFArray, FRelCopy, FText, CcString>,
+  distribute3VMT<DFArray, FRelCopy, FText, FText>
 };
 
-Operator fddistribute3Op(
-  "fddistribute3",
-  fddistribute3Spec.getStr(),
+Operator dfdistribute3Op(
+  "dfdistribute3",
+  dfdistribute3Spec.getStr(),
   4, 
-  fddistribute3VM,
+  dfdistribute3VM,
   distribute3Select,
-  distribute3TM<DFArray2>
+  distribute3TM<DFArray>
 );
 
 /*
 Operator fdistribute4
 
 */
-OperatorSpec fddistribute4Spec(
-     " stream(tuple(X)) x (tuple->int) x int x rel x string-> dfarray2(X) ",
-     " stream fddistribute4[ fun, size, workers, name ]",
-     " Distributes a locally stored relation into a dfarray2 ",
-     " query strassen feed  fddistribute4[ hashvalue(.Name,2000),"
+OperatorSpec dfdistribute4Spec(
+     " stream(tuple(X)) x (tuple->int) x int x rel x string-> dfarray(X) ",
+     " stream dfdistribute4[ fun, size, workers, name ]",
+     " Distributes a locally stored relation into a dfarray ",
+     " query strassen feed  dfdistribute4[ hashvalue(.Name,2000),"
      " 8, workers, \"df8\"]  "
      );
 
-ValueMapping fddistribute4VM[] = {
-   distribute4VMT<DFArray2, FRelCopy, CcString, CcString>,
-   distribute4VMT<DFArray2, FRelCopy, CcString, FText>,
-   distribute4VMT<DFArray2, FRelCopy, FText, CcString>,
-   distribute4VMT<DFArray2, FRelCopy, FText, FText>
+ValueMapping dfdistribute4VM[] = {
+   distribute4VMT<DFArray, FRelCopy, CcString, CcString>,
+   distribute4VMT<DFArray, FRelCopy, CcString, FText>,
+   distribute4VMT<DFArray, FRelCopy, FText, CcString>,
+   distribute4VMT<DFArray, FRelCopy, FText, FText>
 };
 
-Operator fddistribute4Op(
-  "fddistribute4",
-  fddistribute4Spec.getStr(),
+Operator dfdistribute4Op(
+  "dfdistribute4",
+  dfdistribute4Spec.getStr(),
   4,
-  fddistribute4VM,
+  dfdistribute4VM,
   distribute4Select,
-  distribute4TMT<DFArray2>
+  distribute4TMT<DFArray>
 );
 
 
 
 /*
-14 Operator ~convertDArray2~
+14 Operator ~convertDArray~
 
-This operator converts a darray2 into a dfarray2 and vice versa.
+This operator converts a darray into a dfarray and vice versa.
 
 */
-ListExpr convertdarray2TM(ListExpr args){
+ListExpr convertdarrayTM(ListExpr args){
 
- string err = "darray2 or dfarray2 expected";
+ string err = "darray or dfarray expected";
 
  if(!nl->HasLength(args,1)){
     return listutils::typeError(err + " ( wrong number of args)");
  }
  ListExpr arg = nl->First(args);
- if(DFArray2::checkType(arg)){
+ if(DFArray::checkType(arg)){
    return nl->TwoElemList(
-               listutils::basicSymbol<DArray2>(),
+               listutils::basicSymbol<DArray>(),
                nl->Second(arg));
  }
- if(!DArray2::checkType(arg)){
+ if(!DArray::checkType(arg)){
     return listutils::typeError(err + " ( wrong number of args)");
  }
  ListExpr subtype = nl->Second(arg);
  if(!Relation::checkType(subtype)){
     return listutils::typeError("subtype must be a relation");
  }
- return nl->TwoElemList( listutils::basicSymbol<DFArray2>(),
+ return nl->TwoElemList( listutils::basicSymbol<DFArray>(),
                          subtype);
 }
 
 template<class A, class R>
-int convertdarray2VMT(Word* args, Word& result, int message,
+int convertdarrayVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
   result = qp->ResultStorage(s);
   A* arg = (A*) args[0].addr;
@@ -12060,33 +12060,33 @@ int convertdarray2VMT(Word* args, Word& result, int message,
   return 0;
 }
 
-int convertdarray2Select(ListExpr args){
-  return DArray2::checkType(nl->First(args))?0:1;
+int convertdarraySelect(ListExpr args){
+  return DArray::checkType(nl->First(args))?0:1;
 }
 
-ValueMapping convertdarray2VM[] = {
-   convertdarray2VMT<DArray2,DFArray2>,
-   convertdarray2VMT<DFArray2,DArray2>
+ValueMapping convertdarrayVM[] = {
+   convertdarrayVMT<DArray,DFArray>,
+   convertdarrayVMT<DFArray,DArray>
 };
 
-OperatorSpec convertdarray2Spec(
-     "darray2 -> dfarray2, dfarray2 -> darray2 ",
-     "convertdarray2(_)",
-     "Converts a darray2 into a dfarray2 and vice versa. "
+OperatorSpec convertdarraySpec(
+     "darray -> dfarray, dfarray -> darray ",
+     "convertdarray(_)",
+     "Converts a darray into a dfarray and vice versa. "
      "Note that this only converts the root of the array, "
      "i.e. the slots of the result are empty even if the "
      "slots of the argument are not.",
-     "query convertdarray2(da8) "
+     "query convertdarray(da8) "
  );
 
 
-Operator convertdarray2Op(
-  "convertdarray2",
-  convertdarray2Spec.getStr(),
+Operator convertdarrayOp(
+  "convertdarray",
+  convertdarraySpec.getStr(),
   2,
-  convertdarray2VM,
-  convertdarray2Select,
-  convertdarray2TM
+  convertdarrayVM,
+  convertdarraySelect,
+  convertdarrayTM
 );
 
 
@@ -12310,17 +12310,17 @@ Operator gettuplesOp(
 
 
 /*
-16 Operator ~map~
+16 Operator ~dmap~
 
 This operator maps the content of a dfarray to another value.
 Depending on the result of the function, the result is a 
-dfarray2 (result is a relation) or a darray2 (result is 
+dfarray (result is a relation) or a darray (result is 
 something other).
 
 */
 
 ListExpr dmapTM(ListExpr args){
-  string err = "dfarray2(X)  x string x fun expected";
+  string err = "dfarray(X)  x string x fun expected";
   if(!nl->HasLength(args,3)){
     return  listutils::typeError(err + " (wrong number of args)");
   }
@@ -12334,13 +12334,13 @@ ListExpr dmapTM(ListExpr args){
   ListExpr arg2Type = nl->First(nl->Second(args));
   ListExpr arg3Type = nl->First(nl->Third(args));
 
-  if(  (!DFArray2::checkType(arg1Type) && !DArray2::checkType(arg1Type))
+  if(  (!DFArray::checkType(arg1Type) && !DArray::checkType(arg1Type))
      ||!CcString::checkType(arg2Type)
      ||!listutils::isMap<1>(arg3Type)){
     return listutils::typeError(err);
   }
 
-  if(   DArray2::checkType(arg1Type) 
+  if(   DArray::checkType(arg1Type) 
      && !Relation::checkType(nl->Second(arg1Type))){
      return listutils::typeError("subtype of darray is not a relation");
   }
@@ -12354,7 +12354,7 @@ ListExpr dmapTM(ListExpr args){
 
   if(!nl->Equal(stream,funArg)){
      return listutils::typeError("type mismatch between function argument and "
-                                 " subtype of dfarray2");
+                                 " subtype of dfarray");
   }
 
 
@@ -12388,8 +12388,8 @@ ListExpr dmapTM(ListExpr args){
   
 
   ListExpr resType = nl->TwoElemList(
-              isRel||isStream?listutils::basicSymbol<DFArray2>()
-                   :listutils::basicSymbol<DArray2>(),
+              isRel||isStream?listutils::basicSymbol<DFArray>()
+                   :listutils::basicSymbol<DArray>(),
                funRes);
 
   return nl->ThreeElemList(
@@ -12409,11 +12409,11 @@ class Mapper{
           array(_array), ccname(_name), funText(_funText), isRel(_isRel),
           isStream(_isStream) {
        if(isRel || isStream){
-         dfarray = (DFArray2*) res;
+         dfarray = (DFArray*) res;
          darray = 0; 
        } else {
          dfarray = 0;
-         darray = (DArray2*) res;
+         darray = (DArray*) res;
        }
    }
 
@@ -12431,8 +12431,8 @@ class Mapper{
     FText* funText;
     bool isRel;
     bool isStream;
-    DFArray2* dfarray;
-    DArray2* darray;
+    DFArray* dfarray;
+    DArray* darray;
     string name;
 
 
@@ -12674,24 +12674,24 @@ int dmapVMT(Word* args, Word& result, int message,
 
 
 ValueMapping dmapVM[] = {
-   dmapVMT<DArray2>,
-   dmapVMT<DFArray2>
+   dmapVMT<DArray>,
+   dmapVMT<DFArray>
 };
 
 int dmapSelect(ListExpr args){
 
-  return DArray2::checkType(nl->First(args))?0:1;
+  return DArray::checkType(nl->First(args))?0:1;
 
 }
 
 
 OperatorSpec dmapSpec(
-  "d[f]array2 x string x fun -> d[f]array2",
+  "d[f]array x string x fun -> d[f]array",
   "_ dmap[_,_]",
   "Performs a function on a distributed file array. "
   "If the string argument is empty or undefined, a name for "
   "the result is chosen automatically. If not, the string "
-  "specifies the name. The result is of type dfarray2 if "
+  "specifies the name. The result is of type dfarray if "
   "the function produces a tuple stream or a relationi; "
   "otherwise the result is a darray.",
   "query dfa8 dmap[\"\", . head[23]] "
@@ -12721,8 +12721,8 @@ ListExpr DFARRAYSTREAMTM(ListExpr args){
     return listutils::typeError("too less elements");
   }
   ListExpr arg = nl->First(args);
-  if(!DFArray2::checkType(arg)){
-    return listutils::typeError("dfarray2 expected");
+  if(!DFArray::checkType(arg)){
+    return listutils::typeError("dfarray expected");
   }
   ListExpr res =  nl->TwoElemList(
                       listutils::basicSymbol<Stream<Tuple> >(),
@@ -12751,15 +12751,15 @@ Operator DFARRAYSTREAMOP(
 
 
 /*
-20 Operator map2
+20 Operator dmap2
 
 20.1 Type Mapping
 
 */
 
-ListExpr map2TM(ListExpr args){
+ListExpr dmap2TM(ListExpr args){
 
- string err = "d[f]array2(X) x d[f]array2[Y] x string x "
+ string err = "d[f]array(X) x d[f]array[Y] x string x "
               "fun : (X x Y -> Z) expected";
  if(!nl->HasLength(args,4)){
    return listutils::typeError(err + " (wrong number of args)");
@@ -12780,13 +12780,13 @@ ListExpr map2TM(ListExpr args){
  fourth = nl->First(fourth);
 
  
- if(     !DArray2::checkType(first) 
-     && !DFArray2::checkType(first)){
-   return listutils::typeError(err + "( firt arg not a d[f]array2)");
+ if(     !DArray::checkType(first) 
+     && !DFArray::checkType(first)){
+   return listutils::typeError(err + "( firt arg not a d[f]array)");
  }
- if(     !DArray2::checkType(second) 
-     && !DFArray2::checkType(second)){
-   return listutils::typeError(err + "( second arg not a d[f]array2)");
+ if(     !DArray::checkType(second) 
+     && !DFArray::checkType(second)){
+   return listutils::typeError(err + "( second arg not a d[f]array)");
  }
  if(!CcString::checkType(third)){
    return  listutils::typeError(err + " (third arg is not a string)");
@@ -12795,12 +12795,12 @@ ListExpr map2TM(ListExpr args){
    return listutils::typeError(err + " (fourth arg is not a function)"); 
  }
 
- ListExpr a1 = DFArray2::checkType(first)
+ ListExpr a1 = DFArray::checkType(first)
                ? nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
                                   nl->Second(nl->Second(first)))
                : nl->Second(first);
 
- ListExpr a2 = DFArray2::checkType(second)
+ ListExpr a2 = DFArray::checkType(second)
                ? nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
                                   nl->Second(nl->Second(second)))
                : nl->Second(second);
@@ -12822,15 +12822,15 @@ ListExpr map2TM(ListExpr args){
     }
     streamRes = true;
     resType = nl->TwoElemList(
-                   listutils::basicSymbol<DFArray2>(),
+                   listutils::basicSymbol<DFArray>(),
                    nl->TwoElemList(
                          listutils::basicSymbol<Relation>(),
                          nl->Second(funres)));
  } else {
     resType =   Relation::checkType(funres)
-              ? nl->TwoElemList( listutils::basicSymbol<DFArray2>(),
+              ? nl->TwoElemList( listutils::basicSymbol<DFArray>(),
                                  funres)
-              : nl->TwoElemList( listutils::basicSymbol<DArray2>(),
+              : nl->TwoElemList( listutils::basicSymbol<DArray>(),
                                  funres); 
  }
 
@@ -12862,11 +12862,11 @@ ListExpr map2TM(ListExpr args){
 
 
 template<class A1, class A2, class R>
-class map2Info{
+class dmap2Info{
 
   public:
 
-    map2Info( A1* _array1, A2* _array2, R* _res, 
+    dmap2Info( A1* _array1, A2* _array2, R* _res, 
               const string& _funtext, const string& _objName,
               bool _streamRes) :
         array1(_array1), array2(_array2), res(_res),
@@ -12929,7 +12929,7 @@ class map2Info{
 
     class Run{
       public:
-         Run(map2Info* _mi, size_t _i, ConnectionInfo* _ci):
+         Run(dmap2Info* _mi, size_t _i, ConnectionInfo* _ci):
            mi(_mi),i(_i),ci(_ci){ }
 
       void run(){
@@ -12976,16 +12976,16 @@ class map2Info{
       }
 
       private:
-        map2Info* mi;
+        dmap2Info* mi;
         size_t i;
         ConnectionInfo* ci;
 
 
-        string getFunArg(const DArray2* array){
+        string getFunArg(const DArray* array){
            return array->getName()+"_" + stringutils::int2str(i);
         }
         
-        string getFunArg(const DFArray2* array){
+        string getFunArg(const DFArray* array){
           string fname = ci->getSecondoHome()+"/dfarrays/"+mi->dbname+"/"
                        + array->getName() + "/"
                        + array->getName()+"_"+stringutils::int2str(i)
@@ -13004,7 +13004,7 @@ class map2Info{
 
 
 template<class A1, class A2>
-int map2VMT(Word* args, Word& result, int message,
+int dmap2VMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
     result = qp->ResultStorage(s);
@@ -13025,22 +13025,22 @@ int map2VMT(Word* args, Word& result, int message,
         n = objName->GetValue();
     }
 
-    bool isFileBased = DFArray2::checkType(qp->GetType(s));
+    bool isFileBased = DFArray::checkType(qp->GetType(s));
 
     if(!stringutils::isIdent(n)){
         if(isFileBased){
-           ((DFArray2*)result.addr)->makeUndefined();
+           ((DFArray*)result.addr)->makeUndefined();
         } else {
-           ((DArray2*)result.addr)->makeUndefined();
+           ((DArray*)result.addr)->makeUndefined();
         }
         return 0;
     }
     if(isFileBased){
-        map2Info<A1,A2,DFArray2> info(a1,a2,(DFArray2*) result.addr, 
+        dmap2Info<A1,A2,DFArray> info(a1,a2,(DFArray*) result.addr, 
                                       funtext, n,streamRes);
         info.start();
     } else {
-        map2Info<A1,A2,DArray2> info(a1,a2,(DArray2*) result.addr, 
+        dmap2Info<A1,A2,DArray> info(a1,a2,(DArray*) result.addr, 
                                       funtext, n,streamRes);
         info.start();
     }
@@ -13049,36 +13049,36 @@ int map2VMT(Word* args, Word& result, int message,
 }
 
 
-int map2Select(ListExpr args){
+int dmap2Select(ListExpr args){
 
-  int n1 = DArray2::checkType(nl->First(args))?0:2;
-  int n2 = DArray2::checkType(nl->Second(args))?0:1;
+  int n1 = DArray::checkType(nl->First(args))?0:2;
+  int n2 = DArray::checkType(nl->Second(args))?0:1;
   return n1 + n2;
 }
 
-ValueMapping map2VM[] = {
-   map2VMT<DArray2,DArray2>,
-   map2VMT<DArray2,DFArray2>,
-   map2VMT<DFArray2,DArray2>,
-   map2VMT<DFArray2,DFArray2>
+ValueMapping dmap2VM[] = {
+   dmap2VMT<DArray,DArray>,
+   dmap2VMT<DArray,DFArray>,
+   dmap2VMT<DFArray,DArray>,
+   dmap2VMT<DFArray,DFArray>
 };
 
-OperatorSpec map2Spec(
-  "d[f]array2 x d[f]array2 x string x fun -> d[f]array2",
+OperatorSpec dmap2Spec(
+  "d[f]array x d[f]array x string x fun -> d[f]array",
   "_ _ dmap2[_,_]",
   "Joins the slots of two distributed arrays",
-  "query df1 df2 map2 [\"df3\" . .. product]"
+  "query df1 df2 dmap2 [\"df3\" . .. product]"
 
 );
 
 
-Operator map2Op(
+Operator dmap2Op(
   "dmap2",
-  map2Spec.getStr(),
+  dmap2Spec.getStr(),
   4,
-  map2VM,
-  map2Select,
-  map2TM
+  dmap2VM,
+  dmap2Select,
+  dmap2TM
 );
 
 
@@ -13097,11 +13097,11 @@ ListExpr ARRAYFUNARG(ListExpr args){
     args = nl->Rest(args);
   }
   ListExpr arg = nl->First(args);
-  if(DArray2::checkType(arg)){
+  if(DArray::checkType(arg)){
      return nl->Second(arg);
   }
-  if(DFArray2::checkType(arg) ||
-     DMatrix2::checkType(arg)){
+  if(DFArray::checkType(arg) ||
+     DMatrix::checkType(arg)){
      ListExpr res = nl->TwoElemList(
                listutils::basicSymbol<Stream<Tuple> >(),
                nl->Second(nl->Second(arg)));
@@ -13116,7 +13116,7 @@ OperatorSpec ARRAYFUNARG1SPEC(
   "darray(X) x ... -> X, dfarray(rel(X)) x ... -> stream(X)",
   "ARRAYFUNARG1(_)",
   "Type mapping operator.",
-  "query df1 df2 map2 [\"df3\" . .. product]"
+  "query df1 df2 map [\"df3\" . .. product]"
 );
 
 Operator ARRAYFUNARG1OP(
@@ -13131,7 +13131,7 @@ OperatorSpec ARRAYFUNARG2SPEC(
   " any x darray(X) x ... -> X, any x dfarray(rel(X)) x ... -> stream(X)",
   " ARRAYFUNARG2(_)",
   "Type mapping operator.",
-  "query df1 df2 map2 [\"df3\" . .. product]"
+  "query df1 df2 map [\"df3\" . .. product]"
 );
 Operator ARRAYFUNARG2OP(
   "ARRAYFUNARG2",
@@ -13147,8 +13147,8 @@ ListExpr DFARRAYTUPLETM(ListExpr args){
   if(!nl->HasMinLength(args,1)){
     return listutils::typeError("at least one arg required");
   }
-  if(!DFArray2::checkType(nl->First(args))){
-    return listutils::typeError("first arg must be of type dfarray2");
+  if(!DFArray::checkType(nl->First(args))){
+    return listutils::typeError("first arg must be of type dfarray");
   }
   return nl->Second(nl->Second(nl->First(args)));
 }
@@ -14742,25 +14742,23 @@ Operator fsfeed5Op(
 /*
 14 Operator ~partition~
 
-This operator partioned the slots of a d[f]array2 on the clusters.
+This operator partioned the slots of a d[f]array on the clusters.
 
 */
 
 ListExpr partitionTM(ListExpr args){
 
- string err ="dfarray2(rel(tuple)) x (tuple -> int) x string x int expected";
- if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
+ string err ="d[f]array(rel(tuple)) x (tuple -> int) x string x int expected";
+ if(!nl->HasLength(args,4)){
    return listutils::typeError(err + "(wrong number of args)");
  }
 
- if(nl->HasLength(args,4) ){
-   ListExpr s = nl->Fourth(args);
-   if(!nl->HasLength(s,2)){
-     return listutils::typeError("internal error");
-   }
-   if(!CcInt::checkType(nl->First(s))){
-       return listutils::typeError(err+ " (fourth arg is not an int)");
-   }
+ ListExpr s = nl->Fourth(args);
+ if(!nl->HasLength(s,2)){
+   return listutils::typeError("internal error");
+ }
+ if(!CcInt::checkType(nl->First(s))){
+    return listutils::typeError(err+ " (fourth arg is not an int)");
  }
 
  ListExpr a0 = nl->First(args);
@@ -14776,9 +14774,14 @@ ListExpr partitionTM(ListExpr args){
  ListExpr f1 = nl->First(f0);
  ListExpr n1 = nl->First(n0);
 
- if(!DFArray2::checkType(a1)){
+ if(!DFArray::checkType(a1) && !DArray::checkType(a1)){
    return listutils::typeError(err + "(first attr of wrong type)");
  }
+ if(DArray::checkType(a1)){
+   return listutils::typeError("darray not supported yet");
+ }
+
+
  ListExpr r = nl->Second(a1);
  if(!Relation::checkType(r)){
    return listutils::typeError(err + "(array subtype is not a relation)");
@@ -14821,17 +14824,20 @@ ListExpr partitionTM(ListExpr args){
   ListExpr res =  nl->ThreeElemList(
                nl->SymbolAtom(Symbols::APPEND()),
                append,
-               nl->TwoElemList( listutils::basicSymbol<DMatrix2>(),
+               nl->TwoElemList( listutils::basicSymbol<DMatrix>(),
                                  r));
   return res;
 }
 
 
+
+
+template<class A>
 class partitionInfo{
 
   public:
 
-    partitionInfo(DFArray2* _array,int _resSize, size_t _wnum,
+    partitionInfo(A* _array,int _resSize, size_t _wnum,
                   ConnectionInfo* _ci, const string& _fun, 
                  string& _tname, ListExpr _relType,
                  const string& _dbname):
@@ -14847,7 +14853,7 @@ class partitionInfo{
      }
 
   private:
-     DFArray2* array;
+     A* array;
      int resSize;
      size_t workerNumber;
      ConnectionInfo* ci;
@@ -14862,6 +14868,16 @@ class partitionInfo{
         if(!ci){
            return;
         }
+        switch(array->getType()){
+         case DFARRAY : runDF(); break;
+         case DARRAY  : runD(); break;
+         default : assert(false);
+        }
+     }
+
+
+
+     void runDF(){
         // construct target directory on ci
         string targetDir = ci->getSecondoHome() + "/dfarrays/" + dbname 
                            + "/" + tname + "/"
@@ -14886,10 +14902,11 @@ class partitionInfo{
            return;
         }
         if(!nl->BoolValue(nl->Second(resList))){
-            cerr << "creating directory failed";
+            //cerr << "creating directory '" << targetDir << "'failed" << endl;
+            //cerr << "resList is " << nl->ToString(resList) << endl;
             // may be directory already exists, TODO: check if it is a directory
         }
-        string cmd = constructQuery(targetDir);
+        string cmd = constructQueryDF(targetDir);
         if(cmd==""){
            cerr << "worker " << workerNumber 
                 << " does not contain a slot" << endl;
@@ -14903,7 +14920,14 @@ class partitionInfo{
         }
      }
 
-     string constructQuery(const string& dir){
+
+     void runD(){
+       assert(false); // not implemented yet
+
+     }
+
+
+     string constructQueryDF(const string& dir){
 
         // construct query in nested list form,
 
@@ -14996,12 +15020,12 @@ class partitionInfo{
 
 
 
-
-int partitionVM(Word* args, Word& result, int message,
+template<class A>
+int partitionVMT(Word* args, Word& result, int message,
                     Word& local, Supplier s ){
 
 
-   DFArray2* array = (DFArray2*) args[0].addr;
+   A* array = (A*) args[0].addr;
    CcString* name = (CcString*) args[2].addr;
    CcInt* newSize = (CcInt*) args[3].addr;
    int size = array->getSize();
@@ -15013,7 +15037,7 @@ int partitionVM(Word* args, Word& result, int message,
 
    string funtext = ((FText*) args[4].addr)->GetValue();
    result = qp->ResultStorage(s);
-   DMatrix2* res = (DMatrix2*) result.addr;
+   DMatrix* res = (DMatrix*) result.addr;
 
    if(!array->IsDefined() || !name->IsDefined()){
        res->makeUndefined();
@@ -15036,19 +15060,19 @@ int partitionVM(Word* args, Word& result, int message,
    res->setName(tname);
    res->setSize(size);
    
-   vector<partitionInfo*> infos;
+   vector<partitionInfo<A>*> infos;
 
    ListExpr relType = nl->Second(qp->GetType(qp->GetSon(s,0)));
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
 
 
    for(size_t i=0;i<array->numOfWorkers();i++){
-      DArray2Element de = array->getWorker(i);
+      DArrayElement de = array->getWorker(i);
       ConnectionInfo* ci = algInstance->getWorkerConnection(de,dbname);
       string ip = ci->getHost();
       string home = ci->getSecondoHome();
       pair<string,string> p(ip,home);
-      partitionInfo* info = new partitionInfo(array, size, i, ci,funtext,
+      partitionInfo<A>* info = new partitionInfo<A>(array, size, i, ci,funtext,
                                                  tname, relType, dbname);
       infos.push_back(info);
    }
@@ -15061,9 +15085,9 @@ int partitionVM(Word* args, Word& result, int message,
 
 
 OperatorSpec partitionSpec(
-  "dfarray2(rel(tuple)) x (tuple->int) x string x int-> dmatrix2",
+  "d[f]array(rel(tuple)) x (tuple->int) x string x int-> dfmatrix",
   "_ partition[_,_,_]",
-  "Redistributes the contents of a dfarray2 value. "
+  "Redistributes the contents of a dfarray value. "
   "The new slot contents are kept on the worker where "
   "the values were stored before redistributing them. "
   "The last argument (int) determines the number of slots "
@@ -15072,11 +15096,22 @@ OperatorSpec partitionSpec(
   "query da2 partition[ hashValue(.Name,2000) + 23, \"dm2\",0]"
 );
 
+int partitionSelect(ListExpr args){
+   return DFArray::checkType(nl->First(args))?0:1; 
+}
+
+ValueMapping partitionVM[] = {
+  partitionVMT<DFArray>,
+  partitionVMT<DArray>
+};
+
+
 Operator partitionOp(
   "partition",
   partitionSpec.getStr(),
+  2,
   partitionVM,
-  Operator::SimpleSelect,
+  partitionSelect,
   partitionTM
 );
 
@@ -15114,7 +15149,7 @@ ListExpr areduceTM(ListExpr args){
 
 
 
-  if(   !DMatrix2::checkType(m1)
+  if(   !DMatrix::checkType(m1)
      || !CcString::checkType(n1)
      || !listutils::isMap<1>(f1)
      || !CcInt::checkType(p1)){
@@ -15177,14 +15212,14 @@ ListExpr areduceTM(ListExpr args){
 
   ListExpr res;
   if(!isF){
-    res = nl->TwoElemList( listutils::basicSymbol<DArray2>(),
+    res = nl->TwoElemList( listutils::basicSymbol<DArray>(),
                             funres);
   } else {
     if(!isStream){
-       res = nl->TwoElemList( listutils::basicSymbol<DFArray2>(),
+       res = nl->TwoElemList( listutils::basicSymbol<DFArray>(),
                               funres);
     } else {
-       res = nl->TwoElemList( listutils::basicSymbol<DFArray2>(),
+       res = nl->TwoElemList( listutils::basicSymbol<DFArray>(),
                               nl->TwoElemList(
                                 listutils::basicSymbol<Relation>(),
                                 nl->Second(funres)));
@@ -15239,13 +15274,13 @@ class transferatorStarter{
 
 };
 
-bool startFileTransferators( DMatrix2* matrix, int port){
+bool startFileTransferators( DMatrix* matrix, int port){
    assert(port>0);
    set<string> usedIPs;
    vector<transferatorStarter*> starters;
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
    for(size_t i=0;i<matrix->numOfWorkers();i++){
-     DArray2Element e = matrix->getWorker(i);
+     DArrayElement e = matrix->getWorker(i);
      string host = e.getHost();
      if(usedIPs.find(host)==usedIPs.end()){
         ConnectionInfo* ci = algInstance->getWorkerConnection(e,dbname);
@@ -15277,7 +15312,7 @@ template<class R>
 class AReduceTask{
 
   public:
-     AReduceTask(DMatrix2* _matrix, int _worker, R* _result, int _port,
+     AReduceTask(DMatrix* _matrix, int _worker, R* _result, int _port,
               string& _funtext, ListExpr _relType,
               bool _isStream, AReduceListener* _listener):
           matrix(_matrix), worker(_worker), result(_result), port(_port),
@@ -15312,7 +15347,7 @@ class AReduceTask{
 
 
   private:
-     DMatrix2* matrix;
+     DMatrix* matrix;
      int worker;
      R* result;
      int port;
@@ -15447,7 +15482,7 @@ class AReduceTask{
       string reltype="rel(tuple([S: text, H : text, T : text]))";
       string value = "(";
       for(size_t i=0;i<matrix->numOfWorkers();i++){
-         DArray2Element elem = matrix->getWorker(i);
+         DArrayElement elem = matrix->getWorker(i);
          ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
          string s = ci->getSecondoHome() + "/dfarrays/" + dbname + "/"
                     + matrix->getName() + value += "(";
@@ -15467,7 +15502,7 @@ class AReduceTask{
 template<class R>
 class AReducer: public AReduceListener{
   public:
-    AReducer(DMatrix2* _matrix, R* _result, int _port, 
+    AReducer(DMatrix* _matrix, R* _result, int _port, 
             const string& _funtext, bool _isStream, ListExpr _relType):
       matrix(_matrix), result(_result), port(_port), 
       funtext(_funtext),isStream(_isStream), relType(_relType) {
@@ -15522,7 +15557,7 @@ class AReducer: public AReduceListener{
 
 
   private:
-    DMatrix2* matrix;
+    DMatrix* matrix;
     R*        result;
     int       port;
     string    funtext;
@@ -15545,7 +15580,7 @@ int areduceVM1(Word* args, Word& result, int message,
    
    result = qp->ResultStorage(s);
    R* res = (R*) result.addr;
-   DMatrix2* matrix = (DMatrix2*) args[0].addr;
+   DMatrix* matrix = (DMatrix*) args[0].addr;
    CcString* ResName = (CcString*) args[1].addr;
 
    // args[2] points to the original function
@@ -15590,21 +15625,21 @@ int areduceVM1(Word* args, Word& result, int message,
 
 
 OperatorSpec areduceSpec(
-   "dmatrix2(rel(t)) x string x (stream(t)->Y) x int -> d[f]array2(Y)",
+   "dfmatrix(rel(t)) x string x (stream(t)->Y) x int -> d[f]array(Y)",
    "matrix areduce[newname, function, port]",
    "Performs a function on the distributed slots of an array. "
    "The task distribution is dynamicalle, meaning that a fast "
    "worker will handle more slots than a slower one. "
    "The result type depends on the result of the function. "
    "For a relation or a tuple stream, a dfarray will be created. "
-   "For other non-stream results, a darray2 is the resulting type.",
+   "For other non-stream results, a darray is the resulting type.",
    "The integer argument specifies the port for transferring files.",
    "query m8 areduce[ . count, 1237]"
 );
 
 ValueMapping areduceVM [] = {
-   areduceVM1<DFArray2>,
-   areduceVM1<DArray2>
+   areduceVM1<DFArray>,
+   areduceVM1<DArray>
 };
 
 int areduceSelect(ListExpr args){
@@ -15658,18 +15693,18 @@ string getUDRelType(ListExpr r){
 
 
 ListExpr collect2TM(ListExpr args){
-  string err = "dmatrix2 x string x int expected";
+  string err = "dfmatrix x string x int expected";
   if(!nl->HasLength(args,3)){
     return listutils::typeError(err+" (wrong number of args)");
   }
-  if(   !DMatrix2::checkType(nl->First(args))
+  if(   !DMatrix::checkType(nl->First(args))
      || !CcString::checkType(nl->Second(args))
      || !CcInt::checkType(nl->Third(args))){
      return  listutils::typeError(err);
   }
 
   return nl->TwoElemList( 
-              listutils::basicSymbol<DFArray2>(),
+              listutils::basicSymbol<DFArray>(),
               nl->Second(nl->First(args)));
 }
 
@@ -15820,10 +15855,10 @@ int collect2VM(Word* args, Word& result, int message,
              Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
-   DMatrix2* matrix = (DMatrix2*) args[0].addr;
+   DMatrix* matrix = (DMatrix*) args[0].addr;
    CcString* name   = (CcString*) args[1].addr;
    CcInt* port = (CcInt*) args[2].addr;
-   DFArray2* res = (DFArray2*) result.addr;
+   DFArray* res = (DFArray*) result.addr;
 
    if(!matrix->IsDefined() || !name->IsDefined() || !port->IsDefined()){
       res->makeUndefined();
@@ -15880,10 +15915,10 @@ int collect2VM(Word* args, Word& result, int message,
 }
 
 OperatorSpec collect2Spec(
-  "dmatrix2 x string x int -> dfarray2",
+  "dfmatrix x string x int -> dfarray",
   " _ collect2[ _ , _] ",
   "Collects the slots of a matrix into a "
-  " dfarray2. The string is the name of the "
+  " dfarray. The string is the name of the "
   "resulting array, the int value specified a "
   "port for file transfer. The port value can be any "
   "port usable on all workers. A corresponding file transfer "
@@ -15911,12 +15946,12 @@ Operator collect2Op(
 Distributed2Algebra::Distributed2Algebra(){
    namecounter = 0;
 
-   AddTypeConstructor(&DArray2TC);
-   DArray2TC.AssociateKind(Kind::SIMPLE());
-   AddTypeConstructor(&DFArray2TC);
-   DFArray2TC.AssociateKind(Kind::SIMPLE());
-   AddTypeConstructor(&DMatrix2TC);
-   DMatrix2TC.AssociateKind(Kind::SIMPLE());
+   AddTypeConstructor(&DArrayTC);
+   DArrayTC.AssociateKind(Kind::SIMPLE());
+   AddTypeConstructor(&DFArrayTC);
+   DFArrayTC.AssociateKind(Kind::SIMPLE());
+   AddTypeConstructor(&DMatrixTC);
+   DMatrixTC.AssociateKind(Kind::SIMPLE());
    
    AddOperator(&connectOp);
    AddOperator(&checkConnectionsOp);
@@ -15946,7 +15981,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&ffeed5Op);
    ffeed5Op.SetUsesArgsInTypeMapping();
 
-   AddOperator(&createDarray2Op);
+   AddOperator(&createDArrayOp);
 
    AddOperator(&pputOp);
    AddOperator(&ddistribute2Op);
@@ -15956,25 +15991,25 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&fdistribute6Op);
    AddOperator(&closeWorkersOp);
    AddOperator(&showWorkersOp);
-   AddOperator(&dloop2Op);
-   dloop2Op.SetUsesArgsInTypeMapping();
-   AddOperator(&dloop2aOp);
-   dloop2aOp.SetUsesArgsInTypeMapping();
-   AddOperator(&DARRAY2ELEMOp);
-   AddOperator(&DARRAY2ELEM2Op);
+   AddOperator(&dloopOp);
+   dloopOp.SetUsesArgsInTypeMapping();
+   AddOperator(&dloopaOp);
+   dloopaOp.SetUsesArgsInTypeMapping();
+   AddOperator(&DARRAYELEMOp);
+   AddOperator(&DARRAYELEM2Op);
 
-   AddOperator(&dsummarize2Op);
+   AddOperator(&dsummarizeOp);
    AddOperator(&getValueOp);
    AddOperator(&deleteRemoteObjectsOp);
    AddOperator(&cloneOp);
    AddOperator(&shareOp);
    AddOperator(&cleanUpOp);
 
-   AddOperator(&fddistribute2Op);
-   AddOperator(&fddistribute3Op);
-   AddOperator(&fddistribute4Op);
+   AddOperator(&dfdistribute2Op);
+   AddOperator(&dfdistribute3Op);
+   AddOperator(&dfdistribute4Op);
 
-   AddOperator(&convertdarray2Op);
+   AddOperator(&convertdarrayOp);
 
    AddOperator(&gettuplesOp);
    gettuplesOp.SetUsesArgsInTypeMapping();
@@ -15984,8 +16019,8 @@ Distributed2Algebra::Distributed2Algebra(){
    dmapOp.SetUsesArgsInTypeMapping();
    AddOperator(&DFARRAYSTREAMOP);
 
-   AddOperator(&map2Op);
-   map2Op.SetUsesArgsInTypeMapping();
+   AddOperator(&dmap2Op);
+   dmap2Op.SetUsesArgsInTypeMapping();
 
    AddOperator(&ARRAYFUNARG1OP);
    AddOperator(&ARRAYFUNARG2OP);
