@@ -276,7 +276,7 @@ void parseCommandline(int argc, char* argv[],
    unsigned int requriedFlags = CMDLINE_HOST | CMDLINE_PORT | CMDLINE_LINES 
                                 | CMDLINE_COLUMNS | CMDLINE_SIZE ; 
                                 
-   if(flags & requriedFlags != requriedFlags) {
+   if((flags & requriedFlags) != requriedFlags) {
      printUsageAndExit(argv[0]);
    }
 }
