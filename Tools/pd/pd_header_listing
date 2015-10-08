@@ -27,7 +27,8 @@
 \definecolor{darkred}{rgb}{0.5,0.0,0.0}
 \definecolor{red}{rgb}{1,0.0,0.0}
 \definecolor{lightyellow}{rgb}{1,1.0,0.9}
-\definecolor{lightblue}{rgb}{0.6,0.6,1.0}
+\definecolor{lightblue}{rgb}{0,0,1.0}
+
 %\renewenvironment{quote}{\footnotesize \begin{list}{}{\leftmargin3mm \rightmargin0cm}\item\color{darkred}}
 %                        {\color{darkblue}\end{list}\normalsize}
 \oddsidemargin0mm
@@ -46,14 +47,11 @@
      morekeywords={export, source, mkdir, cd}, sensitive=false, morecomment=[l]{\#}, morestring=[b]" }
 
 
-\newcommand{\lstsetSH}{\lstset{language=mybash,basicstyle=\ttfamily\footnotesize,stringstyle=\textred,
+\newcommand{\lstsetSH}{\lstset{language=C++,basicstyle=\ttfamily\ifootnotesize,stringstyle=\textred,
 			backgroundcolor=\color{lightyellow},
 			showstringspaces=false,
 			commentstyle=\textcomment,
-                        keywordstyle=\color{black},
-                        emph={$HOME, $SECONDO_SDK, $USER, $PATH,
-$LD_LIBRARY_PATH, $SECONDO_INSTALL, $platform}, 
-                        emphstyle=\color{blue},
+      keywordstyle=\textbf,
 			extendedchars=true}}
 
 
@@ -69,6 +67,7 @@ $LD_LIBRARY_PATH, $SECONDO_INSTALL, $platform},
         backgroundcolor=\color{lightyellow},
         showstringspaces=false,
         commentstyle=\textcomment,
+        keywordstyle=\bf,
         extendedchars=true}
-\color{darkblue}
+\color{black}
 
