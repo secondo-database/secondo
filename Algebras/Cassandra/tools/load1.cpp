@@ -164,6 +164,7 @@ void fillBuffer(char *buffer, int columns, int sizePerColumn) {
    }
    
    *(buffer + pos) = '\n';
+   *(buffer + pos + 1) = '\0';
 }
 
 /*
@@ -337,7 +338,7 @@ int main(int argc, char* argv[]) {
    
    // Prepare buffer
    size_t bufferSize = commandline_args.columns 
-         * commandline_args.sizePerColumn + commandline_args.columns;
+         * commandline_args.sizePerColumn + commandline_args.columns + 1;
    
    char *buffer = (char*) malloc(bufferSize * sizeof(char));
    
@@ -363,7 +364,8 @@ int main(int argc, char* argv[]) {
       fillBuffer(buffer, commandline_args.columns, 
                  commandline_args.sizePerColumn);
       
-      writeData(socketfd, buffer, bufferSize);
+      // -1 because we dont want so send the \0 terminal
+      writeData(socketfd, buffer, bufferSize - 1);
    
       // Calculate progess (ii)
       if(i % fivePercents == 0) {
