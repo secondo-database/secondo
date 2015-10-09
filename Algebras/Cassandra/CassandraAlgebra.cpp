@@ -2575,10 +2575,14 @@ public:
      cass_log_set_level(CASS_LOG_ERROR);
   }
   
-  void open(){
+  bool open(){
     if(cassandra == NULL) {
         cassandra = CassandraConnectionPool::Instance()->
             getConnection(contactPoint, keyspace, false);
+    }
+    
+    if(! cassandra -> isConnected()) {
+       return false;
     }
     
     // Prevent logging of timeouts to the user
@@ -2587,6 +2591,8 @@ public:
     vector <TokenRange> tokenRanges;
     cassandra -> getAllTokenRanges(tokenRanges);
     allTokenRanges = tokenRanges.size();
+    
+    return true;
   }
   
   bool getProcessedTokenRangesForQuery(vector<TokenRange> &result) {
@@ -2596,6 +2602,12 @@ public:
   
   bool isQueryComplete() {
      vector<TokenRange> processedToken;
+     
+     if(! cassandra -> isConnected()) {
+        cout << "[Error] Cassandra session is not connected" << endl;
+        return true;
+     }
+     
      bool result = getProcessedTokenRangesForQuery(processedToken);
      
      if(!result) {
