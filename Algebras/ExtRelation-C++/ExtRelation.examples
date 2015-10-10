@@ -435,3 +435,12 @@ Signature : tuple -> bool
 Example   : query strassen feed extend[MS1 : .GeoData memattrsize] extend[OK : . bringToMemory] extend[MS2 : .GeoData memattrsize] count
 Result    : 3212
 
+Operator  : feedS
+Number    : 1
+Signature : stream({text,string}) x rel(X) -> stream(X)
+Example   : query [const rel(tuple([N : string])) value (("ten")("ten")) ] feed projecttransformstream[N] feedS[ten] count 
+Result    : 20
+
+ 
+
+

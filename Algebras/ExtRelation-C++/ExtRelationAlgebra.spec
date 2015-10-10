@@ -97,4 +97,5 @@ operator countMt alias COUNTMT pattern _op [_]
 
 operator bringToMemory alias BRINGTOMEMORY pattern _ op
 
+operator feedS alias feedS pattern _ op[_]
 

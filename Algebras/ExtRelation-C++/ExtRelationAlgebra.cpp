@@ -13215,6 +13215,169 @@ OperatorSpec bringToMemorySpec(
  );
 
 
+
+ListExpr feedSTM(ListExpr args){
+    string err = "stream({text,string}) x rel(X) expected";
+    if(!nl->HasLength(args,2)){
+      return listutils::typeError(err + " (wrong number of args)");
+    }
+    if(   !Stream<CcString>::checkType(nl->First(args))
+       && !Stream<FText>::checkType(nl->First(args))){
+      return listutils::typeError(err + " (invalid type for arg 1)");
+   }
+   if(!Relation::checkType(nl->Second(args))){
+      return listutils::typeError(err + " (second arg is not a relation)");
+   }
+   return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                           nl->Second(nl->Second(args)));
+}
+
+template<class T>
+class feedSLI{
+
+   public:
+      feedSLI(Word _stream, ListExpr _relType):stream(_stream), 
+               relType(_relType), relation(0),iterator(0){
+         stream.open();
+         ctlg = SecondoSystem::GetCatalog();
+      }
+
+      ~feedSLI(){
+          destroyRelAndIt();
+          stream.close();
+      }
+
+      Tuple* next(){
+
+        while(true){
+           if(iterator){
+               Tuple* t = iterator->GetNextTuple();
+               if(t){
+                 return t;
+               }  else {
+                  destroyRelAndIt();
+               }        
+           }
+           retrieveNextIterator();
+           if(iterator==0){
+             return 0;
+           }
+        }
+
+      }
+
+   private:
+      Stream<T> stream;
+      ListExpr relType;
+      Relation* relation;
+      GenericRelationIterator* iterator;
+      SecondoCatalog* ctlg;
+
+
+      void destroyRelAndIt(){
+         if(iterator){delete iterator;}
+         if(relation){delete relation;}
+         iterator=0;
+         relation=0;
+      }
+
+      void retrieveNextIterator(){
+        T* objName;
+        while( (objName = stream.request())) {
+           if(!objName->IsDefined()){
+              objName->DeleteIfAllowed();
+           } else {
+              string name = objName->GetValue();
+              objName->DeleteIfAllowed();
+              if(retrieveNextIterator(name)){
+                 return;
+              }               
+           }
+        }
+      }
+
+      bool retrieveNextIterator(const string& name){
+         assert(iterator==0);
+         assert(relation==0);
+         if(!ctlg->IsObjectName(name)){
+            return false;
+         } 
+         ListExpr ot = ctlg->GetObjectTypeExpr(name);
+         if(!nl->Equal(ot,relType)){
+            return false;
+         }
+         Word r;
+         bool def;
+         if(!ctlg->GetObject(name,r,def)){
+            return false;
+         }
+         if(!def){
+            return false;
+         }
+         relation = (Relation*) r.addr;
+         iterator = relation->MakeScan();
+         return true;
+      }
+};
+
+template<class T>
+int feedSVMT( Word* args, Word& result, int message,
+               Word& local, Supplier s ) {
+    feedSLI<T>* li = (feedSLI<T>*) local.addr;
+    switch(message){
+       case OPEN:
+               if(li){
+                  delete li;
+               }
+               local.addr = new feedSLI<T>(args[0], 
+                                     qp->GetType(qp->GetSon(s,1)));
+               return 0;
+       case REQUEST:
+               result.addr=li?li->next():0;
+               return result.addr?YIELD:CANCEL;
+       case CLOSE:
+                if(li){
+                  delete li;
+                  local.addr=0;
+                }
+    }
+    return -51765; // should never happen
+}
+
+ValueMapping feedSVM[] = {
+   feedSVMT<CcString>,
+   feedSVMT<FText>
+};
+
+int feedSSelect(ListExpr args){
+   return Stream<CcString>::checkType(nl->First(args))?0:1;
+}
+OperatorSpec feedSSpec(
+   "stream({text,string}) x rel(tuple(X)) -> stream(tuple(X))",
+   "_ feedS[_]",
+   "Feeds the tuples of several relation objects having "
+   "the type given in the second argument into a single stream of tuples."
+   "the object names come from the input stream. Names not representing "
+   "a relation with the expected type, are ignored. The value of the "
+   "relation argument is also ignored." ,
+   "query [const rel(tupl([N : string])) value ( (\"ten\")(\"ten\") )] "
+   " feed namedtransformstream[N] feedS[ten] count"
+);
+
+Operator feedSOp(
+  "feedS",
+  feedSSpec.getStr(),
+  2,
+  feedSVM,
+  feedSSelect,
+  feedSTM
+);
+
+
+
+
+
+
 /*
 
 3 Class ~ExtRelationAlgebra~
@@ -13326,6 +13489,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extendXOP);
     AddOperator(&countMtOP);
     AddOperator(&bringToMemoryOP);
+    AddOperator(&feedSOp);
 
 #ifdef USE_PROGRESS
 // support for progress queries
