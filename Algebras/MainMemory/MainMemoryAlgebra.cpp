@@ -1890,11 +1890,11 @@ int mcreateRtree2ValMapT (Word* args, Word& result,
     //get r-tree name
     string name = ((CcString*)args[2].addr)->GetValue();
 
-    // erzeugen des mainmemory rtrees mit gegebenem Namen
+    // create mainmemory rtrees
     mmrtree::RtreeT<dim, size_t>* rtree =
                     new mmrtree::RtreeT<dim, size_t>(4,8);
 
-    // Attribut-Indexe extrahieren
+    // get attribute-index
     int MBRIndex = ((CcInt*) args[3].addr)->GetValue();
     int TIDIndex = ((CcInt*) args[4].addr)->GetValue();
 
@@ -1908,7 +1908,7 @@ int mcreateRtree2ValMapT (Word* args, Word& result,
             =(StandardSpatialAttribute<dim>*) t->GetAttribute(MBRIndex);
 
         Rectangle<dim> rect = attr->BoundingBox();
-        // Einfügen des rect,id -Paares in den Baum
+        // insert rect,id -pair into the tree
         rtree->insert(rect, tid);
    //     t->DeleteIfAllowed();
     }

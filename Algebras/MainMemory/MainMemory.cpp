@@ -163,9 +163,10 @@ bool MemoryObject::hasflob(){
 
 
 
-// MEMORYRELOBJECT
+// MEMORYRELOBJECT.
 
 MemoryRelObject::MemoryRelObject(){
+    mmrel=0;
 };
 
 MemoryRelObject::MemoryRelObject(vector<Tuple*>* _mmrel,

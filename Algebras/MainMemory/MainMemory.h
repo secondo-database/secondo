@@ -86,6 +86,12 @@ class MemCatalog {
 
 class MemoryObject {
     public:
+    MemoryObject(){
+        flob = false;
+        database="";
+        memSize=0;
+        objectTypeExpr="";
+    }
         virtual ~MemoryObject();
 
         void setMemSize(size_t i);
@@ -97,12 +103,12 @@ class MemoryObject {
 
 
     protected:
-        unsigned long memSize=0;       // object size in main memory in byte
-        string objectTypeExpr="";       // the tuple description for relations,
+        unsigned long memSize;      // object size in main memory in byte
+        string objectTypeExpr;       // the tuple description for relations,
                                      // or the attribute description
 
-        bool flob = false;
-        string database="";
+        bool flob;
+        string database;
 
 };
 
@@ -164,7 +170,7 @@ class MemoryRelObject : public MemoryObject {
         static const bool checkType(const ListExpr type);
 
     private:
-        vector<Tuple*>* mmrel=0;
+        vector<Tuple*>* mmrel;
 
 };
 
