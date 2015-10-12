@@ -67,7 +67,8 @@ endef
 CONFIG_FILES = bin/SecondoConfig.ini \
 	bin/JNI.ini \
 	Javagui/gui.cfg \
-	Javagui/GBS.cfg
+	Javagui/GBS.cfg \
+  bin/Replay.cfg
 
 
 ALL_TARGETS = makedirs \
@@ -331,6 +332,10 @@ Javagui/gui.cfg: Javagui/gui.cfg.example
 	
 Javagui/GBS.cfg: Javagui/GBS.cfg.sample
 	$(cp-config-file)
+
+bin/Replay.cfg: bin/Replay.cfg.example
+	$(cp-config-file)
+
 
 .PHONY: help
 help:
