@@ -284,5 +284,16 @@ MaxLockObjects=300000
 [Default]
 #Bdbxxx=
 
+
+# --- Secondo Replay Client Configuration Section ---
+[# --- Secondo Replay Client Configuration Section ---
+[Replay]
+DefaultReplayClusterConfig = Replay.cfg
+#ReplayImportMode = Replication
+ReplayImportMode = Partitioning
+Master = ReplayHost1:127.0.0.1:1234:12
+Node = ReplayHost2:192.168.40.131:1234:2
+Node += Replayhost3:192.168.40.132:1234:3 
+
 ######### End of Secondo Configuration ###########
 
