@@ -7,6 +7,7 @@
 
 */
 
+
 :-
   op(800, xfx, =>),
   op(800, xfx, <=),
@@ -14,8 +15,12 @@
   op(800, xfx, div),
   op(800, xfx, mod),
   op(800, xfx, starts),
-  op(800, xfx, contains),
-  op(200, xfx, :).
+  op(800, xfx, contains).
+
+
+ /* :-  op(200, xfx, :). */
+
+
 
 :- op(800, xfx, inside).
 :- op(800, xfx, intersects).
@@ -24,6 +29,8 @@
 :- op(800, xfx, present).
 :- op(800, xfx, or).
 :- op(800, fx, not).
+
+
 
 /*
 
@@ -48,6 +55,7 @@ translated by default.
 For all other forms, a plan\_to\_atom rule has to be programmed explicitly.
 
 */
+
 
 secondoOp(distance, prefix, 2).
 
