@@ -136,6 +136,7 @@ class SecondoTTY : public Application
   string pswd;
   string host;
   string port;
+  string replayFile;
   string iFileName;
   string oFileName;
 
@@ -164,6 +165,7 @@ SecondoTTY::SecondoTTY( const TTYParameter& t )
   pswd = t.pswd;
   host = t.host;
   port = t.port ;
+  replayFile = t.replayFile;
   iFileName = t.iFileName;
   oFileName = t.oFileName;
 
@@ -725,6 +727,7 @@ SecondoTTY::Execute()
   si = new SecondoInterfaceCS(true);
   #elif defined(REPLAY)
   si = new SecondoInterfaceREPLAY(true);
+  ((SecondoInterfaceREPLAY*)si)->setReplayFile(replayFile);
   #else
   si = new SecondoInterfaceCS(true);
   #endif

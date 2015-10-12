@@ -40,6 +40,8 @@ public:
   virtual ~SecondoInterfaceREPLAY();
 
   /* expansion stage 1 */
+  void setReplayFile(const string iReplayFile);
+
   virtual bool Initialize(const string& user, 
                           const string& pswd,
                           const string& host,
@@ -67,6 +69,8 @@ public:
 protected:
 
   /* expansion stage 1 */
+  bool getExternalConfig(const string &parmFile);
+
   void showMasterConfig();  
   bool getMasterConfig(const string& parmFile, 
                        const string &delimPart);
@@ -107,6 +111,8 @@ protected:
                            const string filePrefix);
   bool sendAllImagesToNode(const unsigned int nodeNo,
                            std::vector<string> imageList);
+  bool sendShareFileToNode(const unsigned int nodeNo,
+                           const string& localfilename);
   bool sendFileToNode(const unsigned int nodeNo,
                       const string& localfilename,
                       const string& serverFileName,
@@ -130,7 +136,8 @@ protected:
   bool executeReplayDBLPImport(std::vector<string>& paramlist,
                                const unsigned int noSplitFiles);
   bool executeReplayIMGImport(std::vector<string>& paramlist);
-
+  bool executeReplayShareFile(std::vector<string>& paramlist);
+   
   bool splitCSV(const std::string& filename, 
                 const unsigned int headersize,
                 const bool multiline,
@@ -150,6 +157,8 @@ protected:
                        const string relName);
 
   /* expansion stage 1 */
+  string replayFile;
+
   struct ReplayHost {
     string hostname;
     string ip;
