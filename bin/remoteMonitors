@@ -102,7 +102,7 @@ function startLine {
   echo 'echo "SecondoMonitor already running on port ${port}"'  >>$script
   echo 'exit 1' >>$script
   echo 'fi'  >>$script
-  echo "nohup ./SecondoMonitor -s $home $port -c $config >SecondoMonitor.log "'2>&1 &' >>$script
+  echo "nohup ./SecondoMonitor -s $home -p $port -c $config >SecondoMonitor.log "'2>&1 &' >>$script
   echo 'pid=$!' >>$script
   echo 'echo $pid >$tmpfile' >>$script
   echo 'w=$(ps -p $pid | wc -l )' >>$script
