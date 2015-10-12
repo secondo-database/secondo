@@ -63,7 +63,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 % But note: (a:b):c is not valid. The ~:~ is used like a list, hence a
 % predicate like the ~append/3~ for lists is needed to add an attribute to a
 % existing x:y term.
-:- op(200, xfy, :).
+% :- op(200, xfy, :).
 % NVK MODIFIED END
 :- op(800, xfx, =>).
 :- op(800, xfx, ==).
