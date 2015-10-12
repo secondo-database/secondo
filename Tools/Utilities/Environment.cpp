@@ -146,6 +146,7 @@ TTYParameter::TTYParameter(const int argc, char** argv)
   pswd          = "";
   host          = "";
   port          = "";
+  replayFile    = "";
   iFileName     = "";
   oFileName     = "";
   num           = "0";
@@ -166,6 +167,7 @@ void TTYParameter::Print(ostream& os)
   os << "pswd      = " << pswd << endl;
   os << "host      = " << host << endl;
   os << "port      = " << port << endl;
+  os << "replayFile = " << replayFile << endl;
   os << "iFileName = " << iFileName << endl;
   os << "oFileName = " << oFileName << endl;
   os << "num       = " << num << endl;
@@ -182,8 +184,8 @@ of the configuration file on the command line. If no file name was given on
 the command line or a file with the given name does not exist, the environment
 variable SECONDO\_CONFIG is checked. If this variable is defined it should point
 to a directory where the configuration file can be found. If the configuration
-file is not found there, the current directory will be checked. If no configuration
-file can be found the program terminates.
+file is not found there, the current directory will be checked. If no 
+configuration file can be found the program terminates.
 
 If a valid configuration file was found initialization continues.
 
@@ -223,6 +225,10 @@ TTYParameter::CheckConfiguration()
   "-----------------------------------------------------------------------\n" <<
   "  -h host    : Host address of Secondo server        (SECONDO_HOST)\n" <<
   "  -p port    : Port of Secondo server                (SECONDO_PORT)\n" <<
+  "\n" << 
+  "REPLAY only:\n" <<
+  "-----------------------------------------------------------------------\n" <<
+  "  -r replay  : SecondoReplay Cluster configuration file\n" <<
   "\n" << 
   "Mode -test only:\n" <<
   "-----------------------------------------------------------------------\n" <<
@@ -283,6 +289,11 @@ TTYParameter::CheckConfiguration()
     else if ( argOk && argSwitch == "-p" )  // Port
     {
       port = argValue;
+    }
+    else if ( argOk && argSwitch == "-r" )  
+                         // SecondoReplay Cluster configuration file
+    {
+      replayFile = argValue;
     }
     else if ( argOk && argSwitch == "-num" )  // Number of test case
     {
@@ -406,7 +417,7 @@ TTYParameter::CheckConfiguration()
   }
   else
   {
-    cmsg.info() << "Using configuration file" << parmFile << endl; 
+    cmsg.info() << "Using configuration file" << parmFile << endl;
     WinUnix::setenv("SECONDO_CONFIG", parmFile.c_str());
   } 
   cmsg.send();
@@ -430,4 +441,3 @@ char** TTYParameter::Get_plargs(int& argc)
 
   return argv;
 }
-
