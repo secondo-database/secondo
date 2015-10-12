@@ -61,6 +61,7 @@ struct TTYParameter
   string pswd;
   string host;
   string port;
+  string replayFile;
   string iFileName;
   string oFileName;
   string num;
@@ -127,3 +128,5 @@ If a valid configuration file was found initialization continues.
 };
 
 #endif
+
+
