@@ -82,7 +82,7 @@ operator fsfeed5 alias FSFEED5 pattern _ op[_]
 
 operator fdistribute7 alias FDISTRIBUTE7 pattern _ op[fun,_,_,_] implicit parameter elem type STREAMELEM
 
-operator partition alias PARTITION pattern _ op[fun,_,_] implicit parameter elem type DFARRAYTUPLE 
+operator partition alias PARTITION pattern _ op[fun,_,_] implicit parameter elem type SUBSUBTYPE1 
 
 operator collect2 alias COLLECT2 pattern _ op[_,_]
 

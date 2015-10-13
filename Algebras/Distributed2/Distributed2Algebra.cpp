@@ -5974,7 +5974,7 @@ the algebra instance.
 
 */
 
-enum arrayType{DARRAY,DFARRAY,DMATRIX};
+enum arrayType{DARRAY,DFARRAY,DFMATRIX};
 
 template<arrayType Type>
 class DArrayT{
@@ -5992,7 +5992,7 @@ class DArrayT{
      }
      DArrayT(const size_t _size , const string& _name): 
            worker(),map(), size(_size),name(_name) {
-        assert(Type == DMATRIX);
+        assert(Type == DFMATRIX);
         if(!stringutils::isIdent(name) || size ==0 ){ // invalid
            name = "";
            defined = false;
@@ -6022,7 +6022,7 @@ class DArrayT{
                const vector<DArrayElement>& _worker): 
          worker(_worker),map(), size(_size),name(_name) {
  
-        assert(Type == DMATRIX);
+        assert(Type == DFMATRIX);
         if(!stringutils::isIdent(name) || size ==0 ){ 
            // invalid
            name = "";
@@ -6061,7 +6061,7 @@ class DArrayT{
 
 
     uint32_t getWorkerNum(uint32_t index){
-       assert(Type!=DMATRIX);
+       assert(Type!=DFMATRIX);
        return map[index];
     }
 
@@ -6073,7 +6073,7 @@ class DArrayT{
 
     void setSize(size_t newSize){
        assert(newSize > 0);
-       assert(Type == DMATRIX);
+       assert(Type == DFMATRIX);
        this->size = newSize;
     }
 
@@ -6088,7 +6088,7 @@ class DArrayT{
         defined = true;
         this->name = name;
         this->size = size;
-        if(Type!=DMATRIX){
+        if(Type!=DFMATRIX){
              this->map = createStdMap(size,worker.size());
         } else {
              map.clear();
@@ -6097,7 +6097,7 @@ class DArrayT{
      }
 
      bool equalMapping(DArrayT<Type>& a, bool ignoreSize ){
-        if(Type==DMATRIX){ // mapping does not exist in DMATRIX
+        if(Type==DFMATRIX){ // mapping does not exist in DFMATRIX
            return true;
         }
         if(!ignoreSize && (map.size()!=a.map.size())){
@@ -6125,7 +6125,7 @@ class DArrayT{
         this->map = m;
         this->size = m.size();
         this->worker = worker;
-        if(Type==DMATRIX){
+        if(Type==DFMATRIX){
            map.clear();
         }
         if(!checkMap()){
@@ -6142,7 +6142,7 @@ class DArrayT{
        switch(Type){
           case DARRAY : return "darray";
           case DFARRAY : return "dfarray";
-          case DMATRIX : return "dfmatrix";
+          case DFMATRIX : return "dfmatrix";
        }
        assert(false);
        return "typeerror";
@@ -6157,7 +6157,7 @@ class DArrayT{
          }
          // for dfarrays and dmatrices, only relations 
          // are allowed as subtype
-         if((Type == DFARRAY) || (Type==DMATRIX)){
+         if((Type == DFARRAY) || (Type==DFMATRIX)){
            return Relation::checkType(nl->Second(list));
          }
 
@@ -6184,7 +6184,7 @@ class DArrayT{
      }
 
      void setStdMap(size_t size){
-         if(Type!=DMATRIX){
+         if(Type!=DFMATRIX){
             map = createStdMap(size, worker.size());
             this->size = size;
          } else {
@@ -6195,7 +6195,7 @@ class DArrayT{
 
  
      DArrayElement getWorkerForSlot(int i){
-        assert(Type!=DMATRIX);
+        assert(Type!=DFMATRIX);
         if(i<0 || i>= map.size()){
            assert(false);
         }
@@ -6203,7 +6203,7 @@ class DArrayT{
      }
 
      size_t getWorkerIndexForSlot(int i){
-        assert(Type!=DMATRIX);
+        assert(Type!=DFMATRIX);
         if(i<0 || i>= map.size()){
            assert(false);
         }
@@ -6224,7 +6224,7 @@ class DArrayT{
        assert(size == map.size());
        assert(slot < size);
        assert(_worker < worker.size());
-       assert(Type!=DMATRIX);
+       assert(Type!=DFMATRIX);
        map[slot] = _worker;
      }
 
@@ -6245,7 +6245,7 @@ class DArrayT{
              last = nl->Append(last, worker[i].toListExpr());
            }
        }
-       if(isStdMap() || (Type==DMATRIX)){ 
+       if(isStdMap() || (Type==DFMATRIX)){ 
           return nl->ThreeElemList(nl->SymbolAtom(name), 
                                    nl->IntAtom(size), 
                                    wl); 
@@ -6352,7 +6352,7 @@ class DArrayT{
         vector<uint32_t> m;
         DArrayT<Type>* res = 0; 
 
-        if(Type!=DMATRIX){
+        if(Type!=DFMATRIX){
            for(size_t i=0;i<size;i++){
                if(!readVar<uint32_t>(me,valueRecord,offset)){
                   return false;
@@ -6404,7 +6404,7 @@ class DArrayT{
          if(!writeVar(a->name, valueRecord, offset)){
            return false;
          }
-         if(Type!=DMATRIX){
+         if(Type!=DFMATRIX){
            // map
            for(size_t i=0;i<a->map.size();i++){
                if(!writeVar(a->map[i], valueRecord,offset)){
@@ -6428,7 +6428,7 @@ class DArrayT{
      static vector<uint32_t> createStdMap(const uint32_t size, 
                                           const int numWorkers){
         vector<uint32_t> map;
-        if(Type!=DMATRIX){
+        if(Type!=DFMATRIX){
            for(uint32_t i=0;i<size;i++){
               map.push_back(i%numWorkers);
            }
@@ -6450,7 +6450,7 @@ class DArrayT{
           worker[i].print(out);
        }
        out << "]";
-       if(Type != DMATRIX){
+       if(Type != DFMATRIX){
          out << "map = [";
          for(uint32_t i=0;i<map.size();i++){
            if(i>0){
@@ -6527,7 +6527,7 @@ class DArrayT{
 
   friend class DArrayT<DARRAY>;
   friend class DArrayT<DFARRAY>;
-  friend class DArrayT<DMATRIX>;
+  friend class DArrayT<DFMATRIX>;
 
   private:
     vector<DArrayElement> worker; // connection information
@@ -6538,7 +6538,7 @@ class DArrayT{
 
 
    bool checkMap(){
-     if(Type!=DMATRIX){
+     if(Type!=DFMATRIX){
         for(int i=0;i<map.size();i++){
            if(map[i] >= worker.size()){
               return false;
@@ -6550,7 +6550,7 @@ class DArrayT{
    }
 
    bool isStdMap(){
-     if(Type!=DMATRIX){
+     if(Type!=DFMATRIX){
         int s = worker.size();
         for(size_t i=0;i<map.size();i++){
              if(map[i]!= i%s){
@@ -6580,7 +6580,7 @@ class DArrayT{
 
 typedef DArrayT<DARRAY> DArray;
 typedef DArrayT<DFARRAY> DFArray;
-typedef DArrayT<DMATRIX> DMatrix;
+typedef DArrayT<DFMATRIX> DMatrix;
 
 
 /*
@@ -13083,6 +13083,80 @@ Operator dmap2Op(
 
 
 /*
+Type Map Operator subtype
+
+*/
+template<int pos1, int pos2 >
+ListExpr SUBTYPETM(ListExpr args){
+
+   if(!nl->HasMinLength(args,pos1)){
+     return listutils::typeError("too less arguments");
+   }
+   for(int i=1;i<pos1;i++){
+     args = nl->Rest(args);
+   }
+   ListExpr arg = nl->First(args);
+
+   for(int i=0;i<pos2;i++){
+      if(!nl->HasLength(arg,2)){
+         return listutils::typeError("no subtype found");
+      }
+      arg = nl->Second(arg);
+   }
+
+
+   return arg; 
+  
+}
+
+
+OperatorSpec SUBTYPE1SPEC(
+  " t(st) x ... -> st",
+  "SUBTYPE1SPEC(_)",
+  "Type mapping operator.",
+  "not for direct usage"
+);
+
+OperatorSpec SUBSUBTYPE1SPEC(
+  " t(st1(st2)) x ... -> st2",
+  "SUBSUBTYPE1SPEC(_)",
+  "Type mapping operator.",
+  "not for direct usage"
+);
+
+OperatorSpec SUBTYPE2SPEC(
+  " a x t(st) x ... -> st",
+  "SUBTYPE2SPEC(_,_)",
+  "Type mapping operator.",
+  "not for direct usage"
+);
+
+Operator SUBTYPE1OP(
+  "SUBTYPE1",
+   SUBTYPE1SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   SUBTYPETM<1,1>
+);
+
+Operator SUBSUBTYPE1OP(
+  "SUBSUBTYPE1",
+   SUBTYPE1SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   SUBTYPETM<1,2>
+);
+
+Operator SUBTYPE2OP(
+  "SUBTYPE2",
+   SUBTYPE2SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   SUBTYPETM<2,1>
+);
+
+
+/*
 TypeMapOperators ARRAYFUNARG1 and ARRAYFUNARG2
 
 */
@@ -14777,10 +14851,6 @@ ListExpr partitionTM(ListExpr args){
  if(!DFArray::checkType(a1) && !DArray::checkType(a1)){
    return listutils::typeError(err + "(first attr of wrong type)");
  }
- if(DArray::checkType(a1)){
-   return listutils::typeError("darray not supported yet");
- }
-
 
  ListExpr r = nl->Second(a1);
  if(!Relation::checkType(r)){
@@ -14868,17 +14938,7 @@ class partitionInfo{
         if(!ci){
            return;
         }
-        switch(array->getType()){
-         case DFARRAY : runDF(); break;
-         case DARRAY  : runD(); break;
-         default : assert(false);
-        }
-     }
-
-
-
-     void runDF(){
-        // construct target directory on ci
+        // construct target directory for the matrix on ci
         string targetDir = ci->getSecondoHome() + "/dfarrays/" + dbname 
                            + "/" + tname + "/"
                            + stringutils::int2str(workerNumber) + "/";
@@ -14906,10 +14966,10 @@ class partitionInfo{
             //cerr << "resList is " << nl->ToString(resList) << endl;
             // may be directory already exists, TODO: check if it is a directory
         }
-        string cmd = constructQueryDF(targetDir);
+        string cmd = constructQuery(targetDir);
         if(cmd==""){
            cerr << "worker " << workerNumber 
-                << " does not contain a slot" << endl;
+                << " does not contain any slot" << endl;
            return;
         }
         string res;
@@ -14921,9 +14981,55 @@ class partitionInfo{
      }
 
 
-     void runD(){
-       assert(false); // not implemented yet
 
+     string constructQuery(const string& targetDir){
+        switch(array->getType()){
+           case DARRAY : return constructQueryD(targetDir);
+           case DFARRAY : return constructQueryDF(targetDir);
+           case DFMATRIX : assert(false); 
+        }
+        return "";
+     }
+
+
+
+     string constructQueryD(const string& targetDir){
+        // create relation containing the objectnames of the source
+        // for this worker
+        stringstream ss;
+        ss << "(" ; // open value
+        for(size_t i=0;i<array->getSize();i++){
+           if(array->getWorkerIndexForSlot(i)==workerNumber){
+              ss << " (\"" << array->getName() << "_" << i << "\" )" << endl;
+           }
+        }
+        ss << ")"; // end of value list
+
+        string rel = " ( (rel(tuple((T string)))) " + ss.str() + ")";
+
+        // the query in user syntax would be
+        // query rel feed projecttransformstream[T] fdistribute7[
+        // fun, resSize, dir+"/"+tname, TRUE] count
+
+
+        string stream1 = "(projecttransformstream (feed " + rel + ") T )";
+        string stream2 = "(feedS " + stream1 + "("+nl->ToString(relType) 
+                         + " ()))"; 
+
+       
+        stringstream query;
+
+
+        query << "(query "
+              << " (count "
+              << "   ( fdistribute7 "
+              <<       stream2
+              <<       "" << fun << " "
+              <<        resSize
+              <<       " '" << targetDir <<"/" << tname <<"' "
+              <<       " TRUE "
+              <<       " )))";
+        return query.str();
      }
 
 
@@ -16053,6 +16159,12 @@ Distributed2Algebra::Distributed2Algebra(){
 
 
    AddOperator(&collect2Op);
+
+
+   AddOperator(&SUBTYPE1OP);
+   AddOperator(&SUBSUBTYPE1OP);
+   AddOperator(&SUBTYPE2OP);
+
 
 
    pprogView = new PProgressView();
