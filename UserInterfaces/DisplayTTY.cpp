@@ -1509,7 +1509,7 @@ struct DisplayArray : DisplayFunction {
 DisplayDArray
 
 */
-struct DisplayDArray : DisplayFunction {
+struct DisplayDArray_old : DisplayFunction {
 
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
@@ -3660,7 +3660,7 @@ DisplayTTY::Initialize()
   d.Insert( "rect4",   new DisplayRect4() );
   d.Insert( "rect8",   new DisplayRect8() );
   d.Insert( "array",   new DisplayArray() );
-  d.Insert( "darray",  new DisplayDArray() );
+  d.Insert( "darray_old",  new DisplayDArray_old() );
   d.Insert( "point",   new DisplayPoint() );
   d.Insert( "tbtree",  new DisplayTBTree() );
   d.Insert( "binfile", new DisplayBinfile() );
