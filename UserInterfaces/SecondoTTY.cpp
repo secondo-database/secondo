@@ -276,13 +276,19 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
   if ((pos == string::npos) && (pos2==string::npos))
     return isQuery;
 
+
+  // remove leading brackets
+  while(!cmdWord.empty() && cmdWord[0]=='('){
+     cmdWord = cmdWord.substr(1);
+  }
+
   if ( (cmdWord == "QUERY") || (cmdWord== "QUERYNT") )
   {
     isQuery = true;
   }
   else
   {
-    if ( cmdWord == "(" )
+    if ( cmdWord == "" )
     {
       cmdWord = ReadCommand(is);
       if ( (cmdWord == "QUERY") || (cmdWord == "QUERYNT"))
