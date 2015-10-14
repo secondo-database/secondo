@@ -184,6 +184,8 @@ class ffeed5Info{
        if(ok){
           in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
           readHeader(tt);
+       } else {
+           // cout << "could not open file " << filename << endl;
        }
     }
 
@@ -1066,6 +1068,68 @@ class ConnectionInfo{
              showCommand(si,host,port,cmd,false);
              return true;
           }
+
+
+          bool retrieveAnyFile(const string& remoteName,
+                            const string& localName){
+              string rf = getRequestFolder();
+              bool copyRequired = !stringutils::startsWith(remoteName,rf);
+              string cn;
+              int err;
+              string errMsg;    
+              ListExpr result;
+              double rt;
+              if(!copyRequired){
+                cn = remoteName;
+              } else {
+                 // create request dir 
+                 string cmd = "query createDirectory('"+rf+"', TRUE)";
+                 simpleCommand(cmd,err,errMsg,result,false,rt);
+                 if(err){
+                   cerr << "command " << cmd << " failed " << endl;
+                   return false;
+                 }
+                 cn = "tmp_" + stringutils::int2str(serverPid()) + "_" 
+                      + FileSystem::Basename(remoteName);
+                 string cf =  getSecondoHome()+"/"+ rf + "/"+cn;
+                 cmd = "query copyFile('"+remoteName+"','"+cf+"')";
+                 simpleCommand(cmd,err,errMsg,result,false,rt);
+                 if(err){
+                    cerr << "command " << cmd << " failed" << endl;
+                    return false;
+                 }
+                 if(!nl->HasLength(result,2)){
+                   cerr << "unexpected result for command " << cmd << endl;
+                   cerr << "expected (type value), got " 
+                        << nl->ToString(result) << endl;
+                   return false;
+                 }
+                 if(nl->AtomType(nl->Second(result)) != BoolType){
+                   cerr << "unexpected result for command " << cmd << endl;
+                   cerr << "expected (bool boolatom), got " 
+                        << nl->ToString(result) << endl;
+                   return false;
+                 }
+                 if(!nl->BoolValue(nl->Second(result))){
+                   cerr << "copying file failed" << endl;
+                   return false;
+                 }
+ 
+              }
+             
+              int errres  = requestFile(cn,localName,true);
+
+              if(copyRequired){
+                 // remove copy
+                 string cmd = "query removeFile('"+cn+"')";
+                 simpleCommand(cmd,err,errMsg,result,false,rt);
+                 if(err){
+                    cerr << "command " << cmd << " failed" << endl;
+                 }
+              }
+              return errres==0;
+          }
+
 
           Word createRelationFromFile(const string& fname, ListExpr& resType){
             
@@ -9862,12 +9926,12 @@ the resulting stream. Other subtypes are not supported.
 */
 ListExpr dsummarizeTM(ListExpr args){
 
-  string err="darray(X) with X in rel or DATA expected";
+  string err="d[f]array(X) with X in rel or DATA expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
   ListExpr arg = nl->First(args);
-  if(!DArray::checkType(arg)){
+  if(!DArray::checkType(arg) && !DFArray::checkType(arg)){
     return listutils::typeError(err);
   }
   ListExpr subtype = nl->Second(arg);
@@ -10033,25 +10097,41 @@ class dsummarizeRelListener{
 };
 
 
+template<class A>
 class RelationFileGetter{
-
-
-
   public:
-     RelationFileGetter(DArray* _array, int _index, 
+     RelationFileGetter(A* _array, int _index, 
                         dsummarizeRelListener* _listener):
       array(_array), index(_index), listener(_listener){
      }
 
      void operator()(){
        // get the connection
-       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       dbname = SecondoSystem::GetInstance()->GetDatabaseName();
        DArrayElement elem = array->getWorkerForSlot(index);
        ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
        if(!ci){ // connection failed
           listener->connectionFailed(index);
           return;
        }
+       switch(array->getType()){
+         case DARRAY : retrieveFileFromObject(ci); break;
+         case DFARRAY : retrieveFileFromFile(ci); break;
+         case DFMATRIX : assert(false); break;
+         default: assert(false);
+       }
+     }
+
+     
+
+   private:
+     A* array;
+     int      index;
+     dsummarizeRelListener* listener;
+     string dbname;
+
+
+     void retrieveFileFromObject( ConnectionInfo* ci){
        string objName = array->getName()+"_"+stringutils::int2str(index);
        string fname = objName+".bin";
        if(!ci->retrieveRelationFile(objName,fname)){
@@ -10061,20 +10141,31 @@ class RelationFileGetter{
        listener->fileAvailable(index, fname);
      }
 
-   private:
-     DArray* array;
-     int      index;
-     dsummarizeRelListener* listener;
+     void retrieveFileFromFile(ConnectionInfo* ci){
+       string rname = array->getName()+"_"+stringutils::int2str(index)+".bin";
+       string path = ci->getSecondoHome() + "/dfarrays/" + dbname + "/"
+                     + array->getName() + "/" + rname;
+       string lname = rname;
+       if(!ci->retrieveAnyFile(path,lname)){
+          listener->connectionFailed(index);
+          return;
+       }
+       listener->fileAvailable(index, lname);
+        
+     }
 
 
 };
 
 
 
+
+
+template<class A>
 class dsummarizeRelInfo: public dsummarizeRelListener{
 
   public:
-     dsummarizeRelInfo(DArray* _array, ListExpr _resType):
+     dsummarizeRelInfo(A* _array, ListExpr _resType):
          array(_array), currentIndex(0), currentFeeder(0), resType(_resType)
     {
         start();
@@ -10104,11 +10195,9 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
                   SecondoSystem::GetCatalog()->NumericType(resType);
               currentFeeder = new ffeed5Info(filenames[currentIndex],
                      tType);
+
            }
          }
-         
-                
-
      }
  
      virtual ~dsummarizeRelInfo(){
@@ -10148,12 +10237,12 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
 
 
   private:
-     DArray* array;
+     A* array;
      size_t currentIndex; 
      ffeed5Info* currentFeeder;
      ListExpr resType;
      vector<boost::thread*> runners;
-     vector<RelationFileGetter*> getters;
+     vector<RelationFileGetter<A>*> getters;
      vector<string> filenames;
      boost::mutex mtx;
      boost::condition_variable cond;
@@ -10161,7 +10250,8 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
 
      void start(){
         for(size_t i=0;i< array->getSize();i++){
-           RelationFileGetter* getter = new RelationFileGetter(array,i,this);
+           RelationFileGetter<A>* getter = 
+                          new RelationFileGetter<A>(array,i,this);
            getters.push_back(getter);
            filenames.push_back("");
            runners.push_back(new boost::thread(*getter));
@@ -10170,14 +10260,14 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
 };
 
 
-template<class T>
+template<class T, class A>
 int dsummarizeVMT(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
    T* li = (T*) local.addr;
    switch(message){
      case OPEN: if(li) delete li;
-                local.addr = new T((DArray*) args[0].addr, 
+                local.addr = new T((A*) args[0].addr, 
                                     nl->Second(qp->GetType(s)));
                 return 0;
      case REQUEST:
@@ -10198,13 +10288,17 @@ int dsummarizeVMT(Word* args, Word& result, int message,
 */
 
 ValueMapping dsummarizeVM[] = {
-    dsummarizeVMT<dsummarizeRelInfo>,
-    dsummarizeVMT<dsummarizeAttrInfo>
+    dsummarizeVMT<dsummarizeRelInfo<DArray>, DArray >,
+    dsummarizeVMT<dsummarizeRelInfo<DFArray>, DFArray >,
+    dsummarizeVMT<dsummarizeAttrInfo, DArray>
 };
 
 
 int dsummarizeSelect(ListExpr args){
-  return Relation::checkType(nl->Second(nl->First(args)))?0:1;
+  if(!Relation::checkType(nl->Second(nl->First(args)))){
+     return 2;
+  }
+  return DArray::checkType(nl->First(args))?0:1;
 }
 
 /*
@@ -10468,7 +10562,7 @@ Operator getValueOp(
 
 
 /*
-1.10 OPerator ~dloopa~
+1.10 OPerator ~dloop2~
 
 This operator performs a function on the elements of two darray values.
 The workerlist of both darray instances must be the same. The smaller
@@ -10481,7 +10575,7 @@ and no data must be tramsferred.
 darray(X) x darray(Y) x string x (fun: X x Y [->] Z) [->] darray(Z)
 
 */
-ListExpr dloopaTM(ListExpr args){
+ListExpr dloop2TM(ListExpr args){
    string err ="darray(X) x darray(Y) x string x (X x Y ->Z) expected";
    if(!nl->HasLength(args,4)){
       return listutils::typeError(err);
@@ -10545,10 +10639,10 @@ ListExpr dloopaTM(ListExpr args){
       
 }
 
-class dloopaRunner{
+class dloop2Runner{
   public:
 
-     dloopaRunner(DArray* _a1, DArray* _a2, int _index, 
+     dloop2Runner(DArray* _a1, DArray* _a2, int _index, 
                    const string& _fun, const string& _rname):
        a1(_a1), a2(_a2), index(_index),fun(_fun), rname(_rname){
      }
@@ -10591,7 +10685,7 @@ class dloopaRunner{
 
 
 
-int dloopaVM(Word* args, Word& result, int message,
+int dloop2VM(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
   DArray* a1 = (DArray*) args[0].addr;
@@ -10622,7 +10716,7 @@ int dloopaVM(Word* args, Word& result, int message,
 
   // check whether workers of both arrays are the same
   if(a1->numOfWorkers()!=a2->numOfWorkers()){
-    cmsg.error() << "Different workers in dloopa";
+    cmsg.error() << "Different workers in dloop2";
     cmsg.send();
     res->makeUndefined();
     return 0;
@@ -10632,7 +10726,7 @@ int dloopaVM(Word* args, Word& result, int message,
 
   for(size_t i=0;i<a1->numOfWorkers();i++){
     if(a1->getWorker(i) != a2->getWorker(i)){
-        cmsg.error() << "Different workers in dloopa";
+        cmsg.error() << "Different workers in dloop2";
         cmsg.send();
         res->makeUndefined();
         return 0;
@@ -10643,7 +10737,7 @@ int dloopaVM(Word* args, Word& result, int message,
   int max = min(a1->getSize(), a2->getSize());
 
   if(!a1->equalMapping(*a2,true)){
-     cmsg.error() << "Different mappings in dloopa";
+     cmsg.error() << "Different mappings in dloop2";
      cmsg.send();
      res->makeUndefined();
      return 0;
@@ -10651,13 +10745,13 @@ int dloopaVM(Word* args, Word& result, int message,
 
   res->set(max,n,workers);
 
-  vector<dloopaRunner*> runners;
+  vector<dloop2Runner*> runners;
   vector<boost::thread*> threads;
   string funstr = funQuery->GetValue();
 
 
   for(int i=0;i<max;i++){
-      dloopaRunner* runner = new dloopaRunner(a1,a2,i,funstr, n);
+      dloop2Runner* runner = new dloop2Runner(a1,a2,i,funstr, n);
       runners.push_back(runner);
       boost::thread* thread = new boost::thread(*runner);
       threads.push_back(thread);
@@ -10676,14 +10770,14 @@ int dloopaVM(Word* args, Word& result, int message,
 11.3 Specification
 
 */
-OperatorSpec dloopaSpec(
+OperatorSpec dloop2Spec(
      "darray(X) x darray(Y) x string x (fun : X x Y -> Z) -> darray(Z)",
-     "_ _ dloopa[_,_]",
+     "_ _ dloop2[_,_]",
      "Performs a function on the elements of two darray instances. The "
      "string argument specifies the name of the resulting darray." 
      " If the string is undefined or empty, a name is generated "
      "automatically.",
-     "query da1 da2 dloopa[\"newName\", fun(i1 : int, i2 : int) i1 + i2) "
+     "query da1 da2 dloop2[\"newName\", fun(i1 : int, i2 : int) i1 + i2) "
      );
 /*
 11.4 Operator instance
@@ -10691,12 +10785,12 @@ OperatorSpec dloopaSpec(
 */
 
 
-Operator dloopaOp(
-  "dloopa",
-  dloopaSpec.getStr(),
-  dloopaVM,
+Operator dloop2Op(
+  "dloop2",
+  dloop2Spec.getStr(),
+  dloop2VM,
   Operator::SimpleSelect,
-  dloopaTM
+  dloop2TM
 );
 
 
@@ -16099,8 +16193,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&showWorkersOp);
    AddOperator(&dloopOp);
    dloopOp.SetUsesArgsInTypeMapping();
-   AddOperator(&dloopaOp);
-   dloopaOp.SetUsesArgsInTypeMapping();
+   AddOperator(&dloop2Op);
+   dloop2Op.SetUsesArgsInTypeMapping();
    AddOperator(&DARRAYELEMOp);
    AddOperator(&DARRAYELEM2Op);
 

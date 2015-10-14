@@ -38,12 +38,10 @@ operator closeWorkers alias closeWorkers pattern op(_)
 operator showWorkers alias showWorkers pattern op(_)
 
 operator dloop alias DLOOP pattern _ op[_,fun] implicit parameter darrayelem type DARRAYELEM
+operator dloop2 alias DLOOP2 pattern _ _ op[_,fun] implicit parameters elem1, elem2 types DARRAYELEM, DARRAYELEM2
 
 
 operator dmap alias DMAP pattern _ op[_,fun] implicit parameter dmapelem type ARRAYFUNARG1
-
-operator dloopa alias DLOOPA pattern _ _ op[_,fun] implicit parameters elem1, elem2 types DARRAYELEM, DARRAYELEM2
-
 operator dmap2 alias DMAP2 pattern _ _ op[_,fun] implicit parameters elem1, elem2 types ARRAYFUNARG1, ARRAYFUNARG2
 
 operator dsummarize alias DSUMMARIZE pattern _ op

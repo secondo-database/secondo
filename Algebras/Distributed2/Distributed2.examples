@@ -217,10 +217,10 @@ Result    : bug
 Remark    : in development
 
 
-Operator  : dloopa 
+Operator  : dloop2 
 Number    : 1
 Signature : darray(X) x darray(Y) x string x (X x Y -> Z) -> darray(Z)
-Example   : query da1 da2  dloopa["da3", . + .. ]
+Example   : query da1 da2  dloop2["da3", . + .. ]
 Result    : bug
 Remark    : remote server required
 
@@ -248,7 +248,7 @@ Remark    : remote server required
 Operator  : DARRAYELEM2 
 Number    : 1
 Signature : darray(X) x darray(Y) x string x (X x Y -> Z) -> darray(Z)
-Example   : query da1 da2  dloopa["da3", . + .. ]
+Example   : query da1 da2  dloop2["da3", . + .. ]
 Result    : bug
 Remark    : remote server required
 
