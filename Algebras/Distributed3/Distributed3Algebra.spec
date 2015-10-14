@@ -37,7 +37,7 @@ operator fdistribute6 alias FDISTRIBUTE6 pattern _ op [_,_]
 operator closeWorkers alias closeWorkers pattern op(_)
 operator showWorkers alias showWorkers pattern op(_)
 
-operator dloop2 alias DLOOP2 pattern _ op[_,fun] implicit parameter darray2elem type DARRAY2ELEM
+operator dloop1 alias DLOOP1 pattern _ op[_,fun] implicit parameter darray2elem type DARRAY2ELEM
 
 operator dloop2a alias DLOOP2A pattern _ _ op[_,fun] implicit parameters elem1, elem2 types DARRAY2ELEM, DARRAY2ELEM2
 
