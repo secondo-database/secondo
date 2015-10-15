@@ -209,7 +209,7 @@ stop() {
 
 # Kill all dsecondo instances
 kill() {
-   execute_parallel "ps ux | grep SecondoBDB | grep -v grep | awk {'print $2'} | while read pid; do echo $pid; done" "Killing DSECONDO" "$nodes" $max_pending 
+   execute_parallel "ps ux | grep SecondoBDB | grep -v grep | awk {'print $2'} | while read pid; do kill -9 $pid; done" "Killing DSECONDO" "$nodes" $max_pending 
 }
 
 # Install SECONDO on all QPNs
