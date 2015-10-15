@@ -1042,7 +1042,8 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
     // analyse type
     ListExpr maintype = type.first();
     if (type.listLength()!=2 || !maintype.isAtom() || maintype.atomType()!=ListExpr.SYMBOL_ATOM
-        || !(maintype.symbolValue().equals("rel") || maintype.symbolValue().equals("mrel") || maintype.symbolValue().equals("trel")))
+        || !(maintype.symbolValue().equals("rel") || maintype.symbolValue().equals("mrel") 
+        || maintype.symbolValue().equals("trel") || maintype.symbolValue().equals("memoryRelObject")))
        return null; // not a relation
     ListExpr tupletype = type.second();
     // analyse Tuple
@@ -1166,7 +1167,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
      else{
        LE = LE.first();
        if(LE.isAtom() && LE.atomType()==ListExpr.SYMBOL_ATOM &&
-          (LE.symbolValue().equals("rel") | LE.symbolValue().equals("mrel") | LE.symbolValue().equals("trel")) )
+          (LE.symbolValue().equals("rel") | LE.symbolValue().equals("mrel") | LE.symbolValue().equals("trel") | LE.symbolValue().equals("memoryRelObject")) )
            return true;
        else
            return false;
