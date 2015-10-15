@@ -270,6 +270,7 @@ bool Pattern::isCompatible(TupleType *ttype, const int majorAttrNo,
       if (values.size() != relevantAttrs.size()) {
         cout << "wrong number of values (" << values.size() << " instead of "
              << relevantAttrs.size() << ") in atom " << i << endl;
+        return false;
       }
       for (unsigned int j = 0; j < values.size(); j++) {
         if (!Tools::checkAttrType(relevantAttrs[j].second, values[j].first)) {
@@ -2147,8 +2148,6 @@ bool TMatchIndexLI::getSingleIndexResult(pair<int, pair<IndexType, int> >
                                                 nl->Second(ttList))));
   switch (indexInfo.second.first) {
     case TRIE: {
-      cout << "TRIE, type " << type << ", pos " << indexInfo.second.second 
-           << endl;
       if (values.first.addr == 0) {
         return false; // no content
       }
@@ -2163,10 +2162,6 @@ bool TMatchIndexLI::getSingleIndexResult(pair<int, pair<IndexType, int> >
           it++;
         }
         Tools::queryTrie(ti->tries[indexInfo.second.second], *it, result);
-//         for (unsigned int i = 0; i < result.size(); i++) {
-//           cout << "|" << i << ": " << result[i].size() << " ";
-//         }
-//         cout << endl;
         return (int)(lbs.size()) > valueNo + 1; // TRUE iff there is a successor
       }
       else if (type.substr(0, 6) == "mplace") {
@@ -2276,10 +2271,16 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
   int valueNo = 0;
 //   vector<set<int> > *ptr(&temp), *ptr2(0);
   bool proceed = getSingleIndexResult(indexInfo, values, valueNo, result);
+//   for (unsigned int i = 0; i < result.size(); i++) {
+//     cout << result[i].size() << " ";
+//   }
   set<int> tmp;
   while (proceed) {
     valueNo++;
     proceed = getSingleIndexResult(indexInfo, values, valueNo, temp);
+//     for (unsigned int i = 0; i < temp.size(); i++) {
+//       cout << temp[i].size() << " ";
+//     }
     switch (values.second) {
       case STANDARD:
       case INTERSECT: // unite intermediate results
@@ -2376,10 +2377,16 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
   bool intersect = getResultForAtomTime(atomNo, result);
   set<int> tmp;
   indexResult[atomNo].resize(rel->GetNoTuples() + 1);
+//   for (it = ti->attrToIndex.begin(); it != ti->attrToIndex.end(); it++) {
+//     cout << it->first << " ---> " << it->second.second << endl;
+//   }
   for (it = ti->attrToIndex.begin(); it != ti->attrToIndex.end(); it++) {
     if (!intersect && it->second.second != -1 && 
         atom.values[pos].first.addr != 0) {
       getResultForAtomPart(*it, atom.values[pos], result);
+      intersect = true;
+//       cout << atom.values.size() << "values, after " << it->first << ", pos "
+//            << pos << ": ";
 //       for (int i = 1; i <= rel->GetNoTuples(); i++) {
 //         cout << result[i].size() << " ";
 //       }
@@ -2455,7 +2462,7 @@ void TMatchIndexLI::initMatchInfo() {
   PatElem atom;
   for (set<int>::iterator it = crucialAtoms.begin(); it != crucialAtoms.end();
        it++) {
-    cout << "removed ids ";
+//     cout << "removed ids ";
     p->getElem(*it, atom);
     TupleId oldId = 0;
     if (atom.isRelevantForTupleIndex()) {
@@ -2468,7 +2475,7 @@ void TMatchIndexLI::initMatchInfo() {
         for (TupleId i = oldId + 1; i < id; i++) {
           removeIdFromIndexResult(i);
           active[i] = false;
-          cout << i << ",";
+//           cout << i << ",";
         }
         oldId = id;
         id = indexResult[*it][id].succ;
@@ -2476,10 +2483,10 @@ void TMatchIndexLI::initMatchInfo() {
       for (int i = oldId + 1; i <= rel->GetNoTuples(); i++) {
         removeIdFromIndexResult(i);
         active[i] = false;
-        cout << i << ",";
+//         cout << i << ",";
       }
     }
-    cout << " because of crucial atom " << *it << endl;
+//     cout << " because of crucial atom " << *it << endl;
   }
   matchInfo.resize(p->getNFAsize());
   matchInfoPtr = &matchInfo;
@@ -2521,6 +2528,7 @@ void TMatchIndexLI::initMatchInfo() {
 
 */
 void TMatchIndexLI::removeIdFromMatchInfo(const TupleId id) {
+//   cout << "remove tuple " << id << endl;
   bool removed = false;
   for (int s = 0; s < p->getNFAsize(); s++) {
     if ((*newMatchInfoPtr)[s].size() > 0) {
@@ -2830,6 +2838,7 @@ void TMatchIndexLI::applyNFA() {
     cout << "   " << !newStates.empty() << endl;
     clearMatchInfo();
     unitCtr++;
+    cout << "unitCtr set to " << unitCtr << endl;
   }
 }
 
@@ -3480,10 +3489,14 @@ void Assign::deleteOpTrees() {
 void Condition::deleteOpTree() {
   if (treeOk) {
     if (opTree.first) {
+      cout << "destroy second" << endl;
       opTree.first->Destroy(opTree.second, true);
+      cout << "delete first" << endl;
       delete opTree.first;
       for (unsigned int i = 0; i < pointers.size(); i++) {
+        cout << "delete ptr " << i;
         deleteIfAllowed(pointers[i]);
+        cout << " ...........ok" << endl;
       }
     }
     treeOk = false;

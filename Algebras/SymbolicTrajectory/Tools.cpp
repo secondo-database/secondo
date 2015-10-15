@@ -915,6 +915,7 @@ bool Tools::parseBoolorObj(const string& input, bool &isEmpty, int &pos,
         ((Region*)value.addr)->Union(rect, res);
         ((Region*)value.addr)->DeleteIfAllowed();
         ((Region*)value.addr)->CopyFrom((Attribute*)(&res));
+        ((Region*)value.addr)->Print(cout); cout << endl;
       }
     }
     else if (type == "region") {

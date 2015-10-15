@@ -779,7 +779,11 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
     }
     if (!isSetRel) {
       values.push_back(make_pair(value, setrel));
+      cout << "pushed back, " << pos << ":" << input[pos] << ", " << endpos
+           << ":" << input[endpos] << "; value.addr is " 
+           << (value.addr != 0 ? "NOT 0" : "0") << endl;
       setrel = STANDARD;
+      value.addr = 0;
     }
     isSetRel = false;
   }

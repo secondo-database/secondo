@@ -57,7 +57,7 @@ num {si}|{ui}|{real}
 numinterval <{num}{num}(t\ f)?>
 star \*
 plus \+
-attr [A-Z][a-z]*
+attr [A-Z][a-zA-Z]*
 setrelation disjoint|superset|equal|intersect
 wildcard {star}|{plus}
 date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
