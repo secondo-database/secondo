@@ -207,6 +207,11 @@ stop() {
    execute_parallel "source .secondorc; export SECONDO_BUILD_DIR=$DSECONDO_QPN_DIR/secondo; export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini; \$SECONDO_BUILD_DIR/Algebras/Cassandra/tools/$scriptname stop_local > /dev/null" "Stopping DSECONDO" "$nodes" $max_pending
 }
 
+# Kill all dsecondo instances
+kill() {
+   execute_parallel "ps ux | grep SecondoBDB | grep -v grep | awk {'print $2'} | while read pid; do echo $pid; done" "Killing DSECONDO" "$nodes" $max_pending 
+}
+
 # Install SECONDO on all QPNs
 install() {
    
@@ -282,6 +287,9 @@ start)
    ;;
 stop)
    stop
+   ;;
+kill)
+   kill
    ;;
 start_local)
    start_local
