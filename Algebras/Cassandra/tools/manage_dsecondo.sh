@@ -321,7 +321,7 @@ upgrade)
    upgrade
    ;;
 *)
-   echo "Usage $0 {start | stop | install | upgrade | install_driver}"
+   echo "Usage $0 {start | stop | kill | install | upgrade | install_driver}"
    ;;
 esac
 
