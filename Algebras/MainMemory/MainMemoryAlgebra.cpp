@@ -133,6 +133,7 @@ MemoryRelObject* relToVector(GenericRelation* r, ListExpr le = 0,
         else{
             if (mmrel->size()==0){
                 cout<<"no memory left"<<endl;
+                delete mmrel;
                 return 0;
             }
              cout<< "the available main memory is not enough, the object"
@@ -197,6 +198,7 @@ MemoryRelObject* tupelStreamToRel(Word arg, ListExpr le, bool flob){
         }
         else{
             if (mmrel->size()==0){
+                delete mmrel;
                 cout<<"no memory left"<<endl;
                 return 0;
             }
@@ -516,7 +518,7 @@ similar to the ~feed~-operator
 */
 
 /*
-5.4.1 Type Mapping Functions of operator ~mfeed~ (string -> stream(tuple))
+5.4.1 Type Mapping Functions of operator ~mfeed~ (string -> stream(Tuple))
 
 */
 
@@ -647,7 +649,7 @@ int mfeedValMap (Word* args, Word& result,
 
 
 OperatorSpec mfeedSpec(
-    "string -> stream(tuple)",
+    "string -> stream(Tuple)",
     "_ mfeed",
     "produces a stream from a main memory relation",
     "query 'ten' mfeed"
@@ -710,7 +712,7 @@ by the second parameter.
 /*
 
 5.5.1 Type Mapping Functions of operator ~letmconsume~
-        (stream(tuple) x string -> string)
+        (stream(Tuple) x string -> string)
 
 */
 ListExpr letmconsumeTypeMap(ListExpr args)
@@ -750,9 +752,9 @@ int letmconsumeValMap (Word* args, Word& result,
 */
 
 OperatorSpec letmconsumeSpec(
-    "stream(tuple) x string -> string",
-    "(_) letmconsume [_]",
-    "produces a main memory relation from a stream(tuple)",
+    "stream(Tuple) x string -> string",
+    "_ letmconsume [_]",
+    "produces a main memory relation from a stream(Tuple)",
     "query ten feed letmconsume ['zehn']"
 );
 
@@ -805,9 +807,9 @@ int letmconsumeflobValMap (Word* args, Word& result,
 */
 
 OperatorSpec letmconsumeflobSpec(
-    "stream(tuple) x string -> string",
-    "(_) letmconsumeflob [_]",
-    "produces a main memory relation from a stream(tuple)"
+    "stream(Tuple) x string -> string",
+    "_ letmconsumeflob [_]",
+    "produces a main memory relation from a stream(Tuple)"
     "and load the associated flobs",
     "query trains feed letmconsumeflob ['trains1']"
 );
@@ -1082,11 +1084,11 @@ Operator memobjectOp (
 
 5.8 Operator ~memgetcatalog~
 
-Returns a ~stream(tuple)~.
+Returns a ~stream(Tuple)~.
 Each tuple describes one element of the main memory catalog.
 
 
-5.8.1 Type Mapping Functions of operator ~memgetcatalog~ (  -> stream(tuple) )
+5.8.1 Type Mapping Functions of operator ~memgetcatalog~ (  -> stream(Tuple) )
 
 */
 
@@ -1241,9 +1243,9 @@ int memgetcatalogValMap (Word* args, Word& result,
 */
 
 OperatorSpec memgetcatalogSpec(
-    " -> stream(tuple)",
+    " -> stream(Tuple)",
     "memgetcatalog()",
-    "returns a stream(tuple) with information of main memory objects",
+    "returns a stream(Tuple) with information of main memory objects",
     "query memgetcatalog()"
 );
 
@@ -1716,8 +1718,8 @@ bool mcreateRtree(MemoryRelObject* mmrel, int attrPos, string rtreeName){
     if (usedMainMemory>availableMemSize){
         cout<<"there is not enough memory left to create the rtree";
     }
-    if (catalog->insert(rtreeName,mmRtreeObject)
-                    && usedMainMemory<=availableMemSize){
+    if (usedMainMemory<=availableMemSize
+                    && catalog->insert(rtreeName,mmRtreeObject)){
         return true;
     }else {
        delete mmRtreeObject;
@@ -1823,13 +1825,13 @@ SPATIAL3D, SPATIAL4D, SPATIAL8D, or of type rect
 */
 
 ListExpr mcreateRtree2TypeMap(ListExpr args){
-    string err = "stream(tuple) x attrName x string expected";
+    string err = "stream(Tuple) x attrName x string expected";
     if(!nl->HasLength(args,3)){
         return listutils::typeError("wrong number of arguments");
     }
-    // first arg stream(tuple)?
+    // first arg stream(Tuple)?
     if(!Stream<Tuple>::checkType(nl->First(args))){
-        return listutils::typeError("first argument must be a stream(tuple)");
+        return listutils::typeError("first argument must be a stream(Tuple)");
     }
     // second Arg ein AttrName?
     if(nl->AtomType(nl->Second(args))!=SymbolType){
@@ -2301,7 +2303,7 @@ int minsertValMap (Word* args, Word& result,
 */
 
 OperatorSpec minsertSpec(
-    "stream(tuple) x string -> stream(tuple)",
+    "stream(Tuple) x string -> stream(Tuple)",
     "minsert(_,_)",
     "inserts the tuple of a stream into a "
     "existing main memory relation",
@@ -2332,7 +2334,7 @@ Operator minsertOp (
 
 /*
 5.14.1 Type Mapping Functions of operator ~mwindowintersects~
-    string x string x T -> stream(tuple)
+    string x string x T -> stream(Tuple)
     where T in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D
 
 */
@@ -2529,7 +2531,7 @@ ValueMapping mwindowintersectsValMap[] =
 */
 
 OperatorSpec mwindowintersectsSpec(
-    "string x string x T -> stream(tuple) "
+    "string x string x T -> stream(Tuple) "
     "where T in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D",
     "mwindowintersects(_,_,_)",
     "Uses the given rtree to find all tuples"
@@ -2566,7 +2568,7 @@ Operator mwindowintersectsOp (
 /*
 
 5.4.1 Type Mapping Functions of operator ~mconsume~
-        (stream(tuple) -> memoryRelObject)
+        (stream(Tuple) -> memoryRelObject)
 
 */
 ListExpr mconsumeTypeMap(ListExpr args)
@@ -2621,9 +2623,9 @@ int mconsumeValMap (Word* args, Word& result,
 */
 
 OperatorSpec mconsumeSpec(
-    "stream(tuple) -> memoryrelobject",
+    "stream(Tuple) -> memoryrelobject",
     "_ mconsume",
-    "collects the objects from a stream(tuple)",
+    "collects the objects from a stream(Tuple)",
     "query 'ten' mfeed mconsume"
 );
 
@@ -2741,6 +2743,7 @@ int mcreateAVLtreeValMap (Word* args, Word& result,
 
     MemoryRelObject* mmrel =
         (MemoryRelObject*)catalog->getMMObject(relObjectName);
+    bool flob = mmrel->hasflob();
     vector<Tuple*>* relVec = mmrel->getmmrel();
     vector<Tuple*>::iterator it;
     it=relVec->begin();
@@ -2764,7 +2767,7 @@ int mcreateAVLtreeValMap (Word* args, Word& result,
         }
         aPair = pair<Attribute*,size_t>(attr,i);
         // size for a pair is 16 bytes, plus an additional pointer 8 bytes
-        int entrySize = 24;
+        size_t entrySize = 24;
         if (entrySize<availableMemSize){
             tree->insert(aPair);
             usedMainMemory += (entrySize);
@@ -2780,7 +2783,8 @@ int mcreateAVLtreeValMap (Word* args, Word& result,
     }
     string  res = relObjectName +"_"+attrName;
     MemoryAVLObject* avlObject =
-        new MemoryAVLObject(tree, usedMainMemory,"memoryAVLObject",attrType);
+        new MemoryAVLObject(tree, usedMainMemory,
+            "memoryAVLObject",attrType,flob, getDBname());
     catalog->insert(res,avlObject);
 
     str->Set(true, res);
@@ -2833,7 +2837,7 @@ Operator mcreateAVLtreeOp (
 
 /*
 5.17.1 Type Mapping Functions of operator ~mexactmatch~
-    string x string x key -> stream(tuple)
+    string x string x key -> stream(Tuple)
 
 
 */
@@ -2996,8 +3000,6 @@ class avlOperLI{
         string keyType;
         avltree::AVLTree< pair<Attribute*, size_t>,
                             KeyComparator >::iterator it;
-        avltree::AVLTree< pair<Attribute*, size_t>,
-                            KeyComparator >::iterator itbegin;
         const pair<Attribute*,size_t>* hit;
         bool res;
 };
@@ -3073,7 +3075,7 @@ int mexactmatchValMap (Word* args, Word& result,
 */
 
 OperatorSpec mexactmatchSpec(
-    "string x string x key -> stream(tuple) ",
+    "string x string x key -> stream(Tuple) ",
     "_ _ mexactmatch[_]",
     "Uses the given MemoryAVLObject (as first argument)to find all tuples"
         "in the given MemoryRelObject (as second argument)"
@@ -3108,7 +3110,7 @@ Operator mexactmatchOp (
 
 /*
 5.18.1 Type Mapping Functions of operator ~mrange~
-    string x string x key x key -> stream(tuple)
+    string x string x key x key -> stream(Tuple)
 
 
 */
@@ -3247,7 +3249,7 @@ int mrangeValMap (Word* args, Word& result,
 */
 
 OperatorSpec mrangeSpec(
-    "string x string x key x key -> stream(tuple) ",
+    "string x string x key x key -> stream(Tuple) ",
     "_ _ mrange[_,_]",
     "Uses the given rtree to find all tuples"
       " in the given relation which are between "
@@ -3282,7 +3284,7 @@ Operator mrangeOp (
 
 /*
 5.19.1 Type Mapping Functions of operator ~matchbelow~
-    string x string x key -> stream(tuple)
+    string x string x key -> stream(Tuple)
 
 
 */
@@ -3416,7 +3418,7 @@ int matchbelowValMap (Word* args, Word& result,
 */
 
 OperatorSpec matchbelowSpec(
-    "string x string x key -> stream(tuple) ",
+    "string x string x key -> stream(Tuple) ",
     "_ _ matchbelow[_]",
     "returns for a key X (third argument) the tuple which "
     " contains the biggest attribute value in the AVLtree (first argument) "

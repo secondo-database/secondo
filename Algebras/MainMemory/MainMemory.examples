@@ -101,9 +101,8 @@ Result    : 1266
 Operator  : mconsume
 Number    : 17
 Signature : stream(tuple) -> memoryRelObject
-Example   : query "ten" mfeed mconsume
-Result    : TRUE
-
+Example   : query "ten" mfeed head[2] mconsume
+Result    : ((memoryRelObject(tuple((No int))))((1)(2)))
 
 Operator  : memclear
 Number    : 18

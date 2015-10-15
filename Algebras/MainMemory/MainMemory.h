@@ -232,7 +232,7 @@ class MemoryAVLObject : public MemoryObject {
         MemoryAVLObject();
         MemoryAVLObject( avltree::AVLTree< pair<Attribute*,size_t>,
             KeyComparator >* tree, size_t _memSize, string _objectTypeExpr,
-            string _keyType );
+            string _keyType, bool _flob, string _database );
         ~MemoryAVLObject();
 
         avltree::AVLTree< pair<Attribute*,size_t>,KeyComparator >* getAVLtree();

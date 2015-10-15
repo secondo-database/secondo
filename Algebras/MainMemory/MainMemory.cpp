@@ -220,7 +220,7 @@ void MemoryRelObject::addTuple(Tuple* tup){
     }
     else{
         cout<< "the memSize is not enough, the object"
-        "is usable but not complete"<<endl;
+        " might be usable but not complete"<<endl;
     }
 }
 
@@ -283,7 +283,7 @@ Word MemoryRelObject::In( const ListExpr typeInfo, const ListExpr instance,
 
 ListExpr MemoryRelObject::Out( ListExpr typeInfo, Word value ){
     MemoryRelObject* memRel = static_cast<MemoryRelObject*>( value.addr );
-    if (memRel->getmmrel()==0){
+    if (memRel->getmmrel()==0 || (memRel->getmmrel())->size() == 0){
     return 0;
     }
     return memRel->toListExpr();
@@ -408,12 +408,14 @@ Attribute* MemoryAttributeObject::getAttributeObject(){
 MemoryAVLObject::MemoryAVLObject(){};
 MemoryAVLObject::MemoryAVLObject( avltree::AVLTree< pair<Attribute*,size_t>,
             KeyComparator >* _tree, size_t _memSize, string _objectTypeExpr,
-            string _keyType ){
+            string _keyType,bool _flob, string _database){
 
             tree = _tree;
             memSize = _memSize;
             objectTypeExpr = _objectTypeExpr;
             keyType = _keyType;
+            flob = _flob;
+            database = _database;
             };
 MemoryAVLObject::~MemoryAVLObject(){
     if (tree){
