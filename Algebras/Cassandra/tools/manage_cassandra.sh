@@ -34,7 +34,7 @@ cassandradir=$cassandrapath/current
 cassandraconfig=$cassandradir/conf/cassandra.yaml
 
 # Cassandra version and download URL
-cassandra_version="2.1.9"
+cassandra_version="2.1.10"
 cassandra_url="http://artfiles.org/apache.org/cassandra/${cassandra_version}/apache-cassandra-${cassandra_version}-bin.tar.gz"
 
 ##
