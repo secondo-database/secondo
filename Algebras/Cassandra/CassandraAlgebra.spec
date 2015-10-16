@@ -17,13 +17,6 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
-operator sleep alias SLEEP pattern _ op [ _ ]
-operator statistics alias STATISTICS pattern _ op [ _ , _ ]
-operator faultcrash alias FAULTCRASH pattern _ op [ _ ]
-operator faultloop alias FAULTLOOP pattern _ op [ _ ]
-
-
 operator cdelete alias CDELETE pattern op ( _ )
 operator clist alias CLIST pattern op ( )
 operator cspread alias CSPREAD pattern _ op [ _ , _ , _ , _ ]
