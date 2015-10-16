@@ -2006,13 +2006,13 @@ bool TupleIndex::addTuple(Tuple *tuple) {
         appendcache::RecordAppendCache* cache = 
                                            inv->createAppendCache(invCacheSize);
         TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
-        cout << "INSERT INTO TRIE " << indexPos.second << endl;
+//         cout << "INSERT INTO TRIE " << indexPos.second << endl;
         insertIntoTrie(inv, tuple->GetTupleId(), tuple->GetAttribute(i),
                 Tools::getDataType(tuple->GetTupleType(), i), cache, trieCache);
         delete trieCache;
         delete cache;
         if (i == mainAttr) {
-          cout << "FILL TIME INDEX" << endl;
+//           cout << "FILL TIME INDEX" << endl;
           if (!fillTimeIndex(timeIndex, tuple->GetTupleId(), 
         tuple->GetAttribute(i), Tools::getDataType(tuple->GetTupleType(), i))) {
             cout << "Error adding tuple " << tuple->GetTupleId() << endl;
@@ -2021,12 +2021,12 @@ bool TupleIndex::addTuple(Tuple *tuple) {
         }
       }
       else if (indexPos.first == BTREE) {
-        cout << "INSERT INTO BTREE" << endl;
+//         cout << "INSERT INTO BTREE" << endl;
         insertIntoBTree(btrees[indexPos.second], tuple->GetTupleId(),
           (MInt*)(tuple->GetAttribute(i)));
       }
       else if (indexPos.first == RTREE1) {
-        cout << "INSERT INTO RTREE1 " << indexPos.second << endl;
+//         cout << "INSERT INTO RTREE1 " << indexPos.second << endl;
         if (!insertIntoRTree1(rtrees1[indexPos.second], tuple->GetTupleId(),
                               tuple->GetAttribute(i))) {
           cout << "Error adding tuple " << tuple->GetTupleId() << endl;
@@ -2034,7 +2034,7 @@ bool TupleIndex::addTuple(Tuple *tuple) {
         }
       }
       else if (indexPos.first == RTREE2) {
-        cout << "INSERT INTO RTREE2" << endl;
+//         cout << "INSERT INTO RTREE2" << endl;
         if (!insertIntoRTree2(rtrees2[indexPos.second], tuple->GetTupleId(),
         tuple->GetAttribute(i), Tools::getTypeName(tuple->GetTupleType(), i))) {
           cout << "Error adding tuple " << tuple->GetTupleId() << endl;
