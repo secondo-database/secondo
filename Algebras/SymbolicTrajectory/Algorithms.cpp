@@ -257,12 +257,12 @@ trajectory.
 bool Pattern::isCompatible(TupleType *ttype, const int majorAttrNo,
                  vector<pair<int, string> >& relevantAttrs, int& majorValueNo) {
   relevantAttrs = Tools::getRelevantAttrs(ttype, majorAttrNo, majorValueNo);
-  cout << "attrs: ";
-  for (unsigned int i = 0; i < relevantAttrs.size(); i++) {
-    cout << "(" << relevantAttrs[i].first << ": " << relevantAttrs[i].second 
-         << ") ";
-  }
-  cout << endl;
+//   cout << "attrs: ";
+//   for (unsigned int i = 0; i < relevantAttrs.size(); i++) {
+//     cout << "(" << relevantAttrs[i].first << ": " << relevantAttrs[i].second
+//          << ") ";
+//   }
+//   cout << endl;
   vector<pair<Word, SetRel> > values;
   for (int i = 0; i < getSize(); i++) {
     values = elems[i].getValues();
@@ -1598,7 +1598,7 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(unsigned int);
-  cout << "There are " << noComponents << " tries, ";
+//   cout << "There are " << noComponents << " tries, ";
   for (unsigned int i = 0; i < noComponents; i++) {
     if (!triealg::OpenInvfile(valueRecord, offset, tList, val)) {
       cout << "error opening trie" << endl;
@@ -1610,7 +1610,7 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(unsigned int);
-  cout << "There are " << noComponents << " btrees, ";
+//   cout << "There are " << noComponents << " btrees, ";
   tList = sc->NumericType(nl->SymbolAtom(BTree::BasicType()));
   for (unsigned int i = 0; i < noComponents; i++) {
     if (!((BTree*)(val.addr))->Open(valueRecord, offset, tList)) {
@@ -1623,7 +1623,7 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(unsigned int);
-  cout << "There are " << noComponents << " rtree1s, ";
+//   cout << "There are " << noComponents << " rtree1s, ";
   tList = nl->FourElemList(nl->Empty(), nl->Empty(), nl->Empty(), 
                            nl->BoolAtom(true));
   for (unsigned int i = 0; i < noComponents; i++) {
@@ -1637,7 +1637,7 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(unsigned int);
-  cout << "There are " << noComponents << " rtree2s, ";
+//   cout << "There are " << noComponents << " rtree2s, ";
   for (unsigned int i = 0; i < noComponents; i++) {
     if (!OpenRTree<2>(valueRecord, offset, tList, val)) {
       cout << "error opening rtree2" << endl;
@@ -1650,7 +1650,7 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   ti->timeIndex = (RTree1TLLI*)val.addr;
-  cout << "Time index opened, ";
+//   cout << "Time index opened, ";
   if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
     return false;
   }
@@ -1696,7 +1696,7 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
   }
   offset += sizeof(int);
   value = SetWord(ti);
-  cout << "TupleIndex opened succesfully" << endl;
+//   cout << "TupleIndex opened succesfully" << endl;
   return true;
 }
 
@@ -2569,8 +2569,8 @@ void TMatchIndexLI::removeIdFromMatchInfo(const TupleId id) {
 
 */
 bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
-  cout << "atomMatch(" << state << ", " << trans.first << ", " << trans.second
-       << ") called" << endl;
+//   cout << "atomMatch(" << state << ", " << trans.first << ", " 
+//        << trans.second << ") called" << endl
   PatElem atom;
   set<string> ivs;
   atom.getI(ivs);
@@ -2581,8 +2581,8 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
   IndexMatchInfo *imiPtr = 0;
   if (atom.isRelevantForTupleIndex()) {
     TupleId id = indexResult[trans.first][0].succ;
-    cout << "first id for atom " << trans.first << " is " << id << " with " 
-         << indexResult[trans.first][id].units.size() << " units" << endl;
+//     cout << "first id for atom " << trans.first << " is " << id << " with "
+//          << indexResult[trans.first][id].units.size() << " units" << endl;
     while (id > 0) {
       bool totalMatch = false;
       set<int>::reverse_iterator it = 
@@ -2645,9 +2645,9 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
     }
   }
   else { // consider all existing imi instances
-    cout << "not relevant for index; consider all instances; " 
-         << (*matchInfoPtr)[state][0].succ << " " 
-         <<  (*newMatchInfoPtr)[state][0].succ << endl;
+//     cout << "not relevant for index; consider all instances; " 
+//          << (*matchInfoPtr)[state][0].succ << " " 
+//          <<  (*newMatchInfoPtr)[state][0].succ << endl;
     TupleId id = (*matchInfoPtr)[state][0].succ; // first active tuple id
     while (id > 0) {
   //      cout << ": " << (*matchInfoPtr)[state][id].imis.size() 
@@ -2805,7 +2805,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
       id = (*matchInfoPtr)[state][id].succ;
     }
   }
-  cout << "return " << (transition ? "TRUE" : "FALSE") << endl;
+//   cout << "return " << (transition ? "TRUE" : "FALSE") << endl;
   return transition;
 }
 
@@ -2831,14 +2831,14 @@ void TMatchIndexLI::applyNFA() {
     }
     states.clear();
     states.swap(newStates);
-    cout << "Current states: ";
-    for (set<int>::iterator it = states.begin(); it != states.end(); it++) {
-      cout << *it << ",";
-    }
-    cout << "   " << !newStates.empty() << endl;
+//     cout << "Current states: ";
+//     for (set<int>::iterator it = states.begin(); it != states.end(); it++) {
+//       cout << *it << ",";
+//     }
+//     cout << "   " << !newStates.empty() << endl;
     clearMatchInfo();
     unitCtr++;
-    cout << "unitCtr set to " << unitCtr << endl;
+//     cout << "unitCtr set to " << unitCtr << endl;
   }
 }
 
@@ -3489,14 +3489,14 @@ void Assign::deleteOpTrees() {
 void Condition::deleteOpTree() {
   if (treeOk) {
     if (opTree.first) {
-      cout << "destroy second" << endl;
+//       cout << "destroy second" << endl;
       opTree.first->Destroy(opTree.second, true);
-      cout << "delete first" << endl;
+//       cout << "delete first" << endl;
       delete opTree.first;
       for (unsigned int i = 0; i < pointers.size(); i++) {
-        cout << "delete ptr " << i;
+//         cout << "delete ptr " << i;
         deleteIfAllowed(pointers[i]);
-        cout << " ...........ok" << endl;
+//         cout << " ...........ok" << endl;
       }
     }
     treeOk = false;

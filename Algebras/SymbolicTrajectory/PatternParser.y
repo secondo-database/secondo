@@ -660,7 +660,7 @@ bool PatElem::hasRealInterval() const {
 
 */
 bool PatElem::extractValues(string &input, Tuple *tuple) {
-  cout << "#" << input << "#" << endl;
+/*   cout << "#" << input << "#" << endl; */
   if (input.empty()) {
     return false;
   }
@@ -694,7 +694,6 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
       case '_': {
         pos = input.find_first_not_of(' ', pos + 1);
         value.addr = 0;
-        isEmpty = true;
         break;
       }
       case '<': {
@@ -764,7 +763,6 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
           }
         }
         pos = input.find_first_not_of("} ", pos);
-        isEmpty = true;
         break;
       }
       default: {
@@ -779,13 +777,11 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
     }
     if (!isSetRel) {
       values.push_back(make_pair(value, setrel));
-      cout << "pushed back, " << pos << ":" << input[pos] << ", " << endpos
-           << ":" << input[endpos] << "; value.addr is " 
-           << (value.addr != 0 ? "NOT 0" : "0") << endl;
       setrel = STANDARD;
       value.addr = 0;
     }
     isSetRel = false;
+    isEmpty = true;
   }
   return ok;
 }
