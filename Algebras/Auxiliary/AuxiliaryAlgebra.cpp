@@ -31,7 +31,7 @@
 
  0 Overview
 
- This file contains an algebra with auxiliary operators. They
+ This file contains an algebra with auxiliary operators. These
  operators provide some general query processing features.
  
  
