@@ -1,5 +1,6 @@
+create database mvtrips
 
-open database fmrtest
+open database mvtrips
 
 # load raw data
 
@@ -16,7 +17,7 @@ let KDRSchema = [const rel(tuple([
 ])) 
 value ()]
 
-let Raw = KDRSchema csvimport['Trk110731.csv', 7, "#", ","] consume
+let Raw = KDRSchema csvimport['../bin/Trk110731.csv', 7, "#", ","] consume
 
 
 # create Trip for each day
