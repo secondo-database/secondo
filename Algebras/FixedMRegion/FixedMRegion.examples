@@ -1,62 +1,54 @@
 Database: fmrdb
 Restore : No
 
-Operator : =
-Number   : 1
-Signature: pstpoint x pstpoint -> bool
-Example  : query [const  pstpoint value(1.2 1.4)] = [const pstpoint value(1.2 1.4)]
-Result   : TRUE
-
 Operator : testoperatora
 Number   : 1
 Signature: int -> int
 Example  : query testoperatora(0)
-Result   : 1
+Result   : 2
 
 Operator : atinstant
 Number   : 1
 Signature: fixedmregion x instant -> region
-Example  : query val(mrain atinstant six30)
-Result   : file
+Example  : query mrain atinstant six30
+Result   : (region((((-532.4056881208568 -23.82248424945967)(-407.5616371567141 -296.6117122971642)(92.55194759741086 -67.73095219623588)(-32.29210336673187 205.0582758514687)))))
+
 
 Operator : fmr_traversed
 Number   : 1
 Signature: fixedmregion x double x double -> region
-Example  : query val(fmr_traversed (mrain , six30 , six31))
-Result   : file
+Example  : query fmr_traversed (mrain , six30 , six31)
+Result   : (region())
 
 Operator : inside
 Number   : 1
 Signature: mpoint x fixedmregion -> mbool
-Example  : query val(initial(train7 inside mrain2))
-Result   : FALSE
+Example  : query initial(train7 inside mrain2)
+Result   : (ibool ("2003-11-20-06:06" FALSE))
 
 Operator : fmr_intersection
 Number   : 1
 Signature: (mpoint fixedmregion) -> mpoint
-Example  : query val(train7 fmr_intersection mrain2)
-Result   : file
+Example  : query train7 fmr_intersection mrain2
+Result   : (mpoint((("2003-11-20-07:00:37.844" "2003-11-20-07:00:50" TRUE FALSE)(-2849.0 14461.0 -3019.0 14499.0))(("2003-11-20-07:00:50" "2003-11-20-07:01" TRUE FALSE)(-3019.0 14499.0 -3019.0 14499.0))(("2003-11-20-07:01" "2003-11-20-07:01:11.382" TRUE FALSE)(-3019.0 14499.0 -3175.0 14554.0))(("2003-11-20-07:01:11.382" "2003-11-20-07:01:18.469" TRUE FALSE)(-3175.0 14554.0 -3278.0 14555.0))(("2003-11-20-07:01:18.469" "2003-11-20-07:01:29.267" TRUE FALSE)(-3278.0 14555.0 -3423.0 14495.0))(("2003-11-20-07:01:29.267" "2003-11-20-07:01:38.530" TRUE FALSE)(-3423.0 14495.0 -3512.0 14394.0))(("2003-11-20-07:01:38.530" "2003-11-20-07:01:44.586" TRUE FALSE)(-3512.0 14394.0 -3544.0 14312.0))(("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)(-3544.0 14312.0 -3560.0 14235.0))))
+
 
 Operator : interpolate
 Number   : 1
 Signature: ((stream iregion)) -> fixedmregion
 Example  : query observations feed transformstream interpolate
-Result   : file
+Result   : (fixedmregion(((((-3.0 -10.4)(3.0 -10.4)(3.0 5.6)(0.0 9.6)(-3.0 5.6))))((("2000-01-03" "2000-01-03-02:24" FALSE TRUE)(0.0 0.4000000000000004 0.0 0.308806974113335 3.523764637042671 -0.1570796326794899))(("2000-01-03-02:24" "2000-01-03-04:48" FALSE TRUE)(0.308806974113335 3.523764637042671 -0.1570796326794899 1.10247647184691 6.56076249401701 -0.3141592653589791)))(6.9304779307719e-310 9.881312916824931e-323)0.0))
+
 
 Operator : tripstommove
 Number   : 1
 Signature: mpoint -> mmove
-Example  : query tripstommove(train7)
-Result   : file
+Example  : query tripstommove([const mpoint value ()])
+Result   : (mmove())
 
 Operator : makefmr
 Number   : 1
 Signature: region x mmove x point -> fixedmregion
-Example  : query makefmr(thecenter,mmo,[const  pstpoint value(1.2 1.4)])
-Result   : file
+Example  : query makefmr([const region value ((((0.0 0.0)(0.0 1.0)(1.0 0.0))))],mmo,[const  point value(1.2 1.4)])
+Result   : (fixedmregion(((((0.0 0.0)(1.0 0.0)(0.0 1.0))))((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(2.0 3.0 2.0 3.0 0.0 2.0)))(1.2 1.4)0.0))
 
-Operator : makeiregion
-Number   : 1
-Signature: region x instant -> iregion
-Example  : query makeiregion(thecenter,six30)
-Result   : file
