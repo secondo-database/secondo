@@ -322,6 +322,9 @@ after the error number have the following meaning:
 
  errors[ERR_SYSTEM_ERROR]
   = "Unexpected fatal system error.";
+
+ errors[ERR_SYSTEM_DIED]
+  = "SECONDO server has gone away during query execution.";
 }
 
 /*

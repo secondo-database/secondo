@@ -142,6 +142,7 @@ const SI_Error ERR_FILE_EXISTS = 88;
 const SI_Error ERR_FILE_NOT_EXISTS = 89;
 
 const SI_Error ERR_SYSTEM_ERROR = 100;
+const SI_Error ERR_SYSTEM_DIED = 101;
 
 const SI_Error ERR_UNKNOWN_RETURN_CODE = -1;
 
