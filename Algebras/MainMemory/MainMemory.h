@@ -94,7 +94,6 @@ class MemoryObject {
     }
         virtual ~MemoryObject();
 
-        void setMemSize(size_t i);
         unsigned long getMemSize ();
 
         string getObjectTypeExpr();

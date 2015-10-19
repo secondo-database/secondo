@@ -141,9 +141,9 @@ bool MemCatalog::isAccessible(const string& name) {
 
 MemoryObject::~MemoryObject(){}
 
-void MemoryObject::setMemSize(size_t i){
-    memSize = i;
-}
+//void MemoryObject::setMemSize(size_t i){
+//    memSize = i;
+//}
 unsigned long MemoryObject::getMemSize (){
     return memSize;
 };
