@@ -99,23 +99,6 @@ using namespace std;
 
 const string unixSocketDir = "/tmp/";
 
-/*
-1.1 Initialization of ~Socket~ library
-
-*/
-class UnixSocketLibrary
-{
- public:
-  UnixSocketLibrary()
-  {
-    static struct sigaction sigpipeIgnore;
-    sigpipeIgnore.sa_handler = SIG_IGN;
-    sigaction( SIGPIPE, &sigpipeIgnore, NULL );
-  }
-};
-
-static UnixSocketLibrary unisockLib;
-
 bool
 Socket::IsLibraryInitialized()
 {
@@ -681,20 +664,33 @@ UnixSocket::Write( void const* buf, size_t size )
   do
   {
     ssize_t rc;
-    while ( (rc = ::write( fd, buf, size )) < 0 && errno == EINTR )
-    { usleep(100); sleepCtr++; };
-    if ( rc < 0 )
-    {
-      cerr << "Lasterror = " << errno << endl;
-      SetStreamState( ios::failbit );
-      lastError = errno;
-      return (false);
+
+    // Write the content of the buffer onto the socket, set 
+    // MSG_NOSIGNAL to prevent the SIGPIPE signal when writing 
+    // on an already closed socket. Set the ios::failbit instead 
+    // and let the application code handle the failure.
+    while ((rc = ::send(fd, buf, size, MSG_NOSIGNAL)) < 0) {
+
+       if(errno != EINTR) {
+          break;
+       }
+ 
+       usleep(100); 
+       sleepCtr++; 
     }
-    else if ( rc == 0 )
+    
+    if ( rc == 0 || errno == EPIPE)
     {
       cerr << "Broken Pipe!" << endl;
       SetStreamState( ios::failbit | ios::eofbit );
       lastError = EC_BROKEN_PIPE;
+      return (false);
+    }
+    else if ( rc < 0 )
+    {
+      cerr << "Lasterror = " << errno << endl;
+      SetStreamState( ios::failbit );
+      lastError = errno;
       return (false);
     }
     else
