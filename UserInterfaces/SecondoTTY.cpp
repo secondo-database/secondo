@@ -654,6 +654,12 @@ SecondoTTY::CallSecondo()
       cmsg.error() << si->GetErrorMessage( errorCode ) << endl;
       cmsg.send();
     }
+
+    if(errorCode == ERR_SYSTEM_DIED) {
+       cerr << "A fatal has occurred!" << endl;
+       cerr << "Please check the logs for more information." << endl;
+       exit(EXIT_FAILURE);
+    }
   }
 
   return (outList);

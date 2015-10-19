@@ -667,16 +667,24 @@ For an explanation of the error codes refer to SecondoInterface.h
   else
   {
     dwriter.write(debugSecondoMethod, cout, this, pid, "usual secondo command");
-    // Send Secondo command
-    iosock << "<Secondo>" << endl
+
+    try {
+       // Send Secondo command
+       iosock << "<Secondo>" << endl
            << commandType << endl
            << cmdText << endl
            << "</Secondo>" << endl;
-    // Receive result
-    errorCode = csp->ReadResponse( resultList,
+ 
+       // Receive result
+       errorCode = csp->ReadResponse( resultList,
                                    errorCode, errorPos,
                                    errorMessage , id, 
                                    debugSecondoMethod, this, pid );
+
+    } catch (ifstream::failure &ex) {
+         errorCode = ERR_SYSTEM_DIED;
+    }
+    
     dwriter.write(debugSecondoMethod, cout, this, pid, 
                   "usual secondo command finished");
   }
