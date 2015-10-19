@@ -35,8 +35,10 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 
 #include <unistd.h>
 #include <stdio.h>
-#include <stdlib.h>
 #endif
+
+#include <stdlib.h>
+
 
 #ifndef SECONDO_ANDROID
 #if defined(SECONDO_LINUX) || defined(SECONDO_MAC_OSX)
@@ -93,7 +95,9 @@ void
 WinUnix::setenv(const char *name, const char *value) 
 {
 #ifdef SECONDO_WIN32
+#ifdef HAVE__PUTENV_S
    _putenv_s(name, value);
+#endif
 #else
    // set or overwrite
    ::setenv(name, value, 1);
