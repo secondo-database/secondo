@@ -1489,7 +1489,14 @@ Command\_<name>.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
     {
-      errorCode = Command_Let( list, errorMessage );
+      errorCode = Command_Let( list, errorMessage, true );
+    }
+    else if ( nl->IsEqual( first, "letnt" ) && (length == 4) &&
+              nl->IsAtom( nl->Second( list )) &&
+             (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
+              nl->IsEqual( nl->Third( list ), "=" ) )
+    {
+      errorCode = Command_Let( list, errorMessage, false );
     }
 
     // --- derive command
@@ -1940,7 +1947,8 @@ SecondoInterfaceTTY::Command_Derive( const ListExpr list, string& errorMessage )
 
 
 SI_Error
-SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage  )
+SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
+                                  bool autotransaction  )
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
@@ -1960,8 +1968,9 @@ SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage  )
 
 
   if ( sys.IsDatabaseOpen() )
-  {
-      StartCommand();
+  {   if(autotransaction){
+         StartCommand();
+      }
       string objName = nl.SymbolValue( nl.Second( list ) );
       ListExpr valueExpr = nl.Fourth( list );
 
@@ -2020,7 +2029,7 @@ SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage  )
          qp.Destroy( tree, true );
       }
     }
-    FinishCommand( errorCode, errorMessage );
+    FinishCommand( errorCode, errorMessage, autotransaction );
   }
   else // no database open
   {

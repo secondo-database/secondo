@@ -192,7 +192,8 @@ protected:
      virtual SI_Error Command_Create( const ListExpr list,
                            ListExpr& result,
                            ListExpr& error, string& errorMessage );
-     virtual SI_Error Command_Let( const ListExpr list, string& errorMessage );
+     virtual SI_Error Command_Let( const ListExpr list, string& errorMessage, 
+                                   bool autoTransaction );
      virtual SI_Error Command_Set( const ListExpr list );
      virtual SI_Error Command_Derive( const ListExpr list, 
                                       string& errorMessage );
