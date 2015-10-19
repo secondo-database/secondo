@@ -1197,7 +1197,7 @@ bool TMatch::performTransitionsWithMatrix(const int u, set<int>& states) {
       }
     }
   }
-  else { // last row; mark final states with -1, yes
+  else { // last row; mark final states with -1
     for (it = transitions.begin(); it != transitions.end(); it++) {
       if (p->elems[it->first].getW() != NO) {
         states.insert(states.end(), it->second);
