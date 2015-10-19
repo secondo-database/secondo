@@ -256,7 +256,8 @@ ALGEBRAS      += ClusterAlgebra
 ALGEBRA_DIRS  += NestedRelation
 ALGEBRAS      += NestedRelationAlgebra
 
-
+ALGEBRA_DIRS  += Auxiliary
+ALGEBRAS      += AuxiliaryAlgebra
 
 #ALGEBRA_DIRS += Distributed
 #ALGEBRAS     += DistributedAlgebra
