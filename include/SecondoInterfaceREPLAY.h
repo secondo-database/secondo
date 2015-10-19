@@ -112,7 +112,8 @@ protected:
   bool sendAllImagesToNode(const unsigned int nodeNo,
                            std::vector<string> imageList);
   bool sendShareFileToNode(const unsigned int nodeNo,
-                           const string& localfilename);
+                           const string& localfilename,
+                           const string& cpDestPath);
   bool sendFileToNode(const unsigned int nodeNo,
                       const string& localfilename,
                       const string& serverFileName,
@@ -179,4 +180,3 @@ protected:
 };
 
 #endif
-

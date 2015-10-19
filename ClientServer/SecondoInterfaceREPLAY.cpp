@@ -1141,25 +1141,31 @@ Send all images from search result to the node
 
 bool 
 SecondoInterfaceREPLAY::sendShareFileToNode(const unsigned int nodeNo,
-                                            const string& localfilename) {
-/* 
-Send share file to node
-
-*/
+                                            const string& localfilename,
+                                            const string& cpDestPath) {
   std::size_t found;
   string serverFileName;
+  string systemCommand;
+  string nodeIP;
+  string pathOnNode;
 
   found = localfilename.rfind("/");
   serverFileName = localfilename.substr(found + 1);
   sendFileToNode(nodeNo, localfilename, serverFileName, true);
 
+  pathOnNode = getNodeLastSendFilePath(nodeNo) + "/" + serverFileName;
+  nodeIP = nodes[nodeNo].ip;
+
+  // copy file from secondo transfer file path to user destination path
+  systemCommand = "scp " + nodeIP + ":" + pathOnNode + " " + nodeIP 
+                  + ":" + cpDestPath;  
+  system(systemCommand.c_str());
+
   // no special tread handling needed, because the threads only fill 
   // a new element into the array
   transferFilePath.push_back(stringutils::int2str(nodeNo) + 
                              ":" + 
-                             getNodeLastSendFilePath(nodeNo) + 
-                             "/" + 
-                             serverFileName
+                             pathOnNode
                             );
 
   return true;
@@ -1715,6 +1721,7 @@ Split an shape file in noSplitFiles files (shp+dbf-File)
       file.read(reinterpret_cast<char*>(&recnumHeader), 4);
       file.read(reinterpret_cast<char*>(&contLength), 4);
       contLengthBin = contLength;
+
       if (!file.eof()) { 
         if (WinUnix::isLittleEndian()){
           contLength = WinUnix::convertEndian(contLength) * 2;
@@ -1908,6 +1915,9 @@ Execute of ReplaySHPImport.
   cout << "Import files on nodes ..." << endl;
   unsigned int currentNode;
   string currentFilePath;
+  string currentFilePathDBF;
+  string currentFilePathSHP;
+
   string currentType;
 
   // Initialize vector for saving import files per node
@@ -1918,18 +1928,28 @@ Execute of ReplaySHPImport.
   }
 
   // Now add the commands for the nodes to the array
+  int objCount = 0;
   for (unsigned int i=0; i<transferFilePath.size(); ++i) {
      stringutils::StringTokenizer token(transferFilePath[i], ":");
      currentNode = stoi(token.nextToken());
      currentFilePath = token.nextToken();
      currentType = currentFilePath.substr(currentFilePath.size() - 3);
-     if (currentType == "dbf") {
-       cmdText = "query dbimport2('" + currentFilePath + "') count";
-     } else {
-       cmdText = "query shpimport2('" + currentFilePath + "') count";
+     if (currentType == "shp") {
+       objCount++;
+       currentFilePathDBF = currentFilePath.substr(0, currentFilePath.size()- 3)
+                            + "dbf";
+       currentFilePathSHP = currentFilePath;
+       cmdText = "let " + paramlist[1] + "_" + stringutils::int2str(objCount) 
+                 + " = dbimport2('" + currentFilePathDBF 
+                 + "') addcounter[No, 1] " + "shpimport2('" 
+                 + currentFilePathSHP + "') " 
+                 + "namedtransformstream[" + paramlist[2] 
+                 + "] addcounter[No2, 1] "
+                 + "mergejoin[No, No2] remove[No, No2] "
+                 + "filter[isdefined(bbox(."
+                 + paramlist[2] + "))] validateAttr consume";
+       commandsPerNode[currentNode].push_back(cmdText);
      }
-
-     commandsPerNode[currentNode].push_back(cmdText);
   }
 
   // Now send array element with commands to every node
@@ -2111,8 +2131,8 @@ Execute of ReplayDBLPImport.
 
   // @TODO: Import -> keine Algebra vorhanden, unter tools/converter gibt es
   // jedoch ein Beispiel auf nicht
-  // Algebra Basis. Hier müsste man prüfen, ob man dies irgendwie 
-  // verwenden könnte.
+  // Algebra Basis. Hier muesste man pruefen, ob man dies irgendwie 
+  // verwenden koennte.
 
   return true;
 }
@@ -2342,6 +2362,7 @@ If relative path in destination not exists create it and copy
 the file in it
 
 */
+
   // Send file to every node
   cout << "Transfering file " << paramlist[0] << " to the nodes..." << endl;
 
@@ -2351,7 +2372,7 @@ the file in it
   for (unsigned int i=0; i < nodes.size(); ++i) {
      futures.push_back(async(std::launch::async,
                      &SecondoInterfaceREPLAY::sendShareFileToNode,
-                     this, i, paramlist[0]));
+                     this, i, paramlist[0], paramlist[1]));
   }
 
   for (unsigned int i=0; i<futures.size(); ++i) {
@@ -2724,7 +2745,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       // replayOSMImport(filename[,replayImportMode])
       // replayCSVImport(filename, headersize, comment, separator, uses_quotes, 
       //                 multiline[,replayImportMode])
-      // replaySHPImport(filename[,replayImportMode])
+      // replaySHPImport(filename, objName, geoName[,replayImportMode])
       // replayDBLPImport(filename[,replayImportMode])
       // replayIMGImport(startDirectory, recursiveLevel, relationName
       //  [,replayImportMode])
@@ -2739,11 +2760,10 @@ For an explanation of the error codes refer to SecondoInterface.h
       // Check if user overwriten the default replayImportMode
 
       if ( (replayImpCommand == "replayOSMImport") ||
-           (replayImpCommand == "replaySHPImport") ||
            (replayImpCommand == "replayDBLPImport") 
          ) {
         // Second parameter for replayOSMImport, 
-        // replaySHPImport, replayDBLPImport      
+        // replayDBLPImport      
 
         if (paramlist.size() == 2) {
           if ( (paramlist[1] == "Replication") ||
@@ -2752,8 +2772,11 @@ For an explanation of the error codes refer to SecondoInterface.h
             replayImportMode = paramlist[1];
           }
         }
-      } else if (replayImpCommand == "replayIMGImport") {
-        // Fourth parameter for replayIMGImport
+      } else if ( (replayImpCommand == "replayIMGImport") ||
+                  (replayImpCommand == "replaySHPImport")
+                ) {
+        // Fourth parameter for replayIMGImport,
+        // replaySHPImport
         if (paramlist.size() == 4) {
           if ( (paramlist[3] == "Replication") ||
                (paramlist[3] == "Partitioning") ) {
@@ -2852,4 +2875,3 @@ For an explanation of the error codes refer to SecondoInterface.h
     }
   }
 }
-
