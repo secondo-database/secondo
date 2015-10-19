@@ -26,12 +26,20 @@
 include ../makefile.env
 
 # needed for SecondoInterfaceREPLAY
-CCFLAGS += -std=c++11
+
+ifneq ($(platform),win32)
+ CCFLAGS += -std=c++11
+else
+ CCFLAGS += -std=c++0x
+endif
 
 LD := g++
 
-LIBDIROBJECTS := $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT) \
-                 $(LIBDIR)/SecondoInterfaceREPLAY.$(OBJEXT)   
+LIBDIROBJECTS := $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT) 
+
+ifneq ($(platform),win32)
+  LIBDIROBJECTS += $(LIBDIR)/SecondoInterfaceREPLAY.$(OBJEXT)   
+endif
 
 APPLICATIONS =\
 	$(BINDIR)/SecondoRegistrar$(EXEEXT) \
