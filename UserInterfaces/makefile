@@ -41,16 +41,27 @@ endif
 APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
 	SecondoTTYCS.$(OBJEXT) \
-	SecondoTTYREPLAY.$(OBJEXT) \
 	DisplayTTY.$(OBJEXT) \
 	MainTTY.$(OBJEXT) \
 	cmsg.$(OBJEXT) \
-	MainTTYCS.$(OBJEXT) \
-        MainTTYREPLAY.$(OBJEXT) \
+	MainTTYCS.$(OBJEXT) 
+
 
 APPLICATIONS := $(BINDIR)/Secondo$(SMIUP) \
-		$(BINDIR)/SecondoCS \
-                $(BINDIR)/SecondoREPLAY
+		$(BINDIR)/SecondoCS 
+
+
+ALG_LIST    :=  SecondoInterfaceCS.o AlgebraList.o SecondoInterfaceGeneral.o SecondoInterfaceTTY.o
+
+
+ifneq ($(platform),win32)
+  APPLOBJECTS += SecondoTTYREPLAY.$(OBJEXT)  MainTTYREPLAY.$(OBJEXT) 
+  APPLICATIONS += $(BINDIR)/SecondoREPLAY
+  ALG_LIST += SecondoInterfaceREPLAY.o 
+endif
+
+
+
 
 # some optional objects and applications
 ifneq ($(smitype),ora)
@@ -86,12 +97,11 @@ endif
 
 BDB_OBJECTS :=   ../ClientServer/SecondoServer.o
 		 
-ALG_LIST    :=  SecondoInterfaceTTY.o  SecondoInterfaceCS.o SecondoInterfaceREPLAY.o AlgebraList.o SecondoInterfaceGeneral.o
 
 
 COMMON_OBJECTS := cmsg.o SecondoInterfaceGeneral.o DisplayTTY.o
 
-TTY_OBJECTS :=   MainTTY.o SecondoInterfaceTTY.o SecondoTTY.o  TestRunner.o
+TTY_OBJECTS :=   MainTTY.o SecondoInterfaceTTY.o  TestRunner.o
 
 FLOB := $(SECONDO_BUILD_DIR)/Tools/Flob/FlobManager.o
 
