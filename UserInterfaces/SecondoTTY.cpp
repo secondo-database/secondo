@@ -196,7 +196,7 @@ SecondoTTY::Usage()
   "  DEBUG n  - set debug level to n where n is an integer where each " <<
   "bit corresponds to one setting:\n" <<
   "           bit  0: debug mode (show annotated query and operator tree)\n" <<
-  "           bit  1: trace (show type mapping and recursive calls)\n" <<
+  "           bit  1: trace (show recursive calls)\n" <<
   "           bit  2: trace nodes (construction of nodes of the op. tree,\n" <<
   "                   and execution of the query processor's Eval() method)\n"<<
   "           bit  3: localInfo (prints a warning if an operator did not\n" <<
@@ -209,6 +209,7 @@ SecondoTTY::Usage()
   "                   ProgressInfo are reported) \n" <<
   "           bit  5: trace progress (prints the result of \n " <<
   "                   each REQUESTPROGRESS message) \n" <<
+  "           bit  6: show type mappings \n" <<
   "  Q, QUIT  - exit the program\n" <<
   "  # ...    - comment line (first character on line has to be '#')\n" <<
   "  REPEAT n <query> - execute <query> n times.\n" <<

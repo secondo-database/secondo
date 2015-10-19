@@ -249,6 +249,20 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
         PRINTF(" = "); PRINT($5); PRINTF(")\n");
          $$ = NestedText::AtomC(yacc_outtext->c_str());
         }
+    |    {paramno=0; emptystack();}
+      ZZLETNT ZZIDENTIFIER ZZINFIXOP  valueexpr
+       {
+        CLEAR();
+        string equalstr;
+        NestedText::CopyOut( $4, equalstr );
+        if(equalstr!="=") {
+          yyerror("let command expects a '=' at the third position");
+          return -1;
+        }
+        PRINTF("(letnt "); PRINT($3);
+        PRINTF(" = "); PRINT($5); PRINTF(")\n");
+         $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
 
     |    {paramno=0; emptystack();}
       ZZDERIVE ZZIDENTIFIER ZZINFIXOP valueexpr

@@ -861,6 +861,7 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
   bool debugMode;
   bool traceMode;
   bool traceNodes;
+  bool debugTM;
   bool debugLocal;
   bool debugProgress;
   bool traceProgress;

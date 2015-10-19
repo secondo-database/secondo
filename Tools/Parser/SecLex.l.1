@@ -125,6 +125,7 @@ kill		{yylval = NestedText::Atom( yytext, yyleng ); return ZZKILL;}
 query		{yylval = NestedText::Atom( yytext, yyleng ); return ZZQUERY;}
 querynt		{yylval = NestedText::Atom( yytext, yyleng ); return ZZQUERYNT;}
 let		{yylval = NestedText::Atom( yytext, yyleng ); return ZZLET;}
+letnt		{yylval = NestedText::Atom( yytext, yyleng ); return ZZLETNT;}
 derive		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDERIVE;}
 persistent	{yylval = NestedText::Atom( yytext, yyleng ); return ZZPERSISTENT;}
 begin		{yylval = NestedText::Atom( yytext, yyleng ); return ZZBEGIN1;}
