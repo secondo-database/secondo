@@ -866,6 +866,24 @@ Checks whether the list represents a stream.
   }
 
 
+  bool containsSymbol(ListExpr list, const string& symbol){
+     if(nl->AtomType(list)==SymbolType){
+        return nl->SymbolValue(list)==symbol;
+     }
+     if(nl->AtomType(list) != NoAtom){
+        return false;
+     }
+     while(!nl->IsEmpty(list)){
+        ListExpr f = nl->First(list);
+        list = nl->Rest(list);
+        if(containsSymbol(f,symbol)){
+           return true;
+        }
+     }
+     return false;
+  }
+
+
 
 
 

@@ -374,6 +374,10 @@ alway use const string Symbol::UNDEFINED()!
 
 
 
+  bool containsSymbol(ListExpr list, const string& symb);
+
+
+
 
 /*
 ~basicSymbol~
