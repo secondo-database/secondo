@@ -460,4 +460,29 @@ Result    : crashes
 Remark   : under develeopment
 
 
+Operator : SUBTYPE1
+Number   : 1
+Signature : blah -> blub
+Example   : query a1 partitionF[ . head[23], hashValue(.AttrName, 13), "a2", 0]
+Result    : crashes
+Remark    : under development
+
+Operator : FFR
+Number   : 1
+Signature : blah -> blub
+Example   : query a1 partitionF[ . head[23], hashValue(.AttrName, 13), "a2", 0]
+Result    : crashes
+Remark    : under development
+
+
+Operator : partitionF
+Number   : 1
+Signature : blah -> blub
+Example   : query a1 partitionF[ . head[23], hashValue(.AttrName, 13), "a2", 0]
+Result    : crashes
+Remark    : under development
+
+
+
+
 

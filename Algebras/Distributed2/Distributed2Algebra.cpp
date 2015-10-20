@@ -6644,7 +6644,7 @@ class DArrayT{
 
 typedef DArrayT<DARRAY> DArray;
 typedef DArrayT<DFARRAY> DFArray;
-typedef DArrayT<DFMATRIX> DMatrix;
+typedef DArrayT<DFMATRIX> DFMatrix;
 
 
 /*
@@ -6686,7 +6686,7 @@ ListExpr DFArrayProperty(){
 }
 
 
-ListExpr DMatrixProperty(){
+ListExpr DFMatrixProperty(){
    return nl->TwoElemList(
             nl->FourElemList(
                  nl->StringAtom("Signature"),
@@ -6818,17 +6818,17 @@ TypeConstructor DFArrayTC(
 
 
 
-TypeConstructor DMatrixTC(
-  DMatrix::BasicType(),
-  DMatrixProperty,
-  OutDArray<DMatrix>, InDArray<DMatrix>,
+TypeConstructor DFMatrixTC(
+  DFMatrix::BasicType(),
+  DFMatrixProperty,
+  OutDArray<DFMatrix>, InDArray<DFMatrix>,
   0,0,
-  CreateDArray<DMatrix>, DeleteDArray<DMatrix>,
-  DMatrix::open, DMatrix::save,
-  CloseDArray<DMatrix>, CloneDArray<DMatrix>,
-  CastDArray<DMatrix>,
+  CreateDArray<DFMatrix>, DeleteDArray<DFMatrix>,
+  DFMatrix::open, DFMatrix::save,
+  CloseDArray<DFMatrix>, CloneDArray<DFMatrix>,
+  CastDArray<DFMatrix>,
   SizeOfDArray,
-  DArrayTypeCheck<DMatrix> );
+  DArrayTypeCheck<DFMatrix> );
 
 
 /*
@@ -7261,7 +7261,7 @@ ListExpr sizeTM(ListExpr args){
   }
   if(!DArray::checkType(nl->First(args))
     && !DFArray::checkType(nl->First(args))
-    && !DMatrix::checkType(nl->First(args))){
+    && !DFMatrix::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
   return listutils::basicSymbol<CcInt>();
@@ -7296,14 +7296,14 @@ int sizeSelect(ListExpr args){
   ListExpr a = nl->First(args);
   if(DArray::checkType(a)) return 0;
   if(DFArray::checkType(a)) return 1;
-  if(DMatrix::checkType(a)) return 2;
+  if(DFMatrix::checkType(a)) return 2;
   return -1;
 }
 
 ValueMapping sizeVM[] = {
   sizeVMT<DArray>,
   sizeVMT<DFArray>,
-  sizeVMT<DMatrix>
+  sizeVMT<DFMatrix>
 };
 
 
@@ -11219,7 +11219,7 @@ ListExpr deleteRemoteObjectsTM(ListExpr args){
     return listutils::typeError(err + ": invalid number of args" );
   }
   
-  if(nl->HasLength(args,1) && DMatrix::checkType(nl->First(args))){
+  if(nl->HasLength(args,1) && DFMatrix::checkType(nl->First(args))){
      return listutils::basicSymbol<CcInt>();
   } 
 
@@ -11419,7 +11419,7 @@ int deleteRemoteObjectsVM_Matrix(Word* args, Word& result, int message,
 
    result = qp->ResultStorage(s);
    CcInt* res = (CcInt*) result.addr;
-   DMatrix* matrix = (DMatrix*) args[0].addr;
+   DFMatrix* matrix = (DFMatrix*) args[0].addr;
    set<string> usedHosts;
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
    vector<MatrixKiller*> killers;
@@ -11466,7 +11466,7 @@ int deleteRemoteObjectsSelect(ListExpr args){
   if(DFArray::checkType(nl->First(args))){
     return 1;
   }
-  if(DMatrix::checkType(nl->First(args))){
+  if(DFMatrix::checkType(nl->First(args))){
     return 2;
   }
   return  -1; 
@@ -13257,7 +13257,6 @@ TypeMapOperators ARRAYFUNARG1 and ARRAYFUNARG2
 template<int pos>
 ListExpr ARRAYFUNARG(ListExpr args){
 
-
   if(!nl->HasMinLength(args,pos)){
     return listutils::typeError("too less arguments");
   }
@@ -13269,7 +13268,7 @@ ListExpr ARRAYFUNARG(ListExpr args){
      return nl->Second(arg);
   }
   if(DFArray::checkType(arg) ||
-     DMatrix::checkType(arg)){
+     DFMatrix::checkType(arg)){
      ListExpr res = nl->TwoElemList(
                listutils::basicSymbol<Stream<Tuple> >(),
                nl->Second(nl->Second(arg)));
@@ -14988,7 +14987,7 @@ ListExpr partitionTM(ListExpr args){
   ListExpr res =  nl->ThreeElemList(
                nl->SymbolAtom(Symbols::APPEND()),
                append,
-               nl->TwoElemList( listutils::basicSymbol<DMatrix>(),
+               nl->TwoElemList( listutils::basicSymbol<DFMatrix>(),
                                  r));
   return res;
 }
@@ -15002,12 +15001,14 @@ class partitionInfo{
   public:
 
     partitionInfo(A* _array,int _resSize, size_t _wnum,
-                  ConnectionInfo* _ci, const string& _fun, 
+                  ConnectionInfo* _ci, const string& _sfun, 
+                  const string& _dfun,
                  string& _tname, ListExpr _relType,
                  const string& _dbname):
         array(_array), resSize(_resSize), workerNumber(_wnum),
-        ci(_ci), fun(_fun), tname(_tname), sname(array->getName()),
-        relType(_relType),dbname(_dbname),runner(0){
+        ci(_ci), sfun(_sfun), dfun(_dfun),tname(_tname), 
+        sname(array->getName()), relType(_relType),dbname(_dbname),
+        runner(0){
         runner = new boost::thread(&partitionInfo::run,this);
     }
 
@@ -15021,7 +15022,8 @@ class partitionInfo{
      int resSize;
      size_t workerNumber;
      ConnectionInfo* ci;
-     string fun;
+     string sfun;
+     string dfun;
      string tname;
      string sname;
      ListExpr relType;
@@ -15088,6 +15090,7 @@ class partitionInfo{
 
 
      string constructQueryD(const string& targetDir){
+
         // create relation containing the objectnames of the source
         // for this worker
         stringstream ss;
@@ -15109,6 +15112,11 @@ class partitionInfo{
         string stream1 = "(projecttransformstream (feed " + rel + ") T )";
         string stream2 = "(feedS " + stream1 + "("+nl->ToString(relType) 
                          + " ()))"; 
+        string stream3 = stream2;
+        if(!sfun.empty()){
+          stream3 = "("+ sfun +   stream2 + ")";
+        }
+
 
        
         stringstream query;
@@ -15117,8 +15125,8 @@ class partitionInfo{
         query << "(query "
               << " (count "
               << "   ( fdistribute7 "
-              <<       stream2
-              <<       "" << fun << " "
+              <<       stream3
+              <<       " " << dfun << " "
               <<        resSize
               <<       " '" << targetDir <<"/" << tname <<"' "
               <<       " TRUE "
@@ -15128,7 +15136,6 @@ class partitionInfo{
 
 
      string constructQueryDF(const string& dir){
-
         // construct query in nested list form,
 
         string sourceDir = ci->getSecondoHome() + "/dfarrays/"
@@ -15181,20 +15188,34 @@ class partitionInfo{
                                 stream,
                                 relTemp);
 
-        ListExpr dfun;
+        ListExpr streamFun = fsfeed;
+        if(!sfun.empty()){
+           ListExpr sfunl;
+           { boost::lock_guard<boost::mutex> guard(nlparsemtx);
+             bool ok = nl->ReadFromString(sfun, sfunl);
+             if(!ok){
+               cerr << "error in parsing list: " << sfun << endl;
+               return "";
+             }
+           }
+           streamFun = nl->TwoElemList( sfunl, fsfeed);
+        }
+
+
+        ListExpr dfunl;
         
         { boost::lock_guard<boost::mutex> guard(nlparsemtx);
-          bool ok = nl->ReadFromString(fun, dfun); 
+          bool ok = nl->ReadFromString(dfun, dfunl); 
           if(!ok){
-              cerr << "problem in parseing function" << endl;
+              cerr << "problem in parsing function" << endl;
               return "";
           }
         }
 
         ListExpr fdistribute = nl->SixElemList(
                                      nl->SymbolAtom("fdistribute7"),
-                                     fsfeed,
-                                     dfun,
+                                     streamFun,
+                                     dfunl,
                                      nl->IntAtom(resSize),
                                      nl->TextAtom(dir+"/"+tname),
                                      nl->BoolAtom(true)
@@ -15226,8 +15247,26 @@ int partitionVMT(Word* args, Word& result, int message,
 
 
    A* array = (A*) args[0].addr;
-   CcString* name = (CcString*) args[2].addr;
-   CcInt* newSize = (CcInt*) args[3].addr;
+
+   CcString* name;
+   CcInt* newSize;
+   string funText="";
+   string dfunText="";
+
+   if(qp->GetNoSons(s)==5){
+      // without additional function
+      name = (CcString*) args[2].addr;
+      newSize = (CcInt*) args[3].addr;
+      dfunText = ((FText*) args[4].addr)->GetValue();
+   } else if(qp->GetNoSons(s)==7){
+      name =  (CcString*) args[3].addr;
+      newSize = (CcInt*) args[4].addr;
+      funText = ((FText*) args[5].addr)->GetValue();
+      dfunText = ((FText*) args[6].addr)->GetValue();
+   }
+
+
+
    int size = array->getSize();
 
    if(newSize->IsDefined() &&
@@ -15235,9 +15274,8 @@ int partitionVMT(Word* args, Word& result, int message,
       size = newSize->GetValue();
    }
 
-   string funtext = ((FText*) args[4].addr)->GetValue();
    result = qp->ResultStorage(s);
-   DMatrix* res = (DMatrix*) result.addr;
+   DFMatrix* res = (DFMatrix*) result.addr;
 
    if(!array->IsDefined() || !name->IsDefined()){
        res->makeUndefined();
@@ -15269,11 +15307,11 @@ int partitionVMT(Word* args, Word& result, int message,
    for(size_t i=0;i<array->numOfWorkers();i++){
       DArrayElement de = array->getWorker(i);
       ConnectionInfo* ci = algInstance->getWorkerConnection(de,dbname);
-      string ip = ci->getHost();
-      string home = ci->getSecondoHome();
-      pair<string,string> p(ip,home);
-      partitionInfo<A>* info = new partitionInfo<A>(array, size, i, ci,funtext,
-                                                 tname, relType, dbname);
+    //  string ip = ci->getHost();
+    //  string home = ci->getSecondoHome();
+    //  pair<string,string> p(ip,home);
+      partitionInfo<A>* info = new partitionInfo<A>(array, size, i, ci,funText,
+                                             dfunText, tname, relType, dbname);
       infos.push_back(info);
    }
 
@@ -15318,6 +15356,277 @@ Operator partitionOp(
 
 
 /*
+17 Operator ~partitionF~
+
+This operator works similar as the partition operator. The difference is that
+the ~partitionF~ operator applies a function before redistributing the array.
+
+*/
+ListExpr partitionFTM(ListExpr args){
+
+  string err = "expected: d[f]array(rel(tuple(X))) x "
+               "(stream(tuple(X)) -> stream(tuple(Y))) x "
+               "(tuple(Y)->int) x string x int";
+
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  // check UsesTypes in Type Mapping
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+     if(!nl->HasLength(nl->First(tmp),2)){
+       return listutils::typeError("internal error");
+     }
+     tmp = nl->Rest(tmp);
+  }
+  ListExpr a = nl->First(args);  // array
+  ListExpr f = nl->Second(args); // function
+  ListExpr d = nl->Third(args);  // redistribution function
+  ListExpr n = nl->Fourth(args); // name of the result
+  ListExpr s = nl->Fifth(args);  // size of the result
+
+  // check Types
+  ListExpr a1 = nl->First(a);
+  ListExpr f1 = nl->First(f);
+  ListExpr d1 = nl->First(d);
+  ListExpr n1 = nl->First(n);
+  ListExpr s1 = nl->First(s);
+
+  if(!DArray::checkType(a1) && !DFArray::checkType(a1)){
+     return listutils::typeError(err + " (first arg is not a d[f]array)");
+  }
+  ListExpr subtype = nl->Second(a1);
+  if(!Relation::checkType(subtype)){
+     return listutils::typeError(err + " (array subtype is not a relation)");
+  }
+  if(!listutils::isMap<1>(f1) && !listutils::isMap<2>(f1)){
+     return listutils::typeError(err + " (second arg is not a function)");
+  }
+  if(!listutils::isMap<1>(d1) && !listutils::isMap<2>(d1)){
+     return listutils::typeError(err + " (third arg is not a function)");
+  }
+  if(!CcString::checkType(n1)){
+     return listutils::typeError(err + " (fourth arg is not a string)");
+  }
+  if(!CcInt::checkType(s1)){
+     return listutils::typeError(err + " (fifth arg is not an int)");
+  }
+  // check function arguments and results
+  ListExpr arrayStream = nl->TwoElemList(
+                               listutils::basicSymbol<Stream<Tuple> >(),
+                               nl->Second(subtype));
+
+  if(!nl->Equal(arrayStream, nl->Second(f1))){
+     return listutils::typeError(" stream argument of function does not "
+                                 "fit the array type.");
+  }
+
+  // extract result of function
+  ListExpr f1Res= f1;
+  while(!nl->HasLength(f1Res,1)){
+     f1Res = nl->Rest(f1Res);
+  }
+  f1Res = nl->First(f1Res);
+
+  // the result of the first function must be a tuple stream
+  if(!Stream<Tuple>::checkType(f1Res)){
+    return listutils::typeError("function result is not a tuple stream");
+  }
+
+  // extract result of d1
+  ListExpr d1Res = d1;
+  while(!nl->HasLength(d1Res,1)){
+    d1Res = nl->Rest(d1Res);
+  }
+  d1Res = nl->First(d1Res);
+
+  // the result of d1 must be int
+  if(!CcInt::checkType(d1Res)){
+    return listutils::typeError("result for distribution function is "
+                                "not an int");
+  }
+
+  // extract used argument in d1 (the last argument)
+  ListExpr d1UsedArg = d1;
+  while(!nl->HasLength(d1UsedArg,2)){
+    d1UsedArg = nl->Rest(d1UsedArg);
+  }
+  d1UsedArg = nl->First(d1UsedArg);
+
+  if(!Tuple::checkType(d1UsedArg)){
+    return listutils::typeError("argument of the distribution function is "
+                                "not a tuple");
+  }
+
+  if(!nl->Equal(nl->Second(f1Res),d1UsedArg)){
+    return listutils::typeError("type mismatch between result of the funciton "
+                            "and the argument of the distribution function");
+  }
+
+  ListExpr funDef = nl->Second(f);
+
+  // if f1 is defined to have two arguments, we ensure that the 
+  // second argument is unused
+  // within the whole function definition
+
+  if(listutils::isMap<2>(f1)){
+     string arg2Name = nl->SymbolValue(nl->First(nl->Third(funDef)));
+     if(listutils::containsSymbol(nl->Fourth(funDef), arg2Name)){
+        return listutils::typeError("Usage of the second argument in "
+                                    "function is not allowed");
+     }
+  }
+
+
+  ListExpr fdarg = nl->Second(funDef);
+  ListExpr dfcomp = nl->HasLength(funDef,3)
+                   ?nl->Third(funDef)
+                   :nl->Fourth(funDef);
+
+  // rewrite function
+  ListExpr rfunDef = nl->ThreeElemList(
+                       nl->First(funDef),
+                       nl->TwoElemList(
+                             nl->First(fdarg),
+                             arrayStream),
+                       dfcomp
+                     );
+
+   ListExpr dfunDef = nl->Second(d);
+   if(listutils::isMap<2>(d1)){
+     string arg1Name = nl->SymbolValue(nl->First(nl->Second(dfunDef)));
+     if(listutils::containsSymbol(nl->Fourth(dfunDef),arg1Name)){
+        return listutils::typeError("Usage of the first argument is not "
+                                    "allowed within the distribution function");
+     }
+   }
+
+   ListExpr ddarg = nl->HasLength(dfunDef,3)
+                    ?nl->Second(dfunDef)
+                    :nl->Third(dfunDef);
+   ListExpr ddcomp = nl->HasLength(dfunDef,3)
+                     ?nl->Third(dfunDef)
+                     :nl->Fourth(dfunDef);
+
+   ListExpr rdfunDef = nl->ThreeElemList(
+                          nl->First(dfunDef),
+                          nl->TwoElemList(
+                              nl->First(ddarg),
+                              nl->Second(f1Res)),
+                        ddcomp
+                      );
+
+
+  ListExpr appendList = nl->TwoElemList(
+                     nl->TextAtom( nl->ToString(rfunDef)),
+                     nl->TextAtom( nl->ToString(rdfunDef)) );
+
+  ListExpr resType = nl->TwoElemList(
+                          listutils::basicSymbol<DFMatrix>(),
+                          nl->TwoElemList(
+                               listutils::basicSymbol<Relation>(),
+                               nl->Second(f1Res)));
+
+  return nl->ThreeElemList(
+                   nl->SymbolAtom(Symbols::APPEND()),
+                   appendList,
+                   resType
+               );
+
+
+
+
+  // create result type
+
+
+  return listutils::typeError("Type Mapping not completely implemented yet.");
+}
+
+
+/*
+17 TypeMapOperator ~FFR~
+
+*/
+ListExpr FFRTM(ListExpr args){
+
+  if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+    return listutils::typeError("1 or two arguments expected") ;
+  }
+
+  if(nl->HasLength(args,1)){
+    ListExpr arg = nl->First(args);
+    if(!DArray::checkType(arg) && !DFArray::checkType(arg)){
+       return listutils::typeError("d[f]array expected");
+    }
+    if(!Relation::checkType(nl->Second(arg))){
+      return listutils::typeError("D[f]array's subtype muts be a relation");
+    }
+    return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                            nl->Second(nl->Second(arg)));
+  }
+  // two arguments
+  ListExpr arg = nl->Second(args);
+  if(!listutils::isMap<1>(arg) && !listutils::isMap<2>(arg)){
+    return listutils::typeError("second arg is not a function");
+  } 
+  while(!nl->HasLength(arg,1)){
+    arg = nl->Rest(arg);
+  }
+  arg = nl->First(arg);
+  if(!Stream<Tuple>::checkType(arg)){
+    return listutils::typeError("function result is not a tuple stream");
+  }
+  ListExpr res =  nl->Second(arg);
+  return res;
+}
+
+
+OperatorSpec FFRSpec(
+  "d[f]array(rela(tuple(X))) -> stream(tuple(X)) or something other",
+  " FFR(_,_,_)",
+  "Type Map Operator",
+  "query FFR(test) getTypeNL"
+);
+
+
+Operator FFROp(
+  "FFR",
+  FFRSpec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  FFRTM
+);
+
+OperatorSpec partitionFSpec(
+  "d[f]array(rel(X)) x (stream(X)->stream(Y)) x (Y -> int) x "
+  "string x int -> dfmatrix(rel(Y)) ",
+  "_ partitionL[_,_,_,_] ",
+  "Repartitions a distributed [file] array. Before repartition, a "
+  "function is applied to the slots.",
+  "query a1 partitionL[ . head[12], hashvalue(.Attr,23), \"name\", 0]" 
+);
+
+
+/*
+We don't need selection and value mappings because we reuse the one of the
+partition operator is able to handle even the version with additionally 
+function.
+
+*/
+
+Operator partitionFOp(
+  "partitionF",
+  partitionFSpec.getStr(),
+  2,
+  partitionVM,
+  partitionSelect,
+  partitionFTM
+);
+
+
+
+
+/*
 18 Operator ~reduce~
 
 */
@@ -15349,7 +15658,7 @@ ListExpr areduceTM(ListExpr args){
 
 
 
-  if(   !DMatrix::checkType(m1)
+  if(   !DFMatrix::checkType(m1)
      || !CcString::checkType(n1)
      || !listutils::isMap<1>(f1)
      || !CcInt::checkType(p1)){
@@ -15474,7 +15783,7 @@ class transferatorStarter{
 
 };
 
-bool startFileTransferators( DMatrix* matrix, int port){
+bool startFileTransferators( DFMatrix* matrix, int port){
    assert(port>0);
    set<string> usedIPs;
    vector<transferatorStarter*> starters;
@@ -15512,7 +15821,7 @@ template<class R>
 class AReduceTask{
 
   public:
-     AReduceTask(DMatrix* _matrix, int _worker, R* _result, int _port,
+     AReduceTask(DFMatrix* _matrix, int _worker, R* _result, int _port,
               string& _funtext, ListExpr _relType,
               bool _isStream, AReduceListener* _listener):
           matrix(_matrix), worker(_worker), result(_result), port(_port),
@@ -15547,7 +15856,7 @@ class AReduceTask{
 
 
   private:
-     DMatrix* matrix;
+     DFMatrix* matrix;
      int worker;
      R* result;
      int port;
@@ -15702,7 +16011,7 @@ class AReduceTask{
 template<class R>
 class AReducer: public AReduceListener{
   public:
-    AReducer(DMatrix* _matrix, R* _result, int _port, 
+    AReducer(DFMatrix* _matrix, R* _result, int _port, 
             const string& _funtext, bool _isStream, ListExpr _relType):
       matrix(_matrix), result(_result), port(_port), 
       funtext(_funtext),isStream(_isStream), relType(_relType) {
@@ -15757,7 +16066,7 @@ class AReducer: public AReduceListener{
 
 
   private:
-    DMatrix* matrix;
+    DFMatrix* matrix;
     R*        result;
     int       port;
     string    funtext;
@@ -15780,7 +16089,7 @@ int areduceVM1(Word* args, Word& result, int message,
    
    result = qp->ResultStorage(s);
    R* res = (R*) result.addr;
-   DMatrix* matrix = (DMatrix*) args[0].addr;
+   DFMatrix* matrix = (DFMatrix*) args[0].addr;
    CcString* ResName = (CcString*) args[1].addr;
 
    // args[2] points to the original function
@@ -15897,7 +16206,7 @@ ListExpr collect2TM(ListExpr args){
   if(!nl->HasLength(args,3)){
     return listutils::typeError(err+" (wrong number of args)");
   }
-  if(   !DMatrix::checkType(nl->First(args))
+  if(   !DFMatrix::checkType(nl->First(args))
      || !CcString::checkType(nl->Second(args))
      || !CcInt::checkType(nl->Third(args))){
      return  listutils::typeError(err);
@@ -16055,7 +16364,7 @@ int collect2VM(Word* args, Word& result, int message,
              Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
-   DMatrix* matrix = (DMatrix*) args[0].addr;
+   DFMatrix* matrix = (DFMatrix*) args[0].addr;
    CcString* name   = (CcString*) args[1].addr;
    CcInt* port = (CcInt*) args[2].addr;
    DFArray* res = (DFArray*) result.addr;
@@ -16150,8 +16459,8 @@ Distributed2Algebra::Distributed2Algebra(){
    DArrayTC.AssociateKind(Kind::SIMPLE());
    AddTypeConstructor(&DFArrayTC);
    DFArrayTC.AssociateKind(Kind::SIMPLE());
-   AddTypeConstructor(&DMatrixTC);
-   DMatrixTC.AssociateKind(Kind::SIMPLE());
+   AddTypeConstructor(&DFMatrixTC);
+   DFMatrixTC.AssociateKind(Kind::SIMPLE());
    
    AddOperator(&connectOp);
    AddOperator(&checkConnectionsOp);
@@ -16258,6 +16567,12 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&SUBTYPE1OP);
    AddOperator(&SUBSUBTYPE1OP);
    AddOperator(&SUBTYPE2OP);
+
+
+   AddOperator(&partitionFOp);
+   partitionFOp.SetUsesArgsInTypeMapping();
+
+   AddOperator(&FFROp);
 
 
 
