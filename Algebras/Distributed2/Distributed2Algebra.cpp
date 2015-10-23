@@ -12660,9 +12660,24 @@ class Mapper{
            } else {
                cmd = "query " + funName+"( " + n +" feed )";
            }
-           string fname2 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
-                   + mapper->name + "/"
-                   + mapper->name + "_" + stringutils::int2str(nr)+".bin";
+            
+           string targetDir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                              + mapper->name + "/" ;
+
+           string cd = "query createDirectory('"+targetDir+"', TRUE)";
+           ci->simpleCommand(cd, err, errMsg,r, false, runtime);
+           if(err){
+             cerr << "creating directory failed, cmd = " << cd << endl;
+             cerr << errMsg << endl;
+           }
+
+           string fname2 =   targetDir
+                           + mapper->name + "_" + stringutils::int2str(nr)
+                           + ".bin";
+
+
+     
+
 
 
            if(mapper->isRel) {
