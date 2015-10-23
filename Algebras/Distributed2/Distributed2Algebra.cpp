@@ -3394,7 +3394,6 @@ class prcmdInfo: public CommandListener<string>{
     void createResultTuple(Tuple* inTuple, int error, const string& errMsg, 
                            const string& resList, double runtime){
 
-       stopMutex.lock();
        {
           boost::lock_guard<boost::mutex> guard(stopMutex);
           if(stopped){
