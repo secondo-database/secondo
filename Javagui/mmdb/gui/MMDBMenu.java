@@ -48,10 +48,13 @@ public class MMDBMenu extends JMenu {
 				"Convert all Objects to NL", true, false), RESULT_AUTOCONVERT(
 				6, "Autoconvert query results to NL format", false, true), EXPORT(
 				7, "Export MMObject(s)", false, false), IMPORT(8,
-				"Import MMObject(s)", true, false), INDEX(9, "Generate Index",
-				false, false), QUERY(10, "Execute Query", false, false), MEMORY(
-				11, "Manage Memory", true, false), TYPES(120,
-				"Supported Types", false, false), HELP(13, "Help", false, false);
+				"Import MMObject(s)", false, false), OPERATORS(9,
+				"Supported Operators", false, false), PROGRAMMERS_GUIDE(10,
+				"Programmer's Guide (PDF)", true, false), INDEX(11,
+				"Generate Index", false, false), QUERY(12, "Execute Query",
+				false, false), MEMORY(13, "Manage Memory", true, false), TYPES(
+				14, "Supported Types", false, false), HELP(15, "Help", false,
+				false);
 
 		final int position;
 		final boolean followedBySeparator;

@@ -63,6 +63,7 @@ public class ParserControllerTests {
 		assertNull(objectList.getAllObjects().get(2).toListExpr());
 		assertFalse(viewerControl.isActualDisplayed(objectList.getAllObjects()
 				.get(2)));
+		ParserController.getInstance().processResultAutoconvert();
 	}
 
 	@Test
@@ -79,6 +80,7 @@ public class ParserControllerTests {
 		assertEquals(listExpr, objectList.getAllObjects().get(2).toListExpr());
 		assertFalse(viewerControl.isActualDisplayed(objectList.getAllObjects()
 				.get(2)));
+		ParserController.getInstance().processResultAutoconvert();
 	}
 
 	@Test

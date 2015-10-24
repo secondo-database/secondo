@@ -11,7 +11,6 @@ import java.text.DecimalFormat;
 import java.util.List;
 
 import mmdb.data.MemoryObject;
-import mmdb.data.MemoryRelation;
 import mmdb.data.attributes.MemoryAttribute;
 import mmdb.error.MMDBException;
 import mmdb.error.convert.ConvertToListException;
@@ -38,13 +37,6 @@ public class ParserController {
 	 * nested list format.
 	 */
 	private boolean autoconvert = true;
-
-	/**
-	 * Integer indicating the maximum size of relation results to be
-	 * automatically shown in the current viewer.<br>
-	 * Prevents long wait times for displaying results after calculation.
-	 */
-	private static final int MAX_VIEWNUM = 100;
 
 	/**
 	 * The current GUI's ObjectList (being injected).
@@ -183,8 +175,8 @@ public class ParserController {
 		commandPanel.SystemArea.append("\n\n  Successfully loaded to MMDB! "
 				+ time);
 		commandPanel.showPrompt();
-		// Show result if viewer might be able to do that quickly
-		if (this.autoconvert && isDirectlyShow(resultSecondoObject)) {
+		// Show result
+		if (this.autoconvert) {
 			this.viewerControl.showObject(resultSecondoObject);
 		}
 	}
@@ -224,26 +216,6 @@ public class ParserController {
 				.convertUndefinedAttributeToList(
 						(MemoryAttribute) resultObjectNode.getOutputType());
 		return resultExpr;
-	}
-
-	/**
-	 * Determines if the given SecondoObject is to be displayed automatically
-	 * after conversion.
-	 * 
-	 * @param resultSecondoObject
-	 *            the object that is to be shown or not.
-	 * @return true if the object is to be shown, false otherwise.
-	 */
-	private boolean isDirectlyShow(SecondoObject resultSecondoObject) {
-		MemoryObject mobject = resultSecondoObject.getMemoryObject();
-		if (mobject instanceof MemoryAttribute) {
-			return true;
-		} else if (mobject instanceof MemoryRelation) {
-			MemoryRelation mrelation = (MemoryRelation) mobject;
-			return mrelation.getTuples().size() < MAX_VIEWNUM;
-		} else {
-			return false;
-		}
 	}
 
 	/**

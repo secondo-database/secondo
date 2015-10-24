@@ -25,8 +25,8 @@ public class ParserTools {
 	 * @throws ParsingException
 	 *             if the ListExpr contains a wrong number of parameters.
 	 */
-	public static void checkListElemCount(ListExpr[] listExpressions, int target,
-			Class<? extends Node> caller) throws ParsingException {
+	public static void checkListElemCount(ListExpr[] listExpressions,
+			int target, Class<? extends Node> caller) throws ParsingException {
 		if (listExpressions.length != target) {
 			throw new ParsingException(
 					"%s has wrong number of params! Expects %d but got %d.",

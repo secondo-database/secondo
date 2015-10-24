@@ -24,7 +24,8 @@ import sj.lang.ListExpr;
 
 /**
  * Operator sortby resembling the operator in the core.<br>
- * Sorts a stream of tuples by the given columns in the given directions.
+ * Sorts a stream of tuples by the given columns in the given directions.<br>
+ * If no direction is given, asc is taken.
  * 
  * @author Bjoern Clasen
  */
@@ -72,6 +73,8 @@ public class Sortby implements StreamOperator {
 			throws ParsingException {
 		ParserTools.checkListElemCount(params, 2, Sortby.class);
 		Node node1 = NestedListProcessor.nlToNode(params[0], environment);
+		// Parameter modification, since sorting direction is optional
+		params[1] = addOrders(params[1]);
 		Map<String, String> paramMap = NestedListProcessor
 				.nlToIdentifierPairs(params[1]);
 		return new Sortby(node1, paramMap);
@@ -294,6 +297,38 @@ public class Sortby implements StreamOperator {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Special method for adding "asc" to sorting columns without direction.
+	 * 
+	 * @param listExpr
+	 *            The original parameter list
+	 * @return a modified parameter list with appended sorting directions
+	 * @throws ParsingException
+	 *             if original parameters were not in list form
+	 */
+	private static ListExpr addOrders(ListExpr listExpr)
+			throws ParsingException {
+		ListExpr resultList = ListExpr.theEmptyList();
+		if (listExpr.isAtom()) {
+			throw new ParsingException(
+					"Expected Identifier-Pairs but got an atom: "
+							+ listExpr.toString());
+		}
+		while (!listExpr.isEmpty()) {
+			ListExpr first = listExpr.first();
+			listExpr = listExpr.rest();
+			if (first.isAtom()) {
+				resultList = ListExpr
+						.concat(resultList,
+								ListExpr.twoElemList(first,
+										ListExpr.symbolAtom("asc")));
+			} else {
+				resultList = ListExpr.concat(resultList, first);
+			}
+		}
+		return resultList;
 	}
 
 }

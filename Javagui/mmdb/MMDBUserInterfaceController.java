@@ -25,6 +25,8 @@ import gui.SecondoObject;
 import gui.ViewerControl;
 import gui.idmanager.IDManager;
 
+import java.awt.Desktop;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,6 +56,7 @@ import mmdb.gui.QueryDialog;
 import mmdb.service.MemoryWatcher;
 import mmdb.service.ObjectConverter;
 import mmdb.service.ObjectLoader;
+import mmdb.streamprocessing.parser.OperatorLookup;
 import mmdb.streamprocessing.parser.ParserController;
 import sj.lang.ESInterface;
 import sj.lang.ListExpr;
@@ -165,6 +168,12 @@ public final class MMDBUserInterfaceController {
 				break;
 			case IMPORT:
 				processImportEvent();
+				break;
+			case OPERATORS:
+				processOperatorsEvent();
+				break;
+			case PROGRAMMERS_GUIDE:
+				processProgrammersGuideEvent();
 				break;
 			case INDEX:
 				processIndexEvent();
@@ -354,6 +363,28 @@ public final class MMDBUserInterfaceController {
 	private void processImportEvent() {
 		ImportExportGui iegui = new ImportExportGui(commandPanel);
 		iegui.processImportCommand(objectList);
+	}
+
+	/**
+	 * Shows available Operators.
+	 */
+	private void processOperatorsEvent() {
+		String operatorList = OperatorLookup.listOperators();
+		Reporter.showInfo(operatorList);
+	}
+
+	/**
+	 * Opens the Programmer's Guide as PDF.
+	 */
+	private void processProgrammersGuideEvent() {
+		String sep = System.getProperty("file.separator");
+		try {
+			File guidePDF = new File("mmdb" + sep + "gui" + sep
+					+ "Programmers_Guide.pdf");
+			Desktop.getDesktop().open(guidePDF);
+		} catch (Exception e) {
+			Reporter.showError("Programmer's Guide not found on your system!");
+		}
 	}
 
 	/**

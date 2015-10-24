@@ -1,7 +1,8 @@
 package mmdb.streamprocessing.parser;
 
 import java.util.HashMap;
-import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import mmdb.streamprocessing.Node;
 import mmdb.streamprocessing.functionoperators.ParameterFunction;
@@ -53,9 +54,10 @@ public class OperatorLookup {
 	}
 
 	/**
-	 * The map containing all known operator names and classes.
+	 * The map containing all known operator names and classes. It is a sorted
+	 * map to keep order in GUI operator-list.
 	 */
-	private static Map<String, Class<? extends Node>> map;
+	private static SortedMap<String, Class<? extends Node>> map;
 	
 	/**
 	 * Private constructor to prevent this class from being instantiated.
@@ -83,8 +85,8 @@ public class OperatorLookup {
 	 * 
 	 * @return the initialized map.
 	 */
-	private static Map<String, Class<? extends Node>> initializeMap() {
-		HashMap<String, Class<? extends Node>> operatorMap = new HashMap<String, Class<? extends Node>>();
+	private static SortedMap<String, Class<? extends Node>> initializeMap() {
+		TreeMap<String, Class<? extends Node>> operatorMap = new TreeMap<String, Class<? extends Node>>();
 		// FunctionOperators
 		operatorMap.put("fun", ParameterFunction.class);
 
@@ -125,6 +127,22 @@ public class OperatorLookup {
 		operatorMap.put("tail", Tail.class);
 
 		return operatorMap;
+	}
+
+	public static String listOperators() {
+		StringBuilder sb = new StringBuilder();
+		int currentLineLength = 0;
+		int maxLineLength = 25;
+		sb.append("SUPPORTED OPERATORS:\n");
+		for(String key : map.keySet()) {
+			sb.append(key + ", ");
+			currentLineLength += key.length();
+			if (currentLineLength > maxLineLength) {
+				sb.append("\n");
+				currentLineLength = 0;
+			}
+		}
+		return sb.toString().substring(0, sb.toString().length() - 2);
 	}
 
 }

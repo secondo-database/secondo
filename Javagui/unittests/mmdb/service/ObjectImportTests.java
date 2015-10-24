@@ -26,8 +26,8 @@ public class ObjectImportTests {
 	public void testImportObjectsAttribute() throws Exception {
 		File temp = null;
 		try {
-			temp = File.createTempFile("MMSecondo_Test_Temp",
-					ObjectExport.FILE_EXTENSION);
+			temp = File.createTempFile("MMSecondo_Test_Temp", "."
+					+ ObjectExport.FILE_EXTENSION);
 		} catch (IOException e) {
 			fail("Could not create temp file! Cannot test MM-Import...");
 		}
@@ -51,8 +51,8 @@ public class ObjectImportTests {
 	public void testImportObjectsMutliple() throws Exception {
 		File temp = null;
 		try {
-			temp = File.createTempFile("MMSecondo_Test_Temp",
-					ObjectExport.FILE_EXTENSION);
+			temp = File.createTempFile("MMSecondo_Test_Temp", "."
+					+ ObjectExport.FILE_EXTENSION);
 		} catch (IOException e) {
 			fail("Could not create temp file! Cannot test MM-Import...");
 		}

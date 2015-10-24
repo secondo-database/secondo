@@ -52,6 +52,7 @@ import mmdb.query.JoinController;
 import mmdb.query.ProjectionController;
 import mmdb.query.SelectionController;
 import mmdb.query.UnionController;
+import mmdb.streamprocessing.parser.Environment;
 import tools.Reporter;
 
 /**
@@ -260,7 +261,8 @@ public abstract class AbstractOperationPanel extends JPanel {
 		} else {
 			relationName = selectedRelation.substring(0, indexOfBrackets - 1);
 		}
-		return operationName + " ON " + relationName;
+		return Environment.nextResultLabel() + operationName + " ON "
+				+ Environment.removeResultLabel(relationName);
 	}
 
 	/**
@@ -295,7 +297,10 @@ public abstract class AbstractOperationPanel extends JPanel {
 			secondRelationName = selectedSecondRelation.substring(0,
 					indexOfBracketsForSecondRelation - 1);
 		}
-		return firstRelationName + " " + operationName + " " + secondRelationName;
+		return Environment.nextResultLabel()
+				+ Environment.removeResultLabel(firstRelationName) + " "
+				+ operationName + " "
+				+ Environment.removeResultLabel(secondRelationName);
 	}
 
 	/**

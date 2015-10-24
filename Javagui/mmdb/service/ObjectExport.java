@@ -231,8 +231,7 @@ public class ObjectExport extends SwingWorker<Void, Integer> {
 	 * @throws InterruptedException
 	 */
 	@Override
-	public Void doInBackground() throws ExportException,
-			InterruptedException {
+	public Void doInBackground() throws ExportException, InterruptedException {
 		OutputStream outputStream = getOutputStream(filePath);
 
 		try {
@@ -485,13 +484,19 @@ public class ObjectExport extends SwingWorker<Void, Integer> {
 	private OutputStream getOutputStream(String filePath)
 			throws ExportException {
 		try {
-			if (!filePath.toUpperCase().endsWith(FILE_EXTENSION.toUpperCase())) {
+			if (!filePath.toUpperCase().endsWith(
+					"." + FILE_EXTENSION.toUpperCase())) {
 				filePath += "." + FILE_EXTENSION;
 			}
 			File destinationFile = new File(filePath);
 			FileOutputStream fos = new FileOutputStream(destinationFile);
 			ZipOutputStream zout = new ZipOutputStream(fos);
-			ZipEntry e = new ZipEntry("content.txt");
+			String contentName = filePath
+					.substring(filePath.lastIndexOf(System
+							.getProperty("file.separator")) + 1, filePath
+							.lastIndexOf("." + FILE_EXTENSION))
+					+ ".txt";
+			ZipEntry e = new ZipEntry(contentName);
 			zout.putNextEntry(e);
 			return zout;
 		} catch (IOException e) {
