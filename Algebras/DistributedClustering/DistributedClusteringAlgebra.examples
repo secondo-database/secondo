@@ -4,6 +4,19 @@ Restore : NO
 Operator : dbdacscan
 Number   : 1
 Signature: stream(Tuple) x Id x Id x real x int  -> stream(Tuple)
-Example  : query Kneipen feed  dbdacscan [GeoData, No, 500.0, 5] sortby[No] groupby[No ; C : group count] count
-Result   : 9
+Example  : query Kneipen feed dbdacscan [GeoData, No,"relname", 500.0, 5] sortby[No] groupby[No ; C : group count] count
+Result   : 8
+
+Operator : distclmerge
+Number   : 1
+Signature: stream(Tuple) x stream(Tuple) x stream(Tuple) x stream(Tuple) x Id x string x real x int  -> stream(Tuple)
+Example  : query leftDbScanRel feed leftClRelationNInd00 feed rightDbScanRel feed rightClRelationNInd0 feed distclmerge[GeoData, ClusterId, "newRelName", 500.0, 5] sortby[ClusterId] groupby[ClusterId ; C : group count] count
+Result   : 8
+
+Operator : distsamp
+Number   : 4
+Signature: stream(Tuple) x stream(Tuple) x Id -> bool
+Example  : query Kneipen feed Kneipen feed head[50] distsamp[GeoData, Wnumb, 12] sortby[Wnumb] groupby[Wnumb; C : group count] count
+Result   : 12
+
 

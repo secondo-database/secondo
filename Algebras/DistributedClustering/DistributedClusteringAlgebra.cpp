@@ -372,29 +372,30 @@ selection function for one input stream
 
 Type Mapping of operator ~distclmerge~
 
-
-
-Algorithm:
-get 2 Streams of Tuple from received bin data
-create a left and a right Cluster 
-  -> consider the descending ordering of Points
-    create Cluster:
-      read in Points (same as in dbDacScan)
-      sort points in x (also same as in dbDacScan)
-      create an empty cluster
-        with ClusterType an ClusterNo deside KIND and 
-            ListNo and insert points sorted in list
-        if all points are inserted 
-            define Neighbors for LEFT BOTH and RIGHT Kinds
-          define Neighbors: 
-            from Border Point to dist < eps search Neighbors for each point
-        end of create Cluster
-melt this two clusters and return
-
-first Attributename belongs to GeoData
-second Attributename belongs to ClusterNo
-
 */
+// Signature is: Stream(Tuple) x Stream(Tuple) x Stream(Tuple) x Stream(Tuple) x
+// Attributename x  Attributename x String x EPS x MinPts  -> Stream(Tuple)
+// 
+// RelStream x NeighborStream x 2_relstream x 2_neighborStream x
+// GeoData x ClusterId x "newRelName" x eps x minpts
+// 
+// Algorithm:
+// get 2 Streams of Tuple from received bin data
+// create a left and a right Cluster 
+//   -> consider the descending ordering of Points
+//     create Cluster:
+//       read in Points (same as in dbDacScan)
+//       sort points in x (also same as in dbDacScan)
+//       create an empty cluster
+//         with ClusterType an ClusterNo deside KIND and 
+//             ListNo and insert points sorted in list
+//         if all points are inserted 
+//             define Neighbors for LEFT BOTH and RIGHT Kinds
+//           define Neighbors: 
+//             from Border Point to dist < eps search Neighbors for each point
+//         end of create Cluster
+// melt this two clusters and return
+
   ListExpr
   distClMergeTM(ListExpr args){
     string errMsg = "Five elements expexted. First four must be a stream"
