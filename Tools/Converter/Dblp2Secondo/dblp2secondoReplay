@@ -1,0 +1,64 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#!/bin/sh
+# dblp2secondo
+# a script for converting the dblp database into a
+# set of relations in nested list format
+#
+# F.Hoffmann , Th. Behr 2004-6
+# M. Kunsmann changes for Replay version 2015-10
+
+# first step : set the input file
+DBLP_FILE="$1"
+DBLP_SPLIT_NO="$2"
+REPLAY_TRANSFER_PATH="$3"
+
+DBLP_TMP=dblp.tmp
+
+echo "Creating File $DBLP_TMP  from $DBLP_FILE this can take several minutes"
+FilterHTML $DBLP_FILE  | DoubleTitle | tee $DBLP_TMP | progress 5000
+
+echo "$DBLP_TMP created"
+
+# Create the three relations author authordoc and document
+# create also a temporary keyword file keyword_tmp
+echo "create the SECONDO-relations"
+rm -f access.db
+Parser "$DBLP_TMP"
+       
+if [ $? -ne 0 ]; then
+   echo "Creating of relations failed"
+   rm -f "access.db"
+   exit 2
+fi
+rm -f access.db
+
+
+
+echo "Convert keyword_tmp to a Keywordrelation"
+# call the Java program to build the Files
+COMMAND="java -Xmx180M KeyWordCreator keyword_tmp Exclusions Keyword - 3"
+
+$COMMAND
+
+mv Author ${REPLAY_TRANSFER_PATH}Author_${DBLP_SPLIT_NO}
+mv Authordoc ${REPLAY_TRANSFER_PATH}Authordoc_${DBLP_SPLIT_NO}
+mv Document ${REPLAY_TRANSFER_PATH}Document_${DBLP_SPLIT_NO}
+mv Keyword ${REPLAY_TRANSFER_PATH}Keyword_${DBLP_SPLIT_NO}
