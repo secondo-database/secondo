@@ -25,7 +25,7 @@ query Workers4 feed extend
 [Started: connect(.Server, .Port, "SecondoConfig.ini")]consume;
 
 #open databases
-query intstream(0,3) namedtransformstream[Server] extend[ W :
+query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
 'open database berlintest'] prcmd[Server,W] consume;
 
 ## distribute data for MergeSort ####################
@@ -336,7 +336,7 @@ query rquery(0, 'query DistRel feed sortby[ClusterId]
 groupby[ClusterId ; C : group count] count');
 
 #close databases
-query intstream(0,3) namedtransformstream[Server] extend[ W :
+query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
 'close database'] prcmd[Server,W] consume;
 
 #disconnect
