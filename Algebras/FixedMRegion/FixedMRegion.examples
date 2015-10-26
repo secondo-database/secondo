@@ -52,3 +52,13 @@ Signature: region x mmove x point -> fixedmregion
 Example  : query makefmr([const region value ((((0.0 0.0)(0.0 1.0)(1.0 0.0))))],mmo,[const  point value(1.2 1.4)])
 Result   : (fixedmregion(((((0.0 0.0)(1.0 0.0)(0.0 1.0))))((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(2.0 3.0 2.0 3.0 0.0 2.0)))(1.2 1.4)0.0))
 
+
+Operator : makeiregion
+Number   : 1
+Signature : region x instnat -> iregion
+Example   : makeirgion(thecenter, six30)
+Result    : bug 
+
+
+
+
