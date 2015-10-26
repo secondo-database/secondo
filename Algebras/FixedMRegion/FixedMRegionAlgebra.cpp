@@ -955,13 +955,15 @@ This is the value mapping function.
 int TraversedVM(Word* args, Word& result, int message,
 Word& local, Supplier s){
   FixedMRegion* fmr = (FixedMRegion*) args[0].addr;
-  double* d = (double*) args[1].addr;
-  double t_start = *d;
-  double* e = (double*) args[2].addr;
-  double t_end = *e;
+  Instant* si = (Instant*) args[1].addr;
+  Instant* ei = (Instant*) args[2].addr;
   result = qp->ResultStorage(s);
   Region* res  = (Region*) result.addr;
-  fmr->traversedNew(*res, t_start, t_end);
+  if(!fmr->IsDefined() || !si->IsDefined() || !si->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  fmr->traversedNew(*res, si->ToDouble(), ei->ToDouble());
   return 0;  
 }
 
