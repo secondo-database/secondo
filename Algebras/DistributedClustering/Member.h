@@ -48,6 +48,7 @@
 #include "StandardTypes.h"
 #include "StringUtils.h"
 #include "PictureAlgebra.h"
+#include "RelationAlgebra.h"
 
 #ifndef MEMBER_H_
 #define MEMBER_H_
@@ -75,15 +76,20 @@ public:
   bool densityReachable; 
   //true if one point in epsNeighborhood is a innerPnt or it is a innerPnt
   //   bool outerPnt;
-  int clusterNo;
+  int clusterNo,clusterType,tuplePos;
+  long int tupleId;
+  
+  //reference to Tuple
+  Tuple* tuple;
   
   
 /*
  constructor
 
 */
-  Member():innerPnt(false),densityReachable(false),clusterNo(-1){}
-  
+  Member():innerPnt(false),densityReachable(false),
+  clusterNo(-1),clusterType(-1),tuplePos(0),tupleId(0){}
+
 /*
 * addNeighbor
 * add one or two neighbors to epsNeighborhood
@@ -178,6 +184,13 @@ public:
       return epsNeighborhood.end();
   }
   
+  void setClusterType(int type){
+    clusterType = type;
+  }
+  int getClusterType(){
+    return clusterType;
+  }
+  
   void setClusterNo(int no){
     clusterNo=no;
   }
@@ -187,12 +200,37 @@ public:
   }
   
   bool isClusterMember(){
-    if(getClusterNo() == -1){
+    if(getClusterNo() < 0){
       return false;
     }else{
       return true;
     }
   }
+  
+  void setTuple(Tuple* tup){
+    tuple = tup;
+  }
+  
+  Tuple* getTuple(){
+    return tuple;
+  }
+  
+//   int getTuplePos(){
+//     return tuplePos;
+//   }
+//   
+//   void setTuplePos(int pos){
+//     tuplePos = pos;
+//   }
+  
+  long int getTupleId(){
+    return tupleId;
+  }
+  
+  void setTupleId(long int id){
+    tupleId = id;
+  }
+  
 
 };
 
@@ -234,6 +272,10 @@ public:
     return static_cast<double>(point->GetValue());
   }
   
+  double getYVal(){
+    return getXVal();
+  }
+  
 /*
  calcDistanz
  calculate the distance between this and the committed point
@@ -273,6 +315,23 @@ public:
   }
   
   
+  CcInt* getOuterLeftValue(CcInt* outerPoint, CcInt* innerPoint ){
+    return 
+    innerPoint->GetValue() 
+    > outerPoint->GetValue() ? innerPoint : outerPoint ;
+  }
+  
+  CcInt* getOuterRightValue(CcInt* outerPoint,  
+                            CcInt* outerPointRighCl, CcInt* innerPoint ){
+    CcInt* retPoint = getOuterRightValue( outerPoint,  innerPoint ) ;
+    return getOuterRightValue(outerPointRighCl,retPoint) ;
+  }
+  
+  CcInt* getOuterRightValue(CcInt* outerPoint, CcInt* innerPoint ){
+    return innerPoint->GetValue() 
+    < outerPoint->GetValue() ? innerPoint : outerPoint ;
+  }
+  
 };
 
 class RealMember :public Member<RealMember>{
@@ -308,6 +367,11 @@ public:
       return 0;
     return point->GetValue();
   }
+  
+  double getYVal(){
+    return getXVal();
+  }
+  
 /*
  calcDistanz
  calculate the distance between this and the committed point
@@ -348,6 +412,22 @@ public:
     cout << getXVal();
   }
   
+  CcReal* getOuterLeftValue(CcReal* outerPoint, CcReal* innerPoint ){
+    return innerPoint->GetValue() 
+    > outerPoint->GetValue() ? innerPoint : outerPoint ;
+  }
+  
+  CcReal* getOuterRightValue(CcReal* outerPoint,  
+                             CcReal* outerPointRighCl, CcReal* innerPoint ){
+    CcReal* retPoint = getOuterRightValue( outerPoint,  innerPoint ) ;
+    return getOuterRightValue(outerPointRighCl,retPoint) ;
+  }
+  
+  CcReal* getOuterRightValue(CcReal* outerPoint, CcReal* innerPoint ){
+    return innerPoint->GetValue() 
+    < outerPoint->GetValue() ? innerPoint : outerPoint ;
+  }
+  
 };
 
 
@@ -383,6 +463,12 @@ public:
     if(!point->IsDefined())
       return 0;
     return point->GetX();
+  }
+  
+  double getYVal(){
+    if(!point->IsDefined())
+      return 0;
+    return point->GetY();
   }
 /*
  calcDistanz
@@ -434,80 +520,117 @@ public:
     cout << "("<< point->GetX()<<  ", " << point->GetY() <<  ") ";
   }
   
+  Point* getOuterLeftValue(Point* outerPoint, Point* innerPoint ){
+    return innerPoint->GetX() 
+    > outerPoint->GetX() ? innerPoint : outerPoint ;
+  }
+  
+  Point* getOuterRightValue(Point* outerPoint,  
+                            Point* outerPointRighCl, Point* innerPoint ){
+    Point* retPoint = getOuterRightValue( outerPoint,  innerPoint ) ;
+    return getOuterRightValue(outerPointRighCl,retPoint) ;
+  }
+  
+  Point* getOuterRightValue(Point* outerPoint, Point* innerPoint ){
+    return innerPoint->GetX() < outerPoint->GetX() ? innerPoint : outerPoint ;
+  }
+  
 };
 
 //class StringMember : Member;
-class StringMember : public Member<StringMember>{
-private:
-  CcString* point;
-  
-public:
-/*
- Constructor
+// class StringMember : public Member<StringMember>{
+// private:
+//   CcString* point;
+//   
+// public:
+// /*
+//  Constructor
+// 
+// */
+//   StringMember() : point(0){
+//     innerPnt=false;
+//     densityReachable = false;
+//   }
+//   
+//   StringMember(CcString* memb){
+//     point= memb;
+//     innerPnt=false;
+//     densityReachable = false;
+//   }
+//   
+// /*
+//  return the point value
+// 
+// */
+//   CcString* getPoint(){
+//     return point;
+//   }
+//   
+//   string getXVal(){
+//     if(!point->IsDefined())
+//       return "";
+//     return point->GetValue();
+//   }
+//   
+// /*
+//  calcDistanz
+//  calculate the distance between this and the committed point
+// 
+// */
+//   double calcDistanz (StringMember* memb){
+//     if(!point->IsDefined() && !(memb->getPoint())->IsDefined()){
+//       return 0.0;
+//     }
+//     if(!point->IsDefined() || !(memb->getPoint())->IsDefined()){
+//       return numeric_limits<double>::max();
+//     }
+//     
+//     return stringutils::ld(point->GetValue(), memb->getXVal());
+//     
+//   }
+//   
+//   double calcDistanz(CcString* pnt){
+//     
+//     if(!point->IsDefined() && !pnt->IsDefined()){
+//       return 0.0;
+//     }
+//     if(!point->IsDefined() || !pnt->IsDefined()){
+//       return numeric_limits<double>::max();
+//     }
+//     return stringutils::ld(point->GetValue(), pnt->GetValue());
+//   }
+//   
+//   int getCntDimensions(){
+//     return 2;
+//   }
+//   
+//   void printPoint(){
+//     cout << getXVal();
+//   }
+//   
+//   
+//   void printPoint(){
+//     cout << "("<< point->GetX()<<  ", " << point->GetY() <<  ") ";
+//   }
+//   
+//   CcString* getOuterLeftValue(CcString* outerPoint, CcString* innerPoint ){
+//     return innerPoint->GetX() > 
+// outerPoint->GetX() ? innerPoint : outerPoint ;
+//   }
+//   
+//   CcString* getOuterRightValue(CcString* outerPoint,  
+// CcString* outerPointRighCl, CcString* innerPoint ){
+//     CcString* retPoint = getOuterRightValue( outerPoint,  innerPoint ) ;
+//     return getOuterRightValue(outerPointRighCl,retPoint) ;
+//   }
+//   
+//   CcString* getOuterRightValue(CcString* outerPoint, CcString* innerPoint ){
+//     return innerPoint->GetX() < 
+// outerPoint->GetX() ? innerPoint : outerPoint ;
+//   }
+//   
+// };
 
-*/
-  StringMember() : point(0){
-    innerPnt=false;
-    densityReachable = false;
-  }
-  
-  StringMember(CcString* memb){
-    point= memb;
-    innerPnt=false;
-    densityReachable = false;
-  }
-  
-/*
- return the point value
-
-*/
-  CcString* getPoint(){
-    return point;
-  }
-  
-  string getXVal(){
-    if(!point->IsDefined())
-      return "";
-    return point->GetValue();
-  }
-  
-/*
- calcDistanz
- calculate the distance between this and the committed point
-
-*/
-  double calcDistanz (StringMember* memb){
-    if(!point->IsDefined() && !(memb->getPoint())->IsDefined()){
-      return 0.0;
-    }
-    if(!point->IsDefined() || !(memb->getPoint())->IsDefined()){
-      return numeric_limits<double>::max();
-    }
-    
-    return stringutils::ld(point->GetValue(), memb->getXVal());
-    
-  }
-  
-  double calcDistanz(CcString* pnt){
-    
-    if(!point->IsDefined() && !pnt->IsDefined()){
-      return 0.0;
-    }
-    if(!point->IsDefined() || !pnt->IsDefined()){
-      return numeric_limits<double>::max();
-    }
-    return stringutils::ld(point->GetValue(), pnt->GetValue());
-  }
-  
-  int getCntDimensions(){
-    return 2;
-  }
-  
-  void printPoint(){
-    cout << getXVal();
-  }
-  
-};
 //class PictureMember : Member;
 // class PictureMember : public Member<PictureMember>{
 //   

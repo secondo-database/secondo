@@ -1,26 +1,17 @@
 ####################################
 # Script for distribute Clustering #
-# 
-# some Infos:
-# 
-# remoteMonitors ClusterConfigSingle1 start
-# SecondoTTYCS -h 127.0.0.1 -p 1272
-# 
-# take only a power of two number of workers
-# 
+#                                  # 
 ####################################
 
 open database berlintest;
 
+# initial parameters
 delete Workers4;
 let Workers4 = [const rel(tuple([Server: string, Port: int])) value
-(
-  ("132.176.69.181" 91234)
-  ("132.176.69.181" 94321)
-  ("132.176.69.182" 91235)
-  ("132.176.69.182" 95321)
-)];
-
+(("132.176.69.181" 91234)
+ ("132.176.69.181" 94321)
+ ("132.176.69.182" 91235)
+ ("132.176.69.182" 95321))];
 delete CntWorkers;
 let CntWorkers = 4;
 delete EPS;
