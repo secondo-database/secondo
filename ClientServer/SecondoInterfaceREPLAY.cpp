@@ -1067,7 +1067,7 @@ SecondoInterfaceREPLAY::sendAllShapesToNode(const unsigned int nodeNo,
                                             const string basePath, 
                                             const string filePrefix) {
 /*
-Send all shapre files (shp+dbf) of an splitting process to an Node.
+Send all shape files (shp+dbf) of an splitting process to an Node.
 There is the possibility to send all files to all nodes (replication) 
 or send a number of files to every node.
 
@@ -1105,6 +1105,86 @@ or send a number of files to every node.
                                ".dbf"
                               );
 
+  }
+
+  return true;
+}
+
+bool
+SecondoInterfaceREPLAY::sendAllDBLPToNode(const unsigned int nodeNo, 
+                                          const unsigned int startWithFileNo,
+                                          const unsigned int noSplitFiles, 
+                                          const string basePath) {
+/*
+Send all dblp files (Author, Authordoc, Document, Keyword) of an splitting 
+process to an Node. There is the possibility to send all files to all nodes
+(replication) or send a number of files to every node.
+
+*/
+
+  string srcPathAuthor;
+  string destPathAuthor;
+  string srcPathAuthordoc;
+  string destPathAuthordoc;
+  string srcPathDocument;
+  string destPathDocument;
+  string srcPathKeyword;
+  string destPathKeyword;
+
+  string sendFilePath;
+
+  for (unsigned int i = startWithFileNo; 
+       i < startWithFileNo + noSplitFiles; ++i) {
+    srcPathAuthor = basePath + "/Author_" + stringutils::int2str(i);
+    destPathAuthor = "Author_" + stringutils::int2str(i); 
+    srcPathAuthordoc = basePath + "/Authordoc_" + stringutils::int2str(i);
+    destPathAuthordoc = "Authordoc_" + stringutils::int2str(i); 
+    srcPathDocument = basePath + "/Document_" + stringutils::int2str(i);
+    destPathDocument = "Document_" + stringutils::int2str(i); 
+    srcPathKeyword = basePath + "/Keyword_" + stringutils::int2str(i);
+    destPathKeyword = "Keyword_" + stringutils::int2str(i); 
+
+    sendFileToNode(nodeNo, srcPathAuthor, destPathAuthor, true);
+    sendFileToNode(nodeNo, srcPathAuthordoc, destPathAuthordoc, true);
+    sendFileToNode(nodeNo, srcPathDocument, destPathDocument, true);
+    sendFileToNode(nodeNo, srcPathKeyword, destPathKeyword, true);
+
+    // no special tread handling needed, because the threads only fill 
+    // a new element into the array
+    sendFilePath = getNodeLastSendFilePath(nodeNo);
+
+    transferFilePath.push_back(stringutils::int2str(nodeNo) + 
+                               ":" + 
+                               sendFilePath + 
+                               "/" + 
+                               "Author_" +
+                               stringutils::int2str(i)
+                              );
+
+    transferFilePath.push_back(stringutils::int2str(nodeNo) + 
+                               ":" + 
+                               sendFilePath + 
+                               "/" + 
+                               "Authordoc_" +
+                               stringutils::int2str(i)
+                              );
+
+    transferFilePath.push_back(stringutils::int2str(nodeNo) + 
+                               ":" + 
+                               sendFilePath + 
+                               "/" + 
+                               "Document_" +
+                               stringutils::int2str(i)
+                              );
+
+    transferFilePath.push_back(stringutils::int2str(nodeNo) + 
+                               ":" + 
+                               sendFilePath + 
+                               "/" + 
+                               "Keyword_" +
+                               stringutils::int2str(i)
+                              );
+ 
   }
 
   return true;
@@ -1157,8 +1237,8 @@ SecondoInterfaceREPLAY::sendShareFileToNode(const unsigned int nodeNo,
   nodeIP = nodes[nodeNo].ip;
 
   // copy file from secondo transfer file path to user destination path
-  systemCommand = "scp " + nodeIP + ":" + pathOnNode + " " + nodeIP 
-                  + ":" + cpDestPath;  
+  systemCommand = "scp " + nodeIP + ":" + pathOnNode + " " + 
+                  nodeIP + ":" + cpDestPath;  
   system(systemCommand.c_str());
 
   // no special tread handling needed, because the threads only fill 
@@ -1296,6 +1376,58 @@ files.
   return true;
 }
 
+bool SecondoInterfaceREPLAY::controllerTransferDBLPFile(
+                    const unsigned int noSplitFiles,
+                    const string& subFileName) {
+/*
+Controls sending of files (DBLP) to the nodes. The function can 
+differentiate between "Replication" - all files on all nodes - 
+and partitioning, send only part of the file to an node, 
+so that every node has different files.
+
+*/
+
+  bool futureRes;
+  vector<std::future<bool>> futures;
+
+  if (replayImportMode == "Replication") {
+    for (unsigned int i=0; i<nodes.size(); ++i) {
+      futures.push_back(async(std::launch::async,
+                      &SecondoInterfaceREPLAY::sendAllDBLPToNode,
+                      this, i, 0, noSplitFiles,
+                      FileSystem::GetCurrentFolder()));
+    }
+  } else {
+    int startWithFileNo = 0;
+    int partNoOfSplitFiles;
+    for (unsigned int i=0; i<nodes.size(); ++i) {
+      partNoOfSplitFiles = stoi(nodes[i].cores);       
+      futures.push_back(async(std::launch::async,
+                        &SecondoInterfaceREPLAY::sendAllDBLPToNode,
+                        this, i, startWithFileNo, partNoOfSplitFiles,
+                        FileSystem::GetCurrentFolder()));
+      startWithFileNo += partNoOfSplitFiles;
+    }
+  }
+
+  // wait until all files send to all nodes
+  for (unsigned int i=0; i<futures.size(); ++i) {
+    try {
+      futureRes = futures[i].get();
+      if (futureRes == false) {
+        cout << "Error while sending file to node : " 
+             << nodes[i].hostname << endl;
+      }
+    } catch (const exception& e) {
+      cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what() 
+           << " for importing file on node: " << nodes[i].hostname
+           << "with ip:" << nodes[i].ip;
+    }
+  }
+
+  return true;
+
+}
 
 bool 
 SecondoInterfaceREPLAY::executeReplayOsmImport(std::vector<string>& paramlist,
@@ -1936,17 +2068,17 @@ Execute of ReplaySHPImport.
      currentType = currentFilePath.substr(currentFilePath.size() - 3);
      if (currentType == "shp") {
        objCount++;
-       currentFilePathDBF = currentFilePath.substr(0, currentFilePath.size()- 3)
-                            + "dbf";
+       currentFilePathDBF = currentFilePath.substr(0,
+                                    currentFilePath.size() - 3) + "dbf";
        currentFilePathSHP = currentFilePath;
        cmdText = "let " + paramlist[1] + "_" + stringutils::int2str(objCount) 
                  + " = dbimport2('" + currentFilePathDBF 
-                 + "') addcounter[No, 1] " + "shpimport2('" 
-                 + currentFilePathSHP + "') " 
+                 + "') addcounter[No, 1] " 
+                 + "shpimport2('" + currentFilePathSHP + "') " 
                  + "namedtransformstream[" + paramlist[2] 
-                 + "] addcounter[No2, 1] "
-                 + "mergejoin[No, No2] remove[No, No2] "
-                 + "filter[isdefined(bbox(."
+                 + "] addcounter[No2, 1] " 
+                 + "mergejoin[No, No2] remove[No, No2] " 
+                 + "filter[isdefined(bbox(." 
                  + paramlist[2] + "))] validateAttr consume";
        commandsPerNode[currentNode].push_back(cmdText);
      }
@@ -2064,6 +2196,25 @@ Split an dblp file in noSplitFiles files
   return true;
 }
 
+bool 
+SecondoInterfaceREPLAY::DBLPtoSECONDO(const std::string& subFileName,
+                                      const unsigned int noSplitFiles) {
+
+  string cmdShell;
+
+  for (unsigned int i = 0; i < noSplitFiles; ++i) {
+    cmdShell = "cd ../Tools/Converter/Dblp2Secondo; ./dblp2secondoReplay " 
+               + FileSystem::GetCurrentFolder() + "/" 
+               + subFileName + "_" + stringutils::int2str(i) + " " 
+               + stringutils::int2str(i) + " " 
+               + FileSystem::GetCurrentFolder() + "/";
+ 
+    system(cmdShell.c_str());
+  }
+
+  return true;
+}
+
 bool
 SecondoInterfaceREPLAY::executeReplayDBLPImport(std::vector<string>& paramlist,
                                             const unsigned int noSplitFiles) {
@@ -2104,22 +2255,86 @@ Execute of ReplayDBLPImport.
   cout << endl << "Splitting DBLP file..." << endl;
   splitDBLP(paramlist[0], subFileName, noSplitFiles);
 
+  cout << "Converting splitted DBLP files to "
+          "CSV-Format and creating relations..." << endl;
+
+  DBLPtoSECONDO(subFileName, noSplitFiles);
+
   // Transfer files to nodes
-  // @TODO: Vorher konvertieren in CSV-Format???
-
   cout << "Transfer files to nodes ..." << endl;
-  controllerTransferFile(noSplitFiles, subFileName);
 
-  // Import files on nodes
-  // @TODO: Import als CSV-Format??? Konvertieren vor Transfer???
-  cout << "Import files on nodes ...TODO..." << endl;
+  controllerTransferDBLPFile(noSplitFiles,
+                             subFileName);
+
+  // Import relations on nodes
+  cout << "Import relations on nodes..." << endl;
+
+  // Initialize vector for saving import files per node
+  vector< vector<string> > commandsPerNode;
+
+  for (unsigned int i=0; i < nodes.size(); ++i) {
+    commandsPerNode.push_back(vector <string>());
+  }
+
+  string currentObject;
+  unsigned int currentNo;
+  std::size_t foundSep;
+  std::size_t foundSlash;
+  unsigned int currentNode;
+  string currentFilePath;
+  string transferPath;
+
+  // Now add the commands for the nodes to the array
+  for (unsigned int i=0; i<transferFilePath.size(); ++i) {
+     stringutils::StringTokenizer token(transferFilePath[i], ":");
+     currentNode = stoi(token.nextToken());
+     currentFilePath = token.nextToken();
+
+     // get currentObject type and currentNo
+     foundSep = currentFilePath.find_last_of("_");
+     foundSlash = currentFilePath.find_last_of("/");
+
+     currentObject = currentFilePath.substr(foundSlash + 1, 
+                                            foundSep - foundSlash - 1);
+     currentNo = stoi(currentFilePath.substr(foundSep + 1));
+     transferPath = currentFilePath.substr(0, foundSlash + 1);
+
+     cmdText = importDBLPGetCmdTxt(currentObject, currentNo, transferPath);
+     commandsPerNode[currentNode].push_back(cmdText);
+  }
+
+
+  bool futureRes;
+  vector<std::future<bool>> futures;
+
+  for (unsigned int i = 0; i < nodes.size(); i++) {
+    futures.push_back(async(std::launch::async,
+                      &SecondoInterfaceREPLAY::sendAllCommandsToNode,
+                      this, i, commandsPerNode[i]));
+  }
+
+  for (unsigned int i=0; i<futures.size(); ++i) {
+    try {
+      futureRes = futures[i].get();
+      if (futureRes == false) {
+        cout << "Error while importing file on node : "
+             << nodes[i].hostname << endl;
+      }
+    } catch (const exception& e) {
+      cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what()
+           << " for importing file on node: " << nodes[i].hostname
+           << "with ip:" << nodes[i].ip;
+    }
+  }
 
   cout << "Garbage collection from DBLP-Import..." << endl;
 
-  // Remove filelocations from transferFilePath for current instance
+  // Remove filelocations from transferFilePath and
+  // commandPerNode for current instance
   transferFilePath.clear();
+  commandsPerNode.clear();
 
-  // cleanup system from temp data (splitted files)
+  // cleanup system from temp data (splitted files and generated csv-files)
   string filename;
   for (unsigned int i=0; i<noSplitFiles; ++i) {
     filename = FileSystem::GetCurrentFolder() + "/" + subFileName + "_" 
@@ -2127,12 +2342,29 @@ Execute of ReplayDBLPImport.
     if (FileSystem::FileOrFolderExists(filename)) {
       FileSystem::DeleteFileOrFolder(filename);
     }
+    filename = FileSystem::GetCurrentFolder() + "/Author_" 
+               + stringutils::int2str(i);
+    if (FileSystem::FileOrFolderExists(filename)) {
+      FileSystem::DeleteFileOrFolder(filename);
+    }
+    filename = FileSystem::GetCurrentFolder() + "/Authordoc_" 
+               + stringutils::int2str(i);
+    if (FileSystem::FileOrFolderExists(filename)) {
+      FileSystem::DeleteFileOrFolder(filename);
+    }
+    filename = FileSystem::GetCurrentFolder() + "/Document_" 
+               + stringutils::int2str(i);
+    if (FileSystem::FileOrFolderExists(filename)) {
+      FileSystem::DeleteFileOrFolder(filename);
+    }
+    filename = FileSystem::GetCurrentFolder() + "/Keyword_" 
+               + stringutils::int2str(i);
+    if (FileSystem::FileOrFolderExists(filename)) {
+      FileSystem::DeleteFileOrFolder(filename);
+    }
+
   }
 
-  // @TODO: Import -> keine Algebra vorhanden, unter tools/converter gibt es
-  // jedoch ein Beispiel auf nicht
-  // Algebra Basis. Hier muesste man pruefen, ob man dies irgendwie 
-  // verwenden koennte.
 
   return true;
 }
@@ -2164,6 +2396,93 @@ transfer it to the node and restore (import) it
   sendCommandToNode(nodeNo, 1, cmdText);
 
   return true;
+}
+
+string
+SecondoInterfaceREPLAY::importDBLPGetCmdTxt(const string currentObject,
+                                            const unsigned int currentNo,
+                                            const string transferPath) {
+/*
+Import the relations generated from DBLP-XML-File to Secondo database
+
+*/
+  string cmdText = "";
+
+  if (currentObject == "Document") {
+    /*
+    Document-Relation
+    */
+    cmdText = "let Document_" + stringutils::int2str(currentNo) 
+              + " = [ const rel(tuple([";
+    cmdText = cmdText + R"X*X(
+    Type: string,
+    Docid: int, 
+    Authors: text,
+    Title: text,
+    Booktitle: text,
+    Pages: string,
+    Year: string,
+    Journal: text,
+    Volume: string, 
+    Number: string,
+    Month: string, 
+    Url: text,
+    School: text,
+    Publisher: text,
+    Isbn: string] )) value ()
+    ]
+    )X*X";
+  
+    cmdText = cmdText + "csvimport['" + transferPath + "Document_" 
+              + stringutils::int2str(currentNo) + "',0,\"\",\"|\"] consume;";
+  } else if (currentObject == "Authordoc") {
+    /*
+    Authordoc-Relation
+    */
+    cmdText = "let Authordoc_" + stringutils::int2str(currentNo) 
+              + " = [ const rel(tuple([";
+    cmdText = cmdText +  R"X*X(
+    Name: string,
+    Lclastname: string, 
+    Authorid: int,
+    Docid: int] )) value ()
+    ]
+    )X*X";
+
+    cmdText =   cmdText + "csvimport['" + transferPath + "Authordoc_" 
+              + stringutils::int2str(currentNo) + "',0,\"\",\"|\"] consume;";
+  } else if (currentObject == "Author") {
+    /*
+    Author-Relation
+    */
+    cmdText = "let Author_" + stringutils::int2str(currentNo) 
+              + " = [ const rel(tuple([";
+    cmdText = cmdText +  R"X*X(
+    Name: string,
+    Lclastname: string,
+    Authorid: int] )) value ()
+    ]
+    )X*X";
+ 
+    cmdText = cmdText + "csvimport['" + transferPath + "Author_" 
+              + stringutils::int2str(currentNo) + "',0,\"\",\"|\"] consume;";
+  } else if (currentObject == "Keyword") {
+    /*
+    Keyword-Relation
+    */
+    cmdText = "let Keyword_" + stringutils::int2str(currentNo) 
+              + " = [ const rel(tuple([";
+    cmdText = cmdText +  R"X*X(
+    Docid: int,
+    Word: string] )) value ()
+    ]
+    )X*X";
+
+    cmdText = cmdText + "csvimport['" + transferPath + "Keyword_" 
+              + stringutils::int2str(currentNo) + "',0,\"\",\"|\"] consume;";
+  }
+
+  return cmdText;
 }
 
 

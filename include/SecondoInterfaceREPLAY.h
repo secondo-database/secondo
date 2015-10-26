@@ -109,6 +109,10 @@ protected:
                            const unsigned int noSplitFiles, 
                            const string basePath, 
                            const string filePrefix);
+  bool sendAllDBLPToNode(const unsigned int nodeNo, 
+                         const unsigned int startWithFileNo,
+                         const unsigned int noSplitFiles, 
+                         const string basePath);
   bool sendAllImagesToNode(const unsigned int nodeNo,
                            std::vector<string> imageList);
   bool sendShareFileToNode(const unsigned int nodeNo,
@@ -127,7 +131,8 @@ protected:
                               const string& subFileName);
   bool controllerTransferShapeFile(const unsigned int noSplitFiles,
                                    const string& subFileName);
-
+  bool controllerTransferDBLPFile(const unsigned int noSplitFiles,
+                                  const string& subFileName);
   bool executeReplayOsmImport(std::vector<string>& paramlist,
                               const unsigned int noSplitFiles);
   bool executeReplayCSVImport(std::vector<string>& paramlist,
@@ -153,9 +158,16 @@ protected:
                  const std::string& subFileName,
                  const unsigned int noSplitFiles);
 
+  bool DBLPtoSECONDO(const std::string& subFileName,
+                     const unsigned int noSplitFiles);
+
   bool importImgOnNode(const unsigned int nodeNo,
                        const string relDesc,
                        const string relName);
+
+  string importDBLPGetCmdTxt(const string currentObject,
+                             const unsigned int currentNo,
+                             const string transferPath);
 
   /* expansion stage 1 */
   string replayFile;
