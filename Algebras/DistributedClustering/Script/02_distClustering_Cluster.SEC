@@ -10,8 +10,9 @@ delete Workers4;
 let Workers4 = [const rel(tuple([Server: string, Port: int])) value
 (("132.176.69.181" 91234)
  ("132.176.69.181" 94321)
- ("132.176.69.182" 91235)
+ ("132.176.69.182" 91236)
  ("132.176.69.182" 95321))];
+ 
 delete CntWorkers;
 let CntWorkers = 4;
 delete EPS;
@@ -63,9 +64,8 @@ query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
 query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
 'let DistRel = ffeed5(DistClPath + "distFile.bin") remove[No] consume'
 ] prcmd[Server,W] consume;
-query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
-'query removeFile(DistClPath + "distFile.bin")'
-] pquery[Server,W] consume;
+query intstream(0,CntWorkers - 1) pquery[
+'query removeFile(DistClPath + "distFile.bin")' ,0] consume;
 
 #create Sample files #############################
 # filesize is r=m*ln(n*t)                       ##
@@ -73,11 +73,11 @@ query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
 # n... count of objects                         ##
 # m... m = n/t count of objects at each machine ##
 ##################################################
-query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
+query intstream(0,CntWorkers - 1) pquery[
 'query DistRel feed head[real2int(floor(DistRel 
 count / logB(Orte2 count * 4, 2.718281828)))] 
 fconsume5[DistClPath + "SampPartRel.bin"]count'
-] pquery[Server,W] consume;
+,0] consume;
 
 #distribute files to other workers
 delete HelpInt;
@@ -133,10 +133,10 @@ Query
 update AktWorker := 0;
 while AktWorker < CntWorkers do
 { 
-  query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
+  query intstream(0,CntWorkers - 1) pquery[
   'query removeFile(DistClPath + "SampPartRel.bin_' 
   + num2string(AktWorker) + '")'
-  ] pquery[Server,W] consume |
+  ,0] consume |
   update AktWorker := AktWorker + 1
 } 
 endwhile ;
@@ -158,11 +158,11 @@ query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
 update AktWorker := 0;
 while AktWorker < CntWorkers do
 { 
-  query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
+  query intstream(0,CntWorkers - 1) pquery[
   'query DistUnSortRel feed filter[.DsAttr = ' + num2string(AktWorker) + '] 
    fconsume5[DistClPath + "SampPartRel.bin__' + num2string(AktWorker) 
    + '"] count'
-  ] pquery[Server,W] consume |
+ ,0] consume |
   update AktWorker := AktWorker + 1
 } 
 endwhile ;
@@ -198,10 +198,10 @@ endwhile;
 update AktWorker := 0;
 while AktWorker < CntWorkers do
 { 
-  query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
+  query intstream(0,CntWorkers - 1) pquery[
   'query removeFile(DistClPath + "SampPartRel.bin__' 
   + num2string(AktWorker) + '")'
-  ] pquery[Server,W] consume |
+ ,0] consume |
   update AktWorker := AktWorker + 1
 } 
 endwhile ;
@@ -229,10 +229,10 @@ Query
 update AktWorker := 0;
 while AktWorker < CntWorkers do
 { 
-  query intstream(0,CntWorkers - 1) namedtransformstream[Server] extend[ W :
+  query intstream(0,CntWorkers - 1) pquery[
   'query removeFile(DistClPath + "SampPartRel.bin_' 
   + num2string(AktWorker) + '")'
-  ] pquery[Server,W] consume |
+  ,0] consume |
   update AktWorker := AktWorker + 1
 } 
 endwhile ;
@@ -257,15 +257,15 @@ while AktRound < LastRound do
 # create file from DistRel and Neighborsrel (after dbdacscan)
   query intstream(0,CntWorkers - 1) filterintstream[
     (. mod real2int(pow (2,AktRound)))= 0]
-    namedtransformstream[Server] extend[ W :
+    pquery[
     'query DistRel feed fconsume5[DistClPath + "DbScanFile.bin"]count'
-    ] pquery[Server,W] consume |
+    ,0] consume |
   query intstream(0,CntWorkers - 1) filterintstream[
     (. mod real2int(pow (2,AktRound))) = 0]
-    namedtransformstream[Server] extend[ W :
+    pquery[
     'query ' + NeighborRel 
     + ' feed fconsume5[DistClPath + "NeighborFile.bin"]count'
-    ] pquery[Server,W] consume |
+   ,0] consume |
 # delete NeighborRel
   query intstream(0,CntWorkers - 1) filterintstream[
     (. mod real2int(pow (2,AktRound))) = 0]
@@ -306,30 +306,30 @@ while AktRound < LastRound do
 # remove Files
   query intstream(0,CntWorkers - 1) 
   filterintstream[(. mod real2int(pow (2,AktRound + 1))) = 0] 
-    namedtransformstream[Server] extend[ W :
+    pquery[
     'query removeFile(DistClPath + "DbScanFile.bin")'
-    ] pquery[Server,W] consume |
+    ,0] consume |
   query intstream(0,CntWorkers - 1) 
   filterintstream[(. mod real2int(pow (2,AktRound + 1))) = 0] 
-    namedtransformstream[Server] extend[ W :
+    pquery[
     'query removeFile(DistClPath + "DbScanFile.bin_1")'
-    ] pquery[Server,W] consume |
+    ,0] consume |
   query intstream(0,CntWorkers - 1) 
   filterintstream[(. mod real2int(pow (2,AktRound + 1))) = 0] 
-    namedtransformstream[Server] extend[ W :
+   pquery[
     'query removeFile(DistClPath + "NeighborFile.bin")'
-    ] pquery[Server,W] consume |
+   ,0] consume |
   query intstream(0,CntWorkers - 1) 
   filterintstream[(. mod real2int(pow (2,AktRound + 1))) = 0] 
-    namedtransformstream[Server] extend[ W :
+    pquery[
     'query removeFile(DistClPath + "NeighborFile.bin_1")'
-    ] pquery[Server,W] consume |
+   ,0] consume |
   update AktRound := AktRound + 1
 } 
 endwhile ;
 
 # after last Round print FinalRelation at Worker 0
-query rquery(0, 'query DistRel ');
+# query rquery(0, 'query DistRel ');
 
 # number of clusters
 query rquery(0, 'query DistRel feed sortby[ClusterId]
