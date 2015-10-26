@@ -1,42 +1,42 @@
 /*
----- 
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
-//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
-//[TOC] [\tableofcontents]
-//[_] [\_]
-
-[1] Implementation of the Spatial Algebra
-
-Jun 2015, Daniel Fuchs 
-
-[TOC]
-
-1 Overview
-
-
-This file contains the implementation of the class dbDacScanAlgebra
-
-2 Includes
-
+ ---- 
+ This file is part of SECONDO.
+ 
+ Copyright (C) 2004, University in Hagen, Department of Computer Science,
+ Database Systems for New Applications.
+ 
+ SECONDO is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ 
+ SECONDO is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with SECONDO; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ ----
+ 
+ //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+ //[TOC] [\tableofcontents]
+ //[_] [\_]
+ 
+ [1] Implementation of the Spatial Algebra
+ 
+ Jun 2015, Daniel Fuchs 
+ 
+ [TOC]
+ 
+ 1 Overview
+ 
+ 
+ This file contains the implementation of the class dbDacScanAlgebra
+ 
+ 2 Includes
+ 
 */
 
 #ifndef CLUSTER_H_
@@ -44,13 +44,28 @@ This file contains the implementation of the class dbDacScanAlgebra
 
 #include <list>
 #include <vector>
+#include <utility>  // std::pair, std::make_pair
 #include <iostream>
 #include <cstdlib>
 #include "Member.h"
 #include <algorithm>
-
+#include <limits>
+#include <cmath>
 
 using namespace std;
+namespace distributedClustering{
+  
+
+enum Kind {NOISE,CLUSTERCAND, CLUSTER , LEFT, 
+  RIGHT, BOTH,CLCANDCLUSTERS, UNDEF};
+
+template <class MEMB_TYP_CLASS>
+struct ccMelting {
+  unsigned int clusterIndex;
+  Kind clusterKind;
+  bool meltWithRightCluster;
+  MEMB_TYP_CLASS* clusterCandMember;
+};
 
 /*
 class Cluster
@@ -58,1543 +73,3799 @@ this class represents a list of clusters.
 
 */
 
-namespace distributedClustering{
-  
-  template <class MEMB_TYP_CLASS, class TYPE>
-  class Cluster{
-  private:
-    enum Kind {NOISE, CLUSTER};
-    
-    list<MEMB_TYP_CLASS*> noiseList,emptyList;
-    vector<list<MEMB_TYP_CLASS*> > clusterArray; 
-    //each ClusterID has his own vector
-    
-    double eps;
-    int minPts;
-    bool allPntsVsitted;
-    
-    
-  public:
-    
-/*    
 
+template <class MEMB_TYP_CLASS, class TYPE>
+class Cluster
+{
+private:
+
+/*
+Members
+
+*/
+  enum MinMaxKind {LEFTMM, RIGHTMM, BOTHMM, GLOBAL, CLCANDCLMM};
+
+  const double MIN_DOUBLE = -1 * numeric_limits<double>::max();
+  const double MAX_DOUBLE = numeric_limits<double>::max();
+
+  //clusterTypes
+  static const int NOISE_CL_NO = -2 ;
+  static const int CLUSTERCAND_CL_NO = -1 ;
+  static const int CLUSTER_CL_NO = 1 ;
+  static  const int LEFT_CL_NO = 2 ;
+  static  const int RIGHT_CL_NO = 3 ;
+  static  const int BOTH_CL_NO = 4 ;
+  static const int CLCANDCL_CL_NO = 5;
+  static const int UNDEF_CLUSTER_CL_NO = 6;
+
+  MEMB_TYP_CLASS* firstElem;
+  TYPE* leftOuterPoint ; // of List -> 
+                         //corresponds to the right Outer Cluster Point
+  TYPE* rightOuterPoint ; // of List -> 
+                         //corresponds to the left Outer Cluster Point
+
+  list<MEMB_TYP_CLASS*> noiseList; // final noise points
+  list<MEMB_TYP_CLASS*> clusterCandList; 
+  // stores points who are not in a cluster yet
+  list<MEMB_TYP_CLASS*> emptyList; // emty help list
+  vector<list<MEMB_TYP_CLASS*> > clusterArray; //final cluster
+  //clusters on right side which are adjacent to the left boundary
+  vector<list<MEMB_TYP_CLASS*> > leftPartCluster;
+  //clusters on left side which are adjacent to the right boundary
+  vector<list<MEMB_TYP_CLASS*> > rightPartCluster; 
+  // cluster which are adjacent to both sides boundary
+  vector<list<MEMB_TYP_CLASS*> > bothSideCluster;
+  vector<list<MEMB_TYP_CLASS*> > undefinedCluster;
+  vector<list<MEMB_TYP_CLASS*> > clusterCandClusters;
+  vector<list<MEMB_TYP_CLASS*> > emptyVectorList;
+
+
+  vector<pair <double,double> > clusterMinMaxY;
+  vector<pair <double,double> > leftPCMinMaxY;
+  vector<pair <double,double> > rightPCMinMaxY;
+  vector<pair <double,double> > bothSCMinMaxY;
+  vector<pair <double,double> > clusterCandClMinMax;
+  vector<pair <double,double> > emptyMinMaxY;
+
+  double eps;
+  int minPts ;
+
+  //  pair <double,double> globalMinMaxofAllLists;
+  //  pair <double,double> globalMinMaxOfLEFTLists;
+  //  pair <double,double> globalMinMaxOfRIGHTLists;
+  //  pair <double,double> globalMinMaxOfBOTHLists;
+
+
+  typedef struct ccMelting<MEMB_TYP_CLASS>clusterCandMelt;
+
+public:
+
+/*
 constructor
 
-*/   
-    Cluster( MEMB_TYP_CLASS* leftMember, 
-             MEMB_TYP_CLASS* rightMember,double _eps, int _minPts);
-    
-/*
+*/
+  Cluster( MEMB_TYP_CLASS* leftMember, double _eps, int _minPts);
+  Cluster(vector <MEMB_TYP_CLASS*>& members, double _eps, int _minPts);
 
+
+/*
 meltClusters
 melt this Cluster with the right cluster
-medianPoint and rightMedPoint are the two outer 
+medianPoint and rightMedPoint are the two outer
 Points which represent the splitline
 
 */
-    void meltClusters(Cluster* rightCluster, 
-                      TYPE* medianPoint,TYPE* rightMedPoint);
-    
+  void meltClusters(Cluster * rightCluster,
+                   TYPE* leftInnerPoint,
+                    TYPE* rightInnerPoint);
 /*
-addMember
-add the committed member to the cluster
+Print Informations
+print out the cluster information at the console
 
 */
-    void addMember(MEMB_TYP_CLASS* memb);
-    
-/*
- printAll
- print out the cluster information at the console
-
-*/
-    void printAll();
-    
-/*
- getCntMembers();
-
-*/
-    int getCntMembers(){
-      int retVal =0;
-      for(int i=0;i< clusterArray.size();i++){
-        retVal+=clusterArray.at(i).size();
-      }
-      retVal+=noiseList.size();
-      return retVal;
+  void printAll();
+  void printClusters();
+  void printCluster(Kind kind);
+  void printList(int pos, Kind kind);
+  void printList(vector<list<MEMB_TYP_CLASS*> >& vectorList){
+    for( unsigned int i = 0; i<vectorList.size(); i++){
+        cout << "Cluster Number " << i << ":" << endl;
+        printList(vectorList.at(i));
+        cout << endl;
     }
-    
-    //find equal elements 
-    bool findEqualElements(vector<MEMB_TYP_CLASS*>& membArray){
-      bool retVal=false;
-      for( int i=0;i<membArray.size();i++){
-        MEMB_TYP_CLASS* ptr = membArray.at(i);
+  }
+  void printList(list<MEMB_TYP_CLASS*>& dlist);
+
+  void printMinMax(){
+    cout << "#####################"<< endl;
+    cout << " MIN MAX Values : " << endl;
+
+    cout << "MinMax CLUSTER:" << endl;
+    printMinMax(CLUSTER);
+    cout << endl;
+
+    cout << "MinMax BOTH:" << endl;
+    printMinMax(BOTH);
+    cout << endl;
+
+    cout << "MinMax LEFT:" << endl;
+    printMinMax(LEFT);
+    cout << endl;
+
+    cout << "MinMax RIGHT:" << endl;
+    printMinMax(RIGHT);
+    cout << endl;
+  }
+  void printMinMax(Kind kind){
+    for( unsigned int i = 0; i<getVectorSize(kind); i++){
+        printMinMax(i,kind);
+    }
+    cout << endl;
+  }
+  void printMinMax(int listNo, Kind kind){
+    cout << "MinMax for ListNo: "<< listNo <<" and Kind: " << kind << endl;
+    printMinMax(getMinMaxFromCluster(listNo,kind));
+    cout << endl;
+  }
+
+  void printMinMax(vector<pair<double,double> >& minMaxVec){
+    cout << "#####################"<< endl;
+    cout << " MIN MAX Values (clusterCand) : " << endl;
+    for( unsigned int i = 0; i<minMaxVec.size(); i++){
+        cout << "MinMAx Number " << i << ":" << endl;
+        printMinMax(minMaxVec.at(i));
+        cout << endl;
+    }
+  }
+
+  void printMinMax(pair<double,double>& border){
+    cout << "MinBorder: "<< border.first
+        << " MaxBorder: " << border.second << endl;
+  }
+  void printEpsNeighborhood(Kind kind);
+  void printEpsNeighborhood(int i, Kind kind);
+  void printEpsNeighborhood(vector<list<MEMB_TYP_CLASS*> >& vectorList)
+  {
+    for( unsigned int i = 0; i<vectorList.size(); i++){
+        cout << "Neighbors for Cluster Number " << i << ":" << endl;
+        printEpsNeighborhood(vectorList.at(i));
+        cout << endl;
+    }
+  }
+  void printEpsNeighborhood(list<MEMB_TYP_CLASS*>& dlist)
+  {
+    typename list<MEMB_TYP_CLASS*>::iterator it =dlist.begin();
+    for (;it!=dlist.end();it++){
+        cout << "Member: "; (*it)->printPoint();
+        //cout << " isDensityReachable = " << (*it)->isDensityReachable();
+        cout <<" Cnt neighbors :" << (*it)->getCountNeighbors()
+    //            <<"  ClusterNo= " << (*it)->getClusterNo()
+                << endl;
+        //        cout <<" neighbors :";
+        //        printEpsNeighborhood(*it);
+    }
+  }
+  void printClusterSize(Kind kind);
+  void printListLength(int i, Kind kind);
+
+  void printClusterSizes()
+  {
+    cout << "List length from clusters :" << endl;
+
+    cout << "CLUSTER:" << endl;
+    printClusterSize(CLUSTER);
+    cout << endl;
+
+    cout << "BOTH:" << endl;
+    printClusterSize(BOTH);
+    cout << endl;
+
+    cout << "LEFT:" << endl;
+    printClusterSize(LEFT);
+    cout << endl;
+
+    cout << "RIGHT:" << endl;
+    printClusterSize(RIGHT);
+    cout << endl;
+
+    cout << "CLUSTERCAND:" << endl;
+    printListLength(0,CLUSTERCAND);
+    cout << endl;
+
+    cout << "NOISE:" << endl;
+    printListLength(0,NOISE);
+    cout << endl;
+
+  }
+
+  void printEpsNeighborhoodSize(){
+    cout << "Neighborhood Sizes from :" << endl;
+
+    cout << "CLUSTER:" << endl;
+    printEpsNeighborhoodSize(CLUSTER);
+    cout << endl;
+
+    cout << "BOTH:" << endl;
+    printEpsNeighborhoodSize(BOTH);
+    cout << endl;
+
+    cout << "LEFT:" << endl;
+    printEpsNeighborhoodSize(LEFT);
+    cout << endl;
+
+    cout << "RIGHT:" << endl;
+    printEpsNeighborhoodSize(RIGHT);
+    cout << endl;
+
+    cout << "CLUSTERCAND:" << endl;
+    printEpsNeighborhoodSize(0,CLUSTERCAND);
+    cout << endl;
+
+    cout << "NOISE:" << endl;
+    printEpsNeighborhoodSize(0,NOISE);
+    cout << endl;
+  }
+
+  void printEpsNeighborhoodSize(Kind kind){
+    for(unsigned int i = 0; i<getVectorSize(kind); i++){
+        cout << "epsNeighborhood Size in Cluster Number " << i << ": " << endl;
+        cout << "------------------------------------"<< endl;
+        printEpsNeighborhoodSize(i,kind);
+        cout << "\n" <<endl;
+    }
+  }
+
+  void printEpsNeighborhoodSize(int i, Kind kind){
+    typename list<MEMB_TYP_CLASS*>::iterator it =getIterator(i,true,kind);
+    for (;it!=getIterator(i,false,kind);it++){
+        cout << "Member: "; (*it)->printPoint();
+        //cout << " isDensityReachable = " << (*it)->isDensityReachable();
+        cout <<" Cnt neighbors :" << (*it)->getCountNeighbors() <<
+            "  ClusterNo= " << (*it)->getClusterNo() 
+            << " Type:"<< (*it)->getClusterType() << endl;
+        cout <<endl;
+    }
+  }
+
+
+  void printEpsNeighborhood()
+  {
+    cout << "-------------------------" << endl;
+    cout << "epsNeighborhood for eps= "<< eps << " and minPts = "
+        << minPts << ": \n " << endl;
+
+    cout << "CLUSTER:" << endl;
+    printEpsNeighborhood(CLUSTER);
+    cout << endl;
+
+    cout << "BOTH:" << endl;
+    printEpsNeighborhood(BOTH);
+    cout << endl;
+
+    cout << "LEFT:" << endl;
+    printEpsNeighborhood(LEFT);
+    cout << endl;
+
+    cout << "RIGHT:" << endl;
+    printEpsNeighborhood(RIGHT);
+    cout << endl;
+
+    cout << "CLUSTERCAND:" << endl;
+    printEpsNeighborhood(0,CLUSTERCAND);
+    cout << endl;
+
+    cout << "NOISE:" << endl;
+    printEpsNeighborhood(0,NOISE);
+    cout << endl;
+
+    cout << endl;
+    cout << "-------------------------" << endl;
+  }
+
+  void printEpsNeighborhood(MEMB_TYP_CLASS* point)
+  {
+    typename list<MEMB_TYP_CLASS*>::iterator nIt =
+        point->getEpsNeighborhood(true);
+    while (nIt!= point->getEpsNeighborhood(false)){
+        (*nIt)->printPoint();
+        cout << ", ";
+        //        cout << " DR: "
+        //        << (*nIt)->isDensityReachable() <<
+        //        " ClNo: " << (*nIt)->getClusterNo() << ", ";
+        nIt++;
+    }
+    cout <<endl;
+  }
+
+  void printSomeInfo(Cluster* rightCluster,
+                     string text =0,
+                     bool rightClusterAvailable = true,
+                     bool printIndexes = false,
+                     vector<pair<unsigned int,Kind> >*
+                     clusterToMeltOnLeftForRightSide = 0,
+                     int leftIndexSize = 0,
+                     vector<pair<unsigned int,Kind> >*
+                     clusterToMeltOnRightForLeftSide = 0,
+                     int rightIndexSize = 0,
+                     pair<unsigned int,Kind>*
+                     newLeftIndices= 0,
+                     pair<unsigned int,Kind>*
+                     newRightIndices= 0,
+                     bool printClusterCandInfo = false,
+                     vector< clusterCandMelt>*
+                     clusterCandClustersToMeltWithClNo =0,
+                     vector< clusterCandMelt>*
+                     leftClusterCandMemberToMeltWithRClNo = 0,
+                     vector< clusterCandMelt>*
+                     rightClusterCandMemberToMeltWithLClNo=0)
+  {
+//     cout << endl;
+//     cout << text << endl;
+//     cout << "eps = " << eps << " minPts= "<< minPts << endl;
+// 
+//     cout << "Left Clusters: ###############" << endl;
+//     printClusters();
+//     cout << "Neighbors: " << endl;
+//     //    //    printEpsNeighborhood();
+//     printEpsNeighborhoodSize();
+// 
+//     if(rightClusterAvailable){
+//         cout << "Right Clusters: ###############"<< endl;
+//         rightCluster->printClusters();
+//         cout << "Neighbors: " << endl;
+//         //        //        rightCluster->printEpsNeighborhood();
+//         rightCluster->printEpsNeighborhoodSize();
+//     }
+// 
+//    cout << "ClusterCand Clusters: " << endl;
+//    printList(clusterCandClusters);
+//    //        printEpsNeighborhood(clusterCandClusters);
+// 
+//    if(printIndexes){
+//        cout << "clusterToMeltOnRightForLeftSide Indexe " << endl;
+//        cout << "clusterToMeltOnRightForLeftSide: " << endl;
+//        printClusterToMeltIndex(
+//          clusterToMeltOnRightForLeftSide,leftIndexSize);
+//        cout <<"new Indicies Left" << endl;
+//        printIndexArray(newLeftIndices);
+// 
+//        cout << "clusterToMeltOnLeftForRightSide: " << endl;
+//        printClusterToMeltIndex(
+//          clusterToMeltOnLeftForRightSide,rightIndexSize);
+//        cout <<"new Indicies Right" << endl;
+//        printIndexArray(newRightIndices);
+//    }
+// 
+//    if(printClusterCandInfo)
+//      {
+//        cout << "clusterCandIndexe" << endl;
+//        cout << "clusterCandClustersToMeltWithClNo: " << endl;
+//        printClusterCandIndex(
+//          clusterCandClustersToMeltWithClNo,clusterCandClusters.size());
+//        cout << "leftClusterCandMemberToMeltWithRClNo; " << endl;
+//        printClusterCandIndex(
+//          leftClusterCandMemberToMeltWithRClNo,rightIndexSize);
+//        cout << "rightClusterCandMemberToMeltWithLClNo; " << endl;
+//        printClusterCandIndex(
+//          rightClusterCandMemberToMeltWithLClNo,leftIndexSize);
+// 
+//      }
+// 
+// 
+//        int liLeClusterCand = getListLength(0,CLUSTERCAND);
+//        cout << "clustercand length = " << liLeClusterCand << endl;
+//     
+//        if(rightClusterAvailable){
+//            int riLiLeClCn =  
+//            rightCluster->getListLength(0,CLUSTERCAND);
+//            cout << "right clustercand length = " << riLiLeClCn << endl;
+//        }
+//     
+//        int clCandCl = clusterCandClusters.size();
+//        cout << "clusterCandClusters size = " << clCandCl << endl;
+//     
+//        int clas = clusterArray.size() ;
+//        int clasMM = clusterMinMaxY.size();
+//        cout << "ClusterArray size = " << clas 
+//        << " ClusterArray MimMax Size"<< clasMM << endl;
+//     
+//        int lePCS= leftPartCluster.size();
+//        int lePMiMa = leftPCMinMaxY.size();
+//        cout << "leftPartCluster size = " << lePCS 
+//        << " leftPCMinMaxY MimMax Size"<< lePMiMa << endl;
+//     
+//     
+//        int ricls = rightPartCluster.size() ;
+//        int riclmm = rightPCMinMaxY.size()    ;
+//        cout << "rightPartCluster size = " << ricls 
+//        << " rightPCMinMaxY MimMax Size"<< riclmm << endl;
+//     
+//        int bscs =bothSideCluster.size() ;
+//        int bomm = bothSCMinMaxY.size();
+//        cout << "bothSideCluster size = " << bscs 
+//        << " bothSCMinMaxY MimMax Size"<< bomm << endl;
+//     
+//         if(clusterArray.size() != clusterMinMaxY.size())
+//                {
+//             cout << "clusterArray and clusterMinMaxY"
+//                      " haven't the same size!" << endl;
+//              }
+//     
+//         if(leftPartCluster.size() != leftPCMinMaxY.size())
+//              {
+//                cout << "leftPartCluster and leftPCMinMaxY"
+//                    " haven the same size!" << endl;
+//              }
+//     
+//         if(rightPartCluster.size() != rightPCMinMaxY.size())
+//              {
+//              cout << "rightPartCluster and rightPCMinMaxY"
+//                      " haven the same size!" << endl;
+//              }
+//     
+//         if(bothSideCluster.size() != bothSCMinMaxY.size())
+//              {
+//             cout << "bothSideCluster and bothSCMinMaxY"
+//                      " haven the same size!" << endl;
+//              }
+//        int clcnCompS = 0;
+//        for(int i=0; i < clCandCl; i++)
+//          {
+//            clcnCompS += clusterCandClusters.at(i).size();
+//            cout << "left Clustercand Clusterss List: "<< i << endl;
+//            printList(clusterCandClusters.at(i));
+//          }
+//     
+//        cout << "left Clustercand List" << endl;
+//        printList(getList(-1,CLUSTERCAND));
+//     
+//        if(rightClusterAvailable){
+//        cout << "right Clustercand list" << endl;
+//        printList(rightCluster->getList(-1,CLUSTERCAND));
+//        }
+//     
+//        cout << "left NOISE List" << endl;
+//        printList(getList(-1,NOISE));
+//     
+//        if(rightClusterAvailable){
+//        cout << "right NOISE list" << endl;
+//        printList(rightCluster->getList(-1,NOISE));
+//        }
+//     
+//        cout << "ClusterList is: "<< endl;
+//        printCluster(CLUSTER);
+// 
+//        cout << endl;
+
+  }
+
+  void printClusterCandIndex(vector< clusterCandMelt>* indexArray,
+                             unsigned int indexSize)
+  {
+    for(int i=0; i< indexSize;i++){
+        cout << " ClusterCandIndexArray : " << i 
+        << " with Length: "<< indexArray[i].size() << endl;
+        printClusterCandIndex(indexArray[i]);
+    }
+    cout << endl;
+
+  }
+
+  void printClusterCandIndex(vector< clusterCandMelt>& indexArray)
+  {
+    unsigned int size = indexArray.size();
+    for(int i=0; i< size;i++){
+        cout << " ClusterCandIndex: " << i << endl;
+        printClusterCandIndex(indexArray.at(i));
+    }
+    cout << endl;
+  }
+
+
+  void printClusterCandIndex( clusterCandMelt & indexArray)
+  {
+    cout << "Clusterindex: "<< indexArray.clusterIndex 
+    << " , clusterKind: " << indexArray.clusterKind <<
+        " , meltWithRightCluster: "
+        << indexArray.meltWithRightCluster << endl;
+  }
+
+
+  void printClusterToMeltIndex(vector<pair<unsigned int,Kind> >* 
+                                                clToMelt, int indexSize){
+
+    for (int i=0; i< indexSize; i++){
+        cout << "Vector "<< i << " = " << endl;
+        printClusterToMeltIndex(clToMelt[i]);
+    }
+    cout <<endl;
+  }
+
+  void printClusterToMeltIndex(vector<pair<unsigned int,Kind> > clToMelt){
+    for (int i=0; i< clToMelt.size(); i++){
+        cout << "Index "<< i << " = " << endl;
+        printIndexArray(clToMelt[i]);
+    }
+  }
+
+
+  void printIndexArray(pair<unsigned int,Kind>* newIndices)
+  {
+    int size = sizeof(newIndices)/sizeof(newIndices[0]);
+    for (int i=0; i< size; i++){
+        cout << "Index "<< i << " = " << endl;
+        printIndexArray(newIndices[i]);
+    }
+    cout <<endl;
+  }
+
+  void printIndexArray(pair<unsigned int,Kind> newIndices)
+  {
+    cout << "Index: "<< newIndices.first << " Kind: "
+        << newIndices.second << endl;
+  }
+
+
+/*
+getCntMembers();
+
+*/
+  unsigned int getCntMembers(){
+    unsigned int retVal =0;
+    retVal += getCntMembers(CLUSTER);
+    retVal += getCntMembers(LEFT);
+    retVal += getCntMembers(RIGHT);
+    retVal += getCntMembers(BOTH);
+    retVal += getListLength(0,CLUSTERCAND);
+    retVal += getListLength(0,NOISE);
+    return retVal;
+  }
+
+  unsigned int getCntMembers(Kind kind){
+    unsigned int retVal =0;
+    for(unsigned int i=0;i< getVectorSize(kind);i++){
+        retVal+=getListLength(i,kind);
+    }
+    return retVal;
+  }
+
+  unsigned int getCntClusters(){
+    unsigned int retVal =0;
+    retVal += getVectorSize(CLUSTER);
+    retVal += getVectorSize(LEFT);
+    retVal += getVectorSize(RIGHT);
+    retVal += getVectorSize(BOTH);
+    if(getListLength(0,CLUSTERCAND)>0){
+        retVal++;
+    }
+    if(getListLength(0,NOISE)>0){
+        retVal++;
+    }
+    return retVal;
+  }
+
+/*
+ findEqualElements
+ 
+*/
+  bool findEqualElements(vector<MEMB_TYP_CLASS*>& membArray){//TODO chanbe to *
+    bool retVal=false;
+    for( unsigned int i=0;i<membArray.size();i++){
+        MEMB_TYP_CLASS* ptr = membArray.at(i);//TODO remove &
         int cntMemebs=0;
-        //search cluster
-        for(int j =0;j<clusterArray.size();j++){
-          typename list<MEMB_TYP_CLASS*>::iterator it = 
-          clusterArray.at(j).begin();
-          
-          while(it!=clusterArray.at(j).end()){
-            if(ptr== (*it)){
-              cntMemebs++;
+
+        cntMemebs += findEqualElementsCLuster(ptr,CLUSTER);
+        cntMemebs += findEqualElementsCLuster(ptr,LEFT);
+        cntMemebs += findEqualElementsCLuster(ptr,RIGHT);
+        cntMemebs += findEqualElementsCLuster(ptr,BOTH);
+
+        cntMemebs += findEqualElementsList(ptr,CLUSTERCAND);
+        cntMemebs += findEqualElementsList(ptr,NOISE);
+
+        if(cntMemebs != 1){
+            retVal=true;
+            cout << "anzahl von Memb:"
+                << ptr->getXVal() << " ist:" << cntMemebs << endl;
+        }
+    }
+    cout << "MinPTS: " << minPts << " EPS: " << eps << endl;
+    return retVal;
+  }
+
+/*
+findEqualElementsCLuster
+
+*/
+  int findEqualElementsCLuster(MEMB_TYP_CLASS* ptr,
+                               Kind kind)
+  {
+    int cntMemebs=0;
+    //search cluster
+    for(int j =0;j<getVectorSize(kind);j++){
+        typename list<MEMB_TYP_CLASS*>::iterator it =
+            getIterator(j,true,kind);
+
+        while(it!=getIterator(j,false,kind)){
+            if(ptr == (*it)){
+                cntMemebs++;
             }
             it++;
-          }
         }
-        //serch noise
-        typename list<MEMB_TYP_CLASS*>::iterator nit = noiseList.begin();
-        while(nit!=noiseList.end()){
-          if(ptr == (*nit)){
+    }
+    return cntMemebs;
+  }
+
+/*
+findEqualElementsList
+
+*/
+  int findEqualElementsList(MEMB_TYP_CLASS* ptr,
+                            Kind kind)
+  {
+    int cntMemebs=0;
+    typename list<MEMB_TYP_CLASS*>::iterator nit = getIterator(0,true,kind);
+    while(nit!=getIterator(0,false,kind)){
+        if(ptr == (*nit)){
             cntMemebs++;
-          }
-          nit++;
         }
-        if(cntMemebs != 1){
-          retVal=true;
-          cout << "anzahl von Memb:" 
-          << ptr->getXVal() << " ist:" << cntMemebs << endl;
-        }
-      }
-      return retVal;
+        nit++;
     }
-    
+    return cntMemebs;
+  }
+
 /*
- getClusterArraySize
- returns the quantity of Clsuters
+getVectorSize
+returns the quantity of Clsuters
 
 */
-    int getClusterArraySize(){
-      return clusterArray.size();
+  unsigned int getVectorSize(Kind kind){
+    switch(kind){
+      case CLUSTER:
+        return clusterArray.size();
+      case LEFT:
+        return leftPartCluster.size();
+      case RIGHT:
+        return rightPartCluster.size();
+      case BOTH:
+        return bothSideCluster.size();
+      case CLCANDCLUSTERS:
+        return clusterCandClusters.size();
+      default:
+        return 0;
     }
-    
-  private:
+    return 0;
+  }
+
+  vector<list<MEMB_TYP_CLASS*> >& getClusterVector(Kind kind){
+
+    switch(kind){
+      case NOISE:
+      case CLUSTERCAND:
+        return undefinedCluster;
+      case CLUSTER:
+        return clusterArray;
+      case LEFT:
+        return leftPartCluster;
+      case RIGHT:
+        return rightPartCluster;
+      case BOTH:
+        return bothSideCluster;
+      case CLCANDCLUSTERS:
+        return clusterCandClusters;
+      case UNDEF:
+        return undefinedCluster;
+    }
+    return undefinedCluster;
+  }
+
+private: 
+
 /*
-updateNeighbor
-update the eps neighborhood from left and right member
+getRightOuterPoint
 
 */
-    void updateNeighbor(MEMB_TYP_CLASS * leftMemb, MEMB_TYP_CLASS *rightMemb);
-    
-    
-    
+  TYPE* getRightOuterPoint()
+  {
+    return rightOuterPoint ;
+  }
+
 /*
 getListLength
 return the list length from position i
 
 */
-    int getListLength(int i,Kind kind){
-      switch (kind){
-        case NOISE:
-          return noiseList.size();
-          break;
-          
-        case CLUSTER:
-          return clusterArray.at(i).size();
-          break;
-      }
-      return -1;
+  unsigned int getListLength( pair<unsigned int,Kind>& index){
+    return getListLength(index.first,index.second);
+  }
+
+  unsigned int getListLength(int i,Kind kind){
+    switch (kind){
+      case NOISE:
+        return noiseList.size();
+      case CLUSTERCAND:
+        return clusterCandList.size();
+      case CLUSTER:
+        return clusterArray.at(i).size();
+      case LEFT:
+        return leftPartCluster.at(i).size();
+      case RIGHT:
+        return rightPartCluster.at(i).size();
+      case BOTH:
+        return bothSideCluster.at(i).size();
+      case CLCANDCLUSTERS:
+        return clusterCandClusters.at(i).size();
+      case UNDEF:
+        return -1;
     }
-    
+    return -1;
+  }
+
 /*
-pushMember
-add a member to a choosen cluster
+updateMinMaxVal
+compare new point with the value in the pair
 
 */
-    void pushMember(bool front,MEMB_TYP_CLASS *member,int list){
-      if(front){
-        clusterArray.at(list).push_front(member);
+  void updateMinMaxVal(Kind kind, int listNo, MEMB_TYP_CLASS *member )
+  {
+    updateMinMaxVal(getMinMaxFromCluster(kind,listNo),member);
+  }
+
+  void updateMinMaxVal(Kind kind, int listNo, pair <double,double> &minMax )
+  {
+    updateMinMaxVal( kind,  listNo,  minMax.first) ;
+    updateMinMaxVal( kind,  listNo,  minMax.second) ;
+  }
+
+  void updateMinMaxVal(Kind kind, int listNo, double extrema )
+  {
+    //    updateGlobalMinMax(GLOBAL,extrema);
+    updateMinMaxVal(getMinMaxFromCluster(kind,listNo),extrema);
+    //
+  }
+
+  void updateMinMaxVal(pair <double,double> &minMax, MEMB_TYP_CLASS *member)
+  {
+    double newExtrema = member->getYVal();
+    updateMinMaxVal(minMax,newExtrema);
+  }
+
+  void updateMinMaxVal(pair <double,double> &newMinMax, 
+                       pair <double,double> &oldMinMax )
+  {
+    updateMinMaxVal(newMinMax,oldMinMax.first);
+    updateMinMaxVal(newMinMax,oldMinMax.second);
+  }
+
+  void updateMinMaxVal(pair <double,double> &minMax, double newExtrema )
+  {
+    if(newExtrema<MAX_DOUBLE && newExtrema > MIN_DOUBLE){
+        if(newExtrema < (minMax.first)){
+            minMax.first = newExtrema;
+        }
+        if(newExtrema > minMax.second){
+            minMax.second = newExtrema;
+        }
+    }
+  }
+
+
+
+/*
+  getNewMinMaxForClusterList
+  return a new MinMax Pair  and set MinMax from destination to standardVals
+  
+*/
+  pair <double,double> 
+  getNewMinMaxForClusterList(pair <double,double>& srcMinMax,
+                             pair <double,double>& destMinMax)
+  {
+    pair <double,double> retMM(MAX_DOUBLE,MIN_DOUBLE);
+    updateMinMaxVal(retMM,destMinMax);
+    updateMinMaxVal(retMM, srcMinMax);
+    srcMinMax.first =MAX_DOUBLE;
+    srcMinMax.second = MIN_DOUBLE;
+    return retMM;
+  }
+
+  
+  
+  bool findNextMinList(int& leftIndex, Kind& leftKind,
+                       double& leftMinima,double& leftMaxima,
+                       bool calcLeftMin, int& leftCnt,
+                       int& rightIndex, Kind& rightKind,
+                       double& rightMinima,double& rightMaxima,
+                       bool calcRightMin, int& rightCnt,
+                       Cluster* rightCluster)
+  {
+
+    bool retval = true;
+    if(calcLeftMin || calcRightMin){
+
+        if(calcLeftMin && leftIndex > -1){
+            findNextMinList(leftIndex,leftKind,leftMinima,false);
+            leftCnt ++;
+        }
+        if(calcRightMin && rightIndex > -1){
+            rightCluster->findNextMinList(rightIndex,rightKind,
+                                          rightMinima,true);
+            rightCnt++;
+        }
+
+        if(leftIndex < 0 && rightIndex < 0)//no more min Value
+          {
+            retval = false;
+          } else {
+              if(leftIndex > -1){
+                  leftMaxima =getYMaxfromCluster(leftKind,leftIndex);
+                  leftMinima = getYMinfromCluster(leftKind,leftIndex);
+              }
+              if(rightIndex > -1){
+                  rightMaxima =rightCluster->getYMaxfromCluster(
+                      rightKind,rightIndex);
+                  rightMinima = rightCluster->getYMinfromCluster(
+                      rightKind,rightIndex);
+              }
+          }
+    } else {
+        retval = false;
+    }
+
+    return retval;
+  }
+  
+/*
+findNextMinList
+
+find the next List in Y direction from a given minimum point
+if no min found return -1
+  
+*/
+  void findNextMinList(int& retIndex, Kind& retKind,
+                       double actualMinima, bool rightCluster)
+  {
+    //    double min = actualMinima;
+    int  iSIDE = -1, iBOTH = -1;
+    Kind sideKind;
+    if(rightCluster){
+        //serach in LEFT and BOTH
+        iSIDE  = getIndexOfFindNextMinList(actualMinima,LEFT);
+        sideKind = LEFT;
+    } else {
+        //search in RIGHT and BOTH
+        iSIDE  = getIndexOfFindNextMinList(actualMinima,RIGHT);
+        sideKind = RIGHT;
+    }
+    iBOTH = getIndexOfFindNextMinList(actualMinima,BOTH);
+
+    if(iSIDE == -1 ||
+        (iBOTH >=0 && getYMinfromCluster(BOTH,iBOTH) <
+            getYMinfromCluster(sideKind,iSIDE) ))
+      {
+        retIndex = iBOTH;
+        retKind = BOTH;
       }else{
-        clusterArray.at(list).push_back(member);
+          retIndex = iSIDE;
+          retKind = sideKind;
       }
-    }
+  }
 
+  
 /*
- meltListsOfCluster
-
-*/  
-    void meltListsOfCluster(int destInd, int sourceInd);
-    
-/*
- meltIndexOfCluster
-
+  getIndexOfFindNextMinList
+  
 */
-    void meltIndexOfCluster( vector<unsigned int> &destIndList ,  
-                             vector<unsigned int> &sourceIndList);
-    
-    
-/*
- printList
- print out the a choosen cluster on position pos
-
-*/
-    void printList(int pos);
-    void printList(list<MEMB_TYP_CLASS*>& list);
-/*
- updateClusters
- this method is used at the end of dbDacScan
- it updates each cluster relating to minPts. 
- If the cluster points are density reachable they stay in the cluster
- otherwise they are moved to noise list.
-
-*/
-    void updateClusters();
-    
-/*
- getList
- return the clusterList on position i
-
-*/
-    list<MEMB_TYP_CLASS*>& getList(int i, Kind kind){
-      switch (kind){
-        case NOISE:
-          return noiseList;
-          break;
-          
-        case CLUSTER:
-          return clusterArray.at(i);
-          break;
+  int getIndexOfFindNextMinList(double actualMinima, Kind kind)
+  {
+    int retVal = -1;
+    double min = MAX_DOUBLE;
+    for (int i =0; i < getVectorSize(kind); i++)
+      {
+        if(getYMinfromCluster(kind,i) < min
+            && getYMinfromCluster(kind,i) > actualMinima){
+            min= getYMinfromCluster(kind,i);
+            retVal=i;
+        }
       }
-      return emptyList;
+
+    return retVal;
+  }
+
+/*
+  findNextMinListOfClCand
+   
+*/
+
+  bool findNextMinListOfClCand(vector<pair <double,double> >&
+                               minMaxlist,int& index,
+                               double& actualMinima,
+                               double& actualMaxima,
+                               bool& clCandOutOfRangeLeftCl,
+                               bool& clCandOutOfRangeRightCl,
+                               double actMaxLeftList,
+                               double actMaxRightLsit)
+  {
+    int retVal = -1;
+    double min = MAX_DOUBLE;
+    for (int i =0; i < minMaxlist.size(); i++)
+      {
+        if(minMaxlist.at(i).first < min
+            && minMaxlist.at(i).first > actualMinima){
+            min= minMaxlist.at(i).first;
+            retVal=i;
+        }
+      }
+    index = retVal;
+    if(retVal < 0){
+        return false;
     }
-    
-    void insertElement(typename list<MEMB_TYP_CLASS*>::iterator it,
-                       MEMB_TYP_CLASS* point, int pos)
+    actualMinima= minMaxlist.at(retVal).first;
+    actualMaxima= minMaxlist.at(retVal).second;
+
+
+    clCandOutOfRangeLeftCl =
+        (actMaxLeftList + eps) <= actualMinima;
+
+    clCandOutOfRangeRightCl =
+        (actMaxRightLsit + eps) <= actualMinima;
+
+    return true;
+  }
+
+
+/*
+getYMinfromCluster
+
+return the min Y value from the appropriate cluster list
+
+*/
+  double getYMinfromCluster(pair<unsigned int,Kind>& list)
+  {
+    return getYMinfromCluster(list.second,list.first);
+  }
+  double getYMinfromCluster(Kind kind, int i)
+  {
+    switch (kind){
+      case NOISE:
+      case CLUSTERCAND:
+      case UNDEF:
+        return MIN_DOUBLE;
+      case CLUSTER:
+        return clusterMinMaxY.at(i).first;
+      case LEFT:
+        return leftPCMinMaxY.at(i).first;
+      case RIGHT:
+        return rightPCMinMaxY.at(i).first;
+      case BOTH:
+        return bothSCMinMaxY.at(i).first;
+      case CLCANDCLUSTERS:
+        return clusterCandClMinMax.at(i).first;
+    }
+    return MIN_DOUBLE;
+  }
+
+/*
+
+getYMinfromCluster
+
+return the min Y value from the appropriate cluster list
+
+*/
+  double getYMaxfromCluster(Kind kind, int i)
+  {
+    switch (kind){
+      case NOISE:
+      case CLUSTERCAND:
+      case UNDEF:
+        return MAX_DOUBLE;
+      case CLUSTER:
+        return clusterMinMaxY.at(i).second;
+      case LEFT:
+        return leftPCMinMaxY.at(i).second;
+      case RIGHT:
+        return rightPCMinMaxY.at(i).second;
+      case BOTH:
+        return bothSCMinMaxY.at(i).second;
+      case CLCANDCLUSTERS:
+        return clusterCandClMinMax.at(i).second;
+    }
+    return MAX_DOUBLE;
+  }
+
+/*
+setNewMin
+
+*/
+  void setNewYMin(Kind kind, int i, double val)
+  {
+    switch (kind){
+      case NOISE:
+      case CLUSTERCAND:
+        break;
+      case CLUSTER:
+        clusterMinMaxY.at(i).first = val;
+        break;
+      case LEFT:
+        leftPCMinMaxY.at(i).first = val;
+        break;
+      case RIGHT:
+        rightPCMinMaxY.at(i).first = val;
+        break;
+      case BOTH:
+        bothSCMinMaxY.at(i).first = val;
+        break;
+
+      default:
+        break;
+    }
+  }
+
+/*
+setNewMax
+
+*/
+  void setNewYMax(Kind kind, int i, double val)
+  {
+    switch (kind){
+      case NOISE:
+      case CLUSTERCAND:
+        break;
+      case CLUSTER:
+        clusterMinMaxY.at(i).first=val;
+        break;
+      case LEFT:
+        leftPCMinMaxY.at(i).second = val;
+        break;
+      case RIGHT:
+        rightPCMinMaxY.at(i).second = val;
+        break;
+      case BOTH:
+        bothSCMinMaxY.at(i).second = val;
+        break;
+      default:
+        break;
+    }
+  }
+
+
+/*
+pushMemberToClusterList
+
+pushes a Member to list from a cluster-Vector
+
+*/
+  pair <double,double>&
+  getMinMaxFromCluster(int i,Kind kind)
+  {
+    return getMinMaxFromCluster(kind,  i);
+  }
+
+  pair <double,double>&
+  getMinMaxFromCluster(pair<unsigned int,Kind>& index)
+  {
+    return getMinMaxFromCluster(index.first,index.second);
+  }
+
+  pair <double,double>&
+  getMinMaxFromCluster(Kind kind, int i)
+  {
+    switch (kind)
     {
-      clusterArray.at(pos).insert(it,point);
+      case NOISE:
+      case CLUSTERCAND:
+      case UNDEF:
+        return emptyMinMaxY.at(0);
+      case CLUSTER:
+        return clusterMinMaxY.at(i);
+      case LEFT:
+        return leftPCMinMaxY.at(i);
+      case RIGHT:
+        return rightPCMinMaxY.at(i);
+      case BOTH:
+        return bothSCMinMaxY.at(i);
+      case CLCANDCLUSTERS:
+        return clusterCandClMinMax.at(i);
     }
-    
+    return emptyMinMaxY.at(0);
+  }
+
+  unsigned int getMinMaxSize(Kind kind)
+  {
+    switch (kind)
+    {
+      case NOISE:
+      case CLUSTERCAND:
+      case UNDEF:
+        return -1;
+      case CLUSTER:
+        return clusterMinMaxY.size();
+      case LEFT:
+        return leftPCMinMaxY.size();
+      case RIGHT:
+        return rightPCMinMaxY.size();
+      case BOTH:
+        return bothSCMinMaxY.size();
+      case CLCANDCLUSTERS:
+        return clusterCandClMinMax.size();
+    }
+    return -1;
+  }
+  
 /*
- getIterator
- returns an iterator from a clusterlist or noiselist either at the beginning or at end
+getMinMaxFromCluster
 
 */
-    typename list<MEMB_TYP_CLASS*>::iterator getIterator(int list, bool begin,
-                                                         Kind kind)
-    {
-      switch (kind){
-        
-        case NOISE:
-          if (begin)
-            return noiseList.begin();
-          else
-            return noiseList.end();
-          break;
-          
-        case CLUSTER:
-          if (begin)
-            return clusterArray.at(list).begin();
-          else
-            return clusterArray.at(list).end();
-          break;
-      }
-      return emptyList.begin();
+  vector<pair <double,double> >&
+  getMinMaxVector(Kind kind)
+  {
+    switch (kind){
+      case NOISE:
+      case CLUSTERCAND:
+        return emptyMinMaxY;
+      case CLUSTER:
+        return clusterMinMaxY;
+      case LEFT:
+        return leftPCMinMaxY;
+      case RIGHT:
+        return rightPCMinMaxY;
+      case BOTH:
+        return bothSCMinMaxY;
+      case CLCANDCLUSTERS:
+        return clusterCandClMinMax;
+      default:
+        return emptyMinMaxY;
     }
-    
+    return emptyMinMaxY;
+
+  }
+
+
+/*
+  getList
+  return the clusterList on position i
+
+*/
+  list<MEMB_TYP_CLASS*> &getList(pair<unsigned int,Kind>& list){
+    return getList(list.first,list.second);
+  }
+  list<MEMB_TYP_CLASS*> &getList(int i, Kind kind){
+    switch (kind){
+      case NOISE:
+        return noiseList;
+      case CLUSTERCAND:
+        return clusterCandList;
+      case CLUSTER:
+        return clusterArray.at(i);
+      case LEFT:
+        return leftPartCluster.at(i);
+      case RIGHT:
+        return rightPartCluster.at(i);
+      case BOTH:
+        return bothSideCluster.at(i);
+      case CLCANDCLUSTERS:
+        return clusterCandClusters.at(i);
+      default:
+        return emptyList;
+    }
+    return emptyList;
+  }
+
+/*
+insertElement
+insert a member at given position i
+
+*/
+  void insertElement(typename list<MEMB_TYP_CLASS*>::iterator it,
+                     MEMB_TYP_CLASS* memb, int i, Kind kind)
+  {
+    switch (kind){
+      case NOISE:
+        noiseList.insert(it,memb);
+        break;
+      case CLUSTERCAND:
+        clusterCandList.insert(it,memb);
+        break;
+      case CLUSTER:
+        clusterArray.at(i).insert(it,memb);
+        break;
+      case LEFT:
+        leftPartCluster.at(i).insert(it,memb);
+        break;
+      case RIGHT:
+        rightPartCluster.at(i).insert(it,memb);
+        break;
+      case BOTH:
+        bothSideCluster.at(i).insert(it,memb);
+        break;
+      case CLCANDCLUSTERS:
+        clusterCandClusters.at(i).insert(it,memb);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  void insertList(typename vector<list<MEMB_TYP_CLASS*> >::iterator it,
+                  list<MEMB_TYP_CLASS*>& list,Kind kind)
+  {
+    switch (kind){
+      case NOISE:
+      case CLUSTERCAND:
+      case UNDEF:
+        break;
+      case CLUSTER:
+        clusterArray.insert(it,list);
+        break;
+      case LEFT:
+        leftPartCluster.insert(it,list);
+        break;
+      case RIGHT:
+        rightPartCluster.insert(it,list);
+        break;
+      case BOTH:
+        bothSideCluster.insert(it,list);
+        break;
+      case CLCANDCLUSTERS:
+        clusterCandClusters.insert(it,list);
+        break;
+    }
+  }
+
+  void insertList(unsigned int listNo,
+                  list<MEMB_TYP_CLASS*>& list,Kind kind)
+  {
+    switch (kind){
+      case NOISE:
+      case CLUSTERCAND:
+      case UNDEF:
+        break;
+      case CLUSTER:
+        clusterArray.insert(clusterArray.begin() + listNo,list);
+        break;
+      case LEFT:
+        leftPartCluster.insert(leftPartCluster.begin() + listNo,list);
+        break;
+      case RIGHT:
+        rightPartCluster.insert(rightPartCluster.begin() + listNo,list);
+        break;
+      case BOTH:
+        bothSideCluster.insert(bothSideCluster.begin() + listNo,list);
+        break;
+      case CLCANDCLUSTERS:
+        clusterCandClusters.insert(clusterCandClusters.begin() + listNo,list);
+        break;
+    }
+  }
+
+
+/*
+insertMinMax
+
+*/
+   void insertMinMax(typename vector<pair<double,double> >::iterator it,
+                     pair<double,double>& list,Kind kind)
+   {
+     switch (kind){
+       case NOISE:
+       case CLUSTERCAND:
+       case CLUSTER:
+       case UNDEF:
+         break;
+       case LEFT:
+         leftPCMinMaxY.insert(it,list);
+         break;
+       case RIGHT:
+         rightPCMinMaxY.insert(it,list);
+         break;
+       case BOTH:
+         bothSCMinMaxY.insert(it,list);
+         break;
+       case CLCANDCLUSTERS:
+         clusterCandClMinMax.insert(it,list);
+         break;
+     }
+   }
+
+/*
+insertMinMax
+
+*/
+   void insertMinMax(int i,
+                     pair<double,double>& list,Kind kind)
+   {
+     switch (kind){
+       case NOISE:
+       case CLUSTERCAND:
+       case CLUSTER:
+       case UNDEF:
+         break;
+       case LEFT:
+         leftPCMinMaxY.insert(leftPCMinMaxY.begin() + i,list);
+         break;
+       case RIGHT:
+         rightPCMinMaxY.insert(rightPCMinMaxY.begin() + i,list);
+         break;
+       case BOTH:
+         bothSCMinMaxY.insert(bothSCMinMaxY.begin() +  i,list);
+         break;
+       case CLCANDCLUSTERS:
+         clusterCandClMinMax.insert(clusterCandClMinMax.begin() +  i,list);
+         break;
+     }
+   }
+
+/*
+getIterator
+returns an iterator from a clusterlist or 
+noiselist either at the beginning or at end
+
+*/
+   typename list<MEMB_TYP_CLASS*>::iterator 
+   getIterator(int list, bool begin, Kind kind)
+   {
+     switch (kind){
+
+       case NOISE:
+         if (begin)
+           return noiseList.begin();
+         else
+           return noiseList.end();
+         break;
+       case CLUSTERCAND:
+         if (begin)
+           return clusterCandList.begin();
+         else
+           return clusterCandList.end();
+         break;
+       case CLUSTER:
+         if (begin)
+           return clusterArray.at(list).begin();
+         else
+           return clusterArray.at(list).end();
+         break;
+       case LEFT:
+         if (begin)
+           return leftPartCluster.at(list).begin();
+         else
+           return leftPartCluster.at(list).end();
+         break;
+       case RIGHT:
+         if (begin)
+           return rightPartCluster.at(list).begin();
+         else
+           return rightPartCluster.at(list).end();
+         break;
+       case BOTH:
+         if (begin)
+           return bothSideCluster.at(list).begin();
+         else
+           return bothSideCluster.at(list).end();
+         break;
+       case CLCANDCLUSTERS:
+         if (begin)
+           return clusterCandClusters.at(list).begin();
+         else
+           return clusterCandClusters.at(list).end();
+
+       default:
+         return emptyList.begin();
+     }
+     return emptyList.begin();
+   }
+
 /*
  eraseItem
  delete an member item either at the beginning or at end
 
 */
-    typename list<MEMB_TYP_CLASS*>::
-    iterator eraseItem(int list,
-                       typename std::list<MEMB_TYP_CLASS*>::iterator it, 
-                       Kind kind)
-    {
-      switch (kind){
-        case NOISE:
-          return noiseList.erase(it);
-          break;
-          
-        case CLUSTER:
-          return clusterArray.at(list).erase(it);
-          break;
-      }
-      return emptyList.begin();
-    }
-    
+   typename list<MEMB_TYP_CLASS*>::
+   iterator eraseItem(int list,
+                      typename std::list<MEMB_TYP_CLASS*>::iterator it,
+                      Kind kind)
+   {
+     switch (kind){
+
+       case NOISE:
+         return noiseList.erase(it);
+       case CLUSTERCAND:
+         return clusterCandList.erase(it);
+       case CLUSTER:
+         return clusterArray.at(list).erase(it);
+       case LEFT:
+         return leftPartCluster.at(list).erase(it);
+       case RIGHT:
+         return rightPartCluster.at(list).erase(it);
+       case BOTH:
+         return bothSideCluster.at(list).erase(it);
+       case CLCANDCLUSTERS:
+         return clusterCandClusters.at(list).erase(it);
+
+       default:
+         return emptyList.begin();
+     }
+     return emptyList.begin();
+   }
+
+
 /*
- eraseList
+eraseList
 
 */
-    void eraseList(unsigned int list)
-    {
-      clusterArray.erase(clusterArray.begin()+list);
-    }
-    
-    void clearList(unsigned int list)
-    {
-      clusterArray.at(list).clear();
-    }
+   void eraseList(Kind kind, unsigned int list)
+   {
+     switch (kind){
+       case NOISE:
+       case CLUSTERCAND:
+         break;
+       case CLUSTER:
+         clusterArray.erase(clusterArray.begin()+list);
+         break;
+       case LEFT:
+         leftPartCluster.erase(leftPartCluster.begin()+list);
+         break;
+       case RIGHT:
+         rightPartCluster.erase(rightPartCluster.begin()+list);
+         break;
+       case BOTH:
+         bothSideCluster.erase(bothSideCluster.begin()+list);
+         break;
+       case CLCANDCLUSTERS:
+         clusterCandClusters.erase(clusterCandClusters.begin() + list);
+         break;
+       default:
+         break;
+     }
+   }
+
 /*
- pushNoise
+eraseMinMax
 
 */
-    int pushNoise(MEMB_TYP_CLASS* noisePoint, list<MEMB_TYP_CLASS*>& destList, 
-                  list<MEMB_TYP_CLASS*>& noiseList,int clusterNo);
-    
+   void eraseMinMax(Kind kind, unsigned int list)
+   {
+     switch (kind){
+       case NOISE:
+       case CLUSTERCAND:
+       case CLUSTER:
+         clusterMinMaxY.erase(clusterMinMaxY.begin()+list);
+         break;
+       case LEFT:
+         leftPCMinMaxY.erase(leftPCMinMaxY.begin()+list);
+         break;
+       case RIGHT:
+         rightPCMinMaxY.erase(rightPCMinMaxY.begin()+list);
+         break;
+       case BOTH:
+         bothSCMinMaxY.erase(bothSCMinMaxY.begin()+list);
+         break;
+       case CLCANDCLUSTERS:
+         clusterCandClMinMax.erase(clusterCandClMinMax.begin() + list);
+         break;
+       default:
+         break;
+     }
+   }
+
 /*
- deleteNeighborFromNoiseList
+clearList
 
 */
-    bool deleteNeighborFromNoiseList(typename list<MEMB_TYP_CLASS*>::iterator
-    neighborIt,list<MEMB_TYP_CLASS*>& noiseList);
-    
-    
+   void clearList(Kind kind, unsigned int list)
+   {
+     switch (kind){
+       case NOISE:
+         noiseList.clear();
+         break;
+       case CLUSTERCAND:
+         clusterCandList.clear();
+         break;
+       case CLUSTER:
+         clusterArray.at(list).clear();
+         break;
+       case LEFT:
+         leftPartCluster.at(list).clear();
+         break;
+       case RIGHT:
+         rightPartCluster.at(list).clear();
+         break;
+       case BOTH:
+         bothSideCluster.at(list).clear();
+         break;
+       case CLCANDCLUSTERS:
+         clusterCandClusters.at(list).clear();
+         break;
+       default:
+         break;
+     }
+   }
+
 /*
-compareLeftOuterClusterWithRightInnerCluster
+pushMemberToClusterList
+
+push a committed member at the end or beginning of a given clusterlist
 
 */
-    void compareLeftOuterClusterWithRightInnerCluster(Cluster* srcCluster,
-                                                      TYPE* destBorderPoint,
-                                                      TYPE* sourceBorderPoint);
-    
+   void pushMemberToClusterList(bool front,MEMB_TYP_CLASS *member,
+                                int list, Kind kind)
+   {
+     switch (kind){
+       case NOISE:
+         if(front)
+           {
+             noiseList.push_front(member);
+           }else{
+               noiseList.push_back(member);
+           }
+         break;
+       case CLUSTERCAND:
+         if(front)
+           {
+             clusterCandList.push_front(member);
+           }else{
+               clusterCandList.push_back(member);
+           }
+         break;
+       case CLUSTER:
+         if(front)
+           {
+             clusterArray.at(list).push_front(member);
+           }else{
+               clusterArray.at(list).push_back(member);
+           }
+         break;
+       case LEFT:
+         if(front)
+           {
+             leftPartCluster.at(list).push_front(member);
+           }else{
+               leftPartCluster.at(list).push_back(member);
+           }
+         break;
+       case RIGHT:
+         if(front)
+           {
+             rightPartCluster.at(list).push_front(member);
+           }else{
+               rightPartCluster.at(list).push_back(member);
+           }
+         break;
+       case BOTH:
+         if(front)
+           {
+             bothSideCluster.at(list).push_front(member);
+           }else{
+               bothSideCluster.at(list).push_back(member);
+           }
+         break;
+       case CLCANDCLUSTERS:
+         if(front)
+           {
+             clusterCandClusters.at(list).push_front(member);
+           }else{
+               clusterCandClusters.at(list).push_back(member);
+           }
+         break;
+       default:
+         break;
+     }
+   }
+
+   void pushListToCluster(Kind kind,list<MEMB_TYP_CLASS *>& list)
+   {
+     switch (kind)
+     {
+       case NOISE:
+         break;
+       case CLUSTERCAND:
+         break;
+       case CLUSTER:
+         clusterArray.push_back(list);
+         break;
+       case LEFT:
+         leftPartCluster.push_back(list);
+         break;
+       case RIGHT:
+         rightPartCluster.push_back(list);
+         break;
+       case BOTH:
+         bothSideCluster.push_back(list);
+         break;
+       case CLCANDCLUSTERS:
+         clusterCandClusters.push_back(list);
+         break;
+       default:
+         break;
+     }
+   }
+
+   void pushMinMaxToCluster(Kind kind,pair<double,double>& list)
+   {
+     switch (kind){
+       case NOISE:
+         break;
+       case CLUSTERCAND:
+         break;
+       case CLUSTER:
+         clusterMinMaxY.push_back(list);
+         break;
+       case LEFT:
+         leftPCMinMaxY.push_back(list);
+         break;
+       case RIGHT:
+         rightPCMinMaxY.push_back(list);
+         break;
+       case BOTH:
+         bothSCMinMaxY.push_back(list);
+         break;
+       case CLCANDCLUSTERS:
+         clusterCandClMinMax.push_back(list);
+         break;
+       default:
+         break;
+     }
+
+   }
+
 /*
- compareLeftNoiseWithRightCluster
+moveItemUnsorted
+
+moves item unsorted from srclist to destlist mostly 
+used for noise and clustercand list
+returns the Iterator from list where item was deleted
+
+*/
+   typename list<MEMB_TYP_CLASS*>::iterator
+   moveItemUnsorted(
+       typename list<MEMB_TYP_CLASS*>::iterator delIt,
+       list<MEMB_TYP_CLASS*>& srcList,
+       list<MEMB_TYP_CLASS*>& destList, int clusterNo, int clusterType)
+   {
+     destList.push_back((*delIt));
+     (*delIt)->setClusterNo(clusterNo);
+     (*delIt)->setClusterType(clusterType);
+     return  srcList.erase(delIt);
+   }
+
+/*
+moveItemSorted
+moves item sorted from eraselist to pushlist list
+
+*/
+   typename list<MEMB_TYP_CLASS*>::iterator
+   moveItemSorted(Cluster* updateCluster,
+                  typename list<MEMB_TYP_CLASS*>::iterator delIt,
+                  list<MEMB_TYP_CLASS*>& srcList,
+                  list<MEMB_TYP_CLASS*>& destList,
+                  bool searchAndDelete, int clusterNo,
+                  int clusterType, bool updateMinMax,
+                  bool& moveWorked)
+   {
+     typename list<MEMB_TYP_CLASS*>::iterator destListIt = destList.begin(),
+         retIt;
+     //search position to insert
+     //first go back in list until listPoint<neighborPoint
+     if(destListIt != destList.end()){ //else list is empty
+         //then serch position to insert
+         while(destListIt != destList.end() &&
+             (*destListIt)->getXVal() >= (*delIt)->getXVal()){
+             destListIt++;
+         }
+     }
+
+     if(clusterType >= 0 && updateMinMax)
+       {//update Y Borders
+         updateCluster->
+         updateMinMaxVal(getClusterKindFromType(clusterType),
+                          getListNoOfClusterNo(clusterNo,
+                                          getClusterKindFromType(clusterType)),
+                          *delIt);
+       }
+
+     if(searchAndDelete){
+         retIt = searchAndDeletItemFromList(delIt,srcList,moveWorked);
+     }else{
+         retIt = srcList.erase(delIt);
+         moveWorked = true;
+     }
+
+     if(moveWorked){
+         destList.insert(destListIt,*delIt);
+         (*delIt)->setClusterNo(clusterNo);
+         (*delIt)->setClusterType(clusterType);
+     }
+
+     return retIt;
+   }
+
+/*
+
+moveNeighborsToDestList
+verschiebt alle moeglichen Nachbarn eines Members in die Zielliste
+
+*/
+   void moveNeighborsToDestList(Cluster* rightClsuter,
+       pair <double,double>& clusterMinMax,
+       MEMB_TYP_CLASS *member,
+       list<MEMB_TYP_CLASS*>& srcList,
+       list<MEMB_TYP_CLASS*>& otherSrcList,
+       list<MEMB_TYP_CLASS*>& destList,
+       bool searchAndDelete, //used for moveItemSorted
+       int clusterNo, int clusterType)
+   {
+     typename list<MEMB_TYP_CLASS*>::iterator
+     membNeighborIt = member->getEpsNeighborhood(true);
+
+     while(membNeighborIt != member->getEpsNeighborhood(false)){
+         if(!(*membNeighborIt)->isClusterMember()){ //point is not in cluster
+
+             bool moveItem = false;
+
+             typename list<MEMB_TYP_CLASS*>::iterator testIt=
+                 moveItemSorted(this,membNeighborIt,srcList,destList,
+                                searchAndDelete,clusterNo,
+                                clusterType,false,moveItem);
+             if(!moveItem){
+                 testIt = moveItemSorted(this,membNeighborIt,
+                                         otherSrcList,destList,
+                                         searchAndDelete,clusterNo,
+                                         clusterType,false,moveItem);
+             }
+
+             if(!moveItem && rightClsuter != 0){ 
+                 testIt = moveItemSorted(this,membNeighborIt,
+                                         getList(0,NOISE),destList,
+                                         searchAndDelete,clusterNo,
+                                         clusterType,false,moveItem);
+             }
+             if(!moveItem && rightClsuter != 0){
+                 testIt = moveItemSorted(this,membNeighborIt,
+                                         rightClsuter->getList(0,NOISE),
+                                         destList, searchAndDelete,clusterNo,
+                                         clusterType,false,moveItem);
+             }
+
+             if(!moveItem){
+                 // TODO item is in NOISE List  DELETE
+                 cout << "FAIL move didn't work "<< endl;
+                 cout << " in moveNeighborsToDestList" << endl;
+                 cout << " Member: "; 
+                 (*membNeighborIt)->printPoint(); cout << endl;
+                 cout << " srcList " << endl;
+                 printList(srcList);
+                 cout << " otherSrcList " << endl;
+                 printList(otherSrcList);
+                 cout << " destList " << endl;
+                 printList(destList);
+                 cout << endl;
+
+             }
+             updateMinMaxVal(clusterMinMax,*membNeighborIt);
+         }
+         membNeighborIt++;
+     }
+   }
+
+
+/*
+moveClusterList
+move a list from origIndex to destIndex
+only usable for left lists
+
+*/
+   void moveClusterList(pair<unsigned int,Kind>& destIndex,
+                        pair<unsigned int,Kind>& origIndex,
+                        Cluster* origCluster)
+   {
+
+     bool pushBackToDesInd =
+         destIndex.first == getVectorSize(destIndex.second);
+
+     if(pushBackToDesInd)
+       {
+         list<MEMB_TYP_CLASS*> emptyList;
+         //push original list back to dest List
+         pushListToCluster(destIndex.second,
+                           origCluster->getList(origIndex.first,
+                                                origIndex.second));
+         //remove list from original vector and insert empty list
+         origCluster->eraseList(origIndex.second,
+                                origIndex.first);
+         origCluster->insertList(origIndex.first,
+                                 emptyList,
+                                 origIndex.second);
+       }else { // swap element with pos i
+           getList(destIndex.first,
+                   destIndex.second).swap(
+                       origCluster->getList(origIndex.first,
+                                            origIndex.second));
+       }
+   }
+
+   void moveMinMaxPair(pair<unsigned int,Kind>& destIndex,
+                       pair<unsigned int,Kind>& origIndex,
+                       Cluster* origCluster)
+   {
+     bool pushBackToDesInd =
+         destIndex.first == getMinMaxSize(destIndex.second);
+
+     if(pushBackToDesInd)
+       {
+         pair<double,double> minMaxInit = make_pair(MAX_DOUBLE,MIN_DOUBLE);
+         //push original list back to dest List
+         pushMinMaxToCluster(destIndex.second,
+                             origCluster->getMinMaxFromCluster(origIndex));
+         //remove list from original vector and insert empty list
+         origCluster->eraseMinMax(origIndex.second,
+                                  origIndex.first);
+         origCluster->insertMinMax(origIndex.first,
+                                   minMaxInit,
+                                   origIndex.second);
+
+       }else { // swap element with pos i
+           swap(getMinMaxFromCluster(destIndex),
+                origCluster->getMinMaxFromCluster(origIndex));
+       }
+   }
+
+/*
+findClusterCands
+with given clusterList - search more clusterCands
+returns true if more clustercands are added
+member werden von clusterCandList  zu foundMembList hinzugefuegt
+
+*/
+   bool findClusterCandsforClusterList(list<MEMB_TYP_CLASS*>& clusterlist,
+                                       pair<double,double>& clusterMinMax,
+                                       bool clusterIsRight,
+                                       TYPE* borderPoint,
+                                       //if richtCluster take leftInnerPoint
+                                       TYPE* secBorderPoint,
+                                       list<MEMB_TYP_CLASS*>& clusterCandList,
+                                       list<MEMB_TYP_CLASS*>& foundMembList,
+                                       pair<double,double>& foundMinMax ,
+                                       int clusterNo)
+   {
+     bool elementsfound = false, endOfClusterList = false;
+
+     typename list<MEMB_TYP_CLASS*>::iterator
+     clusterListIt = clusterlist.begin(),
+     clusterCandIt = clusterCandList.begin();
+
+     if(clusterListIt != clusterlist.end() &&
+         clusterCandIt != clusterCandList.end()){
+
+         if(!clusterIsRight)
+           {//begin with list end because points are sorted descending
+             clusterListIt = --clusterlist.end();
+           }
+
+         while (!endOfClusterList &&
+             (*clusterListIt)->calcXDistanz(borderPoint) <= eps)
+           {
+             while (clusterCandIt != clusterCandList.end())
+               {
+                 if((*clusterListIt)->calcDistanz(*clusterCandIt) <= eps)
+                   {
+                     elementsfound=true;
+                     //update Neighbor
+                     if(clusterIsRight){
+                         updateNeighborLeftPointToRightList(
+                             *clusterCandIt,
+                             clusterlist,
+                             clusterListIt,borderPoint,
+                             secBorderPoint);
+                     }else{
+                         updateNeighborRightPointToLeftList(
+                             *clusterCandIt,
+                             clusterlist,
+                             clusterListIt,borderPoint,
+                             secBorderPoint);
+                     }
+
+                     moveItemSorted(clusterCandIt,clusterCandList,
+                                    foundMembList,false,clusterNo,false);
+                     updateMinMaxVal(foundMinMax,*clusterCandIt);
+                     //start from beginning
+                     clusterCandIt = clusterCandList.begin();
+                   } else{
+                       clusterCandIt++;
+                   }
+               }
+             if(clusterIsRight){
+                 clusterListIt++;
+                 if(clusterListIt == clusterlist.end())
+                   endOfClusterList = true;
+             }else{
+                 clusterListIt--;
+                 if(clusterListIt == --clusterlist.begin())
+                   endOfClusterList = true;
+             }
+           }
+     }
+     return elementsfound;
+   }
+
+/*
+searchClusterListToMelt
+suche zur linken lister rechte cluster die miteinander verschmolzen werden
+
+*/
+   bool  searchClusterListToMelt(list<MEMB_TYP_CLASS*>& leftList,
+                                 pair<double,double>& leftMinMax,
+                                 Cluster* rightCluster,int leftListNo,
+                                 Kind rightKind,
+                                 TYPE* leftInnerPoint,
+                                 //if richtCluster take leftInnerPoint
+                                 TYPE* rightInnerPoint,
+                                 vector<unsigned int> *clusterToMeltRight,
+                                 vector<unsigned int> *clusterToMeltLeft)
+   {
+     typename list<MEMB_TYP_CLASS*>::iterator
+     itLeft = --leftList.end(),
+     itRight;
+
+     bool jAlreadyAppend = false,memberAdded = false,
+         newClusterFoundInL = false;
+
+     if(itLeft != --leftList.begin() &&
+         (*itLeft)->calcXDistanz(rightInnerPoint) <=eps)
+       { //check outer point distance - if bigger than eps - take next list
+         while(itLeft != --leftList.begin() &&
+             (*itLeft)->calcXDistanz(rightInnerPoint) <=eps)
+           {
+             //compare with each cluster on the right side
+             for(unsigned int j=0;j<rightCluster->getVectorSize(rightKind) ;j++)
+               {
+                 if(
+                     listIsInYBordersOfList(leftMinMax,
+                                            rightCluster,j,rightKind))
+                   {
+                     bool jAlreadyAppend = false;
+                     vector<unsigned int>::iterator it =
+                         clusterToMeltRight[leftListNo].begin();
+                     while(!jAlreadyAppend && it !=
+                         clusterToMeltRight[leftListNo].end()){
+                         if(j==*it){
+                             jAlreadyAppend = true;
+                         }
+                         it++;
+                     }
+                     if(!jAlreadyAppend){
+                         newClusterFoundInL = false;
+                         // get this most left point from right Cluster
+                         itRight=rightCluster->getIterator(j,true,rightKind);
+
+                         if(!newClusterFoundInL &&
+                             itRight !=
+                             rightCluster->getIterator(j,false,rightKind) &&
+                             (*itRight)->calcXDistanz(leftInnerPoint) <=eps)
+                           {//check outer point distance -
+                             //if bigger than eps->take next list
+                             while(!newClusterFoundInL &&
+                                 itRight != 
+                                 rightCluster->getIterator(j,false,rightKind) &&
+                                 (*itRight)->
+                                 calcXDistanz(leftInnerPoint) <= eps)
+                               {//get distance from left Point to right Point
+
+                                 if((*itLeft)->calcDistanz(*itRight) <= eps){
+                                     memberAdded=true;
+                                     newClusterFoundInL = true;
+                                     updateNeighborRightListToLeftList(
+                                         leftList,
+                                         rightCluster->getList(j,rightKind),
+                                         true,true,
+                                         leftInnerPoint,rightInnerPoint);
+                                     if((*itLeft)->updateInnerPnt(minPts) &&
+                                         (*itRight)->updateInnerPnt(minPts))
+                                       {
+                                         //remember cluster listNo
+                                         clusterToMeltRight[
+                                                    leftListNo].push_back(j);
+                                         clusterToMeltLeft[j].
+                                                        push_back(leftListNo);
+                                       }
+                                 }
+                                 ++itRight;
+                               }
+                           } 
+                        //else newClusterFound || itRight==end || distance > eps
+                     }// else jAlreadyAppend
+                   }//else list is not in Y Border of Cluster
+               }
+             --itLeft;
+           }
+       }
+     return memberAdded;
+   }
+
+/*
+meltClusterLists
+
+*/
+   void meltClusterLists(Cluster *meltingCluster,
+                         vector<pair<unsigned int,Kind> > *meltingSideArray,
+                         vector<unsigned int> minToMaxIndexes,
+                         vector<pair<unsigned int,Kind> > * indexArray,
+                         pair<unsigned int,Kind>* newIndices, int bothDist)
+   {
+     //if kind is both then meltClusterCandListWithClusterList[bothDist + i]
+     vector<unsigned int>::iterator leftIt = minToMaxIndexes.end();
+     leftIt--;
+     typename vector<pair<unsigned int,Kind> >::iterator destIt,srcIt;
+
+     while(leftIt != --minToMaxIndexes.begin())
+       {
+         if(meltingSideArray[*leftIt].size()>1){
+
+             destIt = meltingSideArray[*leftIt].begin();
+             srcIt = --meltingSideArray[*leftIt].end();
+
+             while(destIt != srcIt){
+
+                 if((*destIt) != (*srcIt)){
+                     meltListsAndIndexOfCluster(meltingCluster,indexArray,
+                                                *destIt,*srcIt,
+                                                newIndices,bothDist);
+                 }
+
+                 srcIt--;
+             }
+         }
+         leftIt--;
+       }
+   }
+
+/*
+
+meltListsAndIndexOfCluster
+
+*/
+   void meltListsAndIndexOfCluster(Cluster* meltingCluster,
+                                   vector<pair<unsigned int,Kind> >* indexArray,
+                                   pair<unsigned int,Kind>& destIndex,
+                                   pair<unsigned int,Kind>& srcIndex,
+                                   pair<unsigned int,Kind>* newIndices,
+                                   int bothDist)
+   {
+     //find out correct index
+     int destInd, srcInd;
+
+     destInd = getCorrectListIndex(destIndex.first,
+                                   bothDist,
+                                   destIndex.second);
+
+     srcInd = getCorrectListIndex(srcIndex.first,
+                                  bothDist,
+                                  srcIndex.second);
+
+     //melt Clusters and update minMaxY
+     pair<unsigned int,Kind> newIndex=
+         meltingCluster->meltListsOfCluster(destIndex,srcIndex);
+     //set new index
+     newIndices[destInd]= newIndex;
+     newIndices[srcInd]= newIndex;
+     //melt indexarrays only if destInd != srcInd
+     meltIndexOfCluster(
+         indexArray[destInd],
+         indexArray[srcInd]);
+   }
+
+/*
+
+initIndicies
+
+initialice newIndicies Left and Right with respectivly the first entry of
+clusterToMelt indicies
+
+*/
+   void initIndicies(pair<unsigned int,Kind>* newIndices,
+                     int indexSize,int bothDist, bool isRightCluster)
+   {
+     for(int i = 0; i<indexSize; i++){
+         int ind; Kind kind;
+         if(i < bothDist)
+           {
+             ind = i;
+             if(isRightCluster){
+                 kind = LEFT;
+             }else{
+                 kind = RIGHT;
+             }
+           } else{
+               ind = i - bothDist;
+               kind = BOTH;
+           }
+
+         newIndices[i] =
+             make_pair(ind,kind);
+
+     }
+   }
+
+/*
+
+meltIndexOfCluster
+melt the given clusterindexes
+
+*/
+   void meltIndexOfCluster(vector<pair<unsigned int,Kind> > &destIndList ,
+                           vector<pair<unsigned int,Kind> > &sourceIndList);
+
+
+   pair<unsigned int,Kind>
+   meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
+                      pair<unsigned int,Kind>& sourceList);
+
+   void meltClusterCandListWithClusterList(pair<unsigned int,Kind>& 
+                                           destinationList,
+                                           list<MEMB_TYP_CLASS*> &sourceIndList,
+                                           pair <double,double>& minMaxList);
+
+/*
+findClListToMeltWithClustCandList
+
+*/
+   void findClListToMeltWithClustCandList(Cluster * rightCluster,
+                                      vector<clusterCandMelt>& clCaMeltInd,
+                                      list<MEMB_TYP_CLASS*>& clusterCandList,
+                                      pair <double,double>& clCandMinMax,
+                                      int bothDistLeft,
+                                      pair<unsigned int,Kind>* newLeftIndices,
+                                      int bothDistRight,
+                                      pair<unsigned int,Kind>* newRightIndices)
+   {
+     typename vector< clusterCandMelt>::iterator
+     membIt = clCaMeltInd.begin(),
+     helpIt = clCaMeltInd.begin();
+     bool leftMelted = false;
+     //Try to melt with list on left side -> thus saves you a copy operation
+     while(!leftMelted &&
+         helpIt != clCaMeltInd.end())
+       {
+         if(!(*helpIt).meltWithRightCluster)
+           {//melt with left clusterlist
+             meltClusterCandListWithClusterList((*helpIt),
+                                                clusterCandList,clCandMinMax,
+                                                bothDistLeft,
+                                                newLeftIndices);
+             leftMelted=true;
+           }
+         helpIt++;
+       }
+
+     if(!leftMelted)
+       {
+         if((*membIt).meltWithRightCluster)
+           {
+             //melt with first element
+             rightCluster->
+             meltClusterCandListWithClusterList((*membIt),
+                                                clusterCandList,clCandMinMax,
+                                                bothDistRight,
+                                                newRightIndices);
+           } else { //Normally not used
+               meltClusterCandListWithClusterList((*membIt),
+                                                  clusterCandList,clCandMinMax,
+                                                  bothDistLeft,
+                                                  newLeftIndices);
+           }
+       }
+   }
+
+/*
+ meltClusterCandListWithClusterList
+first find the index to melt the given 
+clusterList which is stored in clCaMeltInd
+melt the lists
+
+*/
+   void meltClusterCandListWithClusterList(clusterCandMelt& clCaMeltInd,
+                                        list<MEMB_TYP_CLASS*>& clusterCandList,
+                                        pair <double,double>& clCandMinMax,
+                                        int bothDist,
+                                        pair<unsigned int,Kind>* newIndices)
+   {
+     pair<unsigned int,Kind> clusterList =
+         make_pair(clCaMeltInd.clusterIndex,
+                   clCaMeltInd.clusterKind);
+     // set clusterList with correct indices to melt
+     int index =
+         findListToMeltWithClusterCand(clCaMeltInd,
+                                       clusterList,
+                                       bothDist,newIndices);
+     if(index > -1)
+       {
+         meltClusterCandListWithClusterList(clusterList,
+                                            clusterCandList,
+                                            clCandMinMax);
+       }else{
+           //TODO should not happen
+           cout << "in meltClusterCandListWithClusterList" << endl;
+           cout << "FAIL member not found" << endl;
+       }
+   }
+
+
+/*
+
+meltClsuterCandWithClusterList
+
+*/
+   void meltClsuterCandWithClusterList(Cluster* rightCluster,
+                                    vector< clusterCandMelt>* clusterCandIndex,
+                                    unsigned int indexSize,
+                                    vector<pair<unsigned int,Kind> > *
+                                    clusterToMeltOnRightForLeftSide,
+                                    pair<unsigned int,Kind>* newLeftIndices,
+                                    int bothDistLeft,
+                                    vector<pair<unsigned int,Kind> > *
+                                    clusterToMeltOnLeftForRightSide,
+                                    pair<unsigned int,Kind>* newRightIndices,
+                                    int bothDistRight)
+   {
+     for(unsigned int i = 0; i< indexSize; i++){
+         if(clusterCandIndex[i].size() > 0)
+           {
+             //add item to first clusterList
+             list<MEMB_TYP_CLASS*> clusterCandList;
+             clusterCandList.push_back(
+               clusterCandIndex[i].at(0).clusterCandMember);
+             double minMax = 
+             clusterCandIndex[i].at(0).clusterCandMember->getYVal();
+             pair <double,double> clCandMinMax = make_pair(minMax,minMax);
+             //melt list with first entry -> search entry
+             findClListToMeltWithClustCandList(rightCluster,
+                                               clusterCandIndex[i],
+                                               clusterCandList,
+                                               clCandMinMax,
+                                               bothDistLeft,newLeftIndices,
+                                               bothDistRight,newRightIndices);
+
+             bool membDeleted = false;
+             if(clusterCandIndex[i].at(0).meltWithRightCluster)
+               {
+                 searchAndDeletItemFromList(
+                   clusterCandIndex[i].at(0).clusterCandMember,
+                                            getList(0,CLUSTERCAND),
+                                            membDeleted);
+
+               } else {
+                 searchAndDeletItemFromList(
+                   clusterCandIndex[i].at(0).clusterCandMember,
+                                          rightCluster->getList(0,CLUSTERCAND),
+                                            membDeleted);
+               }
+
+             clusterCandList.clear();
+             if(clusterCandIndex[i].size() > 1)
+               {
+                 //update MeltingIndexes - 
+                 //and melt cluster lists if it is necessary
+                 updateMeltedCluster(rightCluster,
+                                     clusterCandIndex[i],
+                                     clusterToMeltOnRightForLeftSide,
+                                     bothDistLeft,
+                                     newLeftIndices,
+                                     clusterToMeltOnLeftForRightSide,
+                                     bothDistRight,
+                                     newRightIndices);
+               }
+           }
+     }
+   }
+
+
+/*
+findListToMeltWithClusterCand
+
+*/
+   int
+   findListToMeltWithClusterCand(clusterCandMelt& clCaMeltInd,
+                                 pair<unsigned int,Kind>& clusterList,
+                                 int bothDist,
+                                 pair<unsigned int,Kind>* newIndices )
+   {
+
+     int foundIndex = -1;
+     //test list length
+     if(getListLength(clCaMeltInd.clusterIndex,
+                      clCaMeltInd.clusterKind) > 0)
+       {//listlenght is > 0 -> so this is the 
+         //index where the other lists are melted
+         //with clusterlist is nothing to do
+         foundIndex = clCaMeltInd.clusterIndex;
+       }else { //find entry in clusterToMeltIndex
+           foundIndex =
+               findLastIndex(clusterList,newIndices,bothDist);
+       }
+     return foundIndex;
+   }
+
+/*
+getCorrectListIndex
+ auxilary function to get corect Index regarding BothDist
+
+*/
+   int getCorrectListIndex(int listIndex, int bothDist, Kind kind){
+     if(kind== BOTH)
+       {
+         return listIndex + bothDist;
+       }else{
+           return listIndex;
+       }
+   }
+
+/*
+findLastIndex
+finds the last Index in newIndices
+consitions: clusterList must be initialized
+
+*/
+   int findLastIndex(pair<unsigned int,Kind>& clusterList,
+                     pair<unsigned int,Kind>* newIndices,
+                     int bothDist)
+   {
+     bool memberExist = false;
+     int foundIndex = -1;
+     int listIndex = clusterList.first;
+     //find out correct Index regarding bothDist
+     int helpInd =
+         getCorrectListIndex( clusterList.first,
+                              bothDist,
+                              clusterList.second);
+     //find melted list in which the given list is stored
+     while(!memberExist)
+       {
+         if(listIndex != newIndices[helpInd].first)
+           {
+             listIndex=newIndices[helpInd].first;
+             helpInd =
+                 getCorrectListIndex(listIndex,
+                                     bothDist,
+                                     newIndices[helpInd].second);
+           }else{
+               memberExist = true;
+               clusterList.first = newIndices[helpInd].first;
+               clusterList.second = newIndices[helpInd].second;
+               foundIndex = helpInd;
+           }
+       }
+     return foundIndex;
+   }
+
+/*
+updateClusterToMelt
+used for clustercands
+melt all cluster list which are not melted yet
+
+*/
+   void updateMeltedCluster(Cluster * rightCluster,
+                            vector<clusterCandMelt>& clCaMeltInd,
+                            vector<pair<unsigned int,Kind> >*
+                            clusterToMeltOnRightForLeftSide,
+                            int bothDistLeft,
+                            pair<unsigned int,Kind>* newLeftIndices,
+                            vector<pair<unsigned int,Kind> >*
+                            clusterToMeltOnLeftForRightSide,
+                            int bothDistRight,
+                            pair<unsigned int,Kind>* newRightIndices)
+   {
+     typename vector< clusterCandMelt>::iterator
+     membIt = clCaMeltInd.begin();
+
+     vector<clusterCandMelt> leftMembers;
+     vector<clusterCandMelt> rightMembers;
+     while(membIt != clCaMeltInd.end())
+       {
+         if((*membIt).meltWithRightCluster)
+           {
+             rightMembers.push_back((*membIt));
+           }else{
+               leftMembers.push_back((*membIt));
+           }
+         membIt++;
+       }
+
+     typename vector< clusterCandMelt>::iterator
+     rightIt = rightMembers.begin(),
+     leftIt = leftMembers.begin();
+     if(rightMembers.size()>0)
+       {
+         meltClusterCandClusterWithList(rightCluster,
+                                        rightMembers,
+                                        newRightIndices,
+                                        clusterToMeltOnLeftForRightSide,
+                                        newRightIndices,
+                                        bothDistRight);
+       }
+     if(leftMembers.size()>0)
+       {
+         meltClusterCandClusterWithList(this,
+                                        leftMembers,
+                                        newLeftIndices,
+                                        clusterToMeltOnRightForLeftSide,
+                                        newLeftIndices,
+                                        bothDistLeft);
+       }
+   }
+
+/*
+memberHasSameLastIndex
+compare a clusterCand member list if the indexes have the same
+last index. If the result is true then the lists are melted
+
+*/
+   bool meltClusterCandClusterWithList(Cluster* meltingCluster,
+                                  vector<clusterCandMelt>& members,
+                                  pair<unsigned int,Kind>* srcIndices,
+                                  vector<pair<unsigned int,Kind> > * indexArray,
+                                  pair<unsigned int,Kind>* meltIndices,
+                                  int bothDist
+   )
+   {
+
+     typename vector< clusterCandMelt>::iterator
+     membIt = members.begin(),
+     oldMembIt = members.begin();
+
+     pair<unsigned int,Kind> index, oldIndex;
+     bool allMembersEqual = true;
+
+     if(membIt != members.end()){
+         oldIndex = 
+         make_pair((*oldMembIt).clusterIndex, (*oldMembIt).clusterKind);
+         findLastIndex(oldIndex,srcIndices,bothDist);
+         //      lowestIndex = oldIndex;
+         membIt++;
+         while(membIt!=members.end())
+           {
+             index = make_pair((*membIt).clusterIndex, (*membIt).clusterKind);
+             findLastIndex(index,srcIndices,bothDist);
+             if(oldIndex != index ){
+                 allMembersEqual = false;
+                 //melt oldIndex with index
+                 //update left with right index
+                 int destInd = 0, srcInd = 0;
+                 double yOldIndex, yIndex;
+
+                 //find lower Y coord
+                 yIndex = 
+                 meltingCluster->getYMinfromCluster(index.second,index.first);
+                 yOldIndex = 
+                 meltingCluster->getYMinfromCluster(oldIndex.second,
+                                                    oldIndex.first);
+                 pair<unsigned int,Kind> destIndex,srcIndex;
+
+                 if(yIndex < yOldIndex)
+                   {
+                     destIndex = index;
+                     srcIndex = oldIndex;
+                   } else{
+                       destIndex = oldIndex;
+                       srcIndex = index;
+                   }
+
+                 if(destIndex != srcIndex){
+                     meltListsAndIndexOfCluster(meltingCluster,
+                                                indexArray,
+                                                destIndex,
+                                                srcIndex,
+                                                meltIndices,
+                                                bothDist);
+                 }
+                 //set control indices
+                 oldIndex = destIndex;
+                 oldMembIt = membIt;
+             }
+             membIt++;
+           }
+     }
+
+     return allMembersEqual;
+   }
+
+/*
+compareLeftWithRightList
+compare two committed list if there are member who can merge together.
+if isNewClusterCand is true the a new list is created 
+  - mostly when search Cluster Candidates
+  
+*/
+   bool compareLeftWithRightList(TYPE* leftInnerPoint,
+                                 TYPE* rightInnerPoint,
+                                 bool isNewClusterCand,
+                                 list<MEMB_TYP_CLASS*>& leftList ,
+                                 list<MEMB_TYP_CLASS*>& rightList,
+                                 vector<list<MEMB_TYP_CLASS*> >& retClusterCand,
+                                 vector<pair<double,double> >& 
+                                 retClusterCandMinMax,
+                                 bool leftListIsClusterCandList,
+                                 bool rightListIsClusterCandList,
+                                 Cluster* rightCluster = 0);
+
+/*
+
+testClusterCandListsOnClusters
+
+*/
+   void testClusterCandListsOnClusters(Cluster* rightCluster,
+                                       TYPE* leftInnerPoint,
+                                       TYPE* rightInnerPoint,
+                                       list<MEMB_TYP_CLASS*>& leftList ,
+                                       list<MEMB_TYP_CLASS*>& rightList,
+                                       vector<list<MEMB_TYP_CLASS*> >& 
+                                       retClusterCand,
+                                       vector<pair<double,double> >& 
+                                       retClusterCandMinMax)
+   {
+
+     list<MEMB_TYP_CLASS*> leftTmpList, rightTmpList;
+
+     while(leftList.size()>1){
+         leftTmpList.push_back(*leftList.begin());
+         leftList.pop_front();
+         compareLeftWithRightList(leftInnerPoint,rightInnerPoint,true,
+                                  leftTmpList,leftList,retClusterCand,
+                                  retClusterCandMinMax,true,true,rightCluster);
+     }
+     while(leftTmpList.size()){
+         leftList.push_back(*leftTmpList.begin());
+         leftTmpList.pop_front();
+     }
+
+     while(rightList.size()>1){
+         rightTmpList.push_back(*rightList.begin());
+         rightList.pop_front();
+         compareLeftWithRightList(leftInnerPoint,rightInnerPoint,true,
+                                  rightTmpList,rightList,retClusterCand,
+                                  retClusterCandMinMax,true,true,rightCluster);
+     }
+     while(rightTmpList.size()){
+         rightList.push_back(*rightTmpList.begin());
+         rightTmpList.pop_front();
+     }
+
+   }
+
+
+
+/*
+
+compareClusterCandsWithoppositeList
+vergleicht die clusterCand liste mit der gegenueberliegenden liste
+speichert indexe in der uebergebenen indexvector
+
+*/
+   void compareClusterCandsWithOppositeList(TYPE* leftInnerPoint,
+                                            TYPE* rightInnerPoint,
+                                            list<MEMB_TYP_CLASS*>& 
+                                            clusterCandList,
+                                            bool listIsRight,
+                                            list<MEMB_TYP_CLASS*>& compList,
+                                            Kind compKind, int compIndex,
+                                            int bothIndOffset,
+                                            vector< clusterCandMelt>* 
+                                            clCandMelt)
+   {
+     typename list<MEMB_TYP_CLASS*>::iterator
+     clusterCandIt = clusterCandList.begin();
+     int i=0;
+     while(clusterCandIt != clusterCandList.end())
+       {
+         if(compareMemberWithList(leftInnerPoint,rightInnerPoint,*clusterCandIt,
+                                  listIsRight,compList))
+           {
+             //save indexes
+             clusterCandMelt newItem = {(unsigned int)compIndex,compKind,
+                 listIsRight,*clusterCandIt};
+
+             insertIndexToClusterCandToMelt(i,newItem,clCandMelt);
+           }
+         clusterCandIt++;
+         i++;
+       }
+
+
+   }
+
+/*
+insertIndexToClusterCandToMelt
+similar to insertIndexToClusterToMelt
+
+*/
+   void insertIndexToClusterCandToMelt (int minIndex,
+                                        clusterCandMelt& newItem,
+                                        vector< clusterCandMelt>* clCandMelt)
+   {
+     bool found = false;
+
+     typename vector< clusterCandMelt>::iterator
+            it = clCandMelt[minIndex].begin();
+
+     while(!found && it != clCandMelt[minIndex].end()){
+         if( it->clusterIndex == newItem.clusterIndex &&
+             it->clusterKind == newItem.clusterKind &&
+             it->meltWithRightCluster == newItem.meltWithRightCluster &&
+             it->clusterCandMember == newItem.clusterCandMember)
+           {
+             found = true;
+           }
+         it++;
+     }
+     if (!found)
+       {
+         clCandMelt[minIndex].push_back(newItem);
+       }
+   }
+
+
+/*
+
+compareMemberWithList
+similar to compareLeftWithRightList
+compare points with lists and return true if neighbor is in epsNeighborhood
+
+*/
+   bool compareMemberWithList(TYPE* leftInnerPoint,
+                              TYPE* rightInnerPoint,
+                              MEMB_TYP_CLASS* member,
+                              bool listIsRight,
+                              list<MEMB_TYP_CLASS*>& compList)
+   {
+     bool endOfList= false, distGreaterEps = false;
+     typename list<MEMB_TYP_CLASS*>::iterator itList=
+         initIteratorOfList(leftInnerPoint, rightInnerPoint,
+                            listIsRight,endOfList,
+                            distGreaterEps,compList);
+
+     while(!endOfList && !distGreaterEps) {
+
+         if((*itList)->calcDistanz(member) <= eps){
+             if(listIsRight){
+                 updateNeighborLeftPointToRightList(
+                     member,compList,itList,leftInnerPoint,rightInnerPoint);
+             }else{
+                 updateNeighborRightPointToLeftList(
+                     member,compList,itList,leftInnerPoint,rightInnerPoint);
+             }
+             return true;
+         }
+         itList = updateIterator(leftInnerPoint,rightInnerPoint,listIsRight,
+                                 endOfList,distGreaterEps,compList,itList);
+     }
+
+     return false;
+   }
+
+/*
+initIteratorOfList
+initializes an iterator for a given list
+
+*/
+   typename list<MEMB_TYP_CLASS*>::iterator
+   initIteratorOfList(TYPE* leftInnerPoint,
+                      TYPE* rightInnerPoint,
+                      bool listIsRight,
+                      bool& endOfList, bool& distGreaterEps,
+                      list<MEMB_TYP_CLASS*>& compList)
+   {
+     typename list<MEMB_TYP_CLASS*>::iterator itList;
+     if(listIsRight){
+         itList=compList.begin();
+         if(itList == compList.end()){
+             endOfList = true;
+         }
+         if((*itList)->calcXDistanz(leftInnerPoint) > eps){
+             distGreaterEps = true;
+         }
+     }else{ //list is on left side
+         itList = compList.end();
+         itList--;
+         if(itList== --compList.begin()){
+             endOfList = true;
+         }
+         if((*itList)->calcXDistanz(rightInnerPoint) > eps){
+             distGreaterEps = true;
+         }
+     }
+     return itList;
+   }
+
+/*
+updateIterator
+updates a given Iterator
+
+*/
+   typename list<MEMB_TYP_CLASS*>::iterator
+   updateIterator(TYPE* leftInnerPoint,
+                  TYPE* rightInnerPoint,
+                  bool listIsRight,
+                  bool& endOfList, bool& distGreaterEps,
+                  list<MEMB_TYP_CLASS*>& compList,
+                  typename list<MEMB_TYP_CLASS*>::iterator itList)
+   {
+     if(listIsRight){
+         itList++;
+         if(itList == compList.end()){
+             endOfList = true;
+         }
+         if(!endOfList && (*itList)->calcXDistanz(leftInnerPoint) > eps){
+             distGreaterEps = true;
+         } else {
+             distGreaterEps = false;
+         }
+     }else{ //list is on left side
+         itList--;
+         if(itList== --compList.begin()){
+             endOfList = true;
+         }
+         if(!endOfList && (*itList)->calcXDistanz(rightInnerPoint) > eps){
+             distGreaterEps = true;
+         }else {
+             distGreaterEps = false;
+         }
+     }
+     return itList;
+   }
+   
+/*
+compareSrcListFromItWithRightList
+
+durchsucht 2 listen - zielliste mit uebergebenen zieliterator und
+eine quellliste
+falls zwei punkte mit Abstand <= eps gefunden wird -> wird der Iterator
+datauf zurueckgegeben
+ansonsten wird der QuellIterator zurueckgegeben
+
+*/
+   typename list<MEMB_TYP_CLASS*>::iterator
+   compareSrcListFromItWithRightList(TYPE* leftInnerPoint,
+                                     TYPE* rightInnerPoint,
+                                     list<MEMB_TYP_CLASS*>& destList ,
+                                     typename list<MEMB_TYP_CLASS*>::iterator
+                                     _destIt,
+                                     list<MEMB_TYP_CLASS*>& srcList,
+                                     int clusterNo, bool considerClusterNo,
+                                     bool sortedSrcList,
+                                     bool updateN)
+   {
+     typename list<MEMB_TYP_CLASS*>::iterator srcIt = srcList.begin();
+     typename list<MEMB_TYP_CLASS*>::iterator destIt =
+         //       --destList.end();
+         _destIt;
+
+     bool distEps = true;
+     if(sortedSrcList)
+       distEps = (*srcIt)->calcXDistanz(leftInnerPoint) <= eps;
+
+     if(considerClusterNo)
+       {
+         if((*srcIt)->getClusterNo() == clusterNo)
+           {
+             srcIt++;
+           }
+       }
+
+     while(srcIt != srcList.end() && distEps)
+       {
+         while((destIt != --destList.begin()) &&
+             srcIt != srcList.end() && distEps  &&
+             (*destIt)->calcXDistanz(rightInnerPoint) <= eps){
+             if((*destIt)->calcDistanz(*srcIt) <= eps){
+                 if(updateN)
+                   {
+                     list<MEMB_TYP_CLASS*> neighborListLeft,neighborListRight ;
+                     updateNeighbor(*destIt,
+                                    *srcIt);
+                   }
+                 return srcIt;
+
+             }
+             destIt--;
+         }
+         destIt = _destIt;
+         srcIt++;
+         if(sortedSrcList)
+           distEps = (*srcIt)->calcXDistanz(leftInnerPoint) <= eps;
+         if(considerClusterNo && srcIt != srcList.end())
+           {
+             if((*srcIt)->getClusterNo() == clusterNo)
+               {
+                 srcIt++;
+               }
+           }
+       }
+     return _destIt;
+   }
+
+   typename list<MEMB_TYP_CLASS*>::iterator
+   compareSrcListFromItWithLEFTList(TYPE* leftInnerPoint,
+                                    TYPE* rightInnerPoint,
+                                    list<MEMB_TYP_CLASS*>& destList ,
+                                    typename list<MEMB_TYP_CLASS*>::iterator
+                                    _destIt,
+                                    list<MEMB_TYP_CLASS*>& srcList,
+                                    int clusterNo, bool considerClusterNo,
+                                    bool sortedSrcList,
+                                    bool updateNeigb)
+   {
+     typename list<MEMB_TYP_CLASS*>::iterator srcIt = --srcList.end();
+     typename list<MEMB_TYP_CLASS*>::iterator destIt =
+         //       destList.begin();
+         _destIt;
+     destIt++;
+
+     bool distEps = true;
+     if(sortedSrcList)
+       distEps = (*srcIt)->calcXDistanz(rightInnerPoint) <= eps;
+
+     if(considerClusterNo )
+       {
+         if((*srcIt)->getClusterNo() == clusterNo)
+           {
+             srcIt--;
+           }
+       }
+
+     while(srcIt != --srcList.begin() && distEps)
+       {
+
+         while(destIt != destList.end() &&
+             srcIt != --srcList.begin() && distEps &&
+             (*destIt)->calcXDistanz(leftInnerPoint) <= eps){
+             if((*destIt)->calcDistanz(*srcIt) <= eps){
+                 if(updateNeigb)
+                   {
+                     updateNeighbor(*destIt,
+                                    *srcIt);
+                   }
+
+                 return srcIt;
+             }
+             destIt++;
+         }
+         destIt = _destIt;
+         destIt++;
+         srcIt--;
+         if(sortedSrcList)
+           distEps = (*srcIt)->calcXDistanz(rightInnerPoint) <= eps;
+
+         if(considerClusterNo && srcIt != --srcList.begin())
+           {
+             if((*srcIt)->getClusterNo() == clusterNo)
+               {
+                 srcIt--;
+               }
+           }
+
+       }
+     return _destIt;
+   }
+
+
+/*
+concatPointsfromList
+concat the two points from iterators 
+- rummage eps neighborhood for appropriate members
+
+*/
+   void concatClusterCand(Cluster* rightCluster,
+                          TYPE* leftInnerPoint,
+                          TYPE* rightInnerPoint,
+                          list<MEMB_TYP_CLASS*>& destList,
+                          pair<double,double>& clusterPair,
+                          MEMB_TYP_CLASS* leftMemb,
+                          MEMB_TYP_CLASS* rightMemb,
+                          list<MEMB_TYP_CLASS*>& leftList,
+                          list<MEMB_TYP_CLASS*>& rightList,
+                          int clusterNo);
+
+
+
+/*
+addListToCorrectClusterType
+finds out correct cluster type an push it to  correct cluster vector
+
+*/
+   void addListToCorrectClusterType(
+       list<MEMB_TYP_CLASS*>& clusterList,
+       pair<double,double>& clusterPair,
+       pair<unsigned int,Kind>& index
+   );
+
+/*
+
+defineDestIndexPair
+define the new index for two concated clusterLists
+if retKind is different from leftKind then return false
+  
+*/
+   bool defineDestIndexPair(list<MEMB_TYP_CLASS*>& leftList,
+                  list<MEMB_TYP_CLASS*>& rightList,//This could be a empty list
+                  pair<unsigned int,Kind>& leftIndex,
+                  pair<unsigned int,Kind>& retIndex)
+   {
+
+     typename list<MEMB_TYP_CLASS*>::iterator  itLeftPoint,itRightPoint;
+
+     int leftListSize = leftList.size();
+     int rightListSize = rightList.size();
+
+     if(leftListSize && rightListSize)
+       {
+         itLeftPoint = leftList.begin();
+         itRightPoint = --rightList.end();
+       }else{
+           if(leftListSize)
+             {
+               itLeftPoint = leftList.begin() ; 
+               //left Point of cluster is at the end of List
+               itRightPoint = --leftList.end();
+             }
+       }
+
+     double rightDist = (*itRightPoint)->calcXDistanz(rightOuterPoint);
+     double leftDist = (*itLeftPoint)->calcXDistanz(leftOuterPoint);
+
+     int clusterType =1;
+     if(leftDist <= eps){
+         //cluster is from left side reachable
+         clusterType++;
+     }
+     if(rightDist <= eps){
+         //cluster is from right side reachable
+         if(clusterType == 1)
+           clusterType = 3; //list is not reachable from left side
+         else
+           clusterType = 4; //list is reachable from left and right side
+     }
+     int listNo = getVectorSize(getClusterKindFromType(clusterType));
+
+     retIndex = make_pair(listNo,getClusterKindFromType(clusterType));
+     bool indexIsEqual =
+         retIndex.second == leftIndex.second;
+     if(!indexIsEqual){
+         findNextEmptyList(retIndex);
+     }
+     return indexIsEqual;
+   }
+
+/*
+
+findNextEmptyList
+find the next empty list in cluster vector
+if no list is empty retIndex==VectorSize
+  
+*/
+   void findNextEmptyList(pair<unsigned int,Kind>& retIndex )
+   {
+     //find out list no in which to save
+     bool indexFound = false;
+     //find first empty List
+     for(unsigned int i =0; i< getVectorSize(retIndex.second) &&
+     !indexFound ; i++)
+       {
+         if(getListLength(i,retIndex.second) == 0)
+           {// empty list
+             retIndex.first=i;
+             indexFound= true;
+           }
+       }
+     if(!indexFound ){
+         retIndex.first=getVectorSize(retIndex.second);
+     }
+
+   }
+
+
+/*
+
+searchAndDeletItemFromList
+search an item in given list and delete it
+
+*/
+   typename std::list<MEMB_TYP_CLASS*>::iterator
+   searchAndDeletItemFromList(
+       typename list<MEMB_TYP_CLASS*>::iterator itemIt,
+       list<MEMB_TYP_CLASS*>& list, bool& elemDeleted)
+   {
+     return
+         searchAndDeletItemFromList(*itemIt,itemIt,list,elemDeleted);
+   }
+
+
+   typename std::list<MEMB_TYP_CLASS*>::iterator
+   searchAndDeletItemFromList(MEMB_TYP_CLASS* item,
+                              list<MEMB_TYP_CLASS*>& list,  bool& elemDeleted)
+   {
+     typename std::list<MEMB_TYP_CLASS*>::iterator searchIt = list.begin();
+     bool deleted = false;
+     while(!deleted && searchIt != list.end()){
+         if(item == *searchIt){
+             deleted = true;
+             searchIt = list.erase(searchIt);
+         }else{
+             searchIt++;
+         }
+     }
+     elemDeleted = deleted;
+     return searchIt;
+   }
+
+
+   typename std::list<MEMB_TYP_CLASS*>::iterator
+   searchAndDeletItemFromList(MEMB_TYP_CLASS* item,
+                              typename list<MEMB_TYP_CLASS*>::iterator itemIt,
+                              list<MEMB_TYP_CLASS*>& list,  bool& elemDeleted)
+   {
+     typename std::list<MEMB_TYP_CLASS*>::iterator searchIt = //list.begin();
+         searchAndDeletItemFromList( item, list, elemDeleted);
+     if(!elemDeleted){
+         return itemIt;
+     }else{
+         return searchIt;
+     }
+   }
+
+
+/*
+
+updateNeighbor
+
+*/
+   void updateNeighborLeftPointToRightList(MEMB_TYP_CLASS* point, 
+                                           list<MEMB_TYP_CLASS*>& destList,
+                                           typename list<MEMB_TYP_CLASS*>::
+                                           iterator listIt,
+                                           TYPE* leftInnerPoint, 
+                                           TYPE* rightInnerPoint)
+   {
+     list<MEMB_TYP_CLASS*> neighborList ;
+     while (listIt != destList.end() &&
+         listIt != --destList.begin() &&
+         (*listIt)->calcXDistanz(leftInnerPoint) <= eps){
+
+         if((*listIt)->calcDistanz(point) <= eps){
+
+             updateNeighbor(point,*listIt);
+         }
+         listIt++;
+     }
+   }
+
+   void updateNeighborRightPointToLeftList(MEMB_TYP_CLASS* point, 
+                                           list<MEMB_TYP_CLASS*>& destList,
+                                           typename list<MEMB_TYP_CLASS*>::
+                                           iterator listIt,
+                                           TYPE* leftInnerPoint, 
+                                           TYPE* rightInnerPoint)
+   {
+     list<MEMB_TYP_CLASS*> neighborList ;
+     while (listIt != --destList.begin() &&
+         listIt != destList.end() &&
+         (*listIt)->calcXDistanz(rightInnerPoint) <= eps){
+         if((*listIt)->calcDistanz(point) <= eps){
+             updateNeighbor(point,*listIt);
+         }
+         listIt--;
+     }
+   }
+
+   void updateNeighborRightListToLeftList(list<MEMB_TYP_CLASS*>& leftList,
+                                          list<MEMB_TYP_CLASS*>& rightList,
+                                          bool leftListSorted,
+                                          bool rightListSorted,
+                                          TYPE* leftInnerPoint, 
+                                          TYPE* rightInnerPoint)
+   {
+
+     list<MEMB_TYP_CLASS*> neighborList ;
+     typename list<MEMB_TYP_CLASS*>::iterator
+     leftListIt = --leftList.end(),
+     rightListIt = rightList.begin();
+     bool epsLefListGreater = false, epsRightListGreater = false;
+
+     if(leftListSorted)
+       {
+         epsLefListGreater = getGreaterEps(leftList,
+                                           rightInnerPoint,leftListIt);
+       }
+     if (rightListSorted)
+       {
+         epsRightListGreater = getGreaterEps(rightList,
+                                             leftInnerPoint,rightListIt);
+       }
+
+     while (leftListIt != --leftList.begin() &&
+         leftListIt != leftList.end() && !epsLefListGreater){
+         while (rightListIt != rightList.end() && !epsRightListGreater){
+
+
+             if((*leftListIt)->calcDistanz(*rightListIt) <= eps){
+
+                 updateNeighbor(*leftListIt,*rightListIt);
+                 //                              ,neighborList);
+
+             }
+             rightListIt++;
+             if (rightListSorted)
+               {
+                 epsRightListGreater = getGreaterEps(rightList,
+                                                     rightInnerPoint,
+                                                     rightListIt);
+               }
+         }
+         rightListIt = rightList.begin();
+         epsRightListGreater = false;
+         leftListIt--;
+         if(leftListSorted)
+           {
+             epsLefListGreater = getGreaterEps(leftList,
+                                               leftInnerPoint,leftListIt);
+           }
+     }
+   }
+
+   bool getGreaterEps(list<MEMB_TYP_CLASS*>& list,
+                      TYPE* borderPoint,
+                      typename std::list<MEMB_TYP_CLASS*>::iterator it)
+   {
+     bool retVal = false;
+     if((!retVal &&
+         it != --list.begin() &&
+         it != list.end()))
+       {
+         retVal = (*it)->calcXDistanz(borderPoint) > eps;
+
+       }
+     return retVal;
+   }
+
+   void updateNeighbor(MEMB_TYP_CLASS * leftMemb, MEMB_TYP_CLASS *rightMemb,
+                       list<MEMB_TYP_CLASS*>& neighborList);
+
+   void updateNeighbor(MEMB_TYP_CLASS * leftMemb, MEMB_TYP_CLASS *rightMemb)
+   {
+     list<MEMB_TYP_CLASS*> neighborList;
+     //TODO updateNeighbor schneller machen 
+     //-> teste ohne rekursive aufrufe -> wie bei initNeighbor
+     updateNeighbor(leftMemb,rightMemb,neighborList);
+   }
+
+/*
+isMembInList
+when point is in list -> return true
+
+*/
+   bool isMembInList(MEMB_TYP_CLASS *memb, list<MEMB_TYP_CLASS*>& list);
+
+
+/*
+testReachabilityAndSetClusterNoAtEachPoint
+test each point if it is density reachable
+update clusterNo and Type
+
+*/
+   bool testReachabilityAndSetClusterNoAtEachPoint(TYPE* leftOuterPoint,
+                                          TYPE* rightOuterPoint,
+                                          list<MEMB_TYP_CLASS*>& list,
+                                          pair<unsigned int,Kind>& clusterPair,
+                                          bool isAlreadyClusterCand)
+   {
+     return testReachabilityAndSetClusterNoAtEachPoint( leftOuterPoint,
+                                            rightOuterPoint,
+                                            list,
+                                            clusterPair.first,
+                                            getClusterType(clusterPair.second),
+                                            isAlreadyClusterCand);
+   }
+
+
+   bool testReachabilityAndSetClusterNoAtEachPoint(TYPE* leftOuterPoint,
+                                                   TYPE* rightOuterPoint,
+                                                   list<MEMB_TYP_CLASS*>& list,
+                                                   int listNo,
+                                                   int type,
+                                                   bool isAlreadyClusterCand)
+   {
+     typename std::list<MEMB_TYP_CLASS*>::iterator
+     it = list.begin();
+     bool allDensReachable = true;
+
+     Kind kind = getClusterKindFromType(type);
+
+     while(it!=list.end()){
+         if(!(*it)->updateInnerPnt(minPts)){
+             if(!(*it)->updateDensityReachable(minPts)){
+                 allDensReachable = false;
+                 if(moveItemToClusterCandOrNoise(leftOuterPoint,
+                                                 rightOuterPoint,
+                                                 it,list,
+                                                 isAlreadyClusterCand))
+                   {
+                     it = list.begin();
+                   }else{
+                       it++;
+                   }
+                 //TODO maybe split list
+                 //TODO eventuell unterscheiden ob punkt
+             } else{
+                 (*it)->setClusterNo(getClusterNo(listNo,kind));
+                 (*it)->setClusterType(type);
+                 it++;
+             }
+         }else{
+             (*it)->setClusterNo(getClusterNo(listNo,kind));
+             (*it)->setClusterType(type);
+             it++;
+         }
+
+     }
+     return allDensReachable;
+   }
+
+
+   bool moveItemToClusterCandOrNoise(TYPE* leftOuterPoint, 
+                                     TYPE* rightOuterPoint,
+                                     typename list<MEMB_TYP_CLASS*>::
+                                     iterator delIt,
+                                     list<MEMB_TYP_CLASS*>& srcList,
+                                     bool isAlreadyClusterCand)
+   {
+     
+// the examined Point is not denisty reachable
+// look whether its distance to the outer borderpoints is > eps
+// if it is consider its neighbors if they are Border or Inner Points
+// if one ore more of its neighbors are border points which
+// are within the outer borders - examine if the Point could
+// transform to a density reachable point if his foundet Neighbors transform
+// to inner points - when this could be move point to clusterCandlist else to
+// NOISE
+     
+
+
+     //check distance to outer borders
+     bool isClusterCand = false,itemWasMoved = false;
+     if(pointIsInOuterBorders(leftOuterPoint,rightOuterPoint,delIt))
+       {
+         //add to clusterCand
+         isClusterCand = true;
+
+       } else {
+           //check Neighbors if there are inner or outer points
+           list<MEMB_TYP_CLASS*> innerNeighbors;
+           list<MEMB_TYP_CLASS*> densReachNeighbors;
+           typename list<MEMB_TYP_CLASS*>::iterator
+           neighborIt = (*delIt)->getEpsNeighborhood(true);
+           while (neighborIt != (*delIt)->getEpsNeighborhood(false) &&
+               !isClusterCand)
+             {
+               if((*neighborIt)->updateInnerPnt(minPts))
+                 {
+                   innerNeighbors.push_back((*neighborIt));
+                 }else {
+                     if(pointIsInOuterBorders(leftOuterPoint,
+                                              rightOuterPoint,neighborIt) &&
+                         (*neighborIt)->updateDensityReachable(minPts))
+                       {
+                      //add borderPoints which are reachable in next clustering
+                         densReachNeighbors.push_back((*neighborIt));
+                       }
+                 }
+               //if now sizes from Neighbors >= minPts
+          //->it is possible that this point is density reachable in next round
+               isClusterCand = (innerNeighbors.size() +
+                   densReachNeighbors.size()) >= minPts;
+               neighborIt++;
+             }
+       }
+     if(isClusterCand)
+       {
+         if(!isAlreadyClusterCand){
+             moveItemUnsorted(
+                 delIt, srcList, clusterCandList,
+                 CLUSTERCAND_CL_NO,CLUSTERCAND_CL_NO);
+             itemWasMoved = true;
+         }
+       } else {
+           itemWasMoved = true;
+           moveItemUnsorted(
+               delIt, srcList, noiseList,
+               NOISE_CL_NO,NOISE_CL_NO);
+       }
+
+     return itemWasMoved;
+   }
+
+/*
+inserElementSorted
+sort the elements from two lists in a new return list
+delete elements from sourceList
+
+*/
+   void sortElemtsFromListsInNewList(list<MEMB_TYP_CLASS*>& sourceList,
+                                     list<MEMB_TYP_CLASS*>& destList,
+                                     list<MEMB_TYP_CLASS*>& retList,
+                                     pair<unsigned int,Kind>& retIndex)
+   {
+     typename list<MEMB_TYP_CLASS*>::iterator
+     sourceListIt  = sourceList.begin(),
+     destListIt  = destList.begin();
+
+     int retClNo = getClusterNo(retIndex);
+     int clType = getClusterType(retIndex.second);
+
+     while(destListIt != destList.end()
+         && sourceListIt  != sourceList.end())
+       {
+         if((*destListIt)->getXVal() >= (*sourceListIt)->getXVal())
+           {
+             retList.push_back((*destListIt));
+             (*destListIt)->setClusterNo(retClNo);
+             (*destListIt)->setClusterType(clType);
+             destListIt++;
+           }
+         else
+           {
+             retList.push_back((*sourceListIt));
+             (*sourceListIt)->setClusterNo(retClNo);
+             (*sourceListIt)->setClusterType(clType);
+             sourceListIt++;
+           }
+       }
+
+     while(destListIt != destList.end()){
+         retList.push_back((*destListIt));
+         (*destListIt)->setClusterNo(retClNo);
+         (*destListIt)->setClusterType(clType);
+         destListIt++;
+     }
+     while(sourceListIt != sourceList.end()){
+         retList.push_back((*sourceListIt));
+         (*sourceListIt)->setClusterNo(retClNo);
+         (*sourceListIt)->setClusterType(clType);
+         sourceListIt++;
+     }
+
+     sourceList.clear();
+
+   }
+
+/*
+sortRightListToLeftList
+
+fuegt die elemente sortiert in die linke liste ein
+benutzt fuer listen zusammenhaengen links + rechts
+
+*/
+   void sortRightListToLeftList(Cluster * origCluster,
+                                list<MEMB_TYP_CLASS*>& sourceList,
+                                list<MEMB_TYP_CLASS*>& destList,
+                                pair<double,double>& sourceMinMax,
+                                pair<double,double>& destMinMax,
+                                pair<unsigned int,Kind>& origIndex,
+                                pair<unsigned int,Kind>& destIndex,
+                                bool kindChanged,bool changeMinMax)
+   {
+
+     typename list<MEMB_TYP_CLASS*>::iterator
+     sourceListIt,destListIt ;
+     int destClNo = getClusterNo(destIndex);
+     int clType = getClusterType(destIndex.second);
+     int destListLength = destList.size();
+
+     if(kindChanged)
+       {//change each clusterNo and Type in destList
+         updateClusterNoAndTypeInList(destList,destIndex);
+       }
+
+     if(sourceList.size() > 0 ){
+         sourceListIt  = sourceList.begin();
+         destListIt  = --destList.end();
+
+         while(sourceListIt != sourceList.end()){
+             //first go back in list until destPoint > srcPoint
+             if(destListLength)
+               {
+                 if(destListIt == destList.end()){
+                     destListIt--;
+                 }
+                 while(destListIt != destList.begin() &&
+                     destListIt != destList.end() &&
+                     (*destListIt)->getXVal() < (*sourceListIt)->getXVal()){
+                     destListIt--;
+                 }
+                 //then serch position to insert
+                 while(destListIt != destList.end() &&
+                     (*destListIt)->getXVal() >= (*sourceListIt)->getXVal()){
+                     destListIt++;
+                 }
+
+                 destList.insert(destListIt,*sourceListIt);
+
+               }else{
+                   destList.push_back(*sourceListIt);
+               }
+             (*sourceListIt)->setClusterNo(destClNo);
+             (*sourceListIt)->setClusterType(clType);
+
+             sourceListIt++;
+         }
+
+         sourceList.clear();
+     }
+
+     bool minMaxAvailable = getMinMaxSize(origIndex.second) >= origIndex.first;
+
+     //update MinMaxY
+     if(changeMinMax){
+         updateMinMaxVal(destMinMax,sourceMinMax);
+     }
+     if(kindChanged && minMaxAvailable){
+         moveMinMaxPair(destIndex,origIndex,origCluster);
+     }
+     if(kindChanged)
+       {// move list from sourceIndex to destIndex
+         moveClusterList(destIndex,origIndex,origCluster);
+       }
+   }
+
+/*
+updateClusterNoAndTypeInList
+update for each item in destList ClusterNo and ClusterType
+
+*/
+   void updateClusterNoAndTypeInList(list<MEMB_TYP_CLASS*>& destList,
+                                     pair<unsigned int,Kind>& destIndex)
+   {
+     updateClusterNoAndTypeInList(destList,destIndex.first, destIndex.second);
+   }
+
+   void updateClusterNoAndTypeInList(list<MEMB_TYP_CLASS*>& destList,
+                                     int listNo ,Kind kind)
+   {
+     typename list<MEMB_TYP_CLASS*>::iterator
+     destListIt ;
+     int destClNo = getClusterNo(listNo,kind);
+     int clType = getClusterType(kind);
+
+     destListIt  = destList.begin();
+     while(destListIt != destList.end()){
+         (*destListIt)->setClusterNo(destClNo);
+         (*destListIt)->setClusterType(clType);
+         destListIt++;
+     }
+   }
+
+/*
+updateClusterList
+
+*/
+   void copyRightClusterListToLeftCluster(Cluster *rightCluster,
+                                          Kind kind)
+   {
+
+     for(int i=0; i<rightCluster->getVectorSize(kind); i++)
+       {
+         if(rightCluster->getListLength(i,kind) > 0)
+           {//list is not empty
+             pair<unsigned int,Kind> index = make_pair(i,kind);
+             addListToCorrectClusterType(
+                 rightCluster->getList(i,kind),
+                 rightCluster->getMinMaxFromCluster(i,kind),
+                 index);
+           }
+       }
+   }
+
+/*
+ insertIndexToClusterToMelt
  
 */
-    void compareLeftNoiseWithRightCluster(Cluster* destCluster,  
-                                          TYPE* destBorderPoint,
-                                          TYPE* sourceBorderPoint);
-    
-/*
-meltRightClusterWithLeftNoise
+   void insertIndexToClusterToMelt(int minIndex,
+                                   int insertInd,
+                                   Kind kind,
+                                   vector<pair<unsigned int,Kind> >* 
+                                   clusterCandToMelt,
+                                   vector<unsigned int >& minToMaxIndexes)
+   {
+     pair<unsigned int,Kind> newItem= make_pair(insertInd,kind);
 
-*/
-    int meltRightClusterWithLeftNoise(int startPosList,  Cluster* destCluster,
-                                      typename list<MEMB_TYP_CLASS*>::iterator
-                                      sourceListIt,
-                                      TYPE* destBorderPoint);
-    
-    
-/*
- compareLeftClusterWithRightNoise
+     if ( find(clusterCandToMelt[minIndex].begin(),
+               clusterCandToMelt[minIndex].end(), newItem)
+         == clusterCandToMelt[minIndex].end() )
+       {
+         clusterCandToMelt[minIndex].push_back(newItem);
+         insertInMinToMaxIndex(minToMaxIndexes,minIndex);
+       }
+   }
 
-*/
-    void compareLeftClusterWithRightNoise(Cluster* destCluster,
-                                          TYPE* destBorderPoint,
-                                          TYPE* sourceBorderPoint);
-    
-/*
- meltLeftClusterWithRightNois
-
-*/
-    int meltLeftClusterWithRightNoise(int startPos, Cluster* destCluster,
-                                      typename list<MEMB_TYP_CLASS*>::iterator
-                                      sourceListIt,
-                                      TYPE* destBorderPoint);
-    
-/*
- updateBorderNeighbor
-
-*/
-    void updateBorderNeighbor(typename list<MEMB_TYP_CLASS*>::iterator borderIt,
-                              list<MEMB_TYP_CLASS*>& destList,
-                              TYPE* leftOuterPoint, TYPE* rightOuterPoint);
-    
-/*
- memberAllreadyExist
-
-*/
-    bool memberAllreadyExist(typename list<MEMB_TYP_CLASS*>::iterator helpIt,
-                           typename list<MEMB_TYP_CLASS*>::iterator neighborIt,
-                             list<MEMB_TYP_CLASS*>& destList);
-    
-/*
-concatNoise
-
-*/
-    void concatNoise(list<MEMB_TYP_CLASS*>& destList,
-                     MEMB_TYP_CLASS* leftNoisePoint,
-                     MEMB_TYP_CLASS* rightNoisePoint, 
-                     Cluster* cluster, int clusterNo);
-    
-    
-/*
-* initCluster
-* initialize the first cluster. This method is called from a Constructor
-
-*/
-    void initCluster(bool threeMembers);
-    
-    
-    
-  };
-  
-/*
-Constructor
-
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  Cluster<MEMB_TYP_CLASS,TYPE>::
-  Cluster( MEMB_TYP_CLASS* leftMember, 
-           MEMB_TYP_CLASS* rightMember,double _eps, int _minPts)
-  {
-    eps=_eps; minPts=_minPts;
-    
-    list<MEMB_TYP_CLASS*> clusterList;
-    bool hasCluster = true;
-    
-    if(leftMember->calcDistanz(rightMember) <= eps){
-      rightMember->addNeighbor( leftMember);
-      leftMember->addNeighbor(rightMember);
-      clusterList.push_back(leftMember);
-      clusterList.push_back(rightMember);
-    }else{ // members are noie
-      hasCluster=false;
-      noiseList.push_back(leftMember);
-      noiseList.push_back(rightMember);
-    }
-    
-    
-    if(hasCluster){
-      clusterArray.push_back(clusterList);
-      updateClusters();
-    }
-    
-  }
-/*
-* meltClusters
-* melt this Cluster with the right cluster
-* medianPoint and rightMedPoint are the two outer Points which 
-* represent the splitline
-
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::
-  meltClusters(Cluster * rightCluster, 
-               TYPE* leftOuterPoint, TYPE* rightOuterPoint){
-    
-    typename list<MEMB_TYP_CLASS*>::iterator 
-    itLeft,itRight,itList,itNoiseLeft, itNoiseRight, 
-    itHelpNoiseLeft, itHelpNoiseRight;
-    
-    bool  endOfLeftNoiseList=false, endOfRightNoiseList=false;
-    
-    //check left noise with right cluster
-    if(rightCluster->getClusterArraySize() && noiseList.size()){
-      compareLeftNoiseWithRightCluster(
-        rightCluster,rightOuterPoint,leftOuterPoint);
-    }
-    
-    //check right noise with left cluster
-    if(getClusterArraySize() && 
-      rightCluster->getListLength(-1,NOISE)){
-      compareLeftClusterWithRightNoise(
-        rightCluster,leftOuterPoint,rightOuterPoint);
-    }
-    
-    
-    // check left noise with right noise
-    endOfLeftNoiseList=false;
-    endOfRightNoiseList=false;
-    itNoiseLeft = noiseList.begin();
-    while(!endOfRightNoiseList && itNoiseLeft!=noiseList.end()){
-      if((*itNoiseLeft)->calcXDistanz(leftOuterPoint) <=eps){
-        itNoiseRight = rightCluster->getIterator(-1,true,NOISE);
-        while(!endOfLeftNoiseList && itNoiseRight!=
-          rightCluster->getIterator(-1,false,NOISE) )
-        {
-          
-          if((*itNoiseLeft)->calcDistanz(*itNoiseRight) <= eps){
-            
-            list<MEMB_TYP_CLASS*> clusterList;
-            concatNoise(clusterList,*itNoiseLeft,*itNoiseRight,
-                        rightCluster,clusterArray.size());
-            updateNeighbor(*itNoiseRight,*itNoiseLeft);
-            
-            itNoiseLeft = noiseList.erase(itNoiseLeft);
-            if(itNoiseLeft==noiseList.end()){
-              endOfLeftNoiseList=true;
-            }
-            itNoiseRight = rightCluster->eraseItem(-1,itNoiseRight,NOISE);
-            if(itNoiseRight==getIterator(-1,false,NOISE) ){
-              endOfRightNoiseList=true;
-            }
-            clusterArray.push_back(clusterList);
-          }else
-            itNoiseRight++;
-        }
-      }
-      itNoiseLeft++;
-    }
-    
-    //copy rest right noise list to left noise list
-    itNoiseRight = rightCluster->getIterator(-1,true,NOISE);
-    while(rightCluster->getListLength(-1,NOISE)){
-      noiseList.push_back((*itNoiseRight));
-      itNoiseRight= rightCluster->eraseItem(-1,itNoiseRight,NOISE);
-    }
-    
-    
-    //compare left cluster with right cluster
-    compareLeftOuterClusterWithRightInnerCluster(
-      rightCluster,leftOuterPoint,rightOuterPoint);
-    
-    //append the rest of the right clusters and clustercandidates
-    int i =0;
-    for ( i=0;i<rightCluster->getClusterArraySize();i++){
-      if(rightCluster->getListLength(i,CLUSTER)){
-        clusterArray.push_back(rightCluster->getList(i,CLUSTER));
-      }
-    }
-    
-    delete rightCluster;
-    updateClusters();
-  }
-  
-/*
-* addMember
-* add the committed member to the cluster
-
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::addMember(MEMB_TYP_CLASS* member){
-    //  MEMB_TYP_CLASS* member = new MEMB_TYP_CLASS(memb);
-    int memberList = 0;
-    bool isClusterMember = false, memberAdded=false;
-    typename list<MEMB_TYP_CLASS*>::iterator itLeft,itNoiseLeft;
-    
-    for(unsigned int i=0;i<clusterArray.size() && !isClusterMember ;i++){
-      memberList=i;
-      itLeft =clusterArray.at(i).end();
-      --itLeft;
-      while(itLeft != --clusterArray.at(i).begin()&& !isClusterMember){
-        int dist =(*itLeft)->calcDistanz(member);
-        if(dist<=eps){
-          isClusterMember = true;
-          clusterArray.at(i).push_back(member);
-          updateNeighbor(*itLeft,member);
-        }
-        --itLeft;
-      }
-    }
-    
-    //check noiseList
-    itNoiseLeft = noiseList.begin();
-    while(itNoiseLeft!=noiseList.end() && !memberAdded) {
-      if((*itNoiseLeft)->calcDistanz(member) <=eps){
-        if(isClusterMember){
-          pushNoise(*itNoiseLeft,this->getList(memberList,CLUSTER),
-                    this->getList(-1,NOISE),memberList);
-          updateNeighbor(*itNoiseLeft,member);
-        }else{
-          list<MEMB_TYP_CLASS*> clusterList;
-          clusterList.push_back(member);
-          pushNoise(*itNoiseLeft,clusterList,
-                    this->getList(-1,NOISE),clusterArray.size());
-          updateNeighbor(*itNoiseLeft,member);
-          clusterArray.push_back(clusterList);
-          memberList= clusterArray.size()-1;
-          isClusterMember=true;
-        }
-        itNoiseLeft=noiseList.erase(itNoiseLeft);
-        memberAdded=true;
-      }else{
-        ++itNoiseLeft;
-      }
-    }
-    
-    if(!isClusterMember)
-      noiseList.push_back(member);
-    
-    updateClusters();
-  }
-  
-/*
-* updateNeighbor
-* update the eps neighborhood from left and right member
-
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::
-  updateNeighbor(MEMB_TYP_CLASS * leftMemb, MEMB_TYP_CLASS *rightMemb){
-    //     add left and right as neighbor
-    if(leftMemb->calcDistanz(rightMemb)<=eps){
-      //control if neighbor already existing
-      if(!leftMemb->existNeighbor(rightMemb)){
-        leftMemb->addNeighbor(rightMemb);
-      }
-      if(!rightMemb->existNeighbor(leftMemb)){
-        rightMemb->addNeighbor(leftMemb);
-      }
-      
-      typename list<MEMB_TYP_CLASS*>::iterator leftIt,rightIt;
-      
-      rightIt=rightMemb->getEpsNeighborhood(true);
-      while(rightIt != rightMemb->getEpsNeighborhood(false)){
-        if(leftMemb->calcDistanz(*rightIt)<=eps){
-          if(!leftMemb->existNeighbor(*rightIt)){
-            leftMemb->addNeighbor(*rightIt);
-          }
-          if(!(*rightIt)->existNeighbor(leftMemb)){
-            (*rightIt)->addNeighbor(leftMemb);
-          }
-        }
-        ++rightIt;
-      }
-      
-      
-      leftIt=leftMemb->getEpsNeighborhood(true);
-      while(leftIt!=leftMemb->getEpsNeighborhood(false)){
-        if(rightMemb->calcDistanz(*leftIt)<=eps){
-          if(!rightMemb->existNeighbor(*leftIt)){
-            rightMemb->addNeighbor(*leftIt);
-          }
-          if(!(*leftIt)->existNeighbor(rightMemb)){
-            (*leftIt)->addNeighbor(rightMemb);
-          }
-        }
-        ++leftIt;
-      }
-    }
-    
-  }
-  
-/*
-* printAll
-* print out the cluster information at the console
-
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::printAll(){
-    cout << "--------------------cluster:--------------------" << endl;
-    cout << "Min Points = " << minPts << "\nEPS = " << eps << "\n "<< endl;
-    for( unsigned int i = 0; i<clusterArray.size(); i++){
-      cout << "Cluster Number " << i << ":" << endl;
-      printList(i);
-      cout << endl;
-    }
-    typename list<MEMB_TYP_CLASS*>::iterator it = noiseList.begin();
-    cout << "Noise List: ";
-    for (;it!=noiseList.end();it++){
-      (*it)->printPoint(); cout  << ", ";
-    }
-    
-    cout << endl;
-    cout << "-----" << endl;
-    cout << "epsNeighborhood for eps= "<< eps << " and minPts = " 
-    << minPts << ": \n " << endl;
-    for(unsigned int i = 0; i<clusterArray.size(); i++){
-      cout << "epsNeighborhood in Cluster Number " << i << ": " << endl;
-      cout << "------------------------------------"<< endl;
-      typename list<MEMB_TYP_CLASS*>::iterator it =clusterArray.at(i).begin();
-      for (;it!=clusterArray.at(i).end();it++){
-        cout << "Member: "; (*it)->printPoint();
-        //cout << " isDensityReachable = " << (*it)->isDensityReachable();
-        cout <<" Cnt neighbors :" << (*it)->getCountNeighbors() <<
-        "  ClusterNo= " << (*it)->getClusterNo() << endl;
-        cout <<" neighbors :";
-        typename list<MEMB_TYP_CLASS*>::iterator nIt = 
-        (*it)->getEpsNeighborhood(true);
-        while (nIt!= (*it)->getEpsNeighborhood(false)){
-          (*nIt)->printPoint(); cout << " DR: "
-          << (*nIt)->isDensityReachable() <<
-          " ClNo: " << (*nIt)->getClusterNo() << ", ";
-          nIt++;
-        }
-        cout <<endl;
-        
-      }
-      cout << "\n" <<endl;
-    }
-    
-    cout << "epsNeighborhood in Noise List : " << endl;
-    cout << "------------------------------------"<< endl;
-    typename list<MEMB_TYP_CLASS*>::iterator NoisIt =noiseList.begin();
-    for (;NoisIt!=noiseList.end();NoisIt++){
-      cout << "Member: "; (*NoisIt)->printPoint();
-      //cout << " isDensityReachable = " << (*NoisIt)->isDensityReachable();
-      cout <<" Cnt neighbors :"<< (*NoisIt)->getCountNeighbors() <<
-      "  ClusterNo= " << (*NoisIt)->getClusterNo() << endl;
-      cout <<" neighbors :";
-      typename list<MEMB_TYP_CLASS*>::iterator nIt = 
-      (*NoisIt)->getEpsNeighborhood(true);
-      while (nIt!= (*NoisIt)->getEpsNeighborhood(false)){
-        (*nIt)->printPoint(); cout <<  " DR: "
-        << (*nIt)->isDensityReachable() <<
-        " ClNo: " << (*nIt)->getClusterNo() << ", ";
-        nIt++;
-      }
-      cout <<endl;
-      
-    }
-    
-    
-    cout << "length of clusters and noiseList" << endl;
-    for( unsigned int i = 0; i<clusterArray.size(); i++){
-      cout << "Cluster Number " << i << ": "<<
-      clusterArray.at(i).size() << endl;
-    }
-    cout << endl;
-     it = noiseList.begin();
-    cout << "Noise List: " << noiseList.size() << endl;
-    
-    
-    
-    cout << "\n--------------------cluster END --------------------\n" << endl;
-  }
-  
-/*
-* printList
-* print out the a choosen cluster on position pos
-
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::printList(int pos){
-    for(typename list<MEMB_TYP_CLASS*>::iterator it = 
-      clusterArray.at(pos).begin();
-        it!=clusterArray.at(pos).end();it++){
-      (*it)->printPoint();
-    cout /*<< ": ClNo:"<< (*it)->getClusterNo() */<< ", ";
-        }
-        cout << "\n";
-  }
-  
-/*
-* printList
-* print a committed list
-
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::printList(list<MEMB_TYP_CLASS*>& dlist){
-    cout << "LIST: ";
-    for(typename list<MEMB_TYP_CLASS*>::iterator it = dlist.begin();
-        it!=dlist.end();it++){
-      (*it)->printPoint();
-    cout /*<< ": ClNo:"<< (*it)->getClusterNo()*/ << ", ";
-        }
-        cout << "\n";
-  }
-  
-/*
- updateClusters
- this method is used at the end of dbDacScan
- it updates each cluster relating to minPts. 
- If the cluster points are density reachable they stay in the cluster
- otherwise they are moved to noise list.
-
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::updateClusters()
-  { 
-    typename list<MEMB_TYP_CLASS*>::iterator clusterIt;
-    unsigned int pos = 0;
-    int clusterNo;
-    
-    while (pos < clusterArray.size()){
-      clusterIt = clusterArray.at(pos).begin();
-      clusterNo = pos;
-      
-      //TODO NEW
-      if(clusterArray.at(pos).size()< minPts){
-        while(clusterIt!=clusterArray.at(pos).end()){
-          (*clusterIt)->setClusterNo(-1);
-          noiseList.push_back(*clusterIt);
-          clusterIt = clusterArray.at(pos).erase(clusterIt);
-        }
-      }else{
-        
-        
-        while(clusterIt!=clusterArray.at(pos).end()){
-          if(!(*clusterIt)->updateInnerPnt(minPts)){
-            if(!(*clusterIt)->updateDensityReachable(minPts)){
-              // update ClusterNO to Noise
-              (*clusterIt)->setClusterNo(-1); // clusterNo -1 is noise 
-              //add point to noise and delete from cluster
-              noiseList.push_back(*clusterIt);
-              clusterIt = clusterArray.at(pos).erase(clusterIt);
-              
-            } else {
-              (*clusterIt)->setClusterNo(clusterNo);
-              clusterIt++;
-            }
-          } else {
-            (*clusterIt)->setClusterNo(clusterNo);
-            clusterIt++;
-          }
-        }
-      }
-      // delete clusterlist at position pos if it is empty
-      if(!clusterArray.at(pos).size()){
-        clusterArray.erase(clusterArray.begin()+pos);
-      }else{
-        pos++;
-      }
-    }
-    // test Noise neighborhood if any point is densityReachable now
-    typename list<MEMB_TYP_CLASS*>::iterator noiseIt = 
-    this->getIterator(-1,true,NOISE);
-    
-    typename list<MEMB_TYP_CLASS*>::iterator neighborIt;
-    typename list<MEMB_TYP_CLASS*>::iterator destListIt;
-    bool isClusterMember = false,endOfNoiseList=false;
-    while(!isClusterMember && noiseIt != this->getIterator(-1,false,NOISE)){
-      neighborIt = (*noiseIt)->getEpsNeighborhood(true);
-      
-      while(!isClusterMember /*&& !endOfNoiseList*/
-        && noiseIt != this->getIterator(-1,false,NOISE)
-        && neighborIt != (*noiseIt)->getEpsNeighborhood(false)
-      ){
-        if((*neighborIt)->updateInnerPnt(minPts)){
-          // find neighborIt.Point in cluster list pos
-          for(unsigned int i=0; i<getClusterArraySize() &&
-            !endOfNoiseList ;i++)
-          {
-            clusterNo = i;
-            double pointXVal= (*neighborIt)->getXVal();
-            double leftBorder = 
-            (*(this->getIterator(i,true,CLUSTER)))->getXVal();
-            double rightBorder =
-            (*(--this->getIterator(i,false,CLUSTER)))->getXVal();
-            if(pointXVal <= leftBorder && pointXVal >= rightBorder){
-              //find position in destList
-              destListIt = this->getIterator(i,true,CLUSTER);
-              while(destListIt != this->getIterator(i,false,CLUSTER) &&
-                (*destListIt)->getXVal() >= (*noiseIt)->getXVal())
-              {
-                destListIt++;
-              }
-              //add to cluster pos
-              clusterArray.at(i).insert(destListIt,*noiseIt);
-              //update clusterNo and density reachable
-              (*noiseIt)->setClusterNo(clusterNo);
-              (*noiseIt)->updateDensityReachable(minPts);
-              //delete from noise
-              noiseIt = this->eraseItem(-1,noiseIt,NOISE);
-              if(noiseIt == this->getIterator(-1,false,NOISE)){
-                endOfNoiseList = true;
-              }
-            }
-          }
-          isClusterMember=true;
-        }else{
-          neighborIt++;
-        }
-      }
-      noiseIt++;
-    }
-  }
-  
-  
-  template <class MEMB_TYP_CLASS, class TYPE>
-  int
-  Cluster<MEMB_TYP_CLASS,TYPE>::pushNoise(MEMB_TYP_CLASS* noisePoint, 
-                                          list<MEMB_TYP_CLASS*>& destList, 
-                                          list<MEMB_TYP_CLASS*>& noiseList,
-                                          int clusterNo)
-  {
-    typename list<MEMB_TYP_CLASS*>::iterator destListIt = destList.begin();
-    int cntNoisePnt =1;
-    //input noisePoint in sorted List
-    while(destListIt != destList.end() && 
-      (*destListIt)->getXVal() >= noisePoint->getXVal()) {
-      destListIt++;
-    }
-    destList.insert(destListIt,noisePoint);
-    noisePoint->setClusterNo(clusterNo);
-    
-    //insert neighbors form noise point
-    typename list<MEMB_TYP_CLASS*>::iterator 
-    neighborIt = noisePoint->getEpsNeighborhood(true);
-    while(neighborIt != noisePoint->getEpsNeighborhood(false)){
-      if(!(*neighborIt)->isClusterMember()){
-        
-        //if end is reached - go one step back
-        if(destListIt==destList.end()) 
-          // if destListIt is on last position you can´t acces any point
-          destListIt--;
-        
-        //first go back in list until listPoint<neighborPoint
-        while(destListIt != destList.begin() && 
-          (*destListIt)->getXVal() < (*neighborIt)->getXVal()){
-          destListIt--;
-        }
-        //then serch position to insert
-        while( destListIt !=destList.end() && 
-          (*destListIt)->getXVal() >= (*neighborIt)->getXVal()){
-          destListIt++;
-        }
-        
-        destList.insert(destListIt,*neighborIt);
-        (*neighborIt)->setClusterNo(clusterNo);
-        cntNoisePnt++;
-        deleteNeighborFromNoiseList(neighborIt,noiseList);
-      }
-      neighborIt++;
-    }
-    return cntNoisePnt;
-  }
-  
-  
-/*
-* concatNoise
-
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::concatNoise(list<MEMB_TYP_CLASS*>& destList, 
-                                            MEMB_TYP_CLASS* leftNoisePoint,
-                                            MEMB_TYP_CLASS* rightNoisePoint, 
-                                            Cluster* cluster, int clusterNo)
-  {
-    //     beginn with smallest item
-    typename list<MEMB_TYP_CLASS*>::iterator 
-    leftNoiseNeighborIt = leftNoisePoint->getEpsNeighborhood(true);
-    typename list<MEMB_TYP_CLASS*>::iterator 
-    rightNoiseNeighborIt = rightNoisePoint->getEpsNeighborhood(true);
-    
-    //beginn with left noise points
-    destList.push_back(leftNoisePoint);
-    leftNoisePoint->setClusterNo(clusterNo);
-    
-    typename list<MEMB_TYP_CLASS*>::iterator destListIt = destList.begin();
-    while(leftNoiseNeighborIt != leftNoisePoint->getEpsNeighborhood(false)){
-      if(!(*leftNoiseNeighborIt)->isClusterMember()){ //point is not in cluster 
-        
-        //first go back in list until listPoint<neighborPoint
-        if(destListIt== destList.end()) 
-          // if it is on last position you can´t acces any point
-          destListIt--;
-        while(destListIt != destList.begin() && 
-          (*destListIt)->getXVal() < (*leftNoiseNeighborIt)->getXVal()){
-          destListIt--;
-        }
-        //then serch position to insert
-        while(destListIt != destList.end() && 
-          (*destListIt)->getXVal() >= (*leftNoiseNeighborIt)->getXVal()){
-          destListIt++;
-        }
-        destList.insert(destListIt,*leftNoiseNeighborIt);
-        (*leftNoiseNeighborIt)->setClusterNo(clusterNo);
-        //delete point from noiseList
-        deleteNeighborFromNoiseList(leftNoiseNeighborIt,
-                                    this->getList(-1,NOISE));
-      }
-      
-      leftNoiseNeighborIt++;
-    }
-    //add right noise points
-    //beginn with left noise points
-    
-    const typename list<MEMB_TYP_CLASS*>::iterator borderIt =--destList.end();
-    //    const int borderPos = destList.size();
-    
-    destList.push_back(rightNoisePoint);
-    rightNoisePoint->setClusterNo(clusterNo);
-    destListIt = destList.end();
-    
-    while(rightNoiseNeighborIt != rightNoisePoint->getEpsNeighborhood(false)){
-      if(!(*rightNoiseNeighborIt)->isClusterMember()){
-        if(destListIt== destList.end()) 
-          // if it is on last position you can´t acces any point
-          destListIt--;
-        //first go back in list until listPoint<neighborPoint
-        while( destListIt != destList.begin() &&
-          (*destListIt)->getXVal() < (*rightNoiseNeighborIt)->getXVal()){
-          destListIt--;
-        }
-        //then serch position to insert
-        while(destListIt != destList.end() &&
-          (*destListIt)->getXVal() >= (*rightNoiseNeighborIt)->getXVal()){
-          destListIt++;
-        }
-        
-        destList.insert(destListIt,*rightNoiseNeighborIt);
-        (*rightNoiseNeighborIt)->setClusterNo(clusterNo);
-        //delete point from noiseList
-        deleteNeighborFromNoiseList(
-          rightNoiseNeighborIt,cluster->getList(-1,NOISE));
-      }
-      rightNoiseNeighborIt++;
-    }
-    
-    // control points descending from borderIt if there are new neighbors
-    typename list<MEMB_TYP_CLASS*>::iterator rightBorderIt= borderIt;
-    rightBorderIt++;
-    updateBorderNeighbor(borderIt,destList,
-                         (*borderIt)->getPoint(),
-                         (*rightBorderIt)->getPoint());
-  }
-  
-  
-  template <class MEMB_TYP_CLASS, class TYPE>
-  bool
-  Cluster<MEMB_TYP_CLASS,TYPE>::deleteNeighborFromNoiseList(
-    typename list<MEMB_TYP_CLASS*>::iterator neighborIt,
-    list<MEMB_TYP_CLASS*>& noiseList)
-  {
-    typename list<MEMB_TYP_CLASS*>::iterator noiseListIt = noiseList.begin();
-    bool deleted = false;
-    while(!deleted && noiseListIt != noiseList.end()){
-      if(*neighborIt == *noiseListIt){
-        deleted = true;
-        noiseListIt = noiseList.erase(noiseListIt);
-      }else{
-        noiseListIt++;
-      }
-    }
-    return deleted;
-  }
-  
-  
 
 /*
-* compareLeftNoiseWithRightCluster
-
+ insert val in index vector -> look up for doubles
+ 
 */
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::
-  compareLeftNoiseWithRightCluster(Cluster* rightCluster, 
-                                   TYPE* rightOuterPoint,
-                                   TYPE* leftOuterPoint)
-  {
-    typename list<MEMB_TYP_CLASS*>::iterator clusterListIt, noiseListIt;
-    int pos = -1, meltedClusters=0,cntNoisePnt=0;//for noise lists
-    
-    
-    //for each cluster element on right side
-    for(int j=0; j<rightCluster->getClusterArraySize();j++){
-      clusterListIt=rightCluster->getIterator(j,true,CLUSTER);
-      typename list<MEMB_TYP_CLASS*>::iterator 
-      borderIt = rightCluster->getIterator(j,true,CLUSTER);
-      //check clusterListIt with rightOuterPoint
-      if(clusterListIt != rightCluster->getIterator(j,false ,CLUSTER) 
-        && (*clusterListIt)->calcXDistanz(rightOuterPoint) <=eps)
-      {
-        while(clusterListIt != rightCluster->getIterator(j,false,CLUSTER))
-        {
-          noiseListIt = this->getIterator(pos,false,NOISE);
-          noiseListIt--;
-          while(noiseListIt != --(this->getIterator(pos,true,NOISE))) 
-          {
-            cntNoisePnt=0;
-            meltedClusters=0;
-            if((*noiseListIt)->calcDistanz(*clusterListIt) <= eps)
-            {
-              cntNoisePnt=
-              pushNoise(*noiseListIt,rightCluster->getList(j,CLUSTER),
-                        this->getList(pos,NOISE),j);
-              updateNeighbor(*noiseListIt,*clusterListIt);
-              
-              if((*clusterListIt)->updateInnerPnt(minPts))        //TODO NEW
-              {
-                meltedClusters=
-                meltRightClusterWithLeftNoise(j+1,rightCluster,
-                                              noiseListIt, rightOuterPoint);
-              }
-              
-              noiseListIt = this->eraseItem(pos,noiseListIt,NOISE);
-              
-              if(meltedClusters){ //if clusters are melted make some changes
-                borderIt = rightCluster->getIterator(j,true,CLUSTER);
-                while(cntNoisePnt){
-                  borderIt++;
-                  cntNoisePnt--;
-                }
-                // set ClusterListIt new
-                clusterListIt=rightCluster->getIterator(j,true,CLUSTER);
-              }
-              
-              updateBorderNeighbor(borderIt,
-                                   rightCluster->getList(j,CLUSTER),
-                                   leftOuterPoint,rightOuterPoint);
-            }
-            noiseListIt--;
-          }
-          clusterListIt++;
-        }
-      }
-    }
-  }
-  
-  
+   void insertInMinToMaxIndex(vector<unsigned int >& minToMaxIndexes,
+                              unsigned int val )
+   {
+     if ( find(minToMaxIndexes.begin(),
+               minToMaxIndexes.end(), val)
+         == minToMaxIndexes.end() )
+       minToMaxIndexes.push_back(val);
+   }
+
+
+
+
+   void deleteEmptyLists(Kind kind)
+   {
+
+
+     int i=0;
+     int updateItems = getVectorSize(kind);
+     while( i < getVectorSize(kind))
+       {
+         if(getListLength(i,kind) < minPts){
+           if(getListLength(i,kind)){
+             //verschiebe punkte zu clusterCand Or Noise
+             typename list<MEMB_TYP_CLASS*>::iterator it =
+             getIterator(i,true,kind);
+             while(it != getIterator(i,false,kind)){
+               it = moveItemUnsorted(it,getList(i,kind),
+                                     clusterCandList,
+                                     CLUSTERCAND_CL_NO,
+                                     CLUSTERCAND_CL_NO);
+             }
+           }
+           //         }
+           //         if(getListLength(i,kind) == 0)
+           //           {
+             eraseList(kind,i);
+             eraseMinMax(kind,i);
+
+             if(i < updateItems)
+               {
+                 updateItems=i;
+               }
+           }else{
+          //Check kind and also update Lists push list back to existing vector
+               pair<unsigned int,Kind> index = make_pair(i,kind), destIndex;
+               list<MEMB_TYP_CLASS*> emptyL;
+               if(!defineDestIndexPair(getList(index),emptyL,
+                                       index,destIndex))
+                 {
+                   moveClusterList(destIndex,index,this);
+                   moveMinMaxPair(destIndex,index,this);
+                   eraseList(index.second,index.first);
+                   eraseMinMax(index.second,index.first);
+
+                   if(i < updateItems)
+                     {
+                       updateItems=i;
+                     }
+                 }else{
+                     i++;
+                 }
+           }
+       }
+     for(int i =updateItems; i< getVectorSize(kind); i++)
+       {
+         updateClusterNoAndTypeInList(getList(i,kind),i,kind);
+       }
+   }
+
+
+
 /*
-* meltRightClusterWithLeftNoise
+pointIsInOuterBorders
+check if a point is within right or left outer boreder
 
 */
-  template <class MEMB_TYP_CLASS, class TYPE>
-  int
-  Cluster<MEMB_TYP_CLASS,TYPE>::
-  meltRightClusterWithLeftNoise(int startPosList, 
-                                Cluster* rightCluster,
-                                typename list<MEMB_TYP_CLASS*>::iterator 
-                                noiseListIt,
-                                TYPE* rightOuterPoint)
-  {
-    typename list<MEMB_TYP_CLASS*>::iterator clusterListIt;
-    int helpInd=startPosList, destList = startPosList - 1, retVal=0;
-    bool listAppended = false;
-    
-    while(helpInd < rightCluster->getClusterArraySize())
-    {
-      clusterListIt=rightCluster->getIterator(helpInd,true,CLUSTER);
-      listAppended=false;
-      if(clusterListIt != rightCluster->getIterator(helpInd,false,CLUSTER) &&
-        (*clusterListIt)->calcXDistanz(rightOuterPoint) <=eps)
-      {
-        while(!listAppended && 
-          clusterListIt != rightCluster->getIterator(helpInd,false, CLUSTER))
-        {
-          if((*noiseListIt)->calcDistanz(*clusterListIt) <=eps){
-            updateNeighbor(*noiseListIt,*clusterListIt);
-            //TODO NEW test if points are inner or dens reachable points
-            if((*clusterListIt)->updateInnerPnt(minPts))        //TODO NEW
-            {
-              rightCluster->meltListsOfCluster(destList, helpInd);
-              rightCluster->eraseList(helpInd);
-              retVal++;
-              listAppended = true;
-            }else{
-              ++clusterListIt;
-            }
-          }else{
-            ++clusterListIt;
-          }
-        }
-      }
-      if(!listAppended)
-        helpInd++;
-    }
-    
-    return retVal; // so much clusters are appended 
-  }
-  
-  
-  //compareLeftClusterWithRightNoise
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::
-  compareLeftClusterWithRightNoise(Cluster* rightCluster, TYPE* leftOuterPoint,
-                                   TYPE* rightOuterPoint)
-  {
-    typename list<MEMB_TYP_CLASS*>::iterator clusterListIt, noiseListIt;
-    int pos=-1,meltedClusters=0,cntNoisePnt=0;
-    
-    for(int j=0; j<this->getClusterArraySize();j++){
-      clusterListIt=this->getIterator(j,false,CLUSTER);
-      clusterListIt--;
-      
-      typename list<MEMB_TYP_CLASS*>::iterator borderIt
-      = --this->getIterator(j,false,CLUSTER);
-      
-      if(clusterListIt != --this->getIterator(j,true,CLUSTER) &&
-        (*clusterListIt)->calcXDistanz(leftOuterPoint) <=eps)
-      { //if distance > eps -> cluster is out of eps range
-        while(clusterListIt != --(this->getIterator(j,true,CLUSTER)))
-        {
-          noiseListIt = rightCluster->getIterator(pos,true,NOISE);
-          while(noiseListIt != rightCluster->getIterator(pos,false,NOISE)) 
-          {
-            cntNoisePnt=0;
-            meltedClusters=0;
-            if((*noiseListIt)->calcDistanz(*clusterListIt) <= eps)
-            {
-              cntNoisePnt=
-              pushNoise(*noiseListIt,this->getList(j,CLUSTER),
-                        rightCluster->getList(pos,NOISE),j);
-              updateNeighbor(*noiseListIt,*clusterListIt);
-              
-              if((*clusterListIt)->updateInnerPnt(minPts))        //TODO NEW
-              {
-                meltedClusters=
-                meltLeftClusterWithRightNoise(j+1,this,
-                                              noiseListIt, leftOuterPoint);
-              }
-              
-              noiseListIt = rightCluster->eraseItem(pos,noiseListIt,NOISE);
-              
-              if(meltedClusters){//if clusters are melted make some changes
-                borderIt = --this->getIterator(j,false,CLUSTER);
-                while(cntNoisePnt){
-                  borderIt--;
-                  cntNoisePnt--;
-                }
-                // set ClusterListIt new
-                clusterListIt=this->getIterator(j,false,CLUSTER);
-                clusterListIt--;
-              }
-              updateBorderNeighbor(borderIt,
-                                   this->getList(j,CLUSTER),
-                                   leftOuterPoint,rightOuterPoint);
-            }else{
-              noiseListIt++;
-            }
-          }
-          
-          clusterListIt--;
-        }
-      }
-      
-    }
-    
-  }
-  
+   bool pointIsInOuterBorders(TYPE* leftOuterPoint, TYPE* rightOuterPoint,
+                              typename list<MEMB_TYP_CLASS*>::iterator it)
+   {
+     return (*it)->calcXDistanz(leftOuterPoint) <= eps ||
+         (*it)->calcXDistanz(rightOuterPoint) <= eps;
+   }
+
+   bool listIsInYBordersOfList(Cluster* srcCluster,
+                               int srcListNo, Kind srcKind,
+                               Cluster* destCluster,
+                               int destListNo, Kind destKind)
+   {
+     pair<double,double> border =
+     srcCluster->getMinMaxFromCluster(srcListNo,srcKind);
+     return listIsInYBordersOfList(border,destCluster,destListNo,destKind);
+   }
+
+   bool listIsInYBordersOfList(pair<double,double>& border,
+                               Cluster* destCluster,
+                               int destListNo, Kind destKind)
+   {
+
+     return(valIsInYBordersOfList(
+         border.first,destCluster,destListNo,destKind)
+         || valIsInYBordersOfList(
+             border.second,destCluster,destListNo,destKind));
+   }
+
+   bool memberIsInYBordersOfList(MEMB_TYP_CLASS* memb, Cluster* cluster,
+                                 int listNo, Kind kind)
+   {
+     return valIsInYBordersOfList(memb->getYVal(),cluster,listNo,kind);
+   }
+
+
+
+   bool valIsInYBordersOfList(double val, Cluster* cluster,
+                              int listNo, Kind kind)
+   {
+     //3 possibilities
+     pair<double,double> border =cluster->getMinMaxFromCluster(listNo,kind);
+     // 1. point is in middle of borders
+     if(val >= border.first && val <= border.second)
+       return true;
+     // 2. point is above border
+     if( abs(val - border.second) <= eps ||
+         // 3. point is under borders
+         abs(border.first - val) <= eps)
+       return true;
+     return false;
+   }
+
+   void deleteVector(vector<pair<unsigned int,
+                     Kind> >* vecAr, unsigned int size )
+   {
+     for (unsigned int i = 0; i< size; i++){
+         vecAr[i].clear();
+     }
+     //     delete[] vecAr;
+   }
+   void deleteVector(vector< clusterCandMelt>* vecAr, unsigned int size )
+   {
+     for (unsigned int i = 0; i< size; i++){
+         vecAr[i].clear();
+     }
+     //         delete[] vecAr;
+   }
+
+   int getClusterType(Kind kind){
+     switch (kind){
+       case NOISE:
+         return NOISE_CL_NO;
+       case CLUSTERCAND:
+         return CLUSTERCAND_CL_NO;
+       case CLUSTER:
+         return CLUSTER_CL_NO;
+       case LEFT:
+         return LEFT_CL_NO;
+       case RIGHT:
+         return RIGHT_CL_NO;
+       case BOTH:
+         return BOTH_CL_NO;
+       case CLCANDCLUSTERS:
+         return CLCANDCL_CL_NO;
+       default:
+         return -3;
+     }
+     return -3;
+   }
+
+   Kind getClusterKindFromType(int clusterType){
+     switch (clusterType){
+       case NOISE_CL_NO:
+         return NOISE;
+       case CLUSTERCAND_CL_NO:
+         return CLUSTERCAND;
+       case CLUSTER_CL_NO:
+         return CLUSTER;
+       case LEFT_CL_NO:
+         return LEFT;
+       case RIGHT_CL_NO:
+         return RIGHT;
+       case BOTH_CL_NO:
+         return BOTH;
+       case CLCANDCL_CL_NO :
+         return CLCANDCLUSTERS;
+       case UNDEF_CLUSTER_CL_NO:
+         return UNDEF;
+     }
+     return UNDEF;
+   }
+   
 /*
-* meltLeftClusterWithRightNoise
+
+calcClusterNo
+calculates a unique identifier based on the cantor pairing function
 
 */
-  template <class MEMB_TYP_CLASS, class TYPE>
-  int
-  Cluster<MEMB_TYP_CLASS,TYPE>::
-  meltLeftClusterWithRightNoise(int startPos, Cluster* leftCluster,
-                                typename list<MEMB_TYP_CLASS*>::
-                                iterator noiseListIt, 
-                                TYPE* leftOuterPoint)
-  {
-    typename list<MEMB_TYP_CLASS*>::iterator clusterListIt;
-    int helpInd=startPos,destList = startPos - 1, retVal=0;
-    bool listAppended = false;
-    
-    while(helpInd < this->getClusterArraySize())
-    {
-      clusterListIt=this->getIterator(helpInd,false,CLUSTER);
-      clusterListIt--;
-      listAppended=false;
-      if(clusterListIt != this->getIterator(helpInd,true,CLUSTER) &&
-        (*clusterListIt)->calcXDistanz(leftOuterPoint) <=eps)
-      {
-        while(!listAppended &&
-          clusterListIt != --(this->getIterator(helpInd,true, CLUSTER)))
-        {
-          if((*noiseListIt)->calcDistanz(*clusterListIt) <=eps){
-            updateNeighbor(*noiseListIt,*clusterListIt);
-            if((*clusterListIt)->updateInnerPnt(minPts))        //TODO NEW
-            {
-              this->meltListsOfCluster(destList,helpInd);
-              clusterArray.erase(clusterArray.begin()+(helpInd));
-              retVal++;
-              listAppended = true;
-              helpInd=startPos;
-            }else{
-              --clusterListIt;
-            }
-          }else{
-            --clusterListIt;
-          }
-        }
-      }
-      if(!listAppended)
-        helpInd++;
-    }
-    return retVal; // so much clusters are appended 
-  }
-  
-/*
-* compareLeftOuterClusterWithRightInnerCluster
 
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::
-  compareLeftOuterClusterWithRightInnerCluster(Cluster* rightCluster,
-                                               TYPE* leftOuterPoint,
-                                               TYPE* rightOuterPoint)
-  {
-    typename list<MEMB_TYP_CLASS*>::iterator 
-    itLeft,itRight,itHelpLeft,appendIt,borderIt;
-    
-    vector<unsigned int> clusterToMeltRight[clusterArray.size()],
-    clusterToAppend[clusterArray.size()], 
-    clusterToMeltLeft[rightCluster->clusterArray.size()];
-    
-    bool newClusterFound=false,clusterIsDensR=false, memberAdded = false, 
-    clusterMelted = false,newClusterFoundInL=false;
-    
-    
-    //check each clusterlist on left side
-    for(unsigned int i=0;i<clusterArray.size();i++){
-      //beginn with the most right one
-      itLeft =clusterArray.at(i).end();
-      itLeft--;
-      
-      
-      if(itLeft != --clusterArray.at(i).begin() &&
-        (*itLeft)->calcXDistanz(leftOuterPoint) <=eps)
-      { //check outer point distance - if bigger than eps - take next list
-        while(itLeft != --clusterArray.at(i).begin() &&
-          (*itLeft)->calcXDistanz(leftOuterPoint) <=eps)
-        {
-          //           cout << "in first while " << endl;
-          //           cout << "i= " << i<< endl;
-          
-          //compare with each cluster on the right side
-          for(unsigned int j=0;j<rightCluster->getClusterArraySize() ;j++)
-          {
-            bool jAlreadyAppend = false;
-            vector<unsigned int>::iterator it = clusterToMeltRight[i].begin();
-            while(!jAlreadyAppend && it != clusterToMeltRight[i].end()){
-              if(j==*it){
-                jAlreadyAppend = true;
-              }
-              it++;
-            }
-            if(!jAlreadyAppend){
-              newClusterFoundInL = false;
-              // get this most left point from right Cluster
-              itRight=rightCluster->getIterator(j,true,CLUSTER);
-              
-              if(!newClusterFoundInL &&
-                itRight !=rightCluster->getIterator(j,false,CLUSTER) &&
-                (*itRight)->calcXDistanz(rightOuterPoint) <=eps)
-              {//check outer point distance -if bigger than eps->take next list 
-                while(!newClusterFoundInL && 
-                  itRight != rightCluster->getIterator(j,false,CLUSTER) &&
-                  (*itRight)->calcXDistanz(rightOuterPoint) <= eps)
-                {//get distance from left Point to right Point
-                  
-                  if((*itLeft)->calcDistanz(*itRight) <= eps){
-                    memberAdded=true;
-                    newClusterFoundInL = true;
-                    updateNeighbor(*itLeft,*itRight); //TODO new
-                    if((*itLeft)->updateInnerPnt(minPts) &&
-                      (*itRight)->updateInnerPnt(minPts))
-                    {
-                      //remember cluster listNo
-                      clusterToMeltRight[i].push_back(j);
-                      clusterToMeltLeft[j].push_back(i);
-                    }
-                  }
-                  ++itRight;
-                }
-              }
-            }
-            
-          }
-          --itLeft;
-        }
-      }
-    }
-    
-    //melt right cluster lists
-    for (unsigned int i = 0; i< clusterArray.size(); i++){
-      if(clusterToMeltRight[i].size()>1)
-      {
-        sort(clusterToMeltRight[i].begin(),clusterToMeltRight[i].end());
-        unsigned int lowInd = clusterToMeltRight[i].at(0);
-        
-        for(unsigned int j = 1; j<clusterToMeltRight[i].size();j++)
-        {
-          unsigned int highInd = clusterToMeltRight[i].at(j);
-          if(rightCluster->getListLength(highInd,CLUSTER)>0 &&
-            clusterToMeltLeft[highInd].size()>0)
-          {
-            rightCluster->meltListsOfCluster(lowInd, highInd);
-            meltIndexOfCluster(clusterToMeltLeft[lowInd],
-                               clusterToMeltLeft[highInd]);
-            clusterToMeltLeft[highInd].clear();
-          }
-          
-        }
-      }
-    }
-    
-    //melt left cluster lists
-    for (unsigned int i = 0; i< rightCluster->getClusterArraySize(); i++){
-      if(clusterToMeltLeft[i].size()>1)
-      {
-        sort(clusterToMeltLeft[i].begin(),clusterToMeltLeft[i].end());
-        unsigned int lowInd = clusterToMeltLeft[i].at(0);
-        
-        for(unsigned int j = 1; j<clusterToMeltLeft[i].size();j++)
-        {
-          unsigned int highInd = clusterToMeltLeft[i].at(j);
-          if(getListLength(highInd,CLUSTER)>0 &&
-            clusterToMeltRight[highInd].size()>0)
-          {
-            meltListsOfCluster(lowInd, highInd);
-            meltIndexOfCluster(clusterToMeltRight[lowInd],
-                               clusterToMeltRight[highInd]);
-            clusterToMeltRight[highInd].clear();
-          }
-        }
-      }
-    }
-    
-    //append cluster list
-    for (unsigned int i = 0; i< clusterArray.size(); i++){
-      if(clusterToMeltRight[i].size()>=1) 
-      {
-        //append right list to left list
-        borderIt = --this->getIterator(i,false,CLUSTER); 
-        
-        appendIt = 
-        rightCluster->getIterator(clusterToMeltRight[i].at(0),true,CLUSTER);
-        while(appendIt != 
-          rightCluster->getIterator(clusterToMeltRight[i].at(0),false,CLUSTER))
-        {
-          clusterArray.at(i).push_back((*appendIt));
-        appendIt++;
-          }
-          rightCluster->clearList(clusterToMeltRight[i].at(0));
-          updateBorderNeighbor(borderIt,this->getList(i,CLUSTER),
-                               leftOuterPoint,rightOuterPoint);
-      }
-    }
-  }
-  
-/*
-* updateBorderNeighbor
+   int getClusterNo(unsigned int listNo, Kind kind)
+   {
+     switch (kind){
+       case NOISE:
+         //        return getClusterNo(listNo,NOISE_CL_NO);
+         return NOISE_CL_NO;
+       case CLUSTERCAND:
+         //        return getClusterNo(listNo,CLUSTERCAND_CL_NO);
+         return CLUSTERCAND_CL_NO;
+       case CLUSTER:
+         return getClusterNo(listNo,CLUSTER_CL_NO);
+       case LEFT:
+         return getClusterNo(listNo,LEFT_CL_NO);
+       case RIGHT:
+         return getClusterNo(listNo,RIGHT_CL_NO);
+       case BOTH:
+         return getClusterNo(listNo,BOTH_CL_NO);
+       case CLCANDCLUSTERS:
+         return getClusterNo(listNo,CLCANDCL_CL_NO);
+       case UNDEF:
+         return -3;
+     }
+     return -1;
+   }
 
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  void
-  Cluster<MEMB_TYP_CLASS,TYPE>::
-  updateBorderNeighbor(typename list<MEMB_TYP_CLASS*>::iterator borderIt,
-                       list<MEMB_TYP_CLASS*>& destList,
-                       TYPE* leftOuterPoint, TYPE* rightOuterPoint)
-  {
-    if(borderIt != destList.end())
-    {
-      
-      // update neighborhood in new cluster
-      typename list<MEMB_TYP_CLASS*>::iterator helpItLeft = borderIt;
-      typename list<MEMB_TYP_CLASS*>::iterator helpItRight;
-      while(helpItLeft != --destList.begin() &&
-        (*helpItLeft)->calcXDistanz(leftOuterPoint) <= eps)
-      {
-        helpItRight=borderIt;
-        helpItRight++;
-        while(helpItRight != destList.end() &&
-          (*helpItRight)->calcXDistanz(rightOuterPoint) <= eps)
-        {
-          if((*helpItLeft)->calcDistanz(*helpItRight) <= eps){
-            updateNeighbor(*helpItLeft,*helpItRight);
-          }
-          ++helpItRight;
-        }
-        --helpItLeft;
-      }
-    }
-  }
-  
-/*
-* memberAllreadyExist
+   unsigned int getClusterNo(unsigned int listNo, int clustertype)
+   {
+     unsigned  int x = listNo;
+     unsigned  int y =(unsigned int) clustertype;
+     return (x+y)*(x+y+1)/2 + y;
+   }
 
-*/
-  template <class MEMB_TYP_CLASS, class TYPE>
-  bool
-  Cluster<MEMB_TYP_CLASS,TYPE>::
-  memberAllreadyExist(typename list<MEMB_TYP_CLASS*>::iterator helpIt, 
-                      typename list<MEMB_TYP_CLASS*>::iterator neighborIt,
-                      list<MEMB_TYP_CLASS*>& destList)
-  {
-    bool exist=false, end = false;
-    while(!exist && !end && helpIt!= destList.begin()){
-      if(helpIt!= destList.end() && *helpIt == *neighborIt)
-        exist=true;
-      if(helpIt != destList.end() && 
-        (*helpIt)->getXVal() > (*neighborIt)->getXVal())
-        end = true;
-      helpIt--;
-    }
-    return exist;
-  }
-  
-/*
-* meltListsOfCluster
+   unsigned int getClusterNo(pair<unsigned int,Kind>& list)
+   {
+     return getClusterNo(list.first,list.second);
+   }
 
-*/
-  template <class MEMB_TYP_CLASS, class TYPE> 
-  void Cluster<MEMB_TYP_CLASS,TYPE>::
-  meltListsOfCluster(int destInd, int sourceInd)
-  {
-    
-    typename list<MEMB_TYP_CLASS*>::iterator destListIt, sourceListIt;
-    typename vector<list<MEMB_TYP_CLASS*> >::iterator clusterIt;
-    destListIt = clusterArray.at(destInd).begin();
-    sourceListIt  = clusterArray.at(sourceInd).begin();
-    bool destIt = true;
-    //insert elements along the x coord
-    list<MEMB_TYP_CLASS*> destList;
-    while(destListIt != clusterArray.at(destInd).end()
-      && sourceListIt  != clusterArray.at(sourceInd).end())
-    {
-      if((*destListIt)->getXVal() >= (*sourceListIt)->getXVal())
-      {
-        destList.push_back((*destListIt));
-        (*destListIt)->setClusterNo(destInd);
-        destListIt++;
-      }
-      else
-      {
-        destList.push_back((*sourceListIt));
-        (*sourceListIt)->setClusterNo(destInd);
-        sourceListIt++;
-      }
-    }
-    
-    while(destListIt != clusterArray.at(destInd).end()){
-      destList.push_back((*destListIt));
-      (*destListIt)->setClusterNo(destInd);
-      destListIt++;
-    }
-    while(sourceListIt != clusterArray.at(sourceInd).end()){
-      destList.push_back((*sourceListIt));
-      (*sourceListIt)->setClusterNo(destInd);
-      sourceListIt++;
-    }
-    
-    clusterIt=clusterArray.begin()+(destInd);
-    clusterArray.at(sourceInd).clear();
-    clusterArray.erase(clusterArray.begin()+(destInd));
-    clusterArray.insert(clusterIt,destList);
-  }
-  
-  template <class MEMB_TYP_CLASS, class TYPE> 
-  void Cluster<MEMB_TYP_CLASS,TYPE>::
-  meltIndexOfCluster( vector<unsigned int> &destIndList ,  
-                      vector<unsigned int> &sourceIndList)
-  {
-    vector<unsigned int>::iterator destIt,srcIt;
-    destIt = destIndList.begin();
-    srcIt = sourceIndList.begin();
-    
-    if (destIt == destIndList.end()){
-      if(srcIt != sourceIndList.end()){
-        while(srcIt != sourceIndList.end())
-        {
-          destIndList.push_back(*srcIt);
-          srcIt++;
-        }
-      }
-    }else{
-      
-      while(srcIt != sourceIndList.end())
-      {
-        if(destIt != destIndList.end() && 
-          srcIt != sourceIndList.end() &&
-          *srcIt==*destIt)
-        {
-          srcIt = sourceIndList.erase(srcIt);
-        }else{
-          
-          if(destIt != destIndList.end() && 
-            srcIt != sourceIndList.end() &&
-            *srcIt<*destIt)
-          {
-            destIt = destIndList.insert(destIt,*srcIt);
-            srcIt++;
-          }else{
-            if(destIt != --destIndList.end()){
-              destIt++;
-            }else{
-              destIt++;
-              destIt = destIndList.insert(destIt,*srcIt);
-              destIt--;
-            }
-          }
-        }
-      }
-    }
-  }
-  
+   int getListNoOfClusterNo(unsigned int clusterNo, Kind kind)
+   {
+     switch (kind){
+       case NOISE:
+         //        return getListNoOfClusterNo(clusterNo,NOISE_CL_NO);
+         return NOISE_CL_NO;
+       case CLUSTERCAND:
+         //        return getListNoOfClusterNo(clusterNo,CLUSTERCAND_CL_NO);
+         return CLUSTERCAND_CL_NO;
+       case CLUSTER:
+         return getListNoOfClusterNo(clusterNo,CLUSTER_CL_NO);
+       case LEFT:
+         return getListNoOfClusterNo(clusterNo,LEFT_CL_NO);
+       case RIGHT:
+         return getListNoOfClusterNo(clusterNo,RIGHT_CL_NO);
+       case BOTH:
+         return getListNoOfClusterNo(clusterNo,BOTH_CL_NO);
+       case CLCANDCLUSTERS:
+         return getListNoOfClusterNo(clusterNo,CLCANDCL_CL_NO);
+     }
+     return -1;
+   }
+
+   unsigned int getListNoOfClusterNo(unsigned int clusterNo, int clustertype)
+   {
+     return wHelp(clusterNo) - (unsigned int)clustertype;
+   }
+
+
+   int getClusterTypeOfClusterNo(unsigned int clusterNo,unsigned int listNo)
+   {
+     unsigned int w = wHelp(clusterNo);
+     unsigned int t = (w*w +w) / 2 ;
+     return (int)(listNo -t);
+   }
+
+   unsigned int wHelp(unsigned int z)
+   {
+     int retVal = floor( (sqrt((8 * z + 1)) -1) / 2);
+
+     return (unsigned int) retVal;
+   }
+
+
+
+}; // class end
+
+
 }
-#endif 
+#endif
 
