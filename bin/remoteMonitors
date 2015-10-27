@@ -24,9 +24,6 @@ if [ "$1" == "--help" ]; then
   echo "         if not used, but later arguments should be set, use a dollar sign "
   echo "         as place holder"
   echo "<user> : user which performs the command on the remote machine"
-
- 
-
   exit
 fi
 
@@ -89,6 +86,14 @@ function startLine {
   echo ' echo configuration file $SECONDO_CONFIG not found an server ' $server >>$script
   echo ' exit' >>$script
   echo 'fi' >>$script
+
+  if [ -z "$port" ]; then
+    echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script 
+  else
+     echo "port=$4" >>$script
+  fi
+
+
   echo 'if [ -z "$TMPDIR" ]; then' >>$script
   echo '  export TMPDIR=/tmp' >>$script
   echo 'fi' >>$script
@@ -148,11 +153,13 @@ function stopLine {
   echo ' echo configuration file $SECONDO_CONFIG not found an server ' $server >>$script
   echo ' exit' >>$script
   echo 'fi' >>$script
+
   if [ -z "$port" ]; then
-     echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
-  else 
-     echo port=$4 >>$script
+    echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script 
+  else
+     echo "port=$4" >>$script
   fi
+
   echo 'if [ -z "$TMPDIR" ]; then' >>$script
   echo '  export TMPDIR=/tmp' >>$script
   echo 'fi' >>$script
@@ -209,10 +216,11 @@ function checkLine {
   echo ' exit' >>$script
   echo 'fi' >>$script
   if [ -z "$port" ]; then
-     echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script
-  else 
-     echo port=$4 >>$script
+    echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script 
+  else
+     echo "port=$4" >>$script
   fi
+
   echo 'if [ -z "$TMPDIR" ]; then' >>$script
   echo '  export TMPDIR=/tmp' >>$script
   echo 'fi' >>$script
