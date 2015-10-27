@@ -1,0 +1,488 @@
+Database : berlintest
+Restore  : No 
+
+Operator : connect
+Number   : 1  
+Signature: text  x int x text -> bool
+Example  : query connect('localhost', 1234, 'SecondoConfig.ini')
+Result   : FALSE
+
+
+Operator : checkConnections 
+Number   : 1  
+Signature: -> strean(tuple)
+Example  : query checkConnections() count
+Result   : 0
+
+Operator : rcmd 
+Number   : 1  
+Signature: int x {string,text} -> stream(tuple)
+Example  : query rcmd(0,'list databases') count
+Result   : 0
+
+Operator : disconnect
+Number   : 1  
+Signature: int -> int , -> int
+Example  : query disconnect(0)
+Result   : 0
+
+Operator  : rquery
+Number    : 1
+Signature : int x {string,text} -> ANY
+Example   : query rquery(0,'query ten count')
+Result    : bug
+Remark    : requires a remote server
+
+Operator  : prcmd
+Number    : 1
+Signature : stream(tuple) x attrName x attrName -> stream(tuple + E)
+Example   : query intstream(0,5) namedtransformstream[Server] extend[ W : 'open database berlintest'] prcmd[Server,W] consume
+Result    : crashes
+Remark    : requires a remote server
+
+Operator : sendFile
+Number   : 1
+Signature : int x {string, text} x {string, text} -> bool
+Example   : query sendFile(0, 'local.txt', "remote.txt")
+Result    : bug
+Remark    : Requires a remote server
+
+Operator  : requestFile
+Number    : 1
+Signature : int x {string, text} x {string, text} -> bool
+Example   : query requestFile(0, 'remote.txt', "local.txt")
+Result    : bug
+Remark    : Requires a remote server
+
+
+Operator  : psendFile
+Number    : 1
+Signature : stream(tuple) x ID x ID x ID -> stream(extend(tuple))
+Example   : query filetable feed psendFile[ServerNo, LocalFileName, RemoteFileName] consume
+Result    : bug
+Remark    : Requires a remote server
+
+
+Operator  : prequestFile
+Number    : 1
+Signature : stream(tuple) x ID x ID x ID -> stream(extend(tuple))
+Example   : query filetable feed prequestFile[ServerNo, RemoteFileName, LocalFileName] consume
+Result    : bug
+Remark    : Requires a remote server
+
+Operator  : getRequestFolder 
+Number    : 1
+Signature : int -> text
+Example   : query getRequestFolder(0)
+Result    : (text undefined)
+
+Operator  : getSendFolder 
+Number    : 1
+Signature : int -> text
+Example   : query getSendFolder(0)
+Result    : (text undefined)
+
+Operator : pconnect
+Number   : 1
+Signature: stream(tuple(X)) x id x id x id -> stream(tuple(X + CNo))
+Example  : query connectTable feed pconnect[Host, Port, Config] consume
+Result   : bug
+Remark   : Requires a remote server
+
+
+Operator : pquery
+Number   : 1
+Signature: stream(int) x {string.text} x int -> stream(Tuple(ServerNo : int, Result : text))
+Example  : query intstream(0,3) pquery['query ten count', 0] consume
+Result   : bug
+Remark   : Requires a remote server
+
+Operator : pquery2
+Number   : 1
+Signature: stream(tuple) x {string.text} x AttrName x AttrName x int x int  -> stream(tuple)
+Example  : query partserver pquery2['query ten_PART_SERVER count', Server, Part, 0, 4] consume
+Result   : bug
+Remark   : Requires a remote server
+
+
+Operator : put
+Number   : 1
+Signature: darray(T) x int x T -> darray(T)
+Example  : query put([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3,27)
+Result   : bug
+Remark   : Requires a remote server
+
+Operator : get
+Number   : 1
+Signature: darray(T) x int -> T
+Example  : query get([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3)
+Result   : bug
+Remark   : Requires a remote server
+
+Operator : size
+Number   : 1
+Signature: darray(T) -> int 
+Example  : query size([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))])
+Result   : 4
+
+Operator : getWorkers 
+Number   : 1
+Signature: darray(T) -> stream(tuple)
+Example  : query getWorkers([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))]) count
+Result   : 2
+
+
+Operator  : fconsume5
+Number    : 1
+Signature : stream(TUPLE) x {string, text} -> stream(TUPLE)
+Example   : query ten feed fconsume5['ten.bin'] count
+Result    : 10
+
+
+Operator  : ffeed5
+Number    : 1
+Signature : {string, text} -> stream(TUPLE)
+Example   : query ffeed5('ten.bin') count
+Result    : 10
+
+Operator  : createDArray
+Number    : 1 
+Signature : stream(TUPLE) x int x string x ANY x Ident x Ident x Ident -> darray
+Example   : query workers feed createDArray[8,"DA1",strassen, Host, Port, Config]
+Result    : bug
+Remark    : in development
+
+Operator: pput
+Number  : 1
+Signature : darray(T) x (int x t)+ -> darray(T)
+Example   : query da3 feed pput[0,ten,1,ten]
+Result    : bug
+Remark    : remote server required
+
+
+Operator: ddistribute2
+Number  : 1
+Signature : stream(tuple(X)) x ident x int x rel x string -> darray(X) 
+Example   : query strassen feed addcounter[No,0] ddistribute2[No, 5, workers, "dstrassen"] 
+Result    : crashes
+Remark    : remote server required
+
+Operator: ddistribute3
+Number  : 1
+Signature : stream(tuple(X)) x int x bool  x rel x string -> darray(rel(tuple(X))) 
+Example   : query strassen feed  ddistribute3[10, TRUE, workers, "dstrassen3"] 
+Result    : crashes
+Remark    : remote server required
+
+Operator: ddistribute4
+Number  : 1
+Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray(X) 
+Example   : query strassen feed  ddistribute4[hashvalue(.Name, 2000), 5 , workers, "dstrassen4"] 
+Result    : crashes
+Remark    : remote server required
+
+Operator: closeWorkers
+Number  : 1
+Signature : -> int , darray -> int
+Example   : query closeWorkers() 
+Result    : 0
+
+Operator: showWorkers
+Number  : 1
+Signature : -> stream(tuple) , darray -> stream(tuple)
+Example   : query showWorkers() count
+Result    : 0
+
+Operator  : DARRAYELEM
+Number    : 1
+Signature : darray(X) -> X
+Example   : query da dloop["da3", fun( x : DARRAYELEM) x count ]
+Result    : bug
+Remark    : remote server required, Type Mapping Operator
+
+
+Operator  : dloop 
+Number    : 1
+Signature : darray(X) x string x (X -> Y) -> darray(Y)
+Example   : query da dloop["da3", fun( x : DARRAYELEM) x count ]
+Result    : bug
+Remark    : remote server required
+
+
+Operator  : dmap
+Number    : 1
+Signature : dfarray x string x fun -> d[f]array
+Example   : query da8 dmap["", . head[25] ]
+Result    : bug
+Remark    : in development
+
+
+Operator  : dloop2 
+Number    : 1
+Signature : darray(X) x darray(Y) x string x (X x Y -> Z) -> darray(Z)
+Example   : query da1 da2  dloop2["da3", . + .. ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : dmap2 
+Number    : 1
+Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
+Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : ARRAYFUNARG1 
+Number    : 1
+Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
+Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : ARRAYFUNARG2
+Number    : 1
+Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
+Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : DARRAYELEM2 
+Number    : 1
+Signature : darray(X) x darray(Y) x string x (X x Y -> Z) -> darray(Z)
+Example   : query da1 da2  dloop2["da3", . + .. ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : fdistribute5 
+Number    : 1
+Signature : stream(tuple) x {string,text} x int x attrname -> stream(tuple)
+Example   : query (strassen feed addcounter[No,0] fdistribute5["strassen",5,No] count) = (strassen count)
+Result    : TRUE
+
+Operator  : fdistribute6 
+Number    : 1
+Signature : stream(tuple) x {string,text} x int -> stream(tuple)
+Example   : query (strassen feed  fdistribute6['strassen6',1000] count) = (strassen count)
+Result    : TRUE
+
+Operator : dsummarize
+Number   : 1
+Signature : darray(DATA) -> stream(DATA)
+Example   : query da2 dsummarize count
+Result    : bug
+Remark    : remote server required
+
+
+Operator : getValue
+Number   : 1
+Signature : darray(X) -> array(X)
+Example   : query da2 getValue
+Result    : bug
+Remark    : remote server required
+
+Operator : deleteRemoteObjects
+Number   : 1
+Signature : darray(X) [x int] -> int
+Example   : query deleteRemoteObjects(da2)
+Result    : bug
+Remark    : remote server required
+
+
+Operator : clone 
+Number   : 1
+Signature : darray(X) x string -> darray(X)
+Example   : query da8 clone["da9"]
+Result    : bug
+Remark    : remote server required
+
+Operator : share 
+Number   : 1
+Signature : string x bool [ x darray] -> text
+Example   : query share("ten", FALSE)
+Result    : bug
+Remark    : remote server required
+
+Operator : cleanUp 
+Number   : 1
+Signature : -> bool , darray -> bool
+Example   : query cleanUp(da8)
+Result    : bug
+Remark    : remote server required
+
+Operator: dfdistribute2
+Number  : 1
+Signature : stream(tuple(X)) x ident x int x rel x string -> dfarray(X) 
+Example   : query strassen feed addcounter[No,0] dfdistribute[No, 5, workers, "fstrassen"] 
+Result    : crashes
+Remark    : remote server required
+
+Operator: dfdistribute3
+Number  : 1
+Signature : stream(tuple(X)) x int x bool x rel x string -> dfarray(rel(tuple(X))) 
+Example   : query strassen feed dfdistribute3[10, TRUE, workers, "fstrassen3" ] 
+Result    : crashes
+Remark    : remote server required
+
+
+Operator: dfdistribute4
+Number  : 1
+Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray(X) 
+Example   : query strassen feed  dfdistribute4[hashvalue(.Name, 2000), 5, workers, "dfstrassen4"] 
+Result    : crashes
+Remark    : remote server required
+
+
+Operator  : convertdarray
+Number    : 1
+Signature : darray -> dfarray , dfarray -> darray
+Example   : query convertdarray(da8)
+Result    : bug
+Remark    : in development
+
+Operator  : DFARRAYSTREAM 
+Number    : 1
+Signature : dfarray(rel(X)) x ... -> stream(X)
+Example   : query da8 dmap["", . head[25] ]
+Result    : bug
+Remark    : in development
+
+Operator : gettuples
+Number   : 1
+Signature : stream(tuple) x {string,text} -> stream(tuple)
+Example   : query strassenfile_btree exactmatchS["Hohe Strasse"] 'strassen.bin' gettuples consume
+Result    : bug
+Remark    : in development
+
+Operator  : fileTransferServer
+Number    : 1
+Signature : int -> bool
+Example   : query fileTransferServer(1238)
+Result    : crashes
+Remark    : Comes never back if no client connect to this server
+
+Operator  : receiveFileClient
+Number    : 1 
+Signature : {string, text} x int x {string,text} x {string,text} -> bool
+Example   : query receiveFileClient('server', 1238, 'remote.txt', 'local.txt')
+Result    : FALSE
+
+Operator  : transferFile
+Number    : 1
+Signature : int x int x int x {string,text} x {string,text}
+Example   : query transferFile(0,1,1238,'Staedte.txt', "Staedte3.txt")
+Result    : FALSE
+
+
+Operator : traceCommands
+Number   : 1
+Signature : bool -> bool
+Example   : query traceCommands(FALSE);
+Result    : TRUE
+
+
+Operator : showProgress 
+Number   : 1
+Signature : bool -> bool
+Example   : query showProgress(TRUE)
+Result    : TRUE
+
+Operator  : staticFileTransferator
+Number    : 1
+Signature : int x int -> bool
+Example   : query staticFileTransferator(1238,10)
+Result    : TRUE
+
+Operator  : killStaticFileTransferator
+Number    : 1
+Signature : int -> bool
+Example   : query killStaticFileTransferator(1238)
+Result    : bug
+Remark    : depends on success of operation staticFileTransferator
+
+Operator  : putFileTCP
+Number    : 1
+Signature : {string,text} x {string,text} x int x bool x {string,text} -> bool
+Example   : query putFileTCP('berlintest', "localhost", 1238, FALSE, 'berlintest_copy')
+Result    : FALSE
+
+Operator  : getFileTCP
+Number    : 1
+Signature : {string,text} x {string,text} x int x bool x {string,text} -> bool
+Example   : query getFileTCP('berlintest_copy', "localhost", 1238, FALSE, 'berlintest_copy3')
+Result    : FALSE
+
+Operator  : fsfeed5
+Number    : 1
+Signature : stream({text,string}) x {rel, text, string} -> stream(tuple)
+Example   : query getDirectory('.') filter [ . startsWith "strassen_" ] fsfeed5[strassen] count
+Result    : bug
+Remark    : depends on existence of appropriate files
+
+Operator  : fdistribute7
+Number    : 1
+Signature : stream(tuple) x (tuple->int) x int x {string,text} x bool -> stream(tuple)
+Example   : query strassen feed fdistribute7[ hashvalue(.Name,997), 12, "strassen", TRUE] count
+Result    : 3212
+
+
+Operator  : partition
+Number    : 1
+Signature : dfarray x fun x string -> dmatrix
+Example   : query size(s7 partition[ hashvalue(.Attr,23) , "m7", 0 ] )
+Result    : bug
+Remark    : remote server required
+
+Operator  : SUBSUBTYPE1
+Number    : 1
+Signature : dfarray x fun x string -> dmatrix
+Example   : query size(s7 partition[ hashvalue(.Attr,23) , "m7", 0 ] )
+Result    : bug
+Remark    : remote server required
+
+Operator  : DFARRAYTUPLE
+Number    : 1
+Signature : dfarray(rel(X)) -> X 
+Example   : query size(s7 partition[ hashvalue(.Attr,23) , "m7", 0] )
+Result    : bug
+Remark    : requires a remote server
+
+Operator  : collect2
+Number    : 1
+Signature : dmatrix x string x int -> dfarray
+Example   : query size(s7 partition[hashvalue(.Attr,23), "m7", 0]  collect2["mys7", 1238] )
+Result    : bug
+Remark    : requires a remote server
+
+Operator  : areduce
+Number    : 1
+Signature : dmatrix(rel(x))  x string x (stream(x)-Y) x int -> d[f]array
+Example   : query m8 areduce["a9", . count, 1236] getValue
+Result    : crashes
+Remark   : under develeopment
+
+
+Operator : SUBTYPE1
+Number   : 1
+Signature : blah -> blub
+Example   : query a1 partitionF[ . head[23], hashValue(.AttrName, 13), "a2", 0]
+Result    : crashes
+Remark    : under development
+
+Operator : FFR
+Number   : 1
+Signature : blah -> blub
+Example   : query a1 partitionF[ . head[23], hashValue(.AttrName, 13), "a2", 0]
+Result    : crashes
+Remark    : under development
+
+
+Operator : partitionF
+Number   : 1
+Signature : blah -> blub
+Example   : query a1 partitionF[ . head[23], hashValue(.AttrName, 13), "a2", 0]
+Result    : crashes
+Remark    : under development
+
+
+
+
+
