@@ -70,7 +70,7 @@
           ,membIdPos,membIdNRPos,neighborIdNRPos;
      double eps;
      string newRelName;
-     bool meltTwoClusters,relNameFound;
+     bool meltTwoClusters,relNameFound, clusterProcessed;
      TupleBuffer* buffer;
      GenericRelationIterator* resIt;  // iterator 
      TupleType* tt;   // the result tuple type 
@@ -108,7 +108,7 @@
                   minPts(_minPts), geoPos(_attrPos),
                   clIdPos(0),clTypePos(0), membIdPos(0),membIdNRPos(0)
                   ,neighborIdNRPos(0), eps(_eps),newRelName(_relName)
-                  ,meltTwoClusters(false),buffer(0), 
+                  ,meltTwoClusters(false),clusterProcessed(false), buffer(0), 
                   resIt(0),tt(0),leftCluster(0),rightCluster(0)
                   ,nodeRel(0),nodeType(0)
     {
@@ -118,8 +118,12 @@
       tt = new TupleType(_tupleResultType);
       buffer = new TupleBuffer(_maxMem);
       init(_inStream,membArrayPtr,membArrayUntouched);
-      mergeSort(membArrayPtr,0,membArrayPtr.size());
-      leftCluster = dbDacScan(membArrayPtr,0,membArrayPtr.size()-1,eps,minPts);
+      if(membArrayPtr.size()){
+        clusterProcessed = true;
+        mergeSort(membArrayPtr,0,membArrayPtr.size());
+        leftCluster = 
+        dbDacScan(membArrayPtr,0,membArrayPtr.size()-1,eps,minPts);
+      }
       initOutput(); 
       }else{
         relNameFound = false;
@@ -140,7 +144,7 @@ Constructor for merge clusters
                  ,clTypePos(_clTypePos),membIdPos(_membIdPos)
                  ,membIdNRPos(_membIdNRPos),neighborIdNRPos(_neighborIdNRPos)
                  ,eps(_eps),newRelName(_relName)
-                 ,meltTwoClusters(true)
+                 ,meltTwoClusters(true), clusterProcessed(false) 
                  ,buffer(0), 
                  resIt(0),tt(0),leftCluster(0),rightCluster(0)
                  ,nodeRel(0),nodeType(0)
@@ -186,35 +190,59 @@ Constructor for merge clusters
         buffer = new TupleBuffer(_maxMem);
         // init leftInputStream
         init(_leftInStream,membArrayPtr,membArrayUntouched,true);
-        initNeighbor(_leftNeigInStream,membArrayUntouched);
-        mergeSort(membArrayPtr,0,membArrayPtr.size());
+        if(membArrayPtr.size()){
+          initNeighbor(_leftNeigInStream,membArrayUntouched);
+          mergeSort(membArrayPtr,0,membArrayPtr.size());
+        }
         // init RightInputStream
         init(_rightInStrem,membArrayPtrSec,membArrayUntouchedSec,true);
-        initNeighbor(_rightNeigInStrem,membArrayUntouchedSec);
-        mergeSort(membArrayPtrSec,0,membArrayPtrSec.size());
+        if(membArrayPtrSec.size()){
+          initNeighbor(_rightNeigInStrem,membArrayUntouchedSec);
+          mergeSort(membArrayPtrSec,0,membArrayPtrSec.size());
+        }
         //define border Points
         TYPE* leftInnerPoint=0;
         TYPE* rightInnerPoint=0;
-        //create a right and a left Cluster
-        if(membArrayPtr.at(0)->getXVal() > membArrayPtrSec.at(0)->getXVal() )
-        {
-          leftCluster = 
-          new Cluster<MEMB_TYP_CLASS, TYPE>(membArrayPtr,eps,minPts);
-          rightCluster = 
-          new Cluster<MEMB_TYP_CLASS, TYPE>(membArrayPtrSec,eps,minPts);
-          leftInnerPoint = membArrayPtr.back()->getPoint();
-          rightInnerPoint = membArrayPtrSec.front()->getPoint();
-        }else{
-          leftCluster = 
-          new Cluster<MEMB_TYP_CLASS, TYPE>(membArrayPtrSec,eps,minPts);
-          rightCluster = 
-          new Cluster<MEMB_TYP_CLASS, TYPE>(membArrayPtr,eps,minPts);
-          leftInnerPoint = membArrayPtrSec.back()->getPoint();
-          rightInnerPoint = membArrayPtr.front()->getPoint();
-        }
         
-        //melt Clusters
-        leftCluster->meltClusters(rightCluster,leftInnerPoint,rightInnerPoint);
+        //create a right and a left Cluster
+        if (membArrayPtr.size() && membArrayPtrSec.size() ) 
+        {
+          clusterProcessed = true;
+          
+          if(membArrayPtr.at(0)->getXVal() > membArrayPtrSec.at(0)->getXVal() )
+          {
+            leftCluster = 
+            new Cluster<MEMB_TYP_CLASS, TYPE>(membArrayPtr,eps,minPts);
+            rightCluster = 
+            new Cluster<MEMB_TYP_CLASS, TYPE>(membArrayPtrSec,eps,minPts);
+            leftInnerPoint = membArrayPtr.back()->getPoint();
+            rightInnerPoint = membArrayPtrSec.front()->getPoint();
+          }else{
+            leftCluster = 
+            new Cluster<MEMB_TYP_CLASS, TYPE>(membArrayPtrSec,eps,minPts);
+            rightCluster = 
+            new Cluster<MEMB_TYP_CLASS, TYPE>(membArrayPtr,eps,minPts);
+            leftInnerPoint = membArrayPtrSec.back()->getPoint();
+            rightInnerPoint = membArrayPtr.front()->getPoint();
+          }
+          //melt Clusters
+          leftCluster->
+          meltClusters(rightCluster,leftInnerPoint,rightInnerPoint);
+          
+        } 
+//         else{
+//           if(membArrayPtr.size()){
+//             leftCluster = 
+//             new Cluster<MEMB_TYP_CLASS, TYPE>(membArrayPtr,eps,minPts);
+//           } else {
+//             if(membArrayPtrSec.size()){
+//               leftCluster = 
+//               new Cluster<MEMB_TYP_CLASS, TYPE>(membArrayPtrSec,eps,minPts);
+//             }
+//           }
+//         }
+        
+       
         initOutput(); 
       }else{
         relNameFound = false;
@@ -283,20 +311,25 @@ Returns the next output tuple.
           Tuple* resTuple = new Tuple(tt);
           int noAttr = tuple->GetNoAttributes();
           
-          if(meltTwoClusters){
-            noAttr = noAttr-5;
-            //because the four last appended Tuple must be overwritten
-          }
-          
-          for(int i = 0; i<noAttr; i++){
-            resTuple->CopyAttribute(i,tuple,i);
-          }
-          if(id < membArrayUntouched.size()){
-            putAttribute(resTuple, noAttr,id, membArrayUntouched);
-          }else{
-            //TODO append second membArrayUntouchedSec
-            id = id - membArrayUntouched.size();
-            putAttribute(resTuple, noAttr,id, membArrayUntouchedSec);
+          if (clusterProcessed) {
+            if(meltTwoClusters){
+              noAttr = noAttr-5;
+              //because the four last appended Tuple must be overwritten
+            }
+            for(int i = 0; i<noAttr; i++){
+              resTuple->CopyAttribute(i,tuple,i);
+            }
+            if(id < membArrayUntouched.size()){
+              putAttribute(resTuple, noAttr,id, membArrayUntouched);
+            }else{
+              //TODO append second membArrayUntouchedSec
+              id = id - membArrayUntouched.size();
+              putAttribute(resTuple, noAttr,id, membArrayUntouchedSec);
+            }
+          } else { //only important for distClMerge
+            for(int i = 0; i< noAttr; i++){
+              resTuple->CopyAttribute(i,tuple,i);
+            }
           }
           
           return resTuple;
