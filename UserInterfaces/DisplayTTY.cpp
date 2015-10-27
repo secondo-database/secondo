@@ -1479,9 +1479,12 @@ struct DisplayArray : DisplayFunction {
 
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
-    if(nl->ListLength(value)==0)
+    if(    (nl->AtomType(value) == SymbolType )
+        && (nl->SymbolValue(value)==Symbol::UNDEFINED())){
+       cout << Symbol::UNDEFINED(); 
+    } else if(nl->ListLength(value)==0) {
       cout << "an empty array";
-    else{
+    }else{
       ListExpr AType = nl->Second(type);
       ListExpr ANumType = nl->Second(numType);
        // find the idpair
