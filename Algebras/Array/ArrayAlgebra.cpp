@@ -113,6 +113,7 @@ for arrays of btree.
 #include "time.h"
 #include "FunVector.h"
 #include "ArrayAlgebra.h"
+#include "ListUtils.h"
 
 using namespace std;
 
@@ -273,6 +274,17 @@ Array::isDefined()
   return defined;
 }
 
+void Array::setUndefined(){
+  if(!defined){
+     return;
+  }
+  delete[] array;
+  array = 0;
+  size = 0;
+  defined = false;
+}
+
+
 int
 Array::getSize()
 {
@@ -335,8 +347,14 @@ static Word
 InArray( const ListExpr typeInfo, const ListExpr instance,
          const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  Array* newarray;
 
+  if(listutils::isSymbolUndefined(instance)){
+     correct = true;
+     Word res( new Array());
+     return  res;  
+  }
+
+  Array* newarray;
   Word* a = new Word[nl->ListLength(instance)];
   int algebraId;
   int typeId;
@@ -380,6 +398,11 @@ static ListExpr
 OutArray( ListExpr typeInfo, Word value )
 {
   Array* array = (Array*)(value.addr);
+
+  if(!array->isDefined()){
+    return listutils::getUndefined();
+  }
+
   int algebraId = array->getElemAlgId();
   int typeId = array->getElemTypeId();
 
@@ -416,6 +439,11 @@ RestoreFromListArray( const ListExpr typeInfo, const ListExpr instance,
                       const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Array* newarray;
+  if(listutils::isSymbolUndefined(instance)){
+     correct = true;
+     Word res( new Array());
+     return  res;  
+  }
 
   Word*  a = new Word[nl->ListLength(instance)];
   int algebraId;
@@ -460,6 +488,9 @@ static ListExpr
 SaveToListArray( ListExpr typeInfo, Word value )
 {
   Array* array = (Array*)(value.addr);
+  if(!array->isDefined()){
+    return listutils::getUndefined();
+  }
   int algebraId = array->getElemAlgId();
   int typeId = array->getElemTypeId();
 
