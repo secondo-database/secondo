@@ -225,6 +225,7 @@ Constructor for merge clusters
             leftInnerPoint = membArrayPtrSec.back()->getPoint();
             rightInnerPoint = membArrayPtr.front()->getPoint();
           }
+                  
           //melt Clusters
           leftCluster->
           meltClusters(rightCluster,leftInnerPoint,rightInnerPoint);
@@ -320,11 +321,15 @@ Returns the next output tuple.
               resTuple->CopyAttribute(i,tuple,i);
             }
             if(id < membArrayUntouched.size()){
+              
+              
               putAttribute(resTuple, noAttr,id, membArrayUntouched);
+//               fillRelations(membArrayUntouched[id]);
             }else{
               //TODO append second membArrayUntouchedSec
               id = id - membArrayUntouched.size();
               putAttribute(resTuple, noAttr,id, membArrayUntouchedSec);
+//               fillRelations(membArrayUntouchedSec[id]);
             }
           } else { //only important for distClMerge
             for(int i = 0; i< noAttr; i++){
@@ -571,12 +576,12 @@ fill and save relation
 */
     void storeRelations() {
       
-      //TODO TEST NEW
+      // TODO TEST NEW
       for(int i = 0 ; i < membArrayUntouched.size(); i++){
-        fillRelations(membArrayUntouched[i]);
+        fillRelations(membArrayUntouched[i],0);
       }
       for(int i = 0 ; i < membArrayUntouchedSec.size(); i++){
-        fillRelations(membArrayUntouchedSec[i]);
+        fillRelations(membArrayUntouchedSec[i], membArrayUntouched.size());
       }
       node->DeleteIfAllowed();
       nodeType->DeleteIfAllowed();
@@ -600,14 +605,14 @@ fillRelations()
 add attributes to realation
 
 */
-    void fillRelations(MEMB_TYP_CLASS* member) 
+    void fillRelations(MEMB_TYP_CLASS* member, long int offset) 
     { 
       typename list<MEMB_TYP_CLASS*>::iterator nIt = 
       member->getEpsNeighborhood(true);
       while(nIt !=  member->getEpsNeighborhood(false))
       {
-        node->PutAttribute(0, new LongInt(member->getTupleId()) ); 
-        node->PutAttribute(1, new LongInt((*nIt)->getTupleId()) ); 
+        node->PutAttribute(0, new LongInt(member->getTupleId() + offset) ); 
+        node->PutAttribute(1, new LongInt((*nIt)->getTupleId() + offset) ); 
         nodeRel->AppendTuple(node);
         nIt++;
       }
