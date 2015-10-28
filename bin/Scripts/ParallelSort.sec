@@ -1,0 +1,54 @@
+# delete previous versions
+
+query RoadsB1 dmap["", memclear()] getValue
+
+query memclear()
+
+query deleteRemoteObjects(RoadsSortedOsm_id)
+
+delete RoadsSortedOsm_id
+
+# start new work
+
+query RoadsB1 
+  dmap["", . extend[Randint: randint(999997)] 
+    filter[(.Randint mod 61) = 0] project[Osm_id] ]
+  dsummarize  
+# 9.5, 9.4 seconds
+  sortby[Osm_id] 
+# 9.5, 9.55 seconds
+  addcounter[C, 0] filter[(.C mod 500) = 499] 	
+    addcounter[D, 1] project[Osm_id, D] 
+    [const rel(tuple([Osm_id: string, D: int])) value ( ("" 0) )] feed
+    concat 
+# 9.75, 9.71 seconds
+    intstream(0, 13) namedtransformstream[N] product
+# 9.71, 9.55 seconds
+    dfdistribute2[N, 14, Workers14, "X100"]
+# 10.48, 10.71
+    dmap["", . letmconsume["Boundaries"]]
+# 11.46, 11.17, 11.34
+
+
+query [const rel(tuple([Osm_id: string, D: int])) value ()] feed 
+  letmconsume["Boundaries"]
+
+query RoadsB1 dmap["", mcreateAVLtree("Boundaries", "Osm_id")]
+
+query mcreateAVLtree("Boundaries", "Osm_id")
+
+let RoadsSortedOsm_id = RoadsB1 
+  partition["Boundaries_Osm_id" "Boundaries" matchbelow[.Osm_id] 
+    extract[D], "X102", 0] 
+  areduce["X103", . sortby[Osm_id], 1238]
+
+# Total time for script:  1:15, 1:19, 1:19
+# after reduction to 14: 57.28, 1:02, 1:04
+# after sending to master: 52.88, 52.65, 54.45
+#
+# Sampling query:        30.23, 31.35, 31.19
+# after reduction to 14: 15.80, 15.92, 18.65
+# after sending to master: 11.50, 11.27, 12.02 
+# 
+# Sorting query: 33.80, 36.49, 35.96
+
