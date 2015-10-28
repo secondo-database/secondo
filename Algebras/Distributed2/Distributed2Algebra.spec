@@ -56,7 +56,7 @@ operator share alias SHARE pattern op(_,_,_)
 
 operator cleanUp alias CLEANUP pattern op(_,_)
 
-operator dfdistribute alias DFDISTRIBUTE pattern _ op [_,_,_,_,_]
+operator dfdistribute2 alias DFDISTRIBUTE2 pattern _ op [_,_,_,_,_]
 operator dfdistribute3 alias DFDISTRIBUTE3 pattern _ op [_,_,_,_]
 operator dfdistribute4 alias DFDISTRIBUTE4 pattern _ op [fun,_,_,_] implicit parameter elem type STREAMELEM
 
