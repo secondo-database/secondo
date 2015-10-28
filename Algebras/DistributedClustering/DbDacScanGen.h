@@ -309,6 +309,7 @@ Returns the next output tuple.
             return 0;
           }
           TupleId id = resIt->GetTupleId();
+          long int membId = (long int) id;
           Tuple* resTuple = new Tuple(tt);
           int noAttr = tuple->GetNoAttributes();
           
@@ -323,12 +324,12 @@ Returns the next output tuple.
             if(id < membArrayUntouched.size()){
               
               
-              putAttribute(resTuple, noAttr,id, membArrayUntouched);
+              putAttribute(resTuple, noAttr,id, membArrayUntouched,membId);
 //               fillRelations(membArrayUntouched[id]);
             }else{
               //TODO append second membArrayUntouchedSec
               id = id - membArrayUntouched.size();
-              putAttribute(resTuple, noAttr,id, membArrayUntouchedSec);
+              putAttribute(resTuple, noAttr,id, membArrayUntouchedSec,membId);
 //               fillRelations(membArrayUntouchedSec[id]);
             }
           } else { //only important for distClMerge
@@ -356,11 +357,11 @@ auxiliary function to put attribute into result Tuple
 
 */
      void putAttribute(Tuple* resTuple,int noAttr, TupleId& id,
-                       vector <MEMB_TYP_CLASS*>& array)
+                       vector <MEMB_TYP_CLASS*>& array, long int membId)
      {
        
        // append attribute MemberId
-       long int membId = (long int) id;
+//        long int membId = (long int) id;
        array[id]->setTupleId(membId);
        resTuple->PutAttribute(noAttr, new LongInt(true,  membId));
        
@@ -581,7 +582,8 @@ fill and save relation
         fillRelations(membArrayUntouched[i],0);
       }
       for(int i = 0 ; i < membArrayUntouchedSec.size(); i++){
-        fillRelations(membArrayUntouchedSec[i], membArrayUntouched.size());
+        fillRelations(membArrayUntouchedSec[i]
+        , /*membArrayUntouched.size()*/ 0);
       }
       node->DeleteIfAllowed();
       nodeType->DeleteIfAllowed();
