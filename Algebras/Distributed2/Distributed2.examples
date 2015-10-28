@@ -311,7 +311,7 @@ Remark    : remote server required
 Operator: dfdistribute2
 Number  : 1
 Signature : stream(tuple(X)) x ident x int x rel x string -> dfarray(X) 
-Example   : query strassen feed addcounter[No,0] dfdistribute[No, 5, workers, "fstrassen"] 
+Example   : query strassen feed addcounter[No,0] dfdistribute2[No, 5, workers, "fstrassen"] 
 Result    : crashes
 Remark    : remote server required
 
