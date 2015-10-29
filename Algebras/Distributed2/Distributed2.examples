@@ -459,6 +459,13 @@ Example   : query m8 areduce["a9", . count, 1236] getValue
 Result    : crashes
 Remark   : under develeopment
 
+Operator  : areduce2
+Number    : 1
+Signature : dmatrix(rel(x))  dfmatrix(rel(x)) x string x (stream(x) x stream(y) ->Z) x int -> d[f]array(Z)
+Example   : query m8a m8b  areduce2["a9", . . product count, 1236] getValue
+Result    : crashes
+Remark   : under develeopment
+
 
 Operator : SUBTYPE1
 Number   : 1

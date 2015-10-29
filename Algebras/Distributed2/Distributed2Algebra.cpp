@@ -570,6 +570,7 @@ class ConnectionInfo{
 
 
       bool cleanUp() {
+          // first step : remove database objects
           string command = "query getcatalog() "
                            "filter[.ObjectName startsWith \"TMP_\"] "
                            "extend[OK : deleteObject(.ObjectName)] "
@@ -578,7 +579,16 @@ class ConnectionInfo{
           string res;
           double rt;
           simpleCommand(command, err, res, false, rt);
-          return err==0;
+          bool result = err==0;
+          string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+          string path = getSecondoHome() +"/dfarrays/" + dbname + "/";
+          command = "query getDirectory('" + path +"') "
+                    "filter[basename(.) startsWith \"TMP_\"] "
+                    "namedtransformstream[F] "
+                    "extend[ OK : removeDirectory(.F, TRUE)] count";
+          simpleCommand(command, err, res, false, rt);
+          result = result && (err==0);
+          return result;
       }
 
 
@@ -1512,14 +1522,7 @@ class PProgressView: public MessageHandler{
      }
 
      ~PProgressView(){
-        if(infos){
-          for(int i=0;i<noServers;i++){
-            if(infos[i]){
-              delete infos[i];
-            }
-          }
-          delete[] infos;
-        }
+        killInfos();
      }
 
      bool handleMsg(NestedList* nl, ListExpr list, int source) {
@@ -1552,11 +1555,24 @@ class PProgressView: public MessageHandler{
         return true;
      }
 
+     void killInfos(){
+        if(infos){
+          for(int i=0;i<noServers;i++){
+            if(infos[i]){
+              delete infos[i];
+            }
+          }
+          delete[] infos;
+        }
+
+     }
+
 
      void init(int _noServers){
          if(!enabled) return;
          noServers = _noServers; 
          boost::lock_guard<boost::mutex> guard(mtx);
+         killInfos();
          cout << endl << endl;
          infos = new PProgressInfo*[noServers];
          for(int i=0;i<noServers;i++){
@@ -3248,7 +3264,7 @@ class prcmdInfo: public CommandListener<string>{
     {
       tt = new TupleType(_tt);
       inStream.open();
-      runner = boost::thread(boost::bind(&prcmdInfo<T>::run, this));
+      runner = boost::thread(&prcmdInfo::run, this);
     }
 
     virtual ~prcmdInfo(){
@@ -3278,11 +3294,13 @@ class prcmdInfo: public CommandListener<string>{
 
 
     Tuple* next(){
+
       // wait for next available tuple
        boost::unique_lock<boost::mutex> lock(resultMutex);
        while(pendingResults.empty()){
             cond.wait(lock);
         }
+
         Tuple* res = pendingResults.front();
         pendingResults.pop_front();
         return res;
@@ -3291,6 +3309,7 @@ class prcmdInfo: public CommandListener<string>{
 
     void jobDone(int id, string& command, size_t no, int error, 
                  string& errMsg, string& resList, double runtime){
+
        Tuple* inTuple;
        {
           boost::lock_guard<boost::mutex> guard(inputTuplesMutex);
@@ -3595,7 +3614,7 @@ int sendFileVMT( Word* args, Word& result, int message,
 */
 
 OperatorSpec sendFileSpec(
-     " int x {string, text} x {string, text} -> int",
+     " int x {string, text} x {string, text} [x bool] -> int",
      " sendFile( serverNo, localFile, remoteFile) ",
      " Transfers a local file to the remote server. "
      " The local file is searched within the current "
@@ -3606,8 +3625,11 @@ OperatorSpec sendFileSpec(
      " on the server below the directory "
      " $SECONDO_HOME/filetransfers/$PID, where $SECONDO_HOME"
      " denotes the used database directory and $PID corresponds "
-     "to the process id of the connected serveri (see also operator"
-     " getSendFolder", 
+     "to the process id of the connected server (see also operator"
+     " getSendFolder. The optional boolean argument determines whether "
+     "an already existing file on the server should be overwritten. "
+     "The return value is an error code. If the code is 0, the transfer "
+     "was successful ", 
      " query sendFile( 0, 'local.txt', 'remote.txt' ");
 
 /*
@@ -3721,14 +3743,18 @@ int requestFileVMT( Word* args, Word& result, int message,
 
 
 OperatorSpec requestFileSpec(
-     " int x {string, text} x {string, text} -> bool",
+     " int x {string, text} x {string, text} [x bool] -> int",
      " requestFile( serverNo, remoteFile, localFile) ",
      " Transfers a remote file to the local file system. "
      " The local file is stored relative to current directory if"
      " its name is not given as an absolute path. The remote "
      " file is taken relative from $SECONDO_HOME/filetransfers."
      " For security reasons, the remote name cannot be an "
-     " absolute path and cannot contains any gobacks (..). ",
+     " absolute path and cannot contains any gobacks (..).  The "
+     "optional boolean argument determines whether a already existing "
+     "local file should be overwritten by this operation. The return "
+     "value is an error code. The transfer was successful if the "
+     "return value is 0.",
      " query requestFile( 0, 'remote.txt', 'local.txt' ");
 
 /*
@@ -4511,25 +4537,32 @@ int ptransferFileVMT( Word* args, Word& result, int message,
 */
 
 OperatorSpec psendFileSpec(
-     " stream(tuple) x attrName x attrName x attrName -> stream(Tuple + Ext)",
-     " _ psendFile[ ServerAttr, LocalFileAttr, RemoteFileAttr]  ",
+     " stream(tuple) x attrName x attrName x attrName [x attrName] "
+     "-> stream(Tuple + Ext)",
+     " _ psendFile[ ServerAttr, LocalFileAttr, RemoteFileAtt"
+     " [, overwriteAttr] ]  ",
      " Transfers local files to remote servers in parallel. The ServerAttr "
      " must point to an integer attribute specifying the server number. "
      " The localFileAttr and remoteFileAttr arguments mark the attribute name"
      " for the local and remote file name, respectively. Both arguments can be"
-     " of type text or string", 
+     " of type text or string. overWriteAttr is the name of a boolean "
+     "attribute specifying whether an already existing remote file should be "
+     "overwritten.", 
      " query fileRel feed psendFile[0, LocalFile, RemoteFile] consume");
 
 
 OperatorSpec prequestFileSpec(
-     " stream(tuple) x attrName x attrName x attrName -> stream(Tuple + Ext)",
-     " _ prequestFile[ ServerAttr, RemoteFileAttr, LocalFileAttr]  ",
+     " stream(tuple) x attrName x attrName x attrName [x attrName] "
+     "-> stream(Tuple + Ext)",
+     " _ prequestFile[ ServerAttr, RemoteFileAttr, "
+     "LocalFileAttr[,overwriteAttr] ]  ",
      " Transfers remote files to local file system  in parallel. "
      "The ServerAttr "
      " must point to an integer attribute specifying the server number. "
      " The localFileAttr and remoteFileAttr arguments mark the attribute name"
      " for the local and remote file name, respectively. Both arguments can be"
-     " of type text or string", 
+     " of type text or string. The optional overwriteAttr of type bool " 
+     "specifies whether an already existing local file should be overwritten.",
      " query fileRel feed prequestFile[0, LocalFile, RemoteFile] consume");
 
 /*
@@ -5551,14 +5584,14 @@ int pquerySelect(ListExpr args){
 OperatorSpec pquerySpec(
      " stream(int) x {text, string} x int -> stream(tuple(int, DATA))",
      " _ pquery[_,_]  ",
-     " Performs the same query on a set of remote servers.  "
-     " The first argument is a stream of integer specifying the servers."
-     " The second argument is the query to execute. The result of this "
-     " query has to be in kind DATA. The third argument is a server number"
-     " for determining the exact result type of the query. The result is"
-     " a stream of tuples consisting of the server number and the result"
-     " of this server.",
-     " query intstream(0,3) pquery['query ten count', 0] sum[Result]");
+     " Performs the same query on a set of remote servers. "
+     "The first argument is a stream of integer specifying the servers. "
+     "The second argument is the query to execute. The result of this "
+     "query has to be in kind DATA. The third argument is a server number "
+     "for determining the exact result type of the query. The result is "
+     "a stream of tuples consisting of the server number and the result "
+     "of this server.",
+     "query intstream(0,3) pquery['query ten count', 0] sum[Result]");
 
 /*
 1.8.6
@@ -5688,7 +5721,7 @@ ListExpr pquery2TM(ListExpr args){
   ListExpr resType;
 
   if(!getQueryType(q,defaultServer,resType, errMsg)){
-    listutils::typeError(errMsg);
+    return listutils::typeError(errMsg);
   }
   if(!listutils::isDATA(resType)){
      return listutils::typeError("result type not in kind DATA");
@@ -6862,7 +6895,7 @@ ListExpr putTM(ListExpr args){
 
    ListExpr subtype = nl->Second(nl->First(args));
    if(!nl->Equal(subtype, nl->Third(args))){
-    return listutils::typeError("type conflic between darray "
+    return listutils::typeError("type conflict between darray "
                                  "and argument type");
    }
    return nl->First(args);
@@ -6931,6 +6964,7 @@ int putVMA(Word* args, Word& result, int message,
 int putVMFA(Word* args, Word& result, int message,
                 Word& local, Supplier s ){
 
+
   result = qp->ResultStorage(s);
   DFArray* res = (DFArray*) result.addr; 
   DFArray* array = (DFArray*) args[0].addr;
@@ -6970,18 +7004,29 @@ int putVMFA(Word* args, Word& result, int message,
      res->makeUndefined();
      return 0;
   }
+
   FileSystem::DeleteFileOrFolder(fname);
   // move File to target position
-  string f1 = ci->getSendPath()+"/"+fname;
-  string f2 = ci->getSecondoHome()+"/dfarrays/"+dbname
-            + "/"+array->getName()+"/" + fname;
-  string cmd = "query moveFile('"+f1+"', '"+ f2 +"')";
 
-
+  string targetDir = ci->getSecondoHome()+"/dfarrays/"+dbname
+                     + "/"+array->getName()+"/";
+  string cmd = "query createDirectory('"+targetDir+"', TRUE)";
   int err;
   string errMsg;
   ListExpr resList;
   double runtime;
+  ci->simpleCommand(cmd,err,errMsg,resList,false, runtime);
+  if(err){
+    cerr << "creating targetdirectory " << targetDir << " failed" << endl;
+    cerr << "cmd : " << cmd << endl;
+    cerr << "error " << errMsg << endl;
+    res->makeUndefined();
+    return 0;
+  }  
+  string f1 = ci->getSendPath()+"/"+fname;
+  string f2 = targetDir + fname;
+  cmd = "query moveFile('"+f1+"', '"+ f2 +"')";
+
   ci->simpleCommand(cmd,err,errMsg,resList,false, runtime);
   if(err!=0){
      cerr << "error in command " << cmd << endl;
@@ -7012,12 +7057,12 @@ int putVMFA(Word* args, Word& result, int message,
 */
 
 OperatorSpec putSpec(
-     " darray(T) x int x T -> darray(T) ",
+     " d[f]array(T) x int x T -> d[f]array(T) ",
      " put(_,_,_)",
-     "Puts an element at a specific position of a darray. "
+     "Puts an element at a specific position of a d[f]array. "
      "If there is some problem, the result is undefined; otherwise "
      "the result represents the same array as before with "
-     "a changed element",
+     "a changed element.",
      "query put([const darray(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] , 1, 27)"
@@ -7283,9 +7328,9 @@ int sizeVMT(Word* args, Word& result, int message,
 }
 
 OperatorSpec sizeSpec(
-     " darray(T) -> int , dfarray(T) - int ",
+     " d[f]array(T) -> int",
      " size(_)",
-     " Returns the number of slots of a darray.",
+     " Returns the number of slots of a d[f]array.",
      " query size([const darray(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] )"
@@ -7415,9 +7460,9 @@ int getWorkersVMT(Word* args, Word& result, int message,
 
 
 OperatorSpec getWorkersSpec(
-     " darray(T) -> stream(tuple(...)) , dfarray(T) - stream(tuple(...))",
+     " d[f]array(T) -> stream(tuple(...)) ",
      " getWorkers(_)",
-     " Returns information about workers in a darray.",
+     " Returns information about workers in a d[f]array.",
      " query getWorkers([const darray(int) value"
      "           (da1 4 ((\"host1\" 1234 \"Config1.ini\")"
      "           (\"host2\" 1234 \"Config2.ini\")))] ) count"
@@ -7989,7 +8034,7 @@ OperatorSpec createDArraySpec(
      "attrName x attrName  -> darray",
      " _ createDArray[size, name, type template , HostAttr, "
                      "PortAttr, ConfigAttr]",
-     " Creates a darray 2. The workers are given by the input stream. ",
+     " Creates a darray. The workers are given by the input stream. ",
      " query workers feed createDArray[6,\"obj\",streets, Host, Port, Config] "
      );
 
@@ -8010,8 +8055,7 @@ Operator createDArrayOp(
 /*
 1.5 Operator pput
 
-This operator sets some values of the dbarray in parallel.
-
+This operator sets some values of the darray in parallel.
 
 
 */
@@ -8281,7 +8325,7 @@ bool isWorkerRelDesc(ListExpr rel, ListExpr& positions, string& errMsg){
 template<class R>
 ListExpr ddistribute2TMT(ListExpr args){
 
-  string err = "stream(tuple(X)) x ident x int x rel x string expected";
+  string err = "stream(tuple(X)) x string x ident x int x rel expected";
 
   if(!nl->HasLength(args,5)){
     return listutils::typeError(err + " (wrong number of arguments)");
@@ -8290,21 +8334,23 @@ ListExpr ddistribute2TMT(ListExpr args){
   if(!Stream<Tuple>::checkType(nl->First(args))){
     return listutils::typeError(err);
   }
-  if(nl->AtomType(nl->Second(args))!=SymbolType){
+  if(!CcString::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
-
-  if(!CcInt::checkType(nl->Third(args))){
+  if(nl->AtomType(nl->Third(args))!=SymbolType){
     return listutils::typeError(err);
   }
-  if(!Relation::checkType(nl->Fourth(args))){
+  if(!CcInt::checkType(nl->Fourth(args))){
+    return listutils::typeError(err);
+  }
+  if(!Relation::checkType(nl->Fifth(args))){
     return listutils::typeError(err);
   }
 
   // retrieve position of the attribute for distributing the relation
 
   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
-  string ident = nl->SymbolValue(nl->Second(args));
+  string ident = nl->SymbolValue(nl->Third(args));
   ListExpr dType;
   int pos = listutils::findAttribute(attrList, ident ,dType);
   if(!pos){
@@ -8316,8 +8362,8 @@ ListExpr ddistribute2TMT(ListExpr args){
   //
   ListExpr workerAttrPositions;
   string errMsg;
-  if(!isWorkerRelDesc(nl->Fourth(args), workerAttrPositions, errMsg)){
-     return listutils::typeError("Fourth arg does not describe a valid "
+  if(!isWorkerRelDesc(nl->Fifth(args), workerAttrPositions, errMsg)){
+     return listutils::typeError("Fifth arg does not describe a valid "
                                  "worker relation: " + errMsg);
   }
 
@@ -8544,8 +8590,8 @@ int ddistribute2VMT(Word* args, Word& result, int message,
    AType* res = (AType*) result.addr; 
 
 
-   CcInt* Size = (CcInt*) args[2].addr;
-   CcString* Name = (CcString*) args[4].addr;
+   CcInt* Size = (CcInt*) args[3].addr;
+   CcString* Name = (CcString*) args[1].addr;
 
    if(!Size->IsDefined() || !Name->IsDefined()){
       res->makeUndefined();
@@ -8554,6 +8600,10 @@ int ddistribute2VMT(Word* args, Word& result, int message,
    int isize = Size->GetValue();
    string name = Name->GetValue();
 
+   if(name.size()==0){
+      name = algInstance->getTempName();
+   } 
+
    if( (isize<=0) || !stringutils::isIdent(name)){
       res->makeUndefined();
       return 0;
@@ -8561,7 +8611,7 @@ int ddistribute2VMT(Word* args, Word& result, int message,
    size_t size = (size_t) isize;
 
 
-   Relation* rel = (Relation*) args[3].addr;
+   Relation* rel = (Relation*) args[4].addr;
    int hostPos = ((CcInt*) args[5].addr)->GetValue();
    int portPos = ((CcInt*) args[6].addr)->GetValue();
    int configPos = ((CcInt*) args[7].addr)->GetValue();
@@ -8664,20 +8714,21 @@ int ddistribute2VMT(Word* args, Word& result, int message,
 
 */
 OperatorSpec ddistribute2Spec(
-     " stream(tuple(X)) x ident x int x rel x string -> darray(X) ",
+     " stream(tuple(X)) x string x ident x int x rel -> darray(X) ",
      " _ ddistribute2[ _, _,_,_]",
-     " Distributes a locally stored relation into a darray. "
+     "Distributes a locally stored relation into a darray. "
      "The first argument is the tuple stream to distribute. The second "
-     "Argument is an attribute within this stream of type int. "
+     "Argument is the name for the resulting darray. If the name is "
+     "an empty string, a name is choosen automatically. "
+     "The third argument is an attribute within the stream of type int. "
      "This attribute controls in which slot of the resulting array "
-     "is the corresponding tuple inserted. The third argument specifies "
+     "is the corresponding tuple inserted. The ifourth argument specifies "
      "the size of the resulting array. The relation argument specifies "
      "the workers for this array. It must be a relation having attributes "
      "Host, Port, and Config. Host and Config must be of type string or text, "
-     "the Port attribute must be of type int. " 
-     "The fifth attribute specifies the name of the resulting array.",
-     " query strassen feed addcounter[No,1] ddistribute2[No, 5, workers, "
-     " \"dstrassen\"]  "
+     "the Port attribute must be of type int. ", 
+     " query strassen feed addcounter[No,1] ddistribute2[\"dstrassen\", No, 5,"
+     " workers, "
      );
 
 
@@ -8694,7 +8745,7 @@ ValueMapping ddistribute2VM[] = {
 
 int distribute2Select(ListExpr args){
 
-  ListExpr rel = nl->Fourth(args);
+  ListExpr rel = nl->Fifth(args);
   ListExpr attrList = nl->Second(nl->Second(rel));
   ListExpr hostType, configType;
   listutils::findAttribute(attrList,"Host",hostType);
@@ -8735,20 +8786,20 @@ argument) is chosen by a boolean argument.
 */
 template<class R>
 ListExpr distribute3TM(ListExpr args){
-  string err = "stream(tuple) x int x bool x rel x string expected";
+  string err = "stream(tuple) x string x int x bool x rel expected";
   if(!nl->HasLength(args,5)){
     return listutils::typeError(err+": wrong number of args");
   }
 
   if(   !Stream<Tuple>::checkType(nl->First(args))
-     || !CcInt::checkType(nl->Second(args))
-     || !CcBool::checkType(nl->Third(args))   
-     || !CcString::checkType(nl->Fifth(args))){
+     || !CcString::checkType(nl->Second(args))
+     || !CcInt::checkType(nl->Third(args))
+     || !CcBool::checkType(nl->Fourth(args)) ){
     return listutils::typeError(err);
   }
   ListExpr positions;
   string errMsg;
-  if(!isWorkerRelDesc(nl->Fourth(args),positions, errMsg)){
+  if(!isWorkerRelDesc(nl->Fifth(args),positions, errMsg)){
      return listutils::typeError("fourth argument is not a worker relation:" 
                                  + errMsg);
   }
@@ -8762,7 +8813,6 @@ ListExpr distribute3TM(ListExpr args){
                  nl->SymbolAtom(Symbols::APPEND()),
                  positions,
                  resType);
-
 }
 
 
@@ -8786,10 +8836,10 @@ int distribute3VMT(Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    AType* res = (AType*) result.addr;
 
-   CcInt* size = (CcInt*) args[1].addr;
-   CcBool* method = (CcBool*) args[2].addr;
-   Relation* workers = (Relation*) args[3].addr;
-   CcString* n = (CcString*) args[4].addr;
+   CcString* n = (CcString*) args[1].addr;
+   CcInt* size = (CcInt*) args[2].addr;
+   CcBool* method = (CcBool*) args[3].addr;
+   Relation* workers = (Relation*) args[4].addr;
 
    if(!size->IsDefined() || !method->IsDefined() 
       || !n->IsDefined()){
@@ -8803,6 +8853,11 @@ int distribute3VMT(Word* args, Word& result, int message,
      return 0;
    }
    string name = n->GetValue();
+  
+   if(name.size()==0){
+      name = algInstance->getTempName();
+   }
+
    if(!stringutils::isIdent(name)){
      res->makeUndefined();
      return 0;
@@ -8827,9 +8882,6 @@ int distribute3VMT(Word* args, Word& result, int message,
    // to files
 
    bool methodb = method->GetValue();
-
-    
-
 
    vector< pair<ofstream*, char*> > files;
    Stream<Tuple> stream(args[0]);
@@ -8911,7 +8963,6 @@ int distribute3VMT(Word* args, Word& result, int message,
 
    vector<DType*> restorers;
 
-   
    for(size_t i = 0; i<files.size(); i++) {
       string objName = res->getName()+"_"+stringutils::int2str(i);     
       string fn = objName + ".bin";
@@ -8946,19 +8997,19 @@ int distribute3VMT(Word* args, Word& result, int message,
 
 */
 OperatorSpec ddistribute3Spec(
-     " stream(tuple(X)) x int x bool x rel x string-> darray(X) ",
+     " stream(tuple(X)) x string x int x bool x rel -> darray(X) ",
      " _ ddistribute3[ _, _,_,_]",
-     " Distributes a tuple stream into a darray. The boolean "
+     "Distributes a tuple stream into a darray. The boolean "
      "flag controls the method of distribution. If the flag is set to "
-     " true, the integer argument specifies the target size of the "
-     " resulting darray and the tuples are distributed in a circular way. "
+     "true, the integer argument specifies the target size of the "
+     "resulting darray and the tuples are distributed in a circular way. "
      "In the other case, this number represents the size of a single "
      "array slot. A slot is filled until the size is reached. After that "
-     " a new slot is opened. The string attribute gives the name of the "
-     "result. The fourth attribute is a relation with attributes "
+     "a new slot is opened. The string attribute gives the name of the "
+     "result. The fifth attribute is a relation with attributes "
      "Host (string,text), Port(int), and Config(string,text) containing "
      "the workers for the resulting array.",
-     " query strassen feed ddistribute3[10, TRUE, workers, \"da28\" ]  "
+     " query strassen feed ddistribute3[\"da28\",10, TRUE, workers ]  "
      );
 
 
@@ -8974,7 +9025,7 @@ ValueMapping ddistribute3VM[] = {
 };
 
 int distribute3Select(ListExpr args){
-  ListExpr rel = nl->Fourth(args);
+  ListExpr rel = nl->Fifth(args);
   ListExpr attrList = nl->Second(nl->Second(rel));
   ListExpr hostType, configType;
   listutils::findAttribute(attrList,"Host",hostType);
@@ -9007,29 +9058,29 @@ a tuple stream to an darray.
 */
 template<class R>
 ListExpr distribute4TMT(ListExpr args){
-  string err ="stream(tuple) x (tuple->int) x int x rel x string  expected";
+  string err ="stream(tuple) x string x (tuple->int) x int x rel expected";
   if(!nl->HasLength(args,5)){
-    return listutils::typeError(err);
+    return listutils::typeError(err + "( wrong number of args)");
   }
   if(    !Stream<Tuple>::checkType(nl->First(args))
-      || !listutils::isMap<1>(nl->Second(args))
-      || !CcInt::checkType(nl->Third(args))
-      || !CcString::checkType(nl->Fifth(args))){
+      || !CcString::checkType(nl->Second(args))
+      || !listutils::isMap<1>(nl->Third(args))
+      || !CcInt::checkType(nl->Fourth(args))){
     return listutils::typeError(err);
   }
   string errMsg;
   ListExpr positions;
-  if(!isWorkerRelDesc(nl->Fourth(args),positions,errMsg)){
+  if(!isWorkerRelDesc(nl->Fifth(args),positions,errMsg)){
      return listutils::typeError("fourth arg is not a worker relation: "
                                  + errMsg);
   }
 
 
-  ListExpr funargType = nl->Second(nl->Second(args));
+  ListExpr funargType = nl->Second(nl->Third(args));
   if(!nl->Equal(funargType, nl->Second(nl->First(args)))){
     return listutils::typeError("tuple type and function arg type differ");
   }
-  ListExpr funResType = nl->Third(nl->Second(args));
+  ListExpr funResType = nl->Third(nl->Third(args));
   if(!CcInt::checkType(funResType)){
     return listutils::typeError("result of function not an int");
   }
@@ -9057,15 +9108,18 @@ int distribute4VMT(Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    AType* res   = (AType*) result.addr;
 
-   CcInt* si = (CcInt*) args[2].addr;
-   Relation* rel = (Relation*) args[3].addr;
-   CcString* n = (CcString*) args[4].addr;
+   CcString* n = (CcString*) args[1].addr;
+   CcInt* si = (CcInt*) args[3].addr;
+   Relation* rel = (Relation*) args[4].addr;
    
    if(!n->IsDefined() || !si->IsDefined()){
      res->makeUndefined();
      return 0;
    }
    string name = n->GetValue();
+   if(name.size()==0){
+      name = algInstance->getTempName();
+   }
    int siz = si->GetValue();
    if(!stringutils::isIdent(name) || (siz<=0)){
       res->makeUndefined();
@@ -9094,14 +9148,14 @@ int distribute4VMT(Word* args, Word& result, int message,
 
    ListExpr relType = nl->Second(qp->GetType(s));
 
-   ArgVectorPointer funargs = qp->Argument(args[1].addr);
+   ArgVectorPointer funargs = qp->Argument(args[2].addr);
    Word funres;
 
    size_t bufsize = max((size_t)4096, (FILE_BUFFER_SIZE*16) / res->getSize());
 
    while((tuple=stream.request())){
       (* funargs[0]) = tuple;
-      qp->Request(args[1].addr, funres);
+      qp->Request(args[2].addr, funres);
 
       CcInt* fr = (CcInt*) funres.addr;
       int index = fr->IsDefined()?fr->GetValue():0;
@@ -9174,15 +9228,17 @@ int distribute4VMT(Word* args, Word& result, int message,
 }
 
 OperatorSpec ddistribute4Spec(
-     " stream(tuple(X)) x (tuple->int) x int x rel x string-> darray(X) ",
-     " stream  ddistribute4[ fun, size, workers, name ]",
-     " Distributes a locally stored relation into a darray ",
-     " query strassen feed  ddistribute4[ hashvalue(.Name,2000),"
-     " 5, workers,  \"da8\"]  "
+     " stream(tuple(X)) x string x (tuple->int) x int x rel -> darray(X) ",
+     " stream  ddistribute4[ name, fun, size, workers ]",
+     " Distributes a locally stored relation into a darray. If the name is "
+     "an empty string, a name will be automatically chosen. The function "
+     "determines the slot where the tuple will be stored. ",
+     " query strassen feed  ddistribute4[\"s200}\", hashvalue(.Name,2000),"
+     " 5, workers]  "
      );
 
 int distribute4Select(ListExpr args){
-  ListExpr rel = nl->Fourth(args);
+  ListExpr rel = nl->Fifth(args);
   ListExpr attrList = nl->Second(nl->Second(rel));
   ListExpr hostType, configType;
   listutils::findAttribute(attrList,"Host",hostType);
@@ -9313,7 +9369,8 @@ class fdistribute5Info{
         map<int, pair<ofstream*, char*> >::iterator it = writers.find(f);
         ofstream* out;
         if(it==writers.end()){
-           out = new ofstream((basename +"_"+stringutils::int2str(f)).c_str(),
+           out = new ofstream((basename +"_"+stringutils::int2str(f) 
+                               + ".bin").c_str(),
                               ios::out | ios::binary);
            char* buf = new char[bufsize];
            out->rdbuf()->pubsetbuf(buf, bufsize);
@@ -9386,9 +9443,12 @@ ValueMapping fdistribute5VM[] = {
 OperatorSpec fdistribute5Spec(
      " stream(tuple(X)) x string,text} x int x attrName ",
      " _ ddistribute2[ _, _,_]",
-     " Distributes a locally stored relation into a set of files."
-     "The file names are given by the second attribute extended by"
-     " the array index.",
+     " Distributes a locally stored relation into a set of files. "
+     "The file names are given by the second attribute extended by "
+     "an index and file extension .bin." 
+     " The integer argument determines how many files are  "
+     "created. The attribute given by attrName terminates the file in "
+     "that the tuple is written.",
      " query strassen feed addcounter[No,1] ifdistribute5['strassen',10,No]"
      "  count"
      );
@@ -9417,12 +9477,13 @@ darray instance or all existing connections.
 
 */
 ListExpr closeWorkersTM(ListExpr args){
-  string err = " no argument or darray expected";
+  string err = " no argument or d[f]array expected";
   if(!nl->IsEmpty(args) && !nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
   if(nl->HasLength(args,1)){
-    if(!DArray::checkType(nl->First(args))){
+    if(   !DArray::checkType(nl->First(args))
+       && !DFArray::checkType(nl->First(args))){
        return listutils::typeError(err);
     }
   }
@@ -9430,7 +9491,8 @@ ListExpr closeWorkersTM(ListExpr args){
 }
 
 
-int closeWorkersVM(Word* args, Word& result, int message,
+template<class A>
+int closeWorkersVMT(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
     result = qp->ResultStorage(s);
@@ -9438,7 +9500,7 @@ int closeWorkersVM(Word* args, Word& result, int message,
     if(qp->GetNoSons(s)==0){
        res->Set(true, algInstance->closeAllWorkers());  
     } else {
-       DArray* arg = (DArray*) args[0].addr;
+       A* arg = (A*) args[0].addr;
        if(!arg->IsDefined()){
          res->SetDefined(false);
          return 0;
@@ -9455,9 +9517,21 @@ int closeWorkersVM(Word* args, Word& result, int message,
     return 0;
 }
 
+ValueMapping closeWorkersVM[] = {
+  closeWorkersVMT<DArray>,
+  closeWorkersVMT<DFArray>
+};
+
+int closeWorkersSelect(ListExpr args){
+  if(nl->IsEmpty(args)){
+     return 0;
+  }
+  return DArray::checkType(nl->First(args))?0:1;
+}
+
 
 OperatorSpec closeWorkersSpec(
-     " -> int, darray -> int ",
+     " -> int, d[f]array -> int ",
      " closeWorkers(_)",
      " Closes either all connections to workers (no argument)"
      ", or connections of a specified darray instance.",
@@ -9467,8 +9541,9 @@ OperatorSpec closeWorkersSpec(
 Operator closeWorkersOp(
   "closeWorkers",
   closeWorkersSpec.getStr(),
+  2,
   closeWorkersVM,
-  Operator::SimpleSelect,
+  closeWorkersSelect,
   closeWorkersTM
 );
 
@@ -9914,6 +9989,7 @@ Operator DARRAYELEM2Op (
       0,   
       Operator::SimpleSelect,
       DARRAYELEM2TM );
+
 /*
 1.8 Operator ~dsummarize~
 
@@ -10144,6 +10220,7 @@ class RelationFileGetter{
        string rname = array->getName()+"_"+stringutils::int2str(index)+".bin";
        string path = ci->getSecondoHome() + "/dfarrays/" + dbname + "/"
                      + array->getName() + "/" + rname;
+
        string lname = rname;
        if(!ci->retrieveAnyFile(path,lname)){
           listener->connectionFailed(index);
@@ -10194,7 +10271,8 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
                   SecondoSystem::GetCatalog()->NumericType(resType);
               currentFeeder = new ffeed5Info(filenames[currentIndex],
                      tType);
-
+           } else { // retrieving file failed
+              currentIndex++;
            }
          }
      }
@@ -10294,10 +10372,13 @@ ValueMapping dsummarizeVM[] = {
 
 
 int dsummarizeSelect(ListExpr args){
+  int res = -1;
   if(!Relation::checkType(nl->Second(nl->First(args)))){
-     return 2;
+     res =  2;
+  } else {
+     res = DArray::checkType(nl->First(args))?0:1;
   }
-  return DArray::checkType(nl->First(args))?0:1;
+  return res;
 }
 
 /*
@@ -10306,7 +10387,7 @@ int dsummarizeSelect(ListExpr args){
 */
 
 OperatorSpec dsummarizeSpec(
-     "darray(DATA) -> stream(DATA) , darray(rel(X)) -> stream(X)",
+     "darray(DATA) -> stream(DATA) , d[f]array(rel(X)) -> stream(X)",
      "_ dsummarize",
      "Produces a stream of the darray elements.",
      "query da2 dsummarize count"
@@ -10321,7 +10402,7 @@ OperatorSpec dsummarizeSpec(
 Operator dsummarizeOp(
   "dsummarize",
   dsummarizeSpec.getStr(),
-  2,
+  3,
   dsummarizeVM,
   dsummarizeSelect,
   dsummarizeTM
@@ -10525,10 +10606,14 @@ int getValueVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
-   getValueInfo<AType,GType> info((AType*)args[0].addr,
-                                  (arrayalgebra::Array*) result.addr,
-                                  qp->GetType(s)); 
-   info.convert();
+   AType* array = (AType*) args[0].addr;
+   arrayalgebra::Array* res = (arrayalgebra::Array*) result.addr;
+   if(array->IsDefined()){
+      getValueInfo<AType,GType> info(array,res, qp->GetType(s)); 
+      info.convert();
+   } else {
+      res->setUndefined();
+   }
    return 0;
 }
 
@@ -10917,14 +11002,13 @@ class fdistribute6Info{
     } 
 
     void createNextOutputFile(){
-      string fname = bname +"_"+stringutils::int2str(fileCounter);
+      string fname = bname +"_"+stringutils::int2str(fileCounter) + ".bin";
       fileCounter++;
       out = new ofstream(fname.c_str(), ios::binary | ios::out);
       buffer = new char[FILE_BUFFER_SIZE];
       out->rdbuf()->pubsetbuf(buffer, FILE_BUFFER_SIZE);
       BinRelWriter::writeHeader(*out,relType);
     }
-
 };
 
 
@@ -10979,8 +11063,8 @@ OperatorSpec fdistribute6Spec(
      "Distributes a tuple stream into a set of files. " 
      " The first <numOfElemsPerFile> element of the stream "
      " are stored into the first file and so on. "
-     "The given basic filename is extended by an underscore and"
-     " a running number" ,
+     "The given basic filename is extended by an underscore, "
+     " a running number, and the file extension .bin." ,
      "query strassen feed fdistribute6['strassen',1000] count"
      );
 
@@ -11008,26 +11092,26 @@ tuple to int and a maximum size.
 */
 ListExpr fdistribute7TM(ListExpr args){
 
-  string err = "stream(tuple) x (tuple->int) x int x {string,text}  "
+  string err = "stream(tuple) x {string,text} x  (tuple->int) x int  "
                "x bool expected";
   if(!nl->HasLength(args,5)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
   if(    !Stream<Tuple>::checkType(nl->First(args) )
-      || !listutils::isMap<1>(nl->Second(args)) 
-      || !CcInt::checkType(nl->Third(args))
-      || (    !FText::checkType(nl->Fourth(args))
-           && !CcString::checkType(nl->Fourth(args)))
+      || !( CcString::checkType(nl->Second(args))
+            && !FText::checkType(nl->Second(args)))
+      || !listutils::isMap<1>(nl->Third(args)) 
+      || !CcInt::checkType(nl->Fourth(args))
       || !CcBool::checkType(nl->Fifth(args))){
     return listutils::typeError(err);
   }
 
   if(!nl->Equal(nl->Second(nl->First(args)),
-                nl->Second(nl->Second(args)))){
+                nl->Second(nl->Third(args)))){
     return listutils::typeError("type mismatch between tuple type "
                                 "and function arg");
   }
-  if(!CcInt::checkType(nl->Third(nl->Second(args)))) {
+  if(!CcInt::checkType(nl->Third(nl->Third(args)))) {
     return listutils::typeError("function does not results in an integer");
   }
   return nl->First(args);
@@ -11135,9 +11219,9 @@ int fdistribute7VMT(Word* args, Word& result, int message,
          }
          local.addr = new fdistribute7Info<T>(
                             args[0],
-                            qp->GetSon(s,1),
-                            (CcInt*) args[2].addr,
-                            (T*) args[3].addr,
+                            qp->GetSon(s,2),
+                            (CcInt*) args[3].addr,
+                            (T*) args[1].addr,
                             (CcBool*) args[4].addr,
                             nl->TwoElemList(
                                listutils::basicSymbol<Relation>(),
@@ -11164,25 +11248,25 @@ ValueMapping fdistribute7VM[] = {
 };
 
 int fdistribute7Select(ListExpr args){
-  return CcString::checkType(nl->Fourth(args))?0:1;
+  return CcString::checkType(nl->Second(args))?0:1;
 }
 
 
 
 OperatorSpec fdistribute7Spec(
-     " stream(tuple> x (tuple->int) x int {string,text} x "
+     " stream(tuple> x {string,text} x (tuple->int) x int x "
      "bool -> stream(tuple)",
-     "_ fdistribute7[fun, maxfiles, filename, createEmpty]",
+     "_ fdistribute7[filename, fun, maxfiles,  createEmpty]",
      "Distributes a tuple stream into a set of files. " 
      "The tuples are distributed according a function given "
      "by the user. The used slot for a tuple is the result of this "
      "function modulo maxfiles. The tuples are written in files "
      "with name prefixed by the user given name followed by an "
-     "underscore and the slotnumber extended by .bin. "
-     "If the boolean argument is set to TRUE, also empty slots are "
-     "created by files, otherwise empty relations are omitted.",
-     "query strassen feed fdistribute7[hashvalue(.Name), 12, "
-     "'strassen',TRUE] count"
+     "underscore and the slotnumber. "
+     "If the boolean argument is set to TRUE, also empty relations are "
+     "stored into files, otherwise empty relations are omitted.",
+     "query strassen feed fdistribute7['strassen',hashvalue(.Name), 12, "
+     "TRUE] count"
  );
 
 
@@ -11563,14 +11647,23 @@ class cloneTask{
         string objName = farray->getName() +"_" + stringutils::int2str(index)
                          + ".bin";
         string newName = name + "_" + stringutils::int2str(index) + ".bin";
- 
-        string path = ci->getSecondoHome()+"/dfarrays/"+dbname+"/" + name + "/";
-
+        string spath = ci->getSecondoHome()+"/dfarrays/"+dbname+"/" 
+                       + farray->getName() + "/";
+        string tpath = ci->getSecondoHome()+"/dfarrays/"+dbname+"/" 
+                       + name + "/";
         int err;
         string errMsg;
         string resstr;
-        string cmd = "query copyFile('"+path+objName+"', '"+path+newName+"')";
         double runtime;
+        string cmd = "query createDirectory('"+tpath+"', TRUE)";
+        ci->simpleCommand(cmd,  err, errMsg, resstr, false, runtime);
+        if(err){
+           cerr << "error in creating directory " + tpath << endl;
+           cerr << "by command " << cmd << endl;
+           cerr << errMsg << endl;
+        }
+
+        cmd = "query copyFile('"+spath+objName+"', '"+tpath+newName+"')";
         ci->simpleCommand(cmd,  err, errMsg, resstr, false, runtime);
         if(err!=0){
            cerr << "copyFile command failed with code " << err << endl;
@@ -11685,7 +11778,8 @@ ListExpr shareTM(ListExpr args){
     return listutils::typeError(err);
   }
   if(nl->HasLength(args,3)){
-    if(!DArray::checkType(nl->Third(args))){
+    if(   !DArray::checkType(nl->Third(args))
+       && !DFArray::checkType(nl->Third(args))){
        return listutils::typeError(err);
     }
   }
@@ -11734,15 +11828,24 @@ class shareRunner{
 };
 
 
+template<class AType>
 class shareInfo: public successListener{
 
   public:
     shareInfo(const string& _name, const bool _allowOverwrite,
-              DArray* _array, FText* _result): name(_name),
+              AType* _array, FText* _result): name(_name),
               allowOverwrite(_allowOverwrite), array(_array),
               result(_result), fileCreated(false) {
       failed = 0;
       success = 0;
+      value.addr = 0;
+   }
+
+   ~shareInfo(){
+      if(value.addr){
+         SecondoSystem::GetCatalog()->CloseObject(typeList, value);
+         value.addr = 0;
+      }
    }
 
 
@@ -11767,6 +11870,7 @@ class shareInfo: public successListener{
          shareUser();
        }
    
+       
        for(size_t i=0;i<runners.size();i++){
          runners[i]->join();
          delete runners[i];
@@ -11774,8 +11878,9 @@ class shareInfo: public successListener{
        string t = "success : " + stringutils::int2str(success)+ ", failed "
                   + stringutils::int2str(failed);
        result->Set(true,t);
-       FileSystem::DeleteFileOrFolder(filename); 
-
+       if(filename.size()>0){
+          FileSystem::DeleteFileOrFolder(filename); 
+       }
     }
 
     void jobDone(int id, bool success){
@@ -11790,7 +11895,7 @@ class shareInfo: public successListener{
   private:
     string name;
     bool allowOverwrite;
-    DArray* array;
+    AType* array;
     FText* result;
     bool fileCreated;
     Word value;
@@ -11804,7 +11909,6 @@ class shareInfo: public successListener{
     int success;
 
     void shareArray() {
-        
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
        for(size_t i=0;i<array->numOfWorkers();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
@@ -11815,6 +11919,7 @@ class shareInfo: public successListener{
 
     void shareUser() {
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+
        for(size_t i=0; i< algInstance->noConnections(); i++){
            ConnectionInfo* ci = algInstance->getConnection(i);
            if(ci){
@@ -11838,7 +11943,9 @@ class shareInfo: public successListener{
 
     void createFile(ConnectionInfo* ci){
       boost::lock_guard<boost::mutex> guard(createFileMutex);
+      cout << "create file" << endl;
       if(!fileCreated){
+          cout << "first time" << endl;
           isRelation = Relation::checkType(typeList);
           filename = name + "_" + stringutils::int2str(WinUnix::getpid()) 
                      + ".bin";
@@ -11853,13 +11960,13 @@ class shareInfo: public successListener{
 
 };
 
-
-int shareVM(Word* args, Word& result, int message,
+template<class A>
+int shareVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
 
   CcString* objName = (CcString*) args[0].addr;
   CcBool* overwrite = (CcBool*) args[1].addr;
-  DArray* array = qp->GetNoSons(s)==3?(DArray*) args[2].addr: 0;
+  A* array = qp->GetNoSons(s)==3?(A*) args[2].addr: 0;
   result = qp->ResultStorage(s);
   FText* res = (FText*) result.addr;
   if(array && !array->IsDefined()){
@@ -11870,14 +11977,15 @@ int shareVM(Word* args, Word& result, int message,
      res->SetDefined(false);
      return 0;
   }
-  shareInfo info(objName->GetValue(), overwrite->GetValue(), array, res);
+
+  shareInfo<A> info(objName->GetValue(), overwrite->GetValue(), array, res);
   info.share();
   return 0;
 }
 
 
 OperatorSpec shareSpec(
-     "string x bool [x darray] -> text",
+     "string x bool [x d[f]array] -> text",
      "share(ObjectName, allowOverwrite, workerArray)",
      "distributes an object from local database to the workers."
      "The allowOverwrite flag controls whether existing objects "
@@ -11889,6 +11997,19 @@ OperatorSpec shareSpec(
  );
 
 
+int shareSelect(ListExpr args){
+   if(!nl->HasLength(args,3)){
+      return 0; 
+   }
+   return DArray::checkType(nl->Third(args))?0:1;
+}
+
+ValueMapping shareVM[] = {
+   shareVMT<DArray>,
+   shareVMT<DFArray>
+};
+
+
 /*
 12.5 Operator instance
 
@@ -11896,8 +12017,9 @@ OperatorSpec shareSpec(
 Operator shareOp(
   "share",
   shareSpec.getStr(),
+  2,
   shareVM,
-  Operator::SimpleSelect,
+  shareSelect,
   shareTM
 );
 
@@ -11913,12 +12035,13 @@ worker connections).
 
 */
 ListExpr cleanUpTM(ListExpr args){
-  string err= " no argument or darray expected";
+  string err= " no argument or d[f]array expected";
   if(!nl->HasLength(args,1) && !nl->IsEmpty(args)){
      return listutils::typeError(err);
   }
   if(nl->HasLength(args,1)){
-     if(!DArray::checkType(nl->First(args))){
+     if(!DArray::checkType(nl->First(args))
+        && !DFArray::checkType(nl->First(args))){
         return listutils::typeError(err);
      }
   }
@@ -11930,7 +12053,8 @@ ListExpr cleanUpTM(ListExpr args){
 13.2 Value Mapping
 
 */
-int cleanUpVM(Word* args, Word& result, int message,
+template<class A>
+int cleanUpVMT(Word* args, Word& result, int message,
             Word& local, Supplier s ){
   result = qp->ResultStorage(s);
   CcBool* res = (CcBool*) result.addr;
@@ -11940,7 +12064,7 @@ int cleanUpVM(Word* args, Word& result, int message,
     algInstance->cleanUp();
   } else {
     set<pair<string,int> > used;
-    DArray* arg = (DArray*) args[0].addr;
+    A* arg = (A*) args[0].addr;
     if(!arg->IsDefined()){
       res->SetDefined(false);
       return 0;
@@ -11974,7 +12098,7 @@ int cleanUpVM(Word* args, Word& result, int message,
 
 */
 OperatorSpec cleanUpSpec(
-     "-> bool , darray -> bool",
+     "-> bool , d[f]array -> bool",
      "cleanUp(_)",
      "Removes temporary objects, i.e. objects whose name starts with TMP_, "
      "from remote servers. If no argument is given, all open connections to "
@@ -11983,16 +12107,30 @@ OperatorSpec cleanUpSpec(
      "query cleanUp() "
  );
 
+int cleanUpSelect(ListExpr args){
+  if(nl->IsEmpty(args)){
+     return 0;
+  }
+  return DArray::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping cleanUpVM[] = {
+   cleanUpVMT<DArray>,
+   cleanUpVMT<DFArray>
+};
+
+
 /*
-13.4 Operator instnace
+13.4 Operator instance
 
 */
 
 Operator cleanUpOp(
   "cleanUp",
   cleanUpSpec.getStr(),
+  2,
   cleanUpVM,
-  Operator::SimpleSelect,
+  cleanUpSelect,
   cleanUpTM
 );
 
@@ -12004,20 +12142,22 @@ Operator cleanUpOp(
 */
 
 OperatorSpec dfdistribute2Spec(
-     " stream(tuple(X)) x ident x int x rel x string -> dfarray(X) ",
-     " _ dfdistribute2[ attrname, size, workers, name]",
-     " Distributes a locally stored relation into a dfarray. "
+     " stream(tuple(X)) x string x ident x int x rel -> dfarray(X) ",
+     " _ dfdistribute2[name, attrname, size, workers]",
+     "Distributes a locally stored relation into a dfarray. "
      "The first argument is the tuple stream to distribute. The second "
-     "argument is an attribute within this stream of type int. "
+     "argument is the name of the resulting dfarray. If an empty string "
+     "is given, a name is choosen automatically. The Third argument is "
+     "an attribute within the tuple stream of type int. "
      "This attribute controls in which slot of the resulting array "
-     "is the corresponding tuple inserted. The third argument specifies "
+     "is inserted the corresponding tuple. The fourth argument specifies "
      "the size of the resulting array. The relation argument specifies "
      "the workers for this array. It must be a relation having attributes "
      "Host, Port, and Config. Host and Config must be of type string or text, "
      "the Port attribute must be of type int. " 
      "The fifth attribute specifies the name of the resulting dfarray.",
-     " query strassen feed addcounter[No,1] dfdistribute2[No, 5, "
-     "workers,\"fstrassem\"]  "
+     " query strassen feed addcounter[No,1] dfdistribute2[\"fstrassen\", "
+     "No, 5, workers]  "
  );
 
 /*
@@ -12053,18 +12193,18 @@ operator.
 
 
 OperatorSpec dfdistribute3Spec(
-     " stream(tuple(X)) x int x bool x rel x string-> dfarray(X) ",
-     " _ dfdistribute3[ size, <meaning of size>, workers, name]",
-     " Distributes a tuple stream into a dfarray. The boolean "
+     " stream(tuple(X)) x string x int x bool x rel -> dfarray(X) ",
+     " _ dfdistribute3[ name, size, <meaning of size>, workers]",
+     "Distributes a tuple stream into a dfarray. The boolean "
      "flag controls the method of distribution. If the flag is set to "
-     " true, the integer argument specifies the target size of the "
-     " resulting darray and the tuples are distributed in a circular way. "
+     "true, the integer argument specifies the target size of the "
+     "resulting dfarray and the tuples are distributed in a circular way. "
      "In the other case, this number represents the size of a single "
      "array slot. A slot is filled until the size is reached. After that "
-     " a new slot is opened. The string attribute gives the name of the "
-     "result. The relation has to contain attributes Host(string or text), "
-     "Port(int), and Config(string or text).",
-     " query strassen feed dfdistribute3[10, TRUE, workers, \"dfa28\" ]  "
+     "a new slot is opened. The string attribute gives the name of the "
+     "result. The relation specifies the workers and has to contain "
+     "attributes Host(string or text), Port(int), and Config(string or text).",
+     " query strassen feed dfdistribute3[\"dfa20\",10, TRUE, workers ]  "
      );
 
 ValueMapping dfdistribute3VM[] = {
@@ -12445,9 +12585,19 @@ ListExpr dmapTM(ListExpr args){
 
   ListExpr funArg = nl->Second(arg3Type);
 
-  if(!nl->Equal(stream,funArg)){
-     return listutils::typeError("type mismatch between function argument and "
-                                 " subtype of dfarray");
+  ListExpr expFunArg = DArray::checkType(arg1Type)
+                      ? nl->Second(arg1Type)
+                      : stream; 
+
+
+  if(!nl->Equal(expFunArg,funArg)){
+     stringstream ss;
+     ss << "type mismatch between function argument and "
+        << " subtype of dfarray" << endl
+        << "subtype is " << nl->ToString(expFunArg) << endl
+        << "funarg is " << nl->ToString(funArg) << endl;
+    
+     return listutils::typeError(ss.str());
   }
 
 
@@ -12456,7 +12606,7 @@ ListExpr dmapTM(ListExpr args){
   ListExpr funargs = nl->Second(funq);
   ListExpr rfunargs = nl->TwoElemList(
                          nl->First(funargs),
-                          stream);
+                          funArg);
 
   ListExpr rfun = nl->ThreeElemList(
                     nl->First(funq),
@@ -12657,7 +12807,7 @@ class Mapper{
                    + n + ".bin";
                cmd = "query "+ funName +"( ffeed5 ('" + fname1+"'))";
            } else {
-               cmd = "query " + funName+"( " + n +" feed )";
+               cmd = "query " + funName+"( " + n +" )";
            }
             
            string targetDir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
@@ -12686,8 +12836,7 @@ class Mapper{
            }
 
            ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
-           if((err!=0) && (err!=2)){ // ignore type map errors
-                                     // because reason is a missing file
+           if((err!=0) ){ 
               cerr << "command " + cmd << " failed with code " << err 
                    << endl;
               cerr << "message is " << errMsg;  
@@ -12740,14 +12889,14 @@ class Mapper{
                               + n + ".bin";
                stream = "ffeed5 ('"+fname1 + "')";
           } else {
-               stream = n + " feed";
+               stream = n + " ";
           }
 
           string name2 = mapper->name + "_" + stringutils::int2str(nr);
           cmd = "let "+ name2 +" = " + funName +"( " + stream + ")";
 
           ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
-          if((err!=0) && (err!=2) ){ // ignore type map errors
+          if((err!=0)  ){ // ignore type map errors
                                     // because reason is a missing file
              cerr << "command " + cmd << " failed with code " << err 
                   << endl;
@@ -13062,10 +13211,18 @@ class dmap2Info{
                cmd = "let " + mi->objName + "_"+stringutils::int2str(i)
                      + " = " + funName + "(" + fa1+ ", " + fa2+")";   
              } else {
-               string fname = ci->getSecondoHome()+"/dfarrays/"+mi->dbname+"/"
-                       + mi->res->getName() + "/"
-                       + mi->res->getName() + "_" 
-                       + stringutils::int2str(i) + ".bin";
+               string tdir = ci->getSecondoHome()+"/dfarrays/"+mi->dbname+"/"
+                              + mi->res->getName() + "/";
+               cmd = "query createDirectory('"+tdir+"', TRUE)";
+               ci->simpleCommand(cmd,err,errMsg,r,true, runtime);
+               if(err){
+                 cerr << "could not create directory " << tdir << endl;
+                 cerr << "by cmd: " << cmd << endl;
+                 cerr << errMsg;
+               }
+               string fname = tdir
+                              + mi->res->getName() + "_" 
+                              + stringutils::int2str(i) + ".bin";
                cmd ="query " + funName+"("+fa1+", " + fa2+")";
                if(!mi->streamRes){
                  cmd += " feed";
@@ -13278,6 +13435,7 @@ ListExpr ARRAYFUNARG(ListExpr args){
     args = nl->Rest(args);
   }
   ListExpr arg = nl->First(args);
+
   if(DArray::checkType(arg)){
      return nl->Second(arg);
   }
@@ -13627,8 +13785,10 @@ int fileTransferServerVM(Word* args, Word& result, int message,
 OperatorSpec fileTransferServerSpec(
   " int -> bool)",
   " fileTransferServer(_)",
-  "Starts a server waiting for a client requesting a file from server."
-  "See also operator requestFileClient",
+  "Starts a server waiting for a client requesting a file from "
+  "this server. See also operator receiveFileClient. These operators "
+  "are used internally for the transferFile operator. There is no "
+  "requirement to use it directly.",
   "query fileTransferServer(1238)"
 );
 
@@ -13727,9 +13887,10 @@ int receiveFileClientSelect(ListExpr args){
 OperatorSpec receiveFileClientSpec(
   " {string, text} x int x {string,text} x {string,text} -> bool",
   "receiveFileClient(server, port, remoteFile, localFile)",
-  "Copies a file from a remote server to the local file system."
+  "Copies a file from a remote server to the local file system. "
   "On the remote host, a query using transferFileServer should be "
-  "started.",
+  "started. The operator is for intern usage, e.g., for the transferFile "
+  "operator.",
   "query recieveFileClient('server', 1238,'remote.txt', 'local.txt')"
 );
 
@@ -13943,8 +14104,9 @@ int transferFileSelect(ListExpr args){
 OperatorSpec transferFileSpec(
   "int x int x int x {string,text} x {string,text} -> bool",
   "transferFile( serverno1, serverno2, port, srcfile, targetfile)",
-  "transfers a file from a server to another one. "
-  "the result shows the success of the operation.",
+  "Transfers a file from a server to another one. "
+  "The result shows the success of the operation. The servers must be "
+  "connected before using connect or similar.",
   "query transferFile(0,1,1238,'Staedte.txt','Staedte3.txt')"
 );
 
@@ -14029,7 +14191,7 @@ int showProgressVM(Word* args, Word& result, int message,
 OperatorSpec showProgressSpec(
   "bool -> bool",
   "showProgress(_)",
-  "Enables or disables progress view.",
+  "Enables or disables progress view for the prcmd command.",
   "query showProgress(false)"
 );
 
@@ -14372,11 +14534,12 @@ int staticFileTransferatorVM(Word* args, Word& result, int message,
 OperatorSpec staticFileTransferatorSpec(
   "int x int -> bool",
   "staticFileTransferator(port, maxConnections)",
-  "Creates a file receiver running in parallel to the rest "
+  "Creates a server running in parallel to the rest "
   "of the SecondoSystem. It can handle several connections "
   "in parallel. If more than the specified number of connections"
   " is required, some connections go into a queue until a new "
-  "slot is available.",
+  "slot is available. Aided by this server, files can be tranferred "
+  "to and from this host.",
   "query staticFileTransferator(1238,10)"
 );
 
@@ -14423,9 +14586,9 @@ int killStaticFileTransferatorVM(Word* args, Word& result, int message,
 OperatorSpec killStaticFileTransferatorSpec(
   "int -> bool",
   "killStaticFileTransferator(port)",
-  "Finishes a running file receiver instance. "
+  "Finishes a running file transferator instance. "
   "Pending file transfers are finished before "
-  "terminating the receiver. ",
+  "terminating the server. ",
   "query killStaticFileTransferator(1238)"
 );
   
@@ -14689,7 +14852,7 @@ OperatorSpec putFileTCPSpec(
   "{string,text} x {string,text} x int x bool x {string,text} -> bool",
   "putFileTCP(local, host, port, overwrite, remote)",
   "Copies a file to a remote server via TCP. On the remote server, "
-  "a staticFileTransferator has to run. The result shows the success of ",
+  "a staticFileTransferator has to run. The result shows the success of "
   "the transfer.",
   "query putFileTCP('berlintest', Host, 1239, TRUE, 'berlintestCopy')"
 );
@@ -14720,7 +14883,7 @@ OperatorSpec getFileTCPSpec(
   "{string,text} x {string,text} x int x bool x {string,text} -> bool",
   "copyFileTCP(remote, host, port, overwrite, ilocal)",
   "Gets a file from a remote server. On the remote server, "
-  "a staticFileTransferator has to run. The result shows the success of ",
+  "a staticFileTransferator has to run. The result shows the success of "
   "the transfer.",
   "query getFileTCP('berlintest_copy3', Host, 1239, TRUE, 'berlintest')"
 );
@@ -14896,15 +15059,15 @@ int fsfeed5Select(ListExpr args){
 
 
 OperatorSpec fsfeed5Spec(
-  "istream({sring,text}) x {rel,text,string} -> stream(tuple)",
+  "stream({string,text}) x {rel,text,string} -> stream(tuple)",
   "_ fsfeed5[_]",
   "Creates a tuple stream from relations stored in binary files. "
   "The first argument contains the file names of the file from which "
   "the tuples should be extracted. Non existing files, files having "
   "wrong format or a different relation scheme are ignored. "
-  "The second argument speicfies the tuple type expected in the files. "
+  "The second argument specifies the tuple type expected in the files. "
   "This may be a relation (the content of the relation is ignored) or "
-  "a text/string specifiing a filename of a binary stored relation.",
+  "a text/string specifiying a filename of a binary stored relation.",
   "query getDirectory(\".\") filter[ . startsWith 'strassen_'] "
   "fsfeed5[strassen] count"
 );
@@ -14929,31 +15092,27 @@ This operator partioned the slots of a d[f]array on the clusters.
 
 ListExpr partitionTM(ListExpr args){
 
- string err ="d[f]array(rel(tuple)) x (tuple -> int) x string x int expected";
+ string err ="d[f]array(rel(tuple)) x string x (tuple -> int) x int expected";
+
  if(!nl->HasLength(args,4)){
    return listutils::typeError(err + "(wrong number of args)");
  }
 
- ListExpr s = nl->Fourth(args);
- if(!nl->HasLength(s,2)){
-   return listutils::typeError("internal error");
- }
- if(!CcInt::checkType(nl->First(s))){
-    return listutils::typeError(err+ " (fourth arg is not an int)");
- }
 
- ListExpr a0 = nl->First(args);
- ListExpr f0 = nl->Second(args);
- ListExpr n0 = nl->Third(args);
+ ListExpr a0 = nl->First(args);  // the array
+ ListExpr n0 = nl->Second(args); // the name
+ ListExpr f0 = nl->Third(args);  // the function
+ ListExpr s0 = nl->Fourth(args); // the (new) size
  
  if(   !nl->HasLength(a0,2) || !nl->HasLength(f0,2) 
-    || !nl->HasLength(n0,2)){
+    || !nl->HasLength(n0,2) || !nl->HasLength(s0,2)){
    return listutils::typeError("internal error");
  }
 
  ListExpr a1 = nl->First(a0);
  ListExpr f1 = nl->First(f0);
  ListExpr n1 = nl->First(n0);
+ ListExpr s1 = nl->First(s0);
 
  if(!DFArray::checkType(a1) && !DArray::checkType(a1)){
    return listutils::typeError(err + "(first attr of wrong type)");
@@ -14964,14 +15123,19 @@ ListExpr partitionTM(ListExpr args){
    return listutils::typeError(err + "(array subtype is not a relation)");
  }
  if(!listutils::isMap<1>(f1)){
-   return listutils::typeError(err + "(second arg is not a fun)");
+   return listutils::typeError(err + "(third arg is not a fun)");
  } 
  if(!CcString::checkType(n1)){
-   return listutils::typeError(err + "(third arg is not a string)");
+   return listutils::typeError(err + "(second arg is not a string)");
  }
+ if(!CcInt::checkType(s1)){
+   return listutils::typeError(err + " (fourth arg is nit an int)");
+ }
+
  if(!CcInt::checkType(nl->Third(f1))){
     return listutils::typeError(err + "(fun result is not an int");
  }
+
  if(!nl->Equal(nl->Second(r), nl->Second(f1))){
     return listutils::typeError(" (function arg type does not fit"
                                 " the relation type");
@@ -15235,11 +15399,6 @@ class partitionInfo{
                                      nl->BoolAtom(true)
                                    );
 
-       
-
-
-      
-
         ListExpr query =
                   nl->TwoElemList(
                     nl->SymbolAtom("query"),
@@ -15269,11 +15428,13 @@ int partitionVMT(Word* args, Word& result, int message,
 
    if(qp->GetNoSons(s)==5){
       // without additional function
-      name = (CcString*) args[2].addr;
+      name = (CcString*) args[1].addr;
+      // third arg is the function, we get the text
       newSize = (CcInt*) args[3].addr;
       dfunText = ((FText*) args[4].addr)->GetValue();
    } else if(qp->GetNoSons(s)==7){
-      name =  (CcString*) args[3].addr;
+      name =  (CcString*) args[1].addr;
+      // args[2] and args[3] are the functions
       newSize = (CcInt*) args[4].addr;
       funText = ((FText*) args[5].addr)->GetValue();
       dfunText = ((FText*) args[6].addr)->GetValue();
@@ -15297,6 +15458,11 @@ int partitionVMT(Word* args, Word& result, int message,
    }
 
    string tname = name->GetValue();
+   if(tname.size()==0){
+      tname = algInstance->getTempName();
+   }
+
+
    if(!stringutils::isIdent(tname)){
      res->makeUndefined();
      return 0;
@@ -15378,9 +15544,9 @@ the ~partitionF~ operator applies a function before redistributing the array.
 */
 ListExpr partitionFTM(ListExpr args){
 
-  string err = "expected: d[f]array(rel(tuple(X))) x "
+  string err = "expected: d[f]array(rel(tuple(X))) x string x "
                "(stream(tuple(X)) -> stream(tuple(Y))) x "
-               "(tuple(Y)->int) x string x int";
+               "(tuple(Y)->int) x int";
 
   if(!nl->HasLength(args,5)){
     return listutils::typeError(err + " (wrong number of args)");
@@ -15394,16 +15560,21 @@ ListExpr partitionFTM(ListExpr args){
      tmp = nl->Rest(tmp);
   }
   ListExpr a = nl->First(args);  // array
-  ListExpr f = nl->Second(args); // function
-  ListExpr d = nl->Third(args);  // redistribution function
-  ListExpr n = nl->Fourth(args); // name of the result
+  ListExpr n = nl->Second(args); // name of the result
+  ListExpr f = nl->Third(args); // function
+  ListExpr d = nl->Fourth(args);  // redistribution function
   ListExpr s = nl->Fifth(args);  // size of the result
+
+  if(   !nl->HasLength(a,2) || !nl->HasLength(n,2) || !nl->HasLength(f,2)
+     || !nl->HasLength(d,2) || !nl->HasLength(s,2)){
+    return listutils::typeError("internal error");
+  } 
 
   // check Types
   ListExpr a1 = nl->First(a);
+  ListExpr n1 = nl->First(n);
   ListExpr f1 = nl->First(f);
   ListExpr d1 = nl->First(d);
-  ListExpr n1 = nl->First(n);
   ListExpr s1 = nl->First(s);
 
   if(!DArray::checkType(a1) && !DFArray::checkType(a1)){
@@ -15413,14 +15584,14 @@ ListExpr partitionFTM(ListExpr args){
   if(!Relation::checkType(subtype)){
      return listutils::typeError(err + " (array subtype is not a relation)");
   }
-  if(!listutils::isMap<1>(f1) && !listutils::isMap<2>(f1)){
-     return listutils::typeError(err + " (second arg is not a function)");
+  if(!CcString::checkType(n1)){
+     return listutils::typeError(err + " (second arg is not a string)");
   }
-  if(!listutils::isMap<1>(d1) && !listutils::isMap<2>(d1)){
+  if(!listutils::isMap<1>(f1) && !listutils::isMap<2>(f1)){
      return listutils::typeError(err + " (third arg is not a function)");
   }
-  if(!CcString::checkType(n1)){
-     return listutils::typeError(err + " (fourth arg is not a string)");
+  if(!listutils::isMap<1>(d1) && !listutils::isMap<2>(d1)){
+     return listutils::typeError(err + " (fourth arg is not a function)");
   }
   if(!CcInt::checkType(s1)){
      return listutils::typeError(err + " (fifth arg is not an int)");
@@ -15547,12 +15718,7 @@ ListExpr partitionFTM(ListExpr args){
                    resType
                );
 
-
-
-
   // create result type
-
-
   return listutils::typeError("Type Mapping not completely implemented yet.");
 }
 
@@ -15563,11 +15729,11 @@ ListExpr partitionFTM(ListExpr args){
 */
 ListExpr FFRTM(ListExpr args){
 
-  if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+  if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
     return listutils::typeError("1 or two arguments expected") ;
   }
 
-  if(nl->HasLength(args,1)){
+  if(nl->HasLength(args,2)){
     ListExpr arg = nl->First(args);
     if(!DArray::checkType(arg) && !DFArray::checkType(arg)){
        return listutils::typeError("d[f]array expected");
@@ -15578,11 +15744,12 @@ ListExpr FFRTM(ListExpr args){
     return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
                             nl->Second(nl->Second(arg)));
   }
-  // two arguments
-  ListExpr arg = nl->Second(args);
+  // three arguments
+  ListExpr arg = nl->Third(args);
   if(!listutils::isMap<1>(arg) && !listutils::isMap<2>(arg)){
-    return listutils::typeError("second arg is not a function");
+    return listutils::typeError("third arg is not a function");
   } 
+  // extract function result 
   while(!nl->HasLength(arg,1)){
     arg = nl->Rest(arg);
   }
@@ -15596,7 +15763,8 @@ ListExpr FFRTM(ListExpr args){
 
 
 OperatorSpec FFRSpec(
-  "d[f]array(rela(tuple(X))) -> stream(tuple(X)) or something other",
+  "d[f]array(rela(tuple(X))) x A -> stream(tuple(X)) or  "
+  "B x C x (stream(tuple(D) -> stream(tuple(E)) ) -> tuple(E)",
   " FFR(_,_,_)",
   "Type Map Operator",
   "query FFR(test) getTypeNL"
@@ -15612,12 +15780,12 @@ Operator FFROp(
 );
 
 OperatorSpec partitionFSpec(
-  "d[f]array(rel(X)) x (stream(X)->stream(Y)) x (Y -> int) x "
-  "string x int -> dfmatrix(rel(Y)) ",
+  "d[f]array(rel(X)) x string x stream(X)->stream(Y)) x (Y -> int) x "
+  "int -> dfmatrix(rel(Y)) ",
   "_ partitionL[_,_,_,_] ",
   "Repartitions a distributed [file] array. Before repartition, a "
   "function is applied to the slots.",
-  "query a1 partitionL[ . head[12], hashvalue(.Attr,23), \"name\", 0]" 
+  "query a1 partitionL[ \"name\", . head[12], hashvalue(.Attr,23), 0]" 
 );
 
 
@@ -15641,7 +15809,7 @@ Operator partitionFOp(
 
 
 /*
-18 Operator ~reduce~
+18 Operator ~areduce~
 
 */
 
@@ -15835,16 +16003,20 @@ template<class R>
 class AReduceTask{
 
   public:
-     AReduceTask(DFMatrix* _matrix, int _worker, R* _result, int _port,
-              string& _funtext, ListExpr _relType,
-              bool _isStream, AReduceListener* _listener):
-          matrix(_matrix), worker(_worker), result(_result), port(_port),
-          funtext(_funtext), relType(_relType),
-          isStream(_isStream), listener(_listener)
+     AReduceTask(DFMatrix* _matrix1, DFMatrix* _matrix2, int _worker, 
+                 R* _result, int _port, string& _funtext, ListExpr _relType1,
+                 ListExpr _relType2, bool _isStream, 
+                 AReduceListener* _listener):
+          matrix1(_matrix1), matrix2(_matrix2), worker(_worker), 
+          result(_result), port(_port), funtext(_funtext), relType1(_relType1),
+          relType2(_relType2), isStream(_isStream), listener(_listener)
       {
          dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+         // matrix2 is either null or has the same worker specification 
+         // as matrix1
+         // for this reason, we can always use the worker of matrix1
          ci = algInstance->getWorkerConnection(
-                                          matrix->getWorker(worker),dbname); 
+                                          matrix1->getWorker(worker),dbname); 
          runner = 0;
          running = false;
       }
@@ -15870,12 +16042,14 @@ class AReduceTask{
 
 
   private:
-     DFMatrix* matrix;
+     DFMatrix* matrix1;
+     DFMatrix* matrix2;
      int worker;
      R* result;
      int port;
      string funtext;
-     ListExpr relType;
+     ListExpr relType1;
+     ListExpr relType2;
      bool isStream;
      AReduceListener* listener;
 
@@ -15889,15 +16063,13 @@ class AReduceTask{
 
      void run(){
           // dummy implementation
-         stringstream ss;
+          stringstream ss;
           ss << "process slot " << currentSlot << " on worker " 
              << worker << endl;
           result->setResponsible(currentSlot,worker);
           cout << ss.str() ;
-          /*
-          int t = (worker+1)*(rand() % 4000) + 400;
-          boost::this_thread::sleep(boost::posix_time::milliseconds(t));
-          */
+
+
           // step 1: create a temporal directory for the slot
           string dir =   "tmp/w_" + stringutils::int2str(worker) + "_s_"
                        + stringutils::int2str(currentSlot);
@@ -15914,23 +16086,40 @@ class AReduceTask{
                return;
           }
 
-          // step 2. build a relation containing the file, ip for each worker
+          // step 2: built a relation containing the 
+          // remote file R, the ip adress IP, and the local File
+          // name L  for each worker
           
-          string rt = "rel(tuple([ R : text, IP: text, L : text ]))";
-          string nlrt ="(rel(tuple(( R text)(IP text)(L text))))";
+          string rt = "rel(tuple([ R : text, IP: text, L : text, M : int ]))";
+          string nlrt ="(rel(tuple(( R text)(IP text)(L text)(M int))))";
 
           string rv = "(";
-          for(size_t i=0;i<matrix->numOfWorkers();i++){
+          for(size_t i=0;i<matrix1->numOfWorkers();i++){
              ConnectionInfo* wi = algInstance->getWorkerConnection(
-                                               matrix->getWorker(i), dbname);
-             string remote =   wi->getSecondoHome() + "/dfarrays/" + dbname 
+                                               matrix1->getWorker(i), dbname);
+             string remote1 =   wi->getSecondoHome() + "/dfarrays/" + dbname 
                              + "/" 
-                             + matrix->getName()+"/" + stringutils::int2str(i)
-                             + "/" + matrix->getName() + "_"  
+                             + matrix1->getName()+"/" + stringutils::int2str(i)
+                             + "/" + matrix1->getName() + "_"  
                              + stringutils::int2str(currentSlot) + ".bin";
-             string local =   dir + "/" + matrix->getName() + "_"
+             string local1 =   dir + "/" + matrix1->getName() + "_"
                             + stringutils::int2str(i) + ".bin";
-             rv += "( '" + remote +"' '" + wi->getHost() +"' '" + local+"' )";
+             rv += "( '" + remote1 +"' '" + wi->getHost() +"' '" + local1
+                   + "' 1 )";
+             // also insert the files for matrix2 if necessary
+             if(matrix2 && (matrix2->getName()!=matrix1->getName())){
+                string remote2 =   wi->getSecondoHome() + "/dfarrays/" + dbname 
+                                 + "/" 
+                                 + matrix2->getName()+"/" 
+                                 + stringutils::int2str(i)
+                                 + "/" + matrix2->getName() + "_"  
+                                 + stringutils::int2str(currentSlot) + ".bin";
+                 string local2 =   dir + "/" + matrix2->getName() + "_"
+                            + stringutils::int2str(i) + ".bin";
+                 rv += "( '" + remote2 +"' '" + wi->getHost() +"' '" + local2
+                       + "' 2 )";
+
+             }
           }
           rv += ")";
 
@@ -15946,22 +16135,60 @@ class AReduceTask{
                listener->ready(currentSlot,worker, runner);
                return;
           }
+
+          // now, all required files are on the worker workernum
+
           // produce query  doing the actually work, the query 
           // must be given in nested list syntax 
           // because the function is in nl
-          string tuplestream =   "fsfeed5 (projecttransformstream (feed "
-                               + nlrel + ") L ) (" + nl->ToString(relType) 
-                               + " ())";
+
+          string tuplestream0 = "(feed " +nlrel + ")";
+          string tuplestream0_1 = tuplestream0;
+          string tuplestream0_2 = "";
+          if(matrix2){
+               if(matrix1->getName()!=matrix2->getName()){
+                    tuplestream0_1 = "(filter "+ tuplestream0 
+                                        + " (fun (streamelem1 STREAMELEM) "
+                                          "(= (attr streamelem1 M) 1)))";
+                     tuplestream0_2 = "(filter "+ tuplestream0 
+                                        + " (fun (streamelem2 STREAMELEM) "
+                                          "(= (attr streamelem2 M) 2)))";
+               }  else {
+                  tuplestream0_2 = tuplestream0;
+               }
+          }
+
+          string tuplestream1 = " ( fsfeed5 (projecttransformstream" 
+                                + tuplestream0_1 + " L )(" 
+                                + nl->ToString(relType1) + "()) )";
+
+          string tuplestream2 = ""; // no tuple stream
+          if(matrix2){
+             tuplestream2 =   "( fsfeed5 (projecttransformstream" 
+                            + tuplestream0_2
+                            + " L )(" + nl->ToString(relType2) + "())) ";
+          }
+
+
+
           if(result->getType()==DARRAY){ // a usual let command
+
               string objname =    result->getName() + "_" 
                                 + stringutils::int2str(currentSlot);
               ci->simpleCommand("delete " + objname, err, errMsg, res, false, 
                                 runtime);
-              cmd =   "( let " + objname+"  =  (" + funtext + "( "
-                    + tuplestream + ")))";
+              cmd =   "( let " + objname+"  =  (" + funtext + " "
+                    + tuplestream1 +  tuplestream2 + "))";
           } else {
+
+
+
               string feed1 =isStream?"":" feed (";
               string feed2 =isStream?"":" ) ";
+
+
+               cout << "useFeed : " << feed1 << feed2 << endl;
+
                 
               string tdir =   ci->getSecondoHome() + "/dfarrays/" + dbname
                             + "/" + result->getName()+"/";
@@ -15975,7 +16202,7 @@ class AReduceTask{
                       cerr << errMsg << endl;
               }
               cmd =   "( query ( count ( fconsume5 (" + feed1 +  "" + funtext 
-                    + "( " + tuplestream + ") )" + feed2 + "'" 
+                    + " " + tuplestream1 + tuplestream2 + " )" + feed2 + "'" 
                     + filename + "')))";
           }
           ci->simpleCommandFromList(cmd,err,errMsg, res, false, runtime);
@@ -15992,32 +16219,10 @@ class AReduceTask{
                cerr << errMsg << endl;
           }
 
-
-
           listener->ready(currentSlot,worker, runner);
           return;
 
      }
-
-
-
-    string buildRelString(){
-      string reltype="rel(tuple([S: text, H : text, T : text]))";
-      string value = "(";
-      for(size_t i=0;i<matrix->numOfWorkers();i++){
-         DArrayElement elem = matrix->getWorker(i);
-         ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
-         string s = ci->getSecondoHome() + "/dfarrays/" + dbname + "/"
-                    + matrix->getName() + value += "(";
-      }
-      value +=")";
-      return "[ const " + reltype+" value " + value + "]";
-    }
-
-
-     
-
-
 
 };
 
@@ -16025,10 +16230,12 @@ class AReduceTask{
 template<class R>
 class AReducer: public AReduceListener{
   public:
-    AReducer(DFMatrix* _matrix, R* _result, int _port, 
-            const string& _funtext, bool _isStream, ListExpr _relType):
-      matrix(_matrix), result(_result), port(_port), 
-      funtext(_funtext),isStream(_isStream), relType(_relType) {
+    AReducer(DFMatrix* _matrix1, DFMatrix* _matrix2, R* _result, int _port, 
+            const string& _funtext, bool _isStream, ListExpr _relType1,
+            ListExpr _relType2):
+      matrix1(_matrix1), matrix2(_matrix2), result(_result), port(_port), 
+      funtext(_funtext),isStream(_isStream), relType1(_relType1), 
+      relType2(_relType2) {
       targetName = result->getName();
       isFile = result->getType()==DFARRAY; 
 
@@ -16036,19 +16243,27 @@ class AReducer: public AReduceListener{
 
    void reduce(){
 
+       // if matrix2 is not null, the matriox sizes are equal       
+       // hence we can use always matrix1 to get the number of workers.
+
        // create Reduce Objects for each worker
-       for(size_t i=0;i<matrix->numOfWorkers();i++){
-          tasks.push_back(new AReduceTask<R>(matrix,i,result,
-                          port, funtext, relType, isStream,this));
+       for(size_t i=0;i<matrix1->numOfWorkers();i++){
+          tasks.push_back(new AReduceTask<R>(matrix1, matrix2,i,result,
+                          port, funtext, relType1, relType2, isStream,this));
        } 
 
        // start a task on each worker (one by one, slot, worker)
-       slot = matrix->numOfWorkers();
-       for(size_t i=0; i<matrix->numOfWorkers();i++){
+       slot = matrix1->numOfWorkers();
+       for(size_t i=0; i<matrix1->numOfWorkers();i++){
          tasks[i]->process(i);  
        }
 
-       size_t all = matrix->getSize(); 
+       size_t all = matrix1->getSize(); 
+       if(matrix2){
+          if(matrix2->getSize() < all){
+            all = matrix2->getSize();
+          }
+       }
 
        while(slot < all){ // not all slots are processed
            boost::unique_lock<boost::mutex> lock(mtx);
@@ -16062,7 +16277,7 @@ class AReducer: public AReduceListener{
            slot++;
        }
 
-       // for all slots, a taks was started
+       // for all slots, a task was started
        // wait for finish
 
        for(size_t i=0;i<tasks.size();i++){
@@ -16080,12 +16295,14 @@ class AReducer: public AReduceListener{
 
 
   private:
-    DFMatrix* matrix;
+    DFMatrix* matrix1;
+    DFMatrix* matrix2;
     R*        result;
     int       port;
     string    funtext;
     bool      isStream;
-    ListExpr  relType;
+    ListExpr  relType1;
+    ListExpr  relType2;
     string    targetName;
     bool      isFile;
     int       slot;
@@ -16098,47 +16315,96 @@ class AReducer: public AReduceListener{
 
 
 template<class R>
-int areduceVM1(Word* args, Word& result, int message,
+int areduceVMT(Word* args, Word& result, int message,
              Word& local, Supplier s ){
-   
+
    result = qp->ResultStorage(s);
    R* res = (R*) result.addr;
-   DFMatrix* matrix = (DFMatrix*) args[0].addr;
-   CcString* ResName = (CcString*) args[1].addr;
 
-   // args[2] points to the original function
-   CcInt* Port = (CcInt*) args[3].addr;
-   if(!matrix->IsDefined() || !Port->IsDefined()||
-      !ResName->IsDefined()){
+   DFMatrix* matrix1 = (DFMatrix*) args[0].addr;
+   if(!matrix1->IsDefined()){
+      cout << "Matrix is undefined" << endl;
       res->makeUndefined();
       return 0;
    }
+
+
+
+   DFMatrix* matrix2 = 0;
+   int o = 0;
+
+   int resSize = matrix1->getSize();
+
+   ListExpr relType2 = nl->TheEmptyList();
+
+   if(qp->GetNoSons(s)==7){
+      matrix2 = (DFMatrix*) args[1].addr;
+      if(!matrix2->IsDefined()){
+         cout << "matrix2 is undefined" << endl;
+         res->makeUndefined();
+         return 0;
+      }
+
+      if(!matrix1->equalWorker(*matrix2)){
+         cerr << "different worker specification" << endl;
+         res->makeUndefined();
+         return 0;
+      }
+
+      if(matrix2->getSize() < matrix1->getSize()){
+          resSize = matrix2->getSize();
+      }
+
+      relType2 = nl->Second( qp->GetType(qp->GetSon(s,1)));
+      o = 1;
+   }
+
+
+
+
+   CcString* ResName = (CcString*) args[o+1].addr;
+   CcInt* Port = (CcInt*) args[o+3].addr;
+
+
+   if(!Port->IsDefined() || !ResName->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }
+
    int port = Port->GetValue();
    if(port<=0){
       res->makeUndefined();
       return 0;
-
    }
+
    string resName = ResName->GetValue();
+   if(resName.size()==0){
+      resName = algInstance->getTempName();
+   }
+
+
+
+
    if(!stringutils::isIdent(resName)){
       res->makeUndefined();
       return 0;
    }
 
-   (*res) = *matrix;
+   (*res) = *matrix1;
    res->setName(resName);
-   res->setStdMap(matrix->getSize());
+   res->setStdMap(resSize);
 
    
-   startFileTransferators(matrix,port);
+   startFileTransferators(matrix1, port); // do not the same for matrix2 
    // now, on each worker host, a file transferator is listen
 
-   string funtext = ((FText*) args[4].addr)->GetValue();
-   bool isStream = ((CcBool*) args[5].addr)->GetValue();
+   string funtext = ((FText*) args[o+4].addr)->GetValue();
+   bool isStream = ((CcBool*) args[o+5].addr)->GetValue();
 
-   ListExpr relType = nl->Second( qp->GetType(qp->GetSon(s,0)));
+   ListExpr relType1 = nl->Second( qp->GetType(qp->GetSon(s,0)));
    
-   AReducer<R> reducer(matrix, res, port, funtext, isStream, relType);
+   AReducer<R> reducer(matrix1, matrix2,  res, port, funtext, 
+                       isStream, relType1, relType2);
 
    reducer.reduce();
 
@@ -16161,13 +16427,20 @@ OperatorSpec areduceSpec(
 );
 
 ValueMapping areduceVM [] = {
-   areduceVM1<DFArray>,
-   areduceVM1<DArray>
+   areduceVMT<DFArray>,
+   areduceVMT<DArray>
 };
 
 int areduceSelect(ListExpr args){
 
-  ListExpr funRes =  nl->Third(nl->Third(args));
+  
+
+  ListExpr funRes;
+
+  funRes =  nl->HasLength(args,4)
+           ?nl->Third(nl->Third(args))
+           :nl->Fourth(nl->Fourth(args));
+
   if(Stream<Tuple>::checkType(funRes) ||
      Relation::checkType(funRes)){
     return 0;
@@ -16176,7 +16449,7 @@ int areduceSelect(ListExpr args){
 }
 
 
-Operator reduceOp(
+Operator areduceOp(
   "areduce",
   areduceSpec.getStr(),
   2,
@@ -16184,6 +16457,178 @@ Operator reduceOp(
   areduceSelect,
   areduceTM
 );
+
+
+/*
+28 Operator ~areduce2~
+
+This operator merges two dfmatrices into a single darray.
+If the result is a tuple stream or a relation the result will
+be a dfarray. Merging of the matrices will be done slot by slot.
+
+The operator will fail if the worker definition of the involved matrices
+are different. As the areduce operator, this operator works in an
+adoprive way, meaning if a worker is done processing a single, the next 
+unpreocessed slot is assigned to this worker.
+
+*/
+ListExpr areduce2TM(ListExpr args){  
+
+  string err = "dfmatrix(rel(X)) x dfmatrix(rel(Y)) x string x (stream(X) x "
+               "stream(Y) -> Z) x int expected";
+
+  // check length
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+
+  // check for usesArgsInTypeMapping
+  ListExpr t = args;
+  while(!nl->IsEmpty(t)){
+     if(!nl->HasLength(nl->First(t),2)){
+        return listutils::typeError("internal error");
+     }
+     t = nl->Rest(t);
+  }
+  ListExpr a1 = nl->First(args);
+  ListExpr a2 = nl->Second(args);
+  ListExpr a3 = nl->Third(args);
+  ListExpr a4 = nl->Fourth(args);
+  ListExpr a5 = nl->Fifth(args);
+
+  ListExpr a1t = nl->First(a1);
+  ListExpr a2t = nl->First(a2);
+  ListExpr a3t = nl->First(a3);
+  ListExpr a4t = nl->First(a4);
+  ListExpr a5t = nl->First(a5);
+
+  // check types
+  if(   !DFMatrix::checkType(a1t)
+     || !DFMatrix::checkType(a2t)
+     || !CcString::checkType(a3t)
+     || !listutils::isMap<2>(a4t)
+     || !CcInt::checkType(a5t)){
+    return listutils::typeError(err);
+  }
+
+  // Check function arguments
+  ListExpr fa1 = nl->Second(a4t);
+  ListExpr fa2 = nl->Third(a4t);
+
+  ListExpr s1 = nl->TwoElemList(
+       listutils::basicSymbol<Stream<Tuple> >(),
+       nl->Second(nl->Second(a1t))
+  );
+ 
+  ListExpr s2 = nl->TwoElemList(
+       listutils::basicSymbol<Stream<Tuple> >(),
+       nl->Second(nl->Second(a2t))
+  );
+
+  if(   !nl->Equal(s1,fa1)
+     || !nl->Equal(s2,fa2)){
+    return listutils::typeError("Type mismatch between dfmatrix subtype "
+                                "and function argument");
+  }
+
+  // determine result type
+
+  ListExpr funRes =  nl->Fourth(a4t);
+
+  ListExpr resType;
+  
+  bool isStream = false; 
+
+
+
+ 
+  if(!listutils::isStream(funRes)){
+     if(!Relation::checkType(funRes)){
+        resType = nl->TwoElemList(
+                      listutils::basicSymbol<DArray>(),
+                      funRes);
+     } else {
+        resType =  nl->TwoElemList(
+                        listutils::basicSymbol<DFArray>(),
+                        funRes);
+     }
+  } else { // funresult is a stream
+    isStream = true;
+    if(!Stream<Tuple>::checkType(funRes)){
+       return listutils::typeError("funtion result is a stream of non-tuples");
+    }
+    resType = nl->TwoElemList(
+               listutils::basicSymbol<DFArray>(),
+                  nl->TwoElemList(
+                     listutils::basicSymbol<Relation>(),
+                     nl->Second(funRes)
+                  )
+       );
+  }
+
+  ListExpr fundef = nl->Second(a4);
+
+  // rewrite function argument types
+  ListExpr rfundef = nl->FourElemList(
+               nl->First(fundef), // just fun
+               nl->TwoElemList(
+                    nl->First(nl->Second(fundef)),
+                    fa1),
+               nl->TwoElemList(
+                    nl->First(nl->Third(fundef)),
+                    fa2),
+               nl->Fourth(fundef)
+           );
+
+
+  cout << "areduce2TM isStream : " << isStream << endl;
+
+  ListExpr appendList = nl->TwoElemList(
+         nl->TextAtom(nl->ToString(rfundef)),
+         nl->BoolAtom(isStream)
+  );
+
+  return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               appendList,
+               resType);
+
+
+}
+
+
+/*
+Specification
+
+*/
+OperatorSpec areduce2Spec(
+  "dfmatrix(rel(X)) x dfmatrix(rel(Y) x string x (stream(X) x "
+  "stream(Y) -> Z) x int -> d[f]array(Y)",
+  "_ _ areduce2[_,_,_] ",
+  "Performs areduce function to two dfmatrices. The result type depends "
+  "on the return type of the operation. If the result is a stream of tuples "
+  "or a relation, the rseult type will be a dfarray, otherwise a darray. "
+  "Streams of non-tuples are not alowed as the function result type. "
+  "The string argument specified the name of the result array. "
+  "The integer specified a port for transferring files between the workers. "
+  "On this port automatically a staticFileTransferator is started.",
+  "query dfm1 dfm2 areduce2[ \"molly\", . .. product , 1236]"
+);
+
+Operator areduce2Op(
+  "areduce2",
+  areduceSpec.getStr(),
+  2,
+  areduceVM,
+  areduceSelect,
+  areduce2TM
+);
+
+
+
+
+
+
 
 
 
@@ -16571,8 +17016,12 @@ Distributed2Algebra::Distributed2Algebra(){
    partitionOp.SetUsesArgsInTypeMapping();
    AddOperator(&DFARRAYTUPLEOP);
 
-   AddOperator (&reduceOp);
-   reduceOp.SetUsesArgsInTypeMapping();
+   AddOperator (&areduceOp);
+   areduceOp.SetUsesArgsInTypeMapping();
+
+
+   AddOperator (&areduce2Op);
+   areduce2Op.SetUsesArgsInTypeMapping();
 
 
    AddOperator(&collect2Op);

@@ -29,10 +29,11 @@ operator createDArray alias CREATEDARRAY pattern _ op[_,_,_,_,_,_]
 operator pput alias PPUT pattern _ op [_,_]
 operator ddistribute2 alias DDISTRIBUTE2 pattern _ op [_,_,_,_]
 operator ddistribute3 alias DDISTRIBUTE3 pattern _ op [_,_,_,_]
-operator ddistribute4 alias DDISTRIBUTE4 pattern _ op [fun,_,_,_] implicit parameter elem type STREAMELEM
+operator ddistribute4 alias DDISTRIBUTE4 pattern _ op [_,fun,_,_] implicit parameter elem type STREAMELEM
 
 operator fdistribute5 alias FDISTRIBUTE5 pattern _ op [_,_,_]
 operator fdistribute6 alias FDISTRIBUTE6 pattern _ op [_,_]
+operator fdistribute7 alias FDISTRIBUTE7 pattern _ op[_,fun,_,_] implicit parameter elem type STREAMELEM
 
 operator closeWorkers alias closeWorkers pattern op(_)
 operator showWorkers alias showWorkers pattern op(_)
@@ -58,7 +59,7 @@ operator cleanUp alias CLEANUP pattern op(_,_)
 
 operator dfdistribute2 alias DFDISTRIBUTE2 pattern _ op [_,_,_,_,_]
 operator dfdistribute3 alias DFDISTRIBUTE3 pattern _ op [_,_,_,_]
-operator dfdistribute4 alias DFDISTRIBUTE4 pattern _ op [fun,_,_,_] implicit parameter elem type STREAMELEM
+operator dfdistribute4 alias DFDISTRIBUTE4 pattern _ op [_,fun,_,_] implicit parameter elem type STREAMELEM
 
 operator gettuples alias GETTUPLES pattern _ _ op
 
@@ -78,13 +79,17 @@ operator getFileTCP alias GETFILETCP pattern op(_,_,_,_,_)
 
 operator fsfeed5 alias FSFEED5 pattern _ op[_]
 
-operator fdistribute7 alias FDISTRIBUTE7 pattern _ op[fun,_,_,_] implicit parameter elem type STREAMELEM
 
-operator partition alias PARTITION pattern _ op[fun,_,_] implicit parameter elem type SUBSUBTYPE1 
+operator partition alias PARTITION pattern _ op[_,fun,_] implicit parameter elem type SUBSUBTYPE1 
+operator partitionF alias PARTITIONF pattern _ op[_,fun,fun,_] implicit parameters elem1,elem2 types FFR, FFR 
 
 operator collect2 alias COLLECT2 pattern _ op[_,_]
 
 operator areduce alias AREDUCE pattern _ op [_ , fun, _] implicit parameter elem type ARRAYFUNARG1 
+operator areduce2 alias AREDUCE2 pattern _ _ op [_ , fun, _] implicit parameters elem1, elem2 types ARRAYFUNARG1 , ARRAYFUNARG2
 
-operator partitionF alias PARTITIONF pattern _ op[fun, fun,_,_] implicit parameters elem1,elem2 types FFR, FFR 
+
+
+
+
 
