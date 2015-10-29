@@ -15304,9 +15304,9 @@ class partitionInfo{
               << " (count "
               << "   ( fdistribute7 "
               <<       stream3
+              <<       " '" << targetDir <<"/" << tname <<"' "
               <<       " " << dfun << " "
               <<        resSize
-              <<       " '" << targetDir <<"/" << tname <<"' "
               <<       " TRUE "
               <<       " )))";
         return query.str();
@@ -15393,9 +15393,9 @@ class partitionInfo{
         ListExpr fdistribute = nl->SixElemList(
                                      nl->SymbolAtom("fdistribute7"),
                                      streamFun,
+                                     nl->TextAtom(dir+"/"+tname),
                                      dfunl,
                                      nl->IntAtom(resSize),
-                                     nl->TextAtom(dir+"/"+tname),
                                      nl->BoolAtom(true)
                                    );
 
