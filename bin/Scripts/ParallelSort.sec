@@ -1,3 +1,6 @@
+# Running times from Ralf's cluster (130 + 78) with (3 + 4) disks and (6 + 8) cores.
+# Using Workers14 and dfarrays of size 50.
+
 # delete previous versions
 
 query RoadsB1 dmap["", memclear()] getValue
@@ -24,7 +27,7 @@ query RoadsB1
 # 9.75, 9.71 seconds
     intstream(0, 13) namedtransformstream[N] product
 # 9.71, 9.55 seconds
-    dfdistribute2[N, 14, Workers14, "X100"]
+    dfdistribute2["X100", N, 14, Workers14]
 # 10.48, 10.71
     dmap["", . letmconsume["Boundaries"]]
 # 11.46, 11.17, 11.34
@@ -38,8 +41,8 @@ query RoadsB1 dmap["", mcreateAVLtree("Boundaries", "Osm_id")]
 query mcreateAVLtree("Boundaries", "Osm_id")
 
 let RoadsSortedOsm_id = RoadsB1 
-  partition["Boundaries_Osm_id" "Boundaries" matchbelow[.Osm_id] 
-    extract[D], "X102", 0] 
+  partition["X102", "Boundaries_Osm_id" "Boundaries" matchbelow[.Osm_id] 
+    extract[D],  0] 
   areduce["X103", . sortby[Osm_id], 1238]
 
 # Total time for script:  1:15, 1:19, 1:19
