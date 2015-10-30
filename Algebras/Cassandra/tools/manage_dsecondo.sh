@@ -274,8 +274,6 @@ install_driver() {
       cd ${DSECONDO_DIR}/driver
       git clone https://github.com/datastax/cpp-driver.git 
       cd cpp-driver
-      wget https://raw.githubusercontent.com/jnidzwetzki/misc/master/cpp-driver/0001-Added-single-node-loadbalancing.patch 
-      git am < 0001-Added-single-node-loadbalancing.patch  
       
       # Fix for LIBUV detection, the first cmake call fails, 
       # the second is successful. If you remove the first
