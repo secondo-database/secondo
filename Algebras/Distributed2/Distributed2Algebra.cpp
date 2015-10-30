@@ -11098,8 +11098,8 @@ ListExpr fdistribute7TM(ListExpr args){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
   if(    !Stream<Tuple>::checkType(nl->First(args) )
-      || !( CcString::checkType(nl->Second(args))
-            && !FText::checkType(nl->Second(args)))
+      || (    !CcString::checkType(nl->Second(args))
+           && !FText::checkType(nl->Second(args)))
       || !listutils::isMap<1>(nl->Third(args)) 
       || !CcInt::checkType(nl->Fourth(args))
       || !CcBool::checkType(nl->Fifth(args))){
