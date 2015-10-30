@@ -669,6 +669,12 @@ UnixSocket::Write( void const* buf, size_t size )
     // MSG_NOSIGNAL to prevent the SIGPIPE signal when writing 
     // on an already closed socket. Set the ios::failbit instead 
     // and let the application code handle the failure.
+
+#ifdef SECONDO_MAC_OSX
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL SO_NOSIGPIPE
+#endif
+#endif
     while ((rc = ::send(fd, buf, size, MSG_NOSIGNAL)) < 0) {
 
        if(errno != EINTR) {
