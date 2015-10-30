@@ -16186,10 +16186,6 @@ class AReduceTask{
               string feed1 =isStream?"":" feed (";
               string feed2 =isStream?"":" ) ";
 
-
-               cout << "useFeed : " << feed1 << feed2 << endl;
-
-                
               string tdir =   ci->getSecondoHome() + "/dfarrays/" + dbname
                             + "/" + result->getName()+"/";
               string filename =  tdir + result->getName() + "_"

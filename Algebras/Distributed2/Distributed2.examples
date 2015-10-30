@@ -37,11 +37,11 @@ Operator  : prcmd
 Number    : 1
 Signature : stream(tuple) x attrName x attrName -> stream(tuple + E)
 Example   : query intstream(0,5) namedtransformstream[Server] extend[ W : 'open database berlintest'] prcmd[Server,W] consume
-Result    : crashes
+Result    : bug 
 Remark    : requires a remote server
 
-Operator : sendFile
-Number   : 1
+Operator  : sendFile
+Number    : 1
 Signature : int x {string, text} x {string, text} -> bool
 Example   : query sendFile(0, 'local.txt', "remote.txt")
 Result    : bug
