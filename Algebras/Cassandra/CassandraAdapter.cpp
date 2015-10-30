@@ -106,7 +106,7 @@ void CassandraAdapter::connect(bool singleNodeLoadBalancing) {
      
      // Switch to single node policy
      if(singleNodeLoadBalancing) {
-         cass_cluster_set_load_balance_single(cluster, contactpoint.c_str()); 
+         cass_cluster_set_whitelist_filtering(cluster, contactpoint.c_str());
      }
       
      rc = connect_session(session, cluster);
