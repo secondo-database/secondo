@@ -15438,6 +15438,10 @@ int partitionVMT(Word* args, Word& result, int message,
       newSize = (CcInt*) args[4].addr;
       funText = ((FText*) args[5].addr)->GetValue();
       dfunText = ((FText*) args[6].addr)->GetValue();
+   } else {
+      assert(false); // invalid number of arguments
+      name = 0;
+      newSize = 0;
    }
 
 
