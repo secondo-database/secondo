@@ -43,18 +43,16 @@ public:
    string mySecondoPort, string myCassandraHost, 
    WorkerQueue *myTokenQueue, size_t myWorkerId, 
    QueryexecutorState *myQueryExecutorState) 
-   : cassandra(myCassandra), mynl(NULL), secondoHost(mySecondoHost), 
-   secondoPort(mySecondoPort), cassandraHost(myCassandraHost), 
+   : cassandra(myCassandra), si(NULL), mynl(NULL), 
+   secondoHost(mySecondoHost), secondoPort(mySecondoPort), 
+   secondoDatabase(NULL), cassandraHost(myCassandraHost), 
    queryComplete(false), shutdown(false), query(NULL), 
    tokenQueue(myTokenQueue), workerId(myWorkerId), 
    queryExecutorState(myQueryExecutorState) {
    
-      si = initSecondoInterface(secondoHost, secondoPort);
-
-      if(si != NULL) { 
-          cout << "SecondoInterface successfully initialized: " 
-             << secondoHost << " / " << secondoPort << endl;
-      }
+      mynl = new NestedList();
+      
+      initSecondoInterface();
       
       pthread_mutex_init(&processMutex, NULL);
       pthread_cond_init(&processCondition, NULL);  
@@ -64,11 +62,7 @@ public:
       
    virtual ~SecondoWorker() {
       // Shutdown the SECONDO interface
-      if(si) {
-         si->Terminate();
-         delete si;
-         si = NULL;
-      }
+      destroySecondoInterface();
       
       if(query != NULL) {
          delete query;
@@ -82,20 +76,28 @@ public:
       
       pthread_mutex_destroy(&processMutex);
       pthread_cond_destroy(&processCondition);
-      exit(-1);
+   }
+   
+   void destroySecondoInterface() {
+      if(si) {
+         si->Terminate();
+         delete si;
+         si = NULL;
+      }
    }
    
    /*
    2.0 Init the secondo c++ api
 
    */
-   SecondoInterface* initSecondoInterface(string secondoHost, 
-                     string secondoPort) {
+   void initSecondoInterface() {
+
+      // Destory old instance if exits
+      destroySecondoInterface();
 
       // create an interface to the secondo server
       // the paramneter must be true to communicate as client
-      mynl = new NestedList();
-      SecondoInterface* si = new SecondoInterfaceCS(true, mynl);
+      si = new SecondoInterfaceCS(true, mynl);
 
       // define the name of the configuration file
       string config = "Config.ini";
@@ -118,11 +120,7 @@ public:
         cerr << "Cannot initialize secondo system" << endl;
         cerr << "Error message = " << errMsg << endl;
         shutdown = true;
-
-        return NULL;
      }
-  
-     return si;
    }
    
    WorkerQueue* getTokenQueue() {
@@ -260,24 +258,41 @@ public:
    
 private:
    
+   void reconnectSecondo() {
+      destroySecondoInterface();
+      initSecondoInterface();
+      executeSecondoCommand(secondoDatabase, false);
+   }
+   
    /*
    2.2 Execute a command in SECONDO
 
    */
-   bool executeSecondoCommand(string command) {
+   bool executeSecondoCommand(string command, bool autoReconnect = true) {
   
      //  LOG_DEBUG("Worker [ " << secondoPort << " ] executing: " << command);
 
-          ListExpr res = mynl->TheEmptyList(); // will contain the result
-          SecErrInfo err;                 // will contain error information
+          ListExpr res = mynl->TheEmptyList(); 
+          SecErrInfo err;
+          
+          // Store database name for reconnect
+          if(command.find("open database") != string::npos) {
+             secondoDatabase = command;
+          }
         
            si->Secondo(command, res, err); 
 
            // check whether command was successful
-           if(err.code!=0){ 
+           if(err.code != 0) { 
              LOG_ERROR("Error during command. Error code [ " << secondoPort 
                   << " ]: " << err.code << " / " << err.msg);
              return false;
+           } else if(err.code == ERR_SYSTEM_DIED) {
+              if(autoReconnect) {
+                 LOG_ERROR("SECONDO server has died, reconnecting....");
+                 reconnectSecondo();
+              }
+              return false;
            } else {
               LOG_DEBUG("Worker [ " << secondoPort << " ]: computed result " 
                   << mynl->ToString(res));
@@ -331,7 +346,7 @@ private:
               break;
            }
            
-           LOG_WARN("Rexecuting query, because of an error");
+           LOG_WARN("Reexecuting query, because of an error");
        } 
        
        updateLastProcessedToken(tokenrange, myQueryUuid);
@@ -343,6 +358,7 @@ private:
    NestedList* mynl;
    string secondoHost;
    string secondoPort;
+   string secondoDatabase;
    string cassandraHost;
    volatile bool queryComplete;
    volatile bool shutdown;
