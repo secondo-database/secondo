@@ -32,11 +32,13 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 #include <windows.h>
 
 #else
-
+#include <sys/types.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
 #endif
 
+#include <string.h>
 #include <stdlib.h>
 
 
@@ -220,78 +222,80 @@ uint64_t WinUnix::convertEndian(const uint64_t n){
           (x<<56);
 }
 
+/* Write a string to stdout */
+void 
+WinUnix::string2stdout(const char* string) {
+    write (1, string, strlen(string));
+}
     
 /* Obtain a backtrace and print it to stdout. */
 #ifndef SECONDO_ANDROID
 #if defined(SECONDO_LINUX) || defined(SECONDO_MAC_OSX)
 void
-WinUnix::stacktrace(const string& fullAppName)
+WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
 {
-  void* buffer[256];
-  int depth = backtrace(buffer,256);
-  char** STP = backtrace_symbols(buffer,depth);
+     string2stdout(" Generating stack trace ... \n");
+     string2stdout(" ************ BEGIN STACKTRACE ************\n");
+     
+     void *stacktrace[256];
+     int fd = 1; // File descriptor for stacktrace output (1 = stdout)
+     int entries = backtrace (stacktrace, 256);
 
-  bool runaddr2line = RTFlag::isActive("DEBUG:DemangleStackTrace") 
-	              && fullAppName != "none";
-
-  
-  string cmdStr = "addr2line -C auto -fse " + fullAppName + " "; 
-  cout << " Result of  " << cmdStr << endl;
-  string addressList = "";
-
-  for(int i=0;i<depth;i++)
-  {
-    string str(STP[i]);
-    string address = "";
-
-    // extract address information
-    size_t p1 = str.find_last_of("[");
-    size_t p2 = str.find_last_of("]");
-
-    bool addressFound = (p1 != string::npos) && (p2 != string::npos);
-
-    if ( addressFound ) {
-      address = str.substr(p1+1,p2-p1-1);
-      addressList += (address + " ");
-    }
-
-    if ( !addressFound || !runaddr2line ) { 
-      cout << str << endl;
-    } 
-  }
-
-  if ( runaddr2line )
-  {
-    FILE* fp = 0;
-    char line[2048];
-    if ( addressList != "" ) {
-      fp = popen( (cmdStr + addressList).c_str(), "r" );
-      if (fp == 0) {
-        cerr << "popen failed! Could not demangle stack trace!" << endl;
-      } else {
-        while ( true ) { 
-
-         if ( fgets(&line[0],1024,fp) ) { // function name
-          string fname(line);
-          cout << " " << fname.substr(0, fname.length()-1);
-         } else {
-          break;
+     if(stacktraceOutput != NULL) {
+         string2stdout("Writing stacktrace to: ");
+         string2stdout(stacktraceOutput);
+         string2stdout("\n");
+         
+         int outputfd = open (stacktraceOutput, 
+                 O_TRUNC | O_WRONLY | O_CREAT, 0666);
+         
+         if (outputfd != -1) {
+             fd = outputfd;
          }
+         
+         backtrace_symbols_fd(stacktrace, entries, fd);
+     } else {
+         string2stdout("No stacktrace output file defined, ");
+         string2stdout("dumping stacktrace to stdout\n");
+         
+         // Dump stacktrace to stdout
+         backtrace_symbols_fd(stacktrace, entries, 1);
+         
+         // Generate a hint, how to decode the addresses
+         char** stacktraceString = backtrace_symbols(stacktrace, entries);
+         if(stacktraceString != NULL) {
        
-         if ( fgets(&line[0],1024,fp) ) { // file name
-          string fname(line);
-          cout << " --> [ " << fname.substr(0, fname.length()-1) 
-               << " ]" << endl << endl;
-         } else {
-          break;
+            string2stdout("\nTo decode the stack trace, please run: ");
+            string2stdout("addr2line --demangle=auto -p -fs -e ");
+            string2stdout(appName);
+            
+            // Extract and print addresses from stacktrace
+            for (int linePos = 0; linePos < entries; linePos++) {
+                char* line = stacktraceString[linePos];
+                bool print = false;
+                for(size_t pos = 0; pos < strlen(line); pos++) {
+                    if(line[pos] == '[') {
+                        print = true;
+                        string2stdout(" ");
+                        continue;
+                    }
+                    
+                    if(line[pos] == ']') {
+                        break;
+                    }
+                    
+                    if(print) {
+                        write(1, &line[pos], 1);
+                    }
+                }
+            }
+            
+            string2stdout("\n");
+            free(stacktraceString);
          }
-
-        }
-      pclose(fp);
-      }
-    }
-  }
-  free(STP);
+     } 
+     
+     string2stdout("\n *********** END STACKTRACE **********************\n\n");
 }
 #else
 void

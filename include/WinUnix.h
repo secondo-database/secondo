@@ -62,7 +62,8 @@ public:
 
    static void srand(unsigned int seed) { return srand(seed); }
 
-   static void stacktrace(const std::string& fullAppName="");
+   static void string2stdout(const char* string);
+   static void stacktrace(const char* appName, const char* stacktraceOutput);
 
    static inline bool WindowsHost() { return isWin32(); }
    static inline bool isWin32() { return win32; }

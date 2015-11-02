@@ -57,6 +57,9 @@ command instead of hard coded application name SecondoTTYBDB
 #ifndef SECONDO_WIN32
 #include <libgen.h>
 #include <unistd.h>
+#include <execinfo.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #endif
 
 #ifndef _POSIX_OPEN_MAX
@@ -70,13 +73,12 @@ MessageCenter* MessageCenter::msg = 0;
  boost::mutex MessageCenter::mtx; 
 #endif
 
-
-
+ using namespace std;
+ 
 Application* 
 Application::appPointer = 0;
 
-
-using namespace std;
+char* Application::stacktraceOutput = NULL;
 
 map<int, string>
 Application::signalStr;
@@ -161,7 +163,20 @@ Application::Application( int argc, const char** argv )
   user1Flag = false;
   user2Flag = false;
 
+  
 #ifndef SECONDO_WIN32
+  
+  // Store stacktrace output filenanme for later use. If the 
+  // application crashes, it's not ensured that the env 
+  // variabes can be accessed. 
+  char *output = getenv ("SEGFAULT_OUTPUT_NAME");
+    if(output != NULL && output[0] != '\0') {
+     int ret = access (output, R_OK | W_OK);
+ 
+     if(ret == 0 || (ret == -1 && errno == ENOENT)) {
+       Application::stacktraceOutput = strdup(output);
+     }
+  }
 
   // --- Trap all signals that would terminate the program by default anyway.
   signalStr[SIGHUP] = "SIGINT";
@@ -249,6 +264,11 @@ Application::Application( int argc, const char** argv )
 
 Application::~Application()
 {
+    if(Application::stacktraceOutput != NULL) {
+        free(Application::stacktraceOutput);
+        Application::stacktraceOutput = NULL;
+    }
+    
 #ifdef SECONDO_WIN32
   if ( rshSocket != 0 )
   {
@@ -272,17 +292,16 @@ abort the process if not handled otherwise.
 */
   cout << endl << "*** Signal " << signalStr[sig] 
        << " (" << sig << ") caught!";
-  
+   
   if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE )
   {
-  cout << " Printing stack trace ...";
-  cout << endl << " ************ BEGIN STACKTRACE *******************" << endl;
-  Application* ap = Application::Instance();
-  string fullAppName = ap->GetApplicationPath() 
-		       + "/" + ap->GetApplicationName();
-  WinUnix::stacktrace(fullAppName);
-  cout << endl << " *********** END STACKTRACE **********************" 
-       << endl << endl;
+      
+     if(RTFlag::isActive("DEBUG:DemangleStackTrace")) {
+        Application* ap = Application::Instance();
+        string appName = ap->GetApplicationName();
+        WinUnix::stacktrace(appName.c_str(), stacktraceOutput);
+     }
+     
   }
   cout << " Calling default signal handler ..." << endl;
   signal( sig, SIG_DFL );

@@ -308,14 +308,10 @@ These methods emulate the signal mechanism for the ~Microsoft Windows~ platform.
 */
 #endif
 
-  static void PrintStacktrace(void);
-/*
-Print out a stack trace in case of abnormal program termination.
-
-*/
 
   static Application* appPointer;
   static map<int, std::string> signalStr;
+  static char*  stacktraceOutput; // Output flename for stacktraces
 
 };
 
