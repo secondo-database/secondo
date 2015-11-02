@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 The Implementation-Module SecondoInterfaceREPLAY
 
-September 2015 Matthias Kunsmann ReplayVersion of the ~SecondoInterfaceCS~
+October 2015 Matthias Kunsmann ReplayVersion of the ~SecondoInterfaceCS~
 
 [TOC]
 
@@ -91,6 +91,11 @@ SecondoInterfaceREPLAY::~SecondoInterfaceREPLAY() {
 
 void
 SecondoInterfaceREPLAY::setReplayFile(const string iReplayFile) {
+/*
+Set an external configuration file for master and nodes
+configuration.
+
+*/
   replayFile = iReplayFile;
 }
 
@@ -107,9 +112,11 @@ external configuration file, if available.
   ReplayHost elem;
 
   if (replayFile == "") {
+    /* if no configuration file is set with parameter by user */
     externalConfigFile = SmiProfile::GetParameter("Replay", 
                                  "DefaultReplayClusterConfig", "", parmFile);
   } else {
+    /* if user set an configuration file use this */
     externalConfigFile = replayFile;
   }
 
@@ -188,8 +195,8 @@ bool
 SecondoInterfaceREPLAY::getMasterConfig(const string& parmFile, 
                                         const string& delimPart) {
 /*
-Read the configuration of the master from the configuration file and save it
-in the instance variable for later use.
+Read the configuration of the master from the configuration file 
+and save it in the instance variable for later use.
 
 */
 
@@ -379,6 +386,7 @@ async-Feature from C++ 11.
 
   bool futureRes;
   vector<std::future<bool>> futures;
+  vector<unsigned int> downNodes;
 
   for (unsigned  int i=0; i<nodes.size(); ++i) {
     futures.push_back(async(std::launch::async, 
@@ -393,6 +401,7 @@ async-Feature from C++ 11.
       if (futureRes == false) {
         cout << "Error while connecting to node : " 
              << nodes[i].hostname << endl;
+        downNodes.push_back(i);
       }
     } catch (const exception& e) {
       cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what() 
@@ -402,6 +411,21 @@ async-Feature from C++ 11.
       return false;
     }
   }
+
+  /* remove nodes from array, if connection failed */
+  for (unsigned int i=0; i<downNodes.size(); ++i) {
+    nodes[downNodes[i]].initialized = false;
+  }
+
+  for (std::vector<ReplayHost>::iterator it = nodes.begin(); 
+       it != nodes.end(); ) {
+    if (it->initialized == false) {
+      nodes.erase(it);
+    } else {
+      ++it;
+    }
+  }
+
   return true;
 }
 
@@ -538,16 +562,65 @@ Split the params of special import commands to an array
   string params = cmdText.substr(foundleft + 1, foundright - foundleft - 1);
 
   stringutils::StringTokenizer token(params, ",");
-  while (token.hasNextToken()) {
+  if (foundright != std::string::npos && 
+      foundleft != std::string::npos &&
+      foundright > foundleft + 1) {
+    while (token.hasNextToken()) {
       paramlist.push_back(token.nextToken());
+    }
   }
- 
+
   return true;  
 }
 
 bool
-SecondoInterfaceREPLAY::checkReplayCommand(string& cmdText)
-{
+SecondoInterfaceREPLAY::checkReplayImportNoParams(
+              const string& replayImpCommand,
+              std::vector<string>& paramlist) {
+/*
+Check number of params of replay command
+
+*/
+
+  if (replayImpCommand == "replayOSMImport" && (paramlist.size() < 1 || 
+                                                paramlist.size() > 2)) {
+    cout << "Wrong parameter count for replayOSMImport" << endl;
+    return false;
+  } else if (replayImpCommand == "replayCSVImport" && (paramlist.size() < 7 ||
+                                                       paramlist.size() > 8)) {
+    cout << "Wrong parameter count for replayCSVImport" << endl;
+    return false;
+  } else if (replayImpCommand == "replaySHPImport" && (paramlist.size() < 3 ||
+                                                       paramlist.size() > 4)) {
+    cout << "Wrong parameter count for replaySHPImport" << endl;
+    return false;
+  } else if (replayImpCommand == "replayDBLPImport" && (paramlist.size() < 1 ||
+                                                        paramlist.size() > 2)) {
+    cout << "Wrong parameter count for replayDBLPImport" << endl;
+    return false;
+  } else if (replayImpCommand == "replayIMGImport" && (paramlist.size() < 3 ||
+                                                       paramlist.size() > 4)) {
+    cout << "Wrong parameter count for replayIMGImport" << endl;
+    return false;
+  } else if (replayImpCommand == "shareFile" && paramlist.size() != 2) {
+    cout << "Wrong parameter count for shareFile" << endl;
+    return false;
+  }
+  
+  // first parameter always a filename or an directory, check if exists
+  if (paramlist.size() > 0) {
+    if (!FileSystem::FileOrFolderExists(paramlist[0])) {
+      cout << "File or Folder doesn't exists. Please check" << endl;
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+bool
+SecondoInterfaceREPLAY::checkReplayCommand(string& cmdText) {
 /*
 Check the assigned command if it a command only for master or for master 
 and all nodes.
@@ -744,8 +817,8 @@ SecondoInterfaceREPLAY::Initialize(const string& user,
 
     // if master not correctly configured, use 
     // param host, port -> if available
-    // if not available use params from SecondoConfig.ini SecondoHost 
-    // and SecondoPort
+    // if not available use params from SecondoConfig.ini
+    // SecondoHost and SecondoPort
     if (!checkMaster) {
 
       if (secHost.length() == 0 || secPort.length() == 0) {
@@ -1046,7 +1119,7 @@ a number of files to every node.
 
     sendFileToNode(nodeNo, transferFileName, destFileName, true);
 
-    // no special tread handling needed, because the threads only fill 
+    // no special thread handling needed, because the threads only fill 
     // a new element into the array
     transferFilePath.push_back(stringutils::int2str(nodeNo) + 
                                ":" + 
@@ -1149,7 +1222,7 @@ process to an Node. There is the possibility to send all files to all nodes
     sendFileToNode(nodeNo, srcPathDocument, destPathDocument, true);
     sendFileToNode(nodeNo, srcPathKeyword, destPathKeyword, true);
 
-    // no special tread handling needed, because the threads only fill 
+    // no special thread handling needed, because the threads only fill 
     // a new element into the array
     sendFilePath = getNodeLastSendFilePath(nodeNo);
 
@@ -1205,7 +1278,7 @@ Send all images from search result to the node
      serverFileName = imageList[i].substr(found + 1);
      sendFileToNode(nodeNo, imageList[i], serverFileName, true);
 
-    // no special tread handling needed, because the threads only fill 
+    // no special thread handling needed, because the threads only fill 
     // a new element into the array
     transferFilePath.push_back(stringutils::int2str(nodeNo) + 
                                ":" + 
@@ -1223,6 +1296,11 @@ bool
 SecondoInterfaceREPLAY::sendShareFileToNode(const unsigned int nodeNo,
                                             const string& localfilename,
                                             const string& cpDestPath) {
+/*
+Send an file to the node and copy it with scp to the 
+destination path
+
+*/
   std::size_t found;
   string serverFileName;
   string systemCommand;
@@ -1241,7 +1319,7 @@ SecondoInterfaceREPLAY::sendShareFileToNode(const unsigned int nodeNo,
                   nodeIP + ":" + cpDestPath;  
   system(systemCommand.c_str());
 
-  // no special tread handling needed, because the threads only fill 
+  // no special thread handling needed, because the threads only fill 
   // a new element into the array
   transferFilePath.push_back(stringutils::int2str(nodeNo) + 
                              ":" + 
@@ -1271,10 +1349,9 @@ SecondoInterfaceREPLAY::controllerTransferFile(const unsigned int noSplitFiles,
                                                const string& subFileName) {
 /*
 Controls sending of files to the nodes. The function can differentiate 
-between "Replication" - all files
-on all nodes - and partitioning, send only part of the file to an node, 
-so that every node has different
-files.
+between "Replication" - all files  on all nodes - and partitioning, 
+send only part of the file to an node, so that every node has 
+different files.
 
 */
   bool futureRes;
@@ -1326,10 +1403,9 @@ SecondoInterfaceREPLAY::controllerTransferShapeFile(
                       const string& subFileName) {
 /*
 Controls sending of files (ShapeFiles) to the nodes. The function can 
-differentiate between "Replication" - all files
-on all nodes - and partitioning, send only part of the file to an node, 
-so that every node has different
-files.
+differentiate between "Replication" - all files on all nodes - 
+and partitioning, send only part of the file to an node, 
+so that every node has different files.
 
 */
 
@@ -1712,9 +1788,9 @@ Execute of ReplayCSVImport.
   cout << endl << "Splitting CSV file ..." << endl;
 
   bool b;
-  istringstream(paramlist[5]) >> std::boolalpha >> b;
+  istringstream(paramlist[6]) >> std::boolalpha >> b;
 
-  splitCSV(paramlist[0], stoi(paramlist[1]), b, subFileName, noSplitFiles);
+  splitCSV(paramlist[0], stoi(paramlist[2]), b, subFileName, noSplitFiles);
 
   // Transfer files to nodes
   cout << "Transfer files to nodes ..." << endl;
@@ -1733,14 +1809,22 @@ Execute of ReplayCSVImport.
     commandsPerNode.push_back(vector <string>());  
   }
 
+  unsigned int currentNo;
+  std::size_t foundSep;
+
   // Now add the commands for the nodes to the array
   for (unsigned int i=0; i<transferFilePath.size(); ++i) {
      stringutils::StringTokenizer token(transferFilePath[i], ":");
      currentNode = stoi(token.nextToken());
      currentFilePath = token.nextToken();
-     cmdText = "query csvimport2('" + currentFilePath + "', " + paramlist[1] + 
-               ",\"" + paramlist[2] +"\",\"" + paramlist[3] +"\"," + 
-               paramlist[4] + "," + paramlist[5] + ") count";
+     foundSep = currentFilePath.find_last_of("_");
+     currentNo = stoi(currentFilePath.substr(foundSep + 1));
+
+     cmdText = "let " + paramlist[1] + "_" + 
+               stringutils::int2str(currentNo) + 
+               " = csvimport2('" + currentFilePath + "', " + paramlist[2] + 
+               ",\"" + paramlist[3] +"\",\"" + paramlist[4] +"\"," + 
+               paramlist[5] + "," + paramlist[6] + ") consume";
 
      commandsPerNode[currentNode].push_back(cmdText);
   }  
@@ -2199,7 +2283,11 @@ Split an dblp file in noSplitFiles files
 bool 
 SecondoInterfaceREPLAY::DBLPtoSECONDO(const std::string& subFileName,
                                       const unsigned int noSplitFiles) {
+/*
+Call Shell-Script for every splitted dblp-file to create the relationsfiles
+Author, Authordoc, Document, Keywords in csv-format
 
+*/
   string cmdShell;
 
   for (unsigned int i = 0; i < noSplitFiles; ++i) {
@@ -2222,7 +2310,8 @@ SecondoInterfaceREPLAY::executeReplayDBLPImport(std::vector<string>& paramlist,
 Execute of ReplayDBLPImport.
 
 1) Split an DBLP-File
-2) Transfer the splitted DBLP-Files to the nodes
+2) Converting splitted DBLP-files to CSV-format and creating relations
+3) Transfer relation files to the nodes
 3) Import these files on the nodes
 4) Garbage  Collection for temporary objects
 
@@ -3046,7 +3135,7 @@ For an explanation of the error codes refer to SecondoInterface.h
     // Check for Replay Import Command
     isReplayImportCommand = checkReplayImport(cmdText, replayImpCommand);
 
-    if (isReplayImportCommand == true) {
+    if (isReplayImportCommand == true && nodes.size() > 0) {
       // At the moment supported formats for Replay Import:
       // Open Street Map (osm)
       // CSV
@@ -3056,14 +3145,14 @@ For an explanation of the error codes refer to SecondoInterface.h
 
       // Commands:
       // If import do replication or partitioning on the nodes is specified
-      // in SecondoConfig.ini (ReplayModus)
+      // in SecondoConfig.ini (ReplayImportMode)
       // Can overwritten with every replayImportCommand with an optional 
       // last parameter
       // Parameter value: Replication or Partitioning
 
       // replayOSMImport(filename[,replayImportMode])
-      // replayCSVImport(filename, headersize, comment, separator, uses_quotes, 
-      //                 multiline[,replayImportMode])
+      // replayCSVImport(filename, relName, headersize, comment, separator, 
+      //                 uses_quotes, multiline[,replayImportMode])
       // replaySHPImport(filename, objName, geoName[,replayImportMode])
       // replayDBLPImport(filename[,replayImportMode])
       // replayIMGImport(startDirectory, recursiveLevel, relationName
@@ -3075,6 +3164,14 @@ For an explanation of the error codes refer to SecondoInterface.h
        
       // Parse params and save it in param list array
       paramsOK = getReplayImportPrmList(paramlist, cmdText);   
+
+      // Check correct number of params
+      paramsOK = checkReplayImportNoParams(replayImpCommand, paramlist);
+      
+      if (!paramsOK) {
+        errorCode = ERR_SYNTAX_ERROR;
+        return;
+      }
 
       // Check if user overwriten the default replayImportMode
 
@@ -3104,10 +3201,10 @@ For an explanation of the error codes refer to SecondoInterface.h
          }
       } else if (replayImpCommand == "replayCSVImport") {
         // Seventh parameter for replayCSVImport
-        if (paramlist.size() == 7) {
-          if ( (paramlist[6] == "Replication") ||
-               (paramlist[6] == "Partitioning") ) {
-            replayImportMode = paramlist[6];
+        if (paramlist.size() == 8) {
+          if ( (paramlist[7] == "Replication") ||
+               (paramlist[7] == "Partitioning") ) {
+            replayImportMode = paramlist[7];
           }
         }
       } 
@@ -3150,7 +3247,11 @@ For an explanation of the error codes refer to SecondoInterface.h
 
     // check command if execute only on master or on master and note
     // remove prefix s from s-commands
-    onlyMasterCommand = checkReplayCommand(cmdText);
+    if (nodes.size() > 0) {
+      onlyMasterCommand = checkReplayCommand(cmdText);
+    } else {
+      onlyMasterCommand = true;
+    }
 
     iosock << "<Secondo>" << endl
            << commandType << endl

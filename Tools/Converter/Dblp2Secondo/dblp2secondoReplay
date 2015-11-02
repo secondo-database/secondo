@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2015, University in Hagen, Department of Computer Science, 
 #Database Systems for New Applications.
 #
 #SECONDO is free software; you can redistribute it and/or modify
@@ -58,6 +58,7 @@ COMMAND="java -Xmx180M KeyWordCreator keyword_tmp Exclusions Keyword - 3"
 
 $COMMAND
 
+# move generated files to transfer directory
 mv Author ${REPLAY_TRANSFER_PATH}Author_${DBLP_SPLIT_NO}
 mv Authordoc ${REPLAY_TRANSFER_PATH}Authordoc_${DBLP_SPLIT_NO}
 mv Document ${REPLAY_TRANSFER_PATH}Document_${DBLP_SPLIT_NO}

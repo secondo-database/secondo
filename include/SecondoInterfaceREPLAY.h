@@ -124,6 +124,8 @@ protected:
                       const bool allowOverwrite);
   bool getReplayImportPrmList(std::vector<string>& paramlist, 
                               const string& cmdText);
+  bool checkReplayImportNoParams(const string& replayImpCommand,
+                                 std::vector<string>& paramlist);
 
   string getNodeLastSendFilePath(const unsigned int nodeNo);
 
