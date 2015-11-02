@@ -311,7 +311,8 @@ These methods emulate the signal mechanism for the ~Microsoft Windows~ platform.
 
   static Application* appPointer;
   static map<int, std::string> signalStr;
-  static char*  stacktraceOutput; // Output flename for stacktraces
+  static bool dumpStacktrace;     // Dump stacktrace on app crash
+  static char* stacktraceOutput;  // Output filename for stacktraces
 
 };
 

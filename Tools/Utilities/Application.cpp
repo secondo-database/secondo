@@ -75,14 +75,10 @@ MessageCenter* MessageCenter::msg = 0;
 
  using namespace std;
  
-Application* 
-Application::appPointer = 0;
-
+Application* Application::appPointer = 0;
+map<int, string> Application::signalStr;
+bool Application::dumpStacktrace = true;
 char* Application::stacktraceOutput = NULL;
-
-map<int, string>
-Application::signalStr;
-
 
 Application* Application::Instance()
 {
@@ -166,9 +162,9 @@ Application::Application( int argc, const char** argv )
   
 #ifndef SECONDO_WIN32
   
-  // Store stacktrace output filenanme for later use. If the 
-  // application crashes, it's not ensured that the env 
-  // variabes can be accessed. 
+  // Store stacktrace output filenanme for later 
+  // use. If the application crashes, it's not ensured that the 
+  // env variabes can be accessed. 
   char *output = getenv ("SEGFAULT_OUTPUT_NAME");
     if(output != NULL && output[0] != '\0') {
      int ret = access (output, R_OK | W_OK);
@@ -295,13 +291,11 @@ abort the process if not handled otherwise.
    
   if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE )
   {
-      
-     if(RTFlag::isActive("DEBUG:DemangleStackTrace")) {
+     if(Application::dumpStacktrace) {
         Application* ap = Application::Instance();
         string appName = ap->GetApplicationName();
         WinUnix::stacktrace(appName.c_str(), stacktraceOutput);
      }
-     
   }
   cout << " Calling default signal handler ..." << endl;
   signal( sig, SIG_DFL );
