@@ -13205,12 +13205,14 @@ class dmap2Info{
 
     dmap2Info( A1* _array1, A2* _array2, R* _res, 
               const string& _funtext, const string& _objName,
-              bool _streamRes, int _port) :
+              bool _streamRes, int _port, ListExpr _arg1Type,
+              ListExpr _arg2Type) :
         array1(_array1), array2(_array2), res(_res),
         objName(_objName),funtext(_funtext), streamRes(_streamRes), 
-        port(_port) {
+        port(_port), arg1Type(_arg1Type), arg2Type(_arg2Type) {
           dbname = SecondoSystem::GetInstance()->GetDatabaseName();
           res->setName(objName) ;
+          arg2IsRel = Relation::checkType(nl->Second(arg2Type));
        }
 
 
@@ -13292,6 +13294,9 @@ class dmap2Info{
     string funtext;
     bool streamRes;
     int port;
+    ListExpr arg1Type;
+    ListExpr arg2Type;
+    bool arg2IsRel;
     string dbname;
 
     class Run{
@@ -13454,7 +13459,13 @@ class dmap2Info{
             string errMsg;
             string r;
             double runTime;
-            string cmd =   "save " + originalName + " to " + tempObject;
+            string cmd;
+            if(!mi->arg2IsRel){
+                cmd =   "save " + originalName + " to " + tempObject;
+            } else {
+                cmd = "query " + originalName + " feed fconsume5['" 
+                      + tempObject +"'] count";
+            }
             ci2->simpleCommand( cmd, err,errMsg,r,false, runTime);
             if(err){
               cerr << "cmd << " << cmd << " failed  with code " << err << endl;
@@ -13473,7 +13484,12 @@ class dmap2Info{
               return;
             }  
             // step3 create the temporary object from this file
-            cmd = "restore " + tempObject + " from " + tempObject;
+            if(!mi->arg2IsRel){
+               cmd = "restore " + tempObject + " from " + tempObject;
+            } else {
+               cmd = "let " + tempObject + " = ffeed5('" + tempObject
+                     + "') consume";
+            }
             ci1->simpleCommand( cmd, err,errMsg,r,false, runTime);
             if(err){
               cerr << "cmd << " << cmd << " failed  with code " << err << endl;
@@ -13545,11 +13561,15 @@ int dmap2VMT(Word* args, Word& result, int message,
     }
     if(isFileBased){
         dmap2Info<A1,A2,DFArray> info(a1,a2,(DFArray*) result.addr, 
-                                      funtext, n,streamRes, port);
+                                      funtext, n,streamRes, port, 
+                                      qp->GetType(qp->GetSon(s,0)),
+                                      qp->GetType(qp->GetSon(s,1)));
         info.start();
     } else {
         dmap2Info<A1,A2,DArray> info(a1,a2,(DArray*) result.addr, 
-                                     funtext, n,streamRes, port);
+                                     funtext, n,streamRes, port,
+                                     qp->GetType(qp->GetSon(s,0)),
+                                     qp->GetType(qp->GetSon(s,1)));
         info.start();
     }
     return 0;
