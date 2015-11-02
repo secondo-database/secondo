@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
+
 [1] Implementation of Module Extended Relation Algebra
 
 [1] Using Storage Manager Berkeley DB
@@ -13375,7 +13376,179 @@ Operator feedSOp(
 
 
 
+/*
+2.119 Operator nth
 
+
+ 
+
+2.118.1 Type Mapping
+
+*/
+
+ListExpr nthType( ListExpr args)
+{
+  if(!nl->HasLength(args,2))
+   {
+    return listutils::typeError("two arguments expected");
+   }
+   
+  ListExpr arg1 = nl->First(args);
+  
+    
+  if((!listutils::isTupleStream(arg1)))
+   {
+    return listutils::typeError("first argument must be a stream of tuples");
+   }
+   
+ListExpr arg2 = nl->Second(args);
+
+if(!CcInt::checkType(arg2))
+  {
+    return listutils::typeError("second argument musst be a int value");
+  } 
+  
+  return arg1;
+  
+}
+
+ 
+/*
+2.119.2 Value Mapping
+
+*/
+
+int nthValueMapping(Word* args, Word& result, int message,
+                     Word& local, Supplier s)
+{
+  Word tuple(Address(0));
+  Tuple* current = 0;
+  RTuple* lastOutput = 0;
+  int intvalue = 0;
+  CcInt* currentval = static_cast<CcInt*>(args[1].addr);
+  
+  if (currentval->IsDefined() )
+        {
+          intvalue = currentval->GetIntval(); 
+        }
+  
+  int counter = 0;
+  
+  
+  
+
+  switch(message)
+  {
+    case OPEN: {
+      qp->Open(args[0].addr);
+      local.addr = 0;
+      return 0;
+    }
+    
+    
+    
+    
+    
+    case REQUEST: {
+      
+      
+      while(true)
+      { counter++;
+        qp->Request(args[0].addr, tuple);
+        if(qp->Received(args[0].addr))
+        {
+          // stream delivered a new tuple
+          if(local.addr != 0)
+          {
+            // there is a last tuple
+            current = static_cast<Tuple*>(tuple.addr);
+            lastOutput = static_cast<RTuple*>(local.addr);
+            
+            
+            
+            if(counter == intvalue)
+            {
+              // want the tuple. Return the tuple
+              
+
+                   *lastOutput = RTuple( current );
+                   result = tuple;
+                   return YIELD;
+             }
+             else
+             {
+               // dont want the tuples 
+               current->DeleteIfAllowed();
+             }
+           }
+          
+          
+          else
+          {
+            // no last tuple stored
+      local.addr = new RTuple( static_cast<Tuple*>(tuple.addr) );
+      result = tuple;
+            return YIELD;
+          }
+        }
+  else
+        {
+          result.addr = 0;
+          return CANCEL;
+        }
+      }
+    }
+    
+      
+    
+    case CLOSE: {
+      if( local.addr != 0 ){ // check if local is present
+         lastOutput = static_cast<RTuple*>(local.addr);
+         delete lastOutput;
+         local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      return 0;
+    }
+  }
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>((stream (tuple([a1:d1, ... ,an:dn])))) x int"
+                         " -> (stream (tuple([a1:d1,...... ,an:dn])))"
+                         "</text--->"
+                         "<text>_ nth[_]</text--->"
+                         "<text>get the first and every intth tuple"
+                         "stream.</text--->"
+                         "<text>query Orte feed nth[2] count"
+                         "</text--->"
+                              ") )";
+
+
+
+
+
+ 
+ 
+ Operator extrelnth (
+         "nth",             // name
+         nthSpec,           // specification
+         nthValueMapping,               // value mapping
+         Operator::SimpleSelect,          // trivial selection function
+         nthType                      // type mapping
+);
+
+ 
 
 
 /*
@@ -13490,6 +13663,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&countMtOP);
     AddOperator(&bringToMemoryOP);
     AddOperator(&feedSOp);
+    AddOperator(&extrelnth);
 
 #ifdef USE_PROGRESS
 // support for progress queries

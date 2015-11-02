@@ -166,6 +166,11 @@ Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
 Example  : query Staedte feed min[Bev]
 Result   : 100000
 
+Operator : nth
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) x int -> (stream (tuple([a1:d1, ... ,am:dm])))
+Example  : query Orte feed nth[2] count
+Result   : 253
 
 Operator : projectextend
 Number   : 1
