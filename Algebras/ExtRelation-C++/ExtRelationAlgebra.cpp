@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-
 [1] Implementation of Module Extended Relation Algebra
 
 [1] Using Storage Manager Berkeley DB
@@ -13423,7 +13422,7 @@ int nthValueMapping(Word* args, Word& result, int message,
 {
   Word tuple(Address(0));
   Tuple* current = 0;
-  RTuple* lastOutput = 0;
+  
   int intvalue = 0;
   CcInt* currentval = static_cast<CcInt*>(args[1].addr);
   
@@ -13462,7 +13461,7 @@ int nthValueMapping(Word* args, Word& result, int message,
           {
             // there is a last tuple
             current = static_cast<Tuple*>(tuple.addr);
-            lastOutput = static_cast<RTuple*>(local.addr);
+            
             
             
             
@@ -13471,7 +13470,7 @@ int nthValueMapping(Word* args, Word& result, int message,
               // want the tuple. Return the tuple
               
 
-                   *lastOutput = RTuple( current );
+                   
                    result = tuple;
                    return YIELD;
              }
@@ -13503,8 +13502,8 @@ int nthValueMapping(Word* args, Word& result, int message,
     
     case CLOSE: {
       if( local.addr != 0 ){ // check if local is present
-         lastOutput = static_cast<RTuple*>(local.addr);
-         delete lastOutput;
+         
+         
          local.setAddr(0);
       }
       qp->Close(args[0].addr);
@@ -13525,7 +13524,7 @@ int nthValueMapping(Word* args, Word& result, int message,
 const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( <text>((stream (tuple([a1:d1, ... ,an:dn])))) x int"
-                         " -> (stream (tuple([a1:d1,...... ,an:dn])))"
+                         " -> (stream (tuple([a1:d1,...... ,am:dm])))"
                          "</text--->"
                          "<text>_ nth[_]</text--->"
                          "<text>get the first and every intth tuple"
