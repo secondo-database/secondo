@@ -45,7 +45,7 @@ public:
    QueryexecutorState *myQueryExecutorState) 
    : cassandra(myCassandra), si(NULL), mynl(NULL), 
    secondoHost(mySecondoHost), secondoPort(mySecondoPort), 
-   secondoDatabase(NULL), cassandraHost(myCassandraHost), 
+   secondoDatabase(""), cassandraHost(myCassandraHost), 
    queryComplete(false), shutdown(false), query(NULL), 
    tokenQueue(myTokenQueue), workerId(myWorkerId), 
    queryExecutorState(myQueryExecutorState) {
@@ -268,7 +268,7 @@ private:
    2.2 Execute a command in SECONDO
 
    */
-   bool executeSecondoCommand(string command, bool autoReconnect = true) {
+   bool executeSecondoCommand(string &command, bool autoReconnect = true) {
   
      //  LOG_DEBUG("Worker [ " << secondoPort << " ] executing: " << command);
 
