@@ -15750,7 +15750,7 @@ int partitionVMT(Word* args, Word& result, int message,
 
 
 OperatorSpec partitionSpec(
-  "d[f]array(rel(tuple)) x (tuple->int) x string x int-> dfmatrix",
+  "d[f]array(rel(tuple)) x string x (tuple->int) x int-> dfmatrix",
   "_ partition[_,_,_]",
   "Redistributes the contents of a dfarray value. "
   "The new slot contents are kept on the worker where "

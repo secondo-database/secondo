@@ -426,7 +426,7 @@ Result    : 3212
 
 Operator  : partition
 Number    : 1
-Signature : dfarray x fun x string -> dmatrix
+Signature : dfarray x string x fun -> dmatrix
 Example   : query size(s7 partition["m7", hashvalue(.Attr,23) , 0 ] )
 Result    : bug
 Remark    : remote server required
