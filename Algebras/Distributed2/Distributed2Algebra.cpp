@@ -51,6 +51,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DebugWriter.h"
 
 
+#include "FileRelations.h"
+
+
   // use boost for thread handling
 
 #include <boost/thread.hpp>
@@ -59,6 +62,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 extern DebugWriter dwriter;
 
+extern boost::mutex nlparsemtx;
 
 namespace distributed2 {
 
@@ -71,12 +75,10 @@ string in parallel. Thus, we introduce a global mutex which is locked
 always if a nested list is parsed.
 
 */
-boost::mutex nlparsemtx;
 boost::mutex createRelMut;
 boost::mutex copylistmutex;
 
 
-#define FILE_BUFFER_SIZE 1048576
 
 
 bool showCommands;
@@ -99,216 +101,6 @@ void showCommand(SecondoInterfaceCS* src, const string& host, const int port,
 Some Helper functions.
 
 */
-class BinRelWriter{
-  public:
-     static bool writeHeader(ostream& out, ListExpr type){
-
-         if(!Relation::checkType(type)){
-            cerr << "invalid relation type " << nl->ToString(type);
-            assert(false);
-         }
-
-         string relTypeS = nl->ToString(type);
-         uint32_t length = relTypeS.length();
-         string magic = "srel";
-         out.write(magic.c_str(),4);
-         out.write((char*) &length, sizeof(uint32_t));
-         out.write(relTypeS.c_str(), length);
-         return out.good();
-     }
-
-    static bool writeNextTuple(ostream& out,Tuple* tuple){
-       // retrieve sizes
-       size_t coreSize;
-       size_t extensionSize;
-       size_t flobSize;
-       size_t blocksize = tuple->GetBlockSize(coreSize, extensionSize, 
-                                              flobSize);
-       // allocate buffer and write flob into it
-       char* buffer = new char[blocksize];
-       tuple->WriteToBin(buffer, coreSize, extensionSize, flobSize); 
-       uint32_t tsize = blocksize;
-       TupleId id = out.tellp();
-       tuple->SetTupleId(id);
-       out.write((char*) &tsize, sizeof(uint32_t));
-       out.write(buffer, tsize);
-       delete[] buffer;
-       return out.good();
-    }
-           
-    static bool finish(ostream& out){
-           uint32_t marker = 0;
-           out.write((char*) &marker, sizeof(uint32_t));
-           return out.good();
-    }
-
-
-    static bool writeRelationToFile(Relation* rel, ListExpr relType, 
-                      const string& fileName){
-
-       ofstream out(fileName.c_str(), ios::out | ios::binary);
-       if(!writeHeader(out,relType)){
-           out.close();
-           return false;
-       }
-       GenericRelationIterator* it = rel->MakeScan();
-       Tuple* tuple;
-       while((tuple = it->GetNextTuple())){
-           if(!writeNextTuple(out,tuple)){
-               out.close();
-               tuple->DeleteIfAllowed();
-               delete it;
-               return false;
-           }
-           tuple->DeleteIfAllowed();
-       }
-       delete it;
-       bool res = finish(out);
-       out.close();
-       return res;
-    }
-
-
-};
-
-
-class ffeed5Info{
-
-  public:
-    ffeed5Info(const string& filename, const ListExpr _tt){
-
-       tt = new TupleType(_tt);
-       inBuffer = new char[FILE_BUFFER_SIZE];
-       in.open(filename.c_str(), ios::in | ios::binary);
-       ok = in.good();
-       if(ok){
-          in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
-          readHeader(tt);
-       } else {
-           // cout << "could not open file " << filename << endl;
-       }
-    }
-
-   
-    ffeed5Info(const string& filename, TupleType* _tt){
-       tt = new TupleType(*_tt);
-       in.open(filename.c_str(), ios::in | ios::binary);
-       inBuffer = new char[FILE_BUFFER_SIZE];
-       ok = in.good();
-       if(ok){
-          in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
-          readHeader(tt);
-       }else{
-          cerr << "could not open file " << filename << endl; 
-       }
-    }
-
-    ffeed5Info(const string& filename){
-       in.open(filename.c_str(), ios::in | ios::binary);
-       inBuffer = new char[FILE_BUFFER_SIZE];
-       ok = in.good();
-       if(ok){
-          in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
-          readHeader(0);
-       }else{
-          cerr << "could not open file " << filename << endl; 
-       }
-       if(ok){
-         ListExpr tupleType = nl->Second(fileTypeList);
-         tupleType = SecondoSystem::GetCatalog()->NumericType(tupleType);
-         tt = new TupleType(tupleType);
-       } 
-    }
-
-    
-    ~ffeed5Info(){
-      tt->DeleteIfAllowed();
-      in.close();
-      delete[] inBuffer;
-    }
-
-    ListExpr getRelType(){
-      return fileTypeList;
-    }
-
-    bool isOK(){
-       ok = ok && in.good();
-       return ok;
-    }
-
-    void changePosition(size_t pos){
-       in.seekg(pos);
-       ok = in.good();
-    }
-
-
-    Tuple* next(){
-       if(!ok) {
-         return 0;
-       }
-       if(!in.good() || in.eof()){
-          return 0;
-       }
-       TupleId id = in.tellg();
-       uint32_t size;
-       in.read( (char*) &size, sizeof(uint32_t));
-       if(size==0){
-         return 0;
-       }
-       char* buffer = new char[size];
-       in.read(buffer, size);
-       if(!in.good()){
-         delete [] buffer;
-         return 0;
-       }
-       Tuple* res = new Tuple(tt);
-       res->ReadFromBin(buffer );
-       res->SetTupleId(id);
-       delete[] buffer;
-       return res;
-    }
-
-  private:
-     ifstream in;
-     char* inBuffer;
-     TupleType* tt; 
-     bool ok;
-     ListExpr fileTypeList;
-
-
-  void readHeader(TupleType* tt){
-     char marker[4];
-     in.read(marker,4);
-     string ms(marker,4);
-     if(ms!="srel"){
-        ok = false;
-        return;
-     }
-     uint32_t length;
-     in.read((char*) &length,sizeof(uint32_t));
-     char* buffer = new char[length];
-     in.read(buffer,length);
-     string list(buffer,length);
-     delete[] buffer;
-     {
-        boost::lock_guard<boost::mutex> guard(nlparsemtx);
-        ok = nl->ReadFromString(list,fileTypeList); 
-        ListExpr tupleType = nl->Second(fileTypeList);
-        if(tt){
-           tupleType = SecondoSystem::GetCatalog()->NumericType(tupleType);
-           TupleType ftt(tupleType);
-           if(!ftt.equalSchema(*tt)){
-               cerr << "expected scheme does not fit the stored scheme." 
-                    << endl;
-               ok = false;
-           }
-        }
-     }
-     ok = ok && in.good();
-  }
-
-};
-
 
 template<class T>
 bool writeVar(const T& value, SmiRecord& record, size_t& offset){
