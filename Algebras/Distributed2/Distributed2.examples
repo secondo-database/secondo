@@ -163,22 +163,22 @@ Remark    : remote server required
 Operator: ddistribute2
 Number  : 1
 Signature : stream(tuple(X)) x ident x int x rel x string -> darray(X) 
-Example   : query strassen feed addcounter[No,0] ddistribute2[No, 5, workers, "dstrassen"] 
-Result    : crashes
+Example   : query strassen feed addcounter[No,0] ddistribute2["dstrassen", No, 5, workers] 
+Result    : bug
 Remark    : remote server required
 
 Operator: ddistribute3
 Number  : 1
 Signature : stream(tuple(X)) x int x bool  x rel x string -> darray(rel(tuple(X))) 
-Example   : query strassen feed  ddistribute3[10, TRUE, workers, "dstrassen3"] 
-Result    : crashes
+Example   : query strassen feed  ddistribute3["dstrassen3", 10, TRUE, workers] 
+Result    : bug
 Remark    : remote server required
 
 Operator: ddistribute4
 Number  : 1
 Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray(X) 
-Example   : query strassen feed  ddistribute4[hashvalue(.Name, 2000), 5 , workers, "dstrassen4"] 
-Result    : crashes
+Example   : query strassen feed  ddistribute4["dstrassen4", hashvalue(.Name, 2000), 5 , workers] 
+Result    : bug
 Remark    : remote server required
 
 Operator: closeWorkers
@@ -311,23 +311,23 @@ Remark    : remote server required
 Operator: dfdistribute2
 Number  : 1
 Signature : stream(tuple(X)) x ident x int x rel x string -> dfarray(X) 
-Example   : query strassen feed addcounter[No,0] dfdistribute2[No, 5, workers, "fstrassen"] 
+Example   : query strassen feed addcounter[No,0] dfdistribute2["dstrassen", No, 5, workers] 
 Result    : crashes
 Remark    : remote server required
 
 Operator: dfdistribute3
 Number  : 1
 Signature : stream(tuple(X)) x int x bool x rel x string -> dfarray(rel(tuple(X))) 
-Example   : query strassen feed dfdistribute3[10, TRUE, workers, "fstrassen3" ] 
-Result    : crashes
+Example   : query strassen feed dfdistribute3["fstrassen", 10, TRUE, workers] 
+Result    : bug
 Remark    : remote server required
 
 
 Operator: dfdistribute4
 Number  : 1
 Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray(X) 
-Example   : query strassen feed  dfdistribute4[hashvalue(.Name, 2000), 5, workers, "dfstrassen4"] 
-Result    : crashes
+Example   : query strassen feed  dfdistribute4["dfstrassen4", hashvalue(.Name, 2000), 5, workers] 
+Result    : bug 
 Remark    : remote server required
 
 
@@ -420,35 +420,35 @@ Remark    : depends on existence of appropriate files
 Operator  : fdistribute7
 Number    : 1
 Signature : stream(tuple) x (tuple->int) x int x {string,text} x bool -> stream(tuple)
-Example   : query strassen feed fdistribute7[ hashvalue(.Name,997), 12, "strassen", TRUE] count
+Example   : query strassen feed fdistribute7["strassen7", hashvalue(.Name,997), 12, TRUE] count
 Result    : 3212
 
 
 Operator  : partition
 Number    : 1
 Signature : dfarray x fun x string -> dmatrix
-Example   : query size(s7 partition[ hashvalue(.Attr,23) , "m7", 0 ] )
+Example   : query size(s7 partition["m7", hashvalue(.Attr,23) , 0 ] )
 Result    : bug
 Remark    : remote server required
 
 Operator  : SUBSUBTYPE1
 Number    : 1
 Signature : dfarray x fun x string -> dmatrix
-Example   : query size(s7 partition[ hashvalue(.Attr,23) , "m7", 0 ] )
+Example   : query size(s7 partition[ "m7", hashvalue(.Attr,23) , 0 ] )
 Result    : bug
 Remark    : remote server required
 
 Operator  : DFARRAYTUPLE
 Number    : 1
 Signature : dfarray(rel(X)) -> X 
-Example   : query size(s7 partition[ hashvalue(.Attr,23) , "m7", 0] )
+Example   : query size(s7 partition["m7", hashvalue(.Attr,23) , 0] )
 Result    : bug
 Remark    : requires a remote server
 
 Operator  : collect2
 Number    : 1
 Signature : dmatrix x string x int -> dfarray
-Example   : query size(s7 partition[hashvalue(.Attr,23), "m7", 0]  collect2["mys7", 1238] )
+Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collect2["mys7", 1238] )
 Result    : bug
 Remark    : requires a remote server
 
@@ -456,37 +456,37 @@ Operator  : areduce
 Number    : 1
 Signature : dmatrix(rel(x))  x string x (stream(x)-Y) x int -> d[f]array
 Example   : query m8 areduce["a9", . count, 1236] getValue
-Result    : crashes
-Remark   : under develeopment
+Result    : bug
+Remark    : under develeopment
 
 Operator  : areduce2
 Number    : 1
 Signature : dmatrix(rel(x))  dfmatrix(rel(x)) x string x (stream(x) x stream(y) ->Z) x int -> d[f]array(Z)
 Example   : query m8a m8b  areduce2["a9", . . product count, 1236] getValue
-Result    : crashes
-Remark   : under develeopment
+Result    : bug
+Remark    : under develeopment
 
 
-Operator : SUBTYPE1
-Number   : 1
+Operator  : SUBTYPE1
+Number    : 1
 Signature : blah -> blub
-Example   : query a1 partitionF[ . head[23], hashValue(.AttrName, 13), "a2", 0]
-Result    : crashes
+Example   : query a1 partitionF[i"a2",  . head[23], hashValue(.AttrName, 13), 0]
+Result    : bug
 Remark    : under development
 
-Operator : FFR
-Number   : 1
+Operator  : FFR
+Number    : 1
 Signature : blah -> blub
-Example   : query a1 partitionF[ . head[23], hashValue(.AttrName, 13), "a2", 0]
-Result    : crashes
+Example   : query a1 partitionF["", . head[23], hashValue(.AttrName, 13), 0]
+Result    : bug
 Remark    : under development
 
 
 Operator : partitionF
 Number   : 1
 Signature : blah -> blub
-Example   : query a1 partitionF[ . head[23], hashValue(.AttrName, 13), "a2", 0]
-Result    : crashes
+Example   : query a1 partitionF["a2", . head[23], hashValue(.AttrName, 13), 0]
+Result    : bug
 Remark    : under development
 
 

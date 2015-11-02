@@ -6192,15 +6192,16 @@ class DArrayT{
         this->worker = worker;
      }
 
-     bool equalMapping(DArrayT<Type>& a, bool ignoreSize ){
+     template<class AT>
+     bool equalMapping(AT& a, bool ignoreSize ){
         if(Type==DFMATRIX){ // mapping does not exist in DFMATRIX
            return true;
         }
         if(!ignoreSize && (map.size()!=a.map.size())){
            return false;
         }
-        size_t maxV = max(map.size(), a.map.size());
-        for(size_t i=0;i<maxV;i++){
+        size_t minV = min(map.size(), a.map.size());
+        for(size_t i=0;i<minV;i++){
            if(map[i]!=a.map[i]){
               return false;
            }
@@ -11124,6 +11125,8 @@ class fdistribute7Info{
                    CcBool* _createEmpty,ListExpr _relType):
        stream(_stream), fun(_fun){
 
+     bufsize = 1014*1024*64; // 64 MB
+
      if(!_max->IsDefined() || !_fn->IsDefined()){
          max = -1;
          fn = "";
@@ -11147,11 +11150,13 @@ class fdistribute7Info{
 
 
   ~fdistribute7Info(){
-      typename map<int,ofstream*>::iterator it;
+      typename map<int,pair<ofstream*,char*>* >::iterator it;
       for(it = files.begin();it!=files.end();it++){
          if(it->second){
-            BinRelWriter::finish(*(it->second));
-            it->second->close();
+            BinRelWriter::finish(*(it->second->first));
+            it->second->first->close();
+            delete it->second->first;
+            delete[] it->second->second;
             delete it->second;
          }
       }
@@ -11168,9 +11173,9 @@ class fdistribute7Info{
      qp->Request(fun,r);
      CcInt* res = (CcInt*) r.addr;
      int resi = res->IsDefined()?res->GetValue():0;
-     ofstream* out = getStream(resi % max);
-     if(out){
-        BinRelWriter::writeNextTuple(*out,t);
+     pair<ofstream*,char*>*  outp = getStream(resi % max);
+     if(outp){
+        BinRelWriter::writeNextTuple(*(outp->first),t);
      }
      return t;
    }
@@ -11183,26 +11188,33 @@ class fdistribute7Info{
      ArgVectorPointer funArgs;
      string fn;
      int max;
-     map<int,ofstream*> files;
+     map<int,pair<ofstream*, char*>*> files;
      ListExpr relType;
+     size_t bufsize;
 
 
-    ofstream* getStream(int i){
-       typename map<int,ofstream*>::iterator it;
+    pair<ofstream*,char*>* getStream(int i){
+       typename map<int,pair<ofstream*,char*>*>::iterator it;
        it=files.find(i);
        if(it!=files.end()){
           return it->second;
        }
        string name = fn +"_" + stringutils::int2str(i)+".bin";
        ofstream* out = new ofstream(name.c_str(),ios::binary|ios::trunc);
+       char* buffer = 0;
        if(!out->good()){
           delete out;
           out=0;
        } else {
+           buffer = new char[bufsize];
+           out->rdbuf()->pubsetbuf(buffer, bufsize); 
            BinRelWriter::writeHeader(*out,relType);
        }
-       files[i] = out;
-       return out;
+       pair<ofstream*, char*>* res = out
+                                     ?new pair<ofstream*,char*>(out,buffer)
+                                     :0;
+       files[i] = res;
+       return res;
     }
 };
 
@@ -13004,6 +13016,68 @@ Operator DFARRAYSTREAMOP(
    DFARRAYSTREAMTM
 );
 
+class transferatorStarter{
+  public:
+  transferatorStarter(ConnectionInfo* _ci, int _port): ci(_ci), port(_port){
+     runner = new boost::thread(&transferatorStarter::run, this);  
+  }
+
+  ~transferatorStarter(){
+       runner->join();
+       delete runner;
+   }
+
+  private: 
+     ConnectionInfo* ci;
+     int port;
+     boost::thread* runner;
+
+     void run(){
+        
+        string cmd = "query staticFileTransferator("
+                     + stringutils::int2str(port) + ",10)";
+        int err;
+        string errMsg; 
+        string res;
+        double runtime;
+        ci->simpleCommand(cmd, err,errMsg, res, false, runtime);
+        if(err!=0){
+           cerr << "command " << cmd << " faile with code " << err << endl
+                << errMsg << endl;
+        }
+        // TODO check result
+
+     }
+
+
+};
+
+
+template<class AT>
+bool startFileTransferators( AT* array, int port){
+   assert(port>0);
+   set<string> usedIPs;
+   vector<transferatorStarter*> starters;
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   for(size_t i=0;i<array->numOfWorkers();i++){
+     DArrayElement e = array->getWorker(i);
+     string host = e.getHost();
+     if(usedIPs.find(host)==usedIPs.end()){
+        ConnectionInfo* ci = algInstance->getWorkerConnection(e,dbname);
+        if(ci){
+           usedIPs.insert(host);
+           starters.push_back(new transferatorStarter(ci,port));
+        }
+     }
+   }
+   for(size_t i=0;i<starters.size();i++){
+      delete starters[i];
+   }
+   starters.clear();
+   return true;
+
+}
+
 
 
 
@@ -13017,17 +13091,19 @@ Operator DFARRAYSTREAMOP(
 ListExpr dmap2TM(ListExpr args){
 
  string err = "d[f]array(X) x d[f]array[Y] x string x "
-              "fun : (X x Y -> Z) expected";
- if(!nl->HasLength(args,4)){
+              "fun : (X x Y -> Z) x int expected";
+ if(!nl->HasLength(args,5)){
    return listutils::typeError(err + " (wrong number of args)");
  }
  ListExpr first = nl->First(args);
  ListExpr second = nl->Second(args);
  ListExpr third = nl->Third(args);
  ListExpr fourth = nl->Fourth(args);
+ ListExpr fifth = nl->Fifth(args);
 
  if(!nl->HasLength(first,2) || !nl->HasLength(second,2) ||
-    !nl->HasLength(third,2) || !nl->HasLength(fourth,2)){
+    !nl->HasLength(third,2) || !nl->HasLength(fourth,2) ||
+    !nl->HasLength(fifth,2)){
    return listutils::typeError("internal error");
  }
  // extract type information
@@ -13035,6 +13111,7 @@ ListExpr dmap2TM(ListExpr args){
  second = nl->First(second);
  third = nl->First(third);
  fourth = nl->First(fourth);
+ fifth = nl->First(fifth);
 
  
  if(     !DArray::checkType(first) 
@@ -13050,6 +13127,9 @@ ListExpr dmap2TM(ListExpr args){
  }
  if(!listutils::isMap<2>(fourth)){
    return listutils::typeError(err + " (fourth arg is not a function)"); 
+ }
+ if(!CcInt::checkType(fifth)){
+   return listutils::typeError(err + " (fifth arg is not an int)");
  }
 
  ListExpr a1 = DFArray::checkType(first)
@@ -13125,9 +13205,10 @@ class dmap2Info{
 
     dmap2Info( A1* _array1, A2* _array2, R* _res, 
               const string& _funtext, const string& _objName,
-              bool _streamRes) :
+              bool _streamRes, int _port) :
         array1(_array1), array2(_array2), res(_res),
-        objName(_objName),funtext(_funtext), streamRes(_streamRes) {
+        objName(_objName),funtext(_funtext), streamRes(_streamRes), 
+        port(_port) {
           dbname = SecondoSystem::GetInstance()->GetDatabaseName();
           res->setName(objName) ;
        }
@@ -13138,16 +13219,30 @@ class dmap2Info{
          res->makeUndefined();
          return;
        }
-       if(!array1->equalWorker(*array2)){
+       if(array1->numOfWorkers() <1 || !array1->numOfWorkers() < 1){
          res->makeUndefined();
          return;
        }
-       if(array1->numOfWorkers() <1){
-         res->makeUndefined();
-         return;
+
+       if(!array1->equalMapping(*array2,true)){
+          // transfer of files or objects required
+          if(port <=0){
+             // but not possible with given port
+             res->makeUndefined();
+             return;
+          }
+          // try to start staticFileTransferators on worker 
+          // of array2
+          if(!startFileTransferators(array2,port)){
+             res->makeUndefined();
+             return;
+          }
        }
+
+
        *res = *array1;
        res->setName(objName);
+
        size_t resSize = min(array1->getSize(), array2->getSize());
        if(resSize==0){
          res->setStdMap(resSize);
@@ -13157,10 +13252,24 @@ class dmap2Info{
        vector<Run*> w;
        vector<boost::thread*> runners;
        for(size_t i=0;i< resSize; i++) {
-           ConnectionInfo* ci = algInstance->getWorkerConnection(
-                     array1->getWorkerForSlot(i), dbname);
-           if(ci){
-              Run* r = new Run(this,i,ci);
+           DArrayElement elem1 = array1->getWorkerForSlot(i);
+           DArrayElement elem2 = array2->getWorkerForSlot(i);
+           bool transferRequired = false;
+           if(elem1.getHost() != elem2.getHost()){
+                transferRequired = true;
+           }
+           if(!transferRequired){
+               if(array2->getType()!=DFARRAY){
+                 transferRequired = elem1.getPort() != elem2.getPort();
+               }
+           }
+
+           ConnectionInfo* ci1 = algInstance->getWorkerConnection(
+                                    array1->getWorkerForSlot(i), dbname);
+           ConnectionInfo* ci2 = algInstance->getWorkerConnection(
+                                    array2->getWorkerForSlot(i), dbname);
+           if(ci1 && ci2){
+              Run* r = new Run(this,i,ci1, transferRequired, ci2);
               w.push_back(r);
               boost::thread* runner = new boost::thread(&Run::run,r);
               runners.push_back(runner); 
@@ -13182,39 +13291,45 @@ class dmap2Info{
     string objName;
     string funtext;
     bool streamRes;
+    int port;
     string dbname;
 
     class Run{
       public:
-         Run(dmap2Info* _mi, size_t _i, ConnectionInfo* _ci):
-           mi(_mi),i(_i),ci(_ci){ }
+         Run(dmap2Info* _mi, size_t _i, ConnectionInfo* _ci1, 
+             const bool _transferRequired, ConnectionInfo* _ci2):
+             mi(_mi),i(_i),ci1(_ci1), transferRequired(_transferRequired), 
+             ci2(_ci2), tempObject(""), tempFile(""){ }
 
       void run(){
            // step 1 create function on server
-             string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
+             string funName = "tmpfun_"+stringutils::int2str(ci1->serverPid())
                               + "_" + stringutils::int2str(i);
              string cmd = "(let " + funName + " = " 
                         + mi->funtext+")";
              int err; string errMsg; string r;
              double runtime;
-             ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
-             ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
+             ci1->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+             ci1->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
              if(err!=0){
                cerr << "problem in command " << cmd;
                cerr << "code : " << err << endl;
                cerr << "msg : " << errMsg << endl;
                return;
              } 
-             string fa1 = getFunArg(mi->array1);
-             string fa2 = getFunArg(mi->array2);
+             string fa1 = getFunArg(mi->array1,ci1);
+             string fa2 = getFunArg(mi->array2,ci2);
+
+
+
              if(mi->res->getType()!=DFARRAY){
                cmd = "let " + mi->objName + "_"+stringutils::int2str(i)
                      + " = " + funName + "(" + fa1+ ", " + fa2+")";   
              } else {
-               string tdir = ci->getSecondoHome()+"/dfarrays/"+mi->dbname+"/"
+               string tdir = ci1->getSecondoHome()+"/dfarrays/"+mi->dbname+"/"
                               + mi->res->getName() + "/";
                cmd = "query createDirectory('"+tdir+"', TRUE)";
-               ci->simpleCommand(cmd,err,errMsg,r,true, runtime);
+               ci1->simpleCommand(cmd,err,errMsg,r,true, runtime);
                if(err){
                  cerr << "could not create directory " << tdir << endl;
                  cerr << "by cmd: " << cmd << endl;
@@ -13230,32 +13345,156 @@ class dmap2Info{
                cmd += " fconsume5['" + fname+"'] count";
              }
 
-             ci->simpleCommand(cmd,err,errMsg,r,true, runtime);
+             ci1->simpleCommand(cmd,err,errMsg,r,true, runtime);
              if(err!=0){
                 cerr << "command : " << cmd << endl;
                 cerr << "command failed with rc " << err << endl;
                 cerr << errMsg << endl;
              }
-             ci->simpleCommand("delete " + funName , err,errMsg,r,false,
-                                runtime);
+             ci1->simpleCommand("delete " + funName , err,errMsg,r,false,
+                          runtime);
+
+             deleteTempObject();
       }
 
       private:
         dmap2Info* mi;
         size_t i;
-        ConnectionInfo* ci;
+        ConnectionInfo* ci1;
+        bool transferRequired;
+        ConnectionInfo* ci2;
+        string tempObject;
+        string tempFile;
 
 
-        string getFunArg(const DArray* array){
+        string getFunArg(const DArray* array, ConnectionInfo* ci){
+           if(transferRequired && (ci==ci2)){
+             retrieveObject(array);
+             return tempObject;
+           }
            return array->getName()+"_" + stringutils::int2str(i);
         }
         
-        string getFunArg(const DFArray* array){
+        string getFunArg(const DFArray* array, ConnectionInfo* ci){
           string fname = ci->getSecondoHome()+"/dfarrays/"+mi->dbname+"/"
                        + array->getName() + "/"
                        + array->getName()+"_"+stringutils::int2str(i)
                        + ".bin";
+           if(transferRequired && (ci==ci2)){
+              retrieveFile(array);
+              fname = tempFile; 
+           } 
            return "ffeed5('" + fname+"')";
+        }
+
+
+        void deleteTempObject(){
+           if(tempFile.size()>0){
+              FileSystem::DeleteFileOrFolder(tempFile);
+              tempFile="";
+           }
+           if(tempObject.size()>0){
+              int err;
+              string errMsg;
+              string r;
+              double runtime;
+              string cmd = "delete " + tempObject;
+              ci1->simpleCommand( cmd, err,errMsg,r,false, runtime);
+              if(err){
+                 cerr << "cmd << "  << cmd << " failed  with code "
+                      << err << endl;
+                 cerr << errMsg;
+              }  
+           }
+        }
+
+
+        void retrieveFile(const DFArray* array){
+
+          string remoteName = ci2->getSecondoHome()+"/dfarrays/"+mi->dbname+"/"
+                                + array->getName() + "/"
+                                + array->getName()+"_"+stringutils::int2str(i)
+                                + ".bin";
+
+          stringstream ss;
+          ss << "temp_" << array->getName() << "_" << i << "_" 
+             <<  ci1->serverPid() 
+					   << "_" << ci2->serverPid();
+          tempFile = ss.str();
+          // on ci2 should already run a staticFileTransferator on port port 
+          int err;
+          string errMsg;
+          string r;
+          double runTime;
+          string cmd =   "query getFileTCP('" + remoteName+"', '" 
+                       + ci2->getHost() 
+                       + "', " + stringutils::int2str(mi->port) 
+                       + ", TRUE, '" + tempFile+"')";
+          ci1->simpleCommand( cmd, err,errMsg,r,false, runTime);
+          if(err){
+              cerr << "cmd << " << cmd << " failed  with code " << err << endl;
+              cerr << errMsg;
+           }  
+        }
+
+        void retrieveObject(const DArray* array){
+            string originalName = array->getName() + "_" 
+                                  + stringutils::int2str(i);
+            stringstream ss;
+            ss << "temp_" << array->getName() << "_" << i << "_" 
+               <<  ci1->serverPid() 
+	             << "_" << ci2->serverPid();
+            tempObject = ss.str();
+
+            // TODO: special treatment for relation objects. 
+
+
+            // step 1 create a file containing the object on ci2
+            int err;
+            string errMsg;
+            string r;
+            double runTime;
+            string cmd =   "save " + originalName + " to " + tempObject;
+            ci2->simpleCommand( cmd, err,errMsg,r,false, runTime);
+            if(err){
+              cerr << "cmd << " << cmd << " failed  with code " << err << endl;
+              cerr << errMsg;
+              return;
+            }  
+            // step2 transfer this file to ci1
+            cmd =   "query getFileTCP('" + tempObject +"', '" 
+                       + ci2->getHost() 
+                       + "', " + stringutils::int2str(mi->port) 
+                       + ", TRUE, '" + tempObject+"')";
+            ci1->simpleCommand( cmd, err,errMsg,r,false, runTime);
+            if(err){
+              cerr << "cmd << " << cmd << " failed  with code " << err << endl;
+              cerr << errMsg;
+              return;
+            }  
+            // step3 create the temporary object from this file
+            cmd = "restore " + tempObject + " from " + tempObject;
+            ci1->simpleCommand( cmd, err,errMsg,r,false, runTime);
+            if(err){
+              cerr << "cmd << " << cmd << " failed  with code " << err << endl;
+              cerr << errMsg;
+              return;
+            }  
+            // step4 delete temp files on ci1 and ci2
+            cmd = "query removeFile('" + tempObject+"')";
+            ci1->simpleCommand( cmd, err,errMsg,r,false, runTime);
+            if(err){
+              cerr << "cmd << " << cmd << " failed  with code " << err << endl;
+              cerr << errMsg;
+            }  
+            ci2->simpleCommand( cmd, err,errMsg,r,false, runTime);
+            if(err){
+              cerr << "cmd << " << cmd << " failed  with code " << err << endl;
+              cerr << errMsg;
+            }  
+
+              
+
         }
 
 
@@ -13263,9 +13502,6 @@ class dmap2Info{
 
     };
 };
-
-
-
 
 
 template<class A1, class A2>
@@ -13276,10 +13512,17 @@ int dmap2VMT(Word* args, Word& result, int message,
     A1 * a1 = (A1*) args[0].addr;
     A2* a2 = (A2*) args[1].addr;
     CcString* objName = (CcString*) args[2].addr;
-    bool streamRes =  ((CcBool*)args[4].addr)->GetValue();
-    string funtext = ((FText*) args[5].addr)->GetValue();
+    // args[3] is the original fun and is not used here
+    CcInt* Port = (CcInt*) args[4].addr;
+    bool streamRes =  ((CcBool*)args[6].addr)->GetValue();
+    string funtext = ((FText*) args[6].addr)->GetValue();
 
     string n;
+
+    int port = 0;
+    if(Port->IsDefined()){
+       port = Port->GetValue();
+    }
 
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     if(!objName->IsDefined() || objName->GetValue().length()==0){
@@ -13302,11 +13545,11 @@ int dmap2VMT(Word* args, Word& result, int message,
     }
     if(isFileBased){
         dmap2Info<A1,A2,DFArray> info(a1,a2,(DFArray*) result.addr, 
-                                      funtext, n,streamRes);
+                                      funtext, n,streamRes, port);
         info.start();
     } else {
         dmap2Info<A1,A2,DArray> info(a1,a2,(DArray*) result.addr, 
-                                      funtext, n,streamRes);
+                                     funtext, n,streamRes, port);
         info.start();
     }
     return 0;
@@ -15932,66 +16175,6 @@ ListExpr areduceTM(ListExpr args){
 
 }
 
-
-class transferatorStarter{
-  public:
-  transferatorStarter(ConnectionInfo* _ci, int _port): ci(_ci), port(_port){
-     runner = new boost::thread(&transferatorStarter::run, this);  
-  }
-
-  ~transferatorStarter(){
-       runner->join();
-       delete runner;
-   }
-
-  private: 
-     ConnectionInfo* ci;
-     int port;
-     boost::thread* runner;
-
-     void run(){
-        
-        string cmd = "query staticFileTransferator("
-                     + stringutils::int2str(port) + ",10)";
-        int err;
-        string errMsg; 
-        string res;
-        double runtime;
-        ci->simpleCommand(cmd, err,errMsg, res, false, runtime);
-        if(err!=0){
-           cerr << "command " << cmd << " faile with code " << err << endl
-                << errMsg << endl;
-        }
-        // TODO check result
-
-     }
-
-
-};
-
-bool startFileTransferators( DFMatrix* matrix, int port){
-   assert(port>0);
-   set<string> usedIPs;
-   vector<transferatorStarter*> starters;
-   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-   for(size_t i=0;i<matrix->numOfWorkers();i++){
-     DArrayElement e = matrix->getWorker(i);
-     string host = e.getHost();
-     if(usedIPs.find(host)==usedIPs.end()){
-        ConnectionInfo* ci = algInstance->getWorkerConnection(e,dbname);
-        if(ci){
-           usedIPs.insert(host);
-           starters.push_back(new transferatorStarter(ci,port));
-        }
-     }
-   }
-   for(size_t i=0;i<starters.size();i++){
-      delete starters[i];
-   }
-   starters.clear();
-   return true;
-
-}
 
 
 class AReduceListener{
