@@ -13009,19 +13009,21 @@ class dmap2Info{
 
 
     void start(){
+
        if(!array1->IsDefined() || !array2->IsDefined()){
          res->makeUndefined();
          return;
        }
-       if(array1->numOfWorkers() <1 || !array1->numOfWorkers() < 1){
+       if(array1->numOfWorkers() <1 || array2->numOfWorkers() < 1){
          res->makeUndefined();
          return;
        }
 
+
        if(!array1->equalMapping(*array2,true)){
           // transfer of files or objects required
           if(port <=0){
-             // but not possible with given port
+             // but not possible with given portA
              res->makeUndefined();
              return;
           }
@@ -13136,6 +13138,7 @@ class dmap2Info{
                               + mi->res->getName() + "_" 
                               + stringutils::int2str(i) + ".bin";
                cmd ="query " + funName+"("+fa1+", " + fa2+")";
+
                if(!mi->streamRes){
                  cmd += " feed";
                } 
@@ -13322,7 +13325,7 @@ int dmap2VMT(Word* args, Word& result, int message,
     CcString* objName = (CcString*) args[2].addr;
     // args[3] is the original fun and is not used here
     CcInt* Port = (CcInt*) args[4].addr;
-    bool streamRes =  ((CcBool*)args[6].addr)->GetValue();
+    bool streamRes =  ((CcBool*)args[5].addr)->GetValue();
     string funtext = ((FText*) args[6].addr)->GetValue();
 
     string n;
@@ -13343,6 +13346,7 @@ int dmap2VMT(Word* args, Word& result, int message,
 
     bool isFileBased = DFArray::checkType(qp->GetType(s));
 
+
     if(!stringutils::isIdent(n)){
         if(isFileBased){
            ((DFArray*)result.addr)->makeUndefined();
@@ -13351,6 +13355,7 @@ int dmap2VMT(Word* args, Word& result, int message,
         }
         return 0;
     }
+
     if(isFileBased){
         dmap2Info<A1,A2,DFArray> info(a1,a2,(DFArray*) result.addr, 
                                       funtext, n,streamRes, port, 
