@@ -13387,26 +13387,38 @@ Operator feedSOp(
 
 ListExpr nthType( ListExpr args)
 {
-  if(!nl->HasLength(args,2))
+  if(!nl->HasLength(args,3))
    {
-    return listutils::typeError("two arguments expected");
+    return listutils::typeError("three arguments expected");
    }
    
-  ListExpr arg1 = nl->First(args);
+ListExpr arg1 = nl->First(args);
   
     
-  if((!listutils::isTupleStream(arg1)))
+if((!listutils::isTupleStream(arg1)))
    {
     return listutils::typeError("first argument must be a stream of tuples");
    }
-   
+ 
+ 
 ListExpr arg2 = nl->Second(args);
 
 if(!CcInt::checkType(arg2))
   {
     return listutils::typeError("second argument musst be a int value");
   } 
+
   
+
+ListExpr arg3 = nl->Third(args);
+  
+if(!CcBool::checkType(arg3))
+  {
+    return listutils::typeError("third argument musst be a bool value");
+  } 
+  
+  
+   
   return arg1;
   
 }
@@ -13425,29 +13437,60 @@ int nthValueMapping(Word* args, Word& result, int message,
   
   
   int intvalue = 0;
+  int randvalue;       
+  bool boolvalue;
   CcInt* currentval = static_cast<CcInt*>(args[1].addr);
+  CcBool* currentbool = static_cast<CcBool*>(args[2].addr);
   
   if (currentval->IsDefined() )
         {
           intvalue = currentval->GetIntval(); 
         }
+        
+  if (intvalue <= 0) 
+   {
+     intvalue = 1;
+   }
   
   
-  
-  
+  if (currentbool->IsDefined() )
+        {
+          boolvalue = currentbool->GetBoolval(); 
+        }
+    
+ 
+ 
+         
+         
 
  switch(message)
  {
-    case OPEN: 
-    {
+   
+ case OPEN: 
+   
+    {     
+      srand(time(0)); 
       qp->Open(args[0].addr);
       local.addr = 0;
       return 0;
     }
+    
+    
+    
+    
+    
 
-    case REQUEST: 
+ case REQUEST:  
+   
+   randvalue = rand()%intvalue + 1;
+   cout << "ZUFFZAHL: " << randvalue << endl;
  
-  { for (int i=1; i< intvalue; i++)
+  { if (boolvalue)
+   {
+    
+    
+    
+    for (int i=1; i< intvalue; i++)                      //normal case
     {
       qp->Request(args[0].addr, tuple);
       
@@ -13482,8 +13525,75 @@ int nthValueMapping(Word* args, Word& result, int message,
       
      } 
     
+   } //end first if 
+   
+   
+  else {                                            // random case     
+         
+         
+         for (int i=1; i< randvalue; i++)
+        {
+          qp->Request(args[0].addr, tuple);
+      
+          if(!qp->Received(args[0].addr))
+           {
+            result.addr = 0;
+            return CANCEL;
+            }  
+              else {
+                   current = static_cast<Tuple*>(tuple.addr);
+                   current -> DeleteIfAllowed();                
+              
+          
+                   }
+        
+            }   
+            
+           
+            
+           qp->Request(args[0].addr, tuple);
+   
+           if (qp->Received(args[0].addr))
+             
+            { result= tuple;
+             
+             
+                for (int i=randvalue; i< intvalue; i++)
+                  {
+                    qp->Request(args[0].addr, tuple);
+      
+                   if(!qp->Received(args[0].addr))
+                    {
+                      result.addr = 0;
+                      return CANCEL;
+                    } 
+            
+                   else {
+                         current = static_cast<Tuple*>(tuple.addr);
+                         current -> DeleteIfAllowed();                
+              
+          
+                        }
+        
+                  }    
+             
+           
+           return YIELD;
+     
+            }   
+      
+            else 
+               {
+                 result.addr = 0;
+                 return CANCEL;
+      
+               } 
     
-  }
+    
+    
+    
+    } //end else part
+  }  // end request case 
   
   
   case CLOSE: 
@@ -13492,10 +13602,7 @@ int nthValueMapping(Word* args, Word& result, int message,
       return 0;
     }
   
-  
-    
-    
-    
+     
   }
   return 0;
  
@@ -13512,19 +13619,22 @@ int nthValueMapping(Word* args, Word& result, int message,
 
 
 
+
 const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
-                         "( <text>((stream (tuple([a1:d1, ... ,an:dn])))) x int"
+                         "( <text>((stream (tuple([a1:d1, ... ,an:dn]))))" 
+                         "x int x bool"
                          " -> (stream (tuple([ai:di,...... ,am:dm])))"
                          "</text--->"
                          "<text>_ nth[_]</text--->"
-                         "<text>get every intth tuple"
+                         "<text>normal (TRUE) get every intth tuple"
+                         "<text>random (FALSE) in each case get" 
+                         "one random tuple"
+                         "<text>in the intervals specified by intvalue "
                          "stream.</text--->"
-                         "<text>query Orte feed nth[2] count"
+                         "<text>query Orte feed nth[2, TRUE] count"
                          "</text--->"
                               ") )";
-
-
 
 
 
