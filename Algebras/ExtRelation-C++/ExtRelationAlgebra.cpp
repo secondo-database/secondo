@@ -13483,7 +13483,7 @@ int nthValueMapping(Word* args, Word& result, int message,
  case REQUEST:  
    
    randvalue = rand()%intvalue + 1;
-   cout << "ZUFFZAHL: " << randvalue << endl;
+   
  
   { if (boolvalue)
    {
