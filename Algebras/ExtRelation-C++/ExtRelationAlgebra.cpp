@@ -13423,6 +13423,7 @@ int nthValueMapping(Word* args, Word& result, int message,
   Word tuple(Address(0));
   Tuple* current = 0;
   
+  
   int intvalue = 0;
   CcInt* currentval = static_cast<CcInt*>(args[1].addr);
   
@@ -13431,87 +13432,77 @@ int nthValueMapping(Word* args, Word& result, int message,
           intvalue = currentval->GetIntval(); 
         }
   
-  int counter = 0;
   
   
   
 
-  switch(message)
-  {
-    case OPEN: {
+ switch(message)
+ {
+    case OPEN: 
+    {
       qp->Open(args[0].addr);
       local.addr = 0;
       return 0;
     }
-    
-    
-    
-    
-    
-    case REQUEST: {
-      
-      
-      while(true)
-      { counter++;
-        qp->Request(args[0].addr, tuple);
-        if(qp->Received(args[0].addr))
-        {
-          // stream delivered a new tuple
-          if(local.addr != 0)
-          {
-            // there is a last tuple
-            current = static_cast<Tuple*>(tuple.addr);
-            
-            
-            
-            
-            if(counter == intvalue)
-            {
-              // want the tuple. Return the tuple
-              
 
-                   
-                   result = tuple;
-                   return YIELD;
-             }
-             else
-             {
-               // dont want the tuples 
-               current->DeleteIfAllowed();
-             }
-           }
-          
-          
-          else
-          {
-            // no last tuple stored
-      local.addr = new RTuple( static_cast<Tuple*>(tuple.addr) );
-      result = tuple;
-            return YIELD;
-          }
-        }
-  else
-        {
-          result.addr = 0;
-          return CANCEL;
-        }
-      }
-    }
-    
+    case REQUEST: 
+ 
+  { for (int i=1; i< intvalue; i++)
+    {
+      qp->Request(args[0].addr, tuple);
       
+      if(!qp->Received(args[0].addr))
+      {
+        result.addr = 0;
+        return CANCEL;
+      }  
+        else {
+              current = static_cast<Tuple*>(tuple.addr);
+              current -> DeleteIfAllowed();                
+              
+          
+             }
+        
+    }   
+        
+   qp->Request(args[0].addr, tuple);
+   
+   if (qp->Received(args[0].addr))
+     
+     {
+       result= tuple;
+       return YIELD;
+     
+     }   
+      
+    else 
+     {
+       result.addr = 0;
+       return CANCEL;
+      
+     } 
     
-    case CLOSE: {
-      if( local.addr != 0 ){ // check if local is present
-         
-         
-         local.setAddr(0);
-      }
+    
+  }
+  
+  
+  case CLOSE: 
+    {
       qp->Close(args[0].addr);
       return 0;
     }
+  
+  
+    
+    
+    
   }
   return 0;
-}
+ 
+ }
+  
+
+
 
 
 
