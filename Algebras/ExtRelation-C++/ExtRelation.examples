@@ -169,7 +169,7 @@ Result   : 100000
 Operator : nth
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) x int -> (stream (tuple([a1:d1, ... ,am:dm])))
-Example  : query Orte feed nth[2] count
+Example  : query Orte feed nth[2, TRUE] count
 Result   : 253
 
 Operator : projectextend
