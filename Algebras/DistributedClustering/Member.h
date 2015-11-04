@@ -33,7 +33,7 @@
  1 Overview
  
  
- This file contains the implementation of the class dbDacScanAlgebra
+ This file contains the implementation of the class Member
  
  2 Includes
   
@@ -470,9 +470,11 @@ public:
       return 0;
     return point->GetY();
   }
+
 /*
- calcDistanz
- calculate the distance between this and the committed point
+calcDistanz
+
+calculate the distance between this and the committed point
 
 */
   double calcDistanz (PointMember* memb){
@@ -536,109 +538,6 @@ public:
   }
   
 };
-
-//class StringMember : Member;
-// class StringMember : public Member<StringMember>{
-// private:
-//   CcString* point;
-//   
-// public:
-// /*
-//  Constructor
-// 
-// */
-//   StringMember() : point(0){
-//     innerPnt=false;
-//     densityReachable = false;
-//   }
-//   
-//   StringMember(CcString* memb){
-//     point= memb;
-//     innerPnt=false;
-//     densityReachable = false;
-//   }
-//   
-// /*
-//  return the point value
-// 
-// */
-//   CcString* getPoint(){
-//     return point;
-//   }
-//   
-//   string getXVal(){
-//     if(!point->IsDefined())
-//       return "";
-//     return point->GetValue();
-//   }
-//   
-// /*
-//  calcDistanz
-//  calculate the distance between this and the committed point
-// 
-// */
-//   double calcDistanz (StringMember* memb){
-//     if(!point->IsDefined() && !(memb->getPoint())->IsDefined()){
-//       return 0.0;
-//     }
-//     if(!point->IsDefined() || !(memb->getPoint())->IsDefined()){
-//       return numeric_limits<double>::max();
-//     }
-//     
-//     return stringutils::ld(point->GetValue(), memb->getXVal());
-//     
-//   }
-//   
-//   double calcDistanz(CcString* pnt){
-//     
-//     if(!point->IsDefined() && !pnt->IsDefined()){
-//       return 0.0;
-//     }
-//     if(!point->IsDefined() || !pnt->IsDefined()){
-//       return numeric_limits<double>::max();
-//     }
-//     return stringutils::ld(point->GetValue(), pnt->GetValue());
-//   }
-//   
-//   int getCntDimensions(){
-//     return 2;
-//   }
-//   
-//   void printPoint(){
-//     cout << getXVal();
-//   }
-//   
-//   
-//   void printPoint(){
-//     cout << "("<< point->GetX()<<  ", " << point->GetY() <<  ") ";
-//   }
-//   
-//   CcString* getOuterLeftValue(CcString* outerPoint, CcString* innerPoint ){
-//     return innerPoint->GetX() > 
-// outerPoint->GetX() ? innerPoint : outerPoint ;
-//   }
-//   
-//   CcString* getOuterRightValue(CcString* outerPoint,  
-// CcString* outerPointRighCl, CcString* innerPoint ){
-//     CcString* retPoint = getOuterRightValue( outerPoint,  innerPoint ) ;
-//     return getOuterRightValue(outerPointRighCl,retPoint) ;
-//   }
-//   
-//   CcString* getOuterRightValue(CcString* outerPoint, CcString* innerPoint ){
-//     return innerPoint->GetX() < 
-// outerPoint->GetX() ? innerPoint : outerPoint ;
-//   }
-//   
-// };
-
-//class PictureMember : Member;
-// class PictureMember : public Member<PictureMember>{
-//   
-// };
-// 
-// class RectMember : public Member<RectMember>{
-//   
-// };
 
 }
 
