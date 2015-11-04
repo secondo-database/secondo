@@ -107,27 +107,27 @@ Remark   : Requires a remote server
 
 Operator : put
 Number   : 1
-Signature: darray(T) x int x T -> darray(T)
+Signature: d[f]array(T) x int x T -> d[f]array(T)
 Example  : query put([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3,27)
 Result   : bug
 Remark   : Requires a remote server
 
 Operator : get
 Number   : 1
-Signature: darray(T) x int -> T
+Signature: d[f]array(T) x int -> T
 Example  : query get([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3)
 Result   : bug
 Remark   : Requires a remote server
 
 Operator : size
 Number   : 1
-Signature: darray(T) -> int 
+Signature: d[f]array(T) -> int 
 Example  : query size([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))])
 Result   : 4
 
 Operator : getWorkers 
 Number   : 1
-Signature: darray(T) -> stream(tuple)
+Signature: d[f]array(T) -> stream(tuple)
 Example  : query getWorkers([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))]) count
 Result   : 2
 
@@ -154,7 +154,7 @@ Remark    : in development
 
 Operator: pput
 Number  : 1
-Signature : darray(T) x (int x t)+ -> darray(T)
+Signature : d[f]array(T) x (int x t)+ -> d[f]array(T)
 Example   : query da3 feed pput[0,ten,1,ten]
 Result    : bug
 Remark    : remote server required
@@ -183,19 +183,19 @@ Remark    : remote server required
 
 Operator: closeWorkers
 Number  : 1
-Signature : -> int , darray -> int
+Signature : -> int , d[f]array -> int
 Example   : query closeWorkers() 
 Result    : 0
 
 Operator: showWorkers
 Number  : 1
-Signature : -> stream(tuple) , darray -> stream(tuple)
+Signature : -> stream(tuple) , d[f]array -> stream(tuple)
 Example   : query showWorkers() count
 Result    : 0
 
 Operator  : DARRAYELEM
 Number    : 1
-Signature : darray(X) -> X
+Signature : d[f]array(X) -> X
 Example   : query da dloop["da3", fun( x : DARRAYELEM) x count ]
 Result    : bug
 Remark    : remote server required, Type Mapping Operator
@@ -226,28 +226,28 @@ Remark    : remote server required
 
 Operator  : dmap2 
 Number    : 1
-Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
-Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
+Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) x int -> d[f]array(Z)
+Example   : query dfa1 dfa2  dmap2["da3", .  .. product, 1238 ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : ARRAYFUNARG1 
 Number    : 1
 Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
-Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
+Example   : query dfa1 dfa2  dmap2["da3", .  .. product, 1238 ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : ARRAYFUNARG2
 Number    : 1
 Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
-Example   : query dfa1 dfa2  dmap2["da3", .  .. product ]
+Example   : query dfa1 dfa2  dmap2["da3", .  .. product,1238 ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : DARRAYELEM2 
 Number    : 1
-Signature : darray(X) x darray(Y) x string x (X x Y -> Z) -> darray(Z)
+Signature : d[f]array(X) x d[f]array(Y) x ... -> X
 Example   : query da1 da2  dloop2["da3", . + .. ]
 Result    : bug
 Remark    : remote server required
@@ -266,7 +266,7 @@ Result    : TRUE
 
 Operator : dsummarize
 Number   : 1
-Signature : darray(DATA) -> stream(DATA)
+Signature : d[f]array(DATA) -> stream(DATA) , d[f]array(rel(X)) -> stream(X)
 Example   : query da2 dsummarize count
 Result    : bug
 Remark    : remote server required
@@ -274,14 +274,14 @@ Remark    : remote server required
 
 Operator : getValue
 Number   : 1
-Signature : darray(X) -> array(X)
+Signature : d[f]array(X) -> array(X)
 Example   : query da2 getValue
 Result    : bug
 Remark    : remote server required
 
 Operator : deleteRemoteObjects
 Number   : 1
-Signature : darray(X) [x int] -> int
+Signature : d[f]array(X) [x int] -> int
 Example   : query deleteRemoteObjects(da2)
 Result    : bug
 Remark    : remote server required
@@ -289,21 +289,21 @@ Remark    : remote server required
 
 Operator : clone 
 Number   : 1
-Signature : darray(X) x string -> darray(X)
+Signature : d[f]array(X) x string -> d[f]array(X)
 Example   : query da8 clone["da9"]
 Result    : bug
 Remark    : remote server required
 
 Operator : share 
 Number   : 1
-Signature : string x bool [ x darray] -> text
+Signature : string x bool [ x d[f]array] -> text
 Example   : query share("ten", FALSE)
 Result    : bug
 Remark    : remote server required
 
 Operator : cleanUp 
 Number   : 1
-Signature : -> bool , darray -> bool
+Signature : -> bool , d[f]array -> bool
 Example   : query cleanUp(da8)
 Result    : bug
 Remark    : remote server required
@@ -372,15 +372,15 @@ Example   : query transferFile(0,1,1238,'Staedte.txt', "Staedte3.txt")
 Result    : FALSE
 
 
-Operator : traceCommands
-Number   : 1
+Operator  : traceCommands
+Number    : 1
 Signature : bool -> bool
 Example   : query traceCommands(FALSE);
 Result    : TRUE
 
 
-Operator : showProgress 
-Number   : 1
+Operator  : showProgress 
+Number    : 1
 Signature : bool -> bool
 Example   : query showProgress(TRUE)
 Result    : TRUE
@@ -426,14 +426,14 @@ Result    : 3212
 
 Operator  : partition
 Number    : 1
-Signature : dfarray x string x fun -> dmatrix
+Signature : d[f]array x string x fun -> dmatrix
 Example   : query size(s7 partition["m7", hashvalue(.Attr,23) , 0 ] )
 Result    : bug
 Remark    : remote server required
 
 Operator  : SUBSUBTYPE1
 Number    : 1
-Signature : dfarray x fun x string -> dmatrix
+Signature : (x(b(c))) x ... -> c
 Example   : query size(s7 partition[ "m7", hashvalue(.Attr,23) , 0 ] )
 Result    : bug
 Remark    : remote server required
@@ -447,21 +447,21 @@ Remark    : requires a remote server
 
 Operator  : collect2
 Number    : 1
-Signature : dmatrix x string x int -> dfarray
+Signature : dfmatrix x string x int -> dfarray
 Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collect2["mys7", 1238] )
 Result    : bug
 Remark    : requires a remote server
 
 Operator  : areduce
 Number    : 1
-Signature : dmatrix(rel(x))  x string x (stream(x)-Y) x int -> d[f]array
+Signature : dfmatrix(rel(x))  x string x (stream(x)-Y) x int -> d[f]array
 Example   : query m8 areduce["a9", . count, 1236] getValue
 Result    : bug
 Remark    : under develeopment
 
 Operator  : areduce2
 Number    : 1
-Signature : dmatrix(rel(x))  dfmatrix(rel(x)) x string x (stream(x) x stream(y) ->Z) x int -> d[f]array(Z)
+Signature : dfmatrix(rel(x))  dfmatrix(rel(x)) x string x (stream(x) x stream(y) ->Z) x int -> d[f]array(Z)
 Example   : query m8a m8b  areduce2["a9", . . product count, 1236] getValue
 Result    : bug
 Remark    : under develeopment
@@ -469,27 +469,36 @@ Remark    : under develeopment
 
 Operator  : SUBTYPE1
 Number    : 1
-Signature : blah -> blub
+Signature : a(b) x ... -> b
 Example   : query a1 partitionF[i"a2",  . head[23], hashValue(.AttrName, 13), 0]
 Result    : bug
 Remark    : under development
 
 Operator  : FFR
 Number    : 1
-Signature : blah -> blub
+Signature : d[f]array(rel(X)) x X -> stream(X) , A x B x ( C [x D] -> stream(tuple(Z)) ) -> tuple(Z)
 Example   : query a1 partitionF["", . head[23], hashValue(.AttrName, 13), 0]
 Result    : bug
 Remark    : under development
 
 
-Operator : partitionF
-Number   : 1
-Signature : blah -> blub
+Operator  : partitionF
+Number    : 1
+Signature : d[f]array(A) x string x ( A -> B ) , (B -> int) x int -> dfmatrix
 Example   : query a1 partitionF["a2", . head[23], hashValue(.AttrName, 13), 0]
 Result    : bug
 Remark    : under development
 
 
+Operator  : saveAttr
+Number    : 1 
+Signatur : DATA x {string, text} -> bool
+Example   : query 6 saveAttr["six.bin"]
+Result    : TRUE
 
-
+Operator  : loadAttr
+Number    : 1 
+Signautur : {string, text} -> DATA
+Example   : query  loadAttr["six.bin"]
+Result    : 6
 

@@ -52,6 +52,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include "FileRelations.h"
+#include "FileAttribute.h"
 
 
   // use boost for thread handling
@@ -11571,7 +11572,7 @@ or all user defined connections.
 */
 
 ListExpr shareTM(ListExpr args){
-  string err = "string x bool [x darray] expected";
+  string err = "string x bool [x d[f]array] expected";
   if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
     return listutils::typeError(err);
   }
@@ -13219,7 +13220,7 @@ class dmap2Info{
           stringstream ss;
           ss << "temp_" << array->getName() << "_" << i << "_" 
              <<  ci1->serverPid() 
-					   << "_" << ci2->serverPid();
+             << "_" << ci2->serverPid();
           tempFile = ss.str();
           // on ci2 should already run a staticFileTransferator on port port 
           int err;
@@ -13243,11 +13244,8 @@ class dmap2Info{
             stringstream ss;
             ss << "temp_" << array->getName() << "_" << i << "_" 
                <<  ci1->serverPid() 
-	             << "_" << ci2->serverPid();
+               << "_" << ci2->serverPid();
             tempObject = ss.str();
-
-            // TODO: special treatment for relation objects. 
-
 
             // step 1 create a file containing the object on ci2
             int err;
@@ -16903,6 +16901,158 @@ Operator collect2Op(
 );
 
 
+/*
+10.29 Operator saveAttr
+
+*/
+
+ListExpr saveAttrTM(ListExpr args){
+  string err = "attr x {string,text} expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(   !Attribute::checkType(nl->First(args))
+     || (  !CcString::checkType(nl->Second(args))
+         &&!FText::checkType(nl->Second(args)))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+template<class T>
+int saveAttrVMT(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+   Attribute* attr = (Attribute*) args[0].addr;
+   T* filename = (T*) args[1].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   if(!filename->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+
+   res->Set(true,  FileAttribute::saveAttribute(
+                                qp->GetType(qp->GetSon(s,0)),
+                                attr, filename->GetValue()));
+   return 0;
+}
+
+ValueMapping saveAttrVM[]={
+   saveAttrVMT<CcString>,
+   saveAttrVMT<FText>
+};
+
+int saveAttrSelect(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+OperatorSpec saveAttrSpec(
+  "DATA x {string,text} -> bool",
+  " _ saveAttr[_] ",
+  "saves an attribute in binary format "
+  "to a file",
+  "query 6 saveAttr['six.bin']"
+);
+
+Operator saveAttrOp(
+  "saveAttr",
+  saveAttrSpec.getStr(),
+  2,
+  saveAttrVM,
+  saveAttrSelect,
+  saveAttrTM
+
+);
+
+
+/*
+2.31 Operator ~loadAttr~
+
+*/
+ListExpr loadAttrTM(ListExpr args){
+
+  string err = " string or text expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err +" ( wrong number of args)");
+  }
+  ListExpr arg = nl->First(args);
+  if(!nl->HasLength(arg,2)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr a = nl->First(arg);
+  if(!CcString::checkType(a) && !FText::checkType(a)){
+    return listutils::typeError(err);
+  }
+  string fname;
+  bool ok;
+  if(CcString::checkType(a)){
+    ok = getValue<CcString>(nl->Second(arg),fname);
+  } else {
+    ok = getValue<FText>(nl->Second(arg),fname);
+  }
+  if(!ok){
+    return listutils::typeError("could not evaluate filename in Type Mapping");
+  }
+  ListExpr res = FileAttribute::getType(fname);
+  if(nl->IsEmpty(res)){
+     return listutils::typeError("could not extract type from file");
+  }
+  if(!listutils::isDATA(res)){
+     return listutils::typeError("not an attribute in file");
+  }
+  return res;
+}
+
+
+template<class T>
+int loadAttrVMT(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  Attribute* res = (Attribute*) result.addr;
+
+  T* fn = (T*) args[0].addr;
+  if(!fn->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  ListExpr type;
+  Attribute* a = FileAttribute::restoreAttribute(type,fn->GetValue());
+  if(!a){
+     res->SetDefined(false);
+     return 0;
+  }
+  res->CopyFrom(a);
+  a->DeleteIfAllowed();
+  return 0;
+}
+
+ValueMapping loadAttrVM[] = {
+  loadAttrVMT<CcString>,
+  loadAttrVMT<FText>
+};
+
+int loadAttrSelect(ListExpr args){
+ return (CcString::checkType(nl->First(args)))?0:1;
+}
+
+OperatorSpec loadAttrSpec(
+  "{string,text} -> DATA ",
+  "loadAttr(_)",
+  "loads an attribute from a binary file",
+  "query loadAttribute('six.bin')"
+);
+
+Operator loadAttrOp(
+  "loadAttr",
+  loadAttrSpec.getStr(),
+  2,
+  loadAttrVM,
+  loadAttrSelect,
+  loadAttrTM
+);
+
 
 
 
@@ -17036,6 +17186,11 @@ Distributed2Algebra::Distributed2Algebra(){
    partitionFOp.SetUsesArgsInTypeMapping();
 
    AddOperator(&FFROp);
+
+
+   AddOperator(&saveAttrOp);
+   AddOperator(&loadAttrOp);
+   loadAttrOp.SetUsesArgsInTypeMapping();
 
 
 

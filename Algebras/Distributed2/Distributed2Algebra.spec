@@ -89,7 +89,8 @@ operator areduce alias AREDUCE pattern _ op [_ , fun, _] implicit parameter elem
 operator areduce2 alias AREDUCE2 pattern _ _ op [_ , fun, _] implicit parameters elem1, elem2 types ARRAYFUNARG1 , ARRAYFUNARG2
 
 
-
+operator saveAttr alias SAVEATTR pattern _ op[_] 
+operator loadAttr alias LOADATTR pattern  op(_) 
 
 
 
