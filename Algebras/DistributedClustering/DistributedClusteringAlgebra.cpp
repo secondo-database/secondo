@@ -35,7 +35,7 @@ Jun 2015, Daniel Fuchs
 1 Overview
 
 
-This file contains the implementation of the class dbDacScanAlgebra
+This file contains the implementation of the distributedClustering Algebra
 
 2 Includes
  
@@ -54,8 +54,8 @@ This file contains the implementation of the class dbDacScanAlgebra
 #include "Algebra.h"
 #include "DbDacScanGen.h"
 #include "FTextAlgebra.h"
-// #include "DistClOp.h"
 #include "DistSampleSort.h"
+#include "BinRelWriteRead.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -72,16 +72,8 @@ namespace distributedClustering{
 /*
 3 Operator dbDacScan
 
-
 This operated realizes a inmemory db-scan for spatial objects
 with a divide and conquer algorithm
-
-In the divide step the space is divided with a kd-tree similar index
-structure.
-
-Input:
-Stream(Tuple) x Attributename x ClusterId x EPS x MinPts -> Stream(Tuple)
-Stream(Tuple) x attrname x string x double x int -> Stream(Tuple)
 
 4 Type Mapping ~dbDacScan~
 
@@ -111,16 +103,15 @@ Stream(Tuple) x attrname x string x double x int -> Stream(Tuple)
     if(!nl->HasLength(arguments,5)){
       errMsg = "Second argument is not a conform list of input" 
       " Parameters such, "
-      " Attributename  x ClusterId x NewRelNamePrefix x EPS x MinPts ";
+      " Attributename  x ClusterId x NeiborRelFileName x EPS x MinPts ";
       ErrorReporter::ReportError(errMsg);
       return nl->TypeError();
     }
     
-    //check NewRelNamePrefix
-    if(!CcString::checkType(nl->Third(arguments))
-//       || !FText::checkType(nl->Third(arguments))
+    //check NeiborRelFileName
+    if(!FText::checkType(nl->Third(arguments))
     ) {
-      errMsg = "Third argument is NewRelNamePrefix and must be a string";
+      errMsg = "Third argument is NeiborRelFileName and must be a text";
       ErrorReporter::ReportError(errMsg);
       return nl->TypeError();
     }
@@ -241,9 +232,8 @@ Stream(Tuple) x attrname x string x double x int -> Stream(Tuple)
   int dbDacScanVM1(Word* args, Word& result, int message, 
                    Word& local, Supplier s) {
     typedef DbDacScanGen<MEMB_TYP_CLASS,TYPE> dbdacscanClass;
-
     dbdacscanClass* li = (dbdacscanClass*) local.addr;
-    switch (message) //TODO switch not necessary only retunr bool val
+    switch (message) //TODO switch not necessary only return bool val
     {
       case OPEN:
       {
@@ -254,7 +244,7 @@ Stream(Tuple) x attrname x string x double x int -> Stream(Tuple)
         //get NewRelNamePrefix
         Supplier sup = qp->GetSupplier(args[1].addr,2);
         qp->Request(sup, argument);
-        string relName = static_cast<CcString*>(argument.addr)->GetValue();
+        string relName = static_cast<FText*>(argument.addr)->GetValue();
         //get EPS
         sup = qp->GetSupplier(args[1].addr,3);
         qp->Request(sup, argument);
@@ -273,11 +263,11 @@ Stream(Tuple) x attrname x string x double x int -> Stream(Tuple)
           local.addr=0;
         }
         size_t maxMem = qp->GetMemorySize(s)*1024*1024;
-//         if(!eps->IsDefined() || eps->GetValue() < 0){
+        //         if(!eps->IsDefined() || eps->GetValue() < 0){
         if(eps < 0 ){
           return 0;
         }
-//         if(!minPts->IsDefined() || minPts->GetValue() < 0){
+        //         if(!minPts->IsDefined() || minPts->GetValue() < 0){
         if(minPts < 0){
           return 0;
         }
@@ -305,23 +295,17 @@ Stream(Tuple) x attrname x string x double x int -> Stream(Tuple)
     return 0;
   }
   
+
 /*
-6 Struct ~dbDacScanInfo~ 
+8 Value mapping array ~dbscanMVM~
 
 */
-  struct dbDacScanInfo :  OperatorInfo
+  
+  ValueMapping dbDacScanVM[] = 
   {
-    dbDacScanInfo() : OperatorInfo()
-    {
-      name      = "dbdacscan";
-      signature = "stream(Tuple) -> stream(Tuple)";
-      syntax    = "_ dbdacscan[_,_,_,_]"; 
-      meaning   = "";//TODO ab hier noch nicht bearbeitet
-      example   = "query Kneipen feed" 
-      " dbdacscan[GeoData, CID, 500.0, 5] sortby[No]"
-      " groupby[No ; C : group count] count";
-      
-    }
+    dbDacScanVM1<CcInt, IntMember>,
+    dbDacScanVM1<CcReal, RealMember>,
+    dbDacScanVM1<Point, PointMember>,
   };
   
 /*
@@ -335,7 +319,6 @@ selection function for one input stream
     ListExpr attrType;
     string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
     int found = FindAttribute(attrList, attrName, attrType);
-//     assert(found > 0);
     if(found > 0 ){
       if(CcInt::checkType(attrType)) {
         return 0;
@@ -349,23 +332,38 @@ selection function for one input stream
     {
       cout << " no ValueMapping found" << endl;
     }
-    
     return -1; 
   };
   
   
 /*
-8 Value mapping array ~dbscanMVM~
+1.4.5 Specification
 
 */
+OperatorSpec dbDacScanSpec(
+" stream(Tuple) x Attr x Attr x text x real x int -> stream(Tuple) ",
+    "_ dbdacscan[list]",
+      "Clusters an Inputstream according to the first Attribute Name"
+      " which is given in the Argument lsit. The second Attribute"
+      " Name is the name of ClusterId with which the relation is"
+      " expanded. The text is the filename in which the Neighbor"
+      " Relation would be stored.",
+      "query Kneipen feed dbdacscan [GeoData,"
+      " ClusterId,'testN',EPS, MintPts] sortby[ClusterId]"
+      " groupby[ClusterId ; C : group count] count;"
+  );
   
-  ValueMapping dbDacScanVM[] = 
-  {
-    dbDacScanVM1<CcInt, IntMember>,
-    dbDacScanVM1<CcReal, RealMember>,
-    dbDacScanVM1<Point, PointMember>,
-  };
-  
+/*
+1.4.6 Instance
+
+*/
+  Operator dbDacScanOp("dbdacscan",
+                       dbDacScanSpec.getStr(),
+                       3,
+                       dbDacScanVM,
+                       dbDacScanSel,
+                       dbDacScanTM
+  );
   
 /*
 3 Operator ~distclmerge~
@@ -373,83 +371,82 @@ selection function for one input stream
 Type Mapping of operator ~distclmerge~
 
 */
-// Signature is: Stream(Tuple) x Stream(Tuple) x Stream(Tuple) x Stream(Tuple) x
-// Attributename x  Attributename x String x EPS x MinPts  -> Stream(Tuple)
-// 
-// RelStream x NeighborStream x 2_relstream x 2_neighborStream x
-// GeoData x ClusterId x "newRelName" x eps x minpts
-// 
-// Algorithm:
-// get 2 Streams of Tuple from received bin data
-// create a left and a right Cluster 
-//   -> consider the descending ordering of Points
-//     create Cluster:
-//       read in Points (same as in dbDacScan)
-//       sort points in x (also same as in dbDacScan)
-//       create an empty cluster
-//         with ClusterType an ClusterNo deside KIND and 
-//             ListNo and insert points sorted in list
-//         if all points are inserted 
-//             define Neighbors for LEFT BOTH and RIGHT Kinds
-//           define Neighbors: 
-//             from Border Point to dist < eps search Neighbors for each point
-//         end of create Cluster
-// melt this two clusters and return
-
   ListExpr
   distClMergeTM(ListExpr args){
-    string errMsg = "Five elements expexted. First four must be a stream"
-    " of tuple and last must be an argument list";
-    if(!nl->HasLength(args,5)) 
+    string errMsg = "";
+    if(!nl->HasLength(args,10)) 
     {
+      errMsg = "10 elements expexted. First four must be a Filname"
+      " of Relations next two must be Attributenames then real and integer"
+      " value is expexted and at last two output Filenames";
       return listutils::typeError(errMsg);
     }
     
-    //check streams
-    //check if first in-Parameter is a stream
-    ListExpr leftStrem = nl->First(args);
-    ListExpr leftNeighborStrem = nl->Second(args);
-    ListExpr rightStrem = nl->Third(args);
-    ListExpr rightNeighborStrem = nl->Fourth(args);
-    
-    if(!Stream<Tuple>::checkType(leftStrem) 
-      || !Stream<Tuple>::checkType(leftNeighborStrem)
-      || !Stream<Tuple>::checkType(rightStrem) 
-      || !Stream<Tuple>::checkType(rightNeighborStrem))
-    {
-      errMsg = " First four arguments must be a Stream of Tuples! ";
+    //check Files
+    ListExpr leftFileName = nl->First(args);
+    if(!nl->HasLength(leftFileName,2)){
+      return listutils::typeError("internal error");
+    }
+    ListExpr leftRelType; //equal to stream
+    if(!checkFile(leftFileName,leftRelType,errMsg)){
       return listutils::typeError(errMsg);
     }
     
-    //check Arguments
-    ListExpr arguments = nl->Fifth(args);
-    
-    if(!nl->HasLength(arguments,5)){ 
-      errMsg = "Second argument is not a conform list of input" 
-      " Parameters such, "
-      " Attributename x ClusterId x newRelname x EPS x MinPts ";
-      ErrorReporter::ReportError(errMsg);
-      return nl->TypeError();
+    ListExpr leftNFielName = nl->Second(args);
+    if(!nl->HasLength(leftNFielName,2)){
+      return listutils::typeError("internal error");
     }
-    //check NewRelNamePrefix
-    if(!CcString::checkType(nl->Third(arguments))
-      //       || !FText::checkType(nl->Third(arguments))
-    ) {
-      errMsg = "Third argument is NewRelNamePrefix and must be a string";
-      ErrorReporter::ReportError(errMsg);
-      return nl->TypeError();
+    ListExpr leftNRelType; //equal to stream
+    if(!checkFile(leftNFielName,leftNRelType,errMsg)){
+      return listutils::typeError(errMsg);
     }
     
+    ListExpr righFileName = nl->Third(args);
+    if(!nl->HasLength(righFileName,2)){
+      return listutils::typeError("internal error");
+    }
+    ListExpr rightRelType; //equal to stream
+    if(!checkFile(righFileName,rightRelType,errMsg)){
+      return listutils::typeError(errMsg);
+    }
+    
+    ListExpr rightNFileName = nl->Fourth(args);
+    if(!nl->HasLength(rightNFileName,2)){
+      return listutils::typeError("internal error");
+    }
+    ListExpr rightNRelType; //equal to stream
+    if(!checkFile(rightNFileName,rightNRelType,errMsg)){
+      return listutils::typeError(errMsg);
+    }
+            
     //check EPS
-    if(!CcReal::checkType(nl->Fourth(arguments))) {
-      errMsg = "Third argument is EPS and must be a real";
+    if(!CcReal::checkType(nl->First(nl->Seventh(args))))
+    {
+      errMsg = "Seventh argument is EPS and must be a real";
       ErrorReporter::ReportError(errMsg);
       return nl->TypeError();
     }
     
     //check MinPts
-    if(!CcInt::checkType(nl->Fifth(arguments))) {
-      errMsg = "Fourth argument is MinPts and must be a int";
+    if(!CcInt::checkType(nl->First(nl->Eigth(args)))) 
+    {
+      errMsg = "Eigth argument is MinPts and must be a int";
+      ErrorReporter::ReportError(errMsg);
+      return nl->TypeError();
+    }
+    
+    //check OutRelFileName
+    if(!FText::checkType(nl->First(nl->Ninth(args)))) 
+    {
+      errMsg = "Ninth argument is NewRelNamePrefix and must be a string";
+      ErrorReporter::ReportError(errMsg);
+      return nl->TypeError();
+    }
+    
+    //check OutNeighborFileName
+    if(!FText::checkType(nl->First(nl->Tenth(args)))) 
+    {
+      errMsg = "Tenth argument is NewRelNamePrefix and must be a string";
       ErrorReporter::ReportError(errMsg);
       return nl->TypeError();
     }
@@ -458,8 +455,8 @@ Type Mapping of operator ~distclmerge~
     //NeighborRel
     //=====================================================
     //check neighborRelation if there are the same Attributes
-    ListExpr attrNListLeft = nl->Second(nl->Second(leftNeighborStrem)); 
-    ListExpr attrNListRight = nl->Second(nl->Second(rightNeighborStrem));
+    ListExpr attrNListLeft = nl->Second(nl->Second(leftNRelType)); 
+    ListExpr attrNListRight = nl->Second(nl->Second(rightNRelType));
     //check NeighborMembId
     ListExpr membAttrL,membAttrR;
     int foundMembIdNL = FindAttribute(attrNListLeft, 
@@ -505,12 +502,12 @@ Type Mapping of operator ~distclmerge~
     //Member Relation
     //========================================================================
     //check the cluster attribute name if it is existing in a tuple 
-    ListExpr attrListLeft = nl->Second(nl->Second(leftStrem)); 
-    ListExpr attrListRight = nl->Second(nl->Second(rightStrem));
+    ListExpr attrListLeft = nl->Second(nl->Second(leftRelType)); 
+    ListExpr attrListRight = nl->Second(nl->Second(rightRelType));
     
     //Check attribute Type of GeoData
     ListExpr geDAttrL,geDAttrR;
-    string attrNGeoData = nl->SymbolValue(nl->First(arguments));
+    string attrNGeoData =  nl->SymbolValue(nl->First(nl->Fifth(args)));
     int foundGeoL = FindAttribute(attrListLeft, attrNGeoData, geDAttrL);
     int foundGeoR = FindAttribute(attrListRight, attrNGeoData, geDAttrR);
     
@@ -534,7 +531,7 @@ Type Mapping of operator ~distclmerge~
     
     //Check attribute Type of ClusterId
     ListExpr clNoAttrL,clNoAttrR;
-    string attrNClusterID = nl->SymbolValue(nl->Second(arguments));
+    string attrNClusterID = nl->SymbolValue(nl->First(nl->Sixth(args)));
     int foundClIdL = FindAttribute(attrListLeft, attrNClusterID, clNoAttrL);
     int foundClIdR = FindAttribute(attrListRight, attrNClusterID, clNoAttrR);
     if(foundClIdL <= 0 || foundClIdR <= 0 || foundClIdL != foundClIdR) {
@@ -548,7 +545,6 @@ Type Mapping of operator ~distclmerge~
       + CcInt::BasicType() + "! ";
       return listutils::typeError(errMsg);
     }
-    
 
     //Check ClsuterType
     ListExpr clTypeL,clTypeR;
@@ -583,7 +579,7 @@ Type Mapping of operator ~distclmerge~
       return listutils::typeError(errMsg);
     }
     
-    //Check NeighborRelation name
+    //Check NeighborRelationName Attribute
     ListExpr neighborRL,neighborRR;
     int foundNeighRelL = FindAttribute(attrListLeft, 
                                        NEIGHBORS_RELATION_NAME, neighborRL);
@@ -601,41 +597,29 @@ Type Mapping of operator ~distclmerge~
       + FText::BasicType() + "! ";
       return listutils::typeError(errMsg);
     }
-   
-    //Copy attrList to newAttrList
-    ListExpr oldAttrList = nl->Second(nl->Second(leftStrem));
-    ListExpr newAttrList = nl->OneElemList(nl->First(oldAttrList));
-    ListExpr newAttrListEnd = newAttrList;
-    oldAttrList = nl->Rest(oldAttrList);
-    
-    while(!(nl->IsEmpty(oldAttrList))){
-      newAttrListEnd = nl->Append(newAttrListEnd,nl->First(oldAttrList));
-      oldAttrList = nl->Rest(oldAttrList);
-    }
-    
+
     return nl->ThreeElemList(
       nl->SymbolAtom(Symbol::APPEND())
-      ,nl->FourElemList(nl->IntAtom(foundGeoL-1) // position of GeoData
+      ,nl->ThreeElemList(nl->IntAtom(foundGeoL-1) // position of GeoData
       ,nl->IntAtom(foundClIdL-1) // position of ClusterId
-      ,nl->IntAtom(foundClTyL-1) // position of ClusterType
-      ,nl->IntAtom(foundMembIdL-1)) // position of MemberId
+      ,nl->IntAtom(foundClTyL-1)) // position of ClusterType
       ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                       nl->TwoElemList(
-                         nl->SymbolAtom(Tuple::BasicType()),
-                                       newAttrList)));
-   
+                     nl->Second(leftRelType)
+                       ));
   }
   
   
 /*
 Value Mapping of operator ~distclmerge~
 
+this the template method which is called from distClMergeVM
+
 */
   template <class TYPE, class MEMB_TYP_CLASS> 
   int
-  distClMergeVM1(Word* args, Word& result, int message, 
-              Word& local, Supplier s)
-  {
+  distClMergeVMT(Word* args, Word& result, int message, 
+                  Word& local, Supplier s)
+  {   
     typedef DbDacScanGen<MEMB_TYP_CLASS,TYPE > distClMergeClass;
     distClMergeClass* li = (distClMergeClass*) local.addr;
     
@@ -643,46 +627,47 @@ Value Mapping of operator ~distclmerge~
     {
       case OPEN:
       {
-        //get stream
-        Word leftStream = args[0];
-        Word leftNeighborStream = args[1];
-        Word rightStream = args[2];
-        Word rightNeighborStream = args[3];
-        // get arguments
-        Word argument;
-        
-        //get NewRelNamePrefix
-        Supplier sup = qp->GetSupplier(args[4].addr,2);
-        qp->Request(sup, argument);
-        string relName = static_cast<CcString*>(argument.addr)->GetValue();
-        //get EPS
-        sup = qp->GetSupplier(args[4].addr,3);
-        qp->Request(sup, argument);
-        double eps = static_cast<CcReal*>(argument.addr)->GetValue();
-        //get MinPts
-        sup = qp->GetSupplier(args[4].addr, 4);
-        qp->Request(sup, argument);
-        int minPts = static_cast<CcInt*>(argument.addr)->GetValue();
-        
-        //set index of GeoData attribute position in tuple
-        int geoPos = static_cast<CcInt*>(args[5].addr)->GetIntval();
-        //set index of ClusterId attribute position in tuple
-        int clIdPos = static_cast<CcInt*>(args[6].addr)->GetIntval();
-        //set index of ClusterType attribute position in tuple
-        int clTypePos = static_cast<CcInt*>(args[7].addr)->GetIntval();
-        //set index of MemberId attribute position in tuple
-        int membId = static_cast<CcInt*>(args[8].addr)->GetIntval();
-        //set index of MemberId attribute position in tuple of NeighborRel
-        
-        int membIdNR = 0; //TODO delete
-//         static_cast<CcInt*>(args[9].addr)->GetIntval();
-        //set index of NeighborId attribute position in tuple of NeighborRel
-        int neighborIdNR = 0;
-//         static_cast<CcInt*>(args[10].addr)->GetIntval();
-        
-        //set the result type of the tuple
         ListExpr resultType = GetTupleResultType(s);
-        ListExpr tt = ( nl->Second( resultType ) );
+        ListExpr tt = ( nl->Second( resultType ) ); //RelType
+        //TupleType for file 
+        ListExpr relFileType = qp->GetType(s);
+             
+        //get Filenames
+        FText* fnL = (FText*) args[0].addr;
+        if(!fnL->IsDefined()){
+          return 0;
+        }
+        
+        FText* fnNL = (FText*) args[1].addr;
+        if(!fnNL->IsDefined()){
+          return 0;
+        }
+        
+        FText* fnR = (FText*) args[2].addr;
+        if(!fnR->IsDefined()){
+          return 0;
+        }
+        
+        FText* fnNR = (FText*) args[3].addr;
+        if(!fnNR->IsDefined()){
+          return 0;
+        }
+        
+        //get EPS
+        double eps = static_cast<CcReal*>(args[6].addr)->GetValue();
+        //get MinPts
+        int minPts = static_cast<CcInt*>(args[7].addr)->GetValue();
+        //OutRelFileName
+        string outRelFileName = static_cast<FText*>(args[8].addr)->GetValue();
+        //OutNeighborFileName
+        string outNFileName = static_cast<FText*>(args[9].addr)->GetValue();
+        //set index of GeoData attribute position in tuple
+        int geoPos = static_cast<CcInt*>(args[10].addr)->GetIntval();
+        //  set index of ClusterId attribute position in tuple
+        int clIdPos = static_cast<CcInt*>(args[11].addr)->GetIntval();
+        //set index of ClusterType attribute position in tuple
+        int clTypePos = static_cast<CcInt*>(args[12].addr)->GetIntval();
+        
         if(li) { 
           delete li;
           local.addr=0;
@@ -694,13 +679,15 @@ Value Mapping of operator ~distclmerge~
         if(minPts < 0){
           return 0;
         }
-        
-        local.addr = new distClMergeClass(leftStream,leftNeighborStream
-                                          ,rightStream , rightNeighborStream
-                                          ,tt,  relName, eps, minPts
-                                          ,geoPos,clIdPos,clTypePos
-                                          ,membId,membIdNR,neighborIdNR
-                                          ,maxMem);
+       
+        local.addr = 
+        new distClMergeClass(fnL->GetValue(), fnNL->GetValue(),
+                             fnR->GetValue(), fnNR->GetValue(),   
+                             geoPos,clIdPos,clTypePos, maxMem
+                             ,tt, relFileType, 
+                             outRelFileName,outNFileName,
+                             eps, minPts);
+           
         return 0;
       }
       case REQUEST:
@@ -718,78 +705,81 @@ Value Mapping of operator ~distclmerge~
     }
     return 0;
   }
-  
+
 /*
-struct of operator ~distclmerge~
+Value Mapping of operator ~distclmerge~
+
+value mapping acts as selection function.
+Because the relation is passed as a file, there is no way to find
+out the type of the passed Attributename in selection function.
 
 */
-  struct distClMergeInfo :  OperatorInfo
+  int
+  distClMergeVM(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
   {
-    distClMergeInfo() : OperatorInfo()
-    {
-      name      = "distclmerge";
-      signature = "stream(Tuple) x stream(Tuple) x stream(Tuple) x"
-      " stream(Tuple) x Id x string x real x int  -> stream(Tuple)";
-      syntax    = "_ _ _ _distclmerge[_,_,_,_,_]"; 
-      meaning   = "";//TODO ab hier noch nicht bearbeitet
-      example   ="query leftDbScanRel feed leftClRelationNInd00 feed "
-      "rightDbScanRel feed rightClRelationNInd0 feed distclmerge[GeoData, "
-      "ClusterId, \"newRelName\", 500.0, 5] sortby[ClusterId] groupby"
-      "[ClusterId ; C : group count] count";
+    //set index of GeoData attribute position in tuple
+    int geoPos = static_cast<CcInt*>(args[10].addr)->GetIntval();
+    
+    //determine AttrType
+    ListExpr relFileType = qp->GetType(s);
+    ListExpr attrType = nl->Second( nl->Second( relFileType ) );
+    
+    for(int i= 0;i<geoPos; i++){
+      attrType = nl->Rest(attrType);
     }
-  };
-  
-/*
-7 Selection Function
-selection function for one input stream
+    attrType = nl->Second(nl->First(attrType));
+    
+    if(CcInt::checkType(attrType)) 
+    {
+      return 
+      distClMergeVMT<CcInt ,IntMember>(args,result,message,local, s);
+    } else 
+      if(CcReal::checkType(attrType)) 
+      {
+        return  
+        distClMergeVMT<CcReal, RealMember > (args,result,message,local, s);
+      } else 
+        if(Point::checkType(attrType)) 
+        {
+          return 
+          distClMergeVMT<Point, PointMember >(args,result,message,local, s);
+        } else {
+          return 0;
+        }
+  } 
 
-*/ 
-  int distClMergeSel(ListExpr args) {
-    
-    ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
-    ListExpr attrType;
-    string attrName = nl->SymbolValue(nl->First(nl->Fifth(args)));
-    int found = FindAttribute(attrList, attrName, attrType);
-    //     assert(found > 0);
-    if(found > 0 ){
-      if(CcInt::checkType(attrType)) {
-        return 0;
-      } else if(CcReal::checkType(attrType)) {
-        return 1;
-      } else if(Point::checkType(attrType)) {
-        return 2;
-      } 
-    }
-    else
-    {
-      cout << " no ValueMapping found" << endl;
-    }
-    
-    return -1; 
-  };
-  
 /*
-8 Value mapping array ~distclmerge~
+1.4.5 Specification
 
 */
-  ValueMapping distClMergeVM[] = 
-  {
-    distClMergeVM1<CcInt, IntMember>,
-    distClMergeVM1<CcReal, RealMember>,
-    distClMergeVM1<Point, PointMember>,
-  };
   
+OperatorSpec distClMergeSpec( " text x text x text x text "
+  "x Attr x Attr x real x int x text x text  -> stream(Tuple)",
+    "distclmerge(_,_,_,_,_,_,_,_,_,_)",
+    "Performs a function to merge alredy clustered part relations.",
+    "query distclmerge('DbScan.bin' , 'NeighborFile.bin' "
+    ",'DbScan.bin_1','NeighborFile.bin_1 ' , GeoData, ClusterId, "
+    "500.0 , 5 , 'DbScan.bin' ,'NeighborFile.bin' ) consume"
+  );
+  
+/*
+1.4.6 Instance
+
+*/
+Operator distClMergeOp(
+    "distclmerge",
+    distClMergeSpec.getStr(),
+                    distClMergeVM,
+                    Operator::SimpleSelect,
+                    distClMergeTM
+  );
   
   
 /*
 3 Operator ~distsamp~
 
 Type Mapping of operator ~distsamp~
-
-Signature is: stream(tuple(relation)) x stream(tuple(sample)) x Attr ->
-stream(tuple(sortedRelation))
-
-sorts the given sample and set the worker number to the given relation
 
 */
   ListExpr
@@ -806,9 +796,7 @@ sorts the given sample and set the worker number to the given relation
     {
       return listutils::typeError(err);
     }
-    
     ListExpr arguments = nl->Third(args);
-//     ListExpr arguments = nl->Second(args);
     
     //check CntWorkers
     if(!CcInt::checkType(nl->Third(arguments))) {
@@ -955,12 +943,15 @@ struct of operator ~distsamp~
     distsampInfo() : OperatorInfo()
     {
       name      = "distsamp";
-      signature = "stream(Tuple) -> stream(Tuple)";
+      signature = "stream(T) x stream(T) x Attr x Attr x int -> stream(T)";
       syntax    = "_ _ distsamp[_,_,_]"; 
-      meaning   = "";//TODO ab hier noch nicht bearbeitet
-      example   = "query Kneipen feed ten feed "
-                  "distsamp[GeoData, WorkerId, 4] count ";
-      
+      meaning   = "As input a relation and a sample relation is excpected."
+      "According to the first attribute, the relation would be sorted."
+      " The second attributes which stores the WorkerID , would added."
+      " Based on the sample relation, boundary points are determined "
+      "once the tuple allocated to the relevant workers.";
+      example   = "query Kneipen feed Kneipen feed head[50] "
+                  "distsamp[GeoData, WId, 4] count ";
     }
   };
 
@@ -1004,7 +995,6 @@ selection funktion for 2 input streams
     distsampVM1<Point, PointMember>,
   };
   
-  
 /*
 9 Algebra class ~ClusterDbDacScanAlgebra~
 
@@ -1014,12 +1004,14 @@ selection funktion for 2 input streams
   public:
     ClusterDbDacScanAlgebra() : Algebra()
     {
-      AddOperator(dbDacScanInfo(), dbDacScanVM, 
-                  dbDacScanSel, dbDacScanTM)->SetUsesMemory();
-     AddOperator(distClMergeInfo(), distClMergeVM, 
-                 distClMergeSel, distClMergeTM)->SetUsesMemory();
-//       AddOperator(distClInfo(), distClVM, 
-//                   distClTM)->SetUsesMemory();
+      AddOperator(&dbDacScanOp);
+//       dbDacScanOp.SetUsesArgsInTypeMapping();
+      dbDacScanOp.SetUsesMemory();
+      
+      AddOperator(&distClMergeOp);
+      distClMergeOp.SetUsesArgsInTypeMapping();
+      distClMergeOp.SetUsesMemory();
+
       AddOperator(distsampInfo(), distsampVM, 
                   distsampSel, distsampTM)->SetUsesMemory();
     }
