@@ -17179,7 +17179,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&SUBTYPE1OP);
    AddOperator(&SUBSUBTYPE1OP);
-   AddOperator(&SUBTYPE2OP);
+   //AddOperator(&SUBTYPE2OP);
 
 
    AddOperator(&partitionFOp);

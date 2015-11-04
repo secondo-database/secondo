@@ -470,7 +470,7 @@ Remark    : under develeopment
 Operator  : SUBTYPE1
 Number    : 1
 Signature : a(b) x ... -> b
-Example   : query a1 partitionF[i"a2",  . head[23], hashValue(.AttrName, 13), 0]
+Example   : query a1 partitionF["a2",  . head[23], hashValue(.AttrName, 13), 0]
 Result    : bug
 Remark    : under development
 
@@ -492,13 +492,13 @@ Remark    : under development
 
 Operator  : saveAttr
 Number    : 1 
-Signatur : DATA x {string, text} -> bool
+Signature : DATA x {string, text} -> bool
 Example   : query 6 saveAttr["six.bin"]
 Result    : TRUE
 
 Operator  : loadAttr
 Number    : 1 
-Signautur : {string, text} -> DATA
-Example   : query  loadAttr["six.bin"]
+Signature : {string, text} -> DATA
+Example   : query  loadAttr("six.bin")
 Result    : 6
 
