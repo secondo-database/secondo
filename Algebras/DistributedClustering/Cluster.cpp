@@ -1192,161 +1192,212 @@ meltIndexOfCluster( vector<pair<unsigned int,Kind> > &destIndList ,
   }
 }
 
+/*
+findNextMinList
+
+*/
+template <class MEMB_TYP_CLASS, class TYPE>
+bool Cluster<MEMB_TYP_CLASS,TYPE>::
+findNextMinList(int& leftIndex, Kind& leftKind,
+                       double& leftMinima,double& leftMaxima,
+                       bool calcLeftMin, int& leftCnt,
+                       int& rightIndex, Kind& rightKind,
+                       double& rightMinima,double& rightMaxima,
+                       bool calcRightMin, int& rightCnt,
+                       Cluster* rightCluster)
+  {
+
+    bool retval = true;
+    if(calcLeftMin || calcRightMin){
+
+        if(calcLeftMin && leftIndex > -1){
+            findNextMinList(leftIndex,leftKind,leftMinima,false);
+            leftCnt ++;
+        }
+        if(calcRightMin && rightIndex > -1){
+            rightCluster->findNextMinList(rightIndex,rightKind,
+                                          rightMinima,true);
+            rightCnt++;
+        }
+
+        if(leftIndex < 0 && rightIndex < 0)//no more min Value
+          {
+            retval = false;
+          } else {
+              if(leftIndex > -1){
+                  leftMaxima =getYMaxfromCluster(leftKind,leftIndex);
+                  leftMinima = getYMinfromCluster(leftKind,leftIndex);
+              }
+              if(rightIndex > -1){
+                  rightMaxima =rightCluster->getYMaxfromCluster(
+                      rightKind,rightIndex);
+                  rightMinima = rightCluster->getYMinfromCluster(
+                      rightKind,rightIndex);
+              }
+          }
+    } else {
+        retval = false;
+    }
+
+    return retval;
+  }
 
 /*
- Print Informations
- * ################################################################
- */
-template <class MEMB_TYP_CLASS, class TYPE>
-void
-Cluster<MEMB_TYP_CLASS,TYPE>::printAll(){
-  cout << "--------------------cluster:--------------------" << endl;
-  cout << "Min Points = " << minPts << "\nEPS = " << eps << "\n "<< endl;
-  cout << endl;
-  printClusters();
-  cout << endl;
-//  cout << "Min Max" << endl;
-//  printMinMax();
-//
-//  if(leftOuterPoint!= 0){
-//  cout << "leftOuterPoint : " ; leftOuterPoint->printPoint(); cout << endl;
-//  }
-//  if(rightOuterPoint != 0){
-//  cout << "rightOuterPoint : " ; rightOuterPoint->printPoint(); cout << endl;
-//  }
-//  cout << "EPS Neighborhood" << endl;
-//      printEpsNeighborhood();
+findNextMinList
+
+find the next List in Y direction from a given minimum point
+if no min found return -1
   
-  cout << "ClusterSizes ###########" << endl;
-  printClusterSizes();
-  
-  cout << "Neighborhood Sizes  ###########" << endl;
-  printEpsNeighborhoodSize();
-  ////  printEpsNeighborhood();
-  
-  cout << "\n--------------------cluster END --------------------\n" << endl;
-}
-
+*/
 template <class MEMB_TYP_CLASS, class TYPE>
-void
-Cluster<MEMB_TYP_CLASS,TYPE>::printClusters(){
-  cout << "CLUSTER:" << endl;
-  printCluster(CLUSTER);
-  cout << endl;
-  
-  cout << "BOTH:" << endl;
-  printCluster(BOTH);
-  cout << endl;
-  
-  cout << "LEFT:" << endl;
-  printCluster(LEFT);
-  cout << endl;
-  
-  cout << "RIGHT:" << endl;
-  printCluster(RIGHT);
-  cout << endl;
-  
-  cout << "CLUSTERCAND:" << endl;
-  printList(0,CLUSTERCAND);
-  cout << endl;
-  
-  cout << "NOISE:" << endl;
-  printList(0,NOISE);
-  cout << endl;
-}
+void Cluster<MEMB_TYP_CLASS,TYPE>::
+findNextMinList(int& retIndex, Kind& retKind,
+                       double actualMinima, bool rightCluster)
+  {
+    //    double min = actualMinima;
+    int  iSIDE = -1, iBOTH = -1;
+    Kind sideKind;
+    if(rightCluster){
+        //serach in LEFT and BOTH
+        iSIDE  = getIndexOfFindNextMinList(actualMinima,LEFT);
+        sideKind = LEFT;
+    } else {
+        //search in RIGHT and BOTH
+        iSIDE  = getIndexOfFindNextMinList(actualMinima,RIGHT);
+        sideKind = RIGHT;
+    }
+    iBOTH = getIndexOfFindNextMinList(actualMinima,BOTH);
 
-template <class MEMB_TYP_CLASS, class TYPE>
-void
-Cluster<MEMB_TYP_CLASS,TYPE>::printCluster(Kind kind){
-  for( unsigned int i = 0; i<getVectorSize(kind); i++){
-    cout << "Cluster Number " << i << ":" << endl;
-    printList(i,kind);
-    cout << endl;
-  }
-}
-
-
-template <class MEMB_TYP_CLASS, class TYPE>
-void
-Cluster<MEMB_TYP_CLASS,TYPE>::printClusterSize(Kind kind)
-{
-  for( unsigned int i = 0; i<getVectorSize(kind); i++){
-    printListLength(i,kind);
-    
-  }
-}
-
-
-template <class MEMB_TYP_CLASS, class TYPE>
-void
-Cluster<MEMB_TYP_CLASS,TYPE>::printListLength(int i, Kind kind)
-{
-  cout << "List Number " << i << ": "<<
-  getListLength(i,kind) << endl;
-}
-
-template <class MEMB_TYP_CLASS, class TYPE>
-void
-Cluster<MEMB_TYP_CLASS,TYPE>::printEpsNeighborhood(Kind kind){
-  
-  for(unsigned int i = 0; i<getVectorSize(kind); i++){
-    cout << "epsNeighborhood in Cluster Number " << i << ": " << endl;
-    cout << "------------------------------------"<< endl;
-    printEpsNeighborhood(i,kind);
-    cout << "\n" <<endl;
-  }
-}
-
-template <class MEMB_TYP_CLASS, class TYPE>
-void
-Cluster<MEMB_TYP_CLASS,TYPE>::printEpsNeighborhood(int i,Kind kind){
-  typename list<MEMB_TYP_CLASS*>::iterator it =getIterator(i,true,kind);
-  for (;it!=getIterator(i,false,kind);it++){
-    cout << "Member: "; (*it)->printPoint();
-    //cout << " isDensityReachable = " << (*it)->isDensityReachable();
-    cout <<" Cnt neighbors :" << (*it)->getCountNeighbors() << endl;
-    //          << "  ClusterNo= " << (*it)->getClusterNo() << endl;
-    cout <<"     neighbors :";
-    printEpsNeighborhood(*it);
-  }
-}
-
-
-/*
- * printList
- * print out the a choosen cluster on position pos
- *
- */
-template <class MEMB_TYP_CLASS, class TYPE>
-void
-Cluster<MEMB_TYP_CLASS,TYPE>::printList(int pos, Kind kind){
-  for(typename list<MEMB_TYP_CLASS*>::iterator it =
-    getIterator(pos,true,kind);
-  it!=getIterator(pos,false,kind);it++){
-    (*it)->printPoint();
-    //    cout << ", ";
-    //      cout << ": ClNo:"<< (*it)->getClusterNo() << ", ";
-    //      cout << ": Type:"<< (*it)->getClusterType() << ", ";
-  }
-  cout << "\n";
-}
-
-/*
- * printList
- * print a committed list
- *
- */
-template <class MEMB_TYP_CLASS, class TYPE>
-void
-Cluster<MEMB_TYP_CLASS,TYPE>::printList(list<MEMB_TYP_CLASS*>& dlist){
-  cout << "LIST: ";
-  for(typename list<MEMB_TYP_CLASS*>::iterator it = dlist.begin();
-      it!=dlist.end();it++){
-    (*it)->printPoint();
-  //    cout << ", ";
-  //      cout << ": ClNo:"<< (*it)->getClusterNo() << ", ";
-  //      cout << ": Type:"<< (*it)->getClusterType() << ", ";
+    if(iSIDE == -1 ||
+        (iBOTH >=0 && getYMinfromCluster(BOTH,iBOTH) <
+            getYMinfromCluster(sideKind,iSIDE) ))
+      {
+        retIndex = iBOTH;
+        retKind = BOTH;
+      }else{
+          retIndex = iSIDE;
+          retKind = sideKind;
       }
-      cout << "\n";
-}
+  }
+
+  
+/*
+findNextMinListOfClCand
+
+returns the next minimum clustercand
+*/
+
+template <class MEMB_TYP_CLASS, class TYPE>
+bool Cluster<MEMB_TYP_CLASS,TYPE>::
+findNextMinListOfClCand(vector<pair <double,double> >&
+                               minMaxlist,int& index,
+                               double& actualMinima,
+                               double& actualMaxima,
+                               bool& clCandOutOfRangeLeftCl,
+                               bool& clCandOutOfRangeRightCl,
+                               double actMaxLeftList,
+                               double actMaxRightLsit)
+  {
+    int retVal = -1;
+    double min = MAX_DOUBLE;
+    for (int i =0; i < minMaxlist.size(); i++)
+      {
+        if(minMaxlist.at(i).first < min
+            && minMaxlist.at(i).first > actualMinima){
+            min= minMaxlist.at(i).first;
+            retVal=i;
+        }
+      }
+    index = retVal;
+    if(retVal < 0){
+        return false;
+    }
+    actualMinima= minMaxlist.at(retVal).first;
+    actualMaxima= minMaxlist.at(retVal).second;
+
+
+    clCandOutOfRangeLeftCl =
+        (actMaxLeftList + eps) <= actualMinima;
+
+    clCandOutOfRangeRightCl =
+        (actMaxRightLsit + eps) <= actualMinima;
+
+    return true;
+  }
+  
+  
+/*
+pushMemberToClusterList
+
+push a committed member at the end or beginning of a given clusterlist
+
+*/ 
+  template <class MEMB_TYP_CLASS, class TYPE>
+  void Cluster<MEMB_TYP_CLASS,TYPE>:: 
+  pushMemberToClusterList(bool front,MEMB_TYP_CLASS *member,
+                          int list, Kind kind)
+  {
+    switch (kind){
+      case NOISE:
+        if(front)
+        {
+          noiseList.push_front(member);
+        }else{
+          noiseList.push_back(member);
+        }
+        break;
+      case CLUSTERCAND:
+        if(front)
+        {
+          clusterCandList.push_front(member);
+        }else{
+          clusterCandList.push_back(member);
+        }
+        break;
+      case CLUSTER:
+        if(front)
+        {
+          clusterArray.at(list).push_front(member);
+        }else{
+          clusterArray.at(list).push_back(member);
+        }
+        break;
+      case LEFT:
+        if(front)
+        {
+          leftPartCluster.at(list).push_front(member);
+        }else{
+          leftPartCluster.at(list).push_back(member);
+        }
+        break;
+      case RIGHT:
+        if(front)
+        {
+          rightPartCluster.at(list).push_front(member);
+        }else{
+          rightPartCluster.at(list).push_back(member);
+        }
+        break;
+      case BOTH:
+        if(front)
+        {
+          bothSideCluster.at(list).push_front(member);
+        }else{
+          bothSideCluster.at(list).push_back(member);
+        }
+        break;
+      case CLCANDCLUSTERS:
+        if(front)
+        {
+          clusterCandClusters.at(list).push_front(member);
+        }else{
+          clusterCandClusters.at(list).push_back(member);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  
+  
 }

@@ -130,12 +130,6 @@ Members
   double eps;
   int minPts ;
 
-  //  pair <double,double> globalMinMaxofAllLists;
-  //  pair <double,double> globalMinMaxOfLEFTLists;
-  //  pair <double,double> globalMinMaxOfRIGHTLists;
-  //  pair <double,double> globalMinMaxOfBOTHLists;
-
-
   typedef struct ccMelting<MEMB_TYP_CLASS>clusterCandMelt;
 
 public:
@@ -158,560 +152,8 @@ Points which represent the splitline
   void meltClusters(Cluster * rightCluster,
                    TYPE* leftInnerPoint,
                     TYPE* rightInnerPoint);
-/*
-Print Informations
-print out the cluster information at the console
-
-*/
-  void printAll();
-  void printClusters();
-  void printCluster(Kind kind);
-  void printList(int pos, Kind kind);
-  void printList(vector<list<MEMB_TYP_CLASS*> >& vectorList){
-    for( unsigned int i = 0; i<vectorList.size(); i++){
-        cout << "Cluster Number " << i << ":" << endl;
-        printList(vectorList.at(i));
-        cout << endl;
-    }
-  }
-  void printList(list<MEMB_TYP_CLASS*>& dlist);
-
-  void printMinMax(){
-    cout << "#####################"<< endl;
-    cout << " MIN MAX Values : " << endl;
-
-    cout << "MinMax CLUSTER:" << endl;
-    printMinMax(CLUSTER);
-    cout << endl;
-
-    cout << "MinMax BOTH:" << endl;
-    printMinMax(BOTH);
-    cout << endl;
-
-    cout << "MinMax LEFT:" << endl;
-    printMinMax(LEFT);
-    cout << endl;
-
-    cout << "MinMax RIGHT:" << endl;
-    printMinMax(RIGHT);
-    cout << endl;
-  }
-  void printMinMax(Kind kind){
-    for( unsigned int i = 0; i<getVectorSize(kind); i++){
-        printMinMax(i,kind);
-    }
-    cout << endl;
-  }
-  void printMinMax(int listNo, Kind kind){
-    cout << "MinMax for ListNo: "<< listNo <<" and Kind: " << kind << endl;
-    printMinMax(getMinMaxFromCluster(listNo,kind));
-    cout << endl;
-  }
-
-  void printMinMax(vector<pair<double,double> >& minMaxVec){
-    cout << "#####################"<< endl;
-    cout << " MIN MAX Values (clusterCand) : " << endl;
-    for( unsigned int i = 0; i<minMaxVec.size(); i++){
-        cout << "MinMAx Number " << i << ":" << endl;
-        printMinMax(minMaxVec.at(i));
-        cout << endl;
-    }
-  }
-
-  void printMinMax(pair<double,double>& border){
-    cout << "MinBorder: "<< border.first
-        << " MaxBorder: " << border.second << endl;
-  }
-  void printEpsNeighborhood(Kind kind);
-  void printEpsNeighborhood(int i, Kind kind);
-  void printEpsNeighborhood(vector<list<MEMB_TYP_CLASS*> >& vectorList)
-  {
-    for( unsigned int i = 0; i<vectorList.size(); i++){
-        cout << "Neighbors for Cluster Number " << i << ":" << endl;
-        printEpsNeighborhood(vectorList.at(i));
-        cout << endl;
-    }
-  }
-  void printEpsNeighborhood(list<MEMB_TYP_CLASS*>& dlist)
-  {
-    typename list<MEMB_TYP_CLASS*>::iterator it =dlist.begin();
-    for (;it!=dlist.end();it++){
-        cout << "Member: "; (*it)->printPoint();
-        //cout << " isDensityReachable = " << (*it)->isDensityReachable();
-        cout <<" Cnt neighbors :" << (*it)->getCountNeighbors()
-    //            <<"  ClusterNo= " << (*it)->getClusterNo()
-                << endl;
-        //        cout <<" neighbors :";
-        //        printEpsNeighborhood(*it);
-    }
-  }
-  void printClusterSize(Kind kind);
-  void printListLength(int i, Kind kind);
-
-  void printClusterSizes()
-  {
-    cout << "List length from clusters :" << endl;
-
-    cout << "CLUSTER:" << endl;
-    printClusterSize(CLUSTER);
-    cout << endl;
-
-    cout << "BOTH:" << endl;
-    printClusterSize(BOTH);
-    cout << endl;
-
-    cout << "LEFT:" << endl;
-    printClusterSize(LEFT);
-    cout << endl;
-
-    cout << "RIGHT:" << endl;
-    printClusterSize(RIGHT);
-    cout << endl;
-
-    cout << "CLUSTERCAND:" << endl;
-    printListLength(0,CLUSTERCAND);
-    cout << endl;
-
-    cout << "NOISE:" << endl;
-    printListLength(0,NOISE);
-    cout << endl;
-
-  }
-
-  void printEpsNeighborhoodSize(){
-    cout << "Neighborhood Sizes from :" << endl;
-
-    cout << "CLUSTER:" << endl;
-    printEpsNeighborhoodSize(CLUSTER);
-    cout << endl;
-
-    cout << "BOTH:" << endl;
-    printEpsNeighborhoodSize(BOTH);
-    cout << endl;
-
-    cout << "LEFT:" << endl;
-    printEpsNeighborhoodSize(LEFT);
-    cout << endl;
-
-    cout << "RIGHT:" << endl;
-    printEpsNeighborhoodSize(RIGHT);
-    cout << endl;
-
-    cout << "CLUSTERCAND:" << endl;
-    printEpsNeighborhoodSize(0,CLUSTERCAND);
-    cout << endl;
-
-    cout << "NOISE:" << endl;
-    printEpsNeighborhoodSize(0,NOISE);
-    cout << endl;
-  }
-
-  void printEpsNeighborhoodSize(Kind kind){
-    for(unsigned int i = 0; i<getVectorSize(kind); i++){
-        cout << "epsNeighborhood Size in Cluster Number " << i << ": " << endl;
-        cout << "------------------------------------"<< endl;
-        printEpsNeighborhoodSize(i,kind);
-        cout << "\n" <<endl;
-    }
-  }
-
-  void printEpsNeighborhoodSize(int i, Kind kind){
-    typename list<MEMB_TYP_CLASS*>::iterator it =getIterator(i,true,kind);
-    for (;it!=getIterator(i,false,kind);it++){
-        cout << "Member: "; (*it)->printPoint();
-        //cout << " isDensityReachable = " << (*it)->isDensityReachable();
-        cout <<" Cnt neighbors :" << (*it)->getCountNeighbors() <<
-            "  ClusterNo= " << (*it)->getClusterNo() 
-            << " Type:"<< (*it)->getClusterType() << endl;
-        cout <<endl;
-    }
-  }
 
 
-  void printEpsNeighborhood()
-  {
-    cout << "-------------------------" << endl;
-    cout << "epsNeighborhood for eps= "<< eps << " and minPts = "
-        << minPts << ": \n " << endl;
-
-    cout << "CLUSTER:" << endl;
-    printEpsNeighborhood(CLUSTER);
-    cout << endl;
-
-    cout << "BOTH:" << endl;
-    printEpsNeighborhood(BOTH);
-    cout << endl;
-
-    cout << "LEFT:" << endl;
-    printEpsNeighborhood(LEFT);
-    cout << endl;
-
-    cout << "RIGHT:" << endl;
-    printEpsNeighborhood(RIGHT);
-    cout << endl;
-
-    cout << "CLUSTERCAND:" << endl;
-    printEpsNeighborhood(0,CLUSTERCAND);
-    cout << endl;
-
-    cout << "NOISE:" << endl;
-    printEpsNeighborhood(0,NOISE);
-    cout << endl;
-
-    cout << endl;
-    cout << "-------------------------" << endl;
-  }
-
-  void printEpsNeighborhood(MEMB_TYP_CLASS* point)
-  {
-    typename list<MEMB_TYP_CLASS*>::iterator nIt =
-        point->getEpsNeighborhood(true);
-    while (nIt!= point->getEpsNeighborhood(false)){
-        (*nIt)->printPoint();
-        cout << ", ";
-        //        cout << " DR: "
-        //        << (*nIt)->isDensityReachable() <<
-        //        " ClNo: " << (*nIt)->getClusterNo() << ", ";
-        nIt++;
-    }
-    cout <<endl;
-  }
-
-  void printSomeInfo(Cluster* rightCluster,
-                     string text =0,
-                     bool rightClusterAvailable = true,
-                     bool printIndexes = false,
-                     vector<pair<unsigned int,Kind> >*
-                     clusterToMeltOnLeftForRightSide = 0,
-                     int leftIndexSize = 0,
-                     vector<pair<unsigned int,Kind> >*
-                     clusterToMeltOnRightForLeftSide = 0,
-                     int rightIndexSize = 0,
-                     pair<unsigned int,Kind>*
-                     newLeftIndices= 0,
-                     pair<unsigned int,Kind>*
-                     newRightIndices= 0,
-                     bool printClusterCandInfo = false,
-                     vector< clusterCandMelt>*
-                     clusterCandClustersToMeltWithClNo =0,
-                     vector< clusterCandMelt>*
-                     leftClusterCandMemberToMeltWithRClNo = 0,
-                     vector< clusterCandMelt>*
-                     rightClusterCandMemberToMeltWithLClNo=0)
-  {
-//     cout << endl;
-//     cout << text << endl;
-//     cout << "eps = " << eps << " minPts= "<< minPts << endl;
-// 
-//     cout << "Left Clusters: ###############" << endl;
-//     printClusters();
-//     cout << "Neighbors: " << endl;
-//     //    //    printEpsNeighborhood();
-//     printEpsNeighborhoodSize();
-// 
-//     if(rightClusterAvailable){
-//         cout << "Right Clusters: ###############"<< endl;
-//         rightCluster->printClusters();
-//         cout << "Neighbors: " << endl;
-//         //        //        rightCluster->printEpsNeighborhood();
-//         rightCluster->printEpsNeighborhoodSize();
-//     }
-// 
-//    cout << "ClusterCand Clusters: " << endl;
-//    printList(clusterCandClusters);
-//    //        printEpsNeighborhood(clusterCandClusters);
-// 
-//    if(printIndexes){
-//        cout << "clusterToMeltOnRightForLeftSide Indexe " << endl;
-//        cout << "clusterToMeltOnRightForLeftSide: " << endl;
-//        printClusterToMeltIndex(
-//          clusterToMeltOnRightForLeftSide,leftIndexSize);
-//        cout <<"new Indicies Left" << endl;
-//        printIndexArray(newLeftIndices);
-// 
-//        cout << "clusterToMeltOnLeftForRightSide: " << endl;
-//        printClusterToMeltIndex(
-//          clusterToMeltOnLeftForRightSide,rightIndexSize);
-//        cout <<"new Indicies Right" << endl;
-//        printIndexArray(newRightIndices);
-//    }
-// 
-//    if(printClusterCandInfo)
-//      {
-//        cout << "clusterCandIndexe" << endl;
-//        cout << "clusterCandClustersToMeltWithClNo: " << endl;
-//        printClusterCandIndex(
-//          clusterCandClustersToMeltWithClNo,clusterCandClusters.size());
-//        cout << "leftClusterCandMemberToMeltWithRClNo; " << endl;
-//        printClusterCandIndex(
-//          leftClusterCandMemberToMeltWithRClNo,rightIndexSize);
-//        cout << "rightClusterCandMemberToMeltWithLClNo; " << endl;
-//        printClusterCandIndex(
-//          rightClusterCandMemberToMeltWithLClNo,leftIndexSize);
-// 
-//      }
-// 
-// 
-//        int liLeClusterCand = getListLength(0,CLUSTERCAND);
-//        cout << "clustercand length = " << liLeClusterCand << endl;
-//     
-//        if(rightClusterAvailable){
-//            int riLiLeClCn =  
-//            rightCluster->getListLength(0,CLUSTERCAND);
-//            cout << "right clustercand length = " << riLiLeClCn << endl;
-//        }
-//     
-//        int clCandCl = clusterCandClusters.size();
-//        cout << "clusterCandClusters size = " << clCandCl << endl;
-//     
-//        int clas = clusterArray.size() ;
-//        int clasMM = clusterMinMaxY.size();
-//        cout << "ClusterArray size = " << clas 
-//        << " ClusterArray MimMax Size"<< clasMM << endl;
-//     
-//        int lePCS= leftPartCluster.size();
-//        int lePMiMa = leftPCMinMaxY.size();
-//        cout << "leftPartCluster size = " << lePCS 
-//        << " leftPCMinMaxY MimMax Size"<< lePMiMa << endl;
-//     
-//     
-//        int ricls = rightPartCluster.size() ;
-//        int riclmm = rightPCMinMaxY.size()    ;
-//        cout << "rightPartCluster size = " << ricls 
-//        << " rightPCMinMaxY MimMax Size"<< riclmm << endl;
-//     
-//        int bscs =bothSideCluster.size() ;
-//        int bomm = bothSCMinMaxY.size();
-//        cout << "bothSideCluster size = " << bscs 
-//        << " bothSCMinMaxY MimMax Size"<< bomm << endl;
-//     
-//         if(clusterArray.size() != clusterMinMaxY.size())
-//                {
-//             cout << "clusterArray and clusterMinMaxY"
-//                      " haven't the same size!" << endl;
-//              }
-//     
-//         if(leftPartCluster.size() != leftPCMinMaxY.size())
-//              {
-//                cout << "leftPartCluster and leftPCMinMaxY"
-//                    " haven the same size!" << endl;
-//              }
-//     
-//         if(rightPartCluster.size() != rightPCMinMaxY.size())
-//              {
-//              cout << "rightPartCluster and rightPCMinMaxY"
-//                      " haven the same size!" << endl;
-//              }
-//     
-//         if(bothSideCluster.size() != bothSCMinMaxY.size())
-//              {
-//             cout << "bothSideCluster and bothSCMinMaxY"
-//                      " haven the same size!" << endl;
-//              }
-//        int clcnCompS = 0;
-//        for(int i=0; i < clCandCl; i++)
-//          {
-//            clcnCompS += clusterCandClusters.at(i).size();
-//            cout << "left Clustercand Clusterss List: "<< i << endl;
-//            printList(clusterCandClusters.at(i));
-//          }
-//     
-//        cout << "left Clustercand List" << endl;
-//        printList(getList(-1,CLUSTERCAND));
-//     
-//        if(rightClusterAvailable){
-//        cout << "right Clustercand list" << endl;
-//        printList(rightCluster->getList(-1,CLUSTERCAND));
-//        }
-//     
-//        cout << "left NOISE List" << endl;
-//        printList(getList(-1,NOISE));
-//     
-//        if(rightClusterAvailable){
-//        cout << "right NOISE list" << endl;
-//        printList(rightCluster->getList(-1,NOISE));
-//        }
-//     
-//        cout << "ClusterList is: "<< endl;
-//        printCluster(CLUSTER);
-// 
-//        cout << endl;
-
-  }
-
-  void printClusterCandIndex(vector< clusterCandMelt>* indexArray,
-                             unsigned int indexSize)
-  {
-    for(int i=0; i< indexSize;i++){
-        cout << " ClusterCandIndexArray : " << i 
-        << " with Length: "<< indexArray[i].size() << endl;
-        printClusterCandIndex(indexArray[i]);
-    }
-    cout << endl;
-
-  }
-
-  void printClusterCandIndex(vector< clusterCandMelt>& indexArray)
-  {
-    unsigned int size = indexArray.size();
-    for(int i=0; i< size;i++){
-        cout << " ClusterCandIndex: " << i << endl;
-        printClusterCandIndex(indexArray.at(i));
-    }
-    cout << endl;
-  }
-
-
-  void printClusterCandIndex( clusterCandMelt & indexArray)
-  {
-    cout << "Clusterindex: "<< indexArray.clusterIndex 
-    << " , clusterKind: " << indexArray.clusterKind <<
-        " , meltWithRightCluster: "
-        << indexArray.meltWithRightCluster << endl;
-  }
-
-
-  void printClusterToMeltIndex(vector<pair<unsigned int,Kind> >* 
-                                                clToMelt, int indexSize){
-
-    for (int i=0; i< indexSize; i++){
-        cout << "Vector "<< i << " = " << endl;
-        printClusterToMeltIndex(clToMelt[i]);
-    }
-    cout <<endl;
-  }
-
-  void printClusterToMeltIndex(vector<pair<unsigned int,Kind> > clToMelt){
-    for (int i=0; i< clToMelt.size(); i++){
-        cout << "Index "<< i << " = " << endl;
-        printIndexArray(clToMelt[i]);
-    }
-  }
-
-
-  void printIndexArray(pair<unsigned int,Kind>* newIndices)
-  {
-    int size = sizeof(newIndices)/sizeof(newIndices[0]);
-    for (int i=0; i< size; i++){
-        cout << "Index "<< i << " = " << endl;
-        printIndexArray(newIndices[i]);
-    }
-    cout <<endl;
-  }
-
-  void printIndexArray(pair<unsigned int,Kind> newIndices)
-  {
-    cout << "Index: "<< newIndices.first << " Kind: "
-        << newIndices.second << endl;
-  }
-
-
-/*
-getCntMembers();
-
-*/
-  unsigned int getCntMembers(){
-    unsigned int retVal =0;
-    retVal += getCntMembers(CLUSTER);
-    retVal += getCntMembers(LEFT);
-    retVal += getCntMembers(RIGHT);
-    retVal += getCntMembers(BOTH);
-    retVal += getListLength(0,CLUSTERCAND);
-    retVal += getListLength(0,NOISE);
-    return retVal;
-  }
-
-  unsigned int getCntMembers(Kind kind){
-    unsigned int retVal =0;
-    for(unsigned int i=0;i< getVectorSize(kind);i++){
-        retVal+=getListLength(i,kind);
-    }
-    return retVal;
-  }
-
-  unsigned int getCntClusters(){
-    unsigned int retVal =0;
-    retVal += getVectorSize(CLUSTER);
-    retVal += getVectorSize(LEFT);
-    retVal += getVectorSize(RIGHT);
-    retVal += getVectorSize(BOTH);
-    if(getListLength(0,CLUSTERCAND)>0){
-        retVal++;
-    }
-    if(getListLength(0,NOISE)>0){
-        retVal++;
-    }
-    return retVal;
-  }
-
-/*
- findEqualElements
- 
-*/
-  bool findEqualElements(vector<MEMB_TYP_CLASS*>& membArray){//TODO chanbe to *
-    bool retVal=false;
-    for( unsigned int i=0;i<membArray.size();i++){
-        MEMB_TYP_CLASS* ptr = membArray.at(i);//TODO remove &
-        int cntMemebs=0;
-
-        cntMemebs += findEqualElementsCLuster(ptr,CLUSTER);
-        cntMemebs += findEqualElementsCLuster(ptr,LEFT);
-        cntMemebs += findEqualElementsCLuster(ptr,RIGHT);
-        cntMemebs += findEqualElementsCLuster(ptr,BOTH);
-
-        cntMemebs += findEqualElementsList(ptr,CLUSTERCAND);
-        cntMemebs += findEqualElementsList(ptr,NOISE);
-
-        if(cntMemebs != 1){
-            retVal=true;
-            cout << "anzahl von Memb:"
-                << ptr->getXVal() << " ist:" << cntMemebs << endl;
-        }
-    }
-    cout << "MinPTS: " << minPts << " EPS: " << eps << endl;
-    return retVal;
-  }
-
-/*
-findEqualElementsCLuster
-
-*/
-  int findEqualElementsCLuster(MEMB_TYP_CLASS* ptr,
-                               Kind kind)
-  {
-    int cntMemebs=0;
-    //search cluster
-    for(int j =0;j<getVectorSize(kind);j++){
-        typename list<MEMB_TYP_CLASS*>::iterator it =
-            getIterator(j,true,kind);
-
-        while(it!=getIterator(j,false,kind)){
-            if(ptr == (*it)){
-                cntMemebs++;
-            }
-            it++;
-        }
-    }
-    return cntMemebs;
-  }
-
-/*
-findEqualElementsList
-
-*/
-  int findEqualElementsList(MEMB_TYP_CLASS* ptr,
-                            Kind kind)
-  {
-    int cntMemebs=0;
-    typename list<MEMB_TYP_CLASS*>::iterator nit = getIterator(0,true,kind);
-    while(nit!=getIterator(0,false,kind)){
-        if(ptr == (*nit)){
-            cntMemebs++;
-        }
-        nit++;
-    }
-    return cntMemebs;
-  }
 
 /*
 getVectorSize
@@ -736,6 +178,10 @@ returns the quantity of Clsuters
     return 0;
   }
 
+/*
+getClusterVector
+
+*/
   vector<list<MEMB_TYP_CLASS*> >& getClusterVector(Kind kind){
 
     switch(kind){
@@ -771,6 +217,7 @@ getRightOuterPoint
 
 /*
 getListLength
+
 return the list length from position i
 
 */
@@ -802,6 +249,7 @@ return the list length from position i
 
 /*
 updateMinMaxVal
+
 compare new point with the value in the pair
 
 */
@@ -868,50 +316,19 @@ compare new point with the value in the pair
   }
 
   
-  
+/*
+findNextMinList
+
+returns the nex minimum element from a list
+
+*/
   bool findNextMinList(int& leftIndex, Kind& leftKind,
                        double& leftMinima,double& leftMaxima,
                        bool calcLeftMin, int& leftCnt,
                        int& rightIndex, Kind& rightKind,
                        double& rightMinima,double& rightMaxima,
                        bool calcRightMin, int& rightCnt,
-                       Cluster* rightCluster)
-  {
-
-    bool retval = true;
-    if(calcLeftMin || calcRightMin){
-
-        if(calcLeftMin && leftIndex > -1){
-            findNextMinList(leftIndex,leftKind,leftMinima,false);
-            leftCnt ++;
-        }
-        if(calcRightMin && rightIndex > -1){
-            rightCluster->findNextMinList(rightIndex,rightKind,
-                                          rightMinima,true);
-            rightCnt++;
-        }
-
-        if(leftIndex < 0 && rightIndex < 0)//no more min Value
-          {
-            retval = false;
-          } else {
-              if(leftIndex > -1){
-                  leftMaxima =getYMaxfromCluster(leftKind,leftIndex);
-                  leftMinima = getYMinfromCluster(leftKind,leftIndex);
-              }
-              if(rightIndex > -1){
-                  rightMaxima =rightCluster->getYMaxfromCluster(
-                      rightKind,rightIndex);
-                  rightMinima = rightCluster->getYMinfromCluster(
-                      rightKind,rightIndex);
-              }
-          }
-    } else {
-        retval = false;
-    }
-
-    return retval;
-  }
+                       Cluster* rightCluster);
   
 /*
 findNextMinList
@@ -921,34 +338,7 @@ if no min found return -1
   
 */
   void findNextMinList(int& retIndex, Kind& retKind,
-                       double actualMinima, bool rightCluster)
-  {
-    //    double min = actualMinima;
-    int  iSIDE = -1, iBOTH = -1;
-    Kind sideKind;
-    if(rightCluster){
-        //serach in LEFT and BOTH
-        iSIDE  = getIndexOfFindNextMinList(actualMinima,LEFT);
-        sideKind = LEFT;
-    } else {
-        //search in RIGHT and BOTH
-        iSIDE  = getIndexOfFindNextMinList(actualMinima,RIGHT);
-        sideKind = RIGHT;
-    }
-    iBOTH = getIndexOfFindNextMinList(actualMinima,BOTH);
-
-    if(iSIDE == -1 ||
-        (iBOTH >=0 && getYMinfromCluster(BOTH,iBOTH) <
-            getYMinfromCluster(sideKind,iSIDE) ))
-      {
-        retIndex = iBOTH;
-        retKind = BOTH;
-      }else{
-          retIndex = iSIDE;
-          retKind = sideKind;
-      }
-  }
-
+                       double actualMinima, bool rightCluster);
   
 /*
   getIndexOfFindNextMinList
@@ -973,6 +363,8 @@ if no min found return -1
 /*
   findNextMinListOfClCand
    
+   returns the next minimum clustercand
+   
 */
 
   bool findNextMinListOfClCand(vector<pair <double,double> >&
@@ -982,34 +374,7 @@ if no min found return -1
                                bool& clCandOutOfRangeLeftCl,
                                bool& clCandOutOfRangeRightCl,
                                double actMaxLeftList,
-                               double actMaxRightLsit)
-  {
-    int retVal = -1;
-    double min = MAX_DOUBLE;
-    for (int i =0; i < minMaxlist.size(); i++)
-      {
-        if(minMaxlist.at(i).first < min
-            && minMaxlist.at(i).first > actualMinima){
-            min= minMaxlist.at(i).first;
-            retVal=i;
-        }
-      }
-    index = retVal;
-    if(retVal < 0){
-        return false;
-    }
-    actualMinima= minMaxlist.at(retVal).first;
-    actualMaxima= minMaxlist.at(retVal).second;
-
-
-    clCandOutOfRangeLeftCl =
-        (actMaxLeftList + eps) <= actualMinima;
-
-    clCandOutOfRangeRightCl =
-        (actMaxRightLsit + eps) <= actualMinima;
-
-    return true;
-  }
+                               double actMaxRightLsit);
 
 
 /*
@@ -1586,70 +951,12 @@ push a committed member at the end or beginning of a given clusterlist
 
 */
    void pushMemberToClusterList(bool front,MEMB_TYP_CLASS *member,
-                                int list, Kind kind)
-   {
-     switch (kind){
-       case NOISE:
-         if(front)
-           {
-             noiseList.push_front(member);
-           }else{
-               noiseList.push_back(member);
-           }
-         break;
-       case CLUSTERCAND:
-         if(front)
-           {
-             clusterCandList.push_front(member);
-           }else{
-               clusterCandList.push_back(member);
-           }
-         break;
-       case CLUSTER:
-         if(front)
-           {
-             clusterArray.at(list).push_front(member);
-           }else{
-               clusterArray.at(list).push_back(member);
-           }
-         break;
-       case LEFT:
-         if(front)
-           {
-             leftPartCluster.at(list).push_front(member);
-           }else{
-               leftPartCluster.at(list).push_back(member);
-           }
-         break;
-       case RIGHT:
-         if(front)
-           {
-             rightPartCluster.at(list).push_front(member);
-           }else{
-               rightPartCluster.at(list).push_back(member);
-           }
-         break;
-       case BOTH:
-         if(front)
-           {
-             bothSideCluster.at(list).push_front(member);
-           }else{
-               bothSideCluster.at(list).push_back(member);
-           }
-         break;
-       case CLCANDCLUSTERS:
-         if(front)
-           {
-             clusterCandClusters.at(list).push_front(member);
-           }else{
-               clusterCandClusters.at(list).push_back(member);
-           }
-         break;
-       default:
-         break;
-     }
-   }
+                                int list, Kind kind);
 
+/*
+pushListToCluster
+
+*/
    void pushListToCluster(Kind kind,list<MEMB_TYP_CLASS *>& list)
    {
      switch (kind)
@@ -1678,6 +985,10 @@ push a committed member at the end or beginning of a given clusterlist
      }
    }
 
+/*
+pushListToCluster
+
+*/
    void pushMinMaxToCluster(Kind kind,pair<double,double>& list)
    {
      switch (kind){
@@ -1822,22 +1133,6 @@ verschiebt alle moeglichen Nachbarn eines Members in die Zielliste
                                          rightClsuter->getList(0,NOISE),
                                          destList, searchAndDelete,clusterNo,
                                          clusterType,false,moveItem);
-             }
-
-             if(!moveItem){
-                 // TODO item is in NOISE List  DELETE
-                 cout << "FAIL move didn't work "<< endl;
-                 cout << " in moveNeighborsToDestList" << endl;
-                 cout << " Member: "; 
-                 (*membNeighborIt)->printPoint(); cout << endl;
-                 cout << " srcList " << endl;
-                 printList(srcList);
-                 cout << " otherSrcList " << endl;
-                 printList(otherSrcList);
-                 cout << " destList " << endl;
-                 printList(destList);
-                 cout << endl;
-
              }
              updateMinMaxVal(clusterMinMax,*membNeighborIt);
          }
@@ -3277,7 +2572,8 @@ update clusterNo and Type
 
      while(it!=list.end()){
          if(!(*it)->updateInnerPnt(minPts)){
-             if(!(*it)->updateDensityReachable(minPts)){
+           if(!(*it)->updateDensityReachable(minPts) && 
+             (kind == CLUSTER || kind == CLUSTERCAND) ){ //TODO test
                  allDensReachable = false;
                  if(moveItemToClusterCandOrNoise(leftOuterPoint,
                                                  rightOuterPoint,
