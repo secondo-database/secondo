@@ -105,7 +105,21 @@ public:
    }
 
 /*
-2.3 is the queue empty?
+2.3 clear queue
+
+*/
+   void clear() {
+       pthread_mutex_lock(&queueMutex);
+       
+       while(! myQueue.empty()) {
+            myQueue.pop();
+       }
+
+       pthread_mutex_unlock(&queueMutex);
+   }
+
+/*
+2.4 is the queue empty?
 
 */
    bool isEmpty() {
@@ -113,7 +127,7 @@ public:
    }
 
 /*
-2.4 is the queue full?
+2.5 is the queue full?
 
 */
    bool isFull() {
