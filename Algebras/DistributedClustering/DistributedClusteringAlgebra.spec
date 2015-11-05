@@ -21,5 +21,5 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator dbdacscan alias DBDACSCAN pattern _ op [list]
-operator distclmerge alias DISTCLMERGE pattern _ _ _ _ op [list]
+operator distclmerge alias DISTCLMERGE pattern op (_,_,_,_,_,_,_,_,_,_)
 operator distsamp alias DISTSAMP pattern _ _ op [list]
