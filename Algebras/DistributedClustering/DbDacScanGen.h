@@ -140,6 +140,7 @@ Constructor for operator distClMerge
                   ,neighborType(0)
     {
       bool readFileCorrect = true;
+      bool readSecFileCorrect = true;
       buffer = new TupleBuffer(_maxMem);
       string errMsg;
       
@@ -167,7 +168,7 @@ Constructor for operator distClMerge
         ,membArrayPtr.size()))
       {
         cout << "read right File failed: " << errMsg << endl;
-        readFileCorrect = false;
+        readSecFileCorrect = false;
       } 
       if (!readFile<TYPE,MEMB_TYP_CLASS>( _rightNFN, _tupleResultType
         ,errMsg,membArrayPtrSec, membArrayUntouchedSec
@@ -175,7 +176,7 @@ Constructor for operator distClMerge
         ,membArrayPtr.size()))
       {
         cout << "read right Neighbor File failed: " << errMsg << endl;
-        readFileCorrect = false;
+        readSecFileCorrect = false;
       }
       
 
@@ -183,6 +184,8 @@ Constructor for operator distClMerge
       {
         relNameFound = true;
         tt = new TupleType(_tupleResultType);
+        
+        if(readSecFileCorrect){
         if(membArrayPtr.size()){
           mergeSort(membArrayPtr,0,membArrayPtr.size());
         }
@@ -218,6 +221,7 @@ Constructor for operator distClMerge
           leftCluster->
           meltClusters(rightCluster,leftInnerPoint,rightInnerPoint);
         } 
+        }
         initOutput(); 
       }else{
         cout << "Files not created!" << endl;
