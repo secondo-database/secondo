@@ -13602,6 +13602,28 @@ int nthValueMapping(Word* args, Word& result, int message,
       return 0;
     }
   
+  
+  
+  case CLOSEPROGRESS:
+    return 0;
+  
+  
+  case REQUESTPROGRESS:
+    ProgressInfo p1;
+    ProgressInfo* pRes;
+    {
+      
+     pRes = (ProgressInfo*) result.addr;
+     if (qp-> RequestProgress(args[0].addr, &p1) )
+     {  
+       pRes->Copy(p1);
+       return YIELD;
+     
+      
+     }
+      else return CANCEL;
+  
+    }
      
   }
   return 0;
@@ -13787,6 +13809,7 @@ class ExtRelationAlgebra : public Algebra
    kbiggest.EnableProgress();
    extrelloopsel.EnableProgress();
    extrelaggregate.EnableProgress();
+   extrelnth.EnableProgress();
 #endif
   }
 
