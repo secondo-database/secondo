@@ -235,6 +235,7 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "FileSystem.h"
 #include "StandardTypes.h"
 #include "../Algebras/FText/FTextAlgebra.h"
+#include "Application.h"
 
 // force a failed assertion. This will imply to print a stack trace
 #define qp_assert if( RTFlag::isActive("QP:assert") ) assert(false)
@@ -340,6 +341,7 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
                       + stringutils::int2str(WinUnix::getpid());
     heartbeat_file.open(filename.c_str(), ios::out);
   }
+    
   instances++;
 }
 
@@ -3626,6 +3628,9 @@ the function in a database object.
   ListExpr list = nl->TheEmptyList();
   ListExpr type;
 
+  // Reset query canceled by user 
+  Application::Instance()->ResetUser1Flag();
+
   try
   {
     list = AnnotateX( expr, defined );
@@ -3983,11 +3988,6 @@ Code just needed for tracing and error eporting is shown indented.
   //print(cout,tree);
   //cout << (*tree) << endl << endl;
 
-  
-
-
-
-
   int i = 0;
   int status = 0;
   ArgVector arg;
@@ -4228,7 +4228,13 @@ Then call the operator's value mapping function.
                         }
 
           tree->u.op.theOperator->incCalls(tree->u.op.opFunId / 65536);
-          if(tree->u.op.costEstimation){
+          
+          // Is query execution canceled by user?
+          if(Application::Instance()->GetUser1Flag() == true
+                  && message == REQUEST
+                  && tree->u.op.isStream == true) {
+              status = CANCEL;
+          } else if(tree->u.op.costEstimation){
              switch(message){
                case CLOSEPROGRESS : break; // not required 
                case REQUESTPROGRESS : status = 
@@ -4250,8 +4256,9 @@ Then call the operator's value mapping function.
                (*(tree->u.op.valueMap))( arg, result, message,
                                       tree->u.op.local, tree );
           }
-
+          
           tree->u.received = (status == YIELD);
+          
           if ( status == FAILURE )  //new error code
           {
                         cerr << fn << "Evaluation of operator failed."

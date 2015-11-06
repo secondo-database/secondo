@@ -305,8 +305,12 @@ abort the process if not handled otherwise.
 void
 Application::UserSignalHandler ( int sig )
 {
+  // SIGUSR1 is used to cancel running queries
   if ( sig == SIGUSR1 )
   {
+    cout << endl << endl;
+    cout << "Got Signal, cancel running query." << endl;
+    
     Application::appPointer->user1Flag = true;
   }
   else
