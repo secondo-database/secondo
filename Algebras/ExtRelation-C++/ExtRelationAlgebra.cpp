@@ -13429,6 +13429,32 @@ if(!CcBool::checkType(arg3))
 
 */
 
+class nthLocalInfo: public ProgressLocalInfo
+{
+  
+public:
+  
+  nthLocalInfo()
+  {
+    read = 0;
+    returned = 0;
+    
+    
+  }
+  
+  ~nthLocalInfo()
+  {
+  }
+  
+ 
+};
+
+
+
+
+
+
+
 int nthValueMapping(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
@@ -13439,6 +13465,7 @@ int nthValueMapping(Word* args, Word& result, int message,
   int intvalue = 0;
   int randvalue;       
   bool boolvalue;
+  nthLocalInfo* nthli = (nthLocalInfo*) local.addr;
   CcInt* currentval = static_cast<CcInt*>(args[1].addr);
   CcBool* currentbool = static_cast<CcBool*>(args[2].addr);
   
@@ -13469,10 +13496,18 @@ int nthValueMapping(Word* args, Word& result, int message,
  case OPEN: 
    
     {     
-      srand(time(0)); 
+      if (nthli) delete nthli;
+      
+      nthli= new nthLocalInfo();
+      
+      //
       qp->Open(args[0].addr);
-      local.addr = 0;
+      local.setAddr(nthli);  
+      srand(time(0)); 
+      
+      qp->Open(args[0].addr);
       return 0;
+      
     }
     
     
@@ -13482,10 +13517,12 @@ int nthValueMapping(Word* args, Word& result, int message,
 
  case REQUEST:  
    
-   randvalue = rand()%intvalue + 1;
+   
    
  
-  { if (boolvalue)
+  { randvalue = rand()%intvalue + 1;
+    
+    if (boolvalue)
    {
     
     
@@ -13493,6 +13530,8 @@ int nthValueMapping(Word* args, Word& result, int message,
     for (int i=1; i< intvalue; i++)                      //normal case
     {
       qp->Request(args[0].addr, tuple);
+      nthli->read++;
+      
       
       if(!qp->Received(args[0].addr))
       {
@@ -13509,6 +13548,9 @@ int nthValueMapping(Word* args, Word& result, int message,
     }   
         
    qp->Request(args[0].addr, tuple);
+   nthli->read++;
+   nthli->returned++;
+      
    
    if (qp->Received(args[0].addr))
      
@@ -13534,6 +13576,8 @@ int nthValueMapping(Word* args, Word& result, int message,
          for (int i=1; i< randvalue; i++)
         {
           qp->Request(args[0].addr, tuple);
+          nthli->read++;
+      
       
           if(!qp->Received(args[0].addr))
            {
@@ -13552,6 +13596,9 @@ int nthValueMapping(Word* args, Word& result, int message,
            
             
            qp->Request(args[0].addr, tuple);
+           nthli->read++;
+           nthli->returned++;
+      
    
            if (qp->Received(args[0].addr))
              
@@ -13561,9 +13608,13 @@ int nthValueMapping(Word* args, Word& result, int message,
                 for (int i=randvalue; i< intvalue; i++)
                   {
                     qp->Request(args[0].addr, tuple);
+                    nthli->read++;
+      
       
                    if(!qp->Received(args[0].addr))
-                    {
+                    { 
+                      current = static_cast<Tuple*>(result.addr);
+                      current -> DeleteIfAllowed();   
                       result.addr = 0;
                       return CANCEL;
                     } 
@@ -13605,7 +13656,14 @@ int nthValueMapping(Word* args, Word& result, int message,
   
   
   case CLOSEPROGRESS:
+   if (nthli) 
+    {
+      delete nthli;
+    }
+    
+    local.setAddr(0);
     return 0;
+  
   
   
   case REQUESTPROGRESS:
@@ -13615,7 +13673,13 @@ int nthValueMapping(Word* args, Word& result, int message,
       
      pRes = (ProgressInfo*) result.addr;
      if (qp-> RequestProgress(args[0].addr, &p1) )
-     {  
+     { 
+       
+       pRes->Time = p1.Time;
+       pRes->Progress = ((p1.Progress * p1.Time  +  
+                         nthli->returned / nthli-> read) / pRes->Time);
+       
+       
        pRes->Copy(p1);
        return YIELD;
      
@@ -13630,6 +13694,11 @@ int nthValueMapping(Word* args, Word& result, int message,
  
  }
   
+
+
+
+
+
 
 
 
