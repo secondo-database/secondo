@@ -18,6 +18,12 @@ Example  : query SEC2OPERATORINFO feed addid createInvFile[Signature, TID, TRUE,
 Result   : unpredictable
 Remark   : A InvFile has not out function
 
+Operator : insertInvFile
+Number   : 1
+Signature: stream(tuple) x invFile x a_i x a_j -> stream(tuple) ; a_i : text, a_j : tid
+Example  : query (SEC2OPERATORINFO feed addid insertInvFile[SEC2OPERATORINFO feed addid createInvFile[Signature, TID], Signature, TID] count) > 1000
+Result   : TRUE
+
 Operator : searchWord 
 Number   : 1
 Signature: invfile x string -> stream(tuple((TID tid)(WordPos int)(CharPos pos)))

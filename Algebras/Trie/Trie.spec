@@ -8,6 +8,7 @@ operator contains alias CONTAINS pattern _ infixop _
 operator trieEntries alias trieEntries pattern _ op [_]
 
 operator createInvFile alias CREATEINVFILE pattern _ op [_,_]
+operator insertInvFile alias INSERTINVFILE pattern _ op [_,_]
 operator searchWord alias SEARCHWORD pattern _ op [_]
 operator searchPrefix alias SEARCHPREFIX pattern _ op [_]
 

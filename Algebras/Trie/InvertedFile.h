@@ -36,6 +36,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MMTrie.h"
 
 #include "LRU.h"
+#include "Stream.h"
+#include "FTextAlgebra.h"
+#include "RelationAlgebra.h"
 
 
 /*
@@ -1116,6 +1119,58 @@ inserts a new element into this inverted file
       free(buffer);
   }
 
+};
+
+class InvFileInsertLI {
+ public:
+  InvFileInsertLI(Stream<Tuple> &s, InvertedFile *i, int i1, int i2, size_t mem)
+                              : stream(s), inv(i), textIndex(i1), tidIndex(i2) {
+    
+    size_t trieCacheSize = mem / 20;
+    if (trieCacheSize < 4096) {
+      trieCacheSize = 4096;
+    }
+    size_t invFileCacheSize;
+    if (trieCacheSize + 4096 > mem) {
+      invFileCacheSize = 4096;
+    }
+    else {
+      invFileCacheSize = mem - trieCacheSize;
+    }
+    cache = inv->createAppendCache(invFileCacheSize);
+    trieCache = inv->createTrieCache(trieCacheSize);
+    stream.open();
+  }
+  
+  ~InvFileInsertLI() {
+    if (cache) {
+      delete cache;
+    }
+    if (trieCache) {
+      delete trieCache;
+    }
+    stream.close();
+  }
+  
+  Tuple* nextTuple() {
+    Tuple *tuple = stream.request();
+    if (tuple) {
+      FText* text = (FText*)tuple->GetAttribute(textIndex);
+      TupleIdentifier* tid = (TupleIdentifier*)tuple->GetAttribute(tidIndex);
+      if (text->IsDefined() && tid->IsDefined()) {
+        inv->insertText(tid->GetTid(), text->GetValue(), cache, trieCache);
+      }
+    }
+    return tuple;
+  }
+    
+ private:
+  Stream<Tuple> stream;
+  InvertedFile *inv;
+  appendcache::RecordAppendCache* cache;
+  TrieNodeCacheType* trieCache;
+  int textIndex;
+  int tidIndex;
 };
 
 namespace triealg{

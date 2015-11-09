@@ -433,7 +433,137 @@ Operator createInvFile (
           createInvFileVM,           // value mapping
           Operator::SimpleSelect, // trivial selection function
           createInvFileTM);
+/*
+\subsection{Operator insertInvFile}
 
+\subsubsection{Type Mapping}
+
+Signature is stream(tuple) x invfile x a1 x a2 -> stream(tuple)
+
+a1 must be of type text
+a2 must be of type tid
+
+*/
+ListExpr insertInvFileTM(ListExpr args){
+  string err = "stream(tuple) x invfile x a_i x a_j   expected";
+  if (!nl->HasLength(args, 4)) {
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if (!Stream<Tuple>::checkType(nl->First(args))) {
+    return listutils::typeError(err + " (first arg is not a tuple stream)");
+  }
+  if (!InvertedFile::checkType(nl->Second(args))) {
+    return listutils::typeError(err + " (second arg is not an inverted file)");
+  }
+  if (!listutils::isSymbol(nl->Third(args)) ||
+      !listutils::isSymbol(nl->Fourth(args))) {
+    return listutils::typeError(err +
+                                " (one of the attribute names is invalid)");
+  }
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  string a1 = nl->SymbolValue(nl->Third(args));
+  string a2 = nl->SymbolValue(nl->Fourth(args));
+  ListExpr t1;
+  ListExpr t2;
+  int i1 = listutils::findAttribute(attrList, a1, t1);
+  if (i1==0) {
+    return listutils::typeError("Attribute " + a1 + " not found in the tuple");
+  }
+  int i2 = listutils::findAttribute(attrList, a2, t2);
+  if (i2==0) {
+    return listutils::typeError("Attribute " + a2 + " not known in the tuple");
+  }
+  if(!FText::checkType(t1)){
+    return listutils::typeError(a1 + " not of type text");
+  } 
+  if(!TupleIdentifier::checkType(t2)){
+    return listutils::typeError(a2 + " not of type " + 
+                                TupleIdentifier::BasicType());
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           nl->TwoElemList(nl->IntAtom(i1 - 1), 
+                                           nl->IntAtom(i2 - 1)),
+                           nl->First(args));
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+
+int insertInvFileVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s) {
+  InvFileInsertLI *li = (InvFileInsertLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      Stream<Tuple> stream = (Stream<Tuple>)args[0].addr;
+      InvertedFile *inv = (InvertedFile*)args[1].addr;
+      int textIndex = ((CcInt*)args[4].addr)->GetValue();
+      int tidIndex  = ((CcInt*)args[5].addr)->GetValue();
+      size_t maxMem = qp->GetMemorySize(s) * 1024*1024;
+      li = new InvFileInsertLI(stream, inv, textIndex, tidIndex, maxMem);
+      qp->SetModified(qp->GetSon(s, 1));
+      local.addr = li;
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+    }
+    case REQUESTPROGRESS: {
+      ProgressInfo p1;
+      ProgressInfo* pRes;
+      pRes = (ProgressInfo*) result.addr;
+      if (qp->RequestProgress(args[0].addr, &p1)) {
+        pRes->Copy(p1);
+        return YIELD;
+      }
+      else {
+        return CANCEL;
+      }
+    }
+    case CLOSEPROGRESS: {
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+2.5.3 Specification
+
+*/
+
+const string insertInvFileSpec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text> stream(tuple(...)) x invfile x a_i x a_j -> stream(tuple(...))"
+    "</text--->"
+    "<text> _ createInvFile[ _, _ , _] </text--->"
+    "<text>inserts an attribute of a tuple stream into an inverted file."
+    " a_i must be of type text, a_j must be of type tid."
+    "</text--->"
+    "<text></text--->"
+    "<text></text--->"
+    ") )";
+
+
+Operator insertInvFile (
+         "insertInvFile" ,           // name
+          insertInvFileSpec,          // specification
+          insertInvFileVM,           // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          insertInvFileTM);
 
 /*
 2.6 Operator searchWord
@@ -1249,11 +1379,11 @@ class TrieAlgebra : public Algebra {
   public:
      TrieAlgebra() : Algebra() {
      AddTypeConstructor( &triealg::invfiletc );
-
+     triealg::insertInvFile.SetUsesMemory();
      
      AddOperator(&triealg::createInvFile);
      triealg::createInvFile.SetUsesMemory();
-
+     
      AddOperator(&triealg::getFileInfo);
      AddOperator(&triealg::wordCount);
      AddOperator(&triealg::prefixCount);
@@ -1264,9 +1394,12 @@ class TrieAlgebra : public Algebra {
 
      AddOperator(&triealg::containsWordOp);
      AddOperator(&triealg::containsPrefixOp);
+     AddOperator(&triealg::insertInvFile);
+     triealg::insertInvFile.SetUsesMemory();
 
 #ifdef USE_PROGRESS
      triealg::createInvFile.EnableProgress();
+     triealg::insertInvFile.EnableProgress();
 #endif
    }
 };
