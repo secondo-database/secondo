@@ -19,13 +19,15 @@
 
 package unittests.mmdb.suites;
 
-import unittests.mmdb.service.MemoryWatcherTests;
-import unittests.mmdb.service.ObjectConverterTests;
-import unittests.mmdb.service.ObjectLoaderTests;
-
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
+
+import unittests.mmdb.service.MemoryWatcherTests;
+import unittests.mmdb.service.ObjectConverterTests;
+import unittests.mmdb.service.ObjectExportTests;
+import unittests.mmdb.service.ObjectImportTests;
+import unittests.mmdb.service.ObjectLoaderTests;
 
 /**
  * Suite for collecting all tests within the "service" module.
@@ -33,7 +35,9 @@ import org.junit.runners.Suite.SuiteClasses;
  * @author Alexander Castor
  */
 @RunWith(Suite.class)
-@SuiteClasses({ MemoryWatcherTests.class, ObjectConverterTests.class, ObjectLoaderTests.class })
+@SuiteClasses({ MemoryWatcherTests.class, ObjectConverterTests.class,
+		ObjectExportTests.class, ObjectImportTests.class,
+		ObjectLoaderTests.class })
 public class TestSuiteService {
 
 }

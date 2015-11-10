@@ -5,8 +5,6 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 import unittests.mmdb.data.MemoryObjectsTests;
-import unittests.mmdb.service.ObjectExportTests;
-import unittests.mmdb.service.ObjectImportTests;
 import unittests.mmdb.streamprocessing.NodesTests;
 import unittests.mmdb.streamprocessing.functionoperators.ParameterFunctionTests;
 import unittests.mmdb.streamprocessing.objectnodes.AttrTests;
@@ -65,7 +63,6 @@ import unittests.mmdb.streamprocessing.tools.TypecheckToolsTests;
 		EqualsGreaterTests.class, EqualsLessTests.class,
 		EnvironmentTests.class, ParserToolsTest.class,
 		NestedListProcessorTest.class, MemoryObjectsTests.class,
-		ObjectExportTests.class, ObjectImportTests.class,
 		ParserControllerTests.class, SymmjoinTests.class })
 public class TestSuiteStreamProcessing {
 
