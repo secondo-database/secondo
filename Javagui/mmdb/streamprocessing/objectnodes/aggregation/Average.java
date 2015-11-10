@@ -1,5 +1,7 @@
 package mmdb.streamprocessing.objectnodes.aggregation;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import mmdb.data.MemoryTuple;
@@ -54,20 +56,21 @@ public class Average extends AggregationOperator {
 	 */
 	@Override
 	public MemoryAttribute getResult() throws MemoryException {
-		float sum = 0;
+		BigDecimal sum = new BigDecimal("0.0");
 		int count = 0;
 		this.streamInput.open();
 		MemoryTuple tuple;
 		while ((tuple = (MemoryTuple) this.streamInput.getNext()) != null) {
-			sum += ((Summable) tuple.getAttribute(this.attributeIndex))
-					.getValueAsReal();
+			sum = sum.add(new BigDecimal(((Summable) tuple
+					.getAttribute(this.attributeIndex)).getValueAsReal()));
 			count++;
 		}
 		this.streamInput.close();
 		if (count == 0) {
 			return null;
 		}
-		float average = sum / count;
+		float average = sum.divide(new BigDecimal(count), 4,
+				RoundingMode.HALF_UP).floatValue();
 		return new AttributeReal(average);
 	}
 

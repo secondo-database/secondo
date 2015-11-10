@@ -1,6 +1,8 @@
 package mmdb.streamprocessing.streamoperators;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -25,11 +27,13 @@ import sj.lang.ListExpr;
 /**
  * Operator sortby resembling the operator in the core.<br>
  * Sorts a stream of tuples by the given columns in the given directions.<br>
- * If no direction is given, asc is taken.
+ * If no direction is given, asc is taken.<br>
+ * Implements Comparator-Interface to be able to provide "compare"-Method for<br>
+ * <code>Collections.sort(...)</code>.
  * 
  * @author Bjoern Clasen
  */
-public class Sortby implements StreamOperator {
+public class Sortby implements StreamOperator, Comparator<MemoryTuple> {
 
 	/**
 	 * The operator's parameter Node.
@@ -54,12 +58,12 @@ public class Sortby implements StreamOperator {
 	/**
 	 * The identifiers to sort by.
 	 */
-	private String[] identifiers;
+	private String[] sortIdentifiers;
 
 	/**
 	 * The positions of the sort identifiers in the incoming tuples.
 	 */
-	private int[] identifierPositions;
+	private int[] sortIdentifierPositions;
 
 	/**
 	 * An iterator over the sorted tuple list.
@@ -100,7 +104,7 @@ public class Sortby implements StreamOperator {
 	@Override
 	public void typeCheck() throws TypeException {
 		this.input1.typeCheck();
-		this.identifiers = this.input2.keySet().toArray(new String[] {});
+		this.sortIdentifiers = this.input2.keySet().toArray(new String[] {});
 
 		// Is input1 a StreamOperator providing Tuples?
 		TypecheckTools.checkNodeType(this.input1, StreamOperator.class,
@@ -113,7 +117,7 @@ public class Sortby implements StreamOperator {
 		List<RelationHeaderItem> inputHeader = ((MemoryTuple) this.streamInput
 				.getOutputType()).getTypecheckInfo();
 		HeaderTools.checkIdentifiersPresent(inputHeader, this.getClass(),
-				this.identifiers);
+				this.sortIdentifiers);
 
 		// Are all direction strings correct?
 		for (String direction : this.input2.values()) {
@@ -124,7 +128,7 @@ public class Sortby implements StreamOperator {
 		}
 
 		// Are all sort attributes orderable?
-		for (String identifier : this.identifiers) {
+		for (String identifier : this.sortIdentifiers) {
 			HeaderTools.checkAttributeHasIFace(inputHeader, identifier,
 					Orderable.class, this.getClass());
 		}
@@ -183,14 +187,14 @@ public class Sortby implements StreamOperator {
 	 * MemoryTuples.
 	 */
 	private void initIdentifierPositions() {
-		this.identifierPositions = new int[identifiers.length];
+		this.sortIdentifierPositions = new int[sortIdentifiers.length];
 		List<RelationHeaderItem> inputHeader = ((MemoryTuple) this.streamInput
 				.getOutputType()).getTypecheckInfo();
-		for (int i = 0; i < this.identifiers.length; i++) {
+		for (int i = 0; i < this.sortIdentifiers.length; i++) {
 			for (int f = 0; f < inputHeader.size(); f++) {
-				if (this.identifiers[i].equals(inputHeader.get(f)
+				if (this.sortIdentifiers[i].equals(inputHeader.get(f)
 						.getIdentifier())) {
-					this.identifierPositions[i] = f;
+					this.sortIdentifierPositions[i] = f;
 				}
 			}
 		}
@@ -206,7 +210,7 @@ public class Sortby implements StreamOperator {
 	 *             out.
 	 */
 	private Iterator<MemoryTuple> createIterator() throws MemoryException {
-		ArrayList<MemoryTuple> sortedList = new ArrayList<MemoryTuple>();
+		ArrayList<MemoryTuple> allTuples = new ArrayList<MemoryTuple>();
 
 		MemoryTuple currentTuple;
 		int memorywatch_counter = 0;
@@ -215,33 +219,11 @@ public class Sortby implements StreamOperator {
 			if (memorywatch_counter % MemoryWatcher.MEMORY_CHECK_FREQUENCY == 0) {
 				MemoryWatcher.getInstance().checkMemoryStatus();
 			}
-			addTupleToList(currentTuple, sortedList);
+			allTuples.add(currentTuple);
 		}
 
-		return sortedList.iterator();
-	}
-
-	/**
-	 * Adds a single tuple at the right position in the sorted list.
-	 * 
-	 * @param currentTuple
-	 *            the tuple to add to the sorted list
-	 * @param sortedList
-	 *            the sorted list to add the tuple to
-	 */
-	private void addTupleToList(MemoryTuple currentTuple,
-			ArrayList<MemoryTuple> sortedList) {
-		int left = 0;
-		int right = sortedList.size();
-		while (left < right) {
-			int middle = (left + right) / 2;
-			if (isFirstTupleFurhterRight(currentTuple, sortedList.get(middle))) {
-				left = middle + 1;
-			} else {
-				right = middle;
-			}
-		}
-		sortedList.add(left, currentTuple);
+		Collections.sort(allTuples, this);
+		return allTuples.iterator();
 	}
 
 	/**
@@ -252,51 +234,50 @@ public class Sortby implements StreamOperator {
 	 * @param secondTuple
 	 * @return true if the first tuple is further right, false otherwise
 	 */
-	private boolean isFirstTupleFurhterRight(MemoryTuple firstTuple,
-			MemoryTuple secondTuple) {
-		for (int i = 0; i < this.identifiers.length; i++) {
+	public int compare(MemoryTuple firstTuple, MemoryTuple secondTuple) {
+		for (int i = 0; i < this.sortIdentifiers.length; i++) {
 			Orderable firstAttr = (Orderable) firstTuple
-					.getAttribute(this.identifierPositions[i]);
+					.getAttribute(this.sortIdentifierPositions[i]);
 			Orderable secondAttr = (Orderable) secondTuple
-					.getAttribute(this.identifierPositions[i]);
+					.getAttribute(this.sortIdentifierPositions[i]);
 
-			String order = this.input2.get(this.identifiers[i]);
+			String order = this.input2.get(this.sortIdentifiers[i]);
 
 			if (firstAttr == null && secondAttr == null) {
-				if (i + 1 < this.identifiers.length) {
+				if (i + 1 < this.sortIdentifiers.length) {
 					continue;
 				} else {
-					return true;
+					return 0;
 				}
 			}
 
 			if ("asc".equals(order)) {
 				if (firstAttr == null) {
-					return false;
+					return -1;
 				}
 				if (secondAttr == null) {
-					return true;
+					return 1;
 				}
 				if (firstAttr.compareTo(secondAttr) < 0) {
-					return false;
+					return -1;
 				} else if (firstAttr.compareTo(secondAttr) > 0) {
-					return true;
+					return 1;
 				}
 			} else {
 				if (firstAttr == null) {
-					return true;
+					return 1;
 				}
 				if (secondAttr == null) {
-					return false;
+					return -1;
 				}
 				if (firstAttr.compareTo(secondAttr) > 0) {
-					return false;
+					return -1;
 				} else if (firstAttr.compareTo(secondAttr) < 0) {
-					return true;
+					return 1;
 				}
 			}
 		}
-		return true;
+		return 0;
 	}
 
 	/**
