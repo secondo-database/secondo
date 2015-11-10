@@ -981,10 +981,21 @@ int SecondoInterfaceCS::getPid(){
    return server_pid;
 }
 
-
-
-
-
+bool SecondoInterfaceCS::cancelQuery(int pid){
+   iostream& iosock = server->GetSocketStream();
+   iosock << "<CANCEL_QUERY>" << endl;
+   iosock << pid << endl;
+   iosock << "</CANCEL_QUERY>" << endl; 
+   
+   string line;
+   getline(iosock,line);
+   
+   if(line.compare(0, 5, "<OK/>") == 0) {
+       return true;
+   } else {
+       return false;
+   }
+}
 
 bool SecondoInterfaceCS::getOperatorIndexes(
             const string name,

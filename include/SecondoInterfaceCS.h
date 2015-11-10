@@ -198,7 +198,7 @@ public:
    string getRequestFilePath();
 
    virtual int getPid();
-
+   virtual bool cancelQuery(int pid);
 
   private:
      int  maxAttempts; // maximum number of attemps when connecting

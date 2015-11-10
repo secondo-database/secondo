@@ -179,7 +179,7 @@ public:
                  double& a, double& b, double&c, double& d);
 
    virtual int getPid();
-
+   virtual bool cancelQuery(int pid);
 
 protected:
      virtual void StartCommand();

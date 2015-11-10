@@ -115,6 +115,7 @@ transactions of errorneous queries were not aborted.
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
+#include <signal.h>
 
 //#define TRACE_ON 1
 #undef TRACE_ON
@@ -2751,4 +2752,12 @@ int SecondoInterfaceTTY::getPid(){
    return WinUnix::getpid();
 }
 
-
+bool SecondoInterfaceTTY::cancelQuery(int pid) {
+#ifdef SECONDO_WIN32
+    // Canceling queries is currently not supported on windows 
+#else 
+    kill(pid, SIGUSR1);   
+#endif
+    
+    return true;
+}

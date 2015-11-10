@@ -49,6 +49,7 @@ are implemented in class ~CSProtocol~ and can be used by inside the
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <signal.h>
 using namespace std;
 
 #include "Application.h"
@@ -68,6 +69,7 @@ using namespace std;
 
 #include "CSProtocol.h"
 #include "NList.h"
+
 
 
 
@@ -128,6 +130,7 @@ class SecondoServer : public Application
   void CallGetCosts();
   void CallGetLinearCostFun();
   void CallGetCostFun();
+  void CallCancelQuery();
   
  private:
 
@@ -491,6 +494,46 @@ void SecondoServer::CallGetLinearCostFun(){
    iosock.flush();
 }
 
+/*
+ * Cancel a running query by sending SIGUSR1 to the query processor 
+ */
+void SecondoServer::CallCancelQuery() {
+#ifdef SECONDO_WIN32
+    // Canceling query is currently not supported on windows 
+    iosock << "<NOT_SUPPORTED/>" << endl;
+#else 
+    iostream& iosock = client->GetSocketStream();
+    string line;
+    getline(iosock,line);
+    int pid = atoi(line.c_str());
+    getline(iosock,line);
+    
+    // Ensure that we only send the signal to SecondoBDB processes
+    // Otherwise an attacker could send the signal to every process
+    // on the server
+    const char *secondoName = "SecondoBDB";
+         
+    stringstream ss;
+    ss << "/proc/" << pid << "/cmdline";
+    FILE* file = fopen(ss.str().c_str(), "r");
+
+    // Pid still active?
+    if(file) {
+         char buffer[1024];
+         
+         fread(buffer, sizeof(char), 1024, file);
+         fclose(file);
+         
+         if(strncmp(secondoName, buffer, strlen(secondoName)) == 0) {
+             kill(pid, SIGUSR1);
+         }
+    }
+
+    iosock << "<OK/>" << endl;
+#endif
+    
+iosock.flush();
+}
 
 void SecondoServer::CallGetCostFun(){
    
@@ -942,7 +985,8 @@ int SecondoServer::Execute() {
   commandTable["<GETCOSTS>"] = &SecondoServer::CallGetCosts;
   commandTable["<GETLINEARCOSTFUN>"] = &SecondoServer::CallGetLinearCostFun;
   commandTable["<GETCOSTFUN>"] = &SecondoServer::CallGetCostFun;
-
+  commandTable["<CANCEL_QUERY>"] = &SecondoServer::CallCancelQuery;
+  
   string logMsgList = SmiProfile::GetParameter( "Environment", 
                                                 "RTFlags", "", parmFile );
   RTFlag::initByString(logMsgList);

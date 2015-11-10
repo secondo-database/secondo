@@ -1148,16 +1148,20 @@ public int getPid(){
    }
 }
 
-
-
-
-
-
-
-
-
-
-
+public boolean cancelQuery(int pid) {
+   try{
+      outSocketStream.writeln("<CANCEL_QUERY>");
+      outSocketStream.writeln(Integer.toString(pid));
+      outSocketStream.writeln("</CANCEL_QUERY>");
+      outSocketStream.flush();
+      String line = inSocketStream.readLine();
+      
+      return line.startsWith("<OK/>");
+   } catch(Exception e){
+      e.printStackTrace();
+      return false;
+   }
+}
 
 
 }
