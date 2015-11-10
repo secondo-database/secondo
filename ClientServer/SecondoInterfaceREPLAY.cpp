@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 The Implementation-Module SecondoInterfaceREPLAY
 
-October 2015 Matthias Kunsmann ReplayVersion of the ~SecondoInterfaceCS~
+November 2015 Matthias Kunsmann, ReplayVersion of the ~SecondoInterfaceCS~
 
 [TOC]
 
@@ -44,8 +44,10 @@ October 2015 Matthias Kunsmann ReplayVersion of the ~SecondoInterfaceCS~
 #include "StringUtils.h"
 #include "FileSystem.h"
 
+// C++ - Feature for threads (async)
 #include <thread>
 #include <future>
+// --
 
 #include <algorithm>
 #include <iterator>
@@ -54,6 +56,9 @@ October 2015 Matthias Kunsmann ReplayVersion of the ~SecondoInterfaceCS~
 
 using namespace std;
 
+bool callBackFileSearch(const string& absolutePath,
+                        const string& filename,
+                        FileAttributes attribs) {
 /*
 Callback function for FileSystem::FileSearch in
 SecondoInterfaceREPLAY::executeReplayIMGImport
@@ -62,20 +67,17 @@ Checks if filename ends with an image-format extension
 for later use in replay import.
 
 */
-bool callBackFileSearch(const string& absolutePath,
-                        const string& filename,
-                        FileAttributes attribs) {
+
   bool found = false;
 
   string checkFilename = filename;
   stringutils::toUpper(checkFilename);
 
-  // JPG
+  // Supported formats: JPG, GIF, TIF, BMP, PNG
   found = stringutils::endsWith(checkFilename, "JPG");
  
   if (found == false) found = stringutils::endsWith(checkFilename, "GIF");
   if (found == false) found = stringutils::endsWith(checkFilename, "TIF");
-  if (found == false) found = stringutils::endsWith(checkFilename, "BMP");
   if (found == false) found = stringutils::endsWith(checkFilename, "BMP");
   if (found == false) found = stringutils::endsWith(checkFilename, "PNG");
 
@@ -165,7 +167,7 @@ external configuration file, if available.
                 elem.port != "" && elem.cores != "") {
               nodes.push_back(elem); 
             } else {
-              cout << "Wrong configuration of one node. Please check!" 
+              cout << "Wrong configuration of one node (WORKER). Please check!" 
                    << endl << endl;
             }
         } else if (line.substr(0, 1) == "#" || line.substr(0, 1) == "") { 
@@ -388,6 +390,7 @@ async-Feature from C++ 11.
   vector<std::future<bool>> futures;
   vector<unsigned int> downNodes;
 
+  // start threads for connecting nodes
   for (unsigned  int i=0; i<nodes.size(); ++i) {
     futures.push_back(async(std::launch::async, 
                     &SecondoInterfaceREPLAY::connectNode, this, i,
@@ -470,8 +473,9 @@ async-Feature from C++ 11.
 */
 
   bool futureRes;
-
   vector<std::future<bool>> futures;
+
+  // start threads for disconnecting nodes
   for (unsigned int i=0; i<nodes.size(); ++i) 
   {
     futures.push_back(async(std::launch::async, 
@@ -543,6 +547,7 @@ import feature
      return true;
   }
 
+  // no replay import command
   return false;
 }
 
@@ -575,8 +580,8 @@ Split the params of special import commands to an array
 
 bool
 SecondoInterfaceREPLAY::checkReplayImportNoParams(
-              const string& replayImpCommand,
-              std::vector<string>& paramlist) {
+           const string& replayImpCommand,
+           std::vector<string>& paramlist) {
 /*
 Check number of params of replay command
 
@@ -610,7 +615,7 @@ Check number of params of replay command
   // first parameter always a filename or an directory, check if exists
   if (paramlist.size() > 0) {
     if (!FileSystem::FileOrFolderExists(paramlist[0])) {
-      cout << "File or Folder doesn't exists. Please check" << endl;
+      cout << "File or Folder doesn't exists. Please check!" << endl;
       return false;
     }
   }
@@ -1117,6 +1122,7 @@ a number of files to every node.
     transferFileName = basePath + "/" + filePrefix + stringutils::int2str(i);
     destFileName = filePrefix + stringutils::int2str(i);
 
+    // now send one file to node
     sendFileToNode(nodeNo, transferFileName, destFileName, true);
 
     // no special thread handling needed, because the threads only fill 
@@ -1154,8 +1160,10 @@ or send a number of files to every node.
     transferFileName = basePath + "/" + filePrefix + stringutils::int2str(i);
     destFileName = filePrefix + stringutils::int2str(i);
 
+    // send shape file to node
     sendFileToNode(nodeNo, transferFileName + ".shp", 
                       destFileName + ".shp", true);
+    // send dbase file to node
     sendFileToNode(nodeNo, transferFileName + ".dbf", 
                       destFileName + ".dbf", true);
 
@@ -1217,6 +1225,7 @@ process to an Node. There is the possibility to send all files to all nodes
     srcPathKeyword = basePath + "/Keyword_" + stringutils::int2str(i);
     destPathKeyword = "Keyword_" + stringutils::int2str(i); 
 
+    // send the dblp relation files to the node
     sendFileToNode(nodeNo, srcPathAuthor, destPathAuthor, true);
     sendFileToNode(nodeNo, srcPathAuthordoc, destPathAuthordoc, true);
     sendFileToNode(nodeNo, srcPathDocument, destPathDocument, true);
@@ -1358,6 +1367,7 @@ different files.
   vector<std::future<bool>> futures;
 
   if (replayImportMode == "Replication") {
+    // start threads for sending files to nodes
     for (unsigned int i=0; i<nodes.size(); ++i) {
       futures.push_back(async(std::launch::async,
                       &SecondoInterfaceREPLAY::sendAllFilesToNode,
@@ -1368,6 +1378,7 @@ different files.
   } else {
     int startWithFileNo = 0;
     int partNoOfSplitFiles;
+    // start threads for sending files to nodes
     for (unsigned int i=0; i<nodes.size(); ++i) {
       partNoOfSplitFiles = stoi(nodes[i].cores);       
       futures.push_back(async(std::launch::async,
@@ -1413,6 +1424,7 @@ so that every node has different files.
   vector<std::future<bool>> futures;
 
   if (replayImportMode == "Replication") {
+    // start threads for sending shapes to nodes
     for (unsigned int i=0; i<nodes.size(); ++i) {
       futures.push_back(async(std::launch::async,
                       &SecondoInterfaceREPLAY::sendAllShapesToNode,
@@ -1423,6 +1435,7 @@ so that every node has different files.
   } else {
     int startWithFileNo = 0;
     int partNoOfSplitFiles;
+    // start threads for sending shapes to nodes
     for (unsigned int i=0; i<nodes.size(); ++i) {
       partNoOfSplitFiles = stoi(nodes[i].cores);       
       futures.push_back(async(std::launch::async,
@@ -1467,6 +1480,7 @@ so that every node has different files.
   vector<std::future<bool>> futures;
 
   if (replayImportMode == "Replication") {
+    // start threads for sending dblp-files to nodes
     for (unsigned int i=0; i<nodes.size(); ++i) {
       futures.push_back(async(std::launch::async,
                       &SecondoInterfaceREPLAY::sendAllDBLPToNode,
@@ -1476,6 +1490,7 @@ so that every node has different files.
   } else {
     int startWithFileNo = 0;
     int partNoOfSplitFiles;
+    // start threads for sending dblp-files to nodes
     for (unsigned int i=0; i<nodes.size(); ++i) {
       partNoOfSplitFiles = stoi(nodes[i].cores);       
       futures.push_back(async(std::launch::async,
@@ -1603,6 +1618,7 @@ Execute of ReplayOsmImport.
   bool futureRes;
   vector<std::future<bool>> futures;
 
+  // start threads for sending commands to nodes
   for (unsigned int i=0; i < nodes.size(); ++i) {
     futures.push_back(async(std::launch::async,
                     &SecondoInterfaceREPLAY::sendAllCommandsToNode,
@@ -1714,6 +1730,7 @@ Split a csv file in noSplitFiles files
         if (outputFile.is_open()) {
           outputFile << line << '\n';
           
+          // check for multiline entries in cvs-file
           if (multiline) {
             do {
               for (unsigned int lc=0; lc < line.length(); ++lc) {
@@ -1833,6 +1850,7 @@ Execute of ReplayCSVImport.
   bool futureRes;
   vector<std::future<bool>> futures;
 
+  // start threads for sending commands to nodes
   for (unsigned int i=0; i < nodes.size(); ++i) {
      futures.push_back(async(std::launch::async,
                      &SecondoInterfaceREPLAY::sendAllCommandsToNode,
@@ -2172,6 +2190,7 @@ Execute of ReplaySHPImport.
   bool futureRes;
   vector<std::future<bool>> futures;
 
+  // start threads for sending all commands to nodes
   for (unsigned int i=0; i < nodes.size(); ++i) {
     futures.push_back(async(std::launch::async,
                     &SecondoInterfaceREPLAY::sendAllCommandsToNode,
@@ -2396,6 +2415,7 @@ Execute of ReplayDBLPImport.
   bool futureRes;
   vector<std::future<bool>> futures;
 
+  // start threads for sending all commands to nodes
   for (unsigned int i = 0; i < nodes.size(); i++) {
     futures.push_back(async(std::launch::async,
                       &SecondoInterfaceREPLAY::sendAllCommandsToNode,
@@ -2602,6 +2622,8 @@ Execute of ReplayIMGImport.
   // Step 1: Get all images of the directory from the parameter
   cout << endl << "Searching in filepath for images..." << endl;
 
+  // callBackFileSearch is used as callBack method for
+  // charaterize images
   FileSystem::FileSearch( paramlist[0],
                           theList,
                           0,
@@ -2644,6 +2666,7 @@ Execute of ReplayIMGImport.
     bool futureRes;
     vector<std::future<bool>> futures;
 
+    // start threads for sending all images to nodes
     for (unsigned int i=0; i < nodes.size(); ++i) {
        futures.push_back(async(std::launch::async,
                        &SecondoInterfaceREPLAY::sendAllImagesToNode,
@@ -2685,7 +2708,7 @@ Execute of ReplayIMGImport.
     relation.push_back(relObject);
   }
 
-  // create relation file for every node
+  // get currentDate for relation file
   time_t now = time(0);
   tm *ltm = localtime(&now);
   string currentDate = stringutils::int2str(1900 + ltm->tm_year) + "-" + 
@@ -2722,6 +2745,7 @@ Execute of ReplayIMGImport.
   bool futureRes;
   vector<std::future<bool>> futures;
 
+  // start threads for importing images on nodes
   for (unsigned int i = 0; i < nodes.size(); i++) {
     futures.push_back(async(std::launch::async,
                     &SecondoInterfaceREPLAY::importImgOnNode,
@@ -2777,6 +2801,7 @@ the file in it
   bool futureRes;
   vector<std::future<bool>> futures;
 
+  // start threads for sending files to nodes
   for (unsigned int i=0; i < nodes.size(); ++i) {
      futures.push_back(async(std::launch::async,
                      &SecondoInterfaceREPLAY::sendShareFileToNode,
@@ -3173,7 +3198,7 @@ For an explanation of the error codes refer to SecondoInterface.h
         return;
       }
 
-      // Check if user overwriten the default replayImportMode
+      // Check if user overwritten the default replayImportMode
 
       if ( (replayImpCommand == "replayOSMImport") ||
            (replayImpCommand == "replayDBLPImport") 
@@ -3200,7 +3225,7 @@ For an explanation of the error codes refer to SecondoInterface.h
           }
          }
       } else if (replayImpCommand == "replayCSVImport") {
-        // Seventh parameter for replayCSVImport
+        // Eight parameter for replayCSVImport
         if (paramlist.size() == 8) {
           if ( (paramlist[7] == "Replication") ||
                (paramlist[7] == "Partitioning") ) {
@@ -3273,6 +3298,8 @@ For an explanation of the error codes refer to SecondoInterface.h
   // Send commands to nodes
   if (!onlyMasterCommand) {
     vector<std::future<bool>> futures;
+
+    // start threads for sending commands to nodes
     for (unsigned int i=0; i<nodes.size(); ++i) 
     {
       futures.push_back(async(std::launch::async, 

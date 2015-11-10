@@ -172,7 +172,7 @@ protected:
                              const string transferPath);
 
   /* expansion stage 1 */
-  string replayFile;
+  string replayFile; // path of external config file
 
   struct ReplayHost {
     string hostname;
