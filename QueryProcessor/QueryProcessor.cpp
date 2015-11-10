@@ -3628,8 +3628,10 @@ the function in a database object.
   ListExpr list = nl->TheEmptyList();
   ListExpr type;
 
-  // Reset query canceled by user 
-  Application::Instance()->ResetUser1Flag();
+  if(Application::Instance() != NULL) {
+     // Reset query canceled by user 
+     Application::Instance()->ResetUser1Flag();
+  }
 
   try
   {
@@ -4228,9 +4230,15 @@ Then call the operator's value mapping function.
                         }
 
           tree->u.op.theOperator->incCalls(tree->u.op.opFunId / 65536);
-          
+
+          bool queryCancel = false;
+
+          if(Application::Instance() != NULL) {
+             queryCancel = Application::Instance()->GetUser1Flag(); 
+          }
+
           // Is query execution canceled by user?
-          if(Application::Instance()->GetUser1Flag() == true
+          if(queryCancel == true
                   && message == REQUEST
                   && tree->u.op.isStream == true) {
               status = CANCEL;
