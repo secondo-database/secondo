@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ListUtils.h"
 #include <vector>
+#include "Stream.h"
 
 using namespace std;
 
@@ -77,7 +78,6 @@ bool MemCatalog::insert (const string& name, MemoryObject* obj){
 }
 
 bool MemCatalog::deleteObject (const string& name){
-
      if(isMMObject(name)){
         usedMemSize -= getMMObject(name)->getMemSize();
         delete getMMObject(name);
@@ -141,15 +141,15 @@ bool MemCatalog::isAccessible(const string& name) {
 
 MemoryObject::~MemoryObject(){}
 
-//void MemoryObject::setMemSize(size_t i){
-//    memSize = i;
-//}
 unsigned long MemoryObject::getMemSize (){
     return memSize;
 };
 
 string MemoryObject::getObjectTypeExpr(){
     return objectTypeExpr;
+}
+void MemoryObject::setObjectTypeExpr(string _oTE){
+    objectTypeExpr = _oTE;
 }
 
 string MemoryObject::getDatabase(){
@@ -160,13 +160,137 @@ bool MemoryObject::hasflob(){
     return flob;
 }
 
+MemoryRelType::MemoryRelType(){};
+
+MemoryRelType::MemoryRelType(bool _defined, string _value){
+        defined = _defined;
+        value = _value;
+    };
+MemoryRelType::~MemoryRelType(){
+    };
 
 
+bool MemoryRelType::IsDefined(){
+        return defined;
+    }
+
+void MemoryRelType::SetDefined(bool _defined){
+        defined = _defined;
+    }
+
+void MemoryRelType::Set( const bool d, const string& v ){
+        SetDefined(d);
+        value = v;
+
+    }
+
+string MemoryRelType::GetValue(){
+        return value;
+    }
+
+Word MemoryRelType::In( const ListExpr typeInfo, const ListExpr value,
+                        const int errorPos, ListExpr& errorInfo,
+                        bool& correct ){
+          if ( nl->IsAtom( value ) && nl->AtomType( value ) == StringType ){
+                        correct = true;
+                        string s = nl->StringValue( value );
+                      MemoryRelType* rt = new MemoryRelType( true, s );
+                      return SetWord( rt );
+        }
+        else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
+            && listutils::isSymbolUndefined(value) )
+        {
+            correct = true;
+            MemoryRelType* rt = new MemoryRelType( false, "" );
+            return (SetWord(rt));
+        }
+        else
+        {
+            correct = false;
+            return (SetWord( Address( 0 ) ));
+        }
+    }
+
+ListExpr MemoryRelType::Out( ListExpr typeInfo, Word value ){
+        MemoryRelType* t = (MemoryRelType*) value.addr;
+        if( t->IsDefined() ){
+            return (nl->StringAtom(t->GetValue()));
+        } else {
+            return (nl->SymbolAtom(Symbol::UNDEFINED()));
+        }
+    }
+
+bool MemoryRelType::KindCheck( ListExpr type, ListExpr& errorInfo ){
+        return checkType(type);
+    }
+
+Word MemoryRelType::create(const ListExpr typeInfo){
+        Word w;
+        w.addr = (new MemoryRelType(false, ""));
+        return w;
+    }
+
+void MemoryRelType::Close (const ListExpr typeInfo, Word& w){
+        delete (MemoryRelType*)w.addr;
+        w.addr = 0;
+    };
+
+Word MemoryRelType::Clone (const ListExpr typeInfo, const Word& w) {
+        MemoryRelType* rt = (MemoryRelType*) w.addr;
+        Word res;
+        res.addr = new MemoryRelType(rt->IsDefined(), rt->GetValue() );
+        return res;
+  }
+
+void* MemoryRelType::Cast (void* addr){
+        return (new (addr) MemoryRelType);
+    }
+
+int MemoryRelType::SizeOfObj(){
+        return sizeof(MemoryRelType);
+    }
+
+void MemoryRelType::Delete(const ListExpr typeInfo, Word& w){
+        delete (MemoryRelType*)w.addr;
+        w.addr = 0;
+    };
+
+const string MemoryRelType::BasicType(){
+        return "memoryRelType";
+    }
+
+const bool MemoryRelType::checkType(const ListExpr type){
+
+        if (nl->ListLength(type)!=2){
+            return false;
+        }
+        ListExpr first = nl->First(type);
+        ListExpr second = nl->Second(type);
+
+        return (listutils::isTupleDescription(second) &&
+            (nl ->IsEqual(first,BasicType())));
+    }
+
+
+ListExpr MemoryRelType::Property(){
+        return (nl->TwoElemList (
+            nl->FourElemList (
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Rep"),
+                nl->StringAtom("Example List")),
+            nl->FourElemList (
+                nl->StringAtom("-> SIMPLE"),
+                nl->StringAtom(MemoryRelType::BasicType()),
+                nl->StringAtom("(<stringvalue>)"),
+                nl->StringAtom("EinString")
+            )));
+}
 
 // MEMORYRELOBJECT.
 
 MemoryRelObject::MemoryRelObject(){
-    mmrel=0;
+    mmrel = new vector<Tuple*>();
 };
 
 MemoryRelObject::MemoryRelObject(vector<Tuple*>* _mmrel,
@@ -191,6 +315,7 @@ MemoryRelObject::~MemoryRelObject(){
         while (it!=mmrel->end()){
             Tuple* tup = *it;
             tup->DeleteIfAllowed();
+            //delete tup;
             tup = 0;
             it++;
         }
@@ -213,7 +338,7 @@ void MemoryRelObject::addTuple(Tuple* tup){
             catalog->getAvailabeMemSize();
     if ((size_t)tupleSize<availableMemSize){
         tup->SetTupleId(mmrel->size());
-        tup->IncReference();
+       // tup->IncReference();
         mmrel->push_back(tup);
         memSize += tupleSize;
         catalog->addToUsedMemSize(tupleSize);
@@ -223,6 +348,90 @@ void MemoryRelObject::addTuple(Tuple* tup){
         " might be usable but not complete"<<endl;
     }
 }
+
+bool MemoryRelObject::relToVector(GenericRelation* r, ListExpr le = 0,
+                        string _database = "", bool _flob = false) {
+    GenericRelationIterator* rit;
+    rit = r->MakeScan();
+    Tuple* tup;
+    int tupleSize=0;
+    unsigned long availableMemSize = catalog->getAvailabeMemSize();
+    unsigned long usedMainMemory=0;
+    while ((tup = rit->GetNextTuple()) != 0){
+        if (flob){
+            tup->bringToMemory();
+        }
+        tupleSize = tup->GetMemSize();
+        if ((size_t)tupleSize<availableMemSize){
+            tup->SetTupleId(mmrel->size());
+            mmrel->push_back(tup);
+            usedMainMemory += tupleSize;
+            availableMemSize -= tupleSize;
+        }
+        else{
+            if (mmrel->size()==0){
+                cout<<"no memory left"<<endl;
+               // delete mmrel;
+                return false;
+            }
+             cout<< "the available main memory is not enough, the object"
+            " might be usable but not complete"<<endl;
+            break;
+            }
+    }
+    delete rit;
+    delete r;
+    memSize = usedMainMemory;
+    objectTypeExpr = nl->ToString(le);
+    flob = _flob;
+    database = _database;
+    return true;
+}
+
+bool MemoryRelObject::tupelStreamToRel(Word arg, ListExpr le,
+                string _database = "", bool _flob = false){
+
+    Stream<Tuple> stream(arg);
+    size_t availableMemSize = catalog->getAvailabeMemSize();
+    unsigned long usedMainMemory =0;
+    Tuple* tup;
+    int tupleSize = 0;
+
+    stream.open();
+
+    while( (tup = stream.request()) != 0){
+        if (flob){
+            tup->bringToMemory();
+        }
+        tupleSize = tup->GetMemSize();
+        if ((size_t)tupleSize<availableMemSize){
+            tup->SetTupleId(mmrel->size());
+//           tup->IncReference();
+            mmrel->push_back(tup);
+            usedMainMemory += tupleSize;
+            availableMemSize -= tupleSize;
+        }
+        else{
+            if (mmrel->size()==0){
+               // delete mmrel;
+                cout<<"no memory left"<<endl;
+                return false;
+            }
+            cout<< "the memSize is not enough, the object"
+            " might be usable but not complete"<<endl;
+            break;
+        }
+    }
+    memSize = usedMainMemory;
+    objectTypeExpr = nl->ToString(le);
+    flob = _flob;
+    database = _database;
+
+    stream.close();
+    return true;
+}
+
+
 
 ListExpr MemoryRelObject::toListExpr(){
 
@@ -291,6 +500,9 @@ ListExpr MemoryRelObject::Out( ListExpr typeInfo, Word value ){
 
 bool MemoryRelObject::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
+    if (nl->ListLength(type)!=2){
+            return false;
+        }
     ListExpr first = nl->First(type);
     ListExpr second = nl->Second(type);
     return (listutils::isTupleDescription(second) &&
@@ -384,6 +596,13 @@ ListExpr MemoryRelObject::Property(){
 
 // MEMORYATTRIBUTEOBJECT
 
+MemoryAttributeObject::MemoryAttributeObject(){
+      attributeObject = 0;
+        memSize = 0;
+        objectTypeExpr = "";
+        flob = 0;
+        database = "";
+};
 
 MemoryAttributeObject::MemoryAttributeObject(Attribute* _attr,
                     unsigned long _memSize, string _objectTypeExpr, bool _flob,
@@ -396,12 +615,35 @@ MemoryAttributeObject::MemoryAttributeObject(Attribute* _attr,
 }
 
 MemoryAttributeObject::~MemoryAttributeObject(){
-attributeObject->DeleteIfAllowed();
+    if (attributeObject!=0){
+        delete attributeObject;
+        //attributeObject->DeleteIfAllowed();
+    }
 }
 
 
 Attribute* MemoryAttributeObject::getAttributeObject(){
         return attributeObject;
+}
+
+bool MemoryAttributeObject::attrToMM(Attribute* attr,
+            ListExpr le, string _database, bool _flob){
+    size_t availableMemSize = catalog->getAvailabeMemSize();
+    unsigned long usedMainMemory=0;
+    if(_flob){
+        attr->bringToMemory();
+    }
+    usedMainMemory = attr->GetMemSize();
+    if (usedMainMemory>availableMemSize){
+            cout <<"the available main memory size is not enough"<<endl;
+            return false;
+        }
+    attributeObject = attr->Copy();
+    memSize = usedMainMemory;
+    objectTypeExpr = nl->ToString(le);
+    flob = _flob;
+    database = _database;
+    return true;
 }
 
 

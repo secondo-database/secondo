@@ -28,14 +28,16 @@ operator memobject alias MEMOBJECT pattern op (_)
 operator memlet alias MEMLET pattern op(_,_)
 operator memletflob alias MEMLETFLOB pattern op(_,_)
 operator memupdate alias MEMUPDATE pattern op(_,_)
-operator mcreateRtree alias MCREATERTREE pattern op(_,_)
+#operator mcreateRtree alias MCREATERTREE pattern op(_,_)
+operator mcreateRtree alias MCREATERTREE pattern _ op [_]
 operator memgetcatalog alias MEMGETCATALOG pattern op()
 operator memsize alias MEMSIZE pattern op()
 operator memclear alias MEMCLEAR pattern op()
 operator minsert alias MINSERT pattern op(_,_)
 operator mwindowintersects alias MWINDOWINTERSECTS pattern op(_,_,_)
 operator mconsume alias MCONSUME pattern _ op
-operator mcreateAVLtree alias MCREATEAVLTREE pattern op(_,_)
+#operator mcreateAVLtree alias MCREATEAVLTREE pattern op(_,_)
+operator mcreateAVLtree alias  MCREATEAVLTREE pattern _ op [_]
 operator mexactmatch alias MEXACTMATCH pattern _ _ op [_]
 operator mrange alias MRANGE pattern _ _ op [_, _]
 operator matchbelow alias MATCHBELOW pattern _ _ op [_]

@@ -24,7 +24,8 @@ Operator  : letmconsume
 Number    : 4
 Signature : stream(tuple(...)) x string -> string
 Example   : query "ten" mfeed letmconsume ["zehn"]
-Result    : "zehn"
+Result    : ((memoryRelType(tuple((No int))))"zehn")
+
 
 Operator  : memobject
 Number    : 5
@@ -71,7 +72,7 @@ Result    : TRUE
 Operator  : mcreateRtree
 Number    : 12
 Signature : string x string -> string
-Example   : query mcreateRtree ("strassen", "GeoData")
+Example   : query "strassen" mcreateRtree ["GeoData"]
 Result    : "strassen_GeoData"
 
 Operator  : memsize
@@ -119,7 +120,7 @@ Result    : TRUE
 Operator  : mcreateAVLtree
 Number    : 20
 Signature : string x string -> string
-Example   : query mcreateAVLtree ("Staedte", "SName")
+Example   : query "Staedte" mcreateAVLtree ["SName"]
 Result    : "Staedte_SName"
 
 Operator  : mexactmatch
@@ -143,7 +144,7 @@ Result    : TRUE
 Operator  : mcreateAVLtree
 Number    : 24
 Signature : string x string -> string
-Example   : query mcreateAVLtree ("ten", "No")
+Example   : query "ten" mcreateAVLtree ["No"]
 Result    : "ten_No"
 
 Operator  : matchbelow
@@ -162,7 +163,7 @@ Operator  : letmconsumeflob
 Number    : 27
 Signature : stream(tuple(...)) x string -> string
 Example   : query Trains feed letmconsumeflob ["trainsFlob"]
-Result    : "trainsFlob"
+Result    : ((memoryRelType(tuple((Id int)(Line int)(Up bool)(Trip mpoint))))"trainsFlob")
 
 Operator  : memletflob
 Number    : 28

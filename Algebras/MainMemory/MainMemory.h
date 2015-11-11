@@ -83,7 +83,6 @@ class MemCatalog {
 };
 
 
-
 class MemoryObject {
     public:
     MemoryObject(){
@@ -97,6 +96,7 @@ class MemoryObject {
         unsigned long getMemSize ();
 
         string getObjectTypeExpr();
+        void setObjectTypeExpr(string _oTE);
         string getDatabase();
         bool hasflob();
 
@@ -114,6 +114,56 @@ class MemoryObject {
 
 
 
+class MemoryRelType {
+
+    public:
+    MemoryRelType();
+    MemoryRelType(bool _defined, string _value);
+    ~MemoryRelType();
+
+
+    bool IsDefined();
+
+    void SetDefined(bool _defined);
+
+    void Set( const bool d, const string& v );
+
+    string GetValue();
+
+    static Word In( const ListExpr typeInfo, const ListExpr value,
+                        const int errorPos, ListExpr& errorInfo,
+                        bool& correct );
+
+    static ListExpr Out( ListExpr typeInfo, Word value );
+
+    static bool KindCheck( ListExpr type, ListExpr& errorInfo );
+
+    static Word create(const ListExpr typeInfo);
+
+    static void Close (const ListExpr typeInfo, Word& w);
+
+    static Word Clone (const ListExpr typeInfo, const Word& w);
+
+    static void* Cast (void* addr);
+
+    static int SizeOfObj();
+
+    static void Delete(const ListExpr typeInfo, Word& w);
+
+    static const string BasicType();
+
+    static const bool checkType(const ListExpr type);
+
+
+    static ListExpr Property();
+
+
+    private:
+    string value;
+    bool defined;
+
+
+};
 
 
 class MemoryRelObject : public MemoryObject {
@@ -133,6 +183,12 @@ class MemoryRelObject : public MemoryObject {
         vector<Tuple*>* getmmrel();
 
         void addTuple(Tuple* tup);
+
+        bool relToVector(GenericRelation* r, ListExpr le,
+                        string _database, bool _flob);
+
+        bool tupelStreamToRel (Word arg, ListExpr le,
+                        string _database, bool _flob);
 
         ListExpr toListExpr();
 
@@ -177,6 +233,7 @@ class MemoryRelObject : public MemoryObject {
 class MemoryAttributeObject : public MemoryObject {
 
     public:
+        MemoryAttributeObject();
         MemoryAttributeObject(Attribute* _attr,
                 unsigned long _memSize, string _objectTypeExpr, bool _flob,
                 string _database);
@@ -184,6 +241,8 @@ class MemoryAttributeObject : public MemoryObject {
 
         Attribute* getAttributeObject();
 
+        bool attrToMM(Attribute* attr,
+            ListExpr le, string database, bool flob);
 
     private:
          Attribute* attributeObject;
