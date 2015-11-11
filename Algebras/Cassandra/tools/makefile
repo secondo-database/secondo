@@ -3,7 +3,7 @@ all:	loadbalancer load tcpblackhole
 
 .PHONY: clean
 clean:
-	rm loadbalancer load tcpblackhole
+	rm -f loadbalancer load tcpblackhole
 
 loadbalancer:	loadbalancer.cpp timer.h
 	g++ loadbalancer.cpp -o loadbalancer -lpthread -O3
