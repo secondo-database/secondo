@@ -1,0 +1,8 @@
+(
+    (memoryRelType
+        (tuple
+            (
+                (Name string)
+                (Typ string)
+                (GeoData line))))
+    undefined)
