@@ -463,19 +463,22 @@ public:
        // Part 3: Process othertoken ranges
        executeQueryForOtherTokenranges(query, queryId, ip, &cassandraInfo);
        
-       // Execution is complete, notify secondo worker
+       // Execution is complete, empty queue and notify secondo worker
        printStatusMessage(&cassandraInfo);
        WorkerQueue *tokenQueue = (worker->front()) -> getTokenQueue();
+       tokenQueue -> clear();
 
-       // Add Termination token for worker
+       // Add Termination token for worker and cancel running queries
        for(size_t i = 0; i < worker->size(); ++i) {
           tokenQueue->push(TokenRange(0, 0, ip));
+          if(! (worker->at(i))->isQueryComplete()) {
+             (worker->at(i))->cancelRunningQuery();
+          }
        }
 
        waitForSecondoWorker();
    } 
 
-      
    void executeSecondoCommand(string command, size_t queryId, 
        bool wait = true) {
    

@@ -48,7 +48,7 @@ public:
    secondoDatabase(""), cassandraHost(myCassandraHost), 
    queryComplete(false), shutdown(false), query(NULL), 
    tokenQueue(myTokenQueue), workerId(myWorkerId), 
-   queryExecutorState(myQueryExecutorState) {
+   queryExecutorState(myQueryExecutorState), pid(-1) {
    
       mynl = new NestedList();
       
@@ -110,7 +110,7 @@ public:
      string passwd = "";
   
      bool multiUser = true;
-     string errMsg;          // return parameter
+     string errMsg;
   
      // try to connect
      if(!si->Initialize(user, passwd, secondoHost, secondoPort, 
@@ -120,6 +120,9 @@ public:
         cerr << "Cannot initialize secondo system" << endl;
         cerr << "Error message = " << errMsg << endl;
         shutdown = true;
+     } else {
+        pid = si -> getPid();
+        shutdown = false;
      }
    }
    
@@ -223,6 +226,7 @@ public:
          }
          
          if(query != NULL) {
+            
             if(QEUtils::containsPlaceholder(*query, "__TOKENRANGE__")) {
                
                while(true) {
@@ -254,6 +258,44 @@ public:
    
    void setWorkerThread(pthread_t &thread) {
       workerThread = thread;
+   }
+   
+   bool cancelRunningQuery() {
+      
+     cout << "[Info] Canceling worker: " << secondoPort << endl;
+            
+     NestedList* nestedList = new NestedList();
+     SecondoInterface* controlSecondo = new SecondoInterfaceCS(true, mynl);
+
+     string config = "Config.ini";
+     controlSecondo->InitRTFlags(config);
+     string user = "";
+     string passwd = "";
+     bool result = false;
+  
+     bool multiUser = true;
+     string errMsg;
+  
+     // try to connect
+     if(controlSecondo->Initialize(user, passwd, secondoHost, secondoPort, 
+                       config, errMsg, multiUser)) {
+         
+         // Set queryCanceled = true to avoid the unit of work successfully 
+         // completed entry in system table. This could overwrite
+         // a really completed entry
+         queryCanceled = true;
+         result = controlSecondo->cancelQuery(pid);
+         controlSecondo->Terminate();
+         delete controlSecondo;
+         controlSecondo = NULL;
+     }
+     
+     if(nestedList != NULL) {
+        delete nestedList;
+        nestedList = NULL;
+     }
+     
+     return result;
    }
    
 private:
@@ -349,7 +391,10 @@ private:
            LOG_WARN("Reexecuting query, because of an error");
        } 
        
-       updateLastProcessedToken(tokenrange, myQueryUuid);
+       if(! queryCanceled) {
+          updateLastProcessedToken(tokenrange, myQueryUuid);
+       }
+       
        queryExecutorState -> setState(workerId, "Idle");
    }
    
@@ -361,6 +406,7 @@ private:
    string secondoDatabase;
    string cassandraHost;
    volatile bool queryComplete;
+   volatile bool queryCanceled;
    volatile bool shutdown;
    string* query;
    size_t queryId;
@@ -371,6 +417,9 @@ private:
    
    // QueryExecutor state
    QueryexecutorState *queryExecutorState;
+   
+   // Pid of SECONDO instance
+   int pid;
    
    // Thread handling
    pthread_t workerThread;
