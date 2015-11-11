@@ -3544,7 +3544,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
   Word tuple(Address(0));
-  LexicographicalTupleCompareAlmost cmp;
+  LexicographicalTupleCmpAlmost cmp;
   Tuple* current = 0;
   RTuple* lastOutput = 0;
 
