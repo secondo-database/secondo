@@ -128,7 +128,7 @@ start_local() {
 
 # Stop cassandra
 stop() {
-   execute_parallel "ps ux | grep CassandraDaemon | grep -v grep | awk {'print \$2'} | xargs kill 2> /dev/null" "Stopping Cassandra" "$nodes" $max_pending
+   execute_parallel "ps ux | grep cassandra.jmx.local.port | grep -v grep | awk {'print \$2'} | xargs kill 2> /dev/null" "Stopping Cassandra" "$nodes" $max_pending
 }
 
 # Delete the data and the commit log of cassandra
