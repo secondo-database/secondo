@@ -747,7 +747,7 @@ public:
         
          parsermode mode = UNQUOTED_ENVIRONMENT;  
           
-         stringstream ss;
+         string result;
          
          bool done = false;
          
@@ -771,7 +771,7 @@ public:
                 
                 // If this is the first byte of our field
                 // and it is a comment char - skip the whole line
-                if((ss.str().empty()) && (comment.size() > 0) 
+                if((result.empty()) && (comment.size() > 0) 
                   && (comment.find(c) != string::npos)) {
                   
                     skipLine();
@@ -787,11 +787,11 @@ public:
                     continue;
                 }
                 
-                // Field separatoror or newline read?
+                // Field separator or newline read?
                 if ((separator.find(c)!=string::npos) || (c == '\n')) {
                     done = true;
                 } else {
-                    ss << c;
+                    result += c;
                 }
                 
             } else {
@@ -816,7 +816,7 @@ public:
                 }
 
                 // Append char to output
-                ss << c;
+                result += c;
             }
          }
          
@@ -824,7 +824,7 @@ public:
          cout << "Return: " << ss.str() << endl;
          #endif
 
-         return ss.str();
+         return result;
       }
 
     protected:
@@ -833,10 +833,9 @@ public:
        string separator;    // our separator (e.g. , or ;)
        string comment;      // comment (e.g. //)
        string source;       // name of the source
-       char buffer[1024];   // buffer 
+       char buffer[102400]; // buffer (100 KB)
        size_t bufferPos;    // position of next unprocessed char
-       size_t bufferSize;   // last position of unprocessed chars
-                            // in buffer 
+       size_t bufferSize;   // last position of unprocessed chars in buffer 
 };
 
 
@@ -1413,7 +1412,7 @@ public:
         return 0;
      }
      
-     Tuple* res =  createTuple();
+     Tuple* res = createTuple();
 
      if( ! defined ) {
        return 0;
@@ -1437,7 +1436,7 @@ private:
 
   Tuple* createTuple(){
       static char c = 0;
-      static string nullstr( &c,1);
+      static string nullstr(&c, 1);
       Tuple* result = BasicTuple->Clone();
 
       for(unsigned int i=0;i<instances.size();i++){
