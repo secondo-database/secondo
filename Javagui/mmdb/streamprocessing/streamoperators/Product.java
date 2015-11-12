@@ -187,8 +187,11 @@ public class Product implements StreamOperator {
 					.getOutputType()).getTypecheckInfo()) {
 				if (input1Header.getIdentifier().equals(
 						input2Header.getIdentifier())) {
-					throw new TypeException("Identifier duplication: "
-							+ input1Header.getIdentifier());
+					throw new TypeException(
+							String.format(
+									"%s: Identifier duplication in input relations: %s",
+									this.getClass().getSimpleName(),
+									input1Header.getIdentifier()));
 				}
 			}
 		}

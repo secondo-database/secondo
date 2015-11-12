@@ -194,8 +194,9 @@ public class Project implements StreamOperator {
 		Set<String> identifierSet = new HashSet<String>();
 		for (String identifier : this.identifiers) {
 			if (!identifierSet.add(identifier)) {
-				throw new TypeException("Identifier duplication on: "
-						+ identifier);
+				throw new TypeException(String.format(
+						"%s: Identifier duplication: %s", this.getClass()
+								.getSimpleName(), identifier));
 			}
 		}
 	}
