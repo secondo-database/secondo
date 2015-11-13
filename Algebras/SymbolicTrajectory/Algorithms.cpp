@@ -1266,7 +1266,7 @@ bool TMatch::conditionsMatch(const map<string, pair<int, int> > &binding) {
       case MLABEL: {
         if (!p->conds[i].evaluate(binding, (MLabel*)t->GetAttribute(attrno), t,
                                   ttype)) {
-          cout << "False cond " << p->conds[i].getText() << endl;
+//           cout << "False cond " << p->conds[i].getText() << endl;
           return false;
         }
         break;
@@ -1297,7 +1297,7 @@ bool TMatch::conditionsMatch(const map<string, pair<int, int> > &binding) {
       }
     }
   }
-  cout << "True conditions!!!" << endl;
+//   cout << "True conditions!!!" << endl;
   return true;
 }
 
@@ -4111,9 +4111,9 @@ void IndexMatchSuper::extendBinding(IndexMatchInfo& imi, const int e) {
     prevElem.getV(prevVar);
   }
   elem.getV(var);
-  cout << "extendBinding called: " << imi.next << " " << imi.prevElem << " " 
-       << prevVar << " " << var << " " << e << " " 
-       << imi.binding[prevVar].second << " | ";
+//   cout << "extendBinding called: " << imi.next << " " << imi.prevElem << " " 
+//        << prevVar << " " << var << " " << e << " " 
+//        << imi.binding[prevVar].second << " | ";
   if (e < imi.prevElem) { // possible for repeated regex
     if (var == prevVar) { // valid case
       if (var != "") { // X [() * ()]+
@@ -4192,7 +4192,7 @@ void IndexMatchSuper::extendBinding(IndexMatchInfo& imi, const int e) {
     }
   }
   imi.prevElem = e;
-  Tools::printBinding(imi.binding);
+//   Tools::printBinding(imi.binding);
 }
 
 /*
