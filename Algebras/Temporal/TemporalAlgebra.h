@@ -1045,6 +1045,8 @@ The second constructor.
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }
+  
+  void Clear() {}
 
 
 /*
@@ -3101,6 +3103,8 @@ Returns true, iff this unit is defined and not moving during its definition time
       return IsDefined() && AlmostEqual(p0,p1);
 
    }
+   
+   void Clear() {}
 
 /*
 3.8.4 Attributes
