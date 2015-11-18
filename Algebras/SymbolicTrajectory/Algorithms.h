@@ -989,6 +989,8 @@ class IndexMatchSuper {
   
   int getTrajSize(const TupleId tId, const DataType type);
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
+  void periodsToUnits(const Periods &per, const TupleId tId, set<int> &units);
+  void unitsToPeriods(const set<int> &units, const TupleId tId, Periods &per);
   void removeIdFromIndexResult(const TupleId id);
   void clearMatchInfo();
   bool hasIdIMIs(const TupleId id, const int state = -1);
@@ -1023,8 +1025,8 @@ class TMatchIndexLI : public IndexMatchSuper {
              pair<Word, SetRel> values, int valueNo, vector<set<int> > &result);
   int getNoComponents(const TupleId tId, const int attrNo);
   void getResultForAtomPart(pair<int, pair<IndexType, int> > indexInfo, 
-                          pair<Word, SetRel> values, vector<set<int> > &result);
-  bool getResultForAtomTime(const int atomNo, vector<set<int> > &result);
+                          pair<Word, SetRel> values, vector<Periods> &result);
+  bool getResultForAtomTime(const int atomNo, vector<Periods> &result);
   void storeIndexResult(int atomNo);
   void initMatchInfo();
   void removeIdFromMatchInfo(const TupleId id);
