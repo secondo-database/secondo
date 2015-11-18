@@ -71,8 +71,8 @@ public class MP3V extends SecondoViewer
     private JTextField id3Genre;
     private JTextField id3TrackNo;
 
-    private ImageIcon playIcon = new ImageIcon("res/play2.png");
-    private ImageIcon pauseIcon = new ImageIcon("res/pause2.png");
+    private ImageIcon playIcon = new ImageIcon(ClassLoader.getSystemResource("res/play2.png"));
+    private ImageIcon pauseIcon = new ImageIcon(ClassLoader.getSystemResource("res/pause2.png"));
 
     /* In this text field general information about an MP3, ID3
        or lyrics object is shown.
@@ -476,10 +476,10 @@ public class MP3V extends SecondoViewer
     // north component
     add(
         newJToolBarJPanel(new Component[] {
-        PauseButton = newJButton("play",
-                     "res/play2.png"),
-         PlayButton = newJButton ("stop",
-                     "res/stop2.png"),
+        PauseButton = new JButton("play",
+                     new ImageIcon(ClassLoader.getSystemResource("res/play2.png"))),
+         PlayButton = new JButton ("stop",
+                     new ImageIcon(ClassLoader.getSystemResource("res/stop2.png"))),
       positionLabel=new JLabel("")
         }),
         BorderLayout.NORTH
