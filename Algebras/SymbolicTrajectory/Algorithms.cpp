@@ -2264,11 +2264,11 @@ int TMatchIndexLI::getNoComponents(const TupleId tId, const int attrNo) {
 
 */
 void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
-              indexInfo, pair<Word, SetRel> values, vector<Periods> &result) {
+              indexInfo, pair<Word, SetRel> values, vector<Periods*> &result) {
   vector<set<int> > temp1, temp2;
   temp1.resize(rel->GetNoTuples() + 1);
   temp2.resize(rel->GetNoTuples() + 1);
-  result.resize(rel->GetNoTuples() + 1, Periods(true));
+  result.resize(rel->GetNoTuples() + 1);
   int valueNo = 0;
 //   vector<set<int> > *ptr(&temp), *ptr2(0);
   bool proceed = getSingleIndexResult(indexInfo, values, valueNo, temp1);
@@ -2306,7 +2306,7 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
     temp2.resize(rel->GetNoTuples() + 1);
   }
   for (int i = 1; i <= rel->GetNoTuples(); i++) {
-    unitsToPeriods(temp1[i], i, result[i]);
+    unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
   }
 }
 
@@ -2315,7 +2315,7 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
 
 */
 bool TMatchIndexLI::getResultForAtomTime(const int atomNo,
-                                         vector<Periods> &result) {
+                                         vector<Periods*> &result) {
   PatElem atom;
   p->getElem(atomNo, atom);
   set<string> ivs;
@@ -2351,7 +2351,7 @@ bool TMatchIndexLI::getResultForAtomTime(const int atomNo,
     }
   }
   for (int i = 1; i <= rel->GetNoTuples(); i++) {
-    unitsToPeriods(temp1[i], i, result[i]);
+    unitsToPeriods(temp1[i], i, attrNo, result[i]);
   }
 //   for (unsigned int i = 0; i < result.size(); i++) {
 //     cout << "|" << i << ": " << result[i].size() << " ";
@@ -2379,13 +2379,13 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
     return;
   }
   vector<set<int> > result;
-  vector<Periods> periods, temp;
+  vector<Periods*> periods, temp;
   result.resize(rel->GetNoTuples() + 1);
-  periods.resize(rel->GetNoTuples() + 1, Periods(true));
+  periods.resize(rel->GetNoTuples() + 1);
   temp.resize(rel->GetNoTuples() + 1);
   int pos(0), pred(0);
   bool intersect = getResultForAtomTime(atomNo, periods);
-  Periods tmp(true);
+  Periods tmp(0);
   indexResult[atomNo].resize(rel->GetNoTuples() + 1);
 //   for (it = ti->attrToIndex.begin(); it != ti->attrToIndex.end(); it++) {
 //     cout << it->first << " ---> " << it->second.second << endl;
@@ -2406,10 +2406,11 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
       if (it->second.second != -1 && atom.values[pos].first.addr != 0) {
         getResultForAtomPart(*it, atom.values[pos], temp);
         for (int i = 1; i <= rel->GetNoTuples(); i++) {
-          periods[i].Intersection(temp[i], tmp);
+          periods[i]->Intersection(*temp[i], tmp);
 //           std::set_intersection(result[i].begin(), result[i].end(),
 //             temp[i].begin(), temp[i].end(), std::inserter(tmp, tmp.begin()));
-          periods[i] = tmp;
+	  periods[i]->Clear();
+          periods[i]->CopyFrom(&tmp);
           tmp.Clear();
   //      cout << "Still " << result[i].size() << " elems for id " << i << endl;
         }
@@ -2423,6 +2424,9 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
   } // index information collected into result
   for (int i = 1; i <= rel->GetNoTuples(); i++) {
     periodsToUnits(periods[i], i, result[i]);
+    if (periods[i]) {
+      periods[i]->DeleteIfAllowed();
+    }
     if (!result[i].empty()) {
       indexResult[atomNo][pred].succ = i; // refresh successor of predecessor
       indexResult[atomNo][i].units.insert(result[i].begin(), result[i].end());
@@ -2803,6 +2807,7 @@ void TMatchIndexLI::applyNFA() {
     for (is = states.rbegin(); is != states.rend(); is++) {
       map<int, int> trans = p->getTransitions(*is);
       for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++) {
+    // TODO: invoke atomMatch iff newStates.find(im->second) != newStates.end()
         if (atomMatch(*is, *im)) {
           newStates.insert(im->second);
         }
@@ -4010,9 +4015,9 @@ void IndexMatchSuper::getInterval(const TupleId tId, const int pos,
 \subsection{Function ~periodsToUnits~}
 
 */
-void IndexMatchSuper::periodsToUnits(const Periods &per, const TupleId tId,
+void IndexMatchSuper::periodsToUnits(const Periods *per, const TupleId tId,
                                      set<int> &units) {
-  if (!per.IsDefined()) {
+  if (!per->IsDefined()) {
     cout << "undefined periods!" << endl;
     return;
   }
@@ -4022,8 +4027,8 @@ void IndexMatchSuper::periodsToUnits(const Periods &per, const TupleId tId,
   switch (mtype) {
     case MLABEL: {
       MLabel *traj = (MLabel*)t->GetAttribute(attrNo);
-      for (int i = 0; i < per.GetNoComponents(); i++) {
-        per.Get(i, iv);
+      for (int i = 0; i < per->GetNoComponents(); i++) {
+        per->Get(i, iv);
         start = traj->Position(iv.start);
         end = traj->Position(iv.end);
         for (int j = start; j <= end; j++) {
@@ -4031,11 +4036,12 @@ void IndexMatchSuper::periodsToUnits(const Periods &per, const TupleId tId,
         }
       }
       traj->DeleteIfAllowed();
+      break;
     }
     case MLABELS: {
       MLabels *traj = (MLabels*)t->GetAttribute(attrNo);
-      for (int i = 0; i < per.GetNoComponents(); i++) {
-        per.Get(i, iv);
+      for (int i = 0; i < per->GetNoComponents(); i++) {
+        per->Get(i, iv);
         start = traj->Position(iv.start);
         end = traj->Position(iv.end);
         for (int j = start; j <= end; j++) {
@@ -4043,11 +4049,12 @@ void IndexMatchSuper::periodsToUnits(const Periods &per, const TupleId tId,
         }
       }
       traj->DeleteIfAllowed();
+      break;
     }
     case MPLACE: {
       MPlace *traj = (MPlace*)t->GetAttribute(attrNo);
-      for (int i = 0; i < per.GetNoComponents(); i++) {
-        per.Get(i, iv);
+      for (int i = 0; i < per->GetNoComponents(); i++) {
+        per->Get(i, iv);
         start = traj->Position(iv.start);
         end = traj->Position(iv.end);
         for (int j = start; j <= end; j++) {
@@ -4055,11 +4062,12 @@ void IndexMatchSuper::periodsToUnits(const Periods &per, const TupleId tId,
         }
       }
       traj->DeleteIfAllowed();
+      break;
     }
     case MPLACES: {
       MPlaces *traj = (MPlaces*)t->GetAttribute(attrNo);
-      for (int i = 0; i < per.GetNoComponents(); i++) {
-        per.Get(i, iv);
+      for (int i = 0; i < per->GetNoComponents(); i++) {
+        per->Get(i, iv);
         start = traj->Position(iv.start);
         end = traj->Position(iv.end);
         for (int j = start; j <= end; j++) {
@@ -4067,54 +4075,58 @@ void IndexMatchSuper::periodsToUnits(const Periods &per, const TupleId tId,
         }
       }
       traj->DeleteIfAllowed();
+      break;
     }
   }
   t->DeleteIfAllowed();
 }
 
 /*
-\subsection{Function ~periodsToUnits~}
+\subsection{Function ~unitsToPeriods~}
 
 */
 void IndexMatchSuper::unitsToPeriods(const set<int> &units, const TupleId tId, 
-                                     Periods &per) {
-  per.SetDefined(true);
-  per.Clear();
-  Tuple *t = rel->GetTuple(tId, false);
-  switch (mtype) {
-    case MLABEL: {
-      MLabel *traj = (MLabel*)t->GetAttribute(attrNo);
-      ULabel u(true);
-      for (set<int>::iterator it = units.begin(); it != units.end(); it++) {
-        traj->Get(tId, u);
-        per.MergeAdd(u.timeInterval);
-      }
-    }
-    case MLABELS: {
-      MLabels *traj = (MLabels*)t->GetAttribute(attrNo);
-      ULabels u(true);
-      for (set<int>::iterator it = units.begin(); it != units.end(); it++) {
-        traj->Get(tId, u);
-        per.MergeAdd(u.timeInterval);
-      }
-    }
-    case MPLACE: {
-      MPlace *traj = (MPlace*)t->GetAttribute(attrNo);
-      UPlace u(true);
-      for (set<int>::iterator it = units.begin(); it != units.end(); it++) {
-        traj->Get(tId, u);
-        per.MergeAdd(u.timeInterval);
-      }
-    }
-    case MPLACES: {
-      MPlaces *traj = (MPlaces*)t->GetAttribute(attrNo);
-      UPlaces u(true);
-      for (set<int>::iterator it = units.begin(); it != units.end(); it++) {
-        traj->Get(tId, u);
-        per.MergeAdd(u.timeInterval);
-      }
-    }
+                                     const int attr, Periods *per) {
+  if (!per) {
+    per = new Periods(0);
   }
+  per->SetDefined(true);
+  per->Clear();
+  Tuple *t = rel->GetTuple(tId, false);
+  Attribute *traj = t->GetAttribute(attr);
+  TupleType *tt = t->GetTupleType();
+  string type = Tools::getTypeName(tt, attr);
+  if (type == "mlabel") {
+    unitsToPeriods<MLabel, ULabel>(traj, units, per);
+  }
+  if (type == "mlabels") {
+    unitsToPeriods<MLabels, ULabels>(traj, units, per);
+  }
+  if (type == "mplace") {
+    unitsToPeriods<MPlace, UPlace>(traj, units, per);
+  }
+  if (type == "mplaces") {
+    unitsToPeriods<MPlaces, UPlaces>(traj, units, per);
+  }
+  if (type == "mpoint") {
+    unitsToPeriods<MPoint, UPoint>(traj, units, per);
+  }
+  if (type == "mregion") {
+    unitsToPeriods<MRegion, URegionEmb>(traj, units, per);
+  }
+  if (type == "mbool") {
+    unitsToPeriods<MBool, UBool>(traj, units, per);
+  }
+  if (type == "mint") {
+    unitsToPeriods<MInt, UInt>(traj, units, per);
+  }
+  if (type == "mreal") {
+    unitsToPeriods<MReal, UReal>(traj, units, per);
+  }
+  if (type == "mstring") {
+    unitsToPeriods<MString, UString>(traj, units, per);
+  }
+  tt->DeleteIfAllowed();
   t->DeleteIfAllowed();
 }
 
