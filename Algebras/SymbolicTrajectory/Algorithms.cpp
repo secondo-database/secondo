@@ -2409,7 +2409,7 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
           periods[i]->Intersection(*temp[i], tmp);
 //           std::set_intersection(result[i].begin(), result[i].end(),
 //             temp[i].begin(), temp[i].end(), std::inserter(tmp, tmp.begin()));
-	  periods[i]->Clear();
+          periods[i]->Clear();
           periods[i]->CopyFrom(&tmp);
           tmp.Clear();
   //      cout << "Still " << result[i].size() << " elems for id " << i << endl;
