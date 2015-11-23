@@ -3510,8 +3510,6 @@ class MainMemoryAlgebra : public Algebra
         matchbelowOp.SetUsesArgsInTypeMapping();
         }
         ~MainMemoryAlgebra() {
-          delete catalog;
-          //catalog = 0;
         };
 };
 
