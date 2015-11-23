@@ -2328,12 +2328,16 @@ template<int TidIndexPos>
     case OPEN :
     {
       assert( TidIndexPos == 2 || TidIndexPos == 3);
+      int pos = TidIndexPos;
+      if(TidIndexPos==3){
+         pos = qp->GetNoSons(s) -1;
+      } 
       qp->Open(args[0].addr);
       localInfo = new GetTuplesLocalInfo();
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->resultTupleType =
           new TupleType(nl->Second(GetTupleResultType(s)));
-      localInfo->tidIndex = ((CcInt*)args[TidIndexPos].addr)->GetIntval() - 1;
+      localInfo->tidIndex = ((CcInt*)args[pos].addr)->GetIntval() - 1;
 //    cerr << "GetTuples<" << TidIndexPos << ">(): localInfo->tidIndex = "
 //         << localInfo->tidIndex << endl;
       local.setAddr(localInfo);
@@ -2424,6 +2428,12 @@ template<int TidIndexPos>
     case OPEN :
     {
       assert( TidIndexPos == 2 || TidIndexPos == 3);
+      // 2 : gettuples 
+      // 3 : gettuples2
+      int pos = TidIndexPos;
+      if(TidIndexPos==3){
+         pos = qp->GetNoSons(s) - 1;
+      }
       qp->Open(args[0].addr);
 
       if ( !localInfo )  // first time
@@ -2432,7 +2442,7 @@ template<int TidIndexPos>
         localInfo->relation = (Relation*)args[1].addr;
         localInfo->resultTupleType =
           new TupleType(nl->Second(GetTupleResultType(s)));
-        localInfo->tidIndex = ((CcInt*)args[TidIndexPos].addr)->GetIntval() - 1;
+        localInfo->tidIndex = ((CcInt*)args[pos].addr)->GetIntval() - 1;
 
         local.setAddr(localInfo);
       }
@@ -2622,39 +2632,60 @@ Operator gettuples (
 7.2.1 Type mapping function of operator ~gettuples2~
 
 */
+
+ListExpr renameAttr(ListExpr attr, const string& ext){ 
+// expected format (attrname attrtype)
+  return nl->TwoElemList(
+                nl->SymbolAtom( nl->SymbolValue(nl->First(attr)) + ext),
+                nl->Second(attr));
+}
+
+
 ListExpr GetTuples2TypeMap(ListExpr args)
 {
 
   // check for correct parameter list
-  if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 3){
+  if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
     return listutils::typeError(
-      "\nExpects exactly 3 arguments.");
+      "Expects 3 or 4 arguments.");
   }
 
   // Split arguments into three parts
-  ListExpr streamDescription = nl->First(args),
-           relDescription = nl->Second(args),
-           tidArg = nl->Third(args);
+  ListExpr streamDescription = nl->First(args);
+  ListExpr relDescription = nl->Second(args);
+  ListExpr tidArg = nl->Third(args);
 
   // Handle the stream part of arguments
-  if(!listutils::isTupleStream(streamDescription)){
+  if(!Stream<Tuple>::checkType(streamDescription)){
     return listutils::typeError("Expects a valid tuplestream as 1st argument.");
   }
+
   // Handle the rel part of arguments
-  if( !listutils::isRelDescription(relDescription) ){
+  if( !Relation::checkType(relDescription)){
     return listutils::typeError("Expects a valid relation as 2nd argument.");
   }
 
   // Check type of third argument (attribute name)
-  if( !nl->IsAtom(tidArg) || !(nl->AtomType(tidArg) == SymbolType) ){
+  if( nl->AtomType(tidArg) != SymbolType ){
     return listutils::typeError("Expects attribute name as 3rd argument.");
   }
+  if(nl->HasLength(args,4)){
+    if(nl->AtomType(nl->Fourth(args)) != SymbolType){
+     return listutils::typeError("required symbol for renaming");
+    }
+  }
+
   string tidAttrName = nl->SymbolValue(tidArg);
   int tidIndex = 0;
   ListExpr attrType;
   tidIndex = listutils::findAttribute(nl->Second(nl->Second(streamDescription)),
                                       tidAttrName,
                                       attrType);
+  if(!tidIndex){
+    return listutils::typeError("Attribute " + tidAttrName + 
+                                " not found in tuple stream");
+  }
+
   if(!listutils::isSymbol(attrType, TupleIdentifier::BasicType())){
     return listutils::typeError("Expects attribute to be of type 'tid'.");
   }
@@ -2669,14 +2700,34 @@ ListExpr GetTuples2TypeMap(ListExpr args)
                                   k,
                                   tmp,
                                   tmpL);
+
   if(noRemovedAttrs != 1){
     return listutils::typeError("Stream must contain at most one attribute of "
                                 "type 'tid'.");
   }
 
   // append rel-attrlist to modified stream-attrlist
+
+  ListExpr relAttrList = nl->Second(nl->Second(relDescription));
+
+  // rename tuples from relation if requested
+
+  if(nl->HasLength(args,4)){
+    string append = "_" + nl->SymbolValue(nl->Fourth(args));
+    ListExpr first = nl->First(relAttrList);
+    ListExpr ren = nl->OneElemList( renameAttr(first,append)); 
+    ListExpr last = ren;
+    relAttrList = nl->Rest(relAttrList);
+    while(!nl->IsEmpty(relAttrList)){
+      last = nl->Append(last, renameAttr(nl->First(relAttrList),append));
+      relAttrList = nl->Rest(relAttrList);
+    }
+    relAttrList = ren;
+  }
+
+
   ListExpr newAttrList =
-     listutils::concat(tmp, nl->Second(nl->Second(relDescription)));
+     listutils::concat(tmp, relAttrList);
 
   // check whether result attrlist is valid
   if (!listutils::isAttrList(newAttrList)){
