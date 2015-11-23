@@ -349,6 +349,14 @@ query "Roads" mcreateRtree ["GeoData", "Name"];
 #yields (string "Roads_GeoData")
 query "Roads" mcreateRtree ["GeoData"];
 
+#testcase mcreateRtree2
+#yields (string "Roads_GeoData_2")
+query "Roads" mfeed projectextend [Name,Type, GeoData; TID: tupleid(.)] mcreateRtree2  [GeoData, "Roads_GeoData_2"];
+
+#testcase mwindowintersects
+#yields (int 74583)
+query mwindowintersects ("Roads_GeoData_2", "Roads", testrectangle) count;
+
 #testcase mcreateRtree
 #yields (string "Waterways_GeoData")
 query Waterways feed letmconsume ["Waterways"] mcreateRtree ["GeoData"];

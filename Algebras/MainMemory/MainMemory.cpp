@@ -287,7 +287,7 @@ ListExpr MemoryRelType::Property(){
             )));
 }
 
-// MEMORYRELOBJECT.
+// MEMORYRELOBJECT
 
 MemoryRelObject::MemoryRelObject(){
     mmrel = new vector<Tuple*>();
@@ -338,7 +338,6 @@ void MemoryRelObject::addTuple(Tuple* tup){
             catalog->getAvailabeMemSize();
     if ((size_t)tupleSize<availableMemSize){
         tup->SetTupleId(mmrel->size());
-       // tup->IncReference();
         mmrel->push_back(tup);
         memSize += tupleSize;
         catalog->addToUsedMemSize(tupleSize);
@@ -371,7 +370,6 @@ bool MemoryRelObject::relToVector(GenericRelation* r, ListExpr le = 0,
         else{
             if (mmrel->size()==0){
                 cout<<"no memory left"<<endl;
-               // delete mmrel;
                 return false;
             }
              cout<< "the available main memory is not enough, the object"
@@ -406,14 +404,12 @@ bool MemoryRelObject::tupelStreamToRel(Word arg, ListExpr le,
         tupleSize = tup->GetMemSize();
         if ((size_t)tupleSize<availableMemSize){
             tup->SetTupleId(mmrel->size());
-//           tup->IncReference();
             mmrel->push_back(tup);
             usedMainMemory += tupleSize;
             availableMemSize -= tupleSize;
         }
         else{
             if (mmrel->size()==0){
-               // delete mmrel;
                 cout<<"no memory left"<<endl;
                 return false;
             }
@@ -617,7 +613,6 @@ MemoryAttributeObject::MemoryAttributeObject(Attribute* _attr,
 MemoryAttributeObject::~MemoryAttributeObject(){
     if (attributeObject!=0){
         delete attributeObject;
-        //attributeObject->DeleteIfAllowed();
     }
 }
 

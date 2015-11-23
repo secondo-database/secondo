@@ -55,7 +55,6 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern SecondoSystem* instance;
-// extern AlgebraManager *am;
 
 ostream& operator<<(ostream& o, const pair<Attribute*,size_t>& t){
   o << "(";
@@ -557,7 +556,6 @@ int letmconsume (Word* args, Word& result,
                 int message, Word& local, Supplier s, bool flob) {
 
     result  = qp->ResultStorage(s);
-    //CcString* str = static_cast<CcString*>(result.addr);
     MemoryRelType* str = (MemoryRelType*)result.addr;
 
     Supplier t = qp->GetSon( s, 0 );
@@ -615,7 +613,6 @@ ListExpr letmconsumeTypeMap(ListExpr args)
         return listutils::typeError ("stream(Tuple) x string expected!");
         }
 
-  //  return listutils::basicSymbol<CcString>();
     ListExpr tupeldesc = nl->Second(nl->First(args));
     ListExpr l1 = nl->SymbolAtom(MemoryRelType::BasicType());
     return nl->TwoElemList (l1,tupeldesc);;
@@ -633,8 +630,6 @@ int letmconsumeValMap (Word* args, Word& result,
 
     return letmconsume(args, result, message, local, s, false);
 }
-
-
 
 
 /*
@@ -917,7 +912,6 @@ int memobjectValMap (Word* args, Word& result,
             while( it!=relation->end()){
                 Tuple* tup = *it;
                 rel->AppendTuple(tup);
-                tup->IncReference();
                 it++;
             }
 
@@ -1854,7 +1848,7 @@ int mcreateRtree2ValMapT (Word* args, Word& result,
         Rectangle<dim> rect = attr->BoundingBox();
         // insert rect,id -pair into the tree
         rtree->insert(rect, tid);
-   //     t->DeleteIfAllowed();
+        t->DeleteIfAllowed();
     }
 
     stream.close();
@@ -2208,7 +2202,6 @@ int minsertValMap (Word* args, Word& result,
             if (mro->hasflob()){
                 while( (tup = stream.request()) != 0){
                     tup->bringToMemory();
-        tup->IncReference();
                     mro->addTuple(tup);
                 }
             } else {
@@ -2546,8 +2539,6 @@ int mconsumeValMap (Word* args, Word& result,
 
     result  = qp->ResultStorage(s);
     MemoryRelObject* mrel = (MemoryRelObject*)result.addr;
-
-   // MemoryRelObject* mrel = new MemoryRelObject(nl->ToString(nl->Second(le)));
     Stream<Tuple> stream(args[0]);
     stream.open();
     Tuple* tup=0;
@@ -2560,11 +2551,6 @@ int mconsumeValMap (Word* args, Word& result,
 
     return 0;
 
-
-
-    //result  = qp->ResultStorage(s);
-    //result.setAddr(mrel);
-    //return 0;
 }
 
 
