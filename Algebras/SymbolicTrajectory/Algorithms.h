@@ -990,10 +990,6 @@ class IndexMatchSuper {
   int getTrajSize(const TupleId tId, const DataType type);
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
   void periodsToUnits(const Periods *per, const TupleId tId, set<int> &units);
-  void unitsToPeriods(const set<int> &units, const TupleId tId, 
-                      const int attr, Periods *per);
-  template<class M, class U>
-  void unitsToPeriods(Attribute *traj, const set<int> &units, Periods *per);
   void removeIdFromIndexResult(const TupleId id);
   void clearMatchInfo();
   bool hasIdIMIs(const TupleId id, const int state = -1);
@@ -1027,6 +1023,10 @@ class TMatchIndexLI : public IndexMatchSuper {
   bool getSingleIndexResult(pair<int, pair<IndexType, int> > indexInfo, 
              pair<Word, SetRel> values, int valueNo, vector<set<int> > &result);
   int getNoComponents(const TupleId tId, const int attrNo);
+  void unitsToPeriods(const set<int> &units, const TupleId tId, 
+                      const int attr, Periods *per);
+  template<class M, class U>
+  void unitsToPeriods(Attribute *traj, const set<int> &units, Periods *per);
   void getResultForAtomPart(pair<int, pair<IndexType, int> > indexInfo, 
                           pair<Word, SetRel> values, vector<Periods*> &result);
   bool getResultForAtomTime(const int atomNo, vector<Periods*> &result);
@@ -5148,8 +5148,8 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
 
 */
 template<class M, class U>
-void IndexMatchSuper::unitsToPeriods(Attribute *traj, const set<int> &units,
-                                     Periods *per) {
+void TMatchIndexLI::unitsToPeriods(Attribute *traj, const set<int> &units,
+                                   Periods *per) {
   M *m = (M*)traj;
   U u(true);
   for (set<int>::iterator it = units.begin(); it != units.end(); it++) {

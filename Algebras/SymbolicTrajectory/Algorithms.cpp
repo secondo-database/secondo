@@ -2305,9 +2305,15 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
     temp2.clear();
     temp2.resize(rel->GetNoTuples() + 1);
   }
+  cout << "periods created for id ";
   for (int i = 1; i <= rel->GetNoTuples(); i++) {
-    unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
+    if (!temp1[i].empty()) {
+      result[i] = new Periods(0);
+      cout << i << " ";
+      unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
+    }
   }
+  cout << endl;
 }
 
 /*
@@ -2351,7 +2357,10 @@ bool TMatchIndexLI::getResultForAtomTime(const int atomNo,
     }
   }
   for (int i = 1; i <= rel->GetNoTuples(); i++) {
-    unitsToPeriods(temp1[i], i, attrNo, result[i]);
+    if (!temp1[i].empty()) {
+      result[i] = new Periods(0);
+      unitsToPeriods(temp1[i], i, attrNo, result[i]);
+    }
   }
 //   for (unsigned int i = 0; i < result.size(); i++) {
 //     cout << "|" << i << ": " << result[i].size() << " ";
@@ -2381,8 +2390,8 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
   vector<set<int> > result;
   vector<Periods*> periods, temp;
   result.resize(rel->GetNoTuples() + 1);
-  periods.resize(rel->GetNoTuples() + 1);
-  temp.resize(rel->GetNoTuples() + 1);
+  periods.resize(rel->GetNoTuples() + 1, 0);
+  temp.resize(rel->GetNoTuples() + 1, 0);
   int pos(0), pred(0);
   bool intersect = getResultForAtomTime(atomNo, periods);
   Periods tmp(0);
@@ -2393,6 +2402,7 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
   for (it = ti->attrToIndex.begin(); it != ti->attrToIndex.end(); it++) {
     if (!intersect && it->second.second != -1 && 
         atom.values[pos].first.addr != 0) {
+      cout << "call gRFAP for attr " << it->first << endl;
       getResultForAtomPart(*it, atom.values[pos], periods);
       intersect = true;
 //       cout << atom.values.size() << "values, after " << it->first << ", pos "
@@ -2404,15 +2414,21 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
     }
     else {
       if (it->second.second != -1 && atom.values[pos].first.addr != 0) {
+        cout << "call gRFAP for attr " << it->first << endl;
         getResultForAtomPart(*it, atom.values[pos], temp);
         for (int i = 1; i <= rel->GetNoTuples(); i++) {
-          periods[i]->Intersection(*temp[i], tmp);
-//           std::set_intersection(result[i].begin(), result[i].end(),
-//             temp[i].begin(), temp[i].end(), std::inserter(tmp, tmp.begin()));
-          periods[i]->Clear();
-          periods[i]->CopyFrom(&tmp);
-          tmp.Clear();
-  //      cout << "Still " << result[i].size() << " elems for id " << i << endl;
+          if (periods[i] && temp[i]) {
+            periods[i]->Intersection(*temp[i], tmp);
+            periods[i]->Clear();
+            periods[i]->CopyFrom(&tmp);
+            tmp.Clear();
+            temp[i]->DeleteIfAllowed();
+            temp[i] = 0;
+          }
+          else if (periods[i]) {
+            periods[i]->DeleteIfAllowed();
+            periods[i] = 0;
+          }
         }
         temp.clear();
         temp.resize(rel->GetNoTuples() + 1);
@@ -2422,10 +2438,13 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
       pos++;
     }
   } // index information collected into result
+  cout << "delete periods for id ";
   for (int i = 1; i <= rel->GetNoTuples(); i++) {
     periodsToUnits(periods[i], i, result[i]);
     if (periods[i]) {
+      cout << i;
       periods[i]->DeleteIfAllowed();
+      cout << " ................. ok";
     }
     if (!result[i].empty()) {
       indexResult[atomNo][pred].succ = i; // refresh successor of predecessor
@@ -2434,7 +2453,9 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
       pred = i;
     }
   }
+  cout << endl;
   indexResult[atomNo][pred].succ = 0; // set successor to 0 for final id
+  cout << "index result for atom " << atomNo << " stored" << endl;
 }
 
 /*
@@ -4017,6 +4038,9 @@ void IndexMatchSuper::getInterval(const TupleId tId, const int pos,
 */
 void IndexMatchSuper::periodsToUnits(const Periods *per, const TupleId tId,
                                      set<int> &units) {
+  if (!per) {
+    return;
+  }
   if (!per->IsDefined()) {
     cout << "undefined periods!" << endl;
     return;
@@ -4078,55 +4102,49 @@ void IndexMatchSuper::periodsToUnits(const Periods *per, const TupleId tId,
       break;
     }
   }
-  t->DeleteIfAllowed();
+//   t->DeleteIfAllowed();
 }
 
 /*
 \subsection{Function ~unitsToPeriods~}
 
 */
-void IndexMatchSuper::unitsToPeriods(const set<int> &units, const TupleId tId, 
-                                     const int attr, Periods *per) {
-  if (!per) {
-    per = new Periods(0);
-  }
+void TMatchIndexLI::unitsToPeriods(const set<int> &units, const TupleId tId, 
+                                   const int attr, Periods *per) {
   per->SetDefined(true);
-  per->Clear();
   Tuple *t = rel->GetTuple(tId, false);
   Attribute *traj = t->GetAttribute(attr);
-  TupleType *tt = t->GetTupleType();
-  string type = Tools::getTypeName(tt, attr);
-  if (type == "mlabel") {
+  ListExpr attrList = nl->Second(nl->Nth(attr + 1, nl->Second(ttList)));
+  if (MLabel::checkType(attrList)) {
     unitsToPeriods<MLabel, ULabel>(traj, units, per);
   }
-  if (type == "mlabels") {
+  else if (MLabels::checkType(attrList)) {
     unitsToPeriods<MLabels, ULabels>(traj, units, per);
   }
-  if (type == "mplace") {
+  else if (MPlace::checkType(attrList)) {
     unitsToPeriods<MPlace, UPlace>(traj, units, per);
   }
-  if (type == "mplaces") {
+  else if (MPlaces::checkType(attrList)) {
     unitsToPeriods<MPlaces, UPlaces>(traj, units, per);
   }
-  if (type == "mpoint") {
+  else if (MPoint::checkType(attrList)) {
     unitsToPeriods<MPoint, UPoint>(traj, units, per);
   }
-  if (type == "mregion") {
+  else if (MRegion::checkType(attrList)) {
     unitsToPeriods<MRegion, URegionEmb>(traj, units, per);
   }
-  if (type == "mbool") {
+  else if (MBool::checkType(attrList)) {
     unitsToPeriods<MBool, UBool>(traj, units, per);
   }
-  if (type == "mint") {
+  else if (MInt::checkType(attrList)) {
     unitsToPeriods<MInt, UInt>(traj, units, per);
   }
-  if (type == "mreal") {
+  else if (MReal::checkType(attrList)) {
     unitsToPeriods<MReal, UReal>(traj, units, per);
   }
-  if (type == "mstring") {
+  else if (MString::checkType(attrList)) {
     unitsToPeriods<MString, UString>(traj, units, per);
   }
-  tt->DeleteIfAllowed();
   t->DeleteIfAllowed();
 }
 

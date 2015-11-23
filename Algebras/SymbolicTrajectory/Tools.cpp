@@ -451,8 +451,6 @@ DataType Tools::getDataType(TupleType *ttype, const int attrno) {
 string Tools::getTypeName(TupleType *ttype, const int attrno) {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   AttributeType attrType = ttype->GetAttributeType(attrno);
-  cout << "attr " << attrno << ": " << attrType.algId << " " 
-       << attrType.typeId << endl;
   return sc->GetTypeName(attrType.algId, attrType.typeId);
 }
 
