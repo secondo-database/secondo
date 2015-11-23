@@ -2479,8 +2479,14 @@ updateNeighbor
 
              if((*leftListIt)->calcDistanz(*rightListIt) <= eps){
 
-                 updateNeighbor(*leftListIt,*rightListIt);
+//                  updateNeighbor(*leftListIt,*rightListIt);
                  //                              ,neighborList);
+               if(!(*leftListIt)->existNeighbor((*rightListIt))){
+                 (*leftListIt)->addNeighbor((*rightListIt));
+                 }
+                 if(!(*rightListIt)->existNeighbor((*leftListIt))){
+                   (*rightListIt)->addNeighbor((*leftListIt));
+                 }
 
              }
              rightListIt++;
