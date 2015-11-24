@@ -119,6 +119,14 @@ Signature: stream(tuple(x)) x rel(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (
 Example  : query ten1 feed ten1 updatedirect [No: .No * 5] consume
 Result   : file
 
+Operator  : updatedirect2
+Number    : 1
+Signature : stream(tuple(X)) x rel(tuple(Y)) x [TID ; funlist]
+Example   : query ten1 feed addid ten1 updatedirect2[TID; No : .No + ..No] count
+Result    : 10
+
+
+
 
 Operator : updatedirectsave
 Number   : 1

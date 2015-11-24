@@ -54,6 +54,8 @@ searched on can be hold in an random memory based hash table.
 #include "RTreeAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+#include "Stream.h"
+#include <assert.h>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -171,7 +173,8 @@ ListExpr createUpdateRelTypeMap( ListExpr args)
 }
 
 /*
-2.19.2 General Value mapping function of operators ~createinsertrel~, ~createdeleterel~ and ~createupdaterel~
+2.19.2 General Value mapping function of operators ~createinsertrel~, 
+       ~createdeleterel~ and ~createupdaterel~
 
 */
 int createUpdateRelValueMap(Word* args, Word& result, int message,
@@ -274,11 +277,13 @@ Operator extrelcreateupdaterel (
 /*
 2.22 Operator ~insert~
 
-Inserts each tuple of the inputstream into the relation. Returns a stream of tuples which is  basically
-the same as the inputstream but each tuple extended by an attribute of type 'tid' which is the tupleidentifier
+Inserts each tuple of the inputstream into the relation. Returns a stream of 
+tuples which is  basically the same as the inputstream but each tuple 
+extended by an attribute of type 'tid' which is the tupleidentifier
 of the inserted tuple in the extended relation.
 
-2.22.0 General type mapping function of operators ~insert~, ~deletesearch~ and ~deletedirect~
+2.22.0 General type mapping function of operators ~insert~, 
+       ~deletesearch~, and ~deletedirect~
 
 General type mapping for operators ~insert~ ,~deletesearch~ and ~deletedirect~
 
@@ -439,9 +444,11 @@ Operator extrelinsert (
 /*
 2.23 Operator ~insertsave~
 
-Inserts each tuple of the inputstream into the relation. Returns a stream of tuples which is  basically
-the same as the inputstream but each tuple extended by an attribute of type 'tid' which is the tupleidentifier
-of the inserted tuple in the extended relation. In addition all the tuples of the resultstream are inserted
+Inserts each tuple of the inputstream into the relation. Returns a 
+stream of tuples which is  basically the same as the inputstream 
+but each tuple extended by an attribute of type 'tid' which is thei
+tupleidentifier of the inserted tuple in the extended relation. In 
+addition all the tuples of the resultstream are inserted
 into the auxiliary relation which is given as the third argument.
 
 
@@ -614,9 +621,10 @@ Operator extrelinsertsave (
 /*
 2.24 Operator ~deletesearch~
 
-Deletes each tuple from the relation which attribut-values are exactly the same as those ones of
-a tuple of the inputstream. Returns a stream of tuples which is  basically
-the stream of deleted tuples but each tuple extended by an attribute of type 'tid' which is the tupleidentifier
+Deletes each tuple from the relation which attribut-values are exactly 
+the same as those ones of a tuple of the inputstream. Returns a stream 
+of tuples which is  basically the stream of deleted tuples but each 
+tuple extended by an attribute of type 'tid' which is the tupleidentifier
 of the deleted tuple in the extended relation.
 
 2.24.1 TypeMapping for operator ~deletesearch~
@@ -846,10 +854,12 @@ Operator extreldeletesearch (
 /*
 2.25 Operator ~deletedirect~
 
-Deletes each tuple from the inputstream directly from the relation. Precondition is that the tuples
-of the inputstream are tuples from the relation that shall be updated. Returns a stream of tuples
-which is  basically the stream of deleted tuples but each tuple extended by an attribute of type
-'tid' which is the tupleidentifier of the deleted tuple in the updated relation.
+Deletes each tuple from the inputstream directly from the relation. 
+Precondition is that the tuples of the inputstream are tuples from the
+ relation that shall be updated. Returns a stream of tuples
+which is  basically the stream of deleted tuples but each tuple extended 
+by an attribute of type 'tid' which is the tupleidentifier of the deleted 
+tuple in the updated relation.
 
 2.25.1 TypeMapping for operator ~deletedirect~
 
@@ -954,14 +964,17 @@ Operator extreldeletedirect (
 /*
 2.26 Operator ~deletesearchsave~
 
-Deletes each tuple from the relation which attribut-values are exactly the same as those ones of a
-tuple of the inputstream. Returns a stream of tuples which is  basically
-the stream of deleted tuples but each tuple extended by an attribute of type 'tid' which is the tupleidentifier
-of the deleted tuple in the updated relation. In addition all the tuples of the resultstream are inserted
-into the auxiliary relation which is given as the third argument.
+Deletes each tuple from the relation which attribut-values are 
+exactly the same as those ones of a tuple of the inputstream. Returns 
+a stream of tuples which is  basically the stream of deleted tuples but
+ each tuple extended by an attribute of type 'tid' which is the tupleidentifier
+of the deleted tuple in the updated relation. In addition all the tuples 
+of the resultstream are inserted into the auxiliary relation which is given 
+as the third argument.
 
 
-2.26.0 General Type mapping function of operators ~deletesearchsave~ and ~deletedirectsave~
+2.26.0 General Type mapping function of operators ~deletesearchsave~,
+        and ~deletedirectsave~
 
 
 
@@ -1265,11 +1278,14 @@ Operator extreldeletesearchsave (
 /*
 2.27 Operator ~deletedirectsave~
 
-Deletes directly each tuple of the inputstream from the relation. Precondition is that all tuples
-of the inputstream are originally tuples of the relation that shall be updated.
+Deletes directly each tuple of the inputstream from the relation. 
+Precondition is that all tuples of the inputstream are originally tuples 
+of the relation that shall be updated.
 Returns a stream of tuples which is  basically
-the stream of deleted tuples but each tuple extended by an attribute of type 'tid' which is the tupleidentifier
-of the deleted tuple in the updated relation.In addition all the tuples of the resultstream are inserted
+the stream of deleted tuples but each tuple extended by an attribute of 
+type 'tid' which is the tupleidentifier
+of the deleted tuple in the updated relation.In addition all the tuples of 
+the resultstream are inserted
 into the auxiliary relation which is given as the third argument.
 
 
@@ -1385,9 +1401,10 @@ Operator extreldeletedirectsave (
 /*
 2.28 Operator ~inserttuple~
 
-Inserts a new tuple with the attribute-values of the second argument into the relation.
-Returns a stream of one tuple which is  basically
-the same as the inserted tuple but extended by an attribute of type 'tid' which is the tupleidentifier
+Inserts a new tuple with the attribute-values of the second argument
+ into the relation.  Returns a stream of one tuple which is  basically
+the same as the inserted tuple but extended by an attribute of type 
+'tid' which is the tupleidentifier
 of the inserted tuple in the extended relation.
 
 
@@ -1579,10 +1596,11 @@ Operator extrelinserttuple (
 /*
 2.29 Operator ~inserttuplesave~
 
-Inserts a new tuple with the attribute-values of the second argument into the relation.
-Returns a stream of one tuple which is  basically
-the same as the inserted tuple but extended by an attribute of type int which is the tupleidentificator
-of the inserted tuple in the extended relation. In addition the tuple of the resultstream is inserted
+Inserts a new tuple with the attribute-values of the second argument
+into the relation.  Returns a stream of one tuple which is  basically
+the same as the inserted tuple but extended by an attribute of type int
+which is the tupleidentificator of the inserted tuple in the extended 
+relation. In addition the tuple of the resultstream is inserted
 into the relation which is given by the second argument.
 
 
@@ -1795,21 +1813,28 @@ Operator extrelinserttuplesave (
 /*
 2.18 Operator ~updatedirect~
 
-Updates each input tuple by  replacing the attribute-values of the attributes given by their names in the
-function-argumentlist with the new values received from the corresponding functions. Precondition is that
+Updates each input tuple by  replacing the attribute-values of the 
+attributes given by their names in the function-argumentlist with 
+the new values received from the corresponding functions. Precondition is that
 all tuples of the inpustream are originally tuples of the updated relation.
-The updated tuple is made persistent and as the resultstream tuples are returned that contain the new
-values in first places, then all old values and finally the TupleIdentifier of the updated tuple.
+The updated tuple is made persistent and as the resultstream tuples are i
+returned that contain the new values in first places, then all old values 
+and finally the TupleIdentifier of the updated tuple.
 
-2.18.0 General Type mapping function of operators ~updatedirect~ and ~updatesearch~
+2.18.0 General Type mapping function of operators ~updatedirect~,
+        and ~updatesearch~
 
 Type mapping for ~updatedirect~ and ~updatesearch~ is
 
-----     (stream X) (rel X) ((ai1 (map x xi1)) ... (aij (map x xij))
+----
 
-        -> (stream (tuple ((a1 x1) ... (an xn) (a1_old x1) ... (an_old xn)(TID tid))))
+(stream X) (rel X) ((ai1 (map x xi1)) ... (aij (map x xij))
 
-        where X = (tuple ((a1 x1) ... (an xn))) and ai1 - aij in (a1 .. an)
+-> (stream (tuple ((a1 x1) ... (an xn) (a1_old x1) ... (an_old xn)(TID tid))))
+
+ where X = (tuple ((a1 x1) ... (an xn))) and ai1 - aij in (a1 .. an)
+
+
 ----
 
 */
@@ -2084,10 +2109,12 @@ Operator extrelupdatedirect (
 2.18 Operator ~updatesearch~
 
 For each input-tuple searches for tuples in the relation with the same values
-as the input-tuple. Each found tuple is updated by  replacing the attribute-values of the attributes given by their names in the
-function-argumentlist with the new values received from the corresponding functions.
-The updated tuple is made persistent and as the resultstream tuples are returned that contain the new
-values in first places, then all old values and finally the TupleIdentifier of the updated tuple.
+as the input-tuple. Each found tuple is updated by  replacing the 
+attribute-values of the attributes given by their names in the
+function-argumentlist with the new values received from the corresponding 
+functions.  The updated tuple is made persistent and as the resultstream 
+tuples are returned that contain the new values in first places, then all 
+old values and finally the TupleIdentifier of the updated tuple.
 
 2.18.1 Type mapping function of operator ~updatesearch~
 
@@ -2354,20 +2381,25 @@ given by their names in the function-argumentlist with the new values received
 from the functions. Precondition is that the tuples of the input stream
 originally belong to the relation that shall be updated.  The updated tuple is
 made persistent and as the resultstream tuples are returned that contain the
-new values in first places, then all old values and finally the tuple identifier (TID)
-of the updated tuple. Additionally, the resulting tuples are stored in an auxiliary
-relation given as the third argument
+new values in first places, then all old values and finally the tuple 
+identifier (TID) of the updated tuple. Additionally, the resulting tuples are 
+stored in an auxiliary relation given as the third argument
 
-2.18.0  General Type mapping functions of operators ~updatedirectsave~ and ~updatesearchsave~
+2.18.0  General Type mapping functions of operators ~updatedirectsave~,
+         and ~updatesearchsave~
 
 Type mapping for ~updatedirectsave~ and ~updatesearchsave~ is
 
-----     (stream X) (rel X) (rel(tuple ((a1 x1) ... (an xn) (a1_old x1) ... (an_old xn)(TID tid))))
-     ((ai1 (map x xi1)) ... (aij (map x xij)))
+----   
 
-        -> (stream (tuple ((a1 x1) ... (an xn) (a1_old x1) ... (an_old xn)(TID tid))))
 
-        where X = (tuple ((a1 x1) ... (an xn))) and i1, ..., ij in {1, ... , n}
+(stream X) (rel X) (rel(tuple ((a1 x1) ... (an xn) (a1_old x1) 
+... (an_old xn)(TID tid)))) ((ai1 (map x xi1)) ... (aij (map x xij)))
+
+  -> (stream (tuple ((a1 x1) ... (an xn) (a1_old x1) ... (an_old xn)(TID tid))))
+
+  where X = (tuple ((a1 x1) ... (an xn))) and i1, ..., ij in {1, ... , n}
+
 ----
 
 */
@@ -2806,7 +2838,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       // fill hashtable
       iter = relation->MakeScan();
       nextTup = iter->GetNextTuple();
-      while (!iter->EndOfScan())
+      while (nextTup)
       {
         hashValue = 0;
         for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
@@ -2816,9 +2848,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
         nextBucket =
           localTransport->getBucket(hashValue);
         nextBucket->push_back(nextTup);
-        if(!iter->EndOfScan()){  
-            nextTup = iter->GetNextTuple();
-        }
+        nextTup = iter->GetNextTuple();
       }
       delete iter;
 
@@ -3585,12 +3615,16 @@ Operator extrelupdatebyid (
 /*
 7.3 Operator ~insertrtree~
 
-For each tuple of the inputstream inserts an entry into the rtree. The entry is built from the
-spatial-attribute over which the tree is built and the tuple-identifier wich is extracted from the
-input-tuples as the last attribute. The inputstream is returned again as the result of this operator.
+For each tuple of the inputstream inserts an entry into the rtree. 
+The entry is built from the
+spatial-attribute over which the tree is built and the 
+tuple-identifier wich is extracted from the
+input-tuples as the last attribute. The inputstream is returned 
+again as the result of this operator.
 
 
-7.3.0 General Type mapping function of operators ~insertrtree~, ~deletertree~ and ~updatertree~
+7.3.0 General Type mapping function of operators ~insertrtree~, ~deletertree~,
+       and ~updatertree~
 
 
 
@@ -3606,11 +3640,16 @@ Type mapping ~insertrtree~ and ~deletertree~ on a rtree
 
 Type mapping ~updatertree~ on a rtree
 
-----     (stream (tuple ((a1 x1) ... (an xn)(a1_old x1)... (an_old xn) (TID tid)))) (rtree X ti) ai
+----     
 
-        -> (stream (tuple ((a1 x1) ... (an xn)(a1_old x1) (an_old xn) (TID tid))))
+(stream (tuple ((a1 x1) ... (an xn)(a1_old x1)... (an_old xn) (TID tid))))
+ (rtree X ti) ai
 
-        where X = (tuple ((a1 x1) ... (an xn)))
+-> (stream (tuple ((a1 x1) ... (an xn)(a1_old x1) (an_old xn) (TID tid))))
+
+where X = (tuple ((a1 x1) ... (an xn)))
+
+
 ----
 
 */
@@ -3989,9 +4028,11 @@ Operator insertrtree (
 /*
 7.4 Operator ~deletertree~
 
-For each tuple of the inputstream removes an entry from the rtree. The entry is built from the
-spatial-attribute over which the tree is built and the tuple-identifier wich is extracted from the
-input-tuples as the last attribute. The inputstream is returned again as the result of this operator.
+For each tuple of the inputstream removes an entry from the rtree.
+ The entry is built from the spatial-attribute over which the tree 
+is built and the tuple-identifier wich is extracted from the
+input-tuples as the last attribute. The inputstream is returned again 
+as the result of this operator.
 
 
 7.4.1 Type mapping function of operator ~deletertree~
@@ -4165,11 +4206,13 @@ Operator deletertree (
 /*
 7.5 Operator ~updatertree~
 
-For each tuple of the inputstream checks if the attribute over which the tree has been built has changed.
-If it has changed the old entry for this tuple is removed and a new one is inserted.
-The entry is built from the spatial-attribute over which the tree is built and the tuple-identifier
-wich is extracted from the input-tuples as the last attribute. The inputstream is returned
-again as the result of this operator.
+For each tuple of the inputstream checks if the attribute over which 
+the tree has been built has changed.  If it has changed the old entry 
+for this tuple is removed and a new one is inserted.
+The entry is built from the spatial-attribute over which the tree is 
+built and the tuple-identifier
+wich is extracted from the input-tuples as the last attribute. 
+The inputstream is returned again as the result of this operator.
 
 
 7.5.1 Type mapping function of operator ~updatertree~
@@ -4360,14 +4403,268 @@ Operator updatertree (
 );
 
 /*
+7.6 Operator ~updatedirect2~
+
+7.6.1 Type Mapping
+
+*/
+ListExpr updatedirect2TM(ListExpr args){
+  string err = "stream(tuple(X)) x rel(tuple(Y)) x AttrName x funlist expected";
+  if(!nl->HasLength(args,4)){
+     return listutils::typeError(err + " (wrong number of args)");
+  }  
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+     return listutils::typeError(err + " (first arg is not a tuple stream)");
+  }
+  if(!Relation::checkType(nl->Second(args))){
+     return listutils::typeError(err + "(second arg is not a relation)");
+  }
+
+  if(nl->AtomType(nl->Third(args)) != SymbolType){
+     return listutils::typeError(err + 
+                                 "(third arg is not a valid attribute name)");
+  }
+
+  string tidName = nl->SymbolValue(nl->Third(args));
+  ListExpr streamTuple = nl->Second(nl->First(args));
+  ListExpr streamAttrList = nl->Second(streamTuple);
+  ListExpr type;
+  int index = listutils::findAttribute(streamAttrList, tidName, type);
+  if(!index){
+    return listutils::typeError("attribute " + tidName + " unknown in stream");
+  }
+  if(!TupleIdentifier::checkType(type)){
+    return listutils::typeError("attribute " + tidName + " not of type tid");
+  }
+
+
+  ListExpr appendList = nl->OneElemList(nl->IntAtom(index-1));
+  ListExpr last = appendList;
+
+  ListExpr funlist = nl->Fourth(args);
+ 
+  if(nl->AtomType(funlist) != NoAtom){
+    return listutils::typeError(err + "fourth arg is not a list of functions");
+  }
+
+  ListExpr relTuple = nl->Second(nl->Second(args));
+  ListExpr relAttrList = nl->Second(relTuple);
+  
+
+  set<string> names;
+  while(!nl->IsEmpty(funlist)){
+    ListExpr fun = nl->First(funlist);
+    funlist = nl->Rest(funlist);
+    if(!nl->HasLength(fun,2)){ // (<name> fundef)
+       return listutils::typeError("invalid function definition found");
+    }
+    ListExpr funName = nl->First(fun);
+    if(nl->AtomType(funName)!=SymbolType){
+       return listutils::typeError("invalid name for function result");
+    }
+    string name = nl->SymbolValue(nl->First(fun));
+    if(names.find(name)!=names.end()){
+       return listutils::typeError("attr " + name + " set twice");
+    }
+    names.insert(name);
+    int rindex  = listutils::findAttribute(relAttrList, name, type);
+    if(rindex ==0){
+      return listutils::typeError("attribute " + name + " not in relation");
+    }
+    last = nl->Append(last,nl->IntAtom(rindex -1));
+    ListExpr fundef = nl->Second(fun);
+    if(!listutils::isMap<2>(fundef)){
+       return listutils::typeError("invalid function definition for " + name );
+    }
+    // check function arguments and result
+    if(!nl->Equal(nl->Second(fundef), streamTuple)){
+       return listutils::typeError("invalid argument type"
+                                   " (1st arg) for function " + name);
+    }
+    if(!nl->Equal(nl->Third(fundef), relTuple)){
+       return listutils::typeError("invalid argument type (2nd arg) for "
+                                   "function " + name);
+    }
+    if(!nl->Equal(nl->Fourth(fundef), type)){
+      return listutils::typeError("function result for " + name + 
+                                  " not equal to the type in relation");
+    }
+  }
+
+  return nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            appendList,
+            nl->First(args));
+}
+
+
+/*
+7.6.2 LocalInfo
+
+*/
+
+class updatedirect2Info{
+
+  public:
+     updatedirect2Info(Word _stream, Relation* _rel, int _tidPos, 
+                       Supplier _funlist, vector<int>& _attrPos): 
+                       stream(_stream), rel(_rel), tidPos(_tidPos), 
+                       funlist(_funlist), attrPos(_attrPos){
+         stream.open();
+         for(size_t i=0;i<attrPos.size();i++){
+             Supplier s1 = qp->GetSupplier(funlist,i);
+             Supplier s2 = qp->GetSupplier(s1,1);
+             funs.push_back(s2);
+             funargs.push_back(qp->Argument(s2));
+         }
+         
+     } 
+  
+    ~updatedirect2Info(){
+       stream.close();
+    }
+
+     Tuple* next(){
+         Tuple*  tuple = stream.request();
+         if(tuple){
+              update(tuple);
+         }
+         return tuple;
+     }
+
+
+
+  private:
+     Stream<Tuple> stream;
+     Relation* rel;
+     int tidPos;
+     Supplier funlist;
+     vector<int> attrPos;
+     vector<Supplier> funs;
+     vector<ArgVectorPointer> funargs;
+
+
+     void update(Tuple* tuple){
+        TupleIdentifier* Tid = (TupleIdentifier*) tuple->GetAttribute(tidPos);
+        if(!Tid->IsDefined()){ // undefined tuple id
+            return;
+        }
+        TupleId tid = Tid->GetTid();
+        if(tid==0){ // invalid tuple id
+           return;
+        }
+        Tuple* relTuple = rel->GetTuple(tid, true);
+        if(!relTuple){ // tuple id not found in relation
+           return;
+        }
+        vector<Attribute*> changes = getChanges(tuple, relTuple);
+        rel->UpdateTuple(relTuple, attrPos, changes);
+        // updateTuple also deletes the tuples in vector
+        relTuple->DeleteIfAllowed();
+     }
+
+     vector<Attribute*> getChanges(Tuple* streamTuple, Tuple* relTuple){
+        vector<Attribute*> res;
+        for(size_t i=0;i<attrPos.size();i++){
+            (*(funargs[i]))[0].addr = streamTuple;
+            (*(funargs[i]))[1].addr = relTuple;
+            Word funres;
+            qp->Request(funs[i],funres);
+            res.push_back(((Attribute*)funres.addr)->Clone());
+        }
+        return res;
+     }
+
+
+};
+
+
+/*
+7.6.3 Value Mapping
+
+*/
+
+int updatedirect2VM(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+
+  updatedirect2Info* li = (updatedirect2Info*) local.addr;
+
+  switch(message){
+     case OPEN : {
+          if(li){
+            delete li;
+          } 
+          Relation* rel = (Relation*) args[1].addr;
+          int tidPos = ((CcInt*) args[4].addr)->GetValue();
+          Supplier funlist = qp->GetSon(s,3);
+          vector<int> repPos;
+          for(int i=5; i< qp->GetNoSons(s); i++){
+               repPos.push_back(((CcInt*) args[i].addr)->GetValue());
+          }
+          assert(repPos.size() == (size_t) qp->GetNoSons(funlist)); 
+          local.addr = new updatedirect2Info(args[0], rel, tidPos, 
+                                             funlist, repPos);
+          return 0;
+     }
+     case REQUEST:
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+     case CLOSE:
+           if(li){
+             qp->SetModified(qp->GetSon(s, 1)); // mark relation to be updated
+             delete li;
+             local.addr =0;
+           }
+           return 0;
+  }
+  return -1; 
+}
+
+/*
+7.6.4 Specification
+
+*/
+
+OperatorSpec updatedirect2Spec(
+  " stream(tuple(X)) x real(tuple(Y)) x attr x funlist -> stream(tuple(X))",
+  "_ _ updatedirect2[ _ ; funlist ] ",
+  "Updates tuples in a relation. The tupleid comes from the first argument"
+  " and is specified by the attr argument. Each tuple is replaced by the "
+  "same tuple but with replaced attributes according to the functions. "
+  "The function may use parts from the stream (dot notation) or from the "
+  "tuple stored in the relation (double dot notation).",
+  "query ten1 feed addid ten1 [TID, No : .No + ..No * 2] count"
+);
+
+/*
+7.6.5 Operator instance
+
+*/
+
+Operator updatedirect2Op(
+  "updatedirect2",
+  updatedirect2Spec.getStr(),
+  updatedirect2VM,
+  Operator::SimpleSelect,
+  updatedirect2TM
+);
+
+
+
+
+
+/*
 
 3 Class ~UpdateRelationAlgebra~
 
 A new subclass ~UpdateRelationAlgebra~ of class ~Algebra~ is declared. The only
 specialization with respect to class ~Algebra~ takes place within the
-constructor: all type constructors and operators are registered at the actual algebra.
+constructor: all type constructors and operators are registered at the actual
+ algebra.
 
-After declaring the new class, its only instance ~extendedRelationAlgebra~ is defined.
+After declaring the new class, its only instance ~extendedRelationAlgebra~ is 
+defined.
 
 */
 
@@ -4398,6 +4695,9 @@ class UpdateRelationAlgebra : public Algebra
     AddOperator( &insertrtree );
     AddOperator( &deletertree );
     AddOperator( &updatertree );
+
+    AddOperator( &updatedirect2Op);
+
   }
   ~UpdateRelationAlgebra() {};
 };

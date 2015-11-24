@@ -30,6 +30,9 @@ operator deletesearchsave alias DELETESEARCHSAVE pattern _ _ _ op
 operator deletedirectsave alias DELETEDIRECTSAVE pattern _ _ _ op
 operator updatesearch alias UPDATESEARCH pattern _ _ op [funlist]implicit parameter tuple type TUPLE
 operator updatedirect alias UPDATEDIRECT pattern _ _ op [funlist]implicit parameter tuple type TUPLE
+
+operator updatedirect2 alias UPDATEDIRECT2 pattern _ _ op [ _ ; funlist ] implicit parameters tuple1, tuple2 types TUPLE, TUPLE2
+
 operator updatesearchsave alias UPDATESEARCHSAVE pattern _ _ _ op [funlist]implicit parameter tuple type TUPLE
 operator updatedirectsave alias UPDATEDIRECTSAVE pattern _ _ _ op [funlist]implicit parameter tuple type TUPLE
 operator addid alias ADDID pattern _ op
