@@ -2264,7 +2264,8 @@ int TMatchIndexLI::getNoComponents(const TupleId tId, const int attrNo) {
 
 */
 void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
-              indexInfo, pair<Word, SetRel> values, vector<Periods*> &result) {
+              indexInfo, pair<Word, SetRel> values, vector<Periods*> &prev,
+              vector<Periods*> &result, bool checkPrev /* = false */) {
   vector<set<int> > temp1, temp2;
   temp1.resize(rel->GetNoTuples() + 1);
   temp2.resize(rel->GetNoTuples() + 1);
@@ -2305,15 +2306,22 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
     temp2.clear();
     temp2.resize(rel->GetNoTuples() + 1);
   }
-  cout << "periods created for id ";
-  for (int i = 1; i <= rel->GetNoTuples(); i++) {
-    if (!temp1[i].empty()) {
-      result[i] = new Periods(0);
-      cout << i << " ";
-      unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
+  if (!checkPrev) {
+    for (int i = 1; i <= rel->GetNoTuples(); i++) {
+      if (!temp1[i].empty()) {
+        result[i] = new Periods(0);
+        unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
+      }
     }
   }
-  cout << endl;
+  else { // create periods iff necessary
+    for (int i = 1; i <= rel->GetNoTuples(); i++) {
+      if (!temp1[i].empty() && prev[i]) {
+        result[i] = new Periods(0);
+        unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
+      }
+    }
+  }
 }
 
 /*
@@ -2403,7 +2411,7 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
     if (!intersect && it->second.second != -1 && 
         atom.values[pos].first.addr != 0) {
       cout << "call gRFAP for attr " << it->first << endl;
-      getResultForAtomPart(*it, atom.values[pos], periods);
+      getResultForAtomPart(*it, atom.values[pos], temp, periods);
       intersect = true;
 //       cout << atom.values.size() << "values, after " << it->first << ", pos "
 //            << pos << ": ";
@@ -2414,12 +2422,11 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
     }
     else {
       if (it->second.second != -1 && atom.values[pos].first.addr != 0) {
-        cout << "call gRFAP for attr " << it->first << endl;
-        getResultForAtomPart(*it, atom.values[pos], temp);
+        cout << "call xgRFAP for attr " << it->first << endl;
+        getResultForAtomPart(*it, atom.values[pos], periods, temp, true);
         for (int i = 1; i <= rel->GetNoTuples(); i++) {
           if (periods[i] && temp[i]) {
             periods[i]->Intersection(*temp[i], tmp);
-            periods[i]->Clear();
             periods[i]->CopyFrom(&tmp);
             tmp.Clear();
             temp[i]->DeleteIfAllowed();
@@ -2438,22 +2445,19 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
       pos++;
     }
   } // index information collected into result
-  cout << "delete periods for id ";
   for (int i = 1; i <= rel->GetNoTuples(); i++) {
     periodsToUnits(periods[i], i, result[i]);
     if (periods[i]) {
-      cout << i;
       periods[i]->DeleteIfAllowed();
-      cout << " ................. ok";
     }
     if (!result[i].empty()) {
       indexResult[atomNo][pred].succ = i; // refresh successor of predecessor
+      
       indexResult[atomNo][i].units.insert(result[i].begin(), result[i].end());
       indexResult[atomNo][i].pred = pred;
       pred = i;
     }
   }
-  cout << endl;
   indexResult[atomNo][pred].succ = 0; // set successor to 0 for final id
   cout << "index result for atom " << atomNo << " stored" << endl;
 }
@@ -2468,21 +2472,20 @@ void TMatchIndexLI::initMatchInfo() {
        it++) {
 //     cout << "removed ids ";
     p->getElem(*it, atom);
-    TupleId oldId = 0;
+    int oldId = 0;
     if (atom.isRelevantForTupleIndex()) {
-      TupleId id = indexResult[*it][0].succ; // first active tuple id
+      int id = indexResult[*it][0].succ; // first active tuple id
       if (id == 0) { // no index result
         cout << "no index result for crucial atom, EXIT " << *it << endl;
         return;
       }
       while (id > 0) {
-        for (TupleId i = oldId + 1; i < id; i++) {
+        for (int i = oldId + 1; i < id; i++) {
           removeIdFromIndexResult(i);
           active[i] = false;
-//           cout << i << ",";
         }
         oldId = id;
-        id = indexResult[*it][id].succ;
+        id = indexResult[*it][oldId].succ;
       }
       for (int i = oldId + 1; i <= rel->GetNoTuples(); i++) {
         removeIdFromIndexResult(i);
@@ -4045,64 +4048,24 @@ void IndexMatchSuper::periodsToUnits(const Periods *per, const TupleId tId,
     cout << "undefined periods!" << endl;
     return;
   }
-  Interval<Instant> iv;
-  Tuple *t = rel->GetTuple(tId, false);
-  int start, end;
   switch (mtype) {
     case MLABEL: {
-      MLabel *traj = (MLabel*)t->GetAttribute(attrNo);
-      for (int i = 0; i < per->GetNoComponents(); i++) {
-        per->Get(i, iv);
-        start = traj->Position(iv.start);
-        end = traj->Position(iv.end);
-        for (int j = start; j <= end; j++) {
-          units.insert(j);
-        }
-      }
-      traj->DeleteIfAllowed();
+      periodsToUnits<MLabel>(per, tId, units);
       break;
     }
     case MLABELS: {
-      MLabels *traj = (MLabels*)t->GetAttribute(attrNo);
-      for (int i = 0; i < per->GetNoComponents(); i++) {
-        per->Get(i, iv);
-        start = traj->Position(iv.start);
-        end = traj->Position(iv.end);
-        for (int j = start; j <= end; j++) {
-          units.insert(j);
-        }
-      }
-      traj->DeleteIfAllowed();
+      periodsToUnits<MLabels>(per, tId, units);
       break;
     }
     case MPLACE: {
-      MPlace *traj = (MPlace*)t->GetAttribute(attrNo);
-      for (int i = 0; i < per->GetNoComponents(); i++) {
-        per->Get(i, iv);
-        start = traj->Position(iv.start);
-        end = traj->Position(iv.end);
-        for (int j = start; j <= end; j++) {
-          units.insert(j);
-        }
-      }
-      traj->DeleteIfAllowed();
+      periodsToUnits<MPlace>(per, tId, units);
       break;
     }
     case MPLACES: {
-      MPlaces *traj = (MPlaces*)t->GetAttribute(attrNo);
-      for (int i = 0; i < per->GetNoComponents(); i++) {
-        per->Get(i, iv);
-        start = traj->Position(iv.start);
-        end = traj->Position(iv.end);
-        for (int j = start; j <= end; j++) {
-          units.insert(j);
-        }
-      }
-      traj->DeleteIfAllowed();
+      periodsToUnits<MPlaces>(per, tId, units);
       break;
     }
   }
-//   t->DeleteIfAllowed();
 }
 
 /*

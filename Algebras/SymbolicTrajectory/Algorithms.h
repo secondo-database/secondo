@@ -990,6 +990,8 @@ class IndexMatchSuper {
   int getTrajSize(const TupleId tId, const DataType type);
   void getInterval(const TupleId tId, const int pos, SecInterval& iv);
   void periodsToUnits(const Periods *per, const TupleId tId, set<int> &units);
+  template<class M>
+  void periodsToUnits(const Periods *per, const TupleId tId, set<int> &units);
   void removeIdFromIndexResult(const TupleId id);
   void clearMatchInfo();
   bool hasIdIMIs(const TupleId id, const int state = -1);
@@ -1028,7 +1030,8 @@ class TMatchIndexLI : public IndexMatchSuper {
   template<class M, class U>
   void unitsToPeriods(Attribute *traj, const set<int> &units, Periods *per);
   void getResultForAtomPart(pair<int, pair<IndexType, int> > indexInfo, 
-                          pair<Word, SetRel> values, vector<Periods*> &result);
+                          pair<Word, SetRel> values, vector<Periods*> &prev,
+                          vector<Periods*> &result, bool checkPrev = false);
   bool getResultForAtomTime(const int atomNo, vector<Periods*> &result);
   void storeIndexResult(int atomNo);
   void initMatchInfo();
@@ -5141,6 +5144,34 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
     }
   }
   return false;
+}
+
+/*
+\subsection{Function ~periodsToUnits~}
+
+*/
+template<class M>
+void IndexMatchSuper::periodsToUnits(const Periods *per, const TupleId tId,
+                                     set<int> &units) {
+  int start, end;
+  Interval<Instant> iv;
+  Tuple *t = rel->GetTuple(tId, false);
+  M *traj = (M*)t->GetAttribute(attrNo);
+  for (int i = 0; i < per->GetNoComponents(); i++) {
+    per->Get(i, iv);
+    start = traj->Position(iv.start);
+    end = traj->Position(iv.end);
+    if (start == -1 && end >= 0) {
+      start = 0;
+    }
+    else if (end == -1 && start >= 0) {
+      end = getTrajSize(tId, mtype) - 1;
+    }
+    for (int j = start; j <= end; j++) {
+      units.insert(units.end(), j);
+    }
+  }
+  t->DeleteIfAllowed();
 }
 
 /*
