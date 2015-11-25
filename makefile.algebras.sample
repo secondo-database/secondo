@@ -71,6 +71,9 @@ ALGEBRAS     += StreamAlgebra
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     += FunctionAlgebra
 
+ALGEBRA_DIRS += Guide
+ALGEBRAS     += GuideAlgebra
+
 # required by outerjoin operators in the ExtRelationAlgebra:
 ALGEBRA_DIRS += Hash
 ALGEBRAS     += HashAlgebra
