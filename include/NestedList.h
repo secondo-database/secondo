@@ -218,6 +218,8 @@ The operations are defined below.
 #include <string>
 #include <iostream>
 #include <cmath>
+#include <string.h>
+#include <sstream>
 
 #include <assert.h>
 
