@@ -37,6 +37,7 @@ June 2009 Sven Jungnickel new function MakeTemp() added.
 */
 
 
+#include "SecondoException.h"
 #include "SecondoConfig.h"
 #include <iostream>
 #include <cassert>

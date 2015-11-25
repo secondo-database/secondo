@@ -329,7 +329,6 @@ private:
 };
 
 
-extern unsigned int FileCtr;    // quick and dirty, sorry!
 
 template<class T>
 class PagedArray

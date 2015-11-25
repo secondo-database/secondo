@@ -234,16 +234,11 @@ file CTable.h. If you change code in the nested list module take care that it
 works with both implementaions.
 
 */
-#ifdef NL_PERSISTENT
-#ifndef CTABLE_PERSISTENT
-#define CTABLE_PERSISTENT
-#endif
-#endif
 
 #include <errno.h>
 #include <float.h>
 
-#include "CTable.h"
+#include "../Tools/BigArray/BigArray.h"
 #include "SecondoSMI.h"
 
 #ifdef THREAD_SAFE
@@ -289,6 +284,7 @@ Is an enumeration of the different node types of a nested list.
 
 */
 
+typedef unsigned long Cardinal;
 typedef Cardinal NodesEntry;
 typedef Cardinal IntsEntry;
 typedef Cardinal StringsEntry;
@@ -332,8 +328,8 @@ such a scan. ~currentFragment~ is a pointer to a (valid) entry in the table
 
 */
 
-const unsigned char STRINGSIZE = 16;
-const unsigned char MAX_STRINGSIZE = 3 * STRINGSIZE;
+const unsigned char STRINGSIZE = 24;
+const unsigned char MAX_STRINGSIZE = 2 * STRINGSIZE;
 const unsigned char StringFragmentSize = STRINGSIZE - sizeof(StringsEntry);
 const unsigned char STRING_INTERNAL_SIZE = 2*sizeof(TextsEntry);
 
@@ -1113,7 +1109,8 @@ Afterwards you can easily iterate over the atoms.
   const string ReportTableSizes( const bool onOff,
                                  const bool prettyPrint = false ) const;
   const string ReportTableStates() {
-    return ( "Nodes: " + nodeTable->StateToStr() + "\n" );
+    return "TableStates not available";
+    //return ( "Nodes: " + nodeTable->StateToStr() + "\n" );
   }
   static string SizeOfStructs();
 
@@ -1123,7 +1120,7 @@ private CTable members and the underlying vector classes.
 
 */
 
-  static const bool IsPersistentImpl() { return isPersistent; }
+  static const bool IsPersistentImpl() { return true; }
   string MemoryModel();
 
 
@@ -1177,7 +1174,7 @@ Copies a nested list from ~this~ instance to the target instance.
 #ifdef THREAD_SAFE
    mutable boost::recursive_mutex mtx;
 #endif
-
+   string basename;
 
 
 
@@ -1328,12 +1325,12 @@ prototypes for functions used for the binary encoding/decoding of lists
 
   // the internal represenatation of lists
 
-  CTable<StringRecord> *stringTable; // storage for strings
+  BigArray<StringRecord> *stringTable; // storage for strings
   string StringSymbolValue( const ListExpr atom ) const;
 
-  CTable<NodeRecord>   *nodeTable;   // storage for nodes
+  BigArray<NodeRecord>   *nodeTable;   // storage for nodes
 
-  CTable<TextRecord>   *textTable  ; // storage for text atoms
+  BigArray<TextRecord>   *textTable  ; // storage for text atoms
 
   static bool          doDestroy;
   static const bool    isPersistent;

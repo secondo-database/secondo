@@ -57,6 +57,11 @@ this for bug-fixing.
 
 template<typename T>
 size_t CTable<T>::noInstances = 0;
+#ifdef THREAD_SAFE
+template<typename T>
+boost::recursive_mutex  CTable<T>::smtx;
+#endif
+
 
 
 template<typename T>
@@ -72,6 +77,9 @@ CTable<T>::CTable(  Cardinal const count ) :
  leastFree(1),  
  highestValid(0), last(0)
 {
+ #ifdef THREAD_SAFE
+ boost::lock_guard<boost::recursive_mutex> guard(smtx);
+ #endif
 
   instanceID = noInstances++;
   CalcSlotSize();

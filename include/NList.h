@@ -35,6 +35,8 @@ April 2006, M. Spiekermann. Helpful functions for type mappings added.
 #include <sstream>
 #include <set>
 
+#include "SecondoException.h"
+
 #include "NestedList.h"
 #include "LogMsg.h"
 

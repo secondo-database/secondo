@@ -251,7 +251,7 @@ Create a Collection of type (vector, set, multiset or undef) with typeInfo.
 */
   Collection::Collection(const CollectionType type, const ListExpr typeInfo,
                                 const int buckets /* = 10 */):
-    ::Attribute(false),
+    Attribute(false),
     size(0), hashValue(0), collType(type),
     elemFLOBDataOffset(0), elemCount(0), elemArrayIndex(0),
     firstElemHashValue(0), nextElemHashValue(0),
@@ -277,7 +277,7 @@ Create a Collection by copying all data from coll.
 
 */
   Collection::Collection(const Collection& coll, const bool empty /* =false */):
-    ::Attribute(false),
+    Attribute(false),
     elemFLOBDataOffset(0), elemCount(0), elemArrayIndex(0),
     firstElemHashValue(0), nextElemHashValue(0), elements(0), elementData(0)
   {
@@ -319,7 +319,7 @@ of our subtype there.
 
 */
   Collection::Collection(CollectionType type):
-    ::Attribute(false),
+    Attribute(false),
     elemAlgId(0), elemTypeId(0), size(0), numOfBuckets(0),
     hashValue(0), collType(type), elemFLOBDataOffset(0),
     elemCount(0), elemArrayIndex(0), firstElemHashValue(0),
@@ -474,12 +474,14 @@ Creates an empty, undefined collection without subtype for the Query Processor.
 #ifdef DEBUGHEAD
 cout << "Create: " << nl->ToString(typeInfo) << endl;
 #endif
+cout << "Create: " << nl->ToString(typeInfo) << endl;
 
  if (nl -> IsEmpty(typeInfo))
    {
 #ifdef DEBUGHEAD
      cout << "returning Empty Collection" << endl;
 #endif
+     cout << "returning Empty Collection" << endl;
      return (SetWord(new Collection(undef))); // create an undefined collection
    }
 
@@ -495,6 +497,7 @@ cout << "Create: " << nl->ToString(typeInfo) << endl;
 #ifdef DEBUG
       cout << "  Statusbericht Create: ohne Subtyp!" << endl;
 #endif
+      cout << "  Statusbericht Create: ohne Subtyp!" << endl;
       collTypeInfo = typeInfo;
     } else {
       collTypeInfo = nl->First(typeInfo);
@@ -505,6 +508,7 @@ cout << "Create: " << nl->ToString(typeInfo) << endl;
 #ifdef DEBUG
       cout << "  Statusbericht Create: undefiniert!" << endl;
 #endif
+      cout << "  Statusbericht Create: undefiniert!" << endl;
       return w;
     }
 

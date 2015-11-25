@@ -243,31 +243,5 @@ private:
 extern CMsg cmsg;
 
 
-/*
-A Base class for Exceptions. All specific exception classes should be inherit
-this class.
-
-*/
-
-
-class SecondoException : public exception {
-
-  public:
-  SecondoException() : msgStr("Unknown Error") {}
-  SecondoException(const string& Msg) : exception(), msgStr(Msg) {}
-  SecondoException(const SecondoException& rhs) : 
-    exception(), msgStr(rhs.msgStr) {}
-  virtual ~SecondoException() throw() {}
-
-  virtual const char* what() const throw()
-  {
-    return ("Secondo-Exception: " + msgStr).c_str();
-  }
-  const string msg() { return msgStr; }
-  
-  protected:
-    string msgStr;
-};
-
 
 #endif

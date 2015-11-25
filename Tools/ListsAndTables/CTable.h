@@ -557,6 +557,9 @@ private:
   #ifdef THREAD_SAFE
    boost::recursive_mutex mtx;
   #endif
+  #ifdef THREAD_SAFE
+   static boost::recursive_mutex smtx;
+  #endif
 
 
   inline bool OutOfRange(Cardinal const n) { // check if a valid slot is used

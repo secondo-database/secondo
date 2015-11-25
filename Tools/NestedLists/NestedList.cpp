@@ -143,11 +143,7 @@ bool NestedList::doDestroy = false;
 size_t NestedList::NLinstance = 0;
 
 
-#ifdef CTABLE_PERSISTENT
 const bool NestedList::isPersistent = true;
-#else
-const bool NestedList::isPersistent = false;
-#endif
 
 /*
 This constant defines whether the ~Destroy~ method really destroys a
@@ -163,10 +159,15 @@ you comment out the line below.
 //#define COMPILE_DESTROY
 
 
+
+#ifdef THREAD_SAFE
+   boost::mutex smtx;
+#endif
+
 NestedList::NestedList( SmiRecordFile* ptr2RecFile )
 {
 #ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
+   boost::lock_guard<boost::mutex> guard1(smtx);
 #endif
   assert( sizeof(float) == 4);
   // How can we convert a N byte floating point representation
@@ -180,6 +181,10 @@ NestedList::NestedList( SmiRecordFile* ptr2RecFile )
 
   setMem(1024, 512, 512);
   initializeListMemory();
+
+  stringstream ss;
+  ss << "TMP_NESTED_LIST_" << WinUnix::getpid() << "_" << instanceNo;
+  basename = ss.str();
 }
 
 
@@ -238,9 +243,14 @@ NestedList::initializeListMemory()
    //cout << endl << "### NestedList::initializeListMemory" << endl;
    DeleteListMemory();
 
-   nodeTable   = new CTable<NodeRecord>(nodeEntries);
-   stringTable = new CTable<StringRecord>(stringEntries);
-   textTable   = new CTable<TextRecord>(textEntries);
+   nodeTable   = BigArray<NodeRecord>::newInstance(basename+"_nodes",
+                                                   nodeEntries,true);
+   stringTable = BigArray<StringRecord>::newInstance(basename+"_strings",
+                                                     nodeEntries,true);
+   textTable   = BigArray<TextRecord>::newInstance(basename+"_texts",
+                                                   nodeEntries,true);
+
+
    typeError = SymbolAtom("typeerror");
    errorList = OneElemList( SymbolAtom("ERRORS") );
 }
@@ -251,8 +261,8 @@ NestedList::MemoryModel() {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-
-   return nodeTable->MemoryModel();
+   return "BigArray" ;
+  //   return nodeTable->MemoryModel();
 }
 
 
@@ -676,226 +686,6 @@ struct CopyStackRecord
   NodesStacked ns;
   ListExpr le;
 };
-
-
-#undef COMPILE_SOPH_COPY_IMPL
-
-const ListExpr
-NestedList::SophisticatedCopy( const ListExpr list,
-                               const NestedList* target ) const
-{
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
-  ListExpr result = 0;
-#ifdef COMPILE_SOPH_COPY_IMPL
-  stack<CopyStackRecord*> nodeRecordStack;
-  ListExpr newnode = 0;
-  CTable<NodeRecord> *pnT_target = target->nodeTable;
-  CTable<StringRecord>  *psT_target = target->stringTable;
-
-
-  if (list == 0)
-    return 0;
-
-  if( IsEmpty( list ) )
-    return TheEmptyList();
-
-  NodeRecord nodeRec1;
-  nodeTable->Get(list, nodeRec1);
-  CopyStackRecord *sr = new CopyStackRecord( nodeRec1 );
-  nodeRecordStack.push( sr );
-
-  while( !nodeRecordStack.empty() )
-  {
-    CopyStackRecord *sr = nodeRecordStack.top();
-
-    switch (sr->nr.nodeType)
-    {
-      case IntType:
-      case RealType:
-      case BoolType:
-      {
-        //cout << "CONST ";
-        assert( sr->ns == None );
-        ListExpr newconst = 0;
-
-        // create a new constant and node records in the target list.
-        Constant const1;
-        NodeRecord nodeRec3;
-
-        intTable->Get(sr->nr.a.index, const1);
-        newconst = target->intTable->Add( const1 );
-        newnode = pnT_target->Add( sr->nr );
-        pnT_target->Get(newnode, nodeRec3);
-        nodeRec3.a.index = newconst;
-        pnT_target->Put(newnode, nodeRec3);
-
-        delete sr;
-        nodeRecordStack.pop();
-        result = newnode;
-        break;
-      }
-
-      case StringType:
-      case SymbolType:
-      {
-        //cout << "STR_SYM ";
-        assert( sr->ns == None );
-        StringRecord sRec;
-        NodeRecord nodeRec4;
-
-        ListExpr sCurrent = sr->nr.s.first;
-        ListExpr newnode = pnT_target->EmptySlot();
-        stringTable->Get(sCurrent, sRec);
-        ListExpr newfirst = target->stringTable->Add(sRec);
-
-        pnT_target->Get(newnode, nodeRec4);
-        nodeRec4.s.first = newfirst;
-        nodeRec4.s.strLength = sr->nr.s.strLength;
-        pnT_target->Put(newnode, nodeRec4);
-
-        Cardinal snext=0;
-        while ( (snext = (*textTable)[sCurrent].next) != 0 )
-        {
-          StringRecord sRec1, sRec2;
-
-          ListExpr newStr = psT_target->EmptySlot();
-          stringTable->Get(snext, sRec1);
-          sRec2 = sRec1;
-          sRec2.next = newStr;
-          psT_target->Put(newStr, sRec2);
-
-          sCurrent = snext;
-        }
-
-        delete sr;
-        nodeRecordStack.pop();
-        result = newnode;
-        break;
-      }
-
-
-      case TextType:
-      {
-        //cout << "TEXT ";
-        ListExpr newtext=0, newstart=0, tnext=0, tlast=0;
-        TextRecord tRec;
-        NodeRecord nodeRec5;
-
-        newnode = pnT_target->Add(sr->nr);
-        textTable->Get(sr->nr.t.start, tRec);
-        newstart = target->textTable->Add(tRec);
-
-        pnT_target->Get(newnode, nodeRec5);
-        nodeRec5.t.start = newstart;
-        nodeRec5.t.last = newstart;
-
-        ListExpr tCurrent = sr->nr.t.start;
-        while ( (tnext = (*textTable)[tCurrent].next) != 0 )
-        {
-          TextRecord tRec1, tRec2, tRec3;
-
-          textTable->Get(tnext, tRec1);
-          newtext = target->textTable->Add(tRec1);
-          target->textTable->Get(newtext, tRec2);
-          tRec2.next = 0;
-          tlast = nodeRec5.t.last;
-          target->textTable->Get(tlast, tRec3);
-          tRec3.next = newtext;
-          nodeRec5.t.last = newtext;
-          tCurrent = tnext;
-
-          target->textTable->Put(tlast, tRec3);
-          target->textTable->Put(newtext, tRec2);
-        }
-        pnT_target->Put(newnode, nodeRec5);
-
-        delete sr;
-        nodeRecordStack.pop();
-        result = newnode;
-        break;
-      }
-
-      case NoAtom:
-      {
-        //cout << "NOATOM ";
-
-        if( sr->ns == None )
-        {
-
-          newnode = pnT_target->Add( sr->nr );
-          sr->le = newnode;
-          if( sr->nr.n.left )
-          {
-            NodeRecord nodeRec6;
-            //cout << "none.left ";
-            sr->ns = Left;
-            nodeTable->Get(sr->nr.n.left, nodeRec6);
-            sr = new CopyStackRecord( nodeRec6 );
-            nodeRecordStack.push( sr );
-          }
-          else if( sr->nr.n.right )
-          {
-            NodeRecord nodeRec6a;
-            //cout << "none.right ";
-            sr->ns = Right;
-            nodeTable->Get(sr->nr.n.right, nodeRec6a);
-            sr = new CopyStackRecord( nodeRec6a );
-            nodeRecordStack.push( sr );
-          }
-          else
-          {
-            //cout << "none.none ";
-            result = sr->le;
-            delete sr;
-            nodeRecordStack.pop();
-          }
-        }
-        else if( sr->ns == Left )
-        {
-          NodeRecord nodeRec7;
-          pnT_target->Get(sr->le, nodeRec7);
-          nodeRec7.n.left = result;
-          pnT_target->Put(sr->le, nodeRec7);
-
-          if( sr->nr.n.right )
-          {
-            //cout << "left.right ";
-            NodeRecord nodeRec7a;
-            sr->ns = Both;
-            nodeTable->Get(sr->nr.n.right, nodeRec7a);
-            sr = new CopyStackRecord( nodeRec7a );
-            nodeRecordStack.push( sr );
-          }
-          else
-          {
-            //cout << "left.none ";
-            result = sr->le;
-            delete sr;
-            nodeRecordStack.pop();
-          }
-        }
-        else if( sr->ns == Right || sr->ns == Both )
-        {
-          //cout << "left.right-or-both ";
-          NodeRecord nodeRec8;
-          pnT_target->Get(sr->le, nodeRec8);
-          nodeRec8.n.right = result;
-          pnT_target->Put(sr->le, nodeRec8);
-
-          result = sr->le;
-          delete sr;
-          nodeRecordStack.pop();
-        }
-        break;
-      }
-    }
-  }
-  assert( result != 0 );
-#endif
-  return result;
-}
 
 
 const ListExpr
@@ -2788,10 +2578,16 @@ NestedList::ReportTableSizes( const bool onOff,
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
+
+  return "not avalibale"; 
+
+  /*
   string msg = "";
   const int tables=2;
   Cardinal pageChanges[tables], memSize[tables], slotAccess[tables];
 
+
+ 
   nodeTable->TotalMemory(memSize[0], pageChanges[0], slotAccess[0]);
   stringTable->TotalMemory(memSize[1], pageChanges[1], slotAccess[1]);
 
@@ -2830,6 +2626,8 @@ NestedList::ReportTableSizes( const bool onOff,
   Counter::getRef("NL:Str_usedBytes", onOff) = memSize[1];
 
   return msg;
+
+  */
 }
 
 const double Tolerance::MINERR = 1e-10;
