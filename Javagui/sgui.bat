@@ -10,6 +10,6 @@ LIBPATH=lib;%JAVA3DLIB%
 set  HEAP=-Xmx1024M
 
 
-java  %HEAP% -Djava.library.path=%LIBPATH%  %FEF% -classpath %CP% gui.MainWindow
+java  %HEAP% -Djava.library.path=%LIBPATH%  %FEF% -classpath %CP% gui.MainWindow %*
 
 
