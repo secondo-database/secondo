@@ -315,12 +315,12 @@ public class MP3V extends SecondoViewer
     /* create a new JButton with an icon and which sends an
        ActionCommand to its owner. A help method to build
        up  the layout of the viewer. */
-    private JButton newJButton(String message, String icon) {
-    ImageIcon ii = new ImageIcon(icon);
-    JButton result = new JButton(ii);
-    result.setActionCommand(message);
-    result.addActionListener(this);
-    return result;
+
+    private JButton newJButton(String message, ImageIcon ii) {
+       JButton result = new JButton(message, ii);
+       result.setActionCommand(message);
+       result.addActionListener(this);
+       return result;
     }
 
     /* create a new JList with no elements and which
@@ -476,9 +476,9 @@ public class MP3V extends SecondoViewer
     // north component
     add(
         newJToolBarJPanel(new Component[] {
-        PauseButton = new JButton("play",
+        PauseButton = newJButton("play",
                      new ImageIcon(ClassLoader.getSystemResource("res/play2.png"))),
-         PlayButton = new JButton ("stop",
+         PlayButton = newJButton ("stop",
                      new ImageIcon(ClassLoader.getSystemResource("res/stop2.png"))),
       positionLabel=new JLabel("")
         }),
