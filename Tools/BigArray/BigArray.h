@@ -320,7 +320,8 @@ size_t BigArray<T>::append(const T& value){
 }
 
 template<class T>
-bool BigArray<T>::Get(size_t index, T& result){
+bool BigArray<T>::Get(size_t index1, T& result){
+    size_t index = index1;
     #ifdef THREAD_SAFE
        boost::lock_guard<boost::recursive_mutex> guard(mtx);
     #endif
@@ -338,7 +339,8 @@ bool BigArray<T>::Get(size_t index, T& result){
 
 
 template<class T>
-void BigArray<T>::Put(size_t index, const T& value){
+void BigArray<T>::Put(size_t index1, const T& value){
+  size_t index = index1;
   #ifdef THREAD_SAFE
      boost::lock_guard<boost::recursive_mutex> guard(mtx);
   #endif
