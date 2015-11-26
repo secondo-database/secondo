@@ -1134,6 +1134,26 @@ void Tools::queryTrie(InvertedFile *inv, pair<string, unsigned int> place,
 }
 
 /*
+\subsection{Function ~queryBtree~}
+
+*/
+void Tools::queryBtree(BTree_t<LongInt> *btree, Interval<CcReal> &iv, 
+                        vector<set<int> > &result) {
+  CcInt *left = new CcInt(true, (int)(floor(iv.start.GetValue())));
+  CcInt *right = new CcInt(true, (int)(ceil(iv.end.GetValue())));
+  BTreeIterator_t<LongInt> *it = btree->Range(left, right);
+  while (it->Next()) {
+    int64_t value = it->GetId().GetValue();
+    int32_t id = (int32_t)(value>>32);
+    int32_t unit = (int32_t)value;
+    result[id].insert(unit);
+  }
+  delete it;
+  left->DeleteIfAllowed();
+  right->DeleteIfAllowed();
+}
+
+/*
 \subsection{Function ~queryRtree1~}
 
 */

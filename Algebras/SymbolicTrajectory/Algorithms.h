@@ -885,8 +885,9 @@ class TupleIndex {
   friend class TMatchIndexLI;
  public:
   TupleIndex() {}
-  TupleIndex(vector<InvertedFile*> t, vector<BTree*> b, vector<RTree1TLLI*> r1,
-    vector<RTree2TLLI*> r2, RTree1TLLI *tI, map<int, pair<IndexType, int> > aI,
+  TupleIndex(vector<InvertedFile*> t, vector<BTree_t<LongInt>*> b,
+             vector<RTree1TLLI*> r1, 
+     vector<RTree2TLLI*> r2, RTree1TLLI *tI, map<int, pair<IndexType, int> > aI,
     map<pair<IndexType, int>, int> iA, int mA);
   TupleIndex(bool dummy) {}
   TupleIndex(TupleIndex &src);
@@ -916,7 +917,8 @@ class TupleIndex {
                              TrieNodeCacheType* trieCache);
   static bool fillTimeIndex(RTree1TLLI* rt, TupleId tid, Attribute *traj,
                             DataType type);
-  static void insertIntoBTree(BTree *bt, TupleId tid, MInt *mint);
+  static void insertIntoBTree(BTree_t<LongInt> *bt, TupleId tid,
+                              MInt *mint);
   static bool insertIntoRTree1(RTree1TLLI *rt, TupleId tid, Attribute *m);
   static bool insertIntoRTree2(RTree2TLLI *rt, TupleId tid, Attribute *m,
                                string type);
@@ -924,7 +926,7 @@ class TupleIndex {
 
  private:
   vector<InvertedFile*> tries;
-  vector<BTree*> btrees;
+  vector<BTree_t<LongInt>*> btrees;
   vector<RTree1TLLI*> rtrees1;
   vector<RTree2TLLI*> rtrees2;
   RTree1TLLI *timeIndex;

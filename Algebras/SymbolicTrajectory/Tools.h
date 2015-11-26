@@ -40,6 +40,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "FTextAlgebra.h"
 #include "BasicTypes.h"
 #include "InvertedFile.h"
+#include "LongInt.h"
  
  using namespace std;
  
@@ -127,6 +128,8 @@ class Tools {
                         vector<set<int> > &result);
   static void queryTrie(InvertedFile *inv, pair<string, unsigned int> place, 
                         vector<set<int> > &result);
+  static void queryBtree(BTree_t<LongInt> *btree, Interval<CcReal> &iv,
+                         vector<set<int> > &result);
   static void queryRtree1(RTree1TLLI *rtree, Interval<CcReal> &iv,
                           vector<set<int> > &result);
   static void queryRtree2(RTree2TLLI *rtree, Rectangle<2> &box,

@@ -1376,8 +1376,8 @@ bool TMatch::findMatchingBinding(const int startState) {
 \subsection{auxiliary Functions for Secondo support}
 
 */
-TupleIndex::TupleIndex(vector<InvertedFile*> t, vector<BTree*> b, 
-  vector<RTree1TLLI*> r1, vector<RTree2TLLI*> r2, RTree1TLLI *tI, 
+TupleIndex::TupleIndex(vector<InvertedFile*> t,vector<BTree_t<LongInt>*> b, 
+                 vector<RTree1TLLI*> r1, vector<RTree2TLLI*> r2, RTree1TLLI *tI,
   map<int, pair<IndexType,int> > aI, map<pair<IndexType,int>, int> iA, int mA) {
   tries = t;
   btrees = b;
@@ -1611,13 +1611,16 @@ bool TupleIndex::Open(SmiRecord& valueRecord, size_t& offset,
   }
   offset += sizeof(unsigned int);
 //   cout << "There are " << noComponents << " btrees, ";
-  tList = sc->NumericType(nl->SymbolAtom(BTree::BasicType()));
+  tList = nl->ThreeElemList(nl->SymbolAtom(BTree::BasicType()), nl->Empty(),
+                           sc->NumericType(nl->SymbolAtom(CcInt::BasicType())));
   for (unsigned int i = 0; i < noComponents; i++) {
-    if (!((BTree*)(val.addr))->Open(valueRecord, offset, tList)) {
+    BTree_t<LongInt> *bt = BTree_t<LongInt>::Open(valueRecord, offset, tList);
+    if (!bt) {
       cout << "error opening btree" << endl;
       return false;
     }
-    ti->btrees.push_back((BTree*)val.addr);
+    ti->btrees.push_back(bt);
+
   }
   if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
     return false;
@@ -1763,7 +1766,7 @@ void TupleIndex::initialize(TupleType *ttype, int _mainAttr) {
     else if (name == "mint") {
       attrToIndex[i] = make_pair(BTREE, (int)btrees.size());
       indexToAttr[make_pair(BTREE, (int)btrees.size())] = i;
-      BTree *btree = new BTree(SmiKey::Integer);
+      BTree_t<LongInt> *btree = new BTree_t<LongInt>(SmiKey::Integer);
       btrees.push_back(btree);
       cout << "BTree for attr " << i << " created and appended" << endl;
     }
@@ -1906,11 +1909,14 @@ bool TupleIndex::fillTimeIndex(RTree1TLLI* rt, TupleId tid, Attribute *traj,
 \subsection{Function ~insertIntoBTree~}
 
 */
-void TupleIndex::insertIntoBTree(BTree *bt, TupleId tid, MInt *mint) {
+void TupleIndex::insertIntoBTree(BTree_t<LongInt> *bt, TupleId tid, MInt *mint){
+  int64_t tid_64(tid);
+  tid_64 = tid_64<<32;
   UInt unit(true);
   for (int i = 0; i < mint->GetNoComponents(); i++) {
     mint->Get(i, unit);
-    bt->Append(unit.constValue.GetValue(), tid);
+    LongInt pos(tid_64 | (uint32_t)i);
+    bt->Append(unit.constValue.GetValue(), pos);
   }
 }
 
@@ -2195,13 +2201,12 @@ bool TMatchIndexLI::getSingleIndexResult(pair<int, pair<IndexType, int> >
         return false; // first access unsuccessful
       }
       range->Get(valueNo, iv);
-     // TODO: Tools::queryBtree(ti->btree[indexInfo.second.second], iv, result);
+      Tools::queryBtree(ti->btrees[indexInfo.second.second], iv, result);
 //       for (unsigned int i = 0; i < result.size(); i++) {
 //         cout << "|" << i << ": " << result[i].size() << " ";
 //       }
 //       cout << endl;
       return range->GetNoComponents() > valueNo + 1;
-      
     }
     case RTREE1: {
 //       cout << "RTREE1, type " << type << ", pos " << indexInfo.second.second 
@@ -2273,9 +2278,6 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
   int valueNo = 0;
 //   vector<set<int> > *ptr(&temp), *ptr2(0);
   bool proceed = getSingleIndexResult(indexInfo, values, valueNo, temp1);
-//   for (unsigned int i = 0; i < result.size(); i++) {
-//     cout << result[i].size() << " ";
-//   }
   set<int> tmp;
   while (proceed) {
     valueNo++;
@@ -2410,7 +2412,7 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
   for (it = ti->attrToIndex.begin(); it != ti->attrToIndex.end(); it++) {
     if (!intersect && it->second.second != -1 && 
         atom.values[pos].first.addr != 0) {
-      cout << "call gRFAP for attr " << it->first << endl;
+//       cout << "call gRFAP for attr " << it->first << endl;
       getResultForAtomPart(*it, atom.values[pos], temp, periods);
       intersect = true;
 //       cout << atom.values.size() << "values, after " << it->first << ", pos "
@@ -2422,7 +2424,7 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
     }
     else {
       if (it->second.second != -1 && atom.values[pos].first.addr != 0) {
-        cout << "call xgRFAP for attr " << it->first << endl;
+//         cout << "call xgRFAP for attr " << it->first << endl;
         getResultForAtomPart(*it, atom.values[pos], periods, temp, true);
         for (int i = 1; i <= rel->GetNoTuples(); i++) {
           if (periods[i] && temp[i]) {
@@ -2459,7 +2461,7 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
     }
   }
   indexResult[atomNo][pred].succ = 0; // set successor to 0 for final id
-  cout << "index result for atom " << atomNo << " stored" << endl;
+//   cout << "index result for atom " << atomNo << " stored" << endl;
 }
 
 /*
@@ -2476,7 +2478,7 @@ void TMatchIndexLI::initMatchInfo() {
     if (atom.isRelevantForTupleIndex()) {
       int id = indexResult[*it][0].succ; // first active tuple id
       if (id == 0) { // no index result
-        cout << "no index result for crucial atom, EXIT " << *it << endl;
+        cout << "no index result for crucial atom " << *it << ", EXIT" << endl;
         return;
       }
       while (id > 0) {
