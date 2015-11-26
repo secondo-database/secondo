@@ -15,7 +15,7 @@ else
 fi
 
 
-echo classpath= $CP
+#echo classpath= $CP
 
 
 LIBPATH=lib$S$JAVA3DLIB
@@ -31,7 +31,7 @@ fi
 
 cmd="$JAVA  $HEAP -Djava.library.path=$LIBPATH  $FEF -classpath $CP gui.MainWindow $* "
 
-echo $cmd
+# echo $cmd
 
 
 $cmd
