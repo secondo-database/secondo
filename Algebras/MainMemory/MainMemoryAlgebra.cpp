@@ -573,7 +573,7 @@ int letmconsume (Word* args, Word& result,
     };
 
     MemoryRelObject* mmRelObject = new MemoryRelObject();
-    succeed = mmRelObject->tupelStreamToRel(args[0],
+    succeed = mmRelObject->tupleStreamToRel(args[0],
         nl->Second(le), getDBname(), flob);
     if (succeed) {
         catalog->insert(res,mmRelObject);
@@ -1195,7 +1195,7 @@ int memlet (Word* args, Word& result,
     if (listutils::isTupleStream(le)){
 
         MemoryRelObject* mmRelObject = new MemoryRelObject();
-            memletsucceed = mmRelObject->tupelStreamToRel(args[1],
+            memletsucceed = mmRelObject->tupleStreamToRel(args[1],
         nl->Second(le), getDBname(), flob);
         if (memletsucceed) {
             catalog->insert(objectName,mmRelObject);
@@ -1464,7 +1464,7 @@ int memupdateValMap (Word* args, Word& result,
         catalog->deleteObject(objectName);
 
         MemoryRelObject* mmRelObject = new MemoryRelObject();
-            memupdatesucceed = mmRelObject->tupelStreamToRel(args[1],
+            memupdatesucceed = mmRelObject->tupleStreamToRel(args[1],
         nl->Second(le), getDBname(), flob);
         if (memupdatesucceed) {
             catalog->insert(objectName,mmRelObject);

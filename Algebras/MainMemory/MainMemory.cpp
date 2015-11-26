@@ -386,7 +386,7 @@ bool MemoryRelObject::relToVector(GenericRelation* r, ListExpr le = 0,
     return true;
 }
 
-bool MemoryRelObject::tupelStreamToRel(Word arg, ListExpr le,
+bool MemoryRelObject::tupleStreamToRel(Word arg, ListExpr le,
                 string _database = "", bool _flob = false){
 
     Stream<Tuple> stream(arg);

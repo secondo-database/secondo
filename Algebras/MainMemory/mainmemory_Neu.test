@@ -543,12 +543,12 @@ query "Roads_Name" "Roads" mrange ["Lütticher Straße", "Lütticher Straße"] c
 #noch andere Testfälle für matchbelow
 
 #testcase matchbelow
-#yields @../Algebras/MainMemory/mm.result2
-#query "Roads30_Name" "Roads30" matchbelow ["Paulstraße"] consume
+#yields @../Algebras/MainMemory/mm.result3
+query "Roads30_Name" "Roads30" matchbelow ["Paulstraße"] consume
 
 #testcase matchbelow(Nordstrasse gibts nicht)
 #yields @../Algebras/MainMemory/mm.result3
-#query "Roads30_Name" "Roads30" matchbelow ["Nordstraße"] consume
+query "Roads30_Name" "Roads30" matchbelow ["Nordstraße"] consume
 
 
 

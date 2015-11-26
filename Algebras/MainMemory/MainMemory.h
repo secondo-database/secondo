@@ -187,7 +187,7 @@ class MemoryRelObject : public MemoryObject {
         bool relToVector(GenericRelation* r, ListExpr le,
                         string _database, bool _flob);
 
-        bool tupelStreamToRel (Word arg, ListExpr le,
+        bool tupleStreamToRel (Word arg, ListExpr le,
                         string _database, bool _flob);
 
         ListExpr toListExpr();
