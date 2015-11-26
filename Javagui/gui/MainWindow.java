@@ -2201,6 +2201,18 @@ public static void main(String[] args){
           argspos++;  
         }
 
+     } else if(args[argspos].equals("--help")){
+         System.out.println("available Options");
+         System.out.println("--help         : show this help text");
+         System.out.println("-u <user>      : set a user name");
+         System.out.println("-s <passwd>    : set a password ");
+         System.out.println("-config <file> : set configuration file (default: gui.cfg)");
+         System.out.println("--testmode     : run in testmode ");
+         System.out.println("--testmode2    : run in testmode version 2");
+         System.out.println("--testrunner   : run in testrunner mode");
+         System.out.println(" ( for testmode see GuiTestmodes.pdf in Documents directory)");
+         System.exit(0);
+
      } else {
          Reporter.writeError("unknown argument "+ args[argspos]); 
          System.exit(1);
