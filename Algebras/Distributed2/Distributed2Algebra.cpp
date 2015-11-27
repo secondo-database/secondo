@@ -665,6 +665,49 @@ class ConnectionInfo{
 
              return ok;
          }
+         
+
+         bool createOrUpdateAttributeFromBinFile(const string& name, 
+                                                const string& filename,
+                                                const bool allowOverwrite=true){
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);
+
+             SecErrInfo serr;
+             ListExpr resList;
+             // transfer file to remote server
+             int error = si->sendFile(filename,filename,true);
+             if(error!=0){
+                return false;
+             } 
+
+             // retrieve folder from which the filename can be read
+             string sendFolder = si->getSendFilePath();
+             
+             string rfilename = sendFolder+"/"+filename;
+             // delete existing object
+
+             string cmd = "delete " + name;
+             if(allowOverwrite){
+                showCommand(si,host,port,cmd,true);
+                si->Secondo(cmd, resList, serr);
+                showCommand(si,host,port,cmd,false);
+             }
+       
+             cmd = "let " + name + " =  loadAttr('" 
+                          + rfilename + "') ";
+
+             showCommand(si,host,port,cmd,true);
+             si->Secondo(cmd, resList, serr);
+             showCommand(si,host,port,cmd,false);
+
+             bool ok = serr.code == 0;
+
+             cmd = "query removeFile('"+rfilename+"')";
+
+             si->Secondo (cmd,resList,serr);
+
+             return ok;
+         }
 
          bool saveRelationToFile(ListExpr relType, Word& value, 
                                  const string& filename){
@@ -692,6 +735,12 @@ class ConnectionInfo{
             out.close();
             delete[] buffer;
             return ok;
+         }
+
+         bool saveAttributeToFile(ListExpr type, Word& value, 
+                                 const string& filename){
+            Attribute* attr = (Attribute*) value.addr;
+            return FileAttribute::saveAttribute(type, attr, filename);
          }
 
          bool storeObjectToFile( const string& objName, Word& value, 
@@ -8067,7 +8116,8 @@ parameter will contain an error message.
 
 */
 
-bool isWorkerRelDesc(ListExpr rel, ListExpr& positions, string& errMsg){
+bool isWorkerRelDesc(ListExpr rel, ListExpr& positions, ListExpr& types,
+                     string& errMsg){
 
   if(!Relation::checkType(rel)){
      errMsg = " not a relation";
@@ -8075,35 +8125,37 @@ bool isWorkerRelDesc(ListExpr rel, ListExpr& positions, string& errMsg){
   }
   ListExpr attrList = nl->Second(nl->Second(rel));
 
-  ListExpr type;
+  ListExpr htype;
 
-  int hostPos = listutils::findAttribute(attrList,"Host",type);
+  int hostPos = listutils::findAttribute(attrList,"Host",htype);
   if(!hostPos){
      errMsg = "Attribute Host not present in relation";
      return false;
   }
-  if(!CcString::checkType(type) && !FText::checkType(type)){
+  if(!CcString::checkType(htype) && !FText::checkType(htype)){
      errMsg = "Attribute Host not of type text or string";
      return false;
   }
   hostPos--;
 
-  int portPos = listutils::findAttribute(attrList,"Port",type);
+  ListExpr ptype;
+  int portPos = listutils::findAttribute(attrList,"Port",ptype);
   if(!portPos){
     errMsg = "Attribute Port not present in relation";
     return false;
   }
-  if(!CcInt::checkType(type)){
+  if(!CcInt::checkType(ptype)){
      errMsg = "Attribute Port not of type int";
      return false;
   }
   portPos--;
-  int configPos = listutils::findAttribute(attrList, "Config", type);
+  ListExpr ctype;
+  int configPos = listutils::findAttribute(attrList, "Config", ctype);
   if(!configPos){
     errMsg = "Attrribute Config not present in relation";
     return false;
   }
-  if(!CcString::checkType(type) && !FText::checkType(type)){
+  if(!CcString::checkType(ctype) && !FText::checkType(ctype)){
      errMsg = "Attribute Config not of type text or string";
      return false;
   }
@@ -8112,6 +8164,7 @@ bool isWorkerRelDesc(ListExpr rel, ListExpr& positions, string& errMsg){
                nl->IntAtom(hostPos),
                nl->IntAtom(portPos),
                nl->IntAtom(configPos));
+  types = nl->ThreeElemList(htype, ptype,ctype);
 
   return true;
 }
@@ -8155,8 +8208,10 @@ ListExpr ddistribute2TMT(ListExpr args){
   }
   //
   ListExpr workerAttrPositions;
+  ListExpr workerAttrTypes;
   string errMsg;
-  if(!isWorkerRelDesc(nl->Fifth(args), workerAttrPositions, errMsg)){
+  if(!isWorkerRelDesc(nl->Fifth(args), workerAttrPositions, 
+                      workerAttrTypes,errMsg)){
      return listutils::typeError("Fifth arg does not describe a valid "
                                  "worker relation: " + errMsg);
   }
@@ -8593,7 +8648,8 @@ ListExpr distribute3TM(ListExpr args){
   }
   ListExpr positions;
   string errMsg;
-  if(!isWorkerRelDesc(nl->Fifth(args),positions, errMsg)){
+  ListExpr types;
+  if(!isWorkerRelDesc(nl->Fifth(args),positions,types, errMsg)){
      return listutils::typeError("fourth argument is not a worker relation:" 
                                  + errMsg);
   }
@@ -8864,7 +8920,8 @@ ListExpr distribute4TMT(ListExpr args){
   }
   string errMsg;
   ListExpr positions;
-  if(!isWorkerRelDesc(nl->Fifth(args),positions,errMsg)){
+  ListExpr types;
+  if(!isWorkerRelDesc(nl->Fifth(args),positions, types, errMsg)){
      return listutils::typeError("fourth arg is not a worker relation: "
                                  + errMsg);
   }
@@ -11572,7 +11629,7 @@ or all user defined connections.
 */
 
 ListExpr shareTM(ListExpr args){
-  string err = "string x bool [x d[f]array] expected";
+  string err = "string x bool {[x d[f]array], rel} expected";
   if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
     return listutils::typeError(err);
   }
@@ -11585,7 +11642,26 @@ ListExpr shareTM(ListExpr args){
   if(nl->HasLength(args,3)){
     if(   !DArray::checkType(nl->Third(args))
        && !DFArray::checkType(nl->Third(args))){
-       return listutils::typeError(err);
+       ListExpr positions;
+       string errmsg;
+       ListExpr types;
+       if(!isWorkerRelDesc(nl->Third(args),positions,types,errmsg)){
+           return listutils::typeError(err);
+       } else {
+           ListExpr appendList = nl->FiveElemList(
+                                   nl->First(positions),
+                                   nl->Second(positions),
+                                   nl->Third(positions),
+                                   nl->BoolAtom(
+                                           CcString::checkType(
+                                                 nl->First(types))),
+                                   nl->BoolAtom(
+                                          CcString::checkType(
+                                                 nl->Third(types))));
+           return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                                    appendList,
+                                    listutils::basicSymbol<FText>());
+       }
     }
   }
   return listutils::basicSymbol<FText>(); 
@@ -11596,15 +11672,21 @@ class shareRunner{
 
  public:
     shareRunner(ConnectionInfo* _ci, const string& _objName, 
-                const string& _fileName, const bool _relation, 
+                const string& _fileName, const bool _relation,
+                const bool _attribute,  
                 int _id, bool _allowOverwrite, successListener* _listener):
             ci(_ci), objName(_objName), fileName(_fileName),relation(_relation),
+            attribute(_attribute),
             id(_id), allowOverwrite(_allowOverwrite), listener(_listener) {}
  
 
     void operator()(){
       if(relation){
          bool r = ci->createOrUpdateRelationFromBinFile(objName, 
+                                                 fileName, allowOverwrite);
+         listener->jobDone(id,r);
+      } else if(attribute){
+         bool r = ci->createOrUpdateAttributeFromBinFile(objName, 
                                                  fileName, allowOverwrite);
          listener->jobDone(id,r);
       } else {
@@ -11626,6 +11708,7 @@ class shareRunner{
      string objName;
      string fileName;
      bool relation;
+     bool attribute;
      int id;
      bool allowOverwrite;
      successListener* listener;
@@ -11708,6 +11791,7 @@ class shareInfo: public successListener{
     set<pair <string, int> > cons;
     string filename;
     bool isRelation;
+    bool isAttribute;
     boost::mutex createFileMutex;
     vector<boost::thread*> runners;
     int failed;
@@ -11739,8 +11823,8 @@ class shareInfo: public successListener{
       if(cons.find(con)==cons.end()){
          cons.insert(con);
          createFile(ci); 
-         shareRunner runner(ci,name,filename, isRelation, cons.size(), 
-                            allowOverwrite, this);
+         shareRunner runner(ci,name,filename, isRelation, isAttribute,
+                             cons.size(), allowOverwrite, this);
          boost::thread * t = new boost::thread(runner);
          runners.push_back(t);
       }
@@ -11751,13 +11835,19 @@ class shareInfo: public successListener{
       cout << "create file" << endl;
       if(!fileCreated){
           cout << "first time" << endl;
+          isAttribute = false;
           isRelation = Relation::checkType(typeList);
           filename = name + "_" + stringutils::int2str(WinUnix::getpid()) 
                      + ".bin";
           if(isRelation){
              ci->saveRelationToFile(typeList, value, filename);
           } else {
-             ci->storeObjectToFile(name, value, typeList, filename); 
+             isAttribute = Attribute::checkType(typeList);
+             if(isAttribute){
+                ci->saveAttributeToFile(typeList, value, filename);
+             } else {
+                ci->storeObjectToFile(name, value, typeList, filename); 
+             }
           }
           fileCreated=true;
       }      
@@ -11771,7 +11861,47 @@ int shareVMT(Word* args, Word& result, int message,
 
   CcString* objName = (CcString*) args[0].addr;
   CcBool* overwrite = (CcBool*) args[1].addr;
-  A* array = qp->GetNoSons(s)==3?(A*) args[2].addr: 0;
+
+  int sons = qp->GetNoSons(s);
+  A* array = 0;
+  A a(137);
+
+  if(sons == 2 ){ 
+    // without third argument
+    array = 0;
+  } else if(sons ==3){
+    // array given by user
+    array = (A*) args[2].addr;
+  } else {
+    // workers given in relation
+
+    int hostPos = ((CcInt*) args[3].addr)->GetValue();
+    int portPos = ((CcInt*) args[4].addr)->GetValue();
+    int confPos = ((CcInt*) args[5].addr)->GetValue();
+    bool hostStr = ((CcBool*) args[6].addr)->GetValue();
+    bool confStr = ((CcBool*) args[7].addr)->GetValue();
+
+    if(hostStr && confStr){
+       a = A::template createFromRel<CcString, CcString>(
+               (Relation*) args[2].addr, 400, "tmp",
+                hostPos, portPos, confPos);
+    } else if(hostStr && !confStr){
+       a = A::template createFromRel<CcString, FText>(
+               (Relation*) args[2].addr, 400, "tmp",
+                hostPos, portPos, confPos);
+    } else if(!hostStr && confStr){
+       a = A::template createFromRel<FText, CcString>(
+               (Relation*) args[2].addr, 400, "tmp",
+                hostPos, portPos, confPos);
+    } else if(!hostStr && !confStr){
+       a = A::template createFromRel<FText, FText>(
+               (Relation*) args[2].addr, 400, "tmp",
+                hostPos, portPos, confPos);
+    }
+    array = &a;
+  }
+
+
   result = qp->ResultStorage(s);
   FText* res = (FText*) result.addr;
   if(array && !array->IsDefined()){
