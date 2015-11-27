@@ -4,7 +4,7 @@ Restore : NO
 Operator : dbdacscan
 Number   : 1
 Signature: stream(Tuple) x Attr x Attr x text x real x int -> stream(Tuple)
-Example  : query Kneipen feed dbdacscan [GeoData, ClusterId, secondoHome() +'testN',EPS, MintPts] sortby[ClusterId] groupby[ClusterId ; C : group count] count
+Example  : query Kneipen feed dbdacscan [GeoData, ClusterId, secondoHome() +'testN',500.0, 5] sortby[ClusterId] groupby[ClusterId ; C : group count] count
 Result   : 8
 
 
@@ -17,13 +17,13 @@ Result   : 12
 Operator : fconsume5
 Number   : 1
 Signature: stream x text -> stream
-Example  :query Kneipen feed Kneipen feed head[200] distsamp[GeoData, WID, 2] filter[.WID = 0] dbdacscan[GeoData, ClusterId,secondoHome() + '/leftNRel.bin',EPS, MintPts] fconsume5[secondoHome() + '/leftRel.bin'] count
+Example  :query Kneipen feed Kneipen feed head[200] distsamp[GeoData, WID, 2] filter[.WID = 0] dbdacscan[GeoData, ClusterId,secondoHome() + '/leftNRel.bin',500.0, 5] fconsume5[secondoHome() + '/leftRel.bin'] count
 Result   : 111
 
 Operator : fconsume5
 Number   : 2
 Signature: stream x text -> stream
-Example  : query Kneipen feed Kneipen feed head[200] distsamp[GeoData, WID, 2] filter[.WID = 1] dbdacscan[GeoData, ClusterId, secondoHome() + '/rightNRel.bin',EPS, MintPts] fconsume5[secondoHome() + '/rightRel.bin'] count
+Example  : query Kneipen feed Kneipen feed head[200] distsamp[GeoData, WID, 2] filter[.WID = 1] dbdacscan[GeoData, ClusterId, secondoHome() + '/rightNRel.bin',500.0, 5] fconsume5[secondoHome() + '/rightRel.bin'] count
 Result   : 173
 
 Operator : distclmerge
