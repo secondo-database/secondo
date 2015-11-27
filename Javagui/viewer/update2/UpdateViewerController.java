@@ -105,6 +105,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 	public final static String CMD_FIRST = "First";
 	public final static String CMD_REPLACE = "Replace";
 	public final static String CMD_REPLACE_ALL = "Replace all";
+	public final static String CMD_PRINT = "Print";
 	
 	/**
 	 * Constructor
@@ -367,6 +368,11 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		if (e.getActionCommand() == CMD_REPLACE_ALL)
 		{
 			this.processCommandReplaceAll();
+			return;
+		}
+		if (e.getActionCommand() == CMD_PRINT)
+		{
+			this.processCommandPrint();
 			return;
 		}
 		
@@ -1414,6 +1420,15 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		Reporter.showInfo("Replaced " + count + " occurences.");
 		return true;
 	}
+
+  private boolean processCommandPrint(){
+		 RelationPanel crp = this.viewer.getCurrentRelationPanel();
+     if(crp!=null){
+         return crp.print();
+     }
+     return false;
+  }
+
 	
 	/**
 	 * Resets all uncommitted changes according to current state. 

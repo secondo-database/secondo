@@ -143,6 +143,7 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 	// replace function
 	private JPanel replacePanel;
 	private JButton replace;
+	private JButton print;
 	private JButton replaceAll;
 	private JTextField replaceField;
 	
@@ -212,6 +213,9 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 		this.replaceAll.setEnabled(false);
 		this.replaceAll.setToolTipText("Replace in all loaded relations");
 		replacePanel.add(this.replaceAll);
+    this.print = new JButton(UpdateViewerController.CMD_PRINT);
+    this.print.addActionListener(pController);
+    replacePanel.add(this.print);
 		
 		// layout
 		JPanel southPanel = new JPanel(new GridLayout(2, 1));
@@ -225,6 +229,16 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 		this.clearSearch();
 		this.revalidate();
 	}
+
+
+  public boolean print(){
+    try{
+      return relTable.print();
+    } catch(Exception e){
+      return false;
+    }
+  }
+
 	
 	/**
 	 * Adds Change for specified row.
