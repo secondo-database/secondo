@@ -897,51 +897,37 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
     char delimchar;
     char [] delimchararray;
     
-    
-    
-    
-    if(index<0)
-    {
+    if(index<0) {
       tools.Reporter.showError("No table is selected");
       return true;
     }
     
     
     JTable theTable = (JTable) Tables.get(index).table;
-    if(filechooser.showSaveDialog(this)==JFileChooser.APPROVE_OPTION)
-    {
+    if(filechooser.showSaveDialog(this)==JFileChooser.APPROVE_OPTION) {
        File file = filechooser.getSelectedFile();
        if(file.exists()){
          if(tools.Reporter.showQuestion("File already exists\n overwrite it?")!=tools.Reporter.YES){
              return true;
          }
-    }
+       }
        
        
-    String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Export: Delimiter input",
+       String delim = JOptionPane.showInputDialog(null,"Please specify the delimiter", "Export: Delimiter input",
                                                              JOptionPane.PLAIN_MESSAGE);   
       
-     try
-    {
-     delimchararray = delim.toCharArray();
-     delimchar = delimchararray[0];
+        try {
+           delimchararray = delim.toCharArray();
+           delimchar = delimchararray[0];
+        } catch(Exception e) {  
+           Reporter.showInfo("Empty delimiter inserted");
+           return  false;
+        }
     
-          
-     }
-     catch(Exception e)
-     {  
-        Reporter.showInfo("Empty delimiter inserted");
-        return  false;
-     }
-    
-     
-                                                   
-       
-      exportTable(theTable,file, delimchar);
+        exportTable(theTable,file, delimchar);
       
-      return true;
+        return true;
     } 
-    
     return true;
  }
 
@@ -958,19 +944,14 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
   private void exportTable(JTable table, File file, char delimchar){
     try{
        PrintStream out = new PrintStream(new FileOutputStream(file));
-
-    
     
        // print out the header
-       for(int j=0;j<table.getColumnCount();j++)
-       { 
-         if(j==0)         
-         {
-          out.print("#");
+       for(int j=0;j<table.getColumnCount();j++) { 
+         if(j==0)  {
+           out.print("#");
          }
          
-         if(j>0)
-         {
+         if(j>0) {
           out.print(delimchar);
          }
          out.print((""+table.getColumnModel().getColumn(j).getIdentifier()).replaceAll("\n",""));
@@ -978,16 +959,6 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
        }
        out.println("");
     
-    
-    
-    
-    
-    
-    
-       
-       
-       
-
        for(int i=0;i<table.getRowCount(); i++){
           for(int j=0;j<table.getColumnCount();j++){
             if(j>0){
@@ -1091,7 +1062,7 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
 	     if(Elem.textLength()<MAX_TEXT_LENGTH)
 	        row[pos] = Elem.textValue();
 	     else
-	        row[pos] = Elem.textValue().substring(0,MAX_TEXT_LENGTH-4)+" ...";
+	        row[pos] = Elem.textValue(); //.substring(0,MAX_TEXT_LENGTH-4)+" ...";
            }
 	   else
               row[pos] = TupleValue.first().writeListExprToString();
