@@ -57,7 +57,7 @@ public class RelViewer extends SecondoViewer{
  private JTable CurrentTable;
  private Vector<TableTypePair> Tables;
  private JPanel dummy;  // to show nothing
- private JButton exportBtn, importBtn;
+ private JButton exportBtn, importBtn, printBtn;
  private JFileChooser filechooser;
 
  // the value of MAX_TEXT_LENGTH must be greater then five
@@ -72,10 +72,12 @@ public class RelViewer extends SecondoViewer{
    Tables = new Vector<TableTypePair>();
    exportBtn = new JButton("export");
    importBtn = new JButton("import");
+   printBtn = new JButton("print");
 
    JPanel p = new JPanel();
    p.add(exportBtn);
    p.add(importBtn);
+   p.add(printBtn);
    
    
    filechooser = new JFileChooser(".");
@@ -102,6 +104,14 @@ public class RelViewer extends SecondoViewer{
    });
    
    
+   printBtn.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          if (printTable()== false) {
+          Reporter.showInfo("Export CSV file failed");
+          }
+       }
+   });
+
    importBtn.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
           if(!importFromCSV()){
@@ -130,20 +140,12 @@ public class RelViewer extends SecondoViewer{
  
  
  
- 
- 
- 
- 
- 
- 
- 
  private boolean importFromCSV(){
  
    // check whether table is selected
    int index = ComboBox.getSelectedIndex();   
-   if(index < 0)
-   { Reporter.showInfo("no Table selected");
-   
+   if(index < 0) { 
+     Reporter.showInfo("no Table selected");
      return false;
    }
       
@@ -151,15 +153,13 @@ public class RelViewer extends SecondoViewer{
    ListExpr[] types = Tables.get(index).types;
    
    
-   if(!checkCSVTypes(types))
-   { 
+   if(!checkCSVTypes(types)) { 
      Reporter.showInfo("Unsupported Type in table");
      return false;
    }
       
    // open file
-   if(filechooser.showOpenDialog(this)!=JFileChooser.APPROVE_OPTION)
-   {   
+   if(filechooser.showOpenDialog(this)!=JFileChooser.APPROVE_OPTION) {   
        return true;
    }
    
@@ -930,6 +930,30 @@ private ListExpr getHeader(ListExpr[] types, JTable table)
     } 
     return true;
  }
+
+
+ private boolean printTable(){
+    int index = ComboBox.getSelectedIndex();
+    if(index<0) {
+      tools.Reporter.showError("No table is selected");
+      return true;
+    }
+    JTable theTable = (JTable) Tables.get(index).table;
+    try{
+       boolean complete = theTable.print();
+       if(complete){
+         Reporter.showInfo("printing complete");
+       } else {
+          Reporter.showInfo("printing canceled");
+       }
+    } catch(Exception e){
+        Reporter.debug(e);
+        return false;
+    }
+    return true; 
+ }
+
+
 
  
  
