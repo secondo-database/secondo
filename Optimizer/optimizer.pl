@@ -2408,46 +2408,46 @@ Deprecated generic rules. Operators that are not recognized are assumed to be:
 
   * 3+ arguments: prefix
 
+This is not relevant any more, as operator syntax is automatically read into the optimizer for all operators. However, it is relevant to user defined functions, which are always written in prefix notation. Since the third case handles this generically, the first two cases can be omitted. 
+
+Further, it is not an error to have user defined functions. So the error message is omitted as well
+
 */
 
 /* 1 argument: prefix */
-plan_to_atom(Term, Result) :-
-  functor(Term, Op, 1),
-  \+(secondoOp(Op, _, _)), !,
-  arg(1, Term, Arg1),
-  plan_to_atom(Arg1, Res1),
-  my_concat_atom([Op, '(', Res1, ')'], '', Result), !,
-  write_list(
-    ['WARNING: Applied deprecated default plan_to_atom/2 rule for unary',
-     'prefix operator ',Op, '/1. Please add the following fact to file ',
-     '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', prefix, 1).\n']), !.
+% plan_to_atom(Term, Result) :-
+%   functor(Term, Op, 1),
+%   \+(secondoOp(Op, _, _)), !,
+%   arg(1, Term, Arg1),
+%   plan_to_atom(Arg1, Res1),
+%   my_concat_atom([Op, '(', Res1, ')'], '', Result), !,
+%   write_list(
+%     ['WARNING: Applied deprecated default plan_to_atom/2 rule for unary',
+%      'prefix operator ',Op, '/1. Please add the following fact to file ',
+%      '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', prefix, 1).\n']), !.
 
-/* 2 arguments: infix */
-plan_to_atom(Term, Result) :-
-  functor(Term, Op, 2),
-  \+(secondoOp(Op, _, _)), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  plan_to_atom(Arg1, Res1),
-  plan_to_atom(Arg2, Res2),
-  my_concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !,
-  write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
-    'infix operator ', Op, '/2. Please add the following fact to file ',
-    '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, 2).\n']), !.
+% /* 2 arguments: infix */
+% plan_to_atom(Term, Result) :-
+%   functor(Term, Op, 2),
+%   \+(secondoOp(Op, _, _)), !,
+%   arg(1, Term, Arg1),
+%   arg(2, Term, Arg2),
+%   plan_to_atom(Arg1, Res1),
+%   plan_to_atom(Arg2, Res2),
+%   my_concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !,
+%   write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
+%     'infix operator ', Op, '/2. Please add the following fact to file ',
+%     '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, 2).\n']), !.
 
-/* 3+ arguments: prefix */
-plan_to_atom(InTerm,OutTerm) :-
+/* Any number of arguments: prefix (Secondo user defined functions)*/
+plan_to_atom(InTerm, OutTerm) :-
   compound(InTerm),
   InTerm =.. [Op|ArgsIn],
   \+(secondoOp(Op, _, _)), !,
-  length(ArgsIn,N),
+%  length(ArgsIn,N),
   plan_to_atom_2(ArgsIn,ArgsOut),
   my_concat_atom(ArgsOut, ', ', ArgsOutAtom),
-  my_concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !,
-  write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
-              N,'-ary prefix operator ', Op, '/',N,
-              '. Please add the following fact to file ',
-              '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, ',N,').\n']), !.
+  my_concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !.
 
 /* Standard translation of atomic terms */
 plan_to_atom(X, Result) :-
@@ -7376,11 +7376,22 @@ lookupAttr(Name, attr(Name, 0, u)) :-
   queryAttr(attr(Name, 0, u)),
   !.
 
-% string constant
-lookupAttr(Term, Term) :-
-  is_list(Term),
-  catch(my_string_to_list(_, Term), _, fail),
+
+% special clause for string atoms (they regularly cause problems since they
+% are marked up in double quotes, which Prolog handles as strings, that are
+% represented as charactercode lists...
+lookupAttr(Term, value_expr(string,Term)) :-
+  is_list(Term), % list represents a string (list of characters)
+  catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
   !.
+
+
+
+% string constant
+% lookupAttr(Term, Term) :-
+%  is_list(Term),
+%  catch(my_string_to_list(_, Term), _, fail),
+%  !.
 
 lookupAttr(Term, Term2) :-
   compound(Term),
@@ -7401,13 +7412,7 @@ lookupAttr(Op, Op) :-
   systemIdentifier(Op, _),
   !.
 
-% special clause for string atoms (they regularly cause problems since they
-% are marked up in double quotes, which Prolog handles as strings, that are
-% represented as charactercode lists...
-lookupAttr(Term, value_expr(string,Term)) :-
-  is_list(Term), % list represents a string (list of characters)
-  catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
-  !.
+
 
 
 % database object
@@ -7507,19 +7512,20 @@ lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
   lookupPred1(Pred, Pred2, [], [Rel1, Rel2]), !.
 
 lookupPred(Pred, X) :-
-  lookupPred1(Pred, _, [], Rels),
+  lookupPred1(Pred, Pred2, [], Rels),
   length(Rels, N),
-  term_to_atom(Pred,PredA),
-  term_to_atom(Rels,RelsA),
+  plan_to_atom(Pred2, PredA),
+  term_to_atom(Rels, RelsA),
   ( (N = 0)
-    -> ( my_concat_atom(['Malformed predicate: \'',PredA,
-                     '\' is a constant. This is not allowed.'],'',ErrMsg)
+    -> ( my_concat_atom(['Malformed predicate: ', PredA,
+	' does not refer to an attribute (misspelled ?). ', 
+	'This is not allowed.'],'',ErrMsg)
        )
     ; ( (N > 2)
-        -> my_concat_atom(['Malformed predicate: \'',PredA,
-                       '\' involves more than two relations: ',RelsA,
+        -> my_concat_atom(['Malformed predicate: \'', PredA,
+                       '\' involves more than two relations: ', RelsA,
                        '. This is not allowed.'],'',ErrMsg)
-        ; my_concat_atom(['Malformed predicate: \'',PredA,
+        ; my_concat_atom(['Malformed predicate: \'', PredA,
                        '\' unspecified reason.'],'',ErrMsg)
       )
   ),
@@ -9516,8 +9522,12 @@ optimize(Query, QueryOut, CostOut) :-
   moSQL(Query, MOQuery),		% see file operatorSQL.pl
   rewriteQuery(MOQuery, RQuery),		
   callLookup(RQuery, Query2), !,	% the three main steps
+%	nl, write('After Lookup: '), nl, write(Query2), nl, nl,
   queryToPlan(Query2, Plan, CostOut), !,
-  plan_to_atom(Plan, QueryOut).
+%	nl, write('After queryToPlan: '), nl, write(Plan), nl, nl,
+  plan_to_atom(Plan, QueryOut)
+%	, nl, write('After plan_to_atom: '), nl, write(QueryOut), nl, nl
+	.
 
 /*
 ----    sqlToPlan(QueryText, Plan)
