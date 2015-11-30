@@ -240,9 +240,9 @@ large enough, the array is growed automatically.
 
 */
 bool Put( const int index, const DbArrayElement& elem ) {
-  if(index >= nElements){ // put a new element
+  if((size_t) index >= nElements){ // put a new element
     nElements = index + 1;
-    if(index >= maxElements){  // underlying flob is too small
+    if((size_t)index >= maxElements){  // underlying flob is too small
        maxElements =  index + 1;
        if(maxElements <=9){
           maxElements = 16;
@@ -271,7 +271,7 @@ within the array.
 */
  inline bool Get( int index, DbArrayElement* elem ) const{
    assert( index >= 0 );
-   assert( index < nElements );
+   assert( (size_t) index < nElements );
 
    if(!Flob::read((char*)elem, sizeof(DbArrayElement),
               index*sizeof(DbArrayElement))){
