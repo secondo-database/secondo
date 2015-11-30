@@ -2579,7 +2579,7 @@ void TMatchIndexLI::removeIdFromMatchInfo(const TupleId id) {
 */
 bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
 //   cout << "atomMatch(" << state << ", " << trans.first << ", " 
-//        << trans.second << ") called" << endl
+//        << trans.second << ") called" << endl;
   PatElem atom;
   set<string> ivs;
   atom.getI(ivs);
@@ -2589,9 +2589,10 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
   bool transition = false;
   IndexMatchInfo *imiPtr = 0;
   if (atom.isRelevantForTupleIndex()) {
+    if (!indexResult[trans.first].size()) {
+      storeIndexResult(trans.first);
+    }
     TupleId id = indexResult[trans.first][0].succ;
-//     cout << "first id for atom " << trans.first << " is " << id << " with "
-//          << indexResult[trans.first][id].units.size() << " units" << endl;
     while (id > 0) {
       bool totalMatch = false;
       set<int>::reverse_iterator it = 

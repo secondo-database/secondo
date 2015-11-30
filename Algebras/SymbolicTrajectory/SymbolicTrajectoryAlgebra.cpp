@@ -2850,7 +2850,7 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
       if (pText->IsDefined() && attrno->IsDefined() && rel->GetNoTuples() > 0) {
         Supplier s0 = qp->GetSon(s, 0);
         ListExpr ttList = nl->Second(qp->GetType(s0));
-        cout << "ttype is " << nl->ToString(ttList) << endl;
+//         cout << "ttype is " << nl->ToString(ttList) << endl;
         Tuple *firstTuple = rel->GetTuple(1, false);
         p = Pattern::getPattern(pText->GetValue(), false, firstTuple, ttList);
         if (p) {
