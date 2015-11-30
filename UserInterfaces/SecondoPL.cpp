@@ -95,7 +95,7 @@ string lastErrorMessage = "";
 
 3 Function handle\_exit   
 
-This function is registerd as exit handler in the main function.
+This function is registered as exit handler in the main function.
 
 */
 void handle_exit(void) {
@@ -1104,7 +1104,7 @@ pl_check_syntax(term_t command, term_t result)
 
 
 /*
-Transfers an option the the sql checker parser. fails if the option is unknown
+Transfers an option the the sql checker parser. Fails, if the option is unknown
 or one of the arguments could not be evaluated.
 
 */
