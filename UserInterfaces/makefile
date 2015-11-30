@@ -84,20 +84,20 @@ APPLOBJECTS += $(PLOBJ)
 CCFLAGS += $(PLINCLUDEFLAGS) -DSECONDO_PL
 endif
 
-BDB_OBJECTS :=   ../ClientServer/SecondoServer.o
+BDB_OBJECTS :=   ../ClientServer/SecondoServer.$(OBJEXT)
 		 
-ALG_LIST    :=  SecondoInterfaceTTY.o  SecondoInterfaceCS.o SecondoInterfaceREPLAY.o AlgebraList.o SecondoInterfaceGeneral.o
+ALG_LIST    :=  SecondoInterfaceTTY.$(OBJEXT)  SecondoInterfaceCS.$(OBJEXT) SecondoInterfaceREPLAY.$(OBJEXT) AlgebraList.$(OBJEXT) SecondoInterfaceGeneral.$(OBJEXT)
 
 
-COMMON_OBJECTS := cmsg.o SecondoInterfaceGeneral.o DisplayTTY.o
+COMMON_OBJECTS := cmsg.$(OBJEXT) SecondoInterfaceGeneral.$(OBJEXT) DisplayTTY.$(OBJEXT)
 
-TTY_OBJECTS :=   MainTTY.o SecondoInterfaceTTY.o SecondoTTY.o  TestRunner.o
+TTY_OBJECTS :=   MainTTY.$(OBJEXT) SecondoInterfaceTTY.$(OBJEXT) SecondoTTY.$(OBJEXT)  TestRunner.$(OBJEXT)
 
-FLOB := $(SECONDO_BUILD_DIR)/Tools/Flob/FlobManager.o
+FLOB := $(SECONDO_BUILD_DIR)/Tools/Flob/FlobManager.$(OBJEXT)
 
-CS_OBJECTS :=   MainTTYCS.o  SecondoInterfaceCS.o SecondoTTYCS.o TestRunnerCS.o
+CS_OBJECTS :=   MainTTYCS.$(OBJEXT)  SecondoInterfaceCS.$(OBJEXT) SecondoTTYCS.$(OBJEXT) TestRunnerCS.$(OBJEXT)
 
-REPLAY_OBJECTS := MainTTYREPLAY.o SecondoInterfaceCS.o SecondoInterfaceREPLAY.o SecondoTTYREPLAY.o TestRunnerREPLAY.o
+REPLAY_OBJECTS := MainTTYREPLAY.$(OBJEXT) SecondoInterfaceCS.$(OBJEXT) SecondoInterfaceREPLAY.$(OBJEXT) SecondoTTYREPLAY.$(OBJEXT) TestRunnerREPLAY.$(OBJEXT)
 
 
 APP_LIB := ../lib/libappCommon.$(LIBEXT)
@@ -130,7 +130,7 @@ entropy:
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) SecondoPLCS.o
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(PLCSOBJ)  $(CS_OBJECTS) $(REPLAY_OBJECTS)
 
 
 #
