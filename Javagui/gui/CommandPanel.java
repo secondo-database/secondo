@@ -61,8 +61,14 @@ public class CommandPanel extends JScrollPane {
   private OptimizerSettingsDialog OptSet = new OptimizerSettingsDialog(null);
   private Object SyncObj = new Object();
   private boolean ignoreCaretUpdate=false;
-
   private boolean autoUpdateCatalog = true;
+  private boolean showRewrittenOptimizerQuery = false;
+
+
+
+  public void setShowRewrittenOptimizerQuery(boolean on){
+     showRewrittenOptimizerQuery = on;
+  }
 
 
   private StoredQueriesDialog favouredQueries = new StoredQueriesDialog(null);
@@ -615,9 +621,176 @@ public class CommandPanel extends JScrollPane {
 
   */
 
-  private  String varToLowerCase(String str){
+
+  private boolean checkBrackets(String str, StringBuffer errMsg){
+    Stack<Integer> sb = new Stack<Integer>(); // stack of square brackets
+    Stack<Integer> b  = new Stack<Integer>(); // stack of normal brackets
+
+    int state = 0;  
+    int line = 1;
+    int pos = 0;
+
+    for(int i=0;i<str.length();i++){
+       char c =  str.charAt(i);
+       if(c=='\n'){
+         line++;
+         pos = 0;
+       } else {
+         pos++;
+       }
+
+       switch(state){
+          case 0:
+             if(c=='"'){
+                state = 1;
+             } else if(c == '\''){
+                state = 2;
+             } else if( c== '('){
+                b.push(i);
+             } else if( c== '['){
+                sb.push(i);
+             } else if( c == ')'){
+                if(b.empty()){
+                   errMsg.append("in line " + line + " at position " + pos 
+                                 + "  is a closing bracket that is not opened before");
+                   return false;
+                }
+                int bpos = b.pop(); // bracket to close
+                if(!sb.empty()){
+                   int sbpos = sb.peek();
+                   if( sbpos > bpos ){
+                      errMsg.append(" in line " + line + " at position " + pos 
+                                    + " is a closing bracket, but unclosed square brackets");
+                      return false;                   
+                   }
+                }
+
+             } else if(c == ']'){
+                if(sb.empty()){
+                   errMsg.append("in line " + line + " at position " + pos 
+                                 + "  is a closing square bracket that is not opened before");
+                   return false;
+                }
+                int sbpos = sb.pop(); // bracket to close
+                if(!b.empty()){
+                   int bpos = b.peek();
+                   if( bpos > sbpos ){
+                      errMsg.append("in line " + line + "at position " + pos 
+                                    + " is a closing square bracket, but unclosed round brackets");
+                      return false;                   
+                   }
+                }
+
+             }
+             break;
+          case 1:
+              if( c == '"'){
+                state = 0;
+              } 
+              break;
+
+          case 2:
+              if(c == '\''){
+                 state = 0;
+              }         
+              break;
+       }
+    }
+    if(!b.empty() || !sb.empty()){
+       errMsg.append("\n there are unclosed brackets\n");
+       return false;
+    }
+    return true;
+  }
 
 
+
+  private  String rewriteForOptimizer(String str){
+
+    String res = varToLowerCase(str);
+
+    res = replacePoint(res);
+
+    if(showRewrittenOptimizerQuery){
+      appendText("\nrewritten query: \n"+ res + "\n\n");
+    }
+    return res;
+  }
+
+
+  private String replacePoint( String str){
+
+    // states
+    // 0 start state
+    // 1 within double quoted string
+    // 2 within single quoted string
+    // 3 within symbol
+
+    StringBuffer buf = new StringBuffer();
+    int state = 0;
+
+    for(int i=0;i<str.length(); i++){
+      char c = str.charAt(i);
+      switch(state){
+         case 0:
+              if(c == '"'){
+                 state = 1;
+                 buf.append(c);
+              } else if(c == '\''){
+                 state = 2;
+                 buf.append(c);
+              } else if(isLetter(c)){
+                 state = 3;
+                 buf.append(c);
+              } else {
+                 buf.append(c);
+              }
+              break;
+
+          case 1:
+              if( c == '"'){
+                state = 0;
+              } 
+              buf.append(c);
+              break;
+
+          case 2:
+              if(c == '\''){
+                 state = 0;
+              }         
+              buf.append(c);
+              break;
+
+         case 3:
+              if(isLetter(c) || isDigit(c) || c == '_'){
+                 buf.append(c);
+              } else if(c == '"'){
+                 state = 1;
+                 buf.append(c);
+              } else if(c == '\''){
+                 state = 2;
+                 buf.append(c);
+              } else if( c == '.'){
+                  if((i < str.length()-1) && isLetter(str.charAt(i+1))){
+                     buf.append(':');
+                  } else {
+                    buf.append(c);
+                  }
+                  state = 0;
+              } else {
+                 state = 0;
+                 buf.append(c);
+              }
+              break;
+          default: System.err.println("invalid state reached");
+      }
+    }
+    return buf.toString();
+  }
+
+
+
+  private String varToLowerCase(String str) {
      StringBuffer buf = new StringBuffer();
      int state = 0; //normal = 0, inDoublequotes = 1 in quotes = 2
      int pos = 0;
@@ -754,7 +927,16 @@ public class CommandPanel extends JScrollPane {
         return "";
      }
      //System.out.println(" Change command " + command);
-     command = varToLowerCase(command);
+     command = rewriteForOptimizer(command);
+     StringBuffer buf = new StringBuffer();
+
+
+     if(!checkBrackets(command,buf)){
+        appendText("\n\n"+buf.toString());
+        showPrompt();
+        return "";
+     }
+
      //System.out.println("to " + command);
      if(OpenedDatabase.length()==0){
         appendText("\nno database open");
@@ -835,8 +1017,15 @@ public class CommandPanel extends JScrollPane {
 
     //System.out.println("Original : " + SelectClause);
 
-     SelectClause = varToLowerCase(SelectClause);
+     SelectClause = rewriteForOptimizer(SelectClause);
 
+     StringBuffer buf = new StringBuffer();
+
+     if(!checkBrackets(SelectClause,buf)){
+        appendText("\n\n"+buf.toString());
+        showPrompt();
+        return "";
+     }
     // System.out.println("to LowerVars : " + SelectClause);
 
 

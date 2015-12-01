@@ -113,6 +113,7 @@ private JMenuItem MI_OptimizerTestOptimizer;
 private JCheckBoxMenuItem MI_OptimizerReconnectWhenOpenDB;
 private JCheckBoxMenuItem MI_OptimizerAutoUpdateCatalog;
 private JMenuItem MI_OptimizerResetKnowledgeDB;
+private JCheckBoxMenuItem ShowRewrittenQuery;
 
 private JMenu OptimizerCommandMenu;
 private JMenu UpdateRelationsMenu;
@@ -2815,6 +2816,8 @@ private void createMenuBar(){
    OptimizerCommandMenu.add(UpdateRelationsMenu);
    UpdateIndexMenu = new JMenu("Update Index");
    OptimizerCommandMenu.add(UpdateIndexMenu);
+   ShowRewrittenQuery = new JCheckBoxMenuItem("show rewritten query");
+   OptimizerMenu.add(ShowRewrittenQuery);
    
    MI_OptimizerUpdateCatalog = new JMenuItem("Update Catalog");
    MI_OptimizerTestOptimizer = new JMenuItem("Test Optimizer");
@@ -2831,6 +2834,14 @@ private void createMenuBar(){
 
    });
 
+
+    ShowRewrittenQuery.addChangeListener( new ChangeListener(){
+       public void stateChanged(ChangeEvent evt){
+             ComPanel.setShowRewrittenOptimizerQuery(ShowRewrittenQuery.isSelected());
+       }
+    });
+
+   ShowRewrittenQuery.setSelected(false);
 
    MI_OptimizerResetKnowledgeDB = new JMenuItem("Reset Optimizer's Knowledge Database");
 
