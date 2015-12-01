@@ -708,11 +708,11 @@ compareLeftWithRightList( TYPE* leftInnerPoint, TYPE* rightInnerPoint,
           MEMB_TYP_CLASS* leftMemb = *itLeft;
           MEMB_TYP_CLASS* rightMemb = *itRight;
           
-          
-          updateNeighborRightListToLeftList(leftList,rightList,
-                                            false,false,
-                                            leftInnerPoint,
-                                            rightInnerPoint);
+          updateNeighbor(*itLeft,*itRight);
+//           updateNeighborRightListToLeftList(leftList,rightList,
+//                                             false,false,
+//                                             leftInnerPoint,
+//                                             rightInnerPoint);
           
           concatClusterCand(rightCluster,
                             leftInnerPoint,
