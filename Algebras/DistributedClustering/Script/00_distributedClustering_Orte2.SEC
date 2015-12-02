@@ -21,80 +21,53 @@ let Workers = [const rel(tuple([Host: text, Port: int, Config: text])) value
  ('132.176.69.186' 59812 'SecondoConfig.ini')
 )];
 
-#set count of workers
+#set some variables
 delete CntWorkers;
 let CntWorkers = 12;
 
-#distribute data round robin
-delete KnDist;
-let KnDist = Orte2 feed dfdistribute3["KnDist", 12 , TRUE, Workers];
+#distribute data round robin ##################################################
+let DistArray = Orte2 feed 
+dfdistribute3["DistArray", 12 , TRUE, Workers];
 
+############## SAMPLING #######################################################
 #create samples on each worker
 #create Sample files #############################
-# filesize is r=m*ln(n*t)                       ##
+# chosse each rhoTh element rho=(m/ln(n*t))     ##
+# s... s=m/rho SampleSize                       ##
 # t... count of machines                        ##
 # n... count of objects                         ##
 # m... m = n/t count of objects at each machine ##
 ##################################################
 
-############## SAMPLING ########################################################
-delete KnSampSingle;
-let KnSampSingle = KnDist dmap["KnSampSingle",. 
-head[real2int(floor((Orte2 count / 12) 
-/ logB(Orte2 count * 12, 2.718281828)))]];
+#distribute sample files
+# create single sample
+let SingSampArr=
+DistArray dmap["SingSampArr", . head[real2int(
+floor(logB(Orte2 count * 12, 2.718281828)))]
+        intstream(0,12 - 1) namedtransformstream[WidSamp]
+        product];
+ 
+let SampMatr= SingSampArr
+        partition["SampMatr", .WidSamp ,12];
+        
+let SampArray =  SampMatr
+        areduce["SampArray", . consume, 1236];
 
-query KnSampSingle dsummarize 
-fconsume5[secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin'] count;
-delete KnSamp;
-let KnSamp =
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 0]
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 1] concat
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 2] concat
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 3] concat
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 4] concat
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 5] concat
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 6] concat
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 7] concat
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 8] concat
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 9] concat
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 10] concat
-ffeed5(secondoHome() + '/dfarrays/BERLINTEST/SampleFile.bin') extend[WID2 : 11] concat
-dfdistribute4["KnSamp" , .WID2 , 12 , Workers];
+############ start distributed Sampling and redistribute data #################
+let DistMat = DistArray SampArray dmap2["", . .. 
+distsamp[GeoData, WID, 12] , 91234]
+partition[ "DistMat",.WID, 12 ];
 
-############ start distributed Sampling ########################################
-delete KnSort;
-let KnSort = KnDist KnSamp dmap2["KnSort", . .. distsamp[GeoData, WID, 12] , 91234];
-# delete old Files
-query deleteRemoteObjects(KnDist);
-delete KnDist;
-query deleteRemoteObjects(KnSampSingle);
-delete KnSampSingle;
-query deleteRemoteObjects(KnSamp);
-delete KnSamp;
 
-############ redistribute Data #################################################
-# distribute
-delete KnMatReD;
-let KnMatReD = KnSort partition[ "KnMatReD",.WID, 12 ];
-
-############### reduce with DbDacScan ##########################################
-delete DbScan;
-let DbScan = KnMatReD areduce["DbScan", . 
+############### reduce with DbDacScan #########################################
+let DbScan = DistMat areduce["DbScan", . 
 dbdacscan [GeoData, ClusterId,
 secondoHome() + '/dfarrays/BERLINTEST/DbScan/NeighborFile.bin'
 ,5000.0,5] , 56874 ];
 
-# delete old Files
-query deleteRemoteObjects(KnSort);
-delete KnSort;
-query deleteRemoteObjects(KnMatReD);
-delete KnMatReD;
-
-# now files are in secondoHome() + '/dfarrays/BERLINTEST/DbScan/
-# the files are DbScan_WID.bin and NeighborFile.bin
 ###############################################################################
 
-# set some auxiliary variables to start merging clusters #######################
+# set some auxiliary variables to start merging clusters ######################
 delete HelpInt;
 let HelpInt = 0;
 delete AktRound;
@@ -104,7 +77,7 @@ let LastRound = real2int(ceil(logB(CntWorkers,2)));
 delete AktWorker;
 let AktWorker = 0;
 
-########### start workers for under level of distributed Algebra ###############
+########### start workers for under level of distributed Algebra ##############
 query Workers feed extend
 [Started: connect(.Host, .Port, .Config)]consume;
 
@@ -123,7 +96,7 @@ query rquery (AktWorker,'query moveFile(secondoHome() +
   update AktWorker := AktWorker + 1
 }endwhile;
 
-############### begin DistMerge ################################################
+############### begin DistMerge ###############################################
 while AktRound < LastRound do
 {
 # send file to lower left neighbors ( 0 - n/2-1)
@@ -145,7 +118,7 @@ while AktRound < LastRound do
     update AktWorker := AktWorker + real2int(pow (2,AktRound + 1))
   }
   endwhile |
-################### execute distclmerge ########################################
+################### execute distclmerge #######################################
   query intstream(0,CntWorkers - 1)
   filterintstream[(. mod real2int(pow (2,AktRound + 1))) = 0]
     pquery['query distclmerge(
@@ -153,7 +126,7 @@ while AktRound < LastRound do
     secondoHome() + "/dfarrays/BERLINTEST/DbScan/NeighborFile.bin" ,
     secondoHome() + "/dfarrays/BERLINTEST/DbScan/DbScan.bin_1" ,
     secondoHome() + "/dfarrays/BERLINTEST/DbScan/NeighborFile.bin_1" ,
-    GeoData, ClusterId, 5000.0 , 5 ,
+    GeoData, ClusterId, 5000.0,5,
     secondoHome() + "/dfarrays/BERLINTEST/DbScan/DbScan.bin" ,
     secondoHome() + "/dfarrays/BERLINTEST/DbScan/NeighborFile.bin"
     ) count' ,0] consume |
@@ -171,15 +144,33 @@ while AktRound < LastRound do
   update AktRound := AktRound + 1
 }
 endwhile ;
-
-##################### end DistMerge ############################################
-
-################remove last NeighborFile #######################################
-query rquery(0,'query removeFile(secondoHome() + "/dfarrays/BERLINTEST/DbScan/NeighborFile.bin")');
+##################### end DistMerge ###########################################
 
 
-
-############################## Results: ########################################
+############################## Results: #######################################
 query rquery(0,'query ffeed5(secondoHome() 
 + "/dfarrays/BERLINTEST/DbScan/DbScan.bin") sortby[ClusterId] 
 groupby[ClusterId ; C : group count] count');
+
+query rquery(0,'query ffeed5(secondoHome() 
++ "/dfarrays/BERLINTEST/DbScan/DbScan.bin") sortby[ClusterId] 
+groupby[ClusterId ; C : group count] consume');
+
+
+################remove files #######################################
+query rquery(0,'query removeFile(secondoHome() 
++ "/dfarrays/BERLINTEST/DbScan/NeighborFile.bin")');
+
+# delete old Files
+query deleteRemoteObjects(DistArray);
+delete DistArray;
+query deleteRemoteObjects(SampArray);
+delete SampArray;
+query deleteRemoteObjects(SampMatr);
+delete SampMatr;
+query deleteRemoteObjects(SingSampArr);
+delete SingSampArr;
+query deleteRemoteObjects(DbScan);
+delete DbScan;
+query deleteRemoteObjects(DistMat);
+delete DistMat;
