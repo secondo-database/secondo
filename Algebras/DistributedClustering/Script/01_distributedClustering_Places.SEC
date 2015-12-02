@@ -63,7 +63,7 @@ partition[ "DistMat",.WID, 12 ];
 let DbScan = DistMat areduce["DbScan", . 
 dbdacscan [GeoData, ClusterId,
 secondoHome() + '/dfarrays/NRW/DbScan/NeighborFile.bin'
-,0.05,5] , 56874 ];
+,0.09,5] , 56874 ];
 
 ###############################################################################
 
@@ -126,7 +126,7 @@ while AktRound < LastRound do
     secondoHome() + "/dfarrays/NRW/DbScan/NeighborFile.bin" ,
     secondoHome() + "/dfarrays/NRW/DbScan/DbScan.bin_1" ,
     secondoHome() + "/dfarrays/NRW/DbScan/NeighborFile.bin_1" ,
-    GeoData, ClusterId, 0.05,5,
+    GeoData, ClusterId, 0.09,5,
     secondoHome() + "/dfarrays/NRW/DbScan/DbScan.bin" ,
     secondoHome() + "/dfarrays/NRW/DbScan/NeighborFile.bin"
     ) count' ,0] consume |
