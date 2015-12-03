@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SpatialAlgebra.h"
 #include "RefinementStream.h"
 
-
+namespace temporalalgebra{
 
 /*
 0 Declaration of auxiliary functions;
@@ -1652,5 +1652,5 @@ typedef MTopRelAlg_SMO<Region, MPoint, UPoint, MTopRelAlg_UPR> MTopRelAlg_MPR;
 
 
 
-
+} // end of namespace 
 

@@ -20,6 +20,8 @@ and a FMRObservation to aggregate important information of a FixedMRegion's sigh
 #include "TestInterpolate.h"
 #include "PointStore.h"
 
+namespace temporalalgebra{
+
 /*
 This is an object to aggregate important information of a FixedMRegion's sight.
 
@@ -330,4 +332,7 @@ This method creates all UMoves and puts them into a MMove that will be returned.
 MMove createMMove() const;
 
 };
+
+}
+
 #endif

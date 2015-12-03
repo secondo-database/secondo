@@ -1232,7 +1232,8 @@ Returns the node stored at the given id.
 Stores a new entry.
 
 */
-  void insert(const UPoint& up, const int trjid, const TupleId tid){
+  void insert(const temporalalgebra::UPoint& up, 
+              const int trjid, const TupleId tid){
      if(!up.IsDefined()){
         return;
      }

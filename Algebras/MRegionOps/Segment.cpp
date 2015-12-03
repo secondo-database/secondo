@@ -44,6 +44,8 @@ This file contains some implementations of the classes Segment2D and Segment3D.
 
 #include "Segment.h"
 
+namespace temporalalgebra{
+
 namespace mregionops {
 
 /*
@@ -66,3 +68,7 @@ ostream& operator <<(ostream& o, const Segment3D& s) {
 }
 
 } // end of namespace mregionops
+
+} // end of namespace temporalalgebra
+
+

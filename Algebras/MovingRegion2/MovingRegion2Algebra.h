@@ -16,7 +16,8 @@ Fernuniversit[ae]t Hagen.
 
 1 Introduction
 
-This file contains the class definitions of ~MSegmentData2~, PreciseMSegmentData,
+This file contains the class definitions of ~MSegmentData2~, 
+PreciseMSegmentData,
 PreciseInterval, ~URegionEmb2~, ~URegion2~ and ~MRegion2~, which
 are implemented in ~MovingRegion2Algebra.cpp~.
 
@@ -318,8 +319,8 @@ collinear.
 
 	int degeneratedInitialNext;
 	int degeneratedFinalNext;
-	DegenMode degeneratedInitial;
-	DegenMode degeneratedFinal;
+	temporalalgebra::DegenMode degeneratedInitial;
+	temporalalgebra::DegenMode degeneratedFinal;
 
 	int initialStartX;
 	int initialStartY;
@@ -415,7 +416,8 @@ and an exception is thrown otherwise.
 			DbArray<int>* preciseCoordinates);
 
 /*
-This constructor creates any kind of segment (basic or non-basic) from a pointer to an existing segment.
+This constructor creates any kind of segment (basic or non-basic) 
+from a pointer to an existing segment.
 
 */
 
@@ -441,9 +443,9 @@ This constructor creates any kind of segment (basic or non-basic) from a pointer
 	bool GetIsBasicSegment(void) const { return isBasicSegment; }
 	bool GetPointInitial(void) const { return pointInitial; }
 	bool GetPointFinal(void) const { return pointFinal; }
-	DegenMode GetDegeneratedInitial(void) const {
+	temporalalgebra::DegenMode GetDegeneratedInitial(void) const {
 		return degeneratedInitial; }
-	DegenMode GetDegeneratedFinal(void) const {
+	temporalalgebra::DegenMode GetDegeneratedFinal(void) const {
 		return degeneratedFinal; }
 	int GetDegeneratedInitialNext(void) const {
 		return degeneratedInitialNext; }
@@ -468,9 +470,9 @@ This constructor creates any kind of segment (basic or non-basic) from a pointer
 	void SetIsBasicSegment(const bool ibs) { isBasicSegment = ibs; }
 	void SetPointInital(const bool p) { pointInitial = p; }
 	void SetPointFinal(const bool p) { pointFinal = p; }
-	void SetDegeneratedInitial(const DegenMode dm) {
+	void SetDegeneratedInitial(const temporalalgebra::DegenMode dm) {
 		degeneratedInitial = dm; }
-	void SetDegeneratedFinal(const DegenMode dm) {
+	void SetDegeneratedFinal(const temporalalgebra::DegenMode dm) {
 		degeneratedFinal = dm; }
 	void SetDegeneratedInitialNext(const int dn) {
 		degeneratedInitialNext = dn; }
@@ -480,12 +482,13 @@ This constructor creates any kind of segment (basic or non-basic) from a pointer
 /*
 1.1.1 Other methods
 
-Generate new ~MSegmentData2~ instant in ~rDms~ from current instant, where the original interval ~origIv~ has been restricted to ~restrIv~.
+Generate new ~MSegmentData2~ instant in ~rDms~ from current instant, where 
+the original interval ~origIv~ has been restricted to ~restrIv~.
 
 */
 	void restrictToInterval(
-		Interval<Instant> origIv,
-		Interval<Instant> restrIv,
+		temporalalgebra::Interval<Instant> origIv,
+		temporalalgebra::Interval<Instant> restrIv,
 		MSegmentData2& rDms) const;
 
 /*
@@ -504,7 +507,8 @@ Kept are not the absolute coordinates of start and end points in initial and
 final instant, but just the difference between the absolute coordinates
 and their respective representation in the integer grid.
 The absolute value can be derived by adding the precise coordinate value
-from this class with the integer value of the respective instance of MSegmentData2.
+from this class with the integer value of the respective instance of 
+MSegmentData2.
 
 */
 
@@ -513,9 +517,16 @@ class PreciseMSegmentData {
 /*
 1.1.1 Private attributes
 
-  * ~isxStartPos~, ~isyStartPos~, ~iexStartPos~, ~ieyStartPos~, ~fsxStartPos~, ~fsyStartPos~,  ~fexStartPos~, ~feyStartPos~ is the index position of the first char representing the given coordinate in the respective DbArray, with isx initialStartX,  isy initialStartY, iex initialEndX, iey initialEndY, fsx finalStartX and so on.
+  * ~isxStartPos~, ~isyStartPos~, ~iexStartPos~, ~ieyStartPos~, ~fsxStartPos~, 
+~fsyStartPos~,  ~fexStartPos~, ~feyStartPos~ is the index position of the first
+char representing the given coordinate in the respective DbArray, with isx 
+initialStartX,  isy initialStartY, iex initialEndX, iey initialEndY, fsx 
+finalStartX and so on.
 
-  * ~isxNumOfChars~, ~isyNumOfChars~, ~iexNumOfChars~, ~ieyNumOfChars~, ~fsxNumOfChars~, ~fsyNumOfChars~, ~fexNumOfChars~, ~feyNumOfChars~ is the number of all chars representing this respective coordinate instance in the DbArray.
+  * ~isxNumOfChars~, ~isyNumOfChars~, ~iexNumOfChars~, ~ieyNumOfChars~, 
+~fsxNumOfChars~, ~fsyNumOfChars~, ~fexNumOfChars~, ~feyNumOfChars~ is the 
+number of all chars representing this respective coordinate instance in the 
+DbArray.
 
 */
 
@@ -560,7 +571,10 @@ Constructor that initializes all the indices.
 /*
 1.1.1 Attribute read access methods
 
-All these methods fetch the chars representing the given coordinate from the DbArray using the indices given in this instance's private attributes, and convert them to the correct instance of type mpq\_class, representing the value of the given coordinate.
+All these methods fetch the chars representing the given coordinate from the 
+DbArray using the indices given in this instance's private attributes, and 
+convert them to the correct instance of type mpq\_class, representing the 
+value of the given coordinate.
 
 */
 
@@ -617,7 +631,10 @@ are of course also updated.
 /*
 1.1 Class ~PreciseInterval~
 
-The class ~PreciseInterval~ represents the precise information about the start and end instant of a time interval. Both values are not kept by their absolute value, but just as the difference from the respective integer representation. Both must be added to get the absolute value.
+The class ~PreciseInterval~ represents the precise information about the 
+start and end instant of a time interval. Both values are not kept by 
+their absolute value, but just as the difference from the respective 
+integer representation. Both must be added to get the absolute value.
 
 */
 
@@ -626,7 +643,8 @@ class PreciseInterval {
 /*
 1.1.1 Private attributes
 
-  * ~startStartPos~, ~endStartPos~ is the index position of the first char representing the given coordinate in the respective DbArray.
+  * ~startStartPos~, ~endStartPos~ is the index position of the first 
+char representing the given coordinate in the respective DbArray.
 
   * ~startNumOfChars~, ~endNumOfChars~ is the number of all chars representing
 this respective coordinate instance in the DbArray.
@@ -659,7 +677,9 @@ This constructors initializes the private attributes.
 1.1.1 Attribute read and write access methods.
 
 The internal functionality of these access methods is just like of those
-from class PreciseMSegmentData. Private attributes are used as indices to the given char arrays to retrieve the objects, and when object values are updated, the indices are updated as well.
+from class PreciseMSegmentData. Private attributes are used as indices to
+the given char arrays to retrieve the objects, and when object values 
+are updated, the indices are updated as well.
 
 */
 
@@ -681,15 +701,16 @@ from class PreciseMSegmentData. Private attributes are used as indices to the gi
 1 Class ~IRegion2~
 
 The code for this data type is fairly simple because it can mostly rely on the
-instantiation of the class template ~Intime~ with class ~Region~. Just a
+instantiation of the class template ~temporalalgebra::Intime~ with class 
+~Region~. Just a
 number of specialized constructors and methods must be overwritten to assure
-that the ~DBArray~ in ~Region~ is properly handled. ~Intime~ itself does
-not care about whether its ~value~ attribute is of a class with ~DBArray~
-attributes or not.
+that the ~DBArray~ in ~Region~ is properly handled. ~temporalalgebra::Intime~
+ itself does not care about whether its ~value~ attribute is of a class with
+ ~DBArray~ attributes or not.
 
 */
 
-class IRegion2 : public Intime<Region> {
+class IRegion2 : public temporalalgebra::Intime<Region> {
 public:
 /*
 1.1 Constructors
@@ -731,7 +752,8 @@ Clone this ~IRegion2~ instance and return a pointer to the new instance.
 /*
 1 Class ~URegionEmb2~
 
-~URegion2~ and ~MRegion2~ use the common class ~URegionEmb2~ due to the following
+~URegion2~ and ~MRegion2~ use the common class ~URegionEmb2~ due to 
+the following
 situation:
 
 Moving regions contain a variable number of region units, and each
@@ -740,19 +762,22 @@ requires a two-level data structure of DbArrays, which is not
 supported by SECONDO. Instead, a moving region object of class ~MRegion2~
 contains several ~DBArray~ instances. The first ~DbArray~ instance contains all
 region units, represented as objects of class ~URegionEmb2~. The second
-and third ~DbArray~ contains the moving segments of all regions units in a moving
+and third ~DbArray~ contains the moving segments of all regions units in a 
+moving
 region, for the integer grid and the precise representations, respectively.
 Each ~URegionEmb2~ object knows the start index and the total number
 of its moving segments in these second and third ~DBArray~ instances. Methods of
 ~URegionEmb2~, which need to access segments, receive three ~DbArray~
 instances as explicit parameters: One of element type MSegmentData2 representing
-the segments on the integer grid, one of element type PreciseMSegmentData representing
+the segments on the integer grid, one of element type PreciseMSegmentData 
+representing
 the precise coordinates and a third one of elemente type char for the internal
 representation of the values of these precise coordinates.
 
 Since region units, which are not contained in moving regions, need to be
 available as SECONDO datatype too, the class ~URegion2~ has been implemented.
-It has three ~DBArrays~ to store moving segments and an instance of ~URegionEmb2~
+It has three ~DBArrays~ to store moving segments and an instance of 
+~URegionEmb2~
 as attributes. This facilitates reusing the ~URegionEmb2~ functionality for
 standalone region unit values without duplication of code.
 
@@ -792,7 +817,7 @@ representing a precise time interval (the derivation of the two instances
 representing a time interval from the respective integer grid representations).
 
 */
-    Interval<Instant> timeInterval;
+    temporalalgebra::Interval<Instant> timeInterval;
     PreciseInterval pInterval;
 
 /*
@@ -813,25 +838,25 @@ in the moving segments array.
 */
 
 	URegionEmb2(
-		const Interval<Instant>& tiv,
+		const temporalalgebra::Interval<Instant>& tiv,
 		const PreciseInterval& pTiv,
 		unsigned int pos);
 
 /*
 Constructor which is called to construct a unit from an existing
-MRegion unit (of previous implementation)
+temporalalgebra::MRegion unit (of previous implementation)
 
 */
 
 	URegionEmb2(
-			DbArray<MSegmentData2>* segments,
+                     DbArray<MSegmentData2>* segments,
 			DbArray<PreciseMSegmentData>* preciseSegments,
 			DbArray<int>* preciseCoordinates,
 			DbArray<int>* preciseInstants,
-			const Interval<Instant>& iv,
+			const temporalalgebra::Interval<Instant>& iv,
 			PreciseInterval& piv,
-			const URegionEmb& origUremb,
-			const DbArray<MSegmentData>* origSegments,
+			const temporalalgebra::URegionEmb& origUremb,
+                     const DbArray<temporalalgebra::MSegmentData>* origSegments,
 			unsigned int pos,
 			unsigned int scaleFactor);
 
@@ -945,8 +970,8 @@ description below for details.
 		const DbArray<PreciseMSegmentData>* preciseSegments,
 		const DbArray<int>* preciseInstants,
 		const int scaleFactor,
-		DbArray<MSegmentData>* coarseSegments,
-		URegionEmb& coarseUremb);
+		DbArray<temporalalgebra::MSegmentData>* coarseSegments,
+		temporalalgebra::URegionEmb& coarseUremb);
 
 
 
@@ -1023,8 +1048,8 @@ The assignment operator
 
 /*
 SetDefined is used within Mappings. Since Mappings may only contain defined
-units and URegionEmb2 is only used within URegion2 and MRegion2 objects, we give a
-dummy implementation:
+units and URegionEmb2 is only used within URegion2 and MRegion2 objects,
+ we give a dummy implementation:
 
 */
 	void SetDefined( const bool def ){
@@ -1033,8 +1058,8 @@ dummy implementation:
 
 /*
 IsDefined is used within Mappings. Since Mappings may only contain defined
-units and URegionEmb2 is only used within URegion2 and MRegion2 objects, we give a
-dummy implementation:
+units and URegionEmb2 is only used within URegion2 and MRegion2 objects, 
+we give a dummy implementation:
 
 */
 	bool IsDefined() const {
@@ -1050,7 +1075,7 @@ Instances of class ~URegion2~ represent SECONDO ~uregion~ objects.
 
 */
 
-class URegion2 : public SpatialTemporalUnit<Region, 3> {
+class URegion2 : public temporalalgebra::SpatialTemporalUnit<Region, 3> {
 private:
 
   friend class MRegion2; 
@@ -1090,7 +1115,8 @@ This constructor creates an URegion2 by a given list of MSegmentData2.
 The MSegmentData2 are ordered, so that matching Segments are together.
 
 */
-  URegion2(vector<MSegmentData2> linelist, const Interval<Instant> &tiv);
+  URegion2(vector<MSegmentData2> linelist, 
+           const temporalalgebra::Interval<Instant> &tiv);
 
 /*
 Use the following constructor to declare temporal object variables etc.
@@ -1110,7 +1136,7 @@ elements (use ~0~ for ~n~ to create an empty region unit).
 Constructor, which creates an uregion2 object from an existing uregion object.
 
 */
-  URegion2(URegion& coarseRegion, const int scaleFactor);
+  URegion2(temporalalgebra::URegion& coarseRegion, const int scaleFactor);
 
 /*
 Create a URegion2 object by copying data from a given MRegion2 object.
@@ -1154,7 +1180,8 @@ Adds the MovingSegment ~newSeg~ to the Union and cares for the BoundingBox
 
 /*
 
-This Method checks, if the Time periods of the $newRegion$ are equal to the URegion2,
+This Method checks, if the Time periods of the $newRegion$ are equal 
+to the URegion2,
 and copies the MSegments from the new one to the old one.
 
 */
@@ -1312,7 +1339,7 @@ the precise interval information of type ~PreciseInterval~.
 
 */
 
-class MRegion2 : public Mapping<URegionEmb2, Region> {
+class MRegion2 : public temporalalgebra::Mapping<URegionEmb2, Region> {
 private:
 /*
 1.1 Private attributes
@@ -1347,23 +1374,25 @@ Create ~MRegion2()~ instance, determine its units by the units in ~mp~ and
 set each unit to the constant value of ~r~.
 
 */
-    MRegion2(const MPoint& mp, const Region& r);
+    MRegion2(const temporalalgebra::MPoint& mp, const Region& r);
 
 /*
 Constructs a continuously moving region from the parameters. ~dummy~ is not
 used.
 
 */
-    MRegion2(const MPoint& mp, const Region& r, const int dummy);
+    MRegion2(const temporalalgebra::MPoint& mp, const Region& r,
+             const int dummy);
 
-    MRegion2(const MRegion& origRegion);
+    MRegion2(const temporalalgebra::MRegion& origRegion);
 
 /*
-Constructs a MRegion2 from an existing MRegion, using scaleFactor to transform the
-double coordinates into the integer grid coordinates.
+Constructs a MRegion2 from an existing temporalalgebra::MRegion, using 
+scaleFactor to transform the double coordinates into the integer grid 
+coordinates.
 
 */
-    MRegion2(MRegion& coarseRegion, const int scaleFactor);
+    MRegion2(temporalalgebra::MRegion& coarseRegion, const int scaleFactor);
 
 
     inline void Clear() {
@@ -1382,8 +1411,10 @@ Get ~URegionEmb2~ unit ~i~ from this ~MRegion2~ instance and return it in ~ur~.
     void Get(const int i, URegionEmb2& ur) const;
 
 /*
-Add a idependent ~URegion2~ object to the moving region. The URegions2 moving segment is copied to
-the DBArrays for ~msegmentdata~, ~preciseSegmentData~, ~preciseCoordinates~, ~preciseInstants~ and ~units~.
+Add a idependent ~URegion2~ object to the moving region. The URegions2 moving 
+segment is copied to
+the DBArrays for ~msegmentdata~, ~preciseSegmentData~, ~preciseCoordinates~, 
+~preciseInstants~ and ~units~.
 
 */
 
@@ -1406,15 +1437,16 @@ Allow read-only access to DbArrays.
 
 */
 
-    void Intersection(MPoint& mp, MPoint& res);
-    void Inside(const MPoint& mp, MBool& res);
+    void Intersection(temporalalgebra::MPoint& mp, 
+                      temporalalgebra::MPoint& res);
+    void Inside(const temporalalgebra::MPoint& mp, temporalalgebra::MBool& res);
 
     void Transform(double deltaX, double deltaY);
     void Scale(double deltaX, double deltaY);
 
-    void Final(Intime<Region>& result);
-    void Initial(Intime<Region>& result);
-    void AtInstant(const Instant& t, Intime<Region>& result);
+    void Final(temporalalgebra::Intime<Region>& result);
+    void Initial(temporalalgebra::Intime<Region>& result);
+    void AtInstant(const Instant& t, temporalalgebra::Intime<Region>& result);
 
 /*
 1.1 Methods for algebra integration

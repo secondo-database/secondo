@@ -565,10 +565,10 @@ block angle
 
 */
 struct BlockAngle{
-  Interval<CcReal> angle;
+  temporalalgebra::Interval<CcReal> angle;
   float dist;
   BlockAngle();
-  BlockAngle(Interval<CcReal> a, float d):angle(a), dist(d){}
+  BlockAngle(temporalalgebra::Interval<CcReal> a, float d):angle(a), dist(d){}
   BlockAngle& operator=(const BlockAngle& o)
   {
 	angle = o.angle;

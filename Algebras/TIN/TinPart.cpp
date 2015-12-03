@@ -897,7 +897,7 @@ TinPart* TinPart::getInstanceFromBuffer(Tin* tt, char* buffer,
  part->contentLoaded = false;
  part->ismodified = false;
 
- part->rebuild(buffer, (unsigned long int&) offset);
+ part->rebuild(buffer, offset);
 
  if (bulkload)
   part->loadContentData();

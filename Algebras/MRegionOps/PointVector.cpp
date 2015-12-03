@@ -46,6 +46,8 @@ and Vector3D.
 #include "PointVector.h"
 #include "Segment.h"
 
+namespace temporalalgebra{
+
 namespace mregionops {
 
 /*
@@ -137,3 +139,5 @@ ostream& operator <<(ostream& o, const Vector3D& p) {
 }
 
 } // end of namespace mregionops
+
+} // end of namespace temporalalgebra

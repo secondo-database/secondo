@@ -37,6 +37,8 @@ This is the implementation of the Symbolic Trajectory Algebra.
 
 #include "Algorithms.h"
 
+using namespace temporalalgebra;
+
 namespace stj{
 
 /*

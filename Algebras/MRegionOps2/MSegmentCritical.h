@@ -57,6 +57,8 @@ intersection of two overlapping coplanar PFaces.
 
 */
 
+namespace temporalalgebra{
+
 class MSegmentCritical : public MSegment {
 
 public:
@@ -136,3 +138,5 @@ the midpoint of the median ~HalfSegment~.
 
     Point2D midPoint;
 };
+
+} // end of namespace temporalalgebra

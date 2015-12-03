@@ -38,8 +38,8 @@ namespace raster2
       typedef CcString wrapper_type;
       typedef std::string cell_type;
       typedef sstring this_type;
-      typedef MString moving_type;
-      typedef UString unit_type;
+      typedef temporalalgebra::MString moving_type;
+      typedef temporalalgebra::UString unit_type;
       typedef sint::storage_type storage_type;
       typedef grid2 grid_type;
 
@@ -79,7 +79,7 @@ namespace raster2
     sint::storage_type& getStorage();
     string atlocation(double x, double y) const;
     void setatlocation(double x, double y, const string& value);
-    MString compose(const MPoint& m) const;
+    temporalalgebra::MString compose(const temporalalgebra::MPoint& m) const;
     sstring* atrange(const Rect& rRect) const;
     Rect bbox() const;
     string getMinimum() const;
@@ -157,8 +157,8 @@ namespace raster2
   {
     typedef sstring implementation_type;
     typedef CcString wrapper_type;
-    typedef MString moving_type;
-    typedef UString unit_type;
+    typedef temporalalgebra::MString moving_type;
+    typedef temporalalgebra::UString unit_type;
     static const char* name;
     
     static bool check(const NList& nl)

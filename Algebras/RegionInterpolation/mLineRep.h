@@ -37,7 +37,7 @@ Returns the calculated triangles as a field of degenerated MovingSegments
  
 */       
          
-         vector<MSegmentData> getTriangles();
+         vector<temporalalgebra::MSegmentData> getTriangles();
        private:         
 /*
 
@@ -125,7 +125,7 @@ Triangles is the calculated set of MovingSegments,
 myMatch is the Match which is used to create it
   
 */    
-         vector<MSegmentData> triangles;
+         vector<temporalalgebra::MSegmentData> triangles;
          Match *myMatch;
    };
 }

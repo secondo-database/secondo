@@ -232,7 +232,6 @@ insertbtree::ValueMapping1(Word* args, Word& result, int message,
   Word elem;
   Attribute* key;
   Attribute* value;
-  bool res = false;
 
   switch (message)
   {
@@ -260,7 +259,7 @@ insertbtree::ValueMapping1(Word* args, Word& result, int message,
           tuple->DeleteIfAllowed();
           return CANCEL;
         }
-        res = info->btree->AppendGeneric(key, value);
+        info->btree->AppendGeneric(key, value);
         result.setAddr(tuple);
         return YIELD;
       }
@@ -294,7 +293,6 @@ insertbtree::ValueMapping2(Word* args, Word& result, int message,
   Word elem;
   Attribute* key;
   Attribute* value;
-  bool res = false;
 
   switch (message)
   {
@@ -319,11 +317,11 @@ insertbtree::ValueMapping2(Word* args, Word& result, int message,
         key = tuple->GetAttribute(info->keyIndex);
         if (info->valueIndex == -1){
 
-          res = info->btree->AppendGeneric(key, 0);
+          info->btree->AppendGeneric(key, 0);
         }
         else{
           value = tuple->GetAttribute(info->valueIndex);
-          res = info->btree->AppendGeneric(key, value);
+          info->btree->AppendGeneric(key, value);
         }
         result.setAddr(tuple);
         return YIELD;

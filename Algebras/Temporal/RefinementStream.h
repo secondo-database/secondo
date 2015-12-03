@@ -37,6 +37,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TemporalAlgebra.h"
 #include <assert.h>
 
+namespace temporalalgebra{
+
 /*
 1 Class RefinementStream
 
@@ -400,7 +402,7 @@ bool RefinementStream<Mapping1, Mapping2, Unit1, Unit2>::getNext(
 
 } // getNext(...)
 
-
+}
 
 #endif
 

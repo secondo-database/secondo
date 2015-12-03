@@ -75,6 +75,7 @@ extern QueryProcessor *qp;
 using namespace mappings;
 using namespace std;
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 /*
@@ -279,11 +280,12 @@ public:
 };
 
 }    // end of namespace mregionops2
+}    // end of namespace temporalalgebra
 
 extern "C"Algebra*
 InitializeMRegionOps2Algebra( NestedList* nlRef,
         QueryProcessor* qpRef ) {
 
     // The C++ scope-operator :: must be used to qualify the full name
-    return new mregionops2::MRegionOps2Algebra();
+    return new temporalalgebra::mregionops2::MRegionOps2Algebra();
 }

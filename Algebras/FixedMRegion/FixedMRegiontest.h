@@ -17,6 +17,8 @@ This my test methd.
 #include "MovingRegionAlgebra.h"
 #include "ListUtils.h"
 
+namespace temporalalgebra{
+
 class FixedMRegion;
 
 class FMRTest {
@@ -51,5 +53,7 @@ void testInsideVersusApproxMovement();
 };
 
 void runTestMethod ();
+
+}
 
 #endif

@@ -62,6 +62,8 @@ Jan, 2011 Jianqiu xu
 
 //ofstream output;
 
+using namespace temporalalgebra;
+
 ///////////////////////////random number generator//////////////////////////
 unsigned long int GetRandom()
 {
@@ -1456,9 +1458,9 @@ void GenMO::Append(const UGenLoc& unit)
 
 }
 
-void GenMO::EndBulkLoad(const bool sort, const bool checkvalid)
+bool GenMO::EndBulkLoad(const bool sort, const bool checkvalid)
 {
-  Mapping<UGenLoc, GenLoc>::EndBulkLoad(sort, checkvalid); 
+  return Mapping<UGenLoc, GenLoc>::EndBulkLoad(sort, checkvalid); 
 //    Mapping<UGenLoc, GenLoc>::EndBulkLoad(false, false);//sort needs time 
 }
 
@@ -2940,7 +2942,7 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
   MPoint* mo = new MPoint(0);
 //  temporalnet::MGPoint* mo_gp = new temporalnet::MGPoint(0);
 //  MGPoint* mo_gp = new temporalnet::MGPoint(0);
-  MGPoint* mo_gp = new MGPoint(0);
+  temporalnet::MGPoint* mo_gp = new temporalnet::MGPoint(0);
 
   mo->StartBulkLoad();
 
@@ -3065,7 +3067,7 @@ use the maxspeed as car speed
 pos len increase
 
 */
-void GenMObject::CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
+void GenMObject::CreateCarMPMGP1(MPoint* mo, temporalnet::MGPoint* mgp,
                                  vector<MyHalfSegment> seq_halfseg,
                       Instant& start_time, double speed_val, 
                       int networkId, int routeId, Side side, 
@@ -3137,7 +3139,8 @@ void GenMObject::CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
 
 //    cout<<"1 time interval "<<up_interval<<endl;
 
-    UGPoint* ugp = new UGPoint(up_interval,networkId,
+    temporalnet::UGPoint* ugp = new temporalnet::UGPoint(
+                                 up_interval,networkId,
                                  routeId,side,start_pos,end_pos);
 //    ugp->Print(cout);
     mgp->Add(*ugp);
@@ -3158,7 +3161,7 @@ use the maxspeed as car speed
 pos len decrease
 
 */
-void GenMObject::CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
+void GenMObject::CreateCarMPMGP2(MPoint* mo, temporalnet::MGPoint* mgp,
                                  vector<MyHalfSegment> seq_halfseg,
                       Instant& start_time, double speed_val, 
                       int networkId, int routeId, Side side, 
@@ -3229,7 +3232,8 @@ void GenMObject::CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
 
 //     cout<<"2 time interval "<<up_interval<<endl;
 
-    UGPoint* ugp = new UGPoint(up_interval,networkId,
+    temporalnet::UGPoint* ugp = new temporalnet::UGPoint(
+                                 up_interval,networkId,
                                  routeId,side,start_pos,end_pos);
 
     mgp->Add(*ugp);

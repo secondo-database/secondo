@@ -1128,7 +1128,7 @@ int createujpointVM( Word* args, Word& result, int message, Word& local,
   {
     res->SetDefined(true);
     res->SetNetworkId(*jnet->GetId());
-    res->SetUnit(JUnit(Interval<Instant> (*starttime, *endtime,
+    res->SetUnit(JUnit(temporalalgebra::Interval<Instant> (*starttime, *endtime,
                                           lc->GetBoolval(), rc->GetBoolval()),
                        *rint),
                  true, jnet);
@@ -2749,7 +2749,9 @@ Restricts the mjpoint to the given periods.
 
 const string maps_atperiods[1][3] =
 {
-  {MJPoint::BasicType(), Periods::BasicType(), MJPoint::BasicType()}
+  {MJPoint::BasicType(), 
+   temporalalgebra::Periods::BasicType(), 
+   MJPoint::BasicType()}
 };
 
 ListExpr atperiodsTM (ListExpr args)
@@ -2767,7 +2769,7 @@ int atperiodsVM ( Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   MJPoint* mjp = ( MJPoint* ) args[0].addr;
-  Periods* inst = (Periods*) args[1].addr;
+  temporalalgebra::Periods* inst = (temporalalgebra::Periods*) args[1].addr;
   MJPoint* res = static_cast<MJPoint* > (result.addr);
   if (mjp != NULL && mjp->IsDefined() &&
       inst != NULL && inst->IsDefined())
@@ -2787,12 +2789,13 @@ ValueMapping atperiodsMap[] =
 const string atperiodsSpec =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
    "(<text>" +
-   MJPoint::BasicType() + " X " + Periods::BasicType() +" -> " +
+   MJPoint::BasicType() + " X " 
+   + temporalalgebra::Periods::BasicType() +" -> " +
    MJPoint::BasicType() +
    "</text--->"
    "<text><mjpoint> atperiods <periods> </text--->"
    "<text>Returns an " + MJPoint::BasicType() + " restricted to the given " +
-   Periods::BasicType()  + ".</text--->"
+   temporalalgebra::Periods::BasicType()  + ".</text--->"
    "<text>query testmjp atperiods testperiod </text--->))";
 
 Operator atperiodsJNet( "atperiods", atperiodsSpec, 1, atperiodsMap,
@@ -3551,7 +3554,8 @@ Returns true if the ~mjpoint~ is defined at least once in the given ~periods~.
 
 const string maps_present[2][3] =
 {
-  {MJPoint::BasicType(), Periods::BasicType(), CcBool::BasicType()},
+  {MJPoint::BasicType(), 
+   temporalalgebra::Periods::BasicType(), CcBool::BasicType()},
   {MJPoint::BasicType(), Instant::BasicType(), CcBool::BasicType()}
 };
 
@@ -3583,21 +3587,23 @@ int presentVM( Word* args, Word& result, int message, Word& local,
 
 ValueMapping presentMap[] =
 {
-  presentVM<Periods>,
+  presentVM<temporalalgebra::Periods>,
   presentVM<Instant>
 };
 
 const string presentSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" +
-  MJPoint::BasicType() + " x " + Periods::BasicType() + " -> " +
+  MJPoint::BasicType() + " x " + 
+  temporalalgebra::Periods::BasicType() + " -> " +
   CcBool::BasicType() + ", \n" +
   MJPoint::BasicType() + " x " + Instant::BasicType() + " -> " +
   CcBool::BasicType() +
   "</text--->"
   "<text><mjpoint> present <periods> </text--->"
   "<text>Returns true if the "+MJPoint::BasicType() + " is defined at least "
-   "once in  the given "+ Periods::BasicType()+ " of time, respectively" +
+   "once in  the given "+ temporalalgebra::Periods::BasicType()
+   + " of time, respectively" +
    " at the given time instant, false elsewhere.</text--->"
   "<text>query testmjp present testperiod </text--->))";
 
@@ -4350,7 +4356,8 @@ const string maps_tonetwork[3][3] =
 {
   {JNetwork::BasicType(), Point::BasicType(), JPoint::BasicType()},
   {JNetwork::BasicType(), Line::BasicType(), JLine::BasicType()},
-  {JNetwork::BasicType(), MPoint::BasicType(), MJPoint::BasicType()}
+  {JNetwork::BasicType(), temporalalgebra::MPoint::BasicType(), 
+   MJPoint::BasicType()}
 };
 
 ListExpr tonetworkTM (ListExpr args)
@@ -4383,7 +4390,7 @@ ValueMapping tonetworkMap[] =
 {
   tonetworkVM<Point, JPoint>,
   tonetworkVM<Line, JLine>,
-  tonetworkVM<MPoint, MJPoint>
+  tonetworkVM<temporalalgebra::MPoint, MJPoint>
 };
 
 const string tonetworkSpec =
@@ -4393,7 +4400,8 @@ const string tonetworkSpec =
   JPoint::BasicType() + ", \n" +
   JNetwork::BasicType() + " x " + Line::BasicType() + " -> " +
   JLine::BasicType() + ", \n" +
-  JNetwork::BasicType() + " x " + MPoint::BasicType() + " -> " +
+  JNetwork::BasicType() + " x " + temporalalgebra::MPoint::BasicType() 
+  + " -> " +
   MJPoint::BasicType() + "</text--->"
   "<text>tonetwork( <jnetwork> <spatialobject>) </text--->"
   "<text>Translates the spatial or spatiotemporal object into the " +
@@ -4418,7 +4426,7 @@ const string maps_fromnetwork[3][2] =
 {
   {JPoint::BasicType(), Point::BasicType()},
   {JLine::BasicType(), Line::BasicType()},
-  {MJPoint::BasicType(), MPoint::BasicType()}
+  {MJPoint::BasicType(), temporalalgebra::MPoint::BasicType()}
 };
 
 ListExpr fromnetworkTM (ListExpr args)
@@ -4449,7 +4457,7 @@ ValueMapping fromnetworkMap[] =
 {
   fromnetworkVM<JPoint, Point>,
   fromnetworkVM<JLine, Line>,
-  fromnetworkVM<MJPoint, MPoint>
+  fromnetworkVM<MJPoint, temporalalgebra::MPoint>
 };
 
 const string fromnetworkSpec =
@@ -4457,7 +4465,8 @@ const string fromnetworkSpec =
   "(<text>" +
   JPoint::BasicType() + " -> " + Point::BasicType() +  ", \n" +
   JLine::BasicType() + " -> " + Line::BasicType() + ", \n" +
-  MJPoint::BasicType() + " -> " + MPoint::BasicType() + "</text--->"
+  MJPoint::BasicType() + " -> " + temporalalgebra::MPoint::BasicType() 
+  + "</text--->"
   "<text>fromnetwork(<jnetobject>) </text--->"
   "<text>Translates the jnet object into corresponding spatial or "+
   " spatiotemporal object.</text--->"

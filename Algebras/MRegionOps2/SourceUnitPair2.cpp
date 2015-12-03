@@ -48,6 +48,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "SourceUnitPair2.h"
 #include "PFace.h"
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 /***********************************
@@ -407,4 +408,5 @@ DbArray<MSegmentData>* array=(DbArray<MSegmentData>*)resultMRegion->GetFLOB(1);
 }
 
 
+}
 }

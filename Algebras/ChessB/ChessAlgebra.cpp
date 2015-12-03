@@ -201,8 +201,8 @@ struct ChessAlgebra : Algebra
         AddUnaryOperator< odd_op >( odd_info );
         AddUnaryStreamOperator< Ntuples_op<2> >( twotuples_info );
         //AddUnaryStreamOperator< ntuples_op >( ntuples_info );
-        AddBinaryFAggregateOperator< exists_op, void >( exists_info );
-        AddBinaryFAggregateOperator< forall_op, void >( forall_info );
+        //AddBinaryFAggregateOperator< exists_op, void >( exists_info );
+        //AddBinaryFAggregateOperator< forall_op, void >( forall_info );
 
         // demonstration of new aggregate functions
         const OperatorInfo stddev_info( "stddev", "stream(double) -> double",

@@ -46,6 +46,8 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 #include <set>
 
+namespace temporalalgebra{
+
 namespace mregionops2 {
 
 class IntersectionSegment;
@@ -131,6 +133,7 @@ provided by ~IntSegCompare~ and a suitable iterator.
 };
 
 } // end of namespace mregionops2
+} // end of namespace temporalalgebra
 
 #endif /*INTSEGCONTAINER_H_*/
 

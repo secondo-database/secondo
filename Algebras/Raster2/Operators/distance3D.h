@@ -241,7 +241,7 @@ ListExpr length3DTM(ListExpr args){
   if(!sint::checkType(arg) && !sreal::checkType(arg)){
      return listutils::typeError(err  + " first arg is not a raster");
   }
-  if(!MPoint::checkType(nl->Second(args)) ){
+  if(!temporalalgebra::MPoint::checkType(nl->Second(args)) ){
      return listutils::typeError(err + " second arg is not an mpoint");
   }
    
@@ -262,7 +262,7 @@ template<class st>
 int length3DVM1 (Word* args, Word& result, int message, 
                   Word& local, Supplier s) {
    st* raster = (st*) args[0].addr;
-   MPoint* mp = (MPoint*) args[1].addr;
+   temporalalgebra::MPoint* mp = (temporalalgebra::MPoint*) args[1].addr;
    CcBool* stepwise = (CcBool*) args[2].addr;
    Geoid* geoid = qp->GetNoSons(s)==4
                       ? (Geoid*) args[3].addr
@@ -276,7 +276,7 @@ int length3DVM1 (Word* args, Word& result, int message,
    }
    res->Set(true,0);
    for(int i=0;i<mp->GetNoComponents();i++){
-      UPoint unit;
+      temporalalgebra::UPoint unit;
       mp->Get(i,unit);
       (*res) += distance3DFun<st>(*raster,unit.p0,unit.p1,geoid,*stepwise);
    }

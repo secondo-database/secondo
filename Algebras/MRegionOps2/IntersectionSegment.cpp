@@ -50,6 +50,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "NumericUtil.h"
 
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 bool IntSegWCompare::operator()(const IntersectionSegment* const& s1,
@@ -267,4 +268,5 @@ const mpq_class sideOfEnd = GetEndWT()->WhichSide(*intSeg->GetStartWT(),
 }
 
 
+} // end namespace
 } // end namespace

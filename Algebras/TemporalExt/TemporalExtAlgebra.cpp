@@ -55,6 +55,9 @@ extern QueryProcessor *qp;
 
 using namespace mappings;
 
+
+namespace temporalalgebra{
+
 /*
 
 2 Type definitions, Auxiliary Functions
@@ -5545,6 +5548,8 @@ class TemporalExtAlgebra : public Algebra
     ~TemporalExtAlgebra() {}
 };
 
+} // end of namespace temporalalgebra
+
 /*
 
 10 Initialization
@@ -5557,6 +5562,6 @@ InitializeTemporalExtAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
 {
   nl = nlRef;
   qp = qpRef;
-  return (new TemporalExtAlgebra());
+  return (new temporalalgebra::TemporalExtAlgebra());
 }
 

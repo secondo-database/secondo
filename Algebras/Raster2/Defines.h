@@ -177,14 +177,14 @@ const undefined value for type MInt
 
 */
 
-extern const MInt UNDEFINED_MINT;
+extern const temporalalgebra::MInt UNDEFINED_MINT;
 
 /*
 const undefined value for type MReal
 
 */
 
-extern const MReal UNDEFINED_MREAL;
+extern const temporalalgebra::MReal UNDEFINED_MREAL;
 
 /*
 const undefined value for type MBool

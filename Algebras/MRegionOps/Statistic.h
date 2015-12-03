@@ -52,6 +52,7 @@ the result.
 #endif /*STATISTIC_H_*/
 
 using namespace std;
+namespace temporalalgebra {
 
 namespace mregionops {
 
@@ -238,5 +239,7 @@ Print the current state of all counters.
     double durationProcessCriticalPFace;
     
 };
+
+}
 
 }

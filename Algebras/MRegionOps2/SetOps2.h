@@ -47,6 +47,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #ifndef SETOPS2_H_
 #define SETOPS2_H_
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 
@@ -80,6 +81,7 @@ enum CycleStatus {
     HASINTSEGS,
     NOTYETKNOWN
 };
+}
 }
 
 #endif

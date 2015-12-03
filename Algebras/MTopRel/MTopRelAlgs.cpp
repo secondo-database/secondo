@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SpatialAlgebra.h"
 #include "RefinementStream.h"
 
-
+namespace temporalalgebra{
 
 /*
 0 Auxiliary functions
@@ -684,20 +684,5 @@ Computes the interval when the upoint is at the segment seg.
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+} // end of namespace 
 

@@ -68,6 +68,7 @@ UGrid-Algebra offers the following methods:
 #include "Symbols.h"
 
 using namespace std;
+using namespace temporalalgebra;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -2160,17 +2161,17 @@ void GenerateErrorMsg(bool error[3])
   if (error[0])
   {
     NList msgList( NList("simple"),NList("Could not access update file!") );
-    msg->Send(msgList);
+    msg->Send(nl,msgList.listExpr());
   }
   if (error[1])
   {
     NList msgList( NList("simple"),NList("Upload(s) is/are out of area!") );
-    msg->Send(msgList);
+    msg->Send(nl,msgList.listExpr());
   }
   if (error[2])
   {
     NList msgList( NList("simple"),NList("Upload(s) is/are out of date!") );
-    msg->Send(msgList);
+    msg->Send(nl,msgList.listExpr());
   }
 }
 

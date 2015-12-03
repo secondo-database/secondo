@@ -7,6 +7,8 @@ see mLineRep.h for documentation
 */
 #include "RegionInterpolator.h"
 
+using namespace temporalalgebra;
+
 namespace RegionInterpol
 {
 /* 

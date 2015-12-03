@@ -62,6 +62,8 @@ queries moving objects with transportation modes.
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+using namespace temporalalgebra;
+
 double TM_DiffTimeb(struct timeb* t1, struct timeb* t2)
 {
   double dt1 = t1->time + (double)t1->millitm/1000.0;
@@ -214,7 +216,8 @@ int StateOfDoorValueMap(Word* args, Word& result, int message,
 {
   Door3D* d = (Door3D*)args[0].addr; 
   result = qp->ResultStorage(s);
-  MBool* res = static_cast<MBool*>(result.addr);
+  MBool* res = 
+               static_cast<MBool*>(result.addr);
   if(d->IsDefined()){
 //    *res = *(d->GetTState());
     res->StartBulkLoad();
@@ -3999,7 +4002,7 @@ int GenerateCarListValueMap(Word* args, Word& result, int message,
           tuple->PutAttribute(0, new MPoint(mo->trip2_list[mo->count]));
           tuple->PutAttribute(1, 
 //                    new temporalnet::MGPoint(mo->trip3_list[mo->count]));
-                    new MGPoint(mo->trip3_list[mo->count]));
+                    new temporalnet::MGPoint(mo->trip3_list[mo->count]));
 
           result.setAddr(tuple);
           mo->count++;
@@ -16549,7 +16552,7 @@ int BulkLoadTMRtreeValueMap( Word* args, Word& result, int message,
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-      msg->Send(msgList);
+      msg->Send(nl,msgList.listExpr());
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
 
@@ -16590,7 +16593,7 @@ int BulkLoadTMRtreeValueMap( Word* args, Word& result, int message,
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-  msg->Send(msgList);
+  msg->Send(nl,msgList.listExpr());
 
   return 0;
 }
@@ -16989,7 +16992,7 @@ int CreateModeRtreeValueMap( Word* args, Word& result, int message,
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-      msg->Send(msgList);
+      msg->Send(nl,msgList.listExpr());
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
 
@@ -17028,7 +17031,7 @@ int CreateModeRtreeValueMap( Word* args, Word& result, int message,
       // send the message, the message center will call
       // the registered handlers. Normally the client applications
       // will register them.
-  msg->Send(msgList);
+  msg->Send(nl,msgList.listExpr());
 
   return 0;
 }

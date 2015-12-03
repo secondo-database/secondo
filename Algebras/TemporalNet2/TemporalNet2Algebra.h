@@ -51,6 +51,8 @@ Please include in *.cpp-File.
 Please include in *.cpp-File.
 #endif
 
+namespace temporalalgebra{
+
 namespace temporalnet2 {
 
 using namespace datetime;
@@ -846,5 +848,6 @@ Restricts a ~mgpoint~ to the given unit intervals.
 
 
 } // end of namepsace temporalnet2
+} // end of namespace temporalalgebra
 
 #endif // _TEMPORAL_NET2_ALGEBRA_H_

@@ -62,6 +62,8 @@ thesis of Mahmoud Sakr, Chapter 6 Temporal Reasoning.
 #include "Symbols.h"
 #include "Stream.h"
 
+using namespace temporalalgebra;
+
 namespace STP{
 
 /*

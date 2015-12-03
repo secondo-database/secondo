@@ -78,14 +78,14 @@ class Properties<char>
 
   */
 
-  typedef MBool MType;
+  typedef temporalalgebra::MBool MType;
 
   /*
   typedef of UnitType
 
   */
 
-  typedef UBool UnitType;
+  typedef temporalalgebra::UBool UnitType;
 
   /*
   Method GetUndefinedValue returns the undefined value of base datatype bool.

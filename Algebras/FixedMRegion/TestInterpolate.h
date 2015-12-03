@@ -16,6 +16,8 @@ This my test methd.
 #include "FixedMRegion.h"
 #include "FMRInterpolator.h"
 
+namespace temporalalgebra{
+
 class TestInterpolate {
 public:
   void testcalcMasspoint();
@@ -50,5 +52,6 @@ public:
 
 void runTestInterpolateMethod();
 
+}
 
 #endif

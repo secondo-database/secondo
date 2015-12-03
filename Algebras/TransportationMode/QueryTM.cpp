@@ -43,6 +43,9 @@ March, 2011 Jianqiu xu
 convert a genrange object to a 2D line in space or 3D line in a building 
 
 */
+
+using namespace temporalalgebra;
+
 void QueryTM::GetLineOrLine3D(GenRange* gr, Space* sp)
 {
   BusNetwork* bn = sp->LoadBusNetwork(IF_BUSNETWORK);

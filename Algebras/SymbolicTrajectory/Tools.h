@@ -56,7 +56,8 @@ Started July 2014, Fabio Vald\'{e}s
 };
 
 struct ivCmp {
-  bool operator() (const Interval<CcReal>& iv1, const Interval<CcReal>& iv2)
+  bool operator() (const temporalalgebra::Interval<CcReal>& iv1, 
+                   const temporalalgebra::Interval<CcReal>& iv2)
                    const {
     if (iv1.start == iv2.start) {
       if (iv1.lc == iv2.lc) {
@@ -106,12 +107,16 @@ class Tools {
   static bool isSymbolicType(ListExpr typeList);
   static string extractVar(const string& input);
   static string extendDate(string input, const bool start);
-  static bool checkSemanticDate(const string &text, const SecInterval &uIv,
+  static bool checkSemanticDate(const string &text, 
+                                const temporalalgebra::SecInterval &uIv,
                                 const bool resultNeeded);
-  static bool checkDaytime(const string& text, const SecInterval& uIv);
+  static bool checkDaytime(const string& text, 
+                           const temporalalgebra::SecInterval& uIv);
   static bool isInterval(const string& str);
-  static void stringToInterval(const string& str, SecInterval& result);
-  static bool orderCheckInsert(Range<CcReal> *range,const Interval<CcReal> &iv);
+  static void stringToInterval(const string& str, 
+                               temporalalgebra::SecInterval& result);
+  static bool orderCheckInsert(temporalalgebra::Range<CcReal> *range,
+                               const temporalalgebra::Interval<CcReal> &iv);
   static bool parseInterval(const string& input, bool &isEmpty, int &pos,
                             int &endpos, Word &value);
   static bool isSetRel(const string& input, int &pos, int &endpos, 
@@ -128,13 +133,16 @@ class Tools {
                         vector<set<int> > &result);
   static void queryTrie(InvertedFile *inv, pair<string, unsigned int> place, 
                         vector<set<int> > &result);
-  static void queryBtree(BTree_t<LongInt> *btree, Interval<CcReal> &iv,
+  static void queryBtree(BTree_t<LongInt> *btree, 
+                         temporalalgebra::Interval<CcReal> &iv,
                          vector<set<int> > &result);
-  static void queryRtree1(RTree1TLLI *rtree, Interval<CcReal> &iv,
+  static void queryRtree1(RTree1TLLI *rtree, 
+                          temporalalgebra::Interval<CcReal> &iv,
                           vector<set<int> > &result);
   static void queryRtree2(RTree2TLLI *rtree, Rectangle<2> &box,
                           vector<set<int> > &result);
-  static bool timesMatch(const Interval<DateTime>& iv, const set<string>& ivs);
+  static bool timesMatch(const temporalalgebra::Interval<DateTime>& iv, 
+                         const set<string>& ivs);
   static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
   // static Word evaluate(string input);
   static bool createTransitions(const bool dortmund,
@@ -192,7 +200,8 @@ class Tools {
   }
   
   template<class T>
-  static bool relationHolds(const Range<T>& r1, const Range<T>& r2, 
+  static bool relationHolds(const temporalalgebra::Range<T>& r1, 
+                            const temporalalgebra::Range<T>& r2, 
                             const SetRel rel) {
     switch (rel) {
       case STANDARD: {
@@ -216,7 +225,8 @@ class Tools {
     }
   }
   
-  static bool relationHolds(const Range<CcReal>& range, const set<int>& intSet,
+  static bool relationHolds(const temporalalgebra::Range<CcReal>& range, 
+                           const set<int>& intSet,
                             const SetRel rel) {
     set<int>::iterator it;
     switch (rel) {
@@ -259,12 +269,13 @@ class Tools {
     }
   }
   
-  static bool relationHolds(const MPoint &mp, const Region &reg, 
+  static bool relationHolds(const temporalalgebra::MPoint &mp, 
+                            const Region &reg, 
                             const SetRel rel) {
     switch (rel) {
       case STANDARD: {
         if (reg.Intersects(mp.BoundingBoxSpatial())) {
-          MPoint mpAtReg(true);
+          temporalalgebra::MPoint mpAtReg(true);
           mp.AtRegion(&reg, mpAtReg);
           return !mpAtReg.IsEmpty();
         }
@@ -294,12 +305,13 @@ class Tools {
     }
   }
   
-    static bool relationHolds(const MRegion &mreg, const Region &reg, 
+    static bool relationHolds(const temporalalgebra::MRegion &mreg, 
+                             const Region &reg, 
                               const SetRel rel) {
     // TODO: a lot. use MRegion2 ?
     Rectangle<3> bb3 = mreg.BoundingBox();
     Rectangle<2> bbox(true, bb3.MinD(0), bb3.MaxD(0), bb3.MinD(1), bb3.MaxD(1));
-    URegionEmb ur(true);
+    temporalalgebra::URegionEmb ur(true);
     switch (rel) {
       case STANDARD: {
         if (reg.Intersects(bbox)) {

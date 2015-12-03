@@ -56,7 +56,7 @@ and the InMemUSet into MSet, and USet and visa versa. We use the in memory
 classes during the processing of the \emph{gpattern} operator to achive 
 efficiency. The stategy is to load the data from disk using the MSet and USet 
 classes, cast them to the in memory classes, do the required processing, cast 
-the results back so that they can be handled by SECONDO in further processing.        
+the results back so that they can be handled by SECONDO in further processing.
 
 2 Defines and includes
 
@@ -194,7 +194,7 @@ Data members
 3.1 The ISet Class
 
 */
-class ISet: public Intime<IntSet> {
+class ISet: public temporalalgebra::Intime<IntSet> {
 public:
   ISet();
 
@@ -241,7 +241,7 @@ members required for SECONDO types
 3.2 The USet Class
 
 */
-class USet : public StandardTemporalUnit<IntSet>
+class USet : public temporalalgebra::StandardTemporalUnit<IntSet>
 {
   public:
 /*
@@ -250,11 +250,11 @@ class USet : public StandardTemporalUnit<IntSet>
 */
   USet();
   USet(bool is_defined);
-  USet( const Interval<Instant>& _interval, const IntSet& a );
+  USet( const temporalalgebra::Interval<Instant>& _interval, const IntSet& a );
   
   // the following constructor is for implementation compatibility with
   // UnitTypes for continious value range types (like UReal, UPoint)
-  USet( const Interval<Instant>& _interval, const IntSet& a,
+  USet( const temporalalgebra::Interval<Instant>& _interval, const IntSet& a,
                                                          const IntSet& b );
   USet( const USet& u );
 /*
@@ -273,13 +273,15 @@ defined and represent the same temporal function
 
   virtual bool operator==( const USet& i ) const;
 /*
-Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~false~ if they are different.
+Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ 
+and ~false~ if they are different.
 
 */
 
   virtual bool operator!=( const USet& i ) const;
 /*
-Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~false~ if they are equal.
+Returns ~true~ if this temporal unit is different to the temporal unit ~i~ 
+and ~false~ if they are equal.
 
 */
 
@@ -296,7 +298,7 @@ is undefined, or the Instant is not within the unit's timeInterval.
   
   virtual bool Passes( const IntSet& val ) const;
   virtual bool At( const IntSet& val, TemporalUnit<IntSet>& result ) const;
-  virtual void AtInterval( const Interval<Instant>& i,
+  virtual void AtInterval( const temporalalgebra::Interval<Instant>& i,
                            TemporalUnit<IntSet>& result ) const;
   virtual bool EqualValue( const USet& i ) const;
 /*
@@ -373,9 +375,10 @@ Constructors and the destructor
   USetRef(){}
   USetRef(bool def):isdefined(def){}
   ~USetRef(){}
-  USetRef(const int s, const int e, const Interval<Instant> &i)
+  USetRef(const int s, const int e, const temporalalgebra::Interval<Instant> &i)
     :start(s), end(e), isdefined(true),timeInterval(i) {}
-  USetRef(const int s, const int e, const Interval<Instant> &i, const bool def)
+  USetRef(const int s, const int e, 
+          const temporalalgebra::Interval<Instant> &i, const bool def)
     :start(s), end(e), isdefined(def), timeInterval(i) {}
   
 /*
@@ -434,7 +437,8 @@ Calss member functions
   
   void SetDefined(bool def) {isdefined= def;}
   
-  void AtInterval( const Interval<Instant>& i,  USetRef& result ) const
+  void AtInterval( const temporalalgebra::Interval<Instant>& i,  
+                   USetRef& result ) const
   {
     if( !this->IsDefined() || !this->timeInterval.Intersects( i ) ){
       ((USetRef*)&result)->isdefined=  false ;
@@ -472,11 +476,11 @@ Data Members
   int start;
   int end;
   bool isdefined;
-  Interval<Instant> timeInterval;
+  temporalalgebra::Interval<Instant> timeInterval;
 };
 
 
-class MSet : public  Mapping< USetRef, IntSet > 
+class MSet : public  temporalalgebra::Mapping< USetRef, IntSet > 
 {
 public:
   MSet():Mapping<USetRef, IntSet>(){}
@@ -493,13 +497,13 @@ public:
   void LiftedUnion2(MSet& arg);
   void LiftedMinus(MSet& arg, MSet& res);
   void LiftedMinus2(MSet& arg, MSet& res);
-  void LiftedIsSubset(MSet& arg2, MBool& res);
-  void LiftedCount(MInt& res);
-  void MBool2MSet(MBool& mb, int elem);
+  void LiftedIsSubset(MSet& arg2, temporalalgebra::MBool& res);
+  void LiftedCount(temporalalgebra::MInt& res);
+  void MBool2MSet(temporalalgebra::MBool& mb, int elem);
   bool operator ==(MSet& rhs);
   bool operator !=(MSet& rhs);
   void Clear();
-  void AtPeriods( const Periods& periods, MSet& result ) const;
+  void AtPeriods( const temporalalgebra::Periods& periods, MSet& result ) const;
   void Initial( ISet& result ) const;
   void Final( ISet& result ) const;
   MSet* Clone() const;
@@ -550,9 +554,9 @@ public:
   
   void Clear();
   
-  void ReadFrom(UBool& arg, int key);
+  void ReadFrom(temporalalgebra::UBool& arg, int key);
   
-  void SetTimeInterval(Interval<Instant>& arg);
+  void SetTimeInterval(temporalalgebra::Interval<Instant>& arg);
 
   void Intersection(set<int>& arg);
   
@@ -601,7 +605,7 @@ public:
   void CopyFrom(InMemMSet& arg, list<InMemUSet>::iterator begin,
       list<InMemUSet>::iterator end);
   
-  void ReadFrom(MBool& mbool, int key);
+  void ReadFrom(temporalalgebra::MBool& mbool, int key);
   
   void WriteToMSet(MSet& res);
   
@@ -628,9 +632,10 @@ public:
 
   list<InMemUSet>::iterator GetPeriodStartUnit(list<InMemUSet>::iterator end);
   
-  bool GetNextTrueUnit(MBool& mbool, int& pos, UBool& unit);
+  bool GetNextTrueUnit(temporalalgebra::MBool& mbool, int& pos, 
+                       temporalalgebra::UBool& unit);
 
-  void Union (MBool& arg, int key);
+  void Union (temporalalgebra::MBool& arg, int key);
 
   
   list<InMemUSet> units;
@@ -733,10 +738,11 @@ public:
   list<CompressedInMemUSet>::iterator GetPeriodEndUnit(
       list<CompressedInMemUSet>::iterator begin);
   
-  bool GetNextTrueUnit(MBool& mbool, int& pos, UBool& unit);
+  bool GetNextTrueUnit(temporalalgebra::MBool& mbool, int& pos, 
+                       temporalalgebra::UBool& unit);
   
-  bool Buffer (MBool& arg, int key);
-  bool Buffer (MBool& arg, int key, int64_t duration);
+  bool Buffer (temporalalgebra::MBool& arg, int key);
+  bool Buffer (temporalalgebra::MBool& arg, int key, int64_t duration);
   
   void ClassifyEvents(pair< multimap<int64_t, Event>::iterator,
      multimap<int64_t, Event>::iterator >& events,

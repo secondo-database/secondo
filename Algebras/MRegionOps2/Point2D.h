@@ -55,6 +55,7 @@ Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 
 using namespace std;
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 /*
@@ -165,5 +166,6 @@ private:
 ostream& operator <<(ostream& o, Point2D& p);
 
 
+} 
 } 
 #endif /* POINT2D_H_*/

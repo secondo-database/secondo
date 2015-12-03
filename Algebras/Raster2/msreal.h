@@ -34,9 +34,9 @@ namespace raster2
     struct mstype_helper<double> 
     {
         typedef msreal implementation_type;
-        typedef MReal moving_type;
+        typedef temporalalgebra::MReal moving_type;
         typedef CcReal wrapper_type;
-        typedef UReal unit_type;
+        typedef temporalalgebra::UReal unit_type;
         typedef sreal spatial_type;
         static const char* name;
         static bool check(const NList& nl)

@@ -54,7 +54,7 @@ namespace mapmatch {
 
 */
 
-MPointCreator::MPointCreator(MPoint* pResMPoint,
+MPointCreator::MPointCreator(temporalalgebra::MPoint* pResMPoint,
                              double dNetworkScale)
 :m_pResMPoint(pResMPoint),
  m_dNetworkScale(dNetworkScale)
@@ -202,12 +202,13 @@ void MPointCreator::ProcessPoints(
 
     if (AlmostEqual(Pt1, Pt2))
     {
-        Interval<Instant> TimeInterval(rData1.GetTime(),
+        temporalalgebra::Interval<Instant> TimeInterval(rData1.GetTime(),
                                        rData2.GetTime(),
                                        true,
                                        rData1.GetTime() == rData2.GetTime());
 
-        AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval, Pt1, Pt1));
+        AttributePtr<temporalalgebra::UPoint> 
+             pUPoint(new temporalalgebra::UPoint(TimeInterval, Pt1, Pt1));
         m_pResMPoint->Add(*pUPoint);
 
         assert(vecCurvesBetweenPoints.size() == 0);
@@ -222,13 +223,15 @@ void MPointCreator::ProcessPoints(
         {
             // at least one point is offroad
 
-            Interval<Instant> TimeInterval(
+            temporalalgebra::Interval<Instant> TimeInterval(
                                           rData1.GetTime(),
                                           rData2.GetTime(),
                                           true,
                                           rData1.GetTime() == rData2.GetTime());
 
-            AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval, Pt1, Pt2));
+            AttributePtr<temporalalgebra::UPoint> 
+                              pUPoint(new temporalalgebra::UPoint(
+                                           TimeInterval, Pt1, Pt2));
             m_pResMPoint->Add(*pUPoint);
         }
         else if (pSection1 == pSection2) // Same section
@@ -247,7 +250,7 @@ void MPointCreator::ProcessPoints(
                 pSubline->StartPoint().IsDefined() &&
                 pSubline->EndPoint().IsDefined())
             {
-                Interval<Instant> TimeInterval(
+                temporalalgebra::Interval<Instant> TimeInterval(
                                           rData1.GetTime(),
                                           rData2.GetTime(),
                                           true,
@@ -312,10 +315,12 @@ void MPointCreator::ProcessPoints(
             if (!pSubline1 ||
                 AlmostEqual(dLenCurve1, 0.0))
             {
-                Interval<Instant> TimeInterval(rData1.GetTime(),
+                temporalalgebra::Interval<Instant> 
+                         TimeInterval(rData1.GetTime(),
                                                TimeEnd,
                                                true, true);
-                AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval,
+                AttributePtr<temporalalgebra::UPoint> 
+                     pUPoint(new temporalalgebra::UPoint(TimeInterval,
                                                         Pt1, Pt1));
                 m_pResMPoint->Add(*pUPoint);
             }
@@ -325,7 +330,8 @@ void MPointCreator::ProcessPoints(
                            DateTime(datetime::durationtype,
                                     (uint64_t)(((Duration.millisecondsToNull()
                                                 / dLength) * dLenCurve1) + .5));
-                Interval<Instant> TimeInterval(rData1.GetTime(),
+                
+         temporalalgebra::Interval<Instant> TimeInterval(rData1.GetTime(),
                                                TimeEnd,
                                                true,
                                                rData1.GetTime() == TimeEnd);
@@ -351,7 +357,9 @@ void MPointCreator::ProcessPoints(
                                     (uint64_t)(((Duration.millisecondsToNull()
                                                 / dLength) * dLenCurve) + .5));
 
-                Interval<Instant> TimeInterval(TimeStart,
+                
+                         temporalalgebra::Interval<Instant> 
+                                               TimeInterval(TimeStart,
                                                TimeEnd,
                                                true, false);
 
@@ -365,10 +373,11 @@ void MPointCreator::ProcessPoints(
             {
                 DateTime TimeStart = TimeEnd;
                 TimeEnd = rData2.GetTime();
-                Interval<Instant> TimeInterval(TimeStart,
+                temporalalgebra::Interval<Instant> TimeInterval(TimeStart,
                                                TimeEnd,
                                                true, true);
-                AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval,
+                AttributePtr<temporalalgebra::UPoint> pUPoint(
+                         new temporalalgebra::UPoint(TimeInterval,
                                                         Pt2, Pt2));
                 m_pResMPoint->Add(*pUPoint);
             }
@@ -378,7 +387,7 @@ void MPointCreator::ProcessPoints(
                        rData2.GetTime().millisecondsToNull());
                 DateTime TimeStart = TimeEnd;
                 TimeEnd = rData2.GetTime();
-                Interval<Instant> TimeInterval(TimeStart,
+                temporalalgebra::Interval<Instant> TimeInterval(TimeStart,
                                                TimeEnd,
                                                true, false);
                 ProcessCurve(*pSubline2, TimeInterval, dLenCurve2);
@@ -388,15 +397,16 @@ void MPointCreator::ProcessPoints(
 }
 
 void MPointCreator::ProcessCurve(const SimpleLine& rCurve,
-                                 const Interval<Instant> TimeInterval,
-                                 double dCurveLength)
+                    const temporalalgebra::Interval<Instant> TimeInterval,
+                    double dCurveLength)
 {
     double dLength = dCurveLength < 0.0 ?
                            MMUtil::CalcLengthCurve(&rCurve, m_dNetworkScale) :
                            dCurveLength;
     if (AlmostEqual(dLength, 0.0))
     {
-        AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval,
+        AttributePtr<temporalalgebra::UPoint> pUPoint(
+                 new temporalalgebra::UPoint(TimeInterval,
                                                 rCurve.StartPoint(),
                                                 rCurve.EndPoint()));
         m_pResMPoint->Add(*pUPoint);
@@ -437,7 +447,7 @@ void MPointCreator::ProcessCurve(const SimpleLine& rCurve,
                                     (uint64_t)(((Duration.millisecondsToNull()
                                                  / dLength) * dLengthHS) + .5));
 
-    Interval<Instant> TimeIntervalAkt(TimeStart, TimeEnd,
+    temporalalgebra::Interval<Instant> TimeIntervalAkt(TimeStart, TimeEnd,
                                       true, TimeStart == TimeEnd);
 
     Point Pt1(false);
@@ -454,7 +464,8 @@ void MPointCreator::ProcessCurve(const SimpleLine& rCurve,
         Pt2 = hs.GetDomPoint();
     }
 
-    AttributePtr<UPoint> pUPoint(new UPoint(TimeIntervalAkt, Pt1, Pt2));
+    AttributePtr<temporalalgebra::UPoint> pUPoint(
+           new temporalalgebra::UPoint(TimeIntervalAkt, Pt1, Pt2));
     m_pResMPoint->Add(*pUPoint);
 
     TimeStart = TimeEnd;
@@ -478,7 +489,7 @@ void MPointCreator::ProcessCurve(const SimpleLine& rCurve,
                                     (uint64_t)(((Duration.millisecondsToNull()
                                                  / dLength) * dLengthHS) + .5));
 
-        Interval<Instant> TimeIntervalAkt(TimeStart, TimeEnd,
+        temporalalgebra::Interval<Instant> TimeIntervalAkt(TimeStart, TimeEnd,
                                           true, TimeStart == TimeEnd);
 
         if (AlmostEqual(Pt2, hs.GetDomPoint()))
@@ -495,7 +506,8 @@ void MPointCreator::ProcessCurve(const SimpleLine& rCurve,
         /*if (AlmostEqual(Pt2, rCurve.EndPoint()))
             TimeStart = TimeInterval.end;*/
 
-        AttributePtr<UPoint> pUPoint(new UPoint(TimeIntervalAkt, Pt1, Pt2));
+        AttributePtr<temporalalgebra::UPoint> pUPoint(
+             new temporalalgebra::UPoint(TimeIntervalAkt, Pt1, Pt2));
         m_pResMPoint->Add(*pUPoint);
 
         TimeStart = TimeEnd;

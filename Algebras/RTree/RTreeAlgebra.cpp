@@ -94,6 +94,9 @@ extern QueryProcessor* qp;
 
 #define BBox Rectangle
 
+
+using namespace temporalalgebra;
+
 /*
 Implementation of Functions and Procedures
 
@@ -6253,7 +6256,7 @@ Unit structure constists of a TupleId and an UPoint.
 struct Unit
 {
   TupleId tupId;
-  UPoint  up;
+  temporalalgebra::UPoint  up;
 };
 
 /*

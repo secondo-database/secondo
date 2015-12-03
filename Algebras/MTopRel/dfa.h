@@ -43,6 +43,9 @@ This class is the implementation of a finite automaton.
 #include "GenericTC.h"
 #include "StringUtils.h"
 
+
+namespace temporalalgebra{
+
 /*
 1.1 Auxiliary Functions
 
@@ -1057,3 +1060,8 @@ private:
    toprel::PredicateGroup predicateGroup;
    int numOfSymbols;           // size of sigma
 };
+
+
+} // end of namespace
+
+

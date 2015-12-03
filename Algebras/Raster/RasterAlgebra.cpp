@@ -83,7 +83,7 @@ int Raster4CRS::NumOfFLOBs(void) const {
   return 1;
 }
 
-FLOB *Raster4CRS::GetFLOB(const int i){
+Flob *Raster4CRS::GetFLOB(const int i){
     assert(i == 0);
 
     return &rasterFLOB;
@@ -93,15 +93,15 @@ Raster4CRS& Raster4CRS::operator=( Raster4CRS& r )
 {
   signatureType = r.signatureType;
 
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
   if( r.rasterFLOB.Size() > 0 )
   {
-    rasterFLOB.Resize( r.rasterFLOB.Size() );
+    rasterFLOB.resize( r.rasterFLOB.Size() );
     for( int i = 0; i < r.rasterFLOB.Size(); i++ )
     {
-      const unsigned long *l;
+      unsigned long l;
       r.rasterFLOB.Get( i, l );
-      rasterFLOB.Put( i, *l );
+      rasterFLOB.Put( i, l );
     }
 
     FLOBToRaster4CRS();
@@ -135,7 +135,7 @@ Raster4CRS& Raster4CRS::operator=( Raster4CRS& r )
 void Raster4CRS::Raster4CRSToFLOB(){
   Signature4CRS::Weight weight;
 
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
 
   rasterFLOB.Append(signatureType);
   rasterFLOB.Append(map->potency);
@@ -182,24 +182,24 @@ void Raster4CRS::Raster4CRSToFLOB(){
 void Raster4CRS::FLOBToRaster4CRS(){
   unsigned long potency, dx, dy;
   long mbrMinX, mbrMinY, mbrMaxX, mbrMaxY;
-  const unsigned long *l;
+  unsigned long l;
 
   rasterFLOB.Get(0, l);
-  signatureType = *l;
+  signatureType = l;
   rasterFLOB.Get(1, l);
-  potency = *l;
+  potency = l;
   rasterFLOB.Get(2, l);
-  dx = *l;
+  dx = l;
   rasterFLOB.Get(3, l);
-  dy = *l;
+  dy = l;
   rasterFLOB.Get(4, l);
-  mbrMinX = (long)*l;
+  mbrMinX = (long)l;
   rasterFLOB.Get(5, l);
-  mbrMinY = (long)*l;
+  mbrMinY = (long)l;
   rasterFLOB.Get(6, l);
-  mbrMaxX = (long)*l;
+  mbrMaxX = (long)l;
   rasterFLOB.Get(7, l);
-  mbrMaxY = (long)*l;
+  mbrMaxY = (long)l;
 
   long cellSize = 1l << potency;
 
@@ -211,7 +211,7 @@ void Raster4CRS::FLOBToRaster4CRS(){
 
   RasterMap4CRS *rasterMap = new RasterMap4CRS(1, mbr, dx, dy, potency);
 
-  const unsigned long *pFLOBelement;
+  unsigned long pFLOBelement;
   unsigned long FLOBelement;
   int position = -1;
   unsigned int currentCell = 0;
@@ -231,7 +231,7 @@ void Raster4CRS::FLOBToRaster4CRS(){
         // the 8 itens at the beggining are
         //signatureType, potency, dx, dy and mbr properties
         rasterFLOB.Get(positionInFLOB + 8, pFLOBelement);
-        FLOBelement = *pFLOBelement;
+        FLOBelement = pFLOBelement;
         //cout << "FLOBelement = " << FLOBelement << std::endl;
         position = 0;
         if (dx * dy - currentCell < sizeof(unsigned long) * 4)

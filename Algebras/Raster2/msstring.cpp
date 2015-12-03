@@ -62,7 +62,7 @@ void msstring::destroy()
     m_bDelete = true;
 }
 
-void msstring::getDefinedPeriods(Periods& result) const
+void msstring::getDefinedPeriods(temporalalgebra::Periods& result) const
 {
   if(m_pmsint != 0)
   {
@@ -70,7 +70,7 @@ void msstring::getDefinedPeriods(Periods& result) const
   }
 }
     
-msstring* msstring::atperiods(const Periods& periods)
+msstring* msstring::atperiods(const temporalalgebra::Periods& periods)
 {
     msstring* result = new msstring();
 
@@ -99,7 +99,8 @@ msstring* msstring::atperiods(const Periods& periods)
                         DateTime start = DateTime(t*duration);
                         DateTime end = DateTime((t+1)*duration);
 
-                        Interval<DateTime> value(start, end, true, false);
+                        temporalalgebra::Interval<DateTime> 
+                                          value(start, end, true, false);
                         if (periods.Intersects(value))
                         {
                             RasterIndex<3> ri = (int[]){r, c, t};
@@ -138,7 +139,8 @@ msstring* msstring::atrange(const Rect& pRect, const Instant& start,
 {
     msstring* result = new msstring();
 
-    Interval<DateTime> lookupinterval(start, end, true, false);
+    temporalalgebra::Interval<DateTime> lookupinterval
+                                           (start, end, true, false);
 
     grid3 copy(m_pmsint->getGrid().getOriginX(),
                m_pmsint->getGrid().getOriginY(),
@@ -160,7 +162,7 @@ msstring* msstring::atrange(const Rect& pRect, const Instant& start,
         double duration = this->getGrid().getDuration().ToDouble();
         DateTime actstart(index[2] * duration);
         DateTime actend((index[2] + 1) * duration);
-        Interval<DateTime> interval(start, end, true, false);
+        temporalalgebra::Interval<DateTime> interval(start, end, true, false);
         if (lookupinterval.Contains(interval)) {
             if ((pRect.MinD(0) < index[0] &&
                  pRect.MaxD(0) > index[0]) &&
@@ -205,21 +207,21 @@ string msstring::atlocation(double x, double y, double t) const
   return value;
 }
 
-MString* msstring::atlocation(double x, double y) const
+temporalalgebra::MString* msstring::atlocation(double x, double y) const
 {
-  MString* res = new MString(0);
+  temporalalgebra::MString* res = new temporalalgebra::MString(0);
   
   if(m_pmsint != 0 &&
      m_pUniqueStringArray != 0)
   {
-     MInt* mint = m_pmsint->atlocation(x,y);
+     temporalalgebra::MInt* mint = m_pmsint->atlocation(x,y);
      if(!mint->IsDefined()){
        res->SetDefined(false);
      } else {
        res->SetDefined(true);
        res->Clear();
        int size = mint->GetNoComponents();
-       UInt unit_int;
+       temporalalgebra::UInt unit_int;
        for(int i=0;i<size;i++){
           mint->Get(i,unit_int);
           if(unit_int.constValue.IsDefined()){
@@ -229,7 +231,8 @@ MString* msstring::atlocation(double x, double y) const
                if(m_pUniqueStringArray->GetUniqueString(pos,s)){
                   if(!sstring::isUndefined(s)){
                      CcString s2(true,s);
-                     UString unit_string(unit_int.timeInterval,s2);
+                     temporalalgebra::UString 
+                              unit_string(unit_int.timeInterval,s2);
                      res->Add(unit_string); 
                   }      
                }

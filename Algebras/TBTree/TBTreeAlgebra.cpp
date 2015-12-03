@@ -325,7 +325,7 @@ ListExpr createtbtreeTM(ListExpr args){
                                "not an attribute of the relation ");
     return nl->TypeError();
   }
-  if(!nl->IsEqual(type,UPoint::BasicType())){
+  if(!nl->IsEqual(type,temporalalgebra::UPoint::BasicType())){
     ErrorReporter::ReportError("attribute " +ups  +
                                " has to be a upoint");
     return nl->TypeError();
@@ -377,7 +377,9 @@ int createtbtreeVM(Word* args, Word& result, int message,
    Tuple* tuple;
    while((tuple = iter->GetNextTuple())){
      CcInt* id  = static_cast<CcInt*>(tuple->GetAttribute(index1));
-     UPoint* up = static_cast<UPoint*>(tuple->GetAttribute(index2));
+     temporalalgebra::UPoint* up = 
+                    static_cast<temporalalgebra::UPoint*>
+                                      (tuple->GetAttribute(index2));
      TupleId tid = tuple->GetTupleId();
      if(id->IsDefined() && up->IsDefined() && tid){
         tree->insert(*up,id->GetIntval(), tid);
@@ -1741,7 +1743,7 @@ ListExpr bulkloadtbtreeTM(ListExpr args){
                                "not an attribute of the relation ");
     return nl->TypeError();
   }
-  if(!nl->IsEqual(type,UPoint::BasicType())){
+  if(!nl->IsEqual(type,temporalalgebra::UPoint::BasicType())){
     ErrorReporter::ReportError("attribute " +ups  +
                                " has to be a upoint");
     return nl->TypeError();
@@ -1819,7 +1821,8 @@ int bulkloadtbtreeVM(Word* args, Word& result, int message,
      tuple = static_cast<Tuple*>(wTuple.addr);
      // get required information
      CcInt* id  = static_cast<CcInt*>(tuple->GetAttribute(index1));
-     UPoint* up = static_cast<UPoint*>(tuple->GetAttribute(index2));
+     temporalalgebra::UPoint* up = static_cast<temporalalgebra::UPoint*>
+                                  (tuple->GetAttribute(index2));
      TupleIdentifier* tid =
           static_cast<TupleIdentifier*>(tuple->GetAttribute(index3));
 

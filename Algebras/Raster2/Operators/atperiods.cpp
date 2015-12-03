@@ -39,7 +39,7 @@ namespace raster2 {
 
         // The selection function should not have been called if the second
         // argument does not meet the criteria in the type mapping
-        assert(type.second().isSymbol(Periods::BasicType()));
+        assert(type.second().isSymbol(temporalalgebra::Periods::BasicType()));
 
         if (type.first().isSymbol(msint::BasicType())) {
             return 0;
@@ -65,7 +65,7 @@ namespace raster2 {
 	    return type.typeError("Expect two arguments."); 
 	  }
 
-       if (type.second() != NList(Periods::BasicType())) {
+       if (type.second() != NList(temporalalgebra::Periods::BasicType())) {
 	     return type.typeError("Expect sec arg periods."); 
 	   }
 	   

@@ -67,6 +67,8 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 map<int,string> *netList;
 using namespace temporalnet;
+using namespace temporalalgebra;
+
 
 /*
 
@@ -244,7 +246,8 @@ Gets the parameter Values of the given ~upoint~.Used by
 
 */
 
-void getUnitValues(const UPoint *curUnit, Point &endPoint, Point &startPoint,
+void getUnitValues(const UPoint *curUnit, 
+                   Point &endPoint, Point &startPoint,
                    Instant &startTime, Instant &endTime,
                    double &lStartTime, double &lEndTime, double &duration)
 {
@@ -1078,7 +1081,8 @@ Used by ~refinementMovingGPoint~.
 
 */
 
-int intervalCheck (const Interval<Instant> i1, const Interval<Instant> i2) {
+int intervalCheck (const Interval<Instant> i1, 
+                   const Interval<Instant> i2) {
   if (i1.start > i2.end) return 1;
   if (i1.end < i2.start ) return 16;
   if (i1.start > i2.start && i1.start == i2.end && i1.start < i1.end) return 2;
@@ -1137,7 +1141,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
         break;
       case 2:
         if (ua.timeInterval.lc && ub.timeInterval.rc) {
-          resA->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+          resA->Add(UGPoint(Interval<Instant>
+                                            (ua.timeInterval.start,
                                              ua.timeInterval.start,
                                              true, true),
                                              ua.p0.GetNetworkId(),
@@ -1145,7 +1150,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
                                              ua.p0.GetSide(),
                                              ua.p0.GetPosition(),
                                              ua.p0.GetPosition()));
-          resB->Add(UGPoint(Interval<Instant>(ub.timeInterval.end,
+          resB->Add(UGPoint(Interval<Instant>(
+                                             ub.timeInterval.end,
                                              ub.timeInterval.end,
                                              true, true),
                                              ub.p1.GetNetworkId(),
@@ -1177,7 +1183,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
         break;
       case 4:
         ub.TemporalFunction(ua.timeInterval.start, pos2, false);
-        resA->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+        resA->Add(UGPoint(Interval<Instant>(
+                                           ua.timeInterval.start,
                                            ua.timeInterval.end,
                                            ua.timeInterval.lc,
                                            ua.timeInterval.rc &&
@@ -1187,7 +1194,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
                                              ua.p0.GetSide(),
                                              ua.p0.GetPosition(),
                                              ua.p1.GetPosition()));
-        resB->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+        resB->Add(UGPoint(Interval<Instant>(
+                                           ua.timeInterval.start,
                                            ua.timeInterval.end,
                                            ua.timeInterval.lc,
                                            ua.timeInterval.rc &&
@@ -1217,7 +1225,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
       case 5:
         ua.TemporalFunction(ub.timeInterval.end, pos1, false);
         ub.TemporalFunction(ua.timeInterval.start, pos2, false);
-        resA->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+        resA->Add(UGPoint(Interval<Instant>(
+                                             ua.timeInterval.start,
                                              ub.timeInterval.end,
                                              ua.timeInterval.lc,
                                              ub.timeInterval.rc),
@@ -1226,7 +1235,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
                                             ua.p0.GetSide(),
                                             ua.p0.GetPosition(),
                                             pos1.GetPosition()));
-        resB->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+        resB->Add(UGPoint(Interval<Instant>(
+                                             ua.timeInterval.start,
                                              ub.timeInterval.end,
                                              ua.timeInterval.lc,
                                              ub.timeInterval.rc),
@@ -1240,7 +1250,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
         break;
       case 6:
         ua.TemporalFunction(ub.timeInterval.end, pos1, false);
-        resA->Add(UGPoint(Interval<Instant>(ub.timeInterval.start,
+        resA->Add(UGPoint(Interval<Instant>(
+                                           ub.timeInterval.start,
                                            ub.timeInterval.end,
                                            ub.timeInterval.lc &&
                                            ua.timeInterval.lc,
@@ -1250,12 +1261,13 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
                                              ua.p0.GetSide(),
                                              ua.p0.GetPosition(),
                                              pos1.GetPosition()));
-        resB->Add(UGPoint(Interval<Instant>(ub.timeInterval.start,
-                                           ub.timeInterval.end,
-                                           ub.timeInterval.lc &&
-                                           ua.timeInterval.lc,
-                                           ub.timeInterval.rc),
-                                             ub.p0.GetNetworkId(),
+        resB->Add(UGPoint(Interval<Instant>(
+                                        ub.timeInterval.start,
+                                        ub.timeInterval.end,
+                                        ub.timeInterval.lc &&
+                                        ua.timeInterval.lc,
+                                        ub.timeInterval.rc),
+                                          ub.p0.GetNetworkId(),
                                              ub.p0.GetRouteId(),
                                              ub.p0.GetSide(),
                                              ub.p0.GetPosition(),
@@ -1264,7 +1276,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
         if (j < b->GetNoComponents()) b->Get(j, ub);
         break;
       case 7:
-        resA->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+        resA->Add(UGPoint(Interval<Instant>(
+                                           ua.timeInterval.start,
                                            ua.timeInterval.end,
                                            ua.timeInterval.lc &&
                                            ub.timeInterval.lc,
@@ -1275,7 +1288,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
                                              ua.p0.GetSide(),
                                              ua.p0.GetPosition(),
                                              ua.p1.GetPosition()));
-        resB->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+        resB->Add(UGPoint(Interval<Instant>(
+                                           ua.timeInterval.start,
                                            ua.timeInterval.end,
                                            ua.timeInterval.lc &&
                                            ub.timeInterval.lc,
@@ -1305,7 +1319,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
         break;
       case 8:
         ub.TemporalFunction(ua.timeInterval.end, pos2, false);
-        resA->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+        resA->Add(UGPoint(Interval<Instant>(
+                                           ua.timeInterval.start,
                                            ua.timeInterval.end,
                                            ua.timeInterval.lc &&
                                            ub.timeInterval.lc,
@@ -1315,7 +1330,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
                                              ua.p0.GetSide(),
                                              ua.p0.GetPosition(),
                                              ua.p1.GetPosition()));
-        resB->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+        resB->Add(UGPoint(Interval<Instant>(
+                                           ua.timeInterval.start,
                                            ua.timeInterval.end,
                                            ua.timeInterval.lc &&
                                            ub.timeInterval.lc,
@@ -1330,7 +1346,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
         break;
       case 9:
         if (ua.timeInterval.lc && ub.timeInterval.lc && ub.timeInterval.rc){
-          resA->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+          resA->Add(UGPoint(Interval<Instant>(
+                                           ua.timeInterval.start,
                                            ua.timeInterval.start,
                                            true, true),
                                              ua.p0.GetNetworkId(),
@@ -1338,7 +1355,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
                                              ua.p0.GetSide(),
                                              ua.p0.GetPosition(),
                                              ua.p0.GetPosition()));
-          resB->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+          resB->Add(UGPoint(Interval<Instant>(
+                                             ua.timeInterval.start,
                                              ua.timeInterval.start,
                                              true, true),
                                              ub.p0.GetNetworkId(),
@@ -1402,7 +1420,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
       case 12:
         ua.TemporalFunction(ub.timeInterval.start, pos1, false);
         ub.TemporalFunction(ua.timeInterval.end, pos2, false);
-        resA->Add(UGPoint(Interval<Instant>(ub.timeInterval.start,
+        resA->Add(UGPoint(Interval<Instant>(
+                                           ub.timeInterval.start,
                                            ua.timeInterval.end,
                                            ub.timeInterval.lc,
                                            ua.timeInterval.rc),
@@ -1411,7 +1430,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
                                              ua.p0.GetSide(),
                                              pos1.GetPosition(),
                                              ua.p1.GetPosition()));
-        resB->Add(UGPoint(Interval<Instant>(ub.timeInterval.start,
+        resB->Add(UGPoint(Interval<Instant>(
+                                           ub.timeInterval.start,
                                            ua.timeInterval.end,
                                            ub.timeInterval.lc,
                                            ua.timeInterval.rc),
@@ -1466,7 +1486,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
         break;
       case 15:
         if (ua.timeInterval.rc && ub.timeInterval.lc) {
-          resA->Add(UGPoint(Interval<Instant>(ua.timeInterval.end,
+          resA->Add(UGPoint(Interval<Instant>(
+                                              ua.timeInterval.end,
                                               ua.timeInterval.end,
                                               true, true),
                                              ua.p0.GetNetworkId(),
@@ -1492,7 +1513,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
         break;
       case 17:
         if (ua.timeInterval.lc && ua.timeInterval.rc && ub.timeInterval.lc){
-          resA->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+          resA->Add(UGPoint(Interval<Instant>(
+                                             ua.timeInterval.start,
                                              ua.timeInterval.end,
                                              true, true),
                                              ua.p0.GetNetworkId(),
@@ -1500,7 +1522,8 @@ void refinementMovingGPoint (const MGPoint *a, const MGPoint *b,
                                              ua.p0.GetSide(),
                                              ua.p0.GetPosition(),
                                              ua.p0.GetPosition()));
-          resB->Add(UGPoint(Interval<Instant>(ua.timeInterval.start,
+          resB->Add(UGPoint(Interval<Instant>(
+                                             ua.timeInterval.start,
                                              ua.timeInterval.end,
                                              true, true),
                                              ub.p0.GetNetworkId(),
@@ -1836,7 +1859,8 @@ void MGPoint::Distance(const MGPoint *mgp, MReal *result) const{
     mgp->Mgpoint2mpoint(p2);
     UReal uReal(true);
 
-    RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(*p1, *p2);
+    RefinementPartition<MPoint, MPoint, UPoint,
+                        UPoint> rp(*p1, *p2);
 
     result->Clear();
     result->Resize(rp.Size());
@@ -3971,7 +3995,8 @@ void MGPoint::Mgpoint2mpoint(MPoint *mp) const {
       pStart = hs.AtPosition(pCurrUnit.p0.GetPosition() - lrsAkt.lrsPos);
     }
     if (pCurrUnit.p0.GetPosition() == pCurrUnit.p1.GetPosition()){
-       mp->Add(UPoint(Interval<Instant> (tStart, tEnd,
+       mp->Add(UPoint(
+              Interval<Instant> (tStart, tEnd,
               pCurrUnit.timeInterval.lc, pCurrUnit.timeInterval.rc),
               pStart, pStart));
     } else {
@@ -3982,7 +4007,8 @@ void MGPoint::Mgpoint2mpoint(MPoint *mp) const {
           pRouteCurve->Get(lrsposnext, lrsNext);
           if (lrsNext.lrsPos >= pCurrUnit.p1.GetPosition()) {
             pEnd = hs.AtPosition(pCurrUnit.p1.GetPosition() - lrsAkt.lrsPos);
-            mp->Add(UPoint(Interval<Instant> (tInter1, tEnd,
+            mp->Add(UPoint(
+                Interval<Instant> (tInter1, tEnd,
                     pCurrUnit.timeInterval.lc, pCurrUnit.timeInterval.rc),
                     pStart, pEnd));
             pStart = pEnd;
@@ -3997,7 +4023,8 @@ void MGPoint::Mgpoint2mpoint(MPoint *mp) const {
                 bendcorrecture = true;
                 tEndNew = tInter2;
               }
-              mp->Add(UPoint(Interval<Instant> (tInter1, tInter2,
+              mp->Add(UPoint(
+                      Interval<Instant> (tInter1, tInter2,
                                                 true, false),
                                                 pStart, pEnd));
               tInter1 = tInter2;
@@ -4014,7 +4041,9 @@ void MGPoint::Mgpoint2mpoint(MPoint *mp) const {
               bendcorrecture = true;
               tEndNew = tEnd;
             }
-            mp->Add(UPoint(Interval<Instant>(tInter1, tEnd, true, false),
+            mp->Add(UPoint(
+                    Interval<Instant>(
+                         tInter1, tEnd, true, false),
                           pStart, pEnd));
             pStart = pEnd;
           }
@@ -4025,14 +4054,17 @@ void MGPoint::Mgpoint2mpoint(MPoint *mp) const {
             bendcorrecture = true;
             tEndNew = tEnd;
           }
-          mp->Add(UPoint(Interval<Instant>(tInter1, tEnd, true, false),
+          mp->Add(UPoint(
+                  Interval<Instant>(
+                        tInter1, tEnd, true, false),
                           pStart, pEnd));
           pStart = pEnd;
         }
       } else {
         if (lrsAkt.lrsPos <= pCurrUnit.p1.GetPosition()) {
             pEnd = hs.AtPosition(pCurrUnit.p1.GetPosition() - lrsAkt.lrsPos);
-            mp->Add(UPoint(Interval<Instant> (tStart, tEnd,
+            mp->Add(UPoint(
+                 Interval<Instant> (tStart, tEnd,
                     pCurrUnit.timeInterval.lc, pCurrUnit.timeInterval.rc),
                     pStart, pEnd));
             pStart = pEnd;
@@ -4047,7 +4079,9 @@ void MGPoint::Mgpoint2mpoint(MPoint *mp) const {
               bendcorrecture = true;
               tEndNew = tInter2;
             }
-            mp->Add(UPoint(Interval<Instant> (tInter1,tInter2,true, false),
+            mp->Add(UPoint(
+                 Interval<Instant> 
+                   (tInter1,tInter2,true, false),
                 pStart, pEnd));
             tInter1 = tInter2;
             pStart = pEnd;
@@ -4063,7 +4097,8 @@ void MGPoint::Mgpoint2mpoint(MPoint *mp) const {
             bendcorrecture = true;
             tEndNew = tEnd;
           }
-          mp->Add(UPoint(Interval<Instant> (tInter1, tEnd,
+          mp->Add(UPoint(
+                   Interval<Instant> (tInter1, tEnd,
                     pCurrUnit.timeInterval.lc, pCurrUnit.timeInterval.rc),
                     pStart, pEnd));
           pStart = pEnd;
@@ -9089,7 +9124,8 @@ int OpInsideValueMapping(Word* args,
                                    Supplier in_xSupplier)
 {
   // Get (empty) return value
-  MBool* pResult = (MBool*)qp->ResultStorage(in_xSupplier).addr;
+  MBool* pResult = (MBool*)
+                          qp->ResultStorage(in_xSupplier).addr;
   result = SetWord( pResult);
   pResult->Clear();
   // Get input values

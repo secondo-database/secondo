@@ -40,7 +40,8 @@ namespace raster2 {
       result = qp->ResultStorage(s);
       
       // the moving point
-      MPoint* movingPoint = static_cast<MPoint*>(args[0].addr);
+      temporalalgebra::MPoint* movingPoint = 
+           static_cast<temporalalgebra::MPoint*>(args[0].addr);
       
       // the sT object
       typename T::this_type* raster =
@@ -62,7 +63,7 @@ namespace raster2 {
       // get the number of components
       int num = movingPoint->GetNoComponents();
 
-      UPoint unit(0);
+      temporalalgebra::UPoint unit(0);
       grid2 grid = raster->getGrid();
       grid2::index_type cell1;
       grid2::index_type cell2;
@@ -99,7 +100,7 @@ namespace raster2 {
                DateTime s = t1 + (dur*p.first);
                DateTime e = t1 + (dur*p.second);
                if(e>s){
-                  Interval<Instant> iv(s,e,true,false);
+                  temporalalgebra::Interval<Instant> iv(s,e,true,false);
                   double delta  =(p.first + p.second) / 2.0;
                   double x = xStart + delta*dx;
                   double y = yStart + delta*dy;
@@ -130,7 +131,9 @@ namespace raster2 {
       result = qp->ResultStorage(s);
       
       // the moving point
-      MPoint* movingPoint = static_cast<MPoint*>(args[0].addr);
+      temporalalgebra::MPoint* movingPoint = 
+         static_cast<temporalalgebra::MPoint*>(args[0].addr);
+
       
       // the msT object
       typename T::this_type* raster =
@@ -152,7 +155,7 @@ namespace raster2 {
       // get the number of components
       int num = movingPoint->GetNoComponents();
 
-      UPoint unit(0);
+      temporalalgebra::UPoint unit(0);
       grid3 grid = raster->getGrid();
       grid3::index_type cell1;
       grid3::index_type cell2;
@@ -192,7 +195,7 @@ namespace raster2 {
                DateTime s = t1 + (dur*p.first);
                DateTime e = t1 + (dur*p.second);
                if(e>s){
-                  Interval<Instant> iv(s,e,true,false);
+                  temporalalgebra::Interval<Instant> iv(s,e,true,false);
                   double delta  =(p.first + p.second) / 2.0;
                   double x = xStart + delta*dx;
                   double y = yStart + delta*dy;
@@ -237,7 +240,7 @@ namespace raster2 {
      ListExpr arg2 = nl->Second(args);
  
     string err = "mpoint x stype expected";
-    if(!MPoint::checkType(arg1)){
+    if(!temporalalgebra::MPoint::checkType(arg1)){
         return listutils::typeError(err + " (first arg is not an mpoint)");
     }
     if(!util::isSType(arg2) && !util::isMSType(arg2)){
@@ -252,7 +255,7 @@ namespace raster2 {
     int composeSelectFun(ListExpr args) {
         NList type(args);
 
-        assert(type.first().isSymbol(MPoint::BasicType()));
+        assert(type.first().isSymbol(temporalalgebra::MPoint::BasicType()));
         
         if (type.second().isSymbol(sint::BasicType())) {
             return 0;

@@ -44,13 +44,18 @@ true, a check of equality is done, otherwise a check for inequality.
 #include "SpatialAlgebra.h"
 #include "StandardTypes.h"
 
+namespace temporalalgebra{
+
 void computeMEquality(const Interval<Instant>& iv,
                  const Point& p1_start, const Point& p1_end,
                  const Point& p2_start, const Point& p2_end,
                  MBool& result,
                  const bool compValue);
 
+}
+
 #endif
+
 
 
 

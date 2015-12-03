@@ -77,6 +77,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 
 
 using namespace tbtree;
+using namespace temporalalgebra;
 
 /*
 The file "Algebra.h" is included, since the new algebra must be a subclass of

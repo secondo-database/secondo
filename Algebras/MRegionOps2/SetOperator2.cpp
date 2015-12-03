@@ -57,6 +57,7 @@ movingregion2 [x] movingregion2 [->] bool \\
 
 #include "SetOperator2.h"
 #include "SourceUnitPair2.h"
+namespace temporalalgebra {
 namespace mregionops2 {
 
 
@@ -252,4 +253,5 @@ cout << "SetOperator2::Operate() new SourceUnitPair2 deleted\n";
 
 };
 
+}
 }

@@ -53,6 +53,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "SetOps2.h"
 
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 /*
@@ -169,6 +170,7 @@ private:
 
 };
 
+}
 }
 
 #endif /*SETOPERATOR2_H_*/

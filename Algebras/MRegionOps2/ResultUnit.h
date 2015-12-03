@@ -43,6 +43,8 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 */
 #include "MSegment.h"
+
+namespace temporalalgebra {
 namespace mregionops2 {
 
 class ResultUnit {
@@ -120,4 +122,5 @@ private:
     vector<MSegment> msegments;
     unsigned int index;
 };
+}
 }

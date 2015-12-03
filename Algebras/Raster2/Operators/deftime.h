@@ -41,7 +41,8 @@ namespace raster2 {
         (Word* args, Word& result, int message, Word& local, Supplier s)
     {
         result = qp->ResultStorage(s);
-        Periods* pResult = static_cast<Periods*>(result.addr);
+        temporalalgebra::Periods* pResult = 
+            static_cast<temporalalgebra::Periods*>(result.addr);
         MSType* ms = static_cast<MSType*>(args[0].addr);
         if(ms->isDefined()){
              pResult->Clear();
@@ -59,13 +60,13 @@ namespace raster2 {
         {
             name      = "deftime";
             signature = msbool::BasicType() + " deftime -> "
-                + Periods::BasicType();
+                + temporalalgebra::Periods::BasicType();
             appendSignature(msreal::BasicType() + " deftime -> "
-                + Periods::BasicType());
+                + temporalalgebra::Periods::BasicType());
             appendSignature(msint::BasicType() + " deftime -> "
-                + Periods::BasicType());
+                + temporalalgebra::Periods::BasicType());
             appendSignature(msstring::BasicType() + " deftime -> "
-                + Periods::BasicType());
+                + temporalalgebra::Periods::BasicType());
             syntax    = "deftime(_)";
             meaning   = "returns defined periods";
         }

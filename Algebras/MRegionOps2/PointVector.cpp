@@ -47,6 +47,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "PointVector.h"
 #include "Segment.h"
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 /*
@@ -141,3 +142,4 @@ ostream& operator <<(ostream& o, const Vector3D& p) {
 }
 
 } // end of namespace mregionops2
+} // end of namespace temporalalgebra

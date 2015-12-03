@@ -4,6 +4,7 @@ ll
 */
 #include "UMove.h"
 
+namespace temporalalgebra{
 
 /*
 3.1 Class ~UMove~
@@ -920,4 +921,5 @@ void UMove::Translate(const double xdiff, const double ydiff,
   timeInterval.start = timeInterval.start + timediff;
   timeInterval.end = timeInterval.end + timediff;
 }
-
+ 
+}

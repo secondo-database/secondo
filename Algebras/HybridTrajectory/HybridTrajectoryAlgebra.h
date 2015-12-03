@@ -77,7 +77,8 @@ public:
 }
 	void Get(Attribute** result){
 	
-		Interval<Instant>tempresult(this->laststartingInstant,
+		temporalalgebra::Interval<Instant>tempresult(
+this->laststartingInstant,
 this->lastfinishInstant,
 this->limitstartInstantSemantic,this->limitfinsihSemantic);
 		Unit r(true);
@@ -88,7 +89,7 @@ this->limitstartInstantSemantic,this->limitfinsihSemantic);
 		}
 		this->mapp->Get(scaningIndex,r);
 		
-		Interval<Instant> iv1=r.getTimeInterval();
+		temporalalgebra::Interval<Instant> iv1=r.getTimeInterval();
 		bool lgc=(iv1.lc)||
  (iv1.lc==false&&this->limitstartInstantSemantic==false);
 
@@ -116,7 +117,7 @@ this->limitstartInstantSemantic,this->limitfinsihSemantic);
 			return;
 		Unit result(true);
 		this->mapp->Get(scaningIndex,result); 
-		Interval<Instant> iv1=result.getTimeInterval();
+		temporalalgebra::Interval<Instant> iv1=result.getTimeInterval();
 		bool equalEnd= ( iv1.end==lastfinishInstant && 
    (iv1.rc==limitfinsihSemantic));
 		if(equalEnd==true){
@@ -148,8 +149,9 @@ this->limitstartInstantSemantic,this->limitfinsihSemantic);
 
 		if(istarting==true){
 			Unit result(true);
-			this->mapp->Get(0,result);
-			Interval<Instant> iv1=result.getTimeInterval();
+                        this->mapp->Get(0,result);
+			temporalalgebra::Interval<Instant> 
+                                      iv1=result.getTimeInterval();
 			ir=iv1.start;
 			leftIn=iv1.lc;
 			return 0;
@@ -158,7 +160,7 @@ this->limitstartInstantSemantic,this->limitfinsihSemantic);
 
 		Unit result(true);
 		this->mapp->Get(scaningIndex,result);
-		Interval<Instant> iv1=result.getTimeInterval();
+		temporalalgebra::Interval<Instant> iv1=result.getTimeInterval();
 
 		bool lgc=(iv1.lc)||
  (iv1.lc==false&&this->limitfinsihSemantic==false) ;
@@ -192,7 +194,7 @@ this->limitstartInstantSemantic,this->limitfinsihSemantic);
 			
 	   	Unit result(true);
 		this->mapp->Get(scaningIndex,result);
-		Interval<Instant> iv1=result.getTimeInterval();
+		temporalalgebra::Interval<Instant> iv1=result.getTimeInterval();
 
 		
 		bool lgc=(iv1.lc)||

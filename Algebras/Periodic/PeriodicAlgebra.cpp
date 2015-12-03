@@ -359,9 +359,10 @@ class ExpandF{
 Operator pexpand(
         "expand",
         ExpandSpec,
-        GenVM1<PMPoint, MPoint, ExpandF<PMPoint, MPoint> >,
+        GenVM1<PMPoint, temporalalgebra::MPoint, 
+               ExpandF<PMPoint, temporalalgebra::MPoint> >,
         Operator::SimpleSelect,
-        TypeMap1<PMPoint,MPoint>);
+        TypeMap1<PMPoint,temporalalgebra::MPoint>);
 
 /*
 3.2.10 ~createpmpoint~
@@ -388,9 +389,10 @@ class CreateF{
 Operator createpmpoint(
         "createpmpoint",
         CreatePMPointSpec,
-        GenVM1<MPoint, PMPoint, CreateF<MPoint, PMPoint> >,
+        GenVM1<temporalalgebra::MPoint, PMPoint, 
+        CreateF<temporalalgebra::MPoint, PMPoint> >,
         Operator::SimpleSelect,
-        TypeMap1<MPoint,PMPoint>);
+        TypeMap1<temporalalgebra::MPoint,PMPoint>);
 
 /*
 3.2.11 ~speed~

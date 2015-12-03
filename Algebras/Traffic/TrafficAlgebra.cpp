@@ -56,6 +56,8 @@ NetworkAlgebra respectively in the TemporalNetAlgebra.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+using namespace temporalalgebra;
+
 /*
 3 Auxiliary Functions and structs
 

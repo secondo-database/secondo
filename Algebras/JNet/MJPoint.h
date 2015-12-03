@@ -221,7 +221,7 @@ Returns the ~junit~ at the given position.
 Returns the corresponding ~mjpoint~ in ~jnet~ for the given ~mpoint~.
 
 */
-  void FromSpatial(JNetwork* jnet, const MPoint* in);
+  void FromSpatial(JNetwork* jnet, const temporalalgebra::MPoint* in);
 
 /*
 1.1.1.1 ToSpatial
@@ -230,7 +230,7 @@ Returns the corresponding ~mpoint~ for this ~mjpoint~.
 
 */
 
- void ToSpatial(MPoint& result) const;
+ void ToSpatial(temporalalgebra::MPoint& result) const;
 
 /*
 1.1.1.1 Union
@@ -259,7 +259,7 @@ Returns true if the ~mjpoint~ is defined at least once in the given ~periods~.
 
 */
 
-bool Present(const Periods* per) const;
+bool Present(const temporalalgebra::Periods* per) const;
 bool Present(const Instant* inst) const;
 
 /*
@@ -269,7 +269,8 @@ The result value restricts the mjpoint to the given periods of time.
 
 */
 
- void AtPeriods(const Periods* times, MJPoint& result) const;
+ void AtPeriods(const temporalalgebra::Periods* times, 
+                MJPoint& result) const;
 
 
 /*
@@ -394,7 +395,7 @@ given time interval.
 
 */
 
-int GetUnitPosForTime(const Interval<Instant>& time,
+int GetUnitPosForTime(const temporalalgebra::Interval<Instant>& time,
                       const int spos, const int epos) const;
 int GetUnitPosForTime(const Instant& time,
                       const int spos, const int epos) const;
@@ -407,7 +408,7 @@ actTimeInterval.
 
 */
 
-void FindFirstUnit(const Interval<Instant>& actTimeInterval,
+void FindFirstUnit(const temporalalgebra::Interval<Instant>& actTimeInterval,
                    int& unitIndex, JUnit& actUnit) const;
 
 /*

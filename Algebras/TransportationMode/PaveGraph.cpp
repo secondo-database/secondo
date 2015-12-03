@@ -47,6 +47,8 @@ Decompose the pavement on one side of the road into a set of subregions
 
 */
 
+using namespace temporalalgebra;
+
 void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
                      vector<Region>& result)
 {

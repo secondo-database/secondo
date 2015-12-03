@@ -51,6 +51,7 @@ This class is essentially a container for both ~SourceUnits~ A and B
 #include "MovingRegion2Algebra.h"
 #include "SetOps2.h"
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 class PFace;
@@ -270,5 +271,6 @@ A pointer to the ~PFace~, this instance belongs to.
 
 
 };
+}
 }
 #endif

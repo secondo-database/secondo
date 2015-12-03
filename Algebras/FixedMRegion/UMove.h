@@ -44,6 +44,9 @@ This class will be used in the ~upoint~ type constructor, i.e., the type constru
 for the temporal unit of point values.
 
 */
+
+namespace temporalalgebra{
+
 class UMove : public SpatialTemporalUnit<Point3, 4>
 {
 /*
@@ -643,5 +646,6 @@ ListExpr OutUMove( ListExpr typeInfo, Word value );
 Word InUMove( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct );
  
+} // end of namespace temporalalgebra
 
 #endif

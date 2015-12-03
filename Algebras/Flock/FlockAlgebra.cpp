@@ -42,6 +42,8 @@ evaluating the spatiotemporal pattern predicates (STP).
 #include "ListUtils.h"
 #include "Stream.h"
 
+using namespace temporalalgebra;
+
 namespace FLOCK{
 
 bool

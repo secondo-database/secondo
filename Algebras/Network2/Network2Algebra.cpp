@@ -83,7 +83,7 @@ void sendMessage ( string in_strMessage )
   NList xMessage;
   xMessage.append ( NList ( "error" ) );
   xMessage.append ( NList().textAtom ( in_strMessage ) );
-  xMessageCenter->Send ( xMessage );
+  xMessageCenter->Send (nl, xMessage.listExpr() );
 }
 
 /*

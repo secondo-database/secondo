@@ -40,6 +40,8 @@ evaluating the spatiotemporal pattern predicates (STP).
 #include "TimeSequenceAlgebra.h"
 #include "Symbols.h"
 
+using namespace temporalalgebra;
+
 namespace TSeq{
 #define Min(X,Y) ((X) < (Y) ? (X) : (Y))
 

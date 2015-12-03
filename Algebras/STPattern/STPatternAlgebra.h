@@ -212,26 +212,30 @@ Output: none.
 /*
 The ApplyVector function. Checks whether "this" is fulfilled by two time
 intervals.
-Input: two time intervals. Note that Interval<CcReal> are used to speed up the 
-processing but they represent Interval<Instant>
+Input: two time intervals. Note that temporalalgebra::Interval<CcReal> 
+are used to speed up the 
+processing but they represent temporalalgebra::Interval<Instant>
 Process: iteratively checks the constituent simple connectors.
 Output: fulfilled or not.
 
 */  
 
-  bool ApplyVector(Interval<Instant>& p1, Interval<Instant>& p2);
+  bool ApplyVector(temporalalgebra::Interval<Instant>& p1, 
+                   temporalalgebra::Interval<Instant>& p2);
 
 /*
 The ApplySimple function. Checks whether a simple temporal connector is 
 fulfilled by two time intervals.
-Input: two time intervals. Note that Interval<CcReal> are used to speed up the 
-processing but they represent Interval<Instant>
+Input: two time intervals. Note that temporalalgebra::Interval<CcReal> 
+are used to speed up the 
+processing but they represent temporalalgebra::Interval<Instant>
 Process: checks the simple connectors.
 Output: fulfilled or not.
 
 */  
 
-  bool ApplySimple(Interval<Instant>& p1, Interval<Instant>& p2,
+  bool ApplySimple(temporalalgebra::Interval<Instant>& p1, 
+                   temporalalgebra::Interval<Instant>& p2,
       int simple);
 
 /*
@@ -289,25 +293,29 @@ class CSP
 private:
 /*
 The IntervalInstant2IntervalCcReal helper function. It converts the 
-Interval<Instant> to Internal<CcReal> for more efficient processing
+temporalalgebra::Interval<Instant> to Internal<CcReal> for more 
+efficient processing
 
 */  
-  void IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
-      Interval<CcReal>& out);
-  void IntervalCcReal2IntervalInstant(const Interval<CcReal>& in,
-      Interval<Instant>& out);
+  void IntervalInstant2IntervalCcReal(
+      const temporalalgebra::Interval<Instant>& in, 
+      temporalalgebra::Interval<CcReal>& out);
+  void IntervalCcReal2IntervalInstant(
+      const temporalalgebra::Interval<CcReal>& in,
+      temporalalgebra::Interval<Instant>& out);
 /*
 The MBool2Vec helper function. It constructs a vector from the true units in the
-MBool argument.
+temporalalgebra::MBool argument.
  
 */  
-  int MBool2Vec(const MBool* mb, vector<Interval<Instant> >& vec);
+  int MBool2Vec(const temporalalgebra::MBool* mb, 
+                vector<temporalalgebra::Interval<Instant> >& vec);
 
 /* 
 The Extend function as in the paper.  
     
 */  
-  int Extend(int index, vector<Interval<Instant> >& domain );
+  int Extend(int index, vector<temporalalgebra::Interval<Instant> >& domain );
     
 /*
 The IsSupported function.
@@ -317,7 +325,7 @@ fulfilled.
 Output: whether the partial assignment is consistent.
    
 */  
-  bool IsSupported(vector<Interval<Instant> > sa, int index);
+  bool IsSupported(vector<temporalalgebra::Interval<Instant> > sa, int index);
 
 /*
 The CheckConstraint helper function. It checks whether an STVector is fulfilled 
@@ -325,7 +333,8 @@ by two lifted predicates.
 
 */
 
-  bool CheckConstraint(Interval<Instant>& p1, Interval<Instant>& p2,
+  bool CheckConstraint(temporalalgebra::Interval<Instant>& p1, 
+                       temporalalgebra::Interval<Instant>& p2,
       vector<Supplier> constraint);
 /*
 The PickVariable function. It implements the picking methodology based on the
@@ -348,7 +357,7 @@ public:
 The list of supported assignments
 
 */  
-  vector< vector<Interval<Instant> > > SA;
+  vector< vector<temporalalgebra::Interval<Instant> > > SA;
   vector<Supplier> Agenda;
   vector<bool> UsedAgendaVars;
   
@@ -370,7 +379,7 @@ The iterator is used in the "start" and "end" operators to iterate over the SA
 
 */
   int iterator;
-  Interval<Instant> nullInterval;
+  temporalalgebra::Interval<Instant> nullInterval;
   
 /*
 A list of the variable that have been consumed so far.
@@ -411,7 +420,8 @@ network, 1 for consistent network, and 2 if the IA not convertible into PA.
 */
 //  int ComputeClosure();
   void SetConsistentPeriods(
-      int varIndex, Periods* periodsArg, PointAlgebraReasoner* paReasoner);
+      int varIndex, temporalalgebra::Periods* periodsArg, 
+      PointAlgebraReasoner* paReasoner);
   
 /*
 The Solve function. It implements the Solve Pattern algorithm in the paper.
@@ -419,7 +429,8 @@ The Solve function. It implements the Solve Pattern algorithm in the paper.
 */
   
   bool Solve();
-  bool Solve(Periods* periodsArg, PointAlgebraReasoner* paReasoner);
+  bool Solve(temporalalgebra::Periods* periodsArg, 
+             PointAlgebraReasoner* paReasoner);
   
 /*
 The MoveNext function. It is used to iterate over the SA list. The function is
@@ -444,7 +455,8 @@ The GetStart function. It is the impelementation of the "end" operator.
 The GetSA function. Reads the SA entries.
 
 */
-  bool GetSA(unsigned int saIndex, unsigned int varIndex, Periods& res);
+  bool GetSA(unsigned int saIndex, unsigned int varIndex, 
+             temporalalgebra::Periods& res);
 
 /*
 The AppendSolutionToTuple function. It appends one sa to the given tuple. The

@@ -6,10 +6,10 @@
 #include <vector>
 
 //#define BOOST_SPIRIT_DEBUG
-#include <boost/spirit/core.hpp>
-#include <boost/spirit/utility.hpp>
-#include <boost/spirit/actor.hpp>
-namespace bs = boost::spirit;
+#include <boost/spirit/include/classic_core.hpp>
+#include <boost/spirit/include/classic_utility.hpp>
+#include <boost/spirit/include/classic_actor.hpp>
+namespace bs = boost::spirit::classic;
 
 struct ply_data
 {

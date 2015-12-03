@@ -48,6 +48,8 @@ This file contains the definitions of the classes Segment2D and Segment3D.
 
 #include "PointVector.h"
 
+namespace temporalalgebra{
+
 namespace mregionops {
 
 /*
@@ -299,5 +301,7 @@ ostream& operator <<(ostream& o, const Segment2D& s);
 ostream& operator <<(ostream& o, const Segment3D& s);
 
 } // end of namespace mregionops
+
+} // end of namespace temporalalgebra
 
 #endif /*SEGMENT_H_*/

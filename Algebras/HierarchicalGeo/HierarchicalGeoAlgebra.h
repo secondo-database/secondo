@@ -208,7 +208,7 @@ This class will be used in the ~cupoint~ type constructor, i.e., the type
 constructor for the uncertain temporal unit of point values.
 
 */
-class CUPoint : public UPoint,
+class CUPoint : public temporalalgebra::UPoint,
                 public Uncertain
 {
   public:
@@ -222,13 +222,13 @@ The simple constructor. This constructor should not be used.
 
 */
   CUPoint( const bool is_defined ):
-      UPoint(false),
+      temporalalgebra::UPoint(false),
       Uncertain(is_defined)
   {
   }
 
   CUPoint( const double epsilon ):
-      UPoint(false),
+      temporalalgebra::UPoint(false),
       Uncertain(epsilon)
   {
   }
@@ -237,8 +237,8 @@ The simple constructor, only defining the epsilon-value.
 
 */
 
-  CUPoint( const UPoint& source):
-    UPoint( source ),
+  CUPoint( const temporalalgebra::UPoint& source):
+    temporalalgebra::UPoint( source ),
     Uncertain( 0.0 )
   {
   }
@@ -246,8 +246,8 @@ The simple constructor, only defining the epsilon-value.
 A constructor to create an uncertain unit point from a unit point.
 
 */
-  CUPoint( const double epsilon, const UPoint& source):
-    UPoint( source ),
+  CUPoint( const double epsilon, const temporalalgebra::UPoint& source):
+    temporalalgebra::UPoint( source ),
     Uncertain( epsilon )
   {
   }
@@ -257,24 +257,26 @@ A constructor to create an uncertain unit point from the given epsilon-value
 and unit point. This constructor should only be used to create test-data!
 
 */
-  CUPoint( const double epsilon, const Interval<Instant>& interval,
+  CUPoint( const double epsilon, 
+      const temporalalgebra::Interval<Instant>& interval,
       const Point& p0, const Point& p1 ):
-    UPoint( interval, p0, p1 ),
+    temporalalgebra::UPoint( interval, p0, p1 ),
     Uncertain (epsilon)
     {
     }
 
-  CUPoint( const double epsilon, const Interval<Instant>& interval,
+  CUPoint( const double epsilon, 
+      const temporalalgebra::Interval<Instant>& interval,
       const double x0, const double y0,
       const double x1, const double y1 ):
-    UPoint( interval, x0, y0, x1, y1 ),
+    temporalalgebra::UPoint( interval, x0, y0, x1, y1 ),
     Uncertain (epsilon)
     {
     }
 
 
   CUPoint( const CUPoint& source ) :
-    UPoint(source),
+    temporalalgebra::UPoint(source),
     Uncertain(source)
   {
   }
@@ -311,15 +313,16 @@ The destructor.
     return false;
   }
 
-  virtual void AtInterval( const Interval<Instant>& i,
+  virtual void AtInterval( const temporalalgebra::Interval<Instant>& i,
                            TemporalUnit<Point>& result ) const;
 
-  void Distance( const Point& p, UReal& result ) const {}
+  void Distance( const Point& p, temporalalgebra::UReal& result ) const {}
 
 
-  void USpeed( UReal& result ) const {}
-  void UVelocity( UPoint& result ) const {}
-  void Intersection(const UPoint &other, UPoint &result) const {}
+  void USpeed( temporalalgebra::UReal& result ) const {}
+  void UVelocity( temporalalgebra::UPoint& result ) const {}
+  void Intersection(const temporalalgebra::UPoint &other, 
+                    temporalalgebra::UPoint &result) const {}
 
   virtual bool EqualValue( const CUPoint& i )
   {
@@ -386,21 +389,22 @@ the CUPoint, which possibly lies on or inside the given spatal object.
 
 */
 
-  void AtInstant( const Instant& t, Intime<Region>& result ) const;
+  void AtInstant( const Instant& t, 
+                  temporalalgebra::Intime<Region>& result ) const;
 
-  void Set(double e, Interval<Instant> t, Point p0, Point p1)
+  void Set(double e, temporalalgebra::Interval<Instant> t, Point p0, Point p1)
   {
 
   }
 
   void UnitSetDefined( bool def )
   {
-    UPoint::SetDefined( def );
+    temporalalgebra::UPoint::SetDefined( def );
   }
 
   bool UnitIsDefined() const
   {
-    return UPoint::IsDefined();
+    return temporalalgebra::UPoint::IsDefined();
   }
 
   bool UnitIsValid() const
@@ -436,7 +440,8 @@ virtual const Rectangle<3> BoundingBox() const
                                MAX( p0.GetY(), p1.GetY() )+epsilon);
   }
 /*
-For this is an uncertain UPoint-value, the returned Rectangle<3> is enlarged by
+For this is an uncertain temporalalgebra::UPoint-value, the 
+returned Rectangle<3> is enlarged by
 the epsilon-value.
 
 
@@ -547,7 +552,7 @@ the epsilon-value.
       }
     else
       {
-        timeInterval = Interval<Instant>();
+        timeInterval = temporalalgebra::Interval<Instant>();
         p0 = Point( false, 0.0, 0.0);
         p1 = Point( false, 0.0, 0.0);
       }
@@ -570,10 +575,10 @@ the epsilon-value.
 /*
 3.3 CMPoint
 
-the implementation of an uncertain MPoint
+the implementation of an uncertain temporalalgebra::MPoint
 
 */
-class CMPoint : public Mapping< CUPoint, Point >,
+class CMPoint : public temporalalgebra::Mapping< CUPoint, Point >,
                 public Uncertain
 {
   public:
@@ -587,7 +592,7 @@ The simple constructor. This constructor should not be used.
 
 */
   CMPoint( const int n ):
-      Mapping< CUPoint, Point >( n ),
+      temporalalgebra::Mapping< CUPoint, Point >( n ),
       Uncertain( true )
   {
     epsilon = 0.0;
@@ -601,7 +606,7 @@ The constructor. Initializes space for ~n~ elements.
 /*
 3.3.2 Modifications of Inherited Functions
 
-Overwrites the function defined in Mapping, mostly in order to
+Overwrites the function defined in temporalalgebra::Mapping, mostly in order to
 maintain the object's bounding box. Also, some methods can be improved
 using a check on bbox.
 
@@ -610,12 +615,13 @@ using a check on bbox.
   void Clear();
   void Add( const CUPoint& unit );
   void MergeAdd(const CUPoint& unit);
-  void EndBulkLoad( const bool sort = true );
+  bool EndBulkLoad( const bool sort = true, const bool dummy = false );
   void Restrict( const vector< pair<int, int> >& intervals );
   bool Present( const Instant& t ) const;
-  bool Present( const Periods& t ) const;
-  void AtInstant( const Instant& t, Intime<Region>& result ) const;
-  void AtPeriods( const Periods& p, CMPoint& result ) const;
+  bool Present( const temporalalgebra::Periods& t ) const;
+  void AtInstant( const Instant& t, 
+                  temporalalgebra::Intime<Region>& result ) const;
+  void AtPeriods( const temporalalgebra::Periods& p, CMPoint& result ) const;
   void Trajectory( Region& region );
 
 /*
@@ -1192,7 +1198,7 @@ for destroying. The destructor will perform the real destroying.
 
   inline void GetFirstLayer( int& layer, int& size ) const;
 
-  void DefTime( Periods& p );
+  void DefTime( temporalalgebra::Periods& p );
   bool Present( const Instant& i );
 
   int Generalize(const int layer, const bool checkBreakPoints,
@@ -1204,10 +1210,11 @@ for destroying. The destructor will perform the real destroying.
 
 /*
 Checks all Units in the most uncertain Layer of the HCMPoint, if the given
-Periods-Value is completely inside the Definition-time of the HCMPoint-object.
+temporalalgebra::Periods-Value is completely inside the Definition-time of 
+the HCMPoint-object.
 
 */
-  bool Present( const Periods& p );
+  bool Present( const temporalalgebra::Periods& p );
 
 /*
 Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint.
@@ -1273,13 +1280,13 @@ This recursive Function determines, by a pre-order run through the hierarchical
   bool P_Passes( const int layer, const int start, const int end,
                   const Region& r );
 
-  void AtInstant( const Instant& t, Intime<Region>& result );
+  void AtInstant( const Instant& t, temporalalgebra::Intime<Region>& result );
   int AtInstant( const int layer, const int start, const int end,
-                  const Instant& t, Intime<Region>& result );
+                  const Instant& t, temporalalgebra::Intime<Region>& result );
 
-  void AtPeriods( const Periods& p, CMPoint& result);
+  void AtPeriods( const temporalalgebra::Periods& p, CMPoint& result);
   int AtPeriods( const int layer, const int start, const int end,
-                  const Periods& p, CMPoint& result );
+                  const temporalalgebra::Periods& p, CMPoint& result );
 
   void D_At( const Point& p, CMPoint& result );
   bool D_At( const int layer, const int start, const int end, const Point& p,
@@ -1437,9 +1444,10 @@ Represents the bounding box of the hcmpoint.
 3.8 HMPoint
 
 the HierarchicalMovingPoint Type, contains a set of CUPoints from which
-every Generalization of the corresponding MPoint can be extracted. This
-type also contains the UPoints of the origin MPoint as CUPoint-Objects with
-an epsilon-value = 0.
+every Generalization of the corresponding temporalalgebra::MPoint can be 
+extracted. This
+type also contains the UPoints of the origin temporalalgebra::MPoint as 
+CUPoint-Objects with an epsilon-value = 0.
 
 */
 class HMPoint : public HCMPoint
@@ -1461,14 +1469,17 @@ The simple constructor. This constructor should not be used.
 A constructor, initializing space for ~n~ entities in the bottom layer.
 
 */
-  HMPoint( const double e, const double f, const MPoint& m ):
+  HMPoint( const double e, const double f, const temporalalgebra::MPoint& m ):
     HCMPoint( 0, e, f ), certainlayer( m.GetNoComponents() )
   {
   }
 /*
-This constructor creates a new HMPoint from the given MPoint-object. The units
-of the MPoint will be stored in hierarchical entities in the DBArray layer5.
-The layers 4 to 0 will be filled with generalizations of this MPoint, which
+This constructor creates a new HMPoint from the given 
+temporalalgebra::MPoint-object. The units
+of the temporalalgebra::MPoint will be stored in hierarchical entities 
+in the DBArray layer5.
+The layers 4 to 0 will be filled with generalizations of this i
+temporalalgebra::MPoint, which
 are computed using the given values epsilon and faktor.
 
 */
@@ -1513,13 +1524,14 @@ right function GetNoComponents.
 
   void Get( const int layer, const int i, CUPoint& cup ) const;
 
-  //void Get( const int layer, const int i, UPoint const*& up ) const;
+  //void Get( const int layer, const int i, temporalalgebra::UPoint 
+  // const*& up ) const;
 
   void Get( const int i, HCUPoint& ntt ) const;
 
   void GetCMPoint( const double epsilon, CMPoint& result );
 
-  void GetMPoint( MPoint& result );
+  void GetMPoint( temporalalgebra::MPoint& result );
 
   void Put( const int layer, const int i, HCUPoint& hcup);
 
@@ -1546,21 +1558,23 @@ right function GetNoComponents.
   bool D_Passes( const int layer, const int start, const int end,
                   const Region& r );
 
-  void D_At( const Point& p, MPoint& result );
+  void D_At( const Point& p, temporalalgebra::MPoint& result );
   bool D_At( const int layer, const int start, const int end,
-                  const Point& p, MPoint& result);
+                  const Point& p, temporalalgebra::MPoint& result);
 
-  void D_At( const Region& r, MPoint& result );
+  void D_At( const Region& r, temporalalgebra::MPoint& result );
   bool D_At( const int layer, const int start, const int end,
-                  const Region& r, MPoint& result );
+                  const Region& r, temporalalgebra::MPoint& result );
 
-  void AtInstant( const Instant& t, Intime<Point>& result );
+  void AtInstant( const Instant& t, temporalalgebra::Intime<Point>& result );
   int AtInstant( const int layer, const int start, const int end,
-                  const Instant& t, Intime<Point>& result );
+                  const Instant& t, temporalalgebra::Intime<Point>& result );
 
-  void AtPeriods( const Periods& p, MPoint& result);
+  void AtPeriods( const temporalalgebra::Periods& p, 
+                  temporalalgebra::MPoint& result);
   int AtPeriods( const int layer, const int start, const int end,
-                  const Periods& p, MPoint& result );
+                 const temporalalgebra::Periods& p, 
+                 temporalalgebra::MPoint& result );
 
   void ReduceHierarchy( const double epsilon, HCMPoint& result );
 /*
@@ -1644,11 +1658,14 @@ posPP is set to this value and TRUE is returned. Otherwise FALSE is returned.
 */
 
 void Generalize( const double epsilon, const double factor,
-                  const MPoint& source, const bool checkBreakPoints,
-                  const DateTime dur, HMPoint& result);
+                 const temporalalgebra::MPoint& source, 
+                 const bool checkBreakPoints,
+                 const DateTime dur, HMPoint& result);
 /*
-This Function inserts a MPoint-object into the certainlayer of a HMPoint and
-computes up to 5 generalizations of this MPoint which are stored in the layers
+This Function inserts a temporalalgebra::MPoint-object into the 
+certainlayer of a HMPoint and
+computes up to 5 generalizations of this temporalalgebra::MPoint 
+which are stored in the layers
 0 to 4.
 
 */
@@ -1664,7 +1681,7 @@ This is an auxiliary function for the 'generalize'-algorithm.
 
 */
 
-static bool connected(const CUPoint* u1, const UPoint* u2);
+static bool connected(const CUPoint* u1, const temporalalgebra::UPoint* u2);
 /*
 This function checks whether the end point of the first unit is equal
 to the start point of the second unit and if the time difference is

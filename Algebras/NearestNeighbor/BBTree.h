@@ -3,7 +3,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2008, University in Hagen, Faculty of Mathematics and Computer Science, 
+Copyright (C) 2008, University in Hagen, 
+Faculty of Mathematics and Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -48,10 +49,10 @@ class BBTree{
 /*
 ~Constructor~
 
-This constructor creates a BBTree for a given MPoint;
+This constructor creates a BBTree for a given temporalalgebra::MPoint;
 
 */
-    BBTree(const MPoint& p);
+    BBTree(const temporalalgebra::MPoint& p);
 
 /*
 ~Copy constructor~
@@ -77,7 +78,8 @@ from which created it this tree when it is restricted to the
 given time interval.
 
 */
-    Rectangle<2> getBox(const Interval<timeType>& interval)const;
+    Rectangle<2> getBox(
+        const temporalalgebra::Interval<timeType>& interval)const;
 
 /*
 ~noLeafs~
@@ -128,7 +130,7 @@ Builds the tree for a given mpoint.
 
 
 */
-    void createFromMPoint(const MPoint& p);
+    void createFromMPoint(const temporalalgebra::MPoint& p);
 
 };
 
@@ -140,8 +142,9 @@ An instance of that class represents a single  node within a BBTree.
 
 */
 template<class timeType>
-static Interval<timeType> tottInterval(const Interval<Instant>& iv){
-  Interval<timeType> result(iv.start.ToDouble(), 
+static temporalalgebra::Interval<timeType> tottInterval(
+  const temporalalgebra::Interval<Instant>& iv){
+  temporalalgebra::Interval<timeType> result(iv.start.ToDouble(), 
                             iv.end.ToDouble(), 
                             iv.lc, iv.rc);
   return result;
@@ -175,8 +178,8 @@ public:
 2.1.1 Constructor for a leaf
 
 */  
-  BBTreeNode(const UPoint& unit):
-  unit(new UPoint(unit)),
+  BBTreeNode(const temporalalgebra::UPoint& unit):
+  unit(new temporalalgebra::UPoint(unit)),
   box(unit.BoundingBoxSpatial()),
   left(0), right(0),
   interval(tottInterval<timeType>(unit.timeInterval))
@@ -233,7 +236,7 @@ performs a deepth copy
 */
 BBTreeNode(const BBTreeNode<timeType>& src){
    if(src.unit){
-     unit = new UPoint(*src.unit);
+     unit = new temporalalgebra::UPoint(*src.unit);
    } else {
      unit = 0;
    }
@@ -262,7 +265,7 @@ performs a deep copy
 */
   BBTreeNode<timeType>& operator=(const BBTreeNode<timeType>& src){
    if(src.unit){
-     unit = new UPoint(*src.unit);
+     unit = new temporalalgebra::UPoint(*src.unit);
    } else {
      unit = 0;
    }
@@ -313,16 +316,16 @@ inline bool AlmostEqual(const Instant& i1, const Instant& i2)const{
    return i1 == i2;
 }
 
-inline bool ivInside(const Interval<timeType>& iv1, 
-                     const Interval<timeType>& iv2) const{
+inline bool ivInside(const temporalalgebra::Interval<timeType>& iv1, 
+                     const temporalalgebra::Interval<timeType>& iv2) const{
   return( ( (iv1.start > iv2.start) || 
             (AlmostEqual(iv1.start, iv2.start) && ( !iv1.lc || iv2.lc ) ) ) &&
           ( (iv1.end < iv2.end) || 
             ( AlmostEqual(iv1.end, iv2.end) && ( !iv1.rc || iv2.rc ) ) ) );
 }
 
-inline bool ivDisjoint(const Interval<timeType>& iv1, 
-                       const Interval<timeType>& iv2) const{
+inline bool ivDisjoint(const temporalalgebra::Interval<timeType>& iv1, 
+                       const temporalalgebra::Interval<timeType>& iv2) const{
   return( ( (iv1.end < iv2.start) || 
             ( AlmostEqual(iv1.end, iv2.start) && ( !iv1.lc || !iv2.lc ) ) ) ||
           ( (iv1.start > iv2.end) || 
@@ -330,7 +333,7 @@ inline bool ivDisjoint(const Interval<timeType>& iv1,
 }
 
 
-Rectangle<2> getBox(const Interval<timeType>& interval) const{
+Rectangle<2> getBox(const temporalalgebra::Interval<timeType>& interval) const{
 
   //disjoint intervals -> return undef
   if(ivDisjoint(interval,this->interval)){
@@ -429,16 +432,16 @@ ostream& print(ostream& o) const{
 
 
 private:
-  UPoint* unit;
+  temporalalgebra::UPoint* unit;
   Rectangle<2> box;
   BBTreeNode<timeType>* left;
   BBTreeNode<timeType>* right;
-  Interval<timeType> interval;
+  temporalalgebra::Interval<timeType> interval;
 };
 
 
 template<class timeType>
-BBTree<timeType>::BBTree(const MPoint& p):root(0){
+BBTree<timeType>::BBTree(const temporalalgebra::MPoint& p):root(0){
    createFromMPoint(p);
 }
 
@@ -470,7 +473,8 @@ BBTree<timeType>::~BBTree(){
 }
 
 template<class timeType>
-Rectangle<2> BBTree<timeType>::getBox(const Interval<timeType>& interval)const{
+Rectangle<2> BBTree<timeType>::getBox(
+   const temporalalgebra::Interval<timeType>& interval)const{
    if(root){
      return root->getBox(interval);
    } else {
@@ -507,7 +511,7 @@ int BBTree<timeType>::height() const{
 }
 
 template<class timeType>
-void BBTree<timeType>::createFromMPoint(const MPoint& p){
+void BBTree<timeType>::createFromMPoint(const temporalalgebra::MPoint& p){
    int size = p.GetNoComponents();
    if(size==0){
      root = 0;
@@ -516,7 +520,7 @@ void BBTree<timeType>::createFromMPoint(const MPoint& p){
    stack<pair<int, BBTreeNode<timeType>*> > astack;
 
    for(int i=0; i< size; i++){
-      UPoint unit;
+      temporalalgebra::UPoint unit;
       p.Get(i,unit);
       BBTreeNode<timeType>* newNode = new BBTreeNode<timeType>(unit);
       pair<int, BBTreeNode<timeType>*> entry(0, newNode);

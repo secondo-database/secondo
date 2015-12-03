@@ -794,7 +794,7 @@ flag for the defined state of this unit.
 
 // include the implementation
 }
-#include "LinearConstantMove.h"
+
 namespace periodic{
 
 
@@ -1406,6 +1406,7 @@ class PMSimple : public Attribute {
 // include the implementation
 }
 #include "PMSimple.h"
+#include "LinearConstantMove.h"
 namespace periodic{
 
 
@@ -1607,9 +1608,9 @@ class PMPoint : public Attribute {
      PInterval GetInterval()const;
      void GetInterval(SubMove sm, RelInterval& result)const;
      PBBox GetBbox()const;
-     MPoint Expand()const;
-     void Expand(MPoint& res)const;
-     void ReadFrom(const MPoint& P,const bool twostep = true);
+     temporalalgebra::MPoint Expand()const;
+     void Expand(temporalalgebra::MPoint& res)const;
+     void ReadFrom(const temporalalgebra::MPoint& P,const bool twostep = true);
 
      PMInt9M* Toprel(const Point& P)const; 
      void Toprel(const Point& P,PMInt9M& res)const;
@@ -1693,7 +1694,8 @@ class PMPoint : public Attribute {
                                     int &Lcount,int &Ccount,
                                     int &Scount,int &Pcount);
 
-     void AppendUnits(MPoint& P, DateTime* Time, const SubMove S)const;
+     void AppendUnits(temporalalgebra::MPoint& P, DateTime* Time, 
+                      const SubMove S)const;
      int NumberOfExpandedUnits()const;
      int NumberOfExpandedUnits(const SubMove S)const;
      LinearPointMove GetLastUnit();

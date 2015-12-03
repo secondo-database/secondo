@@ -71,7 +71,7 @@ struct atperiodsInfo : OperatorInfo
     GetValueWrapperTypes(valueWrapperTypes);
 
     signature = std::string(TYPE_NAME_PREFIX_MT) + "T" + " x " +
-                Periods::BasicType() +
+                temporalalgebra::Periods::BasicType() +
                 RIGHT_ARROW + TYPE_NAME_PREFIX_MT + "T" +
                 FOR + GetTypeParametersDomain(typeParameterT,
                                               valueWrapperTypes);

@@ -406,10 +406,9 @@ spatialJoinSelection (ListExpr args)
   ListExpr attrListS = nl->Second(tupleDescriptionS);
 
   /* handle attrName of outerRelation */
-  int attrIndexS;
   ListExpr attrTypeS;
   string attrNameS = nl->SymbolValue(attrNameS_LE);
-  attrIndexS = FindAttribute(attrListS, attrNameS, attrTypeS);
+  FindAttribute(attrListS, attrNameS, attrTypeS);
 
   /* selection function */
   ListExpr errorInfo = nl->OneElemList ( nl->SymbolAtom (Symbol::ERRORS()));

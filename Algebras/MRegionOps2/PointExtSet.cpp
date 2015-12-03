@@ -46,6 +46,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 #include "PointExtSet.h"
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 /*
@@ -101,4 +102,5 @@ void PointExtSet::Print() const {
  end of namespace mregionops2
 
 ***********************************/
-};
+}
+}

@@ -1353,20 +1353,20 @@ The record file of the R-Tree.
         minInternalEntries( 0 ), maxInternalEntries( 0 ),
         nodeCount( 0 ), entryCount( 0 ), height( 0 )
         {}
-      Header( SmiRecordId headerRecordId, SmiRecordId rootRecordId = 0,
-              int minEntries = 0, int maxEntries = 0,
-              int minInternalEntries = 0, int maxInternalEntries = 0,
-              int nodeCount = 0, int entryCount = 0,
-              int nodeSize = 0, int height = 0) :
-        headerRecordId( headerRecordId ),
-        rootRecordId( rootRecordId ),
-        minLeafEntries( minLeafEntries ),
-        maxLeafEntries( maxLeafEntries ),
-        minInternalEntries( minInternalEntries ),
-        maxInternalEntries( maxInternalEntries ),
-        nodeCount( nodeCount ),
-        entryCount( entryCount ),
-        height( height )
+      Header( SmiRecordId _headerRecordId, SmiRecordId _rootRecordId = 0,
+              int _minEntries = 0, int _maxEntries = 0,
+              int _minInternalEntries = 0, int _maxInternalEntries = 0,
+              int _nodeCount = 0, int _entryCount = 0,
+              int _nodeSize = 0, int _height = 0) :
+        headerRecordId( _headerRecordId ),
+        rootRecordId( _rootRecordId ),
+        minLeafEntries( _minEntries ),
+        maxLeafEntries( _maxEntries ),
+        minInternalEntries( _minInternalEntries ),
+        maxInternalEntries( _maxInternalEntries ),
+        nodeCount( _nodeCount ),
+        entryCount( _entryCount ),
+        height( _height )
         {}
     } header;
 

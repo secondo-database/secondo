@@ -75,7 +75,8 @@ UJPoint::UJPoint(const string id, const JUnit& u, const bool check/*=true*/) :
   }
 }
 
-UJPoint::UJPoint(const string id, const Interval<Instant>& inst,
+UJPoint::UJPoint(const string id, 
+                 const temporalalgebra::Interval<Instant>& inst,
                  const JRouteInterval& r, const bool check /*=true*/) :
   Attribute(true), unit(true)
 {
@@ -103,7 +104,7 @@ UJPoint::UJPoint(const string id, const Interval<Instant>& inst,
 }
 
 UJPoint::UJPoint(const JNetwork* jnet, const JRouteInterval* jrint,
-                 const Interval<Instant>* timeInter,
+                 const temporalalgebra::Interval<Instant>* timeInter,
                  const bool check /*=true*/) :
   Attribute(true), unit(true)
 {

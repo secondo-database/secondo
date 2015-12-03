@@ -108,22 +108,22 @@ namespace raster2
       if (    type == sint::BasicType() 
            || type == msint::BasicType() 
            || type == isint::BasicType()) {
-        return MInt::BasicType();
+        return temporalalgebra::MInt::BasicType();
       }
       if (    type == sreal::BasicType() 
            || type == msreal::BasicType()
            || type == isreal::BasicType() ) {
-        return MReal::BasicType();
+        return temporalalgebra::MReal::BasicType();
       }
       if (    type == sbool::BasicType() 
            || type == msbool::BasicType()
            || type == isbool::BasicType()) {
-        return MBool::BasicType();
+        return temporalalgebra::MBool::BasicType();
       }
       if (    type == sstring::BasicType() 
            || type == msstring::BasicType()
            || type == isstring::BasicType()) {
-        return MString::BasicType();
+        return temporalalgebra::MString::BasicType();
       }
       return "";
     }

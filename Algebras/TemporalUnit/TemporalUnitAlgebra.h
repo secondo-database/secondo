@@ -49,6 +49,9 @@ This file contains the definition of the class SecInterval.
 #include "Attribute.h"
 #include "DateTime.h"
 
+
+
+namespace temporalalgebra {
 /*
 3 The class ~SecInterval~
 
@@ -118,6 +121,8 @@ public:
 
   const bool Contains(const Periods& per)const;
 };
+
+}
 
 #endif
 

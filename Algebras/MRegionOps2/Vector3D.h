@@ -54,6 +54,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 using namespace std;
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 class Point3D;
@@ -122,5 +123,6 @@ private:
 
 ostream& operator <<(ostream& o, Vector3D& p);
 
+}
 }
 #endif

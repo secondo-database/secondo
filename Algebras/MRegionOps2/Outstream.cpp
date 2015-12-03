@@ -55,8 +55,8 @@ April - November 2014, S. Schroer for master thesis.
 #include "Vector2D.h"
 #include "Angle.h"
 
-namespace mregionops2
-{
+namespace temporalalgebra {
+namespace mregionops2 {
 
 ostream& operator <<(ostream& o, Point2D& p) {
 
@@ -89,6 +89,7 @@ ostream& operator <<(ostream& o, Vector3D& v) {
 ostream& operator <<(ostream& o, Vector2D& v) {
 
     o << "(" << v.GetX() << ", " << v.GetY() << ")";
+    return o;
 }
 
 ostream& operator <<(ostream& o, Angle& a) {
@@ -106,4 +107,5 @@ void pmq(mpq_class val) {
     cout << val << endl;
 }
 
+}
 }

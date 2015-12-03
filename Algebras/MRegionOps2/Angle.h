@@ -47,6 +47,8 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include <gmpxx.h>
 #include "Vector2D.h"
 
+namespace temporalalgebra{
+
 namespace mregionops2 {
 
 class Angle
@@ -146,4 +148,7 @@ private:
 ostream& operator <<(ostream& o, Angle& a);
 
 }
+
+}
+
 #endif

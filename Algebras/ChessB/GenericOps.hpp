@@ -83,8 +83,8 @@ struct Ntuples_op : unary_function< StreamIterator<Tuple>, pair<bool, Tuple*> >
         for( int j = 0; j < N; ++j )
             for( size_t k = 0; k < attrs.size(); ++k )
                 new_def << ( list_ostream()
-                    << Symbol( attrs[k].first + lexical_cast<string>( j + 1 ) )
-                    << Symbol( attrs[k].second ) );
+                    << ChessBSymbol( attrs[k].first + lexical_cast<string>( j + 1 ) )
+                    << ChessBSymbol( attrs[k].second ) );
 
         return new_def;
     }

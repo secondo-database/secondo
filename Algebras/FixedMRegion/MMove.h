@@ -59,6 +59,8 @@ extern QueryProcessor* qp;
 using namespace datetime;
 
 
+namespace temporalalgebra{
+
 class SecInterval;
 
 /*
@@ -430,5 +432,7 @@ private:
 //FIXME
    Rectangle<4> bbox;
 }; 
+
+} // end of namespace temporalalgebra
 
 #endif

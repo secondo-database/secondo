@@ -1960,7 +1960,7 @@ Return value: stream of tuple (level, line)
           }
 
           // change of tile rows
-          for(int i=0;i<last.size();i++){
+          for(size_t i=0;i<last.size();i++){
              last[i]->DeleteIfAllowed();
           }
 
@@ -1978,7 +1978,7 @@ Return value: stream of tuple (level, line)
           currentTuple = 0;
           readNextElement = true;
         }
-        for(int i=0;i<last.size();i++){
+        for(size_t i=0;i<last.size();i++){
            last[i]->DeleteIfAllowed();
         }
  

@@ -51,6 +51,8 @@ floating point values.
 
 using namespace std;
 
+namespace temporalalgebra {
+
 namespace mregionops {
 
 const double MAX_DOUBLE = numeric_limits<double>::max();
@@ -236,6 +238,8 @@ struct DoubleCompare {
 };
 
 } // end of namespace mregionops
+
+} // end of namespace temporalalgebra
 
 #endif /*NUMERICUTIL_H_*/
 

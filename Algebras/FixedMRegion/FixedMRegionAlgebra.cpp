@@ -7,6 +7,9 @@ using namespace std;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
+namespace temporalalgebra{
+
+
 /*
 ~Out~-function
 
@@ -1221,6 +1224,9 @@ This is the destructor.
    ~FixedMRegionAlgebra (){};
 };
 
+}
+
+
 /*  
 This is the initialization.
 
@@ -1230,7 +1236,7 @@ Algebra* InitializeFixedMRegionAlgebra(NestedList* nlRef,
   QueryProcessor *qpRef) {
   nl = nlRef;
   qp = qpRef;
-  return new FixedMRegionAlgebra();
+  return new temporalalgebra::FixedMRegionAlgebra();
 }
 
 ;

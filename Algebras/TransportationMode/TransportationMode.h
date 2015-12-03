@@ -2496,16 +2496,17 @@ TypeConstructor upoint3d(
 TypeConstructor mpoint3d(
         "mpoint3d",                     //name
         MPoint3DProperty,            //property function describing signature
-        OutMapping<MPoint3D, UPoint3D,OutUPoint3D>, //Out functions 
-        InMapping<MPoint3D, UPoint3D, InUPoint3D>,  //In functions
+        temporalalgebra::OutMapping<MPoint3D, UPoint3D,OutUPoint3D>, 
+        temporalalgebra::InMapping<MPoint3D, UPoint3D, InUPoint3D>, 
         0,              0,            //SaveTo and RestoreFrom List functions
-        CreateMapping<MPoint3D>, //object creation 
-        DeleteMapping<MPoint3D>, //object deletion
+        temporalalgebra::CreateMapping<MPoint3D>, //object creation 
+        temporalalgebra::DeleteMapping<MPoint3D>, //object deletion
         OpenAttribute<MPoint3D>,  //object open 
         SaveAttribute<MPoint3D>,   // object save
-        CloseMapping<MPoint3D>,CloneMapping<MPoint3D>,//object close and clone
-        CastMapping<MPoint3D>,
-        SizeOfMapping<MPoint3D>,              //sizeof function
+        temporalalgebra::CloseMapping<MPoint3D>,
+        temporalalgebra::CloneMapping<MPoint3D>,
+        temporalalgebra::CastMapping<MPoint3D>,
+        temporalalgebra::SizeOfMapping<MPoint3D>, 
         CheckMPoint3D); 
 
 TypeConstructor building(
@@ -2694,16 +2695,17 @@ TypeConstructor ugenloc(
 TypeConstructor genmo(
         "genmo",                     //name
         GenMOProperty,            //property function describing signature
-        OutMapping<GenMO, UGenLoc,OutUGenLoc>, //Out functions 
-        InMapping<GenMO, UGenLoc, InUGenLoc>,  //In functions
+        temporalalgebra::OutMapping<GenMO, UGenLoc,OutUGenLoc>, 
+        temporalalgebra::InMapping<GenMO, UGenLoc, InUGenLoc>,  //In functions
         0,              0,            //SaveTo and RestoreFrom List functions
-        CreateMapping<GenMO>, //object creation 
-        DeleteMapping<GenMO>, //object deletion
+        temporalalgebra::CreateMapping<GenMO>, //object creation 
+        temporalalgebra::DeleteMapping<GenMO>, //object deletion
         OpenAttribute<GenMO>,  //object open 
         SaveAttribute<GenMO>,   // object save
-        CloseMapping<GenMO>,CloneMapping<GenMO>,//object close and clone
-        CastMapping<GenMO>,
-        SizeOfMapping<GenMO>,              //sizeof function
+        temporalalgebra::CloseMapping<GenMO>,
+        temporalalgebra::CloneMapping<GenMO>,//object close and clone
+        temporalalgebra::CastMapping<GenMO>,
+        temporalalgebra::SizeOfMapping<GenMO>,              //sizeof function
         CheckGenMO); 
 
 TypeConstructor space(
@@ -2726,17 +2728,17 @@ TypeConstructor space(
 TypeConstructor intimegenloc(
         IGenLoc::BasicType(),
         IntimeGenLocProperty, 
-        OutIntime<GenLoc, OutGenLoc>,
-        InIntime<GenLoc, InGenLoc>,
+        temporalalgebra::OutIntime<GenLoc, OutGenLoc>,
+        temporalalgebra::InIntime<GenLoc, InGenLoc>,
         0, 0, 
-        CreateIntime<GenLoc>,
-        DeleteIntime<GenLoc>,
-        OpenAttribute<Intime<GenLoc> >,
-        SaveAttribute<Intime<GenLoc> >,
-        CloseIntime<GenLoc>,
-        CloneIntime<GenLoc>,
-        CastIntime<GenLoc>,
-        SizeOfIntime<GenLoc>,
+        temporalalgebra::CreateIntime<GenLoc>,
+        temporalalgebra::DeleteIntime<GenLoc>,
+        OpenAttribute<temporalalgebra::Intime<GenLoc> >,
+        SaveAttribute<temporalalgebra::Intime<GenLoc> >,
+        temporalalgebra::CloseIntime<GenLoc>,
+        temporalalgebra::CloneIntime<GenLoc>,
+        temporalalgebra::CastIntime<GenLoc>,
+        temporalalgebra::SizeOfIntime<GenLoc>,
         CheckIntimeGenLoc
 );
 
@@ -4835,7 +4837,7 @@ ListExpr AtPeriodsTypeMap(ListExpr args)
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, Periods::BasicType() ) )
+    if( nl->IsEqual( arg2, temporalalgebra::Periods::BasicType() ) )
     {
 
       if( nl->IsEqual( arg1, GenMO::BasicType() ) )
@@ -4857,11 +4859,11 @@ ListExpr MapGenMOTypeMap(ListExpr args)
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, MPoint::BasicType() ) )
+    if( nl->IsEqual( arg2, temporalalgebra::MPoint::BasicType() ) )
     {
 
       if( nl->IsEqual( arg1, GenMO::BasicType() ) )
-        return nl->SymbolAtom( MPoint::BasicType() );
+        return nl->SymbolAtom( temporalalgebra::MPoint::BasicType() );
     }
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );

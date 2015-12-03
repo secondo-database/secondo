@@ -48,6 +48,9 @@ Please see ~MovingRegionAlgebra.cpp~ for more details on the
 #include "TemporalAlgebra.h"
 #include "DateTime.h"
 
+
+namespace temporalalgebra{
+
 class MRegion; // forward declaration
 class URegion; // forward declaration
 /*
@@ -1289,5 +1292,7 @@ Friend access for ~InMRegion()~ and ~OpenMRegion()~ makes live easier.
         ListExpr& errorInfo,
         bool& correct);
 };
+
+}
 
 #endif // _MOVING_REGION_ALGEBRA_H_

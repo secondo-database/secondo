@@ -5,6 +5,8 @@ This class is a FixedMRegion.
 #include "TestInterpolate.h"
 
 
+namespace temporalalgebra{
+
 void TestInterpolate::testcalcMasspoint(){
   printf("testcalcMasspoint: ");
   Point *p1 = new Point (true, 0.0, 0.0);
@@ -626,4 +628,6 @@ void runTestInterpolateMethod(){
   t.testinterpolatetest();
   */
   createTestFMR();
+}
+
 }

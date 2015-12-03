@@ -75,7 +75,7 @@ struct composeInfo : OperatorInfo
     std::vector<std::string> valueWrapperTypes;
     GetValueWrapperTypes(valueWrapperTypes);
 
-    signature = MPoint::BasicType() + " x " +
+    signature = temporalalgebra::MPoint::BasicType() + " x " +
                 "xT" +
                 RIGHT_ARROW + TYPE_NAME_PREFIX_M + "T" +
                 FOR + GetTypeParametersDomain(typeParameterx,

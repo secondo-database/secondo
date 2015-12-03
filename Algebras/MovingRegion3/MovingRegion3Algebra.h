@@ -80,6 +80,9 @@ Please see ~MovingRegion3Algebra.cpp~ for more details on the
 #include "Region2Algebra.h"
 #include "MovingRegionAlgebra.h"
 
+
+namespace temporalalgebra{
+
 //Some forward declarations...
 class MRegion2;
 class URegion2;
@@ -1774,5 +1777,6 @@ Friend access for ~InMRegion2()~ makes live easier.
 
 }; //end of class MRegion2
 
+} // end of namespace temporalalgebra
 
 #endif /* MOVINGREGION3ALGBRA_H_ */

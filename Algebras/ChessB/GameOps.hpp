@@ -170,9 +170,9 @@ struct history_op : unary_function< Game, pair<bool, Tuple*> >
     static list_ostream type( ListExpr )
     {
         return list_ostream()
-           << ( list_ostream() << "No" << Symbol("int") )
-           << ( list_ostream() << "Pos" << Symbol("position") )
-           << ( list_ostream() << "Move" << Symbol("chessmove") );
+           << ( list_ostream() << "No" << ChessBSymbol("int") )
+           << ( list_ostream() << "Pos" << ChessBSymbol("position") )
+           << ( list_ostream() << "Move" << ChessBSymbol("chessmove") );
     }
 
 private:

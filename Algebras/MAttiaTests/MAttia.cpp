@@ -9,7 +9,10 @@
 #include "MAttia.h"
 #include "FTextAlgebra.h"
 #include "SecondoInterface.h"
+#include "SecondoInterfaceTTY.h"
 #include "fstream"
+
+using namespace temporalalgebra;
 
   void NDefUnit(MBool* arg, CcBool* nval, MBool* res)
   {
@@ -273,7 +276,7 @@ bool RunSTPQExperiment1Queries(string selectfrom, int count,
   srand ( time(NULL) );
   ListExpr res=nl->TheEmptyList();
   SecErrInfo err;
-  SecondoInterface sec;
+  SecondoInterfaceTTY sec;
   string sres;
   StopWatch qqueryTime;
   ofstream out("STPQ.txt");

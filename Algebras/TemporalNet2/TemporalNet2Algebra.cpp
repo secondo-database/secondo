@@ -58,8 +58,8 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 map<int,string> *netList;
 
-
-using namespace temporalnet2;
+using namespace temporalalgebra;
+using namespace temporalalgebra::temporalnet2;
 
 /*
 
@@ -984,7 +984,7 @@ void sendMessages(string in_strMessage)
   xMessage.append(NList("error"));
 
   xMessage.append(NList().textAtom(in_strMessage));
-  xMessageCenter->Send(xMessage);
+  xMessageCenter->Send(nl,xMessage.listExpr());
 }
 
 

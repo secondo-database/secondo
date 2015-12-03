@@ -98,7 +98,7 @@ Do not use this constructor.
     }
 
     int NumOfFLOBs(void) const;
-    FLOB *GetFLOB(const int i);
+    Flob *GetFLOB(const int i);
 
   CRasterRegion& operator=( CRasterRegion& r );
 };
@@ -107,15 +107,15 @@ CRasterRegion& CRasterRegion::operator=( CRasterRegion& r )
 {
   Region::operator=((Region) r);
 
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
   if( r.rasterFLOB.Size() > 0 )
   {
-    rasterFLOB.Resize( r.rasterFLOB.Size() );
+    rasterFLOB.resize( r.rasterFLOB.Size() );
     for( int i = 0; i < r.rasterFLOB.Size(); i++ )
     {
-      const unsigned long *hs;
+      unsigned long hs;
       r.rasterFLOB.Get( i, hs );
-      rasterFLOB.Put( i, *hs );
+      rasterFLOB.Put( i, hs );
     }
   }
 
@@ -133,24 +133,24 @@ CRasterRegion& CRasterRegion::operator=( CRasterRegion& r )
 
 CRasterRegion::CRasterRegion(const Region& rr) : Region(rr), rasterFLOB(0){
   rasterDefined = false;
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
   //rasterSignature = calculateRaster();
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
   rasterSignature = NULL;
 };
 
 CRasterRegion::CRasterRegion(const CRasterRegion& rr) :
            Region(rr), rasterFLOB(0){
   rasterDefined = false;
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
   if( rr.rasterFLOB.Size() > 0 )
   {
-    rasterFLOB.Resize( rr.rasterFLOB.Size() );
+    rasterFLOB.resize( rr.rasterFLOB.Size() );
     for( int i = 0; i < rr.rasterFLOB.Size(); i++ )
     {
-      const unsigned long *hs;
+      unsigned long hs;
       rr.rasterFLOB.Get( i, hs );
-      rasterFLOB.Put( i, *hs );
+      rasterFLOB.Put( i, hs );
     }
 
     FLOBToRaster4CRS();
@@ -287,17 +287,17 @@ bool CRasterRegion::ExactIntersects(const Region &r) const
   if( Inside( r ) || r.Inside( *this ) )
     return true;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hs2 );
-        if( hs2->IsLeftDomPoint() &&
-            hs1->Intersects( *hs2 ) )
+        if( hs2.IsLeftDomPoint() &&
+            hs1.Intersects( hs2 ) )
           return true;
       }
     }
@@ -315,7 +315,7 @@ void CRasterRegion::Raster4CRSToFLOB(){
   if (rasterDefined) {
     Signature4CRS::Weight filling;
 
-    rasterFLOB.Clear();
+    rasterFLOB.clean();
 
     rasterFLOB.Append(rasterSignature->signatureType);
     rasterFLOB.Append(rasterSignature->map->potency);
@@ -355,7 +355,7 @@ void CRasterRegion::Raster4CRSToFLOB(){
 
   } else {
     if (rasterFLOB.Size() > 0) {
-      rasterFLOB.Clear();
+      rasterFLOB.clean();
     }
   }
 }
@@ -368,17 +368,17 @@ void CRasterRegion::Raster4CRSToFLOB(){
 void CRasterRegion::FLOBToRaster4CRS(){
   unsigned long potency, dx, dy, signatureType;
 
-  const unsigned long *l;
+  unsigned long l;
 
 
   rasterFLOB.Get(0, l);
-  signatureType = *l;
+  signatureType = l;
   rasterFLOB.Get(1, l);
-  potency = *l;
+  potency = l;
   rasterFLOB.Get(2, l);
-  dx = *l;
+  dx = l;
   rasterFLOB.Get(3, l);
-  dy = *l;
+  dy = l;
 
   long cellSize = 1l << potency;
 
@@ -387,7 +387,7 @@ void CRasterRegion::FLOBToRaster4CRS(){
 for (int i = 0; i < numElements; i++)
  filling[i] = Signature4CRS::Empty;
 
-  const unsigned long *pFLOBelement;
+  unsigned long pFLOBelement;
   unsigned long FLOBelement;
   int positionInElement = -1;
   unsigned int currentCell = 0;
@@ -419,7 +419,7 @@ for (int i = 0; i < numElements; i++)
       if (positionInElement < 0){
         // the 4 itens at the beggining are signatureType, potency, dx and dy
         rasterFLOB.Get(positionInFLOB + 4, pFLOBelement);
-        FLOBelement = *pFLOBelement;
+        FLOBelement = pFLOBelement;
         positionInElement = 0;
         //if (dx * dy - currentCell < sizeof(unsigned long) * 4)
         if (totalCells - currentCell < sizeof(unsigned long) * 4)
@@ -456,7 +456,7 @@ int CRasterRegion::NumOfFLOBs(void) const {
   return 2;
 }
 
-FLOB *CRasterRegion::GetFLOB(const int i){
+Flob *CRasterRegion::GetFLOB(const int i){
     assert(i == 0 || i == 1);
 
     return
@@ -511,7 +511,7 @@ class CRasterLine: public Line
     }
 
     int NumOfFLOBs(void) const;
-    FLOB *GetFLOB(const int i);
+    Flob *GetFLOB(const int i);
 
   CRasterLine& operator=( CRasterLine& rl );
 };
@@ -520,15 +520,15 @@ CRasterLine& CRasterLine::operator=( CRasterLine& rl )
 {
   Line::operator=((Line) rl);
 
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
   if( rl.rasterFLOB.Size() > 0 )
   {
-    rasterFLOB.Resize( rl.rasterFLOB.Size() );
+    rasterFLOB.resize( rl.rasterFLOB.Size() );
     for( int i = 0; i < rl.rasterFLOB.Size(); i++ )
     {
-      const unsigned long *hs;
+      unsigned long hs;
       rl.rasterFLOB.Get( i, hs );
-      rasterFLOB.Put( i, *hs );
+      rasterFLOB.Put( i, hs );
     }
   }
 
@@ -545,16 +545,16 @@ CRasterLine::CRasterLine(Line l) : Line(l), rasterFLOB(0){
 
 CRasterLine::CRasterLine(const CRasterLine& rl) : Line(rl), rasterFLOB(0){
   rasterDefined = false;
-  rasterFLOB.Clear();
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
+  rasterFLOB.clean();
   if( rl.rasterFLOB.Size() > 0 )
   {
-    rasterFLOB.Resize( rl.rasterFLOB.Size() );
+    rasterFLOB.resize( rl.rasterFLOB.Size() );
     for( int i = 0; i < rl.rasterFLOB.Size(); i++ )
     {
-      const unsigned long *hs;
+      unsigned long hs;
       rl.rasterFLOB.Get( i, hs );
-      rasterFLOB.Put( i, *hs );
+      rasterFLOB.Put( i, hs );
     }
   }
 
@@ -668,18 +668,18 @@ bool CRasterLine::MBRIntersects( const Line& l) const
 
 bool CRasterLine::ExactIntersects( const Line& l) const
 {
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < l.Size(); j++ )
       {
         l.Get( j, hs2 );
-        if (hs2->IsLeftDomPoint())
+        if (hs2.IsLeftDomPoint())
         {
-          if( hs1->Intersects( *hs2 ) )
+          if( hs1.Intersects( hs2 ) )
             return true;
         }
       }
@@ -731,24 +731,24 @@ bool CRasterLine::MBRIntersects( const Region& r) const
 
 bool CRasterLine::ExactIntersects( const Region& r) const
 {
-  const HalfSegment *hsl, *hsr;
+  HalfSegment hsl, hsr;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hsl );
-    if( hsl->IsLeftDomPoint() )
+    if( hsl.IsLeftDomPoint() )
     {
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hsr );
-        if( hsr->IsLeftDomPoint() )
+        if( hsr.IsLeftDomPoint() )
         {
-          if( hsl->Intersects( *hsr ) )
+          if( hsl.Intersects( hsr ) )
             return true;
         }
       }
 
-      if( r.Contains( hsl->GetLeftPoint() ) ||
-          r.Contains( hsl->GetRightPoint() ) )
+      if( r.Contains( hsl.GetLeftPoint() ) ||
+          r.Contains( hsl.GetRightPoint() ) )
         return true;
     }
   }
@@ -759,7 +759,7 @@ void CRasterLine::Raster4CRSToFLOB(){
   if (rasterDefined) {
     Signature4CRS::Weight filling;
 
-    rasterFLOB.Clear();
+    rasterFLOB.clean();
 
     rasterFLOB.Append(rasterSignature->signatureType);
     rasterFLOB.Append(rasterSignature->map->potency);
@@ -799,7 +799,7 @@ void CRasterLine::Raster4CRSToFLOB(){
 
   } else {
     if (rasterFLOB.Size() > 0) {
-      rasterFLOB.Clear();
+      rasterFLOB.clean();
     }
   }
 }
@@ -807,23 +807,23 @@ void CRasterLine::Raster4CRSToFLOB(){
 void CRasterLine::FLOBToRaster4CRS(){
   unsigned long potency, dx, dy, signatureType;
   //const Signature4CRS::Weight *filling;
-  const unsigned long *l;
+  unsigned long l;
 
   rasterFLOB.Get(0, l);
-  signatureType = *l;
+  signatureType = l;
   rasterFLOB.Get(1, l);
-  potency = *l;
+  potency = l;
   rasterFLOB.Get(2, l);
-  dx = *l;
+  dx = l;
   rasterFLOB.Get(3, l);
-  dy = *l;
+  dy = l;
 
   long cellSize = 1l << potency;
 
   long numElements = dx * dy;
   Signature4CRS::Weight *filling = new Signature4CRS::Weight[numElements];
 
-  const unsigned long *pFLOBelement;
+  unsigned long pFLOBelement;
   unsigned long FLOBelement;
   int positionInElement = -1;
   unsigned int currentCell = 0;
@@ -844,7 +844,7 @@ void CRasterLine::FLOBToRaster4CRS(){
       if (positionInElement < 0){
         // +4 to consider potency, dx e dy
         rasterFLOB.Get(positionInFLOB + 4, pFLOBelement);
-        FLOBelement = *pFLOBelement;
+        FLOBelement = pFLOBelement;
         positionInElement = 0;
         if (dx * dy - currentCell < sizeof(unsigned long) * 4)
           positionInElement = (dx * dy - currentCell) - 1;
@@ -885,7 +885,7 @@ int CRasterLine::NumOfFLOBs(void) const {
   return 3;
 }
 
-FLOB *CRasterLine::GetFLOB(const int i){
+Flob *CRasterLine::GetFLOB(const int i){
 
     assert(i == 0 || i == 1 || i == 2);
 
@@ -953,7 +953,7 @@ class CRasterPoints: public Points
     }
 
     int NumOfFLOBs(void) const;
-    FLOB *GetFLOB(const int i);
+    Flob *GetFLOB(const int i);
 
   CRasterPoints& operator=( CRasterPoints& rp );
 };
@@ -962,15 +962,15 @@ CRasterPoints& CRasterPoints::operator=( CRasterPoints& rp )
 {
   Points::operator=((Points) rp);
 
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
   if( rp.rasterFLOB.Size() > 0 )
   {
-    rasterFLOB.Resize( rp.rasterFLOB.Size() );
+    rasterFLOB.resize( rp.rasterFLOB.Size() );
     for( int i = 0; i < rp.rasterFLOB.Size(); i++ )
     {
-      const unsigned long *hs;
+      unsigned long hs;
       rp.rasterFLOB.Get( i, hs );
-      rasterFLOB.Put( i, *hs );
+      rasterFLOB.Put( i, hs );
     }
   }
 
@@ -981,7 +981,7 @@ CRasterPoints& CRasterPoints::operator=( CRasterPoints& rp )
 
 CRasterPoints::CRasterPoints(Points p) : Points(p), rasterFLOB(0){
   rasterDefined = false;
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
   //rasterSignature = calculateRaster();
   rasterSignature = NULL;
 };
@@ -989,16 +989,16 @@ CRasterPoints::CRasterPoints(Points p) : Points(p), rasterFLOB(0){
 CRasterPoints::CRasterPoints(const CRasterPoints& rp) :
        Points(rp), rasterFLOB(0){
   rasterDefined = false;
-  rasterFLOB.Clear();
-  rasterFLOB.Clear();
+  rasterFLOB.clean();
+  rasterFLOB.clean();
   if( rp.rasterFLOB.Size() > 0 )
   {
-    rasterFLOB.Resize( rp.rasterFLOB.Size() );
+    rasterFLOB.resize( rp.rasterFLOB.Size() );
     for( int i = 0; i < rp.rasterFLOB.Size(); i++ )
     {
-      const unsigned long *hs;
+      unsigned long hs;
       rp.rasterFLOB.Get( i, hs );
-      rasterFLOB.Put( i, *hs );
+      rasterFLOB.Put( i, hs );
     }
   }
 
@@ -1108,11 +1108,11 @@ bool CRasterPoints::MBRIntersects( const Region& r) const
 
 bool CRasterPoints::ExactIntersects( const Region& r) const
 {
-  const Point *p;
+  Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( r.Contains( *p ) )
+    if( r.Contains( p ) )
       return true;
   }
   return false;
@@ -1163,11 +1163,11 @@ bool CRasterPoints::MBRIntersects( const Line& l) const
 
 bool CRasterPoints::ExactIntersects( const Line& l) const
 {
-  const Point *p;
+  Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( l.Contains( *p ) )
+    if( l.Contains( p ) )
       return true;
   }
 
@@ -1238,7 +1238,7 @@ void CRasterPoints::Raster4CRSToFLOB(){
   if (rasterDefined) {
     Signature4CRS::Weight filling;
 
-    rasterFLOB.Clear();
+    rasterFLOB.clean();
 
     rasterFLOB.Append(rasterSignature->signatureType);
     rasterFLOB.Append(rasterSignature->map->potency);
@@ -1276,30 +1276,30 @@ void CRasterPoints::Raster4CRSToFLOB(){
 
   } else {
     if (rasterFLOB.Size() > 0) {
-      rasterFLOB.Clear();
+      rasterFLOB.clean();
     }
   }
 }
 
 void CRasterPoints::FLOBToRaster4CRS(){
   unsigned long potency, dx, dy, signatureType;
-  const unsigned long *l;
+  unsigned long l;
 
   rasterFLOB.Get(0, l);
-  signatureType = *l;
+  signatureType = l;
   rasterFLOB.Get(1, l);
-  potency = *l;
+  potency = l;
   rasterFLOB.Get(2, l);
-  dx = *l;
+  dx = l;
   rasterFLOB.Get(3, l);
-  dy = *l;
+  dy = l;
 
   long cellSize = 1l << potency;
 
   long numElements = dx * dy;
   Signature4CRS::Weight *filling = new Signature4CRS::Weight[numElements];
 
-  const unsigned long *pFLOBelement;
+  unsigned long pFLOBelement;
   unsigned long FLOBelement;
   int positionInElement = -1;
   unsigned int currentCell = 0;
@@ -1320,7 +1320,7 @@ void CRasterPoints::FLOBToRaster4CRS(){
       if (positionInElement < 0){
          // add 4 to consider potency, dx e dy
         rasterFLOB.Get(positionInFLOB + 4, pFLOBelement);
-        FLOBelement = *pFLOBelement;
+        FLOBelement = pFLOBelement;
         positionInElement = 0;
         if (dx * dy - currentCell < sizeof(unsigned long) * 4)
           positionInElement = (dx * dy - currentCell) - 1;
@@ -1361,7 +1361,7 @@ int CRasterPoints::NumOfFLOBs(void) const {
   return 2;
 }
 
-FLOB *CRasterPoints::GetFLOB(const int i){
+Flob *CRasterPoints::GetFLOB(const int i){
 
     assert(i == 0 || i == 1);
 
@@ -1378,7 +1378,7 @@ void CRasterPoints::SelectFirst_pp( const Points& P1, const Points& P2,
   P1.SelectFirst();
   P2.SelectFirst();
 
-  const Point *p1, *p2;
+  Point p1, p2;
   bool gotP1 = P1.GetPt( p1 ),
        gotP2 = P2.GetPt( p2 );
 
@@ -1400,9 +1400,9 @@ void CRasterPoints::SelectFirst_pp( const Points& P1, const Points& P2,
   else //both defined
   {
     stat = endnone;
-    if( *p1 < *p2 )
+    if( p1 < p2 )
       obj = first;
-    else if( *p1 > *p2 )
+    else if( p1 > p2 )
       obj = second;
     else
       obj = both;
@@ -1413,7 +1413,7 @@ void CRasterPoints::SelectNext_pp( const Points& P1, const Points& P2,
                     object& obj, status& stat )
 {
   // 1. get the current elements
-  const Point *p1, *p2;
+  Point p1, p2;
   bool gotP1 = P1.GetPt( p1 ),
        gotP2 = P2.GetPt( p2 );
 
@@ -1434,12 +1434,12 @@ void CRasterPoints::SelectNext_pp( const Points& P1, const Points& P2,
   }
   else //both currently defined
   {
-    if( *p1 < *p2 ) //then hs1 is the last output
+    if( p1 < p2 ) //then hs1 is the last output
     {
       P1.SelectNext();
       gotP1 = P1.GetPt( p1 );
     }
-    else if( *p1 > *p2 )
+    else if( p1 > p2 )
     {
       P2.SelectNext();
       gotP2 = P2.GetPt( p2 );
@@ -1472,9 +1472,9 @@ void CRasterPoints::SelectNext_pp( const Points& P1, const Points& P2,
   else //both defined
   {
     stat = endnone;
-    if( *p1 < *p2 )
+    if( p1 < p2 )
       obj = first;
-    else if( *p1 > *p2 )
+    else if( p1 > p2 )
       obj = second;
     else
       obj = both;

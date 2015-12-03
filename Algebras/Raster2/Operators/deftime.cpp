@@ -67,7 +67,7 @@ namespace raster2 {
           || type.first() == NList(msint::BasicType())
           || type.first() == NList(msstring::BasicType()))
       {
-         return NList(Periods::BasicType()).listExpr();
+         return NList(temporalalgebra::Periods::BasicType()).listExpr();
       }
 
       return NList::typeError("Expected msT.");

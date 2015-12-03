@@ -72,6 +72,9 @@ using namespace datetime;
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+
+namespace temporalalgebra{
+
 /*
 Set ~TLA\_DEBUG~ to ~true~ for debug output. Please note that debug output is
 very verbose and has significant negative input on the algebra's performance.
@@ -686,7 +689,7 @@ static void MRealDistanceMM(const MReal& op1, const MReal& op2, MReal& result)
     UReal u2(true);
     int numPartRes = 0;
     vector<UReal> partResVector;
-    bool resultIsValid = true;
+    //bool resultIsValid = true;
 
     rp.Get(i, iv, u1Pos, u2Pos);
     if (u1Pos == -1 || u2Pos == -1)
@@ -699,14 +702,14 @@ static void MRealDistanceMM(const MReal& op1, const MReal& op2, MReal& result)
     op2.Get(u2Pos, u2transfer);
     if(!(u1transfer.IsDefined() && u2transfer.IsDefined()))
     {
-      resultIsValid = false;
+      //resultIsValid = false;
       break;
     }
     u1 = u1transfer;
     u2 = u2transfer;
     if ( u1.r || u2.r )
     {
-      resultIsValid = false;
+      //resultIsValid = false;
       break;
     }
 
@@ -8744,6 +8747,8 @@ class TemporalLiftedAlgebra : public Algebra
     ~TemporalLiftedAlgebra() {}
 };
 
+} // end of namepsace temporalalgebra
+
 /*
 
 5 Initialization
@@ -8757,5 +8762,5 @@ InitializeTemporalLiftedAlgebra(NestedList *nlRef, QueryProcessor
 {
   nl = nlRef;
   qp = qpRef;
-  return (new TemporalLiftedAlgebra());
+  return (new temporalalgebra::TemporalLiftedAlgebra());
 }

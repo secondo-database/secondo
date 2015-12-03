@@ -197,7 +197,7 @@ Inserts a moving(gpoint) into the MON-Tree.
 */
 
     bool First( const Rectangle<2>& searchRectangle,
-                const Interval<Instant>& timeInterval,
+                const temporalalgebra::Interval<Instant>& timeInterval,
                 R_TreeLeafEntry<2, BottomR_TreeLeafInfo>& result );
     bool Next( R_TreeLeafEntry<2, BottomR_TreeLeafInfo>& result );
 /*
@@ -212,9 +212,9 @@ Inserts a route in the MON-Tree.
 
 */
     void CalculateSearchBoxSet( const Rectangle<2>& box,
-                                const SimpleLine& curve,
-                                const Interval<Instant>& timeInterval,
-                                RectangleSet<2>& result ) const;
+                     const SimpleLine& curve,
+                     const temporalalgebra::Interval<Instant>& timeInterval,
+                     RectangleSet<2>& result ) const;
 
 /*
 Attributes
@@ -228,7 +228,7 @@ Attributes
     R_Tree<2, BottomR_TreeLeafInfo> *bottom_RTree;
 
     Rectangle<2> searchBox;
-    Interval<Instant> searchTimeInterval;
+    temporalalgebra::Interval<Instant> searchTimeInterval;
     bool begin;
     RectangleSet<2> searchBoxSet;
 

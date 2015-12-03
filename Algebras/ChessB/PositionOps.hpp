@@ -13,6 +13,8 @@
 #include "Piece.hpp"
 #include "MoveOps.hpp"
 
+using boost::lambda::_1;
+
 struct attackcount_op : binary_function< Position, Field, int >
 {
     int operator () ( const Position& pos, const Field& f ) const
@@ -93,7 +95,7 @@ struct move_generator
     {
         generate_castlings( pos_ );
 
-        typedef Position::const_iterator pos_iter;
+        //typedef Position::const_iterator pos_iter;
         for( int row = 0; row < 8; ++row )
         {
             for( int file = 0; file < 8; ++file )
@@ -287,7 +289,7 @@ struct piececount_position_op : binary_function< Position, Piece, int >
     {
         using namespace boost::lambda;
         PIECE p = piece.get();
-        return count_if( pos.begin(), pos.end(), p == _1 );
+        return count_if( pos.begin(), pos.end(), p == boost::lambda::_1 );
     }
 };
 
@@ -311,7 +313,7 @@ struct piececount_spos_op : binary_function< Position, CcString, int >
             if ( p < NONE || p > WHITE_KING )
                 throw runtime_error( "Unknown Piece 2" );
             using namespace boost::lambda;
-            return count_if( pos.begin(), pos.end(), p == _1 );
+            return count_if( pos.begin(), pos.end(), p == boost::lambda::_1 );
         }
         if ( pt < PT_NONE || pt > PT_KING )
             throw runtime_error( "Unknown Piece 3" );
@@ -585,8 +587,8 @@ struct pos_fields_op : unary_function< Position, pair<bool, Tuple*> >
     static list_ostream type( ListExpr )
     {
         return list_ostream()
-               << ( list_ostream() << "Field" << Symbol("field") )
-               << ( list_ostream() << "Piece" << Symbol("piece") );
+               << ( list_ostream() << "Field" << ChessBSymbol("field") )
+               << ( list_ostream() << "Piece" << ChessBSymbol("piece") );
     }
 private:
     int index_;
@@ -626,10 +628,10 @@ struct pos_moves_op : unary_function< Position, pair<bool, Tuple*> >
     static list_ostream type( ListExpr )
     {
         return list_ostream()
-           << ( list_ostream() << "SPiece" << Symbol("piece") )
-           << ( list_ostream() << "SField" << Symbol("field") )
-           << ( list_ostream() << "EPiece" << Symbol("piece") )
-           << ( list_ostream() << "EField" << Symbol("field") );
+           << ( list_ostream() << "SPiece" << ChessBSymbol("piece") )
+           << ( list_ostream() << "SField" << ChessBSymbol("field") )
+           << ( list_ostream() << "EPiece" << ChessBSymbol("piece") )
+           << ( list_ostream() << "EField" << ChessBSymbol("field") );
     }
 private:
     ListExpr type_;
@@ -731,12 +733,12 @@ struct pos_moves_blocked_op : unary_function< Position, pair<bool, Tuple*> >
     static list_ostream type( ListExpr )
     {
         return list_ostream()
-           << ( list_ostream() << "SPiece" << Symbol("piece") )
-           << ( list_ostream() << "SField" << Symbol("field") )
-           << ( list_ostream() << "BPiece" << Symbol("piece") )
-           << ( list_ostream() << "BField" << Symbol("field") )
-           << ( list_ostream() << "EPiece" << Symbol("piece") )
-           << ( list_ostream() << "EField" << Symbol("field") );
+           << ( list_ostream() << "SPiece" << ChessBSymbol("piece") )
+           << ( list_ostream() << "SField" << ChessBSymbol("field") )
+           << ( list_ostream() << "BPiece" << ChessBSymbol("piece") )
+           << ( list_ostream() << "BField" << ChessBSymbol("field") )
+           << ( list_ostream() << "EPiece" << ChessBSymbol("piece") )
+           << ( list_ostream() << "EField" << ChessBSymbol("field") );
     }
 
 private:
@@ -773,10 +775,10 @@ struct piece_moves_op : binary_function< Position, Piece, pair<bool, Tuple*> >
     static list_ostream type( ListExpr )
     {
         return list_ostream()
-               << ( list_ostream() << "SPiece" << Symbol("piece") )
-               << ( list_ostream() << "SField" << Symbol("field") )
-               << ( list_ostream() << "EPiece" << Symbol("piece") )
-               << ( list_ostream() << "EField" << Symbol("field") );
+               << ( list_ostream() << "SPiece" << ChessBSymbol("piece") )
+               << ( list_ostream() << "SField" << ChessBSymbol("field") )
+               << ( list_ostream() << "EPiece" << ChessBSymbol("piece") )
+               << ( list_ostream() << "EField" << ChessBSymbol("field") );
     }
 private:
     ListExpr type_;

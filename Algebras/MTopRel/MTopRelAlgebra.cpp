@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "Symbols.h"
 
-
+namespace temporalalgebra{
 
 /*
 1 Type Constructor
@@ -1054,6 +1054,8 @@ class MTopRelAlgebra: public Algebra{
 
 };
 
+} // end of namepsace
+
 /*
 3 Initialization of the Algebra
 
@@ -1065,7 +1067,7 @@ InitializeMTopRelAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (new MTopRelAlgebra());
+  return (new temporalalgebra::MTopRelAlgebra());
 }
 
 

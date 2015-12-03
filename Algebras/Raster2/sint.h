@@ -34,8 +34,8 @@ namespace raster2
   {
     typedef sint implementation_type;
     typedef CcInt wrapper_type;
-    typedef MInt moving_type;
-    typedef UInt unit_type;
+    typedef temporalalgebra::MInt moving_type;
+    typedef temporalalgebra::UInt unit_type;
     static const char* name;
     static bool check(const NList& nl) { return nl.isInt(); }
     static int parse(const NList& nl) { return nl.intval(); }

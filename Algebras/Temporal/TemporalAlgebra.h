@@ -105,6 +105,8 @@ extern QueryProcessor* qp;
 using namespace datetime;
 
 
+namespace temporalalgebra {
+
 class SecInterval;
 
 
@@ -9034,5 +9036,7 @@ typedef Mapping< UString, CcString > MString;
 typedef Range<CcBool> RBool;
 typedef Range<CcString> RString;
 
+
+}
 
 #endif // _TEMPORAL_ALGEBRA_H_

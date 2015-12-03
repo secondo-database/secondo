@@ -46,6 +46,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 #include "Point3DExt.h"
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 /*
@@ -78,4 +79,6 @@ bool Point3DExt::operator <(const Point3DExt& p) const {
  end of namespace mregionops2
 
 ***********************************/
-};
+}
+}
+

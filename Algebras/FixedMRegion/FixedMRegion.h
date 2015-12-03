@@ -17,6 +17,8 @@ This class is a FixedMRegion.
 #include "FixedMRegiontest.h"
 #include "MMove.h"
 
+namespace temporalalgebra{
+
 class TestInterpolate;
 
 
@@ -471,4 +473,7 @@ This method implements the Print functionality.
 */
 ostream& Print(ostream &os) const;
 };
+
+} // end of namespace
+
 #endif

@@ -38,6 +38,8 @@ creating bus network
 #include "BusNetwork.h"
 #include "PaveGraph.h"
 
+using namespace temporalalgebra;
+
 
 string BusRoute::StreetSectionCellTypeInfo = 
 "(rel (tuple ((Secid int)(Cellid int) (Cnt int) (Cover_area region))))";

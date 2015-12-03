@@ -41,6 +41,7 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 
 using namespace std;
+using namespace temporalalgebra;
 
 /*
  Mutex used for locking of nl->WriteStringTo() against nl->ReadFromString()

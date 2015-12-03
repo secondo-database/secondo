@@ -38,21 +38,24 @@ http://bbbike.sourceforge.net/index.de.html
 
 */
 
-void Berlin2WGSTemporal::convert(const IPoint* source, IPoint* result) {
+void Berlin2WGSTemporal::convert(const temporalalgebra::IPoint* source, 
+                                       temporalalgebra::IPoint* result) {
   Point x;
   Berlin2WGS::convert(&source->value, &x);
-  *result = IPoint(source->instant, x);
+  *result = temporalalgebra::IPoint(source->instant, x);
 }
 
-void Berlin2WGSTemporal::convert(const UPoint* source, UPoint* result) {
+void Berlin2WGSTemporal::convert(const temporalalgebra::UPoint* source, 
+                                 temporalalgebra::UPoint* result) {
   Point x, y;
   Berlin2WGS::convert(&source->p0, &x);
   Berlin2WGS::convert(&source->p1, &y);
-  *result = UPoint(source->timeInterval, x, y);
+  *result = temporalalgebra::UPoint(source->timeInterval, x, y);
 }
 
-void Berlin2WGSTemporal::convert(const MPoint* source, MPoint* result) {
-  UPoint src(1), res(1);
+void Berlin2WGSTemporal::convert(const temporalalgebra::MPoint* source, 
+                                 temporalalgebra::MPoint* result) {
+  temporalalgebra::UPoint src(1), res(1);
   for (int i = 0; i < source->GetNoComponents(); i++) {
     source->Get(i, src);
     convert(&src, &res);

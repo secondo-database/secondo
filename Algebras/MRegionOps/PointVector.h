@@ -56,6 +56,8 @@ and Vector3D.
 
 using namespace std;
 
+namespace temporalalgebra{
+
 namespace mregionops {
 
 /*
@@ -1055,7 +1057,7 @@ ostream& operator <<(ostream& o, const Vector3D& p);
 
 } // end of namespace mregionops
 
-
+} // end of namespace temporalalgebra
 
 
 

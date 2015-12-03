@@ -18,4 +18,4 @@ clean:
 	make -C lib clean
 	make -C devel clean
 	make -C example clean
-	rm -f build/*
+	rm -f build/*.*

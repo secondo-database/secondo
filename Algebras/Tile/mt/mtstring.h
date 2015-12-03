@@ -158,7 +158,8 @@ class mtstring : public mtint
   author: Dirk Zacher
   parameters: rX - reference to location of dimension x
               rY - reference to location of dimension y
-              rValues - reference to a MString object containing
+              rValues - reference to a temporalalgebra::MString 
+                        object containing
               the time dependent values at given location rX and rY
   return value: -
   exceptions: -
@@ -167,7 +168,7 @@ class mtstring : public mtint
 
   void atlocation(const double& rX,
                   const double& rY,
-                  MString& rValues) const;
+                  temporalalgebra::MString& rValues) const;
 
   /*
   TileAlgebra operator atlocation returns the value of a mtstring object
@@ -210,7 +211,7 @@ class mtstring : public mtint
   at given periods.
 
   author: Dirk Zacher
-  parameters: rPeriods - reference to a Periods object
+  parameters: rPeriods - reference to a temporalalgebra::Periods object
               rmtstring - reference to a mtstring object containing all values
                           of the mtstring object at given periods
   return value: -
@@ -218,7 +219,7 @@ class mtstring : public mtint
 
   */
 
-  void atperiods(const Periods& rPeriods,
+  void atperiods(const temporalalgebra::Periods& rPeriods,
                  mtstring& rmtstring) const;
 
   /*

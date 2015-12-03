@@ -158,10 +158,11 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
 
                 if (pData2 != NULL && pGP2)
                 {
-                    const Interval<Instant> timeInterval(pData1->GetTime(),
-                                                         pData2->GetTime(),
-                                                         true  /*LC*/,
-                                                         false /*RC*/);
+                    const temporalalgebra::Interval<Instant> 
+                                    timeInterval(pData1->GetTime(),
+                                    pData2->GetTime(),
+                                    true  /*LC*/,
+                                    false /*RC*/);
 
                     ConnectPoints(*pGP1, *pGP2, timeInterval);
 
@@ -375,7 +376,8 @@ bool MGPointCreator::CalcShortestPath(const GPoint* pGPStart,
             }
 
             AttributePtr<UGPoint> pUGPoint(new UGPoint(
-                    Interval<Instant>(timeCurrentStart, timeCurrentEnd,
+                    temporalalgebra::Interval<Instant>(
+                                timeCurrentStart, timeCurrentEnd,
                                       true, false),
                     nNetworkId, actRouteInterval.GetRouteId(),
                     side, actRouteInterval.GetStartPos(),
@@ -392,7 +394,7 @@ bool MGPointCreator::CalcShortestPath(const GPoint* pGPStart,
 
 bool MGPointCreator::ConnectPoints(const GPoint& rGPStart,
                                    const GPoint& rGPEnd,
-                                   const Interval<Instant>& rTimeInterval)
+               const temporalalgebra::Interval<Instant>& rTimeInterval)
 {
     if (rGPStart.IsDefined() && rGPEnd.IsDefined() &&
         m_pNetwork != NULL && m_pNetwork->IsDefined())

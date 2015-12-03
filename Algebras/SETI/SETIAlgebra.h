@@ -135,7 +135,7 @@ struct SETICell
   db_pgno_t          currentPage; // Number of current cell page
   SmiRecordId        rtreeRecID;  // RTree header record id
   R_Tree<2,TupleId>* rtreePtr;    // RTree pointer
-  Interval<Instant>  tiv;         // Cell time interval
+  temporalalgebra::Interval<Instant>  tiv;         // Cell time interval
 };
 
 /******************************************************************************
@@ -194,7 +194,7 @@ struct SETIHeader
   int                numCells;     // Number of cells
   int                numEntries;   // Number of TrjSegments/UploadUnits
   int                numFlEntries; // Number of front-line entries
-  Interval<Instant>  tiv;          // SETI time interval
+  temporalalgebra::Interval<Instant>  tiv;          // SETI time interval
 };
 
 /******************************************************************************

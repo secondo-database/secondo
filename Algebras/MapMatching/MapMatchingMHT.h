@@ -76,7 +76,7 @@ public:
 3.1 Constructors and Destructor
 
 */
-    MapMatchingMHT(IMMNetwork* pNetwork, MPoint* pMPoint);
+    MapMatchingMHT(IMMNetwork* pNetwork, temporalalgebra::MPoint* pMPoint);
     MapMatchingMHT(IMMNetwork* pNetwork,
                    std::string strFileName);
     MapMatchingMHT(IMMNetwork* pNetwork,

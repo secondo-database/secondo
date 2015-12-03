@@ -162,7 +162,7 @@ struct UGridNode
   db_pgno_t  currentPage;     // Current page for UGridBoxes*
   UnitPos    pos1;            // Start position of UGridNode*
   UnitPos    pos2;            // End position of UGridNode*
-  Interval<Instant> tiv;      // UGridNode time interval*
+  temporalalgebra::Interval<Instant> tiv;      // UGridNode time interval*
 };
 
 // Record size of UGridNode -> Only variables with (*) will be stored in page.
@@ -185,7 +185,7 @@ struct UGridCell
   db_pgno_t   currentPage; // current page for history units*
   UnitPos     pos1;        // Position 1 of cell*
   UnitPos     pos2;        // Position 2 of cell*
-  Interval<Instant> tiv;   // Cell time interval*
+  temporalalgebra::Interval<Instant> tiv;   // Cell time interval*
 };
 
 // Record size of UGridCell -> Only variables with (*) will be stored in page.
@@ -253,7 +253,7 @@ struct UGridHeader
   int            numCells;          // Number of cells
   int            numEntries;        // Number of TrjSegments/UploadUnits
   int            numFlEntries;      // Number of front-line entries
-  Interval<Instant> tiv;            // UGrid time interval
+  temporalalgebra::Interval<Instant> tiv;            // UGrid time interval
 };
 
 /******************************************************************************

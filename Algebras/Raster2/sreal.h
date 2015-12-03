@@ -35,8 +35,8 @@ namespace raster2
   {
     typedef sreal implementation_type;
     typedef CcReal wrapper_type;
-    typedef MReal moving_type;
-    typedef UReal unit_type;
+    typedef temporalalgebra::MReal moving_type;
+    typedef temporalalgebra::UReal unit_type;
     static const char* name;
     static bool check(const NList& nl) { return (nl.isReal() || nl.isInt()); }
     

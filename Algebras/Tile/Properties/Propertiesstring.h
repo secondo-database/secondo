@@ -78,14 +78,14 @@ class Properties<std::string>
 
   */
 
-  typedef MString MType;
+  typedef temporalalgebra::MString MType;
 
   /*
   typedef of UnitType
 
   */
 
-  typedef UString UnitType;
+  typedef temporalalgebra::UString UnitType;
 
   /*
   Method GetUndefinedValue returns the undefined value of base datatype string.

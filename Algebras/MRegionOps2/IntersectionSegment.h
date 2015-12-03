@@ -53,6 +53,8 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 using namespace std;
 
+namespace temporalalgebra{
+
 namespace mregionops2 {
 
 class PFace;
@@ -266,6 +268,7 @@ A pointer to the ~PFace~, this instance belongs to.
 
 
 
+} // namespace end
 } // namespace end
 
 #endif /*INTERSECTIONSEGMENT_H_*/

@@ -51,6 +51,9 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 #include "MovingRegion2Algebra.h"
 
+namespace temporalalgebra{
+
+
 mpq_class instant2MPQ( const Instant i );
 
 /*
@@ -258,6 +261,8 @@ Runtime is $O(1)$.
 */
  void Get(const unsigned int pos, precTimeInterval& civ, int& ur, int& up);
 };
+
+} // end of namespace temporalalgebra
 
 #endif
 

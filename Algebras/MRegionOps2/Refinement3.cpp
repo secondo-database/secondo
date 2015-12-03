@@ -53,6 +53,9 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 This method converts instant type i to mpq\_class without loss of precision
 
 */
+
+namespace temporalalgebra{
+
 mpq_class instant2MPQ( const Instant i )
 {
   mpq_class res = mpq_class(0);
@@ -421,5 +424,5 @@ void RefinementPartition3::Get(const unsigned int pos, precTimeInterval& civ,
   up = vup[pos];
 }
  
-
+} // end of namespace
 

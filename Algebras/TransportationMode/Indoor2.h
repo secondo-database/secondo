@@ -333,13 +333,15 @@ bool CheckLine3D( ListExpr type, ListExpr& errorInfo );
 ///////////// temporal unit: UPoint3D ///////////////////////////////
 ///////////// only for Java3D visualization ////////////////////////
 /////////////////////////////////////////////////////////////////////
-class UPoint3D: public SpatialTemporalUnit<Point3D, 4>
+class UPoint3D: public temporalalgebra::SpatialTemporalUnit<Point3D, 4>
 {
   public:
   UPoint3D(){}; 
-  UPoint3D(bool def):SpatialTemporalUnit<Point3D, 4>(def){}
-  UPoint3D(const Interval<Instant>& interval, const Point3D& loc1, 
-          const Point3D& loc2):
+  UPoint3D(bool def):
+        temporalalgebra::SpatialTemporalUnit<Point3D, 4>(def){}
+  UPoint3D(const temporalalgebra::Interval<Instant>& interval, 
+           const Point3D& loc1, 
+           const Point3D& loc2):
   SpatialTemporalUnit<Point3D, 4>(interval),p0(loc1), p1(loc2)
   {
     SetDefined(p0.IsDefined() && p1.IsDefined()); 
@@ -409,11 +411,11 @@ ListExpr OutUPoint3D( ListExpr typeInfo, Word value );
 ///////////////////   MPoint3D   ///////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 
-class MPoint3D:public Mapping<UPoint3D,Point3D>
+class MPoint3D:public temporalalgebra::Mapping<UPoint3D,Point3D>
 {
   public:
     MPoint3D(){}
-    MPoint3D(const int n):Mapping<UPoint3D, Point3D>(n)
+    MPoint3D(const int n):temporalalgebra::Mapping<UPoint3D, Point3D>(n)
     {
       del.refs = 1;
       del.SetDelete();
@@ -423,7 +425,7 @@ class MPoint3D:public Mapping<UPoint3D,Point3D>
     void CopyFrom(const Attribute* right); 
     Attribute* Clone() const; 
     void Add(const UPoint3D& unit); 
-    void EndBulkLoad(const bool sort = true, const bool checkvalid = false);
+    bool EndBulkLoad(const bool sort = true, const bool checkvalid = false);
     void Trajectory(Line3D& l);
     static const string BasicType(){
        return "mpoint3d";

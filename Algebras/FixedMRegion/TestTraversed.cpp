@@ -4,6 +4,8 @@ This class is a FixedMRegion.
 */
 #include "TestTraversed.h"
 
+namespace temporalalgebra{
+
 void
 testtraversed ()
 {
@@ -311,3 +313,6 @@ runTestTraversedMethod ()
   testtraversedNew ();
 //  testtraversed();
 }
+
+}
+

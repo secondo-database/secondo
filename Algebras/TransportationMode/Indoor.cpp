@@ -46,6 +46,8 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
+using namespace temporalalgebra;
+
 ////////////////////////////////////////////////////////////////////////
 /////////////////////////// Point3D ////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -13292,9 +13294,9 @@ void MPoint3D::Add(const UPoint3D& unit)
   units.Append(unit); 
 }
 
-void MPoint3D::EndBulkLoad(const bool sort, const bool checkvalid)
+bool MPoint3D::EndBulkLoad(const bool sort, const bool checkvalid)
 {
-  Mapping<UPoint3D, Point3D>::EndBulkLoad(sort, checkvalid); 
+  return Mapping<UPoint3D, Point3D>::EndBulkLoad(sort, checkvalid); 
 
 }
 

@@ -39,8 +39,8 @@ namespace raster2
       typedef msint::riter_type riter_type;
       typedef CcString wrapper_type;
       typedef std::string cell_type;
-      typedef MString moving_type;
-      typedef UString unit_type;
+      typedef temporalalgebra::MString moving_type;
+      typedef temporalalgebra::UString unit_type;
       typedef msstring this_type;
       typedef sstring spatial_type;
       typedef grid3 grid_type;
@@ -82,17 +82,17 @@ namespace raster2
     */
     void destroy();
     string atlocation(double x, double y, double t) const;
-    MString*  atlocation(double x, double y) const;
+    temporalalgebra::MString*  atlocation(double x, double y) const;
     void setatlocation(double x, double y, double t, const string& value);
     // isstring atinstant(Instant instant) const;
     // msstring atperiods(Periods periods) const;
-    msstring* atperiods(const Periods& periods);
+    msstring* atperiods(const temporalalgebra::Periods& periods);
     msstring* atrange(const Rect& rRect);
     msstring* atrange(const Rect& rRect, const double& instFrom,
                       const double& instTo);
     msstring* atrange(const Rect& rRect, const Instant& start,
                       const Instant& end);
-    void getDefinedPeriods(Periods& result) const;
+    void getDefinedPeriods(temporalalgebra::Periods& result) const;
     Rectangle<3> bbox() const;
     string getMinimum() const;
     string getMaximum() const;
@@ -177,7 +177,7 @@ namespace raster2
   struct mstype_helper<string>
   {
     typedef msstring implementation_type;
-    typedef MString moving_type;
+    typedef temporalalgebra::MString moving_type;
     typedef CcString wrapper_type;
     static const char* name;
     

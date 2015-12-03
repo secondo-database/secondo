@@ -192,7 +192,7 @@ bool setCompareDesc (set<int>& i,set<int>& j);
 
 void RemoveDuplicates(list<CompressedInMemUSet>& resStream);
 
-void removeShortUnits(MBool &mbool, int64_t dMS);
+void removeShortUnits(temporalalgebra::MBool &mbool, int64_t dMS);
 
 bool RemoveShortNodeMembership(CompressedInMemMSet& Accumlator,
     vector<pair<int, int> >& edge2nodesMap, int64_t dMS);
@@ -330,7 +330,7 @@ public:
 The list of supported assignments
 
 */  
-  vector< vector< pair< Interval<Instant>, MSet* > > > SA;
+  vector< vector< pair< temporalalgebra::Interval<Instant>, MSet* > > > SA;
   vector<Supplier> Agenda;
     
 /*
@@ -352,7 +352,7 @@ The iterator is used in the "start" and "end" operators to iterate over the SA
 
 */
   int iterator;
-  Interval<Instant> nullInterval;
+  temporalalgebra::Interval<Instant> nullInterval;
     
 /*
 A list of the variable that have been consumed so far.
@@ -441,11 +441,13 @@ The WriteTuple function writes the current SA entry to a tuple
 private:
 /*
 The IntervalInstant2IntervalCcReal helper function. It converts the 
-Interval<Instant> to Internal<CcReal> for more efficient processing
+temporalalgebra::Interval<Instant> to Internal<CcReal> for more efficient 
+processing
 
 */  
-  void IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
-      Interval<CcReal>& out);
+  void IntervalInstant2IntervalCcReal(
+      const temporalalgebra::Interval<Instant>& in, 
+      temporalalgebra::Interval<CcReal>& out);
 
 
 /* 
@@ -462,7 +464,9 @@ fulfilled.
 Output: whether the partial assignment is consistent.
    
 */  
-  bool IsSupported(vector< pair<Interval<Instant>, MSet* > >& sa, int index);
+  bool IsSupported(
+       vector< pair<temporalalgebra::Interval<Instant>, MSet* > >& sa, 
+       int index);
 
 /*
 The CheckConstraint helper function. It checks whether an STVector is fulfilled 
@@ -470,7 +474,8 @@ by two lifted predicates.
 
 */
 
-  bool CheckConstraint(Interval<Instant>& p1, Interval<Instant>& p2,
+  bool CheckConstraint(temporalalgebra::Interval<Instant>& p1, 
+                       temporalalgebra::Interval<Instant>& p2,
       vector<Supplier> constraint);
 /*
 The PickVariable function. It implements the picking methodology based on the

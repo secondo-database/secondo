@@ -65,7 +65,7 @@ IGPointt
 This class represents an intime(GPoint) .
 
 */
-typedef Intime<GPoint> IGPoint;
+typedef temporalalgebra::Intime<GPoint> IGPoint;
 
 /*
 2 class MGPSecUnit
@@ -85,7 +85,7 @@ class MGPSecUnit : public Attribute
 
     MGPSecUnit(const bool defined, const int secId, const int part,
                const Side direct, const double sp,
-               const Interval<Instant> timeInterval);
+               const temporalalgebra::Interval<Instant> timeInterval);
 
     MGPSecUnit( const MGPSecUnit& in_xOther );
 
@@ -106,7 +106,7 @@ Get and Set private attributes.
 
     double GetSpeed()const;
 
-    Interval<Instant> GetTimeInterval() const;
+    temporalalgebra::Interval<Instant> GetTimeInterval() const;
 
     double GetDurationInSeconds() const;
 
@@ -118,7 +118,7 @@ Get and Set private attributes.
 
     void SetSpeed(const double x);
 
-    void SetTimeInterval(const Interval<Instant> time);
+    void SetTimeInterval(const temporalalgebra::Interval<Instant> time);
 
     MGPSecUnit& operator=( const MGPSecUnit& in_xOther);
 
@@ -180,7 +180,7 @@ Function for Operations.
     int m_part;  //number of part of section if necessary default = 1
     Side m_direct; // 0=down, 1=up, 2=none
     double m_speed; // m/s
-    Interval<Instant> m_time;
+    temporalalgebra::Interval<Instant> m_time;
 
 };
 
@@ -193,7 +193,7 @@ SpatialTemporalUnit class.
 
 */
 
-class UGPoint : public SpatialTemporalUnit<GPoint, 3>
+class UGPoint : public temporalalgebra::SpatialTemporalUnit<GPoint, 3>
 {
   public:
   UGPoint():SpatialTemporalUnit<GPoint,3>() {};
@@ -202,7 +202,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     SpatialTemporalUnit<GPoint, 3>(is_defined)
     {  };
 
-  UGPoint( const Interval<Instant>& interval,
+  UGPoint( const temporalalgebra::Interval<Instant>& interval,
            const int in_NetworkID,
            const int in_RouteID,
            const Side in_Side,
@@ -221,7 +221,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
         in_Side)       // Side
     {};
 
-  UGPoint( const Interval<Instant>& interval,
+  UGPoint( const temporalalgebra::Interval<Instant>& interval,
            const GPoint& ip0,
            const GPoint& ip1 ):
     SpatialTemporalUnit<GPoint, 3>( interval ),
@@ -248,14 +248,14 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
       }
     }
 
-    UGPoint( const Interval<Instant>& interval,
+    UGPoint( const temporalalgebra::Interval<Instant>& interval,
            const int in_NetworkID,
            const int in_RouteID,
            const Side in_Side,
            const double in_Position0,
            const double in_Position1,
            const Network *pNetwork):
-    SpatialTemporalUnit<GPoint, 3>( interval ),
+    temporalalgebra::SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( true,        // defined
         in_NetworkID,    // NetworkID
         in_RouteID,      // RouteID
@@ -268,7 +268,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
         in_Side)       // Side
     { }
 
-  UGPoint( const Interval<Instant>& interval,
+  UGPoint( const temporalalgebra::Interval<Instant>& interval,
            const GPoint& p0,
            const GPoint& p1,
            const Network *pNetwork):
@@ -359,7 +359,7 @@ Functions to be part of relations
       }
     else
       {
-        timeInterval = Interval<Instant>();
+        timeInterval = temporalalgebra::Interval<Instant>();
         p0 = GPoint( false, 0, 0, 0.0, None);
         p1 = GPoint( false, 0, 0, 0.0, None);
       }
@@ -501,7 +501,7 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
     return p0.GetSide();
   };
 
-  inline Interval<Instant> GetUnitTimeInterval() const
+  inline temporalalgebra::Interval<Instant> GetUnitTimeInterval() const
   {
     return timeInterval;
   };
@@ -616,14 +616,14 @@ SetMethoden f[ue]r ~ugpoint~
 
   */
 
-  void Distance (const UGPoint &ugp, UReal &ur) const;
+  void Distance (const UGPoint &ugp, temporalalgebra::UReal &ur) const;
 
   /*
   Returns the deftime of the ~ugpoint~.
 
   */
 
-  void Deftime(Periods &per) const;
+  void Deftime(temporalalgebra::Periods &per) const;
 
   /*
   Returns the time instant the ~ugpoint~ was at a given position.
@@ -637,14 +637,15 @@ SetMethoden f[ue]r ~ugpoint~
 
 */
 
-  void NetdistanceFromArg(const GPoint* gp, UReal* result) const;
+  void NetdistanceFromArg(const GPoint* gp, 
+                          temporalalgebra::UReal* result) const;
 
 /*
 Returns the network distance from the ~ugpoint~ to the ~gpoint~
 
 */
 
-  void NetdistanceToArg(const GPoint* gp, UReal* result) const;
+  void NetdistanceToArg(const GPoint* gp, temporalalgebra::UReal* result) const;
 
 
 /*
@@ -652,14 +653,14 @@ Returns the network distance from the ~ugpoint~ to the ~gpoint~
 
 */
 
-  void Netdistance(const UGPoint* ugp, UReal* result) const;
+  void Netdistance(const UGPoint* ugp, temporalalgebra::UReal* result) const;
 
 /*
 Restricts the ugpoint to the given timeInterval
 
 */
 
-void AtInterval( const Interval<Instant>& i,
+void AtInterval( const temporalalgebra::Interval<Instant>& i,
                  TemporalUnit<GPoint>& result ) const;
 
 /*
@@ -714,7 +715,7 @@ Inherits from the Mapping of the TemporalAlgebra.
 
 */
 
-class MGPoint : public Mapping< UGPoint, GPoint >
+class MGPoint : public temporalalgebra::Mapping< UGPoint, GPoint >
 {
   public:
 /*
@@ -785,11 +786,11 @@ distance function.
 
 */
 
-    void Distance(const MGPoint *mgp, MReal *result) const;
-    void DistanceE(const MGPoint* mgp, MReal* result) const;
-    void DistanceN(MGPoint* mgp, MReal* result);
+    void Distance(const MGPoint *mgp, temporalalgebra::MReal *result) const;
+    void DistanceE(const MGPoint* mgp, temporalalgebra::MReal* result) const;
+    void DistanceN(MGPoint* mgp, temporalalgebra::MReal* result);
     void DistanceFunction(const UGPoint*, const UGPoint*, const Network*,
-                          vector<UReal>&) const;
+                          vector<temporalalgebra::UReal>&) const;
     void DivideUGPoint(const Network*);
 
 /*
@@ -797,23 +798,26 @@ distance function.
 
 */
 
-  void NetdistanceFromArg(const GPoint* gp, MReal* result) const;
-  void NetdistanceFromArgShort(const GPoint* gp, MReal* result)const;
+  void NetdistanceFromArg(const GPoint* gp,
+                          temporalalgebra::MReal* result) const;
+  void NetdistanceFromArgShort(const GPoint* gp, 
+                          temporalalgebra::MReal* result)const;
 
 /*
 Returns the network distance from the ~mgpoint~ to the ~gpoint~
 
 */
 
- void NetdistanceToArg(const GPoint* gp, MReal* result) const;
- void NetdistanceToArgShort(const GPoint* gp, MReal* result) const;
+ void NetdistanceToArg(const GPoint* gp, temporalalgebra::MReal* result) const;
+ void NetdistanceToArgShort(const GPoint* gp,
+                            temporalalgebra::MReal* result) const;
 
 
 /*
 Translates an mgpoint into an mpoint value.
 
 */
-    void Mgpoint2mpoint(MPoint *mp) const;
+    void Mgpoint2mpoint(temporalalgebra::MPoint *mp) const;
 
 /*
 Returns the trajectory of the mgpoint as sorted gline or as DbArray of
@@ -840,14 +844,14 @@ Returns the deftime of the mgpoint as periods value.
 
 */
 
-   void Deftime(Periods &res) const;
+   void Deftime(temporalalgebra::Periods &res) const;
 
 /*
 Returns true if the mgpoint is defined at least in one of the periods resp.
 at the given Instant.
 
 */
-   bool Present(Periods *per) const;
+   bool Present(temporalalgebra::Periods *per) const;
 
    bool Present(Instant *inst) const;
 
@@ -886,16 +890,17 @@ Returns a mbool telling when the mgpoint was inside the gline.
 
 */
 
-  void Inside(const GLine* gl, MBool *res) const;
+  void Inside(const GLine* gl, temporalalgebra::MBool *res) const;
 
 
 /*
 Returns a mgpoint restricted to the given periods respectively instant value.
 
 */
-   void Atperiods(const Periods *per, MGPoint *res) const;
+   void Atperiods(const temporalalgebra::Periods *per, MGPoint *res) const;
 
-   void Atinstant(const Instant *inst, Intime<GPoint> *res) const;
+   void Atinstant(const Instant *inst, 
+                  temporalalgebra::Intime<GPoint> *res) const;
 
 /*
 Returns a mgpoint restricted to the times it was at the given gpoint resp.

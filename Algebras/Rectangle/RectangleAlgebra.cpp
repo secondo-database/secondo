@@ -52,6 +52,7 @@ struct ~Rectangle~, and the definitions of the type constructur
 #include "CellGrid.h"
 
 using namespace std;
+using namespace temporalalgebra;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

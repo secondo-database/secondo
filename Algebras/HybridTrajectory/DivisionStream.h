@@ -112,7 +112,7 @@ bool DivisionStream<Mapping1,Unit1,Mapping2,Unit2>::getNext(Tuple** result){
  this->diviseur->Get(this->divideurpos,divideurUnit);/*we should icremenet then
                                                       the value of divideurpos*/
     
- Interval<Instant> iv2;
+ temporalalgebra::Interval<Instant> iv2;
  iv2 = divideurUnit.getTimeInterval();
 
     /*to check this one*/
@@ -130,7 +130,7 @@ bool DivisionStream<Mapping1,Unit1,Mapping2,Unit2>::getNext(Tuple** result){
                                                  then the value of divideurpos*/
     
 
-    Interval<Instant> iv1;
+    temporalalgebra::Interval<Instant> iv1;
     iv1=dividendeUnit.getTimeInterval();
 
 
@@ -157,7 +157,7 @@ bool DivisionStream<Mapping1,Unit1,Mapping2,Unit2>::getNext(Tuple** result){
   goto finish;
   }
 
- Interval<Instant> tempresult;
+ temporalalgebra::Interval<Instant> tempresult;
 
  /*loop until the end of iv1 is outsie iv2 , so we stop beacyse this interval
   can ve used other time*/

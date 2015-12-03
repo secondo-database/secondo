@@ -47,6 +47,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "Point2D.h"
 #include "Point3D.h"
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 /*
@@ -99,3 +100,4 @@ return false;
 }
 
 } // end of namespace mregionops2
+} // end of namespace temporalalgebra

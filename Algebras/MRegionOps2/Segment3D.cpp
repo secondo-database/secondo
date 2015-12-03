@@ -46,8 +46,10 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 #include "Segment3D.h"
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 
 
 } // end of namespace mregionops2
+} // end of namespace temporalalgebra

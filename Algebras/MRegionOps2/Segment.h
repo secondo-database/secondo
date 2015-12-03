@@ -56,6 +56,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 /*
@@ -277,5 +278,6 @@ ostream& operator <<(ostream& o, const Segment2D& s);
 ostream& operator <<(ostream& o, const Segment3D& s);
 
 } // end of namespace mregionops2
+} // end of namespace temporalalgebra
 
 #endif /*SEGMENT_H_*/

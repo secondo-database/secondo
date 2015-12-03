@@ -58,7 +58,7 @@ struct SymbolicUnit {
   SymbolicUnit() {}
   SymbolicUnit(unsigned int p) : iv(true), pos(p) {}
   
-  SecInterval iv;
+  temporalalgebra::SecInterval iv;
   unsigned int pos;
 };
 

@@ -47,6 +47,8 @@ RobustPlaneSweepAlgebra.
 
 #include "RobustOperators.h"
 
+using namespace temporalalgebra;
+
 namespace RobustPlaneSweep
 {
 /*

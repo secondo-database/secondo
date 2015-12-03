@@ -48,6 +48,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "Point3D.h"
 
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 // calculate the crossprodukt from two vectors
@@ -67,4 +68,5 @@ Vector3D::Vector3D(Point3D p1, Point3D p2)
 }
 
 
+}
 }

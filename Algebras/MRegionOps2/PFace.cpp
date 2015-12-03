@@ -50,6 +50,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "IntersectionSegment.h"
 
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 PFace::PFace(SourceUnit2* _unit, Point2D _is, 
@@ -714,4 +715,5 @@ tmp = Point3D(GetA_XYT().GetX()+2*((GetB_XYT().GetX()-GetA_XYT().GetX()) / 3),
     cout << endl;
 }
 
+}
 }

@@ -40,13 +40,15 @@ using namespace jnetwork;
 
   JUnit::JUnit(const bool def) :
       Attribute(def),
-      timeInter(Interval<Instant>(instanttype,instanttype,false,false)),
+      timeInter(temporalalgebra::Interval<Instant>(instanttype,
+                                             instanttype,false,false)),
       routeInter(false)
   {}
 
   JUnit::JUnit(const JUnit& other) :
       Attribute(other.IsDefined()),
-      timeInter(Interval<Instant>(instanttype,instanttype,false,false)),
+      timeInter(temporalalgebra::Interval<Instant>(
+                            instanttype,instanttype,false,false)),
       routeInter(false)
   {
     if (other.IsDefined())
@@ -56,9 +58,11 @@ using namespace jnetwork;
     }
   }
 
-  JUnit::JUnit(const Interval<Instant>& inst, const JRouteInterval& rint) :
+  JUnit::JUnit(const temporalalgebra::Interval<Instant>& inst, 
+               const JRouteInterval& rint) :
     Attribute(inst.IsDefined() && rint.IsDefined()),
-    timeInter(Interval<Instant>(instanttype,instanttype,false,false)),
+    timeInter(temporalalgebra::Interval<Instant>(
+                           instanttype,instanttype,false,false)),
     routeInter(false)
   {
     if (inst.IsDefined() && rint.IsDefined())
@@ -76,7 +80,7 @@ using namespace jnetwork;
 
 */
 
-  Interval<Instant> JUnit::GetTimeInterval() const
+  temporalalgebra::Interval<Instant> JUnit::GetTimeInterval() const
   {
     return timeInter;
   }
@@ -113,7 +117,7 @@ double JUnit::GetLength() const
 }
 
 
-  void JUnit::SetTimeInterval(const Interval<Instant>& inst)
+  void JUnit::SetTimeInterval(const temporalalgebra::Interval<Instant>& inst)
   {
     timeInter = inst;
   }
@@ -266,7 +270,7 @@ ListExpr JUnit::Out(ListExpr typeInfo, Word value)
   }
   else
   {
-    Interval<Instant> time(in->GetTimeInterval());
+    temporalalgebra::Interval<Instant> time(in->GetTimeInterval());
     Instant start =  time.start;
     Instant end = time.end;
     JRouteInterval rint(in->GetRouteInterval());
@@ -329,7 +333,7 @@ Word JUnit::In(const ListExpr typeInfo, const ListExpr instance,
       delete end;
       return SetWord(Address(0));
     }
-    Interval<Instant> interval(*start,*end, lc, rc);
+    temporalalgebra::Interval<Instant> interval(*start,*end, lc, rc);
     if (!interval.IsValid())
     {
       cmsg.inFunError("Invalid TimeInterval");
@@ -431,8 +435,8 @@ bool JUnit::ExtendBy(const JUnit& other)
   if (CanBeExtendedBy(other))
   {
     JRouteInterval otherRint = other.GetRouteInterval();
-    Interval<Instant> otherTime = other.GetTimeInterval();
-    SetTimeInterval(Interval<Instant> (timeInter.start,
+    temporalalgebra::Interval<Instant> otherTime = other.GetTimeInterval();
+    SetTimeInterval(temporalalgebra::Interval<Instant> (timeInter.start,
                                        otherTime.end,
                                        timeInter.lc,
                                        otherTime.rc));
@@ -556,7 +560,8 @@ JUnit* JUnit::AtPos(const JPoint* jp) const
     if (routeInter.GetFirstPosition() != routeInter.GetLastPosition())
     {
       Instant time = TimeAtPos(jp->GetLocation().GetPosition());
-      return new JUnit(Interval<Instant> (time, time, true, true),
+      return new JUnit(temporalalgebra::Interval<Instant> (
+                       time, time, true, true),
                        JRouteInterval(routeInter.GetRouteId(),
                                   jp->GetLocation().GetPosition(),
                                   jp->GetLocation().GetPosition(),
@@ -566,7 +571,8 @@ JUnit* JUnit::AtPos(const JPoint* jp) const
     {
       if (timeInter.start != timeInter.end)
       {
-        return new JUnit(Interval<Instant> (timeInter.start, timeInter.end,
+        return new JUnit(temporalalgebra::Interval<Instant> (
+                         timeInter.start, timeInter.end,
                                             false, false),
                          JRouteInterval(routeInter.GetRouteId(),
                                         jp->GetLocation().GetPosition(),
@@ -575,7 +581,8 @@ JUnit* JUnit::AtPos(const JPoint* jp) const
       }
       else
       {
-        return new JUnit(Interval<Instant> (timeInter.start, timeInter.end,
+        return new JUnit(temporalalgebra::Interval<Instant> (
+                          timeInter.start, timeInter.end,
                                             true, true),
                          JRouteInterval(routeInter.GetRouteId(),
                                         jp->GetLocation().GetPosition(),
@@ -668,7 +675,8 @@ JUnit* JUnit::AtRint(const JRouteInterval* rint, bool& lastrc) const
       rc = true;
       lastrc = true;
     }
-    return new JUnit(Interval<Instant>(startTime, endTime, lc, rc),
+    return new JUnit(temporalalgebra::Interval<Instant>(
+                     startTime, endTime, lc, rc),
                      JRouteInterval(routeInter.GetRouteId(),
                                     startpos, endpos, routeInter.GetSide()));
   }
@@ -699,7 +707,8 @@ double JUnit::PosAtTime(const Instant* inst) const
           ((*inst - timeInter.start)/(timeInter.end - timeInter.start)));
 }
 
-JRouteInterval* JUnit::PosAtTimeInterval(const Interval< Instant >& time) const
+JRouteInterval* JUnit::PosAtTimeInterval(
+                   const temporalalgebra::Interval< Instant >& time) const
 {
   return new JRouteInterval(routeInter.GetRouteId(),
                             PosAtTime(&time.start),

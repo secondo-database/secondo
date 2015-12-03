@@ -47,6 +47,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 #include "Point3D.h"
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 
@@ -92,4 +93,5 @@ cout << " is true" << endl;
   return true;
 }
 
+}
 }

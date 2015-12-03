@@ -47,6 +47,7 @@ May 2008, Victor Almeida
 #include "ListUtils.h"
 
 using namespace std;
+using namespace temporalalgebra;
 
 template<class BottomR_TreeLeafInfo>
 MON_Tree<BottomR_TreeLeafInfo>::MON_Tree():

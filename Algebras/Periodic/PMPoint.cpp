@@ -643,7 +643,7 @@ PMPoint* PMPoint::Intersection(const PInterval* interval){
 
 
    // in a first step we count the array-sizes
-   cout << "PMPOINT::Intersection(Interval) not implemented ";
+   cout << "PMPOINT::Intersection(temporalalgebra::Interval) not implemented ";
    cout  << __POS__ << endl;
    return 0;
 }
@@ -698,7 +698,8 @@ void PMPoint::AddSubMovesSizeForIntersection(DateTime* startTime,
          periodicMoves.Get(submove.arrayIndex,PM);
          //SubMove PSM = PM.submove;
          cout << __POS__ << "NOT IMPLEMENTED" << endl;
-         /* wenn PeriodicMOve-Intervall in geg. Interval enthalten
+         /* wenn PeriodicMOve-Intervall in geg. 
+            temporalalgebra::Interval enthalten
             erhoehe um alle enthaltenen Submoves
             wenn Intervall vor SubMOve-Intervall beendet,
             mache mit SubMoves weiter
@@ -1599,17 +1600,17 @@ This function converts a periodic moving point to a linearly moving one.
 The used data type comes from the TemporalAlgebra. 
 
 */
-MPoint PMPoint::Expand()const{
+temporalalgebra::MPoint PMPoint::Expand()const{
     __TRACE__
   // In a first step we compute the number of resulting units.
   // The reason is, to avoid frequently growing of the result.
-  MPoint res(1);
+  temporalalgebra::MPoint res(1);
   Expand(res);
   return res;
 }
 
 
-void PMPoint::Expand(MPoint& res)const{
+void PMPoint::Expand(temporalalgebra::MPoint& res)const{
     __TRACE__
   // In a first step we compute the number of resulting units.
   // The reason is, to avoid frequently growing of the result.
@@ -1635,7 +1636,8 @@ void PMPoint::Expand(MPoint& res)const{
 The function ~AppendUnits~ adds all mpoint-units resulting from S to P.
 
 */
-void PMPoint::AppendUnits(MPoint& P, DateTime* Time, const SubMove S)const{
+void PMPoint::AppendUnits(temporalalgebra::MPoint& P, DateTime* Time, 
+                          const SubMove S)const{
     __TRACE__
    if(S.arrayNumber==LINEAR){
         // first create the Intervall
@@ -1647,13 +1649,13 @@ void PMPoint::AppendUnits(MPoint& P, DateTime* Time, const SubMove S)const{
         assert(!length->LessThanZero());
         delete length;
         length = NULL;
-        Interval<DateTime> I((*StartTime),(*Time),
+        temporalalgebra::Interval<DateTime> I((*StartTime),(*Time),
                      LM.interval.IsLeftClosed(),
                      LM.interval.IsRightClosed());
-        UPoint up(I,LM.startX, LM.startY, LM.endX, LM.endY);
+        temporalalgebra::UPoint up(I,LM.startX, LM.startY, LM.endX, LM.endY);
         int size = P.GetNoComponents();
         if(size > 0){
-          UPoint last;
+          temporalalgebra::UPoint last;
           P.Get(size-1,last);
           if(last.timeInterval.rc && I.lc && 
              last.timeInterval.end ==  I.start){
@@ -1751,7 +1753,8 @@ This function reads a Periodic moving point from
 a lineary moving one.
 
 */
-void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
+void PMPoint::ReadFrom(const temporalalgebra::MPoint& P, 
+                       const bool twostep/* = true*/){
   /* This function works as follow:
      First, we create a list containing all LinearMovingPoints for this
      Periodic Moving Points. After that, we find equal units in this list
@@ -1765,7 +1768,7 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
   // represent non-defined units directly which is not required in
   // the MPoint representation.
   List<LinearPointMove>* L= new List<LinearPointMove>();  
-  UPoint UP;
+  temporalalgebra::UPoint UP;
   bool lc,rc,wlc=false;
   DateTime start,end;
   double x1,y1,x2,y2;
@@ -1779,7 +1782,7 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
   compositeMoves.clean();
   compositeSubMoves.clean();
   periodicMoves.clean();
-  UPoint LastMove;
+  temporalalgebra::UPoint LastMove;
   if(noUPoints>0){ // we have any units
      for(int i=0;i<noUPoints;i++){
         P.Get(i,UP);

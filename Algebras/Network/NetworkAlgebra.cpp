@@ -8310,7 +8310,7 @@ stack to turn in right order.
 */
       RIStackP *riStack = new RIStackP (0);
       riStack->Push( actRouteId, startRI, endRI );
-      TupleId lastSectId = actPQEntry->sectID;
+      //TupleId lastSectId = actPQEntry->sectID;
       int pElem = visitedSect->Find ( actPQEntry->beforeSectID,
                                       actPQEntry->beforeUpDown );
       bool end = false;
@@ -8343,8 +8343,8 @@ stack to turn in right order.
               riStack->Push(actRouteId, sectMeas1,sectMeas2);
             else
               riStack->Push(actRouteId, sectMeas2,sectMeas1);
-            lastSectId =
-              visitedSect->GetTreeEntry(pElem).GetEntry().GetSectId();
+            //lastSectId =
+            //  visitedSect->GetTreeEntry(pElem).GetEntry().GetSectId();
             pElem =
               visitedSect->Find(visitedSect->GetTreeEntry(pElem).GetEntry().
                                   GetBeforeSectId(),
@@ -8505,8 +8505,8 @@ void GPoint::ShortestPathTree(const Network* pNetwork,
       ((CcReal* )startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
     double sectMeas2 =
       ((CcReal*)startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-    int actRouteId =
-      ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
+    //int actRouteId =
+    //  ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
     int sectID =
       ((CcInt*)startSection->GetAttribute(SECTION_SID))->GetIntval();
     res->Put(2*sectID, ShortestPathTreeEntry(0.0,true));
@@ -8546,8 +8546,8 @@ void GPoint::ShortestPathTree(const Network* pNetwork,
         ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
       sectMeas2 =
         ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-      actRouteId =
-        ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+      //actRouteId =
+      //  ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
       sectID =
         ((CcInt*)actSection->GetAttribute(SECTION_SID))->GetIntval();
       sectPos = 2*sectID;
@@ -8638,8 +8638,8 @@ void GPoint::ShortestPathTree(const Network* pNetwork,
       ((CcReal* )startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
     double sectMeas2 =
       ((CcReal*)startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-    int actRouteId =
-      ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
+    //int actRouteId =
+    //  ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
     int sectID =
       ((CcInt*)startSection->GetAttribute(SECTION_SID))->GetIntval();
     res->Put(2*sectID, ShortestPathTreeEntry(0.0,true));
@@ -8677,8 +8677,8 @@ void GPoint::ShortestPathTree(const Network* pNetwork,
         ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
       sectMeas2 =
         ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-      actRouteId =
-        ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+      //actRouteId =
+      //  ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
       sectID =
         ((CcInt*)actSection->GetAttribute(SECTION_SID))->GetIntval();
       sectPos = 2*sectID;
@@ -8927,8 +8927,8 @@ void GPoint::ReverseShortestPathTree(const Network* pNetwork,
       ((CcReal* )startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
     double sectMeas2 =
       ((CcReal*)startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-    int actRouteId =
-      ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
+    //int actRouteId =
+    //  ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
     int sectID =
       ((CcInt*)startSection->GetAttribute(SECTION_SID))->GetIntval();
     res->Put(2*sectID, ShortestPathTreeEntry(0.0, true));
@@ -8982,8 +8982,8 @@ void GPoint::ReverseShortestPathTree(const Network* pNetwork,
         ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
       sectMeas2 =
         ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-      actRouteId =
-        ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+      //actRouteId =
+      //  ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
       sectID =
         ((CcInt*)actSection->GetAttribute(SECTION_SID))->GetIntval();
       sectPos = 2*sectID;
@@ -9054,8 +9054,8 @@ void GPoint::ReverseShortestPathTree(const Network* pNetwork,
       ((CcReal* )startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
     double sectMeas2 =
       ((CcReal*)startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-    int actRouteId =
-      ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
+    //int actRouteId =
+    //  ((CcInt*)startSection->GetAttribute(SECTION_RID))->GetIntval();
     int sectID =
       ((CcInt*)startSection->GetAttribute(SECTION_SID))->GetIntval();
     res->Put(2*sectID, ShortestPathTreeEntry(0.0, true));
@@ -9111,8 +9111,8 @@ void GPoint::ReverseShortestPathTree(const Network* pNetwork,
         ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
       sectMeas2 =
         ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-      actRouteId =
-        ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+      //actRouteId =
+      //  ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
       sectID =
         ((CcInt*)actSection->GetAttribute(SECTION_SID))->GetIntval();
       sectPos = 2*sectID;
@@ -10125,7 +10125,7 @@ Use priorityQueue to find shortestPath.
   }
   RIStackP *riStack = new RIStackP(0);
   if (startRI != endRI) riStack->Push( actRouteId, startRI, endRI );
-  TupleId lastSectId = actPQEntry->sectID;
+  //TupleId lastSectId = actPQEntry->sectID;
   int pElem = visitedSect->Find ( actPQEntry->beforeSectID,
                                   actPQEntry->beforeUpDown );
   bool end = false;
@@ -10153,7 +10153,7 @@ Use priorityQueue to find shortestPath.
           riStack->Push ( actRouteId, sectMeas1, sectMeas2);
         else
           riStack->Push ( actRouteId, sectMeas2, sectMeas1);
-        lastSectId = actTupleId;
+        //lastSectId = actTupleId;
         pElem =
           visitedSect->Find(actSectEntry.GetBeforeSectId(),
                             actSectEntry.GetBeforeSectUpDown());

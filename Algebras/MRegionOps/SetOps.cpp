@@ -49,6 +49,8 @@ used in the MovingRegionAlgebra.
 
 #include "SetOps.h"
 
+namespace temporalalgebra{
+
 namespace mregionops {
 
 set<unsigned int> flippedPFaces;
@@ -2875,4 +2877,6 @@ void PFace::Print() const {
 }
 
 } // end of namespace mregionops
+
+} // end of namespace temporalalgebra
 

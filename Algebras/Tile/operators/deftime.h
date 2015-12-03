@@ -71,7 +71,7 @@ struct deftimeInfo : OperatorInfo
     GetValueWrapperTypes(valueWrapperTypes);
 
     signature = std::string(TYPE_NAME_PREFIX_MT) + "T" +
-                RIGHT_ARROW + Periods::BasicType() +
+                RIGHT_ARROW + temporalalgebra::Periods::BasicType() +
                 FOR + GetTypeParametersDomain(typeParameterT,
                                               valueWrapperTypes);
   }

@@ -70,6 +70,8 @@ A general overview about the relationship of this classes is shown below:
 
 using namespace std;
 
+namespace temporalalgebra{
+
 namespace mregionops {
 
 /*
@@ -3212,6 +3214,8 @@ Used for debugging only.
 };
 
 } // end of namespace mregionops
+
+} // end of namespace temporalalgebra
 
 #endif /*SETOPS_H_*/
 

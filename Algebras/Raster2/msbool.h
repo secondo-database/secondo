@@ -34,9 +34,9 @@ namespace raster2 {
     struct msbool_helper
     {
         typedef msbool implementation_type;
-        typedef MBool moving_type;
+        typedef temporalalgebra::MBool moving_type;
         typedef CcBool wrapper_type;
-        typedef UBool unit_type;
+        typedef temporalalgebra::UBool unit_type;
         typedef sbool spatial_type;
         static const char* name;
         static bool check(const NList& nl) { return nl.isBool(); }

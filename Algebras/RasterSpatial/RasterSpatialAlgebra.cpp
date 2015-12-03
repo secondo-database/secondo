@@ -798,7 +798,7 @@ RegionToPolilyneFun (Word* args, Word& result, int message,
               Word& local, Supplier s)
 {
   int i;
-  const HalfSegment *chs, *chs1;
+  HalfSegment chs, chs1;
   double endX1, endY1, endX2, endY2;
   long int face, cicle, cicleSize, nCicles;
   ostringstream scicle, sfile;
@@ -816,20 +816,20 @@ RegionToPolilyneFun (Word* args, Word& result, int message,
   for( i = 0; i < r1->Size(); i++ )
   {
     r1->Get( i, chs );
-    if (chs->IsLeftDomPoint())
+    if (chs.IsLeftDomPoint())
     {
-      if (chs->GetAttr().faceno > face)
+      if (chs.GetAttr().faceno > face)
       {
-        face = chs->GetAttr().faceno;
+        face = chs.GetAttr().faceno;
         cicle = -1;
       }
-      if (chs->GetAttr().cycleno > cicle)
+      if (chs.GetAttr().cycleno > cicle)
       {
         if (scicle.str() != "")
         {
           sfile << cicleSize << endl << scicle.str();
         }
-        cicle = chs->GetAttr().cycleno;
+        cicle = chs.GetAttr().cycleno;
         nCicles++;
         cicleSize = 2; //starts with 2 points in the cicle
         scicle.str(""); //cleans scicle
@@ -837,43 +837,43 @@ RegionToPolilyneFun (Word* args, Word& result, int message,
         // the second segment, since the i + 1 is the other
         // half-segment of the first segment
         r1->Get( i + 2, chs1 );
-        if ( ( (chs->GetLeftPoint().GetX() == chs1->GetLeftPoint().GetX())
-            && (chs->GetLeftPoint().GetY() == chs1->GetLeftPoint().GetY()) ) ||
-             ( (chs->GetLeftPoint().GetX() == chs1->GetRightPoint().GetX())
-            && (chs->GetLeftPoint().GetY() == chs1->GetRightPoint().GetY()) ) )
+        if ( ( (chs.GetLeftPoint().GetX() == chs1.GetLeftPoint().GetX())
+            && (chs.GetLeftPoint().GetY() == chs1.GetLeftPoint().GetY()) ) ||
+             ( (chs.GetLeftPoint().GetX() == chs1.GetRightPoint().GetX())
+            && (chs.GetLeftPoint().GetY() == chs1.GetRightPoint().GetY()) ) )
         {
-          scicle << chs->GetRightPoint().GetX() << ","
-                 << chs->GetRightPoint().GetY() << endl;
-          scicle << chs->GetLeftPoint().GetX() << ","
-                 << chs->GetLeftPoint().GetY() << endl;
+          scicle << chs.GetRightPoint().GetX() << ","
+                 << chs.GetRightPoint().GetY() << endl;
+          scicle << chs.GetLeftPoint().GetX() << ","
+                 << chs.GetLeftPoint().GetY() << endl;
         }
         else
         {
-          scicle << chs->GetLeftPoint().GetX() << ","
-                 << chs->GetLeftPoint().GetY() << endl;
-          scicle << chs->GetRightPoint().GetX() << ","
-                 << chs->GetRightPoint().GetY() << endl;
+          scicle << chs.GetLeftPoint().GetX() << ","
+                 << chs.GetLeftPoint().GetY() << endl;
+          scicle << chs.GetRightPoint().GetX() << ","
+                 << chs.GetRightPoint().GetY() << endl;
         }
-        endX1 = chs->GetLeftPoint().GetX();
-        endY1 = chs->GetLeftPoint().GetY();
-        endX2 = chs->GetRightPoint().GetX();
-        endY2 = chs->GetRightPoint().GetY();
+        endX1 = chs.GetLeftPoint().GetX();
+        endY1 = chs.GetLeftPoint().GetY();
+        endX2 = chs.GetRightPoint().GetX();
+        endY2 = chs.GetRightPoint().GetY();
       }
       else //inside the same cicle
       {
-        if ( ( (chs->GetLeftPoint().GetX() == endX1)
-             && (chs->GetLeftPoint().GetY() == endY1) ) ||
-             ( (chs->GetLeftPoint().GetX() == endX2)
-             && (chs->GetLeftPoint().GetY() == endY2) ) )
-          scicle << chs->GetRightPoint().GetX() << ","
-               << chs->GetRightPoint().GetY() << endl;
+        if ( ( (chs.GetLeftPoint().GetX() == endX1)
+             && (chs.GetLeftPoint().GetY() == endY1) ) ||
+             ( (chs.GetLeftPoint().GetX() == endX2)
+             && (chs.GetLeftPoint().GetY() == endY2) ) )
+          scicle << chs.GetRightPoint().GetX() << ","
+               << chs.GetRightPoint().GetY() << endl;
         else
-          scicle << chs->GetLeftPoint().GetX() << ","
-               << chs->GetLeftPoint().GetY() << endl;
-        endX1 = chs->GetLeftPoint().GetX();
-        endY1 = chs->GetLeftPoint().GetY();
-        endX2 = chs->GetRightPoint().GetX();
-        endY2 = chs->GetRightPoint().GetY();
+          scicle << chs.GetLeftPoint().GetX() << ","
+               << chs.GetLeftPoint().GetY() << endl;
+        endX1 = chs.GetLeftPoint().GetX();
+        endY1 = chs.GetLeftPoint().GetY();
+        endX2 = chs.GetRightPoint().GetX();
+        endY2 = chs.GetRightPoint().GetY();
         cicleSize++;
       }
     }

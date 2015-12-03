@@ -78,14 +78,14 @@ class Properties<double>
 
   */
 
-  typedef MReal MType;
+  typedef temporalalgebra::MReal MType;
 
   /*
   typedef of UnitType
 
   */
 
-  typedef UReal UnitType;
+  typedef temporalalgebra::UReal UnitType;
 
   /*
   Method GetUndefinedValue returns the undefined value of base datatype real.

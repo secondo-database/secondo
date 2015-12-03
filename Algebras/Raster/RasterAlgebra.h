@@ -39,6 +39,7 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 #include "./Signature/Signature4CRS.h"
 
 #include "../../Tools/Flob/DbArray.h"
+#include "../../Tools/Flob/Flob.h"
 
 /*
 1.1 Raster4CRS
@@ -94,7 +95,7 @@ class Raster4CRS: public Signature4CRS, public Attribute
   Raster4CRS*   Clone() const;
 
   int NumOfFLOBs(void) const;
-  FLOB *GetFLOB(const int i);
+  Flob *GetFLOB(const int i);
 
   Raster4CRS& operator=( Raster4CRS& r );
 

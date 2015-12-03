@@ -49,6 +49,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "PFace.h"
 #include "SourceUnitPair2.h"
 #include <stdlib.h>
+namespace temporalalgebra {
 namespace mregionops2 {
 
 /***********************************
@@ -320,7 +321,7 @@ void SourceUnit2::CollectRelevantPFaces(vector<PFace*>* storage)
 
                         storage->push_back(*iter);
                     }
-                    else
+                    //else
 
                 }
                 break;
@@ -419,9 +420,9 @@ bool SourceUnit2::IsPFaceInsidePartner(PFace* pface)
 
     const Point p2D(true, p.GetX().get_d(), p.GetY().get_d());
     if(IsUnitA()==true && partner->IsUnitB()==true)
-    
+     ; 
     else if(IsUnitB()==true && partner->IsUnitA()==true)
-    
+    ;
     else
     cout << "You should never see this message!\n";        
     
@@ -557,5 +558,6 @@ DbArray<MSegmentData>* targetArray = (DbArray<MSegmentData>*)target->GetFLOB(1);
     target->Add(ur);
 }
 
+}
 }
 

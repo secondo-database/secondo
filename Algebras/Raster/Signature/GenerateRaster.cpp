@@ -65,8 +65,8 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
   unsigned numberOfCellsX, numberOfCellsY;
   double blockArea=0;
   ClipCel clipCel[PRODUCT];
-  const HalfSegment *hs;
-  const Point *pt;
+  HalfSegment hs;
+  Point pt(0,0);
   
   //swapMatrix is used to indicate, in the full cell step,
   //when the filling must change from empty to full and vice versa
@@ -149,21 +149,21 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
     if (region != NULL){
 
       region->GetHs(hs);
-      lp = hs->GetLeftPoint();
-      rp = hs->GetRightPoint();
-      insideAbove = hs->GetAttr().insideAbove;
+      lp = hs.GetLeftPoint();
+      rp = hs.GetRightPoint();
+      insideAbove = hs.GetAttr().insideAbove;
     }
     else if (line != NULL){
       line->GetHs(hs);
-      lp = hs->GetLeftPoint();
-      rp = hs->GetRightPoint();
+      lp = hs.GetLeftPoint();
+      rp = hs.GetRightPoint();
     }
     else {
       points->GetPt(pt);
-      lp = *pt;
-      rp = *pt;
+      lp = pt;
+      rp = pt;
     }
-    if (points != NULL || hs->IsLeftDomPoint()) //works only with left segments
+    if (points != NULL || hs.IsLeftDomPoint()) //works only with left segments
     {
       nCurrentSegment++;
       currentCell = findCell(lp, plane);

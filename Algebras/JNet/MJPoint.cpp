@@ -63,9 +63,9 @@ actUnit.
 */
 
 void skipTimeIntervalsBefore(const JUnit& actUnit,
-                             const Periods* per,
-                             int& timeIndex,
-                             Interval<Instant>& actTimeInterval)
+                    const temporalalgebra::Periods* per,
+                    int& timeIndex,
+                    temporalalgebra::Interval<Instant>& actTimeInterval)
 {
   while (actTimeInterval.Before(actUnit.GetTimeInterval()) &&
          timeIndex < per->GetNoComponents())
@@ -683,7 +683,7 @@ void MJPoint::Get(const int i, UJPoint& up) const
 1.1.1 FromSpatial
 
 */
-void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
+void MJPoint::FromSpatial(JNetwork* jnet, const temporalalgebra::MPoint* in)
 {
   SetDefined(in->IsDefined());
   if (jnet != 0 && jnet->IsDefined() &&
@@ -698,7 +698,7 @@ void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
 
 */
 
-void MJPoint::ToSpatial(MPoint& result) const
+void MJPoint::ToSpatial(temporalalgebra::MPoint& result) const
 {
   result.Clear();
   if (IsDefined() && !IsEmpty())
@@ -831,12 +831,12 @@ IJPoint MJPoint::AtInstant(const Instant* time) const
 
 */
 
-bool MJPoint::Present(const Periods* per) const
+bool MJPoint::Present(const temporalalgebra::Periods* per) const
 {
   if (IsDefined() && !IsEmpty() &&
       per != 0 && per->IsDefined() && !per->IsEmpty())
   {
-    Interval<Instant> actTimeInterval;
+    temporalalgebra::Interval<Instant> actTimeInterval;
     JUnit actUnit;
     int timeIndex = 0;
     per->Get(timeIndex, actTimeInterval);
@@ -889,7 +889,8 @@ bool MJPoint::Present(const Instant* inst) const
 
 */
 
-void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
+void MJPoint::AtPeriods(const temporalalgebra::Periods* times, 
+                        MJPoint& result) const
 {
   result.Clear();
   if (IsDefined() && !IsEmpty() &&
@@ -898,7 +899,7 @@ void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
     result.SetDefined(true);
     result.SetNetworkId(nid);
     result.StartBulkload();
-    Interval<Instant> actTimeInterval;
+    temporalalgebra::Interval<Instant> actTimeInterval;
     JUnit actUnit;
     bool nextlc = true;
     int timeIndex = 0;
@@ -955,7 +956,8 @@ void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
             }
             double startpos = actUnit.PosAtTime(&starttime);
             double endpos = actUnit.PosAtTime(&endtime);
-            JUnit res(Interval<Instant>(starttime, endtime, lc, rc),
+            JUnit res(temporalalgebra::Interval<Instant>(starttime, 
+                      endtime, lc, rc),
                       JRouteInterval(actUnit.GetRouteInterval().GetRouteId(),
                                      min(startpos, endpos),
                                      max(startpos, endpos),
@@ -1308,7 +1310,8 @@ Instant* MJPoint::Endtime() const
 
 */
 
-int MJPoint::GetUnitPosForTime(const Interval<Instant>& time, const int spos,
+int MJPoint::GetUnitPosForTime(const temporalalgebra::Interval<Instant>& time, 
+                               const int spos,
                                const int epos) const
 {
 
@@ -1381,9 +1384,10 @@ int MJPoint::GetUnitPosForTime(const Instant& time,
 
 */
 
-void MJPoint::FindFirstUnit(const Interval<Instant>& actTimeInterval,
-                            int& unitIndex,
-                            JUnit& actUnit) const
+void MJPoint::FindFirstUnit(
+            const temporalalgebra::Interval<Instant>& actTimeInterval,
+            int& unitIndex,
+            JUnit& actUnit) const
 {
   if (actUnit.GetTimeInterval().Before(actTimeInterval))
   {
@@ -1446,7 +1450,8 @@ void MJPoint::Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const
             lc = true;
             rc = true;
           }
-          Interval<Instant> actTimeInterval(starttime, endtime, lc, rc);
+          temporalalgebra::Interval<Instant> actTimeInterval(
+                                      starttime, endtime, lc, rc);
           //compute route intervals of juIn1 and juIn2 for time interval
           JRouteInterval* rint1 = juIn1.PosAtTimeInterval(actTimeInterval);
           JRouteInterval* rint2 = juIn2.PosAtTimeInterval(actTimeInterval);

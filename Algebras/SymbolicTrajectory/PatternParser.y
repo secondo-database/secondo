@@ -47,6 +47,7 @@ Algebra.
 
 using namespace std;
 using namespace stj;
+using namespace temporalalgebra;
 
 extern int patternlex();
 extern FILE* patternin;

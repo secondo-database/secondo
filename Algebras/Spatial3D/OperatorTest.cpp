@@ -107,7 +107,7 @@ bool almostEqualPoints(const vector<SimplePoint3d>& points1,
 Rectangle<3> getBoundingBox(const vector<Triangle>& triangles)
 {
   Rectangle<3> result = triangles[0].BoundingBox();
-  for (int c = 1; c < triangles.size(); ++c)
+  for (size_t c = 1; c < triangles.size(); ++c)
   {
     result.Extend(triangles[c].BoundingBox());
   }

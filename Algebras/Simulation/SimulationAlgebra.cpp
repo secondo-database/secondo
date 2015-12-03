@@ -77,7 +77,7 @@ We have to include some GSL headers and the GSLAlgebra.
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
-
+namespace temporalalgebra {
 
 /*
 3. Static Objects and Parameter Settings
@@ -1962,6 +1962,8 @@ class SimulationAlgebra : public Algebra
   private:
 };
 
+} // end of namespace temporalalgebra
+
 
 /*
 7 Initialization
@@ -1986,5 +1988,5 @@ InitializeSimulationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (new SimulationAlgebra());
+  return (new temporalalgebra::SimulationAlgebra());
 }

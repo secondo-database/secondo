@@ -65,7 +65,8 @@ namespace mapmatch {
 
 */
 
-MapMatchingMHT::MapMatchingMHT(IMMNetwork* pNetwork, MPoint* pMPoint)
+MapMatchingMHT::MapMatchingMHT(IMMNetwork* pNetwork, 
+                               temporalalgebra::MPoint* pMPoint)
 :m_pNetwork(pNetwork),
  m_dNetworkScale(pNetwork != NULL ? pNetwork->GetNetworkScale() : 1.0),
  m_pContMMData(new MapMatchDataContainer),
@@ -78,7 +79,7 @@ MapMatchingMHT::MapMatchingMHT(IMMNetwork* pNetwork, MPoint* pMPoint)
 
         for (int i = 0; i < pMPoint->GetNoComponents(); ++i)
         {
-            UPoint ActUPoint(false);
+            temporalalgebra::UPoint ActUPoint(false);
             pMPoint->Get(i, ActUPoint);
             if (!ActUPoint.IsDefined())
                 continue;

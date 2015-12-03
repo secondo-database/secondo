@@ -43,6 +43,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 #include "Angle.h"
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 Angle Angle::GetOpposite()
@@ -64,6 +65,7 @@ void Angle::Normalize()
 }
 
 }  /* end namespace mregionops2 */
+}  /* end namespace temporalalgebra */
 
 
 

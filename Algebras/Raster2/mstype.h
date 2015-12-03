@@ -174,8 +174,8 @@ Secondo operators.
       public:
         void destroy();
         storage_type& getStorage();
-        void getDefinedPeriods(Periods& result) const;
-        this_type* atperiods(const Periods& periods);
+        void getDefinedPeriods(temporalalgebra::Periods& result) const;
+        this_type* atperiods(const temporalalgebra::Periods& periods);
         this_type* atrange(const Rect& pRect);
         this_type* atrange(const Rect& pRect, const double& instFrom,
                            const double& instTo);
@@ -302,8 +302,9 @@ member variables are provided for convenience.
     }
 
     template <typename T, typename Helper>
-    inline void mstype<T, Helper>::getDefinedPeriods(Periods& result) const {
-        Periods p(storage_type::tile_size);
+    inline void mstype<T, Helper>::getDefinedPeriods(
+               temporalalgebra::Periods& result) const {
+        temporalalgebra::Periods p(storage_type::tile_size);
 
         const index_type& size = riter_type::region_size;
         index_type index;
@@ -362,7 +363,8 @@ member variables are provided for convenience.
                             // Add the interval to the periods.
                             DateTime start(index[2] * duration);
                             DateTime end((index[2] + 1) * duration);
-                            p.Add(Interval<DateTime>(start, end, true, false));
+                            p.Add(temporalalgebra::Interval<DateTime>
+                                        (start, end, true, false));
 
                             found = true;
                             break; /* for (int r = 0; r < size[1]; ++r) */
@@ -402,7 +404,7 @@ member variables are provided for convenience.
     
     template <typename T, typename Helper>
     inline mstype<T, Helper>* mstype<T, Helper>::atperiods(
-        const Periods& periods)
+        const temporalalgebra::Periods& periods)
     {
         this_type* result = new this_type();
         
@@ -431,7 +433,8 @@ member variables are provided for convenience.
                             DateTime start(index[2] * duration);
                             DateTime end((index[2] + 1) * duration);
 
-                            Interval<DateTime> value(start, end, true, false);
+                            temporalalgebra::Interval<DateTime> 
+                                            value(start, end, true, false);
                             
                             if (periods.Contains(value))
                             {
@@ -447,13 +450,11 @@ member variables are provided for convenience.
                                 if (periods.Intersects(value)
                                     || periods.Inside(value))
                                 {
-                                    Range<DateTime> range(2);
+                                    temporalalgebra::Range<DateTime> range(2);
                                     periods.Intersection(value, range);
                                     
-                                    Interval<DateTime> rangeVal(start,
-                                                                  end,
-                                                                 true,
-                                                                 false);
+                                    temporalalgebra::Interval<DateTime> 
+                                        rangeVal(start, end, true, false);
                                     range.Get(0, rangeVal);
                                     
                                     DateTime l = rangeVal.end - rangeVal.start;
@@ -560,7 +561,7 @@ member variables are provided for convenience.
       {
         T value = (*storage)[grid.getIndex(x, y, tact.ToDouble())];
         if (!Helper::isUndefined(value)) {
-            Interval<Instant> iv(
+            temporalalgebra::Interval<Instant> iv(
                     tact, tact + grid.getDuration(), true, false);
             wrapper_type v(true,value);
             ret->Add(typename Helper::unit_type(iv,v,v));

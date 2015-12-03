@@ -139,7 +139,7 @@ public:
       id(-1), loc(), updateTime()
     {}
 
-    URel1Tuple(int _id, UPoint _loc, Instant _ut) :
+    URel1Tuple(int _id, temporalalgebra::UPoint _loc, Instant _ut) :
       id(_id), loc(_loc), updateTime(_ut)
     {}
 
@@ -156,10 +156,10 @@ public:
     }
 
     int GetID() { return id; }
-    UPoint GetLoc() { return loc; }
+    temporalalgebra::UPoint GetLoc() { return loc; }
 private:
 	Oid_t id;
-	UPoint loc;
+	temporalalgebra::UPoint loc;
 	Instant updateTime;
 
 	friend class Urel1;

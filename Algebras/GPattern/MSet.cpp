@@ -40,6 +40,8 @@ Jan, 2010 Mahmoud Sakr
 
 namespace mset{
 
+using namespace temporalalgebra;
+
 bool 
 Helpers::string2int(char* digit, int& result) 
 {

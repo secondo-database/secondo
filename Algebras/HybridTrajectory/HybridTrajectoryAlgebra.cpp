@@ -64,7 +64,7 @@ extern AlgebraManager *am;
 
 
 using namespace std;
-
+using namespace temporalalgebra;
 
 namespace hyt {
 

@@ -33,7 +33,7 @@ ListExpr map_result_type( CcReal* ){ return nl->SymbolAtom( "real" ); }
 template< typename OP >
 ListExpr map_stream_result_type( ListExpr args, Tuple**, OP* )
 {
-    return list_ostream() << Symbol("tuple") << OP::type( args );
+    return list_ostream() << ChessBSymbol("tuple") << OP::type( args );
 }
 
 template< typename OP, typename T >

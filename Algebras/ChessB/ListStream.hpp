@@ -104,11 +104,11 @@ public:
     }
 };
 
-class Symbol
+class ChessBSymbol
 {
     string s_;
 public:
-    Symbol( const string& s ) : s_(s){}
+    ChessBSymbol( const string& s ) : s_(s){}
     const string& get() const { return s_; }
 };
 
@@ -175,7 +175,7 @@ public:
         return *this;
     }
 
-    list_ostream& operator << ( const Symbol& s )
+    list_ostream& operator << ( const ChessBSymbol& s )
     {
         if ( ! list_  )
             list_ = nl->Cons( nl->SymbolAtom( s.get() ), 0 );

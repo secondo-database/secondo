@@ -52,6 +52,10 @@ using namespace std;
 
 #include "RemoteStreamAlgebra.h"
 #include "Symbols.h"
+#include "StringUtils.h"
+
+using stringutils::int2str;
+
 //#include "../HadoopParallel/HadoopParallelAlgebra.h"
 
 #define TRACE_ON
@@ -116,7 +120,7 @@ TSendTypeMap(ListExpr args)
   string typeErr = "Operator send expects "
       "(stream(tuple(a1, a2, ... an))) x int x [ai]";
   string portErr = "Error! Port number should within [ " +
-      int2string(min_PortNum) + "," + int2string(max_PorNum) + " ]";
+      int2str(min_PortNum) + "," + int2str(max_PorNum) + " ]";
   string keyNameErr = "Error! NOT find attribute name : ";
   string keyTypeErr = "Error! Expect {int,string,bool,real} type "
       "of key attribute : ";
@@ -168,12 +172,12 @@ TSendTypeMap(ListExpr args)
     keyTypeStr = keyType.convertToString();
   }
 
-  Socket *gate = Socket::CreateGlobal("localhost", int2string(port)),
+  Socket *gate = Socket::CreateGlobal("localhost", int2str(port)),
          *client;
 
   if (!gate || !gate->IsOk())
     return l.typeError(connErr +
-          "unable listening to port: " + int2string(port));
+          "unable listening to port: " + int2str(port));
 
   client = gate->Accept();
   if (!client || !client->IsOk())
@@ -219,7 +223,7 @@ TReceiveTypeMap(ListExpr args)
   string lenErr = "Operator receive expects a list of length two.";
   string typeErr = "Operator receive expects (string , int)";
   string portErr = "Error! Port number should within [ " +
-    int2string(min_PortNum) + "," + int2string(max_PorNum) + " ]";
+    int2str(min_PortNum) + "," + int2str(max_PorNum) + " ]";
   string connErr = "Error! Connection error of ";
   string evaErr = "Error! Infeasible evaluation for attribute ";
 
@@ -246,7 +250,7 @@ TReceiveTypeMap(ListExpr args)
 
   cout << "Host: " << host << ":" << port << endl;
   Socket *client =
-      Socket::Connect( host, int2string(port),
+      Socket::Connect( host, int2str(port),
           Socket::SockGlobalDomain );
 
   if (!client || !client->IsOk())

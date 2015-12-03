@@ -70,7 +70,8 @@ It can not be private because JUnit is used as part of MJPoint and JUnit.
   JUnit();
   explicit JUnit(const bool def);
   JUnit(const JUnit& other);
-  JUnit(const Interval<Instant>& inst, const JRouteInterval& rint);
+  JUnit(const temporalalgebra::Interval<Instant>& inst, 
+        const JRouteInterval& rint);
 
   ~JUnit();
 
@@ -79,14 +80,14 @@ It can not be private because JUnit is used as part of MJPoint and JUnit.
 
 */
 
-  Interval<Instant> GetTimeInterval() const;
+  temporalalgebra::Interval<Instant> GetTimeInterval() const;
   JRouteInterval GetRouteInterval() const;
   RouteLocation* GetStartRLoc() const;
   RouteLocation* GetEndRLoc() const;
   double GetSpeed() const;
   double GetLength() const;
 
-  void SetTimeInterval(const Interval<Instant>& inst);
+  void SetTimeInterval(const temporalalgebra::Interval<Instant>& inst);
   void SetRouteInterval(const JRouteInterval& ri);
 
 /*
@@ -234,7 +235,8 @@ Returns the position of the jpoint at the given time.
 */
 
 double PosAtTime(const Instant* inst) const;
-JRouteInterval* PosAtTimeInterval(const Interval<Instant>& time) const;
+JRouteInterval* PosAtTimeInterval(
+          const temporalalgebra::Interval<Instant>& time) const;
 
 /*
 1.1.1 ~TimeAtPosTime~
@@ -266,8 +268,10 @@ private:
 
 */
 
-  Interval<Instant> timeInter; //time interval the mjpoint needs to move from
+  temporalalgebra::Interval<Instant> timeInter; 
+                              //time interval the mjpoint needs to move from
                                //start to end
+
   JRouteInterval routeInter;   //network positions the mjpoint passes in the
                                //time interval
 

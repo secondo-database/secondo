@@ -5,12 +5,15 @@ This class is a FixedMRegionIntepolator who creates a FixedMRegion of sights.
 using namespace std;
 #include "FMRInterpolator.h"
 
+
+namespace temporalalgebra{
 /*
 This is a constructor who expects a reference Region and the rotational center.
 
 */
 FMRInterpolator::FMRInterpolator(const Region* _refRegion,
-const Point* _rotCenter): result(0), refRegion(0), isValid(false) {
+const Point* _rotCenter): observations(), isValid(false), result(0),
+     angle_init(10), angle_method(0),  refRegion(0) {
   if(_refRegion!=NULL){
     setReferenceRegion(*_refRegion, *_rotCenter);
   }else{
@@ -541,3 +544,5 @@ MMove FMRInterpolator::createMMove() const{
   res.EndBulkLoad ();
   return res;
 }
+} 
+

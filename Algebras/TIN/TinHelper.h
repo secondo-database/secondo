@@ -290,7 +290,7 @@
 "angle is no neighbor.(Triangle::addNeighbor)"
 #define E_TRIANGLE_ADDOPENEND \
 "All three neighbors of the triangle are already set"\
-"". No more neighbors can be a" \
+". No more neighbors can be a" \
 "dded.(Triangle::addOpenEnd)"
 #define E_VORONOIEDGE_ADDEND \
 "Both ends are already set. There must be an "\

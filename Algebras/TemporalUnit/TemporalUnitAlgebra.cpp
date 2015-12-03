@@ -273,6 +273,10 @@ using namespace datetime;
 
 // #define TUA_DEBUG
 
+
+namespace temporalalgebra{
+
+
 /*
 2.1 Definition of some constants and auxiliary functions
 
@@ -11087,6 +11091,8 @@ public:
   ~TemporalUnitAlgebra() {};
 };
 
+} // end of namespace temporalalgebra
+
 /*
 7 Initialization
 
@@ -11110,7 +11116,7 @@ InitializeTemporalUnitAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (new TemporalUnitAlgebra());
+  return (new temporalalgebra::TemporalUnitAlgebra());
 }
 
 

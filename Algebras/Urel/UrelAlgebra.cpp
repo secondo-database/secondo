@@ -59,6 +59,8 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+using namespace temporalalgebra;
+
 /*
 
 2 Implementation of URel1Page

@@ -221,12 +221,15 @@ struct EventElem
   Instant pointInTime; //x-axes, sortkey in the priority queue
   Tuple* tuple;
   Tuple* tuple2; //for intersection
-  const UPoint* up;
-  MReal* distance;
-  EventElem(EventType t, Instant i, Tuple* tu, const UPoint* upt,
-    MReal* d) : type(t), pointInTime(i), tuple(tu), tuple2(NULL),
+  const temporalalgebra::UPoint* up;
+  temporalalgebra::MReal* distance;
+  EventElem(EventType t, Instant i, Tuple* tu, 
+            const temporalalgebra::UPoint* upt,
+    temporalalgebra::MReal* d) : type(t), pointInTime(i), 
+    tuple(tu), tuple2(NULL),
     up(upt), distance(d){}
-  EventElem(EventType t, Instant i, Tuple* tu, Tuple* tu2, MReal* d)
+  EventElem(EventType t, Instant i, Tuple* tu, Tuple* tu2,
+            temporalalgebra::MReal* d)
     : type(t), pointInTime(i), tuple(tu), tuple2(tu2),
     up(NULL), distance(d){}
 
@@ -259,14 +262,15 @@ class ActiveElem
 {
 public:
   static Instant currtime;
-  MReal *distance;
+  temporalalgebra::MReal *distance;
   Tuple* tuple;
   Instant start; //the start time where the element is needed
   Instant end;
   bool lc;
   bool rc;
   ActiveElem(){}
-  ActiveElem(MReal *dist, Tuple* t, Instant s, Instant e, bool l, bool r)
+  ActiveElem(temporalalgebra::MReal *dist, Tuple* t, Instant s, 
+             Instant e, bool l, bool r)
     : distance(dist), tuple(t), start(s), end(e), lc(l), rc(r){}
 };
 }

@@ -5,6 +5,8 @@ This class is a FixedMRegion.
 using namespace std;
 #include "FixedMRegion.h"
 
+namespace temporalalgebra{
+
 /*
 This is the default constructor. Do not use.
 
@@ -456,7 +458,6 @@ MBool FixedMRegion::inside (const MPoint & mp){
   MBool result = joinBools(res);
   printf("Inside: \n");
   cout << result << "\n";
-  printf("");
   return result;
 }
 
@@ -1135,5 +1136,7 @@ This method implements the Print functionality.
 ostream& FixedMRegion::Print(ostream &os) const{
   os << "( FixedMRegionEmb NOT IMPLEMENTED YET )";
   return os;
+}
+
 }
 

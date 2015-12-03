@@ -438,8 +438,8 @@ struct RoadDenstiy{
   
   vector<int> br_id_list; 
   vector<int> traffic_no;
-  vector<Periods> duration1;
-  vector<Periods> duration2; 
+  vector<temporalalgebra::Periods> duration1;
+  vector<temporalalgebra::Periods> duration2; 
   vector<double> time_interval; //minute 
   vector<double> time_interval2; //minute for daytime bus (Monday and Sunday)
   
@@ -455,7 +455,7 @@ struct RoadDenstiy{
   vector<Point> start_loc_list;
   vector<int> bus_stop_id_list; 
   
-  vector<MPoint> bus_trip; 
+  vector<temporalalgebra::MPoint> bus_trip; 
   vector<string> trip_type;//type: night or daytime 
   vector<string> trip_day;//monday or sunday 
   vector<int> schedule_id_list; //schedule id 1, 2, ,3 
@@ -530,15 +530,25 @@ struct RoadDenstiy{
   ~RoadDenstiy(){if(resulttype != NULL) delete resulttype;}
 
   void GetNightRoutes(int attr1, int attr2, int attr_a, int attr_b,
-                                Periods*, Periods*);
-  void SetTSNightBus(int attr1,int attr2, int attr3, Periods*, Periods*);
-  void SetTSDayTimeBus(int attr1,int attr2, int attr3, Periods*, Periods*);
-  double CalculateTimeSpan1(Periods* t, Periods* p1,
-                         Interval<Instant>& span,int index);
-  void CalculateTimeSpan2(Periods* p1,Interval<Instant>& span,double m);
-  void CalculateTimeSpan3(Periods* t, Periods* p1,
-                         Interval<Instant>& span,
-                         int index, double interval);
+                      temporalalgebra::Periods*,
+                      temporalalgebra::Periods*);
+  void SetTSNightBus(int attr1,int attr2, int attr3,
+                     temporalalgebra::Periods*,
+                     temporalalgebra::Periods*);
+  void SetTSDayTimeBus(int attr1,int attr2, int attr3,
+                       temporalalgebra::Periods*,
+                       temporalalgebra::Periods*);
+  double CalculateTimeSpan1(temporalalgebra::Periods* t,
+                            temporalalgebra::Periods* p1,
+                            temporalalgebra::Interval<Instant>& span,
+                            int index);
+  void CalculateTimeSpan2(temporalalgebra::Periods* p1,
+                          temporalalgebra::Interval<Instant>& span,
+                          double m);
+  void CalculateTimeSpan3(temporalalgebra::Periods* t,
+                          temporalalgebra::Periods* p1,
+                          temporalalgebra::Interval<Instant>& span,
+                          int index, double interval);
 
   void SetBRSpeed(int attr1, int attr2, int attr, int attr_sm); 
   void CreateSegmentSpeed(int attr1, int attr2, int attr3, int attr4,
@@ -547,37 +557,43 @@ struct RoadDenstiy{
                              vector<BusStop_Ext> bus_stop_list, bool sm);
   ////////////////////////create moving bus//////////////////////////////
   void CreateNightBus();
-  void CreateMovingBus(int br_id,Periods* peri,
+  void CreateMovingBus(int br_id,temporalalgebra::Periods* peri,
                        double time_interval, bool daytime);    
-  void CreateUp(int br_id,Periods* peri,
+  void CreateUp(int br_id,temporalalgebra::Periods* peri,
                 double time_interval, bool daytime);
-  void CreateDown(int br_id,Periods* peri,
+  void CreateDown(int br_id,temporalalgebra::Periods* peri,
                   double time_interval, bool daytime);
   //traverse halfsegmet to create moving points, from index small to big
-  void CreateBusTrip1(MPoint*,vector<MyHalfSegment>, Instant&, 
-                      double, UPoint&);
+  void CreateBusTrip1(temporalalgebra::MPoint*,vector<MyHalfSegment>, Instant&, 
+                      double, temporalalgebra::UPoint&);
   //traverse halfsegmet to create moving points, from index big to small 
-  void CreateBusTrip2(MPoint*,vector<MyHalfSegment>, Instant&, 
-                      double, UPoint&);
-  void CopyBusTrip(int br_id,bool direction, MPoint* mo, 
-                   Periods*, double, bool daytime, int scheduleid);
+  void CreateBusTrip2(temporalalgebra::MPoint*,vector<MyHalfSegment>, Instant&, 
+                      double, temporalalgebra::UPoint&);
+  void CopyBusTrip(int br_id,bool direction, temporalalgebra::MPoint* mo, 
+                   temporalalgebra::Periods*, double, bool daytime,
+                   int scheduleid);
   void CreateDayTimeBus(); 
   //////add night or daytime, and Sunday or Monday/////////////////
-  void AddTypeandDay(MPoint* mo, bool daytime);
+  void AddTypeandDay(temporalalgebra::MPoint* mo, bool daytime);
   ////////////////////////create time table/////////////////////////////////
   ///////////////////////Compact Storage ///////////////////////////////
-  void CreateTimeTable_Compact(Periods*,Periods*);
+  void CreateTimeTable_Compact(temporalalgebra::Periods*,
+                               temporalalgebra::Periods*);
   void CreateLocTable_Compact(vector<BusStop_Ext>,int count_id,
-                              Periods*,Periods*);
-  bool SameDay(UPoint& up, Periods* peri1);
-  void CreatTableAtStopNight(vector<MPoint>& mo_list, Point& loc, 
-                                   int br_id, int stop_id, bool dir,
-                                   Periods* night1, Periods* night2,
-                                   int count_id);
-  void CreatTableAtStop(vector<MPoint> mo_list, Point& loc,
+                              temporalalgebra::Periods*,
+                              temporalalgebra::Periods*);
+  bool SameDay(temporalalgebra::UPoint& up, temporalalgebra::Periods* peri1);
+  void CreatTableAtStopNight(vector<temporalalgebra::MPoint>& mo_list,
+                             Point& loc, 
+                             int br_id, int stop_id, bool dir,
+                             temporalalgebra::Periods* night1,
+                             temporalalgebra::Periods* night2,
+                             int count_id);
+  void CreatTableAtStop(vector<temporalalgebra::MPoint> mo_list, Point& loc,
                                    int br_id, int stop_id, bool dir,
                                    int count_id); 
-  void GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t); 
+  void GetTimeInstantStop(temporalalgebra::MPoint& mo, Point loc,
+                          Instant& arrove_t); 
   ////////////////////////////////////////////////////////////////////////
   ////////////////construct road graph///////////////////////////////////
   ////////////////////////////////////////////////////////////////////////
@@ -826,8 +842,8 @@ class BusNetwork{
   void CloseBusGraph(BusGraph* bg);
 
   int GetMOBus_Oid(Bus_Stop* bs, Point*, Instant& t);
-  int GetMOBus_MP(Bus_Stop* bs, Point*, Instant t, MPoint& mp);
-  void GetMOBUS(int oid, MPoint& mp, int& br_uoid);
+  int GetMOBus_MP(Bus_Stop* bs, Point*, Instant t, temporalalgebra::MPoint& mp);
+  void GetMOBUS(int oid, temporalalgebra::MPoint& mp, int& br_uoid);
   void GetBusRouteGeoData(int br_uoid, SimpleLine& sl);
   unsigned int GetMinRouteId(){return min_br_oid;}
 
@@ -925,8 +941,8 @@ struct BN{
   
   vector<int> bs_uoid_list; 
   vector<double> schedule_interval;
-  vector<Periods> duration;
-  vector<MPoint> bus_trip_list; 
+  vector<temporalalgebra::Periods> duration;
+  vector<temporalalgebra::MPoint> bus_trip_list; 
   vector<double> time_cost_list; 
   
   vector<Line> line_list1;
@@ -964,7 +980,7 @@ struct BN{
   void BsNeighbors3(Relation*, Relation*, BTree*);
   void ConnectionOneRoute(Relation* table_rel, vector<int> tid_list, 
                             Relation* mo_rel, BTree* btree_mo); 
-  void TrajectoryToSline(MPoint* mo, SimpleLine& sl);
+  void TrajectoryToSline(temporalalgebra::MPoint* mo, SimpleLine& sl);
   ///////////////////decompuse a bus route///////////////////////////////
   void DecomposeBR(Line* l1, Line* l2);
  
@@ -1207,14 +1223,14 @@ struct BNNav{
   vector<string> tm_list; 
   vector<string> bs1_list;
   vector<string> bs2_list; 
-  vector<Periods> peri_list; 
+  vector<temporalalgebra::Periods> peri_list; 
   vector<double> time_cost_list; 
 
   vector<Bus_Stop> bs_list;
   vector<Point> bs_geo_list; 
   
   vector<GenMO> genmo_list;
-  vector<MPoint> mp_list;
+  vector<temporalalgebra::MPoint> mp_list;
   
   vector<Bus_Stop> bs_list1;
   vector<Bus_Stop> bs_list2;
@@ -1265,7 +1281,8 @@ struct BNNav{
 
   ///////////////////////moving buses (mpoint) to genmo////////////////////
   void BusToGenMO(Relation* r1, Relation* r2, BTree* btree);
-  void MPToGenMO(MPoint* mp, unsigned int br_id, bool dir, Relation* br_rel,
+  void MPToGenMO(temporalalgebra::MPoint* mp, unsigned int br_id, bool dir,
+                 Relation* br_rel,
                  BTree* btree);
 
 
@@ -1281,9 +1298,10 @@ To create UBahn trains
 struct UBTrainTrip{
   int line_id;
   bool direction;
-  MPoint train_trip;
+  temporalalgebra::MPoint train_trip;
   UBTrainTrip(){}
-  UBTrainTrip(int id,bool d,MPoint tr):line_id(id),direction(d),train_trip(tr){}
+  UBTrainTrip(int id,bool d,temporalalgebra::MPoint tr):
+        line_id(id),direction(d),train_trip(tr){}
   UBTrainTrip(const UBTrainTrip& train_tr):
   line_id(train_tr.line_id),direction(train_tr.direction),
   train_trip(train_tr.train_trip){}
@@ -1302,13 +1320,13 @@ struct UBTrainTrip{
   
   bool operator<(const UBTrainTrip& ubtrain) const
   {
-    Periods* peri1 = new Periods(0);
-    Periods* peri2 = new Periods(0);
+    temporalalgebra::Periods* peri1 = new temporalalgebra::Periods(0);
+    temporalalgebra::Periods* peri2 = new temporalalgebra::Periods(0);
     this->train_trip.DefTime(*peri1);
     ubtrain.train_trip.DefTime(*peri2);
     
-    Interval<Instant> periods1;
-    Interval<Instant> periods2;
+    temporalalgebra::Interval<Instant> periods1;
+    temporalalgebra::Interval<Instant> periods2;
     peri1->Get(0, periods1);
     peri2->Get(0, periods2);
     
@@ -1383,7 +1401,7 @@ struct UBTrain{
   vector<int> id_list;
   vector<int> line_id_list;
   vector<bool> direction_list;
-  vector<MPoint> train_trip; 
+  vector<temporalalgebra::MPoint> train_trip; 
   vector<int> schedule_id_list; 
   
   vector<Point> stop_loc_list; 
@@ -1392,19 +1410,19 @@ struct UBTrain{
   vector<Instant> schedule_time;
   vector<int> loc_id_list; 
 
-  vector<Periods> duration; //the whole life time for one day 
+  vector<temporalalgebra::Periods> duration; //the whole life time for one day 
   vector<double> schedule_interval; //time interval for each bus trip 
   
   vector<SimpleLine> geodata; 
   
   vector<GenMO> genmo_list; 
-  vector<MPoint> mp_list;
+  vector<temporalalgebra::MPoint> mp_list;
   vector<int> br_id_list;
   
 
   vector<int> ms_tid_list1;
   vector<int> ms_tid_list2;
-  vector<Periods> period_list;
+  vector<temporalalgebra::Periods> period_list;
   vector<double> time_cost_list;
 
 
@@ -1445,14 +1463,15 @@ struct UBTrain{
   void CreateTimeTable_Compact();
   void CreateLocTable_Compact(vector<BusStop_Ext> station_list_new,
                               int count_id);
-  void TimeTableCompact(vector<MPoint>&,Point,int,int,bool,int);
-  void GetTimeInstantStop(MPoint& mo, Point loc, Instant& st);
+  void TimeTableCompact(vector<temporalalgebra::MPoint>&,Point,
+                        int,int,bool,int);
+  void GetTimeInstantStop(temporalalgebra::MPoint& mo, Point loc, Instant& st);
 
  ////////////////////////////////////////////////////////////////////////////
  ////////////////// covert berlin trains to generic moving objects//////////
  //////////////////////////////////////////////////////////////////////////
  void TrainsToGenMO(); 
- void MPToGenMO(MPoint* mp, GenMO* mo, int l_id); 
+ void MPToGenMO(temporalalgebra::MPoint* mp, GenMO* mo, int l_id); 
 
 };
 
@@ -1493,12 +1512,12 @@ struct MetroStruct{
   vector<Point> stop_geo_list;
 
   vector<GenMO> mtrip_list1;
-  vector<MPoint> mtrip_list2;
+  vector<temporalalgebra::MPoint> mtrip_list2;
   
   
   vector<int> ms_tid_list1;
   vector<int> ms_tid_list2;
-  vector<Periods> period_list;
+  vector<temporalalgebra::Periods> period_list;
   vector<double> time_cost_list;
   vector<double> schedule_interval;
   vector<SimpleLine> geodata;
@@ -1520,13 +1539,16 @@ struct MetroStruct{
  ////////////////////////////////////////////////////////////
  ////////////create moving metros////////////////////////////
  ////////////////////////////////////////////////////////////
- void CreateMTrips(Relation*, Periods*);
+ void CreateMTrips(Relation*, temporalalgebra::Periods*);
  void CreateMetroUp(vector<MyHalfSegment>& seg_list, 
-                    Periods* peri,int mr_id, int mr_oid, bool d);
+                    temporalalgebra::Periods* peri,int mr_id, 
+                    int mr_oid, bool d);
  void CreateMetroDown(vector<MyHalfSegment>& seg_list, 
-                      Periods* peri,int mr_id, int mr_oid, bool d);
+                      temporalalgebra::Periods* peri,int mr_id,
+                       int mr_oid, bool d);
 
- void CopyMetroTrip(GenMO* genmo, MPoint* mo, Periods* peri, 
+ void CopyMetroTrip(GenMO* genmo, temporalalgebra::MPoint* mo, 
+                    temporalalgebra::Periods* peri, 
                     Instant st,int,int,bool);
  void CopyTripOneDayBefore();
  /////////////////////////////////////////////////////////////////////////
@@ -1595,7 +1617,8 @@ class MetroNetwork{
     void CloseMetroGraph(MetroGraph* mg);
     void GetMetroStopGeoData(Bus_Stop* ms, Point* p);
     int GetMOMetro_Oid(Bus_Stop* ms, Point*, Instant& t);
-    int GetMOMetro_MP(Bus_Stop* bs, Point*, Instant t, MPoint& mp);
+    int GetMOMetro_MP(Bus_Stop* bs, Point*, Instant t,
+                      temporalalgebra::MPoint& mp);
     double GetStartTime(){return start_time;}
     double GetEndTime(){return end_time;}
 
@@ -1777,14 +1800,14 @@ struct MNNav{
   vector<string> tm_list; 
   vector<string> ms1_list;
   vector<string> ms2_list; 
-  vector<Periods> peri_list; 
+  vector<temporalalgebra::Periods> peri_list; 
   vector<double> time_cost_list; 
 
   vector<Bus_Stop> ms_list;
   vector<Point> ms_geo_list; 
   
   vector<GenMO> genmo_list;
-  vector<MPoint> mp_list;
+  vector<temporalalgebra::MPoint> mp_list;
   
   vector<Bus_Stop> ms_list1;
   vector<Bus_Stop> ms_list2;

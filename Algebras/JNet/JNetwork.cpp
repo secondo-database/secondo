@@ -440,7 +440,7 @@ void addSimulatedTrip(const JUnit& ju,
                       const bool lc, const bool rc, Point*& startPoint,
                       const double epos, SimpleLine*& lastCurve,
                       LRS& lrs, int& lrspos, Instant& lastEndTime,
-                      MPoint& result, const bool up,
+                      temporalalgebra::MPoint& result, const bool up,
                       const Instant& TIMECORRECTION, bool& endTimeCorrected)
 {
   Instant instInter1 = starttime;
@@ -462,7 +462,8 @@ void addSimulatedTrip(const JUnit& ju,
         instInter2 = ju.TimeAtPos(lrs.lrsPos);
         checkEndTimeCorrected (endTimeCorrected, instInter1,
                                  instInter2, TIMECORRECTION);
-        result.Add(UPoint(Interval<Instant> (instInter1, instInter2, lc,rc),
+        result.Add(temporalalgebra::UPoint(
+           temporalalgebra::Interval<Instant> (instInter1, instInter2, lc,rc),
                           interStart, interEnd));
         instInter1 = instInter2;
         interStart = interEnd;
@@ -480,7 +481,9 @@ void addSimulatedTrip(const JUnit& ju,
       instInter2 = endtime;
       checkEndTimeCorrected (endTimeCorrected, instInter1,
                                  instInter2, TIMECORRECTION);
-      result.Add(UPoint(Interval<Instant> (instInter1, instInter2, lc,rc),
+      result.Add(temporalalgebra::UPoint(
+                    temporalalgebra::Interval<Instant> (
+                       instInter1, instInter2, lc,rc),
                         interStart, interEnd));
     }
   }
@@ -495,8 +498,10 @@ void addSimulatedTrip(const JUnit& ju,
         instInter2 = ju.TimeAtPos(lrs.lrsPos);
         checkEndTimeCorrected (endTimeCorrected, instInter1,
                                instInter2, TIMECORRECTION);
-        result.Add(UPoint(Interval<Instant> (instInter1, instInter2, lc,rc),
-                          interStart, interEnd));
+        result.Add(temporalalgebra::UPoint(
+                  temporalalgebra::Interval<Instant> (
+                  instInter1, instInter2, lc,rc),
+                  interStart, interEnd));
         instInter1 = instInter2;
         interStart = interEnd;
         end = AlmostEqual(epos, lrs.lrsPos);
@@ -514,8 +519,10 @@ void addSimulatedTrip(const JUnit& ju,
       instInter2 = endtime;
       checkEndTimeCorrected (endTimeCorrected, instInter1,
                                  instInter2, TIMECORRECTION);
-      result.Add(UPoint(Interval<Instant> (instInter1, instInter2, lc,rc),
-                          interStart, interEnd));
+      result.Add(temporalalgebra::UPoint(
+                    temporalalgebra::Interval<Instant> (
+                        instInter1, instInter2, lc,rc),
+                    interStart, interEnd));
     }
   }
   lastEndTime = instInter2;
@@ -527,11 +534,11 @@ void addUnitsToResult(const JUnit& ju, SimpleLine*& routeCurve,
                       bool& endTimeCorrected, Instant& instInter1,
                       Instant& instInter2, const Instant TIMECORRECTION,
                       Point*& lastEndPoint, Instant& lastEndTime,
-                      MPoint& result)
+                      temporalalgebra::MPoint& result)
 {
   Direction compD(Down);
   JRouteInterval jurint = ju.GetRouteInterval();
-  Interval<Instant> jutime = ju.GetTimeInterval();
+  temporalalgebra::Interval<Instant> jutime = ju.GetTimeInterval();
   double epos = correctedPos(jurint.GetEndPosition(),
                              routeCurve->Length(), tolerance);
   if (jurint.GetSide().Compare(compD) == 0)
@@ -542,9 +549,10 @@ void addUnitsToResult(const JUnit& ju, SimpleLine*& routeCurve,
                                                    lrs);
       checkEndTimeCorrected (endTimeCorrected, instInter1,
                              instInter2, TIMECORRECTION);
-      result.Add(UPoint(Interval<Instant>( instInter1, instInter2,
-                                           jutime.lc, jutime.rc),
-                        *lastEndPoint, *endP));
+      result.Add(temporalalgebra::UPoint(
+                   temporalalgebra::Interval<Instant>( 
+                      instInter1, instInter2, jutime.lc, jutime.rc),
+                   *lastEndPoint, *endP));
       lastEndPoint->DeleteIfAllowed();
       lastEndPoint = endP;
       lastEndTime = instInter2;
@@ -570,7 +578,8 @@ void addUnitsToResult(const JUnit& ju, SimpleLine*& routeCurve,
                                                    lrs);
       checkEndTimeCorrected (endTimeCorrected, instInter1,
                              instInter2, TIMECORRECTION);
-      result.Add(UPoint(Interval<Instant> (instInter1, instInter2,
+      result.Add(temporalalgebra::UPoint(
+             temporalalgebra::Interval<Instant> (instInter1, instInter2,
                                           jutime.lc, jutime.rc),
                         *lastEndPoint, *endP));
       lastEndPoint->DeleteIfAllowed();
@@ -1296,7 +1305,8 @@ bool JNetwork::GetNetworkValueOf(const Line* in, JLine* result) const
     return false;
 }
 
-bool JNetwork::GetNetworkValueOf(const MPoint* in, MJPoint* result)
+bool JNetwork::GetNetworkValueOf(
+     const temporalalgebra::MPoint* in, MJPoint* result)
 {
   result->Clear();
   if (in != 0 && in->IsDefined())
@@ -1305,7 +1315,7 @@ bool JNetwork::GetNetworkValueOf(const MPoint* in, MJPoint* result)
     result->SetNetworkId(*GetId());
     if (!in->IsEmpty())
     {
-      UPoint actSource;
+      temporalalgebra::UPoint actSource;
       int i = 0;
       RouteLocation* startPos = 0;
       RouteLocation* endPos = 0;
@@ -1581,7 +1591,8 @@ void JNetwork::GetSpatialValueOf(const JLine* jl, Line& result) const
     result.SetDefined(false);
 }
 
-void JNetwork::GetSpatialValueOf(const MJPoint* mjp, MPoint& result) const
+void JNetwork::GetSpatialValueOf(
+      const MJPoint* mjp, temporalalgebra::MPoint& result) const
 {
   if (mjp != 0 && mjp->IsDefined() && !mjp->IsEmpty())
   {
@@ -2144,7 +2155,8 @@ void JNetwork::SimulateTrip(const RouteLocation& source,
     if (length == 0 &&
         starttime.ToDouble() != endtime.ToDouble())
     {
-      JUnit actUnit(JUnit(Interval<Instant>(starttime, endtime, lc, rc),
+      JUnit actUnit(JUnit(
+       temporalalgebra::Interval<Instant>(starttime, endtime, lc, rc),
                           JRouteInterval(source.GetRouteId(),
                                        min(source.GetPosition(),
                                            target.GetPosition()),
@@ -2193,7 +2205,8 @@ void JNetwork::ComputeAndAddUnits(const JPath* sp,
       }
       if (unitstart < unitend)
       {
-        JUnit actUnit(JUnit(Interval<Instant>(unitstart, unitend,
+        JUnit actUnit(JUnit(
+            temporalalgebra::Interval<Instant>(unitstart, unitend,
                                               unitlc, unitrc),
                             actInt));
         result->Add(actUnit);
@@ -4574,12 +4587,12 @@ void JNetwork::SplitJUnit(const JUnit& ju,
                           Instant& lastEndTime,
                           Point*& lastEndPoint,
                           LRS& lrs, int& lrspos,
-                          MPoint& result) const
+                          temporalalgebra::MPoint& result) const
 {
   if (ju.IsDefined())
   {
     JRouteInterval jurint = ju.GetRouteInterval();
-    Interval<Instant> jutime = ju.GetTimeInterval();
+    temporalalgebra::Interval<Instant> jutime = ju.GetTimeInterval();
     Instant instInter1 = jutime.start;
     Instant instInter2 = jutime.end;
     Direction compD(Down);
@@ -4610,7 +4623,8 @@ void JNetwork::SplitJUnit(const JUnit& ju,
       checkEndTimeCorrected (endTimeCorrected, instInter1,
                              instInter2, TIMECORRECTION);
 
-      result.Add(UPoint(Interval<Instant>(instInter1, instInter2,
+      result.Add(temporalalgebra::UPoint(
+          temporalalgebra::Interval<Instant>(instInter1, instInter2,
                                           jutime.lc, jutime.rc),
                         *lastEndPoint, *lastEndPoint));
       lastEndTime = instInter2;
@@ -4638,12 +4652,13 @@ void JNetwork::SplitJUnit(const JUnit& ju, int& curRid,
                           JListInt*& routeSectList,
                           int& lastRouteSecListIndex,
                           bool& endTimeCorrected, Instant& lastEnd,
-                          SimpleLine*& lastCurve, MPoint& result) const
+                          SimpleLine*& lastCurve, 
+                          temporalalgebra::MPoint& result) const
 {
   if (ju.IsDefined())
   {
     JRouteInterval jurint = ju.GetRouteInterval();
-    Interval<Instant> jutime = ju.GetTimeInterval();
+    temporalalgebra::Interval<Instant> jutime = ju.GetTimeInterval();
     SimpleLine resLine(0);
     Point* startP = 0;
     Point* endP = 0;
@@ -4717,7 +4732,8 @@ void JNetwork::SplitJUnit(const JUnit& ju, int& curRid,
       }
       if (*startP == *endP)
       {
-        result.Add(UPoint(Interval<Instant> (instInter1, instInter2,
+        result.Add(temporalalgebra::UPoint(
+           temporalalgebra::Interval<Instant> (instInter1, instInter2,
                                              true, false),
                           *startP, *endP));
       }
@@ -4744,7 +4760,8 @@ void JNetwork::SplitJUnit(const JUnit& ju, int& curRid,
               instInter2 = ju.TimeAtPos(actDist);
               checkEndTimeCorrected (endTimeCorrected, instInter1, instInter2,
                                      TIMECORRECTION);
-              result.Add(UPoint(Interval<Instant> (instInter1, instInter2,
+              result.Add(temporalalgebra::UPoint(
+                   temporalalgebra::Interval<Instant> (instInter1, instInter2,
                                             true, false),
                                 interP1, interP2));
               interP1 = interP2;
@@ -4772,7 +4789,8 @@ void JNetwork::SplitJUnit(const JUnit& ju, int& curRid,
                 instInter2 = ju.TimeAtPos(actDist);
                 checkEndTimeCorrected (endTimeCorrected, instInter1, instInter2,
                                      TIMECORRECTION);
-                result.Add(UPoint(Interval<Instant> (instInter1, instInter2,
+                result.Add(temporalalgebra::UPoint(
+                     temporalalgebra::Interval<Instant> (instInter1, instInter2,
                                             true, false),
                                   interP1, interP2));
                 interP1 = interP2;
@@ -4787,7 +4805,8 @@ void JNetwork::SplitJUnit(const JUnit& ju, int& curRid,
         {
           checkEndTimeCorrected (endTimeCorrected, instInter1, instInter2,
                                      TIMECORRECTION);
-          result.Add(UPoint(Interval<Instant> (instInter1, instInter2,
+          result.Add(temporalalgebra::UPoint(
+                temporalalgebra::Interval<Instant> (instInter1, instInter2,
                                              true, false),
                             *startP, *endP));
         }

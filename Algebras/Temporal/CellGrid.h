@@ -42,6 +42,9 @@ is open in y direction.
 #include "RectangleAlgebra.h"
 #include "ListUtils.h"
 
+
+
+namespace temporalalgebra {
 /*
 3.8 Grid structures
 
@@ -894,3 +897,4 @@ bool CellGrid<dim>::ReadFrom(const ListExpr value,const ListExpr typeInfo){
   return true;
 }
 
+} 

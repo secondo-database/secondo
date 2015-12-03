@@ -4,6 +4,10 @@ ll
 */
 #include "MMove.h"
 
+
+
+namespace temporalalgebra{
+
 /*
 3.2 Class ~MMove~
 
@@ -1127,3 +1131,6 @@ void MMove::Reverse(MMove& result){
     }
     result.EndBulkLoad(false);
 }
+
+}
+

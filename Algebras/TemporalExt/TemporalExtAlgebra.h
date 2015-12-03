@@ -61,7 +61,7 @@ named implementations.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-
+namespace temporalalgebra {
 
 /*
 4 Declaration of classes
@@ -221,6 +221,8 @@ public:
 
     bool Passes( CcReal val ) const;
 };
+
+} // end of namespace temporalalgebra
 
 #endif // _TEMPORALEXT_ALGEBRA_H_
 

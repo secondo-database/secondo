@@ -321,7 +321,7 @@ Returns true if the given position(s) exist in the network.
                                      const Tuple* sectTup) const;
   JRouteInterval* GetNetworkValueOf(const HalfSegment& hs) const;
   bool GetNetworkValueOf(const Line* in, JLine* result) const;
-  bool GetNetworkValueOf(const MPoint* in, MJPoint* result);
+  bool GetNetworkValueOf(const temporalalgebra::MPoint* in, MJPoint* result);
   JListRLoc* GetNetworkValuesOf(const Point* p) const;
   JListRLoc* GetNetworkValuesOf(const RouteLocation& rloc) const;
   JListRLoc* GetNetworkValuesOf(const Tuple* actSect,
@@ -337,7 +337,8 @@ Returns true if the given position(s) exist in the network.
 
   Point* GetSpatialValueOf(const JPoint& jp) const;
   void GetSpatialValueOf(const JLine* jl, Line& result) const;
-  void GetSpatialValueOf(const MJPoint* mjp, MPoint& result) const;
+  void GetSpatialValueOf(const MJPoint* mjp, 
+                         temporalalgebra::MPoint& result) const;
 
   void GetSpatialValueOf(const JRouteInterval& rint, SimpleLine& result) const;
 
@@ -821,12 +822,12 @@ Returns the corresponding spatial mpoint representation of the junit.
 void SplitJUnit(const JUnit& ju, JRouteInterval*& lastRint,
                 SimpleLine*& lastCurve, bool& endTimeCorrected,
                 Instant& lastEndTime, Point*& lastEndPoint, LRS& lrs,
-                int& lrspos, MPoint& result) const;
+                int& lrspos, temporalalgebra::MPoint& result) const;
 
 void SplitJUnit(const JUnit& ju, int& curRid, JRouteInterval*& lastRint,
     JListInt*& routeSectList, int& lastRouteSecListIndex,
     bool& endTimeCorrected, Instant& lastEnd,
-    SimpleLine*& lastCurve, MPoint& result) const;
+    SimpleLine*& lastCurve, temporalalgebra::MPoint& result) const;
 
 /*
 1.1.1.1 CheckTupleForRLoc

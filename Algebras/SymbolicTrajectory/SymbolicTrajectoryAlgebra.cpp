@@ -43,6 +43,7 @@ extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
 using namespace std;
+using namespace temporalalgebra;
 
 namespace stj {
   

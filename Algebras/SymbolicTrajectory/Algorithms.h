@@ -91,12 +91,12 @@ enum IndexType {TRIE, BTREE, RTREE1, RTREE2, NONE};
 
 */
 template<class B>
-class IBasic : public Intime<B> {
+class IBasic : public temporalalgebra::Intime<B> {
  public:
   IBasic() {}
   explicit IBasic(const Instant& inst, const B& val);
   explicit IBasic(const IBasic& rhs);
-  IBasic(const bool def) : Intime<B>(def) {}
+  IBasic(const bool def) : temporalalgebra::Intime<B>(def) {}
 
   ~IBasic() {}
 
@@ -119,12 +119,12 @@ class IBasic : public Intime<B> {
 
 */
 template<class B>
-class IBasics : public Intime<B> {
+class IBasics : public temporalalgebra::Intime<B> {
  public:
   IBasics() {}
   explicit IBasics(const Instant& inst, const B& values);
-  IBasics(const IBasics& rhs) : Intime<B>(rhs) {}
-  IBasics(const bool def) : Intime<B>(def) {}
+  IBasics(const IBasics& rhs) : temporalalgebra::Intime<B>(rhs) {}
+  IBasics(const bool def) : temporalalgebra::Intime<B>(def) {}
   
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(IBasics<B>);}
@@ -145,11 +145,11 @@ class IBasics : public Intime<B> {
 
 */
 template<class B>
-class UBasic : public ConstTemporalUnit<B> {
+class UBasic : public temporalalgebra::ConstTemporalUnit<B> {
  public:
   UBasic() {}
-  explicit UBasic(bool def) : ConstTemporalUnit<B>(def) {}
-  explicit UBasic(const SecInterval &iv, const B& val);
+  explicit UBasic(bool def) : temporalalgebra::ConstTemporalUnit<B>(def) {}
+  explicit UBasic(const temporalalgebra::SecInterval &iv, const B& val);
   UBasic(const UBasic& ub);
   
   ~UBasic() {}
@@ -176,12 +176,13 @@ class UBasic : public ConstTemporalUnit<B> {
 
 */
 template<class B>
-class UBasics : public ConstTemporalUnit<B> {
+class UBasics : public temporalalgebra::ConstTemporalUnit<B> {
  public:
   UBasics() {}
-  UBasics(const SecInterval& iv, const B& values);
-  UBasics(const UBasics& rhs) : ConstTemporalUnit<B>(rhs) {}
-  explicit UBasics(const bool def) : ConstTemporalUnit<B>(def) {}
+  UBasics(const temporalalgebra::SecInterval& iv, const B& values);
+  UBasics(const UBasics& rhs) : temporalalgebra::ConstTemporalUnit<B>(rhs) {}
+  explicit UBasics(const bool def) : 
+              temporalalgebra::ConstTemporalUnit<B>(def) {}
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(UBasics<B>);}
@@ -239,7 +240,7 @@ class MBasic : public Attribute {
   void deserialize(const char *bytes);
   int Position(const Instant& inst) const;
   void Get(const int i, UBasic<B>& result) const;
-  void GetInterval(const int i, SecInterval& result) const;
+  void GetInterval(const int i, temporalalgebra::SecInterval& result) const;
   void GetBasic(const int i, B& result) const;
   void GetValue(const int i, typename B::base& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
@@ -248,17 +249,18 @@ class MBasic : public Attribute {
   void Clear() {values.clean(); units.clean();}
   void StartBulkLoad() {assert(IsDefined());}
   void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
-  void Add(const SecInterval& iv, const B& value);
+  void Add(const temporalalgebra::SecInterval& iv, const B& value);
   void Add(const UBasic<B>& ub);
   void MergeAdd(const UBasic<B>& ub);
   bool Passes(const B& basic) const;
   void At(const B& basic, MBasic<B>& result) const;
-  void DefTime(Periods& per) const;
+  void DefTime(temporalalgebra::Periods& per) const;
   void Atinstant(const Instant& inst, IBasic<B>& result) const;
-  void AtPeriods(const Periods& per, MBasic<B>& result) const;
+  void AtPeriods(const temporalalgebra::Periods& per, MBasic<B>& result) const;
   void Initial(IBasic<B>& result) const;
   void Final(IBasic<B>& result) const;
-  void Inside(const typename B::coll& coll, MBool& result) const;
+  void Inside(const typename B::coll& coll, 
+              temporalalgebra::MBool& result) const;
   void Fill(MBasic<B>& result, DateTime& duration) const;
   void Concat(const MBasic<B>& src1, const MBasic<B>& src2);
   void Compress(MBasic<B>& result) const;
@@ -316,7 +318,7 @@ class MBasics : public Attribute {
   void GetBasics(const int i, B& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
   void GetValues(const int i, set<typename B::base>& result) const;
-  void GetInterval(const int i, SecInterval& result) const;
+  void GetInterval(const int i, temporalalgebra::SecInterval& result) const;
   int GetNoComponents() const {return units.Size();}
   int GetNoValues() const {return pos.Size();}
   void Clear();
@@ -324,16 +326,16 @@ class MBasics : public Attribute {
   void EndBulkLoad(const bool sort = true, const bool checkvalid = true);
   bool IsValid() const;
   void Add(const UBasics<B>& ut);
-  void Add(const SecInterval& iv, const B& values);
+  void Add(const temporalalgebra::SecInterval& iv, const B& values);
   void MergeAdd(const UBasics<B>& ut);
-  void MergeAdd(const SecInterval& iv, const B& values);
+  void MergeAdd(const temporalalgebra::SecInterval& iv, const B& values);
   bool Passes(const typename B::single& sg) const;
   bool Passes(const B& bs) const;
   void At(const typename B::single& sg, MBasics<B>& result) const;
   void At(const B& bs, MBasics<B>& result) const;
-  void DefTime(Periods& per) const;
+  void DefTime(temporalalgebra::Periods& per) const;
   void Atinstant(const Instant& inst, IBasics<B>& result) const;
-  void AtPeriods(const Periods& per, MBasics<B>& result) const;
+  void AtPeriods(const temporalalgebra::Periods& per, MBasics<B>& result) const;
   void Initial(IBasics<B>& result) const;
   void Final(IBasics<B>& result) const;
   void Fill(MBasics<B>& result, DateTime& duration) const;
@@ -359,7 +361,7 @@ class MLabel : public MBasic<Label> {
   MLabel(unsigned int n) : MBasic<Label>(n) {}
    
   void createML(const int size, const int number, vector<string>& labels);
-  void convertFromMString(const MString& source);
+  void convertFromMString(const temporalalgebra::MString& source);
 };
 
 typedef IBasic<Label> ILabel;
@@ -420,7 +422,8 @@ class Condition {
   void    setValuePtr(unsigned int pos, string& value);
   void    setValuePtr(unsigned int pos, pair<string, unsigned int>& value);
   void    clearTimePtr(unsigned int pos);
-  void    mergeAddTimePtr(unsigned int pos, Interval<Instant>& value);
+  void    mergeAddTimePtr(unsigned int pos, 
+                         temporalalgebra::Interval<Instant>& value);
   void    setStartEndPtr(unsigned int pos, Instant& value);
   void    setCardPtr(unsigned int pos, int value);
   void    cleanLabelsPtr(unsigned int pos);
@@ -549,7 +552,7 @@ class Assign {
   void deleteOpTrees();
   void setLabelPtr(unsigned int pos, const string& value);
   void setPlacePtr(unsigned int pos, const pair<string, unsigned int>& value);
-  void setTimePtr(unsigned int pos, const SecInterval& value);
+  void setTimePtr(unsigned int pos, const temporalalgebra::SecInterval& value);
   void setStartPtr(unsigned int pos, const Instant& value);
   void setEndPtr(unsigned int pos, const Instant& value);
   void setLeftclosedPtr(unsigned int pos, bool value);
@@ -859,12 +862,14 @@ class TMatch {
   
   ExtBool matches();
   int GetNoMainComponents() const;
-  void GetInterval(const int u, SecInterval& iv) const;
+  void GetInterval(const int u, temporalalgebra::SecInterval& iv) const;
   bool labelsMatch(const set<string>& tlabels, const int atom, const int pos);
   bool placesMatch(const set<pair<string, unsigned int> >& tlabels, 
                    const int atom, const int pos);
   bool mainValuesMatch(const int u, const int atom);
-  bool otherValuesMatch(const int pos, const SecInterval& iv, const int atom);
+  bool otherValuesMatch(const int pos, 
+                        const temporalalgebra::SecInterval& iv, 
+                        const int atom);
   bool valuesMatch(const int u, const int atom);
   bool easyCondsMatch(const int u, const int atom);
   bool performTransitions(const int u, set<int>& states);
@@ -918,7 +923,7 @@ class TupleIndex {
   static bool fillTimeIndex(RTree1TLLI* rt, TupleId tid, Attribute *traj,
                             DataType type);
   static void insertIntoBTree(BTree_t<LongInt> *bt, TupleId tid,
-                              MInt *mint);
+                              temporalalgebra::MInt *mint);
   static bool insertIntoRTree1(RTree1TLLI *rt, TupleId tid, Attribute *m);
   static bool insertIntoRTree2(RTree2TLLI *rt, TupleId tid, Attribute *m,
                                string type);
@@ -990,10 +995,13 @@ class IndexMatchSuper {
     rel(r), p(_p), attrNo(a), mtype(t), activeTuples(0), unitCtr(0) {}
   
   int getTrajSize(const TupleId tId, const DataType type);
-  void getInterval(const TupleId tId, const int pos, SecInterval& iv);
-  void periodsToUnits(const Periods *per, const TupleId tId, set<int> &units);
+  void getInterval(const TupleId tId, const int pos, 
+                   temporalalgebra::SecInterval& iv);
+  void periodsToUnits(const temporalalgebra::Periods *per, 
+                      const TupleId tId, set<int> &units);
   template<class M>
-  void periodsToUnits(const Periods *per, const TupleId tId, set<int> &units);
+  void periodsToUnits(const temporalalgebra::Periods *per, 
+                      const TupleId tId, set<int> &units);
   void removeIdFromIndexResult(const TupleId id);
   void clearMatchInfo();
   bool hasIdIMIs(const TupleId id, const int state = -1);
@@ -1028,13 +1036,17 @@ class TMatchIndexLI : public IndexMatchSuper {
              pair<Word, SetRel> values, int valueNo, vector<set<int> > &result);
   int getNoComponents(const TupleId tId, const int attrNo);
   void unitsToPeriods(const set<int> &units, const TupleId tId, 
-                      const int attr, Periods *per);
+                      const int attr, temporalalgebra::Periods *per);
   template<class M, class U>
-  void unitsToPeriods(Attribute *traj, const set<int> &units, Periods *per);
+  void unitsToPeriods(Attribute *traj, const set<int> &units, 
+                      temporalalgebra::Periods *per);
   void getResultForAtomPart(pair<int, pair<IndexType, int> > indexInfo, 
-                          pair<Word, SetRel> values, vector<Periods*> &prev,
-                          vector<Periods*> &result, bool checkPrev = false);
-  bool getResultForAtomTime(const int atomNo, vector<Periods*> &result);
+                          pair<Word, SetRel> values, 
+                          vector<temporalalgebra::Periods*> &prev,
+                          vector<temporalalgebra::Periods*> &result, 
+                          bool checkPrev = false);
+  bool getResultForAtomTime(const int atomNo, 
+                            vector<temporalalgebra::Periods*> &result);
   void storeIndexResult(int atomNo);
   void initMatchInfo();
   void removeIdFromMatchInfo(const TupleId id);
@@ -1342,12 +1354,14 @@ class DeriveGroupsLI {
 
 */
 template<class B>
-IBasic<B>::IBasic(const Instant& inst, const B& val) : Intime<B>(inst, val) {
+IBasic<B>::IBasic(const Instant& inst, const B& val) : 
+  temporalalgebra::Intime<B>(inst, val) {
   SetDefined(inst.IsDefined() && val.IsDefined());
 }
 
 template<class B>
-IBasic<B>::IBasic(const IBasic& rhs) : Intime<B>(rhs.instant, rhs.value) {
+IBasic<B>::IBasic(const IBasic& rhs) : 
+  temporalalgebra::Intime<B>(rhs.instant, rhs.value) {
   SetDefined(rhs.IsDefined());
 }
 
@@ -1383,7 +1397,7 @@ bool IBasic<B>::CheckKind(ListExpr type, ListExpr& errorInfo) {
 */
 template<class B>
 ListExpr IBasic<B>::ToListExpr(ListExpr typeInfo) {
-  if (!Intime<B>::IsDefined()) {
+  if (!temporalalgebra::Intime<B>::IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
   return nl->TwoElemList(this->instant.ToListExpr(false), 
@@ -1432,7 +1446,7 @@ void IBasic<B>::Val(B& result) const {
 */
 template<class B>
 IBasics<B>::IBasics(const Instant& inst, const B& values) : 
-                                                     Intime<B>(inst, values) {}
+                   temporalalgebra::Intime<B>(inst, values) {}
 
 /*
 \subsection{Function ~Property~}
@@ -1514,13 +1528,14 @@ void IBasics<B>::Val(B& result) const {
 
 */
 template<class B>
-UBasic<B>::UBasic(const SecInterval &iv, const B& val)
-                                            : ConstTemporalUnit<B>(iv, val) {
+UBasic<B>::UBasic(const temporalalgebra::SecInterval &iv, const B& val)
+    : temporalalgebra::ConstTemporalUnit<B>(iv, val) {
   this->SetDefined(iv.IsDefined() && val.IsDefined());
 }
 
 template<class B>
-UBasic<B>::UBasic(const UBasic<B>& ub) : ConstTemporalUnit<B>(ub) {
+UBasic<B>::UBasic(const UBasic<B>& ub) : 
+  temporalalgebra::ConstTemporalUnit<B>(ub) {
   this->SetDefined(ub.IsDefined());
 }
 
@@ -1568,8 +1583,9 @@ ListExpr UBasic<B>::ToListExpr(ListExpr typeInfo) {
   if (!this->IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
-  return nl->TwoElemList(((SecInterval)this->timeInterval).ToListExpr
-          (nl->Empty()), this->constValue.ToListExpr(nl->Empty()));
+  return nl->TwoElemList((
+    (temporalalgebra::SecInterval)this->timeInterval).ToListExpr (nl->Empty()),
+    this->constValue.ToListExpr(nl->Empty()));
 }
 
 /*
@@ -1585,9 +1601,10 @@ bool UBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
   if (!nl->HasLength(LE, 2)) {
     return false;
   }
-  SecInterval iv(true);
+  temporalalgebra::SecInterval iv(true);
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  if (iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType())) &&
+  if (iv.ReadFrom(nl->First(LE), 
+      sc->GetTypeExpr(temporalalgebra::SecInterval::BasicType())) &&
       this->constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
     this->timeInterval = iv;
     this->SetDefined(this->timeInterval.IsDefined() && 
@@ -1636,8 +1653,8 @@ void UBasic<B>::Final(IBasic<B>& result) const {
 
 */
 template<class B>
-UBasics<B>::UBasics(const SecInterval &iv, const B& values)
-                                           : ConstTemporalUnit<B>(iv, values) {}
+UBasics<B>::UBasics(const temporalalgebra::SecInterval &iv, const B& values)
+           : temporalalgebra::ConstTemporalUnit<B>(iv, values) {}
 
 /*
 \subsection{Function ~Property~}
@@ -1676,8 +1693,9 @@ ListExpr UBasics<B>::ToListExpr(ListExpr typeInfo) {
   if (!this->IsDefined()) {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }
-  return nl->TwoElemList(((SecInterval)this->timeInterval).ToListExpr
-          (nl->Empty()), this->constValue.ToListExpr(nl->Empty()));
+  return nl->TwoElemList((
+    (temporalalgebra::SecInterval)this->timeInterval).ToListExpr (nl->Empty()),
+     this->constValue.ToListExpr(nl->Empty()));
 }
 
 /*
@@ -1693,9 +1711,10 @@ bool UBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
   if (!nl->HasLength(LE, 2)) {
     return false;
   }
-  SecInterval iv(true);
+  temporalalgebra::SecInterval iv(true);
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  if (iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType())) &&
+  if (iv.ReadFrom(nl->First(LE), 
+      sc->GetTypeExpr(temporalalgebra::SecInterval::BasicType())) &&
       this->constValue.ReadFrom(nl->Second(LE), nl->Empty())) {
     this->timeInterval = iv;
     this->SetDefined(this->timeInterval.IsDefined() &&
@@ -1870,7 +1889,7 @@ ListExpr MBasic<B>::unitToListExpr(const int i) {
   units.Get(i, unit);
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   return nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
-                                                     SecInterval::BasicType())),
+                        temporalalgebra::SecInterval::BasicType())),
                          B::getList(value));
 }
 
@@ -1903,9 +1922,10 @@ bool MBasic<B>::readUnitFrom(ListExpr LE) {
   if (!nl->HasLength(LE, 2)) {
     return false;
   }
-  SecInterval iv;
+  temporalalgebra::SecInterval iv;
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  if (!iv.ReadFrom(nl->First(LE), sc->GetTypeExpr(SecInterval::BasicType()))) {
+  if (!iv.ReadFrom(nl->First(LE), 
+      sc->GetTypeExpr(temporalalgebra::SecInterval::BasicType()))) {
     return false;
   }
   typename B::unitelem unit(values.getSize());
@@ -1996,7 +2016,7 @@ int MBasic<B>::Position(const Instant& inst) const {
     }
     typename B::unitelem unit;
     units.Get(mid, unit);
-    if (((Interval<Instant>)(unit.iv)).Contains(t1)) {
+    if (((temporalalgebra::Interval<Instant>)(unit.iv)).Contains(t1)) {
       return mid;
     }
     else { // not contained
@@ -2035,7 +2055,8 @@ void MBasic<B>::Get(const int i, UBasic<B>& result) const {
 
 */
 template<class B>
-void MBasic<B>::GetInterval(const int i, SecInterval& result) const {
+void MBasic<B>::GetInterval(const int i, 
+       temporalalgebra::SecInterval& result) const {
   assert((i >= 0) && (i < GetNoComponents()));
   result.SetDefined(true);
   typename B::unitelem unit;
@@ -2153,7 +2174,7 @@ void MBasic<B>::Add(const UBasic<B>& ub) {
 }
 
 template<class B>
-void MBasic<B>::Add(const SecInterval& iv, const B& value) {
+void MBasic<B>::Add(const temporalalgebra::SecInterval& iv, const B& value) {
   assert(iv.IsDefined() && value.IsDefined());
   B value2(value);
   ListExpr unitlist = nl->TwoElemList(iv.ToListExpr(nl->Empty()),
@@ -2243,7 +2264,7 @@ void MBasic<B>::At(const B& basic, MBasic<B>& result) const {
     if (value1 == value2) {
       units.Get(i, unit);
       result.readUnitFrom(nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
-                                                     SecInterval::BasicType())),
+                   temporalalgebra::SecInterval::BasicType())),
                                           B::getList(value1)));
     }
   }
@@ -2254,7 +2275,7 @@ void MBasic<B>::At(const B& basic, MBasic<B>& result) const {
 
 */
 template<class B>
-void MBasic<B>::DefTime(Periods& per) const {
+void MBasic<B>::DefTime(temporalalgebra::Periods& per) const {
   per.Clear();
   per.SetDefined(IsDefined());
   if (IsDefined()) {
@@ -2294,7 +2315,8 @@ void MBasic<B>::Atinstant(const Instant& inst, IBasic<B>& result) const {
 
 */
 template<class B>
-void MBasic<B>::AtPeriods(const Periods& per, MBasic<B>& result) const {
+void MBasic<B>::AtPeriods(const temporalalgebra::Periods& per, 
+                          MBasic<B>& result) const {
   result.Clear();
   result.SetDefined(IsDefined() && per.IsDefined());
   if (!IsDefined() || !per.IsDefined()) {
@@ -2308,7 +2330,7 @@ void MBasic<B>::AtPeriods(const Periods& per, MBasic<B>& result) const {
     return;
   }
   assert(per.IsOrdered());
-  SecInterval ivS(true), ivP(true), ivR(true);
+  temporalalgebra::SecInterval ivS(true), ivP(true), ivR(true);
   GetInterval(0, ivS);
   GetInterval(GetNoComponents() - 1, ivP);
   if (per.Before(ivS.start) || per.After(ivP.end)) {
@@ -2393,7 +2415,8 @@ void MBasic<B>::Final(IBasic<B>& result) const {
 
 */
 template<class B>
-void MBasic<B>::Inside(const typename B::coll& coll, MBool& result) const {
+void MBasic<B>::Inside(const typename B::coll& coll, 
+                       temporalalgebra::MBool& result) const {
   result.Clear();
   if (!IsDefined() || !coll.IsDefined()) {
     result.SetDefined(false);
@@ -2405,7 +2428,7 @@ void MBasic<B>::Inside(const typename B::coll& coll, MBool& result) const {
     units.Get(i, unit);
     GetValue(i, value);
     CcBool res(true, coll.Contains(value));
-    UBool ub(unit.iv, res);
+    temporalalgebra::UBool ub(unit.iv, res);
     result.Add(ub);
   }
 }
@@ -2457,7 +2480,7 @@ void MBasic<B>::Concat(const MBasic<B>& src1, const MBasic<B>& src2) {
     CopyFrom(&src1);
     return;
   }
-  SecInterval iv1, iv2;
+  temporalalgebra::SecInterval iv1, iv2;
   src1.GetInterval(src1.GetNoComponents() - 1, iv1);
   src2.GetInterval(0, iv2);
   SetDefined(src1.IsDefined() && src2.IsDefined() && iv1.Before(iv2));
@@ -2690,7 +2713,7 @@ ListExpr MBasics<B>::unitToListExpr(int i) {
   ListExpr valuelist;
   B::valuesToListExpr(values, valuelist);
   return nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
-                                            SecInterval::BasicType())),
+     temporalalgebra::SecInterval::BasicType())),
                          valuelist);
 }
 
@@ -2753,7 +2776,7 @@ bool MBasics<B>::readUnit(ListExpr unitlist) {
   SymbolicUnit unit(GetNoValues());
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   if (!unit.iv.ReadFrom(nl->First(unitlist), 
-                        sc->GetTypeExpr(SecInterval::BasicType()))) {
+           sc->GetTypeExpr(temporalalgebra::SecInterval::BasicType()))) {
     return false;
   }
   if (!readValues(nl->Second(unitlist))) {
@@ -2860,7 +2883,7 @@ int MBasics<B>::Position(const Instant& inst) const {
     }
     SymbolicUnit unit;
     units.Get(mid, unit);
-    if (((Interval<Instant>)(unit.iv)).Contains(t1)) {
+    if (((temporalalgebra::Interval<Instant>)(unit.iv)).Contains(t1)) {
       return mid;
     }
     else { // not contained
@@ -2894,7 +2917,7 @@ void MBasics<B>::Get(const int i, UBasics<B>& result) const {
   for (it = values.begin(); it != values.end(); it++) {
     result.constValue.Append(*it);
   }
-  SecInterval iv(true);
+  temporalalgebra::SecInterval iv(true);
   GetInterval(i, iv);
   result.timeInterval = iv;
 }
@@ -2968,7 +2991,8 @@ void MBasics<B>::GetValues(const int i, set<typename B::base>& result) const{
 
 */
 template<class B>
-void MBasics<B>::GetInterval(const int i, SecInterval& result) const {
+void MBasics<B>::GetInterval(const int i, 
+                temporalalgebra::SecInterval& result) const {
   assert((i >= 0) && (i < GetNoComponents()));
   result.SetDefined(true);
   SymbolicUnit unit;
@@ -3050,7 +3074,7 @@ void MBasics<B>::Add(const UBasics<B>& ut) {
 }
 
 template<class B>
-void MBasics<B>::Add(const SecInterval& iv, const B& values) {
+void MBasics<B>::Add(const temporalalgebra::SecInterval& iv, const B& values) {
   assert(IsDefined() && iv.IsDefined() && values.IsDefined());
   B values2(values);
   ListExpr unitlist = nl->TwoElemList(iv.ToListExpr(nl->Empty()),
@@ -3066,7 +3090,8 @@ void MBasics<B>::Add(const SecInterval& iv, const B& values) {
 
 */
 template<class B>
-void MBasics<B>::MergeAdd(const SecInterval& iv, const B& values) {
+void MBasics<B>::MergeAdd(const temporalalgebra::SecInterval& iv,
+                          const B& values) {
   assert(IsDefined() && iv.IsDefined() && values.IsDefined());
   if (!iv.IsDefined() || !iv.IsValid()) {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
@@ -3164,7 +3189,7 @@ void MBasics<B>::At(const typename B::single& sg, MBasics<B>& result) const {
       j++;
     }
     if (found) {
-      SecInterval iv;
+      temporalalgebra::SecInterval iv;
       GetInterval(i, iv);
       UBasics<B> ut(iv, basics);
       result.Add(ut);
@@ -3188,7 +3213,7 @@ void MBasics<B>::At(const B& bs, MBasics<B>& result) const {
     B basics(true);
     GetBasics(i, basics);
     if (basics == bs) {
-      SecInterval iv;
+      temporalalgebra::SecInterval iv;
       GetInterval(i, iv);
       result.Add(iv, basics);
     }
@@ -3200,7 +3225,7 @@ void MBasics<B>::At(const B& bs, MBasics<B>& result) const {
 
 */
 template<class B>
-void MBasics<B>::DefTime(Periods& per) const {
+void MBasics<B>::DefTime(temporalalgebra::Periods& per) const {
   per.Clear();
   per.SetDefined(IsDefined());
   if (IsDefined()) {
@@ -3239,7 +3264,8 @@ void MBasics<B>::Atinstant(const Instant& inst,
 
 */
 template<class B>
-void MBasics<B>::AtPeriods(const Periods& per, MBasics<B>& result) const {
+void MBasics<B>::AtPeriods(const temporalalgebra::Periods& per, 
+                           MBasics<B>& result) const {
   result.Clear();
   result.SetDefined(IsDefined() && per.IsDefined());
   if (!IsDefined() || !per.IsDefined()) {
@@ -3253,7 +3279,7 @@ void MBasics<B>::AtPeriods(const Periods& per, MBasics<B>& result) const {
     return;
   }
   assert(per.IsOrdered());
-  SecInterval ivS(true), ivP(true), ivR(true);
+  temporalalgebra::SecInterval ivS(true), ivP(true), ivR(true);
   GetInterval(0, ivS);
   GetInterval(GetNoComponents() - 1, ivP);
   if (per.Before(ivS.start) || per.After(ivP.end)) {
@@ -3309,7 +3335,7 @@ void MBasics<B>::Initial(IBasics<B>& result) const {
     return;
   }
   result.SetDefined(true);
-  SecInterval iv;
+  temporalalgebra::SecInterval iv;
   GetInterval(0, iv);
   result.instant = iv.start;
   GetBasics(0, result.value);
@@ -3326,7 +3352,7 @@ void MBasics<B>::Final(IBasics<B>& result) const {
     return;
   }
   result.SetDefined(true);
-  SecInterval iv;
+  temporalalgebra::SecInterval iv;
   GetInterval(GetNoComponents() - 1, iv);
   result.instant = iv.end;
   GetBasics(GetNoComponents() - 1, result.value);
@@ -3379,7 +3405,7 @@ void MBasics<B>::Concat(const MBasics<B>& src1, const MBasics<B>& src2) {
     CopyFrom(&src1);
     return;
   }
-  SecInterval iv1, iv2;
+  temporalalgebra::SecInterval iv1, iv2;
   src1.GetInterval(src1.GetNoComponents() - 1, iv1);
   src2.GetInterval(0, iv2);
   SetDefined(src1.IsDefined() && src2.IsDefined() && iv1.Before(iv2));
@@ -3480,49 +3506,49 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
 template<class M>
 void Condition::restrictPtr(const int pos, M *traj, const unsigned int from,
            const unsigned int to, Tuple *tuple, ListExpr ttype, const int key) {
-  SecInterval iv(true), ivtemp(true);
+  temporalalgebra::SecInterval iv(true), ivtemp(true);
   traj->GetInterval(from, iv);
   traj->GetInterval(to, ivtemp);
   iv.end = ivtemp.end;
   iv.rc = ivtemp.rc;
-  Periods per(true);
+  temporalalgebra::Periods per(true);
   per.Add(iv);
   string attrtype = nl->ToString(nl->Second(nl->Nth(key, nl->Second(ttype))));
   if (attrtype == "mbool") {
-    ((MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
-                                                      *((MBool*)pointers[pos]));
+    ((temporalalgebra::MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
+                                   *((temporalalgebra::MBool*)pointers[pos]));
   }
   else if (attrtype == "mint") {
-    ((MInt*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                                       *((MInt*)pointers[pos]));
+    ((temporalalgebra::MInt*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                  *((temporalalgebra::MInt*)pointers[pos]));
   }
   else if (attrtype == "mlabel") {
     ((MLabel*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                                     *((MLabel*)pointers[pos]));
+                                  *((MLabel*)pointers[pos]));
   }
   else if (attrtype == "mlabels") {
     ((MLabels*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                                    *((MLabels*)pointers[pos]));
+                                  *((MLabels*)pointers[pos]));
   }
   else if (attrtype == "mplace") {
     ((MPlace*)tuple->GetAttribute(key - 1))->AtPeriods(per,
-                                                     *((MPlace*)pointers[pos]));
+                                   *((MPlace*)pointers[pos]));
   }
   else if (attrtype == "mplaces") {
     ((MPlaces*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
                                                     *((MPlaces*)pointers[pos]));
   }
   else if (attrtype == "mpoint") {
-    ((MPoint*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                                     *((MPoint*)pointers[pos]));
+    ((temporalalgebra::MPoint*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                    *((temporalalgebra::MPoint*)pointers[pos]));
   }
   else if (attrtype == "mreal") {
-    ((MReal*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                                      *((MReal*)pointers[pos]));
+    ((temporalalgebra::MReal*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                 *((temporalalgebra::MReal*)pointers[pos]));
   }
   else if (attrtype == "mregion") {
-    ((MRegion*)tuple->GetAttribute(key - 1))->AtPeriods(&per, 
-                                                       (MRegion*)pointers[pos]);
+    ((temporalalgebra::MRegion*)tuple->GetAttribute(key - 1))->AtPeriods(&per, 
+                                     (temporalalgebra::MRegion*)pointers[pos]);
   }
 }
 
@@ -3533,7 +3559,7 @@ void Condition::restrictPtr(const int pos, M *traj, const unsigned int from,
 template<class M>
 void Condition::setPointerToValue(const int pos, M *traj, const int from, 
                                   const int to) {
-  SecInterval iv(true);
+  temporalalgebra::SecInterval iv(true);
   switch (getKey(pos)) {
     case 0: { // label
       string value;
@@ -3623,7 +3649,7 @@ void Condition::setPointerToValue(const int pos, M *traj, const int from,
 */
 template<class M>
 void Condition::setPointerToEmptyValue(const int pos, M *traj) {
-  SecInterval iv(true);
+  temporalalgebra::SecInterval iv(true);
   switch (getKey(pos)) {
     case 0: { // label
       string value("");
@@ -3955,7 +3981,7 @@ bool Match<M>::updateStates(int ulId, vector<map<int, int> > &nfa,
   }
   states.clear();
   map<int, int>::iterator itm, itn;
-  SecInterval iv;
+  temporalalgebra::SecInterval iv;
   m->GetInterval(ulId, iv);
   set<string> ivs;
   if (store) {
@@ -4317,7 +4343,7 @@ M* RewriteLI<M>::rewrite(M *src, map<string, pair<int, int> > binding,
   M *result = new M(true);
   Word qResult;
   Instant start(instanttype), end(instanttype);
-  SecInterval iv(true), iv2(true);
+  temporalalgebra::SecInterval iv(true), iv2(true);
   bool lc(false), rc(false);
   pair<unsigned int, unsigned int> segment;
   assert(src->IsValid());
@@ -4431,7 +4457,7 @@ M* RewriteLI<M>::rewrite(M *src, map<string, pair<int, int> > binding,
     }
     if (!assigns[i].getText(2).empty()) {
       assigns[i].getQP(2)->EvalS(assigns[i].getOpTree(2), qResult, OPEN);
-      iv2 = *((SecInterval*)qResult.addr);
+      iv2 = *((temporalalgebra::SecInterval*)qResult.addr);
     }
     if (!assigns[i].getText(3).empty()) {
       assigns[i].getQP(3)->EvalS(assigns[i].getOpTree(3), qResult, OPEN);
@@ -5153,10 +5179,11 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
 
 */
 template<class M>
-void IndexMatchSuper::periodsToUnits(const Periods *per, const TupleId tId,
+void IndexMatchSuper::periodsToUnits(const temporalalgebra::Periods *per,
+                                     const TupleId tId,
                                      set<int> &units) {
   int start, end;
-  Interval<Instant> iv;
+  temporalalgebra::Interval<Instant> iv;
   Tuple *t = rel->GetTuple(tId, false);
   M *traj = (M*)t->GetAttribute(attrNo);
   for (int i = 0; i < per->GetNoComponents(); i++) {
@@ -5182,7 +5209,7 @@ void IndexMatchSuper::periodsToUnits(const Periods *per, const TupleId tId,
 */
 template<class M, class U>
 void TMatchIndexLI::unitsToPeriods(Attribute *traj, const set<int> &units,
-                                   Periods *per) {
+                                   temporalalgebra::Periods *per) {
   M *m = (M*)traj;
   U u(true);
   for (set<int>::iterator it = units.begin(); it != units.end(); it++) {

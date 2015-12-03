@@ -125,7 +125,7 @@ extern QueryProcessor* qp;
 #include "Stream.h"
 #include "DLine.h"
 
-
+namespace temporalalgebra{
 
 #ifdef SECONDO_WIN32
 double asinh(double z)
@@ -19336,6 +19336,8 @@ class TemporalAlgebra : public Algebra
   ~TemporalAlgebra() {};
 };
 
+} // end of namespace temporalalgebra
+
 /*
 7 Initialization
 
@@ -19359,7 +19361,7 @@ InitializeTemporalAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (new TemporalAlgebra());
+  return (new temporalalgebra::TemporalAlgebra());
 }
 
 

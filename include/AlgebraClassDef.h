@@ -42,7 +42,6 @@ extern QueryProcessor* qp;
 extern AlgebraManager* am;
 extern NestedList* nl;
 
-using namespace std;
 
 
 /*

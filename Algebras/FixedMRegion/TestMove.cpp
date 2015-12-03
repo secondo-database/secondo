@@ -4,6 +4,7 @@ This class is a FixedMRegion.
 */
 #include "TestMove.h"
 
+namespace temporalalgebra{
 
 void
 testmoveSetGet()
@@ -210,3 +211,5 @@ runTestMoveMethod ()
   testmoveNew ();
 //  testtraversed();
 }
+}
+

@@ -95,7 +95,8 @@ private:
 
     bool ConnectPoints(const GPoint& rGPStart,
                        const GPoint& rGPEnd,
-                       const Interval<Instant>& rTimeInterval);
+                       const temporalalgebra::Interval<Instant>& 
+                             rTimeInterval);
 
     const Network* m_pNetwork;
     double   m_dNetworkScale;

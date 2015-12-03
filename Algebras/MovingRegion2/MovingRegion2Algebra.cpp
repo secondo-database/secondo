@@ -63,6 +63,8 @@ of these classes too.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+using namespace temporalalgebra;
+
 /*
 Set ~MR2\_DEBUG~ to ~true~ for debug output. Please note that debug output is
 very verbose and has significant negative input on the algebra's performance.

@@ -4,7 +4,7 @@ This class is a FixedMRegion.
 */
 #include "TestMove.h"
 
-
+namespace temporalalgebra{
 
 void testInside1()
 {
@@ -442,3 +442,5 @@ runtestInsideIntersection ()
   testIntersection();
 
 }
+}
+

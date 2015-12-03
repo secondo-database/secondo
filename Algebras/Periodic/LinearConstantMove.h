@@ -10,9 +10,9 @@
 #include <string>
 #include <iostream>
 
+#include "NestedList.h"
 
 #include "PeriodicTypes.h"
-#include "NestedList.h"
 
 extern NestedList* nl;
 

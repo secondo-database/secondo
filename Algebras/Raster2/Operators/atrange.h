@@ -103,7 +103,8 @@ namespace raster2
             res->setDefined(false);
             return 0;
          }
-         Interval<DateTime> lookupinterval(*start, *end, true, false);
+         temporalalgebra::Interval<DateTime> 
+                        lookupinterval(*start, *end, true, false);
 
          if(!lookupinterval.IsValid()) {
             res->setDefined(false);

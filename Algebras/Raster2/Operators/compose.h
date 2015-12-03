@@ -44,19 +44,19 @@ namespace raster2 {
       composeInfo()
       { 
         name      = "compose";
-        signature = MPoint::BasicType()
+        signature = temporalalgebra::MPoint::BasicType()
             + " compose "
             + sbool::BasicType() + "-> " 
-            + MBool::BasicType();
-        appendSignature(MPoint::BasicType() + " compose "
+            + temporalalgebra::MBool::BasicType();
+        appendSignature(temporalalgebra::MPoint::BasicType() + " compose "
             + sreal::BasicType() + "-> " 
-            + MReal::BasicType());
-        appendSignature(MPoint::BasicType() + " compose "
+            + temporalalgebra::MReal::BasicType());
+        appendSignature(temporalalgebra::MPoint::BasicType() + " compose "
             + sint::BasicType() + "-> " 
-            + MInt::BasicType());
-        appendSignature(MPoint::BasicType() + " compose "
+            + temporalalgebra::MInt::BasicType());
+        appendSignature(temporalalgebra::MPoint::BasicType() + " compose "
             + sstring::BasicType() + "-> " 
-            + MString::BasicType());
+            + temporalalgebra::MString::BasicType());
 
         syntax    = "_ compose _";
         meaning   = "merges mpoint and sT into mT";

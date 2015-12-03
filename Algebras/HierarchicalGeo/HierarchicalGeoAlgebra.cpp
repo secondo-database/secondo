@@ -66,6 +66,7 @@ implemented in the HierarchicalGeoAlgebra.h file.
 #include "MovingRegionAlgebra.h"
 #include "TypeMapUtils.h"
 #include "Symbols.h"
+#include "StringUtils.h"
 
 #include <math.h>
 
@@ -373,7 +374,7 @@ void CUPoint::TemporalFunction( const Instant& t,
 }
 
 
-void CUPoint::AtInterval( const Interval<Instant>& i,
+void CUPoint::AtInterval( const temporalalgebra::Interval<Instant>& i,
                            TemporalUnit<Point>& result ) const
 {
   assert( IsDefined() );
@@ -381,7 +382,7 @@ void CUPoint::AtInterval( const Interval<Instant>& i,
 
 
   TemporalUnit<Point>::AtInterval( i, result );
-  UPoint *pResult = (UPoint*)&result;
+  temporalalgebra::UPoint *pResult = (temporalalgebra::UPoint*)&result;
 
   if( timeInterval.start == result.timeInterval.start )
     {
@@ -830,7 +831,8 @@ the uncertainty-value.
   return false;
 }
 
-void CUPoint::AtInstant( const Instant& t, Intime<Region>& result ) const
+void CUPoint::AtInstant( const Instant& t, 
+                         temporalalgebra::Intime<Region>& result ) const
 {
   assert( t.IsDefined() );
   if( IsDefined() && t.IsDefined() )
@@ -896,7 +898,7 @@ void CUPoint::D_At( const Point& p, CUPoint& result ) const
     {
       if( timeInterval.lc )
       {
-        Interval<Instant> interval( timeInterval.start,
+        temporalalgebra::Interval<Instant> interval( timeInterval.start,
          timeInterval.start, true, true );
         CUPoint unit(epsilon, interval, p, p );
         *pResult = unit;
@@ -908,7 +910,7 @@ void CUPoint::D_At( const Point& p, CUPoint& result ) const
     {
       if( timeInterval.rc )
       {
-        Interval<Instant> interval( timeInterval.end,
+        temporalalgebra::Interval<Instant> interval( timeInterval.end,
          timeInterval.end, true, true );
         CUPoint unit(epsilon, interval, p, p );
         *pResult = unit;
@@ -926,7 +928,7 @@ void CUPoint::D_At( const Point& p, CUPoint& result ) const
         Instant t( timeInterval.start +
                    ( ( timeInterval.end - timeInterval.start ) *
                    ( ( p.GetY() - p0.GetY() ) / ( p1.GetY() - p0.GetY() ) ) ));
-        Interval<Instant> interval( t, t, true, true );
+        temporalalgebra::Interval<Instant> interval( t, t, true, true );
         CUPoint unit(epsilon, interval, p, p );
         *pResult = unit;
         //delete unit;
@@ -943,7 +945,7 @@ void CUPoint::D_At( const Point& p, CUPoint& result ) const
         Instant t( timeInterval.start +
                    ( ( timeInterval.end - timeInterval.start ) *
                    ( ( p.GetX() - p0.GetX() ) / ( p1.GetX() - p0.GetX() ) ) ));
-        Interval<Instant> interval( t, t, true, true );
+        temporalalgebra::Interval<Instant> interval( t, t, true, true );
         CUPoint unit(epsilon, interval, p, p );
         *pResult = unit;
         //delete unit;
@@ -962,7 +964,7 @@ void CUPoint::D_At( const Point& p, CUPoint& result ) const
         Instant t( timeInterval.start +
                    ( ( timeInterval.end - timeInterval.start ) *
                    ( ( p.GetX() - p0.GetX() ) / ( p1.GetX() - p0.GetX() ) ) ));
-        Interval<Instant> interval( t, t, true, true );
+        temporalalgebra::Interval<Instant> interval( t, t, true, true );
         CUPoint unit(epsilon, interval, p, p );
         *pResult = unit;
         //delete unit;
@@ -1643,7 +1645,7 @@ Determine the timeInterval for the new unit:
                     ( (ep1.GetY() - p0.GetY()) / (p1.GetY() - p0.GetY()) );
               trc = true;
             }
-            Interval<Instant> interval( t0, t1, tlc, trc );
+            temporalalgebra::Interval<Instant> interval( t0, t1, tlc, trc );
             CUPoint unit( epsilon, interval, ep0, ep1 );
             result.Add( unit );
           }
@@ -1680,7 +1682,7 @@ Determine the timeInterval for the new unit:
                     ( (ep1.GetX() - p0.GetX()) / (p1.GetX() - p0.GetX()) );
               trc = true;
             }
-            Interval<Instant> interval( t0, t1, tlc, trc );
+            temporalalgebra::Interval<Instant> interval( t0, t1, tlc, trc );
             CUPoint unit( epsilon, interval, ep0, ep1 );
             result.Add( unit );
           }
@@ -1741,7 +1743,7 @@ Determine the timeInterval for the new unit:
                     ( (ep1.GetX() - p0.GetX()) / (p1.GetX() - p0.GetX()) );
               trc = true;
             }
-            Interval<Instant> interval( t0, t1, tlc, trc );
+            temporalalgebra::Interval<Instant> interval( t0, t1, tlc, trc );
 
             // +++++ for debugging purposes only +++++
             //cout << "Create a new CUPoint...\n";
@@ -1873,7 +1875,7 @@ from the cupoint's endpoints.
                 ( (ep1.GetY() - p0.GetY()) / (p1.GetY() - p0.GetY()) );
           trc = true;
         }
-        Interval<Instant> interval( t0, t1, tlc, trc );
+        temporalalgebra::Interval<Instant> interval( t0, t1, tlc, trc );
         CUPoint unit( epsilon, interval, ep0, ep1 );
         result = unit;
       }
@@ -1910,7 +1912,7 @@ from the cupoint's endpoints.
                 ( (ep1.GetX() - p0.GetX()) / (p1.GetX() - p0.GetX()) );
           trc = true;
         }
-        Interval<Instant> interval( t0, t1, tlc, trc );
+        temporalalgebra::Interval<Instant> interval( t0, t1, tlc, trc );
         CUPoint unit( epsilon, interval, ep0, ep1 );
         result = unit;
       }
@@ -1970,7 +1972,7 @@ from the cupoint's endpoints.
                 ( (ep1.GetX() - p0.GetX()) / (p1.GetX() - p0.GetX()) );
           trc = true;
         }
-        Interval<Instant> interval( t0, t1, tlc, trc );
+        temporalalgebra::Interval<Instant> interval( t0, t1, tlc, trc );
 
         // +++++ for debugging purposes only +++++
         //cout << "Create a new CUPoint...\n";
@@ -2804,7 +2806,7 @@ redefined.
                     ( (ep1.GetY() - p0.GetY()) / (p1.GetY() - p0.GetY()) );
               trc = true;
             }
-            Interval<Instant> interval( t0, t1, tlc, trc );
+            temporalalgebra::Interval<Instant> interval( t0, t1, tlc, trc );
             CUPoint unit( epsilon, interval, ep0, ep1 );
             result.Add( unit );
           }
@@ -2841,7 +2843,7 @@ redefined.
                     ( (ep1.GetX() - p0.GetX()) / (p1.GetX() - p0.GetX()) );
               trc = true;
             }
-            Interval<Instant> interval( t0, t1, tlc, trc );
+            temporalalgebra::Interval<Instant> interval( t0, t1, tlc, trc );
             CUPoint unit( epsilon, interval, ep0, ep1 );
             result.Add( unit );
           }
@@ -2902,7 +2904,7 @@ redefined.
                     ( (ep1.GetX() - p0.GetX()) / (p1.GetX() - p0.GetX()) );
               trc = true;
             }
-            Interval<Instant> interval( t0, t1, tlc, trc );
+            temporalalgebra::Interval<Instant> interval( t0, t1, tlc, trc );
 
             // +++++ for debugging purposes only +++++
             //cout << "Create a new CUPoint...\n";
@@ -2977,7 +2979,7 @@ void CMPoint::MergeAdd(const CUPoint& unit){
   else
     e = last.epsilon;
 
-  Interval<Instant> complete(last.timeInterval.start,
+  temporalalgebra::Interval<Instant> complete(last.timeInterval.start,
                              unit.timeInterval.end,
                              last.timeInterval.lc,
                              unit.timeInterval.rc);
@@ -3005,10 +3007,11 @@ void CMPoint::Restrict( const vector< pair<int, int> >& intervals )
   RestoreBoundingBox();        // recalculate it
 }
 
-void CMPoint::EndBulkLoad(const bool sort)
+bool CMPoint::EndBulkLoad(const bool sort, const bool dummy)
 {
-  Mapping<CUPoint, Point>::EndBulkLoad( sort ); // call super
+  bool res = Mapping<CUPoint, Point>::EndBulkLoad( sort ); // call super
   RestoreBoundingBox();                        // recalculate, if necessary
+  return res;
 }
 
 /*
@@ -3048,7 +3051,8 @@ void CMPoint::RestoreEpsilon()
 
 
 /*
-RestoreBoundingBox() checks, whether the MPoint's MBR ~bbox~ is ~undefined~
+RestoreBoundingBox() checks, whether the temporalalgebra::MPoint's 
+MBR ~bbox~ is ~undefined~
 and thus may needs to be recalculated and if, does so.
 
 */
@@ -3116,7 +3120,7 @@ bool CMPoint::Present( const Instant& t ) const
   return true;
 }
 
-bool CMPoint::Present( const Periods& t ) const
+bool CMPoint::Present( const temporalalgebra::Periods& t ) const
 {
   assert( IsDefined() );
   assert( IsOrdered() );
@@ -3138,12 +3142,13 @@ bool CMPoint::Present( const Periods& t ) const
       return false;
     }
   }
-  Periods defTime( 0 );
+  temporalalgebra::Periods defTime( 0 );
   DefTime( defTime );
   return t.Intersects( defTime );
 }
 
-void CMPoint::AtInstant( const Instant& t, Intime<Region>& result ) const
+void CMPoint::AtInstant( const Instant& t, 
+                         temporalalgebra::Intime<Region>& result ) const
 {
   assert( IsOrdered() );
   assert( t.IsDefined() );
@@ -3201,7 +3206,8 @@ void CMPoint::AtInstant( const Instant& t, Intime<Region>& result ) const
   }
 }
 
-void CMPoint::AtPeriods( const Periods& p, CMPoint& result ) const
+void CMPoint::AtPeriods( const temporalalgebra::Periods& p, 
+                         CMPoint& result ) const
 {
   assert( IsOrdered() );
   assert( p.IsOrdered() );
@@ -3232,7 +3238,7 @@ void CMPoint::AtPeriods( const Periods& p, CMPoint& result ) const
       {
         result.StartBulkLoad();
         CUPoint unit;
-        Interval<Instant> interval;
+        temporalalgebra::Interval<Instant> interval;
         int i = 0, j = 0;
         Get( i, unit );
         p.Get( j, interval );
@@ -3327,7 +3333,7 @@ bool CMPoint::D_Passes( const Point& p ) const
     }
 
     // If the epsilon-value equals 0, the cupoint-object is certain and
-    // can be casted to a UPoint-object.
+    // can be casted to a temporalalgebra::UPoint-object.
     return result;
   }
 }
@@ -3373,7 +3379,7 @@ bool CMPoint::P_Passes( const Point& p ) const
     }
 
     // If the epsilon-value equals 0, the cupoint-object is certain and
-    // can be casted to a UPoint-object.
+    // can be casted to a temporalalgebra::UPoint-object.
     return result;
   }
 }
@@ -4368,7 +4374,7 @@ int HCMPoint::Generalize(const int layer, const bool checkBreakPoints,
   Instant start(instanttype);
   Point p0(false, 0, 0);
   bool closeLeft;
-  bool leftDefined = false;
+  //bool leftDefined = false;
   int generalizedby = 0;
   int originstart = 0;
 
@@ -4394,7 +4400,7 @@ int HCMPoint::Generalize(const int layer, const bool checkBreakPoints,
       p0 = cup.p0;
       closeLeft = cup.timeInterval.lc;
       start = cup.timeInterval.start;
-      leftDefined = true;
+      //leftDefined = true;
     }
     if( useright[i] )
     {
@@ -4403,7 +4409,8 @@ int HCMPoint::Generalize(const int layer, const bool checkBreakPoints,
       //  cout << " error in mpoint simplification,"
       //       << " rightdefined before leftdefined "  << endl;
 
-      Interval<Instant> interval( start, cup.timeInterval.end, closeLeft,
+      temporalalgebra::Interval<Instant> interval(
+                      start, cup.timeInterval.end, closeLeft,
                                   cup.timeInterval.rc);
       CUPoint newCUPoint(realepsilon[i], interval, p0, cup.p1);
       // Create a new Entity for the hierarchical structure, containing this
@@ -4420,7 +4427,7 @@ int HCMPoint::Generalize(const int layer, const bool checkBreakPoints,
       // The next cup belongs to the next origin-hcup belongs to the next
       // generalization.
       generalizedby++;
-      leftDefined = false;
+      //leftDefined = false;
     }
   }
   return count;
@@ -4483,7 +4490,8 @@ void HCMPoint::Simplify(const int min, const int max, const int layer,
 }
 
 /*
-RestoreBoundingBox() checks, whether the MPoint's MBR ~bbox~ is ~undefined~
+RestoreBoundingBox() checks, whether the temporalalgebra::MPoint's
+ MBR ~bbox~ is ~undefined~
 and thus may needs to be recalculated and if, does so.
 
 */
@@ -4564,12 +4572,12 @@ inline void HCMPoint::GetFirstLayer( int& layer, int& size ) const
   }
 }
 
-void HCMPoint::DefTime( Periods& p )
+void HCMPoint::DefTime( temporalalgebra::Periods& p )
 {
   int layer, size;
   GetFirstLayer(layer, size);
 
-  Periods result( size );
+  temporalalgebra::Periods result( size );
 
   CUPoint unit;
   result.StartBulkLoad();
@@ -4612,13 +4620,14 @@ bool HCMPoint::Present( const Instant& t )
 }
 
 /*
-bool Present( const Periods\& t )
+bool Present( const temporalalgebra::Periods\& t )
 
 Checks all Units in the most uncertain Layer of the HCMPoint, if the given
-Periods-Value is completely inside the Definition-time of the HCMPoint-object.
+temporalalgebra::Periods-Value is completely inside the Definition-time 
+of the HCMPoint-object.
 
 */
-bool HCMPoint::Present( const Periods& t )
+bool HCMPoint::Present( const temporalalgebra::Periods& t )
 {
   assert( IsDefined() );
   assert( t.IsDefined() );
@@ -4636,7 +4645,8 @@ bool HCMPoint::Present( const Periods& t )
     // +++++ for debugging purposes only +++++
     cout << "HCMPoint::Present:\n";
     cout << "BBox-Min = " << MeMin << "    BBox-Max = " << MeMax << endl;
-    cout << "Periods-Min = " << pmin << "    Periods-Max = " << pmax << endl
+    cout << "temporalalgebra::Periods-Min = " << pmin 
+         << "    temporalalgebra::Periods-Max = " << pmax << endl
       << endl;
 
 
@@ -4650,20 +4660,20 @@ bool HCMPoint::Present( const Periods& t )
       return false;
     }
   }
-  Periods defTime( 0 );
+  temporalalgebra::Periods defTime( 0 );
   DefTime( defTime );
   return t.Intersects( defTime );
 }
 
 /*
-AtPeriods( const Periods\& per, HMPoint\& result )
+AtPeriods( const temporalalgebra::Periods\& per, HMPoint\& result )
 
 Computes, by a recursive in-order run, for every layer of this hmpoint-object
 the intersection of the hmpoint to the given periods and returns the
 intersection-set as a new hmpoint.
 
 */
-void HCMPoint::AtPeriods( const Periods& p, CMPoint& result )
+void HCMPoint::AtPeriods( const temporalalgebra::Periods& p, CMPoint& result )
 {
   assert( p.IsDefined() );
   assert( p.IsOrdered() );
@@ -4686,10 +4696,10 @@ void HCMPoint::AtPeriods( const Periods& p, CMPoint& result )
       (maxd < permind && !AlmostEqual(maxd,permind)) )
     return;
 
-  int layer, size, dummy;
+  int layer, size;
   GetFirstLayer(layer, size);
   result.StartBulkLoad();
-  dummy = AtPeriods( layer, 0, size-1, p, result );
+  AtPeriods( layer, 0, size-1, p, result );
   result.EndBulkLoad();
 }
 
@@ -4698,21 +4708,21 @@ bool AtInstant( const int layer, const int start, const int end,
 const Region\& r )
 
 This recursive Function determines, by a Devide-and-Conquer-Search through the
-hierarchical structure, a circular shaped Intime<Region>-Object, related to
+hierarchical structure, a circular shaped temporalalgebra::Intime<Region>-
+Object, related to
 the given Instant.
 
 */
 int HCMPoint::AtPeriods( const int layer, const int start, const int end,
-                  const Periods& p, CMPoint& result )
+                  const temporalalgebra::Periods& p, CMPoint& result )
 {
-  Interval<Instant> interval;
+  temporalalgebra::Interval<Instant> interval;
   HCUPoint ntt;
   int i = start, j = 0;
   Get(layer, i, ntt );
   CUPoint unit( ntt.value );
   p.Get( j, interval );
-  Periods auxPeriods( 0 );
-  int dummy;
+  temporalalgebra::Periods auxPeriods( 0 );
   bool bottomLayer = (LayerSize(layer+1) == 0);
 
   while( true )
@@ -4725,7 +4735,7 @@ int HCMPoint::AtPeriods( const int layer, const int start, const int end,
         int oend = ntt.GetOriginend();
         if(layer < 5 && ostart > -1 && oend > -1)
         {
-          dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result);
+          AtPeriods(layer+1, ostart, oend, auxPeriods, result);
           auxPeriods.Clear();
         }
       }
@@ -4787,7 +4797,7 @@ int HCMPoint::AtPeriods( const int layer, const int start, const int end,
           int oend = ntt.GetOriginend();
           if( !bottomLayer && ostart > -1 && oend > -1)
           {
-            dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result);
+            AtPeriods(layer+1, ostart, oend, auxPeriods, result);
             auxPeriods.Clear();
           }
           if( ++i > end )
@@ -4805,7 +4815,7 @@ int HCMPoint::AtPeriods( const int layer, const int start, const int end,
           int oend = ntt.GetOriginend();
           if( !bottomLayer && ostart > -1 && oend > -1)
           {
-            dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result);
+            AtPeriods(layer+1, ostart, oend, auxPeriods, result);
             auxPeriods.Clear();
           }
 
@@ -4828,7 +4838,7 @@ int HCMPoint::AtPeriods( const int layer, const int start, const int end,
         int oend = ntt.GetOriginend();
         if( !bottomLayer && ostart > -1 && oend > -1)
         {
-          dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result);
+          AtPeriods(layer+1, ostart, oend, auxPeriods, result);
           auxPeriods.Clear();
         }
         if( ++i > end )
@@ -4845,7 +4855,7 @@ int HCMPoint::AtPeriods( const int layer, const int start, const int end,
           int oend = ntt.GetOriginend();
           if( !bottomLayer && ostart > -1 && oend > -1)
           {
-            dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result);
+            AtPeriods(layer+1, ostart, oend, auxPeriods, result);
             auxPeriods.Clear();
           }
           break;
@@ -4896,13 +4906,13 @@ bool HCMPoint::D_Passes( const int layer, const int start, const int end,
   bool result = false;
   HCUPoint ntt;
   CUPoint cup;
-  UPoint u;
+  temporalalgebra::UPoint u;
 
   for(int i = start; i <= end; i++ )
   {
     Get(layer, i, ntt);
     cup = (ntt.value);
-    u = (UPoint)(ntt.value);
+    u = (temporalalgebra::UPoint)(ntt.value);
     if( cup.GetEpsilon() == 0.0 && u.Passes( p ) )
       return true;
     if( cup.P_Passes( p ) && layer < 4 )
@@ -5112,12 +5122,12 @@ void HCMPoint::D_At( const Point& p, CMPoint& result )
   if( !p.Inside(BBox2D()) )
     return;
 
-  bool resIsValid = false;
+  //bool resIsValid = false;
   int layer, size;
   GetFirstLayer(layer, size);
 
   result.StartBulkLoad();
-  resIsValid = D_At( layer, 0, size-1, p, result);
+  D_At( layer, 0, size-1, p, result);
   result.EndBulkLoad();
 
   // +++++ for debugging purposes only +++++
@@ -5176,13 +5186,13 @@ void HCMPoint::D_At( const Region& r, CMPoint& result )
   if( !r.BoundingBox().Intersects(BBox2D()) )
     return;
 
-  bool resIsValid = false;
+  //bool resIsValid = false;
   int layer, size;
   GetFirstLayer(layer, size);
 
   //CMPoint rescmpoint( 0 );
   result.StartBulkLoad();
-  resIsValid = D_At( layer, 0, size-1, r, result );
+  D_At( layer, 0, size-1, r, result );
   result.EndBulkLoad();
 
   // +++++ for debugging purposes only +++++
@@ -5275,12 +5285,12 @@ void HCMPoint::P_At( const Point& p, CMPoint& result )
   if( !p.Inside(BBox2D()) )
     return;
 
-  bool resIsValid = false;
+  //bool resIsValid = false;
   int layer, size;
   GetFirstLayer(layer, size);
 
   result.StartBulkLoad();
-  resIsValid = P_At( layer, 0, size-1, p, result);
+  P_At( layer, 0, size-1, p, result);
   result.EndBulkLoad();
 
   // +++++ for debugging purposes only +++++
@@ -5341,13 +5351,13 @@ void HCMPoint::P_At( const Region& r, CMPoint& result )
   if( !r.BoundingBox().Intersects(BBox2D()) )
     return;
 
-  bool resIsValid = false;
+  //bool resIsValid = false;
   int layer, size;
   GetFirstLayer(layer, size);
 
   //CMPoint& rescmpoint;
   result.StartBulkLoad();
-  resIsValid = P_At( layer, 0, size-1, r, result );
+  P_At( layer, 0, size-1, r, result );
   result.EndBulkLoad();
 
   // +++++ for debugging purposes only +++++
@@ -5430,10 +5440,11 @@ bool HCMPoint::P_At( const int layer, const int start, const int end,
 
 Checks, if the given Instant-Value lies inside the BoundingBox of this
 HCMPoint. If so, it calls a recursive Function to determine a circular shaped
-Intime<Region>-Object related to the given Instant.
+temporalalgebra::Intime<Region>-Object related to the given Instant.
 
 */
-void HCMPoint::AtInstant( const Instant& t, Intime<Region>& result )
+void HCMPoint::AtInstant( const Instant& t, 
+                          temporalalgebra::Intime<Region>& result )
 {
   assert( t.IsDefined() );
 
@@ -5464,13 +5475,13 @@ void HCMPoint::AtInstant( const Instant& t, Intime<Region>& result )
         result.SetDefined(false);
       else
       {
-        int layer, size, dummy;
+        int layer, size; 
         GetFirstLayer(layer, size);
 
         // +++++ for debugging purposes only +++++
         //cout << "HCMPoint::AtInstant: Initial recursive call...\n";
 
-        dummy = AtInstant( layer, 0, size-1, t, result );
+        AtInstant( layer, 0, size-1, t, result );
       }
     }
   }
@@ -5483,12 +5494,13 @@ bool AtInstant( const int layer, const int start, const int end,
 const Region\& r )
 
 This recursive Function determines, by a Devide-and-Conquer-Search through the
-hierarchical structure, a circular shaped Intime<Region>-Object, related to
+hierarchical structure, a circular shaped 
+temporalalgebra::Intime<Region>-Object, related to
 the given Instant.
 
 */
 int HCMPoint::AtInstant( const int layer, const int start, const int end,
-                  const Instant& t, Intime<Region>& result )
+                  const Instant& t, temporalalgebra::Intime<Region>& result )
 {
   int pos = Position( layer, t, start, end );
 
@@ -5753,11 +5765,12 @@ void HMPoint::Get( const int layer, const int i, CUPoint& cup ) const
   cup = (ntt.value);
 }
 
-//void HMPoint::Get( const int layer, const int i, UPoint const*& up ) const
+//void HMPoint::Get( const int layer, const int i, 
+// temporalalgebra::UPoint const*& up ) const
 //{
 //  const HCUPoint* ntt;
 //  Get( layer, i, ntt );
-//  up = (UPoint*)&(ntt->value);
+//  up = (temporalalgebra::UPoint*)&(ntt->value);
 //}
 
 void HMPoint::Get( const int i, HCUPoint& ntt ) const
@@ -5905,7 +5918,7 @@ void HMPoint::GetCMPoint( const double epsilon, CMPoint& result )
   }
 }
 
-void HMPoint::GetMPoint( MPoint& result )
+void HMPoint::GetMPoint( temporalalgebra::MPoint& result )
 {
   if( certainlayer.Size() == 0 )
   {
@@ -5916,12 +5929,12 @@ void HMPoint::GetMPoint( MPoint& result )
   result.Clear();
   result.Resize( certainlayer.Size() );
   HCUPoint ntt;
-  UPoint resunit(false);
+  temporalalgebra::UPoint resunit(false);
   result.StartBulkLoad();
   for(int i = 0; i < certainlayer.Size(); i++)
   {
     certainlayer.Get( i, ntt );
-    resunit = static_cast<UPoint>(ntt.value);
+    resunit = static_cast<temporalalgebra::UPoint>(ntt.value);
     result.Add( resunit );
   }
   result.EndBulkLoad();
@@ -6269,7 +6282,7 @@ int HMPoint::Generalize(const int layer, const bool checkBreakPoints,
   Instant start(instanttype);
   Point p0(false, 0, 0);
   bool closeLeft;
-  bool leftDefined = false;
+  //bool leftDefined = false;
   int generalizedby = 0;
   int originstart = 0;
 
@@ -6295,7 +6308,7 @@ int HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       p0 = cup.p0;
       closeLeft = cup.timeInterval.lc;
       start = cup.timeInterval.start;
-      leftDefined = true;
+      //leftDefined = true;
     }
     if( useright[i] )
     {
@@ -6304,7 +6317,8 @@ int HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       //  cout << " error in mpoint simplification,"
       //       << " rightdefined before leftdefined "  << endl;
 
-      Interval<Instant> interval( start, cup.timeInterval.end, closeLeft,
+      temporalalgebra::Interval<Instant> interval( 
+                          start, cup.timeInterval.end, closeLeft,
                                   cup.timeInterval.rc);
       CUPoint newCUPoint(realepsilon[i], interval, p0, cup.p1);
       // Create a new Entity for the hierarchical structure, containing this
@@ -6321,7 +6335,7 @@ int HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       // The next cup belongs to the next origin-hcup belongs to the next
       // generalization.
       generalizedby++;
-      leftDefined = false;
+      //leftDefined = false;
     }
   }
   return count;
@@ -6646,7 +6660,7 @@ If so, it calls a recursive Function to determine the HCMPoint definitely-
 at the given Point-value.
 
 */
-void HMPoint::D_At( const Point& p, MPoint& result )
+void HMPoint::D_At( const Point& p, temporalalgebra::MPoint& result )
 {
   assert( p.IsDefined() );
   assert( IsDefined() );
@@ -6655,12 +6669,12 @@ void HMPoint::D_At( const Point& p, MPoint& result )
   if( !p.Inside(BBox2D()) )
     return;
 
-  bool resIsValid = false;
+  //bool resIsValid = false;
   int layer, size;
   GetFirstLayer(layer, size);
 
   result.StartBulkLoad();
-  resIsValid = D_At( layer, 0, size-1, p, result);
+  D_At( layer, 0, size-1, p, result);
   result.EndBulkLoad();
 
   // +++++ for debugging purposes only +++++
@@ -6675,7 +6689,7 @@ This recursive function determines, by a pre-order run through the hierarchical
 
 */
 bool HMPoint::D_At( const int layer, const int start, const int end,
-                  const Point& p, MPoint& result)
+                  const Point& p, temporalalgebra::MPoint& result)
 {
   HCUPoint ntt;
   CUPoint unit;
@@ -6694,7 +6708,7 @@ bool HMPoint::D_At( const int layer, const int start, const int end,
 
       unit.D_At( p, resunit );
       if( resunit.IsDefined() )
-        result.Add( static_cast<UPoint>(resunit) );
+        result.Add( static_cast<temporalalgebra::UPoint>(resunit) );
       resIsValid = !result.IsEmpty();
     }
     else if( ntt.value.P_Passes(p) )
@@ -6711,7 +6725,7 @@ If so, it calls a recursive Function to determine the Units lying definitely-
 at the given Region-value.
 
 */
-void HMPoint::D_At( const Region& r, MPoint& result )
+void HMPoint::D_At( const Region& r, temporalalgebra::MPoint& result )
 {
   assert( r.IsDefined() );
   assert( IsDefined() );
@@ -6720,13 +6734,13 @@ void HMPoint::D_At( const Region& r, MPoint& result )
   if( !r.BoundingBox().Intersects(BBox2D()) )
     return;
 
-  bool resIsValid = false;
+  //bool resIsValid = false;
   int layer, size;
   GetFirstLayer(layer, size);
 
   //CMPoint& rescmpoint;
   result.StartBulkLoad();
-  resIsValid = D_At( layer, 0, size-1, r, result );
+  D_At( layer, 0, size-1, r, result );
   result.EndBulkLoad();
 
   // +++++ for debugging purposes only +++++
@@ -6743,7 +6757,7 @@ This recursive Function determines, by a pre-order run through the hierarchical
 
 */
 bool HMPoint::D_At( const int layer, const int start, const int end,
-                  const Region& r, MPoint& result )
+                  const Region& r, temporalalgebra::MPoint& result )
 {
   HCUPoint ntt;
   CUPoint unit;
@@ -6787,7 +6801,7 @@ bool HMPoint::D_At( const int layer, const int start, const int end,
           //cout<< "HCMPoint::D_At(...): Add CUPoint to the result-CMPoint:\n";
           //resunit->Print(cout);
 
-          result.Add( static_cast<UPoint>(resunit) );
+          result.Add( static_cast<temporalalgebra::UPoint>(resunit) );
         }
       }
       resIsValid = !result.IsEmpty();
@@ -6810,10 +6824,11 @@ bool HMPoint::D_At( const int layer, const int start, const int end,
 
 Checks, if the given Instant-Value lies inside the BoundingBox of this
 HCMPoint. If so, it calls a recursive Function to determine a circular shaped
-Intime<Region>-Object related to the given Instant.
+temporalalgebra::Intime<Region>-Object related to the given Instant.
 
 */
-void HMPoint::AtInstant( const Instant& t, Intime<Point>& result )
+void HMPoint::AtInstant( const Instant& t, 
+                         temporalalgebra::Intime<Point>& result )
 {
   assert( t.IsDefined() );
 
@@ -6836,9 +6851,9 @@ void HMPoint::AtInstant( const Instant& t, Intime<Point>& result )
         result.SetDefined(false);
       else
       {
-        int layer, size, dummy;
+        int layer, size;
         GetFirstLayer(layer, size);
-        dummy = AtInstant( layer, 0, size-1, t, result );
+        AtInstant( layer, 0, size-1, t, result );
       }
     }
   }
@@ -6851,12 +6866,13 @@ bool AtInstant( const int layer, const int start, const int end,
 const Region\& r )
 
 This recursive Function determines, by a Devide-and-Conquer-Search through the
-hierarchical structure, a circular shaped Intime<Region>-Object, related to
+hierarchical structure, a circular shaped 
+temporalalgebra::Intime<Region>-Object, related to
 the given Instant.
 
 */
 int HMPoint::AtInstant( const int layer, const int start, const int end,
-                  const Instant& t, Intime<Point>& result )
+                  const Instant& t, temporalalgebra::Intime<Point>& result )
 {
   int pos = Position( layer, t, start, end );
 
@@ -6892,14 +6908,15 @@ int HMPoint::AtInstant( const int layer, const int start, const int end,
 }
 
 /*
-AtPeriods( const Periods\& per, HMPoint\& result )
+AtPeriods( const temporalalgebra::Periods\& per, HMPoint\& result )
 
 Computes, by a recursive in-order run, for every layer of this hmpoint-object
 the intersection of the hmpoint to the given periods and returns the
 intersection-set as a new hmpoint.
 
 */
-void HMPoint::AtPeriods( const Periods& p, MPoint& result )
+void HMPoint::AtPeriods( const temporalalgebra::Periods& p, 
+                         temporalalgebra::MPoint& result )
 {
   assert( p.IsDefined() );
   assert( p.IsOrdered() );
@@ -6922,10 +6939,10 @@ void HMPoint::AtPeriods( const Periods& p, MPoint& result )
       (maxd < permind && !AlmostEqual(maxd,permind)) )
     return;
 
-  int layer, size, dummy;
+  int layer, size;
   GetFirstLayer(layer, size);
   result.StartBulkLoad();
-  dummy = AtPeriods( layer, 0, size-1, p, result );
+  AtPeriods( layer, 0, size-1, p, result );
   result.EndBulkLoad();
 }
 
@@ -6934,22 +6951,23 @@ bool AtInstant( const int layer, const int start, const int end,
 const Region\& r )
 
 This recursive Function determines, by a Devide-and-Conquer-Search through the
-hierarchical structure, a circular shaped Intime<Region>-Object, related to
+hierarchical structure, a circular shaped 
+temporalalgebra::Intime<Region>-Object, related to
 the given Instant.
 
 */
 int HMPoint::AtPeriods( const int layer, const int start, const int end,
-                  const Periods& p, MPoint& result )
+                  const temporalalgebra::Periods& p, 
+                  temporalalgebra::MPoint& result )
 {
-  Interval<Instant> interval;
+  temporalalgebra::Interval<Instant> interval;
   HCUPoint ntt;
   int i = start, j = 0;
   //int layerSize = LayerSize(layer);
   Get(layer, i, ntt );
   CUPoint unit( ntt.value );
   p.Get( j, interval );
-  Periods auxPeriods( 0 );
-  int dummy;
+  temporalalgebra::Periods auxPeriods( 0 );
 
   while( true )
   {
@@ -6961,7 +6979,7 @@ int HMPoint::AtPeriods( const int layer, const int start, const int end,
         int oend = ntt.GetOriginend();
         if(layer < 5 && ostart > -1 && oend > -1)
         {
-          dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result);
+          AtPeriods(layer+1, ostart, oend, auxPeriods, result);
           auxPeriods.Clear();
         }
       }
@@ -7023,7 +7041,7 @@ int HMPoint::AtPeriods( const int layer, const int start, const int end,
           int oend = ntt.GetOriginend();
           if(layer < 5 && ostart > -1 && oend > -1)
           {
-            dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result);
+            AtPeriods(layer+1, ostart, oend, auxPeriods, result);
             auxPeriods.Clear();
           }
           if( ++i > end )
@@ -7041,7 +7059,7 @@ int HMPoint::AtPeriods( const int layer, const int start, const int end,
           int oend = ntt.GetOriginend();
           if(layer < 5 && ostart > -1 && oend > -1)
           {
-            dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result);
+            AtPeriods(layer+1, ostart, oend, auxPeriods, result);
             auxPeriods.Clear();
           }
 
@@ -7064,7 +7082,7 @@ int HMPoint::AtPeriods( const int layer, const int start, const int end,
         int oend = ntt.GetOriginend();
         if(layer < 5 && ostart > -1 && oend > -1)
         {
-          dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result);
+          AtPeriods(layer+1, ostart, oend, auxPeriods, result);
           auxPeriods.Clear();
         }
         if( ++i > end )
@@ -7081,7 +7099,7 @@ int HMPoint::AtPeriods( const int layer, const int start, const int end,
           int oend = ntt.GetOriginend();
           if(layer < 5 && ostart > -1 && oend > -1)
           {
-            dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result);
+            AtPeriods(layer+1, ostart, oend, auxPeriods, result);
             auxPeriods.Clear();
           }
           break;
@@ -7719,18 +7737,20 @@ bool FindPosPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
 }
 
 void Generalize( const double epsilon, const double factor,
-                  const MPoint& source, const bool checkBreakPoints,
-                  const DateTime dur, HMPoint& result)
+                 const temporalalgebra::MPoint& source, 
+                 const bool checkBreakPoints,
+                 const DateTime dur, HMPoint& result)
 {
   if( !source.IsDefined() )
   {
-    cout << "The given MPoint-object is NOT defined!\n";
+    cout << "The given temporalalgebra::MPoint-object is NOT defined!\n";
     result.SetDefined(false);
     return;
   }
   if( source.GetNoComponents() < 2 )
   {
-    cout << "The given MPoint-object contains less than 2 units!\n"
+    cout << "The given temporalalgebra::MPoint-object "
+         << "contains less than 2 units!\n"
       << "There is nothing to generalize!\n";
     result.SetDefined(false);
     return;
@@ -7745,9 +7765,9 @@ void Generalize( const double epsilon, const double factor,
   result.SetEpsilon( epsilon );
   result.SetFactor( factor );
 
-  // insert the MPoint into the DBArray certainlayer
+  // insert the temporalalgebra::MPoint into the DBArray certainlayer
   int n = source.GetNoComponents();
-  UPoint unit;
+  temporalalgebra::UPoint unit;
   result.certainlayer.resize( n );
 
   for(int i = 0; i < n; i++)
@@ -7781,7 +7801,7 @@ void Generalize( const double eps, const double factor, const int layer,
   double epsilon = eps;
   if( !source.IsDefined() )
   {
-    cout << "The given MPoint-object is NOT defined!\n";
+    cout << "The given temporalalgebra::MPoint-object is NOT defined!\n";
     return;
   }
   if( source.GetNoComponents() < 4 )
@@ -7807,7 +7827,7 @@ void Generalize( const double eps, const double factor, const int layer,
   result.SetEpsilon( epsilon );
   result.SetFactor( factor );
 
-  // insert the MPoint into the DBArray certainlayer
+  // insert the temporalalgebra::MPoint into the DBArray certainlayer
   int n = source.GetNoComponents();
   CUPoint unit;
   result.ResizeLayer( j, n );
@@ -7842,7 +7862,7 @@ static bool IsBreakPoint(const CUPoint* u,const DateTime& duration){
    return (dur > duration);
 }
 
-static bool connected(const CUPoint* u1, const UPoint* u2){
+static bool connected(const CUPoint* u1, const temporalalgebra::UPoint* u2){
   if( !AlmostEqual(u1->p1, u2->p0) ){ // spatial connected
     // +++++ for debugging purposes only +++++
     cout << "The Units are not SPATIAL connected!\n";
@@ -8001,7 +8021,7 @@ Word InCUPoint( const ListExpr typeInfo, const ListExpr instance,
             return SetWord( Address(0) );
           }
 
-          Interval<Instant> tinterval( *start, *end,
+          temporalalgebra::Interval<Instant> tinterval( *start, *end,
                                        nl->BoolValue( nl->Third( tintvl ) ),
                                        nl->BoolValue( nl->Fourth( tintvl ) ) );
           delete start;
@@ -8081,7 +8101,7 @@ Word InCUPoint( const ListExpr typeInfo, const ListExpr instance,
   {
     CUPoint *cupoint = new CUPoint(false);
     cupoint->timeInterval=
-      Interval<DateTime>(DateTime(instanttype),
+      temporalalgebra::Interval<DateTime>(DateTime(instanttype),
                          DateTime(instanttype),true,true);
     correct = cupoint->timeInterval.IsValid();
     if ( correct )
@@ -8231,18 +8251,18 @@ CheckCMPoint( ListExpr type, ListExpr& errorInfo )
 TypeConstructor uncertainmovingpoint(
         CMPoint::BasicType(),                           //name
         CMPointProperty,        //property function describing signature
-        OutMapping<CMPoint, CUPoint, OutCUPoint>,
-        InMapping<CMPoint, CUPoint, InCUPoint>,//Out and In functions
+        temporalalgebra::OutMapping<CMPoint, CUPoint, OutCUPoint>,
+        temporalalgebra::InMapping<CMPoint, CUPoint, InCUPoint>,
         0,
         0,                 //SaveToList and RestoreFromList functions
-        CreateMapping<CMPoint>,
-        DeleteMapping<CMPoint>,     //object creation and deletion
+        temporalalgebra::CreateMapping<CMPoint>,
+        temporalalgebra::DeleteMapping<CMPoint>, 
         0,
         0,      // object open and save
-        CloseMapping<CMPoint>,
-        CloneMapping<CMPoint>, //object close and clone
-        CastMapping<CMPoint>,    //cast function
-        SizeOfMapping<CMPoint>, //sizeof function
+        temporalalgebra::CloseMapping<CMPoint>,
+        temporalalgebra::CloneMapping<CMPoint>, //object close and clone
+        temporalalgebra::CastMapping<CMPoint>,    //cast function
+        temporalalgebra::SizeOfMapping<CMPoint>, //sizeof function
         CheckCMPoint );  //kind checking function
 
 
@@ -8438,7 +8458,7 @@ Word InHCUPoint( const ListExpr typeInfo, const ListExpr instance,
               return SetWord( Address(0) );
             }
 
-            Interval<Instant> tinterval( *start, *end,
+            temporalalgebra::Interval<Instant> tinterval( *start, *end,
                                      nl->BoolValue( nl->Third( tintvl ) ),
                                      nl->BoolValue( nl->Fourth( tintvl ) ) );
             delete start;
@@ -8853,7 +8873,8 @@ Word InHCMPoint( const ListExpr typeInfo, const ListExpr instance,
 
     if( correct && ( !ntt->IsDefined() ) )
     {
-      errmsg = "InHCMPoint(): Entity " + int2string(nttcounter) + " is undef.";
+      errmsg = "InHCMPoint(): Entity " + stringutils::int2str(nttcounter) 
+               + " is undef.";
       errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
       correct = false;
       delete ntt;
@@ -8863,7 +8884,7 @@ Word InHCMPoint( const ListExpr typeInfo, const ListExpr instance,
     if ( !correct )
     {
       errmsg = "InHCMPoint(): Representation of Entity "
-                + int2string(nttcounter) + " is wrong.";
+                + stringutils::int2str(nttcounter) + " is wrong.";
       errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
       hcmp->Destroy();
       delete hcmp;
@@ -9260,7 +9281,8 @@ Word InHMPoint( const ListExpr typeInfo, const ListExpr instance,
 
     if( correct && ( !ntt->IsDefined() ) )
     {
-      errmsg = "InHMPoint(): Entity " + int2string(nttcounter) + " is undef.";
+      errmsg = "InHMPoint(): Entity " + stringutils::int2str(nttcounter) 
+               + " is undef.";
       errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
       correct = false;
       delete ntt;
@@ -9270,7 +9292,7 @@ Word InHMPoint( const ListExpr typeInfo, const ListExpr instance,
     if ( !correct )
     {
       errmsg = "InHMPoint(): Representation of Entity "
-                + int2string(nttcounter) + " is wrong.";
+                + stringutils::int2str(nttcounter) + " is wrong.";
       errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
       hmp->Destroy();
       delete hmp;
@@ -9489,11 +9511,11 @@ ListExpr UncertainTypeMapBaseToUncertain( ListExpr args )
     ListExpr arg1 = nl->First( args );
     ListExpr arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, UPoint::BasicType())  &&
+    if( nl->IsEqual( arg1, temporalalgebra::UPoint::BasicType())  &&
         nl->IsEqual( arg2, CcReal::BasicType()) )
       return nl->SymbolAtom( CUPoint::BasicType() );
 
-    if( nl->IsEqual( arg1, MPoint::BasicType()) &&
+    if( nl->IsEqual( arg1, temporalalgebra::MPoint::BasicType()) &&
         nl->IsEqual( arg2, CcReal::BasicType()) )
       return nl->SymbolAtom( CMPoint::BasicType() );
 
@@ -9561,7 +9583,7 @@ ListExpr UncertainMovingTypeMapPeriods( ListExpr args )
     if( nl->IsEqual( arg1, CMPoint::BasicType() ) ||
         nl->IsEqual( arg1, HCMPoint::BasicType() ) ||
         nl->IsEqual( arg1, HMPoint::BasicType() ) )
-      return nl->SymbolAtom( Periods::BasicType() );
+      return nl->SymbolAtom( temporalalgebra::Periods::BasicType() );
 
     if (nl->AtomType( args ) == SymbolType)
     {
@@ -9592,7 +9614,7 @@ ListExpr UncertainMovingInstantPeriodsTypeMapBool( ListExpr args )
         nl->IsEqual(arg1, HCMPoint::BasicType()) ||
         nl->IsEqual(arg1, HMPoint::BasicType()) ) &&
         (nl->IsEqual(arg2, Instant::BasicType()) ||
-        nl->IsEqual(arg2, Periods::BasicType())) )
+        nl->IsEqual(arg2, temporalalgebra::Periods::BasicType())) )
       return nl->SymbolAtom( CcBool::BasicType() );
 
     if (nl->AtomType( arg1 ) == SymbolType &&
@@ -9731,7 +9753,7 @@ ListExpr UncertainDAtTypeMapMoving( ListExpr args )
           nl->IsEqual(arg1, HCMPoint::BasicType()) )
         return nl->SymbolAtom(CMPoint::BasicType());
       if( nl->IsEqual(arg1, HMPoint::BasicType()) )
-        return nl->SymbolAtom(MPoint::BasicType());
+        return nl->SymbolAtom(temporalalgebra::MPoint::BasicType());
     }
     if( nl->IsEqual( arg2, Region::BasicType()) )
     {
@@ -9741,7 +9763,7 @@ ListExpr UncertainDAtTypeMapMoving( ListExpr args )
       if( nl->IsEqual(arg1, HCMPoint::BasicType()) )
         return nl->SymbolAtom(CMPoint::BasicType());
       if( nl->IsEqual(arg1, HMPoint::BasicType()) )
-        return nl->SymbolAtom(MPoint::BasicType());
+        return nl->SymbolAtom(temporalalgebra::MPoint::BasicType());
     }
 
     if (nl->AtomType( arg1 ) == SymbolType &&
@@ -9774,7 +9796,7 @@ ListExpr HierarchicalAtTypeMapMoving( ListExpr args )
         nl->IsEqual( arg2, Region::BasicType() ) )
     {
       if( nl->IsEqual(arg1, HMPoint::BasicType()) )
-        return nl->SymbolAtom(MPoint::BasicType());
+        return nl->SymbolAtom(temporalalgebra::MPoint::BasicType());
     }
 
     if (nl->AtomType( arg1 ) == SymbolType &&
@@ -9851,13 +9873,13 @@ ListExpr UncertainMovingInstantTypeMapIntime( ListExpr args )
       if( nl->IsEqual( arg1, CUPoint::BasicType() ) ||
           nl->IsEqual( arg1, CMPoint::BasicType() ) ||
           nl->IsEqual( arg1, HCMPoint::BasicType()) )
-        return nl->SymbolAtom( IRegion::BasicType() );
+        return nl->SymbolAtom( temporalalgebra::IRegion::BasicType() );
     }
 
     if( nl->IsEqual( arg2, Instant::BasicType() ) )
     {
       if( nl->IsEqual( arg1, HMPoint::BasicType()) )
-        return nl->SymbolAtom( IPoint::BasicType() );
+        return nl->SymbolAtom( temporalalgebra::IPoint::BasicType() );
     }
 
     if (nl->AtomType( arg1 ) == SymbolType &&
@@ -9886,14 +9908,14 @@ ListExpr UncertainMovingPeriodsTypeMapMoving( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, Periods::BasicType() ) )
+    if( nl->IsEqual( arg2, temporalalgebra::Periods::BasicType() ) )
     {
       if( nl->IsEqual( arg1, CMPoint::BasicType() ) ||
           nl->IsEqual( arg1, HCMPoint::BasicType() ) )
         return nl->SymbolAtom( CMPoint::BasicType() );
 
       if( nl->IsEqual( arg1, HMPoint::BasicType() ) )
-        return nl->SymbolAtom( MPoint::BasicType() );
+        return nl->SymbolAtom( temporalalgebra::MPoint::BasicType() );
     }
 
     if (nl->AtomType( arg1 ) == SymbolType &&
@@ -10023,7 +10045,7 @@ ListExpr MovingTypeMapHierarchy( ListExpr args )
     ListExpr arg2 = nl->Second(args);
     ListExpr arg3 = nl->Third(args);
 
-    if( nl->IsEqual( arg1, MPoint::BasicType() ) &&
+    if( nl->IsEqual( arg1, temporalalgebra::MPoint::BasicType() ) &&
         nl->IsEqual( arg2, CcReal::BasicType() ) &&
         nl->IsEqual( arg3, CcReal::BasicType() ) )
       return nl->SymbolAtom(HMPoint::BasicType());
@@ -10066,7 +10088,7 @@ ListExpr HierarchicalMovingTypeMapMoving( ListExpr args )
     ListExpr arg1 = nl->First(args);
 
     if( nl->IsEqual( arg1, HMPoint::BasicType() ) )
-      return nl->SymbolAtom(MPoint::BasicType());
+      return nl->SymbolAtom(temporalalgebra::MPoint::BasicType());
 
     if (nl->AtomType( args ) == SymbolType)
     {
@@ -10342,7 +10364,7 @@ int UncertainMovingInstantPeriodsSelect( ListExpr args )
     return 0;
 
   if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() &&
-      nl->SymbolValue( arg2 ) == Periods::BasicType() )
+      nl->SymbolValue( arg2 ) == temporalalgebra::Periods::BasicType() )
     return 1;
 
   if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() &&
@@ -10350,7 +10372,7 @@ int UncertainMovingInstantPeriodsSelect( ListExpr args )
     return 2;
 
   if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() &&
-      nl->SymbolValue( arg2 ) == Periods::BasicType() )
+      nl->SymbolValue( arg2 ) == temporalalgebra::Periods::BasicType() )
     return 3;
 
   if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() &&
@@ -10358,7 +10380,7 @@ int UncertainMovingInstantPeriodsSelect( ListExpr args )
     return 4;
 
   if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() &&
-      nl->SymbolValue( arg2 ) == Periods::BasicType() )
+      nl->SymbolValue( arg2 ) == temporalalgebra::Periods::BasicType() )
     return 5;
 
 
@@ -10373,10 +10395,10 @@ int TemporalToUncertainSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == UPoint::BasicType() )
+  if( nl->SymbolValue( arg1 ) == temporalalgebra::UPoint::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == MPoint::BasicType() )
+  if( nl->SymbolValue( arg1 ) == temporalalgebra::MPoint::BasicType() )
     return 1;
 
   return -1; // This point should never be reached
@@ -10407,7 +10429,7 @@ int TemporalToHierarchySelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == MPoint::BasicType() )
+  if( nl->SymbolValue( arg1 ) == temporalalgebra::MPoint::BasicType() )
     return 0;
 
   if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() )
@@ -10448,7 +10470,8 @@ int CUPointToUncertain( Word* args, Word& result, int message, Word& local,
                                   Supplier s )
 {
   result = qp->ResultStorage( s );
-  UPoint *u = static_cast<UPoint*>(args[0].addr);
+  temporalalgebra::UPoint *u = 
+                  static_cast<temporalalgebra::UPoint*>(args[0].addr);
   CcReal *e = static_cast<CcReal*>(args[1].addr);
   CUPoint *cup = ((CUPoint*)result.addr);
 
@@ -10598,8 +10621,9 @@ int CUPointAtInstant( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   CUPoint* cup = ((CUPoint*)args[0].addr);
   Instant* inst = (Instant*) args[1].addr;
-  IRegion aux(false);
-  Intime<Region>* pResult = (Intime<Region>*)result.addr;
+  temporalalgebra::IRegion aux(false);
+  temporalalgebra::Intime<Region>* pResult =
+                     (temporalalgebra::Intime<Region>*)result.addr;
 
   cup->AtInstant(*inst, aux);
   pResult->CopyFrom( &aux );
@@ -10730,11 +10754,12 @@ int CMPointToUncertain( Word* args, Word& result, int message, Word& local,
                                   Supplier s )
 {
   result = qp->ResultStorage( s );
-  MPoint *m = static_cast<MPoint*>(args[0].addr);
+  temporalalgebra::MPoint *m = 
+                 static_cast<temporalalgebra::MPoint*>(args[0].addr);
   CcReal *e = static_cast<CcReal*>(args[1].addr);
   CMPoint *cmp = ((CMPoint*)result.addr);
 
-  UPoint unit;
+  temporalalgebra::UPoint unit;
 
   cmp->Clear();
 
@@ -10837,7 +10862,7 @@ int CMPointPresent_p( Word* args, Word& result,
   result = qp->ResultStorage( s );
 
   CMPoint *m = ((CMPoint*)args[0].addr);
-  Periods* periods = ((Periods*)args[1].addr);
+  temporalalgebra::Periods* periods = ((temporalalgebra::Periods*)args[1].addr);
 
   if( periods->IsEmpty() )
     ((CcBool *)result.addr)->Set( false, false );
@@ -10859,8 +10884,9 @@ int CMPointAtInstant( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   CMPoint* cmp = ((CMPoint*)args[0].addr);
   Instant* inst = (Instant*) args[1].addr;
-  Intime<Region>* pResult = (Intime<Region>*)result.addr;
-  IRegion aux(false);
+  temporalalgebra::Intime<Region>* pResult = 
+                  (temporalalgebra::Intime<Region>*)result.addr;
+  temporalalgebra::IRegion aux(false);
 
   cmp->AtInstant(*inst, aux);
   pResult->CopyFrom( &aux );
@@ -10879,7 +10905,7 @@ int CMPointAtPeriods( Word* args, Word& result, int message,
   CMPoint* cmp = ((CMPoint*)args[0].addr);
   CMPoint aux(false);
   CMPoint* pResult = (CMPoint*)result.addr;
-  Periods* per = (Periods*)args[1].addr;
+  temporalalgebra::Periods* per = (temporalalgebra::Periods*)args[1].addr;
 
   cmp->AtPeriods(*per,aux);
   pResult->CopyFrom( &aux );
@@ -11121,7 +11147,8 @@ int GeneralizeMPoint( Word* args, Word& result, int message, Word& local,
                                   Supplier s )
 {
   result = qp->ResultStorage( s );
-  MPoint *m = static_cast<MPoint*>(args[0].addr);
+  temporalalgebra::MPoint *m = 
+                 static_cast<temporalalgebra::MPoint*>(args[0].addr);
   CcReal *e = static_cast<CcReal*>(args[1].addr);
   CcReal *f = static_cast<CcReal*>(args[2].addr);
   HMPoint* pResult = (HMPoint*)result.addr;
@@ -11173,7 +11200,7 @@ int HMPointTrajectory( Word* args, Word& result, int message, Word& local,
   Line* pResult = (Line*)result.addr;
   Line auxln( 0 );
 
-  MPoint aux( 0 );
+  temporalalgebra::MPoint aux( 0 );
 
   if( hmp->IsDefined() )
   {
@@ -11199,8 +11226,8 @@ int HMPointGetMPoint( Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   HMPoint *hmp = static_cast<HMPoint*>(args[0].addr);
-  MPoint* pResult = (MPoint*)result.addr;
-  MPoint aux( 0 );
+  temporalalgebra::MPoint* pResult = (temporalalgebra::MPoint*)result.addr;
+  temporalalgebra::MPoint aux( 0 );
 
 
   if( hmp->IsDefined() )
@@ -11293,8 +11320,8 @@ int HMPointD_AtPoint(Word* args, Word& result, int message,
 
   HMPoint *m = ((HMPoint*)args[0].addr);
   Point* p = ((Point*)args[1].addr);
-  MPoint* pResult = (MPoint*)result.addr;
-  MPoint aux( 0 );
+  temporalalgebra::MPoint* pResult = (temporalalgebra::MPoint*)result.addr;
+  temporalalgebra::MPoint aux( 0 );
 
   m->D_At(*p, aux);
   pResult->CopyFrom( &aux );
@@ -11310,8 +11337,8 @@ int HMPointD_AtRegion(Word* args, Word& result, int message,
 
   HMPoint *m = ((HMPoint*)args[0].addr);
   Region* r = ((Region*)args[1].addr);
-  MPoint* pResult = (MPoint*)result.addr;
-  MPoint aux( 0 );
+  temporalalgebra::MPoint* pResult = (temporalalgebra::MPoint*)result.addr;
+  temporalalgebra::MPoint aux( 0 );
 
   m->D_At(*r, aux);
   pResult->CopyFrom( &aux );
@@ -11353,7 +11380,8 @@ int HMPointAtInstant( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   HMPoint* hmp = ((HMPoint*)args[0].addr);
   Instant* inst = (Instant*) args[1].addr;
-  Intime<Point>* pResult = (Intime<Point>*)result.addr;
+  temporalalgebra::Intime<Point>* pResult = 
+                     (temporalalgebra::Intime<Point>*)result.addr;
 
   hmp->AtInstant(*inst, *pResult);
   return 0;
@@ -11368,8 +11396,8 @@ int HMPointAtPeriods( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   HMPoint* hmp = ((HMPoint*)args[0].addr);
-  Periods* per = (Periods*)args[1].addr;
-  MPoint* pResult = (MPoint*)result.addr;
+  temporalalgebra::Periods* per = (temporalalgebra::Periods*)args[1].addr;
+  temporalalgebra::MPoint* pResult = (temporalalgebra::MPoint*)result.addr;
 
   hmp->AtPeriods(*per,*pResult);
   return 0;
@@ -11554,8 +11582,8 @@ int HCMPointDeftime( Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   HCMPoint* hcmp = static_cast<HCMPoint*>(args[0].addr);
-  Periods* pResult = (Periods*)result.addr;
-  Periods aux( 0 );
+  temporalalgebra::Periods* pResult = (temporalalgebra::Periods*)result.addr;
+  temporalalgebra::Periods aux( 0 );
 
   if( hcmp->IsDefined() )
   {
@@ -11599,7 +11627,7 @@ int HCMPointPresent_p( Word* args, Word& result,
   result = qp->ResultStorage( s );
 
   HCMPoint *hcmp = ((HCMPoint*)args[0].addr);
-  Periods* periods = ((Periods*)args[1].addr);
+  temporalalgebra::Periods* periods = ((temporalalgebra::Periods*)args[1].addr);
 
   if( periods->IsEmpty() )
     ((CcBool *)result.addr)->Set( false, false );
@@ -11786,8 +11814,9 @@ int HCMPointAtInstant( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   HCMPoint* hcmp = ((HCMPoint*)args[0].addr);
   Instant* inst = (Instant*) args[1].addr;
-  Intime<Region>* pResult = (Intime<Region>*)result.addr;
-  IRegion aux(false);
+  temporalalgebra::Intime<Region>* pResult = 
+                     (temporalalgebra::Intime<Region>*)result.addr;
+  temporalalgebra::IRegion aux(false);
 
   hcmp->AtInstant(*inst, aux);
   pResult->CopyFrom( &aux );
@@ -11803,7 +11832,7 @@ int HCMPointAtPeriods( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   HCMPoint* hcmp = ((HCMPoint*)args[0].addr);
-  Periods* per = (Periods*)args[1].addr;
+  temporalalgebra::Periods* per = (temporalalgebra::Periods*)args[1].addr;
   CMPoint* pResult = (CMPoint*)result.addr;
   CMPoint aux( 0 );
 
@@ -11916,9 +11945,9 @@ ValueMapping hierarchicalgetcmpointmap[] = {
                                       HCMPointGetCMPoint };
 
 ValueMapping hierarchicaldeftimemap[] = {
-                                      MappingDefTime<CMPoint>,
-                                      HCMPointDeftime,
-                                      HCMPointDeftime };
+                                   temporalalgebra::MappingDefTime<CMPoint>,
+                                   HCMPointDeftime,
+                                   HCMPointDeftime };
 
 ValueMapping generalizemap[] = {      GeneralizeMPoint,
                                       GeneralizeCMPoint };

@@ -60,7 +60,7 @@ class MPointCreator : public IMapMatchingMHTResultCreator
 {
 public:
 
-    MPointCreator(MPoint* pResMPoint, double dNetworkScale);
+    MPointCreator(temporalalgebra::MPoint* pResMPoint, double dNetworkScale);
     virtual ~MPointCreator();
 
     virtual bool CreateResult(const std::vector<MHTRouteCandidate*>&
@@ -74,13 +74,13 @@ private:
                        std::vector<const SimpleLine*>& vecCurvesBetweenPoints);
 
     void ProcessCurve(const SimpleLine& rCurve,
-                      const Interval<Instant> TimeInterval,
+                      const temporalalgebra::Interval<Instant> TimeInterval,
                       double dCurveLength = -1.0);
 
     bool Init(void);
     void Finalize(void);
 
-    MPoint* m_pResMPoint;
+    temporalalgebra::MPoint* m_pResMPoint;
     double m_dNetworkScale;
 };
 

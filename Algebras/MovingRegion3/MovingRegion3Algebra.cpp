@@ -90,6 +90,9 @@ of these classes too.
 #include "MovingRegion3Algebra.h"
 #include "Refinement2.h"
 
+
+namespace temporalalgebra{
+
 /*
 Set ~MR2\_DEBUG~ to ~true~ for debug output. Please note that debug output is
 very verbose and has significant negative input on the algebra's performance.
@@ -15238,12 +15241,14 @@ public:
   ~MovingRegion3Algebra() {}
 };
 
+}
+
 
 extern "C"
 Algebra* InitializeMovingRegion3Algebra(NestedList* nlRef,
          QueryProcessor *qpRef) {
   nl = nlRef;
   qp = qpRef;
-  return new MovingRegion3Algebra();
+  return new temporalalgebra::MovingRegion3Algebra();
 }
 

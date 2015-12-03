@@ -55,6 +55,7 @@ This class is essentially a container for both ~SourceUnits~ A and B
 #include "Refinement3.h"
 #include "ResultUnitFactory.h"
 
+namespace temporalalgebra {
 namespace mregionops2 {
 
 class SourceUnitPair2 {
@@ -256,5 +257,6 @@ both ~SourceUnits~.
     bool specialOperationsResult;
 };
 
+}
 }
 #endif

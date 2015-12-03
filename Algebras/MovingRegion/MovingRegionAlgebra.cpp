@@ -236,6 +236,10 @@ The following groups of test cases are available:
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+
+using namespace std;
+namespace temporalalgebra{
+
 /*
 Set ~MRA\_DEBUG~ to ~true~ for debug output. Please note that debug output is
 very verbose and has significant negative input on the algebra's performance.
@@ -9904,11 +9908,13 @@ public:
     ~MovingRegionAlgebra() {}
 };
 
+} // end of namespace temporalalgebra
+
 
 extern "C"
 Algebra* InitializeMovingRegionAlgebra(NestedList* nlRef,
                                        QueryProcessor *qpRef) {
     nl = nlRef;
     qp = qpRef;
-    return new MovingRegionAlgebra();
+    return new temporalalgebra::MovingRegionAlgebra();
 }

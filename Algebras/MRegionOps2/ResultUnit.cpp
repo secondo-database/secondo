@@ -47,6 +47,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 */
 #include "ResultUnit.h"
 #include "NumericUtil.h"
+namespace temporalalgebra {
 namespace mregionops2 {
 
 ResultUnit::ResultUnit()
@@ -66,4 +67,5 @@ Interval<Instant> interval) const
 return NULL;
 }
 
+}
 }

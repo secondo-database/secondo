@@ -191,7 +191,7 @@ class mt : public Attribute
   at given periods.
 
   author: Dirk Zacher
-  parameters: rPeriods - reference to a Periods object
+  parameters: rPeriods - reference to a temporalalgebra::Periods object
               rmt - reference to a mt object containing all values
                     of the mt object at given periods
   return value: -
@@ -199,7 +199,7 @@ class mt : public Attribute
 
   */
 
-  void atperiods(const Periods& rPeriods,
+  void atperiods(const temporalalgebra::Periods& rPeriods,
                  typename Properties::PropertiesType& rmt) const;
 
   /*
@@ -244,14 +244,15 @@ class mt : public Attribute
   TileAlgebra operator deftime returns the defined periods of a mt object.
 
   author: Dirk Zacher
-  parameters: rPeriods - reference to a Periods object containing
-                         all defined Periods of mt object.
+  parameters: rPeriods - reference to a temporalalgebra::Periods object 
+                         containing
+                         all defined temporalalgebra::Periods of mt object.
   return value: -
   exceptions: -
 
   */
 
-  void deftime(Periods& rPeriods) const;
+  void deftime(temporalalgebra::Periods& rPeriods) const;
 
   /*
   TileAlgebra operator bbox returns the bounding box of a mt object.
@@ -1022,7 +1023,8 @@ void mt<Type, Properties>::atlocation(const double& rX,
 
       if(value.IsDefined())
       {
-        Interval<Instant> interval(currentTime, currentTime + duration,
+        temporalalgebra::Interval<Instant> interval(currentTime, 
+                                         currentTime + duration,
                                    true, false);
         rValues.Add(typename Properties::TypeProperties::UnitType(interval,
                                                                   value,
@@ -1156,7 +1158,7 @@ TileAlgebra operator atperiods returns all values of a mt object
 at given periods.
 
 author: Dirk Zacher
-parameters: rPeriods - reference to a Periods object
+parameters: rPeriods - reference to a temporalalgebra::Periods object
             rmt - reference to a mt object containing all values
                   of the mt object at given periods
 return value: -
@@ -1165,7 +1167,7 @@ exceptions: -
 */
 
 template <typename Type, typename Properties>
-void mt<Type, Properties>::atperiods(const Periods& rPeriods,
+void mt<Type, Properties>::atperiods(const temporalalgebra::Periods& rPeriods,
                                      typename Properties::PropertiesType& rmt)
                                      const
 {
@@ -1205,7 +1207,8 @@ void mt<Type, Properties>::atperiods(const Periods& rPeriods,
                 datetime::DateTime startTime = t + time * duration;
                 datetime::DateTime endTime = t + (time + 1) * duration;
 
-                Interval<DateTime> timeInterval(startTime, endTime,
+                temporalalgebra::Interval<DateTime> timeInterval(
+                                                startTime, endTime,
                                                 true, false);
 
                 if(rPeriods.Contains(timeInterval))
@@ -1218,10 +1221,11 @@ void mt<Type, Properties>::atperiods(const Periods& rPeriods,
                   if(rPeriods.Intersects(timeInterval) ||
                      rPeriods.Inside(timeInterval))
                   {
-                    Range<datetime::DateTime> range(2);
+                    temporalalgebra::Range<datetime::DateTime> range(2);
                     rPeriods.Intersection(timeInterval, range);
 
-                    Interval<DateTime> rangeValue(startTime, endTime,
+                    temporalalgebra::Interval<DateTime> rangeValue(
+                                                  startTime, endTime,
                                                   true, false);
                     range.Get(0, rangeValue);
                     datetime::DateTime rangeLength = rangeValue.end -
@@ -1355,15 +1359,15 @@ void mt<Type, Properties>::atrange(const Rectangle<2>& rRectangle,
 TileAlgebra operator deftime returns the defined periods of a mt object.
 
 author: Dirk Zacher
-parameters: rPeriods - reference to a Periods object containing
-                       all defined Periods of mt object.
+parameters: rPeriods - reference to a temporalalgebra::Periods object containing
+                       all defined temporalalgebra::Periods of mt object.
 return value: -
 exceptions: -
 
 */
 
 template <typename Type, typename Properties>
-void mt<Type, Properties>::deftime(Periods& rPeriods) const
+void mt<Type, Properties>::deftime(temporalalgebra::Periods& rPeriods) const
 {
   rPeriods.SetDefined(false);
 
@@ -1377,7 +1381,7 @@ void mt<Type, Properties>::deftime(Periods& rPeriods) const
     {
       double t = m_Grid.GetT();
       double duration = m_Grid.GetDuration().ToDouble();
-      Periods periods(true);
+      temporalalgebra::Periods periods(true);
 
       periods.StartBulkLoad();
 
@@ -1409,7 +1413,8 @@ void mt<Type, Properties>::deftime(Periods& rPeriods) const
         {
           Instant startTime(t + time * duration);
           Instant endTime(t + (time + 1) * duration);
-          periods.Add(Interval<DateTime>(startTime, endTime, true, false));
+          periods.Add(temporalalgebra::Interval<DateTime>(
+                                        startTime, endTime, true, false));
         }
       }
 

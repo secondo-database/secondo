@@ -59,6 +59,8 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "DateTime.h"
 #include "StopWatch.h"
 
+namespace temporalalgebra{
+
 namespace mregionops2 {
 
 class PFace;
@@ -312,6 +314,7 @@ A pointer to the ~PFace~, this ~MSegment~ comes from.
     const PFace* pFace;
 };
 
+} // end namespace
 } // end namespace
 
 #endif /*MSEGMENT_H_*/

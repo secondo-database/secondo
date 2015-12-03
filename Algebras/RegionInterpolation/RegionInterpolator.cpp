@@ -8,6 +8,8 @@
 
 #include "RegionInterpolator.h"
 
+using namespace temporalalgebra;
+
 #define COUNTWEIGHT 4      //How many weights shall be given to the OptimalMatch
 namespace RegionInterpol
 {
@@ -126,7 +128,7 @@ static ListExpr interpolateTypeMap(ListExpr args)
         ErrorReporter::ReportError("Period as third argument required");
         return nl->SymbolAtom(Symbol::TYPEERROR());
     }
-    if( !nl->ListLength(args)==3+COUNTWEIGHT)
+    if( nl->ListLength(args)!=3+COUNTWEIGHT)
     {
       for (int i=4; i<=3+COUNTWEIGHT; i++)
       {

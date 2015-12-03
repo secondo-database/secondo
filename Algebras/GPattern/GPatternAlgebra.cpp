@@ -41,6 +41,7 @@ JAN, 2010 Mahmoud Sakr
 #include "Stream.h"
 
 using namespace mset;
+using namespace temporalalgebra;
 
 namespace GPattern{
 
@@ -525,10 +526,6 @@ ostream& MSetIndex::Print(ostream& os)
   }
   return os;
 }
-
-
-GPatternHelper::GPatternHelper();
-GPatternHelper::~GPatternHelper();
 
 bool GPatternHelper::setCompareDesc (set<int>& i,set<int>& j)
 {

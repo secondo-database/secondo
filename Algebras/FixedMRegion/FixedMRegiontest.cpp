@@ -14,6 +14,9 @@ using namespace std;
 #include "FixedMRegionAlgebra.h"
 extern NestedList *nl;
 extern QueryProcessor *qp;
+
+namespace temporalalgebra{
+
 /*
 This method tests the class LATransform.
 
@@ -1354,3 +1357,7 @@ runTestMethod ()
 //  testOutFixedMRegion();
 
 }
+
+}
+
+

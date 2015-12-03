@@ -42,7 +42,8 @@ namespace raster2 {
   {
     typename Helper::implementation_type* pImplementationType =
       static_cast<typename Helper::implementation_type*>(args[0].addr);
-    Periods* periods = static_cast<Periods*>(args[1].addr);
+    temporalalgebra::Periods* periods = 
+         static_cast<temporalalgebra::Periods*>(args[1].addr);
     result = qp->ResultStorage(s);
 
     typename Helper::implementation_type* pResult =
@@ -78,16 +79,16 @@ namespace raster2 {
       { 
         name      = "atperiods";
         signature = msbool::BasicType() + " atperiods "
-            + Periods::BasicType() + "-> " 
+            + temporalalgebra::Periods::BasicType() + "-> " 
             + msbool::BasicType();
         appendSignature(msreal::BasicType() + " atperiods "
-            + Periods::BasicType() + "-> " 
+            + temporalalgebra::Periods::BasicType() + "-> " 
             + msreal::BasicType());
         appendSignature(msint::BasicType() + " atperiods "
-            + Periods::BasicType() + "-> " 
+            + temporalalgebra::Periods::BasicType() + "-> " 
             + msint::BasicType());
         appendSignature(msstring::BasicType() + " atperiods "
-            + Periods::BasicType() + "-> " 
+            + temporalalgebra::Periods::BasicType() + "-> " 
             + msstring::BasicType());
         syntax    = "atperiods(_)";
         meaning   = "restricts values to periods";

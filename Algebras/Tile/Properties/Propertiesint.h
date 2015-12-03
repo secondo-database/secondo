@@ -78,14 +78,14 @@ class Properties<int>
 
   */
 
-  typedef MInt MType;
+  typedef temporalalgebra::MInt MType;
 
   /*
   typedef of UnitType
 
   */
 
-  typedef UInt UnitType;
+  typedef temporalalgebra::UInt UnitType;
 
   /*
   Method GetUndefinedValue returns the undefined value of base datatype int.

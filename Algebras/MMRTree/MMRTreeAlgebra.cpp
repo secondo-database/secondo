@@ -91,9 +91,9 @@ int realJoinSelect(ListExpr args){
      num1 = 0;
   } else  if(listutils::isKind(type, Kind::SPATIAL3D())){
      num1 = 1;
-  } else if(MRegion::checkType(type)){
+  } else if(temporalalgebra::MRegion::checkType(type)){
      num1 = 2;
-  } else if(MPoint::checkType(type)){
+  } else if(temporalalgebra::MPoint::checkType(type)){
      num1 = 3;
   } else {
    assert(false);
@@ -109,9 +109,9 @@ int realJoinSelect(ListExpr args){
      num2 = 0;
   } else  if(listutils::isKind(type, Kind::SPATIAL3D())){
      num2 = 1;
-  } else if(MRegion::checkType(type)){
+  } else if(temporalalgebra::MRegion::checkType(type)){
      num2 = 2;
-  } else if(MPoint::checkType(type)){
+  } else if(temporalalgebra::MPoint::checkType(type)){
      num2 = 3;
   } else {
    assert(false);
@@ -205,8 +205,8 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
    // check for spatial attribute
    if(!listutils::isKind(type1,Kind::SPATIAL2D()) &&
       !listutils::isKind(type1,Kind::SPATIAL3D()) &&
-      !MRegion::checkType(type1) &&
-      !MPoint::checkType(type1) ){
+      !temporalalgebra::MRegion::checkType(type1) &&
+      !temporalalgebra::MPoint::checkType(type1) ){
      string t = " (type is " + nl->ToString(type1)+ ")";  
      return listutils::typeError("Attribute " + name1 + 
                                  " is not in Kind Spatial2D or Spatial3D"
@@ -214,8 +214,8 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
    }
    if(!listutils::isKind(type2,Kind::SPATIAL2D()) &&
       !listutils::isKind(type2,Kind::SPATIAL3D()) &&
-      !MRegion::checkType(type2) &&
-      !MPoint::checkType(type2) ){
+      !temporalalgebra::MRegion::checkType(type2) &&
+      !temporalalgebra::MPoint::checkType(type2) ){
      string t = " (type is " + nl->ToString(type2)+ ")";  
      return listutils::typeError("Attribute " + name2 + 
                                  " is not in Kind Spatial2D or Spatial3D"
@@ -316,9 +316,9 @@ ValueMapping realJoinMMRTreeVM[] = {
                 StandardSpatialAttribute<2>, 
                 StandardSpatialAttribute<3>,2,3,2 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
-                StandardSpatialAttribute<2>, MRegion,2,3,2 > >,
+                StandardSpatialAttribute<2>, temporalalgebra::MRegion,2,3,2 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
-                StandardSpatialAttribute<2>, MPoint,2,3,2 > >,
+         StandardSpatialAttribute<2>, temporalalgebra::MPoint,2,3,2 > >,
 
 
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
@@ -328,27 +328,27 @@ ValueMapping realJoinMMRTreeVM[] = {
                 StandardSpatialAttribute<3>, 
                 StandardSpatialAttribute<3>,3,3,3 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                StandardSpatialAttribute<3>, MRegion,3,3,3 > >,
+                StandardSpatialAttribute<3>, temporalalgebra::MRegion,3,3,3 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                StandardSpatialAttribute<3>, MPoint,3,3,3 > >,
+          StandardSpatialAttribute<3>, temporalalgebra::MPoint,3,3,3 > >,
 
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
-                MRegion, StandardSpatialAttribute<2>,3,2,2 > >,
+                temporalalgebra::MRegion, StandardSpatialAttribute<2>,3,2,2 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                MRegion, StandardSpatialAttribute<3>,3,3,3 > >,
+                temporalalgebra::MRegion, StandardSpatialAttribute<3>,3,3,3 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                MRegion, MRegion,3,3,3 > >,
+                temporalalgebra::MRegion, temporalalgebra::MRegion,3,3,3 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                MRegion, MPoint,3,3,3 > >,
+                temporalalgebra::MRegion, temporalalgebra::MPoint,3,3,3 > >,
 
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,
-                MPoint, StandardSpatialAttribute<2>,3,2,2 > >,
+       temporalalgebra::MPoint, StandardSpatialAttribute<2>,3,2,2 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                MPoint, StandardSpatialAttribute<3>,3,3,3 > >,
+         temporalalgebra::MPoint, StandardSpatialAttribute<3>,3,3,3 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                MPoint, MRegion,3,3,3 > >,
+                temporalalgebra::MPoint, temporalalgebra::MRegion,3,3,3 > >,
     joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                MPoint, MPoint,3,3,3 > >,
+                temporalalgebra::MPoint, temporalalgebra::MPoint,3,3,3 > >,
 
   };
 
@@ -373,9 +373,9 @@ ValueMapping realJoinMMRTreeVecVM[] = {
                 StandardSpatialAttribute<2>, 
                 StandardSpatialAttribute<3>,2,3,2> >,
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
-                StandardSpatialAttribute<2>, MRegion,2,3,2> >,
+                StandardSpatialAttribute<2>, temporalalgebra::MRegion,2,3,2> >,
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
-                StandardSpatialAttribute<2>, MPoint,2,3,2> >,
+                StandardSpatialAttribute<2>, temporalalgebra::MPoint,2,3,2> >,
 
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
                 StandardSpatialAttribute<3>, 
@@ -384,18 +384,18 @@ ValueMapping realJoinMMRTreeVecVM[] = {
                 StandardSpatialAttribute<3>, 
                 StandardSpatialAttribute<3>,3,3,3> >,
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                StandardSpatialAttribute<3>, MRegion,3,3,3> >,
+                StandardSpatialAttribute<3>, temporalalgebra::MRegion,3,3,3> >,
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                StandardSpatialAttribute<3>, MPoint,3,3,3> >,
+                StandardSpatialAttribute<3>, temporalalgebra::MPoint,3,3,3> >,
     
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
-                MRegion, StandardSpatialAttribute<2>,3,2,2> >,
+                temporalalgebra::MRegion, StandardSpatialAttribute<2>,3,2,2> >,
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                MRegion, StandardSpatialAttribute<3>,3,3,3> >,
+                temporalalgebra::MRegion, StandardSpatialAttribute<3>,3,3,3> >,
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                MRegion, MRegion,3,3,3> >,
+                temporalalgebra::MRegion, temporalalgebra::MRegion,3,3,3> >,
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
-                MRegion, MPoint,3,3,3> >,
+                temporalalgebra::MRegion, temporalalgebra::MPoint,3,3,3> >,
 
   };
 
@@ -920,36 +920,36 @@ ValueMapping joinMMRTreeItvm[] = {
     joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<2>, 
                                            StandardSpatialAttribute<3>,2,3,2> >,
     joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<2>, 
-                                           MRegion,2,3,2> >,
+                                           temporalalgebra::MRegion,2,3,2> >,
     joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<2>, 
-                                           MPoint,2,3,2> >,
+                                           temporalalgebra::MPoint,2,3,2> >,
     
     joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<3>, 
                                            StandardSpatialAttribute<2>,3,2,2> >,
     joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<3>, 
                                            StandardSpatialAttribute<3>,3,3,3> >,
     joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<3>, 
-                                           MRegion,3,3,3> >,
+                                           temporalalgebra::MRegion,3,3,3> >,
     joinMMRTreeItVM<joinMMRTreeItLocalInfo<StandardSpatialAttribute<3>, 
-                                           MPoint,3,3,3> >,
+                                           temporalalgebra::MPoint,3,3,3> >,
     
-    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MRegion, 
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<temporalalgebra::MRegion, 
                                            StandardSpatialAttribute<2>,3,2,2> >,
-    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MRegion, 
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<temporalalgebra::MRegion, 
                                            StandardSpatialAttribute<3>,3,3,3> >,
-    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MRegion, 
-                                           MRegion,3,3,3> >,
-    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MRegion, 
-                                           MPoint,3,3,3> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<temporalalgebra::MRegion, 
+                                           temporalalgebra::MRegion,3,3,3> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<temporalalgebra::MRegion, 
+                                           temporalalgebra::MPoint,3,3,3> >,
 
-    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MPoint, 
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<temporalalgebra::MPoint, 
                                            StandardSpatialAttribute<2>,3,2,2> >,
-    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MPoint, 
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<temporalalgebra::MPoint, 
                                            StandardSpatialAttribute<3>,3,3,3> >,
-    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MPoint, 
-                                           MRegion,3,3,3> >,
-    joinMMRTreeItVM<joinMMRTreeItLocalInfo<MPoint, 
-                                           MPoint,3,3,3> >
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<temporalalgebra::MPoint, 
+                                           temporalalgebra::MRegion,3,3,3> >,
+    joinMMRTreeItVM<joinMMRTreeItLocalInfo<temporalalgebra::MPoint, 
+                                           temporalalgebra::MPoint,3,3,3> >
  
 };
 
@@ -975,10 +975,10 @@ ValueMapping joinMMRTreeItVecvm[] = {
                                               StandardSpatialAttribute<3>,
                                               2,3,2> >,
     joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<2>, 
-                                              MRegion,
+                                              temporalalgebra::MRegion,
                                               2,3,2> >,
     joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<2>, 
-                                              MPoint,
+                                              temporalalgebra::MPoint,
                                               2,3,2> >,
 
 
@@ -989,38 +989,38 @@ ValueMapping joinMMRTreeItVecvm[] = {
                                               StandardSpatialAttribute<3>,
                                               3,3,3> >,
     joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<3>, 
-                                              MRegion,
+                                              temporalalgebra::MRegion,
                                               3,3,3> >,
     joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<StandardSpatialAttribute<3>, 
-                                              MPoint,
+                                              temporalalgebra::MPoint,
                                               3,3,3> >,
 
 
-    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MRegion, 
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<temporalalgebra::MRegion, 
                                               StandardSpatialAttribute<2>,
                                               3,2,2> >,
-    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MRegion, 
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<temporalalgebra::MRegion, 
                                               StandardSpatialAttribute<3>,
                                               3,3,3> >,
-    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MRegion, 
-                                              MRegion,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<temporalalgebra::MRegion, 
+                                              temporalalgebra::MRegion,
                                               3,3,3> >,
-    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MRegion, 
-                                              MPoint,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<temporalalgebra::MRegion, 
+                                              temporalalgebra::MPoint,
                                               3,3,3> >,
     
 
-    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MPoint, 
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<temporalalgebra::MPoint, 
                                               StandardSpatialAttribute<2>,
                                               3,2,2> >,
-    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MPoint, 
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<temporalalgebra::MPoint, 
                                               StandardSpatialAttribute<3>,
                                               3,3,3> >,
-    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MPoint, 
-                                              MRegion,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<temporalalgebra::MPoint, 
+                                              temporalalgebra::MRegion,
                                               3,3,3> >,
-    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<MPoint, 
-                                              MPoint,
+    joinMMRTreeItVM< joinMMRTreeItVecLocalInfo<temporalalgebra::MPoint, 
+                                              temporalalgebra::MPoint,
                                               3,3,3> >
 
 };
@@ -1450,9 +1450,9 @@ ValueMapping ItSpatialJoinVM[] = {
                          StandardSpatialAttribute<3>, 2, 3, 2>,
 
          itSpatialJoinVM<StandardSpatialAttribute<2>, 
-                         MRegion,2,3,2>,
+                         temporalalgebra::MRegion,2,3,2>,
          itSpatialJoinVM<StandardSpatialAttribute<2>, 
-                         MPoint,2,3,2>,
+                         temporalalgebra::MPoint,2,3,2>,
 
 
          itSpatialJoinVM<StandardSpatialAttribute<3>, 
@@ -1460,29 +1460,29 @@ ValueMapping ItSpatialJoinVM[] = {
          itSpatialJoinVM<StandardSpatialAttribute<3>, 
                          StandardSpatialAttribute<3>,3,3,3>,
          itSpatialJoinVM<StandardSpatialAttribute<3>, 
-                         MRegion,3,3,3>,
+                         temporalalgebra::MRegion,3,3,3>,
          itSpatialJoinVM<StandardSpatialAttribute<3>, 
-                         MPoint,3,3,3>,
+                         temporalalgebra::MPoint,3,3,3>,
 
          
-         itSpatialJoinVM<MRegion, 
+         itSpatialJoinVM<temporalalgebra::MRegion, 
                          StandardSpatialAttribute<2>,3,2,2>,
-         itSpatialJoinVM<MRegion, 
+         itSpatialJoinVM<temporalalgebra::MRegion, 
                          StandardSpatialAttribute<3>,3,3,3>,
-         itSpatialJoinVM<MRegion, 
-                         MRegion,3,3,3>,
-         itSpatialJoinVM<MRegion, 
-                         MPoint,3,3,3>,
+         itSpatialJoinVM<temporalalgebra::MRegion, 
+                         temporalalgebra::MRegion,3,3,3>,
+         itSpatialJoinVM<temporalalgebra::MRegion, 
+                         temporalalgebra::MPoint,3,3,3>,
 
 
-         itSpatialJoinVM<MPoint, 
+         itSpatialJoinVM<temporalalgebra::MPoint, 
                          StandardSpatialAttribute<2>,3,2,2>,
-         itSpatialJoinVM<MPoint, 
+         itSpatialJoinVM<temporalalgebra::MPoint, 
                          StandardSpatialAttribute<3>,3,3,3>,
-         itSpatialJoinVM<MPoint, 
-                         MRegion,3,3,3>,
-         itSpatialJoinVM<MPoint, 
-                         MPoint,3,3,3>,
+         itSpatialJoinVM<temporalalgebra::MPoint, 
+                         temporalalgebra::MRegion,3,3,3>,
+         itSpatialJoinVM<temporalalgebra::MPoint, 
+                         temporalalgebra::MPoint,3,3,3>,
 
       };
 

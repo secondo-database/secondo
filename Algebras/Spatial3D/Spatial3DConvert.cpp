@@ -64,6 +64,8 @@ extern QueryProcessor* qp;
 
 using namespace std;
 
+using namespace temporalalgebra;
+
 namespace spatial3DConvert {
 
 /*

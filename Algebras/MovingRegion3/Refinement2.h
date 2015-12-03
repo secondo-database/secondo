@@ -29,7 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] File Refinement2.h
 
-This file contains classes and functions for use within the operators intersection and inside
+This file contains classes and functions for use within the operators 
+intersection and inside
 
 [TOC]
 
@@ -38,6 +39,8 @@ This file contains classes and functions for use within the operators intersecti
 1.1 Some forward declaration of helper methods
 
 */
+
+namespace temporalalgebra{
 
 static mpq_class instant2MPQ( const Instant i );
 static void precTimeToInstant(const mpq_class prectime, 
@@ -76,7 +79,8 @@ public:
       lc(t.lc),
       rc(t.rc) {}
 
-  inline precTimeInterval(Interval<Instant> t, PreciseInterval p, 
+  inline precTimeInterval(Interval<Instant> t, 
+                          PreciseInterval p, 
                           const DbArray<unsigned int>* preciseInstants): 
       start(0),
       end(0),
@@ -133,7 +137,8 @@ public:
       up(pp) { }
 
   inline precUPoint(mpq_class s, mpq_class e, bool l, bool r, mpq_class px0, 
-                    mpq_class py0, mpq_class px1, mpq_class py1, UPoint pp):
+                    mpq_class py0, mpq_class px1, mpq_class py1, 
+                   UPoint pp):
       pti(s, e, l, r),
       x0(px0),
       y0(py0),
@@ -173,7 +178,8 @@ public:
 /*
 1 Class ~RefinementPartition2~
 
-for set operations inside and intersection with MPoint and MRegion2
+for set operations inside and intersection with MPoint and 
+MRegion2
 
 1.1 Class definition 
 
@@ -220,7 +226,8 @@ Runtime is $O(\max(n, m))$ with $n$ and $m$ the numbers of units in
 *Preconditions*: mr.IsDefined AND mp.IsDefiened()
 
 */
-    RefinementPartition2(const MRegion2& mr, const MPoint& mp);
+    RefinementPartition2(const MRegion2& mr, 
+                         const MPoint& mp);
 
 /*
 Since the elements of ~iv~ point to dynamically allocated objects, we need
@@ -253,8 +260,9 @@ Runtime is $O(1)$.
 1.1.1 The constructor ~RefinementPartition2~
 
 */
-RefinementPartition2::RefinementPartition2( const MRegion2& m1, 
-                                            const MPoint& m2 )
+RefinementPartition2::RefinementPartition2( 
+                  const MRegion2& m1, 
+                  const MPoint& m2 )
 {
    assert( m1.IsDefined() );
    assert( m2.IsDefined() );
@@ -576,3 +584,7 @@ void RefinementPartition2::Get(const unsigned int pos, precTimeInterval& civ,
   ur = vur[pos];
   up = vup[pos];
 }
+
+}
+
+

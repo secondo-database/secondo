@@ -32,8 +32,8 @@ namespace raster2
   {
     typedef stype<char, sbool_helper> implementation_type;
     typedef CcBool wrapper_type;
-    typedef MBool moving_type;
-    typedef UBool unit_type;
+    typedef temporalalgebra::MBool moving_type;
+    typedef temporalalgebra::UBool unit_type;
     static const char* name;
     static bool check(const NList& nl) { return nl.isBool(); }
     static char parse(const NList& nl) { return char(nl.boolval()); }

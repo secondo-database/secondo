@@ -153,7 +153,7 @@ class Flock: public Attribute {
    void printCoordinates();
    int Intersection(Flock* arg, Flock* res);
    Points* Flock2Points(Instant& curTime, vector<int>* ids, 
-       vector<MPoint*>*sourceMPoints);
+       vector<temporalalgebra::MPoint*>*sourceMPoints);
    
    bool defined;
    //Total size of the flock. This is set before the points are
@@ -166,9 +166,9 @@ class Flock: public Attribute {
 };
 
 
-typedef ConstTemporalUnit<Flock> UFlock;
+typedef temporalalgebra::ConstTemporalUnit<Flock> UFlock;
 
-class MFlock : public  Mapping< UFlock, Flock > 
+class MFlock : public  temporalalgebra::Mapping< UFlock, Flock > 
 {
 public:
   MFlock(){}
@@ -176,7 +176,8 @@ public:
     Mapping<UFlock, Flock>(n), finalized(true){}
   inline bool CanAdd(Flock* arg);
   void MFlockMergeAdd(UFlock& unit);
-  MRegion* MFlock2MRegion(vector<int>* ids, vector<MPoint*>* sourceMPoints,
+  temporalalgebra::MRegion* MFlock2MRegion(
+          vector<int>* ids, vector<temporalalgebra::MPoint*>* sourceMPoints,
       Instant& samplingDuration);
   static bool KindCheck( ListExpr type, ListExpr& errorInfo );
   static ListExpr Property();

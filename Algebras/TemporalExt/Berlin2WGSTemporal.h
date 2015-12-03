@@ -44,9 +44,12 @@ http://bbbike.sourceforge.net/index.de.html
 class Berlin2WGSTemporal : public Berlin2WGS {
  public:
   Berlin2WGSTemporal() : Berlin2WGS() {}
-  void convert(const IPoint* source, IPoint* result);
-  void convert(const UPoint* source, UPoint* result);
-  void convert(const MPoint* source, MPoint* result);
+  void convert(const temporalalgebra::IPoint* source, 
+                     temporalalgebra::IPoint* result);
+  void convert(const temporalalgebra::UPoint* source, 
+                     temporalalgebra::UPoint* result);
+  void convert(const temporalalgebra::MPoint* source, 
+                     temporalalgebra::MPoint* result);
 };
 
 #endif

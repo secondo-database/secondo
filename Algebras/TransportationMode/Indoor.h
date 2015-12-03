@@ -207,7 +207,8 @@ class Door3D:public StandardSpatialAttribute<2>{
   Door3D(){}  
   Door3D(bool b):StandardSpatialAttribute<2>(true),
   door_pos1(0),door_pos2(0),tpstate(0), lift_door(b){}
-  inline Door3D(int id1, int id2, Line& gr1, Line& gr2, MBool& mb, bool b):
+  inline Door3D(int id1, int id2, Line& gr1, Line& gr2, 
+                temporalalgebra::MBool& mb, bool b):
   StandardSpatialAttribute<2>(true),
   oid1(id1), oid2(id2), door_pos1(gr1), door_pos2(gr2),
   tpstate(mb), lift_door(b){}
@@ -226,7 +227,8 @@ class Door3D:public StandardSpatialAttribute<2>{
     lift_door = dr.lift_door; 
     return *this; 
   }
-  void SetValue(int id1, Line* l1, int id2, Line* l2, MBool* mb, bool b)
+  void SetValue(int id1, Line* l1, int id2, Line* l2, 
+                temporalalgebra::MBool* mb, bool b)
   {
       oid1 = id1;
       door_pos1 = *l1;
@@ -288,7 +290,7 @@ class Door3D:public StandardSpatialAttribute<2>{
     return NULL; 
   }
   
-  MBool* GetTState(){return &tpstate;}
+  temporalalgebra::MBool* GetTState(){return &tpstate;}
   bool GetDoorType(){return lift_door;}
 
   ~Door3D()
@@ -317,7 +319,7 @@ class Door3D:public StandardSpatialAttribute<2>{
   int oid2;
   Line door_pos1;
   Line door_pos2;
-  MBool tpstate; //temporal state 
+  temporalalgebra::MBool tpstate; //temporal state 
   bool lift_door; //true:elevator false:non-elevator
 };
 
@@ -780,7 +782,7 @@ struct IndoorNav{
   ////////////////create a relation storing door////////////////////////
   bool IsGRoom(int tid, Relation* rel);
   void CreateDoor1(R_Tree<3, TupleId>*, int, int ,int);
-  void CreateDoorState(MBool* mb);
+  void CreateDoorState(temporalalgebra::MBool* mb);
   void CreateDoor2();
   float GetVirtualDoor1(GRoom* groom, Line* l1, Line* l2, Line3D* l3d);
   float GetVirtualDoor2(GRoom* groom, Line* l1, Line* l2, Line3D* l3d);
@@ -837,16 +839,16 @@ struct IndoorNav{
    void GenerateIP3(int num);
    float GetHeightInST(GRoom* groom, Point p);
    float GetHeightInST2(GRoom* groom, Point p, bool& correct);
-   void InitializeElevator(Interval<Instant>& periods, 
+   void InitializeElevator(temporalalgebra::Interval<Instant>& periods, 
                                    vector<Elevator>& elev_list, double speed);
    void GenerateMO1(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
-                    int num, Periods* peri, bool convert); 
+                    int num, temporalalgebra::Periods* peri, bool convert); 
    //////////////////path to building entrance/////////////////////////////
    void GenerateMO2_Start(IndoorGraph* ig, BTree* btree, 
                           R_Tree<3,TupleId>* rtree,
-                    int num, Periods* peri, bool convert);
+                    int num, temporalalgebra::Periods* peri, bool convert);
    void GenerateMO2_End(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
-                    int num, Periods* peri, bool convert);
+                    int num, temporalalgebra::Periods* peri, bool convert);
    void GetDoorLoc(IndoorGraph* ig, BTree* btree, 
                    vector<GenLoc>& doorloc_list, vector<int>& door_tid_list);
 
@@ -854,23 +856,27 @@ struct IndoorNav{
    void GenerateMO3_End(IndoorGraph* ig, BTree* btree, 
                         R_Tree<3,TupleId>* rtree,
                         Instant& start_time, int build_id, int entrance_index,
-                        MPoint3D* mp3d, GenMO* genmo, Periods* peri);
+                        MPoint3D* mp3d, GenMO* genmo, 
+                        temporalalgebra::Periods* peri);
    void GenerateMO3_EndExt(IndoorGraph* ig, BTree* btree, 
                            R_Tree<3,TupleId>* rtree,
                            Instant& start_time, int build_id, 
                            int entrance_index, MPoint3D* mp3d, 
-                           GenMO* genmo, Periods* peri, GenLoc);
+                           GenMO* genmo, 
+                           temporalalgebra::Periods* peri, GenLoc);
    void GenerateMO3_Start(IndoorGraph* ig, BTree* btree, 
                         R_Tree<3,TupleId>* rtree,
                         Instant& start_time, int build_id, int entrance_index,
-                        MPoint3D* mp3d, GenMO* genmo, Periods* peri);
+                        MPoint3D* mp3d, GenMO* genmo, 
+                        temporalalgebra::Periods* peri);
    /////////////////////////////////////////////////////////////////////
    unsigned int NumerOfElevators();
    
    void GenerateMO1_New(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
-                  int num, Periods* peri, bool convert, unsigned int num_elev);
+                  int num, temporalalgebra::Periods* peri, bool convert, 
+                  unsigned int num_elev);
 
-   void InitializeElevator_New(Interval<Instant>& periods, 
+   void InitializeElevator_New(temporalalgebra::Interval<Instant>& periods, 
                        vector< vector<Elevator> >& elev_list, 
                                double speed);
    void AddUnitToMO_Elevator_New(MPoint3D* mp3d, vector<Point3D>& , 
@@ -884,25 +890,30 @@ struct IndoorNav{
 
    void GenerateMO2_New_Start(IndoorGraph* ig, BTree* btree,
                           R_Tree<3,TupleId>* rtree,
-                  int num, Periods* peri, bool convert, unsigned int num_elev);
+                  int num, temporalalgebra::Periods* peri, bool convert,
+                  unsigned int num_elev);
    void GenerateMO2_New_End(IndoorGraph* ig, BTree* btree, 
                         R_Tree<3,TupleId>* rtree,
-                  int num, Periods* peri, bool convert, unsigned int num_elev);
+                  int num, temporalalgebra::Periods* peri, bool convert,
+                  unsigned int num_elev);
 
    void GenerateMO3_New_End(IndoorGraph* ig, BTree* btree, 
                             R_Tree<3,TupleId>* rtree,
                     Instant& start_time, int build_id, int entrance_index,
-                    MPoint3D* mp3d, GenMO* genmo, Periods* peri,
+                    MPoint3D* mp3d, GenMO* genmo, 
+                    temporalalgebra::Periods* peri,
                             unsigned int num_elev);
    void GenerateMO3_New_EndExt(IndoorGraph* ig, BTree* btree, 
                             R_Tree<3,TupleId>* rtree,
                     Instant& start_time, int build_id, int entrance_index,
-                    MPoint3D* mp3d, GenMO* genmo, Periods* peri,
+                    MPoint3D* mp3d, GenMO* genmo, 
+                    temporalalgebra::Periods* peri,
                     unsigned int num_elev, GenLoc gloc);
   void GenerateMO3_New_Start(IndoorGraph* ig, BTree* btree, 
                             R_Tree<3,TupleId>* rtree,
                     Instant& start_time, int build_id, int entrance_index,
-                    MPoint3D* mp3d, GenMO* genmo, Periods* peri,
+                    MPoint3D* mp3d, GenMO* genmo, 
+                    temporalalgebra::Periods* peri,
                             unsigned int num_elev);
 
 

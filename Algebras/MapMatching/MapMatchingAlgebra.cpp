@@ -99,7 +99,7 @@ struct MapMatchMHTInfo : OperatorInfo
     {
         name      = "mapmatchmht";
         signature = Network::BasicType() + " x " +
-                    MPoint::BasicType() + " -> " +
+                    temporalalgebra::MPoint::BasicType() + " -> " +
                     MGPoint::BasicType();
 
         appendSignature(Network::BasicType() + " x " +
@@ -115,7 +115,7 @@ struct MapMatchMHTInfo : OperatorInfo
                         MGPoint::BasicType());
 
         appendSignature(Network::BasicType() + " x " +
-                        MPoint::BasicType() + " x " +
+                        temporalalgebra::MPoint::BasicType() + " x " +
                         CcReal::BasicType() + " -> " +
                         MGPoint::BasicType());
 
@@ -165,12 +165,13 @@ ListExpr OpMapMatchingMHTTypeMap(ListExpr in_xArgs)
         return listutils::typeError("1st argument must be " +
                                                           Network::BasicType());
 
-    if (!param.second().isSymbol(MPoint::BasicType()) &&
+    if (!param.second().isSymbol(temporalalgebra::MPoint::BasicType()) &&
         !param.second().isSymbol(FText::BasicType()) &&
         !listutils::isTupleStream(param.second().listExpr()))
     {
         return listutils::typeError("2nd argument must be " +
-                                    MPoint::BasicType() + " or " +
+                                    temporalalgebra::MPoint::BasicType() 
+                                    + " or " +
                                     FText::BasicType() + " or " +
                                     "tuple stream");
     }
@@ -405,7 +406,8 @@ int OpMapMatchingMHTMPointValueMapping(Word* args,
 
     // get Arguments
     Network *pNetwork = static_cast<Network*>(args[0].addr);
-    MPoint *pMPoint = static_cast<MPoint*>(args[1].addr);
+    temporalalgebra::MPoint *pMPoint = 
+        static_cast<temporalalgebra::MPoint*>(args[1].addr);
     CcReal *pNetworkScale = static_cast<CcReal*>(args[2].addr);
 
     // Do Map Matching
@@ -632,7 +634,7 @@ int MapMatchMHTSelect(ListExpr args)
     if ((type.length() == 2 || type.length() == 3) &&
         type.first().isSymbol(Network::BasicType()))
     {
-        if (type.second().isSymbol(MPoint::BasicType()))
+        if (type.second().isSymbol(temporalalgebra::MPoint::BasicType()))
         {
             return 0;
         }
@@ -674,7 +676,7 @@ struct OMapMatchMHTInfo : OperatorInfo
         signature = OrderedRelation::BasicType() + " x " +
                     RTree2TID::BasicType() + " x " +
                     Relation::BasicType() + " x " +
-                    MPoint::BasicType() + " -> " +
+                    temporalalgebra::MPoint::BasicType() + " -> " +
                     "stream(tuple([<attributes of tuple of edge>,"
                                  "StartTime:DateTime, EndTime:DateTime]))";
 
@@ -803,12 +805,13 @@ ListExpr OpOMapMatchingMHTTypeMap_Common(ListExpr in_xArgs,
 
     // GPS-Data (MPoint, FileName, TupleStream)
 
-    if (!param.fourth().isSymbol(MPoint::BasicType()) &&
+    if (!param.fourth().isSymbol(temporalalgebra::MPoint::BasicType()) &&
         !param.fourth().isSymbol(FText::BasicType()) &&
         !listutils::isTupleStream(param.fourth().listExpr()))
     {
         return listutils::typeError("4th argument must be " +
-                                    MPoint::BasicType() + " or " +
+                                    temporalalgebra::MPoint::BasicType() 
+                                    + " or " +
                                     FText::BasicType() + " or " +
                                     "tuple stream");
     }
@@ -863,7 +866,7 @@ ListExpr OpOMapMatchingMHTTypeMap_Common(ListExpr in_xArgs,
 
         case OMM_RESULT_MPOINT:
         {
-            ResultType = nl->SymbolAtom(MPoint::BasicType());
+            ResultType = nl->SymbolAtom(temporalalgebra::MPoint::BasicType());
         }
         break;
     }
@@ -1176,7 +1179,8 @@ int OpOMapMatchingMHTMPoint2OStreamValueMapping(
 
           ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
 
-          MPoint* pMPoint = static_cast<MPoint*>(args[3].addr);
+          temporalalgebra::MPoint* pMPoint = 
+                      static_cast<temporalalgebra::MPoint*>(args[3].addr);
 
           // Do Map Matching
 
@@ -1461,7 +1465,7 @@ int OMapMatchMHTSelect(ListExpr args)
         listutils::findAttribute(attrList,"Source",attrType);
         int offset = CcInt::checkType(attrType)?0:3;
 
-        if (type.fourth().isSymbol(MPoint::BasicType()))
+        if (type.fourth().isSymbol(temporalalgebra::MPoint::BasicType()))
         {
             return 0 + offset;
         }
@@ -1500,7 +1504,7 @@ struct JMapMatchMHTInfo : OperatorInfo
     {
         name      = "jmapmatchmht";
         signature = JNetwork::BasicType() + " x " +
-                    MPoint::BasicType() + " -> " +
+                    temporalalgebra::MPoint::BasicType() + " -> " +
                     MJPoint::BasicType();
 
         appendSignature(JNetwork::BasicType() + " x " +
@@ -1542,12 +1546,13 @@ ListExpr OpJMapMatchingMHTTypeMap(ListExpr in_xArgs)
         return listutils::typeError("1st argument must be " +
                                      JNetwork::BasicType());
 
-    if (!param.second().isSymbol(MPoint::BasicType()) &&
+    if (!param.second().isSymbol(temporalalgebra::MPoint::BasicType()) &&
         !param.second().isSymbol(FText::BasicType()) &&
         !listutils::isTupleStream(param.second().listExpr()))
     {
         return listutils::typeError("2nd argument must be " +
-                                    MPoint::BasicType() + " or " +
+                                    temporalalgebra::MPoint::BasicType() 
+                                    + " or " +
                                     FText::BasicType() + " or " +
                                     "tuple stream");
     }
@@ -1591,7 +1596,8 @@ int OpJMapMatchingMHTMPointValueMapping(Word* args,
 
     //cout << "get Arguments" << endl;
     JNetwork *pNetwork = static_cast<JNetwork*>(args[0].addr);
-    MPoint *pMPoint = static_cast<MPoint*>(args[1].addr);
+    temporalalgebra::MPoint *pMPoint = 
+          static_cast<temporalalgebra::MPoint*>(args[1].addr);
 
     //cout << "Do Map Matching" << endl;
 
@@ -1682,7 +1688,7 @@ int JMapMatchMHTSelect(ListExpr args)
   if ((type.length() == 2) &&
       type.first().isSymbol(JNetwork::BasicType()))
   {
-    if (type.second().isSymbol(MPoint::BasicType())) return 0;
+    if (type.second().isSymbol(temporalalgebra::MPoint::BasicType())) return 0;
     if (type.second().isSymbol(FText::BasicType()))  return 1;
     if (listutils::isTupleStream(type.second().listExpr())) return 2;
   }
@@ -1707,7 +1713,7 @@ struct OMapMatchMHT_PInfo : OperatorInfo
         signature = OrderedRelation::BasicType() + " x " +
                     RTree2TID::BasicType() + " x " +
                     Relation::BasicType() + " x " +
-                    MPoint::BasicType() + " -> " +
+                    temporalalgebra::MPoint::BasicType() + " -> " +
                     "stream(tuple([<attributes of tuple of edge>,"
                                  "StartTime:DateTime, EndTime:DateTime,"
                                  "StartPos:Point, EndPos:Point,"
@@ -1850,14 +1856,14 @@ struct OMapMatchMHT_MPointInfo : OperatorInfo
         signature = OrderedRelation::BasicType() + " x " +
                     RTree2TID::BasicType() + " x " +
                     Relation::BasicType() + " x " +
-                    MPoint::BasicType() + " -> " +
-                    MPoint::BasicType();
+                    temporalalgebra::MPoint::BasicType() + " -> " +
+                    temporalalgebra::MPoint::BasicType();
 
         appendSignature(OrderedRelation::BasicType() + " x " +
                         RTree2TID::BasicType() + " x " +
                         Relation::BasicType() + " x " +
                         FText::BasicType()  + " -> " +
-                        MPoint::BasicType());
+                        temporalalgebra::MPoint::BasicType());
 
         appendSignature(OrderedRelation::BasicType() + " x " +
                         RTree2TID::BasicType() + " x " +
@@ -1867,7 +1873,7 @@ struct OMapMatchMHT_MPointInfo : OperatorInfo
                                        "[,Vdop:real] [,Pdop:real] "
                                        "[,Course:real] [,Speed(m/s):real]])))"
                         + " -> " +
-                        MPoint::BasicType());
+                        temporalalgebra::MPoint::BasicType());
 
 
         syntax    = "omapmatchmht_mpoint ( _ , _ , _ , _ )";
@@ -1910,7 +1916,8 @@ int OpOMapMatchingMHTMPoint2MPointValueMapping(Word* args,
 
     // Initialize Result
     result = qp->ResultStorage(in_xSupplier);
-    MPoint* pRes = static_cast<MPoint*>(result.addr);
+    temporalalgebra::MPoint* pRes = 
+         static_cast<temporalalgebra::MPoint*>(result.addr);
 
     // get Arguments
     OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
@@ -1922,14 +1929,16 @@ int OpOMapMatchingMHTMPoint2MPointValueMapping(Word* args,
 
     ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
 
-    MPoint *pMPoint = static_cast<MPoint*>(args[3].addr);
+    temporalalgebra::MPoint *pMPoint = 
+        static_cast<temporalalgebra::MPoint*>(args[3].addr);
 
     // Matching
 
     ONetworkAdapter<T> NetworkAdapter(&Network);
     MapMatchingMHT MapMatching(&NetworkAdapter, pMPoint);
 
-    MPointCreator Creator(pRes, NetworkAdapter.GetNetworkScale());
+    MPointCreator Creator(pRes, 
+                                NetworkAdapter.GetNetworkScale());
 
     if (!MapMatching.DoMatch(&Creator))
     {
@@ -1950,7 +1959,8 @@ int OpOMapMatchingMHTGPX2MPointValueMapping(Word* args,
 
     // Initialize Result
     result = qp->ResultStorage(in_xSupplier);
-    MPoint* pRes = static_cast<MPoint*>(result.addr);
+    temporalalgebra::MPoint* pRes = 
+          static_cast<temporalalgebra::MPoint*>(result.addr);
 
     // get Arguments
     OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
@@ -1991,7 +2001,8 @@ int OpOMapMatchingMHTStream2MPointValueMapping(Word* args,
 
     // Initialize Result
     result = qp->ResultStorage(in_xSupplier);
-    MPoint* pRes = static_cast<MPoint*>(result.addr);
+    temporalalgebra::MPoint* pRes = 
+             static_cast<temporalalgebra::MPoint*>(result.addr);
 
     // get Arguments
     OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
