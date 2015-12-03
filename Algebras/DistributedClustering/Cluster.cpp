@@ -739,10 +739,10 @@ compareLeftWithRightList( TYPE* leftInnerPoint, TYPE* rightInnerPoint,
           retClusterCand.push_back(clusterList);
           retClusterCandMinMax.push_back(clusterMinMax);
           
-          if(!deleteWorkedLeft || !deleteWorkedRight){
-            cout << "FAIL delete didn't work "<< endl;
-            cout << " in compareLeftWithRightList" << endl;
-          }
+//           if(!deleteWorkedLeft || !deleteWorkedRight){
+//             cout << "FAIL delete didn't work "<< endl;
+//             cout << " in compareLeftWithRightList" << endl;
+//           }
           //start from beginning
           itLeft = --leftList.end();
           itRight = rightList.begin();
@@ -841,11 +841,11 @@ concatClusterCand(Cluster* rightCluster, TYPE* leftInnerPoint,
                    clusterNo,CLCANDCL_CL_NO,false,
                    moveWorked);
     
-    if(!moveWorked){ //TODO TEST
-      cout << "FAIL move didn't work "<< endl;
-      cout << " in concatClusterCand at "
-      "compareSrcListFromItWithRightList" << endl;
-    }
+//     if(!moveWorked){ //TODO TEST
+//       cout << "FAIL move didn't work "<< endl;
+//       cout << " in concatClusterCand at "
+//       "compareSrcListFromItWithRightList" << endl;
+//     }
     
     updateMinMaxVal(clusterPair,*helpIt);
     moveNeighborsToDestList(rightCluster,
@@ -866,11 +866,11 @@ concatClusterCand(Cluster* rightCluster, TYPE* leftInnerPoint,
     moveItemSorted(this, helpIt,leftList,destList,true,
                    clusterNo,CLCANDCL_CL_NO,false,moveWorked);
     
-    if(!moveWorked){ //TODO TEST
-      cout << "FAIL move didn't work "<< endl;
-      cout << " in concatClusterCand at "
-      "compareSrcListFromItWithLEFTList" << endl;
-    }
+//     if(!moveWorked){ //TODO TEST
+//       cout << "FAIL move didn't work "<< endl;
+//       cout << " in concatClusterCand at "
+//       "compareSrcListFromItWithLEFTList" << endl;
+//     }
     
     updateMinMaxVal(clusterPair,*helpIt);
     moveNeighborsToDestList(rightCluster,

@@ -713,8 +713,10 @@ insertMinMax
      switch (kind){
        case NOISE:
        case CLUSTERCAND:
-       case CLUSTER:
        case UNDEF:
+         break;
+       case CLUSTER:
+         clusterMinMaxY.insert(it,list);
          break;
        case LEFT:
          leftPCMinMaxY.insert(it,list);
@@ -741,8 +743,10 @@ insertMinMax
      switch (kind){
        case NOISE:
        case CLUSTERCAND:
-       case CLUSTER:
        case UNDEF:
+         break;
+       case CLUSTER:
+         clusterMinMaxY.insert(clusterMinMaxY.begin() + i,list);
          break;
        case LEFT:
          leftPCMinMaxY.insert(leftPCMinMaxY.begin() + i,list);
@@ -1575,9 +1579,8 @@ melt the lists
                                             clusterCandList,
                                             clCandMinMax);
        }else{
-           //TODO should not happen
-           cout << "in meltClusterCandListWithClusterList" << endl;
-           cout << "FAIL member not found" << endl;
+//            cout << "in meltClusterCandListWithClusterList" << endl;
+//            cout << "FAIL member not found" << endl;
        }
    }
 
@@ -1694,7 +1697,7 @@ getCorrectListIndex
 /*
 findLastIndex
 finds the last Index in newIndices
-consitions: clusterList must be initialized
+preconditions: clusterList must be initialized
 
 */
    int findLastIndex(pair<unsigned int,Kind>& clusterList,
@@ -1720,10 +1723,14 @@ consitions: clusterList must be initialized
                                      bothDist,
                                      newIndices[helpInd].second);
            }else{
-               memberExist = true;
+             memberExist = true; //TODO NEW
+             if(helpInd < getVectorSize(newIndices[helpInd].second)){
                clusterList.first = newIndices[helpInd].first;
                clusterList.second = newIndices[helpInd].second;
                foundIndex = helpInd;
+             }
+             //else helpInd is bigger then Vector Size -> so
+             //list didn`t exist.
            }
        }
      return foundIndex;
