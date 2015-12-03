@@ -349,7 +349,7 @@ OperatorSpec dbDacScanSpec(
       " expanded. The text is the filename in which the Neighbor"
       " Relation would be stored.",
       "query Kneipen feed dbdacscan [GeoData,"
-      " ClusterId,'testN',EPS, MintPts] sortby[ClusterId]"
+      " ClusterId,'testN',500.0, 5] sortby[ClusterId]"
       " groupby[ClusterId ; C : group count] count;"
   );
   
