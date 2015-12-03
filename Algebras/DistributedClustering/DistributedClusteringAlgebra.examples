@@ -27,7 +27,7 @@ Example  : query Kneipen feed Kneipen feed head[200] distsamp[GeoData, WID, 2] f
 Result   : 173
 
 Operator : distclmerge
-Number   : 1
+Number   : 3
 Signature: text x text x text x text x Attr x Attr x real x int x text x text  -> stream(Tuple)
 Example  : query distclmerge(secondoHome() + '/leftRel.bin' , secondoHome() + '/leftNRel.bin' ,secondoHome() + '/rightRel.bin',secondoHome() + '/rightNRel.bin' , GeoData, ClusterId, 500.0 , 5 , 'DbScan.bin' ,'NeighborFile.bin' ) sortby[ClusterId] groupby[ClusterId ; C : group count] count
 Result   : 8
