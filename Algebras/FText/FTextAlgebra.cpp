@@ -11855,6 +11855,102 @@ Operator query2ListOP(
 );
 
 
+/*
+4.45 Operator ~substrw~
+
+This operators takes two positions within a text and returns the substring
+between these positions. The given range is extended to the beginning 
+of the word at the start and the end of a word at the end using a quite simple
+stategy for recognizing a word. If the range is outside the text, it is changed
+to the text's borders.
+
+*/
+
+ListExpr substrwTM(ListExpr args){
+
+  string err = "{string.text} x int x int expected";
+  if(!nl->HasLength(args,3)){
+   return listutils::typeError(err);
+  }
+  if(  !CcString::checkType(nl->First(args)) 
+     &&!FText::checkType(nl->First(args))){
+   return listutils::typeError(err);
+  }
+  if(  !CcInt::checkType(nl->Second(args))
+     ||!CcInt::checkType(nl->Third(args))){
+   return listutils::typeError(err);
+  }
+  return nl->First(args);
+}
+
+template<class T>
+int substrwVMT( Word* args, Word& result, int message, 
+                  Word& local, Supplier s ) {
+
+   T* arg = (T*) args[0].addr;
+   CcInt* S = (CcInt*) args[1].addr;
+   CcInt* E = (CcInt*) args[2].addr;
+   result = qp->ResultStorage(s);
+   T* res = (T*) result.addr;
+   if(!arg->IsDefined() || !S->IsDefined() || !E->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   string value = arg->GetValue();
+   int start = S->GetValue();
+   int end = E->GetValue();
+   if(start>=end){
+     res->Set(true,"");
+     return 0;
+   }
+   if(start<0){
+     start = 0;
+   }
+   if(!stringutils::isWordSpace(value[start])){
+      while((start>0) && !stringutils::isWordSpace(value[start-1])){
+         start--;
+      }
+   }
+   if(end>=value.length()){
+      end = value.length()-1;
+   }
+   if(!stringutils::isWordSpace(value[end])){
+       while( (end<value.length()-1) 
+          && !stringutils::isWordSpace(value[end+1]) ){
+           end++;
+      }          
+   }
+   res->Set(true, value.substr(start, (end-start)+1));
+   return 0;
+}
+
+ValueMapping substrwVM[] = {
+    substrwVMT<CcString>,
+    substrwVMT<FText>
+};
+
+int substrwSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec substrwSpec(
+  " T x int x int -> T, T in {text, string}",
+  " text substrw[pos1,pos2]",
+  "Returns a substring of a text. the given range is extended "
+  "to word breaks.",
+  " query 'hello world, here i am' substrw[7,12] "
+);
+
+Operator substrwOP(
+  "substrw",
+  substrwSpec.getStr(),
+  2,
+  substrwVM,
+  substrwSelect,
+  substrwTM
+);
+
+
 
 
 
@@ -11999,6 +12095,7 @@ Operator query2ListOP(
       AddOperator(&secondoHomeOP);
 
       AddOperator(&query2ListOP);
+      AddOperator(&substrwOP);
 
 
 

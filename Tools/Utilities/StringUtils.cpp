@@ -272,6 +272,15 @@ bool isDigit(const char c) {
   return (c>='0') && (c<='9');
 }
 
+
+bool isWordSpace(const char c){
+
+  std::string spaces = ".:;+#\"§$%&/()=?* \t\n\r";
+  return spaces.find(c)!=std::string::npos;
+
+}
+
+
 int getDigit(const char c){
   return c - '0';
 }

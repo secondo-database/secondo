@@ -221,6 +221,14 @@ bool isLetter(const char c);
 */
 bool isDigit(const char c);
 
+
+/*
+~isWordSpace~
+
+*/
+bool isWordSpace(const char c);
+
+
 /*
 returns the value of a digit char as an int
 

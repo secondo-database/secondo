@@ -121,6 +121,7 @@ operator secondoHome alias SECONDOHOME pattern op()
 
 operator query2list alias QUERY2LIST pattern op (_)
 
+operator substrw alias SUBSTRW pattern _ op[_,_]
 
 
 
