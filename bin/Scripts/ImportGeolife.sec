@@ -25,11 +25,11 @@ let importMRealFile = fun(Name: text) mpointtype csvimport[Name, 6, "", ","]
     projectextend[; A: int2real(.Alt), Inst: str2instant(.Datestr + "-" + .Timestr)] 
     approximate[Inst, A];
 
-let getPersonId = fun(Filename: text, Depth1: int, Depth2: int) 
+let getPId = fun(Filename: text, Depth1: int, Depth2: int) 
     substr(Filename, find(Filename, "/") transformstream tail[Depth1] extract[Elem] + 1,
                      find(Filename, "/") transformstream tail[Depth2] extract[Elem] - 1);
 
-let getTripId = fun(Filename: text)
+let getTId = fun(Filename: text)
     substr(Filename, find(Filename, "/") transformstream tail[1] extract[Elem] + 1,
                      find(Filename, ".") transformstream tail[1] extract[Elem] - 1);
 
