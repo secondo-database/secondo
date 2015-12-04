@@ -54,6 +54,7 @@ but includes tuples of different schemes.
 #include "HadoopParallelAlgebra.h"
 
 using namespace std;
+using namespace temporalalgebra;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
