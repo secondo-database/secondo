@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
+#include "frel.h"
 #include <iostream>
 #include <vector>
 #include <list>
@@ -53,6 +54,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "FileRelations.h"
 #include "FileAttribute.h"
+
 
 
   // use boost for thread handling
