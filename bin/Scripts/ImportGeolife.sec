@@ -46,8 +46,8 @@ let Trips = getDirectory('Geolife/Data', 3) transformstream
                     Trip: importMPointFile(.Elem), Alt: importMRealFile(.Elem)]
     consume;
 
-let geolife = TranspModes feed {tm} Trips feed {t} hashjoin[PersonId_tm, PersonId_t] 
-    projectextend[; Pid: .PersonId_tm, Tid: .TripId_t, Trip: .Trip_t, Alt: .Alt_t,
+let geolife = TranspModes feed {tm} Trips feed {t} hashjoin[PId_tm, PId_t] 
+    projectextend[; Pid: .PId_tm, Tid: .TId_t, Trip: .Trip_t, Alt: .Alt_t,
         Trans: .TMode_tm atperiods deftime(.Trip_t)]
     filter[no_components(.TransM) > 0]
     consume; 
