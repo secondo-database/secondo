@@ -1274,13 +1274,13 @@ Result   : '(query (+ 3 4))'
 Operator : substrw
 Number   : 1
 Signature : text -> text
-Example   : query 'hello world, here i am' substrw[7,12]
+Example   : query 'hello world, here i am' substrw[7,14]
 Result    : 'world, here'
 
 Operator : substrw
-Number   : 1
+Number   : 2
 Signature : string-> string
-Example   : query "hello world, here i am" substrw[7,12]
+Example   : query "hello world, here i am" substrw[7,14]
 Result    : "world, here"
 
 
