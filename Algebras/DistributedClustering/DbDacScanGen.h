@@ -366,7 +366,7 @@ auxiliary function to put attribute into result Tuple
        
        //append attribute outNFileName
        resTuple->PutAttribute(noAttr+4, 
-                              new FText(true,"delete this Tuple"));
+                              new FText(true,outNFileName));
        
        
        //write File

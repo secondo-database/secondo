@@ -67,7 +67,7 @@ namespace distributedClustering{
   const static string MEMBER_ID = "MemberId";
   const static string IS_CLUSTER = "IsCluster";
   const static string CLUSTER_TYPE = "ClusterType";
-  const static string NEIGHBORS_RELATION_NAME = "NeighborsRelN";
+  const static string NEIGHBORS_RELATION_NAME = "NeighborFName";
   
 /*
 3 Operator dbDacScan
