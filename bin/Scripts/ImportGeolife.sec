@@ -49,5 +49,5 @@ let Trips = getDirectory('Geolife/Data', 3) transformstream
 let geolife = TranspModes feed {tm} Trips feed {t} hashjoin[PId_tm, PId_t] 
     projectextend[; Pid: .PId_tm, Tid: .TId_t, Trip: .Trip_t, Alt: .Alt_t,
         Trans: .TMode_tm atperiods deftime(.Trip_t)]
-    filter[no_components(.TransM) > 0]
+    filter[no_components(.Trans) > 0]
     consume; 
