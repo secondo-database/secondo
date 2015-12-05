@@ -108,25 +108,16 @@ rightOuterPoint(members.back()->getPoint())
     }
   }
   
-//   //TODO vieleicht müssen listen untereinander geprüft werden
-//   // z.B Cluster mit allen anderen listen bzw alle listen gegeneinander
-//   // eventuell über YBorder kontrollieren
-//   
-//   initNeighborHood(CLUSTERCAND);
-//   initNeighborHood(LEFT);
-//   initNeighborHood(RIGHT);
-//   initNeighborHood(BOTH);
-  
 }
 
 
 /*
-  meltClusters
-  melt this Cluster with the right cluster
-  medianPoint and rightMedPoint are the two outer Points which
-  represent the splitline
- 
- */
+meltClusters
+melt this Cluster with the right cluster
+medianPoint and rightMedPoint are the two outer Points which
+represent the splitline
+
+*/
 template <class MEMB_TYP_CLASS, class TYPE>
 void
 Cluster<MEMB_TYP_CLASS,TYPE>::
@@ -212,8 +203,8 @@ meltClusters(Cluster * rightCluster,
   //save order of indexes from min to max
   vector<unsigned int > minToMaxIndexesLeft;
   //save new indices
-  pair<unsigned int,Kind>
-  newLeftIndices[leftIndexSize];
+  vector<pair<unsigned int,Kind> >
+  newLeftIndices; //[leftIndexSize];
   //init newIndicies
   initIndicies(newLeftIndices,leftIndexSize,bothDistLeft,false);
   
@@ -227,8 +218,8 @@ meltClusters(Cluster * rightCluster,
   //save order of indexes from min to max
   vector<unsigned int > minToMaxIndexesRight;
   //save new indices
-  pair<unsigned int,Kind>
-  newRightIndices[rightIndexSize];
+  vector<pair<unsigned int,Kind> >
+  newRightIndices; //[rightIndexSize];
   initIndicies(newRightIndices,rightIndexSize,bothDistRight,true);
   
   // ***CLUSTERCAND indices ****************************************************
@@ -460,7 +451,6 @@ meltClusters(Cluster * rightCluster,
     
     if(clusterCandClustersToMeltWithClNo[i].size() > 0)
     {
-      //melt list with first entry -> search entry
       findClListToMeltWithClustCandList(rightCluster,
                                         clusterCandClustersToMeltWithClNo[i],
                                         clusterCandClusters.at(i),
@@ -470,7 +460,6 @@ meltClusters(Cluster * rightCluster,
       
       if(clusterCandClustersToMeltWithClNo[i].size() > 1)
       {
-        
         // update MeltingIndexes - and melt cluster lists if it is necessary
         updateMeltedCluster(rightCluster,
                             clusterCandClustersToMeltWithClNo[i],
@@ -482,21 +471,8 @@ meltClusters(Cluster * rightCluster,
                             newRightIndices);
         
       }
-    }else{ //size == 0
-      
-      
-      pair<unsigned int,Kind> oldIndex = make_pair(i,CLUSTERCAND);
-      // the list is a new Cluster
-      addListToCorrectClusterType(
-        clusterCandClusters.at(i),
-                                  clusterCandClMinMax.at(i),
-                                  oldIndex);
     }
-    clusterCandClusters.at(i).clear();
   }
-  //clear clusterCandClusters
-  clusterCandClusters.clear();
-  
   
   
   //melt clusterCands with list ##############################################
@@ -527,9 +503,6 @@ meltClusters(Cluster * rightCluster,
   }
   
   //3.) alle nicht verschmolzenen listen werden angehängt ##################
-  
-  
-  
   //copy right noise to left noise
   pair<unsigned int,Kind> dummyIndex = make_pair(0,NOISE);
   pair<double,double> dummyMinMax = make_pair(MAX_DOUBLE,MIN_DOUBLE);
@@ -554,9 +527,6 @@ meltClusters(Cluster * rightCluster,
                             dummyIndex,dummyIndex,false,false);
     
   }
-  
-  
-  
   //copy right clusterLists to left side
   
   //first check clusterToMeltOnRightForLeftSide
@@ -578,12 +548,9 @@ meltClusters(Cluster * rightCluster,
       //then there is a cluster
       //append first entry to list i
       
-//TODO DELETE
-//printClusterToMeltIndex(clusterToMeltOnRightForLeftSide,leftIndexSize);
-//printClusterToMeltIndex(clusterToMeltOnLeftForRightSide,rightIndexSize);
-// pair<unsigned int,Kind> rightIndex=clusterToMeltOnRightForLeftSide[i].at(0);
-      if(getListLength(leftIndex)) //TODO workaround
-      {//TODO DELETE
+
+      if(getListLength(leftIndex))
+      {
         
         //define new ClusterType
         pair<unsigned int,Kind> destIndex;
@@ -644,6 +611,21 @@ meltClusters(Cluster * rightCluster,
   copyRightClusterListToLeftCluster(rightCluster,LEFT);
   copyRightClusterListToLeftCluster(rightCluster,BOTH);
   
+  //push back all ClusterCandCluster to correct ClusterType
+  for(unsigned int i = 0; i< clusterCandClusters.size(); i++){
+    if(clusterCandClustersToMeltWithClNo[i].size() == 0)
+    {
+          pair<unsigned int,Kind> oldIndex = make_pair(i,CLUSTERCAND);
+          // the list is a new Cluster
+          addListToCorrectClusterType(
+            clusterCandClusters.at(i),
+                                      clusterCandClMinMax.at(i),
+                                      oldIndex);
+    }
+      clusterCandClusters.at(i).clear();
+  }
+  //clear clusterCandClusters
+    clusterCandClusters.clear();
   
   //4.) delete all empty lists and pairs
   delete rightCluster;
@@ -841,11 +823,6 @@ concatClusterCand(Cluster* rightCluster, TYPE* leftInnerPoint,
                    clusterNo,CLCANDCL_CL_NO,false,
                    moveWorked);
     
-//     if(!moveWorked){ //TODO TEST
-//       cout << "FAIL move didn't work "<< endl;
-//       cout << " in concatClusterCand at "
-//       "compareSrcListFromItWithRightList" << endl;
-//     }
     
     updateMinMaxVal(clusterPair,*helpIt);
     moveNeighborsToDestList(rightCluster,
@@ -866,11 +843,6 @@ concatClusterCand(Cluster* rightCluster, TYPE* leftInnerPoint,
     moveItemSorted(this, helpIt,leftList,destList,true,
                    clusterNo,CLCANDCL_CL_NO,false,moveWorked);
     
-//     if(!moveWorked){ //TODO TEST
-//       cout << "FAIL move didn't work "<< endl;
-//       cout << " in concatClusterCand at "
-//       "compareSrcListFromItWithLEFTList" << endl;
-//     }
     
     updateMinMaxVal(clusterPair,*helpIt);
     moveNeighborsToDestList(rightCluster,
@@ -884,7 +856,7 @@ concatClusterCand(Cluster* rightCluster, TYPE* leftInnerPoint,
 /*
    addListToCorrectClusterType
     find out cluster type for given clusterlist and add
-   it to existing clusterlists
+   it to existing clusterlists.
    
  */
 template <class MEMB_TYP_CLASS, class TYPE>
@@ -1086,12 +1058,16 @@ meltClusterCandListWithClusterList(pair<unsigned int,Kind>& destinationList,
 /*
   meltListsOfCluster
 
+  melt cluster-lists at one side Cluster
+  
  */
 template <class MEMB_TYP_CLASS, class TYPE>
 pair<unsigned int,Kind>
 Cluster<MEMB_TYP_CLASS,TYPE>::
 meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
-                   pair<unsigned int,Kind>& sourceList)
+                   pair<unsigned int,Kind>& sourceList,
+                   vector<pair<unsigned int,Kind> >& newIndicies
+                  )
 {
   unsigned int destInd = destinationList.first;
   Kind destKind = destinationList.second;
@@ -1099,8 +1075,8 @@ meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
   unsigned int sourceInd = sourceList.first;
   Kind srcKind = sourceList.second;
   
-  bool newRetInd = false;
-  unsigned int retClNo = destInd;
+  bool newRetKind = false;
+  unsigned int retInd = destInd;
   
   Kind retKind = destKind;
   if(destinationList.second == BOTH
@@ -1108,19 +1084,22 @@ meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
   {
     retKind =BOTH;
     if(destinationList.second != BOTH){
-      newRetInd = true;
-      retClNo = getClusterNo(
-        getVectorSize(retKind),
-                             retKind);
+      newRetKind = true;
+      retInd = getVectorSize(retKind);
+//       retClNo = getClusterNo(
+//         getVectorSize(retKind),
+//                              retKind);
     }
   }
   
   //insert elements along the x coord
+  pair<unsigned int,Kind> retIndex(retInd,retKind);
   list<MEMB_TYP_CLASS*> retList;
   sortElemtsFromListsInNewList(getList(sourceInd,srcKind),
                                getList(destInd,destKind),
                                retList,
-                               destinationList);
+//                                destinationList);
+                               retIndex);
   //get MinMax borders
   pair <double,double> retMM =
   getNewMinMaxForClusterList(getMinMaxFromCluster(srcKind,sourceInd),
@@ -1128,12 +1107,13 @@ meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
   
   pair <double,double> initMM(MAX_DOUBLE,MIN_DOUBLE);
   
-  if(newRetInd){
+  if(newRetKind){
     //push back
     clearList(destKind,destInd);
     updateMinMaxVal(destKind,destInd,initMM);
     pushListToCluster(retKind,retList);
     pushMinMaxToCluster(retKind,retMM);
+    newIndicies.push_back(retIndex); //kind is both
   }else{
     //insert
     typename vector<list<MEMB_TYP_CLASS*> >::iterator
@@ -1145,7 +1125,7 @@ meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
     eraseMinMax(destKind,destInd);
     insertMinMax(minMaxIt,retMM,retKind);
   }
-  return pair<unsigned int,Kind>(destInd,retKind);
+  return retIndex;
 }
 
 

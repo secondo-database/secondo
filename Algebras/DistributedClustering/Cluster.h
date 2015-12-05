@@ -1380,13 +1380,16 @@ suche zur linken lister rechte cluster die miteinander verschmolzen werden
 
 /*
 meltClusterLists
+melt lists of Cluster at one side Cluster. So all  list 
+which are stored in the meltingSideArray Index where melted.
 
 */
    void meltClusterLists(Cluster *meltingCluster,
                          vector<pair<unsigned int,Kind> > *meltingSideArray,
                          vector<unsigned int> minToMaxIndexes,
                          vector<pair<unsigned int,Kind> > * indexArray,
-                         pair<unsigned int,Kind>* newIndices, int bothDist)
+                         vector<pair<unsigned int,Kind> >& newIndices, 
+                         unsigned int bothDist)
    {
      //if kind is both then meltClusterCandListWithClusterList[bothDist + i]
      vector<unsigned int>::iterator leftIt = minToMaxIndexes.end();
@@ -1421,11 +1424,13 @@ meltListsAndIndexOfCluster
 
 */
    void meltListsAndIndexOfCluster(Cluster* meltingCluster,
-                                   vector<pair<unsigned int,Kind> >* indexArray,
+                                   vector<pair<unsigned int,Kind> >*
+                                   indexArray,
                                    pair<unsigned int,Kind>& destIndex,
                                    pair<unsigned int,Kind>& srcIndex,
-                                   pair<unsigned int,Kind>* newIndices,
-                                   int bothDist)
+                                   vector<pair<unsigned int,Kind> >& 
+                                   newIndices,
+                                   unsigned int& bothDist) 
    {
      //find out correct index
      int destInd, srcInd;
@@ -1440,7 +1445,7 @@ meltListsAndIndexOfCluster
 
      //melt Clusters and update minMaxY
      pair<unsigned int,Kind> newIndex=
-         meltingCluster->meltListsOfCluster(destIndex,srcIndex);
+         meltingCluster->meltListsOfCluster(destIndex,srcIndex,newIndices);
      //set new index
      newIndices[destInd]= newIndex;
      newIndices[srcInd]= newIndex;
@@ -1458,7 +1463,7 @@ initialice newIndicies Left and Right with respectivly the first entry of
 clusterToMelt indicies
 
 */
-   void initIndicies(pair<unsigned int,Kind>* newIndices,
+void initIndicies( vector<pair<unsigned int,Kind> >& newIndices,
                      int indexSize,int bothDist, bool isRightCluster)
    {
      for(int i = 0; i<indexSize; i++){
@@ -1475,9 +1480,8 @@ clusterToMelt indicies
                ind = i - bothDist;
                kind = BOTH;
            }
-
-         newIndices[i] =
-             make_pair(ind,kind);
+         newIndices.push_back(
+             make_pair(ind,kind));
 
      }
    }
@@ -1491,10 +1495,17 @@ melt the given clusterindexes
    void meltIndexOfCluster(vector<pair<unsigned int,Kind> > &destIndList ,
                            vector<pair<unsigned int,Kind> > &sourceIndList);
 
+/*
+meltListsOfCluster
 
+melt two list of a cluster
+
+*/
    pair<unsigned int,Kind>
    meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
-                      pair<unsigned int,Kind>& sourceList);
+                      pair<unsigned int,Kind>& sourceList,
+                      vector<pair<unsigned int,Kind> >& newIndicies
+                     );
 
    void meltClusterCandListWithClusterList(pair<unsigned int,Kind>& 
                                            destinationList,
@@ -1510,9 +1521,11 @@ findClListToMeltWithClustCandList
                                       list<MEMB_TYP_CLASS*>& clusterCandList,
                                       pair <double,double>& clCandMinMax,
                                       int bothDistLeft,
-                                      pair<unsigned int,Kind>* newLeftIndices,
+                                      vector<pair<unsigned int,Kind> >&
+                                      newLeftIndices,
                                       int bothDistRight,
-                                      pair<unsigned int,Kind>* newRightIndices)
+                                      vector<pair<unsigned int,Kind> >&
+                                      newRightIndices)
    {
      typename vector< clusterCandMelt>::iterator
      membIt = clCaMeltInd.begin(),
@@ -1563,7 +1576,8 @@ melt the lists
                                         list<MEMB_TYP_CLASS*>& clusterCandList,
                                         pair <double,double>& clCandMinMax,
                                         int bothDist,
-                                        pair<unsigned int,Kind>* newIndices)
+                                        vector<pair<unsigned int,Kind> >&
+                                        newIndices)
    {
      pair<unsigned int,Kind> clusterList =
          make_pair(clCaMeltInd.clusterIndex,
@@ -1589,19 +1603,24 @@ melt the lists
 
 meltClsuterCandWithClusterList
 
+melt foundet reachabel clusterCands with cluster lists
+
 */
    void meltClsuterCandWithClusterList(Cluster* rightCluster,
                                     vector< clusterCandMelt>* clusterCandIndex,
                                     unsigned int indexSize,
                                     vector<pair<unsigned int,Kind> > *
                                     clusterToMeltOnRightForLeftSide,
-                                    pair<unsigned int,Kind>* newLeftIndices,
+                                    vector<pair<unsigned int,Kind> >&
+                                    newLeftIndices,
                                     int bothDistLeft,
                                     vector<pair<unsigned int,Kind> > *
                                     clusterToMeltOnLeftForRightSide,
-                                    pair<unsigned int,Kind>* newRightIndices,
+                                    vector<pair<unsigned int,Kind> >&
+                                    newRightIndices,
                                     int bothDistRight)
    {
+     
      for(unsigned int i = 0; i< indexSize; i++){
          if(clusterCandIndex[i].size() > 0)
            {
@@ -1662,7 +1681,7 @@ findListToMeltWithClusterCand
    findListToMeltWithClusterCand(clusterCandMelt& clCaMeltInd,
                                  pair<unsigned int,Kind>& clusterList,
                                  int bothDist,
-                                 pair<unsigned int,Kind>* newIndices )
+                                 vector<pair<unsigned int,Kind> >& newIndices )
    {
 
      int foundIndex = -1;
@@ -1701,14 +1720,14 @@ preconditions: clusterList must be initialized
 
 */
    int findLastIndex(pair<unsigned int,Kind>& clusterList,
-                     pair<unsigned int,Kind>* newIndices,
+                     vector<pair<unsigned int,Kind> >& newIndices,
                      int bothDist)
    {
      bool memberExist = false;
      int foundIndex = -1;
-     int listIndex = clusterList.first;
+     unsigned int listIndex = clusterList.first;
      //find out correct Index regarding bothDist
-     int helpInd =
+     unsigned int helpInd =
          getCorrectListIndex( clusterList.first,
                               bothDist,
                               clusterList.second);
@@ -1723,14 +1742,12 @@ preconditions: clusterList must be initialized
                                      bothDist,
                                      newIndices[helpInd].second);
            }else{
-             memberExist = true; //TODO NEW
+             memberExist = true; 
              if(helpInd < getVectorSize(newIndices[helpInd].second)){
                clusterList.first = newIndices[helpInd].first;
                clusterList.second = newIndices[helpInd].second;
                foundIndex = helpInd;
              }
-             //else helpInd is bigger then Vector Size -> so
-             //list didn`t exist.
            }
        }
      return foundIndex;
@@ -1747,11 +1764,11 @@ melt all cluster list which are not melted yet
                             vector<pair<unsigned int,Kind> >*
                             clusterToMeltOnRightForLeftSide,
                             int bothDistLeft,
-                            pair<unsigned int,Kind>* newLeftIndices,
+                            vector<pair<unsigned int,Kind> >& newLeftIndices,
                             vector<pair<unsigned int,Kind> >*
                             clusterToMeltOnLeftForRightSide,
                             int bothDistRight,
-                            pair<unsigned int,Kind>* newRightIndices)
+                            vector<pair<unsigned int,Kind> >& newRightIndices)
    {
      typename vector< clusterCandMelt>::iterator
      membIt = clCaMeltInd.begin();
@@ -1800,10 +1817,10 @@ last index. If the result is true then the lists are melted
 */
    bool meltClusterCandClusterWithList(Cluster* meltingCluster,
                                   vector<clusterCandMelt>& members,
-                                  pair<unsigned int,Kind>* srcIndices,
+                                  vector<pair<unsigned int,Kind> >& srcIndices,
                                   vector<pair<unsigned int,Kind> > * indexArray,
-                                  pair<unsigned int,Kind>* meltIndices,
-                                  int bothDist
+                                  vector<pair<unsigned int,Kind> >& meltIndices,
+                                  unsigned int bothDist
    )
    {
 
@@ -1815,6 +1832,7 @@ last index. If the result is true then the lists are melted
      bool allMembersEqual = true;
 
      if(membIt != members.end()){
+       
          oldIndex = 
          make_pair((*oldMembIt).clusterIndex, (*oldMembIt).clusterKind);
          findLastIndex(oldIndex,srcIndices,bothDist);
@@ -1828,9 +1846,7 @@ last index. If the result is true then the lists are melted
                  allMembersEqual = false;
                  //melt oldIndex with index
                  //update left with right index
-                 int destInd = 0, srcInd = 0;
                  double yOldIndex, yIndex;
-
                  //find lower Y coord
                  yIndex = 
                  meltingCluster->getYMinfromCluster(index.second,index.first);
@@ -2536,8 +2552,6 @@ updateNeighbor
    void updateNeighbor(MEMB_TYP_CLASS * leftMemb, MEMB_TYP_CLASS *rightMemb)
    {
      list<MEMB_TYP_CLASS*> neighborList;
-     //TODO updateNeighbor schneller machen 
-     //-> teste ohne rekursive aufrufe -> wie bei initNeighbor
      updateNeighbor(leftMemb,rightMemb,neighborList);
    }
 
@@ -2586,7 +2600,7 @@ update clusterNo and Type
      while(it!=list.end()){
          if(!(*it)->updateInnerPnt(minPts)){
            if(!(*it)->updateDensityReachable(minPts) && 
-             (kind == CLUSTER || kind == CLUSTERCAND) ){ //TODO test
+             (kind == CLUSTER || kind == CLUSTERCAND) ){
                  allDensReachable = false;
                  if(moveItemToClusterCandOrNoise(leftOuterPoint,
                                                  rightOuterPoint,
@@ -2597,8 +2611,6 @@ update clusterNo and Type
                    }else{
                        it++;
                    }
-                 //TODO maybe split list
-                 //TODO eventuell unterscheiden ob punkt
              } else{
                  (*it)->setClusterNo(getClusterNo(listNo,kind));
                  (*it)->setClusterType(type);
@@ -2744,8 +2756,8 @@ delete elements from sourceList
 /*
 sortRightListToLeftList
 
-fuegt die elemente sortiert in die linke liste ein
-benutzt fuer listen zusammenhaengen links + rechts
+sorts a given source list in a given destination list
+after this method the destinationList is empty.
 
 */
    void sortRightListToLeftList(Cluster * origCluster,
@@ -2848,7 +2860,9 @@ update for each item in destList ClusterNo and ClusterType
    }
 
 /*
-updateClusterList
+copyRightClusterListToLeftCluster
+
+copy the untouched right Cluster lists to left Cluster
 
 */
    void copyRightClusterListToLeftCluster(Cluster *rightCluster,
