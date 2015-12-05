@@ -7192,12 +7192,60 @@ lookupAttrs(all X, Y) :-
 lookupAttrs([], []).
 
 lookupAttrs([A | As], [A2 | A2s]) :-
-  lookupAttr(A, A2),
+  lookupAttr2(A, A2),
   lookupAttrs(As, A2s).
 
 lookupAttrs(Attr, Attr2) :-
   not(is_list(Attr)),
-  lookupAttr(Attr, Attr2).
+  lookupAttr2(Attr, Attr2).
+
+
+
+
+:- dynamic(onlyAttribute/0).
+
+
+lookupAttr2(Expr as Name, Expr2 as attr(Name, 0, u)) :-
+  lookupAttr(Expr, Expr2),
+  not(queryAttr(attr(Name, 0, u))),
+  !,
+  assert(queryAttr(attr(Name, 0, u))).
+
+lookupAttr2(Expr as Name, Y) :-
+  lookupAttr(Expr, _),
+  queryAttr(attr(Name, 0, u)),
+  !,
+  term_to_atom(Name,NameA),
+  my_concat_atom(['Doubly defined attribute names \'',NameA,'\'',
+              ' within query.'],'',ErrMsg),
+  write_list(['\nERROR: ',ErrMsg]), nl,
+  throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y)
+                                ::malformedExpression:ErrMsg)),
+  !, fail. 
+
+
+lookupAttr2(Term, Term2) :-
+  assert(onlyAttribute),
+  lookupAttr(Term, Term2),
+  onlyAttribute,
+  !.
+
+
+
+lookupAttr2(Term, _) :-
+  term_to_atom(Term, TermA),
+  my_concat_atom(['Expression ', TermA, ' in select clause derives a new ',
+    'attribute, which must be named (using as). '], '', ErrMsg),
+  write_list(['\nERROR:\t',ErrMsg]),
+  throw(error_SQL(optimizer_lookupAttr(Term, _)::unknownIdentifier::ErrMsg)),
+  !, fail.
+
+
+
+
+
+
+
 
 % complex constant value expression
 lookupAttr([const, Type, value, Value], value_expr(Type,Value)) :-
@@ -7350,23 +7398,7 @@ lookupAttr(T, T2) :-
   isAggregationOP(T2),
   !.
 
-lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
-  lookupAttr(Expr, Expr2),
-  not(queryAttr(attr(Name, 0, u))),
-  !,
-  assert(queryAttr(attr(Name, 0, u))).
 
-lookupAttr(Expr as Name, Y) :-
-  lookupAttr(Expr, _),
-  queryAttr(attr(Name, 0, u)),
-  !,
-  term_to_atom(Name,NameA),
-  my_concat_atom(['Doubly defined attribute names \'',NameA,'\'',
-              ' within query.'],'',ErrMsg),
-  write_list(['\nERROR: ',ErrMsg]), nl,
-  throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y)
-                                ::malformedExpression:ErrMsg)),
-  fail.
 
 /*
 Generic lookupAttr/2-rule for functors of arbitrary arity using Univ (=../2):
@@ -7380,10 +7412,11 @@ lookupAttr(Name, attr(Name, 0, u)) :-
 % special clause for string atoms (they regularly cause problems since they
 % are marked up in double quotes, which Prolog handles as strings, that are
 % represented as charactercode lists...
+
 lookupAttr(Term, value_expr(string,Term)) :-
   is_list(Term), % list represents a string (list of characters)
   catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
-  !.
+  retractall(onlyAttribute), !.
 
 
 
@@ -7395,14 +7428,15 @@ lookupAttr(Term, value_expr(string,Term)) :-
 
 lookupAttr(Term, Term2) :-
   compound(Term),
+  retractall(onlyAttribute),
   Term =.. [Op|Args],
   lookupAttr1(Args, Args2),
   Term2 =.. [Op|Args2],
   !.
 
 % bool constant
-lookupAttr(true, value_expr(bool,true)) :- !.
-lookupAttr(false, value_expr(bool,false)) :- !.
+lookupAttr(true, value_expr(bool,true)) :-   retractall(onlyAttribute), !.
+lookupAttr(false, value_expr(bool,false)) :-   retractall(onlyAttribute), !.
 
 
 % null-ary operator
@@ -7413,24 +7447,25 @@ lookupAttr(Op, Op) :-
   !.
 
 
-
-
 % database object
 lookupAttr(Term, dbobject(TermDC)) :-
   atomic(Term),
   \+ is_list(Term),
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
+  retractall(onlyAttribute),
   !.
 
 % Primitive: int-atom
 lookupAttr(IntAtom, value_expr(int,IntAtom)) :-
   atomic(IntAtom), integer(IntAtom),
+  retractall(onlyAttribute),
   !.
 
 % Primitive: real-atom
 lookupAttr(RealAtom, value_expr(real,RealAtom)) :-
   atomic(RealAtom), float(RealAtom),
+  retractall(onlyAttribute),
   !.
 
 %% Primitive: text-atom
