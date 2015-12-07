@@ -700,6 +700,10 @@ public class CommandPanel extends JScrollPane {
        errMsg.append("\n there are unclosed brackets\n");
        return false;
     }
+    if(state!=0){
+       errMsg.append("\n the is an unclosed string\n");
+       return false;
+    }
     return true;
   }
 
