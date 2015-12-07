@@ -2757,8 +2757,7 @@ For this reason. only constants for the server number and the command
 can be given. This makes only sense for queries. 
 
 */
-template<class S>
-bool getValue(ListExpr in, string&out){
+template<class S> bool getValue(ListExpr in, string&out){
    Word res;
    bool success = QueryProcessor::ExecuteQuery(nl->ToString(in),res);
    if(!success){
@@ -6706,6 +6705,20 @@ TypeConstructor DFMatrixTC(
   CastDArray<DFMatrix>,
   SizeOfDArray,
   DArrayTypeCheck<DFMatrix> );
+
+
+TypeConstructor FRelTC(
+  frel::BasicType(),
+  frel::Property,
+  frel::Out, frel::In,
+  0,0,
+  frel::Create, frel::Delete,
+  frel::Open, frel::Save,
+  frel::Close, frel::Clone, 
+  frel::Cast, 
+  frel::SizeOf,
+  frel::TypeCheck );
+
 
 
 /*
@@ -17186,6 +17199,151 @@ Operator loadAttrOp(
 );
 
 
+/*
+
+2.32 Operator ~createFrel~
+
+*/
+
+ListExpr createFrelTM(ListExpr args){
+
+ string err = "{string,text} [ x rel [ x bool ]] expected";
+ if(!nl->HasLength(args,1) && !nl->HasLength(args,2) 
+    && !nl->HasLength(args,3)){
+   return listutils::typeError(err + " (wrong number of args)");
+ }
+ // check usesArgs in TypeMapping
+ ListExpr t = args;
+ while(!nl->IsEmpty(t)){
+   if(!nl->HasLength(nl->First(t),2)){
+      return listutils::typeError("internal Error");
+   }
+   t = nl->Rest(t);
+ }
+
+ ListExpr arg1t = nl->First(nl->First(args));
+
+
+ if(    !CcString::checkType(arg1t) && !FText::checkType(arg1t)){
+   return listutils::typeError(err + 
+                      " (first arg not of type string or text");
+ }
+ if(nl->HasLength(args,1)){
+   // only the name is given, retrieve type from file
+   string filename;
+   bool ok;
+   if(CcString::checkType(arg1t)){
+      ok = getValue<CcString>(nl->Second(nl->First(args)), filename);
+   } else {
+      ok = getValue<FText>(nl->Second(nl->First(args)), filename);
+   }
+   if(!ok){
+     return listutils::typeError("could not retrieve filename from " 
+                                 + nl->ToString(nl->Second(nl->First(args))));
+   }
+   ffeed5Info fi(filename);
+   if(!fi.isOK()){
+     return listutils::typeError("file " + filename 
+                                 + " not present or contains no relation");
+   }
+   ListExpr relType = fi.getRelType();
+   return nl->TwoElemList( listutils::basicSymbol<frel>(),
+                           nl->Second(relType));
+ }
+ // at least two arguments
+ ListExpr relType = nl->First(nl->Second(args));
+ if(!Relation::checkType(relType)){
+    return listutils::typeError(err + " (second arg is not a relation)");
+ }
+ if(nl->HasLength(args,3)){
+    if(!CcBool::checkType(nl->First(nl->Third(args)))){
+        return listutils::typeError(err + " ( third arg not a bool )");
+    }
+ }
+ return nl->TwoElemList( listutils::basicSymbol<frel>(),
+                          nl->Second(relType));   
+
+}
+
+
+
+template<class T>
+int createFrelVMT(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  frel* res = (frel*) result.addr;
+
+  T* fname = (T*) args[0].addr;
+  if(!fname->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }  
+  string fn = fname->GetValue();
+  res->set(fn);
+  if(qp->GetNoSons(s)==1 || qp->GetNoSons(s)==2){
+    return 0;
+  }
+  assert(qp->GetNoSons(s)==3);
+ 
+  CcBool* over = (CcBool*) args[2].addr;
+  if(!over->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  // create relation 
+  if(!over->GetValue()){ // do not allow overwrite
+     fstream in (fn.c_str(), ios::in);
+     if(in.good()){
+       res->SetDefined(false);
+       return 0;
+     }  
+  }
+  ListExpr relType = nl->TwoElemList( listutils::basicSymbol<Relation>(),
+                                      nl->Second(qp->GetType(s))); 
+
+  bool ok = BinRelWriter::writeRelationToFile( (Relation*) args[1].addr,
+                                               relType, fn);
+
+  if(!ok){
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+
+ValueMapping createFrelVM[] = {
+   createFrelVMT<CcString>,
+   createFrelVMT<FText>
+};
+
+int createFrelSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec createFrelSpec(
+  " {string,text} [ x rel(tuple(X)) [ x bool ] ] -> frel(tuple(x))",
+  " createFRel(filename,relation,overwrite)",
+  "This operator creates an frel instance. "
+  "If only the first argument is given, the relation type is extracted "
+  "in type mapping from the file. " 
+  "If the filename and the relation are given, the rekation type is "
+  "taken from the relation. If all argument are given, the file is created"
+  " from the relation. The overwrite argument controls whether an "
+  "existing file should be overwritten.",
+  " query createFrel('ten.bin', ten, TRUE)"
+);
+
+Operator createFrelOP(
+ "createFrel",
+ createFrelSpec.getStr(),
+ 2,
+ createFrelVM,  
+ createFrelSelect,
+ createFrelTM
+);
+
+
 
 
 
@@ -17202,6 +17360,8 @@ Distributed2Algebra::Distributed2Algebra(){
    DFArrayTC.AssociateKind(Kind::SIMPLE());
    AddTypeConstructor(&DFMatrixTC);
    DFMatrixTC.AssociateKind(Kind::SIMPLE());
+   AddTypeConstructor(&FRelTC);
+   FRelTC.AssociateKind(Kind::SIMPLE());
    
    AddOperator(&connectOp);
    AddOperator(&checkConnectionsOp);
@@ -17325,6 +17485,8 @@ Distributed2Algebra::Distributed2Algebra(){
    loadAttrOp.SetUsesArgsInTypeMapping();
 
 
+   AddOperator(&createFrelOP);
+   createFrelOP.SetUsesArgsInTypeMapping();
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);

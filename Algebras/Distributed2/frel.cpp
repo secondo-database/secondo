@@ -25,26 +25,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-
+#include <string>
+#include <stdint.h>
 #include "frel.h"
 #include "NestedList.h"
 #include "SecondoSMI.h"
 #include "AlgebraTypes.h"
 #include "ListUtils.h"
 #include "RelationAlgebra.h"
-#include "stdint.h"
 
 extern NestedList* nl;
 
+using namespace std;
+
 namespace distributed2{
 
-frel::frel():value(""){}
-frel::frel(const frel& src): value(src.value){}
+frel::frel():value(""), defined(false){}
+frel::frel(const frel& src): value(src.value), defined(src.defined){}
 
 frel::frel(const int dummy){}
 
 frel::frel(const std::string& name):
-   value(name){}
+   value(name), defined(true){}
+
+
+
+void frel::set(const std::string& value){
+   this->value = value;
+   defined = true;
+}
+
  
 // secondo support 
 bool frel::checkType(const ListExpr list){
@@ -54,7 +64,7 @@ bool frel::checkType(const ListExpr list){
   if(!listutils::isSymbol(nl->First(list),BasicType())){
     return false;
   }
-  return Relation::checkType(nl->Second(list));
+  return Tuple::checkType(nl->Second(list));
 }
 
 
@@ -79,6 +89,13 @@ Word frel::In(const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct){
 
   Word res((void*)0);
+  if(listutils::isSymbolUndefined(instance)){
+    res.addr = new frel();
+    correct = true;
+    return res;
+  }
+
+
   if(nl->AtomType(instance)!=TextType){
     correct = false;
     return res;
@@ -92,6 +109,9 @@ Word frel::In(const ListExpr typeInfo, const ListExpr instance,
 
 ListExpr frel::Out(ListExpr typeInfo, Word value){
   frel* v = (frel*) value.addr;
+  if(!v->IsDefined()){
+    return listutils::getUndefined();
+  }
   return nl->TextAtom(v->value);
 }
 
@@ -107,6 +127,16 @@ void frel::Delete(const ListExpr typeInfo, Word& w){
 bool frel::Save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value){
  frel* v = (frel*) value.addr;
+ if(!v->IsDefined()){
+   char def = 0;
+   valueRecord.Write(&def, sizeof(char), offset);
+   offset += sizeof(char);
+   return true; 
+ }
+ char def = 1;
+ valueRecord.Write(&def, sizeof(char), offset);
+ offset += sizeof(char);
+
  uint32_t length = v->value.length(); 
  valueRecord.Write(&length, sizeof(uint32_t), offset);
  offset += sizeof(uint32_t);
@@ -120,6 +150,14 @@ bool frel::Save(SmiRecord& valueRecord, size_t& offset,
 bool frel::Open(SmiRecord& valueRecord,
                    size_t& offset, const ListExpr typeInfo,
                    Word& value){
+
+  char def;
+  valueRecord.Read(&def, sizeof(char), offset);
+  offset+=sizeof(char);
+  if(def==0){
+     value.addr = new frel();
+     return true;
+  }
 
   uint32_t length;
   valueRecord.Read(&length, sizeof(uint32_t), offset);

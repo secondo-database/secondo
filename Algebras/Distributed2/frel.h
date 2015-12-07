@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef FREL_H
 #define FREL_H
 
+#include <string>
 #include "NestedList.h"
 #include "SecondoSMI.h"
 
@@ -42,9 +43,11 @@ public:
   frel();
   frel(const frel& src);
   explicit frel(const std::string& name);
+
+  void set(const std::string& value);
  
   // secondo support 
-  static std::string BasicType();
+  static inline std::string BasicType(){return "frel";}
   static bool checkType(const ListExpr list);
   static ListExpr Property();
   static Word In(const ListExpr typeInfo, const ListExpr instance,
@@ -62,9 +65,15 @@ public:
   static void* Cast(void* addr);
   static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
   static int SizeOf();
+  inline bool IsDefined()const{ return defined;}
+  inline std::string getValue()const{ return value;}
+  inline void SetDefined(const bool _def){ defined = _def;}
+  
+
 private:
   explicit frel(const int dummy);
-  string value;
+  std::string value;
+  bool defined;
 
 };
 

@@ -502,3 +502,29 @@ Signature : {string, text} -> DATA
 Example   : query  loadAttr("six.bin")
 Result    : 6
 
+
+Operator  : createFrel
+Number    : 1
+Signature : {string,text} -> frel
+Example   : query createFrel("ten.bin")
+Result    : unpredictable
+Remark    : depends on the existence and content of file ten.bin
+
+
+Operator  : createFrel
+Number    : 2
+Signature : {string, text} x rel(tuple(X)) -> frel(tuple(X))
+Example   : query createFrel("ten,bin", ten)
+Result    : ((frel(tuple((No int))) 'ten.bin')
+
+Operator  : createFrel
+Number    : 3
+Signature : {string, text} x rel(tuple(X)) x bool -> frel(tuple(X))
+Example   : query createFrel("ten,bin", ten, FALSE)
+Result    : unpredictable
+Remark    : depends on the existence and content of file ten.bin
+
+
+
+
+

@@ -92,5 +92,5 @@ operator areduce2 alias AREDUCE2 pattern _ _ op [_ , fun, _] implicit parameters
 operator saveAttr alias SAVEATTR pattern _ op[_] 
 operator loadAttr alias LOADATTR pattern  op(_) 
 
-
+operator createFrel alias CREATEFREL pattern op(_,_,_)
 
