@@ -1017,7 +1017,7 @@ isMembInList(MEMB_TYP_CLASS *memb, list<MEMB_TYP_CLASS*>& list)
 
 
 /*
- meltListsOfCluster
+ meltClusterCandListWithClusterList
 
  */
 template <class MEMB_TYP_CLASS, class TYPE>
@@ -1075,22 +1075,23 @@ meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
   unsigned int sourceInd = sourceList.first;
   Kind srcKind = sourceList.second;
   
-  bool newRetKind = false;
+//   bool newRetKind = false;
   unsigned int retInd = destInd;
   
   Kind retKind = destKind;
-  if(destinationList.second == BOTH
-    ||sourceList.second == BOTH )
-  {
-    retKind =BOTH;
-    if(destinationList.second != BOTH){
-      newRetKind = true;
-      retInd = getVectorSize(retKind);
-//       retClNo = getClusterNo(
-//         getVectorSize(retKind),
-//                              retKind);
-    }
-  }
+//   if(destinationList.second == BOTH //TODO TEST
+ 
+//     ||sourceList.second == BOTH )
+//   {
+//     retKind =BOTH;
+//     if(destinationList.second != BOTH){
+//       newRetKind = true;
+//       retInd = getVectorSize(retKind);
+// //       retClNo = getClusterNo(
+// //         getVectorSize(retKind),
+// //                              retKind);
+//     }
+//   }
   
   //insert elements along the x coord
   pair<unsigned int,Kind> retIndex(retInd,retKind);

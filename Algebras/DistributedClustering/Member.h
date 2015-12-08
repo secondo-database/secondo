@@ -539,6 +539,7 @@ calculate the distance between this and the committed point
   
 };
 
+
 }
 
 #endif
