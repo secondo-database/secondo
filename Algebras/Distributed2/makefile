@@ -63,4 +63,3 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	rm -f RegExParser.y.c RegExScanner.c RegExParser.y.h 
