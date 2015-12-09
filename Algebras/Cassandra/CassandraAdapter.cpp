@@ -57,7 +57,7 @@
 // Activate debug messages
 //#define __DEBUG__
 
-#define MAX_PENDING_FUTURES 30
+#define MAX_PENDING_FUTURES 5000
 
 using namespace std;
 
