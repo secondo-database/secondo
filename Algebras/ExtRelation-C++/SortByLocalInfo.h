@@ -66,8 +66,8 @@ private:
 
     // sorted runs created by in memory heap filtering
     size_t MAX_MEMORY;
-    typedef pair<TupleBuffer*, GenericRelationIterator*> SortedRun;
-    vector< SortedRun > relations;
+    typedef std::pair<TupleBuffer*, GenericRelationIterator*> SortedRun;
+    std::vector< SortedRun > relations;
 
     typedef priority_queue<TupleAndRelPos> TupleQueue;
     TupleQueue queue[2];
@@ -96,8 +96,8 @@ class SortByLocalInfo : protected ProgressWrapper
 
     // sorted runs created by in memory heap filtering
     size_t MAX_MEMORY;
-    typedef pair<TupleBuffer*, GenericRelationIterator*> SortedRun;
-    vector< SortedRun > relations;
+    typedef std::pair<TupleBuffer*, GenericRelationIterator*> SortedRun;
+    std::vector< SortedRun > relations;
 
     typedef TupleQueue Heap;
     Heap queue[2];

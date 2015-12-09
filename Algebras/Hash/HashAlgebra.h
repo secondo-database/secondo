@@ -13,8 +13,6 @@
 #ifndef _HASH_ALGEBRA_H_
 #define _HASH_ALGEBRA_H_
 
-using namespace std;
-
 #include "SecondoSMI.h"
 #include "StandardTypes.h"
 #include "ListUtils.h"
@@ -177,7 +175,7 @@ Retrieves statsitics on the used file from the storage manager
 Return the Secondo type name
 
 */
-  inline static const string BasicType() { return "hash"; }
+  inline static const std::string BasicType() { return "hash"; }
 
   static const bool checkType(ListExpr list){
     return listutils::isHashDescription(list);

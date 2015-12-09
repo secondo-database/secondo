@@ -20,7 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-April 2006, M. Spiekermann. The file Algebra.h need to be divided into Operators.h. TypeConstructors.h,
+April 2006, M. Spiekermann. The file Algebra.h need to be divided 
+into Operators.h.  TypeConstructors.h,
 AlgebraClassDef.h and AlgebraInit.h
 
 */
@@ -39,8 +40,6 @@ AlgebraClassDef.h and AlgebraInit.h
 
 //extern NestedList* nl;
 
-using namespace std;
-
 /*
 1 Class ~Operator~
 
@@ -56,13 +55,19 @@ An operator instance consists of
   * a selection function calculating the index of a value mapping function
     with respect to input parameter types
 
-  * a boolean telling whether this operator supports progress queries, default is false.
+  * a boolean telling whether this operator supports progress queries, 
+    default is false.
 
-  * a boolean indicating whether this operator does not want automatic evaluation of its arguments (example: ifthenelse operator), default is false.
+  * a boolean indicating whether this operator does not want automatic 
+    evaluation of 
+    its arguments (example: ifthenelse operator), default is false.
 
-  * a boolean indicating whether this operator needs arguments to be passed to type mapping functions, default is false.
+  * a boolean indicating whether this operator needs arguments to be 
+    passed to type 
+    mapping functions, default is false.
 
-  * a boolean indicating whether this operator uses (large) main memory buffers, default is false.
+  * a boolean indicating whether this operator uses (large) main memory buffers,
+    default is false.
 
 All properties of operators are set in the constructor. Only the value mapping
 functions have to be registered later on since their number is arbitrary. This
@@ -72,12 +77,12 @@ number is set in the constructor (~noF~).
 
 struct OperatorInfo {
 
-  string name;
-  string signature;
-  string syntax;
-  string meaning;
-  string example;
-  string remark;
+  std::string name;
+  std::string signature;
+  std::string syntax;
+  std::string meaning;
+  std::string example;
+  std::string remark;
   bool supportsProgress;
   bool requestsArgs;
   bool usesArgsInTypeMapping;
@@ -109,11 +114,11 @@ struct OperatorInfo {
     usesMemory(o.usesMemory)
   {}
 
-  OperatorInfo( const string& _name,
-                const string& _signature,
-                const string& _syntax,
-                const string& _meaning,
-                const string& _example )
+  OperatorInfo( const std::string& _name,
+                const std::string& _signature,
+                const std::string& _syntax,
+                const std::string& _meaning,
+                const std::string& _example )
  {
    name = _name;
    signature = _signature;
@@ -127,7 +132,7 @@ struct OperatorInfo {
    usesMemory = false;
  }
 
- OperatorInfo( const string& opName, const string& specStr);
+ OperatorInfo( const std::string& opName, const std::string& specStr);
 
  ~OperatorInfo(){
    name.clear();
@@ -138,13 +143,13 @@ struct OperatorInfo {
    remark.clear();
 }
 
- const string str() const;
+ const std::string str() const;
  const ListExpr list() const;
 
- void appendSignature(const string& sig);
+ void appendSignature(const std::string& sig);
 
 
- ostream& Print(ostream& o) const{
+ std::ostream& Print(std::ostream& o) const{
    o << "OperatorInfo[ "
      <<  name << ", "
      <<  signature <<", "
@@ -161,17 +166,17 @@ struct OperatorInfo {
 
 };
 
-ostream& operator<<(ostream& o, const OperatorInfo& oi);
+std::ostream& operator<<(std::ostream& o, const OperatorInfo& oi);
 
 
 class OperatorSpec{
 
   public:
-     OperatorSpec ( const string& _signature,
-                    const string& _syntax,
-                    const string& _meaning,
-                    const string _example,
-                    const string& _remark = ""):
+     OperatorSpec ( const std::string& _signature,
+                    const std::string& _syntax,
+                    const std::string& _meaning,
+                    const std::string& _example,
+                    const std::string& _remark = ""):
                     signature(_signature),
                     syntax(_syntax),
                     meaning(_meaning),
@@ -180,14 +185,14 @@ class OperatorSpec{
 
 
 
-      static string getListString(
-          const string& _signature,
-          const string& _syntax,
-          const string& _meaning,
-          const string _example,
-          const string& _remark = "") {
+      static std::string getListString(
+          const std::string& _signature,
+          const std::string& _syntax,
+          const std::string& _meaning,
+          const std::string _example,
+          const std::string& _remark = "") {
 
-          stringstream ss;
+          std::stringstream ss;
           ss << "( ( "
              << "\"Signature\""
              << "\"Syntax\""
@@ -209,7 +214,7 @@ class OperatorSpec{
           return ss.str();
       }
 
-      string getStr(){
+      std::string getStr(){
         return getListString(signature,syntax,meaning,example,remark);
       }
 
@@ -222,11 +227,11 @@ class OperatorSpec{
       }
 
   private:
-     string signature;
-     string syntax;
-     string meaning;
-     string example;
-     string remark;
+     std::string signature;
+     std::string syntax;
+     std::string meaning;
+     std::string example;
+     std::string remark;
 };
 
 
@@ -235,8 +240,8 @@ class Operator
 {
 
  public:
-  Operator( const string& nm,
-            const string& spec,
+  Operator( const std::string& nm,
+            const std::string& spec,
             const int noF,
             ValueMapping vms[],
             SelectFunction sf,
@@ -246,8 +251,8 @@ class Operator
 Constructs an operator with ~noF~ overloaded evaluation functions.
 
 */
-  Operator( const string& nm,
-            const string& spec,
+  Operator( const std::string& nm,
+            const std::string& spec,
             ValueMapping vm,
             SelectFunction sf,
             TypeMapping tm,
@@ -373,13 +378,13 @@ Calls the type mapping function of the operator.
 Defines a simple selection function for operators.
 
 */
-  inline const string& GetName() const { return name; }
+  inline const std::string& GetName() const { return name; }
 /*
 Returns the name of the operator.
 
 */
   const ListExpr GetSpecList()   const { return spec.list(); }
-  const string&  GetSpecString() const { return specString; }
+  const std::string&  GetSpecString() const { return specString; }
 /*
 Returns the specification of operator ~operatorId~ of algebra ~algebraId~
 as a nested list expression or as a string.
@@ -495,7 +500,7 @@ Returns the number of calls for this operator.
 
 */
 
-ostream& Print(ostream& o) const;
+std::ostream& Print(std::ostream& o) const;
 
 
     private:
@@ -505,8 +510,8 @@ ostream& Print(ostream& o) const;
 Adds a value mapping function to the list of overloaded operator functions.
 
 */
-    string         name;           // Name of operator
-    string         specString;     // Specification
+    std::string         name;           // Name of operator
+    std::string         specString;     // Specification
     OperatorInfo   spec;
     int            numOfFunctions; // No. overloaded functions
     SelectFunction selectFunc;
@@ -529,6 +534,6 @@ Adds a value mapping function to the list of overloaded operator functions.
 };
 
 
-ostream& operator<<(ostream& o, const Operator& op);
+std::ostream& operator<<(std::ostream& o, const Operator& op);
 
 #endif

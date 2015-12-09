@@ -77,7 +77,7 @@ VisitedJunction& VisitedJunction::operator= (const VisitedJunction& other)
   return * this;
 }
 
-ostream& VisitedJunction::Print(ostream& os)const
+std::ostream& VisitedJunction::Print(std::ostream& os)const
 {
   JPQEntry::Print(os);
   os << ", pqindex: " << pqIndex << endl;
@@ -102,7 +102,7 @@ int VisitedJunction::CompareEndJID(const int id) const
 
 */
 
-ostream& operator<< (ostream& os, const VisitedJunction elem)
+std::ostream& operator<< (std::ostream& os, const VisitedJunction elem)
 {
   elem.Print(os);
   return os;

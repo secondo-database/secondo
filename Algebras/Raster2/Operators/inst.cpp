@@ -33,7 +33,7 @@ namespace raster2
     instFun<int, istype_helper<int> >,
     instFun<double, istype_helper<double> >,
     instFun<char, istype_helper<char> >,
-    instFun<string, istype_helper<string> >,
+    instFun<std::string, istype_helper<std::string> >,
     0
   };
 
@@ -77,7 +77,7 @@ namespace raster2
        types.first() == NList(isbool::BasicType()) ||
        types.first() == NList(isstring::BasicType()))
     {
-      instTypeMapListExpr = NList(DateTime::BasicType()).listExpr();
+      instTypeMapListExpr = NList(datetime::DateTime::BasicType()).listExpr();
     }
 
     return instTypeMapListExpr;

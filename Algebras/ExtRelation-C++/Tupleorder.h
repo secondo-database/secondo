@@ -33,7 +33,6 @@ Dec 2008. M. Spiekermann. Code provided as header file.
 #include <queue>
 #include "RelationAlgebra.h"
 
-using namespace std;
 
 static LexicographicalTupleSmaller lexCmp;
 
@@ -117,7 +116,7 @@ How can we manage to avoid the member cmpPtr in the class above.
 
 
 template<class TupleCmp>
-class UniversalCompare : public binary_function< TupleAndRelPos, 
+class UniversalCompare : public std::binary_function< TupleAndRelPos, 
                                                    TupleAndRelPos, bool >
 {
   public:
@@ -131,7 +130,7 @@ class UniversalCompare : public binary_function< TupleAndRelPos,
 
 class TupleQueue {    
   
-  typedef priority_queue<TupleAndRelPos> Queue;
+  typedef std::priority_queue<TupleAndRelPos> Queue;
   Queue q;
 
   public:
@@ -232,7 +231,7 @@ class CompareObject {
 	int sortAttrIndex = StdTypes::GetInt( args[2 * i + 1] );
 	bool sortOrderIsAscending = StdTypes::GetBool( args[2 * i + 2] );
 	
-	spec.push_back(pair<int, bool>(sortAttrIndex, 
+	spec.push_back(std::pair<int, bool>(sortAttrIndex, 
 				       sortOrderIsAscending));
       };
 

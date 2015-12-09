@@ -68,19 +68,19 @@ public:
 
 */
 
-static string GetSectionsTupleTypeInfo();
-static string GetJunctionsTupleTypeInfo();
-static string GetRoutesTupleTypeInfo();
-static string GetNetdistancesTupleTypeInfo();
-static string GetSectionsRelationTypeInfo();
-static string GetJunctionsRelationTypeInfo();
-static string GetRoutesRelationTypeInfo();
-static string GetNetdistancesRelationTypeInfo();
-static string GetSectionsBTreeTypeInfo();
-static string GetSectionsRTreeTypeInfo();
-static string GetJunctionsBTreeTypeInfo();
-static string GetJunctionsRTreeTypeInfo();
-static string GetRoutesBTreeTypeInfo();
+static std::string GetSectionsTupleTypeInfo();
+static std::string GetJunctionsTupleTypeInfo();
+static std::string GetRoutesTupleTypeInfo();
+static std::string GetNetdistancesTupleTypeInfo();
+static std::string GetSectionsRelationTypeInfo();
+static std::string GetJunctionsRelationTypeInfo();
+static std::string GetRoutesRelationTypeInfo();
+static std::string GetNetdistancesRelationTypeInfo();
+static std::string GetSectionsBTreeTypeInfo();
+static std::string GetSectionsRTreeTypeInfo();
+static std::string GetJunctionsBTreeTypeInfo();
+static std::string GetJunctionsRTreeTypeInfo();
+static std::string GetRoutesBTreeTypeInfo();
 
 /*
 1.1.1 Methods on DbArrays

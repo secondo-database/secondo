@@ -103,7 +103,7 @@ namespace raster2
             res->setDefined(false);
             return 0;
          }
-         temporalalgebra::Interval<DateTime> 
+         temporalalgebra::Interval<datetime::DateTime> 
                         lookupinterval(*start, *end, true, false);
 
          if(!lookupinterval.IsValid()) {
@@ -111,7 +111,7 @@ namespace raster2
             return 0;
          }
          //Correct time offset when using negative instant values
-         const DateTime* mSec = new DateTime(0.00000001);
+         const datetime::DateTime* mSec = new datetime::DateTime(0.00000001);
 
          if(start->LessThanZero())
            start->Minus(mSec);

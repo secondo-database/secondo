@@ -37,9 +37,10 @@ October, 2004 Schoenhammer Herbert, (virtual) method BoundingBox() added
 
 This header file essentially contains the definition of the struct ~Rectangle~.
 This class corresponds to the memory representation for the type constructor
-~rect~, ~rect3~ and ~rect4~ which are 2-dimensional, 3-dimensional, 4-dimensional
-or 8-dimensional rectangles alligned with the axes of each dimension. A rectangle
-in such a way can be represented by four, six or eight numbers (two for each dimension).
+~rect~, ~rect3~ and ~rect4~ which are 2-dimensional, 3-dimensional, 
+4-dimensional or 8-dimensional rectangles alligned with the axes of each 
+dimension. A rectangle in such a way can be represented by four, six or eight
+ numbers (two for each dimension).
 
 
 2 Defines and includes
@@ -48,7 +49,6 @@ in such a way can be represented by four, six or eight numbers (two for each dim
 #ifndef __RECTANGLE_ALGEBRA_H__
 #define __RECTANGLE_ALGEBRA_H__
 
-using namespace std;
 
 #include <cmath>
 #include <limits.h>
@@ -109,15 +109,15 @@ Do not use the standard constructor:
     inline Rectangle():StandardSpatialAttribute<dim>() {}
 
 /*
-The first constructor. First one can set if the rectangle is defined, and if it is,
-the coordinates can be set.
+The first constructor. First one can set if the rectangle is defined,
+ and if it is, the coordinates can be set.
 
 */
     inline Rectangle( const bool defined, ... );
 
 /*
-The second constructor. First one can set if the rectangle is defined, and if it is,
-the coordinates can be set.
+The second constructor. First one can set if the rectangle is defined,
+ and if it is, the coordinates can be set.
 
 */
     inline Rectangle( const bool defined,
@@ -235,8 +235,8 @@ two rectangles.
 
 
 /*
-Returns the square of the maximum distance between two points within this rectangle and 
-~r~.
+Returns the square of the maximum distance between two points within 
+this rectangle and ~r~.
 
 */
     double QMaxMaxDistance(const Rectangle<dim>& r) const;
@@ -274,11 +274,11 @@ of the rectangle.
 */
     inline const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const;
 
-    inline static const string BasicType() {
+    inline static const std::string BasicType() {
       if(dim==2){
         return "rect";
       } else {
-        ostringstream ss;
+        std::ostringstream ss;
         ss << "rect" << dim;
         return ss.str();
       }
@@ -389,12 +389,12 @@ changes the ~this~ object and returns it.
     inline Rectangle* Clone() const
       { return new Rectangle<dim>( *this ); }
 
-    inline ostream& Print( ostream &os ) const {
+    inline std::ostream& Print( std::ostream &os ) const {
       if( this->IsDefined() ){
           os << "Rectangle: ( ";
           for(unsigned int i=0; i < dim; i++)
             os<<min[i]<<" "<<max[i]<<" ";
-          os<<")"<<endl;
+          os<<")"<<std::endl;
           return os;
       } else {
           return os << Symbol::UNDEFINED();
@@ -434,7 +434,8 @@ Rectangle to arbirary dimensions.
     }
 
 /*
-Projection to the first newdim components of this rectangle. Note: newdim must be
+Projection to the first newdim components of this rectangle. 
+Note: newdim must be
 smaller or equal to the currect dimension for this rectangle.
 
 */    
@@ -470,8 +471,8 @@ The upper limits of the intervals in each dimension.
 /*
 4 Implementation of the class ~Rectangle~
 
-The first constructor. First one can set if the rectangle is defined, and if it is,
-the coordinates can be set.
+The first constructor. First one can set if the rectangle is defined,
+ and if it is, the coordinates can be set.
 
 */
 template <unsigned dim>
@@ -500,8 +501,8 @@ inline Rectangle<dim>::Rectangle( const bool defined, ... ):
 }
 
 /*
-The second constructor. First one can set if the rectangle is defined, and if it is,
-the coordinates can be set.
+The second constructor. First one can set if the rectangle is defined,
+and if it is, the coordinates can be set.
 
 */
 template <unsigned dim>
@@ -689,7 +690,7 @@ inline double Rectangle<dim>::Area(const Geoid* geoid /*=0*/) const
   if( !(this->del.isDefined) || (geoid && !geoid->IsDefined()))
     return 0.0;
   if(geoid){
-    cerr << ": Spherical geometry not implemented!" << endl;
+    std::cerr << ": Spherical geometry not implemented!" << std::endl;
     assert(false);
   }
   double area = 1.0;
@@ -708,7 +709,7 @@ inline double Rectangle<dim>::Perimeter (const Geoid* geoid/*=0*/) const
   if( !(this->del.isDefined) || (geoid && !geoid->IsDefined()) )
     return 0.0;
   if(geoid){
-    cerr << ": Spherical geometry not implemented!" << endl;
+    std::cerr << ": Spherical geometry not implemented!" << std::endl;
     assert(false);
   }
   double perimeter = 0.0;
@@ -750,7 +751,7 @@ inline Rectangle<dim> Rectangle<dim>::Union( const Rectangle<dim>& r,
   if( !this->del.isDefined || !r.IsDefined() || (geoid && !geoid->IsDefined()) )
     return Rectangle<dim>( false );
   if(geoid){
-    cerr << ": Spherical geometry not implemented!" << endl;
+    std::cerr << ": Spherical geometry not implemented!" << std::endl;
     assert(false);
   }
   double auxmin[dim], auxmax[dim];
@@ -825,8 +826,8 @@ template <unsigned dim>
 inline const Rectangle<dim> Rectangle<dim>::BoundingBox(const Geoid* geoid)const
 {
   if(geoid){
-    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-    << endl;
+    std::cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+    << std::endl;
     assert( !geoid ); // TODO: implement spherical geometry case
   }
   if( (this->del.isDefined) )
@@ -891,7 +892,7 @@ inline double Rectangle<dim>::Distance(const Rectangle<dim>& r,
   assert( !geoid || geoid->IsDefined() );
   if(geoid){
     cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
   double sum = 0;
@@ -906,11 +907,11 @@ inline double Rectangle<dim>::Distance(const Rectangle<dim>& r,
       sum += 0;
     else
     {
-      cout << "Rectangle<dim>::Distance(): Missing case!" << endl
+      cout << "Rectangle<dim>::Distance(): Missing case!" << std::endl
           << "   min[" << i << "] = " <<   min[i]
-          << "   max[" << i << "] = " <<   max[i] << endl
+          << "   max[" << i << "] = " <<   max[i] << std::endl
           << " r.min[" << i << "] = " << r.min[i]
-          << " r.max[" << i << "] = " << r.max[i] << endl;
+          << " r.max[" << i << "] = " << r.max[i] << std::endl;
       assert( 0 );
     }
   }
@@ -1220,7 +1221,7 @@ class RectangleSet
       { set.clear(); }
 
   protected:
-    vector< Rectangle<dim> > set;
+    std::vector< Rectangle<dim> > set;
 };
 
 typedef Rectangle<1> Rect1;

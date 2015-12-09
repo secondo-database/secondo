@@ -68,8 +68,6 @@ New distdata-types must be registered in the "DistDataReg::initialize"[4] method
 #include "NestedList.h"
 #include "ListUtils.h"
 
-using namespace std;
-
 namespace gta
 {
 

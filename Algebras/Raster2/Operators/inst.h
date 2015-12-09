@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operator.h"
 #include "../istype.h"
 
-using namespace datetime;
 
 namespace raster2
 {
@@ -42,7 +41,7 @@ namespace raster2
     instInfo()
     {
       name      = "inst";
-      signature = "isType -> " + DateTime::BasicType();
+      signature = "isType -> " + datetime::DateTime::BasicType();
       syntax    = "inst(_)";
       meaning   = "Returns the instant value of a isType.";
     }
@@ -55,7 +54,7 @@ namespace raster2
 
     result = qp->ResultStorage(s);
 
-    DateTime* pResult = static_cast<DateTime*>(result.addr);
+    datetime::DateTime* pResult = static_cast<datetime::DateTime*>(result.addr);
 
     if((pistype != 0) && pistype->isDefined())
     {

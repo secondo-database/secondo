@@ -92,12 +92,12 @@ The Halfsegmentarray must be:
 1.2 Members 
 
 */
-     vector<vector<HalfSegment> > cycles; // stored cycles found
-     vector<bool> holes;                  // flags whethe a cycle is a hole
-     vector<int> correspondingOuters;     // cooresponding outer cycles for 
+     std::vector<std::vector<HalfSegment> > cycles; // stored cycles found
+     std::vector<bool> holes;                  // flags whethe a cycle is a hole
+     std::vector<int> correspondingOuters;// cooresponding outer cycles for 
                                           // each cycle
                                           // outer cycles refer to themself
-     vector<int> leftMostPoints;          // index of the leftmost dominating 
+     std::vector<int> leftMostPoints;     // index of the leftmost dominating 
                                           // point of each cycle
 
      // Constructor

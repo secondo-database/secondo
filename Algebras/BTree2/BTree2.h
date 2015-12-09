@@ -189,13 +189,13 @@ Secondo Save function: saves an BTree from file.
 2.3 Methods for getting information on the BTree
 
 */
-    const string& GetKeyType() { return keytype; }
+    const std::string& GetKeyType() { return keytype; }
 /*
 Returns the name of the keytype. Can only be set by CreateBTree.
 
 */
 
-    const string& GetValueType() { return valuetype; }
+    const std::string& GetValueType() { return valuetype; }
 /*
 Returns the name of the valuetype. Can only be set by CreateBTree.
 
@@ -359,7 +359,7 @@ Returns information on persistent storage container.
 
 */
 
-    static const string BasicType() { return "btree2"; }
+    static const std::string BasicType() { return "btree2"; }
 
     static const bool checkType(const ListExpr list){
        return listutils::isBTree2Description(list);

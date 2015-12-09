@@ -24,7 +24,8 @@ Dec. 2002, H. Bals
 
 July 2005, M. Spiekermann, class ~tab~ added. 
 
-August 2005, M. Spiekermann, new class ~color~ and new function ~isSpaceStr~ added. 
+August 2005, M. Spiekermann, new class ~color~ and new function 
+~isSpaceStr~ added. 
 
 Jan-April 2006, M. Spiekermann. New functions, especially ~wordWrap~ which
 allows a pretty folding of words with a specified text length.
@@ -43,7 +44,6 @@ allows a pretty folding of words with a specified text length.
 
 #include "WinUnix.h"
 
-using namespace std;
 
 /*
 
@@ -91,11 +91,11 @@ public:
   tab(int no=4, char ch=' ') : c(ch), n(no) {}
   ~tab(){}
 
-  inline ostream& operator() (ostream& os) const;
+  inline std::ostream& operator() (std::ostream& os) const;
 };
 
 // The next operator is implemented in file "UtilFunctions.cpp"
-ostream& operator << (ostream& os, const tab& f);
+std::ostream& operator << (std::ostream& os, const tab& f);
 
 
 /*
@@ -111,18 +111,18 @@ typedef enum {normal, red, green, blue} ColorCode;
 class color {
 
   ColorCode c;
-  static vector<string> col;
+  static std::vector<std::string> col;
   static int n;
 
 public:
   color(const ColorCode C = normal) :c(C) { col.resize(n); }
 
   static void useColors(const bool value);
-  inline ostream& operator() (ostream& os) const; 
+  inline std::ostream& operator() (std::ostream& os) const; 
 };
 
 // The next operator is implemented in file "UtilFunctions.cpp"
-ostream& operator << (ostream& os, const color& c);
+std::ostream& operator << (std::ostream& os, const color& c);
 
 
 /*
@@ -137,7 +137,7 @@ parse<double>("\t\n\n 0.005") => 0.005
 */
 
 template<class T>
-inline T parse(istream& is)
+inline T parse(std::istream& is)
 {
   T v;
   is >> v;
@@ -145,9 +145,9 @@ inline T parse(istream& is)
 }
 
 template<class T>
-inline T parse(const string& s) 
+inline T parse(const std::string& s) 
 {
-  istringstream is(s);
+  std::istringstream is(s);
   return parse<T>(is);
 }
 
@@ -157,23 +157,24 @@ characters or if it is empty.
 
 */
 
-bool isSpaceStr(const string& s);
+bool isSpaceStr(const std::string& s);
 
-bool contains(const string& s);
+bool contains(const std::string& s);
 
-size_t firstNonSpace(const string& s);
+size_t firstNonSpace(const std::string& s);
 
-string removeNewLines(const string& s);
+std::string removeNewLines(const std::string& s);
 
-string expandTabs(const string& s, const int n);
+std::string expandTabs(const std::string& s, const int n);
 
-string translate(const string& s,  const string& from, const string& to);
+std::string translate(const std::string& s,  const std::string& from,
+                      const std::string& to);
 
-string hexStr(const string& s);
+std::string hexStr(const std::string& s);
 
-static inline string int2Str(const int i) 
+static inline std::string int2Str(const int i) 
 {
-   stringstream s; 
+   std::stringstream s; 
    s << i;
    return s.str();
 }   
@@ -188,9 +189,9 @@ Examples can be found in file "Tests/tcharutils.cpp".
 
 */
 
-string
+std::string
 wordWrap( const size_t indent1, const size_t indent2, 
-          const size_t textwidth, const string& s );
+          const size_t textwidth, const std::string& s );
 
 /*
 Some more convenient signatures which call wordWrap with apropriate
@@ -198,15 +199,15 @@ parameters.
 
 */
 
-string
-wordWrap(const string& s1, const int textwidth, const string& s2);
+std::string
+wordWrap(const std::string& s1, const int textwidth, const std::string& s2);
 
-string
-wordWrap( const string& s1, const int indent2, 
-          const int textwidth, const string& s2 );
+std::string
+wordWrap( const std::string& s1, const int indent2, 
+          const int textwidth, const std::string& s2 );
 
-string
-wordWrap( const int textwidth, const string& s, 
+std::string
+wordWrap( const int textwidth, const std::string& s, 
           const int indent1=0, const int indent2=0 );
 
 /*
@@ -216,20 +217,20 @@ for trimming can be defined.
 
 */
 
-string trim(const string& s, const string& ext="");
+std::string trim(const std::string& s, const std::string& ext="");
 
-bool expandVarRef(string& s);
+bool expandVarRef(std::string& s);
 
-string expandVar(const string& s);
+std::string expandVar(const std::string& s);
 
 // append characters if necessary
-string padStr(const string& s, size_t n, const char ch=' ');
+std::string padStr(const std::string& s, size_t n, const char ch=' ');
 
-bool hasPrefix(const string& pre, const string& s);
-bool hasSuffix(const string& suf, const string& s);
+bool hasPrefix(const std::string& pre, const std::string& s);
+bool hasSuffix(const std::string& suf, const std::string& s);
 
-bool removeSuffix(const string& suf, string& s);
-bool removePrefix(const string& pre, string& s);
+bool removeSuffix(const std::string& suf, std::string& s);
+bool removePrefix(const std::string& pre, std::string& s);
 
 class SpecialChars {
 

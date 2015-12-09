@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using std::string;
 using std::stringstream;
+using std::endl;
 
 string Array2HexStr(const char* data, size_t size, size_t offset /*= 0*/)
 {

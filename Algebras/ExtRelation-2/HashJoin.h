@@ -160,7 +160,7 @@ Print progress information
 
 */
 
-ostream& PrintProgressInfo(ostream& os, ProgressInfo& info);
+std::ostream& PrintProgressInfo(std::ostream& os, ProgressInfo& info);
 
 /*
 5 Class ~JoinTupleCompareFunction~
@@ -351,7 +351,7 @@ Returns the number of tuples in a bucket.
 
 */
 
-    ostream& Print(ostream& os);
+    std::ostream& Print(std::ostream& os);
 /*
 Print the content of a bucket to a stream. This function is
 only used for debugging purposes.
@@ -386,7 +386,7 @@ Total size in bytes of all tuples in a bucket.
 
 */
 
-    vector<RTuple> tuples;
+    std::vector<RTuple> tuples;
 /*
 Array with tuple references of all tuples in a bucket.
 
@@ -436,7 +436,7 @@ Reference to bucket on which the instance iterates.
 
 */
 
-    vector<RTuple>::iterator iter;
+    std::vector<RTuple>::iterator iter;
 /*
 Iterator for internal bucket tuple buffer.
 
@@ -531,7 +531,7 @@ are decremented by one.
 
 */
 
-    ostream& Print(ostream& os);
+    std::ostream& Print(std::ostream& os);
 /*
 Print the content of a bucket to a stream. This function is
 only used for debugging purposes.
@@ -544,7 +544,7 @@ Returns the number of buckets for a hash table.
 
 */
 
-    vector<Tuple*> GetTuples(int bucket);
+    std::vector<Tuple*> GetTuples(int bucket);
 /*
 Returns the number of tuples in a hash table.
 
@@ -567,7 +567,7 @@ continued by the next ~Probe~ call at the iterator's location.
 
 */
 
-    vector<Bucket*> buckets;
+    std::vector<Bucket*> buckets;
 /*
 Array containing the buckets of the hash table.
 
@@ -588,7 +588,7 @@ Comparison function for tuples according to their join attributes.
 */
 };
 
-inline ostream& operator<<(ostream& os, HashTable& h)
+inline std::ostream& operator<<(std::ostream& os, HashTable& h)
 {
   return h.Print(os);
 }
@@ -842,7 +842,7 @@ partition histogram.
 
 */
 
-    ostream& Print(ostream& os)
+    std::ostream& Print(std::ostream& os)
     {
       cmsg.info() << HEADLINE_PHISTOGRAM << endl
                   << "Interval: [" << interval.GetLow() << ","
@@ -948,7 +948,7 @@ Copy constructor.
 
 */
 
-    ostream& Print(ostream& os)
+    std::ostream& Print(std::ostream& os)
     {
       os << "Interval [" << interval.GetLow()
          << ", " << interval.GetHigh() << "]"
@@ -1008,7 +1008,7 @@ their partition intervals.
 */
 
 class PartitionProgressInfoCompareLesser :
-  binary_function<PartitionProgressInfo, PartitionProgressInfo, bool>
+  std::binary_function<PartitionProgressInfo, PartitionProgressInfo, bool>
 {
   public:
 
@@ -1063,7 +1063,7 @@ Otherwise ~false~ is returned.
 
 */
 
-    ostream& Print(ostream& os)
+    std::ostream& Print(std::ostream& os)
     {
       os << "PartitionManagerProgressInfo" << endl
          << "subTotalTuples: " << subTotalTuples
@@ -1085,7 +1085,7 @@ for debugging purposes.
 
 */
 
-    vector<PartitionProgressInfo> partitionProgressInfo;
+    std::vector<PartitionProgressInfo> partitionProgressInfo;
 /*
 Vector with progress information for each partition
 
@@ -1212,7 +1212,7 @@ Returns the progress information for a partition.
 
 */
 
-    ostream& Print(ostream& os);
+    std::ostream& Print(std::ostream& os);
 /*
 Print the partition info to stream ~os~. This function is used
 for debugging purposes.
@@ -1313,7 +1313,7 @@ their partition intervals.
 */
 
 class PartitionCompareLesser :
-  binary_function<Partition*, Partition*, bool>
+  std::binary_function<Partition*, Partition*, bool>
 {
   public:
 
@@ -1444,7 +1444,7 @@ Returns the number of partitions.
 
 */
 
-    ostream& Print(ostream& os);
+    std::ostream& Print(std::ostream& os);
 /*
 Print the partitioning to stream ~os~. This function is used
 for debugging purposes.
@@ -1602,7 +1602,7 @@ message has passed by, the query processor will insure this)
 
 */
 
-    vector<Partition*> partitions;
+    std::vector<Partition*> partitions;
 /*
 Array of all partitions.
 
@@ -1648,7 +1648,7 @@ I/O Buffer size in bytes used for read/write operations on disk.
 */
 };
 
-inline ostream& operator<<(ostream& os, PartitionManager& pm)
+inline std::ostream& operator<<(std::ostream& os, PartitionManager& pm)
 {
   return pm.Print(os);
 }

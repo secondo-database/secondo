@@ -58,6 +58,9 @@ and comment the second one. To switch off test output, uncomment the line
 #include "SortByLocalInfo.h"
 #include "Symbols.h"
 
+
+using namespace std;
+
 namespace hgr
 {
 

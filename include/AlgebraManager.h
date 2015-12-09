@@ -94,14 +94,16 @@ January 2006, M. Spiekermann. Some declarations were moved to Algebra.h
 
 April 2006, M. Spiekermann. Some declarations were moved to AlgebraInit.h
 
-March 2009, M. Spiekermann. Started to do some clean up. The interface seems to be
-overcrowded by functions getting algebra id and type id or operator id. In order to
+March 2009, M. Spiekermann. Started to do some clean up. The interface 
+seems to be overcrowded by functions getting algebra id and type id or 
+operator id. In order to
 make the interface simpler to understand and use and easier to maintain
 I started to push some functionality into the interfaces TypeConstructor.h
 and Operator.h. The new functions ~GetTC~ and ~GetOP~ should be able to replace
-many of the other functions, since most of the other functions simply get pointers
-of operators and type constructors and call spcific member functions. Moreover they
-are not often used in other source files. To be continued ...
+many of the other functions, since most of the other functions simply get
+ pointers of operators and type constructors and call spcific member 
+functions. Moreover they are not often used in other source files. 
+To be continued ...
 
 
 1.1 Overview
@@ -256,8 +258,8 @@ The list format is :
 
 */
 
-  int GetAlgebraId( const string& algName);
-  const string& GetAlgebraName( const int algId );
+  int GetAlgebraId( const std::string& algName);
+  const std::string& GetAlgebraName( const int algId );
 
 /*
 Returns the id of the algebra with name algName, if this algebra is currently
@@ -355,8 +357,9 @@ Returns the number of constructors of algebra ~algebraId~.
   TypeConstructor* GetTC(int algId, int typeId);
   Operator*        GetOP(int algebraId, int opId);
 /*
-Returns the type constructor (TC) or operator (OP) for a given algebra id and type
-id (operator id). This pointer can be used to retrieve more detailed information of
+Returns the type constructor (TC) or operator (OP) for a given 
+algebra id and type id (operator id). This pointer can be used 
+to retrieve more detailed information of
 a TC or OP provided by its member functions.
 
 */
@@ -453,7 +456,7 @@ Returns the result of the type check function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */
-  bool CheckKind( const string& kindName,
+  bool CheckKind( const std::string& kindName,
                   const ListExpr type,
                   ListExpr& errorInfo );
 /*
@@ -503,8 +506,9 @@ the list may contain further information to describe the error.
 ~matching operators~
 
 This function returns all operators which can process the given type expression.
-The result consists of pairs with the first component is a pair of algebra id and
-operator id, the second part of the top pair is the result type when this
+The result consists of pairs with the first component is a pair of 
+algebra id and operator id, the second part of the top pair is the result
+ type when this
 operator would be applied to this type expression.
 
 Call __AlgebraManager::GetOP(AldId,OpId)__ to get the according operator object
@@ -512,7 +516,7 @@ for further details, if required.
 
 */
 
-vector< pair< pair<int,int>, ListExpr> >
+std::vector< std::pair< std::pair<int,int>, ListExpr> >
         matchingOperators(const ListExpr arguments);
 
 
@@ -526,7 +530,7 @@ The results are appended to the reference argument vector.
 
 */
 void matchingOperators(const int algId, const ListExpr arguments,
-                       vector< pair< pair<int,int>, ListExpr> >& result);
+         std::vector< std::pair< std::pair<int,int>, ListExpr> >& result);
 
 
 /*
@@ -536,9 +540,9 @@ This operator stores all operators (AlgName, OpName) into q which
 throw an expection if their type mapping ist called with argList.
 
 */
-void findTMExceptions(const string& algName,
+void findTMExceptions(const std::string& algName,
                       const ListExpr argList, 
-                      queue<pair<string,string> >& q,
+                      std::queue<std::pair<std::string,std::string> >& q,
                       const bool print);
 
 
@@ -550,13 +554,13 @@ If an operator is found, all outParameters (resultList, algId, opId) are
 set and the result is true. Otherwise, the result will be false.
 
 */
-bool findOperator(const string& name,    //name of the operator
+bool findOperator(const std::string& name,    //name of the operator
                   const ListExpr argList,//arguments
                   ListExpr& resultList,  // result type
                   int& algId,            // algebra id
                   int& opId);            // operator id
 
-bool findOperator(const string& name,    //name of the operator
+bool findOperator(const std::string& name,    //name of the operator
                   const ListExpr argList,//arguments
                   ListExpr& resultList,  // result type
                   int& algId,            // algebra id
@@ -705,16 +709,16 @@ Is a referenced to a global nested list container.
 Is the highest algebra id occuring in the list of algebras.
 
 */
-  vector<Algebra*>         algebra;
-  map<int, string>         algebraNames;
+  std::vector<Algebra*>         algebra;
+  std::map<int, std::string>         algebraNames;
 /*
 Is an array for references to all loaded algebra modules.
 
 */
-  multimap<string,TypeCheckFunction> kindTable;
+  std::multimap<std::string,TypeCheckFunction> kindTable;
   GetAlgebraEntryFunction getAlgebraEntry;
 
-  vector< vector<Operator*> > opPtrField;
+  std::vector< std::vector<Operator*> > opPtrField;
 
   void InitOpPtrField();
 

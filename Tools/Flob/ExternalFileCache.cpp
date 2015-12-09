@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ExternalFileCache::ExternalFileCache(const size_t _ms):
     maxSize(_ms), usedSize(0)
 {
-  list = new vector<pair<string, ifstream*> >();
+  list = new std::vector<std::pair<std::string, std::ifstream*> >();
 
   slotSize = sizeof(CachedFileIdEntry);
   assert(maxSize > slotSize);
@@ -65,10 +65,10 @@ ExternalFileCache::~ExternalFileCache()
   }
 
   if (!hashFile->Close()){
-    cerr << "Problem in closing cachedFileIDTable" << endl;
+    std::cerr << "Problem in closing cachedFileIDTable" << std::endl;
   }
   if (!hashFile->Remove()){
-    cerr << "Problem in deleting cachedFileIDTable" << endl;
+    std::cerr << "Problem in deleting cachedFileIDTable" << std::endl;
   }
   delete hashFile;
   hashFile = 0;
@@ -80,10 +80,10 @@ void ExternalFileCache::clear()
   // Close all files
   if (list)
   {
-    vector<pair<string, ifstream*> >::iterator it;
+    std::vector<std::pair<std::string, std::ifstream*> >::iterator it;
     for (it = list->begin(); it < list->end(); it++)
     {
-      ifstream* pt = it->second;
+      std::ifstream* pt = it->second;
       pt->close();
       pt = 0;
     }
@@ -109,11 +109,11 @@ void ExternalFileCache::clear()
   usedSize = 0;
 }
 
-int ExternalFileCache::getFileId(const string fileName)
+int ExternalFileCache::getFileId(const std::string fileName)
 {
   if (list)
   {
-    vector<pair<string, ifstream*> >::iterator it;
+    std::vector<std::pair<std::string, std::ifstream*> >::iterator it;
     for (it = list->begin(); it < list->end(); it++)
     {
       if (it->first.compare(fileName) == 0)
@@ -123,29 +123,29 @@ int ExternalFileCache::getFileId(const string fileName)
     }
 
     //New file
-    ifstream* pt = new ifstream(fileName.c_str(), ios::binary);
-    list->push_back(pair<string, ifstream*>(fileName, pt));
+    std::ifstream* pt = new std::ifstream(fileName.c_str(), std::ios::binary);
+    list->push_back(std::pair<std::string, std::ifstream*>(fileName, pt));
     return (list->size() - 1);
   }
   return -1;
 }
 
-ifstream* ExternalFileCache::getFile(
-    const SmiRecordId& recId, const string& flobFile/* = ""*/)
+std::ifstream* ExternalFileCache::getFile(
+    const SmiRecordId& recId, const std::string& flobFile/* = ""*/)
 {
   int cachedFileId = findRecord(recId);
   assert(cachedFileId >= 0);
   if (list){
-    string cachedFileName = list->at(cachedFileId).first;
-    ifstream* file = list->at(cachedFileId).second;
+    std::string cachedFileName = list->at(cachedFileId).first;
+    std::ifstream* file = list->at(cachedFileId).second;
 
     if (flobFile.empty()){
       return file;
     } else {
       if (cachedFileName.compare(flobFile) != 0) {
-        cerr << "Error!! ExternalFileCache::getFile: "
+        std::cerr << "Error!! ExternalFileCache::getFile: "
             << flobFile << ", while cached "
-            << cachedFileName << endl;
+            << cachedFileName << std::endl;
       } else {
         return file;
       }
@@ -158,21 +158,21 @@ void ExternalFileCache::closeFile(const int cachedFileId)
 {
   if (list)
   {
-    string fileName = list->at(cachedFileId).first;
-    ifstream* file = list->at(cachedFileId).second;
+    std::string fileName = list->at(cachedFileId).first;
+    std::ifstream* file = list->at(cachedFileId).second;
     if (FileSystem::FileOrFolderExists(fileName)){
       if (file){
         file->close();
       }
     } else {
-      cerr << fileName << " does not exist" << endl;
+      std::cerr << fileName << " does not exist" << std::endl;
     }
     list->erase(list->begin() + cachedFileId);
   }
 }
 
 void ExternalFileCache::cacheRecord(const SmiRecordId& recId,
-    const string& flobFile, const bool& replace/* = false*/)
+    const std::string& flobFile, const bool& replace/* = false*/)
 {
   size_t index = recId % tableSize;
   CachedFileIdEntry* entry = hashtable[index];
@@ -229,12 +229,13 @@ int ExternalFileCache::findRecord(const SmiRecordId& recId)
     bool ok = hashFile->Read(recId, newEntry, slotSize, 0, actRead);
     if (!ok)
     {
-      cerr << " error in getting data from cachedFileIdTable " << endl;
-      cerr << " actSize = " << actRead << endl;
-      cerr << " try to read = " << slotSize << endl;
-      string err;
+      std::cerr << " error in getting data from cachedFileIdTable "
+                << std::endl;
+      std::cerr << " actSize = " << actRead << std::endl;
+      std::cerr << " try to read = " << slotSize << std::endl;
+      std::string err;
       SmiEnvironment::GetLastErrorCode(err);
-      cerr << " err " << err << endl;
+      std::cerr << " err " << err << std::endl;
     }
     assert(ok);
 

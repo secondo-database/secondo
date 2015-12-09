@@ -66,9 +66,13 @@ October 2008 - Jianqiu Xu
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
+
+using namespace std;
+using namespace network;
+
 static map<int,string> *netList;
 
-using namespace network;
 
 /*
 1 Helping structs, methods and classes

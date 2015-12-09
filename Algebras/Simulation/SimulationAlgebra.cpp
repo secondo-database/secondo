@@ -77,6 +77,9 @@ We have to include some GSL headers and the GSLAlgebra.
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
+using namespace std;
+using namespace datetime;
+
 namespace temporalalgebra {
 
 /*

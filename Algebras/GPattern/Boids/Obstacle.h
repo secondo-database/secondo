@@ -57,7 +57,6 @@ available as a SECONDO operator.
 
 #include <iostream>
 #include "Vector.h"
-using namespace std;
 
 /*
 information about a possible intersection of a ray with a polygonal obstacle

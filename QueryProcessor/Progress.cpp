@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StringUtils.h"
 
 
+using namespace std;
+
 ProgressInfo::ProgressInfo():
   Card(0), Size(0), SizeExt(0), noAttrs(0), attrSize(0), attrSizeExt(0),
   sizesChanged(false), Time(0), Progress(0), BTime(0.001), BProgress(1.0) 

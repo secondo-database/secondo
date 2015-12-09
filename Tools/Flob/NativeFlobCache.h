@@ -42,8 +42,9 @@ Since temporary Flobs are often accessed repeatedly by many algorithms, e.g. to
 append data, not every single access should rely on disk access. Thus, a main
 memory buffer is used for cached read/ write access to the according data.
 
-If a native Flob is destroyed or deleted by the FlobManager, its content is never
-modified on disk, regardless whether is is marked modified or not. The according
+If a native Flob is destroyed or deleted by the FlobManager, its content is
+ never modified on disk, regardless whether is is marked modified or not. 
+The according
 cache entries are just removed from the cache. This is due to the temporary
 nature of native Flobs.
 
@@ -54,8 +55,8 @@ Each slice can be kept separately within the cache, which consists of a limited
 number of fixed size memory buffers (slices), that are organized in an open
 hashtable containing instances of class ~NativeCacheEntry~.
 
-As a secondary organisation, a LRU-priority list linking the cache entries is used,
-since LRU-policy is used to replace data if necessary.
+As a secondary organisation, a LRU-priority list linking the cache entries 
+is used, since LRU-policy is used to replace data if necessary.
 If cached Flob data is modified, it is marked as ~changed~. Whenever changed
 Flob data is removed from the Cache, it is written to disk. Unchanged Flob data
 does not need to be written back to disk.
@@ -126,14 +127,14 @@ with given slot size.
 
     assert(offset <=  _flob.getSize());
 
-    size = min(_slotSize, (_flob.getSize() - offset));
+    size = std::min(_slotSize, (_flob.getSize() - offset));
     mem = (char*) malloc(size);
   }
 
   void resize(const size_t _newFlobSize, const size_t _slotSize){
     size_t offset = slotNo * _slotSize;
     assert(offset <= _newFlobSize);
-    size_t mySize = min(_slotSize, (_newFlobSize  - offset));
+    size_t mySize = std::min(_slotSize, (_newFlobSize  - offset));
     if(mySize==size){
       return;
     }
@@ -194,7 +195,7 @@ A pair (Flob-id, slot number) uniquely identifies a cache entry.
       return (fid == flobId) && (this->slotNo == slotNo);
     }
 
-   ostream& print(ostream& o) const{
+   std::ostream& print(std::ostream& o) const{
      o << "FlobId = " << flobId << ", slot = " << slotNo << ", size = " << size;
      return o;
    }
@@ -226,7 +227,7 @@ For simple output of an entry to an ostream.
 
 */
 
-ostream& operator<<(ostream& o, const NativeCacheEntry& e){
+std::ostream& operator<<(std::ostream& o, const NativeCacheEntry& e){
    o << "[" << e.flobId << ", " << e.slotNo << "]" ;
   return o;
 }
@@ -340,7 +341,7 @@ bool getData(
     while(bufferOffset < size){
       if(!getDataFromSlot(flob, slotNo, slotOffset,
                           bufferOffset, size, buffer)){
-        cerr << "Warning getData failed" << endl;
+        std::cerr << "Warning getData failed" << std::endl;
         //assert(check());
         return false;
       }
@@ -475,7 +476,8 @@ removes a slot from cache
 bool erase(Flob& flob, const bool saveChanges=false){
 
   if(flob.size > 536870912){ // 512 MB
-    cerr << "Warning try to erase very big flob , size = " << flob.size <<endl;
+    std::cerr << "Warning try to erase very big flob , size = " 
+              << flob.size <<std::endl;
   }
   //assert(check());
   if(flob.size/slotSize < tableSize*4 ){
@@ -606,7 +608,7 @@ void getData(NativeCacheEntry* entry,
                               char* buffer){
   size_t mb = size-bufferOffset; // missing bytes
   size_t ab = entry->size - slotOffset; // bytes available in slot
-  size_t pb = min(mb,ab); // provided bytes
+  size_t pb = std::min(mb,ab); // provided bytes
   memcpy(buffer+bufferOffset, entry->mem + slotOffset, pb);
   bufferOffset += pb;
 }
@@ -625,7 +627,7 @@ void putData(NativeCacheEntry* entry,
                               const char* buffer){
   size_t mb = size-bufferOffset; // missing bytes
   size_t ab = entry->size - slotOffset; // bytes available in slot
-  size_t pb = min(mb,ab); // provided bytes
+  size_t pb = std::min(mb,ab); // provided bytes
   if(pb>0){
     memcpy(entry->mem + slotOffset, buffer+bufferOffset, pb);
     bufferOffset += pb;
@@ -912,14 +914,14 @@ Debugging function.
 bool check(){
   if(first==0 || last==0){
     if(first!=last){
-      cerr << "inconsistence in lru list, first = " << (void*) first
-           << " , last = " << (void*) last << endl;
+      std::cerr << "inconsistence in lru list, first = " << (void*) first
+           << " , last = " << (void*) last << std::endl;
       return false;
     }
     for(unsigned int i=0;i< tableSize;i++){
       if(hashtable[i]){
-         cerr << "lru is empty, but hashtable[" << i
-              << "] contains an element" << endl;
+         std::cerr << "lru is empty, but hashtable[" << i
+              << "] contains an element" << std::endl;
          return false;
       }
     }
@@ -928,11 +930,11 @@ bool check(){
   }
   // lru is not empty, check first and last element
   if(first->lruPrev){
-    cerr << "lru: first has a predecessor" << endl;
+    std::cerr << "lru: first has a predecessor" << std::endl;
     return false;
   }
   if(last->lruNext){
-    cerr << "lru: last has a successor" << endl;
+    std::cerr << "lru: last has a successor" << std::endl;
     return false;
   }
   // check whether ech element in lru is also an element in hashtable
@@ -941,16 +943,17 @@ bool check(){
   size_t compSize(0);
   while(e){
     if(e->size > slotSize){
-      cerr << "entry found having a size > slotSize" << endl;
-      cerr << " slotSize = " << slotSize << " entry = " << (*e) << endl;
+      std::cerr << "entry found having a size > slotSize" << std::endl;
+      std::cerr << " slotSize = " << slotSize << " entry = " << (*e) 
+                << std::endl;
       return false;
     }
     compSize += e->size ;
     lrucount++;
     size_t index = e->hashValue(tableSize);
     if(!hashtable[index]){
-      cerr << "element " << (*e) << " stored in lru but hashtable["
-           << index << " is null" << endl;
+      std::cerr << "element " << (*e) << " stored in lru but hashtable["
+           << index << " is null" << std::endl;
       return  false;
     }
     NativeCacheEntry* e2 = hashtable[index];
@@ -958,15 +961,16 @@ bool check(){
       e2 = e2->tableNext;
     }
     if(!e2){
-      cerr << "element " << (*e) << " stored in lru but not in hashtable["
-           << index << "]" << endl;
+      std::cerr << "element " << (*e) << " stored in lru but not in hashtable["
+           << index << "]" << std::endl;
       return false;
     }
     e = e->lruNext;
   }
   if(compSize!=usedSize){
-    cerr << "difference in usedSize and stored size " << endl;
-    cerr << "usedSiez = " << usedSize << ", stored Size = " << compSize << endl;
+    std::cerr << "difference in usedSize and stored size " << std::endl;
+    std::cerr << "usedSiez = " << usedSize << ", stored Size = " 
+              << compSize << std::endl;
     return false;
   }
 
@@ -975,21 +979,21 @@ bool check(){
   for(unsigned int i=0; i<tableSize;i++){
     if(hashtable[i]){
        if(hashtable[i]->tablePrev){
-           cerr << " hashtable[" << i << " has a predecessor" << endl;
+           std::cerr << " hashtable[" << i << " has a predecessor" << std::endl;
        }
        e = hashtable[i];
        while(e){
          tablecount++;
          if(e->hashValue(tableSize)!=i){
-           cerr << "element << " << (*e) << " has hashvalue "
+           std::cerr << "element << " << (*e) << " has hashvalue "
                 << e->hashValue(tableSize) << " but is stored at position "
-                << i << endl;
+                << i << std::endl;
            return false;
          }
 
          if(e->tableNext){
              if(e->tableNext->tablePrev!=e){
-                cerr << "error in tablelist found" << endl;
+                std::cerr << "error in tablelist found" << std::endl;
                 return false;
              }
          }
@@ -999,8 +1003,8 @@ bool check(){
   }
 
   if(lrucount!=tablecount){
-    cerr << "lrucount = " << lrucount << " #  tablecount = "
-         << tablecount << endl;
+    std::cerr << "lrucount = " << lrucount << " #  tablecount = "
+         << tablecount << std::endl;
     return false;
   }
 
@@ -1106,7 +1110,7 @@ class NativeCacheEntry{
       return flobId > e.flobId;
     }
 
-    ostream& print(ostream& o) const{
+    std::ostream& print(std::ostream& o) const{
        o <<  " [ FlobId = " << flobId << ", "
          <<  " size = " << size << ", "  ;
        if(mem){
@@ -1130,7 +1134,7 @@ class NativeCacheEntry{
 
 };
 
-ostream& operator<<(ostream& o, const NativeCacheEntry entry);
+std::ostream& operator<<(std::ostream& o, const NativeCacheEntry entry);
 
 
 class NativeFlobCache{
@@ -1197,8 +1201,9 @@ Removes all entries from the cache.
    //   assert(check());
 
       if(size > maxSize){
-         cerr << "NativeFlobCache::clear(), size > maxSize detected" << endl;
-         cerr << "size = " << size << "maxSize = " << maxSize << endl;
+         std::cerr << "NativeFlobCache::clear(), size > maxSize detected"
+                   << std::endl;
+         std::cerr << "size = " << size << "maxSize = " << maxSize << std::endl;
       }
       NativeCacheEntry* e = first;
       while(e){
@@ -1213,8 +1218,9 @@ Removes all entries from the cache.
       first = 0;
       last = 0;
       if(size!=0){
-        cerr << "FlobCache::clear() : size computation failed, remaining size:"
-             << size << endl;
+        std::cerr << "FlobCache::clear() : size computation failed,"
+                  << " remaining size:"
+                  << size << std::endl;
         size = 0;
       }
     }
@@ -1371,21 +1377,21 @@ The size is the sum of all stored sizes.
     bool check(){
        if(cache.IsEmpty()){
           if(first!=0){
-             cout << "cache is empty, but first is not null !" << endl;
+             cout << "cache is empty, but first is not null !" << std::endl;
              return false;
           }
           if(last!=0){
-             cout << "cache is empty, but last is not null !" << endl;
+             cout << "cache is empty, but last is not null !" << std::endl;
              return false;
           }
           return true;
        }
        if(first==0){
-           cout << "cache is not empty, but first is null" << endl;
+           cout << "cache is not empty, but first is null" << std::endl;
            return false;
        }
        if(last==0){
-           cout << "cache is not empty, but last is null" << endl;
+           cout << "cache is not empty, but last is null" << std::endl;
            return false;
        }
        NativeCacheEntry* e = first;
@@ -1396,13 +1402,14 @@ The size is the sum of all stored sizes.
          length++;
          csize += e->size;
          if(testset.find(*e) != testset.end()){
-            cout << "Element found twice in the list " << (*e) << endl;
+            cout << "Element found twice in the list " << (*e) << std::endl;
             return false;
          }
          testset.insert(*e);
          if(e->next==0){
             if(last!=e){
-              cout << "last does not point to the last list element" << endl;
+              cout << "last does not point to the last list element" 
+                   << std::endl;
               return false;
             }
          }
@@ -1412,15 +1419,15 @@ The size is the sum of all stored sizes.
 
        // list structure ok, check content with the avltree
        if(length!=cache.Size()){
-         cout << "different number of elements in cache and list " << endl;
-         cout << "listLength = " << length << endl;
-         cout << "treeSize = " << cache.Size() << endl;
+         cout << "different number of elements in cache and list " << std::endl;
+         cout << "listLength = " << length << std::endl;
+         cout << "treeSize = " << cache.Size() << std::endl;
          return false;
        }
 
        if(csize!=(int)size){
           cout << "different sizes), computed : " << csize
-               << " , stored : " << size << endl;
+               << " , stored : " << size << std::endl;
           return false;
        }
 
@@ -1428,7 +1435,7 @@ The size is the sum of all stored sizes.
        while(it!=testset.end()){
          if(cache.getMember(*it) == 0){
             cout << "Element " << (*it)
-                 << "stored in list but not in tree " << endl;
+                 << "stored in list but not in tree " << std::endl;
             return false;
          }
          it++;

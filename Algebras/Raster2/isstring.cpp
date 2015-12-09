@@ -24,4 +24,4 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace raster2;
 
-const char* istype_helper<string>::name = TYPE_NAME_ISSTRING;
+const char* istype_helper<std::string>::name = TYPE_NAME_ISSTRING;

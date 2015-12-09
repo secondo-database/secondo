@@ -42,7 +42,6 @@ This class corresponds to the memory representation of the type constructor
 #ifndef __CONSTRAINT_ALGEBRA_H__
 #define __CONSTRAINT_ALGEBRA_H__
 
-using namespace std;
 
 #include <cmath>
 #include <string>

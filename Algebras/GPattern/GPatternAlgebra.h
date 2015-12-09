@@ -57,8 +57,6 @@ JAN, 2010 Mahmoud Sakr
 #include "LightWeightGraph.h"
 #include "Boids/Boid.h"
 
-using namespace datetime;
-using namespace mset;
 typedef DateTime Instant;
 extern NestedList *nl;
 extern QueryProcessor* qp;  

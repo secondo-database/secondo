@@ -446,7 +446,7 @@ This function returns a string representation of this matrix.
 
 */
 
-     string ToString() const;
+     std::string ToString() const;
 
 
 /*
@@ -468,7 +468,7 @@ an attribute type within secondo relations.
 
 */
 
-       virtual ostream& Print( ostream& os ) const;
+       virtual std::ostream& Print( std::ostream& os ) const;
 
 /*
 2.1.21 CompareTo function
@@ -516,7 +516,7 @@ an attribute type within secondo relations.
              value = tmp.value;
        }
 
-       static const string BasicType(){
+       static const std::string BasicType(){
           return "int9m";
        }
       static const bool checkType(const ListExpr type){
@@ -633,8 +633,8 @@ This function sets a new name for this cluster.
            strcpy(name,(char*)newname);
       }
 
-      void SetName(const string newname){
-          string s;
+      void SetName(const std::string& newname){
+          std::string s;
           if(newname.length()>MAX_STRINGSIZE){
               s = newname.substr(0,MAX_STRINGSIZE);
           } else {
@@ -910,7 +910,7 @@ argument.
 2.2.16 ToString function 
 
 */
-      string ToString() const;
+      std::string ToString() const;
 
 
 /*
@@ -984,10 +984,10 @@ Return the name of this cluster as a string.
 
 */
 
-  string GetName() const{
+  std::string GetName() const{
      STRING_T s;
      GetName(s);
-     string res(s);
+     std::string res(s);
      return res;
   }
 
@@ -1002,9 +1002,9 @@ the result will be false and the cluster is not changed.
 
 */
 
-    bool Restrict(string condition, const bool updateBC = true);
+    bool Restrict(std::string condition, const bool updateBC = true);
 
-    virtual void Restrict(const vector<pair<int,int> >& interval){
+    virtual void Restrict(const std::vector<std::pair<int,int> >& interval){
       Attribute::Restrict(interval);
     } 
 
@@ -1018,7 +1018,7 @@ of the formula describing the condition.
 
 */
 
-   bool Relax(string condition, const bool updateBC = true);
+   bool Relax(std::string condition, const bool updateBC = true);
 
 /*
 2.2.23 Restrict
@@ -1094,7 +1094,7 @@ clusters.
 
       void updateBoxChecks();
 
-      static const string BasicType(){
+      static const std::string BasicType(){
         return "cluster";
       }
       static const bool checkType(const ListExpr type){
@@ -1229,7 +1229,7 @@ predicate cluster will be the same like this one of the argument.
 2.3.5 ToString
 
 */
-     string ToString() const;
+     std::string ToString() const;
 
 
 /*
@@ -1443,14 +1443,14 @@ group, the result will be __NULL__.
 
 */
 Cluster* GetClusterOf(const STRING_T* name) const;
-Cluster* GetClusterOf(const string name) const;
+Cluster* GetClusterOf(const std::string name) const;
    
 
 /*
 2.3.12 ~GetClusterNumber~
 
 */
-int getClusterNumber(const string& name)const{
+int getClusterNumber(const std::string& name)const{
    if(name == unSpecified.GetName()){
      return theClusters.Size();
    }
@@ -1505,7 +1505,7 @@ Function for easy creating a default predicate group.
 */
 void SetToDefault();
 
-   static const string BasicType(){
+   static const std::string BasicType(){
      return "predicategroup";
    }
   static const bool checkType(const ListExpr type){
@@ -1529,8 +1529,8 @@ void SetToDefault();
    }
 
 
-std::vector<string> getNames() const{
-  std::vector<string> res;
+std::vector<std::string> getNames() const{
+  std::vector<std::string> res;
   res.push_back(unSpecified.GetName());
   Cluster c;
   for(int i=0;i<theClusters.Size();i++){
@@ -1570,8 +1570,8 @@ private:
 } // namespace toprel
 
 
-ostream& operator<<(ostream& o, const toprel::Int9M& p);
-ostream& operator<<(ostream& o, const toprel::Cluster& c);
-ostream& operator<<(ostream& o, const toprel::PredicateGroup& p);
+std::ostream& operator<<(std::ostream& o, const toprel::Int9M& p);
+std::ostream& operator<<(std::ostream& o, const toprel::Cluster& c);
+std::ostream& operator<<(std::ostream& o, const toprel::PredicateGroup& p);
 
 #endif

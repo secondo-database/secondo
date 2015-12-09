@@ -41,6 +41,8 @@ Dec 2003 M. Spiekermann, initial Version
 
 #include "NestedList.h"
 
+using namespace std;
+
 
 static void
 usageMsg(char* progName) {

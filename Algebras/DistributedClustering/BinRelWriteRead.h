@@ -60,7 +60,6 @@ extern QueryProcessor* qp;
 
 #ifndef BINRELWRITEREAD_H
 #define BINRELWRITEREAD_H
-using namespace std;
 
 namespace distributedClustering{
     

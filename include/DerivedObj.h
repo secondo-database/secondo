@@ -29,9 +29,10 @@ May 06, 2004. M. Spiekermann: Initial Version
 May 20, 2004. M. Spiekermann: A bug during Berkeley-DB environment close has
 been fixed.  Now the relation object will be closed properly in the destructor
 
-Dec 02, 2006. M. Spiekermann: A new update value is now created by ~inObject~ instead
-of a little query. Moreover, some changes in the Algebra interface made it necessary to
-call ~QP::DestroyValuesArray~, since ~QP::AnnotateX~ open objects. Now the derive command
+Dec 02, 2006. M. Spiekermann: A new update value is now created by
+ ~inObject~ instead of a little query. Moreover, some changes in the Algebra
+ interface made it necessary to call ~QP::DestroyValuesArray~, 
+since ~QP::AnnotateX~ open objects. Now the derive command
 works again.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
@@ -53,8 +54,8 @@ to keep experimental results created from querys without storing them explicitly
 in files. Since the objects are created by user interaction in the correct order
 it is not necessary to do topological sorting at the dependency graph.
 
-If an object is deleted a warning message will list all the derived objects which
-use this object.
+If an object is deleted a warning message will list all the derived objects
+ which use this object.
 
 */
 
@@ -72,7 +73,6 @@ use this object.
 #include <set>
 #include <list>
 
-using namespace std;
 
 class DerivedObj {
 
@@ -105,7 +105,7 @@ DerivedObj() :
 ~DerivedObj(){ // close relation object
 
   // free allocated memory
-  for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
+  for ( std::vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
         it != derivedObjRecords.end();
         it++ )
   {
@@ -126,13 +126,13 @@ void createTableIfNecessary() {
 
   if ( !ctlg.IsObjectName(derivedObjRelName) ) {
 
-     string typeName = "";
+     std::string typeName = "";
      if ( ctlg.CreateObject( derivedObjRelName, typeName, typeExpr(), 0 ) )
      {
        tableExists = true;
      } else {
-       cerr << "Error: Creation of " << derivedObjRelName
-            << " failed!" << endl;
+       std::cerr << "Error: Creation of " << derivedObjRelName
+            << " failed!" << std::endl;
      }
   }
 }
@@ -146,7 +146,7 @@ command and extracts the object dependencies from the annotated query.
 
 */
 
-void addObj(string& objName, const ListExpr valueExpr ) {
+void addObj(std::string& objName, const ListExpr valueExpr ) {
 
    createTableIfNecessary();
 
@@ -158,22 +158,22 @@ void addObj(string& objName, const ListExpr valueExpr ) {
    qp.DestroyValuesArray();
 
    //nl.WriteListExpr(annotatedList);
-   vector<ListExpr> atoms;
+   std::vector<ListExpr> atoms;
    nl.ExtractAtoms(annotatedList, atoms);
 
-   string valueExprStr = "";
+   std::string valueExprStr = "";
    nl.WriteToString( valueExprStr, valueExpr );
 
    // create new entries for derived objects
    ObjRecord* newObj = new ObjRecord(objName, valueExprStr);
 
-   for ( vector<ListExpr>::const_iterator it = atoms.begin();
+   for ( std::vector<ListExpr>::const_iterator it = atoms.begin();
          it != atoms.end();
          it++ )
    {
      if ( nl.AtomType(*it) == SymbolType
           && nl.SymbolValue(*it) == "object" ) {
-       string val = nl.SymbolValue(*(it - 1));
+       std::string val = nl.SymbolValue(*(it - 1));
        newObj->addDepObj( val );
        usedObjs.insert( val );
      }
@@ -184,25 +184,25 @@ void addObj(string& objName, const ListExpr valueExpr ) {
 }
 
 
-void reportObjDeps(const string& objName) {
+void reportObjDeps(const std::string& objName) {
 
-  set<string>::const_iterator it = usedObjs.find(objName);
+  std::set<std::string>::const_iterator it = usedObjs.find(objName);
 
   if ( it == usedObjs.end() )
     return;
 
-  cout << "Warning: dependent objects ";
+  std::cout << "Warning: dependent objects ";
 
   // to do: iterate over all dependent obj.
 
-  cout << "can not be restored after save database." << endl;
+  std::cout << "can not be restored after save database." << std::endl;
 }
 
 
-bool deleteObj(const string& objName, bool internal=false) {
+bool deleteObj(const std::string& objName, bool internal=false) {
 
   bool deleted = false;
-  map<string,int>::iterator it = derivedObjNames.find(objName);
+  std::map<std::string,int>::iterator it = derivedObjNames.find(objName);
 
   if ( it != derivedObjNames.end() ) {
 
@@ -221,9 +221,9 @@ bool deleteObj(const string& objName, bool internal=false) {
 }
 
 
-bool isDerived(const string& objName) const {
+bool isDerived(const std::string& objName) const {
 
-   map<string,int>::const_iterator it = derivedObjNames.find(objName);
+   std::map<std::string,int>::const_iterator it = derivedObjNames.find(objName);
    return ( it != derivedObjNames.end() );
 }
 
@@ -233,8 +233,8 @@ void rebuildObjs() {
   if ( !tableExists )
      return;
 
-  cout << endl << "Rebuilding derived objects ..." << endl;
-  for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
+  std::cout << std::endl << "Rebuilding derived objects ..." << std::endl;
+  for ( std::vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
         it != derivedObjRecords.end();
         it++ )
   {
@@ -242,26 +242,27 @@ void rebuildObjs() {
     ListExpr valueList = nl.TheEmptyList();
     nl.ReadFromString( (*it)->value, valueList );
 
-    cout << "  " << (*it)->name << " ... ";
+    std::cout << "  " << (*it)->name << " ... ";
     SecondoSystem::BeginTransaction();
     int rc = createObj( (*it)->name, valueList );
 
     if (rc != 0) {
-      cout << "failed." << endl;
-      const string sep = "    ";
-      const string& errMsg = SecondoInterface::GetErrorMessage(rc);
-      cerr << sep << "Could not rebuild object. Error msg: "
-                  << errMsg << endl;
-      cerr << sep << "Maybe objects which are used for "
-                  << "the derived object were deleted!" << endl;
-      cerr << sep << "ValueExpr: " << (*it)->value << endl << endl;
+      std::cout << "failed." << std::endl;
+      const std::string sep = "    ";
+      const std::string& errMsg = SecondoInterface::GetErrorMessage(rc);
+      std::cerr << sep << "Could not rebuild object. Error msg: "
+                  << errMsg << std::endl;
+      std::cerr << sep << "Maybe objects which are used for "
+                  << "the derived object were deleted!" << std::endl;
+      std::cerr << sep << "ValueExpr: " << (*it)->value << std::endl
+                << std::endl;
       SecondoSystem::AbortTransaction(true);
       deleteObj((*it)->name,true);
 
     } else {
 
       SecondoSystem::CommitTransaction(true);
-      cout << "created." << endl;
+      std::cout << "created." << std::endl;
     }
   }
 }
@@ -280,7 +281,7 @@ what happens when an Secondo object is updated. Currently nothing
 
 
 
-int createObj(string& objName, ListExpr valueExpr) {
+int createObj(std::string& objName, ListExpr valueExpr) {
 
   OpTree tree(0);
   Word result(Address(0));
@@ -311,7 +312,7 @@ int createObj(string& objName, ListExpr valueExpr) {
     {
       if ( evaluable || isFunction )
       {
-          string typeName = "";
+          std::string typeName = "";
           ctlg.CreateObject(objName, typeName, resultType, 0);
       }
       if ( evaluable )
@@ -357,12 +358,12 @@ int createObj(string& objName, ListExpr valueExpr) {
 }
 
 // return all derived object names
-const set<string>& getObjNames() {
+const std::set<std::string>& getObjNames() {
 
-  static set<string> nameSet;
+  static std::set<std::string> nameSet;
   nameSet.clear();
 
-  for ( map<string,int>::const_iterator it = derivedObjNames.begin();
+  for ( std::map<std::string,int>::const_iterator it = derivedObjNames.begin();
         it != derivedObjNames.end();
         it++ )
   {
@@ -388,7 +389,7 @@ ListExpr MemoryToList() {
   ListExpr result = nl.TheEmptyList();
   ListExpr last = nl.TheEmptyList();
 
-  for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
+  for ( std::vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
         it != derivedObjRecords.end();
         it++ )
   {
@@ -400,7 +401,7 @@ ListExpr MemoryToList() {
     ListExpr textAtom = nl.TextAtom();
     ListExpr textAtom2 = nl.TextAtom();
     nl.AppendText( textAtom, (*it)->value );
-    string objListStr = "";
+    std::string objListStr = "";
     (*it)->depObjListStr(objListStr);
     nl.AppendText( textAtom2, objListStr );
 
@@ -427,9 +428,9 @@ void ListToMemory(ListExpr list) {
 
     ListExpr tuple = nl.First(list);
     list = nl.Rest(list);
-    string name = nl.StringValue( nl.First(tuple) );
+    std::string name = nl.StringValue( nl.First(tuple) );
 
-    string value = "", depListStr = "";
+    std::string value = "", depListStr = "";
     nl.Text2String( nl.Second(tuple), value );
     nl.Text2String( nl.Third(tuple), depListStr);
 
@@ -439,7 +440,7 @@ void ListToMemory(ListExpr list) {
 
     ObjRecord* newObjRec = new ObjRecord( name, value );
     while ( depList != nl.TheEmptyList() ) {
-       string symbol =  nl.SymbolValue( nl.First(depList) );
+       std::string symbol =  nl.SymbolValue( nl.First(depList) );
        newObjRec->addDepObj( symbol );
        usedObjs.insert( symbol );
        depList = nl.Rest(depList);
@@ -477,22 +478,22 @@ void updateTable() {
 class ObjRecord {
 
   public:
-    string name;
-    string value;
-    set<string> depSet;
+    std::string name;
+    std::string value;
+    std::set<std::string> depSet;
     bool deleted;
 
-    ObjRecord(const string& nameStr, const string& val) :
+    ObjRecord(const std::string& nameStr, const std::string& val) :
       name(nameStr), value(val), deleted(false) {
     }
     ~ObjRecord(){
-     //cerr << "~ObjRecord() called!" << endl;
+     //std::cerr << "~ObjRecord() called!" << std::endl;
     }
-    void addDepObj(string& symbol) { depSet.insert(symbol); }
+    void addDepObj(std::string& symbol) { depSet.insert(symbol); }
 
-    void depObjListStr(string& listStr) {
+    void depObjListStr(std::string& listStr) {
       listStr = "(";
-      for ( set<string>::const_iterator it = depSet.begin();
+      for ( std::set<std::string>::const_iterator it = depSet.begin();
             it != depSet.end(); it++ ) {
         listStr += (" " + *it + " ");
       }
@@ -503,8 +504,8 @@ class ObjRecord {
 
   bool tableExists;
   Word derivedObjWord;
-  string derivedObjRelName;
-  string derivedObjTypeStr;
+  std::string derivedObjRelName;
+  std::string derivedObjTypeStr;
 
   ListExpr derivedObjTypeList;
   ListExpr derivedObjValueList;
@@ -513,9 +514,9 @@ class ObjRecord {
   // about objects created with the derive command. They are
   // used to create the system table SEC_DERIVED_OBJ.
 
-  vector<ObjRecord*> derivedObjRecords;
-  map<string,int> derivedObjNames;
-  set<string> usedObjs;
+  std::vector<ObjRecord*> derivedObjRecords;
+  std::map<std::string,int> derivedObjNames;
+  std::set<std::string> usedObjs;
 
   // references to global instances
   NestedList& nl;

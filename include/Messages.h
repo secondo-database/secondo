@@ -97,7 +97,7 @@ class SimpleHandler : public MessageHandler {
      if(!nl->IsEqual(nl->First(list),"simple")){
         return false;
      }
-     cerr << "Message: " << nl->ToString(list);
+     std::cerr << "Message: " << nl->ToString(list);
      return true;
   }
  
@@ -149,7 +149,7 @@ This class maintains the handler (or Listener). If someone calls the
 */
 class MessageCenter {
 
- typedef list<MessageHandler*> HandlerList;
+ typedef std::list<MessageHandler*> HandlerList;
  HandlerList msgHandler; 
  
  // There will be only one instance. Hence the constructor

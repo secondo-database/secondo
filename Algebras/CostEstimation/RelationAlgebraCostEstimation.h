@@ -213,7 +213,7 @@ struct consumeLocalInfo
   int current;    //current no of tuples read
   Stream<Tuple> stream;
 
-  ostream& print(ostream& o){
+  std::ostream& print(std::ostream& o){
     o << "Localinfo (" << (void*) this << "), state=" << state << ", current="
       << current << ", stream=";
     stream.print(o);

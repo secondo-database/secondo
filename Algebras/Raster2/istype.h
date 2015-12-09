@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DateTime.h"
 #include "TypeConstructor.h"
 
-using namespace datetime;
 
 namespace raster2
 {
@@ -67,7 +66,7 @@ namespace raster2
   
     */
 
-    istype(DateTime* pInstant, typename Helper::spatial_type* psT);
+    istype(datetime::DateTime* pInstant, typename Helper::spatial_type* psT);
     
     /*
     destructor
@@ -90,10 +89,10 @@ namespace raster2
 
     void assumeData(istype& ristype);
     Rectangle<2> bbox() const;
-    const DateTime& getInstant() const;
-    void setInstant(DateTime* instant);
+    const datetime::DateTime& getInstant() const;
+    void setInstant(datetime::DateTime* instant);
     void setValues(typename Helper::spatial_type* values);
-    const DateTime& inst() const;
+    const datetime::DateTime& inst() const;
     typename Helper::spatial_type* val() const;
 
     void setCacheSize(size_t);
@@ -105,7 +104,7 @@ namespace raster2
 
     */
     
-    static const string BasicType();
+    static const std::string BasicType();
     static const bool checkType(const ListExpr type);
     static void* Cast(void* pVoid);
     static Word Clone(const ListExpr typeInfo,
@@ -154,7 +153,7 @@ namespace raster2
     */
     
     bool m_bDelete;
-    DateTime* m_pInstant;
+    datetime::DateTime* m_pInstant;
     typename Helper::spatial_type* m_psT;
   };
 
@@ -168,7 +167,7 @@ namespace raster2
   }
 
   template <typename T, typename Helper>
-  istype<T, Helper>::istype(DateTime* pInstant,
+  istype<T, Helper>::istype(datetime::DateTime* pInstant,
                             typename Helper::spatial_type* psT)
                     :m_bDelete(true),
                      m_pInstant(pInstant),
@@ -214,13 +213,13 @@ namespace raster2
   }
   
   template <typename T, typename Helper>
-  const DateTime& istype<T, Helper>::getInstant() const
+  const datetime::DateTime& istype<T, Helper>::getInstant() const
   {
     return *m_pInstant;
   }
 
   template <typename T, typename Helper>
-  void istype<T, Helper>::setInstant(DateTime* instant)
+  void istype<T, Helper>::setInstant(datetime::DateTime* instant)
   {
     m_pInstant = instant;
   }
@@ -232,7 +231,7 @@ namespace raster2
   }
   
   template <typename T, typename Helper>
-  const DateTime& istype<T, Helper>::inst() const
+  const datetime::DateTime& istype<T, Helper>::inst() const
   {
     return *m_pInstant;
   }
@@ -276,7 +275,7 @@ namespace raster2
   }
 
   template <typename T, typename Helper>
-  const string istype<T, Helper>::BasicType()
+  const std::string istype<T, Helper>::BasicType()
   { 
     return Helper::name;
   }
@@ -307,7 +306,7 @@ namespace raster2
       
       if(pSecondoCatalog != 0)
       {
-        DateTime* pInstant = static_cast<DateTime*>
+        datetime::DateTime* pInstant = static_cast<datetime::DateTime*>
                              (pistype->m_pInstant->Clone());
         
         ListExpr numericType = pSecondoCatalog->NumericType(
@@ -405,7 +404,8 @@ namespace raster2
     NList nlist(instance);
 
     typename Helper::spatial_type* psT = 0;
-    DateTime* pInstant = new DateTime(instanttype);
+    datetime::DateTime* pInstant = new datetime::DateTime(
+                                           datetime::instanttype);
 
     try {
         if (nlist.length() != 2) {
@@ -472,11 +472,12 @@ namespace raster2
     if(pSecondoCatalog != 0)
     { 
       ListExpr numericType = pSecondoCatalog->NumericType(NList(
-                                              DateTime::BasicType()).
+                                              datetime::DateTime::BasicType()).
                                               listExpr());
       
-      DateTime* pInstant = static_cast<DateTime*>(DateTime::Open(valueRecord,
-                                                  offset, numericType));
+      datetime::DateTime* pInstant = static_cast<datetime::DateTime*>(
+                                  datetime:: DateTime::Open(valueRecord,
+                                  offset, numericType));
       
       numericType = pSecondoCatalog->NumericType(
                                      NList(Helper::spatial_type::BasicType()).
@@ -570,9 +571,10 @@ namespace raster2
       if(pSecondoCatalog != 0)
       { 
         ListExpr numericType = pSecondoCatalog->NumericType(
-                                                NList(DateTime::BasicType()).
+                                    NList(datetime::DateTime::BasicType()).
                                                       listExpr());
-        DateTime::Save(valueRecord, offset, numericType, pistype->m_pInstant);
+        datetime::DateTime::Save(valueRecord, offset, numericType, 
+                                 pistype->m_pInstant);
         
         numericType = pSecondoCatalog->NumericType(
                                        NList(Helper::spatial_type::BasicType()).

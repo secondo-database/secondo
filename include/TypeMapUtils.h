@@ -2,7 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and Computer Science, 
+Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics
+ and Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -40,7 +41,6 @@ and are candidates for this general implementaton.
 #include "NestedList.h"
 #include "NList.h"
 
-using namespace std;
 
 namespace mappings {
 
@@ -49,7 +49,7 @@ namespace mappings {
 
 */
 bool
-CheckSimpleMap(const string map[], size_t n, ListExpr args, ListExpr& res);
+CheckSimpleMap(const std::string map[], size_t n, ListExpr args, ListExpr& res);
 
 
 /*
@@ -70,11 +70,11 @@ module ~StandardAlgebra~.
 */	
 
 ListExpr
-SimpleMap(const string map[], size_t n, ListExpr arg);
+SimpleMap(const std::string map[], size_t n, ListExpr arg);
 
 template<int n, int m>
 ListExpr
-SimpleMaps(const string map[n][m], ListExpr args) 
+SimpleMaps(const std::string map[n][m], ListExpr args) 
 { 
   ListExpr res;	
   bool ok = false;	
@@ -83,7 +83,7 @@ SimpleMaps(const string map[n][m], ListExpr args)
     if (ok)
       return res;	    
   }
-  stringstream err;
+  std::stringstream err;
   err << "None of " << n << " alternative mappings matches!";
   // to do: more precise error messages
   return NList().typeError(err.str());
@@ -98,7 +98,7 @@ arguments and m signatures.
 
 template<int n, int m>
 int
-SimpleSelect(const string map[n][m], ListExpr args) 
+SimpleSelect(const std::string map[n][m], ListExpr args) 
 { 	
   ListExpr res; // dummy arg	
   bool ok = false;	
@@ -107,7 +107,7 @@ SimpleSelect(const string map[n][m], ListExpr args)
     if (ok)
       return i;	    
   }
-  string err="SimpleSelect failed!";
+  std::string err="SimpleSelect failed!";
   // to do: more precise error messages
   NList().typeError(err);
   return -1;

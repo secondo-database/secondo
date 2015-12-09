@@ -67,7 +67,6 @@ class SimObject;
 
 #include "Vector.h"
 #include<limits>
-using namespace std;
 
 
 class SimObject {

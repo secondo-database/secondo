@@ -38,7 +38,6 @@ dimensions. The desired dimensions are passed as a parameter to the template.
 #include <limits>
 #include <string.h>
 
-using namespace std;
 
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"

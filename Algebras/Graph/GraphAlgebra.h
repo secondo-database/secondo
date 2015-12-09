@@ -55,7 +55,6 @@ respectively correspond to the memory representation for the type constructors
 #include "StandardTypes.h"    //always needed in Algebras
 #include "StringUtils.h"
 
-using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -124,7 +123,7 @@ as an attribute.
 
           size_t HashValue() const;
           void CopyFrom(const Attribute* arg);
-          inline virtual ostream& Print( ostream& os ) const
+          inline virtual std::ostream& Print( std::ostream& os ) const
           {
             if( IsDefined() )
             {
@@ -137,7 +136,7 @@ as an attribute.
             return os;
           }
 
-          static const string BasicType() { return "vertex"; }
+          static const std::string BasicType() { return "vertex"; }
           static const bool checkType(const ListExpr type){
             return listutils::isSymbol(type, BasicType());
           }
@@ -215,7 +214,7 @@ as an attribute.
         size_t Sizeof() const;
         size_t HashValue() const;
         void CopyFrom(const Attribute* arg);
-        inline virtual ostream& Print( ostream& os ) const
+        inline virtual std::ostream& Print( std::ostream& os ) const
         {
           if(IsDefined())
              os << "Edge: ( " << source << " --> "
@@ -225,7 +224,7 @@ as an attribute.
           return os;
         }
 
-        static const string BasicType() { return "edge"; }
+        static const std::string BasicType() { return "edge"; }
         static const bool checkType(const ListExpr type){
           return listutils::isSymbol(type, BasicType());
         }
@@ -251,7 +250,7 @@ struct pathStruct
         int key;
         Point pos;
         float cost;
-        inline ostream& Print( ostream& os ) const
+        inline std::ostream& Print( std::ostream& os ) const
         {
           os << "pathStruct: ( " << key << " @"; pos.Print(os);
           os << ": " << cost << " )";
@@ -309,12 +308,12 @@ This function removes all vertices from the path.
 5.2.5 GetEdges
 
 */
-        vector<Edge>* GetEdges() const;
+        std::vector<Edge>* GetEdges() const;
 /*
 5.2.6 GetVertices
 
 */
-        vector<Vertex>* GetVertices() const;
+        std::vector<Vertex>* GetVertices() const;
 /*
 5.3 Path manipulation functions
 
@@ -358,7 +357,7 @@ as an attribute.
 
         size_t HashValue() const;
         void CopyFrom(const Attribute* arg);
-        inline virtual ostream& Print( ostream& os ) const
+        inline virtual std::ostream& Print( std::ostream& os ) const
         {
           os << "Path: ( ";
           if (IsDefined())
@@ -379,7 +378,7 @@ as an attribute.
           return os;
         }
 
-        static const string BasicType() { return "path"; }
+        static const std::string BasicType() { return "path"; }
         static const bool checkType(const ListExpr type){
           return listutils::isSymbol(type, BasicType());
         }
@@ -458,7 +457,7 @@ Returns the balance of the node.
 };
 
 template<class T>
-ostream& operator <<( ostream& o, const AVLNode<T>& n );
+std::ostream& operator <<( std::ostream& o, const AVLNode<T>& n );
 
 /*
 6.2 Static functions for AVL tree management
@@ -592,7 +591,7 @@ Sets the additional informations of the node at DBArray position ~index~ to
 
 */
      static void MapKeys (DbArray<AVLNode<T> >& tree,
-                          int& num, vector<int>& v, const int index);
+                          int& num, std::vector<int>& v, const int index);
 
 /*
 Maps the keys of the tree with the root node at DBArray position ~index~ in
@@ -622,7 +621,7 @@ with the key ~key~ or not.
 
 */
      static int ReadKeys(const DbArray<AVLNode<T> >& tree,
-                         vector<int>* v, const int index);
+                         std::vector<int>* v, const int index);
 /*
 Adds all keys from the tree with the root node at DBArray position ~index~ to the
 vector ~v~ and returns the number of elements added to the vector.
@@ -637,7 +636,7 @@ The keys are sorted in ascending order.
 
 */
      static int ReadNodes(const DbArray<AVLNode<T> >& tree,
-                          vector<AVLNode<T> >& v, const int index);
+                          std::vector<AVLNode<T> >& v, const int index);
 /*
 Adds all nodes from the tree with the root node at DBArray position ~index~ to the
 vector ~v~ and returns the number of elements added to the vector.
@@ -652,7 +651,7 @@ The nodes are sorted by their key in ascending order.
 
 */
      static int ReadOptNodes(const DbArray<AVLNode<T> >& tree,
-                   vector<AVLNode<T> >& v, const int root);
+                   std::vector<AVLNode<T> >& v, const int root);
 /*
 Adds all nodes from the tree with the root node at DBArray position ~index~ to the
 vector ~v~ and returns the number of elements added to the vector.
@@ -761,7 +760,7 @@ The output degree of this vertex.
 */
 };
 
-ostream& operator<< (ostream& o, const verticesStruct& m);
+std::ostream& operator<< (std::ostream& o, const verticesStruct& m);
 
 
 /*
@@ -784,7 +783,7 @@ The DBArray index in vertices that represents the target vertex of this edge.
 */
 };
 
-ostream& operator<< (ostream& o, const adjStruct& m);
+std::ostream& operator<< (std::ostream& o, const adjStruct& m);
 
 /*
 7 Class Graph
@@ -1181,7 +1180,7 @@ to ~targetKey~ or not.
 7.3.12 GetVertices
 
 */
-     vector<Vertex>* GetVertices(const bool opt = false) const;
+     std::vector<Vertex>* GetVertices(const bool opt = false) const;
 /*
 Returns all vertices of the graph as vector.
 If ~opt~ is false, the vertices are ordered by their key in ascending
@@ -1196,7 +1195,7 @@ order that allows to build a graph without rebalancing the AVL tree.
 7.3.13 GetEdges
 
 */
-     vector<Edge>* GetEdges(const bool opt = false) const;
+     std::vector<Edge>* GetEdges(const bool opt = false) const;
 /*
 Returns all edges of the graph as vector.
 If ~opt~ is false, the edges are ordered by their source and target
@@ -1212,7 +1211,7 @@ the AVL tree.
 7.3.14 GetSuccFrom
 
 */
-     vector<Vertex>* GetSuccFrom(const int key) const;
+     std::vector<Vertex>* GetSuccFrom(const int key) const;
 /*
 Returns a pointer to a vector with all vertices that are direct
 successors of the vertex with the number ~key~, or 0 if there is
@@ -1226,7 +1225,7 @@ no vertex with this key.
 7.3.15 GetPredFrom
 
 */
-     vector<Vertex>* GetPredFrom(const int key) const;
+     std::vector<Vertex>* GetPredFrom(const int key) const;
 /*
 Returns a pointer to a vector with all vertices that are direct
 predecessors of the vertex with the number ~key~, or 0 if there
@@ -1240,7 +1239,7 @@ is no vertex with this key.
 7.3.16 GetSuccKeysFrom
 
 */
-     vector<int>* GetSuccKeysFrom(const int key) const;
+     std::vector<int>* GetSuccKeysFrom(const int key) const;
 /*
 Returns a pointer to a vector with all keys that are direct
 successors of the vertex with the number ~key~, or 0 if there
@@ -1254,7 +1253,7 @@ is no vertex with this key.
 7.3.17 GetPredKeysFrom
 
 */
-     vector<int>* GetPredKeysFrom(const int key) const;
+     std::vector<int>* GetPredKeysFrom(const int key) const;
 /*
 Returns a pointer to a vector with all keys that are direct
 predecessors of the vertex with the number ~key~, or 0 if there
@@ -1268,7 +1267,7 @@ is no vertex with this key.
 7.3.18 GetSuccEdgesFrom
 
 */
-     vector<Edge>* GetSuccEdgesFrom(const int key) const;
+     std::vector<Edge>* GetSuccEdgesFrom(const int key) const;
 /*
 Returns a pointer to a vector with all outgoing edges of the of the
 vertex with the number ~key~, or 0 if there
@@ -1282,7 +1281,7 @@ is no vertex with this key.
 7.3.19 GetPredEdgesFrom
 
 */
-     vector<Edge>* GetPredEdgesFrom(const int key) const;
+     std::vector<Edge>* GetPredEdgesFrom(const int key) const;
 /*
 Returns a pointer to a vector with all ingoing edges of the of the
 vertex with the number ~key~, or 0 if there
@@ -1320,7 +1319,7 @@ Returns the number of the edges from the graph.
 7.3.22 GetStronglyConnectedComponents
 
 */
-     vector<Graph*> GetStronglyConnectedComponents() const;
+     std::vector<Graph*> GetStronglyConnectedComponents() const;
 /*
 Returns a vector with all strongly connected components of the graph.
 
@@ -1342,7 +1341,7 @@ Returns a vector with all strongly connected components of the graph.
 7.3.23 GetMappedGraph
 
 */
-     Graph* GetMappedGraph(vector<int>& map) const;
+     Graph* GetMappedGraph(std::vector<int>& map) const;
 /*
 Returns a pointer to a new copy of the graph where the vertex keys are mapped to
 0..n-1 - the mapping that was used is returned in the vector ~map~.
@@ -1399,7 +1398,7 @@ as an attribute.
      size_t HashValue() const;
      void CopyFrom(const Attribute* arg);
 
-     static const string BasicType() { return "graph"; }
+     static const std::string BasicType() { return "graph"; }
      static const bool checkType(const ListExpr type){
        return listutils::isSymbol(type, BasicType());
      }
@@ -1443,7 +1442,7 @@ A flag that tells whether the graph is defined or not.
 };
 
 template<class T>
-ostream& operator <<( ostream& o, const AVLNode<T>& n ) {
+std::ostream& operator <<( std::ostream& o, const AVLNode<T>& n ) {
 
    if (n.free)
      o << "undefined";
@@ -1458,9 +1457,9 @@ ostream& operator <<( ostream& o, const AVLNode<T>& n ) {
 
 
 template<class T>
-inline string Print(DbArray<AVLNode<T> >& tree) {
+inline std::string Print(DbArray<AVLNode<T> >& tree) {
 
-   string s;
+   std::string s;
    const AVLNode<T>* node;
    
    s = "--------------------------------------\n";
@@ -1664,7 +1663,7 @@ int AVLTree<T>::Rebalance(DbArray<AVLNode<T> >& tree, const int index) {
        rootNode.right = son1.left;
        rootNode.rightDepth = son1.leftDepth;
        rootSon.left = index;
-       rootSon.leftDepth = max(bNode.leftDepth,son1.leftDepth)+1;
+       rootSon.leftDepth = std::max(bNode.leftDepth,son1.leftDepth)+1;
        root = sonIndex;
        
        // update nodes
@@ -1679,9 +1678,9 @@ int AVLTree<T>::Rebalance(DbArray<AVLNode<T> >& tree, const int index) {
        
        root = son1.left;
        newRoot.left = index;
-       newRoot.leftDepth = max(bNode.leftDepth,son2.leftDepth)+1;
+       newRoot.leftDepth = std::max(bNode.leftDepth,son2.leftDepth)+1;
        newRoot.right = sonIndex;
-       newRoot.rightDepth = max(son1.rightDepth,son2.rightDepth)+1;
+       newRoot.rightDepth = std::max(son1.rightDepth,son2.rightDepth)+1;
        rootNode.right = son2.left;
        rootNode.rightDepth = son2.leftDepth;
        rootSon.left = son2.right;
@@ -1707,7 +1706,7 @@ int AVLTree<T>::Rebalance(DbArray<AVLNode<T> >& tree, const int index) {
        rootNode.left = son1.right;
        rootNode.leftDepth = son1.rightDepth;
        rootSon.right = index;
-       rootSon.rightDepth = max(bNode.rightDepth,son1.rightDepth)+1;
+       rootSon.rightDepth = std::max(bNode.rightDepth,son1.rightDepth)+1;
        root = sonIndex;
        
        // update nodes
@@ -1722,9 +1721,9 @@ int AVLTree<T>::Rebalance(DbArray<AVLNode<T> >& tree, const int index) {
        
        root = son1.right;
        newRoot.right = index;
-       newRoot.rightDepth = max(bNode.rightDepth,son2.rightDepth)+1;
+       newRoot.rightDepth = std::max(bNode.rightDepth,son2.rightDepth)+1;
        newRoot.left = sonIndex;
-       newRoot.leftDepth = max(son1.leftDepth,son2.leftDepth)+1;
+       newRoot.leftDepth = std::max(son1.leftDepth,son2.leftDepth)+1;
        rootNode.left = son2.right;
        rootNode.leftDepth = son2.rightDepth;
        rootSon.right = son2.left;
@@ -1791,7 +1790,7 @@ int AVLTree<T>::InsertKey(DbArray<AVLNode<T> >& tree,
          
        // check left son
        tree.Get(newSon,son);
-       newDepth = max(son.rightDepth,son.leftDepth)+1;
+       newDepth = std::max(son.rightDepth,son.leftDepth)+1;
        
        // update required?  
        if ((newSon != thisNode.left) || (newDepth != thisNode.leftDepth)) {
@@ -1832,7 +1831,7 @@ int AVLTree<T>::InsertKey(DbArray<AVLNode<T> >& tree,
          
        // check right son
        tree.Get(newSon,son);
-       newDepth = max(son.rightDepth,son.leftDepth)+1;
+       newDepth = std::max(son.rightDepth,son.leftDepth)+1;
        
        // update required?  
        if ((newSon != thisNode.right) || (newDepth != thisNode.rightDepth)) {
@@ -1879,7 +1878,7 @@ int AVLTree<T>::DeleteMinKey (DbArray<AVLNode<T> >& tree,
    if (root.left != -1) {
      
      tree.Get(root.left,node);
-     root.leftDepth = max(node.leftDepth,node.rightDepth)+1;
+     root.leftDepth = std::max(node.leftDepth,node.rightDepth)+1;
    }
    else
      root.leftDepth = 0;
@@ -1924,7 +1923,7 @@ int AVLTree<T>::DeleteKey (DbArray<AVLNode<T> >& tree,
        // son not deleted?
        if (newSon != -1) {
          tree.Get(newSon,son);
-         newDepth = max(son.leftDepth,son.rightDepth)+1;
+         newDepth = std::max(son.leftDepth,son.rightDepth)+1;
        }
        else
          newDepth = 0;
@@ -1956,7 +1955,7 @@ int AVLTree<T>::DeleteKey (DbArray<AVLNode<T> >& tree,
        // son not deleted?
        if (newSon != -1) {
          tree.Get(newSon,son);
-         newDepth = max(son.rightDepth,son.leftDepth)+1;
+         newDepth = std::max(son.rightDepth,son.leftDepth)+1;
        }
        else
          newDepth = 0;
@@ -2002,7 +2001,7 @@ int AVLTree<T>::DeleteKey (DbArray<AVLNode<T> >& tree,
       // right son not deleted by DeleteMinKey?
       if (root.right != -1) {
         tree.Get(root.right, son);
-        root.rightDepth = max(son.leftDepth,son.rightDepth)+1;
+        root.rightDepth = std::max(son.leftDepth,son.rightDepth)+1;
       }
       else
         root.rightDepth = 0;
@@ -2049,7 +2048,7 @@ void AVLTree<T>::DeleteKeys(DbArray<AVLNode<T> >& tree, const int index) {
 
 template<class T>
 int AVLTree<T>::ReadKeys (const DbArray<AVLNode<T> >& tree,
-                          vector<int>* v, const int index) {
+                          std::vector<int>* v, const int index) {
 
    
    assert((index >= -1) && (index < tree.Size()));
@@ -2075,7 +2074,7 @@ int AVLTree<T>::ReadKeys (const DbArray<AVLNode<T> >& tree,
 
 template<class T>
 void AVLTree<T>::MapKeys (DbArray<AVLNode<T> >& tree, 
-                             int& num, vector<int>& v, 
+                             int& num, std::vector<int>& v, 
                              const int index) {
    
    assert((index >= -1) && (index < tree.Size()) && (num >= 0));
@@ -2104,7 +2103,7 @@ void AVLTree<T>::MapKeys (DbArray<AVLNode<T> >& tree,
 
 template<class T>
 int AVLTree<T>::ReadOptNodes(const DbArray<AVLNode<T> >& tree, 
-                             vector<AVLNode<T> >& v, const int root) {
+                             std::vector<AVLNode<T> >& v, const int root) {
 
    assert((root >= -1) && (root < tree.Size()));
    
@@ -2113,8 +2112,8 @@ int AVLTree<T>::ReadOptNodes(const DbArray<AVLNode<T> >& tree,
      return 0;
      
    AVLNode<T> node;
-   vector<int> source(0);
-   vector<int> target(0);
+   std::vector<int> source(0);
+   std::vector<int> target(0);
    
    target.push_back(root);
    
@@ -2148,7 +2147,7 @@ int AVLTree<T>::ReadOptNodes(const DbArray<AVLNode<T> >& tree,
 
 template<class T>
 int AVLTree<T>::ReadNodes (const DbArray<AVLNode<T> >& tree, 
-                            vector<AVLNode<T> >& v, const int index) {
+                            std::vector<AVLNode<T> >& v, const int index) {
    
    assert((index >= -1) && (index < tree.Size()));
    

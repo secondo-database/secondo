@@ -342,11 +342,11 @@ histogram given as parameter.
     void CopyFrom(const Attribute* right);
     int NumOfFLOBs() const;
     Flob* GetFLOB( const int i );
-    ostream& Print( ostream& os ) const;
+    std::ostream& Print( std::ostream& os ) const;
 
     size_t Sizeof() const;
 
-    inline static const string BasicType() { return "histogram1d";}
+    inline static const std::string BasicType() { return "histogram1d";}
 
     static const bool checkType(ListExpr list){
       return listutils::isSymbol(list, BasicType());
@@ -364,7 +364,7 @@ private:
 
   }; //class Histogram1d : public StandardAlgebra
 
-  ostream& operator << (ostream& os, const Histogram1d& h);
+  std::ostream& operator << (std::ostream& os, const Histogram1d& h);
 
 
 /*

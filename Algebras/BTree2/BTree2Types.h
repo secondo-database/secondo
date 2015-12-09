@@ -65,7 +65,7 @@ inline Attribute* entry2Attribute<TupleId>(const TupleId& value) {
 
 template <>
 inline Attribute* entry2Attribute<std::string>(const std::string& value) {
-  string cop = value;
+  std::string cop = value;
   return new CcString(true,cop);
 }
 

@@ -48,7 +48,6 @@ class TupleIdentifier;
 #include <Point.h>
 #include "NetworkAlgebra.h"
 
-using namespace network;
 
 /*
 3 class NetworkSection

@@ -42,11 +42,6 @@ This file contains some defines and constants, which could be used to configurat
 
 #include "GeneralTreeAlgebra.h"
 
-using namespace gta;
-using gtree::NodeConfig;
-using gtree::NodeTypeId;
-
-
 /////////////////////////////////////////////////////////////////////
 // enables debugging mode for the xtree-algebra
 /////////////////////////////////////////////////////////////////////

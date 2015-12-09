@@ -43,11 +43,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 1998 Friedhelm Becker
 
-December 1998 Miguel Rodr[i]guez Luaces Ported for use in the client server version of "Secondo"[3]
+December 1998 Miguel Rodr[i]guez Luaces Ported for use in the client 
+server version of "Secondo"[3]
 
 May 2002 Ulrich Telle Port to new "Secondo"[3] version
 
-August 2009 M. Spiekermann. Introduction of struct Displayfunction. A specific Displayfunction
+August 2009 M. Spiekermann. Introduction of struct Displayfunction. 
+A specific Displayfunction
 must now be a child of this base class, refer to DisplayTTY.cpp for examples.
 
 1.1 Overview
@@ -177,7 +179,7 @@ a RealAtom or a list representing a rational number
 Create an instance and initialize the dtty pointer if necessary.
 
 */   
-   void Insert( const string& name, DisplayFunction* df );
+   void Insert( const std::string& name, DisplayFunction* df );
 
    static void Set_SI(SecondoInterface* SI) 
    { 
@@ -221,7 +223,8 @@ display function was assigned:
 
   void DisplayDescriptionLines( ListExpr value, int  maxNameLen);
 /*
-Displays a single type constructor or operator formatted, similar display function for relations.
+Displays a single type constructor or operator formatted, similar 
+display function for relations.
 
 */
 
@@ -229,7 +232,7 @@ Displays a single type constructor or operator formatted, similar display functi
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container
 
-  typedef map<string,DisplayFunction*> DisplayMap; 
+  typedef std::map<std::string,DisplayFunction*> DisplayMap; 
   DisplayMap displayFunctions;
 
 };

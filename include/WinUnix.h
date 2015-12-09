@@ -37,7 +37,6 @@ dependent code should be isolated in this class.
 #include <inttypes.h>
 #include <cstdlib>
 
-using namespace std;
 
 class WinUnix {
 
@@ -70,23 +69,23 @@ public:
    static inline bool isUnix() { return !win32; }
 
    static void sleep( const int seconds );
-   static string getPlatformStr();
+   static std::string getPlatformStr();
 
-   static void writeBigEndian(ostream& o, const uint32_t number);
+   static void writeBigEndian(std::ostream& o, const uint32_t number);
 
-   static void writeLittleEndian(ostream& o, const uint32_t number);
+   static void writeLittleEndian(std::ostream& o, const uint32_t number);
 
-   static void writeLittleEndian(ostream& o, const uint16_t number);
+   static void writeLittleEndian(std::ostream& o, const uint16_t number);
 
-   static void writeBigEndian(ostream& o, const uint16_t number);
+   static void writeBigEndian(std::ostream& o, const uint16_t number);
 
-   static void writeLittle64(ostream& o, const double number);
+   static void writeLittle64(std::ostream& o, const double number);
 
-   static void writeBig64(ostream& o, const double number);
+   static void writeBig64(std::ostream& o, const double number);
 
-   static void writeLittleEndian(ostream& o, const unsigned char b);
+   static void writeLittleEndian(std::ostream& o, const unsigned char b);
 
-   static void writeBigEndian(ostream& o, const unsigned char b);
+   static void writeBigEndian(std::ostream& o, const unsigned char b);
 
    static uint32_t convertEndian(const uint32_t n);
    static uint16_t convertEndian(const uint16_t n);
@@ -103,10 +102,10 @@ A Class for handling text files
 
 class CFile {
 
-   fstream object;
+   std::fstream object;
 
   public:
-   CFile(const string& name) : fileName(MakePath(name))
+   CFile(const std::string& name) : fileName(MakePath(name))
    { object.clear(); }
    ~CFile() {}
    bool exists();    // check whether file exists
@@ -117,17 +116,17 @@ class CFile {
    bool eof() { return object.eof(); }
    bool fail() { return object.fail(); }
    bool good() { return object.good(); }
-   fstream& ios() { return object; }
+   std::fstream& ios() { return object; }
 
-   const string fileName;
-   string getPath() const;
-   string getName() const;
+   const std::string fileName;
+   std::string getPath() const;
+   std::string getName() const;
 
    static const char* pathSepWin32;
    static const char* pathSepUnix;
    static const char* pathSep;
 
-   static string MakePath(const string& s);
+   static std::string MakePath(const std::string& s);
 };
 
   /*

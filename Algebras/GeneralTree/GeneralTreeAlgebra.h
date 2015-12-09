@@ -45,6 +45,5 @@ This file combines only some includes to provide a simple way to use the provide
 #include "DistfunReg.h"
 #include "GTree.h"
 
-using namespace std;
 
 #endif // #ifndef __GENERAL_TREE_ALGEBRA_H__

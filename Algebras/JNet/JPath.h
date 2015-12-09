@@ -60,7 +60,8 @@ public:
 */
 
   explicit JPath(const bool defined);
-  explicit JPath(const string netId, const DbArray<JRouteInterval>& inpath,
+  explicit JPath(const std::string netId, 
+                 const DbArray<JRouteInterval>& inpath,
                  const bool check = true);
   explicit JPath(const JPath& other);
 
@@ -94,9 +95,9 @@ public:
   Flob* GetFLOB(const int i);
   void Destroy();
   void Clear();
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
   Attribute::StorageType GetStorageType() const;
-  static const string BasicType();
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -149,7 +150,7 @@ Returns an example of the data type.
 
 */
 
-  static string Example();
+  static std::string Example();
 
 /*
 1.1.1.1 GetNoComponents
@@ -263,8 +264,7 @@ Reduces number of route intervals if possible.
 
 */
 
-using namespace jnetwork;
-ostream& operator<<(ostream& os, const JPath& l);
+std::ostream& operator<<(std::ostream& os, const jnetwork::JPath& l);
 
 
 #endif // JPATH_H

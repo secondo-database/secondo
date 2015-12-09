@@ -68,7 +68,7 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
   JPoint();
   explicit JPoint(const bool def);
   JPoint(const JPoint& other);
-  JPoint(const string netId, const RouteLocation& rloc,
+  JPoint(const std::string netId, const RouteLocation& rloc,
          const bool check = true);
   JPoint(const JNetwork* jnet, const RouteLocation* rloc,
          const bool check = true);
@@ -101,8 +101,8 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
   int Compare(const Attribute* rhs) const;
   int Compare(const JPoint& rhs) const;
   size_t Sizeof() const;
-  ostream& Print(ostream& os) const;
-  static const string BasicType();
+  std::ostream& Print(std::ostream& os) const;
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -144,7 +144,7 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
 Returns an string with an example list representation.
 
 */
-  static string Example();
+  static std::string Example();
 
 /*
 1.1.1 Translation from / to spatial point
@@ -270,8 +270,7 @@ bool PosExists(const JNetwork* jnet = 0) const;
 
 */
 
-using namespace jnetwork;
-ostream& operator<< (ostream& os, const JPoint& jp);
+std::ostream& operator<< (std::ostream& os, const jnetwork::JPoint& jp);
 
 
 #endif // JPOINT_H

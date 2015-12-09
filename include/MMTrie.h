@@ -65,21 +65,23 @@ class TrieNode{
      return sons[x];
   }
 
-   void writeStrings(stringstream& ss, string str, const string& sep){
+   void writeStrings(std::stringstream& ss, std::string str, 
+                     const std::string& sep){
       if(contained){
          ss << str << sep;
       } 
       for(unsigned int i=0;i<CHARS; i++){
         if(sons[i]){
            char c = (char)i;
-           string sn = str.append(&c,1);
+           std::string sn = str.append(&c,1);
            sons[i]->writeStrings(ss, sn,sep);     
         }
       }
    }
 
 
-   ostream& print(ostream& out, const string& sep, string prefix){
+   std::ostream& print(std::ostream& out, const std::string& sep, 
+                       std::string prefix){
      if(contained){
         out << prefix << sep;
      } 
@@ -112,7 +114,7 @@ class Trie{
         }
       }
 
-      bool contains(const string& str) const{
+      bool contains(const std::string& str) const{
 
          size_t pos = 0;
          TrieNode* node = root;
@@ -128,7 +130,7 @@ class Trie{
          }
       }
 
-      void insert(const string& str){
+      void insert(const std::string& str){
           size_t size = str.length();
           if(size==0){
             return;
@@ -151,7 +153,7 @@ class Trie{
 
 
 
-     ostream& print(ostream& out, const string& sep = " "){
+     std::ostream& print(std::ostream& out, const std::string& sep = " "){
        if(root){
          root->print(out, sep, "");
        }

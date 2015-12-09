@@ -167,7 +167,7 @@ Returns a reference to the string.
 
 */
 
-  void SetKey(const string& x) { key = x; }
+  void SetKey(const std::string& x) { key = x; }
 /*
 Set the value string.
 
@@ -195,7 +195,7 @@ there is enough space for indirect storage reference).
 
 */
 
-  int GetKeySizeInMemory() { return key.capacity()+sizeof(string)+
+  int GetKeySizeInMemory() { return key.capacity()+sizeof(std::string)+
                                       sizeof(SmiRecordId); }
 /*
 Returns the memory usage of this entry.

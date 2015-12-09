@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TypeConstructor.h"
 #include "Symbols.h"
 
+using namespace std;
+
 namespace raster2
 {
 
@@ -113,7 +115,7 @@ bool UniqueStringArray::GetUniqueString(int nIndex, std::string& rString) const
   return bRetVal;
 }
 
-list<string> UniqueStringArray::GetUniqueStringArray() const
+std::list<string> UniqueStringArray::GetUniqueStringArray() const
 {
   list<string> uniqueStringArray;
   

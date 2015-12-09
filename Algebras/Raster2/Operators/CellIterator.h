@@ -49,8 +49,8 @@ class CellIterator{
         return lastDelta < 1.0;
      }
 
-     pair<double,double> next(){
-       pair<double,double> res(lastDelta,currentDelta);
+    std::pair<double,double> next(){
+       std::pair<double,double> res(lastDelta,currentDelta);
        computeNextDelta();
        return res;
      } 
@@ -198,8 +198,8 @@ class CellIterator3{
         return lastDelta < 1.0;
      }
 
-     pair<double,double> next(){
-       pair<double,double> res(lastDelta,currentDelta);
+     std::pair<double,double> next(){
+       std::pair<double,double> res(lastDelta,currentDelta);
        computeNextDelta();
        return res;
      } 

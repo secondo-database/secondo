@@ -62,7 +62,6 @@ available as a SECONDO operator.
 
 #include "SimObject.h"
 #include <string.h>
-using namespace std;
 #ifndef DBL_MAX
 #define DBL_MAX numeric_limits<double>::max()
 #endif

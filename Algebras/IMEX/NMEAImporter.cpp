@@ -50,6 +50,8 @@ The this end, two things are to do:
 
 extern NestedList* nl;
 
+using namespace std;
+
 /*
 1 Abstract class NMEALineImporter
 

@@ -63,7 +63,6 @@ This file contains the implementation of the class Distsamp
 #ifndef SISTRIBUTEDSORT_H
 #define SISTRIBUTEDSORT_H
 
-using namespace std;
 
 namespace distributedClustering{
   

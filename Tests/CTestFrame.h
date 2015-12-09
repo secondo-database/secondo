@@ -1,8 +1,8 @@
 /*
 
 Jan 2005, M. Spiekermann. The class ~CTestFrame~ provides some useful facilities
-which should be used when writing little test programs. Just use it as base class
-for your test cases.
+which should be used when writing little test programs. Just use it as base 
+class for your test cases.
 
 
 1 ~CBool~ a wrapper for the built in type ~bool~ 
@@ -15,7 +15,6 @@ for your test cases.
 
 #define CHECK(a,b) CheckResult(#a, a, b)
 
-using namespace std;
 
 
 class CBool { // a wrapper class useful for pretty printing bool values
@@ -27,7 +26,9 @@ public:
 
 };
 
-ostream& operator<<(ostream& os, CBool b) { // output format in streams
+std::ostream& operator<<(std::ostream& os, CBool b) { 
+// output format in streams
+
 
   if (b.value == true)
     os << "TRUE";
@@ -52,52 +53,52 @@ public:
   ~CTestFrame() {}
 
 
-  bool BeginCheck(const string& str) 
+  bool BeginCheck(const std::string& str) 
   {
-    cout << "-- Testing:" << str << endl;
+    std::cout << "-- Testing:" << str << std::endl;
     
     return false;
   }
 
   void EndCheck(bool result) 
   {
-    cout << "-- Result: ";
+    std::cout << "-- Result: ";
     if ( result ) {
-      cout << "OK!" << endl;
+      std::cout << "OK!" << std::endl;
     } else {
-      cout << "ERROR!" << endl;
+      std::cout << "ERROR!" << std::endl;
       errCtr++;
     } 
   }
 
   void ShowErrors() 
   {
-    cout << endl << "SUMMARY:" 
-	 << endl << "--------"
-	 << endl << "  There were "; 
+    std::cout << std::endl << "SUMMARY:" 
+	 << std::endl << "--------"
+	 << std::endl << "  There were "; 
 
     if (errCtr) {
-      cout << errCtr;
+      std::cout << errCtr;
     } else {
-      cout << "no";
+      std::cout << "no";
     }
-    cout << " errors." << endl;
+    std::cout << " errors." << std::endl;
 
   }
 
 
-  void TestCase(const string& title) {
+  void TestCase(const std::string& title) {
 
-    const string sep(60,fillChar);
-    stringstream caseNr;
+    const std::string sep(60,fillChar);
+    std::stringstream caseNr;
     caseNr << ++caseCtr << ". ";
 
-    const string white(60-4-(title.length()+caseNr.str().length()), ' ');
-    cout << endl
-	 << sep << endl
+    const std::string white(60-4-(title.length()+caseNr.str().length()), ' ');
+    std::cout << std::endl
+	 << sep << std::endl
 	 << fillChar << "  " << caseNr.str() 
-         << title << white << fillChar << endl
-	 << sep << endl; 
+         << title << white << fillChar << std::endl
+	 << sep << std::endl; 
   }
 
 /*
@@ -106,20 +107,20 @@ public:
 
 */
 
-  bool CheckResult(const string& operation, bool result, bool expected) {
+  bool CheckResult(const std::string& operation, bool result, bool expected) {
 
-    cout << "*** " << operation << "    [" << CBool(result);
+    std::cout << "*** " << operation << "    [" << CBool(result);
     bool ok = (result == expected);
     if (ok)
     { 
-      cout << " -> OK ]";
+      std::cout << " -> OK ]";
     
     } else {
-      cout << " -> ERROR ] " 
-           << CBool(expected) << " expected!" << endl;
+      std::cout << " -> ERROR ] " 
+           << CBool(expected) << " expected!" << std::endl;
       errCtr++;
     }
-    cout << endl;
+    std::cout << std::endl;
     return ok;
   }
 
@@ -127,8 +128,8 @@ public:
   void pause()
   {
      char buf[80];
-     cout << endl << "<<< continue? [y,n]: >>>" << endl;
-     cin.getline( buf, sizeof(buf) );
+     std::cout << std::endl << "<<< continue? [y,n]: >>>" << std::endl;
+     std::cin.getline( buf, sizeof(buf) );
      if ( buf[0] != 'y' && buf[0] != 'Y' ) {
      exit(0);
      } 

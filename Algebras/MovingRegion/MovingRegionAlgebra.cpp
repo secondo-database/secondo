@@ -238,6 +238,7 @@ extern QueryProcessor* qp;
 
 
 using namespace std;
+using namespace datetime;
 namespace temporalalgebra{
 
 /*

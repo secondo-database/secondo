@@ -37,7 +37,7 @@ This implementation file contains the implementation of the class Path
 
 #include "GraphAlgebra.h"
 
-
+using namespace std;
 
 
 /*

@@ -70,7 +70,7 @@ Returns the tuple for a given tupleId. If the tuple does not exist,
   Tuple* GetTuple(const TupleId id);
 
   private:
-     vector<Tuple*> elems;
+     std::vector<Tuple*> elems;
 };
 
 #endif

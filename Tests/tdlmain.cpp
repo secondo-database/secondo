@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include "DynamicLibrary.h"
 
+using namespace std;
+
 int main()
 {
   cout << "*** Test of loading dynamic libraries" << endl;
@@ -79,7 +81,8 @@ int main()
         }
         else
         {
-          cout << "Error GetFunctionAddr dlcall2: " << dl2.GetLastErrorMessage() << endl;
+          cout << "Error GetFunctionAddr dlcall2: " 
+               << dl2.GetLastErrorMessage() << endl;
         }
       }
       else

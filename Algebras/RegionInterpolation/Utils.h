@@ -7,7 +7,6 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-using namespace std;
 
 namespace RegionInterpol
 {

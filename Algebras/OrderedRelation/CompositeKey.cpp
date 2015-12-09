@@ -43,6 +43,8 @@ For more information see the OrderedRelation.h header file.
 #include "RelationAlgebra.h"
 #include "LongInt.h"
 
+using namespace std;
+
 CompositeKey::CompositeKey(const Tuple* t, const vector<int>& keyElements,
                            const vector<SmiKey::KeyDataType>& keyElemTypes,
                            const bool append, const TupleId appendix):

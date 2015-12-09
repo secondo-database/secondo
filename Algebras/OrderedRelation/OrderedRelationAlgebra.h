@@ -46,7 +46,7 @@ RelationAlgebra.cpp file.
 #include "RelationAlgebra.h"
 #include "CompositeKey.h"
 
-const string OREL = "orel";
+const std::string OREL = "orel";
 const TupleId MIN_TUPLE_ID = 1;
 
 /*
@@ -66,7 +66,7 @@ class OrderedRelationIterator : public GenericRelationIterator {
     virtual ~OrderedRelationIterator();
 
     virtual Tuple* GetNextTuple();
-    virtual Tuple* GetNextTuple(const list<int>& attrList);
+    virtual Tuple* GetNextTuple(const std::list<int>& attrList);
 
     virtual TupleId GetTupleId() const;
 
@@ -152,22 +152,22 @@ class OrderedRelation : public GenericRelation {
 
     virtual Tuple* GetTuple( const TupleId& id,
                      const int attrIndex,
-                     const vector< pair<int, int> >& intervals,
+                     const std::vector< std::pair<int, int> >& intervals,
                      const bool dontReportError ) const;
 
     virtual Tuple* GetTuple(const CompositeKey& key) const;
 
     virtual Tuple* GetTuple(const CompositeKey& key,
-                            const int attrIndex,
-                            const vector< pair<int, int> >& intervals) const;
+                    const int attrIndex,
+                    const std::vector< std::pair<int, int> >& intervals) const;
 
     virtual bool DeleteTuple(Tuple* t);
 
     bool DeleteTuple(Tuple* t, bool deleteComplete = true);
 
     virtual void UpdateTuple( Tuple *tuple,
-                              const vector<int>& changedIndices,
-                              const vector<Attribute *>& newAttrs );
+                              const std::vector<int>& changedIndices,
+                              const std::vector<Attribute *>& newAttrs );
 
     virtual GenericRelationIterator* MakeScan() const;
 
@@ -193,20 +193,21 @@ class OrderedRelation : public GenericRelation {
     CompositeKey GetUpperRangeKey(Word& arg, int length);
     CompositeKey GetLowerRangeKey(Word& arg, int length);
 
-    static bool GetKeyStructure (ListExpr typeInfo, vector<int>& keyElement,
-                            vector<SmiKey::KeyDataType>& keyElemType);
+    static bool GetKeyStructure (ListExpr typeInfo, 
+                            std::vector<int>& keyElement,
+                            std::vector<SmiKey::KeyDataType>& keyElemType);
 
     const SmiBtreeFile* GetTupleFile() const;
 
     const TupleType* GetTupleType() const;
 
-    static const string BasicType() { return "orel"; }
+    static const std::string BasicType() { return "orel"; }
 
      static const bool checkType(ListExpr list){
       return listutils::isRelDescription2(list, BasicType());
      }
 
-    ostream& Print(ostream& os) const;
+    std::ostream& Print(std::ostream& os) const;
   private:
     OrderedRelation();
     SmiBtreeFile* tupleFile;
@@ -218,12 +219,12 @@ class OrderedRelation : public GenericRelation {
     TupleType* tupleType;
     int noTuples;
     double totalExtSize;
-    vector<double> attrExtSize;
+    std::vector<double> attrExtSize;
     double totalSize;
-    vector<double> attrSize;
+    std::vector<double> attrSize;
 
-    vector<SmiKey::KeyDataType> keyElemType;
-    vector<int> keyElement;
+    std::vector<SmiKey::KeyDataType> keyElemType;
+    std::vector<int> keyElement;
 
     TupleId maxId;
 

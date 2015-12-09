@@ -48,7 +48,6 @@ for the implementation of operators to update relations.
 #include "StandardTypes.h"
 #include <string>
 
-using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -75,7 +74,7 @@ This constructor should not be used.
   TupleId      GetTid() const;
   void     SetTid( const TupleId tid);
   TupleIdentifier*   Clone() const;
-  ostream& Print( ostream& os ) const;
+  std::ostream& Print( std::ostream& os ) const;
 
   inline void Set(const bool DEFINED, const TupleId ID)
   {
@@ -143,7 +142,7 @@ Basic Type
 
 */
 
-static const string BasicType(){
+static const std::string BasicType(){
      return "tid";
   }
 
@@ -156,7 +155,7 @@ Example String for external Property Files includin TupleIds
 
 */
 
-static const string Example(){
+static const std::string Example(){
   return "50060";
 }
 

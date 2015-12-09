@@ -61,7 +61,7 @@ namespace raster2
              types.first() == NList(msstring::BasicType())  )
     {
       cell1TypeMapListExpr = 
-         NList(stype_helper<string>::wrapper_type::BasicType()).listExpr();
+         NList(stype_helper<std::string>::wrapper_type::BasicType()).listExpr();
     } 
     
     return cell1TypeMapListExpr;

@@ -49,7 +49,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SuffixTree.h"
 
-using namespace std;
 
 /*
 
@@ -60,7 +59,7 @@ class UkkonenTreeBuilder
 {
 
 public:
-  static SuffixTreeVertex* CreateSuffixTree(string *nText);
+  static SuffixTreeVertex* CreateSuffixTree(std::string *nText);
 };
 
 

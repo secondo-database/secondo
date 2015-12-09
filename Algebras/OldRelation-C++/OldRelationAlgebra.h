@@ -68,7 +68,7 @@ enum CcRelationType { mrel, mtuple, mstream, mmap, mbool, merror };
 
 const int MaxSizeOfAttr = 35;  //changed by DZM, original value: 20
 
-int CcFindAttribute( ListExpr list, string attrname,
+int CcFindAttribute( ListExpr list, std::string attrname,
 		     ListExpr& attrtype, NestedList* nl);
 bool CcIsTupleDescription(ListExpr a, NestedList* nl);
 
@@ -109,9 +109,9 @@ class CcTuple
     void SetId(SmiRecordId id);
 
     friend
-    ostream& operator<<(ostream& s, CcTuple t);
+    std::ostream& operator<<(std::ostream& s, CcTuple t);
 
-    static const string BasicType() { return "mtuple"; }
+    static const std::string BasicType() { return "mtuple"; }
     static const bool checkType(const ListExpr type){
       return listutils::isTupleDescription(type, true);
     }
@@ -125,7 +125,7 @@ public:
   bool operator()(const CcTuple*, const CcTuple*) const;
 };
 
-string ReportCcTupleStatistics();
+std::string ReportCcTupleStatistics();
 
 ListExpr OutCcTuple (ListExpr, Word);
 
@@ -156,7 +156,7 @@ ListExpr CcRelProp ();
 Figure 2: Main memory representation of a relation (~vector~) [relation.eps]
 
 */
-typedef vector<CcTuple*> CcRep;
+typedef std::vector<CcTuple*> CcRep;
 typedef CcRep* CcRelation;
 
 class CcRel;
@@ -202,7 +202,7 @@ class CcRel
     void    SetNoTuples (int);
     int     GetNoTuples ();
 
-    static const string BasicType() { return "mrel"; }
+    static const std::string BasicType() { return "mrel"; }
     static const bool checkType(const ListExpr type){
       return listutils::isRelDescription2(type, BasicType());
     }

@@ -76,7 +76,7 @@ public:
 
 */
     PosJNetSpatial& operator=(const PosJNetSpatial& other);
-    ostream& Print(ostream& os) const;
+    std::ostream& Print(std::ostream& os) const;
 
 private:
   RouteLocation netpos;
@@ -91,7 +91,7 @@ private:
 
 }//end namespace jnetwork
 
-using namespace jnetwork;
-ostream& operator<<(ostream& os, const PosJNetSpatial& elem);
+std::ostream& operator<<(std::ostream& os, 
+                         const jnetwork::PosJNetSpatial& elem);
 
 #endif // POSJNETSPATIAL_H

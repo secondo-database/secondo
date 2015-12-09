@@ -14,6 +14,8 @@ Implementation of DRM class
 #include "NestedList.h"
 #include "ListUtils.h"
 
+using namespace std;
+
 DRM& DRM::operator=(const DRM& src){
    SetDefined(src.IsDefined());
    value = src.value;

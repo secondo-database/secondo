@@ -65,7 +65,6 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
 
-using namespace std;
 
 int parsePatternRegEx(const char* argument, IntNfa** T);
 

@@ -81,9 +81,9 @@ namespace raster2
     
     */
     void destroy();
-    string atlocation(double x, double y, double t) const;
+    std::string atlocation(double x, double y, double t) const;
     temporalalgebra::MString*  atlocation(double x, double y) const;
-    void setatlocation(double x, double y, double t, const string& value);
+    void setatlocation(double x, double y, double t, const std::string& value);
     // isstring atinstant(Instant instant) const;
     // msstring atperiods(Periods periods) const;
     msstring* atperiods(const temporalalgebra::Periods& periods);
@@ -94,8 +94,8 @@ namespace raster2
                       const Instant& end);
     void getDefinedPeriods(temporalalgebra::Periods& result) const;
     Rectangle<3> bbox() const;
-    string getMinimum() const;
-    string getMaximum() const;
+    std::string getMinimum() const;
+    std::string getMaximum() const;
     grid3 getGrid() const;
     void setGrid(const grid3& g);
     
@@ -123,7 +123,7 @@ namespace raster2
 
     */
     
-    static const string BasicType();
+    static const std::string BasicType();
     static const bool checkType(const ListExpr type);
     static void* Cast(void* pVoid);
     static Word Clone(const ListExpr typeInfo,
@@ -174,7 +174,7 @@ namespace raster2
   };
   
   template <>
-  struct mstype_helper<string>
+  struct mstype_helper<std::string>
   {
     typedef msstring implementation_type;
     typedef temporalalgebra::MString moving_type;
@@ -186,17 +186,17 @@ namespace raster2
       return nl.isString();
     }
     
-    static string parse(const NList& nl)
+    static std::string parse(const NList& nl)
     {
       return nl.str();
     }
     
-    static bool isUndefined(const string& rString)
+    static bool isUndefined(const std::string& rString)
     {
       return rString == UNDEFINED_STRING;
     }
     
-    static string getUndefined()
+    static std::string getUndefined()
     {
       return UNDEFINED_STRING;
     }
@@ -206,7 +206,7 @@ namespace raster2
       return CcString::BasicType();
     }
     
-    static CcString wrap(const string& rString)
+    static CcString wrap(const std::string& rString)
     {
       return CcString(!isUndefined(rString), rString);
     }

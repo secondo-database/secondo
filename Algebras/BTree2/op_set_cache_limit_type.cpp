@@ -25,6 +25,8 @@
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+using namespace std;
+
 namespace BTree2Algebra {
 namespace Operators {
 

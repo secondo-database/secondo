@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <ostream>
 #include "JPQEntry.h"
 
-using namespace std;
 
 namespace jnetwork{
 
@@ -76,7 +75,7 @@ void SetIndexPQ(const int id);
 */
 
 VisitedJunction& operator= (const VisitedJunction& other);
-ostream& Print(ostream& os) const;
+std::ostream& Print(std::ostream& os) const;
 
 int Compare(const VisitedJunction& other) const;
 int CompareEndJID(const int id) const;
@@ -99,9 +98,8 @@ private:
 
 */
 
-using namespace jnetwork;
-
-ostream& operator<< (ostream& os, const jnetwork::VisitedJunction elem);
+std::ostream& operator<< (std::ostream& os, 
+                          const jnetwork::VisitedJunction elem);
 
 
 #endif //VISITEDJUNCTION_H

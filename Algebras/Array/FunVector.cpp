@@ -37,6 +37,8 @@ a namespace problem.
 #include "FunVector.h"
 #include "StandardTypes.h"
 
+using namespace std;
+
 bool operator<( const FunInfo& f1, const FunInfo& f2 )
 {
   return (f1.no < f2.no);

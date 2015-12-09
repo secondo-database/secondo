@@ -54,6 +54,8 @@ extern QueryProcessor *qp;
 #include "ListUtils.h"
 
 using namespace mappings;
+using namespace std;
+using namespace datetime;
 
 
 namespace temporalalgebra{

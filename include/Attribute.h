@@ -29,11 +29,12 @@ April 2002 Ulrich Telle Adjustments for the new Secondo version
 Oct 2004 M. Spiekermann. Adding some more detailed documentation and some
 thoughts about redesign and performance.
 
-January 2006, M. Spiekermann. Some template functions which could be used as default
-for some type constructor functions were moved to ConstructorTemplates.h
+January 2006, M. Spiekermann. Some template functions which could be 
+used as default for some type constructor functions were moved to 
+ConstructorTemplates.h
 
-May 2006, M. Spiekermann. Documentation for the ~Compare~ function extended. Template
-functions ~GenericCompare~ and ~GetValue~ added.
+May 2006, M. Spiekermann. Documentation for the ~Compare~ function 
+extended. Template functions ~GenericCompare~ and ~GetValue~ added.
 
 1.1 Overview
 
@@ -431,7 +432,7 @@ be called.
 
 */
     inline virtual
-    void Restrict( const vector< pair<int, int> >& interval )
+    void Restrict( const std::vector< std::pair<int, int> >& interval )
     {}
 /*
 This function is called to restrict a current attribute to a
@@ -450,7 +451,7 @@ some Java initialization and destructions are done in these
 functions.
 
 */
-    inline virtual ostream& Print( ostream& os ) const
+    inline virtual std::ostream& Print( std::ostream& os ) const
     {
       return os << "< No Print()-function for this datatype! >";
     }
@@ -610,7 +611,7 @@ Returns the number of references for this attribute.
       return ptr->GetValue();
     }
 
-    string AttrDelete2string();
+    std::string AttrDelete2string();
 /*
 Print the delete reference info to a string (for debugging)
 
@@ -619,7 +620,7 @@ Print the delete reference info to a string (for debugging)
   static void SetCounterValues(bool show);
 
 
-  virtual string getCsvStr() const{
+  virtual std::string getCsvStr() const{
     return "";
   }
 /*
@@ -633,12 +634,12 @@ Print the delete reference info to a string (for debugging)
     return false;
   }
 
-  virtual string toText() const{
+  virtual std::string toText() const{
     assert(false);
     return "";
   }
 
-  virtual bool fromText(const string& value) {
+  virtual bool fromText(const std::string& value) {
     SetDefined(false);
     return false;
   }
@@ -647,7 +648,7 @@ Print the delete reference info to a string (for debugging)
 
   virtual bool hasBox() const { return false; }
 
-  virtual void writeShape(ostream& o, uint32_t RecNo) const{
+  virtual void writeShape(std::ostream& o, uint32_t RecNo) const{
     // first, write the record header
     WinUnix::writeBigEndian(o,RecNo);
     uint32_t length = 2;
@@ -670,14 +671,14 @@ Print the delete reference info to a string (for debugging)
   virtual unsigned char getDB3Type() const { return 'L'; }
   virtual unsigned char getDB3Length() const { return 1; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
-  virtual string getDB3String() const { return "?"; }
+  virtual std::string getDB3String() const { return "?"; }
 
-  virtual string getSQLType(){ return ""; }
-  virtual string getSQLRepresentation(){ return "";} 
+  virtual std::string getSQLType(){ return ""; }
+  virtual std::string getSQLRepresentation(){ return "";} 
 
 
 
-   virtual void ReadFromString(string value){
+   virtual void ReadFromString(std::string value){
        SetDefined(false);
    }
 
@@ -731,8 +732,8 @@ Set the reference counter to 1
 
 
 /*
-Counters for basic operations. Useful for verifying cost formulas and determining
-cost factors.
+Counters for basic operations. Useful for verifying cost formulas
+ and determining cost factors.
 
 */
     static void counters(bool reset, bool show);
@@ -776,7 +777,7 @@ bool SaveAttribute( SmiRecord& valueRecord,
 The generalized output operator
 
 */
-ostream& operator<<(ostream& os, const Attribute& attr);
+std::ostream& operator<<(std::ostream& os, const Attribute& attr);
 
 /*
 Pointer save DeleteIfAllowed Function

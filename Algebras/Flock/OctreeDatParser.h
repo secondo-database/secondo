@@ -45,7 +45,6 @@ June, 2009 Mahmoud Sakr
 
 class OctreeCell;
 
-using namespace std;
 
 class OctreeDatParser{
   public:

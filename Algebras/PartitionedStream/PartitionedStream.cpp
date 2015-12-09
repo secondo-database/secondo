@@ -85,6 +85,8 @@ Dependencies with other algebras: RelationAlgebra, StandardAlgebra
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+using namespace std;
+
 inline int
 nextInt(const double d)
 {

@@ -75,9 +75,9 @@ class DRM : public Attribute{
 
     size_t Sizeof() const { return sizeof(*this); }
 
-    virtual ostream& Print( ostream& os ) const;
+    virtual std::ostream& Print( std::ostream& os ) const;
 
-    static string BasicType(){ return "drm"; }
+    static std::string BasicType(){ return "drm"; }
 
     static const bool checkType(const ListExpr type){
         return listutils::isSymbol(type, BasicType());
@@ -130,9 +130,9 @@ class OIM : public Attribute{
 
     size_t Sizeof() const { return sizeof(*this); }
 
-    virtual ostream& Print( ostream& os ) const;
+    virtual std::ostream& Print( std::ostream& os ) const;
 
-    static string BasicType(){ return "oim"; }
+    static std::string BasicType(){ return "oim"; }
 
     static const bool checkType(const ListExpr type){
         return listutils::isSymbol(type, BasicType());

@@ -41,8 +41,8 @@ For a description of the public interface see the ~SocketIO~ header file.
 class UnixSocket : public Socket
 {
  public:
-  UnixSocket( const string& address,
-              const string& port,
+  UnixSocket( const std::string& address,
+              const std::string& port,
               const SocketDomain domain );
   UnixSocket( int newSocketDescriptor );
   ~UnixSocket();
@@ -55,20 +55,20 @@ class UnixSocket : public Socket
   bool    Read( void* buf, size_t size );
   bool    Write( void const* buf, size_t size );
   bool    IsOk();
-  string  GetErrorText();
-  string  GetSocketAddress() const;
-  string  GetPeerAddress() const;
+  std::string  GetErrorText();
+  std::string  GetSocketAddress() const;
+  std::string  GetPeerAddress() const;
   Socket* Accept();
   bool    CancelAccept();
   bool    Close();
   bool    ShutDown();
  protected:
-  void    SetStreamState( ios::iostate newState );
+  void    SetStreamState( std::ios::iostate newState );
 
   SocketDescriptor fd;
   int              lastError;   // error code of last failed operation
-  string           hostAddress;
-  string           hostPort;
+  std::string           hostAddress;
+  std::string           hostPort;
   SocketDomain     domain;    // Unix domain or INET socket
   bool             createFile; // Unix domain sockets use files for connection
 

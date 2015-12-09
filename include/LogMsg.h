@@ -63,15 +63,15 @@ This file should collect all methods or techniques used in SECONDO for managing
 errors and trace messages. This is still work in progress! 
 
 This file declares a class ~RTFlag~ (Runtime Flag) and a preprocessor Macro
-~LOGMSG~. It can be used to identify a bool value with a string constant. The
-value for a given flag name is true, when it appears in the file
+~LOGMSG~. It can be used to identify a bool value with a std::string constant.
+The value for a given flag name is true, when it appears in the file
 "SecondoConfig.ini"[1] in the list of the values for the key RTFlag. It can be
 used for trace messages or runtime configuration. This is good for testing or
 comparing different implementations without recompilation. The alternative of
 defining and reading in new keys in "SecondoConfig.ini" is much more
 complicated.  The macro  or the class are used as presented below. 
 
-----LOGMSG("MyFlagName", cerr << "variable x:" << x << endl;)
+----LOGMSG("MyFlagName", cerr << "variable x:" << x << std::endl;)
 
     if ( RTFlag::isActive("MyFlagName") ) {
     
@@ -81,28 +81,29 @@ complicated.  The macro  or the class are used as presented below.
 ----
 
 All flags should be documented in the configuration file. However, the
-mechanism is quite simple, take care to use the same string constants in your
-code and in the configuration file otherwise you will get in trouble. 
+mechanism is quite simple, take care to use the same std::string constants
+in your code and in the configuration file otherwise you will get in trouble. 
 
 Sending information to ~cout~ or ~cerr~ is not a good idea, since in a client
 server setup these information will not transfered to the client. Hence a
 global message object ~cmsg~ of class ~CMsg~ will be used as transmitter for
-messages. There are four methods which return the reference to an ostream
+messages. There are four methods which return the reference to an std::ostream
 object.  Additonally, you can easily send data to a file. Currently, the
 messages are not send to a client via the socket communication but this can
 easily be integrated later.
 
 Here are some examples how to use the interface:
 
----- cmsg.info() << "Non critical information send to cout" << endl;
+---- cmsg.info() << "Non critical information send to cout" << std::endl;
      cmsg.send();
-     cmsg.warning() << "More critical information send to cout" << endl;
+     cmsg.warning() << "More critical information send to cout" << std::endl;
      cmsg.send();
-     cmsg.error() << "Error information send to cerr" << endl;
+     cmsg.error() << "Error information send to cerr" << std::endl;
      cmsg.send();
-     cmsg.file() << "Information send to the file secondo.log" << endl;
+     cmsg.file() << "Information send to the file secondo.log" << std::endl;
      cmsg.send();
-     cmsg.file("my-logfile.log") << "Information send to my-logfile.log" << endl;
+     cmsg.file("my-logfile.log") << "Information send to my-logfile.log" 
+              << std::endl;
 ----
 
 Before changing the output channel it is important to clear the messsage buffer
@@ -125,22 +126,19 @@ with the ~send~ method.
 #include <sstream>
 #include <stdexcept>
 
-using namespace std;
-
-
-extern ostream* traceOS;
+extern std::ostream* traceOS;
 
 class RTFlag {
 
 public:
 
-  static void initByString( const string& keyList );
+  static void initByString( const std::string& keyList );
 
-  static void showActiveFlags(ostream& os);
+  static void showActiveFlags(std::ostream& os);
 
-  static bool isActive( const string& key );
+  static bool isActive( const std::string& key );
 
-  static void setFlag( const string& key, const bool value );
+  static void setFlag( const std::string& key, const bool value );
 
   static bool empty() {
      return flagMap.empty();
@@ -150,7 +148,7 @@ private:
 
   RTFlag(){}
   ~RTFlag(){}
-  static map<string,bool> flagMap;
+  static std::map<std::string,bool> flagMap;
 
 };
 
@@ -175,15 +173,15 @@ class ErrorReporter
 {
 private:
   static bool receivedMessage;
-  static string message;
+  static std::string message;
 
 public:
   static bool FreezeMessage;
   static bool TypeMapError;
   static void Reset() { TypeMapError=false; message=""; }
-  static void ReportError(const string msg);
+  static void ReportError(const std::string msg);
   static void ReportError(const char* msg);
-  static void GetErrorMessage(string& msg);
+  static void GetErrorMessage(std::string& msg);
 };
 
 
@@ -194,20 +192,22 @@ public:
   CMsg();
   ~CMsg(); 
 
-  ostream& file(); 
-  ostream& file(const string& fileName); 
+  std::ostream& file(); 
+  std::ostream& file(const std::string& fileName); 
 
   // condintinal output of messages
-  ostream& info(const string& key);
+  std::ostream& info(const std::string& key);
 
-  inline ostream& info()    { stdOutput = 1; return buffer; }
-  inline ostream& warning() { stdOutput = 1; return buffer; }
-  inline ostream& error()   { stdOutput = 2; return buffer; } 
+  inline std::ostream& info()    { stdOutput = 1; return buffer; }
+  inline std::ostream& warning() { stdOutput = 1; return buffer; }
+  inline std::ostream& error()   { stdOutput = 2; return buffer; } 
   
   // More specific error channels
-  void typeError(const string& msg)   { ErrorReporter::ReportError(msg);     }
-  void inFunError(const string& msg)  { error() << "InFun: " << msg << endl; }
-  void otherError(const string& msg)  { error() << "Other: " << msg << endl; }
+  void typeError(const std::string& msg)   { ErrorReporter::ReportError(msg);}
+  void inFunError(const std::string& msg)  { error() << "InFun: " << msg 
+                                                     << std::endl; }
+  void otherError(const std::string& msg)  { error() << "Other: " << msg 
+                                                     << std::endl; }
 
 /*
  
@@ -221,7 +221,7 @@ the future it may also send the message to clients using socket communication.
 Retrieving and cleaning stored errors.
 
 */  
-  string getErrorMsg();
+  std::string getErrorMsg();
 
   void resetErrors();
 
@@ -229,13 +229,13 @@ private:
 
   void init();
   int stdOutput;
-  ofstream* fp;
-  stringstream buffer;
-  stringstream allErrors;
-  stringstream devnull;
-  string logFileStr;
-  string prefix;
-  map<string,ofstream*> files;
+  std::ofstream* fp;
+  std::stringstream buffer;
+  std::stringstream allErrors;
+  std::stringstream devnull;
+  std::string logFileStr;
+  std::string prefix;
+  std::map<std::string,std::ofstream*> files;
   
 };
 

@@ -129,10 +129,10 @@ base class.
 
 */
  private:
-  vector<TypeConstructor*> tcs;
-  vector<bool> tcdel;
-  vector<Operator*> ops;
-  vector<bool> opdel;
+  std::vector<TypeConstructor*> tcs;
+  std::vector<bool> tcdel;
+  std::vector<Operator*> ops;
+  std::vector<bool> opdel;
   int tcsNum;
   int opsNum;
 

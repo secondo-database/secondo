@@ -50,12 +50,12 @@ RelationAlgebra.cpp file.
 
 class CompositeKey : public IndexableAttribute {
   public:
-    CompositeKey(const Tuple* t, const vector<int>& keyElements,
-                 const vector<SmiKey::KeyDataType>& keyElemTypes,
+    CompositeKey(const Tuple* t, const std::vector<int>& keyElements,
+                 const std::vector<SmiKey::KeyDataType>& keyElemTypes,
                  const bool appendNumber = false, const TupleId appendix = -1);
     
-    CompositeKey(const vector<void*>& attributes,
-                 const vector<SmiKey::KeyDataType>& attrTypes,
+    CompositeKey(const std::vector<void*>& attributes,
+                 const std::vector<SmiKey::KeyDataType>& attrTypes,
                  const bool upperRange = false);
     
     CompositeKey(SmiKey& key);
@@ -126,8 +126,8 @@ class CompositeKey : public IndexableAttribute {
     
   private:
     enum Mode { none, appendNumber, upperRange};
-    void init(const vector<void*>& attributes,
-         const vector<SmiKey::KeyDataType>& attrTypes,
+    void init(const std::vector<void*>& attributes,
+         const std::vector<SmiKey::KeyDataType>& attrTypes,
          const Mode mode = none, const TupleId appendix = -1);
     
     void init(SmiRecord& record, SmiSize& offset);

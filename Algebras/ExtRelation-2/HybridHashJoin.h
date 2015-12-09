@@ -150,7 +150,7 @@ Milliseconds per tuple returned.
 
 */
 
-    ostream& Print(ostream& os);
+    std::ostream& Print(std::ostream& os);
 /*
 Print to stream ~os~. This function is used
 for debugging purposes.

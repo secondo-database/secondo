@@ -52,7 +52,6 @@
 #include <limits>
 #include <cmath>
 
-using namespace std;
 namespace distributedClustering{
   
 

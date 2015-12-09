@@ -104,8 +104,8 @@ It can not be private because JUnit is used as part of MJPoint and JUnit.
   int Compare(const Attribute* rhs) const;
   int Compare(const JUnit& rhs) const;
   size_t Sizeof() const;
-  ostream& Print(ostream& os) const;
-  static const string BasicType();
+  std::ostream& Print(std::ostream& os) const;
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -143,7 +143,7 @@ It can not be private because JUnit is used as part of MJPoint and JUnit.
 1.1.1 Other Operations
 
 */
-  static string Example();
+  static std::string Example();
 
 
 /*
@@ -187,7 +187,7 @@ Returns the ijpoint giving the position in the network at the given instant.
 
 */
 
-IJPoint AtInstant(const Instant* inst, const string netId) const;
+IJPoint AtInstant(const Instant* inst, const std::string netId) const;
 
 /*
 1.1.1.1.1 Initial
@@ -197,7 +197,7 @@ time interval.
 
 */
 
-IJPoint Initial(const string netId) const;
+IJPoint Initial(const std::string netId) const;
 
 /*
 1.1.1.1.1 Final
@@ -207,7 +207,7 @@ interval.
 
 */
 
-IJPoint Final(const string netId) const;
+IJPoint Final(const std::string netId) const;
 
 /*
 1.1.1.1.1 AtPos
@@ -296,7 +296,6 @@ bool CanBeExtendedBy(const JUnit& other) const;
 
 */
 
-using namespace jnetwork;
-ostream& operator<< (ostream& os, const jnetwork::JUnit& jp);
+std::ostream& operator<< (std::ostream& os, const jnetwork::JUnit& jp);
 
 #endif // JUNIT_H

@@ -127,7 +127,7 @@ Function ~tmInput~:
 This function returns true, if a predicate is found in the input, followed by a nested list. It writes out the resulted nested list or in case of the ~typemap~ predicate the different lists of the parts of typemapping. In this case also the ~SignatureArgs~ of an operator are included.
 
 */
-    bool tmInput(string sigInput, ListExpr sigArgs);
+    bool tmInput(std::string sigInput, ListExpr sigArgs);
 
 
 

@@ -36,7 +36,7 @@ class MinTree {
 
     private:
 
-        vector<MinNode> dynamic;
+        std::vector<MinNode> dynamic;
 
         void orderPull(int pos);
         void orderPut(int pos);

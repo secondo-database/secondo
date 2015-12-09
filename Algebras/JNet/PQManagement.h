@@ -119,7 +119,7 @@ void Destroy();
 
 */
 
-ostream& Print(ostream& os) const;
+std::ostream& Print(std::ostream& os) const;
 
 /*
 1.1 Private definitions of class ~PQManagement~
@@ -272,7 +272,6 @@ void CorrectPositionDown(JPQEntryTreeElement& newElem, int& pos);
 
 */
 
-using namespace jnetwork;
-ostream& operator<<(ostream& os, const jnetwork::PQManagement& dir);
+std::ostream& operator<<(std::ostream& os, const jnetwork::PQManagement& dir);
 
 #endif // PQMANAGEMENT_H

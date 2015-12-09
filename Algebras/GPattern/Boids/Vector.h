@@ -63,7 +63,6 @@ available as a SECONDO operator.
 #include <stdarg.h>
 #include <iostream>
 #include <stdlib.h>
-using namespace std;
 // ---------------- VECTORS CLASS ------------------
  
 class MathVector {

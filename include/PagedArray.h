@@ -97,7 +97,8 @@ typedef unsigned long Cardinal;
 
 /*
 
-The class Recordbuffer implements a buffer for page oriented access of memory. The interface consists
+The class Recordbuffer implements a buffer for page 
+oriented access of memory. The interface consists
 of a single 
 
 
@@ -125,9 +126,9 @@ public:
 
     // will be used if variable SEC_Rebuf_Trace is set
     if (trace) {
-      cerr << "REC_SIZE = " << REC_SIZE << endl;      
-      cerr << "BUF_SIZE = " << BUF_SIZE << endl;      
-      cerr << "MAX_BUFFERS = " << MAX_BUFFERS << endl;      
+      std::cerr << "REC_SIZE = " << REC_SIZE << std::endl;      
+      std::cerr << "BUF_SIZE = " << BUF_SIZE << std::endl;      
+      std::cerr << "MAX_BUFFERS = " << MAX_BUFFERS << std::endl;      
     }
 
     for (int i=0; i < MAX_BUFFERS; i++) { // initialize the buffer
@@ -158,19 +159,19 @@ public:
   void* GetBufPtr(const Cardinal& pageNr, bool &pageChange) {
    
      if (trace) {
-       os << "==========================" << endl;
-       os << "pageNr: " << pageNr << endl; 
+       os << "==========================" << std::endl;
+       os << "pageNr: " << pageNr << std::endl; 
        int k=0;
-       for ( vector<BufInfoRec>::iterator it = BufInfo.begin(); 
+       for ( std::vector<BufInfoRec>::iterator it = BufInfo.begin(); 
              it != BufInfo.end(); it++                          ) 
        {
           os << k << ": ";
           it->print(os);
           k++;
        }
-       os << "--------------------------" << endl;
+       os << "--------------------------" << std::endl;
        k=0;
-       for ( vector<RecordInfo>::iterator it = recidVec.begin(); 
+       for ( std::vector<RecordInfo>::iterator it = recidVec.begin(); 
              it != recidVec.end(); it++                          ) 
        {
           os << k << ": ";
@@ -194,7 +195,8 @@ public:
           bool ok =false;
     
           if(trace){
-             os << "NL: creating record file for persistent storage!" << endl;
+             os << "NL: creating record file for persistent storage!" 
+                << std::endl;
           }   
           filePtr = new SmiRecordFile(true,REC_SIZE,true);
           ok = filePtr->Create();
@@ -227,13 +229,13 @@ private:
     SmiRecordId id;
     int index;
     RecordInfo(SmiRecordId ID, int INDEX) : id(ID), index(INDEX) {}
-    void print(ostream& os) {
+    void print(std::ostream& os) {
       os << "( id=" << id
-         << ", index=" << index << " )" << endl;
+         << ", index=" << index << " )" << std::endl;
     }
 
   };
-  vector<RecordInfo> recidVec;
+  std::vector<RecordInfo> recidVec;
   Cardinal maxPageNr;
 
 
@@ -244,15 +246,15 @@ private:
     bool recExists;  
     void *bufPtr;   
     BufInfoRec() : pageNr(0), recId(0), recExists(false), bufPtr(0) {}
-    void print(ostream& os) {
+    void print(std::ostream& os) {
         os << "( pageNr =" << pageNr 
            << ", recId = " << recId 
            << ", recExists =" << recExists 
-           << ", bufPtr =" << (void*) bufPtr << ")" << endl;
+           << ", bufPtr =" << (void*) bufPtr << ")" << std::endl;
     }  
 
   };
-  vector<BufInfoRec> BufInfo;
+  std::vector<BufInfoRec> BufInfo;
 
   int bufferReplacements;
 
@@ -308,7 +310,7 @@ private:
 
     if (trace) {
       os << "MaxPageNr: " << maxPageNr 
-         << ", pageNr: " << pageNr << ", index: " << bufNr << endl; 
+         << ", pageNr: " << pageNr << ", index: " << bufNr << std::endl; 
     }
  
     bufferReplacements++;
@@ -324,7 +326,7 @@ private:
   }
 
   // trace file
-  ostream& os;
+  std::ostream& os;
   int rrpos; // position for round robin
 };
 
@@ -449,17 +451,17 @@ reflects the total number of the called ~Get~ operations.
   struct  LogInfo {
 
     bool switchedOn;
-    const string fileName;
+    const std::string fileName;
     unsigned long pageChangeCounter; 
     unsigned long slotAccessCounter;
     LogInfo( const bool swOn ) : 
       switchedOn(swOn),
-      fileName( "PagedArray_" + string( typeid(T).name() ) + ".log" ),
+      fileName( "PagedArray_" + std::string( typeid(T).name() ) + ".log" ),
       pageChangeCounter(0),
       slotAccessCounter(0)
     {}
 
-    ostream& os() const { return cmsg.file(fileName); }
+    std::ostream& os() const { return cmsg.file(fileName); }
 
   };
   LogInfo log;
@@ -509,7 +511,7 @@ log( logOn )
                    << "( slotsize=" << pageRecord.slotSize
                    << ", slots=" << pageRecord.slots
                    << ", pagesize=" << pageRecord.size 
-                   << " )" << endl;
+                   << " )" << std::endl;
   }
 
 }
@@ -522,7 +524,7 @@ PagedArray<T>::~PagedArray()
   if ( log.switchedOn ) { // Write global Ctrs for page changes
     log.os() << ThisInstNr << "d: ( pageChanges=" <<  log.pageChangeCounter 
                    << ", slotAccesses: " << log.slotAccessCounter
-                   << " )" << endl;
+                   << " )" << std::endl;
   }
 }
 
@@ -578,7 +580,8 @@ void PagedArray<T>::Put(Cardinal const index, T& elem)
   GetSlot(index, slot);
   bufPtr[slot] = elem;
   //if ( log.switchedOn ) {
-    //*(log.filePtr) << "w(" << index << "," << &(bufPtr[slot]) << ")" << endl; 
+    //*(log.filePtr) << "w(" << index << "," << &(bufPtr[slot]) 
+    //               << ")" << std::endl; 
     //string typeName(typeid(elem).name());
     //if ( index == 1 && typeName.find("Node") ) {
     //  *(log.filePtr) << "v(1,nodetype:";
@@ -586,7 +589,7 @@ void PagedArray<T>::Put(Cardinal const index, T& elem)
     //     char s = *(((char*) &bufPtr[slot]) + i);
     //     *(log.filePtr) << (255 & (unsigned int) s) << " ";
     //  }
-    //  *(log.filePtr) << ")" << endl;
+    //  *(log.filePtr) << ")" << std::endl;
   //  }
   //}
 }
@@ -604,15 +607,16 @@ void PagedArray<T>::Get(Cardinal const index, T& elem)
 
   /*  if ( log.switchedOn ) {
     
-    *(log.filePtr) << "r(" << index << "," << &(bufPtr[slot]) << ")" << endl; 
-    string typeName(typeid(elem).name());
+    *(log.filePtr) << "r(" << index << "," << &(bufPtr[slot]) 
+                   << ")" << std::endl; 
+    std::string typeName(typeid(elem).name());
     if ( index == 1 && typeName.find("Node") ) {
       *(log.filePtr) << "v(1,nodetype:";
       for (unsigned int i=0; i<sizeof(T); i++ ) {
          char s = *(((char*) &bufPtr[slot]) + i);
          *(log.filePtr) << (255 & (unsigned int) s) << " ";
       }
-      *(log.filePtr) << ")" << endl;
+      *(log.filePtr) << ")" << std::endl;
     }
   } */
 }

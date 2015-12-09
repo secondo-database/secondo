@@ -61,7 +61,6 @@ For detailed information refer to ~Record.cpp~.
 #include "ListUtils.h"
 
 
-using namespace std;
 
 /*
 
@@ -125,14 +124,14 @@ The destructor
 
 */
 
-    const string GetElementName(int pos) const;
+    const std::string GetElementName(int pos) const;
 
 /*
 ~GetElementTypeName~ returns the element type name at position pos.
 
 */
 
-    const string GetElementTypeName(int pos) const;
+    const std::string GetElementTypeName(int pos) const;
 
 /*
 ~SetElement~ stores the given element at the given position
@@ -141,7 +140,7 @@ in this record.
 */
 
     bool SetElement(int pos, Attribute* elem,
-                    const string& typeName, const string& elemName);
+                    const std::string& typeName, const std::string& elemName);
 
 /*
 ~AppendElement~ appends the given element at the end of this record.
@@ -149,7 +148,8 @@ in this record.
 */
 
     bool AppendElement(Attribute* elem,
-                       const string& typeName, const string& elemName);
+                       const std::string& typeName, 
+                       const std::string& elemName);
 
 /*
 
@@ -175,7 +175,7 @@ be implemented for this data type because a record owns FLOB.
 */
     virtual int      NumOfFLOBs() const;
     virtual Flob*    GetFLOB(const int i);
-    virtual ostream& Print(ostream& os) const;
+    virtual std::ostream& Print(std::ostream& os) const;
 
 /*
 
@@ -196,7 +196,7 @@ be implemented for this data type because a record owns FLOB.
     static int        SizeOfObj();
     static ListExpr   Property();
 
-    static const string BasicType() { return "record"; }
+    static const std::string BasicType() { return "record"; }
     static const bool checkType(ListExpr type){
       ListExpr errorInfo = listutils::emptyErrorInfo();
       return KindCheck(type, errorInfo);

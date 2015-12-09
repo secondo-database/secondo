@@ -58,7 +58,7 @@ class FlobId{
      return *this;
    }
 
-   ostream& print(ostream& os) const {
+   std::ostream& print(std::ostream& os) const {
      os << "id(file = "<< fileId << ", "
         << "rec = " << recordId << ", "
         << "offset = " << offset << ", "
@@ -66,8 +66,8 @@ class FlobId{
      return os;
    }
 
-   string describe() const {
-     stringstream ss;
+   std::string describe() const {
+     std::stringstream ss;
      ss << fileId << " " << recordId << " " << offset << " " << (int)mode;
      return ss.str();
    }
@@ -163,6 +163,6 @@ The mode has following meaning
  
 };
 
-ostream& operator<<(ostream& os, const FlobId& fid);
+std::ostream& operator<<(std::ostream& os, const FlobId& fid);
 #endif
 

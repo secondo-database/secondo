@@ -7,8 +7,6 @@
 #ifndef MATCH_H_
 #define MATCH_H_
 
-using namespace std;
-
 namespace RegionInterpol
 {
 

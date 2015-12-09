@@ -2,7 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and Computer Science,
+Copyright (C) 2004-2007, University in Hagen,
+Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -22,7 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 August 2005, M. Spiekermann. Initial version.
 
-January - March 2006, M. Spiekermann. New constructors and functions added. Documentation revised.
+January - March 2006, M. Spiekermann. New constructors and functions added.
+ Documentation revised.
 
 April 2006, M. Spiekermann. Helpful functions for type mappings added.
 
@@ -85,60 +87,58 @@ always redundant string constants into the code.
 
 */
 
-using namespace std;
-
 struct Symbols {
 
     Symbols() {}
 
-    static const string& STRING() {
-       static string s("string"); return s;
+    static const std::string& STRING() {
+       static std::string s("string"); return s;
     }
 #ifdef SECONDO_WIN32
 #undef TEXT
 #endif
-    static const string& TEXT() {
-       static string s("text"); return s;
+    static const std::string& TEXT() {
+       static std::string s("text"); return s;
     }
-    static const string& INT() {
-       static string s("int"); return s;
+    static const std::string& INT() {
+       static std::string s("int"); return s;
     }
-    static const string& REAL() {
-       static string s("real"); return s;
+    static const std::string& REAL() {
+       static std::string s("real"); return s;
     }
-    static const string& real() {
-       static string s("real"); return s;
+    static const std::string& real() {
+       static std::string s("real"); return s;
     }
-    static const string& BOOL() {
-       static string s("bool"); return s;
+    static const std::string& BOOL() {
+       static std::string s("bool"); return s;
     }
-    static const string& REL() {
-       static string s("rel"); return s;
+    static const std::string& REL() {
+       static std::string s("rel"); return s;
     }
-    static const string& TUPLE() {
-       static string s("tuple"); return s;
+    static const std::string& TUPLE() {
+       static std::string s("tuple"); return s;
     }
-    static const string& PTUPLE() {
-       static string s("ptuple"); return s;
+    static const std::string& PTUPLE() {
+       static std::string s("ptuple"); return s;
     }
-    static const string& STREAM() {
-       static string s("stream"); return s;
+    static const std::string& STREAM() {
+       static std::string s("stream"); return s;
     }
-    static const string& MAP() {
-       static string s("map"); return s;
+    static const std::string& MAP() {
+       static std::string s("map"); return s;
     }
-    static const string& TYPEERROR() {
-       static string s("typeerror"); return s;
+    static const std::string& TYPEERROR() {
+       static std::string s("typeerror"); return s;
     }
-    static const string& APPEND() {
-       static string s("APPEND"); return s;
+    static const std::string& APPEND() {
+       static std::string s("APPEND"); return s;
     }
 };
 
 
 class NList;
 
-ostream& operator<<(ostream& os, const NList& n);
+std::ostream& operator<<(std::ostream& os, const NList& n);
 
 
 // defined in Secondointerface.cpp
@@ -154,18 +154,18 @@ A class representing nested list exceptions.
 class NListErr : public SecondoException {
 
   public:
-  NListErr(const string& Msg) : SecondoException(Msg) {}
-  NListErr(const Cardinal n, const Cardinal len, const string& ext="") :
+  NListErr(const std::string& Msg) : SecondoException(Msg) {}
+  NListErr(const Cardinal n, const Cardinal len, const std::string& ext="") :
     SecondoException()
   {
-    stringstream s;
+    std::stringstream s;
     s << "Out of range exception in nested list! "
       << "Element " << n << " requested, but "
       << "list has length " << len << "." << ext;
     msgStr = s.str();
   }
 
-  const string msg() { return msgStr; }
+  const std::string msg() { return msgStr; }
 
 };
 
@@ -196,10 +196,11 @@ class NList {
 
   * ~NList(const NList\& a, const NList\& b)~: Create a two elem list ~(a b)~.
 
-  * ~NList(const NList\& a, const NList\& b, const NList\& c)~: Three elems ~(a b
-c)~.
+  * ~NList(const NList\& a, const NList\& b, const NList\& c)~:
+   Three elems ~(a b c)~.
 
-  * ~NList(const string\& s, const bool isStr = false)~: Create a symbol or string atom.
+  * ~NList(const string\& s, const bool isStr = false)~: Create a symbol 
+    or string atom.
 
 */
 
@@ -278,7 +279,8 @@ c)~.
   // (value, true),           (value, true,  false) : stringAtom  = DEFAULT2
   // (value, true,  true )                          : textAtom
 
-  NList(const string& s, const bool isStr = false, const bool isText = false):
+  NList(const std::string& s, const bool isStr = false, 
+        const bool isText = false):
     nl(nlGlobal),
     e( nl->Empty() ),
     len(0)
@@ -291,7 +293,7 @@ c)~.
       l = nl->SymbolAtom(s);
   }
 
-  NList(const string& s1, const string& s2) :
+  NList(const std::string& s1, const std::string& s2) :
     nl(nlGlobal),
     len(2)
   {
@@ -299,7 +301,7 @@ c)~.
     l = nl->TwoElemList(nl->SymbolAtom(s1), e);
   }
 
-  NList(const string& s1, const string& s2, const string& s3) :
+  NList(const std::string& s1, const std::string& s2, const std::string& s3) :
     nl(nlGlobal),
     len(3)
   {
@@ -356,7 +358,7 @@ c)~.
     return *this;
   }
 
-  inline NList& stringAtom(const string& val)
+  inline NList& stringAtom(const std::string& val)
   {
     nl = nlGlobal;
     len = 0;
@@ -365,7 +367,7 @@ c)~.
     return *this;
   }
 
-  inline NList& textAtom(const string& val)
+  inline NList& textAtom(const std::string& val)
   {
     nl = nlGlobal;
     len = 0;
@@ -374,7 +376,7 @@ c)~.
     return *this;
   }
 
-  inline NList& symbolAtom(const string& val)
+  inline NList& symbolAtom(const std::string& val)
   {
     nl = nlGlobal;
     len = 0;
@@ -404,7 +406,7 @@ list stucture and to extract subexpressions or atom values.
 
   inline bool isEmpty() const { return nl->IsEmpty(l); }
 
-  inline bool isEqual(const string& s) const {
+  inline bool isEqual(const std::string& s) const {
     return nl->IsEqual(l, s);
   }
   inline bool isAtom() const { return nl->IsAtom(l); }
@@ -412,7 +414,7 @@ list stucture and to extract subexpressions or atom values.
   inline bool isSymbol(const Cardinal n = 0) const {
     CHECK(n) return isNodeType(n, SymbolType);
   }
-  inline bool isSymbol(const string& s) const {
+  inline bool isSymbol(const std::string& s) const {
     return isNodeType(0, SymbolType) && (s == nl->SymbolValue(l));
   }
   inline bool isString(const Cardinal n = 0) const {
@@ -471,16 +473,16 @@ list stucture and to extract subexpressions or atom values.
   }
 
   // for usage in type mappings
-  inline static ListExpr typeError(const string& msg)
+  inline static ListExpr typeError(const std::string& msg)
   {
     ErrorReporter::ReportError(msg);
     return nlGlobal->TypeError();
   }
 
   inline static ListExpr typeError( int argNumber,
-		                    const string& expectedListStruct )
+		                    const std::string& expectedListStruct )
   {
-    stringstream msg;
+    std::stringstream msg;
     msg << "Expecting list structure " << expectedListStruct
 	<< " for argument number "<< argNumber << ".";
 
@@ -502,9 +504,9 @@ Functions applicable for ~symbol/string/text~ atoms.
     return (isString() || isText() || isSymbol());
   }
 
-  inline string str() const // retrieve a string value
+  inline std::string str() const // retrieve a string value
   {
-    static string result = "";
+    static std::string result = "";
 
     if( !hasStringValue() )
       throw NListErr("List has no string value exception!");
@@ -542,10 +544,10 @@ Conversion to C++ strings or a string Atom. The latter conversion can be
 used to convert a symbol or text atom into a string atom.
 
 */
-  inline string convertToString() const { return nl->ToString(l); }
+  inline std::string convertToString() const { return nl->ToString(l); }
 
   inline NList toStringAtom() {
-    const string& s = str();
+    const std::string& s = str();
     return NList(s, true);
   }
 
@@ -563,7 +565,7 @@ Comparison between ~NList/NList~ and ~NList/string~ instances
     return !(*this == rhs);
   }
 
-  inline bool operator==(const string& rhs) const
+  inline bool operator==(const std::string& rhs) const
   {
     if( !hasStringValue() )
     {
@@ -588,11 +590,11 @@ to a given ~ostream~ reference.
 
 */
 
-  inline bool writeAsStringTo( ostream& os ) const
+  inline bool writeAsStringTo( std::ostream& os ) const
   {
     return nl->WriteStringTo(l,os);
   }
-  inline bool writeAsBinaryTo( ostream& os ) const
+  inline bool writeAsBinaryTo( std::ostream& os ) const
   {
     return nl->WriteBinaryTo(l,os);
   }
@@ -699,7 +701,7 @@ functions.
 
   inline bool checkUniqueMembers(NList m)
   {
-    set<string> tree;
+    std::set<std::string> tree;
     while( !m.isEmpty() )
     {
        if ( tree.find(m.first().convertToString()) != tree.end() ) {
@@ -755,11 +757,11 @@ functions.
     return checkDepth3(sym.REL(), sym.TUPLE(), attrs);
   }
 
-  inline bool checkLength(const int len, string& err)
+  inline bool checkLength(const int len, std::string& err)
   {
     if ( !hasLength(len) )
     {
-      stringstream s;
+      std::stringstream s;
       s << "List length unequal " << len <<  ", " << err;
       err = s.str();
       return false;
@@ -783,12 +785,12 @@ Use with care! Normally you will not need this.
  }
 
  void showNLRefs() {
-    cerr << "nlGlobal:" << nlGlobal << endl;
-    cerr << "nl:" << nl << endl;
+    std::cerr << "nlGlobal:" << nlGlobal << std::endl;
+    std::cerr << "nl:" << nl << std::endl;
  }
 
 
-  ostream& print(ostream& o){
+  std::ostream& print(std::ostream& o){
     o << "[NList :  l =" << nl->ToString(l) << ",  e = " <<  nl->ToString(e) 
       << ", len = " << len << "]";
     return o; 
@@ -811,7 +813,8 @@ Use with care! Normally you will not need this.
     return ( /*nl->IsAtom(list) &&*/ (nl->AtomType(list) == t) );
   }
 
-  inline bool checkDepth3(const string& s1, const string& s2, NList& attrs)
+  inline bool checkDepth3(const std::string& s1, 
+                          const std::string& s2, NList& attrs)
   {
 
   if ( !hasLength(2) )

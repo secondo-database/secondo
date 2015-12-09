@@ -64,7 +64,6 @@ dimensions. The desired dimensions are passed as a parameter to the template.
 #include <queue>
 
 
-using namespace std;
 
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"
@@ -217,7 +216,7 @@ template<class LeafInfo>
     long NodeId() const { return nodeId; }
     int Level() const { return level; }
 
-    struct Near : public binary_function< DistanceElement<LeafInfo>,
+    struct Near : public std::binary_function< DistanceElement<LeafInfo>,
     DistanceElement<LeafInfo>, bool >
     {
       bool operator()(const DistanceElement<LeafInfo> e1,
@@ -247,8 +246,8 @@ template<class LeafInfo>
     {}
 };
 
-typedef vector< DistanceElement<TupleId> > NNVector;
-typedef priority_queue< DistanceElement<TupleId>, NNVector,
+typedef std::vector< DistanceElement<TupleId> > NNVector;
+typedef std::priority_queue< DistanceElement<TupleId>, NNVector,
         DistanceElement<TupleId>::Near > NNpriority_queue;
 
 /*
@@ -996,17 +995,17 @@ void R_TreeNode<dim, LeafInfo>::LinearPickSeeds( int& seed1, int& seed2 ) const
   double minVal[ dim ];
   double maxVal[ dim ];
   double sep[ dim ];
-  double maxSep = -numeric_limits<double>::max();
+  double maxSep = -std::numeric_limits<double>::max();
   int maxMinNode[ dim ];
   int minMaxNode[ dim ];
   int bestD = -1;
 
   for( unsigned i = 0; i < dim; i++ )
   {
-    maxMinVal[i] = -numeric_limits<double>::max();
-    minMaxVal[i] = numeric_limits<double>::max();
-    minVal[i] = numeric_limits<double>::max();
-    maxVal[i] = -numeric_limits<double>::max();
+    maxMinVal[i] = -std::numeric_limits<double>::max();
+    minMaxVal[i] = std::numeric_limits<double>::max();
+    minVal[i] = std::numeric_limits<double>::max();
+    maxVal[i] = -std::numeric_limits<double>::max();
     maxMinNode[i] = -1;
     minMaxNode[i] = -1;
   }
@@ -1072,7 +1071,7 @@ void R_TreeNode<dim, LeafInfo>::QuadraticPickSeeds( int& seed1,
   assert( EntryCount() == MaxEntries() + 1 );
     // This should be called only if the node has an overflow
 
-  double bestWaste = -numeric_limits<double>::max();
+  double bestWaste = -std::numeric_limits<double>::max();
   double *area = new double[ MaxEntries() + 1 ]; // Compute areas just once
   int i;
 
@@ -1304,7 +1303,7 @@ void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim,
     } *stat = new StatStruct[ dim*dim*(MaxEntries() + 2 - 2*MinEntries()) ],
       *pstat = stat; // Array of distribution statistics
     
-    double minMarginSum = numeric_limits<double>::max();
+    double minMarginSum = std::numeric_limits<double>::max();
     int minMarginAxis = -1;
 
     // Compute statistics for the various distributions
@@ -1366,8 +1365,8 @@ void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim,
     // split. Choose the distribution with  minimum overlap,
     // breaking ties by choosing the distribution with minimum Area
     {
-      double minOverlap = numeric_limits<double>::max();
-      double minArea = numeric_limits<double>::max();
+      double minOverlap = std::numeric_limits<double>::max();
+      double minArea = std::numeric_limits<double>::max();
       int minSplitPoint = -1;
       int *sort = 0;
       int d = minMarginAxis;
@@ -1739,7 +1738,7 @@ Open and Save are used by NetworkAlgebra to save and open the rtree of network.
 */
     bool  Open( SmiRecord& valueRecord,
                 size_t& offset,
-                string typeInfo,
+                std::string typeInfo,
                 Word &value);
 
     bool Save(SmiRecord& valueRecord,
@@ -1750,11 +1749,11 @@ Open and Save are used by NetworkAlgebra to save and open the rtree of network.
 The type name used in Secondo:
 
 */
-    inline static const string BasicType(){
+    inline static const std::string BasicType(){
       if(dim==2){
         return "rtree";
       } else {
-        ostringstream ss;
+        std::ostringstream ss;
         ss << "rtree" << dim;
         return ss.str();
       }
@@ -1985,7 +1984,7 @@ Implemented by NearestNeighborAlgebra.
 */
 
   void GetNeighborNode(const R_TreeLeafEntry<dim, LeafInfo>& ent ,
-                          vector<int>& list);
+                          std::vector<int>& list);
    R_TreeNode<dim, LeafInfo> *GetMyNode(SmiRecordId& address,
                                         const bool leaf,
                                         const int min, const int max )
@@ -2000,7 +1999,7 @@ Implemented by NearestNeighborAlgebra.
   bool InitializeBLI(const bool& leafSkipping=BULKLOAD_LEAF_SKIPPING);
 
 
-  ostream& printHeader(ostream& o) const{
+  std::ostream& printHeader(std::ostream& o) const{
       return header.print(o);
   }
 
@@ -2052,7 +2051,7 @@ The record file of the R-Tree.
         height( _height ), share(s)
         {}
 
-      ostream& print(ostream& o) const{
+      std::ostream& print(std::ostream& o) const{
        o << "RTreeHeader["
          << "headerRecordId = " <<  headerRecordId
          << ", rootRecordId = " <<  rootRecordId
@@ -2862,8 +2861,8 @@ void R_Tree<dim, LeafInfo>::LocateBestNode( const R_TreeEntry<dim>& entry,
         // ...No need to do the overlap enlargement tests
       else
       {
-        double bestEnlargement = numeric_limits<double>::max(),
-               bestoverlap = numeric_limits<double>::max();
+        double bestEnlargement = std::numeric_limits<double>::max(),
+               bestoverlap = std::numeric_limits<double>::max();
 
         // Now compute the overlap enlargements
         for( k = 0; !enlargeList.empty() && k < leafnode_subset_max; k++ )
@@ -2900,7 +2899,7 @@ void R_Tree<dim, LeafInfo>::LocateBestNode( const R_TreeEntry<dim>& entry,
     }
     else
     {
-      double bestEnlargement = numeric_limits<double>::max();
+      double bestEnlargement = std::numeric_limits<double>::max();
       int i;
 
       for( i = 0; i < nodePtr->EntryCount(); i++ )
@@ -3553,8 +3552,8 @@ bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim,
     return false;
   else
   { // Create a list of nodes whose entries must be reinserted
-    stack<int> reinsertLevelList;
-    stack<R_TreeNode<dim, LeafInfo>*> reinsertNodeList;
+    std::stack<int> reinsertLevelList;
+    std::stack<R_TreeNode<dim, LeafInfo>*> reinsertNodeList;
     BBox<dim> sonBox( false );
 
     // remove leaf node entry
@@ -3642,7 +3641,7 @@ bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim,
 }
 template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::GetNeighborNode(const R_TreeLeafEntry<dim, LeafInfo>
-                                                & ent ,vector<int>& list)
+                                                & ent ,std::vector<int>& list)
 {
   if(FindEntry(ent)){
     //currEntry,;
@@ -4138,7 +4137,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
 //  cout<<" height1 "<<temp_head.height<<" height2 "<<header.height<<endl;
   if(temp_head.height > header.height){
       int cur_height = temp_head.height;//height of first r-tree
-      vector<SmiRecordId> path;
+      std::vector<SmiRecordId> path;
       SmiRecordId path_record_id = root1_id;
       while(cur_height > header.height){
         path.push_back(path_record_id);
@@ -4417,7 +4416,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
 
     ///////// insert the first r-tree to the second r-tree  /////////////
       int cur_height = header.height;//height of second r-tree
-      vector<SmiRecordId> path;
+      std::vector<SmiRecordId> path;
       SmiRecordId path_record_id = adr2;
       while(cur_height > temp_head.height){
         path.push_back(path_record_id);
@@ -4759,9 +4758,9 @@ bool R_Tree<dim, LeafInfo>::getFileStats( SmiStatResultType &result )
   result = file->GetFileStatistics(SMI_STATS_EAGER);
   std::stringstream fileid;
   fileid << file->GetFileId();
-  result.push_back(pair<string,string>("FilePurpose",
+  result.push_back(std::pair<std::string,std::string>("FilePurpose",
             "SecondaryRtreeIndexFile"));
-  result.push_back(pair<string,string>("FileId",fileid.str()));
+  result.push_back(std::pair<std::string,std::string>("FileId",fileid.str()));
   return true;
 }
 
@@ -5048,7 +5047,7 @@ struct RTreeNodesLocalInfo {
 template <unsigned dim, class LeafInfo>
 bool R_Tree<dim, LeafInfo>::Open(SmiRecord& valueRecord,
                                   size_t& offset,
-                                  string typeInfo,
+                                  std::string typeInfo,
                                   Word &value)
 {
   SmiFileId fileId;

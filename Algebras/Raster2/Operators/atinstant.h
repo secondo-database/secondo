@@ -37,7 +37,7 @@ namespace raster2
     atinstantInfo()
     {
       name      = "atinstant";
-      signature = "msType " + DateTime::BasicType() + " -> isType";
+      signature = "msType " + datetime::DateTime::BasicType() + " -> isType";
       syntax    = "_ atinstant _";
       meaning   = "Returns the values for a time point.";
     }

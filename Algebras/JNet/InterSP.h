@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <ostream>
 
-using namespace std;
 
 namespace jnetwork {
 
@@ -93,7 +92,7 @@ void SetDistFromStartPointToOrigJID(const double distance);
 
   int Compare(const InterSP& other) const;
   InterSP& operator=(const InterSP& other);
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
 
 /*
 1.1 Private Declaration Part
@@ -114,9 +113,7 @@ void SetDistFromStartPointToOrigJID(const double distance);
 
 */
 
-using namespace jnetwork;
-
-ostream& operator<< (ostream& os, const jnetwork::InterSP elem);
+std::ostream& operator<< (std::ostream& os, const jnetwork::InterSP elem);
 
 
 

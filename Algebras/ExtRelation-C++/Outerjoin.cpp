@@ -301,8 +301,8 @@ public:
       SortOrderSpecification specA;
       SortOrderSpecification specB;
    
-      specA.push_back( pair<int, bool>(attrIndexA + 1, true) ); 
-      specB.push_back( pair<int, bool>(attrIndexB + 1, true) ); 
+      specA.push_back( std::pair<int, bool>(attrIndexA + 1, true) ); 
+      specB.push_back( std::pair<int, bool>(attrIndexB + 1, true) ); 
 
 
       void* tupleCmpA = new TupleCompareBy( specA );
@@ -827,8 +827,8 @@ public:
       SortOrderSpecification specA;
       SortOrderSpecification specB;
 
-      specA.push_back( pair<int, bool>(attrIndexA + 1, true) );
-      specB.push_back( pair<int, bool>(attrIndexB + 1, true) );
+      specA.push_back( std::pair<int, bool>(attrIndexA + 1, true) );
+      specB.push_back( std::pair<int, bool>(attrIndexB + 1, true) );
 
 
       void* tupleCmpA = new TupleCompareBy( specA );

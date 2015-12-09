@@ -39,15 +39,15 @@ public:
   
   ~SecondoInterfaceCS();
   
-  virtual bool Initialize( const string& user, const string& pswd,
-                   const string& host, const string& port,
-                   string& profile,
-                   string& errorMsg,
+  virtual bool Initialize( const std::string& user, const std::string& pswd,
+                   const std::string& host, const std::string& port,
+                   std::string& profile,
+                   std::string& errorMsg,
                    const bool multiUser = false );
   
   virtual void Terminate();
   
-  virtual void Secondo( const string& commandText,
+  virtual void Secondo( const std::string& commandText,
                 const ListExpr commandLE,
                 const int commandType,
                 const bool commandAsText,
@@ -55,17 +55,17 @@ public:
                 ListExpr& resultList,
                 int& errorCode,
                 int& errorPos,
-                string& errorMessage,
-                const string& resultFileName =
+                std::string& errorMessage,
+                const std::string& resultFileName =
                                 "SecondoResult",
                 const bool isApplicationLevelCommand = true);
   
   virtual ListExpr NumericTypeExpr( const ListExpr type );
   
-  virtual bool GetTypeId( const string& name,
+  virtual bool GetTypeId( const std::string& name,
                   int& algebraId, int& typeId );
   
-  virtual bool LookUpTypeExpr( ListExpr type, string& name,
+  virtual bool LookUpTypeExpr( ListExpr type, std::string& name,
                        int& algebraId, int& typeId );
   
   
@@ -73,10 +73,10 @@ public:
   
   virtual void SetDebugLevel( const int level );
 
-  bool Secondo( const string& cmdText,
+  bool Secondo( const std::string& cmdText,
                  ListExpr& resultList,
                  SecErrInfo& err,
-                 const string& resultFileName = "SecondoResult",
+                 const std::string& resultFileName = "SecondoResult",
                  const bool isApplicationLevelCommand = true        ){
    return SecondoInterface::Secondo(cmdText, resultList, err, 
                                     resultFileName, isApplicationLevelCommand);
@@ -85,7 +85,7 @@ public:
   bool Secondo( const ListExpr cmdList,
                  ListExpr& resultList,
                  SecErrInfo& err,
-                 const string& resultFileName = "SecondoResult",
+                 const std::string& resultFileName = "SecondoResult",
                  const bool isApplicationLevelCommand = true        ){
      return SecondoInterface::Secondo(cmdList, resultList,err,resultFileName, 
                                       isApplicationLevelCommand);
@@ -94,7 +94,7 @@ public:
 
   
   virtual  bool getOperatorIndexes(
-         const string OpName,
+         const std::string OpName,
          ListExpr argList,
          ListExpr& resList,
          int& algId,
@@ -183,19 +183,19 @@ public:
 
    void setTimeout(int t);
 
-   int sendFile(const string& localFileName,
-                const string& serverFileName,
+   int sendFile(const std::string& localFileName,
+                const std::string& serverFileName,
                 const bool allowOverwrite);
 
-   int requestFile( const string& serverFileName,
-                    const string& localFileName,
+   int requestFile( const std::string& serverFileName,
+                    const std::string& localFileName,
                     const bool allowOverwrite );
 
-   string getSendFileFolder();
-   string getSendFilePath();
+   std::string getSendFileFolder();
+   std::string getSendFilePath();
 
-   string getRequestFileFolder();
-   string getRequestFilePath();
+   std::string getRequestFileFolder();
+   std::string getRequestFilePath();
 
    virtual int getPid();
    virtual bool cancelQuery(int pid);

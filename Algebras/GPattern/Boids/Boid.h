@@ -64,7 +64,6 @@ available as a SECONDO operator.
 #include "Obstacle.h"
 #include "DateTime.h"
 #include<vector>
-using namespace std;
 
 #define FREEMOVER -1
 class BoidGenerator;

@@ -89,7 +89,7 @@ This operator sorts two input streams and computes their full outerjoin.
 2.16.1.1 Specification of operator ~smouterjoin~
 
 */
-const string SortMergeOuterJoinSpec  = "( ( \"Signature\" \"Syntax\" "
+const std::string SortMergeOuterJoinSpec  = "( ( \"Signature\" \"Syntax\" "
                                   "\"Meaning\" \"Example\" ) "
                              "( <text>((stream (tuple ((x1 t1) ... "
                              "(xn tn)))) (stream (tuple ((y1 d1) ..."
@@ -108,7 +108,7 @@ template<int dummy>
 ListExpr OuterjoinTypeMap (ListExpr args)
 {
   int expLength = 4;
-  string err = "stream(tuple[y1 : d1, ..., yn : dn]) x "
+  std::string err = "stream(tuple[y1 : d1, ..., yn : dn]) x "
                "stream(tuple[z1 : e1, ..., zn : en]) x di x e1 ";
 
   err += " expected";
@@ -137,8 +137,8 @@ ListExpr OuterjoinTypeMap (ListExpr args)
   ListExpr outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
       nl->TwoElemList(nl->SymbolAtom("tuple"), list));
 
-  string attrAName = nl->SymbolValue(attr1);
-  string attrBName = nl->SymbolValue(attr2);
+  std::string attrAName = nl->SymbolValue(attr1);
+  std::string attrBName = nl->SymbolValue(attr2);
 
   ListExpr attrTypeA, attrTypeB;
 
@@ -189,7 +189,7 @@ ListExpr SymmOuterJoinTypeMap(ListExpr args)
   ListExpr stream2 = nl->Second(args);
   ListExpr map = nl->Third(args);
 
-  string err = "stream(tuple1) x stream(tuple2) x "
+  std::string err = "stream(tuple1) x stream(tuple2) x "
                "( tuple1 x tuple2 -> bool) expected";
   if(!listutils::isTupleStream(stream1) ||
      !listutils::isTupleStream(stream2) ||
@@ -221,7 +221,7 @@ ListExpr SymmOuterJoinTypeMap(ListExpr args)
 5.10.3.1 Specification of operator ~SymmOuterJoin~
 
 */
-const string SymmOuterJoinSpec  =
+const std::string SymmOuterJoinSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream (tuple (x1 ... xn))) (stream "

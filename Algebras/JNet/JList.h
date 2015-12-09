@@ -95,8 +95,8 @@ Flob* GetFLOB(const int n);
 void Clear();
 void Destroy();
 size_t Sizeof() const;
-ostream& Print(ostream& os) const;
-static const string BasicType();
+std::ostream& Print(std::ostream& os) const;
+static const std::string BasicType();
 static const bool checkType(const ListExpr type);
 
 /*
@@ -136,7 +136,7 @@ static void* Cast( void* addr );
 static bool KindCheck( ListExpr type, ListExpr& errorInfo );
 static int SizeOf();
 static ListExpr Property();
-static string Example();
+static std::string Example();
 
 /*
 1.1.1 Helpful Operators
@@ -197,7 +197,7 @@ Restricts the list to the given values
 
 JList<ListElem>& Restrict(const ListElem& sub);
 JList<ListElem>& Restrict(const JList<ListElem>& sub);
-void Restrict(const vector<pair<int,int> >& interval){
+void Restrict(const std::vector<std::pair<int,int> >& interval){
   Attribute::Restrict(interval);
 }
 
@@ -497,7 +497,7 @@ size_t JList<ListElem>::Sizeof() const
 }
 
 template<class ListElem>
-ostream& JList<ListElem>::Print(ostream& os) const
+std::ostream& JList<ListElem>::Print(std::ostream& os) const
 {
   if (IsDefined())
   {
@@ -915,7 +915,7 @@ ListExpr JList<ListElem>::Property()
 }
 
 template<class ListElem>
-string JList<ListElem>::Example(){
+std::string JList<ListElem>::Example(){
   return ListElem::Example();
 }
 
@@ -1107,10 +1107,9 @@ JList<ListElem>& JList<ListElem>::Restrict(const JList<ListElem>& sub)
 
 */
 
-using namespace jnetwork;
 
 template<class ListElem>
-ostream& operator<<(ostream& os, const jnetwork::JList<ListElem>& l)
+std::ostream& operator<<(std::ostream& os, const jnetwork::JList<ListElem>& l)
 {
   l.Print(os);
   return os;

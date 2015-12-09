@@ -81,7 +81,7 @@ public:
     upDown = up;
   }
 
-  ostream& Print(ostream& os) const
+  std::ostream& Print(std::ostream& os) const
   {
     os << "SectId: " << sectId << ", Direction: ";
     if (upDown) os << "up";
@@ -166,7 +166,7 @@ public:
     return value.Compare(v);
   }
 
-  ostream& Print(ostream& os) const  {
+  std::ostream& Print(std::ostream& os) const  {
     os << "EntryValue: ";
     value.Print(os);
     os << "LeftSon: " << leftSonIndex;
@@ -209,7 +209,7 @@ public:
     tree.Destroy();
   };
 
-  ostream& Print(ostream& os) const
+  std::ostream& Print(std::ostream& os) const
   {
     TreeEntry elem;
     for (int i = 0; i < freePos; i++){
@@ -469,7 +469,7 @@ struct SectTreeEntry{
     return *this;
   };
 
-ostream& Print ( ostream& os ) const
+std::ostream& Print ( std::ostream& os ) const
 {
   os << "SectTreeEntry: TupleId: " << secttid << endl;
   os << "RouteId: " << rid << ", start: " << start;
@@ -517,7 +517,7 @@ public:
     return upDown;
   }
 
-  ostream& Print(ostream& os) const
+  std::ostream& Print(std::ostream& os) const
   {
     os << "Distance: " << dist << ", Up: " << upDown << endl;
     return os;
@@ -643,7 +643,7 @@ Get and Set private values.
   bool Contains(const RouteInterval *ri, const double tolerance) const;
   bool Contains(const GPoint *gp)const;
   bool Intersects(const RouteInterval *ri, const double tolerance) const;
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
 
 
   private:
@@ -958,7 +958,7 @@ Set Methods of ~gpoint~
       return new GPoint( *this );
     }
 
-    ostream& Print( ostream& os ) const
+    std::ostream& Print( std::ostream& os ) const
     {
       if(IsDefined())
       {
@@ -995,7 +995,7 @@ Functions for Secondo integration.
 
     static bool CheckGPoint( ListExpr type, ListExpr& errorInfo );
 
-    inline static const string BasicType() { return "gpoint"; }
+    inline static const std::string BasicType() { return "gpoint"; }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
@@ -1360,7 +1360,7 @@ Checks if a transition is possible.
     return in_xTransition & m_iConnectivityCode;
   }
 
-  ostream& Print(ostream& os) const
+  std::ostream& Print(std::ostream& os) const
   {
     os << m_iConnectivityCode << endl;
     return os;
@@ -1441,7 +1441,7 @@ Redefinition of the assignment operator.
     return m_iSectionTid;
   }
 
-  ostream& Print(ostream& os) const
+  std::ostream& Print(std::ostream& os) const
   {
     os << "Directed Section: TupleId: " << (long) m_iSectionTid;
     os << ", UpDownFlag: ";
@@ -1515,7 +1515,7 @@ Copy-Constructor
   {
   }
 
-  ostream& Print(ostream& os) const {
+  std::ostream& Print(std::ostream& os) const {
     os << "1.Section: " << m_iFirstSectionTid;
     if (m_bFirstUpDown) os << " Up";
     else os << " Down";
@@ -1755,7 +1755,7 @@ struct JunctionSortEntry
     return pTid;
   }
 
-  ostream& Print(ostream& os) const
+  std::ostream& Print(std::ostream& os) const
   {
     os << "JunctionSortEntry First Route : " << m_bFirstRoute;
     os << "Tuple: ";
@@ -1965,7 +1965,7 @@ int Compare(const JunctionTidSortEntry& in_xOther) const
     return result;
   }
 
-  ostream& Print(ostream& os) const
+  std::ostream& Print(std::ostream& os) const
   {
     os << "JunctionTidSortEntry: ";
     if (m_bFirstRoute) os << "firstRoute";
@@ -1997,7 +1997,7 @@ as string.
 
 */
 
-  static string routesTypeInfo;
+  static std::string routesTypeInfo;
 
 
 /*
@@ -2005,21 +2005,21 @@ The B-Tree in the ~routes~ relation type info as string.
 
 */
 
-  static string routesBTreeTypeInfo;
+  static std::string routesBTreeTypeInfo;
 
 /*
 The R-Tree in the ~routes~ relation type info as string.
 
 */
 
-  static string routesRTreeTypeInfo;
+  static std::string routesRTreeTypeInfo;
 
 /*
 The B-Tree in the ~junctions~ relation type info as string.
 
 */
 
-  static string junctionsBTreeTypeInfo;
+  static std::string junctionsBTreeTypeInfo;
 
 
 /*
@@ -2027,35 +2027,35 @@ The external ~junctions~ relation type info as string.
 
 */
 
-  static string junctionsTypeInfo;
+  static std::string junctionsTypeInfo;
 
 /*
 The internal ~junctions~ relation type info as string.
 
 */
 
-  static string junctionsInternalTypeInfo;
+  static std::string junctionsInternalTypeInfo;
 
 /*
 The internal ~sections~ relation type info as string.
 
 */
 
-  static string sectionsInternalTypeInfo;
+  static std::string sectionsInternalTypeInfo;
 
 /*
 The sectionsBTreeTypeInfo
 
 */
 
-static string sectionsBTreeTypeInfo;
+static std::string sectionsBTreeTypeInfo;
 
 
 /*
 ~distancestoreageTypeInfo~ only used for experimental netdistance precomputing.
 
 */
-static string distancestorageTypeInfo;
+static std::string distancestorageTypeInfo;
 /*
 
 4.2.9.2 Constructors of the class ~network~
@@ -2189,11 +2189,10 @@ Returns the junction from the start of the route to the end.
 
 */
     void GetJunctionsOnRoute(CcInt* in_pRouteId,
-                             vector<JunctionSortEntry>& inout_xJunctions) const;
+              std::vector<JunctionSortEntry>& inout_xJunctions) const;
 
     void GetTidJunctionsOnRoute(CcInt* in_pRouteId,
-                                vector<JunctionTidSortEntry>& io_xJunctions)
-                               const;
+             std::vector<JunctionTidSortEntry>& io_xJunctions) const;
 
 /*
 Returns the section ~tuple~ of the network which includes the ~GPoint~.
@@ -2297,15 +2296,15 @@ downwards bool from the section given by TupleId.
 */
 
     void GetAdjacentSections(const TupleId in_iSectionId,
-                             const bool in_bUpDown,
-                             vector<DirectedSection> &inout_xSections) const;
+                    const bool in_bUpDown,
+                    std::vector<DirectedSection> &inout_xSections) const;
 
     void GetAdjacentSections(const int sectId, const bool upDown,
                              DbArray<SectionValue> *resArray) const;
 
     void GetReverseAdjacentSections(const TupleId in_iSectionId,
-                                    const bool in_bUpDown,
-                                    vector<DirectedSection> &inout_xSections)
+                           const bool in_bUpDown,
+                           std::vector<DirectedSection> &inout_xSections)
       const;
 
     void GetReverseAdjacentSections(const int sectId,
@@ -2322,10 +2321,10 @@ Returns a set of sections which are covered by the given ~RouteInterval~
 */
 
     void GetSectionsOfRouteInterval(const RouteInterval *in_ri,
-                                    vector<SectTreeEntry>& io_SectionIds) const;
+                       std::vector<SectTreeEntry>& io_SectionIds) const;
 
     void GetSectionsOfRoutInterval(const RouteInterval *in_ri,
-                                  vector<TupleId> &res) const;
+                                  std::vector<TupleId> &res) const;
 
 /*
 Get Routeinterval for Halfsegment defined by point interval. Used to translate
@@ -2459,7 +2458,7 @@ isDefined
 
 
   void GetTupleIdSectionOnRouteJun(const GPoint* in_xGPoint,
-                                   vector<TupleId>&) const;
+                                   std::vector<TupleId>&) const;
   inline int GetNoJunctions() const
   {
     return m_pJunctions->GetNoTuples();
@@ -2477,7 +2476,7 @@ isDefined
 
   R_Tree<2,TupleId>* GetRTree(){ return m_pRTreeRoutes;}
 
-  inline static const string BasicType() { return "network"; }
+  inline static const std::string BasicType() { return "network"; }
 
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
@@ -2535,15 +2534,15 @@ Given that all relations are set up, the adjacency lists are created.
                          const bool in_bSecondUp,
                          const ConnectivityCode in_xCc,
                          const Transition in_xTransition,
-                         vector<DirectedSectionPair> &inout_xPairs);
+                         std::vector<DirectedSectionPair> &inout_xPairs);
 
   void FillReverseAdjacencyPair (const TupleId in_pFirstSection,
-                                 const bool in_bFirstUp,
-                                 const TupleId in_pSecondSection,
-                                 const bool in_bSecondUp,
-                                 const ConnectivityCode in_xCc,
-                                 const Transition in_xTransition,
-                                 vector<DirectedSectionPair> &inout_xPairs);
+                       const bool in_bFirstUp,
+                       const TupleId in_pSecondSection,
+                       const bool in_bSecondUp,
+                       const ConnectivityCode in_xCc,
+                       const Transition in_xTransition,
+                       std::vector<DirectedSectionPair> &inout_xPairs);
 
 /*
 Used for experiments with network distance computation to store precomputed
@@ -2726,7 +2725,7 @@ the size of the ~DbArray~ is dynamically extended later.
 
 */
 
-    ostream& Print( ostream& os ) const;
+    std::ostream& Print( std::ostream& os ) const;
 
     void SetNetworkId(const int in_iNetworkId);
 
@@ -2899,7 +2898,7 @@ Returns the Bounding GPoints of the GLine.
        m_xRouteIntervals.TrimToSize();
      };
 
-    inline static const string BasicType() { return "gline"; }
+    inline static const std::string BasicType() { return "gline"; }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
@@ -3168,7 +3167,7 @@ Deletes the tree.
     delete this;
   };
 
-  ostream& Print ( ostream& os ) const
+  std::ostream& Print ( std::ostream& os ) const
     {
       os << "Root: rid: " << m_iRouteId ;
       os << ", small: " << m_dStart ;
@@ -3223,7 +3222,7 @@ struct RouteIntervalEntry
 
   ~RouteIntervalEntry(){};
 
-  ostream& Print(ostream& os) const
+  std::ostream& Print(std::ostream& os) const
   {
     os << "RouteInterval:";
     ri.Print(os);
@@ -3319,13 +3318,13 @@ struct RITreeP
     return (firstFree == 0);
   }
 
-  ostream& Print(ostream& os) const
+  std::ostream& Print(std::ostream& os) const
   {
     return Print(os, 0);
 
   }
 
-  ostream& Print(ostream&os, int pos) const
+  std::ostream& Print(std::ostream&os, int pos) const
   {
     if (!IsEmpty() && -1 < pos && pos < firstFree){
       RouteIntervalEntry rie;
@@ -3629,7 +3628,7 @@ class GPointsSections
 
     Point GetPoint() const {return m_p;};
 
-    ostream& Print(ostream& os) const
+    std::ostream& Print(std::ostream& os) const
     {
       os << "GPoint: ";
       m_gp.Print(os);
@@ -3649,7 +3648,7 @@ class GPointsSections
 
 */
 
-extern string edistjoinpointlist;
+extern std::string edistjoinpointlist;
 
 class GPoints: public Attribute{
 public:
@@ -3658,7 +3657,7 @@ public:
   GPoints(const bool defined);
   GPoints(const GPoints* in_xOther);
   ~GPoints(){}
-  ostream& Print(ostream& os)const;
+  std::ostream& Print(std::ostream& os)const;
   inline bool IsEmpty()const;
   size_t Sizeof()const;
   GPoints& operator+=(const GPoint &gp);
@@ -3683,7 +3682,7 @@ public:
                           const ListExpr typeInfo, Word& value);
   static bool OpenGPoints(SmiRecord& valueRecord,size_t& offset,
                           const ListExpr typeInfo, Word& value);
-  inline static const string BasicType() { return "gpoints"; }
+  inline static const std::string BasicType() { return "gpoints"; }
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }

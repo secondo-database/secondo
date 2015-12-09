@@ -25,7 +25,7 @@ namespace Operators {
 
 class get_statistics {
   public:
-  static string Specification();
+  static std::string Specification();
   static ListExpr TypeMapping(ListExpr args);
   static int Select( ListExpr args );
 

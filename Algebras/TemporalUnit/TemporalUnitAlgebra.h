@@ -73,7 +73,7 @@ public:
   SecInterval(const Interval<Instant>& iv): Attribute(true),
                                             Interval<Instant>(iv) {}
 
-  static const string BasicType();
+  static const std::string BasicType();
 
   static const bool checkType(const ListExpr type);
 
@@ -83,7 +83,7 @@ public:
 
   int Compare(const Attribute* attr) const;
   
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
 
   bool Adjacent(const Attribute* attr) const;
 
@@ -95,7 +95,7 @@ public:
 
   void WriteTo(char *dest);
 
-  string ToString();
+  std::string ToString();
 
   ListExpr ToListExpr(const ListExpr typeInfo) const;
 
@@ -103,13 +103,14 @@ public:
 
   bool ReadFrom(const ListExpr instance, const ListExpr typeInfo);
 
-  bool Set(const DateTime& s, const DateTime& e, const bool lc, const bool rc);
+  bool Set(const datetime::DateTime& s, const datetime::DateTime& e, 
+           const bool lc, const bool rc);
 
   bool Set(const Interval<Instant>* iinst);
 
-  bool SetStart(const DateTime& s, const bool lc);
+  bool SetStart(const datetime::DateTime& s, const bool lc);
 
-  bool SetEnd(const DateTime& e, const bool rc);
+  bool SetEnd(const datetime::DateTime& e, const bool rc);
 
   static ListExpr Property();
 

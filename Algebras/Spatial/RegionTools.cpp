@@ -35,7 +35,7 @@ This file contains functions handling with regions.
 #include "../TopOps/TopOpsAlgebra.h"
 #include <vector>
 
-
+using namespace std;
 
 
 /*

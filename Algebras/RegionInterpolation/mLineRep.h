@@ -8,7 +8,6 @@
 #define MLINEREP_H_
 
 
-using namespace std;
 //#define MLR_DEBUG
 namespace RegionInterpol
 {

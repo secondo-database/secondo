@@ -54,7 +54,7 @@ accepted Type of an included line importer, the result will be false and
 the GGA importer is used instead.
 
 */
-     bool setType(const string& type="GGA");
+     bool setType(const std::string& type="GGA");
 
 
 /*
@@ -67,7 +67,7 @@ is set to the recognized error.
 
 
 */
-     bool scanFile(const string& fileName, string& errorMessage);
+     bool scanFile(const std::string& fileName, std::string& errorMessage);
 
 /*
 ~getKnownTypes~
@@ -76,7 +76,7 @@ Returns all sentences which can be evaluated using the currently installed
 line importers as a single string (separated by white spaces).
 
 */
-     string getKnownTypes() const;
+     std::string getKnownTypes() const;
 
 /*
 ~getTupleType~
@@ -102,7 +102,7 @@ Returns the tuple represented by this arguments. If __line__ does not match
 the current used importer, 0 is returned.
 
 */
-    Tuple* getTuple(const string& line);
+    Tuple* getTuple(const std::string& line);
 
 
 
@@ -115,9 +115,9 @@ Closes the unfderlying file if open.
      void finishScan();
 
   private:
-     vector<NMEALineImporter*> importers;  // all available line importers
+     std::vector<NMEALineImporter*> importers;  // all available line importers
      int position;                        // current selected importer
-     ifstream in;                         // current input stream
+     std::ifstream in;                         // current input stream
      
     
 };

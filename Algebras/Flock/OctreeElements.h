@@ -39,7 +39,6 @@ June, 2009 Mahmoud Sakr
 #include <vector>
 #include <gmpxx.h>
 
-//using namespace leda;
 #define __epsilon 0.00000001
 const int OCTREE_POINT   = 0;
 const int OCTREE_CELL    = 1;

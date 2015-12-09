@@ -53,7 +53,6 @@ Oktober 2014 - Maerz 2015, S. Schroer for master thesis.
 #include <iostream>
 
 
-using namespace std;
 
 namespace temporalalgebra {
 namespace mregionops2 {

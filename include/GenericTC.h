@@ -250,11 +250,11 @@ void* Cast(void* addr){
 }
 
 
-static ListExpr GenProperty(string signature,
-                     string example_type_list,
-                     string list_rep,
-                     string example_list,
-                     string remarks = ""){
+static ListExpr GenProperty(std::string signature,
+                     std::string example_type_list,
+                     std::string list_rep,
+                     std::string example_list,
+                     std::string remarks = ""){
    return ::nl->TwoElemList(
              ::nl->FiveElemList(
                  ::nl->StringAtom("Signature"),

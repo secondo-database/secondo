@@ -44,7 +44,6 @@ in such a way can be represented by four, six or eight numbers (two for each dim
 #ifndef RASTER2_RASTER2ALGEBRA_H
 #define RASTER2_RASTER2ALGEBRA_H
 
-using namespace std;
 
 #include <cmath>
 #include <limits.h>

@@ -213,7 +213,7 @@ persist without being referenced any more.
 
     Attribute* Attribute::Copy()
     {
-      if( del.refs == numeric_limits<uint16_t>::max() )
+      if( del.refs == std::numeric_limits<uint16_t>::max() )
         return Clone();
       del.refs++;
       return this;
@@ -224,7 +224,7 @@ clones it.
 
 */
 
-    string Attribute::AttrDelete2string()
+    std::string Attribute::AttrDelete2string()
     {
       std::string Result, str;
       std::stringstream ss;
@@ -246,7 +246,7 @@ Print the delete reference info to a string (for debugging)
 */
 
 
-ostream& operator<<(ostream& os, const Attribute& attr)
+std::ostream& operator<<(std::ostream& os, const Attribute& attr)
 {
   return attr.Print(os);
 }

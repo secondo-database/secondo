@@ -55,7 +55,8 @@ namespace raster2
         result = qp->ResultStorage(s);
 
         SType& sin = *static_cast<SType*>(args[0].addr);
-        DateTime& duration = *static_cast<DateTime*>(args[1].addr);
+        datetime::DateTime& duration = 
+              *static_cast<datetime::DateTime*>(args[1].addr);
         Instant& start = *static_cast<Instant*>(args[2].addr);
         Instant& finish = *static_cast<Instant*>(args[3].addr);
         MSType& msout = *static_cast<MSType*>(result.addr);

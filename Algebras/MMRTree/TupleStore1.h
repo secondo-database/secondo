@@ -162,7 +162,7 @@ Retrieves a tuple by id. If no corresponding tuple is found,
 
 
 private:
-   vector<Tuple*> firstElems; // cache
+   std::vector<Tuple*> firstElems; // cache
    Relation*      overflow;   // persistent structure
    size_t         maxMem;     // maximum cache size
    size_t         usedMem;    // current cache size

@@ -16,8 +16,6 @@
 #include <iostream>
 #include <algorithm>
 
-using namespace std;
-
 #include "config.h"
 #include "librip.h"
 

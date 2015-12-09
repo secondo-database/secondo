@@ -314,8 +314,8 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 
   // Write Debug output to file. Needed if called from optimizer
   if(DEBUG) {
-     ofstream file;
-     file.open("/tmp/secondolog",  ios::out | ios::app);
+     std::ofstream file;
+     file.open("/tmp/secondolog",  std::ios::out | std::ios::app);
      file << "Called with NoTuples1 " << NoTuples1 
         << " sizeOfTuple1 " << sizeOfTuple1 << endl;
      file << "Called with NoTuples2 " << NoTuples2 
@@ -337,7 +337,7 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
 
         // calculate size for one bucket datastructure
-        vector<Tuple*>* bucket = new vector<Tuple*>();
+        std::vector<Tuple*>* bucket = new std::vector<Tuple*>();
            
         size_t sizePerBucket =  sizeof(bucket);
         sizePerBucket += sizeof(void*) * bucket->capacity();
@@ -353,7 +353,7 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
         double suffMemory = ceil(memory / (1024 * 1024));
 
         // At least 16 mb are required
-        return max(16.0, suffMemory);
+        return std::max(16.0, suffMemory);
 }
 
 /*
@@ -445,7 +445,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
 
         // otherwise we must estimate
         // calculate size for one bucket
-        vector<Tuple*>* bucket = new vector<Tuple*>();
+        std::vector<Tuple*>* bucket = new std::vector<Tuple*>();
         size_t sizePerBucket = sizeof(bucket);
         delete bucket;
         bucket = NULL;
@@ -477,8 +477,8 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
         size_t noOfPartitions = ceil((double) s1Card / (double) tuplesInMemory);
 
         if(DEBUG) {
-           ofstream file;
-           file.open("/tmp/secondolog",  ios::out | ios::app);
+           std::ofstream file;
+           file.open("/tmp/secondolog",  std::ios::out | std::ios::app);
            file << "s1Card " << s1Card << " s1Size " << s1Size << endl;
            file << "Memory is " << maxmem << endl;
            file << "Real buckets " << realBuckets << endl;
@@ -773,7 +773,7 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1,
    double suffMemory = ceil((NoTuples2 * sizeOfTuple2) / (1024 * 1024));
 
    // At least 16 mb are required
-   return max(16.0, suffMemory);
+   return std::max(16.0, suffMemory);
 
 }
 
@@ -1011,7 +1011,7 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1,
    double suffMemory = ceil((NoTuples2 * sizeOfTuple2) / (1024 * 1024));
 
    // At least 16 mb are required
-   return max(16.0, suffMemory);
+   return std::max(16.0, suffMemory);
 }
 
 /*
@@ -1292,7 +1292,7 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1,
       + NoTuples2 * sizeOfTuple2) * 1.2) / (1024 * 1024));
 
    // At least 16 mb are required
-   return max(16.0, suffMemory);
+   return std::max(16.0, suffMemory);
 
 }
 

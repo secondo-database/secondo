@@ -66,6 +66,8 @@ also start with a random prefix.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+using namespace std;
+
 /*
 2 Operators
 
@@ -238,7 +240,7 @@ class SortByLocalInfo2 : protected ProgressWrapper
         r++;
         rel = new TupleBuffer( 0 );
         GenericRelationIterator *iter = 0;
-        relations.push_back( make_pair( rel, iter ) );
+        relations.push_back( std::make_pair( rel, iter ) );
         newRelation = false;
 
         // get first tuple and store it in an relation
@@ -411,7 +413,7 @@ In this case we need to delete also all tuples stored in memory.
 
       TupleBuffer* tbuf = new TupleBuffer();
       GenericRelationIterator *iter = 0;
-      relations.push_back( make_pair( tbuf, iter ) );
+      relations.push_back( std::make_pair( tbuf, iter ) );
 
       while( !queue[i].empty() )
       {
@@ -431,7 +433,7 @@ In this case we need to delete also all tuples stored in memory.
 
     // sorted runs created by in memory heap filtering
     size_t MAX_MEMORY;
-    typedef pair<TupleBuffer*, GenericRelationIterator*> SortedRun;
+    typedef std::pair<TupleBuffer*, GenericRelationIterator*> SortedRun;
     vector< SortedRun > relations;
 
     typedef TupleQueue Heap; 
@@ -759,7 +761,7 @@ protected:
     {
       // sort the input streams
       SortOrderSpecification spec;
-      spec.push_back( pair<int, bool>(attrIndex + 1, true) ); 
+      spec.push_back( std::pair<int, bool>(attrIndex + 1, true) ); 
       void* tupleCmp = new TupleCompareBy( spec );
 
       li = new LocalSRT();
@@ -775,8 +777,8 @@ protected:
       SortOrderSpecification specA;
       SortOrderSpecification specB;
          
-      specA.push_back( pair<int, bool>(attrIndexA + 1, true) ); 
-      specB.push_back( pair<int, bool>(attrIndexB + 1, true) ); 
+      specA.push_back( std::pair<int, bool>(attrIndexA + 1, true) ); 
+      specB.push_back( std::pair<int, bool>(attrIndexB + 1, true) ); 
 
 
       void* tupleCmpA = new TupleCompareBy( specA );

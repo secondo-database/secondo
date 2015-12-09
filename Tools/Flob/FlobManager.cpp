@@ -117,7 +117,7 @@ and the nativFlobFile is deleted.
        delete nativeFlobFile;
        nativeFlobFile = 0;
        // close all files stored in Map   
-       map< pair<SmiFileId, bool>, SmiRecordFile*>::iterator iter;
+       std::map< std::pair<SmiFileId, bool>, SmiRecordFile*>::iterator iter;
        for( iter = openFiles.begin(); iter != openFiles.end(); iter++ ) {
          if(iter->first.first!=nativeFlobs && iter->first.second) {      
            iter->second->Close(); 
@@ -158,8 +158,8 @@ SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId, const char mode) {
    omtx.lock();
    #endif
    SmiRecordFile* file(0);
-   pair<SmiFileId, bool> finder(fileId,isTemp);
-   map< pair<SmiFileId,bool>, SmiRecordFile*>::iterator it = 
+   std::pair<SmiFileId, bool> finder(fileId,isTemp);
+   std::map< std::pair<SmiFileId,bool>, SmiRecordFile*>::iterator it = 
          openFiles.find(finder);
    if(it == openFiles.end()){ // file not found
      file = new SmiRecordFile(false, 0, isTemp);
@@ -203,8 +203,8 @@ This can be realized by calling the ~dropFile~ function.
      omtx.lock();
      #endif
 
-     pair<SmiFileId,bool> finder(id,isTemp);
-     map< pair<SmiFileId,bool>, SmiRecordFile*>::iterator it = 
+     std::pair<SmiFileId,bool> finder(id,isTemp);
+     std::map< std::pair<SmiFileId,bool>, SmiRecordFile*>::iterator it = 
             openFiles.find(finder);
      if(it!= openFiles.end()){
          SmiRecordFile* file;
@@ -235,7 +235,7 @@ This can be realized by calling the ~dropFile~ function.
    omtx.lock();
    #endif
 
-    map< pair<SmiFileId, bool>, SmiRecordFile*>::iterator it = 
+    std::map< std::pair<SmiFileId, bool>, SmiRecordFile*>::iterator it = 
            openFiles.begin();
     int count = 0;
     while(it!=openFiles.end()){
@@ -349,7 +349,7 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
 
     if(!isTemp || (fileId != nativeFlobs)){
       // the allocated memory for the slot may be too small now
-      cerr << "Warning resize a persistent Flob" << endl;
+      std::cerr << "Warning resize a persistent Flob" << std::endl;
       #ifdef THREAD_SAFE
       pcmtx.lock();
       #endif
@@ -388,8 +388,8 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
 
 
     if(!ok){
-      cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
-           << "Select Record failed:" << flob << endl;
+      std::cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
+           << "Select Record failed:" << flob << std::endl;
       assert(false);
       __TRACE_LEAVE__
       return false;
@@ -418,7 +418,7 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
     #ifdef THREAD_SAFE
     omtx.unlock();
     #endif
-    cerr << "Resize failed" << endl;
+    std::cerr << "Resize failed" << std::endl;
     __TRACE_LEAVE__ 
     return false;
    
@@ -428,7 +428,8 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
 ~getData~
 
 The getData function retrieves Data from a Flob. 
-The __dest__ buffer must be provided by the caller. The requested content is copyied
+The __dest__ buffer must be provided by the caller. The requested 
+content is copyied
 to that buffer. 
 
 */
@@ -506,12 +507,12 @@ bool FlobManager::getData(
 
 
     if(!ok){
-      cerr << " error in getting data from flob " << flob << endl;
-      cerr << " actSize = " << actRead << endl;
-      cerr << "try to read = " << size << endl;
-      string err;
+      std::cerr << " error in getting data from flob " << flob << std::endl;
+      std::cerr << " actSize = " << actRead << std::endl;
+      std::cerr << "try to read = " << size << std::endl;
+      std::string err;
       SmiEnvironment::GetLastErrorCode( err );
-      cerr << " err "<< err << endl;
+      std::cerr << " err "<< err << std::endl;
 
     }
     assert(ok);
@@ -533,13 +534,13 @@ bool FlobManager::getData(
     #endif
 
 
-    ifstream* tupleFile = externalFileCache->getFile(recordId);
+    std::ifstream* tupleFile = externalFileCache->getFile(recordId);
 
 /*
 Each time read part data within the Flob, decided by the recOffset and the size
 
 */
-    tupleFile->seekg(recOffset, ios::beg);
+    tupleFile->seekg(recOffset, std::ios::beg);
     tupleFile->read(dest, size);
 
     SmiSize curr = tupleFile->tellg();
@@ -553,11 +554,11 @@ Each time read part data within the Flob, decided by the recOffset and the size
       __TRACE_LEAVE__
       return true;
     } else{
-      cerr << " error in getting data from flob " << flob << endl;
-      cerr << " mode = 2" << endl;
-      cerr << " flobOffset = " << flobOffset << endl;
-      cerr << " actSize = " << actRead << endl;
-      cerr << " try to read = " << size << endl;
+      std::cerr << " error in getting data from flob " << flob << std::endl;
+      std::cerr << " mode = 2" << std::endl;
+      std::cerr << " flobOffset = " << flobOffset << std::endl;
+      std::cerr << " actSize = " << actRead << std::endl;
+      std::cerr << " try to read = " << size << std::endl;
     }
   }
   else if (id.mode == 3)
@@ -573,8 +574,8 @@ Each time read part data within the Flob, decided by the recOffset and the size
 /*
 ~destroy~
 
-Frees all resources occupied by the Flob. After destroying a flob. No data can be 
-accessed.
+Frees all resources occupied by the Flob. After destroying a flob.
+ No data can be accessed.
 
 */
 bool FlobManager::destroy(Flob& victim) {
@@ -591,7 +592,7 @@ bool FlobManager::destroy(Flob& victim) {
 
     FlobId id = victim.id;
     if( (id.mode==2) || (id.mode == 3)){
-      cerr << "FlobManager::destroy(Flob& victim)" << endl;
+      std::cerr << "FlobManager::destroy(Flob& victim)" << std::endl;
         // do not destroy flob data within non berkeley db files.
         victim.id.destroy();
         __TRACE_LEAVE__
@@ -647,8 +648,8 @@ bool FlobManager::destroy(Flob& victim) {
    #endif
 
    if(!ok){ // record not found in file
-      cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
-           << "Select Record failed:" << victim << endl;
+      std::cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
+           << "Select Record failed:" << victim << std::endl;
       assert(false);
      __TRACE_LEAVE__
      victim.id.destroy();
@@ -733,9 +734,10 @@ bool FlobManager::destroyIfNonPersistent(Flob& victim) {
 /*
 ~saveTo~
 
-Save the content of a flob into a file at a specific position (given as recordId and 
-offset). This will result in another Flob which is returned as the result of this 
-function. A record with the corresponding id must already exist in the file.
+Save the content of a flob into a file at a specific position (given 
+as recordId and offset). This will result in another Flob which is 
+returned as the result of this function. A record with the 
+corresponding id must already exist in the file.
 
 Initial implementation, should be changed to support Flobs larger than the 
 available main memory.
@@ -761,9 +763,10 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
 /*
 ~saveTo~
 
-Save the content of a flob into a file at a specific position (given as recordId and 
-offset). This will result in another Flob which is returned as the result of this 
-function. A record with the corresponding id must already exist in the file.
+Save the content of a flob into a file at a specific position (given 
+as recordId and offset). This will result in another Flob which is 
+returned as the result of this function. A record with the corresponding
+ id must already exist in the file.
 
 Initial implementation, should be changed to support Flobs larger than the 
 available main memory.
@@ -939,7 +942,7 @@ bool FlobManager::putData(Flob& dest,         // destination flob
 
   if(!ignoreCache){
     if(fileId!=nativeFlobs || !isTemp){
-      cerr << "Warning maipulate a perisistent Flob" << endl;
+      std::cerr << "Warning maipulate a perisistent Flob" << std::endl;
      #ifdef THREAD_SAFE
      pcmtx.lock();
      #endif
@@ -1019,7 +1022,7 @@ bool FlobManager::putData(const FlobId& id,         // destination flob
   return true;
 }
 
-bool FlobManager::setExFile(Flob& flob, const string& flobFile,
+bool FlobManager::setExFile(Flob& flob, const std::string& flobFile,
     const SmiSize size, const SmiSize flobOffset)
 {
   __TRACE_ENTER__
@@ -1056,7 +1059,7 @@ bool FlobManager::setExFile(Flob& flob, const string& flobFile,
 }
 
 
-bool FlobManager::SwitchToMode1(Flob& flob, const string& flobFile,
+bool FlobManager::SwitchToMode1(Flob& flob, const std::string& flobFile,
     const SmiSize size, const SmiSize flobOffset)
 {
   __TRACE_ENTER__
@@ -1071,7 +1074,7 @@ bool FlobManager::SwitchToMode1(Flob& flob, const string& flobFile,
   Flob newFlob(size);
 
   //Read data from the disk file
-  ifstream* tupleFile = 0;
+  std::ifstream* tupleFile = 0;
   #ifdef THREAD_SAFE
   omtx.lock();
   #endif
@@ -1093,7 +1096,7 @@ Therefore, we use the record id from the newly created flob structure.
     tupleFile = externalFileCache->getFile(recordId);
   }
 
-  tupleFile->seekg(flobOffset, ios::beg);
+  tupleFile->seekg(flobOffset, std::ios::beg);
   char flobBlock[size];
   tupleFile->read(flobBlock, size);
   #ifdef THREAD_SAFE
@@ -1103,10 +1106,10 @@ Therefore, we use the record id from the newly created flob structure.
 
 
   if ( (SmiSize)tupleFile->gcount() != size){
-    cerr << "Error!! read " << tupleFile->gcount() 
+    std::cerr << "Error!! read " << tupleFile->gcount() 
          << " from " << flobFile 
          << " at " << flobOffset 
-         << ", need " << size << endl;
+         << ", need " << size << std::endl;
     assert(false);
   }
 
@@ -1135,7 +1138,8 @@ Warning: this function does not change the dataPointer.
    SmiRecordId recId;
   
   if(size > 536870912){ // 512 MB
-    cerr << "Warning try to cretae a very big flob , size = " << size <<endl;
+    std::cerr << "Warning try to cretae a very big flob , size = " 
+              << size <<std::endl;
   }
 
   #ifdef THREAD_SAFE
@@ -1405,16 +1409,16 @@ void FlobManager::SetPersistentCache(const size_t maxSize,
  
 
 
-ostream& operator<<(ostream& os, const FlobId& fid) {
+std::ostream& operator<<(std::ostream& os, const FlobId& fid) {
   return fid.print(os); 
 }
 
-ostream& operator<<(ostream& os, const Flob& f) {
+std::ostream& operator<<(std::ostream& os, const Flob& f) {
   return f.print(os);
 }
 
 
-ostream& operator<<(ostream& o, const NativeCacheEntry entry){
+std::ostream& operator<<(std::ostream& o, const NativeCacheEntry entry){
    return entry.print(o);
 }
 

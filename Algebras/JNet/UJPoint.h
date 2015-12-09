@@ -69,8 +69,8 @@ It can not be private because UJPoint is used as part of MJPoint.
   UJPoint();
   explicit UJPoint(const bool def);
   UJPoint(const UJPoint& other);
-  UJPoint(const string id, const JUnit& u, const bool check = true);
-  UJPoint(const string id, const temporalalgebra::Interval<Instant>& inst,
+  UJPoint(const std::string id, const JUnit& u, const bool check = true);
+  UJPoint(const std::string id, const temporalalgebra::Interval<Instant>& inst,
           const JRouteInterval& r, const bool check = true);
   UJPoint(const JNetwork* jnet, const JRouteInterval* jrint,
           const temporalalgebra::Interval<Instant>* timeInter, 
@@ -104,8 +104,8 @@ It can not be private because UJPoint is used as part of MJPoint.
   int Compare(const Attribute* rhs) const;
   int Compare(const UJPoint& rhs) const;
   size_t Sizeof() const;
-  ostream& Print(ostream& os) const;
-  static const string BasicType();
+  std::ostream& Print(std::ostream& os) const;
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -143,7 +143,7 @@ It can not be private because UJPoint is used as part of MJPoint.
 1.1.1 Other Operations
 
 */
-  static string Example();
+  static std::string Example();
   IJPoint Initial() const;
   IJPoint Final() const;
 
@@ -193,9 +193,7 @@ Checks if the jrint is part of the given jnetwork.
 
 */
 
-using namespace jnetwork;
-
-ostream& operator<< (const ostream& os, const jnetwork::UJPoint& jp);
+std::ostream& operator<< (const std::ostream& os, const jnetwork::UJPoint& jp);
 
 
 

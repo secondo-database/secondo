@@ -21,7 +21,6 @@ objects in networks.
 
 #define MONTREE_DEBUG
 
-using namespace std;
 
 #include "SecondoSMI.h"
 #include "StandardTypes.h"

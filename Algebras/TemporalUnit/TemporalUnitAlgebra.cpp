@@ -270,6 +270,7 @@ extern AlgebraManager* am;
 
 #include "DateTime.h"
 using namespace datetime;
+using namespace std;
 
 // #define TUA_DEBUG
 

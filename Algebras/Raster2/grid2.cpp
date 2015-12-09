@@ -553,7 +553,7 @@ ListExpr grid2::Property() {
     return property.listExpr();
 }
 
- ostream& grid2::print(ostream& os)const{
+ std::ostream& grid2::print(std::ostream& os)const{
    os << "[grid [ x= " << x << ", <y = " << y 
        << ", length = " << length << "]";
    return os;

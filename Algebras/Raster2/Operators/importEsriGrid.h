@@ -32,12 +32,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace raster2
 {
     const int INDEX_BUFFER_SIZE = 8;
-    const string FILE_SEPARATOR = "/";
+    const std::string FILE_SEPARATOR = "/";
 
-    const string BOUNDING_FILE_NAME = "dblbnd.adf";
-    const string INDEX_FILE_NAME = "w001001x.adf";
-    const string DATA_FILE_NAME = "w001001.adf";
-    const string STATISTICS_FILE_NAME = "sta.adf";
+    const std::string BOUNDING_FILE_NAME = "dblbnd.adf";
+    const std::string INDEX_FILE_NAME = "w001001x.adf";
+    const std::string DATA_FILE_NAME = "w001001.adf";
+    const std::string STATISTICS_FILE_NAME = "sta.adf";
 
     /*
     Set this to *true* in order to write lots of debug output.
@@ -65,14 +65,14 @@ namespace raster2
 
     struct EsriGridConfigData;
 
-    bool readFileIntoBuffer(char* buffer, const string& fname,
+    bool readFileIntoBuffer(char* buffer, const std::string& fname,
                             const uint32_t len);
     void readEsriGridBounds(RasterData *EsriRasterData,
-                            const string boundingFileName);
+                            const std::string boundingFileName);
     void readEsriGridIndexConfig(RasterData *EsriRasterData,
-                                 fstream *indexFile);
+                                 std::fstream *indexFile);
     void readStatisticData(RasterData *EsriRasterData,
-                           const string statisticsFileName);
+                           const std::string statisticsFileName);
     void evaluateActualTilesRowAndColumnCount(RasterData *EsriRaster);
     int importEsriGridFun
     (Word* args, Word& result, int message, Word& local, Supplier s);

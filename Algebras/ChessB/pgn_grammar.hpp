@@ -44,7 +44,6 @@ struct game_parser : public bs::grammar< game_parser >
     {
         definition( game_parser const& self )
         {
-            using namespace bs;
             game_data& g = self.data;
             ply_data&  p = g.ply;
 

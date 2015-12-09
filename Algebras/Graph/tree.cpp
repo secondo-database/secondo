@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "GraphAlgebra.h"
 
 
-ostream& operator<< (ostream& o, const verticesStruct& m) {
+std::ostream& operator<< (std::ostream& o, const verticesStruct& m) {
    
    o << "[" << m.pos << ", " << m.succ << ", " 
      << m.inDeg << ", " << m.outDeg << "]";
@@ -32,7 +32,7 @@ ostream& operator<< (ostream& o, const verticesStruct& m) {
 }
 
 
-ostream& operator<< (ostream& o, const adjStruct& m) {
+std::ostream& operator<< (std::ostream& o, const adjStruct& m) {
    
    o << "[" << m.cost << ", " << m.keyInt << "]";
    return o;

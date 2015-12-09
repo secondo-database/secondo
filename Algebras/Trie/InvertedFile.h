@@ -324,7 +324,7 @@ class InvertedFile: public TrieType {
                  SmiFileId& _listFileId, const bool _ignoreCase, 
                  uint32_t _minWordLength,
                  SmiRecordId& _stopWordsId,
-                 const string& _separators): 
+                 const std::string& _separators): 
         TrieType(_trieFileId, _trieRootId), 
         listFile(false), 
         ignoreCase(_ignoreCase),
@@ -377,7 +377,7 @@ Not implemented yet.
       InvertedFile* res = new InvertedFile();
       TrieIteratorType* it = getEntries("");
       TrieNodeCacheType* cache = createTrieCache(1048576);
-      string word;
+      std::string word;
       SmiRecordId id;
       TrieNodeType resnode;
       SmiRecordId resTrieId;
@@ -403,7 +403,7 @@ Not implemented yet.
         size_t size = srcRecord.Size();
         resRecord.Resize(size);
         while(offset<size){
-          size_t bytesToCopy = min(bufferSize, size-offset);
+          size_t bytesToCopy = std::min(bufferSize, size-offset);
           srcRecord.Read(buffer, bytesToCopy, offset);
           resRecord.Write(buffer, bytesToCopy, offset);
           offset += bytesToCopy; 
@@ -425,7 +425,7 @@ Not implemented yet.
 Returns Secondo's type description of an inverted file.  
 
 */
-   static string BasicType(){
+   static std::string BasicType(){
      return "invfile";
    }
 
@@ -473,12 +473,12 @@ cache can be used within the insert function.
 Inserts the words contained within ~text~ into this inverted file.
 
 */
-   void insertText(TupleId tid, const string& text, 
+   void insertText(TupleId tid, const std::string& text, 
                    appendcache::RecordAppendCache* cache=0,
                    TrieNodeCacheType* triecache = 0){
       if(separators.length()==0){ // store the complete text
          if(text.length()>=minWordLength){
-            string text2 = text;
+            std::string text2 = text;
             if(ignoreCase){
                stringutils::toLower(text2);
             }
@@ -494,7 +494,7 @@ Inserts the words contained within ~text~ into this inverted file.
        charPosType pos = 0;
        while(st.hasNextToken()){
           pos = st.getPos(); 
-          string token = st.nextToken();
+          std::string token = st.nextToken();
           if(token.length()>=minWordLength){
             if(ignoreCase){
               stringutils::toLower(token);
@@ -516,7 +516,7 @@ This operator inserts a single word at a specific position.
 
 
 */
-   void insertString(TupleId tid, const string& word,
+   void insertString(TupleId tid, const std::string& word,
                      const wordPosType wp, const charPosType cp,
                      appendcache::RecordAppendCache* cache=0,
                      TrieNodeCacheType* triecache = 0){
@@ -524,7 +524,7 @@ This operator inserts a single word at a specific position.
           // word too short
           return;
        }
-       string copy = word;
+       std::string copy = word;
        if(ignoreCase){
           stringutils::toLower(copy);
        }
@@ -687,7 +687,7 @@ Reads the next part of the record into the memory buffer.
             return true; 
          }
          
-         size_t readSlots = min((size_t) availableSlots, maxSlotsInMem);
+         size_t readSlots = std::min((size_t) availableSlots, maxSlotsInMem);
 
          record->Read(buffer, readSlots*slotSize , part*maxSlotsInMem*slotSize);
          part++;
@@ -707,7 +707,7 @@ This function returns an iterator for a specified word.
 
 */
  
-  exactIterator* getExactIterator(string str, const size_t mem){
+  exactIterator* getExactIterator(std::string str, const size_t mem){
 
      if(ignoreCase){
         stringutils::toLower(str);
@@ -745,7 +745,7 @@ This function returns an iterator for a specified record.
 This functions returns how ofter ~word~ is stored within this inverted file.
 
 */   
-     size_t wordCount(string word){
+     size_t wordCount(std::string word){
        if(ignoreCase){
          stringutils::toLower(word);
        }
@@ -800,7 +800,7 @@ Returns the next entry of this iterator if present. If not, the arguments keep
 unchanged and the return value if false.
 
 */
-       bool next(string& word, 
+       bool next(std::string& word, 
                  TrieContentType& tid, 
                  wordPosType& wc, 
                  charPosType& cc){
@@ -839,13 +839,13 @@ unchanged and the return value if false.
        TrieIteratorType* it;
        exactIterator* exactIt;
        SmiRecordId id; 
-       string str;
+       std::string str;
       
 /*
 ~constructor~
 
 */ 
-       prefixIterator(InvertedFile* _inv, const string& prefix): inv(_inv){
+       prefixIterator(InvertedFile* _inv, const std::string& prefix): inv(_inv){
           it = inv->getEntries(prefix);
           exactIt = 0;
           id = 0;
@@ -860,7 +860,7 @@ Returns a prefixIterator for str. The caller of this functions is responsible to
 destroy the iterator after using.
 
 */
-   prefixIterator* getPrefixIterator(string str){
+   prefixIterator* getPrefixIterator(std::string str){
      if(ignoreCase){
          stringutils::toLower(str);
      }
@@ -878,7 +878,7 @@ structure together with the count of this word.
   class countPrefixIterator{
     friend class InvertedFile;
     public:
-       bool next(string& word, size_t& count){
+       bool next(std::string& word, size_t& count){
           TrieContentType id;
           if(!it->next(word, id)){
              return false;
@@ -896,7 +896,7 @@ structure together with the count of this word.
        TrieIteratorType* it;
 
 
-       countPrefixIterator(InvertedFile* _inv, const string& prefix):  
+       countPrefixIterator(InvertedFile* _inv, const std::string& prefix):  
          inv(_inv) {
          it = inv->getEntries(prefix);
        }
@@ -909,7 +909,7 @@ structure together with the count of this word.
 Returns a countPrefixIterator of this for a specified prefix.
 
 */
-  countPrefixIterator* getCountPrefixIterator( string str){
+  countPrefixIterator* getCountPrefixIterator( std::string str){
     if(ignoreCase){
        stringutils::toLower(str); 
     }
@@ -929,16 +929,16 @@ Returns data about the underlying files.
          TrieType::getFileInfo(result); 
          SmiStatResultType listresult = 
                            listFile.GetFileStatistics(SMI_STATS_LAZY);
-         listresult.push_back( pair<string,string>("FilePurpose", 
-                                                   "Inverted List File"));
-         result.push_back(pair<string,string>("---","---"));
+         listresult.push_back( std::pair<std::string,std::string>(
+                  "FilePurpose", "Inverted List File"));
+         result.push_back(std::pair<std::string,std::string>("---","---"));
          for(unsigned int i=0;i<listresult.size();i++){
            result.push_back(listresult[i]);
          }
     }
 
 
-   inline  static string getDefaultSeparators() {
+   inline  static std::string getDefaultSeparators() {
       return " \t\n\r.,;:-+*!?()<>\"$§&/[]{}=´`@€~'#|";
    }
 
@@ -946,23 +946,23 @@ Returns data about the underlying files.
      return rootId == 0;
    }
 
-   const string getSeparators() const{
+   const std::string getSeparators() const{
         return separators;
    }
 
    void setParams(const bool ignoreCase,
                   const uint32_t minWordLength,
-                  const string& stopWords){
+                  const std::string& stopWords){
        setParams(ignoreCase, minWordLength,stopWords, getDefaultSeparators());
    }
 
    void setParams(const bool ignoreCase,
                   const uint32_t minWordLength,
-                  const string& stopWords,
-                  const string& separators){
+                  const std::string& stopWords,
+                  const std::string& separators){
       assert(rootId==0); // allow to change parameter only for an empty index
       this->ignoreCase = ignoreCase;
-      this->minWordLength = max(0u, minWordLength);
+      this->minWordLength = std::max(0u, minWordLength);
       this->separators = separators;
 
       // create the set of stopWords
@@ -973,7 +973,7 @@ Returns data about the underlying files.
       }
       stringutils::StringTokenizer st(stopWords, getDefaultSeparators());
       while(st.hasNextToken()){
-        string token = st.nextToken();
+        std::string token = st.nextToken();
         if(ignoreCase){
            stringutils::toLower(token);
         }
@@ -1005,7 +1005,7 @@ Returns data about the underlying files.
      uint32_t minWordLength;
      SmiRecordId stopWordsId;
      mmtrie::Trie* memStopWords;
-     string separators; 
+     std::string separators; 
 
 /*
 ~insert~
@@ -1014,7 +1014,7 @@ inserts a new element into this inverted file
 
 */
  
-   void insert(const string& word, 
+   void insert(const std::string& word, 
                const TupleId tid, 
                const wordPosType wordPos, const charPosType pos, 
                appendcache::RecordAppendCache* cache,
@@ -1079,9 +1079,9 @@ inserts a new element into this inverted file
      if(!memStopWords){
         return;
      }
-     stringstream allss;
+     std::stringstream allss;
      memStopWords->print(allss); 
-     string all = allss.str();
+     std::string all = allss.str();
      
      const char* buffer = all.c_str();
      SmiRecord record;
@@ -1106,7 +1106,7 @@ inserts a new element into this inverted file
       }
 
       char* buffer = listFile.GetData(stopWordsId,length, true);
-      string str(buffer,length);
+      std::string str(buffer,length);
       if(memStopWords==0){
          memStopWords = new mmtrie::Trie();
       } else {

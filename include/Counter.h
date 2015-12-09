@@ -75,7 +75,6 @@ be introduced and called at a suitable position.
 #include "LogMsg.h"
 #include "CharTransform.h"
 
-using namespace std;
 
 
 class Counter 
@@ -83,9 +82,9 @@ class Counter
 
 public:
 
-  typedef map<string, long> Str2ValueMap;
-  typedef pair<long,bool> CounterInfo;
-  typedef map<string, CounterInfo> Str2InfoMap;
+  typedef std::map<std::string, long> Str2ValueMap;
+  typedef std::pair<long,bool> CounterInfo;
+  typedef std::map<std::string, CounterInfo> Str2InfoMap;
   typedef Str2InfoMap::iterator iterator;
 
   Counter(){};
@@ -95,7 +94,8 @@ Simple constructor and destructor.
 
 */
 
-  static long& getRef( const string& identifier, const bool reportVal = true ) 
+  static long& getRef( const std::string& identifier, 
+                       const bool reportVal = true ) 
   { 
     if ( (it=CounterMap.find( identifier )) != CounterMap.end() ) 
     { 
@@ -105,7 +105,7 @@ Simple constructor and destructor.
     else 
     { 
       // initialize new Counter;
-      CounterMap[identifier] = make_pair(0, true);
+      CounterMap[identifier] = std::make_pair(0, true);
       long& CounterRef = CounterMap[identifier].first;
       CounterMap[identifier].second = reportVal;
       return CounterRef;
@@ -128,7 +128,7 @@ Resets all values to 0.
 
 */
 
-  static void reportValue( const string& identifier, const bool reportVal) 
+  static void reportValue( const std::string& identifier, const bool reportVal) 
   {
     if ( (it=CounterMap.find( identifier )) != CounterMap.end() ) 
     {
@@ -159,13 +159,14 @@ Sets the report flag with the value of ~reportVal~.
     int colSepWidth = 2; 
     int windowWidth = 80;
 
-    const string colSepStr(colSepWidth,' ');
-    const string sep(windowWidth,'_');
+    const std::string colSepStr(colSepWidth,' ');
+    const std::string sep(windowWidth,'_');
 
-    cout << endl << sep << endl << "Counter Values:" << endl;
+    std::cout << std::endl << sep << std::endl 
+              << "Counter Values:" << std::endl;
 
     // calculate the longest entry
-    typedef vector<string> CounterStrings; 
+    typedef std::vector<std::string> CounterStrings; 
     CounterStrings entryTable;
     Str2ValueMap usedCtrs = usedCounters();
     Str2ValueMap::iterator sit = usedCtrs.begin();
@@ -173,7 +174,7 @@ Sets the report flag with the value of ~reportVal~.
     int maxEntryLen = 0;
     while ( sit != usedCtrs.end()) 
     {
-      stringstream counter;
+      std::stringstream counter;
       counter << sit->first << " = " << sit->second;
       
       int len = counter.str().length();
@@ -192,16 +193,16 @@ Sets the report flag with the value of ~reportVal~.
     int colNr = 0;
     while ( it2 != entryTable.end() ) {
      
-     string xspace(maxEntryLen - it2->length(), ' '); 
-     cout << colSepStr << *it2 << xspace;
+     std::string xspace(maxEntryLen - it2->length(), ' '); 
+     std::cout << colSepStr << *it2 << xspace;
      it2++; 
      colNr++;
      if ( colNr == colMax ) {
-       cout << endl;
+       std::cout << std::endl;
        colNr = 0;
      } 
     }
-    cout << endl << sep << endl << endl;
+    std::cout << std::endl << sep << std::endl << std::endl;
     cmsg.send();
 
   };

@@ -60,8 +60,6 @@ The type system of the HierarchicalGeo Algebra can be seen below.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-using namespace datetime;
-
 
 class CUPoint;
 class CMPoint;

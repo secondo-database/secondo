@@ -2,7 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2007, University in Hagen, Faculty of Mathematics and Computer Science, 
+Copyright (C) 2007, University in Hagen, 
+Faculty of Mathematics and Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -144,8 +145,9 @@ These contain a list of any structure. The client (in particular the
 
 4 Retrieving operator information
 
-It is possible to ask Secondo for some unique identificators of an operator value
-mapping. The input is the operator's name and a list containing the arguments.
+It is possible to ask Secondo for some unique identificators of an 
+operator value mapping. The input is the operator's name and a list 
+containing the arguments.
 
 ----
    <startGetOperatorIndexes>
@@ -269,8 +271,9 @@ The funType is an integer values, all other values are doubles.
 
 Deprecated! Will be removed in future versions.
 
-These kinds of client requests are very special. Sometimes it may be necessary to
-get internal information about a specific type, if so the messages below are needed.
+These kinds of client requests are very special. Sometimes it may
+be necessary to get internal information about a specific type, 
+if so the messages below are needed.
 
 Please refer to the implementation for further details.  
 
@@ -349,20 +352,21 @@ Secondo commands. These requests need to transmit a file to the server.
     </ObjectRestore>\n
 ----
 
-The values of "dbName", "objName" and "fileName" are strings. The value "N" indicates the
-file size in bytes followed by the bytes of the file.
+The values of "dbName", "objName" and "fileName" are strings. The value
+ "N" indicates the file size in bytes followed by the bytes of the file.
 
 6 File Transfer 
 
-For transfer a file from client to the server (for example for importing it), the client sends
+For transfer a file from client to the server (for example for importing it),
+ the client sends
 
 ----
    <FileTransfer>\n
    filename\n
 ----
 
-Depending wether overwriting of files is allowed or not, the next line sent to the
-server is.
+Depending wether overwriting of files is allowed or not, the next line 
+sent to the server is.
 
 ----
    <ALLOW_OVERWRITING>\n
@@ -398,7 +402,8 @@ In this case, the client sends the file to the server:
    </FileTransfer>
 ----
 
-The filename is the name of the file created on server side. N is the size of the file.
+The filename is the name of the file created on server side. N is 
+the size of the file.
 
 
 The reverse way, i.e. requesting a file from the server, works as follows:
@@ -455,7 +460,6 @@ The client can close the connection by sending
 #include "limits.h"
 #include "DebugWriter.h"
 
-using namespace std;
 
 extern DebugWriter dwriter;
 
@@ -468,7 +472,7 @@ Utility functions
 namespace csp {
 
 void
-sendList(iostream& iosock, NestedList* nl, ListExpr list);
+sendList(std::iostream& iosock, NestedList* nl, ListExpr list);
 
 } // end of namespace
 
@@ -476,27 +480,27 @@ sendList(iostream& iosock, NestedList* nl, ListExpr list);
 
 class ServerMessage : public MessageHandler {
 
-  iostream& iosock;
-  const string startMessage;
-  const string endMessage;
+  std::iostream& iosock;
+  const std::string startMessage;
+  const std::string endMessage;
   bool ignore;
   
   public:
   virtual bool handleMsg(NestedList* nl, ListExpr msg, int source) {
 
    if (ignore) {
-     cerr << "Warning: Last request was not <Secondo>! "
-          << "Message will not be sent to the client." << endl
-          << startMessage << endl 
+     std::cerr << "Warning: Last request was not <Secondo>! "
+          << "Message will not be sent to the client." << std::endl
+          << startMessage << std::endl 
           << nl->ToString(msg) 
-          << endMessage << endl;
+          << endMessage << std::endl;
      return false;
    } 
 
-   //cerr << "Sending message ..." << endl;
-   iosock << startMessage << endl;
+   //std::cerr << "Sending message ..." << std::endl;
+   iosock << startMessage << std::endl;
    csp::sendList(iosock, nl, msg);
-   iosock << endMessage << endl;
+   iosock << endMessage << std::endl;
           
    return true;       
   } 
@@ -505,7 +509,7 @@ class ServerMessage : public MessageHandler {
     iosock.flush();
   }
   
-  ServerMessage(iostream& ios) : 
+  ServerMessage(std::iostream& ios) : 
    iosock(ios),
    startMessage("<Message>"),
    endMessage("</Message>"),
@@ -528,8 +532,8 @@ class ServerMessage : public MessageHandler {
 struct CSProtocol {
 
  private:
- iostream& iosock;
- const string err;  
+ std::iostream& iosock;
+ const std::string err;  
  bool ignoreMsg;
  NestedList* nl;
  ServerMessage* msgHandler;
@@ -537,28 +541,28 @@ struct CSProtocol {
  
  
  public:
- const string startFileData;
- const string endFileData;
- const string startObjectRestore;
- const string endObjectRestore;
- const string startDbRestore;
- const string endDbRestore;
- const string startResponse;
- const string endResponse;
- const string startMessage;
- const string endMessage;
- const string startError;
- const string sendFileError; 
- const string startRequestOperatorIndexes;
- const string endRequestOperatorIndexes;
- const string startOperatorIndexesResponse;
- const string endOperatorIndexesResponse;
- const string startFileTransfer;
- const string endFileTransfer;
- const string startRequestFile;
- const string endRequestFile;
+ const std::string startFileData;
+ const std::string endFileData;
+ const std::string startObjectRestore;
+ const std::string endObjectRestore;
+ const std::string startDbRestore;
+ const std::string endDbRestore;
+ const std::string startResponse;
+ const std::string endResponse;
+ const std::string startMessage;
+ const std::string endMessage;
+ const std::string startError;
+ const std::string sendFileError; 
+ const std::string startRequestOperatorIndexes;
+ const std::string endRequestOperatorIndexes;
+ const std::string startOperatorIndexesResponse;
+ const std::string endOperatorIndexesResponse;
+ const std::string startFileTransfer;
+ const std::string endFileTransfer;
+ const std::string startRequestFile;
+ const std::string endRequestFile;
  
- CSProtocol(NestedList* instance, iostream& ios, bool server = false) : 
+ CSProtocol(NestedList* instance, std::iostream& ios, bool server = false) : 
    iosock(ios), 
    err("Protocol-Error: "),
    startFileData("<FileData>"),  
@@ -613,36 +617,36 @@ struct CSProtocol {
     SHOW(ignoreMsg) 
  }
  
- bool nextLine(const string& exp, string& errMsg)
+ bool nextLine(const std::string& exp, std::string& errMsg)
  { 
-   string line="";
+   std::string line="";
    getline( iosock, line );
   
    if ( line != exp ) {
      errMsg = err + exp + " expected! But got \"" + line + "\"\n";
-     cerr << errMsg << endl;
+     std::cerr << errMsg << std::endl;
      return false;
    }
-   //cerr << "line: \"" << line << "\"" << endl; 
+   //std::cerr << "line: \"" << line << "\"" << std::endl; 
    return true;  
  }
 
   
- bool SendFile(const string& filename) {
+ bool SendFile(const std::string& filename) {
 
-  string line = "";  
+  std::string line = "";  
   
-  //cout << "Begin SendFile()" << endl;
+  //cout << "Begin SendFile()" << std::endl;
   //cout << "Transmitting file: " << filename;
 
-  ifstream restoreFile( filename.c_str(), ios::binary );
+  std::ifstream restoreFile( filename.c_str(), std::ios::binary );
   if ( ! restoreFile ){
-     iosock <<  sendFileError << endl;
+     iosock <<  sendFileError << std::endl;
      return false;
   }
   
   // send begin file sequence
-  iosock << startFileData << endl;
+  iosock << startFileData << std::endl;
   
   try {
 
@@ -654,8 +658,8 @@ struct CSProtocol {
       restoreFile.seekg (0, restoreFile.beg);
 
       // send file size
-      iosock << length << endl;         
-      // cout << "SendFile: file size: " << length <<  " bytes." << endl;
+      iosock << length << std::endl;         
+      // cout << "SendFile: file size: " << length <<  " bytes." << std::endl;
       
       // send file data
       uint64_t read2 = 0;
@@ -667,31 +671,31 @@ struct CSProtocol {
         iosock.write(buf, read);
       }
       //cout << "SendFile: transmitted " 
-      //     << read2 <<  " bytes to the server." << endl;
+      //     << read2 <<  " bytes to the server." << std::endl;
 
       restoreFile.close();
       iosock.flush();
     }
     // send end sequence => empty file;
-    iosock << endFileData << endl;
+    iosock << endFileData << std::endl;
     iosock.flush();
 
-  } catch (ios_base::failure) {
-     cerr << endl 
+  } catch (std::ios_base::failure) {
+     std::cerr << std::endl 
           << "Caught exception: I/O error on socket stream object!"
-          << endl;
+          << std::endl;
      return false;
   }   
 
-  //cout << "End SendFile()" << endl;
+  //cout << "End SendFile()" << std::endl;
   return true;
 }       
 
-bool ReceiveFile( const string& localFileName )
+bool ReceiveFile( const std::string& localFileName )
 {
   
-  string errMsg = "";
-  string line="";
+  std::string errMsg = "";
+  std::string line="";
   getline(iosock, line);
   if(line == sendFileError ){ 
      return false;
@@ -705,10 +709,10 @@ bool ReceiveFile( const string& localFileName )
   uint64_t size = 0;
   iosock >> size;    
   skipRestOfLine();
-  // cout << "Size: " << size << endl;
+  // cout << "Size: " << size << std::endl;
   
-  ofstream localFile;
-  localFile.open( localFileName.c_str(), ios::binary );
+  std::ofstream localFile;
+  localFile.open( localFileName.c_str(), std::ios::binary );
   
   unsigned int bufSize=512;
   char buf[bufSize];
@@ -727,7 +731,8 @@ bool ReceiveFile( const string& localFileName )
     localFile.write(buf, read);
     size -= read; 
   }
-  cout << "Average read bytes per iosock.read(): " << (1.0*size2)/calls << endl;
+  cout << "Average read bytes per iosock.read(): " 
+       << (1.0*size2)/calls << std::endl;
   localFile.close();
 
   // check protool end sequence
@@ -741,13 +746,13 @@ bool ReceiveFile( const string& localFileName )
 
 
 bool 
-ReadList(const string& endTag, ListExpr& resultList, 
+ReadList(const std::string& endTag, ListExpr& resultList, 
          int& errorCode, bool debug, void* caller, 
          int callerID) {
 
   dwriter.write(debug, cout, caller, callerID, "start ReadList");
-  string line = "";
-  string result = "";
+  std::string line = "";
+  std::string result = "";
   bool success = false;
   if ( !RTFlag::isActive("Server:BinaryTransfer") ) { 
     dwriter.write(debug, cout, caller, callerID, "textual list transfer");
@@ -769,7 +774,7 @@ ReadList(const string& endTag, ListExpr& resultList,
     nl->ReadBinaryFrom(iosock, resultList);
     dwriter.write(debug, cout, caller, callerID, "list transfer finished");
     
-    //ofstream outFile("TTYCS.bnl");
+    //std::ofstream outFile("TTYCS.bnl");
     //nl->WriteBinaryTo(resultList, outFile);
     
     getline( iosock, line );
@@ -777,7 +782,7 @@ ReadList(const string& endTag, ListExpr& resultList,
     
     if (line != endTag ) 
     {
-      dwriter.write(true, cerr, caller, callerID, "end tag invalid");
+      dwriter.write(true, std::cerr, caller, callerID, "end tag invalid");
       errorCode = ERR_IN_SECONDO_PROTOCOL;
       resultList = nl->TheEmptyList();
     } 
@@ -795,7 +800,7 @@ int
 ReadResponse( ListExpr& resultList,
               int& errorCode,
               int& errorPos,
-              string& errorMessage,
+              std::string& errorMessage,
               int source  = -1,
               bool debug = false,
               void* caller = 0,
@@ -805,12 +810,12 @@ ReadResponse( ListExpr& resultList,
   dwriter.write(debug, cout, caller, callerID, "called ReadResponse");
 
   // read next line
-  string line="";
+  std::string line="";
   try{
       getline( iosock, line );
   } catch(...){
-    dwriter.write(debug, cerr, caller, callerID, "exception occured");
-    cerr << "Exception occurred during reading response from server"; 
+    dwriter.write(debug, std::cerr, caller, callerID, "exception occured");
+    std::cerr << "Exception occurred during reading response from server"; 
     errorCode = ERR_IN_SECONDO_PROTOCOL;
     iosock.clear();
     return errorCode;

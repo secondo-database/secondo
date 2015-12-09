@@ -13,7 +13,6 @@
 #include <vector>
 #include <cassert>
 
-using namespace std;
 
 enum {
     NL_LIST = 1,

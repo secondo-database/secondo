@@ -66,16 +66,22 @@ and function mapping.
 
 February 3, 2003 RHG Added QP\_COUNTER and QP\_COUNTERDEF.
 
-August 2004, M. Spiekermann. Private method ~TestOverloadedOperators~ introduced.
+August 2004, M. Spiekermann. Private method ~TestOverloadedOperators~ 
+introduced.
 This function checks a list of operators if they can map a given input type to 
 some other type. The first operator returning not result type "typeerror" will
-be used. Moreover, the input and outputs of the type mapping functions can be traced
-and if all type mappings fail all possible operators together with their algebra names
+be used. Moreover, the input and outputs of the type mapping functions can 
+be traced
+and if all type mappings fail all possible operators together with their 
+algebra names
 are reported.
 
-May 2005, M. Spiekermann. New member variable ~maxmemPerOperator~ inttroduced. This
-variable will be set by the SecondoInterface at startup. The value can be defined in
-the configuration file. In the future it may be nice if the Query Processor computes
+May 2005, M. Spiekermann. New member variable ~maxmemPerOperator~
+ inttroduced. This
+variable will be set by the SecondoInterface at startup. The value can 
+be defined in
+the configuration file. In the future it may be nice if the Query 
+Processor computes
 this value based on a global memory limit per query. 
 
 June 2005, M. Spiekermann. ~SetDeleteFunction~ added.
@@ -186,7 +192,7 @@ struct VarEntry
   ListExpr typeexpr;
 };
 
-typedef vector<VarEntry>  VarEntryTable;
+typedef std::vector<VarEntry>  VarEntryTable;
 
 // forward declarations to avoid compile time dependencies
 class ProgressView;
@@ -259,7 +265,8 @@ the function in a database object.
   void EvalP( void* node, Word& result,
              const int message );
 /*
-Calls ~Eval~ to evaluate the tree rooted at ~node~. ~EvalP~ includes management of a progress view. 
+Calls ~Eval~ to evaluate the tree rooted at ~node~. ~EvalP~ includes 
+management of a progress view. 
  
 */
 
@@ -267,7 +274,8 @@ Calls ~Eval~ to evaluate the tree rooted at ~node~. ~EvalP~ includes management 
             const int message);
 
 /*
-Calls ~Eval~ to evaluate the tree rooted at ~node~. To be used for subqueries within operator implementations.
+Calls ~Eval~ to evaluate the tree rooted at ~node~. To be used for 
+subqueries within operator implementations.
 
 */
 
@@ -343,7 +351,9 @@ is closed already.
 
   bool RequestProgress( const Supplier s, ProgressInfo* p );
 /*
-~RequestProgress~ evaluates the subtree ~s~ for a PROGRESS message. It returns true iff a progress info has been received. In ~p~ the address of a ProgressInfo must be passed.
+~RequestProgress~ evaluates the subtree ~s~ for a PROGRESS message. 
+It returns true iff a progress info has been received. In ~p~ the 
+address of a ProgressInfo must be passed.
 
 */
 
@@ -520,8 +530,9 @@ the form (counterno, value).
 */
   ListExpr AnnotateX( const ListExpr expr, bool& defined );
 /*
-Annotate query expression of ~expr~. Create tables for variables, reset ~valueno~ 
-and ~functionno~, then call ~annotate~. Parameter ~defined~ tells, whether all 
+Annotate query expression of ~expr~. Create tables for variables,
+ reset ~valueno~ and ~functionno~, then call ~annotate~. Parameter
+ ~defined~ tells, whether all 
 objects mentioned in the expression have defined values. 
 
 */
@@ -531,7 +542,7 @@ Construct an operator tree from ~expr~. Allocate argument vectors for all
 functions and then call ~subtree~ to do the job.
 
 */
-  ListExpr ListOfTree( void* node, ostream& os );
+  ListExpr ListOfTree( void* node, std::ostream& os );
   void BuildDotDescr( void* node, DotSpec& dot );
 
   ListExpr GetSimpleList(OpTree tree);
@@ -541,7 +552,7 @@ Represents an operator tree through a list expression. Used for testing.
 Additionally more detailed information will be printed into ~os~.
 
 */
- string  MsgToStr(const int msg);
+ std::string  MsgToStr(const int msg);
 /*
 Translates a message ito its name.
    
@@ -555,7 +566,8 @@ Sets the debug level for the query processor. The following levels are defined:
 
   * *0* -- Debug mode is turned off
 
-  * *1* -- Debug mode is turned on (i.e. results of methods ~AnnotateX~ and ~SubtreeX~ are displayed)
+  * *1* -- Debug mode is turned on (i.e. results of methods ~AnnotateX~ 
+           and ~SubtreeX~ are displayed)
 
   * *2* -- Debug *and* trace mode are turned on
 
@@ -573,16 +585,19 @@ Sets the maximum memory available per operator.
 /*
 Returns the maximum memory available per operator.
 
-DEPRECATED method, not to be used any more. Just left here to produce compile errors.
+DEPRECATED method, not to be used any more. Just left here to 
+produce compile errors.
 
-Use the combination of <Operator>.SetUsesMemory() and qp->GetMemorySize(s) instead.
+Use the combination of <Operator>.SetUsesMemory() and 
+qp->GetMemorySize(s) instead.
 
 */
 
 size_t FixedMemory();
 
 /*
-Replaces MemoryAvailableForOperator() for some operators that are unable to register as using memory.
+Replaces MemoryAvailableForOperator() for some operators that 
+are unable to register as using memory.
 
 Usable but not recommended, will be removed.
 
@@ -608,7 +623,8 @@ Returns the size of the globel memory
 /*
 From a given supplier ~s~ get its Memory Size.
 
-MUST be used in combination with SetUsesMemory() (see include/Operator.h) in operator registration. See for example the ExtRelationAlgebra.
+MUST be used in combination with SetUsesMemory() (see include/Operator.h) 
+in operator registration. See for example the ExtRelationAlgebra.
 
 */
 
@@ -617,15 +633,15 @@ MUST be used in combination with SetUsesMemory() (see include/Operator.h) in ope
 
 /*
 This functions requires to get the root of an operator tree as it's argument.
-If not so, the function returns false immediately. Otherwise, all modified objects 
-in the tree rooted by s are written to disc, the current transaction is committed 
-and a new transaction starts.
+If not so, the function returns false immediately. Otherwise, all modified 
+objects in the tree rooted by s are written to disc, the current transaction
+ is committed and a new transaction starts.
 
 */
 
 
 
-  string getLabel(Supplier s);
+  std::string getLabel(Supplier s);
 
 /*
 Returns a short name for a given supplier.
@@ -634,11 +650,12 @@ Returns a short name for a given supplier.
 
 
 
-  static bool ExecuteQuery( const string& queryListStr,
+  static bool ExecuteQuery( const std::string& queryListStr,
                             Word& queryResult,
                    const size_t availableMemory = DEFAULT_GLOBAL_MEMORY);
 /*
-  Executes a Secondo query, given in nested list syntax of type string and returns
+  Executes a Secondo query, given in nested list syntax of type string 
+and returns
   a query result of type Word.
 
   This static method can be used for Secondo queries within an operator
@@ -648,19 +665,21 @@ Returns a short name for a given supplier.
 
   static bool ExecuteQuery( const ListExpr& queryList,
                           Word& queryResult,
-                          string& typeString,
-                          string& errorString,
+                          std::string& typeString,
+                          std::string& errorString,
                           bool& correct,
                           bool& evaluable,
                           bool& defined,
                           bool& isFunction,
                     const size_t availableMemory = DEFAULT_GLOBAL_MEMORY);
 /*
-Just as before, but if an error occurs, it is written to argument  ~errorString~.
+Just as before, but if an error occurs, it is written to argument
+  ~errorString~.
 Also, the result's type expression is in returned in parameter ~typeString~.
 
 ~correct~ is "true", iff the expression is correct.
-~defined~ is "false", iff there is an  object with undefined value mentioned in the query.
+~defined~ is "false", iff there is an  object with undefined value mentioned
+ in the query.
 ~evaluable~, is "false", iff the query is not evaluable.
 ~isFunction~ is "true", when the query represents an abstraction.
 
@@ -694,7 +713,7 @@ Forces to write all modified objects within the tree rooted by t to disc.
 */  
 
 
-  void GetVariable( const string& name, NameIndex& varnames,
+  void GetVariable( const std::string& name, NameIndex& varnames,
                     const VarEntryTable& vartable,
                     int& position, int& funindex,
                     ListExpr& typeexpr );
@@ -706,20 +725,21 @@ defining it, as well as the associated ~typeexpr~.
 *Precondition*: "IsVariable( name, varnames ) == true"[4].
 
 */
-  void EnterVariable( const string& name,
+  void EnterVariable( const std::string& name,
                       NameIndex& varnames,
                       VarEntryTable& vartable,
                       const int position,
                       const int funindex,
                       const ListExpr typeexpr );
 /*
-Enter ~position~ (number of parameter), ~funindex~ (number of abstraction definition)
-and ~typeexpr~ for the variable ~name~ into tables ~varnames~ and ~vartable~.
+Enter ~position~ (number of parameter), ~funindex~ (number of abstraction 
+definition) and ~typeexpr~ for the variable ~name~ into tables ~varnames~
+ and ~vartable~.
 
 *Precondition*: "IsVariable( name, varnames ) == false"[4].
 
 */
-  bool IsVariable( const string& name,
+  bool IsVariable( const std::string& name,
                    NameIndex& varnames );
 /*
 Check whether ~name~ is the name of a variable, that is, occurs in ~varnames~.
@@ -798,7 +818,7 @@ function body.
 
 */
 
-  ListExpr TestOverloadedOperators( const string& operatorSymbolStr, 
+  ListExpr TestOverloadedOperators( const std::string& operatorSymbolStr, 
       ListExpr opList, 
       ListExpr typeList, 
       ListExpr typeArgList, 
@@ -840,7 +860,8 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
   void CloseProgress( const Supplier s );
 
 /*
-~CloseProgress~ deallocates data structures for operators that support progress. No effect when called for an operator not supporting progress.
+~CloseProgress~ deallocates data structures for operators that support 
+progress. No effect when called for an operator not supporting progress.
 
 */
 
@@ -865,7 +886,7 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
   bool debugLocal;
   bool debugProgress;
   bool traceProgress;
-  map <int, bool> argsPrinted;
+  std::map <int, bool> argsPrinted;
 
   struct ValueInfo
   {
@@ -893,8 +914,8 @@ and ~typeId~ are necessary to call the functions ~delete~ and ~close~
 of the type constructor associated with the ~value~.
 
 */ 
-  vector<ValueInfo> values;            // MAXVALUE = 200
-  vector<ArgVectorPointer> argVectors; // MAXFUNCTIONS = 30
+  std::vector<ValueInfo> values;            // MAXVALUE = 200
+  std::vector<ArgVectorPointer> argVectors; // MAXFUNCTIONS = 30
 
   static const int NO_COUNTERS = 16;
   int counter[NO_COUNTERS];
@@ -942,7 +963,7 @@ Number od queryprocessor instances
 */
 
 
- static ofstream heartbeat_file;
+ static std::ofstream heartbeat_file;
 /*
 File for heartbeat checking.
 
@@ -950,7 +971,7 @@ File for heartbeat checking.
 
 };
 
-ostream& operator<<(ostream& os, const OpNode& node);
+std::ostream& operator<<(std::ostream& os, const OpNode& node);
 
 #endif
 

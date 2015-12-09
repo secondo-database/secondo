@@ -49,6 +49,9 @@ reduced, but only int/tid trees are possible.
 #include "ListUtils.h"
 #include "Symbols.h"
 
+
+using namespace std;
+
 namespace BTree2Algebra {
 
 /*

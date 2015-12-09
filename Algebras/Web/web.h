@@ -78,7 +78,6 @@ WebLex is a scanncer derived from yyFlexLexer.
 The scanner can analyse URI's, and tokens of a html document
 
 */
-using namespace std;
 
 bool isEqual (string s1, string s2);
 int SplitString(const string& input, const string& delimiter,

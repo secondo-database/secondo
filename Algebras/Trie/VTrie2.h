@@ -47,7 +47,8 @@ static const unsigned int CHARS = 256;
 /*
 1 Class VTrieNode
 
-This class represents a single node within a Vtrie. Besides the content of type I,
+This class represents a single node within a Vtrie. Besides the
+ content of type I,
 it contains an array of 256 SmiRecordIds for referring the sons.
 
 */
@@ -165,7 +166,7 @@ Prints a textual representation of this node to ~o~.
 
 */
        
-    ostream& print(ostream& o){
+    std::ostream& print(std::ostream& o){
       o << "[ " << content << ", " << " ( " ;
       bool first = true;
       for(unsigned int i=0;i<CHARS;i++){
@@ -393,7 +394,8 @@ Removes all entries form this cache and writes back the contained nodes.
 /*
 ~appendBlankNode~
 
-Creates a new node, appends it to the underlying file and inserts this node into the cache.
+Creates a new node, appends it to the underlying file and
+ inserts this node into the cache.
 
 */
       VTrieNode<T>*  appendBlankNode( SmiRecordId& id){
@@ -429,12 +431,13 @@ template<class I>
 class StackEntry{
 
 public:
-  StackEntry(const VTrieNode<I>& _node, unsigned int _pos, const string& _str):
+  StackEntry(const VTrieNode<I>& _node, unsigned int _pos, 
+             const std::string& _str):
      node(_node),pos(_pos),str(_str){}
 
   VTrieNode<I> node;
   unsigned int pos;
-  string  str;   
+  std::string  str;   
 };
 
 
@@ -456,7 +459,7 @@ public:
 
    VTrieIterator(SmiRecordFile* _file, 
                 const SmiRecordId& rid,
-                const string& _str):
+                const std::string& _str):
     file(_file), st(){
       if(rid!=0){
         VTrieNode<I> s(_file,rid);
@@ -483,12 +486,13 @@ Destroys the underlying data structure.
 /*
 4.3 ~next~
 
-If there are more entries starting with the prefix specified in the constructor, this
-function will return true and set ~str~ to the complete word and set content to the
-content of the corresponding TrieNode.
+If there are more entries starting with the prefix specified in 
+the constructor, this
+function will return true and set ~str~ to the complete word and
+ set content to the content of the corresponding TrieNode.
 
 */
-    bool next(string& str, I& content){
+    bool next(std::string& str, I& content){
       while(!st.empty()){
         StackEntry<I>* top = st.top();
         st.pop();
@@ -508,7 +512,7 @@ content of the corresponding TrieNode.
         } else {
           SmiRecordId c = top->node.getNext(pos);
           VTrieNode<I> s(file,c);
-          stringstream ss;
+          std::stringstream ss;
           ss << top->str;
           ss << (char) pos;
           StackEntry<I>* entry = new StackEntry<I>(s,0,ss.str());
@@ -522,7 +526,7 @@ content of the corresponding TrieNode.
 
   private:
      SmiRecordFile* file;
-     stack<StackEntry<I>*> st;
+     std::stack<StackEntry<I>*> st;
 };
 
 
@@ -586,7 +590,7 @@ Inserts id at the node specified by s. If there is already an entry, this
 entry will be overwritten by id. 
 
 */
-     void insert(const string& s, const T id){
+     void insert(const std::string& s, const T id){
         if(id==0){
             return;
         }
@@ -617,7 +621,7 @@ Removes ths underlying file from disk.
 Returns the content stored under the specified prefix.
 
 */
-     T search(const string& str){
+     T search(const std::string& str){
           SmiRecordId id = rootId;
           size_t pos = 0;
           while((id!=0) && (pos <str.length())) {
@@ -641,7 +645,7 @@ the return value of this function will also be true, if str is a
 prefix of a stored word.
 
 */
-     bool contains(const string& str, const bool acceptPrefix){
+     bool contains(const std::string& str, const bool acceptPrefix){
          unsigned int pos=0;
          SmiRecordId id = rootId;
          
@@ -697,7 +701,7 @@ Sets this Vtrie to be identically to src.
 Returns Secondo's type description for this class.
 
 */
-     static string BasicType(){ 
+     static std::string BasicType(){ 
         return "Vtrie";
      }
   
@@ -735,11 +739,11 @@ Returns the file id of the underlying file.
 /*
 5.15 getEntries
 
-Returns an iterator iterating over all entries with ~prefix~ as prefix. The caller
-of this function is responsible to delete the returned instance.
+Returns an iterator iterating over all entries with ~prefix~ as prefix.
+ The caller of this function is responsible to delete the returned instance.
 
 */
-     VTrieIterator<T> * getEntries(const string& prefix){
+     VTrieIterator<T> * getEntries(const std::string& prefix){
         unsigned int pos=0;
         SmiRecordId id = rootId;
 
@@ -759,7 +763,7 @@ Returns statistical information about the underlying file.
 */
     void  getFileInfo( SmiStatResultType& result){
           result = file.GetFileStatistics(SMI_STATS_LAZY);
-          result.push_back( pair<string,string>("FilePurpose", 
+          result.push_back( std::pair<std::string,std::string>("FilePurpose", 
                                                 "Secondary VTrie Index"));
      }
 
@@ -779,7 +783,7 @@ set to these values. If the node was not present before calling this
 function, the return value will be true.
 
 */
-    bool getInsertNode(const string& str, 
+    bool getInsertNode(const std::string& str, 
                        VTrieNode<T>& node, 
                        SmiRecordId& nodeId){
 
@@ -838,7 +842,7 @@ access to the nodes. This is helpful in bulkload insertions but
 cannot be used within a transactional environment.
 
 */
-    bool getInsertNode(const string& str, 
+    bool getInsertNode(const std::string& str, 
                        VTrieNode<T>& node, 
                        SmiRecordId& nodeId,
                        VTrieNodeCache<T>* cache){

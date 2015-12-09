@@ -54,7 +54,6 @@ and Vector3D.
 #include <iostream>
 #include "NumericUtil.h"
 
-using namespace std;
 
 namespace temporalalgebra{
 

@@ -2,12 +2,14 @@
 /*
 7 Class ~HalfSegment~
 
-This class implements the memory representation of  ~halfsegment~. Although ~halfsegment~
-is not an independent type constructor, it is the basic construction unit of the ~line~ and the ~region~
+This class implements the memory representation of  ~halfsegment~. 
+Although ~halfsegment~ is not an independent type constructor, it 
+is the basic construction unit of the ~line~ and the ~region~
 type constructors.
 
-A ~halfsegment~ value is composed of a pair of points and a flag indicating the dominating
-point. The left point is always smaller than the right one.
+A ~halfsegment~ value is composed of a pair of points and a flag 
+indicating the dominating point. The left point is always smaller 
+than the right one.
 
 */
 
@@ -37,7 +39,7 @@ class HalfSegment;
 5.14 Overloaded output operator
 
 */
-ostream& operator<<( ostream& o, const HalfSegment& hs );
+std::ostream& operator<<( std::ostream& o, const HalfSegment& hs );
 
 class HalfSegment
 {
@@ -46,9 +48,10 @@ class HalfSegment
 /*
 5.1 Constructors and Destructor
 
-A half segment is composed by two points which are called ~left point~ (~lp~) and ~right point~ (~rp~),
-$lp < rp$, and a flag ~ldp~ (~left dominating point~) which tells whether the left point is the dominating
-point.
+A half segment is composed by two points which are called ~left point~ (~lp~) 
+and ~right point~ (~rp~),
+$lp < rp$, and a flag ~ldp~ (~left dominating point~) which tells whether the
+ left point is the dominating point.
 
 This constructor should not be used:
 
@@ -56,8 +59,9 @@ This constructor should not be used:
 
     inline HalfSegment() {}
 /*
-Creates a half segment receiving all attributes as arguments. The order between the left
-and right points is not important. If ~lp~ is bigger than ~rp~ their values are changed.
+Creates a half segment receiving all attributes as arguments. The order 
+between the left and right points is not important. If ~lp~ is bigger 
+than ~rp~ their values are changed.
 
 */
 
@@ -96,25 +100,27 @@ Returns the secondary point of the half segment.
 */
     inline const Point& GetSecPoint() const;
 /*
-Returns the boolean flag which indicates whether the dominating point is on the left side.
+Returns the boolean flag which indicates whether the dominating 
+point is on the left side.
 
 */
     inline bool IsLeftDomPoint() const;
 /*
-Returns the bounding box of the half segment. If ~geoid~ is not NULL, the geographic
-MBR is returned. If ~geoid~ is UNDEFINED, the result is UNDEFINED.
+Returns the bounding box of the half segment. If ~geoid~ 
+is not NULL, the geographic MBR is returned. If ~geoid~ is UNDEFINED,
+the result is UNDEFINED.
 
 */
     inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 /*
-Returns the "attr" value associated with a half segment. The "attr" value is useful when we
-process region values.
+Returns the "attr" value associated with a half segment. The "attr"
+ value is useful when we process region values.
 
 */
     inline const AttrType& GetAttr() const;
 /*
-Returns the length of the half segmtent, i.e., the distance between the left point to the
-right point.
+Returns the length of the half segmtent, i.e., the distance between the
+ left point to the right point.
 
 */
     inline double Length(const Geoid* geoid=0) const;
@@ -148,14 +154,15 @@ Returns the sub half segment trimmed by ~pos1~ and ~pos2~.
     inline bool SubHalfSegment( double pos1, double pos2,
                                 HalfSegment& result ) const;
 /*
-Sets the value of a half segment. The parameters ~lp~ and ~rp~ can ignore the order, and the
-function will compare the parameter points and put the smaller one to ~lp~ and larger one to ~rp~.
+Sets the value of a half segment. The parameters ~lp~ and ~rp~ can
+ignore the order, and the function will compare the parameter points
+and put the smaller one to ~lp~ and larger one to ~rp~.
 
 */
     void Set( bool ldp, const Point& lp, const Point& rp );
 /*
-Translates the half segment by adding the coordinates ~x~ and ~y~ (which can be negative) to both
-~lp~ and ~rp~ points.
+Translates the half segment by adding the coordinates ~x~ and ~y~ 
+(which can be negative) to both ~lp~ and ~rp~ points.
 
 */
     void Translate( const Coord& x, const Coord& y );
@@ -228,8 +235,8 @@ Returns the point of this halfsegment located at the middle.
 The usual Print function
 
 */
-   ostream& Print(ostream& out) const{
-     return out << (*this) << endl;
+   std::ostream& Print(std::ostream& out) const{
+     return out << (*this) << std::endl;
    }
 
 /*
@@ -240,7 +247,7 @@ Prints out this segments as a nested list reprenting a line.
 
 */
 
-  ostream& PrintAsLine(ostream& out) const{
+  std::ostream& PrintAsLine(std::ostream& out) const{
      Point P1 = GetDomPoint();
      Point P2 = GetSecPoint();
      out << "(line ((" << P1.GetX() << " " << P1.GetY() << " "
@@ -248,9 +255,9 @@ Prints out this segments as a nested list reprenting a line.
      return out;
   }
 
-  string getLineString() const{
-    stringstream ss;
-    ss << setprecision(16);
+  std::string getLineString() const{
+    std::stringstream ss;
+    ss << std::setprecision(16);
     PrintAsLine(ss);
     return ss.str();
   }
@@ -264,8 +271,8 @@ Returns a segmnet representation (x1,y1) -> (x2,y2) where
 (x1,y1) is the domination point and (x2,y2) is the secondary point.
 
 */
-   string SimpleString() const{
-     stringstream ss;
+   std::string SimpleString() const{
+     std::stringstream ss;
      ss << GetDomPoint() << " -> " << GetSecPoint();
      return ss.str();
    }
@@ -323,7 +330,8 @@ found, ~false~ is returned .
     bool Intersection( const HalfSegment& hs, HalfSegment& reshs,
                        const Geoid* geoid = 0 ) const;
 /*
-Implements the Cohen and Sutherland algorithm for clipping a segment to a clipping window.
+Implements the Cohen and Sutherland algorithm for clipping a segment
+ to a clipping window.
 
 */
    void CohenSutherlandLineClipping( const Rectangle<2> &window,
@@ -333,10 +341,10 @@ Implements the Cohen and Sutherland algorithm for clipping a segment to a clippi
                                      const Geoid* geoid=0) const;
 /*
 Computes the part of the segment that is inside the rectangle ~window~, if
-it exists. The ~inside~ parameter is set to true if there is a partion of the segment
-inside the window. The ~isIntersectionPoint~ parameter is set to true if the intersection
-part of the segment is a point instead of a segment, and if so, ~intersectionPoint~
-receives the intersection point.
+it exists. The ~inside~ parameter is set to true if there is a partion of
+the segment inside the window. The ~isIntersectionPoint~ parameter is set
+ to true if the intersection part of the segment is a point instead of a 
+segment, and if so, ~intersectionPoint~ receives the intersection point.
 
 */
    void WindowClippingIn( const Rectangle<2> &window,
@@ -357,14 +365,14 @@ Uses the ~AlmostEqual~ function.
 */
     bool Contains( const Point& p, const Geoid* geoid=0 ) const;
 /*
-Decides whether a half segment is above a point. This is useful when we want to decide
-whether a point is inside a region.
+Decides whether a half segment is above a point. This is useful when we
+ want to decide whether a point is inside a region.
 
 */
     bool RayAbove( const Point& p, double &abovey0 ) const;
 /*
-Decides whether a half segment is below a point. This is useful when we want to decide
-whether a point is inside a region.
+Decides whether a half segment is below a point. This is useful when 
+we want to decide whether a point is inside a region.
 
 */
 
@@ -373,8 +381,8 @@ whether a point is inside a region.
 /*
 Computes the distance from the half segment to the point ~p~.
 If ~geoid~ is not NULL, it is used to compute the minimun distance
-between ~p~ and ~[*]this~ being interpreted as a orthodrome relative to reference
-ellipsoid ~[*]geoid~ and using spherical geometry.
+between ~p~ and ~[*]this~ being interpreted as a orthodrome relative
+ to reference ellipsoid ~[*]geoid~ and using spherical geometry.
 
 A negative result means, that an error occured during computation (e.g. invalid
 geographic ccordinates).
@@ -433,8 +441,8 @@ These two attributes give the left and right point of the half segment.
 */
   public:
 /*
-This ~attribute~ property is useful if we process region values in the way indicated in the ROSE
-paper.
+This ~attribute~ property is useful if we process region values in the
+way indicated in the ROSE paper.
 
 */
 
@@ -589,7 +597,8 @@ HalfSegment::AtPosition( double pos, const Geoid* geoid/*=0*/ ) const
     return GetSecPoint();
   }
   if(geoid){
-    cerr<< __PRETTY_FUNCTION__ << "Sperical geometry not implemented." << endl;
+    std::cerr<< __PRETTY_FUNCTION__ << "Sperical geometry not implemented." 
+             << std::endl;
     assert(false);
     return Point(false);
   } else {

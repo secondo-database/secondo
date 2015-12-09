@@ -66,7 +66,7 @@ public:
         value = s.GetValue();
       }
    }
-   LongInt(const string& s):IndexableAttribute(true), value(0){
+   LongInt(const std::string& s):IndexableAttribute(true), value(0){
        ReadFrom(s);
    }
    LongInt(const char* s):IndexableAttribute(true), value(0){
@@ -192,7 +192,7 @@ void WriteTo( char *dest ) const{
 }
 
 void ReadFrom( const char *src ){
-   ReadFromString(string(src));
+   ReadFromString(std::string(src));
 }
 
 SmiSize SizeOfChars() const{
@@ -200,7 +200,7 @@ SmiSize SizeOfChars() const{
 
 }
 
-ostream& Print(ostream &os) const{
+std::ostream& Print(std::ostream &os) const{
   return os << ToString();
 }
 /*
@@ -222,7 +222,7 @@ ostream& Print(ostream &os) const{
 csv support
 
 */
- virtual string getCsvStr() const{
+ virtual std::string getCsvStr() const{
     return ToString(); 
  }
 
@@ -230,11 +230,11 @@ csv support
     return true;
  }
 
- virtual string toText() const{
+ virtual std::string toText() const{
     return ToString(); 
  }
 
-  virtual bool fromText(const string& value) {
+  virtual bool fromText(const std::string& value) {
       ReadFromString(value);
       return true;
   }
@@ -808,8 +808,8 @@ ListExpr ToListExpr(ListExpr typeinfo){
    if(!IsDefined()){
       return listutils::getUndefined(); 
    }
-   if((value<numeric_limits<int32_t>::max()) && 
-      (value>numeric_limits<int32_t>::min())){
+   if((value<std::numeric_limits<int32_t>::max()) && 
+      (value>std::numeric_limits<int32_t>::min())){
      return nl->IntAtom( (int)value);
    }  else {
      int32_t v1 = (int)(value>>32);
@@ -868,7 +868,7 @@ static bool CheckKind(ListExpr type, ListExpr& errorInfo){
    return nl->IsEqual(type,BasicType());
 }    
 
-static const string BasicType(){
+static const std::string BasicType(){
       return "longint";
 }    
 

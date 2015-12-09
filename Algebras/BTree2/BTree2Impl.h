@@ -28,7 +28,6 @@ This is the main class of the BTree Algebra.
 #ifndef _BTREE2_IMPLCLASS_H_
 #define _BTREE2_IMPLCLASS_H_
 
-using namespace std;
 
 #include "BTree2.h"
 #include "BTree2Types.h"
@@ -53,7 +52,7 @@ class BTree2Impl : public BTree2 {
     typedef InternalNodeClass<KEYTYPE> InternalNode;
     typedef BTreeNode<KEYTYPE, VALUETYPE> LeafNode;
 
-    BTree2Impl(const string& keytype, const string& valuetype);
+    BTree2Impl(const std::string& keytype, const std::string& valuetype);
 /*
 Constructor. Object must be initialized with Open or CreateNewBTree.
  
@@ -189,7 +188,7 @@ It also returns the path through the tree to that node.
 */
     
     bool FindLeafNodeId(const KEYTYPE& key, const VALUETYPE& value,
-                          vector<NodeId>& path,
+                          std::vector<NodeId>& path,
                           const NodeId currentId,
                           NodeId& result,
                           int h = 0);
@@ -270,13 +269,15 @@ finalIteratorMarker = findRightBoundary(key);
     bool Append(const KEYTYPE& key, const VALUETYPE& tid); 
 /*
 Append a key/value pair to the tree. Returns true, if inserted sucessfully.
-If it comes to an overflow in the leaf node to which the new element is added,
-it is tried to split the node. For f <= 0.5, the nodes are simply splitted into two. If f > 0.5, this approach would lead to two nodes violating the 
+If it comes to an overflow in the leaf node to which the new element is added
+it is tried to split the node. For f <= 0.5, the nodes are simply splitted
+ into two. If f > 0.5, this approach would lead to two nodes violating the 
 minimum fill degree. Then multiple nodes are used for a split, e.g. for 
 f=2/3 two (full) nodes can be split into three nodes which are in agreement
 with the minimum fill degree (care! the maximum number of entries must be
-a multiple of three, otherwise one or two elements would be missing). If there is an overflow of a node, it is first tried to move the exceeding element to
-its siblings until such a multisplit can be applied.
+a multiple of three, otherwise one or two elements would be missing). If 
+there is an overflow of a node, it is first tried to move the exceeding
+ element to its siblings until such a multisplit can be applied.
 See ~GetExtentForSplitting~, ~SingleSplit~, ~MultiSplit~ for further details.
 It is possible, that multiple nodes are violating the minimum fill degree.
 
@@ -592,7 +593,7 @@ it should be given additionally to ~n~, otherwise it is looked up.
 
 */
 
-    void Delete(const KEYTYPE& key, int entry, vector<NodeId>& path);
+    void Delete(const KEYTYPE& key, int entry, std::vector<NodeId>& path);
 /*
 Delete a specific entry. The caller must ensure, that the entry has
 indeed the given ~key~. The path must be a complete path from the
@@ -623,8 +624,8 @@ with the key of the left entry (with respect to the removed one).
 
 */
 template <typename KEYTYPE,typename VALUETYPE>
-BTree2Impl<KEYTYPE,VALUETYPE>::BTree2Impl(const string& _keytype, 
-                             const string& _valuetype) : cache(this) {
+BTree2Impl<KEYTYPE,VALUETYPE>::BTree2Impl(const std::string& _keytype, 
+                             const std::string& _valuetype) : cache(this) {
   keytype = _keytype;
   valuetype = _valuetype;
   // Get the ListExpr description of the given types 
@@ -816,9 +817,9 @@ int BTree2Impl<KEYTYPE,VALUETYPE>::GetMinNodeSize()
   int minInternalNodeSize = 
       InternalNode::GetSizeOfEmptyNode() +
       InternalNode::GetEntrySizeInRecord(header.maxKeysize,header.maxValuesize);
-  size_t minNodeSize = max(minLeafNodeSize,minInternalNodeSize);
+  size_t minNodeSize = std::max(minLeafNodeSize,minInternalNodeSize);
  
-  return max(minNodeSize,sizeof(headerS));
+  return std::max(minNodeSize,sizeof(headerS));
 }
 
 template <typename KEYTYPE,typename VALUETYPE> 
@@ -980,7 +981,7 @@ int BTree2Impl<KEYTYPE,VALUETYPE>::GetNodeEntryCount(NodeId nodeId)
 template <typename KEYTYPE,typename VALUETYPE> 
 BTreeNode<KEYTYPE,VALUETYPE>*
   BTree2Impl<KEYTYPE,VALUETYPE>::FindLeftmostLeafNode(const KEYTYPE& key, 
-                                              vector<NodeId>& path) {
+                                              std::vector<NodeId>& path) {
   NodeId i = FindLeftmostLeafNodeId(key, path);
   return cache.fetchLeafNode(i);
 }
@@ -988,7 +989,7 @@ BTreeNode<KEYTYPE,VALUETYPE>*
 template <typename KEYTYPE,typename VALUETYPE> 
 BTreeNode<KEYTYPE,VALUETYPE>*
   BTree2Impl<KEYTYPE,VALUETYPE>::FindRightmostLeafNode(const KEYTYPE& key, 
-                                     vector<NodeId>& path, bool mustBeSorted) {
+                            std::vector<NodeId>& path, bool mustBeSorted) {
   NodeId i = FindRightmostLeafNodeId(key, path);
   return cache.fetchLeafNode(i,mustBeSorted);
 }
@@ -996,7 +997,7 @@ BTreeNode<KEYTYPE,VALUETYPE>*
 template <typename KEYTYPE,typename VALUETYPE> 
 NodeId BTree2Impl<KEYTYPE,VALUETYPE>::FindLeftmostLeafNodeId(
                                                     const KEYTYPE& key, 
-                                                    vector<NodeId>& path) {
+                                                    std::vector<NodeId>& path) {
   InternalNodeClass<KEYTYPE>* n;
   path.resize(header.treeHeight+1);
   NodeId currentId = header.rootNodeId;
@@ -1018,7 +1019,7 @@ NodeId BTree2Impl<KEYTYPE,VALUETYPE>::FindLeftmostLeafNodeId(
 template <typename KEYTYPE,typename VALUETYPE> 
 NodeId BTree2Impl<KEYTYPE,VALUETYPE>::FindRightmostLeafNodeId(
                                                     const KEYTYPE& key,
-                                                    vector<NodeId>& path) {
+                                                    std::vector<NodeId>& path) {
   InternalNodeClass<KEYTYPE>* n;
   path.resize(header.treeHeight+1);
   NodeId currentId = header.rootNodeId;
@@ -1039,7 +1040,7 @@ NodeId BTree2Impl<KEYTYPE,VALUETYPE>::FindRightmostLeafNodeId(
 template <typename KEYTYPE,typename VALUETYPE> 
 bool BTree2Impl<KEYTYPE,VALUETYPE>::FindLeafNodeId(const KEYTYPE& key, 
                                                     const VALUETYPE& value,
-                                                    vector<NodeId>& path,
+                                                    std::vector<NodeId>& path,
                                                     const NodeId currentId,
                                                     NodeId& result,
                                                     int h) {
@@ -1122,7 +1123,7 @@ BTree2Iterator BTree2Impl<KEYTYPE,VALUETYPE>::begin() {
 
 template <typename KEYTYPE,typename VALUETYPE> 
 BTree2Iterator BTree2Impl<KEYTYPE,VALUETYPE>::find(Attribute* key) {
-  vector<NodeId> path; 
+  std::vector<NodeId> path; 
   KEYTYPE const& k = Attribute2Entry<KEYTYPE>(key);
   BTreeNode<KEYTYPE,VALUETYPE>* n = FindLeftmostLeafNode(k,path);
   cache.dispose(n);
@@ -1181,7 +1182,7 @@ bool BTree2Impl<KEYTYPE,VALUETYPE>::GetNext(NodeId& nodeId, int& entryNumber,
 template <typename KEYTYPE,typename VALUETYPE> 
 BTree2Iterator BTree2Impl<KEYTYPE,VALUETYPE>::findLeftBoundary(Attribute* key)
 {
-  vector<NodeId> path; 
+  std::vector<NodeId> path; 
   KEYTYPE const& k = Attribute2Entry<KEYTYPE>(key);
   BTreeNode<KEYTYPE,VALUETYPE>* n = FindLeftmostLeafNode(k,path);
   cache.dispose(n);
@@ -1196,7 +1197,7 @@ BTree2Iterator BTree2Impl<KEYTYPE,VALUETYPE>::findLeftBoundary(Attribute* key)
 template <typename KEYTYPE,typename VALUETYPE> 
 BTree2Iterator BTree2Impl<KEYTYPE,VALUETYPE>::findRightBoundary(Attribute* key)
 {
-  vector<NodeId> path; 
+  std::vector<NodeId> path; 
   KEYTYPE const& k = Attribute2Entry<KEYTYPE>(key);
   BTreeNode<KEYTYPE,VALUETYPE>* n = FindRightmostLeafNode(k,path);
   cache.dispose(n);
@@ -1213,7 +1214,7 @@ void BTree2Impl<KEYTYPE,VALUETYPE>::findExactmatchBoundary(Attribute* key,
                                                 BTree2Iterator& startIter, 
                                                 BTree2Iterator& finalIter)
 {
-  vector<NodeId> path; 
+  std::vector<NodeId> path; 
   KEYTYPE const& k = Attribute2Entry<KEYTYPE>(key);
   BTreeNode<KEYTYPE,VALUETYPE>* n = FindLeftmostLeafNode(k,path);
   cache.dispose(n);
@@ -1377,7 +1378,7 @@ bool BTree2Impl<KEYTYPE,VALUETYPE>::Append(const KEYTYPE& key,
   //
   cache.operationStarts();
 
-  vector<NodeId> path(header.treeHeight+1); 
+  std::vector<NodeId> path(header.treeHeight+1); 
   int pathpos;     
   BTreeNode<KEYTYPE,VALUETYPE>* n = 0;
 
@@ -1480,7 +1481,7 @@ bool BTree2Impl<KEYTYPE, VALUETYPE>::UpdateGeneric(Attribute* key,
 
 template <typename KEYTYPE,typename VALUETYPE> 
 bool BTree2Impl<KEYTYPE,VALUETYPE>::Delete(const KEYTYPE& key) {
-  vector<NodeId> path;
+  std::vector<NodeId> path;
   BTreeNode<KEYTYPE,VALUETYPE>* n = FindLeftmostLeafNode(key,path);
 
   if (!n->HasKey(key)) {
@@ -1500,7 +1501,7 @@ bool BTree2Impl<KEYTYPE,VALUETYPE>::Delete(const KEYTYPE& key,
                                            const VALUETYPE& value) {
   
   cache.operationStarts();
-  vector<NodeId> path(header.treeHeight+1);
+  std::vector<NodeId> path(header.treeHeight+1);
   NodeId leafId;
   bool res = FindLeafNodeId(key,value,path,header.rootNodeId,leafId);
 
@@ -1521,7 +1522,7 @@ bool BTree2Impl<KEYTYPE,VALUETYPE>::Delete(const KEYTYPE& key,
 template <typename KEYTYPE,typename VALUETYPE> 
 bool BTree2Impl<KEYTYPE,VALUETYPE>::Update(const KEYTYPE& key, 
                                            const VALUETYPE& value) {
-  vector<NodeId> path;
+  std::vector<NodeId> path;
   BTreeNode<KEYTYPE,VALUETYPE>* n = FindLeftmostLeafNode(key,path);
 
   if (!n->HasKey(key)) {
@@ -1544,7 +1545,7 @@ void BTree2Impl<KEYTYPE,VALUETYPE>::printNodeInfo(NodeId id, int height) {
     InternalNodeClass<KEYTYPE>* n = cache.fetchInternalNode(id);
     printf("Node %d ", n->GetNodeId());
     printf("(#=%d) h=%d ", n->GetCount(), height);
-    vector<NodeId> subs;
+    std::vector<NodeId> subs;
     printf("Internal");
     for (int i = 0; i < n->GetCount(); i++) {
       BTreeEntry<KEYTYPE,NodeId> const& x = n->GetEntry(i);
@@ -1979,7 +1980,7 @@ bool BTree2Impl<KEYTYPE,VALUETYPE>::CollectItems(int dst,
     return true;
   } else {
     int maxCount = GetMaxCountOfChildren(parent);
-    maxLoad = max(maxLoad, maxCount - srcCount + 1);
+    maxLoad = std::max(maxLoad, maxCount - srcCount + 1);
     return CollectItems(dst+dir,parent,dir,depth+1,maxdepth,maxLoad);
   }
 }
@@ -2288,7 +2289,7 @@ void BTree2Impl<KEYTYPE,VALUETYPE>::MultiSplit(LeafNode* node,
 
 template <typename KEYTYPE,typename VALUETYPE> 
 void BTree2Impl<KEYTYPE,VALUETYPE>::Delete(const KEYTYPE& key, int entry,
-                                                        vector<NodeId>& path) {
+                                             std::vector<NodeId>& path) {
   int pathpos = path.size()-1; 
   LeafNode* n = cache.fetchLeafNode(path[pathpos]);
 

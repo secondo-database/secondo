@@ -42,7 +42,6 @@ Started July 2014, Fabio Vald\'{e}s
 #include "InvertedFile.h"
 #include "LongInt.h"
  
- using namespace std;
  
  namespace stj {
    

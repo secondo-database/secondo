@@ -52,7 +52,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Progress.h"
 #include "CharTransform.h"
 
-using namespace std;
 
 class ProgressView
 {
@@ -64,7 +63,7 @@ class ProgressView
                    DETPROT(0), PROGTYPECARD(0), PROGTYPEPROG(0)
   {
 
-    string parmFile = expandVar("$(SECONDO_CONFIG)");
+    std::string parmFile = expandVar("$(SECONDO_CONFIG)");
     PROGRESS_NORM = SmiProfile::GetParameter("ProgressEstimation", 
       "ProgNorm", 50, parmFile);
     DETPROT = SmiProfile::GetParameter("ProgressEstimation", 
@@ -78,8 +77,8 @@ class ProgressView
     if (PROGTYPEPROG)
     {
       initialized = false;
-      string fileName    = "proglogt.csv";
-      if (DETPROT & 2) ofs.open(fileName.c_str(), ios::app);
+      std::string fileName    = "proglogt.csv";
+      if (DETPROT & 2) ofs.open(fileName.c_str(), std::ios::app);
     }
   }
 
@@ -110,7 +109,7 @@ class ProgressView
   }
 
   void
-  WriteCommandToProtocol(const string& commandText)
+  WriteCommandToProtocol(const std::string& commandText)
   {
     if (PROGTYPEPROG)
     {
@@ -136,7 +135,7 @@ class ProgressView
          currentProgress= 1;
        }
        double bProgress = progress.BProgress;
-       bProgress = min(1.0,max(0.0,bProgress));
+       bProgress = std::min(1.0,std::max(0.0,bProgress));
 
        msgList = NList( NList("progress"),
               NList( NList((int) (currentProgress*PROGRESS_NORM)), 
@@ -168,8 +167,8 @@ class ProgressView
     }
   }
 
-  string getProgStr(const double v, const char sep=',') const{
-      stringstream ss;
+  std::string getProgStr(const double v, const char sep=',') const{
+      std::stringstream ss;
       ss << (int) v << sep;
       int aftercomma = (int) (v*100.0+0.5) % 100;
       if(aftercomma < 10){
@@ -206,7 +205,7 @@ class ProgressView
 
   private:
     double currentProgress;
-    ofstream ofs;
+    std::ofstream ofs;
     bool initialized;
     clock_t startClock;
     NList msgList;

@@ -47,6 +47,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 extern NestedList* nl;
 
+using namespace std;
+
 namespace listutils{
 
 /*
@@ -729,7 +731,7 @@ Checks whether the list represents a stream.
 
   }
 
-  bool isSymbolUndefined( const string s ) {
+  bool isSymbolUndefined( const string& s ) {
     return (s == Symbol::UNDEFINED()) ||
            (s == "undef")     || (s == "UNDEF") ||
            (s == "undefined") || (s == "UNDEFINED") ||

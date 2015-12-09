@@ -361,9 +361,9 @@ member variables are provided for convenience.
                         element = (*this->storage)[index];
                         if (!Helper::isUndefined(element)) {
                             // Add the interval to the periods.
-                            DateTime start(index[2] * duration);
-                            DateTime end((index[2] + 1) * duration);
-                            p.Add(temporalalgebra::Interval<DateTime>
+                            datetime::DateTime start(index[2] * duration);
+                            datetime::DateTime end((index[2] + 1) * duration);
+                            p.Add(temporalalgebra::Interval<datetime::DateTime>
                                         (start, end, true, false));
 
                             found = true;
@@ -430,10 +430,10 @@ member variables are provided for convenience.
                         if (!Helper::isUndefined(element)) {
                             double duration = grid.getDuration().ToDouble();
                             
-                            DateTime start(index[2] * duration);
-                            DateTime end((index[2] + 1) * duration);
+                            datetime::DateTime start(index[2] * duration);
+                            datetime::DateTime end((index[2] + 1) * duration);
 
-                            temporalalgebra::Interval<DateTime> 
+                            temporalalgebra::Interval<datetime::DateTime> 
                                             value(start, end, true, false);
                             
                             if (periods.Contains(value))
@@ -450,14 +450,17 @@ member variables are provided for convenience.
                                 if (periods.Intersects(value)
                                     || periods.Inside(value))
                                 {
-                                    temporalalgebra::Range<DateTime> range(2);
+                                    temporalalgebra::Range<datetime::DateTime>
+                                       range(2);
                                     periods.Intersection(value, range);
                                     
-                                    temporalalgebra::Interval<DateTime> 
+                                    temporalalgebra::Interval<
+                                               datetime::DateTime> 
                                         rangeVal(start, end, true, false);
                                     range.Get(0, rangeVal);
                                     
-                                    DateTime l = rangeVal.end - rangeVal.start;
+                                    datetime::DateTime l = rangeVal.end 
+                                                         - rangeVal.start;
                                     bool b = l >= grid.getDuration() * 0.5;
                                     
                                     if (b)
@@ -548,7 +551,8 @@ member variables are provided for convenience.
     template <typename T, typename Helper>
     inline typename Helper::moving_type*
     mstype<T, Helper>::atlocation(double x, double y) const {
-      assert(grid.getDuration() > DateTime(durationtype, 0));
+      assert(grid.getDuration() > 
+             datetime::DateTime(datetime::durationtype, 0));
 
       typename Helper::moving_type* ret = new typename Helper::moving_type(0);
 
@@ -843,7 +847,7 @@ member variables are provided for convenience.
                     gridlist.elem(1).realval(),
                     gridlist.elem(2).realval(),
                     gridlist.elem(3).realval(),
-                    DateTime(gridlist.elem(4).realval())
+                    datetime::DateTime(gridlist.elem(4).realval())
             );
             p_mstype->setGrid(grid);
 

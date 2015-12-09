@@ -22,7 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-September 2006, M. Spiekermann. Class implementations moved from "SecondoInterface.cpp"
+September 2006, M. Spiekermann. Class implementations moved from 
+"SecondoInterface.cpp"
 into this file.
 
 
@@ -39,7 +40,7 @@ An overview about System tables is given in the file "SystemInfoRel.cpp".
 class CmdTimes : public InfoTuple
 {
    int nr;
-   string cmdStr;
+   std::string cmdStr;
    double elapsedTime;
    double cpuTime;
    double commitTime;
@@ -50,7 +51,7 @@ class CmdTimes : public InfoTuple
 
    public:
    CmdTimes( int num,
-             const string& cmd,
+             const std::string& cmd,
              double realT,
              double cpuT,
              double commitT,
@@ -86,7 +87,7 @@ class CmdTimes : public InfoTuple
      return value;
    }
 
-   virtual ostream& print(ostream& os) const
+   virtual std::ostream& print(std::ostream& os) const
    {
       os << nr << sep << cmdStr << sep << elapsedTime << sep << cpuTime;
       return os;
@@ -98,7 +99,7 @@ class CmdTimes : public InfoTuple
 class CmdTimesRel : public SystemInfoRel
 {
    public:
-   CmdTimesRel(const string& name) : SystemInfoRel(name)
+   CmdTimesRel(const std::string& name) : SystemInfoRel(name)
    {}
 
    virtual ~CmdTimesRel() {}
@@ -121,11 +122,11 @@ class CmdTimesRel : public SystemInfoRel
 class CmdCtr : public InfoTuple
 {
    int nr;
-   string ctrStr;
+   std::string ctrStr;
    long value;
 
    public:
-   CmdCtr(int num, const string& cmd, long ctrVal) :
+   CmdCtr(int num, const std::string& cmd, long ctrVal) :
      nr(num),
      ctrStr(cmd),
      value(ctrVal)
@@ -142,7 +143,7 @@ class CmdCtr : public InfoTuple
    }
 
 
-   virtual ostream& print(ostream& os) const
+   virtual std::ostream& print(std::ostream& os) const
    {
       os << nr << sep << ctrStr << sep << value;
       return os;
@@ -153,7 +154,7 @@ class CmdCtr : public InfoTuple
 class CmdCtrRel : public SystemInfoRel
 {
    public:
-   CmdCtrRel(const string& name) : SystemInfoRel(name)
+   CmdCtrRel(const std::string& name) : SystemInfoRel(name)
    {}
    virtual ~CmdCtrRel() {}
 
@@ -167,12 +168,13 @@ class CmdCtrRel : public SystemInfoRel
 
 class DerivedObjInfo : public InfoTuple
 {
-   string name;
-   string value;
-   string usedObjs;
+   std::string name;
+   std::string value;
+   std::string usedObjs;
 
    public:
-   DerivedObjInfo(const string& n, const string& v, const string&u) :
+   DerivedObjInfo(const std::string& n, const std::string& v,
+                  const std::string&u) :
      name(n),
      value(v),
      usedObjs(u)
@@ -189,7 +191,7 @@ class DerivedObjInfo : public InfoTuple
    }
 
 
-   virtual ostream& print(ostream& os) const
+   virtual std::ostream& print(std::ostream& os) const
    {
       os << name << sep << value << sep << usedObjs;
       return os;
@@ -201,7 +203,7 @@ class DerivedObjInfo : public InfoTuple
 class DerivedObjRel : public SystemInfoRel
 {
    public:
-   DerivedObjRel(const string& name) : SystemInfoRel(name, true)
+   DerivedObjRel(const std::string& name) : SystemInfoRel(name, true)
    {}
    virtual ~DerivedObjRel() {}
 
@@ -235,7 +237,7 @@ class CacheInfoTuple : public InfoTuple, public CacheInfo
      return value;
    }
 
-   virtual ostream& print(ostream& os) const
+   virtual std::ostream& print(std::ostream& os) const
    {
       os << cstatNr << sep
          << bytes << sep
@@ -253,7 +255,7 @@ class CacheInfoTuple : public InfoTuple, public CacheInfo
 class CacheInfoRel : public SystemInfoRel
 {
    public:
-   CacheInfoRel(const string& name) : SystemInfoRel(name)
+   CacheInfoRel(const std::string& name) : SystemInfoRel(name)
    {}
    virtual ~CacheInfoRel() {}
 
@@ -301,7 +303,7 @@ class FileInfoTuple : public InfoTuple, public FileInfo
      return value;
    }
 
-   virtual ostream& print(ostream& os) const
+   virtual std::ostream& print(std::ostream& os) const
    {
       os << fstatNr << sep
          << file_name << sep
@@ -319,7 +321,7 @@ class FileInfoTuple : public InfoTuple, public FileInfo
 class FileInfoRel : public SystemInfoRel
 {
    public:
-   FileInfoRel(const string& name) : SystemInfoRel(name)
+   FileInfoRel(const std::string& name) : SystemInfoRel(name)
    {}
    virtual ~FileInfoRel() {}
 
@@ -339,16 +341,16 @@ class FileInfoRel : public SystemInfoRel
 class TypeInfoTuple : public InfoTuple
 {
    public:
-   string type;
+   std::string type;
    int cppClassSize;
    int numOfFlobs;
-   string algebra;
-   string signature;
-   string typeListExample;
-   string listRep;
-   string valueListExample;
-   string persistencyMode;
-   string remark;
+   std::string algebra;
+   std::string signature;
+   std::string typeListExample;
+   std::string listRep;
+   std::string valueListExample;
+   std::string persistencyMode;
+   std::string remark;
 
    TypeInfoTuple() {
 
@@ -381,7 +383,7 @@ class TypeInfoTuple : public InfoTuple
      return list;
    }
 
-   virtual ostream& print(ostream& os) const
+   virtual std::ostream& print(std::ostream& os) const
    {
       os << type << sep
          << cppClassSize << endl;
@@ -393,7 +395,7 @@ class TypeInfoTuple : public InfoTuple
 class TypeInfoRel : public SystemInfoRel
 {
    public:
-   TypeInfoRel(const string& name) : SystemInfoRel(name)
+   TypeInfoRel(const std::string& name) : SystemInfoRel(name)
    {}
    virtual ~TypeInfoRel() {}
 
@@ -415,14 +417,14 @@ class TypeInfoRel : public SystemInfoRel
 class OperatorInfoTuple : public InfoTuple
 {
    public:
-   string name;
-   string algebra;
-   string signature;
-   string syntax;
-   string meaning;
-   string example;
-   string remark;
-   string result;
+   std::string name;
+   std::string algebra;
+   std::string signature;
+   std::string syntax;
+   std::string meaning;
+   std::string example;
+   std::string remark;
+   std::string result;
 
    OperatorInfoTuple() {
 
@@ -451,7 +453,7 @@ class OperatorInfoTuple : public InfoTuple
      return list;
    }
 
-   virtual ostream& print(ostream& os) const
+   virtual std::ostream& print(std::ostream& os) const
    {
       os << name << sep
          << algebra << endl;
@@ -463,7 +465,7 @@ class OperatorInfoTuple : public InfoTuple
 class OperatorInfoRel : public SystemInfoRel
 {
    public:
-   OperatorInfoRel(const string& name) : SystemInfoRel(name)
+   OperatorInfoRel(const std::string& name) : SystemInfoRel(name)
    {}
    virtual ~OperatorInfoRel() {}
 
@@ -484,8 +486,8 @@ class OperatorInfoRel : public SystemInfoRel
 class OperatorUsageTuple : public InfoTuple
 {
    public:
-   string name;
-   string algebra;
+   std::string name;
+   std::string algebra;
    int    vmid;
    int    calls;
 
@@ -502,7 +504,7 @@ class OperatorUsageTuple : public InfoTuple
      return list;
    }
 
-   virtual ostream& print(ostream& os) const
+   virtual std::ostream& print(std::ostream& os) const
    {
       os << name << sep
          << algebra << sep
@@ -515,7 +517,7 @@ class OperatorUsageTuple : public InfoTuple
 class OperatorUsageRel : public SystemInfoRel
 {
    public:
-   OperatorUsageRel(const string& name) : SystemInfoRel(name)
+   OperatorUsageRel(const std::string& name) : SystemInfoRel(name)
    {}
    virtual ~OperatorUsageRel() {}
 

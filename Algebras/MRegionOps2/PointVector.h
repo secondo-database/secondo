@@ -60,8 +60,6 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "NumericUtil.h"
 #include "MovingRegion2Algebra.h"
 
-using namespace std;
-
 namespace temporalalgebra {
 namespace mregionops2 {
 

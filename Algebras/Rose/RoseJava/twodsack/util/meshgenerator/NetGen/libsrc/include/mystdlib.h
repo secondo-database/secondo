@@ -76,6 +76,5 @@ extern int mem_total_alloc_array;
 extern int mem_total_alloc_table;
 
 
-using namespace std;
 
 #endif

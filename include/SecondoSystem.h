@@ -122,7 +122,7 @@ Simply returns the names of existing databases in a list:
 ----
 
 */
-  bool CreateDatabase( const string& dbname );
+  bool CreateDatabase( const std::string& dbname );
 /*
 Creates a new database named ~dbname~ and loads the algebraic operators
 and type constructors into the "Secondo"[3] programming interface. 
@@ -131,7 +131,7 @@ Returns "false"[4] if a database under this name already exists.
 *Precondition*: No database is open.
 
 */
-  bool DestroyDatabase( const string& dbname );
+  bool DestroyDatabase( const std::string& dbname );
 /*
 Deletes a database named ~dbname~ and all data files belonging to it.
 Returns "false"[4] if the database ~dbname~ is not known.
@@ -139,7 +139,7 @@ Returns "false"[4] if the database ~dbname~ is not known.
 *Precondition*: No database is open.
 
 */
-  SI_Error OpenDatabase( const string& dbname );
+  SI_Error OpenDatabase( const std::string& dbname );
 /*
 Opens a database with name ~dbname~.
 Returns "false"[4] if database ~dbname~ is unknown.
@@ -159,14 +159,14 @@ Closes the currently opened database.
 Returns "true"[4] if a database is in open state, otherwise "false"[4].
 
 */
-bool IsDatabaseObject( const string& objectName );
+bool IsDatabaseObject( const std::string& objectName );
 /*
 Returns whether object with ~objectName~ is known in the currently opened
 database.
 
 */
-bool SaveObject ( const string& objectName,
-                  const string& filename );
+bool SaveObject ( const std::string& objectName,
+                  const std::string& filename );
 /*
 Writes the currently open database called ~dbname~ to a file with name
 ~filename~ in nested list format. The format is the following:
@@ -180,7 +180,8 @@ Returns error 1 if there was a problem in writing the file.
 Precondition: dbState = dbOpen.
 
 */
-  bool SaveDatabase( const string& filename, const DerivedObj& derivedObjs );
+  bool SaveDatabase( const std::string& filename, 
+                     const DerivedObj& derivedObjs );
 /*
 Writes the currently open database called ~dbname~ to a file with name
 ~filename~ in nested list format. The format is as follows:
@@ -211,25 +212,30 @@ Returns "false"[4] if there was a problem in writing the file.
 *Precondition*: A database is open.
 
 */
-  int RestoreObjectFromFile( const string& objectname,
-                             const string& filename,
+  int RestoreObjectFromFile( const std::string& objectname,
+                             const std::string& filename,
                              ListExpr& errorInfo );
 /*
 Reads an object from a file named ~filename~ and fills the catalog
 with this object. The database remains in state ~dbOpen~.
-Returns error 1, if object name in file is different from parameter ~objectname~,
-error 2, if there was a problem in reading the file, error 3, if the list structure
-in the file was not correct, error 4, if there is an error in object list expression,
+Returns error 1, if object name in file is different from parameter
+ ~objectname~,
+error 2, if there was a problem in reading the file, error 3, if the
+ list structure
+in the file was not correct, error 4, if there is an error in object
+ list expression,
 
-Furthermore, any errors found by kind checking and by ~In~ procedures are added to
+Furthermore, any errors found by kind checking and by ~In~ procedures
+ are added to
 the list ~errorInfo~.
 
-*Precondition*: Database is open and object is not known in the currently opened database.
+*Precondition*: Database is open and object is not known in the 
+currently opened database.
 
 */
 
-  SI_Error RestoreDatabase( const string& dbname,
-                            const string& filename,
+  SI_Error RestoreDatabase( const std::string& dbname,
+                            const std::string& filename,
                             ListExpr& errorInfo );
 /*
 Reads a database from a file named ~filename~ that has the same nested
@@ -248,7 +254,7 @@ are returned in the list ~errorInfo~.
 *Precondition*: No database is open.
 
 */
-  string                 GetDatabaseName();
+  std::string                 GetDatabaseName();
 /*
 Returns the name of the currently open database. An empty string is
 returned if no database is in open state.

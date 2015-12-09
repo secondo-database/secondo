@@ -44,7 +44,6 @@ than 3/4 since newlines and unknown characters are ignored.
 
 #include <string>
 #include <math.h>
-using namespace std;
 
 class Base64{
 
@@ -68,21 +67,21 @@ number of bytes. This is useful for allocating buffers.
 */
 
 
-   void encode(const char* bytes, int size, string& base64);
+   void encode(const char* bytes, int size, std::string& base64);
 /*  
 Encodes the bytes contained in the buffer ~bytes~ of size ~size~ into base64
 format written into the string ~base64~.  
 
 */ 
-   int decode(const string& text, char* bytes);
+   int decode(const std::string& text, char* bytes);
 /*
 Decodes the base64 data stored in ~text~ and returns the number of bytes written
 into the buffer ~bytes~ which has to be allocated by the caller. The size of the
 buffer can be estimated by the function sizeDecoded().   
 
 */
-   void decodeStream(istream& in, ostream& out);
-   void encodeStream(istream& in, ostream& out);
+   void decodeStream(std::istream& in, std::ostream& out);
+   void encodeStream(std::istream& in, std::ostream& out);
 
 /*
 Encode or decode a stream of base64 characters or bytes. 
@@ -99,8 +98,8 @@ private:
    bool isAllowed(char b);
 
    /* these functions implement the encoding logic */
-   void encode2(const char* buffer, string& text, int size);
-   bool getNext(char& byte, istream& in);
+   void encode2(const char* buffer, std::string& text, int size);
+   bool getNext(char& byte, std::istream& in);
 
    /* status and position information*/ 
    bool endReached;

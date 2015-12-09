@@ -66,7 +66,7 @@ namespace raster2 {
         if(!nl->HasLength(args,4)){
           return listutils::typeError("4 arguments expeted");
         }
-        string err = "stype x duration x instant x instant expected";
+        std::string err = "stype x duration x instant x instant expected";
         ListExpr stype = nl->First(args);
         ListExpr dur = nl->Second(args);
         ListExpr start = nl->Third(args);
@@ -74,8 +74,8 @@ namespace raster2 {
 
         if(   !util::isSType(stype) 
            || !Duration::checkType(dur) 
-           || !DateTime::checkType(start)
-           || !DateTime::checkType(end)){
+           || !datetime::DateTime::checkType(start)
+           || !datetime::DateTime::checkType(end)){
          return listutils::typeError(err);
        }
        std::string st = nl->SymbolValue(stype);

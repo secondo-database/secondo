@@ -19,8 +19,6 @@
 #include "MMRTree.h"
 #include "AvlTree.h"
 
-using namespace std;
-
 
 
 namespace mmalgebra{

@@ -22,7 +22,7 @@ struct CmpTuples {
     indA( indexA ),
     indB( indexB )
   {
-    cout << "indA:" << indA << " indB:" << indB << endl;	  
+    std::cout << "indA:" << indA << " indB:" << indB << std::endl;	  
     assert(indA >= 0);
     assert(indB >= 0);
   }
@@ -60,7 +60,7 @@ typedef unsigned int HashVal;
 class HashBucket {
 
   public:
-  typedef list<Tuple*> BucketList;
+  typedef std::list<Tuple*> BucketList;
   typedef BucketList::const_iterator const_iterator;
   typedef BucketList::iterator iterator;
 
@@ -126,7 +126,7 @@ class HashTable {
  
   public:
 
-  typedef vector<HashBucket> BucketTable;
+  typedef std::vector<HashBucket> BucketTable;
   typedef BucketTable::const_iterator const_iterator;
   typedef BucketTable::iterator iterator;
 
@@ -234,12 +234,12 @@ of the bucket is reached a 0 will be returned.
     } 
 
 
-    void dumpBucketStatistics(const string& prefix, const int seqNr) const
+    void dumpBucketStatistics(const std::string& prefix, const int seqNr) const
     {
-      stringstream fileName;
+      std::stringstream fileName;
       fileName << prefix << "-" << seqNr; 
       HashTable::const_iterator it = table.begin();
-      const string sep("|");
+      const std::string sep("|");
       int bucketNr = 0;
 
       cmsg.file( fileName.str() )
@@ -247,7 +247,7 @@ of the bucket is reached a 0 will be returned.
         << " length " << sep 
         << " usedMem " << sep 
         << " probed " << sep
-        << " matches " << endl;
+        << " matches " << std::endl;
       cmsg.send(); 
 
       while ( it != table.end() )  
@@ -257,7 +257,7 @@ of the bucket is reached a 0 will be returned.
           << it->getLength() << sep
           << it->getUsedMem() << sep
           << it->getProbes() << sep
-          << it->getMatches() << endl;
+          << it->getMatches() << std::endl;
         cmsg.send();
 
         it++;

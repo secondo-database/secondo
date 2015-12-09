@@ -238,7 +238,7 @@ Derived functional STL object used to compare two tuple queue entries.
 */
 
   class TupleQueueCompare:
-    public binary_function<TupleQueueEntry*, TupleQueueEntry*, bool>
+    public std::binary_function<TupleQueueEntry*, TupleQueueEntry*, bool>
   {
     public:
 

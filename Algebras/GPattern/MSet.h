@@ -65,7 +65,6 @@ the results back so that they can be handled by SECONDO in further processing.
 #ifndef MSET_H_
 #define MSET_H_
 
-using namespace std;
 
 #include <string>
 #include "../../Tools/Flob/DbArray.h"

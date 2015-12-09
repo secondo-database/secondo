@@ -16,10 +16,10 @@ This enumeration is used to indicate the source of an ~AVLSegment~.
 #include "Coord.h"
 
 
-class myexception: public exception
+class myexception: public std::exception
 {
   public:
-    myexception(const string& s) : err(s){}
+    myexception(const std::string& s) : err(s){}
 
     ~myexception() throw() {}
 
@@ -29,7 +29,7 @@ class myexception: public exception
     return err.c_str();
   }
 
-     string err;
+     std::string err;
 
 };
 
@@ -110,7 +110,7 @@ class ExtendedHalfSegment: public HalfSegment{
 the usual Print function.  
 
 */
-  ostream& Print(ostream& out) const{
+  std::ostream& Print(std::ostream& out) const{
     out << "[Extended: {";
     HalfSegment::Print(out);
     out << "}; " ; 
@@ -141,7 +141,7 @@ enum ownertype{none, first, second, both};
 
 enum SetOperation{union_op, intersection_op, difference_op};
 
-ostream& operator<<(ostream& o, const ownertype& owner);
+std::ostream& operator<<(std::ostream& o, const ownertype& owner);
 
 
 const uint32_t LEFT      = 1;
@@ -225,7 +225,7 @@ Create a Segment only consisting of a single point.
 This function writes this segment to __out__.
 
 */
-  void Print(ostream& out)const;
+  void Print(std::ostream& out)const;
 
 /*
 ~CheckPoints~
@@ -652,12 +652,13 @@ segment is returned.
   double getY(const double x) const;
 };
 
-ostream& operator<<(ostream& o, const AVLSegment& s);
+std::ostream& operator<<(std::ostream& o, const AVLSegment& s);
 
 } // end of namespace
 
 
-ostream& operator<<(ostream& o, const avlseg::ExtendedHalfSegment& hs);
+std::ostream& operator<<(std::ostream& o, 
+                         const avlseg::ExtendedHalfSegment& hs);
 
 #endif
 

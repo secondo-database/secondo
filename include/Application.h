@@ -49,15 +49,17 @@ The module ~Application~ provides support for managing an application process.
 Access to the name of the executable and the command line parameters is offered
 in a portable way.
 
-When used together with the module ~Processes~ a very simple process communication
-based on a signal mechanism is available. Currently two user defined signals and
+When used together with the module ~Processes~ a very simple process
+ communication based on a signal mechanism is available. Currently two
+ user defined signals and
 a termination signal are supported. The user signals are flagged in member
 variables of the application and can be queried and reset at any time. For
 handling a termination signal two different ways are offered:
 
-First, simple flagging is possible and the flag can be queried at any time in the
-event loop of the application. The flag should be checked regularly and appropriate
-action should be taken when it is set.
+First, simple flagging is possible and the flag can be queried at any time
+ in the
+event loop of the application. The flag should be checked regularly and 
+appropriate action should be taken when it is set.
 
 Second, the application could provide overwrite the empty virtual method
 ~AbortOnSignal~. In this method any application specific clean up could take
@@ -119,7 +121,6 @@ typedef DWORD ProcessId;
 
 extern CMsg cmsg;
 
-using namespace std;
 
 /*
 1.4 Class "Application"[1]
@@ -156,13 +157,13 @@ Returns the number of command line arguments.
 Returns the pointer to the array of command line arguments.
 
 */
-  const string GetApplicationName() const
+  const std::string GetApplicationName() const
   { return (appName); };
 /*
 Returns the name of the executable file.
 
 */
-  const string GetApplicationPath() const
+  const std::string GetApplicationPath() const
   { return (appPath); };
 /*
 Returns the path name where the application was started from.
@@ -269,8 +270,8 @@ such circumstances.
  private:
   int           argCount;     // number of arguments
   const char**  argValues;    // array of arguments
-  string        appName;      // name of application
-  string        appPath;      // path of application
+  std::string        appName;      // name of application
+  std::string        appPath;      // path of application
   ProcessId     ownpid;       // own process id
   ProcessId     parent;       // parent process id
   bool          hasSocket;    // flag 
@@ -310,7 +311,7 @@ These methods emulate the signal mechanism for the ~Microsoft Windows~ platform.
 
 
   static Application* appPointer;
-  static map<int, std::string> signalStr;
+  static std::map<int, std::string> signalStr;
   static bool dumpStacktrace;     // Dump stacktrace on app crash
   static char* stacktraceOutput;  // Output filename for stacktraces
 

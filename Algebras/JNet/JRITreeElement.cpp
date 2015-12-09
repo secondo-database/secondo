@@ -123,7 +123,7 @@ void JRITreeElement::operator= (const JRITreeElement telem)
   right = telem.GetRightSon();
 }
 
-ostream& JRITreeElement::Print(ostream& os) const
+std::ostream& JRITreeElement::Print(std::ostream& os) const
 {
   os << "JRITreeElement: ";
   rint.Print(os);
@@ -136,7 +136,7 @@ ostream& JRITreeElement::Print(ostream& os) const
 
 */
 
-ostream& operator<< (ostream& os, const JRITreeElement elem)
+std::ostream& operator<< (std::ostream& os, const JRITreeElement elem)
 {
   elem.Print(os);
   return os;

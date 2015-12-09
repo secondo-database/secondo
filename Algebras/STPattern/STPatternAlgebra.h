@@ -94,7 +94,6 @@ paper "Spatiotemporal Pattern Queries"
 
 #include "TemporalReasoner.h"
 #include <map>
-using namespace datetime;
 typedef DateTime Instant;
 extern NestedList *nl;
 extern QueryProcessor* qp;  

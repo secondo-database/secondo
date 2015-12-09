@@ -28,8 +28,6 @@ Jan. 2005, M. Spiekermann
 
 #include <string>
 
-using namespace std;
-
 class License {
 
 private:
@@ -38,9 +36,9 @@ private:
 public:
   ~License(){}
 
-  static const string& getStr() {
+  static const std::string& getStr() {
 
-    static const string licenseStr = string(
+    static const std::string licenseStr = std::string(
       "\nCopyright (C) 2004, University in Hagen, \n"
       "Department of Computer Science,  \n"
       "Database Systems for New Applications. \n\n"

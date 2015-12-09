@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sstream>
 #include <cstdlib>
 
+using namespace std;
+
 char 
 Base64::base64Alphabet[] = {'A','B','C','D','E','F','G','H','I','J','K',
                         'L','M','N','O','P','Q','R','S','T','U','V',

@@ -77,13 +77,13 @@ namespace raster2
 
     void destroy();
     sint::storage_type& getStorage();
-    string atlocation(double x, double y) const;
-    void setatlocation(double x, double y, const string& value);
+    std::string atlocation(double x, double y) const;
+    void setatlocation(double x, double y, const std::string& value);
     temporalalgebra::MString compose(const temporalalgebra::MPoint& m) const;
     sstring* atrange(const Rect& rRect) const;
     Rect bbox() const;
-    string getMinimum() const;
-    string getMaximum() const;
+    std::string getMinimum() const;
+    std::string getMaximum() const;
     grid2 getGrid() const;
     void setGrid(const grid2&);
 
@@ -107,7 +107,7 @@ namespace raster2
 
     */
     
-    static const string BasicType();
+    static const std::string BasicType();
     static const bool checkType(const ListExpr type);
     static void* Cast(void* pVoid);
     static Word Clone(const ListExpr typeInfo,
@@ -153,7 +153,7 @@ namespace raster2
   };
   
   template <>
-  struct stype_helper<string>
+  struct stype_helper<std::string>
   {
     typedef sstring implementation_type;
     typedef CcString wrapper_type;
@@ -166,7 +166,7 @@ namespace raster2
       return nl.isString();
     }
     
-    static string parse(const NList& nl)
+    static std::string parse(const NList& nl)
     {
       return nl.str();
     }
@@ -176,12 +176,12 @@ namespace raster2
       return isUndefined(s) ? NList(Symbol::UNDEFINED()) : NList(s, true);
     }
 
-    static bool isUndefined(const string& rString)
+    static bool isUndefined(const std::string& rString)
     {
       return rString == UNDEFINED_STRING;
     }
     
-    static string getUndefined()
+    static std::string getUndefined()
     {
       return UNDEFINED_STRING;
     }
@@ -191,7 +191,7 @@ namespace raster2
       return CcString::BasicType();
     }
     
-    static CcString wrap(const string& rString)
+    static CcString wrap(const std::string& rString)
     {
       return CcString(!isUndefined(rString), rString);
     }

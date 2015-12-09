@@ -122,7 +122,8 @@ Returns the ~y~-coordinate. For geographic coordinates: the LATitude
       return y;
     }
 /*
-Returns the point's bounding box which is a rectangle with (almost) no extension.
+Returns the point's bounding box which is a rectangle with (almost)
+ no extension.
 
 */
     inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
@@ -238,8 +239,8 @@ Operators redefinition.
 *Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~ and (~geoid == NULL~ or
 ~geoid.IsDefined()~
 
-*Semantics:* $dist(u,v) = \sqrt{(u.x - v.x)^2 + (u.y - v.y)^2}$ If ~geoid~ is NULL,
-euclidean geometry is used, otherwise spherical geometry.
+*Semantics:* $dist(u,v) = \sqrt{(u.x - v.x)^2 + (u.y - v.y)^2}$ 
+If ~geoid~ is NULL, euclidean geometry is used, otherwise spherical geometry.
 
 *Complexity:* $O(1)$
 
@@ -330,17 +331,17 @@ If ~geoid~ is NULL, euclidean geometry is used, otherwise spherical geometry.
 
 */
 
-virtual string getCsvStr() const{
+virtual std::string getCsvStr() const{
     if(!IsDefined()){
       return "undef";    
     }
-    stringstream ss;
+    std::stringstream ss;
     ss.precision(16);
     ss << "(" << x << " " << y << ")";
     return ss.str();
  }
 
-virtual void ReadFromString(string value);
+virtual void ReadFromString(std::string value);
 
 
 
@@ -387,9 +388,9 @@ Computes the direction or heading (resp. direction/heading on a sphere) between
 if both points are defined and not equal.
 
 If ~useHeading~ is ~false~, mathematical measuring is used (counter clockwise,
-0 degree means following the direction of the X-axis). If ~useHeadding~ is ~true~,
-geographical direction is used (clockwise, 0 degree means NORTH or following the
-direction of the Y-axis).
+0 degree means following the direction of the X-axis). If ~useHeadding~ 
+is ~true~, geographical direction is used (clockwise, 0 degree means NORTH or
+ following the direction of the Y-axis).
 
 If ~geoid~ is NULL, euclidean geometry is used, otherwise the geoid object
 is applied during spherical geometric calculation.
@@ -412,8 +413,9 @@ An alias for backward compatibility
 */
   double Direction(const Point& p, const Geoid* geoid = 0,
                    const bool atEndpoint = false ) const{
-    cerr << __PRETTY_FUNCTION__ << ": WARNING - this function is deprecated!"
-         << endl;
+    std::cerr << __PRETTY_FUNCTION__ 
+              << ": WARNING - this function is deprecated!"
+              << std::endl;
     return Direction(p, false, geoid, atEndpoint);
   }
 
@@ -423,8 +425,9 @@ An alias for backward compatibility
 */
   double Heading(const Point& p, const Geoid* geoid = 0,
                  const bool atEndpoint = false) const {
-    cerr << __PRETTY_FUNCTION__ << ": WARNING - this function is deprecated!"
-         << endl;
+    std::cerr << __PRETTY_FUNCTION__ 
+              << ": WARNING - this function is deprecated!"
+              << std::endl;
     return Direction(p, true, geoid, atEndpoint);
   }
 
@@ -435,10 +438,12 @@ An alias for backward compatibility
 
 *Precondition:* none.
 
-*Semantics:* Returns the midpoint between ~this~ point and the supplied point ~p~.
-If one of the two Points is undefined, an UNDEFINED Point is returned.
+*Semantics:* Returns the midpoint between ~this~ point and the supplied
+ point ~p~.  If one of the two Points is undefined, an UNDEFINED Point 
+is returned.
 If AlmostEqual(this,p), this is returned.
-If ~geoid~ is not NULL, Sperical geometry is applied, otherwise Euclidean geometry.
+If ~geoid~ is not NULL, Sperical geometry is applied, otherwise 
+Euclidean geometry.
 If an invalid geographic coordinate is found, the result is UNDEFINED.
 
 See http://mathforum.org/library/drmath/view/51822.html for derivation
@@ -490,9 +495,9 @@ In addition to the great circle distance, the initial and final bearing
 (heading, in degrees, true north=0, east=90, etc.) from THIS Point to the
 ~other~ Point are returned.
 
-If THIS and ~p~ are AlmostEqual, the distance is 0 and negative value -666.666 is
-returned for both ~initialBearingDEG~ and ~finalBearingDEG~ to indicate invalid
-headings.
+If THIS and ~p~ are AlmostEqual, the distance is 0 and negative 
+value -666.666 is returned for both ~initialBearingDEG~ and ~finalBearingDEG~
+ to indicate invalid headings.
 
 */
     double DistanceOrthodromePrecise( const Point& p,
@@ -588,7 +593,7 @@ data is represented as geographic coordinates. Otherwise, a euclidean
 coord-pair string is returned.
 
 */
-  string toString(const Geoid* geoid = 0) const;
+  std::string toString(const Geoid* geoid = 0) const;
 
 /*
 4.3.16 Operation ~GeographicBBox~
@@ -643,21 +648,21 @@ values, otherwise the result is ~true~.
 
 
 
-   virtual string getSQLType(){ return "MDSYS.SDO_GEOMETRY"; }
+   virtual std::string getSQLType(){ return "MDSYS.SDO_GEOMETRY"; }
 
-   virtual string getSQLRepresentation(){
+   virtual std::string getSQLRepresentation(){
      if(!IsDefined()){
        return "NULL";
      }
-     string sdo_gtype = "2001";  // 2 dimensional point
+     std::string sdo_gtype = "2001";  // 2 dimensional point
 
-     stringstream sdo_point;
+     std::stringstream sdo_point;
      sdo_point << "MDSYS.SDO_POINT_TYPE("
                << GetX() << ", " << GetY() << ", NULL)";
 
      // use oracle's format
     /*
-     stringstream ss;
+     std::stringstream ss;
      ss << "MDSYS.SDO_GEOMETRY(" ; // geometry
      ss << sdo_gtype << ", "; // type
      ss << "NULL" << ",";    // srid: id of spatial reference system
@@ -670,8 +675,8 @@ values, otherwise the result is ~true~.
      return  "MDSYS.SDO_GEOMETRY('" + getWKT() + "')";
    }
 
-   string getWKT(){
-     stringstream ss;
+   std::string getWKT(){
+     std::stringstream ss;
      ss <<  "POINT(" << GetX() << ", " << GetY() << ")";
      return ss.str();
    }
@@ -682,8 +687,8 @@ values, otherwise the result is ~true~.
 4.4 Functions needed to import the the ~point~ data type to tuple
 
 There are totally 8 functions which are defined as virtual functions. They need
-to be defined here in order for the Point data type to be used in Tuple definition
-as an attribute.
+to be defined here in order for the Point data type to be used in Tuple 
+definition as an attribute.
 
 */
     inline size_t Sizeof() const;
@@ -747,7 +752,7 @@ as an attribute.
       return new Point( *this );
     }
 
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
 
     virtual uint32_t getshpType() const{
        return 1; // Point Type
@@ -769,7 +774,7 @@ as an attribute.
     virtual double getMaxY() const{
       return y;
     }
-    virtual void writeShape(ostream& o, uint32_t RecNo) const{
+    virtual void writeShape(std::ostream& o, uint32_t RecNo) const{
 
        // first, write the record header
        WinUnix::writeBigEndian(o,RecNo);
@@ -790,7 +795,7 @@ as an attribute.
        }
     }
 
-    static const string BasicType(){
+    static const std::string BasicType(){
        return "point";
     }
     static const bool checkType(const ListExpr type){
@@ -819,7 +824,7 @@ The ~y~ coordinate.
 4.6 Auxiliary functions
 
 */
-ostream& operator<<( ostream& o, const Point& p );
+std::ostream& operator<<( std::ostream& o, const Point& p );
 
 inline bool AlmostEqual( const Point& p1, const Point& p2 )
 {

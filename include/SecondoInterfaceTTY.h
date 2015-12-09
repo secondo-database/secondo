@@ -39,15 +39,15 @@ public:
   
   ~SecondoInterfaceTTY();
   
-  virtual bool Initialize( const string& user, const string& pswd,
-                   const string& host, const string& port,
-                   string& profile,
-                   string& errorMsg,
+  virtual bool Initialize( const std::string& user, const std::string& pswd,
+                   const std::string& host, const std::string& port,
+                   std::string& profile,
+                   std::string& errorMsg,
                    const bool multiUser = false );
   
   virtual void Terminate();
   
-  virtual void Secondo( const string& commandText,
+  virtual void Secondo( const std::string& commandText,
                 const ListExpr commandLE,
                 const int commandType,
                 const bool commandAsText,
@@ -55,15 +55,15 @@ public:
                 ListExpr& resultList,
                 int& errorCode,
                 int& errorPos,
-                string& errorMessage,
-                const string& resultFileName =
+                std::string& errorMessage,
+                const std::string& resultFileName =
                                 "SecondoResult",
                 const bool isApplicationLevelCommand = true);
 
-   bool Secondo( const string& cmdText,
+   bool Secondo( const std::string& cmdText,
                  ListExpr& resultList,
                  SecErrInfo& err,
-                 const string& resultFileName = "SecondoResult",
+                 const std::string& resultFileName = "SecondoResult",
                  const bool isApplicationLevelCommand = true        ){
      return SecondoInterface::Secondo(cmdText,resultList,err,
                           resultFileName,isApplicationLevelCommand);
@@ -72,7 +72,7 @@ public:
    bool Secondo( const ListExpr cmdList,
                  ListExpr& resultList,
                  SecErrInfo& err,
-                 const string& resultFileName = "SecondoResult",
+                 const std::string& resultFileName = "SecondoResult",
                  const bool isApplicationLevelCommand = true        ){
      return SecondoInterface::Secondo(cmdList, resultList, err, 
                               resultFileName, isApplicationLevelCommand);
@@ -81,10 +81,10 @@ public:
   
   virtual ListExpr NumericTypeExpr( const ListExpr type );
   
-  virtual bool GetTypeId( const string& name,
+  virtual bool GetTypeId( const std::string& name,
                   int& algebraId, int& typeId );
   
-  virtual bool LookUpTypeExpr( ListExpr type, string& name,
+  virtual bool LookUpTypeExpr( ListExpr type, std::string& name,
                        int& algebraId, int& typeId );
   
   
@@ -93,7 +93,7 @@ public:
   virtual void SetDebugLevel( const int level );
   
   virtual  bool getOperatorIndexes(
-         const string OpName,
+         const std::string OpName,
          ListExpr argList,
          ListExpr& resList,
          int& algId,
@@ -183,32 +183,34 @@ public:
 
 protected:
      virtual void StartCommand();
-     virtual bool FinishCommand( SI_Error& errorCode, string& errorMessage, 
+     virtual bool FinishCommand( SI_Error& errorCode, 
+                                 std::string& errorMessage, 
                                  bool autoTransaction = true);
-     virtual void constructErrMsg(int& errorCode, string& errorMessage);
+     virtual void constructErrMsg(int& errorCode, std::string& errorMessage);
      virtual SI_Error Command_Query( const ListExpr list,
-                          ListExpr& result, string& errorMessage,
+                          ListExpr& result, std::string& errorMessage,
                           bool autoTransaction );
      virtual SI_Error Command_Create( const ListExpr list,
                            ListExpr& result,
-                           ListExpr& error, string& errorMessage );
-     virtual SI_Error Command_Let( const ListExpr list, string& errorMessage, 
+                           ListExpr& error, std::string& errorMessage );
+     virtual SI_Error Command_Let( const ListExpr list, 
+                                   std::string& errorMessage, 
                                    bool autoTransaction );
      virtual SI_Error Command_Set( const ListExpr list );
      virtual SI_Error Command_Derive( const ListExpr list, 
-                                      string& errorMessage );
+                                      std::string& errorMessage );
      virtual SI_Error Command_Update( const ListExpr list, 
-                                      string& errorMessage );
+                                      std::string& errorMessage );
      virtual SI_Error Command_Conditional( const ListExpr list,
                                 ListExpr &resultList,
-                                string &errorMessage );
+                                std::string &errorMessage );
      virtual SI_Error Command_Sequence( const ListExpr list,
                              ListExpr &resultList,
-                             string &errorMessage,
+                             std::string &errorMessage,
                              bool conjunct );
      virtual SI_Error Command_WhileDoLoop( const ListExpr list,
                                 ListExpr &resultList,
-                                string &errorMessage );
+                                std::string &errorMessage );
     
 };
 

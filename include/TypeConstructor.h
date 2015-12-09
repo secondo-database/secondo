@@ -20,7 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-April 2006, M. Spiekermann. The file Algebra.h need to be divided into Operators.h. TypeConstructors.h,
+April 2006, M. Spiekermann. The file Algebra.h need to be divided into 
+Operators.h. TypeConstructors.h,
 AlgebraClassDef.h and AlgebraInit.h
 
 */
@@ -40,8 +41,6 @@ AlgebraClassDef.h and AlgebraInit.h
 
 // a forward declaration
 class AlgebraManager;
-
-using namespace std;
 
 /*
 1 Class ~TypeConstructor~
@@ -77,12 +76,12 @@ constructor.
 
 struct ConstructorInfo {
 
-  string name;
-  string signature;
-  string typeExample;
-  string listRep;
-  string valueExample;
-  string remarks;
+  std::string name;
+  std::string signature;
+  std::string typeExample;
+  std::string listRep;
+  std::string valueExample;
+  std::string remarks;
 
   ConstructorInfo() :
     name(""),
@@ -93,12 +92,12 @@ struct ConstructorInfo {
     remarks("")
   {}
 
-  ConstructorInfo( const string& _name,
-                   const string& _signature,
-                   const string& _typeExample,
-                   const string& _listRep,
-                   const string& _valueExample,
-                   const string& _remarks       )
+  ConstructorInfo( const std::string& _name,
+                   const std::string& _signature,
+                   const std::string& _typeExample,
+                   const std::string& _listRep,
+                   const std::string& _valueExample,
+                   const std::string& _remarks       )
   {
     name = _name;
     signature = _signature;
@@ -169,7 +168,7 @@ struct ConstructorInfo {
 class TypeConstructor
 {
  public:
-  TypeConstructor( const string& nm,
+  TypeConstructor( const std::string& nm,
                    TypeProperty prop,
                    OutObject out,
                    InObject in,
@@ -220,7 +219,7 @@ Constructs a type constructor.
 Destroys an instance of a type constructor.
 
 */
-  void AssociateKind( const string& kindName );
+  void AssociateKind( const std::string& kindName );
 /*
 Associates the kind ~kindName~ with this type constructor.
 
@@ -265,7 +264,7 @@ ConstructorInfo into a nested list representation.
   int        SizeOf();
   inline int SerializedFixSize() { return serializedFixSize; }
 
-  string&  Name()  { return name; }
+  std::string&  Name()  { return name; }
   int NumOfFLOBs() { return numOfFlobs; }
   const ConstructorInfo& Info()  { return conInfo; }
 
@@ -307,14 +306,14 @@ These methods use the ~RestoreFromList~ and ~SaveToList~ if provided, and
     }
   }
 
-  const vector<string>& GetKinds() { return kinds; }
+  const std::vector<std::string>& GetKinds() { return kinds; }
 
-  bool   MemberOf(const string& k);
+  bool   MemberOf(const std::string& k);
 
   void   initKindDataProperties();
 
   inline Attribute::StorageType   GetStorageType() { return storageType; }
-  string                          Storage2Str();
+  std::string                          Storage2Str();
 
 /*
 Dummy methods used as placeholders for type constructor functions.
@@ -328,7 +327,7 @@ Dummy methods used as placeholders for type constructor functions.
   }
 
   ConstructorInfo          conInfo;
-  string                   name;   // Name of type constr.
+  std::string                   name;   // Name of type constr.
   TypeProperty             propFunc;
   OutObject                outFunc;
   InObject                 inFunc;
@@ -343,7 +342,7 @@ Dummy methods used as placeholders for type constructor functions.
   ObjectCast               castFunc;
   ObjectSizeof             sizeofFunc;
   TypeCheckFunction        typeCheckFunc;
-  vector<string>           kinds;  // Kinds of type constr.
+  std::vector<std::string>           kinds;  // Kinds of type constr.
   int                      numOfFlobs;
 
   Attribute::StorageType storageType;

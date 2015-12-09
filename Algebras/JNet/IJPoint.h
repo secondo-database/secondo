@@ -88,8 +88,8 @@ public:
   int Compare(const Attribute* rhs) const;
   int Compare(const IJPoint& rhs) const;
   size_t Sizeof() const;
-  ostream& Print(ostream& os) const;
-  static const string BasicType();
+  std::ostream& Print(std::ostream& os) const;
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -127,7 +127,7 @@ public:
 1.1.1 Other Operations
 
 */
-  static string Example();
+  static std::string Example();
 
 /*
 1.1 Private declarations
@@ -162,9 +162,7 @@ declared to be private.
 
 */
 
-using namespace jnetwork;
-
-ostream& operator<< (const ostream& os, const jnetwork::IJPoint& jp);
+std::ostream& operator<< (const std::ostream& os, const jnetwork::IJPoint& jp);
 
 
 

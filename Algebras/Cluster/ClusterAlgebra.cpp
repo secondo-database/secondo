@@ -66,6 +66,7 @@ in the Eps-range to one of the points in the cluster, this point
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+using namespace std;
 
 namespace clusteralg{
 

@@ -121,9 +121,9 @@ class Disc : public Attribute{
 
     size_t Sizeof() const { return sizeof(*this); }
 
-    virtual ostream& Print( ostream& os ) const;
+    virtual std::ostream& Print( std::ostream& os ) const;
 
-    static string BasicType(){ return "disc"; }
+    static std::string BasicType(){ return "disc"; }
 
     static const bool checkType(const ListExpr type){
         return listutils::isSymbol(type, BasicType());

@@ -53,7 +53,8 @@ Loads a network with a given id.
 */
 
   static Network* GetNetwork(int in_iNetworkId);
-  static Network* GetNetworkNew(int in_iNetworkId, map<int,string> *netList);
+  static Network* GetNetworkNew(int in_iNetworkId, 
+                          std::map<int,std::string> *netList);
 
 
 /*

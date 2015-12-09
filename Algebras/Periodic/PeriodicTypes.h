@@ -84,9 +84,6 @@ natural language (like each second monday of the month) can't be modelled.
 #include "GenericTC.h"
 #include "ListUtils.h"
 
-using namespace datetime;
-using namespace toprel;
-
 #include "TemporalAlgebra.h"
 
 namespace periodic {

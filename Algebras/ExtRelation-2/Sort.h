@@ -182,7 +182,7 @@ Ratio between ~MinimumRunLength~ and ~RunLength~
 */
 };
 
-ostream& operator <<(ostream& stream, SortedRunInfo& info);
+std::ostream& operator <<(std::ostream& stream, SortedRunInfo& info);
 /*
 Overloaded operator << of ~SortedRunInfo~
 
@@ -353,19 +353,19 @@ Timer for merge phase
 
 */
 
-  string TimeRunPhase;
+  std::string TimeRunPhase;
 /*
 Used time for building initial runs
 
 */
 
-  string TimeMergePhase;
+  std::string TimeMergePhase;
 /*
 Used time for merge phase
 
 */
 
-  string TimeTotal;
+  std::string TimeTotal;
 /*
 Total time used by sort operation
 
@@ -378,13 +378,13 @@ detailed run statistics are shown. Default value is true.
 
 */
 
-  vector<SortedRunInfo*> InitialRunInfo;
+  std::vector<SortedRunInfo*> InitialRunInfo;
 /*
 Array for collecting the initial run information
 
 */
 
-  vector<SortedRunInfo*> FinalRunInfo;
+  std::vector<SortedRunInfo*> FinalRunInfo;
 /*
 Array for collecting the final run information for the last merge phase.
 Initial runs may be delete and be combined into new runs during intermediate
@@ -393,7 +393,7 @@ merge phases.
 */
 };
 
-ostream& operator <<(ostream& stream, SortInfo& info);
+std::ostream& operator <<(std::ostream& stream, SortInfo& info);
 /*
 Overloaded operator << of ~SortInfo~. Used for tracing.
 
@@ -745,7 +745,7 @@ Set Flag to true to enable trace mode
 */
 };
 
-ostream& operator<<(ostream& os, SortedRun& run);
+std::ostream& operator<<(std::ostream& os, SortedRun& run);
 /*
 Overloaded operator << of ~SortedRun~. Used for for debugging purposes.
 
@@ -761,7 +761,7 @@ instances according to their run number.
 
 */
 class SortedRunCompareNumber :
-  public binary_function<SortedRun*, SortedRun*, bool >
+  public std::binary_function<SortedRun*, SortedRun*, bool >
 {
   public:
 
@@ -779,7 +779,7 @@ instances according to their tuple count.
 
 */
 class SortedRunCompareLengthLesser :
-  public binary_function<SortedRun*, SortedRun*, bool >
+  public std::binary_function<SortedRun*, SortedRun*, bool >
 {
   public:
 
@@ -797,7 +797,7 @@ instances according to their tuple count.
 
 */
 class SortedRunCompareLengthGreater :
-  public binary_function<SortedRun*, SortedRun*, bool >
+  public std::binary_function<SortedRun*, SortedRun*, bool >
 {
   public:
 
@@ -965,7 +965,7 @@ processed within one final merge phase.
 
 */
 
-    Tuple* nextResultTuple(vector<SortedRun*>& arr);
+    Tuple* nextResultTuple(std::vector<SortedRun*>& arr);
 /*
 Returns the pointer of the next result tuple in sort order. This is an internal
 method which is called by ~NextResultTuple~ and during intermediate merge phases.
@@ -989,7 +989,7 @@ Calculates if any intermediate merge phases are necessary. Member variables
 
 */
 
-    int simulateIntermediateMerge(vector<int>& arr, int f);
+    int simulateIntermediateMerge(std::vector<int>& arr, int f);
 /*
 Simulates and the determines the cost for an intermediate merge phase.
 ~arr~ is an array containing the run length in tuples. ~f~ is the fan-in
@@ -999,7 +999,7 @@ to determine the total costs for the intermediate merge phases.
 
 */
 
-    int sumLastN(vector<int>& arr, int n);
+    int sumLastN(std::vector<int>& arr, int n);
 /*
 Sums the last ~n~ elements of the integer array ~arr~ and returns it as the
 result.
@@ -1098,7 +1098,7 @@ Used memory in bytes
 
 */
 
-    vector<SortedRun*> runs;
+    std::vector<SortedRun*> runs;
 /*
 Array which contains the references to the external runs located on disk
 

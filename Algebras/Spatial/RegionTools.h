@@ -58,8 +58,8 @@ You can ensure this using code like:
 */
 
 
-Region* buildRegion(vector< vector<Point> >& cycles);
-Region* buildRegion2(vector< vector<Point> >& cycles);
+Region* buildRegion(std::vector< std::vector<Point> >& cycles);
+Region* buildRegion2(std::vector< std::vector<Point> >& cycles);
 
 
 /*
@@ -71,7 +71,7 @@ cycle is directed counter clockwise, the result will be false.
 
 */
 
-bool getDir(const vector<Point>& vp);
+bool getDir(const std::vector<Point>& vp);
 
 
 
@@ -81,7 +81,7 @@ bool getDir(const vector<Point>& vp);
 This function changes the direction of a cycle.
 
 */
-void reverseCycle(vector<Point>& cycle);
+void reverseCycle(std::vector<Point>& cycle);
 
 
 

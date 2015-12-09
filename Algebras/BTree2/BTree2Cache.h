@@ -40,7 +40,6 @@ won't be removed from memory unless the BTree is removed from memory.
 #ifndef _BTREE2_CACHECLASS_H_
 #define _BTREE2_CACHECLASS_H_
 
-using namespace std;
 
 #include "BTree2.h"
 #include "BTree2Types.h"
@@ -510,9 +509,9 @@ void BTree2Cache<KEYTYPE,VALUETYPE>::clear() {
   for (it = nodesInMemory.begin(); it != nodesInMemory.end(); it++) {
     cacheS* s = it->second;
     if (s->garbageCount > 0) {
-      cerr << "Internal software error: Cache memory leakage. Maybe you " <<
-              "forgot a dispose? [" << s->nodeId << "/" 
-           << s->garbageCount << "]" << endl;
+      std::cerr << "Internal software error: Cache memory leakage. Maybe you "
+                << "forgot a dispose? [" << s->nodeId << "/" 
+           << s->garbageCount << "]" << std::endl;
     }
     if (s->internal) {
       delete s->internalNode;
@@ -540,7 +539,7 @@ void BTree2Cache<KEYTYPE,VALUETYPE>::addInternalNodeToCache(InternalNode* n) {
    //historyList.push(s->nodeId);
    BTree2::PinnedNodeInfo pni(s->nodeId, s->memoryUsage);
    s->pinned = (pinnedNodes.find(pni) != pinnedNodes.end());
-   nodesInMemory.insert(pair<NodeId,cacheS*>(s->nodeId,s));
+   nodesInMemory.insert(std::pair<NodeId,cacheS*>(s->nodeId,s));
    cacheElements++;
    cacheMemoryUsage += s->memoryUsage;
    if (operationRelatedHitCounting) {
@@ -565,7 +564,7 @@ void BTree2Cache<KEYTYPE,VALUETYPE>::addLeafNodeToCache(LeafNode* n) {
    //historyList.push(s->nodeId);
    BTree2::PinnedNodeInfo pni(s->nodeId, s->memoryUsage);
    s->pinned = (pinnedNodes.find(pni) != pinnedNodes.end());
-   nodesInMemory.insert(pair<NodeId,cacheS*>(s->nodeId,s));
+   nodesInMemory.insert(std::pair<NodeId,cacheS*>(s->nodeId,s));
    cacheElements++;
    cacheMemoryUsage += s->memoryUsage;
    if (operationRelatedHitCounting) {
@@ -904,8 +903,9 @@ bool BTree2Cache<KEYTYPE,VALUETYPE>::hasUndisposedThings() {
 
   for (it = nodesInMemory.rbegin(); it != nodesInMemory.rend(); ++it, --idx) {
     if ((*it).second->garbageCount != 0) {
-      cerr << "Warning! Cache memory leakage. Maybe you forgot a dispose? [" 
-           << (*it)->nodeId << "/" << (*it)->garbageCount << "]" << endl;
+      std::cerr << "Warning! Cache memory leakage. Maybe "
+                << "you forgot a dispose? [" 
+           << (*it)->nodeId << "/" << (*it)->garbageCount << "]" << std::endl;
       x = true;
     }
   }
@@ -920,14 +920,14 @@ void BTree2Cache<KEYTYPE,VALUETYPE>::printCache() {
     typename std::map<NodeId,cacheS*>::iterator it;
     size_t totalMem = 0;
   
-    cerr << "Cache has " << cacheElements << " entries = " 
-         << nodesInMemory.size() << endl;
+    std::cerr << "Cache has " << cacheElements << " entries = " 
+         << nodesInMemory.size() << std::endl;
     for (it = nodesInMemory.begin(); it != nodesInMemory.end(); ++it) {
       cacheS* s = (*it).second;
       if (s->pinned) {
-        cerr << s->nodeId << "/" << s->garbageCount << "P ";
+        std::cerr << s->nodeId << "/" << s->garbageCount << "P ";
       } else {
-        cerr << s->nodeId << "/" << s->garbageCount << " ";
+        std::cerr << s->nodeId << "/" << s->garbageCount << " ";
       }
       if (s->internal) {
         InternalNode* n = s->internalNode;
@@ -937,13 +937,13 @@ void BTree2Cache<KEYTYPE,VALUETYPE>::printCache() {
         totalMem += n->GetMemoryUsage();
       }
     }
-    cerr << endl;
-    cerr << "Memory usage: " << totalMem << endl;
-    cerr << "Approx: " << cacheMemoryUsage << endl;
+    std::cerr << std::endl;
+    std::cerr << "Memory usage: " << totalMem << std::endl;
+    std::cerr << "Approx: " << cacheMemoryUsage << std::endl;
     if (cacheWithFixedElements) {
-      cerr << "Cache elements limit: " << cacheElementLimit << endl;
+      std::cerr << "Cache elements limit: " << cacheElementLimit << std::endl;
     } else {
-      cerr << "Cache memory limit: " << cacheMemoryLimit << endl;
+      std::cerr << "Cache memory limit: " << cacheMemoryLimit << std::endl;
     }
   }
 }

@@ -13,7 +13,6 @@
 #ifndef _BTREE_ALGEBRA_H_
 #define _BTREE_ALGEBRA_H_
 
-using namespace std;
 
 #include "SecondoSMI.h"
 #include "StandardTypes.h"
@@ -344,7 +343,7 @@ Retrieves statsitics on the used file from the storage manager
 
 */
 
-    inline static const string BasicType() { return "btree"; }
+    inline static const std::string BasicType() { return "btree"; }
 
     static const bool checkType(const ListExpr list){
       return listutils::isBTreeDescription(list);
@@ -687,9 +686,9 @@ bool BTree_t<Valuetype>::getFileStats( SmiStatResultType &result )
   result = file->GetFileStatistics(SMI_STATS_EAGER);
   std::stringstream fileid;
   fileid << file->GetFileId();
-  result.push_back(pair<string,string>("FilePurpose",
+  result.push_back(std::pair<std::string,std::string>("FilePurpose",
             "SecondaryBtreeIndexFile"));
-  result.push_back(pair<string,string>("FileId",fileid.str()));
+  result.push_back(std::pair<std::string,std::string>("FileId",fileid.str()));
   return true;
 }
 

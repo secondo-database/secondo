@@ -125,6 +125,10 @@ extern QueryProcessor* qp;
 #include "Stream.h"
 #include "DLine.h"
 
+using namespace std;
+using namespace datetime;
+
+
 namespace temporalalgebra{
 
 #ifdef SECONDO_WIN32

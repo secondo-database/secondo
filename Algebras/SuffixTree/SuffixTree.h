@@ -52,7 +52,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../Tools/Flob/Flob.h"
 #include "../../Tools/Flob/DbArray.h"
 
-using namespace std;
 
 class SuffixTreeEdge;
 class SuffixTreeVertex;
@@ -69,10 +68,10 @@ class SuffixTreeVertex
 public:
 
   friend class SuffixTreeEdge;
-  friend std::ostream& operator<<(ostream& out, SuffixTreeVertex& x);
+  friend std::ostream& operator<<(std::ostream& out, SuffixTreeVertex& x);
 
   // Our default constructor
-  SuffixTreeVertex(const string *input);
+  SuffixTreeVertex(const std::string *input);
 
   // Our destructor
   virtual ~SuffixTreeVertex();
@@ -95,7 +94,7 @@ public:
   void InsertEdge(SuffixTreeEdge *edge);
 
   // Returns our Input
-  const string* GetInput() const;
+  const std::string* GetInput() const;
 
   // Return number of leaves
   size_t GetNumberOfLeaves();
@@ -109,11 +108,11 @@ public:
   bool IsRoot();
  
   // Find a given SearchPattern in our Tree
-  bool FindEdgeForSearchPattern(const string searchPattern, 
+  bool FindEdgeForSearchPattern(const std::string searchPattern, 
     const SuffixTreeEdge **resultEdge, int *resultPositionOnEdge);
 
   static SuffixTreeVertex* CreateSuffixtreeFromListExpr(ListExpr,
-      const string*);
+      const std::string*);
 
   static ListExpr CreateListExprFromSuffixtree(SuffixTreeVertex*);
 
@@ -138,8 +137,8 @@ private:
   void SetParentEdge(SuffixTreeEdge *parentEdge);
 
   // members
-  vector<SuffixTreeEdge*> mEdgeVector;
-  const string *mInput;
+  std::vector<SuffixTreeEdge*> mEdgeVector;
+  const std::string *mInput;
 
   SuffixTreeEdge *mParentEdge;
   SuffixTreeVertex *mSuffixLink;
@@ -148,8 +147,10 @@ private:
   bool cov1, cov2;
   size_t SDepth;
   size_t VertexId;
-  static SuffixTreeVertex* CreateVertex(ListExpr, const string*) throw (string);
-  static SuffixTreeEdge* CreateEdge(ListExpr, const string*) throw (string);
+  static SuffixTreeVertex* CreateVertex(ListExpr, 
+                            const std::string*) throw (std::string);
+  static SuffixTreeEdge* CreateEdge(ListExpr, 
+                            const std::string*) throw (std::string);
 };
 
 /*
@@ -163,7 +164,7 @@ class SuffixTreeEdge
 public:
 
   friend class SuffixTreeVertex;
-  friend std::ostream& operator<<(ostream& out, const SuffixTreeEdge& x);
+  friend std::ostream& operator<<(std::ostream& out, const SuffixTreeEdge& x);
 
   // Default constructor
   SuffixTreeEdge();

@@ -53,8 +53,8 @@ a given file) are not longer available.
 ~getData~
 
 The getData function retrieves data from a Flob.
-The __dest__ buffer must be provided by the caller. The requested content is copied
-to that buffer.
+The __dest__ buffer must be provided by the caller. The requested content
+ is copied to that buffer.
 
 */
 
@@ -113,8 +113,8 @@ argument's content stored within the given file.
 ~saveTo~
 
 Saves a Flob into a specific file. The Flob is saved into a newly created record
-in the file at offset 0. By saving the old Flob, a new Flob referencing the stored
-data is created which is the result of this function.
+in the file at offset 0. By saving the old Flob, a new Flob referencing the
+ stored data is created which is the result of this function.
 
 */
 
@@ -162,7 +162,7 @@ Puts data into a Flob without checking or changing sizes.
 Link Flob to an external file.
 
 */
-      bool setExFile(Flob& flob, const string& flobFile,
+      bool setExFile(Flob& flob, const std::string& flobFile,
           const SmiSize length, const SmiSize flobOffset);
 
 /*
@@ -172,7 +172,7 @@ Read the data to Flob with mode 1
 
 */
 
-      bool SwitchToMode1(Flob& flob, const string& flobFile,
+      bool SwitchToMode1(Flob& flob, const std::string& flobFile,
           const SmiSize length, const SmiSize flobOffset);
 
 /*
@@ -337,7 +337,8 @@ The only instance of the FlobManager, never use this member directly!
 /*
 ~nativeFlobs~
 
-File id for freshly created Flobs. Only to be used by the Flobmanager class itself.
+File id for freshly created Flobs. Only to be used by the Flobmanager
+ class itself.
 
 */
      SmiFileId nativeFlobs; // for in memory Flobs
@@ -349,7 +350,7 @@ File id for freshly created Flobs. Only to be used by the Flobmanager class itse
 This map is used to manage all file ids and files opened by the FlobManager.
 
 */
-    map< pair<SmiFileId, bool>, SmiRecordFile*> openFiles;
+    std::map< std::pair<SmiFileId, bool>, SmiRecordFile*> openFiles;
 
 
 /*

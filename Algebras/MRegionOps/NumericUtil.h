@@ -49,7 +49,6 @@ floating point values.
 
 #include <limits>
 
-using namespace std;
 
 namespace temporalalgebra {
 

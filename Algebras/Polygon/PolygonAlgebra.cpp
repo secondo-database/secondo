@@ -162,7 +162,7 @@ class Polygon : public Attribute
     bool Adjacent(const Attribute*) const;
     Polygon *Clone() const;
     size_t Sizeof() const;
-    ostream& Print( ostream& os ) const;
+    std::ostream& Print( std::ostream& os ) const;
 
     void Append( const Vertex &v );
     void Complete();
@@ -172,12 +172,12 @@ class Polygon : public Attribute
     int GetNoVertices() const;
     Edge GetEdge( int i ) const;
     Vertex GetVertex( int i ) const;
-    string GetState() const;
+    std::string GetState() const;
     const bool IsEmpty() const;
     void CopyFrom(const Attribute* right);
     size_t HashValue() const;
 
-    friend ostream& operator <<( ostream& os, const Polygon& p );
+    friend std::ostream& operator <<( std::ostream& os, const Polygon& p );
 
     static Word     In( const ListExpr typeInfo, const ListExpr instance,
                         const int errorPos, ListExpr& errorInfo,
@@ -208,7 +208,7 @@ class Polygon : public Attribute
 
     static void* Cast(void* addr);
 
-    static const string BasicType() { return "polygon"; }
+    static const std::string BasicType() { return "polygon"; }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
@@ -223,14 +223,14 @@ class Polygon : public Attribute
 2.3.18 Print functions
 
 */
-ostream& operator<<(ostream& os, const Vertex& v)
+std::ostream& operator<<(std::ostream& os, const Vertex& v)
 {
   os << "(" << v.x << "," << v.y << ")";
   return os;
 }
 
 
-ostream& operator<<(ostream& os, const Polygon& p)
+std::ostream& operator<<(std::ostream& os, const Polygon& p)
 {
   os << " State: " << p.GetState()
      << "<";
@@ -378,7 +378,7 @@ size_t Polygon::Sizeof() const
 2.3.8 Print
 
 */
-ostream& Polygon::Print( ostream& os ) const
+std::ostream& Polygon::Print( std::ostream& os ) const
 {
   return (os << *this);
 }
@@ -496,7 +496,7 @@ Edge Polygon::GetEdge( int i ) const
 Returns the state of the polygon in string format.
 
 */
-string Polygon::GetState() const
+std::string Polygon::GetState() const
 {
   switch( state )
   {

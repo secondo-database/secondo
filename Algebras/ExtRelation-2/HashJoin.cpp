@@ -57,7 +57,7 @@ double log2(double n)
 }
 
 
-ostream& PrintProgressInfo(ostream& os, ProgressInfo& info)
+std::ostream& PrintProgressInfo(std::ostream& os, ProgressInfo& info)
 {
   cmsg.info() << "Card: " << info.Card
               << ", Time: " << info.Time
@@ -77,7 +77,7 @@ ostream& PrintProgressInfo(ostream& os, ProgressInfo& info)
 
 */
 
-ostream& Bucket::Print(ostream& os)
+std::ostream& Bucket::Print(std::ostream& os)
 {
   os << "Bucket " << number << " (" << tuples.size() << " tuples)" << endl;
 
@@ -199,10 +199,10 @@ int HashTable::ReadFromStream(Word stream, size_t maxSize, bool& finished)
   return read;
 }
 
-vector<Tuple*> HashTable::GetTuples(int bucket)
+std::vector<Tuple*> HashTable::GetTuples(int bucket)
 {
   Tuple* t;
-  vector<Tuple*> arr;
+  std::vector<Tuple*> arr;
 
   BucketIterator* iter = buckets[bucket]->MakeScan();
 
@@ -215,7 +215,7 @@ vector<Tuple*> HashTable::GetTuples(int bucket)
   return arr;
 }
 
-ostream& HashTable::Print(ostream& os)
+std::ostream& HashTable::Print(std::ostream& os)
 {
   os << "------------- Hash-Table content --------------" << endl;
 
@@ -334,7 +334,7 @@ void Partition::Insert(Tuple* t, size_t hashFuncValue)
   buffer->AppendTuple(t);
 }
 
-ostream& Partition::Print(ostream& os)
+std::ostream& Partition::Print(std::ostream& os)
 {
     os << "[" << this->interval.GetLow() << ", "
        << this->interval.GetHigh() << "] -> "
@@ -750,7 +750,7 @@ void PartitionManager::InitPartitions(HashTable* h)
 {
   for(size_t i = 0; i < h->GetNoBuckets(); i++)
   {
-    vector<Tuple*> arr = h->GetTuples(i);
+    std::vector<Tuple*> arr = h->GetTuples(i);
 
     for(size_t j = 0; j < arr.size(); j++)
     {
@@ -835,7 +835,7 @@ bool PartitionManager::LoadPartition( int n,
   return true;
 }
 
-ostream& PartitionManager::Print(ostream& os)
+std::ostream& PartitionManager::Print(std::ostream& os)
 {
   os << "-------------------- Partitioning -----------------------" << endl;
 

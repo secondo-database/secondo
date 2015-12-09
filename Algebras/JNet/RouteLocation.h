@@ -99,8 +99,8 @@ static int Compare(const void* ls, const void* rs);
 int Compare(const Attribute* rhs) const;
 int Compare(const RouteLocation& rhs) const;
 size_t Sizeof() const;
-ostream& Print(ostream& os) const;
-static const string BasicType();
+std::ostream& Print(std::ostream& os) const;
+static const std::string BasicType();
 static const bool checkType(const ListExpr type);
 
 /*
@@ -145,7 +145,7 @@ property definitions for part of route location representation.
 
 */
 
-static string Example();
+static std::string Example();
 
 /*
 1.1.1.1 SameSide
@@ -212,8 +212,6 @@ private:
 
 */
 
-using namespace jnetwork;
-
-ostream& operator<<(ostream& os, const jnetwork::RouteLocation& dir);
+std::ostream& operator<<(std::ostream& os, const jnetwork::RouteLocation& dir);
 
 #endif // JRLOC_H

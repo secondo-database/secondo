@@ -276,7 +276,7 @@ builts the concatenation of r1 and r2.
   }
 
 
-  stringstream&  printTo(stringstream& ss){
+  std::stringstream&  printTo(std::stringstream& ss){
      bool b;
      switch(type){
         case EPSILON : ss << "€"; break;
@@ -327,7 +327,7 @@ class Edge{
 
   public:
 
-  Edge(int _target, string label):
+  Edge(int _target, std::string label):
     target(_target), regex() {
     if(label.size()>0){
        regex = RegEx(label[0]);
@@ -456,13 +456,13 @@ Add a transition to this automaton.
       loops.push_back(0);
     }
     if(!successors[source]){
-      successors[source] = new vector<Edge>();
-      predecessors[source] = new vector<Edge>();
+      successors[source] = new std::vector<Edge>();
+      predecessors[source] = new std::vector<Edge>();
       loops[source] = new RegEx();
     }
     if(!successors[target]){
-      successors[target] = new vector<Edge>();
-      predecessors[target] = new vector<Edge>();
+      successors[target] = new std::vector<Edge>();
+      predecessors[target] = new std::vector<Edge>();
       loops[target] = new RegEx();
     }
     if(source!=target){
@@ -555,11 +555,11 @@ Add a transition to this automaton.
  
  private:
 
-  vector<vector<Edge>* > successors;
-  vector<vector<Edge>* > predecessors;  
-  vector<RegEx*> loops;  
+  std::vector<std::vector<Edge>* > successors;
+  std::vector<std::vector<Edge>* > predecessors;  
+  std::vector<RegEx*> loops;  
   int start;
-  vector<int> finals;
+  std::vector<int> finals;
 
   
 /*
@@ -597,8 +597,8 @@ Removes node ~node~ from the automaton
 
 */
   void removeNode(int node){
-     vector<Edge>* suc = successors[node];
-     vector<Edge>* pred = predecessors[node];
+     std::vector<Edge>* suc = successors[node];
+     std::vector<Edge>* pred = predecessors[node];
      RegEx* loop1 = loops[node];
      RegEx  loop = RegEx::star(*loop1);
      successors[node] = 0;
@@ -627,7 +627,7 @@ Removes node ~node~ from the automaton
      delete loop1;
   }
 
-  void removeTarget(vector<Edge>* v, int target){
+  void removeTarget(std::vector<Edge>* v, int target){
      for(int i=v->size()-1;i>=0;i--){
          if(v->at(i).getTarget()==target){
            v->erase(v->begin()+i);
@@ -638,8 +638,8 @@ Removes node ~node~ from the automaton
 
   // merges edges starting at src and 
   void removeParallel(int src){
-     vector<Edge>* suc = successors[src];
-     map<int,RegEx> amap;
+     std::vector<Edge>* suc = successors[src];
+     std::map<int,RegEx> amap;
      for(size_t i=0;i<suc->size();i++){
         Edge e = suc->at(i);
         int t = e.getTarget();
@@ -650,8 +650,8 @@ Removes node ~node~ from the automaton
            amap[t] = RegEx::makeor(amap[t],e.getLabel()); 
         }
      }
-     vector<Edge>* nsuc = new vector<Edge>();
-     map<int,RegEx>::iterator it;
+     std::vector<Edge>* nsuc = new std::vector<Edge>();
+     std::map<int,RegEx>::iterator it;
      for(it = amap.begin();it!=amap.end();it++){
         nsuc->push_back(Edge(it->first,it->second));
         int target = it->first;

@@ -55,7 +55,6 @@ This file contains the folllowing classes:
 #include <algorithm>
 #include <string>
 
-using namespace std;
 
 namespace gta
 {

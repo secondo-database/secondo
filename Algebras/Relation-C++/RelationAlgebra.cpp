@@ -88,7 +88,7 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager *am;
 
-
+using namespace std;
 
 /*
 3 Type constructor ~tuple~

@@ -96,8 +96,6 @@ The "="[4] operator could be used to assign a regular pointer, a "SmartPointer"[
 
 #include <limits>
 
-using namespace std;
-
 template <typename BaseT, typename CntrT = unsigned long>
 class SaveSmartPtr; // forward declaration
 

@@ -7,7 +7,6 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-using namespace std;
 
 #include "FTextAlgebra.h"
 #include "pgn_grammar.hpp"

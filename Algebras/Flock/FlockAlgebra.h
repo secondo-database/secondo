@@ -80,8 +80,6 @@ paper "Spatiotemporal Pattern Queries"
 
 #include "RegionInterpolator.h"
 
-using namespace RegionInterpol;
-using namespace datetime;
 typedef DateTime Instant;
 extern NestedList *nl;
 extern QueryProcessor* qp; 

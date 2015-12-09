@@ -142,6 +142,8 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
+using namespace std;
+
 // #define GSA_DEBUG
 #define STRALG_DEBUG false
 #define DEBUGMESSAGE(MESSAGE) if(STRALG_DEBUG) cout << __PRETTY_FUNCTION__ \

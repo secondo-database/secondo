@@ -257,13 +257,13 @@ child process table, i.e. the maximal number of concurrent child processes.
 Shuts down the process factory.
 
 */
-  static void SetDirectory( const string& directory );
+  static void SetDirectory( const std::string& directory );
 /*
 sets the directory to be used for the nexed spawned process.
 
 */
-  static bool SpawnProcess( const string& programpath,
-                            const string& arguments,
+  static bool SpawnProcess( const std::string& programpath,
+                            const std::string& arguments,
                             int& processId,
                             const bool hidden = true,
                             Socket* clientSocket = 0 );
@@ -366,8 +366,8 @@ Returns a reference to the single instance of the process factory.
   ProcessFactory( ProcessFactory& );
 
   static ProcessFactory* instance;
-  string processDirectory;
-  vector<Process> processList;
+  std::string processDirectory;
+  std::vector<Process> processList;
   int  maxChilds;
   bool reuseTerminatedEntries;
 #ifndef SECONDO_WIN32

@@ -46,6 +46,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "UkkonenTreeBuilder.h"
 
+
+using namespace std;
+
+
 /*
 1.1 Function ~CreateSuffixTree~
 
@@ -59,7 +63,7 @@ Rule 3: suffix is already present
         -> do nothing
 
 */
-SuffixTreeVertex* UkkonenTreeBuilder::CreateSuffixTree(string *nText)
+SuffixTreeVertex* UkkonenTreeBuilder::CreateSuffixTree(std::string *nText)
 {
   //phase 0: initialize tree
   SuffixTreeVertex *root = new SuffixTreeVertex(nText);

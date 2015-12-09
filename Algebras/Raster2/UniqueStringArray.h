@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../Tools/Flob/DbArray.h"
 #include "StringData.h"
 
-using namespace std;
 
 namespace raster2
 {
@@ -66,7 +65,7 @@ class UniqueStringArray : public Attribute
   */
   
   bool GetUniqueString(int nIndex, std::string& rString) const;
-  list<std::string> GetUniqueStringArray() const;
+  std::list<std::string> GetUniqueStringArray() const;
   int GetUniqueStringIndex(const std::string& rString) const;
   int AddString(const std::string& rString);
   void Destroy();

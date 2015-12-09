@@ -51,9 +51,6 @@ messages. This is still work in progress!
 #include <vector>
 
 
-using namespace std;
-
-
 /*
 The following are thresholds used in filter and join operators to determine when to switch into warm state (i.e., trust the selectivity observation). They denote the number of matching tuples that must have been found.
 
@@ -117,14 +114,14 @@ public:
   void Copy(const ProgressInfo& p);    //copy all fields
 
 
-  ostream& Print(ostream& out) const;
+  std::ostream& Print(std::ostream& out) const;
 
   bool checkRanges() const;
 
 };
 
 
-ostream& operator<<(ostream& out, const ProgressInfo& pi);
+std::ostream& operator<<(std::ostream& out, const ProgressInfo& pi);
 
 
 
@@ -253,18 +250,19 @@ for each line. Lines starting with '[#]' are ignored (comment).
 */  
      static bool readConstants(const std::string& filename);
 
-     static double getValue(const string& AlgName,
-                              const string& OpName,
-                              const string& ConstantName);
+     static double getValue(const std::string& AlgName,
+                              const std::string& OpName,
+                              const std::string& ConstantName);
 
-     static vector<pair<vector<string>, double> > getValues();
+     static std::vector<std::pair<std::vector<std::string>, double> > 
+            getValues();
 
 
   private:
      ProgressConstants(); // pure static class don't allow to 
                           // create an instance
 
-     static map<string,double> values;
+     static std::map<std::string,double> values;
 
 
 };

@@ -44,6 +44,7 @@ June 2009, Sven Jungnickel. Initial version
 
 */
 extern QueryProcessor* qp;
+using namespace std;
 
 /*
 4 Implementation of class ~SortedRunInfo~

@@ -102,7 +102,6 @@ The type system of the Temporal Algebra can be seen below.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-using namespace datetime;
 
 
 namespace temporalalgebra {
@@ -111,10 +110,10 @@ class SecInterval;
 
 
 
-//#define REF_DEBUG(msg) cout << msg << endl;
+//#define REF_DEBUG(msg) cout << msg << std::endl;
 #define REF_DEBUG(msg)
 
-string int2string(const int& number);
+std::string int2string(const int& number);
 
 /*
 3 C++ Classes (Defintion)
@@ -131,10 +130,11 @@ used in the ~instant~ type constructor.
 /*
 3.2 Interval
 
-The class ~Interval~ implements the closure of an $\alpha$-interval. To be a generic
-class, this class uses templates with parameter ~Alpha~. An interval contains a
-~start~, an ~end~ and two flags ~lc~ and ~rc~ indicating if the interval is
-left-closed and right-closed (or left-right-closed), respectively.
+The class ~Interval~ implements the closure of an $\alpha$-interval.
+To be a generic class, this class uses templates with parameter ~Alpha~.
+An interval contains a ~start~, an ~end~ and two flags ~lc~ and ~rc~ 
+indicating if the interval is left-closed and right-closed 
+(or left-right-closed), respectively.
 
 */
 template <class Alpha>
@@ -153,7 +153,8 @@ The simple constructor. This constructor should not be used.
 
 */
   explicit Interval(bool dummy):
-    start(instanttype), end(instanttype), lc(true), rc(true){}
+    start(datetime::instanttype), end(datetime::instanttype),
+    lc(true), rc(true){}
 
 
   Interval( const Interval<Alpha>& interval );
@@ -180,7 +181,8 @@ The creation of the interval setting all attributes.
 
   bool IsValid() const;
 /*
-Checks if the interval is valid or not. This function should be used for debugging purposes
+Checks if the interval is valid or not. This function should be 
+used for debugging purposes
 only.  An interval is valid if the following conditions are true:
 
   1 ~start~ and ~end~ are defined
@@ -199,13 +201,15 @@ Redefinition of the copy operator ~=~.
 
   bool operator==( const Interval<Alpha>& i ) const;
 /*
-Returns ~true~ if this interval is equal to the interval ~i~ and ~false~ if they are different.
+Returns ~true~ if this interval is equal to the interval ~i~ and 
+~false~ if they are different.
 
 */
 
   bool operator!=( const Interval<Alpha>& i ) const;
 /*
-Returns ~true~ if this interval is different to the interval ~i~ and ~false~ if they are equal.
+Returns ~true~ if this interval is different to the interval ~i~ 
+and ~false~ if they are equal.
 
 */
 
@@ -224,31 +228,36 @@ Required e.g., for RefinementStream for Periods values.
 
   bool R_Disjoint( const Interval<Alpha>& i ) const;
 /*
-Returns ~true~ if this interval is r-disjoint with the interval ~i~ and ~false~ otherwise.
+Returns ~true~ if this interval is r-disjoint with the interval 
+~i~ and ~false~ otherwise.
 
 */
 
   bool Disjoint( const Interval<Alpha>& i ) const;
 /*
-Returns ~true~ if this interval is disjoint with the interval ~i~ and ~false~ otherwise.
+Returns ~true~ if this interval is disjoint with the interval 
+~i~ and ~false~ otherwise.
 
 */
 
   bool R_Adjacent( const Interval<Alpha>& i ) const;
 /*
-Returns ~true~ if this interval is r-adjacent with the interval ~i~ and ~false~ otherwise.
+Returns ~true~ if this interval is r-adjacent with the interval 
+~i~ and ~false~ otherwise.
 
 */
 
   bool Adjacent( const Interval<Alpha>& i ) const;
 /*
-Returns ~true~ if this interval is adjacent with the interval ~i~ and ~false~ otherwise.
+Returns ~true~ if this interval is adjacent with the interval 
+~i~ and ~false~ otherwise.
 
 */
 
   bool Inside( const Interval<Alpha>& i ) const;
 /*
-Returns ~true~ if this interval is inside the interval ~i~ and ~false~ otherwise.
+Returns ~true~ if this interval is inside the interval 
+~i~ and ~false~ otherwise.
 
 */
 
@@ -270,7 +279,8 @@ point.
 
   bool Intersects( const Interval<Alpha>& i ) const;
 /*
-Returns ~true~ if this interval intersects with the interval ~i~ and ~false~ otherwise.
+Returns ~true~ if this interval intersects with the interval 
+~i~ and ~false~ otherwise.
 
 */
 
@@ -290,7 +300,8 @@ Returns ~true~ iff this interval ends after interval ~i~
 
   bool Before( const Interval<Alpha>& i ) const;
 /*
-Returns ~true~ if this interval is before the interval ~i~ and ~false~ otherwise.
+Returns ~true~ if this interval is before the interval ~i~ 
+and ~false~ otherwise.
 
 */
 
@@ -299,7 +310,8 @@ Returns ~true~ if this interval is before the interval ~i~ and ~false~ otherwise
   bool After( const Alpha& a ) const;
   bool After( const Interval<Alpha>& iv ) const;
 /*
-Returns ~true~ if this interval is before/after the value ~a~ and ~false~ otherwise.
+Returns ~true~ if this interval is before/after the value ~a~ 
+and ~false~ otherwise.
 
 */
 
@@ -340,7 +352,7 @@ Compares this and the argument;
 
 */
 
-  ostream& Print(ostream& os) const{
+  std::ostream& Print(std::ostream& os) const{
     os << (lc?"[":"(");
     start.Print(os) << ", ";
     end.Print(os) << (rc?"]":")");
@@ -362,8 +374,8 @@ interval. If __value__ is located inside the interval, the result will have
 three entries.
 
 */
-vector<Interval<Alpha> > splitAround(Alpha value) const{
-  vector<Interval<Alpha> > result;
+std::vector<Interval<Alpha> > splitAround(Alpha value) const{
+  std::vector<Interval<Alpha> > result;
   if( (value<start) || (value > end) ){
      result.push_back(*this);
      return result;
@@ -443,13 +455,14 @@ A flag indicating that the interval is right-closed.
 };
 
 template<class alpha>
-ostream& operator<<(ostream& o, const Interval<alpha>& u);
+std::ostream& operator<<(std::ostream& o, const Interval<alpha>& u);
 
 /*
 3.3 Range
 
-The ~Range~ class implements a set of disjoint, non-adjacent $\alpha$-~intervals~.
-For this implementation, it is used a database array of ordered intervals.
+The ~Range~ class implements a set of disjoint, non-adjacent
+$\alpha$-~intervals~.  For this implementation, it is used a
+database array of ordered intervals.
 
 Since intervals may contain only defined start and end values, a Range cannot
 contain undefined values.
@@ -492,26 +505,30 @@ destructor will perform the real destroying.
 
 3.3.2 Functions for Bulk Load of Range
 
-As said before, the point set is implemented as an ordered persistent array of intervals.
-The time complexity of an insertion operation in an ordered array is $O(n)$, where ~n~
-is the size of the interval set. In some cases, bulk load of intervals for example, it is good
-to relax the ordered condition to improve the performance. We have relaxed this ordered
-condition only for bulk load of   All other operations assume that the interval set is
+As said before, the point set is implemented as an ordered persistent 
+array of intervals.
+The time complexity of an insertion operation in an ordered array 
+is $O(n)$, where ~n~ is the size of the interval set. In some cases, bulk load 
+of intervals for example, it is good to relax the ordered condition to improve
+the performance. We have relaxed this ordered condition only for bulk load of
+All other operations assume that the interval set is
 ordered.
 
 */
 
     bool IsOrdered() const;
 /*
-Returns if the interval set is ordered. There is a flag ~ordered~ (see attributes) in order
-to avoid a scan in the interval set to answer this question.
+Returns if the interval set is ordered. There is a flag ~ordered~
+ (see attributes) in order to avoid a scan in the interval set to answer
+ this question.
 
 */
 
     void StartBulkLoad();
 /*
-Marks the start of a bulk load of intervals relaxing the condition that the intervals must be
-ordered. We will assume that the only way to add intervals to an interval set is inside bulk
+Marks the start of a bulk load of intervals relaxing the condition that the
+ intervals must be ordered. We will assume that the only way to add intervals
+ to an interval set is inside bulk
 loads, i.e., into non-ordered ranges.
 
 */
@@ -582,7 +599,7 @@ Remove all intervals in the range.
     inline int Compare( const Attribute* arg ) const;
     inline bool Adjacent( const Attribute* arg ) const;
     inline Range<Alpha>* Clone() const;
-    inline ostream& Print( ostream &os ) const;
+    inline std::ostream& Print( std::ostream &os ) const;
     inline size_t HashValue() const;
     inline void CopyFrom( const Attribute* right );
 
@@ -863,9 +880,9 @@ is defined and all the following conditions are true:
 
 */
 
-  inline static const string BasicType()
+  inline static const std::string BasicType()
   {
-    if(Alpha::BasicType()==DateTime::BasicType()){
+    if(Alpha::BasicType()==datetime::DateTime::BasicType()){
       return "periods";
     } else {
       return "r"+Alpha::BasicType();
@@ -991,7 +1008,7 @@ The second constructor.
     return (new Intime<Alpha>( *this));
   }
 
-  ostream& Print( ostream &os ) const
+  std::ostream& Print( std::ostream &os ) const
   {
     os << Intime<Alpha>::BasicType() << ": (";
     if ( IsDefined() )
@@ -1040,7 +1057,7 @@ The second constructor.
   }
 
   // type name used in Secondo:
-  inline static const string BasicType()
+  inline static const std::string BasicType()
   {
     return "i"+Alpha::BasicType();
   }
@@ -1298,7 +1315,7 @@ Equality is computed with respect to temporal evolution.
 Type name used in Secondo
 
 */
-  inline static const string BasicType()
+  inline static const std::string BasicType()
   {
     return "u"+Alpha::BasicType();
   }
@@ -1403,7 +1420,7 @@ The destructor.
       return false;
     }
 
-    virtual ostream& Print( ostream &os ) const
+    virtual std::ostream& Print( std::ostream &os ) const
     {
       if( IsDefined() )
         {
@@ -1429,7 +1446,7 @@ The destructor.
     virtual void CopyFrom( const Attribute* right ) = 0;
     virtual size_t Sizeof() const = 0;
 
-    inline static const string BasicType()
+    inline static const std::string BasicType()
     {
       return "u"+Alpha::BasicType();
     }
@@ -1445,7 +1462,7 @@ The output operator:
 */
 
 template<class Alpha>
-ostream& operator<<(ostream& o, const StandardTemporalUnit<Alpha>& u)
+std::ostream& operator<<(std::ostream& o, const StandardTemporalUnit<Alpha>& u)
 {
   return  u.Print(o);
 }
@@ -1516,7 +1533,7 @@ The destructor.
       return false;
     }
 
-    virtual ostream& Print( ostream &os ) const
+    virtual std::ostream& Print( std::ostream &os ) const
     {
       if( this->del.isDefined )
         {
@@ -1546,7 +1563,7 @@ The destructor.
     virtual const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const = 0;
     static unsigned GetDim(){ return dim; }
 
-    inline static const string BasicType()
+    inline static const std::string BasicType()
     {
       return "u"+Alpha::BasicType();
     }
@@ -1567,7 +1584,8 @@ The output operator
 
 */
 template<class Alpha, unsigned dim>
-ostream& operator<<(ostream& o, const SpatialTemporalUnit<Alpha, dim>& u)
+std::ostream& operator<<(std::ostream& o, 
+                         const SpatialTemporalUnit<Alpha, dim>& u)
 {
   return  u.Print(o);
 }
@@ -1882,7 +1900,7 @@ not modify this unit and return ~false~.
     return false;
   }
 
-  virtual ostream& Print( ostream &os ) const
+  virtual std::ostream& Print( std::ostream &os ) const
   {
     if( this->IsDefined() )
       {
@@ -1890,7 +1908,7 @@ not modify this unit and return ~false~.
         TemporalUnit<Alpha>::timeInterval.Print(os);
         os << ", ";
         constValue.Print(os);
-        os << " ) " << endl;
+        os << " ) " << std::endl;
         return os;
       }
     else
@@ -1920,7 +1938,7 @@ not modify this unit and return ~false~.
   }
 
   // type name used in Secondo
-  inline static const string BasicType()
+  inline static const std::string BasicType()
   {
     return "u"+Alpha::BasicType();
   }
@@ -2064,7 +2082,7 @@ class UReal : public StandardTemporalUnit<CcReal>
 Symbol for use in typemappings
 
 */
-  static const string BasicType(){ return "ureal"; }
+  static const std::string BasicType(){ return "ureal"; }
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }
@@ -2208,7 +2226,7 @@ Equality is calculated with respect to temporal evolution.
     return false;
   }
 
-  virtual ostream& Print( ostream &os ) const
+  virtual std::ostream& Print( std::ostream &os ) const
   {
     if( IsDefined() )
       {
@@ -2326,7 +2344,7 @@ same value. Returns the number of results (0-2).
 
 */
 
-  int AtMin( vector<UReal>& result ) const;
+  int AtMin( std::vector<UReal>& result ) const;
 
 /*
 Creates a vector of units, which are the restriction of this to
@@ -2342,7 +2360,7 @@ the periods, where it takes its minimum value.
 
 */
 
-  int AtMax( vector<UReal>& result ) const;
+  int AtMax( std::vector<UReal>& result ) const;
 
 /*
 Creates a vector of units, which are the restriction of this to
@@ -2358,7 +2376,7 @@ the periods, where it takes its maximum value.
 
 */
 
-  int AtValue(CcReal value, vector<UReal>& result) const;
+  int AtValue(CcReal value, std::vector<UReal>& result) const;
 /*
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes a certain value.
@@ -2373,7 +2391,7 @@ the periods, where it takes a certain value.
 
 */
 
-  int IsEqual(const UReal& other, vector<UBool>& result) const;
+  int IsEqual(const UReal& other, std::vector<UBool>& result) const;
 /*
 Creates a vector of ubool, that cover the UReals common deftime and
 indicate whether their temporal values are equal or not.
@@ -2385,7 +2403,7 @@ indicate whether their temporal values are equal or not.
 
 */
 
-int Abs(vector<UReal>& result) const;
+int Abs(std::vector<UReal>& result) const;
 /*
 Creates the absolute value for an UReal value.
 ~result~ may contain 0-3 UReal values.
@@ -2397,7 +2415,7 @@ Creates the absolute value for an UReal value.
 
 */
 
-  int Distance(const UReal& other, vector<UReal>& result) const;
+  int Distance(const UReal& other, std::vector<UReal>& result) const;
 /*
 Creates the distance to an other UReal value.
 ~result~ may contain 0-3 UReal values.
@@ -2436,7 +2454,7 @@ Creates the distance to an other UReal value.
      extremum.
    */
 
-    void CompUReal(UReal& ur2, int opcode, vector<UBool>& res);
+    void CompUReal(UReal& ur2, int opcode, std::vector<UBool>& res);
     /*
     Computes for two given ~ureal~ values the resulting ~ubool~ values,
     sorted by their time intervals, depending on the compare result for
@@ -2469,28 +2487,31 @@ regular grid.
 class GridCellSeq {
   public:
     GridCellSeq(); // standard constructor - creates undefined instance
-    GridCellSeq(const DateTime &enter,
-                const DateTime &leave,
+    GridCellSeq(const datetime::DateTime &enter,
+                const datetime::DateTime &leave,
                 const int32_t &cellNo); // automatically updates defined
     GridCellSeq(const GridCellSeq &other); // copy-constructor
     GridCellSeq& operator=(const GridCellSeq &other); // assignment
     ~GridCellSeq(); // destructor
 
-    DateTime getEnterTime() const;   // read attribute
-    DateTime getLeaveTime() const;   // read attribute
+    datetime::DateTime getEnterTime() const;   // read attribute
+    datetime::DateTime getLeaveTime() const;   // read attribute
     int32_t getCellNo() const;       // read attribute
     void setCellNo(const int32_t &n);     // set attr and update definedness
-    void setEnterTime(const DateTime &t); // set attr and updates definedness
-    void setLeaveTime(const DateTime &t); // set attr and updates definedness
+    void setEnterTime(const datetime::DateTime &t); // set attr and 
+                                                    //updates definedness
+    void setLeaveTime(const datetime::DateTime &t); // set attr and
+                                                    //  updates definedness
     void setUndefined();                  // sets defined to false
     bool IsDefined() const;          // returns definedness
-    void set(const int32_t &c, const DateTime &s, const DateTime &e);
+    void set(const int32_t &c, const datetime::DateTime &s, 
+             const datetime::DateTime &e);
                                 // set all attributes and update definedness
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
 
   private:
-    DateTime my_enterTime; // initial instant of presence in the cell
-    DateTime my_leaveTime; // final instant of presence in the cell
+    datetime::DateTime my_enterTime; // initial instant of presence in the cell
+    datetime::DateTime my_leaveTime; // final instant of presence in the cell
     int32_t my_cellNo;     // the cell concerned.
     bool defined;          // well-definedness of the data
 };
@@ -2661,7 +2682,7 @@ actual moving distance.
 UNDEFINED UReal values may be appended!.
 
 */
-  void Distance( const Point& p, vector<UReal>& result,
+  void Distance( const Point& p, std::vector<UReal>& result,
                  const Geoid* geoid = 0, const double epsilon = 0.00001 ) const;
 
 /*
@@ -2680,7 +2701,7 @@ Computation stops, once the absolute distance difference between consecutive
 steps drops below ~epsilon~.
 
 */
-  void DistanceOrthodrome( const Point& p, vector<UReal>& result,
+  void DistanceOrthodrome( const Point& p, std::vector<UReal>& result,
                            const Geoid geoid,
                            const double epsilon  = 0.00001,
                            const Instant* tMin   = 0,
@@ -2722,43 +2743,43 @@ temporal function.
     if( !IsDefined() && !i.IsDefined() ){
       // both undefined
 //       cout << "\t" << __PRETTY_FUNCTION__ << " SUCCEEDED: both undefined."
-//            << endl;
+//            << std::endl;
       return true;
     } else if( !IsDefined() || !i.IsDefined() ){
       // one of *this and i undefined
 //       cout << "\t" << __PRETTY_FUNCTION__ << " FAILED: one undefined."
-//            << endl;
+//            << std::endl;
       return false;
     } // else: both are defined
     Point v(false);
     TemporalFunction(i.timeInterval.start, v, true);
     if( !v.IsDefined() || !AlmostEqual(i.p0,v) ){
 //       cout << "\t" << __PRETTY_FUNCTION__ << " FAILED: start1 unmatched."
-//            << endl;
+//            << std::endl;
       return false;
     }
     TemporalFunction(i.timeInterval.end, v, true);
     if( !v.IsDefined() || !AlmostEqual(i.p1,v) ){
 //       cout << "\t" << __PRETTY_FUNCTION__ << " FAILED: end1 unmatched."
-//            << endl;
-//       cout << "\t" << __PRETTY_FUNCTION__ << " i.p1 = " << i.p1 << endl;
-//       cout << "\t" << __PRETTY_FUNCTION__ << " v    = " << v    << endl;
+//            << std::endl;
+//       cout << "\t" << __PRETTY_FUNCTION__ << " i.p1 = " << i.p1 << std::endl;
+//       cout << "\t" << __PRETTY_FUNCTION__ << " v    = " << v    << std::endl;
       return false;
     }
     TemporalFunction(timeInterval.start, v, true);
     if( !v.IsDefined() || !AlmostEqual(p0,v) ){
 //       cout << "\t" << __PRETTY_FUNCTION__ << " FAILED: start2 unmatched."
-//            << endl;
+//            << std::endl;
       return false;
     }
     TemporalFunction(timeInterval.end, v, true);
     if( !v.IsDefined() || !AlmostEqual(p1,v) ){
 //       cout << "\t" << __PRETTY_FUNCTION__ << " FAILED: end2 unmatched."
-//            << endl;
+//            << std::endl;
       return false;
     }
 //       cout << "\t" << __PRETTY_FUNCTION__
-//            << " SUCCEEDED: all points matched." << endl;
+//            << " SUCCEEDED: all points matched." << std::endl;
     return true;
   }
 
@@ -2820,13 +2841,13 @@ not modify this unit and return ~false~.
 */
 
   void Translate(const double x, const double y,
-                 const DateTime& duration);
+                 const datetime::DateTime& duration);
 /*
 Translates a moving point spatially and temporally.
 
 */
 
-  void GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res);
+  void GetGridCellSequence(CellGrid2D &g, std::vector<GridCellSeq> &res);
 /*
 Computes all events created by a UPoint moving across a regular grid.
 
@@ -2885,7 +2906,7 @@ Computes all events created by a UPoint moving across a regular grid.
     return false;
   }
 
-  inline virtual ostream& Print( ostream &os ) const
+  inline virtual std::ostream& Print( std::ostream &os ) const
   {
 
     if(IsDefined())
@@ -3072,7 +3093,7 @@ The boolean return value is ~false~, iff either the UPoint or the Region is UNDE
 
 */
 
-  bool AtRegion(const Region *r, vector<UPoint> &result) const;
+  bool AtRegion(const Region *r, std::vector<UPoint> &result) const;
 
 /*
 Calculates the ~direction~ (when ~useHeading~ is ~false~) resp. the heading
@@ -3084,12 +3105,12 @@ Any results are appended to the ~result~ vector.
 Attention: UNDEFINED units my be appended!
 
 */
-  void Direction( vector<UReal> &result,
+  void Direction( std::vector<UReal> &result,
                   const bool useHeading = false,
                   const Geoid* geoid    = 0,
                   const double epsilon  = 0.0000001) const;
 
-  static const string BasicType(){ return "upoint"; }
+  static const std::string BasicType(){ return "upoint"; }
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }
@@ -3116,7 +3137,7 @@ Returns true, iff this unit is defined and not moving during its definition time
 };
 
 
-ostream& operator<<(ostream& o, const UPoint& u);
+std::ostream& operator<<(std::ostream& o, const UPoint& u);
 ListExpr OutUPoint( ListExpr typeInfo, Word value );
 Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct );
@@ -3279,10 +3300,11 @@ Either the mapping is undefined, or the mapping is defined and conditions 1--3 h
     inline virtual int Compare( const Attribute* arg ) const;
     inline bool Adjacent( const Attribute* arg ) const;
     inline Attribute* Clone() const;
-    inline virtual ostream& Print( ostream &os ) const;
+    inline virtual std::ostream& Print( std::ostream &os ) const;
     inline size_t HashValue() const;
     inline virtual void CopyFrom( const Attribute* right );
-    inline virtual void Restrict( const vector< pair<int, int> >& intervals );
+    inline virtual void Restrict( 
+               const std::vector< std::pair<int, int> >& intervals );
 
     inline int NumOfFLOBs() const;
     inline Flob *GetFLOB(const int i);
@@ -3495,7 +3517,7 @@ ConstTempralUnit - Mappings.
 type name used in Secondo
 
 */
-  inline static const string BasicType()
+  inline static const std::string BasicType()
   {
     return "m"+Alpha::BasicType();
   }
@@ -3507,9 +3529,11 @@ type name used in Secondo
 ~Move in time~
 
 */
-  void timeMove(const DateTime& duration, Mapping<Unit, Alpha>& result) const;
+  void timeMove(const datetime::DateTime& duration, 
+                Mapping<Unit, Alpha>& result) const;
 
-  void moveTo(const DateTime& instant, Mapping<Unit,Alpha>& result) const;
+  void moveTo(const datetime::DateTime& instant, 
+              Mapping<Unit,Alpha>& result) const;
 
 
 
@@ -3631,7 +3655,7 @@ Casts this MInt into an MReal.
     void WriteTo(MReal& arg);
 
 
-   static const string BasicType(){ return "mint"; }
+   static const std::string BasicType(){ return "mint"; }
    static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type, BasicType());
    }
@@ -3646,7 +3670,7 @@ is set to true, the units are only removed if the stored value is equals to
 the given value.
 
 */
-  virtual void Restrict(const vector<pair<int, int> >& intervals){
+  virtual void Restrict(const std::vector<std::pair<int, int> >& intervals){
     return Mapping<ConstTemporalUnit<CcInt>, CcInt>::Restrict(intervals);
   }
 
@@ -3759,7 +3783,7 @@ Precondition: ccvalue.IsDefined() == true
    void AtValue( const CcReal& ccvalue, MReal& result ) const;
 
 
-   static const string BasicType(){ return "mreal"; }
+   static const std::string BasicType(){ return "mreal"; }
    static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type, BasicType());
    }
@@ -3814,8 +3838,8 @@ using a check on bbox.
   void Add( const UPoint& unit );
   void MergeAdd(const UPoint& unit);
   bool EndBulkLoad( const bool sort = true, const bool checkvalid = false );
-  void Restrict( const vector< pair<int, int> >& intervals );
-  ostream& Print( ostream &os ) const;
+  void Restrict( const std::vector< std::pair<int, int> >& intervals );
+  std::ostream& Print( std::ostream &os ) const;
   bool operator==( const MPoint& r ) const;
   bool Present( const Instant& t ) const;
   bool Present( const Periods& t ) const;
@@ -3919,7 +3943,7 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
    void Simplify(const double epsilon, MPoint& result,
                  const bool checkBreakPoints,
-                 const DateTime& duration) const;
+                 const datetime::DateTime& duration) const;
 
 /*
 3.10.5.5 Operation ~BreakPoints~
@@ -3929,8 +3953,8 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
              time.
 
 */
-    void BreakPoints(Points& result, const DateTime& dur) const;
-    void BreakPoints(Points& result, const DateTime& dur,
+    void BreakPoints(Points& result, const datetime::DateTime& dur) const;
+    void BreakPoints(Points& result, const datetime::DateTime& dur,
                      const CcReal& epsilon,
                      const Geoid* geoid=0) const;
 
@@ -3941,7 +3965,7 @@ This function computes the timeIntervalls for Breaks
 
 */
 
-    void Breaks(Periods& result, const DateTime& dur,
+    void Breaks(Periods& result, const datetime::DateTime& dur,
                 const CcReal& epsilon,
                 const Geoid* geoid=0) const;
 
@@ -3978,7 +4002,7 @@ original object. The movement is continued at the last position of this mpoint.
 
 */
 
-  void TranslateAppend(const MPoint& mp, const DateTime& dur);
+  void TranslateAppend(const MPoint& mp, const datetime::DateTime& dur);
 
 
 /*
@@ -4022,7 +4046,7 @@ path of the object is the same as in the original, i.e. no shortcuts
 for corners.
 
 */
-  void Sample(const DateTime& duration, MPoint& result,
+  void Sample(const datetime::DateTime& duration, MPoint& result,
               const bool KeepEndPoint = false,
               const bool exactPath = false  )const;
 
@@ -4096,7 +4120,7 @@ geometry is used, otherwise spherical geometry is applied.
                             MPoint& result,
                             const bool skipSplit = false) const;
 
-  static const string BasicType(){ return "mpoint"; }
+  static const std::string BasicType(){ return "mpoint"; }
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }
@@ -4750,8 +4774,8 @@ void Range<Alpha>::MergeAdd(const Interval<Alpha>& interval){
       intervals.Put(intervals.Size()-1, last);
     }
     else if (last.Intersects(interval)) {
-      last.end = max(last.end, interval.end);
-      last.rc = max(last.rc, interval.rc);
+      last.end = std::max(last.end, interval.end);
+      last.rc = std::max(last.rc, interval.rc);
       intervals.Put(intervals.Size() - 1, last);
     }
     else {
@@ -4840,22 +4864,23 @@ inline Range<Alpha>* Range<Alpha>::Clone() const
 }
 
 template <class Alpha>
-inline ostream& Range<Alpha>::Print( ostream &os ) const
+inline std::ostream& Range<Alpha>::Print( std::ostream &os ) const
 {
   os << Range<Alpha>::BasicType()<<": ";
   if( !IsDefined() ){
     os << "UNDEFINED.";
   } else {
-    os << " defined, contains " << GetNoComponents() << " intervals: [" << endl;
+    os << " defined, contains " << GetNoComponents() 
+       << " intervals: [" << std::endl;
     Interval<Alpha> interval;
     for( int i = 0; i < GetNoComponents(); i++ )
     {
       Get( i, interval );
-      os << "\t"; interval.Print( os ); os << endl;
+      os << "\t"; interval.Print( os ); os << std::endl;
     }
-    os << "]." << endl;
+    os << "]." << std::endl;
   }
-  return os << endl;
+  return os << std::endl;
 }
 
 template <class Alpha>
@@ -5744,7 +5769,7 @@ void Range<Alpha>::Minus( const Range<Alpha>& r, Range<Alpha>& result ) const
           if( thisInterval.start.Compare( &interval.start ) == 0 )
           {
             assert( start == NULL && end == NULL );
-            cerr << "I think that there is an error here!!!" << endl;
+            std::cerr << "I think that there is an error here!!!" << std::endl;
           }
           else
           {
@@ -6290,14 +6315,14 @@ void Mapping<Unit, Alpha>::Get( const int i, Unit &unit ) const
   assert(i<units.Size());
   bool ok = units.Get( i, unit );
   if(!ok){
-    cout << "Problem in getting data from " << units << endl;
+    cout << "Problem in getting data from " << units << std::endl;
     assert(ok);
   }
   if ( !unit.IsValid() )
   {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " Get(" << i << ", Unit): Unit is invalid:";
-    unit.Print(cout); cout << endl;
+    unit.Print(cout); cout << std::endl;
     assert( unit.IsValid());
   }
 }
@@ -6310,7 +6335,7 @@ void Mapping<Unit, Alpha>::Add( const Unit& unit )
   {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " Add(Unit): Unit is undefined or invalid:";
-    unit.Print(cout); cout << endl;
+    unit.Print(cout); cout << std::endl;
     assert( false );
   }
   units.Append( unit );
@@ -6326,7 +6351,7 @@ void Mapping<Unit, Alpha>::MergeAdd( const Unit& unit )
   {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " MergeAdd(Unit): Unit is undefined or invalid:";
-    unit.Print(cout); cout << endl;
+    unit.Print(cout); cout << std::endl;
     assert( false );
   }
 
@@ -6341,7 +6366,7 @@ void Mapping<Unit, Alpha>::MergeAdd( const Unit& unit )
           {
             cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
               << "\nMapping::MergeAdd(): lastunit is invalid:";
-            lastunit.Print(cout); cout << endl;
+            lastunit.Print(cout); cout << std::endl;
             assert( false );
           }
           units.Put(size - 1, lastunit);
@@ -6447,7 +6472,7 @@ inline Attribute* Mapping<Unit, Alpha>::Clone() const
 }
 
 template <class Unit, class Alpha>
-inline ostream& Mapping<Unit, Alpha>::Print( ostream &os ) const
+inline std::ostream& Mapping<Unit, Alpha>::Print( std::ostream &os ) const
 {
   if( !IsDefined() )
   {
@@ -6462,7 +6487,7 @@ inline ostream& Mapping<Unit, Alpha>::Print( ostream &os ) const
     os << "\n\t";
     unit.Print(os);
   }
-  os << "\n)" << endl;
+  os << "\n)" << std::endl;
   return os;
 }
 
@@ -6504,7 +6529,8 @@ inline void Mapping<Unit, Alpha>::CopyFrom( const Attribute* right )
 
 template <class Unit, class Alpha>
 inline void
-Mapping<Unit, Alpha>::Restrict( const vector< pair<int, int> >& intervals )
+Mapping<Unit, Alpha>::Restrict( 
+   const std::vector< std::pair<int, int> >& intervals )
 {
   if( !IsDefined() ){
     Clear();
@@ -6595,8 +6621,8 @@ bool Mapping<Unit, Alpha>::IsValid() const
   Get( 0, lastunit );
   if ( !lastunit.IsValid() )
   {
-    cerr << "Mapping<Unit, Alpha>::IsValid(): "
-            "unit is invalid: i=0" << endl;
+    std::cerr << "Mapping<Unit, Alpha>::IsValid(): "
+            "unit is invalid: i=0" << std::endl;
     return false;
   }
   if ( GetNoComponents() == 1 ){
@@ -6609,16 +6635,18 @@ bool Mapping<Unit, Alpha>::IsValid() const
     if( !unit.IsValid() )
     {
       result = false;
-      cerr << "Mapping<Unit, Alpha>::IsValid(): "
-              "unit is invalid: i=" << i << endl;
+      std::cerr << "Mapping<Unit, Alpha>::IsValid(): "
+              "unit is invalid: i=" << i << std::endl;
       return false;
     }
     if(lastunit.timeInterval.end > unit.timeInterval.start){
-       cerr << "Units are not ordered by time" << endl;
-       cerr << "lastUnit.timeInterval =  "; lastunit.timeInterval.Print(cerr);
-       cerr << endl;
-       cerr << "unit.timeInterval =  "; unit.timeInterval.Print(cerr);
-       cerr << endl;
+       std::cerr << "Units are not ordered by time" << std::endl;
+       std::cerr << "lastUnit.timeInterval =  "; 
+       lastunit.timeInterval.Print(std::cerr);
+       std::cerr << std::endl;
+       std::cerr << "unit.timeInterval =  "; 
+       unit.timeInterval.Print(std::cerr);
+       std::cerr << std::endl;
        return false;
     }
 
@@ -6626,10 +6654,11 @@ bool Mapping<Unit, Alpha>::IsValid() const
     if( (!lastunit.timeInterval.Disjoint(unit.timeInterval)) )
     {
       result = false;
-      cerr << "Mapping<Unit, Alpha>::IsValid(): "
-              "unit and lastunit not disjoint: i=" << i << endl;
-      cerr << "\n\tlastunit = "; lastunit.timeInterval.Print(cerr);
-      cerr << "\n\tunit     = "; unit.timeInterval.Print(cerr); cerr << endl;
+      std::cerr << "Mapping<Unit, Alpha>::IsValid(): "
+              "unit and lastunit not disjoint: i=" << i << std::endl;
+      std::cerr << "\n\tlastunit = "; lastunit.timeInterval.Print(std::cerr);
+      std::cerr << "\n\tunit     = "; unit.timeInterval.Print(std::cerr); 
+      std::cerr << std::endl;
       return false;
     }
     lastunit = unit;
@@ -7039,7 +7068,7 @@ void Mapping<Unit, Alpha>::ExtendDefTime(Unit u,
 }
 
 template<class Unit, class Alpha>
-void Mapping<Unit,Alpha>::timeMove(const DateTime& duration,
+void Mapping<Unit,Alpha>::timeMove(const datetime::DateTime& duration,
                                    Mapping<Unit,Alpha>& result) const{
   assert(duration.GetType()==datetime::durationtype);
   if(!IsDefined()){
@@ -7060,7 +7089,7 @@ void Mapping<Unit,Alpha>::timeMove(const DateTime& duration,
 
 
 template<class Unit, class Alpha>
-void Mapping<Unit,Alpha>::moveTo(const DateTime& instant,
+void Mapping<Unit,Alpha>::moveTo(const datetime::DateTime& instant,
                                  Mapping<Unit,Alpha>& result) const{
 
   assert(instant.GetType()==datetime::instanttype);
@@ -7075,7 +7104,7 @@ void Mapping<Unit,Alpha>::moveTo(const DateTime& instant,
   }
   Unit unit;
   Get(0,unit);
-  DateTime dur = instant - unit.timeInterval.start;
+  datetime::DateTime dur = instant - unit.timeInterval.start;
   timeMove(dur, result);
 }
 
@@ -7334,7 +7363,8 @@ ListExpr OutIntime( ListExpr typeInfo, Word value )
 
   if( intime->IsDefined() )
     return nl->TwoElemList(
-          OutDateTime( nl->TheEmptyList(), SetWord(&intime->instant) ),
+          datetime::OutDateTime( nl->TheEmptyList(), 
+                                 SetWord(&intime->instant) ),
           OutFun( nl->TheEmptyList(), SetWord( &intime->value ) ) );
   else
     return nl->SymbolAtom( Symbol::UNDEFINED() );
@@ -7362,7 +7392,7 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
   if( !nl->IsAtom( instance ) &&
       nl->ListLength( instance ) == 2 )
   {
-    Instant *instant = (Instant *)InInstant( nl->TheEmptyList(),
+    Instant *instant = (Instant *)datetime::InInstant( nl->TheEmptyList(),
                                              nl->First( instance ),
                                                          errorPos,
                                                          errorInfo,
@@ -7476,8 +7506,10 @@ ListExpr OutConstTemporalUnit( ListExpr typeInfo, Word value )
 
   //3.get the time interval NL
   ListExpr intervalList = nl->FourElemList(
-    OutDateTime( nl->TheEmptyList(), SetWord(&constunit->timeInterval.start) ),
-    OutDateTime( nl->TheEmptyList(), SetWord(&constunit->timeInterval.end) ),
+    datetime::OutDateTime( nl->TheEmptyList(), 
+                           SetWord(&constunit->timeInterval.start) ),
+    datetime::OutDateTime( nl->TheEmptyList(), 
+                           SetWord(&constunit->timeInterval.end) ),
     nl->BoolAtom( constunit->timeInterval.lc ),
     nl->BoolAtom( constunit->timeInterval.rc));
 
@@ -7499,7 +7531,7 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
                           ListExpr& errorInfo,
                           bool& correct             )
 {
-  string errmsg;
+  std::string errmsg;
 
   if( nl->ListLength( instance ) == 2 )
   {
@@ -7513,7 +7545,8 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
         nl->AtomType( nl->Fourth( first ) ) == BoolType )
     {
       Instant *start =
-        (Instant *)InInstant( nl->TheEmptyList(), nl->First( first ),
+        (Instant *)datetime::InInstant( nl->TheEmptyList(), 
+                              nl->First( first ),
                               errorPos, errorInfo, correct ).addr;
       if( !correct )
       {
@@ -7524,7 +7557,8 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
       }
 
       Instant *end =
-        (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ),
+        (Instant *)datetime::InInstant( nl->TheEmptyList(), 
+                              nl->Second( first ),
                               errorPos, errorInfo, correct ).addr;
       if( !correct )
       {
@@ -7578,8 +7612,9 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
         new ConstTemporalUnit<Alpha>();
       constunit->SetDefined(false);
       constunit->timeInterval=
-        Interval<DateTime>(DateTime(instanttype),
-                           DateTime(instanttype),true,true);
+        Interval<datetime::DateTime>(
+                       datetime::DateTime(datetime::instanttype),
+                       datetime::DateTime(datetime::instanttype),true,true);
       correct = true;
       return (SetWord( constunit ));
     }
@@ -7709,7 +7744,7 @@ Word InMapping( const ListExpr typeInfo, const ListExpr instance,
   Mapping* m = new Mapping( numUnits );
   correct = true;
   int unitcounter = 0;
-  string errmsg;
+  std::string errmsg;
 
   m->StartBulkLoad();
 
@@ -8259,7 +8294,7 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->Time = 0.00001;  // (almost) zero runtime
       }
       if(!localinfo->progressinitialized){
-        pRes->Card = (double) max(0,localinfo->noUnits); // cardinality
+        pRes->Card = (double) std::max(0,localinfo->noUnits); // cardinality
         pRes->Size = localinfo->attrSize;                // total size
         pRes->SizeExt = localinfo->attrSizeExt;          // size w/o FLOBS
         pRes->noAttrs = 1;                               //no of attributes
@@ -8269,7 +8304,7 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->sizesChanged = true;  //sizes have been recomputed
         localinfo->progressinitialized = true;
       } else {
-        pRes->Card = (double) max(0,localinfo->noUnits); // cardinality
+        pRes->Card = (double) std::max(0,localinfo->noUnits); // cardinality
         pRes->sizesChanged = false;
       }
       if(    (localinfo->noUnits > 0)
@@ -8323,7 +8358,7 @@ int MappingTimeShift( Word* args, Word& result,
                     int message, Word& local, Supplier s )
 {
     Word t;
-    DateTime* dd;
+    datetime::DateTime* dd;
     Unit unit;
     Mapping* mapping, *mpResult;
 
@@ -8333,7 +8368,7 @@ int MappingTimeShift( Word* args, Word& result,
     mpResult = (Mapping*)result.addr;
     mpResult->Clear();
 
-    dd = (DateTime *)args[1].addr;
+    dd = (datetime::DateTime *)args[1].addr;
 
     if( mapping->IsDefined() &&
         dd->IsDefined() )
@@ -8385,9 +8420,9 @@ Private attributes:
   * ~vup~: Same as ~vur~ for second mapping instance.
 
 */
-    vector< Interval<Instant> > iv;
-    vector<int> vur;
-    vector<int> vup;
+    std::vector< Interval<Instant> > iv;
+    std::vector<int> vur;
+    std::vector<int> vup;
 
 /*
 ~AddUnit()~ is a small helper method to create a new interval from
@@ -8804,8 +8839,8 @@ must have the same temporal value.
 template<class UnitType, class AlphaType>
 bool ConsolidateUnitVector(
                       const Interval<Instant> &intv,
-                      vector<UnitType> &arg,
-                      vector<UnitType> &result) {
+                      std::vector<UnitType> &arg,
+                      std::vector<UnitType> &result) {
   assert( intv.IsValid() );
   result.clear();
 
@@ -8846,8 +8881,8 @@ bool ConsolidateUnitVector(
     if(lastUnit.timeInterval  == currUnit.timeInterval) {
       // identical timeIntervals
       if(lastUnit != currUnit) {
-      cerr << __PRETTY_FUNCTION__
-           << "WARNING: same interval, but different values" << endl;
+      std::cerr << __PRETTY_FUNCTION__
+           << "WARNING: same interval, but different values" << std::endl;
       result.clear();
       return false;
       } else { // same units --> drop currUnit
@@ -8880,13 +8915,15 @@ bool ConsolidateUnitVector(
           lastUnit.TemporalFunction(lastUnit.timeInterval.end,  lastVal, true);
           currUnit.TemporalFunction(currUnit.timeInterval.start,currVal, true);
           if( lastVal.CompareAlmost(static_cast<Attribute*>(&currVal)) != 0) {
-            cerr << __PRETTY_FUNCTION__ << " ERROR: Two units share an endpoint"
+            std::cerr << __PRETTY_FUNCTION__ 
+                 << " ERROR: Two units share an endpoint"
                  << ", but have different temporal values at that instant: "
-                 << endl << "\tlastUnit = " << lastUnit << ", lastVal = " ;
-            lastVal.Print(cerr);
-            cerr << endl << "\tcurrUnit = " << currUnit << ", currVal = " ;
-            lastVal.Print(cerr);
-            cerr << endl;
+                 << std::endl << "\tlastUnit = " << lastUnit << ", lastVal = " ;
+            lastVal.Print(std::cerr);
+            std::cerr << std::endl << "\tcurrUnit = " 
+                      << currUnit << ", currVal = " ;
+            lastVal.Print(std::cerr);
+            std::cerr << std::endl;
             result.clear();
             return false;
           }
@@ -9000,9 +9037,10 @@ bool ConsolidateUnitVector(
     } else {
       // lastUnit and currUnit overlap, but have not a single common boundary
       // point. This shoulöd be a misstake! There is no way to merge the units:
-      cerr << __PRETTY_FUNCTION__ << " ERROR: Two units overlap, but in more "
-          << "than a single point:" << endl << "\tlastUnit = " << lastUnit
-          << endl << "\tcurrUnit = " << currUnit << endl;
+      std::cerr << __PRETTY_FUNCTION__ 
+          << " ERROR: Two units overlap, but in more "
+          << "than a single point:" << std::endl << "\tlastUnit = " << lastUnit
+          << std::endl << "\tcurrUnit = " << currUnit << std::endl;
       result.clear();
       return false;
     }

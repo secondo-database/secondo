@@ -41,6 +41,8 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 #include "ListUtils.h"
 #include "Symbols.h"
 
+using namespace std;
+
 namespace hgr
 {
   BaseHistogram::BaseHistogram()

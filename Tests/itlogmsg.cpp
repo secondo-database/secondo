@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "LogMsg.h"
 
+using namespace std;
+
 const int __endian_detect = 1;
  
 inline bool __little_endian() { return *(char *)&__endian_detect == 1;}

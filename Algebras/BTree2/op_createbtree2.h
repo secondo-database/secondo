@@ -25,8 +25,8 @@ namespace Operators {
 
 class createbtree2 {
   public:
-  static string Specification1();
-  static string Specification2();
+  static std::string Specification1();
+  static std::string Specification2();
   static ListExpr TypeMapping(ListExpr args);
   static int Select( ListExpr args );
 

@@ -177,9 +177,9 @@ network indexes over the copied relations.
 */
 
   explicit JNetwork(const bool def);
-  JNetwork(const string nid, const double t, const Relation* inJuncRel,
+  JNetwork(const std::string nid, const double t, const Relation* inJuncRel,
            const Relation* inSectRel, const Relation* inRoutesRel);
-  JNetwork(const string nid, const double t, const Relation* inJuncRel,
+  JNetwork(const std::string nid, const double t, const Relation* inJuncRel,
            const Relation* inSectRel, const Relation* inRoutesRel,
            OrderedRelation* inNetDistRel);
   JNetwork(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo,
@@ -231,11 +231,11 @@ Returns the tolerance value of the network for map matching.
 
 */
 
- static string GetJunctionsRelationType();
- static string GetSectionsRelationType();
- static string GetRoutesRelationType();
- static string GetNetdistancesRelationType();
- static string GetNetdistancesTupleType();
+ static std::string GetJunctionsRelationType();
+ static std::string GetSectionsRelationType();
+ static std::string GetRoutesRelationType();
+ static std::string GetNetdistancesRelationType();
+ static std::string GetNetdistancesTupleType();
 
 /*
 1.1.1.1 ~GetBoundingBox~
@@ -296,8 +296,8 @@ beeing damaged.
 
 */
 
-  ostream& Print(ostream& os) const;
-  static const string BasicType();
+  std::ostream& Print(std::ostream& os) const;
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -329,7 +329,7 @@ Returns true if the given position(s) exist in the network.
 
   //used for mapmatching adapter
   void GetSectionTuplesFor(const Rectangle<2> bbox,
-                           vector<TupleId>& listSectTupIds) const;
+                           std::vector<TupleId>& listSectTupIds) const;
 /*
 1.1.1 Operation for Translation from network data types into spatial data types
 
@@ -1040,8 +1040,7 @@ void ProcessReversePriorityQueue(PQManagement* pqueue,
 
 */
 
-using namespace jnetwork;
-ostream& operator<< (ostream& os, const jnetwork::JNetwork& n);
+std::ostream& operator<< (std::ostream& os, const jnetwork::JNetwork& n);
 
 
 

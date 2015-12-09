@@ -166,7 +166,7 @@ takes the index number of a bin and returns the X and Y coordinates of that
 bin.
 
 */
-      pair<CcInt, CcInt> GetBinCoords(const int index) const;
+      std::pair<CcInt, CcInt> GetBinCoords(const int index) const;
 
 /*
 3.1.8 NoBinsX(), NoBinsY()
@@ -372,11 +372,11 @@ histogram given as parameter.
       void CopyFrom(const Attribute* right);
       int NumOfFLOBs() const;
       Flob* GetFLOB( const int i );
-      ostream& Print( ostream& os ) const;
+      std::ostream& Print( std::ostream& os ) const;
 
       size_t Sizeof() const;
 
-      inline static const string BasicType() { return "histogram2d";}
+      inline static const std::string BasicType() { return "histogram2d";}
 
       static const bool checkType(ListExpr list){
         return listutils::isSymbol(list, BasicType());
@@ -394,7 +394,7 @@ histogram given as parameter.
 
   }; // class Histogram2d : public Attribute
 
-  ostream& operator << (ostream& os, const Histogram2d& h);
+  std::ostream& operator << (std::ostream& os, const Histogram2d& h);
 
 /*
 

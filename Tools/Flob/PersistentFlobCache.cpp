@@ -53,7 +53,7 @@ with given slot size.
       lruPrev(0), lruNext(0) {
        size_t offset = _slotNo * _slotSize;
        assert(offset < flob.getSize());
-       size = min(_slotSize, (flob.getSize() - offset)); 
+       size = std::min(_slotSize, (flob.getSize() - offset)); 
        mem = (char*) malloc(size);
     }
 
@@ -123,7 +123,7 @@ for simple output an entry.
 
 */
 
-ostream& operator<<(ostream& o, const CacheEntry& e){
+std::ostream& operator<<(std::ostream& o, const CacheEntry& e){
    o << "[" << e.flob << ", " << e.slotNo << "]" ;
   return o;
 }
@@ -145,8 +145,10 @@ Requested data are taken directly from the cache. If the slot containing the
 data is not cached, it is   put into the storage. Thus a flob is read from disk 
 slotwise.
 
-When the put operation is called (which should be occur rarely on persistent flobs),
-The slot stored in the cache is updated and also the disk content is written instantly.
+When the put operation is called (which should be occur rarely on
+ persistent flobs),
+The slot stored in the cache is updated and also the disk content is 
+written instantly.
 
 
 2.1 Constructor
@@ -241,7 +243,7 @@ bool PersistentFlobCache::getData(
     while(bufferOffset < size){
       if(!getDataFromSlot(flob, slotNo, slotOffset, 
                           bufferOffset, size, buffer)){
-        cerr << "Warning getData failed" << endl;
+        std::cerr << "Warning getData failed" << std::endl;
         return false;
       }
        
@@ -403,7 +405,7 @@ void PersistentFlobCache::getData(CacheEntry* entry,
                               char* buffer){
   size_t mb = size-bufferOffset; // missing bytes
   size_t ab = entry->size - slotOffset; // bytes available in slot
-  size_t pb = min(mb,ab); // provided bytes
+  size_t pb = std::min(mb,ab); // provided bytes
   memcpy(buffer+bufferOffset, entry->mem + slotOffset, pb);
   bufferOffset += pb;
 }
@@ -422,7 +424,7 @@ void PersistentFlobCache::putData(CacheEntry* entry,
                               const char* buffer){
   size_t mb = size-bufferOffset; // missing bytes
   size_t ab = entry->size - slotOffset; // bytes available in slot
-  size_t pb = min(mb,ab); // provided bytes
+  size_t pb = std::min(mb,ab); // provided bytes
   memcpy(entry->mem + slotOffset, buffer+bufferOffset, pb);
   bufferOffset += pb;
 }
@@ -601,14 +603,14 @@ Debugging function.
 bool PersistentFlobCache::check(){
   if(first==0 || last==0){
     if(first!=last){
-      cerr << "inconsistence in lru list, first = " << (void*) first 
-           << " , last = " << (void*) last << endl;
+      std::cerr << "inconsistence in lru list, first = " << (void*) first 
+           << " , last = " << (void*) last << std::endl;
       return false;
     }
     for(unsigned int i=0;i< tableSize;i++){
       if(hashtable[i]){
-         cerr << "lru is empty, but hashtable[" << i 
-              << "] contains an element" << endl;
+         std::cerr << "lru is empty, but hashtable[" << i 
+              << "] contains an element" << std::endl;
          return false;
       }
     }
@@ -617,11 +619,11 @@ bool PersistentFlobCache::check(){
   }
   // lru is not empty, check first and last element
   if(first->lruPrev){
-    cerr << "lru: first has a predecessor" << endl;
+    std::cerr << "lru: first has a predecessor" << std::endl;
     return false;
   }
   if(last->lruNext){
-    cerr << "lru: last has a successor" << endl;
+    std::cerr << "lru: last has a successor" << std::endl;
     return false;
   }
   // check whether ech element in lru is also an element in hashtable
@@ -631,8 +633,8 @@ bool PersistentFlobCache::check(){
     lrucount++;
     size_t index = e->hashValue(tableSize); 
     if(!hashtable[index]){
-      cerr << "element " << (*e) << " stored in lru but hashtable[" 
-           << index << " is null" << endl;
+      std::cerr << "element " << (*e) << " stored in lru but hashtable[" 
+           << index << " is null" << std::endl;
       return  false;
     }
     CacheEntry* e2 = hashtable[index];
@@ -640,8 +642,8 @@ bool PersistentFlobCache::check(){
       e2 = e2->tableNext;
     }  
     if(!e2){
-      cerr << "element " << (*e) << " stored in lru but not in hashtable[" 
-           << index << "]" << endl;
+      std::cerr << "element " << (*e) << " stored in lru but not in hashtable[" 
+           << index << "]" << std::endl;
       return false;
     }
     e = e->lruNext;
@@ -651,21 +653,21 @@ bool PersistentFlobCache::check(){
   for(unsigned int i=0; i<tableSize;i++){
     if(hashtable[i]){
        if(hashtable[i]->tablePrev){
-           cerr << " hashtable[" << i << " has a predecessor" << endl;
+           std::cerr << " hashtable[" << i << " has a predecessor" << std::endl;
        }
        e = hashtable[i];
        while(e){
          tablecount++;
          if(e->hashValue(tableSize)!=i){
-           cerr << "element << " << (*e) << " has hashvalue " 
+           std::cerr << "element << " << (*e) << " has hashvalue " 
                 << e->hashValue(tableSize) << " but is stored at position " 
-                << i << endl;
+                << i << std::endl;
            return false;
          }
 
          if(e->tableNext){
              if(e->tableNext->tablePrev!=e){
-                cerr << "error in tablelist found" << endl;
+                std::cerr << "error in tablelist found" << std::endl;
                 return false;
              }
          }
@@ -675,8 +677,8 @@ bool PersistentFlobCache::check(){
   }
 
   if(lrucount!=tablecount){
-    cerr << "lrucount = " << lrucount << " #  tablecount = " 
-         << tablecount << endl;
+    std::cerr << "lrucount = " << lrucount << " #  tablecount = " 
+         << tablecount << std::endl;
     return false;
   }
 

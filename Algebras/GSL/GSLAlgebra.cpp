@@ -310,10 +310,10 @@ unsigned long GslRandomgen::rngType_getMaxRand(const int index)
   return GslRandomgen::gslalg_randomgeneratorTable[index]->min;
 }
 
-string GslRandomgen::rngType_getName(const int index)
+std::string GslRandomgen::rngType_getName(const int index)
 {
   assert(index >= 0 && index < GslRandomgen::gslalg_randomgeneratorTableSize);
-  string res(GslRandomgen::gslalg_randomgeneratorTable[index]->name);
+  std::string res(GslRandomgen::gslalg_randomgeneratorTable[index]->name);
   return res;
 }
 
@@ -358,7 +358,7 @@ gslCcType gslTypeOfSymbol( ListExpr symbol )
 {
   if ( nl->AtomType( symbol ) == SymbolType )
   {
-    string s = nl->SymbolValue( symbol );
+    std::string s = nl->SymbolValue( symbol );
     if ( s == CcInt::BasicType()    ) return (ccint);
     if ( s == CcReal::BasicType()   ) return (ccreal);
     if ( s == CcBool::BasicType()   ) return (ccbool);
@@ -588,7 +588,7 @@ int gslalg_rng_init_VM ( Word* args, Word& result, int message,
   return (0);
 }
 
-const string gslalg_rng_init_Spec  =
+const std::string gslalg_rng_init_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>int x int -> bool</text--->"
     "<text>rng_init( type, seed )</text--->"
@@ -622,7 +622,7 @@ int gslalg_rng_int_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_int_Spec  =
+const std::string gslalg_rng_int_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>   -> int</text--->"
     "<text>rng_int()</text--->"
@@ -665,7 +665,7 @@ int gslalg_rng_intN_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_intN_Spec  =
+const std::string gslalg_rng_intN_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> int -> int</text--->"
     "<text>rng_intN( N )</text--->"
@@ -700,7 +700,7 @@ int gslalg_rng_real_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_real_Spec  =
+const std::string gslalg_rng_real_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>    -> real</text--->"
     "<text>rng_real( )</text--->"
@@ -733,7 +733,7 @@ int gslalg_rng_realpos_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_realpos_Spec  =
+const std::string gslalg_rng_realpos_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>   -> real</text--->"
     "<text>rng_realpos( )</text--->"
@@ -766,7 +766,7 @@ int gslalg_rng_getMin_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_getMin_Spec  =
+const std::string gslalg_rng_getMin_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>   -> int</text--->"
     "<text>rng_getMin()</text--->"
@@ -798,7 +798,7 @@ int gslalg_rng_getMax_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_getMax_Spec  =
+const std::string gslalg_rng_getMax_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>   -> int</text--->"
     "<text>rng_getMax()</text--->"
@@ -838,7 +838,7 @@ int gslalg_rng_setSeed_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_setSeed_Spec  =
+const std::string gslalg_rng_setSeed_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> int -> bool</text--->"
     "<text>rng_setSeed( N )</text--->"
@@ -871,7 +871,7 @@ int gslalg_rng_getSeed_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_getSeed_Spec  =
+const std::string gslalg_rng_getSeed_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>    -> int</text--->"
     "<text>rng_getSeed( N )</text--->"
@@ -922,7 +922,7 @@ int gslalg_rng_flat_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_flat_Spec  =
+const std::string gslalg_rng_flat_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> real x real -> real</text--->"
     "<text>rng_flat( Min, Max )</text--->"
@@ -975,7 +975,7 @@ int gslalg_rng_binomial_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_binomial_Spec  =
+const std::string gslalg_rng_binomial_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> int x real -> int</text--->"
     "<text>rng_binomial( N, P )</text--->"
@@ -1019,7 +1019,7 @@ int gslalg_rng_gaussian_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_gaussian_Spec  =
+const std::string gslalg_rng_gaussian_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> real -> real</text--->"
     "<text>rng_gaussian( Sigma )</text--->"
@@ -1062,7 +1062,7 @@ int gslalg_rng_exponential_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_exponential_Spec  =
+const std::string gslalg_rng_exponential_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> real -> real</text--->"
     "<text>rng_exponential( Mu )</text--->"
@@ -1097,7 +1097,7 @@ int gslalg_rng_getType_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_getType_Spec  =
+const std::string gslalg_rng_getType_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>    -> int</text--->"
     "<text>rng_getType( N )</text--->"
@@ -1132,7 +1132,7 @@ int gslalg_rng_NoGenerators_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_NoGenerators_Spec  =
+const std::string gslalg_rng_NoGenerators_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> -> int</text--->"
     "<text>rng_NoGenerators( N )</text--->"
@@ -1177,7 +1177,7 @@ int gslalg_rng_GeneratorName_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_GeneratorName_Spec  =
+const std::string gslalg_rng_GeneratorName_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> int -> string</text--->"
     "<text>rng_GeneratorName( N )</text--->"
@@ -1223,7 +1223,7 @@ int gslalg_rng_GeneratorMinRand_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_GeneratorMinRand_Spec  =
+const std::string gslalg_rng_GeneratorMinRand_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> int -> int</text--->"
     "<text>rng_GeneratorMinRand( N )</text--->"
@@ -1268,7 +1268,7 @@ int gslalg_rng_GeneratorMaxRand_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_GeneratorMaxRand_Spec  =
+const std::string gslalg_rng_GeneratorMaxRand_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> int -> int</text--->"
     "<text>rng_GeneratorMaxRand( N )</text--->"
@@ -1302,7 +1302,7 @@ int rng_TypeDescriptors_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string rng_TypeDescriptors_Spec  =
+const std::string rng_TypeDescriptors_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>    -> stream(tuple((Index int)(MinInt int)(MaxInt int)"
     "(Name string)))</text--->"
@@ -1345,7 +1345,7 @@ int gslalg_rng_poisson_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_poisson_Spec  =
+const std::string gslalg_rng_poisson_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> real -> int</text--->"
     "<text>rng_poisson( Mu )</text--->"
@@ -1394,7 +1394,7 @@ int gslalg_rng_geometric_VM ( Word* args, Word& result,
   return (0);
 }
 
-const string gslalg_rng_geometric_Spec  =
+const std::string gslalg_rng_geometric_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> real x real -> int</text--->"
     "<text>rng_geometric( p )</text--->"

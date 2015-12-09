@@ -55,9 +55,6 @@ Please include in *.cpp-File.
 
 
 
-using namespace datetime;
-using namespace network;
-
 namespace temporalnet{
 /*
 IGPointt
@@ -65,7 +62,7 @@ IGPointt
 This class represents an intime(GPoint) .
 
 */
-typedef temporalalgebra::Intime<GPoint> IGPoint;
+typedef temporalalgebra::Intime<network::GPoint> IGPoint;
 
 /*
 2 class MGPSecUnit
@@ -84,7 +81,7 @@ class MGPSecUnit : public Attribute
     MGPSecUnit();
 
     MGPSecUnit(const bool defined, const int secId, const int part,
-               const Side direct, const double sp,
+               const network::Side direct, const double sp,
                const temporalalgebra::Interval<Instant> timeInterval);
 
     MGPSecUnit( const MGPSecUnit& in_xOther );
@@ -102,7 +99,7 @@ Get and Set private attributes.
 
     int GetPart()const;
 
-    Side GetDirect() const;
+    network::Side GetDirect() const;
 
     double GetSpeed()const;
 
@@ -114,7 +111,7 @@ Get and Set private attributes.
 
     void SetPart(const int p);
 
-    void SetDirect(const Side dir);
+    void SetDirect(const network::Side dir);
 
     void SetSpeed(const double x);
 
@@ -147,7 +144,7 @@ Functions for Secondo integration.
 
     MGPSecUnit *Clone() const;
 
-    ostream& Print( ostream& os ) const;
+    std::ostream& Print( std::ostream& os ) const;
 
     static ListExpr Out(ListExpr typeInfo, Word value);
 
@@ -162,7 +159,7 @@ Functions for Secondo integration.
 
     static void* Cast(void* addr);
 
-    inline static const string BasicType() { return "mgpsecunit"; }
+    inline static const std::string BasicType() { return "mgpsecunit"; }
 
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
@@ -178,7 +175,7 @@ Function for Operations.
 
     int m_secId; //section id
     int m_part;  //number of part of section if necessary default = 1
-    Side m_direct; // 0=down, 1=up, 2=none
+    network::Side m_direct; // 0=down, 1=up, 2=none
     double m_speed; // m/s
     temporalalgebra::Interval<Instant> m_time;
 
@@ -193,22 +190,22 @@ SpatialTemporalUnit class.
 
 */
 
-class UGPoint : public temporalalgebra::SpatialTemporalUnit<GPoint, 3>
+class UGPoint : public temporalalgebra::SpatialTemporalUnit<network::GPoint, 3>
 {
   public:
-  UGPoint():SpatialTemporalUnit<GPoint,3>() {};
+  UGPoint():SpatialTemporalUnit<network::GPoint,3>() {};
 
   UGPoint(const bool is_defined):
-    SpatialTemporalUnit<GPoint, 3>(is_defined)
+    SpatialTemporalUnit<network::GPoint, 3>(is_defined)
     {  };
 
   UGPoint( const temporalalgebra::Interval<Instant>& interval,
            const int in_NetworkID,
            const int in_RouteID,
-           const Side in_Side,
+           const network::Side in_Side,
            const double in_Position0,
            const double in_Position1 ):
-    SpatialTemporalUnit<GPoint, 3>( interval ),
+    SpatialTemporalUnit<network::GPoint, 3>( interval ),
     p0( true,        // defined
         in_NetworkID,    // NetworkID
         in_RouteID,      // RouteID
@@ -222,28 +219,28 @@ class UGPoint : public temporalalgebra::SpatialTemporalUnit<GPoint, 3>
     {};
 
   UGPoint( const temporalalgebra::Interval<Instant>& interval,
-           const GPoint& ip0,
-           const GPoint& ip1 ):
-    SpatialTemporalUnit<GPoint, 3>( interval ),
+           const network::GPoint& ip0,
+           const network::GPoint& ip1 ):
+    SpatialTemporalUnit<network::GPoint, 3>( interval ),
     p0( ip0 ),
     p1( ip1 )
     {
       if (p0.GetPosition() < p1.GetPosition())
       {
-        p0.SetSide(Up);
-        p1.SetSide(Up);
+        p0.SetSide(network::Up);
+        p1.SetSide(network::Up);
       }
       else
       {
         if (p0.GetPosition() > p1.GetPosition())
         {
-          p0.SetSide(Down);
-          p1.SetSide(Down);
+          p0.SetSide(network::Down);
+          p1.SetSide(network::Down);
         }
         else
         {
-          p0.SetSide(None);
-          p1.SetSide(None);
+          p0.SetSide(network::None);
+          p1.SetSide(network::None);
         }
       }
     }
@@ -251,11 +248,11 @@ class UGPoint : public temporalalgebra::SpatialTemporalUnit<GPoint, 3>
     UGPoint( const temporalalgebra::Interval<Instant>& interval,
            const int in_NetworkID,
            const int in_RouteID,
-           const Side in_Side,
+           const network::Side in_Side,
            const double in_Position0,
            const double in_Position1,
-           const Network *pNetwork):
-    temporalalgebra::SpatialTemporalUnit<GPoint, 3>( interval ),
+           const network::Network *pNetwork):
+    temporalalgebra::SpatialTemporalUnit<network::GPoint, 3>( interval ),
     p0( true,        // defined
         in_NetworkID,    // NetworkID
         in_RouteID,      // RouteID
@@ -269,24 +266,25 @@ class UGPoint : public temporalalgebra::SpatialTemporalUnit<GPoint, 3>
     { }
 
   UGPoint( const temporalalgebra::Interval<Instant>& interval,
-           const GPoint& p0,
-           const GPoint& p1,
-           const Network *pNetwork):
-    SpatialTemporalUnit<GPoint, 3>( interval ),
+           const network::GPoint& p0,
+           const network::GPoint& p1,
+           const network::Network *pNetwork):
+    SpatialTemporalUnit<network::GPoint, 3>( interval ),
     p0( p0 ),
     p1( p1 )
     {  }
 
   UGPoint(const UGPoint &source):
-        SpatialTemporalUnit<GPoint,3>(source.IsDefined())
+        SpatialTemporalUnit<network::GPoint,3>(source.IsDefined())
   {
-    *((TemporalUnit<GPoint>*)this)=*((TemporalUnit<GPoint>*)&source);
+    *((TemporalUnit<network::GPoint>*)this)=
+                    *((TemporalUnit<network::GPoint>*)&source);
     p0=source.p0;
     p1=source.p1;
     SetDefined(source.IsDefined());
   }
 
-  ostream& Print( ostream &os ) const
+  std::ostream& Print( std::ostream &os ) const
   {
     timeInterval.Print(os);
     p0.Print(os);
@@ -302,7 +300,8 @@ Redefinition of the copy operator ~=~.
 
   virtual UGPoint& operator=( const UGPoint& i )
   {
-    *((TemporalUnit<GPoint>*)this) = *((TemporalUnit<GPoint>*)&i);
+    *((TemporalUnit<network::GPoint>*)this) = 
+                  *((TemporalUnit<network::GPoint>*)&i);
     p0 = i.p0;
     p1 = i.p1;
     SetDefined(i.IsDefined());
@@ -317,7 +316,8 @@ Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and
 
    virtual bool operator==( const UGPoint& i ) const
   {
-    return *((TemporalUnit<GPoint>*)this) == *((TemporalUnit<GPoint>*)&i) &&
+    return *((TemporalUnit<network::GPoint>*)this) == 
+                 *((TemporalUnit<network::GPoint>*)&i) &&
             (p0 == i.p0 ) && ( p1 == i.p1 );
   }
 
@@ -360,8 +360,8 @@ Functions to be part of relations
     else
       {
         timeInterval = temporalalgebra::Interval<Instant>();
-        p0 = GPoint( false, 0, 0, 0.0, None);
-        p1 = GPoint( false, 0, 0, 0.0, None);
+        p0 = network::GPoint( false, 0, 0, 0.0, network::None);
+        p1 = network::GPoint( false, 0, 0, 0.0, network::None);
       }
   }
 
@@ -372,7 +372,8 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
 
  virtual const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
 
- Rectangle<3> BoundingBox(const Network* pNetwork, const Geoid* geoid=0) const;
+ Rectangle<3> BoundingBox(const network::Network* pNetwork, 
+                          const Geoid* geoid=0) const;
 
  virtual double Distance(const Rectangle<3>& rect,const Geoid* geoid = 0) const;
 
@@ -389,15 +390,16 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
   virtual const Rectangle<3> NetBoundingBox3d(const Geoid* geoid = 0) const
   {
     if(geoid){
-      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-           << endl;
+      std::cerr << __PRETTY_FUNCTION__ 
+                << ": Spherical geometry not implemented."
+                << std::endl;
       assert( !geoid ); // TODO: implement spherical geometry case
     }
     return Rectangle<3> (true,
                         (double) p0.GetRouteId(),
                         (double) p0.GetRouteId(),
-                        min(p0.GetPosition(),p1.GetPosition()),
-                        max(p0.GetPosition(),p1.GetPosition()),
+                        std::min(p0.GetPosition(),p1.GetPosition()),
+                        std::max(p0.GetPosition(),p1.GetPosition()),
                         timeInterval.start.ToDouble(),
                         timeInterval.end.ToDouble());
   }
@@ -411,15 +413,16 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
   inline const Rectangle<2> NetBoundingBox2d(const Geoid* geoid = 0) const
   {
     if(geoid){
-      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-      << endl;
+      std::cerr << __PRETTY_FUNCTION__ 
+                << ": Spherical geometry not implemented."
+                << std::endl;
       assert( !geoid ); // TODO: implement spherical geometry case
     }
     return Rectangle<2> (true,
                            (double) p0.GetRouteId(),
                            (double) p0.GetRouteId(),
-                          min(p0.GetPosition(), p1.GetPosition()),
-                          max(p0.GetPosition(), p1.GetPosition()));
+                          std::min(p0.GetPosition(), p1.GetPosition()),
+                          std::max(p0.GetPosition(), p1.GetPosition()));
   }
 
   /*
@@ -427,20 +430,21 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
 
   */
   virtual void TemporalFunction( const Instant& t,
-                                 GPoint& result,
+                                 network::GPoint& result,
                                  bool ignoreLimits = false ) const;
 
   /*
   Returns true if the ~ugpoint~ passes a given ~gpoint~ false elsewhere.
 
   */
-  virtual bool Passes( const GPoint& val )const ;
+  virtual bool Passes( const network::GPoint& val )const ;
 
   /*
   Returns the ~igpoint~ the ~ugpoint~ was at a given network position.
 
   */
-  virtual bool At( const GPoint& val, TemporalUnit<GPoint>& result ) const;
+  virtual bool At( const network::GPoint& val, 
+                   TemporalUnit<network::GPoint>& result ) const;
 
   /*
   Returns the length of the route passed within the ~ugpoint~
@@ -476,27 +480,27 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
     return p1.GetPosition();
   };
 
-  inline GPoint GetStartPoint()const
+  inline network::GPoint GetStartPoint()const
   {
     return p0;
   };
 
-  inline GPoint GetEndPoint() const
+  inline network::GPoint GetEndPoint() const
   {
     return p1;
   };
 
-  inline void SetStartPoint(const GPoint gp)
+  inline void SetStartPoint(const network::GPoint gp)
   {
     p0 = gp;
   };
 
-  inline void SetEndPoint(const GPoint gp)
+  inline void SetEndPoint(const network::GPoint gp)
   {
     p1 = gp;
   };
 
-  inline Side GetUnitSide() const
+  inline network::Side GetUnitSide() const
   {
     return p0.GetSide();
   };
@@ -551,18 +555,19 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
     return (Length() / DurationSeconds());
   }
 
-  inline Side MovingDirection() const
+  inline network::Side MovingDirection() const
   {
-    if (p0.GetPosition() < p1.GetPosition()) return Up;
+    if (p0.GetPosition() < p1.GetPosition()) return network::Up;
     else
-      if (p0.GetPosition() > p1.GetPosition()) return Down;
-      else return None;
+      if (p0.GetPosition() > p1.GetPosition()) return network::Down;
+      else return network::None;
   }
 
-  void GetPassedSections(const Network* pNet, vector<TupleId>& pS) const;
+  void GetPassedSections(const network::Network* pNet, 
+                         std::vector<TupleId>& pS) const;
 
-  void GetMGPSecUnits(vector<MGPSecUnit>& res, const double maxSectLength,
-                     const Network *pNet) const;
+  void GetMGPSecUnits(std::vector<MGPSecUnit>& res, const double maxSectLength,
+                     const network::Network *pNet) const;
 
 /*
 SetMethoden f[ue]r ~ugpoint~
@@ -585,7 +590,7 @@ SetMethoden f[ue]r ~ugpoint~
     p1.SetPosition(pos);
   };
 
-  inline void SetUnitSide(const Side a)
+  inline void SetUnitSide(const network::Side a)
   {
     p0.SetSide(a);
     p1.SetSide(a);
@@ -637,7 +642,7 @@ SetMethoden f[ue]r ~ugpoint~
 
 */
 
-  void NetdistanceFromArg(const GPoint* gp, 
+  void NetdistanceFromArg(const network::GPoint* gp, 
                           temporalalgebra::UReal* result) const;
 
 /*
@@ -645,7 +650,8 @@ Returns the network distance from the ~ugpoint~ to the ~gpoint~
 
 */
 
-  void NetdistanceToArg(const GPoint* gp, temporalalgebra::UReal* result) const;
+  void NetdistanceToArg(const network::GPoint* gp, 
+                        temporalalgebra::UReal* result) const;
 
 
 /*
@@ -661,7 +667,7 @@ Restricts the ugpoint to the given timeInterval
 */
 
 void AtInterval( const temporalalgebra::Interval<Instant>& i,
-                 TemporalUnit<GPoint>& result ) const;
+                 TemporalUnit<network::GPoint>& result ) const;
 
 /*
 Methods for Secondo integration.
@@ -697,14 +703,14 @@ Methods for Secondo integration.
 
     static void* Cast(void* addr);
 
-    inline static const string BasicType() { return "ugpoint"; }
+    inline static const std::string BasicType() { return "ugpoint"; }
 
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
 
 
-    GPoint p0, p1;
+    network::GPoint p0, p1;
 
 };
 
@@ -715,7 +721,7 @@ Inherits from the Mapping of the TemporalAlgebra.
 
 */
 
-class MGPoint : public temporalalgebra::Mapping< UGPoint, GPoint >
+class MGPoint : public temporalalgebra::Mapping< UGPoint, network::GPoint >
 {
   public:
 /*
@@ -723,7 +729,7 @@ The simple constructor should not be used.
 
 */
 
-    MGPoint():Mapping<UGPoint,GPoint>() {};
+    MGPoint():Mapping<UGPoint,network::GPoint>() {};
 
     MGPoint( const int n );
 
@@ -778,7 +784,7 @@ Returns a pointer to the network object the ~mgpoint~ belongs to.
 
 */
 
-   Network* GetNetwork() const;
+   network::Network* GetNetwork() const;
 
 /*
 Computes the Euclidean Distance between two mgpoint with help of mpoint
@@ -789,18 +795,19 @@ distance function.
     void Distance(const MGPoint *mgp, temporalalgebra::MReal *result) const;
     void DistanceE(const MGPoint* mgp, temporalalgebra::MReal* result) const;
     void DistanceN(MGPoint* mgp, temporalalgebra::MReal* result);
-    void DistanceFunction(const UGPoint*, const UGPoint*, const Network*,
-                          vector<temporalalgebra::UReal>&) const;
-    void DivideUGPoint(const Network*);
+    void DistanceFunction(const UGPoint*, const UGPoint*,
+                          const network::Network*,
+                          std::vector<temporalalgebra::UReal>&) const;
+    void DivideUGPoint(const network::Network*);
 
 /*
   Returns the network distance from the ~gpoint~ to the ~mgpoint~
 
 */
 
-  void NetdistanceFromArg(const GPoint* gp,
+  void NetdistanceFromArg(const network::GPoint* gp,
                           temporalalgebra::MReal* result) const;
-  void NetdistanceFromArgShort(const GPoint* gp, 
+  void NetdistanceFromArgShort(const network::GPoint* gp, 
                           temporalalgebra::MReal* result)const;
 
 /*
@@ -808,8 +815,9 @@ Returns the network distance from the ~mgpoint~ to the ~gpoint~
 
 */
 
- void NetdistanceToArg(const GPoint* gp, temporalalgebra::MReal* result) const;
- void NetdistanceToArgShort(const GPoint* gp,
+ void NetdistanceToArg(const network::GPoint* gp, 
+                       temporalalgebra::MReal* result) const;
+ void NetdistanceToArgShort(const network::GPoint* gp,
                             temporalalgebra::MReal* result) const;
 
 
@@ -825,17 +833,17 @@ Returns the trajectory of the mgpoint as sorted gline or as DbArray of
 
 */
 
-   void Trajectory(GLine* res);
+   void Trajectory(network::GLine* res);
 
-   DbArray<RouteInterval>& GetTrajectory() ;
+   DbArray<network::RouteInterval>& GetTrajectory() ;
 
 /*
 Sets the Trajetory of the MGPoint from a GLine or a DbArray of ~RouteInterval~s
 
 */
-   void SetTrajectory(const GLine src);
+   void SetTrajectory(const network::GLine src);
 
-   void SetTrajectory(const DbArray<RouteInterval>& tra);
+   void SetTrajectory(const DbArray<network::RouteInterval>& tra);
 
    void SetTrajectoryDefined(const bool defined);
 
@@ -890,7 +898,7 @@ Returns a mbool telling when the mgpoint was inside the gline.
 
 */
 
-  void Inside(const GLine* gl, temporalalgebra::MBool *res) const;
+  void Inside(const network::GLine* gl, temporalalgebra::MBool *res) const;
 
 
 /*
@@ -900,16 +908,16 @@ Returns a mgpoint restricted to the given periods respectively instant value.
    void Atperiods(const temporalalgebra::Periods *per, MGPoint *res) const;
 
    void Atinstant(const Instant *inst, 
-                  temporalalgebra::Intime<GPoint> *res) const;
+                  temporalalgebra::Intime<network::GPoint> *res) const;
 
 /*
 Returns a mgpoint restricted to the times it was at the given gpoint resp.
 gline.
 
 */
-   void At(const GPoint *gp, MGPoint *res) const;
+   void At(const network::GPoint *gp, MGPoint *res) const;
 
-   void At(const GLine *gl, MGPoint *res) const;
+   void At(const network::GLine *gl, MGPoint *res) const;
 
 /*
 Returns the union of two time disjoint ~mgpoint~. ~undef~ elsewhere.
@@ -929,9 +937,9 @@ differences lower than d are compacted to be one unit.
 Returns true if the mgpoint passes at least once the gpoint resp. gline.
 
 */
-   bool Passes(const GPoint *gp) ;
+   bool Passes(const network::GPoint *gp) ;
 
-   bool Passes(GLine *gl) ;
+   bool Passes(network::GLine *gl) ;
 
 /*
 Returns the spatiotemporal 3 dimensional bounding box of the ~mgpoint~.
@@ -952,23 +960,27 @@ Restricts a ~mgpoint~ to the given unit intervals.
 
 */
 
-  void Restrict( const vector< pair<int, int> >& intervals );
+  void Restrict( const std::vector< std::pair<int, int> >& intervals );
 
 /*
 Prints the mgpoint value.
 
 */
 
-  ostream& Print( ostream &os ) const;
+  std::ostream& Print( std::ostream &os ) const;
 
 /*
 Returns the sections passed by the ~mgpoint~
 
 */
 
-  void GetPassedSections(SortedTree<Entry<SectionValue> > *result) const;
-  void GetPassedSections(const Network *pNetwork,
-                         SortedTree<Entry<SectionValue> > *result) const;
+  void GetPassedSections(
+          network::SortedTree<network::Entry<network::SectionValue> > 
+          *result) const;
+  void GetPassedSections(
+          const network::Network *pNetwork,
+          network::SortedTree<network::Entry<network::SectionValue> > 
+           *result) const;
 
   bool operator==( const MGPoint& r ) const;
 
@@ -978,16 +990,16 @@ Returns the sections passed by the ~mgpoint~
 
   int Position(const Instant &inst, bool atinst=true) const;
 
-  void GetMGPSecUnits(vector<MGPSecUnit> &res, double maxSectLength,
-                      Network *pNet) const;
+  void GetMGPSecUnits(std::vector<MGPSecUnit> &res, double maxSectLength,
+                      network::Network *pNet) const;
 
-  inline static const string BasicType() { return "mgpoint"; }
+  inline static const std::string BasicType() { return "mgpoint"; }
 
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }
 
-  DbArray<RouteInterval> m_trajectory;
+  DbArray<network::RouteInterval> m_trajectory;
   private:
 
   bool m_traj_Defined;

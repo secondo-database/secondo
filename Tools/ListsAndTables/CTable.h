@@ -190,7 +190,6 @@ typedef unsigned long Cardinal;
 #endif
 
 
-using namespace std;
 
 /**************************************************************************
 
@@ -216,7 +215,7 @@ public:
 
   CTable( Cardinal const count );
   ~CTable(); 
-  string MemoryModel();
+  std::string MemoryModel();
 
 /* 
 
@@ -541,7 +540,7 @@ Creates an iterator for this ~CTable~, pointing beyond the last valid slot.
 
 */
 
-  const string StateToStr(); 
+  const std::string StateToStr(); 
   intptr_t GetSlotSize() { return slotSize; }
 
 /* 
@@ -568,9 +567,9 @@ private:
      #endif
    
     if ( !(n > 0 && n <= elemCount) ) {
-       cerr << "CTable<" << typeid(T).name() << "> "
+       std::cerr << "CTable<" << typeid(T).name() << "> "
             << "slot n=" << n << " is out of range [0.." 
-            << elemCount <<"]." << endl;
+            << elemCount <<"]." << std::endl;
        return true;
     }
     return false;
@@ -672,7 +671,7 @@ CTable<T>::NoEntries() {
 
 template<typename T>
 
-string
+std::string
 CTable<T>::MemoryModel() {
      #ifdef THREAD_SAFE
      boost::lock_guard<boost::recursive_mutex> guard(mtx);
@@ -688,16 +687,16 @@ CTable<T>::MemoryModel() {
 
 template<typename T>
 
-const string
+const std::string
 CTable<T>::StateToStr() {
 
  #ifdef THREAD_SAFE
  boost::lock_guard<boost::recursive_mutex> guard(mtx);
  #endif
-  stringstream st;
+  std::stringstream st;
   st << "( elemCount=" << elemCount 
      << ", leastFree=" << leastFree
-     << ", highestValid= " << highestValid << ends;
+     << ", highestValid= " << highestValid << std::ends;
   
   return st.str();  
 } 

@@ -35,8 +35,6 @@ This algebra is derived from the RTreeAlgebra of Victor Almeida. Especially the 
 #include <stack>
 #include <vector>
 
-using namespace std;
-
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"
 #include "Algebra.h"
@@ -395,7 +393,7 @@ Update entry corresponding to ~pointer~ to have bounding box ~box~.
 
 */
 
-    ostream& Print( ostream &os );
+    std::ostream& Print( std::ostream &os );
 /*
 For debugging purposes only.
 
@@ -1128,7 +1126,7 @@ void R_TreeNodePnJ<dim>::UpdateBox( BBox<dim>& b, const ArrayIndex& pointer )
 
 */
 template<unsigned dim>
-ostream& R_TreeNodePnJ<dim>::Print( ostream &os )
+std::ostream& R_TreeNodePnJ<dim>::Print( std::ostream &os )
 {
   os <<  "  Leaf=" << leaf << "  Count=" << count <<
          "  insertOverflow=" << insertOverflow << endl;
@@ -1265,9 +1263,9 @@ of the leave, where the entry would be inserted.
 */
 
     bool First( const BBox<dim>& box, R_TreeEntryPnJ<dim>& result,
-                vector <ArrayIndex>& leavesOverflowed, int replevel = -1);
+                std::vector <ArrayIndex>& leavesOverflowed, int replevel = -1);
     bool Next ( R_TreeEntryPnJ<dim>& result,
-                vector <ArrayIndex>& leavesOverflowed );
+                std::vector <ArrayIndex>& leavesOverflowed );
 /*
 Sets ~result~ to the (leaf) entry corresponding to the first/next
 object whose bounding box overlaps ~box~.
@@ -2146,7 +2144,7 @@ void R_TreePnJ<dim>::ComputeMaxNodesInInsert()
 */
 template <unsigned dim>
 bool R_TreePnJ<dim>::First (const BBox<dim>& box, R_TreeEntryPnJ<dim>& result,
-                            vector <ArrayIndex>& leavesOverflowed, 
+                            std::vector <ArrayIndex>& leavesOverflowed, 
                             int replevel)
 {
   if(!box.IsDefined()){
@@ -2180,7 +2178,7 @@ bool R_TreePnJ<dim>::First (const BBox<dim>& box, R_TreeEntryPnJ<dim>& result,
 */
 template <unsigned dim>
 bool R_TreePnJ<dim>::Next (R_TreeEntryPnJ<dim>& result,
-                           vector <ArrayIndex>& leavesOverflowed)
+                           std::vector <ArrayIndex>& leavesOverflowed)
 {
   //Next can be called only after a First or Next operation
   assert (scanFlag);

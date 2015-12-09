@@ -53,7 +53,6 @@
 #ifndef MEMBER_H_
 #define MEMBER_H_
 
-using namespace std;
 
 namespace distributedClustering{
   

@@ -37,7 +37,6 @@ www.codeproject.com/Articles/10618/Loop-buffer-an-efficient-way-of-using-shared-
 
 #include "IPCMessages.h"
 
-using namespace std;
 
 static const int IPC_QUEUE_BUFFER_SIZE = 1024 * 32;
 static const int IPC_MAGIC_ID = 54923;

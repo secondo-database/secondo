@@ -52,7 +52,7 @@ class Berlin2WGS {
 
   
  protected:
-  pair<double, double> b2wgs(const double& x, const double& y);
+  std::pair<double, double> b2wgs(const double& x, const double& y);
   HalfSegment b2wgs(const HalfSegment& source);
   
   double x0, x1, x2, y0, y1, y2;

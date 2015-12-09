@@ -13,21 +13,21 @@ specification used by graphviz (www.graphviz.org) for a directed graph.
 #include<iostream>
 #include<assert.h>
 
-using namespace std;
 
 
 class DotSpec {
 
   public:
-  DotSpec(const string& name) : gName(name) {}
+  DotSpec(const std::string& name) : gName(name) {}
   ~DotSpec() {}
 
 
-  void addNodeType(const string& type, const string& spec) {
+  void addNodeType(const std::string& type, const std::string& spec) {
     types[type] = "node " + spec;	  
   }	  
 
-  bool addNode(const string& type, const string& id, const string& label) {
+  bool addNode(const std::string& type, const std::string& id,
+               const std::string& label) {
     
    TTypeMap::const_iterator it = types.find(type);
    if (it == types.end()) {
@@ -37,7 +37,7 @@ class DotSpec {
    return true;
   }
 
-  void addEdge(const string& n1, const string& n2) {
+  void addEdge(const std::string& n1, const std::string& n2) {
     edges.push_back( make_pair(n1, n2));	  
   }	  
 
@@ -46,7 +46,7 @@ class DotSpec {
     nodes.clear(); 
   }
 
-  void buildGraph(ostream& os) const {
+  void buildGraph(std::ostream& os) const {
 
     os << "digraph \"" << gName << "\"{" << endl;
        	    
@@ -61,7 +61,7 @@ class DotSpec {
       TNodesMap::const_iterator it2 = nodes.find(it1->first);
       
       if (it2 != nodes.end()) {
-      list<TPair>::const_iterator it3 = it2->second.begin();
+      std::list<TPair>::const_iterator it3 = it2->second.begin();
 
       // write the nodes for this type
       while ( it3 != it2->second.end() ) {
@@ -84,14 +84,14 @@ class DotSpec {
 
   private:
 
-  typedef map<string, string> TTypeMap;
-  typedef pair<string, string> TPair;
-  typedef map<string, list<TPair> > TNodesMap;
-  typedef list< TPair > TEdgeList;
+  typedef std::map<std::string, std::string> TTypeMap;
+  typedef std::pair<std::string, std::string> TPair;
+  typedef std::map<std::string, std::list<TPair> > TNodesMap;
+  typedef std::list< TPair > TEdgeList;
   TTypeMap types;
   TEdgeList edges;
   TNodesMap nodes;
-  string gName;
+  std::string gName;
 };
 
 #endif

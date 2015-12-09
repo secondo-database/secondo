@@ -209,7 +209,7 @@ Secondo operators.
                                 int16_t* data);
         int importEsriGridFile(RasterData *HGTRasterData);
         void processEsriGridByRTileType(
-            ifstream *esriGridDataFile,
+            std::ifstream *esriGridDataFile,
             RasterData *esriRasterData,
             const uint32_t tileColIdx,
             const uint32_t tileRowIdx,
@@ -218,7 +218,7 @@ Secondo operators.
             const uint32_t cellRowCount,
             const uint32_t tileLimitCount);
         void processConstantBlockData(
-            ifstream *dataFile,
+            std::ifstream *dataFile,
             RasterData *esriRasterData,
             const uint32_t tileColIdx,
             const uint32_t tileRowIdx,
@@ -227,7 +227,7 @@ Secondo operators.
             const uint32_t cellRowCount,
             const uint8_t rMinSize);
         void processEsriTilePixelValueData(
-            ifstream *dataFile,
+            std::ifstream *dataFile,
             const uint8_t *rTileType,
             RasterData *esriRasterData,
             const uint32_t tileColIdx,
@@ -238,7 +238,7 @@ Secondo operators.
             const uint32_t tileLimitCount,
             const uint8_t rMinSize);
         void processEsriTileLiteralRunsData(
-            ifstream *dataFile,
+            std::ifstream *dataFile,
             RasterData *esriRasterData,
             const uint32_t tileColIdx,
             const uint32_t tileRowIdx,
@@ -248,7 +248,7 @@ Secondo operators.
             const uint32_t tileLimitCount,
             const uint8_t rMinSize);
         void processEsriTile16BitLiteralRunsData(
-            ifstream *dataFile,
+            std::ifstream *dataFile,
             RasterData *esriRasterData,
             const uint32_t tileColIdx,
             const uint32_t tileRowIdx,
@@ -258,7 +258,7 @@ Secondo operators.
             const uint32_t tileLimitCount,
             const uint8_t rMinSize);
         void processEsriTileRMinRunsData(
-            ifstream *dataFile,
+            std::ifstream *dataFile,
             RasterData *esriRasterData,
             const uint32_t tileColIdx,
             const uint32_t tileRowIdx,
@@ -268,7 +268,7 @@ Secondo operators.
             const uint32_t tileLimitCount,
             const uint8_t rMinSize);
         void processEsriTileCountLengthData(
-            ifstream *dataFile,
+            std::ifstream *dataFile,
             const uint8_t *rTileType,
             RasterData *esriRasterData,
             const uint32_t tileColIdx,
@@ -279,7 +279,7 @@ Secondo operators.
             const uint32_t tileLimitCount,
             const uint8_t rMinSize);
         void processEsriTileRMin1BitData(
-            ifstream *dataFile,
+            std::ifstream *dataFile,
             RasterData *esriRasterData,
             const uint32_t tileColIdx,
             const uint32_t tileRowIdx,
@@ -289,7 +289,7 @@ Secondo operators.
             const uint32_t tileLimitCount,
             const uint8_t rMinSize);
         void processEsriTileRMinCCITTRLEData(
-            ifstream *dataFile,
+            std::ifstream *dataFile,
             RasterData *esriRasterData,
             const uint32_t tileColIdx,
             const uint32_t tileRowIdx,

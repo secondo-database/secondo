@@ -59,7 +59,6 @@ For this it leans on Lema, Forlizzi, G[ue]ting, Nardelli, Schneider:
 #include "PolySolver.h"
 
 #include "DateTime.h"
-using namespace datetime;
 
 #include "SpatialAlgebra.h"
 #include "TemporalAlgebra.h"
@@ -68,6 +67,8 @@ using namespace datetime;
 #include "RefinementStream.h"
 
 
+using namespace datetime;
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

@@ -20,8 +20,6 @@
 #define STORAGE_H
 
 
-using namespace std;
-using namespace tr1;
 
 namespace rstartree {
 

@@ -55,8 +55,6 @@ May, 2010 Jianqiu xu
 #include <stdlib.h>
 #include <stdarg.h>
 
-using namespace std;
-
 #define TRUE  1
 #define FALSE 0
 

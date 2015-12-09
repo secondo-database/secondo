@@ -203,7 +203,7 @@ to be overwritten in histogram1d and histogram2d:
 
     virtual void Coarsen(const BaseHistogram* h) = 0;
 
-    virtual ostream& Print( ostream& os ) const = 0;
+    virtual std::ostream& Print( std::ostream& os ) const = 0;
 
 /*
 3.2.11 Definition of bin

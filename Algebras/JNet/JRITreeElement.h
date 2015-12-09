@@ -83,7 +83,7 @@ void SetRouteIntervalEnd (const double pos);
 */
 
 void operator= (const JRITreeElement nelem);
-ostream& Print(ostream&) const;
+std::ostream& Print(std::ostream&) const;
 
 
 /*
@@ -105,8 +105,8 @@ private:
 
 */
 
-using namespace jnetwork;
-ostream& operator<< (ostream& os, const jnetwork::JRITreeElement elem);
+std::ostream& operator<< (std::ostream& os, 
+                          const jnetwork::JRITreeElement elem);
 
 
 

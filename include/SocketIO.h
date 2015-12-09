@@ -170,9 +170,9 @@ internally only, the class interface is not described here.
 #ifdef __TRACE_UDP__
 
 #define __UDP_POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__
-#define __UDP_ENTER__ cerr << "ENTER " <<  __UDP_POS__ << endl;
-#define __UDP_EXIT__ cerr << "EXIT " <<  __UDP_POS__ << endl;
-#define __UDP_MSG(X) cerr << __UDP_POS__ << ": " << X << endl;
+#define __UDP_ENTER__ std::cerr << "ENTER " <<  __UDP_POS__ << std::endl;
+#define __UDP_EXIT__ std::cerr << "EXIT " <<  __UDP_POS__ << std::endl;
+#define __UDP_MSG(X) std::cerr << __UDP_POS__ << ": " << X << std::endl;
 
 #else
 
@@ -185,8 +185,6 @@ internally only, the class interface is not described here.
 #endif
 
 // Debugging and tracing UDPsockets - end
-
-using namespace std;
 
 #define DEFAULT_CONNECT_MAX_ATTEMPTS 100
 /*
@@ -288,8 +286,8 @@ Initializes a ~Socket~ instance as an invalid socket in closed state.
 Destroys a socket.
 
 */
-  static Socket*  Connect( const string& address,
-                           const string& port,
+  static Socket*  Connect( const std::string& address,
+                           const std::string& port,
                            const SocketDomain domain =
                              SockAnyDomain,
                            const int maxAttempts =
@@ -307,7 +305,8 @@ parameter are recognized:
 
   * ~SockAnyDomain~ -- the domain is chosen automatically
 
-  * ~SockLocalDomain~ -- local domain (connection with a server on the same host)
+  * ~SockLocalDomain~ -- local domain (connection with a server on
+     the same host)
 
   * ~SockGlobalDomain~ -- internet domain
 
@@ -321,7 +320,7 @@ error code describing reason of failure. So the returned socket should be
 first checked by its ~IsOk~ method.
 
 */
-  static Socket*  CreateLocal( const string& address,
+  static Socket*  CreateLocal( const std::string& address,
                                const int listenQueueSize =
                                  DEFAULT_LISTEN_QUEUE_SIZE);
 /*
@@ -335,8 +334,8 @@ error code describing reason of failure. So the returned socket should be
 first checked by its ~IsOk~ method.
 
 */
-  static Socket*  CreateGlobal( const string& address,
-                                const string& port,
+  static Socket*  CreateGlobal( const std::string& address,
+                                const std::string& port,
                                 const int listenQueueSize =
                                   DEFAULT_LISTEN_QUEUE_SIZE );
 /*
@@ -406,17 +405,17 @@ returned.
 Checks whether the socket is correctly initialized and ready for operation.
 
 */
-  virtual string  GetErrorText() = 0;
+  virtual std::string  GetErrorText() = 0;
 /*
 Returns an error message text for the last error occurred.
 
 */
-  virtual string  GetSocketAddress() const = 0;
+  virtual std::string  GetSocketAddress() const = 0;
 /*
 Returns the IP address of the socket in string representation.
 
 */
-  virtual string  GetPeerAddress() const = 0;
+  virtual std::string  GetPeerAddress() const = 0;
 /*
 Returns the IP address of the socket to which this socket is connected
 in string representation.
@@ -461,21 +460,21 @@ operations are guaranteed to be completed. The function returns
 "true"[4] if the operation was successfully completed, "false"[4] otherwise.
 
 */
-  static string GetHostname( const string& ipAddress );
+  static std::string GetHostname( const std::string& ipAddress );
 /*
 Tries to get the fully qualified host name corresponding to the IP address
 ~ipAddress~ which is given in string representation. If the method fails
 the string "<unknown>"[2] will be returned.
 
 */
-  static int GetIP( const string& address );
+  static int GetIP( const std::string& address );
 /*
 Gets the IP address of the host. "address" parameter should contain either
 symbolic host name (for example "robinson"), or a string with IP address
 (for example "195.239.208.225")
 
 */
-  iostream& GetSocketStream();
+  std::iostream& GetSocketStream();
 /*
 Returns a reference to the I/O stream associated with the socket.
 
@@ -490,12 +489,13 @@ Defines the socket state.
 
 */
    SocketBuffer* ioSocketBuffer; // Socket stream buffer
-   iostream*     ioSocketStream; // Socket I/O stream
+   std::iostream*     ioSocketStream; // Socket I/O stream
 };
 
-extern string GetProcessName();
+extern std::string GetProcessName();
 /*
-Returns the current host name combined with an identifier of the current process.
+Returns the current host name combined with an identifier of the
+ current process.
 
 */
 
@@ -526,7 +526,7 @@ The port number is set to zero.
 Creates a socket address that is an identical copy of ~sockAddr~.
 
 */
-  SocketAddress( const string& ipAddr, uint16_t portNo = 0 );
+  SocketAddress( const std::string& ipAddr, uint16_t portNo = 0 );
 /*
 Initializes a socket address converting the string representation of
 an IP address ~ipAddr~ into the internal binary representation. The
@@ -551,7 +551,7 @@ The method returns "true"[4] if both objects are equal, otherwise it
 returns "false"[4].
 
 */
-  void SetAddress( const string& ipAddr,
+  void SetAddress( const std::string& ipAddr,
                    uint16_t portNo = 0 );
 /*
 Sets the socket address converting the string representation of
@@ -559,22 +559,22 @@ an IP address ~ipAddr~ into the internal binary representation. The
 port number is set to ~portNo~.
 
 */
-  void SetAddress( const string& ipAddr,
-                   const string& portNo );
+  void SetAddress( const std::string& ipAddr,
+                   const std::string& portNo );
 /*
 Sets the socket address converting the string representation of
 an IP address ~ipAddr~ into the internal binary representation. The
 string representation ~portNo~ of the port number is also converted.
 
 */
-  string GetSocketString() const;
+  std::string GetSocketString() const;
 /*
 Returns the IP address of the socket including the port number as
 a string. The port number is appended to the IP address after
 inserting a colon as a delimiter, i.e. ~132.176.69.10:1234~.
 
 */
-  string GetIPAddress() const;
+  std::string GetIPAddress() const;
 /*
 Returns the IP address portion of the socket address in string format.
 
@@ -617,8 +617,8 @@ matches the rule.
 Creates an empty rule.
 
 */
-  SocketRule( const string& strIpAddr,
-              const string& strIpMask,
+  SocketRule( const std::string& strIpAddr,
+              const std::string& strIpMask,
               const Policy setAllowDeny = ALLOW );
 /*
 Creates a rule initialized by the given IP address ~strIpAddr~ and IP
@@ -658,7 +658,7 @@ Returns the current delimiter used between IP address, IP address mask
 and access policy when a rule is sent onto an output stream.
 
 */
-  friend ostream& operator <<( ostream& os, SocketRule& r );
+  friend std::ostream& operator <<( std::ostream& os, SocketRule& r );
 /*
 Allows to send a rule to an output stream.
 
@@ -689,8 +689,8 @@ Creates an empty rule set with a default access policy ~initDefaultPolicy~.
 Destroys a rule set.
 
 */
-  void AddRule( const string& strIpAddr,
-                const string& strIpMask,
+  void AddRule( const std::string& strIpAddr,
+                const std::string& strIpMask,
                 SocketRule::Policy allowDeny =
                   SocketRule::ALLOW );
 /*
@@ -703,25 +703,25 @@ Adds a rule consisting of the IP address ~strIpAddr~, the IP address mask
 Checks whether access should be granted for the IP address ~host~.
 
 */
-  bool LoadFromFile( const string& ruleFileName );
+  bool LoadFromFile( const std::string& ruleFileName );
 /*
 Loads a set of rules from the file with name ~ruleFileName~.
 The method returns "true"[4] when the file could be read successfully.
 
 */
-  bool StoreToFile( const string& ruleFileName );
+  bool StoreToFile( const std::string& ruleFileName );
 /*
 Stores a set of rules into the file with name ~ruleFileName~.
 The method returns "true"[4] when the file could be written successfully.
 
 */
-  friend ostream& operator <<(ostream& os, SocketRuleSet& r);
+  friend std::ostream& operator <<(std::ostream& os, SocketRuleSet& r);
 /*
 Allows to send a set of rules to an output stream.
 
 */
  protected:
-   vector<SocketRule> rules;         // Set of rules
+   std::vector<SocketRule> rules;         // Set of rules
    SocketRule::Policy defaultPolicy; // Access policy for set
 };
 
@@ -733,7 +733,7 @@ for sockets. Separate buffers for reading and writing are implemented.
 
 */
 
-class SDB_EXPORT SocketBuffer : public streambuf
+class SDB_EXPORT SocketBuffer : public std::streambuf
 {
  public:
   SocketBuffer( Socket& socket );
@@ -756,19 +756,19 @@ Checks whether the stream buffer is ready for operation.
 Closes the stream buffer.
 
 */
-  streampos seekoff( streamoff, ios::seekdir, unsigned int )
+  std::streampos seekoff( std::streamoff, std::ios::seekdir, unsigned int )
     { return EOF; }
 /*
 Disallows seeking in the stream buffer since a TCP stream is strictly
 sequential.
 
 */
-  streamsize xsputn( const char* s, const streamsize n );
+  std::streamsize xsputn( const char* s, const std::streamsize n );
 /*
 Allows faster writing onto the socket of a string consisting on ~n~ characters.
 
 */
-  streamsize xsgetn( char* s, const streamsize n );
+  std::streamsize xsgetn( char* s, const std::streamsize n );
 /*
 Allows faster reading from the socket of a string consisting on ~n~ characters.
 
@@ -793,20 +793,24 @@ Flushes all output data from the buffer to the associated socket.
   virtual int pbackfail( int ch = EOF );
 
 
-  streamsize showmanyc() { cerr << "showmanyc called!" << endl; return 0; };
+  std::streamsize showmanyc() { 
+      std::cerr << "showmanyc called!" << std::endl; return 0;
+  }
 
-  streampos seekpos ( streampos sp,
-                      ios_base::openmode which = ios_base::in | ios_base::out )
+  std::streampos seekpos ( std::streampos sp,
+    std::ios_base::openmode which = std::ios_base::in | std::ios_base::out )
   {
-    cerr << "streampos called!" << endl;
+    std::cerr << "streampos called!" << std::endl;
     return EOF;
-  };
+  }
 
-  streambuf * setbuf ( char * s, streamsize n )
+  std::streambuf * setbuf ( char * s, std::streamsize n )
   {
-      cerr << "setbuf called!" << endl; return this;
+      std::cerr << "setbuf called!" << std::endl; return this;
   };
-  void imbue ( const locale & loc ) { cerr << "imbue called!" << endl; };
+  void imbue ( const std::locale & loc ) { 
+        std::cerr << "imbue called!" << std::endl;
+  }
 
 
 /*
@@ -873,7 +877,8 @@ information on IP-version, IP address, port number, flags, etc.
     UDPaddress(const struct sockaddr_in6     *addr);
     UDPaddress(const struct sockaddr_storage *addr);
 /*
-Creates a ~UDPaddress~ from a given valid ~struct sockaddr\_in~/~sockaddr\_in6~/~sockaddr\_storage~
+Creates a ~UDPaddress~ from a given valid ~struct 
+sockaddr\_in~/~sockaddr\_in6~/~sockaddr\_storage~
 
 */
     UDPaddress(const UDPaddress &addr);
@@ -882,8 +887,8 @@ Copy constructor.
 Creates a ~UDPaddress~ from another given UDPaddress ~addr~.
 
 */
-    UDPaddress(const string ip,
-               const string port,
+    UDPaddress(const std::string ip,
+               const std::string port,
                const short int IPver = AF_UNSPEC);
 /*
 Creates a ~UDPaddress~ using the given IP address, port number, and ip-version.
@@ -895,7 +900,7 @@ qualified cononic host name.
 */
     ~UDPaddress();
 
-    inline string getFamily() const
+    inline std::string getFamily() const
     { if(myFamily == AF_INET){
         return "IPv4";
       } else if(myFamily == AF_INET6){
@@ -904,7 +909,8 @@ qualified cononic host name.
       return "unknown";
     };
 /*
-Return the protocol family (IPv4, IPv6) associated with this address as a string.
+Return the protocol family (IPv4, IPv6) associated with this address as a
+string.
 
 */
     inline int getFamilyI() const                  { return myFamily;   };
@@ -916,19 +922,19 @@ Get code for IP-family, socket type, protocol type, address type length, and
 address. Used for calls of ~socket()~, connect(), etc.
 
 */
-    inline string getIP() const { return myIP; };
+    inline std::string getIP() const { return myIP; };
 
 /*
 Return the associated IP address in string format.
 Two versions: as integer (for socket()) and text.
 
 */
-    inline string getHostName() const { return myCanonname; };
+    inline std::string getHostName() const { return myCanonname; };
 /*
 Return the fully qualified host name as a string.
 
 */
-    inline string getPort() const      { return myPort; };
+    inline std::string getPort() const      { return myPort; };
 /*
 Return the associated port number in string format.
 
@@ -939,7 +945,7 @@ Returns true, iff the instance has been created successfully.
 Error descriptions can be accessed by means of ~getErrorText()~.
 
 */
-    string getErrorText() const        { return myErrorMsg; };
+    std::string getErrorText() const        { return myErrorMsg; };
 /*
 Returns the error description.
 
@@ -949,31 +955,31 @@ Returns the error description.
 The assignment operator
 
 */
-    ostream& Print(ostream& o) const;
+    std::ostream& Print(std::ostream& o) const;
 
   protected:
     bool   myOk;
-    string myErrorMsg;
+    std::string myErrorMsg;
     int    myFamily;
     size_t myAddrlen;
     struct sockaddr *myAddr;
-    string myIP;
-    string myPort;
-    string myCanonname;
+    std::string myIP;
+    std::string myPort;
+    std::string myCanonname;
 
     bool updateMemberVariables();
     bool updateMemberVariables(const struct addrinfo *myAddrInfo);
 
-    static string getErrorCodeStr(const int resGetaddrinfo);
+    static std::string getErrorCodeStr(const int resGetaddrinfo);
 };
 
-ostream& operator<<(ostream &o, const struct sockaddr_in  &a);
-ostream& operator<<(ostream &o, const struct sockaddr_in6 &a);
-ostream& operator<<(ostream &o, const struct sockaddr_storage &a);
-ostream& operator<<(ostream &o, const struct sockaddr     &a);
-ostream& operator<<(ostream &o, const UDPaddress          &a);
-ostream& operator<<(ostream &o, const struct addrinfo     &a);
-ostream& operator<<(ostream &o, const struct protoent     &p);
+std::ostream& operator<<(std::ostream &o, const struct sockaddr_in  &a);
+std::ostream& operator<<(std::ostream &o, const struct sockaddr_in6 &a);
+std::ostream& operator<<(std::ostream &o, const struct sockaddr_storage &a);
+std::ostream& operator<<(std::ostream &o, const struct sockaddr     &a);
+std::ostream& operator<<(std::ostream &o, const UDPaddress          &a);
+std::ostream& operator<<(std::ostream &o, const struct addrinfo     &a);
+std::ostream& operator<<(std::ostream &o, const struct protoent     &p);
 
 
 /*
@@ -1039,7 +1045,7 @@ with them, but they are allowed to do so. Returns true, if remote is
 
 */
 
-    int writeTo(const UDPaddress &receiver, const string &message);
+    int writeTo(const UDPaddress &receiver, const std::string &message);
 /*
 Initially clears ~ok~ and ~errorMsg~.
 Send datagram ~message~ to the address specified by ~receiver~.
@@ -1052,7 +1058,7 @@ UDPVOID, UDPNORECV, UDPNOSEND, UDPNONE, UDPALL: unchanged
 
 */
 
-    int write(const string &message);
+    int write(const std::string &message);
 /*
 Initially clears ~ok~ and ~errorMsg~.
 Send datagram ~message~ to the connected remote socket. Requires the socket to
@@ -1066,7 +1072,7 @@ UDPVOID, UDPFRESH, UDPNORECV, UDPNOSEND, UDPNONE, UDPALL: unchanged
 
 */
 
-    string readFrom(UDPaddress &sender, const double timeoutSecs);
+    std::string readFrom(UDPaddress &sender, const double timeoutSecs);
 /*
 Initially clears ~ok~ and ~errorMsg~.
 Binds the UDPsocket to the specified port (if necessary) and waits for data
@@ -1086,11 +1092,12 @@ UDPFRESH, UDPNORECV, UDPNOSEND, UDPNONE, UDPALL: unchanged
 ----
 
 */
-    string read(const double timeoutSecs);
+    std::string read(const double timeoutSecs);
 /*
 Initially clears ~ok~ and ~errorMsg~.
 Receive a datagram message (return value) to the connected remote socket.
-Requires the socket to be bound to a local port and connected to a remote socket.
+Requires the socket to be bound to a local port and connected to a 
+remote socket.
 
 Waits for data for up to ~timeoutSecs~ seconds. Negative ~timeoutSecs~ results
 in blocking.
@@ -1133,13 +1140,14 @@ UDPNORECV, UDPNOSEND, UDPNONE, UDPALL -->
 
     inline bool isOk() const { return ok; };
 /*
-Check whether some error has occured on this socket. If ~true~, call ~getErrorText()~
+Check whether some error has occured on this socket. If ~true~, call
+ ~getErrorText()~
 to get the last error message.
 
 Does not change ~status~, ~ok~ or ~errorMsg~.
 
 */
-    inline string getErrorText() const { return errorMsg; };
+    inline std::string getErrorText() const { return errorMsg; };
 /*
 Return the last error message for this UDPsocket.
 
@@ -1188,7 +1196,7 @@ Assignment operator
 
 */
 
-    ostream& Print(ostream& o) const;
+    std::ostream& Print(std::ostream& o) const;
 
   protected:
     UDPSocketState status;          // socket state
@@ -1201,10 +1209,10 @@ Assignment operator
     UDPaddress partnerAddress;      // current communication partner
     UDPaddress myAddress;           // address info used to create
                                     //    the socketHandle
-    string errorMsg;                // last error message
+    std::string errorMsg;                // last error message
 };
 
-ostream& operator<<(ostream &o, const UDPsocket &s);
+std::ostream& operator<<(std::ostream &o, const UDPsocket &s);
 
 #endif
 

@@ -188,7 +188,7 @@ size_t RouteLocation::Sizeof() const
   return sizeof(RouteLocation);
 }
 
-ostream& RouteLocation::Print(ostream& os) const
+std::ostream& RouteLocation::Print(std::ostream& os) const
 {
   os << "RouteLocation: ";
   if (IsDefined())
@@ -198,12 +198,12 @@ ostream& RouteLocation::Print(ostream& os) const
     side.Print(os);
   }
   else
-    os << Symbol::UNDEFINED() << endl;
+    os << Symbol::UNDEFINED() << std::endl;
 
   return os;
 }
 
-const string RouteLocation::BasicType()
+const std::string RouteLocation::BasicType()
 {
   return "rloc";
 }
@@ -415,7 +415,7 @@ Returns true if the side values are identic or at least one of them is ~Both~.
 
 */
 
-string RouteLocation::Example()
+std::string RouteLocation::Example()
 {
   return "(1 2.0 " + Direction::Example() +")";
 }
@@ -480,7 +480,7 @@ Rectangle< 2  > RouteLocation::NetBox() const
 
 */
 
-ostream& operator<<(ostream& os, const RouteLocation& dir)
+std::ostream& operator<<(std::ostream& os, const RouteLocation& dir)
 {
   dir.Print(os);
   return os;

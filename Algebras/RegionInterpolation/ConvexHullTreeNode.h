@@ -7,8 +7,6 @@
 #ifndef CONVEXHULLTREENODE_H_
 #define CONVEXHULLTREENODE_H_
 
-using namespace std;
-
 namespace RegionInterpol
 {
 /*

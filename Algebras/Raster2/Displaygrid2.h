@@ -42,7 +42,7 @@ namespace raster2
       
       else
       {
-        const string formatError = "Incorrect Data Format.";
+        const std::string formatError = "Incorrect Data Format.";
         
         if(nl->ListLength(value) == 3)
         {
@@ -52,21 +52,21 @@ namespace raster2
           
           if(bError)
           {
-            throw runtime_error(formatError);
+            throw std::runtime_error(formatError);
           }
           
           double y = GetNumeric(nl->Second(value), bError);
           
           if(bError)
           {
-            throw runtime_error(formatError);
+            throw std::runtime_error(formatError);
           }
           
           double length = GetNumeric(nl->Third(value), bError);
           
           if(bError)
           {
-            throw runtime_error(formatError);
+            throw std::runtime_error(formatError);
           }
           
           cout << "grid2: (x = " << x << ", y = " << y <<
@@ -75,7 +75,7 @@ namespace raster2
         
         else
         {
-          throw runtime_error(formatError);
+          throw std::runtime_error(formatError);
         }
       }
     }

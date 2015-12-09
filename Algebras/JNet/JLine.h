@@ -63,7 +63,8 @@ public:
 */
 
   explicit JLine(const bool defined);
-  explicit JLine(const string netId, const DbArray<JRouteInterval>& rintList,
+  explicit JLine(const std::string netId, 
+                 const DbArray<JRouteInterval>& rintList,
                  const bool check = true, const bool issorted = false);
   explicit JLine(const JNetwork* jnet, const JListRInt* rintList,
                  const bool check = true);
@@ -101,9 +102,9 @@ public:
   Flob* GetFLOB(const int i);
   void Destroy();
   void Clear();
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
   Attribute::StorageType GetStorageType() const;
-  static const string BasicType();
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -157,7 +158,7 @@ Returns an example of the data type.
 
 */
 
-  static string Example();
+  static std::string Example();
 
 /*
 1.1.1.1 GetNoComponents
@@ -362,8 +363,7 @@ void CheckAdjacent(const SectionInterval& currSection,
 
 */
 
-using namespace jnetwork;
-ostream& operator<<(ostream& os, const jnetwork::JLine& l);
+std::ostream& operator<<(std::ostream& os, const jnetwork::JLine& l);
 
 
 #endif // JLINE_H

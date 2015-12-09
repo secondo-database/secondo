@@ -28,10 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace raster2
 {
-  typedef istype<string> isstring;
+  typedef istype<std::string> isstring;
   
   template <>
-  struct istype_helper<string>
+  struct istype_helper<std::string>
   {
     typedef isstring implementation_type;
     typedef sstring spatial_type;
@@ -43,17 +43,17 @@ namespace raster2
       return nl.isString();
     }
     
-    static string parse(const NList& nl)
+    static std::string parse(const NList& nl)
     {
       return nl.str();
     }
     
-    static bool isUndefined(const string& rString)
+    static bool isUndefined(const std::string& rString)
     {
       return rString == UNDEFINED_STRING;
     }
     
-    static string getUndefined()
+    static std::string getUndefined()
     {
       return UNDEFINED_STRING;
     }
@@ -63,7 +63,7 @@ namespace raster2
       return CcString::BasicType();
     }
     
-    static ListExpr listExpr(const string& rString)
+    static ListExpr listExpr(const std::string& rString)
     {
       return NList(rString).listExpr();
     }

@@ -53,7 +53,6 @@
  
  #ifndef DBDACSCANGEN_H
  #define DBDACSCANGEN_H
- using namespace std;
  
  namespace distributedClustering{
    

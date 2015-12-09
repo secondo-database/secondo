@@ -94,8 +94,6 @@ An instance of the class is a handle to a persistent array of fixed size.
 #include "Serialize.h"
 #include <assert.h>
 
-using namespace std;
-
 
 template<class DbArrayElement>
 class DbArray : public Flob
@@ -347,10 +345,10 @@ bool Sort( int (*cmp)( const void *a, const void *b) ) {
 ~Find~
 
 Searches (binary search) for a given key in the database array given the ~cmp~
-comparison criteria. It is assumed that the array is sorted. The function returns
-true if the ~key~ is in the array and false otherwise. The position is returned in
-the ~result~ argument. If ~key~ is not in the array, then ~result~ contains the
-position where it should be.
+comparison criteria. It is assumed that the array is sorted. The function
+returns true if the ~key~ is in the array and false otherwise. The position
+is returned in the ~result~ argument. If ~key~ is not in the array, then 
+~result~ contains the position where it should be.
 
 */
 
@@ -401,11 +399,11 @@ bool Find( const void *key,
 Restricts the DbArray to the interval set of indices passed as argument.
 
 */
-virtual bool Restrict( const vector< pair<int, int> >& intervals,
+virtual bool Restrict( const std::vector< std::pair<int, int> >& intervals,
                        DbArray<DbArrayElement>& result ) const{
   // compute the result size
   unsigned int newSize = 0;
-  for( vector< pair<int, int> >::const_iterator it= intervals.begin();
+  for( std::vector< std::pair<int, int> >::const_iterator it= intervals.begin();
            it < intervals.end();
            it++ ) {
       assert( it->first <= it->second );
@@ -421,7 +419,8 @@ if( newSize == 0 ){
   size_t offset = 0;
   DbArrayElement e;
   // copy value into the temporarly buffer
-  for( vector< pair<int, int> >::const_iterator it = intervals.begin();
+  for( std::vector< std::pair<int, int> >::const_iterator 
+       it = intervals.begin();
        it < intervals.end();
        it++ ) {
     for( int j = it->first; j <= it->second; j++ ) {

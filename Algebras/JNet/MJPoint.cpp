@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JNetUtil.h"
 
 using namespace jnetwork;
+using namespace std;
 
 /*
 1 Helpful Operations

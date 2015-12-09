@@ -287,7 +287,6 @@ struct piececount_position_op : binary_function< Position, Piece, int >
 {
     int operator() ( const Position& pos, const Piece& piece ) const
     {
-        using namespace boost::lambda;
         PIECE p = piece.get();
         return count_if( pos.begin(), pos.end(), p == boost::lambda::_1 );
     }
@@ -312,7 +311,6 @@ struct piececount_spos_op : binary_function< Position, CcString, int >
             }
             if ( p < NONE || p > WHITE_KING )
                 throw runtime_error( "Unknown Piece 2" );
-            using namespace boost::lambda;
             return count_if( pos.begin(), pos.end(), p == boost::lambda::_1 );
         }
         if ( pt < PT_NONE || pt > PT_KING )

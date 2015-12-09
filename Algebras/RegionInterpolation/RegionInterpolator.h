@@ -100,6 +100,4 @@ class RegionInterpolationAlgebra : public Algebra
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-using namespace std;
-using namespace RegionInterpol;
 #endif 

@@ -63,8 +63,6 @@ extern QueryProcessor* qp;
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 
-using namespace mappings;
-
 #include <vector>
 #include <string>
 
@@ -108,7 +106,7 @@ namespace collection {
 
     static bool KindCheck(ListExpr type, ListExpr& errorInfo);
 
-    static bool checkType(const ListExpr list, const string& basicType){
+    static bool checkType(const ListExpr list, const std::string& basicType){
        return nl->HasLength(list,2) &&
               listutils::isSymbol(nl->First(list), basicType) &&
               listutils::isDATA(nl->Second(list));
@@ -143,7 +141,7 @@ namespace collection {
 
     void Finish();
 
-    ostream& Print( ostream& os ) const;
+    std::ostream& Print( std::ostream& os ) const;
 
     static void* Cast(void* addr);
 
@@ -357,17 +355,17 @@ Functions returning the Secondo type names
 
 */
 namespace Vector{
-  const string BasicType();
+  const std::string BasicType();
   const bool checkType(ListExpr list);
 }
 
 namespace Set{
-  const string BasicType();
+  const std::string BasicType();
   const bool checkType(ListExpr list);
 }
 
 namespace Multiset{
-  const string BasicType();
+  const std::string BasicType();
   const bool checkType(ListExpr list);
 }
 

@@ -55,6 +55,9 @@ this for bug-fixing.
 
 #include "WinUnix.h"
 
+
+using namespace std;
+
 template<typename T>
 size_t CTable<T>::noInstances = 0;
 #ifdef THREAD_SAFE

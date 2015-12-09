@@ -29,7 +29,7 @@ namespace raster2 {
     atperiodsFun<int, mstype_helper<int> >,
     atperiodsFun<double, mstype_helper<double> >,
     atperiodsFun<char, msbool_helper >,
-    atperiodsFun<string, mstype_helper<string> >,
+    atperiodsFun<std::string, mstype_helper<std::string> >,
     0
   };
 

@@ -72,8 +72,8 @@ the storage management, for transaction handling and for error handling.
 
 Internally the ~SmiEnvironment~ handles the connection to the underlying
 implementation of the persistent information storage management. Currently
-implementations based on the "Berkeley DB"[3] library and on the "Oracle"[3] DBMS
-are available. The decision which implementation is used is taken at link
+implementations based on the "Berkeley DB"[3] library and on the "Oracle"[3]
+ DBMS are available. The decision which implementation is used is taken at link
 time of the "Secondo"[3] server. Fine tuning of implementation dependent
 parameters is done by means of a configuration file which is read at system
 startup. For future extensions (i.e. user management and access control)
@@ -82,8 +82,9 @@ it is possible to store the current user identification in the ~SmiEnvironment~.
 Additionally the ~SmiEnvironment~ introduces the concept of ~databases~. Within
 one ~SmiEnvironment~ there may exist several databases, but a user may access
 only *one* database at a single time. A valid database name consists of at most
-"SMI\_MAX\_DBNAMELEN"[4] (currently 15) alphanumeric characters or underscores. The
-first character has to be alphabetic. Database names are *not* case sensitive.
+"SMI\_MAX\_DBNAMELEN"[4] (currently 15) alphanumeric characters or underscores.
+The first character has to be alphabetic. Database names are *not* case 
+sensitive.
 
 Persistent objects are stored as records in so called ~SmiFiles~. An ~SmiFile~
 is a handle to its representation in the interface implementation. Two kinds
@@ -95,18 +96,20 @@ parameters are specified in the configuration file under the appropriate
 context section heading.
 
 An ~SmiFile~ is always represented by a unique numeric identifier. Additionally
-it may have a name. Without a name an ~SmiFile~ is said to be ~anonymous~. Within
-a context a name must be unique. ~SmiFile~ names and context names are case
-sensitive and may have at most "SMI\_MAX\_NAMELEN"[4] (currently 31) alphanumeric
-characters or underscores. The first character has to be alphabetic.
+it may have a name. Without a name an ~SmiFile~ is said to be ~anonymous~.
+Within a context a name must be unique. ~SmiFile~ names and context names are
+case sensitive and may have at most "SMI\_MAX\_NAMELEN"[4] (currently 31) 
+alphanumeric characters or underscores. The first character has to be 
+alphabetic.
 
-An ~SmiFile~ for record oriented access is called ~SmiRecordFile~. Records can be
-of fixed or variable size. The use of ~SmiFiles~ with fixed length records is
-recommended whereever appropriate since they may be more efficient -- depending
-on the implementation. Records can only be appended to the end of an ~SmiFile~,
+An ~SmiFile~ for record oriented access is called ~SmiRecordFile~. 
+Records can be of fixed or variable size. The use of ~SmiFiles~ with fixed
+length records is recommended whereever appropriate since they may be more
+efficient -- depending on the implementation. Records can only be appended
+to the end of an ~SmiFile~,
 but can be accessed for reading, update or deletion in random order using their
-record number. An iterator for sequential access to all records of an ~SmiFile~ is
-provided.
+record number. An iterator for sequential access to all records of an ~SmiFile~
+is provided.
 
 An ~SmiFile~ for key oriented access is called ~SmiKeyedFile~, which is itself
 divided into two kinds, called ~SmiBtreeFile~ and ~SmiHashFile~, depending on
@@ -114,8 +117,9 @@ the storage method, a B-Tree and a Hash, respectively. An ~SmiKeyFile~ is
 capable of holding pairs of keys and data. Both keys and data may be of variable
 size. While the size of the data is only restricted by physical limits of the
 available hardware, the size of keys is restricted to at most 4000 bytes.
-(This limit is imposed by the VARCHAR2 datatype of "Oracle"[3], but depending on the
-actual database configuration the maximal possible key length might be lower.
+(This limit is imposed by the VARCHAR2 datatype of "Oracle"[3], but depending
+ on the actual database configuration the maximal possible key length might be
+ lower.
 Other relational database systems allow only much smaller keys, i.e. "MySQL"[3]
 restricts the combined key length to 512 bytes, but a single column key cannot
 exceed 255 bytes and that would be the restriction for an implementation based
@@ -128,16 +132,18 @@ Keys may be unique or may allow for duplicate data. The use of iterators is
 mandatory for access to duplicates. Iterators for access to all records or
 records within a specified range of keys are provided.
 
-An ~SmiRecord~ handle is used to access complete or partial records of an ~SmiFile~.
+An ~SmiRecord~ handle is used to access complete or partial records of an
+ ~SmiFile~.
 
 1.2 Transaction handling
 
 The storage management interface provides methods to start, commit and abort
 transactions. All access to persistent objects should be done within user
-transactions. User transactions are *not* started automatically. Due to limitations
-of the transaction support of the "Berkeley DB"[3] it is recommended that applications
-using this interface should run in a sort of auto-commit mode by surrounding
-very few atomic operations with calls to the start and commit transaction methods.
+transactions. User transactions are *not* started automatically. Due to
+ limitations of the transaction support of the "Berkeley DB"[3] it is 
+recommended that applications using this interface should run in a sort of
+ auto-commit mode by surrounding very few atomic operations with calls to
+ the start and commit transaction methods.
 Only application which are able to repeat transactions easily in case of failure
 may use more complex transactions.
 
@@ -145,9 +151,9 @@ Although both current implementations of the storage
 management interface support transaction logic for data manipulation statements,
 there is no support for transaction logic for data definition statements
 (creation and deletion of ~SmiFiles~). Therefore the update of the SmiFile
-catalog and the deletion of ~SmiFiles~ are postponed until completion or rollback
-of a transaction. If the ~SmiFile~ catalog update fails, the transaction is
-aborted and rolled back automatically.
+catalog and the deletion of ~SmiFiles~ are postponed until completion or
+rollback of a transaction. If the ~SmiFile~ catalog update fails, the
+transaction is aborted and rolled back automatically.
 
 1.3 Interface methods
 
@@ -258,25 +264,23 @@ The class ~SmiKey~ provides the following methods:
 #endif
 
 
-using namespace std;
-
 
 class IndexableAttribute;
 
-const string::size_type SMI_MAX_NAMELEN      =   31;
+const std::string::size_type SMI_MAX_NAMELEN      =   31;
 /*
 Specifies the maximum length of a context or file name.
 
 */
 
-const string::size_type SMI_MAX_DBNAMELEN    =   15;
+const std::string::size_type SMI_MAX_DBNAMELEN    =   15;
 /*
 
 Specifies the maximum length of a database name.
 
 */
 
-const string::size_type SMI_MAX_KEYLEN       = 3200;
+const std::string::size_type SMI_MAX_KEYLEN       = 3200;
 /*
 Specifies the maximum length of keys.
 
@@ -295,7 +299,7 @@ of the underlying system:
 
 */
 
-const string::size_type SMI_MAX_KEYLEN_LOCAL =   32;
+const std::string::size_type SMI_MAX_KEYLEN_LOCAL =   32;
 /*
 Specifies the maximum length of keys which are stored locally within an
 instance of the ~SmiKey~ class. Extra memory is allocated for longer keys.
@@ -324,7 +328,7 @@ Is the type for record sizes or offsets.
 class PrefetchingIterator;
 /* Forward declaration */
 
-typedef vector<pair<string,string> > SmiStatResultType;
+typedef std::vector<std::pair<std::string,std::string> > SmiStatResultType;
 /* Used by SmiFile::GetFileStatistics(...) */
 
 enum SMI_STATS_MODE {SMI_STATS_EAGER, SMI_STATS_LAZY};
@@ -383,7 +387,7 @@ is called to unmap the byte string to the user-defined key structure.
  static KeyDataType getKeyType(const double){ 
     return Float;
  }
- static KeyDataType getKeyType(const string&){ 
+ static KeyDataType getKeyType(const std::string&){ 
     return String;
  }
  static KeyDataType getKeyType(const IndexableAttribute*){
@@ -396,7 +400,7 @@ is called to unmap the byte string to the user-defined key structure.
   SmiKey( const uint32_t key );
   SmiKey( const uint64_t key );
   SmiKey( const double key );
-  SmiKey( const string& key );
+  SmiKey( const std::string& key );
   SmiKey( const IndexableAttribute* key );
   SmiKey( const SmiKey& other );
 /*
@@ -421,7 +425,7 @@ Returns the type of the key.
   bool GetKey( uint32_t& key )const;
   bool GetKey( uint64_t& key )const;
   bool GetKey( double& key )const;
-  bool GetKey( string& key )const;
+  bool GetKey( std::string& key )const;
   bool GetKey( IndexableAttribute* key )const;
 /*
 Returns the value of the key. The argument type must match the type of the key!
@@ -467,7 +471,7 @@ Returns the memory address of the key value.
   void  SetKey( const uint32_t key );
   void  SetKey( const uint64_t key );
   void  SetKey( const double key );
-  void  SetKey( const string& key );
+  void  SetKey( const std::string& key );
   void  SetKey( const IndexableAttribute* key );
   void  SetKey( const KeyDataType kdt,
                 const void* key, const SmiSize keyLen );
@@ -517,12 +521,13 @@ Is an enumeration of possible file types:
 
   * *FixedLength* -- Files of this type consist of a set of records all having a
 fixed size which cannot be changed.
-A record is filled with binary null characters if not the whole record is written.
-Depending on the implementation this file type allows for better locking characteristics
-in multi-user environments. Records are identified by record numbers.
+A record is filled with binary null characters if not the whole record is
+ written.  Depending on the implementation this file type allows for better 
+locking characteristics in multi-user environments. Records are identified 
+by record numbers.
 
-  * *VariableLength* -- Files of this type consist of a set of records of potentially
-varying size. Records are identified by record numbers.
+  * *VariableLength* -- Files of this type consist of a set of records of
+ potentially varying size. Records are identified by record numbers.
 
   * *Keyed* -- Files of this type consist of key/data pairs.
 
@@ -538,7 +543,7 @@ which change the contents or the size of a record are not permitted.
 
 */
 
-  bool Create( const string& name, const string& context = "Default",
+  bool Create( const std::string& name, const std::string& context = "Default",
       uint16_t pageSize = 0, const bool keepId = false );
 /*
 Creates a new SmiFile with given name. 
@@ -551,7 +556,7 @@ a new one for this file.
 
 */
 
-  bool Create( const string& context = "Default", uint16_t pageSize = 0 );
+  bool Create( const std::string& context = "Default", uint16_t pageSize = 0 );
 
 /*
 
@@ -571,16 +576,16 @@ pagesize, and fileId.
 */
 
 
-  bool Open( const SmiFileId id, const string& context = "Default" );
+  bool Open( const SmiFileId id, const std::string& context = "Default" );
 /*
 Opens an existing anonymous ~SmiFile~ using its file identifier ~id~.
 Optionally a ~context~ can be specified.
 
 */
-  bool Open( const string& name, const string& context = "Default" );
+  bool Open( const std::string& name, const std::string& context = "Default" );
 /*
-Opens an existing named ~SmiFile~ or creates a new named ~SmiFile~ if it does not
-exist. Optionally a ~context~ can be specified.
+Opens an existing named ~SmiFile~ or creates a new named ~SmiFile~ if it does
+ not exist. Optionally a ~context~ can be specified.
 
 */
   bool Close(const bool sync = true );
@@ -599,24 +604,26 @@ handles before dropping a ~SmiFile~.
 Empties an ~SmiFile~. It is necessary to close any record iterators or record
 handles before truncating it. This method is only used to free disk data for
 tuple buffers since the Remove() operation does not work for them (bug?).
-Without this compromise solution the data would only be deleted when secondo shuts down.
+Without this compromise solution the data would only be deleted when secondo
+ shuts down.
 
 */
   bool Remove();
 /*
-Removes a ~SmiFile~ from disk. It is necessary to close any record iterators or record
-handles before calling this function.
+Removes a ~SmiFile~ from disk. It is necessary to close any record iterators 
+or record handles before calling this function.
 
 */
 
-  string GetContext();
+  std::string GetContext();
 /*
 Returns the context of the ~SmiFile~.
 
 */
-  string GetName();
+  std::string GetName();
 /*
-Returns the name of a named ~SmiFile~ or an empty string for an anonymous ~SmiFile~.
+Returns the name of a named ~SmiFile~ or an empty string for an anonymous 
+~SmiFile~.
 
 */
   SmiFileId GetFileId();
@@ -627,7 +634,8 @@ Returns the unique ~SmiFile~ identifier.
   SmiSize GetRecordLength() { return fixedRecordLength; }
 
 /*
-Returns the length of fixed Records. In the case of variable record length 0 is returned.
+Returns the length of fixed Records. In the case of variable record length 0
+ is returned.
 
 */  
   uint16_t GetPageSize() const;
@@ -642,7 +650,7 @@ Returns whether the ~SmiFile~ handle is open and can be used to access the
 records of the ~SmiFile~.
 
 */
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
 
   SmiStatResultType GetFileStatistics(const SMI_STATS_MODE mode);
 
@@ -654,8 +662,8 @@ and values are strings. Each ~key~ describes a statistic on the file and the
 ~mode~ is of type SMI\_STATS\_MODE: either SMI\_STATS\_EAGER, SMI\_STATS\_LAZY.
 ~SMI\_STATS\_EAGER~ will force the active collection of statistics to ensure
 that current and complete data is returned (that migth take a while, for data
-may needed to be analyzed), while ~SMI\_STATS\_LAZY~ will only read out (possibly
-old) statistics and/or return incomplete data.
+may needed to be analyzed), while ~SMI\_STATS\_LAZY~ will only read out
+ (possibly old) statistics and/or return incomplete data.
 
 Different SmiFile types may return different sets of keys as results.
 
@@ -663,7 +671,7 @@ Different SmiFile types may return different sets of keys as results.
 
   bool IsTemp();
 
-  string GetFileName() const {
+  std::string GetFileName() const {
     return fileName;
   }
 
@@ -672,7 +680,7 @@ Different SmiFile types may return different sets of keys as results.
   SmiFile( const bool isTemporary = false);
   SmiFile( const SmiFile& smiFile );
   ~SmiFile();
-  bool CheckName( const string& name );
+  bool CheckName( const std::string& name );
   bool useTxn;
 /*
 Checks whether the given name ~name~ is valid.
@@ -680,8 +688,8 @@ Checks whether the given name ~name~ is valid.
 */
 
   bool        opened;               // Open state of SmiFile
-  string      fileContext;          // Name of file context
-  string      fileName;             // Name of named SmiFile
+  std::string      fileContext;          // Name of file context
+  std::string      fileName;             // Name of named SmiFile
   SmiFileId   fileId;               // Unique file identifier
 
   FileType    fileType;             // Type of SmiFile records
@@ -702,7 +710,7 @@ Checks whether the given name ~name~ is valid.
   friend class SmiRecord;
 };
 
-ostream& operator<<(const ostream& os, const SmiFile& f);
+std::ostream& operator<<(const std::ostream& os, const SmiFile& f);
 
 
 
@@ -874,12 +882,12 @@ public:
   ~SmiUpdateFile();
   SmiUpdateFile(SmiSize _poolPageSize);
 
-  bool  Open(const string& name); //only use in test example
+  bool  Open(const std::string& name); //only use in test example
   bool  Open(const SmiFileId _fID, const SmiSize _pSize,
       bool isInitialized = true);
   //used to reopen an exist file
   bool  Close();
-  bool  Create(const string& context = "Default", uint16_t pageSize = 0);
+  bool  Create(const std::string& context = "Default", uint16_t pageSize = 0);
   //used to create a new file
 
   //New methods about getting and putting pages
@@ -904,7 +912,7 @@ private:
   // The numbers of pages exist in the disk file currently
   bool isInitialized;
   // Make sure that this file is not empty.
-  map<db_pgno_t, SmiUpdatePage*> gotPages;
+  std::map<db_pgno_t, SmiUpdatePage*> gotPages;
 
   bool  SyncFile();
   bool  InitializePoolFile();
@@ -968,7 +976,7 @@ The behaviour of the storage management system in single user mode is
 implementation dependent.
 
 */
-  static map<SmiError, string> errorMap;
+  static std::map<SmiError, std::string> errorMap;
 /*
 A table containing the error map strings indexed by error numbers (~SmiError~).
 The function ~Err2Msg~ retrieves the strings from this table.
@@ -994,16 +1002,16 @@ Returns a pointer to the "Secondo"[3] Storage Management Environment
 
 */
 
-  static bool SetHomeDir(const string& parmFile);
+  static bool SetHomeDir(const std::string& parmFile);
 
-  static string GetSecondoHome();
+  static std::string GetSecondoHome();
 
-  static int CreateTmpEnvironment(ostream& err);
+  static int CreateTmpEnvironment(std::ostream& err);
   static int DeleteTmpEnvironment();
 
   static bool StartUp( const RunMode mode,
-                       const string& parmFile,
-                       ostream& errStream );
+                       const std::string& parmFile,
+                       std::ostream& errStream );
 /*
 Initializes the ~SmiEnvironment~ of the storage manager interface.
 Parameters are read from the configuration file ~parmFile~.
@@ -1020,16 +1028,17 @@ record handles before shutting down the system.
 */
   static bool IsDatabaseOpen();
 /*
-Returns "true"[4] if a database is currently open, otherwise "false"[4] is returned.
+Returns "true"[4] if a database is currently open, otherwise "false"[4] is
+ returned.
 
 */
-  static string CurrentDatabase();
+  static std::string CurrentDatabase();
 /*
 Returns the name of the currently open database. If no database is open
 a blank string is returned.
 
 */
-  static bool CreateDatabase( const string& dbname );
+  static bool CreateDatabase( const std::string& dbname );
 /*
 Creates a new "Secondo"[3] database under the name ~dbname~.
 The function returns "true"[4], if the database could be created;
@@ -1037,7 +1046,7 @@ it returns "false"[4], if a database with the given name already
 exists or if an error occured.
 
 */
-  static SI_Error OpenDatabase( const string& dbname );
+  static SI_Error OpenDatabase( const std::string& dbname );
 /*
 Opens an existing "Secondo"[3] database having the name ~dbname~.
 The functions returns "true"[4], if the database could be opened,
@@ -1051,7 +1060,7 @@ The function returns "true"[4], if the database could be closed successfully.
 Otherwise it returns "false"[4].
 
 */
-  static bool EraseDatabase( const string& dbname );
+  static bool EraseDatabase( const std::string& dbname );
 /*
 Erases the "Secondo"[3] database named ~dbname~.
 The function returns "true"[4], if the database could be erased.
@@ -1061,13 +1070,13 @@ Otherwise it returns "false"[4].
 open, regardless of the name.
 
 */
-  static bool ListDatabases( string& dbname );
+  static bool ListDatabases( std::string& dbname );
 /*
 Lists the names of existing databases in ~dbname~, separated by a '\#'
 character. Returns true, if the execution was successful.
 
 */
-  static bool SetUser( const string& uid );
+  static bool SetUser( const std::string& uid );
 /*
 Stores the identification ~uid~ of the current user in the ~SmiEnvironment~.
 In a future extension it may be used for user management and access control.
@@ -1077,8 +1086,8 @@ In a future extension it may be used for user management and access control.
   static void SetFlag_NOSYNC(const bool value) { dontSyncDiskCache = value; }
 /*
 Indicates that the cache in memory and the files on disk need no syncronisation.
-In the Berkeley-DB Implementation this is used to speed up the DB-close() API call
-at the end of a query which does no modifications to the stored data.
+In the Berkeley-DB Implementation this is used to speed up the DB-close() API
+call at the end of a query which does no modifications to the stored data.
 
 */
 
@@ -1086,18 +1095,19 @@ at the end of a query which does no modifications to the stored data.
   static bool CommitTransaction(const bool closeDbHandles = true);
   static bool AbortTransaction();
 /*
-Are provided for transaction handling. Transactions are never implicitly started.
+Are provided for transaction handling. Transactions are never implicitly
+started.
 Therefore an explicit call to ~BeginTransaction~ is always necessary. To be able
-to rollback requests for deleting ~SmiFiles~ such requests are registered throughout
-the transaction and carried out only if the transaction completes successfully.
-~Named SmiFiles~ are registered in a file catalog. Changes to this catalog take
-place when a transaction is committed. When updates to the file catalog fail,
-the transaction is implicitly aborted.
+to rollback requests for deleting ~SmiFiles~ such requests are registered 
+throughout the transaction and carried out only if the transaction completes
+successfully.  ~Named SmiFiles~ are registered in a file catalog. Changes to
+this catalog take place when a transaction is committed. When updates to the
+file catalog fail, the transaction is implicitly aborted.
 
 */
   static int GetNumOfErrors();
   static SmiError GetLastErrorCode();
-  static SmiError GetLastErrorCode( string& errorMessage );
+  static SmiError GetLastErrorCode( std::string& errorMessage );
 /*
 Returns the error code of the last storage management operation.
 ~CheckLastErrorCode~ provides the error code without resetting the internal
@@ -1106,9 +1116,9 @@ Optionally the accompanying error message is returned.
 
 */
   static void SetSmiError( const SmiError smiErr,
-                           const string& file, int pos );
+                           const std::string& file, int pos );
   static void SetSmiError( const SmiError smiErr,
-                           const int sysErr, const string& file, int pos );
+                           const int sysErr, const std::string& file, int pos );
   static void ResetSmiErrors();
 
 #define SetError(code) SetSmiError(code, __FILE__, __LINE__)
@@ -1119,7 +1129,7 @@ Optionally the accompanying error message is returned.
 Allows to set an SmiError code and a system error code or an error message.
 
 */
-  static bool GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi);
+  static bool GetCacheStatistics(CacheInfo& ci, std::vector<FileInfo*>& fi);
 
 
   static void UpdateCatalog();
@@ -1131,7 +1141,7 @@ Forces the deletion of non required log files. Disables catastropic recovery.
 
 */
 
-  static const string Err2Msg( SmiError code );
+  static const std::string Err2Msg( SmiError code );
 /*
 Translate an SMI error code into a message!
 
@@ -1161,15 +1171,16 @@ Destroys a ~Storage Management Interface~ environment.
 The copy constructor is not implemented.
 
 */
-  static bool SetDatabaseName( const string& dbname );
+  static bool SetDatabaseName( const std::string& dbname );
 /*
 Checks whether the given database name ~dbname~ is valid or not,
 converts the name to all lower case and stores the converted name in a
 member variable.
 The function returns "true"[4], if the name is valid.
 
-A valid database name consists of at most "SMI\_MAX\_DBNAMELEN"[4] (currently 15)
-alphanumeric characters or underscores. The first character has to be alphabetic.
+A valid database name consists of at most "SMI\_MAX\_DBNAMELEN"[4]
+ (currently 15) alphanumeric characters or underscores. The first 
+character has to be alphabetic.
 Database names are *not* case sensitive.
 
 */
@@ -1178,24 +1189,24 @@ Database names are *not* case sensitive.
 Initializes a new database.
 
 */
-  static bool RegisterDatabase( const string& dbname );
+  static bool RegisterDatabase( const std::string& dbname );
 /*
 Registers the database ~dbname~ when it is created or opened.
 The function returns "true"[4], if the database could be registered successfully
 or if the application runs in single user mode.
 
-*NOTE*: The registration is necessary to protect a database from accidental deletion
-by another user.
+*NOTE*: The registration is necessary to protect a database from accidental
+ deletion by another user.
 
 */
-  static bool UnregisterDatabase( const string& dbname );
+  static bool UnregisterDatabase( const std::string& dbname );
 /*
 Unregisters the database ~dbname~.
-The function returns "true"[4], if the database could be unregistered successfully
-or if the application runs in single user mode.
+The function returns "true"[4], if the database could be unregistered
+ successfully or if the application runs in single user mode.
 
 */
-  static bool LockDatabase( const string& dbname );
+  static bool LockDatabase( const std::string& dbname );
 /*
 Locks the database ~dbname~.
 The function returns "true"[4], if a lock could be acquired successfully,
@@ -1205,7 +1216,7 @@ or if the application runs in single user mode.
 *NOTE*: Before a database can be erased it has to be locked.
 
 */
-  static bool UnlockDatabase( const string& dbname );
+  static bool UnlockDatabase( const std::string& dbname );
 /*
 Unlocks the database ~dbname~.
 The function returns "true"[4], if the lock could be released successfully
@@ -1213,10 +1224,10 @@ or if the application runs in single user mode.
 
 */
   static void SetSmiError( const SmiError smiErr,
-      const string& errMsg, const string& file, int pos );
+      const std::string& errMsg, const std::string& file, int pos );
 
-  static bool CallRegistrar( const string& dbname, 
-      const string& cmd, string& answer );
+  static bool CallRegistrar( const std::string& dbname, 
+      const std::string& cmd, std::string& answer );
 
 
 
@@ -1229,7 +1240,7 @@ Auxiliary function to handle communication with the registrar process
 
   static SmiEnvironment instance;    // Instance of environment
   static SmiError       lastError;   // Last error code
-  static string         lastMessage; // Last error message
+  static std::string         lastMessage; // Last error message
   static int            numOfErrors; // Last error message
   static bool           smiStarted;  // Flag SMI initialized
   static bool           singleUserMode;
@@ -1238,11 +1249,11 @@ Auxiliary function to handle communication with the registrar process
   // the next member is used in the Berkeley-DB Implementation
   static bool           dontSyncDiskCache;
 
-  static string         configFile;  // Name of config file
-  static string         uid;         // ID of Secondo user
+  static std::string         configFile;  // Name of config file
+  static std::string         uid;         // ID of Secondo user
   static bool           dbOpened;    // Flag database opened
-  static string         database;    // Name of current database
-  static string         registrar;   // Name of the registrar
+  static std::string         database;    // Name of current database
+  static std::string         registrar;   // Name of the registrar
   static SmiType        smiType;     // Implementation type
 
   class Implementation;
@@ -1294,16 +1305,16 @@ Destroys a record handle.
     return n;
   } 
 /*
-Reads a sequence of at most ~numberOfBytes~ bytes from the record into the ~buffer~
-provided by the user. Optionally a record ~offset~ can be specified.
-The amount of bytes actually transfered is being returned.
+Reads a sequence of at most ~numberOfBytes~ bytes from the record into
+ the ~buffer~ provided by the user. Optionally a record ~offset~ can
+ be specified.  The amount of bytes actually transfered is being returned.
 
 */
 
   char* GetData(SmiSize& length);
 /*
-Returns the complete content of that record. The caller of that function is responsible
-to free the data pointer.
+Returns the complete content of that record. The caller of that function
+ is responsible to free the data pointer.
 
 */
 
@@ -1323,9 +1334,9 @@ to free the data pointer.
 
 
 /*
-Writes a sequence of at most ~numberOfBytes~ bytes into the record from the ~buffer~
-provided by the user. Optionally a record ~offset~ can be specified.
-The amount of bytes actually transfered is being returned.
+Writes a sequence of at most ~numberOfBytes~ bytes into the record from
+ the ~buffer~ provided by the user. Optionally a record ~offset~ can be
+ specified.  The amount of bytes actually transfered is being returned.
 
 */
   SmiSize  Size();
@@ -1374,8 +1385,9 @@ Returns the record id of this record.
   void Finish();
 /*
 Finishes the operation on the associated record. The record handle may be
-reused (i.e. reinitialized) afterwards. It is usually not necessary to call this method
-when the record handle is not reused, since the destructor will call it implicitly.
+reused (i.e. reinitialized) afterwards. It is usually not necessary to call
+this method when the record handle is not reused, since the destructor will
+call it implicitly.
 
 *NOTE*: If a transaction would end before the destructor is called it is
 essential to explicitly call this method.
@@ -1408,7 +1420,8 @@ The class ~SmiRecordFile~ allows record oriented access to persistent objects.
 New records can only be appended to a ~SmiRecordFile~, but existing records can
 be processed in random order using their record numbers.
 
-By means of an iterator it is possible to scan through all records of a ~SmiFile~.
+By means of an iterator it is possible to scan through all records of a
+ ~SmiFile~.
 The records are obtained in the order they were appended to the file.
 
 */
@@ -1578,7 +1591,8 @@ This method always initializes a record iterator regardless whether
 keys are unique or not. Usually this method should only be used when
 duplicate records are supported.
 
-The function returns "true"[4] when at least one record exists for the given key.
+The function returns "true"[4] when at least one record exists for 
+the given key.
 
 */
   bool SelectRecord( const SmiKey& key,
@@ -1693,8 +1707,8 @@ Selects a range of records with keys for which the following condition holds
 "fromKey [<=] key [<=] toKey"[1]. A record iterator for processing the selected
 records is initialized on return.
 
-By default an iterator for read only access without reporting duplicates is initialized,
-but update access and reporting of duplicates may be specified.
+By default an iterator for read only access without reporting duplicates is
+ initialized, but update access and reporting of duplicates may be specified.
 
 The function returns "true"[4] when the iterator was initialized successfully.
 
@@ -1720,8 +1734,8 @@ Selects a range of records with keys for which the following condition holds
 "key [<=] toKey"[1]. A record iterator for processing the selected records
 is initialized on return.
 
-By default an iterator for read only access without reporting duplicates is initialized,
-but update access and reporting of duplicates may be specified.
+By default an iterator for read only access without reporting duplicates is
+ initialized, but update access and reporting of duplicates may be specified.
 
 The function returns "true"[4] when the iterator was initialized successfully.
 
@@ -1746,8 +1760,8 @@ Selects a range of records with keys for which the following condition holds
 "fromKey [<=] key"[1]. A record iterator for processing the selected records
 is initialized on return.
 
-By default an iterator for read only access without reporting duplicates is initialized,
-but update access and reporting of duplicates may be specified.
+By default an iterator for read only access without reporting duplicates is
+ initialized, but update access and reporting of duplicates may be specified.
 
 The function returns "true"[4] when the iterator was initialized successfully.
 
@@ -1771,8 +1785,8 @@ Selects all records of the associated ~SmiBtreeFile~.
 A record iterator for processing the selected records
 is initialized on return.
 
-By default an iterator for read only access without reporting duplicates is initialized,
-but update access and reporting of duplicates may be specified.
+By default an iterator for read only access without reporting duplicates is
+ initialized, but update access and reporting of duplicates may be specified.
 
 The function returns "true"[4] when the iterator was initialized successfully.
 
@@ -1798,8 +1812,8 @@ reported.
 
 The class ~SmiFileIterator~ allows to scan through all records of a
 SmiFile. The order in which the records are retrieved depends on the type
-of the ~SmiFile~. An ~SmiFileIterator~ is instantiated through an ~SmiRecordFileIterator~
-or an ~SmiKeyedFileIterator~.
+of the ~SmiFile~. An ~SmiFileIterator~ is instantiated through an 
+~SmiRecordFileIterator~ or an ~SmiKeyedFileIterator~.
 
 */
 
@@ -1819,14 +1833,15 @@ Tells whether there are unscanned records left in the selected set of records.
   bool Finish();
 /*
 Closes the iterator. The iterator handle may be reused (i.e. reinitialized)
-afterwards. This method should always be called as soon as access to the record set
-selected by the iterator is not required anymore, although the destructor will call
-it implicitly.
+afterwards. This method should always be called as soon as access to the 
+record set selected by the iterator is not required anymore, although the
+ destructor will call it implicitly.
 
 */
   bool Restart();
 /*
-Repositions the iterator in front of the first record of the selected set of records.
+Repositions the iterator in front of the first record of the selected set
+ of records.
 
 */
  protected:
@@ -1856,8 +1871,8 @@ Destroys an ~SmiFile~ iterator handle.
   bool ignoreDuplicates;
 /*
 Flags whether duplicate records for a key may exist and whether those records
-should be reported. If ~reportDuplicates~ is "false"[4], only the first record of
-a set of duplicate records with equal keys is reported.
+should be reported. If ~reportDuplicates~ is "false"[4], only the first 
+record of a set of duplicate records with equal keys is reported.
 
 */
   SmiFile* smiFile;     // associated SmiFile object
@@ -1886,9 +1901,10 @@ class SMI_EXPORT SmiRecordFileIterator : public SmiFileIterator
  public:
   SmiRecordFileIterator();
 /*
-Creates a handle for an ~SmiRecordFile~ iterator. The handle is associated with an
-~SmiFile~ by means of a ~Select~ method of that file. Initially the iterator is
-positioned in front of the first record of the selected set of records.
+Creates a handle for an ~SmiRecordFile~ iterator. The handle is associated
+ with an ~SmiFile~ by means of a ~Select~ method of that file. Initially
+ the iterator is positioned in front of the first record of the selected 
+set of records.
 
 */
   ~SmiRecordFileIterator();
@@ -1938,13 +1954,13 @@ Destroys a ~SmiKeyedFile~ iterator handle.
   bool Next( SmiRecord& record );
 /*
 Advances the iterator to the next record of the selected set of records.
-A handle to the current record -- and the key of the current record, if needed --
-are returned.
+A handle to the current record -- and the key of the current record, if 
+needed -- are returned.
 
 *NOTE*: If the underlying ~SmiKeyedFile~ has keys of type ~SmiKey::Composite~ it
-is *very important* to initialize the key object ~key~ with the correct key mapping
-function, otherwise unmapping of the key does not take place. That is ~key~ should
-be created as "SmiKey key( keyMappingFunction );"[4].
+is *very important* to initialize the key object ~key~ with the correct key
+mapping function, otherwise unmapping of the key does not take place. That
+is ~key~ should be created as "SmiKey key( keyMappingFunction );"[4].
 
 */
 

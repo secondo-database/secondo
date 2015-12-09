@@ -58,7 +58,6 @@ of an algebra
 #include "CharTransform.h"
 #include "LogMsg.h"
 
-using namespace std;
 
 /*
 3 struct ExampleInfo
@@ -75,14 +74,14 @@ struct ExampleInfo {
   typedef enum { List, Atom, 
                  File, PlatformFile, Bug, Crash, Unpredictable, Invalid} Type;
 
-  string opName;
-  string aliasName;
+  std::string opName;
+  std::string aliasName;
   int number;
   int lineNo;
-  string signature;
-  string example;
-  string result;
-  string remark;
+  std::string signature;
+  std::string example;
+  std::string result;
+  std::string remark;
   double tolerance;
   bool   relativeTolerance;
   Type resultType;
@@ -110,19 +109,19 @@ struct ExampleInfo {
      relativeTolerance = false;
   }
 
-  void print(ostream& os) const
+  void print(std::ostream& os) const
   {
-    os << "Operator : " << opName << endl;
-    os << "Number   : " << number << endl;
-    os << "Signature: " << signature << endl;
+    os << "Operator : " << opName << std::endl;
+    os << "Number   : " << number << std::endl;
+    os << "Signature: " << signature << std::endl;
     os << "Example  : ";
-    if (example.find("query ")==string::npos)
+    if (example.find("query ")==std::string::npos)
       os << "query ";
-    os << example << endl;
-    os << "Result   : " << result << endl;
+    os << example << std::endl;
+    os << "Result   : " << result << std::endl;
     if(tolerance>0){
-       os << "Tolerance:" << tolerance << endl;
-       os << "relative :" <<(relativeTolerance?"true":"false") << endl;
+       os << "Tolerance:" << tolerance << std::endl;
+       os << "relative :" <<(relativeTolerance?"true":"false") << std::endl;
     }
   } 
 }; 
@@ -144,26 +143,26 @@ class ExampleReader {
 
   bool debug;
   int lineCtr;
-  string line;
-  string lineRest;
-  string algName;
-  string fileName;
-  string database;
+  std::string line;
+  std::string lineRest;
+  std::string algName;
+  std::string fileName;
+  std::string database;
   bool restore;
 
   size_t pos;
   Token expected;
-  map<Token, string> tokendef; 
+  std::map<Token, std::string> tokendef; 
 
   bool useSequentialOrder;
 
 public:
-  typedef list<ExampleInfo*> ExampleList; 
+  typedef std::list<ExampleInfo*> ExampleList; 
 
 protected:
   typedef enum { EX_NONE, EX_READER, EX_WRITER } EType;
   EType m_type;
-  typedef map<string, ExampleList> ExampleMap; 
+  typedef std::map<std::string, ExampleList> ExampleMap; 
 
   ExampleMap examples;
 
@@ -182,7 +181,7 @@ private:
 
   iterator scan;
 
-  void nextLine(CFile& stream, string& line) {
+  void nextLine(CFile& stream, std::string& line) {
     getline(stream.ios(), line);
     lineCtr++;
   }
@@ -242,13 +241,13 @@ a*bc* with single characters a,b and c.
 
   bool match(Token t, bool showErr = true) {
      
-     string token = tokendef[t];
+     std::string token = tokendef[t];
      pos = line.find(token); 
-     if ( pos == string::npos ) {
+     if ( pos == std::string::npos ) {
        if (showErr) {
-       cerr << errMsg() << "expecting token '" 
+       std::cerr << errMsg() << "expecting token '" 
             << token << "'! But got '" << line << "'"
-            << endl;
+            << std::endl;
        } 
        return false;
      }
@@ -257,9 +256,9 @@ a*bc* with single characters a,b and c.
      if (!match_Astar_B_Cstar(' ',':',' '))
      {
        if (showErr) {
-       cerr << errMsg() << "expecting regexp (' '*':' '*)" 
+       std::cerr << errMsg() << "expecting regexp (' '*':' '*)" 
             << lineCtr << "! But got '" << line.substr(pos2) << "'" 
-            << endl;
+            << std::endl;
        }
        return false;
      }
@@ -269,16 +268,16 @@ a*bc* with single characters a,b and c.
   }
 
 
-  string errMsg() {
+  std::string errMsg() {
  
-     stringstream s;
+     std::stringstream s;
      s << "Parse error in line " << lineCtr << ": ";
      return s.str();
   }
 
   public:
 
-  ExampleReader(const string& file, const string& algebra="") 
+  ExampleReader(const std::string& file, const std::string& algebra="") 
     : expected(Sequential) 
   {
     
@@ -352,8 +351,8 @@ a*bc* with single characters a,b and c.
   }
 
   // get-er
-  const string& getAlgName() const { return algName; }
-  const string& getFileName() const { return fileName; }
+  const std::string& getAlgName() const { return algName; }
+  const std::string& getFileName() const { return fileName; }
   EType getType() const { return m_type; }
 
   // methods
@@ -363,19 +362,19 @@ a*bc* with single characters a,b and c.
 
     CFile stream(fileName);
     if (!stream.open()) {;
-      cerr << "Error: Could not open file!" << endl;
+      std::cerr << "Error: Could not open file!" << std::endl;
       return false;
     }  
 
     ExampleInfo* info = 0;
-    string key="";
+    std::string key="";
     
     if (useSequentialOrder)
       key = "seq";
 
     while (!stream.eof() && !stream.fail()) {
 
-      // read next input string;
+      // read next input std::string;
       line = "";
       lineRest ="";
       pos=0;
@@ -385,9 +384,9 @@ a*bc* with single characters a,b and c.
         nextLine(stream, line);
       }
       if (debug)
-        cout << lineCtr << ": " << line << endl;
+        cout << lineCtr << ": " << line << std::endl;
       if (debug)
-        cout << tokendef[expected] << endl;
+        cout << tokendef[expected] << std::endl;
 
       bool switchAgain = true; 
       while(switchAgain) {
@@ -447,12 +446,12 @@ a*bc* with single characters a,b and c.
           info = new ExampleInfo;
           size_t pos = lineRest.find(" alias");
 
-          if ( pos != string::npos )
+          if ( pos != std::string::npos )
             info->aliasName = trim( lineRest.substr(pos+6) );
           else 
             pos = lineRest.length();
           
-          const string op_name = trim( lineRest.substr(0,pos) );
+          const std::string op_name = trim( lineRest.substr(0,pos) );
 
           if (!useSequentialOrder)
             key = op_name;
@@ -468,9 +467,9 @@ a*bc* with single characters a,b and c.
            expected = Signature;
            info->number = ::parse<int>(lineRest);
            if (!uniqueNumbers(key)) {
-            cerr << errMsg() << "The numbers for operator " << key 
+            std::cerr << errMsg() << "The numbers for operator " << key 
                  << " are not unique! Number " << info->number
-                 << " is used more than one times. " << endl;
+                 << " is used more than one times. " << std::endl;
             return false;
            }
           break;
@@ -500,7 +499,7 @@ a*bc* with single characters a,b and c.
            info->result = lineRest;
            info->resultType = resultType(lineRest); 
            if (info->resultType == ExampleInfo::Invalid) {
-             cerr << "Result [" << lineRest << "] is invalid" << endl;
+             std::cerr << "Result [" << lineRest << "] is invalid" << std::endl;
              info->result = "";
            } 
           break;
@@ -510,10 +509,10 @@ a*bc* with single characters a,b and c.
            if (!match(Remark, false)) {
             if ( (info->resultType == ExampleInfo::Bug) || 
                  (info->resultType == ExampleInfo::Unpredictable)) {
-              cerr << errMsg()
+              std::cerr << errMsg()
                    << "Expecting a remark field which describes "
                    << "the specified bug/ why the result is unpredictable!"
-                   << endl;
+                   << std::endl;
               info->remark = "";
               return false;
             }
@@ -528,11 +527,11 @@ a*bc* with single characters a,b and c.
 
       case Tolerance: {
           if(match(Tolerance,false)){
-             string tol = lineRest;
+             std::string tol = lineRest;
              if(tol.size()<1){
-                 cerr << errMsg()
+                 std::cerr << errMsg()
                       << "invalid value for tolerance"
-                      << endl;
+                      << std::endl;
                  return false;
              }
              if(tol[0]=='%'){
@@ -543,16 +542,16 @@ a*bc* with single characters a,b and c.
              }
 
              // double value = parse<double>(tol);
-             istringstream is(tol);
+             std::istringstream is(tol);
              double value;
              is >> value;
              if(info->relativeTolerance){
                   value = value / 100;
              }
              if(value<0){
-               cerr << errMsg() 
+               std::cerr << errMsg() 
                     << "negative tolerance not allowed"
-                    << endl;
+                    << std::endl;
                return false;
              }
              info->tolerance = value; 
@@ -568,12 +567,12 @@ a*bc* with single characters a,b and c.
       }
 
        default: // never reached
-         cerr << errMsg() << endl; 
+         std::cerr << errMsg() << std::endl; 
       }
       }
 
       if (debug) {
-        cout << lineCtr << ": " << lineRest << endl;
+        cout << lineCtr << ": " << lineRest << std::endl;
       }  
     }
     return true;
@@ -584,7 +583,7 @@ Get first example of the example list
 
 */
 
-  string getDB() { return database; } 
+  std::string getDB() { return database; } 
 
   bool getRestoreFlag() { return restore; } 
 
@@ -619,9 +618,9 @@ over all examples
     return scan->second;
   }
  
-  inline bool uniqueNumbers(const string& key) {
+  inline bool uniqueNumbers(const std::string& key) {
     
-    set<int> usedNumbers;
+    std::set<int> usedNumbers;
     ExampleList& list = examples[key];
     ExampleList::const_iterator it = list.begin();
 
@@ -636,7 +635,7 @@ over all examples
   }
 
 
-  ExampleInfo::Type resultType(const string& result)
+  ExampleInfo::Type resultType(const std::string& result)
   {
     if (  (result[0] == '(') ) 
       return ExampleInfo::List;
@@ -659,8 +658,8 @@ over all examples
       return ExampleInfo::Atom; 
     
     char c = result[0];
-    const string validChars="+-.0123456789\"'<";
-    if ( validChars.find(c) != string::npos )
+    const std::string validChars="+-.0123456789\"'<";
+    if ( validChars.find(c) != std::string::npos )
       return ExampleInfo::Atom; 
 
     return ExampleInfo::Invalid; 
@@ -685,7 +684,7 @@ private:
         { assert(0); }
 
 public:
-  ExampleWriter(const string& file, const string& algebra="") 
+  ExampleWriter(const std::string& file, const std::string& algebra="") 
     : ExampleReader(file, algebra) 
   {
     m_type = EX_WRITER;
@@ -696,7 +695,7 @@ public:
   ExampleWriter &operator= (const ExampleWriter& ew) 
   { ExampleReader::operator=(ew); return *this; }
 
-    bool find(const string& op, ExampleInfo& ex) const
+    bool find(const std::string& op, ExampleInfo& ex) const
   {
     ExampleReader::ExampleMap::const_iterator it = examples.find(op);
      if (it == examples.end())
@@ -706,16 +705,16 @@ public:
      return true;
   } 
 
-  const ExampleList& find(const string& op) const
+  const ExampleList& find(const std::string& op) const
   {
      ExampleReader::ExampleMap::const_iterator it = examples.find(op);
      assert( it != examples.end() );
      return it->second;
   } 
 
-  void add(const string& op, const int nr, ExampleInfo& ex)
+  void add(const std::string& op, const int nr, ExampleInfo& ex)
   {
-     stringstream key;
+     std::stringstream key;
      key << op << getAlgName() << nr;
      ExampleInfo* info = new ExampleInfo(ex);
      examples[key.str()].push_back(info);
@@ -725,20 +724,20 @@ public:
 
     CFile out(getFileName());
     if ( !out.overwrite() ) {
-      cerr << "Opening " << out.fileName << " failed!" << endl;
+      std::cerr << "Opening " << out.fileName << " failed!" << std::endl;
       return false;
     } 
 
-    out.ios() << "Database: berlintest" << endl
-              << "Restore : No" << endl << endl;
+    out.ios() << "Database: berlintest" << std::endl
+              << "Restore : No" << std::endl << std::endl;
 
     ExampleInfo ex; 
-    ostream& os = out.ios();
+    std::ostream& os = out.ios();
     initScan();
     while(next(ex)) {
 
       ex.print(os);
-      os << endl << endl;  
+      os << std::endl << std::endl;  
     } 
 
     return out.close();

@@ -73,7 +73,7 @@ struct ConstructorFunctions
   
   static void* Cast( void* addr ) 
   { 
-    cerr << "CAST" << endl;	  
+    std::cerr << "CAST" << std::endl;	  
     return (new (addr)T ); 
   }
 

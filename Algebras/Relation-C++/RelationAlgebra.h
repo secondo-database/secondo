@@ -61,18 +61,20 @@ April 2007, T. Behr, M. Spiekermann. Removal of the main memory implementation
 of this algebmain memory implementation
 of this algebra module.
 
-September 2007, M. Spiekermann. Dependencies to algebra OldRelationAlgebra removed.
+September 2007, M. Spiekermann. Dependencies to algebra OldRelationAlgebra
+ removed.
 
 June 2009, S. Jungnickel. Added classes ~TupleFile~ and ~TupleFileIterator~.
-New methods ~Save~ and ~Open~ in class ~Tuple~ to save and restore tuples to/from
-a ~TupleFile~.
+New methods ~Save~ and ~Open~ in class ~Tuple~ to save and restore tuples 
+to/from a ~TupleFile~.
 
 Sept 2009. M. Spiekermann. Due to problems with too many open files communicated
 by S. Jungnickel several codelines of the classes FLOBCache, Relation and in the
-StorageManagement need to be changed. Moreover, the class ~PrivateRelation~ has been
-merged into class Relation. The relation itself will now request the FLOBCache to create
-LOB-files if necessary. Before, files were created on the fly indicated by a zero
-lobFile-id which was not a satisfying solution for all situations.
+StorageManagement need to be changed. Moreover, the class ~PrivateRelation~ 
+has been merged into class Relation. The relation itself will now request the
+FLOBCache to create LOB-files if necessary. Before, files were created on the
+fly indicated by a zero lobFile-id which was not a satisfying solution for all
+situations.
 
 [TOC]
 
@@ -180,7 +182,7 @@ be necessary to store an instance of such attribute's data type.
 */
 struct AttributeType
 {
-  friend ostream& operator<<(ostream& o, AttributeType& at);
+  friend std::ostream& operator<<(std::ostream& o, AttributeType& at);
 
   AttributeType():
     algId(0), typeId(0), numOfFlobs(0),size(0),
@@ -237,19 +239,20 @@ Size of attribute instance in bytes.
   size_t offset;
 };
 
-ostream& operator<<(ostream& o, AttributeType& at);
+std::ostream& operator<<(std::ostream& o, AttributeType& at);
 
 
 /*
 3.4 Class ~TupleType~
 
 A ~TupleType~ is a collection (an array) of all attribute types
-(~AttributeType~) of the tuple. This structure contains the metadata of a tuple attributes.
+(~AttributeType~) of the tuple. This structure contains the metadata 
+of a tuple attributes.
 
 */
 class TupleType
 {
-  friend ostream& operator<<(ostream& o, const TupleType& tt);
+  friend std::ostream& operator<<(std::ostream& o, const TupleType& tt);
   public:
     TupleType( const ListExpr typeInfo );
 /*
@@ -397,7 +400,7 @@ A reference counter.
     int coreSize;
 };
 
-ostream& operator<<(ostream& o, const TupleType& tt);
+std::ostream& operator<<(std::ostream& o, const TupleType& tt);
 
 /*
 4.2 Struct ~RelationDescriptor~
@@ -407,7 +410,8 @@ This struct contains necessary information for opening a relation.
 */
 struct RelationDescriptor
 {
-  friend ostream& operator<<(ostream& o, const RelationDescriptor& rd);
+  friend std::ostream& operator<<(std::ostream& o, 
+                                  const RelationDescriptor& rd);
   inline RelationDescriptor( TupleType* tupleType, bool b=false ):
     isTemp(b),
     tupleType( tupleType ),
@@ -449,8 +453,8 @@ The simple constructors.
   RelationDescriptor( TupleType *tupleType,
                       int noTuples,
                       double totalExtSize, double totalSize,
-                      const vector<double>& attrExtSize,
-                      const vector<double>& attrSize,
+                      const std::vector<double>& attrExtSize,
+                      const std::vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
     isTemp(false),
     tupleType( tupleType ),
@@ -465,8 +469,8 @@ The simple constructors.
   RelationDescriptor( const ListExpr typeInfo,
                       int noTuples,
                       double totalExtSize, double totalSize,
-                      const vector<double>& attrExtSize,
-                      const vector<double>& attrSize,
+                      const std::vector<double>& attrExtSize,
+                      const std::vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
     isTemp(false),
     tupleType( new TupleType( nl->Second( typeInfo ) ) ),
@@ -574,14 +578,14 @@ The total size occupied by the tuples in the relation taking
 into account all parts of the tuples, including the FLOBs.
 
 */
-  vector<double> attrExtSize;
+  std::vector<double> attrExtSize;
 /*
 The total size occupied by the attributes in the relation
 taking into account the small FLOBs, i.e. the extension part
 of the tuples.
 
 */
-  vector<double> attrSize;
+  std::vector<double> attrSize;
 /*
 The total size occupied by the attributes in the relation
 taking into account all parts of the tuples, including the
@@ -601,7 +605,7 @@ The LOB's file identification.
 };
 
 
-ostream& operator<<(ostream& o, const RelationDescriptor& rd);
+std::ostream& operator<<(std::ostream& o, const RelationDescriptor& rd);
 
 
 class TupleFile;
@@ -695,7 +699,7 @@ the objects.
 
 */
 
-    static const string BasicType(){
+    static const std::string BasicType(){
       return "tuple";
     }
     static const bool checkType(const ListExpr type){
@@ -733,11 +737,11 @@ Returns the attribute at position ~index~ inside the tuple.
 Puts an attribute in the position ~index~ inside the tuple.
 
 */
-    void UpdateAttributes( const vector<int>& changedIndices,
-                           const vector<Attribute*>& newAttrs,
+    void UpdateAttributes( const std::vector<int>& changedIndices,
+                           const std::vector<Attribute*>& newAttrs,
                            double& extSize, double& size,
-                           vector<double>& attrExtSize,
-                           vector<double>& attrSize );
+                           std::vector<double>& attrExtSize,
+                           std::vector<double>& attrSize );
 /*
 Puts the attributes from ~newAttrs~ at the corresponding position
 from ~changedIndices~ into the tuple. Destroys the physical
@@ -963,7 +967,7 @@ sizes of the tuple saved.
 
   void Save( SmiRecordFile *tuplefile, const SmiFileId& lobFileId,
              double& extSize, double& size,
-             vector<double>& attrExtSize, vector<double>& attrSize,
+             std::vector<double>& attrExtSize, std::vector<double>& attrSize,
              bool ignorePersistentLOBs=false );
 
 /*
@@ -978,16 +982,16 @@ Saves a tuple with updated attributes and reuses the old
 record.
 
 */
-  void UpdateSave( const vector<int>& changedIndices,
+  void UpdateSave( const std::vector<int>& changedIndices,
                    double& extSize, double& size,
-                   vector<double>& attrExtSize,
-                   vector<double>& attrSize );
+                   std::vector<double>& attrExtSize,
+                   std::vector<double>& attrSize );
 
 
   void SaveOrel(SmiRecord* record, SmiFileId& lobFileId,
                 double& extSize, double& size,
-                vector<double>& attrExtSize,
-                vector<double>& attrSize,
+                std::vector<double>& attrExtSize,
+                std::vector<double>& attrSize,
                 bool ignorePersistentLOBs, TupleId tupleId);
 
   bool OpenOrel( SmiFileId lobfileId,
@@ -997,13 +1001,13 @@ record.
                 PrefetchingIterator* iter, TupleId tupleId);
 
   bool OpenPartialOrel( TupleType* newtype,
-                        const list<int>& attrList,
+                        const std::list<int>& attrList,
                         SmiFileId lobfileId,
                         PrefetchingIterator* iter,
                         TupleId tupleId);
 
-  void UpdateAttributesOrel( const vector<int>& changedIndices,
-                             const vector<Attribute*>& newAttrs );
+  void UpdateAttributesOrel( const std::vector<int>& changedIndices,
+                             const std::vector<Attribute*>& newAttrs );
 
 
 
@@ -1034,7 +1038,7 @@ current record of ~iter~.
   bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
              PrefetchingIterator *iter );
 
-  bool OpenPartial( TupleType* newtype, const list<int>& attrList,
+  bool OpenPartial( TupleType* newtype, const std::list<int>& attrList,
                     SmiRecordFile *tuplefile,
                     SmiFileId lobfileId,
                     PrefetchingIterator *iter );
@@ -1051,13 +1055,13 @@ Transform the tuple value to a Base 64 code string
 
 */
 
-  string WriteToBinStr();
+  std::string WriteToBinStr();
 
 /*
 Read a tuple value from a Base 64 code string
 
 */
-  void ReadFromBinStr(string binStr);
+  void ReadFromBinStr(std::string binStr);
 
 /*
 Write a complete tuple into an allocated binary block,
@@ -1086,7 +1090,7 @@ Therefore, it has only one length heading.
       SmiFileId flobFileId,
       SmiRecordId sourceDS,
       SmiSize& flobBlockOffset,
-      map<pair<SmiFileId, SmiRecordId>, SmiSize>& flobIdCache) const;
+      std::map<std::pair<SmiFileId, SmiRecordId>, SmiSize>& flobIdCache) const;
 /*
 Write a tuple into an allocated binary block,
 with or without its Flob data, decided by the caontainsLob value.
@@ -1095,7 +1099,8 @@ If contains the Flob, then it should generates the same result as the
 ~WriteToBin~ function.
 If not, then its generated memory block contains two parts,
 the first is the tuple data, while the second is the Flob data.
-The blockSize recorded in the first tuple data does not count the flob data size.
+The blockSize recorded in the first tuple data does not count the
+ flob data size.
 
 */
 
@@ -1112,7 +1117,7 @@ but leave the FLOB data untouched
 
 */
   u_int32_t ReadTupleFromBin(char* buf, u_int32_t bSize,
-                        string flobFile, size_t flobOffset);
+                        std::string flobFile, size_t flobOffset);
 
 /*
 Read a tuple from a binary block written by ~WriteTupleToBin~,
@@ -1129,7 +1134,7 @@ Read the data from the disk file to a Flob with mode 1
 
 */
 
-  void readLocalFlobFile(const string flobFilePath);
+  void readLocalFlobFile(const std::string flobFilePath);
 
 /*
 Return the size that a complete binary tuple block needs.
@@ -1138,8 +1143,8 @@ Return the size that a complete binary tuple block needs.
   size_t GetBlockSize(size_t& coreSize,
                          size_t& extensionSize,
                          size_t& flobSize,
-                         vector<double>* attrExtSize = 0,
-                         vector<double>* attrSize = 0) const;
+                         std::vector<double>* attrExtSize = 0,
+                         std::vector<double>* attrSize = 0) const;
 
   static SmiSize extensionLimit;
 /*
@@ -1149,7 +1154,7 @@ a tuple
 */
 
 
-  ostream& Print(ostream& out) const{
+  std::ostream& Print(std::ostream& out) const{
     out << "Tuple: (" << endl;
     for(size_t i = 0; i < noAttributes; i++) {
        GetAttribute(i)->Print(out);
@@ -1213,7 +1218,7 @@ Initializes a tuple.
 
 */
     void ChangeTupleType(TupleType* newtype,
-                         const list<int>& attrIds) {
+                         const std::list<int>& attrIds) {
 
         tupleType->DeleteIfAllowed();
         newtype->IncReference();
@@ -1244,7 +1249,7 @@ Initializes a tuple.
         // copy the old addresses in the given order into the
         // new attribute array
         int i = 0;
-        list<int>::const_iterator iter = attrIds.begin();
+        std::list<int>::const_iterator iter = attrIds.begin();
         while ( iter != attrIds.end() ) {
            attributes[i] = tmp_attributes[*iter];
            iter++;
@@ -1348,8 +1353,8 @@ and it's big enough to express the tuple's size
   size_t CalculateBlockSize( size_t& attrSizes,
                              double& extSize,
                              double& size,
-                             vector<double>& attrExtSize,
-                             vector<double>& attrSize
+                             std::vector<double>& attrExtSize,
+                             std::vector<double>& attrSize
                            ) const;
 
 
@@ -1372,14 +1377,15 @@ does some evil thing, but it's not clear enough.
 
 */
 
-  void InitializeSomeAttributes( const list<int>& attrList,
+  void InitializeSomeAttributes( const std::list<int>& attrList,
                                  char* src);
 
   void InitializeNoFlobAttributes(
-    char* src, string flobFile = "", size_t flobOffset = 0);
+    char* src, std::string flobFile = "", size_t flobOffset = 0);
 /*
 It reads the block data created by ~WriteToBlock~  with no FLOB data.
-If the flobFile and the flobOffset are given, then set the flob to a local disk file.
+If the flobFile and the flobOffset are given, then set the flob to a
+ local disk file.
 Or else, just change the flob mode to 3.
 
 */
@@ -1430,8 +1436,8 @@ Debugging stuff
 
 };
 
-ostream& operator<<(ostream &os, Attribute &attrib);
-ostream& operator<<( ostream& o, const Tuple& t );
+std::ostream& operator<<(std::ostream &os, Attribute &attrib);
+std::ostream& operator<<( std::ostream& o, const Tuple& t );
 /*
 The print function for tuples. Used for debugging purposes
 
@@ -1556,7 +1562,7 @@ whether the ordering is ascendant or not (descendant).
 */
 
 // use this one to sort
-typedef vector< pair<int, bool> > SortOrderSpecification;
+typedef std::vector< std::pair<int, bool> > SortOrderSpecification;
 
 class TupleCompareBy
 {
@@ -1780,7 +1786,8 @@ in subfolder /tmp and starts with prefix ~TF~.
 
 */
 
-  TupleFile(TupleType* tupleType, string pathName, const size_t bufferSize);
+  TupleFile(TupleType* tupleType, std::string pathName, 
+            const size_t bufferSize);
 /*
 Second constructor. Creates a ~TupleFile~ for tuple type ~tupleType~
 with the specified filename ~pathName~ and sets the I/O Buffer
@@ -1831,7 +1838,7 @@ Returns the total size of all tuples stored in the file.
 
 */
 
-  inline const string GetPathName() const { return pathName; }
+  inline const std::string GetPathName() const { return pathName; }
 /*
 Returns the file path of the tuple file.
 
@@ -1877,7 +1884,7 @@ Tuple type of this temporary file.
 
 */
 
-  string pathName;
+  std::string pathName;
 /*
 File path.
 
@@ -1930,7 +1937,7 @@ The virtual destructor.
 
 */
     virtual Tuple* GetNextTuple() = 0;
-    virtual Tuple* GetNextTuple( const list<int>& attrList ) { return 0; }
+    virtual Tuple* GetNextTuple( const std::list<int>& attrList ) { return 0; }
 /*
 The function to retrieve the next tuple.
 
@@ -2028,7 +2035,7 @@ The function that retrieves a tuple given its ~id~.
     virtual
     Tuple *GetTuple( const TupleId& id,
                      const int attrIndex,
-                     const vector< pair<int, int> >& intervals,
+                     const std::vector< std::pair<int, int> >& intervals,
                      const bool dontReportError ) const = 0;
 /*
 The function is similar to the last one, but instead of only
@@ -2060,8 +2067,8 @@ Return value will be false, if an error occured.
 
 */
   virtual void UpdateTuple( Tuple *tuple,
-                            const vector<int>& changedIndices,
-                            const vector<Attribute *>& newAttrs ) = 0;
+                            const std::vector<int>& changedIndices,
+                            const std::vector<Attribute *>& newAttrs ) = 0;
 
 
 };
@@ -2093,7 +2100,7 @@ The destructor.
 
 */
     Tuple *GetNextTuple();
-    Tuple *GetNextTuple( const list<int>& attrList );
+    Tuple *GetNextTuple( const std::list<int>& attrList );
 /*
 Returns the next tuple of the buffer. Returns 0 if the end of the
 buffer is reached.
@@ -2169,7 +2176,7 @@ The destructor. Deletes (if allowed) all tuples.
 
     virtual Tuple *GetTuple( const TupleId& id,
                      const int attrIndex,
-                     const vector< pair<int, int> >& intervals,
+                     const std::vector< std::pair<int, int> >& intervals,
                      const bool dontReportError ) const;
 
     virtual void   Clear();
@@ -2226,8 +2233,8 @@ Checks if the tuple buffer is empty or not.
 
 */
   virtual void UpdateTuple( Tuple *tuple,
-                            const vector<int>& changedIndices,
-                            const vector<Attribute *>& newAttrs ){
+                            const std::vector<int>& changedIndices,
+                            const std::vector<Attribute *>& newAttrs ){
      bool implemented = false;
      assert(implemented);
   }
@@ -2237,7 +2244,7 @@ Checks if the tuple buffer is empty or not.
 
   private:
 
-  typedef vector<Tuple*> TupleVec;
+  typedef std::vector<Tuple*> TupleVec;
 
   const size_t MAX_MEMORY_SIZE;
 /*
@@ -2325,7 +2332,7 @@ The destructor. Deletes (if allowed) all tuples.
 
     virtual Tuple *GetTuple( const TupleId& id,
                      const int attrIndex,
-                     const vector< pair<int, int> >& intervals,
+                     const std::vector< std::pair<int, int> >& intervals,
                      const bool dontReportError ) const;
 
     virtual void   Clear();
@@ -2358,8 +2365,8 @@ Return value will be false, if an error occured.
 
 */
     virtual void UpdateTuple( Tuple *tuple,
-                            const vector<int>& changedIndices,
-                            const vector<Attribute *>& newAttrs );
+                            const std::vector<int>& changedIndices,
+                            const std::vector<Attribute *>& newAttrs );
 
 
 /*
@@ -2388,7 +2395,7 @@ A flag that tells if the buffer fit in memory or not.
 
 */
 
-  deque<Tuple*> memoryBuffer;
+  std::deque<Tuple*> memoryBuffer;
 /*
 The in-memory representation of the buffer. Used only if inMemory == true
 
@@ -2470,7 +2477,7 @@ The destructor.
 
 */
     Tuple *GetNextTuple();
-    Tuple *GetNextTuple( const list<int>& attrList );
+    Tuple *GetNextTuple( const std::list<int>& attrList );
 /*
 Returns the next tuple of the buffer. Returns 0 if the end of the
 buffer is reached.
@@ -2489,7 +2496,7 @@ Returns the tuple identification of the current tuple.
 A pointer to the tuple buffer.
 
 */
-  deque<Tuple*>::const_iterator currentTuple;
+  std::deque<Tuple*>::const_iterator currentTuple;
 /*
 The current tuple if it is in memory.
 
@@ -2522,7 +2529,7 @@ class RandomTBuf
 
   Tuple* ReplacedByRandom(Tuple* in, size_t& idx, bool& replaced);
 
-  typedef vector<Tuple*> Storage;
+  typedef std::vector<Tuple*> Storage;
   typedef Storage::iterator iterator;
 
   iterator begin() { return memBuf.begin(); }
@@ -2563,7 +2570,7 @@ The destructor.
 
 */
     Tuple *GetNextTuple();
-    Tuple* GetNextTuple( const list<int>& attrList );
+    Tuple* GetNextTuple( const std::list<int>& attrList );
 /*
 Retrieves the tuple in the current position of the iterator and moves
 the cursor forward to the next tuple. Returns 0 if the cursor is in
@@ -2627,7 +2634,7 @@ The destructor.
 */
     virtual Tuple *GetNextTuple(int step);
     virtual Tuple *GetNextTuple(){return GetNextTuple(1);}
-    virtual Tuple* GetNextTuple(const list<int>& attrList){
+    virtual Tuple* GetNextTuple(const std::list<int>& attrList){
       return RelationIterator::GetNextTuple(attrList);
     }
 /*
@@ -2684,7 +2691,7 @@ Return the type name used for a persistent relation in Secondo.
 To get the type name of a temporary relation, use TempRelation::BasicType().
 
 */
-    inline static const string BasicType() { return "rel"; }
+    inline static const std::string BasicType() { return "rel"; }
 
     static const bool checkType(const ListExpr type){
       return listutils::isRelDescription(type);
@@ -2694,12 +2701,14 @@ To get the type name of a temporary relation, use TempRelation::BasicType().
     SmiFileId GetFileId() { return tupleFile.GetFileId(); }
 /*
 
-Given a relation descriptor, ~GetRelation~ finds if there is an opened relation with that
+Given a relation descriptor, ~GetRelation~ finds if there is an opened
+ relation with that
 descriptor and retrieves its memory representation pointer.This function is
 used to avoid opening several times the same relation. A table indexed by
 descriptors containing the relations is used for this purpose.
 
-Instead of the complete descriptor the file id of the tuple file can also be used.
+Instead of the complete descriptor the file id of the tuple file can also
+ be used.
 for this purpose. The file id can be retrieved by ~GetFileId~.
 
 */
@@ -2780,8 +2789,8 @@ to the Update Relational Algebra.
 
 */
     void UpdateTuple( Tuple *tuple,
-                      const vector<int>& changedIndices,
-                      const vector<Attribute *>& newAttrs );
+                      const std::vector<int>& changedIndices,
+                      const std::vector<Attribute *>& newAttrs );
 /*
 Updates the tuple by putting the new attributes at the positions
 given by ~changedIndices~ and adjusts the physical representation.
@@ -2800,7 +2809,7 @@ Returns the tuple type of the tuples of the relation.
 
     virtual Tuple *GetTuple( const TupleId& id,
                      const int attrIndex,
-                     const vector< pair<int, int> >& intervals,
+                     const std::vector< std::pair<int, int> >& intervals,
                      const bool dontReportError ) const;
 
     virtual void   Clear();
@@ -2874,7 +2883,7 @@ Stores a handle to the tuple file.
 The private attributes of the class ~Relation~.
 
 */
-    static map<SmiFileId, Relation*> pointerTable;
+    static std::map<SmiFileId, Relation*> pointerTable;
 /*
 A table containing all opened relations indexed by 
 fileId.
@@ -2907,7 +2916,7 @@ returned. Used in operator ~attr~, for example.
 
 */
 int FindAttribute( ListExpr list,
-                   string attrname,
+                   std::string attrname,
                    ListExpr& attrtype);
 
 /*
@@ -2996,7 +3005,7 @@ Namespace for temporal relation (trel), that does not have its own class.
 
 */
 namespace TempRelation {
-  const string BasicType();
+  const std::string BasicType();
 }
 
 #endif // _RELATION_ALGEBRA_H_

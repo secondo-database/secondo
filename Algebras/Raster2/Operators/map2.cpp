@@ -60,7 +60,7 @@ grids of the operator arguments are compatible.
 
 
     
-     string err = "raster x raster x fun expected" ;
+     std::string err = "raster x raster x fun expected" ;
 
      if(!util::isSType(arg1) && !util::isMSType(arg1)){
         return listutils::typeError(  err 
@@ -82,8 +82,8 @@ grids of the operator arguments are compatible.
    //                                 "rasters not allowed");
    //  }
 
-     string bt1 = util::getValueBasicType(nl->ToString(arg1));
-     string bt2 = util::getValueBasicType(nl->ToString(arg2));
+     std::string bt1 = util::getValueBasicType(nl->ToString(arg1));
+     std::string bt2 = util::getValueBasicType(nl->ToString(arg2));
 
      ListExpr funarg1 = nl->Second(arg3);
      ListExpr funarg2 = nl->Third(arg3);
@@ -96,7 +96,7 @@ grids of the operator arguments are compatible.
        return listutils::typeError("fun argument 2 and raster 2 " 
                                    "type does not match");
      }
-     string restype="";
+     std::string restype="";
      if(static1 && static2){
         restype=util::getSpatialBasicType(nl->ToString(funres));
      } else {

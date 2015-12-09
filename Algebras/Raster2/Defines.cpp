@@ -162,7 +162,7 @@ const undefined value for type string
 
 */
 
-const string UNDEFINED_STRING = "";
+const std::string UNDEFINED_STRING = "";
 
 /*
 const undefined string index value

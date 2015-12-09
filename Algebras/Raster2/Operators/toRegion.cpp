@@ -49,8 +49,8 @@ namespace raster2 {
 
         Region* buildRegionResult = new Region(0);
         Region* buildHolesResult = new Region(0);
-        vector<vector<Point> > cycles;
-        vector<vector<Point> > holes;
+        std::vector<std::vector<Point> > cycles;
+        std::vector<std::vector<Point> > holes;
         
         double startX = 0.0;
         double startY = 0.0;
@@ -74,7 +74,7 @@ namespace raster2 {
               
               if ( robust::contains(*buildRegionResult, help) == false )
               {
-                vector<Point> cycle;
+                std::vector<Point> cycle;
 
                 Point point1(true, startX, startY);
                 cycle.push_back(point1);
@@ -259,7 +259,7 @@ namespace raster2 {
               if ( (robust::contains(*buildRegionResult, help) == true) &&
                     (robust::contains(*buildHolesResult, help) == false) )
               {
-                vector<Point> cycle;
+                std::vector<Point> cycle;
 
                 Point point1(true, startX, startY);
                 cycle.push_back(point1);

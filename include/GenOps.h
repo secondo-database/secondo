@@ -34,7 +34,7 @@ extern NestedList* nl;
 */
 template<class R>
 ListExpr TypeMap0(ListExpr args){
-  string err ="no arguments expected";
+  std::string err ="no arguments expected";
   if(!nl->IsEmpty(args)){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -53,7 +53,7 @@ Operators.
 */
 template<class A, class R>
 ListExpr TypeMap1(ListExpr args){
-  string err = A::BasicType()+ " expected";
+  std::string err = A::BasicType()+ " expected";
   if(nl->ListLength(args)!=1){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -72,7 +72,7 @@ ListExpr TypeMap1(ListExpr args){
 */
 template<class A1, class A2, class R>
 ListExpr TypeMap2(ListExpr args){
-  string err = A1::BasicType()+ " x " + A2::BasicType() + " expected";
+  std::string err = A1::BasicType()+ " x " + A2::BasicType() + " expected";
   if(nl->ListLength(args)!=2){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -92,7 +92,7 @@ ListExpr TypeMap2(ListExpr args){
 */
 template<class A1, class A2, class A3, class R>
 ListExpr TypeMap3(ListExpr args){
-  string err = A1::BasicType()+ " x " + A2::BasicType() + "x" + 
+  std::string err = A1::BasicType()+ " x " + A2::BasicType() + "x" + 
                A3::BasicType() + " expected";
   if(nl->ListLength(args)!=3){
     ErrorReporter::ReportError(err);
@@ -114,7 +114,7 @@ ListExpr TypeMap3(ListExpr args){
 */
 template<class A1, class A2, class A3, class A4, class R>
 ListExpr TypeMap4(ListExpr args){
-  string err = A1::BasicType()+ " x " + A2::BasicType() + " x "+  
+  std::string err = A1::BasicType()+ " x " + A2::BasicType() + " x "+  
                A3::BasicType() + "x" + A4::BasicType() + " expected";
   if(nl->ListLength(args)!=3){
     ErrorReporter::ReportError(err);
@@ -157,7 +157,7 @@ class simpleTMHelper{
 This constructor sets the resulttype.
 
 */
-    simpleTMHelper(const string resultType):args(0){
+    simpleTMHelper(const std::string resultType):args(0){
       this->resultType = resultType;
     }
 
@@ -176,7 +176,7 @@ a [x] b [->] r, just use the following code:
 
 
 */
-    simpleTMHelper& operator<<(const string& arg){
+    simpleTMHelper& operator<<(const std::string& arg){
       args.push_back(arg);
       return *this;
     }
@@ -235,11 +235,11 @@ simple type mapping.
 Returns the argumentlist formatted as  a x b x ...
 
 */
-     string argString() const{
+     std::string argString() const{
        if(args.size()==0){
           return "()";
        } else {
-          stringstream ss;
+          std::stringstream ss;
           for(unsigned int i=0;i<args.size();i++){
             if(i>0) {
               ss << " x ";
@@ -255,13 +255,13 @@ Returns the argumentlist formatted as  a x b x ...
 Returns the result type for this value mapping.
 
 */
-     string getResultType()const{
+     std::string getResultType()const{
         return resultType;
      }
 
   private:
-    string resultType;
-    vector<string> args;
+    std::string resultType;
+    std::vector<std::string> args;
 };
 
 
@@ -424,7 +424,7 @@ This functor realized the type mapping.
 
 */
      ListExpr operator()(const ListExpr args) const{
-       stringstream  err;
+       std::stringstream  err;
        err <<  "allowed = " << endl << getSignatures();
        for(unsigned int i=0;i<mappings.size();i++){
          if(mappings[i].check(args)){
@@ -457,8 +457,8 @@ Provides functionality for the slection function.
 Returns the allowed signatures line by line.
 
 */
-     string getSignatures()const {
-       stringstream  sigs;
+     std::string getSignatures()const {
+       std::stringstream  sigs;
        for(unsigned int i=0;i<mappings.size();i++){
           sigs << mappings[i].argString() 
                << " -> " << mappings[i].getResultType() 
@@ -474,10 +474,11 @@ Returns the allowed signatures line by line.
 Returns the specification string.
 
 */
-     const string getSpecification(const string syntax,
-                                   const string meaning,
-                                   const string example ){
-        return string("((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )")
+     const std::string getSpecification(const std::string syntax,
+                                   const std::string meaning,
+                                   const std::string example ){
+        return 
+          std::string("((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )")
                + "( <text>" + getSignatures() + "</text--->"
                + " <text>" + syntax + "</text--->" 
                + " <text>" + meaning + "</text--->"
@@ -494,7 +495,7 @@ Returns the number of stored value mappings.
    }
 
    private:
-      vector<simpleTMHelper> mappings;
+      std::vector<simpleTMHelper> mappings;
 
 };
 

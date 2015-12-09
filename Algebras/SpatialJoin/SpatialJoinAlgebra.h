@@ -22,8 +22,6 @@ This header file defines an auxiliary class SpatialJoinLocalInfo.
 
 #include <iostream>
 
-using namespace std;
-
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"
 #include "Algebra.h"
@@ -33,13 +31,21 @@ using namespace std;
 #include "StandardTypes.h"
 #include "ListUtils.h"
 #include "RectangleAlgebra.h"
-#include "TupleBuffer2.h"
 #include "Progress.h"
+#include "RTuple.h"
+
+
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-using namespace extrel2;
+
+namespace extrel2{
+  class TupleBuffer2;
+  class TupleBuffer2Iterator;
+}
+
 
 typedef enum {leftStream, rightStream} streamType;
 
@@ -54,8 +60,8 @@ private:
 
   struct{
     Word streamWord;
-    TupleBuffer2 *streamBuffer;
-    TupleBuffer2Iterator *tb2Iter;
+    extrel2::TupleBuffer2 *streamBuffer;
+    extrel2::TupleBuffer2Iterator *tb2Iter;
     int card;
     Rectangle<dim> *MBR;
     double avgSize[dim];

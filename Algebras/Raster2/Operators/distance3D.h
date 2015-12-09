@@ -91,7 +91,7 @@ CcReal distance3DFun(const st& raster, const Point& p1, const Point& p2,
   double x1 = p1.GetX();
   double y1 = p1.GetY();
 
-  pair<double,double> last=it.next();
+  std::pair<double,double> last=it.next();
 
   if(!it.hasNext()){ // within a single cell
      result.Set(true, p1.Distance(p2,geoid));
@@ -101,7 +101,7 @@ CcReal distance3DFun(const st& raster, const Point& p1, const Point& p2,
   double dist3 = 0.0;
   
   while(it.hasNext()){
-     pair<double,double> current = it.next();
+     std::pair<double,double> current = it.next();
      double d1 = last.first==0?0:(last.first+last.second)/2;
      double d2 = current.second==1?1:(current.first+current.second)/2;
      // first point
@@ -138,7 +138,7 @@ Signature is {sint, sreal} x point x point x bool [x geoid] -> real
 */
 
 ListExpr distance3DTM(ListExpr args){
-  string err = "{sint,sreal} x point x point x bool [x geoid] expected";
+  std::string err = "{sint,sreal} x point x point x bool [x geoid] expected";
   int len = nl->ListLength(args);
   if(len!=4 && len!=5){
      return listutils::typeError(err);
@@ -232,7 +232,7 @@ This operator computes the lenegth of the way of a moving point using elevation 
 
 */
 ListExpr length3DTM(ListExpr args){
-  string err = "{sint,sreal} x mpoint x bool [x geoid] expected";
+  std::string err = "{sint,sreal} x mpoint x bool [x geoid] expected";
   int len = nl->ListLength(args);
   if(len!=3 && len!=4){
      return listutils::typeError(err +" wrong number of args");

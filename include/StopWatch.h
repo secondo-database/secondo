@@ -52,8 +52,6 @@ An instance could be used as a clock to measure time differences.
 #endif
 
 
-using namespace std;
-
 class StopWatch {
 
 
@@ -67,24 +65,24 @@ class StopWatch {
     void start();
 
     // return the real time difference (now-start) formatted as string
-    const string diffReal();
+    const std::string diffReal();
 
     // return used CPU time since start formatted as string
-    const string diffCPU();
+    const std::string diffCPU();
 
     // return both times
-    const string diffTimes();
+    const std::string diffTimes();
 
     // return the time in format HH:MM:SS
-    static const string timeStr(const time_t& inTime = 0);
+    static const std::string timeStr(const time_t& inTime = 0);
 
     // return times in seconds
     const double diffSecondsReal();
     const double diffSecondsCPU();
 
-    const string minutesAndSeconds(const double seconds);
+    const std::string minutesAndSeconds(const double seconds);
 
-    static string currentTime();
+    static std::string currentTime();
 
   private:
 

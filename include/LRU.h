@@ -134,7 +134,7 @@ It's the task of the caller to destroy this element.
        }
 
 
-       typename map<Key, LRUEntry<Key, Value>*>::iterator it = m.find(key);
+       typename std::map<Key, LRUEntry<Key, Value>*>::iterator it = m.find(key);
        if(it == m.end()){
           elem = new LRUEntry<Key, Value>(key,value);
           m[key] = elem;
@@ -166,7 +166,7 @@ Returns a pointer to a stored value or null if key is not present.
 
 */
     Value* get(Key key){
-      typename map<Key, LRUEntry<Key, Value>*>::iterator it = m.find(key);
+      typename std::map<Key, LRUEntry<Key, Value>*>::iterator it = m.find(key);
       if(it==m.end()){
         failures++;
         return 0; // not stored
@@ -195,7 +195,7 @@ element is returned. The caller has to destroy the element.
 */
 
     LRUEntry<Key,Value>* remove(Key key) {
-      typename map<Key, LRUEntry<Key, Value>*>::iterator it = m.find(key);
+      typename std::map<Key, LRUEntry<Key, Value>*>::iterator it = m.find(key);
       if(it==m.end()){
         return 0; // not stored
       } else {
@@ -248,12 +248,12 @@ element is returned. The caller has to destroy the element.
     }
     
 
-    void printStats(ostream& o){
-       o << "maxEntries = " << maxEntries << endl
-         << "entries    = " << entries << endl
-         << "hits       = " << hits << endl
-         << "failures   = " << failures << endl
-         << "removed    = " << removements << endl; 
+    void printStats(std::ostream& o){
+       o << "maxEntries = " << maxEntries << std::endl
+         << "entries    = " << entries << std::endl
+         << "hits       = " << hits << std::endl
+         << "failures   = " << failures << std::endl
+         << "removed    = " << removements << std::endl; 
     }
 
   private:
@@ -262,7 +262,7 @@ element is returned. The caller has to destroy the element.
     LRUEntry<Key, Value>* last;
     size_t maxEntries;
     size_t entries;
-    map<Key, LRUEntry<Key, Value>*> m;
+    std::map<Key, LRUEntry<Key, Value>*> m;
 
 
     // statistic values

@@ -7,8 +7,6 @@
 #ifndef REGIONTREENODE_H_
 #define REGIONTREENODE_H_
 
-using namespace std;
-
 namespace RegionInterpol
 {
 /*

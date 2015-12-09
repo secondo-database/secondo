@@ -34,8 +34,9 @@ October 2009, C. Duentgen Initial revised implementation of Flob.h Flob.cpp
 
 LOB is a shortcut for ~large object~.
 
-FLOB (or Flob) is a shortcut for ~faked larged object~ which is a concept for implementing
-datatypes such as regions which may vary strongly in size. The idea of Flobs has
+FLOB (or Flob) is a shortcut for ~faked larged object~ which is a concept 
+for implementing datatypes such as regions which may vary strongly in size.
+ The idea of Flobs has
 been studied in [1] (The current implementation differs in some aspects). The
 basic idea is to store data of an object value depending on a threshold size
 either inside the tuple representation or in a separate storage location.
@@ -54,13 +55,15 @@ must be used to dynamic data structures within a Flob data segement.
 The class ~Flob~ provides a handle on large objects. The user can use the class'
 member functions to create new Flobs, to restore Flobs from persistent storage,
 and to to read or modify the contained data. However, the actual work for all
-these functions is done by the friend class ~FlobManager~, whose member functions
-are called. The ~FlobManager~ also deals with caching the Flob data to fasten
+these functions is done by the friend class ~FlobManager~, whose member 
+functions are called. The ~FlobManager~ also deals with caching the Flob data
+ to fasten
 acceess.
 
 Flob objects (instances of this class) can be used as members of Secondo data
 type classes and attribute type classes, since they have a compact memory
-representation and thus can be made persistent using any of Secondo's persistency
+representation and thus can be made persistent using any of Secondo's 
+persistency
 mechanisms. This of course only stores the handle to the object data. The actual
 object data is maintained in some files provided and managed by a singleton
 instance of class ~FlobManager~.
@@ -328,7 +331,7 @@ Keep the Flob data in an external file, set the FlobId to it.
 
 */
 
-  inline static bool setExFile(Flob& result, const string& flobFile,
+  inline static bool setExFile(Flob& result, const std::string& flobFile,
       const SmiSize length, const SmiSize flobOffset){
     return FlobManager::getInstance().
         setExFile(result, flobFile, length, flobOffset);
@@ -340,7 +343,7 @@ Keep the Flob data in an external file, set the FlobId to it.
 Read the data from the external file to a Flob with mode 1
 
 */
-  inline static bool readExFile(Flob& result, const string& flobFile,
+  inline static bool readExFile(Flob& result, const std::string& flobFile,
       const SmiSize length, const SmiSize flobOffset){
     return FlobManager::getInstance().
         SwitchToMode1(result, flobFile, length, flobOffset);
@@ -476,8 +479,8 @@ will be null.
 Creates a Flob referencing a given (FileId/RecordId/Offset). The data is
 expected to be already at the specified location.
 
-For example, class tuple uses this to correct the FlobId when persistently storing
-small Flob data within the tuple itself.
+For example, class tuple uses this to correct the FlobId when persistently
+ storing small Flob data within the tuple itself.
 
 */
 
@@ -681,7 +684,7 @@ Set parameters for the Persistent Flob Cache.
 Print function to print debug info about the Flob to an ostream.
 
 */
-  ostream& print(ostream& os) const {
+  std::ostream& print(std::ostream& os) const {
     if(!dataPointer){
        return os << "[" << id << ", size = " << size << "]";
     } else {
@@ -690,13 +693,14 @@ Print function to print debug info about the Flob to an ostream.
   }
 
 /*
-Describe the Flob basic information for fetching its data in the Persistent storage.
+Describe the Flob basic information for fetching its data in the 
+Persistent storage.
 
 */
-  string describe() const {
+  std::string describe() const {
     if (!dataPointer){
-      stringstream ss;
-      ss << id.describe() << " " << size << endl;
+      std::stringstream ss;
+      ss << id.describe() << " " << size << std::endl;
       return ss.str();
     } else {
       return "error: not persistent\n";
@@ -718,6 +722,6 @@ Shift operator to ease printing debug info to an ostream.
 
 */
 
-ostream& operator<<(ostream& os, const Flob& f);
+std::ostream& operator<<(std::ostream& os, const Flob& f);
 
 #endif

@@ -45,8 +45,6 @@ This header file contains the class ~NetworkAdapter~
 #include "RectangleAlgebra.h"
 #include "NetworkAlgebra.h"
 
-using namespace network;
-
 class NetworkRoute;
 class DirectedNetworkSection;
 class Region;

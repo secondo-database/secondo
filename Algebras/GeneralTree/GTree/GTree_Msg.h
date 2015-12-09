@@ -41,7 +41,6 @@ January-May 2008, Mirko Dibbert
 #include <sstream>
 #include "LogMsg.h"
 
-using namespace std;
 
 namespace gtree
 {

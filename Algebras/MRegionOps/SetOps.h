@@ -68,7 +68,6 @@ A general overview about the relationship of this classes is shown below:
 #include <set>
 #include <list>
 
-using namespace std;
 
 namespace temporalalgebra{
 

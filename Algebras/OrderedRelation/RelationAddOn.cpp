@@ -40,6 +40,8 @@ RelationAlgebra.h.
 */
 #include "RelationAlgebra.h"
 
+using namespace std;
+
 void Tuple::SaveOrel(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
                  double& size, vector<double>& attrExtSize,
                  vector<double>& attrSize, bool ignoreFlobs,

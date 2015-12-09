@@ -256,7 +256,7 @@ This function checks whether text at position offset starts with
 this pattern. The length of the substring is returned.
 
 */
-   bool starts2(const string& text, const int offset, int& length, 
+   bool starts2(const std::string& text, const int offset, int& length, 
                 const bool findMax, const bool allowEmpty){
        if(!IsDefined()){
          return false;
@@ -613,7 +613,7 @@ Secondo specific operators
    }
 
 
-   bool computeRegEx(stringstream& ss ){
+   bool computeRegEx(std::stringstream& ss ){
       regexcreator::DeaRegEx automaton;
       for(int s=0;s<numOfStates;s++){
          for(int c=0;c<NUMCHARS;c++){

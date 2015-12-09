@@ -95,7 +95,7 @@ Size required for a buffer.
   prints out this object
 
 */
- ostream& print(ostream& os){
+ std::ostream& print(std::ostream& os){
    return os <<  tid ;
  }
 
@@ -176,7 +176,7 @@ Required buffersize to store it.
 prints out the pointer
 
 */
-  ostream& print(ostream& os){
+  std::ostream& print(std::ostream& os){
     return os << pointer;
   }
 
@@ -327,7 +327,7 @@ Let the box be the union of the original box and b;
 Prints entry to stream;
 
 */
-  ostream& print(ostream& os){
+  std::ostream& print(std::ostream& os){
      os << "(";
      box.Print(os);
      os << ", ";
@@ -391,7 +391,7 @@ class BasicNode{
    virtual Rectangle<Dim> getBox() const = 0;
    virtual const bool isLeaf()const = 0;
    virtual int bufferSize() const =0;
-   virtual ostream& print(ostream& os ) const=0;
+   virtual std::ostream& print(std::ostream& os ) const=0;
    virtual BasicNode<Dim>* clone() const=0;
 
 /*
@@ -696,7 +696,7 @@ pure virtual.
 ~print~
 
 */
-   ostream& print(ostream& os) const{
+   std::ostream& print(std::ostream& os) const{
        os << "(node - ";
        os << (isLeaf() ? "leaf" : "inner");
        os << "[" << BasicNode<Dim>::min <<", "
@@ -724,9 +724,9 @@ using quadratic split algorithm.
 template<int Dim, class Info>
 class QNodeSplitter{
   public:
-   pair<Node<Dim, Info>*, Node<Dim, Info>* >
+   std::pair<Node<Dim, Info>*, Node<Dim, Info>* >
      splitNode(Node<Dim, Info>& node){
-       pair<int, int> seeds = pickSeeds(node);
+       std::pair<int, int> seeds = pickSeeds(node);
        int index1 = seeds.first;
        int index2 = seeds.second;
        Node<Dim, Info>*  node1 = node.getEmptyNode();
@@ -749,7 +749,8 @@ class QNodeSplitter{
            }
            node.deleteEntries();
          } else {
-           pair<unsigned int, unsigned int> next = pickNext(&node,node1,node2);
+           std::pair<unsigned int, unsigned int> next = 
+                                      pickNext(&node,node1,node2);
            if(next.second == 1){
              node1->insert(*(node.getEntry(next.first)));
            } else {
@@ -758,15 +759,15 @@ class QNodeSplitter{
            node.remove(next.first);
          }
        }
-       return make_pair(node1,node2);
+       return std::make_pair(node1,node2);
      } // end of splitNode
 
   private:
 
   typedef Node<Dim,Info> node_type;
 
-  pair<unsigned int,unsigned  int> pickSeeds(const node_type& n) const{
-     pair<int, int> res;
+  std::pair<unsigned int,unsigned  int> pickSeeds(const node_type& n) const{
+     std::pair<int, int> res;
      double d = 0;
      for(int i=0;i<n.entryCount();i++){
        for(int j=i+1;j<n.entryCount();j++){
@@ -787,7 +788,7 @@ class QNodeSplitter{
      return res;
    }
 
-   pair<unsigned int,unsigned int>
+   std::pair<unsigned int,unsigned int>
    pickNext(const node_type* source,
             const node_type* grpone,
             const node_type* grptwo) const{
@@ -821,7 +822,7 @@ class QNodeSplitter{
            }
         }
     }
-    pair<unsigned int , unsigned int> res;
+    std::pair<unsigned int , unsigned int> res;
     res.first = index;
     res.second = bestgrp;
     return res;
@@ -970,7 +971,7 @@ Prints out this node.
 
 */
 
-  virtual ostream& print(ostream& os)const{
+  virtual std::ostream& print(std::ostream& os)const{
      return Node<Dim, Info>::print(os) << next << endl;
   }
 
@@ -1249,7 +1250,7 @@ Stores a new entry.
         return;
      } else {
         box = box.Union(e.getBox());
-        vector<pathEntry<3> > path;
+        std::vector<pathEntry<3> > path;
         TBLeafNode<3, TBLeafInfo>* newLeaf(0);
         SmiRecordId id(0);
         if(searchNode(rootId, path, e, trjid)) {
@@ -1356,9 +1357,9 @@ Returns a new empty leaf node
      file.Drop();
   }
 
-    string toString(){
+    std::string toString(){
 
-       ostringstream os;
+       std::ostringstream os;
        os << "[ -- tbtree -- " << endl
           << "  fileId       : " << file.GetFileId() << endl
           << "  rootId       : " << rootId << endl
@@ -1408,13 +1409,14 @@ Some Getter
       result = file.GetFileStatistics(SMI_STATS_EAGER);
       std::stringstream fileid;
       fileid << file.GetFileId();
-      result.push_back(pair<string,string>("FilePurpose",
+      result.push_back(std::pair<std::string,std::string>("FilePurpose",
             "SecondaryTBTreetreeIndexFile"));
-      result.push_back(pair<string,string>("FileId",fileid.str()));
+      result.push_back(std::pair<std::string,std::string>(
+            "FileId",fileid.str()));
       return true;
   }
 
-  static const string BasicType(){
+  static const std::string BasicType(){
      return "tbtree";
   }
 
@@ -1433,9 +1435,9 @@ calculate number of different trajectories in this node
       return 1;
     InnerNode<3,InnerInfo>* innernode =
                   dynamic_cast<InnerNode<3, InnerInfo>* >(n);
-    vector<int> trajid;
-    vector<Entry<3,InnerInfo> > list1;
-    vector<Entry<3,InnerInfo> > list2;
+    std::vector<int> trajid;
+    std::vector<Entry<3,InnerInfo> > list1;
+    std::vector<Entry<3,InnerInfo> > list2;
     for(unsigned int i = 0;i < innernode->entryCount();i++){
       list1.push_back(*(innernode->getEntry(i)));
     }
@@ -1461,9 +1463,9 @@ calculate number of different trajectories in this node
       list2.clear();
     }
     stable_sort(trajid.begin(),trajid.end());
-    vector<int>::iterator end;
+    std::vector<int>::iterator end;
     end = unique(trajid.begin(),trajid.end());
-    vector<int>::iterator begin = trajid.begin();
+    std::vector<int>::iterator begin = trajid.begin();
     int count = 0;
     while(begin != end){
       begin++;
@@ -1711,7 +1713,7 @@ calculate number of different trajectories in this node
 
 
 
-    bool searchNode(const SmiRecordId id, vector<pathEntry<3> >& path,
+    bool searchNode(const SmiRecordId id, std::vector<pathEntry<3> >& path,
                     const Entry<3, TBLeafInfo>& li, const int trjid )  {
 
         BasicNode<3>*  bn = readNode(id);
@@ -1752,7 +1754,8 @@ calculate number of different trajectories in this node
 
 
 
-    void updatePath(const vector<pathEntry<3> >& path, const Rectangle<3>& b ) {
+    void updatePath(const std::vector<pathEntry<3> >& path, 
+                    const Rectangle<3>& b ) {
        // a new entry was inserted at the end of the path.
        // we have to update the bounding boxes of all nodes in a path
        for(int i=path.size()-2; i>=0;i--){
@@ -1777,7 +1780,8 @@ This function embedds the leaf with given id and box into the tree structure.
 
 */
     SmiRecordId insertLeaf(const SmiRecordId& id, const Rectangle<3>& rect){
-       pair<SmiRecordId, SmiRecordId> res =  insertLeafRec(rootId, id, rect, 0);
+       std::pair<SmiRecordId, SmiRecordId> res =  
+                                  insertLeafRec(rootId, id, rect, 0);
        if(res.second==0){
           return res.first;
        } else {
@@ -1795,14 +1799,14 @@ This function embedds the leaf with given id and box into the tree structure.
     }
 
 
-    pair<SmiRecordId, SmiRecordId>
+    std::pair<SmiRecordId, SmiRecordId>
     insertLeafRec(const SmiRecordId rootId,
                   const SmiRecordId& id,
                   const Rectangle<3>& rect,
                   const int level){
       BasicNode<3>* root = readNode(rootId);
       if(root->isLeaf()){
-         pair<SmiRecordId, SmiRecordId> res(rootId, id);
+         std::pair<SmiRecordId, SmiRecordId> res(rootId, id);
          delete root;
          return res;
       } else {
@@ -1810,7 +1814,7 @@ This function embedds the leaf with given id and box into the tree structure.
                       dynamic_cast<InnerNode<3, InnerInfo>*>(root);
          int sonIndex = iroot->selectBestNode(rect);
          SmiRecordId sonId = iroot->getEntry(sonIndex)->getInfo().getPointer();
-         pair<SmiRecordId, SmiRecordId> sonRes =
+         std::pair<SmiRecordId, SmiRecordId> sonRes =
                insertLeafRec(sonId, id, rect, level+1);
          if(sonRes.second == 0 ){ // no split required
             Rectangle<3>  b(root->getBox());
@@ -1840,7 +1844,7 @@ This function embedds the leaf with given id and box into the tree structure.
               return sonRes;
             } else {
               QNodeSplitter<3, InnerInfo> ns;
-              pair<Node<3, InnerInfo>*, Node<3, InnerInfo>* > nodes =
+              std::pair<Node<3, InnerInfo>*, Node<3, InnerInfo>* > nodes =
                     ns.splitNode(*iroot);
               delete iroot;
               updateNode(rootId, *(nodes.first));
@@ -1930,7 +1934,7 @@ Assignment operator
 ~print~
 
 */
-     ostream& print(ostream& os){
+     std::ostream& print(std::ostream& os){
         return os << "ownId = " << ownId << ", parentId = "
                   << parentId << ", level = " << level;
      }
@@ -1971,7 +1975,7 @@ class PathElement: public IteratorElement<Dim>{
        return *this;
    }
 
-   ostream& print(ostream& os){
+   std::ostream& print(std::ostream& os){
      return IteratorElement<Dim>::print(os) << " , pos = "
                                             << pos << ", used = " << used;
    }
@@ -2076,14 +2080,14 @@ Destroys local variables.
           path.pop();
        }
     }
-    stack<PathElement<Dim> > getPath()
+    std::stack<PathElement<Dim> > getPath()
     {
       return path;
     }
 
   private:
     Tree* tree;
-    stack<PathElement<Dim> > path;
+    std::stack<PathElement<Dim> > path;
     Select select;
     Pruner pruner;
 

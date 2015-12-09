@@ -58,7 +58,7 @@ The ~Geoid~ class represents geoids used for spherical geometry.
 */
 class Geoid : public Attribute {
   // stream output operator. Implementation in file SpatialAlgebra.cpp
-  friend ostream& operator<< (ostream&, const Geoid&);
+  friend std::ostream& operator<< (std::ostream&, const Geoid&);
 
   public:
     enum GeoidName {UnitSphere, WGS1984, Bessel1841, Krasovsky1940,
@@ -81,7 +81,7 @@ Constructor for arbitrary geoids. ~radius~ (must be positive) and ~flattening~
 Otherwise, the an UNDEF geoid is returned!
 
 */
-    Geoid(const string& _name,
+    Geoid(const std::string& _name,
           const double _radius,
           const double _flattening);
 
@@ -111,7 +111,7 @@ Set the Geoid to a predined set of data.
 Functions providing copies of the private data.
 
 */
-    inline string getName() const { return string(name); }
+    inline std::string getName() const { return std::string(name); }
     inline double getR() const { return radius; }
     inline double getF() const { return flattening; }
 
@@ -120,14 +120,14 @@ Function returns a string with the names of all pre-defined geoids. Can be used
 in operator specs.
 
 */
-  static string getGeoIdNames();
+  static std::string getGeoIdNames();
 
 /*
 Get the ~GeoidName~ code for a given geoid name. If the name is unknown, WGS1984
 is returned and return parameter ~valid~ is set to ~false~.
 
 */
-  static GeoidName getGeoIdNameFromString(const string& s, bool& valid);
+  static GeoidName getGeoIdNameFromString(const std::string& s, bool& valid);
 
 /*
 Functions overwriting Attribute functions
@@ -172,7 +172,7 @@ Geoid contains no Flobs:
 Print function
 
 */
-  virtual ostream& Print( ostream& os ) const;
+  virtual std::ostream& Print( std::ostream& os ) const;
 
 /*
 Clone function
@@ -191,7 +191,7 @@ Hash function
 Functions required for using ~GenericTC.h~
 
 */
-  static string BasicType() { return "geoid"; }
+  static std::string BasicType() { return "geoid"; }
   static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type, BasicType());
   }

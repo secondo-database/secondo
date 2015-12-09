@@ -52,7 +52,6 @@ RelationAlgebra.h for details)
 #include "RelationAlgebra.h"
 #include "RTuple.h"
 
-using namespace std;
 
 /*
 In order to avoid name conflicts and to simplify replacement
@@ -112,13 +111,13 @@ Reference to ~TupleBuffer2~ instance.
 
 */
 
-    vector<RTuple>::iterator iterMemoryBuffer;
+    std::vector<RTuple>::iterator iterMemoryBuffer;
 /*
 Iterator for in-memory array ~memoryBufferCopy~.
 
 */
 
-    vector<RTuple> memoryBufferCopy;
+    std::vector<RTuple> memoryBufferCopy;
 /*
 Copy of the FIFO queue content of the ~TupleBuffer2~
 instance. The copy is made when the Iterator is
@@ -147,7 +146,7 @@ be generated automatically.
 
 */
 
-    TupleBuffer2( const string& pathName,
+    TupleBuffer2( const std::string& pathName,
                   const size_t maxMemorySize = 16 * 1024 * 1024,
                   const size_t ioBufferSize = WinUnix::getPageSize() );
 /*
@@ -244,7 +243,7 @@ is by default set to the page size of the system.
 
 */
 
-    ostream& Print(ostream& os);
+    std::ostream& Print(std::ostream& os);
 /*
 Print the tuple buffer to stream ~os~. This function is used
 for debugging purposes.
@@ -273,13 +272,13 @@ this value is set to the page size of the operating system.
 
 */
 
-    const string pathName;
+    const std::string pathName;
 /*
 Filename for the external buffer of type ~TupleFile~.
 
 */
 
-    queue<RTuple> memoryBuffer;
+    std::queue<RTuple> memoryBuffer;
 /*
 Internal memory buffer (FIFO)
 

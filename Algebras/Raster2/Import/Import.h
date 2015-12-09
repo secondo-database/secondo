@@ -41,83 +41,83 @@ class RasterData
 {
 public:
 
-	// constructors
-	RasterData(bool earthOrigin){
-		origin.north = -1;
-		origin.south = -1;
-		origin.east = -1;
-		origin.west = -1;
-		useEarthOrigin = earthOrigin;
-		endianTypeLittle = isLittleEndian();
-		undefValueHGT = -32768; //given by HGT file format
-		// minimum signed 32bit integer
-		// nodata values taken from gdal library
-		// frmts/aigrid/aigrid.h, line 37
-		undefValueEsriGrid = -2147483647;
-		undefValueEsriGridFloat =
-		    -340282346638528859811704183484516925440.0;
-		ImportHGTExtend = -1; //HGT extend only 3601x3601 or 1201x1201
-	}
+  // constructors
+  RasterData(bool earthOrigin){
+    origin.north = -1;
+    origin.south = -1;
+    origin.east = -1;
+    origin.west = -1;
+    useEarthOrigin = earthOrigin;
+    endianTypeLittle = isLittleEndian();
+    undefValueHGT = -32768; //given by HGT file format
+    // minimum signed 32bit integer
+    // nodata values taken from gdal library
+    // frmts/aigrid/aigrid.h, line 37
+    undefValueEsriGrid = -2147483647;
+    undefValueEsriGridFloat =
+        -340282346638528859811704183484516925440.0;
+    ImportHGTExtend = -1; //HGT extend only 3601x3601 or 1201x1201
+  }
 
     // destructor
-	virtual ~RasterData(){};
+  virtual ~RasterData(){};
 
-	// getter
-	int getPageSize(){
-		return PageSize;
-	}
+  // getter
+  int getPageSize(){
+    return PageSize;
+  }
 
-	int getGridSize(){
-		return GridSize;
-	}
+  int getGridSize(){
+    return GridSize;
+  }
 
-	bool getEndianTypeLittle() {
-		return endianTypeLittle;
-	}
+  bool getEndianTypeLittle() {
+    return endianTypeLittle;
+  }
 
 
     /*This section covers common functions*/
 
-	bool endsWith(const std::string& a1, const std::string& a2){
-		size_t len1 = a1.length();
-		size_t len2 = a2.length();
-		if(len2 > len1){
-			return false;
-		}
-		return a1.substr(len1-len2)==a2;
-	}
+  bool endsWith(const std::string& a1, const std::string& a2){
+    size_t len1 = a1.length();
+    size_t len2 = a2.length();
+    if(len2 > len1){
+      return false;
+    }
+    return a1.substr(len1-len2)==a2;
+  }
 
-	bool isLittleEndian() {
-	  int endian_detect = 1;
-	  return *(char *)&endian_detect == 1;
-	}
+  bool isLittleEndian() {
+    int endian_detect = 1;
+    return *(char *)&endian_detect == 1;
+  }
 
-	float convertFloat(const float inFloat)
-	{
-	   float retVal;
-	   char *floatToConvert = ( char* ) & inFloat;
-	   char *returnFloat = ( char* ) & retVal;
+  float convertFloat(const float inFloat)
+  {
+     float retVal;
+     char *floatToConvert = ( char* ) & inFloat;
+     char *returnFloat = ( char* ) & retVal;
 
-	   // swap the bytes into a temporary buffer
-	   returnFloat[0] = floatToConvert[3];
-	   returnFloat[1] = floatToConvert[2];
-	   returnFloat[2] = floatToConvert[1];
-	   returnFloat[3] = floatToConvert[0];
+     // swap the bytes into a temporary buffer
+     returnFloat[0] = floatToConvert[3];
+     returnFloat[1] = floatToConvert[2];
+     returnFloat[2] = floatToConvert[1];
+     returnFloat[3] = floatToConvert[0];
 
-	   return retVal;
-	}
+     return retVal;
+  }
 
-	uint64_t convertEndian(const uint64_t n){
-	   uint64_t x = n;
-	   return (x>>56) |
-	          ((x<<40) & 0x00FF000000000000ull) |
-	          ((x<<24) & 0x0000FF0000000000ull) |
-	          ((x<<8)  & 0x000000FF00000000ull) |
-	          ((x>>8)  & 0x00000000FF000000ull) |
-	          ((x>>24) & 0x0000000000FF0000ull) |
-	          ((x>>40) & 0x000000000000FF00ull) |
-	          (x<<56);
-	}
+  uint64_t convertEndian(const uint64_t n){
+     uint64_t x = n;
+     return (x>>56) |
+            ((x<<40) & 0x00FF000000000000ull) |
+            ((x<<24) & 0x0000FF0000000000ull) |
+            ((x<<8)  & 0x000000FF00000000ull) |
+            ((x>>8)  & 0x00000000FF000000ull) |
+            ((x>>24) & 0x0000000000FF0000ull) |
+            ((x>>40) & 0x000000000000FF00ull) |
+            (x<<56);
+  }
 
         int16_t convertEndian(int16_t x){
          return  (( x & 0x00FF) << 8) | ( ( x & 0xFF00) >> 8);
@@ -128,347 +128,350 @@ public:
           return ((value << 8) | ((value >> 8) & 0xFF));
         }
 
-	int32_t convertEndian(int32_t val)
-	{
-	  int32_t tmp = val;
-	    return (tmp << 24) |
-	          ((tmp <<  8) & 0x00ff0000) |
-	          ((tmp >>  8) & 0x0000ff00) |
-	          ((tmp >> 24) & 0x000000ff);
-	}
+  int32_t convertEndian(int32_t val)
+  {
+    int32_t tmp = val;
+      return (tmp << 24) |
+            ((tmp <<  8) & 0x00ff0000) |
+            ((tmp >>  8) & 0x0000ff00) |
+            ((tmp >> 24) & 0x000000ff);
+  }
 
-	uint32_t convertEndian(const uint32_t n)
-	{
-	  uint32_t x = n;
-	  return  ((x & 0xFF) << 24)    |
-	          ((x & 0xFF00) << 8)   |
-	          ((x & 0xFF0000) >> 8) |
-	          ((x & 0xFF000000)>> 24);
+  uint32_t convertEndian(const uint32_t n)
+  {
+    uint32_t x = n;
+    return  ((x & 0xFF) << 24)    |
+            ((x & 0xFF00) << 8)   |
+            ((x & 0xFF0000) >> 8) |
+            ((x & 0xFF000000)>> 24);
 
-	}
+  }
 
-	/*This section covers Functions related to HGT import*/
+  /*This section covers Functions related to HGT import*/
 
-	int getImportHGTExtend(){
-		return ImportHGTExtend;
-	}
+  int getImportHGTExtend(){
+    return ImportHGTExtend;
+  }
 
-	int getOriginNorth() {
-		return origin.north;
-	}
+  int getOriginNorth() {
+    return origin.north;
+  }
 
-	int getOriginSouth() {
-		return origin.south;
-	}
+  int getOriginSouth() {
+    return origin.south;
+  }
 
-	int getOriginEast() {
-		return origin.east;
-	}
+  int getOriginEast() {
+    return origin.east;
+  }
 
-	int getOriginWest() {
-		return origin.west;
-	}
+  int getOriginWest() {
+    return origin.west;
+  }
 
-	int getOffsetNorth() {
-		return offset.north;
-	}
+  int getOffsetNorth() {
+    return offset.north;
+  }
 
-	int getOffsetSouth() {
-		return offset.south;
-	}
+  int getOffsetSouth() {
+    return offset.south;
+  }
 
-	int getOffsetEast() {
-		return offset.east;
-	}
+  int getOffsetEast() {
+    return offset.east;
+  }
 
-	int getOffsetWest() {
-		return offset.west;
-	}
+  int getOffsetWest() {
+    return offset.west;
+  }
 
-	int getHGTUndef() {
-		return undefValueHGT;
-	}
+  int getHGTUndef() {
+    return undefValueHGT;
+  }
 
-	void calculateCoordinates(string LengthOrientation,
-				int LengthOrientationValue,
-				string WidthOrientation,
-				int WidthOrientationValue){
+  void calculateCoordinates(std::string LengthOrientation,
+        int LengthOrientationValue,
+        std::string WidthOrientation,
+        int WidthOrientationValue){
 
-		if(WidthOrientation.compare("N") == 0){ //OK
-			if(origin.north == -1){
-				if(origin.south == -1) {
-				useEarthOrigin ?
-				origin.north = 0 :
-				origin.north = WidthOrientationValue;
+    if(WidthOrientation.compare("N") == 0){ //OK
+      if(origin.north == -1){
+        if(origin.south == -1) {
+        useEarthOrigin ?
+        origin.north = 0 :
+        origin.north = WidthOrientationValue;
 
-				useEarthOrigin ?
-				offset.north = WidthOrientationValue :
-				offset.north = 0;
-				} else
+        useEarthOrigin ?
+        offset.north = WidthOrientationValue :
+        offset.north = 0;
+        } else
                  offset.south = origin.south + WidthOrientationValue;
-			} else
+      } else
              offset.north = WidthOrientationValue - origin.north;
-		}
+    }
 
-		if(WidthOrientation.compare("S") == 0){ //OK
-			if(origin.south == -1){
-				if(origin.north == -1){
-				useEarthOrigin ?
-				origin.south = 0 :
-				origin.south = WidthOrientationValue;
+    if(WidthOrientation.compare("S") == 0){ //OK
+      if(origin.south == -1){
+        if(origin.north == -1){
+        useEarthOrigin ?
+        origin.south = 0 :
+        origin.south = WidthOrientationValue;
 
-				useEarthOrigin ?
-				offset.south = 0 - WidthOrientationValue :
-				offset.south = 0;
-				} else
+        useEarthOrigin ?
+        offset.south = 0 - WidthOrientationValue :
+        offset.south = 0;
+        } else
                  offset.north = 0 - (origin.north + WidthOrientationValue);
-			} else
+      } else
              offset.south = origin.south - WidthOrientationValue;
-		}
+    }
 
-		if(LengthOrientation.compare("E") == 0){ //OK
-			if(origin.east == -1){
-				if(origin.west == -1) {
-				useEarthOrigin ?
-				origin.east = 0 :
-				origin.east = LengthOrientationValue;
+    if(LengthOrientation.compare("E") == 0){ //OK
+      if(origin.east == -1){
+        if(origin.west == -1) {
+        useEarthOrigin ?
+        origin.east = 0 :
+        origin.east = LengthOrientationValue;
 
-				useEarthOrigin ?
-				offset.east = LengthOrientationValue :
-				offset.east = 0;
-				} else
+        useEarthOrigin ?
+        offset.east = LengthOrientationValue :
+        offset.east = 0;
+        } else
                  offset.west = origin.west + LengthOrientationValue;
-			} else
+      } else
              offset.east = LengthOrientationValue - origin.east;
-		}
+    }
 
-		if(LengthOrientation.compare("W") == 0){ //OK
-			if(origin.west == -1){
-				if(origin.east == -1) {
-				useEarthOrigin ?
-				origin.west = 0 :
-				origin.west = LengthOrientationValue;
+    if(LengthOrientation.compare("W") == 0){ //OK
+      if(origin.west == -1){
+        if(origin.east == -1) {
+        useEarthOrigin ?
+        origin.west = 0 :
+        origin.west = LengthOrientationValue;
 
-				useEarthOrigin ?
-				offset.west = 0 - LengthOrientationValue :
-				offset.west = 0;
-				} else
+        useEarthOrigin ?
+        offset.west = 0 - LengthOrientationValue :
+        offset.west = 0;
+        } else
                  offset.east = 0 - (origin.east + LengthOrientationValue);
-			} else
+      } else
              offset.west = origin.west - LengthOrientationValue;
-		}
-	}
+    }
+  }
 
-	int getYOffset() {
-		if( origin.north != -1)
-			return offset.north;
+  int getYOffset() {
+    if( origin.north != -1)
+      return offset.north;
 
-		if(origin.south != -1)
-			return offset.south;
+    if(origin.south != -1)
+      return offset.south;
 
-		return 0;
-	}
+    return 0;
+  }
 
-	int getXOffset() {
-		if(origin.east != -1)
-			return offset.east;
+  int getXOffset() {
+    if(origin.east != -1)
+      return offset.east;
 
-		if(origin.west != -1)
-			return offset.west;
+    if(origin.west != -1)
+      return offset.west;
 
-		return 0;
-	}
+    return 0;
+  }
 
-	void setOriginNorth(int originNorth) {
-		origin.north = originNorth;
-	}
+  void setOriginNorth(int originNorth) {
+    origin.north = originNorth;
+  }
 
-	void setOriginSouth(int originSouth) {
-		origin.south = originSouth;
-	}
+  void setOriginSouth(int originSouth) {
+    origin.south = originSouth;
+  }
 
-	void setOriginEast(int originEast) {
-		origin.east = originEast;
-	}
+  void setOriginEast(int originEast) {
+    origin.east = originEast;
+  }
 
-	void setOriginWest(int originWest) {
-		origin.west = originWest;
-	}
+  void setOriginWest(int originWest) {
+    origin.west = originWest;
+  }
 
-	string getWidthOrientationFromFileName(const string HGTFile){
-		string filename = HGTFile.substr(HGTFile.find_last_of("/") + 1);
+  std::string getWidthOrientationFromFileName(const std::string HGTFile){
+    std::string filename = HGTFile.substr(HGTFile.find_last_of("/") + 1);
         transform(filename.begin(), filename.end(),
          filename.begin(), ::toupper);
-		return filename.substr(0, 1);
-	}
+    return filename.substr(0, 1);
+  }
 
-	string getLengthOrientationFromFileName(const string HGTFile){
-		string filename = HGTFile.substr(HGTFile.find_last_of("/") + 1);
+  std::string getLengthOrientationFromFileName(const std::string HGTFile){
+    std::string filename = HGTFile.substr(HGTFile.find_last_of("/") + 1);
         transform(filename.begin(), filename.end(),
          filename.begin(), ::toupper);
-		return filename.substr(3, 1);
-	}
+    return filename.substr(3, 1);
+  }
 
-	int getWidthOrientationValueFromFileName(const string HGTFile){
-		string filename = HGTFile.substr(HGTFile.find_last_of("/") + 1);
-		return atoi(filename.substr(1, 2).c_str());
-	}
+  int getWidthOrientationValueFromFileName(const std::string HGTFile){
+    std::string filename = HGTFile.substr(HGTFile.find_last_of("/") + 1);
+    return atoi(filename.substr(1, 2).c_str());
+  }
 
-	int getLengthOrientationValueFromFileName(const string HGTFile){
-		string filename = HGTFile.substr(HGTFile.find_last_of("/") + 1);
-		return atoi(filename.substr(4, 3).c_str());
-	}
+  int getLengthOrientationValueFromFileName(const std::string HGTFile){
+    std::string filename = HGTFile.substr(HGTFile.find_last_of("/") + 1);
+    return atoi(filename.substr(4, 3).c_str());
+  }
 
-	int getHGTExtendfromFile(const string currentHGTFile) {
-	 double currentHGTFileSize =
+  int getHGTExtendfromFile(const std::string currentHGTFile) {
+   double currentHGTFileSize =
          FileSystem::GetFileSize(currentHGTFile.c_str());
 
-	 if(currentHGTFileSize == -1){
-	  cout << "Error accessing file " << currentHGTFile.c_str() << endl;
-	  return -1;
-	 }
+   if(currentHGTFileSize == -1){
+    std::cout << "Error accessing file " << currentHGTFile.c_str() << std::endl;
+    return -1;
+   }
 
-	 // HGT Files are written in 16bit signed integer, gives two bytes
-	 int currentValueCount = currentHGTFileSize / 2;
-	 return sqrt(currentValueCount);
-	}
+   // HGT Files are written in 16bit signed integer, gives two bytes
+   int currentValueCount = currentHGTFileSize / 2;
+   return sqrt(currentValueCount);
+  }
 
-	bool checkHGTFile(string currentHGTFile, int currentHGTExtend) {
-		if(checkHGTExtend(currentHGTExtend)){
-	  		cout << "Grid extend    : " << currentHGTExtend -1
-	  			 << "x" << currentHGTExtend - 1 << endl;
-		} else {
-			 cout << "Wrong grid extend, skipping file" << endl;
-			 return false;
-		}
+  bool checkHGTFile(std::string currentHGTFile, int currentHGTExtend) {
+    if(checkHGTExtend(currentHGTExtend)){
+        std::cout << "Grid extend    : " << currentHGTExtend -1
+           << "x" << currentHGTExtend - 1 << std::endl;
+    } else {
+       std::cout << "Wrong grid extend, skipping file" << std::endl;
+       return false;
+    }
 
-	  	if(!checkGeoCoordinates(
+      if(!checkGeoCoordinates(
             getLengthOrientationFromFileName(currentHGTFile),
             getLengthOrientationValueFromFileName(currentHGTFile),
             getWidthOrientationFromFileName(currentHGTFile),
             getWidthOrientationValueFromFileName(currentHGTFile))){
-	  		 return false;
-	  	}
-
-	  	if(!checkHGTFileExtension(currentHGTFile))
-	  	 return false;
-
-	    return true;
-	}
-
-	bool checkHGTExtend(int currentHGTExtend){
-		if(currentHGTExtend != 3601 && currentHGTExtend != 1201)
-			return false;
-
-		if(ImportHGTExtend == -1)
-			ImportHGTExtend = currentHGTExtend;
-
-		if(currentHGTExtend == ImportHGTExtend)
-			return true;
-		else
-			return false;
-	}
-
-	bool checkGeoCoordinates(string LengthOrientation,
-			int LengthOrientationValue,
-			string WidthOrientation,
-			int WidthOrientationValue){
-
-		if(LengthOrientationValue > 180){
-         cout << "Length orientation value is out of range" << endl << endl;
          return false;
-		}
+      }
 
-		if(WidthOrientationValue > 90){
-         cout << "Width orientation value is out of range" << endl << endl;
-         return false;
-		}
+      if(!checkHGTFileExtension(currentHGTFile))
+       return false;
 
-		if((WidthOrientation.compare("N") != 0) &&
-				(WidthOrientation.compare("S") != 0)) {
-         cout << "Width orientation not valid" << endl << endl;
-         return false;
-		}
+      return true;
+  }
 
-		if((LengthOrientation.compare("E") != 0) &&
-				(LengthOrientation.compare("W") != 0)) {
-         cout << "Length orientation not valid" << endl << endl;
+  bool checkHGTExtend(int currentHGTExtend){
+    if(currentHGTExtend != 3601 && currentHGTExtend != 1201)
+      return false;
+
+    if(ImportHGTExtend == -1)
+      ImportHGTExtend = currentHGTExtend;
+
+    if(currentHGTExtend == ImportHGTExtend)
+      return true;
+    else
+      return false;
+  }
+
+  bool checkGeoCoordinates(std::string LengthOrientation,
+      int LengthOrientationValue,
+      std::string WidthOrientation,
+      int WidthOrientationValue){
+
+    if(LengthOrientationValue > 180){
+         std::cout << "Length orientation value is out of range" 
+                   << std::endl << std::endl;
          return false;
-		}
+    }
+
+    if(WidthOrientationValue > 90){
+         std::cout << "Width orientation value is out of range" 
+                   << std::endl << std::endl;
+         return false;
+    }
+
+    if((WidthOrientation.compare("N") != 0) &&
+        (WidthOrientation.compare("S") != 0)) {
+         std::cout << "Width orientation not valid" << std::endl << std::endl;
+         return false;
+    }
+
+    if((LengthOrientation.compare("E") != 0) &&
+        (LengthOrientation.compare("W") != 0)) {
+         std::cout << "Length orientation not valid" << std::endl << std::endl;
+         return false;
+    }
 
         return true;
-	}
+  }
 
-	bool checkHGTFileExtension(string currentHGTFile){
-		transform(currentHGTFile.begin(), currentHGTFile.end(),
-				currentHGTFile.begin(), ::tolower);
+  bool checkHGTFileExtension(std::string currentHGTFile){
+    transform(currentHGTFile.begin(), currentHGTFile.end(),
+        currentHGTFile.begin(), ::tolower);
 
-		if(!endsWith(currentHGTFile.c_str(),".hgt")){
-         cout << "Wrong file type, skipping file" << endl;
+    if(!endsWith(currentHGTFile.c_str(),".hgt")){
+         std::cout << "Wrong file type, skipping file" << std::endl;
          return false;
         }
 
-		return true;
-	}
+    return true;
+  }
 
-	int16_t* getHGTData(const string HGTFile) {
-		ifstream* f =
-		new ifstream(HGTFile.c_str(), ios::in|ios::binary|ios::ate);
+  int16_t* getHGTData(const std::string HGTFile) {
+    std::ifstream* f =
+    new std::ifstream(HGTFile.c_str(), 
+                                 std::ios::in|std::ios::binary|std::ios::ate);
 
-		if(!f->is_open()){
-		    delete f;
-		    f = 0;
-		    cerr << "Failed to open HGT File" << endl;
-		    return NULL;
-		}
+    if(!f->is_open()){
+        delete f;
+        f = 0;
+        std::cerr << "Failed to open HGT File" << std::endl;
+        return NULL;
+    }
 
-		// go to begin of file
-		f->seekg (0, ios::beg);
-		int16_t* buffer = new int16_t[ImportHGTExtend*ImportHGTExtend];
+    // go to begin of file
+    f->seekg (0, std::ios::beg);
+    int16_t* buffer = new int16_t[ImportHGTExtend*ImportHGTExtend];
 
-		// read the complete file into buffer
-		f->read( (char*) buffer, ImportHGTExtend*ImportHGTExtend*2);
+    // read the complete file into buffer
+    f->read( (char*) buffer, ImportHGTExtend*ImportHGTExtend*2);
 
-		if(!f->good()){
-		  cerr << "error in reading from file" << endl;
-		  f->close();
-		  delete f;
-		  delete[] buffer;
-		  return NULL;
-		}
+    if(!f->good()){
+      std::cerr << "error in reading from file" << std::endl;
+      f->close();
+      delete f;
+      delete[] buffer;
+      return NULL;
+    }
 
-		f->close();
-		delete f;
-		f = 0;
+    f->close();
+    delete f;
+    f = 0;
 
-		return buffer;
-	}
+    return buffer;
+  }
 
         /*
         This section covers Functions related to Esri Grid import
 
         */
 
-	struct EsriGridHDRData {
-		string HMagic;
-		int32_t HCellType;
-		int32_t CompFlag;
-		int32_t HTilesPerRow;
-		int32_t HTilesPerColumn;
-		int32_t HTileXSize;
-		int32_t HTileYSize;
-		double HPixelSizeX;
-		double HPixelSizeY;
-		double XRef;
-		double YRef;
-	} currentGridHDR;
+  struct EsriGridHDRData {
+    std::string HMagic;
+    int32_t HCellType;
+    int32_t CompFlag;
+    int32_t HTilesPerRow;
+    int32_t HTilesPerColumn;
+    int32_t HTileXSize;
+    int32_t HTileYSize;
+    double HPixelSizeX;
+    double HPixelSizeY;
+    double XRef;
+    double YRef;
+  } currentGridHDR;
 
-	/*
+  /*
         Esri Grid Config Data from the Esri config files.
 
         */
         struct EsriGridConfigData {
-	  string filePath; // the esri grid file path
+    std::string filePath; // the esri grid file path
           double llxCoord; // Lower left X (easting) of the grid.
           double llyCoord; // Lower left Y (northing) of the grid.
           double urxCoord; // Upper right X (easting) of the grid.
@@ -498,7 +501,7 @@ public:
 
         */
         int getIntBitDataValueByRTileType(
-            ifstream *fileStream,
+            std::ifstream *fileStream,
             const uint8_t *rTileType,
             int pixelCounter)
         {
@@ -541,10 +544,10 @@ public:
 
           else
           {
-              cout << endl;
-              cout << "Could not determine bit data value";
-              cout << " from rTileType";
-              cout << endl;
+              std::cout << std::endl;
+              std::cout << "Could not determine bit data value";
+              std::cout << " from rTileType";
+              std::cout << std::endl;
           }
           return bitDataValue;
         }
@@ -554,7 +557,7 @@ public:
 
         */
         int getIntValueByRTileType(
-            ifstream *fileStream,
+            std::ifstream *fileStream,
             const uint8_t *rTileType,
             int pixelCounter)
         {
@@ -594,7 +597,7 @@ public:
               (tileType == 0xF8))
           {
               intValue = 
-              	(int)getUInt8FromFileStream(fileStream);
+                (int)getUInt8FromFileStream(fileStream);
           }
 
           // (raw 1bit/4bit data)
@@ -608,19 +611,19 @@ public:
 
           else
           {
-              cout << endl;
-              cout << "Could not determine intValue from rTileType";
-              cout << endl;
+              std::cout << std::endl;
+              std::cout << "Could not determine intValue from rTileType";
+              std::cout << std::endl;
           }
           return intValue;
         }
 
-	double getDouble(char* buffer, int offset){
-	   uint64_t i = *( uint64_t*)&(buffer[offset]);
-	   if(endianTypeLittle){
-	        i = convertEndian(i);
-	   }
-	   double res = 0;
+  double getDouble(char* buffer, int offset){
+     uint64_t i = *( uint64_t*)&(buffer[offset]);
+     if(endianTypeLittle){
+          i = convertEndian(i);
+     }
+     double res = 0;
            double* pres = static_cast<double*>(static_cast<void*>(&i));
 
            if(pres != 0)
@@ -628,31 +631,31 @@ public:
             res = *pres;
            }
 
-	   return res;
-	}
+     return res;
+  }
 
-	int32_t getInt32(char* buffer, int offset){
-	   int32_t i = *( int32_t*)&(buffer[offset]);
-	   if(endianTypeLittle){
-	        i = convertEndian(i);
-	   }
-	   return i;
-	}
+  int32_t getInt32(char* buffer, int offset){
+     int32_t i = *( int32_t*)&(buffer[offset]);
+     if(endianTypeLittle){
+          i = convertEndian(i);
+     }
+     return i;
+  }
 
-	uint32_t getUInt32(char* buffer, int offset){
-	   uint32_t i = *( uint32_t*)&(buffer[offset]);
-	   if(endianTypeLittle){
-	        i = convertEndian(i);
-	   }
-	   return i;
-	}
+  uint32_t getUInt32(char* buffer, int offset){
+     uint32_t i = *( uint32_t*)&(buffer[offset]);
+     if(endianTypeLittle){
+          i = convertEndian(i);
+     }
+     return i;
+  }
 
   /*
   Reads a 4 byte block from the current position
   of a given fileStream.
 
   */
-  int32_t getInt32FromFileStream(ifstream *fileStream)
+  int32_t getInt32FromFileStream(std::ifstream *fileStream)
   {
     int32_t Int32 = 0;
 
@@ -674,7 +677,7 @@ public:
   of a given fileStream.
 
   */
-  int16_t getInt16FromFileStream(ifstream *fileStream)
+  int16_t getInt16FromFileStream(std::ifstream *fileStream)
   {
     int16_t Int16 = 0;
 
@@ -696,7 +699,7 @@ public:
   of a given fileStream.
 
   */
-  uint8_t getUInt8FromFileStream(ifstream *fileStream) {
+  uint8_t getUInt8FromFileStream(std::ifstream *fileStream) {
     uint8_t uint8 = 0;
     char valueBlock[1];
     fileStream->read(valueBlock, 1);
@@ -713,7 +716,7 @@ public:
   of a given fileStream.
 
   */
-  int8_t getInt8FromFileStream(ifstream *fileStream) {
+  int8_t getInt8FromFileStream(std::ifstream *fileStream) {
     int8_t int8 = 0;
     char valueBlock[1];
     fileStream->read(valueBlock, 1);
@@ -730,7 +733,7 @@ public:
   of a given fileStream and a given number of bytes.
 
   */
-  int getIntFromFileStream(ifstream *fileStream, const uint8_t byteSize)
+  int getIntFromFileStream(std::ifstream *fileStream, const uint8_t byteSize)
   {
     int result = 0;
 
@@ -767,21 +770,22 @@ public:
     return result;
   }
 
-	bool CellTypeReal(){
-		return currentGridHDR.HCellType == 2;
-	}
+  bool CellTypeReal(){
+    return currentGridHDR.HCellType == 2;
+  }
 
-	int32_t getCellTypeFromFile(string HDRFile){
-	 int32_t celltype = -1;
-	 int celltypeOffset = 16;
+  int32_t getCellTypeFromFile(std::string HDRFile){
+   int32_t celltype = -1;
+   int celltypeOffset = 16;
 
-	 if(endsWith(HDRFile, "/"))
+   if(endsWith(HDRFile, "/"))
           HDRFile.append("hdr.adf");
          else
           HDRFile.append("/hdr.adf");
 
-	 ifstream* f =
-          new ifstream(HDRFile.c_str(), ios::in|ios::binary|ios::ate);
+   std::ifstream* f =
+          new std::ifstream(HDRFile.c_str(), 
+                   std::ios::in|std::ios::binary|std::ios::ate);
 
          if(!f->is_open()){
           delete f;
@@ -790,7 +794,7 @@ public:
          }
 
          char buffer[sizeof(int32_t)];
-         f->seekg(celltypeOffset, ios::beg);
+         f->seekg(celltypeOffset, std::ios::beg);
          f->read(buffer, sizeof(int32_t));
          celltype = getInt32(buffer,0);
 
@@ -804,14 +808,14 @@ public:
          delete f;
          f = 0;
 
-	 return celltype;
-	}
+   return celltype;
+  }
 
-	int getEsriGridHDR(string HDRFile) {
+  int getEsriGridHDR(std::string HDRFile) {
 
-	  esriGridConfigData.filePath = HDRFile;
+    esriGridConfigData.filePath = HDRFile;
 
-	  if(endsWith(HDRFile, "/")) {
+    if(endsWith(HDRFile, "/")) {
               HDRFile.append("hdr.adf");
           }
           else {
@@ -822,29 +826,30 @@ public:
           size_t HDRFileSize =
                    FileSystem::GetFileSize(HDRFile.c_str());
 
-          ifstream* f =
-          new ifstream(HDRFile.c_str(), ios::in|ios::binary|ios::ate);
+          std::ifstream* f =
+          new std::ifstream(HDRFile.c_str(), 
+                         std::ios::in|std::ios::binary|std::ios::ate);
 
           if(!f->is_open()){
               delete f;
               f = 0;
-              cerr << "Failed to open HDR File" << endl;
+              std::cerr << "Failed to open HDR File" << std::endl;
               return 1;
           }
 
           // read the complete file into buffer
           char buffer[HDRFileSize];
-          f->seekg (0, ios::beg);
+          f->seekg (0, std::ios::beg);
           f->read(  buffer, HDRFileSize);
 
           if(!f->good()){
-            cerr << "error in reading from file" << endl;
+            std::cerr << "error in reading from file" << std::endl;
             f->close();
             delete f;
             return 1;
           }
 
-          string HMagic(buffer,8);
+          std::string HMagic(buffer,8);
           currentGridHDR.HMagic = HMagic;
           currentGridHDR.HCellType = getInt32(buffer,16);
           currentGridHDR.CompFlag = getInt32(buffer,20);
@@ -862,349 +867,349 @@ public:
           f = 0;
 
           return 0;
-	}
+  }
 
         /*
         This section covers Functions related to Esri Raster import
 
         */
 
-	struct EsriRasterHDRData {
-		int ncols;
-		int nrows;
-		double xllcorner;
-		double xllcenter;
-		double yllcorner;
-		double yllcenter;
-		double cellsize;
-		int extend;
-		int nodata_value;
-		size_t posValues;
-		size_t filesize;
-	} originEsriHDR, currentEsriHDR;
+  struct EsriRasterHDRData {
+    int ncols;
+    int nrows;
+    double xllcorner;
+    double xllcenter;
+    double yllcorner;
+    double yllcenter;
+    double cellsize;
+    int extend;
+    int nodata_value;
+    size_t posValues;
+    size_t filesize;
+  } originEsriHDR, currentEsriHDR;
 
-	int getIntValue(string line, size_t offset){
-		int value = -1;
+  int getIntValue(std::string line, size_t offset){
+    int value = -1;
 
-		size_t posA = line.find_first_of(" ");
-		size_t pos=line.find_first_not_of(" ", posA);
+    size_t posA = line.find_first_of(" ");
+    size_t pos=line.find_first_not_of(" ", posA);
 
-		if(pos!=string::npos){
-			string buffer = line.substr(pos, (line.length() - pos));
-			value = atoi(buffer.c_str());
-		}
-
-		return value;
-	}
-
-	double getDoubleValue(string line, size_t offset){
-		double value = -1.0;
-
-		size_t posA = line.find_first_of(" ");
-		size_t pos=line.find_first_not_of(" ", posA);
-
-		if(pos!=string::npos){
-			string buffer = line.substr(pos, (line.length() - pos));
-			value = atof(buffer.c_str());
-		}
-
-		return value;
-	}
-
-	int getEsriRasterHDR(string RasterFile, bool init) {
-		ifstream* f =
-		new ifstream(RasterFile.c_str(), ios::in);
-
-		if(!f->is_open()){
-		    delete f;
-		    f = 0;
-		    cerr << "Failed to open Esri Raster File" << endl;
-		    return 1;
-		}
-
-		size_t header = 0;
-		size_t valuepos;
-		char buffer[1000];
-
-		//initialize data structs
-		if(init)
-		 memset(&originEsriHDR, -1, sizeof (originEsriHDR));
-		memset(&currentEsriHDR, -1, sizeof (currentEsriHDR));
-
-		//get filesize
-		if(init)
-		 originEsriHDR.filesize =
-				 FileSystem::GetFileSize(RasterFile.c_str());
-		 currentEsriHDR.filesize =
-				 FileSystem::GetFileSize(RasterFile.c_str());
-
-		//default, will be overwritten if differs
-		if(init)
-		 originEsriHDR.nodata_value = -9999;
-		currentEsriHDR.nodata_value = -9999;
-
-		//reading the header
-		while((header != string::npos)) {
-			f->getline(buffer, 1000, '\n');
-			string name = buffer;
-			transform(name.begin(), name.end(),
-					name.begin(), ::tolower);
-
-			valuepos = name.find("ncols");
-			if (valuepos != string::npos){
-			 if(init)
-			  originEsriHDR.ncols = getIntValue(name, valuepos);
-			 currentEsriHDR.ncols = getIntValue(name, valuepos);
-			}
-
-			valuepos = name.find("nrows");
-			if (valuepos != string::npos){
-			 if(init)
-			  originEsriHDR.nrows = getIntValue(name, valuepos);
-			 currentEsriHDR.nrows = getIntValue(name, valuepos);
-			}
-
-			valuepos = name.find("xllcorner");
-			if (valuepos != string::npos){
-			 if(init)
-              originEsriHDR.xllcorner = getDoubleValue(name, valuepos);
-             currentEsriHDR.xllcorner = getDoubleValue(name, valuepos);
-			}
-
-
-			valuepos = name.find("xllcenter");
-			if (valuepos != string::npos){
-			 if(init)
-              originEsriHDR.xllcenter = getDoubleValue(name, valuepos);
-             currentEsriHDR.xllcenter = getDoubleValue(name, valuepos);
-			}
-
-			valuepos = name.find("yllcorner");
-			if (valuepos != string::npos){
-			 if(init)
-              originEsriHDR.yllcorner = getDoubleValue(name, valuepos);
-             currentEsriHDR.yllcorner = getDoubleValue(name, valuepos);
-			}
-
-			valuepos = name.find("yllcenter");
-			if (valuepos != string::npos){
-			 if(init)
-              originEsriHDR.yllcenter = getDoubleValue(name, valuepos);
-             currentEsriHDR.yllcenter = getDoubleValue(name, valuepos);
-			}
-
-			valuepos = name.find("cellsize");
-			if (valuepos != string::npos){
-			 if(init){
-	          originEsriHDR.cellsize = getDoubleValue(name, valuepos);
-	          originEsriHDR.extend =
-                static_cast<int>((1/originEsriHDR.cellsize)+0.5);
-			 }
-             currentEsriHDR.cellsize = getDoubleValue(name, valuepos);
-	         currentEsriHDR.extend =
-                static_cast<int>((1/currentEsriHDR.cellsize)+0.5);
-			}
-
-			valuepos = name.find("nodata_value");
-			if (valuepos != string::npos){
-			 if(init)
-              originEsriHDR.nodata_value = getIntValue(name, valuepos);
-             currentEsriHDR.nodata_value = getIntValue(name, valuepos);
-			}
-
-			header =
-                name.find_first_of("abcdefghijklmnopqrstuvwxyz", 0);
-			if(header == 0){
-			 if(init)
-              originEsriHDR.posValues = 1 + f->tellg();
-             currentEsriHDR.posValues = 1 + f->tellg();
-			}
-		}
-
-		f->close();
-		delete f;
-		f = 0;
-
-		if(!validateHeaderData()){
-			cout << "Wrong header information." << endl;
-			return 1;
-		}
-
-		return 0;
-	}
-
-	bool validateHeaderData(){
-		return (currentEsriHDR.ncols != -1) &&
-	           (currentEsriHDR.nrows != -1) &&
-	           !std::isnan(currentEsriHDR.cellsize) &&
-	           (getUseCorner() || getUseCenter());
+    if(pos!=std::string::npos){
+      std::string buffer = line.substr(pos, (line.length() - pos));
+      value = atoi(buffer.c_str());
     }
 
-	bool getUseCorner(){
-		return std::isnan(originEsriHDR.xllcenter) &&
-		       std::isnan(currentEsriHDR.xllcenter) &&
-		       std::isnan(originEsriHDR.yllcenter) &&
-		       std::isnan(currentEsriHDR.yllcenter);
-	}
+    return value;
+  }
 
-	bool getUseCenter(){
-		return std::isnan(originEsriHDR.xllcorner) &&
-		       std::isnan(currentEsriHDR.xllcorner) &&
-		       std::isnan(originEsriHDR.yllcorner) &&
-		       std::isnan(currentEsriHDR.yllcorner);
-	}
+  double getDoubleValue(std::string line, size_t offset){
+    double value = -1.0;
 
-	bool checkRasterExtend(){
-		bool extendOK = true;
+    size_t posA = line.find_first_of(" ");
+    size_t pos=line.find_first_not_of(" ", posA);
 
-		if(originEsriHDR.cellsize != currentEsriHDR.cellsize){
-	  	 cout << "Wrong Raster extend, skipping file" << endl;
-	  	 extendOK = false;
-		} else {
-	  		cout << "Grid extend    : " << currentEsriHDR.extend
-	  			 << "x" << currentEsriHDR.extend << endl;
-		}
+    if(pos!=std::string::npos){
+      std::string buffer = line.substr(pos, (line.length() - pos));
+      value = atof(buffer.c_str());
+    }
 
-		return extendOK;
-	}
+    return value;
+  }
 
-	int getRasterXOffset() {
-	  if(getUseCorner())
-		return (currentEsriHDR.xllcorner - originEsriHDR.xllcorner)
-				* originEsriHDR.extend;
+  int getEsriRasterHDR(std::string RasterFile, bool init) {
+    std::ifstream* f =
+    new std::ifstream(RasterFile.c_str(), std::ios::in);
 
-	  if(getUseCenter())
-		return (currentEsriHDR.xllcenter - originEsriHDR.xllcenter)
-				* originEsriHDR.extend;
+    if(!f->is_open()){
+        delete f;
+        f = 0;
+        std::cerr << "Failed to open Esri Raster File" << std::endl;
+        return 1;
+    }
 
-	  return std::numeric_limits<int>::min();
-	}
+    size_t header = 0;
+    size_t valuepos;
+    char buffer[1000];
 
-	int getRasterYOffset() {
-	  if(getUseCorner())
-		return (currentEsriHDR.yllcorner - originEsriHDR.yllcorner)
-				* originEsriHDR.extend;
+    //initialize data structs
+    if(init)
+     memset(&originEsriHDR, -1, sizeof (originEsriHDR));
+    memset(&currentEsriHDR, -1, sizeof (currentEsriHDR));
 
-	  if(getUseCenter())
-		return (currentEsriHDR.yllcenter - originEsriHDR.yllcenter)
-				* originEsriHDR.extend;
+    //get filesize
+    if(init)
+     originEsriHDR.filesize =
+         FileSystem::GetFileSize(RasterFile.c_str());
+     currentEsriHDR.filesize =
+         FileSystem::GetFileSize(RasterFile.c_str());
 
-	  return std::numeric_limits<int>::min();
-	}
+    //default, will be overwritten if differs
+    if(init)
+     originEsriHDR.nodata_value = -9999;
+    currentEsriHDR.nodata_value = -9999;
 
-	bool checkRasterOffset(int XOffset, int YOffset){
-	  bool offsetOK = true;
+    //reading the header
+    while((header != std::string::npos)) {
+      f->getline(buffer, 1000, '\n');
+      std::string name = buffer;
+      transform(name.begin(), name.end(),
+          name.begin(), ::tolower);
+
+      valuepos = name.find("ncols");
+      if (valuepos != std::string::npos){
+       if(init)
+        originEsriHDR.ncols = getIntValue(name, valuepos);
+       currentEsriHDR.ncols = getIntValue(name, valuepos);
+      }
+
+      valuepos = name.find("nrows");
+      if (valuepos != std::string::npos){
+       if(init)
+        originEsriHDR.nrows = getIntValue(name, valuepos);
+       currentEsriHDR.nrows = getIntValue(name, valuepos);
+      }
+
+      valuepos = name.find("xllcorner");
+      if (valuepos != std::string::npos){
+       if(init)
+              originEsriHDR.xllcorner = getDoubleValue(name, valuepos);
+             currentEsriHDR.xllcorner = getDoubleValue(name, valuepos);
+      }
+
+
+      valuepos = name.find("xllcenter");
+      if (valuepos != std::string::npos){
+       if(init)
+              originEsriHDR.xllcenter = getDoubleValue(name, valuepos);
+             currentEsriHDR.xllcenter = getDoubleValue(name, valuepos);
+      }
+
+      valuepos = name.find("yllcorner");
+      if (valuepos != std::string::npos){
+       if(init)
+              originEsriHDR.yllcorner = getDoubleValue(name, valuepos);
+             currentEsriHDR.yllcorner = getDoubleValue(name, valuepos);
+      }
+
+      valuepos = name.find("yllcenter");
+      if (valuepos != std::string::npos){
+       if(init)
+              originEsriHDR.yllcenter = getDoubleValue(name, valuepos);
+             currentEsriHDR.yllcenter = getDoubleValue(name, valuepos);
+      }
+
+      valuepos = name.find("cellsize");
+      if (valuepos != std::string::npos){
+       if(init){
+            originEsriHDR.cellsize = getDoubleValue(name, valuepos);
+            originEsriHDR.extend =
+                static_cast<int>((1/originEsriHDR.cellsize)+0.5);
+       }
+             currentEsriHDR.cellsize = getDoubleValue(name, valuepos);
+           currentEsriHDR.extend =
+                static_cast<int>((1/currentEsriHDR.cellsize)+0.5);
+      }
+
+      valuepos = name.find("nodata_value");
+      if (valuepos != std::string::npos){
+       if(init)
+              originEsriHDR.nodata_value = getIntValue(name, valuepos);
+             currentEsriHDR.nodata_value = getIntValue(name, valuepos);
+      }
+
+      header =
+                name.find_first_of("abcdefghijklmnopqrstuvwxyz", 0);
+      if(header == 0){
+       if(init)
+              originEsriHDR.posValues = 1 + f->tellg();
+             currentEsriHDR.posValues = 1 + f->tellg();
+      }
+    }
+
+    f->close();
+    delete f;
+    f = 0;
+
+    if(!validateHeaderData()){
+      std::cout << "Wrong header information." << std::endl;
+      return 1;
+    }
+
+    return 0;
+  }
+
+  bool validateHeaderData(){
+    return (currentEsriHDR.ncols != -1) &&
+             (currentEsriHDR.nrows != -1) &&
+             !std::isnan(currentEsriHDR.cellsize) &&
+             (getUseCorner() || getUseCenter());
+    }
+
+  bool getUseCorner(){
+    return std::isnan(originEsriHDR.xllcenter) &&
+           std::isnan(currentEsriHDR.xllcenter) &&
+           std::isnan(originEsriHDR.yllcenter) &&
+           std::isnan(currentEsriHDR.yllcenter);
+  }
+
+  bool getUseCenter(){
+    return std::isnan(originEsriHDR.xllcorner) &&
+           std::isnan(currentEsriHDR.xllcorner) &&
+           std::isnan(originEsriHDR.yllcorner) &&
+           std::isnan(currentEsriHDR.yllcorner);
+  }
+
+  bool checkRasterExtend(){
+    bool extendOK = true;
+
+    if(originEsriHDR.cellsize != currentEsriHDR.cellsize){
+       std::cout << "Wrong Raster extend, skipping file" << std::endl;
+       extendOK = false;
+    } else {
+        std::cout << "Grid extend    : " << currentEsriHDR.extend
+           << "x" << currentEsriHDR.extend << std::endl;
+    }
+
+    return extendOK;
+  }
+
+  int getRasterXOffset() {
+    if(getUseCorner())
+    return (currentEsriHDR.xllcorner - originEsriHDR.xllcorner)
+        * originEsriHDR.extend;
+
+    if(getUseCenter())
+    return (currentEsriHDR.xllcenter - originEsriHDR.xllcenter)
+        * originEsriHDR.extend;
+
+    return std::numeric_limits<int>::min();
+  }
+
+  int getRasterYOffset() {
+    if(getUseCorner())
+    return (currentEsriHDR.yllcorner - originEsriHDR.yllcorner)
+        * originEsriHDR.extend;
+
+    if(getUseCenter())
+    return (currentEsriHDR.yllcenter - originEsriHDR.yllcenter)
+        * originEsriHDR.extend;
+
+    return std::numeric_limits<int>::min();
+  }
+
+  bool checkRasterOffset(int XOffset, int YOffset){
+    bool offsetOK = true;
       if((XOffset == std::numeric_limits<int>::min()) ||
-		 (YOffset == std::numeric_limits<int>::min())){
-	   cout << "Invalid offset, skipping file" << endl;
+     (YOffset == std::numeric_limits<int>::min())){
+     std::cout << "Invalid offset, skipping file" << std::endl;
        offsetOK = false;
       }
 
       return offsetOK;
-	}
+  }
 
-	bool checkNumber(char *value){
-		bool numberOK = true;
-		string number = value;
-		size_t pos = number.find_first_not_of("-0123456789.\n\r", 0);
-		if(number.empty() || pos != string::npos)
-			numberOK = false;
-		return numberOK;
-	}
+  bool checkNumber(char *value){
+    bool numberOK = true;
+    std::string number = value;
+    size_t pos = number.find_first_not_of("-0123456789.\n\r", 0);
+    if(number.empty() || pos != std::string::npos)
+      numberOK = false;
+    return numberOK;
+  }
 
-	double* getEsriRasterData(const string EsriRasterFile) {
-		ifstream* f =
-		new ifstream(EsriRasterFile.c_str(), ios::in);
+  double* getEsriRasterData(const std::string EsriRasterFile) {
+    std::ifstream* f =
+    new std::ifstream(EsriRasterFile.c_str(), std::ios::in);
 
-		if(!f->is_open()){
-		 delete f;
-		 f = 0;
-		 cerr << "Failed to open ASCII File" << endl;
-		 return NULL;
-		}
+    if(!f->is_open()){
+     delete f;
+     f = 0;
+     std::cerr << "Failed to open ASCII File" << std::endl;
+     return NULL;
+    }
 
-		long allValues = currentEsriHDR.nrows * currentEsriHDR.ncols;
-		long unit = allValues/100;
+    long allValues = currentEsriHDR.nrows * currentEsriHDR.ncols;
+    long unit = allValues/100;
 
-		double* buffer = new double[allValues];
-		char value[50];
+    double* buffer = new double[allValues];
+    char value[50];
 
-		f->seekg(currentEsriHDR.posValues, ios::beg);
+    f->seekg(currentEsriHDR.posValues, std::ios::beg);
 
-		cout << "Consistency    : ";
+    std::cout << "Consistency    : ";
 
-		for(int row = 0; row < currentEsriHDR.nrows; row++){
-		 for(int col = 0; col < currentEsriHDR.ncols; col++){
-		  f->getline(value, 50, ' ');
+    for(int row = 0; row < currentEsriHDR.nrows; row++){
+     for(int col = 0; col < currentEsriHDR.ncols; col++){
+      f->getline(value, 50, ' ');
 
-		  //If end of file is reached, something is wrong with the file.
-		  if(checkNumber(value)){
-	 	   buffer[(row*currentEsriHDR.ncols) + col] = atof(value);
+      //If end of file is reached, something is wrong with the file.
+      if(checkNumber(value)){
+        buffer[(row*currentEsriHDR.ncols) + col] = atof(value);
 
-	 	  if(f->eof()){
+       if(f->eof()){
            if((row != currentEsriHDR.nrows-1) ||
-        		   col != currentEsriHDR.ncols-1){
-     		cout << "\rConsistency    : failed, skipping file" << endl;
-     		row = currentEsriHDR.nrows;
-     		col = currentEsriHDR.ncols;
-     		buffer = NULL;
+               col != currentEsriHDR.ncols-1){
+         std::cout << "\rConsistency    : failed, skipping file" << std::endl;
+         row = currentEsriHDR.nrows;
+         col = currentEsriHDR.ncols;
+         buffer = NULL;
            } else
-        	cout << "\rConsistency    : OK  " << endl;
-	 	  } else {
-	 	   //calculate percentage of progress
+          std::cout << "\rConsistency    : OK  " << std::endl;
+       } else {
+        //calculate percentage of progress
            if(allValues > 99){
             if(((row == 0) && (col == 0)) ||
-	          ((((row * currentEsriHDR.ncols)+(col+1)) % unit == 0) &&
+            ((((row * currentEsriHDR.ncols)+(col+1)) % unit == 0) &&
               (((row * currentEsriHDR.ncols)+(col+1)) >= unit))){
-               cout << "\rConsistency    : "
+               std::cout << "\rConsistency    : "
                     << ((row * currentEsriHDR.ncols)+(col+1))
                     / unit << "%";
                fflush (stdout);
             }
            }
-	 	  }
-		 } else {
-		  cout << "\rConsistency    : failed, skipping file" << endl;
-		  row = currentEsriHDR.nrows;
-		  col = currentEsriHDR.ncols;
-		  buffer = NULL;
-		 }
-		}
-	   }
+       }
+     } else {
+      std::cout << "\rConsistency    : failed, skipping file" << std::endl;
+      row = currentEsriHDR.nrows;
+      col = currentEsriHDR.ncols;
+      buffer = NULL;
+     }
+    }
+     }
 
-	   f->close();
-	   delete f;
-	   f = 0;
+     f->close();
+     delete f;
+     f = 0;
 
-	   return buffer;
-	}
+     return buffer;
+  }
 
     /*This section covers interim Functions*/
 
-	vector<string> buildFilesVector(string HGTDataRoot);
+  std::vector<std::string> buildFilesVector(std::string HGTDataRoot);
 
-	bool checkRootIsValid(string HGTDataRoot);
-	int ImportHGT(const string HGTDataRoot);
-	int processFile(string HGTFile);
+  bool checkRootIsValid(std::string HGTDataRoot);
+  int ImportHGT(const std::string HGTDataRoot);
+  int processFile(std::string HGTFile);
 
 private:
-	RasterData(){}
+  RasterData(){}
 
-	int PageSize;
-	int GridSize;
-	int ImportHGTExtend;
-	int undefValueHGT;
-	int undefValueEsriGrid;
-	float undefValueEsriGridFloat;
-	bool useEarthOrigin;
-	bool endianTypeLittle;
+  int PageSize;
+  int GridSize;
+  int ImportHGTExtend;
+  int undefValueHGT;
+  int undefValueEsriGrid;
+  float undefValueEsriGridFloat;
+  bool useEarthOrigin;
+  bool endianTypeLittle;
 
-	struct GeoCoordinates {
-		int north;
-		int south;
-		int east;
-		int west;
-	} origin, offset;
+  struct GeoCoordinates {
+    int north;
+    int south;
+    int east;
+    int west;
+  } origin, offset;
 };
 
 }

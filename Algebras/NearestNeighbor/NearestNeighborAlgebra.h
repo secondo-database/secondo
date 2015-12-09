@@ -116,7 +116,6 @@ End of the definitions which had to be included into RTreeAlgebra.h
 
 #include "TemporalAlgebra.h"
 
-using namespace std;
 
 /*
 2 Definitions for the ~distancescan operator~

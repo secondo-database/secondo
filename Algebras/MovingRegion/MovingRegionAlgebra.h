@@ -282,7 +282,7 @@ original interval ~origIv~ has been restricted to ~restrIv~.
 Return ~string~ representation of moving segment.
 
 */
-    string ToString(void) const;
+    std::string ToString(void) const;
 };
 
 /*
@@ -493,7 +493,7 @@ $ip1t$. The intersections are written to the vector ~vtsi~.
         double& ip1x,
         double& ip1y,
         double& ip1t,
-        vector<TrapeziumSegmentIntersection>& vtsi) const;
+        std::vector<TrapeziumSegmentIntersection>& vtsi) const;
 
 /*
 Handle intersection line between ~UPoint~ unit ~rUp~ and a moving segment,
@@ -516,7 +516,7 @@ the vector ~vtsi~.
         double& ip2x,
         double& ip2y,
         double& ip2t,
-        vector<TrapeziumSegmentIntersection>& vtsi) const;
+        std::vector<TrapeziumSegmentIntersection>& vtsi) const;
 
 /*
 For the intersections between ~up~ and this ~URegionEmb~ instance's segments
@@ -532,7 +532,7 @@ if ~merge~ is ~true~.
     bool RestrictedIntersectionProcess(
         const UPoint& up,
         const Interval<Instant>& iv,
-        vector<TrapeziumSegmentIntersection>& vtsi,
+        std::vector<TrapeziumSegmentIntersection>& vtsi,
         MPoint& res,
         UPoint*& pending,
         bool merge) const;
@@ -542,7 +542,7 @@ Handle intersections in ~vtsi~ with degenerated segments.
 
 */
     void RestrictedIntersectionFix(
-        vector<TrapeziumSegmentIntersection>& vtsi) const;
+        std::vector<TrapeziumSegmentIntersection>& vtsi) const;
 
 /*
 Find all intersections between the ~UPoint~ unit ~up~ and the segments
@@ -554,7 +554,7 @@ to vector ~vtsi~.
         const DbArray<MSegmentData>* segments,
         const UPoint& up,
         const Interval<Instant>& iv,
-        vector<TrapeziumSegmentIntersection>& vtsi) const;
+        std::vector<TrapeziumSegmentIntersection>& vtsi) const;
 
 public:
 /*
@@ -665,7 +665,7 @@ description below for details.
         unsigned int cycleno,
         unsigned int segmentno,
         unsigned int partnerno,
-        DateTime& intervalLen,
+        datetime::DateTime& intervalLen,
         ListExpr start,
         ListExpr end);
 
@@ -753,7 +753,7 @@ The assignment operator
 */
     URegionEmb& operator=(const URegionEmb&);
 
-    ostream& Print(ostream &os) const
+    std::ostream& Print(std::ostream &os) const
     {
       os << "( URegionEmb NOT IMPLEMENTED YET )";
       return os;
@@ -806,19 +806,20 @@ the smallest end y-value, if the all other values are equal,
 So it is the index of the "leftest lowest" MSegment in the given list.
 
 */
-	int getLeftLower(const vector<MSegmentData> &linelist);
+	int getLeftLower(const std::vector<MSegmentData> &linelist);
 /*
 
 return the index of the MSegment in the given list $linelist$ that matches $dms$.
 
 */
-    int findNext(const vector<MSegmentData> &linelist,const MSegmentData dms);
+    int findNext(const std::vector<MSegmentData> &linelist,
+                 const MSegmentData dms);
 /*
 
 return the index of the MSegment in the given list $linelist$ that matches the right Points of $dms$.
 
 */
-	int findNextToRight(const vector<MSegmentData> &linelist,
+	int findNextToRight(const std::vector<MSegmentData> &linelist,
 	    const MSegmentData dms);
 /*
 
@@ -880,7 +881,7 @@ This constructor creates a URegion by a given list of MSegments. The MSegments a
 
 
 */
-    URegion(vector<MSegmentData> linelist,const Interval<Instant> &tiv);
+    URegion(std::vector<MSegmentData> linelist,const Interval<Instant> &tiv);
 
 /*
   Use the following constructor to declare temporal object variables etc.
@@ -1003,7 +1004,7 @@ Print method, primarly used for debugging purposes
 
 */
 
-  virtual ostream& Print( ostream &os ) const
+  virtual std::ostream& Print( std::ostream &os ) const
   {
     if( IsDefined() )
       {
@@ -1018,11 +1019,11 @@ Print method, primarly used for debugging purposes
         os << " SegNum=" << uremb.GetSegmentsNum();
         os << " BBox=";
         uremb.BoundingBox().Print(os);
-        os << " )" << endl;
+        os << " )" << std::endl;
         return os;
       }
     else
-      return os << "URegion: (undef)" << endl;
+      return os << "URegion: (undef)" << std::endl;
   }
 
 /*
@@ -1038,8 +1039,8 @@ The assignment operator
 
 */
    double Distance(const Rectangle<3>& rect, const Geoid* geoid = 0) const{
-     cerr << "Warning URegion::Distance(rect) not implemented. "
-          << "Using Rectangle<3>::Distance(Rectangle<3>) instead!" << endl;
+     std::cerr << "Warning URegion::Distance(rect) not implemented. "
+          << "Using Rectangle<3>::Distance(Rectangle<3>) instead!" << std::endl;
      if(!IsDefined()){
         return -1;
      } else {
@@ -1049,8 +1050,8 @@ The assignment operator
    }
    
    bool Intersects(const Rectangle<3>& rect, const Geoid* geoid = 0) const{
-     cerr << "Warning URegion::Distance(rect) not implemented. "
-          << "Using Rectangle<3>::Distance(Rectangle<3>) instead!" << endl;
+     std::cerr << "Warning URegion::Distance(rect) not implemented. "
+          << "Using Rectangle<3>::Distance(Rectangle<3>) instead!" << std::endl;
      if(!IsDefined()){
         return -1;
      } else {
@@ -1063,7 +1064,7 @@ The assignment operator
      return !IsDefined();
    }
 
-   static string BasicType() { return "uregion"; }
+   static std::string BasicType() { return "uregion"; }
    static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
    }
@@ -1265,7 +1266,7 @@ Copy ~MRegion~ instance.
 Return the name of the Secondo type.
 
 */
-  static string BasicType(){ return "mregion"; }
+  static std::string BasicType(){ return "mregion"; }
    static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
    }

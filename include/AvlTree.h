@@ -29,7 +29,6 @@ Additionally some specialized functions are provided.
 #include <stdlib.h>
 #include <stack>
 
-using namespace std;
 
 template<typename arg, typename result>
 class unary_functor{
@@ -199,7 +198,7 @@ void updateHeight(){
    __AVL_TRACE__
    int h1 = left==NULL?0:left->height+1;
    int h2 = right==NULL?0:right->height+1;
-   height = max(h1,h2);  
+   height = std::max(h1,h2);  
 }
 
 /* 
@@ -342,7 +341,7 @@ This function is for debugging only.
 Error messages are written to out.
 
 */
-   bool Check(ostream& out)const{
+   bool Check(std::ostream& out)const{
      return Check(root,out);
    }
 
@@ -603,7 +602,7 @@ Prints this tree to the give ostream.
 The format is understand by the tree viewer of Secondo's Javagui.
 
 */
-void Print(ostream& out)const{
+void Print(std::ostream& out)const{
    out << "( tree (" << endl;
    Print(root, out);
    out << "))" << endl;
@@ -801,7 +800,7 @@ any elements, i.e. whether Get or [*] would return NULL.
 
 */
  
-     stack<const AvlNode<contenttype,Comparator>*> thestack;
+     std::stack<const AvlNode<contenttype,Comparator>*> thestack;
 
 /*
 ~tail~
@@ -851,7 +850,7 @@ any elements, i.e. whether Get or [*] would return NULL.
 
 private:
 
-void Print(const AvlNode<contenttype,Comparator>* root, ostream& out)const{
+void Print(const AvlNode<contenttype,Comparator>* root, std::ostream& out)const{
   if(!root){
      out << " '' ";
      return;
@@ -1601,7 +1600,7 @@ static const contenttype* getMember(
 
 */
 static bool Check(AvlNode<contenttype,Comparator>const* const root,
-                  ostream& out) {
+                  std::ostream& out) {
 
    if(!root){
      return true;
@@ -1639,7 +1638,7 @@ static bool Check(AvlNode<contenttype,Comparator>const* const root,
 */
 static bool CheckCmp(AvlNode<contenttype,Comparator>const* const root,
                      const contenttype& content,
-                     bool smaller, ostream& out){
+                     bool smaller, std::ostream& out){
 
   if(!root){
     return true;
@@ -1868,7 +1867,7 @@ AvlNode<contenttype,Comparator>*  root;
 } // end of namespace avltree
 
 template<class T,class C>
-ostream& operator<<(ostream& o,const avltree::AVLTree<T,C>& tree){
+std::ostream& operator<<(std::ostream& o,const avltree::AVLTree<T,C>& tree){
     tree.Print(o);
     return o;
 }

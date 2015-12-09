@@ -64,10 +64,10 @@ class SimpleSegment{
       Rectangle<2> getBox() const{
         double minD[2];
         double maxD[2];
-        minD[0] = min(x1,x2);
-        minD[1] = min(y1,y2);
-        maxD[0] = max(x1,x2);
-        maxD[1] = max(y1,y1);
+        minD[0] = std::min(x1,x2);
+        minD[1] = std::min(y1,y2);
+        maxD[0] = std::max(x1,x2);
+        maxD[1] = std::max(y1,y1);
         Rectangle<2> res(true, minD,maxD);
         return res;
       }
@@ -135,7 +135,7 @@ class SimpleSegment{
  
       }
 
-      ostream& print(ostream& os) const{
+      std::ostream& print(std::ostream& os) const{
           os << "(" << x1 << ", " << y1 << ") ( " << x2 << ", " << y2 << ")";
           return os;
       }
@@ -365,7 +365,7 @@ class DLine : public StandardSpatialAttribute<2>{
 
      size_t Sizeof() const { return sizeof(*this); }
 
-     virtual ostream& Print( ostream& os ) const{
+     virtual std::ostream& Print( std::ostream& os ) const{
         if(!IsDefined()){
            os << "Undefined";
            return os;
@@ -379,7 +379,7 @@ class DLine : public StandardSpatialAttribute<2>{
         return os;
      }
 
-     static string BasicType(){
+     static std::string BasicType(){
          return "dline";
      }
      

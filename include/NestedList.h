@@ -54,7 +54,8 @@ February 2002 Ulrich Telle Port to C++
 
 November 28, 2002 M. Spiekermann. Method reportVectorSizes() added.
 
-December 05, 2002 M. Spiekermann. Methods InitializeListMemory() and CopyList() supplemented.
+December 05, 2002 M. Spiekermann. Methods InitializeListMemory() and CopyList()
+ supplemented.
 
 Aug/Sept 2003, M. Spiekermann. Some often called methods were defined as inline
 functions to reduce the runtime stack.  Producing a nested list in textual
@@ -66,8 +67,10 @@ this modifications gain a speed up of the client-server communication.
 
 February 2004, M. Spiekermann. Reading of binary encoded lists was implemented.
 
-June 2004, M. Spiekermann. The persistent implementation of this module was finished. Now it
-is possible to process lists which have big textual representations (e.g. 500MB).
+June 2004, M. Spiekermann. The persistent implementation of this module was 
+finished. Now it
+is possible to process lists which have big textual representations
+ (e.g. 500MB).
 
 July 2004, M. Spiekermann. A runtime check IsPersistentImpl() was added.
 
@@ -326,7 +329,8 @@ Text entries can be of arbitrary size and are split across as many nodes
 of the ~textTable~ table as necesary. It is possible to iterate over these
 nodes using a text scan. A ~TextScanrecord~ is used to hold the state of
 such a scan. ~currentFragment~ is a pointer to a (valid) entry in the table
-~textTable~; ~currentPos~ is a pointer to a character of the current text fragment.
+~textTable~; ~currentPos~ is a pointer to a character of the current text
+ fragment.
 
 */
 
@@ -463,7 +467,8 @@ struct Tolerance
   static const double MINERR;
 
 /*
-The function below returns true if ~d1~ and ~d2~ differ only by a specified tolerance.
+The function below returns true if ~d1~ and ~d2~ differ only by a 
+specified tolerance.
 
 If the tolerance is relative it will be ~err/100 * d1~. Hence
 ~d1~ has the role of an expected value and ~d2~ will be the tested value.
@@ -493,12 +498,12 @@ $d1 - err < d2  or d2 - err < d1$
     // test the relative error
 
 
-    err = max( err, MINERR ) * fabs(d1);
+    err = std::max( err, MINERR ) * fabs(d1);
 
     if (trace) {
-      cout << "d1: " << d1 << endl;
-      cout << "d2: " << d2 << endl;
-      cout << "err: " << err << endl;
+      std::cout << "d1: " << d1 << std::endl;
+      std::cout << "d2: " << d2 << std::endl;
+      std::cout << "err: " << err << std::endl;
     }
 
     if (d1 > d2)
@@ -669,7 +674,8 @@ otherwise and if ~list~ is empty or an atom.
 a list, and -1, if it is an atom. *Be warned:* unlike most others, this is
 not a constant time operation; it requires a list traversal and therefore
 time proportional to the length that it returns. The variant ~HasLength~
-may be used to assert a requested length of ~n~, this avoids a long running traversal.
+may be used to assert a requested length of ~n~, this avoids a long running
+ traversal.
 
 */
   bool HasLength( ListExpr list, const int n ) const;
@@ -706,14 +712,14 @@ subexpressions.
     return EqualTemp<false>(list1, list2, t);
   }
 
-  const string& EqualErr() { return equalErr; }
+  const std::string& EqualErr() { return equalErr; }
 
 /*
 Tests for deep equality of two nested lists. Returns "true"[4] if ~list1~ is
 equivalent to ~list2~, otherwise "false"[4].
 
 */
-  bool IsEqual( const ListExpr atom, const string& str,
+  bool IsEqual( const ListExpr atom, const std::string& str,
                 const bool caseSensitive = true         ) const;
 /*
 Returns "true"[4] if ~atom~ is a symbol atom and has the same value as ~str~.
@@ -760,7 +766,7 @@ Returns (a pointer to) the right son of ~list~. Result can be the empty list.
 1.3.5 Input/Output
 
 */
-  bool ReadFromFile( const string& fileName,
+  bool ReadFromFile( const std::string& fileName,
                      ListExpr& list          );
 /*
 Reads a nested list from file ~filename~ and assigns it to ~list~.
@@ -769,36 +775,37 @@ was successful; otherwise "false"[4], if the file could not be accessed, or the
 line number in the file where an error occurred.
 
 */
-  bool WriteToFile( const string& fileName,
+  bool WriteToFile( const std::string& fileName,
                     const ListExpr list     ) const;
 /*
 Writes the nested list ~list~ to file ~filename~.
 The format of the file will be as explained above. The previous contents
-of the file will be lost. Returns "true"[4] if writing was successful, "false"[4]
-if the file could not be written properly.
+of the file will be lost. Returns "true"[4] if writing was successful,
+ "false"[4] if the file could not be written properly.
 
 *Precondition*: ~list~ must not be an atom.
 
 */
-  bool ReadFromString( const string& nlChars,
+  bool ReadFromString( const std::string& nlChars,
                        ListExpr& list              );
-  bool ReadBinaryFrom( istream& in, ListExpr& list );
+  bool ReadBinaryFrom( std::istream& in, ListExpr& list );
 /*
-Like ~ReadFromFile~, but reads a nested list from string ~nlChars~ or istream ~in~.
-Returns "true"[4] if reading was successful.
+Like ~ReadFromFile~, but reads a nested list from string ~nlChars~ or 
+istream ~in~.  Returns "true"[4] if reading was successful.
 
 */
-  bool WriteToString( string& nlChars,
+  bool WriteToString( std::string& nlChars,
                       const ListExpr list ) const;
 /*
 Like ~WriteToFile~, but writes to the string ~nlChars~. Returns "true"[4]
-if writing was successful, "false"[4] if the string could not be written properly.
+if writing was successful, "false"[4] if the string could not be written
+ properly.
 
 *Precondition*: ~list~ must not be an atom.
 
 */
-  bool WriteStringTo( const ListExpr list, ostream& os ) const;
-  bool WriteBinaryTo( const ListExpr list, ostream& os ) const;
+  bool WriteStringTo( const ListExpr list, std::ostream& os ) const;
+  bool WriteBinaryTo( const ListExpr list, std::ostream& os ) const;
 /*
 Writes the list in a binary coded or textual format into the referenced stream.
 
@@ -808,7 +815,7 @@ implementations
 
 */
 
-  string ToString( const ListExpr list ) const;
+  std::string ToString( const ListExpr list ) const;
 
 /*
 A wrapper for ~WriteToString~ which directly returns a string object.
@@ -816,7 +823,7 @@ A wrapper for ~WriteToString~ which directly returns a string object.
 */
 
   void WriteListExpr( const ListExpr list,
-                      ostream& ostr = cout,
+                      std::ostream& ostr = cout,
                       const int offset=4 );
 
 /*
@@ -947,14 +954,14 @@ corresponding atom:
   ListExpr IntAtom( const long value );
   ListExpr RealAtom( const double value );
   ListExpr BoolAtom( const bool value );
-  ListExpr StringAtom( const string& value, bool isString=true );
-  ListExpr SymbolAtom( const string& value );
+  ListExpr StringAtom( const std::string& value, bool isString=true );
+  ListExpr SymbolAtom( const std::string& value );
 
   ListExpr inline SetStringAtom( const StringAtomCharVec& value) {
-    return StringAtom( string(value) );
+    return StringAtom( std::string(value) );
   };
   ListExpr inline SetSymbolAtom( const StringAtomCharVec& value) {
-    return StringAtom( string(value) );
+    return StringAtom( std::string(value) );
   };
 
 /*
@@ -967,7 +974,7 @@ two operations are offered:
 
 */
   ListExpr TextAtom();
-  inline ListExpr TextAtom(const string& value)
+  inline ListExpr TextAtom(const std::string& value)
   {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard(mtx);
@@ -977,7 +984,7 @@ two operations are offered:
     return l;
   }
   void AppendText( const ListExpr atom,
-                   const string&  textBuffer );
+                   const std::string&  textBuffer );
 /*
 The first operation ~TextAtom~ creates the atom. Calls of  ~AppendText~ add
 pieces of text stored in ~textBuffer~ at the end.
@@ -1004,12 +1011,12 @@ There are corresponding procedures to get typed values from atoms:
 *Precondition*: ~atom~ must be of type ~Bool~.
 
 */
-  string StringValue( const ListExpr atom ) const;
+  std::string StringValue( const ListExpr atom ) const;
 /*
 *Precondition*: ~atom~ must be of type ~String~.
 
 */
-  string SymbolValue( const ListExpr atom) const;
+  std::string SymbolValue( const ListExpr atom) const;
 /*
 *Precondition*: ~atom~ must be of type ~Symbol~.
 
@@ -1031,9 +1038,9 @@ Creates a text scan. Current position is 0 (the first character in the ~atom~).
 
 */
   void GetText( TextScan textScan,
-                const Cardinal noChars, string& textBuffer ) const;
+                const Cardinal noChars, std::string& textBuffer ) const;
   bool GetNextText( const ListExpr textAtom,
-                    string& textFragment, Cardinal size,
+                    std::string& textFragment, Cardinal size,
                     TextScanInfo& info) const;
 
 
@@ -1041,12 +1048,14 @@ Creates a text scan. Current position is 0 (the first character in the ~atom~).
 Copies ~noChars~ characters, starting from the current position in the ~scan~
 and appends them to the string ~textBuffer~.
 
-The text behind the current position of the ~scan~ may be shorter than ~noChars~.
-In this case, all characters behind the current ~scan~ position are copied.
+The text behind the current position of the ~scan~ may be shorter than
+ ~noChars~.  In this case, all characters behind the current ~scan~ position
+ are copied.
 
-The second alternative of iteration returns true while ~size~ characters are in the
-text. The size can not be changed during subseqent calls. The function returns false
-when the text ends and the next call of the function will restart the iteration.
+The second alternative of iteration returns true while ~size~ characters are
+in the text. The size can not be changed during subseqent calls. The function
+returns false when the text ends and the next call of the function will 
+restart the iteration.
 
 */
   bool EndOfText( const TextScan textScan ) const;
@@ -1068,8 +1077,8 @@ Returns the number of characters of ~textAtom~.
 
 */
 
-void Text2String( const ListExpr& textAtom, string& resultStr ) const;
-string Text2String( const ListExpr& textAtom) const;
+void Text2String( const ListExpr& textAtom, std::string& resultStr ) const;
+std::string Text2String( const ListExpr& textAtom) const;
 
 /*
 Transforms the text atom into C++ string object
@@ -1078,7 +1087,7 @@ Transforms the text atom into C++ string object
 
 */
   NodeType AtomType( const ListExpr atom ) const;
-  void ExtractAtoms( const ListExpr list, vector<ListExpr>& atomVec) const
+  void ExtractAtoms( const ListExpr list, std::vector<ListExpr>& atomVec) const
   {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard(mtx);
@@ -1100,21 +1109,22 @@ Transforms the text atom into C++ string object
 
 /*
 
-~AtomType~ determines the type of list expression ~atom~ according to the enumeration
-type ~NodeType~. If the parameter is not an atom, the function returns the
-value 'NoAtom'. ~ExtractAtoms~ returns a flat list of atoms stored in a vector.
+~AtomType~ determines the type of list expression ~atom~ according to 
+the enumeration type ~NodeType~. If the parameter is not an atom, the
+function returns the value 'NoAtom'. ~ExtractAtoms~ returns a flat 
+list of atoms stored in a vector.
 Afterwards you can easily iterate over the atoms.
 
 1.3.11 Size and Implementation Info
 
 */
-  const string ReportTableSizes( const bool onOff,
+  const std::string ReportTableSizes( const bool onOff,
                                  const bool prettyPrint = false ) const;
-  const string ReportTableStates() {
+  const std::string ReportTableStates() {
     return "TableStates not available";
     //return ( "Nodes: " + nodeTable->StateToStr() + "\n" );
   }
-  static string SizeOfStructs();
+  static std::string SizeOfStructs();
 
 /*
 Reports the slot numbers and allocated memory of all
@@ -1123,14 +1133,16 @@ private CTable members and the underlying vector classes.
 */
 
   static const bool IsPersistentImpl() { return true; }
-  string MemoryModel();
+  std::string MemoryModel();
 
 
 /*
-Returns the Memory-Model of the underlying CTable data structures. Possible values
-are PERSISTENT and NON-PERSISTENT. The PERSISTENT variant uses Berkeley-DB Records
-for its nodes instead of the NON-PERSISTENT version which uses heap memory. SizeOfStructs
-returns the memory used for some of the structs defined above.
+Returns the Memory-Model of the underlying CTable data structures. 
+Possible values are PERSISTENT and NON-PERSISTENT. The PERSISTENT 
+variant uses Berkeley-DB Records
+for its nodes instead of the NON-PERSISTENT version which uses heap
+memory. SizeOfStructs returns the memory used for some of the structs
+defined above.
 
 
 1.3.12 New Initialization of List Memory
@@ -1176,7 +1188,7 @@ Copies a nested list from ~this~ instance to the target instance.
 #ifdef THREAD_SAFE
    mutable boost::recursive_mutex mtx;
 #endif
-   string basename;
+   std::string basename;
 
 
 
@@ -1189,9 +1201,9 @@ entire lists into ostream references.
 
 */
   void PrintTableTexts() const;
-  string NodeType2Text( NodeType type ) const;
+  std::string NodeType2Text( NodeType type ) const;
 
-  inline string BoolToStr( const bool boolValue ) const
+  inline std::string BoolToStr( const bool boolValue ) const
   {
     return (boolValue ? "TRUE" : "FALSE");
   }
@@ -1204,19 +1216,19 @@ entire lists into ostream references.
                   const int level,
                   const bool afterList,
                   const bool toScreen,
-                  ostream& os,
+                  std::ostream& os,
                   const int offset=4    ) const;
 
-  void WriteAtom( const ListExpr atom, bool toScreen, ostream& os ) const;
+  void WriteAtom( const ListExpr atom, bool toScreen, std::ostream& os ) const;
 
-  bool WriteToStringLocal( ostream& nlChars, ListExpr list ) const;
+  bool WriteToStringLocal( std::ostream& nlChars, ListExpr list ) const;
 
 /*
 Approximate or exact comparison of lists. This is implemented by using
 template functions
 
 */
-  mutable string equalErr;
+  mutable std::string equalErr;
 
   template<bool EXACT>
   bool EqualTemp( const ListExpr list1,
@@ -1256,7 +1268,7 @@ template functions
            {
              bool eq = t.approxEqual( r1, r2 );
             if (!eq) {
-              stringstream errMsg;
+              std::stringstream errMsg;
               errMsg << "Tolerance::approxEqual failed: "
                      << r1 << " <> " << r2;
                      equalErr = errMsg.str();
@@ -1312,13 +1324,15 @@ template functions
 prototypes for functions used for the binary encoding/decoding of lists
 
 */
-  bool  WriteBinaryRec( ListExpr list, ostream& os ) const;
-  bool  ReadBinaryRec( ListExpr& result, istream& in, unsigned long& pos );
-  bool  ReadBinarySubLists( ListExpr& LE, istream& in, unsigned long length,
+  bool  WriteBinaryRec( ListExpr list, std::ostream& os ) const;
+  bool  ReadBinaryRec( ListExpr& result, std::istream& in, unsigned long& pos );
+  bool  ReadBinarySubLists( ListExpr& LE, std::istream& in, 
+                            unsigned long length,
                             unsigned long& pos );
-  int32_t  ReadShort( istream& in ) const;
-  int32_t  ReadInt( istream& in, const int len = 4 ) const;
-  void  ReadString( istream& in, string& outStr, unsigned long length ) const;
+  int32_t  ReadShort( std::istream& in ) const;
+  int32_t  ReadInt( std::istream& in, const int len = 4 ) const;
+  void  ReadString( std::istream& in, std::string& outStr, 
+                    unsigned long length ) const;
 
   byte  GetBinaryType(const ListExpr list) const;
   void hton(long value, char* buffer) const;
@@ -1328,7 +1342,7 @@ prototypes for functions used for the binary encoding/decoding of lists
   // the internal represenatation of lists
 
   BigArray<StringRecord> *stringTable; // storage for strings
-  string StringSymbolValue( const ListExpr atom ) const;
+  std::string StringSymbolValue( const ListExpr atom ) const;
 
   BigArray<NodeRecord>   *nodeTable;   // storage for nodes
 
@@ -1365,6 +1379,6 @@ Replace critical character sequences:
 
 */
 
-string transformText2Outtext(const string& value);
+std::string transformText2Outtext(const std::string& value);
 
 #endif

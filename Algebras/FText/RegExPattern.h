@@ -147,8 +147,8 @@ Must be nothing.  Never cal it outside the cast function.
       if(srcDefined != p->srcDefined){
          return srcDefined?1:-1;
       } 
-      string s = getSource();
-      string ps = p->getSource();
+      std::string s = getSource();
+      std::string ps = p->getSource();
       if(s < ps){
         return -1;
       }
@@ -158,18 +158,18 @@ Must be nothing.  Never cal it outside the cast function.
       return 0;
    }
 
-   string getSource() const{
+   std::string getSource() const{
       if(!srcDefined){
-          cerr << "called getSource but src is not defined" << endl;
+          std::cerr << "called getSource but src is not defined" << std::endl;
           return "";
       }
       char* g = src.getData();
-      string res(g, src.getSize());
+      std::string res(g, src.getSize());
       delete g;;
       return res;
    }
 
-   void setSource(const string& re){
+   void setSource(const std::string& re){
      srcDefined = true;
      src.resize(re.length());
      src.write(re.c_str(),re.length());
@@ -198,7 +198,7 @@ Must be nothing.  Never cal it outside the cast function.
 
 */
 
-   static const string BasicType(){
+   static const std::string BasicType(){
      return "regex";
    }
 
@@ -228,7 +228,7 @@ be undefined.
 
 */
 
-   bool constructFrom(const string& regex){
+   bool constructFrom(const std::string& regex){
       IntNfa* nfa;
       setSource(regex);
       if(parseRegEx(regex.c_str(),&nfa)!=0){
@@ -269,7 +269,7 @@ be undefined.
 Checks whether the argument is regognized by this dfa.
 
 */
-   bool matches(const string& text){
+   bool matches(const std::string& text){
       if(!IsDefined()){
         return false;
       }
@@ -296,7 +296,7 @@ Checks whether the argument starts with a word of the language represented
 by this dfa.
 
 */
-   bool starts(const string& text){
+   bool starts(const std::string& text){
       if(!IsDefined()){
         return false;
       }
@@ -327,7 +327,7 @@ This function checks whether text at position offset starts with
 this pattern. The length of the substring is returned.
 
 */
-   bool starts2(const string& text, const int offset, int& length, 
+   bool starts2(const std::string& text, const int offset, int& length, 
                 const bool findMax, bool allowEmpty ){
        if(!IsDefined()){
          return false;
@@ -554,7 +554,7 @@ Returns the representation of this dfa as a nested list.
      return srcDefined;
    }
 
-   bool computeRegEx(stringstream& ss ){
+   bool computeRegEx(std::stringstream& ss ){
       regexcreator::DeaRegEx automaton;
       for(int s=0;s<numOfStates;s++){
          for(int c=0;c<NUMCHARS;c++){

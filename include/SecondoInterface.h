@@ -61,27 +61,34 @@ from the user interface program.
 
 December 2002 M. Spiekermann an application specific nested list memory (al) was
 introduced. Every Interface method which returns a nested list copies the
-list from the nl Object into the al Object. If a list is input for some Interface
-methods e.g. NumTypeExpr(...) the list is copied from al to nl. Now the core systems
+list from the nl Object into the al Object. If a list is input for some 
+Interface methods e.g. NumTypeExpr(...) the list is copied from al to nl. 
+Now the core systems
 own list memory is refreshed in the Interface method Secondo(...) so that every
 command is processed with an initially empty list container.
-The application has to take care about its own list memory to avoid infinte growing.
+The application has to take care about its own list memory to avoid infinte
+ growing.
 
 April 29 2003 Hoffmann Added save and restore commands for single objects.
 
 May 2004, M. Spiekermann. Support for derived objects added.
 
-August 2004, M. Spiekermann. All error codes of the interface are now represented
-by constants. The mapping between codes and error messages is also implemented in
-the header file to facalitate maintenance. Moreover, new private methods for some
+August 2004, M. Spiekermann. All error codes of the interface are now
+ represented
+by constants. The mapping between codes and error messages is also 
+implemented in the header file to facalitate maintenance. Moreover, 
+new private methods for some
 Secondo commands have been declared to reduce the complex nesting in the
 implementation of the ~Secondo~ function.
 
-September 2004, M. Spiekermann. A bug in the error handling of restore database has been fixed.
-Error code definitions have been moved to ErrorCodes.h. in order to make them available also
+September 2004, M. Spiekermann. A bug in the error handling of restore 
+database has been fixed.
+Error code definitions have been moved to ErrorCodes.h. in order to make
+ them available also
 in other modules like SecondoSystem.
 
-December 2004, M. Spiekermann. A new function implementing the ~set~ command was added.
+December 2004, M. Spiekermann. A new function implementing the ~set~
+ command was added.
 
 August 2005, M. Spiekermann. New private member ~isCSImpl~ supplemented.
 
@@ -109,7 +116,8 @@ The third subsection describes error handling and the specific error
 codes; it makes error messages available in an array ~errors~.
 
 The fourth subsection makes some procedures for type transformation and
-information available, namely ~NumericTypeExpr~, ~GetTypeId~ and ~LookUpTypeExpr~.
+information available, namely ~NumericTypeExpr~, ~GetTypeId~ and 
+~LookUpTypeExpr~.
 ~NumericTypeExpr~ transforms type expressions into a numeric form suitable
 for writing application programs treating types in a generic way (e.g.
 representation of values at the user interface). ~GetTypeId~ returns the
@@ -151,7 +159,7 @@ struct SecErrInfo {
 
   int code;
   int pos;
-  string msg;
+  std::string msg;
   SecErrInfo() : code(0), pos(0), msg("") {}
   ~SecErrInfo() {};
 };
@@ -171,10 +179,10 @@ the interface different member variables are initialized.
 Destroys a "Secondo"[3] interface.
 
 */
-  virtual bool Initialize( const string& user, const string& pswd,
-                   const string& host, const string& port,
-                   string& profile,
-                   string& errorMsg,
+  virtual bool Initialize( const std::string& user, const std::string& pswd,
+                   const std::string& host, const std::string& port,
+                   std::string& profile,
+                   std::string& errorMsg,
                    const bool multiUser = false ) = 0;
 
 /*
@@ -186,7 +194,8 @@ authentification. Nevertheless the ~user~ identification and the password ~pswd~
 can be specified. In the client/server version this information is passed to
 the "Secondo"[3] server to identify the user session.
 
-In the client/server version the ~host~ address and the ~port~ of the "Secondo"[3]
+In the client/server version the ~host~ address and the ~port~ of the
+ "Secondo"[3]
 server are needed to establish a connection to the server, but these parameters
 may be specified via the configuration file ~profile~. The method arguments
 ~host~ and ~port~ take precedence over specifications in the configuration file.
@@ -208,7 +217,7 @@ the "Secondo"[3] system and the ~SmiEnvironment~ are shut down.
 2.1.2 The "Secondo"[3] main interface method
 
 */
-  virtual void Secondo( const string& commandText,
+  virtual void Secondo( const std::string& commandText,
                 const ListExpr commandLE,
                 const int commandType,
                 const bool commandAsText,
@@ -216,21 +225,21 @@ the "Secondo"[3] system and the ~SmiEnvironment~ are shut down.
                 ListExpr& resultList,
                 int& errorCode,
                 int& errorPos,
-                string& errorMessage,
-                const string& resultFileName =
+                std::string& errorMessage,
+                const std::string& resultFileName =
                                 "SecondoResult",
                 const bool isApplicationLevelCommand = true) = 0;
 
-   bool Secondo( const string& cmdText,
+   bool Secondo( const std::string& cmdText,
                  ListExpr& resultList,
                  SecErrInfo& err,
-                 const string& resultFileName = "SecondoResult",
+                 const std::string& resultFileName = "SecondoResult",
                  const bool isApplicationLevelCommand = true        );
 
    bool Secondo( const ListExpr cmdList,
                  ListExpr& resultList,
                  SecErrInfo& err,
-                 const string& resultFileName = "SecondoResult",
+                 const std::string& resultFileName = "SecondoResult",
                  const bool isApplicationLevelCommand = true        );
 /*
 Reads a command and executes it; it possibly returns a result.
@@ -263,9 +272,9 @@ are defined in file ~ErrorCodes.h~. They are explained below together with the
 commands that may produce them. If an error occurred (~errorCode~ different from
 0), then the complete error message will be given in parameter ~errorMessage~.
 Possibly additional information about errors is given in the ~resultList~
-which is then a list of errors with structure (ERRORS (e1 ...) ... (eN ...)) where
-ej is an integer atom with an valid error code, refer to function ~WriteErrorList~
-for details.
+which is then a list of errors with structure (ERRORS (e1 ...) ... (eN ...))
+ where ej is an integer atom with an valid error code, refer to function 
+~WriteErrorList~ for details.
 
 Furthermore, ~errorPos~ contains a position within the ~commandBuffer~
 where the error was detected (only when the command was given in the
@@ -606,7 +615,8 @@ Possible errors:
 
   * no database open
 
-  * a problem occurred in writing the file (no permission, file system full, etc.)
+  * a problem occurred in writing the file (no permission, file system
+ full, etc.)
 
 ----  save <objectname> to <filename>
 ----
@@ -624,7 +634,8 @@ Possible errors:
 
   * database not open
 
-  * a problem occurred in writing the file (no permission, file system full, etc.)
+  * a problem occurred in writing the file (no permission, file system
+    full, etc.)
 
   * identifier of object is not known in the currently opened database
 
@@ -642,7 +653,8 @@ Possible errors:
 
   * a database is open
 
-  * a problem occurred in reading the file (syntax error, no permission, file system full, etc.)
+  * a problem occurred in reading the file (syntax error, no permission,
+     file system full, etc.)
 
   * the overall list structure of the file is not correct
 
@@ -654,11 +666,13 @@ in ~resultList~.
 ----  restore <objectname> from <filename>
 ----
 
-Reads the file ~filename~ and creates a Secondo object according to this content.
+Reads the file ~filename~ and creates a Secondo object according to 
+this content.
 
 Precondition:
 
-The database must be in open state and the object is not known in the currently opened database.
+The database must be in open state and the object is not known in the 
+currently opened database.
 
 Possible errors:
 
@@ -668,7 +682,8 @@ Possible errors:
 
   * a database is not open
 
-  * a problem occurred in reading the file (syntax error, no permission, file system full, etc.)
+  * a problem occurred in reading the file (syntax error, no permission,
+    file system full, etc.)
 
   * the overall list structure of the file is not correct
 
@@ -695,14 +710,15 @@ in ~resultList~.
 
 The commands list types and list objects are only valid when a database is open.
 
-All Secondo list commands return a nested list with the following general list structure:
+All Secondo list commands return a nested list with the following general list
+ structure:
 
 ----  ( inquiry ( <inquirydestination> <valuelist> ) )
 ----
 
-where ~inquiry~ is a fixed symbol atom, <inquirydestination> a symbol atom with the value ~databases~,
-~algebras~, ~algebra~, ~types~, ~objects~, ~constructors~ or operators and <valuelist> is of type nested
-list.
+where ~inquiry~ is a fixed symbol atom, <inquirydestination> a symbol atom 
+with the value ~databases~, ~algebras~, ~algebra~, ~types~, ~objects~, 
+~constructors~ or operators and <valuelist> is of type nested list.
 
 ----  list databases
       ( inquiry ( databases <valuelist> ) )
@@ -717,7 +733,8 @@ Returns a list of names of existing databases. Possible errors: none.
              (
                (date
                  ("Signature" "Example Type List" "List Rep" "Example List")
-                 ("-> DATA" "date" <text>"<year>-<month>-<day>"</text---> <text>"2003-09-05"</text--->)))))
+                 ("-> DATA" "date" <text>"<year>-<month>-<day>"</text--->
+                   <text>"2003-09-05"</text--->)))))
 ----
 
 Return a nested list of type constructors (and their specifications).
@@ -733,7 +750,8 @@ For the precise format see [G[ue]95]. Possible errors: none.
               (
                 (and
                   ("Signature" "Syntax" "Meaning" "Example")
-                  (<text>(bool bool) -> bool</text---> <text>_ and _</text---> <text>Logical And.
+                  (<text>(bool bool) -> bool</text---> <text>_ and _
+                   </text---> <text>Logical And.
                    </text---> <text>query (8 = 8) and (3 < 4)</text--->)))))
 ----
 
@@ -807,13 +825,17 @@ Possible errors: none.
                  (
                    (
                      (rect
-                       ("Signature" "Example Type List" "List Rep" "Example List")
-                       ("-> DATA" "rect" "(<left> <right> <bottom> <top>)" "(0 1 0 1)")))
+                       ("Signature" "Example Type List" "List Rep"
+                        "Example List")
+                       ("-> DATA" "rect" "(<left> <right> <bottom> <top>)"
+                        "(0 1 0 1)")))
                    (
                      (intersects
                         ("Signature" "Syntax" "Meaning" "Example")
-                        (<text>(rect x rect) -> bool </text---> <text>_ intersects _</text--->
-                         <text>Intersects.</text---> <text>query rect1 intersects rect2</text--->)))))))
+                        (<text>(rect x rect) -> bool </text--->
+                         <text>_ intersects _</text--->
+                         <text>Intersects.</text---> 
+                        <text>query rect1 intersects rect2</text--->)))))))
 ----
 
 
@@ -850,25 +872,26 @@ The resulting form of the type expression is useful for calling the type
 specific ~In~ and ~Out~ procedures.
 
 */
-  virtual bool GetTypeId( const string& name,
+  virtual bool GetTypeId( const std::string& name,
                   int& algebraId, int& typeId ) = 0;
 /*
 Finds the ~algebraId~ and ~typeId~ of a named type.
 The catalog is used to resolve the type name.
 
 */
-  virtual bool LookUpTypeExpr( ListExpr type, string& name,
+  virtual bool LookUpTypeExpr( ListExpr type, std::string& name,
                        int& algebraId, int& typeId ) = 0;
 /*
-Finds the ~name~, ~algebraId~ and ~typeId~ of a type given by the type expression
-~type~. The catalog is used to resolve the type name.
+Finds the ~name~, ~algebraId~ and ~typeId~ of a type given by the 
+type expression ~type~. The catalog is used to resolve the type name.
 
 */
   NestedList* GetNestedList();
 
-  void InitRTFlags(const string& configFile);
+  void InitRTFlags(const std::string& configFile);
 /*
-The first returns a reference to the application specific nested list container and
+The first returns a reference to the application specific nested 
+list container and
 the second initializes the RTFlags found in the configuration file.
 
 2.2 Error Messages
@@ -876,7 +899,7 @@ the second initializes the RTFlags found in the configuration file.
 The function below returns a message string for a specific error message.
 
 */
-  static string GetErrorMessage( const int errorCode,
+  static std::string GetErrorMessage( const int errorCode,
                      const ListExpr params = 0 );
 /*
 
@@ -915,12 +938,13 @@ since these commands involve kind checking and checking of value list
 representations for objects. The messages that are appended to ~errorList~
 usually have further parameters in addition to the error code number.
 
-The next function expects a list of structure "(ERRORS (e1 ...) ... (en ...))"[4]
+The next function expects a list of structure 
+"(ERRORS (e1 ...) ... (en ...))"[4]
 and translates error codes "ej" into messages. The result is written to
 parameter ~ostr~.
 
 */
-  void WriteErrorList ( ListExpr list, ostream& ostr = cerr );
+  void WriteErrorList ( ListExpr list, std::ostream& ostr = std::cerr );
 
 
 //  virtual ListExpr DerivedObjValueExpr() = 0;
@@ -936,7 +960,7 @@ Sets the debug level of the query processor.
 */
 
   virtual  bool getOperatorIndexes(
-         const string OpName,
+         const std::string OpName,
          ListExpr argList,
          ListExpr& resList,
          int& algId,
@@ -1079,7 +1103,7 @@ virtual bool cancelQuery(int pid) = 0;
   bool ServerInstance();  // check if the current instance
   bool serverInstance;    // was create by the server
 
-  typedef map<int,string> ErrorMap;
+  typedef std::map<int,std::string> ErrorMap;
   static ErrorMap errors;
 
   DerivedObj* derivedObjPtr;

@@ -33,7 +33,6 @@ the following lines are required:
 
 #include <string>
 #include <iostream>
-using namespace std;
 
 /*
 1.2 numberOfSons
@@ -58,7 +57,7 @@ class DiceNode{
 public:
     DiceNode(unsigned int depth);
     ~DiceNode();
-    void insert(string text,bool  left);
+    void insert(std::string text,bool  left);
     double getCoeff();
     void print(char root);
 private:
@@ -83,7 +82,7 @@ class DiceTree{
 public:
    DiceTree(unsigned depth);
    ~DiceTree();
-   void appendText(string text,bool left);
+   void appendText(std::string text,bool left);
    double getCoeff();
    void printTree();
 private:

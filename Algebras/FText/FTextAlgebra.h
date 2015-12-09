@@ -57,24 +57,25 @@ public:
 
   inline FText();
   inline FText( bool newDefined, const char *newText = NULL) ;
-  inline FText( bool newDefined, const string& newText );
+  inline FText( bool newDefined, const std::string& newText );
   inline FText(const FText&);
   inline ~FText();
   inline void Destroy();
 
-  inline bool  SearchString( const string subString );
+  inline bool  SearchString( const std::string subString );
   inline void  Set( const char *newString );
   inline void  Set( bool newDefined, const char *newString );
-  inline void  Set( bool newDefined, const string& newString );
+  inline void  Set( bool newDefined, const std::string& newString );
   inline int TextLength() const;
   inline char *Get() const;
-  inline const string GetValue() const;
+  inline const std::string GetValue() const;
 
 /*************************************************************************
 
   The following virtual functions:
-  IsDefined, SetDefined, HashValue, CopyFrom, Compare, Sizeof, Clone, Print, Adjacent
-  need to be defined if we want to use ~text~ as an attribute type in tuple definitions.
+  IsDefined, SetDefined, HashValue, CopyFrom, Compare, Sizeof, Clone, 
+  Print, Adjacent need to be defined if we want to use ~text~ as an 
+  attribute type in tuple definitions.
 
 *************************************************************************/
 
@@ -83,7 +84,7 @@ public:
   void CopyFrom(const Attribute* right);
   int Compare(const Attribute * arg) const;
   inline FText* Clone() const;
-  ostream& Print(ostream &os) const;
+  std::ostream& Print(std::ostream &os) const;
   bool Adjacent(const Attribute * arg) const;
 
   inline int NumOfFLOBs() const;
@@ -104,13 +105,13 @@ public:
   virtual unsigned char getDB3Type() const { return 'M'; }
   virtual unsigned char getDB3Length() const { return 0; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
-  virtual string getDB3String() const { return GetValue(); }
+  virtual std::string getDB3String() const { return GetValue(); }
 
-  virtual void ReadFromString(string value){
+  virtual void ReadFromString(std::string value){
     Set(true,value);
   }
 
-  static const string BasicType(){
+  static const std::string BasicType(){
      return "text";
   }
 
@@ -122,7 +123,7 @@ public:
     if(!IsDefined()){
       return;
     }
-    string  s = GetValue();
+    std::string  s = GetValue();
     stringutils::trim(s);
     Set(true,s);
   }
@@ -131,16 +132,16 @@ public:
     return true;
   }
 
-  virtual string toText() const{
+  virtual std::string toText() const{
     return GetValue();
   }
 
-  virtual bool fromText(const string& value) {
+  virtual bool fromText(const std::string& value) {
     Set(true,value);
     return true;
   }
 
-  virtual string getCsvStr() const {
+  virtual std::string getCsvStr() const {
     return GetValue();
   }
 /*
@@ -158,13 +159,13 @@ private:
 2 Inline Functions
 
 */
-const string typeName="text";
+const std::string typeName="text";
 const bool traces=false;
 
 inline FText::FText()
 {
-  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText()"<<'\n'; )
-  LOGMSG( "FText:Trace",  cout <<"End FText()"<<'\n'; )
+  LOGMSG( "FText:Trace", std::cout << '\n' <<"Start FText()"<<'\n'; )
+  LOGMSG( "FText:Trace",  std::cout <<"End FText()"<<'\n'; )
 }
 
 inline FText::FText( bool newDefined, const char *newText /* =0*/ ) :
@@ -172,30 +173,30 @@ IndexableAttribute(newDefined),
 theText( 0 )
 {
   LOGMSG( "FText:Trace",
-           cout << '\n'
+           std::cout << '\n'
                 <<"Start FText(bool newDefined, textType newText)"
                 <<'\n'; )
   if(newDefined && newText){
      Set( newDefined, newText );
   }
   LOGMSG( "FText:Trace",
-           cout <<"End FText(bool newDefined, textType newText)"
+           std::cout <<"End FText(bool newDefined, textType newText)"
                 <<'\n'; )
 }
 
-inline FText::FText( bool newDefined, const string& newText ) :
+inline FText::FText( bool newDefined, const std::string& newText ) :
     IndexableAttribute(newDefined),
     theText( 0 )
 {
   LOGMSG( "FText:Trace",
-          cout << '\n'
+          std::cout << '\n'
               <<"Start FText( bool newDefined, const string newText )"
               <<'\n'; )
   if(newDefined){
       Set( newDefined, newText );
   }
   LOGMSG( "FText:Trace",
-          cout <<"End FText( bool newDefined, const string newText )"
+          std::cout <<"End FText( bool newDefined, const string newText )"
               <<'\n'; )
 }
 
@@ -204,19 +205,19 @@ inline FText::FText( const FText& f ) :
 IndexableAttribute(f.IsDefined()),
 theText( f.theText.getSize() )
 {
-  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(FText& f)"<<'\n'; )
+  LOGMSG( "FText:Trace", std::cout << '\n' <<"Start FText(FText& f)"<<'\n'; )
   //SPM? Assuming Flob fits into memory
   //const char* s = new char(f.theText.getSize());
   theText.copyFrom( f.theText );
   SetDefined( f.IsDefined() );
-  LOGMSG( "FText:Trace",  cout <<"End FText(FText& f)"<<'\n'; )
+  LOGMSG( "FText:Trace",  std::cout <<"End FText(FText& f)"<<'\n'; )
 
 }
 
 inline FText::~FText()
 {
-  LOGMSG( "FText:Trace",  cout << '\n' <<"Start ~FText()"<<'\n'; )
-  LOGMSG( "FText:Trace",  cout <<"End ~FText()"<<'\n'; )
+  LOGMSG( "FText:Trace",  std::cout << '\n' <<"Start ~FText()"<<'\n'; )
+  LOGMSG( "FText:Trace",  std::cout <<"End ~FText()"<<'\n'; )
 }
 
 inline void FText::Destroy()
@@ -225,28 +226,28 @@ inline void FText::Destroy()
   SetDefined(false);
 }
 
-inline bool FText::SearchString( string subString )
+inline bool FText::SearchString( std::string subString )
 {
-  string s = GetValue();
-  return s.find(subString) != string::npos;
+  std::string s = GetValue();
+  return s.find(subString) != std::string::npos;
 }
 
 inline void FText::Set( const char *newString )
 {
   LOGMSG( "FText:Trace",
-           cout << '\n'
-                << "Start Set with *newString='"<< newString << endl; )
+           std::cout << '\n'
+                << "Start Set with *newString='"<< newString << std::endl; )
 
   Set( true, newString );
 
-  LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
+  LOGMSG( "FText:Trace", std::cout <<"End Set"<<'\n'; )
 }
 
 inline void FText::Set( bool newDefined, const char *newString )
 {
   LOGMSG( "FText:Trace",
-          cout << '\n' << "Start Set with *newString='"
-               << newString << endl; )
+          std::cout << '\n' << "Start Set with *newString='"
+               << newString << std::endl; )
 
   theText.clean();
   if( newString != NULL )
@@ -263,14 +264,14 @@ inline void FText::Set( bool newDefined, const char *newString )
   }
   SetDefined( newDefined );
 
-  LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
+  LOGMSG( "FText:Trace", std::cout <<"End Set"<<'\n'; )
 }
 
-inline void FText::Set( bool newDefined, const string& newString )
+inline void FText::Set( bool newDefined, const std::string& newString )
 {
   LOGMSG( "FText:Trace",
-          cout << '\n' << "Start Set with newString='"
-              << newString << endl; )
+          std::cout << '\n' << "Start Set with newString='"
+              << newString << std::endl; )
   Set(newDefined,newString.c_str());
 }
 
@@ -295,18 +296,18 @@ inline char *FText::Get() const
   bool ok = theText.read(s, sz);
   assert(ok);
   if(s[sz-1] !=0) {
-    cerr << "Warning: last char of a text flob is not 0." << endl;
+    std::cerr << "Warning: last char of a text flob is not 0." << std::endl;
     size_t sl = strlen(s);
-    cerr << " sz = " << sz << ", strlen = " << sl << endl;
+    std::cerr << " sz = " << sz << ", strlen = " << sl << std::endl;
     assert(sl <= sz);
   }
   return s;
 }
 
-inline const string FText::GetValue() const
+inline const std::string FText::GetValue() const
 {
   char* s = Get();
-  string res(s);
+  std::string res(s);
   delete [] s;
   return res;
 }
@@ -314,7 +315,7 @@ inline const string FText::GetValue() const
 inline size_t FText::Sizeof() const
 {
   if(traces)
-    cout << '\n' << "Start Sizeof" << '\n';
+    std::cout << '\n' << "Start Sizeof" << '\n';
   return sizeof( *this );
 }
 
@@ -363,7 +364,7 @@ bool SaveFText( SmiRecord& valueRecord, size_t& offset,
 } // end namespace ftext
 
 namespace SVG {
-  const string BasicType();
+  const std::string BasicType();
 }
 #endif
 

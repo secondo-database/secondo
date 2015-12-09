@@ -55,7 +55,7 @@ namespace raster2
 
   int isdefinedSelectFun(ListExpr args) {
     int numBasicTypes = 4;
-    string type_str = nl->ToString(nl->First(args));
+    std::string type_str = nl->ToString(nl->First(args));
     int offset = 0;
     if(util::isMSType(type_str)){
        offset = 1*numBasicTypes;
@@ -63,7 +63,7 @@ namespace raster2
        offset = 2*numBasicTypes;
     }
 
-    string bt = util::getValueBasicType(type_str);
+    std::string bt = util::getValueBasicType(type_str);
     int pos = 0;
     if(bt==CcBool::BasicType()){
        pos = 0;

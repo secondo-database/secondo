@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../msbool.h"
 #include "../msstring.h"
 
+using namespace std;
+
 namespace raster2
 {
   ValueMapping getgridFuns[] =

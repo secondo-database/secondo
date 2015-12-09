@@ -55,8 +55,6 @@ May, 2010 Jianqiu xu
 #include <stdlib.h>
 #include <stdarg.h>
 
-using namespace std;
-
 namespace Copied_from_Algebra_TransportationMode
 {
 

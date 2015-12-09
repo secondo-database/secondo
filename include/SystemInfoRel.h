@@ -35,17 +35,21 @@ CSV format which can be read in by a spreadsheet program. Hence there will be no
 compile time or run time dependency to the relational algebra module.
 
 
-The system tables should be implemented in file SytemTables.h. Registration is done
-in SecondoInterface.cpp. After a table is registered it can be used in queries like 
+The system tables should be implemented in file SytemTables.h. 
+Registration is done
+in SecondoInterface.cpp. After a table is registered it can be 
+used in queries like 
 a ~normal~ relation, for example 
 
 ----    let session1 = SEC2COMMANDS feed consume;
 ----
 
-will show all queries and their command times. However the contents of the relations must
+will show all queries and their command times. However the 
+contents of the relations must
 be created by the ~append~ method during runtime. 
 
-*Note:* The contents of these relations will not be persistent, hence you need to save them
+*Note:* The contents of these relations will not be persistent, 
+hence you need to save them
 into a file or a persistent relation for later use.
 
 */
@@ -59,7 +63,6 @@ into a file or a persistent relation for later use.
 
 #include "NList.h"
 
-using namespace std;
 
 /*
 2 Class ~InfoTuple~
@@ -75,10 +78,10 @@ class InfoTuple
 {
    
    public:
-   static const string sep;
+   static const std::string sep;
    
    virtual NList valueList() const = 0;
-   virtual ostream& print(ostream&) const = 0; 
+   virtual std::ostream& print(std::ostream&) const = 0; 
    
    InfoTuple() {}
    virtual ~InfoTuple() {} 
@@ -88,7 +91,7 @@ class InfoTuple
 
 
 
-ostream& operator<<(ostream&, const InfoTuple&); 
+std::ostream& operator<<(std::ostream&, const InfoTuple&); 
 
 /*
 3 Class ~SystemInfoRel~
@@ -103,20 +106,20 @@ identifiers should be prefixed with "SEC\_".
 class SystemInfoRel 
 {
 
-  typedef vector<InfoTuple*> InfoTupVec;
+  typedef std::vector<InfoTuple*> InfoTupVec;
   typedef InfoTupVec::const_iterator iterator;
 
   public:   
-  typedef vector< pair<string, string> > RelSchema;
+  typedef std::vector< std::pair<std::string, std::string> > RelSchema;
   
   InfoTupVec tuples;
   RelSchema* attrList; 
-  const string name;
-  const string logFile;
-  const string sep;
+  const std::string name;
+  const std::string logFile;
+  const std::string sep;
   const bool isPersistent;
      
-  SystemInfoRel( const string& inName, 
+  SystemInfoRel( const std::string& inName, 
                  const bool persistent=false ) :
     attrList(0), 
     name(inName),
@@ -141,7 +144,7 @@ class SystemInfoRel
   void writeFiles()
   {  
       // Write Headline
-      ostream& clog = cmsg.file(logFile);
+      std::ostream& clog = cmsg.file(logFile);
       RelSchema::iterator it = attrList->begin();
       while ( it != attrList->end() )
       { 
@@ -153,7 +156,7 @@ class SystemInfoRel
       clog << endl;  
       
       // write configuration file
-      ostream& cfg = cmsg.file(name+".cfg");  
+      std::ostream& cfg = cmsg.file(name+".cfg");  
       
       cfg << "# Generated file: Can be used together with "
           << "commands.csv by CVS2Secondo!" << endl
@@ -214,7 +217,7 @@ class SystemInfoRel
     return values;
   }
   
-  const string& getName() const { return name; }   
+  const std::string& getName() const { return name; }   
   
   void append(InfoTuple* t, bool dump) 
   {
@@ -223,7 +226,7 @@ class SystemInfoRel
     tuples.push_back(t); 
   }
 
-  void addAttribute(const string& name, const string& type)
+  void addAttribute(const std::string& name, const std::string& type)
   {
     if ( attrList == 0 )
       attrList = new RelSchema();
@@ -252,7 +255,7 @@ class SystemInfoRel
 class SystemTables {
 
    public:
-   typedef map<string, const SystemInfoRel*> Str2TableMap;
+   typedef std::map<std::string, const SystemInfoRel*> Str2TableMap;
    typedef Str2TableMap::const_iterator iterator;
    
    
@@ -279,11 +282,11 @@ class SystemTables {
   
   void insert(SystemInfoRel* rel) 
   {
-     const string& name = rel->getName();
+     const std::string& name = rel->getName();
      assert( tables.find(name) == tables.end() );
 
      // register new system table
-     string type="virtual";
+     std::string type="virtual";
      if (rel->isPersistent)
        type="persistent";
      cout << "  registering " << type << " system table " << name << endl;
@@ -291,7 +294,7 @@ class SystemTables {
      rel->initSchema();
   }
    
-  const SystemInfoRel* getInfoRel(const string& name) const
+  const SystemInfoRel* getInfoRel(const std::string& name) const
   {
      iterator it = tables.find(name);
      if ( it == tables.end() ) {

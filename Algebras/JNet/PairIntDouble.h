@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <ostream>
 
-using namespace std;
 
 namespace jnetwork {
 
@@ -77,7 +76,7 @@ void SetDistance(const double distance);
 
   int Compare(const PairIntDouble& other) const;
   PairIntDouble& operator=(const PairIntDouble& other);
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
 
 /*
 1.1 Private Declaration Part
@@ -98,9 +97,7 @@ void SetDistance(const double distance);
 
 */
 
-using namespace jnetwork;
-
-ostream& operator<< (ostream& os, const jnetwork::PairIntDouble elem);
+std::ostream& operator<< (std::ostream& os, const jnetwork::PairIntDouble elem);
 
 
 

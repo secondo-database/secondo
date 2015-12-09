@@ -57,18 +57,18 @@ std::ostream& operator<<(std::ostream&, const FunInfo&);
 class FunInfo {
   public :
     FunInfo();
-    FunInfo(int, string, Supplier);
+    FunInfo(int, std::string, Supplier);
     double getTime();
     Supplier getSupplier() { return supplier; }
-    const string& getName() { return name; }
-    void request(Word*, int, Word&, string);
-    void request(Word, Word&, string);
-    void request(Word, Word, Word&, string);
+    const std::string& getName() { return name; }
+    void request(Word*, int, Word&, std::string);
+    void request(Word, Word&, std::string);
+    void request(Word, Word, Word&, std::string);
     void open();
     void close();
   private :
     int no;
-    string name;
+    std::string name;
     Supplier supplier;
     int timesUsed;
     double consumedTime;
@@ -95,10 +95,10 @@ class FunVector {
   public:
     void load(Word, Word*);
     
-    void requestFun(int, Word, Word&, string);
-    void requestFun(int, Word, Word, Word&, string);
-    void requestAll(Word, Word&, string);
-    void requestAll(Word, Word, Word&, string);
+    void requestFun(int, Word, Word&, std::string);
+    void requestFun(int, Word, Word, Word&, std::string);
+    void requestAll(Word, Word&, std::string);
+    void requestAll(Word, Word, Word&, std::string);
     
     void open(const size_t pos)  { funInfos[pos].open(); }
     void close(const size_t pos) { funInfos[pos].close(); }
@@ -116,7 +116,7 @@ class FunVector {
   private:
     void sendMsgForAll(const int msg); 
     std::vector<FunInfo> funInfos;
-    void addFunction(string, Supplier);
+    void addFunction(std::string, Supplier);
 };
 
 /*
@@ -131,8 +131,8 @@ with the (so far) lowest total used CPU time.
 */
 class SwitchAlgorithm : public FunVector {
   public:
-    void request(Word, Word&, string);
-    void request(Word, Word, Word&, string);
+    void request(Word, Word&, std::string);
+    void request(Word, Word, Word&, std::string);
 };
 
 /*
@@ -152,8 +152,8 @@ class SelectAlgorithm : public FunVector {
   public:
     SelectAlgorithm();
     void setTestSize(int);
-    void request(Word, Word&, string);
-    void request(Word, Word, Word&, string);
+    void request(Word, Word&, std::string);
+    void request(Word, Word, Word&, std::string);
   private:
     int testSize;
     int selectedFun;

@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "GraphAlgebra.h"
 #include "cmath"
 
-using namespace std; 
 
 /*
 This class contains the nodes for the AVL Tree BinTree for the shortestpath

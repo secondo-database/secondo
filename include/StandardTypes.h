@@ -31,12 +31,13 @@ December 1998 Friedhelm Becker
 2002-2003 U. Telle. Diploma thesis "reimplementation of SECONDO"
 
 Nov. 2004. M. Spiekermann. Modifications in ~CcInt~. Using inline directives
-and avoiding to dereference pointers in the ~Compare~ method improves performance.
+and avoiding to dereference pointers in the ~Compare~ method improves 
+performance.
 
 April 2006. M. Spiekermann. A new struct StdTypes was added. It offers static
 methods for retrieving integer or string arguments from a given Word value.
-Moreover, counters for calls of ~Compare~ and ~HashValue~ are implemented for types
-~CcInt~ and ~CcString~.
+Moreover, counters for calls of ~Compare~ and ~HashValue~ are implemented 
+for types ~CcInt~ and ~CcString~.
 
 May 2006. M. Spiekermann. The implementation of ~Compare~ for ~CcInt~ has been
 changed.  Now first the case that both values are IsDefined is handled and
@@ -90,7 +91,7 @@ by the ~StandardAlgebra~:
 This function removes whitespaces from the start and the end of ~value~.
 
 */
- void trimstring(string& str);
+ void trimstring(std::string& str);
 
 
 
@@ -259,7 +260,7 @@ class CcInt : public Attribute
     return (new CcInt( this->IsDefined(), this->intval ));
   }
 
-  inline ostream& Print( ostream& os ) const
+  inline std::ostream& Print( std::ostream& os ) const
   {
      if ( IsDefined() )
        return (os << intval);
@@ -267,7 +268,7 @@ class CcInt : public Attribute
        return (os << "UNDEFINED");
   }
 
-  inline ostream& operator<<(ostream& os) const
+  inline std::ostream& operator<<(std::ostream& os) const
   {
     return Print(os);
   }
@@ -525,11 +526,11 @@ CcInt operator--(int){
 }
 
 
-  virtual string getCsvStr() const{
+  virtual std::string getCsvStr() const{
     if(!IsDefined()){
        return "-";
     } else {
-       stringstream o;
+       std::stringstream o;
        o << intval;
        return o.str();
     }
@@ -542,27 +543,27 @@ CcInt operator--(int){
   virtual unsigned char getDB3DecimalCount(){ return 0; }
 
 
-  virtual string getDB3String() const {
+  virtual std::string getDB3String() const {
       if(!IsDefined()){
         return "";
       }
-      stringstream s;
+      std::stringstream s;
       s << intval;
       return s.str();
   }
 
-  virtual string getSQLType(){ return "NUMERIC(12)";}
-  virtual string getSQLRepresentation(){
+  virtual std::string getSQLType(){ return "NUMERIC(12)";}
+  virtual std::string getSQLRepresentation(){
     if(!IsDefined()){
       return "NULL";
     }
-    stringstream ss;
+    std::stringstream ss;
     ss << intval;
     return ss.str();
   }
 
 
-  virtual void ReadFromString(string value){
+  virtual void ReadFromString(std::string value){
       trimstring(value);
       if(value.size()==0){
          SetDefined(false);
@@ -570,7 +571,7 @@ CcInt operator--(int){
          if(listutils::isSymbolUndefined(value)){
              SetDefined(false);
          } else {
-            stringstream ss(value);
+            std::stringstream ss(value);
             int v=0;
             ss >> v;
             Set(true,v);
@@ -578,7 +579,7 @@ CcInt operator--(int){
       }
   }
 
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "int";
   }
 
@@ -586,17 +587,17 @@ CcInt operator--(int){
     return listutils::isSymbol(list, BasicType());
   }
 
-  static const string Example(){
+  static const std::string Example(){
     return "5";
   }
   virtual bool hasTextRepresentation() const{
     return true;
   }
-  virtual string toText() const{
+  virtual std::string toText() const{
     return getCsvStr();
   }
 
-  virtual bool fromText(const string& value){
+  virtual bool fromText(const std::string& value){
     ReadFromString(value);
     return IsDefined();
   }
@@ -773,7 +774,9 @@ class CcReal : public Attribute
     return( CompareAlmost(arg) == 0 );
   }
 
-  inline ostream& Print( ostream &os ) const { return (os << realval); }
+  inline std::ostream& Print( std::ostream &os ) const { 
+       return (os << realval);
+  }
 
   static long realsCreated;
   static long realsDeleted;
@@ -859,11 +862,11 @@ class CcReal : public Attribute
 
 
 
-  virtual string getCsvStr() const{
+  virtual std::string getCsvStr() const{
     if(!IsDefined()){
        return "-";
     } else {
-       stringstream o;
+       std::stringstream o;
        o << realval;
        return o.str();
     }
@@ -874,14 +877,14 @@ class CcReal : public Attribute
   virtual unsigned char getDB3Type() const { return 'N'; }
   virtual unsigned char getDB3Length() const { return 15; }
   virtual unsigned char getDB3DecimalCount(){ return 6; }
-  virtual string getDB3String() const {
+  virtual std::string getDB3String() const {
       if(!IsDefined()){
         return "";
       }
-      ostringstream s;
-      s.setf(ios::fixed);
-      s.setf(ios::showpoint);
-      s.setf(ios::left);
+      std::ostringstream s;
+      s.setf(std::ios::fixed);
+      s.setf(std::ios::showpoint);
+      s.setf(std::ios::left);
       s.width(15);
       s.precision(6);
       s << realval;
@@ -889,18 +892,18 @@ class CcReal : public Attribute
       return s.str();
   }
 
-  virtual string getSQLType(){ return "DOUBLE";}
-  virtual string getSQLRepresentation(){
+  virtual std::string getSQLType(){ return "DOUBLE";}
+  virtual std::string getSQLRepresentation(){
     if(!IsDefined()){
       return "NULL";
     }
-    stringstream ss;
+    std::stringstream ss;
     ss << realval;
     return ss.str();
   }
 
 
-  virtual void ReadFromString(string value){
+  virtual void ReadFromString(std::string value){
       trimstring(value);
       if(value.size()==0){
          SetDefined(false);
@@ -908,7 +911,7 @@ class CcReal : public Attribute
          if(listutils::isSymbolUndefined(value)){
             SetDefined(false);
          } else {
-           stringstream ss(value);
+           std::stringstream ss(value);
            double v=0.0;
            ss >> v;
            Set(true,v);
@@ -919,18 +922,18 @@ class CcReal : public Attribute
   virtual bool hasTextRepresentation() const{
     return true;
   }
-  virtual string toText() const{
+  virtual std::string toText() const{
     return getCsvStr();
   }
 
-  virtual bool fromText(const string& value){
+  virtual bool fromText(const std::string& value){
     ReadFromString(value);
     return IsDefined();
   }
 
 
 
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "real";
   }
 
@@ -1047,7 +1050,7 @@ class CcBool : public Attribute
     return 1;
   }
 
-  inline ostream& Print( ostream &os ) const
+  inline std::ostream& Print( std::ostream &os ) const
   {
     if (boolval == true) return (os << "TRUE");
     else return (os << "FALSE");
@@ -1067,7 +1070,7 @@ class CcBool : public Attribute
   static long boolsCreated;
   static long boolsDeleted;
 
-  virtual string getCsvStr() const{
+  virtual std::string getCsvStr() const{
     if(!IsDefined()){
        return "-";
     } else {
@@ -1079,17 +1082,17 @@ class CcBool : public Attribute
   virtual unsigned char getDB3Type() const { return 'L'; }
   virtual unsigned char getDB3Length() const { return 1; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
-  virtual string getDB3String() const {
+  virtual std::string getDB3String() const {
       if(!IsDefined()){
         return "?";
       }
       return boolval?"T":"F";
   }
 
-  virtual void ReadFromString(string value){
+  virtual void ReadFromString(std::string value){
      trimstring(value);
-     string::size_type p = value.find_first_not_of(" \t");
-     if(p==string::npos){
+     std::string::size_type p = value.find_first_not_of(" \t");
+     if(p==std::string::npos){
        SetDefined(false);
      } else {
        if(listutils::isSymbolUndefined(value)){
@@ -1106,8 +1109,8 @@ class CcBool : public Attribute
   }
 
 
-  virtual string getSQLType(){ return "BOOLEAN";}
-  virtual string getSQLRepresentation(){
+  virtual std::string getSQLType(){ return "BOOLEAN";}
+  virtual std::string getSQLRepresentation(){
     if(!IsDefined()){
       return "NULL";
     }
@@ -1119,17 +1122,17 @@ class CcBool : public Attribute
      return true;
   }
 
-  virtual string toText() const{
+  virtual std::string toText() const{
      return getCsvStr();
   }
 
-  virtual bool fromText(const string& value) {
+  virtual bool fromText(const std::string& value) {
      ReadFromString(value);
      return IsDefined();
   }
 
 
-  static const string BasicType(){
+  static const std::string BasicType(){
      return "bool";
   }
 
@@ -1165,7 +1168,7 @@ class CcString : public Attribute
     stringsCreated++;
   }
 
-  inline CcString( const bool d, const string& v ):Attribute(d)
+  inline CcString( const bool d, const std::string& v ):Attribute(d)
   {
     Set(d, v);
     stringsCreated++;
@@ -1209,7 +1212,7 @@ class CcString : public Attribute
 #endif
   }
 
-  inline const string GetValue() const
+  inline const std::string GetValue() const
   {
     return stringval;
   }
@@ -1229,7 +1232,7 @@ class CcString : public Attribute
 #endif
   }
 
-  inline void Set( const bool d, const string& v )
+  inline void Set( const bool d, const std::string& v )
   {
     SetDefined(d);
 #ifndef USE_SERIALIZATION
@@ -1308,14 +1311,14 @@ class CcString : public Attribute
 
   bool Adjacent( const Attribute* arg ) const;
 
-  inline ostream& Print( ostream &os ) const {
+  inline std::ostream& Print( std::ostream &os ) const {
     return (os << "\"" << stringval << "\"");
   }
 
   static long stringsCreated;
   static long stringsDeleted;
 
-  virtual string getCsvStr() const{
+  virtual std::string getCsvStr() const{
     if(!IsDefined()){
        return "-";
     } else {
@@ -1327,14 +1330,14 @@ class CcString : public Attribute
   virtual unsigned char getDB3Type() const { return 'C'; }
   virtual unsigned char getDB3Length() const { return MAX_STRINGSIZE; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
-  virtual string getDB3String() const {
+  virtual std::string getDB3String() const {
       if(!IsDefined()){
         return "";
       }
-      return string(stringval);
+      return std::string(stringval);
   }
 
-  virtual void ReadFromString(string value){
+  virtual void ReadFromString(std::string value){
      if(value.size()>MAX_STRINGSIZE){
         value = value.substr(0,MAX_STRINGSIZE);
      }
@@ -1346,25 +1349,25 @@ class CcString : public Attribute
   }
 
 
-  virtual string getSQLType(){ return "VARCHAR(48)";}
-  virtual string getSQLRepresentation(){
+  virtual std::string getSQLType(){ return "VARCHAR(48)";}
+  virtual std::string getSQLRepresentation(){
     if(!IsDefined()){
       return "NULL";
     }
-    return "'"+ stringutils::replaceAll(string(stringval),"'","\\'") + "'";
+    return "'"+ stringutils::replaceAll(std::string(stringval),"'","\\'") + "'";
   }
 
-  virtual string toText() const{
+  virtual std::string toText() const{
     return getCsvStr();
   }
 
-  virtual bool fromText(const string& value) {
+  virtual bool fromText(const std::string& value) {
      ReadFromString(value);
      return IsDefined();
   }
 
 
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "string";
   }
   static const bool checkType(const ListExpr list){
@@ -1375,7 +1378,7 @@ class CcString : public Attribute
     if(!IsDefined()){
       return;
     }
-    string s = GetValue();
+    std::string s = GetValue();
     stringutils::trim(s);
     Set(true,s);
   }
@@ -1391,7 +1394,7 @@ class CcString : public Attribute
   {
     WriteVar<uint8_t>(stringval.size(), storage, offset);
     WriteVar<bool>(IsDefined(), storage, offset);
-    stringval.copy(&storage[offset], string::npos);
+    stringval.copy(&storage[offset], std::string::npos);
   }
 
   inline virtual void Rebuild(char* state,  size_t sz )
@@ -1413,7 +1416,7 @@ class CcString : public Attribute
 
  private:
 #ifdef USE_SERIALIZATION
-  string   stringval;
+  std::string   stringval;
 #else
   STRING_T stringval;
 #endif
@@ -1444,7 +1447,7 @@ class CcString : public Attribute
     stringsCreated++;
   }
 
-  inline CcString( const bool d, const string& v ) : Attribute(d)
+  inline CcString( const bool d, const std::string& v ) : Attribute(d)
   {
     Set(d, v);
     //cout << "Cc2" << endl;
@@ -1457,7 +1460,7 @@ class CcString : public Attribute
     stringsCreated++;
   }
 
-  explicit inline CcString( const string& v) : Attribute(true)
+  explicit inline CcString( const std::string& v) : Attribute(true)
   {
     Set(true, v);
     //cout << "Cc3" << endl;
@@ -1494,7 +1497,7 @@ class CcString : public Attribute
     return &stringval;
   }
 
-  inline const string GetValue() const
+  inline const std::string GetValue() const
   {
     return stringval;
   }
@@ -1516,7 +1519,7 @@ class CcString : public Attribute
     //cerr << "Set 1: stringval.size = " << size << endl;
   }
 
-  inline void Set( const bool d, const string& v )
+  inline void Set( const bool d, const std::string& v )
   {
     SetDefined( d );
     memset ( stringval, '\0',     MAX_STRINGSIZE+1);
@@ -1580,14 +1583,14 @@ class CcString : public Attribute
 
   bool Adjacent( const Attribute* arg ) const;
 
-  inline ostream& Print( ostream &os ) const {
+  inline std::ostream& Print( std::ostream &os ) const {
     return (os << "\"" << stringval << "\"");
   }
 
   static long stringsCreated;
   static long stringsDeleted;
 
-  virtual string getCsvStr() const{
+  virtual std::string getCsvStr() const{
     if(!IsDefined()){
        return "-";
     } else {
@@ -1599,14 +1602,14 @@ class CcString : public Attribute
   virtual unsigned char getDB3Type() const { return 'C'; }
   virtual unsigned char getDB3Length() const { return MAX_STRINGSIZE; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
-  virtual string getDB3String() const {
+  virtual std::string getDB3String() const {
       if(!IsDefined()){
         return "";
       }
-      return string(stringval);
+      return std::string(stringval);
   }
 
-  virtual void ReadFromString(string value){
+  virtual void ReadFromString(std::string value){
      if(value.size()>MAX_STRINGSIZE){
         value = value.substr(0,MAX_STRINGSIZE);
      }
@@ -1617,25 +1620,25 @@ class CcString : public Attribute
     return true;
   }
 
-  virtual string toText() const{
+  virtual std::string toText() const{
      return getCsvStr();
   }
 
-  virtual bool fromText(const string& value) {
+  virtual bool fromText(const std::string& value) {
     ReadFromString(value);
     return IsDefined();
   }
 
-  virtual string getSQLType(){ return "VARCHAR(48)";}
-  virtual string getSQLRepresentation(){
+  virtual std::string getSQLType(){ return "VARCHAR(48)";}
+  virtual std::string getSQLRepresentation(){
     if(!IsDefined()){
       return "NULL";
     }
-    return "'"+ stringutils::replaceAll(string(stringval),"'","\\'") + "'";
+    return "'"+ stringutils::replaceAll(std::string(stringval),"'","\\'") + "'";
   }
 
 
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "string";
   }
   static const bool checkType(const ListExpr list){
@@ -1647,7 +1650,7 @@ class CcString : public Attribute
     if(!IsDefined()){
       return;
     }
-    string s = GetValue();
+    std::string s = GetValue();
     stringutils::trim(s);
     Set(true,s);
   }
@@ -1718,7 +1721,7 @@ struct StdTypes
   static int GetInt(const Word& w);
   static SEC_STD_REAL GetReal(const Word& w);
   static bool GetBool(const Word& w);
-  static string GetString(const Word& w);
+  static std::string GetString(const Word& w);
 
   static void InitCounters(bool show);
   static void SetCounterValues(bool show);

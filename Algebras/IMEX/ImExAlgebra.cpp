@@ -91,6 +91,9 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
+using namespace std;
+
+
 #define FILE_BUFFER_SIZE 1048576 
 
 

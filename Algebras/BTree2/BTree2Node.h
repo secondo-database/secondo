@@ -404,7 +404,8 @@ This method runs in N log N time.
 
 */
 
-    typename vector<BTreeEntry<KEYTYPE,VALUETYPE>* >::iterator sortedRangeEnd;
+    typename std::vector<BTreeEntry<KEYTYPE,VALUETYPE>* >::iterator 
+            sortedRangeEnd;
 /*
 Point up to which the entries are sorted, the rest of the entry array is then
 supposed to be unsorted. This way, we do not need to sort the whole array but
@@ -554,7 +555,7 @@ Set the left pointer set flag to ~x~.
     SmiRecordFile* extendedKeysFile;  // Extended Keys File
     SmiRecordFile* extendedValuesFile;// Extended Values File
 
-    vector<BTreeEntry<KEYTYPE,VALUETYPE>*> entries;  // Entries
+    std::vector<BTreeEntry<KEYTYPE,VALUETYPE>*> entries;  // Entries
 
     NodeId rightPointer;       // Right pointer 
     NodeId leftPointer;        // Left pointer
@@ -660,7 +661,7 @@ int BTreeNode<KEYTYPE,VALUETYPE>::GetSizeOfEmptyNode()
   return sizeof( bool ) +    // internal
          sizeof( int ) +     // count
          sizeof( NodeId ) +  // rightPointer
-         max(sizeof(NodeId),sizeof(bool));  // leftpointer (for leafs), 
+         std::max(sizeof(NodeId),sizeof(bool));  // leftpointer (for leafs), 
                                             // children are leafs (for internl)
 }
 
@@ -867,7 +868,7 @@ void BTreeNode<KEYTYPE,VALUETYPE>::InsertUnsorted(const KEYTYPE& key,
 template<class KEYTYPE,typename VALUETYPE>
 void BTreeNode<KEYTYPE,VALUETYPE>::checkSort() {
   if (multipleUnsorted) {
-    typename vector<BTreeEntry<KEYTYPE,VALUETYPE>* >::iterator it = 
+    typename std::vector<BTreeEntry<KEYTYPE,VALUETYPE>* >::iterator it = 
               entries.begin() + count;
     std::sort(sortedRangeEnd, it,sortPred);
     std::inplace_merge(entries.begin(),sortedRangeEnd,it,sortPred);

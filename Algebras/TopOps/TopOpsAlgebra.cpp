@@ -104,6 +104,8 @@ extern QueryProcessor* qp;
 
 
 using namespace toprel;
+using namespace std;
+
 namespace topops{
 
 /*

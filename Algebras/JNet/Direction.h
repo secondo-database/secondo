@@ -89,8 +89,8 @@ be defined to be private.
   int Compare(const Direction& indir) const;
   int Compare(const JSide& ls, const JSide& rs)const ;
   size_t Sizeof() const;
-  ostream& Print(ostream& os) const;
-  static const string BasicType();
+  std::ostream& Print(std::ostream& os) const;
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -133,7 +133,7 @@ property definitions for part of Direction representation.
 
 */
 
-static string Example();
+static std::string Example();
 
 /*
 1.1.1.1.1 SameSide
@@ -166,9 +166,8 @@ private:
 
 */
 
-using namespace jnetwork;
 
-ostream& operator<<(ostream& os, const jnetwork::Direction& dir);
+std::ostream& operator<<(std::ostream& os, const jnetwork::Direction& dir);
 
 
 

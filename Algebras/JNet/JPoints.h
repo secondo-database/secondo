@@ -67,7 +67,7 @@ public:
 */
 
   explicit JPoints(const bool defined);
-  JPoints(const string netId, const DbArray<RouteLocation>& rlocList,
+  JPoints(const std::string netId, const DbArray<RouteLocation>& rlocList,
           const bool check = true, const bool issorted = false);
   JPoints(const JPoints& other);
 
@@ -106,9 +106,9 @@ public:
   int NumOfFLOBs() const;
   Flob* GetFLOB(const int i);
   void Destroy();
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
   Attribute::StorageType GetStorageType() const;
-  static const string BasicType();
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -151,7 +151,7 @@ Returns an example of the data type.
 
 */
 
-  static string Example();
+  static std::string Example();
 
 /*
 1.1.1.1 GetNoComponents
@@ -322,9 +322,7 @@ void CheckAndFillLocationList(const DbArray<RouteLocation>* setri,
 
 
 
-using namespace jnetwork;
-
-ostream& operator<<(ostream& os, const jnetwork::JPoints l);
+std::ostream& operator<<(std::ostream& os, const jnetwork::JPoints l);
 
 
 #endif // JPOINTS_H

@@ -20,7 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-April 2006, M. Spiekermann. The file Algebra.h need to be divided into Operators.h. TypeConstructors.h, 
+April 2006, M. Spiekermann. The file Algebra.h need to be divided 
+into Operators.h. TypeConstructors.h, 
 AlgebraClassDef.h and AlgebraInit.h   
 
 */
@@ -30,7 +31,6 @@ AlgebraClassDef.h and AlgebraInit.h
 #define ALGEBRA_INIT_H
 
 #include <string>
-using namespace std;
 
 class QueryProcessor;
 class Algebra;
@@ -61,7 +61,7 @@ struct AlgebraListEntry
   AlgebraListEntry()
     : algebraId( 0 ), algebraName( "" ),
       algebraInit( 0 ), dynlib( 0 ), useAlgebra( false ) {}
-  AlgebraListEntry( const int algId, const string& algName,
+  AlgebraListEntry( const int algId, const std::string& algName,
                     const AlgebraInitFunction algInit,
                     DynamicLibrary* const dynlibInit,
                     const bool algUse )
@@ -69,7 +69,7 @@ struct AlgebraListEntry
       algebraInit( algInit ), dynlib( dynlibInit ), 
       useAlgebra( algUse ) {}
   int                  algebraId;
-  string               algebraName;
+  std::string               algebraName;
   AlgebraInitFunction  algebraInit;
   DynamicLibrary*      dynlib;
   bool                 useAlgebra;
@@ -126,7 +126,8 @@ Initialize##ALGNAME( NestedList* nlRef,\
 /*
 These preprocessor macros allow to easily define all available algebras.
 To start the list the macro "ALGEBRA\_LIST\_START"[4] is used exactly once,
-and the macro "ALGEBRA\_LIST\_END"[4] is used exactly once to terminate the list.
+and the macro "ALGEBRA\_LIST\_END"[4] is used exactly once to 
+terminate the list.
 
 The macros "ALGEBRA\_PROTO\_INCLUDE"[4], "ALGEBRA\_PROTO\_EXCLUDE"[4] and
 "ALGEBRA\_\-PROTO\_DYNAMIC"[4] are used to create prototypes for the algebra

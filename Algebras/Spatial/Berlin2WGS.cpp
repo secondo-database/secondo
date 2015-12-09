@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Berlin2WGS.h"
 
+using namespace std;
+
 /*
 This file is applied to convert BBBike coordinates into WGS84 coordinates.
 

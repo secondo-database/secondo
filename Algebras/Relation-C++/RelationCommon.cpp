@@ -87,6 +87,9 @@ long Tuple::tuplesInMemory = 0;
 
 SmiSize Tuple::extensionLimit = 256;
 
+using namespace std;
+
+
 /*
 These variables are used for tuple statistics.
 

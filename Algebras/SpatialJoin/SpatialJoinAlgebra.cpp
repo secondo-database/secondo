@@ -38,11 +38,17 @@ according to the evaluation result that we got in parallel processing.
 
 #include "SpatialJoinAlgebra.h"
 #include "Symbols.h"
+#include "TupleBuffer2.h"
 
 using namespace std;
+using namespace extrel2;
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
+
+
 
 #define BBox Rectangle
 

@@ -140,7 +140,7 @@ class CellGrid2D: public Attribute{
     int32_t getInvalidCellNo() const;
       // returns an invalid cell number
 
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
 
 
 /*
@@ -160,7 +160,7 @@ class CellGrid2D: public Attribute{
 
     void CopyFrom(const Attribute* other);
 
-    static const string BasicType();
+    static const std::string BasicType();
 
     static const bool checkType(const ListExpr type){
       ListExpr errorInfo = listutils::emptyErrorInfo();
@@ -301,7 +301,7 @@ int32_t getInvalidCellNo() const;
 Print the cell-grid
 
 */
-ostream& Print( ostream &os) const;
+std::ostream& Print( std::ostream &os) const;
 
 
 
@@ -322,7 +322,7 @@ size_t HashValue() const;
 
 void CopyFrom(const Attribute* other);
 
-static const string BasicType();
+static const std::string BasicType();
 
 static const bool checkType(const ListExpr type){
   ListExpr errorInfo = listutils::emptyErrorInfo();
@@ -589,7 +589,7 @@ double CellGrid<dim>::getMaxCoord( int d ) const{
   if ( d == (dim - 1) ){
     return (p0[d] + cw[d] * no_cells[d]);
   }else{
-    return numeric_limits<double>::max();
+    return std::numeric_limits<double>::max();
   }
 }
 
@@ -702,7 +702,7 @@ Print the cell-grid
 
 */
 template<unsigned dim>
-ostream& CellGrid<dim>::Print( ostream &os) const
+std::ostream& CellGrid<dim>::Print( std::ostream &os) const
 {
   if ( !this->IsDefined() ){
     return os<< "(CellGrid" << dim << "D: undefined)";
@@ -790,8 +790,8 @@ void CellGrid<dim>::CopyFrom(const Attribute* other){
 }
 
 template<unsigned dim>
-const string CellGrid<dim>::BasicType(){
-  stringstream ss;
+const std::string CellGrid<dim>::BasicType(){
+  std::stringstream ss;
   ss << "cellgrid" << dim << "d";
   return ss.str();
 }

@@ -75,7 +75,7 @@ public:
 */
 
   SectionInterval& operator=(const SectionInterval& other);
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
 
 private:
   int sectId;
@@ -91,8 +91,8 @@ private:
 
 */
 
-using namespace jnetwork;
-ostream& operator<<(ostream& os, const SectionInterval& si);
+std::ostream& operator<<(std::ostream& os, 
+                         const jnetwork::SectionInterval& si);
 
 
 #endif // SECTIONINTERVAL_H

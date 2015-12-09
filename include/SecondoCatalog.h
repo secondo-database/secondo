@@ -50,16 +50,20 @@ May 15, 1998 RHG Added treatment of models, especially functions
 
 May 2002 Ulrich Telle Port to C++
 
-May 2004 M. Spiekermann. Support for system reserved identifiers and derived objects added.
-The new private member ~sysObjNames~ and the methods ~IsSystemObj~ and ~AddSystemObjName~ were
-introduced. To avoid saving derived objects (for further Information see DerivedObj.h) the
+May 2004 M. Spiekermann. Support for system reserved identifiers and derived
+ objects added.
+The new private member ~sysObjNames~ and the methods ~IsSystemObj~ and
+ ~AddSystemObjName~ were
+introduced. To avoid saving derived objects (for further Information 
+see DerivedObj.h) the
 method ~ListObjectsFull~ was modified.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hybrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-April 2006, M. Spiekermann. New methods ~systemTable~ and ~createRelation~ added.
+April 2006, M. Spiekermann. New methods ~systemTable~ and 
+~createRelation~ added.
 These will be used to check if a given object name is a system table and if a
 relation should be created on the fly by calling ~InObject~.
 
@@ -194,7 +198,7 @@ Inserts a new type with identifier ~typeName~ defined by a list
 if the name was already defined.
 
 */
-  bool InsertType( const string& typeName,
+  bool InsertType( const std::string& typeName,
                    ListExpr typeExpr );
 
 /*
@@ -202,14 +206,14 @@ Deletes a type with identifier ~typename~ in the database. Returns error
 1 if type is used by an object, error 2, if ~typename~ is not known.
 
 */
-  int DeleteType( const string& typeName );
+  int DeleteType( const std::string& typeName );
 
 /*
 Returns "true"[4], if type with name ~typename~ is member of the actually
 open database.
 
 */
-  bool MemberType( const string& typeName );
+  bool MemberType( const std::string& typeName );
 
 /*
 Returns the algebra identifier ~algebraId~ and the type identifier
@@ -220,7 +224,7 @@ return value is set to "false"[4].
 
 */
   bool LookUpTypeExpr( const ListExpr typeExpr,
-                       string& typeName,
+                       std::string& typeName,
                        int& algebraId, int& typeId );
 
 
@@ -241,7 +245,7 @@ if exists.
 *Precondition*: "MemberType( typeName ) == true"[4].
 
 */
-  ListExpr GetTypeExpr( const string& typeName );
+  ListExpr GetTypeExpr( const std::string& typeName );
 
 /*
 Transforms a given type expression into a list structure where each type
@@ -335,8 +339,8 @@ defined, and no memory is allocated. Returns "false"[4], if the object name
 is defined already.
 
 */
-  bool CreateObject( const string& objectName,
-                     const string& typeName,
+  bool CreateObject( const std::string& objectName,
+                     const std::string& typeName,
                      const ListExpr typeExpr,
                      const int sizeOfComponents );
 
@@ -352,8 +356,8 @@ When the given object has no type name, it is mandatory, that ~typeName~
 is an empty string.
 
 */
-  bool InsertObject( const string& objectName,
-                     const string& typeName,
+  bool InsertObject( const std::string& objectName,
+                     const std::string& typeName,
                      const ListExpr typeExpr,
                      const Word valueWord,
                      const bool defined );
@@ -363,7 +367,7 @@ Deletes an object with identifier ~objectName~ in the database. Returns
 "false"[4] if the object does not exist.
 
 */
-  bool DeleteObject( const string& objectName );
+  bool DeleteObject( const std::string& objectName );
 
 
 /*
@@ -374,7 +378,7 @@ entry for the object in the Secondo catalog. It can be used for
 objects in corrupted states that cannot be opened for destruction.
 
 */
-  bool KillObject( const string& objectName );
+  bool KillObject( const std::string& objectName );
 
 /*
 Converts an object of the type given by ~typeExpr~ and the value given
@@ -396,7 +400,7 @@ Returns the value of a locally stored database object with identifier
 user. If the value is undefined, an empty list is returned.
 
 */
-ListExpr GetObjectValue( const string& objectName );
+ListExpr GetObjectValue( const std::string& objectName );
 
 /*
 Returns for a given ~object~ of type ~type~ its value in nested list
@@ -415,43 +419,46 @@ void CloseObject( const ListExpr type,
 Checks whether ~objectName~ is a valid object name.
 
 */
-bool IsObjectName( const string& objectName );
+bool IsObjectName( const std::string& objectName );
 
 /*
 Checks whether ~keywordName~ is a reserved word
 (like 'const', 'query', 'type', 'value' etc.).
 
 */
-bool IsReservedName( const string& keywordName );
+bool IsReservedName( const std::string& keywordName );
 
 
 /*
 Tests whether ~str~ is a valid symbol, i.e. has length 1-48, does contain only
-characters (\[a-z\] | \[A-Z\] |\[0-9\], and the underscore (\_) and starts with a
-letter (\[a-z\] | \[A-Z\]).
+characters (\[a-z\] | \[A-Z\] |\[0-9\], and the underscore (\_) and starts 
+with a letter (\[a-z\] | \[A-Z\]).
 
 */
-bool IsSymbolString(const string& str);
+bool IsSymbolString(const std::string& str);
 
 
 /*
-Tests whether ~str~ is a valid symbol, is not a operator or type name or a reserved
-word (and if ~checkUsedAsObject~ is ~true~, whether the name is not currently registered
+Tests whether ~str~ is a valid symbol, is not a operator or type 
+name or a reserved word (and if ~checkUsedAsObject~ is ~true~, 
+whether the name is not currently registered
 as the name for a database object with the catalog.
 
 */
-bool IsValidIdentifier(const string& str, const bool checkUsedAsObject = false);
+bool IsValidIdentifier(const std::string& str, 
+                       const bool checkUsedAsObject = false);
 
 
 /*
-Tests whether ~str~ is a valid symbol, is not a operator or type name or a reserved
-word (and if ~checkUsedAsObject~ is ~true~, whether the name is not currently registered
+Tests whether ~str~ is a valid symbol, is not a operator or type 
+name or a reserved word (and if ~checkUsedAsObject~ is ~true~, 
+whether the name is not currently registered
 as the name for a database object with the catalog.
 
 Returns a string ~errorMessage~ explaining the cause of the problem.
 
 */
-bool IsValidIdentifier(const string& str, string& errorMessage,
+bool IsValidIdentifier(const std::string& str, std::string& errorMessage,
                        const bool checkUsedAsObject = false);
 
 /*
@@ -462,7 +469,7 @@ Returns the value ~word~ of an object with identifier ~objectName~.
 
 */
 
-bool GetObject( const string& objectName,
+bool GetObject( const std::string& objectName,
                   Word& word, bool& defined );
 
 /*
@@ -475,8 +482,8 @@ procedure returns an empty string as ~typeName~.
 *Precondition*: "IsObjectName(objectName) == true"[4].
 
 */
-  bool GetObjectExpr( const string& objectName,
-                      string& typeName,
+  bool GetObjectExpr( const std::string& objectName,
+                      std::string& typeName,
                       ListExpr& typeExpr,
                       Word& value,
                       bool& defined,
@@ -489,8 +496,8 @@ Returns the type name ~typeName~ of an object with identifier
 *Precondition*: "IsObjectName( objectName ) == true"[4].
 
 */
-  bool GetObjectType( const string& objectName,
-                      string& typeName );
+  bool GetObjectType( const std::string& objectName,
+                      std::string& typeName );
 
 /*
 Returns the type expression of an object with identifier
@@ -499,14 +506,14 @@ Returns the type expression of an object with identifier
 *Precondition*: "IsObjectName( objectName ) == true"[4].
 
 */
-  ListExpr GetObjectTypeExpr( const string& objectName );
+  ListExpr GetObjectTypeExpr( const std::string& objectName );
 
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
 new value ~word~. Returns "false"[4] if object does not exist.
 
 */
-  bool UpdateObject( const string& objectName,
+  bool UpdateObject( const std::string& objectName,
                      const Word word );
 
 /*
@@ -514,7 +521,7 @@ Overwrites the value of the object with identifier ~objectName~ with a
 new value cloned from ~word~. Returns "false"[4] if object does not exist.
 
 */
-  bool CloneObject( const string& objectName,
+  bool CloneObject( const std::string& objectName,
                     const Word word );
 
 /*
@@ -526,7 +533,7 @@ object is only modified, so that no deletion function is necessary.
 
 */
 
-  bool ModifyObject( const string& objectName, const Word word );
+  bool ModifyObject( const std::string& objectName, const Word word );
 /*
 3.2.4 Algebra Type Constructors
 
@@ -571,7 +578,7 @@ Checks whether ~typeName~ is a valid name for an algebra type
 constructor or a database type.
 
 */
-  bool IsTypeName( const string& typeName );
+  bool IsTypeName( const std::string& typeName );
 
 /*
 Returns the algebra identifier ~algebraId~ and the type identifier
@@ -581,7 +588,7 @@ Returns the algebra identifier ~algebraId~ and the type identifier
 *Precondition*: "IsTypeName( typeName ) == true"[4].
 
 */
-  bool GetTypeId( const string& typeName,
+  bool GetTypeId( const std::string& typeName,
                   int& algebraId, int& typeId );
 
 
@@ -595,7 +602,7 @@ set to an empty string.
 
 */
  bool GetTypeId( const ListExpr& typeExpr, int& algebraId, int& typeId, 
-                 string& typeName );
+                 std::string& typeName );
 
 
 /*
@@ -603,7 +610,7 @@ Looks up the name of a type constructor defined by the algebra
 identifier ~algebraId~ and the type identifier ~opId~.
 
 */
-  string GetTypeName( const int algebraId, const int typeId );
+  std::string GetTypeName( const int algebraId, const int typeId );
 
 /*
 Looks up the properties of a type constructor defined by the
@@ -652,7 +659,7 @@ in the following format:
 Checks whether ~opName~ is a valid operator name.
 
 */
-  bool IsOperatorName( const string& opName );
+  bool IsOperatorName( const std::string& opName );
 
 /*
 Returns the algebra identifier ~algebraId~ and the operator identifier
@@ -663,14 +670,15 @@ Returns the algebra identifier ~algebraId~ and the operator identifier
 *Precondition*: "IsOperatorName( opName ) == true"[4].
 
 */
-  ListExpr GetOperatorIds( const string& opName );
+  ListExpr GetOperatorIds( const std::string& opName );
 
 
 /*
-Looks for the name of an operator defined by the algebra identifier ~algebraId~ and the operator ~opId~.
+Looks for the name of an operator defined by the algebra identifier
+ ~algebraId~ and the operator ~opId~.
 
 */
-  string GetOperatorName( const int algebraId,
+  std::string GetOperatorName( const int algebraId,
                           const int opId );
 
 /*
@@ -695,7 +703,7 @@ The function below test if a name is reserved for system use.
   ListExpr GetOperatorSpec( const int algebraId,
                             const int opId );
 
-  inline bool IsSystemObject(const string& s) {
+  inline bool IsSystemObject(const std::string& s) {
     return (GetSystemTable(s) != 0);
   }
 
@@ -704,7 +712,7 @@ The function below test if a name is reserved for system use.
   }
 
  protected:
-  bool TypeUsedByObject( const string& typeName );
+  bool TypeUsedByObject( const std::string& typeName );
  private:
   NestedList*      nl;
   AlgebraManager*  am;
@@ -714,9 +722,9 @@ The function below test if a name is reserved for system use.
     int      algebraId;
     int      entryId;
   };
-  typedef vector<CatalogEntry> CatalogEntrySet;
-  typedef map<string,CatalogEntry> LocalConstructorCatalog;
-  typedef map<string,CatalogEntrySet*> LocalOperatorCatalog;
+  typedef std::vector<CatalogEntry> CatalogEntrySet;
+  typedef std::map<std::string,CatalogEntry> LocalConstructorCatalog;
+  typedef std::map<std::string,CatalogEntrySet*> LocalOperatorCatalog;
   LocalConstructorCatalog constructors;
   LocalOperatorCatalog operators;
 
@@ -726,13 +734,13 @@ The function below test if a name is reserved for system use.
   {
     int        algebraId;
     int        typeId;
-    string     typeExpr;
+    std::string     typeExpr;
     EntryState state;
 
     TypesCatalogEntry() :
       algebraId(0), typeId(0), typeExpr(""), state(Undefined) {}
 
-    ostream& print(ostream& os) const {
+    std::ostream& print(std::ostream& os) const {
       os << "algId  :" << algebraId << endl;
       os << "typId  :" << typeId << endl;
       os << "typExpr:" << typeExpr << endl;
@@ -741,7 +749,7 @@ The function below test if a name is reserved for system use.
     }
 
   };
-  typedef map<string,TypesCatalogEntry> TypesCatalog;
+  typedef std::map<std::string,TypesCatalogEntry> TypesCatalog;
   TypesCatalog types;
   SmiBtreeFile typeCatalogFile;
 
@@ -749,8 +757,8 @@ The function below test if a name is reserved for system use.
   {
     int         algebraId;
     int         typeId;
-    string      typeName;
-    string      typeExpr;
+    std::string      typeName;
+    std::string      typeExpr;
     Word        value;
     bool        valueDefined;
     SmiRecordId valueRecordId;
@@ -761,7 +769,7 @@ The function below test if a name is reserved for system use.
       value(SetWord(Address(0))), valueDefined(false), valueRecordId(0),
       state(Undefined) {}
 
-    ostream& print(ostream& os) const {
+    std::ostream& print(std::ostream& os) const {
       os << "algId       :" << algebraId << endl;
       os << "typId       :" << typeId << endl;
       os << "typName     :" << typeName << endl;
@@ -774,7 +782,7 @@ The function below test if a name is reserved for system use.
     }
   };
 
-  typedef map<string,ObjectsCatalogEntry> ObjectsCatalog;
+  typedef std::map<std::string,ObjectsCatalogEntry> ObjectsCatalog;
   ObjectsCatalog objects;
   SmiBtreeFile   objCatalogFile;
   SmiRecordFile  objValueFile;
@@ -794,10 +802,10 @@ an error it should always be reported to the client.
   bool testMode;
 
   // check if name is a sytem table
-  const SystemInfoRel* GetSystemTable(const string& name) const;
+  const SystemInfoRel* GetSystemTable(const std::string& name) const;
 
   // create a ~trel~ object representing a system table.
-  Word CreateRelation(const string& name);
+  Word CreateRelation(const std::string& name);
 
   friend class SecondoSystem;
 };

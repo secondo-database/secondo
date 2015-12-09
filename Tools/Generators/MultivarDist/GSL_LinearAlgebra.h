@@ -24,7 +24,6 @@ multivariate normal distribution
 
 #include <assert.h>
 
-using namespace std;
 
 class GMatrix;
 

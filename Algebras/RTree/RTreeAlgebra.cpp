@@ -6592,7 +6592,7 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
   }
 
   // Create an instant object for systemTime
-  Instant systemTime(0,0,instanttype);
+  Instant systemTime(0,0,datetime::instanttype);
   systemTime.Now();
   int32_t startTime = systemTime.GetAllMilliSeconds();
 

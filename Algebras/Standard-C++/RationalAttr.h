@@ -95,7 +95,7 @@ class Rational : public Attribute {
         }
     }
 
-    Rational(const string& v) : Attribute(false){
+    Rational(const std::string& v) : Attribute(false){
        ReadFromString(v);
     }
 
@@ -404,7 +404,7 @@ Attribute Support
   }
 
   std::string ToString() const{
-      stringstream ss;
+      std::stringstream ss;
       if(negative && nominator!=0){
         ss << "- ";
       }
@@ -416,7 +416,7 @@ Attribute Support
   }
 
 
-  ostream& Print(ostream &os) const{
+  std::ostream& Print(std::ostream &os) const{
      return os << ToString();
   }
 
@@ -478,7 +478,7 @@ Attribute Support
     return true;
   }
 
-  static const string BasicType(){
+  static const std::string BasicType(){
      return "rational";
   }
 
@@ -500,7 +500,7 @@ Attribute Support
 
 
   // Support for csv import / export
-  virtual void ReadFromString(string value){
+  virtual void ReadFromString(std::string value){
      bool error=false;
      int state = 0;
      char neg=0;
@@ -584,11 +584,11 @@ Attribute Support
      }
   }
 
-  virtual string getCsvStr() const{
+  virtual std::string getCsvStr() const{
      if(!IsDefined()){
         return "undef";
      }
-     stringstream  res1;
+     std::stringstream  res1;
      if(negative!=0){
         res1 << "-";
      }
@@ -642,7 +642,7 @@ Attribute Support
     }    
 
     static ListExpr toListExpr(uint64_t v){
-      if(v< (uint32_t)numeric_limits<int32_t>::max()){
+      if(v< (uint32_t)std::numeric_limits<int32_t>::max()){
          return nl->IntAtom((int32_t) v);
       } 
       return nl->TwoElemList(
@@ -655,7 +655,7 @@ Attribute Support
       if(nl->AtomType(e)!=SymbolType){
          return 0;
       }
-      string s = nl->SymbolValue(e);
+      std::string s = nl->SymbolValue(e);
       if(s=="-"){
          correct = true;
          return 1;

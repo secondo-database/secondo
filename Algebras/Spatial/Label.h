@@ -54,9 +54,9 @@ public:
         memset(text,0,128*sizeof(char));       
     }
 
-    Label(string _text, double _x, double _y, double _d =0):
+    Label(std::string _text, double _x, double _y, double _d =0):
      x(_x), y(_y), d(_d){
-       l = min(128, (int) _text.length());
+       l = std::min(128, (int) _text.length());
        memcpy(text,_text.c_str(),l);
     }
 
@@ -85,17 +85,18 @@ public:
       return *this;
    }
 
-   void set(const string& t, const double x, const double y, const double d){
+   void set(const std::string& t, const double x, 
+            const double y, const double d){
      this->x = x;
      this->y = y;
      this->d = d;
-     l = min(128,(int) t.length());
+     l = std::min(128,(int) t.length());
      memcpy(text,t.c_str(),l);
    }
 
 
-  string getStr() const{
-     string res(text,l);
+  std::string getStr() const{
+     std::string res(text,l);
      return res;
   }
 
@@ -117,7 +118,7 @@ public:
         !listutils::isNumeric(nl->Fourth(LE))) {
         return false;
      }
-     string t = nl->Text2String(nl->First(LE));
+     std::string t = nl->Text2String(nl->First(LE));
      double x = listutils::getNumValue(nl->Second(LE));
      double y = listutils::getNumValue(nl->Third(LE));
      double d = listutils::getNumValue(nl->Fourth(LE));
@@ -125,8 +126,8 @@ public:
      return true;
    }
 
-   string toString() const{
-      stringstream ss;
+   std::string toString() const{
+      std::stringstream ss;
       ss << getStr();
       ss << "(" << x << ", " << y << ", " << d << ")";
       return ss.str();
@@ -192,7 +193,7 @@ public:
 
     size_t Sizeof() const { return sizeof(*this); }
 
-    static const string BasicType(){
+    static const std::string BasicType(){
            return "spatiallabel";
     }
 

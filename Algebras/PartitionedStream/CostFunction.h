@@ -35,39 +35,54 @@ Cost estimation formulas for SECONDO's join operators are hard to develop for
 the following reasons:
 
   * Base relations and itermediate result relations are stored in berkeley-db 
-     record files which are itself organized as B-trees using a record ID as key. The records are of variable length and may be spread over more than one page. In fact, we don't want to take into account the berkeley-db internals. Moreover, for attributes with FLOBs, the FLOB data is stored in a separate record file. 
+    record files which are itself organized as B-trees using a record ID as 
+    key. The records are of variable length and may be spread over more than
+    one page. In fact, we don't want to take into account the berkeley-db 
+    internals. Moreover, for attributes with FLOBs, the FLOB data is stored 
+    in a separate record file. 
 
   * Caching is done at several levels: (i) the operating system caches
-file-data, (ii) berkeley-db uses its own page buffer, (iii) operator implementations
-use tuple buffers.
+    file-data, (ii) berkeley-db uses its own page buffer, (iii) operator
+    implementations use tuple buffers.
 
   * Secondo queries (whose data is less than the computers memory) are highly
-CPU bound. In join predicates for standard attributes we need comparisons
-or to compute hash values but before we can do those operations a pointer to 
-the function must be determined since we use an object oriented approach 
-with polymorphism, e.g. the use of virtual functions, which are known as performance problem, refer to \cite{Veld00}.
+    CPU bound. In join predicates for standard attributes we need comparisons
+    or to compute hash values but before we can do those operations a pointer
+    to the function must be determined since we use an object oriented 
+    approach with polymorphism, e.g. the use of virtual functions, which 
+    are known as performance problem, refer to \cite{Veld00}.
 
 Hence we try to estimate only the asymtotic behaviour of join
-costs based on page accesses and the number of computations which need to be done for the input tuples. If the computer's memory is small compared to the
-input data, the cache will be unimportant and a join method using less page
-accesses should always be better than one using more.
+costs based on page accesses and the number of computations which need to
+be done for the input tuples. If the computer's memory is small compared to
+the input data, the cache will be unimportant and a join method using less
+page accesses should always be better than one using more.
 
 If the intermediate materializations during a join fit into the computer's
 memory many caching effects will happen and the CPU costs must be taken into
 account. 
 
-Currently, we will only consider equi-joins with standard attributes, hence costs for comparing their values or for computing and comparing hash values (probing
-hash-buckets). Basically, a cost formula for a join between relations $A$ and $B$ will look like
+Currently, we will only consider equi-joins with standard attributes,
+hence costs for comparing their values or for computing and comparing i
+hash values (probing hash-buckets). Basically, a cost formula for a join
+between relations $A$ and $B$ will look like
 
 \[
-  cost(cA, cB, tsA, tsB, sel) = W_1 \cdot read(pagesA, pagesB) + W_2 \cdot write(pagesA, pagesB) + W_3 \cdot cpu(cA, cB, sel)
+  cost(cA, cB, tsA, tsB, sel) = W_1 \cdot read(pagesA, pagesB) 
+      + W_2 \cdot write(pagesA, pagesB) + W_3 \cdot cpu(cA, cB, sel)
 \]
 
-where $cA, cB$ are the number of input tuples with average sizes $tsA$ and $tsB$.
-Depending on the page size $pagesA=pages(cA, tsA)$ and $pagesB=pages(cB, tsB)$ will be the
-number of pages which are needed for input $A$ and input $B$. The join selectivity 
-$jsel$ is used to estimate the number of computations. The factors $W_i$  are used
-for weighting the three terms. The fraction between buffer memory and the relation sizes and the complexity of computations (complex join predicates) should be determine the weighting. 
+where $cA, cB$ are the number of input tuples with average sizes 
+$tsA$ and $tsB$.
+Depending on the page size $pagesA=pages(cA, tsA)$ and 
+$pagesB=pages(cB, tsB)$ will be the
+number of pages which are needed for input $A$ and input $B$. 
+The join selectivity 
+$jsel$ is used to estimate the number of computations. 
+The factors $W_i$  are used
+for weighting the three terms. The fraction between buffer memory 
+and the relation sizes and the complexity of computations (complex 
+join predicates) should be determine the weighting. 
 
 
 1 Preliminaries
@@ -124,10 +139,10 @@ struct CostParams {
    
    CostParams( int inA, int in_tsA, 
                int inB, int in_tsB, float inSel ) :
-    cardA( max(inA, 1) ),
-    cardB( max(inB, 1) ),
-    tsA( max(in_tsA, 1) ),
-    tsB( max(in_tsB, 1) ),
+    cardA( std::max(inA, 1) ),
+    cardB( std::max(inB, 1) ),
+    tsA( std::max(in_tsA, 1) ),
+    tsB( std::max(in_tsB, 1) ),
     sel(inSel)
    {
      computeSizes();
@@ -154,7 +169,7 @@ struct CostParams {
    } 
    
 #define VAR(a) #a << "=" << a
-   ostream& print(ostream& os) const
+   std::ostream& print(std::ostream& os) const
    {
      os << "CostParams(" 
         << VAR(cardA) << ", " 
@@ -171,7 +186,7 @@ struct CostParams {
    
 }; 
 
-ostream& operator<<(ostream&, const CostParams&);
+std::ostream& operator<<(std::ostream&, const CostParams&);
 
 struct CostResult {
 
@@ -191,7 +206,7 @@ struct CostResult {
     value = scale * wr()*read + ws()*write + wc()*cpu; 
   }
    
-  ostream& print(ostream& os) const
+  std::ostream& print(std::ostream& os) const
   {
     os << "(" << VAR(read) << ", " 
                    << VAR(write) << ", " 
@@ -202,7 +217,7 @@ struct CostResult {
 
 }; 
 
-ostream& operator<<(ostream& os, const CostResult&);
+std::ostream& operator<<(std::ostream& os, const CostResult&);
 
 /*
 The base class ~CostFunction~. A cost function must inherit this class
@@ -213,12 +228,12 @@ and implement the ~read~,  ~write~ and ~cpu~ function.
 class CostFunction {
 
   public:  
-    const string name;
+    const std::string name;
     const int index;
     int maxMem;
     float scale;
 
-  CostFunction( const string& inName, int inIndex, float inScale=1.0) :
+  CostFunction( const std::string& inName, int inIndex, float inScale=1.0) :
     name(inName),
     index(inIndex),
     scale(inScale)
@@ -234,7 +249,7 @@ class CostFunction {
     CostResult r;
     costs(p, r.read, r.write, r.cpu);
     r.weightResult(scale);
-    const string prefix="PSA::Cost1_"+name;
+    const std::string prefix="PSA::Cost1_"+name;
     Counter::getRef(prefix+"_read") = r.read;
     Counter::getRef(prefix+"_write") = r.write;
     Counter::getRef(prefix+"_cpu") = r.cpu;
@@ -253,7 +268,7 @@ interchanged.
     s.swap();
     costs(s, r.read, r.write, r.cpu);
     r.weightResult(scale);
-    const string prefix="PSA::Cost2_"+name;
+    const std::string prefix="PSA::Cost2_"+name;
     Counter::getRef(prefix+"_read") = r.read;
     Counter::getRef(prefix+"_write") = r.write;
     Counter::getRef(prefix+"_cpu") = r.cpu;
@@ -261,9 +276,9 @@ interchanged.
   } 
 
   
-  const string& getName() { return name; } 
+  const std::string& getName() { return name; } 
   
-  double log2(double x) { return max(log(x)/log(2.0), 0.0); }
+  double log2(double x) { return std::max(log(x)/log(2.0), 0.0); }
   
 };
 
@@ -285,13 +300,14 @@ class HashJoinCost : private CostFunction
     
     // average number of tuples in buckets
     const int buckets=9997;
-    int bufferedTuplesB = min(bufferB / p.tsB, p.cardB);
+    int bufferedTuplesB = std::min(bufferB / p.tsB, p.cardB);
 
     // we assume that 5% of the buckets will not be hit. Moreover, we assume
     // that the buckets are not equally filled. Hence we reduce the average
     // length by 50%. 
 
-    float avgHashChainB = max(1.0, (0.5 * bufferedTuplesB) / (0.95 * buckets));
+    float avgHashChainB = std::max(1.0, (0.5 * bufferedTuplesB) 
+                                         / (0.95 * buckets));
     
     // If B does not fit A will be flushed to disk and read
     // multiple times while B is scanned only once. The 
@@ -409,12 +425,14 @@ have more tuples with the same value for the join attribute as could be
 buffered. But this is hard to predict since we know nothing about the
 distribution of attribute values for the input tuples.
 
-The only information which is helpful is the join selectivity $sel$. Together with
+The only information which is helpful is the join selectivity $sel$.
+ Together with
 the input cardinalities the average group size of results may be estimated by
 \[
   avgGrpSize = \frac{sel \cdot A \cdot B}{\max(A, B)} 
 \]
-If this value is bigger than the buffer size we suggest that in 50% of the result
+If this value is bigger than the buffer size we suggest that in 50% of 
+the result
 group computation an extra materialization is needed.
 
 */
@@ -466,7 +484,7 @@ class SortMergeJoinCost : private CostFunction
     // we assume uniform distribution of join attribute values, hence
     // every group of joining tuples will have the following average
     // charcteristics
-    int avgGrpTuples = max( resultCard / max(p.cardA, p.cardB), 1);
+    int avgGrpTuples = std::max( resultCard / std::max(p.cardA, p.cardB), 1);
     int groups = resultCard / avgGrpTuples;
     
     int avgTupSize = (p.tsA + p.tsB) / 2;
@@ -476,7 +494,8 @@ class SortMergeJoinCost : private CostFunction
     // Next we derive a factor for groups which need to be merged on disk.
     // If avgGrpBytes > maxMem 50% of the groups are assumed to need
     // extra materialization.
-    double grpsOnDisk = max( 0.5 * (((2.0 * avgGrpBytes) / maxMem) - 1), 0.0);
+    double grpsOnDisk = std::max( 0.5 * (((2.0 * avgGrpBytes) / maxMem) - 1), 
+                                  0.0);
 
     SHOW(avgGrpTuples)
     SHOW(groups)
@@ -494,7 +513,8 @@ class SortMergeJoinCost : private CostFunction
 /*
 When a join is computed by a pipeline of the ~product~ and ~filter~ operator
 the right input is read into memory and flushed to disk if necessary. Hence the
-factor $z = min(sizeB/maxMem,1) \in {0,1}$ is important for the number of read and write operations.
+factor $z = min(sizeB/maxMem,1) \in {0,1}$ is important for the number of 
+read and write operations.
 The costs are given by
 
 \[
@@ -503,8 +523,10 @@ The costs are given by
   cpu = cA * cB
 \]
 
-Note: The performance of the operator product may be improved if as many tuples of input $A$ 
-which fit on a single page are read into memory. Currently, it may happen that pages of $A$ need
+Note: The performance of the operator product may be improved if as many
+ tuples of input $A$ 
+which fit on a single page are read into memory. Currently, it may happen
+ that pages of $A$ need
 to be fetched multiple times when $B$ is bigger than the page buffer.
 
 */
@@ -528,9 +550,11 @@ class ProductFilterCost : private CostFunction
 };
 
 /*
-The index loopjoin will run ~cardA~ times an exactmatch query retrieving matching tuples.
+The index loopjoin will run ~cardA~ times an exactmatch query retrieving
+ matching tuples.
 In order to retrieve the tuples it gets them from a B-tree which stores pairs of
-attribute values and tuple ID. These tuple IDs are used to get the tuples from its
+attribute values and tuple ID. These tuple IDs are used to get the tuples 
+from its
 berkeley-db file by random access. A factor $m = sel * cardB$ defines how
 many matches are returned. In the worst case every matching tuple needs a page
 access to load the page where it is stored. The buffer hit ratio is defined as
@@ -559,12 +583,12 @@ class IndexLoopJoinCost : private CostFunction
      static const int bufferPages = 4 * 1024 * 1024 / pageSize;
      
      const double avgMatches = p.sel * p.cardB;
-     const double hitRatio = min( (bufferPages * 1.0 / p.pagesB), 1.0 );
+     const double hitRatio = std::min( (bufferPages * 1.0 / p.pagesB), 1.0 );
      SHOW(avgMatches)
      SHOW(hitRatio) 
      
      const int readBtree = p.cardA * 20 / pageSize;
-     const int readMatches1 = min( (int)ceil(avgMatches), p.pagesB );
+     const int readMatches1 = std::min( (int)ceil(avgMatches), p.pagesB );
      const int readMatches2 = 
                   (int)ceil( p.cardA * (1.0 - hitRatio) * avgMatches );
      SHOW(readBtree)
@@ -598,7 +622,7 @@ struct CostInfo
     return costs.value < rhs.costs.value; 
   }  
   
-  ostream& print(ostream& os) const
+  std::ostream& print(std::ostream& os) const
   { 
     os << cf->name << "[ " 
        << VAR(costs) << ", " 
@@ -608,12 +632,12 @@ struct CostInfo
  
 }; 
 
-ostream& operator<<(ostream&, const CostInfo&);
+std::ostream& operator<<(std::ostream&, const CostInfo&);
 
 
 class CostFunctions {
 
-  typedef vector<CostFunction*> CostFunVec;
+  typedef std::vector<CostFunction*> CostFunVec;
  
   private:
     CostFunVec cfv;
@@ -629,7 +653,7 @@ class CostFunctions {
     } 
   } 
 
-  bool append(const string& name, int index)
+  bool append(const std::string& name, int index)
   {
     if (name == "hj") {
       cfv.push_back( (CostFunction*) new HashJoinCost(index) );
@@ -663,7 +687,7 @@ class CostFunctions {
   const CostInfo findBest(const CostParams& p, bool withRolesReversed = false) 
   {
     
-    typedef vector<CostInfo> CostInfoVec; 
+    typedef std::vector<CostInfo> CostInfoVec; 
    
     CostInfoVec civ;
     CostFunVec::const_iterator it;
@@ -696,7 +720,8 @@ class CostFunctions {
 
 \bibitem[Veld00]{Veld00} 
 Todd Veldhuizen, Techniques for Scientific C++,
-Indiana University Computer Science Technical Report \verb!#!542, 2000. URL: \verb+http://osl.iu.edu/[~]tveldhui+.
+Indiana University Computer Science Technical Report
+ \verb!#!542, 2000. URL: \verb+http://osl.iu.edu/[~]tveldhui+.
 
 \end{thebibliography}
 

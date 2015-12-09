@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include "TemporalAlgebra.h"
 
-using namespace std;
 
 namespace raster2
 {
@@ -163,7 +162,7 @@ const undefined value for type string
 
 */
 
-extern const string UNDEFINED_STRING;
+extern const std::string UNDEFINED_STRING;
 
 /*
 const undefined string index value

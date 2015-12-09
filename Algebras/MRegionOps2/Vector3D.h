@@ -52,7 +52,6 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include <gmpxx.h>
 #include <iostream>
 
-using namespace std;
 
 namespace temporalalgebra {
 namespace mregionops2 {

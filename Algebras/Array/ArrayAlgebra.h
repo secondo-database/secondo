@@ -45,7 +45,7 @@ class Array
     Word getElement(int);
     void setElement(int, Word);
 
-    static const string BasicType() { return "array"; }
+    static const std::string BasicType() { return "array"; }
     static const bool checkType(const ListExpr list){
        bool implemented = false;
        assert(implemented);

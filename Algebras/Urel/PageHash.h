@@ -89,8 +89,6 @@ an exist entry in this bucket.
 #define TRACE_ON
 #include "LogMsg.h"
 
-using namespace std;
-
 typedef u_int32_t Oid_t;
 typedef db_pgno_t PageNo_t;
 

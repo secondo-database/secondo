@@ -47,12 +47,12 @@ class BinaryFile : public Attribute
     inline int Compare(const Attribute * arg) const;
     inline bool Adjacent(const Attribute * arg) const;
     BinaryFile* Clone() const;
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
     inline int NumOfFLOBs() const;
     inline Flob *GetFLOB(const int i);
 
-    void Encode( string& textBytes ) const;
-    void Decode( const string& textBytes );
+    void Encode( std::string& textBytes ) const;
+    void Decode( const std::string& textBytes );
     bool SaveToFile( const char *fileName ) const;
 
     int GetSize() const;
@@ -62,7 +62,7 @@ class BinaryFile : public Attribute
 
     static void* Cast(void* addr);
 
-    static const string BasicType() { return "binfile";}
+    static const std::string BasicType() { return "binfile";}
 
     static const bool checkType(const ListExpr list){
       return listutils::isSymbol(list, BasicType());
@@ -81,6 +81,6 @@ This constructor should not be used.
 };
 
 namespace FilePath {
-  const string BasicType();
+  const std::string BasicType();
 }
 #endif

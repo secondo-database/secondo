@@ -33,7 +33,7 @@ namespace raster2
     valFun<int, istype_helper<int> >,
     valFun<double, istype_helper<double> >,
     valFun<char, istype_helper<char> >,
-    valFun<string, istype_helper<string> >,
+    valFun<std::string, istype_helper<std::string> >,
     0
   };
 

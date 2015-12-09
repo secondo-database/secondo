@@ -260,7 +260,7 @@ Appends the tuples, the Ids of which are saved in tupleIds, to nrel.
         
         static void* Cast(void* addr);
 
-        static const string BasicType(){
+        static const std::string BasicType(){
              return "arel";
         }
         
@@ -330,7 +330,7 @@ an nrel-type.
 struct SubRelation
 {
        
-       SubRelation(Relation* ptr, const string n, SmiFileId id, 
+       SubRelation(Relation* ptr, const std::string n, SmiFileId id, 
                                 ListExpr tI):
                              name(n),
                              typeInfo(tI),
@@ -342,7 +342,7 @@ struct SubRelation
        {     
        }
               
-       string name;
+       std::string name;
        
        ListExpr typeInfo;
            
@@ -370,7 +370,7 @@ from the meta-data passed in typeInfo
 */
 
           NestedRelation( ListExpr typeInfo, Relation* ptr, 
-                          vector<SubRelation*>& sR );
+                          std::vector<SubRelation*>& sR );
 /*
 The second constructor, used in the Open-function.
           
@@ -422,21 +422,21 @@ relation which is to be used for saving tuples.
           
 */
           
-          SubRelation* getSubRel(string name);
+          SubRelation* getSubRel(std::string name);
 /*
 returns a pointer to the Subrelation with Name name, if such a Relation exists,
 nil otherwise.
           
 */
           
-          static int getTypeId(int algId, string typeName);
+          static int getTypeId(int algId, std::string typeName);
 /*
 returns the typeId of the type with name typeName from algebra with
 id algId
           
 */
       
-          static bool namesUnique(ListExpr type, string& s);
+          static bool namesUnique(ListExpr type, std::string& s);
 /*
 Returns true, if all attribute names in the type are unique, false
 otherwise.
@@ -450,14 +450,14 @@ attribute names are unique.
           
 */
             
-          static bool saveString (string& s, SmiRecord& valueRecord, 
+          static bool saveString (std::string& s, SmiRecord& valueRecord, 
                                  size_t& offset);
 /*
 Auxiliary function for saving an instance of NestedRelation.
           
 */
       
-          static bool readString (string& s, SmiRecord& valueRecord, 
+          static bool readString (std::string& s, SmiRecord& valueRecord, 
                                  size_t& offset);
 /*
 Auxiliary function for opening an instance of NestedRelation.
@@ -487,7 +487,7 @@ Used to clone a nested relation
           
 */
           
-          vector<SubRelation*>* getSubRels();
+          std::vector<SubRelation*>* getSubRels();
 /*
 Returns a pointer to subrels.
           
@@ -542,7 +542,7 @@ Converts nested tuples to the normal tuple
                             
           static bool     KindCheck( ListExpr type, ListExpr& errorInfo ); 
 
-          static const string BasicType(){
+          static const std::string BasicType(){
               return "nrel";
           }
 
@@ -554,7 +554,7 @@ Converts nested tuples to the normal tuple
           
    private:
         Relation* primary;
-        vector<SubRelation*> subRels;
+        std::vector<SubRelation*> subRels;
         ListExpr tupleTypeInfo;
         ListExpr primaryTypeInfo;
 };

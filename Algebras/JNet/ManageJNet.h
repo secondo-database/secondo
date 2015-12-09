@@ -40,7 +40,7 @@ class ManageJNet {
 
 public:
 
-  static JNetwork* GetNetwork(const string id);
+  static JNetwork* GetNetwork(const std::string id);
   static void CloseNetwork(JNetwork* jnet);
 
 };

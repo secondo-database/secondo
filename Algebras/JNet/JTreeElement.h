@@ -80,7 +80,7 @@ void SetRightSon(const int i);
 */
 
 JTreeElement<TreeElem>& operator= (const JTreeElement<TreeElem>& nelem);
-ostream& Print(ostream&) const;
+std::ostream& Print(std::ostream&) const;
 int Compare(const JTreeElement<TreeElem>& other) const;
 int Compare(const TreeElem& other) const;
 
@@ -190,7 +190,7 @@ JTreeElement<TreeElem>& JTreeElement<TreeElem>::operator= (
 }
 
 template<class TreeElem>
-ostream& JTreeElement<TreeElem>::Print(ostream& os) const
+std::ostream& JTreeElement<TreeElem>::Print(std::ostream& os) const
 {
  os << "JTreeElement: " << value
     << ", left son: " << left
@@ -216,10 +216,10 @@ int JTreeElement<TreeElem>::Compare(const TreeElem& other) const
 
 */
 
-using namespace jnetwork;
 
 template <class TreeElem>
-ostream& operator<< (ostream& os, const jnetwork::JTreeElement<TreeElem>& elem)
+std::ostream& operator<< (std::ostream& os, 
+                          const jnetwork::JTreeElement<TreeElem>& elem)
 {
   elem.Print(os);
   return os;

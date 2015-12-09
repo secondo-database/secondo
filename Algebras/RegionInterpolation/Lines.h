@@ -7,7 +7,6 @@
 #ifndef LINEWA_H_
 #define LINEWA_H_
 
-using namespace std;
 
 namespace RegionInterpol
 {

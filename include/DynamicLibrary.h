@@ -124,7 +124,6 @@ system specific mechanisms to load libraries at runtime.
 
 #include<string>
 
-using namespace std;
 
 class SDB_EXPORT DynamicLibrary
 {
@@ -142,7 +141,7 @@ Destroys an instance of ~DynamicLibrary~
 The method ~Unload~ is call implicitly.
 
 */
-  bool Load( const string& libraryName );
+  bool Load( const std::string& libraryName );
 /*
 Loads a dynamic library ~libraryName~ into a process while it is
 running (dynamic linking).
@@ -164,19 +163,19 @@ message.
 Returns "true"[4] if a dynamic library is currently loaded into the process.
 
 */
-  string GetLibraryName() const;
+  std::string GetLibraryName() const;
 /*
 Returns the name of the currently loaded dynamic library.
 An empty string is returned when no library is loaded.
 
 */
-  void* GetFunctionAddress( const string& functionName );
+  void* GetFunctionAddress( const std::string& functionName );
 /*
 Finds the function named ~functionName~ and returns a function pointer to it.
 If the function cannot be found, a null pointer is returned.
 
 */
-  string GetLastErrorMessage();
+  std::string GetLastErrorMessage();
 /*
 Returns the error message text of the last failed class method.
 An empty string is returned when no error occurred.
@@ -189,8 +188,8 @@ The internal message buffer is emptied.
 #else
   void* libraryHandle;
 #endif
-  string libName;       // Name of currently loaded library
-  string errorMessage;  // Error message text
+  std::string libName;       // Name of currently loaded library
+  std::string errorMessage;  // Error message text
  private:
   void SetErrorMessage();
 /*

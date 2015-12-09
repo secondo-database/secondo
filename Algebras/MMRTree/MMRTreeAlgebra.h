@@ -68,7 +68,7 @@ for tuples but not for the tree.
 This function formats  a byte value as a human readable value.
 
 */
-string  hMem(size_t mem);
+std::string  hMem(size_t mem);
 
 
 /*
@@ -217,7 +217,7 @@ Returns the next result tuple or 0 if no more tuples are available.
             }
          }
 
-         pair<Rectangle<minDim>,TupleId> p1 = lastRes.back();
+         std::pair<Rectangle<minDim>,TupleId> p1 = lastRes.back();
          lastRes.pop_back();
          Tuple*result = new Tuple(tt);
          Tuple* t1 = tb->GetTuple(p1.second);
@@ -231,7 +231,7 @@ Returns the next result tuple or 0 if no more tuples are available.
       Stream<Tuple> s2;
       int i2;
       TupleType* tt;
-      vector<pair<Rectangle<minDim>,TupleId> > lastRes;
+      std::vector<std::pair<Rectangle<minDim>,TupleId> > lastRes;
       Tuple* currentTuple;
       TupleStore* tb;
 
@@ -345,7 +345,7 @@ The parameters are:
          s2.close();
          
          tt->DeleteIfAllowed();
-         vector<Tuple*>::iterator it;
+         std::vector<Tuple*>::iterator it;
          for(it=vec.begin(); it!=vec.end(); it++){
             (*it)->DeleteIfAllowed();
          }
@@ -388,7 +388,7 @@ Returns the next result tuple or 0 if no more tuples are available.
             }
          }
 
-         pair<Rectangle<minDim>,TupleId> p1 = lastRes.back();
+         std::pair<Rectangle<minDim>,TupleId> p1 = lastRes.back();
          lastRes.pop_back();
          Tuple*result = new Tuple(tt);
          Tuple* t1 = vec[p1.second];
@@ -401,9 +401,9 @@ Returns the next result tuple or 0 if no more tuples are available.
       Stream<Tuple> s2;
       int i2;
       TupleType* tt;
-      vector<pair<Rectangle<minDim>,TupleId> > lastRes;
+      std::vector<std::pair<Rectangle<minDim>,TupleId> > lastRes;
       Tuple* currentTuple;
-      vector<Tuple*> vec;
+      std::vector<Tuple*> vec;
 
 
      void init(Stream<Tuple>& s1, int _i1, size_t maxMem){

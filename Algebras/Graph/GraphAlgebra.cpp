@@ -89,6 +89,9 @@ in SECONDO to get more informations about these operators.
 #include "Symbols.h"
 #include "PlaceNodesHelper.h"
 
+
+using namespace std;
+
 /*
 4 Creating Operators
 

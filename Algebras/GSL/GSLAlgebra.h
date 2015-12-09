@@ -48,7 +48,6 @@ Secondo user.
 #ifndef GSL_ALGEBRA_H
 #define GSL_ALGEBRA_H
 
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -115,7 +114,7 @@ class GslRandomgen //: public Attribute
     static long rngType_getNoOfGenerators();
     static unsigned long rngType_getMinRand(const int index);
     static unsigned long rngType_getMaxRand(const int index);
-    static string rngType_getName(const int index);
+    static std::string rngType_getName(const int index);
 
   private:
     bool defined;

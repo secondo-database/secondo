@@ -55,9 +55,6 @@ namespace temporalalgebra{
 
 namespace temporalnet2 {
 
-using namespace datetime;
-using namespace network2;
-
 
 /*
 2 class MGPSecUnit

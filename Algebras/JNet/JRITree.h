@@ -79,7 +79,7 @@ void Destroy();
 
 */
 
-ostream& Print(ostream&os) const;
+std::ostream& Print(std::ostream&os) const;
 
 /*
 1.1.1 Insert
@@ -154,7 +154,7 @@ bool IsEmpty() const;
 
 */
 
-ostream& operator<<(ostream& os, const jnetwork::JRITree& in);
+std::ostream& operator<<(std::ostream& os, const jnetwork::JRITree& in);
 
 
 

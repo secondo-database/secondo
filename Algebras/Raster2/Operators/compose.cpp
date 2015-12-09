@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../msreal.h"
 #include "../msstring.h"
 
+using namespace datetime;
+using namespace std;
+
 namespace raster2 {
 
 

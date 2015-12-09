@@ -51,7 +51,6 @@ the result.
 
 #endif /*STATISTIC_H_*/
 
-using namespace std;
 namespace temporalalgebra {
 
 namespace mregionops {

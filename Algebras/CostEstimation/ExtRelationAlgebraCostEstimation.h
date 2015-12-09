@@ -361,8 +361,8 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const double selectivity,
                       const double memoryMB, double &costs) const{
 
-         cerr << __PRETTY_FUNCTION__ << endl
-              << "TODO: use of noAttributes and selectivity" << endl;
+         std::cerr << __PRETTY_FUNCTION__ << std::endl
+              << "TODO: use of noAttributes and selectivity" << std::endl;
 
         // millisecs per tuple pair (0.2)
         static const double uSymmJoin =
@@ -440,7 +440,7 @@ double calculateSufficientMemory(size_t NoTuples1,
     + NoTuples2 * sizeOfTuple2) / (1024 * 1024));
 
   // At least 16 mb are required
-  return max(16.0, suffMemory);
+  return std::max(16.0, suffMemory);
 }
 
 /*
@@ -718,8 +718,8 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const double selectivity,
                       const double memoryMB, double &costs) const{
 
-   cerr << __PRETTY_FUNCTION__ << endl
-        << "TODO: use of noAttributes and selectivity" << endl;
+   std::cerr << __PRETTY_FUNCTION__ << std::endl
+        << "TODO: use of noAttributes and selectivity" << std::endl;
 
    // Cost Estimation is only implemented for mergejoin
    if ( expectSorted ) {

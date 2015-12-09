@@ -233,8 +233,9 @@ The output depends on the type of this DateTime as well as the argument.
 /*
 ~ReadFrom~
 
-This function reads the value of this DateTime instance from the argument {\tt LE}.
-The possible formats are described in {\tt STFormat}, which can be found in
+This function reads the value of this DateTime instance from the 
+argument {\tt LE}.  The possible formats are described in
+ {\tt STFormat}, which can be found in
 the {\tt document} directory of {\textsc{SECONDO}}.
 
 */
@@ -257,7 +258,7 @@ day$\mid\mid$millisecond.
 
 
 */
-    string ToString(const bool sql92conform = false) const;
+    std::string ToString(const bool sql92conform = false) const;
 
 /*
 ~SetType~
@@ -278,7 +279,7 @@ This function reads the value of this DateTime from the argument.
 This function is only defined for instants.
 
 */
-     bool ReadFrom(const string Time);
+     bool ReadFrom(const std::string Time);
 
 /*
 ~ReadFromString~
@@ -287,7 +288,7 @@ This function just calls ~ReadFrom~(__string__). Its added for
 the CSV import.
 
 */
-   virtual void ReadFromString(string time){
+   virtual void ReadFromString(std::string time){
         if(!ReadFrom(time)){
           SetDefined(false);
         }
@@ -312,7 +313,7 @@ be given. If the hour is given, also the minute must be given. If Milliseconds
 are specified, all other components must also be given.
 
 */
-   bool readFrom(const string& value, const string& format);
+   bool readFrom(const std::string& value, const std::string& format);
 
 
 
@@ -618,7 +619,7 @@ an attribute of a relation.
      void ReadFrom( const char *src );
      SmiSize SizeOfChars() const;
 
-     ostream& Print(ostream &os) const;
+     std::ostream& Print(std::ostream &os) const;
 
 /*
 ~WriteToSmiRecord~
@@ -650,7 +651,7 @@ delta in [0,1].
   bool Split(const double delta, DateTime& Rest);
 
 
-  virtual string getCsvStr() const {
+  virtual std::string getCsvStr() const {
      return ToString(true); // create sql92 compatible output for instant
   }
 
@@ -658,9 +659,9 @@ delta in [0,1].
   virtual unsigned char getDB3Type() const { return 'C'; }
   virtual unsigned char getDB3Length() const { return 30; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
-  virtual string getDB3String() const { return ToString(); }
+  virtual std::string getDB3String() const { return ToString(); }
 
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "instant";
   }
 
@@ -740,7 +741,7 @@ ListExpr OutDateTime( ListExpr typeInfo, Word value );
 
 */
 
-ostream& operator<<(ostream& o, const datetime::DateTime& DT);
+std::ostream& operator<<(std::ostream& o, const datetime::DateTime& DT);
 
 
 /*
@@ -749,7 +750,7 @@ Type name for Duration type in Secondo
 */
 class Duration{
   public:
-    static const string BasicType() {return "duration"; }
+    static const std::string BasicType() {return "duration"; }
     static const bool checkType(const ListExpr list){
        return listutils::isSymbol(list, BasicType());
     }

@@ -92,7 +92,7 @@ class SuffixTree : public Attribute
       const ListExpr typeInfo, Word& value); 
     static int SizeOfSuffixTree();
 
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
     int NumOfFLOBs() const;
     Flob *GetFLOB(const int i);
     SuffixTreeVertex *GetInMemoryTree();
@@ -115,7 +115,7 @@ The following function defines the name of the type constructor,
 resp. the name Secondo uses for this type.
 
 */
-    static const string BasicType() 
+    static const std::string BasicType() 
     { 
       return "suffixtree";
     }
@@ -158,7 +158,7 @@ This constructor should not be used.
 
 struct CslLocalData
 {
-  queue<int> *posQueue;
+  std::queue<int> *posQueue;
   TupleType *tupleType;
 };
 

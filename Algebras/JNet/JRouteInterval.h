@@ -148,8 +148,8 @@ route interval on the road.
   int Compare(const JRouteInterval& rhs) const;
   int Compare(const RouteLocation& rloc ) const;
   size_t Sizeof() const;
-  ostream& Print(ostream& os) const;
-  static const string BasicType();
+  std::ostream& Print(std::ostream& os) const;
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -193,7 +193,7 @@ property definitions for part of ~JRouteInterval~ representation.
 
 */
 
-static string Example();
+static std::string Example();
 
 /*
 1.1.1.1 SameSide
@@ -318,8 +318,7 @@ compressing the JRouteInterval sets in the JLine data type. Using JRITree.
 
 */
 
-using namespace jnetwork;
-ostream& operator<<(ostream& os, const jnetwork::JRouteInterval& jir);
+std::ostream& operator<<(std::ostream& os, const jnetwork::JRouteInterval& jir);
 
 
 #endif // JROUTEINTERVAL_H

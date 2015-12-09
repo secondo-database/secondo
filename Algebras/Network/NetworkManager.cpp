@@ -45,6 +45,7 @@ Defines, includes, and constants
 extern NestedList* nl;
 
 using namespace network;
+using namespace std;
 
 void InitNetList(map<int,string> *netList)
 {

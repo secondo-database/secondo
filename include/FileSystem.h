@@ -77,8 +77,6 @@ The class ~SmiEnvironment~ provides the following methods:
 #include <string>
 #include <vector>
 
-using namespace std;
-
 #ifdef SECONDO_WIN32
 #include <windef.h>
 typedef DWORD FileAttributes;
@@ -92,14 +90,14 @@ Is the type for the file attributes for a specific file.
 One has to keep this in mind when implementing portable applications.
 
 */
-typedef vector<string> FilenameList;
+typedef std::vector<std::string> FilenameList;
 /*
 Is the type for a collection of filenames found by a File Search.
 
 */
 typedef bool (*FileSearchCallbackFunc)
-          ( const string& absolutePath,
-            const string& fileName,
+          ( const std::string& absolutePath,
+            const std::string& fileName,
             FileAttributes attribs );
 /*
 Is the type of user-supplied functions for filename filtering. The
@@ -123,25 +121,26 @@ members. Since the constructor is private the class cannot be instantiated.
 class FileSystem
 {
  public:
-  static string GetCurrentFolder();
+  static std::string GetCurrentFolder();
 /*
 Returns the current folder (directory).
 
 */
-  static string GetParentFolder( const string& folder, int level = 1 );
+  static std::string GetParentFolder( const std::string& folder,
+                                      int level = 1 );
 /*
 Returns the parent of directory ~folder~. The optional second parameter
 indicates the number of levels to go upwards.
 
 */
 
-  static bool SetCurrentFolder( const string& folder );
+  static bool SetCurrentFolder( const std::string& folder );
 /*
 Sets the current folder (directory) to ~folder~.
 The function returns "true"[4], if the current folder could be set.
 
 */
-  static bool CreateFolder( const string& folder );
+  static bool CreateFolder( const std::string& folder );
 
 /*
 Creates the folder (directory) located at ~folder~.
@@ -149,7 +148,7 @@ The function returns "true"[4], if the folder could be created.
 
 */
 
-  static bool CreateFolderEx(string folder);
+  static bool CreateFolderEx(std::string folder);
 
 /*
 Creates the folger located at ~folder~ and necessary
@@ -159,14 +158,14 @@ could be created.
 */
 
 
-  static bool IsDirectory( const string& fileName );
+  static bool IsDirectory( const std::string& fileName );
 /*
 Check, whether fileName is a directory.
 The function returns "true"[4], iff the folder exists.
 
 */
 
-  static bool DeleteFileOrFolder( const string& fileName );
+  static bool DeleteFileOrFolder( const std::string& fileName );
 /*
 Deletes the file or folder (directory) specified in ~fileName~.
 The function returns "true"[4], if the file or folder could be deleted.
@@ -175,7 +174,7 @@ The function fails if the file is protected by file attributes or
 if the folder to be removed contains one or more files.
 
 */
-  static bool EraseFolder( const string& folder,
+  static bool EraseFolder( const std::string& folder,
                            uint16_t maxLevels = 16 );
 /*
 Removes the folder (directory) specified in ~folder~.
@@ -194,14 +193,14 @@ occurred will not be restored. This situation typically occurs if
 the user does not have permission to remove a file.
 
 */
-  static bool RenameFileOrFolder( const string& currentName,
-                                  const string& newName );
+  static bool RenameFileOrFolder( const std::string& currentName,
+                                  const std::string& newName );
 /*
 Renames (moves) a file or folder (directory) from ~currentName~ to ~newName~.
 The function returns "true"[4], if the copy operation succeeded.
 
 */
-  static bool Copy_File( const string& source, const string& dest );
+  static bool Copy_File( const std::string& source, const std::string& dest );
 /*
 Copies a file from ~source~ to ~dest~.
 The function returns "true"[4], if the copy operation succeeded.
@@ -210,36 +209,36 @@ The function returns "true"[4], if the copy operation succeeded.
 as well. Keep in mind that this property is not portable.
 
 */
-  static bool FileOrFolderExists( const string& fileName );
+  static bool FileOrFolderExists( const std::string& fileName );
 /*
 Checks for the existence of the file indicated by ~fileName~.
 The function returns "true"[4], if the file exists.
 
 */
-  static FileAttributes Get_FileAttributes( const string&
+  static FileAttributes Get_FileAttributes( const std::string&
                                              fileName );
 /*
 Returns the file attributes for the file ~fileName~.
 In case of an error the function returns 0.
 
 */
-  static bool Set_FileAttributes( const string& fileName,
+  static bool Set_FileAttributes( const std::string& fileName,
                                  FileAttributes attribs );
 /*
 Sets the file attributes for a file to the values specified in ~attribs~ .
 The function returns "true"[4], if the attributes could be set.
 
 */
-  static int32_t GetFileSize( const string& fileName );
+  static int32_t GetFileSize( const std::string& fileName );
 /*
 Returns the file size of the specified file ~fileName~ in Bytes, iff that
 file exists. Return -1 iff the file does not exist or any error occurs.
 
 */
 
-  static bool FileSearch( const string& folder,
+  static bool FileSearch( const std::string& folder,
                           FilenameList& filenameList,
-                          const string* searchName = 0,
+                          const std::string* searchName = 0,
                           uint16_t maxLevels = 1,
                           bool includeFolders = true,
                           bool fullPath = true,
@@ -262,7 +261,7 @@ list of filenames.
 If ~fullPath~ is "true"[4], the complete pathname of each file will be returned.
 
 */
-  static bool SearchPath( const string& fileName, string& foundFile );
+  static bool SearchPath( const std::string& fileName, std::string& foundFile );
 /*
 Searches the file ~fileName~ on the path and returns "true"[4] if the file was
 found, otherweise "false"[4]. If the file was found the complete pathname of
@@ -270,7 +269,7 @@ the file is returned in ~foundFile~.
 
 */
 
-  static string MakeTemp(const string& templ);
+  static std::string MakeTemp(const std::string& templ);
 /*
 Creates a unique temporary file name. The argument ~templ~ is used as a prefix
 and normally contains the directory and a filename prefix. ~MakeTemp~ appends
@@ -278,8 +277,8 @@ current CPU clock time and a unique number.
 
 */
 
-  static void AppendSlash( string& pathName );
-  static void AppendItem( string& pathName, const string& item);
+  static void AppendSlash( std::string& pathName );
+  static void AppendItem( std::string& pathName, const std::string& item);
 
 /*
 Appends the proper slash character to a pathname.
@@ -288,7 +287,7 @@ slash, depending on the operating system used. The second form also adds the giv
 subitem.
 
 */
-  static string Basename(const string& pathName);
+  static std::string Basename(const std::string& pathName);
 
 /*
 Returns the filename without the leading path.
@@ -300,7 +299,7 @@ Returns the filename without the leading path.
  protected:
  private:
 #ifdef SECONDO_WIN32
-  static void UnprotectFile( const string& fileName );
+  static void UnprotectFile( const std::string& fileName );
 /*
 Removes file protection attributes from a file, so that
 it may be modified or deleted.

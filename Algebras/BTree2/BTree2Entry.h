@@ -253,19 +253,19 @@ Constructor: Mark ~extendedValueId~ as unset.
 
 */
 
-  string const& GetValue() const { return value; }
+  std::string const& GetValue() const { return value; }
 /*
 Returns a reference to the string.
 
 */
 
-  void SetValue(const string& v) { value=v; }
+  void SetValue(const std::string& v) { value=v; }
 /*
 Set the value string.
 
 */
 
-  bool valueEquals(const string& v) { return v == value; }
+  bool valueEquals(const std::string& v) { return v == value; }
 /*
 Returns true, if ~v~ is equal to ~value~.
 
@@ -289,7 +289,7 @@ there is enough space for indirect storage reference).
 */
 
   int GetValueSizeInMemory() { return value.capacity() + 
-                                        sizeof(SmiRecordId)+sizeof(string); }
+                              sizeof(SmiRecordId)+sizeof(std::string); }
 /*
 Returns the memory usage of this entry.
 

@@ -57,6 +57,7 @@ OrderedRelation.h header file.
 #define DEBUG_OREL2
 #endif
 
+using namespace std;
 
 /*
 2.1 Structs and Tools

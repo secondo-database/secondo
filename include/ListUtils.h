@@ -3,7 +3,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and Computer Science,
+Copyright (C) 2004-2009, University in Hagen, 
+Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -56,7 +57,7 @@ Permforms a kind check for SPATIAL?D
 CHecks whether this list corresponds to a type in given kind
 
 */
-  bool isKind(ListExpr t, const string& kind);
+  bool isKind(ListExpr t, const std::string& kind);
 
 
 
@@ -64,7 +65,7 @@ CHecks whether this list corresponds to a type in given kind
 Returns the value of a text or a string atom
 
 */
- string stringValue(ListExpr src);
+ std::string stringValue(ListExpr src);
 
 
 /*
@@ -102,7 +103,7 @@ Writes the message to the errorReporter and returns the
 symbol typeerror.
 
 */
-  ListExpr typeError(string message);
+  ListExpr typeError(std::string message);
 
 
 /*
@@ -115,7 +116,7 @@ Checks for a valid rtree description.
 Checks for a special rtree description
 
 */
- bool isRTreeDescription(ListExpr rtree, const string& basicType);
+ bool isRTreeDescription(ListExpr rtree, const std::string& basicType);
 
 
 /*
@@ -160,9 +161,9 @@ Checks for a numeric value
 
  bool isSymbol(const ListExpr list);
 
- bool isSymbol(const ListExpr list, const string& v);
+ bool isSymbol(const ListExpr list, const std::string& v);
 
- bool isASymbolIn(const ListExpr list, const set<string>& s);
+ bool isASymbolIn(const ListExpr list, const std::set<std::string>& s);
 
 
 /*
@@ -230,7 +231,7 @@ Checks whether a list represents a valid attribute name.
 
 */
 
- bool isValidAttributeName(const ListExpr attr, string& error);
+ bool isValidAttributeName(const ListExpr attr, std::string& error);
 
 
 
@@ -254,7 +255,7 @@ Checks for a valid description of a relation
 */
   bool isRelDescription(ListExpr rel, const bool trel =false);
 
-  bool isRelDescription2(ListExpr rel, const string& reltype);
+  bool isRelDescription2(ListExpr rel, const std::string& reltype);
 
   bool isOrelDescription(ListExpr orel);
 
@@ -301,7 +302,7 @@ type. If not is found, type remains unchanged and the result is 0.
 
 */
 
-  int findAttribute(ListExpr attrList, const string& name, ListExpr& type);
+  int findAttribute(ListExpr attrList, const std::string& name, ListExpr& type);
 
 /*
 Searches a given type within an attribute list starting at the given position.
@@ -310,7 +311,7 @@ name of the attribute. Otherwise, 0 is returned.
 
 */
   int findType(ListExpr attrList, const ListExpr type,
-               string& name, const int start=1);
+               std::string& name, const int start=1);
 
 
 /*
@@ -321,7 +322,7 @@ list.
 Precondition: isAttrList(list)
 
 */
-  int removeAttributes(ListExpr list, const set<string>& names,
+  int removeAttributes(ListExpr list, const std::set<std::string>& names,
                        ListExpr& head, ListExpr& last);
 
 
@@ -346,8 +347,9 @@ parameter is set. The strings stored in the map must be valid symbols.
 
 */
 
-  bool replaceAttributes( ListExpr attrList, map<string, string>& renameMap,
-                          ListExpr& resAttrList, string& errmsg);
+  bool replaceAttributes( ListExpr attrList, std::map<std::string, 
+                          std::string>& renameMap,
+                          ListExpr& resAttrList, std::string& errmsg);
 
 /*
 Checks wheter a symbol or string is one of "undef", "UNDEF", "undefined",
@@ -359,22 +361,23 @@ To represent undefined values in a nested list when implementing OUT-functions,
 alway use const string Symbol::UNDEFINED()!
 
 */
-  bool isSymbolUndefined( const string s );
+  bool isSymbolUndefined( const std::string& s );
   bool isSymbolUndefined( ListExpr le );
 
 
   ListExpr getUndefined(); 
-  string getUndefinedString(); 
+  std::string getUndefinedString(); 
 
   
-  ListExpr simpleMessage(const string& msg);
+  ListExpr simpleMessage(const std::string& msg);
   ListExpr simpleMessage(const int value);
-  ListExpr getMessage( const string& messageType, const string& message);
-  ListExpr getMessage( const string& messageType, const int value);
+  ListExpr getMessage( const std::string& messageType, 
+                       const std::string& message);
+  ListExpr getMessage( const std::string& messageType, const int value);
 
 
 
-  bool containsSymbol(ListExpr list, const string& symb);
+  bool containsSymbol(ListExpr list, const std::string& symb);
 
 
 

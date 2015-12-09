@@ -60,6 +60,8 @@ searched on can be hold in an random memory based hash table.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+using namespace std;
+
 /*
 2 Operators
 

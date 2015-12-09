@@ -60,9 +60,9 @@ class SimpleTreeBuilder
 
 public:
 
-  static void PrintTree (SuffixTreeVertex *st, string *t);
-  static int PosAtEdge (int ESI, int EEI, int SSI, string *t);
-  static SuffixTreeVertex* CreateSuffixTree(string *text);
+  static void PrintTree (SuffixTreeVertex *st, std::string *t);
+  static int PosAtEdge (int ESI, int EEI, int SSI, std::string *t);
+  static SuffixTreeVertex* CreateSuffixTree(std::string *text);
 };
 
 #endif /* SIMPLETREEBUILDER_H_ */

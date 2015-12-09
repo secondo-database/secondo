@@ -78,7 +78,7 @@ JPEG images. We suggest to use the ~display~ program from ImageMagick.
 #include "ListUtils.h"
 
 const bool PA_DEBUG = false;
-const string PROG_DISPLAY = "/usr/bin/display";
+const std::string PROG_DISPLAY = "/usr/bin/display";
 
 /*
 
@@ -246,7 +246,7 @@ Guide for details.
     bool Adjacent(const Attribute* attr) const { return false; }
     Histogram* Clone(void) const;
 
-    static const string BasicType() { return "histogram"; }
+    static const std::string BasicType() { return "histogram"; }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
@@ -341,11 +341,11 @@ base64 format. The remaining parameters are used to the set the values of
 the respective private attributes.
 
 */
-    Picture(string imgdataB64,
-      string fn,
-      string cat,
+    Picture(std::string imgdataB64,
+      std::string fn,
+      std::string cat,
       bool isp,
-      string dt);
+      std::string dt);
 
 /*
 
@@ -357,10 +357,10 @@ respective private attributes.
 */
     Picture(char* imgdata,
       unsigned long size,
-      string fn,
-      string cat,
+      std::string fn,
+      std::string cat,
       bool isp,
-      string dt);
+      std::string dt);
 
 /*
 
@@ -378,10 +378,10 @@ value mapping functions of the picture operators to fill the result picture.
 */
     void Set(char* imgdata,
       unsigned long size,
-      string fn,
-      string cat,
+      std::string fn,
+      std::string cat,
       bool isp,
-      string dt);
+      std::string dt);
 
 /*
 
@@ -391,7 +391,7 @@ Return the JPEG image data in base64 format as ~string~ as stored in the
 object's FLOB.
 
 */
-    string GetJPEGBase64Data(void);
+    std::string GetJPEGBase64Data(void);
 
 /*
 
@@ -414,9 +414,9 @@ The following five methods return the value of the respective private
 attribute.
 
 */
-    string GetFilename(void) { return filename; }
-    string GetCategory(void) { return category; }
-    string GetDate(void) { return date; };
+    std::string GetFilename(void) { return filename; }
+    std::string GetCategory(void) { return category; }
+    std::string GetDate(void) { return date; };
     bool IsPortrait(void) { return isPortrait; }
 /*
 
@@ -432,7 +432,7 @@ Returns the ~sizeof~ of a ~Picture~ instance.
 Save JPEG image to specified file and return ~true~ on success.
 
 */
-    bool Export(string filename);
+    bool Export(std::string filename);
 
 /*
 
@@ -553,7 +553,7 @@ this method does not compare any other attributes of the ~Picture~ class.
 
     int SimpleCompare(const Attribute* a) const;
 
-    static const string BasicType() { return "picture"; }
+    static const std::string BasicType() { return "picture"; }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }

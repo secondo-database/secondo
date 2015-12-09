@@ -37,18 +37,12 @@ Sept. 2009, M. Spiekermann, a class for managing trace messages
 #include <sstream>
 
 
-using std::ostream;
-using std::string;
-using std::stringstream;
-using std::cerr;
-using std::cout;
-using std::endl;
 
 
 class Trace {
 
   public:
-  Trace(const string& s, ostream& os = cerr) : 
+  Trace(const std::string& s, std::ostream& os = std::cerr) : 
     trc(false), 
     prefix(s), 
     dest(os), 
@@ -56,54 +50,54 @@ class Trace {
     lmax(1) 
   {}
 
-  void enter(const string& function) { 
+  void enter(const std::string& function) { 
     if (trc) {  
       fn = function; 
-      pre() << "Start" << endl;
+      pre() << "Start" << std::endl;
     }  
   }
   void on() { trc = true;
-    dest << "* trace on [" << prefix << "]" << endl;   
+    dest << "* trace on [" << prefix << "]" << std::endl;   
   }
   void off() { trc = false; 
-    dest << "* trace off [" << prefix << "]" << endl;   
+    dest << "* trace off [" << prefix << "]" << std::endl;   
   }
   void level(int n) { lmax = n; }
 
   template <typename T>
   inline void out(const T& v, int level=1) { 
     if (trc && (level <= lmax))  
-      pre() << v << endl; 
+      pre() << v << std::endl; 
   }
 
   template <typename T>
-  inline void show(const string& var, const T& value, int level=1) { 
+  inline void show(const std::string& var, const T& value, int level=1) { 
     if (trc && (level <= lmax))  
-      pre() << var << " = " << value << endl; 
+      pre() << var << " = " << value << std::endl; 
   }
 
 
   inline void flush(int level=1) { 
     if (trc && (level <= lmax))  {
-      pre() << ss.str() << endl; 
+      pre() << ss.str() << std::endl; 
     }  
     ss.str("");
     ss.clear();
   }
 
-  inline stringstream& add() { return ss; }
+  inline std::stringstream& add() { return ss; }
 
   private:
 
-    inline ostream& pre() { 
+    inline std::ostream& pre() { 
        return dest << prefix << ":" << fn << ":"; 
     }
 
     bool trc;
-    const string prefix;
-    ostream& dest;
-    string fn;
-    stringstream ss;
+    const std::string prefix;
+    std::ostream& dest;
+    std::string fn;
+    std::stringstream ss;
     int lmax;
 };
 
@@ -112,8 +106,8 @@ Auxiliary functions for debugging
 
 */
 
-string Array2HexStr(const char* data, size_t size, size_t offset = 0);
-string Array2Str(const char* data, size_t size);
+std::string Array2HexStr(const char* data, size_t size, size_t offset = 0);
+std::string Array2Str(const char* data, size_t size);
 
 /*
 The functions above converts the data behind a char pointer into a string value.
@@ -121,7 +115,7 @@ The functions above converts the data behind a char pointer into a string value.
 */
 
 template<typename T>
-inline string Var2HexStr(const T& v)
+inline std::string Var2HexStr(const T& v)
 {
   return Array2HexStr( (char*)&v , sizeof(T), 0 );
 }

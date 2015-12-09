@@ -122,7 +122,7 @@ inline int CompareDouble(const double a, const double b){
    return 1;
 }
 
-bool getDir(const vector<Point>& vp);
+bool getDir(const std::vector<Point>& vp);
 
 
 int HalfSegmentCompare(const void *a, const void *b);
@@ -572,7 +572,7 @@ as an attribute.
     int CompareAlmost( const Attribute *arg ) const;
     bool Adjacent( const Attribute *arg ) const;
     virtual Points* Clone() const;
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
 
 
     virtual uint32_t getshpType() const{
@@ -596,7 +596,7 @@ as an attribute.
       return bbox.MaxD(1);
     }
 
-    virtual void writeShape(ostream& o, uint32_t RecNo) const{
+    virtual void writeShape(std::ostream& o, uint32_t RecNo) const{
 
        // first, write the record header
        WinUnix::writeBigEndian(o,RecNo);
@@ -635,16 +635,16 @@ as an attribute.
     }
 
 
-   virtual string getSQLType(){ return "MDSYS.SDO_GEOMETRY"; }
-   virtual string getSQLRepresentation(){
+   virtual std::string getSQLType(){ return "MDSYS.SDO_GEOMETRY"; }
+   virtual std::string getSQLRepresentation(){
        if(!IsDefined() || IsEmpty()){
          return "NULL";
        }
        return "MDSYS.SDO_GEOMETRY('" + getWKT() + "')";
    }
 
-   string getWKT() const{
-     stringstream ss;
+   std::string getWKT() const{
+     std::stringstream ss;
      ss << "MULTIPOINT(";
      for(int i=0;i<Size();i++){
         if(i>0){
@@ -658,7 +658,7 @@ as an attribute.
      return ss.str();
    }
 
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "points";
   }
   static const bool checkType(const ListExpr type){
@@ -720,7 +720,7 @@ According to ROSE algebra, the carrier set of points should contain a pos pointe
 5.9 Overloaded output operator
 
 */
-ostream& operator<<( ostream& o, const Points& ps );
+std::ostream& operator<<( std::ostream& o, const Points& ps );
 
 
 
@@ -1348,7 +1348,7 @@ as an attribute.
     int Compare( const Attribute *arg ) const;
 //     int CompareAlmost( const Attribute *arg ) const;
     virtual Line *Clone() const;
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
     void Clear();
 
 
@@ -1374,7 +1374,7 @@ as an attribute.
       return bbox.MaxD(1);
     }
 
-    virtual void writeShape(ostream& o, uint32_t RecNo) const{
+    virtual void writeShape(std::ostream& o, uint32_t RecNo) const{
 
        // first, write the record header
        WinUnix::writeBigEndian(o,RecNo);
@@ -1432,7 +1432,7 @@ as an attribute.
       return new (addr) Line();
    }
 
-   static const string BasicType(){
+   static const std::string BasicType(){
       return "line";
    }
    static const bool checkType(const ListExpr type){
@@ -1489,10 +1489,10 @@ to the left one.
     bool
     GetNextSegments( const int poshs,
                      const HalfSegment& hs,
-                     vector<bool>& visited,
+                     std::vector<bool>& visited,
                      int& posnexths,
                      HalfSegment& nexths,
-                     stack< pair<int, HalfSegment> >& nexthss );
+                     std::stack< std::pair<int, HalfSegment> >& nexthss );
     void computeComponents();
 
     void collectFace(int faceno, int startPos, DbArray<bool>& used);
@@ -1552,7 +1552,7 @@ a ~simple~ line.
 6.12 overloaded output operator
 
 */
-ostream& operator<<( ostream& o, const Line& cl );
+std::ostream& operator<<( std::ostream& o, const Line& cl );
 
 
 /*
@@ -1678,7 +1678,7 @@ Splits the simple line at the given pts into sublines. The set of sublines
 is returned in the result vector
 
 */
-  vector<SimpleLine>* SplitAtPPoints(Points* pts);
+  std::vector<SimpleLine>* SplitAtPPoints(Points* pts);
 
 /*
 ~BoundingBox~
@@ -1984,7 +1984,7 @@ The following functions are needed to act as an attribute type.
      return new SimpleLine(*this);
   }
 
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
 
   void Clear(){
      segments.clean();
@@ -2044,7 +2044,7 @@ The following functions are needed to act as an attribute type.
     }
   }
 
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "sline";
   }
   static const bool checkType(const ListExpr type){
@@ -2150,7 +2150,7 @@ bool computePolyline();
 };
 
 
-ostream& operator<<(ostream& o, const SimpleLine& cl);
+std::ostream& operator<<(std::ostream& o, const SimpleLine& cl);
 
 /*
 7 Class Region
@@ -2571,7 +2571,7 @@ The pointers inside the array ~components~ are here initialized
 and must be deleted outside.
 
 */
-  void Components( vector<Region*>& components );
+  void Components( std::vector<Region*>& components );
 
 /*
 6.4.5 Operation ~getHoles~
@@ -2788,7 +2788,7 @@ as an attribute.
     void CopyFrom( const Attribute* right );
     int Compare( const Attribute *arg ) const;
 //     int CompareAlmost( const Attribute *arg ) const;
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
     virtual Region *Clone() const;
     void Clear();
     void SetEmpty();
@@ -2911,7 +2911,7 @@ resulting from the clipping of a region to a clip window.
 
   void GetClippedHSIn(const Rectangle<2> &window,
                       Region &clippedRegion,
-                      vector<EdgePoint> pointsOnEdge[4],
+                      std::vector<EdgePoint> pointsOnEdge[4],
                       int &partnerno, const Geoid* geoid=0) const;
 /*
 7.15.5 Get clipped half segment OUT function
@@ -2922,7 +2922,7 @@ resulting from the clipping of a region to a clip window.
 */
  void GetClippedHSOut(const Rectangle<2> &window,
                       Region &clippedRegion,
-                      vector<EdgePoint> pointsOnEdge[4],
+                      std::vector<EdgePoint> pointsOnEdge[4],
                       int &partnerno, const Geoid* geoid=0) const;
 /*
 7.15.6 Add clipped half segment function
@@ -2948,7 +2948,7 @@ new half segments that lies on edge.
    static bool ClippedHSOnEdge(const Rectangle<2> &window,
                                const HalfSegment &chs,
                                bool clippingIn,
-                               vector<EdgePoint> pointsOnEdge[4],
+                               std::vector<EdgePoint> pointsOnEdge[4],
                                const Geoid* geoid=0);
 /*
 7.15.8 Create new segments function
@@ -2957,7 +2957,8 @@ This function creates the half segments resulting from the connection
 of the points that lies on the window's edges.
 
 */
-   static void CreateNewSegments(vector <EdgePoint>pointsOnEdge, Region &cr,
+   static void CreateNewSegments(std::vector <EdgePoint>pointsOnEdge,
+                                 Region &cr,
                                  const Point &bPoint,const Point &ePoint,
                                  WindowEdge edge,int &partnerno,bool inside,
                                  const Geoid* geoid=0);
@@ -2970,7 +2971,8 @@ the window.
 
 */
    void CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
-                                vector<EdgePoint> pointsOnEdge[4],Region &cr,
+                                std::vector<EdgePoint> pointsOnEdge[4],
+                                Region &cr,
                                 int &partnerno,bool inside,
                                 const Geoid* geoid=0) const;
 /*
@@ -3050,7 +3052,8 @@ is a hole of an existing face, or if it is a cycle of a new face.
   }
 
   double SpatialSize(const Geoid& g, bool& valid) const{
-    cerr << __PRETTY_FUNCTION__ << ": Function not implemented." << endl;
+    std::cerr << __PRETTY_FUNCTION__ << ": Function not implemented." 
+              << std::endl;
     assert(false);
     valid = false;
     return -666.0;
@@ -3069,7 +3072,7 @@ The region must be defined!
      return IsDefined() && !IsEmpty();
   }
 
-  virtual void writeShape(ostream& o, uint32_t RecNo) const{
+  virtual void writeShape(std::ostream& o, uint32_t RecNo) const{
      saveShape(o,RecNo);
    }
 
@@ -3094,7 +3097,7 @@ The region must be defined!
       return region;
   }
 
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "region";
   }
   static const bool checkType(const ListExpr type){
@@ -3128,7 +3131,7 @@ returns its position. Returns -1 if the half segment is not found.
 
 */
 
-  void saveShape(ostream& o, uint32_t RecNo) const;
+  void saveShape(std::ostream& o, uint32_t RecNo) const;
 
 /*
 Saves the region in shape format to o.
@@ -3172,7 +3175,7 @@ Whether the half segments in the region value are sorted.
 8 Function headers
 
 */
-ostream& operator<<( ostream& o, const Region& cr );
+std::ostream& operator<<( std::ostream& o, const Region& cr );
 
 Word InPoint( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct );
@@ -3949,7 +3952,7 @@ Classes suppoorting the computation of the convex hull of
 an pointset.
 
 */
-ostream& operator<<(ostream& o,const SimplePoint& p);
+std::ostream& operator<<(std::ostream& o,const SimplePoint& p);
 
 class SimplePoint{
   public:
@@ -4138,7 +4141,7 @@ public:
 
 
 private:
-   vector<SimplePoint> p;
+   std::vector<SimplePoint> p;
    int n;
    int h;
 
@@ -4239,7 +4242,7 @@ private:
    }
 
    void sort(){
-     vector<SimplePoint>::iterator it= p.begin();
+     std::vector<SimplePoint>::iterator it= p.begin();
      it++;
      std::sort(it,p.end()); // without the first point
    }
@@ -4360,12 +4363,12 @@ should be inserted.
 void insertEvents(const avlseg::AVLSegment& seg,
                   const bool createLeft,
                   const bool createRight,
-                  priority_queue<avlseg::ExtendedHalfSegment,
-                                 vector<avlseg::ExtendedHalfSegment>,
-                                 greater<avlseg::ExtendedHalfSegment> >& q1,
-                  priority_queue<avlseg::ExtendedHalfSegment,
-                                 vector<avlseg::ExtendedHalfSegment>,
-                                 greater<avlseg::ExtendedHalfSegment> >& q2);
+                  std::priority_queue<avlseg::ExtendedHalfSegment,
+                              std::vector<avlseg::ExtendedHalfSegment>,
+                              std::greater<avlseg::ExtendedHalfSegment> >& q1,
+                  std::priority_queue<avlseg::ExtendedHalfSegment,
+                              std::vector<avlseg::ExtendedHalfSegment>,
+                              std::greater<avlseg::ExtendedHalfSegment> >& q2);
 
 /*
 ~splitByNeighbour~
@@ -4384,12 +4387,12 @@ Otherwise, the algorithms tries to correct the error.
 bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                       avlseg::AVLSegment& current,
                       avlseg::AVLSegment const*& neighbour,
-                      priority_queue<avlseg::ExtendedHalfSegment,
-                                vector<avlseg::ExtendedHalfSegment>,
-                                greater<avlseg::ExtendedHalfSegment> >& q1,
-                      priority_queue<avlseg::ExtendedHalfSegment,
-                                vector<avlseg::ExtendedHalfSegment>,
-                                greater<avlseg::ExtendedHalfSegment> >& q2,
+                      std::priority_queue<avlseg::ExtendedHalfSegment,
+                          std::vector<avlseg::ExtendedHalfSegment>,
+                          std::greater<avlseg::ExtendedHalfSegment> >& q1,
+                      std::priority_queue<avlseg::ExtendedHalfSegment,
+                          std::vector<avlseg::ExtendedHalfSegment>,
+                          std::greater<avlseg::ExtendedHalfSegment> >& q2,
                      const bool forceThrow);
 
 /*
@@ -4403,12 +4406,12 @@ inserted into the queues.
 void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
                      avlseg::AVLSegment const*& leftN,
                      avlseg::AVLSegment const*& rightN,
-                     priority_queue<avlseg::ExtendedHalfSegment,
-                                    vector<avlseg::ExtendedHalfSegment>,
-                                    greater<avlseg::ExtendedHalfSegment> >& q1,
-                     priority_queue<avlseg::ExtendedHalfSegment,
-                                    vector<avlseg::ExtendedHalfSegment>,
-                                    greater<avlseg::ExtendedHalfSegment> >& q2,
+                     std::priority_queue<avlseg::ExtendedHalfSegment,
+                             std::vector<avlseg::ExtendedHalfSegment>,
+                             std::greater<avlseg::ExtendedHalfSegment> >& q1,
+                     std::priority_queue<avlseg::ExtendedHalfSegment,
+                             std::vector<avlseg::ExtendedHalfSegment>,
+                             std::greater<avlseg::ExtendedHalfSegment> >& q2,
                      const bool forceThrow);
 
 /*
@@ -4538,12 +4541,12 @@ avlseg::ownertype selectNext(const Region& reg1,
                      int& pos1,
                      const Region& reg2,
                      int& pos2,
-                     priority_queue<avlseg::ExtendedHalfSegment,
-                                    vector<avlseg::ExtendedHalfSegment>,
-                                    greater<avlseg::ExtendedHalfSegment> >& q1,
-                     priority_queue<avlseg::ExtendedHalfSegment,
-                                    vector<avlseg::ExtendedHalfSegment>,
-                                    greater<avlseg::ExtendedHalfSegment> >& q2,
+                     std::priority_queue<avlseg::ExtendedHalfSegment,
+                             std::vector<avlseg::ExtendedHalfSegment>,
+                             std::greater<avlseg::ExtendedHalfSegment> >& q1,
+                     std::priority_queue<avlseg::ExtendedHalfSegment,
+                             std::vector<avlseg::ExtendedHalfSegment>,
+                             std::greater<avlseg::ExtendedHalfSegment> >& q2,
                      avlseg::ExtendedHalfSegment& result,
                      int& src // for debugging only
                     );
@@ -4566,12 +4569,12 @@ avlseg::ownertype selectNext(const Line& line1,
                      int& pos1,
                      const Line& line2,
                      int& pos2,
-                     priority_queue<avlseg::ExtendedHalfSegment,
-                                    vector<avlseg::ExtendedHalfSegment>,
-                                    greater<avlseg::ExtendedHalfSegment> >& q1,
-                     priority_queue<avlseg::ExtendedHalfSegment,
-                                    vector<avlseg::ExtendedHalfSegment>,
-                                    greater<avlseg::ExtendedHalfSegment> >& q2,
+                     std::priority_queue<avlseg::ExtendedHalfSegment,
+                             std::vector<avlseg::ExtendedHalfSegment>,
+                             std::greater<avlseg::ExtendedHalfSegment> >& q1,
+                     std::priority_queue<avlseg::ExtendedHalfSegment,
+                             std::vector<avlseg::ExtendedHalfSegment>,
+                             std::greater<avlseg::ExtendedHalfSegment> >& q2,
                      avlseg::ExtendedHalfSegment& result,
                      int& src
                     );
@@ -4580,20 +4583,20 @@ avlseg::ownertype selectNext(const Line& line,
                      int& pos1,
                      const Region& region,
                      int& pos2,
-                     priority_queue<avlseg::ExtendedHalfSegment,
-                                    vector<avlseg::ExtendedHalfSegment>,
-                                    greater<avlseg::ExtendedHalfSegment> >& q1,
-                     priority_queue<avlseg::ExtendedHalfSegment,
-                                    vector<avlseg::ExtendedHalfSegment>,
-                                    greater<avlseg::ExtendedHalfSegment> >& q2,
+                     std::priority_queue<avlseg::ExtendedHalfSegment,
+                            std::vector<avlseg::ExtendedHalfSegment>,
+                            std::greater<avlseg::ExtendedHalfSegment> >& q1,
+                     std::priority_queue<avlseg::ExtendedHalfSegment,
+                            std::vector<avlseg::ExtendedHalfSegment>,
+                            std::greater<avlseg::ExtendedHalfSegment> >& q2,
                      avlseg::ExtendedHalfSegment& result,
                      int& src
                     );
 
 avlseg::ownertype selectNext( const Line&  line,
-                      priority_queue<avlseg::ExtendedHalfSegment,
-                                     vector<avlseg::ExtendedHalfSegment>,
-                                     greater<avlseg::ExtendedHalfSegment> >& q,
+                      std::priority_queue<avlseg::ExtendedHalfSegment,
+                        std::vector<avlseg::ExtendedHalfSegment>,
+                        std::greater<avlseg::ExtendedHalfSegment> >& q,
                       int& posLine,
                       const Points&  point,
                       int& posPoint,
@@ -4601,9 +4604,9 @@ avlseg::ownertype selectNext( const Line&  line,
                       Point& resPoint);
 
 avlseg::ownertype selectNext( const Line& line,
-                      priority_queue<avlseg::ExtendedHalfSegment,
-                                     vector<avlseg::ExtendedHalfSegment>,
-                                     greater<avlseg::ExtendedHalfSegment> >& q,
+                      std::priority_queue<avlseg::ExtendedHalfSegment,
+                         std::vector<avlseg::ExtendedHalfSegment>,
+                         std::greater<avlseg::ExtendedHalfSegment> >& q,
                       int& posLine,
                       const Point& point,
                       int& posPoint, // >0: point already used
@@ -4687,7 +4690,7 @@ class LineSplitter {
 
   ~LineSplitter();
 
-  Line* NextLine(list<Point> *pointlist = 0);
+  Line* NextLine(std::list<Point> *pointlist = 0);
   
  private:
   bool isCriticalPoint(int index);
@@ -4746,13 +4749,13 @@ double Region::Distance( const LineType &l, const Geoid* geoid /*=0*/ ) const
   assert( !geoid || geoid->IsDefined() );
   if(geoid){
     cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         << endl;
+         << std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
   if( IsEmpty() || l.IsEmpty() || (geoid && !geoid->IsDefined()) ) {
      return -1;
   }
-  double result = numeric_limits<double>::max();
+  double result = std::numeric_limits<double>::max();
   HalfSegment hs1, hs2;
   for(int i=0; i<l.Size();i++){
      l.Get(i,hs2);

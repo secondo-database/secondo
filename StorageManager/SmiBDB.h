@@ -42,7 +42,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 January 2002 Ulrich Telle
 
-September 2002 Ulrich Telle, introduced flag for abort transaction after deadlock
+September 2002 Ulrich Telle, introduced flag for abort transaction
+ after deadlock
 
 April 2003 Ulrich Telle, implemented temporary SmiFiles
 
@@ -57,7 +58,8 @@ implementation objects for representing the implementation specific parts.
 The "Berkeley DB"[3] implementation of the interface uses several concepts to
 keep track of the "Secondo"[3] databases and their ~SmiFiles~.
 
-Since each "Berkeley DB"[3] environment needs several control processes (deadlock
+Since each "Berkeley DB"[3] environment needs several control processes
+ (deadlock
 detection, logging, recovery) the decision was taken to use only one "Berkeley
 DB"[3] environment for managing an arbitrary number of "Secondo"[3] databases.
 
@@ -172,7 +174,8 @@ Is the type definition for indices of the "Berkeley DB"[3] handle array.
 
 const DbHandleIndex DEFAULT_DBHANDLE_ALLOCATION_COUNT = 10;
 /*
-Space for "Berkeley DB"[3] handles is reserved in chunks of "DEFAULT\_\-DBHANDLE\_\-ALLO\-CATION\_\-COUNT"[4]
+Space for "Berkeley DB"[3] handles is reserved in chunks of 
+"DEFAULT\_\-DBHANDLE\_\-ALLO\-CATION\_\-COUNT"[4]
 elements to avoid frequent memory reallocation.
 
 */
@@ -208,7 +211,7 @@ class SmiDbHandleEntry
        }
     }
 
-    inline string getFileName(){
+    inline std::string getFileName(){
        if(!handle){
           return "";
        }
@@ -218,11 +221,11 @@ class SmiDbHandleEntry
        if(rc!=0){
           return "";
        }
-       string fns(fn);
+       std::string fns(fn);
        return fns;
     }
 
-    bool canBeUsedFor(const string& fileName, const u_int32_t flags){
+    bool canBeUsedFor(const std::string& fileName, const u_int32_t flags){
        if(inUse){
          return false;
        }
@@ -257,7 +260,7 @@ class SmiDbHandleEntry
 
     inline void setHandle(Db* _handle){
        if(handle && _handle){
-          cerr << "overwriting an existing handle" << endl;
+          std::cerr << "overwriting an existing handle" << std::endl;
        }
        handle = _handle;       
     }
@@ -349,8 +352,9 @@ flag is *not* set. In all other cases an entry is ignored.
 /**************************************************************************
 1.3 Class "SmiEnvironment::Implementation"[1]
 
-This class handles all implementation specific aspects of the storage environment
-hiding the implementation from the user of the ~SmiEnvironment~ class.
+This class handles all implementation specific aspects of the storage 
+environment hiding the implementation from the user of the ~SmiEnvironment~
+ class.
 
 */
 
@@ -364,20 +368,20 @@ class SmiEnvironment::Implementation
 Returns a unique file identifier.
 
 */
-  static bool LookUpCatalog( const string& fileName,
+  static bool LookUpCatalog( const std::string& fileName,
                              SmiCatalogEntry& entry );
 /*
 Looks up a file named ~fileName~ in the file catalog. If the file was found, the
-function returns "true"[4] and the catalog entry ~entry~ contains information about
-the file like the file identifier.
+function returns "true"[4] and the catalog entry ~entry~ contains information
+ about the file like the file identifier.
 
 */
   static bool LookUpCatalog( const SmiFileId fileId,
                              SmiCatalogEntry& entry );
 /*
-Looks up a file identified by ~fileId~ in the file catalog. If the file was found,
-the function returns "true"[4] and the catalog entry ~entry~ contains information about
-the file like the file name.
+Looks up a file identified by ~fileId~ in the file catalog. If the file was
+ found, the function returns "true"[4] and the catalog entry ~entry~ contains
+ information about the file like the file name.
 
 */
   static bool InsertIntoCatalog( const SmiCatalogEntry& entry,
@@ -407,25 +411,26 @@ collected during the transaction. The flag ~onCommit~ tells the function
 whether the transaction is committed ("true"[4]) or aborted ("false"[4]).
 
 */
-  static string ConstructFileName( SmiFileId fileId,
+  static std::string ConstructFileName( SmiFileId fileId,
                                    const bool isTemporary = false );
 /*
 Constructs a valid file name using the file identifier ~fileId~.
 
 */
-  static bool LookUpDatabase( const string& dbname );
+  static bool LookUpDatabase( const std::string& dbname );
 /*
 Looks up the Secondo database ~dbname~ in the database catalog.
 The function returns "true"[4] if a database with the given name exists.
 
 */
-  static bool InsertDatabase( const string& dbname );
+  static bool InsertDatabase( const std::string& dbname );
 /*
-Inserts the name ~dbname~ of a new "Secondo"[3] database into the database catalog.
+Inserts the name ~dbname~ of a new "Secondo"[3] database into the
+ database catalog.
 The function returns "true"[4] if the insert was successful.
 
 */
-  static bool DeleteDatabase( const string& dbname );
+  static bool DeleteDatabase( const std::string& dbname );
 /*
 Deletes the name ~dbname~ of an existing "Secondo"[3] database from the database
 catalog. The function returns "true"[4] if the deletion was successful.
@@ -456,8 +461,8 @@ A "catastrophic recovery" is not available in  this case.
 
 
 
-  string    bdbHome;         // Home directory
-  string    tmpHome;         // Temporary environment subdirectory
+  std::string    bdbHome;         // Home directory
+  std::string    tmpHome;         // Temporary environment subdirectory
   u_int32_t minutes;         // Time between checkpoints
   DbEnv*    bdbEnv;          // Berkeley DB environment handle
   DbEnv*    tmpEnv;          // Temporary environment handle
@@ -483,24 +488,26 @@ Are needed to support listing the names of all existing "Secondo"[3] databases.
 
 */
 
-  queue<SmiDropFilesEntry>         bdbFilesToDrop;
-  map<string,SmiCatalogFilesEntry> bdbFilesToCatalog;
+  std::queue<SmiDropFilesEntry>         bdbFilesToDrop;
+  std::map<std::string,SmiCatalogFilesEntry> bdbFilesToCatalog;
 
 
 
-  vector<SmiDbHandleEntry>         dbHandles;
+  std::vector<SmiDbHandleEntry>         dbHandles;
   DbHandleIndex                    firstFreeDbHandle;
 
 public:
 
   static DbHandleIndex AllocateDbHandle();
 /*
-Allocates a new "Berkeley DB"[3] handle and returns the index within the handle array.
+Allocates a new "Berkeley DB"[3] handle and returns the index within
+ the handle array.
 
 */
-  static int FindOpen(const string& fileName,const u_int32_t flags);
+  static int FindOpen(const std::string& fileName,const u_int32_t flags);
 /*
-  Returns the index of a open, unused bdb entry matching the given filename, or -1 
+  Returns the index of a open, unused bdb entry matching the given
+  filename, or -1 
   if such an entry does not exist.  
 
 */
@@ -566,7 +573,7 @@ class SmiFile::Implementation
     void CheckDbHandles();   // reallocate Db-Handles if necessary
     DbHandleIndex bdbHandle; // Index in handle array
     Db*           bdbFile;   // Berkeley DB handle
-    string        bdbName;
+    std::string        bdbName;
     bool          isSystemCatalogFile;
     bool          isTemporaryFile;
     bool          noHandle;

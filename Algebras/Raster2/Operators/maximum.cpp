@@ -37,11 +37,11 @@ namespace raster2
     maximumFun<int, stype_helper<int> >,
     maximumFun<double, stype_helper<double> >,
     maximumFun<char, sbool_helper>,
-    maximumFun<string, stype_helper<string> >,
+    maximumFun<std::string, stype_helper<std::string> >,
     maximumFun<int, mstype_helper<int> >,
     maximumFun<double, mstype_helper<double> >,
     maximumFun<char, msbool_helper>,
-    maximumFun<string, mstype_helper<string> >,
+    maximumFun<std::string, mstype_helper<std::string> >,
     0
   };
 
@@ -115,7 +115,8 @@ namespace raster2
     
     else if(types.first() == NList(sstring::BasicType()))
     {
-      return NList(stype_helper<string>::wrapper_type::BasicType()).listExpr();
+      return NList(stype_helper<
+               std::string>::wrapper_type::BasicType()).listExpr();
     }
     
     if(types.first() == NList(msint::BasicType()))
@@ -135,7 +136,8 @@ namespace raster2
     
     else if(types.first() == NList(msstring::BasicType()))
     {
-      return NList(mstype_helper<string>::wrapper_type::BasicType()).listExpr();
+      return NList(mstype_helper<
+                std::string>::wrapper_type::BasicType()).listExpr();
     }
 
     return NList::typeError("Expecting an sType or msType.");

@@ -135,6 +135,7 @@ extern Operator extrelsmouterjoin;
 extern Operator extrelsymmouterjoin;
 
 using namespace listutils;
+using namespace std;
 
 /*
 2 Operators

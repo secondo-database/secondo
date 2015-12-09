@@ -35,7 +35,8 @@ October 2013, Jiamin Lu
 The ~ExternalFileCache~ manages the file pointers of external data files
 that contain Flob data.
 It is mainly prepared for the mode 2 in Flob management.
-Tuples and their Flob are kept together in files created by operator like ~fconsume~.
+Tuples and their Flob are kept together in files created by operator
+like ~fconsume~.
 Only tuples are fetched from these files, but leaves their Flob data untouched.
 The Flob is read only when they are really needed.
 
@@ -92,11 +93,11 @@ public:
 Get the input file stream pointer.
 
 */
-  ifstream* getFile(const SmiRecordId& recId,
-      const string& flobFile = "");
+  std::ifstream* getFile(const SmiRecordId& recId,
+      const std::string& flobFile = "");
 
   void cacheRecord(const SmiRecordId& recId,
-      const string& flobFile, const bool& replace = false);
+      const std::string& flobFile, const bool& replace = false);
   int findRecord(const SmiRecordId& recId);
 
   void clear();
@@ -109,14 +110,14 @@ According to the file name, create the input file stream and return the fildId.
 The fileId is the serial number of the file in the vector.
 
 */
-  int getFileId(const string fileName);
+  int getFileId(const std::string fileName);
   void closeFile(const int fileId);
 
   void putAtFront(CachedFileIdEntry* newEntry);
   void bringToFront(CachedFileIdEntry* entry);
   void reduceTable();
 
-  vector<pair<string, ifstream*> >* list;
+  std::vector<std::pair<std::string, std::ifstream*> >* list;
 
   //In-Memory Hashtable for cachedFileIds (records)
   size_t maxSize, tableSize, slotSize;

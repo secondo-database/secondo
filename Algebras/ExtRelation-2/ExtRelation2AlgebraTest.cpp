@@ -92,7 +92,7 @@ extrel2::TupleQueueCompare* createCompareObject(Tuple* t)
 
   for(int i = 1; i <= nAttrCount; i++)
   {
-    spec.push_back(pair<int, bool>(i, true));
+    spec.push_back(std::pair<int, bool>(i, true));
   };
 
   return new extrel2::TupleQueueCompare(spec,nAttrCount);

@@ -95,15 +95,13 @@ stored in a text file:
 #include "SecondoConfig.h"
 #include "WinUnix.h"
 
-using namespace std;
-
 class SMI_EXPORT SmiProfile
 {
  public:
-  static string GetParameter( const string& sectionName,
-                              const string& keyName,
-                              const string& defaultValue,
-			      const string& fileName );
+  static std::string GetParameter( const std::string& sectionName,
+                              const std::string& keyName,
+                              const std::string& defaultValue,
+			      const std::string& fileName );
 /*
 Searches the profile ~fileName~ for the key ~keyName~ under the section heading
 ~sectionName~. If found, the associated string is returned, else the
@@ -115,9 +113,9 @@ searched.
 */
 
 
-  static string GetUniqueSocketName(const string& fileName)
+  static std::string GetUniqueSocketName(const std::string& fileName)
   {
-    stringstream sname;
+    std::stringstream sname;
     sname << GetParameter("Environment", "RegistrarSocketNamePrefix", 
 			  "SECREGIS", fileName); 
     sname << "_port";
@@ -126,20 +124,22 @@ searched.
     return sname.str();
   }	  
 /*
-If many Secondo installations are placed on the same server, the name of the socket used to
-communicate with the SecondoRegistrar process needs to be unique. Since the port 
+If many Secondo installations are placed on the same server, the name of the 
+socket used to communicate with the SecondoRegistrar process needs to be 
+unique. Since the port 
 number for client server communication needs also to be unique we use it as
-identifier in the socket name. During runtime, a file like tmp/SECREGIS\_port1234
+identifier in the socket name. During runtime, a file like
+ tmp/SECREGIS\_port1234
 may represent such a socket.
 
 */
 
 
 
-  static long   GetParameter( const string& sectionName,
-                              const string& keyName,
+  static long   GetParameter( const std::string& sectionName,
+                              const std::string& keyName,
                               long          defaultValue,
-                              const string& fileName );
+                              const std::string& fileName );
 /*
 Searches the profile ~fileName~ for the key ~keyName~ under the section heading
 ~sectionName~. The function returns
@@ -156,10 +156,10 @@ If ~sectionName~ is the empty string, it will be ignored. i.e. ALL sections are
 searched.
 
 */
-  static bool   SetParameter( const string& sectionName,
-                              const string& keyName,
-                              const string& keyValue,
-                              const string& fileName );
+  static bool   SetParameter( const std::string& sectionName,
+                              const std::string& keyName,
+                              const std::string& keyValue,
+                              const std::string& fileName );
 /*
 Searches the profile ~fileName~ for the section heading ~sectionName~ and
 the key ~keyName~. If found the value is changed to ~keyValue~, otherwise

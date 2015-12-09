@@ -31,7 +31,7 @@ DiceNode::~DiceNode(){
     }
 }
      
-void DiceNode::insert(string text,bool  left){
+void DiceNode::insert(std::string text,bool  left){
        if(text.length()==0){
            if(left){
               this->left++;
@@ -51,14 +51,16 @@ void DiceNode::print(char root){
        if(root=='"'){
           root ='\'';
        }
-       cout << "( \"" << root << " (" << left << ", " << right << ")\"" << endl;
-       cout << "(" << endl;
+       std::cout << "( \"" << root 
+                 << " (" << left << ", " << right 
+                 << ")\"" << std::endl;
+       std::cout << "(" << std::endl;
        for(int i=0;i<numberOfSons;i++){
           if(sons[i]){
              sons[i]->print((char)i); 
           }
        }
-       cout << "))" << endl;
+       std::cout << "))" << std::endl;
     }
 
 
@@ -105,18 +107,18 @@ DiceTree::~DiceTree(){
    delete tree;
 }
 
-void DiceTree::appendText(string text, bool left){
+void DiceTree::appendText(std::string text, bool left){
   if(text.length()==0){
       return;
   }
   int max = text.length()>depth?depth:text.length();
   for(int i=0;i<max;i++){
-    string subtext = text.substr(0,i);
+    std::string subtext = text.substr(0,i);
     tree->insert(subtext,left);    
   }
   text = text.substr(1); 
   while(text.length()>0){
-     string subtext = text.substr(0,depth);
+     std::string subtext = text.substr(0,depth);
      tree->insert(subtext,left);
      text = text.substr(1);  
   }
@@ -127,9 +129,9 @@ double DiceTree::getCoeff(){
 }
 
 void DiceTree::printTree() {
-   cout << endl << "( tree ";
+   std::cout << std::endl << "( tree ";
    tree->print(' ');
-   cout << ")";
+   std::cout << ")";
 }
 
 

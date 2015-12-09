@@ -33,6 +33,8 @@ other Secondo modules. See makefile.libs for details.
 #include "NList.h"
 
 
+using namespace std;
+
 /*
 1 Class ~NList~
 

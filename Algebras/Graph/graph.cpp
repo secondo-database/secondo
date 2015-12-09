@@ -46,6 +46,8 @@ functions and classes for the registration of the ~graph~ type constructor.
 #include "minTree.h"
 #include <vector>
 
+using namespace std;
+
 /*
 3 Implementation of the ~Graph~ class
 

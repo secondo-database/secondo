@@ -44,6 +44,8 @@ June 2009, Sven Jungnickel. Initial version
 */
 extern QueryProcessor* qp;
 
+using namespace std;
+
 /*
 4 Implementation of class ~HybridHashJoinProgressLocalInfo~
 
@@ -300,13 +302,13 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
   // calculate time for partitioning and processing of stream B
   double t4 = p2.Card * ( t_hash + t_read + t_write )
-               - min(streamB.partitionProgressInfo[0].tuples, M_S2)
+               - std::min(streamB.partitionProgressInfo[0].tuples, M_S2)
                  * ( t_read + t_write );
   if ( traceMode )
   {
     cmsg.info() << "4: t4 => " << t4
                 << " (" << p2.Card << "/"
-                << min(streamB.partitionProgressInfo[0].tuples, M_S2)
+                << std::min(streamB.partitionProgressInfo[0].tuples, M_S2)
                 << " tuples)" << endl;
     cmsg.send();
   }
@@ -386,12 +388,12 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
       }
     }
 
-    prog3 -= min(proc0, card0) * ( t_read + t_write );
+    prog3 -= std::min(proc0, card0) * ( t_read + t_write );
 
     if ( traceMode )
     {
       cmsg.info() << "3: prog3 => " << prog3 << " ("
-                  << min(proc0,card0) << " tuples)" << endl;
+                  << std::min(proc0,card0) << " tuples)" << endl;
       cmsg.send();
     }
   }
@@ -399,14 +401,15 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
   // calculate current progress of stream B
   double prog4 = streamB.GetTotalProcessedTuples()
                     * ( t_hash + t_read + t_write )
-                  - min(streamB.partitionProgressInfo[0].tuples, M_S2)
+                  - std::min(streamB.partitionProgressInfo[0].tuples, M_S2)
                     * ( t_read +  t_write );
 
   if ( traceMode )
   {
     cmsg.info() << "4: prog4 => " << prog4 << " ("
                 << streamB.GetTotalProcessedTuples()
-                << "/" <<  min(streamB.partitionProgressInfo[0].tuples, M_S2)
+                << "/" 
+                <<  std::min(streamB.partitionProgressInfo[0].tuples, M_S2)
                 << " tuples)" << endl;
     cmsg.send();
   }
@@ -454,7 +457,7 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
   // calculate time until stream B is partitioned
   pRes->BTime += p2.Card * ( t_hash + t_read + t_write )
-                  - min(streamB.partitionProgressInfo[0].tuples, M_S2)
+                  - std::min(streamB.partitionProgressInfo[0].tuples, M_S2)
                     * ( t_read +  t_write )
                   + streamB.subTotalTuples * ( t_read + t_write );
 
@@ -467,7 +470,7 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
   // calculate progress of partitioning of stream B
   pRes->BProgress += k2 * ( t_hash + t_read + t_write )
-                     - min(streamB.partitionProgressInfo[0].tuplesProc, M_S2)
+                  - std::min(streamB.partitionProgressInfo[0].tuplesProc, M_S2)
                        * ( t_read +  t_write )
                      + streamB.subTuples * ( t_read + t_write );
 

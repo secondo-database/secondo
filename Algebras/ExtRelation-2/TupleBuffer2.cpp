@@ -34,6 +34,8 @@ June 2009, Sven Jungnickel. Initial version.
 #include "Profiles.h"
 #include "CharTransform.h"
 
+using namespace std;
+
 /*
 3 Implementation of class ~TupleBuffer2Iterator~
 

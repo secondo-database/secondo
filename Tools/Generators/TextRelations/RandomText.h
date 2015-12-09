@@ -7,7 +7,6 @@ This file contains functions for random text generation.
 
 #include "math.h"
 
-using namespace std;
 
 /*
 Creates a random string of length ~l~. Possible characters are

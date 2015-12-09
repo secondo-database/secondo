@@ -25,7 +25,7 @@ namespace Operators {
 
 class getentry2 {
   public:
-  static string Specification();
+  static std::string Specification();
   static ListExpr TypeMapping(ListExpr args);
   static int Select( ListExpr args );
 

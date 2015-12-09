@@ -25,6 +25,9 @@
 
 #include <limits>
 
+
+using namespace std;
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 

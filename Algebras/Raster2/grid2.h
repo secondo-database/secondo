@@ -59,7 +59,7 @@ the size of a raster cell.
       double getOriginY() const;
       double getLength() const;
 
-      std::ostream& print(ostream& os) const;
+      std::ostream& print(std::ostream& os) const;
       void Reset();
 
       index_type getIndex(double xcoord, double ycoord) const;

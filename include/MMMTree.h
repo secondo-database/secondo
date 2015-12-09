@@ -414,7 +414,7 @@ Adds a new subtree to this node.
 
        //cout << " dist = " << dist << endl;
 
-       double rad = max(this->getRadius() , dist + node->getRadius());
+       double rad = std::max(this->getRadius() , dist + node->getRadius());
 
 
        //cout << "new radius is " << rad << endl;
@@ -451,7 +451,7 @@ Replaces the entry at position ~index~ by ~replacement~.
    void replace(MTreeNode<T,DistComp>* replacement, int index, DistComp& di){
       sons[index] = replacement;
       double dist = this->distance(replacement, di);
-      double rad = max(this->getRadius(), dist + replacement->getRadius());
+      double rad = std::max(this->getRadius(), dist + replacement->getRadius());
       MTreeNode<T,DistComp>::radius =  rad;
       replacement->setParent(this, di); 
    } 
@@ -1129,7 +1129,7 @@ parameter.
            }
         }
      }
-     pair<int,int> res(seed1,seed2);
+     std::pair<int,int> res(seed1,seed2);
      return res;
      
 

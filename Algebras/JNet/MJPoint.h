@@ -121,8 +121,8 @@ Rectangle<3> BoundingBox() const;
   Flob* GetFLOB(const int i);
   void Destroy();
   void Clear();
-  ostream& Print(ostream& os) const;
-  static const string BasicType();
+  std::ostream& Print(std::ostream& os) const;
+  static const std::string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
@@ -184,7 +184,7 @@ Returns an example mjpoint listrepresentation as string.
 
 */
 
-  static string Example();
+  static std::string Example();
 
 /*
 1.1.1.1 GetNoComponents
@@ -442,7 +442,6 @@ void Append(const JUnit ju);
 
 */
 
-using namespace jnetwork;
-ostream& operator<< (ostream& os, const jnetwork::MJPoint& jp);
+std::ostream& operator<< (std::ostream& os, const jnetwork::MJPoint& jp);
 
 #endif // MJPOINT_H

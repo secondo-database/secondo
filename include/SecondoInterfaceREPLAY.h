@@ -40,20 +40,20 @@ public:
   virtual ~SecondoInterfaceREPLAY();
 
   /* expansion stage 1 */
-  void setReplayFile(const string iReplayFile);
+  void setReplayFile(const std::string iReplayFile);
 
-  virtual bool Initialize(const string& user, 
-                          const string& pswd,
-                          const string& host,
-                          const string& port,
-                          string& profile,
-                          string& errorMsg,
+  virtual bool Initialize(const std::string& user, 
+                          const std::string& pswd,
+                          const std::string& host,
+                          const std::string& port,
+                          std::string& profile,
+                          std::string& errorMsg,
                           const bool multiUser = false );
 
   virtual void Terminate();
 
   /* expansion stage 1+2 */
-  virtual void Secondo(const string& commandText,
+  virtual void Secondo(const std::string& commandText,
                        const ListExpr commandLE,
                        const int commandType,
                        const bool commandAsText,
@@ -61,90 +61,90 @@ public:
                        ListExpr& resultList,
                        int& errorCode,
                        int& errorPos,
-                       string& errorMessage,
-                       const string& resultFileName =
+                       std::string& errorMessage,
+                       const std::string& resultFileName =
                        "SecondoResult",
                        const bool isApplicationLevelCommand = true);
 
 protected:
 
   /* expansion stage 1 */
-  bool getExternalConfig(const string &parmFile);
+  bool getExternalConfig(const std::string &parmFile);
 
   void showMasterConfig();  
-  bool getMasterConfig(const string& parmFile, 
-                       const string &delimPart);
-  bool getNodesConfig(const string& parmFile, 
-                      const string &delimPart,
-                      const string &delimFull);
+  bool getMasterConfig(const std::string& parmFile, 
+                       const std::string &delimPart);
+  bool getNodesConfig(const std::string& parmFile, 
+                      const std::string &delimPart,
+                      const std::string &delimFull);
   void showNodesConfig();
   bool connectNode(const unsigned int nodeNo,
-                   const string& user,
-                   const string& pswd);
-  bool connectReplayNodes(const string& user,
-                          const string& pswd);
+                   const std::string& user,
+                   const std::string& pswd);
+  bool connectReplayNodes(const std::string& user,
+                          const std::string& pswd);
   bool disconnectNode(const unsigned int nodeNo);
   bool disconnectReplayNodes();
   bool sendCommandToNode(const unsigned int nodeNo,
                          const int commandType,
-                         const string& cmdText);
+                         const std::string& cmdText);
   bool sendAllCommandsToNode(const unsigned int nodeNo,
-                             std::vector<string> commandList);
+                             std::vector<std::string> commandList);
 
-  bool checkReplayCommand(string& cmdText);
+  bool checkReplayCommand(std::string& cmdText);
 
   /* expansion stage 2 */
   unsigned int getMaxCoresFromNodes();
   unsigned int getSumAllCoresFromNodes();
 
-  bool checkReplayImport(const string& cmdText,
-                         string& replayImpCommand);
+  bool checkReplayImport(const std::string& cmdText,
+                         std::string& replayImpCommand);
   bool sendAllFilesToNode(const unsigned int nodeNo, 
                           const unsigned int startWithFileNo,
                           const unsigned int noSplitFiles, 
-                          const string basePath, 
-                          const string filePrefix);
+                          const std::string basePath, 
+                          const std::string filePrefix);
   bool sendAllShapesToNode(const unsigned int nodeNo, 
                            const unsigned int startWithFileNo,
                            const unsigned int noSplitFiles, 
-                           const string basePath, 
-                           const string filePrefix);
+                           const std::string basePath, 
+                           const std::string filePrefix);
   bool sendAllDBLPToNode(const unsigned int nodeNo, 
                          const unsigned int startWithFileNo,
                          const unsigned int noSplitFiles, 
-                         const string basePath);
+                         const std::string basePath);
   bool sendAllImagesToNode(const unsigned int nodeNo,
-                           std::vector<string> imageList);
+                           std::vector<std::string> imageList);
   bool sendShareFileToNode(const unsigned int nodeNo,
-                           const string& localfilename,
-                           const string& cpDestPath);
+                           const std::string& localfilename,
+                           const std::string& cpDestPath);
   bool sendFileToNode(const unsigned int nodeNo,
-                      const string& localfilename,
-                      const string& serverFileName,
+                      const std::string& localfilename,
+                      const std::string& serverFileName,
                       const bool allowOverwrite);
-  bool getReplayImportPrmList(std::vector<string>& paramlist, 
-                              const string& cmdText);
-  bool checkReplayImportNoParams(const string& replayImpCommand,
-                                 std::vector<string>& paramlist);
+  bool getReplayImportPrmList(std::vector<std::string>& paramlist, 
+                              const std::string& cmdText);
+  bool checkReplayImportNoParams(const std::string& replayImpCommand,
+                                 std::vector<std::string>& paramlist);
 
-  string getNodeLastSendFilePath(const unsigned int nodeNo);
+  std::string getNodeLastSendFilePath(const unsigned int nodeNo);
 
   bool controllerTransferFile(const unsigned int noSplitFiles,
-                              const string& subFileName);
+                              const std::string& subFileName);
   bool controllerTransferShapeFile(const unsigned int noSplitFiles,
-                                   const string& subFileName);
+                                   const std::string& subFileName);
   bool controllerTransferDBLPFile(const unsigned int noSplitFiles,
-                                  const string& subFileName);
-  bool executeReplayOsmImport(std::vector<string>& paramlist,
+                                  const std::string& subFileName);
+  bool executeReplayOsmImport(std::vector<std::string>& paramlist,
                               const unsigned int noSplitFiles);
-  bool executeReplayCSVImport(std::vector<string>& paramlist,
+  bool executeReplayCSVImport(std::vector<std::string>& paramlist,
                               const unsigned int noSplitFiles);
-  bool executeReplaySHPImport(std::vector<string>& paramlist,
+  bool executeReplaySHPImport(std::vector<std::string>& paramlist,
                               const unsigned int noSplitFiles);
-  bool executeReplayDBLPImport(std::vector<string>& paramlist,
+  bool executeReplayDBLPImport(std::vector<std::string>& paramlist,
                                const unsigned int noSplitFiles);
-  bool executeReplayIMGImport(std::vector<string>& paramlist);
-  bool executeReplayShareFile(std::vector<string>& paramlist);
+  bool executeReplayIMGImport(std::vector<std::string>& paramlist);
+  bool executeReplayShareFile(std::vector<std::string>& paramlist);
    
   bool splitCSV(const std::string& filename, 
                 const unsigned int headersize,
@@ -164,21 +164,21 @@ protected:
                      const unsigned int noSplitFiles);
 
   bool importImgOnNode(const unsigned int nodeNo,
-                       const string relDesc,
-                       const string relName);
+                       const std::string relDesc,
+                       const std::string relName);
 
-  string importDBLPGetCmdTxt(const string currentObject,
+  std::string importDBLPGetCmdTxt(const std::string currentObject,
                              const unsigned int currentNo,
-                             const string transferPath);
+                             const std::string transferPath);
 
   /* expansion stage 1 */
-  string replayFile; // path of external config file
+  std::string replayFile; // path of external config file
 
   struct ReplayHost {
-    string hostname;
-    string ip;
-    string port;
-    string cores;
+    std::string hostname;
+    std::string ip;
+    std::string port;
+    std::string cores;
     Socket* server;
     NestedList* nl;  
     CSProtocol* csp;
@@ -189,8 +189,8 @@ protected:
   std::vector<ReplayHost> nodes;
 
   /* expansion stage 2 */
-  string replayImportMode;
-  std::vector<string> transferFilePath;
+  std::string replayImportMode;
+  std::vector<std::string> transferFilePath;
 };
 
 #endif

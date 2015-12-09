@@ -48,8 +48,6 @@ This header file essentially contains the definition of the class
 #include "NetworkAlgebra.h"
 #include "TemporalNetAlgebra.h"
 
-using namespace network;
-using namespace temporalnet;
 
 namespace datetime
 {

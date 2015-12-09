@@ -31,7 +31,7 @@ namespace raster2
 {
 
 grid3::grid3()
-      : grid2(), m_Duration(durationtype)
+      : grid2(), m_Duration(datetime::durationtype)
 {
   
 }
@@ -39,11 +39,11 @@ grid3::grid3()
 grid3::grid3(const double& rOriginX,
              const double& rOriginY,
              const double& rLength,
-             const DateTime& rDuration)
+             const datetime::DateTime& rDuration)
       :grid2(rOriginX, rOriginY, rLength),
        m_Duration(rDuration)
 {
-    m_Duration.SetType(durationtype);
+    m_Duration.SetType(datetime::durationtype);
 }
 
 grid3::~grid3()
@@ -51,7 +51,7 @@ grid3::~grid3()
   
 }
 
-const DateTime& grid3::getDuration() const
+const datetime::DateTime& grid3::getDuration() const
 {
   return m_Duration;
 }

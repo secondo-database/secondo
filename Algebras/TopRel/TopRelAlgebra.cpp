@@ -69,6 +69,9 @@ extern "C"{
 
 */
 
+using namespace std;
+
+
 // define powers of two
 static const unsigned short P0 = 1;
 static const unsigned short P1 = 2;

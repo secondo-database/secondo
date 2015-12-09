@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../msstring.h"
 #include "../util/parse_error.h"
 
+using namespace std;
+
 namespace raster2
 {
   ValueMapping atrangeFuns[] =

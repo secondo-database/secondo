@@ -90,6 +90,8 @@ merging and a simple hash-join.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+using namespace std;
+
 /*
 2 Operators
 

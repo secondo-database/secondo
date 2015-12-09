@@ -7,7 +7,6 @@
 #ifndef SINGLEMATCH_H_
 #define SINGLEMATCH_H_
 
-using namespace std;
 
 namespace RegionInterpol
 {  
