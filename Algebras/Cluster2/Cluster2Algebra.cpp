@@ -72,6 +72,8 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 
+using namespace std;
+
 namespace cl2{
 
 #define MINIMUMPTS_DEF 4        // default min points   - MinPts

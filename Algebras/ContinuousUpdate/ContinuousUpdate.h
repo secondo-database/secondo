@@ -132,10 +132,10 @@ Uses a provided buffer
 @param a buffer to save overhead data from the fd
 
 */
-bool readLine(int fd, string& line, string& buffer) {
+bool readLine(int fd, std::string& line, std::string& buffer) {
 
     // Read from fd until buffer contains '\n'.
-    string::iterator pos;
+    std::string::iterator pos;
     while ((pos = find(buffer.begin(), buffer.end(), '\n')) == buffer.end()
             /* && pos <= 1*/) {
         char buf[1024];
@@ -158,8 +158,8 @@ bool readLine(int fd, string& line, string& buffer) {
     }
 
     // Get the line and return
-    line = string(buffer.begin(), pos);
-    buffer = string(pos + 1, buffer.end());
+    line = std::string(buffer.begin(), pos);
+    buffer = std::string(pos + 1, buffer.end());
     return true;
 }
 
