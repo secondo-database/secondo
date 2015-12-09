@@ -84,7 +84,7 @@ public:
 
   operator SimplePoint3d() const;
   
-  static const string BasicType();
+  static const std::string BasicType();
   static const bool checkType(const ListExpr list);
   static ListExpr Property();
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
@@ -257,7 +257,7 @@ public:
   Surface3d(int n);
   ~Surface3d();
 
-  static const string BasicType();
+  static const std::string BasicType();
   static const bool checkType(const ListExpr list);
   static ListExpr Property();
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
@@ -279,7 +279,7 @@ public:
   Volume3d(int n);
   ~Volume3d();
 
-  static const string BasicType();
+  static const std::string BasicType();
   static const bool checkType(const ListExpr list);
   static ListExpr Property();
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);

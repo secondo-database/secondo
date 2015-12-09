@@ -41,6 +41,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "geometric_algorithm.h"
 #include<iostream>
 
+
+using namespace std;
+
 namespace spatial3d_geometric
 {
     /* TODO: Remove debugging helpers (Jens Breit) */

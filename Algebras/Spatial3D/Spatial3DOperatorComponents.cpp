@@ -81,7 +81,7 @@ namespace spatial3DOperatorComponents
         triangles.insert(arg->get(c).BoundingBox(), c);
       }
       
-      vector<bool> visited(arg_size);
+      std::vector<bool> visited(arg_size);
       
       size_t first_unvisited_triangle_index = 0;
       
@@ -99,8 +99,8 @@ namespace spatial3DOperatorComponents
         if (first_unvisited_triangle_index >= arg_size)
           break;
         
-        stack<size_t> to_be_searched_for_neighbours;
-        vector<size_t> all_neighbours_found;
+        std::stack<size_t> to_be_searched_for_neighbours;
+        std::vector<size_t> all_neighbours_found;
         
         to_be_searched_for_neighbours.push(first_unvisited_triangle_index);
         visited[first_unvisited_triangle_index] = true;
@@ -164,7 +164,7 @@ namespace spatial3DOperatorComponents
     
   private:
 
-    stack<T*> components;
+    std::stack<T*> components;
     
     bool doTrianglesShareEdge(const Triangle& t1, const Triangle& t2)
     {

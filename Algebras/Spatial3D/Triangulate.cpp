@@ -46,6 +46,9 @@ The original implementation is from Atul Narkhede and Dinesh Manocha
 #include "Triangulate.h"
 
 using namespace Copied_from_Algebra_TransportationMode;
+
+using namespace std;
+
 namespace Copied_from_Algebra_TransportationMode
 {
 //////////////////////////////////////////////////////////////////////////////

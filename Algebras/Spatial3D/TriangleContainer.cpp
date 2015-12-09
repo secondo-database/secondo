@@ -328,7 +328,6 @@ bool TriangleContainer::checkTriangle(NList value)
 
 bool TriangleContainer::checkTriangleList(NList value)
 {
-  int length = value.length();
  /* SJ: We want an empty list, too
   if (length < 1)
   {

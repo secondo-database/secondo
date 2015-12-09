@@ -80,11 +80,11 @@ class Label : public Attribute {
   friend class Labels;
   
   typedef SymbolicUnit unitelem;
-  typedef string base;
+  typedef std::string base;
   typedef Labels coll;
    
   Label() {}
-  Label(const string& text) : Attribute(true), value(0) {SetValue(text);}
+  Label(const std::string& text) : Attribute(true), value(0) {SetValue(text);}
   Label(const Label& rhs);
   explicit Label(const bool def) : Attribute(def), value(0) {}
   
@@ -92,25 +92,30 @@ class Label : public Attribute {
   
   void Clean() {value.clean();}
   void Destroy() {value.destroy();}
-  void GetValue(string &text) const;
-  string GetValue() const;
-  void GetValues(set<string>& values) const;
-  static void buildValue(const string& text, const unitelem& unit,base& result);
-  static ListExpr getList(const string& text) {return nl->TextAtom(text);}
-  void Set(const bool def, const string &text) {SetDefined(def);SetValue(text);}
-  void SetValue(const string &text);
+  void GetValue(std::string &text) const;
+  std::string GetValue() const;
+  void GetValues(std::set<std::string>& values) const;
+  static void buildValue(const std::string& text, 
+                         const unitelem& unit,base& result);
+  static ListExpr getList(const std::string& text) {
+      return nl->TextAtom(text);
+  }
+  void Set(const bool def, const std::string &text) {
+     SetDefined(def);SetValue(text);
+  }
+  void SetValue(const std::string &text);
   Label& operator=(const Label& lb) {CopyFrom(&lb); return *this;}
   bool operator==(const Label& lb) const;
-  bool operator==(const string& text) const;
+  bool operator==(const std::string& text) const;
   double Distance(const Label& lb, const int fun) const;
 
-  static bool readValueFrom(ListExpr LE, string& text, unitelem& unit);
+  static bool readValueFrom(ListExpr LE, std::string& text, unitelem& unit);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
   ListExpr ToListExpr(ListExpr typeInfo);
   static bool     CheckKind(ListExpr type, ListExpr& errorInfo);
   static int      SizeOfObj() {return sizeof(Label);}
   static ListExpr Property();
-  static const string BasicType() {return "label";}
+  static const std::string BasicType() {return "label";}
   static const bool checkType(const ListExpr type);
   void            CopyFrom(const Attribute* right);
   int NumOfFLOBs() const {return 1;}
@@ -120,7 +125,7 @@ class Label : public Attribute {
   bool            Adjacent(const Attribute*) const {return false;}
   Attribute*      Clone() const {return new Label(*this);}
   size_t          HashValue() const {return value.getSize();}
-  ostream&        Print(ostream& os) const;
+  std::ostream&        Print(std::ostream& os) const;
   
  protected:
   Flob value;
@@ -134,7 +139,7 @@ class Labels : public Attribute {
  public:
   typedef SymbolicUnit unitelem;
   typedef unsigned int arrayelem;
-  typedef string base;
+  typedef std::string base;
   typedef Label single;
       
   Labels() {}
@@ -146,31 +151,35 @@ class Labels : public Attribute {
   Labels& operator=(const Labels& src);
   bool operator==(const Labels& src) const;
   void Append(const Label &lb);
-  void Append(const string& text);
-  void Append(const set<string>& values);
+  void Append(const std::string& text);
+  void Append(const std::set<std::string>& values);
   void Destroy() {values.destroy(); pos.destroy();}
   int GetNoValues() const {return pos.Size();}
   int GetNoComponents() const {return GetNoValues();}
   size_t GetLength() const {return values.getSize();}
   void Get(int i, Label& lb) const;
-  void GetValue(int i, string& text) const;
-  void GetValues(set<string>& values) const;
+  void GetValue(int i, std::string& text) const;
+  void GetValues(std::set<std::string>& values) const;
   static void getRefToLastElem(const int size, unsigned int& result);
   static unsigned int getFlobPos(const arrayelem elem);
-  static void valuesToListExpr(const set<string>& values, ListExpr& result);
-  static void getString(const ListExpr& list, string& result);
+  static void valuesToListExpr(const std::set<std::string>& values,
+                                ListExpr& result);
+  static void getString(const ListExpr& list, std::string& result);
   static void getElemFromList(const ListExpr& list, const unsigned int size, 
                               unsigned int& result);
-  static void buildValue(const string& text, const unsigned int pos,
-                         string& result);
+  static void buildValue(const std::string& text, const unsigned int pos,
+                         std::string& result);
   static void printArrayElem(const arrayelem e) {cout << "print " << e << endl;}
   const bool IsEmpty() const {return GetNoValues() == 0;}
   void Clean() {values.clean(); pos.clean();}
-  bool Contains(const string& text) const;
-  void Union(const set<string>& values1, const set<string>& values2);
-  void Intersection(const set<string>& values1, const set<string>& values2);
-  void Minus(const set<string>& values1, const set<string>& values2);
-  friend ostream& operator<<(ostream& os, const Labels& lbs);
+  bool Contains(const std::string& text) const;
+  void Union(const std::set<std::string>& values1, 
+             const std::set<std::string>& values2);
+  void Intersection(const std::set<std::string>& values1, 
+                    const std::set<std::string>& values2);
+  void Minus(const std::set<std::string>& values1, 
+             const std::set<std::string>& values2);
+  friend std::ostream& operator<<(std::ostream& os, const Labels& lbs);
   double Distance(const Labels& lbs, const int fun, const int labelFun) const;
   
   int NumOfFLOBs() const {return 2;}
@@ -179,14 +188,14 @@ class Labels : public Attribute {
   bool Adjacent(const Attribute*) const {return false;}
   Attribute *Clone() const {return new Labels(*this);}
   size_t Sizeof() const {return sizeof(*this);}
-  ostream& Print(ostream& os) const {return (os << *this);}
+  std::ostream& Print(std::ostream& os) const {return (os << *this);}
   static ListExpr Property();
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   ListExpr ToListExpr(ListExpr typeInfo);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
   static int SizeOfObj() {return sizeof(Labels);}
-  static const string BasicType() {return Label::BasicType() + "s";}
+  static const std::string BasicType() {return Label::BasicType() + "s";}
   void CopyFrom(const Attribute* right) {*this = *((Labels*)right);}
   size_t HashValue() const;
 
@@ -206,33 +215,36 @@ class Place : public Label {
   friend class Places;
   
   typedef ExtSymbolicUnit unitelem;
-  typedef pair<string, unsigned int> base;
+  typedef std::pair<std::string, unsigned int> base;
   typedef Places coll;
   
   Place() : Label() {}
-  Place(const pair<string, unsigned int>& v) : Label(v.first), ref(v.second) {}
+  Place(const std::pair<std::string, unsigned int>& v) :
+        Label(v.first), ref(v.second) {}
   Place(const Place& rhs) : Label(rhs.IsDefined()) {CopyFrom(&rhs);}
   explicit Place(const bool def) : Label(def), ref(0) {}
 
   ~Place() {}
 
-  void Set(const bool defined, const pair<string, unsigned int>& value);
-  void SetValue(const pair<string, unsigned int>& value);
+  void Set(const bool defined, const std::pair<std::string,
+           unsigned int>& value);
+  void SetValue(const std::pair<std::string, unsigned int>& value);
   void SetRef(const unsigned int value) {ref = value;}
-  void GetValue(pair<string, unsigned int>& value) const;
-  void GetValues(set<pair<string, unsigned int> >& values) const;
-  static void buildValue(const string& text, const unitelem& unit,base& result);
+  void GetValue(std::pair<std::string, unsigned int>& value) const;
+  void GetValues(std::set<std::pair<std::string, unsigned int> >& values) const;
+  static void buildValue(const std::string& text, 
+              const unitelem& unit,base& result);
   static ListExpr getList(const base& value);
   unsigned int GetRef() const {return ref;}
   Place& operator=(const Place& p);
   bool operator==(const Place& p) const;
-  bool operator==(const pair<string, unsigned int>& value) const;
+  bool operator==(const std::pair<std::string, unsigned int>& value) const;
   double Distance(const Place& p, const int fun) const;
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Place);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "place";}
+  static const std::string BasicType() {return "place";}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return Label::NumOfFLOBs();}
   Flob* GetFLOB(const int i) {return Label::GetFLOB(i);}
@@ -243,7 +255,7 @@ class Place : public Label {
   size_t HashValue() const {return Label::HashValue() * ref;}
   virtual void CopyFrom(const Attribute* right) {*this = *((Place*)right);}
   ListExpr ToListExpr(ListExpr typeInfo);
-  static bool readValueFrom(ListExpr LE, string& text, unitelem& unit);
+  static bool readValueFrom(ListExpr LE, std::string& text, unitelem& unit);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
 
  protected:
@@ -258,7 +270,7 @@ class Places : public Attribute {
  public:
   typedef ExtSymbolicUnit unitelem;
   typedef NewPair<unsigned int, unsigned int> arrayelem;
-  typedef pair<string, unsigned int> base;
+  typedef std::pair<std::string, unsigned int> base;
   typedef Place single;
    
   Places() {}
@@ -270,27 +282,29 @@ class Places : public Attribute {
 
   void Append(const base& value);
   void Append(const Place& pl);
-  void Append(const set<base>& values);
+  void Append(const std::set<base>& values);
   void Destroy() {values.destroy(); posref.destroy();}
   int GetNoValues() const {return posref.Size();}
   int GetNoComponents() const {return GetNoValues();}
   size_t GetLength() const {return values.getSize();}
   void Get(const int i, Place& pl) const;
   void GetValue(int i, base& val) const;
-  void GetValues(set<base>& values) const;
+  void GetValues(std::set<base>& values) const;
   bool IsEmpty() const {return (GetNoValues() == 0);}
   bool Contains(const base& val) const;
-  void Union(const set<base>& values1, const set<base>& values2);
-  void Intersection(const set<base>& values1, const set<base>& values2);
-  void Minus(const set<base>& values1, const set<base>& values2);
+  void Union(const std::set<base>& values1, const std::set<base>& values2);
+  void Intersection(const std::set<base>& values1, 
+                    const std::set<base>& values2);
+  void Minus(const std::set<base>& values1, const std::set<base>& values2);
   void Clean() {values.clean(); posref.clean();}
   static void getRefToLastElem(const int size, arrayelem& result);
   static unsigned int getFlobPos(const arrayelem elem);
-  static void valuesToListExpr(const set<base>& values, ListExpr& result);
-  static void getString(const ListExpr& list, string& result);
+  static void valuesToListExpr(const std::set<base>& values, ListExpr& result);
+  static void getString(const ListExpr& list, std::string& result);
   static void getElemFromList(const ListExpr& list, const unsigned int size, 
                               arrayelem& result);
-  static void buildValue(const string& text, const arrayelem pos, base& result);
+  static void buildValue(const std::string& text, 
+                         const arrayelem pos, base& result);
   static void printArrayElem(const arrayelem e) {cout << e.first << " " 
                                                       << e.second;}
   void operator=(const Places& p);
@@ -301,7 +315,7 @@ class Places : public Attribute {
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Places);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return Place::BasicType() + "s";}
+  static const std::string BasicType() {return Place::BasicType() + "s";}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return 2;}
   Flob* GetFLOB(const int i);

@@ -53,7 +53,7 @@ namespace spatial3d_geometric
   
   void print(Vector3d a);
   
-  void print(SimplePoint2d a, string name);
+  void print(SimplePoint2d a, std::string name);
   
   void print(Triangle a);
 
@@ -187,18 +187,18 @@ namespace spatial3d_geometric
  
   bool prepareSetOperationSurface(const TriangleContainer& in_1,
                                   const TriangleContainer& in_2,
-                                  vector<Triangle>& out_only_1,
-                                  vector<Triangle>& out_only_2,
-                                  vector<Triangle>& out_both);
+                                  std::vector<Triangle>& out_only_1,
+                                  std::vector<Triangle>& out_only_2,
+                                  std::vector<Triangle>& out_both);
 
   bool prepareSetOperationVolume(const Volume3d& in_1,
-                                 const Volume3d& in_2,
-                                 vector<Triangle>& out_only_1_outside_2,
-                                 vector<Triangle>& out_only_2_outside_1,
-                                 vector<Triangle>& out_only_1_inside_2,
-                                 vector<Triangle>& out_only_2_inside_1,
-                                 vector<Triangle>& out_both_same_direction,
-                                 vector<Triangle>& out_both_opposite_direction);
+                            const Volume3d& in_2,
+                            std::vector<Triangle>& out_only_1_outside_2,
+                            std::vector<Triangle>& out_only_2_outside_1,
+                            std::vector<Triangle>& out_only_1_inside_2,
+                            std::vector<Triangle>& out_only_2_inside_1,
+                            std::vector<Triangle>& out_both_same_direction,
+                            std::vector<Triangle>& out_both_opposite_direction);
 }
 
 #endif

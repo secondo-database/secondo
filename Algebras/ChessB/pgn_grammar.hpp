@@ -48,112 +48,112 @@ struct game_parser : public bs::grammar< game_parser >
             ply_data&  p = g.ply;
 
             root
-                =   game >> end_p
+                =   game >> bs::end_p
                 ;
             game
                 =   * tag
                     >> * move
-                    >>   RESULT[ assign_a(g.result) ]
+                    >>   RESULT[ bs::assign_a(g.result) ]
                 ;
             tag
-                =   ch_p('[')
-                    >> tag_name [ assign_a(g.name) ]
-                    >> confix_p( '"', (*print_p)[ insert_at_a(g.tags, g.name) ], '"' )
-                                [ assign_a(g.name, "") ]
-                    >> ch_p(']')
+                =   bs::ch_p('[')
+                    >> tag_name [ bs::assign_a(g.name) ]
+                    >> bs::confix_p( '"', (*bs::print_p)[ bs::insert_at_a(g.tags, g.name) ], '"' )
+                                [ bs::assign_a(g.name, "") ]
+                    >> bs::ch_p(']')
                 ;
             tag_name
-                =   *( alnum_p | ch_p( '_' ) )
+                =   *( bs::alnum_p | bs::ch_p( '_' ) )
                 ;
             move
                 =   NUMBER
-                    >>   PLY [ assign_a(p.ply) ]
-                             [ push_back_a(g.moves, p) ]
-                             [ assign_a( p, self.empty_ply ) ]
+                    >>   PLY [ bs::assign_a(p.ply) ]
+                             [ bs::push_back_a(g.moves, p) ]
+                             [ bs::assign_a( p, self.empty_ply ) ]
                     >> ! NAG
                     >> ! COMMENT
-                    >> ! PLY [ assign_a(p.ply) ]
-                             [ push_back_a(g.moves, p) ]
-                             [ assign_a( p, self.empty_ply ) ]
+                    >> ! PLY [ bs::assign_a(p.ply) ]
+                             [ bs::push_back_a(g.moves, p) ]
+                             [ bs::assign_a( p, self.empty_ply ) ]
                     >> ! NAG
                     >> ! COMMENT
                 ;
             NUMBER
-                =   lexeme_d[ uint_p >> ch_p( '.' ) ]
+                =   bs::lexeme_d[ bs::uint_p >> bs::ch_p( '.' ) ]
                 ;
             PLY
-                =   lexeme_d
+                =   bs::lexeme_d
                     [
-                        chset_p( "NBRQK" ) [ assign_a(p.piece) ]
+                        bs::chset_p( "NBRQK" ) [ bs::assign_a(p.piece) ]
                         >>  ! (
-                                  ch_p('x') [ assign_a(p.capture) ]
-                                | ch_p('-')
+                                  bs::ch_p('x') [ bs::assign_a(p.capture) ]
+                                | bs::ch_p('-')
                               )
-                        >>   range_p( 'a', 'h' ) [ assign_a(p.file) ]
-                        >>   range_p( '1', '8' ) [ assign_a(p.rank) ]
-                        >> ! ( str_p("++") | ch_p('+') | ch_p('#') )
-                                                 [ assign_a(p.check) ]
+                        >>   bs::range_p( 'a', 'h' ) [ bs::assign_a(p.file) ]
+                        >>   bs::range_p( '1', '8' ) [ bs::assign_a(p.rank) ]
+                        >> ! ( bs::str_p("++") | bs::ch_p('+') | bs::ch_p('#') )
+                                                 [ bs::assign_a(p.check) ]
                     ]
-                  | lexeme_d
+                  | bs::lexeme_d
                     [
-                        chset_p( "NBRQK" ) [ assign_a(p.piece) ]
+                        bs::chset_p( "NBRQK" ) [ bs::assign_a(p.piece) ]
                         >>   (
-                                  range_p('a', 'h') [ assign_a(p.afile) ]
-                                | range_p('1', '8') [ assign_a(p.arank) ]
+                                  bs::range_p('a', 'h') [ bs::assign_a(p.afile) ]
+                                | bs::range_p('1', '8') [ bs::assign_a(p.arank) ]
                               )
                         >> ! (
-                                  ch_p('x')[ assign_a(p.capture) ]
-                                | ch_p('-')
+                                  bs::ch_p('x')[ bs::assign_a(p.capture) ]
+                                | bs::ch_p('-')
                               )
-                        >>   range_p( 'a', 'h' ) [ assign_a(p.file) ]
-                        >>   range_p( '1', '8' ) [ assign_a(p.rank) ]
-                        >> ! ( str_p("++") | ch_p('+') | ch_p('#') )
-                                                 [ assign_a(p.check) ]
+                        >>   bs::range_p( 'a', 'h' ) [ bs::assign_a(p.file) ]
+                        >>   bs::range_p( '1', '8' ) [ bs::assign_a(p.rank) ]
+                        >> ! ( bs::str_p("++") | bs::ch_p('+') | bs::ch_p('#') )
+                                                 [ bs::assign_a(p.check) ]
                     ]
-                  | lexeme_d
+                  | bs::lexeme_d
                     [
-                        range_p( 'a', 'h' ) [ assign_a(p.file) ]
-                        >>   range_p( '1', '8' ) [ assign_a(p.rank) ]
-                        >> ! (  ch_p('=')
-                                >> chset_p( "NBRQ" ) [ assign_a(p.promoted) ]
+                        bs::range_p( 'a', 'h' ) [ bs::assign_a(p.file) ]
+                        >>   bs::range_p( '1', '8' ) [ bs::assign_a(p.rank) ]
+                        >> ! (  bs::ch_p('=')
+                                >> bs::chset_p( "NBRQ" ) [ bs::assign_a(p.promoted) ]
                               )
-                        >> ! ( str_p("++") | ch_p('+') | ch_p('#') )
-                                                 [ assign_a(p.check) ]
+                        >> ! ( bs::str_p("++") | bs::ch_p('+') | bs::ch_p('#') )
+                                                 [ bs::assign_a(p.check) ]
                     ]
-                  | lexeme_d
+                  | bs::lexeme_d
                     [
-                        range_p( 'a', 'h' ) [ assign_a(p.afile) ]
-                        >>   ch_p('x') [ assign_a(p.capture) ]
-                        >>   range_p( 'a', 'h' ) [ assign_a(p.file) ]
-                        >>   range_p( '1', '8' ) [ assign_a(p.rank) ]
-                        >> ! (  ch_p('=')
-                                >> chset_p( "NBRQ" ) [ assign_a(p.promoted) ]
+                        bs::range_p( 'a', 'h' ) [ bs::assign_a(p.afile) ]
+                        >>   bs::ch_p('x') [ bs::assign_a(p.capture) ]
+                        >>   bs::range_p( 'a', 'h' ) [ bs::assign_a(p.file) ]
+                        >>   bs::range_p( '1', '8' ) [ bs::assign_a(p.rank) ]
+                        >> ! (  bs::ch_p('=')
+                                >> bs::chset_p( "NBRQ" ) [ bs::assign_a(p.promoted) ]
                               )
-                        >> ! ( str_p("++") | ch_p('+') | ch_p('#') )
-                                                 [ assign_a(p.check) ]
+                        >> ! ( bs::str_p("++") | bs::ch_p('+') | bs::ch_p('#') )
+                                                 [ bs::assign_a(p.check) ]
                     ]
                   | (
-                        str_p( "O-O-O" ) [ assign_a(p.castling) ]
-                        >> ! ( str_p("++") | ch_p('+') | ch_p('#') )
-                                                 [ assign_a(p.check) ]
+                        bs::str_p( "O-O-O" ) [ bs::assign_a(p.castling) ]
+                        >> ! ( bs::str_p("++") | bs::ch_p('+') | bs::ch_p('#') )
+                                                 [ bs::assign_a(p.check) ]
                      )
                   |  (
-                        str_p( "O-O" ) [ assign_a(p.castling) ]
-                        >> ! ( str_p("++") | ch_p('+') | ch_p('#') )
-                                                 [ assign_a(p.check) ]
+                        bs::str_p( "O-O" ) [ bs::assign_a(p.castling) ]
+                        >> ! ( bs::str_p("++") | bs::ch_p('+') | bs::ch_p('#') )
+                                                 [ bs::assign_a(p.check) ]
                      )
                 ;
             RESULT
-                =   str_p( "1-0" )
-                    | str_p( "0-1" )
-                    | str_p( "1/2-1/2" )
-                    | ch_p( '*' )
+                =   bs::str_p( "1-0" )
+                    | bs::str_p( "0-1" )
+                    | bs::str_p( "1/2-1/2" )
+                    | bs::ch_p( '*' )
                 ;
             COMMENT
-                =   lexeme_d[ confix_p( '{', *anychar_p, '}' ) ]
+                =   bs::lexeme_d[ bs::confix_p( '{', *bs::anychar_p, '}' ) ]
                 ;
             NAG
-                =   lexeme_d[ ch_p( '$' ) >> uint_p ]
+                =   bs::lexeme_d[ bs::ch_p( '$' ) >> bs::uint_p ]
                 ;
         }
         bs::rule<ScannerT> root, game, tag, tag_name, move,

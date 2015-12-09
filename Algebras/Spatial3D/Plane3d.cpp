@@ -41,6 +41,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AuxiliaryTypes.h"
 #include "geometric_algorithm.h"
 
+using namespace std;
+
 
 Plane3d::Plane3d() : Attribute() { }
 

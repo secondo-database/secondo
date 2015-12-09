@@ -55,7 +55,7 @@ Volume3d::Volume3d(int n) : TriangleContainer(n) { }
 
 Volume3d::~Volume3d() { }
 
-const string Volume3d::BasicType()
+const std::string Volume3d::BasicType()
 {
   return "volume3d";
 }
@@ -124,7 +124,7 @@ bool Volume3d::checkBulkloadData(BulkLoadOptions options) const
                                .checkVolume(1, (options & REPAIR) != 0);
   if (!success)
   {
-    cerr << "Volume check not successful!" << endl;
+    std::cerr << "Volume check not successful!" << std::endl;
   }
   return success;
 }

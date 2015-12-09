@@ -55,7 +55,7 @@ Surface3d::Surface3d(int n) : TriangleContainer(n) { }
 
 Surface3d::~Surface3d() { }
 
-const string Surface3d::BasicType()
+const std::string Surface3d::BasicType()
 {
   return "surface3d";
 }

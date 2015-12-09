@@ -60,6 +60,8 @@ from a stream of tuples which contains string or text attributes.
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+using namespace std;
+
 namespace GVZ {
 
 /*

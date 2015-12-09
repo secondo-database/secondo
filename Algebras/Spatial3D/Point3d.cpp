@@ -69,7 +69,7 @@ Point3d::operator SimplePoint3d() const
   return SimplePoint3d(x, y, z);
 }
 
-const string Point3d::BasicType()
+const std::string Point3d::BasicType()
 {
   return "point3d";
 }

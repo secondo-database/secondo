@@ -72,7 +72,7 @@ bool SimplePoint2d::operator==(const SimplePoint2d& other) const
   return x == other.x && y == other.y;
 }
 
-ostream& operator<< (ostream& os, const SimplePoint2d& point) {
+std::ostream& operator<< (std::ostream& os, const SimplePoint2d& point) {
   return os << "(" << point.getX()
             << "/" << point.getY() << ")";
 }

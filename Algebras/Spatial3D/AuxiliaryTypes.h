@@ -117,7 +117,7 @@ public:
 
   double getLength() const;
     
-  static const string BasicType();
+  static const std::string BasicType();
   static const bool checkType(const ListExpr list);
   static ListExpr Property();
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
@@ -163,7 +163,7 @@ public:
   Vector3d getNormalVector() const;
   double getDistanceToOrigin() const;
 
-  static const string BasicType();
+  static const std::string BasicType();
   static const bool checkType(const ListExpr list);
   static ListExpr Property();
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
@@ -247,8 +247,8 @@ private:
 
 };
 
-ostream& operator<< (ostream& os, const SimplePoint2d& point);
-ostream& operator<< (ostream& os, const SimplePoint3d& point);
-ostream& operator<< (ostream& os, const Triangle& triangle);
-ostream& operator<< (ostream& os, const Vector3d& vector);
+std::ostream& operator<< (std::ostream& os, const SimplePoint2d& point);
+std::ostream& operator<< (std::ostream& os, const SimplePoint3d& point);
+std::ostream& operator<< (std::ostream& os, const Triangle& triangle);
+std::ostream& operator<< (std::ostream& os, const Vector3d& vector);
 #endif

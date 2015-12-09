@@ -183,8 +183,10 @@ typedef struct {
 } vertexchain_t;
 
 
-int triangulate_polygon(int ncontours, int cntr[], vector<double> vertices_x,
-vector<double> vertices_y, int (*triangles)[3]);
+int triangulate_polygon(int ncontours, int cntr[], 
+                        std::vector<double> vertices_x,
+                        std::vector<double> vertices_y, 
+                        int (*triangles)[3]);
 
 //#define DEBUG
 
@@ -210,11 +212,11 @@ enum Dimension
 // definition of basic types
 typedef double      MGFloat;
 typedef int         MGInt;
-typedef string      MGString;
+typedef std::string      MGString;
 
 
-typedef vector<MGFloat> MGFloatArr;
-typedef vector<MGInt>   MGIntArr;
+typedef std::vector<MGFloat> MGFloatArr;
+typedef std::vector<MGInt>   MGIntArr;
 
 
 //const MGFloat ZERO = 1.0e-12;
@@ -927,17 +929,17 @@ public:
 
 
     int Triangulation2(int ncontours, int cntr[], 
-                             vector<double>& vertices_x,
-                   vector<double>& vertices_y);
-    void    Init2(int ncontours, int cntr[], vector<double>& vertices_x,
-                   vector<double>& vertices_y);
+                             std::vector<double>& vertices_x,
+                   std::vector<double>& vertices_y);
+    void    Init2(int ncontours, int cntr[], std::vector<double>& vertices_x,
+                   std::vector<double>& vertices_y);
     int    OutPut();
     
     
-    vector<Vect2D>  mtabPnt;
-    vector<MGInt>   mtabSize;
-    vector<HTri>    mtabCell;
-    vector<int>     p_id_list;
+    std::vector<Vect2D>  mtabPnt;
+    std::vector<MGInt>   mtabSize;
+    std::vector<HTri>    mtabCell;
+    std::vector<int>     p_id_list;
     
 };
 
@@ -1444,7 +1446,7 @@ protected:
 //--------------------------------------------------------------------
 
 
-typedef list<HGrdPnt*>      CollGPnt;
+typedef std::list<HGrdPnt*>      CollGPnt;
 typedef CollGPnt::iterator  IterGPnt;
 
 
@@ -1463,7 +1465,7 @@ class HGrdTri
 {
 public:
 
-    typedef list<HGrdTri*>      CollGCell;
+    typedef std::list<HGrdTri*>      CollGCell;
     typedef CollGCell::iterator IterGCell;
 
     HGrdTri();
@@ -1665,7 +1667,7 @@ public:
 };
 //--------------------------------------------------------------------
 
-typedef list<HFroSeg*>      CollFSeg;
+typedef std::list<HFroSeg*>      CollFSeg;
 typedef CollFSeg::iterator  IterFSeg;
 
 
@@ -1715,7 +1717,7 @@ public:
 };
 //--------------------------------------------------------------------
 
-typedef list<HFront>        CollFro;
+typedef std::list<HFront>        CollFro;
 typedef CollFro::iterator   IterFro;
 
 
@@ -1732,7 +1734,8 @@ public:
     HGrid()     {}
     ~HGrid();
 
-    void    Init( const vector<Vect2D>& tabp, const vector<MGInt>& tabn );
+    void    Init( const std::vector<Vect2D>& tabp, 
+                  const std::vector<MGInt>& tabn );
     void    Generate();
     void    ExportTECTmp( FILE *f);
     void    WriteFrontTEC( const char name[]);
@@ -1807,8 +1810,8 @@ inline bool HGrid::IsBoxCorner( const IterGPnt& ipnt)
 }
 
 
-int Triangulation2(int ncontours, int cntr[], vector<double>& vertices_x,
-                   vector<double>& vertices_y);
+int Triangulation2(int ncontours, int cntr[], std::vector<double>& vertices_x,
+                   std::vector<double>& vertices_y);
 
 
 #endif

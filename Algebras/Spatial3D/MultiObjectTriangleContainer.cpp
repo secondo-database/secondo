@@ -47,6 +47,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include<limits>
 
 using namespace spatial3d_geometric;
+using namespace std;
 
 const bool debug_volume = false;
 const bool debug_splitting = false;

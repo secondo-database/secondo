@@ -40,6 +40,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AuxiliaryTypes.h"
 #include "geometric_algorithm.h"
 
+using namespace std;
+
 Triangle::Triangle(const SimplePoint3d& a,
                    const SimplePoint3d& b,
                    const SimplePoint3d& c)

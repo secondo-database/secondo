@@ -93,7 +93,7 @@ double Vector3d::getLength() const
 }
 
 
-const string Vector3d::BasicType()
+const std::string Vector3d::BasicType()
 {
   return "vector3d";
 }
@@ -244,7 +244,7 @@ bool Vector3d::operator==(Vector3d& other) const
   return this->x == other.x && this->y == other.y && this->z == other.z;
 }
 
-ostream& operator<< (ostream& os, const Vector3d& vector) {
+std::ostream& operator<< (std::ostream& os, const Vector3d& vector) {
   return os << "(" << vector.getX()
   << "/" << vector.getY()
   << "/" << vector.getZ() << ")";

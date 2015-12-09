@@ -57,17 +57,17 @@ namespace spatial3d_geometric
     // single point if POINT;
     // two points if SEGMENT;
     // empty if AREA    // TODO: werden Punkte doch gebraucht?
-    vector<SimplePoint3d>& getIntersectionPoints();
+    std::vector<SimplePoint3d>& getIntersectionPoints();
     
     TriangleIntersectionResult();
     
   private:
     
-    vector<SimplePoint3d> intersectionPoints;
+    std::vector<SimplePoint3d> intersectionPoints;
     TriangleIntersectionType intersectionType;
     
     // Ownership is transfered to this result class
-    TriangleIntersectionResult(vector<SimplePoint3d> _intersectionPoints,
+    TriangleIntersectionResult(std::vector<SimplePoint3d> _intersectionPoints,
                                TriangleIntersectionType type);
 
     friend TriangleIntersectionResult intersection(const Plane3d& plane,

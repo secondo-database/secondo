@@ -71,7 +71,7 @@ public:
 
   void mergeObject(int fromObject, int toObject);
 
-  void exportObject(int object, vector<Triangle>& out) const;
+  void exportObject(int object, std::vector<Triangle>& out) const;
 
   // Return true if volume is valid or has been made valid.
   // If corrections == false, some corrections are tried, but might fail.
@@ -175,9 +175,9 @@ public:
     int object, 
     bool& isOuter);
   
-  vector<size_t> getTrianglesForEdge(size_t point1,
+  std::vector<size_t> getTrianglesForEdge(size_t point1,
                                      size_t point2,
-                                     vector<TriangleStatus>& tri_state);  
+                                     std::vector<TriangleStatus>& tri_state);  
   
   // remove triangle from object. no checks done, be careful!
   void removeTriangleFromObject(int object, size_t triangle);
@@ -247,7 +247,7 @@ private:
     Projection2d projection;
 
     SortedEdge(size_t _edgeP1, size_t _edgeP2, size_t xPoint,
-               const vector<SimplePoint3d>& points);
+               const std::vector<SimplePoint3d>& points);
 
     size_t getThirdPoint(const size_t trianglePoints[]);
     TrianglePathDirection getDirection(const size_t trianglePoints[]);
@@ -264,7 +264,7 @@ private:
 
     SortedTriangle(SortedEdge _edge, size_t _triangle,
                    const TriangleData _triangleData,
-                   const vector<SimplePoint3d>& points);
+                   const std::vector<SimplePoint3d>& points);
   
     TrianglePathDirection getDirectionForObject(int object);
   
@@ -282,13 +282,13 @@ private:
   // Iteration may only use the R-Trees, never the basic vectors, as the vectors
   // contain stale data.
 
-  vector<SimplePoint3d> points;
+  std::vector<SimplePoint3d> points;
   mmrtree::RtreeT<3, size_t> points_tree;
 
-  vector<TriangleData> triangles;
+  std::vector<TriangleData> triangles;
   mmrtree::RtreeT<3, size_t> triangles_tree;
-  stack<size_t> unused_triangle_indices;
-  vector<size_t> trianglesObject0;
+  std::stack<size_t> unused_triangle_indices;
+  std::vector<size_t> trianglesObject0;
 
   // Methods
 
@@ -308,11 +308,11 @@ private:
             size_t& out_incompatibleTriangle,
             spatial3d_geometric::TriangleIntersectionResult& out_intersection);
 
-  set<size_t> getEdgesForPoint(size_t point) const;
+  std::set<size_t> getEdgesForPoint(size_t point) const;
   
-  vector<size_t> getTrianglesForPoint(size_t point) const;
+  std::vector<size_t> getTrianglesForPoint(size_t point) const;
 
-  vector<size_t> getTrianglesForEdge(size_t point1, size_t point2) const;
+  std::vector<size_t> getTrianglesForEdge(size_t point1, size_t point2) const;
 
   TriangleDataComparisonResult compare(const TriangleData& t1,
                                        const TriangleData& t2) const;
@@ -337,19 +337,19 @@ private:
 
   // Triangle splitting primitives
   void splitEdge(size_t edgeP1, size_t edgeP2, size_t splitP,
-                 vector<vector<size_t> >& tracked_partitions);
+                 std::vector<std::vector<size_t> >& tracked_partitions);
   void splitSurface(size_t triangle, size_t surfacePoint,
-                    vector<vector<size_t> >& tracked_partitions);
+                    std::vector<std::vector<size_t> >& tracked_partitions);
   
   void cutTriangles2d(size_t t0, size_t t1,
-                      vector<size_t>& o0, vector<size_t>& o1,
-                      vector<size_t>& both);
+                      std::vector<size_t>& o0, std::vector<size_t>& o1,
+                      std::vector<size_t>& both);
 
   // Does some splitting of the triangle. Not always everything!
   // Precondition: segment of point1,point2 is in the plane of the triangle
   // and incompatible.
   bool splitTriangleForSegment(size_t triangle, size_t point1, size_t point2,
-                               vector<vector<size_t> >& tracked_partitions);
+                     std::vector<std::vector<size_t> >& tracked_partitions);
   
   size_t GetIndexOfHighestNotUsedTriangle(
     std::vector<TriangleStatus>& tri_state);

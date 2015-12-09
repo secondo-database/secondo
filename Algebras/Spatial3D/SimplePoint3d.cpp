@@ -98,7 +98,7 @@ Rectangle<3> SimplePoint3d::BoundingBox() const
   return Rectangle<3>(true, x, x, y, y, z, z);
 }
 
-ostream& operator<< (ostream& os, const SimplePoint3d& point) {
+std::ostream& operator<< (std::ostream& os, const SimplePoint3d& point) {
   return os << "(" << point.getX()
   << "/" << point.getY()
   << "/" << point.getZ() << ")";
