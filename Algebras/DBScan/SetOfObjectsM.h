@@ -153,12 +153,12 @@ in the constructor. The caller of this function is responsible to delete
 the returned list.
 
 */
-     list<TupleId>* getNeighbors(TupleId id){
+     std::list<TupleId>* getNeighbors(TupleId id){
         Tuple* tuple = buffer->GetTuple(id);
         T* obj = (T*)tuple->GetAttribute(attrPos);
-        RangeIterator<pair<T*,TupleId>, D>* it  
-              = tree->rangeSearch(make_pair(obj,id), eps);
-        list<TupleId>* res = new list<TupleId>();
+        RangeIterator<std::pair<T*,TupleId>, D>* it  
+              = tree->rangeSearch(std::make_pair(obj,id), eps);
+        std::list<TupleId>* res = new std::list<TupleId>();
 
         while(it->hasNext()){
            TupleId id2 = it->next()->second;
@@ -222,9 +222,9 @@ Changes the seed flag for a tuple.
      double eps;  // epsilon value
      int minPts;  // minimum amount of neighbors
      int attrPos; // position of the rectangle attribute
-     MMMTree<pair<T*,TupleId>, D>* tree; // the index
+     MMMTree<std::pair<T*,TupleId>, D>* tree; // the index
      TupleStore1* buffer;  // buffer for input tuples
-     vector<TupleInfo> tupleStates; // structir stroing tuple states
+     std::vector<TupleInfo> tupleStates; // structir stroing tuple states
      TupleType* tt;   // the result tuple type
      GenericRelationIterator* resIt;  // iterator 
      D dist;                          // distance function
@@ -238,14 +238,14 @@ Processes the complete input stream and builds an r-tree index on it.
      void initialize(size_t mem, Word _stream){
          Tuple* tuple;
           buffer = new TupleStore1(mem);
-          tree = new MMMTree<pair<T*,TupleId>, D>(4,8, dist);
+          tree = new MMMTree<std::pair<T*,TupleId>, D>(4,8, dist);
           Stream<Tuple> stream(_stream);
           stream.open();
           while((tuple = stream.request())){
              TupleId id = buffer->AppendTuple(tuple);
              T* obj = (T*) tuple->GetAttribute(attrPos);
              if(obj->IsDefined()){
-                 pair<T*,TupleId> p(obj,id);
+                 std::pair<T*,TupleId> p(obj,id);
                  tree->insert(p);
              }
              TupleInfo info(false,-1);

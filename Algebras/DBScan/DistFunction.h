@@ -74,8 +74,8 @@ namespace clusterdbscanalg
  {
   public:
 
-   double operator()(const pair<CcInt*,TupleId>& p1
-    ,const pair<CcInt*,TupleId>& p2)
+   double operator()(const std::pair<CcInt*,TupleId>& p1
+    ,const std::pair<CcInt*,TupleId>& p2)
    {
     DistCount::cnt++;
     assert(p1.first);
@@ -88,7 +88,7 @@ namespace clusterdbscanalg
    
     if(!p1.first->IsDefined() || !p2.first->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
    
     int i1 = p1.first->GetValue();
@@ -98,7 +98,7 @@ namespace clusterdbscanalg
     return c<0?-c:c;
    }
 
-   ostream& print(const pair<CcInt*,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<CcInt*,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -112,8 +112,8 @@ namespace clusterdbscanalg
  {
   public:
 
-   double operator()(const pair<CcReal*,TupleId>& p1
-    ,const pair<CcReal*,TupleId>& p2)
+   double operator()(const std::pair<CcReal*,TupleId>& p1
+    ,const std::pair<CcReal*,TupleId>& p2)
    {
     DistCount::cnt++;
     assert(p1.first);
@@ -126,7 +126,7 @@ namespace clusterdbscanalg
    
     if(!p1.first->IsDefined() || !p2.first->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
    
     int i1 = p1.first->GetValue();
@@ -136,7 +136,7 @@ namespace clusterdbscanalg
     return c<0?-c:c;
    }
 
-   ostream& print(const pair<CcReal*,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<CcReal*,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -150,8 +150,8 @@ namespace clusterdbscanalg
  {
   public:
   
-   double operator()(const pair<Point*,TupleId>& p1
-    ,const pair<Point*,TupleId>& p2)
+   double operator()(const std::pair<Point*,TupleId>& p1
+    ,const std::pair<Point*,TupleId>& p2)
    {
     cnt++;
     assert(p1.first);
@@ -164,13 +164,13 @@ namespace clusterdbscanalg
     
     if(!p1.first->IsDefined() || !p2.first->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
     
     return p1.first->Distance(*(p2.first));
    }
      
-   ostream& print(const pair<Point*,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<Point*,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -184,8 +184,8 @@ namespace clusterdbscanalg
  {
   public:
   
-   double operator()(const pair<CcString*,TupleId>& p1
-    ,const pair<CcString*,TupleId>& p2)
+   double operator()(const std::pair<CcString*,TupleId>& p1
+    ,const std::pair<CcString*,TupleId>& p2)
    {
     cnt++;
     assert(p1.first);
@@ -198,13 +198,13 @@ namespace clusterdbscanalg
     
     if(!p1.first->IsDefined() || !p2.first->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
     
     return stringutils::ld(p1.first->GetValue(), p2.first->GetValue());
    }
      
-   ostream& print(const pair<CcString*,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<CcString*,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -228,8 +228,8 @@ namespace clusterdbscanalg
     fun = function;
    }
    
-   double operator()(const pair<T,TupleId>& p1
-    ,const pair<T,TupleId>& p2)
+   double operator()(const std::pair<T,TupleId>& p1
+    ,const std::pair<T,TupleId>& p2)
    {
     cnt++;
     assert(p1.first);
@@ -242,7 +242,7 @@ namespace clusterdbscanalg
     
     if(!p1.first->IsDefined() || !p2.first->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
     
     Word funRes;
@@ -259,7 +259,7 @@ namespace clusterdbscanalg
     return c < 0 ? -c : c;
    }
      
-   ostream& print(const pair<T,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<T,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -282,8 +282,8 @@ namespace clusterdbscanalg
     init = false;
    };
    
-   double operator()(const pair<Picture*,TupleId>& p1
-    ,const pair<Picture*,TupleId>& p2)
+   double operator()(const std::pair<Picture*,TupleId>& p1
+    ,const std::pair<Picture*,TupleId>& p2)
    {
     cnt++;
     assert(p1.first);
@@ -296,7 +296,7 @@ namespace clusterdbscanalg
     
     if(!p1.first->IsDefined() || !p2.first->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
     
     if(!gta::DistfunReg::isInitialized())
@@ -324,7 +324,7 @@ namespace clusterdbscanalg
     return distance;
    }
      
-   ostream& print(const pair<Picture*,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<Picture*,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -340,12 +340,12 @@ namespace clusterdbscanalg
            return 0;
          }
          if(!r1->IsDefined() || !r2->IsDefined()){
-           return numeric_limits<double>::max();
+           return std::numeric_limits<double>::max();
          }
          return r1->Distance(*r2);
       } 
-      double operator()(const pair<Rectangle<dim>*, TupleId>& p1,
-                        const pair<Rectangle<dim>*, TupleId>& p2){
+      double operator()(const std::pair<Rectangle<dim>*, TupleId>& p1,
+                        const std::pair<Rectangle<dim>*, TupleId>& p2){
          return operator()(p1.first, p2.first);
       }   
  }; 

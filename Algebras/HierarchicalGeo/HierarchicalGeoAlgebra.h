@@ -327,7 +327,8 @@ The destructor.
     return ( AlmostEqual( p0, i.p0 ) && AlmostEqual( p1, i.p1 ) );
   }
 
-  void Translate(const double x, const double y, const DateTime& duration) {}
+  void Translate(const double x, const double y, 
+                 const datetime::DateTime& duration) {}
 
 /*
 3.2.4 Additional Uncertain-Temporal Functions
@@ -499,7 +500,7 @@ the epsilon-value.
     return false;
   }
 
-  ostream& Print( ostream& os ) const
+  std::ostream& Print( std::ostream& os ) const
   {
     if(IsDefined())
     {
@@ -556,7 +557,7 @@ the epsilon-value.
       }
   }
 
-  static const string BasicType() {return "cupoint"; }
+  static const std::string BasicType() {return "cupoint"; }
   static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type,BasicType());
   }
@@ -614,7 +615,7 @@ using a check on bbox.
   void Add( const CUPoint& unit );
   void MergeAdd(const CUPoint& unit);
   bool EndBulkLoad( const bool sort = true, const bool dummy = false );
-  void Restrict( const vector< pair<int, int> >& intervals );
+  void Restrict( const std::vector< std::pair<int, int> >& intervals );
   bool Present( const Instant& t ) const;
   bool Present( const temporalalgebra::Periods& t ) const;
   void AtInstant( const Instant& t, 
@@ -627,13 +628,13 @@ Functions to be part of relations
 
 */
 
-  ostream& Print( ostream &os ) const;
+  std::ostream& Print( std::ostream &os ) const;
 
   virtual Attribute* Clone() const;
 
   void CopyFrom( const Attribute* right );
 
-  static const string BasicType() {return "cmpoint"; }
+  static const std::string BasicType() {return "cmpoint"; }
   static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type,BasicType());
   }
@@ -856,9 +857,11 @@ A constructor which sets all attributes (usually unsed by the in-function).
       generalizedby = idx;
     else
     {
-      cout << "Error in HierarchicalEntity::SetGeneralizedby(): The Index"
+      std::cout << "Error in HierarchicalEntity::SetGeneralizedby():"
+                << " The Index"
         "of the Generalization of this Entity is already set!\n";
-      cerr << "Error in HierarchicalEntity::SetGeneralizedby(): The Index"
+      std::cerr << "Error in HierarchicalEntity::SetGeneralizedby(): "
+                << "The Index"
         "of the Generalization of this Entity is already set!\n";
     }
   }
@@ -946,7 +949,7 @@ compared. The order of the contained units is ignored here!
     return (new HierarchicalEntity<Alpha>( *this) );
   }
 
-  inline ostream& Print( ostream &os ) const
+  inline std::ostream& Print( std::ostream &os ) const
   {
     if( !IsDefined() )
     {
@@ -1200,7 +1203,7 @@ for destroying. The destructor will perform the real destroying.
   bool Present( const Instant& i );
 
   int Generalize(const int layer, const bool checkBreakPoints,
-                          const DateTime dur);
+                          const datetime::DateTime dur);
 
   void Simplify(const int min, const int max, const int layer,
                     bool* useleft, bool* useright, double* realepsilon,
@@ -1365,7 +1368,7 @@ are true:
   inline Attribute* Clone() const;
 
 
-  inline ostream& Print( ostream &os ) const;
+  inline std::ostream& Print( std::ostream &os ) const;
 
 
   inline size_t HashValue() const
@@ -1383,7 +1386,7 @@ are true:
 
   inline Flob* GetFLOB( const int i);
 
-  static const string BasicType() {return "hcmpoint"; }
+  static const std::string BasicType() {return "hcmpoint"; }
   static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type,BasicType());
   }
@@ -1542,7 +1545,7 @@ right function GetNoComponents.
   int Position( int layer, const Instant& t, const int start, const int end );
 
   int Generalize(const int layer, const bool checkBreakPoints,
-                  const DateTime dur);
+                  const datetime::DateTime dur);
 
 
   void Simplify(const int min, const int max, const int layer, bool* useleft,
@@ -1579,7 +1582,7 @@ right function GetNoComponents.
 3.8.3 functions to be part of relations
 
 */
-  inline ostream& Print( ostream &os ) const;
+  inline std::ostream& Print( std::ostream &os ) const;
 
   inline int Compare( const Attribute *arg ) const;
 
@@ -1604,7 +1607,7 @@ right function GetNoComponents.
 
   inline Flob* GetFLOB( const int i);
 
-  static const string BasicType() {return "hmpoint"; }
+  static const std::string BasicType() {return "hmpoint"; }
   static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type,BasicType());
   }
@@ -1658,7 +1661,7 @@ posPP is set to this value and TRUE is returned. Otherwise FALSE is returned.
 void Generalize( const double epsilon, const double factor,
                  const temporalalgebra::MPoint& source, 
                  const bool checkBreakPoints,
-                 const DateTime dur, HMPoint& result);
+                 const datetime::DateTime dur, HMPoint& result);
 /*
 This Function inserts a temporalalgebra::MPoint-object into the 
 certainlayer of a HMPoint and
@@ -1670,10 +1673,10 @@ which are stored in the layers
 
 void Generalize( const double epsilon, const double factor, const int layer,
                   const CMPoint& source, const bool checkBreakPoints,
-                  const DateTime dur, HMPoint& result);
+                  const datetime::DateTime dur, HMPoint& result);
 
 
-static bool IsBreakPoint(const CUPoint* u,const DateTime& duration);
+static bool IsBreakPoint(const CUPoint* u,const datetime::DateTime& duration);
 /*
 This is an auxiliary function for the 'generalize'-algorithm.
 

@@ -70,11 +70,14 @@ implemented in the HierarchicalGeoAlgebra.h file.
 
 #include <math.h>
 
+#include "DateTime.h"
+#include "HierarchicalGeoAlgebra.h"
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-#include "DateTime.h"
-#include "HierarchicalGeoAlgebra.h"
+using namespace std;
+using namespace datetime;
 
 
 

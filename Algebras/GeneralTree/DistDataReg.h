@@ -77,13 +77,13 @@ class DistData; // forward declaration
 Refers the default distdata-type for the each type constructor.
 
 */
-const string DDATA_DEFAULT("default");
+const std::string DDATA_DEFAULT("default");
 
 /*
 This value is returned from "DistDataReg::defaultName()"[4], if no default distdata-type has been found for the resp. type constructor.
 
 */
-const string DDATA_UNDEFINED("n/a");
+const std::string DDATA_UNDEFINED("n/a");
 
 /////////////////////////////////////////////////////////////////////
 // Name and short descriprions for the defined distdata-types:
@@ -92,8 +92,8 @@ const string DDATA_UNDEFINED("n/a");
 // native data representation, e.g. an int value for CcInt attributes
 // (this type usually used, if only one distdata-type is defined for
 // the respective type constructor).
-const string DDATA_NATIVE("native");
-const string DDATA_NATIVE_DESCR(
+const std::string DDATA_NATIVE("native");
+const std::string DDATA_NATIVE_DESCR(
         "native representation of the respective datatype");
 
 /////////////////////////////////////////////////////////////////////
@@ -204,7 +204,7 @@ Returns the id of the assigned type constructor.
 Returns the name of the assigned type constructor.
 
 */
-    inline string typeName() const
+    inline std::string typeName() const
     { return am->GetTC(m_algebraId, m_typeId)->Name(); }
 
 /*
@@ -218,7 +218,7 @@ Returns the id of the assigned algebra.
 Returns the name of the assigned algebra.
 
 */
-    inline string algebraName() const
+    inline std::string algebraName() const
     { return am->GetAlgebraName(m_algebraId); }
 
 /*
@@ -256,7 +256,7 @@ Constructor (initiates the object with a copy of the given "char"[4] array).
 Constructor (initiates the object with the given string).
 
 */
-    inline DistData(const string value)
+    inline DistData(const std::string value)
         : m_size(value.size()+1), m_value(new char[m_size])
     { memcpy(m_value, value.c_str(), m_size); }
 
@@ -451,7 +451,7 @@ Removes the disc representation of the data FLOB.
          return m_data.getData();
     }
 
-    static const string BasicType() { return "distdata"; }
+    static const std::string BasicType() { return "distdata"; }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
@@ -481,22 +481,22 @@ Default constructor (creates an undefined info object)
 Constructor (creates a new info object with the given values)
 
 */
-    DistDataInfo(const string& name, const string& descr,
-                 int distdataId, const string& typeName,
+    DistDataInfo(const std::string& name, const std::string& descr,
+                 int distdataId, const std::string& typeName,
                  const GetDataFun getDataFun, char flags = 0);
 
 /*
 Returns the name of the distdata-type.
 
 */
-    inline string name() const
+    inline std::string name() const
     { return m_name; }
 
 /*
 Returns the description of the distdata-type.
 
 */
-    inline string descr() const
+    inline std::string descr() const
     { return m_descr; }
 
 /*
@@ -531,7 +531,7 @@ Returns the id of the assigned type constructor.
 Returns the name of the assigned type constructor.
 
 */
-    inline string typeName() const
+    inline std::string typeName() const
     { return m_id.typeName(); }
 
 /*
@@ -545,7 +545,7 @@ Returns the id of the assigned algebra.
 Returns the name of the assigned algebra.
 
 */
-    inline string algebraName() const
+    inline std::string algebraName() const
     { return m_id.algebraName(); }
 
 /*
@@ -563,8 +563,8 @@ Returns "true"[4], if the "DistDataInfo"[4] object is defined (should only be "f
     { return (m_flags & DDATA_IS_DEFINED); }
 
 private:
-    string m_name;  // unique name (used for selection)
-    string m_descr; // short description
+    std::string m_name;  // unique name (used for selection)
+    std::string m_descr; // short description
     GetDataFun m_getDataFun; // assigned getdata function
     DistDataId m_id;
     char m_flags;
@@ -604,14 +604,14 @@ Adds a new "DistDataInfo"[4] object.
 Returns the name of the default distdata type for the specified type.
 
 */
-    static string defaultName(const string& typeName);
+    static std::string defaultName(const std::string& typeName);
 
 /*
 Returns the "DistDataId"[4] of the specified "DistDataInfo"[4] object.
 
 */
     static DistDataId getId(
-            const string& typeName, const string& distdataName);
+            const std::string& typeName, const std::string& distdataName);
 
 /*
 Returns the "DistDataInfo"[4] object for the specified id.
@@ -624,7 +624,7 @@ Returns the specified "DistDataInfo"[4] object.
 
 */
     static inline DistDataInfo& getInfo(
-            const string& typeName, const string& distdataName)
+            const std::string& typeName, const std::string& distdataName)
     { return getInfo(getId(typeName, distdataName)); }
 
 /*
@@ -632,23 +632,23 @@ Returns "true"[4], if the specified "DistDataInfo"[4] object does exist.
 
 */
     static inline bool isDefined(
-            const string& typeName, const string& distdataName)
+            const std::string& typeName, const std::string& distdataName)
     { return getInfo(typeName, distdataName).isDefined(); }
 
 /*
 Returns a string with a list of all defined distdata types for the specified type (could e.g. be used in the type checking functions in case of errors to show possible values).
 
 */
-    static string definedNames(const string& typeName);
+    static std::string definedNames(const std::string& typeName);
 
 private:
-    typedef map<string, DistDataInfo>::iterator distdataIter;
+    typedef std::map<std::string, DistDataInfo>::iterator distdataIter;
 
     static bool initialized;
-    static map<string, int> distdataIds;
+    static std::map<std::string, int> distdataIds;
     static DistDataInfo defaultInfo;
-    static map<string, DistDataInfo> distdataInfos;
-    static map<string, string> defaultNames;
+    static std::map<std::string, DistDataInfo> distdataInfos;
+    static std::map<std::string, std::string> defaultNames;
 
 /////////////////////////////////////////////////////////////////////
 // Defined getdata functions:

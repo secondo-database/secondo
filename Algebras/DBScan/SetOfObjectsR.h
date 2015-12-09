@@ -154,8 +154,8 @@ in the constructor. The caller of this function is responsible to delete
 the returned list.
 
 */
-     list<TupleId>* getNeighbors(TupleId id){
-       list<TupleId>* neighbors = new list<TupleId>();
+       std::list<TupleId>* getNeighbors(TupleId id){
+       std::list<TupleId>* neighbors = new std::list<TupleId>();
        Tuple* tuple = buffer->GetTuple(id);
        Rectangle<dim>* rect1 = (Rectangle<dim>*) tuple->GetAttribute(attrPos);
        Rectangle<dim> rect2 = *rect1;
@@ -233,7 +233,7 @@ Changes the seed flag for a tuple.
      int attrPos; // position of the rectangle attribute
      mmrtree::RtreeT<dim,TupleId>* index; // the index
      TupleStore1* buffer;  // buffer for input tuples
-     vector<TupleInfo> tupleStates; // structir stroing tuple states
+     std::vector<TupleInfo> tupleStates; // structir stroing tuple states
      TupleType* tt;   // the result tuple type
      GenericRelationIterator* resIt;  // iterator 
      D dist;                          // distance function

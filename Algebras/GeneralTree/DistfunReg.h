@@ -64,33 +64,33 @@ typedef void (*Distfun)(
 Refers the default distance function for the each type constructor.
 
 */
-const string DFUN_DEFAULT("default");
+const std::string DFUN_DEFAULT("default");
 
 /*
 This value is returned from "DistfunReg::defaultName()"[4], if no default distance function has been found for the resp. type constructor.
 
 */
-const string DFUN_UNDEFINED("n/a");
+const std::string DFUN_UNDEFINED("n/a");
 
 /////////////////////////////////////////////////////////////////////
 // Name and short descriprions for the defined distance functions:
 /////////////////////////////////////////////////////////////////////
-const string DFUN_EUCLID("euclid");
-const string DFUN_EUCLID_DESCR("euclidean distance function");
+const std::string DFUN_EUCLID("euclid");
+const std::string DFUN_EUCLID_DESCR("euclidean distance function");
 
-const string DFUN_SPECIALPOINTS("specialpoints");
-const string DFUN_SPECIALPOINTS_DESCR("compute a distance assuming that "
+const std::string DFUN_SPECIALPOINTS("specialpoints");
+const std::string DFUN_SPECIALPOINTS_DESCR("compute a distance assuming that "
                                       "x coordinates denote a dimension");
 
-const string DFUN_EDIT_DIST("edit");
-const string DFUN_EDIT_DIST_DESCR("edit distance function");
+const std::string DFUN_EDIT_DIST("edit");
+const std::string DFUN_EDIT_DIST_DESCR("edit distance function");
 
-const string DFUN_QUADRATIC("quadratic");
-const string DFUN_QUADRATIC_DESCR(
+const std::string DFUN_QUADRATIC("quadratic");
+const std::string DFUN_QUADRATIC_DESCR(
     "quadratic distance function using a similarity matrix");
 
-const string DFUN_SYMTRAJ_DIST1("symtraj1");
-const string DFUN_SYMTRAJ_DIST1_DESCR("distance function for symbolic "
+const std::string DFUN_SYMTRAJ_DIST1("symtraj1");
+const std::string DFUN_SYMTRAJ_DIST1_DESCR("distance function for symbolic "
   "trajectories, normalized to [0,1]");
 
 /////////////////////////////////////////////////////////////////////
@@ -131,7 +131,7 @@ Constructor (creates a new info object with the given values)
 
 */
     DistfunInfo(
-            const string &name, const string &descr,
+            const std::string &name, const std::string &descr,
             const Distfun distfun, DistDataInfo distdataInfo,
             char flags = 0);
 
@@ -139,14 +139,14 @@ Constructor (creates a new info object with the given values)
 Returns the name of the distance function.
 
 */
-    inline string name() const
+    inline std::string name() const
     { return m_name; }
 
 /*
 Returns the description of the distance function.
 
 */
-    inline string descr() const
+    inline std::string descr() const
     { return m_descr; }
 
 /*
@@ -207,8 +207,8 @@ Returns "true"[4], if the assigned distance function is a metric.
     { return (m_flags & DFUN_IS_METRIC); }
 
 private:
-    string m_name;               // unique name (used for selection)
-    string m_descr;              // short description
+    std::string m_name;               // unique name (used for selection)
+    std::string m_descr;              // short description
     Distfun m_distfun;           // assigned distance function
     DistDataInfo m_distdataInfo; // assigned distdata info object
     char m_flags;
@@ -247,22 +247,22 @@ Adds a new "DistfunInfo"[4] object.
 Returns the name of the default distance function for the specified type.
 
 */
-    static string defaultName(const string &typeName);
+    static std::string defaultName(const std::string &typeName);
 
 /*
 Returns the specified "DistfunInfo"[4] object.
 
 */
     static DistfunInfo &getInfo(
-            const string &distfunName, DistDataId id);
+            const std::string &distfunName, DistDataId id);
 
 /*
 Returns the specified "DistfunInfo"[4] object.
 
 */
     static inline DistfunInfo &getInfo(
-            const string &distfunName, const string &typeName,
-            const string &dataName)
+            const std::string &distfunName, const std::string &typeName,
+            const std::string &dataName)
     {
         return getInfo(
                 distfunName, DistDataReg::getId(typeName, dataName));
@@ -274,8 +274,8 @@ Returns "true"[4], if the specified "DistFunInfo"[4] object does exist.
 
 */
     static inline bool isDefined(
-            const string &distfunName, const string &typeName,
-            const string &distdataName)
+            const std::string &distfunName, const std::string &typeName,
+            const std::string &distdataName)
     {
         return getInfo(
                 distfunName, typeName, distdataName).isDefined();
@@ -286,35 +286,35 @@ Returns "true"[4], if the specified "DistFunInfo"[4] object does exist.
 
 */
     static inline bool isDefined(
-            const string &distfunName, DistDataId id)
+            const std::string &distfunName, DistDataId id)
     { return getInfo(distfunName, id).isDefined(); }
 
 /*
 Returns a string with a list of all defined distance functions for the specified type (could e.g. be used in the type checking functions in case of errors to show possible values).
 
 */
-    static string definedNames(const string &typeName);
+    static std::string definedNames(const std::string &typeName);
 
 /*
 Returns a list with all defined "DistfunInfo"[4] objects.
 
 */
-    static void getInfoList(list<DistfunInfo> &result);
+    static void getInfoList(std::list<DistfunInfo> &result);
 
 /*
 Prints a structured list with all defined distance functions to cmsg.info().
 
 */
-    static string printDistfuns();
+    static std::string printDistfuns();
 
 private:
-    typedef map<string, DistfunInfo>::iterator distfunIter;
+    typedef std::map<std::string, DistfunInfo>::iterator distfunIter;
 
     static bool initialized;
     static bool distfunsShown;
-    static map<string, string> defaultNames;
+    static std::map<std::string, std::string> defaultNames;
     static DistfunInfo defaultInfo;
-    static map<string, DistfunInfo> distfunInfos;
+    static std::map<std::string, DistfunInfo> distfunInfos;
 
 /////////////////////////////////////////////////////////////////////
 // Defined distance functions:

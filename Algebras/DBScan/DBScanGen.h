@@ -97,13 +97,13 @@ Main Algorithm
         TupleId id = it->GetTupleId();
         if(!setOfObjects.getProcessed(id)){
             setOfObjects.setProcessed(id, true);
-            list<TupleId>* n = setOfObjects.getNeighbors(id);
+            std::list<TupleId>* n = setOfObjects.getNeighbors(id);
             if(n->size() < minPts){
                 setOfObjects.setCluster(id,-2);
                 delete n;              
             } else {
                 clusterid++;
-                list<TupleId>::iterator it2;
+                std::list<TupleId>::iterator it2;
                 for(it2=n->begin(); it2!=n->end() ; it2++){
                   if(setOfObjects.getCluster(*it2)<=0){
                      setOfObjects.setSeed(*it2,true);
@@ -126,7 +126,7 @@ This expands a cluster starting at id having neighbors n.
 
 */
 
-  void expandCluster(TupleId id, list<TupleId>* n){
+  void expandCluster(TupleId id, std::list<TupleId>* n){
 
      setOfObjects.setCluster(id,clusterid);
 
@@ -136,10 +136,10 @@ This expands a cluster starting at id having neighbors n.
        n->pop_front();
        setOfObjects.setSeed(id2,false);
        if(!setOfObjects.getProcessed(id2)){
-          list<TupleId>* n2 = setOfObjects.getNeighbors(id2);
+          std::list<TupleId>* n2 = setOfObjects.getNeighbors(id2);
           setOfObjects.setProcessed(id2,true);
           if(n2->size()>= minPts){
-              list<TupleId>::iterator it;
+              std::list<TupleId>::iterator it;
               for(it=n2->begin(); it!=n2->end() ; it++){
                 if(!setOfObjects.isSeed(*it) ){
                    setOfObjects.setSeed(*it,true);
