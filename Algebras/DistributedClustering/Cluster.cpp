@@ -1108,14 +1108,14 @@ meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
   
   pair <double,double> initMM(MAX_DOUBLE,MIN_DOUBLE);
   
-  if(newRetKind){
-    //push back
-    clearList(destKind,destInd);
-    updateMinMaxVal(destKind,destInd,initMM);
-    pushListToCluster(retKind,retList);
-    pushMinMaxToCluster(retKind,retMM);
-    newIndicies.push_back(retIndex); //kind is both
-  }else{
+//   if(newRetKind){
+//     //push back
+//     clearList(destKind,destInd);
+//     updateMinMaxVal(destKind,destInd,initMM);
+//     pushListToCluster(retKind,retList);
+//     pushMinMaxToCluster(retKind,retMM);
+//     newIndicies.push_back(retIndex); //kind is both
+//   }else{
     //insert
     typename vector<list<MEMB_TYP_CLASS*> >::iterator
     clusterIt =getClusterVector(destKind).begin()+(destInd);
@@ -1125,7 +1125,7 @@ meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
     insertList(clusterIt,retList,destKind);
     eraseMinMax(destKind,destInd);
     insertMinMax(minMaxIt,retMM,retKind);
-  }
+//   }
   return retIndex;
 }
 
