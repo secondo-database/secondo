@@ -93,7 +93,7 @@ extern AlgebraManager* am;
 
 #define FILE_BUFFER_SIZE 1048576 
 
-
+using namespace std;
 
 
 
