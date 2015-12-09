@@ -359,10 +359,14 @@ auxiliary function to put attribute into result Tuple
                               new CcBool(true,
                                    array[id]->updateDensityReachable(minPts)));
        //append attribute ClusterType
+       if(array[id]->getClusterType() > 4){
+         resTuple->PutAttribute(noAttr+3, 
+                                new CcInt(true,-1));
+       }else{
        resTuple->PutAttribute(noAttr+3, 
                               new CcInt(true,
                                         array[id]->getClusterType()));
-       
+       }
        //append attribute outNFileName
        resTuple->PutAttribute(noAttr+4, 
                               new FText(true,outNFileName));
