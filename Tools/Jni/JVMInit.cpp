@@ -41,7 +41,6 @@ This module initializes the JNI Environment. \\
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-using namespace std;
 
 #ifdef _WIN32
 #define PATH_SEPARATOR ';'
@@ -53,6 +52,8 @@ using namespace std;
 #include <iostream>
 #include <fstream>
 #include <string>
+
+using namespace std;
 
 bool JVMInitializer::initialized=false;
 JNIEnv* JVMInitializer::env=0;

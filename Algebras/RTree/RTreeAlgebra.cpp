@@ -68,7 +68,6 @@ relation which bounding boxes of the indexed attribute intersect the window
 #include <stack>
 #include <limits>
 
-using namespace std;
 
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"
@@ -91,6 +90,7 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+using namespace std;
 
 #define BBox Rectangle
 

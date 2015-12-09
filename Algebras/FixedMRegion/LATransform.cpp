@@ -3,8 +3,8 @@ This class calculates those values, that are fixed, as soon as its
 constructor is called.
 
 */
-using namespace std;
 #include "LATransform.h"
+using namespace std;
 /*
 This is the constructor. It gets a linear movement (x,y), the 
 middle of a circle (xm, ym) and an angle alpha. 

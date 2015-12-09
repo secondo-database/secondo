@@ -95,7 +95,6 @@ xxii) ~removelyrics~ - remove a lyrics into an MP3.
 
 */
 
-using namespace std;
 
 #include <string.h>
 #include <stdio.h>
@@ -116,6 +115,8 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+
+using namespace std;
 
 namespace mp3{
 

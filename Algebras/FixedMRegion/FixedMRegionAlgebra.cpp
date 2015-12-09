@@ -2,8 +2,8 @@
 This is my FixedMRegionAlgebra. It is supported by other classes.
 
 */
-using namespace std;
 #include "FixedMRegionAlgebra.h"
+using namespace std;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 

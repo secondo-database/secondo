@@ -2,7 +2,6 @@
 This is the file with the tests.
 
 */
-using namespace std;
 #include "FixedMRegiontest.h"
 #include "Secondo_Include.h"
 #include <vector>
@@ -15,6 +14,7 @@ using namespace std;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
+using namespace std;
 namespace temporalalgebra{
 
 /*

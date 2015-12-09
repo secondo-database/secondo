@@ -2,8 +2,8 @@
 This class is a FixedMRegionIntepolator who creates a FixedMRegion of sights.
 
 */
-using namespace std;
 #include "FMRInterpolator.h"
+using namespace std;
 
 
 namespace temporalalgebra{

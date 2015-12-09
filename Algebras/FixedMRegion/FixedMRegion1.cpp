@@ -2,8 +2,8 @@
 This is a testing class, that is momentarily unused.
 
 */
-using namespace std;
 #include "FixedMRegion1.h"
+using namespace std;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 

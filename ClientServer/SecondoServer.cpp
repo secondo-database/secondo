@@ -50,7 +50,6 @@ are implemented in class ~CSProtocol~ and can be used by inside the
 #include <fstream>
 #include <sstream>
 #include <signal.h>
-using namespace std;
 
 #include "Application.h"
 #include "SocketIO.h"
@@ -71,6 +70,7 @@ using namespace std;
 #include "NList.h"
 
 
+using namespace std;
 
 
 static string currentFolder  = ""; 

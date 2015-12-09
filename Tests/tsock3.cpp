@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-using namespace std;
 #include "SocketIO.h"
 #include <time.h>
 #include <iostream>
@@ -29,6 +28,7 @@ using namespace std;
 #include <cstring>
 #include <string>
 
+using namespace std;
 int main( int argc, char* argv[] )
 {
   cout << "Socket test program 3 (Rule set test)" << endl;

@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-using namespace std;
 #include "SocketIO.h"
 #include <time.h>
 #include <string>
@@ -30,6 +29,7 @@ using namespace std;
 #define HDR_SIZE  16
 #define BODY_SIZE 240
 #define N_LOOPS   10000
+using namespace std;
 
 int main( int argc, char* argv[] )
 {

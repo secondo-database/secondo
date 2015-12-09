@@ -41,7 +41,6 @@ RectangleAlgebra
 2 Defines and Includes
 
 */
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -67,6 +66,7 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+using namespace std;
 using namespace temporalalgebra;
 
 

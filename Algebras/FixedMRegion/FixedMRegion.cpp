@@ -2,8 +2,8 @@
 This class is a FixedMRegion.
 
 */
-using namespace std;
 #include "FixedMRegion.h"
+using namespace std;
 
 namespace temporalalgebra{
 

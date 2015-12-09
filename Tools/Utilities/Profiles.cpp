@@ -35,12 +35,12 @@ Jan 2005, M. Spiekermann. Changes in getParameter.
 #include <unistd.h>
 #include "Profiles.h"
 
-using namespace std;
 
 #ifdef SECONDO_WIN32
 #include <windows.h>
 #endif
 
+using namespace std;
 static bool              CmpSec( const string& line, const string& appName );
 static string::size_type CmpKey( const string& line, const string& keyName );
 

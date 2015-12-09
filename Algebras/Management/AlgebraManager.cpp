@@ -37,8 +37,6 @@ of a pointer to a function.
 #include <algorithm>
 #include <fstream>
 
-using namespace std;
-
 #include "AlgebraManager.h"
 #include "Algebra.h"
 #include "CharTransform.h"
@@ -47,6 +45,9 @@ using namespace std;
 #include "SystemTables.h"
 #include "Symbols.h"
 #include "StringUtils.h"
+
+
+using namespace std;
 
 AlgebraManager::AlgebraManager( NestedList& nlRef,
                                 GetAlgebraEntryFunction getAlgebraEntryFunc )
