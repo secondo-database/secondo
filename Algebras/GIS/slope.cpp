@@ -48,6 +48,9 @@ const double M_PI = acos( -1.0 );
 declaration of namespace GISAlgebra
 
 */
+
+using namespace std;
+
 namespace GISAlgebra {
 
 /*

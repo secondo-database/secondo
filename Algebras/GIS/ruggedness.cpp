@@ -36,6 +36,8 @@ Raster2 and Tile includes
 #include "../Tile/t/tint.h"
 #include "../Tile/t/treal.h"
 
+using namespace std;
+
 /*
 declaration of namespace GISAlgebra
 

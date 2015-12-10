@@ -45,7 +45,7 @@ Raster2 and Tile includes
 typedef DLine LineType;
 
 
-
+using namespace std;
 /*
 declaration of namespace GISAlgebra
 

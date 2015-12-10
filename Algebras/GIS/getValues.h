@@ -75,8 +75,8 @@ void GetValues(double* a, double* b, double* c, double* d, double* e,
                int maxX, int maxY,
                int factorNext, int factorLast,
                bool skipNextRow, bool skipLastRow,
-               vector<Tuple*> current, vector<Tuple*> next,
-               vector<Tuple*> last, 
+               std::vector<Tuple*> current, std::vector<Tuple*> next,
+               std::vector<Tuple*> last, 
                int currentSize, int nextSize, int lastSize)
 {
   Tuple* tuple_help;

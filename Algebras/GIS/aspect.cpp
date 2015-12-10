@@ -44,6 +44,9 @@ Define of PI
 const double M_PI = acos( -1.0 );
 #endif
 
+using namespace std;
+
+
 /*
 declaration of namespace GISAlgebra
 
