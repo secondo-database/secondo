@@ -36,17 +36,18 @@ this Methods return the one $target$ that matches $source$ best
   
 */                
          ConvexHullTreeNode *getBestMatch(ConvexHullTreeNode *source, 
-                                          vector<ConvexHullTreeNode*> *targets);
-         Face *getBestMatch(Face *source, vector<Face*> *targets);
+                              std::vector<ConvexHullTreeNode*> *targets);
+         Face *getBestMatch(Face *source, std::vector<Face*> *targets);
 /*
 
 this Methods match a set of faces or ConVexHullTreeNodes to an other set of those 
  
 */  
 
-         void matchFaces(vector<Face*> *faces1, vector<Face*> *faces2);       
-         void matchCHTNs(vector<ConvexHullTreeNode*> &chtn1, 
-                          vector<ConvexHullTreeNode*> &chtn2);
+         void matchFaces(std::vector<Face*> *faces1, 
+                         std::vector<Face*> *faces2);       
+         void matchCHTNs(std::vector<ConvexHullTreeNode*> &chtn1, 
+                          std::vector<ConvexHullTreeNode*> &chtn2);
       
       private:
 /*

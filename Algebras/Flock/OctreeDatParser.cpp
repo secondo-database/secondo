@@ -49,6 +49,8 @@ June, 2009 Mahmoud Sakr
 
 //#define SHOW_DEBUG 1
 
+using namespace std;
+
 OctreeDatParser::OctreeDatParser(char* inputFileName, int startCol, int endCol)
 {
   this->activeTrajectories=0;
@@ -61,7 +63,7 @@ OctreeDatParser::OctreeDatParser(char* inputFileName, int startCol, int endCol)
   this->tmpArray = new char[16];
   int index = 0;
   this->timesteps = endCol-startCol;
-  this->inputFile.open(inputFileName, ios::in);
+  this->inputFile.open(inputFileName, std::ios::in);
 
   // parse the general tree specs
   while (inputFile.get(this->tmpArray[index])){
@@ -143,7 +145,7 @@ OctreeDatParser::OctreeDatParser(char* inputFileName){
   this->tmpArray = new char[16];
   int index = 0;
   
-  this->inputFile.open(inputFileName, ios::in);
+  this->inputFile.open(inputFileName, std::ios::in);
 
   // parse the general tree specs
   while (inputFile.get(this->tmpArray[index])){

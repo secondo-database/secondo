@@ -80,7 +80,7 @@ paper "Spatiotemporal Pattern Queries"
 
 #include "RegionInterpolator.h"
 
-typedef DateTime Instant;
+typedef datetime::DateTime Instant;
 extern NestedList *nl;
 extern QueryProcessor* qp; 
 extern AlgebraManager* am;
@@ -97,8 +97,8 @@ class Helpers
 {
 public:  
   static inline bool string2int(char* digit, int& result);
-  static inline string ToString( int number );
-  static inline string ToString( double number );
+  static inline std::string ToString( int number );
+  static inline std::string ToString( double number );
 };
 
 /* represantation of a flock */
@@ -118,7 +118,7 @@ class Flock: public Attribute {
    bool operator<(const Flock& rhs) const;
    int IntersectionCount(Flock* arg);
    bool IsSubset(const Flock& rhs) const;
-   ostream& Print( ostream &os ) const;
+   std::ostream& Print( std::ostream &os ) const;
    bool IsDefined() const;
    void SetDefined(const bool def);
 
@@ -140,7 +140,7 @@ class Flock: public Attribute {
    static int      SizeOfObj();
    static ListExpr Property();
    // type name used in Secondo:
-   inline static const string BasicType();
+   inline static const std::string BasicType();
    static const bool checkType(const ListExpr type);
    
    int addPoint(OctreePoint* point);
@@ -150,8 +150,8 @@ class Flock: public Attribute {
    double* getCoordinates(){return this->coordinates;};
    void printCoordinates();
    int Intersection(Flock* arg, Flock* res);
-   Points* Flock2Points(Instant& curTime, vector<int>* ids, 
-       vector<temporalalgebra::MPoint*>*sourceMPoints);
+   Points* Flock2Points(Instant& curTime, std::vector<int>* ids, 
+       std::vector<temporalalgebra::MPoint*>*sourceMPoints);
    
    bool defined;
    //Total size of the flock. This is set before the points are
@@ -175,7 +175,8 @@ public:
   inline bool CanAdd(Flock* arg);
   void MFlockMergeAdd(UFlock& unit);
   temporalalgebra::MRegion* MFlock2MRegion(
-          vector<int>* ids, vector<temporalalgebra::MPoint*>* sourceMPoints,
+          std::vector<int>* ids, 
+          std::vector<temporalalgebra::MPoint*>* sourceMPoints,
       Instant& samplingDuration);
   static bool KindCheck( ListExpr type, ListExpr& errorInfo );
   static ListExpr Property();

@@ -94,7 +94,8 @@ $compareTo$ compares to LineWA according to their angle
 
 */
 //         virtual void operator = (LineWA &arg);
-         friend ostream & operator <<(ostream & os,const LineWA line);   
+         friend std::ostream & operator <<(std::ostream & os,
+                                           const LineWA line);   
          friend bool operator< (const LineWA &l2, const LineWA &l1);
       private:
 /*
@@ -173,7 +174,8 @@ compares two LineDists according to their distance
 1.1.1 Operators
 
 */                
-         friend ostream & operator <<(ostream & os,const LineDist line);
+         friend std::ostream & operator <<(std::ostream & os,
+                                           const LineDist line);
          friend bool operator< (const LineDist &l2, const LineDist &l1);
       private:
 /*
@@ -242,7 +244,7 @@ empty constructor
 1.1.1 Operators
 
 */               
-         friend ostream & operator <<(ostream & os,const CHLine line);
+         friend std::ostream & operator <<(std::ostream & os,const CHLine line);
       private:
 /*
  
@@ -306,7 +308,8 @@ the destructor
 1.1.1 Operators
 
 */       
-         friend ostream & operator <<(ostream & os,const PointWNL line);
+         friend std::ostream & operator <<(std::ostream & os,
+                                           const PointWNL line);
       private:
 /*
  

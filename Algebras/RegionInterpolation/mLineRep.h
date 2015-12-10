@@ -36,7 +36,7 @@ Returns the calculated triangles as a field of degenerated MovingSegments
  
 */       
          
-         vector<temporalalgebra::MSegmentData> getTriangles();
+         std::vector<temporalalgebra::MSegmentData> getTriangles();
        private:         
 /*
 
@@ -112,7 +112,8 @@ Removes all triangles that belong to the trapezoid given by the four points
 This Method is a function used  only by rotation\_plane. It finds the Index of a vertex in a polygone that matches the given angle.  
  
 */       
-         int findMatchingIndex(vector<LineWA> *s, int j ,double angle, bool ka);
+         int findMatchingIndex(std::vector<LineWA> *s, int j ,
+                               double angle, bool ka);
          
       
 /*
@@ -124,7 +125,7 @@ Triangles is the calculated set of MovingSegments,
 myMatch is the Match which is used to create it
   
 */    
-         vector<temporalalgebra::MSegmentData> triangles;
+         std::vector<temporalalgebra::MSegmentData> triangles;
          Match *myMatch;
    };
 }

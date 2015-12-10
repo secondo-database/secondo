@@ -52,7 +52,7 @@ functions that are used to return the stored Attributes
          RegionTreeNode *getParentNode();       
          CHLine getCHLine(int i);         
          int getNrLines();
-         vector<CHLine> getLines();
+         std::vector<CHLine> getLines();
 /*
  
 returns the coentroid or the Steiner--Point of the convex hull
@@ -65,19 +65,19 @@ returns the coentroid or the Steiner--Point of the convex hull
  returns the repesented polygone as a vector of LineWAs
  
 */                               
-         vector<LineWA> getOutLine();
+         std::vector<LineWA> getOutLine();
 /*
 
 returns all the children as a vector of ConvexHullTreeNodes
 
 */                      
-         vector<ConvexHullTreeNode*> getChildren();
+         std::vector<ConvexHullTreeNode*> getChildren();
 /*
 
 returns the line the given $child$ has in comon with this node as a two elemet vector 
 
 */       
-         vector<LineWA*> getLineForChild(ConvexHullTreeNode *child); 
+         std::vector<LineWA*> getLineForChild(ConvexHullTreeNode *child); 
 /*
 
 Is the cached hashcode valid?
@@ -115,21 +115,22 @@ this Method calculates a splitline for this node using $ref12$ and $ref2$ as a h
  
 */
          
-         vector<LineWA*> *getSplitLine(ConvexHullTreeNode *ref1, 
+         std::vector<LineWA*> *getSplitLine(ConvexHullTreeNode *ref1, 
             ConvexHullTreeNode *ref2);
 /*
  
 this method splits the node into two pieces
 
 */          
-         vector<vector<LineWA> > *getSplitNodes(vector<LineWA*> *splitLine);
+         std::vector<std::vector<LineWA> > 
+                     *getSplitNodes(std::vector<LineWA*> *splitLine);
          
 /*
 
 Operators
 
 */
-         friend ostream & operator <<(ostream & os, 
+         friend std::ostream & operator <<(std::ostream & os, 
             const ConvexHullTreeNode chtn);    
       
       private:
@@ -175,7 +176,7 @@ the level the Node has in the ConvexHullTree
 the convex hull, represented by a list of CHLines
 
 */                                    
-         vector<CHLine> linelist;
+         std::vector<CHLine> linelist;
 /*
 
 is the node part of a hole?

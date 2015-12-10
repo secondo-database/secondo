@@ -76,7 +76,7 @@ returns the cycle or a special hole by the given index
 returns all the Concavities of the cycle and the Holes of this face
 
 */       
-         vector<ConvexHullTreeNode*> getHolesAndConcavities();
+         std::vector<ConvexHullTreeNode*> getHolesAndConcavities();
 /*
 
 Is the cached hashcode valid?
@@ -113,7 +113,7 @@ splits the face in two new faces using the given linelist. The one new face ist 
 
 */       
          
-         Face *splitOnLine(vector<LineWA*> *splitLine);
+         Face *splitOnLine(std::vector<LineWA*> *splitLine);
 /*
 
 set the cached hashcode invalid
@@ -133,7 +133,7 @@ set the cached hashcode invalid
 1.1.1 Operators
 
 */          
-      friend ostream & operator << (ostream & os,const Face face);
+      friend std::ostream & operator << (std::ostream & os,const Face face);
           
        private:
 /*
@@ -152,7 +152,7 @@ set the cached hashcode invalid
  
 */  
          ConvexHullTreeNode *Cycle;
-         vector<ConvexHullTreeNode*> Holes;
+         std::vector<ConvexHullTreeNode*> Holes;
 /*
  
  the region the face is child of

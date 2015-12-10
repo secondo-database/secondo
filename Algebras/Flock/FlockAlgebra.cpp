@@ -43,6 +43,9 @@ evaluating the spatiotemporal pattern predicates (STP).
 #include "Stream.h"
 
 using namespace temporalalgebra;
+using namespace std;
+using namespace datetime;
+using namespace RegionInterpol;
 
 namespace FLOCK{
 

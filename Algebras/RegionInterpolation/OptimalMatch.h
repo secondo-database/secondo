@@ -26,7 +26,7 @@ This construtor sets the sourceregion, the targetregion, and a vector of weights
 
 */    
          OptimalMatch(RegionForInterpolation *source, 
-            RegionForInterpolation *target, vector<double> weights);    
+            RegionForInterpolation *target, std::vector<double> weights);    
 /*
 
 1.1.1 Overridden Methods
@@ -35,11 +35,11 @@ this Methods are not needed here.
   
 */
          ConvexHullTreeNode *getBestMatch(ConvexHullTreeNode *source,
-            vector<ConvexHullTreeNode*> *targets);
-         Face *getBestMatch(Face *source,vector<Face*> *targets);          
-         void matchFaces(vector<Face*> *faces1,vector<Face*> *faces2);
-         void matchCHTNs(vector<ConvexHullTreeNode*> &chtn1,
-            vector<ConvexHullTreeNode*> &chtn2);            
+            std::vector<ConvexHullTreeNode*> *targets);
+         Face *getBestMatch(Face *source,std::vector<Face*> *targets);          
+         void matchFaces(std::vector<Face*> *faces1,std::vector<Face*> *faces2);
+         void matchCHTNs(std::vector<ConvexHullTreeNode*> &chtn1,
+            std::vector<ConvexHullTreeNode*> &chtn2);            
    };
 }
 #endif 

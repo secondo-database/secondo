@@ -63,7 +63,8 @@ this function returns the hashcode of the source
 1.1.1 Operators
 
 */          
-         friend ostream & operator <<(ostream & os,const SingleMatch sm);
+         friend std::ostream & operator <<(std::ostream & os,
+                      const SingleMatch sm);
       private:
 /*
       
@@ -78,7 +79,7 @@ the source RegionTreeNode
  a field of RegionTreeNodes that are the targets
  
 */        
-         vector<RegionTreeNode*> targets;       
+         std::vector<RegionTreeNode*> targets;       
    };
 }
 #endif 

@@ -29,13 +29,14 @@ This construtor sets the sourceregion, the targetregion , the name and a short d
 
 */       
          Match(RegionForInterpolation *source, 
-            RegionForInterpolation *target, string name, string description);
+            RegionForInterpolation *target, std::string name, 
+            std::string description);
 
          virtual ~Match()
          {
            delete source;
            delete target;
-           for(map<int, SingleMatch*>::iterator it= maps.begin(); it!=
+           for(std::map<int, SingleMatch*>::iterator it= maps.begin(); it!=
              maps.end(); ++it)
              delete (*it).second;
          }
@@ -47,8 +48,8 @@ This construtor sets the sourceregion, the targetregion , the name and a short d
 return the name or the description of the Match
 
 */
-         string getName();
-         string getDescription();
+         std::string getName();
+         std::string getDescription();
 /*
 
 return the ratings of the Match
@@ -80,19 +81,20 @@ return the source or target region
 return all RegionTreeNodes that are matches to $source$
 
 */           
-         vector<RegionTreeNode*> getMatches(RegionTreeNode *source);
+         std::vector<RegionTreeNode*> getMatches(RegionTreeNode *source);
 /*
  
 return the table of all $SingleMatches$ in the $Match$
  
 */             
-         map<int,SingleMatch*> getMaps();
+         std::map<int,SingleMatch*> getMaps();
 /*
 
 return the children of the target that is matches with $source$
 
 */             
-         vector<ConvexHullTreeNode*> getTargetChildren(RegionTreeNode *source);
+         std::vector<ConvexHullTreeNode*> 
+                getTargetChildren(RegionTreeNode *source);
 /*
  
 1.1.1 Set functions
@@ -106,7 +108,7 @@ return the children of the target that is matches with $source$
 Concatenate the old name of the $Mathc$ with $newName$
 
 */           
-         void addName(string newName);
+         void addName(std::string newName);
 /*
 
 removes the $toDelete$ from the Match   
@@ -131,8 +133,9 @@ this Methods return the one $target$ that matches $source$ best
   
 */             
          virtual ConvexHullTreeNode *getBestMatch(ConvexHullTreeNode *source, 
-            vector<ConvexHullTreeNode*> *targets) = 0;
-         virtual Face *getBestMatch(Face *source, vector<Face*> *targets) = 0;
+            std::vector<ConvexHullTreeNode*> *targets) = 0;
+         virtual Face *getBestMatch(Face *source, 
+                                    std::vector<Face*> *targets) = 0;
             
 /*
 
@@ -140,9 +143,10 @@ this Methods match a set of faces or ConVexHullTreeNodes to an other set of thos
  
 */             
             
-         virtual void matchFaces(vector<Face*> *faces1,vector<Face*> *faces2)=0;
-         virtual void matchCHTNs(vector<ConvexHullTreeNode*> &chtn1, 
-            vector<ConvexHullTreeNode*> &chtn2) = 0;
+         virtual void matchFaces(std::vector<Face*> *faces1,
+                                 std::vector<Face*> *faces2)=0;
+         virtual void matchCHTNs(std::vector<ConvexHullTreeNode*> &chtn1, 
+            std::vector<ConvexHullTreeNode*> &chtn2) = 0;
 /*
   
 1.1.1 Operators
@@ -150,7 +154,7 @@ this Methods match a set of faces or ConVexHullTreeNodes to an other set of thos
 this operator prints the $Matches$ name, description and the ratings 
 
 */                       
-         friend ostream & operator <<(ostream & os,Match *match);
+         friend std::ostream & operator <<(std::ostream & os,Match *match);
                                  
       protected:
 /*
@@ -162,8 +166,9 @@ $generateRating$ generate the ratings of this Match. It uses $rateFace$ and $rat
 */       
                      
          void generateRatings();                      
-         void rateFace(Face *source, vector<RegionTreeNode*> targets);
-         void rateCHTN(ConvexHullTreeNode *source, vector<RegionTreeNode*> );
+         void rateFace(Face *source, std::vector<RegionTreeNode*> targets);
+         void rateCHTN(ConvexHullTreeNode *source, 
+                       std::vector<RegionTreeNode*> );
 /*
 
 1.1.1 Protected Attributes
@@ -171,8 +176,8 @@ $generateRating$ generate the ratings of this Match. It uses $rateFace$ and $rat
 the $name$ and the $description$ of the Match not usefulll in SECONDO but only for cout 
 
 */                         
-         string name;
-         string description;
+         std::string name;
+         std::string description;
 /*
  
 the ratings of the Match
@@ -202,7 +207,7 @@ the source and the target region of the Match
 a table of SingleMatches, where the SingleMatches are stored as a hashtable
  
 */                                           
-         map<int,SingleMatch*> maps;
+         std::map<int,SingleMatch*> maps;
             
       private:
 

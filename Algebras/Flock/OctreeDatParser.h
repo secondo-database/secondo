@@ -72,7 +72,7 @@ class OctreeDatParser{
     //index of the first column is zero.  
     double calcHalfSideLength();
     void calcSkipTreeCoords(double* res);
-    fstream inputFile;
+    std::fstream inputFile;
     int activeTrajectories;
     OctreeCell* tmpCell;
     ::std::vector<OctreePoint*> *pointData;

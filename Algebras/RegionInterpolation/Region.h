@@ -50,7 +50,7 @@ this functions return the number of stored faces, a list of all faces or a speci
 */                 
          int getNrOfFaces();     
          Face *getFace(int index);     
-         vector<Face*> *getFaces();
+         std::vector<Face*> *getFaces();
 /*
 
 Is the cached hashcode valid?
@@ -81,7 +81,7 @@ set the cached hashcode invalid
 This function tries to split all faces along the given splitline and adds the new ones to this region.The function delivers a list all added faces, 
  
 */       
-         vector<Face*> *splitOnLine(vector<LineWA*> *splitLine);
+         std::vector<Face*> *splitOnLine(std::vector<LineWA*> *splitLine);
 /*
 
 get a deep clone of the face
@@ -101,7 +101,7 @@ get a deep clone of the face
 1.1.1 Operators
 
 */             
-         friend ostream & operator <<(ostream & os,
+         friend std::ostream & operator <<(std::ostream & os,
             const RegionForInterpolation region);       
                     
        private:
@@ -118,7 +118,7 @@ get a deep clone of the face
 The list of faces in the region   
 
 */
-         vector<Face*> Faces;
+         std::vector<Face*> Faces;
 /*
 
 attributes for handling the hashcode

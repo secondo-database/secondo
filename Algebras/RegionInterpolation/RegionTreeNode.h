@@ -37,7 +37,8 @@ returns the hashvalue of a region tree. If the caches hashvalue is valid then it
 */       
          virtual unsigned int hashCode()=0;        
          virtual bool equals(RegionTreeNode* other)=0;
-         friend ostream& operator <<(ostream & os,RegionTreeNode *RTN);       
+         friend std::ostream& operator <<(std::ostream & os,
+                                          RegionTreeNode *RTN);       
    };
 }
 #endif 
