@@ -15,6 +15,8 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 
 using namespace std;
+using namespace datetime;
+
 namespace temporalalgebra{
 
 /*

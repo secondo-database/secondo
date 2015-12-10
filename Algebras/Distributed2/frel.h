@@ -66,7 +66,7 @@ public:
   static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
   static int SizeOf();
   inline bool IsDefined()const{ return defined;}
-  inline std::string getValue()const{ return value;}
+  inline std::string GetValue()const{ return value;}
   inline void SetDefined(const bool _def){ defined = _def;}
   
 

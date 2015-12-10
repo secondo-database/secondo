@@ -76,7 +76,7 @@ Constructor
         NodeTypeId type,
         unsigned priority = 0,
         unsigned minEntries = 2,
-        unsigned maxEntries = numeric_limits<unsigned>::max(),
+        unsigned maxEntries = std::numeric_limits<unsigned>::max(),
         unsigned maxPages = 1,
         bool cacheable = true,
         void *userext = 0)
@@ -88,7 +88,7 @@ Constructor
             m_userext(userext)
     {
         if (m_minEntries == 0)
-            m_minEntries = numeric_limits<unsigned>::max();
+            m_minEntries = std::numeric_limits<unsigned>::max();
 
         if (m_maxEntries < m_minEntries)
             m_maxEntries = m_minEntries;

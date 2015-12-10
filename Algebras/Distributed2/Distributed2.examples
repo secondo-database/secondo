@@ -142,7 +142,7 @@ Result    : 10
 Operator  : ffeed5
 Number    : 1
 Signature : {string, text} -> stream(TUPLE)
-Example   : query ffeed5('ten.bin') count
+Example   : query 'ten.bin' ffeed5  count
 Result    : 10
 
 Operator  : createDArray

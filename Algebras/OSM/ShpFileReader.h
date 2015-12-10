@@ -76,16 +76,16 @@ public:
     uint32_t readLittleInt32 ();
     double readLittleDouble ();
 
-    static string getShpType(const string fname, bool& correct,
-                             string& errorMessage);
+    static std::string getShpType(const std::string fname, bool& correct,
+                             std::string& errorMessage);
 
 private:
 
     // --- Attributes
     bool defined;
-    ifstream file;
+    std::ifstream file;
     uint32_t type;
-    streampos fileend;
+    std::streampos fileend;
 
 };
 

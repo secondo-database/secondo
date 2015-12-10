@@ -51,8 +51,8 @@ public:
 
 */
 
-   JNetworkSectionAdapter(JNetwork* jnet, const TupleId sectTupId);
-   JNetworkSectionAdapter(JNetwork* jnet, Tuple* tup,
+   JNetworkSectionAdapter(jnetwork::JNetwork* jnet, const TupleId sectTupId);
+   JNetworkSectionAdapter(jnetwork::JNetwork* jnet, Tuple* tup,
                           const EDirection dDir);
    virtual ~JNetworkSectionAdapter();
 
@@ -103,11 +103,11 @@ public:
 
  virtual JNetworkSectionAdapter* CastToJNetworkSection();
 
- RouteLocation* GetRouteLocation(const Point*& p) const;
- Direction GetSide() const;
+ jnetwork::RouteLocation* GetRouteLocation(const Point*& p) const;
+ jnetwork::Direction GetSide() const;
 
 private:
-  JNetwork* pJNet;
+  jnetwork::JNetwork* pJNet;
   Tuple* sectTup;
   EDirection driveDir;
 

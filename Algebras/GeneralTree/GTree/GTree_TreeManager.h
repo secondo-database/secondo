@@ -55,7 +55,7 @@ class TreeManager
 {
 
 public:
-    typedef map<SmiRecordId, NodePtr>::iterator iterator;
+    typedef std::map<SmiRecordId, NodePtr>::iterator iterator;
 
 /*
 Default constructor:
@@ -311,7 +311,7 @@ Removes at least one node from the cache, if the used cache size has grown great
     NodePtr m_curNode;    // ref. to current node in path
     NodePtr m_parentNode; // ref. to parent node in path
     NodeManager* nodeSupp;   // reference to the NodeManager object
-    list<PathEntry> path; // path to current node
+    std::list<PathEntry> path; // path to current node
     unsigned m_level;     // tree level of current node
     bool useCache;        // true, if cache should be used
     unsigned curSize;     // current size of the cache
@@ -320,7 +320,7 @@ Removes at least one node from the cache, if the used cache size has grown great
                              with a priority greater than this value
                              will be inserted into the cache) */
     unsigned m_hits, m_misses; // statistic infos
-    map<SmiRecordId, NodePtr> cache; // node cache
+    std::map<SmiRecordId, NodePtr> cache; // node cache
     PriorityFun getPriority;
 }; // TreeManager
 

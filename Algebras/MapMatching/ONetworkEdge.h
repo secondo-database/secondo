@@ -380,11 +380,12 @@ double ONetworkEdge<T>::GetMaxSpeed(void) const
                 m_dMaxSpeed = convStrToDouble(pMaxSpeed->GetValue().c_str());
 
                 // convert to km/h
-                if (pMaxSpeed->GetValue().find("mph") != string::npos)
+                if (pMaxSpeed->GetValue().find("mph") != std::string::npos)
                 {
                     m_dMaxSpeed *= 1.609344;
                 }
-                else if (pMaxSpeed->GetValue().find("knots") != string::npos)
+                else if (pMaxSpeed->GetValue().find("knots") 
+                          != std::string::npos)
                 {
                     m_dMaxSpeed *= 1.852;
                 }

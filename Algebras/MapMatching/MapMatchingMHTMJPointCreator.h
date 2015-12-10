@@ -55,7 +55,8 @@ class MJPointCreator : public IMapMatchingMHTResultCreator
 {
 public:
 
-  MJPointCreator(JNetworkAdapter* pJNetAdapter, MJPoint* pResMJPoint);
+  MJPointCreator(JNetworkAdapter* pJNetAdapter, 
+                 jnetwork::MJPoint* pResMJPoint);
   virtual ~MJPointCreator();
 
   virtual bool CreateResult(const std::vector<MHTRouteCandidate*>&
@@ -63,14 +64,14 @@ public:
 
 private:
 
-  JNetwork* jnet;
-  MJPoint* resMJPoint;
+  jnetwork::JNetwork* jnet;
+  jnetwork::MJPoint* resMJPoint;
 
   bool Init(void);
   void Finalize(void);
 
-  RouteLocation* GetRouteLocation(const MHTRouteCandidate::PointDataPtr pData)
-                                                                        const;
+  jnetwork::RouteLocation* GetRouteLocation(
+           const MHTRouteCandidate::PointDataPtr pData) const;
 
 };
 

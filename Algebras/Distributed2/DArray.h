@@ -65,7 +65,8 @@ SmiRecord.
 
 */
 template<>
-bool readVar<string>(string& value, SmiRecord& record, size_t& offset);
+bool readVar<std::string>(std::string& value, 
+                          SmiRecord& record, size_t& offset);
 
 /*
 1.3 writeVar
@@ -90,8 +91,8 @@ This variant of ~writeVar~ write a string into an SmiRecord.
 */
 
 template<>
-bool writeVar<string>(
-  const string& value, SmiRecord& record, size_t& offset);
+bool writeVar<std::string>(
+  const std::string& value, SmiRecord& record, size_t& offset);
 
 
 /*
@@ -206,15 +207,15 @@ The constructors create a darray from predefined values.
 
 */
 
-     DArrayT(const vector<uint32_t>& _map, const string& _name);
+     DArrayT(const std::vector<uint32_t>& _map, const std::string& _name);
 
-     DArrayT(const size_t _size , const string& _name);
+     DArrayT(const size_t _size , const std::string& _name);
 
-     DArrayT(const vector<uint32_t>& _map, const string& _name, 
-               const vector<DArrayElement>& _worker);
+     DArrayT(const std::vector<uint32_t>& _map, const std::string& _name, 
+               const std::vector<DArrayElement>& _worker);
 
-     DArrayT(const size_t _size, const string& _name, 
-               const vector<DArrayElement>& _worker);
+     DArrayT(const size_t _size, const std::string& _name, 
+               const std::vector<DArrayElement>& _worker);
 
      explicit DArrayT(int dummy) {} // only for cast function
 
@@ -270,8 +271,8 @@ darray. The map from index to workers is the
 standard map.
 
 */
-    void set(const size_t size, const string& name, 
-              const vector<DArrayElement>& worker);
+    void set(const size_t size, const std::string& name, 
+              const std::vector<DArrayElement>& worker);
 
 
 /*
@@ -292,8 +293,8 @@ Sets the mapping, the workers and the name for a darray.
 The size is extracted from the mapping.
 
 */
-    void set(const vector<uint32_t>& m, const string& name, 
-              const vector<DArrayElement>& worker);
+    void set(const std::vector<uint32_t>& m, const std::string& name, 
+              const std::vector<DArrayElement>& worker);
 
 /*
 3.10 ~IsDefined~
@@ -311,7 +312,7 @@ template type.
 
 */
 
-     static const string BasicType();
+     static const std::string BasicType();
 
 /*
 3.12 ~checkType~
@@ -331,7 +332,7 @@ Checks wether the argument is complete decsription of a darray.
      
      DArrayElement getWorker(int i);
 
-     string getName() const;
+     std::string getName() const;
 
 
 /*
@@ -349,7 +350,7 @@ Checks wether the argument is complete decsription of a darray.
      
      void setResponsible(size_t slot, size_t _worker);
 
-     bool setName( const string& n);
+     bool setName( const std::string& n);
 
 /*
 3.15 ~toListExpr~
@@ -398,7 +399,7 @@ Returns a vector representing the standard mapping from index to
 worker.
 
 */
-     static vector<uint32_t> createStdMap(const uint32_t size, 
+     static std::vector<uint32_t> createStdMap(const uint32_t size, 
                                           const int numWorkers);
 
 /*
@@ -435,7 +436,8 @@ for connecting with the worker.
 
 */
       template<class H, class C>
-      static DArrayT<Type> createFromRel(Relation* rel, int size, string name,
+      static DArrayT<Type> createFromRel(Relation* rel, int size, 
+                              std::string name,
                               int hostPos, int portPos, int configPos);
 
 
@@ -445,10 +447,10 @@ for connecting with the worker.
   friend class DArrayT<DFMATRIX>;
 
   private:
-    vector<DArrayElement> worker; // connection information
-    vector<uint32_t> map;  // map from index to worker
+    std::vector<DArrayElement> worker; // connection information
+    std::vector<uint32_t> map;  // map from index to worker
     size_t  size; // corresponds with map size except map is empty
-    string name;  // the basic name used on workers
+    std::string name;  // the basic name used on workers
     bool defined; // defined state of this array
 
 
@@ -475,7 +477,7 @@ Checks whether the contained map is a standard map.
 Check for equaliness of workers.
 
 */
-   bool equalWorker(const vector<DArrayElement>& w) const;
+   bool equalWorker(const std::vector<DArrayElement>& w) const;
 
 };
 
@@ -486,7 +488,8 @@ Check for equaliness of workers.
 
 */
 template<arrayType Type>
-DArrayT<Type>::DArrayT(const vector<uint32_t>& _map, const string& _name): 
+DArrayT<Type>::DArrayT(const std::vector<uint32_t>& _map, 
+                       const std::string& _name): 
       worker(),map(_map), size(map.size()),name(_name) {
    if(!stringutils::isIdent(name) || map.size() ==0 ){ // invalid
       name = "";
@@ -499,7 +502,7 @@ DArrayT<Type>::DArrayT(const vector<uint32_t>& _map, const string& _name):
 }
 
 template<arrayType Type>
-DArrayT<Type>::DArrayT(const size_t _size , const string& _name): 
+DArrayT<Type>::DArrayT(const size_t _size , const std::string& _name): 
       worker(),map(), size(_size),name(_name) {
    assert(Type == DFMATRIX);
    if(!stringutils::isIdent(name) || size ==0 ){ // invalid
@@ -513,8 +516,9 @@ DArrayT<Type>::DArrayT(const size_t _size , const string& _name):
 }
 
 template<arrayType Type>
-DArrayT<Type>::DArrayT(const vector<uint32_t>& _map, const string& _name, 
-          const vector<DArrayElement>& _worker): 
+DArrayT<Type>::DArrayT(const std::vector<uint32_t>& _map, 
+                       const std::string& _name, 
+          const std::vector<DArrayElement>& _worker): 
     worker(_worker),map(_map), size(map.size),name(_name) {
 
    if(!stringutils::isIdent(name) || map.size() ==0 || !checkMap()){ 
@@ -529,8 +533,8 @@ DArrayT<Type>::DArrayT(const vector<uint32_t>& _map, const string& _name,
 }
 
 template<arrayType Type>
-DArrayT<Type>::DArrayT(const size_t _size, const string& _name, 
-          const vector<DArrayElement>& _worker): 
+DArrayT<Type>::DArrayT(const size_t _size, const std::string& _name, 
+          const std::vector<DArrayElement>& _worker): 
     worker(_worker),map(), size(_size),name(_name) {
 
    assert(Type == DFMATRIX);
@@ -594,8 +598,8 @@ void DArrayT<Type>::setSize(size_t newSize){
 
 
 template<arrayType Type>
-void DArrayT<Type>::set(const size_t size, const string& name, 
-         const vector<DArrayElement>& worker){
+void DArrayT<Type>::set(const size_t size, const std::string& name, 
+         const std::vector<DArrayElement>& worker){
    if(!stringutils::isIdent(name) || size ==0){ // invalid
       this->name = "";
       this->defined = false;
@@ -621,7 +625,7 @@ bool DArrayT<Type>::equalMapping(AT& a, bool ignoreSize ){
    if(!ignoreSize && (map.size()!=a.map.size())){
       return false;
    }
-   size_t minV = min(map.size(), a.map.size());
+   size_t minV = std::min(map.size(), a.map.size());
    for(size_t i=0;i<minV;i++){
       if(map[i]!=a.map[i]){
          return false;
@@ -633,8 +637,9 @@ bool DArrayT<Type>::equalMapping(AT& a, bool ignoreSize ){
 
 
 template<arrayType Type>
-void DArrayT<Type>::set(const vector<uint32_t>& m, const string& name, 
-         const vector<DArrayElement>& worker){
+void DArrayT<Type>::set(const std::vector<uint32_t>& m, 
+         const std::string& name, 
+         const std::vector<DArrayElement>& worker){
    if(!stringutils::isIdent(name) || m.size() ==0){ // invalid
       makeUndefined(); 
       return;
@@ -659,7 +664,7 @@ bool DArrayT<Type>::IsDefined(){
 }
 
 template<arrayType Type>
-const string DArrayT<Type>::BasicType() { 
+const std::string DArrayT<Type>::BasicType() { 
   switch(Type){
      case DARRAY : return "darray";
      case DFARRAY : return "dfarray";
@@ -685,7 +690,7 @@ const bool DArrayT<Type>::checkType(const ListExpr list){
 
     // for a darray, each type is allowed
     SecondoCatalog* ctl = SecondoSystem::GetCatalog();
-    string name;
+    std::string name;
     int algid, type;
     if(!ctl->LookUpTypeExpr(nl->Second(list), name, algid, type)){
        return false;
@@ -797,7 +802,7 @@ ListExpr DArrayT<Type>::toListExpr(){
 template<arrayType Type>
 DArrayT<Type>* DArrayT<Type>::readFrom(ListExpr list){
    if(listutils::isSymbolUndefined(list)){
-      vector<uint32_t> m;
+      std::vector<uint32_t> m;
       return new DArrayT<Type>(m,"");
    }
    if(!nl->HasLength(list,3)){
@@ -809,11 +814,11 @@ DArrayT<Type>* DArrayT<Type>::readFrom(ListExpr list){
        ||(nl->AtomType(Workers)!=NoAtom)){
       return 0;
    }
-   string name = nl->SymbolValue(Name);
+   std::string name = nl->SymbolValue(Name);
    if(!stringutils::isIdent(name)){
       return 0;
    }
-   vector<DArrayElement> v;
+   std::vector<DArrayElement> v;
    int wn = 0;
    while(!nl->IsEmpty(Workers)){
       DArrayElement elem("",0,0,"");
@@ -825,7 +830,7 @@ DArrayT<Type>* DArrayT<Type>::readFrom(ListExpr list){
       v.push_back(elem);
       Workers = nl->Rest(Workers);
    }
-   vector<uint32_t> m;
+   std::vector<uint32_t> m;
    if(nl->AtomType(nl->Second(list)==IntType)){
       int size = nl->IntValue(nl->Second(list));
       if(size <=0){
@@ -864,7 +869,7 @@ bool DArrayT<Type>::open(SmiRecord& valueRecord, size_t& offset,
       return false;
    } 
    if(!defined){
-     vector<uint32_t> m;
+     std::vector<uint32_t> m;
      result.addr = new DArrayT<Type>(m,"");
      return true;
    }
@@ -874,14 +879,14 @@ bool DArrayT<Type>::open(SmiRecord& valueRecord, size_t& offset,
       return false;
    }
    // read name
-   string name;
-   if(!readVar<string>(name,valueRecord, offset)){
+   std::string name;
+   if(!readVar<std::string>(name,valueRecord, offset)){
        return false;
    }
 
    // read  map
    uint32_t me;
-   vector<uint32_t> m;
+   std::vector<uint32_t> m;
    DArrayT<Type>* res = 0; 
 
    if(Type!=DFMATRIX){
@@ -959,9 +964,9 @@ bool DArrayT<Type>::save(SmiRecord& valueRecord, size_t& offset,
 
 
 template<arrayType Type>
-vector<uint32_t> DArrayT<Type>::createStdMap(const uint32_t size, 
+std::vector<uint32_t> DArrayT<Type>::createStdMap(const uint32_t size, 
                                      const int numWorkers){
-   vector<uint32_t> map;
+   std::vector<uint32_t> map;
    if(Type!=DFMATRIX){
       for(uint32_t i=0;i<size;i++){
          map.push_back(i%numWorkers);
@@ -1007,12 +1012,12 @@ void DArrayT<Type>::makeUndefined(){
 }
 
 template<arrayType Type>
-string DArrayT<Type>::getName() const{
+std::string DArrayT<Type>::getName() const{
    return name;
 }
 
 template<arrayType Type>
- bool DArrayT<Type>::setName( const string& n){
+ bool DArrayT<Type>::setName( const std::string& n){
    if(!stringutils::isIdent(n)){
       return false;
    }
@@ -1030,9 +1035,9 @@ template<arrayType Type>
 template<arrayType Type>
  template<class H, class C>
  DArrayT<Type> DArrayT<Type>::createFromRel(Relation* rel, int size,
-                         string name, int hostPos, int portPos, int 
+                         std::string name, int hostPos, int portPos, int 
                          configPos){
-     vector<uint32_t> m;
+     std::vector<uint32_t> m;
      DArrayT<Type> result(m,"");
      if(size<=0){
         result.defined = false;
@@ -1096,7 +1101,7 @@ bool DArrayT<Type>::isStdMap(){
 
 
 template<arrayType Type>
-bool DArrayT<Type>::equalWorker(const vector<DArrayElement>& w) const{
+bool DArrayT<Type>::equalWorker(const std::vector<DArrayElement>& w) const{
       if(worker.size() != w.size()){
           return false;
       }

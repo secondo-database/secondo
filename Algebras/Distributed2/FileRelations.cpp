@@ -38,23 +38,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 boost::mutex nlparsemtx;
 
 
-bool BinRelWriter::writeHeader(ostream& out, ListExpr type){
+bool BinRelWriter::writeHeader(std::ostream& out, ListExpr type){
 
     if(!Relation::checkType(type)){
-       cerr << "invalid relation type " << nl->ToString(type);
+       std::cerr << "invalid relation type " << nl->ToString(type);
        assert(false);
     }
 
-    string relTypeS = nl->ToString(type);
+    std::string relTypeS = nl->ToString(type);
     uint32_t length = relTypeS.length();
-    string magic = "srel";
+    std::string magic = "srel";
     out.write(magic.c_str(),4);
     out.write((char*) &length, sizeof(uint32_t));
     out.write(relTypeS.c_str(), length);
     return out.good();
 }
 
-bool BinRelWriter::writeNextTuple(ostream& out,Tuple* tuple){
+bool BinRelWriter::writeNextTuple(std::ostream& out,Tuple* tuple){
   // retrieve sizes
   size_t coreSize;
   size_t extensionSize;
@@ -73,7 +73,7 @@ bool BinRelWriter::writeNextTuple(ostream& out,Tuple* tuple){
   return out.good();
 }
            
-bool BinRelWriter::finish(ostream& out){
+bool BinRelWriter::finish(std::ostream& out){
   uint32_t marker = 0;
   out.write((char*) &marker, sizeof(uint32_t));
   return out.good();
@@ -81,9 +81,9 @@ bool BinRelWriter::finish(ostream& out){
 
 
 bool BinRelWriter::writeRelationToFile(Relation* rel, ListExpr relType, 
-                   const string& fileName){
+                   const std::string& fileName){
 
-  ofstream out(fileName.c_str(), ios::out | ios::binary);
+  std::ofstream out(fileName.c_str(), std::ios::out | std::ios::binary);
   if(!writeHeader(out,relType)){
      out.close();
      return false;
@@ -111,43 +111,43 @@ bool BinRelWriter::writeRelationToFile(Relation* rel, ListExpr relType,
 
 */
 
-ffeed5Info::ffeed5Info(const string& filename, const ListExpr _tt){
+ffeed5Info::ffeed5Info(const std::string& filename, const ListExpr _tt){
 
   tt = new TupleType(_tt);
   inBuffer = new char[FILE_BUFFER_SIZE];
-  in.open(filename.c_str(), ios::in | ios::binary);
+  in.open(filename.c_str(), std::ios::in | std::ios::binary);
   ok = in.good();
   if(ok){
     in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
     readHeader(tt);
   } else {
-    // cout << "could not open file " << filename << endl;
+    // cout << "could not open file " << filename << std::endl;
   }
 }
 
    
-ffeed5Info::ffeed5Info(const string& filename, TupleType* _tt){
+ffeed5Info::ffeed5Info(const std::string& filename, TupleType* _tt){
   tt = new TupleType(*_tt);
-  in.open(filename.c_str(), ios::in | ios::binary);
+  in.open(filename.c_str(), std::ios::in | std::ios::binary);
   inBuffer = new char[FILE_BUFFER_SIZE];
   ok = in.good();
   if(ok){
     in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
     readHeader(tt);
   }else{
-    cerr << "could not open file " << filename << endl; 
+    std::cerr << "could not open file " << filename << std::endl; 
   }
 }
 
-ffeed5Info::ffeed5Info(const string& filename){
-  in.open(filename.c_str(), ios::in | ios::binary);
+ffeed5Info::ffeed5Info(const std::string& filename){
+  in.open(filename.c_str(), std::ios::in | std::ios::binary);
   inBuffer = new char[FILE_BUFFER_SIZE];
   ok = in.good();
   if(ok){
     in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
     readHeader(0);
   }else{
-    cerr << "could not open file " << filename << endl; 
+    std::cerr << "could not open file " << filename << std::endl; 
   }
   if(ok){
      ListExpr tupleType = nl->Second(fileTypeList);
@@ -208,7 +208,7 @@ Tuple* ffeed5Info::next(){
 void ffeed5Info::readHeader(TupleType* tt){
   char marker[4];
   in.read(marker,4);
-  string ms(marker,4);
+  std::string ms(marker,4);
   if(ms!="srel"){
      ok = false;
      return;
@@ -217,7 +217,7 @@ void ffeed5Info::readHeader(TupleType* tt){
   in.read((char*) &length,sizeof(uint32_t));
   char* buffer = new char[length];
   in.read(buffer,length);
-  string list(buffer,length);
+  std::string list(buffer,length);
   delete[] buffer;
   {
      boost::lock_guard<boost::mutex> guard(nlparsemtx);
@@ -227,8 +227,8 @@ void ffeed5Info::readHeader(TupleType* tt){
         tupleType = SecondoSystem::GetCatalog()->NumericType(tupleType);
         TupleType ftt(tupleType);
         if(!ftt.equalSchema(*tt)){
-            cerr << "expected scheme does not fit the stored scheme." 
-                 << endl;
+            std::cerr << "expected scheme does not fit the stored scheme." 
+                 << std::endl;
             ok = false;
          }
      }

@@ -4,6 +4,8 @@ This class is a FixedMRegion.
 */
 #include "TestMove.h"
 
+using namespace datetime;
+
 namespace temporalalgebra{
 
 void testInside1()

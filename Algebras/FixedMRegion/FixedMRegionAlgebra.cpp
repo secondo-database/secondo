@@ -4,6 +4,8 @@ This is my FixedMRegionAlgebra. It is supported by other classes.
 */
 #include "FixedMRegionAlgebra.h"
 using namespace std;
+using namespace datetime;
+
 extern NestedList *nl;
 extern QueryProcessor *qp;
 

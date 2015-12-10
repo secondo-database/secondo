@@ -181,13 +181,13 @@ void sett (double _t);
 This method extracts a list of halfsegments from the given region.
 
 */
-static vector < HalfSegment > getHSFromRegion(const Region reg);
+static std::vector < HalfSegment > getHSFromRegion(const Region reg);
 
 /*
 Return the name of the Secondo type.
 
 */
-static const string BasicType(){ return "fixedmregion"; }
+static const std::string BasicType(){ return "fixedmregion"; }
 
 /*
 This method returns the Move.
@@ -246,7 +246,7 @@ const Point & p3, const Point & p4) const;
 This method extracts a list of halfsegments from the region.
 
 */
-vector < HalfSegment > getHSFromRegion() const;
+std::vector < HalfSegment > getHSFromRegion() const;
  
 /*
 This methods calculates the case of the intersection type. There are
@@ -265,23 +265,25 @@ the polygon that was traversed in this step. It uses the halfsegments' start
 and end position. It has to deal with al lot of different cases.
 
 */
-vector < vector < Point > >getTraversedArea (const HalfSegment & hsold,
-const HalfSegment & hsnew) const;
+std::vector < std::vector < Point > >getTraversedArea (
+    const HalfSegment & hsold,
+    const HalfSegment & hsnew) const;
 
 /*
 This method orientates the given polygons clockwise. Therefore, they will be 
 faces.
 
 */
-void traversedCreateCyclesNotHoles(vector < vector < Point > >&v_list) const;
+void traversedCreateCyclesNotHoles(
+      std::vector < std::vector < Point > >&v_list) const;
 
 /*
 This methods creates a region that contains the traversed area between 
 resultold and resultnew.
 
 */
-Region * getDiffRegion(const vector < HalfSegment > *resultold,
-const vector < HalfSegment > *resultnew) const;
+Region * getDiffRegion(const std::vector < HalfSegment > *resultold,
+const std::vector < HalfSegment > *resultnew) const;
 
 /*
 This methods creates a polygon of the given Points.
@@ -289,8 +291,9 @@ This method adds four edges, the given points, to a vector. This is a
 preparation to create a quadrangle.
 
 */
-vector < vector < Point > >traversedCalculateQuadrangle(const Point & p1, 
-const Point & p2, const Point & p3, const Point & p4) const;
+std::vector < std::vector < Point > >traversedCalculateQuadrangle(
+   const Point & p1, 
+   const Point & p2, const Point & p3, const Point & p4) const;
 
 /*
 This methods creates a polygon of the given Points.
@@ -298,7 +301,8 @@ This method adds three edges, the given points, to a vector. This is a
 preparation to create a triangle.
 
 */
-vector < vector < Point > >traversedCalculateTriangle (const Point & p1,
+std::vector < std::vector < Point > >traversedCalculateTriangle (
+    const Point & p1,
 const Point & p2,const Point & p3) const;
 
 /*
@@ -308,7 +312,7 @@ This method adds three edges, the given points, to a vector. This is a
 preparation to create a triangle.
 
 */
-vector < Point > traversedCalcTriangle (const Point & p1,
+std::vector < Point > traversedCalcTriangle (const Point & p1,
 const Point & p2, const Point & p3) const;
 
 /*
@@ -318,15 +322,16 @@ It will prepare two vectors with triangles and gives them back in a
 vectorvector.
 
 */
-vector < vector < Point > >traversedCalculateTwoTriangles (const Point p1,
+std::vector < std::vector < Point > >traversedCalculateTwoTriangles (
+     const Point p1,
 const Point p2, const Point p3, const Point p4) const;
 
 /*
 This method creates a vectorvector and puts the given vector into it.
 
 */
-vector < vector < Point > > traversedGetVectorVector(
-const vector < Point > v) const;
+std::vector < std::vector < Point > > traversedGetVectorVector(
+const std::vector < Point > v) const;
 
 /*
 This method calculates the internal variables. It is used, when
@@ -341,8 +346,8 @@ at the given
 time ti.
 
 */
-void atinstant (const double ti, const vector < HalfSegment > &v,
-vector < HalfSegment > & res);
+void atinstant (const double ti, const std::vector < HalfSegment > &v,
+std::vector < HalfSegment > & res);
 
 /*
 This method will return a Point3 with the moving values x, y and alpha for the 
@@ -357,7 +362,8 @@ This method will return a Point3 with the moving values x, y and alpha for the g
 DateTime t.
 
 */
-Point3 getMovingForTimeFromMMove (const DateTime t, const bool noLimits=false)
+Point3 getMovingForTimeFromMMove (const datetime::DateTime t, 
+                                  const bool noLimits=false)
 const;
 
 /*
@@ -412,8 +418,8 @@ This method calculates the euclidian distance between the points and the
 one indicated by numberOfPoint.
 
 */
-vector<double> getDistancesForPoint(const int numberOfPoint, 
-const vector<Point> &p) const;
+std::vector<double> getDistancesForPoint(const int numberOfPoint, 
+const std::vector<Point> &p) const;
 
 /*
 This method creates a MMove with the given values.
@@ -471,7 +477,7 @@ Flob* GetFLOB(const int i);
 This method implements the Print functionality.
 
 */
-ostream& Print(ostream &os) const;
+std::ostream& Print(std::ostream &os) const;
 };
 
 } // end of namespace

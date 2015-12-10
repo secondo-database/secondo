@@ -50,7 +50,6 @@ class Relation;
 #include <vector>
 #include "OrderedRelationAlgebra.h"
 
-using mapmatch::AttributePtr;
 
 
 /*
@@ -206,11 +205,11 @@ bool ONetwork<T>::GetEdges(const Tuple* pTuple,
         m_EdgeAttrIndexes.m_IdxTarget < 0)
         return false;
 
-    vector<void*> vecAttributes(2);
+    std::vector<void*> vecAttributes(2);
     vecAttributes[0] = pTuple->GetAttribute(m_EdgeAttrIndexes.m_IdxSource);
     vecAttributes[1] = pTuple->GetAttribute(m_EdgeAttrIndexes.m_IdxTarget);
 
-    vector<SmiKey::KeyDataType> vecAttrTypes(2);
+    std::vector<SmiKey::KeyDataType> vecAttrTypes(2);
     vecAttrTypes[0] = T::getSMIKeyType();
     vecAttrTypes[1] = T::getSMIKeyType();
 
@@ -241,15 +240,15 @@ bool ONetwork<T>::GetAdjacentEdges(const ONetworkEdge<T>& rEdge,
     if (m_pOrderedRelation == NULL)
         return false;
 
-    vector<void*> vecAttributes(2);
+    std::vector<void*> vecAttributes(2);
 
-    AttributePtr<T> pMin(new T(true,0));
-    AttributePtr<T> pMax(new T(
-                      true,numeric_limits<typename T::inttype>::max()));
+    mapmatch::AttributePtr<T> pMin(new T(true,0));
+    mapmatch::AttributePtr<T> pMax(new T(
+                      true,std::numeric_limits<typename T::inttype>::max()));
 
     vecAttributes[0] = bUpDown ? rEdge.GetTarget() : rEdge.GetSource();
 
-    vector<SmiKey::KeyDataType> vecAttrTypes(2);
+    std::vector<SmiKey::KeyDataType> vecAttrTypes(2);
     vecAttrTypes[0] = T::getSMIKeyType();
     vecAttrTypes[1] = T::getSMIKeyType();
 

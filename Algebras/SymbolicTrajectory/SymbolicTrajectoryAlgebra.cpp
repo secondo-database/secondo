@@ -44,6 +44,7 @@ extern AlgebraManager *am;
 
 using namespace std;
 using namespace temporalalgebra;
+using namespace datetime;
 
 namespace stj {
   

@@ -73,7 +73,7 @@ a stl list is used to take place of the queue structure for the ~mtq~
 #include "RelationAlgebra.h"
 #include <list>
 
-typedef list<Tuple*> TupleList;
+typedef std::list<Tuple*> TupleList;
 
 class TupleQueueHP;
 
@@ -126,8 +126,8 @@ and hold inside the memoryBuffer.
 They are released until the memoryBuffer is cleaned.
 
 */
-  vector<Tuple*>* transportedTuples;  
-  map<SmiRecordId, size_t> FlobRecIdRefs;
+  std::vector<Tuple*>* transportedTuples;  
+  std::map<SmiRecordId, size_t> FlobRecIdRefs;
 
   double totalMemSize;
 /*

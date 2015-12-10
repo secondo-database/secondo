@@ -45,12 +45,13 @@ All avaliable config objects are defined in the initialize function (file "MTree
 #define __MTREE_CONFIG_H__
 
 #include "MTreeAlgebra.h"
+#include "GeneralTreeAlgebra.h"
 
 namespace mtreeAlgebra
 {
 
 // name of the default config
-const string CONFIG_DEFAULT("default");
+const std::string CONFIG_DEFAULT("default");
 
 /********************************************************************
 1.1 Struct ~MTreeConfig~
@@ -62,8 +63,8 @@ struct MTreeConfig
 Config objects for all node types.
 
 */
-   NodeConfig leafNodeConfig;
-   NodeConfig internalNodeConfig;
+   gtree::NodeConfig leafNodeConfig;
+   gtree::NodeConfig internalNodeConfig;
 
 /*
 This parameters contain the promote and partition functions, which should be used.
@@ -92,8 +93,8 @@ Constructor (creates objects with the given parameters).
 
 */
     MTreeConfig(
-            NodeConfig _leafNodeConfig,
-            NodeConfig _internalNodeConfig,
+            gtree::NodeConfig _leafNodeConfig,
+            gtree::NodeConfig _internalNodeConfig,
             PROMOTE _promoteFun,
             PARTITION _partitionFun)
         : leafNodeConfig(_leafNodeConfig),
@@ -117,19 +118,19 @@ public:
 This method returns the specified "MTreeConfig"[4] object. If no such object could be found, the method returns a new object with default values.
 
 */
-    static MTreeConfig getConfig(const string &name);
+    static MTreeConfig getConfig(const std::string &name);
 
 /*
 Returns true, if the specified "MTreeConfig"[4] object is defiend.
 
 */
-    static bool isDefined(const string &name);
+    static bool isDefined(const std::string &name);
 
 /*
 Returns a string with the names of all defined config objects.
 
 */
-    static string definedNames();
+    static std::string definedNames();
 
 /*
 Registeres all config objects.
@@ -138,7 +139,7 @@ Registeres all config objects.
     static void initialize();
 
 private:
-    static map<string, MTreeConfig> configs;
+    static std::map<std::string, MTreeConfig> configs;
     static bool initialized;
 }; // class MTreeConfigReg
 

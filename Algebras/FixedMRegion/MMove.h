@@ -105,8 +105,8 @@ using a check on bbox.
   void Add( const UMove& unit );
   void MergeAdd(const UMove& unit);
   bool EndBulkLoad( const bool sort = true, const bool checkvalid = false );
-  void Restrict( const vector< pair<int, int> >& intervals );
-  ostream& Print( ostream &os ) const;
+  void Restrict( const std::vector< std::pair<int, int> >& intervals );
+  std::ostream& Print( std::ostream &os ) const;
   bool operator==( const MMove& r ) const;
   bool Present( const Instant& t ) const;
   bool Present( const Periods& t ) const;
@@ -210,7 +210,7 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
    void Simplify(const double epsilon, MMove& result,
                  const bool checkBreakPoints,
-                 const DateTime& duration) const;
+                 const datetime::DateTime& duration) const;
 
 /*
 3.10.5.5 Operation ~BreakPoints~
@@ -388,7 +388,7 @@ geometry is used, otherwise spherical geometry is applied.
                             MMove& result,
                             const bool skipSplit = false) const;
 
-  static const string BasicType(){ return "mmove"; }
+  static const std::string BasicType(){ return "mmove"; }
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }

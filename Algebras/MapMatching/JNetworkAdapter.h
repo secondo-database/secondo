@@ -51,7 +51,7 @@ public:
 
 */
 
-    JNetworkAdapter(JNetwork* jnet = NULL);
+    JNetworkAdapter(jnetwork::JNetwork* jnet = NULL);
     JNetworkAdapter(const JNetworkAdapter& other);
     virtual ~JNetworkAdapter();
 
@@ -66,9 +66,9 @@ public:
     virtual bool IsDefined() const;
     virtual bool CanGetRoadType() const;
 
-    JNetwork* GetNetwork() const;
+    jnetwork::JNetwork* GetNetwork() const;
 private:
-    JNetwork* pJNet;
+    jnetwork::JNetwork* pJNet;
 };
 
 } // end of namespace mapmatch

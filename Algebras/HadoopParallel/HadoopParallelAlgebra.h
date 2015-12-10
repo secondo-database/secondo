@@ -66,7 +66,7 @@ And includes one method:
 
 const int MAX_COPYTIMES = 50;
 const size_t MAX_OPENFILE_NUM = 100;
-const string dbLoc = "<READ DB/>";
+const std::string dbLoc = "<READ DB/>";
 
 class fList;
 
@@ -76,21 +76,22 @@ namespace arrayalgebra{
 }
 
 
-string tranStr(const string& s, const string& from, const string& to);
-string getLocalFilePath(string path, const string fileName,
-            string suffix, bool appendFileName = true);
-string addFileIndex(string fileName, int index);
+std::string tranStr(const std::string& s, const std::string& from,
+                    const std::string& to);
+std::string getLocalFilePath(std::string path, const std::string fileName,
+            std::string suffix, bool appendFileName = true);
+std::string addFileIndex(std::string fileName, int index);
 ListExpr AntiNumericType(ListExpr numericType);
-int copyFile(string source, string dest, bool cfn = false);
-Tuple* readTupleFromFile(ifstream* file, TupleType* type, int mode,
-    string flobFile = "");
+int copyFile(std::string source, std::string dest, bool cfn = false);
+Tuple* readTupleFromFile(std::ifstream* file, TupleType* type, int mode,
+    std::string flobFile = "");
 int getRoundRobinIndex(int row, int clusterSize);
-ListExpr rmTermNL(ListExpr list, string term, int& count);
+ListExpr rmTermNL(ListExpr list, std::string term, int& count);
 NList addIncomplete(const NList& attrList);
 
 
 //Set up the remote copy command options uniformly.
-const string scpCommand = "scp -q ";
+const std::string scpCommand = "scp -q ";
 
 
 /*
@@ -139,7 +140,7 @@ Append an ~appendName~ after each attribute name of ~oldTupleList~,
 to avoid the situation that joined relations have a same attribute name.
 
 */
-ListExpr renameList(ListExpr oldTupleList, string appendName);
+ListExpr renameList(ListExpr oldTupleList, std::string appendName);
 
 /*
 1.3 binEncode Method
@@ -148,7 +149,7 @@ Assist ~doubleexport~, ~add0Tuple~ operator.
 Transform a nestedList into a transportable Base 64 binary string
 
 */
-string binEncode(ListExpr nestList);
+std::string binEncode(ListExpr nestList);
 
 /*
 1.4 binDecode Method
@@ -157,7 +158,7 @@ Assist ~parahashjoin~, ~parajoin~ opertor.
 To decode a Base 64 binary string back to nestedList efficiently.
 
 */
-ListExpr binDecode(string binStr);
+ListExpr binDecode(std::string binStr);
 
 /*
 1.3 phjLocalInfo Class
@@ -293,11 +294,11 @@ Assists ~add0Tuple~ operator.
 */
 struct a0tLocalInfo
 {
-  string key;
+  std::string key;
   TupleType *resultTupleType;
   Tuple *cachedTuple;
   bool needInsert;
-  string sepTupleStr;
+  std::string sepTupleStr;
 
   inline a0tLocalInfo(ListExpr rtNL):
       key(""), cachedTuple(0),
@@ -348,16 +349,16 @@ public:
       }
    }
 
-  string getRemotePath(size_t loc,
+  std::string getRemotePath(size_t loc,
       bool includeMaster = true,
       bool round = false,
       bool appendTargetIP = true,
       bool appendFileName = false,
-      string fileName = "",
+      std::string fileName = "",
       bool attachProducerIP = false,
-      string producerIP = "");
+      std::string producerIP = "");
 
-  string getMSECPath(size_t loc,
+  std::string getMSECPath(size_t loc,
       bool includeMaster = true, bool round = false,
       bool appendIP = true);
 /*
@@ -365,7 +366,7 @@ Get the remote mini-Secondo path
 
 */
 
-  string getIP(size_t loc, bool round = false);
+  std::string getIP(size_t loc, bool round = false);
 
   int getPort(size_t loc, bool round = false);
 
@@ -383,7 +384,7 @@ Get the remote mini-Secondo path
     return (getLocalNode() == masterNode);
   }
 
-  string getLocalIP();
+  std::string getLocalIP();
 
 /*
 ~getLocalPath~ function can only return the constant value
@@ -393,11 +394,11 @@ is different from the default value,
 then the ~searchLocalNode~ function cannot return a correct result.
 
 */
-  inline string getLocalPath()
+  inline std::string getLocalPath()
   {
 
-    string confPath = string(getenv("SECONDO_CONFIG"));
-    string result = SmiProfile::GetParameter("ParallelSecondo",
+    std::string confPath = std::string(getenv("SECONDO_CONFIG"));
+    std::string result = SmiProfile::GetParameter("ParallelSecondo",
         "SecondoFilePath","", confPath);
     if (result.find_last_of("/") == result.length() - 1)
       result = result.substr(0, result.length() - 1);
@@ -437,16 +438,17 @@ Number of all DSs. If the mDS is also a sDS, then it is counted repeatedly.
   size_t getInterIndex(size_t loc,bool includeMaster,bool round);
 
 private:
-  string ps_master;
-  string ps_slaves;
-  typedef pair<string, pair<string, int> > dservDesc; //data server description
-  vector<dservDesc> *dataServers;
+  std::string ps_master;
+  std::string ps_slaves;
+  typedef std::pair<std::string, std::pair<std::string, int> > dservDesc; 
+                                                //data server description
+  std::vector<dservDesc> *dataServers;
   bool available;
   int localNode;
   int masterNode;
 
   int searchLocalNode();
-  vector<string>* getAvailableIPAddrs();
+  std::vector<std::string>* getAvailableIPAddrs();
 };
 
 /*
@@ -459,7 +461,7 @@ Support progress estimation.
 class FFeedLocalInfo: public ProgressLocalInfo
 {
 public:
-  FFeedLocalInfo( Supplier s, bool _nf, int _prd, string _fp)
+  FFeedLocalInfo( Supplier s, bool _nf, int _prd, std::string _fp)
   : tupleBlockFile(0), fileFound(false), noFlob(_nf), filePath(_fp)
   {
 
@@ -470,7 +472,7 @@ Prepared for the ~ffeed3~ operator.
 The type in data file contains no DS\_IDX, while the type for output needs DS\_IDX
 
 */
-      string ostStr = ((FText*)qp->Request(
+      std::string ostStr = ((FText*)qp->Request(
           qp->GetSupplierSon(s, 4)).addr)->GetValue();
       ListExpr rcdTypeList;
       nl->ReadFromString(ostStr, rcdTypeList);
@@ -505,14 +507,14 @@ The type in data file contains no DS\_IDX, while the type for output needs DS\_I
   }
 
   bool fetchBlockFile(
-      string relName, string fileSuffix, Supplier s,
+      std::string relName, std::string fileSuffix, Supplier s,
       int pdi = -1, int tgi = -1, int att = -1);
 
   Tuple* getNextTuple();  //~ffeed~
   Tuple* getNextTuple2(); //~ffeed2~
   Tuple* getNextTuple3(); //~ffeed3~
 
-  ifstream *tupleBlockFile;
+  std::ifstream *tupleBlockFile;
   TupleType* rcdTupleType;  //The tuple type in the data file
   TupleType* newTupleType;  //The output tuple type
 
@@ -524,10 +526,10 @@ an additional integer attribute DS\_IDX.
 */
 
 private:
-  bool isLocalFileExist(string filePath);
+  bool isLocalFileExist(std::string filePath);
   bool fileFound;
   bool noFlob;
-  string filePath;
+  std::string filePath;
 };
 
 /*
@@ -550,8 +552,8 @@ struct fconsumeLocalInfo
 class hdpJoinLocalInfo
 {
 private:
-  vector<pair<int, int> > resultList;
-  vector<pair<int, int> >::iterator it;
+  std::vector<std::pair<int, int> > resultList;
+  std::vector<std::pair<int, int> >::iterator it;
   TupleType *resultTupleType;
 
 public:
@@ -561,7 +563,7 @@ public:
     resultTupleType = new TupleType(nl->Second(resultTTList));
   }
 
-  void insertPair(pair<int, int> elem){
+  void insertPair(std::pair<int, int> elem){
     resultList.push_back(elem);
   }
 
@@ -591,7 +593,7 @@ public:
 */
 class fileInfo{
 public:
-  fileInfo(size_t _cs, string _fp, string _fn,
+  fileInfo(size_t _cs, std::string _fp, std::string _fn,
       size_t _an, int _rs, bool _nf = false, SmiRecordId _sid = -1);
 
   bool openFile();
@@ -615,11 +617,11 @@ public:
     delete attrSize;
   }
 
-  inline string getFileName() {
+  inline std::string getFileName() {
     return blockFileName;
   }
 
-  inline string getFilePath() {
+  inline std::string getFilePath() {
     return blockFilePath;
   }
   inline bool isFileOpen()
@@ -632,16 +634,16 @@ private:
   int cnt;
   double totalExtSize;
   double totalSize;
-  vector<double>* attrExtSize;
-  vector<double>* attrSize;
+  std::vector<double>* attrExtSize;
+  std::vector<double>* attrSize;
 
-  string blockFilePath, blockFileName;
+  std::string blockFilePath, blockFileName;
   SmiFileId flobFileId;
   SmiRecordId sourceDS;
-  string flobFilePath, flobFileName;
-  ofstream blockFile, flobFile;
+  std::string flobFilePath, flobFileName;
+  std::ofstream blockFile, flobFile;
   SmiSize flobBlockOffset;
-  map<pair<SmiFileId, SmiRecordId>, SmiSize> flobIdCache;
+  std::map<std::pair<SmiFileId, SmiRecordId>, SmiSize> flobIdCache;
 
   size_t lastTupleIndex;
   bool fileOpen, noFlob;
@@ -672,15 +674,15 @@ private:
   TupleType *resultTupleType, *exportTupleType;
   size_t tupleCounter;
 
-  string fileBaseName;
+  std::string fileBaseName;
   int rowNumSuffix;
-  string filePath;
-  map<size_t, fileInfo*> fileList;
-  map<size_t, fileInfo*>::iterator fit;
+  std::string filePath;
+  std::map<size_t, fileInfo*> fileList;
+  std::map<size_t, fileInfo*>::iterator fit;
 
   //data remote variables
   int firstDupTarget, dupTimes, localIndex;
-  string cnIP;  //current node IP
+  std::string cnIP;  //current node IP
   clusterInfo *ci;
   bool* copyList;
   bool noFlob;
@@ -688,12 +690,12 @@ private:
   bool ok;
 
   //~openFileList~ keeps at most MAX_FILEHANDLENUM file handles.
-  vector<fileInfo*> openFileList;
+  std::vector<fileInfo*> openFileList;
   bool duplicateOneFile(fileInfo* fi);
 
 public:
-  FDistributeLocalInfo(string baseName, int rowNum,
-                       string path,
+  FDistributeLocalInfo(std::string baseName, int rowNum,
+                       std::string path,
                        int nBuckets, int attrIndex,
                        bool keepKeyAttribute,
                        ListExpr resultTupleType,
@@ -705,7 +707,7 @@ public:
   Tuple* closeOneFile();
 
   ~FDistributeLocalInfo(){
-    map<size_t, fileInfo*>::iterator fit;
+    std::map<size_t, fileInfo*>::iterator fit;
     for(fit = fileList.begin(); fit != fileList.end(); fit++)
     { delete (*fit).second; }
 
@@ -750,15 +752,15 @@ and set it into the preparedSheets.
     return ci->getLocalNode();
   }
 
-  inline string getMSecPath(int dest, bool appendIP = true){
+  inline std::string getMSecPath(int dest, bool appendIP = true){
     return ci->getMSECPath(dest, true, false, appendIP);
   }
 
-  inline string getPSFSPath(int dest, bool appendIP = true){
+  inline std::string getPSFSPath(int dest, bool appendIP = true){
     return ci->getRemotePath(dest, true, false, appendIP);
   }
 
-  inline string getIP(int dest) {
+  inline std::string getIP(int dest) {
     return ci->getIP(dest);
   }
 
@@ -767,10 +769,10 @@ private:
 //  Tuple* setLocalFlob(Tuple* tuple);
 
   Tuple* readLocalFlob(Tuple* tuple);
-  int getSheetKey(const vector<int>& sdss);
+  int getSheetKey(const std::vector<int>& sdss);
   int getMaxSheetKey();
 
-  string LFPath;         //local flob file path
+  std::string LFPath;         //local flob file path
   NList faList;
   NList daList;          //deleted attribute list
   TupleType* resultType;
@@ -806,11 +808,11 @@ in the thread and the vector.
 
 */
 
-  vector<FlobSheet1*>* standby;
+  std::vector<FlobSheet1*>* standby;
   int fetchingNum;
-  vector<FlobSheet1*>* prepared;
+  std::vector<FlobSheet1*>* prepared;
   int *sheetCounter;    //Count the sent sheet number for each DS
-  vector<string>* fetchedFiles;
+  std::vector<std::string>* fetchedFiles;
   int preparedNum;
   FlobSheet1* pfs;
 
@@ -851,11 +853,11 @@ class FlobSheet1
 {
 public:
 
-  FlobSheet1(const vector<int>& _sources, const int _si,
+  FlobSheet1(const std::vector<int>& _sources, const int _si,
       const NList& _faList, int maxMemory)
     : sheetIndex(_si), cachedSize(0), maxMem(maxMemory), faList(_faList){
 
-    flobFiles = new map<int, pair<string, size_t> >();
+    flobFiles = new std::map<int, std::pair<std::string, size_t> >();
     buffer = new TupleBuffer(maxMem);
     it = 0;
     rtCounter = 0;
@@ -868,7 +870,7 @@ public:
     while (!rest.isEmpty()){
       int ai = rest.first().intval();
       int source = _sources[faCounter];
-      flobFiles->insert(make_pair(ai, make_pair("", 0)));
+      flobFiles->insert(std::make_pair(ai, std::make_pair("", 0)));
       sourceDSs.push_back(source);
       faVec[faCounter] = ai;
       rest.rest();
@@ -890,34 +892,35 @@ Put one tuple into the sheet, if the buffer limit is not reached.
 
   Tuple* getCachedTuple();
 
-  const vector<int>& getSDSs() { return sourceDSs;}
+  const std::vector<int>& getSDSs() { return sourceDSs;}
 
   inline void makeScan(){
     it = buffer->MakeScan();
   }
 
-  inline string getResultFilePath(int attrId){
+  inline std::string getResultFilePath(int attrId){
     return flobFiles->find(attrId)->second.first;
   }
 
-  string setSheet(int source, int dest, int times, int attrId);
+  std::string setSheet(int source, int dest, int times, int attrId);
 
-  string setResultFile(int source, int dest, int times, int attrId);
+  std::string setResultFile(int source, int dest, int times, int attrId);
   
   inline bool isFinished(){ return finished;}
 
-  ostream& print(ostream& os) const {
+  std::ostream& print(std::ostream& os) const {
 
     os << "Sheet index is: " << sheetIndex << endl;
     os << "source DSs: ";
-    for (vector<int>::const_iterator it = sourceDSs.begin();
+    for (std::vector<int>::const_iterator it = sourceDSs.begin();
         it != sourceDSs.end(); it++){
       os << (*it) << " ";
     }
     os << endl;
 
     os << "flobFiles: ------------- " << endl;
-    for (map<int, pair<string, size_t> >::iterator it = flobFiles->begin();
+    for (std::map<int, std::pair<std::string, size_t> >::iterator 
+         it = flobFiles->begin();
         it != flobFiles->end(); it++ ){
       os << "attrId(" << it->first << ") : " << it->second.first
           << " offset(" << it->second.second << ")" << endl;
@@ -941,9 +944,9 @@ Put one tuple into the sheet, if the buffer limit is not reached.
 private:
   // Map with : (attrId (flobFilePath, flobOffset))
   //Collect one Flob for each attribute, hence use the attribute id as the key
-  map<int, pair<string, size_t> >* flobFiles;
+  std::map<int, std::pair<std::string, size_t> >* flobFiles;
 
-  vector<int> sourceDSs;
+  std::vector<int> sourceDSs;
   int sheetIndex;
   int cachedSize;
 /*
@@ -961,7 +964,7 @@ It happens that a Flob is listed in the current sheet,
 but has already been created in another sheet.
 
 */
-  set<SmiRecordId> newRecIds;
+  std::set<SmiRecordId> newRecIds;
 
   TupleBuffer* buffer;
   GenericRelationIterator* it;
@@ -973,7 +976,7 @@ but has already been created in another sheet.
   bool finished;
 };
 
-ostream& operator<<(ostream& os, const FlobSheet1& f);
+std::ostream& operator<<(std::ostream& os, const FlobSheet1& f);
 
 /*
 1.9 FetchFlobLocalInfo class (2rd version)
@@ -1004,7 +1007,7 @@ public:
   Flob pLob;
 };
 
-typedef pair<SmiFileId, SmiSize> flobKeyT;
+typedef std::pair<SmiFileId, SmiSize> flobKeyT;
 
 class FlobSheet
 {
@@ -1032,13 +1035,13 @@ returns whether the sheet is full.
   void shuffleCollectedFlobs();
 
   bool findInitializedFlob(Flob* result,
-      map<flobKeyT, flobInfoT>::iterator& mit);
+      std::map<flobKeyT, flobInfoT>::iterator& mit);
 
   void closeSheetFile();
 
   void killAllCachedFlobs();
 
-  inline string getResultFile(){ return resultFlobFilePath;}
+  inline std::string getResultFile(){ return resultFlobFilePath;}
 
   inline int getTimes() { return times;}
 
@@ -1046,14 +1049,14 @@ returns whether the sheet is full.
 
   inline int getDest() { return destDSId; }
 
-  inline string getSheetPath() { return sheetFilePath;}
+  inline std::string getSheetPath() { return sheetFilePath;}
 
   inline bool isAllPrepared() { return dataInitialized;}
 
-  ostream& print(ostream& os) const;
+  std::ostream& print(std::ostream& os) const;
 private:
 
-  string resultFlobFilePath;
+  std::string resultFlobFilePath;
   int sourceDSId;
   int destDSId;
   int times;
@@ -1062,11 +1065,11 @@ private:
 
   bool dataInitialized;
 
-  string sheetFilePath;
-  map<flobKeyT, flobInfoT> lobMarkers;
+  std::string sheetFilePath;
+  std::map<flobKeyT, flobInfoT> lobMarkers;
 };
 
-ostream& operator<<(ostream& os, const FlobSheet& f);
+std::ostream& operator<<(std::ostream& os, const FlobSheet& f);
 
 /*
 Flob information for a tuple
@@ -1138,7 +1141,7 @@ but only the id among the requested Flob attributes
     return timesVec[attrId][fId]; }
 
 
-  ostream& print(ostream& os) const{
+  std::ostream& print(std::ostream& os) const{
     os << "Returned: " << (returned ? "True" : "False") << endl;
     os << "Attribute Size: " << attrSize << endl;
     os << "Maximum Flob Size: " << maxFlobSize << endl;
@@ -1162,7 +1165,7 @@ private:
   int** timesVec;      //The sheet times of all Flob attributes
 };
 
-ostream& operator<<(ostream& os, const TupleFlobInfo& f);
+std::ostream& operator<<(std::ostream& os, const TupleFlobInfo& f);
 
 class FetchFlobLocalInfo : public ProgressLocalInfo
 {
@@ -1178,7 +1181,8 @@ public:
 
     if(ci){
       delete ci;
-      for(map<pair<int, int>, FlobSheet*>::iterator ci = prepared->begin();
+      for(std::map<std::pair<int, int>, FlobSheet*>::iterator 
+          ci = prepared->begin();
           ci != prepared->end(); ci++){
         FlobSheet* fs = ci->second;
         delete fs;
@@ -1189,7 +1193,7 @@ public:
       if (tbList)
       {
         if (!tbList->empty()){
-          for (map<size_t, tupleListT>::iterator ti = tbList->begin();
+          for (std::map<size_t, tupleListT>::iterator ti = tbList->begin();
             ti != tbList->end(); ti++){
             delete ti->second.first;
             ti->second.second->clear();
@@ -1223,11 +1227,11 @@ public:
     return ci->getLocalNode();
   }
 
-  inline string getPSFSPath(int dest, bool appendIP = true){
+  inline std::string getPSFSPath(int dest, bool appendIP = true){
     return ci->getRemotePath(dest, true, false, appendIP);
   }
 
-  inline string getIP(int dest) {
+  inline std::string getIP(int dest) {
     return ci->getIP(dest);
   }
 
@@ -1235,12 +1239,12 @@ public:
     return ci->getPort(dest);
   }
 
-  inline string getMSecPath(int dest, bool appendIP = true){
+  inline std::string getMSecPath(int dest, bool appendIP = true){
     return ci->getMSECPath(dest, true, false, appendIP);
   }
 
 private:
-  typedef pair<TupleQueueHP*, vector<TupleFlobInfo>*> tupleListT;
+  typedef std::pair<TupleQueueHP*, std::vector<TupleFlobInfo>*> tupleListT;
 
   Tuple* setResultTuple(Tuple* tuple);
 /*
@@ -1259,19 +1263,19 @@ instead of using a large global tuple buffer, in order to erase useless tuples
 and their Flob data as soon as possible. 
 
 */
-  map<size_t, tupleListT>* tbList;
+  std::map<size_t, tupleListT>* tbList;
   TupleQueueHP* tbfIt;                      //current tuple queue
-  vector<TupleFlobInfo>::iterator tifIt;  //tuple info iterator
+  std::vector<TupleFlobInfo>::iterator tifIt;  //tuple info iterator
   size_t curKey;
   Tuple* getTupleFromBuffer1();
   void orderOneTuple1(Tuple* tuple, int sds[]);
 
-  map<pair<int, int>, FlobSheet*> ruSheets; //recently used sheets
+  std::map<std::pair<int, int>, FlobSheet*> ruSheets; //recently used sheets
 
   //Use one large TupleQueueHP to increase the possibility of 
   // reusing cached Flob
   TupleQueueHP* totalBufferedTuples;
-  list<TupleFlobInfo>* totalBufferedTupleInfo;
+  std::list<TupleFlobInfo>* totalBufferedTupleInfo;
   Tuple* getTupleFromBuffer();
   void orderOneTuple(Tuple* tuple);
 
@@ -1285,7 +1289,7 @@ and their Flob data as soon as possible.
   bool isReadAll(Tuple* tuple);
   bool isPreparedAll(Tuple* tuple, TupleFlobInfo* tif);
   bool isPreparedAll(Tuple* tuple, TupleFlobInfo* tif,
-      vector<vector<FlobSheet*> >& rs);
+      std::vector<std::vector<FlobSheet*> >& rs);
 
 
 
@@ -1294,7 +1298,7 @@ and their Flob data as soon as possible.
   size_t faLen, daLen;
   int maxFlobNum;
   TupleType* resultType;
-  string LFPath;        //Local Flob File Path, prepared for mode 2
+  std::string LFPath;        //Local Flob File Path, prepared for mode 2
 
 
   clusterInfo* ci;
@@ -1324,12 +1328,13 @@ The prepaerd is a map structure, with the (sourceID, times) as the key.
 In order to quickly find whether the asked flob file is prepared.
 
 */
-  vector<FlobSheet*>* standby;
+  std::vector<FlobSheet*>* standby;
   size_t fetchingNum;
-  map<pair<int, int>, FlobSheet*>* prepared;
+  std::map<std::pair<int, int>, FlobSheet*>* prepared;
 
   size_t preparedNum;
-  vector<string>* fetchedFiles; //all fetched files are deleted at last.
+  std::vector<std::string>* fetchedFiles; 
+                                   //all fetched files are deleted at last.
   int *sheetCounter;            //the number of sent sheet for each DS
 
   static const size_t PipeWidth = 10;
@@ -1359,8 +1364,8 @@ public:
 template<typename T1, typename T2>
 struct classCompPair
 {
-  bool operator() (const pair<T1,T2>& pair_1,
-      const pair<T1,T2>& pair_2) const
+  bool operator() (const std::pair<T1,T2>& pair_1,
+      const std::pair<T1,T2>& pair_2) const
   {
     return (pair_1.first < pair_2.first)
         || (!(pair_1.first > pair_2.first && pair_1.first < pair_2.first)

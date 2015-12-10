@@ -44,11 +44,11 @@ This headerfile implements entries and nodes of the mtree datastructure.
 
 #include "RelationAlgebra.h"
 #include "MTreeAlgebra.h"
+#include "DistDataReg.h"
 
 namespace mtreeAlgebra
 {
 
-using gtree::NodePtr;
 
 /********************************************************************
 1.1 Class ~LeafEntry~
@@ -73,7 +73,7 @@ Constructor (creates a new leaf entry with given values).
 
 */
     inline LeafEntry(
-            TupleId _tid, DistData *_data, double _dist = 0)
+            TupleId _tid, gta::DistData *_data, double _dist = 0)
         : m_tid(_tid), m_data(_data), m_dist(_dist)
     {
         #ifdef __MTREE_DEBUG
@@ -86,7 +86,7 @@ Default copy constructor.
 
 */
     inline LeafEntry(const LeafEntry &e)
-        : m_tid(e.m_tid), m_data(new DistData(*e.m_data)),
+        : m_tid(e.m_tid), m_data(new gta::DistData(*e.m_data)),
           m_dist(e.m_dist)
     {}
 
@@ -129,7 +129,7 @@ Sets a new distance to parent.
 Returns a reference to the "DistData"[4] object.
 
 */
-    inline DistData *data()
+    inline gta::DistData *data()
     {
         #ifdef __MTREE_DEBUG
         assert(m_data);
@@ -175,7 +175,7 @@ Reads the entry from buffer and increases offset (defined inline, since this met
         offset += sizeof(double);
 
         // read m_data object
-        m_data = new DistData(buffer, offset);
+        m_data = new gta::DistData(buffer, offset);
     }
 
 /*
@@ -193,7 +193,7 @@ Returns the size of the entry on disc.
 
 private:
     TupleId     m_tid;   // tuple-id of the entry
-    DistData    *m_data; // m_data obj. for m_dist. computations
+    gta::DistData    *m_data; // m_data obj. for m_dist. computations
     double m_dist;  // distance to parent node
 };
 
@@ -221,7 +221,7 @@ Constructor (creates a new internal entry with given values).
             SmiRecordId _chield)
         : gtree::InternalEntry(_chield),
           m_dist(e.m_dist), m_rad(_rad),
-          m_data(new DistData(*e.m_data))
+          m_data(new gta::DistData(*e.m_data))
     {}
 
 /*
@@ -233,7 +233,7 @@ Constructor (creates a new internal entry from a leaf entry).
             SmiRecordId _chield)
         : gtree::InternalEntry(_chield),
           m_dist(e.m_dist), m_rad(_rad),
-          m_data(new DistData(*e.m_data))
+          m_data(new gta::DistData(*e.m_data))
     {}
 
 /*
@@ -261,7 +261,7 @@ Returns the covering radius of the entry.
 Returns a reference to the "DistData"[4] object.
 
 */
-    inline DistData *data()
+    inline gta::DistData *data()
     {
         #ifdef __MTREE_DEBUG
         assert(m_data);
@@ -321,7 +321,7 @@ Reads the entry from buffer and increases offset (defined inline, since this met
         offset += sizeof(double);
 
         // read m_data object
-        m_data = new DistData(buffer, offset);
+        m_data = new gta::DistData(buffer, offset);
     }
 
 /*
@@ -339,7 +339,7 @@ Returns the size of the entry on disc.
 private:
     double m_dist;  // distance to parent node
     double m_rad;   // covering radius
-    DistData    *m_data; // m_data obj. for m_dist. computations
+    gta::DistData    *m_data; // m_data obj. for m_dist. computations
 };
 
 /********************************************************************

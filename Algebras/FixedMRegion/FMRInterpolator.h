@@ -177,28 +177,28 @@ FixedMRegion getResult();
 
 private:
 
-  vector<FMRObservation> observations;
+  std::vector<FMRObservation> observations;
   bool isValid;
   FixedMRegion result;
   
   double angle_init;
   int angle_method;
   Region refRegion;//reference region for interpolate
-  vector<double> distVector;
-  vector<PointStore> refVector;
+  std::vector<double> distVector;
+  std::vector<PointStore> refVector;
 
 /*
 This method calculates the mass point of the given points in the 
 vector of HalfSegments.
 
 */
-Point calcMasspoint(const vector<HalfSegment> &v) const;
+Point calcMasspoint(const std::vector<HalfSegment> &v) const;
 
 /*
 This method calculates the mass point of the given points.
 
 */
-Point calcMasspoint(const vector<Point> &a) const;
+Point calcMasspoint(const std::vector<Point> &a) const;
 
 /*
 This method sets the given object as a reference. The zero point will be the 
@@ -233,32 +233,34 @@ Point calcMinDistPoint(const Region &r, const Point &masspoint) const;
 This method checks, if the given point is already in the list.
 
 */
-bool inList(const vector<Point> &list, const Point &p) const;
+bool inList(const std::vector<Point> &list, const Point &p) const;
 
 /*
 This method creates a list of all region points.
 
 */
-void createPointList(const vector<HalfSegment>& a, vector<Point>& result) const;
+void createPointList(const std::vector<HalfSegment>& a, 
+                     std::vector<Point>& result) const;
 
 /*
 This method sorts the points of the given list clockwise and according to the 
 points distance to the given point ref.
 
 */
-void sortList(vector<Point>& list, const Point& ref) const;
+void sortList(std::vector<Point>& list, const Point& ref) const;
 
 /*
 This method creates a clockwise sorted list of region points.
 
 */
-vector<Point> getSortedList(const Region &re) const;
+std::vector<Point> getSortedList(const Region &re) const;
 
 /*
 This method calculates the vector of distances to the masspoint.
 
 */
-vector<double> calcDistVector(const Region &r, const Point &masspoint) const;
+std::vector<double> calcDistVector(const Region &r, 
+                                   const Point &masspoint) const;
 
 /*
 This method calculates the distance vector for all points of r to masspoint. 
@@ -297,13 +299,13 @@ This method calculates a list of all regionpoints, sorted bei their angle and
 distance to the masspoint.
 
 */
-vector<PointStore> calcRefVector(const Region & r) const;
+std::vector<PointStore> calcRefVector(const Region & r) const;
 
 /*
 This method will check, if the observation of the region equals the reference region.
 
 */
-bool checkRegion(const vector<PointStore> & r, double alpha) const;
+bool checkRegion(const std::vector<PointStore> & r, double alpha) const;
 
 /*
 This method will return the sum of the angles alpha and beta and take care of 

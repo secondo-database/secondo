@@ -48,6 +48,8 @@ the class ~MHTRouteCandidate~.
 #include "../TemporalNet/TemporalNetAlgebra.h"
 
 
+using namespace std;
+
 namespace mapmatch {
 
 

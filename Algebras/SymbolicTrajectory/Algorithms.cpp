@@ -38,6 +38,8 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include "Algorithms.h"
 
 using namespace temporalalgebra;
+using namespace std;
+
 
 namespace stj{
 
@@ -145,7 +147,8 @@ void MLabel::createML(const int size, const int number, vector<string>& labels){
     SecInterval iv(true);
     int labelStartPos = size * number;
     for (int i = 0; i < size; i++) {
-      DateTime dur(0, rand() % 86400000 + 3600000, durationtype); // duration
+      datetime::DateTime dur(0, rand() % 86400000 + 3600000, 
+                             datetime::durationtype);
       end.Add(&dur);
       ul.constValue.Set(true, labels[labelStartPos + i]);
       iv.Set(start, end, true, false);
@@ -613,7 +616,7 @@ pair<string, Attribute*> Pattern::getPointer(int key, Tuple *tuple /* = 0 */) {
       }
       case 3:   // start, type Instant
       case 4: { // end, type Instant
-        result.second = new DateTime(instanttype);
+        result.second = new datetime::DateTime(datetime::instanttype);
         result.first = "[const instant pointer "
                      + nl->ToString(listutils::getPtrList(result.second)) + "]";
         break;

@@ -49,6 +49,9 @@ the class ~MGPointCreator~.
 #include <LogMsg.h>
 
 using namespace network;
+using namespace temporalnet;
+using namespace datetime;
+
 namespace mapmatch {
 
 /*

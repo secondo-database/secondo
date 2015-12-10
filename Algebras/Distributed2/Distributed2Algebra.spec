@@ -22,7 +22,7 @@ operator size alias SIZE pattern op (_)
 operator getWorkers alias getWorkers pattern op (_)
 
 operator fconsume5 alias FCONSUME5 pattern _ op [_]
-operator ffeed5 alias FFEED5 pattern op(_)
+operator ffeed5 alias FFEED5 pattern _ op 
 
 operator createDArray alias CREATEDARRAY pattern _ op[_,_,_,_,_,_]
 

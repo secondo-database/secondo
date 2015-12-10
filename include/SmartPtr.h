@@ -305,7 +305,7 @@ Returns the maximum number of referencses, which the counter can hold.
 */
   inline CntrT maxRefs() const
   {
-    return numeric_limits<CntrT>::max();
+    return std::numeric_limits<CntrT>::max();
   }
 
 /*
@@ -572,7 +572,7 @@ Returns the maximum number of referencses, which the counter can hold.
 */
   inline CntrT maxRefs() const
   {
-    return numeric_limits<CntrT>::max();
+    return std::numeric_limits<CntrT>::max();
   }
 
 /*

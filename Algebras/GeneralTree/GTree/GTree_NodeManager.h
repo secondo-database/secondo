@@ -52,7 +52,7 @@ class NodeManager
 {
   public:
 
-    typedef map<NodeTypeId, NodeBase*>::iterator iterator;
+    typedef std::map<NodeTypeId, NodeBase*>::iterator iterator;
 
 /*
 Constructor.
@@ -122,7 +122,7 @@ Returns a reference to the tree file.
     SmiRecordFile *m_file;
     // reference to the tree file
 
-    map<NodeTypeId, NodeBase*> m_prototypes;
+    std::map<NodeTypeId, NodeBase*> m_prototypes;
     // prototypes for all registered nodes
 }; // class NodeManager
 

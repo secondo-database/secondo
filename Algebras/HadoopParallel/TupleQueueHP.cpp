@@ -33,6 +33,9 @@ February 2014 Jiamin Lu
 #include "TupleQueueHP.h"
 #include "Counter.h"
 
+using namespace std;
+
+
 TupleQueueHP::TupleQueueHP(const size_t maxMemorySize):
   MAX_MEMORY_SIZE(maxMemorySize),
   diskBuffer(0), inMemory(true), totalMemSize(0), transportedTuples(0)

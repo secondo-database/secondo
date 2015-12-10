@@ -49,6 +49,8 @@ This class is a Point3.
 #include "Stack.h"
 #include "Point3.h"
 
+using namespace std;
+
 
 Point3::Point3( const bool d, const Coord& _x, const Coord& _y, 
 const Coord& _alpha): 

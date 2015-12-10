@@ -68,6 +68,9 @@ extern DebugWriter dwriter;
 
 extern boost::mutex nlparsemtx;
 
+
+using namespace std;
+
 namespace distributed2 {
 
 /*
@@ -105,6 +108,29 @@ void showCommand(SecondoInterfaceCS* src, const string& host, const int port,
 Some Helper functions.
 
 */
+
+string getUDRelType(ListExpr r){
+
+  assert(Relation::checkType(r) || frel::checkType(r));
+  ListExpr attrList = nl->Second(nl->Second(r));
+  string rt = nl->SymbolValue(nl->First(r));
+  string res = rt+"(tuple([";
+  bool first = true;
+  while(!nl->IsEmpty(attrList)){
+    if(!first){
+      res += ", ";
+    } else {
+      first = false;
+    }
+    ListExpr attr = nl->First(attrList);
+    attrList = nl->Rest(attrList);
+    res += nl->SymbolValue(nl->First(attr));
+    res += " : " + nl->ToString(nl->Second(attr));
+  }
+  res +="]))";
+  return res;
+}
+
 
 
 
@@ -599,8 +625,7 @@ class ConnectionInfo{
                 showCommand(si,host,port,cmd,false);
              }
        
-             cmd = "let " + name + " =  ffeed5('" 
-                          + rfilename + "') consume ";
+             cmd = "let " + name + " =  '" + rfilename +"' ffeed5 consume ";
 
              showCommand(si,host,port,cmd,true);
              si->Secondo(cmd, resList, serr);
@@ -6643,7 +6668,7 @@ This operator produces a stream of tuples from a file.
 
 */
 ListExpr ffeed5TM(ListExpr args){
-  string err = "string or text expected";
+  string err = "string or text or frel expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
@@ -6652,46 +6677,31 @@ ListExpr ffeed5TM(ListExpr args){
      return listutils::typeError("internal error");
   }
   ListExpr arg = nl->First(argwt);
+
+  if(frel::checkType(arg)){
+    return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                            nl->Second(arg));
+  }
+
+
   if(!CcString::checkType(arg) && !FText::checkType(arg)){
     return listutils::typeError(err);
   }
 
-  ListExpr query = nl->Second(argwt);
-  Word queryResult;
-  string typeString = "";
-  string errorString = "";
-  bool correct;
-  bool evaluable;
-  bool defined;
-  bool isFunction;
-  qp->ExecuteQuery(query, queryResult,
-                    typeString, errorString, correct,
-                    evaluable, defined, isFunction);
-  if(!correct || !evaluable || !defined || isFunction){
-     return listutils::typeError("could not extract filename ("+
-                                  errorString + ")");
-  }
   string filename;
+  bool ok;
+  ListExpr query = nl->Second(argwt);
+
   if(CcString::checkType(arg)){
-     CcString* res = (CcString*) queryResult.addr;
-     if(!res->IsDefined()){
-       res->DeleteIfAllowed();
-       return listutils::typeError("undefined filename");
-     } else {
-        filename = res->GetValue();
-        res->DeleteIfAllowed();
-     }
-  }else {
-     FText* res = (FText*) queryResult.addr;
-     if(!res->IsDefined()){
-       res->DeleteIfAllowed();
-       return listutils::typeError("undefined filename");
-     } else {
-        filename = res->GetValue();
-        res->DeleteIfAllowed();
-     }
+    ok = getValue<CcString>(query, filename);
+  } else {
+    ok = getValue<FText>(query, filename);
   }
-  // access file for extracting the type 
+
+  if(!ok){
+    return listutils::typeError("could not extract filename from query");
+  }
+
   ifstream in(filename.c_str(), ios::in | ios::binary);
   if(!in.good()){
      return listutils::typeError("could not open file " + filename);
@@ -6789,12 +6799,14 @@ int ffeed5VMT(Word* args, Word& result, int message,
 
 */
 int ffeed5Select(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  return CcString::checkType(nl->First(args))?0:
+         FText::checkType(nl->First(args))?1:2;
 }
 
 ValueMapping ffeed5VM[] = {
   ffeed5VMT<CcString>,
-  ffeed5VMT<FText>
+  ffeed5VMT<FText>,
+  ffeed5VMT<frel>
 };
 
 
@@ -6805,9 +6817,9 @@ ValueMapping ffeed5VM[] = {
 
 OperatorSpec ffeed5Spec(
      " {string, text} -> stream(TUPLE) ",
-     " ffeed5(_)",
+     " _ ffeed5",
      " Restores  a tuple stream from a binary file. ",
-     " query ffeed5('ten.bin') count "
+     " query 'ten.bin' ffeed5 count "
      );
 
 /*
@@ -6817,7 +6829,7 @@ OperatorSpec ffeed5Spec(
 Operator ffeed5Op(
    "ffeed5",
    ffeed5Spec.getStr(),
-   2,
+   3,
    ffeed5VM,
    ffeed5Select,
    ffeed5TM
@@ -11714,9 +11726,10 @@ ListExpr dmapTM(ListExpr args){
 template<class A>
 class Mapper{
  public: 
-   Mapper(A* _array, CcString* _name, FText* _funText ,
+   Mapper(A* _array, ListExpr _aType, CcString* _name, FText* _funText ,
           bool _isRel, bool _isStream, void* res):
-          array(_array), ccname(_name), funText(_funText), isRel(_isRel),
+          array(_array), aType(_aType), ccname(_name), 
+          funText(_funText), isRel(_isRel),
           isStream(_isStream) {
        if(isRel || isStream){
          dfarray = (DFArray*) res;
@@ -11737,6 +11750,7 @@ class Mapper{
 
  private:
     A* array;
+    ListExpr aType;
     CcString* ccname;
     FText* funText;
     bool isRel;
@@ -11872,7 +11886,12 @@ class Mapper{
                string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
                    + mapper->array->getName() + "/"
                    + n + ".bin";
-               cmd = "query "+ funName +"( ffeed5 ('" + fname1+"'))";
+               ListExpr frelType = nl->TwoElemList(
+                                     listutils::basicSymbol<frel>(),
+                                     nl->Second(nl->Second(mapper->aType))); 
+               string funarg = "[ const " + getUDRelType(frelType) 
+                               + " value  '" + fname1 +"' ]"; 
+               cmd = "query "+ funName +"( "+funarg +" )";
            } else {
                cmd = "query " + funName+"( " + n +" )";
            }
@@ -11954,7 +11973,7 @@ class Mapper{
               string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
                               + mapper->array->getName() + "/"
                               + n + ".bin";
-               stream = "ffeed5 ('"+fname1 + "')";
+               stream = "'"+fname1 + "' ffeed5 ";
           } else {
                stream = n + " ";
           }
@@ -11991,7 +12010,8 @@ int dmapVMT(Word* args, Word& result, int message,
   FText* funText = (FText*) args[3].addr;
   bool isRel = ((CcBool*) args[4].addr)->GetValue();
   bool isStream = ((CcBool*) args[5].addr)->GetValue();
-  Mapper<A> mapper(array, name, funText, isRel, isStream, result.addr);
+  Mapper<A> mapper(array, qp->GetType(qp->GetSon(s,0)), name, funText, 
+                   isRel, isStream, result.addr);
   mapper.start();
   return 0;
 }
@@ -12171,7 +12191,7 @@ ListExpr dmap2TM(ListExpr args){
  
  if(     !DArray::checkType(first) 
      && !DFArray::checkType(first)){
-   return listutils::typeError(err + "( firt arg not a d[f]array)");
+   return listutils::typeError(err + "( first arg not a d[f]array)");
  }
  if(     !DArray::checkType(second) 
      && !DFArray::checkType(second)){
@@ -12258,7 +12278,8 @@ class dmap2Info{
 
   public:
 
-    dmap2Info( A1* _array1, A2* _array2, R* _res, 
+    dmap2Info( A1* _array1, A2* _array2, ListExpr _arrayType1,
+               ListExpr _arrayType2, R* _res, 
               const string& _funtext, const string& _objName,
               bool _streamRes, int _port, ListExpr _arg1Type,
               ListExpr _arg2Type) :
@@ -12268,6 +12289,15 @@ class dmap2Info{
           dbname = SecondoSystem::GetInstance()->GetDatabaseName();
           res->setName(objName) ;
           arg2IsRel = Relation::checkType(nl->Second(arg2Type));
+
+          frelType1 = Relation::checkType(nl->Second(_arrayType1))
+                     ?nl->TwoElemList(listutils::basicSymbol<frel>(),
+                                       nl->Second(nl->Second(_arrayType1)))
+                     :nl->TheEmptyList(); 
+          frelType2 = Relation::checkType(nl->Second(_arrayType2))
+                     ?nl->TwoElemList(listutils::basicSymbol<frel>(),
+                                       nl->Second(nl->Second(_arrayType2)))
+                     :nl->TheEmptyList(); 
        }
 
 
@@ -12346,6 +12376,8 @@ class dmap2Info{
   private:
     A1* array1;
     A2* array2;
+    ListExpr frelType1;
+    ListExpr frelType2;
     R* res;
     string objName;
     string funtext;
@@ -12379,8 +12411,8 @@ class dmap2Info{
                cerr << "msg : " << errMsg << endl;
                return;
              } 
-             string fa1 = getFunArg(mi->array1,ci1);
-             string fa2 = getFunArg(mi->array2,ci2);
+             string fa1 = getFunArg(mi->array1, mi->frelType1,ci1);
+             string fa2 = getFunArg(mi->array2, mi->frelType2,ci2);
 
 
 
@@ -12430,7 +12462,8 @@ class dmap2Info{
         string tempFile;
 
 
-        string getFunArg(const DArray* array, ConnectionInfo* ci){
+        string getFunArg(const DArray* array, ListExpr dummy, 
+                         ConnectionInfo* ci){
            if(transferRequired && (ci==ci2)){
              retrieveObject(array);
              return tempObject;
@@ -12438,7 +12471,8 @@ class dmap2Info{
            return array->getName()+"_" + stringutils::int2str(i);
         }
         
-        string getFunArg(const DFArray* array, ConnectionInfo* ci){
+        string getFunArg(const DFArray* array, ListExpr frelType, 
+                         ConnectionInfo* ci){
           string fname = ci->getSecondoHome()+"/dfarrays/"+mi->dbname+"/"
                        + array->getName() + "/"
                        + array->getName()+"_"+stringutils::int2str(i)
@@ -12446,8 +12480,8 @@ class dmap2Info{
            if(transferRequired && (ci==ci2)){
               retrieveFile(array);
               fname = tempFile; 
-           } 
-           return "ffeed5('" + fname+"')";
+           }
+           return "[const " + getUDRelType(frelType) + " value '"+fname+"' ]"; 
         }
 
 
@@ -12542,8 +12576,8 @@ class dmap2Info{
             if(!mi->arg2IsRel){
                cmd = "restore " + tempObject + " from " + tempObject;
             } else {
-               cmd = "let " + tempObject + " = ffeed5('" + tempObject
-                     + "') consume";
+               cmd = "let " + tempObject + " = '" + tempObject
+                     + "' ffeed5 consume";
             }
             ci1->simpleCommand( cmd, err,errMsg,r,false, runTime);
             if(err){
@@ -12617,13 +12651,19 @@ int dmap2VMT(Word* args, Word& result, int message,
     }
 
     if(isFileBased){
-        dmap2Info<A1,A2,DFArray> info(a1,a2,(DFArray*) result.addr, 
+        dmap2Info<A1,A2,DFArray> info(a1,a2,
+                                      qp->GetType(qp->GetSon(s,0)),
+                                      qp->GetType(qp->GetSon(s,1)),
+                                      (DFArray*) result.addr, 
                                       funtext, n,streamRes, port, 
                                       qp->GetType(qp->GetSon(s,0)),
                                       qp->GetType(qp->GetSon(s,1)));
         info.start();
     } else {
-        dmap2Info<A1,A2,DArray> info(a1,a2,(DArray*) result.addr, 
+        dmap2Info<A1,A2,DArray> info(a1,a2,
+                                     qp->GetType(qp->GetSon(s,0)),
+                                     qp->GetType(qp->GetSon(s,1)),
+                                     (DArray*) result.addr, 
                                      funtext, n,streamRes, port,
                                      qp->GetType(qp->GetSon(s,0)),
                                      qp->GetType(qp->GetSon(s,1)));
@@ -12762,7 +12802,7 @@ ListExpr ARRAYFUNARG(ListExpr args){
   if(DFArray::checkType(arg) ||
      DFMatrix::checkType(arg)){
      ListExpr res = nl->TwoElemList(
-               listutils::basicSymbol<Stream<Tuple> >(),
+               listutils::basicSymbol<frel>(),
                nl->Second(nl->Second(arg)));
      return res;
 
@@ -15445,8 +15485,6 @@ class AReduceTask{
                     + tuplestream1 +  tuplestream2 + "))";
           } else {
 
-
-
               string feed1 =isStream?"":" feed (";
               string feed2 =isStream?"":" ) ";
 
@@ -15896,27 +15934,6 @@ Operator areduce2Op(
 29 collect2
 
 */
-
-string getUDRelType(ListExpr r){
-
-  assert(Relation::checkType(r));
-  ListExpr attrList = nl->Second(nl->Second(r));
-  string res = "rel(tuple([";
-  bool first = true;
-  while(!nl->IsEmpty(attrList)){
-    if(!first){
-      res += ", ";
-    } else {
-      first = false;
-    }
-    ListExpr attr = nl->First(attrList);
-    attrList = nl->Rest(attrList);
-    res += nl->SymbolValue(nl->First(attr));
-    res += " : " + nl->ToString(nl->Second(attr));
-  }
-  res +="]))";
-  return res;
-}
 
 
 

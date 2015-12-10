@@ -53,6 +53,10 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
+using namespace std;
+using namespace gtree;
+using namespace gta;
+
 namespace mtreeAlgebra {
 
 /********************************************************************

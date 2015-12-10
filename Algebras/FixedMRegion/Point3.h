@@ -175,17 +175,17 @@ euclidean geometry is used, otherwise spherical geometry.
 
 */
 
-virtual string getCsvStr() const{
+virtual std::string getCsvStr() const{
     if(!IsDefined()){
       return "undef";    
     }
-    stringstream ss;
+    std::stringstream ss;
     ss.precision(16);
     ss << "(" << x << " " << y << "" << alpha <<")";
     return ss.str();
  }
 
-virtual void ReadFromString(string value);
+virtual void ReadFromString(std::string value);
 
 
 
@@ -261,7 +261,7 @@ data is represented as geographic coordinates. Otherwise, a euclidean
 coord-pair string is returned.
 
 */
-  string toString(const Geoid* geoid = 0) const;
+  std::string toString(const Geoid* geoid = 0) const;
 
 
 
@@ -334,7 +334,7 @@ as an attribute.
       return new Point3( *this );
     }
 
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
 
     virtual uint32_t getshpType() const{
        return 1; // Point Type
@@ -365,7 +365,7 @@ as an attribute.
     
 
 
-    static const string BasicType(){
+    static const std::string BasicType(){
        return "point3";
     }
     static const bool checkType(const ListExpr type){
@@ -420,7 +420,7 @@ The ~y~ coordinate.
 4.6 Auxiliary functions
 
 */
-ostream& operator<<( ostream& o, const Point3& p );
+std::ostream& operator<<( std::ostream& o, const Point3& p );
 
 inline bool AlmostEqual( const Point3& p1, const Point3& p2 )
 {

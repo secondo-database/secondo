@@ -34,6 +34,8 @@ January-May 2008, Mirko Dibbert
 #include "MTreeConfig.h"
 
 using namespace mtreeAlgebra;
+using namespace std;
+using namespace gtree;
 
 /*
 Initialize static members :

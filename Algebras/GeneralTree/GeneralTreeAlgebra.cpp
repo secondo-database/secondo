@@ -50,6 +50,8 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
+using namespace std;
+
 namespace gta {
 
 /********************************************************************

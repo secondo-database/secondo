@@ -96,7 +96,7 @@ struct MapMatchData
         return Point(true, m_dLon, m_dLat);
     }
 
-    void Print(ostream& os) const
+    void Print(std::ostream& os) const
     {
         os << "Lat: " << m_dLat << ";" << "Lon: " << m_dLon << "; ";
         os << "Time: " << m_Time << ";" << "Fix: " << m_nFix << ";";

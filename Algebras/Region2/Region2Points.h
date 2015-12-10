@@ -245,7 +245,7 @@ Redefinition of operator ~==~
 
 };
 
-ostream& operator<<( ostream& o, const Reg2PrecisePoint& p );
+std::ostream& operator<<( std::ostream& o, const Reg2PrecisePoint& p );
 
 /*
 1.1 Class ~Reg2PrecisePoint~

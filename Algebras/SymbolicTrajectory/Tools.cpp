@@ -27,6 +27,8 @@ Started July 2014, Fabio Vald\'{e}s
 
 */
 #include  "Tools.h"
+using namespace std;
+using namespace datetime;
 
 using namespace temporalalgebra;
 namespace stj {

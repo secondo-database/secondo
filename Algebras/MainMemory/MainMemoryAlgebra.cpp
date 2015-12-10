@@ -47,7 +47,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RectangleAlgebra.h"
 
 
-ostream& operator<<(ostream& o, const pair<Attribute*,size_t>& t);
+std::ostream& operator<<(std::ostream& o, 
+                         const std::pair<Attribute*,size_t>& t);
 
 #include "AvlTree.h"
 

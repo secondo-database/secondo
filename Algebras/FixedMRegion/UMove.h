@@ -203,7 +203,7 @@ actual moving distance.
 UNDEFINED UReal values may be appended!.
 
 */
-  void Distance( const Point3& p, vector<UReal>& result,
+  void Distance( const Point3& p, std::vector<UReal>& result,
                  const Geoid* geoid = 0, const double epsilon = 0.00001 ) const;
 
 /*
@@ -222,7 +222,7 @@ Computation stops, once the absolute distance difference between consecutive
 steps drops below ~epsilon~.
 
 */
-  void DistanceOrthodrome( const Point3& p, vector<UReal>& result,
+  void DistanceOrthodrome( const Point3& p, std::vector<UReal>& result,
                            const Geoid geoid,
                            const double epsilon  = 0.00001,
                            const Instant* tMin   = 0,
@@ -362,13 +362,13 @@ not modify this unit and return ~false~.
 */
 
   void Translate(const double x, const double y,const double alpha,
-                 const DateTime& duration);
+                 const datetime::DateTime& duration);
 /*
 Translates a moving point spatially and temporally.
 
 */
 
-  void GetGridCellSequence(CellGrid2D &g, vector<GridCellSeq> &res);
+  void GetGridCellSequence(CellGrid2D &g, std::vector<GridCellSeq> &res);
 /*
 Computes all events created by a UMove moving across a regular grid.
 
@@ -427,7 +427,7 @@ Computes all events created by a UMove moving across a regular grid.
     return false;
   }
 
-  inline virtual ostream& Print( ostream &os ) const
+  inline virtual std::ostream& Print( std::ostream &os ) const
   {
 
     if(IsDefined())
@@ -598,7 +598,7 @@ The boolean return value is ~false~, iff either the UMove or the Region is UNDEF
 
 */
 
-  bool AtRegion(const Region *r, vector<UMove> &result) const;
+  bool AtRegion(const Region *r, std::vector<UMove> &result) const;
 
 /*
 Calculates the ~direction~ (when ~useHeading~ is ~false~) resp. the heading
@@ -610,12 +610,12 @@ Any results are appended to the ~result~ vector.
 Attention: UNDEFINED units my be appended!
 
 */
-  void Direction( vector<UReal> &result,
+  void Direction( std::vector<UReal> &result,
                   const bool useHeading = false,
                   const Geoid* geoid    = 0,
                   const double epsilon  = 0.0000001) const;
 
-  static const string BasicType(){ return "umove"; }
+  static const std::string BasicType(){ return "umove"; }
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }
@@ -640,7 +640,7 @@ Returns true, iff this unit is defined and not moving during its definition time
 };
 
 
-ostream& operator<<(ostream& o, const UMove& u);
+std::ostream& operator<<(std::ostream& o, const UMove& u);
 ListExpr OutUMove( ListExpr typeInfo, Word value );
 Word InUMove( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct );

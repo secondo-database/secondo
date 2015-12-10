@@ -4,7 +4,8 @@ ll
 */
 #include "MMove.h"
 
-
+using namespace std;
+using namespace datetime;
 
 namespace temporalalgebra{
 

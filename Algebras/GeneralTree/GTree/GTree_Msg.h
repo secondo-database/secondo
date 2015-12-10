@@ -59,9 +59,9 @@ public:
 Shows an error message and calls "assert(false)"[4]. "Error"[4] should be the name of the error, whereas "msg"[4] is the message to show.
 
 */
-    static void fatalError(string error, string msg)
+    static void fatalError(std::string error, std::string msg)
     {
-        const string seperator = "\n" + string(75, '-') + "\n";
+        const std::string seperator = "\n" + std::string(75, '-') + "\n";
         cmsg.error() << seperator
         << "<GTree> FATAL ERROR: " << error << endl
         << msg << seperator
@@ -77,7 +77,7 @@ Prints a 'Debug mode enabled' message.
 */
     static void showDbgMsg()
     {
-        const string seperator = "\n" + string(75, '-') + "\n";
+        const std::string seperator = "\n" + std::string(75, '-') + "\n";
         cmsg.info() << seperator
         << "<GTree> debug mode enabled" << seperator
         << endl;
@@ -89,9 +89,9 @@ Used to show a warning message, if not all nodes/entries had beed deleted.
 
 */
     static void memoryLeak_Warning(
-            unsigned count, string objectName)
+            unsigned count, std::string objectName)
     {
-        const string seperator = "\n" + string(75, '-') + "\n";
+        const std::string seperator = "\n" + std::string(75, '-') + "\n";
         cmsg.warning() << seperator
         << "<GTree> Memory leak warning: "
         << count << " " << objectName << " left open!" << seperator
@@ -105,8 +105,8 @@ The following methods call the "fatalError"[4] method to show the respective err
 */
     static void noNodeRecord_Error()
     {
-        string error = "NO_NODE_RECORD";
-        ostringstream msg;
+        std::string error = "NO_NODE_RECORD";
+        std::ostringstream msg;
         msg << "Tried to put a node to file, "
             << "but a record for that node has not yet"
             << endl
@@ -118,8 +118,8 @@ The following methods call the "fatalError"[4] method to show the respective err
 
     static void wrongEntryType_Error()
     {
-        string error = "WRONG_ENTRY_TYPE";
-        ostringstream msg;
+        std::string error = "WRONG_ENTRY_TYPE";
+        std::ostringstream msg;
         msg << "Tryed to insert or replace an entry, "
             << "but the entry type does not"
             << endl << "correspond to the nodes entry type!";
@@ -127,23 +127,23 @@ The following methods call the "fatalError"[4] method to show the respective err
     }
     static void undefinedNodeType_Error(int type)
     {
-        string error = "UNDEFINED_NODE_TYPE";
-        string msg = "Tryied to create a node of undefined type!";
+        std::string error = "UNDEFINED_NODE_TYPE";
+        std::string msg = "Tryied to create a node of undefined type!";
         fatalError(error, msg);
     }
 
     static void invalidNodeCast_Error()
     {
-        string error = "INVALID_NODE_CAST";
-        string msg =
+        std::string error = "INVALID_NODE_CAST";
+        std::string msg =
             "The node could not be casted to the specified type!";
         fatalError(error, msg);
     }
 
     static void noParentNode_Error()
     {
-        string error = "NO_PARENT_NODE";
-        ostringstream msg;
+        std::string error = "NO_PARENT_NODE";
+        std::ostringstream msg;
         msg <<
             "TreeManager tried to read the parent of the root node!";
         fatalError(error, msg.str());

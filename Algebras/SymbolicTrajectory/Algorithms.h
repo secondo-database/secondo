@@ -102,7 +102,7 @@ class IBasic : public temporalalgebra::Intime<B> {
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(IBasic<B>);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "i" + B::BasicType();}
+  static const std::string BasicType() {return "i" + B::BasicType();}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return this->value.NumOfFLOBs();}
   Flob* GetFLOB(const int i) {return this->value.GetFLOB(i);}
@@ -128,7 +128,7 @@ class IBasics : public temporalalgebra::Intime<B> {
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(IBasics<B>);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "i" + B::BasicType();}
+  static const std::string BasicType() {return "i" + B::BasicType();}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return this->value.NumOfFLOBs();}
   Flob* GetFLOB(const int i) {return this->value.GetFLOB(i);}
@@ -158,7 +158,7 @@ class UBasic : public temporalalgebra::ConstTemporalUnit<B> {
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(UBasic<B>);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "u" + B::BasicType();}
+  static const std::string BasicType() {return "u" + B::BasicType();}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return this->constValue.NumOfFLOBs();}
   Flob* GetFLOB(const int i) {return this->constValue.GetFLOB(i);}
@@ -186,7 +186,7 @@ class UBasics : public temporalalgebra::ConstTemporalUnit<B> {
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(UBasics<B>);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "u" + B::BasicType();}
+  static const std::string BasicType() {return "u" + B::BasicType();}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return this->constValue.NumOfFLOBs();}
   Flob* GetFLOB(const int i) {return this->constValue.GetFLOB(i);}
@@ -218,7 +218,7 @@ class MBasic : public Attribute {
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(MBasic<B>);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "m" + B::BasicType();}
+  static const std::string BasicType() {return "m" + B::BasicType();}
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   int NumOfFLOBs() const {return 2;}
   Flob* GetFLOB(const int i);
@@ -260,10 +260,10 @@ class MBasic : public Attribute {
   void Final(IBasic<B>& result) const;
   void Inside(const typename B::coll& coll, 
               temporalalgebra::MBool& result) const;
-  void Fill(MBasic<B>& result, DateTime& duration) const;
+  void Fill(MBasic<B>& result, datetime::DateTime& duration) const;
   void Concat(const MBasic<B>& src1, const MBasic<B>& src2);
   void Compress(MBasic<B>& result) const;
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
   double Distance(const MBasic<B>& mb) const;
   
  protected:
@@ -289,7 +289,7 @@ class MBasics : public Attribute {
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(MBasics<B>);}
   static bool CheckKind(ListExpr type, ListExpr& errorInfo);
-  static const string BasicType() {return "m" + B::BasicType();}
+  static const std::string BasicType() {return "m" + B::BasicType();}
   static bool checkType(ListExpr t);
   int NumOfFLOBs() const {return 3;}
   Flob* GetFLOB(const int i);
@@ -316,7 +316,7 @@ class MBasics : public Attribute {
   void Get(const int i, UBasics<B>& result) const;
   void GetBasics(const int i, B& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
-  void GetValues(const int i, set<typename B::base>& result) const;
+  void GetValues(const int i, std::set<typename B::base>& result) const;
   void GetInterval(const int i, temporalalgebra::SecInterval& result) const;
   int GetNoComponents() const {return units.Size();}
   int GetNoValues() const {return pos.Size();}
@@ -337,10 +337,10 @@ class MBasics : public Attribute {
   void AtPeriods(const temporalalgebra::Periods& per, MBasics<B>& result) const;
   void Initial(IBasics<B>& result) const;
   void Final(IBasics<B>& result) const;
-  void Fill(MBasics<B>& result, DateTime& duration) const;
+  void Fill(MBasics<B>& result, datetime::DateTime& duration) const;
   void Concat(const MBasics<B>& src1, const MBasics<B>& src2);
   void Compress(MBasics<B>& result) const;
-  ostream& Print(ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;
   double Distance(const MBasics<B>& mbs) const;
   
  protected:
@@ -359,7 +359,8 @@ class MLabel : public MBasic<Label> {
   MLabel() {}
   MLabel(unsigned int n) : MBasic<Label>(n) {}
    
-  void createML(const int size, const int number, vector<string>& labels);
+  void createML(const int size, const int number, 
+                std::vector<std::string>& labels);
   void convertFromMString(const temporalalgebra::MString& source);
 };
 
@@ -377,38 +378,40 @@ typedef MBasics<Places> MPlaces;
 
 class ExprList {
  public: 
-  vector<string> exprs;
+  std::vector<std::string> exprs;
 
   ExprList() {}
   ~ExprList() {}
 
-  string toString();
+  std::string toString();
 };
 
 class Condition {
  private:
-  string text;
-  vector<pair<string, int> > varKeys;
-  pair<QueryProcessor*, OpTree> opTree;
-  vector<Attribute*> pointers; // for each expression like X.card
+  std::string text;
+  std::vector<std::pair<std::string, int> > varKeys;
+  std::pair<QueryProcessor*, OpTree> opTree;
+  std::vector<Attribute*> pointers; // for each expression like X.card
   bool treeOk;
 
  public:
   Condition() : treeOk(false) {}
   ~Condition() {}
   
-  string toString() const;
+  std::string toString() const;
   int convertVarKey(const char *varKey, Tuple *t = 0, ListExpr tupleType = 0);
   void clear();
-  static string getType(int t, Tuple *tuple = 0, ListExpr ttype = 0);
+  static std::string getType(int t, Tuple *tuple = 0, ListExpr ttype = 0);
   bool initOpTree(Tuple *tuple = 0, ListExpr ttype = 0);
   void deleteOpTree();
   
-  string  getText() const          {return text;}
-  void    setText(string newText)  {text = newText;}
+  std::string  getText() const          {return text;}
+  void    setText(std::string newText)  {text = newText;}
   int     getVarKeysSize() const   {return varKeys.size();}
-  string  getVar(unsigned int pos) {string s; return (pos < varKeys.size() ?
-                                                     varKeys[pos].first : s);}
+  std::string  getVar(unsigned int pos) {
+                      std::string s; 
+                      return (pos < varKeys.size() ?
+                             varKeys[pos].first : s);}
   int     getKey(unsigned int pos) const {return (pos < varKeys.size() ?
                                             varKeys[pos].second : -1);}
 //   int     getPId(unsigned int pos) {return (pos < pIds.size() ?
@@ -416,22 +419,24 @@ class Condition {
   void    clearVectors()           {varKeys.clear();}
 //   string  getVar(unsigned int pos) {return (pos < vars.size() ?
 //                                                   vars[pos] : "");}
-  void    setOpTree(pair<QueryProcessor*, OpTree> qp_op) {opTree = qp_op;}
-  void    setPointers(vector<Attribute*> ptrs)           {pointers = ptrs;}
-  void    setValuePtr(unsigned int pos, string& value);
-  void    setValuePtr(unsigned int pos, pair<string, unsigned int>& value);
+  void    setOpTree(std::pair<QueryProcessor*, OpTree> qp_op) {opTree = qp_op;}
+  void    setPointers(std::vector<Attribute*> ptrs)  {pointers = ptrs;}
+  void    setValuePtr(unsigned int pos, std::string& value);
+  void    setValuePtr(unsigned int pos, std::pair<std::string, 
+                      unsigned int>& value);
   void    clearTimePtr(unsigned int pos);
   void    mergeAddTimePtr(unsigned int pos, 
                          temporalalgebra::Interval<Instant>& value);
   void    setStartEndPtr(unsigned int pos, Instant& value);
   void    setCardPtr(unsigned int pos, int value);
   void    cleanLabelsPtr(unsigned int pos);
-  void    appendToLabelsPtr(unsigned int pos, string& value);
-  void    appendToLabelsPtr(unsigned int pos, set<string>& values);
+  void    appendToLabelsPtr(unsigned int pos, std::string& value);
+  void    appendToLabelsPtr(unsigned int pos, std::set<std::string>& values);
   void    cleanPlacesPtr(unsigned int pos);
-  void    appendToPlacesPtr(unsigned int pos, pair<string,unsigned int>& value);
   void    appendToPlacesPtr(unsigned int pos, 
-                            set<pair<string, unsigned int> >& values);
+                            std::pair<std::string,unsigned int>& value);
+  void    appendToPlacesPtr(unsigned int pos, 
+                  std::set<std::pair<std::string, unsigned int> >& values);
   void    setLeftRightclosedPtr(unsigned int pos, bool value);
   QueryProcessor* getQP()          {return opTree.first;}
   OpTree  getOpTree()              {return opTree.second;}
@@ -448,7 +453,8 @@ class Condition {
   template<class M>
   void    setPointerToEmptyValue(const int pos, M *traj);
   template<class M>
-  bool    evaluate(const map<string, pair<int, int> > &binding, M *traj,
+  bool    evaluate(const std::map<std::string, std::pair<int, int> > &binding,
+                    M *traj,
                    Tuple *tuple = 0, ListExpr ttype = 0);
 };
 
@@ -460,11 +466,11 @@ class PatElem {
   friend class TMatch;
   friend class TMatchIndexLI;
  private:
-  string var;
-  set<string> ivs;
-  set<string> lbs;
-  set<pair<string, unsigned int> > pls;
-  vector<pair<Word, SetRel> > values;
+  std::string var;
+  std::set<std::string> ivs;
+  std::set<std::string> lbs;
+  std::set<std::pair<std::string, unsigned int> > pls;
+  std::vector<std::pair<Word, SetRel> > values;
   Wildcard wc;
   SetRel setRel;
   bool ok;
@@ -478,8 +484,8 @@ class PatElem {
                 setRel(elem.setRel), ok(elem.ok) {}
   ~PatElem() {}
 
-  void stringToSet(const string& input, const bool isTime);
-  void setVar(const string& v) {var = v;}
+  void stringToSet(const std::string& input, const bool isTime);
+  void setVar(const std::string& v) {var = v;}
   PatElem& operator=(const PatElem& elem) {
     var = elem.var;
     ivs = elem.ivs;
@@ -492,19 +498,22 @@ class PatElem {
     return *this;
   }
 
-  void     getV(string& result) const                     {result = var;}
-  void     getL(set<string>& result) const                {result = lbs;}
-  void     getP(set<pair<string, unsigned int> >& result) const {result = pls;}
+  void     getV(std::string& result) const                     {result = var;}
+  void     getL(std::set<std::string>& result) const           {result = lbs;}
+  void     getP(std::set<std::pair<std::string, unsigned int> >& result) const
+   {result = pls;}
   SetRel   getSetRel() const                              {return setRel;}
-  void     getI(set<string>& result) const                {result = ivs;}
+  void     getI(std::set<std::string>& result) const 
+   {result = ivs;}
   Wildcard getW() const                                   {return wc;}
   bool     isOk() const                                   {return ok;}
   void     clearL()                                       {lbs.clear();}
   void     clearP()                                       {pls.clear();}
-  void     insertL(const string& lb)                      {lbs.insert(lb);}
-  void     insertP(const pair<string, unsigned int>& pl)  {pls.insert(pl);}
+  void     insertL(const std::string& lb)                      {lbs.insert(lb);}
+  void     insertP(const std::pair<std::string, unsigned int>& pl) 
+   {pls.insert(pl);}
   void     clearI()                                       {ivs.clear();}
-  void     insertI(string& iv)                            {ivs.insert(iv);}
+  void     insertI(std::string& iv)                            {ivs.insert(iv);}
   void     clearW()                                       {wc = NO;}
   bool     hasLabel() const                             {return lbs.size() > 0;}
   bool     hasPlace() const                             {return pls.size() > 0;}
@@ -515,9 +524,10 @@ class PatElem {
   int      getNoValues() const                           {return values.size();}
   bool     hasValuesWithContent() const;
   bool     isRelevantForTupleIndex() const;
-  bool     extractValues(string &input, Tuple *tuple);
-  vector<pair<Word, SetRel> > getValues() const           {return values;}
-  void     deleteValues(vector<pair<int, string> > &relevantAttrs);
+  bool     extractValues(std::string &input, Tuple *tuple);
+  std::vector<std::pair<Word, SetRel> > getValues() const  
+         {return values;}
+  void  deleteValues(std::vector<std::pair<int, std::string> > &relevantAttrs);
 };
 
 /*
@@ -528,11 +538,12 @@ class Assign {
  private:
   int resultPos;
   bool occurrence; // ~true~ if and only if ~var~ occurs in the pattern
-  string text[10]; // one for each possible attribute
-  string var; // the assigned variable
-  vector<pair<string, int> > right[11]; // list of vars and keys for every type
-  pair<QueryProcessor*, OpTree> opTree[10];
-  vector<Attribute*> pointers[10]; // for each expression like X.card
+  std::string text[10]; // one for each possible attribute
+  std::string var; // the assigned variable
+  std::vector<std::pair<std::string, int> > right[11];
+                      // list of vars and keys for every type
+  std::pair<QueryProcessor*, OpTree> opTree[10];
+  std::vector<Attribute*> pointers[10]; // for each expression like X.card
   bool treesOk;
 
  public:
@@ -540,8 +551,9 @@ class Assign {
   ~Assign() {}
 
   bool convertVarKey(const char* vk, Tuple *tuple = 0, ListExpr tupleType = 0);
-  bool prepareRewrite(int key, const vector<size_t> &assSeq,
-                      map<string, int> &varPosInSeq, stj::MLabel const &ml);
+  bool prepareRewrite(int key, const std::vector<size_t> &assSeq,
+                      std::map<std::string, int> &varPosInSeq, 
+                      stj::MLabel const &ml);
   bool hasValue() {return (!text[0].empty() || !text[1].empty() ||
                            !text[8].empty() || !text[9].empty());}
   bool hasTime() {return (!text[2].empty() || 
@@ -549,40 +561,47 @@ class Assign {
   bool initOpTrees();
   void clear();
   void deleteOpTrees();
-  void setLabelPtr(unsigned int pos, const string& value);
-  void setPlacePtr(unsigned int pos, const pair<string, unsigned int>& value);
+  void setLabelPtr(unsigned int pos, const std::string& value);
+  void setPlacePtr(unsigned int pos, const std::pair<std::string, 
+                   unsigned int>& value);
   void setTimePtr(unsigned int pos, const temporalalgebra::SecInterval& value);
   void setStartPtr(unsigned int pos, const Instant& value);
   void setEndPtr(unsigned int pos, const Instant& value);
   void setLeftclosedPtr(unsigned int pos, bool value);
   void setRightclosedPtr(unsigned int pos, bool value);
   void cleanLabelsPtr(unsigned int pos);
-  void appendToLabelsPtr(unsigned int pos, const string& value);
-  void appendToLabelsPtr(unsigned int pos, const set<string>& value);
+  void appendToLabelsPtr(unsigned int pos, const std::string& value);
+  void appendToLabelsPtr(unsigned int pos, const std::set<std::string>& value);
   void cleanPlacesPtr(unsigned int pos);
   void appendToPlacesPtr(unsigned int pos, 
-                         const pair<string,unsigned int>& value);
+                         const std::pair<std::string,unsigned int>& value);
   void appendToPlacesPtr(unsigned int pos, 
-                         const set<pair<string,unsigned int> >& value);
+               const std::set<std::pair<std::string,unsigned int> >& value);
   
-  void    init(string v, int pp)             {clear(); var = v;
+  void    init(std::string v, int pp)             {clear(); var = v;
                                               occurrence = (pp > -1);}
   int     getResultPos() const               {return resultPos;}
   void    setResultPos(int p)                {resultPos = p;}
   bool    occurs() const                     {return occurrence;}
   void    setOccurrence(int p)               {occurrence = (p > -1);}
-  string  getText(int key) const             {return text[key];}
-  void    setText(int key, string newText)   {if (!text[key].empty()) {
+  std::string  getText(int key) const             {return text[key];}
+  void    setText(int key, std::string newText)   {if (!text[key].empty()) {
                                                right[key].clear();}
                                               text[key] = newText;}
   int     getRightSize(int key) const        {return right[key].size();}
-  string  getV() const                       {return var;}
+  std::string  getV() const                       {return var;}
   int     getRightKey(int lkey, int j) const {return right[lkey][j].second;}
-  pair<string, int> getVarKey(int key, int i) const {return right[key][i];}
-  pair<string, int> getVarKey(int key) const {return right[key].back();}
-  string  getRightVar(int lkey, int j) const {return right[lkey][j].first;}
+  std::pair<std::string, int> getVarKey(int key, int i) const {
+       return right[key][i];
+  }
+  std::pair<std::string, int> getVarKey(int key) const {
+      return right[key].back();
+  }
+  std::string  getRightVar(int lkey, int j) const {return right[lkey][j].first;}
   void    addRight(int key,
-               pair<string, int> newRight)   {right[key].push_back(newRight);}
+               std::pair<std::string, int> newRight)   {
+    right[key].push_back(newRight);
+  }
   void    removeUnordered()                  {if (!right[10].empty()) {
                                                 right[10].pop_back();
                                               }}
@@ -613,47 +632,50 @@ class Pattern {
     deleteAssignOpTrees();
   }
 
-  string GetText() const;
-  bool isValid(const string& type) const;
+  std::string GetText() const;
+  bool isValid(const std::string& type) const;
   bool isCompatible(TupleType *ttype, const int majorAttrNo, 
-                  vector<pair<int, string> >& relevantAttrs, int& majorValueNo);
-  static Pattern* getPattern(string input, bool classify, Tuple *tuple = 0,
+                  std::vector<std::pair<int, std::string> >& relevantAttrs,
+                  int& majorValueNo);
+  static Pattern* getPattern(std::string input, bool classify, Tuple *tuple = 0,
                              ListExpr ttype = 0);
   template<class M>
   ExtBool matches(M *m);
   ExtBool tmatches(Tuple *tuple, const int attrno, ListExpr ttype);
-  int getResultPos(const string v);
+  int getResultPos(const std::string v);
   void collectAssVars();
-  void addVarPos(string var, int pos);
+  void addVarPos(std::string var, int pos);
   void addAtomicPos();
-  int getPatternPos(const string v);
+  int getPatternPos(const std::string v);
   bool checkAssignTypes();
-  static pair<string, Attribute*> getPointer(int key, Tuple *tuple = 0);
+  static std::pair<std::string, Attribute*> getPointer(int key, 
+        Tuple *tuple = 0);
   bool initAssignOpTrees();
   void deleteAssignOpTrees(bool conds);
   bool parseNFA();
-  void simplifyNFA(vector<map<int, int> >& result);
-  void findNFApaths(vector<map<int, int> >& simpleNFA, 
-                    set<pair<set<int>, int> >& result);
-  void getCrucialElems(const set<pair<set<int>,int> >& paths, set<int>& result);
-  bool containsFinalState(set<int> &states);
+  void simplifyNFA(std::vector<std::map<int, int> >& result);
+  void findNFApaths(std::vector<std::map<int, int> >& simpleNFA, 
+                    std::set<std::pair<std::set<int>, int> >& result);
+  void getCrucialElems(const std::set<std::pair<std::set<int>,int> >& paths, 
+                       std::set<int>& result);
+  bool containsFinalState(std::set<int> &states);
   bool initCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0);
   bool initEasyCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0);
   void deleteCondOpTrees();
   void deleteEasyCondOpTrees();
-  void deleteAtomValues(vector<pair<int, string> > &attrs);
+  void deleteAtomValues(std::vector<std::pair<int, std::string> > &attrs);
 
-  vector<PatElem>   getElems()              {return elems;}
-  vector<Condition>* getConds()             {return &conds;}
+  std::vector<PatElem>   getElems()              {return elems;}
+  std::vector<Condition>* getConds()             {return &conds;}
   bool              hasConds()              {return conds.size() > 0;}
   bool              hasEasyConds()          {return easyConds.size() > 0;}
-  vector<Condition> getEasyConds()          {return easyConds;}
-  vector<Assign>&   getAssigns()            {return assigns;}
+  std::vector<Condition> getEasyConds()          {return easyConds;}
+  std::vector<Assign>&   getAssigns()            {return assigns;}
   void              getElem(int pos, PatElem& elem) const  {elem = elems[pos];}
   Condition         getCond(int pos) const  {return conds[pos];}
   Condition         getEasyCond(int pos) const {return easyConds[pos];}
   Assign           getAssign(int pos) const {return assigns[pos];}
-  set<int>          getFinalStates() const  {return finalStates;}
+  std::set<int>          getFinalStates() const  {return finalStates;}
   bool              hasAssigns()            {return !assigns.empty();}
   void              addPatElem(PatElem pElem)      {elems.push_back(pElem);}
   void              addRegExSymbol(const char* s) {regEx += s;}
@@ -663,54 +685,59 @@ class Pattern {
     easyConds.push_back(cond);
   }
   void              addAssign(Assign ass)  {assigns.push_back(ass);}
-  void              setText(string newText) {text = newText;}
-  pair<int, int>    getVarPos(string var)   {return varPos[var];}
+  void              setText(std::string newText) {text = newText;}
+  std::pair<int, int>    getVarPos(std::string var)   {return varPos[var];}
   int               getSize() const         {return elems.size();}
-  map<string, pair<int, int> > getVarPos()  {return varPos;}
-  map<int, set<int> > getEasyCondPos()      {return easyCondPos;}
-  set<int>          getEasyCondPos(const int e) {return easyCondPos[e];}
-  void              insertAssVar(string v)  {assignedVars.insert(v);}
-  set<string>       getAssVars()            {return assignedVars;}
-  void setAssign(int posR, int posP, int key, string arg) {
+  std::map<std::string, std::pair<int, int> > getVarPos()  {return varPos;}
+  std::map<int, std::set<int> > getEasyCondPos()      {return easyCondPos;}
+  std::set<int>          getEasyCondPos(const int e) {return easyCondPos[e];}
+  void              insertAssVar(std::string v)  {assignedVars.insert(v);}
+  std::set<std::string>       getAssVars()            {return assignedVars;}
+  void setAssign(int posR, int posP, int key, std::string arg) {
             assigns[posR].setText(key, arg); assigns[posR].setOccurrence(posP);}
-  void addAssignRight(int pos, int key, pair<string, int> varKey)
+  void addAssignRight(int pos, int key, std::pair<std::string, int> varKey)
                                            {assigns[pos].addRight(key, varKey);}
-  void              getNFA(vector<map<int, int> >& result) {result = nfa;}
+  void              getNFA(std::vector<std::map<int, int> >& result) {
+        result = nfa;
+  }
   int               getNFAsize() const      {return nfa.size();}
   bool              isNFAempty() const      {return (nfa.size() == 0);}
-  map<int, int>     getTransitions(int pos) {assert(pos >= 0);
+  std::map<int, int>     getTransitions(int pos) {assert(pos >= 0);
     assert(pos < (int)nfa.size()); return nfa[pos];}
   bool              isFinalState(int state) {return finalStates.find(state)
                                                     != finalStates.end();}
-  void              setNFA(vector<map<int, int> > &_nfa, set<int> &fs) {
+  void              setNFA(std::vector<std::map<int, int> > &_nfa, 
+                    std::set<int> &fs) {
     nfa = _nfa; finalStates = fs;
   }
   void              eraseTransition(int state, int pE) {nfa[state].erase(pE);}
-  void              setDescr(string desc)   {description = desc;}
-  string            getDescr()              {return description;}
+  void              setDescr(std::string desc)   {description = desc;}
+  std::string            getDescr()              {return description;}
   void deleteAssignOpTrees()   {for (unsigned int i = 0;i < assigns.size();i++){
                                   assigns[i].deleteOpTrees();}}
-  string            getRegEx()              {return regEx;}
+  std::string            getRegEx()              {return regEx;}
   bool              containsRegEx()         {return
-                                    regEx.find_first_of("()|") != string::npos;}
-  void              addRelevantVar(string var) {relevantVars.insert(var);}
-  bool              isRelevant(string var)  {return relevantVars.count(var);}
-  string            getVarFromElem(int elem){return elemToVar[elem];}
+                        regEx.find_first_of("()|") != std::string::npos;}
+  void  addRelevantVar(std::string var) {relevantVars.insert(var);}
+  bool  isRelevant(std::string var)  {return relevantVars.count(var);}
+  std::string            getVarFromElem(int elem){return elemToVar[elem];}
   int               getElemFromAtom(int atom) {return atomicToElem[atom];}
   
-  vector<PatElem> elems;
-  vector<Assign> assigns;
-  vector<Condition> easyConds; // evaluated during matching
-  vector<Condition> conds; // evaluated after matching
-  string text, description, regEx;
-  map<string, pair<int, int> > varPos;
-  map<int, int> atomicToElem;
-  map<int, string> elemToVar;
-  map<int, set<int> > easyCondPos;
-  set<string> assignedVars; // variables on the right side of an assignment
-  set<string> relevantVars; // variables that occur in conds, results, assigns
-  vector<map<int, int> > nfa;
-  set<int> finalStates;
+  std::vector<PatElem> elems;
+  std::vector<Assign> assigns;
+  std::vector<Condition> easyConds; // evaluated during matching
+  std::vector<Condition> conds; // evaluated after matching
+  std::string text, description, regEx;
+  std::map<std::string, std::pair<int, int> > varPos;
+  std::map<int, int> atomicToElem;
+  std::map<int, std::string> elemToVar;
+  std::map<int, std::set<int> > easyCondPos;
+  std::set<std::string> assignedVars; 
+                         // variables on the right side of an assignment
+  std::set<std::string> relevantVars; 
+                         // variables that occur in conds, results, assigns
+  std::vector<std::map<int, int> > nfa;
+  std::set<int> finalStates;
 };
 
 /*
@@ -725,7 +752,11 @@ class PatPersistent : public Label {
   
   ~PatPersistent() {}
    
-  string toText() const {string value; Label::GetValue(value); return value;}
+  std::string toText() const {
+          std::string value; 
+          Label::GetValue(value); 
+          return value;
+  }
   template<class M>
   ExtBool matches(M *traj) {
     Pattern *p = Pattern::getPattern(toText(), false);
@@ -739,7 +770,7 @@ class PatPersistent : public Label {
     }
   }
   
-  static const string BasicType() {return "pattern";}
+  static const std::string BasicType() {return "pattern";}
   static const bool checkType(const ListExpr type) {
     return listutils::isSymbol(type, BasicType());
   }
@@ -766,7 +797,7 @@ class Classifier : public Attribute {
     s2p.Destroy();
   }
 
-  static const string BasicType() {return "classifier";}
+  static const std::string BasicType() {return "classifier";}
   int getCharPosSize() const {return charpos.Size();}
   int getNumOfP() const {return charpos.Size() / 2;}
   int getCharSize() const {return chars.Size();}
@@ -775,19 +806,21 @@ class Classifier : public Attribute {
   void SetDefined(const bool def) {defined = def;}
   bool IsDefined() const {return defined;}
   bool IsEmpty() const {return (chars.Size() == 0);}
-  string getDesc(int pos);
-  string getPatText(int pos);
-  void buildMultiNFA(vector<Pattern*> patterns, vector<map<int, int> > &nfa,
-                     set<int> &finalStates, map<int, int> &state2Pat);
-  void setPersistentNFA(vector<map<int, int> > &nfa, set<int> &finalSt,
-                        map<int, int> &state2Pat) {
+  std::string getDesc(int pos);
+  std::string getPatText(int pos);
+  void buildMultiNFA(std::vector<Pattern*> patterns, 
+                     std::vector<std::map<int, int> > &nfa,
+                     std::set<int> &finalStates, std::map<int, int> &state2Pat);
+  void setPersistentNFA(std::vector<std::map<int, int> > &nfa, 
+                        std::set<int> &finalSt,
+                        std::map<int, int> &state2Pat) {
     delta.clean();
     s2p.clean();
     Tools::makeNFApersistent(nfa, finalSt, delta, s2p, state2Pat);
   }
   DbArray<NFAtransition> *getDelta() {return &delta;}
   int getNumOfState2Pat() {return s2p.Size();}
-  void getStartStates(set<int> &startStates);
+  void getStartStates(std::set<int> &startStates);
 
      // algebra support functions
   static Word     In(const ListExpr typeInfo, const ListExpr instance,
@@ -816,7 +849,7 @@ class Classifier : public Attribute {
   }
   
  private:
-  vector<map<int, int> > nfa; // multiNFA (not persistent)
+  std::vector<std::map<int, int> > nfa; // multiNFA (not persistent)
   DbArray<int> charpos;
   DbArray<char> chars;
   DbArray<NFAtransition> delta; // multiNFA (persistent)
@@ -831,10 +864,10 @@ class Classifier : public Attribute {
 struct BindingElem {
   BindingElem() : from(-1), to(-1) {}
 
-  BindingElem(string v, unsigned int f, unsigned int t) :
+  BindingElem(std::string v, unsigned int f, unsigned int t) :
     var(v), from(f), to(t) {}
     
-  string var;
+  std::string var;
   unsigned int from, to;
 };
 
@@ -847,36 +880,40 @@ class TMatch {
   Pattern *p;
   Tuple *t;
   ListExpr ttype;
-  set<int>** matching;
+  std::set<int>** matching;
   int attrno, valueno;
   DataType type;
-  vector<pair<int, string> > relevantAttrs;
-  set<unsigned int>** pathMatrix; // stores the whole matching process
+  std::vector<std::pair<int, std::string> > relevantAttrs;
+  std::set<unsigned int>** pathMatrix; // stores the whole matching process
   
  public:
   TMatch(Pattern *pat, Tuple *tuple, ListExpr tt, const int _attrno, 
-         vector<pair<int, string> >& _relevantAttrs, const int _valueno);
+         std::vector<std::pair<int, std::string> >& _relevantAttrs, 
+         const int _valueno);
   
   ~TMatch() {}
   
   ExtBool matches();
   int GetNoMainComponents() const;
   void GetInterval(const int u, temporalalgebra::SecInterval& iv) const;
-  bool labelsMatch(const set<string>& tlabels, const int atom, const int pos);
-  bool placesMatch(const set<pair<string, unsigned int> >& tlabels, 
+  bool labelsMatch(const std::set<std::string>& tlabels, 
                    const int atom, const int pos);
+  bool placesMatch(
+            const std::set<std::pair<std::string, unsigned int> >& tlabels, 
+            const int atom, const int pos);
   bool mainValuesMatch(const int u, const int atom);
   bool otherValuesMatch(const int pos, 
                         const temporalalgebra::SecInterval& iv, 
                         const int atom);
   bool valuesMatch(const int u, const int atom);
   bool easyCondsMatch(const int u, const int atom);
-  bool performTransitions(const int u, set<int>& states);
-  bool performTransitionsWithMatrix(const int u, set<int>& states);
+  bool performTransitions(const int u, std::set<int>& states);
+  bool performTransitionsWithMatrix(const int u, std::set<int>& states);
   bool findMatchingBinding(const int startState);
-  bool conditionsMatch(const map<string, pair<int, int> > &binding);
+  bool conditionsMatch(
+            const std::map<std::string, std::pair<int, int> > &binding);
   bool findBinding(const int u, const int atom, 
-                   map<string, pair<int, int> > &binding);
+                   std::map<std::string, std::pair<int, int> > &binding);
 };
 
 extern TypeConstructor tupleindexTC;
@@ -889,15 +926,16 @@ class TupleIndex {
   friend class TMatchIndexLI;
  public:
   TupleIndex() {}
-  TupleIndex(vector<InvertedFile*> t, vector<BTree_t<LongInt>*> b,
-             vector<RTree1TLLI*> r1, 
-     vector<RTree2TLLI*> r2, RTree1TLLI *tI, map<int, pair<IndexType, int> > aI,
-    map<pair<IndexType, int>, int> iA, int mA);
+  TupleIndex(std::vector<InvertedFile*> t, std::vector<BTree_t<LongInt>*> b,
+             std::vector<RTree1TLLI*> r1, 
+     std::vector<RTree2TLLI*> r2, RTree1TLLI *tI, 
+     std::map<int, std::pair<IndexType, int> > aI,
+    std::map<std::pair<IndexType, int>, int> iA, int mA);
   TupleIndex(bool dummy) {}
   TupleIndex(TupleIndex &src);
   ~TupleIndex() {deleteIndexes();}
   
-  static const string BasicType() {return "tupleindex";}
+  static const std::string BasicType() {return "tupleindex";}
   static bool checkType(const ListExpr list);
   static ListExpr Property();
   static Word In(const ListExpr typeInfo, const ListExpr instance,
@@ -925,17 +963,17 @@ class TupleIndex {
                               temporalalgebra::MInt *mint);
   static bool insertIntoRTree1(RTree1TLLI *rt, TupleId tid, Attribute *m);
   static bool insertIntoRTree2(RTree2TLLI *rt, TupleId tid, Attribute *m,
-                               string type);
+                               std::string type);
   void deleteIndexes();
 
  private:
-  vector<InvertedFile*> tries;
-  vector<BTree_t<LongInt>*> btrees;
-  vector<RTree1TLLI*> rtrees1;
-  vector<RTree2TLLI*> rtrees2;
+  std::vector<InvertedFile*> tries;
+  std::vector<BTree_t<LongInt>*> btrees;
+  std::vector<RTree1TLLI*> rtrees1;
+  std::vector<RTree2TLLI*> rtrees2;
   RTree1TLLI *timeIndex;
-  map<int, pair<IndexType, int> > attrToIndex;
-  map<pair<IndexType, int>, int> indexToAttr;
+  std::map<int, std::pair<IndexType, int> > attrToIndex;
+  std::map<std::pair<IndexType, int>, int> indexToAttr;
   int mainAttr;
 };
 
@@ -946,11 +984,11 @@ class TupleIndex {
 struct IndexRetrieval {
   IndexRetrieval() : pred(0), succ(0) {}
   IndexRetrieval(unsigned int p, unsigned int s = 0) : pred(p), succ(s) {}
-  IndexRetrieval(unsigned int p, unsigned int s, set<int>& u) : 
+  IndexRetrieval(unsigned int p, unsigned int s, std::set<int>& u) : 
                  pred(p), succ(s), units(u) {}
   
   unsigned int pred, succ;
-  set<int> units;
+  std::set<int> units;
 };
 
 /*
@@ -960,7 +998,8 @@ struct IndexRetrieval {
 struct IndexMatchInfo {
   IndexMatchInfo(bool r, int n = 0) : 
        range(r), next(n), prevElem(-1) {binding.clear();}
-  IndexMatchInfo(bool r, int n, const map<string, pair<int, int> >& b, int e) :
+  IndexMatchInfo(bool r, int n, const std::map<std::string, 
+                 std::pair<int, int> >& b, int e) :
        range(r), next(n), prevElem(e) {if (b.size() > 0) {binding = b;}}
   
   void print(const bool printBinding);
@@ -970,7 +1009,7 @@ struct IndexMatchInfo {
 
   bool range;
   int next, prevElem;
-  map<string, pair<int, int> > binding;
+  std::map<std::string, std::pair<int, int> > binding;
 };
 
 /*
@@ -981,7 +1020,7 @@ struct IndexMatchSlot {
   IndexMatchSlot() : pred(0), succ(0) {}
   
   unsigned int pred, succ;
-  vector<IndexMatchInfo> imis;
+  std::vector<IndexMatchInfo> imis;
 };
 
 /*
@@ -997,10 +1036,10 @@ class IndexMatchSuper {
   void getInterval(const TupleId tId, const int pos, 
                    temporalalgebra::SecInterval& iv);
   void periodsToUnits(const temporalalgebra::Periods *per, 
-                      const TupleId tId, set<int> &units);
+                      const TupleId tId, std::set<int> &units);
   template<class M>
   void periodsToUnits(const temporalalgebra::Periods *per, 
-                      const TupleId tId, set<int> &units);
+                      const TupleId tId, std::set<int> &units);
   void removeIdFromIndexResult(const TupleId id);
   void clearMatchInfo();
   bool hasIdIMIs(const TupleId id, const int state = -1);
@@ -1010,12 +1049,13 @@ class IndexMatchSuper {
   Pattern *p;
   int attrNo;
   DataType mtype;
-  vector<TupleId> matches;
-  vector<int> trajSize;
+  std::vector<TupleId> matches;
+  std::vector<int> trajSize;
   int activeTuples, unitCtr;
-  vector<vector<IndexRetrieval> > indexResult; // atom, tupleid
-  vector<vector<IndexMatchSlot> > matchInfo, newMatchInfo; // state, tupleid
-  vector<vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
+  std::vector<std::vector<IndexRetrieval> > indexResult; // atom, tupleid
+  std::vector<std::vector<IndexMatchSlot> > matchInfo, newMatchInfo; 
+                                                      // state, tupleid
+  std::vector<std::vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
   
 };
 
@@ -1031,25 +1071,28 @@ class TMatchIndexLI : public IndexMatchSuper {
   ~TMatchIndexLI() {};
   
   bool tiCompatibleToRel();
-  bool getSingleIndexResult(pair<int, pair<IndexType, int> > indexInfo, 
-             pair<Word, SetRel> values, int valueNo, vector<set<int> > &result);
+  bool getSingleIndexResult(
+             std::pair<int, std::pair<IndexType, int> > indexInfo, 
+             std::pair<Word, SetRel> values, 
+             int valueNo, std::vector<std::set<int> > &result);
   int getNoComponents(const TupleId tId, const int attrNo);
-  void unitsToPeriods(const set<int> &units, const TupleId tId, 
+  void unitsToPeriods(const std::set<int> &units, const TupleId tId, 
                       const int attr, temporalalgebra::Periods *per);
   template<class M, class U>
-  void unitsToPeriods(Attribute *traj, const set<int> &units, 
+  void unitsToPeriods(Attribute *traj, const std::set<int> &units, 
                       temporalalgebra::Periods *per);
-  void getResultForAtomPart(pair<int, pair<IndexType, int> > indexInfo, 
-                          pair<Word, SetRel> values, 
-                          vector<temporalalgebra::Periods*> &prev,
-                          vector<temporalalgebra::Periods*> &result, 
+  void getResultForAtomPart(
+                std::pair<int, std::pair<IndexType, int> > indexInfo, 
+                          std::pair<Word, SetRel> values, 
+                          std::vector<temporalalgebra::Periods*> &prev,
+                          std::vector<temporalalgebra::Periods*> &result, 
                           bool checkPrev = false);
   bool getResultForAtomTime(const int atomNo, 
-                            vector<temporalalgebra::Periods*> &result);
+                            std::vector<temporalalgebra::Periods*> &result);
   void storeIndexResult(int atomNo);
   void initMatchInfo();
   void removeIdFromMatchInfo(const TupleId id);
-  bool atomMatch(int state, pair<int, int> trans);
+  bool atomMatch(int state, std::pair<int, int> trans);
   void applyNFA();
   bool initialize();
   Tuple* nextTuple();
@@ -1058,9 +1101,9 @@ class TMatchIndexLI : public IndexMatchSuper {
  private:
   ListExpr ttList;
   TupleIndex *ti;
-  vector<bool> active;
+  std::vector<bool> active;
   int valueNo;
-  set<int> crucialAtoms;
+  std::set<int> crucialAtoms;
 };
 
 /*
@@ -1072,7 +1115,7 @@ class Match {
  public:
   Pattern *p;
   M *m; // mlabel, mplace, mlabels, mplaces
-  set<unsigned int>** matching; // stores the whole matching process
+  std::set<unsigned int>** matching; // stores the whole matching process
   DataType type; // enum
 
   Match(Pattern *pat, M *traj) {
@@ -1087,27 +1130,33 @@ class Match {
   DataType getMType();
   ExtBool matches();
   bool valuesMatch(int i, const PatElem& elem);
-  bool updateStates(int i, vector<map<int, int> > &nfa, vector<PatElem> &elems,
-                    set<int> &finalStates, set<int> &states,
-                    vector<Condition> &easyConds, 
-                    map<int, set<int> > &easyCondPos,
-                    map<int, int> &atomicToElem, bool store = false);
+  bool updateStates(int i, std::vector<std::map<int, int> > &nfa, 
+                    std::vector<PatElem> &elems,
+                    std::set<int> &finalStates, std::set<int> &states,
+                    std::vector<Condition> &easyConds, 
+                    std::map<int, std::set<int> > &easyCondPos,
+                    std::map<int, int> &atomicToElem, bool store = false);
   bool easyCondsMatch(int ulId, PatElem const &elem,
-                      vector<Condition> &easyConds, set<int> pos);
-  string states2Str(int ulId, set<int> &states);
-  string matchings2Str(unsigned int dim1, unsigned int dim2);
-  bool findMatchingBinding(vector<map<int, int> > &nfa, int startState,
-                           vector<PatElem> &elems, vector<Condition> &conds,
-                      map<int, int> &atomicToElem, map<int, string> &elemToVar);
-  bool findBinding(unsigned int ulId, unsigned int pId, vector<PatElem> &elems,
-                   vector<Condition> &conds, map<int, string> &elemToVar,
-                   map<string, pair<int, int> > &binding);
-  void cleanPaths(map<int, int> &atomicToElem);
+                      std::vector<Condition> &easyConds, std::set<int> pos);
+  std::string states2Str(int ulId, std::set<int> &states);
+  std::string matchings2Str(unsigned int dim1, unsigned int dim2);
+  bool findMatchingBinding(std::vector<std::map<int, int> > &nfa, 
+                     int startState,
+                     std::vector<PatElem> &elems, std::vector<Condition> &conds,
+                     std::map<int, int> &atomicToElem, 
+                     std::map<int, std::string> &elemToVar);
+  bool findBinding(unsigned int ulId, 
+                   unsigned int pId, std::vector<PatElem> &elems,
+                   std::vector<Condition> &conds, 
+                   std::map<int, std::string> &elemToVar,
+                   std::map<std::string, std::pair<int, int> > &binding);
+  void cleanPaths(std::map<int, int> &atomicToElem);
   bool cleanPath(unsigned int ulId, unsigned int pId);
-  bool conditionsMatch(vector<Condition> &conds,
-                 const map<string, pair<int, int> > &binding);
+  bool conditionsMatch(std::vector<Condition> &conds,
+                 const std::map<std::string, std::pair<int, int> > &binding);
   bool evaluateEmptyM();
-  bool isSensiblyBound(const map<string, pair<int, int> > &b, string& var);
+  bool isSensiblyBound(const std::map<std::string, std::pair<int, int> > &b,
+                       std::string& var);
   void deletePattern() {if (p) {delete p; p = 0;}}
   bool initEasyCondOpTrees() {return p->initEasyCondOpTrees();}
   bool initCondOpTrees() {return p->initCondOpTrees();}
@@ -1117,21 +1166,24 @@ class Match {
   void createSetMatrix(unsigned int dim1, unsigned int dim2) {
     matching = Tools::createSetMatrix(dim1, dim2);}
   void setM(M *newM) {m = newM;}
-  vector<int> applyConditions(ClassifyLI* c);
+  std::vector<int> applyConditions(ClassifyLI* c);
   
   
-  void setNFA(vector<map<int, int> > &nfa, set<int> &fs) {p->setNFA(nfa, fs);}
+  void setNFA(std::vector<std::map<int, int> > &nfa, std::set<int> &fs) {
+         p->setNFA(nfa, fs);
+   }
   void setNFAfromDbArrays(DbArray<NFAtransition> &trans, DbArray<int> &fs) {
-    vector<map<int, int> > nfa;
-    set<int> finalStates;
+    std::vector<std::map<int, int> > nfa;
+    std::set<int> finalStates;
     Tools::createNFAfromPersistent(trans, fs, nfa, finalStates);
     p->setNFA(nfa, finalStates);
   }
   void setPattern(Pattern *pat) {p = pat;}
   Pattern* getPattern() {return p;}
   M* getM() {return m;}
-  pair<string, Attribute*> getPointer(int key);
-  static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
+  std::pair<std::string, Attribute*> getPointer(int key);
+  static std::pair<QueryProcessor*, OpTree> processQueryStr(
+           std::string query, int type);
 };
 
 /*
@@ -1142,7 +1194,7 @@ struct BindingStackElem {
   BindingStackElem(unsigned int ul, unsigned int pe) : ulId(ul), peId(pe) {}
 
   unsigned int ulId, peId;
-//   map<string, pair<int, int> > binding;
+//   map<string, std::pair<int, int> > binding;
 };
 
 /*
@@ -1158,17 +1210,18 @@ class RewriteLI {
   ~RewriteLI() {}
 
   M* getNextResult();
-  static M* rewrite(M *src, map<string, pair<int, int> > binding, 
-                    vector<Assign> &assigns);
+  static M* rewrite(M *src, 
+            std::map<std::string, std::pair<int, int> > binding, 
+                    std::vector<Assign> &assigns);
   void resetBinding(int limit);
   bool findNextBinding(unsigned int ulId, unsigned int pId, Pattern *p,
                        int offset);
   
  protected:
-  stack<BindingStackElem> bindingStack;
+  std::stack<BindingStackElem> bindingStack;
   Match<M> *match;
-  map<string, pair<int, int> > binding;
-  set<map<string, pair<int, int> > > rewBindings;
+  std::map<std::string, std::pair<int, int> > binding;
+  std::set<std::map<std::string, std::pair<int, int> > > rewBindings;
 };
 
 /*
@@ -1194,9 +1247,9 @@ class ClassifyLI {
   void printMatches();
 
  protected:
-  vector<Pattern*> pats;
+  std::vector<Pattern*> pats;
   TupleType* classifyTT;
-  set<int> matchingPats;
+  std::set<int> matchingPats;
 };
 
 /*
@@ -1211,8 +1264,8 @@ class MultiRewriteLI : public ClassifyLI, public RewriteLI<M> {
   ~MultiRewriteLI();
 
   M* nextResult();
-  void getStartStates(set<int> &states);
-  void initStack(set<int> &startStates);
+  void getStartStates(std::set<int> &states);
+  void initStack(std::set<int> &startStates);
 
  private:
   Stream<Tuple> tStream;
@@ -1220,15 +1273,16 @@ class MultiRewriteLI : public ClassifyLI, public RewriteLI<M> {
   bool streamOpen;
   M* traj;
   Classifier* c;
-  map<int, int> state2Pat;
-  set<int> finalStates, states, matchCands;
-  vector<map<int, int> > nfa;
-  vector<PatElem> patElems;
-  vector<Condition> easyConds;
-  map<int, set<int> > easyCondPos;
-  map<int, pair<int, int> > patOffset; // elem no |-> (pat no, first pat elem)
-  map<int, int> atomicToElem;
-  map<int, string> elemToVar;
+  std::map<int, int> state2Pat;
+  std::set<int> finalStates, states, matchCands;
+  std::vector<std::map<int, int> > nfa;
+  std::vector<PatElem> patElems;
+  std::vector<Condition> easyConds;
+  std::map<int, std::set<int> > easyCondPos;
+  std::map<int, std::pair<int, int> > patOffset; 
+                // elem no |-> (pat no, first pat elem)
+  std::map<int, int> atomicToElem;
+  std::map<int, std::string> elemToVar;
 };
 
 /*
@@ -1238,7 +1292,7 @@ class MultiRewriteLI : public ClassifyLI, public RewriteLI<M> {
 template<class M>
 class FilterMatchesLI {
  public:
-  FilterMatchesLI(Word _stream, int _attrIndex, string& pText);
+  FilterMatchesLI(Word _stream, int _attrIndex, std::string& pText);
 
   ~FilterMatchesLI();
 
@@ -1264,14 +1318,16 @@ class IndexMatchesLI : public IndexMatchSuper {
   ~IndexMatchesLI();
 
   Tuple* nextTuple();
-  void retrieveValue(vector<set<int> >& part, vector<set<int> >& part2,
-                     SetRel rel, bool first, const string& label,
+  void retrieveValue(std::vector<std::set<int> >& part, 
+                     std::vector<std::set<int> >& part2,
+                     SetRel rel, bool first, const std::string& label,
                      unsigned int ref = UINT_MAX);
-  void retrieveTime(vector<set<int> >& oldPart, vector<set<int> >& newPart, 
-                    const string& ivstr);
+  void retrieveTime(std::vector<std::set<int> >& oldPart, 
+                    std::vector<std::set<int> >& newPart, 
+                    const std::string& ivstr);
   void removeIdFromMatchInfo(const TupleId id);
   void storeIndexResult(const int e);
-  void initMatchInfo(const set<int>& cruElems);
+  void initMatchInfo(const std::set<int>& cruElems);
   void initialize();
   void applyNFA();
   template<class M>
@@ -1280,19 +1336,19 @@ class IndexMatchesLI : public IndexMatchSuper {
   bool valuesMatch(const int e, const TupleId id, IndexMatchInfo& imi,
                    const int newState, const int unit);
   void applySetRel(const SetRel setRel, 
-                   vector<set<pair<TupleId, int> > >& valuePosVec,
-                   set<pair<TupleId, int> >*& result);
+              std::vector<std::set<std::pair<TupleId, int> > >& valuePosVec,
+              std::set<std::pair<TupleId, int> >*& result);
   bool simpleMatch(const int e, const int state, const int newState);
-  bool wildcardMatch(const int state, pair<int, int> trans);
+  bool wildcardMatch(const int state, std::pair<int, int> trans);
   bool timesMatch(const TupleId id,const unsigned int unit,const PatElem& elem);
   bool checkConditions(const TupleId id, IndexMatchInfo& imi);
 
  protected:
-  set<int> indexMismatch;
+  std::set<int> indexMismatch;
   InvertedFile* invFile;
   R_Tree<1, NewPair<TupleId, int> > *rtree;
   size_t maxMLsize;
-  vector<bool> deactivated;
+  std::vector<bool> deactivated;
 };
 
 /*
@@ -1313,7 +1369,7 @@ class IndexClassifyLI : public IndexMatchesLI {
  protected:
   TupleType* classifyTT;
   Classifier *c;
-  queue<pair<string, TupleId> > results;
+  std::queue<std::pair<std::string, TupleId> > results;
   int currentPat;
 };
 
@@ -1343,7 +1399,7 @@ class DeriveGroupsLI {
   Tuple *getNextTuple();
   
  private:
-  vector<pair<TupleId, unsigned int> > result;
+  std::vector<std::pair<TupleId, unsigned int> > result;
 };
 
 /*
@@ -1929,7 +1985,7 @@ bool MBasic<B>::readUnitFrom(ListExpr LE) {
   }
   typename B::unitelem unit(values.getSize());
   unit.iv = iv;
-  string text;
+  std::string text;
   if (!B::readValueFrom(nl->Second(LE), text, unit)) {
     return false;
   }
@@ -2103,7 +2159,7 @@ void MBasic<B>::GetValue(const int i, typename B::base& result) const {
     }
     char* bytes = new char[size];
     values.read(bytes, size, cur.pos);
-    string text(bytes, size);
+    std::string text(bytes, size);
     delete[] bytes;
     B::buildValue(text, cur, result);
   }
@@ -2437,7 +2493,7 @@ void MBasic<B>::Inside(const typename B::coll& coll,
 
 */
 template<class B>
-void MBasic<B>::Fill(MBasic<B>& result, DateTime& dur) const {
+void MBasic<B>::Fill(MBasic<B>& result, datetime::DateTime& dur) const {
   result.Clear();
   result.SetDefined(true);
   if (!IsDefined()) {
@@ -2517,7 +2573,7 @@ void MBasic<B>::Compress(MBasic<B>& result) const {
 
 */
 template<class B>
-ostream& MBasic<B>::Print(ostream& os) const {
+std::ostream& MBasic<B>::Print(std::ostream& os) const {
   if (!IsDefined()) {
     os << "(undefined)" << endl;
     return os;
@@ -2570,7 +2626,7 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
                                                        labelFun)));
     }
   }
-  return dp[n - 1][m - 1] / max(n, m);
+  return dp[n - 1][m - 1] / std::max(n, m);
 }
 
 /*
@@ -2707,7 +2763,7 @@ ListExpr MBasics<B>::unitToListExpr(int i) {
   SymbolicUnit unit;
   units.Get(i, unit);
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  set<typename B::base> values;
+  std::set<typename B::base> values;
   GetValues(i, values);
   ListExpr valuelist;
   B::valuesToListExpr(values, valuelist);
@@ -2743,7 +2799,7 @@ ListExpr MBasics<B>::ToListExpr(ListExpr typeInfo) {
 template<class B>
 bool MBasics<B>::readValues(ListExpr valuelist) {
   ListExpr rest = valuelist;
-  string text;
+  std::string text;
   typename B::arrayelem elem;
   while (!nl->IsEmpty(rest)) {
     if (listutils::isSymbolUndefined(nl->First(rest))) {
@@ -2860,7 +2916,7 @@ void MBasics<B>::deserialize(const char *bytes) {
 
 */
 template<class B>
-ostream& operator<<(ostream& o, const MBasics<B>& mbs) {
+std::ostream& operator<<(std::ostream& o, const MBasics<B>& mbs) {
   o << nl->ToString(mbs.ToListExpr());
   return o;
 }
@@ -2910,8 +2966,8 @@ void MBasics<B>::Get(const int i, UBasics<B>& result) const {
   assert((i >= 0) && (i < GetNoComponents()));
   result.SetDefined(true);
   result.constValue.Clean();
-  set<typename B::base> values;
-  typename set<typename B::base>::iterator it;
+  std::set<typename B::base> values;
+  typename std::set<typename B::base>::iterator it;
   GetValues(i, values);
   for (it = values.begin(); it != values.end(); it++) {
     result.constValue.Append(*it);
@@ -2931,8 +2987,8 @@ void MBasics<B>::GetBasics(const int i, B& result) const {
   assert((i >= 0) && (i < GetNoComponents()));
   result.SetDefined(true);
   result.Clean();
-  set<typename B::base> values;
-  typename set<typename B::base>::iterator it;
+  std::set<typename B::base> values;
+  typename std::set<typename B::base>::iterator it;
   GetValues(i, values);
   result.Append(values);
 }
@@ -2942,16 +2998,17 @@ void MBasics<B>::GetBasics(const int i, B& result) const {
 
 */
 template<class B>
-void MBasics<B>::GetValues(const int i, set<typename B::base>& result) const{
+void MBasics<B>::GetValues(const int i, 
+                           std::set<typename B::base>& result) const{
   assert (IsDefined() && (i >= 0) && (i < GetNoComponents()));
   result.clear();
   SymbolicUnit unit;
   units.Get(i, unit);
   typename B::base val;
   typename B::arrayelem elem1, elem2;
-  pair<unsigned int, unsigned int> flobPos; // pos, size
+  std::pair<unsigned int, unsigned int> flobPos; // pos, size
   for (int j = unit.pos; j <= getUnitEndPos(i); j++) {
-    flobPos = make_pair(0, 0);
+    flobPos = std::make_pair(0, 0);
     pos.Get(j, elem1);
     unsigned int start = B::getFlobPos(elem1);
     if (start != UINT_MAX) {
@@ -2961,19 +3018,19 @@ void MBasics<B>::GetValues(const int i, set<typename B::base>& result) const{
         pos.Get(k, elem2);
         unsigned int next = B::getFlobPos(elem2);
         if (next != UINT_MAX) { // valid reference
-          flobPos = make_pair(start, next - start);
+          flobPos = std::make_pair(start, next - start);
           finished = true;
         }
         k++;
       }
       if (!finished) { // end of array
-        flobPos = make_pair(start, values.getSize() - start);
+        flobPos = std::make_pair(start, values.getSize() - start);
       }
     }
     if (flobPos.second > 0) {
       char *bytes = new char[flobPos.second];
       values.read(bytes, flobPos.second, flobPos.first);
-      string text(bytes, flobPos.second);
+      std::string text(bytes, flobPos.second);
       delete[] bytes;
       B::buildValue(text, elem1, val);
       result.insert(val);
@@ -3103,8 +3160,8 @@ void MBasics<B>::MergeAdd(const temporalalgebra::SecInterval& iv,
     units.Get(GetNoComponents() - 1, prevUnit);
     int numOfValues = getUnitEndPos(GetNoComponents() - 1) - prevUnit.pos + 1;
     bool equal = (values.GetNoValues() == numOfValues);
-    set<typename B::base> mvalues, bvalues;
-    typename set<typename B::base>::iterator it;
+    std::set<typename B::base> mvalues, bvalues;
+    typename std::set<typename B::base>::iterator it;
     GetValues(GetNoComponents() - 1, mvalues);
     values.GetValues(bvalues);
     equal = (mvalues == bvalues);
@@ -3134,7 +3191,7 @@ void MBasics<B>::MergeAdd(const UBasics<B>& ub) {
 */
 template<class B>
 bool MBasics<B>::Passes(const typename B::single& sg) const {
-  set<typename B::base> vals;
+  std::set<typename B::base> vals;
   typename B::base val;
   sg.GetValue(val);
   for (int i = 0; i < GetNoComponents(); i++) {
@@ -3362,7 +3419,7 @@ void MBasics<B>::Final(IBasics<B>& result) const {
 
 */
 template<class B>
-void MBasics<B>::Fill(MBasics<B>& result, DateTime& dur) const {
+void MBasics<B>::Fill(MBasics<B>& result, datetime::DateTime& dur) const {
   if (!IsDefined()) {
     result.SetDefined(false);
     return;
@@ -3442,7 +3499,7 @@ void MBasics<B>::Compress(MBasics<B>& result) const {
 
 */
 template<class B>
-ostream& MBasics<B>::Print(ostream& os) const {
+std::ostream& MBasics<B>::Print(std::ostream& os) const {
   if (!IsDefined()) {
     os << "(undefined)" << endl;
     return os;
@@ -3483,19 +3540,19 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
   for (int j = 0; j < m; j++) {
     dp[0][j] = j;
   }
-  set<typename B::base> basics1, basics2;
+  std::set<typename B::base> basics1, basics2;
   int fun = 0; // TODO: change
   int labelFun = 0; // TODO: change
   for (int i = 1; i < n; i++) {
     GetValues(i - 1, basics1);
     for (int j = 1; j < m; j++) {
       mbs.GetValues(j - 1, basics2);
-      dp[i][j] = min(dp[i - 1][j] + 1,
-                 min(dp[i][j - 1] + 1, 
+      dp[i][j] = std::min(dp[i - 1][j] + 1,
+                 std::min(dp[i][j - 1] + 1, 
            dp[i -1][j - 1] + Tools::distance(basics1, basics2, fun, labelFun)));
     }
   }
-  return dp[n - 1][m - 1] / max(n, m);
+  return dp[n - 1][m - 1] / std::max(n, m);
 }
 
 /*
@@ -3512,7 +3569,8 @@ void Condition::restrictPtr(const int pos, M *traj, const unsigned int from,
   iv.rc = ivtemp.rc;
   temporalalgebra::Periods per(true);
   per.Add(iv);
-  string attrtype = nl->ToString(nl->Second(nl->Nth(key, nl->Second(ttype))));
+  std::string attrtype = nl->ToString(nl->Second(nl->Nth(key, 
+                                      nl->Second(ttype))));
   if (attrtype == "mbool") {
     ((temporalalgebra::MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
                                    *((temporalalgebra::MBool*)pointers[pos]));
@@ -3561,13 +3619,13 @@ void Condition::setPointerToValue(const int pos, M *traj, const int from,
   temporalalgebra::SecInterval iv(true);
   switch (getKey(pos)) {
     case 0: { // label
-      string value;
+      std::string value;
       ((MLabel*)traj)->GetValue(from, value);
       setValuePtr(pos, value);
       break;
     }
     case 1: { // place
-      pair<string, unsigned int> value;
+      std::pair<std::string, unsigned int> value;
       ((MPlace*)traj)->GetValue(from, value);
       setValuePtr(pos, value);
       break;
@@ -3608,14 +3666,14 @@ void Condition::setPointerToValue(const int pos, M *traj, const int from,
       cleanLabelsPtr(pos);
       if (M::BasicType() == MLabel::BasicType()) {
         for (unsigned int j = from; j <= to; j++) {
-          string value;
+          std::string value;
           ((MLabel*)traj)->GetValue(j, value);
           appendToLabelsPtr(pos, value);
         }
       }
       else {
         for (unsigned int j = from; j <= to; j++) {
-          set<string> values;
+          std::set<std::string> values;
           ((MLabels*)traj)->GetValues(j, values);
           appendToLabelsPtr(pos, values);
         }
@@ -3626,14 +3684,14 @@ void Condition::setPointerToValue(const int pos, M *traj, const int from,
       cleanPlacesPtr(pos);
       if (M::BasicType() == MPlace::BasicType()) {
         for (unsigned int j = from; j <= to; j++) {
-          pair<string, unsigned int> value;
+          std::pair<std::string, unsigned int> value;
           ((MPlace*)traj)->GetValue(j, value);
           appendToPlacesPtr(pos, value);
         }
       }
       else {
         for (unsigned int j = from; j <= to; j++) {
-          set<pair<string, unsigned int> > values;
+          std::set<std::pair<std::string, unsigned int> > values;
           ((MPlaces*)traj)->GetValues(j, values);
           appendToPlacesPtr(pos, values);
         }
@@ -3651,12 +3709,12 @@ void Condition::setPointerToEmptyValue(const int pos, M *traj) {
   temporalalgebra::SecInterval iv(true);
   switch (getKey(pos)) {
     case 0: { // label
-      string value("");
+      std::string value("");
       setValuePtr(pos, value);
       break;
     }
     case 1: { // place
-      pair<string, unsigned int> value;
+      std::pair<std::string, unsigned int> value;
       setValuePtr(pos, value);
       break;
     }
@@ -3702,12 +3760,13 @@ binding matches a certain condition.
 
 */
 template<class M>
-bool Condition::evaluate(const map<string, pair<int, int> > &binding, M *traj,
+bool Condition::evaluate(const std::map<std::string, 
+                         std::pair<int, int> > &binding, M *traj,
                          Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
   Word qResult;
   unsigned int from, to;
   for (int i = 0; i < getVarKeysSize(); i++) {
-    string var = getVar(i);
+    std::string var = getVar(i);
     if ((var != "") && binding.count(var)) {
       from = binding.find(var)->second.first;
       to = binding.find(var)->second.second;
@@ -3801,7 +3860,7 @@ ExtBool Match<M>::matches() {
     cout << "Error: EasyCondOpTrees not initialized" << endl;
     return UNDEF;
   }
-  set<int> states;
+  std::set<int> states;
   states.insert(0);
   if (!p->hasConds() && !p->hasAssigns()) {
     for (int i = 0; i < m->GetNoComponents(); i++) {
@@ -3853,10 +3912,10 @@ Writes the set of currently active states into a string.
 
 */
 template<class M>
-string Match<M>::states2Str(int ulId, set<int> &states) {
-  stringstream result;
+std::string Match<M>::states2Str(int ulId, std::set<int> &states) {
+  std::stringstream result;
   if (!states.empty()) {
-    set<int>::iterator it = states.begin();
+    std::set<int>::iterator it = states.begin();
     result << "after unit # " << ulId << ", active states are {" << *it;
     it++;
     while (it != states.end()) {
@@ -3878,16 +3937,16 @@ Writes the matching table into a string.
 
 */
 template<class M>
-string Match<M>::matchings2Str(unsigned int dim1, unsigned int dim2) {
-  stringstream result;
+std::string Match<M>::matchings2Str(unsigned int dim1, unsigned int dim2) {
+  std::stringstream result;
   for (unsigned int i = 0; i < dim1; i++) {
     for (unsigned int j = 0; j < dim2; j++) {
       if (matching[i][j].empty()) {
         result << "                    ";
       }
       else {
-        string cell;
-        set<unsigned int>::iterator it, it2;
+        std::string cell;
+        std::set<unsigned int>::iterator it, it2;
         for (it = matching[i][j].begin(); it != matching[i][j].end(); it++) {
           it2 = it;
           it2++;
@@ -3910,8 +3969,8 @@ string Match<M>::matchings2Str(unsigned int dim1, unsigned int dim2) {
 */
 template<class M>
 bool Match<M>::valuesMatch(int i, const PatElem& elem) {
-  set<pair<string, unsigned int> > ppls, mpls;
-  set<string> plbs, mlbs;
+  std::set<std::pair<std::string, unsigned int> > ppls, mpls;
+  std::set<std::string> plbs, mlbs;
   if (type < 2) { // label or labels
     elem.getL(plbs);
   }
@@ -3923,32 +3982,32 @@ bool Match<M>::valuesMatch(int i, const PatElem& elem) {
   }
   switch (type) {
     case MLABEL: {
-      string mlb;
+      std::string mlb;
       ((MLabel*)m)->GetValue(i, mlb);
       if (elem.getSetRel() == STANDARD) {
         return plbs.find(mlb) != plbs.end();
       }
       mlbs.insert(mlb);
-      return Tools::relationHolds<string>(mlbs, plbs, elem.getSetRel());
+      return Tools::relationHolds<std::string>(mlbs, plbs, elem.getSetRel());
     }
     case MLABELS: {
       ((MLabels*)m)->GetValues(i, mlbs);
-      return Tools::relationHolds<string>(mlbs, plbs, elem.getSetRel());
+      return Tools::relationHolds<std::string>(mlbs, plbs, elem.getSetRel());
     }
     case MPLACE: {
-      pair<string, unsigned int> mpl;
+      std::pair<std::string, unsigned int> mpl;
       ((MPlace*)m)->GetValue(i, mpl);
       if (elem.getSetRel() == STANDARD) {
         return ppls.find(mpl) != ppls.end();
       }
       mpls.insert(mpl);
-      return Tools::relationHolds<pair<string, unsigned int> >(mpls, ppls, 
-                                                              elem.getSetRel());
+      return Tools::relationHolds<std::pair<std::string, unsigned int> >(
+                     mpls, ppls, elem.getSetRel());
     }  
     case MPLACES: {
       ((MPlaces*)m)->GetValues(i, mpls);
-      return Tools::relationHolds<pair<string, unsigned int> >(mpls, ppls, 
-                                                              elem.getSetRel());
+      return Tools::relationHolds<std::pair<std::string, unsigned int> >(
+          mpls, ppls, elem.getSetRel());
     }
     default: { // cannot occur
       return false;
@@ -3964,25 +4023,27 @@ each matching is stored.
 
 */
 template<class M>
-bool Match<M>::updateStates(int ulId, vector<map<int, int> > &nfa,
-               vector<PatElem> &elems, set<int> &finalStates, set<int> &states,
-               vector<Condition> &easyConds, map<int, set<int> > &easyCondPos,
-               map<int, int> &atomicToElem, bool store /* = false */) {
-  set<int>::iterator its;
-  set<unsigned int>::iterator itu;
-  map<int, int> transitions;
+bool Match<M>::updateStates(int ulId, std::vector<std::map<int, int> > &nfa,
+               std::vector<PatElem> &elems, 
+               std::set<int> &finalStates, std::set<int> &states,
+               std::vector<Condition> &easyConds, 
+               std::map<int, std::set<int> > &easyCondPos,
+               std::map<int, int> &atomicToElem, bool store /* = false */) {
+  std::set<int>::iterator its;
+  std::set<unsigned int>::iterator itu;
+  std::map<int, int> transitions;
   for (its = states.begin(); its != states.end(); its++) { // collect possible
-    map<int, int> trans = nfa[*its];                       // transitions
+    std::map<int, int> trans = nfa[*its];                       // transitions
     transitions.insert(trans.begin(), trans.end());
   }
   if (transitions.empty()) {
     return false;
   }
   states.clear();
-  map<int, int>::iterator itm, itn;
+  std::map<int, int>::iterator itm, itn;
   temporalalgebra::SecInterval iv;
   m->GetInterval(ulId, iv);
-  set<string> ivs;
+  std::set<std::string> ivs;
   if (store) {
     if (ulId < m->GetNoComponents() - 1) { // usual case
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
@@ -3991,7 +4052,7 @@ bool Match<M>::updateStates(int ulId, vector<map<int, int> > &nfa,
          && easyCondsMatch(ulId, elems[itm->first], easyConds,
                            easyCondPos[itm->first])) {
           states.insert(states.end(), itm->second);
-          map<int, int> nextTrans = nfa[itm->second];
+          std::map<int, int> nextTrans = nfa[itm->second];
           for (itn = nextTrans.begin(); itn != nextTrans.end(); itn++) {
             itu = matching[ulId][atomicToElem[itm->first]].end();
             matching[ulId][atomicToElem[itm->first]].insert
@@ -4034,9 +4095,9 @@ Deletes all paths inside ~matching~ which do not end at a final state.
 
 */
 template<class M>
-void Match<M>::cleanPaths(map<int, int> &atomicToElem) {
-  map<int, int> transitions = p->getTransitions(0);
-  map<int, int>::reverse_iterator itm;
+void Match<M>::cleanPaths(std::map<int, int> &atomicToElem) {
+  std::map<int, int> transitions = p->getTransitions(0);
+  std::map<int, int>::reverse_iterator itm;
   for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
     cleanPath(0, atomicToElem[itm->first]);
   }
@@ -4049,19 +4110,21 @@ Searches for a binding which fulfills every condition.
 
 */
 template<class M>
-bool Match<M>::findMatchingBinding(vector<map<int, int> > &nfa, int startState,
-                                vector<PatElem> &elems,vector<Condition> &conds,
-                                map<int, int> &atomicToElem,
-                                map<int, string> &elemToVar) {
+bool Match<M>::findMatchingBinding(std::vector<std::map<int, int> > &nfa, 
+                                int startState,
+                                std::vector<PatElem> &elems,
+                                std::vector<Condition> &conds,
+                                std::map<int, int> &atomicToElem,
+                                std::map<int, std::string> &elemToVar) {
   if ((startState < 0) || (startState > (int)nfa.size() - 1)) {
     return false; // illegal start state
   }
   if (conds.empty()) {
     return true;
   }
-  map<int, int> transitions = nfa[startState];
-  map<string, pair<int, int> > binding;
-  map<int, int>::reverse_iterator itm;
+  std::map<int, int> transitions = nfa[startState];
+  std::map<std::string, std::pair<int, int> > binding;
+  std::map<int, int>::reverse_iterator itm;
   for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
     if (findBinding(0, atomicToElem[itm->first], elems, conds, elemToVar,
                     binding)) {
@@ -4080,17 +4143,18 @@ they fulfill every condition, stopping immediately after the first success.
 */
 template<class M>
 bool Match<M>::findBinding(unsigned int ulId, unsigned int pId,
-                          vector<PatElem> &elems, vector<Condition> &conds,
-                          map<int, string> &elemToVar,
-                          map<string, pair<int, int> > &binding) {
-  string var = elemToVar[pId];
+                      std::vector<PatElem> &elems, 
+                      std::vector<Condition> &conds,
+                      std::map<int, std::string> &elemToVar,
+                      std::map<std::string, std::pair<int, int> > &binding) {
+  std::string var = elemToVar[pId];
   bool inserted = false;
   if (!var.empty()) {
     if (binding.count(var)) { // extend existing binding
       binding[var].second++;
     }
     else { // add new variable
-      binding[var] = make_pair(ulId, ulId);
+      binding[var] = std::make_pair(ulId, ulId);
       inserted = true;
     }
   }
@@ -4100,7 +4164,8 @@ bool Match<M>::findBinding(unsigned int ulId, unsigned int pId,
     }
   }
   else {
-    for (set<unsigned int>::reverse_iterator it = matching[ulId][pId].rbegin();
+    for (std::set<unsigned int>::reverse_iterator 
+            it = matching[ulId][pId].rbegin();
          it != matching[ulId][pId].rend(); it++) {
       if (findBinding(ulId + 1, *it, elems, conds, elemToVar, binding)) {
         return true;
@@ -4135,8 +4200,8 @@ bool Match<M>::cleanPath(unsigned int ulId, unsigned int pId) {
     return true;
   }
   bool result = false;
-  set<unsigned int>::iterator it;
-  vector<unsigned int> toDelete;
+  std::set<unsigned int>::iterator it;
+  std::vector<unsigned int> toDelete;
   for (it = matching[ulId][pId].begin(); it != matching[ulId][pId].end(); it++){
     if (cleanPath(ulId + 1, *it)) {
       result = true;
@@ -4157,15 +4222,16 @@ bool Match<M>::cleanPath(unsigned int ulId, unsigned int pId) {
 */
 template<class M>
 bool Match<M>::easyCondsMatch(int ulId, PatElem const &elem,
-                              vector<Condition> &easyConds, set<int> pos) {
+                              std::vector<Condition> &easyConds, 
+                              std::set<int> pos) {
   if (elem.getW() || pos.empty() || easyConds.empty()) {
     return true;
   }
-  map<string, pair<int, int> > binding;
-  string var;
+  std::map<std::string, std::pair<int, int> > binding;
+  std::string var;
   elem.getV(var);
-  binding[var] = make_pair(ulId, ulId);
-  for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
+  binding[var] = std::make_pair(ulId, ulId);
+  for (std::set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
     if (!easyConds[*it].evaluate<M>(binding, m)) {
       return false;
     }
@@ -4181,8 +4247,8 @@ and only if there is (at least) one binding that matches every condition.
 
 */
 template<class M>
-bool Match<M>::conditionsMatch(vector<Condition> &conds,
-                const map<string, pair<int, int> > &binding) {
+bool Match<M>::conditionsMatch(std::vector<Condition> &conds,
+                const std::map<std::string, std::pair<int, int> > &binding) {
   if (!m->GetNoComponents()) { // empty MLabel
     return evaluateEmptyM();
   }
@@ -4231,8 +4297,9 @@ This function checks whether a variable is bound in a sensible and valid way.
 
 */
 template<class M>
-bool Match<M>::isSensiblyBound(const map<string, pair<int, int> > &b, 
-                               string& var) {
+bool Match<M>::isSensiblyBound(const std::map<std::string, 
+                               std::pair<int, int> > &b, 
+                               std::string& var) {
   int first = b.find(var)->second.first;
   int second = b.find(var)->second.second;
   return (first >= 0 && first < m->GetNoComponents() &&
@@ -4244,7 +4311,8 @@ bool Match<M>::isSensiblyBound(const map<string, pair<int, int> > &b,
 
 */
 template<class M>
-FilterMatchesLI<M>::FilterMatchesLI(Word _stream, int _attrIndex, string& pText)
+FilterMatchesLI<M>::FilterMatchesLI(Word _stream, int _attrIndex, 
+                 std::string& pText)
                : stream(_stream), attrIndex(_attrIndex), match(0), 
                  streamOpen(false), deleteP(true) {
   Pattern *p = Pattern::getPattern(pText, false);
@@ -4311,8 +4379,8 @@ RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
         bindingStack.push(dummy);
       }
       else {
-        map<int, int> transitions = pat->getTransitions(0);
-        for (map<int, int>::iterator itm = transitions.begin();
+        std::map<int, int> transitions = pat->getTransitions(0);
+        for (std::map<int, int>::iterator itm = transitions.begin();
                                     itm != transitions.end(); itm++) {
           BindingStackElem bE(0, itm->first); // init stack
     //       cout << "push (0, " << itm->first << ") to stack" << endl;
@@ -4337,14 +4405,15 @@ RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
 
 */
 template<class M>
-M* RewriteLI<M>::rewrite(M *src, map<string, pair<int, int> > binding,
-                         vector<Assign> &assigns){
+M* RewriteLI<M>::rewrite(
+       M *src, std::map<std::string, std::pair<int, int> > binding,
+       std::vector<Assign> &assigns){
   M *result = new M(true);
   Word qResult;
-  Instant start(instanttype), end(instanttype);
+  Instant start(datetime::instanttype), end(datetime::instanttype);
   temporalalgebra::SecInterval iv(true), iv2(true);
   bool lc(false), rc(false);
-  pair<unsigned int, unsigned int> segment;
+  std::pair<unsigned int, unsigned int> segment;
   assert(src->IsValid());
   for (unsigned int i = 0; i < assigns.size(); i++) {
     for (int j = 0; j <= 9; j++) {
@@ -4354,13 +4423,13 @@ M* RewriteLI<M>::rewrite(M *src, map<string, pair<int, int> > binding,
             segment = binding[assigns[i].getRightVar(j, k)];
             switch (assigns[i].getRightKey(j, k)) {
               case 0: { // label
-                string lvalue;
+                std::string lvalue;
                 ((MLabel*)src)->GetValue(segment.first, lvalue);
                 assigns[i].setLabelPtr(k, lvalue);
                 break;
               }
               case 1: { // place
-                pair<string, unsigned int> pvalue;
+                std::pair<std::string, unsigned int> pvalue;
                 ((MPlace*)src)->GetValue(segment.first, pvalue);
                 assigns[i].setPlacePtr(k, pvalue);
                 break;
@@ -4414,7 +4483,7 @@ M* RewriteLI<M>::rewrite(M *src, map<string, pair<int, int> > binding,
                 break;
               }
               case 8: { // labels
-                set<Labels::base> lvalues;
+                std::set<Labels::base> lvalues;
                 for (unsigned int m = segment.first; m <= segment.second; m++) {
                   ((MLabels*)src)->GetValues(m, lvalues);
                   assigns[i].appendToLabelsPtr(k, lvalues);
@@ -4422,7 +4491,7 @@ M* RewriteLI<M>::rewrite(M *src, map<string, pair<int, int> > binding,
                 break;
               }
               case 9: { // places
-                set<Places::base> pvalues;
+                std::set<Places::base> pvalues;
                 for (unsigned int m = segment.first; m <= segment.second; m++) {
                   ((MPlaces*)src)->GetValues(m, pvalues);
                   assigns[i].appendToPlacesPtr(k, pvalues);
@@ -4512,7 +4581,7 @@ M* RewriteLI<M>::rewrite(M *src, map<string, pair<int, int> > binding,
         }
         if (M::BasicType() == MLabel::BasicType()) {
           if (!assigns[i].getQP(0)) {
-            string lvalue;
+            std::string lvalue;
             ((MLabel*)src)->GetValue(segment.first, lvalue);
             ((MLabel*)result)->Add(iv, lvalue);
           }
@@ -4522,7 +4591,7 @@ M* RewriteLI<M>::rewrite(M *src, map<string, pair<int, int> > binding,
         }
         else if (M::BasicType() == MPlace::BasicType()) {
           if (!assigns[i].getQP(1)) {
-            pair<string, unsigned int> pvalue;
+            std::pair<std::string, unsigned int> pvalue;
             ((MPlace*)src)->GetValue(segment.first, pvalue);
             ((MPlace*)result)->Add(iv, pvalue);
           }
@@ -4619,7 +4688,7 @@ M* RewriteLI<M>::getNextResult() {
       return 0;
     }
     bindingStack.pop();
-    vector<Condition> *conds = match->p->getConds();
+    std::vector<Condition> *conds = match->p->getConds();
     if (match->conditionsMatch(*conds, binding)) {
       M *source = match->m;
       return rewrite(source, binding, match->p->getAssigns());
@@ -4652,8 +4721,8 @@ M* RewriteLI<M>::getNextResult() {
 
 template<class M>
 void RewriteLI<M>::resetBinding(int limit) {
-  vector<string> toDelete;
-  map<string, pair<int, int> >::iterator it;
+  std::vector<std::string> toDelete;
+  std::map<std::string, std::pair<int, int> >::iterator it;
   for (it = binding.begin(); it != binding.end(); it++) {
     if (it->second.first >= limit) {
       toDelete.push_back(it->first);
@@ -4672,24 +4741,24 @@ bool RewriteLI<M>::findNextBinding(unsigned int ulId, unsigned int peId,
                                    Pattern *p, int offset) {
 //   cout << "findNextBinding(" << ulId << ", " << peId << ", " << offset
 //        << ") called" << endl;
-  string var = p->getVarFromElem(peId - offset);
+  std::string var = p->getVarFromElem(peId - offset);
   if (!var.empty() && p->isRelevant(var)) {
     if (binding.count(var)) { // extend existing binding
       binding[var].second++;
     }
     else { // add new variable
-      binding[var] = make_pair(ulId, ulId);
+      binding[var] = std::make_pair(ulId, ulId);
     }
   }
   if (*(match->matching[ulId][peId].begin()) == UINT_MAX) { // complete match
-    vector<Condition> *conds = p->getConds();
+    std::vector<Condition> *conds = p->getConds();
     return match->conditionsMatch(*conds, binding);
   }
   if (match->matching[ulId][peId].empty()) {
     return false;
   }
   else { // push all elements except the first one to stack; process first elem
-    set<unsigned int>::reverse_iterator it, it2;
+    std::set<unsigned int>::reverse_iterator it, it2;
     it2 = match->matching[ulId][peId].rbegin();
     it2++;
     for (it = match->matching[ulId][peId].rbegin();
@@ -4714,17 +4783,17 @@ template<class M>
 ClassifyLI::ClassifyLI(M *traj, Word _classifier) : classifyTT(0) {
   Classifier *c = static_cast<Classifier*>(_classifier.addr);
   int startState(0), pat(0);
-  set<unsigned int> emptyset;
-  set<int> states, finalStates, matchCands;
-  set<int>::iterator it;
+  std::set<unsigned int> emptyset;
+  std::set<int> states, finalStates, matchCands;
+  std::set<int>::iterator it;
   Pattern *p = 0;
   PatElem elem;
-  vector<PatElem> patElems;
-  vector<Condition> easyConds;
-  vector<int> startStates;
-  map<int, set<int> > easyCondPos;
-  map<int, int> atomicToElem; // TODO: use this sensibly
-  map<int, string> elemToVar; // TODO: use this sensibly
+  std::vector<PatElem> patElems;
+  std::vector<Condition> easyConds;
+  std::vector<int> startStates;
+  std::map<int, std::set<int> > easyCondPos;
+  std::map<int, int> atomicToElem; // TODO: use this sensibly
+  std::map<int, std::string> elemToVar; // TODO: use this sensibly
   bool condsOccur = false;
   for (int i = 0; i < c->getCharPosSize() / 2; i++) {
     states.insert(states.end(), startState);
@@ -4736,8 +4805,8 @@ ClassifyLI::ClassifyLI(M *traj, Word _classifier) : classifyTT(0) {
         condsOccur = true;
       }
       pats.push_back(p);
-      map<int, set<int> > easyOld = p->getEasyCondPos();
-      for (map<int, set<int> >::iterator im = easyOld.begin();
+      std::map<int, std::set<int> > easyOld = p->getEasyCondPos();
+      for (std::map<int, std::set<int> >::iterator im = easyOld.begin();
                                          im != easyOld.end(); im++) {
         for (it = im->second.begin(); it != im->second.end(); it++) {
           easyCondPos[im->first+patElems.size()].insert(*it + easyConds.size());
@@ -4764,7 +4833,7 @@ ClassifyLI::ClassifyLI(M *traj, Word _classifier) : classifyTT(0) {
     cout << "no classification data specified" << endl;
     return;
   }
-  vector<map<int, int> > nfa;
+  std::vector<std::map<int, int> > nfa;
   Tools::createNFAfromPersistent(c->delta, c->s2p, nfa, finalStates);
   Match<M> *match = new Match<M>(0, traj);
   if (condsOccur) {
@@ -4791,7 +4860,7 @@ ClassifyLI::ClassifyLI(M *traj, Word _classifier) : classifyTT(0) {
   }
   for (it = matchCands.begin(); it != matchCands.end(); it++) { // check conds
     pats[*it]->initCondOpTrees();
-    vector<Condition>* conds = pats[*it]->getConds();
+    std::vector<Condition>* conds = pats[*it]->getConds();
 //     cout << "call fMB(nfa, " << startStates[*it] << ", " << patElems.size()
 //          << ", " << conds->size() << ")" << endl;
     if (match->findMatchingBinding(nfa, startStates[*it], patElems, *conds,
@@ -4823,10 +4892,10 @@ MultiRewriteLI<M>::MultiRewriteLI(Word _tstream, Word _pstream, int _pos) :
   FText* inputText = pStream.request();
   Pattern *p = 0;
   PatElem elem;
-  set<int>::iterator it;
-  map<int, set<int> >::iterator im;
+  std::set<int>::iterator it;
+  std::map<int, std::set<int> >::iterator im;
   int elemCount(0);
-  string var;
+  std::string var;
   while (inputText) {
     if (!inputText->IsDefined()) {
       cout << "undefined input is ignored" << endl;
@@ -4848,10 +4917,10 @@ MultiRewriteLI<M>::MultiRewriteLI(Word _tstream, Word _pstream, int _pos) :
               elemToVar[elemCount+p->getElemFromAtom(i)] = var;
               patElems.push_back(elem);
               patOffset[elemCount + p->getElemFromAtom(i)] =
-                                          make_pair(pats.size() - 1, elemCount);
+                                 std::make_pair(pats.size() - 1, elemCount);
             }
             elemCount += p->getElemFromAtom(p->getSize() - 1) + 1;
-            map<int, set<int> > easyOld = p->getEasyCondPos();
+            std::map<int, std::set<int> > easyOld = p->getEasyCondPos();
             for (im = easyOld.begin(); im != easyOld.end(); im++) {
               for (it = im->second.begin(); it != im->second.end(); it++) {
                 easyCondPos[im->first + patElems.size()].insert
@@ -4896,15 +4965,15 @@ M* MultiRewriteLI<M>::nextResult() {
   if (!pats.size()) {
     return 0;
   }
-  set<int> startStates;
-  set<int>::iterator it;
+  std::set<int> startStates;
+  std::set<int>::iterator it;
   while (!this->bindingStack.empty()) {
     BindingStackElem bE(0, 0);
     bE = this->bindingStack.top();
 //     cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
     this->bindingStack.pop();
     this->resetBinding(bE.ulId);
-    pair<int, int> patNo = patOffset[bE.peId];
+    std::pair<int, int> patNo = patOffset[bE.peId];
     if (this->findNextBinding(bE.ulId, bE.peId, pats[patNo.first], 
         patNo.second)) {
       return RewriteLI<M>::rewrite(traj, this->binding, 
@@ -4945,7 +5014,7 @@ M* MultiRewriteLI<M>::nextResult() {
 //      cout << "take (" << bE.ulId << ", " << bE.pId << ") from stack" << endl;
       this->bindingStack.pop();
       this->resetBinding(bE.ulId);
-      pair<int, int> patNo = patOffset[bE.peId];
+      std::pair<int, int> patNo = patOffset[bE.peId];
       if (this->findNextBinding(bE.ulId, bE.peId, pats[patNo.first], 
                                 patNo.second)) {
         return RewriteLI<M>::rewrite(traj, this->binding, 
@@ -4967,12 +5036,12 @@ corresponding initial transitions onto the stack.
 
 */
 template<class M>
-void MultiRewriteLI<M>::initStack(set<int> &startStates) {
-  set<int>::iterator it;
-  map<int, int>::iterator itm;
+void MultiRewriteLI<M>::initStack(std::set<int> &startStates) {
+  std::set<int>::iterator it;
+  std::map<int, int>::iterator itm;
   for (it = startStates.begin(); it != startStates.end(); it++) {
     if (matchCands.count(-state2Pat[*it])) {
-      map<int, int> transitions = nfa[*it];
+      std::map<int, int> transitions = nfa[*it];
       for (itm = transitions.begin(); itm != transitions.end(); itm++) {
         BindingStackElem bE(0, atomicToElem[itm->first]);
         this->bindingStack.push(bE);
@@ -4987,10 +5056,10 @@ void MultiRewriteLI<M>::initStack(set<int> &startStates) {
 
 */
 template<class M>
-void MultiRewriteLI<M>::getStartStates(set<int> &states) {
+void MultiRewriteLI<M>::getStartStates(std::set<int> &states) {
   states.clear();
   states.insert(0);
-  map<int, int>::iterator it;
+  std::map<int, int>::iterator it;
   for (it = state2Pat.begin(); it != state2Pat.end(); it++) {
     if (it->second < 0) {
       states.insert(it->first);
@@ -5049,13 +5118,13 @@ Tuple* IndexClassifyLI::nextResultTuple() {
     initialize();
     applyNFA();
     for (unsigned int i = 0; i < matches.size(); i++) {
-      results.push(make_pair(c->getDesc(currentPat), matches[i]));
+      results.push(std::make_pair(c->getDesc(currentPat), matches[i]));
     }
     p->deleteCondOpTrees();
     cout << "desc for " << currentPat << " is " << c->getDesc(currentPat)<<endl;
     currentPat++;
   }
-  pair<string, TupleId> resultPair = results.front();
+  std::pair<std::string, TupleId> resultPair = results.front();
   results.pop();
   cout << "tuple id " << resultPair.second << " popped, " << results.size() 
        << " left" << endl;
@@ -5180,7 +5249,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
 template<class M>
 void IndexMatchSuper::periodsToUnits(const temporalalgebra::Periods *per,
                                      const TupleId tId,
-                                     set<int> &units) {
+                                     std::set<int> &units) {
   int start, end;
   temporalalgebra::Interval<Instant> iv;
   Tuple *t = rel->GetTuple(tId, false);
@@ -5207,11 +5276,11 @@ void IndexMatchSuper::periodsToUnits(const temporalalgebra::Periods *per,
 
 */
 template<class M, class U>
-void TMatchIndexLI::unitsToPeriods(Attribute *traj, const set<int> &units,
+void TMatchIndexLI::unitsToPeriods(Attribute *traj, const std::set<int> &units,
                                    temporalalgebra::Periods *per) {
   M *m = (M*)traj;
   U u(true);
-  for (set<int>::iterator it = units.begin(); it != units.end(); it++) {
+  for (std::set<int>::iterator it = units.begin(); it != units.end(); it++) {
     m->Get(*it, u);
     per->MergeAdd(u.timeInterval);
   }
@@ -5226,7 +5295,7 @@ void TMatchIndexLI::unitsToPeriods(Attribute *traj, const set<int> &units,
 template<class M>
 DeriveGroupsLI<M>::DeriveGroupsLI(Word _stream, double threshold, int attrNo) {
   Stream<Tuple> stream(_stream);
-  vector<M*> trajStore;
+  std::vector<M*> trajStore;
   stream.open();
   Tuple *src = stream.request();
   int noTuples = 0;
@@ -5236,7 +5305,7 @@ DeriveGroupsLI<M>::DeriveGroupsLI(Word _stream, double threshold, int attrNo) {
     noTuples++;
   }
   stream.close();
-//   vector<double> dist[noTuples];
+//   std::vector<double> dist[noTuples];
 //   for (int i = 0; i < noTuples; i++) {
 //     for (int j = 0; j < i; j++) {
 //       double distance = 0;

@@ -67,7 +67,8 @@ class MGPointCreator : public IMapMatchingMHTResultCreator
 {
 public:
 
-    MGPointCreator(NetworkAdapter* pNetworkAdapter, MGPoint* pResMGPoint);
+    MGPointCreator(NetworkAdapter* pNetworkAdapter, 
+                   temporalnet::MGPoint* pResMGPoint);
     virtual ~MGPointCreator();
 
     virtual bool CreateResult(const std::vector<MHTRouteCandidate*>&
@@ -78,28 +79,28 @@ private:
     bool Init(void);
     void Finalize(void);
 
-    const AttributePtr<GPoint> GetGPoint(
+    const AttributePtr<network::GPoint> GetGPoint(
                                    const MHTRouteCandidate::PointDataPtr& pData,
                                    const int& nNetworkId,
                                    const double& dNetworkScale) const;
 
-    void AddUGPoint(const UGPoint& rAktUGPoint);
+    void AddUGPoint(const temporalnet::UGPoint& rAktUGPoint);
 
-    bool CalcShortestPath(const GPoint* pGPStart,
-                          const GPoint* pGPEnd,
+    bool CalcShortestPath(const network::GPoint* pGPStart,
+                          const network::GPoint* pGPEnd,
                           const datetime::DateTime& rtimeStart,
                           const datetime::DateTime& rtimeEnd,
                           const bool bCheckSpeed);
 
-    bool ConnectPoints(const GPoint& rGPStart,
-                       const GPoint& rGPEnd,
+    bool ConnectPoints(const network::GPoint& rGPStart,
+                       const network::GPoint& rGPEnd,
                        const temporalalgebra::Interval<Instant>& 
                              rTimeInterval);
 
-    const Network* m_pNetwork;
+    const network::Network* m_pNetwork;
     double   m_dNetworkScale;
-    MGPoint* m_pResMGPoint;
-    RITreeP* m_pRITree;
+    temporalnet::MGPoint* m_pResMGPoint;
+    network::RITreeP* m_pRITree;
 };
 
 

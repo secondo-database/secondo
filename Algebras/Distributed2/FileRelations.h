@@ -107,7 +107,7 @@ in conflict with the relation type specified in the argument, no tuples
 will be produced.
 
 */
-    ffeed5Info(const string& filename, const ListExpr _tt);
+    ffeed5Info(const std::string& filename, const ListExpr _tt);
 
 /*
 1.2 Constructor
@@ -118,7 +118,7 @@ description.
 
 */
 
-    ffeed5Info(const string& filename, TupleType* _tt);
+    ffeed5Info(const std::string& filename, TupleType* _tt);
 
 /*
 1.3 Constructor
@@ -127,7 +127,7 @@ This constructor open a binary relation without checking for a given
 relation scheme.
 
 */
-    ffeed5Info(const string& filename);
+    ffeed5Info(const std::string& filename);
 
 /*
 1.4 Destructor
@@ -176,7 +176,7 @@ a further tuple.
 1.9 Private Members
 
 */
-     ifstream in;       // file input stream
+     std::ifstream in;       // file input stream
      char* inBuffer;    // for buffering the input stream
      TupleType* tt;     // the used tuple type
      bool ok;           // internal variable about state

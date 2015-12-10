@@ -179,8 +179,8 @@ Sets the scalefactor of the ~region2~ value.
     {
       if ( scaleFactor != factor) 
       {
-        int maxInt = max(maxIntx, maxInty);
-        int minInt = min(minIntx, minInty);
+        int maxInt = std::max(maxIntx, maxInty);
+        int minInt = std::min(minIntx, minInty);
         if (factor > scaleFactor 
             && checkFactorOverflow(maxInt, minInt+1, factor-scaleFactor))
             return false;
@@ -351,11 +351,11 @@ Checks if the factor ~f~ causes an interger overflow.
 */
     inline bool factorOverflow(const double f)
     {
-      if (checkFactorOverflow(max(maxIntx, maxInty), 
-                              min(minIntx, minInty)+1, f))
+      if (checkFactorOverflow(std::max(maxIntx, maxInty), 
+                              std::min(minIntx, minInty)+1, f))
       {
-        cerr << "Overflow of Int values: Factor " << f 
-             << " is too big!" << endl;
+        std::cerr << "Overflow of Int values: Factor " << f 
+             << " is too big!" << std::endl;
         return true;
       }
 
@@ -369,14 +369,14 @@ Checks if the factors ~xf~ and ~yf~ causes an interger overflow.
     {
       if (checkFactorOverflow(maxIntx, minIntx+1, xf))
       {
-        cerr << "Overflow of Int values: x-Factor " << xf 
-             << " is too big!" << endl;
+        std::cerr << "Overflow of Int values: x-Factor " << xf 
+             << " is too big!" << std::endl;
         return true;
       }
       if (checkFactorOverflow(maxInty, minInty+1, yf))
       {
-        cerr << "Overflow of Int values: y-Factor " << yf 
-             << " is too big!" << endl;
+        std::cerr << "Overflow of Int values: y-Factor " << yf 
+             << " is too big!" << std::endl;
         return true;
       }
 
@@ -387,7 +387,7 @@ Checks if the factors ~xf~ and ~yf~ causes an interger overflow.
 1.1 Functions for use as StandardSpatialAttribute.
 
 */
-    static const string BasicType()
+    static const std::string BasicType()
     {
       return "region2";
     }
@@ -412,7 +412,7 @@ Checks if the factors ~xf~ and ~yf~ causes an interger overflow.
 
     int Compare( const Attribute *arg ) const;
 
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
 
     inline int NumOfFLOBs() const
     {
@@ -503,7 +503,7 @@ The pointers inside the array ~components~ are here initialized and
 must be deleted outside.
 
 */
-    void Components( vector<Region2*>& components );
+    void Components( std::vector<Region2*>& components );
 /*
 Operation ~no\_components~
 
@@ -572,15 +572,15 @@ Moves this region according ~x~ and ~y~.
            if ( overflowAsInt(hs.GetLeftPoint().x, 
                               hs.GetRightPoint().x, scaleFactor) )
            {
-             cerr << "Overflow of Int values: x-translation with value " 
-                  << x << " is too big!" << endl;
+             std::cerr << "Overflow of Int values: x-translation with value " 
+                  << x << " is too big!" << std::endl;
              return false;
            }
            if ( overflowAsInt(hs.GetLeftPoint().y, 
                               hs.GetRightPoint().y, scaleFactor) )
            {
-             cerr << "Overflow of Int values: y-translation with value " 
-                  << y << " is too big!" << endl;
+             std::cerr << "Overflow of Int values: y-translation with value " 
+                  << y << " is too big!" << std::endl;
              return false;
            }
        }
@@ -660,7 +660,7 @@ Whether the half segments in the region value are sorted.
 Memory representation of the ordered set of precise halfsegments in a dynamic array.
  
 */  
-    vector<Reg2PreciseHalfSegment> precHSvector;
+    std::vector<Reg2PreciseHalfSegment> precHSvector;
 /*
 The values ~minIntx~, ~maxIntx~, ~minInty~ and ~maxInty~ are boundaries of the 
 representation and used to decide an integer overflow. 

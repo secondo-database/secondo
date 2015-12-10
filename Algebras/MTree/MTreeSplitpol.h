@@ -83,7 +83,7 @@ friend class Splitpol;
 Constructor.
 
 */
-  GenericSplitpol(PROMOTE promId, PARTITION partId, Distfun metric);
+  GenericSplitpol(PROMOTE promId, PARTITION partId, gta::Distfun metric);
 
 /*
 This function applies the split policy, which had been selected in the constructor. After that, the nodes "[_]lhs"[4] and "[_]rhs"[4] contain the entries. The promoted entries are stored in the "promL"[4] and "promR"[4] members, which are accessed from the "Splitpol::apply"[4] method after the split.
@@ -98,7 +98,7 @@ This function applies the split policy, which had been selected in the construct
     rhs = _rhs;
 
     // create empty vector and swap it with current entry vector
-    entries = new vector<TEntry*>();
+    entries = new std::vector<TEntry*>();
     entries->swap(*lhs->entries());
 
     entriesL = lhs->entries();
@@ -112,9 +112,9 @@ This function applies the split policy, which had been selected in the construct
     delete entries;
   }
 
-  vector<TEntry*>* entries;  // contains the original entry-vector
-  vector<TEntry*>* entriesL; // new entry vector for left node
-  vector<TEntry*>* entriesR; // new entry vector for right node
+  std::vector<TEntry*>* entries;  // contains the original entry-vector
+  std::vector<TEntry*>* entriesL; // new entry vector for left node
+  std::vector<TEntry*>* entriesR; // new entry vector for right node
 
   unsigned promLId; // index of the left promoted entry
   unsigned promRId; // index of the right promoted entry
@@ -129,7 +129,7 @@ This function applies the split policy, which had been selected in the construct
 
   TNode *lhs, *rhs; // contains the origin and the new node
 
-  Distfun metric; // selected metric.
+  gta::Distfun metric; // selected metric.
   void (GenericSplitpol::*promFun)(); // selected promote function
   void (GenericSplitpol::*partFun)(); // selected partition function
 
@@ -198,7 +198,7 @@ public:
 Constructor.
 
 */
-  Splitpol(PROMOTE promId, PARTITION partId, Distfun _metric)
+  Splitpol(PROMOTE promId, PARTITION partId, gta::Distfun _metric)
   : internalSplit(promId, partId, _metric),
     leafSplit(promId, partId, _metric)
   {}
@@ -207,7 +207,7 @@ Constructor.
 This function splits the "lhs"[4] node. "rhs"[4] should be an empty node of the same type.
 
 */
-  inline void apply(NodePtr lhs, NodePtr rhs, bool isLeaf)
+  inline void apply(gtree::NodePtr lhs, gtree::NodePtr rhs, bool isLeaf)
   {
     if (isLeaf)
     {
@@ -260,7 +260,7 @@ GenericSplitpol Constructor:
 */
 template<class TNode, class TEntry>
 GenericSplitpol<TNode, TEntry>::GenericSplitpol(
-    PROMOTE promId, PARTITION partId, Distfun _metric)
+    PROMOTE promId, PARTITION partId, gta::Distfun _metric)
 : distances(0)
 {
   metric = _metric;
@@ -416,14 +416,14 @@ void GenericSplitpol<TNode, TEntry>::MMRad_Prom()
 
       if (first)
       {
-        minMaxRad = max(radL, radR);
+        minMaxRad = std::max(radL, radR);
         first = false;
       }
       else
       {
-        if (max(radL, radR) < minMaxRad)
+        if (std::max(radL, radR) < minMaxRad)
         {
-          minMaxRad = max(radL, radR);
+          minMaxRad = std::max(radL, radR);
           bestPromLId = i;
           bestPromRId = j;
         }
@@ -507,9 +507,9 @@ void GenericSplitpol<TNode, TEntry>::Hyperplane_Part()
       if (distL < distR)
       {
         if (isLeaf)
-          radL = max(radL, distL);
+          radL = std::max(radL, distL);
         else
-          radL = max(radL, distL + (*entries)[i]->rad());
+          radL = std::max(radL, distL + (*entries)[i]->rad());
 
         entriesL->push_back((*entries)[i]);
         entriesL->back()->setDist(distL);
@@ -517,9 +517,9 @@ void GenericSplitpol<TNode, TEntry>::Hyperplane_Part()
       else
       {
         if (isLeaf)
-          radR = max(radR, distR);
+          radR = std::max(radR, distR);
         else
-          radR = max(radR, distR + (*entries)[i]->rad());
+          radR = std::max(radR, distR + (*entries)[i]->rad());
 
         entriesR->push_back((*entries)[i]);
         entriesR->back()->setDist(distR);
@@ -549,7 +549,7 @@ void GenericSplitpol<TNode, TEntry>::Balanced_Part()
 
   /* copy entries into entries (the list contains the entries
      together with its distances to the promoted elements */
-  list<BalancedPromEntry<TEntry> > entriesCpy;
+  std::list<BalancedPromEntry<TEntry> > entriesCpy;
   for (size_t i=0; i < entries->size(); i++)
   {
     if ((i != promLId) && (i != promRId))
@@ -563,9 +563,9 @@ void GenericSplitpol<TNode, TEntry>::Balanced_Part()
       }
       else
       {
-        DistData* data = (*entries)[i]->data();
-        DistData* dataL = (*entries)[promLId]->data();
-        DistData* dataR = (*entries)[promRId]->data();
+        gta::DistData* data = (*entries)[i]->data();
+        gta::DistData* dataL = (*entries)[promLId]->data();
+        gta::DistData* dataR = (*entries)[promRId]->data();
         (*metric)(data, dataL, distL);
         (*metric)(data, dataR, distR);
       }
@@ -583,10 +583,10 @@ void GenericSplitpol<TNode, TEntry>::Balanced_Part()
   {
     if (assignLeft)
     {
-      typename list<BalancedPromEntry<TEntry> >::iterator
+      typename std::list<BalancedPromEntry<TEntry> >::iterator
           nearestPos = entriesCpy.begin();
 
-      typename list<BalancedPromEntry<TEntry> >::iterator
+      typename std::list<BalancedPromEntry<TEntry> >::iterator
           iter = entriesCpy.begin();
 
       while (iter  != entriesCpy.end())
@@ -600,9 +600,9 @@ void GenericSplitpol<TNode, TEntry>::Balanced_Part()
 
       double distL = (*nearestPos).distToL;
       if (isLeaf)
-        radL = max(radL, distL);
+        radL = std::max(radL, distL);
       else
-        radL = max(radL, distL + (*nearestPos).entry->rad());
+        radL = std::max(radL, distL + (*nearestPos).entry->rad());
 
       entriesL->push_back((*nearestPos).entry);
       entriesL->back()->setDist(distL);
@@ -610,10 +610,10 @@ void GenericSplitpol<TNode, TEntry>::Balanced_Part()
     }
     else
     {
-      typename list<BalancedPromEntry<TEntry> >::iterator
+      typename std::list<BalancedPromEntry<TEntry> >::iterator
           nearestPos = entriesCpy.begin();
 
-      typename list<BalancedPromEntry<TEntry> >::iterator
+      typename std::list<BalancedPromEntry<TEntry> >::iterator
           iter = entriesCpy.begin();
 
       while (iter  != entriesCpy.end())
@@ -626,9 +626,9 @@ void GenericSplitpol<TNode, TEntry>::Balanced_Part()
       }
       double distR = (*nearestPos).distToR;
       if (isLeaf)
-        radR = max(radR, distR);
+        radR = std::max(radR, distR);
       else
-        radR = max(radR, distR + (*nearestPos).entry->rad());
+        radR = std::max(radR, distR + (*nearestPos).entry->rad());
 
       entriesR->push_back((*nearestPos).entry);
       entriesR->back()->setDist(distR);

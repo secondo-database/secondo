@@ -52,6 +52,9 @@ For more detailed information see OsmImportOperator.h.
 #include "../FText/FTextAlgebra.h"
 #include <iostream>
 
+using namespace std;
+
+
 const int OsmImportOperator::ELEMENT_TYPE_UNKNOWN = 0x0;
 const int OsmImportOperator::ELEMENT_TYPE_NODE = 0x1;
 const int OsmImportOperator::ELEMENT_TYPE_WAY = 0x2;

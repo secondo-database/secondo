@@ -505,7 +505,7 @@ Generate new ~MSegmentData2~ instant in ~rDms~ from current instant, where the o
 Return ~string~ representation of moving segment.
 
 */
-        string ToString(void) const;
+        std::string ToString(void) const;
 };
 
 /*
@@ -1064,7 +1064,7 @@ description below for details.
                 unsigned int cycleno,
                 unsigned int segmentno,
                 unsigned int partnerno,
-                DateTime& intervalLen,
+                datetime::DateTime& intervalLen,
                 ListExpr start,
                 ListExpr end,
                 int scaleFactor);
@@ -1089,14 +1089,14 @@ description below for details.
                         const DbArray<unsigned int>* preciseInstants, 
                         const int scaleFactor,
                         const UPoint& up, const precTimeInterval& iv,
-                         vector<TrapeziumSegmentIntersection2>& vtsi) const;
+                        std::vector<TrapeziumSegmentIntersection2>& vtsi) const;
         bool RestrictedIntersectionFix(
-                vector<TrapeziumSegmentIntersection2>& vtsi) const;
+                std::vector<TrapeziumSegmentIntersection2>& vtsi) const;
         bool RestrictedIntersectionProcess(const UPoint& up, 
                         const precTimeInterval& iv, 
-                        vector<TrapeziumSegmentIntersection2>& vtsi, 
-                        vector<precUPoint>& vpup, 
-                        vector<precUBool>& vpub,
+                        std::vector<TrapeziumSegmentIntersection2>& vtsi, 
+                        std::vector<precUPoint>& vpup, 
+                        std::vector<precUBool>& vpub,
                         bool isbool) const;
         void RestrictedIntersectionUP(const DbArray<MSegmentData2>* segments, 
                         const DbArray<PreciseMSegmentData>* preciseSegments,
@@ -1104,8 +1104,8 @@ description below for details.
                         const DbArray<unsigned int>* preciseInstants, 
                         const int scaleFactor,
                         const UPoint& up, const precTimeInterval& iv, 
-                        vector<precUPoint>& vpup, 
-                        vector<precUBool>& vpub,
+                        std::vector<precUPoint>& vpup, 
+                        std::vector<precUBool>& vpub,
                         bool isbool) const;
 
 /*
@@ -1123,7 +1123,7 @@ description below for details.
 
 */
 
-        void Translate(DateTime* deltaT, double deltaX, double deltaY,
+        void Translate(datetime::DateTime* deltaT, double deltaX, double deltaY,
                 DbArray<MSegmentData2>* segments, 
                 DbArray<PreciseMSegmentData>* preciseSegments,
                 DbArray<unsigned int>* preciseCoordinates,
@@ -1205,7 +1205,7 @@ The assignment operator
 */
         URegionEmb2& operator=(const URegionEmb2&);
 
-        ostream& Print(ostream &os) const
+        std::ostream& Print(std::ostream &os) const
         {
           os << "( URegionEmb2 NOT IMPLEMENTED YET )";
           return os;
@@ -1298,7 +1298,8 @@ This constructor creates an URegion2 by a given list of MSegmentData2.
 The MSegmentData2 are ordered, so that matching Segments are together.
 
 */
-        URegion2(vector<MSegmentData2> linelist, const Interval<Instant> &tiv);
+        URegion2(std::vector<MSegmentData2> linelist, 
+                 const Interval<Instant> &tiv);
 
 /*
 Use the following constructor to declare temporal object variables etc.
@@ -1347,8 +1348,9 @@ Set and get the ~uremb~ attribute. Required for function ~InURegion2()~.
 
 */
 
-        void Translate(DateTime* deltaT, double deltaX, double deltaY);
-        void Timeshift(DateTime* deltaT);
+        void Translate(datetime::DateTime* deltaT, 
+                       double deltaX, double deltaY);
+        void Timeshift(datetime::DateTime* deltaT);
         void Scale(double deltaX, double deltaY);
 
 /*
@@ -1486,7 +1488,7 @@ Print method, primarly used for debugging purposes
 
 */
 
-        virtual ostream& Print( ostream &os ) const
+        virtual std::ostream& Print( std::ostream &os ) const
         {
           if( IsDefined() )
           {
@@ -1501,11 +1503,11 @@ Print method, primarly used for debugging purposes
             os << " SegNum=" << uremb.GetSegmentsNum();
             os << " BBox=";
             uremb.BoundingBox().Print(os);
-            os << " )" << endl;
+            os << " )" << std::endl;
             return os;
           }
           else
-            return os << "URegion2: (undef)" << endl;
+            return os << "URegion2: (undef)" << std::endl;
         }
 
 /*
@@ -1522,9 +1524,9 @@ Distance function
 */
         double Distance(const Rectangle<3>& rect, const Geoid* geoid = 0) const
         {
-          cerr << "Warning URegion2::Distance(rect) not implemented. "
+          std::cerr << "Warning URegion2::Distance(rect) not implemented. "
                << "Using Rectangle<3>::Distance(Rectangle<3>) instead!" 
-               << endl;
+               << std::endl;
           if(!IsDefined())
           {
             return -1;
@@ -1539,7 +1541,7 @@ Distance function
           return !IsDefined();
         }
 
-        static string BasicType() { return "uregion2"; }
+        static std::string BasicType() { return "uregion2"; }
         static const bool checkType(const ListExpr type)
         {
           return listutils::isSymbol(type, BasicType());
@@ -1600,8 +1602,8 @@ inside operator.
 
         void IntersectionMP(const MPoint& mp, MPoint& res1, MBool& res2, 
                             bool isbool = false);
-        void AddUPoints(vector<precUPoint> vpup, MPoint& res) const;
-        void AddUBools(vector<precUBool> vpub, MBool& res) const;
+        void AddUPoints(std::vector<precUPoint> vpup, MPoint& res) const;
+        void AddUBools(std::vector<precUBool> vpub, MBool& res) const;
 
 /*
 The following methods are necessary for the operator traversed. 
@@ -1609,10 +1611,11 @@ The following methods are necessary for the operator traversed.
 */
  
         void TraverseRegion(Region2& res);
-        void SplitHS(vector<Reg2PreciseHalfSegment>& pHSvector);
-        void CollectHS(vector<Reg2PreciseHalfSegment>& pAllHSvector);
-        void PlaneSweepProjection(vector<Reg2PreciseHalfSegment>& pHSvector);
-        void MergeHS(vector<Reg2PreciseHalfSegment>& pHSvector);
+        void SplitHS(std::vector<Reg2PreciseHalfSegment>& pHSvector);
+        void CollectHS(std::vector<Reg2PreciseHalfSegment>& pAllHSvector);
+        void PlaneSweepProjection(
+                          std::vector<Reg2PreciseHalfSegment>& pHSvector);
+        void MergeHS(std::vector<Reg2PreciseHalfSegment>& pHSvector);
     
 public:
 /*
@@ -1719,8 +1722,9 @@ This is necessary for save scale and translate operations.
 
 */
 
-        void Translate(DateTime* deltaT, double deltaX, double deltaY);
-        void Timeshift(DateTime* deltaT);
+        void Translate(datetime::DateTime* deltaT, 
+                        double deltaX, double deltaY);
+        void Timeshift(datetime::DateTime* deltaT);
         void Scale(double deltaX, double deltaY);
 
         void Final(Intime<Region2>& result);
@@ -1756,7 +1760,7 @@ Copy ~MRegion2~ instance.
 Return the name of the Secondo type.
 
 */
-        static string BasicType() { return "mregion2"; }
+        static std::string BasicType() { return "mregion2"; }
         static const bool checkType(const ListExpr type)
         {
           return listutils::isSymbol(type, BasicType());

@@ -83,6 +83,7 @@ extern QueryProcessor *qp;
 using namespace std;
 using namespace network;
 using namespace jnetwork;
+using namespace temporalnet;
 
 namespace mapmatch {
 
@@ -100,11 +101,11 @@ struct MapMatchMHTInfo : OperatorInfo
         name      = "mapmatchmht";
         signature = Network::BasicType() + " x " +
                     temporalalgebra::MPoint::BasicType() + " -> " +
-                    MGPoint::BasicType();
+                    temporalnet::MGPoint::BasicType();
 
         appendSignature(Network::BasicType() + " x " +
                         FText::BasicType()  + " -> " +
-                        MGPoint::BasicType());
+                        temporalnet::MGPoint::BasicType());
 
         appendSignature(Network::BasicType() + " x " +
                         "(stream (tuple([Lat:real, Lon:real, Time:DateTime "
@@ -112,17 +113,17 @@ struct MapMatchMHTInfo : OperatorInfo
                                         "[,Vdop:real] [,Pdop:real] "
                                         "[,Course:real] [,Speed(m/s):real]])))"
                         + " -> " +
-                        MGPoint::BasicType());
+                        temporalnet::MGPoint::BasicType());
 
         appendSignature(Network::BasicType() + " x " +
                         temporalalgebra::MPoint::BasicType() + " x " +
                         CcReal::BasicType() + " -> " +
-                        MGPoint::BasicType());
+                        temporalnet::MGPoint::BasicType());
 
         appendSignature(Network::BasicType() + " x " +
                         FText::BasicType()  + " x " +
                         CcReal::BasicType() + " -> " +
-                        MGPoint::BasicType());
+                        temporalnet::MGPoint::BasicType());
 
         appendSignature(Network::BasicType() + " x " +
                         CcReal::BasicType() + " x " +
@@ -131,7 +132,7 @@ struct MapMatchMHTInfo : OperatorInfo
                                         "[,Vdop:real] [,Pdop:real] "
                                         "[,Course:real] [,Speed(m/s):real]])))"
                         + CcReal::BasicType() + " -> " +
-                        MGPoint::BasicType());
+                        temporalnet::MGPoint::BasicType());
 
         syntax    = "mapmatchmht ( _ , _ [, _ ] )";
         meaning   = "The operation maps the MPoint or "
@@ -198,14 +199,14 @@ ListExpr OpMapMatchingMHTTypeMap(ListExpr in_xArgs)
                                          AppendLists(
                                              nl->OneElemList(nl->RealAtom(1.0)),
                                              Ind),
-                                         nl->SymbolAtom(MGPoint::BasicType()));
+                          nl->SymbolAtom(temporalnet::MGPoint::BasicType()));
             }
             else
             {
                 // Add indexes
                 return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                          Ind,
-                                         nl->SymbolAtom(MGPoint::BasicType()));
+                            nl->SymbolAtom(temporalnet::MGPoint::BasicType()));
             }
         }
     }
@@ -215,11 +216,11 @@ ListExpr OpMapMatchingMHTTypeMap(ListExpr in_xArgs)
         {
             // Add scaling (default 1.0)
             return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                                     nl->OneElemList(nl->RealAtom(1.0)),
-                                     nl->SymbolAtom(MGPoint::BasicType()));
+                     nl->OneElemList(nl->RealAtom(1.0)),
+                     nl->SymbolAtom(temporalnet::MGPoint::BasicType()));
         }
         else
-            return nl->SymbolAtom(MGPoint::BasicType());
+            return nl->SymbolAtom(temporalnet::MGPoint::BasicType());
     }
 }
 
@@ -402,7 +403,7 @@ int OpMapMatchingMHTMPointValueMapping(Word* args,
 
     // Initialize Result
     result = qp->ResultStorage(in_xSupplier);
-    MGPoint* pRes = static_cast<MGPoint*>(result.addr);
+    temporalnet::MGPoint* pRes = static_cast<MGPoint*>(result.addr);
 
     // get Arguments
     Network *pNetwork = static_cast<Network*>(args[0].addr);
@@ -435,7 +436,7 @@ int OpMapMatchingMHTGPXValueMapping(Word* args,
 
     // Initialize Result
     result = qp->ResultStorage(in_xSupplier);
-    MGPoint* pRes = static_cast<MGPoint*>(result.addr);
+    temporalnet::MGPoint* pRes = static_cast<MGPoint*>(result.addr);
 
     // get Arguments
     Network* pNetwork = static_cast<Network*>(args[0].addr);

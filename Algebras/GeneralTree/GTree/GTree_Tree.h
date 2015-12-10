@@ -307,8 +307,8 @@ gtree::Tree<THeader, TTreeManager>::Tree(
     // disable node cache, while copying the tree structure
     treeMngr->disableCache();
 
-    stack<pair<NodePtr, NodePtr> > remaining;
-    stack<unsigned> indizes;
+    std::stack<std::pair<NodePtr, NodePtr> > remaining;
+    std::stack<unsigned> indizes;
     unsigned curIndex = 0;
 
     // read tree root and create new root
@@ -336,12 +336,12 @@ gtree::Tree<THeader, TTreeManager>::Tree(
         // further entries are remaining
         if (++curIndex < source->entryCount())
         {
-            remaining.push(pair<NodePtr, NodePtr>(source, target));
+            remaining.push(std::pair<NodePtr, NodePtr>(source, target));
             indizes.push(curIndex);
         }
 
         // push chield node to stack
-        remaining.push(pair<NodePtr, NodePtr>(chield, newChield));
+        remaining.push(std::pair<NodePtr, NodePtr>(chield, newChield));
         indizes.push(0);
     }
 
@@ -371,13 +371,13 @@ gtree::Tree<THeader, TTreeManager>::Tree(
             if (++curIndex < source->entryCount())
             {
                 remaining.push(
-                        pair<NodePtr, NodePtr>(source, target));
+                        std::pair<NodePtr, NodePtr>(source, target));
                 indizes.push(curIndex);
             }
 
             // push chield node to stack
             remaining.push(
-                    pair<NodePtr, NodePtr>(chield, newChield));
+                    std::pair<NodePtr, NodePtr>(chield, newChield));
 
             indizes.push(0);
         }

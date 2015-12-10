@@ -86,7 +86,7 @@ class OsmImportOperator
         Tuple * getNext ();
         Tuple * createTuple (const std::vector<std::string> &values);
         void createAttributeTemplates (ListExpr type);
-        const vector<Attribute *> & getAttributeTemplates () const;
+        const std::vector<Attribute *> & getAttributeTemplates () const;
 
         // --- Class-variables
         static const int ELEMENT_TYPE_UNKNOWN;
@@ -103,7 +103,7 @@ class OsmImportOperator
         int m_elementType;
         TupleType* m_tupleType;
         Tuple * m_tupleTemplate;
-        vector<Attribute *> m_attributeTemplates;
+        std::vector<Attribute *> m_attributeTemplates;
 
 };
 

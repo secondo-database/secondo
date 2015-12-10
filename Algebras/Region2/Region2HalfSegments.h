@@ -39,9 +39,9 @@ class Reg2GridHalfSegment;
 class Reg2PrecHalfSegment;
 class Reg2PreciseHalfSegment;
 
-ostream& operator<<(ostream &os, const Reg2GridHalfSegment& hs);
-ostream& operator<<(ostream &os, const Reg2PrecHalfSegment& hs);
-ostream& operator<<(ostream &os, const Reg2PreciseHalfSegment& hs);
+std::ostream& operator<<(std::ostream &os, const Reg2GridHalfSegment& hs);
+std::ostream& operator<<(std::ostream &os, const Reg2PrecHalfSegment& hs);
+std::ostream& operator<<(std::ostream &os, const Reg2PreciseHalfSegment& hs);
 
 /*
 1.1 Class ~Reg2GridHalfSegment~

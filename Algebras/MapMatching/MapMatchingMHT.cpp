@@ -51,6 +51,8 @@ Multiple Hypothesis Technique (MHT)
 
 #include <TemporalAlgebra.h>
 
+using namespace std;
+
 namespace mapmatch {
 
 #define MMTRACE(a) cmsg.file("MMTrace.txt") << a << '\n' << std::flush;

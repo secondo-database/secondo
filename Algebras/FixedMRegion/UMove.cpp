@@ -4,6 +4,9 @@ ll
 */
 #include "UMove.h"
 
+using namespace datetime;
+using namespace std;
+
 namespace temporalalgebra{
 
 /*

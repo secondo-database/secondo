@@ -49,6 +49,8 @@ the classes ~NetworkAdapter~ and ~NetworkSectionAdapter~.
 #include "NetworkSection.h"
 
 using namespace network;
+using namespace std;
+
 namespace mapmatch {
 
 

@@ -98,7 +98,7 @@ public:
      std::cout << "\033[u";
   }
 
-  static string color2string(BashColor c){
+  static std::string color2string(BashColor c){
       switch(c){
          case Black : return "Black";
          case Red   : return "Red";
@@ -114,7 +114,7 @@ public:
        }
   }
 
-  static BashColor string2color( string c){
+  static BashColor string2color( std::string c){
       stringutils::toLower(c);
       if(c=="black") return Black;
       if(c=="blue") return Blue;
@@ -132,7 +132,7 @@ public:
 private:
 
   static std::string getCS(){
-     string c = "\033[";
+     std::string c = "\033[";
      return c;
   }
    

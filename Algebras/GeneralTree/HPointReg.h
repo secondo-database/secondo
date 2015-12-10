@@ -56,20 +56,20 @@ typedef HPoint* (*GetHPointFun)(const void *data);
 Refers the default gethpoint function for the each type constructor.
 
 */
-const string HPOINT_DEFAULT("default");
+const std::string HPOINT_DEFAULT("default");
 
 /*
 This value is returned from "HPointReg::defaultName()"[4], if no default gethpoint function has been found for the resp. type constructor.
 
 */
-const string HPOINT_UNDEFINED("n/a");
+const std::string HPOINT_UNDEFINED("n/a");
 
 /////////////////////////////////////////////////////////////////////
 // constants for the gethpoint function names:
 /////////////////////////////////////////////////////////////////////
 
 // native gethpoint function (e.g. used if only one fun is defined)
-const string  HPOINT_NATIVE("native");
+const std::string  HPOINT_NATIVE("native");
 
 
 
@@ -112,8 +112,8 @@ Constructor (creates a new info object with the given values)
 
 */
     inline HPointInfo(
-            const string &name,
-            const string &typeName,
+            const std::string &name,
+            const std::string &typeName,
             const GetHPointFun gethpoint_Fun,
             char flags = 0)
         : m_name(name), m_gethpointFun(gethpoint_Fun),
@@ -125,7 +125,7 @@ Constructor (creates a new info object with the given values)
 Returns the name of the assigned gethpoint function.
 
 */
-    inline string name() const
+    inline std::string name() const
     { return m_name; }
 
 /*
@@ -153,7 +153,7 @@ Returns the id of the assigned type constructor.
 Returns the name of the assigned type constructor.
 
 */
-    inline string typeName() const
+    inline std::string typeName() const
     { return am->GetTC(m_algebraId, m_typeId)->Name(); }
 
 /*
@@ -167,7 +167,7 @@ Returns the id of the assigned algebra.
 Returns the name of the assigned algebra.
 
 */
-    inline string algebraName() const
+    inline std::string algebraName() const
     { return am->GetAlgebraName(m_algebraId); }
 
 /*
@@ -185,7 +185,7 @@ Returns "true"[4], if the info object is the default info object for the respect
     { return (m_flags & HPOINT_IS_DEFAULT); }
 
 private:
-    string m_name;   // unique name (used for selection)
+    std::string m_name;   // unique name (used for selection)
     int m_algebraId; // algebra-id of the assigned type constructor
     int m_typeId;    // type-id of the assigned type constructor
     GetHPointFun m_gethpointFun; // assigned gethpoint function
@@ -227,36 +227,36 @@ Adds a new "HPointInfo"[4] object.
 Returns the name of the default gethpoint function for the specified type.
 
 */
-    static string defaultName(const string &typeName);
+    static std::string defaultName(const std::string &typeName);
 
 /*
 Returns the specified "HPointInfo"[4] object.
 
 */
     static HPointInfo &getInfo(
-            const string &typeName, const string &gethpoint_FunName);
+            const std::string &typeName, const std::string &gethpoint_FunName);
 
 /*
 Returns "true"[4], if the specified "HPointInfo"[4] object does exist.
 
 */
     static inline bool isDefined(
-            const string &typeName, const string &gethpoint_FunName)
+            const std::string &typeName, const std::string &gethpoint_FunName)
     { return getInfo(typeName, gethpoint_FunName).isDefined(); }
 
 /*
 Returns a string with a list of all defined gethpoint functions for the specified type (could e.g. be used in the type mapping functions in case of errors to show possible values).
 
 */
-    static string definedNames(const string &typeName);
+    static std::string definedNames(const std::string &typeName);
 
 private:
-    typedef map<string, HPointInfo>::iterator hpointIter;
+    typedef std::map<std::string, HPointInfo>::iterator hpointIter;
 
     static bool initialized;
     static HPointInfo defaultInfo;
-    static map<string, HPointInfo> hpointInfos;
-    static map<string, string> defaultNames;
+    static std::map<std::string, HPointInfo> hpointInfos;
+    static std::map<std::string, std::string> defaultNames;
 
 
 

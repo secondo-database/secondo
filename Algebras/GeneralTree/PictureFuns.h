@@ -58,44 +58,44 @@ enum SIM_MATRIX_ID
     SIM_MATRIX_LAB256
 };
 
-const string HSV8("hsv8");
-const string HSV16("hsv16");
-const string HSV32("hsv32");
-const string HSV64("hsv64");
-const string HSV128("hsv128");
-const string HSV256("hsv256");
-const string LAB256("lab256");
+const std::string HSV8("hsv8");
+const std::string HSV16("hsv16");
+const std::string HSV32("hsv32");
+const std::string HSV64("hsv64");
+const std::string HSV128("hsv128");
+const std::string HSV256("hsv256");
+const std::string LAB256("lab256");
 
-const string HSV8_NCOMPR("hsv8_ncompr");
-const string HSV16_NCOMPR("hsv16_ncompr");
-const string HSV32_NCOMPR("hsv32_ncompr");
-const string HSV64_NCOMPR("hsv64_ncompr");
-const string HSV128_NCOMPR("hsv128_ncompr");
-const string HSV256_NCOMPR("hsv256_ncompr");
-const string LAB256_NCOMPR("lab256_ncompr");
+const std::string HSV8_NCOMPR("hsv8_ncompr");
+const std::string HSV16_NCOMPR("hsv16_ncompr");
+const std::string HSV32_NCOMPR("hsv32_ncompr");
+const std::string HSV64_NCOMPR("hsv64_ncompr");
+const std::string HSV128_NCOMPR("hsv128_ncompr");
+const std::string HSV256_NCOMPR("hsv256_ncompr");
+const std::string LAB256_NCOMPR("lab256_ncompr");
 
-const string HSV8_DESCR("hsv-color histogram with 8 bins");
-const string HSV16_DESCR("hsv-color histogram with 16 bins");
-const string HSV32_DESCR("hsv-color histogram with 32 bins");
-const string HSV64_DESCR("hsv-color histogram with 64 bins");
-const string HSV128_DESCR("hsv-color histogram with 128 bins");
-const string HSV256_DESCR("hsv-color histogram with 256 bins");
-const string LAB256_DESCR("lab-color histogram with 256 bins");
+const std::string HSV8_DESCR("hsv-color histogram with 8 bins");
+const std::string HSV16_DESCR("hsv-color histogram with 16 bins");
+const std::string HSV32_DESCR("hsv-color histogram with 32 bins");
+const std::string HSV64_DESCR("hsv-color histogram with 64 bins");
+const std::string HSV128_DESCR("hsv-color histogram with 128 bins");
+const std::string HSV256_DESCR("hsv-color histogram with 256 bins");
+const std::string LAB256_DESCR("lab-color histogram with 256 bins");
 
 
-const string HSV8_NCOMPR_DESCR(
+const std::string HSV8_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 8 bins");
-const string HSV16_NCOMPR_DESCR(
+const std::string HSV16_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 16 bins");
-const string HSV32_NCOMPR_DESCR(
+const std::string HSV32_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 32 bins");
-const string HSV64_NCOMPR_DESCR(
+const std::string HSV64_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 64 bins");
-const string HSV128_NCOMPR_DESCR(
+const std::string HSV128_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 128 bins");
-const string HSV256_NCOMPR_DESCR(
+const std::string HSV256_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 256 bins");
-const string LAB256_NCOMPR_DESCR(
+const std::string LAB256_NCOMPR_DESCR(
         "uncompressed lab-color histogram with 256 bins");
 
 // domain of the histogram values (should be some floating point
@@ -192,8 +192,8 @@ struct HSV
 
     HSV (unsigned char r, unsigned char g, unsigned char b)
     {
-        unsigned char rgbMin = min (min (r, g), b);
-        unsigned char rgbMax = max (max (r, g), b);
+        unsigned char rgbMin = std::min (std::min (r, g), b);
+        unsigned char rgbMax = std::max (std::max (r, g), b);
         unsigned char delta = rgbMax - rgbMin;
 
         // compute h
@@ -823,7 +823,7 @@ PictureFuns::encodeHistogram (
         unsigned size, bool compressData, TFloat threshold)
 {
     TFloat hist[size];
-    list<unsigned char> indizes;
+    std::list<unsigned char> indizes;
     indizes.push_back (0);
     bool isZeroValue = true;
 
@@ -840,7 +840,7 @@ PictureFuns::encodeHistogram (
             indizes.push_back (0);
         }
 
-        if (indizes.back() < numeric_limits<unsigned char>::max())
+        if (indizes.back() < std::numeric_limits<unsigned char>::max())
         {
             ++indizes.back();
         }
@@ -859,7 +859,7 @@ PictureFuns::encodeHistogram (
     unsigned sum2 = 0; // sum of all entries
     bool evenValue = false;
 
-    for (list<unsigned char>::iterator it = indizes.begin();
+    for (std::list<unsigned char>::iterator it = indizes.begin();
             it != indizes.end(); ++it)
     {
         if (evenValue)
@@ -877,7 +877,7 @@ PictureFuns::encodeHistogram (
     memcpy (result, &indexCount, sizeof (int));
     int offset = sizeof (int);
 
-    for (list<unsigned char>::iterator it = indizes.begin();
+    for (std::list<unsigned char>::iterator it = indizes.begin();
             it != indizes.end(); ++it)
     {
         unsigned char index = *it;
@@ -888,7 +888,7 @@ PictureFuns::encodeHistogram (
     // copy non zero histogram values to result buffer
     unsigned histPos = 0;
 
-    list<unsigned char>::iterator it = indizes.begin();
+    std::list<unsigned char>::iterator it = indizes.begin();
 
     while (histPos < size)
     {

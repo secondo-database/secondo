@@ -44,15 +44,15 @@ This auxiliary function is used in the search methods of the mtree class and ret
 template <typename FloatType>
 inline bool nearlyEqual(FloatType a, FloatType b)
 {
-    FloatType infinity = numeric_limits<FloatType>::infinity();
+    FloatType infinity = std::numeric_limits<FloatType>::infinity();
     if (a == infinity)
         return (b == infinity);
     else if (b == infinity)
         return false;
 
-    const FloatType scale = max(fabs(a), fabs(b));
+    const FloatType scale = std::max(fabs(a), fabs(b));
     return  fabs(a - b) <=
-            scale * 3 * numeric_limits<FloatType>::epsilon();
+            scale * 3 * std::numeric_limits<FloatType>::epsilon();
 }
 
 /*
@@ -62,10 +62,10 @@ Method ~registerNodePrototypes~:
 void MTree::registerNodePrototypes()
 {
     addNodePrototype(new InternalNode(
-        new NodeConfig(config.internalNodeConfig)));
+        new gtree::NodeConfig(config.internalNodeConfig)));
 
     addNodePrototype(new LeafNode(
-        new NodeConfig(config.leafNodeConfig)));
+        new gtree::NodeConfig(config.leafNodeConfig)));
 }
 
 /*
@@ -78,7 +78,7 @@ void MTree::initialize()
         treeMngr->enableCache();
 
     config = MTreeConfigReg::getConfig(header.configName);
-    df_info = DistfunReg::getInfo(header.distfunName, header.dataId);
+    df_info = gta::DistfunReg::getInfo(header.distfunName, header.dataId);
     splitpol = new Splitpol(
         config.promoteFun, config.partitionFun, df_info.distfun());
 }
@@ -88,9 +88,9 @@ Method ~initialize~ :
 
 */
 void MTree::initialize(
-        DistDataId dataId,
-        const string &distfunName,
-        const string &configName)
+        gta::DistDataId dataId,
+        const std::string &distfunName,
+        const std::string &configName)
 {
     if (isInitialized())
         return;
@@ -114,7 +114,7 @@ void MTree::split()
     while (!done)
     {
         // create new node on current level
-        NodePtr newNode(createNeighbourNode(
+        gtree::NodePtr newNode(createNeighbourNode(
             treeMngr->curNode()->isLeaf() ? LEAF : INTERNAL));
 
         // update node count, split node
@@ -151,7 +151,7 @@ void MTree::split()
             {
                 // update dist from promoted entries to their parents
                 double distL, distR;
-                DistData* data =
+                gta::DistData* data =
                     treeMngr->parentEntry<InternalNode>()->data();
                 df_info.dist(promL->data(), data, distL);
                 df_info.dist(promR->data(), data, distR);
@@ -180,7 +180,7 @@ MTree::insert(Attribute* attr, TupleId tupleId)
     {
         entry = new LeafEntry(tupleId, df_info.getData(attr));
     }
-    catch (bad_alloc&)
+    catch (std::bad_alloc&)
     {
         cmsg.warning() << "Not enough memory to create new entry, "
                         << "disabling node cache... "
@@ -192,7 +192,7 @@ MTree::insert(Attribute* attr, TupleId tupleId)
         {
             entry = new LeafEntry(tupleId, df_info.getData(attr));
         }
-        catch (bad_alloc&)
+        catch (std::bad_alloc&)
         {
             cmsg.error() << "Not enough memory to create new entry!"
                         << endl;
@@ -207,7 +207,7 @@ Method ~insert~ ("DistData"[4] objects):
 
 */
 void
-MTree::insert(DistData* data, TupleId tupleId)
+MTree::insert(gta::DistData* data, TupleId tupleId)
 {
     // create new leaf entry
     LeafEntry* entry;
@@ -215,7 +215,7 @@ MTree::insert(DistData* data, TupleId tupleId)
     {
         entry = new LeafEntry(tupleId, data);
     }
-    catch (bad_alloc&)
+    catch (std::bad_alloc&)
     {
         cmsg.warning() << "Not enough memory to create new entry, "
                         << "disabling node cache... "
@@ -227,7 +227,7 @@ MTree::insert(DistData* data, TupleId tupleId)
         {
             entry = new LeafEntry(tupleId, data);
         }
-        catch (bad_alloc&)
+        catch (std::bad_alloc&)
         {
             cmsg.error() << "Not enough memory to create new entry!"
                         << endl;
@@ -250,7 +250,7 @@ void MTree::insert(LeafEntry *entry, TupleId tupleId)
     #ifdef __MTREE_PRINT_INSERT_INFO
     if ((header.entryCount % insertInfoInterval) == 0)
     {
-        const string clearline = "\r" + string(70, ' ') + "\r";
+        const std::string clearline = "\r" + std::string(70, ' ') + "\r";
         cmsg.info() << clearline
                     << header.entryCount << " entries, "
                     << header.internalCount << "/"
@@ -270,8 +270,8 @@ void MTree::insert(LeafEntry *entry, TupleId tupleId)
     while (!treeMngr->curNode()->isLeaf())
     { /* find best path (follow the entry with the nearest dist to
          new entry or the smallest covering radius increase) */
-        list<SearchBestPathEntry> entriesIn;
-        list<SearchBestPathEntry> entriesOut;
+        std::list<SearchBestPathEntry> entriesIn;
+        std::list<SearchBestPathEntry> entriesOut;
 
         #ifdef __MTREE_DEBUG
         if (treeMngr->curNode()->isLeaf())
@@ -296,13 +296,13 @@ void MTree::insert(LeafEntry *entry, TupleId tupleId)
                     SearchBestPathEntry(node->entry(i), dist, i));
             }
         }
-        list<SearchBestPathEntry>::iterator best;
+        std::list<SearchBestPathEntry>::iterator best;
 
         if (!entriesIn.empty())
         { // select entry with nearest dist to new entry
             // (covering radius must not be increased)
             best = entriesIn.begin();
-            list<SearchBestPathEntry>::iterator it;
+            std::list<SearchBestPathEntry>::iterator it;
             for (it = entriesIn.begin(); it != entriesIn.end(); ++it)
             {
                 if (it->dist < best->dist)
@@ -319,7 +319,7 @@ void MTree::insert(LeafEntry *entry, TupleId tupleId)
             double minDist = dist;
 
             best = entriesOut.begin();
-            list<SearchBestPathEntry>::iterator it;
+            std::list<SearchBestPathEntry>::iterator it;
             for (it = entriesIn.begin(); it != entriesIn.end(); ++it)
             {
                 df_info.dist(it->entry->data(), entry->data(), dist);
@@ -360,17 +360,17 @@ Method ~rangeSearch~ :
 
 */
 void MTree::rangeSearch(
-        DistData *data, const double &rad,
-        list<TupleId> *results)
+        gta::DistData *data, const double &rad,
+        std::list<TupleId> *results)
 {
   #ifdef __MTREE_DEBUG
   assert(isInitialized());
   #endif
 
   results->clear();
-  list< pair<double, TupleId> > resultList;
+  std::list< std::pair<double, TupleId> > resultList;
 
-  stack<RemainingNodesEntry> remainingNodes;
+  std::stack<RemainingNodesEntry> remainingNodes;
   remainingNodes.push(RemainingNodesEntry(header.root, 0));
 
   #ifdef __MTREE_ANALYSE_STATS
@@ -380,7 +380,7 @@ void MTree::rangeSearch(
   unsigned distComputations = 0;
   #endif
 
-  NodePtr node;
+  gtree::NodePtr node;
 
   while(!remainingNodes.empty())
   {
@@ -414,7 +414,7 @@ void MTree::rangeSearch(
           if ((distQueryCurrent < rad) ||
               nearlyEqual<double>(distQueryCurrent, rad))
           {
-            resultList.push_back(pair<double, TupleId>(
+            resultList.push_back(std::pair<double, TupleId>(
                 distQueryCurrent, (*it)->tid()));
           }
         } // if
@@ -451,7 +451,7 @@ void MTree::rangeSearch(
   delete data;
 
   resultList.sort();
-  list<pair<double, TupleId> >::iterator it = resultList.begin();
+  std::list<std::pair<double, TupleId> >::iterator it = resultList.begin();
   while (it != resultList.end())
   {
     results->push_back(it->second);
@@ -494,7 +494,7 @@ Method ~nnSearch~ :
 
 */
 void MTree::nnSearch(
-        DistData *data, int nncount, list<TupleId> *results)
+        gta::DistData *data, int nncount, std::list<TupleId> *results)
 {
   #ifdef __MTREE_DEBUG
   assert(isInitialized());
@@ -503,14 +503,14 @@ void MTree::nnSearch(
   results->clear();
 
   // init nearest neighbours array
-  list<NNEntry> nearestNeighbours;
+  std::list<NNEntry> nearestNeighbours;
   for (int i = 0; i < nncount; ++i)
   {
     nearestNeighbours.push_back(
-        NNEntry(0, numeric_limits<double>::infinity()));
+        NNEntry(0, std::numeric_limits<double>::infinity()));
   }
 
-  vector<RemainingNodesEntryNNS> remainingNodes;
+  std::vector<RemainingNodesEntryNNS> remainingNodes;
 
   #ifdef __MTREE_ANALYSE_STATS
   unsigned entryCount = 0;
@@ -525,7 +525,7 @@ void MTree::nnSearch(
   while(!remainingNodes.empty())
   {
     // read node with smallest minDist
-    NodePtr node = getNode(remainingNodes.front().nodeId);
+    gtree::NodePtr node = getNode(remainingNodes.front().nodeId);
     double distQueryParent =
             remainingNodes.front().distQueryParent;
     double rad = nearestNeighbours.back().dist;
@@ -537,7 +537,7 @@ void MTree::nnSearch(
 
     // remove entry from remainingNodes heap
     pop_heap(remainingNodes.begin(), remainingNodes.end(),
-              greater<RemainingNodesEntryNNS>());
+              std::greater<RemainingNodesEntryNNS>());
     remainingNodes.pop_back();
 
     if (node->isLeaf())
@@ -562,7 +562,7 @@ void MTree::nnSearch(
                nearlyEqual<double>(distQueryCurrent, rad))
           {
 
-            list<NNEntry>::iterator nnIter;
+            std::list<NNEntry>::iterator nnIter;
             nnIter = nearestNeighbours.begin();
 
             while ((distQueryCurrent > nnIter->dist) &&
@@ -587,8 +587,8 @@ void MTree::nnSearch(
                 }
                 else
                 {
-                  swap(dist, nnIter->dist);
-                  swap(tid, nnIter->tid);
+                  std::swap(dist, nnIter->dist);
+                  std::swap(tid, nnIter->tid);
                 }
                 ++nnIter;
               }
@@ -596,14 +596,14 @@ void MTree::nnSearch(
 
             rad = nearestNeighbours.back().dist;
 
-            vector<RemainingNodesEntryNNS>::iterator
+            std::vector<RemainingNodesEntryNNS>::iterator
                 it = remainingNodes.begin();
 
             while (it != remainingNodes.end())
             {
               if ((*it).minDist > rad)
               {
-                swap(*it, remainingNodes.back());
+                std::swap(*it, remainingNodes.back());
                 remainingNodes.pop_back();
               }
               else
@@ -611,7 +611,7 @@ void MTree::nnSearch(
             }
             make_heap(remainingNodes.begin(),
                        remainingNodes.end(),
-                       greater<RemainingNodesEntryNNS>());
+                       std::greater<RemainingNodesEntryNNS>());
 
           } // if
         } // if
@@ -636,7 +636,7 @@ void MTree::nnSearch(
           df_info.dist(data, (*it)->data(), newDistQueryParent);
 
           double minDist, maxDist;
-          minDist = max(newDistQueryParent - (*it)->rad(),
+          minDist = std::max(newDistQueryParent - (*it)->rad(),
                         static_cast<double>(0));
           maxDist = newDistQueryParent + (*it)->rad();
 
@@ -647,12 +647,12 @@ void MTree::nnSearch(
             remainingNodes.push_back(RemainingNodesEntryNNS(
                 (*it)->chield(), newDistQueryParent, minDist));
             push_heap(remainingNodes.begin(), remainingNodes.end(),
-                greater<RemainingNodesEntryNNS>());
+                std::greater<RemainingNodesEntryNNS>());
 
             if (maxDist < rad)
             {
               // update nearesNeighbours
-              list<NNEntry>::iterator nnIter;
+              std::list<NNEntry>::iterator nnIter;
               nnIter = nearestNeighbours.begin();
 
               while ((maxDist > (*nnIter).dist) &&
@@ -675,7 +675,7 @@ void MTree::nnSearch(
 
               rad = nearestNeighbours.back().dist;
 
-              vector<RemainingNodesEntryNNS>::iterator it =
+              std::vector<RemainingNodesEntryNNS>::iterator it =
                   remainingNodes.begin();
 
               while (it != remainingNodes.end())
@@ -689,7 +689,7 @@ void MTree::nnSearch(
               }
               make_heap(remainingNodes.begin(),
                          remainingNodes.end(),
-                         greater<RemainingNodesEntryNNS>());
+                         std::greater<RemainingNodesEntryNNS>());
             }
           }
         }
@@ -698,7 +698,7 @@ void MTree::nnSearch(
   } // while
 
   delete data;
-  list< NNEntry >::iterator it;
+  std::list< NNEntry >::iterator it;
   for (it = nearestNeighbours.begin();
         it != nearestNeighbours.end(); ++it)
   {

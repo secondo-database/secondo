@@ -3,7 +3,9 @@ This class is a FixedMRegion.
 
 */
 #include "FixedMRegion.h"
+
 using namespace std;
+using namespace datetime;
 
 namespace temporalalgebra{
 

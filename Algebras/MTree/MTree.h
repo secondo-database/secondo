@@ -162,7 +162,7 @@ struct Header
 
     STRING_T distfunName; // name of the used metric
     STRING_T configName;  // name of the MTreeConfig object
-    DistDataId dataId;    // id of the used distdata type
+    gta::DistDataId dataId;    // id of the used distdata type
     bool initialized;     // true, if the mtree has been initialized
 };
 
@@ -224,9 +224,9 @@ Initializes a new created m-tree. This method must be called, before a new tree 
 
 */
     void initialize(
-            DistDataId dataId,
-            const string &distfunName,
-            const string &configName);
+            gta::DistDataId dataId,
+            const std::string &distfunName,
+            const std::string &configName);
 
 /*
 Creates a new LeafEntry from "attr "[4] and inserts it into the mtree.
@@ -238,7 +238,7 @@ Creates a new LeafEntry from "attr "[4] and inserts it into the mtree.
 Creates a new LeafEntry from "data"[4] and inserts it into the mtree.
 
 */
-    void insert(DistData* data, TupleId tupleId);
+    void insert(gta::DistData* data, TupleId tupleId);
 
 /*
 Inserts a new entry into the mtree.
@@ -253,7 +253,7 @@ Returns all entries, wich have a maximum distance of "rad"[4] to the given "Attr
 */
     inline void rangeSearch(
             Attribute *attr, const double &rad,
-            list<TupleId> *results)
+            std::list<TupleId> *results)
     { rangeSearch(df_info.getData(attr), rad, results); }
 
 /*
@@ -261,8 +261,8 @@ Returns all entries, wich have a maximum distance of "rad"[4] to the given "Dist
 
 */
     void rangeSearch(
-            DistData *data, const double &rad,
-            list<TupleId> *results);
+            gta::DistData *data, const double &rad,
+            std::list<TupleId> *results);
 
 
 /*
@@ -270,7 +270,7 @@ Returns the "nncount"[4] nearest neighbours ot the "Attribute"[4] object in the 
 
 */
     inline void nnSearch(
-            Attribute *attr, int nncount, list<TupleId> *results)
+            Attribute *attr, int nncount, std::list<TupleId> *results)
     { nnSearch(df_info.getData(attr), nncount, results); }
 
 /*
@@ -278,41 +278,41 @@ Returns the "nncount"[4] nearest neighbours ot the "DistData"[4] object in the r
 
 */
     void nnSearch(
-            DistData *data, int nncount, list<TupleId> *results);
+            gta::DistData *data, int nncount, std::list<TupleId> *results);
 
 /*
 Returns the name of the assigned type constructor.
 
 */
-    inline string typeName()
+    inline std::string typeName()
     { return df_info.data().typeName(); }
 
 /*
 Returns the name of the assigned distance function.
 
 */
-    inline string distfunName()
+    inline std::string distfunName()
     { return header.distfunName; }
 
 /*
 Returns the name of the assigned distdata type.
 
 */
-    inline string dataName()
+    inline std::string dataName()
     { return df_info.data().name(); }
 
 /*
 Returns the id of the assigned distdata type.
 
 */
-    inline DistDataId& dataId()
+    inline gta::DistDataId& dataId()
     { return header.dataId; }
 
 /*
 Returns the name of the used "MTreeConfig"[4] object.
 
 */
-    inline string configName()
+    inline std::string configName()
     { return header.configName; }
 
 /*
@@ -350,14 +350,14 @@ Prints some infos about the tree to cmsg.info().
         cmsg.send();
     }
 
-    static const string BasicType() { return "mtree"; }
+    static const std::string BasicType() { return "mtree"; }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
 
 private:
     Splitpol* splitpol;  // reference to chosen split policy
-    DistfunInfo df_info; // assigned DistfunInfo object
+    gta::DistfunInfo df_info; // assigned DistfunInfo object
     MTreeConfig config;  // assigned MTreeConfig object
 
 /*

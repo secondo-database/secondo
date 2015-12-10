@@ -41,6 +41,7 @@ January-May 2008, Mirko Dibbert
 #include "Algorithms.h"
 
 using namespace gta;
+using namespace std;
 
 /*
 Initialize static members:

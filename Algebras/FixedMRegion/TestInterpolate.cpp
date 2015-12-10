@@ -5,6 +5,10 @@ This class is a FixedMRegion.
 #include "TestInterpolate.h"
 
 
+using namespace std;
+using namespace datetime;
+
+
 namespace temporalalgebra{
 
 void TestInterpolate::testcalcMasspoint(){

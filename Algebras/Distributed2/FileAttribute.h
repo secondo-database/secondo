@@ -47,14 +47,15 @@ class FileAttribute{
   public:
 
    static bool saveAttribute(ListExpr type, Attribute* value, 
-                             const string& fileName);
+                             const std::string& fileName);
 
-   static bool saveAttribute(const string&  type, Attribute* value, 
-                             const string& fileName);
+   static bool saveAttribute(const std::string&  type, Attribute* value, 
+                             const std::string& fileName);
 
-   static ListExpr getType(const string& filename);
+   static ListExpr getType(const std::string& filename);
 
-   static Attribute* restoreAttribute(ListExpr& type, const string& fileName);
+   static Attribute* restoreAttribute(ListExpr& type, 
+                                      const std::string& fileName);
 };
 
 #endif

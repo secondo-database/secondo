@@ -73,102 +73,122 @@ struct ivCmp {
  
 class Tools {
  public:
-  static void intersect(const vector<set<TupleId> >& tidsets, 
-                        set<TupleId>& result);
-  static void intersectPairs(vector<set<pair<TupleId, int> > >& posVec, 
-                             set<pair<TupleId, int> >*& result);
-  static void uniteLast(unsigned int size, vector<set<TupleId> >& tidsets);
+  static void intersect(const std::vector<std::set<TupleId> >& tidsets, 
+                        std::set<TupleId>& result);
+  static void intersectPairs(
+               std::vector<std::set<std::pair<TupleId, int> > >& posVec, 
+               std::set<std::pair<TupleId, int> >*& result);
+  static void uniteLast(unsigned int size, 
+                        std::vector<std::set<TupleId> >& tidsets);
   static void uniteLastPairs(unsigned int size, 
-                             vector<set<pair<TupleId, int> > >& posVec);
-  static void filterPairs(set<pair<TupleId, int> >* pairs,
-                    const set<TupleId>& pos, set<pair<TupleId, int> >*& result);
-  static string int2String(int i);
-  static int str2Int(string const &text);
-  static void deleteSpaces(string& text);
-  static string setToString(const set<string>& input);
-  static int prefixCount(string str, set<string> strings);
-  static void splitPattern(string& input, vector<string>& result);
-  static char* convert(string arg);
-  static void eraseQM(string& arg); // QM = quotation marks
-  static void addQM(string& arg);
-  static void simplifyRegEx(string &regEx);
-  static set<unsigned int>** createSetMatrix(unsigned int dim1, 
+              std::vector<std::set<std::pair<TupleId, int> > >& posVec);
+  static void filterPairs(std::set<std::pair<TupleId, int> >* pairs,
+                    const std::set<TupleId>& pos, 
+                    std::set<std::pair<TupleId, int> >*& result);
+  static std::string int2String(int i);
+  static int str2Int(std::string const &text);
+  static void deleteSpaces(std::string& text);
+  static std::string setToString(const std::set<std::string>& input);
+  static int prefixCount(std::string str, std::set<std::string> strings);
+  static void splitPattern(std::string& input, 
+                           std::vector<std::string>& result);
+  static char* convert(std::string arg);
+  static void eraseQM(std::string& arg); // QM = quotation marks
+  static void addQM(std::string& arg);
+  static void simplifyRegEx(std::string &regEx);
+  static std::set<unsigned int>** createSetMatrix(unsigned int dim1, 
                                              unsigned int dim2);
-  static void deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1);
-  static int getKey(const string& type, Tuple *tuple = 0, 
+  static void deleteSetMatrix(std::set<unsigned int>** &victim, 
+                              unsigned int dim1);
+  static int getKey(const std::string& type, Tuple *tuple = 0, 
                     ListExpr tupleType = 0);
-  static string getDataType(const int key);
-  static DataType getDataType(const string& type);
+  static std::string getDataType(const int key);
+  static DataType getDataType(const std::string& type);
   static DataType getDataType(TupleType *ttype, const int attrno);
-  static string getTypeName(TupleType *ttype, const int attrno);
+  static std::string getTypeName(TupleType *ttype, const int attrno);
   static int getNoComponents(Relation *rel, const TupleId tid, 
-                             const string &type, const int attrno);
+                             const std::string &type, const int attrno);
   static bool isSymbolicType(ListExpr typeList);
-  static string extractVar(const string& input);
-  static string extendDate(string input, const bool start);
-  static bool checkSemanticDate(const string &text, 
+  static std::string extractVar(const std::string& input);
+  static std::string extendDate(std::string input, const bool start);
+  static bool checkSemanticDate(const std::string &text, 
                                 const temporalalgebra::SecInterval &uIv,
                                 const bool resultNeeded);
-  static bool checkDaytime(const string& text, 
+  static bool checkDaytime(const std::string& text, 
                            const temporalalgebra::SecInterval& uIv);
-  static bool isInterval(const string& str);
-  static void stringToInterval(const string& str, 
+  static bool isInterval(const std::string& str);
+  static void stringToInterval(const std::string& str, 
                                temporalalgebra::SecInterval& result);
   static bool orderCheckInsert(temporalalgebra::Range<CcReal> *range,
                                const temporalalgebra::Interval<CcReal> &iv);
-  static bool parseInterval(const string& input, bool &isEmpty, int &pos,
+  static bool parseInterval(const std::string& input, bool &isEmpty, int &pos,
                             int &endpos, Word &value);
-  static bool isSetRel(const string& input, int &pos, int &endpos, 
+  static bool isSetRel(const std::string& input, int &pos, int &endpos, 
                        SetRel &setrel);
-  static bool parseBoolorObj(const string& input, bool &isEmpty, int &pos, 
+  static bool parseBoolorObj(const std::string& input, bool &isEmpty, int &pos, 
                              int &endpos, Word &value);
-  static bool checkAttrType(const string& typeName, const Word &value);
-  static bool isRelevantAttr(const string& name);
+  static bool checkAttrType(const std::string& typeName, const Word &value);
+  static bool isRelevantAttr(const std::string& name);
   static bool isMovingAttr(const ListExpr ttype, const int attrno);
-  static vector<pair<int, string> > getRelevantAttrs(TupleType *ttype, 
-                                      const int majorAttrNo, int& majorValueNo);
-  static void deleteValue(Word &value, const string &type);
-  static void queryTrie(InvertedFile *inv, string str, 
-                        vector<set<int> > &result);
-  static void queryTrie(InvertedFile *inv, pair<string, unsigned int> place, 
-                        vector<set<int> > &result);
+  static std::vector<std::pair<int, std::string> > getRelevantAttrs(
+                       TupleType *ttype, 
+                       const int majorAttrNo, int& majorValueNo);
+  static void deleteValue(Word &value, const std::string &type);
+  static void queryTrie(InvertedFile *inv, std::string str, 
+                        std::vector<std::set<int> > &result);
+  static void queryTrie(InvertedFile *inv, std::pair<std::string, 
+                        unsigned int> place, 
+                        std::vector<std::set<int> > &result);
   static void queryBtree(BTree_t<LongInt> *btree, 
                          temporalalgebra::Interval<CcReal> &iv,
-                         vector<set<int> > &result);
+                         std::vector<std::set<int> > &result);
   static void queryRtree1(RTree1TLLI *rtree, 
                           temporalalgebra::Interval<CcReal> &iv,
-                          vector<set<int> > &result);
+                          std::vector<std::set<int> > &result);
   static void queryRtree2(RTree2TLLI *rtree, Rectangle<2> &box,
-                          vector<set<int> > &result);
-  static bool timesMatch(const temporalalgebra::Interval<DateTime>& iv, 
-                         const set<string>& ivs);
-  static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
+                          std::vector<std::set<int> > &result);
+  static bool timesMatch(
+                   const temporalalgebra::Interval<datetime::DateTime>& iv, 
+                   const std::set<std::string>& ivs);
+  static std::pair<QueryProcessor*, OpTree> processQueryStr(
+                           std::string query, int type);
   // static Word evaluate(string input);
   static bool createTransitions(const bool dortmund,
-                                map<string, set<string> >& transitions);
+                                std::map<std::string, 
+                                std::set<std::string> >& transitions);
   static bool createLabelSequence(const int size, const int number,
-                    const bool dortmund, map<string, set<string> >& transitions,
-                    vector<string>& result);
-  static void printNfa(vector<map<int, int> > &nfa, set<int> &finalStates);
-  static void makeNFApersistent(vector<map<int, int> > &nfa,
-     set<int> &finalStates, DbArray<NFAtransition> &trans, DbArray<int> &fs, 
-     map<int, int> &final2Pat);
+          const bool dortmund, std::map<std::string, 
+          std::set<std::string> >& transitions,
+          std::vector<std::string>& result);
+  static void printNfa(std::vector<std::map<int, int> > &nfa, 
+                       std::set<int> &finalStates);
+  static void makeNFApersistent(std::vector<std::map<int, int> > &nfa,
+     std::set<int> &finalStates, DbArray<NFAtransition> &trans, 
+     DbArray<int> &fs, 
+     std::map<int, int> &final2Pat);
   static void createNFAfromPersistent(DbArray<NFAtransition> &trans, 
-          DbArray<int> &fs, vector<map<int, int> > &nfa, set<int> &finalStates);
-  static void printBinding(const map<string, pair<int, int> > &b);
-  static double distance(const string& str1, const string& str2, const int fun);
-  static double distance(const pair<string, unsigned int>& val1, 
-                       const pair<string, unsigned int>& val2, const int fun);
-  static double distance(const set<string>& values1, const set<string>& values2,
+          DbArray<int> &fs, std::vector<std::map<int, int> > &nfa, 
+          std::set<int> &finalStates);
+  static void printBinding(const std::map<std::string, 
+                           std::pair<int, int> > &b);
+  static double distance(const std::string& str1, const std::string& str2, 
+                         const int fun);
+  static double distance(const std::pair<std::string, unsigned int>& val1, 
+                       const std::pair<std::string, unsigned int>& val2, 
+                       const int fun);
+  static double distance(const std::set<std::string>& values1, 
+                         const std::set<std::string>& values2,
                          const int fun, const int labelFun);
-  static double distance(set<pair<string, unsigned int> >& values1, 
-                         set<pair<string, unsigned int> >& values2,
+  static double distance(std::set<std::pair<std::string, 
+                         unsigned int> >& values1, 
+                         std::set<std::pair<std::string, 
+                         unsigned int> >& values2,
                          const int fun, const int labelFun);
   
   template<class T>
-  static bool relationHolds(const set<T>& s1, const set<T>& s2,
+  static bool relationHolds(const std::set<T>& s1, const std::set<T>& s2,
                             const SetRel rel) {
-    set<T> temp;
+    std::set<T> temp;
     switch (rel) {
       case STANDARD: {
         set_difference(s1.begin(), s1.end(), s2.begin(), s2.end(), 
@@ -225,9 +245,9 @@ class Tools {
   }
   
   static bool relationHolds(const temporalalgebra::Range<CcReal>& range, 
-                           const set<int>& intSet,
+                           const std::set<int>& intSet,
                             const SetRel rel) {
-    set<int>::iterator it;
+    std::set<int>::iterator it;
     switch (rel) {
       case STANDARD: {
         for (it = intSet.begin(); it != intSet.end(); it++) {
@@ -338,7 +358,7 @@ class Tools {
     }
   }
   
-  static bool relationHolds(const set<bool> &boolSet, const bool b, 
+  static bool relationHolds(const std::set<bool> &boolSet, const bool b, 
                             const SetRel rel) {
     switch (rel) {
       case STANDARD: {

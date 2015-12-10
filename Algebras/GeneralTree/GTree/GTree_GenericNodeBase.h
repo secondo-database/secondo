@@ -62,7 +62,7 @@ class GenericNodeBase
 {
 
 public:
-    typedef typename vector<TEntry*>::iterator iterator;
+    typedef typename std::vector<TEntry*>::iterator iterator;
     typedef TEntry entryType;
 
 /*
@@ -72,7 +72,7 @@ Constructor
     inline GenericNodeBase(
             NodeConfigPtr config, unsigned emptySize)
         : NodeBase(config, emptySize + sizeof(size_t)),
-          m_entries(new vector<TEntry*>())
+          m_entries(new std::vector<TEntry*>())
     {}
 
 /*
@@ -80,7 +80,7 @@ Default copy constructor.
 
 */
     inline GenericNodeBase(const GenericNodeBase& node)
-        : NodeBase(node), m_entries(new vector<TEntry*>())
+        : NodeBase(node), m_entries(new std::vector<TEntry*>())
     {
         // copy entry vector
         for (iterator it = node.begin(); it != node.end(); ++it)
@@ -130,7 +130,7 @@ Returns an iterator to the i-th entry.
 Returns the entry vector for direct access. If entries has been added or removed from the vector, the "recomputeSize"[4] method has to be called.
 
 */
-    inline vector<TEntry*> *entries() const
+    inline std::vector<TEntry*> *entries() const
     { return m_entries; }
 
 /*
@@ -239,7 +239,7 @@ Writes the node to buffer and increses offset.
 */
     virtual void write(char *const buffer, int &offset) const;
 
-    vector<TEntry*> *m_entries; // entry vector
+    std::vector<TEntry*> *m_entries; // entry vector
 }; // GenericNodeBase
 
 

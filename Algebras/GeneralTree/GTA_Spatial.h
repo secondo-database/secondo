@@ -290,7 +290,7 @@ Returns the bounding box of "this"[4].
 */
     HRect *bbox() const;
 
-    static const string BasicType() { return "hpoint"; }
+    static const std::string BasicType() { return "hpoint"; }
     static const bool checkType(const ListExpr type){
        return listutils::isSymbol(type, BasicType());
     }
@@ -556,8 +556,8 @@ Returns the intersection between "this"[4] and "r"[4].
         GTA_SPATIAL_DOM lbVect[dim()], ubVect[dim()];
         for(unsigned i = 0; i < dim(); ++i)
         {
-            lbVect[i] = max(lb(i), r->lb(i));
-            ubVect[i] = min(ub(i), r->ub(i));
+            lbVect[i] = std::max(lb(i), r->lb(i));
+            ubVect[i] = std::min(ub(i), r->ub(i));
         }
         return HRect(dim(), lbVect, ubVect);
     }
@@ -571,8 +571,8 @@ Returns the union of "this"[4] and "r"[4].
         GTA_SPATIAL_DOM lbVect[dim()], ubVect[dim()];
         for(unsigned i = 0; i < dim(); ++i)
         {
-            lbVect[i] = min(lb(i), r->lb(i));
-            ubVect[i] = max(ub(i), r->ub(i));
+            lbVect[i] = std::min(lb(i), r->lb(i));
+            ubVect[i] = std::max(ub(i), r->ub(i));
         }
         return HRect(dim(), lbVect, ubVect);
     }
@@ -585,8 +585,8 @@ Replaces "this"[4] with the union of "this"[4] and "r"[4].
     {
         for (unsigned i=0; i < dim(); ++i)
         {
-            m_lbVect[i] = min(lb(i), r->lb(i));
-            m_ubVect[i] = max(ub(i), r->ub(i));
+            m_lbVect[i] = std::min(lb(i), r->lb(i));
+            m_ubVect[i] = std::max(ub(i), r->ub(i));
         }
     }
 
@@ -649,7 +649,7 @@ Returns the bounding box of "this"[4].
     inline HRect *bbox() const
     { return new HRect(*this); }
 
-      static const string BasicType() { return "hrect"; }
+      static const std::string BasicType() { return "hrect"; }
       static const bool checkType(const ListExpr type){
         return listutils::isSymbol(type, BasicType());
       }

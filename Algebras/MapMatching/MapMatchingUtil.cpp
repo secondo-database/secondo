@@ -47,6 +47,8 @@ utilities for map matching
 #include <stdio.h>
 #include <limits>
 
+using namespace std;
+using namespace network;
 
 namespace mapmatch {
 
