@@ -68,7 +68,7 @@ class Member{
   
 public:
   //   int* point;
-  list<MEMB_TYP_CLASS*> epsNeighborhood;
+  std::list<MEMB_TYP_CLASS*> epsNeighborhood;
   
   bool innerPnt; //if epsNeighborhood > minPts
   
@@ -130,7 +130,8 @@ public:
     if(innerPnt || densityReachable){
       retVal=true;
     }else{
-      typename list<MEMB_TYP_CLASS*>::iterator it = epsNeighborhood.begin();
+      typename std::list<MEMB_TYP_CLASS*>::iterator 
+              it = epsNeighborhood.begin();
       while(it!=epsNeighborhood.end() && !retVal){
         if((*it)->updateInnerPnt(minPts)){
           retVal=true;
@@ -150,7 +151,7 @@ public:
 
 */
   bool existNeighbor(MEMB_TYP_CLASS* memb){
-    typename list<MEMB_TYP_CLASS*>::iterator it = epsNeighborhood.begin();
+    typename std::list<MEMB_TYP_CLASS*>::iterator it = epsNeighborhood.begin();
     bool exist = false;
     if(this == memb){
       exist=true;
@@ -176,7 +177,7 @@ public:
  determines if return the beginning or end of list
 
 */
-  typename list<MEMB_TYP_CLASS*>::iterator getEpsNeighborhood(bool begin){
+  typename std::list<MEMB_TYP_CLASS*>::iterator getEpsNeighborhood(bool begin){
     if(begin)
       return epsNeighborhood.begin();
     else
@@ -285,7 +286,7 @@ public:
       return 0.0;
     }
     if(!point->IsDefined() || !(memb->getPoint())->IsDefined()){
-      return numeric_limits<double>::max();
+      return std::numeric_limits<double>::max();
     }
     double retval= memb->getXVal() - getXVal();
     return retval<0 ? -retval:retval;
@@ -297,7 +298,7 @@ public:
       return 0.0;
     }
     if(!point->IsDefined() || !pnt->IsDefined()){
-      return numeric_limits<double>::max();
+      return std::numeric_limits<double>::max();
     }
     
     double retval= pnt->GetValue() - getXVal();
@@ -381,7 +382,7 @@ public:
       return 0.0;
     }
     if(!point->IsDefined() || !(memb->getPoint())->IsDefined()){
-      return numeric_limits<double>::max();
+      return std::numeric_limits<double>::max();
     }
     double retval= memb->getXVal() - getXVal();
     return retval<0 ? -retval:retval;
@@ -393,7 +394,7 @@ public:
       return 0.0;
     }
     if(!point->IsDefined() || !pnt->IsDefined()){
-      return numeric_limits<double>::max();
+      return std::numeric_limits<double>::max();
     }
     double retval= pnt->GetValue() - getXVal();
     return retval<0 ? -retval:retval;
@@ -481,7 +482,7 @@ calculate the distance between this and the committed point
       return 0.0;
     }
     if(!point->IsDefined() || !(memb->getPoint())->IsDefined()){
-      return numeric_limits<double>::max();
+      return std::numeric_limits<double>::max();
     }
     
     return point->Distance(*(memb->getPoint()));
@@ -494,7 +495,7 @@ calculate the distance between this and the committed point
       return 0.0;
     }
     if(!point->IsDefined() || !pnt->IsDefined()){
-      return numeric_limits<double>::max();
+      return std::numeric_limits<double>::max();
     }
     return point->Distance(*pnt);
   }
@@ -505,7 +506,7 @@ calculate the distance between this and the committed point
       return 0.0;
     }
     if(!point->IsDefined() || !pnt->IsDefined()){
-      return numeric_limits<double>::max();
+      return std::numeric_limits<double>::max();
     }
     
     double retval= pnt->GetX() - getXVal();

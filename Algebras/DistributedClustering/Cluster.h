@@ -84,8 +84,8 @@ Members
 */
   enum MinMaxKind {LEFTMM, RIGHTMM, BOTHMM, GLOBAL, CLCANDCLMM};
 
-  const double MIN_DOUBLE = -1 * numeric_limits<double>::max();
-  const double MAX_DOUBLE = numeric_limits<double>::max();
+  const double MIN_DOUBLE = -1 * std::numeric_limits<double>::max();
+  const double MAX_DOUBLE = std::numeric_limits<double>::max();
 
   //clusterTypes
   static const int NOISE_CL_NO = -2 ;
@@ -103,28 +103,28 @@ Members
   TYPE* rightOuterPoint ; // of List -> 
                          //corresponds to the left Outer Cluster Point
 
-  list<MEMB_TYP_CLASS*> noiseList; // final noise points
-  list<MEMB_TYP_CLASS*> clusterCandList; 
+  std::list<MEMB_TYP_CLASS*> noiseList; // final noise points
+  std::list<MEMB_TYP_CLASS*> clusterCandList; 
   // stores points who are not in a cluster yet
-  list<MEMB_TYP_CLASS*> emptyList; // emty help list
-  vector<list<MEMB_TYP_CLASS*> > clusterArray; //final cluster
+  std::list<MEMB_TYP_CLASS*> emptyList; // emty help list
+  std::vector<std::list<MEMB_TYP_CLASS*> > clusterArray; //final cluster
   //clusters on right side which are adjacent to the left boundary
-  vector<list<MEMB_TYP_CLASS*> > leftPartCluster;
+  std::vector<std::list<MEMB_TYP_CLASS*> > leftPartCluster;
   //clusters on left side which are adjacent to the right boundary
-  vector<list<MEMB_TYP_CLASS*> > rightPartCluster; 
+  std::vector<std::list<MEMB_TYP_CLASS*> > rightPartCluster; 
   // cluster which are adjacent to both sides boundary
-  vector<list<MEMB_TYP_CLASS*> > bothSideCluster;
-  vector<list<MEMB_TYP_CLASS*> > undefinedCluster;
-  vector<list<MEMB_TYP_CLASS*> > clusterCandClusters;
-  vector<list<MEMB_TYP_CLASS*> > emptyVectorList;
+  std::vector<std::list<MEMB_TYP_CLASS*> > bothSideCluster;
+  std::vector<std::list<MEMB_TYP_CLASS*> > undefinedCluster;
+  std::vector<std::list<MEMB_TYP_CLASS*> > clusterCandClusters;
+  std::vector<std::list<MEMB_TYP_CLASS*> > emptyVectorList;
 
 
-  vector<pair <double,double> > clusterMinMaxY;
-  vector<pair <double,double> > leftPCMinMaxY;
-  vector<pair <double,double> > rightPCMinMaxY;
-  vector<pair <double,double> > bothSCMinMaxY;
-  vector<pair <double,double> > clusterCandClMinMax;
-  vector<pair <double,double> > emptyMinMaxY;
+  std::vector<std::pair <double,double> > clusterMinMaxY;
+  std::vector<std::pair <double,double> > leftPCMinMaxY;
+  std::vector<std::pair <double,double> > rightPCMinMaxY;
+  std::vector<std::pair <double,double> > bothSCMinMaxY;
+  std::vector<std::pair <double,double> > clusterCandClMinMax;
+  std::vector<std::pair <double,double> > emptyMinMaxY;
 
   double eps;
   int minPts ;
@@ -138,7 +138,7 @@ constructor
 
 */
   Cluster( MEMB_TYP_CLASS* leftMember, double _eps, int _minPts);
-  Cluster(vector <MEMB_TYP_CLASS*>& members, double _eps, int _minPts);
+  Cluster(std::vector <MEMB_TYP_CLASS*>& members, double _eps, int _minPts);
 
 
 /*
@@ -181,7 +181,7 @@ returns the quantity of Clsuters
 getClusterVector
 
 */
-  vector<list<MEMB_TYP_CLASS*> >& getClusterVector(Kind kind){
+  std::vector<std::list<MEMB_TYP_CLASS*> >& getClusterVector(Kind kind){
 
     switch(kind){
       case NOISE:
@@ -220,7 +220,7 @@ getListLength
 return the list length from position i
 
 */
-  unsigned int getListLength( pair<unsigned int,Kind>& index){
+  unsigned int getListLength( std::pair<unsigned int,Kind>& index){
     return getListLength(index.first,index.second);
   }
 
@@ -257,7 +257,8 @@ compare new point with the value in the pair
     updateMinMaxVal(getMinMaxFromCluster(kind,listNo),member);
   }
 
-  void updateMinMaxVal(Kind kind, int listNo, pair <double,double> &minMax )
+  void updateMinMaxVal(Kind kind, int listNo, 
+                       std::pair <double,double> &minMax )
   {
     updateMinMaxVal( kind,  listNo,  minMax.first) ;
     updateMinMaxVal( kind,  listNo,  minMax.second) ;
@@ -270,20 +271,21 @@ compare new point with the value in the pair
     //
   }
 
-  void updateMinMaxVal(pair <double,double> &minMax, MEMB_TYP_CLASS *member)
+  void updateMinMaxVal(std::pair <double,double> &minMax, 
+                       MEMB_TYP_CLASS *member)
   {
     double newExtrema = member->getYVal();
     updateMinMaxVal(minMax,newExtrema);
   }
 
-  void updateMinMaxVal(pair <double,double> &newMinMax, 
-                       pair <double,double> &oldMinMax )
+  void updateMinMaxVal(std::pair <double,double> &newMinMax, 
+                       std::pair <double,double> &oldMinMax )
   {
     updateMinMaxVal(newMinMax,oldMinMax.first);
     updateMinMaxVal(newMinMax,oldMinMax.second);
   }
 
-  void updateMinMaxVal(pair <double,double> &minMax, double newExtrema )
+  void updateMinMaxVal(std::pair <double,double> &minMax, double newExtrema )
   {
     if(newExtrema<MAX_DOUBLE && newExtrema > MIN_DOUBLE){
         if(newExtrema < (minMax.first)){
@@ -302,11 +304,11 @@ compare new point with the value in the pair
   return a new MinMax Pair  and set MinMax from destination to standardVals
   
 */
-  pair <double,double> 
-  getNewMinMaxForClusterList(pair <double,double>& srcMinMax,
-                             pair <double,double>& destMinMax)
+  std::pair <double,double> 
+  getNewMinMaxForClusterList(std::pair <double,double>& srcMinMax,
+                             std::pair <double,double>& destMinMax)
   {
-    pair <double,double> retMM(MAX_DOUBLE,MIN_DOUBLE);
+    std::pair <double,double> retMM(MAX_DOUBLE,MIN_DOUBLE);
     updateMinMaxVal(retMM,destMinMax);
     updateMinMaxVal(retMM, srcMinMax);
     srcMinMax.first =MAX_DOUBLE;
@@ -366,7 +368,7 @@ if no min found return -1
    
 */
 
-  bool findNextMinListOfClCand(vector<pair <double,double> >&
+  bool findNextMinListOfClCand(std::vector<std::pair <double,double> >&
                                minMaxlist,int& index,
                                double& actualMinima,
                                double& actualMaxima,
@@ -382,7 +384,7 @@ getYMinfromCluster
 return the min Y value from the appropriate cluster list
 
 */
-  double getYMinfromCluster(pair<unsigned int,Kind>& list)
+  double getYMinfromCluster(std::pair<unsigned int,Kind>& list)
   {
     return getYMinfromCluster(list.second,list.first);
   }
@@ -497,19 +499,19 @@ pushMemberToClusterList
 pushes a Member to list from a cluster-Vector
 
 */
-  pair <double,double>&
+  std::pair <double,double>&
   getMinMaxFromCluster(int i,Kind kind)
   {
     return getMinMaxFromCluster(kind,  i);
   }
 
-  pair <double,double>&
-  getMinMaxFromCluster(pair<unsigned int,Kind>& index)
+  std::pair <double,double>&
+  getMinMaxFromCluster(std::pair<unsigned int,Kind>& index)
   {
     return getMinMaxFromCluster(index.first,index.second);
   }
 
-  pair <double,double>&
+  std::pair <double,double>&
   getMinMaxFromCluster(Kind kind, int i)
   {
     switch (kind)
@@ -558,7 +560,7 @@ pushes a Member to list from a cluster-Vector
 getMinMaxFromCluster
 
 */
-  vector<pair <double,double> >&
+  std::vector<std::pair <double,double> >&
   getMinMaxVector(Kind kind)
   {
     switch (kind){
@@ -588,10 +590,10 @@ getMinMaxFromCluster
   return the clusterList on position i
 
 */
-  list<MEMB_TYP_CLASS*> &getList(pair<unsigned int,Kind>& list){
+  std::list<MEMB_TYP_CLASS*> &getList(std::pair<unsigned int,Kind>& list){
     return getList(list.first,list.second);
   }
-  list<MEMB_TYP_CLASS*> &getList(int i, Kind kind){
+  std::list<MEMB_TYP_CLASS*> &getList(int i, Kind kind){
     switch (kind){
       case NOISE:
         return noiseList;
@@ -618,7 +620,7 @@ insertElement
 insert a member at given position i
 
 */
-  void insertElement(typename list<MEMB_TYP_CLASS*>::iterator it,
+  void insertElement(typename std::list<MEMB_TYP_CLASS*>::iterator it,
                      MEMB_TYP_CLASS* memb, int i, Kind kind)
   {
     switch (kind){
@@ -649,8 +651,9 @@ insert a member at given position i
     }
   }
 
-  void insertList(typename vector<list<MEMB_TYP_CLASS*> >::iterator it,
-                  list<MEMB_TYP_CLASS*>& list,Kind kind)
+  void insertList(
+        typename std::vector<std::list<MEMB_TYP_CLASS*> >::iterator it,
+        std::list<MEMB_TYP_CLASS*>& list,Kind kind)
   {
     switch (kind){
       case NOISE:
@@ -676,7 +679,7 @@ insert a member at given position i
   }
 
   void insertList(unsigned int listNo,
-                  list<MEMB_TYP_CLASS*>& list,Kind kind)
+                  std::list<MEMB_TYP_CLASS*>& list,Kind kind)
   {
     switch (kind){
       case NOISE:
@@ -706,8 +709,9 @@ insert a member at given position i
 insertMinMax
 
 */
-   void insertMinMax(typename vector<pair<double,double> >::iterator it,
-                     pair<double,double>& list,Kind kind)
+   void insertMinMax(
+            typename std::vector<std::pair<double,double> >::iterator it,
+            std::pair<double,double>& list,Kind kind)
    {
      switch (kind){
        case NOISE:
@@ -737,7 +741,7 @@ insertMinMax
 
 */
    void insertMinMax(int i,
-                     pair<double,double>& list,Kind kind)
+                     std::pair<double,double>& list,Kind kind)
    {
      switch (kind){
        case NOISE:
@@ -768,7 +772,7 @@ returns an iterator from a clusterlist or
 noiselist either at the beginning or at end
 
 */
-   typename list<MEMB_TYP_CLASS*>::iterator 
+   typename std::list<MEMB_TYP_CLASS*>::iterator 
    getIterator(int list, bool begin, Kind kind)
    {
      switch (kind){
@@ -826,7 +830,7 @@ noiselist either at the beginning or at end
  delete an member item either at the beginning or at end
 
 */
-   typename list<MEMB_TYP_CLASS*>::
+   typename std::list<MEMB_TYP_CLASS*>::
    iterator eraseItem(int list,
                       typename std::list<MEMB_TYP_CLASS*>::iterator it,
                       Kind kind)
@@ -960,7 +964,7 @@ push a committed member at the end or beginning of a given clusterlist
 pushListToCluster
 
 */
-   void pushListToCluster(Kind kind,list<MEMB_TYP_CLASS *>& list)
+   void pushListToCluster(Kind kind,std::list<MEMB_TYP_CLASS *>& list)
    {
      switch (kind)
      {
@@ -992,7 +996,7 @@ pushListToCluster
 pushListToCluster
 
 */
-   void pushMinMaxToCluster(Kind kind,pair<double,double>& list)
+   void pushMinMaxToCluster(Kind kind,std::pair<double,double>& list)
    {
      switch (kind){
        case NOISE:
@@ -1028,11 +1032,11 @@ used for noise and clustercand list
 returns the Iterator from list where item was deleted
 
 */
-   typename list<MEMB_TYP_CLASS*>::iterator
+   typename std::list<MEMB_TYP_CLASS*>::iterator
    moveItemUnsorted(
-       typename list<MEMB_TYP_CLASS*>::iterator delIt,
-       list<MEMB_TYP_CLASS*>& srcList,
-       list<MEMB_TYP_CLASS*>& destList, int clusterNo, int clusterType)
+       typename std::list<MEMB_TYP_CLASS*>::iterator delIt,
+       std::list<MEMB_TYP_CLASS*>& srcList,
+       std::list<MEMB_TYP_CLASS*>& destList, int clusterNo, int clusterType)
    {
      destList.push_back((*delIt));
      (*delIt)->setClusterNo(clusterNo);
@@ -1045,16 +1049,17 @@ moveItemSorted
 moves item sorted from eraselist to pushlist list
 
 */
-   typename list<MEMB_TYP_CLASS*>::iterator
+   typename std::list<MEMB_TYP_CLASS*>::iterator
    moveItemSorted(Cluster* updateCluster,
-                  typename list<MEMB_TYP_CLASS*>::iterator delIt,
-                  list<MEMB_TYP_CLASS*>& srcList,
-                  list<MEMB_TYP_CLASS*>& destList,
+                  typename std::list<MEMB_TYP_CLASS*>::iterator delIt,
+                  std::list<MEMB_TYP_CLASS*>& srcList,
+                  std::list<MEMB_TYP_CLASS*>& destList,
                   bool searchAndDelete, int clusterNo,
                   int clusterType, bool updateMinMax,
                   bool& moveWorked)
    {
-     typename list<MEMB_TYP_CLASS*>::iterator destListIt = destList.begin(),
+     typename std::list<MEMB_TYP_CLASS*>::iterator destListIt 
+                                                  = destList.begin(),
          retIt;
      //search position to insert
      //first go back in list until listPoint<neighborPoint
@@ -1098,15 +1103,15 @@ verschiebt alle moeglichen Nachbarn eines Members in die Zielliste
 
 */
    void moveNeighborsToDestList(Cluster* rightClsuter,
-       pair <double,double>& clusterMinMax,
+       std::pair <double,double>& clusterMinMax,
        MEMB_TYP_CLASS *member,
-       list<MEMB_TYP_CLASS*>& srcList,
-       list<MEMB_TYP_CLASS*>& otherSrcList,
-       list<MEMB_TYP_CLASS*>& destList,
+       std::list<MEMB_TYP_CLASS*>& srcList,
+       std::list<MEMB_TYP_CLASS*>& otherSrcList,
+       std::list<MEMB_TYP_CLASS*>& destList,
        bool searchAndDelete, //used for moveItemSorted
        int clusterNo, int clusterType)
    {
-     typename list<MEMB_TYP_CLASS*>::iterator
+     typename std::list<MEMB_TYP_CLASS*>::iterator
      membNeighborIt = member->getEpsNeighborhood(true);
 
      while(membNeighborIt != member->getEpsNeighborhood(false)){
@@ -1114,7 +1119,7 @@ verschiebt alle moeglichen Nachbarn eines Members in die Zielliste
 
              bool moveItem = false;
 
-             typename list<MEMB_TYP_CLASS*>::iterator testIt=
+             typename std::list<MEMB_TYP_CLASS*>::iterator testIt=
                  moveItemSorted(this,membNeighborIt,srcList,destList,
                                 searchAndDelete,clusterNo,
                                 clusterType,false,moveItem);
@@ -1150,8 +1155,8 @@ move a list from origIndex to destIndex
 only usable for left lists
 
 */
-   void moveClusterList(pair<unsigned int,Kind>& destIndex,
-                        pair<unsigned int,Kind>& origIndex,
+   void moveClusterList(std::pair<unsigned int,Kind>& destIndex,
+                        std::pair<unsigned int,Kind>& origIndex,
                         Cluster* origCluster)
    {
 
@@ -1160,7 +1165,7 @@ only usable for left lists
 
      if(pushBackToDesInd)
        {
-         list<MEMB_TYP_CLASS*> emptyList;
+         std::list<MEMB_TYP_CLASS*> emptyList;
          //push original list back to dest List
          pushListToCluster(destIndex.second,
                            origCluster->getList(origIndex.first,
@@ -1179,8 +1184,8 @@ only usable for left lists
        }
    }
 
-   void moveMinMaxPair(pair<unsigned int,Kind>& destIndex,
-                       pair<unsigned int,Kind>& origIndex,
+   void moveMinMaxPair(std::pair<unsigned int,Kind>& destIndex,
+                       std::pair<unsigned int,Kind>& origIndex,
                        Cluster* origCluster)
    {
      bool pushBackToDesInd =
@@ -1188,7 +1193,8 @@ only usable for left lists
 
      if(pushBackToDesInd)
        {
-         pair<double,double> minMaxInit = make_pair(MAX_DOUBLE,MIN_DOUBLE);
+         std::pair<double,double> minMaxInit 
+                           = std::make_pair(MAX_DOUBLE,MIN_DOUBLE);
          //push original list back to dest List
          pushMinMaxToCluster(destIndex.second,
                              origCluster->getMinMaxFromCluster(origIndex));
@@ -1212,20 +1218,20 @@ returns true if more clustercands are added
 member werden von clusterCandList  zu foundMembList hinzugefuegt
 
 */
-   bool findClusterCandsforClusterList(list<MEMB_TYP_CLASS*>& clusterlist,
-                                       pair<double,double>& clusterMinMax,
-                                       bool clusterIsRight,
-                                       TYPE* borderPoint,
-                                       //if richtCluster take leftInnerPoint
-                                       TYPE* secBorderPoint,
-                                       list<MEMB_TYP_CLASS*>& clusterCandList,
-                                       list<MEMB_TYP_CLASS*>& foundMembList,
-                                       pair<double,double>& foundMinMax ,
-                                       int clusterNo)
+   bool findClusterCandsforClusterList(std::list<MEMB_TYP_CLASS*>& clusterlist,
+                                 std::pair<double,double>& clusterMinMax,
+                                 bool clusterIsRight,
+                                 TYPE* borderPoint,
+                                 //if richtCluster take leftInnerPoint
+                                 TYPE* secBorderPoint,
+                                 std::list<MEMB_TYP_CLASS*>& clusterCandList,
+                                 std::list<MEMB_TYP_CLASS*>& foundMembList,
+                                 std::pair<double,double>& foundMinMax ,
+                                 int clusterNo)
    {
      bool elementsfound = false, endOfClusterList = false;
 
-     typename list<MEMB_TYP_CLASS*>::iterator
+     typename std::list<MEMB_TYP_CLASS*>::iterator
      clusterListIt = clusterlist.begin(),
      clusterCandIt = clusterCandList.begin();
 
@@ -1288,17 +1294,17 @@ searchClusterListToMelt
 suche zur linken lister rechte cluster die miteinander verschmolzen werden
 
 */
-   bool  searchClusterListToMelt(list<MEMB_TYP_CLASS*>& leftList,
-                                 pair<double,double>& leftMinMax,
+   bool  searchClusterListToMelt(std::list<MEMB_TYP_CLASS*>& leftList,
+                                 std::pair<double,double>& leftMinMax,
                                  Cluster* rightCluster,int leftListNo,
                                  Kind rightKind,
                                  TYPE* leftInnerPoint,
                                  //if richtCluster take leftInnerPoint
                                  TYPE* rightInnerPoint,
-                                 vector<unsigned int> *clusterToMeltRight,
-                                 vector<unsigned int> *clusterToMeltLeft)
+                                 std::vector<unsigned int> *clusterToMeltRight,
+                                 std::vector<unsigned int> *clusterToMeltLeft)
    {
-     typename list<MEMB_TYP_CLASS*>::iterator
+     typename std::list<MEMB_TYP_CLASS*>::iterator
      itLeft = --leftList.end(),
      itRight;
 
@@ -1319,7 +1325,7 @@ suche zur linken lister rechte cluster die miteinander verschmolzen werden
                                             rightCluster,j,rightKind))
                    {
                      bool jAlreadyAppend = false;
-                     vector<unsigned int>::iterator it =
+                     std::vector<unsigned int>::iterator it =
                          clusterToMeltRight[leftListNo].begin();
                      while(!jAlreadyAppend && it !=
                          clusterToMeltRight[leftListNo].end()){
@@ -1384,16 +1390,16 @@ which are stored in the meltingSideArray Index where melted.
 
 */
    void meltClusterLists(Cluster *meltingCluster,
-                         vector<pair<unsigned int,Kind> > *meltingSideArray,
-                         vector<unsigned int> minToMaxIndexes,
-                         vector<pair<unsigned int,Kind> > * indexArray,
-                         vector<pair<unsigned int,Kind> >& newIndices, 
-                         unsigned int bothDist)
+                   std::vector<std::pair<unsigned int,Kind> > *meltingSideArray,
+                   std::vector<unsigned int> minToMaxIndexes,
+                   std::vector<std::pair<unsigned int,Kind> > * indexArray,
+                   std::vector<std::pair<unsigned int,Kind> >& newIndices, 
+                   unsigned int bothDist)
    {
      //if kind is both then meltClusterCandListWithClusterList[bothDist + i]
-     vector<unsigned int>::iterator leftIt = minToMaxIndexes.end();
+     std::vector<unsigned int>::iterator leftIt = minToMaxIndexes.end();
      leftIt--;
-     typename vector<pair<unsigned int,Kind> >::iterator destIt,srcIt;
+     typename std::vector<std::pair<unsigned int,Kind> >::iterator destIt,srcIt;
 
      while(leftIt != --minToMaxIndexes.begin())
        {
@@ -1423,11 +1429,11 @@ meltListsAndIndexOfCluster
 
 */
    void meltListsAndIndexOfCluster(Cluster* meltingCluster,
-                                   vector<pair<unsigned int,Kind> >*
+                                   std::vector<std::pair<unsigned int,Kind> >*
                                    indexArray,
-                                   pair<unsigned int,Kind>& destIndex,
-                                   pair<unsigned int,Kind>& srcIndex,
-                                   vector<pair<unsigned int,Kind> >& 
+                                   std::pair<unsigned int,Kind>& destIndex,
+                                   std::pair<unsigned int,Kind>& srcIndex,
+                                   std::vector<std::pair<unsigned int,Kind> >& 
                                    newIndices,
                                    unsigned int& bothDist) 
    {
@@ -1443,7 +1449,7 @@ meltListsAndIndexOfCluster
                                   srcIndex.second);
 
      //melt Clusters and update minMaxY
-     pair<unsigned int,Kind> newIndex=
+     std::pair<unsigned int,Kind> newIndex=
          meltingCluster->meltListsOfCluster(destIndex,srcIndex,newIndices);
      //set new index
      newIndices[destInd]= newIndex;
@@ -1462,7 +1468,7 @@ initialice newIndicies Left and Right with respectivly the first entry of
 clusterToMelt indicies
 
 */
-void initIndicies( vector<pair<unsigned int,Kind> >& newIndices,
+void initIndicies( std::vector<std::pair<unsigned int,Kind> >& newIndices,
                      int indexSize,int bothDist, bool isRightCluster)
    {
      for(int i = 0; i<indexSize; i++){
@@ -1480,7 +1486,7 @@ void initIndicies( vector<pair<unsigned int,Kind> >& newIndices,
                kind = BOTH;
            }
          newIndices.push_back(
-             make_pair(ind,kind));
+             std::make_pair(ind,kind));
 
      }
    }
@@ -1491,8 +1497,9 @@ meltIndexOfCluster
 melt the given clusterindexes
 
 */
-   void meltIndexOfCluster(vector<pair<unsigned int,Kind> > &destIndList ,
-                           vector<pair<unsigned int,Kind> > &sourceIndList);
+   void meltIndexOfCluster(
+          std::vector<std::pair<unsigned int,Kind> > &destIndList ,
+          std::vector<std::pair<unsigned int,Kind> > &sourceIndList);
 
 /*
 meltListsOfCluster
@@ -1500,33 +1507,33 @@ meltListsOfCluster
 melt two list of a cluster
 
 */
-   pair<unsigned int,Kind>
-   meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
-                      pair<unsigned int,Kind>& sourceList,
-                      vector<pair<unsigned int,Kind> >& newIndicies
+   std::pair<unsigned int,Kind>
+   meltListsOfCluster(std::pair<unsigned int,Kind>& destinationList,
+                      std::pair<unsigned int,Kind>& sourceList,
+                      std::vector<std::pair<unsigned int,Kind> >& newIndicies
                      );
 
-   void meltClusterCandListWithClusterList(pair<unsigned int,Kind>& 
-                                           destinationList,
-                                           list<MEMB_TYP_CLASS*> &sourceIndList,
-                                           pair <double,double>& minMaxList);
+   void meltClusterCandListWithClusterList(std::pair<unsigned int,Kind>& 
+                                  destinationList,
+                                  std::list<MEMB_TYP_CLASS*> &sourceIndList,
+                                  std::pair <double,double>& minMaxList);
 
 /*
 findClListToMeltWithClustCandList
 
 */
    void findClListToMeltWithClustCandList(Cluster * rightCluster,
-                                      vector<clusterCandMelt>& clCaMeltInd,
-                                      list<MEMB_TYP_CLASS*>& clusterCandList,
-                                      pair <double,double>& clCandMinMax,
-                                      int bothDistLeft,
-                                      vector<pair<unsigned int,Kind> >&
-                                      newLeftIndices,
-                                      int bothDistRight,
-                                      vector<pair<unsigned int,Kind> >&
-                                      newRightIndices)
+                              std::vector<clusterCandMelt>& clCaMeltInd,
+                              std::list<MEMB_TYP_CLASS*>& clusterCandList,
+                              std::pair <double,double>& clCandMinMax,
+                              int bothDistLeft,
+                              std::vector<std::pair<unsigned int,Kind> >&
+                              newLeftIndices,
+                              int bothDistRight,
+                              std::vector<std::pair<unsigned int,Kind> >&
+                              newRightIndices)
    {
-     typename vector< clusterCandMelt>::iterator
+     typename std::vector< clusterCandMelt>::iterator
      membIt = clCaMeltInd.begin(),
      helpIt = clCaMeltInd.begin();
      bool leftMelted = false;
@@ -1572,14 +1579,14 @@ melt the lists
 
 */
    void meltClusterCandListWithClusterList(clusterCandMelt& clCaMeltInd,
-                                        list<MEMB_TYP_CLASS*>& clusterCandList,
-                                        pair <double,double>& clCandMinMax,
-                                        int bothDist,
-                                        vector<pair<unsigned int,Kind> >&
-                                        newIndices)
+                                std::list<MEMB_TYP_CLASS*>& clusterCandList,
+                                std::pair <double,double>& clCandMinMax,
+                                int bothDist,
+                                std::vector<std::pair<unsigned int,Kind> >&
+                                newIndices)
    {
-     pair<unsigned int,Kind> clusterList =
-         make_pair(clCaMeltInd.clusterIndex,
+     std::pair<unsigned int,Kind> clusterList =
+         std::make_pair(clCaMeltInd.clusterIndex,
                    clCaMeltInd.clusterKind);
      // set clusterList with correct indices to melt
      int index =
@@ -1606,30 +1613,31 @@ melt foundet reachabel clusterCands with cluster lists
 
 */
    void meltClsuterCandWithClusterList(Cluster* rightCluster,
-                                    vector< clusterCandMelt>* clusterCandIndex,
-                                    unsigned int indexSize,
-                                    vector<pair<unsigned int,Kind> > *
-                                    clusterToMeltOnRightForLeftSide,
-                                    vector<pair<unsigned int,Kind> >&
-                                    newLeftIndices,
-                                    int bothDistLeft,
-                                    vector<pair<unsigned int,Kind> > *
-                                    clusterToMeltOnLeftForRightSide,
-                                    vector<pair<unsigned int,Kind> >&
-                                    newRightIndices,
-                                    int bothDistRight)
+                            std::vector< clusterCandMelt>* clusterCandIndex,
+                            unsigned int indexSize,
+                            std::vector<std::pair<unsigned int,Kind> > *
+                            clusterToMeltOnRightForLeftSide,
+                            std::vector<std::pair<unsigned int,Kind> >&
+                            newLeftIndices,
+                            int bothDistLeft,
+                            std::vector<std::pair<unsigned int,Kind> > *
+                            clusterToMeltOnLeftForRightSide,
+                            std::vector<std::pair<unsigned int,Kind> >&
+                            newRightIndices,
+                            int bothDistRight)
    {
      
      for(unsigned int i = 0; i< indexSize; i++){
          if(clusterCandIndex[i].size() > 0)
            {
              //add item to first clusterList
-             list<MEMB_TYP_CLASS*> clusterCandList;
+             std::list<MEMB_TYP_CLASS*> clusterCandList;
              clusterCandList.push_back(
                clusterCandIndex[i].at(0).clusterCandMember);
              double minMax = 
              clusterCandIndex[i].at(0).clusterCandMember->getYVal();
-             pair <double,double> clCandMinMax = make_pair(minMax,minMax);
+             std::pair <double,double> clCandMinMax 
+                                      = std::make_pair(minMax,minMax);
              //melt list with first entry -> search entry
              findClListToMeltWithClustCandList(rightCluster,
                                                clusterCandIndex[i],
@@ -1678,9 +1686,9 @@ findListToMeltWithClusterCand
 */
    int
    findListToMeltWithClusterCand(clusterCandMelt& clCaMeltInd,
-                                 pair<unsigned int,Kind>& clusterList,
-                                 int bothDist,
-                                 vector<pair<unsigned int,Kind> >& newIndices )
+                  std::pair<unsigned int,Kind>& clusterList,
+                  int bothDist,
+                  std::vector<std::pair<unsigned int,Kind> >& newIndices )
    {
 
      int foundIndex = -1;
@@ -1718,8 +1726,8 @@ finds the last Index in newIndices
 preconditions: clusterList must be initialized
 
 */
-   int findLastIndex(pair<unsigned int,Kind>& clusterList,
-                     vector<pair<unsigned int,Kind> >& newIndices,
+   int findLastIndex(std::pair<unsigned int,Kind>& clusterList,
+                     std::vector<std::pair<unsigned int,Kind> >& newIndices,
                      int bothDist)
    {
      bool memberExist = false;
@@ -1759,21 +1767,21 @@ melt all cluster list which are not melted yet
 
 */
    void updateMeltedCluster(Cluster * rightCluster,
-                            vector<clusterCandMelt>& clCaMeltInd,
-                            vector<pair<unsigned int,Kind> >*
-                            clusterToMeltOnRightForLeftSide,
-                            int bothDistLeft,
-                            vector<pair<unsigned int,Kind> >& newLeftIndices,
-                            vector<pair<unsigned int,Kind> >*
-                            clusterToMeltOnLeftForRightSide,
-                            int bothDistRight,
-                            vector<pair<unsigned int,Kind> >& newRightIndices)
+                  std::vector<clusterCandMelt>& clCaMeltInd,
+                  std::vector<std::pair<unsigned int,Kind> >*
+                  clusterToMeltOnRightForLeftSide,
+                  int bothDistLeft,
+                  std::vector<std::pair<unsigned int,Kind> >& newLeftIndices,
+                  std::vector<std::pair<unsigned int,Kind> >*
+                  clusterToMeltOnLeftForRightSide,
+                  int bothDistRight,
+                  std::vector<std::pair<unsigned int,Kind> >& newRightIndices)
    {
-     typename vector< clusterCandMelt>::iterator
+     typename std::vector< clusterCandMelt>::iterator
      membIt = clCaMeltInd.begin();
 
-     vector<clusterCandMelt> leftMembers;
-     vector<clusterCandMelt> rightMembers;
+     std::vector<clusterCandMelt> leftMembers;
+     std::vector<clusterCandMelt> rightMembers;
      while(membIt != clCaMeltInd.end())
        {
          if((*membIt).meltWithRightCluster)
@@ -1785,7 +1793,7 @@ melt all cluster list which are not melted yet
          membIt++;
        }
 
-     typename vector< clusterCandMelt>::iterator
+     typename std::vector< clusterCandMelt>::iterator
      rightIt = rightMembers.begin(),
      leftIt = leftMembers.begin();
      if(rightMembers.size()>0)
@@ -1815,31 +1823,32 @@ last index. If the result is true then the lists are melted
 
 */
    bool meltClusterCandClusterWithList(Cluster* meltingCluster,
-                                  vector<clusterCandMelt>& members,
-                                  vector<pair<unsigned int,Kind> >& srcIndices,
-                                  vector<pair<unsigned int,Kind> > * indexArray,
-                                  vector<pair<unsigned int,Kind> >& meltIndices,
-                                  unsigned int bothDist
+                       std::vector<clusterCandMelt>& members,
+                       std::vector<std::pair<unsigned int,Kind> >& srcIndices,
+                       std::vector<std::pair<unsigned int,Kind> > * indexArray,
+                       std::vector<std::pair<unsigned int,Kind> >& meltIndices,
+                       unsigned int bothDist
    )
    {
 
-     typename vector< clusterCandMelt>::iterator
+     typename std::vector< clusterCandMelt>::iterator
      membIt = members.begin(),
      oldMembIt = members.begin();
 
-     pair<unsigned int,Kind> index, oldIndex;
+     std::pair<unsigned int,Kind> index, oldIndex;
      bool allMembersEqual = true;
 
      if(membIt != members.end()){
        
          oldIndex = 
-         make_pair((*oldMembIt).clusterIndex, (*oldMembIt).clusterKind);
+         std::make_pair((*oldMembIt).clusterIndex, (*oldMembIt).clusterKind);
          findLastIndex(oldIndex,srcIndices,bothDist);
          //      lowestIndex = oldIndex;
          membIt++;
          while(membIt!=members.end())
            {
-             index = make_pair((*membIt).clusterIndex, (*membIt).clusterKind);
+             index = std::make_pair((*membIt).clusterIndex,
+                                    (*membIt).clusterKind);
              findLastIndex(index,srcIndices,bothDist);
              if(oldIndex != index ){
                  allMembersEqual = false;
@@ -1852,7 +1861,7 @@ last index. If the result is true then the lists are melted
                  yOldIndex = 
                  meltingCluster->getYMinfromCluster(oldIndex.second,
                                                     oldIndex.first);
-                 pair<unsigned int,Kind> destIndex,srcIndex;
+                 std::pair<unsigned int,Kind> destIndex,srcIndex;
 
                  if(yIndex < yOldIndex)
                    {
@@ -1890,16 +1899,16 @@ if isNewClusterCand is true the a new list is created
   
 */
    bool compareLeftWithRightList(TYPE* leftInnerPoint,
-                                 TYPE* rightInnerPoint,
-                                 bool isNewClusterCand,
-                                 list<MEMB_TYP_CLASS*>& leftList ,
-                                 list<MEMB_TYP_CLASS*>& rightList,
-                                 vector<list<MEMB_TYP_CLASS*> >& retClusterCand,
-                                 vector<pair<double,double> >& 
-                                 retClusterCandMinMax,
-                                 bool leftListIsClusterCandList,
-                                 bool rightListIsClusterCandList,
-                                 Cluster* rightCluster = 0);
+                  TYPE* rightInnerPoint,
+                  bool isNewClusterCand,
+                  std::list<MEMB_TYP_CLASS*>& leftList ,
+                  std::list<MEMB_TYP_CLASS*>& rightList,
+                  std::vector<std::list<MEMB_TYP_CLASS*> >& retClusterCand,
+                  std::vector<std::pair<double,double> >& 
+                  retClusterCandMinMax,
+                  bool leftListIsClusterCandList,
+                  bool rightListIsClusterCandList,
+                  Cluster* rightCluster = 0);
 
 /*
 
@@ -1907,17 +1916,17 @@ testClusterCandListsOnClusters
 
 */
    void testClusterCandListsOnClusters(Cluster* rightCluster,
-                                       TYPE* leftInnerPoint,
-                                       TYPE* rightInnerPoint,
-                                       list<MEMB_TYP_CLASS*>& leftList ,
-                                       list<MEMB_TYP_CLASS*>& rightList,
-                                       vector<list<MEMB_TYP_CLASS*> >& 
-                                       retClusterCand,
-                                       vector<pair<double,double> >& 
-                                       retClusterCandMinMax)
+                       TYPE* leftInnerPoint,
+                       TYPE* rightInnerPoint,
+                       std::list<MEMB_TYP_CLASS*>& leftList ,
+                       std::list<MEMB_TYP_CLASS*>& rightList,
+                       std::vector<std::list<MEMB_TYP_CLASS*> >& 
+                       retClusterCand,
+                       std::vector<std::pair<double,double> >& 
+                       retClusterCandMinMax)
    {
 
-     list<MEMB_TYP_CLASS*> leftTmpList, rightTmpList;
+     std::list<MEMB_TYP_CLASS*> leftTmpList, rightTmpList;
 
      while(leftList.size()>1){
          leftTmpList.push_back(*leftList.begin());
@@ -1955,17 +1964,17 @@ speichert indexe in der uebergebenen indexvector
 
 */
    void compareClusterCandsWithOppositeList(TYPE* leftInnerPoint,
-                                            TYPE* rightInnerPoint,
-                                            list<MEMB_TYP_CLASS*>& 
-                                            clusterCandList,
-                                            bool listIsRight,
-                                            list<MEMB_TYP_CLASS*>& compList,
-                                            Kind compKind, int compIndex,
-                                            int bothIndOffset,
-                                            vector< clusterCandMelt>* 
-                                            clCandMelt)
+                               TYPE* rightInnerPoint,
+                               std::list<MEMB_TYP_CLASS*>& 
+                               clusterCandList,
+                               bool listIsRight,
+                               std::list<MEMB_TYP_CLASS*>& compList,
+                               Kind compKind, int compIndex,
+                               int bothIndOffset,
+                               std::vector< clusterCandMelt>* 
+                               clCandMelt)
    {
-     typename list<MEMB_TYP_CLASS*>::iterator
+     typename std::list<MEMB_TYP_CLASS*>::iterator
      clusterCandIt = clusterCandList.begin();
      int i=0;
      while(clusterCandIt != clusterCandList.end())
@@ -1992,12 +2001,12 @@ similar to insertIndexToClusterToMelt
 
 */
    void insertIndexToClusterCandToMelt (int minIndex,
-                                        clusterCandMelt& newItem,
-                                        vector< clusterCandMelt>* clCandMelt)
+                          clusterCandMelt& newItem,
+                          std::vector< clusterCandMelt>* clCandMelt)
    {
      bool found = false;
 
-     typename vector< clusterCandMelt>::iterator
+     typename std::vector< clusterCandMelt>::iterator
             it = clCandMelt[minIndex].begin();
 
      while(!found && it != clCandMelt[minIndex].end()){
@@ -2028,10 +2037,10 @@ compare points with lists and return true if neighbor is in epsNeighborhood
                               TYPE* rightInnerPoint,
                               MEMB_TYP_CLASS* member,
                               bool listIsRight,
-                              list<MEMB_TYP_CLASS*>& compList)
+                              std::list<MEMB_TYP_CLASS*>& compList)
    {
      bool endOfList= false, distGreaterEps = false;
-     typename list<MEMB_TYP_CLASS*>::iterator itList=
+     typename std::list<MEMB_TYP_CLASS*>::iterator itList=
          initIteratorOfList(leftInnerPoint, rightInnerPoint,
                             listIsRight,endOfList,
                             distGreaterEps,compList);
@@ -2060,14 +2069,14 @@ initIteratorOfList
 initializes an iterator for a given list
 
 */
-   typename list<MEMB_TYP_CLASS*>::iterator
+   typename std::list<MEMB_TYP_CLASS*>::iterator
    initIteratorOfList(TYPE* leftInnerPoint,
                       TYPE* rightInnerPoint,
                       bool listIsRight,
                       bool& endOfList, bool& distGreaterEps,
-                      list<MEMB_TYP_CLASS*>& compList)
+                      std::list<MEMB_TYP_CLASS*>& compList)
    {
-     typename list<MEMB_TYP_CLASS*>::iterator itList;
+     typename std::list<MEMB_TYP_CLASS*>::iterator itList;
      if(listIsRight){
          itList=compList.begin();
          if(itList == compList.end()){
@@ -2094,13 +2103,13 @@ updateIterator
 updates a given Iterator
 
 */
-   typename list<MEMB_TYP_CLASS*>::iterator
+   typename std::list<MEMB_TYP_CLASS*>::iterator
    updateIterator(TYPE* leftInnerPoint,
                   TYPE* rightInnerPoint,
                   bool listIsRight,
                   bool& endOfList, bool& distGreaterEps,
-                  list<MEMB_TYP_CLASS*>& compList,
-                  typename list<MEMB_TYP_CLASS*>::iterator itList)
+                  std::list<MEMB_TYP_CLASS*>& compList,
+                  typename std::list<MEMB_TYP_CLASS*>::iterator itList)
    {
      if(listIsRight){
          itList++;
@@ -2136,19 +2145,19 @@ datauf zurueckgegeben
 ansonsten wird der QuellIterator zurueckgegeben
 
 */
-   typename list<MEMB_TYP_CLASS*>::iterator
+   typename std::list<MEMB_TYP_CLASS*>::iterator
    compareSrcListFromItWithRightList(TYPE* leftInnerPoint,
-                                     TYPE* rightInnerPoint,
-                                     list<MEMB_TYP_CLASS*>& destList ,
-                                     typename list<MEMB_TYP_CLASS*>::iterator
-                                     _destIt,
-                                     list<MEMB_TYP_CLASS*>& srcList,
-                                     int clusterNo, bool considerClusterNo,
-                                     bool sortedSrcList,
-                                     bool updateN)
+                       TYPE* rightInnerPoint,
+                       std::list<MEMB_TYP_CLASS*>& destList ,
+                       typename std::list<MEMB_TYP_CLASS*>::iterator
+                       _destIt,
+                       std::list<MEMB_TYP_CLASS*>& srcList,
+                       int clusterNo, bool considerClusterNo,
+                       bool sortedSrcList,
+                       bool updateN)
    {
-     typename list<MEMB_TYP_CLASS*>::iterator srcIt = srcList.begin();
-     typename list<MEMB_TYP_CLASS*>::iterator destIt =
+     typename std::list<MEMB_TYP_CLASS*>::iterator srcIt = srcList.begin();
+     typename std::list<MEMB_TYP_CLASS*>::iterator destIt =
          //       --destList.end();
          _destIt;
 
@@ -2172,7 +2181,8 @@ ansonsten wird der QuellIterator zurueckgegeben
              if((*destIt)->calcDistanz(*srcIt) <= eps){
                  if(updateN)
                    {
-                     list<MEMB_TYP_CLASS*> neighborListLeft,neighborListRight ;
+                     std::list<MEMB_TYP_CLASS*> neighborListLeft,
+                                                neighborListRight ;
                      updateNeighbor(*destIt,
                                     *srcIt);
                    }
@@ -2196,19 +2206,19 @@ ansonsten wird der QuellIterator zurueckgegeben
      return _destIt;
    }
 
-   typename list<MEMB_TYP_CLASS*>::iterator
+   typename std::list<MEMB_TYP_CLASS*>::iterator
    compareSrcListFromItWithLEFTList(TYPE* leftInnerPoint,
-                                    TYPE* rightInnerPoint,
-                                    list<MEMB_TYP_CLASS*>& destList ,
-                                    typename list<MEMB_TYP_CLASS*>::iterator
-                                    _destIt,
-                                    list<MEMB_TYP_CLASS*>& srcList,
-                                    int clusterNo, bool considerClusterNo,
-                                    bool sortedSrcList,
-                                    bool updateNeigb)
+                     TYPE* rightInnerPoint,
+                     std::list<MEMB_TYP_CLASS*>& destList ,
+                     typename std::list<MEMB_TYP_CLASS*>::iterator
+                     _destIt,
+                     std::list<MEMB_TYP_CLASS*>& srcList,
+                     int clusterNo, bool considerClusterNo,
+                     bool sortedSrcList,
+                     bool updateNeigb)
    {
-     typename list<MEMB_TYP_CLASS*>::iterator srcIt = --srcList.end();
-     typename list<MEMB_TYP_CLASS*>::iterator destIt =
+     typename std::list<MEMB_TYP_CLASS*>::iterator srcIt = --srcList.end();
+     typename std::list<MEMB_TYP_CLASS*>::iterator destIt =
          //       destList.begin();
          _destIt;
      destIt++;
@@ -2270,12 +2280,12 @@ concat the two points from iterators
    void concatClusterCand(Cluster* rightCluster,
                           TYPE* leftInnerPoint,
                           TYPE* rightInnerPoint,
-                          list<MEMB_TYP_CLASS*>& destList,
-                          pair<double,double>& clusterPair,
+                          std::list<MEMB_TYP_CLASS*>& destList,
+                          std::pair<double,double>& clusterPair,
                           MEMB_TYP_CLASS* leftMemb,
                           MEMB_TYP_CLASS* rightMemb,
-                          list<MEMB_TYP_CLASS*>& leftList,
-                          list<MEMB_TYP_CLASS*>& rightList,
+                          std::list<MEMB_TYP_CLASS*>& leftList,
+                          std::list<MEMB_TYP_CLASS*>& rightList,
                           int clusterNo);
 
 
@@ -2286,9 +2296,9 @@ finds out correct cluster type an push it to  correct cluster vector
 
 */
    void addListToCorrectClusterType(
-       list<MEMB_TYP_CLASS*>& clusterList,
-       pair<double,double>& clusterPair,
-       pair<unsigned int,Kind>& index
+       std::list<MEMB_TYP_CLASS*>& clusterList,
+       std::pair<double,double>& clusterPair,
+       std::pair<unsigned int,Kind>& index
    );
 
 /*
@@ -2298,13 +2308,13 @@ define the new index for two concated clusterLists
 if retKind is different from leftKind then return false
   
 */
-   bool defineDestIndexPair(list<MEMB_TYP_CLASS*>& leftList,
-                  list<MEMB_TYP_CLASS*>& rightList,//This could be a empty list
-                  pair<unsigned int,Kind>& leftIndex,
-                  pair<unsigned int,Kind>& retIndex)
+   bool defineDestIndexPair(std::list<MEMB_TYP_CLASS*>& leftList,
+          std::list<MEMB_TYP_CLASS*>& rightList,//This could be a empty list
+          std::pair<unsigned int,Kind>& leftIndex,
+          std::pair<unsigned int,Kind>& retIndex)
    {
 
-     typename list<MEMB_TYP_CLASS*>::iterator  itLeftPoint,itRightPoint;
+     typename std::list<MEMB_TYP_CLASS*>::iterator  itLeftPoint,itRightPoint;
 
      int leftListSize = leftList.size();
      int rightListSize = rightList.size();
@@ -2339,7 +2349,7 @@ if retKind is different from leftKind then return false
      }
      int listNo = getVectorSize(getClusterKindFromType(clusterType));
 
-     retIndex = make_pair(listNo,getClusterKindFromType(clusterType));
+     retIndex = std::make_pair(listNo,getClusterKindFromType(clusterType));
      bool indexIsEqual =
          retIndex.second == leftIndex.second;
      if(!indexIsEqual){
@@ -2355,7 +2365,7 @@ find the next empty list in cluster vector
 if no list is empty retIndex==VectorSize
   
 */
-   void findNextEmptyList(pair<unsigned int,Kind>& retIndex )
+   void findNextEmptyList(std::pair<unsigned int,Kind>& retIndex )
    {
      //find out list no in which to save
      bool indexFound = false;
@@ -2384,8 +2394,8 @@ search an item in given list and delete it
 */
    typename std::list<MEMB_TYP_CLASS*>::iterator
    searchAndDeletItemFromList(
-       typename list<MEMB_TYP_CLASS*>::iterator itemIt,
-       list<MEMB_TYP_CLASS*>& list, bool& elemDeleted)
+       typename std::list<MEMB_TYP_CLASS*>::iterator itemIt,
+       std::list<MEMB_TYP_CLASS*>& list, bool& elemDeleted)
    {
      return
          searchAndDeletItemFromList(*itemIt,itemIt,list,elemDeleted);
@@ -2394,7 +2404,7 @@ search an item in given list and delete it
 
    typename std::list<MEMB_TYP_CLASS*>::iterator
    searchAndDeletItemFromList(MEMB_TYP_CLASS* item,
-                              list<MEMB_TYP_CLASS*>& list,  bool& elemDeleted)
+                    std::list<MEMB_TYP_CLASS*>& list,  bool& elemDeleted)
    {
      typename std::list<MEMB_TYP_CLASS*>::iterator searchIt = list.begin();
      bool deleted = false;
@@ -2413,8 +2423,8 @@ search an item in given list and delete it
 
    typename std::list<MEMB_TYP_CLASS*>::iterator
    searchAndDeletItemFromList(MEMB_TYP_CLASS* item,
-                              typename list<MEMB_TYP_CLASS*>::iterator itemIt,
-                              list<MEMB_TYP_CLASS*>& list,  bool& elemDeleted)
+                 typename std::list<MEMB_TYP_CLASS*>::iterator itemIt,
+                 std::list<MEMB_TYP_CLASS*>& list,  bool& elemDeleted)
    {
      typename std::list<MEMB_TYP_CLASS*>::iterator searchIt = //list.begin();
          searchAndDeletItemFromList( item, list, elemDeleted);
@@ -2432,13 +2442,13 @@ updateNeighbor
 
 */
    void updateNeighborLeftPointToRightList(MEMB_TYP_CLASS* point, 
-                                           list<MEMB_TYP_CLASS*>& destList,
-                                           typename list<MEMB_TYP_CLASS*>::
+                                           std::list<MEMB_TYP_CLASS*>& destList,
+                                           typename std::list<MEMB_TYP_CLASS*>::
                                            iterator listIt,
                                            TYPE* leftInnerPoint, 
                                            TYPE* rightInnerPoint)
    {
-     list<MEMB_TYP_CLASS*> neighborList ;
+     std::list<MEMB_TYP_CLASS*> neighborList ;
      while (listIt != destList.end() &&
          listIt != --destList.begin() &&
          (*listIt)->calcXDistanz(leftInnerPoint) <= eps){
@@ -2452,13 +2462,13 @@ updateNeighbor
    }
 
    void updateNeighborRightPointToLeftList(MEMB_TYP_CLASS* point, 
-                                           list<MEMB_TYP_CLASS*>& destList,
-                                           typename list<MEMB_TYP_CLASS*>::
+                                           std::list<MEMB_TYP_CLASS*>& destList,
+                                           typename std::list<MEMB_TYP_CLASS*>::
                                            iterator listIt,
                                            TYPE* leftInnerPoint, 
                                            TYPE* rightInnerPoint)
    {
-     list<MEMB_TYP_CLASS*> neighborList ;
+     std::list<MEMB_TYP_CLASS*> neighborList ;
      while (listIt != --destList.begin() &&
          listIt != destList.end() &&
          (*listIt)->calcXDistanz(rightInnerPoint) <= eps){
@@ -2469,16 +2479,16 @@ updateNeighbor
      }
    }
 
-   void updateNeighborRightListToLeftList(list<MEMB_TYP_CLASS*>& leftList,
-                                          list<MEMB_TYP_CLASS*>& rightList,
+   void updateNeighborRightListToLeftList(std::list<MEMB_TYP_CLASS*>& leftList,
+                                          std::list<MEMB_TYP_CLASS*>& rightList,
                                           bool leftListSorted,
                                           bool rightListSorted,
                                           TYPE* leftInnerPoint, 
                                           TYPE* rightInnerPoint)
    {
 
-     list<MEMB_TYP_CLASS*> neighborList ;
-     typename list<MEMB_TYP_CLASS*>::iterator
+     std::list<MEMB_TYP_CLASS*> neighborList ;
+     typename std::list<MEMB_TYP_CLASS*>::iterator
      leftListIt = --leftList.end(),
      rightListIt = rightList.begin();
      bool epsLefListGreater = false, epsRightListGreater = false;
@@ -2530,7 +2540,7 @@ updateNeighbor
      }
    }
 
-   bool getGreaterEps(list<MEMB_TYP_CLASS*>& list,
+   bool getGreaterEps(std::list<MEMB_TYP_CLASS*>& list,
                       TYPE* borderPoint,
                       typename std::list<MEMB_TYP_CLASS*>::iterator it)
    {
@@ -2546,11 +2556,11 @@ updateNeighbor
    }
 
    void updateNeighbor(MEMB_TYP_CLASS * leftMemb, MEMB_TYP_CLASS *rightMemb,
-                       list<MEMB_TYP_CLASS*>& neighborList);
+                       std::list<MEMB_TYP_CLASS*>& neighborList);
 
    void updateNeighbor(MEMB_TYP_CLASS * leftMemb, MEMB_TYP_CLASS *rightMemb)
    {
-     list<MEMB_TYP_CLASS*> neighborList;
+     std::list<MEMB_TYP_CLASS*> neighborList;
      updateNeighbor(leftMemb,rightMemb,neighborList);
    }
 
@@ -2559,7 +2569,7 @@ isMembInList
 when point is in list -> return true
 
 */
-   bool isMembInList(MEMB_TYP_CLASS *memb, list<MEMB_TYP_CLASS*>& list);
+   bool isMembInList(MEMB_TYP_CLASS *memb, std::list<MEMB_TYP_CLASS*>& list);
 
 
 /*
@@ -2569,10 +2579,10 @@ update clusterNo and Type
 
 */
    bool testReachabilityAndSetClusterNoAtEachPoint(TYPE* leftOuterPoint,
-                                          TYPE* rightOuterPoint,
-                                          list<MEMB_TYP_CLASS*>& list,
-                                          pair<unsigned int,Kind>& clusterPair,
-                                          bool isAlreadyClusterCand)
+                             TYPE* rightOuterPoint,
+                             std::list<MEMB_TYP_CLASS*>& list,
+                             std::pair<unsigned int,Kind>& clusterPair,
+                             bool isAlreadyClusterCand)
    {
      return testReachabilityAndSetClusterNoAtEachPoint( leftOuterPoint,
                                             rightOuterPoint,
@@ -2584,11 +2594,11 @@ update clusterNo and Type
 
 
    bool testReachabilityAndSetClusterNoAtEachPoint(TYPE* leftOuterPoint,
-                                                   TYPE* rightOuterPoint,
-                                                   list<MEMB_TYP_CLASS*>& list,
-                                                   int listNo,
-                                                   int type,
-                                                   bool isAlreadyClusterCand)
+                                   TYPE* rightOuterPoint,
+                                   std::list<MEMB_TYP_CLASS*>& list,
+                                   int listNo,
+                                   int type,
+                                   bool isAlreadyClusterCand)
    {
      typename std::list<MEMB_TYP_CLASS*>::iterator
      it = list.begin();
@@ -2628,9 +2638,9 @@ update clusterNo and Type
 
    bool moveItemToClusterCandOrNoise(TYPE* leftOuterPoint, 
                                      TYPE* rightOuterPoint,
-                                     typename list<MEMB_TYP_CLASS*>::
+                                     typename std::list<MEMB_TYP_CLASS*>::
                                      iterator delIt,
-                                     list<MEMB_TYP_CLASS*>& srcList,
+                                     std::list<MEMB_TYP_CLASS*>& srcList,
                                      bool isAlreadyClusterCand)
    {
      
@@ -2654,9 +2664,9 @@ update clusterNo and Type
 
        } else {
            //check Neighbors if there are inner or outer points
-           list<MEMB_TYP_CLASS*> innerNeighbors;
-           list<MEMB_TYP_CLASS*> densReachNeighbors;
-           typename list<MEMB_TYP_CLASS*>::iterator
+           std::list<MEMB_TYP_CLASS*> innerNeighbors;
+           std::list<MEMB_TYP_CLASS*> densReachNeighbors;
+           typename std::list<MEMB_TYP_CLASS*>::iterator
            neighborIt = (*delIt)->getEpsNeighborhood(true);
            while (neighborIt != (*delIt)->getEpsNeighborhood(false) &&
                !isClusterCand)
@@ -2704,12 +2714,12 @@ sort the elements from two lists in a new return list
 delete elements from sourceList
 
 */
-   void sortElemtsFromListsInNewList(list<MEMB_TYP_CLASS*>& sourceList,
-                                     list<MEMB_TYP_CLASS*>& destList,
-                                     list<MEMB_TYP_CLASS*>& retList,
-                                     pair<unsigned int,Kind>& retIndex)
+   void sortElemtsFromListsInNewList(std::list<MEMB_TYP_CLASS*>& sourceList,
+                                     std::list<MEMB_TYP_CLASS*>& destList,
+                                     std::list<MEMB_TYP_CLASS*>& retList,
+                                     std::pair<unsigned int,Kind>& retIndex)
    {
-     typename list<MEMB_TYP_CLASS*>::iterator
+     typename std::list<MEMB_TYP_CLASS*>::iterator
      sourceListIt  = sourceList.begin(),
      destListIt  = destList.begin();
 
@@ -2760,16 +2770,16 @@ after this method the destinationList is empty.
 
 */
    void sortRightListToLeftList(Cluster * origCluster,
-                                list<MEMB_TYP_CLASS*>& sourceList,
-                                list<MEMB_TYP_CLASS*>& destList,
-                                pair<double,double>& sourceMinMax,
-                                pair<double,double>& destMinMax,
-                                pair<unsigned int,Kind>& origIndex,
-                                pair<unsigned int,Kind>& destIndex,
+                                std::list<MEMB_TYP_CLASS*>& sourceList,
+                                std::list<MEMB_TYP_CLASS*>& destList,
+                                std::pair<double,double>& sourceMinMax,
+                                std::pair<double,double>& destMinMax,
+                                std::pair<unsigned int,Kind>& origIndex,
+                                std::pair<unsigned int,Kind>& destIndex,
                                 bool kindChanged,bool changeMinMax)
    {
 
-     typename list<MEMB_TYP_CLASS*>::iterator
+     typename std::list<MEMB_TYP_CLASS*>::iterator
      sourceListIt,destListIt ;
      int destClNo = getClusterNo(destIndex);
      int clType = getClusterType(destIndex.second);
@@ -2836,16 +2846,16 @@ updateClusterNoAndTypeInList
 update for each item in destList ClusterNo and ClusterType
 
 */
-   void updateClusterNoAndTypeInList(list<MEMB_TYP_CLASS*>& destList,
-                                     pair<unsigned int,Kind>& destIndex)
+   void updateClusterNoAndTypeInList(std::list<MEMB_TYP_CLASS*>& destList,
+                                     std::pair<unsigned int,Kind>& destIndex)
    {
      updateClusterNoAndTypeInList(destList,destIndex.first, destIndex.second);
    }
 
-   void updateClusterNoAndTypeInList(list<MEMB_TYP_CLASS*>& destList,
+   void updateClusterNoAndTypeInList(std::list<MEMB_TYP_CLASS*>& destList,
                                      int listNo ,Kind kind)
    {
-     typename list<MEMB_TYP_CLASS*>::iterator
+     typename std::list<MEMB_TYP_CLASS*>::iterator
      destListIt ;
      int destClNo = getClusterNo(listNo,kind);
      int clType = getClusterType(kind);
@@ -2872,7 +2882,7 @@ copy the untouched right Cluster lists to left Cluster
        {
          if(rightCluster->getListLength(i,kind) > 0)
            {//list is not empty
-             pair<unsigned int,Kind> index = make_pair(i,kind);
+             std::pair<unsigned int,Kind> index = std::make_pair(i,kind);
              addListToCorrectClusterType(
                  rightCluster->getList(i,kind),
                  rightCluster->getMinMaxFromCluster(i,kind),
@@ -2888,11 +2898,11 @@ copy the untouched right Cluster lists to left Cluster
    void insertIndexToClusterToMelt(int minIndex,
                                    int insertInd,
                                    Kind kind,
-                                   vector<pair<unsigned int,Kind> >* 
+                                   std::vector<std::pair<unsigned int,Kind> >* 
                                    clusterCandToMelt,
-                                   vector<unsigned int >& minToMaxIndexes)
+                                   std::vector<unsigned int >& minToMaxIndexes)
    {
-     pair<unsigned int,Kind> newItem= make_pair(insertInd,kind);
+     std::pair<unsigned int,Kind> newItem= std::make_pair(insertInd,kind);
 
      if ( find(clusterCandToMelt[minIndex].begin(),
                clusterCandToMelt[minIndex].end(), newItem)
@@ -2908,7 +2918,7 @@ copy the untouched right Cluster lists to left Cluster
  insert val in index vector -> look up for doubles
  
 */
-   void insertInMinToMaxIndex(vector<unsigned int >& minToMaxIndexes,
+   void insertInMinToMaxIndex(std::vector<unsigned int >& minToMaxIndexes,
                               unsigned int val )
    {
      if ( find(minToMaxIndexes.begin(),
@@ -2931,7 +2941,7 @@ copy the untouched right Cluster lists to left Cluster
          if(getListLength(i,kind) < minPts){
            if(getListLength(i,kind)){
              //verschiebe punkte zu clusterCand Or Noise
-             typename list<MEMB_TYP_CLASS*>::iterator it =
+             typename std::list<MEMB_TYP_CLASS*>::iterator it =
              getIterator(i,true,kind);
              while(it != getIterator(i,false,kind)){
                it = moveItemUnsorted(it,getList(i,kind),
@@ -2952,8 +2962,9 @@ copy the untouched right Cluster lists to left Cluster
                }
            }else{
           //Check kind and also update Lists push list back to existing vector
-               pair<unsigned int,Kind> index = make_pair(i,kind), destIndex;
-               list<MEMB_TYP_CLASS*> emptyL;
+               std::pair<unsigned int,Kind> index = std::make_pair(i,kind),
+                                                            destIndex;
+               std::list<MEMB_TYP_CLASS*> emptyL;
                if(!defineDestIndexPair(getList(index),emptyL,
                                        index,destIndex))
                  {
@@ -2985,7 +2996,7 @@ check if a point is within right or left outer boreder
 
 */
    bool pointIsInOuterBorders(TYPE* leftOuterPoint, TYPE* rightOuterPoint,
-                              typename list<MEMB_TYP_CLASS*>::iterator it)
+                              typename std::list<MEMB_TYP_CLASS*>::iterator it)
    {
      return (*it)->calcXDistanz(leftOuterPoint) <= eps ||
          (*it)->calcXDistanz(rightOuterPoint) <= eps;
@@ -2996,12 +3007,12 @@ check if a point is within right or left outer boreder
                                Cluster* destCluster,
                                int destListNo, Kind destKind)
    {
-     pair<double,double> border =
+     std::pair<double,double> border =
      srcCluster->getMinMaxFromCluster(srcListNo,srcKind);
      return listIsInYBordersOfList(border,destCluster,destListNo,destKind);
    }
 
-   bool listIsInYBordersOfList(pair<double,double>& border,
+   bool listIsInYBordersOfList(std::pair<double,double>& border,
                                Cluster* destCluster,
                                int destListNo, Kind destKind)
    {
@@ -3024,7 +3035,8 @@ check if a point is within right or left outer boreder
                               int listNo, Kind kind)
    {
      //3 possibilities
-     pair<double,double> border =cluster->getMinMaxFromCluster(listNo,kind);
+     std::pair<double,double> border 
+                      =cluster->getMinMaxFromCluster(listNo,kind);
      // 1. point is in middle of borders
      if(val >= border.first && val <= border.second)
        return true;
@@ -3036,7 +3048,7 @@ check if a point is within right or left outer boreder
      return false;
    }
 
-   void deleteVector(vector<pair<unsigned int,
+   void deleteVector(std::vector<std::pair<unsigned int,
                      Kind> >* vecAr, unsigned int size )
    {
      for (unsigned int i = 0; i< size; i++){
@@ -3044,7 +3056,7 @@ check if a point is within right or left outer boreder
      }
      //     delete[] vecAr;
    }
-   void deleteVector(vector< clusterCandMelt>* vecAr, unsigned int size )
+   void deleteVector(std::vector< clusterCandMelt>* vecAr, unsigned int size )
    {
      for (unsigned int i = 0; i< size; i++){
          vecAr[i].clear();
@@ -3135,7 +3147,7 @@ calculates a unique identifier based on the cantor pairing function
      return (x+y)*(x+y+1)/2 + y;
    }
 
-   unsigned int getClusterNo(pair<unsigned int,Kind>& list)
+   unsigned int getClusterNo(std::pair<unsigned int,Kind>& list)
    {
      return getClusterNo(list.first,list.second);
    }
