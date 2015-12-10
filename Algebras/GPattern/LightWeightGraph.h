@@ -51,9 +51,9 @@ class DelComponent
 class NewComponent
 {
 public:
-  vector<int> affectedComponents;
-  set<int> newNodes;
-  ostream& Print( ostream &os );
+  std::vector<int> affectedComponents;
+  std::set<int> newNodes;
+  std::ostream& Print( std::ostream &os );
   bool AffectsComponent(int label);
   void Union(NewComponent& arg);
 };
@@ -71,11 +71,11 @@ public:
   //component whose message is SplitFromExtistingComponent. This is the only
   //use for this attribute. The attribute's value is written in UpdateRemove
   //function, and read in the Finalize function.
-  set<int> nodes;
+  std::set<int> nodes;
   int resultPartIndex;
-  vector< list< vector<int> >::iterator> associatedResults;
-  set<int> addedEdges;
-  set<int> removedEdges;
+  std::vector< std::list< std::vector<int> >::iterator> associatedResults;
+  std::set<int> addedEdges;
+  std::set<int> removedEdges;
   bool ExtendedTillLastChange;
 
   
@@ -85,82 +85,91 @@ public:
   bool UpdateMessage(ComponentMessage newMsg);
   void SynchronizeNodes(LWGraph* g);
   bool IsConnected(LWGraph* g, int node1, int node2);
-  void Cluster(LWGraph* g, list<set<int> >& splitComponents);
-  void GetEdges(LWGraph* g, set<int>& compEdges);
+  void Cluster(LWGraph* g, std::list<std::set<int> >& splitComponents);
+  void GetEdges(LWGraph* g, std::set<int>& compEdges);
   void Union(Component* arg);
-  ostream& Print( ostream &os );
+  std::ostream& Print( std::ostream &os );
   void ExtendResStreamsTillNow(
-      vector<mset::CompressedMSet*>& resultsParts,int64_t endtime, bool rc);
+      std::vector<mset::CompressedMSet*>& resultsParts,
+      int64_t endtime, bool rc);
   void Reset();
-  bool Intersects(set<int>* arg);
+  bool Intersects(std::set<int>* arg);
 };
 
 class LWGraph
 {
 public:
-  map<int, int> node_component; 
-  map<int,list< set< pair<int, int> > >::iterator> node_index;
-  list< set< pair<int, int> > > neighbors;
+  std::map<int, int> node_component; 
+  std::map<int,std::list< 
+     std::set< std::pair<int, int> > >::iterator> node_index;
+  std::list< std::set< std::pair<int, int> > > neighbors;
   LWGraph(){clear();}
   int clear();  
   int copy_from(LWGraph* arg);
   //int create_graph(vector< pair<int,int> > *_edges, bool _directed);
-  int insert_edge_directed(pair<int, int>* _edgeNodes, int& _edge);
+  int insert_edge_directed(std::pair<int, int>* _edgeNodes, int& _edge);
   int insert_edge_directed(int& _first, int& _second, int& _edge);
-  int remove_edge_directed(pair<int, int>& _edgeNodes, int& _edge);
+  int remove_edge_directed(std::pair<int, int>& _edgeNodes, int& _edge);
   int remove_edge_directed(int& _first, int& _second, int& _edge);
-  vector< LWGraph* >* cluster();
-  vector< LWGraph* >* find_components_of(set<int>& _nodes);
+  std::vector< LWGraph* >* cluster();
+  std::vector< LWGraph* >* find_components_of(std::set<int>& _nodes);
   int nodes_count();
-  int get_nodes(set<int>& res);
-  ostream& print( ostream &os );
+  int get_nodes(std::set<int>& res);
+  std::ostream& print( std::ostream &os );
 private:
   bool remove_node_if_isolated(int _node);
 };
 
 void InsertEdgesUndirected(
-    LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes);
+    LWGraph* g, std::set<int>& edges, 
+        std::vector<std::pair<int,int> >& edge2nodes);
 void InsertEdgesUndirected(
-    LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes,
-    set<int>& newNodes);
+    LWGraph* g, std::set<int>& edges, 
+    std::vector<std::pair<int,int> >& edge2nodes,
+    std::set<int>& newNodes);
 
 void FindComponentsOf(
-    LWGraph* g, list<Component*>* components, set<int>& roots, 
-    vector<pair<int,int> >& edge2nodes, vector<NewComponent>& newComponents);
+    LWGraph* g, std::list<Component*>* components, std::set<int>& roots, 
+    std::vector<std::pair<int,int> >& edge2nodes, 
+    std::vector<NewComponent>& newComponents);
 
-int RemoveEdgeUndirected(LWGraph* g, int edge, pair<int,int>* edgeNodes);
+int RemoveEdgeUndirected(LWGraph* g, int edge, std::pair<int,int>* edgeNodes);
 void RemoveEdgesUndirected(
-    LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes);
+    LWGraph* g, std::set<int>& edges, 
+    std::vector<std::pair<int,int> >& edge2nodes);
 void RemoveEdgesUndirected(
-    LWGraph* g, set<int>& edges, vector<pair<int,int> >& edge2nodes, 
-    set<int>& removedNodes);
+    LWGraph* g, std::set<int>& edges, 
+    std::vector<std::pair<int,int> >& edge2nodes, 
+    std::set<int>& removedNodes);
 //void Cluster(set<int>& edges, vector<pair<int,int> >& edge2nodes,
 //    vector<Component*>& Components);
 
-void SetGraphNodesComponent(LWGraph* graph, set<int>& nodes, int label);
-void RemoveGraphNodesComponent(LWGraph* g, set<int>& nodes);
-void UpdateGraphNodesComponent(LWGraph* g, set<int>& nodes, int label);
+void SetGraphNodesComponent(LWGraph* graph, std::set<int>& nodes, int label);
+void RemoveGraphNodesComponent(LWGraph* g, std::set<int>& nodes);
+void UpdateGraphNodesComponent(LWGraph* g, std::set<int>& nodes, int label);
 
-int FindEdgeComponent(LWGraph* graph, pair<int, int>* _edge);
+int FindEdgeComponent(LWGraph* graph, std::pair<int, int>* _edge);
 
-list<Component*>::iterator 
-GetComponentIt(list<Component*>* components, int label);
+std::list<Component*>::iterator 
+GetComponentIt(std::list<Component*>* components, int label);
 
-void ExpandInGraph(LWGraph*  graph, pair<int, int>* edgeNodes, 
-    set<int>& curAffectedComponents, set<int>& curNewNodes);
+void ExpandInGraph(LWGraph*  graph, std::pair<int, int>* edgeNodes, 
+    std::set<int>& curAffectedComponents, std::set<int>& curNewNodes);
 
-void MergeNewComponents(vector<NewComponent>& newComponents, 
-    set<int>& affectedComponents);
+void MergeNewComponents(std::vector<NewComponent>& newComponents, 
+    std::set<int>& affectedComponents);
 
-ostream& PrintSet( set<int>& arg, ostream &os );
-ostream& PrintVector( vector<int>& arg, ostream &os );
+std::ostream& PrintSet( std::set<int>& arg, std::ostream &os );
+std::ostream& PrintVector( std::vector<int>& arg, std::ostream &os );
 
-bool HasOneComponent(set<int> edges, vector< pair<int,int> >& edge2nodes);
+bool HasOneComponent(std::set<int> edges, 
+      std::vector< std::pair<int,int> >& edge2nodes);
 bool IsOneComponent(mset::CompressedMSet* _mset, int n, 
-    vector< pair<int,int> > & edge2nodes);
+    std::vector< std::pair<int,int> > & edge2nodes);
 int GetNumComponents(
-    set<int>& edges, int n, vector< pair<int,int> > & edge2nodes);
+    std::set<int>& edges, int n, 
+    std::vector< std::pair<int,int> > & edge2nodes);
 
-bool SetIntersects(set<int>* set1, set<int>* set2);
+bool SetIntersects(std::set<int>* set1, std::set<int>* set2);
 }
 

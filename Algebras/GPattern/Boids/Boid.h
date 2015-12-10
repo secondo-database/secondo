@@ -313,7 +313,7 @@ class BoidGenerator
 {
 public:
   friend class Boid;
-  BoidGenerator(vector<int>& BoidSizes, vector<double>& Obstacles,
+  BoidGenerator(std::vector<int>& BoidSizes, std::vector<double>& Obstacles,
       Instant* SimulationStartTime, Instant* SimulationDuration);
   ~BoidGenerator();
   int  GetNext(int& BoidID, Instant& SampleTime, double& X,double& Y);
@@ -325,22 +325,23 @@ between the two coordinates.
 
 */
   inline double mirror(double&  xCoord);
-  Box* Rect2Box(const pair<pair<double, double>,  pair<double, double> > rect);
+  Box* Rect2Box(const std::pair<std::pair<double, double>,  
+                std::pair<double, double> > rect);
 
   bool initSimulation();
   BoidGenerator();
   bool updateBoids();
   bool makeBoids(void);
-  void makeObstacles(vector<double>& Obstacles);
+  void makeObstacles(std::vector<double>& Obstacles);
   bool GetCurrent(double& X,double& Y);
-  vector<int> boidSizes;
+  std::vector<int> boidSizes;
   int freeBoidCount;
-  vector<Sphere*> obstacles;
+  std::vector<Sphere*> obstacles;
   Sphere* world;
   Instant simulationStart;
   Instant sampleInterval;
   int remainingSamples;
-  vector<Boid*> boids;
+  std::vector<Boid*> boids;
   unsigned int iterator;
   double elapsedTime;
 };
@@ -352,7 +353,8 @@ inline double BoidGenerator::mirror(double&  xCoord)
 }
 
 inline Box* BoidGenerator::Rect2Box(
-    const pair<pair<double, double>,  pair<double, double> >  rect)
+    const std::pair<std::pair<double, double>,  
+          std::pair<double, double> >  rect)
 {
 /*
 The rect format is (<minX, maxX>, <minY, maxY>) where X increases in the
@@ -364,8 +366,8 @@ left direction, which is compatible to the boid generator.
   double minY= rect.second.first;
   double maxY= rect.second.second;
 
-  pair<double, double> bottomRight(minX, minY);
-  pair<double, double> topLeft(maxX, maxY);
+  std::pair<double, double> bottomRight(minX, minY);
+  std::pair<double, double> topLeft(maxX, maxY);
   Box* res= new Box(
    MathVector(topLeft.first, 1000.0, topLeft.second),
    MathVector(bottomRight.first, -1000.0, bottomRight.second));

@@ -38,6 +38,9 @@ Jan, 2010 Mahmoud Sakr
 
 #include "MSet.h"
 
+using namespace std;
+using namespace datetime;
+
 namespace mset{
 
 using namespace temporalalgebra;

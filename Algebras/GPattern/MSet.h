@@ -87,9 +87,9 @@ class Helpers
 {
 public:  
   static inline bool string2int(char* digit, int& result);
-  static inline string ToString( int number );
-  static inline string ToString( double number );
-  static ostream& PrintSet( set<int> elems, ostream &os);
+  static inline std::string ToString( int number );
+  static inline std::string ToString( double number );
+  static std::ostream& PrintSet( std::set<int> elems, std::ostream &os);
 };
 /*
 3 Classes
@@ -147,7 +147,7 @@ Set operations and predicates
   void Clear();
   int BinSearch(int elem);
   int operator[](int index) const;
-  static const string BasicType();
+  static const std::string BasicType();
 /*
 members required for the Attribute interface
 
@@ -156,7 +156,7 @@ members required for the Attribute interface
   void CopyFrom(const Attribute* right);
   virtual int Compare( const Attribute* rhs ) const;
   virtual int CompareAlmost( const Attribute* arg ) const;
-  ostream& Print( ostream &os ) const; 
+  std::ostream& Print( std::ostream &os ) const; 
   size_t Sizeof() const;
   bool Adjacent(const Attribute*) const ;
   Attribute* Clone() const ;
@@ -221,7 +221,7 @@ members required for the Attribute interface
 members required for SECONDO types
 
 */
-  static const string BasicType();
+  static const std::string BasicType();
   static Word     Create( const ListExpr typeInfo );
   static void     Delete( const ListExpr typeInfo, Word& w );
   static void     Close( const ListExpr typeInfo, Word& w );
@@ -324,7 +324,7 @@ not modify this unit and return ~false~.
   virtual bool Adjacent( const Attribute* arg ) const;
   virtual int NumOfFLOBs()const;
   virtual Flob *GetFLOB(const int i);
-  virtual ostream& Print( ostream &os ) const;
+  virtual std::ostream& Print( std::ostream &os ) const;
   virtual size_t HashValue() const;
   virtual USet* Clone() const;
   virtual void CopyFrom( const Attribute* right );
@@ -342,7 +342,7 @@ not modify this unit and return ~false~.
   static Word CloneUSet( const ListExpr typeInfo, const Word& w );
   static int SizeOfUSet();
   static void* CastUSet(void* addr);
-  inline static const string BasicType();
+  inline static const std::string BasicType();
 /*
 3.6.4 Attributes
 
@@ -355,7 +355,7 @@ The constant value of the temporal unit.
 */
 };
 
-const string USet::BasicType()
+const std::string USet::BasicType()
 {
   return "uset";
 }
@@ -386,7 +386,7 @@ Calss member functions
 */  
   void GetUnit(const DbArray<int>& data, USet& res) const;
   
-  void GetSet(const DbArray<int>& data, set<int>& res) const;
+  void GetSet(const DbArray<int>& data, std::set<int>& res) const;
   
   bool operator==( const USetRef& i ) const
   {
@@ -449,7 +449,7 @@ Calss member functions
     }
   }
   
-  ostream& Print( ostream &os ) const
+  std::ostream& Print( std::ostream &os ) const
   {
     return os << "[" << this->start << "," << this->end<< "[" ; 
   }
@@ -459,7 +459,7 @@ For meaningfull printout, one would like to see the elements of the set. This
 function therefore accepts the \emph{data} array in its arguements.
 
 */
-  ostream& Print(DbArray<int> data, ostream &os ) const
+  std::ostream& Print(DbArray<int> data, std::ostream &os ) const
   {
     USet tmp(0);
     GetUnit(data, tmp);
@@ -511,7 +511,7 @@ public:
   Flob *GetFLOB(const int i);
   int Compare( const Attribute* rhs ) const;
   int CompareAlmost( const Attribute* rhs ) const;
-  virtual ostream& Print( ostream &os ) const;
+  virtual std::ostream& Print( std::ostream &os ) const;
   static bool KindCheck( ListExpr type, ListExpr& errorInfo );
   static ListExpr Property();  
   static Word InMSet(const ListExpr typeInfo, const ListExpr instance,
@@ -523,11 +523,11 @@ public:
   static Word CloneMSet( const ListExpr typeInfo, const Word& w );
   static int SizeOfMSet();
   static void* CastMSet(void* addr);
-  inline static const string BasicType();
+  inline static const std::string BasicType();
   DbArray<int> data;
 };
 
-const string MSet::BasicType()
+const std::string MSet::BasicType()
 {
   return "mset";
 }
@@ -541,7 +541,8 @@ public:
     ReadFrom(arg);
   }
   InMemUSet(
-      const set<int>& s, int64_t start, int64_t end, bool left, bool right):
+      const std::set<int>& s, int64_t start, int64_t end, 
+      bool left, bool right):
     starttime(start), endtime(end), lc(left), rc(right),
     constValue(s.begin(), s.end()) {}
 
@@ -557,30 +558,30 @@ public:
   
   void SetTimeInterval(temporalalgebra::Interval<Instant>& arg);
 
-  void Intersection(set<int>& arg);
+  void Intersection(std::set<int>& arg);
   
-  bool Intersects(set<int>& arg);
+  bool Intersects(std::set<int>& arg);
 
-  void Intersection(set<int>& arg, set<int>& result);
+  void Intersection(std::set<int>& arg, std::set<int>& result);
 
-  void Union(set<int>& arg);
+  void Union(std::set<int>& arg);
 
-  void Union(set<int>& arg, set<int>& result);
+  void Union(std::set<int>& arg, std::set<int>& result);
 
-  ostream& Print( ostream &os );
+  std::ostream& Print( std::ostream &os );
 
   unsigned int Count();
 
   void Insert(int elem);
 
-  void CopyValueFrom(set<int>& arg);
+  void CopyValueFrom(std::set<int>& arg);
 
   void CopyFrom(InMemUSet& arg);
 
   int64_t starttime, endtime;
   bool lc, rc;
-  set<int> constValue;
-  set<int>::iterator it;
+  std::set<int> constValue;
+  std::set<int>::iterator it;
 };
 
 class InMemMSet
@@ -590,8 +591,8 @@ public:
   
   InMemMSet(MSet& arg);
   
-  InMemMSet(InMemMSet& arg, list<InMemUSet>::iterator begin,
-        list<InMemUSet>::iterator end);
+  InMemMSet(InMemMSet& arg, std::list<InMemUSet>::iterator begin,
+        std::list<InMemUSet>::iterator end);
   
   ~InMemMSet();
   
@@ -601,20 +602,20 @@ public:
   
   void CopyFrom(InMemMSet& arg);
   
-  void CopyFrom(InMemMSet& arg, list<InMemUSet>::iterator begin,
-      list<InMemUSet>::iterator end);
+  void CopyFrom(InMemMSet& arg, std::list<InMemUSet>::iterator begin,
+      std::list<InMemUSet>::iterator end);
   
   void ReadFrom(temporalalgebra::MBool& mbool, int key);
   
   void WriteToMSet(MSet& res);
   
-  void WriteToMSet(MSet& res, list<InMemUSet>::iterator begin, 
-      list<InMemUSet>::iterator end);
+  void WriteToMSet(MSet& res, std::list<InMemUSet>::iterator begin, 
+      std::list<InMemUSet>::iterator end);
 
-  bool MergeAdd(set<int>& val, int64_t &starttime,
+  bool MergeAdd(std::set<int>& val, int64_t &starttime,
       int64_t &endtime, bool lc, bool rc);
   
-  ostream& Print( ostream &os );
+  std::ostream& Print( std::ostream &os );
   
   void Union (InMemMSet& arg);
 
@@ -622,14 +623,16 @@ public:
   
   bool RemoveShortPariods(const int64_t dMS);
  
-  typedef pair<int64_t, list<InMemUSet>::iterator > inst;
-  ostream& Print( map<int, inst> elems, ostream &os );
+  typedef std::pair<int64_t, std::list<InMemUSet>::iterator > inst;
+  std::ostream& Print( std::map<int, inst> elems, std::ostream &os );
   
   bool RemoveShortElemParts(const int64_t dMS);
   
-  list<InMemUSet>::iterator GetPeriodEndUnit(list<InMemUSet>::iterator begin);
+  std::list<InMemUSet>::iterator 
+                GetPeriodEndUnit(std::list<InMemUSet>::iterator begin);
 
-  list<InMemUSet>::iterator GetPeriodStartUnit(list<InMemUSet>::iterator end);
+  std::list<InMemUSet>::iterator 
+               GetPeriodStartUnit(std::list<InMemUSet>::iterator end);
   
   bool GetNextTrueUnit(temporalalgebra::MBool& mbool, int& pos, 
                        temporalalgebra::UBool& unit);
@@ -637,8 +640,8 @@ public:
   void Union (temporalalgebra::MBool& arg, int key);
 
   
-  list<InMemUSet> units;
-  list<InMemUSet>::iterator it;
+  std::list<InMemUSet> units;
+  std::list<InMemUSet>::iterator it;
 };
 
 
@@ -649,16 +652,17 @@ public:
   CompressedInMemUSet():count(0){}
   void Erase(int victim);
   bool EraseNodes(
-      vector<int>& removedNodes, vector<pair<int,int> >& edge2nodesMap);
+  std::vector<int>& removedNodes, 
+  std::vector<std::pair<int,int> >& edge2nodesMap);
   void Insert(int elem);
   
-  ostream& Print( ostream &os );
+  std::ostream& Print( std::ostream &os );
   
   int64_t starttime, endtime;
   bool lc, rc;
-  set<int> added;
-  set<int> removed;
-  set<int>::iterator it;
+  std::set<int> added;
+  std::set<int> removed;
+  std::set<int>::iterator it;
   unsigned int count;
 };
 
@@ -672,7 +676,7 @@ private:
     int obj;
     EventType type;
   };
-  set<int> lastUnitValue;
+  std::set<int> lastUnitValue;
   bool validLastUnitValue;
 //  struct EventInstant
 //  {
@@ -690,52 +694,53 @@ public:
   CompressedInMemMSet();
   
   CompressedInMemMSet(CompressedInMemMSet& arg, 
-      list<CompressedInMemUSet>::iterator begin,
-      list<CompressedInMemUSet>::iterator end);
+      std::list<CompressedInMemUSet>::iterator begin,
+      std::list<CompressedInMemUSet>::iterator end);
   
   int GetNoComponents();
   
   void CopyFrom(CompressedInMemMSet& arg, 
-      list<CompressedInMemUSet>::iterator begin,
-      list<CompressedInMemUSet>::iterator end);
+      std::list<CompressedInMemUSet>::iterator begin,
+      std::list<CompressedInMemUSet>::iterator end);
   
   void Clear();
   
-  void GetSet(list<CompressedInMemUSet>::iterator index, set<int>& res);
+  void GetSet(std::list<CompressedInMemUSet>::iterator index, 
+              std::set<int>& res);
   
-  set<int>* GetFinalSet();
+  std::set<int>* GetFinalSet();
   
   void WriteToMSet(MSet& res);
   
-  void WriteUSet(set<int>& val, CompressedInMemUSet& source, USet& res);
+  void WriteUSet(std::set<int>& val, CompressedInMemUSet& source, USet& res);
   
-  void WriteToMSet(MSet& res, list<CompressedInMemUSet>::iterator begin, 
-      list<CompressedInMemUSet>::iterator end);
+  void WriteToMSet(MSet& res, std::list<CompressedInMemUSet>::iterator begin, 
+      std::list<CompressedInMemUSet>::iterator end);
   
   void WriteToInMemMSet(InMemMSet& res, 
-      list<CompressedInMemUSet>::iterator begin, 
-      list<CompressedInMemUSet>::iterator end);
+      std::list<CompressedInMemUSet>::iterator begin, 
+      std::list<CompressedInMemUSet>::iterator end);
   
   void WriteToInMemMSet(InMemMSet& res);
   
-  ostream& Print( ostream &os );
+  std::ostream& Print( std::ostream &os );
   
-  list<CompressedInMemUSet>::iterator 
-    EraseUnit(list<CompressedInMemUSet>::iterator pos);
+  std::list<CompressedInMemUSet>::iterator 
+    EraseUnit(std::list<CompressedInMemUSet>::iterator pos);
   
-  list<CompressedInMemUSet>::iterator 
-    EraseUnits(list<CompressedInMemUSet>::iterator start, 
-        list<CompressedInMemUSet>::iterator end);
+  std::list<CompressedInMemUSet>::iterator 
+    EraseUnits(std::list<CompressedInMemUSet>::iterator start, 
+        std::list<CompressedInMemUSet>::iterator end);
   
   bool RemoveSmallUnits(const unsigned int n);
   
-  typedef pair<int64_t, list<CompressedInMemUSet>::iterator > inst;
-  ostream& Print( map<int, inst> elems, ostream &os );
+  typedef std::pair<int64_t, std::list<CompressedInMemUSet>::iterator > inst;
+  std::ostream& Print( std::map<int, inst> elems, std::ostream &os );
   
   bool RemoveShortElemParts(const int64_t dMS);
   
-  list<CompressedInMemUSet>::iterator GetPeriodEndUnit(
-      list<CompressedInMemUSet>::iterator begin);
+  std::list<CompressedInMemUSet>::iterator GetPeriodEndUnit(
+      std::list<CompressedInMemUSet>::iterator begin);
   
   bool GetNextTrueUnit(temporalalgebra::MBool& mbool, int& pos, 
                        temporalalgebra::UBool& unit);
@@ -743,17 +748,18 @@ public:
   bool Buffer (temporalalgebra::MBool& arg, int key);
   bool Buffer (temporalalgebra::MBool& arg, int key, int64_t duration);
   
-  void ClassifyEvents(pair< multimap<int64_t, Event>::iterator,
-     multimap<int64_t, Event>::iterator >& events,
-     map<EventType, vector<multimap<int64_t, Event>::iterator> >& eventClasses);
+  void ClassifyEvents(std::pair< std::multimap<int64_t, Event>::iterator,
+     std::multimap<int64_t, Event>::iterator >& events,
+     std::map<EventType, 
+         std::vector<std::multimap<int64_t, Event>::iterator> >& eventClasses);
   
   void AddUnit(int64_t starttime, int64_t endtime, bool lc, bool rc,
-      set<int>& elemsToAdd, set<int>& elemsToRemove, int elemsCount);
+      std::set<int>& elemsToAdd, std::set<int>& elemsToRemove, int elemsCount);
   
-  void AddUnit( set<int>& constValue,
+  void AddUnit( std::set<int>& constValue,
       int64_t starttime, int64_t endtime, bool lc, bool rc);
   
-  bool MergeAdd(set<int>& val, int64_t &starttime,
+  bool MergeAdd(std::set<int>& val, int64_t &starttime,
       int64_t &endtime, bool lc, bool rc);
    
   void ConstructFromBuffer();
@@ -765,9 +771,9 @@ that the representation is minimal.
 */
   void MakeMinimal();
 
-  multimap<int64_t, Event> buffer;
-  list<CompressedInMemUSet> units;
-  list<CompressedInMemUSet>::iterator it;
+  std::multimap<int64_t, Event> buffer;
+  std::list<CompressedInMemUSet> units;
+  std::list<CompressedInMemUSet>::iterator it;
 };
 
 
@@ -791,7 +797,7 @@ public:
 class CompressedMSet
 {
 private:
-  set<int> lastUnitValue;
+  std::set<int> lastUnitValue;
 
 public:
   bool validLastUnitValue;
@@ -808,25 +814,25 @@ public:
   
   void Clear();
   
-  void GetSet(int index, set<int>& res);
+  void GetSet(int index, std::set<int>& res);
   
-  set<int>* GetFinalSet();
+  std::set<int>* GetFinalSet();
   
   void WriteToCompressedInMemMSet(CompressedInMemMSet& res);
   void ReadFromCompressedInMemMSet(CompressedInMemMSet& arg);
   bool ReadFromCompressedInMemMSet(CompressedInMemMSet& arg,
-                list<CompressedInMemUSet>::iterator b,
-                list<CompressedInMemUSet>::iterator e);
+                std::list<CompressedInMemUSet>::iterator b,
+                std::list<CompressedInMemUSet>::iterator e);
   
-  ostream& Print( ostream &os );
+  std::ostream& Print( std::ostream &os );
   
-  void AddUnit( set<int>& constValue,
+  void AddUnit( std::set<int>& constValue,
       int64_t starttime, int64_t endtime, bool lc, bool rc);
   
-  void AddUnit( set<int>& added, set<int>& removed,
+  void AddUnit( std::set<int>& added, std::set<int>& removed,
       int64_t starttime, int64_t endtime, bool lc, bool rc);
   
-  bool MergeAdd(set<int>& val, int64_t &starttime,
+  bool MergeAdd(std::set<int>& val, int64_t &starttime,
       int64_t &endtime, bool lc, bool rc);
 
   int64_t DurationLength();

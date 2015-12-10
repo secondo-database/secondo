@@ -42,6 +42,9 @@ JAN, 2010 Mahmoud Sakr
 
 using namespace mset;
 using namespace temporalalgebra;
+using namespace std;
+using namespace datetime;
+using namespace RegionInterpol;
 
 namespace GPattern{
 

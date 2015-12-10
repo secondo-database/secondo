@@ -57,7 +57,7 @@ JAN, 2010 Mahmoud Sakr
 #include "LightWeightGraph.h"
 #include "Boids/Boid.h"
 
-typedef DateTime Instant;
+typedef datetime::DateTime Instant;
 extern NestedList *nl;
 extern QueryProcessor* qp;  
 
@@ -99,12 +99,12 @@ class ChangeRecord
 public:
   enum StatusCode{NotChanged=0, ElemsRemoved=1, UnitRemoved=2};
   StatusCode status;
-  vector<int> removedNodes;
-  vector<int> removedNodesInRemoved;
+  std::vector<int> removedNodes;
+  std::vector<int> removedNodesInRemoved;
   ChangeRecord();
   bool UpdateStatus(StatusCode newCode);
   bool AppendToRemovedNodes(int node);
-  ostream& Print(ostream& os);
+  std::ostream& Print(std::ostream& os);
   void Clear();
 };
 
@@ -114,55 +114,63 @@ public:
   struct NodeLogEntry
   {
     int64_t starttime, endtime;
-    list<CompressedInMemUSet>::iterator startUnitIt, endUnitIt;
+    std::list<mset::CompressedInMemUSet>::iterator startUnitIt, endUnitIt;
     int startUnitIndex, endUnitIndex;
-    set<int> associatedEdges;
+    std::set<int> associatedEdges;
     NodeLogEntry(
-        int64_t st, list<CompressedInMemUSet>::iterator stIt, int sUI,
-        set<int>& aE);
-    ostream& Print(ostream& os);
+        int64_t st, std::list<mset::CompressedInMemUSet>::iterator stIt,
+        int sUI,
+        std::set<int>& aE);
+    std::ostream& Print(std::ostream& os);
   };
   struct NodeLog
   {
-    list<NodeLogEntry> log;
-    void Append(list<CompressedInMemUSet>::iterator& usetIt, int usetIndex,
-        set<int>& edges);
+    std::list<NodeLogEntry> log;
+    void Append(std::list<mset::CompressedInMemUSet>::iterator& usetIt, 
+         int usetIndex,
+        std::set<int>& edges);
     bool RemoveUnit(int index);
-    ostream& Print(ostream& os);
+    std::ostream& Print(std::ostream& os);
   };
-  map<int,  NodeLog> nodes;
-  vector<int> units;
-  MSetIndex(CompressedInMemMSet& mset, vector<pair<int, int> >& edge2Nodes );
+  std::map<int,  NodeLog> nodes;
+  std::vector<int> units;
+  MSetIndex(mset::CompressedInMemMSet& mset, 
+            std::vector<std::pair<int, int> >& edge2Nodes );
   void ConstructIndex(
-      CompressedInMemMSet& mset, vector<pair<int, int> >& edge2Nodes);
+      mset::CompressedInMemMSet& mset, 
+      std::vector<std::pair<int, int> >& edge2Nodes);
 
 
-  bool RemoveShortNodeEntries(int64_t dMS, vector<ChangeRecord>& AllChanges);
-  bool RemoveShortNodeEntries(int64_t dMS, map<int,  NodeLog>::iterator nodeIt,
-      vector<ChangeRecord>& AllChanges);
-  void DeleteNodePart(map<int,  NodeLog>::iterator& nodeIt,
-      list<NodeLogEntry>::iterator nodeEntryIt,
-      vector<ChangeRecord>& AllChanges);
-  bool RemoveSmallUnits(int n, vector<ChangeRecord>& AllChanges);
-  void RemoveUnit(int index, vector<ChangeRecord>& AllChanges);
-  void FinalizeIndex(set<int>& nodesToBeFinalized,
-      list<CompressedInMemUSet>::iterator endIt);
-  ostream& Print(ostream& os);
+  bool RemoveShortNodeEntries(int64_t dMS,
+            std::vector<ChangeRecord>& AllChanges);
+  bool RemoveShortNodeEntries(int64_t dMS, 
+            std::map<int,  NodeLog>::iterator nodeIt,
+      std::vector<ChangeRecord>& AllChanges);
+  void DeleteNodePart(std::map<int,  NodeLog>::iterator& nodeIt,
+      std::list<NodeLogEntry>::iterator nodeEntryIt,
+      std::vector<ChangeRecord>& AllChanges);
+  bool RemoveSmallUnits(int n, std::vector<ChangeRecord>& AllChanges);
+  void RemoveUnit(int index, std::vector<ChangeRecord>& AllChanges);
+  void FinalizeIndex(std::set<int>& nodesToBeFinalized,
+      std::list<mset::CompressedInMemUSet>::iterator endIt);
+  std::ostream& Print(std::ostream& os);
 
 private:
-  void AppendInsertionsIntoNodeLog(set<int>& deltaNodes,
-      vector<pair<int, int> >& edge2nodesMap,
-      list<CompressedInMemUSet>::iterator& curUSet, int curUSetIndex);
+  void AppendInsertionsIntoNodeLog(std::set<int>& deltaNodes,
+      std::vector<std::pair<int, int> >& edge2nodesMap,
+      std::list<mset::CompressedInMemUSet>::iterator& curUSet, 
+      int curUSetIndex);
 
-  void AppendRemovalsIntoNodeLog(set<int>& deltaNodes,
-      vector<pair<int, int> >& edge2nodesMap,
-      list<CompressedInMemUSet>::iterator& curUSet, int curUSetIndex);
+  void AppendRemovalsIntoNodeLog(std::set<int>& deltaNodes,
+      std::vector<std::pair<int, int> >& edge2nodesMap,
+      std::list<mset::CompressedInMemUSet>::iterator& curUSet, 
+      int curUSetIndex);
 };
 
 class CheckRemoveEntry {
   private:
     int nodeId;
-    vector<ChangeRecord>* AllChanges;
+    std::vector<ChangeRecord>* AllChanges;
     MSetIndex* index;
     int64_t dMS;
   public:
@@ -170,7 +178,7 @@ class CheckRemoveEntry {
     void SetChanged(bool ch);
     bool GetChanged();
     CheckRemoveEntry(
-        int id, vector<ChangeRecord>& ch, MSetIndex* i, int64_t _dMS);
+        int id, std::vector<ChangeRecord>& ch, MSetIndex* i, int64_t _dMS);
     bool operator() (MSetIndex::NodeLogEntry& logEntry);
 };
 bool CheckRemoveEntry::changed = false;
@@ -186,134 +194,154 @@ public:
 GPatternHelper(){}
 ~GPatternHelper() {}
 
-bool setCompareDesc (set<int>& i,set<int>& j);
+bool setCompareDesc (std::set<int>& i,std::set<int>& j);
 
-void RemoveDuplicates(list<CompressedInMemUSet>& resStream);
+void RemoveDuplicates(std::list<mset::CompressedInMemUSet>& resStream);
 
 void removeShortUnits(temporalalgebra::MBool &mbool, int64_t dMS);
 
-bool RemoveShortNodeMembership(CompressedInMemMSet& Accumlator,
-    vector<pair<int, int> >& edge2nodesMap, int64_t dMS);
+bool RemoveShortNodeMembership(mset::CompressedInMemMSet& Accumlator,
+    std::vector<std::pair<int, int> >& edge2nodesMap, int64_t dMS);
 
-ostream& PrintNodeHistory(
-  map<int, pair<list<CompressedInMemUSet>::iterator, set<int> > >* nodeHistory,
-  ostream &os );
+std::ostream& PrintNodeHistory(
+  std::map<int, 
+      std::pair<std::list<mset::CompressedInMemUSet>::iterator, 
+     std::set<int> > >* nodeHistory,
+  std::ostream &os );
 
 bool CheckRemoveNodeMembership(
-  map<int, pair<list<CompressedInMemUSet>::iterator, set<int> > >* nodeHistory,
-  set<int> removedEdges, vector<pair<int, int> >& edge2nodesMap,
-  list<CompressedInMemUSet>::iterator& cur, set<int>& deltaNodes, int64_t dMS);
+  std::map<int, std::pair<
+      std::list<mset::CompressedInMemUSet>::iterator, 
+                std::set<int> > >* nodeHistory,
+  std::set<int> removedEdges, std::vector<std::pair<int, int> >& edge2nodesMap,
+  std::list<mset::CompressedInMemUSet>::iterator& cur, 
+           std::set<int>& deltaNodes, int64_t dMS);
 
-void InPlaceSetDifference(set<int>& set1, set<int>& set2);
+void InPlaceSetDifference(std::set<int>& set1, std::set<int>& set2);
 
 void InsertInNodeHistory(
-  map<int, pair<list<CompressedInMemUSet>::iterator, set<int> > >* nodeHistory,
-  set<int> newEdges, vector<pair<int, int> >& edge2nodesMap,
-  list<CompressedInMemUSet>::iterator& cur, set<int>& deltaNodes);
+  std::map<int, std::pair<std::list<mset::CompressedInMemUSet>::iterator, 
+         std::set<int> > >* nodeHistory,
+  std::set<int> newEdges, std::vector<std::pair<int, int> >& edge2nodesMap,
+  std::list<mset::CompressedInMemUSet>::iterator& cur, 
+            std::set<int>& deltaNodes);
 
 void FindNodeEdges(
-    int newNode, set<int>& newEdges, vector<pair<int, int> >& edge2nodesMap,
-    set<int>& newNodeEdges);
+    int newNode, std::set<int>& newEdges, 
+               std::vector<std::pair<int, int> >& edge2nodesMap,
+    std::set<int>& newNodeEdges);
 
 bool RemoveUnitsHavingFewNodes(
-    CompressedInMemMSet& Accumlator,
-    vector<pair<int, int> >& edge2nodesMap, int n);
+    mset::CompressedInMemMSet& Accumlator,
+    std::vector<std::pair<int, int> >& edge2nodesMap, int n);
 
 
-void FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
-    list<CompressedInMemUSet>::iterator begin,
-    list<CompressedInMemUSet>::iterator end ,
-    vector<pair<int,int> >& edge2nodesMap, int64_t dMS, int n, string& qts,
-    list<CompressedMSet*>*& finalResStream, int depth);
+void FindLargeDynamicComponents(mset::CompressedInMemMSet& Accumlator,
+    std::list<mset::CompressedInMemUSet>::iterator begin,
+    std::list<mset::CompressedInMemUSet>::iterator end ,
+    std::vector<std::pair<int,int> >& edge2nodesMap, int64_t dMS, int n, 
+    std::string& qts,
+    std::list<mset::CompressedMSet*>*& finalResStream, int depth);
   
-CompressedMSet* CollectResultParts(
-    vector<CompressedMSet*>& ResultParts, vector<int>&  partIndexs);
+mset::CompressedMSet* CollectResultParts(
+    std::vector<mset::CompressedMSet*>& ResultParts, 
+    std::vector<int>&  partIndexs);
 
-void FindDynamicComponents(CompressedInMemMSet& Accumlator,
-    list<CompressedInMemUSet>::iterator begin, 
-    list<CompressedInMemUSet>::iterator end , 
-    vector<pair<int, int> >& edge2nodesMap, int64_t dMS, int n, string& qts,
-    list<CompressedMSet*>*& FinalResultStream);
+void FindDynamicComponents(mset::CompressedInMemMSet& Accumlator,
+    std::list<mset::CompressedInMemUSet>::iterator begin, 
+    std::list<mset::CompressedInMemUSet>::iterator end , 
+    std::vector<std::pair<int, int> >& edge2nodesMap, int64_t dMS, int n,
+    std::string& qts,
+    std::list<mset::CompressedMSet*>*& FinalResultStream);
 
-bool SetIntersects(set<int> &set1, set<int> &set2);
+bool SetIntersects(std::set<int> &set1, std::set<int> &set2);
 
 void CheckAdd( LWGraph* g, NewComponent& comp, int n ,
-    list<Component*>* components, 
-    map<int, list<Component*>::iterator>& compLabelsMap, 
+    std::list<Component*>* components, 
+    std::map<int, std::list<Component*>::iterator>& compLabelsMap, 
     int& NextComponentLabel);
 
-void UpdateMerge(LWGraph *g, NewComponent& newComp, set<int>& newEdges,
-    vector<pair<int, int> >& edge2nodesMap, list<Component*>* components,
-    map<int, list<Component*>::iterator>& compLabelsMap);
+void UpdateMerge(LWGraph *g, NewComponent& newComp, std::set<int>& newEdges,
+    std::vector<std::pair<int, int> >& edge2nodesMap, 
+    std::list<Component*>* components,
+    std::map<int, std::list<Component*>::iterator>& compLabelsMap);
 
 void MergeComponents(LWGraph* g, NewComponent& newComp,
-    list<Component*>* components, 
-    map<int, list<Component*>::iterator>& compLabelsMap, 
+    std::list<Component*>* components, 
+    std::map<int, std::list<Component*>::iterator>& compLabelsMap, 
     int& NextComponentLabel);
 
-void UpdateRemove(LWGraph* graph, list<Component*>* components,
-    map<int, list<Component*>::iterator>& compLabelsMap,
-    vector<pair<int, int> >& edge2nodesMap, int n, int& NextComponentLabel,
-    set< int>& affectedComponentsLabels);
+void UpdateRemove(LWGraph* graph, std::list<Component*>* components,
+    std::map<int, std::list<Component*>::iterator>& compLabelsMap,
+    std::vector<std::pair<int, int> >& edge2nodesMap, 
+    int n, int& NextComponentLabel,
+    std::set< int>& affectedComponentsLabels);
 
-void Finalize(LWGraph* graph, list<Component*>* components, int64_t dMS,
-    CompressedInMemUSet& cur,
-    vector<CompressedMSet*>& ResultParts,
-    list<vector<int> > *ResultStream,
-    list<CompressedMSet*>* FinalResultStream,
-    vector<pair<int, int> >& edge2nodesMap);
+void Finalize(LWGraph* graph, std::list<Component*>* components, int64_t dMS,
+    mset::CompressedInMemUSet& cur,
+    std::vector<mset::CompressedMSet*>& ResultParts,
+    std::list<std::vector<int> > *ResultStream,
+    std::list<mset::CompressedMSet*>* FinalResultStream,
+    std::vector<std::pair<int, int> >& edge2nodesMap);
 
-void DynamicGraphAppend(LWGraph* graph, list<Component*>* components,
-    map<int, list<Component*>::iterator>& compLabelsMap,
-    list<CompressedInMemUSet>::iterator cur,
-    vector<pair<int, int> >& edge2nodesMap, int64_t dMS,
-    int n, string& qts, int& NextComponentLabel, 
-    vector<CompressedMSet*>* ResultParts,
-    list<vector<int> >* ResultStream,
-    list<CompressedMSet*>*& FinalResultStream);
+void DynamicGraphAppend(LWGraph* graph, std::list<Component*>* components,
+    std::map<int, std::list<Component*>::iterator>& compLabelsMap,
+    std::list<mset::CompressedInMemUSet>::iterator cur,
+    std::vector<std::pair<int, int> >& edge2nodesMap, int64_t dMS,
+    int n, std::string& qts, int& NextComponentLabel, 
+    std::vector<mset::CompressedMSet*>* ResultParts,
+    std::list<std::vector<int> >* ResultStream,
+    std::list<mset::CompressedMSet*>*& FinalResultStream);
 
-void GraphNodes2Edges(set<int>& subGraphNodes, set<int>& graphEdges,
-    vector<pair<int, int> >& edge2Nodes, set<int>& res);
+void GraphNodes2Edges(std::set<int>& subGraphNodes, std::set<int>& graphEdges,
+    std::vector<std::pair<int, int> >& edge2Nodes, std::set<int>& res);
 
-bool Merge(CompressedInMemMSet *_mset, set<int> *subGraph,
+bool Merge(mset::CompressedInMemMSet *_mset, std::set<int> *subGraph,
     int64_t starttime, int64_t endtime, bool lc, bool rc);
 
-void SetAddRemove(set<int>& _set, set<int>& _add, set<int>& _remove);
+void SetAddRemove(std::set<int>& _set, std::set<int>& _add, 
+                  std::set<int>& _remove);
   
 void EdgeSet2NodeSet(
-    set<int> &edges, set<int> &nodes, vector<pair<int, int> > edge2nodesMap);
+    std::set<int> &edges, std::set<int> &nodes, 
+    std::vector<std::pair<int, int> > edge2nodesMap);
   
-CompressedMSet* EdgeMSet2NodeMSet(
-    CompressedMSet* edgeMSet, vector<pair<int, int> >& edge2nodesMap);
+mset::CompressedMSet* EdgeMSet2NodeMSet(
+    mset::CompressedMSet* edgeMSet, 
+    std::vector<std::pair<int, int> >& edge2nodesMap);
 
-void ComputeAddSubSets(InMemMSet& acc,
-    list<InMemUSet>::iterator t1, list<InMemUSet>::iterator t2,
-    unsigned int n,  int64_t dMS, vector<InMemMSet*>* result);
+void ComputeAddSubSets(mset::InMemMSet& acc,
+    std::list<mset::InMemUSet>::iterator t1, 
+    std::list<mset::InMemUSet>::iterator t2,
+    unsigned int n,  int64_t dMS, std::vector<mset::InMemMSet*>* result);
 
 bool ApplyThresholds(MSetIndex& index, int n, int64_t dMS,
-    vector<ChangeRecord>& Changes, bool debugme);
+    std::vector<ChangeRecord>& Changes, bool debugme);
 
-void UpdateResult(CompressedInMemMSet* curMSet,
-    vector<pair<int,int> >& edge2nodesMap,int n, int64_t dMS, string qts,
-    vector<ChangeRecord>& Changes,
-    list<CompressedMSet*>& resStream, bool debugme);
+void UpdateResult(mset::CompressedInMemMSet* curMSet,
+    std::vector<std::pair<int,int> >& edge2nodesMap,int n, 
+    int64_t dMS, std::string qts,
+    std::vector<ChangeRecord>& Changes,
+    std::list<mset::CompressedMSet*>& resStream, bool debugme);
 
-void ApplyChanges(CompressedInMemMSet* msetPart,
-    vector<ChangeRecord>& changesPart,
-    vector<pair<int,int> >& edge2nodesMap,int n, int64_t dMS, string qts,
-    list<CompressedMSet*>& resStream, list<CompressedInMemMSet*>& msetParts,
-    list<vector<ChangeRecord> >& changeParts, bool debugme);
+void ApplyChanges(mset::CompressedInMemMSet* msetPart,
+    std::vector<ChangeRecord>& changesPart,
+    std::vector<std::pair<int,int> >& edge2nodesMap,int n, 
+    int64_t dMS, std::string qts,
+    std::list<mset::CompressedMSet*>& resStream, 
+    std::list<mset::CompressedInMemMSet*>& msetParts,
+    std::list<std::vector<ChangeRecord> >& changeParts, bool debugme);
 /*
 Private members
 
 */ 
 private:
-  void GenerateAllCombinations(InMemUSet& cand, int select,
-      vector< set<int> > & res);
+  void GenerateAllCombinations(mset::InMemUSet& cand, int select,
+      std::vector< std::set<int> > & res);
       
-  void AddAllSubSetsToVector(InMemUSet& candidates, int64_t startInstant,
+  void AddAllSubSetsToVector(mset::InMemUSet& candidates, int64_t startInstant,
       int64_t curInstant, bool lc, bool rc,
-      int n, multimap< set<int>, Int64Interval>& res);
+      int n, std::multimap< std::set<int>, Int64Interval>& res);
 };
 
 
@@ -328,17 +356,18 @@ public:
 The list of supported assignments
 
 */  
-  vector< vector< pair< temporalalgebra::Interval<Instant>, MSet* > > > SA;
-  vector<Supplier> Agenda;
+  std::vector< std::vector< std::pair< temporalalgebra::Interval<Instant>, 
+          mset::MSet* > > > SA;
+  std::vector<Supplier> Agenda;
     
 /*
 A helper data structure to translate the string aliases into their integer
 position in the Agenda, SA and ConstraintGeraph.
 
 */
-  map<string, int> VarAliasMap;
-  vector< vector< vector<Supplier> > >ConstraintGraph;
-  vector<MSet*> ToDelete;
+  std::map<std::string, int> VarAliasMap;
+  std::vector< std::vector< std::vector<Supplier> > >ConstraintGraph;
+  std::vector<mset::MSet*> ToDelete;
 /*
 The total number of variables in the CSP.
  
@@ -356,17 +385,17 @@ The iterator is used in the "start" and "end" operators to iterate over the SA
 A list of the variable that have been consumed so far.
 
 */
-    vector<int> assignedVars;
+    std::vector<int> assignedVars;
     
     
     GPatternSolver():count(0),iterator(-1), 
-    nullInterval(Instant(0,0, instanttype ),
-        Instant(0,0, instanttype ), true,true)
+    nullInterval(Instant(0,0, datetime::instanttype ),
+        Instant(0,0, datetime::instanttype ), true,true)
     {}
     
     ~GPatternSolver()
     {
-      for(vector<MSet*>::iterator it= 
+      for(std::vector<mset::MSet*>::iterator it= 
         ToDelete.begin(); it != ToDelete.end(); ++it)
       {
         (*it)->DeleteIfAllowed(true);
@@ -380,7 +409,7 @@ Process: adds the variable to the Agenda and resizes the ConstraintGraph.
 Output: error code
 
 */ 
-    int AddVariable(string alias, Supplier handle);
+    int AddVariable(std::string alias, Supplier handle);
 
 /* 
 The AddConstraint function.
@@ -391,7 +420,7 @@ Output: error code
 
 */ 
    
-    int AddConstraint(string alias1, string alias2, Supplier handle);
+    int AddConstraint(std::string alias1, std::string alias2, Supplier handle);
     
 /*
 The Solve function. It implements the Solve Pattern algorithm in the paper.
@@ -411,19 +440,19 @@ used by the "start" and "end" operators in the extended STPP.
 The GetStart function. It is the impelementation of the "start" operator.
     
 */
-    bool GetStart(string alias, Instant& result);
+    bool GetStart(std::string alias, Instant& result);
     
 /*
 The GetStart function. It is the impelementation of the "end" operator.
       
 */
-    bool GetEnd(string alias, Instant& result);
+    bool GetEnd(std::string alias, Instant& result);
     
 /*
 The Print function. It is used for debug purposes.
    
 */  
-    ostream& Print(ostream& os);
+    std::ostream& Print(std::ostream& os);
 /*
 The Clear function. It is used to intialize the CSP. It is necessary to 
 call it before processing every tuple in order to reintialize the CSP.
@@ -463,7 +492,8 @@ Output: whether the partial assignment is consistent.
    
 */  
   bool IsSupported(
-       vector< pair<temporalalgebra::Interval<Instant>, MSet* > >& sa, 
+       std::vector< std::pair<temporalalgebra::Interval<Instant>, 
+           mset::MSet* > >& sa, 
        int index);
 
 /*
@@ -474,7 +504,7 @@ by two lifted predicates.
 
   bool CheckConstraint(temporalalgebra::Interval<Instant>& p1, 
                        temporalalgebra::Interval<Instant>& p2,
-      vector<Supplier> constraint);
+      std::vector<Supplier> constraint);
 /*
 The PickVariable function. It implements the picking methodology based on the
 Connectivity rank as in the paper.
