@@ -805,7 +805,7 @@ public:
   void insert( SegEntry<timeType> &s, int k );
   bool erase( const timeType& start, const timeType& end,
               long rnodeid, double dist);
-  void fillMap( map< SegEntry<timeType>, TupleId> &m);
+  void fillMap( std::map< SegEntry<timeType>, TupleId> &m);
   int calcCoverage( const timeType& t1,const  timeType& t2, double distance );
 
   typedef typename NNTree<SegEntry<timeType> >::iter ITSE;
@@ -817,7 +817,7 @@ private:
                    double dist, SegNode<timeType> *node, bool &result);
   void checkErase( const timeType& t1, const timeType& t2, double distance,
                    SegNode<timeType> *node, int k );
-  void mapfill( map< SegEntry<timeType>, TupleId> &m,
+  void mapfill( std::map< SegEntry<timeType>, TupleId> &m,
                 SegNode<timeType> *node);
   ITSE addEntry(NNTree<SegEntry<timeType> > &t, SegEntry<timeType>  &e);
   ITSE findEntry(NNTree<SegEntry<timeType> > &t, long rnodeid, double dist);
@@ -884,7 +884,7 @@ are in the segment tree
 
 */
 template<class timeType>
-void NNSegTree<timeType>::fillMap( map< SegEntry<timeType>, TupleId> &m)
+void NNSegTree<timeType>::fillMap( std::map< SegEntry<timeType>, TupleId> &m)
 {
   mapfill( m, sroot );
 }
@@ -932,7 +932,7 @@ are in the segment tree
 
 */
 template<class timeType>
-void NNSegTree<timeType>::mapfill( map< SegEntry<timeType>, TupleId> &m,
+void NNSegTree<timeType>::mapfill( std::map< SegEntry<timeType>, TupleId> &m,
                                   SegNode<timeType> *node)
 {
   if( node )

@@ -78,6 +78,8 @@ in a R-Tree. A new datatype is not given but there are some operators:
 
 using namespace tbtree;
 using namespace temporalalgebra;
+using namespace std;
+using namespace datetime;
 
 /*
 The file "Algebra.h" is included, since the new algebra must be a subclass of
@@ -2331,7 +2333,7 @@ the type EventElem and ActiveElem are defined in NearestNeighborAlgebra.h
 
 */
 class KNearestQueue;
-Instant ActiveElem::currtime(instanttype);
+Instant ActiveElem::currtime(datetime::instanttype);
 typedef vector< ActiveElem >::iterator ITV;
 typedef NNTree< ActiveElem >::iter IT;
 
@@ -6632,8 +6634,8 @@ Supporting function creates a uint from a rect3.
    UInt rect2uint(const Rectangle<3> rect){
      double min = rect.MinD(2);
      double max = rect.MaxD(2);
-     DateTime dt1(instanttype);
-     DateTime dt2(instanttype);
+     DateTime dt1(datetime::instanttype);
+     DateTime dt2(datetime::instanttype);
      dt1.ReadFrom(min);
      dt2.ReadFrom(max);
      Interval<DateTime> iv(dt1,dt2,true,true);
@@ -7007,8 +7009,8 @@ int rect2periodsFun (Word* args, Word& result, int message,
   }
   double min = arg->MinD(2);
   double max = arg->MaxD(2);
-  DateTime dt1(instanttype);
-  DateTime dt2(instanttype);
+  DateTime dt1(datetime::instanttype);
+  DateTime dt2(datetime::instanttype);
   dt1.ReadFrom(min);
   dt2.ReadFrom(max);
   Interval<DateTime> iv(dt1,dt2,true,true);
@@ -10692,8 +10694,8 @@ int Greeceknearest(Word* args, Word& result, int message,
             UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
             Point p0;
             Point p1;
-            Instant t1(instanttype);
-            Instant t2(instanttype);
+            Instant t1(datetime::instanttype);
+            Instant t2(datetime::instanttype);
             t1.ReadFrom(localInfo->result[localInfo->counter].nodets);
             t2.ReadFrom(localInfo->result[localInfo->counter].nodete);
             Interval<Instant> interv(t1,t2,true,true);
@@ -10809,8 +10811,8 @@ int ChinaknearestFun (Word* args, Word& result, int message,
             UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
             Point p0;
             Point p1;
-            Instant t1(instanttype);
-            Instant t2(instanttype);
+            Instant t1(datetime::instanttype);
+            Instant t2(datetime::instanttype);
             t1.ReadFrom(localInfo->result[localInfo->counter].nodets);
             t2.ReadFrom(localInfo->result[localInfo->counter].nodete);
             Interval<Instant> interv(t1,t2,true,true);
@@ -11649,7 +11651,7 @@ void CellPart::AccessFunction(int depth,vector<long>& start_index,
       //interpolate up to small one
       UPoint* tempup = new UPoint(*up);
       if(tempup->timeInterval.start.ToDouble()*86400.0 - global_min < min[2]){
-          Instant start(instanttype);
+          Instant start(datetime::instanttype);
           start.ReadFrom((min[2] + global_min)/86400.0);
           Point p0;
           tempup->TemporalFunction(start,p0,true);
@@ -11658,7 +11660,7 @@ void CellPart::AccessFunction(int depth,vector<long>& start_index,
 
       }
       if(tempup->timeInterval.end.ToDouble()*86400.0 - global_min > max[2]){
-          Instant end(instanttype);
+          Instant end(datetime::instanttype);
           end.ReadFrom((max[2] + global_min)/86400.0);
           Point p1;
           tempup->TemporalFunction(end,p1,true);

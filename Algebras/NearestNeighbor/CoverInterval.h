@@ -74,7 +74,7 @@ class ICNode{
          return insertrec(ts,te);
      }
 
-     ostream& Print(ostream& o){
+     std::ostream& Print(std::ostream& o){
        o << "<" <<ts << ", " << te << ", " << cover;
        if(left){
           o << "-";
@@ -168,7 +168,7 @@ class ICNode{
        }
        return this;
      }
-     cerr << "This point should never be reached" << endl;
+     std::cerr << "This point should never be reached" << std::endl;
   }
 };
 
@@ -189,7 +189,7 @@ class CIC{
       return root->IsCovered();
    }
 
-   ostream& Print(ostream& o){
+   std::ostream& Print(std::ostream& o){
       if(root){
          root->Print(o);
       } else {

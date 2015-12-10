@@ -111,7 +111,7 @@ Returns the height of the tree.
 Writes the tree to o;
 
 */
-  ostream& print(ostream& o) const;
+  std::ostream& print(std::ostream& o) const;
 
   private:
 
@@ -151,18 +151,18 @@ static temporalalgebra::Interval<timeType> tottInterval(
 }
 
 inline void toMinimum(double& s){
-  s = numeric_limits<double>::min();
+  s = std::numeric_limits<double>::min();
 }
 
 inline void toMaximum(double& s){
-  s = numeric_limits<double>::max();
+  s = std::numeric_limits<double>::max();
 }
 
-inline void toMinimum(DateTime& s){
+inline void toMinimum(datetime::DateTime& s){
   s.ToMinimum();
 }
 
-inline void toMaximum(DateTime& s){
+inline void toMaximum(datetime::DateTime& s){
   s.ToMaximum();
 }
 
@@ -358,8 +358,8 @@ Rectangle<2> getBox(const temporalalgebra::Interval<timeType>& interval) const{
         maxd = this->interval.end;
      }
      Point p0,p1;
-     unit->TemporalFunction(DateTime(mind),p0,true);
-     unit->TemporalFunction(DateTime(maxd),p1,true);
+     unit->TemporalFunction(datetime::DateTime(mind),p0,true);
+     unit->TemporalFunction(datetime::DateTime(maxd),p1,true);
      assert(p0.IsDefined());
      assert(p1.IsDefined());
      return p0.BoundingBox().Union(p1.BoundingBox()); 
@@ -404,10 +404,10 @@ int height() const{
    if(unit) return 0;
    int l = left?left->height():0;
    int r = right?right->height():0;
-   return max(l,r) +1;  
+   return std::max(l,r) +1;  
 }
 
-ostream& print(ostream& o) const{
+std::ostream& print(std::ostream& o) const{
 
   if(unit){
      o << "\"" << "U" << "\"";
@@ -517,23 +517,23 @@ void BBTree<timeType>::createFromMPoint(const temporalalgebra::MPoint& p){
      root = 0;
      return;
    }
-   stack<pair<int, BBTreeNode<timeType>*> > astack;
+   std::stack<std::pair<int, BBTreeNode<timeType>*> > astack;
 
    for(int i=0; i< size; i++){
       temporalalgebra::UPoint unit;
       p.Get(i,unit);
       BBTreeNode<timeType>* newNode = new BBTreeNode<timeType>(unit);
-      pair<int, BBTreeNode<timeType>*> entry(0, newNode);
+      std::pair<int, BBTreeNode<timeType>*> entry(0, newNode);
       if(astack.size()==0){ // first entry
          astack.push(entry);
       } else {
-         pair<int, BBTreeNode<timeType>*> top = astack.top();
+         std::pair<int, BBTreeNode<timeType>*> top = astack.top();
          bool done = false;
          while(!done && (top.first == entry.first)){
            BBTreeNode<timeType>* next = 
                new  BBTreeNode<timeType>(top.second,entry.second);
            astack.pop();
-           entry = pair<int, BBTreeNode<timeType>*> (top.first+1,next);
+           entry = std::pair<int, BBTreeNode<timeType>*> (top.first+1,next);
            done = astack.empty();
            if(!done){
                top = astack.top();
@@ -542,7 +542,7 @@ void BBTree<timeType>::createFromMPoint(const temporalalgebra::MPoint& p){
          astack.push(entry);
       } 
    }
-   pair<int, BBTreeNode<timeType>*> top = astack.top();
+   std::pair<int, BBTreeNode<timeType>*> top = astack.top();
    BBTreeNode<timeType>* r = top.second;
    astack.pop();
    while(!astack.empty()){
@@ -554,7 +554,7 @@ void BBTree<timeType>::createFromMPoint(const temporalalgebra::MPoint& p){
 }
 
 template<class timeType>
-ostream& BBTree<timeType>::print(ostream& o) const{
+std::ostream& BBTree<timeType>::print(std::ostream& o) const{
  if(root){
     o << "( tree ";
     root->print(o);
