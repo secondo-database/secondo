@@ -141,6 +141,8 @@ public:
       pthread_mutex_lock(&processMutex);
       
       queryComplete = false;
+      queryCanceled = false;
+
       query = new string(myQuery);
       queryId = myQueryId;
       pthread_cond_broadcast(&processCondition);
@@ -280,9 +282,9 @@ public:
      if(controlSecondo->Initialize(user, passwd, secondoHost, secondoPort, 
                        config, errMsg, multiUser)) {
          
-         // Set queryCanceled = true to avoid the unit of work successfully 
-         // completed entry in system table. This could overwrite
-         // a really completed entry
+         // Set queryCanceled = true. Otherwise, the worker will 
+         // insert a entry into the system table, that the current
+         // unit of work is processed successfully even it is canceled
          queryCanceled = true;
          result = controlSecondo->cancelQuery(pid);
          controlSecondo->Terminate();
