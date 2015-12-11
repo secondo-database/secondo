@@ -3487,7 +3487,7 @@ ListExpr TheBuildingTypeMap(ListExpr args)
 
   ListExpr arg2 = nl->Second(args);
   if(!(listutils::isSymbol(arg2, CcString::BasicType()))){
-     std::string err = string expected";
+     std::string err = "string expected";
      return listutils::typeError(err);
   }
 
