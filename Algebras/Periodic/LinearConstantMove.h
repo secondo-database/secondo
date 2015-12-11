@@ -112,7 +112,8 @@ This should be checked by calling the isDefinedAt function.
 
 */
 template <class T>
-void LinearConstantMove<T>::At(const DateTime* duration,T& res) const {
+void LinearConstantMove<T>::At(
+        const datetime::DateTime* duration,T& res) const {
    assert(interval.Contains(duration));
    assert(defined);
    res = value;
@@ -127,7 +128,8 @@ given duration.
 
 */
 template <class T>
-bool LinearConstantMove<T>::IsDefinedAt(const DateTime* duration)const{
+bool LinearConstantMove<T>::IsDefinedAt(
+               const datetime::DateTime* duration)const{
   if(!interval.Contains(duration)) 
     return false;
   return defined;
@@ -170,15 +172,15 @@ template <class T>
 bool LinearConstantMove<T>::ReadFrom(const ListExpr value){
  if(::nl->ListLength(value)!=2){
      if(DEBUG_MODE){
-        cerr << __POS__ << ": Wrong ListLength" << endl;
-        cerr << "expected : 2, received :" 
-             << ::nl->ListLength(value) << endl;
+        std::cerr << __POS__ << ": Wrong ListLength" << std::endl;
+        std::cerr << "expected : 2, received :" 
+             << ::nl->ListLength(value) << std::endl;
      }
      return false;
   }
   if(!interval.ReadFrom(::nl->First(value),false)){
       if(DEBUG_MODE){
-         cerr << __POS__ << ": Can't read the interval" << endl;
+         std::cerr << __POS__ << ": Can't read the interval" << std::endl;
       }
       defined = false;
       return false;
@@ -237,8 +239,8 @@ bool LinearConstantMove<T>::Initial(T& res)const{
 ~Final~
 
 The Final function returns the value of this unit at the end of this interval.
-Because the value is never changed, the value is returned. This is support function
-for the map class.
+Because the value is never changed, the value is returned. This is support 
+function for the map class.
 
 */
 template <class T>
@@ -282,7 +284,7 @@ always true because an simple unit can be splitted in each case.
 
 */
 template <class T>
-bool LinearConstantMove<T>::Split(const DateTime duration,
+bool LinearConstantMove<T>::Split(const datetime::DateTime duration,
                                   const bool toLeft, 
                                   LinearConstantMove<T>& right){
  right.Equalize(*this);

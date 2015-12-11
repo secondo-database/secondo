@@ -9,7 +9,6 @@
 #include <math.h>
 #include <vector>
 
-using namespace std;
 
 #include "PeriodicTypes.h"
 #include "PeriodicSupport.h"
@@ -29,6 +28,10 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+
+using namespace std;
+using namespace datetime;
+using namespace toprel;
 
 
 namespace periodic {

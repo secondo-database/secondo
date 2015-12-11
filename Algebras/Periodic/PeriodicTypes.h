@@ -132,7 +132,7 @@ also an algebra class.
 
 */
 class PBBox: public Attribute {
- friend ostream& operator<< (ostream&, const PBBox); 
+ friend std::ostream& operator<< (std::ostream&, const PBBox); 
  public:
     PBBox();
     PBBox(int dummy);
@@ -169,11 +169,11 @@ class PBBox: public Attribute {
     void SetUndefined();
     bool GetVertex(const int No,double& x, double& y) const;
     void SetEmpty();
-    string ToString() const;
+    std::string ToString() const;
     static bool CheckKind(ListExpr type, ListExpr& errorInfo){
        return nl->IsEqual(type,BasicType());
     }
-    static const string BasicType(){
+    static const std::string BasicType(){
       return "pbbox";
     }
     static const bool checkType(const ListExpr type){
@@ -218,7 +218,7 @@ fixed start point.
 */
 
 class RelInterval : public Attribute{
-  friend ostream& operator<< (ostream&, const RelInterval); 
+  friend std::ostream& operator<< (std::ostream&, const RelInterval); 
   public:
 /*
 ~Constructor~
@@ -283,7 +283,7 @@ This function checks whether D2 can be used to extend this interval.
 This function checks whether this interval constains T.
 
 */
-    bool Contains(const DateTime* T,bool relax = false) const;
+    bool Contains(const datetime::DateTime* T,bool relax = false) const;
 
 /*
 ~Clone~
@@ -358,8 +358,8 @@ unbounded, the result will have no meaning.
 The caller of this function have to delete the new created object.
 
 */
-    void GetLength(DateTime& result)const;
-    DateTime* GetLength()const;
+    void GetLength(datetime::DateTime& result)const;
+    datetime::DateTime* GetLength()const;
 
 /*
 ~StoreLength~
@@ -370,7 +370,7 @@ bounded.
 
 */
 
-    void StoreLength(DateTime& result)const;
+    void StoreLength(datetime::DateTime& result)const;
 
 /*
 ~ToListExpr~
@@ -421,7 +421,7 @@ Sets this interval to be finite with the specified length and closure
 properties.
 
 */
-    bool Set(const DateTime* length,const bool leftClosed,
+    bool Set(const datetime::DateTime* length,const bool leftClosed,
              const bool rightClosed);
 
 /*
@@ -454,17 +454,17 @@ interval at the right end as well as the left end at the same time.
 */
     void SetClosure(bool LeftClosed, bool RightClosed);
 
-    bool SetLength(const DateTime* T);
-    string ToString()const;
-    double Where(const DateTime* T) const;
+    bool SetLength(const datetime::DateTime* T);
+    std::string ToString()const;
+    double Where(const datetime::DateTime* T) const;
     bool Split(const double delta,const bool closeFirst,RelInterval& Rest);
-    bool Split(const DateTime duration, const bool closeFirst,
+    bool Split(const datetime::DateTime duration, const bool closeFirst,
                RelInterval& Rest);
     bool Plus(const RelInterval* I); 
     static bool CheckKind(ListExpr type, ListExpr& errorInfo){
       return nl->IsEqual(type,BasicType());
     }
-    static const string BasicType(){ 
+    static const std::string BasicType(){ 
         return "rinterval";
     }
     static const bool checkType(const ListExpr type){
@@ -479,7 +479,7 @@ interval at the right end as well as the left end at the same time.
                                  "an interval without fixed start");
     }
   private:
-    DateTime length;
+    datetime::DateTime length;
 
 /*
 ~state~
@@ -493,7 +493,7 @@ leftClosed, rightClosed,  and canDelete.
 */    
     unsigned char state;
 
-    RelInterval(const DateTime* length, const bool leftClosed,
+    RelInterval(const datetime::DateTime* length, const bool leftClosed,
                 const bool rightClosed);
 
     void ChangeLeftClosed(const bool value);
@@ -515,11 +515,12 @@ a RelInterval an Interval has a fixed start time and a fixed end time.
 
 */
 class PInterval : public Attribute{
-  friend ostream& operator<< (ostream&, const PInterval); 
+  friend std::ostream& operator<< (std::ostream&, const PInterval); 
   public:
     PInterval();
     PInterval(int dummy);
-    PInterval(const DateTime startTime, const RelInterval relinterval);
+    PInterval(const datetime::DateTime startTime, 
+              const RelInterval relinterval);
     PInterval(const PInterval& source);
     ~PInterval();
     PInterval& operator=(const PInterval& source);
@@ -528,7 +529,7 @@ class PInterval : public Attribute{
     bool ReadFrom(ListExpr list, const ListExpr typeInfo);
     bool Append(const RelInterval* D2);
     bool CanAppended(const RelInterval* D2)const;
-    bool Contains(const DateTime* T)const;
+    bool Contains(const datetime::DateTime* T)const;
     bool Contains(const PInterval* I)const;
     bool Intersects(const PInterval* I)const;
     PInterval* Clone() const;
@@ -542,24 +543,25 @@ class PInterval : public Attribute{
     size_t Sizeof() const;
     void CopyFrom(const Attribute* arg);
     void Equalize(const PInterval* D2);
-    DateTime* GetLength()const;
-    void Length(DateTime& res) const; 
-    DateTime* GetStart()const;
-    void GetStart(DateTime& result)const;
-    DateTime* GetEnd()const;
-    void GetEnd(DateTime& result)const;
+    datetime::DateTime* GetLength()const;
+    void Length(datetime::DateTime& res) const; 
+    datetime::DateTime* GetStart()const;
+    void GetStart(datetime::DateTime& result)const;
+    datetime::DateTime* GetEnd()const;
+    void GetEnd(datetime::DateTime& result)const;
     ListExpr ToListExpr(const bool typeincluded)const;
     ListExpr ToListExpr(const ListExpr typeInfo)const;
     bool IsLeftClosed()const;
     bool IsRightClosed()const;
-    bool Set(const DateTime* startTime,const DateTime* length, 
+    bool Set(const datetime::DateTime* startTime,
+             const datetime::DateTime* length, 
              const bool leftClosed, const bool rightClosed);
-    bool SetLength(const DateTime* T);
-    string ToString()const;
+    bool SetLength(const datetime::DateTime* T);
+    std::string ToString()const;
     static bool CheckKind(ListExpr type, ListExpr& errorInfo){
       return nl->IsEqual(type,BasicType());
     }
-    static const string BasicType(){
+    static const std::string BasicType(){
       return "pinterval";
     }
     static const bool checkType(const ListExpr type){
@@ -573,7 +575,7 @@ class PInterval : public Attribute{
                                 "((instant 1.1)(instant 1.5) TRUE FALSE)");
     }
   private:
-    DateTime startTime;
+    datetime::DateTime startTime;
     RelInterval relinterval;
 };
 
@@ -593,7 +595,7 @@ stored.
 
 */
 class CompositeMove{
-   friend ostream& operator<< (ostream&, const CompositeMove); 
+   friend std::ostream& operator<< (std::ostream&, const CompositeMove); 
    public:
       CompositeMove();
       CompositeMove(int dummy);
@@ -603,14 +605,14 @@ class CompositeMove{
       void Equalize(const CompositeMove* source);
 
 
-      string ToString() const;
+      std::string ToString() const;
       RelInterval interval;
       int minIndex;
       int maxIndex;
 };
 
 class SpatialCompositeMove: public CompositeMove{
-  friend ostream& operator<< (ostream&, const SpatialCompositeMove); 
+  friend std::ostream& operator<< (std::ostream&, const SpatialCompositeMove); 
   public:
      SpatialCompositeMove();
      SpatialCompositeMove(int dummy);
@@ -618,7 +620,7 @@ class SpatialCompositeMove: public CompositeMove{
      ~SpatialCompositeMove();
      SpatialCompositeMove& operator=(const SpatialCompositeMove & source);
      void Equalize(const SpatialCompositeMove* source);
-     string ToString() const;
+     std::string ToString() const;
      CompositeMove ToCompositeMove()const ;
      void ToCompositeMove(CompositeMove& result) const;
 
@@ -636,12 +638,12 @@ This class is used to store the submoves of a composite and periodic move .
 
 */
 class SubMove{
-   friend ostream& operator<< (ostream&, const SubMove); 
+   friend std::ostream& operator<< (std::ostream&, const SubMove); 
    public:
       int arrayNumber;
       int arrayIndex;
       void Equalize(const SubMove* SM);
-      string ToString()const;
+      std::string ToString()const;
 
 };
 
@@ -658,7 +660,7 @@ sons of a composite move.
 */
 class CSubMove: public SubMove{
 public:
-   DateTime duration;
+   datetime::DateTime duration;
    void Equalize(const CSubMove* SM);
 };
 
@@ -673,7 +675,7 @@ minimum bounding box is contained as member.
 
 */
 class PeriodicMove{
-  friend ostream& operator<< (ostream&, const PeriodicMove); 
+  friend std::ostream& operator<< (std::ostream&, const PeriodicMove); 
   public:
      PeriodicMove();
      PeriodicMove(int dummy);
@@ -681,7 +683,7 @@ class PeriodicMove{
      ~PeriodicMove();
      PeriodicMove& operator=(const PeriodicMove& source);
      void Equalize(const PeriodicMove* source);
-     string ToString() const;
+     std::string ToString() const;
 
      int repeatations;
      SubMove submove;
@@ -691,7 +693,7 @@ class PeriodicMove{
 
 
 class SpatialPeriodicMove: public PeriodicMove{   
-  friend ostream& operator<< (ostream&, const SpatialPeriodicMove); 
+  friend std::ostream& operator<< (std::ostream&, const SpatialPeriodicMove); 
   public:
      SpatialPeriodicMove();
      SpatialPeriodicMove(int dummy);
@@ -699,7 +701,7 @@ class SpatialPeriodicMove: public PeriodicMove{
      ~SpatialPeriodicMove();
      SpatialPeriodicMove& operator=(const SpatialPeriodicMove& source);
      void Equalize(const SpatialPeriodicMove* source);
-     string ToString()const;
+     std::string ToString()const;
      PeriodicMove ToPeriodicMove()const;
      void ToPeriodicMove(PeriodicMove& result)const;
 
@@ -740,9 +742,9 @@ class LinearConstantMove{
    LinearConstantMove<T>& operator=(const LinearConstantMove<T> source);
    void Set(const T value, const RelInterval interval);
 
-   void At(const DateTime* duration, T& res) const;
+   void At(const datetime::DateTime* duration, T& res) const;
 
-   bool IsDefinedAt(const DateTime* duration)const;
+   bool IsDefinedAt(const datetime::DateTime* duration)const;
    
    ListExpr ToListExpr()const;
 
@@ -756,7 +758,7 @@ class LinearConstantMove{
 
    void SetDefined(bool defined);
    bool GetDefined();
-   bool Split(const DateTime duration,const bool toLeft, 
+   bool Split(const datetime::DateTime duration,const bool toLeft, 
                LinearConstantMove<T>& right);
 
    void Equalize(const LinearConstantMove<T>& source);
@@ -817,11 +819,11 @@ typedef LinearConstantMove<bool> LinearBoolMove ;
 
 */
 
-ListExpr ToConstantListExpr(const Int9M value);
-bool ReadFromListExpr(ListExpr le, Int9M& value);
+ListExpr ToConstantListExpr(const toprel::Int9M value);
+bool ReadFromListExpr(ListExpr le, toprel::Int9M& value);
 
 
-class LinearInt9MMove: public LinearConstantMove<Int9M> {
+class LinearInt9MMove: public LinearConstantMove<toprel::Int9M> {
 public:
    LinearInt9MMove();
    LinearInt9MMove(int dummy);
@@ -847,12 +849,12 @@ class MRealMap{
    ~MRealMap();
    MRealMap& operator=(const MRealMap& source);
    void Set(double a, double b, double c, bool root);
-   DateTime ExtremumAt()const;
+   datetime::DateTime ExtremumAt()const;
    bool ReadFrom(ListExpr le);
    ListExpr ToListExpr()const;
-   double At(const DateTime* duration) const;
+   double At(const datetime::DateTime* duration) const;
    double At(const double d) const;
-   bool IsDefinedAt(const DateTime* duration) const;
+   bool IsDefinedAt(const datetime::DateTime* duration) const;
    bool IsDefinedAt(const double d) const;
    bool EqualsTo(const MRealMap RM2)const;
    void Equalize(const MRealMap* RM);
@@ -861,8 +863,8 @@ class MRealMap{
 /*
 ~Member variables~
 
-The following variables describe the map represented by this unit. The formular for
-computing the value at time ~t~ is given by:
+The following variables describe the map represented by this unit. 
+The formular for computing the value at time ~t~ is given by:
 
 [start_formula]
   v = \left\{ \begin{array}{ll}
@@ -904,14 +906,14 @@ class MovingRealUnit{
    double min() const;
    double max() const;
    bool GetFrom(double start, double end, RelInterval interval);
-   void At(const DateTime* duration,double& res) const;
-   bool IsDefinedAt(const DateTime* duration) const;
+   void At(const datetime::DateTime* duration,double& res) const;
+   bool IsDefinedAt(const datetime::DateTime* duration) const;
    ListExpr ToListExpr()const;
    bool ReadFrom(ListExpr le);
    bool CanSummarized(const MovingRealUnit* MRU) const;
    bool Initial(double& result )const;
    bool Final(double& res)const;
-   bool Split(const DateTime duration, const bool toLeft, 
+   bool Split(const datetime::DateTime duration, const bool toLeft, 
               MovingRealUnit& unit);
 
    void SetDefined(const bool defined);
@@ -961,7 +963,7 @@ flag is needed to represent gaps in the definition time.
 
 */
 class LinearPointMove{
- friend ostream& operator<< (ostream&, const LinearPointMove); 
+ friend std::ostream& operator<< (std::ostream&, const LinearPointMove); 
  friend class PMPoint;
 
  public:
@@ -1032,7 +1034,7 @@ This units has to be defined at the given duration.
 
 
 */
-   void At(const DateTime* duration, Point& res)const;
+   void At(const datetime::DateTime* duration, Point& res)const;
 
 /*
 ~IsDefinedAt~
@@ -1040,7 +1042,7 @@ This units has to be defined at the given duration.
 Checks if this LinearPointMOve is defined at the given duration.
 
 */
-   bool IsDefinedAt(const DateTime* duration)const;
+   bool IsDefinedAt(const datetime::DateTime* duration)const;
 
 /*
 ~GetHalfSegment~
@@ -1068,12 +1070,12 @@ halfsegment.
    size_t HashValue()const;
    int CompareTo(LinearPointMove* LPM);
    int CompareSpatial(LinearPointMove* LPM);
-   string ToString()const;
+   std::string ToString()const;
 
    bool Connected(LinearPointMove* P2);
 
    int Toprel(const Point P,LinearInt9MMove* Result)const;   
-   void Toprel(const Points& P, vector<LinearInt9MMove>& Result)const;  
+   void Toprel(const Points& P, std::vector<LinearInt9MMove>& Result)const;  
 
    void DistanceTo(const double x, const double y,MovingRealUnit& result)const;
 
@@ -1105,7 +1107,7 @@ halfsegment.
 ~Stream Operator~
 
 */
-ostream& operator<<(ostream& os, const LinearPointMove LPM);
+std::ostream& operator<<(std::ostream& os, const LinearPointMove LPM);
 
 
 /*
@@ -1130,7 +1132,7 @@ implemented  by the TwoPoints class.
 
 */
 class TwoPoints{
-   friend ostream& operator<< (ostream&, const TwoPoints);
+   friend std::ostream& operator<< (std::ostream&, const TwoPoints);
    friend class LinearPointsMove;
    public:
    TwoPoints();
@@ -1187,8 +1189,8 @@ structure showed in figure [ref]{fig:UnFoldedSolution.eps}.
 
 */
 class LinearPointsMove{
-  friend ostream& operator<< (ostream&, const  LinearPointsMove);
-  friend ostream& operator<< (ostream&, class PMPoints&);
+  friend std::ostream& operator<< (std::ostream&, const  LinearPointsMove);
+  friend std::ostream& operator<< (std::ostream&, class PMPoints&);
   friend class PMPoints;
   public:
    LinearPointsMove();
@@ -1200,10 +1202,10 @@ class LinearPointsMove{
    bool ReadFrom(const ListExpr value, 
                  DbArray<TwoPoints> &Points, 
      int &Index);
-   void At(const DateTime* duration, 
+   void At(const datetime::DateTime* duration, 
            const DbArray<TwoPoints> &Pts,
            Points& res         ) const;
-   bool IsDefinedAt(const DateTime* duration) const;
+   bool IsDefinedAt(const datetime::DateTime* duration) const;
    bool ProhablyIntersects(const PBBox* window) const;
    bool IsDefined() const; 
    bool IsStatic() const;
@@ -1283,11 +1285,11 @@ class PMSimple : public Attribute {
      bool ReadFrom(const ListExpr value,const ListExpr typeInfo);
      bool IsEmpty()const;
   
-     void At(const DateTime* instant,T& res)const;
+     void At(const datetime::DateTime* instant,T& res)const;
      bool Initial(T& result) const;
      bool Final(T& result)const;
-     void Translate(const DateTime& duration);
-     void Translate(const DateTime* duration,
+     void Translate(const datetime::DateTime& duration);
+     void Translate(const datetime::DateTime* duration,
                     PMSimple<T,Unit>& res) const;
 
      void Minimize();
@@ -1296,22 +1298,22 @@ class PMSimple : public Attribute {
      int NumberOfCompositeSubMoves();
      int NumberOfPeriodicMoves();
 
-     void Split(const DateTime instant,const bool toLeft, 
+     void Split(const datetime::DateTime instant,const bool toLeft, 
            PMSimple<T,Unit>& leftPart, PMSimple<T,Unit>& rightPart);
 
-     void splitRec(const DateTime instant, const bool toLeft,
+     void splitRec(const datetime::DateTime instant, const bool toLeft,
               PMSimple<T,Unit>& leftPart, PMSimple<T,Unit>& rightPart,
-              SubMove submove, DateTime& startTime, SubMove& SMLeft, 
+              SubMove submove, datetime::DateTime& startTime, SubMove& SMLeft, 
               SubMove& SMRight);
-     void SplitLeft(const DateTime& instant,const bool toLeft, 
+     void SplitLeft(const datetime::DateTime& instant,const bool toLeft, 
                     PMSimple<T,Unit>* result);
-     bool SplitLeftRec(const DateTime& instant,const bool toLeft,
+     bool SplitLeftRec(const datetime::DateTime& instant,const bool toLeft,
                   PMSimple<T,Unit>& result,const SubMove& submove, 
-                  DateTime& startTime,SubMove& lastSubmove);
+                  datetime::DateTime& startTime,SubMove& lastSubmove);
 
-     void  Intersection( const DateTime minTime, 
+     void  Intersection( const datetime::DateTime minTime, 
                          const bool minIncluded, 
-                         const DateTime maxTime, 
+                         const datetime::DateTime maxTime, 
                          const bool maxIncluded,
                          PMSimple<T,Unit>* res);
 
@@ -1321,7 +1323,7 @@ class PMSimple : public Attribute {
                       DbArray<PeriodicMove>& periodicMoves,
                       bool defined,
                       RelInterval interval,
-                      DateTime startTime,
+                      datetime::DateTime startTime,
                       SubMove submove);
 
       void TakeValuesFrom( DbArray<Unit>& linearMoves,
@@ -1330,9 +1332,9 @@ class PMSimple : public Attribute {
                       DbArray<PeriodicMove>& periodicMoves,
                       bool defined,
                       RelInterval interval,
-                      DateTime startTime,
+                      datetime::DateTime startTime,
                       SubMove submove);
-      void SetStartTime(DateTime newStart);
+      void SetStartTime(datetime::DateTime newStart);
 
       DbArray<Unit>* GetLinearMoves();
       DbArray<CompositeMove>* GetCompositeMoves();
@@ -1347,10 +1349,10 @@ class PMSimple : public Attribute {
      DbArray<PeriodicMove> periodicMoves;
      bool canDelete;
      RelInterval interval;
-     DateTime startTime;
+     datetime::DateTime startTime;
      SubMove submove;
 
-     void GetLength(SubMove sm, DateTime& result);
+     void GetLength(SubMove sm, datetime::DateTime& result);
 
      bool GetLeftClosed(SubMove sm);
      bool GetRightClosed(SubMove sm);
@@ -1423,7 +1425,7 @@ class PMBool: public PMSimple<bool,LinearConstantMove<bool> >{
   static bool CheckKind(ListExpr type, ListExpr& errorInfo){
     return nl->IsEqual(type,BasicType());
   }
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "pmbool";
   }
   static const bool checkType(const ListExpr type){
@@ -1473,7 +1475,7 @@ class PMReal: public  PMSimple<double,MovingRealUnit> {
           if(!result.IsDefined()){
             result.Set(true,unit.min());
           } else {
-            result.Set(true,::min(result.GetRealval(), unit.min()));
+            result.Set(true,::std::min(result.GetRealval(), unit.min()));
           }
        }
     }
@@ -1491,7 +1493,7 @@ class PMReal: public  PMSimple<double,MovingRealUnit> {
           if(!result.IsDefined()){
             result.Set(true,unit.max());
           } else {
-            result.Set(true,::max(result.GetRealval(), unit.max()));
+            result.Set(true,::std::max(result.GetRealval(), unit.max()));
           }
        }
     }
@@ -1501,7 +1503,7 @@ class PMReal: public  PMSimple<double,MovingRealUnit> {
   static bool CheckKind(ListExpr type, ListExpr& errorInfo){
     return nl->IsEqual(type,BasicType());
   } 
-  static const string BasicType(){
+  static const std::string BasicType(){
        return "pmreal";
   }
   static const bool checkType(const ListExpr type){
@@ -1526,7 +1528,7 @@ This class is derived from an instatiation of the
 ~PMSimple~ class. 
 
 */
-class PMInt9M : public PMSimple<Int9M,LinearInt9MMove> {
+class PMInt9M : public PMSimple<toprel::Int9M,LinearInt9MMove> {
 public:
   PMInt9M();
   PMInt9M(int dummy);
@@ -1537,12 +1539,12 @@ public:
                  const DbArray<CompositeMove>&          compositeMoves,
                  const DbArray<CSubMove>&                compositeSubMoves,
                  const DbArray<PeriodicMove>&           periodicMoves,
-                 const DateTime                        startTime,
+                 const datetime::DateTime                        startTime,
                  const SubMove                         submove);
   static bool CheckKind(ListExpr type, ListExpr& errorInfo){
       return  nl->IsEqual(type,BasicType());
   }
-  static const string BasicType(){
+  static const std::string BasicType(){
      return "pmint9m"; 
   }
   static const bool checkType(const ListExpr type){
@@ -1565,7 +1567,7 @@ This class represents a single periodic moving point.
 
 */
 class PMPoint : public Attribute {
-  friend ostream& operator<< (ostream&, PMPoint);
+  friend std::ostream& operator<< (std::ostream&, PMPoint);
   public:
      PMPoint();
      PMPoint(int dummy);
@@ -1587,21 +1589,21 @@ class PMPoint : public Attribute {
      bool ReadFrom(const ListExpr value, const ListExpr typeInfo);
      PMPoint* Intersection(const PInterval* interval);
      bool IsEmpty()const;
-     void At(const DateTime* instant, Point& res)const;
+     void At(const datetime::DateTime* instant, Point& res)const;
      void Initial(Point& res)const;
      bool Final(Point& res);
-     void Translate(const DateTime& duration);
-     void Translate(const DateTime* duration, PMPoint& res)const;
+     void Translate(const datetime::DateTime& duration);
+     void Translate(const datetime::DateTime* duration, PMPoint& res)const;
      Points* Breakpoints()const;
      void Breakpoints(Points& res)const;
-     Points* Breakpoints(const DateTime* minDuration,
+     Points* Breakpoints(const datetime::DateTime* minDuration,
                          const bool inclusive)const;
-     void Breakpoints(const DateTime* minDuration,
+     void Breakpoints(const datetime::DateTime* minDuration,
                       const bool inclusive,
                       Points& res)const;
      void Trajectory(Line& res)const;
-     DateTime GetStart()const;
-     DateTime GetEnd()const;
+     datetime::DateTime GetStart()const;
+     datetime::DateTime GetEnd()const;
      PInterval GetInterval()const;
      void GetInterval(SubMove sm, RelInterval& result)const;
      PBBox GetBbox()const;
@@ -1631,7 +1633,7 @@ class PMPoint : public Attribute {
      static bool CheckKind(ListExpr type, ListExpr& errorInfo){
        return nl->IsEqual(type,"pmpoint");
      }
-     static const string BasicType(){
+     static const std::string BasicType(){
        return "pmpoint";
      }
      static const bool checkType(const ListExpr type){
@@ -1659,7 +1661,7 @@ class PMPoint : public Attribute {
      DbArray<SpatialPeriodicMove> periodicMoves;
      bool canDelete;
      RelInterval interval;
-     DateTime startTime;
+     datetime::DateTime startTime;
      PBBox bbox;
      SubMove submove;
 
@@ -1685,13 +1687,13 @@ class PMPoint : public Attribute {
      bool AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
                         int &SMIndex, int &PMIndex);
 
-     void AddSubMovesSizeForIntersection(DateTime* startTime,
+     void AddSubMovesSizeForIntersection(datetime::DateTime* startTime,
                                     const SubMove submove,
                                     const PInterval* interval,
                                     int &Lcount,int &Ccount,
                                     int &Scount,int &Pcount);
 
-     void AppendUnits(temporalalgebra::MPoint& P, DateTime* Time, 
+     void AppendUnits(temporalalgebra::MPoint& P, datetime::DateTime* Time, 
                       const SubMove S)const;
      int NumberOfExpandedUnits()const;
      int NumberOfExpandedUnits(const SubMove S)const;
@@ -1699,7 +1701,7 @@ class PMPoint : public Attribute {
      bool FillFromRepTree(int& cpos, int& cspos, int& ppos, RepTree TR);
      
      void CorrectDurationSums();
-     void GetLength(SubMove sm, DateTime& result);
+     void GetLength(SubMove sm, datetime::DateTime& result);
 
      double Length(const SubMove& sm) const;
 
@@ -1713,7 +1715,7 @@ This class represents a set of periodic moving points.
 
 */
 class PMPoints : public Attribute {
-  friend ostream& operator<< (ostream& ,class PMPoints&) ;
+  friend std::ostream& operator<< (std::ostream& ,class PMPoints&) ;
   public:
      PMPoints();
      PMPoints(const PMPoints& source);
@@ -1737,20 +1739,21 @@ class PMPoints : public Attribute {
      Points* Breakpoints()const;
      void Breakpoints(Points& res) const;
      
-     Points* Breakpoints(const DateTime* duration,const bool inclusive)const;
-     void Breakpoints(const DateTime* duration, 
+     Points* Breakpoints(const datetime::DateTime* duration,
+                         const bool inclusive)const;
+     void Breakpoints(const datetime::DateTime* duration, 
                       const bool inclusive,
                       Points& res)const;
      
-     void At(const DateTime* T, Points& res)const;
+     void At(const datetime::DateTime* T, Points& res)const;
      void  Initial(Points& res)const;
      bool Final(Points& res) const;
-     void Translate(const DateTime& duration);
-     void Translate(const DateTime* duration,PMPoints& res)const;
+     void Translate(const datetime::DateTime& duration);
+     void Translate(const datetime::DateTime* duration,PMPoints& res)const;
      static bool CheckKind(ListExpr type, ListExpr& errorInfo){
        return nl->IsEqual(type,BasicType());
      }
-     static const string BasicType(){
+     static const std::string BasicType(){
        return "pmpoints";
      }
      static const bool checkType(const ListExpr type){
@@ -1772,7 +1775,7 @@ class PMPoints : public Attribute {
      DbArray<SpatialPeriodicMove> periodicMoves;
      bool canDelete;
      RelInterval interval;
-     DateTime startTime;
+     datetime::DateTime startTime;
      PBBox bbox;
      SubMove submove;
      /* the next four functions are needed to convert a
@@ -1798,7 +1801,7 @@ class PMPoints : public Attribute {
 
      void CorrectDurationSums();
    
-     void GetLength(SubMove SM, DateTime& result);
+     void GetLength(SubMove SM, datetime::DateTime& result);
 
   };
 
@@ -1812,7 +1815,7 @@ coordinates in [R].
 */
 
 class SimplePoint{
-friend ostream& operator<< (ostream& , const SimplePoint);
+friend std::ostream& operator<< (std::ostream& , const SimplePoint);
 public:
     double x;
     double y;
@@ -1844,16 +1847,16 @@ The following operators can be used for simple writing
 instances of the classes above to an output stream.
 
 */
-ostream& operator<< (ostream &os, const PBBox BB);
-ostream& operator<< (ostream& os, const RelInterval I);
-ostream& operator<< (ostream& os, const TwoPoints TP);
-ostream& operator<< (ostream& os, const PInterval I);
-ostream& operator<< (ostream& os, const CompositeMove CM);
-ostream& operator<< (ostream& os, const SpatialCompositeMove SCM);
-ostream& operator<< (ostream& os, const SubMove SM);
-ostream& operator<< (ostream& os, const PeriodicMove PM);
-ostream& operator<< (ostream& os, const LinearPointsMove LM);
-ostream& operator<< (ostream &os, class PMPoints &P);
+std::ostream& operator<< (std::ostream &os, const PBBox BB);
+std::ostream& operator<< (std::ostream& os, const RelInterval I);
+std::ostream& operator<< (std::ostream& os, const TwoPoints TP);
+std::ostream& operator<< (std::ostream& os, const PInterval I);
+std::ostream& operator<< (std::ostream& os, const CompositeMove CM);
+std::ostream& operator<< (std::ostream& os, const SpatialCompositeMove SCM);
+std::ostream& operator<< (std::ostream& os, const SubMove SM);
+std::ostream& operator<< (std::ostream& os, const PeriodicMove PM);
+std::ostream& operator<< (std::ostream& os, const LinearPointsMove LM);
+std::ostream& operator<< (std::ostream &os, class PMPoints &P);
 
 
 

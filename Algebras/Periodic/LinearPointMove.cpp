@@ -10,6 +10,10 @@
 #include "PeriodicTypes.h"
 #include "PeriodicSupport.h"
 
+using namespace std;
+using namespace datetime;
+using namespace toprel;
+
 
 namespace periodic{
 /*

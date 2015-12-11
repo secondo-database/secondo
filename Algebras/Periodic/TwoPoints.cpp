@@ -128,7 +128,7 @@ e.g. division by zero.
 
 double TwoPoints::Speed(const RelInterval interval)const {
    __TRACE__
-  DateTime* D = interval.GetLength();
+  datetime::DateTime* D = interval.GetLength();
    double L = D->ToDouble();
    delete D; 
    D = NULL;
@@ -218,7 +218,7 @@ bool TwoPoints::IsStatic() const{
 ~Shift Operator~
 
 */
-ostream& operator<< (ostream& os, const TwoPoints TP){
+std::ostream& operator<< (std::ostream& os, const TwoPoints TP){
    __TRACE__
  os << "TP[(" << TP.startX << "," << TP.startY << ") ->(";
   os << TP.endX << "," << TP.endY << ")]";

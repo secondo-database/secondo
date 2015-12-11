@@ -21,6 +21,7 @@ extern NestedList* nl;
 
 
 using namespace std;
+using namespace toprel;
 
 namespace periodic{
 /*

@@ -36,7 +36,7 @@ PMSimple<T, Unit>::PMSimple(int dummy):
    periodicMoves(1),
    canDelete(false),
    interval(1),
-   startTime(instanttype){
+   startTime(datetime::instanttype){
      __TRACE__
 }
 
@@ -167,7 +167,7 @@ not implemented in this moment.
 template <class T, class Unit>
 int PMSimple<T, Unit>::Compare(const Attribute* arg) const{
     __TRACE__
-  cout << "PMSImple::Compare not implemented yet " << endl;
+  cout << "PMSImple::Compare not implemented yet " << std::endl;
   return -1;
 }
 
@@ -296,8 +296,8 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
    */
   if(::nl->ListLength(value)!=2){
      if(DEBUG_MODE){
-        cerr << __POS__ << ": wrong listlength (";
-        cerr << (::nl->ListLength(value)) << ")" << endl;
+        std::cerr << __POS__ << ": wrong listlength (";
+        std::cerr << (::nl->ListLength(value)) << ")" << std::endl;
      }
      SetDefined(false);
      return false;
@@ -305,7 +305,7 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
 
   if(!ResizeArrays(value)){
      if(DEBUG_MODE){
-        cerr << __POS__ << ": resize array failed" << endl;
+        std::cerr << __POS__ << ": resize array failed" << std::endl;
      }
      SetDefined(false);
      return false;
@@ -313,8 +313,8 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
 
   if(!startTime.ReadFrom(::nl->First(value),false)){
      if(DEBUG_MODE){
-        cerr << __POS__ << "reading of the start time failed" << endl;
-        cerr << "The list is " << endl;
+        std::cerr << __POS__ << "reading of the start time failed" << std::endl;
+        std::cerr << "The list is " << std::endl;
         ::nl->WriteListExpr(::nl->First(value));
      }
      SetDefined(false);
@@ -325,7 +325,7 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
   ListExpr SML = ::nl->Second(value);
   if(::nl->ListLength(SML)!=2){
      if(DEBUG_MODE){
-        cerr << __POS__ << ": wrong list length for submove" << endl;
+        std::cerr << __POS__ << ": wrong list length for submove" << std::endl;
      }
      SetDefined(false);
      return false;
@@ -341,7 +341,8 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
      submove.arrayIndex = 0;
      if(!AddLinearMove(::nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
          if(DEBUG_MODE){
-            cerr << __POS__ << " Error in reading linear move" << endl;
+            std::cerr << __POS__ << " Error in reading linear move" 
+                      << std::endl;
          }
          SetDefined(false);
          return false;
@@ -360,7 +361,8 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
      if(!AddCompositeMove(::nl->Second(SML),LMIndex,
                           CMIndex,SMIndex,PMIndex)){
         if(DEBUG_MODE){
-           cerr << __POS__ << "error in reading composite move" << endl;
+           std::cerr << __POS__ << "error in reading composite move" 
+                     << std::endl;
         }
         SetDefined(false);
         return false;
@@ -377,7 +379,8 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
      submove.arrayIndex = 0;
      if(!AddPeriodMove(::nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
         if(DEBUG_MODE){
-          cerr << __POS__ << " error in reading periodic move" << endl;
+          std::cerr << __POS__ << " error in reading periodic move" 
+                    << std::endl;
         }
         SetDefined(false);
         return false;
@@ -390,7 +393,7 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
      return true;
   }
   if(DEBUG_MODE){
-     cerr << __POS__ << "unknown subtype" << endl;
+     std::cerr << __POS__ << "unknown subtype" << std::endl;
      ::nl->WriteListExpr(SMT);
   }
   return false;
@@ -421,9 +424,9 @@ delete the returned value of this function if the result is not null.
 
 */
 template <class T, class Unit>
-void PMSimple<T, Unit>::At(const DateTime* instant,T& res)const{
+void PMSimple<T, Unit>::At(const datetime::DateTime* instant,T& res)const{
   __TRACE__
- DateTime* duration = new DateTime(*instant);
+ datetime::DateTime* duration = new datetime::DateTime(*instant);
  duration->Minus(&startTime); // now it is a duration
  if(interval.Contains(duration)){
  // in the other case, we have nothing to do
@@ -457,7 +460,7 @@ void PMSimple<T, Unit>::At(const DateTime* instant,T& res)const{
             if(RI.Contains(duration)) // be happy
                found=true;
             else{  // search again
-               DateTime* L = RI.GetLength();
+               datetime::DateTime* L = RI.GetLength();
                duration->Minus(L);
                delete L;
                L = NULL;
@@ -483,7 +486,7 @@ void PMSimple<T, Unit>::At(const DateTime* instant,T& res)const{
            assert(false);
         }
         while(!RI.Contains(duration)){
-           DateTime* L = RI.GetLength();
+           datetime::DateTime* L = RI.GetLength();
            duration->Minus(L);
            delete L;
            L = NULL;
@@ -549,12 +552,12 @@ Moves this simple time within the time.
 
 */
 template<class T, class Unit>
-void PMSimple<T, Unit>::Translate(const DateTime& duration){
+void PMSimple<T, Unit>::Translate(const datetime::DateTime& duration){
    startTime += duration;
 }
 
 template<class T, class Unit>
-void PMSimple<T, Unit>::Translate(const DateTime* duration,
+void PMSimple<T, Unit>::Translate(const datetime::DateTime* duration,
                                   PMSimple<T,Unit>& res)const{
    res.Equalize(this);
    res.startTime += *duration;
@@ -642,12 +645,13 @@ part will be undefined.
 
 */
 template <class T, class Unit>
-void PMSimple<T, Unit>::Split(const DateTime instant,const bool toLeft, 
+void PMSimple<T, Unit>::Split(const datetime::DateTime instant,
+           const bool toLeft, 
            PMSimple<T,Unit>& leftPart, PMSimple<T,Unit>& rightPart){
    SubMove SMLeft,SMRight;
    SMLeft.arrayNumber = -1;
    SMRight.arrayNumber = -1;
-   DateTime stCopy = startTime;
+   datetime::DateTime stCopy = startTime;
    splitRec(instant, toLeft,leftPart,rightPart,submove,stCopy,SMLeft,SMRight);
    // set the values of the root record of the left part
    if(SMLeft.arrayNumber<0){ // leftpart is empty
@@ -665,8 +669,8 @@ void PMSimple<T, Unit>::Split(const DateTime instant,const bool toLeft,
         rightPart.startTime = instant;
         rightPart.GetInterval(SMRight,rightPart.interval);
    }
-   cerr << "Missing correction for splitted infinite periodic  moves !!!"
-        << endl;
+   std::cerr << "Missing correction for splitted infinite periodic  moves !!!"
+        << std::endl;
 }
 
 
@@ -678,17 +682,18 @@ two part. The leftPart will be extended by the part of this submove before
 the given instant. The remainder of this submove will stored into rightPart.
 The new added submove of leftPart and rightPart is returned in the arguments
 SMLeft and SMRight respectively. The argument toLeft controls whereto put
-in the object at the given instant (closure properties). The starttime is changed
-to be after the processed submove. If the submove is not defined before the 
-given instant, leftPart is not changed and SMLeft will hold an negative number
-for the arrayNumber indicating an invalid value. When submove is'nt defined 
-after this instant, the same holds for rightPart and SMRight.
+in the object at the given instant (closure properties). The starttime is 
+changed to be after the processed submove. If the submove is not defined 
+before the given instant, leftPart is not changed and SMLeft will hold an 
+negative number for the arrayNumber indicating an invalid value. When submove
+is'nt defined after this instant, the same holds for rightPart and SMRight.
 
 */
 template <class T, class Unit>
-void PMSimple<T, Unit>::splitRec(const DateTime instant, const bool toLeft,
+void PMSimple<T, Unit>::splitRec(const datetime::DateTime instant, 
+              const bool toLeft,
               PMSimple<T,Unit>& leftPart, PMSimple<T,Unit>& rightPart,
-              SubMove submove, DateTime& startTime, 
+              SubMove submove, datetime::DateTime& startTime, 
               SubMove& SMLeft, SubMove& SMRight){
  
 
@@ -698,7 +703,7 @@ void PMSimple<T, Unit>::splitRec(const DateTime instant, const bool toLeft,
     Unit LML;
     linearMoves.Get(submove.arrayIndex,LML);
     Unit LMR;
-    DateTime Dur = instant - startTime;
+    datetime::DateTime Dur = instant - startTime;
     startTime = startTime + (*LML.interval.GetLength()); 
     bool saveLeft,saveRight;
     if(LML.GetDefined()){
@@ -733,8 +738,8 @@ void PMSimple<T, Unit>::splitRec(const DateTime instant, const bool toLeft,
      // to ensure a single block representing this submove
      CompositeMove CM;
      compositeMoves.Get(submove.arrayIndex,CM);
-     vector<CSubMove> submovesLeft(CM.maxIndex-CM.minIndex+1);
-     vector<CSubMove> submovesRight(CM.maxIndex-CM.minIndex+1);
+     std::vector<CSubMove> submovesLeft(CM.maxIndex-CM.minIndex+1);
+     std::vector<CSubMove> submovesRight(CM.maxIndex-CM.minIndex+1);
      
      CSubMove SM;
      for(int i=CM.minIndex;i<=CM.maxIndex;i++){
@@ -792,14 +797,14 @@ void PMSimple<T, Unit>::splitRec(const DateTime instant, const bool toLeft,
      periodicMoves.Get(submove.arrayIndex,PM);
      RelInterval sminterval;
      GetInterval(PM.submove,sminterval);
-     DateTime smlength(durationtype);
+     datetime::DateTime smlength(datetime::durationtype);
      sminterval.StoreLength(smlength);
-     DateTime ZeroTime(instanttype);
+     datetime::DateTime ZeroTime(datetime::instanttype);
      sminterval.StoreLength(smlength);
      // find out how many repeatations left on both sides
      // first compute the duration which should be transferred 
      //into the left part
-     DateTime LeftDuration = instant - startTime;
+     datetime::DateTime LeftDuration = instant - startTime;
      return; // periodic moves processed
   }
   assert(false); // unknown submove
@@ -814,26 +819,28 @@ before the instant.
 
 */
 template <class T, class Unit>
-void PMSimple<T, Unit>::SplitLeft(const DateTime& instant,const bool toLeft, 
+void PMSimple<T, Unit>::SplitLeft(const datetime::DateTime& instant,
+               const bool toLeft, 
                PMSimple<T,Unit>* result){
   SubMove LastMove;
-  DateTime startTimecopy(instanttype);
+  datetime::DateTime startTimecopy(datetime::instanttype);
   startTimecopy.Equalize(&startTime);
 
   if(!SplitLeftRec(instant,toLeft,*result,submove,startTimecopy,LastMove))
       result->SetDefined(false);
   else{
      result->startTime = startTime;
-     DateTime len = instant-startTime;
+     datetime::DateTime len = instant-startTime;
      result->interval.Set(&len,interval.IsLeftClosed(),toLeft);
      result->submove = LastMove;      
   }  
 }
 
 template <class T , class Unit>
-bool PMSimple<T, Unit>::SplitLeftRec(const DateTime& instant,const bool toLeft,
+bool PMSimple<T, Unit>::SplitLeftRec(const datetime::DateTime& instant,
+                  const bool toLeft,
                   PMSimple<T,Unit>& result,const SubMove& submove, 
-                  DateTime& startTime,SubMove& lastSubmove){
+                  datetime::DateTime& startTime,SubMove& lastSubmove){
 
 /*
 First, we handle the a single unit.
@@ -846,14 +853,14 @@ First, we handle the a single unit.
         linearMoves.Get(submove.arrayIndex,u);
         RelInterval interval;
         interval.Equalize(&u.interval);
-        DateTime dur = instant-startTime;
+        datetime::DateTime dur = instant-startTime;
         if(!u.interval.Contains(&dur)){
            return false;
         }
         Unit rightUnit;
         u.Split(dur,toLeft,rightUnit); 
         result.linearMoves.Append(u);
-        DateTime len(durationtype);
+        datetime::DateTime len(datetime::durationtype);
         interval.StoreLength(len);
         startTime = startTime + len;
         lastSubmove.arrayNumber=LINEAR;
@@ -867,11 +874,11 @@ Second, handling of composite moves
    if(submove.arrayNumber == COMPOSITE){
       CompositeMove CM;
       compositeMoves.Get(submove.arrayIndex,CM);
-      DateTime dur = instant-startTime;
+      datetime::DateTime dur = instant-startTime;
       if(!CM.interval.Contains(&dur))
           return false;        
       CSubMove SM;
-      vector<SubMove> mySubmoves(CM.maxIndex-CM.minIndex);
+      std::vector<SubMove> mySubmoves(CM.maxIndex-CM.minIndex);
       bool done = false;
       for(int i =CM.minIndex;i<=CM.maxIndex && !done;i++){
            compositeSubMoves.Get(i,SM);
@@ -884,8 +891,8 @@ Second, handling of composite moves
       if(mySubmoves.size()<2){ // ok, this submoves is end in smoke
         return true;
       }else{ // we have to build a composite move from the remaining submoves
-         DateTime length(durationtype);
-         DateTime nextLength(durationtype);
+         datetime::DateTime length(datetime::durationtype);
+         datetime::DateTime nextLength(datetime::durationtype);
          int size = mySubmoves.size();
          RelInterval interval; 
          CM.minIndex = result.compositeSubMoves.Size();
@@ -913,7 +920,7 @@ Second, handling of composite moves
    if(submove.arrayIndex==PERIOD){
        PeriodicMove PM;
        periodicMoves.Get(submove.arrayIndex,PM);
-       DateTime dur = instant-startTime;
+       datetime::DateTime dur = instant-startTime;
        
    }
    assert(false); // the program should never reach this position
@@ -933,9 +940,9 @@ we have to scan the dbarrays in some cases.
 
 */
 template <class T, class Unit>
-void  PMSimple<T, Unit>::Intersection( const DateTime minTime, 
+void  PMSimple<T, Unit>::Intersection( const datetime::DateTime minTime, 
                      const bool minIncluded, 
-                     const DateTime maxTime, 
+                     const datetime::DateTime maxTime, 
                      const bool maxIncluded,
                     PMSimple<T,Unit>* res){
 
@@ -951,9 +958,10 @@ void  PMSimple<T, Unit>::Intersection( const DateTime minTime,
 ~CopyValuesFrom~
 
 By calling this function, the value of this pmsimple is set to the given values.
-There is no check whether the values are valid. Use this function very carefully.
-A possible application of this function is to take the tree from another periodic 
-moving object.
+There is no check whether the values are valid. Use this function very 
+carefully.
+A possible application of this function is to take the tree from another 
+periodic moving object.
 
 */
 template <class T, class Unit>
@@ -963,7 +971,7 @@ void PMSimple<T, Unit>::CopyValuesFrom( DbArray<Unit>& linearMoves,
                       DbArray<PeriodicMove>& periodicMoves,
                       bool defined,
                       RelInterval interval,
-                      DateTime startTime,
+                      datetime::DateTime startTime,
                       SubMove submove){
 
   // first, clear all contained arraysa
@@ -995,7 +1003,7 @@ void PMSimple<T, Unit>::TakeValuesFrom( DbArray<Unit>& linearMoves,
                       DbArray<PeriodicMove>& periodicMoves,
                       bool defined,
                       RelInterval interval,
-                      DateTime startTime,
+                      datetime::DateTime startTime,
                       SubMove submove){
 
    this->linearMoves.Clear(); 
@@ -1024,7 +1032,7 @@ This function can be used for moving this PMsimple in time.
 
 */
 template <class T, class Unit>
-void PMSimple<T, Unit>::SetStartTime(DateTime newStart){
+void PMSimple<T, Unit>::SetStartTime(datetime::DateTime newStart){
       startTime.Equalize(&newStart);
 }
 
@@ -1083,7 +1091,7 @@ submove.
 
 */
 template <class T, class Unit>
-void PMSimple<T, Unit>::GetLength(SubMove sm, DateTime& result){
+void PMSimple<T, Unit>::GetLength(SubMove sm, datetime::DateTime& result){
     switch(sm.arrayNumber){
       case LINEAR: { Unit U;
                      linearMoves.Get(sm.arrayIndex,U);
@@ -1111,8 +1119,8 @@ void PMSimple<T, Unit>::GetLength(SubMove sm, DateTime& result){
 
 ~GetLeftClosed~
 
-This function returns the state of the LeftClosed flag  of the interval of the given 
-submove. 
+This function returns the state of the LeftClosed flag  of the interval 
+of the given submove. 
 
 */
 template <class T, class Unit>
@@ -1141,8 +1149,8 @@ bool PMSimple<T, Unit>::GetLeftClosed(SubMove sm){
 
 ~GetRightClosed~
 
-This function returns the state of the RightClosed flag  of the interval of the given 
-submove. 
+This function returns the state of the RightClosed flag  of the interval 
+of the given submove. 
 
 */
 template <class T, class Unit>
@@ -1218,7 +1226,7 @@ ListExpr PMSimple<T, Unit>::GetSubMoveList(const SubMove SM) const{
   else if(SubMoveType==PERIOD)
       SubMoveList = GetPeriodicMoveList(index);
   else{
-       cerr << __POS__ << " Error in creating ListExpr" << endl;
+       std::cerr << __POS__ << " Error in creating ListExpr" << std::endl;
        SubMoveList = ::nl->TheEmptyList();
    }
   return SubMoveList;
@@ -1284,7 +1292,7 @@ ListExpr PMSimple<T, Unit>::GetCompositeMoveList(const int index)const{
   int maxIndex = CM.maxIndex;
   ListExpr SubMovesList;
   if(maxIndex<minIndex){
-    cerr << __POS__ << "empty composite move" << endl;
+    std::cerr << __POS__ << "empty composite move" << std::endl;
     SubMovesList = ::nl->TheEmptyList();
   }
   else{
@@ -1448,8 +1456,8 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
    int len = ::nl->ListLength(value);
    if(len<2){
       if(DEBUG_MODE){
-         cerr << __POS__ << " less than 2 submoves (" 
-              << len << ")" << endl;
+         std::cerr << __POS__ << " less than 2 submoves (" 
+              << len << ")" << std::endl;
       }
       return false;
    }
@@ -1471,8 +1479,8 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
       if(::nl->ListLength(SML)!=2){ // all submoves have the 
                                  // format (type value)
          if(DEBUG_MODE){
-            cerr << __POS__ << " submove has wrong length (";
-            cerr << ::nl->ListLength(SML) << ")" << endl;
+            std::cerr << __POS__ << " submove has wrong length (";
+            std::cerr << ::nl->ListLength(SML) << ")" << std::endl;
          }
          return false;
       }
@@ -1483,7 +1491,7 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
          int LMPos = LMIndex;
          if(!AddLinearMove(VL,LMIndex,CMIndex,SMIndex,PMIndex)){
             if(DEBUG_MODE){
-               cerr << __POS__ << " can't add a linear move " << endl;
+               std::cerr << __POS__ << " can't add a linear move " << std::endl;
             }
             return false;
          }
@@ -1496,11 +1504,12 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
          }else{
             if(!CM.interval.Append(&(LM.interval))){
                if(DEBUG_MODE){
-                   cerr << __POS__ << " can't append interval " << endl;
-                   cerr << "The original interval is";
-                   cerr << CM.interval.ToString() << endl;
-                   cerr << "The interval to append is";
-                   cerr << LM.interval.ToString() << endl;
+                   std::cerr << __POS__ << " can't append interval " 
+                             << std::endl;
+                   std::cerr << "The original interval is";
+                   std::cerr << CM.interval.ToString() << std::endl;
+                   std::cerr << "The interval to append is";
+                   std::cerr << LM.interval.ToString() << std::endl;
                }
                return false;
             }
@@ -1516,7 +1525,7 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
         int PMPos = PMIndex;
         if(!AddPeriodMove(VL,LMIndex,CMIndex,SMIndex,PMIndex)){
            if(DEBUG_MODE){
-              cerr << __POS__ << "can't add period move " << endl;
+              std::cerr << __POS__ << "can't add period move " << std::endl;
             }
             return  false;
         }
@@ -1528,7 +1537,7 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
         }else{
            if(!CM.interval.Append(&(PM.interval))){
               if(DEBUG_MODE){
-                 cerr << __POS__  << " can't append interval" << endl;
+                 std::cerr << __POS__  << " can't append interval" << std::endl;
               }
               return false;
            }
@@ -1540,8 +1549,8 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
         SMPos++;
    } else{ // not of type linear or period
         if(DEBUG_MODE){
-            cerr << __POS__ << " submove not of type ";
-            cerr << "linear od period" << endl;
+            std::cerr << __POS__ << " submove not of type ";
+            std::cerr << "linear od period" << std::endl;
          }
          return false;
       }
@@ -1572,12 +1581,12 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
    int len = ::nl->ListLength(value);
    if((len!=2) && (len!=4)){  // (repeatations <submove>)
       if(DEBUG_MODE)
-        cerr << __POS__ << ": wrong listlength" << endl;
+        std::cerr << __POS__ << ": wrong listlength" << std::endl;
       return false;
    }
    if(::nl->AtomType(::nl->First(value))!=IntType){
      if(DEBUG_MODE){
-       cerr << __POS__ << ": wrong type for repeatations" << endl;
+       std::cerr << __POS__ << ": wrong type for repeatations" << std::endl;
      }
      return false;
    }
@@ -1585,7 +1594,7 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
    // rep must be greater than 1 
    if(rep<=1 ){
       if(DEBUG_MODE){
-         cerr << __POS__ <<  " wrong number of repeatations" << endl;
+         std::cerr << __POS__ <<  " wrong number of repeatations" << std::endl;
       }
       return false;
    }
@@ -1599,7 +1608,7 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
 
    if(::nl->ListLength(SML)!=2){
       if(DEBUG_MODE){
-         cerr << __POS__ << ": wrong length for submove" << endl;
+         std::cerr << __POS__ << ": wrong length for submove" << std::endl;
       }
       return false;
    }
@@ -1612,7 +1621,7 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
      int LMPos = LMIndex;
      if(!AddLinearMove(::nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
         if(DEBUG_MODE){
-          cerr << __POS__ << ": can't add linear submove" << endl;
+          std::cerr << __POS__ << ": can't add linear submove" << std::endl;
         }
         return false;
      }
@@ -1639,7 +1648,7 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
      if(!AddCompositeMove(::nl->Second(SML),LMIndex,CMIndex,
                           SMIndex,PMIndex)){
         if(DEBUG_MODE){
-           cerr << __POS__ << ": can't add composite submove" << endl;
+           std::cerr << __POS__ << ": can't add composite submove" << std::endl;
         }
         return false;
      }
@@ -1811,7 +1820,7 @@ SubMove PMSimple<T, Unit>::MinimizeRec(SubMove SM,
         compositeMoves.Get(SM.arrayIndex,CM);
         Unit LM(0);
         bool LMdefined = false;
-        vector<CSubMove> MySubMoves;
+        std::vector<CSubMove> MySubMoves;
         for(int i=CM.minIndex;i<=CM.maxIndex;i++){
            CSubMove Current;
            compositeSubMoves.Get(i,Current);
@@ -1908,8 +1917,8 @@ void PMSimple<T, Unit>::CorrectDurationSums(){
    }
    int cmsize = compositeMoves.Size();
    RelInterval currentInterval;
-   DateTime currentLength(durationtype);
-   DateTime duration(durationtype);
+   datetime::DateTime currentLength(datetime::durationtype);
+   datetime::DateTime duration(datetime::durationtype);
    CompositeMove CM;
    // process all compositeMoves.
    for(int i=0;i<cmsize;i++){

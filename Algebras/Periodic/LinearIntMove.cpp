@@ -17,6 +17,7 @@ This class provides the unit type for a periodic moving 9 intersection matrix.
 
 extern NestedList* nl;
 using namespace std;
+using namespace toprel;
 
 namespace periodic{
 /*

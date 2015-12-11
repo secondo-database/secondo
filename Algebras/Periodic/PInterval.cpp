@@ -473,9 +473,9 @@ This function computes a string representation of this interval.
 [3] o(1)
 
 */
-string PInterval::ToString()const {
+std::string PInterval::ToString()const {
    __TRACE__
-  stringstream ss;
+  std::stringstream ss;
    if(IsLeftClosed())
       ss << "[";
    else
@@ -536,7 +536,7 @@ Flob* PInterval::GetFLOB(const int i){
 ~Shift operator~
 
 */
-ostream& operator<< (ostream& os, const PInterval I){
+std::ostream& operator<< (std::ostream& os, const PInterval I){
    __TRACE__
   os << I.ToString();
    return os;

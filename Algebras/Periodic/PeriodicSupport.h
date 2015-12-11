@@ -143,7 +143,7 @@ bool GetNumeric(const ListExpr List, double &value);
 Writes ~L~ to ~os~.
 
 */
-void WriteListExprToStream(ostream &os, const ListExpr L);
+void WriteListExprToStream(std::ostream &os, const ListExpr L);
 
 
 /*
