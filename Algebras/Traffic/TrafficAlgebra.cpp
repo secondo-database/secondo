@@ -57,6 +57,9 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 using namespace temporalalgebra;
+using namespace std;
+using namespace network;
+using namespace datetime;
 
 /*
 3 Auxiliary Functions and structs
