@@ -15,7 +15,6 @@ if [ -n "$1" ]; then
    fi
  done 
 else 
-  echo " without arguments, scanning system "
 
   HFiles=$(find $PWD -iname "*.h" -o -iname "*.hpp")
   CFiles=$(find $PWD -iname "*.cpp")
