@@ -93,7 +93,7 @@ into res. This function is just for checking the structure.
 */
 
     void findSimple(const Rectangle<dim>& r, 
-                    vector<pair<Rectangle<dim> , T> >& res){
+                    std::vector<std::pair<Rectangle<dim> , T> >& res){
         
       res.clear();
       if(!r.IsDefined()){
@@ -356,12 +356,12 @@ The return value is this node or 0, if this subtree becomes empty.
 
 
   void findSimple(const Rectangle<rdim>& r, 
-                  vector<pair<Rectangle<rdim> , T> >& res){
+                  std::vector<std::pair<Rectangle<rdim> , T> >& res){
      if(!bbox.Intersects(r)){
         return;
      }
      if(rect.Intersects(r)){
-        pair<Rectangle<rdim> , T> p(rect,data);
+        std::pair<Rectangle<rdim> , T> p(rect,data);
         res.push_back(p);
      }
      for(int i=0;i<cdim; i++){
@@ -613,7 +613,7 @@ class RIndexNode<rdim, T,0>{
 
      void insert(const Rectangle<rdim>& r, const T& t){
            bbox = bbox.Union(r);
-           pair<Rectangle<rdim>,T> p(r,t);
+           std::pair<Rectangle<rdim>,T> p(r,t);
            content.push_back(p);
      }
 
@@ -623,11 +623,11 @@ class RIndexNode<rdim, T,0>{
      }
 
      void findSimple(const Rectangle<rdim>& r, 
-                     vector<pair<Rectangle<rdim> , T> >& res){
+                     std::vector<std::pair<Rectangle<rdim> , T> >& res){
         if(!bbox.Intersects(r)){
             return;
         }
-        typename vector<pair<Rectangle<rdim>,T> >::iterator it;
+        typename std::vector<std::pair<Rectangle<rdim>,T> >::iterator it;
         for(it = content.begin(); it!=content.end(); it++){
            if(it->first.Intersects(r)){
               res.push_back(*it);
@@ -670,13 +670,13 @@ class RIndexNode<rdim, T,0>{
 
      size_t usedMem(){
         return sizeof(*this) + 
-               sizeof(pair<Rectangle<rdim>,T>) * content.capacity();
+               sizeof(std::pair<Rectangle<rdim>,T>) * content.capacity();
      }
 
 
    private:
       Rectangle<rdim> bbox;
-      vector<pair<Rectangle<rdim>,T> > content;
+      std::vector<std::pair<Rectangle<rdim>,T> > content;
 
 
 };

@@ -16,24 +16,24 @@ namespace RegionInterpol
 1.1 $<<$
 
 */
-    ostream& operator << (ostream& s, RegionTreeNode *RTN)
+    std::ostream& operator << (std::ostream& s, RegionTreeNode *RTN)
     {  
       if(RTN == NULL)
       {
-         s << "NULL" <<endl;
+         s << "NULL" <<std::endl;
          return s;
       }     
          if(dynamic_cast<Face*> (RTN))
          {
             Face* tmp2 = (Face*) RTN;
-            s << "Face: " << tmp2->hashCode() << endl;            
+            s << "Face: " << tmp2->hashCode() << std::endl;            
          }
          else
          { 
             if((dynamic_cast<RegionForInterpolation*> (RTN)))
             {
                   RegionForInterpolation* tmp2 = (RegionForInterpolation*) RTN;
-                  s << "Region: " << tmp2->hashCode() << endl;             
+                  s << "Region: " << tmp2->hashCode() << std::endl;             
             }
             else
             {              
@@ -41,9 +41,9 @@ namespace RegionInterpol
                {
                      ConvexHullTreeNode* tmp2 = (ConvexHullTreeNode*) RTN;
                      if(!tmp2->isHole())
-                        s << "CHTN: " << tmp2->hashCode() << endl;
+                        s << "CHTN: " << tmp2->hashCode() << std::endl;
                      else
-                           s << "Hole: " << tmp2->hashCode() << endl;
+                           s << "Hole: " << tmp2->hashCode() << std::endl;
                }
             }                          
          }

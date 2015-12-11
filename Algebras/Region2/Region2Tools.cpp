@@ -41,6 +41,7 @@ Reads from inValue and stores its representation as TextType in resultList.
 */
 
 #include "Region2Tools.h"
+using namespace std;
 
 void gmpTypeToTextType1
         (const mpq_class& inValue, ListExpr& resultList) {

@@ -43,6 +43,8 @@ constructor ~region2~.
 
 #include "Region2Algebra.h"
 
+using namespace std;
+
 /*
 1 Helper functions
 

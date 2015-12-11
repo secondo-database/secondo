@@ -6,6 +6,8 @@ see Lines.h for documentation
  
 */
 #include "RegionInterpolator.h"
+
+using namespace std;
     
 namespace RegionInterpol
 {

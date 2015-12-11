@@ -8,6 +8,8 @@
  
 #include "RegionInterpolator.h"
 
+using namespace std;
+
 namespace RegionInterpol 
 {
 

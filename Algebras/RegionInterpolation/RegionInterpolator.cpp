@@ -9,6 +9,7 @@
 #include "RegionInterpolator.h"
 
 using namespace temporalalgebra;
+using namespace std;
 
 #define COUNTWEIGHT 4      //How many weights shall be given to the OptimalMatch
 namespace RegionInterpol

@@ -138,17 +138,17 @@ bool SingleMatch :: equals(SingleMatch* o)
 1.1 $<<$
 
 */  
-ostream& operator << (ostream& s, SingleMatch sm)
+std::ostream& operator << (std::ostream& s, SingleMatch sm)
 {
-   s << "Match:" << endl;  
-   s << sm.getSource() << "===============>" << endl;
+   s << "Match:" << std::endl;  
+   s << sm.getSource() << "===============>" << std::endl;
    for(int i = 0; i < sm.getNrTargets(); i++)
    {
       s << sm.getTargetAt(i);
       if(i != sm.getNrTargets() - 1)
-         s << "... ... ..." << endl;         
+         s << "... ... ..." << std::endl;         
    }        
-   s << endl;
+   s << std::endl;
    return s;
 }  
 
