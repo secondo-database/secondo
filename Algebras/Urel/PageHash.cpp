@@ -35,6 +35,8 @@ December 2009 Jiamin Lu
 #include "PageHash.h"
 
 
+using namespace std;
+
 /*
 
 2 Implementation of PageHashTable

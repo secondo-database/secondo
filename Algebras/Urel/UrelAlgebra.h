@@ -283,7 +283,7 @@ private:
     cataPageNum(1)
   {}
 
-  string mpName; //The memory pool name
+  std::string mpName; //The memory pool name
   SmiUpdateFile *suf; //The SmiUpdateFile handle
   URelCatalogInfo urc;
   //The catalog record for this type, keep in the first page.
@@ -293,8 +293,8 @@ private:
 
   URel1Tuple*  GetTuple(const Urel1IteratorMark& _itm);
   int  GetTuplesInPage(const PageNo_t pageNo, const Instant desTime,
-      vector<URel1Tuple> &tupleList);
-  vector<URel1Tuple>  GetAllTuples(const Instant desTime);
+      std::vector<URel1Tuple> &tupleList);
+  std::vector<URel1Tuple>  GetAllTuples(const Instant desTime);
 
   friend class ConstructorFunctions<Urel1> ;
 };

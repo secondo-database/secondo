@@ -762,7 +762,7 @@ Word Urel1::In(const ListExpr typeInfo, const ListExpr instance,
                       tupleList.second().listExpr(),
                       errorPos, errorInfo, correct).addr;
               Instant *updateTime =
-                  new DateTime(tupleList.third().realval());
+                  new datetime::DateTime(tupleList.third().realval());
 
               if (tupleList.length() == 3
                   && tupleList.first().isInt()
