@@ -56,7 +56,7 @@ static NestedList* pnl; // Nested list storage for persistent
 static typemap::Mapper* mapper;  // instance of the mapper class
 
 
-
+using namespace std;
 
 /*
 2 Operators
@@ -68,7 +68,7 @@ static typemap::Mapper* mapper;  // instance of the mapper class
 */
 ListExpr tminitTM(ListExpr args){
 
-  string err = "string or text expected";
+ string err = "string or text expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
