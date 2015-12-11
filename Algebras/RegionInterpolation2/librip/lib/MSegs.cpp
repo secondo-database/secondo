@@ -5,6 +5,8 @@
 
 #include "interpolate.h"
 
+using namespace std;
+
 MSegs::MSegs() : iscollapsed(0), isevaporating(0) {
 }
 

@@ -23,6 +23,8 @@
 #error "Unknown Lua-Version"
 #endif
 
+using namespace std;
+
 static lua_State *L = NULL;
 static void add_custom_functions();
 

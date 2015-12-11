@@ -5,6 +5,8 @@
 
 #include "interpolate.h"
 
+using namespace std;
+
 MFace::MFace() : needStartRegion(false), needEndRegion(false) {
 }
 

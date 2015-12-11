@@ -6,6 +6,10 @@
 */
 
 #include "interpolate.h"
+
+
+using namespace std;
+
 Face::Face() : cur(0), ishole(false) {
 }
 

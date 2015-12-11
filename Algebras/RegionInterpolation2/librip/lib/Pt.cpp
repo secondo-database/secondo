@@ -5,6 +5,8 @@
 
 #include "interpolate.h"
 
+using namespace std;
+
 Pt::Pt() : valid(0) {
 }
 

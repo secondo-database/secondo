@@ -8,6 +8,8 @@
 
 #include "interpolate.h"
 
+using namespace std;
+
 MSeg::MSeg()  {
 }
 

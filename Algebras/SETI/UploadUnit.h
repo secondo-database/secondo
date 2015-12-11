@@ -101,7 +101,7 @@ class UploadUnit : public Attribute
     static ListExpr Property();
 
     // type name used in Secondo
-    inline static const string BasicType() { return "uploadunit";}
+    inline static const std::string BasicType() { return "uploadunit";}
     static const bool checkType(const ListExpr type){
        return listutils::isSymbol(type, BasicType());
     }
@@ -115,7 +115,7 @@ class UploadUnit : public Attribute
     size_t Sizeof() const;
     size_t HashValue() const;
     void CopyFrom(const Attribute* right);
-    ostream& Print( ostream& os ) const;
+    std::ostream& Print( std::ostream& os ) const;
 
     // Returns the moving object id
     int GetID()   const;

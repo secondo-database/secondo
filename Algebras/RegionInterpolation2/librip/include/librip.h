@@ -25,17 +25,17 @@ enum {
 class RList {
 protected:
     int type;
-    string str;
+    std::string str;
     double nr;
     bool boolean;
-    string ToString(int indent);
+    std::string ToString(int indent);
     
 public:
-    vector<RList> items;
+    std::vector<RList> items;
     
     RList();
     void append(double nr);
-    void append(string str);
+    void append(std::string str);
     void append(bool val);
     void append(RList l);
     RList* point(double x, double y);
@@ -48,7 +48,7 @@ public:
         assert(type == NL_BOOL);
         return boolean;
     }
-    string getString () {
+    std::string getString () {
         assert(type == NL_STRING);
         return str;
     }
@@ -56,10 +56,11 @@ public:
         return type;
     }
     RList* nest();
-    string ToString();
+    std::string ToString();
 };
 
-RList regioninterpolate(RList src, RList dst, string start, string end,
-                        string args);
+RList regioninterpolate(RList src, RList dst, std::string start, 
+                        std::string end,
+                        std::string args);
 
 #endif /* REGIONINTERPOLATE_HXX */

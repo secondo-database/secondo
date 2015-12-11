@@ -7,6 +7,8 @@
 #include <string>
 #include "interpolate.h"
 
+using namespace std;
+
 /*
   1.1 Constructor, which creates an empty nested list
  

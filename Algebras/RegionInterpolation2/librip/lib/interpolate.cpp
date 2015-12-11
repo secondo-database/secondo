@@ -7,6 +7,8 @@
 
 #include <string>
 
+using namespace std;
+
 
 void handleIntersections(MFaces& children, MFace parent, bool evap);
 

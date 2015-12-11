@@ -6,6 +6,8 @@
 
 #include "interpolate.h"
 
+using namespace std;
+
 MFaces::MFaces() : sregs(NULL), dregs(NULL),
         needSEvap(false), needDEvap(false) {
 }

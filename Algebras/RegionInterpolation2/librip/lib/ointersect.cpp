@@ -13,6 +13,8 @@
 
 #include <math.h>
 
+using namespace std;
+
 #define EPSILON 0.001
 
 /*

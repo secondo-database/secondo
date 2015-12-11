@@ -9,6 +9,8 @@
 #include <ctime>
 #include <cstdio>
 
+using namespace std;
+
 /*
    1.1 ~timestr~ converts a unix timestamp (ms since 1970-01-01 00:00:00)
        into a string of the form YYYY-mm-dd-HH:MM:ss.SSS

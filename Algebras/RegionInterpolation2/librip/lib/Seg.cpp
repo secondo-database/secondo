@@ -6,6 +6,8 @@
 #include "interpolate.h"
 #include <string>
 
+using namespace std;
+
 Seg::Seg() : valid(0) {
 }
 

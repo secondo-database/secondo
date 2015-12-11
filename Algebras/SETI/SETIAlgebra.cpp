@@ -71,13 +71,14 @@ SETI-Algebra offers the following methods:
 #include "Symbols.h"
 
 
-using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
 
+using namespace std;
 using namespace temporalalgebra;
+using namespace datetime;
 
 namespace SETIAlgebra {
 
