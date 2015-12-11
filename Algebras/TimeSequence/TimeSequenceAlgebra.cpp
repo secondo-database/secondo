@@ -41,6 +41,7 @@ evaluating the spatiotemporal pattern predicates (STP).
 #include "Symbols.h"
 
 using namespace temporalalgebra;
+using namespace std;
 
 namespace TSeq{
 #define Min(X,Y) ((X) < (Y) ? (X) : (Y))
@@ -48,7 +49,7 @@ namespace TSeq{
 ListExpr
 ConstTemporalConstTemporalTypeMapReal( ListExpr args )
 {
-  string argstr;
+  std::string argstr;
   if ( nl->ListLength( args ) == 4 )
   {
     ListExpr arg1 = nl->First( args ), //first argument
@@ -93,13 +94,13 @@ double TWED(Mapping *arg1, Mapping *arg2, Instant* tMax, Word &map)
   return 0;
 }
 
-double TWEDMSet(MSet *arg1, MSet *arg2, Instant* tMax, Word &map)
+double TWEDMSet(mset::MSet *arg1, mset::MSet *arg2, Instant* tMax, Word &map)
 {
   bool debugme= true;
   ArgVectorPointer funargs = qp->Argument(map.addr);
   int n= arg1->GetNoComponents(),m= arg2->GetNoComponents();
   vector< vector<double> > DTW(n, vector<double>(m, 10000));
-  USetRef unit1(false), unit2(false);
+  mset::USetRef unit1(false), unit2(false);
   Word mapRes;
   int cost=0;
 
@@ -108,13 +109,13 @@ double TWEDMSet(MSet *arg1, MSet *arg2, Instant* tMax, Word &map)
   for (int i = 1 ; i< n; ++i)
   {
     arg1->Get(i, unit1);
-    USet utmp1(false);
+    mset::USet utmp1(false);
     unit1.GetUnit(arg1->data, utmp1);
     (*funargs)[0] = SetWord(&(utmp1.constValue));
     for (int j = 1; j< m; ++j)
     {
       arg2->Get(j, unit2);
-      USet utmp2(false);
+      mset::USet utmp2(false);
       unit2.GetUnit(arg2->data, utmp2);
       (*funargs)[1] = SetWord(&(utmp2.constValue));
 
@@ -174,8 +175,8 @@ int TWEDMSetValueMap(
   CcReal* res = static_cast<CcReal*>(result.addr);
   res->SetDefined(true);
 
-  MSet *arg1= static_cast<MSet*>(args[0].addr),
-          *arg2= static_cast<MSet*>(args[1].addr);
+  mset::MSet *arg1= static_cast<mset::MSet*>(args[0].addr),
+          *arg2= static_cast<mset::MSet*>(args[1].addr);
   Instant *dMax= static_cast<Instant*>(args[2].addr);
   Word map= args[3];
 
@@ -185,7 +186,7 @@ int TWEDMSetValueMap(
   return 0;
 }
 
-const string TWEDInfo  =
+const std::string TWEDInfo  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>mset x mset x map(intset intset bool) -> real"
       "mint x mint x map(int int bool) -> real </text--->"

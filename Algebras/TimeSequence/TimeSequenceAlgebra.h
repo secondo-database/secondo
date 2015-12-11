@@ -53,7 +53,7 @@ with a languge for measuring the trajectory similarity
 #include "TemporalAlgebra.h"
 #include "GPatternAlgebra.h"
 
-typedef DateTime Instant;
+typedef datetime::DateTime Instant;
 extern NestedList *nl;
 extern QueryProcessor* qp;  
 
