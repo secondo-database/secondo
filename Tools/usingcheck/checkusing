@@ -21,8 +21,6 @@ else
   CFiles=$(find $PWD -iname "*.cpp")
 
 
-  echo HFiles = $HFiles
-  echo CFILES = $CFiles
 
   for file in $CFiles ; do
    usingcheck $file
