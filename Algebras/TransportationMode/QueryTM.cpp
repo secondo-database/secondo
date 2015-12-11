@@ -45,6 +45,9 @@ convert a genrange object to a 2D line in space or 3D line in a building
 */
 
 using namespace temporalalgebra;
+using namespace network;
+using namespace std;
+using namespace datetime;
 
 void QueryTM::GetLineOrLine3D(GenRange* gr, Space* sp)
 {

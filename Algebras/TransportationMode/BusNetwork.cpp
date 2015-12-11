@@ -39,6 +39,9 @@ creating bus network
 #include "PaveGraph.h"
 
 using namespace temporalalgebra;
+using namespace std;
+using namespace network;
+using namespace datetime;
 
 
 string BusRoute::StreetSectionCellTypeInfo = 

@@ -63,6 +63,9 @@ Jan, 2011 Jianqiu xu
 //ofstream output;
 
 using namespace temporalalgebra;
+using namespace std;
+using namespace datetime;
+using namespace network;
 
 ///////////////////////////random number generator//////////////////////////
 unsigned long int GetRandom()
@@ -2620,18 +2623,18 @@ void GenMObject::GetIdList(GenMO* genmo)
       UGenLoc unit;
       genmo->Get( i, unit );
       assert(unit.gloc1.GetOid() == unit.gloc2.GetOid()); 
-	  if(id_list.size() == 0)
-		id_list.push_back(unit.gloc1.GetOid()); 
-	  else{
-// 		int last_id = id_list[id_list.size() - 1];
-// 		if(unit.gloc1.GetOid() != last_id)
-// 		  id_list.push_back(unit.gloc1.GetOid());
-		unsigned int j = 0;
-		for(;j < id_list.size();j++){
-		  if(id_list[j] == unit.gloc1.GetOid())break;
-		}
-		if(j == id_list.size())id_list.push_back(unit.gloc1.GetOid());
-	  }
+    if(id_list.size() == 0)
+    id_list.push_back(unit.gloc1.GetOid()); 
+    else{
+//     int last_id = id_list[id_list.size() - 1];
+//     if(unit.gloc1.GetOid() != last_id)
+//       id_list.push_back(unit.gloc1.GetOid());
+    unsigned int j = 0;
+    for(;j < id_list.size();j++){
+      if(id_list[j] == unit.gloc1.GetOid())break;
+    }
+    if(j == id_list.size())id_list.push_back(unit.gloc1.GetOid());
+    }
     }
 
 }
@@ -5782,11 +5785,11 @@ void GenMObject::GetAtGloc(GenMO* genmo, GenLoc* genloc)
     for(int i = 0 ;i < genmo->GetNoComponents();i++){
       UGenLoc unit;
       genmo->Get( i, unit );
-//	  cout<<i<<" "<<unit.GetOid()<<endl;
+//    cout<<i<<" "<<unit.GetOid()<<endl;
       if(unit.GetOid() == (int)genloc->GetOid()){
 //        sub->Add(unit);
         sub->Append(unit);
-	  }
+    }
     }
   }else if(genloc->GetOid() == 0){ //free space
 
@@ -5813,35 +5816,35 @@ void GenMObject::GetAtGloc(GenMO* genmo, GenLoc* genloc)
   for(int i = 0;i < sub->GetNoComponents();i++){
       UGenLoc unit;
       sub->Get( i, unit );
-	  if(i == 0){
-		GenMO* mo = new GenMO(0);
-		mo->Clear();
-		mo->StartBulkLoad();
-		sub_list.push_back(mo);
-		sub_list[index]->Append(unit);
-		last_t = unit.timeInterval.end.ToDouble()*86400000;
-		continue;
-	  }
-	  int64_t cur = unit.timeInterval.start.ToDouble()*86400000;
-//	  cout<<unit.timeInterval.start<<" "<<unit.timeInterval.end<<endl;
-	  if(cur == last_t){
-		  sub_list[index]->Append(unit);
-		  last_t = unit.timeInterval.end.ToDouble()*86400000;
-	  }else{
-//		  sub_list[index]->EndBulkLoad(false, false);
-		  GenMO* mo = new GenMO(0);
-		  mo->Clear();
-		  mo->StartBulkLoad();
-		  sub_list.push_back(mo);
-		  index++;
-     	  sub_list[index]->Append(unit);
-		  last_t = unit.timeInterval.end.ToDouble()*86400000;
-	  }
+    if(i == 0){
+    GenMO* mo = new GenMO(0);
+    mo->Clear();
+    mo->StartBulkLoad();
+    sub_list.push_back(mo);
+    sub_list[index]->Append(unit);
+    last_t = unit.timeInterval.end.ToDouble()*86400000;
+    continue;
+    }
+    int64_t cur = unit.timeInterval.start.ToDouble()*86400000;
+//    cout<<unit.timeInterval.start<<" "<<unit.timeInterval.end<<endl;
+    if(cur == last_t){
+      sub_list[index]->Append(unit);
+      last_t = unit.timeInterval.end.ToDouble()*86400000;
+    }else{
+//      sub_list[index]->EndBulkLoad(false, false);
+      GenMO* mo = new GenMO(0);
+      mo->Clear();
+      mo->StartBulkLoad();
+      sub_list.push_back(mo);
+      index++;
+         sub_list[index]->Append(unit);
+      last_t = unit.timeInterval.end.ToDouble()*86400000;
+    }
   }
   
   for(unsigned int i = 0;i < sub_list.size();i++){
-	sub_list[i]->EndBulkLoad(false, false);
-	trip1_list.push_back(*sub_list[i]);
+  sub_list[i]->EndBulkLoad(false, false);
+  trip1_list.push_back(*sub_list[i]);
   }
   
 //  trip1_list.push_back(*sub);
@@ -9569,8 +9572,8 @@ void GenMObject::GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no,
      start_time.ReadFrom(periods.end.ToDouble() -
                         (GetRandom() % time_range)/(24.0*60.0));
 
-//	start_time.ReadFrom(periods.start.ToDouble());//set one start time
-	
+//  start_time.ReadFrom(periods.start.ToDouble());//set one start time
+  
 //    cout<<"start time "<<start_time<<endl;
     int index = GetRandom() % build_tid_list.size();
 
@@ -9619,10 +9622,10 @@ void GenMObject::GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no,
     trip1_list.push_back(*genmo);
     trip2_list.push_back(*mo);
 
-	/////////////////write to a file//////////////////////
-//	WriteDataToFile(count, i_infra->Get_Digit_Build_ID(), genmo);
-	/////////////////////////////////////////////////////
-		
+  /////////////////write to a file//////////////////////
+//  WriteDataToFile(count, i_infra->Get_Digit_Build_ID(), genmo);
+  /////////////////////////////////////////////////////
+    
     delete mo;
     delete genmo;
 
@@ -9649,42 +9652,42 @@ void GenMObject::GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no,
 //   
 //   output<<id<<endl;
 //   for(int i = 0;i < mo->GetNoComponents();i++){
-// 	UGenLoc unit;
-// 	mo->Get(i, unit);
-// 	int oid = unit.gloc1.GetOid();
-// 	char buffer1[16];
-// 	sprintf(buffer1,"%d", oid);
-// 	char buffer2[16];
-/* 	strncpy(buffer2, &buffer1[building_no], strlen(buffer1) - building_no); */
-// 	buffer2[strlen(buffer1) - building_no] = '\0';		  
-// 	int roomid;
-// 	sscanf(buffer2, "%d", &roomid);				  
-// 	//	output.precision(6);
+//   UGenLoc unit;
+//   mo->Get(i, unit);
+//   int oid = unit.gloc1.GetOid();
+//   char buffer1[16];
+//   sprintf(buffer1,"%d", oid);
+//   char buffer2[16];
+/*   strncpy(buffer2, &buffer1[building_no], strlen(buffer1) - building_no); */
+//   buffer2[strlen(buffer1) - building_no] = '\0';      
+//   int roomid;
+//   sscanf(buffer2, "%d", &roomid);          
+//   //  output.precision(6);
 // 
-// 	float f1 = unit.gloc1.GetLoc().loc1;
-// 	float f2 = unit.gloc1.GetLoc().loc2;
-// 	float fa = (float)((int)(f1*1000))/1000;
-// 	float fb = (float)((int)(f2*1000))/1000;
+//   float f1 = unit.gloc1.GetLoc().loc1;
+//   float f2 = unit.gloc1.GetLoc().loc2;
+//   float fa = (float)((int)(f1*1000))/1000;
+//   float fb = (float)((int)(f2*1000))/1000;
 // 
-// 	output<<unit.timeInterval<<" "
-// 	      <<roomid<<" (";
-// 		  
-// //	      <<unit.gloc1.GetLoc().loc1<<" "
-// //	      <<unit.gloc1.GetLoc().loc2<<") (";
+//   output<<unit.timeInterval<<" "
+//         <<roomid<<" (";
+//       
+// //        <<unit.gloc1.GetLoc().loc1<<" "
+// //        <<unit.gloc1.GetLoc().loc2<<") (";
 // 
-// 	output<<fa<<" "<<fb<<") (";
+//   output<<fa<<" "<<fb<<") (";
 // 
-// //	cout<<f1<<" "<<fa<<endl;
-// // 	output<<unit.gloc2.GetLoc().loc1<<" "
-// // 	      <<unit.gloc2.GetLoc().loc2<<")"<<endl;
+// //  cout<<f1<<" "<<fa<<endl;
+// //   output<<unit.gloc2.GetLoc().loc1<<" "
+// //         <<unit.gloc2.GetLoc().loc2<<")"<<endl;
 // 
-// 	f1 = unit.gloc2.GetLoc().loc1;
-// 	f2 = unit.gloc2.GetLoc().loc2;
-// 	fa = (float)((int)(f1*1000))/1000;
-// 	fb = (float)((int)(f2*1000))/1000;
+//   f1 = unit.gloc2.GetLoc().loc1;
+//   f2 = unit.gloc2.GetLoc().loc2;
+//   fa = (float)((int)(f1*1000))/1000;
+//   fb = (float)((int)(f2*1000))/1000;
 // 
-// 	output<<fa<<" "<<fb<<")"<<endl;
-// 	
+//   output<<fa<<" "<<fb<<")"<<endl;
+//   
 //   }
 //   output<<endl; 
 // }

@@ -47,6 +47,8 @@ extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
 using namespace temporalalgebra;
+using namespace std;
+using namespace datetime;
 
 ////////////////////////////////////////////////////////////////////////
 /////////////////////////// Point3D ////////////////////////////////////
@@ -14564,17 +14566,17 @@ void OutPutRect(ofstream& out_f, Relation* rel)
   
   for(int i = 1;i <= rel->GetNoTuples();i++){
     Tuple* tuple = rel->GetTuple(i, false);
-	Rectangle<2>* rec = 
-	(Rectangle<2>*)tuple->GetAttribute(IndoorInfra::INDOORIF_GEODATA);
-	double min_x = rec->MinD(0);
-	double min_y = rec->MinD(1);
-	double max_x = rec->MaxD(0);
-	double max_y = rec->MaxD(1);
-	CcString* rec_str = 
-	  (CcString*)tuple->GetAttribute(IndoorInfra::INDOORIF_BUILD_TYPE2);
-	   out_f<<i<<" "<<min_x<<" "<<min_y<<" "<<max_x<<" "<<max_y
-	    <<" "<<rec->Area()<<" "<<rec_str->GetValue()<<endl;
-	
+  Rectangle<2>* rec = 
+  (Rectangle<2>*)tuple->GetAttribute(IndoorInfra::INDOORIF_GEODATA);
+  double min_x = rec->MinD(0);
+  double min_y = rec->MinD(1);
+  double max_x = rec->MaxD(0);
+  double max_y = rec->MaxD(1);
+  CcString* rec_str = 
+    (CcString*)tuple->GetAttribute(IndoorInfra::INDOORIF_BUILD_TYPE2);
+     out_f<<i<<" "<<min_x<<" "<<min_y<<" "<<max_x<<" "<<max_y
+      <<" "<<rec->Area()<<" "<<rec_str->GetValue()<<endl;
+  
     tuple->DeleteIfAllowed();
   }
 

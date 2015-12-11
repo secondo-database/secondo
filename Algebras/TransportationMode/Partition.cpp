@@ -41,6 +41,9 @@ partitioning space.
 #include "PaveGraph.h"
 #include "BusNetwork.h"
 
+using namespace std;
+using namespace network;
+
 /*
 ~Shift~ Operator for ~ownertype~
 
@@ -3334,21 +3337,21 @@ temporary function
 
 */
 void OutPutSegment(ofstream& out_f, 
-				   vector<MyHalfSegment> seq_halfseg)
+           vector<MyHalfSegment> seq_halfseg)
 {
     static int count = 1;
-	
-	for(unsigned int i = 0;i < seq_halfseg.size();i++){
-	  MyHalfSegment myseg = seq_halfseg[i];
-	  double l = myseg.Length();
-	  Point lp = myseg.from;
-	  Point rp = myseg.to;
-	  
-	  out_f<<count<<" "<<lp.GetX()<<" "<<lp.GetY()
-	       <<" "<<rp.GetX()<<" "<<rp.GetY()<<" "<<l<<endl;
-	  count++;
-	}
-	
+  
+  for(unsigned int i = 0;i < seq_halfseg.size();i++){
+    MyHalfSegment myseg = seq_halfseg[i];
+    double l = myseg.Length();
+    Point lp = myseg.from;
+    Point rp = myseg.to;
+    
+    out_f<<count<<" "<<lp.GetX()<<" "<<lp.GetY()
+         <<" "<<rp.GetX()<<" "<<rp.GetY()<<" "<<l<<endl;
+    count++;
+  }
+  
 }
 
 /*
@@ -3373,8 +3376,8 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
       vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
       ReorderLine(sline, seq_halfseg);
 
-//	  OutPutSegment(out_f, seq_halfseg);//////temporary function
-	  
+//    OutPutSegment(out_f, seq_halfseg);//////temporary function
+    
       int delta1;//width of road on each side, depend on the road length
       int delta2;
 
@@ -6030,181 +6033,181 @@ perform the union on those intersecting with eacher
 
 */
 void SpacePartition::UnionPoly(Relation* rel1, int attr_pos1, Relation* rel2, 
-				 int attr_pos2, int attr_pos3)
+         int attr_pos2, int attr_pos3)
 {
 //  cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
   vector<bool> status_list(rel1->GetNoTuples(), false);
   
-	 vector<Points> oid_list;
-	 for(int i = 1;i <= rel2->GetNoTuples();i++){
-	   Tuple* t1 = rel2->GetTuple(i, false);
+   vector<Points> oid_list;
+   for(int i = 1;i <= rel2->GetNoTuples();i++){
+     Tuple* t1 = rel2->GetTuple(i, false);
        int id1 = ((CcInt*)t1->GetAttribute(attr_pos2))->GetIntval();
-	   int id2 = ((CcInt*)t1->GetAttribute(attr_pos3))->GetIntval();
-	   
-	   Points ps(0);
-	   ps.StartBulkLoad();
-	   Coord x = id1;
-	   Coord y = id2;
-	   Point p(true, x, y);
-	   ps += p;
-	   
-	   int j = i + 1;
-	   while(j <= rel2->GetNoTuples()){
-		   Tuple* t2 = rel2->GetTuple(j, false);
-    	   int id_tmp = ((CcInt*)t2->GetAttribute(attr_pos2))->GetIntval();
-		   
-		   if(id1 == id_tmp){
-			 int id3 = 
-			     ((CcInt*)t2->GetAttribute(attr_pos3))->GetIntval();
-			 
-			 x = id1;
-			 y = id3;
-			 Point q(true, id1, id3);
-			 ps += q;
-		
-			t2->DeleteIfAllowed();
-			j++;
-		   }else{
-			 t2->DeleteIfAllowed();
-			 break;
-		   }		   
-	   }
-	   i = j - 1;
-	   ps.EndBulkLoad();
-	   oid_list.push_back(ps);	 
-	 }
-	 
-	 cout<<oid_list.size()<<endl;
-/*	 int counter1 = 0;
-	 int counter2 = 0;
-	 for(unsigned int i = 0;i < oid_list.size();i++){
-		 Points ps = oid_list[i];
-		 if(ps.Size() == 1){
-		   counter1++;
-		 }else{
-		   counter2++;
-		 }
-	 }
-	 cout<<counter1<<" "<<counter2<<endl;*/
-	 
-	 /////////////////////collect regions///////////////////////
-	 //////////////////////////////////////////////////////////
-	 
-	 for(unsigned int i = 0;i < oid_list.size();i++){
-	     if(status_list[i]) continue;
-		 Points ps = oid_list[i];
-		 assert(ps.Size() >= 1);
-		 status_list[i] = true;
-			 
-		 if(ps.Size() == 1){
-			 Tuple* tuple = rel1->GetTuple(i + 1, false);	
-			 Region* r = (Region*)tuple->GetAttribute(attr_pos1);
+     int id2 = ((CcInt*)t1->GetAttribute(attr_pos3))->GetIntval();
+     
+     Points ps(0);
+     ps.StartBulkLoad();
+     Coord x = id1;
+     Coord y = id2;
+     Point p(true, x, y);
+     ps += p;
+     
+     int j = i + 1;
+     while(j <= rel2->GetNoTuples()){
+       Tuple* t2 = rel2->GetTuple(j, false);
+         int id_tmp = ((CcInt*)t2->GetAttribute(attr_pos2))->GetIntval();
+       
+       if(id1 == id_tmp){
+       int id3 = 
+           ((CcInt*)t2->GetAttribute(attr_pos3))->GetIntval();
+       
+       x = id1;
+       y = id3;
+       Point q(true, id1, id3);
+       ps += q;
+    
+      t2->DeleteIfAllowed();
+      j++;
+       }else{
+       t2->DeleteIfAllowed();
+       break;
+       }       
+     }
+     i = j - 1;
+     ps.EndBulkLoad();
+     oid_list.push_back(ps);   
+   }
+   
+   cout<<oid_list.size()<<endl;
+/*   int counter1 = 0;
+   int counter2 = 0;
+   for(unsigned int i = 0;i < oid_list.size();i++){
+     Points ps = oid_list[i];
+     if(ps.Size() == 1){
+       counter1++;
+     }else{
+       counter2++;
+     }
+   }
+   cout<<counter1<<" "<<counter2<<endl;*/
+   
+   /////////////////////collect regions///////////////////////
+   //////////////////////////////////////////////////////////
+   
+   for(unsigned int i = 0;i < oid_list.size();i++){
+       if(status_list[i]) continue;
+     Points ps = oid_list[i];
+     assert(ps.Size() >= 1);
+     status_list[i] = true;
+       
+     if(ps.Size() == 1){
+       Tuple* tuple = rel1->GetTuple(i + 1, false);  
+       Region* r = (Region*)tuple->GetAttribute(attr_pos1);
 
-			 junid1.push_back(i + 1);
+       junid1.push_back(i + 1);
              outer_regions1.push_back(*r);
-			 tuple->DeleteIfAllowed();
-			 
-		 }else{//collect all intersecting regions in a group
-		      queue<int> myqueue;
-  			  Tuple* tuple = rel1->GetTuple(i + 1, false);	
-			  Region* r = (Region*)tuple->GetAttribute(attr_pos1);
-			  Region reg(*r);
-			  tuple->DeleteIfAllowed();
-			  int cur_id = -1;
-			  vector<int> union_set;
-//			  union_set.push_back(i + 1);
-			  
-			  for(int j = 0;j < ps.Size();j++){
-				  Point q;
-				  ps.Get(j, q);
-				  cur_id = (int)q.GetX();
-				  if((int)q.GetY() != cur_id && 
+       tuple->DeleteIfAllowed();
+       
+     }else{//collect all intersecting regions in a group
+          queue<int> myqueue;
+          Tuple* tuple = rel1->GetTuple(i + 1, false);  
+        Region* r = (Region*)tuple->GetAttribute(attr_pos1);
+        Region reg(*r);
+        tuple->DeleteIfAllowed();
+        int cur_id = -1;
+        vector<int> union_set;
+//        union_set.push_back(i + 1);
+        
+        for(int j = 0;j < ps.Size();j++){
+          Point q;
+          ps.Get(j, q);
+          cur_id = (int)q.GetX();
+          if((int)q.GetY() != cur_id && 
                     status_list[(int)q.GetY() - 1] == false){
-					myqueue.push((int)q.GetY());  
-					union_set.push_back((int)q.GetY());
-					status_list[(int)q.GetY() - 1] = true;
-				  }
-			  }
-//			  assert(i == cur_id - 1);
-			  assert((int)i == cur_id - 1);
-			  while(myqueue.empty() == false){
-				int id = myqueue.front();
-				myqueue.pop();			    
-//				cout<<"top id: "<<id<<endl;
-	///////find all regions that intersect with the current/////
-				
-				Points ps_nei = oid_list[id - 1];
-//				cout<<"before: "<<myqueue.size()<<endl;
-				for(int j = 0;j < ps_nei.Size();j++){
-					Point q;
-					ps_nei.Get(j, q);
-					assert(id == (int)q.GetX());
-					int nei_id = (int)q.GetY();
-					if(status_list[nei_id - 1] == false){
-					   myqueue.push(nei_id);
-					   union_set.push_back(nei_id);
-					   status_list[nei_id - 1] = true;
-					}
-				}
-//	cout<<"id: "<<id<<" after: "<<myqueue.size()<<endl;
-			  }
+          myqueue.push((int)q.GetY());  
+          union_set.push_back((int)q.GetY());
+          status_list[(int)q.GetY() - 1] = true;
+          }
+        }
+//        assert(i == cur_id - 1);
+        assert((int)i == cur_id - 1);
+        while(myqueue.empty() == false){
+        int id = myqueue.front();
+        myqueue.pop();          
+//        cout<<"top id: "<<id<<endl;
+  ///////find all regions that intersect with the current/////
+        
+        Points ps_nei = oid_list[id - 1];
+//        cout<<"before: "<<myqueue.size()<<endl;
+        for(int j = 0;j < ps_nei.Size();j++){
+          Point q;
+          ps_nei.Get(j, q);
+          assert(id == (int)q.GetX());
+          int nei_id = (int)q.GetY();
+          if(status_list[nei_id - 1] == false){
+             myqueue.push(nei_id);
+             union_set.push_back(nei_id);
+             status_list[nei_id - 1] = true;
+          }
+        }
+//  cout<<"id: "<<id<<" after: "<<myqueue.size()<<endl;
+        }
 
-//	 cout<<"id: "<<cur_id<<" size "<<union_set.size()<<endl;
-			 
-			 int reg_counter = 0;
-			 for(unsigned int k = 0;k < union_set.size();k++){
-			    ///////////perform the union with region///////////
-				Tuple* tuple_reg = 
-					rel1->GetTuple(union_set[k], false);
-				Region* r_tmp =
-				   (Region*)tuple_reg->GetAttribute(attr_pos1);
-				Region temp(0);
-				reg.Union(*r_tmp, 
-				temp);				
-				reg = temp;
-				reg_counter++;
-				tuple_reg->DeleteIfAllowed();
-		///////////too much regions cost a lot of time////////////
-				if(reg_counter > 500) break;
-			 }
-			 
-			 junid1.push_back(cur_id);
-//			 outer_regions1.push_back(reg);
-			 
-	//////we need to remove new created holes inside//////////
-// 			  cout<<"id: "<<cur_id<<endl;
+//   cout<<"id: "<<cur_id<<" size "<<union_set.size()<<endl;
+       
+       int reg_counter = 0;
+       for(unsigned int k = 0;k < union_set.size();k++){
+          ///////////perform the union with region///////////
+        Tuple* tuple_reg = 
+          rel1->GetTuple(union_set[k], false);
+        Region* r_tmp =
+           (Region*)tuple_reg->GetAttribute(attr_pos1);
+        Region temp(0);
+        reg.Union(*r_tmp, 
+        temp);        
+        reg = temp;
+        reg_counter++;
+        tuple_reg->DeleteIfAllowed();
+    ///////////too much regions cost a lot of time////////////
+        if(reg_counter > 500) break;
+       }
+       
+       junid1.push_back(cur_id);
+//       outer_regions1.push_back(reg);
+       
+  //////we need to remove new created holes inside//////////
+//         cout<<"id: "<<cur_id<<endl;
 // 
-			  Line* line = new Line(0);
+        Line* line = new Line(0);
               NewBoundary(&reg, line);
-			  if(line->Size() > 0){
-				SimpleLine* sline = new SimpleLine(0);
-				sline->fromLine(*line);
-				SpacePartition* sp = new SpacePartition();
-				vector<MyHalfSegment> mhs;
-				sp->ReorderLine(sline, mhs);
-				vector<Point> ps;
-				for(unsigned int j = 0;j < mhs.size();j++){
-					Point p = mhs[j].from;
-					ps.push_back(p);
-				}
-				  vector<Region> regs;
-				  sp->ComputeRegion(ps, regs);
-				  if(regs.size() > 0){
-					outer_regions1.push_back(regs[0]);
-				  }
-				  delete sp;
-				  delete sline;
-			  }
-			  delete line;
-		 }//end else
-	 }///////end for
+        if(line->Size() > 0){
+        SimpleLine* sline = new SimpleLine(0);
+        sline->fromLine(*line);
+        SpacePartition* sp = new SpacePartition();
+        vector<MyHalfSegment> mhs;
+        sp->ReorderLine(sline, mhs);
+        vector<Point> ps;
+        for(unsigned int j = 0;j < mhs.size();j++){
+          Point p = mhs[j].from;
+          ps.push_back(p);
+        }
+          vector<Region> regs;
+          sp->ComputeRegion(ps, regs);
+          if(regs.size() > 0){
+          outer_regions1.push_back(regs[0]);
+          }
+          delete sp;
+          delete sline;
+        }
+        delete line;
+     }//end else
+   }///////end for
 }
 
 
 /*
 take the outer bounday of the region, ignore the hole inside
 
-*/		
+*/    
 void SpacePartition::NewBoundary(Region* reg, Line* result)
 {
 
@@ -6216,14 +6219,14 @@ void SpacePartition::NewBoundary(Region* reg, Line* result)
   assert( reg->IsOrdered() );
   result->SetDefined(true);
   if( reg->IsEmpty() ){
-	  return;
+    return;
   }
   HalfSegment hs;
   result->StartBulkLoad();
   int size = reg->Size();
   for( int i = 0; i < size; i++ ){
     reg->Get( i, hs );
-	if(hs.attr.cycleno > 0) continue;
+  if(hs.attr.cycleno > 0) continue;
     if(hs.IsLeftDomPoint()){
        hs.attr.edgeno = i;
        *result += hs;
@@ -6242,15 +6245,15 @@ points can locate
 */
 StrRS::StrRS()
 {
-	r1 = NULL;
-	r2 = NULL;
-	count = 0;
-	resulttype = NULL;
+  r1 = NULL;
+  r2 = NULL;
+  count = 0;
+  resulttype = NULL;
 }
 
 StrRS::~StrRS()
 {
-	if(resulttype != NULL) delete resulttype;
+  if(resulttype != NULL) delete resulttype;
 }
 
 StrRS::StrRS(Network* net,Relation* rel1, Relation* rel2):n(net), r1(rel1),
@@ -6269,129 +6272,129 @@ w meters before it and w meters after it, these places are available.
 */
 void StrRS::GetSections(int attr_pos1, int attr_pos2, int attr_pos3)
 {
-	const double dist_delta = 10.0; 
-	for(int i = 1;i <= r2->GetNoTuples();i++){
-		Tuple* cross_tuple = r2->GetTuple(i, false);
-		CcInt* rid = (CcInt*)cross_tuple->GetAttribute(attr_pos2);
+  const double dist_delta = 10.0; 
+  for(int i = 1;i <= r2->GetNoTuples();i++){
+    Tuple* cross_tuple = r2->GetTuple(i, false);
+    CcInt* rid = (CcInt*)cross_tuple->GetAttribute(attr_pos2);
         Region* cross_reg = (Region*)cross_tuple->GetAttribute(attr_pos3);
-//		cout<<"rid "<<rid<<" cross "<<*cross_reg<<endl; 
-//		cout<<"rid "<<rid->GetIntval()<<endl; 
-		Tuple* route_tuple = r1->GetTuple(rid->GetIntval(), false);
+//    cout<<"rid "<<rid<<" cross "<<*cross_reg<<endl; 
+//    cout<<"rid "<<rid->GetIntval()<<endl; 
+    Tuple* route_tuple = r1->GetTuple(rid->GetIntval(), false);
         SimpleLine* sl = (SimpleLine*)route_tuple->GetAttribute(attr_pos1);
-		vector<JunctionSortEntry> xjuns;
-		n->GetJunctionsOnRoute(rid, xjuns);
-//		cout<<*l<<endl; 
-		vector<float> cross_pos; 
-        ////////////collect intersection points and the position///////	
+    vector<JunctionSortEntry> xjuns;
+    n->GetJunctionsOnRoute(rid, xjuns);
+//    cout<<*l<<endl; 
+    vector<float> cross_pos; 
+        ////////////collect intersection points and the position///////  
         for(unsigned int j = 0;j < xjuns.size();j++){
-			double meas = xjuns[j].GetRouteMeas();
-//			cout<<"meas "<<meas<<endl; 
-			if(j == 0){
+      double meas = xjuns[j].GetRouteMeas();
+//      cout<<"meas "<<meas<<endl; 
+      if(j == 0){
                 if(!AlmostEqual(meas, 0.0)) cross_pos.push_back(0.0);
-			}
-			cross_pos.push_back(meas);
-		}
+      }
+      cross_pos.push_back(meas);
+    }
         
-/*		for(int j = 0;j < cross_pos.size();j++)
-			cout<<cross_pos[j]<<" ";
-		cout<<endl; */
+/*    for(int j = 0;j < cross_pos.size();j++)
+      cout<<cross_pos[j]<<" ";
+    cout<<endl; */
 
-		for(unsigned int j = 0;j < cross_pos.size();j++){
-			if(j == 0){
-				if(cross_pos.size() == 1){
-					double pos1 = cross_pos[j] + dist_delta;
-					double pos2 = sl->Length() - dist_delta;
-					while(pos1 < pos2){
+    for(unsigned int j = 0;j < cross_pos.size();j++){
+      if(j == 0){
+        if(cross_pos.size() == 1){
+          double pos1 = cross_pos[j] + dist_delta;
+          double pos2 = sl->Length() - dist_delta;
+          while(pos1 < pos2){
                         SimpleLine* sub_sl = new SimpleLine(0);
                         sl->SubLine(pos1, pos2, true, *sub_sl);
-						Line* l = new Line(0);
-						sub_sl->toLine(*l);
+            Line* l = new Line(0);
+            sub_sl->toLine(*l);
                         if(l->Intersects(*cross_reg) == false){
                             rids.push_back(rid->GetIntval());
-							lines.push_back(*l);
-							delete l;
-							delete sub_sl; 
-							break; 
-						}else{
-							pos1 += dist_delta;
-                            pos2 -= dist_delta; 	
-						}
-						delete l;
-						delete sub_sl; 
-					}
-				}else{
+              lines.push_back(*l);
+              delete l;
+              delete sub_sl; 
+              break; 
+            }else{
+              pos1 += dist_delta;
+                            pos2 -= dist_delta;   
+            }
+            delete l;
+            delete sub_sl; 
+          }
+        }else{
 
-					double pos1 = cross_pos[j];
+          double pos1 = cross_pos[j];
                     double pos2 = cross_pos[j + 1] - dist_delta;
-					while(pos1 < pos2){
+          while(pos1 < pos2){
                         SimpleLine* sub_sl = new SimpleLine(0);
                         sl->SubLine(pos1, pos2, true, *sub_sl);
-						Line* l = new Line(0);
-						sub_sl->toLine(*l);
+            Line* l = new Line(0);
+            sub_sl->toLine(*l);
                         if(l->Intersects(*cross_reg) == false){
                             rids.push_back(rid->GetIntval());
-							lines.push_back(*l);
-							delete l;
-							delete sub_sl; 
-							break; 
-						}else{
-							pos1 += dist_delta;
-							pos2 -= dist_delta; 
-						}
-						delete l;
-						delete sub_sl; 
-					}
-				}
-			}else{
-				double pos1 = cross_pos[j - 1] + dist_delta;
-				double pos2 = cross_pos[j] - dist_delta;
-				while(pos1 < pos2){
-					SimpleLine* sub_sl = new SimpleLine(0);
-					sl->SubLine(pos1, pos2, true, *sub_sl);
-					Line* l = new Line(0);
-					sub_sl->toLine(*l);
-					if(l->Intersects(*cross_reg) == false){
+              lines.push_back(*l);
+              delete l;
+              delete sub_sl; 
+              break; 
+            }else{
+              pos1 += dist_delta;
+              pos2 -= dist_delta; 
+            }
+            delete l;
+            delete sub_sl; 
+          }
+        }
+      }else{
+        double pos1 = cross_pos[j - 1] + dist_delta;
+        double pos2 = cross_pos[j] - dist_delta;
+        while(pos1 < pos2){
+          SimpleLine* sub_sl = new SimpleLine(0);
+          sl->SubLine(pos1, pos2, true, *sub_sl);
+          Line* l = new Line(0);
+          sub_sl->toLine(*l);
+          if(l->Intersects(*cross_reg) == false){
                         rids.push_back(rid->GetIntval());
-						lines.push_back(*l);
-						delete l;
-						delete sub_sl; 
-						break; 
-					}else{
-						pos1 += dist_delta;
-						pos2 -= dist_delta; 	
-					}
-					delete l;
-					delete sub_sl; 
-				}
+            lines.push_back(*l);
+            delete l;
+            delete sub_sl; 
+            break; 
+          }else{
+            pos1 += dist_delta;
+            pos2 -= dist_delta;   
+          }
+          delete l;
+          delete sub_sl; 
+        }
                 /////////////process the last part/////////////////
-				if(j == cross_pos.size() - 1){
-					double pos1 = cross_pos[j] + dist_delta;
-					double pos2 = sl->Length() - dist_delta;
-					while(pos1 < pos2){
+        if(j == cross_pos.size() - 1){
+          double pos1 = cross_pos[j] + dist_delta;
+          double pos2 = sl->Length() - dist_delta;
+          while(pos1 < pos2){
                         SimpleLine* sub_sl = new SimpleLine(0);
                         sl->SubLine(pos1, pos2, true, *sub_sl);
-						Line* l = new Line(0);
-						sub_sl->toLine(*l);
+            Line* l = new Line(0);
+            sub_sl->toLine(*l);
                         if(l->Intersects(*cross_reg) == false){
                             rids.push_back(rid->GetIntval());
-							lines.push_back(*l);
-							delete l;
-							delete sub_sl; 
-							break; 
-						}else{
-							pos1 += dist_delta;
-                            pos2 -= dist_delta; 	
-						}
-						delete l;
-						delete sub_sl; 
-					}
-				}
-			}
-		}
+              lines.push_back(*l);
+              delete l;
+              delete sub_sl; 
+              break; 
+            }else{
+              pos1 += dist_delta;
+                            pos2 -= dist_delta;   
+            }
+            delete l;
+            delete sub_sl; 
+          }
+        }
+      }
+    }
         //////////////////////////////////////////////////////////////////////
-		cross_tuple->DeleteIfAllowed();
-		route_tuple->DeleteIfAllowed();
-	}
+    cross_tuple->DeleteIfAllowed();
+    route_tuple->DeleteIfAllowed();
+  }
 }
 
 /*
@@ -6704,8 +6707,8 @@ modify the coordinates of a region value, not so many numbers after dot
 void DataClean::ModifyRegion(Region* in, Region* out)
 {
 //  *out = *in;
-	out->Clear();
-	Line* line = new Line(0);
+  out->Clear();
+  Line* line = new Line(0);
     in->Boundary(line);
     SimpleLine* sline = new SimpleLine(0);
     sline->fromLine(*line);
@@ -6713,26 +6716,26 @@ void DataClean::ModifyRegion(Region* in, Region* out)
  
     vector<MyHalfSegment> mhs;
     sp->ReorderLine(sline, mhs);
-	vector<Point> ps;
+  vector<Point> ps;
 
-	for(unsigned int j = 0;j < mhs.size();j++){
+  for(unsigned int j = 0;j < mhs.size();j++){
           Point p = mhs[j].from;
           Modify_Point(p);
           ps.push_back(p);
     }
-    	
+      
     vector<Point> newps;
-	        
+          
     vector<Region> regs;
     sp->ComputeRegion(ps, regs);
-	if(regs.size() > 0) *out = Region(regs[0].BoundingBox());
-	else{
-		out->StartBulkLoad();
-		out->EndBulkLoad();
-	}
-	delete sp;
-	delete sline;
-	delete line;
+  if(regs.size() > 0) *out = Region(regs[0].BoundingBox());
+  else{
+    out->StartBulkLoad();
+    out->EndBulkLoad();
+  }
+  delete sp;
+  delete sline;
+  delete line;
 }
 
 /*

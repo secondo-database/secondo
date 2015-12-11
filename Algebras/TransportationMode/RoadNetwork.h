@@ -98,10 +98,10 @@ class RoadGraph{
 
     ~RoadGraph();
     void RemoveRoadGraph();
-    static string RGNodeTypeInfo;
-    static string RGBTreeNodeTypeInfo;
-    static string RGEdgeTypeInfo1;
-    static string RGEdgeTypeInfo2;
+    static std::string RGNodeTypeInfo;
+    static std::string RGBTreeNodeTypeInfo;
+    static std::string RGEdgeTypeInfo1;
+    static std::string RGEdgeTypeInfo2;
 
     enum RG_NODE{RG_JUN_ID, RG_JUN_GP, RG_JUN_P, RG_ROAD_ID};
     enum RG_EDGE1{RG_JUN1, RG_JUN2};
@@ -145,10 +145,10 @@ class RoadGraph{
     Relation* GetEdge_Rel2(){return edge_rel2;}
 
 
-    void FindAdj1(int node_id, vector<int>& list);
-    void FindAdj2(int node_id, vector<int>& list);
+    void FindAdj1(int node_id, std::vector<int>& list);
+    void FindAdj2(int node_id, std::vector<int>& list);
 
-    void GetJunctionsNode(int rid, vector<GP_Point>& res_list);
+    void GetJunctionsNode(int rid, std::vector<GP_Point>& res_list);
 
 
   private:
@@ -176,13 +176,14 @@ for shortest path searching  in road graph
 struct RNPath_elem:public Path_elem{
   double weight;
   double real_w;
-  RouteInterval ri;
+  network::RouteInterval ri;
 
   bool len; //same spatial location or not
   Point to_loc;
   
   RNPath_elem(){}
-  RNPath_elem(int p, int c, int t, double w1, double w2, RouteInterval& i,
+  RNPath_elem(int p, int c, int t, double w1, double w2, 
+              network::RouteInterval& i,
               bool b, Point loc):Path_elem(p, c, t), weight(w1), real_w(w2), 
               ri(i), len(b), to_loc(loc){}
   RNPath_elem(const RNPath_elem& wp):Path_elem(wp),
@@ -213,11 +214,11 @@ struct RNPath_elem:public Path_elem{
 };
 
 struct GPoint_Dist{
-  GPoint gp;
+  network::GPoint gp;
   Point p;
   double dist;
   GPoint_Dist(){}
-  GPoint_Dist(GPoint& p1, Point& p2, double d):gp(p1), p(p2), dist(d){}
+  GPoint_Dist(network::GPoint& p1, Point& p2, double d):gp(p1), p(p2), dist(d){}
   GPoint_Dist(const GPoint_Dist& gpd):gp(gpd.gp), p(gpd.p), dist(gpd.dist){}
   GPoint_Dist& operator=(const GPoint_Dist& gpd)
   {
@@ -246,12 +247,12 @@ query processing on the road graph
 struct RoadNav{
   
   
-  vector<SimpleLine> path_list; 
-  vector<GLine> gline_list;
+  std::vector<SimpleLine> path_list; 
+  std::vector<network::GLine> gline_list;
   
-  vector<GPoint> jun_list1;
-  vector<GPoint> jun_list2;
-  vector<int> type_list;
+  std::vector<network::GPoint> jun_list1;
+  std::vector<network::GPoint> jun_list2;
+  std::vector<int> type_list;
   
   
   unsigned int count;
@@ -262,19 +263,25 @@ struct RoadNav{
 
   ~RoadNav(){if(resulttype != NULL) delete resulttype;}
 
-  void GenerateRoadLoc(Network* rn, int no, vector<GPoint>& gp_list, 
-                                 vector<Point>& gp_loc_list);
-  void ShortestPath(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
+  void GenerateRoadLoc(network::Network* rn, int no, 
+                       std::vector<network::GPoint>& gp_list, 
+                       std::vector<Point>& gp_loc_list);
+  void ShortestPath(network::GPoint*, network::GPoint*, RoadGraph*,
+                    network::Network*, network::GLine* res);
 
-  void ShortestPathSub(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
+  void ShortestPathSub(network::GPoint*, network::GPoint*, RoadGraph*, 
+                       network::Network*, network::GLine* res);
 
-  void ShortestPath2(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
-  void ShortestPathSub2(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
-  void DFTraverse(Network* rn, R_Tree<2,TupleId>* rtree, 
+  void ShortestPath2(network::GPoint*, network::GPoint*, RoadGraph*, 
+                     network::Network*, network::GLine* res);
+  void ShortestPathSub2(network::GPoint*, network::GPoint*, RoadGraph*, 
+                        network::Network*, network::GLine* res);
+  void DFTraverse(network::Network* rn, R_Tree<2,TupleId>* rtree, 
                           SmiRecordId adr, 
-                          SimpleLine* line, vector<GPoint_Dist>& id_list);
+                          SimpleLine* line, std::vector<GPoint_Dist>& id_list);
 
-  void ShortestPathSub3(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
+  void ShortestPathSub3(network::GPoint*, network::GPoint*, RoadGraph*, 
+                        network::Network*, network::GLine* res);
   void GetAdjNodeRG(RoadGraph* rg, int nodeid);
 
 

@@ -81,7 +81,7 @@ enum ownertype{none, first, second, both};
 
 enum SetOperation{union_op, intersection_op, difference_op};
 
-ostream& operator<<(ostream& o, const ownertype& owner);
+std::ostream& operator<<(std::ostream& o, const ownertype& owner);
 
 
 const int LEFT      = 1;
@@ -165,7 +165,7 @@ Create a Segment only consisting of a single point.
 This function writes this segment to __out__.
 
 */
-  void Print(ostream& out)const;
+  void Print(std::ostream& out)const;
 
 /*
 
@@ -511,7 +511,7 @@ segment is returned.
   double getY(const double x) const;
 };
 
-ostream& operator<<(ostream& o, const MyAVLSegment& s);
+std::ostream& operator<<(std::ostream& o, const MyAVLSegment& s);
 
 
 };
@@ -746,7 +746,7 @@ struct MySegDist:public MyHalfSegment{
     return false;
   }
 };
-ostream& operator<<(ostream& o, const MySegDist& seg);
+std::ostream& operator<<(std::ostream& o, const MySegDist& seg);
 
 /*
 a point and a distance value to another point
@@ -776,25 +776,25 @@ struct MyPoint{
 };
 
 struct MyPoint_Ext:public MyPoint{
-	Point loc2; 
-	double dist2;
-	MyPoint_Ext(){}
-	MyPoint_Ext(const Point& p1, const Point& p2, double d1, double d2):
-	MyPoint(p1,d1),loc2(p2),dist2(d2){}
-	MyPoint_Ext(const MyPoint_Ext& mpe):
-	MyPoint(mpe),loc2(mpe.loc2), dist2(mpe.dist2){}
-	MyPoint_Ext& operator=(const MyPoint_Ext& mpe)
-	{
-		MyPoint::operator=(mpe);
-		loc2 = mpe.loc2; 
-		dist2 = mpe.dist2;
-		return *this; 
-	}
-	 void Print()
-  	{
-    	cout<<" loc1 " <<loc<<"loc2 "<<loc2
-			<<" dist1 "<<dist<<" dist2 "<<dist2<<endl; 
-  	}
+  Point loc2; 
+  double dist2;
+  MyPoint_Ext(){}
+  MyPoint_Ext(const Point& p1, const Point& p2, double d1, double d2):
+  MyPoint(p1,d1),loc2(p2),dist2(d2){}
+  MyPoint_Ext(const MyPoint_Ext& mpe):
+  MyPoint(mpe),loc2(mpe.loc2), dist2(mpe.dist2){}
+  MyPoint_Ext& operator=(const MyPoint_Ext& mpe)
+  {
+    MyPoint::operator=(mpe);
+    loc2 = mpe.loc2; 
+    dist2 = mpe.dist2;
+    return *this; 
+  }
+   void Print()
+    {
+      cout<<" loc1 " <<loc<<"loc2 "<<loc2
+      <<" dist1 "<<dist<<" dist2 "<<dist2<<endl; 
+    }
 };
 
 
@@ -902,21 +902,21 @@ struct SpacePartition{
   Relation* l;
   TupleType* resulttype;
   unsigned int count;
-  vector<int> junid1;
-  vector<int> junid2;
-  vector<Region> outer_regions_s;
-  vector<Region> outer_regions1;
-  vector<Region> outer_regions2;
-  vector<Region> outer_regions_l;
-  vector<Region> outer_regions4;
-  vector<Region> outer_regions5;
+  std::vector<int> junid1;
+  std::vector<int> junid2;
+  std::vector<Region> outer_regions_s;
+  std::vector<Region> outer_regions1;
+  std::vector<Region> outer_regions2;
+  std::vector<Region> outer_regions_l;
+  std::vector<Region> outer_regions4;
+  std::vector<Region> outer_regions5;
 
-  vector<Region> outer_fillgap1;
-  vector<Region> outer_fillgap2;
-  vector<Region> outer_fillgap;
+  std::vector<Region> outer_fillgap1;
+  std::vector<Region> outer_fillgap2;
+  std::vector<Region> outer_fillgap;
 
-  vector<Line> pave_line1;
-  vector<Line> pave_line2;
+  std::vector<Line> pave_line1;
+  std::vector<Line> pave_line2;
   /////////////function implementation//////////////////////////////
   SpacePartition();
   SpacePartition(Relation* in_line);
@@ -928,48 +928,49 @@ struct SpacePartition{
   //get the angle of the rotation from (p1-p0) to (p2-p0)
   double GetAngle(Point& p0,Point& p1, Point& p2);
   //move the segment by a deviation to the left or right
-  void TransferSegment(MyHalfSegment&, vector<MyHalfSegment>&, int, bool);
+  void TransferSegment(MyHalfSegment&, std::vector<MyHalfSegment>&, int, bool);
 
 
   //add the segment to line, but change its points coordinate to int value
   void AddHalfSegmentResult(MyHalfSegment hs, Line* res, int& edgeno);
   //for the given line stored in segs, get the line after transfer
-  void Gettheboundary(vector<MyHalfSegment>& segs,
-                      vector<MyHalfSegment>& boundary, int delta,
+  void Gettheboundary(std::vector<MyHalfSegment>& segs,
+                      std::vector<MyHalfSegment>& boundary, int delta,
                       bool clock_wise);
   //get all the points forming the boundary for road region
-  void ExtendSeg1(vector<MyHalfSegment>& segs,int delta,
+  void ExtendSeg1(std::vector<MyHalfSegment>& segs,int delta,
                 bool clock_wise,
-                vector<Point>& outer, vector<Point>& outer_half);
+                std::vector<Point>& outer, std::vector<Point>& outer_half);
  //get all the points forming the boundary for both road and pavement region
-  void ExtendSeg2(vector<MyHalfSegment>& segs,int delta,
-                     bool clock_wise, vector<Point>& outer);
+  void ExtendSeg2(std::vector<MyHalfSegment>& segs,int delta,
+                     bool clock_wise, std::vector<Point>& outer);
 
  //translate a given line with a distance limitation 
-  void ExtendSeg3(vector<MyHalfSegment>& segs,int delta,
-                     bool clock_wise, vector<Point>& outer);
+  void ExtendSeg3(std::vector<MyHalfSegment>& segs,int delta,
+                     bool clock_wise, std::vector<Point>& outer);
 
   // order the segments so that the end point of last one connects to the start
   // point of the next one, the result is stored as vector<MyHalfSegment>
 
-  void ReorderLine(SimpleLine*, vector<MyHalfSegment>&);
+  void ReorderLine(SimpleLine*, std::vector<MyHalfSegment>&);
   //create a region from the given set of ordered points
-  void ComputeRegion(vector<Point>& outer_region, vector<Region>& regs);
-  bool CheckRegionPS(vector<Point>& outer_region);
+  void ComputeRegion(std::vector<Point>& outer_region, 
+                     std::vector<Region>& regs);
+  bool CheckRegionPS(std::vector<Point>& outer_region);
   //extend each road to a region
   void ExtendRoad(int attr_pos, int w);
   //remove triangle area after cutting
-  void FilterDirtyRegion(vector<Region>& regs, Region* reg);
+  void FilterDirtyRegion(std::vector<Region>& regs, Region* reg);
   //cut the intersection region between pavement and road
   void ClipPaveRegion(Region& reg,
-                       vector<Region>& paves,int rid, Region* inborder);
+                       std::vector<Region>& paves,int rid, Region* inborder);
   //fill the gap between two pavements at some junction positions
-  void FillPave(Network* n, vector<Region>& pavements1,
-                vector<Region>& pavements2,
-                vector<double>& routes_length,
-                vector<Region>& paves1, vector<Region>& paves2);
+  void FillPave(network::Network* n, std::vector<Region>& pavements1,
+                std::vector<Region>& pavements2,
+                std::vector<double>& routes_length,
+                std::vector<Region>& paves1, std::vector<Region>& paves2);
   //get the pavement beside each road
-  void Getpavement(Network* n, Relation* rel1, int attr_pos,
+  void Getpavement(network::Network* n, Relation* rel1, int attr_pos,
                   Relation* rel2, int attr_pos1, int attr_pos2, int w);
   //get the closest point in hs to p and return the point and distance
   double GetClosestPoint(HalfSegment& hs, Point& p, Point& cp);
@@ -981,8 +982,8 @@ struct SpacePartition{
   void GetSubCurve(SimpleLine* curve, Line* newcurve,int roadwidth, bool clock);
 
   //build zebra crossing at junction position, called by GetZebraCrossing()
-  bool BuildZebraCrossing(vector<MyPoint>& endpoints1,
-                          vector<MyPoint>& endpoints2,
+  bool BuildZebraCrossing(std::vector<MyPoint>& endpoints1,
+                          std::vector<MyPoint>& endpoints2,
                           Region* reg_pave1, Region* reg_pave2,
                           Line* pave1, Region* crossregion,
                           Point& junp, Region* last_zc);
@@ -1008,20 +1009,21 @@ struct SpacePartition{
                       Region* crossregion2, Region* last_zc);
 
   //cut the common pavements of two roads at the junction position
-  void DecomposePave(Region* reg1, Region* reg2, vector<Region>& result);
-  void GetCommPave1(vector<Region_Oid>& pave1,
-                    vector<Region_Oid>& pave2, int,int);
-  void GetCommPave2(Region* reg, int, vector<Region_Oid>& pave2);
-  void DecomposePavement1(Network* n, Relation* rel,
+  void DecomposePave(Region* reg1, Region* reg2, std::vector<Region>& result);
+  void GetCommPave1(std::vector<Region_Oid>& pave1,
+                    std::vector<Region_Oid>& pave2, int,int);
+  void GetCommPave2(Region* reg, int, std::vector<Region_Oid>& pave2);
+  void DecomposePavement1(network::Network* n, Relation* rel,
                         int attr_pos1, int attr_pos2, int attr_pos3);
   void DecomposePavement2(int start_oid, Relation* rel,
                         int attr_pos1, int attr_pos2);
-  void GetPavementEdge1(Network*, Relation*, BTree*, int, int, int);
+  void GetPavementEdge1(network::Network*, Relation*, BTree*, int, int, int);
   void GetPavementEdge2(Relation*, Relation*, BTree*, int, int, int);
 
-  bool RidPosExist(int rid, float pos, vector<vector<float> >& rid_pos_list);
+  bool RidPosExist(int rid, float pos, 
+                   std::vector<std::vector<float> >& rid_pos_list);
   ///////////cut the commone area between pavements and road regions///
-  void Junpavement(Network* n, Relation* rel, int attr_pos1,
+  void Junpavement(network::Network* n, Relation* rel, int attr_pos1,
                   int attr_pos2, int width, Relation* rel_road,int attr_pos3);
 
   //Detect whether three points collineation
@@ -1038,7 +1040,7 @@ struct SpacePartition{
   void NewFillPavementDebug(Relation* rel, Relation* routes,
                       int id1, int id2,
                       Point* junp, int attr_pos1, int attr_pos2,
-                      vector<int> rids);
+                      std::vector<int> rids);
 
   // check for the junction where two road intersect
   // rids.size() == 2, used by operator fillgap
@@ -1046,7 +1048,7 @@ struct SpacePartition{
   void NewFillPavement1(Relation* rel, Relation* routes,
                       int id1, int id2,
                       Point* junp, int attr_pos1, int attr_pos2,
-                      vector<int> rids);
+                      std::vector<int> rids);
 
   //check for the junction where three roads intersect
   //called by operator fillgap
@@ -1054,36 +1056,36 @@ struct SpacePartition{
   void NewFillPavement2(Relation* rel, Relation* routes,
                       int id1, int id2,
                       Point* junp, int attr_pos1, int attr_pos2,
-                      vector<int> rids);
+                      std::vector<int> rids);
 
   //the same function as in NewFillPavement2, but with different input
   //parameters called by function FillPave()
 
   void NewFillPavement3(Relation* routes, int id1, int id2,
-                      Point* junp, vector<Region>& paves1,
-                      vector<Region>& paves2, vector<int> rids,
-                      vector<Region>& newpaves1, vector<Region>& newpaves2);
+               Point* junp, std::vector<Region>& paves1,
+               std::vector<Region>& paves2, std::vector<int> rids,
+               std::vector<Region>& newpaves1, std::vector<Region>& newpaves2);
 
   //the same function as NewFillPavement2, but with different input parameters
   //called by function FillPave()
 
   void NewFillPavement4(Relation* routes, int id1, int id2,
-                      Point* junp, vector<Region>& paves1,
-                      vector<Region>& paves2, vector<int> rids,
-                      vector<Region>& newpaves1, vector<Region>& newpaves2);
+           Point* junp, std::vector<Region>& paves1,
+           std::vector<Region>& paves2, std::vector<int> rids,
+           std::vector<Region>& newpaves1, std::vector<Region>& newpaves2);
   void NewFillPavement5(Relation* routes, int id1, int id2,
-                      Point* junp, vector<Region>& paves1,
-                      vector<Region>& paves2, vector<int> rids,
-                      vector<Region>& newpaves1, vector<Region>& newpaves2);
+           Point* junp, std::vector<Region>& paves1,
+           std::vector<Region>& paves2, std::vector<int> rids,
+           std::vector<Region>& newpaves1, std::vector<Region>& newpaves2);
 
   //for operator fillgap
-  void FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
+  void FillHoleOfPave(network::Network* n, Relation* rel,  int attr_pos1,
                       int attr_pos2, int width);
 
   //given a set of polygons, perform the union on those intersect objects////
   void UnionPoly(Relation* rel1, int attr_pos1, Relation* rel2, 
-				 int attr_pos2, int attr_pos3);
-  void NewBoundary(Region* reg, Line* l);				 
+         int attr_pos2, int attr_pos3);
+  void NewBoundary(Region* reg, Line* l);         
 };
 
 
@@ -1093,27 +1095,27 @@ can locate
 
 */
 struct StrRS{
-	Network* n;
-	Relation* r1;
-	Relation* r2;
-	unsigned int count;
-	TupleType* resulttype;
-    vector<int> rids; 
-	vector<Line> lines;
-    vector<Point> interestps;
-    vector<Point> ps; 
-    vector<bool> ps_type; 
-	StrRS();
-	~StrRS();
-	StrRS(Network* net, Relation* rel1, Relation* rel2);
-	void GetSections(int attr_pos1, int attr_pos2, int attr_pos3);
+  network::Network* n;
+  Relation* r1;
+  Relation* r2;
+  unsigned int count;
+  TupleType* resulttype;
+    std::vector<int> rids; 
+  std::vector<Line> lines;
+    std::vector<Point> interestps;
+    std::vector<Point> ps; 
+    std::vector<bool> ps_type; 
+  StrRS();
+  ~StrRS();
+  StrRS(network::Network* net, Relation* rel1, Relation* rel2);
+  void GetSections(int attr_pos1, int attr_pos2, int attr_pos3);
     void GenPoints1(int attr_pos1, int attr_pos2, int attr_pos3, 
                    int attr_pos4, int no_ps);
     void GenPoints2(R_Tree<2,TupleId>*, int attr_pos1, int attr_pos2, 
                     unsigned int);
     void DFTraverse(R_Tree<2,TupleId>*, SmiRecordId, Point*, int);
     void GetInterestingPoints(HalfSegment hs, Point ip, 
-                              vector<MyPoint>& intersect_ps, Region*, Region*);
+                     std::vector<MyPoint>& intersect_ps, Region*, Region*);
 };
 
 #define TM_MYPI 3.1415927
@@ -1166,20 +1168,20 @@ struct DataClean{
   DataClean(){ count = 0; resulttype = NULL;} 
   ~DataClean(){if(resulttype != NULL) delete resulttype;}
 
-  vector<SimpleLine> sl_list;
-  vector<Line> l_list;
-  vector<Region> reg_list;
-  vector<int> type_list;
-  vector<int> oid_list;
+  std::vector<SimpleLine> sl_list;
+  std::vector<Line> l_list;
+  std::vector<Region> reg_list;
+  std::vector<int> type_list;
+  std::vector<int> oid_list;
 
-  vector<Point> bs_loc_list;
+  std::vector<Point> bs_loc_list;
 
-  static string RoadLSegs;
-  static string RoadLAdj;
-  static string PedesLine;
-  static string PedesRegion;
+  static std::string RoadLSegs;
+  static std::string RoadLAdj;
+  static std::string PedesLine;
+  static std::string PedesRegion;
 
-  string type;// line,  region
+  std::string type;// line,  region
 
   enum RoadLInfor{L_OID = 0, L_SEG}; 
   enum RoadLAdjInfo{L_ADJ_OID1, L_ADJ_SEG1, L_ADJ_OID2, L_ADJ_SEG2};
@@ -1192,15 +1194,16 @@ struct DataClean{
   void RefineData(SimpleLine* in, SimpleLine* out);
   void CheckRoads(Relation* r, R_Tree<2,TupleId>* rtree);
   void DFTraverse(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
-                          Line* sl, vector<int>& id_list, unsigned int id);
+                          Line* sl, std::vector<int>& id_list, unsigned int id);
   void DFTraverse2(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
-                          Line* sl, vector<int>& id_list, unsigned int id);
+                          Line* sl, std::vector<int>& id_list, unsigned int id);
 
   void RefineBR(Relation*, int attr1, int attr2);
-  void FindBusRoute(int rel_id, vector<SimpleLine> seg_list, double min_len);
-  void FindThePath(vector<MyHalfSegment> mhs_list, int i, int j, 
-                   vector<vector<Adj_Data> > adj_list, 
-                   vector<SimpleLine>& path_list);
+  void FindBusRoute(int rel_id, std::vector<SimpleLine> seg_list, 
+                    double min_len);
+  void FindThePath(std::vector<MyHalfSegment> mhs_list, int i, int j, 
+                   std::vector<std::vector<Adj_Data> > adj_list, 
+                   std::vector<SimpleLine>& path_list);
 
   void ExtendLine(SimpleLine& sl);
   void SetStopLoc(Line* l);
@@ -1209,12 +1212,12 @@ struct DataClean{
   void SLine2Region(SimpleLine* sl, Region* reg);
   ////////////////////////////////////////////////////////////////
   void FilterDisjoint(Relation*, BTree*);
-  void FindConnectedComponent(queue<int> group_list, Relation* rel, 
+  void FindConnectedComponent(std::queue<int> group_list, Relation* rel, 
                               BTree* btree, 
-                              vector<bool>& flag_list,int max_rid);
-  void OutPutLine(Relation* rel, BTree* btree, queue<int> res_list, 
+                              std::vector<bool>& flag_list,int max_rid);
+  void OutPutLine(Relation* rel, BTree* btree, std::queue<int> res_list, 
                   int max_rid);
-  void OutPutRegion(Relation* rel, BTree* btree, queue<int> res_list, 
+  void OutPutRegion(Relation* rel, BTree* btree, std::queue<int> res_list, 
                   int max_rid);
   ////////////////////////////////////////////////////////////////////
   
@@ -1290,21 +1293,21 @@ struct OSM_Data{
   OSM_Data(){ count = 0; resulttype = NULL;} 
   ~OSM_Data(){if(resulttype != NULL) delete resulttype;}
 
-  vector<int> jun_id_list1;
-  vector<int> jun_id_list2;
-  vector<GLine> gl_path_list;
-  vector<SimpleLine> sline_path_list;
-  vector<int> type_list;
+  std::vector<int> jun_id_list1;
+  std::vector<int> jun_id_list2;
+  std::vector<network::GLine> gl_path_list;
+  std::vector<SimpleLine> sline_path_list;
+  std::vector<int> type_list;
 
-  vector<GenLoc> genloc_list;
-  vector<Point> loc_list;
-  vector<Point> pos_list;
-  vector<int> oid_list;
+  std::vector<GenLoc> genloc_list;
+  std::vector<Point> loc_list;
+  std::vector<Point> pos_list;
+  std::vector<int> oid_list;
   
-  static string OSMNodeTmp;
-  static string OSMPOILine;
-  static string OSMPOIRegion;
-  static string OSMPaveQueryLoc;
+  static std::string OSMNodeTmp;
+  static std::string OSMPOILine;
+  static std::string OSMPOIRegion;
+  static std::string OSMPaveQueryLoc;
   
   enum OSMNodeTmpInfo{OSM_TMP_JUNID = 0, OSM_REGID, OSM_CROSS};
   enum OSMPOILineInfo{OSMPOI_L_ID = 0, OSMPOI_GEO, OSMPOI_POS_L, 
@@ -1315,7 +1318,7 @@ struct OSM_Data{
 
   void GetPaveEdge3(Relation* r, Relation* rel1, BTree* btree, Relation* rel2);
   void GetPaveEdge4(Relation* rel1, Relation* rel2);
-  void ShortestPath_InRegion_Pairs(Region* reg, vector<MyPoint> mp_list);
+  void ShortestPath_InRegion_Pairs(Region* reg, std::vector<MyPoint> mp_list);
   void GetAdjNodeOSMG(OSMPaveGraph*, int);
   /////////////////////////////////////////////////////////////////////
   ////////////// map osm data to lines and regions/////////////////////
@@ -1333,9 +1336,9 @@ struct OSM_Data{
   void OSMPath_LR(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
                  GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
                  Line* res);
-  void ConnectToDest(Region* reg, vector<GP_Point> gp_p_list2, 
-                     Point qloc2, vector<SimpleLine>& path_list);
-  void BuildResPath(OSMPaveGraph* osm_g, vector<OSM_P_Elem>expand_queue,
+  void ConnectToDest(Region* reg, std::vector<GP_Point> gp_p_list2, 
+                     Point qloc2, std::vector<SimpleLine>& path_list);
+  void BuildResPath(OSMPaveGraph* osm_g, std::vector<OSM_P_Elem>expand_queue,
                     Line* res, OSM_P_Elem dest);
   void OSMPath_RL(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
                  GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
@@ -1357,8 +1360,8 @@ public:
   OSMPavement(bool d, unsigned int i);
   OSMPavement(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
   
-  static string OSMPaveLine;
-  static string OSMPaveRegion;
+  static std::string OSMPaveLine;
+  static std::string OSMPaveRegion;
   enum OSMPavementLInfo{OSMP_L_ID = 0, OSMP_L_GEO, OSMP_L_CURVE};
   enum OSMPavementRInfo{OSM_REG_ID = 0, OSM_ELEM, OSM_BORDER};
 

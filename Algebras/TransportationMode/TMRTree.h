@@ -428,17 +428,17 @@ void TM_RTreeNode<dim, LeafInfo>::LinearPickSeeds(int& seed1,int& seed2 ) const
   double minVal[ dim ];
   double maxVal[ dim ];
   double sep[ dim ];
-  double maxSep = -numeric_limits<double>::max();
+  double maxSep = -std::numeric_limits<double>::max();
   int maxMinNode[ dim ];
   int minMaxNode[ dim ];
   int bestD = -1;
 
   for( unsigned i = 0; i < dim; i++ )
   {
-    maxMinVal[i] = -numeric_limits<double>::max();
-    minMaxVal[i] = numeric_limits<double>::max();
-    minVal[i] = numeric_limits<double>::max();
-    maxVal[i] = -numeric_limits<double>::max();
+    maxMinVal[i] = -std::numeric_limits<double>::max();
+    minMaxVal[i] = std::numeric_limits<double>::max();
+    minVal[i] = std::numeric_limits<double>::max();
+    maxVal[i] = -std::numeric_limits<double>::max();
     maxMinNode[i] = -1;
     minMaxNode[i] = -1;
   }
@@ -504,7 +504,7 @@ void TM_RTreeNode<dim, LeafInfo>::QuadraticPickSeeds( int& seed1,
   assert( EntryCount() == MaxEntries() + 1 );
     // This should be called only if the node has an overflow
 
-  double bestWaste = -numeric_limits<double>::max();
+  double bestWaste = -std::numeric_limits<double>::max();
   double *area = new double[ MaxEntries() + 1 ]; // Compute areas just once
   int i;
 
@@ -594,7 +594,7 @@ void TM_RTreeNode<dim, LeafInfo>::Split( TM_RTreeNode<dim,
       double area;
     } *stat = new StatStruct[ dim*dim*(MaxEntries() + 2 - 2*MinEntries()) ],
       *pstat = stat; // Array of distribution statistics
-    double minMarginSum = numeric_limits<double>::max();
+    double minMarginSum = std::numeric_limits<double>::max();
     int minMarginAxis = -1;
 
     for( unsigned d = 0; d < dim; d++ )
@@ -682,8 +682,8 @@ void TM_RTreeNode<dim, LeafInfo>::Split( TM_RTreeNode<dim,
     // split. Choose the distribution with  minimum overlap,
     // breaking ties by choosing the distribution with minimum Area
     {
-      double minOverlap = numeric_limits<double>::max();
-      double minArea = numeric_limits<double>::max();
+      double minOverlap = std::numeric_limits<double>::max();
+      double minArea = std::numeric_limits<double>::max();
       int minSplitPoint = -1;
       int *sort = 0;
       int d = minMarginAxis;
@@ -1077,12 +1077,12 @@ Open and Save are used by NetworkAlgebra to save and open the rtree of network.
 */
     bool  Open( SmiRecord& valueRecord,
                 size_t& offset,
-                string typeInfo,
+                std::string typeInfo,
                 Word &value);
 
     bool Save(SmiRecord& valueRecord,
                 size_t& offset);
-    inline static const string BasicType(){///!!! "tm-rtree" does not work
+    inline static const std::string BasicType(){///!!! "tm-rtree" does not work
         return "tmrtree";
     }
 
@@ -1325,7 +1325,7 @@ ID of the next tuple if there is a next tuple else it returns false
   long CalculateNodeTM(SmiRecordId nodeid, Relation* rel, int attr_pos);
 ///////////
   void WriteNode(TM_RTreeNode<dim, LeafInfo>* node, SmiRecordId nodeid){
-	  node->Write(file, nodeid);
+    node->Write(file, nodeid);
   }
   private:
     bool fileOwner;
@@ -2071,8 +2071,8 @@ void TM_RTree<dim, LeafInfo>::LocateBestNode( const R_TreeEntry<dim>& entry,
         // ...No need to do the overlap enlargement tests
       else
       {
-        double bestEnlargement = numeric_limits<double>::max(),
-               bestoverlap = numeric_limits<double>::max();
+        double bestEnlargement = std::numeric_limits<double>::max(),
+               bestoverlap = std::numeric_limits<double>::max();
 
         // Now compute the overlap enlargements
         for( k = 0; !enlargeList.empty() && k < leafnode_subset_max; k++ )
@@ -2109,7 +2109,7 @@ void TM_RTree<dim, LeafInfo>::LocateBestNode( const R_TreeEntry<dim>& entry,
     }
     else
     {
-      double bestEnlargement = numeric_limits<double>::max();
+      double bestEnlargement = std::numeric_limits<double>::max();
       int i;
 
       for( i = 0; i < nodePtr->EntryCount(); i++ )
@@ -2762,8 +2762,8 @@ bool TM_RTree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim,
     return false;
   else
   { // Create a list of nodes whose entries must be reinserted
-    stack<int> reinsertLevelList;
-    stack<TM_RTreeNode<dim, LeafInfo>*> reinsertNodeList;
+    std::stack<int> reinsertLevelList;
+    std::stack<TM_RTreeNode<dim, LeafInfo>*> reinsertNodeList;
     BBox<dim> sonBox( false );
 
     // remove leaf node entry
@@ -3274,9 +3274,9 @@ bool TM_RTree<dim, LeafInfo>::getFileStats( SmiStatResultType &result )
   result = file->GetFileStatistics(SMI_STATS_EAGER);
   std::stringstream fileid;
   fileid << file->GetFileId();
-  result.push_back(pair<string,string>("FilePurpose",
+  result.push_back(std::pair<std::string,std::string>("FilePurpose",
             "SecondaryRtreeIndexFile"));
-  result.push_back(pair<string,string>("FileId",fileid.str()));
+  result.push_back(std::pair<std::string,std::string>("FileId",fileid.str()));
   return true;
 }
 
@@ -3541,7 +3541,7 @@ int SizeOfTMRTree()
 template <unsigned dim, class LeafInfo>
 bool TM_RTree<dim, LeafInfo>::Open(SmiRecord& valueRecord,
                                   size_t& offset,
-                                  string typeInfo,
+                                  std::string typeInfo,
                                   Word &value)
 {
   SmiFileId fileId;
@@ -3617,7 +3617,7 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
 
        int pos = -1;
 //       bitset<ARR_SIZE(str_tm)> modebits;
-       bitset<TM_SUM_NO> modebits;//extension to a pair of modes
+       std::bitset<TM_SUM_NO> modebits;//extension to a pair of modes
        modebits.reset();
 
       for(int j = 0;j < node->EntryCount();j++){
@@ -3651,7 +3651,7 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
 
    }else{
 //      bitset<ARR_SIZE(str_tm)> modebits;
-      bitset<TM_SUM_NO> modebits; //extension to a pair of modes
+      std::bitset<TM_SUM_NO> modebits; //extension to a pair of modes
       modebits.reset();
         for(int j = 0;j < node->EntryCount();j++){
 
@@ -3660,7 +3660,7 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
          long son_tm = CalculateNodeTM(e.pointer, rel, attr_pos);
 
 //         bitset<ARR_SIZE(str_tm)> m_bit(son_tm);
-           bitset<TM_SUM_NO> m_bit(son_tm);
+           std::bitset<TM_SUM_NO> m_bit(son_tm);
 
 //         ///////////// union value of each son tm to tm//////////////
 // /*        cout<<"new one "<<m_bit.to_string()

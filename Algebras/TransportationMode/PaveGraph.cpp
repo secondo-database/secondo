@@ -48,6 +48,8 @@ Decompose the pavement on one side of the road into a set of subregions
 */
 
 using namespace temporalalgebra;
+using namespace std;
+using namespace network;
 
 void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
                      vector<Region>& result)
@@ -2651,7 +2653,7 @@ bool CompTriangle::InitializeQueue2(priority_queue<RPoint>& allps,
                                    Point& query_p, Point& hp, Point& p,
                                    SpacePartition* sp, Point* q1,
                                    Point* q2, int reg_id, 
-						float a1, float a2)
+            float a1, float a2)
 {
     double angle = sp->GetAngle(query_p, hp, p);
     double dist = query_p.Distance(p);
@@ -2660,26 +2662,26 @@ bool CompTriangle::InitializeQueue2(priority_queue<RPoint>& allps,
     }
     
     double angle1 = sp->GetAngle(query_p, hp, *q1);
-	if(sp->GetClockwise(query_p, hp, *q1)){// clockwise
+  if(sp->GetClockwise(query_p, hp, *q1)){// clockwise
         angle1 = 2*TM_MYPI - angle1;
     }
     
     double angle2 = sp->GetAngle(query_p, hp, *q2);
-	if(sp->GetClockwise(query_p, hp, *q2)){// clockwise
+  if(sp->GetClockwise(query_p, hp, *q2)){// clockwise
         angle2 = 2*TM_MYPI - angle2;
     }
-	
-	if((angle < a1*TM_MYPI/180.0 && angle1 < a1*TM_MYPI/180.0 &&
-	    angle2 < a1*TM_MYPI/180.0) || 
-	   (angle > a2*TM_MYPI/180.0 && angle1 > a2*TM_MYPI/180.0 &&
-	     angle2 > a2*TM_MYPI/180.0)){
-	  return false;
-	}
-		
+  
+  if((angle < a1*TM_MYPI/180.0 && angle1 < a1*TM_MYPI/180.0 &&
+      angle2 < a1*TM_MYPI/180.0) || 
+     (angle > a2*TM_MYPI/180.0 && angle1 > a2*TM_MYPI/180.0 &&
+       angle2 > a2*TM_MYPI/180.0)){
+    return false;
+  }
+    
     RPoint rp(p, angle, dist, reg_id);
     rp.SetNeighbor(*q1, *q2);
     allps.push(rp);
-	return true;
+  return true;
 }
 
 /*
@@ -2919,7 +2921,7 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
         no_contain++;
       }
 
-	  
+    
       InitializeAVL(sss,*query_p, hp, *p, *q1, sp);
       InitializeAVL(sss,*query_p, hp, *p, *q2, sp);
       InitializeQueue(allps,*query_p, hp, *p, sp, q1, q2, reg_id);
@@ -3174,8 +3176,8 @@ return visible points within a range
 
 void CompTriangle::GetVPoints2(Relation* rel1, Relation* rel2,
                               Rectangle<2>* bbox, Relation* rel3, int attr_pos,
-							  float in_angle1, 
-							  float in_angle2)
+                float in_angle1, 
+                float in_angle2)
 {
 //  cout<<"attr_pos "<<attr_pos<<endl;
 //  ofstream outfile("tmrecord");
@@ -3264,21 +3266,21 @@ void CompTriangle::GetVPoints2(Relation* rel1, Relation* rel2,
       }
       ///////////////////////////////////////////////////////////////////////
       ////////we can check angle here, smaller angles can block //////////
-	  /////// large angles. therefore all have to be included//////////////
-	  /// remove segments that all endpoings are out of the query range ///
-	  //////////////////////////////////////////////////////////////////////
+    /////// large angles. therefore all have to be included//////////////
+    /// remove segments that all endpoings are out of the query range ///
+    //////////////////////////////////////////////////////////////////////
       
      bool state = InitializeQueue2(allps,*query_p, hp, *p, sp, q1, q2, reg_id, 
-					  in_angle1, in_angle2);
+            in_angle1, in_angle2);
       if(state){
-		InitializeAVL(sss,*query_p, hp, *p, *q1, sp);
-		InitializeAVL(sss,*query_p, hp, *p, *q2, sp);	  
-	  }	
+    InitializeAVL(sss,*query_p, hp, *p, *q1, sp);
+    InitializeAVL(sss,*query_p, hp, *p, *q2, sp);    
+    }  
 
-// 		InitializeAVL(sss,*query_p, hp, *p, *q1, sp);
-// 		InitializeAVL(sss,*query_p, hp, *p, *q2, sp);	  
-// 		InitializeQueue(allps,*query_p, hp, *p, sp, q1, q2, reg_id);
-					  
+//     InitializeAVL(sss,*query_p, hp, *p, *q1, sp);
+//     InitializeAVL(sss,*query_p, hp, *p, *q2, sp);    
+//     InitializeQueue(allps,*query_p, hp, *p, sp, q1, q2, reg_id);
+            
       p_tuple->DeleteIfAllowed();
   }
   delete sp;
@@ -3401,12 +3403,12 @@ void CompTriangle::GetVPoints2(Relation* rel1, Relation* rel2,
   while(allps.empty() == false){
       RPoint top = allps.top();
       allps.pop();
-	  ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////
       //////////////// check the angle range////////////////////
       if(top.angle > in_angle2*TM_MYPI/180.0){
-		 break;
-	  }
-	  ////////////////////////////////////////////////////////////	  
+     break;
+    }
+    ////////////////////////////////////////////////////////////    
       ////////////////debug///////////////////////////////////////
 //      PrintAVLTree(sss, outfile);
 //      outfile<<top<<" "<<top.regid<<endl;
@@ -6063,9 +6065,9 @@ void VGraph::GetVGEdge()
       }
       vertex_tuple->DeleteIfAllowed();
       oids1.clear();
-	  
-	  /////////// debug /////////////
-//	  if(i >= 1) break;
+    
+    /////////// debug /////////////
+//    if(i >= 1) break;
   }
 
 }
@@ -6513,10 +6515,10 @@ void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1)
       if(adj_list[i] == pre_id) continue;
       ////// remove triangles that are note located within the range ///////
       if(spatial_l){
-   	    if(cand_id.find(adj_list[i]) == cand_id.end()) //does not exist
-		continue;
-	  } 
-	  
+         if(cand_id.find(adj_list[i]) == cand_id.end()) //does not exist
+    continue;
+    } 
+    
       tri_access++;
       tri_tuple = rel2->GetTuple(adj_list[i], false);
       int ver1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
@@ -6831,13 +6833,13 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
 
   ///////////////////////////////////////////////////////////////////////
   for(unsigned int i = 0;i < adj_list.size();i++){
-	
-	if(spatial_l){
-	   //does not exist in the candidate set///
-		if(cand_id.find(adj_list[i]) == cand_id.end()) 
-		  continue;
-	} 
-	  
+  
+  if(spatial_l){
+     //does not exist in the candidate set///
+    if(cand_id.find(adj_list[i]) == cand_id.end()) 
+      continue;
+  } 
+    
     tri_access++;
 //    cout<<"adj_list GVN "<<adj_list[i] + dg->min_tri_oid_1<<endl;
     Tuple* tri_tuple = rel2->GetTuple(adj_list[i], false);
@@ -7092,13 +7094,13 @@ void VGraph::GetVisibleNode1(int tri_id, Point* query_p)
 
   ///////////////////////////////////////////////////////////////////////
   for(unsigned int i = 0;i < adj_list.size();i++){
-	
-	 if(spatial_l){
-	     ////does not exist in the candidate set///
-		  if(cand_id.find(adj_list[i]) == cand_id.end()) 
-		  continue;
-	 } 
-	  
+  
+   if(spatial_l){
+       ////does not exist in the candidate set///
+      if(cand_id.find(adj_list[i]) == cand_id.end()) 
+      continue;
+   } 
+    
 //    cout<<"adj_list GVN "<<adj_list[i]<<endl;
     tri_access++;
     Tuple* tri_tuple = rel2->GetTuple(adj_list[i], false);
@@ -7427,10 +7429,10 @@ void VGraph::GetVNode2(float l)
 
   ///////build a halfsegment between query point and its visibility point////
   for(unsigned int i = 0;i < p_list.size();i++){
-	  if(query_p->Distance(p_list[i]) > l) continue;  
-	
-	  p_list2.push_back(p_list[i]);
-	  oids2.push_back(oids1[i]);
+    if(query_p->Distance(p_list[i]) > l) continue;  
+  
+    p_list2.push_back(p_list[i]);
+    oids2.push_back(oids1[i]);
       Line* l =  new Line(0);
       l->StartBulkLoad();
       HalfSegment hs;
@@ -7486,8 +7488,8 @@ void VGraph::GetVNode3(float a1, float a2)
     return;
   }
   if(CheckAngle(a1, a2) == false){
-	cout<<"invalid angle"<<endl;
-	return;
+  cout<<"invalid angle"<<endl;
+  return;
   }
 //  cout<<a1<<" "<<a2<<endl;
   
@@ -7531,17 +7533,17 @@ void VGraph::GetVNode3(float a1, float a2)
   SpacePartition* sp = new SpacePartition();
   ///////build a halfsegment between query point and its visibility point////
   for(unsigned int i = 0;i < p_list.size();i++){
-	  /////////////////////////check the angle/////////////////////////  
-	  double angle = sp->GetAngle(*query_p, h_p, p_list[i]);
-	  if(sp->GetClockwise(*query_p, h_p, p_list[i])){
-		 angle = 2*TM_MYPI - angle;
-	  }
-//	  cout<<"loc: "<<p_list[i]<<" "<<angle<<endl;
-	  if(angle < a1*TM_MYPI/180.0 || angle > a2*TM_MYPI/180.0) continue;
-	  ////////////////////////////////////////////////////////////////
-	  
-	  p_list2.push_back(p_list[i]);
-	  oids2.push_back(oids1[i]);
+    /////////////////////////check the angle/////////////////////////  
+    double angle = sp->GetAngle(*query_p, h_p, p_list[i]);
+    if(sp->GetClockwise(*query_p, h_p, p_list[i])){
+     angle = 2*TM_MYPI - angle;
+    }
+//    cout<<"loc: "<<p_list[i]<<" "<<angle<<endl;
+    if(angle < a1*TM_MYPI/180.0 || angle > a2*TM_MYPI/180.0) continue;
+    ////////////////////////////////////////////////////////////////
+    
+    p_list2.push_back(p_list[i]);
+    oids2.push_back(oids1[i]);
       Line* l =  new Line(0);
       l->StartBulkLoad();
       HalfSegment hs;
@@ -7573,30 +7575,30 @@ void VGraph::FindTriWithin_L(float l, int query_oid, Point* q)
   cand_id.insert(query_oid);
   
   while(tri_id_list.empty() == false){
-	  int elem = tri_id_list.front();
-	  tri_id_list.pop();
-	  if(state_list[elem - 1]){
-		continue;
-	  }
-	  vector<int> adj_list;
-	  dg->FindAdj(elem, adj_list);
-	  for(unsigned int i = 0;i < adj_list.size();i++){
-		  if(state_list[adj_list[i] - 1]) continue;
-		  
-		  Tuple* tri = dg->GetNodeRel()->GetTuple(adj_list[i], false);
+    int elem = tri_id_list.front();
+    tri_id_list.pop();
+    if(state_list[elem - 1]){
+    continue;
+    }
+    vector<int> adj_list;
+    dg->FindAdj(elem, adj_list);
+    for(unsigned int i = 0;i < adj_list.size();i++){
+      if(state_list[adj_list[i] - 1]) continue;
+      
+      Tuple* tri = dg->GetNodeRel()->GetTuple(adj_list[i], false);
           Region* reg = (Region*)tri->GetAttribute(DualGraph::PAVEMENT);
-		  Rectangle<2> bbox = reg->BoundingBox();
-		  tri->DeleteIfAllowed();
-		  if(q->Distance(bbox) > l){
-			continue;
-		  }
-		  tri_id_list.push(adj_list[i]);
-//		  cout<<"tri id: "<<adj_list[i]<<endl;
-		  if(cand_id.find(adj_list[i]) == cand_id.end()){
-			  cand_id.insert(adj_list[i]);
-		  }
-	  }
-	  state_list[elem - 1] = true;
+      Rectangle<2> bbox = reg->BoundingBox();
+      tri->DeleteIfAllowed();
+      if(q->Distance(bbox) > l){
+      continue;
+      }
+      tri_id_list.push(adj_list[i]);
+//      cout<<"tri id: "<<adj_list[i]<<endl;
+      if(cand_id.find(adj_list[i]) == cand_id.end()){
+        cand_id.insert(adj_list[i]);
+      }
+    }
+    state_list[elem - 1] = true;
   } //end while  
    cout<<"candidate triangles size "<<cand_id.size()<<endl;  
 }
@@ -7606,12 +7608,12 @@ return visible points within a certain range
 
 */
 void VGraph::GetVPRange(Relation* rel1, R_Tree<2,TupleId>* rtree,
-				  Relation* rel2, float l)
+          Relation* rel2, float l)
 {
 //   cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
    if(rel2->GetNoTuples() < 1){
-		cout<<"query relation is empty"<<endl;
-		return;
+    cout<<"query relation is empty"<<endl;
+    return;
    }
   ///////////step 1. traverse rtree to find all obstacles with the range//////
   
@@ -7667,369 +7669,369 @@ void VGraph::GetVPRange(Relation* rel1, R_Tree<2,TupleId>* rtree,
       
    
    while(myqueue.empty() == false){
-	 Obs_Obj elem = myqueue.top();
-	 myqueue.pop();
-//	 elem.Print();
-	 
-	 Tuple* tuple = rel1->GetTuple(elem.tid, false);
-	 Region* hole = (Region*)tuple->GetAttribute(VP_HOLE);	 
-	 int Oid = ((CcInt*)tuple->GetAttribute(VP_HOLE_OID))->GetIntval();
-//	 cout<<"Obstacle Oid: "<<Oid<<endl;
+   Obs_Obj elem = myqueue.top();
+   myqueue.pop();
+//   elem.Print();
+   
+   Tuple* tuple = rel1->GetTuple(elem.tid, false);
+   Region* hole = (Region*)tuple->GetAttribute(VP_HOLE);   
+   int Oid = ((CcInt*)tuple->GetAttribute(VP_HOLE_OID))->GetIntval();
+//   cout<<"Obstacle Oid: "<<Oid<<endl;
 
 /*     vector<BlockAngle> a_list; //[0, 180), counterclockwise(false)
      vector<BlockAngle> b_list; //(0, 180], clockwise(true)*/
    
-	 ////////////step 2 process each obstacle vertex////////////////////////
-	 ////////above or below, calculate the angle/////////////////
-	 bool iscovered = false;
-	 int cover_no = 0;
-//	 cout<<"segement size: "<<hole->Size()/2<<endl;
-	 
-	 for(int i = 0; i < hole->Size();i++){
-		 HalfSegment hs;
-		 hole->Get(i, hs);
-		 if(hs.IsLeftDomPoint() == false) continue;
-		 Point lp = hs.GetLeftPoint(); 
-		 Point rp = hs.GetRightPoint();
-		 
-		 if(fabs(query_p.GetY() - lp.GetY()) < EPSDIST && 
-		    fabs(query_p.GetY() - rp.GetY()) < EPSDIST){
-		      continue;
-		 } //ignore this angle, angle is 0
-		 
-		 
-		 if(lp.GetY() > query_p.GetY() && 
-		    rp.GetY() > query_p.GetY()){//above
-		 
-			 double angle1 = sp->GetAngle(query_p, hp, lp);
-			 double angle2 = sp->GetAngle(query_p, hp, rp);
-			 double d1 = query_p.Distance(lp);
-			 double d2 = query_p.Distance(rp);
-			 double d = MAX(d1, d2);
-			 CcReal a_min(true, MIN(angle1, angle2));
-			 CcReal a_max(true, MAX(angle1, angle2)); 
-			 
-			 BlockAngle above_angle(
-			            Interval<CcReal>(a_min, a_max, true, true), 
-									d);
-			 
-			 iscovered = MergeBlockAngle(a_list, above_angle, Oid);
-			 if(iscovered) cover_no++;
-			 
-//			 AddResult(iscovered, lp, rp);
-			 
-		 }else if(lp.GetY() < query_p.GetY() && 
-		          rp.GetY() < query_p.GetY()){
-		     /////////////below///////////////
-			 double angle1 = sp->GetAngle(query_p, hp, lp);
-			 double angle2 = sp->GetAngle(query_p, hp, rp);
-			 double d1 = query_p.Distance(lp);
-			 double d2 = query_p.Distance(rp);
-			 double d = MAX(d1, d2);
-			 CcReal a_min(true, MIN(angle1, angle2));
-			 CcReal a_max(true, MAX(angle1, angle2)); 
-			 
-			 BlockAngle below_angle(
-		                Interval<CcReal>(a_min, a_max, true, true),
-									d);
-			 iscovered = MergeBlockAngle(b_list, below_angle, Oid);
-			 if(iscovered)cover_no++;
-			 
-//			 AddResult(iscovered, lp, rp);
-			 
-		 }else{
-			   Line* cur_line = new Line(0);
-			   cur_line->StartBulkLoad();
-			   HalfSegment hs;
-			   hs.Set(true, lp, rp);
-			   int edgeno = 0;
-			   hs.attr.edgeno = edgeno++;
-			   *cur_line += hs;
-			   hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-			   *cur_line += hs;
-			   cur_line->EndBulkLoad();
-			   if(h_line1->Intersects(*cur_line)){
-				   
-  			  CcReal angle1(true, sp->GetAngle(query_p, hp, lp));
-			  CcReal angle2(true, sp->GetAngle(query_p, hp, rp));
-				 CcReal zero_angle(true, 0.0);
-				 double d1 = query_p.Distance(lp);
-				 double d2 = query_p.Distance(rp);
-				 double d = MAX(d1, d2);
-				 
-				 bool v1 = 
-					  sp->GetClockwise(query_p, 
-						             hp, lp);//clockwise
-				 bool v2 = sp->GetClockwise(query_p, hp, rp);
-				 
-			if(v1){
-//					 assert(v2 == false);
+   ////////////step 2 process each obstacle vertex////////////////////////
+   ////////above or below, calculate the angle/////////////////
+   bool iscovered = false;
+   int cover_no = 0;
+//   cout<<"segement size: "<<hole->Size()/2<<endl;
+   
+   for(int i = 0; i < hole->Size();i++){
+     HalfSegment hs;
+     hole->Get(i, hs);
+     if(hs.IsLeftDomPoint() == false) continue;
+     Point lp = hs.GetLeftPoint(); 
+     Point rp = hs.GetRightPoint();
+     
+     if(fabs(query_p.GetY() - lp.GetY()) < EPSDIST && 
+        fabs(query_p.GetY() - rp.GetY()) < EPSDIST){
+          continue;
+     } //ignore this angle, angle is 0
+     
+     
+     if(lp.GetY() > query_p.GetY() && 
+        rp.GetY() > query_p.GetY()){//above
+     
+       double angle1 = sp->GetAngle(query_p, hp, lp);
+       double angle2 = sp->GetAngle(query_p, hp, rp);
+       double d1 = query_p.Distance(lp);
+       double d2 = query_p.Distance(rp);
+       double d = MAX(d1, d2);
+       CcReal a_min(true, MIN(angle1, angle2));
+       CcReal a_max(true, MAX(angle1, angle2)); 
+       
+       BlockAngle above_angle(
+                  Interval<CcReal>(a_min, a_max, true, true), 
+                  d);
+       
+       iscovered = MergeBlockAngle(a_list, above_angle, Oid);
+       if(iscovered) cover_no++;
+       
+//       AddResult(iscovered, lp, rp);
+       
+     }else if(lp.GetY() < query_p.GetY() && 
+              rp.GetY() < query_p.GetY()){
+         /////////////below///////////////
+       double angle1 = sp->GetAngle(query_p, hp, lp);
+       double angle2 = sp->GetAngle(query_p, hp, rp);
+       double d1 = query_p.Distance(lp);
+       double d2 = query_p.Distance(rp);
+       double d = MAX(d1, d2);
+       CcReal a_min(true, MIN(angle1, angle2));
+       CcReal a_max(true, MAX(angle1, angle2)); 
+       
+       BlockAngle below_angle(
+                    Interval<CcReal>(a_min, a_max, true, true),
+                  d);
+       iscovered = MergeBlockAngle(b_list, below_angle, Oid);
+       if(iscovered)cover_no++;
+       
+//       AddResult(iscovered, lp, rp);
+       
+     }else{
+         Line* cur_line = new Line(0);
+         cur_line->StartBulkLoad();
+         HalfSegment hs;
+         hs.Set(true, lp, rp);
+         int edgeno = 0;
+         hs.attr.edgeno = edgeno++;
+         *cur_line += hs;
+         hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+         *cur_line += hs;
+         cur_line->EndBulkLoad();
+         if(h_line1->Intersects(*cur_line)){
+           
+          CcReal angle1(true, sp->GetAngle(query_p, hp, lp));
+        CcReal angle2(true, sp->GetAngle(query_p, hp, rp));
+         CcReal zero_angle(true, 0.0);
+         double d1 = query_p.Distance(lp);
+         double d2 = query_p.Distance(rp);
+         double d = MAX(d1, d2);
+         
+         bool v1 = 
+            sp->GetClockwise(query_p, 
+                         hp, lp);//clockwise
+         bool v2 = sp->GetClockwise(query_p, hp, rp);
+         
+      if(v1){
+//           assert(v2 == false);
               if(v2 == false){
-			       BlockAngle above_angle(
-					 Interval<CcReal>(zero_angle, angle2, 
+             BlockAngle above_angle(
+           Interval<CcReal>(zero_angle, angle2, 
                                       true, true), 
-									  d);
-				   BlockAngle below_angle(
-				     Interval<CcReal>(zero_angle, angle1,
+                    d);
+           BlockAngle below_angle(
+             Interval<CcReal>(zero_angle, angle1,
                                       true, true), 
-									  d);
-					 
-					   iscovered = 
+                    d);
+           
+             iscovered = 
                               MergeBlockAngle(a_list, above_angle, Oid);
-					 if(iscovered) cover_no++;
-					   iscovered = 
+           if(iscovered) cover_no++;
+             iscovered = 
                               MergeBlockAngle(b_list, below_angle, Oid);
-					 if(iscovered) cover_no++;
-			  }else{ //both are counterclock wise, y equal to queryp
-				 CcReal a_min(true, MIN(angle1.GetRealval(), 
+           if(iscovered) cover_no++;
+        }else{ //both are counterclock wise, y equal to queryp
+         CcReal a_min(true, MIN(angle1.GetRealval(), 
                               angle2.GetRealval()));
-			     CcReal a_max(true, MAX(angle1.GetRealval(), 
+           CcReal a_max(true, MAX(angle1.GetRealval(), 
                               angle2.GetRealval())); 
-			 
-			     BlockAngle below_angle(Interval<CcReal>(a_min, 
+       
+           BlockAngle below_angle(Interval<CcReal>(a_min, 
                                       a_max, true, true), d);
                  iscovered = MergeBlockAngle(b_list, below_angle, Oid);
-               if(iscovered)cover_no++; 					
-			    }
-			  }else{
-//					 assert(v2);
+               if(iscovered)cover_no++;           
+          }
+        }else{
+//           assert(v2);
                  if(v2){
-					 BlockAngle below_angle(
+           BlockAngle below_angle(
                           Interval<CcReal>(zero_angle, angle2, 
                                            true, true), d);
-					 BlockAngle above_angle(
+           BlockAngle above_angle(
                           Interval<CcReal>(zero_angle, angle1,
                                            true, true), d);
-					 iscovered = 
+           iscovered = 
                            MergeBlockAngle(a_list, above_angle, Oid);
-					 if(iscovered) cover_no++;
-			     	 iscovered = 
+           if(iscovered) cover_no++;
+              iscovered = 
                            MergeBlockAngle(b_list, below_angle, Oid);
-					 if(iscovered) cover_no++;
-				   }else{ //y equal to queryp
-					   CcReal a_min(true, 
+           if(iscovered) cover_no++;
+           }else{ //y equal to queryp
+             CcReal a_min(true, 
                                     MIN(angle1.GetRealval(), 
                                         angle2.GetRealval()));
-			           CcReal a_max(true, 
+                 CcReal a_max(true, 
                                     MAX(angle1.GetRealval(), 
                                         angle2.GetRealval())); 
-			 
+       
                        BlockAngle above_angle(
-			                        Interval<CcReal>(a_min, a_max, 
+                              Interval<CcReal>(a_min, a_max, 
                                     true, true), d);
                        iscovered = 
                            MergeBlockAngle(a_list, above_angle, Oid);
-			           if(iscovered)cover_no++; 
-				   }
-				 }
-				 
-//				 AddResult(iscovered, lp, rp);
-			   }else if(h_line2->Intersects(*cur_line)){
-			   
-			   	 CcReal angle1(true, 
+                 if(iscovered)cover_no++; 
+           }
+         }
+         
+//         AddResult(iscovered, lp, rp);
+         }else if(h_line2->Intersects(*cur_line)){
+         
+            CcReal angle1(true, 
                               sp->GetAngle(query_p, hp, lp));
-				 CcReal angle2(true, 
+         CcReal angle2(true, 
                               sp->GetAngle(query_p, hp, rp));
-				 CcReal pi_angle(true, TM_MYPI);
-				 double d1 = query_p.Distance(lp);
-				 double d2 = query_p.Distance(rp);
-				 double d = MAX(d1, d2);
+         CcReal pi_angle(true, TM_MYPI);
+         double d1 = query_p.Distance(lp);
+         double d2 = query_p.Distance(rp);
+         double d = MAX(d1, d2);
                  bool v1 = sp->GetClockwise(query_p, hp, lp);//GetClockwise
                  bool v2 = sp->GetClockwise(query_p, hp, rp);
-				 
-				 if(v1){
-//					 assert(v2 == false);
+         
+         if(v1){
+//           assert(v2 == false);
                      if(v2 == false){
-					   BlockAngle above_angle(
+             BlockAngle above_angle(
                                   Interval<CcReal>(angle2, pi_angle,
                                            true, true), d);
-					   BlockAngle below_angle(
+             BlockAngle below_angle(
                                   Interval<CcReal>(angle1, pi_angle,
                                            true, true), d);
                        iscovered = 
                                MergeBlockAngle(a_list, above_angle, Oid);
-					   if(iscovered) cover_no++;
+             if(iscovered) cover_no++;
                        iscovered = 
                                MergeBlockAngle(b_list, below_angle, Oid);
-					   if(iscovered) cover_no++;
-					 }else{ //y equal to queryp
-					   
-					    CcReal a_min(true, 
+             if(iscovered) cover_no++;
+           }else{ //y equal to queryp
+             
+              CcReal a_min(true, 
                                      MIN(angle1.GetRealval(), 
                                          angle2.GetRealval()));
-			            CcReal a_max(true, 
+                  CcReal a_max(true, 
                                      MAX(angle1.GetRealval(), 
                                          angle2.GetRealval())); 
-			 
-			             BlockAngle below_angle(
+       
+                   BlockAngle below_angle(
                                     Interval<CcReal>(a_min, a_max, 
                                                true, true), d);
-			             iscovered = 
+                   iscovered = 
                                  MergeBlockAngle(b_list, below_angle, Oid);
-			             if(iscovered)cover_no++; 
-					 }
-					 
-				 }else{
-//				     cout<<angle1<<" "<<angle2<<endl;
-//					 cout<<v1<<" "<<v2<<endl;
-//			 cout<<lp<<" "<<rp<<endl;
-//					 assert(v2);
+                   if(iscovered)cover_no++; 
+           }
+           
+         }else{
+//             cout<<angle1<<" "<<angle2<<endl;
+//           cout<<v1<<" "<<v2<<endl;
+//       cout<<lp<<" "<<rp<<endl;
+//           assert(v2);
                      if(v2){
-					   BlockAngle below_angle(
+             BlockAngle below_angle(
                                    Interval<CcReal>(angle2, pi_angle,
                                                     true, true), d);
-					   BlockAngle above_angle(
+             BlockAngle above_angle(
                                    Interval<CcReal>(angle1, pi_angle,
                                             true, true), d);
-					  iscovered = 
+            iscovered = 
                                   MergeBlockAngle(a_list, above_angle, Oid);
-					  if(iscovered)cover_no++;
-					  iscovered = 
+            if(iscovered)cover_no++;
+            iscovered = 
                                   MergeBlockAngle(b_list, below_angle, Oid);
-					  if(iscovered)cover_no++;
+            if(iscovered)cover_no++;
                     }else{ //one point is horizontal,y equal to queryp
-		                CcReal a_min(true, 
+                    CcReal a_min(true, 
                                      MIN(angle1.GetRealval(), 
                                      angle2.GetRealval()));
-			            CcReal a_max(true, 
+                  CcReal a_max(true, 
                                      MAX(angle1.GetRealval(), 
                                       angle2.GetRealval())); 
-			 
-			             BlockAngle above_angle(
+       
+                   BlockAngle above_angle(
                                    Interval<CcReal>(a_min, a_max, 
                                        true, true), d);
-			             iscovered = 
+                   iscovered = 
                                    MergeBlockAngle(a_list, above_angle, Oid);
-			             if(iscovered)cover_no++; 
-					 }
-				 }
-				 
-//				 AddResult(iscovered, lp, rp);
-			   }else{
-//				 cout<<query_p<<" "<<hs<<endl;
-			     cout<<"should not be here"<<endl;
-				 assert(false);
-			   }
-			   delete cur_line;
-		 } //end segment intersects horizontal line
-		 	 	 
-	 } //end for, process all segments
-	 	 	 
-/* 	 cout<<"Obstacle oid: "<<Oid
- 	    <<" covno: "<<cover_no
- 	    <<" segments no: "<<hole->Size()/2<<endl;*/
-	 
-	 ///////////merge block angle in the list for the next time////////////
-// 	 cout<<"before sorting"<<endl;
-//  	 for(unsigned int i = 0;i < a_list.size();i++){
-// 		 a_list[i].Print();
-// 	 }
+                   if(iscovered)cover_no++; 
+           }
+         }
+         
+//         AddResult(iscovered, lp, rp);
+         }else{
+//         cout<<query_p<<" "<<hs<<endl;
+           cout<<"should not be here"<<endl;
+         assert(false);
+         }
+         delete cur_line;
+     } //end segment intersects horizontal line
+           
+   } //end for, process all segments
+         
+/*    cout<<"Obstacle oid: "<<Oid
+       <<" covno: "<<cover_no
+       <<" segments no: "<<hole->Size()/2<<endl;*/
+   
+   ///////////merge block angle in the list for the next time////////////
+//    cout<<"before sorting"<<endl;
+//     for(unsigned int i = 0;i < a_list.size();i++){
+//      a_list[i].Print();
+//    }
 
-	 sort(a_list.begin(), a_list.end());
-	 sort(b_list.begin(), b_list.end());
+   sort(a_list.begin(), a_list.end());
+   sort(b_list.begin(), b_list.end());
 //      cout<<"after sorting"<<endl;
-//  	 for(unsigned int i = 0;i < a_list.size();i++){
-//  		 a_list[i].Print();
-//  	 }
+//     for(unsigned int i = 0;i < a_list.size();i++){
+//       a_list[i].Print();
+//     }
 
-	 MergeAngleList(a_list);
-	 MergeAngleList(b_list);
-	  
-	 //////////////////////////////////////////////////////////////////////
-	 /// if the number of covered is equal to the total number of segments//
-	 ///// we prune such an obstacle ////////////
-	 /// else we put the obstacle into the candidate set/////////////
-	 //////////////////////////////////////////////////////////////////////
-	 if(cover_no == (int)hole->Size()/2){//prune such an obstacle
-//		 clockwise_list.push_back(true);
-	 }else{ //collect obstacle id, points of such an obstacle
-//		 clockwise_list.push_back(false);
+   MergeAngleList(a_list);
+   MergeAngleList(b_list);
+    
+   //////////////////////////////////////////////////////////////////////
+   /// if the number of covered is equal to the total number of segments//
+   ///// we prune such an obstacle ////////////
+   /// else we put the obstacle into the candidate set/////////////
+   //////////////////////////////////////////////////////////////////////
+   if(cover_no == (int)hole->Size()/2){//prune such an obstacle
+//     clockwise_list.push_back(true);
+   }else{ //collect obstacle id, points of such an obstacle
+//     clockwise_list.push_back(false);
 
 
-		  Line* line = new Line(0);
-		  hole->Boundary(line);
+      Line* line = new Line(0);
+      hole->Boundary(line);
 
-		  SimpleLine* sl = new SimpleLine(0);
-		  sl->fromLine(*line);
+      SimpleLine* sl = new SimpleLine(0);
+      sl->fromLine(*line);
 
-		  vector<MyHalfSegment> mhs;
-		  sp->ReorderLine(sl, mhs);
-		  
-		  for(unsigned int j = 0;j < mhs.size();j++){
-			  if(query_p.Distance(mhs[j].from) > l){
-				continue;
-			  }
-			  p_list.push_back(mhs[j].from);
-			  oids1.push_back(Oid);
-			  if(j == 0){
-				p_neighbor1.push_back(mhs[j + 1].from);
-				p_neighbor2.push_back(mhs[mhs.size() - 1].from);
-			  }else if(j == mhs.size() - 1){
-				  p_neighbor1.push_back(mhs[j - 1].from);
-				  p_neighbor2.push_back(mhs[0].from);
-			  }else{
-				  p_neighbor1.push_back(mhs[j - 1].from);
-				  p_neighbor2.push_back(mhs[j + 1].from);
-			  }
-		  }//end for
-			
-		  delete line;
-		  delete sl;
-  	  
-// 			  p_list.push_back(ct->plist1[j]);
-// 			  p_neighbor1.push_back(ct->plist2[j]);
-// 			  p_neighbor2.push_back(ct->plist3[j]);
-// 			  oids1.push_back(Oid);
+      vector<MyHalfSegment> mhs;
+      sp->ReorderLine(sl, mhs);
+      
+      for(unsigned int j = 0;j < mhs.size();j++){
+        if(query_p.Distance(mhs[j].from) > l){
+        continue;
+        }
+        p_list.push_back(mhs[j].from);
+        oids1.push_back(Oid);
+        if(j == 0){
+        p_neighbor1.push_back(mhs[j + 1].from);
+        p_neighbor2.push_back(mhs[mhs.size() - 1].from);
+        }else if(j == mhs.size() - 1){
+          p_neighbor1.push_back(mhs[j - 1].from);
+          p_neighbor2.push_back(mhs[0].from);
+        }else{
+          p_neighbor1.push_back(mhs[j - 1].from);
+          p_neighbor2.push_back(mhs[j + 1].from);
+        }
+      }//end for
+      
+      delete line;
+      delete sl;
+      
+//         p_list.push_back(ct->plist1[j]);
+//         p_neighbor1.push_back(ct->plist2[j]);
+//         p_neighbor2.push_back(ct->plist3[j]);
+//         oids1.push_back(Oid);
 
-	 }
-	 
-/*	 oids1.push_back(Oid);
-	 regs.push_back(*hole);*/
-	 tuple->DeleteIfAllowed();
-	 
-/*	 Points* ps = new Points(0);
-	 hole->Vertices(ps);
+   }
+   
+/*   oids1.push_back(Oid);
+   regs.push_back(*hole);*/
+   tuple->DeleteIfAllowed();
+   
+/*   Points* ps = new Points(0);
+   hole->Vertices(ps);
 
-	 for(int i = 0;i < ps->Size();i++){
-		 Point q;
-		 ps->Get(i, q);
+   for(int i = 0;i < ps->Size();i++){
+     Point q;
+     ps->Get(i, q);
 
-		 if(query_p.Distance(q) < EPSDIST){//visible
-		   cout<<"equal to query point"<<endl;
-		   ///////directly put into the result///////////
-		   p_list.push_back(q);
-		   continue;
-		 }
-		 double angle;
-		 bool clockwise;
-	 	 if(fabs(query_p.GetY() - q.GetY()) < EPSDIST){//the same horizontal
-		   	 angle = sp->GetAngle(query_p, hp, q);
-		   if(q.GetX() > query_p.GetX()){//////0, counterclockwise
-			     clockwise = false;
-				 ObsVertex v_elem(q, angle, elem.tid, clockwise);
-				 a_list.push_back(v_elem);
-		   }else{                        /////////180, clockwise
-			     clockwise = true;
-				 ObsVertex v_elem(q, angle, elem.tid, clockwise);
-				 b_list.push_back(v_elem);
-		   }
-		 }else{
-		   angle = sp->GetAngle(query_p, hp, q);
-		   if(q.GetY() > query_p.GetY()){ //counterclockwise 
-			  clockwise = false;
-		      ObsVertex v_elem(q, angle, elem.tid, clockwise);
-			  a_list.push_back(v_elem);		   
-		   }else{//clockwise
-			   clockwise = true;
-			   ObsVertex v_elem(q, angle, elem.tid, clockwise);
-			   b_list.push_back(v_elem);
-		   }		 
-		 }		 
-	 }
-	 delete ps;*/
-	 
-	 ////////////////step 3 check visibility//////////////////////////////
-	 	 	 		 	 	 
+     if(query_p.Distance(q) < EPSDIST){//visible
+       cout<<"equal to query point"<<endl;
+       ///////directly put into the result///////////
+       p_list.push_back(q);
+       continue;
+     }
+     double angle;
+     bool clockwise;
+      if(fabs(query_p.GetY() - q.GetY()) < EPSDIST){//the same horizontal
+          angle = sp->GetAngle(query_p, hp, q);
+       if(q.GetX() > query_p.GetX()){//////0, counterclockwise
+           clockwise = false;
+         ObsVertex v_elem(q, angle, elem.tid, clockwise);
+         a_list.push_back(v_elem);
+       }else{                        /////////180, clockwise
+           clockwise = true;
+         ObsVertex v_elem(q, angle, elem.tid, clockwise);
+         b_list.push_back(v_elem);
+       }
+     }else{
+       angle = sp->GetAngle(query_p, hp, q);
+       if(q.GetY() > query_p.GetY()){ //counterclockwise 
+        clockwise = false;
+          ObsVertex v_elem(q, angle, elem.tid, clockwise);
+        a_list.push_back(v_elem);       
+       }else{//clockwise
+         clockwise = true;
+         ObsVertex v_elem(q, angle, elem.tid, clockwise);
+         b_list.push_back(v_elem);
+       }     
+     }     
+   }
+   delete ps;*/
+   
+   ////////////////step 3 check visibility//////////////////////////////
+                    
    }///////////// end of queue storing obstacles
    delete sp;
    
@@ -8038,20 +8040,20 @@ void VGraph::GetVPRange(Relation* rel1, R_Tree<2,TupleId>* rtree,
    
    ////////////////////////////////////////////////////////////////////
 //    ///////test the program, collect obstacle vertices/////////////////
-// 	  for(unsigned int i = 0;i < a_list.size();i++){
-//  	   ObsVertex v_elem = a_list[i];
-//  	   p_list.push_back(v_elem.loc);
-//  	   angle_list.push_back(v_elem.angle);
-//  	   clockwise_list.push_back(v_elem.b);
-//  	   oids1.push_back(v_elem.regid);
-// 	  }
-// 	  
-// 	  for(unsigned int i = 0;i < b_list.size();i++){
-//  	   ObsVertex v_elem = b_list[i];
-//  	   p_list.push_back(v_elem.loc);
-//  	   angle_list.push_back(v_elem.angle);
-//  	   clockwise_list.push_back(v_elem.b);
-//  	   oids1.push_back(v_elem.regid);
+//     for(unsigned int i = 0;i < a_list.size();i++){
+//       ObsVertex v_elem = a_list[i];
+//       p_list.push_back(v_elem.loc);
+//       angle_list.push_back(v_elem.angle);
+//       clockwise_list.push_back(v_elem.b);
+//       oids1.push_back(v_elem.regid);
+//     }
+//     
+//     for(unsigned int i = 0;i < b_list.size();i++){
+//       ObsVertex v_elem = b_list[i];
+//       p_list.push_back(v_elem.loc);
+//       angle_list.push_back(v_elem.angle);
+//       clockwise_list.push_back(v_elem.b);
+//       oids1.push_back(v_elem.regid);
 //      }
    
    /////////////////////////////////////////////////////////////////////
@@ -8068,25 +8070,25 @@ void VGraph::MergeAngleList(vector<BlockAngle>& a_list)
   
   BlockAngle cur = a_list[0];
   for(unsigned int i = 1;i < a_list.size();i++){
-	BlockAngle elem = a_list[i];  
-	if(cur.angle.Intersects(elem.angle)){
-	  
-	   CcReal val1(true, MIN(cur.angle.start.GetValue(),
+  BlockAngle elem = a_list[i];  
+  if(cur.angle.Intersects(elem.angle)){
+    
+     CcReal val1(true, MIN(cur.angle.start.GetValue(),
                              elem.angle.start.GetValue()));
-	   
-	   CcReal val2(true, MAX(cur.angle.end.GetValue(),
+     
+     CcReal val2(true, MAX(cur.angle.end.GetValue(),
                              elem.angle.end.GetValue()));
-	   					 
-// 	   CcReal a(true, MIN(cur.angle.start.GetValue(), 
-//			  elem.angle.start.GetValue()));
-// 	   CcReal b(true, MAX(cur.angle.end.GetValue(), elem.angle.end));
- 	   double d = MAX(cur.dist, elem.dist);
- 	   BlockAngle new_angle(Interval<CcReal>(val1, val2, true, true), d);
- 	   cur = new_angle;
-	}else{	
-	  temp.push_back(cur);
-	  cur = elem;
-	}  
+                
+//      CcReal a(true, MIN(cur.angle.start.GetValue(), 
+//        elem.angle.start.GetValue()));
+//      CcReal b(true, MAX(cur.angle.end.GetValue(), elem.angle.end));
+      double d = MAX(cur.dist, elem.dist);
+      BlockAngle new_angle(Interval<CcReal>(val1, val2, true, true), d);
+      cur = new_angle;
+  }else{  
+    temp.push_back(cur);
+    cur = elem;
+  }  
   }//end for
   temp.push_back(cur);
   
@@ -8094,7 +8096,7 @@ void VGraph::MergeAngleList(vector<BlockAngle>& a_list)
   
   a_list.clear();
   for(unsigned int i = 0;i < temp.size();i++){
-	a_list.push_back(temp[i]);
+  a_list.push_back(temp[i]);
   }
   
 }
@@ -8109,48 +8111,48 @@ false:  not covered
 bool VGraph::MergeBlockAngle(vector<BlockAngle>& a_list, 
                              BlockAngle above_angle, int oid)
 {
-	if(a_list.size() == 0){
-	  a_list.push_back(above_angle);
-	  return false;
-	}
-	///////////////////////////////////
-/*	if(oid == 47113){
-	    cout<<"above angle"<<endl;
-		above_angle.Print();
-	}*/
-	for(unsigned int i = 0;i < a_list.size();i++){
-		BlockAngle cur = a_list[i];
-//	    if(cur.angle.Contains(above_angle.angle)){//angle cover
+  if(a_list.size() == 0){
+    a_list.push_back(above_angle);
+    return false;
+  }
+  ///////////////////////////////////
+/*  if(oid == 47113){
+      cout<<"above angle"<<endl;
+    above_angle.Print();
+  }*/
+  for(unsigned int i = 0;i < a_list.size();i++){
+    BlockAngle cur = a_list[i];
+//      if(cur.angle.Contains(above_angle.angle)){//angle cover
 /*        if(oid == 47113){
-		  cur.Print();
-		}*/
-	    if(cur.angle.start < above_angle.angle.start && 
-		    above_angle.angle.end < cur.angle.end){
-//		    cur.Print();
-//		    above_angle.Print();
-			if(cur.dist < above_angle.dist)
-				return true;
-			else
-			   return false;
-		 }
-		 
-		 if(cur.angle.Intersects(above_angle.angle)){//merge
-		 
-			 CcReal val1(true, MIN(cur.angle.start.GetValue(),
+      cur.Print();
+    }*/
+      if(cur.angle.start < above_angle.angle.start && 
+        above_angle.angle.end < cur.angle.end){
+//        cur.Print();
+//        above_angle.Print();
+      if(cur.dist < above_angle.dist)
+        return true;
+      else
+         return false;
+     }
+     
+     if(cur.angle.Intersects(above_angle.angle)){//merge
+     
+       CcReal val1(true, MIN(cur.angle.start.GetValue(),
                                above_angle.angle.start.GetValue()));
-	   
-			 CcReal val2(true, MAX(cur.angle.end.GetValue(),
+     
+       CcReal val2(true, MAX(cur.angle.end.GetValue(),
                                above_angle.angle.end.GetValue()));
-	   					 
-			 double d = MAX(cur.dist, above_angle.dist);
-			 BlockAngle new_angle(
+                
+       double d = MAX(cur.dist, above_angle.dist);
+       BlockAngle new_angle(
                            Interval<CcReal>(val1, val2, true, true), d);
-			 a_list[i] = new_angle;
-			 return false;
-		 }	
-	}
-	a_list.push_back(above_angle);
-	return false;
+       a_list[i] = new_angle;
+       return false;
+     }  
+  }
+  a_list.push_back(above_angle);
+  return false;
 }
 
 /*
@@ -8160,20 +8162,20 @@ test the program to see the line
 void VGraph::AddResult(bool iscovered, Point lp, Point rp)
 {
 
-	Line* l = new Line(0);
-	l->StartBulkLoad();
-	HalfSegment hs;
-	hs.Set(true, lp, rp);
-	int edgeno = 0;
-	hs.attr.edgeno = edgeno++;
-	*l += hs;
-	hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-	*l += hs;
-	l->EndBulkLoad();
+  Line* l = new Line(0);
+  l->StartBulkLoad();
+  HalfSegment hs;
+  hs.Set(true, lp, rp);
+  int edgeno = 0;
+  hs.attr.edgeno = edgeno++;
+  *l += hs;
+  hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+  *l += hs;
+  l->EndBulkLoad();
     line.push_back(*l); ///////////halfsegment
-	clockwise_list.push_back(iscovered);//pruned or not
-	delete l;
-	
+  clockwise_list.push_back(iscovered);//pruned or not
+  delete l;
+  
 }
 
 
@@ -8182,10 +8184,10 @@ find obstacles within a range to the query location
 
 */
 void VGraph::GetObstacles(Relation* rel1, R_Tree<2,TupleId>* rtree, Point* q, 
-		                  float l, priority_queue<Obs_Obj>& myqueue)
+                      float l, priority_queue<Obs_Obj>& myqueue)
 {
 
-	queue<SmiRecordId> query_list;
+  queue<SmiRecordId> query_list;
     query_list.push(rtree->RootRecordId());
 
     while(query_list.empty() == false){
@@ -8199,14 +8201,14 @@ void VGraph::GetObstacles(Relation* rel1, R_Tree<2,TupleId>* rtree, Point* q,
             for(int j = 0;j < node->EntryCount();j++){
                 R_TreeLeafEntry<2, TupleId> e =
                  (R_TreeLeafEntry<2, TupleId>&)(*node)[j];
-				 Tuple* tuple = rel1->GetTuple(e.info, false);
-		         Region* hole = (Region*)tuple->GetAttribute(VP_HOLE);
-				 float d = hole->Distance(*q);
-				 if(d < l || fabs(d - l) < EPSDIST){
-					 Obs_Obj elem(e.info, d);
-					 myqueue.push(elem);
-				 }
-				 tuple->DeleteIfAllowed();
+         Tuple* tuple = rel1->GetTuple(e.info, false);
+             Region* hole = (Region*)tuple->GetAttribute(VP_HOLE);
+         float d = hole->Distance(*q);
+         if(d < l || fabs(d - l) < EPSDIST){
+           Obs_Obj elem(e.info, d);
+           myqueue.push(elem);
+         }
+         tuple->DeleteIfAllowed();
             }
 
           }else{
@@ -8214,7 +8216,7 @@ void VGraph::GetObstacles(Relation* rel1, R_Tree<2,TupleId>* rtree, Point* q,
             for(int j = 0;j < node->EntryCount();j++){
                 R_TreeInternalEntry<2> e =
                   (R_TreeInternalEntry<2>&)(*node)[j];
-				double d = q->Distance(e.box);
+        double d = q->Distance(e.box);
                 if(d < l || fabs(d - l) < EPSDIST){ 
                     query_list.push(e.pointer);
                 }
@@ -8226,7 +8228,7 @@ void VGraph::GetObstacles(Relation* rel1, R_Tree<2,TupleId>* rtree, Point* q,
     
 }
 
-					
+          
 /*
 create a relation for the vertices of the region with the cycleno
 
@@ -9724,16 +9726,16 @@ void Hole::GetContour(unsigned int no_reg)
     vector<Region> regions;
     SpacePartition* sp = new SpacePartition();
     //////////////////the outer contour/////////////////////////////////
-	const double range = 100000.0;
+  const double range = 100000.0;
     contour.push_back(Point(true,0.0,0.0));
 //    contour.push_back(Point(true,100000.0,0.0));
 //    contour.push_back(Point(true,100000.0,100000.0));
     contour.push_back(Point(true,range,0.0));
     contour.push_back(Point(true,range,range));
-	
+  
 //    contour.push_back(Point(true,0.0,100000.0));
-	contour.push_back(Point(true,0.0,range));
-	
+  contour.push_back(Point(true,0.0,range));
+  
     sp->ComputeRegion(contour,regions);
     regs.push_back(regions[0]);
     ////////////////////////////////////////////////////////
@@ -9743,10 +9745,10 @@ void Hole::GetContour(unsigned int no_reg)
 //    srand48(tval.tv_sec);
 
     unsigned int reg_count = no_reg;
-//	const int delta = 2000;
-	const int delta = 200;
-	const int min_d = 100;
-	
+//  const int delta = 2000;
+  const int delta = 200;
+  const int min_d = 100;
+  
     while(no_reg > 1){
 
 //      int  px = lrand48() % 98700 + 600;
@@ -9754,10 +9756,10 @@ void Hole::GetContour(unsigned int no_reg)
 //      int px = GetRandom() % 98700 + 600;
 //      int py = GetRandom() % 98700 + 600;
 
-//	   int px = GetRandom() % 96000 + 2000;
+//     int px = GetRandom() % 96000 + 2000;
 //     int py = GetRandom() % 96000 + 2000;
 
-	   int px = GetRandom() % 98000 + 500;
+     int px = GetRandom() % 98000 + 500;
        int py = GetRandom() % 98000 + 500;
 
 //      int radius = lrand48() % 496 + 5;//5-500 10-1000
@@ -9787,7 +9789,7 @@ void Hole::GetContour(unsigned int no_reg)
 //          int outer_ps_no =  GetRandom() % 600 + 20;
 
           int outer_ps_no =  GetRandom() % 1000 + 100;
-		  
+      
 //          int outer_ps_no =  GetRandom() % 200 + 20;
 
 //          int outer_ps_no =  radius;///10-200
@@ -9797,7 +9799,7 @@ void Hole::GetContour(unsigned int no_reg)
           int xmin = px - radius;
           int ymin = py - radius;
  
-		  outer_ps->StartBulkLoad();
+      outer_ps->StartBulkLoad();
           vector<Point> temp_ps;
           while(outer_ps_no > 0){
 //            int x =  lrand48() %(2*radius*100);

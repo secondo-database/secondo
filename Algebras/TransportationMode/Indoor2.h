@@ -186,7 +186,7 @@ public :
     {
       return !(*this == p3d);
     }
-    static const string BasicType(){
+    static const std::string BasicType(){
        return "point3d";
     } 
     void Print() const
@@ -217,7 +217,7 @@ bool SavePoint3D(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value);
 bool OpenPoint3D(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value);
-ostream& operator<<(ostream& o, const Point3D& loc); 
+std::ostream& operator<<(std::ostream& o, const Point3D& loc); 
 
 /*
 3D Line 
@@ -300,7 +300,7 @@ class Line3D: public StandardSpatialAttribute<3>
     static void* Cast(void* addr){return (new(addr)Line3D());}
     double Length();
     
-    static const string BasicType(){
+    static const std::string BasicType(){
        return "line3d";
     }
     
@@ -427,7 +427,7 @@ class MPoint3D:public temporalalgebra::Mapping<UPoint3D,Point3D>
     void Add(const UPoint3D& unit); 
     bool EndBulkLoad(const bool sort = true, const bool checkvalid = false);
     void Trajectory(Line3D& l);
-    static const string BasicType(){
+    static const std::string BasicType(){
        return "mpoint3d";
     }
 };

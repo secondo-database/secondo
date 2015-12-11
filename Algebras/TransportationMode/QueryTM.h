@@ -74,10 +74,10 @@ class Mode_RTree;
 
 struct Traj_Mode{
 
-  bitset<ARR_SIZE(str_tm)> modebits;
+  std::bitset<ARR_SIZE(str_tm)> modebits;
 
   Traj_Mode(){}
-  Traj_Mode(bitset<ARR_SIZE(str_tm)> in):modebits(in){
+  Traj_Mode(std::bitset<ARR_SIZE(str_tm)> in):modebits(in){
 
   }
   Traj_Mode(const Traj_Mode& tm):modebits(tm.modebits){}
@@ -114,7 +114,7 @@ struct Seq_Mode{
   }
   bool Status(){return status;}
   inline void Update(double st, double et, int m);
-  inline void CheckStatus(vector<long> seq_tm);
+  inline void CheckStatus(std::vector<long> seq_tm);
   void Print()
   {
       cout<<seq_tm;
@@ -134,75 +134,75 @@ query processing on generic moving objects and data types
 struct QueryTM{
   unsigned int count;
   TupleType* resulttype; 
-  vector<Line> line_list1;
-  vector<Line3D> line3d_list; 
+  std::vector<Line> line_list1;
+  std::vector<Line3D> line3d_list; 
 
-  static string GenmoRelInfo;
+  static std::string GenmoRelInfo;
   enum GenmoRel{GENMO_OID = 0, GENMO_TRIP1, GENMO_TRIP2};
-  static string GenmoUnitsInfo;
+  static std::string GenmoUnitsInfo;
   enum GenmoUnits{GM_TRAJ_ID = 0, GM_BOX, GM_MODE, GM_SUBTRIP, GM_DIV, GM_ID};
-  static string GenmoRangeQuery;
+  static std::string GenmoRangeQuery;
   enum GMORangeQuery{GM_TIME = 0, GM_SPATIAL, GM_Q_MODE};
   
-  static string GenmoUnitsInfoExt;
+  static std::string GenmoUnitsInfoExt;
   enum GenmoUnitsExt{GM_TRAJ_ID_EXT = 0, GM_BOX_EXT, GM_MODE_EXT, GM_REF,
                      GM_SUBTRIP_EXT, GM_ID_EXT};
   
-  static string GenMOBench_Query;
+  static std::string GenMOBench_Query;
   enum GenMOBench_QINFO{BENCH_QID = 0, BENCH_M, BENCH_QT, 
                         BENCH_REFID, BENCH_QPOINT};
   
-  static string GenmoRelExtInfo;
+  static std::string GenmoRelExtInfo;
   enum GenmoRelExt{GENMOEXT_OID = 0, GENMOEXT_TRIP1, GENMOEXT_TRIP2,
                 GENMOEXT_DEF, GENMOEXT_M, GENMOEXT_UNIDEX};
                                 
-  static string QueryTMPathRelInfo;
+  static std::string QueryTMPathRelInfo;
   enum QueryTMPathRel{QTMPath_REGID, QTMPath_BID, QTMPath_GeoData,
                       QTMPath_Path};
                                   
-  static string Bench12FloorRel;
+  static std::string Bench12FloorRel;
   enum Bench12FloorInfo{B_FLOOR_OID = 0};
   
-  static string Bench12BusStopsRel;
+  static std::string Bench12BusStopsRel;
   enum Bench12BusStopInfo{B_STOP_BID = 0, B_STOP_GEO};
   
-  static string GenmoRangeQuery2;
+  static std::string GenmoRangeQuery2;
   enum GMORangeQuery2{GM_RQ2_TRAJ_ID = 0, GM_RQ2_MODE, GM_RQ2_SUBTRIP,
                       GM_RQ2_DIVPOS, GM_RQ2_BOX, GM_RQ2_ID};
   
   QueryTM(){ count = 0; resulttype = NULL;} 
   ~QueryTM(){if(resulttype != NULL) delete resulttype;}
 
-  vector<int> oid_list;
-  vector<temporalalgebra::Periods> time_list;
-  vector<Rectangle<3> > box_list;
-  vector<Rectangle<2> > box_list2;
+  std::vector<int> oid_list;
+  std::vector<temporalalgebra::Periods> time_list;
+  std::vector<Rectangle<3> > box_list;
+  std::vector<Rectangle<2> > box_list2;
   
-  vector<int> tm_list;
-  vector<int> ref_id_list;
-  vector<Point> index_list1;
-  vector<Point> index_list2;
-  vector<unsigned long> mode_list;
+  std::vector<int> tm_list;
+  std::vector<int> ref_id_list;
+  std::vector<Point> index_list1;
+  std::vector<Point> index_list2;
+  std::vector<unsigned long> mode_list;
   
   
-  vector<bool> b_list;
-  vector<string> str_list;
-  vector<int> entry_list;
-  vector<int> level_list;
+  std::vector<bool> b_list;
+  std::vector<std::string> str_list;
+  std::vector<int> entry_list;
+  std::vector<int> level_list;
 
-  vector<GenMO> genmo_list;
-  vector<temporalalgebra::MPoint> mp_list;
-  vector<int> unit_tid_list;//store movement tuple id from filter step
+  std::vector<GenMO> genmo_list;
+  std::vector<temporalalgebra::MPoint> mp_list;
+  std::vector<int> unit_tid_list;//store movement tuple id from filter step
 
-  set<int> res_traj_id;//store trajectory id;
+  std::set<int> res_traj_id;//store trajectory id;
   unsigned int indoor_id_no;
 
   ////////////extension to the previous method//////////////////
-  vector<int> Oid_list;
-  vector<Rectangle<3> > Box_list;
-  vector<int> Tm_list;
-  vector<temporalalgebra::MPoint> Mp_list;
-  vector<int> div_list;
+  std::vector<int> Oid_list;
+  std::vector<Rectangle<3> > Box_list;
+  std::vector<int> Tm_list;
+  std::vector<temporalalgebra::MPoint> Mp_list;
+  std::vector<int> div_list;
   bool mt_type;
   ////////////////////////////////////////////////////////////////////////////
   //////////get 2D line in space or 3D line in a building///////////////////
@@ -264,14 +264,14 @@ struct QueryTM{
   ///////////////////// multile modes ////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////
   void MulMode_Filter1(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
-                      vector<bool> bit_pos, Relation* units_rel);
+                      std::vector<bool> bit_pos, Relation* units_rel);
   void MulMode_Filter2(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
-                      vector<bool> bit_pos, Relation* units_rel);
+                      std::vector<bool> bit_pos, Relation* units_rel);
   void MulMode_Filter3(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
-                      vector<bool> bit_pos, Relation* units_rel);
-  void MulMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos,
+                      std::vector<bool> bit_pos, Relation* units_rel);
+  void MulMode_Refinement(Rectangle<3> query_box, std::vector<bool> bit_pos,
                           Relation* units_rel, int mode_count);
-  int ModeType(string mode, vector<long>& seq_tm);
+  int ModeType(std::string mode, std::vector<long>& seq_tm);
   inline bool CheckMPoint(temporalalgebra::MPoint* mp, int start, int end, 
                           temporalalgebra::Interval<Instant>& time_span,
                           Region* query_reg);
@@ -279,16 +279,16 @@ struct QueryTM{
   /////////////////a sequence of modes /////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////
   void SeqMode_Filter1(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
-                       vector<bool> m_bit_list);
+                       std::vector<bool> m_bit_list);
   void SeqMode_Filter2(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
-                       Relation* units_rel, vector<bool> m_bit_list);
+                       Relation* units_rel, std::vector<bool> m_bit_list);
   void SeqMode_Filter3(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box,
-                       Relation* units_rel, vector<bool> m_bit_list);
+                       Relation* units_rel, std::vector<bool> m_bit_list);
   void SeqMode_Filter4(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
-                      vector<bool> bit_pos, Relation* units_rel);
-  void SeqMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos, 
-                          Relation* units_rel, vector<long> seq_tm,
-                          vector<bool> m_bit_list);
+                      std::vector<bool> bit_pos, Relation* units_rel);
+  void SeqMode_Refinement(Rectangle<3> query_box, std::vector<bool> bit_pos, 
+                          Relation* units_rel, std::vector<long> seq_tm,
+                          std::vector<bool> m_bit_list);
   inline void MakeTMUnit(temporalalgebra::MInt& mp_tm, double st,
                          double et, int m);
   /////////////////////////////////////////////////////////////////////////
@@ -303,24 +303,24 @@ struct QueryTM{
                       int m);
   void Seq_RangeQuery(Relation* rel1, temporalalgebra::Periods* peri,
                       Rectangle<2>* q_box, 
-                      vector<long> seq_tm);
+                      std::vector<long> seq_tm);
 
   bool ContainMode1_Sin(temporalalgebra::MReal* mode_index, int m);
   bool ContainMode1_Mul(temporalalgebra::MReal* mode_index,
-                        vector<bool> bit_pos, int);
+                        std::vector<bool> bit_pos, int);
   
   bool ContainMode2_Sin(temporalalgebra::MReal* mode_index,
                         temporalalgebra::Interval<Instant>& t, int m);
-  void ContainMode2_Mul(map<int, Traj_Mode>& res_traj,
+  void ContainMode2_Mul(std::map<int, Traj_Mode>& res_traj,
                         temporalalgebra::MReal* mode_index, 
                         temporalalgebra::Interval<Instant>& t,
-                        vector<bool> bit_pos, int, int);
+                        std::vector<bool> bit_pos, int, int);
 
-  void ContainMode3_Seq(map<int, Seq_Mode>& res_traj,
+  void ContainMode3_Seq(std::map<int, Seq_Mode>& res_traj,
                         temporalalgebra::MReal* mode_index,
-                        vector<bool> bit_pos,
+                        std::vector<bool> bit_pos,
                         temporalalgebra::Interval<Instant>& t, 
-                        int, vector<long>);
+                        int, std::vector<long>);
   void RangeQuery2(R_Tree<4, TupleId>*, Relation* rel1, Relation* rel2);        
   void Sin_RangeQuery4DRTree(R_Tree<4, TupleId>* rtree, Relation* rel1, 
                temporalalgebra::Periods* peri, Rectangle<2>* q_box,int m);
@@ -329,8 +329,8 @@ struct QueryTM{
                              long m);
   void Seq_RangeQuery4DRTree(R_Tree<4, TupleId>* rtree, Relation* rel1, 
                         temporalalgebra::Periods* peri, Rectangle<2>* q_box,
-                             vector<long>& m_list);
-  inline bool ModeExist(int, vector<int>&);        
+                             std::vector<long>& m_list);
+  inline bool ModeExist(int, std::vector<int>&);        
   /////////////////////////////////////////////////////////////////////
   //////////////////////mode rtree////////////////////////////////////
   ////////////////////////////////////////////////////////////////////
@@ -353,14 +353,15 @@ struct QueryTM{
                                            Relation*, BTree*, Relation*);
   void CollectTaxiMovement2(TM_RTree<3,TupleId>* tmrtree, Relation* rel1, 
                temporalalgebra::Interval<Instant> q_time, Rectangle<2> q_box,
-                                                    set<int>& res_list);
+                                                    std::set<int>& res_list);
   void CollectIndoorMovement(Mode_RTree* modertree, Relation* rel1, 
-           temporalalgebra::Interval<Instant> q_time, vector<int> id_list,
-                        map<int, int>& res_list, Space* sp);        
+           temporalalgebra::Interval<Instant> q_time, std::vector<int> id_list,
+                        std::map<int, int>& res_list, Space* sp);        
   void GenMOBenchQuery13(Mode_RTree*, Relation*, Relation*, Space* sp,
                            Relation*, BTree*, Relation*, Relation*);
   void CollectBikeMovement(TM_RTree<3,TupleId>* tmrtree, Relation* rel1, 
-             temporalalgebra::Interval<Instant> q_time, set<int>& res_list);
+             temporalalgebra::Interval<Instant> q_time, 
+             std::set<int>& res_list);
   void DistanceMPoint( temporalalgebra::MPoint& p1,
                        temporalalgebra::MPoint& p2,
                        temporalalgebra::MReal& result);
@@ -369,20 +370,21 @@ struct QueryTM{
   void CollectIndoorMovement2(Mode_RTree* modertree, Relation* rel1, 
                                         Relation* rel2, Space* sp, 
                                         Relation* rel3, BTree*, 
-                                        Relation* rel4, vector<int>&);        
+                                        Relation* rel4, std::vector<int>&);
   void CollectBusMovement2(TM_RTree<3,TupleId>* tmrtree_bus, 
                                            Relation* rel1, Relation* rel2,
                                                    Space* sp,
                                         Relation* rel_bs1, Relation* rel_bs2, 
-                                                   set<int>& bus_candi);        
-  int EqualToStop(vector<Point> bs_list, Point p);
+                                                   std::set<int>& bus_candi);
+  int EqualToStop(std::vector<Point> bs_list, Point p);
   ///////////////////////////////////////////////////////////////////////
   //////////////// benchmark quries using modertree//////////////////////
   ///////////////////////////////////////////////////////////////////////
-  int GetBusBit(int ref_id, Space* sp, vector<int>& br_id, map<int,int>&);
-  void GetMetroBit(int ref_id, Space* sp, vector<int>& br_id, 
-                                  map<int,int>&, vector<int>&);
-  void BenchQuery5(Mode_RTree* modertree, Relation* rel, string m,
+  int GetBusBit(int ref_id, Space* sp, std::vector<int>& br_id,
+                std::map<int,int>&);
+  void GetMetroBit(int ref_id, Space* sp, std::vector<int>& br_id, 
+                                  std::map<int,int>&, std::vector<int>&);
+  void BenchQuery5(Mode_RTree* modertree, Relation* rel, std::string m,
          temporalalgebra::Interval<Instant> q_time, int q_dur, Space* sp);
   void BenchQuery5_Bus(TM_RTree<3,TupleId>* tmrtree, Relation* rel, 
                        temporalalgebra::Interval<Instant> q_time, 
@@ -396,21 +398,21 @@ struct QueryTM{
                           temporalalgebra::Interval<Instant> q_time, 
                                           int ref_id, 
                                           Space* sp,
-        string m);
+        std::string m);
   void BenchQuery8(Mode_RTree* modertree, Relation* rel, 
         temporalalgebra::Interval<Instant> q_time, Space* sp,Relation* rel2,
                                         Relation* rel3, BTree* genmobtree);
   void BenchQuery10(Mode_RTree* modertree, Relation* rel1,  
                        temporalalgebra::Interval<Instant> q_time, 
                        Relation* rel2, Space* sp);
-  void InsertElem(temporalalgebra::MPoint* mp, multimap<int,
-                  LocRef>&, vector<Point>, int, 
+  void InsertElem(temporalalgebra::MPoint* mp, std::multimap<int,
+                  LocRef>&, std::vector<Point>, int, 
                                   int, double);                
   void BenchQuery11(Mode_RTree* modertree, Relation* rel, 
                   temporalalgebra::Interval<Instant> q_time, Relation* rel2, 
                                         Relation* rel3, 
                 BTree* genmobtree);                                
-  void BenchQuery14(Mode_RTree* modertree, Relation* rel, string m,
+  void BenchQuery14(Mode_RTree* modertree, Relation* rel, std::string m,
                     temporalalgebra::Interval<Instant> q_time, 
                     Relation* rel2, double q_dur);
   void BenchQuery15(Mode_RTree* modertree, Relation* rel, 
@@ -422,10 +424,10 @@ struct QueryTM{
                 Space* sp,Relation* rel2,
                 Relation* rel3, BTree* genmobtree);
 
-  void BenchQuery17(Mode_RTree* modertree, Relation* rel, string m,
+  void BenchQuery17(Mode_RTree* modertree, Relation* rel, std::string m,
                     temporalalgebra::Interval<Instant> q_time, 
                     double q_dur);
-  void BenchQuery18(Mode_RTree* modertree, Relation* rel, string m,
+  void BenchQuery18(Mode_RTree* modertree, Relation* rel, std::string m,
                     temporalalgebra::Interval<Instant> q_time, 
                     Relation* rel2, Space* sp);
 
@@ -437,26 +439,26 @@ struct QueryTM{
                           temporalalgebra::Interval<Instant> q_time, 
                                                       Relation* rel2, 
                                                   Space* sp);
-  int CheckRouteId(int route_ref, vector<int> bus_route_id1, 
-                                   vector<int> bus_route_id2);
+  int CheckRouteId(int route_ref, std::vector<int> bus_route_id1, 
+                                   std::vector<int> bus_route_id2);
   void BenchQuery19(Mode_RTree* modertree, Relation* rel, 
                    temporalalgebra::Interval<Instant> q_time, Relation* rel2,
                     Relation* rel3, BTree* genmobtree);
-  void SetIndoorBit(Mode_RTree* modertree, map<int, int>& bit_map, 
-                Space* sp, vector<int>, Rectangle<2>&);        
+  void SetIndoorBit(Mode_RTree* modertree, std::map<int, int>& bit_map, 
+                Space* sp, std::vector<int>, Rectangle<2>&);        
   void CollectBusMovement(TM_RTree<3,TupleId>* tmrtree, Relation* rel1, 
                           temporalalgebra::Interval<Instant> q_time, 
-               set<int>& res_list);
+               std::set<int>& res_list);
   void CollectMetroMovement(TM_RTree<3,TupleId>* tmrtree, Relation* rel1, 
                        temporalalgebra::Interval<Instant> q_time, 
-                                                 set<int>& res_list);
+                                                 std::set<int>& res_list);
   void CollectTaxiMovement(TM_RTree<3,TupleId>* tmrtree, Relation* rel1, 
                            temporalalgebra::Interval<Instant> q_time, 
-                set<int>& res_list);
+                std::set<int>& res_list);
   void CollectWalkMovement(TM_RTree<3,TupleId>* tmrtree, Relation* rel1, 
                 temporalalgebra::Interval<Instant> q_time, Relation* rel2,
-           vector<int>& res_list);
-  void BenchQuery20(Mode_RTree* modertree, Relation* rel, string m,
+           std::vector<int>& res_list);
+  void BenchQuery20(Mode_RTree* modertree, Relation* rel, std::string m,
        temporalalgebra::Interval<Instant> q_time, int q_dur, Space* sp);
 
   void BenchQuery20_Bus(TM_RTree<3,TupleId>* tmrtree, Relation* rel, 

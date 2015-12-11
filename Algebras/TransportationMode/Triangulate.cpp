@@ -45,6 +45,8 @@ The original implementation is from Atul Narkhede and Dinesh Manocha
 
 #include "Triangulate.h"
 
+using namespace std;
+
 
 static int choose_idx;
 static int permute[SEGSIZE];

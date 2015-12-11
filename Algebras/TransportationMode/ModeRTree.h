@@ -65,77 +65,77 @@ a set of tmrtrees, each is responsible for movements with one mode
 
 */
 class Mode_RTree{
-  	SmiFileId m_list[MAXMODE];
-	TM_RTree<3,TupleId>* m_trees[MAXMODE];
-	
+    SmiFileId m_list[MAXMODE];
+  TM_RTree<3,TupleId>* m_trees[MAXMODE];
+  
   public:
 /*
 The first constructor. Creates an empty R-tree.
 
 */
     Mode_RTree();
-	~Mode_RTree();
-	inline static const string BasicType(){
+  ~Mode_RTree();
+  inline static const std::string BasicType(){
         return "modertree";
     }
     inline SmiFileId GetFileId(unsigned int i){
-	  if(0 <= i && i < MAXMODE){
-		return m_list[i];
-	  }else{
-		cout<<"illegal entry id"<<endl;
-//		assert(false);
-		return 0;
-	  }
-	}
+    if(0 <= i && i < MAXMODE){
+    return m_list[i];
+    }else{
+    cout<<"illegal entry id"<<endl;
+//    assert(false);
+    return 0;
+    }
+  }
     void SetFileId(unsigned int i, SmiFileId fileid)
     {
-//	  cout<<"setfile id "<<endl;
-	  assert(0 <= fileid);
-	  if(0 <= i && i < MAXMODE){
-		  m_list[i] = fileid;
-		  ///////initialize the pointer to tmrtree
-		  if(fileid == 0){
-		  
-		  }else{
-			  ///////// open the tree structure //////////////////
-			  m_trees[i] = new TM_RTree<3,TupleId>(fileid);
-// 			  cout<<"RootID "<<m_trees[i]->RootRecordId()
-// 			      <<" Box "<<m_trees[i]->BoundingBox()
-// 			      <<" EntryCount "<<m_trees[i]->EntryCount()
-// 			      <<" NodeCount "<<m_trees[i]->NodeCount()<<endl;
-		  }
-	  }
-	
-	}
-	inline int TreeCount()
-	{
-	  int count = 0;
-	  for(unsigned int i = 0;i < MAXMODE;i++){
-		if(m_list[i] > 0) count++;
-	  }
-	  return count;
-	}
-	void CloseTree();
-	void DeleteTree();
+//    cout<<"setfile id "<<endl;
+    assert(0 <= fileid);
+    if(0 <= i && i < MAXMODE){
+      m_list[i] = fileid;
+      ///////initialize the pointer to tmrtree
+      if(fileid == 0){
+      
+      }else{
+        ///////// open the tree structure //////////////////
+        m_trees[i] = new TM_RTree<3,TupleId>(fileid);
+//         cout<<"RootID "<<m_trees[i]->RootRecordId()
+//             <<" Box "<<m_trees[i]->BoundingBox()
+//             <<" EntryCount "<<m_trees[i]->EntryCount()
+//             <<" NodeCount "<<m_trees[i]->NodeCount()<<endl;
+      }
+    }
+  
+  }
+  inline int TreeCount()
+  {
+    int count = 0;
+    for(unsigned int i = 0;i < MAXMODE;i++){
+    if(m_list[i] > 0) count++;
+    }
+    return count;
+  }
+  void CloseTree();
+  void DeleteTree();
     bool InitializeBulkLoad(const bool &leafSkipping = BULKLOAD_LEAF_SKIPPING);
-	bool FinalizeBulkLoad();
-	void BulkLoad(const R_TreeEntry<3>& entry, int, int);
-	bool CalculateRef(Relation*, int, Space*);
-	TM_RTree<3,TupleId>* SubTree(int m);
-	int ModeBitPosition(int min, int counter, int cur);
-	void UpdateBusTree(TM_RTree<3,TupleId>* tm_rtre, Relation* rel,
-				       int attr_pos, Space* sp);
-	long CalculateNodeRef(TM_RTree<3,TupleId>* tm_rtree,
-			  SmiRecordId node_id, Relation* rel,
-			  int attr_pos, map<int,int>& trip_bit_ref);
-	void UpdateMetroTree(TM_RTree<3,TupleId>* tm_rtre, Relation* rel,
-				       int attr_pos, Space* sp);
-	void UpdateRoadTree(TM_RTree<3,TupleId>* tm_rtre, Relation* rel,
-				       int attr_pos, Space* sp);
-	void UpdateWalkTree(TM_RTree<3,TupleId>* tm_rtre, Relation* rel,
-				       int attr_pos, Space* sp);
-	void UpdateIndoorTree(TM_RTree<3,TupleId>* tm_rtre, Relation* rel,
-				       int attr_pos, Space* sp);
+  bool FinalizeBulkLoad();
+  void BulkLoad(const R_TreeEntry<3>& entry, int, int);
+  bool CalculateRef(Relation*, int, Space*);
+  TM_RTree<3,TupleId>* SubTree(int m);
+  int ModeBitPosition(int min, int counter, int cur);
+  void UpdateBusTree(TM_RTree<3,TupleId>* tm_rtre, Relation* rel,
+               int attr_pos, Space* sp);
+  long CalculateNodeRef(TM_RTree<3,TupleId>* tm_rtree,
+        SmiRecordId node_id, Relation* rel,
+        int attr_pos, std::map<int,int>& trip_bit_ref);
+  void UpdateMetroTree(TM_RTree<3,TupleId>* tm_rtre, Relation* rel,
+               int attr_pos, Space* sp);
+  void UpdateRoadTree(TM_RTree<3,TupleId>* tm_rtre, Relation* rel,
+               int attr_pos, Space* sp);
+  void UpdateWalkTree(TM_RTree<3,TupleId>* tm_rtre, Relation* rel,
+               int attr_pos, Space* sp);
+  void UpdateIndoorTree(TM_RTree<3,TupleId>* tm_rtre, Relation* rel,
+               int attr_pos, Space* sp);
 };
 
 int SizeOfModeRTree();
@@ -167,9 +167,9 @@ struct Obj_Dur{
   Obj_Dur(const Obj_Dur& obj):min(obj.min),status(obj.status){}
   Obj_Dur& operator=(const Obj_Dur& obj)
   {
-	min = obj.min;
-	status = obj.status;
-	return *this;
+  min = obj.min;
+  status = obj.status;
+  return *this;
   }
   void Add(double m){ min += m;}
   double GetMin(){return min;}
@@ -186,24 +186,24 @@ struct Q_ModeRtree{
   ~Q_ModeRtree(){if(resulttype != NULL) delete resulttype;}
   
   
-  vector<int> oid_list;  
-  vector<int> level_list;
-  vector<int> ref_list1;
-  vector<int> ref_list2;
-  vector<int> bit_pos_list;
+  std::vector<int> oid_list;  
+  std::vector<int> level_list;
+  std::vector<int> ref_list1;
+  std::vector<int> ref_list2;
+  std::vector<int> bit_pos_list;
   
   void PrintSubTree(Mode_RTree*, int, Space*);
   void PrintBusTree(Mode_RTree* m_rtree, int m, Space* sp);
-  void InitBitRef_Bus(map<int, EntryItem>& bit_ref, Space* sp);
+  void InitBitRef_Bus(std::map<int, EntryItem>& bit_ref, Space* sp);
   void GetNodes(TM_RTree<3,TupleId>* tmrtree, SmiRecordId node_id, 
-				int level, map<int, EntryItem> bit_ref);
+        int level, std::map<int, EntryItem> bit_ref);
   void GetNodes2(TM_RTree<3,TupleId>* tmrtree, SmiRecordId node_id, int level);
   
   void PrintMetroTree(Mode_RTree* m_rtree, int m, Space* sp);
-  void InitBitRef_Metro(map<int, EntryItem>& bit_ref, Space* sp);
+  void InitBitRef_Metro(std::map<int, EntryItem>& bit_ref, Space* sp);
   void PrintRoadTree(Mode_RTree* m_rtree, int m, Space* sp);
   void PrintWalkTree(Mode_RTree* m_rtree, int m, Space* sp);
   void PrintIndoorTree(Mode_RTree* m_rtree, int m, Space* sp);
-  void InitBitRef_Road(map<int, EntryItem>& bit_ref, Space* sp);
+  void InitBitRef_Road(std::map<int, EntryItem>& bit_ref, Space* sp);
 };
 #endif

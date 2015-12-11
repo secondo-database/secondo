@@ -63,6 +63,9 @@ extern NestedList* nl;
 extern QueryProcessor *qp;
 
 using namespace temporalalgebra;
+using namespace std;
+using namespace network;
+using namespace datetime;
 
 double TM_DiffTimeb(struct timeb* t1, struct timeb* t2)
 {
@@ -1913,7 +1916,7 @@ int TMATGlocValueMap(Word* args, Word& result, int message,
   switch(message){
       case OPEN:{
         GenMO* genmo = (GenMO*)args[0].addr;
-		GenLoc* genloc = (GenLoc*)args[1].addr;
+    GenLoc* genloc = (GenLoc*)args[1].addr;
         mo = new GenMObject();
         mo->GetAtGloc(genmo, genloc);
         local.setAddr(mo);
@@ -3554,20 +3557,20 @@ int GetInfraValueMap(Word* args, Word& result, int message,
 //  output<<"ID "<<"Area "<<"X "<<"Y "<<"Type "<<endl;
 //  for(int i = 1;i <= building->GetNoTuples();i++){
   for(int i = 1;i <= 30;i++){
-	Tuple* tuple = building->GetTuple(i, false);
-/	int b_id = 
+  Tuple* tuple = building->GetTuple(i, false);
+/  int b_id = 
 // ((CcInt*)tuple->GetAttribute(IndoorInfra::INDOORIF_BUILD_ID))->GetIntval();
-	string str = 
+  string str = 
 ((CcString*)tuple->GetAttribute(IndoorInfra::INDOORIF_BUILD_TYPE2))->GetValue();
-	Rectangle<2>* rect = 
-		(Rectangle<2>*)tuple->GetAttribute(IndoorInfra::INDOORIF_GEODATA);
-	float area = rect->Area();
-	double x = (rect->MinD(0) + rect->MaxD(0))/2;
-	double y = (rect->MinD(1) + rect->MaxD(1))/2;
-	Point loc(true, x, y);
-	output<<i<<" "<<area<<" "<<x<<" "<<y<<" "<<str<<endl;
-//	cout<<b_id<<" "<<area<<" "<<x<<" "<<y<<" "<<str<<endl;
-	tuple->DeleteIfAllowed();
+  Rectangle<2>* rect = 
+    (Rectangle<2>*)tuple->GetAttribute(IndoorInfra::INDOORIF_GEODATA);
+  float area = rect->Area();
+  double x = (rect->MinD(0) + rect->MaxD(0))/2;
+  double y = (rect->MinD(1) + rect->MaxD(1))/2;
+  Point loc(true, x, y);
+  output<<i<<" "<<area<<" "<<x<<" "<<y<<" "<<str<<endl;
+//  cout<<b_id<<" "<<area<<" "<<x<<" "<<y<<" "<<str<<endl;
+  tuple->DeleteIfAllowed();
   }*/
   
   /////////////////////////////////////////////////////////////
@@ -9059,7 +9062,7 @@ ListExpr CreateModeRtreeTypeMap ( ListExpr args )
              nl->IntAtom(attrIndex1),
              nl->IntAtom(attrIndex2),
              nl->IntAtom(attrIndex3),
-			 nl->IntAtom(attrIndex4)),
+       nl->IntAtom(attrIndex4)),
           nl->SymbolAtom("modertree"));
     return res;
 
@@ -9079,7 +9082,7 @@ ListExpr ModeRtreeRefTypeMap ( ListExpr args )
   
   ListExpr arg1 = nl->First(args);
   if(!(nl->IsAtom(arg1) && nl->IsEqual(arg1, "modertree"))){
-	return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom("typeerror");
   }
 
 
@@ -9104,7 +9107,7 @@ ListExpr ModeRtreeRefTypeMap ( ListExpr args )
   
   ListExpr param4 = nl->Fourth(args);
   if(!(nl->IsAtom(param4) && nl->IsEqual(param4, "space"))){
-	return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom("typeerror");
   }
  
      ListExpr res =
@@ -9139,7 +9142,7 @@ ListExpr BenchModeRtreeTypeMap ( ListExpr args )
   
   ListExpr arg1 = nl->First(args);
   if(!(nl->IsAtom(arg1) && nl->IsEqual(arg1, "modertree"))){
-	return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom("typeerror");
   }
 
 
@@ -9168,7 +9171,7 @@ ListExpr BenchModeRtreeTypeMap ( ListExpr args )
  
   ListExpr arg5 = nl->Fifth(args);
   if(!IsRelDescription(arg5))
-	  return listutils::typeError("param5 should be a relation");
+    return listutils::typeError("param5 should be a relation");
   
   ListExpr xType1;
   nl->ReadFromString(QueryTM::GenmoRelExtInfo, xType1);
@@ -9212,7 +9215,7 @@ ListExpr BenchModeRtree9TypeMap ( ListExpr args )
   
   ListExpr arg1 = nl->First(args);
   if(!(nl->IsAtom(arg1) && nl->IsEqual(arg1, "modertree"))){
-	return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom("typeerror");
   }
 
 
@@ -9241,7 +9244,7 @@ ListExpr BenchModeRtree9TypeMap ( ListExpr args )
  
   ListExpr arg5 = nl->Fifth(args);
   if(!IsRelDescription(arg5))
-	  return listutils::typeError("param5 should be a relation");
+    return listutils::typeError("param5 should be a relation");
   
   ListExpr xType1;
   nl->ReadFromString(QueryTM::GenmoRelExtInfo, xType1);
@@ -9255,7 +9258,7 @@ ListExpr BenchModeRtree9TypeMap ( ListExpr args )
   
   ListExpr arg7 = nl->Nth(7, args);
   if(!IsRelDescription(arg7))
-	  return listutils::typeError("param7 should be a relation");
+    return listutils::typeError("param7 should be a relation");
   
   ListExpr xType3;
   nl->ReadFromString(QueryTM::QueryTMPathRelInfo, xType3);
@@ -9295,7 +9298,7 @@ ListExpr BenchModeRtree13TypeMap ( ListExpr args )
   
   ListExpr arg1 = nl->First(args);
   if(!(nl->IsAtom(arg1) && nl->IsEqual(arg1, "modertree"))){
-	return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom("typeerror");
   }
 
 
@@ -9324,7 +9327,7 @@ ListExpr BenchModeRtree13TypeMap ( ListExpr args )
  
   ListExpr arg5 = nl->Fifth(args);
   if(!IsRelDescription(arg5))
-	  return listutils::typeError("param5 should be a relation");
+    return listutils::typeError("param5 should be a relation");
   
   ListExpr xType1;
   nl->ReadFromString(QueryTM::GenmoRelExtInfo, xType1);
@@ -9338,18 +9341,18 @@ ListExpr BenchModeRtree13TypeMap ( ListExpr args )
   
   ListExpr arg7 = nl->Nth(7, args);
   if(!IsRelDescription(arg7))
-	  return listutils::typeError("param7 should be a relation");
+    return listutils::typeError("param7 should be a relation");
   
   ListExpr xType3;
   nl->ReadFromString(GenMObject::RoadSegment2, xType3);
   if(!CompareSchemas(arg7, xType3)){
   //  return nl->SymbolAtom ( "rel4 should be" + GenMObject::RoadSegment);
-	  return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom("typeerror");
   }
   
   ListExpr arg8 = nl->Nth(8, args);
   if(!IsRelDescription(arg8))
-	  return listutils::typeError("param8 should be a relation");
+    return listutils::typeError("param8 should be a relation");
   
   ListExpr xType4;
   nl->ReadFromString(GenMObject::BusTrip_Info, xType4);
@@ -9387,7 +9390,7 @@ ListExpr BenchModeRtree12TypeMap ( ListExpr args )
   
   ListExpr arg1 = nl->First(args);
   if(!(nl->IsAtom(arg1) && nl->IsEqual(arg1, "modertree"))){
-	return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom("typeerror");
   }
 
 
@@ -9416,7 +9419,7 @@ ListExpr BenchModeRtree12TypeMap ( ListExpr args )
  
   ListExpr arg5 = nl->Fifth(args);
   if(!IsRelDescription(arg5))
-	  return listutils::typeError("param5 should be a relation");
+    return listutils::typeError("param5 should be a relation");
   
   ListExpr xType1;
   nl->ReadFromString(QueryTM::GenmoRelExtInfo, xType1);
@@ -9430,18 +9433,18 @@ ListExpr BenchModeRtree12TypeMap ( ListExpr args )
   
   ListExpr arg7 = nl->Nth(7, args);
   if(!IsRelDescription(arg7))
-	  return listutils::typeError("param7 should be a relation");
+    return listutils::typeError("param7 should be a relation");
   
   ListExpr xType3;
   nl->ReadFromString(QueryTM::Bench12FloorRel, xType3);
   if(!CompareSchemas(arg7, xType3)){
 
-	  return nl->SymbolAtom("type error");
+    return nl->SymbolAtom("type error");
   }
   
   ListExpr arg8 = nl->Nth(8, args);
   if(!IsRelDescription(arg8))
-	  return listutils::typeError("param8 should be a relation");
+    return listutils::typeError("param8 should be a relation");
   
   ListExpr xType4;
   nl->ReadFromString(QueryTM::Bench12BusStopsRel, xType4);
@@ -9450,7 +9453,7 @@ ListExpr BenchModeRtree12TypeMap ( ListExpr args )
   
   ListExpr arg9 = nl->Nth(9, args);
   if(!IsRelDescription(arg9))
-	  return listutils::typeError("param8 should be a relation");
+    return listutils::typeError("param8 should be a relation");
   
   ListExpr xType5;
   nl->ReadFromString(QueryTM::Bench12BusStopsRel, xType5);
@@ -9846,7 +9849,7 @@ int OpTMUnionPolymap ( Word* args, Word& result, int message,
   switch(message){
       case OPEN:{
         Relation* rel1 = (Relation*)args[0].addr;
-		Relation* rel2 = (Relation*)args[2].addr;
+    Relation* rel2 = (Relation*)args[2].addr;
 
         int attr_pos1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
         int attr_pos2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
@@ -9868,11 +9871,11 @@ int OpTMUnionPolymap ( Word* args, Word& result, int message,
                           return CANCEL;
           Tuple* tuple = new Tuple(l_partition->resulttype);
 
-/* 		  tuple->PutAttribute(0,
+/*       tuple->PutAttribute(0,
                 new CcInt(true, l_partition->junid1[l_partition->count]));*/
            tuple->PutAttribute(0,
                 new Region(l_partition->outer_regions1[l_partition->count]));
-//  		  tuple->PutAttribute(1,
+//        tuple->PutAttribute(1,
 //                 new CcInt(true, l_partition->junid2[l_partition->count]));
 
           result.setAddr(tuple);
@@ -11386,7 +11389,7 @@ int OpTMGetVNodeValueMap ( Word* args, Word& result, int message,
         vg->rel4 = (Relation*)args[4].addr;
         vg->btree = (BTree*)args[5].addr;
         vg->tri_access = 0;
-		vg->spatial_l = false;//a spatial range
+    vg->spatial_l = false;//a spatial range
         vg->GetVNode();
 //        cout<<vg->tri_access<<" triangles visited "<<endl;
         local.setAddr(vg);
@@ -11443,8 +11446,8 @@ int OpTMGetVNode2ValueMap ( Word* args, Word& result, int message,
         Relation* r1 = (Relation*)args[1].addr;
         Relation* r2 = (Relation*)args[2].addr;
         Relation* r3 = (Relation*)args[3].addr;
-		float l = ((CcReal*)args[6].addr)->GetRealval();
-		  
+    float l = ((CcReal*)args[6].addr)->GetRealval();
+      
         vg = new VGraph(dg, r1, r2, r3);
         vg->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
@@ -11452,7 +11455,7 @@ int OpTMGetVNode2ValueMap ( Word* args, Word& result, int message,
         vg->btree = (BTree*)args[5].addr;
         vg->tri_access = 0;
         vg->spatial_l = true;//a spatial range
-		
+    
         vg->GetVNode2(l);
 //        cout<<vg->tri_access<<" triangles visited "<<endl;
         local.setAddr(vg);
@@ -11502,9 +11505,9 @@ int OpTMGetVNode3ValueMap ( Word* args, Word& result, int message,
         Relation* r1 = (Relation*)args[1].addr;
         Relation* r2 = (Relation*)args[2].addr;
         Relation* r3 = (Relation*)args[3].addr;
-		float angle1 = ((CcReal*)args[6].addr)->GetRealval();
-		float angle2 = ((CcReal*)args[7].addr)->GetRealval();
-		  
+    float angle1 = ((CcReal*)args[6].addr)->GetRealval();
+    float angle2 = ((CcReal*)args[7].addr)->GetRealval();
+      
         vg = new VGraph(dg, r1, r2, r3);
         vg->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
@@ -11512,7 +11515,7 @@ int OpTMGetVNode3ValueMap ( Word* args, Word& result, int message,
         vg->btree = (BTree*)args[5].addr;
         vg->tri_access = 0;
         vg->spatial_l = false;//a spatial range
-		
+    
         vg->GetVNode3(angle1, angle2);
 //        cout<<vg->tri_access<<" triangles visited "<<endl;
         local.setAddr(vg);
@@ -11561,7 +11564,7 @@ int OpTMVPRangeValueMap ( Word* args, Word& result, int message,
         Relation* r1 = (Relation*)args[0].addr;
         R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[1].addr;
         Relation* r2 = (Relation*)args[2].addr;
-		float radius = ((CcReal*)args[3].addr)->GetRealval();
+    float radius = ((CcReal*)args[3].addr)->GetRealval();
 
         vg = new VGraph();
         vg->resulttype =
@@ -11588,15 +11591,15 @@ int OpTMVPRangeValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(1, new Line(vg->line[vg->count]));*/
 
 /*        tuple->PutAttribute(0, new CcInt(true, vg->oids1[vg->count]));
-		  tuple->PutAttribute(1, 
-  							  new CcBool(true, vg->clockwise_list[vg->count])); 
+      tuple->PutAttribute(1, 
+                  new CcBool(true, vg->clockwise_list[vg->count])); 
           tuple->PutAttribute(2, new Region(vg->regs[vg->count]));*/
 
           tuple->PutAttribute(0, new Point(vg->p_list[vg->count]));
           tuple->PutAttribute(1, new Point(vg->p_neighbor1[vg->count]));
           tuple->PutAttribute(2, new Point(vg->p_neighbor2[vg->count]));
           tuple->PutAttribute(3, new CcInt(true, vg->oids1[vg->count]));
-		  
+      
           result.setAddr(tuple);
           vg->count++;
           return YIELD;
@@ -12174,9 +12177,9 @@ int OpTMRotationSweep2ValueMap( Word* args, Word& result, int message,
         Relation* r2 = (Relation*)args[1].addr;
         Rectangle<2>* rect = (Rectangle<2>*)args[2].addr;
         Relation* r3 = (Relation*)args[3].addr;
-		float angle1  = ((CcReal*)args[5].addr)->GetRealval();
-		float angle2  = ((CcReal*)args[6].addr)->GetRealval();
-		
+    float angle1  = ((CcReal*)args[5].addr)->GetRealval();
+    float angle2  = ((CcReal*)args[6].addr)->GetRealval();
+    
         int attr_pos = ((CcInt*)args[7].addr)->GetIntval() - 1;
 
         ct = new CompTriangle();
@@ -16855,7 +16858,7 @@ int TMRangeQuery2ValueMap ( Word* args, Word& result, int message,
   switch(message){
       case OPEN:{
 
-		R_Tree<4, TupleId>* rtree = (R_Tree<4, TupleId>*)args[0].addr;
+    R_Tree<4, TupleId>* rtree = (R_Tree<4, TupleId>*)args[0].addr;
         Relation* rel1 = (Relation*)args[1].addr;
         Relation* rel2 = (Relation*)args[2].addr;
 
@@ -16906,13 +16909,13 @@ int OpDecomposeGenmo2ValueMap ( Word* args, Word& result, int message,
 
         Relation* rel = (Relation*)args[0].addr;
         double l = ((CcReal*)args[1].addr)->GetRealval();
-		Space* sp = (Space*)args[2].addr;
+    Space* sp = (Space*)args[2].addr;
 
         query_tm = new QueryTM(); 
         query_tm->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-	    query_tm->indoor_id_no = 0;
+      query_tm->indoor_id_no = 0;
         query_tm->DecomposeGenmo2(rel, l, sp);
 
         local.setAddr(query_tm);
@@ -16999,8 +17002,8 @@ int CreateModeRtreeValueMap( Word* args, Word& result, int message,
 
     Rectangle<3>* box = (Rectangle<3>*)tuple->GetAttribute(attrIndex1);
     int m = ((CcInt*)tuple->GetAttribute(attrIndex2))->GetIntval();
-	int ref_id = ((CcInt*)tuple->GetAttribute(attrIndex3))->GetIntval();
-//	cout<<GetTMStrExt(m)<<" refid "<<ref_id<<endl;
+  int ref_id = ((CcInt*)tuple->GetAttribute(attrIndex3))->GetIntval();
+//  cout<<GetTMStrExt(m)<<" refid "<<ref_id<<endl;
 
 //    cout<<*box<<" "<<m<<endl;
     if(last_m < 0) last_m = m;
@@ -17011,7 +17014,7 @@ int CreateModeRtreeValueMap( Word* args, Word& result, int message,
                  ((TupleIdentifier *)tuple->
                      GetAttribute(tidIndex))->GetTid() );
 
-	  modertree->BulkLoad(e, m, ref_id);
+    modertree->BulkLoad(e, m, ref_id);
 //       tmrtree->TM_BulkLoad(e, m, last_m);
 //       tmrtree->BulkLoad(e);
 
@@ -17054,7 +17057,7 @@ int ModeRtreeRefValueMap ( Word* args, Word& result, int message,
             Mode_RTree* mrtree = (Mode_RTree*)args[0].addr;
             Relation* rel = (Relation*)args[1].addr;
             int attr_pos = ((CcInt*)args[4].addr)->GetIntval() - 1;
-		    Space* sp = (Space*)args[3].addr;
+        Space* sp = (Space*)args[3].addr;
             bool res = mrtree->CalculateRef(rel, attr_pos, sp);
             Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
             t->PutAttribute(0, new CcBool(true, res));
@@ -17087,9 +17090,9 @@ int PrintModeRtreeValueMap ( Word* args, Word& result, int message,
 
   switch(message){
       case OPEN:{
-		Mode_RTree* mtree = (Mode_RTree*)args[0].addr;
-		string type = ((CcString*)args[1].addr)->GetValue(); 
-		Space* sp = (Space*)args[2].addr;
+    Mode_RTree* mtree = (Mode_RTree*)args[0].addr;
+    string type = ((CcString*)args[1].addr)->GetValue(); 
+    Space* sp = (Space*)args[2].addr;
         int m = GetTM(type);
 
         q_mtree = new Q_ModeRtree(); 
@@ -17114,9 +17117,9 @@ int PrintModeRtreeValueMap ( Word* args, Word& result, int message,
                  new CcInt(true, q_mtree->ref_list1[q_mtree->count]));
           tuple->PutAttribute(3, 
                  new CcInt(true, q_mtree->ref_list2[q_mtree->count]));
-		  tuple->PutAttribute(4,
-		        new CcInt(true, q_mtree->bit_pos_list[q_mtree->count]));
-		  result.setAddr(tuple);
+      tuple->PutAttribute(4,
+            new CcInt(true, q_mtree->bit_pos_list[q_mtree->count]));
+      result.setAddr(tuple);
           q_mtree->count++;
           return YIELD;
       }
@@ -17144,29 +17147,29 @@ int BenchModeRtreeValueMap ( Word* args, Word& result, int message,
   QueryTM* query_tm;
   switch(message){
       case OPEN:{
-		Mode_RTree* mrtree = (Mode_RTree*)args[0].addr;
+    Mode_RTree* mrtree = (Mode_RTree*)args[0].addr;
         Relation* rel1 = (Relation*)args[1].addr;
         Relation* rel2 = (Relation*)args[2].addr;
-		Space* sp = (Space*)args[3].addr;	
-		Relation* rel3 = (Relation*)args[4].addr;
-		BTree* btree = (BTree*)args[5].addr;
+    Space* sp = (Space*)args[3].addr;  
+    Relation* rel3 = (Relation*)args[4].addr;
+    BTree* btree = (BTree*)args[5].addr;
         query_tm = new QueryTM(); 
         query_tm->resulttype = new TupleType(nl->Second(GetTupleResultType(s)));
-		query_tm->GenMOBenchQuery(mrtree, rel1, rel2, sp, rel3, btree);
+    query_tm->GenMOBenchQuery(mrtree, rel1, rel2, sp, rel3, btree);
         local.setAddr(query_tm);
         return 0;
       }
       case REQUEST:{
-		  if(local.addr == NULL) return CANCEL;
-		  query_tm = (QueryTM*)local.addr;
-		  if(query_tm->count == query_tm->oid_list.size())return CANCEL;
+      if(local.addr == NULL) return CANCEL;
+      query_tm = (QueryTM*)local.addr;
+      if(query_tm->count == query_tm->oid_list.size())return CANCEL;
             Tuple* tuple = new Tuple(query_tm->resulttype);
              tuple->PutAttribute(0, 
                         new CcInt(true, query_tm->oid_list[query_tm->count]));
 //           tuple->PutAttribute(0, 
 //                     new Rectangle<2>(query_tm->box_list2[query_tm->count]));
 
-			result.setAddr(tuple);
+      result.setAddr(tuple);
             query_tm->count++;
             return YIELD;
 
@@ -17195,24 +17198,24 @@ int BenchModeRtree9ValueMap ( Word* args, Word& result, int message,
   QueryTM* query_tm;
   switch(message){
       case OPEN:{
-		Mode_RTree* mrtree = (Mode_RTree*)args[0].addr;
+    Mode_RTree* mrtree = (Mode_RTree*)args[0].addr;
         Relation* rel1 = (Relation*)args[1].addr;
         Relation* rel2 = (Relation*)args[2].addr;
-		Space* sp = (Space*)args[3].addr;	
-		Relation* rel3 = (Relation*)args[4].addr;
-		BTree* btree = (BTree*)args[5].addr;
-		Relation* rel4 = (Relation*)args[6].addr;
+    Space* sp = (Space*)args[3].addr;  
+    Relation* rel3 = (Relation*)args[4].addr;
+    BTree* btree = (BTree*)args[5].addr;
+    Relation* rel4 = (Relation*)args[6].addr;
         query_tm = new QueryTM(); 
         query_tm->resulttype = new TupleType(nl->Second(GetTupleResultType(s)));
-		query_tm->GenMOBenchQuery9(mrtree, rel1, rel2, sp, 
-							rel3, btree, rel4);
+    query_tm->GenMOBenchQuery9(mrtree, rel1, rel2, sp, 
+              rel3, btree, rel4);
         local.setAddr(query_tm);
         return 0;
       }
       case REQUEST:{
-		  if(local.addr == NULL) return CANCEL;
-		  query_tm = (QueryTM*)local.addr;
-		  if(query_tm->count == query_tm->oid_list.size())return CANCEL;
+      if(local.addr == NULL) return CANCEL;
+      query_tm = (QueryTM*)local.addr;
+      if(query_tm->count == query_tm->oid_list.size())return CANCEL;
 
             Tuple* tuple = new Tuple(query_tm->resulttype);
              tuple->PutAttribute(0, 
@@ -17220,7 +17223,7 @@ int BenchModeRtree9ValueMap ( Word* args, Word& result, int message,
 //           tuple->PutAttribute(0, 
 //                     new Rectangle<2>(query_tm->box_list2[query_tm->count]));
 
-			result.setAddr(tuple);
+      result.setAddr(tuple);
             query_tm->count++;
             return YIELD;
 
@@ -17249,27 +17252,27 @@ int BenchModeRtree12ValueMap ( Word* args, Word& result, int message,
   QueryTM* query_tm;
   switch(message){
       case OPEN:{
-		Mode_RTree* mrtree = (Mode_RTree*)args[0].addr;
+    Mode_RTree* mrtree = (Mode_RTree*)args[0].addr;
         Relation* rel1 = (Relation*)args[1].addr;
         Relation* rel2 = (Relation*)args[2].addr;
-		Space* sp = (Space*)args[3].addr;	
-		Relation* rel3 = (Relation*)args[4].addr;
-		BTree* btree = (BTree*)args[5].addr;
-		Relation* rel4 = (Relation*)args[6].addr;
-		Relation* rel5 = (Relation*)args[7].addr;
-		Relation* rel6 = (Relation*)args[8].addr;
-		
+    Space* sp = (Space*)args[3].addr;  
+    Relation* rel3 = (Relation*)args[4].addr;
+    BTree* btree = (BTree*)args[5].addr;
+    Relation* rel4 = (Relation*)args[6].addr;
+    Relation* rel5 = (Relation*)args[7].addr;
+    Relation* rel6 = (Relation*)args[8].addr;
+    
         query_tm = new QueryTM(); 
         query_tm->resulttype = new TupleType(nl->Second(GetTupleResultType(s)));
-		query_tm->GenMOBenchQuery12(mrtree, rel1, rel2, sp, rel3, 
-						btree, rel4, rel5, rel6);
+    query_tm->GenMOBenchQuery12(mrtree, rel1, rel2, sp, rel3, 
+            btree, rel4, rel5, rel6);
         local.setAddr(query_tm);
         return 0;
       }
       case REQUEST:{
-		  if(local.addr == NULL) return CANCEL;
-		  query_tm = (QueryTM*)local.addr;
-		  if(query_tm->count == query_tm->oid_list.size())return CANCEL;
+      if(local.addr == NULL) return CANCEL;
+      query_tm = (QueryTM*)local.addr;
+      if(query_tm->count == query_tm->oid_list.size())return CANCEL;
 
             Tuple* tuple = new Tuple(query_tm->resulttype);
              tuple->PutAttribute(0, 
@@ -17277,7 +17280,7 @@ int BenchModeRtree12ValueMap ( Word* args, Word& result, int message,
 //           tuple->PutAttribute(0, 
 //                     new Rectangle<2>(query_tm->box_list2[query_tm->count]));
 
-			result.setAddr(tuple);
+      result.setAddr(tuple);
             query_tm->count++;
             return YIELD;
 
@@ -17306,32 +17309,32 @@ int BenchModeRtree13ValueMap ( Word* args, Word& result, int message,
   QueryTM* query_tm;
   switch(message){
       case OPEN:{
-		Mode_RTree* mrtree = (Mode_RTree*)args[0].addr;
+    Mode_RTree* mrtree = (Mode_RTree*)args[0].addr;
         Relation* rel1 = (Relation*)args[1].addr;
         Relation* rel2 = (Relation*)args[2].addr;
-		Space* sp = (Space*)args[3].addr;	
-		Relation* rel3 = (Relation*)args[4].addr;
-		BTree* btree = (BTree*)args[5].addr;
-		Relation* rel4 = (Relation*)args[6].addr;
-		Relation* rel5 = (Relation*)args[7].addr;
+    Space* sp = (Space*)args[3].addr;  
+    Relation* rel3 = (Relation*)args[4].addr;
+    BTree* btree = (BTree*)args[5].addr;
+    Relation* rel4 = (Relation*)args[6].addr;
+    Relation* rel5 = (Relation*)args[7].addr;
         query_tm = new QueryTM(); 
         query_tm->resulttype = new TupleType(nl->Second(GetTupleResultType(s)));
-		query_tm->GenMOBenchQuery13(mrtree, rel1, rel2, sp, rel3, 
-						btree, rel4, rel5);
+    query_tm->GenMOBenchQuery13(mrtree, rel1, rel2, sp, rel3, 
+            btree, rel4, rel5);
         local.setAddr(query_tm);
         return 0;
       }
       case REQUEST:{
-		  if(local.addr == NULL) return CANCEL;
-		  query_tm = (QueryTM*)local.addr;
-		  if(query_tm->count == query_tm->oid_list.size())return CANCEL;
+      if(local.addr == NULL) return CANCEL;
+      query_tm = (QueryTM*)local.addr;
+      if(query_tm->count == query_tm->oid_list.size())return CANCEL;
             Tuple* tuple = new Tuple(query_tm->resulttype);
              tuple->PutAttribute(0, 
                         new CcInt(true, query_tm->oid_list[query_tm->count]));
 //           tuple->PutAttribute(0, 
 //                     new Rectangle<2>(query_tm->box_list2[query_tm->count]));
 
-			result.setAddr(tuple);
+      result.setAddr(tuple);
             query_tm->count++;
             return YIELD;
 
@@ -18743,7 +18746,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&segment2region);
     AddOperator(&paveregion);
     AddOperator(&junregion);
-	AddOperator(&unionpoly);
+  AddOperator(&unionpoly);
     AddOperator(&decomposeregion);
 
 
@@ -18761,10 +18764,10 @@ class TransportationModeAlgebra : public Algebra
     ///////////////////visibility graph///////////////////////////////
     //////////////////////////////////////////////////////////////////
     AddOperator(&getvnode);//get visible points of a given point 
-	AddOperator(&getvnode2);//get visible points of a given point 
-	AddOperator(&getvnode3);//get visible points between an angle
-	
-	AddOperator(&vprange);//return visible points with a range, using Rtree
+  AddOperator(&getvnode2);//get visible points of a given point 
+  AddOperator(&getvnode3);//get visible points between an angle
+  
+  AddOperator(&vprange);//return visible points with a range, using Rtree
     AddOperator(&myinside);
     AddOperator(&at_point);//robust method checking point on sline 
     AddOperator(&decomposetri);
@@ -18808,7 +18811,7 @@ class TransportationModeAlgebra : public Algebra
     //////////////////////////////////////////////////////////////////
     AddOperator(&getallpoints);
     AddOperator(&rotationsweep);//rotational plan sweep to find visible points 
-	AddOperator(&rotationsweep2);//visible points within a range
+  AddOperator(&rotationsweep2);//visible points within a range
     AddOperator(&gethole);
     //////////////////////////////////////////////////////////////////
     /*create bus network*/
@@ -18925,7 +18928,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&tm_at);//at mode, at genloc
     AddOperator(&tm_at2);//at mode with index 
     AddOperator(&tm_at3);//at genloc with index 
-	AddOperator(&tm_atgloc);//at mode, at genloc a stream of
+  AddOperator(&tm_atgloc);//at mode, at genloc a stream of
     
     AddOperator(&tm_val);//get genloc for intimegenloc 
     AddOperator(&tm_inst);//get instant for intimegenloc 

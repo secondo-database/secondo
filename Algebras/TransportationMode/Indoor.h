@@ -406,10 +406,10 @@ for all indoor rooms:OR,BR,CO,ST,EL
 
 */
 
-const string room_type[] = {"OR", "BR", "CO", "ST", "EL"}; 
+const std::string room_type[] = {"OR", "BR", "CO", "ST", "EL"}; 
 enum ROOM_TYPE{OR = 0, BR, CO, ST, EL}; 
 
-inline int GetRoomEnum(string s)
+inline int GetRoomEnum(std::string s)
 {
 //  int tm size = sizeof(str_tm)/sizeof(str_tm[0]);
   int type_size = ARR_SIZE(room_type);
@@ -425,7 +425,7 @@ inline int GetRoomEnum(string s)
   }
   return -1;
 }
-inline string GetRoomStr(int t)
+inline std::string GetRoomStr(int t)
 {
 //  int tm size = sizeof(str_tm)/sizeof(str_tm[0]);
   int type_size = ARR_SIZE(room_type); 
@@ -487,7 +487,7 @@ class GRoom:public StandardSpatialAttribute<2>{
 //        cout<<"Size "<<endl;
         ////////// holes have the same id as the outer cycle ///////
         ///////   they do not have to be considered  ////////////////
-        vector<int> rid_list;
+        std::vector<int> rid_list;
         for(int i = 0;i < elem_list.Size();i++){
           FloorElem felem;
           elem_list.Get(i, felem);
@@ -506,7 +506,7 @@ class GRoom:public StandardSpatialAttribute<2>{
     int ElemSize(){return Size();}
     int RealElemSize(){return elem_list.Size();}
     int SegSize(){return seg_list.Size();}
-    void Add(int id, float h, vector<HalfSegment>&);
+    void Add(int id, float h, std::vector<HalfSegment>&);
     void Get(const int i, float& h, Region& r) const;
     void Clear()
     {
@@ -717,42 +717,42 @@ struct IndoorNav{
   Relation* rel2; //door 3d box relation 
   IndoorGraph* ig; 
   
-  vector<int> oid_list; 
-  vector<int> tid_list; 
-  vector<Rectangle<3> > box_list; 
+  std::vector<int> oid_list; 
+  std::vector<int> tid_list; 
+  std::vector<Rectangle<3> > box_list; 
   
-  vector<Door3D> door_list; 
-  vector<Line> line_list;
-  vector<int> groom_id_list1;
-  vector<int> groom_id_list2; 
-  vector<float> door_heights; 
-  
-  
-  vector<int> groom_oid_list; 
-  vector<unsigned int> door_tid_list1;
-  vector<unsigned int> door_tid_list2; 
-  vector<Line3D> path_list; 
-  vector<Line3D> rooms_id_list;///
+  std::vector<Door3D> door_list; 
+  std::vector<Line> line_list;
+  std::vector<int> groom_id_list1;
+  std::vector<int> groom_id_list2; 
+  std::vector<float> door_heights; 
   
   
-  vector<GenLoc> genloc_list;
-  vector<Point3D> p3d_list; 
+  std::vector<int> groom_oid_list; 
+  std::vector<unsigned int> door_tid_list1;
+  std::vector<unsigned int> door_tid_list2; 
+  std::vector<Line3D> path_list; 
+  std::vector<Line3D> rooms_id_list;///
+  
+  
+  std::vector<GenLoc> genloc_list;
+  std::vector<Point3D> p3d_list; 
   
 
-  vector<GRoom> room_list; 
-  vector<double> cost_list; 
+  std::vector<GRoom> room_list; 
+  std::vector<double> cost_list; 
   
-  vector<MPoint3D> mo_list; 
-  vector<GenMO> genmo_list; 
-  vector<int> entrance_index;
+  std::vector<MPoint3D> mo_list; 
+  std::vector<GenMO> genmo_list; 
+  std::vector<int> entrance_index;
   
   
-  map<int, Line3D> indoor_paths_list;//indoor paths from disk files 
-  map<int, Line3D> rooms_list;
+  std::map<int, Line3D> indoor_paths_list;//indoor paths from disk files 
+  std::map<int, Line3D> rooms_list;
   
   int type; 
   /////////////the attribute position for indoor (groom+door) relation 
-  static string Indoor_GRoom_Door; 
+  static std::string Indoor_GRoom_Door; 
   enum GROOM_REL{I_OID = 0, I_Name, I_Type, I_Room, I_Door};
   
   unsigned int count;
@@ -778,7 +778,8 @@ struct IndoorNav{
   
   void CreateDoorBox();
   void CreateBox3D(int, int, Line*, float);
-  float NextFloorHeight(float h, vector<float>& floor_height, bool& flag_h);
+  float NextFloorHeight(float h, 
+                        std::vector<float>& floor_height, bool& flag_h);
   ////////////////create a relation storing door////////////////////////
   bool IsGRoom(int tid, Relation* rel);
   void CreateDoor1(R_Tree<3, TupleId>*, int, int ,int);
@@ -788,9 +789,9 @@ struct IndoorNav{
   float GetVirtualDoor2(GRoom* groom, Line* l1, Line* l2, Line3D* l3d);
   void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, unsigned int id, 
                   Rectangle<3>* bbox3d, int attr1, int attr2, 
-                  int attr3, vector<TupleId>& id_list); 
+                  int attr3, std::vector<TupleId>& id_list); 
   bool BBox3DEqual(Rectangle<3>* bbox3d, Rectangle<3>* bbox_3d);
-  void CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list, 
+  void CreateResDoor(int id, int oid, int tid, std::vector<TupleId> id_list, 
                      int attr1, int attr2, int attr3);
   void GRoomDoorLine(Rectangle<3>* bbox3d_1, Rectangle<3>* bbox3d_2, 
                      Line* l1, Line* l2, Line* l3, 
@@ -802,30 +803,32 @@ struct IndoorNav{
    void CreateAdjDoor1(BTree*, int, int ,int, int);
    void CreateAdjDoor2(R_Tree<3,TupleId>*);
    void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, unsigned int id,
-                   Line3D* l, vector<TupleId>& id_list, int groom_oid);
+                   Line3D* l, std::vector<TupleId>& id_list, int groom_oid);
 
-   void BuildPathEL(int groom_oid, GRoom* groom, vector<int> tid_list, 
+   void BuildPathEL(int groom_oid, GRoom* groom, std::vector<int> tid_list, 
                             int attr1, int attr2, 
                             int attr3, int attr4);
-   void BuildPathST(int groom_oid, GRoom* groom, vector<int> tid_list, 
+   void BuildPathST(int groom_oid, GRoom* groom, std::vector<int> tid_list, 
                             int attr1, int attr2, 
                             int attr3, int attr4);
    void ST_ConnectOneFloor(int groom_oid, GRoom* groom, Line* l1, 
                                    Line* l2, int tid1, int tid2, float h);
    void FindPathInRegion(GRoom* groom, float h, 
-                         vector<MyHalfSegment>& mhs, Point* p1, Point* p2); 
+                         std::vector<MyHalfSegment>& mhs, 
+                         Point* p1, Point* p2); 
    void ST_ConnectFloors(int groom_oid, GRoom* groom, Line* l1, 
                                    Line* l2, int tid1, int tid2, 
-                         float h1, float h2, vector<MySegHeight>&); 
+                         float h1, float h2, std::vector<MySegHeight>&); 
 
-   void ConstructMiddlePath(GRoom* groom, vector<MySegHeight>& middle_path);
-   void ConstructMiddlePath2(GRoom* groom, vector<Point3D>& middle_path,
+   void ConstructMiddlePath(GRoom* groom, 
+                            std::vector<MySegHeight>& middle_path);
+   void ConstructMiddlePath2(GRoom* groom, std::vector<Point3D>& middle_path,
                              float h1, float h2);
    void BuildPathOR(int groom_oid, GRoom* groom, 
-                  vector<int> tid_list, int attr1, int attr2, 
+                  std::vector<int> tid_list, int attr1, int attr2, 
                   int attr3, int attr4);
    bool BuildPathCO(int groom_oid, GRoom* groom, 
-                  vector<int> tid_list, int attr1, int attr2, 
+                  std::vector<int> tid_list, int attr1, int attr2, 
                   int attr3, int attr4);
    void ConnectComplexRegion(int groom_oid, Line* l1, Line* l2,
                              int tid1, int tid2, float h,
@@ -840,7 +843,8 @@ struct IndoorNav{
    float GetHeightInST(GRoom* groom, Point p);
    float GetHeightInST2(GRoom* groom, Point p, bool& correct);
    void InitializeElevator(temporalalgebra::Interval<Instant>& periods, 
-                                   vector<Elevator>& elev_list, double speed);
+                                   std::vector<Elevator>& elev_list, 
+                                   double speed);
    void GenerateMO1(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
                     int num, temporalalgebra::Periods* peri, bool convert); 
    //////////////////path to building entrance/////////////////////////////
@@ -850,7 +854,8 @@ struct IndoorNav{
    void GenerateMO2_End(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
                     int num, temporalalgebra::Periods* peri, bool convert);
    void GetDoorLoc(IndoorGraph* ig, BTree* btree, 
-                   vector<GenLoc>& doorloc_list, vector<int>& door_tid_list);
+                   std::vector<GenLoc>& doorloc_list, 
+                   std::vector<int>& door_tid_list);
 
    /////////create one indoor moving object/////////////////////////////////
    void GenerateMO3_End(IndoorGraph* ig, BTree* btree, 
@@ -877,15 +882,15 @@ struct IndoorNav{
                   unsigned int num_elev);
 
    void InitializeElevator_New(temporalalgebra::Interval<Instant>& periods, 
-                       vector< vector<Elevator> >& elev_list, 
+                       std::vector< std::vector<Elevator> >& elev_list, 
                                double speed);
-   void AddUnitToMO_Elevator_New(MPoint3D* mp3d, vector<Point3D>& , 
+   void AddUnitToMO_Elevator_New(MPoint3D* mp3d, std::vector<Point3D>& , 
                     Instant& start_time, Instant& st, 
-                    vector< vector<Elevator> >&);
+                    std::vector< std::vector<Elevator> >&);
 
-   void AddUnitToMO_Elevator_New2(MPoint3D* mp3d, vector<Point3D>& , 
+   void AddUnitToMO_Elevator_New2(MPoint3D* mp3d, std::vector<Point3D>& , 
                     Instant& start_time, Instant& st, 
-                    vector< vector<Elevator> >&, int index,
+                    std::vector< std::vector<Elevator> >&, int index,
                     Line3D* l_room, int build_id, GenMO* genmo);
 
    void GenerateMO2_New_Start(IndoorGraph* ig, BTree* btree,
@@ -921,21 +926,23 @@ struct IndoorNav{
    float GetMinimumDoorWidth();
    void AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2, 
                     Instant& start_time, double speed);
-   void AddUnitToMO_Elevator(MPoint3D* mp3d, vector<Point3D>& , 
-                    Instant& start_time, Instant& st, vector<Elevator>&);
+   void AddUnitToMO_Elevator(MPoint3D* mp3d, std::vector<Point3D>& , 
+                    Instant& start_time, Instant& st, std::vector<Elevator>&);
 
     void AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
                     Instant& start_time, double speed, int index,
                     Line3D* l_room, int build_id, GenMO* genmo);
-    void CreateIUnits1(Point3D& p1, Point3D& p2, string type,Rectangle<2> bbox,
+    void CreateIUnits1(Point3D& p1, Point3D& p2, 
+                       std::string type,Rectangle<2> bbox,
                        double speed, Instant& start_time, 
                        MPoint3D* mp3d, GenMO* genmo, int new_groom_oid);
-    void CreateIUnits2(Point3D& p1, Point3D& p2, string type,Rectangle<2> bbox,
+    void CreateIUnits2(Point3D& p1, Point3D& p2, 
+                       std::string type,Rectangle<2> bbox,
                        double speed, Instant& start_time, 
                        MPoint3D* mp3d, GenMO* genmo, int new_groom_oid);
 
-    void AddUnitToMO_Elevator2(MPoint3D* mp3d, vector<Point3D>& , 
-                     Instant& start_time, Instant& st, vector<Elevator>&,
+    void AddUnitToMO_Elevator2(MPoint3D* mp3d, std::vector<Point3D>& , 
+                     Instant& start_time, Instant& st, std::vector<Elevator>&,
                      int index, Line3D* l_room, int build_id, GenMO* genmo);
 
    int GetRef_RoomTid(int, Line3D*, bool E);
@@ -948,7 +955,7 @@ struct IndoorNav{
    void Get_GenLoc(Point3D p1, Point3D p2, GenLoc& loc1, GenLoc& loc2,
                    R_Tree<3,TupleId>* rtree);
    void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, 
-                           Point3D p, vector<int>& tid_list);
+                           Point3D p, std::vector<int>& tid_list);
 
    void Get_GenLoc2(Point3D p1, Point3D p2, GenLoc& loc1, GenLoc& loc2,
                    R_Tree<3,TupleId>* rtree, int building_id);
@@ -959,14 +966,14 @@ struct IndoorNav{
    void PathInOneST(Tuple* groom_tupe, GenLoc* gloc1, GenLoc* gloc2, 
                     Line3D* l3d);
    void ComputePath3DST(GRoom* groom, Point loc1, Point loc2, float h1,
-                      float h2, vector<Line3D>& candidate_path);
+                      float h2, std::vector<Line3D>& candidate_path);
    void ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree);
    bool DeadDoor(int door_tid, int groom_oid, int groom_oid_end, 
-                 vector<Point3D>& door_list);
+                 std::vector<Point3D>& door_list);
 
-   bool ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list, Relation* rel,
-                         BTree* btree, vector<Line3D>&, float&, float&);
+   bool ConnectStartLoc(GenLoc* gloc,  std::vector<int> tid_list, Relation* rel,
+                         BTree* btree, std::vector<Line3D>&, float&, float&);
 
 
    void ShortestPath_Length_Start(GenLoc* gloc1, GenLoc* gloc2, 
@@ -985,23 +992,26 @@ struct IndoorNav{
 
    ////////connection start locaton to all doors in staircase///////////////
    void ConnectStartLocST(Tuple* groom_tuple, GenLoc* gloc,  
-                         vector<int> tid_list, vector<Line3D>& candidate_path);
+                         std::vector<int> tid_list, 
+                         std::vector<Line3D>& candidate_path);
   ////////connection end locaton to all doors in staircase///////////////
    void ConnectEndLocST(Tuple* groom_tuple, GenLoc* gloc,  
-                         vector<int> tid_list, vector<Line3D>& candidate_path);
+                         std::vector<int> tid_list, 
+                        std::vector<Line3D>& candidate_path);
 
-   bool ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list, Relation* rel,
-                         BTree* btree, vector<Line3D>&, float&, float&);
+   bool ConnectEndLoc(GenLoc* gloc,  std::vector<int> tid_list, Relation* rel,
+                         BTree* btree, std::vector<Line3D>&, float&, float&);
 
    bool ConnectEndLoc2(GenLoc* gloc, Relation* rel, BTree* btree, 
-                       vector<Line3D>&, float&, float&);
+                       std::vector<Line3D>&, float&, float&);
 
-   void IndoorShortestPath(int id1, int id2, vector<Line3D>& candidate_path, 
+   void IndoorShortestPath(int id1, int id2, 
+                           std::vector<Line3D>& candidate_path, 
                            Line3D* s, Line3D* d, 
                            double& prune_dist, float, float, int);
    void InitializeQueue(int id, Point3D* start_p, Point3D* end_p, 
-                        priority_queue<IPath_elem>& path_queue, 
-                        vector<IPath_elem>& expand_path);
+                        std::priority_queue<IPath_elem>& path_queue, 
+                        std::vector<IPath_elem>& expand_path);
    inline bool MiddlePoint(Line3D* l, Point3D& p); 
    ////////////////////////////////////////////////////////////////////
    /////////////////////////minimum number of rooms////////////////////
@@ -1011,8 +1021,8 @@ struct IndoorNav{
    void GetHeightOfGRoom(int groom_oid1, BTree* groom_btree, Relation* rel, 
                          float& start_h1, float& start_h2);
    void IndoorShortestPath_Room(int id1, int id2,
-                                vector< vector<TupleId> >& candidate_path,
-                                int s_tid, int e_tid, float min_h, float max_h);
+                        std::vector< std::vector<TupleId> >& candidate_path,
+                        int s_tid, int e_tid, float min_h, float max_h);
    /////////////////////////////////////////////////////////////////////
    ///////////////////////minimum travelling time///////////////////////
    /////////////////////////////////////////////////////////////////////
@@ -1020,14 +1030,14 @@ struct IndoorNav{
                             Relation* rel, BTree* btree);
    
    void IndoorShortestPath_Time1(int id1, int id2, 
-                           vector<Line3D>& candidate_path, 
-                           Line3D* s, Line3D* d, vector<double>& timecost,
+                           std::vector<Line3D>& candidate_path, 
+                           Line3D* s, Line3D* d, std::vector<double>& timecost,
                            I_Parameter& param, Relation* rel, 
                            BTree* btree, double& prune_time, float, 
                            float, int);
    void IndoorShortestPath_Time2(int id1, int id2, 
-                           vector<Line3D>& candidate_path, 
-                           Line3D* s, Line3D* d, vector<double>& timecost,
+                           std::vector<Line3D>& candidate_path, 
+                           Line3D* s, Line3D* d, std::vector<double>& timecost,
                            I_Parameter& param, Relation* rel, 
                            BTree* btree, double& prune_time, float, 
                            float, int);
@@ -1077,7 +1087,7 @@ struct IPath_elem:public Path_elem{
   }
 };
 
-ostream& operator<<(ostream& o, const IPath_elem& elem); 
+std::ostream& operator<<(std::ostream& o, const IPath_elem& elem); 
 
 
 struct PointAndID{
@@ -1140,16 +1150,16 @@ convex with holes or  concave with holes i
 */
 
 void ShortestPath_InRegion(Region* reg, Point* s, Point* d, Line* pResult);
-void InitializeQueue(Region* reg, priority_queue<RPath_elem>& path_queue, 
-                     vector<RPath_elem>& expand_queue,
+void InitializeQueue(Region* reg, std::priority_queue<RPath_elem>& path_queue, 
+                     std::vector<RPath_elem>& expand_queue,
                      PointAndID start_loc, PointAndID end_loc,
-                     vector<PointAndID>& ps_list,
-                     vector<HalfSegment>& seg_list); 
-void FindAdj(Region* reg, PointAndID top, vector<bool>& visit_flag, 
-             vector<int>& adj_list, vector<PointAndID>& ps_list,
-             vector<HalfSegment>& seg_list); 
-bool SegAvailable(HalfSegment hs, vector<HalfSegment>& set_list); 
-void GetBoundaryPoints(Region* r, vector<Point>& ps, unsigned int); 
+                     std::vector<PointAndID>& ps_list,
+                     std::vector<HalfSegment>& seg_list); 
+void FindAdj(Region* reg, PointAndID top, std::vector<bool>& visit_flag, 
+             std::vector<int>& adj_list, std::vector<PointAndID>& ps_list,
+             std::vector<HalfSegment>& seg_list); 
+bool SegAvailable(HalfSegment hs, std::vector<HalfSegment>& set_list); 
+void GetBoundaryPoints(Region* r, std::vector<Point>& ps, unsigned int); 
 
 
 /*
@@ -1158,10 +1168,11 @@ create dual graph and visual graph in secondo
 */
 void ShortestPath_InRegionNew(Region* reg, Point* s, Point* d, Line* pResult);
 bool EuclideanConnection(Region* reg, Point*s, Point* d, Line* pResult);
-bool CheckCommand(string& str1, string& str2, ListExpr& parsedCommand);
-bool RunCommand(SecondoCatalog* ctlg, ListExpr parsedCommand, string str);
-void GetSecondoObj(Region* reg, vector<string>& obj_name);
-void DeleteSecondoObj(vector<string> obj_name); 
+bool CheckCommand(std::string& str1, std::string& str2,
+                  ListExpr& parsedCommand);
+bool RunCommand(SecondoCatalog* ctlg, ListExpr parsedCommand, std::string str);
+void GetSecondoObj(Region* reg, std::vector<std::string>& obj_name);
+void DeleteSecondoObj(std::vector<std::string> obj_name); 
 void FindPointInDG(DualGraph* dg, Point* loc1, Point* loc2, int& id1, int& id2);
 void FindPointInDG1(DualGraph* dg, Point* loc1, int& id1);
 
@@ -1173,10 +1184,10 @@ Indoor graph for navigation
 
 class IndoorGraph: public BaseGraph{
 public:
-  static string NodeTypeInfo;
-  static string EdgeTypeInfo;
-  static string NodeBTreeTypeInfo;
-  static string EntranceTidTypeInfo;
+  static std::string NodeTypeInfo;
+  static std::string EdgeTypeInfo;
+  static std::string NodeBTreeTypeInfo;
+  static std::string EntranceTidTypeInfo;
 
   enum IGNodeTypeInfo{I_DOOR = 0, I_DOOR_LOC, I_GROOM_OID1, 
                       I_GROOM_OID2, I_DOOR_LOC_3D, I_DOOR_HEIGHT};
@@ -1212,10 +1223,10 @@ public:
   int GetGraphType(){return graph_type;}
 
   BTree* GetBTree(){return btree_node;}
-  void GetEntranceDoor(vector<Point>& door_loc);
-  void GetEntranceDoor2(vector<Point>& door_loc, 
-                        vector<int>& groom_list, vector<int>& door_tid_list);
-  void GetDoorsInGRoom(int groom_oid, vector<int>& tid_list);
+  void GetEntranceDoor(std::vector<Point>& door_loc);
+  void GetEntranceDoor2(std::vector<Point>& door_loc, 
+           std::vector<int>& groom_list, std::vector<int>& door_tid_list);
+  void GetDoorsInGRoom(int groom_oid, std::vector<int>& tid_list);
   
   private:
     BTree* btree_node; //btree on node relation on grood oid 1
@@ -1233,7 +1244,7 @@ BUILD_CINEMA,  BUILD_TRAINSTATION, BUILD_HOTEL,
 BUILD_AIRPORT, BUILD_HOSPITAL, BUILD_SHOPPINGMALL,
 BUILD_SCHOOL, BUILD_LIBRARY, BUILD_OFFICE38};
 
-const string str_build_type[] = {"BUILDING_NONE", "HOUSE",
+const std::string str_build_type[] = {"BUILDING_NONE", "HOUSE",
 "UNIVERSITY", "OFFICE24",
 "CINEMA", "TRAINSTATION", "HOTEL", "AIRPORT", 
 "HOSPITAL", "SHOPPINGMALL", "SCHOOL", "LIBRARY", "OFFICE38"};
@@ -1262,7 +1273,7 @@ inline bool HotelBuilding(int type)
 }
 
 
-inline int GetBuildingType(string s)
+inline int GetBuildingType(std::string s)
 {
   int build_size = ARR_SIZE(str_build_type);
   for(int i = 0;i < build_size;i++){
@@ -1271,7 +1282,7 @@ inline int GetBuildingType(string s)
   return -1;
 }
 
-inline string GetBuildingStr(int build)
+inline std::string GetBuildingStr(int build)
 {
   int build_size = ARR_SIZE(str_build_type); 
   assert(0 <= build && build < build_size);
@@ -1283,8 +1294,8 @@ inline string GetBuildingStr(int build)
 the path where the indoor paths are stored 
 
 */
-const string IndoorPathPrefix = "./TM-Data/";
-const string IndoorPathSuffix = "_Paths";
+const std::string IndoorPathPrefix = "./TM-Data/";
+const std::string IndoorPathSuffix = "_Paths";
 #define MAX_ENTRANCE 9
 #define MAX_ROOM_NO 10000
 #define MAX_DOOR_INROOM 100
@@ -1314,9 +1325,9 @@ class Building{
                      const ListExpr typeInfo);
    void Load(int id, int type, Relation* rel1, Relation* rel2);
 
-   static string RoomBTreeTypeInfo;
-   static string Indoor_GRoom_Door_Extend;
-   static string RoomRTreeTypeInfo;
+   static std::string RoomBTreeTypeInfo;
+   static std::string Indoor_GRoom_Door_Extend;
+   static std::string RoomRTreeTypeInfo;
   
    Relation* GetRoom_Rel(){return rel_rooms;}
    BTree* GetBTree(){return btree_room;}
@@ -1327,8 +1338,9 @@ class Building{
    void StorePaths();
    void WritePathToFile(FILE* fp, Line3D* path, int entrance, int groom_oid, 
                         int door_id, bool from);
-   void DFTraverse(SmiRecordId adr, Point3D p, vector<int>& tid_list);
-   void LoadPaths(map<int, Line3D>& path_list, map<int, Line3D>& room_id_list);
+   void DFTraverse(SmiRecordId adr, Point3D p, std::vector<int>& tid_list);
+   void LoadPaths(std::map<int, Line3D>& path_list, 
+                  std::map<int, Line3D>& room_id_list);
   
   private:
     bool def; 
@@ -1400,11 +1412,11 @@ for indoor infrastructure
 class IndoorInfra{
   public:
 
-  static string BuildingPath_Info;
-  static string RegId1BTreeTypeInfo;
-  static string BuildingType_Info;
-  static string RegId2BTreeTypeInfo;
-  static string BuildingTypeRtreeInfo;
+  static std::string BuildingPath_Info;
+  static std::string RegId1BTreeTypeInfo;
+  static std::string BuildingType_Info;
+  static std::string RegId2BTreeTypeInfo;
+  static std::string BuildingTypeRtreeInfo;
 
   enum IndoorInfra_Path{INDOORIF_REG_ID, INDOORIF_SP, INDOORIF_SP_INDEX,
                         INDOORIF_EP, INDOORIF_EP2, INDOORIF_EP2_GLOC,
@@ -1430,16 +1442,16 @@ class IndoorInfra{
   Relation* BuildingPath_Rel(){return building_path;}
   Relation* BuildingType_Rel(){return building_type;}
   R_Tree<2,TupleId>* BuildingRTree() {return rtree_building;}
-  void GetPathIDFromTypeID(int reg_id, vector<int>& path_id_list);
+  void GetPathIDFromTypeID(int reg_id, std::vector<int>& path_id_list);
   void GetTypeFromRegId(int reg_id, int& type, int& build_id, Rectangle<2>&);
   unsigned int Get_Digit_Build_ID(){return digit_build_id;}
 
   private:
     bool def;
     int indoor_id;
-	///the first six or seven number is for building id
+  ///the first six or seven number is for building id
     unsigned int digit_build_id; 
-	
+  
     Relation* building_path;//path for building to the pavement 
     BTree* btree_reg_id1;  //btree on reg id. relation for paths 
     Relation* building_type; // the type of a building 
@@ -1466,7 +1478,7 @@ bool CheckIndoorInfra( ListExpr type, ListExpr& errorInfo );
 
 
 
-void ReadIndoorPath(string name, int path_id, Line3D* res);
+void ReadIndoorPath(std::string name, int path_id, Line3D* res);
 int GetIndooPathID(int, int , bool);
 int GetIndooPathID2(int, int , int, bool);
 struct IndoorPath{

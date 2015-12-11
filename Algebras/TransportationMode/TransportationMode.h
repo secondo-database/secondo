@@ -90,7 +90,7 @@ bool ChekBuildingId(int build_id)
     {
       // Get name of the pavement 
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the pavement. Normally their
       // won't be to much networks in one database giving us a good
@@ -143,7 +143,7 @@ bool ChekIndoorId(int build_id)
     {
       // Get name of the pavement 
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the pavement. Normally their
       // won't be to much networks in one database giving us a good
@@ -196,7 +196,7 @@ bool CheckIndoorGraphId(unsigned int ig_id)
     {
       // Get name of the network
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the network. Normally their
       // won't be to much networks in one database giving us a good
@@ -232,7 +232,7 @@ bool CheckIndoorGraphId(unsigned int ig_id)
 ////////////////////////////////////////////////////////////////////
 
 ////////////string for Operator Spec //////////////////////////////////
-const string OpTMCheckSlineSpec  =
+const std::string OpTMCheckSlineSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>sline-> sline</text--->"
@@ -241,7 +241,7 @@ const string OpTMCheckSlineSpec  =
     "<text>query routes(n) feed extend[newcurve: checksline(.curve,2)] count"
     "</text--->"
     ") )";
-const string OpTMModifyBoundarySpec  =
+const std::string OpTMModifyBoundarySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rectangle x int -> region</text--->"
@@ -251,7 +251,7 @@ const string OpTMModifyBoundarySpec  =
     "</text--->"
     ") )";
 
-const string OpTMSegment2RegionSpec  =
+const std::string OpTMSegment2RegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>relation x attr_name x int->"
@@ -262,7 +262,7 @@ const string OpTMSegment2RegionSpec  =
     "</text--->"
     ") )";
 
-const string OpTMPaveRegionSpec  =
+const std::string OpTMPaveRegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel1 x attr x rel2 x attr1 x attr2 x int->"
@@ -273,7 +273,7 @@ const string OpTMPaveRegionSpec  =
     ",pave1, pave2, roadwidth) count;</text--->"
     ") )";
 
-const string OpTMJunRegionSpec  =
+const std::string OpTMJunRegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x attr1 x attr2 x int->"
@@ -284,7 +284,7 @@ const string OpTMJunRegionSpec  =
     "</text--->"
     ") )";
 
-const string OpTMUnionPolySpec  =
+const std::string OpTMUnionPolySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr x rel x attr1 x attr2 ->"
@@ -294,8 +294,8 @@ const string OpTMUnionPolySpec  =
     "<text>query unionpoly(CAExtNew, NewHole, res2, Oid_C1, Oid_C2) count;"
     "</text--->"
     ") )";
-	
-const string OpTMDecomposeRegionSpec  =
+  
+const std::string OpTMDecomposeRegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>region->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -304,7 +304,7 @@ const string OpTMDecomposeRegionSpec  =
     "<text>query decomposeregion(partition_regions) count; </text--->"
     ") )";
 
-const string OpTMFillPavementSpec  =
+const std::string OpTMFillPavementSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x attr1 x attr2 x int->"
@@ -315,7 +315,7 @@ const string OpTMFillPavementSpec  =
     "count;</text--->"
     ") )";
 
-const string OpTMGetPaveNode1Spec  =
+const std::string OpTMGetPaveNode1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x attr1 x attr2 x attr3->"
@@ -327,7 +327,7 @@ const string OpTMGetPaveNode1Spec  =
     "</text--->"
     ") )";
 
-const string OpTMGetPaveEdge1Spec  =
+const std::string OpTMGetPaveEdge1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x btree x attr1 x attr2 x attr3->"
@@ -339,7 +339,7 @@ const string OpTMGetPaveEdge1Spec  =
     ") )";
 
 
-const string OpTMGetPaveNode2Spec  =
+const std::string OpTMGetPaveNode2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel x attr1 x attr2->"
@@ -352,7 +352,7 @@ const string OpTMGetPaveNode2Spec  =
     ") )";
 
 
-const string OpTMGetPaveEdge2Spec  =
+const std::string OpTMGetPaveEdge2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree x attr1 x attr2 x attr3->"
@@ -363,7 +363,7 @@ const string OpTMGetPaveEdge2Spec  =
     "btree_pave, oid, rid , pavement) count; </text--->"
     ") )";
 
-const string OpTMTriangulateSpec  =
+const std::string OpTMTriangulateSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>region ->(stream ( (x1 t1)(x2 t2)...(xn tn)) </text--->"
@@ -372,7 +372,7 @@ const string OpTMTriangulateSpec  =
     "<text>query triangulation(r1) count; </text--->"
     ") )";
 
-const string OpTMTriangulate2Spec  =
+const std::string OpTMTriangulate2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>region ->(stream ( (x1 t1)(x2 t2)...(xn tn)) </text--->"
@@ -381,7 +381,7 @@ const string OpTMTriangulate2Spec  =
     "<text>query triangulation2(r1) count; </text--->"
     ") )";
     
-const string OpTMConvexSpec  =
+const std::string OpTMConvexSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>region -> bool </text--->"
@@ -390,7 +390,7 @@ const string OpTMConvexSpec  =
     "<text>query convex(r1); </text--->"
     ") )";
 
-const string OpTMGeospathSpec  =
+const std::string OpTMGeospathSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>point x point x region -> "
@@ -401,7 +401,7 @@ const string OpTMGeospathSpec  =
     "<text>query geospath(p1, p2, r1); </text--->"
     ") )";
 
-const string OpTMCreateDGSpec  =
+const std::string OpTMCreateDGSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel x rel -> dualgraph</text--->"
@@ -410,7 +410,7 @@ const string OpTMCreateDGSpec  =
     "<text>query createdualgraph(1, edge-rel, node-rel); </text--->"
     ") )";
 
-const string OpTMWalkSPOldSpec  =
+const std::string OpTMWalkSPOldSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3-> line</text--->"
@@ -420,7 +420,7 @@ const string OpTMWalkSPOldSpec  =
     "</text--->"
     ") )";
 
-const string OpTMWalkSPSpec  =
+const std::string OpTMWalkSPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>pavement x rel1 x rel2 x rel3-> line</text--->"
@@ -430,7 +430,7 @@ const string OpTMWalkSPSpec  =
     "</text--->"
     ") )";
 
-const string OpTMWalkSPDebugSpec  =
+const std::string OpTMWalkSPDebugSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>pavement x rel1 x rel2 x rel3-> "
@@ -440,7 +440,7 @@ const string OpTMWalkSPDebugSpec  =
     "<text>query walk_sp_debug(pn, query_loc1, query_loc2, tri_reg_new);"
     "</text--->) )";
 
-const string OpTMTestWalkSPSpec  =
+const std::string OpTMTestWalkSPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x visualgraph x rel1 x rel2 x rel3 -> "
@@ -451,7 +451,7 @@ const string OpTMTestWalkSPSpec  =
     "</text--->"
     ") )";
 
-const string OpTMPaveLocToGPSpec  =
+const std::string OpTMPaveLocToGPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree x network-> "
@@ -462,7 +462,7 @@ const string OpTMPaveLocToGPSpec  =
      " count; </text--->"
     ") )";
 
-const string OpTMSetPaveRidSpec  =
+const std::string OpTMSetPaveRidSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x rtree-> "
@@ -473,7 +473,7 @@ const string OpTMSetPaveRidSpec  =
      " count; </text--->"
     ") )";
 
-const string OpTMGenerateWPSpec  =
+const std::string OpTMGenerateWPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x int-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -482,7 +482,7 @@ const string OpTMGenerateWPSpec  =
     "<text>query generate_wp(graph_node,5); </text--->"
     ") )";
 
-const string OpTMZvalSpec  =
+const std::string OpTMZvalSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>point -> int</text--->"
@@ -491,7 +491,7 @@ const string OpTMZvalSpec  =
     "<text>query zval(p1); </text--->"
     ") )";
 
-const string OpTMZcurveSpec  =
+const std::string OpTMZcurveSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr ->"
@@ -501,7 +501,7 @@ const string OpTMZcurveSpec  =
     "<text>query zcurve(vg_node,elem); </text--->"
     ") )";
 
-const string OpTMRegVertexSpec  =
+const std::string OpTMRegVertexSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>reg ->"
@@ -511,7 +511,7 @@ const string OpTMRegVertexSpec  =
     "<text>query regvertex(node_reg); </text--->"
     ") )";
 
-const string OpTMTriangulationNewSpec  =
+const std::string OpTMTriangulationNewSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>reg ->"
@@ -522,7 +522,7 @@ const string OpTMTriangulationNewSpec  =
     "<text>query triangulation_new(r1) count; </text--->"
     ") )";
 
-const string OpTMTriangulationExtSpec  =
+const std::string OpTMTriangulationExtSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>reg ->"
@@ -533,7 +533,7 @@ const string OpTMTriangulationExtSpec  =
     "<text>query triangulation_ext(r1) count; </text--->"
     ") )";
 
-const string OpTMTriangulationNew2Spec  =
+const std::string OpTMTriangulationNew2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>reg ->"
@@ -544,7 +544,7 @@ const string OpTMTriangulationNew2Spec  =
     "<text>query triangulation_new2(r1) count; </text--->"
     ") )";
 
-const string OpTMTriangulationExt2Spec  =
+const std::string OpTMTriangulationExt2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>reg ->"
@@ -555,7 +555,7 @@ const string OpTMTriangulationExt2Spec  =
     "<text>query triangulation_ext2(r1) count; </text--->"
     ") )";
 
-const string OpTMGetDGEdgeSpec  =
+const std::string OpTMGetDGEdgeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -563,7 +563,7 @@ const string OpTMGetDGEdgeSpec  =
     "<text>get the edge relation for the dual graph on the triangles</text--->"
     "<text>query get_dg_edge(rel1,rel2) count; </text--->"
     ") )";
-const string OpTMSMCDGTESpec  =
+const std::string OpTMSMCDGTESpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x rtree ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -571,7 +571,7 @@ const string OpTMSMCDGTESpec  =
     "<text>get the edge relation for the dual graph on the triangles</text--->"
     "<text>query smcdgte(dg_node, rtree_dg) count; </text--->"
     ") )";
-const string OpTMGetVNodeSpec  =
+const std::string OpTMGetVNodeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x rel1 x rel2 x rel3 x rel4 x btree->"
@@ -581,7 +581,7 @@ const string OpTMGetVNodeSpec  =
     "<text>query getvnode(dg1, query_loc1, tri_reg_new_sort, vgnodes,"
     "vertex_tri, btr_vid) count;</text--->) )";
 
-const string OpTMGetVNode2Spec  =
+const std::string OpTMGetVNode2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x rel1 x rel2 x rel3 x rel4 x btree x real->"
@@ -591,7 +591,7 @@ const string OpTMGetVNode2Spec  =
     "<text>query getvnode2(dg1, query_loc1, tri_reg_new_sort, vgnodes,"
     "vertex_tri, btr_vid, 500.0) count;</text--->) )";
 
-const string OpTMGetVNode3Spec  =
+const std::string OpTMGetVNode3Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x rel1 x rel2 x rel3 x rel4 x btree x real1 x real2->"
@@ -602,8 +602,8 @@ const string OpTMGetVNode3Spec  =
     "an angle</text--->"
     "<text>query getvnode3(dg1, query_loc1, tri_reg_new_sort, vgnodes,"
     "vertex_tri, btr_vid, 20.0, 30.0) count;</text--->) )";
-	
-const string OpTMVPRangeSpec  =
+  
+const std::string OpTMVPRangeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rtree x rel2 x real->"
@@ -612,7 +612,7 @@ const string OpTMVPRangeSpec  =
     "<text>finds visible nodes within a range</text--->"
     "<text>query vprange(holes, obs_rtree, query_loc1, l) count;</text--->))";
 
-const string OpTMGetVGEdgeSpec  =
+const std::string OpTMGetVGEdgeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x rel1 x rel2 x rel3 x btree->"
@@ -622,7 +622,7 @@ const string OpTMGetVGEdgeSpec  =
     "<text>query getvgedge(dg1, vgnodes, tri_reg_new_sort,"
     "vertex_tri, btr_vid) count;</text--->) )";
 
-const string OpTMMyInsideSpec  =
+const std::string OpTMMyInsideSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>line x region -> bool</text--->"
@@ -631,7 +631,7 @@ const string OpTMMyInsideSpec  =
     "<text>query l2 myinside r2; </text--->"
     ") )";
 
-const string OpTMAtPointSpec  =
+const std::string OpTMAtPointSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>sline x point x bool -> real</text--->"
@@ -640,7 +640,7 @@ const string OpTMAtPointSpec  =
     "<text>query at_point(sl, p, TRUE); </text--->"
     ") )";
     
-const string OpTMDecomposeTriSpec  =
+const std::string OpTMDecomposeTriSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -649,7 +649,7 @@ const string OpTMDecomposeTriSpec  =
     "<text>query decomposetri(tri_reg_new_sort) count; </text--->"
     ") )";
 
-const string OpTMCreateVGSpec  =
+const std::string OpTMCreateVGSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel x rel -> dualgraph</text--->"
@@ -659,7 +659,7 @@ const string OpTMCreateVGSpec  =
     "<text>query createvgraph(1, edge-rel, node-rel); </text--->"
     ") )";
 
-const string OpTMGetContourSpec  =
+const std::string OpTMGetContourSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>text -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -667,7 +667,7 @@ const string OpTMGetContourSpec  =
     "<text>create regions from the data file</text--->"
     "<text>query getcontour(pppoly) count; </text--->"
     ") )";
-const string OpTMGetPolygonSpec  =
+const std::string OpTMGetPolygonSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr -> region</text--->"
@@ -676,7 +676,7 @@ const string OpTMGetPolygonSpec  =
     "<text>query getpolygon(allcontours,hole); </text--->"
     ") )";
 
-const string OpTMGetAllPointsSpec  =
+const std::string OpTMGetAllPointsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>region -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -685,7 +685,7 @@ const string OpTMGetAllPointsSpec  =
     "<text>query getallpoints(node_reg); </text--->"
     ") )";
 
-const string OpTMRotationSweepSpec  =
+const std::string OpTMRotationSweepSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x bbox x rel3 x attr ->"
@@ -695,7 +695,7 @@ const string OpTMRotationSweepSpec  =
     "<text>query rotationsweep(query_loc,allpoints,bbox,holes,hole); </text--->"
     ") )";
 
-const string OpTMRotationSweep2Spec  =
+const std::string OpTMRotationSweep2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x bbox x rel3 x attr x real x real->"
@@ -705,8 +705,8 @@ const string OpTMRotationSweep2Spec  =
     "<text>query rotationsweep2(query_loc,allpoints,bbox,holes,hole,"
     "angle1, angle2); </text--->"
     ") )";
-	
-const string OpTMGetHoleSpec  =
+  
+const std::string OpTMGetHoleSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>region -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -715,7 +715,7 @@ const string OpTMGetHoleSpec  =
     "<text>query gethole(node_reg) count; </text--->"
     ") )";
 
-const string OpTMGetSectionsSpec  =
+const std::string OpTMGetSectionsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel1 x rel1 x attr1 x attr2 x attr3"
@@ -746,7 +746,7 @@ const string OpTMGenInterestP2Spec  =
     "<text>query geninterestp2(interestp, dg_node, rtree_dg, loc2, pavement, 2)"
     "count;</text--->"
     ") )";*/
-const string OpTMCellBoxSpec  =
+const std::string OpTMCellBoxSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>bbox x int-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -760,7 +760,7 @@ const string OpTMCellBoxSpec  =
 create region based outdoor infrastructure 
 
 */
-const string OpTMThePavementSpec  =
+const std::string OpTMThePavementSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel -> pavenetwork</text--->"
@@ -773,7 +773,7 @@ const string OpTMThePavementSpec  =
 create bus networks
 
 */
-    const string OpTMCreateBusRouteSpec1  =
+    const std::string OpTMCreateBusRouteSpec1  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x attr1 x attr2 x attr3 x attr4 x btree x rel"
@@ -785,7 +785,7 @@ create bus networks
     "Cnt_a_c,cover_area_b_c,section_cell_index, bus_para) count;</text--->"
     ") )";
     
-const string OpTMCreateBusRouteSpec2  =
+const std::string OpTMCreateBusRouteSpec2  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>space x rel1 x attr x btree x rel2 x attr1 x attr2 x attr3"
@@ -798,7 +798,7 @@ const string OpTMCreateBusRouteSpec2  =
     "count;</text--->"
     ") )";
 
-const string OpTMRefineBusRouteSpec  =
+const std::string OpTMRefineBusRouteSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x attr1 x attr2 x attr3 x attr4"
@@ -810,7 +810,7 @@ const string OpTMRefineBusRouteSpec  =
     "bus_route2,start_loc,end_loc,route_type) count;</text--->"
     ") )";
 
-const string OpTMCreateBusRouteSpec3  =
+const std::string OpTMCreateBusRouteSpec3  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr1 x attr2 x attr3 x real"
@@ -822,7 +822,7 @@ const string OpTMCreateBusRouteSpec3  =
     "roadwidth/2) count;</text--->"
     ") )";
     
-const string OpTMCreateBusRouteSpec4  =
+const std::string OpTMCreateBusRouteSpec4  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x attr1"
@@ -838,7 +838,7 @@ const string OpTMCreateBusRouteSpec4  =
 create bus stops for bus network
 
 */
-const string OpTMCreateBusStopSpec1  =
+const std::string OpTMCreateBusStopSpec1  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x btree"
@@ -850,7 +850,7 @@ const string OpTMCreateBusStopSpec1  =
     "bus_route2,route_type,subpaves2, btree_pave2, rel) count;</text--->"
     ") )";
     
-const string OpTMCreateBusStopSpec2  =
+const std::string OpTMCreateBusStopSpec2  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel x attr1 x attr2 x attr3"
@@ -861,7 +861,7 @@ const string OpTMCreateBusStopSpec2  =
     "count;</text--->"
     ") )";
     
-const string OpTMCreateBusStopSpec3  =
+const std::string OpTMCreateBusStopSpec3  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel1 x attr x rel2 x attr1 x attr2 x attr3 x btree"
@@ -874,7 +874,7 @@ const string OpTMCreateBusStopSpec3  =
     ") )";
     
     
-const string OpTMCreateBusStopSpec4  =
+const std::string OpTMCreateBusStopSpec4  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x attr1 x attr2 x rel2 x attr1 x attr2 x attr3 x attr4"
@@ -886,7 +886,7 @@ const string OpTMCreateBusStopSpec4  =
     "bus_stops3,br_id, bus_stop_id, bus_stop2,startSmaller) count;</text--->"
     ") )";
     
-const string OpTMCreateBusStopSpec5  =
+const std::string OpTMCreateBusStopSpec5  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x attr x rel2 x attr1 x attr2 x attr3 x attr4 x attr5"
@@ -902,7 +902,7 @@ const string OpTMCreateBusStopSpec5  =
 bus stops with data type busstop
 
 */
-const string OpTMGetBusStopsSpec  =
+const std::string OpTMGetBusStopsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x btree x rel2"
@@ -912,7 +912,7 @@ const string OpTMGetBusStopsSpec  =
     "<text>query getbusstops(final_busstops, btree_bs, final_busroutes)"
     " count;</text--->) )";
 
-const string OpTMGetBusRoutesSpec  =
+const std::string OpTMGetBusRoutesSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x btree x rel2"
@@ -922,7 +922,7 @@ const string OpTMGetBusRoutesSpec  =
     "<text>query getbusroutes(final_busstops, btree_bs, final_busroutes)"
     " count;</text--->) )";
 
-const string OpTMBRGeoDataSpec  =
+const std::string OpTMBRGeoDataSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busroute -> sline</text--->"
@@ -930,7 +930,7 @@ const string OpTMBRGeoDataSpec  =
     "<text>get the geometrical data of a bus route</text--->"
     "<text>query brgeodata(br1);</text--->) )";
 
-const string OpTMBSGeoDataSpec  =
+const std::string OpTMBSGeoDataSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busstop x busroute -> point</text--->"
@@ -938,7 +938,7 @@ const string OpTMBSGeoDataSpec  =
     "<text>get the geometrical data of a bus stop</text--->"
     "<text>query bsgeodata(bs1, br1);</text--->) )";
 
-const string OpTMGetStopIdSpec  =
+const std::string OpTMGetStopIdSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busstop -> int</text--->"
@@ -946,7 +946,7 @@ const string OpTMGetStopIdSpec  =
     "<text>get bus stop id</text--->"
     "<text>query getstopid([const busstop value (1 2 TRUE)]) ;</text--->) )";
     
-const string OpTMUpDownSpec  =
+const std::string OpTMUpDownSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busstop -> bool</text--->"
@@ -958,7 +958,7 @@ const string OpTMUpDownSpec  =
 create bus network 
 
 */
-const string OpTMTheBusNetworkSpec  =
+const std::string OpTMTheBusNetworkSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel x rel x rel -> busnetwork</text--->"
@@ -966,7 +966,7 @@ const string OpTMTheBusNetworkSpec  =
     "<text>create bus network</text--->"
     "<text>query busnetwork(1, bus_stops, bus_routes, bus) ;</text--->) )";
 
-const string OpTMBusStopsSpec  =
+const std::string OpTMBusStopsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busnetwork -> rel</text--->"
@@ -974,7 +974,7 @@ const string OpTMBusStopsSpec  =
     "<text>get bus stops relation</text--->"
     "<text>query bn_busstops(bn1) ;</text--->) )";
 
-const string OpTMBusRoutesSpec  =
+const std::string OpTMBusRoutesSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busnetwork -> rel</text--->"
@@ -982,7 +982,7 @@ const string OpTMBusRoutesSpec  =
     "<text>get bus routes relation</text--->"
     "<text>query bn_busroutes(bn1) ;</text--->) )";
 
-const string OpTMMapBRSegmentsSpec  =
+const std::string OpTMMapBRSegmentsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>line x line -> (stream(((x1 t1) ... (xn tn))))</text--->"
@@ -990,7 +990,7 @@ const string OpTMMapBRSegmentsSpec  =
     "<text>decompose a bus route</text--->"
     "<text>query brsegments(l1,l2) count ;</text--->) )";
     
-const string OpTMMapBsToPaveSpec  =
+const std::string OpTMMapBsToPaveSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busnetwork x rtree x rel x int x real"
@@ -1005,7 +1005,7 @@ const string OpTMMapBsToPaveSpec  =
 build the connection between bus stops and pavements 
 
 */
-const string OpTMBsNeighbors1Spec  =
+const std::string OpTMBsNeighbors1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x visibility graph x rel1 x rel2 x rtree"
@@ -1016,7 +1016,7 @@ const string OpTMBsNeighbors1Spec  =
    "<text>query bs_neighbors1(dg, vg, tri_reg_new, bs_pave_sort, rtree_bs_pave)"
     " count ;</text--->) )";
 
-const string OpTMBsNeighbors2Spec  =
+const std::string OpTMBsNeighbors2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busnetwork -> (stream(((x1 t1) ... (xn tn))))</text--->"
@@ -1024,7 +1024,7 @@ const string OpTMBsNeighbors2Spec  =
     "<text>bus stops with the same 2D point, but different bus routes</text--->"
    "<text>query bs_neighbors2(bn1) count ;</text--->) )";
    
-const string OpTMBsNeighbors3Spec  =
+const std::string OpTMBsNeighbors3Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x rel x btree -> (stream(((x1 t1) ... (xn tn))))</text--->"
@@ -1037,7 +1037,7 @@ const string OpTMBsNeighbors3Spec  =
 create a graph on bus network including pavements connection 
 
 */
-const string OpTMCreateBusGraphSpec  =
+const std::string OpTMCreateBusGraphSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel1 x rel2 x rel3 x rel4-> busgraph</text--->"
@@ -1047,7 +1047,7 @@ const string OpTMCreateBusGraphSpec  =
     "<text>query createbgraph(1, node-rel, edge1, edge2, edge3); </text--->"
     ") )";
 
-const string OpTMGetAdjNodeSpec  =
+const std::string OpTMGetAdjNodeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busgraph x int -> (stream(((x1 t1) ... (xn tn))))</text--->"
@@ -1056,7 +1056,7 @@ const string OpTMGetAdjNodeSpec  =
     "<text>query getadjnode(bg1, 2); </text--->"
     ") )";
 
-const string OpTMBNNavigationSpec  =
+const std::string OpTMBNNavigationSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busstop x busstop x busnetwork x instant x int"
@@ -1067,7 +1067,7 @@ const string OpTMBNNavigationSpec  =
     "theInstant(2010,12,5,16,0,0,0),0) count; </text--->"
     ") )";
 
-const string OpTMTestBNNavigationSpec  =
+const std::string OpTMTestBNNavigationSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x rel x busnetwork x instant x int-> bool</text--->"
@@ -1081,7 +1081,7 @@ const string OpTMTestBNNavigationSpec  =
 get traffic data and set time schedule for moving buses 
 
 */
-const string OpTMGetRouteDensity1Spec  =
+const std::string OpTMGetRouteDensity1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel1 x attr1 x attr2 x btree x rel2 x attr1 x attr2"
@@ -1094,7 +1094,7 @@ const string OpTMGetRouteDensity1Spec  =
      "busroutes,br_id,bus_route1,night1,night2) count;</text--->"
     ") )";
 
-const string OpTMSETTSNightBusSpec  =
+const std::string OpTMSETTSNightBusSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr1 x attr2 x attr3 x periods1 x periods2 -> "
@@ -1105,7 +1105,7 @@ const string OpTMSETTSNightBusSpec  =
     "night1,night2) count;</text--->"
     ") )";
 
-const string OpTMSETTSDayBusSpec  =
+const std::string OpTMSETTSDayBusSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr1 x attr2 x attr3 x periods1 x periods2 -> "
@@ -1116,7 +1116,7 @@ const string OpTMSETTSDayBusSpec  =
     "night1,night2) count;</text--->"
     ") )";
     
-const string OpTMSETBRSpeedBusSpec  =
+const std::string OpTMSETBRSpeedBusSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel1 x attr1 x attr2 x rel2 x attr x rel3 x attr-> "
@@ -1128,7 +1128,7 @@ const string OpTMSETBRSpeedBusSpec  =
     "streets,Vmax,final_busroutes,startSmaller) count;</text--->"
     ") )";
     
-const string OpTMCreateBusSegmentSpeedSpec  =
+const std::string OpTMCreateBusSegmentSpeedSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x attr1 x attr2"
@@ -1142,7 +1142,7 @@ const string OpTMCreateBusSegmentSpeedSpec  =
     "stop_direction, btree_bs,br_speed, btree_br_speed) count;</text--->"
     ") )";
 
-const string OpTMCreateNightBusSpec  =
+const std::string OpTMCreateNightBusSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree "
@@ -1153,7 +1153,7 @@ const string OpTMCreateNightBusSpec  =
     "bus_segment_speed,btree_seg_speed) count;</text--->"
     ") )";
 
-const string OpTMCreateDayTimeBusSpec  =
+const std::string OpTMCreateDayTimeBusSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree "
@@ -1164,7 +1164,7 @@ const string OpTMCreateDayTimeBusSpec  =
     "bus_segment_speed,btree_seg_speed) count;</text--->"
     ") )";
 
-const string OpTMCreateTimeTable1Spec  =
+const std::string OpTMCreateTimeTable1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree x periods x periods"
@@ -1175,7 +1175,7 @@ const string OpTMCreateTimeTable1Spec  =
     "night1, night2) count;</text--->"
     ") )";
 
-const string OpTMCreateTimeTable2Spec  =
+const std::string OpTMCreateTimeTable2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree "
@@ -1186,7 +1186,7 @@ const string OpTMCreateTimeTable2Spec  =
     "count;</text--->"
     ") )";
 
-const string OpTMRefMO2GenMOSpec  =
+const std::string OpTMRefMO2GenMOSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree "
@@ -1200,7 +1200,7 @@ const string OpTMRefMO2GenMOSpec  =
 //////////////////// metro network /////////////////////////
 ////////////////////////////////////////////////////////////
 
-const string OpTMTheMetroNetworkSpec  =
+const std::string OpTMTheMetroNetworkSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel x rel x rel-> metronetwork</text--->"
@@ -1209,7 +1209,7 @@ const string OpTMTheMetroNetworkSpec  =
     "<text>query metronetwork(1, metro_stops, metro_routes, metros) "
     ";</text--->) )";
 
-const string OpTMMSNeighbor1Spec  =
+const std::string OpTMMSNeighbor1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -1218,7 +1218,7 @@ const string OpTMMSNeighbor1Spec  =
     "<text>query  ms_neighbors1(metro_stops) count "
     ";</text--->) )";
 
-const string OpTMMSNeighbor2Spec  =
+const std::string OpTMMSNeighbor2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>metronetwork x rel x btree x rel x btree->"
@@ -1228,7 +1228,7 @@ const string OpTMMSNeighbor2Spec  =
     "<text>query ms_neighbors2(mn,timetable1,btree, genmo_rel,btree) count "
     ";</text--->) )";
 
-const string OpTMCreateMetroGraphSpec  =
+const std::string OpTMCreateMetroGraphSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel1 x rel2 x rel3 -> metrograph</text--->"
@@ -1238,7 +1238,7 @@ const string OpTMCreateMetroGraphSpec  =
     "<text>query createmgraph(1, node-rel, edge1, edge2); </text--->"
     ") )";
 
-const string OpTMCreateMetroRouteSpec  =
+const std::string OpTMCreateMetroRouteSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>dualgraph x rel "
@@ -1248,7 +1248,7 @@ const string OpTMCreateMetroRouteSpec  =
     "<text>query createmetroroute(dualgraph, metro_para); </text--->"
     ") )";
 
-const string OpTMCreateMetroStopSpec  =
+const std::string OpTMCreateMetroStopSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -1257,7 +1257,7 @@ const string OpTMCreateMetroStopSpec  =
     "<text>query createmetrostop(rel); </text--->"
     ") )";
 
-const string OpTMCreateMetroMOSpec  =
+const std::string OpTMCreateMetroMOSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x duraion ->"
@@ -1267,7 +1267,7 @@ const string OpTMCreateMetroMOSpec  =
     "<text>query createmetromo(rel, duration); </text--->"
     ") )";
 
-const string OpTMMapMsToPaveSpec  =
+const std::string OpTMMapMsToPaveSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x rel x rtree ->"
@@ -1277,7 +1277,7 @@ const string OpTMMapMsToPaveSpec  =
     "<text>query mapmstopave(rel, rel, rtree); </text--->"
     ") )";
 
-const string OpTMMNNavigationSpec  =
+const std::string OpTMMNNavigationSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busstop x busstop x busnetwork x instant"
@@ -1288,7 +1288,7 @@ const string OpTMMNNavigationSpec  =
     "theInstant(2010,12,5,16,0,0,0)) count; </text--->"
     ") )";
 
-const string OpTMNearStopBuildingSpec  =
+const std::string OpTMNearStopBuildingSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>space x string "
@@ -1302,7 +1302,7 @@ const string OpTMNearStopBuildingSpec  =
 tm rtree, range queries
 
 */
-const string OpTMDecomposeGenmoSpec  =
+const std::string OpTMDecomposeGenmoSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x real x bool ->"
@@ -1312,7 +1312,7 @@ const string OpTMDecomposeGenmoSpec  =
     "<text>query decomposegenmo(all_genmo, cellsize, TRUE)</text--->"
     ") )";
 
-const string OpTMBulkLoadTMRtreeSpec  =
+const std::string OpTMBulkLoadTMRtreeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) x attr1 x attr2 "
@@ -1323,7 +1323,7 @@ const string OpTMBulkLoadTMRtreeSpec  =
     " Mode, 1]</text--->"
     ") )";
 
-const string OpTMRtreeModeSpec  =
+const std::string OpTMRtreeModeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>tmrtree x rel x attr-> "
@@ -1333,7 +1333,7 @@ const string OpTMRtreeModeSpec  =
     "<text>query tmrtreemode(TM_RTree, genmo_units, Mode) </text--->"
     ") )";
 
-const string OpTMNodesSpec  =
+const std::string OpTMNodesSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>tmrtree ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -1342,7 +1342,7 @@ const string OpTMNodesSpec  =
     "<text>query tm_nodes(TM-Rtree) count</text--->"
     ") )";
 
-const string OpTMRangeTMRTreeSpec  =
+const std::string OpTMRangeTMRTreeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>tmrtree x rel x rel x int -> "
@@ -1352,7 +1352,7 @@ const string OpTMRangeTMRTreeSpec  =
     "<text>query range_tmrtree(TM-Rtree, genmo_rel, "
     "query_rel, 1) count</text--->) )";
 
-const string OpTMRangeQuerySpec  =
+const std::string OpTMRangeQuerySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x rel -> "
@@ -1361,7 +1361,7 @@ const string OpTMRangeQuerySpec  =
     "<text>range query on genmo by a single method</text--->"
     "<text>query range_query(genmo_rel, query_rel) count</text--->) )";
 
-const string OpTMRangeQuery2Spec  =
+const std::string OpTMRangeQuery2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rtree x rel x rel  -> "
@@ -1370,8 +1370,8 @@ const string OpTMRangeQuery2Spec  =
     "<text>range query on genmo units by using a 4d rtree</text--->"
     "<text>query range_query4d(rtree, genmo_units, query_rel) count"
     "</text--->) )";
-	
-const string OpTMMode2StringSpec  =
+  
+const std::string OpTMMode2StringSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x bool -> text </text--->"
@@ -1379,7 +1379,7 @@ const string OpTMMode2StringSpec  =
     "<text>convert an integer to a text </text--->"
     "<text>query mode2str(0, FALSE) </text--->) )";
 
-const string OpTMInstant2DaySpec  =
+const std::string OpTMInstant2DaySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>instant -> int </text--->"
@@ -1388,7 +1388,7 @@ const string OpTMInstant2DaySpec  =
     "<text>query instant2day(theInstant(2007,6,3,9,0,0,0));</text--->"
     ") )";
 
-const string OpTMMode2BitSpec  =
+const std::string OpTMMode2BitSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int  -> int </text--->"
@@ -1400,7 +1400,7 @@ const string OpTMMode2BitSpec  =
 mode rtree
 
 */
-const string OpTMDecomposeGenmo2Spec  =
+const std::string OpTMDecomposeGenmo2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x real x space ->"
@@ -1410,7 +1410,7 @@ const string OpTMDecomposeGenmo2Spec  =
     "<text>query decomposegenmo2(all_genmo, cellsize, space1)</text--->"
     ") )";
 
-const string OpCreateModeRtreeSpec  =
+const std::string OpCreateModeRtreeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) x attr1 x attr2 "
@@ -1421,7 +1421,7 @@ const string OpCreateModeRtreeSpec  =
     "Mode, RefId]</text--->"
     ") )";
 
-const string OpModeRtreeRefSpec  =
+const std::string OpModeRtreeRefSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>modertree x rel x attr x space-> "
@@ -1432,7 +1432,7 @@ const string OpModeRtreeRefSpec  =
     "RefId,space) </text--->"
     ") )";
 
-const string OpPrintModeRtreeSpec  =
+const std::string OpPrintModeRtreeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>modertree x string x space-> "
@@ -1442,7 +1442,7 @@ const string OpPrintModeRtreeSpec  =
     "<text>query printmodertree(Mode_RTree, Bus) </text--->"
     ") )";
 
-const string OpBenchModeRtreeSpec  =
+const std::string OpBenchModeRtreeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>modertree x rel x rel x space x rel x btree-> "
@@ -1453,7 +1453,7 @@ const string OpBenchModeRtreeSpec  =
     "bench_query, space_1, all_genmo, btreegenmo) </text--->"
     ") )";
 
-const string OpBenchModeRtree9Spec  =
+const std::string OpBenchModeRtree9Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>modertree x rel x rel x space x rel x btree x rel-> "
@@ -1464,7 +1464,7 @@ const string OpBenchModeRtree9Spec  =
     "bench_query, space_1, all_genmo, btreegenmo, rel) </text--->"
     ") )";
 
-const string OpBenchModeRtree13Spec  =
+const std::string OpBenchModeRtree13Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>modertree x rel x rel x space x rel x btree x rel x rel-> "
@@ -1476,7 +1476,7 @@ const string OpBenchModeRtree13Spec  =
     "bench_query, space_1, all_genmo, btreegenmo, road_seg, mo_bus) </text--->"
     ") )";
 
-const string OpBenchModeRtree12Spec  =
+const std::string OpBenchModeRtree12Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>modertree x rel x rel x space x rel x btree x rel x rel x rel-> "
@@ -1487,12 +1487,12 @@ const string OpBenchModeRtree12Spec  =
     "<text>query bench_modertree12(Mode_RTree, genmo_units,bench_query, "
     "space_1, all_genmo, btreegenmo, floor_h, busstops1, busstops2) </text--->"
     ") )";
-	
+  
 /*
 build a path between the entrance of the building and the pavement area 
 
 */
-const string OpTMPathToBuildingSpec  =
+const std::string OpTMPathToBuildingSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree x space->"
@@ -1503,7 +1503,7 @@ const string OpTMPathToBuildingSpec  =
     "btree_region_elem, space_1);</text--->"
     ") )";
     
-const string OpTMSetBuildingTypeSpec  =
+const std::string OpTMSetBuildingTypeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x rtree x space -> "
@@ -1518,7 +1518,7 @@ const string OpTMSetBuildingTypeSpec  =
 remove dirty region data 
 
 */
-const string OpTMRemoveDirtySpec  =
+const std::string OpTMRemoveDirtySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr1 x attr2 ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))"
@@ -1529,7 +1529,7 @@ const string OpTMRemoveDirtySpec  =
     ") )";
 
     
-const string OpTMModifyLineSpec  =
+const std::string OpTMModifyLineSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>sline -> sline</text--->"
@@ -1539,7 +1539,7 @@ const string OpTMModifyLineSpec  =
     "</text--->"
     ") )";
 
-const string OpTMModifyRegionSpec  =
+const std::string OpTMModifyRegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>region -> region</text--->"
@@ -1548,9 +1548,9 @@ const string OpTMModifyRegionSpec  =
     "<text>query modifyline([const region value ((((1 1)(5 1)(5 5)(1 5))))])"
     "</text--->"
     ") )";
-	
-	
-const string OpTMRefineDataSpec  =
+  
+  
+const std::string OpTMRefineDataSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>sline -> sline</text--->"
@@ -1560,7 +1560,7 @@ const string OpTMRefineDataSpec  =
     "</text--->"
     ") )";
 
-const string OpTMFilterDisjointSpec  =
+const std::string OpTMFilterDisjointSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x btree ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -1570,7 +1570,7 @@ const string OpTMFilterDisjointSpec  =
     "</text--->"
     ") )";
 
-const string OpTMRefineBRSpec  =
+const std::string OpTMRefineBRSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr x attr -> "
@@ -1581,7 +1581,7 @@ const string OpTMRefineBRSpec  =
     ") )";
 
 
-const string OpTMBSStopSpec  =
+const std::string OpTMBSStopSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x rel x attr x attr->"
@@ -1591,7 +1591,7 @@ const string OpTMBSStopSpec  =
     "<text>query bs_stops(BusSegs, BSStops_Loc, Geo, Oid_S, "
     "Loc_L) count</text--->) )";
 
-const string OpTMSetBSSpeedSpec  =
+const std::string OpTMSetBSSpeedSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x rel x rel x attr->"
@@ -1601,7 +1601,7 @@ const string OpTMSetBSSpeedSpec  =
     "<text>query st_bs_speed(BusSegs, streets_speed, BusRoadSegs, Vmax)"
     "count</text--->) )";
 
-const string OpTMSetStopLocSpec  =
+const std::string OpTMSetStopLocSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>line -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -1609,7 +1609,7 @@ const string OpTMSetStopLocSpec  =
     "<text>set certain positions</text--->"
     "<text>query st_stop_loc(M_Lines)count</text--->) )";
 
-const string OpTMGetMetroDataSpec  =
+const std::string OpTMGetMetroDataSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x rel x string ->"
@@ -1619,7 +1619,7 @@ const string OpTMGetMetroDataSpec  =
     "<text>query getmetrodata(MetroSegs, MetroRoadSegs, "
     "\"STOP\")count</text--->) )";
 
-const string OpTMSLine2RegionSpec  =
+const std::string OpTMSLine2RegionSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>sline -> region </text--->"
@@ -1627,7 +1627,7 @@ const string OpTMSLine2RegionSpec  =
     "<text>from sline to region</text--->"
     "<text>query sl2reg(sl1)</text--->) )";
 
-const string OpTMSEGSSpec  =
+const std::string OpTMSEGSSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>region -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
@@ -1636,7 +1636,7 @@ const string OpTMSEGSSpec  =
     "<text>query tm_segs(r1)</text--->) )";
 
 
-const string OpTMCheckRoadsSpec  =
+const std::string OpTMCheckRoadsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>relation x rtree"
@@ -1646,7 +1646,7 @@ const string OpTMCheckRoadsSpec  =
     "<text>query checkroads(r,rtree_road)</text--->"
     ") )";
 
-const string OpTMTMJoin1Spec  =
+const std::string OpTMTMJoin1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>relation x relation x rtree"
@@ -1660,7 +1660,7 @@ const string OpTMTMJoin1Spec  =
 get the maximum rectangle from a convex polygon 
 
 */
-const string OpTMMaxRectSpec  =
+const std::string OpTMMaxRectSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>region -> rect </text--->"
@@ -1669,7 +1669,7 @@ const string OpTMMaxRectSpec  =
     "<text>query maxrect(r1);</text--->"
     ") )";
 
-const string OpTMGetRect1Spec  =
+const std::string OpTMGetRect1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel x attr1 x attr2 x rel->"
@@ -1683,28 +1683,28 @@ const string OpTMGetRect1Spec  =
 ///////////////////////  Indoor Operators    /////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 
-const string SpatialSpecTheFloor =
+const std::string SpatialSpecTheFloor =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>float x region -> floor3d</text--->"
 "<text>thefloor ( _, _ ) </text--->"
 "<text>create a floor3d object.</text--->"
 "<text>query thefloor (5.0, r)</text---> ) )";
 
-const string SpatialSpecGetHeight =
+const std::string SpatialSpecGetHeight =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>floor3d -> float</text--->"
 "<text>getheight ( _ ) </text--->"
 "<text>get the ground height of a floor3d object</text--->"
 "<text>query getheight(floor3d_1)</text---> ) )";
 
-const string SpatialSpecGetRegion =
+const std::string SpatialSpecGetRegion =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>floor3d -> region</text--->"
 "<text>getregion ( _ ) </text--->"
 "<text>get the ground area of a floor3d object</text--->"
 "<text>query getregion(floor3d_1)</text---> ) )";
 
-const string SpatialSpecTheDoor =
+const std::string SpatialSpecTheDoor =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>int x line x int x line x mbool x bool -> door3d</text--->"
 "<text>thedoor ( _,_,_,_, _,_ ) </text--->"
@@ -1712,35 +1712,35 @@ const string SpatialSpecTheDoor =
 "<text>query thedoor (1,l1,2,l3,doorstate, FALSE)</text---> ) )";
 
 
-const string SpatialSpecTypeOfDoor =
+const std::string SpatialSpecTypeOfDoor =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>door3d -> bool</text--->"
 "<text>type_of_door ( _ ) </text--->"
 "<text>get the type of door: lift or non-lift</text--->"
 "<text>query type_of_door (door1)</text---> ) )";
 
-const string SpatialSpecLocOfDoor =
+const std::string SpatialSpecLocOfDoor =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>door3d x int -> line</text--->"
 "<text>loc_of_door (_, _) </text--->"
 "<text>get the relative location of door</text--->"
 "<text>query loc_of_door (door1,1)</text---> ) )";
 
-const string SpatialSpecStateOfDoor =
+const std::string SpatialSpecStateOfDoor =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>door3d -> mbool</text--->"
 "<text>state_of_door (_) </text--->"
 "<text>get the time dependent state of door</text--->"
 "<text>query state_of_door (door1)</text---> ) )";
 
-const string SpatialSpecGetFloor =
+const std::string SpatialSpecGetFloor =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>groom x int -> floor3d</text--->"
 "<text>get_floor (_, _) </text--->"
 "<text>get one element of a groom</text--->"
 "<text>query get_floor (groom1, 0)</text---> ) )";
 
-const string SpatialSpecAddHeightGRoom =
+const std::string SpatialSpecAddHeightGRoom =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>groom x real -> groom</text--->"
 "<text>add_height_groom(_, _) </text--->"
@@ -1748,7 +1748,7 @@ const string SpatialSpecAddHeightGRoom =
 "<text>query add_height_groom(groom1, 3.0)</text---> ) )";
 
 
-const string SpatialSpecTranslateGRoom =
+const std::string SpatialSpecTranslateGRoom =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>groom x real x real -> groom</text--->"
 "<text>_ translate_groom [_, _] </text--->"
@@ -1756,7 +1756,7 @@ const string SpatialSpecTranslateGRoom =
 "<text>query groom1 translate_groom [20.0, 0.0]</text---> ) )";
 
 
-const string SpatialSpecLengthLine3D =
+const std::string SpatialSpecLengthLine3D =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>line3d -> real</text--->"
 "<text> size(_) </text--->"
@@ -1764,14 +1764,14 @@ const string SpatialSpecLengthLine3D =
 "<text>query size(l3d1)</text---> ) )";
 
 
-const string SpatialSpecBBox3D =
+const std::string SpatialSpecBBox3D =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>line3d -> rect3</text--->"
 "<text> bbox3d(_) </text--->"
 "<text>return the bounding box of a 3D line</text--->"
 "<text>query bbox3d(l3d1)</text---> ) )";
 
-const string SpatialSpecTheBuilding =
+const std::string SpatialSpecTheBuilding =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>int x string x rel x rel  -> building </text--->"
 "<text>thebuilding(int,string,rel,rel) </text--->"
@@ -1779,14 +1779,14 @@ const string SpatialSpecTheBuilding =
 "<text>query thebuilding(1, \"UNIVERSITY\", fernuni, fernuni_extend)"
 "</text---> ) )";
 
-const string SpatialSpecTheIndoor =
+const std::string SpatialSpecTheIndoor =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>int x rel x rel  -> building </text--->"
 "<text>theindoor(int,rel,rel) </text--->"
 "<text>create the indoor infrastructure </text--->"
 "<text>query theindoor(1,  paths1, buildingplustype) </text---> ) )";
 
-const string SpatialSpecCreateDoor3D =
+const std::string SpatialSpecCreateDoor3D =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
 "<text>createdoor3d() </text--->"
@@ -1794,7 +1794,7 @@ const string SpatialSpecCreateDoor3D =
 "<text>query createdoor3d(university) count</text---> ) )";
 
 
-const string SpatialSpecCreateDoorBox =
+const std::string SpatialSpecCreateDoorBox =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
 "<text>createdoorbox(rel) </text--->"
@@ -1802,7 +1802,7 @@ const string SpatialSpecCreateDoorBox =
 "<text>query createdoorbox(university) count</text---> ) )";
 
 
-const string SpatialSpecCreateDoor1 =
+const std::string SpatialSpecCreateDoor1 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel1 x rel2 x rtree x attr1 x attr2 x attr3"
  " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn))))</text--->"
@@ -1812,7 +1812,7 @@ const string SpatialSpecCreateDoor1 =
 "groom_tid, Box3d) count</text---> ) )";
 
 
-const string SpatialSpecCreateDoor2 =
+const std::string SpatialSpecCreateDoor2 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
 "<text>createdoor2(rel) </text--->"
@@ -1820,7 +1820,7 @@ const string SpatialSpecCreateDoor2 =
 "<text>query createdoor2(university_uni) count</text---> ) )";
 
 
-const string SpatialSpecCreateAdjDoor1 =
+const std::string SpatialSpecCreateAdjDoor1 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel1 x rel2 x btree x attr1 x attr2 x attr3 x attr4"
  " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -1830,7 +1830,7 @@ const string SpatialSpecCreateAdjDoor1 =
 "Door, door_loc, groom_oid1, doorheight) count</text---> ) )";
 
 
-const string SpatialSpecCreateAdjDoor2 =
+const std::string SpatialSpecCreateAdjDoor2 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel x rtree "
  " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -1840,14 +1840,14 @@ const string SpatialSpecCreateAdjDoor2 =
 "<text>query createadjdoor2(node_rel, rtree_node) count</text---> ) )";
 
 
-const string SpatialSpecPathInRegion =
+const std::string SpatialSpecPathInRegion =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>region x point x point -> line</text--->"
 "<text>path_in_region(region,point,point) </text--->"
 "<text>create the shortest path connecting two points inside a region</text--->"
 "<text>query size(path_in_region(reg1, p1, p2))</text---> ) )";
 
-const string OpTMCreateIGSpec  =
+const std::string OpTMCreateIGSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel x rel x string -> indoorgraph</text--->"
@@ -1857,14 +1857,14 @@ const string OpTMCreateIGSpec  =
     "<text>query createigraph(1, edge-rel, node-rel, \"cinema\"); </text--->"
     ") )";
 
- const string SpatialSpecGenerateIP1 =
+ const std::string SpatialSpecGenerateIP1 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel x int x bool->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
 "<text>generate_ip1(rel, int, bool) </text--->"
 "<text>create indoor positions</text--->"
 "<text>query generate_ip1(building_uni,20, TRUE) count</text---> ) )";
 
-const string SpatialSpecIndoorNavigation =
+const std::string SpatialSpecIndoorNavigation =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel x genloc x genloc x rel x btree x int"
  " -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -1873,7 +1873,7 @@ const string SpatialSpecIndoorNavigation =
 "<text>query indoornavigation(ig, gloc1, gloc2, building_uni, btree_groom 0)"
 " count </text---> ) )";
 
- const string SpatialSpecGenerateMO1 =
+ const std::string SpatialSpecGenerateMO1 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>indoorgraph x rel x btree x rtree x int x periods ->"
 " (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -1883,7 +1883,7 @@ const string SpatialSpecIndoorNavigation =
 " count </text---> ) )";
 
 
- const string SpatialSpecGetIndoorPath =
+ const std::string SpatialSpecGetIndoorPath =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>string x int ->line3d</text--->"
 "<text>getindorpath(string, int) </text--->"
@@ -1895,35 +1895,35 @@ const string SpatialSpecIndoorNavigation =
 create an empty space 
 
 */
-const string SpatialSpecTheSpace =
+const std::string SpatialSpecTheSpace =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>int -> space </text--->"
 "<text>thespace (_) </text--->"
 "<text>create an empty space</text--->"
 "<text>query thespace(1)</text---> ) )";
 
-const string SpatialSpecPutInfra =
+const std::string SpatialSpecPutInfra =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>space x network ->  (stream(((x1 t1) ... (xn tn))) </text--->"
 "<text>putinfra (space, network) </text--->"
 "<text>add infrastructures to the space</text--->"
 "<text>query putinfra(space_1, rn)</text---> ) )";
 
-const string SpatialSpecPutRel =
+const std::string SpatialSpecPutRel =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>space x rel ->  (stream(((x1 t1) ... (xn tn))) </text--->"
 "<text>putrel (space, rel) </text--->"
 "<text>add relations to the space</text--->"
 "<text>query putinfra(space_1, rel)</text---> ) )";
 
-const string SpatialSpecGetInfra =
+const std::string SpatialSpecGetInfra =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>space x string ->  rel </text--->"
 "<text>getinfra (space, \"LINE\") </text--->"
 "<text>get required infrastructure from the space</text--->"
 "<text>query getinfra(space_1, \"LINE\")</text---> ) )";
 
-const string SpatialSpecGenMOTMList =
+const std::string SpatialSpecGenMOTMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>bool -> (stream(((x1 t1) ... (xn tn))) </text--->"
 "<text>genmo_tm_list (bool) </text--->"
@@ -1931,7 +1931,7 @@ const string SpatialSpecGenMOTMList =
 "<text>query genmo_tm_list(TRUE)</text---> ) )";
 
 
-const string SpatialSpecGenerateGMOTMList =
+const std::string SpatialSpecGenerateGMOTMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x int x rel x btree x rel"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
@@ -1940,7 +1940,7 @@ const string SpatialSpecGenerateGMOTMList =
 "<text>query generate_genmo(space_1, TwoDays, 30, 4) </text---> ) )";
 
 
-const string SpatialSpecGenerateGMOBench1TMList =
+const std::string SpatialSpecGenerateGMOBench1TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x rel x rel x rel"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
@@ -1949,7 +1949,7 @@ const string SpatialSpecGenerateGMOBench1TMList =
 "<text>query generate_bench_1(space_1, hw_time, 5.0, distri_para1,"
 " H_Building, W_Building) </text---> ) )";
 
-const string SpatialSpecGenerateGMOBench2TMList =
+const std::string SpatialSpecGenerateGMOBench2TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x rel x string"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
@@ -1958,7 +1958,7 @@ const string SpatialSpecGenerateGMOBench2TMList =
 "<text>query generate_bench_2(space_1, tuesday, 5.0, Buildingrel, "
 "\"REGION\") </text---> ) )";
 
-const string SpatialSpecGenerateGMOBench3TMList =
+const std::string SpatialSpecGenerateGMOBench3TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x rel x rtree"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
@@ -1968,7 +1968,7 @@ const string SpatialSpecGenerateGMOBench3TMList =
 "rtree_NNB) </text---> ) )";
 
 
-const string SpatialSpecGenerateGMOBench4TMList =
+const std::string SpatialSpecGenerateGMOBench4TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x rel x rel x rtree"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
@@ -1978,7 +1978,7 @@ const string SpatialSpecGenerateGMOBench4TMList =
 "rtree_NNB) </text---> ) )";
 
 
-const string SpatialSpecGenerateGMOBench5TMList =
+const std::string SpatialSpecGenerateGMOBench5TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x rel x rel x rel"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
@@ -1987,7 +1987,7 @@ const string SpatialSpecGenerateGMOBench5TMList =
 "<text>query generate_bench_5(space_1, hw_time, 5.0, distri_para3,"
 " H_Building, W_Building) </text---> ) )";
 
-const string SpatialSpecGenerateCarList =
+const std::string SpatialSpecGenerateCarList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x rel"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
@@ -1996,7 +1996,7 @@ const string SpatialSpecGenerateCarList =
 "<text>query generate_car(space_1, TwoDays, 30.0, streets_speed) </text---> ))";
 
 
-const string SpatialSpecGetRGNodesTMList =
+const std::string SpatialSpecGetRGNodesTMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> network -> (stream(((x1 t1) ... (xn tn))) </text--->"
 "<text>get_rg_nodes(network) </text--->"
@@ -2004,7 +2004,7 @@ const string SpatialSpecGetRGNodesTMList =
 "<text>query get_rg_nodes(rn) count </text---> ) )";
 
 
-const string SpatialSpecGetRGEdges1TMList =
+const std::string SpatialSpecGetRGEdges1TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> rel -> (stream(((x1 t1) ... (xn tn))) </text--->"
 "<text>get_rg_edges1(rel) </text--->"
@@ -2012,14 +2012,14 @@ const string SpatialSpecGetRGEdges1TMList =
 "<text>query get_rg_edges1(rel) count </text---> ) )";
 
 
-const string SpatialSpecGetRGEdges2TMList =
+const std::string SpatialSpecGetRGEdges2TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> network x rel -> (stream(((x1 t1) ... (xn tn))) </text--->"
 "<text>get_rg_edges2(network, rel) </text--->"
 "<text>get road graph edges </text--->"
 "<text>query get_rg_edges2(rn, rel) count </text---> ) )";
 
-const string SpatialSpecGetPaveEdges3TMList =
+const std::string SpatialSpecGetPaveEdges3TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> network x rel x btree x rel ->"
 " (stream(((x1 t1) ... (xn tn))) </text--->"
@@ -2028,21 +2028,21 @@ const string SpatialSpecGetPaveEdges3TMList =
 "<text>query get_p_edges3(P_N, P_nodes1, btree_PN1, P_Nodes2) "
 "count </text---> ) )";
 
-const string SpatialSpecGetPaveEdges4TMList =
+const std::string SpatialSpecGetPaveEdges4TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> rel x rel ->(stream(((x1 t1) ... (xn tn))) </text--->"
 "<text>get_p_edges4(rel, rel) </text--->"
 "<text>get the connection inside one region </text--->"
 "<text>query get_p_edges4(P_Nodes2_tmp, DOPedesRegions) count </text---> ) )";
 
-const string SpatialSpecTheOSMPaveTMList =
+const std::string SpatialSpecTheOSMPaveTMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> int x rel x rel ->(stream(((x1 t1) ... (xn tn))) </text--->"
 "<text>theosmpave(int, rel, rel) </text--->"
 "<text>create osm pavement environment </text--->"
 "<text>query theosmpave(1, DOPedeslines, DOPedesRegions) count </text---> ) )";
 
-const string OpTMOSMPaveGraphSpec  =
+const std::string OpTMOSMPaveGraphSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel1 x rel2 -> osmpavegraph</text--->"
@@ -2053,7 +2053,7 @@ const string OpTMOSMPaveGraphSpec  =
     ") )";
 
 
-const string OpTMOSMLocMapSpec  =
+const std::string OpTMOSMLocMapSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 -> osmpavegraph</text--->"
@@ -2063,7 +2063,7 @@ const string OpTMOSMLocMapSpec  =
     ") )";
 
     
-const string OpTMOSMPathSpec  =
+const std::string OpTMOSMPathSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x osmpavenetwork -> sline</text--->"
@@ -2072,7 +2072,7 @@ const string OpTMOSMPathSpec  =
     "<text>query osm_path(loc1, loc2, osm_pave); </text--->"
     ") )";
 
-const string OpTMCreateRoadGraphSpec  =
+const std::string OpTMCreateRoadGraphSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel1 x rel2 x rel3 -> roadgraph</text--->"
@@ -2086,7 +2086,7 @@ const string OpTMCreateRoadGraphSpec  =
 shortest path in road network
 
 */
-const string OpTMShortestPathTMSpec  =
+const std::string OpTMShortestPathTMSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>gpoint x gpoint x roadgraph x network ->"
@@ -2096,7 +2096,7 @@ const string OpTMShortestPathTMSpec  =
     "<text>query shortestpath_tm(gp1, gp2, rg1, rn); </text--->"
     ") )";
 
-const string SpatialSpecNavigation1List =
+const std::string SpatialSpecNavigation1List =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x rel x rel x instant x rel x rel x rtree"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
@@ -2106,7 +2106,7 @@ const string SpatialSpecNavigation1List =
 "bs_pave_sort, rtree_bs_pave) </text---> ) )";
 
 
-const string SpatialSpecRefId =
+const std::string SpatialSpecRefId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genloc -> int</text--->"
 "<text>ref_id (genloc) </text--->"
@@ -2114,21 +2114,21 @@ const string SpatialSpecRefId =
 "<text>query ref_id (genloc1)</text---> ) )";
 
 
-const string SpatialSpecSetMORefId =
+const std::string SpatialSpecSetMORefId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> (stream uT)</text--->"
 "<text>ref_id (genmo) </text--->"
 "<text>get the reference id of a generic moving object</text--->"
 "<text>query ref_id (genmo1)</text---> ) )";
 
-const string SpatialSpecTMAT =
+const std::string SpatialSpecTMAT =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x string -> genmo</text--->"
 "<text>tm_at (genmo, string) </text--->"
 "<text>get the moving object with one mode</text--->"
 "<text>query tm_at(genmo1, \"Indoor\")</text---> ) )";
 
-const string SpatialSpecTMAT2 =
+const std::string SpatialSpecTMAT2 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x mreal x string -> genmo</text--->"
 "<text>tm_at2(genmo, mreal, string) </text--->"
@@ -2136,14 +2136,14 @@ const string SpatialSpecTMAT2 =
 "<text>query tm_at(genmo1, mreal1, \"Indoor\")</text---> ) )";
 
 
-const string SpatialSpecTMAT3 =
+const std::string SpatialSpecTMAT3 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x mreal x genloc x string -> genmo</text--->"
 "<text>tm_at2(genmo, mreal, genloc, string) </text--->"
 "<text>get the moving object with one mode</text--->"
 "<text>query tm_at(genmo1, mreal1, genloc1,\"Indoor\")</text---> ) )";
 
-const string SpatialSpecTMATGloc =
+const std::string SpatialSpecTMATGloc =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x gloc -> genmo</text--->"
 "<text>tm_atgloc (genmo, gloc) </text--->"
@@ -2151,35 +2151,35 @@ const string SpatialSpecTMATGloc =
 "<text>query tm_atgloc(genmo1, genloc)</text---> ) )";
 
 
-const string SpatialSpecTMVal =
+const std::string SpatialSpecTMVal =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>igenloc -> genloc</text--->"
 "<text>val(igenloc) </text--->"
 "<text>get the genloc for a igenloc</text--->"
 "<text>query val(igloc)</text---> ) )";
 
-const string SpatialSpecTMInst =
+const std::string SpatialSpecTMInst =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>igenloc -> instant</text--->"
 "<text>tm_inst (igenloc) </text--->"
 "<text>get the instant for a igenloc</text--->"
 "<text>query tm_inst(igloc)</text---> ) )";
 
-const string SpatialSpecTMContain =
+const std::string SpatialSpecTMContain =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x string -> bool</text--->"
 "<text>contains (genmo, string) </text--->"
 "<text>check whether the moving object contains one mode</text--->"
 "<text>query contains(genmo1, \"Indoor\")</text---> ) )";
 
-const string SpatialSpecTMContain2 =
+const std::string SpatialSpecTMContain2 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x mreal x int x space -> bool</text--->"
 "<text>tmcontains (genmo,mreal,int,space) </text--->"
 "<text>check whether the moving object contains a reference int</text--->"
 "<text>query tmcontains(genmo1, uindex,123,space_1)</text---> ) )";
 
-const string SpatialSpecTMDuration =
+const std::string SpatialSpecTMDuration =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>periods x string -> real</text--->"
 "<text>tm_duration (periods, string) </text--->"
@@ -2187,35 +2187,35 @@ const string SpatialSpecTMDuration =
 "<text>query tm_duration(peri1, \"M\")</text---> ) )";
 
 
-const string SpatialSpecTMInitial =
+const std::string SpatialSpecTMInitial =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> igenloc</text--->"
 "<text>tm_initia (genmo) </text--->"
 "<text>return the intime genloc of a genmo</text--->"
 "<text>query initial(genmo1)</text---> ) )";
 
-const string SpatialSpecTMBuildId =
+const std::string SpatialSpecTMBuildId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>int x space -> int</text--->"
 "<text>tm_build_id (int, space) </text--->"
 "<text>return the building id of an reference</text--->"
 "<text>query tm_build_id(0, space1)</text---> ) )";
 
-const string SpatialSpecTMBContains =
+const std::string SpatialSpecTMBContains =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x int -> bool</text--->"
 "<text>genmo bcontains int </text--->"
 "<text>check whether a building id is contained</text--->"
 "<text>query genmo1 bcontains 123456</text---> ) )";
 
-const string SpatialSpecTMBContains2 =
+const std::string SpatialSpecTMBContains2 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x mreal x int -> bool</text--->"
 "<text>genmo bcontains int </text--->"
 "<text>check whether a building id is contained, with index on units</text--->"
 "<text>query bcontains(genmo1, uindex, 123456)</text---> ) )";
 
-const string SpatialSpecTMRoomId =
+const std::string SpatialSpecTMRoomId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>int x space -> int</text--->"
 "<text>tm_room_id (int, space) </text--->"
@@ -2227,7 +2227,7 @@ create a new id by combining the two input integers
 e.g., 123 + 34 = 12334
 
 */
-const string SpatialSpecTMPlusId =
+const std::string SpatialSpecTMPlusId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>int x int -> int</text--->"
 "<text>tm_plus_id (int, int) </text--->"
@@ -2235,42 +2235,42 @@ const string SpatialSpecTMPlusId =
 "<text>query tm_plus_id(20, 13)</text---> ) )";
 
 
-const string SpatialSpecTMPass =
+const std::string SpatialSpecTMPass =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x region x space -> bool</text--->"
 "<text>passes (genmo, region, space) </text--->"
 "<text>check whether a moving object passes an area</text--->"
 "<text>query passes(genmo1, reg, space1)</text---> ) )";
 
-const string SpatialSpecTMDistance =
+const std::string SpatialSpecTMDistance =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genloc x point x space -> bool</text--->"
 "<text>tm_passes (genloc, point, space) </text--->"
 "<text>return the distance between a genloc and a point</text--->"
 "<text>query tm_distance(genloc1, p1, space1)</text---> ) )";
 
-const string SpatialSpecTMGenLoc =
+const std::string SpatialSpecTMGenLoc =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>int x real x real -> genloc</text--->"
 "<text>tm_genloc (int, real, real) </text--->"
 "<text>create a genloc </text--->"
 "<text>query tm_genloc(2, 3.0, -1.0)</text---> ) )";
 
-const string SpatialSpecModeVal =
+const std::string SpatialSpecModeVal =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> int</text--->"
 "<text>modeval(genmo) </text--->"
 "<text>create an integer for modes  </text--->"
 "<text>query modeval(genmo1)</text---> ) )";
 
-const string SpatialSpecGenMOIndex =
+const std::string SpatialSpecGenMOIndex =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> mreal</text--->"
 "<text>genmoindex(genmo) </text--->"
 "<text>create an index on genmo units </text--->"
 "<text>query genmoindex(genmo1)</text---> ) )";
 
-const string SpatialSpecMReal2MString =
+const std::string SpatialSpecMReal2MString =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>mreal -> mstring</text--->"
 "<text>tm_mr2ms(mreal) </text--->"
@@ -2278,14 +2278,14 @@ const string SpatialSpecMReal2MString =
 "<text>query tm_mr2ms(genmo_index1)</text---> ) )";
 
 
-const string SpatialSpecGenMODeftime =
+const std::string SpatialSpecGenMODeftime =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> periods</text--->"
 "<text>deftime (genmo) </text--->"
 "<text>get the deftime time of a generic moving object</text--->"
 "<text>query deftime (genmo)</text---> ) )";
 
-const string SpatialSpecGenMONoComponents =
+const std::string SpatialSpecGenMONoComponents =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> int</text--->"
 "<text>no_components (genmo) </text--->"
@@ -2296,49 +2296,49 @@ const string SpatialSpecGenMONoComponents =
 return the location representation in an approximate way
 
 */
-const string SpatialSpecLowRes =
+const std::string SpatialSpecLowRes =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> genmo</text--->"
 "<text>lowres (genmo) </text--->"
 "<text>return the low resolution of generic moving object</text--->"
 "<text>query lowres(genmo1)</text---> ) )";
 
-const string SpatialSpecGenmoTranslate =
+const std::string SpatialSpecGenmoTranslate =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x duration -> genmo</text--->"
 "<text>genmo tm_translate duration </text--->"
 "<text>translate the time period of a genmo</text--->"
 "<text>query genmo1 tm_translate [const duration value (1 0)]</text---> ) )";
 
-const string SpatialSpecGenmoTranslate2 =
+const std::string SpatialSpecGenmoTranslate2 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>periods x duration -> periods</text--->"
 "<text>periods tm_translate2 duration </text--->"
 "<text>translate the time period</text--->"
 "<text>query peri1 tm_translate2 [const duration value (1 0)]</text---> ) )";
 
-const string SpatialSpecTMTrajectory =
+const std::string SpatialSpecTMTrajectory =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>mpoint3d -> line3d</text--->"
 "<text>trajectory (mpoint3d) </text--->"
 "<text>get the trajectory of a 3d moving object</text--->"
 "<text>query trajectory(mp3_1)</text---> ) )"; 
 
-const string SpatialSpecGenTrajectory =
+const std::string SpatialSpecGenTrajectory =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> genrange</text--->"
 "<text>trajectory (genmo) </text--->"
 "<text>get the trajectory of a moving object</text--->"
 "<text>query trajectory(genmo)</text---> ) )";
 
-const string SpatialSpecGenrangeVisible =
+const std::string SpatialSpecGenrangeVisible =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genrange -> (stream(((x1 t1) ... (xn tn))))</text--->"
 "<text>genrangevisible (genrange, space) </text--->"
 "<text>get the 2d line or 3d line in space, visible in javagui</text--->"
 "<text>query genrangevisible(gr1, space1)</text---> ) )";
 
-const string SpatialSpecGetMode =
+const std::string SpatialSpecGetMode =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> (stream(((x1 t1) ... (xn tn)))</text--->"
 "<text>getmode (_) </text--->"
@@ -2346,35 +2346,35 @@ const string SpatialSpecGetMode =
 "<text>query getmode(genmo1)</text---> ) )";
 
 
-const string SpatialSpecGetRef =
+const std::string SpatialSpecGetRef =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> (stream(((x1 t1) ... (xn tn)))</text--->"
 "<text>getref (_) </text--->"
 "<text>return the referenced objects in a light way</text--->"
 "<text>query getref(genmo1)</text---> ) )";
 
-const string SpatialSpecAtInstant =
+const std::string SpatialSpecAtInstant =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x instant -> igenloc</text--->"
 "<text>_ atinstant _ </text--->"
 "<text>return the instant value of a generic moving object</text--->"
 "<text>query genmo1 atinstant instant 1</text---> ) )";
 
-const string SpatialSpecAtPeriods =
+const std::string SpatialSpecAtPeriods =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x periods -> genmo</text--->"
 "<text>_ atperiods _ </text--->"
 "<text>return the movement in a given period </text--->"
 "<text>query genmo1 atperiods periods1 </text---> ) )";
 
-const string SpatialSpecMapGenMO =
+const std::string SpatialSpecMapGenMO =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x mpoint -> mpoint</text--->"
 "<text>genmo mapgenmo mpoint </text--->"
 "<text>map a genmo to a mpoint </text--->"
 "<text>query mapgenmo(genmo1, mp1) </text---> ) )";
 
-const string SpatialSpecMapTMUnits =
+const std::string SpatialSpecMapTMUnits =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> (stream(((x1 t1) ... (xn tn)))) </text--->"
 "<text>units(genmo) </text--->"
@@ -2382,7 +2382,7 @@ const string SpatialSpecMapTMUnits =
 "<text>query units(genmo1) </text---> ) )";
 
 
-const string SpatialSpecMapGetLoc =
+const std::string SpatialSpecMapGetLoc =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>ugenloc x bool -> point </text--->"
 "<text>getloc(ugenloc, bool) </text--->"
@@ -2390,7 +2390,7 @@ const string SpatialSpecMapGetLoc =
 "<text>query getloc(ugenloc1,TRUE) </text---> ) )";
 
 
-const string SpatialSpecMapTMTraffic =
+const std::string SpatialSpecMapTMTraffic =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel x periods x rel x bool -> "
 " (stream(((x1 t1) ... (xn tn)))) </text--->"
@@ -2403,7 +2403,7 @@ const string SpatialSpecMapTMTraffic =
 add graphs into infrastructures
 
 */
-const string SpatialSpecAddInfraGraph =
+const std::string SpatialSpecAddInfraGraph =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>busnetwork x busgraph -> (stream(((x1 t1) ... (xn tn)))) </text--->"
 "<text>addinfragraph (busnetwork,busgraph) </text--->"
@@ -2844,7 +2844,7 @@ bool CheckRoadGraphId(unsigned int rg_id)
     {
       // Get name of the network
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the network. Normally their
       // won't be to much networks in one database giving us a good
@@ -2897,7 +2897,7 @@ bool CheckMetroGraphId(unsigned int mg_id)
     {
       // Get name of the network
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the network. Normally their
       // won't be to much networks in one database giving us a good
@@ -2949,7 +2949,7 @@ bool ChekOSMPavementId(unsigned int pn_id)
     {
       // Get name of the pavement 
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the pavement. Normally their
       // won't be to much networks in one database giving us a good
@@ -3001,7 +3001,7 @@ bool CheckOSMPaveGraphId(unsigned int osmg_id)
     {
       // Get name of the network
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the network. Normally their
       // won't be to much networks in one database giving us a good
@@ -3054,7 +3054,7 @@ bool ChekPavementId(unsigned int pn_id)
     {
       // Get name of the pavement 
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the pavement. Normally their
       // won't be to much networks in one database giving us a good
@@ -3106,7 +3106,7 @@ bool ChekBusNetworkId(unsigned int bn_id)
     {
       // Get name of the network
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the network. Normally their
       // won't be to much networks in one database giving us a good
@@ -3158,7 +3158,7 @@ bool ChekBusGraphId(unsigned int bg_id)
     {
       // Get name of the network
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the network. Normally their
       // won't be to much networks in one database giving us a good
@@ -3210,7 +3210,7 @@ bool ChekMetroNetworkId(unsigned int mn_id)
     {
       // Get name of the network
       ListExpr xObjectName = nl->Second(xCurrent);
-      string strObjectName = nl->SymbolValue(xObjectName);
+      std::string strObjectName = nl->SymbolValue(xObjectName);
 
       // Load object to find out the id of the network. Normally their
       // won't be to much networks in one database giving us a good
@@ -3251,7 +3251,7 @@ TypeMap function for operator thefloor
 ListExpr TheFloorTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "float x region expected";
+      std::string err = "float x region expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3269,7 +3269,7 @@ TypeMap function for operator getheight
 ListExpr GetHeightTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "floor3d expected";
+      std::string err = "floor3d expected";
       return listutils::typeError(err);
   }
 
@@ -3287,7 +3287,7 @@ TypeMap function for operator getregion
 ListExpr GetRegionTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "floor3d expected";
+      std::string err = "floor3d expected";
       return listutils::typeError(err);
   }
 
@@ -3305,7 +3305,7 @@ TypeMap function for operator thedoor
 ListExpr TheDoorTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 6){
-      string err = "int x line x int x line x mbool x bool expected";
+      std::string err = "int x line x int x line x mbool x bool expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3329,7 +3329,7 @@ TypeMap function for operator type of door
 ListExpr TypeOfDoorTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "door3d";
+      std::string err = "door3d";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3346,7 +3346,7 @@ TypeMap function for operator loc of door
 ListExpr LocOfDoorTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "door3d x int";
+      std::string err = "door3d x int";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3364,7 +3364,7 @@ TypeMap function for operator state of door
 ListExpr StateOfDoorTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "door3d";
+      std::string err = "door3d";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3381,7 +3381,7 @@ TypeMap function for operator get floor
 ListExpr GetFloorTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "groom x int expected";
+      std::string err = "groom x int expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3399,7 +3399,7 @@ TypeMap function for operator add height groom
 ListExpr AddHeightGroomTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "groom x real expected";
+      std::string err = "groom x real expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3418,7 +3418,7 @@ TypeMap function for operator translate groom
 ListExpr TranslateGroomTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "groom x [] expected";
+      std::string err = "groom x [] expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3439,7 +3439,7 @@ TypeMap function for operator length l3d
 ListExpr LengthTMTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "line3d expected";
+      std::string err = "line3d expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3458,7 +3458,7 @@ TypeMap function for operator bbox3d
 ListExpr BBox3DTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "line3d expected";
+      std::string err = "line3d expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3475,19 +3475,19 @@ TypeMap function for operator thebuilding
 ListExpr TheBuildingTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 4){
-      string err = "int x string x rel x rel";
+      std::string err = "int x string x rel x rel";
       return listutils::typeError(err);
   }
 
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "int")){
-     string err = "int expected";
+     std::string err = "int expected";
      return listutils::typeError(err);
   }
 
   ListExpr arg2 = nl->Second(args);
   if(!(listutils::isSymbol(arg2, CcString::BasicType()))){
-     string err = "string expected";
+     std::string err = string expected";
      return listutils::typeError(err);
   }
 
@@ -3513,13 +3513,13 @@ TypeMap function for operator theindoor
 ListExpr TheIndoorTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 3){
-      string err = "int x rel x rel";
+      std::string err = "int x rel x rel";
       return listutils::typeError(err);
   }
 
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "int")){
-     string err = "int expected";
+     std::string err = "int expected";
      return listutils::typeError(err);
   }
 
@@ -3544,7 +3544,7 @@ TypeMap function for operator createdoor3d
 ListExpr CreateDoor3DTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "rel";
+      std::string err = "rel";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3568,7 +3568,7 @@ ListExpr CreateDoor3DTypeMap(ListExpr args)
           );
           return result; 
       }else{
-      string err = 
+      std::string err = 
       "rel:(oid:int,name:string,type:string,room:groom,door:line) expected";
       return listutils::typeError(err);
       } 
@@ -3583,7 +3583,7 @@ TypeMap function for operator createdoorbox
 ListExpr CreateDoorBoxTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "rel";
+      std::string err = "rel";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3621,7 +3621,7 @@ TypeMap function for operator createdoor1
 ListExpr CreateDoor1TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 6){
-      string err = "rel x rel x rtree x attr x attr x attr";
+      std::string err = "rel x rel x rtree x attr x attr x attr";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3639,7 +3639,7 @@ ListExpr CreateDoor1TypeMap(ListExpr args)
 
   ListExpr attrName1 = nl->Fourth(args);
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
                       aname1, attrType1);
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
@@ -3649,7 +3649,7 @@ ListExpr CreateDoor1TypeMap(ListExpr args)
 
   ListExpr attrName2 = nl->Fifth(args);
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
                       aname2, attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
@@ -3659,7 +3659,7 @@ ListExpr CreateDoor1TypeMap(ListExpr args)
 
   ListExpr attrName3 = nl->Sixth(args);
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
                       aname3, attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"rect3")){
@@ -3704,7 +3704,7 @@ TypeMap function for operator createdoor2
 ListExpr CreateDoor2TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "rel";
+      std::string err = "rel";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3745,7 +3745,7 @@ TypeMap function for operator createadjdoor1
 ListExpr CreateAdjDoor1TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 7){
-      string err = "rel x rel x btree x attr x attr x attr x attr";
+      std::string err = "rel x rel x btree x attr x attr x attr x attr";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3763,7 +3763,7 @@ ListExpr CreateAdjDoor1TypeMap(ListExpr args)
 
   ListExpr attrName1 = nl->Fourth(args);
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
                       aname1, attrType1);
   if(j1 == 0 || !listutils::isSymbol(attrType1,"door3d")){
@@ -3773,7 +3773,7 @@ ListExpr CreateAdjDoor1TypeMap(ListExpr args)
 
   ListExpr attrName2 = nl->Fifth(args);
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
                       aname2, attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"line")){
@@ -3783,7 +3783,7 @@ ListExpr CreateAdjDoor1TypeMap(ListExpr args)
 
   ListExpr attrName3 = nl->Sixth(args);
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
                       aname3, attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"int")){
@@ -3793,7 +3793,7 @@ ListExpr CreateAdjDoor1TypeMap(ListExpr args)
 
   ListExpr attrName4 = nl->Nth(7, args);
   ListExpr attrType4;
-  string aname4 = nl->SymbolValue(attrName4);
+  std::string aname4 = nl->SymbolValue(attrName4);
   int j4 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
                       aname4, attrType4);
   if(j4 == 0 || !listutils::isSymbol(attrType4,"real")){
@@ -3834,7 +3834,7 @@ TypeMap function for operator createadjdoor2
 ListExpr CreateAdjDoor2TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "rel x rtree ";
+      std::string err = "rel x rtree ";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3883,7 +3883,7 @@ TypeMap function for operator path in region
 ListExpr PathInRegionTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 3){
-      string err = "region x point x point";
+      std::string err = "region x point x point";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3939,7 +3939,7 @@ TypeMap function for operator generate ip1
 ListExpr GenerateIP1TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 3){
-      string err = "rel x int";
+      std::string err = "rel x int";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -3982,7 +3982,7 @@ TypeMap function for operator indoornavigation
 ListExpr IndoorNavigationTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 6){
-      string err = "indoorgraph x genloc x genloc x rel x btree x int";
+      std::string err = "indoorgraph x genloc x genloc x rel x btree x int";
       return listutils::typeError(err);
   }
   
@@ -3996,7 +3996,7 @@ ListExpr IndoorNavigationTypeMap(ListExpr args)
   if(!(nl->IsAtom(nl->First(arg1)) && 
        nl->AtomType(nl->First(arg1)) == SymbolType &&
        nl->SymbolValue(nl->First(arg1)) == "indoorgraph")){
-      string err = "param1 should be indoorgraph";
+      std::string err = "param1 should be indoorgraph";
       return listutils::typeError(err);
   }
    if(!(nl->IsAtom(nl->First(arg2)) && 
@@ -4005,31 +4005,31 @@ ListExpr IndoorNavigationTypeMap(ListExpr args)
         nl->IsAtom(nl->First(arg3)) && 
         nl->AtomType(nl->First(arg3)) == SymbolType &&
         nl->SymbolValue(nl->First(arg3)) == "genloc" )){
-      string err = "param2 and param3 should be genloc";
+      std::string err = "param2 and param3 should be genloc";
       return listutils::typeError(err);
   } 
 
   if(!listutils::isRelDescription(nl->First(arg4))){
-      string err = "param4 should be a relation";
+      std::string err = "param4 should be a relation";
       return listutils::typeError(err);
   }
   
   ListExpr xType;
   nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
   if (!CompareSchemas(nl->First(arg4), xType)){
-     string err = "rel schema error";
+     std::string err = "rel schema error";
      return listutils::typeError(err);
   }
 
   if(!listutils::isBTreeDescription(nl->First(arg5))){
-      string err = "param5 should be a btree";
+      std::string err = "param5 should be a btree";
       return listutils::typeError(err);
   }
   
   if(!(nl->IsAtom(nl->First(arg6)) && 
        nl->AtomType(nl->First(arg6)) == SymbolType &&
        nl->SymbolValue(nl->First(arg6)) == "int" )){
-      string err = "param6 should be int";
+      std::string err = "param6 should be int";
       return listutils::typeError(err);
   }
   
@@ -4080,7 +4080,7 @@ ListExpr IndoorNavigationTypeMap(ListExpr args)
           );
         break;
     default:
-      string err = "the value of fifth parameter([0,2]) is not correct";
+      std::string err = "the value of fifth parameter([0,2]) is not correct";
       return listutils::typeError(err);
   }
 
@@ -4095,7 +4095,7 @@ TypeMap function for operator generate mo1
 ListExpr GenerateMO1TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 6){
-      string err = "indoorgraph x rel x btree x rtree x int x periods";
+      std::string err = "indoorgraph x rel x btree x rtree x int x periods";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4160,7 +4160,7 @@ TypeMap function for operator getindoorpaths
 ListExpr GetIndoorPathTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "string x int ";
+      std::string err = "string x int ";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4179,7 +4179,7 @@ TypeMap function for operator ref id
 ListExpr RefIdTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "one parameter expected";
+      std::string err = "one parameter expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4204,7 +4204,7 @@ TypeMap function for operator setref id
 ListExpr SetRefIdTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "genmo  expected";
+      std::string err = "genmo  expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4222,7 +4222,7 @@ TypeMap function for operator at
 ListExpr TMATTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4244,7 +4244,7 @@ TypeMap function for operator tmat2
 ListExpr TMAT2TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 3){
-      string err = "three parameters expected";
+      std::string err = "three parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4265,7 +4265,7 @@ TypeMap function for operator tmat3
 ListExpr TMAT3TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 4){
-      string err = "four parameters expected";
+      std::string err = "four parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4287,7 +4287,7 @@ TypeMap function for operator atgloc
 ListExpr TMATGlocTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4307,7 +4307,7 @@ TypeMap function for operator val
 ListExpr TMValTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "one parameters expected";
+      std::string err = "one parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4325,7 +4325,7 @@ TypeMap function for operator inst
 ListExpr TMInstTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "one parameters expected";
+      std::string err = "one parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4343,7 +4343,7 @@ TypeMap function for operator contain
 ListExpr TMContainTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4368,7 +4368,7 @@ TypeMap function for operator contain2
 ListExpr TMContain2TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 4){
-      string err = "four parameters expected";
+      std::string err = "four parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4390,7 +4390,7 @@ TypeMap function for operator tm minute
 ListExpr TMDurationTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameter expected";
+      std::string err = "two parameter expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4410,7 +4410,7 @@ TypeMap function for operator tm initial
 ListExpr TMInitialTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "one parameter expected";
+      std::string err = "one parameter expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4428,7 +4428,7 @@ TypeMap function for operator tm build id
 ListExpr TMBuildIdTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   
@@ -4448,7 +4448,7 @@ TypeMap function for operator bcontains
 ListExpr TMBContainsTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   
@@ -4464,7 +4464,7 @@ ListExpr TMBContainsTypeMap(ListExpr args)
 ListExpr TMBContains2TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 3){
-      string err = "three parameters expected";
+      std::string err = "three parameters expected";
       return listutils::typeError(err);
   }
   
@@ -4486,7 +4486,7 @@ TypeMap function for operator tm room id
 ListExpr TMRoomIdTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   
@@ -4506,7 +4506,7 @@ TypeMap function for operator tm plus id
 ListExpr TMPlusIdTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   
@@ -4526,7 +4526,7 @@ TypeMap function for operator tm pass
 ListExpr TMPassTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 3){
-      string err = "three parameters expected";
+      std::string err = "three parameters expected";
       return listutils::typeError(err);
   }
   
@@ -4549,7 +4549,7 @@ TypeMap function for operator tm distance
 ListExpr TMDistanceTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 3){
-      string err = "three parameters expected";
+      std::string err = "three parameters expected";
       return listutils::typeError(err);
   }
   
@@ -4572,7 +4572,7 @@ TypeMap function for operator tm genloc
 ListExpr TMGenLocTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 3){
-      string err = "three parameters expected";
+      std::string err = "three parameters expected";
       return listutils::typeError(err);
   }
   
@@ -4595,7 +4595,7 @@ TypeMap function for operator modeval
 ListExpr ModeValTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "one parameter expected";
+      std::string err = "one parameter expected";
       return listutils::typeError(err);
   }
 
@@ -4616,7 +4616,7 @@ TypeMap function for operator genmoindex
 ListExpr GenMOIndexTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "one parameter expected";
+      std::string err = "one parameter expected";
       return listutils::typeError(err);
   }
 
@@ -4636,7 +4636,7 @@ TypeMap function for operator genmoindex
 ListExpr TM_MReal2MStringTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "one parameter expected";
+      std::string err = "one parameter expected";
       return listutils::typeError(err);
   }
 
@@ -4656,7 +4656,7 @@ TypeMap function for operator deftime
 ListExpr GenMODeftimeTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "genmo expected";
+      std::string err = "genmo expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4673,7 +4673,7 @@ TypeMap function for operator no components
 ListExpr GenMONoComponentsTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "genmo expected";
+      std::string err = "genmo expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4693,7 +4693,7 @@ TypeMap function for operator lowres
 ListExpr LowResTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "genmo expected";
+      std::string err = "genmo expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4711,7 +4711,7 @@ ListExpr GenmoTranslateTypeMap(ListExpr args)
 {
 
   if(nl->ListLength(args) != 2){
-      string err = "genmo x duration expected";
+      std::string err = "genmo x duration expected";
       return listutils::typeError(err);
   }
 
@@ -4732,7 +4732,7 @@ ListExpr TMTranslate2TypeMap(ListExpr args)
 {
 
   if(nl->ListLength(args) != 2){
-      string err = "periods x duration expected";
+      std::string err = "periods x duration expected";
       return listutils::typeError(err);
   }
 
@@ -4752,7 +4752,7 @@ TypeMap function for operator getmode
 ListExpr GetModeTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "genmo expected";
+      std::string err = "genmo expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4782,7 +4782,7 @@ TypeMap function for operator getref
 ListExpr GetRefTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "genmo expected";
+      std::string err = "genmo expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4877,7 +4877,7 @@ TypeMap function for operator tmunits
 ListExpr TMUnitsTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "genmo  expected";
+      std::string err = "genmo  expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4890,7 +4890,7 @@ ListExpr TMUnitsTypeMap(ListExpr args)
 ListExpr GetLocTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "genmo  x bool expected";
+      std::string err = "genmo  x bool expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4908,7 +4908,7 @@ get the traffic value from generic moving objects
 ListExpr TMTrafficTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 4){
-      string err = "rel x periods x rel  x bool expected";
+      std::string err = "rel x periods x rel  x bool expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4927,7 +4927,7 @@ ListExpr TMTrafficTypeMap(ListExpr args)
     return nl->SymbolAtom ( "typeerror" );
 
   if(!nl->IsEqual(arg2, "periods")){
-      string err = "the second parameter should be periods";
+      std::string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
   
@@ -4941,7 +4941,7 @@ ListExpr TMTrafficTypeMap(ListExpr args)
     return nl->SymbolAtom ( "typeerror" );
 
   if(!nl->IsEqual(arg4, "bool")){
-      string err = "the fourth parameter should be bool";
+      std::string err = "the fourth parameter should be bool";
       return listutils::typeError(err);
   }
   
@@ -4969,7 +4969,7 @@ TypeMap function for operator the space
 ListExpr TheSpaceTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "int expected";
+      std::string err = "int expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -4988,7 +4988,7 @@ TypeMap function for operator genmo tm list
 ListExpr GenMOTMListTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "one input parameter expected";
+      std::string err = "one input parameter expected";
       return listutils::typeError(err);
   }
   
@@ -5021,19 +5021,19 @@ TypeMap function for operator generate genmo
 ListExpr GenerateGMOListTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 4){
-      string err = "four input parameter expected";
+      std::string err = "four input parameter expected";
       return listutils::typeError(err);
   }
   
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "space")){
-      string err = "the first parameter should be space";
+      std::string err = "the first parameter should be space";
       return listutils::typeError(err);
   }
 
   ListExpr arg2 = nl->Second(args);
   if(!nl->IsEqual(arg2, "periods")){
-      string err = "the second parameter should be periods";
+      std::string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
 
@@ -5041,7 +5041,7 @@ ListExpr GenerateGMOListTypeMap(ListExpr args)
   ListExpr arg4 = nl->Fourth(args);
 
   if(!(nl->IsEqual(arg3, "real") && nl->IsEqual(arg4, "int"))){
-      string err = "the 3 paramenter should be real and 4 should be int";
+      std::string err = "the 3 paramenter should be real and 4 should be int";
       return listutils::typeError(err);
   }
 
@@ -5071,19 +5071,19 @@ TypeMap function for operator generate car
 ListExpr GenerateCarListTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 4){
-      string err = "four input parameter expected";
+      std::string err = "four input parameter expected";
       return listutils::typeError(err);
   }
   
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "space")){
-      string err = "the first parameter should be space";
+      std::string err = "the first parameter should be space";
       return listutils::typeError(err);
   }
 
   ListExpr arg2 = nl->Second(args);
   if(!nl->IsEqual(arg2, "periods")){
-      string err = "the second parameter should be periods";
+      std::string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
 
@@ -5091,7 +5091,7 @@ ListExpr GenerateCarListTypeMap(ListExpr args)
   
 
   if(!(nl->IsEqual(arg3, "real") )){
-      string err = "the 3 paramenter should be real";
+      std::string err = "the 3 paramenter should be real";
       return listutils::typeError(err);
   }
 
@@ -5131,26 +5131,26 @@ TypeMap function for operator generate genmo benchmark
 ListExpr GenerateGMOBench1ListTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 6){
-      string err = "six input parameter expected";
+      std::string err = "six input parameter expected";
       return listutils::typeError(err);
   }
   
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "space")){
-      string err = "the first parameter should be space";
+      std::string err = "the first parameter should be space";
       return listutils::typeError(err);
   }
 
   ListExpr arg2 = nl->Second(args);
   if(!nl->IsEqual(arg2, "periods")){
-      string err = "the second parameter should be periods";
+      std::string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
 
   ListExpr arg3 = nl->Third(args);
 
   if(!(nl->IsEqual(arg3, "real"))){
-      string err = "the 3 paramenter should be real ";
+      std::string err = "the 3 paramenter should be real ";
       return listutils::typeError(err);
   }
  
@@ -5198,26 +5198,26 @@ TypeMap function for operator generate genmo benchmark
 ListExpr GenerateGMOBench2ListTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 5){
-      string err = "five input parameter expected";
+      std::string err = "five input parameter expected";
       return listutils::typeError(err);
   }
   
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "space")){
-      string err = "the first parameter should be space";
+      std::string err = "the first parameter should be space";
       return listutils::typeError(err);
   }
 
   ListExpr arg2 = nl->Second(args);
   if(!nl->IsEqual(arg2, "periods")){
-      string err = "the second parameter should be periods";
+      std::string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
 
   ListExpr arg3 = nl->Third(args);
 
   if(!(nl->IsEqual(arg3, "real"))){
-      string err = "the 3 paramenter should be real ";
+      std::string err = "the 3 paramenter should be real ";
       return listutils::typeError(err);
   }
  
@@ -5228,7 +5228,7 @@ ListExpr GenerateGMOBench2ListTypeMap(ListExpr args)
 
   ListExpr arg5 = nl->Fifth(args);
   if(!nl->IsEqual(arg5, "string")){
-      string err = "the fifth parameter should be string";
+      std::string err = "the fifth parameter should be string";
       return listutils::typeError(err);
   }
 
@@ -5259,26 +5259,26 @@ TypeMap function for operator generate genmo benchmark
 ListExpr GenerateGMOBench3ListTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 5){
-      string err = "five input parameter expected";
+      std::string err = "five input parameter expected";
       return listutils::typeError(err);
   }
   
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "space")){
-      string err = "the first parameter should be space";
+      std::string err = "the first parameter should be space";
       return listutils::typeError(err);
   }
 
   ListExpr arg2 = nl->Second(args);
   if(!nl->IsEqual(arg2, "periods")){
-      string err = "the second parameter should be periods";
+      std::string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
 
   ListExpr arg3 = nl->Third(args);
 
   if(!(nl->IsEqual(arg3, "real"))){
-      string err = "the 3 paramenter should be real ";
+      std::string err = "the 3 paramenter should be real ";
       return listutils::typeError(err);
   }
  
@@ -5322,26 +5322,26 @@ TypeMap function for operator generate genmo benchmark
 ListExpr GenerateGMOBench4ListTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 6){
-      string err = "six input parameter expected";
+      std::string err = "six input parameter expected";
       return listutils::typeError(err);
   }
   
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "space")){
-      string err = "the first parameter should be space";
+      std::string err = "the first parameter should be space";
       return listutils::typeError(err);
   }
 
   ListExpr arg2 = nl->Second(args);
   if(!nl->IsEqual(arg2, "periods")){
-      string err = "the second parameter should be periods";
+      std::string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
 
   ListExpr arg3 = nl->Third(args);
 
   if(!(nl->IsEqual(arg3, "real"))){
-      string err = "the 3 paramenter should be real ";
+      std::string err = "the 3 paramenter should be real ";
       return listutils::typeError(err);
   }
  
@@ -5414,26 +5414,26 @@ TypeMap function for operator generate genmo benchmark
 ListExpr GenerateGMOBench5ListTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 5){
-      string err = "five input parameter expected";
+      std::string err = "five input parameter expected";
       return listutils::typeError(err);
   }
   
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "space")){
-      string err = "the first parameter should be space";
+      std::string err = "the first parameter should be space";
       return listutils::typeError(err);
   }
 
   ListExpr arg2 = nl->Second(args);
   if(!nl->IsEqual(arg2, "periods")){
-      string err = "the second parameter should be periods";
+      std::string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
 
   ListExpr arg3 = nl->Third(args);
 
   if(!(nl->IsEqual(arg3, "real"))){
-      string err = "the 3 paramenter should be real ";
+      std::string err = "the 3 paramenter should be real ";
       return listutils::typeError(err);
   }
  
@@ -5472,13 +5472,13 @@ TypeMap function for operator get rg ndoes
 ListExpr GetRGNodesTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "one input parameter expected";
+      std::string err = "one input parameter expected";
       return listutils::typeError(err);
   }
 
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "network")){
-      string err = "the first parameter should be network";
+      std::string err = "the first parameter should be network";
       return listutils::typeError(err);
   }
  
@@ -5512,7 +5512,7 @@ TypeMap function for operator get rg edges
 ListExpr GetRGEdges1TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "two input parameters expected";
+      std::string err = "two input parameters expected";
       return listutils::typeError(err);
   }
 
@@ -5551,14 +5551,14 @@ TypeMap function for operator get rg edges
 ListExpr GetRGEdges2TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two input parameters expected";
+      std::string err = "two input parameters expected";
       return listutils::typeError(err);
   }
 
 
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "network")){
-      string err = "the first parameter should be network";
+      std::string err = "the first parameter should be network";
       return listutils::typeError(err);
   }
   
@@ -5601,7 +5601,7 @@ TypeMap function for operator get pavement edges
 ListExpr GetPaveEdges3TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 4){
-      string err = "four input parameters expected";
+      std::string err = "four input parameters expected";
       return listutils::typeError(err);
   }
 
@@ -5611,7 +5611,7 @@ ListExpr GetPaveEdges3TypeMap(ListExpr args)
   if(!IsRelDescription(arg1))
     return listutils::typeError("para1 should be a relation");
 
-  nl->ReadFromString(Network::routesTypeInfo, xType);
+  nl->ReadFromString(network::Network::routesTypeInfo, xType);
   if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
 
   ListExpr arg2 = nl->Second(args);
@@ -5663,7 +5663,7 @@ TypeMap function for operator get connections inside a region
 ListExpr GetPaveEdges4TypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two input parameters expected";
+      std::string err = "two input parameters expected";
       return listutils::typeError(err);
   }
 
@@ -5713,7 +5713,7 @@ TypeMap function for operator create osm pavement environment
 ListExpr TheOSMPaveTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 3){
-      string err = "three input parameters expected";
+      std::string err = "three input parameters expected";
       return listutils::typeError(err);
   }
 
@@ -5950,13 +5950,13 @@ TypeMap function for operator navigation1
 ListExpr Navigation1ListTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 7){
-      string err = "seven input parameter expected";
+      std::string err = "seven input parameter expected";
       return listutils::typeError(err);
   }
 
   ListExpr arg1 = nl->First(args);
   if(!nl->IsEqual(arg1, "space")){
-      string err = "the first parameter should be space";
+      std::string err = "the first parameter should be space";
       return listutils::typeError(err);
   }
 
@@ -5980,7 +5980,7 @@ ListExpr Navigation1ListTypeMap(ListExpr args)
   ListExpr arg4 = nl->Fourth(args);
   if(!(nl->IsAtom(arg4) && nl->AtomType(arg4) == SymbolType &&
        nl->SymbolValue(arg4) == "instant")){
-      string err = "param4 should be instant";
+      std::string err = "param4 should be instant";
       return listutils::typeError(err);
   }
 
@@ -6040,7 +6040,7 @@ TypeMap function for operator trajectory
 ListExpr TMTrajectoryTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
-      string err = "mpoint3d expected";
+      std::string err = "mpoint3d expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -6058,7 +6058,7 @@ TypeMap function for operator trajectory
 ListExpr GenTrajectoryTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "genmo x space expected";
+      std::string err = "genmo x space expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -6077,7 +6077,7 @@ TypeMap function for operator genrangevisible
 ListExpr GenRangeVisibleTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "genrange x space expected";
+      std::string err = "genrange x space expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -6110,7 +6110,7 @@ TypeMap function for operator addinfragraph
 ListExpr AddInfraGraphTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -6225,7 +6225,7 @@ TypeMap function for operator putinfra
 ListExpr PutInfraTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -6342,7 +6342,7 @@ TypeMap function for operator putrel
 ListExpr PutRelTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
@@ -6512,17 +6512,17 @@ TypeMap function for operator gettinfra
 ListExpr GetInfraTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 2){
-      string err = "two parameters expected";
+      std::string err = "two parameters expected";
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if(nl->IsEqual(nl->First(arg1), "space") && 
     listutils::isSymbol(nl->First(arg2), CcString::BasicType())){
-    string type  = nl->StringValue(nl->Second(arg2));
+    std::string type  = nl->StringValue(nl->Second(arg2));
     if(GetSymbol(type) == IF_LINE){//////////road network 
       ListExpr xType;
-      nl->ReadFromString(Network::routesTypeInfo, xType);
+      nl->ReadFromString(network::Network::routesTypeInfo, xType);
       return xType; 
     }else if(GetSymbol(type) == IF_FREESPACE){ ///////free space 
       ListExpr xType;
@@ -6569,7 +6569,7 @@ ListExpr GetInfraTypeMap(ListExpr args)
       return xType;
 
     }else{
-      string err = "infrastructure type error";
+      std::string err = "infrastructure type error";
       return listutils::typeError(err);
     }
   }
@@ -6642,7 +6642,7 @@ ListExpr OpTMSegment2RegionTypeMap ( ListExpr args )
   ListExpr attrName = nl->Second(args);
   ListExpr param3 = nl->Third(args);
   ListExpr attrType;
-  string aname = nl->SymbolValue(attrName);
+  std::string aname = nl->SymbolValue(attrName);
   int j = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname,attrType);
 
@@ -6710,7 +6710,7 @@ ListExpr OpTMPaveRegionTypeMap ( ListExpr args )
   ListExpr param7 = nl->Nth(7, args);
 
   ListExpr attrType;
-  string aname = nl->SymbolValue(attrName);
+  std::string aname = nl->SymbolValue(attrName);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname,attrType);
 
@@ -6720,7 +6720,7 @@ ListExpr OpTMPaveRegionTypeMap ( ListExpr args )
   }
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname1,attrType1);
 
@@ -6731,7 +6731,7 @@ ListExpr OpTMPaveRegionTypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname2,attrType2);
 
@@ -6793,7 +6793,7 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
   ListExpr attrName3 = nl->Nth(7, args);
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
 
@@ -6803,7 +6803,7 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
 
@@ -6814,7 +6814,7 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
   }
 
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param6)),
                       aname3,attrType3);
 
@@ -6879,7 +6879,7 @@ ListExpr OpTMUnionPolyTypeMap ( ListExpr args )
 
     
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(param2);
+  std::string aname1 = nl->SymbolValue(param2);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname1,attrType1);
 
@@ -6889,7 +6889,7 @@ ListExpr OpTMUnionPolyTypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(attrName1)),
                       aname2,attrType2);
 
@@ -6900,7 +6900,7 @@ ListExpr OpTMUnionPolyTypeMap ( ListExpr args )
   }
 
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(param5);
+  std::string aname3 = nl->SymbolValue(param5);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(attrName1)),
                       aname3, attrType3);
 
@@ -6996,7 +6996,7 @@ ListExpr OpTMFillPavementTypeMap ( ListExpr args )
   ListExpr param5 = nl->Fifth(args);
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
 
@@ -7007,7 +7007,7 @@ ListExpr OpTMFillPavementTypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
 
@@ -7081,7 +7081,7 @@ ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
   }
   
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
 
@@ -7091,7 +7091,7 @@ ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
 
@@ -7101,7 +7101,7 @@ ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
   }
 
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3,attrType3);
 
@@ -7155,7 +7155,7 @@ ListExpr OpTMGetPaveEdge1TypeMap ( ListExpr args )
 
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
 
@@ -7165,7 +7165,7 @@ ListExpr OpTMGetPaveEdge1TypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
 
@@ -7176,7 +7176,7 @@ ListExpr OpTMGetPaveEdge1TypeMap ( ListExpr args )
   }
 
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3,attrType3);
 
@@ -7235,7 +7235,7 @@ ListExpr OpTMGetPaveNode2TypeMap ( ListExpr args )
 
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
 
@@ -7245,7 +7245,7 @@ ListExpr OpTMGetPaveNode2TypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
 
@@ -7306,7 +7306,7 @@ ListExpr OpTMGetPaveEdge2TypeMap ( ListExpr args )
 
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
 
@@ -7316,7 +7316,7 @@ ListExpr OpTMGetPaveEdge2TypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
 
@@ -7327,7 +7327,7 @@ ListExpr OpTMGetPaveEdge2TypeMap ( ListExpr args )
   }
 
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3,attrType3);
 
@@ -7897,7 +7897,7 @@ ListExpr OpTMZcurveTypeMap ( ListExpr args )
     return nl->SymbolAtom ( "typeerror" );
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(arg1)),
                       aname1, attrType1);
 
@@ -8579,7 +8579,7 @@ ListExpr OpTMGetPolygonTypeMap ( ListExpr args )
     return nl->SymbolAtom ( "typeerror" );
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(arg1)),
                       aname1, attrType1);
 
@@ -8659,7 +8659,7 @@ ListExpr OpTMRotationSweepTypeMap ( ListExpr args )
 
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(arg5);
+  std::string aname1 = nl->SymbolValue(arg5);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(arg4)),
                       aname1, attrType1);
 
@@ -8728,7 +8728,7 @@ ListExpr OpTMRotationSweep2TypeMap ( ListExpr args )
 
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(arg5);
+  std::string aname1 = nl->SymbolValue(arg5);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(arg4)),
                       aname1, attrType1);
 
@@ -8739,7 +8739,7 @@ ListExpr OpTMRotationSweep2TypeMap ( ListExpr args )
 
 
   if(nl->IsEqual(arg3, "rect") && nl->IsEqual(arg6, "real") && 
-	 nl->IsEqual(arg7, "real")){
+   nl->IsEqual(arg7, "real")){
     ListExpr result = nl->TwoElemList(
              nl->SymbolAtom("stream"),
                nl->TwoElemList(
@@ -8816,7 +8816,7 @@ ListExpr OpTMGetSectionsTypeMap ( ListExpr args )
   ListExpr attrName3 = nl->Sixth(args);
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname1,attrType1);
 
@@ -8826,7 +8826,7 @@ ListExpr OpTMGetSectionsTypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
 
@@ -8837,7 +8837,7 @@ ListExpr OpTMGetSectionsTypeMap ( ListExpr args )
 
 
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3,attrType3);
 
@@ -8903,7 +8903,7 @@ ListExpr OpTMGetInterestP1TypeMap ( ListExpr args )
     return nl->SymbolAtom ( "typeerror" );
   
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname1,attrType1);
 
@@ -8913,7 +8913,7 @@ ListExpr OpTMGetInterestP1TypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname2,attrType2);
 
@@ -8923,7 +8923,7 @@ ListExpr OpTMGetInterestP1TypeMap ( ListExpr args )
   }
 
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3,attrType3);
 
@@ -8933,7 +8933,7 @@ ListExpr OpTMGetInterestP1TypeMap ( ListExpr args )
   }
 
   ListExpr attrType4;
-  string aname4 = nl->SymbolValue(attrName4);
+  std::string aname4 = nl->SymbolValue(attrName4);
   int j4 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname4, attrType4);
 
@@ -8998,7 +8998,7 @@ ListExpr OpTMGetInterestP2TypeMap ( ListExpr args )
     return nl->SymbolAtom ( "typeerror" );
 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname1,attrType1);
 
@@ -9008,7 +9008,7 @@ ListExpr OpTMGetInterestP2TypeMap ( ListExpr args )
   }
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
 
@@ -9128,7 +9128,7 @@ ListExpr OpTMCreateBusRouteTypeMap1 ( ListExpr args )
 
   ListExpr attrName1 = nl->Third ( args );
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
 
@@ -9140,7 +9140,7 @@ ListExpr OpTMCreateBusRouteTypeMap1 ( ListExpr args )
 
   ListExpr attrName2 = nl->Fourth ( args );
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
@@ -9149,7 +9149,7 @@ ListExpr OpTMCreateBusRouteTypeMap1 ( ListExpr args )
 
   ListExpr attrName3 = nl->Fifth ( args );
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3, attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"region"))
@@ -9233,7 +9233,7 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
 
   ListExpr attrName = nl->Third ( args );
   ListExpr attrType;
-  string aname = nl->SymbolValue(attrName);
+  std::string aname = nl->SymbolValue(attrName);
   int j = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname,attrType);
 
@@ -9253,7 +9253,7 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
 
   ListExpr attrName1 = nl->Sixth ( args );
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param5)),
                       aname1,attrType1);
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int"))
@@ -9263,7 +9263,7 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
 
   ListExpr attrName2 = nl->Nth (7, args );
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param5)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
@@ -9272,7 +9272,7 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
   
   ListExpr attrName3 = nl->Nth (8, args );
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param5)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType2,"int"))
@@ -9346,7 +9346,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
 
   ListExpr attrName1 = nl->Third ( args );
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
@@ -9356,7 +9356,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
   
   ListExpr attrName2 = nl->Fourth ( args );
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"gline")){
@@ -9367,7 +9367,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
   
   ListExpr attrName3 = nl->Fifth ( args );
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"line")){
@@ -9377,7 +9377,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
   
   ListExpr attrName4 = nl->Sixth ( args );
   ListExpr attrType4;
-  string aname4 = nl->SymbolValue(attrName4);
+  std::string aname4 = nl->SymbolValue(attrName4);
   int j4 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname4,attrType4);
   if(j4 == 0 || !listutils::isSymbol(attrType4,"point")){
@@ -9387,7 +9387,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
   
   ListExpr attrName5 = nl->Nth (7, args );
   ListExpr attrType5;
-  string aname5 = nl->SymbolValue(attrName5);
+  std::string aname5 = nl->SymbolValue(attrName5);
   int j5 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname5,attrType5);
   if(j5 == 0 || !listutils::isSymbol(attrType5,"point")){
@@ -9397,7 +9397,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
   
   ListExpr attrName6 = nl->Nth (8, args );
   ListExpr attrType6;
-  string aname6 = nl->SymbolValue(attrName6);
+  std::string aname6 = nl->SymbolValue(attrName6);
   int j6 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname6,attrType6);
   if(j6 == 0 || !listutils::isSymbol(attrType6,"int")){
@@ -9466,7 +9466,7 @@ ListExpr OpTMCreateBusRouteTypeMap3 ( ListExpr args )
 
   ListExpr attrName1 = nl->Second ( args );
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname1,attrType1);
                       
@@ -9478,7 +9478,7 @@ ListExpr OpTMCreateBusRouteTypeMap3 ( ListExpr args )
   
   ListExpr attrName2 = nl->Third ( args );
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"line"))
@@ -9487,7 +9487,7 @@ ListExpr OpTMCreateBusRouteTypeMap3 ( ListExpr args )
 
   ListExpr attrName3 = nl->Fourth ( args );
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
@@ -9557,7 +9557,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
   
   ListExpr attrName1 = nl->Second ( args );
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname1,attrType1);
                       
@@ -9569,7 +9569,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
   
   ListExpr attrName2 = nl->Third ( args );
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"line"))
@@ -9578,7 +9578,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
 
   ListExpr attrName3 = nl->Fourth ( args );
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
@@ -9587,7 +9587,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
 
   ListExpr attrName4 = nl->Fifth ( args );
   ListExpr attrType4;
-  string aname4 = nl->SymbolValue(attrName4);
+  std::string aname4 = nl->SymbolValue(attrName4);
   int j4 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname4,attrType4);
   if(j4 == 0 || !listutils::isSymbol(attrType4,"int"))
@@ -9601,7 +9601,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
 
   ListExpr attrName_a = nl->Nth (7, args );
   ListExpr attrType_a;
-  string aname_a = nl->SymbolValue(attrName_a);
+  std::string aname_a = nl->SymbolValue(attrName_a);
   int j_a = listutils::findAttribute(nl->Second(nl->Second(param6)),
                       aname_a,attrType_a);
                       
@@ -9612,7 +9612,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
   
   ListExpr attrName_b = nl->Nth (8, args );
   ListExpr attrType_b;
-  string aname_b = nl->SymbolValue(attrName_b);
+  std::string aname_b = nl->SymbolValue(attrName_b);
   int j_b = listutils::findAttribute(nl->Second(nl->Second(param6)),
                       aname_b,attrType_b);
   if(j_b == 0 || !listutils::isSymbol(attrType_b,"bool"))
@@ -9686,7 +9686,7 @@ ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
 
   ListExpr attrName1 = nl->Third ( args );
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
 
@@ -9697,7 +9697,7 @@ ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
   
   ListExpr attrName2 = nl->Fourth ( args );
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"gline"))
@@ -9706,7 +9706,7 @@ ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
   
   ListExpr attrName3 = nl->Fifth ( args );
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"line"))
@@ -9715,7 +9715,7 @@ ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
 
   ListExpr attrName4 = nl->Sixth ( args );
   ListExpr attrType4;
-  string aname4 = nl->SymbolValue(attrName4);
+  std::string aname4 = nl->SymbolValue(attrName4);
   int j4 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname4,attrType4);
   if(j4 == 0 || !listutils::isSymbol(attrType4,"int"))
@@ -9806,7 +9806,7 @@ ListExpr OpTMCreateBusStopTypeMap2 ( ListExpr args )
 
   ListExpr attrName1 = nl->Third ( args );
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
 
@@ -9817,7 +9817,7 @@ ListExpr OpTMCreateBusStopTypeMap2 ( ListExpr args )
   
   ListExpr attrName2 = nl->Fourth ( args );
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
@@ -9826,7 +9826,7 @@ ListExpr OpTMCreateBusStopTypeMap2 ( ListExpr args )
   
   ListExpr attrName3 = nl->Fifth ( args );
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"gpoint"))
@@ -9896,7 +9896,7 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
 
   ListExpr attrName = nl->Third ( args );
   ListExpr attrType;
-  string aname = nl->SymbolValue(attrName);
+  std::string aname = nl->SymbolValue(attrName);
   int j = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname,attrType);
 
@@ -9913,7 +9913,7 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
   
   ListExpr attrName1 = nl->Fifth ( args );
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname1,attrType1);
 
@@ -9924,7 +9924,7 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
   
   ListExpr attrName2 = nl->Sixth ( args );
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
@@ -9933,7 +9933,7 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
   
   ListExpr attrName3 = nl->Nth (7, args );
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"gpoint"))
@@ -10003,7 +10003,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
 
   ListExpr attrName_a = nl->Second ( args );
   ListExpr attrType_a;
-  string aname_a = nl->SymbolValue(attrName_a);
+  std::string aname_a = nl->SymbolValue(attrName_a);
   int j_1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname_a,attrType_a);
 
@@ -10015,7 +10015,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
   
   ListExpr attrName_b = nl->Third ( args );
   ListExpr attrType_b;
-  string aname_b = nl->SymbolValue(attrName_b);
+  std::string aname_b = nl->SymbolValue(attrName_b);
   int j_2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname_b,attrType_b);
                       
@@ -10032,7 +10032,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
   
   ListExpr attrName1 = nl->Fifth ( args );
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname1,attrType1);
                       
@@ -10043,7 +10043,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
   
   ListExpr attrName2 = nl->Sixth (args );
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
@@ -10052,7 +10052,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
   
   ListExpr attrName3 = nl->Nth (7, args );
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"point"))
@@ -10062,7 +10062,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
                       
   ListExpr attrName4 = nl->Nth (8, args );
   ListExpr attrType4;
-  string aname4 = nl->SymbolValue(attrName4);
+  std::string aname4 = nl->SymbolValue(attrName4);
   int j4 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname4, attrType4);
   if(j4 == 0 || !listutils::isSymbol(attrType4,"bool"))
@@ -10134,7 +10134,7 @@ ListExpr OpTMCreateBusStopTypeMap5 ( ListExpr args )
   
   ListExpr attrName = nl->Second ( args );
   ListExpr attrType;
-  string aname = nl->SymbolValue(attrName);
+  std::string aname = nl->SymbolValue(attrName);
   int j = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname,attrType);
                       
@@ -10151,7 +10151,7 @@ ListExpr OpTMCreateBusStopTypeMap5 ( ListExpr args )
   
   ListExpr attrName1 = nl->Fourth ( args );
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
+  std::string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param3)),
                       aname1,attrType1);
                       
@@ -10162,7 +10162,7 @@ ListExpr OpTMCreateBusStopTypeMap5 ( ListExpr args )
   
   ListExpr attrName2 = nl->Fifth (args );
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
+  std::string aname2 = nl->SymbolValue(attrName2);
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param3)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
@@ -10171,7 +10171,7 @@ ListExpr OpTMCreateBusStopTypeMap5 ( ListExpr args )
   
   ListExpr attrName3 = nl->Sixth ( args );
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
+  std::string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param3)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
@@ -10181,7 +10181,7 @@ ListExpr OpTMCreateBusStopTypeMap5 ( ListExpr args )
                       
   ListExpr attrName4 = nl->Nth (7, args );
   ListExpr attrType4;
-  string aname4 = nl->SymbolValue(attrName4);
+  std::string aname4 = nl->SymbolValue(attrName4);
   int j4 = listutils::findAttribute(nl->Second(nl->Second(param3)),
                       aname4, attrType4);
   if(j4 == 0 || !listutils::isSymbol(attrType4,"point"))
@@ -10190,7 +10190,7 @@ ListExpr OpTMCreateBusStopTypeMap5 ( ListExpr args )
                       
   ListExpr attrName5 = nl->Nth (8, args );
   ListExpr attrType5;
-  string aname5 = nl->SymbolValue(attrName5);
+  std::string aname5 = nl->SymbolValue(attrName5);
   int j5 = listutils::findAttribute(nl->Second(nl->Second(param3)),
                       aname5, attrType5);
   if(j5 == 0 || !listutils::isSymbol(attrType5,"real"))
@@ -10887,7 +10887,7 @@ print information of a node in modertree
 */
 ListExpr PrintModeRtreeTypeMap ( ListExpr args )
 {
-  string err = "modertree(tuple(...) rect3 BOOL) expected";
+  std::string err = "modertree(tuple(...) rect3 BOOL) expected";
   if ( nl->ListLength ( args ) != 3 )
   {
     return listutils::typeError("expecting three argument");
@@ -10895,45 +10895,45 @@ ListExpr PrintModeRtreeTypeMap ( ListExpr args )
   
   ListExpr arg1 = nl->First(args);
   if(!(nl->IsAtom(arg1) && nl->IsEqual(arg1, "modertree"))){
-	return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom("typeerror");
   }
 
   ListExpr arg2 = nl->Second(args);
   if(!(nl->IsAtom(arg2) && nl->IsEqual(arg2, "string"))){
-	return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom("typeerror");
   }
 
   ListExpr arg3 = nl->Third(args);
   
   if(!nl->IsEqual(arg3, "space")){
-      string err = "the third parameter should be space";
+      std::string err = "the third parameter should be space";
       return listutils::typeError(err);
   }
    //////////////print the mode rtree information//////////////
      ListExpr res =
-		 nl->TwoElemList(
+     nl->TwoElemList(
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->FiveElemList(
                         nl->TwoElemList(
                              nl->SymbolAtom("NodeId"),
-	                         nl->SymbolAtom("int")),
-						nl->TwoElemList(
-						     nl->SymbolAtom("Level"),
-							 nl->SymbolAtom("int")),
-						nl->TwoElemList(
-						     nl->SymbolAtom("RefMin"), 
-							 nl->SymbolAtom("int")),
-						nl->TwoElemList(
-						     nl->SymbolAtom("RefMax"),
-							 nl->SymbolAtom("int")),
-			            nl->TwoElemList(
-			                 nl->SymbolAtom("BitPos"),
-							 nl->SymbolAtom("int"))
-			                  )
-			                )
-						);
+                           nl->SymbolAtom("int")),
+            nl->TwoElemList(
+                 nl->SymbolAtom("Level"),
+               nl->SymbolAtom("int")),
+            nl->TwoElemList(
+                 nl->SymbolAtom("RefMin"), 
+               nl->SymbolAtom("int")),
+            nl->TwoElemList(
+                 nl->SymbolAtom("RefMax"),
+               nl->SymbolAtom("int")),
+                  nl->TwoElemList(
+                       nl->SymbolAtom("BitPos"),
+               nl->SymbolAtom("int"))
+                        )
+                      )
+            );
     return res;
 }
 

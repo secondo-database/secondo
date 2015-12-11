@@ -168,11 +168,11 @@ bool CheckAngle2(float in, float a1, float a2);
 
 struct CompTriangle{
   Region* reg;
-  vector<Region> triangles;
-  vector<Region> sleeve;
-  vector<Point> plist1;
-  vector<Point> plist2;
-  vector<Point> plist3;
+  std::vector<Region> triangles;
+  std::vector<Region> sleeve;
+  std::vector<Point> plist1;
+  std::vector<Point> plist2;
+  std::vector<Point> plist3;
   unsigned int count;
   Line* path;
   TupleType* resulttype;
@@ -182,22 +182,23 @@ struct CompTriangle{
   void Triangulation();
   unsigned int NoOfCycles();
   void PolygonContourPoint(unsigned int no_cyc, int no_p_contour[],
-                           vector<double>&, vector<double>&);
+                           std::vector<double>&, std::vector<double>&);
   void PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
-                           vector<double>&, vector<double>&);
+                           std::vector<double>&, std::vector<double>&);
   void NewTriangulation();
   void NewTriangulation2();
   inline bool InsideTriangle(float Ax, float Ay,
                       float Bx, float By,
                       float Cx, float Cy,
                       float Px, float Py);
-  bool Snip(const vector<Point>& contour,int u,int v,int w,int n,int *V);
-  bool GetClockwise(const vector<Point>& contour);
-  float Area(const vector<Point>& contour);
+  bool Snip(const std::vector<Point>& contour,int u,int v,int w,int n,int *V);
+  bool GetClockwise(const std::vector<Point>& contour);
+  float Area(const std::vector<Point>& contour);
 
-  bool GetTriangles(const vector<Point>& contour,vector<Point>& result);
+  bool GetTriangles(const std::vector<Point>& contour,
+                    std::vector<Point>& result);
   //detect whether a polygon is a convex or concave
-  bool IsConvex(vector<Point>);
+  bool IsConvex(std::vector<Point>);
   bool PolygonConvex();
   bool PolygonConvex2(int& error);
   int ComplexRegion(); 
@@ -207,18 +208,18 @@ struct CompTriangle{
   //compute the channel/sleeve between two points
   void GetChannel(Point*, Point*);
 
-  void PtoSegSPath(Point*, HalfSegment*, vector<Region>&, Line*);
+  void PtoSegSPath(Point*, HalfSegment*, std::vector<Region>&, Line*);
   //find adjacenct triangles
-  void FindAdj(unsigned int, vector<bool>&, vector<int>&);
+  void FindAdj(unsigned int, std::vector<bool>&, std::vector<int>&);
 
-  void ConstructConvexChannel1(list<MyPoint>&, list<MyPoint>&, Point&,
-                              vector<Point>&, bool);
-  void ConstructConvexChannel2(list<MyPoint>, list<MyPoint>, Point&,
-                              vector<Point>&, bool);
-  void SelectPointOnSeg(list<MyPoint>, list<MyPoint>, HalfSegment*,
+  void ConstructConvexChannel1(std::list<MyPoint>&, std::list<MyPoint>&, Point&,
+                              std::vector<Point>&, bool);
+  void ConstructConvexChannel2(std::list<MyPoint>, std::list<MyPoint>, Point&,
+                              std::vector<Point>&, bool);
+  void SelectPointOnSeg(std::list<MyPoint>, std::list<MyPoint>, HalfSegment*,
                         Point&, Point&);
   //////////////////for rotational plane sweep ///////////////////////
-  static string AllPointsInfo;
+  static std::string AllPointsInfo;
   enum AllPointsTypeInfo{V=0, NEIGHBOR1, NEIGHBOR2, REGID};
   void GetAllPoints();
   void GetVPoints(Relation* r1, Relation* r2, Rectangle<2>* bbox,
@@ -226,30 +227,30 @@ struct CompTriangle{
 /*  void ProcessNeighbor(multiset<MySegDist>&, RPoint&, Point&,
                       Point&, Point&, SpacePartition*, ofstream& );*/
 
-  void ProcessNeighbor(multiset<MySegDist>&, RPoint&, Point&,
+  void ProcessNeighbor(std::multiset<MySegDist>&, RPoint&, Point&,
                       Point&, Point&, SpacePartition*);
 
-  void InitializeAVL( multiset<MySegDist>& sss,
+  void InitializeAVL( std::multiset<MySegDist>& sss,
                                       Point& query_p, Point& hp,
                                       Point& p, Point& neighbor,
                                       SpacePartition* sp);
-  void InitializeQueue(priority_queue<RPoint>& allps,
+  void InitializeQueue(std::priority_queue<RPoint>& allps,
                                    Point& query_p, Point& hp, Point& p,
                                    SpacePartition* sp, Point* q1,
                                    Point* q2, int id);
-  bool InitializeQueue2(priority_queue<RPoint>& allps,
+  bool InitializeQueue2(std::priority_queue<RPoint>& allps,
                                    Point& query_p, Point& hp, Point& p,
                                    SpacePartition* sp, Point* q1,
                                    Point* q2, int id,
-						           float a1, float a2);
-								   
-  void PrintAVLTree(multiset<MySegDist>& sss, ofstream&);
+                       float a1, float a2);
+                   
+  void PrintAVLTree(std::multiset<MySegDist>& sss, std::ofstream&);
   
   void GetVPoints2(Relation* r1, Relation* r2, Rectangle<2>* bbox,
                   Relation* r3, int attr_pos, float a1, float a2);
-				  
-  vector<Line> connection;
-  vector<int> reg_id;
+          
+  std::vector<Line> connection;
+  std::vector<int> reg_id;
 //  vector<float> angles;
 };
 
@@ -275,8 +276,9 @@ public:
     Relation* GetEdgeRel(){return edge_rel;}
     Relation* GetNodeRel(){return node_rel;}
     inline int No_Of_Node(){return node_rel->GetNoTuples();}
-    void FindAdj(int node_id, vector<bool>& flag, vector<int>& adj_list);
-    void FindAdj(int node_id, vector<int>& adj_list);
+    void FindAdj(int node_id, std::vector<bool>& flag, 
+                 std::vector<int>& adj_list);
+    void FindAdj(int node_id, std::vector<int>& adj_list);
     unsigned int g_id;
     Relation* node_rel;
     Relation* edge_rel;
@@ -287,10 +289,10 @@ public:
 
 class DualGraph:public BaseGraph{
 public:
-    static string NodeTypeInfo;
-    static string BTreeNodeTypeInfo;
-    static string EdgeTypeInfo;
-    static string NodeRTreeTypeInfo;
+    static std::string NodeTypeInfo;
+    static std::string BTreeNodeTypeInfo;
+    static std::string EdgeTypeInfo;
+    static std::string NodeRTreeTypeInfo;
 
     /*schema for edge and node*/
     enum DGNodeTypeInfo{OID = 0, RID, PAVEMENT};
@@ -298,10 +300,10 @@ public:
 
 
     /////////////for triangle ///////////////////////
-    static string TriangleTypeInfo1;
-    static string TriangleTypeInfo2;
-    static string TriangleTypeInfo3;
-    static string TriangleTypeInfo4;
+    static std::string TriangleTypeInfo1;
+    static std::string TriangleTypeInfo2;
+    static std::string TriangleTypeInfo3;
+    static std::string TriangleTypeInfo4;
     enum Tri1TypeInfo{V1 = 0, V2,V3,CENTROID,TOID};
     enum Tri2TypeInfo{CYCLENO = 0, VERTEX};
     //(vid,triid)
@@ -337,17 +339,18 @@ public:
                            const ListExpr typeInfo, Word& value);
     static DualGraph* Open(SmiRecord& valueRecord,size_t& offset,
                           const ListExpr typeInfo);
-    void LineIntersectTri(Line*l, vector<Line>& line_list);
+    void LineIntersectTri(Line*l, std::vector<Line>& line_list);
     void DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
-                          Line* line, vector<Line>& line_list);
+                          Line* line, std::vector<Line>& line_list);
     int GetTriId_OfPoint(Point& loc);
     void DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
-                          Point& loc, vector<int>& tri_oid_list);
+                          Point& loc, std::vector<int>& tri_oid_list);
     void DFTraverse3(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
-                          Point& loc, vector<int>& tri_oid_list, double dist);
+                          Point& loc, std::vector<int>& tri_oid_list,
+                          double dist);
     //////////////////////////////////////////////////////////////////////
     //////////calculate a path, for cells in metro route//////////////////
-    void Path_Weight(int start, int end, vector<int>& path);
+    void Path_Weight(int start, int end, std::vector<int>& path);
    
     //////////////////////////////////////////////////////////////////
     int min_tri_oid_1; //smaller than the minimum tri oid (minoid - 1)
@@ -359,9 +362,9 @@ public:
 
 class VisualGraph: public BaseGraph{
 public:
-  static string NodeTypeInfo;
-  static string EdgeTypeInfo;
-  static string QueryTypeInfo;
+  static std::string NodeTypeInfo;
+  static std::string EdgeTypeInfo;
+  static std::string QueryTypeInfo;
 
   enum VGNodeTypeInfo{OID = 0, LOC};
   enum VGEdgeTypeInfo{OIDFIRST = 0,OIDSECOND, CONNECTION};
@@ -405,21 +408,21 @@ struct Walk_SP{
   Relation* rel2; //query relation2
   unsigned int count;
   TupleType* resulttype;
-  vector<int> oids;
+  std::vector<int> oids;
 
-  vector<int> oids1;
-  vector<int> oids2;
-  vector<Line> path;
+  std::vector<int> oids1;
+  std::vector<int> oids2;
+  std::vector<Line> path;
 
-  vector<Point> q_loc1;
-  vector<Point> q_loc2;
+  std::vector<Point> q_loc1;
+  std::vector<Point> q_loc2;
   
-  vector<int> oid_list; 
-  vector<int> rid_list;
-  vector<Region> reg_list; 
+  std::vector<int> oid_list; 
+  std::vector<int> rid_list;
+  std::vector<Region> reg_list; 
   
-  vector<GPoint> gp_list; 
-  vector<Point> p_list; 
+  std::vector<network::GPoint> gp_list; 
+  std::vector<Point> p_list; 
   
   Relation* rel3; //triangle relation (v1 int)(v2 int)(v3 int)(centroid point)
   Relation* rel4; //vertex relation (vid int)(triid int)
@@ -448,12 +451,13 @@ struct Walk_SP{
   bool GenerateData4(int oid);
   
   void DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Region* reg, 
-                  vector<int>& r_id_list);
+                  std::vector<int>& r_id_list);
 
   void SetPaveRid(R_Tree<2,TupleId>* rtree);
-  void PaveLocToGP(Network* n);
+  void PaveLocToGP(network::Network* n);
 
-  bool PaveLocToGPoint(Point* loc, Network* n, vector<int> route_id_list);
+  bool PaveLocToGPoint(Point* loc, network::Network* n, 
+                       std::vector<int> route_id_list);
 };
 
 /*
@@ -509,9 +513,9 @@ struct Obs_Obj{
   Obs_Obj(const Obs_Obj& o):tid(o.tid), d(o.d){}
   Obs_Obj& operator=(const Obs_Obj& o)
   {
-	  tid = o.tid;
-	  d = o.d;
-	  return *this;
+    tid = o.tid;
+    d = o.d;
+    return *this;
   }
   bool operator<(const Obs_Obj& o) const
   {
@@ -519,7 +523,7 @@ struct Obs_Obj{
   }
   void Print()
   {
-	cout<<"tid "<<tid<<" d "<<d<<endl;
+  cout<<"tid "<<tid<<" d "<<d<<endl;
   }
 
 };
@@ -540,22 +544,22 @@ struct ObsVertex{
            regid(o.regid), b(o.b){}
   ObsVertex& operator=(const ObsVertex& o)
   {
-	loc = o.loc;
-	angle = o.angle;
-	regid = o.regid;
-	b = o.b;
-	return *this;
+  loc = o.loc;
+  angle = o.angle;
+  regid = o.regid;
+  b = o.b;
+  return *this;
   }
   bool operator<(const ObsVertex& o)const
   {
-	return angle < o.angle;
+  return angle < o.angle;
   }
   void Print()
   {
-	cout<<"loc: "<<loc<<" angle "<<angle
-	    <<" regid "<<regid<<endl;
+  cout<<"loc: "<<loc<<" angle "<<angle
+      <<" regid "<<regid<<endl;
     if(b) cout<<"clockwise"<<endl;
-	else cout<<"counterclockwise"<<endl;
+  else cout<<"counterclockwise"<<endl;
   }
   
 };
@@ -571,17 +575,17 @@ struct BlockAngle{
   BlockAngle(temporalalgebra::Interval<CcReal> a, float d):angle(a), dist(d){}
   BlockAngle& operator=(const BlockAngle& o)
   {
-	angle = o.angle;
-	dist = o.dist;
-	return *this;
+  angle = o.angle;
+  dist = o.dist;
+  return *this;
   }
    bool operator<(const BlockAngle& o)const
   {
-	return angle < o.angle;
+  return angle < o.angle;
   }
   void Print()
   {
-	cout<<angle.start<<" "<<angle.end<<" "<<" dist: "<<dist<<endl;
+  cout<<angle.start<<" "<<angle.end<<" "<<" dist: "<<dist<<endl;
   }
   
 };
@@ -595,27 +599,27 @@ struct VGraph{
   BTree* btree;
   unsigned int count;
   TupleType* resulttype;
-  vector<int> oids1;
+  std::vector<int> oids1;
 
-  vector<int> oids2;
-  vector<int> oids3;
-  vector<Point> p_list;
-  vector<Point> p_list2;
-  vector<Line> line;
-  vector<Region> regs;
+  std::vector<int> oids2;
+  std::vector<int> oids3;
+  std::vector<Point> p_list;
+  std::vector<Point> p_list2;
+  std::vector<Line> line;
+  std::vector<Region> regs;
   VisualGraph* vg;
   
-  vector<Point> p_neighbor1;
-  vector<Point> p_neighbor2;
+  std::vector<Point> p_neighbor1;
+  std::vector<Point> p_neighbor2;
   
   int tri_access;
-  vector<float> angle_list;
-  vector<bool> clockwise_list;
+  std::vector<float> angle_list;
+  std::vector<bool> clockwise_list;
   
-  static string RelHoles;
+  static std::string RelHoles;
   /////////////within a spatial range///////////////
   bool spatial_l; //mark the state
-  set<int> cand_id;
+  std::set<int> cand_id;
   //////////////////////////////////////////////////
   
   enum VPHoleInfo{VP_HOLE_OID = 0, VP_HOLE, VP_HOLE_BOX}; 
@@ -635,7 +639,7 @@ struct VGraph{
   bool CheckVisibility1(Clamp& clamp, Point& checkp, int vp);
   bool CheckVisibility2(Clamp& clamp, Point& checkp1, Point& checkp2);
   void DFTraverse(int id, Clamp& clamp, int pre_id, int type);
-  bool PathContainHS(vector<int> tri_list, HalfSegment hs);
+  bool PathContainHS(std::vector<int> tri_list, HalfSegment hs);
   bool GetIntersectionPoint(Point& p1,Point& p2,Clamp& clamp, Point& ip,bool);
   bool GetVNode_QV(int tri_id, Point* query_p,int,int,int);
   void DecomposeTriangle();
@@ -648,13 +652,13 @@ struct VGraph{
   void GetVisibilityNode(int tri_id, Point query_p);
   /////////////////////////////////////////////////////////////////////////
   void GetVPRange(Relation* rel1, R_Tree<2,TupleId>* rtree,
-				  Relation* rel2, float l);
+          Relation* rel2, float l);
   void GetObstacles(Relation* rel1, R_Tree<2,TupleId>* rtree, Point* q, 
-				float l, priority_queue<Obs_Obj>& myqueue);
-  bool MergeBlockAngle(vector<BlockAngle>& a_list, BlockAngle above_angle,
-					   int oid);
-  void AddResult(bool iscovered, Point lp, Point rp);			 
-  void MergeAngleList(vector<BlockAngle>& a_list);
+        float l, std::priority_queue<Obs_Obj>& myqueue);
+  bool MergeBlockAngle(std::vector<BlockAngle>& a_list, BlockAngle above_angle,
+             int oid);
+  void AddResult(bool iscovered, Point lp, Point rp);       
+  void MergeAngleList(std::vector<BlockAngle>& a_list);
   void FindTriWithin_L(float l, int query_oid, Point* q);
 };
 
@@ -671,16 +675,16 @@ struct RegVertex{
   Region* reg;
   unsigned int count;
   TupleType* resulttype;
-  vector<int> cycleno;
-  vector<Point> regnodes;
+  std::vector<int> cycleno;
+  std::vector<Point> regnodes;
 
-  vector<int> v1_list;
-  vector<int> v2_list;
-  vector<int> v3_list;
+  std::vector<int> v1_list;
+  std::vector<int> v2_list;
+  std::vector<int> v3_list;
   Relation* rel1;
   Relation* rel2;
-  vector<Line> line;
-  vector<Region> tri_list;
+  std::vector<Line> line;
+  std::vector<Region> tri_list;
 
   RegVertex(){}
   RegVertex(Region* r):reg(r), count(0), resulttype(NULL){}
@@ -697,10 +701,11 @@ struct RegVertex{
   void TriangulationExt2();
   void GetDGEdge();
   void GetDGEdgeRTree(R_Tree<2,TupleId>*);
-  void ShareEdge(Region* reg1, Region* reg2, int, int,vector<vector<int> >&);
+  void ShareEdge(Region* reg1, Region* reg2, int, int,
+                 std::vector<std::vector<int> >&);
   void DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                   int oid, Region* reg,
-                  vector<vector<int> >& adj_node);
+                  std::vector<std::vector<int> >& adj_node);
 };
 
 struct Triangle{
@@ -790,7 +795,7 @@ inline long ZValue(Point& p)
   }
   return b.to_ulong();*/
 
-  bitset<30> b;
+  std::bitset<30> b;
   double base = 2,exp = 30;
   int x = (int)p.GetX();
   int y = (int)p.GetY();
@@ -798,8 +803,8 @@ inline long ZValue(Point& p)
   if(y > pow(base, exp)) cout<<"y: "<<y<<endl;
   assert (x < pow(base,exp));
   assert (y < pow(base,exp));
-  bitset<15> b1(x);
-  bitset<15> b2(y);
+  std::bitset<15> b1(x);
+  std::bitset<15> b2(y);
   bool val;
   b.reset();
   for(int j = 0; j < 15;j++){
@@ -836,21 +841,22 @@ struct Hole{
   Hole(char* input):in(input){count = 0;resulttype=NULL;}
   Hole(){count=0;resulttype = NULL;}
   ~Hole(){if(resulttype != NULL) delete resulttype;}
-  ifstream in;
+  std::ifstream in;
   unsigned int count;
   TupleType* resulttype;
-  vector<Region> regs1;
-  vector<Region> regs2;
-  vector<Region> regs;
+  std::vector<Region> regs1;
+  std::vector<Region> regs2;
+  std::vector<Region> regs;
   
-  vector<Line> line_list;
-  vector<int> cycle_id_list;
+  std::vector<Line> line_list;
+  std::vector<int> cycle_id_list;
   
   void GetContour();
   void GetContour(unsigned int no_reg);
   void GetPolygon(int no_ps);//create a polygon
-  void SpacePartitioning(Points* gen_ps, vector<HalfSegment>& hs_segs);
-  void SpacePartitioning(vector<Point> ps, vector<HalfSegment>& hs_segs,
+  void SpacePartitioning(Points* gen_ps, std::vector<HalfSegment>& hs_segs);
+  void SpacePartitioning(std::vector<Point> ps, 
+                         std::vector<HalfSegment>& hs_segs,
                          Point sf, Point sl);
   void DiscoverContour(MHSNode* head, Region* r);
   void DiscoverContour(Points* ps, Region* r);
@@ -866,7 +872,7 @@ struct Hole{
 ////////////////////////////////////////////////////////////////////////////
 Rectangle<2> GetMaxRect(Region*);
 Rectangle<2> GetMaxRect2(Region*);
-Rectangle<2> RectInTriangle(vector<Point>& ps); 
+Rectangle<2> RectInTriangle(std::vector<Point>& ps); 
 
 struct GeomPoint{
     GeomPoint(){}
@@ -979,14 +985,14 @@ class IndoorGraph;
 
 struct MaxRect{
 
-    static string BuildingRectTypeInfo;
-    static string RegionElemTypeInfo;
-    static string BuildingRectExtTypeInfo; 
-    static string BuildingParaInfo;
+    static std::string BuildingRectTypeInfo;
+    static std::string RegionElemTypeInfo;
+    static std::string BuildingRectExtTypeInfo; 
+    static std::string BuildingParaInfo;
 
     bool fixed;
     int fixedX, fixedY;
-    vector<Rectangle<2> > RectList; 
+    std::vector<Rectangle<2> > RectList; 
 
     int status;
     int start, stop; //tangents for iterative convex hull
@@ -998,39 +1004,39 @@ struct MaxRect{
 
     int result; 
 
-    vector<GeomPoint> geo_p_list; 
-    vector<GeomEdge>  geo_e_list;
+    std::vector<GeomPoint> geo_p_list; 
+    std::vector<GeomEdge>  geo_e_list;
     /////////////////////////////////////////////////////////////////////////
-    vector<int> reg_id_list; 
-    vector<Rectangle<2> > rect_list; 
+    std::vector<int> reg_id_list; 
+    std::vector<Rectangle<2> > rect_list; 
 
-    vector<Region> reg_list; 
-    vector<SimpleLine> sl_list; 
+    std::vector<Region> reg_list; 
+    std::vector<SimpleLine> sl_list; 
 
-    vector<int> reg_type_list; 
+    std::vector<int> reg_type_list; 
 
-    vector<int> poly_id_list; 
+    std::vector<int> poly_id_list; 
 
     Relation* rel1; 
     Relation* rel2; 
     BTree* btree;
-    vector<Point> sp_list;
-    vector<unsigned int> sp_index_list;
-    vector<Point> ep_list;
+    std::vector<Point> sp_list;
+    std::vector<unsigned int> sp_index_list;
+    std::vector<Point> ep_list;
 
-    vector<Point> ep_list2;
-    vector<Line> path_list; 
+    std::vector<Point> ep_list2;
+    std::vector<Line> path_list; 
 
-    vector<int> build_id_list;
-    vector<GenLoc> genloc_list;
-    vector<int> sp_type_list;
+    std::vector<int> build_id_list;
+    std::vector<GenLoc> genloc_list;
+    std::vector<int> sp_type_list;
 
-    vector<int> build_type_list;
-    vector<string> build_type2_list;
+    std::vector<int> build_type_list;
+    std::vector<std::string> build_type2_list;
 
 
-    vector<Building*> build_pointer;
-    vector<IndoorGraph*> igraph_pointer; 
+    std::vector<Building*> build_pointer;
+    std::vector<IndoorGraph*> igraph_pointer; 
 
     unsigned int count;
     TupleType* resulttype;
@@ -1064,7 +1070,7 @@ struct MaxRect{
         fixedX = 1;
         fixedY = 1;    
     }
-    void SetPoint(vector<GeomPoint>& list); 
+    void SetPoint(std::vector<GeomPoint>& list); 
 
    // position of point w.r.t. hull edgesign of twice the area of triangle abc
 
@@ -1095,28 +1101,28 @@ struct MaxRect{
     /////////////positive coordinates///////////////////////////////////////
     bool ValidRegion(Region* r); 
     ////////build the path between the entrance of the building and pavement///
-    bool RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg);
-    void SetStartAndEndPoint(Region* r, vector<Point>& build_sp_list,
-                             vector<Point>& build_ep_list);
+    bool RegionWithHole(std::vector<Rectangle<2> >& hole_list, Region* reg);
+    void SetStartAndEndPoint(Region* r, std::vector<Point>& build_sp_list,
+                             std::vector<Point>& build_ep_list);
     void MapToPavement(DualGraph* , Point loc);
     //////////set the building entrance according to the floor plan////////
     void OpenBuilding();
     void OpenIndoorGraph();
-    void LoadIndoorPaths(vector< map<int, Line3D> >& paths,
-                         vector< map<int, Line3D> >& rooms);
+    void LoadIndoorPaths(std::vector< std::map<int, Line3D> >& paths,
+                         std::vector< std::map<int, Line3D> >& rooms);
 
     void CloseIndoorGraph();
     void CloseBuilding();
     void PathToBuilding(Space* gl_sp);
-    void CreateEntranceforBuilding(Region* r, vector<int>& tid_list, 
+    void CreateEntranceforBuilding(Region* r, std::vector<int>& tid_list, 
                                    DualGraph* dg); 
     void BuildingEntrance(int graph_type, Rectangle<2>* rect, 
-                          vector<Point>& build_sp_list);
+                          std::vector<Point>& build_sp_list);
     void BuildingEntranceHouse(Rectangle<2>* rect, 
-                               vector<Point>& build_sp_list,
-                               vector<Point>& build_ep_list, Region* r);
+                               std::vector<Point>& build_sp_list,
+                               std::vector<Point>& build_ep_list, Region* r);
     void Get2DAreadAndDoor(int build_type, Rectangle<2>& build_area, 
-                           vector<Point>& door_list);
+                           std::vector<Point>& door_list);
     void Path_BuildingPave(Point sp, Point ep, Rectangle<2>* rect, 
                                 Region* r, DualGraph* dg);
     void PathOnBorder(Line* boundary_temp, Point sp, Point cp_border, 
@@ -1124,48 +1130,50 @@ struct MaxRect{
     ////////////set the type for each rectange(building)///////////////////
     void SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp);
 
-    void SetAirPort(vector<Build_Rect>& list, R_Tree<2,TupleId>* rtree);
+    void SetAirPort(std::vector<Build_Rect>& list, R_Tree<2,TupleId>* rtree);
     bool NoNeighbor(Build_Rect& br, R_Tree<2,TupleId>* rtree);
     void DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
-                    Rectangle<2>& rect, vector<int>& tri_oid_list);
+                    Rectangle<2>& rect, std::vector<int>& tri_oid_list);
 
-    void SetTrainStation(vector<Build_Rect>& list);
+    void SetTrainStation(std::vector<Build_Rect>& list);
 
-    void SetCinema(vector<Build_Rect>& build_rect_list, 
+    void SetCinema(std::vector<Build_Rect>& build_rect_list, 
                    unsigned int no, Rectangle<2> bbox);
-    bool NoNeighborCinema(vector<Build_Rect>& list1, Build_Rect br,
+    bool NoNeighborCinema(std::vector<Build_Rect>& list1, Build_Rect br,
                           Rectangle<2> bbox);
     
-    void SetHotel(vector<Build_Rect>& build_rect_list, unsigned int no,
+    void SetHotel(std::vector<Build_Rect>& build_rect_list, unsigned int no,
                   Rectangle<2> bbox);
-    bool NoNeighborHotel(vector<Build_Rect>& list1, Build_Rect br,
+    bool NoNeighborHotel(std::vector<Build_Rect>& list1, Build_Rect br,
                          Rectangle<2> bbox);
 
-    void SetShopMall(vector<Build_Rect>& build_rect_list, unsigned int no,
+    void SetShopMall(std::vector<Build_Rect>& build_rect_list, unsigned int no,
                   Rectangle<2> bbox);
-    bool NoNeighborShopMall(vector<Build_Rect>& list1, Build_Rect br,
+    bool NoNeighborShopMall(std::vector<Build_Rect>& list1, Build_Rect br,
                          Rectangle<2> bbox);
 
-    void SetOffice24(vector<Build_Rect>& build_rect_list, unsigned int no);
-    void SetOffice38(vector<Build_Rect>& build_rect_list, unsigned int no);
+    void SetOffice24(std::vector<Build_Rect>& build_rect_list, unsigned int no);
+    void SetOffice38(std::vector<Build_Rect>& build_rect_list, unsigned int no);
 
-    void SetHospital(vector<Build_Rect>& build_rect_list, unsigned int no);
-    bool NoNeighborHospital(vector<Build_Rect>& list1, Build_Rect br);
-    bool NoNearbyShopMallAndCinema(vector<Build_Rect>& list, Build_Rect br);
+    void SetHospital(std::vector<Build_Rect>& build_rect_list, unsigned int no);
+    bool NoNeighborHospital(std::vector<Build_Rect>& list1, Build_Rect br);
+    bool NoNearbyShopMallAndCinema(std::vector<Build_Rect>& list,
+                                   Build_Rect br);
 
-    void SetLibrary(vector<Build_Rect>& build_rect_list, unsigned int no);
-    bool NoNeighborLibrary(vector<Build_Rect>& list, Build_Rect br);
-    bool NoNearbyCommercialBuilding(vector<Build_Rect>& list, Build_Rect br);
+    void SetLibrary(std::vector<Build_Rect>& build_rect_list, unsigned int no);
+    bool NoNeighborLibrary(std::vector<Build_Rect>& list, Build_Rect br);
+    bool NoNearbyCommercialBuilding(std::vector<Build_Rect>& list, 
+                                    Build_Rect br);
     
-    void SetSchool(vector<Build_Rect>& build_rect_list, unsigned int no);
-    bool NoNeighborSchool(vector<Build_Rect>& list, Build_Rect br);
+    void SetSchool(std::vector<Build_Rect>& build_rect_list, unsigned int no);
+    bool NoNeighborSchool(std::vector<Build_Rect>& list, Build_Rect br);
     
-    void SetUniversity(vector<Build_Rect>& list, unsigned int no);
-    bool NoNeighborUniversity(vector<Build_Rect>& list, Build_Rect br);
+    void SetUniversity(std::vector<Build_Rect>& list, unsigned int no);
+    bool NoNeighborUniversity(std::vector<Build_Rect>& list, Build_Rect br);
     
     
-    void SetHouse(vector<Build_Rect>& build_rect_list, unsigned int no);
-    bool NoNearbyNeighbors1(vector<Build_Rect>& list, Build_Rect br);
+    void SetHouse(std::vector<Build_Rect>& build_rect_list, unsigned int no);
+    bool NoNearbyNeighbors1(std::vector<Build_Rect>& list, Build_Rect br);
 };
 
 bool RegContainRect(Region* reg, Rectangle<2>& rect);
@@ -1254,9 +1262,9 @@ type3: line and region; type4: inside the same region
 class OSMPaveGraph:public BaseGraph{
 
 public:
-   static string OSMGraphPaveNode;
-   static string OSMGraphPaveEdge;
-   static string NodeBTreeTypeInfo;
+   static std::string OSMGraphPaveNode;
+   static std::string OSMGraphPaveEdge;
+   static std::string NodeBTreeTypeInfo;
      
   enum OSMPaveNodeInfo{OSM_JUN_ID = 0, OSM_JUN_GP, OSM_LOC, OSM_RID, OSM_TYPE};
   enum OSMPaveEdgeInfo{OSM_JUNID1 = 0, OSM_JUNID2, OSM_Path1, 
@@ -1291,7 +1299,7 @@ public:
    bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
                const ListExpr in_xTypeInfo);
   
-   void GetNodesOnRid(int rid, vector<int>& tid_list);
+   void GetNodesOnRid(int rid, std::vector<int>& tid_list);
 
    BTree* btree_node;
 };
