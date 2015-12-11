@@ -99,7 +99,7 @@ enum Direction {
 class CoarseningGraph {
 private:
 
- set<Vertex*, CmpVertex> vertices;
+ std::set<Vertex*, CmpVertex> vertices;
 
 /*
 1.1 ~clear~
@@ -198,7 +198,7 @@ private:
  int x;
  int y;
 
- set<Vertex*, CmpVertex> edgeSet;
+ std::set<Vertex*, CmpVertex> edgeSet;
 
 /*
 1.1 ~hasEdgePointing...~
@@ -287,7 +287,7 @@ public:
   returns all edges.
 
 */
- set<Vertex*, CmpVertex> getEdges() const;
+ std::set<Vertex*, CmpVertex> getEdges() const;
 
 /*
 1.1 ~removeEdge~

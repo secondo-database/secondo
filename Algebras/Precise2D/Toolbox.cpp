@@ -179,10 +179,10 @@ mpz_class floor_mpq(mpq_class& value){
 void prepareData(int& resultGrid, mpq_class& resultP,
   mpq_class value) {
  mpz_class grid = floor_mpq(value);
- if ((cmp(grid, numeric_limits<int>::min())<0)
-   ||(cmp(numeric_limits<int>::max(), grid)<0)){
-  cerr <<"The grid-value "<<grid
-       <<"don't fit in a variable of type int."<<endl;
+ if ((cmp(grid, std::numeric_limits<int>::min())<0)
+   ||(cmp(std::numeric_limits<int>::max(), grid)<0)){
+  std::cerr <<"The grid-value "<<grid
+       <<"don't fit in a variable of type int."<<std::endl;
   assert(false);
  }
  resultGrid = (int) grid.get_d();

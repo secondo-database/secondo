@@ -155,7 +155,7 @@ public:
 1.1 ~invertSegments~
 
 */
- void invertSegments(vector<AVLSegment*>& v, int gridX, mpq_class& pX,
+ void invertSegments(std::vector<AVLSegment*>& v, int gridX, mpq_class& pX,
    int gridY, mpq_class& pY, AVLSegment*& pred, size_t predIndex,
    AVLSegment*& suc, size_t sucIndex,  TestStruct& t);
 
@@ -829,30 +829,36 @@ public:
 */
 template<class C1, class C2>
 Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  std::priority_queue<Event, std::vector<Event>, 
+  std::greater<Event> >& q, Event& event,
   TestStruct& t);
 
 template<class C1, class C2>
 Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event,
   mpq_class& internalScalefactor, TestStruct& t);
 
 Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event,
   TestStruct& t);
 
 Owner selectNext(const p2d::Line2& l, int& pos1, const p2d::Line2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event,
   mpq_class& internalScalefactor, TestStruct& t);
 
 Owner selectNext(/*const*/ Region2& r1, int& pos1,
  /*const*/ Region2& r2, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event,
   TestStruct& t);
 
 Owner selectNext(/*const*/Region2& r1, int& pos1,
 /*const*/Region2& r2, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event,
   mpq_class& internalScalefactor, TestStruct& t);
 
 /*
@@ -868,15 +874,16 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
 
 */
 bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event& event,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, bool leftIsSmaller,
-  TestStruct& t);
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  bool leftIsSmaller, TestStruct& t);
 
 /*
 1 ~collectSegmentsForInverting~
 
 */
-void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
-  Event& event, priority_queue<Event, vector<Event>, greater<Event> >& q,
+void collectSegmentsForInverting(std::vector<AVLSegment*>& segmentVector,
+  Event& event, std::priority_queue<Event, 
+                std::vector<Event>, std::greater<Event> >& q,
   size_t& predIndex, size_t& sucIndex, bool& inversionnecessary, TestStruct& t);
 
 /*
@@ -893,10 +900,10 @@ void createNewSegments(AVLSegment& s, p2d::Line2& result, int& edgeNo,
 1 ~createNewSegments~
 
 */
-void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+void createNewSegments(std::vector<AVLSegment*>& segmentVector, Event& event,
   p2d::Line2& result, int& edgeNo, SetOperation op, TestStruct& t);
 
-void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+void createNewSegments(std::vector<AVLSegment*>& segmentVector, Event& event,
   p2d::Line2& result, int& edgeNo, SetOperation op,
   mpq_class& internalScalefactor, TestStruct& t);
 
@@ -913,11 +920,11 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
 1 ~createNewSegments~
 
 */
-void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+void createNewSegments(std::vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor, Region2& result, int& edgeno, int scalefactor,
   SetOperation op, TestStruct& t);
 
-void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+void createNewSegments(std::vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor, Region2& result, int& edgeno, int scalefactor,
   SetOperation op, mpq_class& internalScalefactor, TestStruct& t);
 
@@ -925,7 +932,7 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
 1 ~checkSegments~
 
 */
-void checkSegments(vector<AVLSegment*>& segmentVector, Event& event,
+void checkSegments(std::vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor, bool& result, RelationshipOperation op, TestStruct& t);
 
 /*

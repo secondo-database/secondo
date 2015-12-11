@@ -247,7 +247,7 @@ Point2& operator=(const Point2& p);
 3.4 functions required by Secondo
 
 */
- static const string BasicType() {
+ static const std::string BasicType() {
   return "point2";
  }
 
@@ -275,7 +275,7 @@ Point2& operator=(const Point2& p);
   return new Point2(*this);
  }
 
- ostream& Print(ostream &os) const {
+ std::ostream& Print(std::ostream &os) const {
   os << *this;
   return os;
  }

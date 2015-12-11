@@ -134,7 +134,7 @@ public:
   to initialize ~pred~ and ~suc~ with NULL before calling this method.
 
 */
- void invertSegments(vector<AVLSegment*>& v, int gridX, mpq_class& pX,
+ void invertSegments(std::vector<AVLSegment*>& v, int gridX, mpq_class& pX,
    int gridY, mpq_class& pY, AVLSegment*& pred, size_t predIndex,
    AVLSegment*& suc, size_t sucIndex);
 
@@ -1016,32 +1016,39 @@ public:
 */
 template<class C1, class C2>
 Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event);
 
 template<class C1, class C2>
 Owner selectNext(const C1& l, int& pos1, const C2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event,
   mpq_class& internalScalefactor);
 
 Owner selectNext(const Line2& l, int& pos1, const Line2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event);
 
 Owner selectNext(const Line2& l, int& pos1, const Line2& r, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event,
   mpq_class& internalScalefactor);
 
 Owner selectNext(/*const*/ Region2& r1, int& pos1,
 /*const*/ Region2& r2, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event);
 
 Owner selectNext(/*const*/Region2& r1, int& pos1,
 /*const*/Region2& r2, int& pos2,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event,
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q, 
+  Event& event,
   mpq_class& internalScalefactor);
 
 template<class C>
 Owner selectNext(const C& l, int& pos,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, Event& event);
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q,
+   Event& event);
 
 /*
 11 ~mergeNeighbors~
@@ -1078,7 +1085,8 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
 
 */
 void intersectionTestForRealminize(AVLSegment* left, AVLSegment* right,
-  Event* event, priority_queue<Event, vector<Event>, greater<Event> >& q,
+  Event* event, std::priority_queue<Event, std::vector<Event>, 
+  std::greater<Event> >& q,
   bool leftIsSmaller);
 
 /*
@@ -1095,7 +1103,8 @@ void intersectionTestForRealminize(AVLSegment* left, AVLSegment* right,
 
 */
 bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event& event,
-  priority_queue<Event, vector<Event>, greater<Event> >& q, bool leftIsSmaller);
+  std::priority_queue<Event, std::vector<Event>, std::greater<Event> >& q,
+  bool leftIsSmaller);
 
 /*
 11 ~collectSegmentsForInverting~
@@ -1113,8 +1122,9 @@ bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event& event,
  an inversion is not necessary and ~inversionNecessary~ will be set to false;
 
 */
-void collectSegmentsForInverting(vector<AVLSegment*>& segmentVector,
-  Event& event, priority_queue<Event, vector<Event>, greater<Event> >& q,
+void collectSegmentsForInverting(std::vector<AVLSegment*>& segmentVector,
+  Event& event, std::priority_queue<Event, std::vector<Event>, 
+  std::greater<Event> >& q,
   size_t& predIndex, size_t& sucIndex, bool& inversionnecessary);
 
 /*
@@ -1140,10 +1150,10 @@ void createNewSegments(AVLSegment& s, Line2& result, int& edgeNo,
  ~event~ get the event-point as the left endpoint.
 
 */
-void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+void createNewSegments(std::vector<AVLSegment*>& segmentVector, Event& event,
   Line2& result, int& edgeNo, SetOperation op);
 
-void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+void createNewSegments(std::vector<AVLSegment*>& segmentVector, Event& event,
   Line2& result, int& edgeNo, SetOperation op, mpq_class& internalScalefactor);
 
 /*
@@ -1173,12 +1183,12 @@ void createNewSegments(AVLSegment& s, Region2& result, int& edgeno,
  predicates are changed.
 
 */
-void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+void createNewSegments(std::vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor, Region2& result, int& edgeno, int scalefactor,
   SetOperation op);
 
 
-void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
+void createNewSegments(std::vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor, Region2& result, int& edgeno, int scalefactor,
   SetOperation op, mpq_class& internalScalefactor);
 
@@ -1189,7 +1199,7 @@ void createNewSegments(vector<AVLSegment*>& segmentVector, Event& event,
  Sets the value for insideAbove.
 
 */
-void setInsideAbove(vector<AVLSegment*>& segmentVector, Event& event,
+void setInsideAbove(std::vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor);
 
 /*
@@ -1200,7 +1210,7 @@ void setInsideAbove(vector<AVLSegment*>& segmentVector, Event& event,
  if need to be.
 
 */
-void checkSegments(vector<AVLSegment*>& segmentVector, Event& event,
+void checkSegments(std::vector<AVLSegment*>& segmentVector, Event& event,
   AVLSegment* successor, bool& result, RelationshipOperation op);
 
 /*

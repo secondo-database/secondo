@@ -48,6 +48,8 @@
 #include <cmath>
 #include <vector>
 
+using namespace std;
+
 namespace p2d_test {
 
 mpq_class vNoCmpGrid = 0;

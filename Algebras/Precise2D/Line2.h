@@ -579,7 +579,7 @@ of the StandardSpatialAttribute
 
 */
 
- static const string BasicType() {
+ static const std::string BasicType() {
   return "line2";
  }
 
@@ -599,7 +599,7 @@ of the StandardSpatialAttribute
 
  Line2* Clone() const;
 
- ostream& Print(ostream &os) const {
+ std::ostream& Print(std::ostream &os) const {
   os << *this;
   return os;
  }

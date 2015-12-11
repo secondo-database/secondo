@@ -41,6 +41,8 @@
 #include <vector>
 #include <limits>
 
+using namespace std;
+
 namespace p2d {
 
 bool p2d_debug = false;

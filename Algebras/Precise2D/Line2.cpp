@@ -39,6 +39,8 @@
 #include "Line2.h"
 #include "AVL_Tree.h"
 
+using namespace std;
+
 namespace p2d {
 /*
 2 Class SegmentData

@@ -36,6 +36,8 @@
 #define _COARSENING_CPP
 #include "Coarsening.h"
 
+using namespace std;
+
 
 namespace p2d {
 

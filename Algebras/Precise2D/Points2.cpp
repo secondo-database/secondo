@@ -655,7 +655,7 @@ const Rectangle<2> Points2::BoundingBox(const Geoid* geoid /*= 0*/) const {
 */
 double Points2::Distance(const Rectangle<2>& rect,
   const Geoid* geoid/*=0*/) const {
- return numeric_limits<double>::max();
+ return std::numeric_limits<double>::max();
 }
 
 /*
