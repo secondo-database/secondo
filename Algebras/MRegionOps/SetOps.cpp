@@ -49,6 +49,9 @@ used in the MovingRegionAlgebra.
 
 #include "SetOps.h"
 
+using namespace std;
+using namespace datetime;
+
 namespace temporalalgebra{
 
 namespace mregionops {

@@ -297,8 +297,8 @@ private:
     
 */ 
 
-ostream& operator <<(ostream& o, const Segment2D& s);
-ostream& operator <<(ostream& o, const Segment3D& s);
+std::ostream& operator <<(std::ostream& o, const Segment2D& s);
+std::ostream& operator <<(std::ostream& o, const Segment3D& s);
 
 } // end of namespace mregionops
 

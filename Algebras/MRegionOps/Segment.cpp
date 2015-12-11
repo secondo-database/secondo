@@ -44,6 +44,8 @@ This file contains some implementations of the classes Segment2D and Segment3D.
 
 #include "Segment.h"
 
+using namespace std;
+
 namespace temporalalgebra{
 
 namespace mregionops {

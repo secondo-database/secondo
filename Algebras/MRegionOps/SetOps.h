@@ -305,7 +305,7 @@ struct TestRegion {
     inline TestRegion() :
 
         region(0),
-        instant(instanttype),
+        instant(datetime::instanttype),
         defined(false) {
 
     }
@@ -604,7 +604,7 @@ For the sake of efficency, we cache ~tr~ for later use.
 
     void Print() const;
     void PrintPFaces();
-    void PrintVRMLDesc(ofstream& target, const string& color);
+    void PrintVRMLDesc(std::ofstream& target, const std::string& color);
 
 private:
 
@@ -713,7 +713,7 @@ A ~std::vector~ to store all ~PFaces~.
 
 */
 
-    vector<PFace*> pFaces;
+    std::vector<PFace*> pFaces;
 
 /*
 1.1.1 pFacesReduced
@@ -724,7 +724,7 @@ the projection bounding rectangles of both ~SourceUnits~.
 
 */
 
-    vector<PFace*> pFacesReduced;
+    std::vector<PFace*> pFacesReduced;
 
 /*
 1.1.1 boundingRect
@@ -838,7 +838,7 @@ Adds a relevant timevalue.
 */
 
     void Print() const;
-    string GetVRMLDesc() const;
+    std::string GetVRMLDesc() const;
     void AddToOverallStatistic() const;
 
 private:
@@ -864,8 +864,8 @@ A ~std::set~ to store the relevant timevalues and a suitable iterator.
 
 */
 
-    set<double, DoubleCompare> time;
-    set<double, DoubleCompare>::const_iterator timeIter;
+    std::set<double, DoubleCompare> time;
+    std::set<double, DoubleCompare>::const_iterator timeIter;
 
 /*
 1.1.1 t1, t12, t2
@@ -885,7 +885,7 @@ A ~std::vector~ to store the relevant ~PFaces~.
 
 */
 
-    vector<PFace*> pFaces;
+    std::vector<PFace*> pFaces;
 
 /*
 1.1.1 criticalMSegs
@@ -894,7 +894,7 @@ A ~std::vector~ to store the critical MSegments.
 
 */
 
-    vector<MSegmentCritical> criticalMSegs;
+    std::vector<MSegmentCritical> criticalMSegs;
 
 /*
 1.1.1 resMRegion
@@ -939,7 +939,7 @@ A pointer to the current ~ResultUnit~.
     unsigned int decisionsByAdjacency;
     unsigned int decisionsByDegeneration;
 
-    vector<string> vrml;
+    std::vector<std::string> vrml;
 };
 
 /*
@@ -1350,7 +1350,7 @@ Precondition: $startpoint.t <= t <= endpoint.t$
         return id;
     }
 
-    string GetVRMLDesc();
+    std::string GetVRMLDesc();
     void Print() const;
 
 private:
@@ -1920,7 +1920,7 @@ Returns ~true~, if this ~ResultUnit~ contains no ~MSegments~.
 */
 
     void Print(const bool segments = true) const;
-    string GetVRMLDesc() const;
+    std::string GetVRMLDesc() const;
     bool Check() const;
 
 private:
@@ -1962,7 +1962,7 @@ The list of the ~MSegments~.
 
 */
 
-    vector<MSegment> msegments;
+    std::vector<MSegment> msegments;
 
 /*
 1.1.1 index
@@ -2115,7 +2115,7 @@ A ~std::set~, using the overloaded operator $<$ for comparison.
 
 */
 
-    set<Point3DExt> s;
+    std::set<Point3DExt> s;
 };
 
 /*
@@ -2203,7 +2203,7 @@ holds.
 
 */
 
-    inline const list<IntersectionSegment*>* GetActiveIntSegs() const {
+    inline const std::list<IntersectionSegment*>* GetActiveIntSegs() const {
 
         return &active;
     }
@@ -2293,8 +2293,8 @@ provided by ~IntSegCompare~ and a suitable iterator.
 
 */
 
-    set<IntersectionSegment*, IntSegCompare> intSegs;
-    set<IntersectionSegment*, IntSegCompare>::iterator intSegIter;
+    std::set<IntersectionSegment*, IntSegCompare> intSegs;
+    std::set<IntersectionSegment*, IntSegCompare>::iterator intSegIter;
 
 /*
 1.1.1 active, activeIter
@@ -2304,8 +2304,8 @@ and a suitable iterator.
 
 */
 
-    list<IntersectionSegment*> active;
-    list<IntersectionSegment*>::iterator activeIter;
+    std::list<IntersectionSegment*> active;
+    std::list<IntersectionSegment*>::iterator activeIter;
 
 /*
 1.1.1 criticalTimes
@@ -2314,7 +2314,7 @@ A ~std::multiset~ to store the the critical timelevels.
 
 */
 
-    multiset<double, DoubleCompare> criticalTimes;
+    std::multiset<double, DoubleCompare> criticalTimes;
 
 /*
 1.1.1 t
@@ -3002,7 +3002,7 @@ holds.
 
 */
 
-    inline const list<IntersectionSegment*>* GetActiveIntSegs() const {
+    inline const std::list<IntersectionSegment*>* GetActiveIntSegs() const {
 
         return intSegs.GetActiveIntSegs();
     }
@@ -3060,8 +3060,8 @@ Precondition: ~UpdateTimeLevel~ is already called.
         return id;
     }
 
-    string GetVRMLDesc();
-    string GetStateAsString() const;
+    std::string GetVRMLDesc();
+    std::string GetStateAsString() const;
     void Print() const;
 
 private:

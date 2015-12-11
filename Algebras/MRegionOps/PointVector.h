@@ -1027,7 +1027,7 @@ Returns a description of this point in VRML format.
 
 */     
     
-    inline string GetVRMLDesc() const {
+    inline std::string GetVRMLDesc() const {
 
         std::ostringstream oss;
 
@@ -1049,10 +1049,10 @@ private:
     
 */  
 
-ostream& operator <<(ostream& o, const Point2D& p);
-ostream& operator <<(ostream& o, const Point3D& p);
-ostream& operator <<(ostream& o, const Vector2D& p);
-ostream& operator <<(ostream& o, const Vector3D& p);
+std::ostream& operator <<(std::ostream& o, const Point2D& p);
+std::ostream& operator <<(std::ostream& o, const Point3D& p);
+std::ostream& operator <<(std::ostream& o, const Vector2D& p);
+std::ostream& operator <<(std::ostream& o, const Vector3D& p);
 
 } // end of namespace mregionops
 
