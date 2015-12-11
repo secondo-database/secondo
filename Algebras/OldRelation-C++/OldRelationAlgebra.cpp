@@ -78,6 +78,9 @@ extern TypeConstructor ccrelprel;
 // type mapping functions implemented in ExtRelationAlgebra.cpp
 extern ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false);
 
+
+using namespace std;
+
 static CcRelationType CcTypeOfRelAlgSymbol (ListExpr symbol)
 {
   string s;

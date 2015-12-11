@@ -463,12 +463,12 @@ Support Methods of ~gpoint~
       return new GPoint( *this );
     }
 
-    ostream& Print( ostream& os ) const
+    std::ostream& Print( std::ostream& os ) const
     {
       os << "NetworkId: " << m_iNetworkId
           << " RouteId: " << m_xRouteLocation.rid
           << "  Position: " << m_xRouteLocation.d
-          << " Side: " << m_xRouteLocation.side << endl;
+          << " Side: " << m_xRouteLocation.side << std::endl;
       return os;
     }
 
@@ -493,7 +493,7 @@ Support Methods of ~gpoint~
 
     static bool CheckGPoint( ListExpr type, ListExpr& errorInfo );
 
-    inline static const string BasicType() { return "gpoint"; }
+    inline static const std::string BasicType() { return "gpoint"; }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
@@ -549,8 +549,9 @@ to a single point.
 
     inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0){
       if(geoid){
-        cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-        << endl;
+        std::cerr << __PRETTY_FUNCTION__ 
+                  << ": Spherical geometry not implemented."
+                  << std::endl;
         assert( !geoid ); // TODO: implement spherical geometry case
       }
       if (IsDefined()) {
@@ -570,8 +571,9 @@ Returns a point degenerated rectangle as network bounding box of the gpoint
 
     inline const Rectangle<2> NetBoundingBox(const Geoid* geoid = 0) const {
       if(geoid){
-        cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-        << endl;
+        std::cerr << __PRETTY_FUNCTION__ 
+                  << ": Spherical geometry not implemented."
+                 << std::endl;
         assert( !geoid ); // TODO: implement spherical geometry case
       }
       if (IsDefined())
@@ -1823,63 +1825,63 @@ class Network
 The external ~routes~ relation type info as string.
 
 */
-  static string routesTypeInfo;
+  static std::string routesTypeInfo;
 
 /*
 The internal ~routes~ relation type info as string.
 
 */
-  static string routesInternalTypeInfo;
+  static std::string routesInternalTypeInfo;
 
 
 /*
 The B-Tree in the ~routes~ relation type info as string.
 
 */
-  static string routesBTreeTypeInfo;
+  static std::string routesBTreeTypeInfo;
 
 /*
 The R-Tree in the ~routes~ relation type info as string.
 
 */
-  static string routesRTreeTypeInfo;
+  static std::string routesRTreeTypeInfo;
 
 /*
 The B-Tree in the ~junctions~ relation type info as string.
 
 */
-  static string junctionsBTreeTypeInfo;
+  static std::string junctionsBTreeTypeInfo;
 
 /*
 The external ~junctions~ relation type info as string.
 
 */
-  static string junctionsTypeInfo;
+  static std::string junctionsTypeInfo;
 
 /*
 The internal ~junctions~ relation type info as string.
 
 */
-  static string junctionsInternalTypeInfo;
+  static std::string junctionsInternalTypeInfo;
 
 /*
 The internal ~sections~ relation type info as string.
 
 */
-  static string sectionsInternalTypeInfo;
+  static std::string sectionsInternalTypeInfo;
 
 /*
 The B-Tree in the ~section~ relation type info as string.
 
 */
-static string sectionsBTreeTypeInfo;
+static std::string sectionsBTreeTypeInfo;
 
 
 /*
 ~distancestoreageTypeInfo~ only used for experimental netdistance precomputing.
 
 */
-static string distancestorageTypeInfo;
+static std::string distancestorageTypeInfo;
 
 /*
 
@@ -2102,7 +2104,7 @@ Returns the junction from the start of the route to the end.
 
 */
     void GetJunctionsOnRoute(CcInt* in_pRouteId,
-                             vector<JunctionSortEntry>& inout_xJunctions);
+                             std::vector<JunctionSortEntry>& inout_xJunctions);
 
 /*
 Method ~GetSectionOnRoute~
@@ -2202,7 +2204,7 @@ downwards bool from the section given by TupleId.
 
     void GetAdjacentSections(TupleId in_iSectionId,
                              bool in_bUpDown,
-                             vector<DirectedSection> &inout_xSections);
+                             std::vector<DirectedSection> &inout_xSections);
 
 /*
 Method ~GetAdjacentSectionsInfo~
@@ -2212,7 +2214,7 @@ downwards bool from the section given by TupleId.
 
 */
     void GetAdjacentSectionsInfo ( TupleId in_iSectionTId,
-         bool in_bUpDown,vector<DirectedSectionInfo> &inout_xSections );
+         bool in_bUpDown,std::vector<DirectedSectionInfo> &inout_xSections );
 
 /*
 Method ~GetSectionsOfRouteInterval~
@@ -2226,7 +2228,7 @@ Returns a set of sections which are covered by the given ~RouteInterval~
                                     DbArray<SectTreeEntry> *io_SectionIds);
 
     void GetSectionsOfRoutInterval(const RouteInterval *in_ri,
-                                  vector<TupleId> &res);
+                                  std::vector<TupleId> &res);
 
 /*
 Methode ~Find~
@@ -2306,7 +2308,7 @@ Prints informations of ~sections~ which are stored in a ~PageRecord~.
 Method ~GetTupleIdSectionOnRouteJun~
 
 */
-  void GetTupleIdSectionOnRouteJun(GPoint* in_xGPoint,vector<TupleId>&);
+  void GetTupleIdSectionOnRouteJun(GPoint* in_xGPoint,std::vector<TupleId>&);
 
 /*
 Method ~GetNoJunctions~
@@ -2405,7 +2407,7 @@ Method ~FillAdjacencyPair~
                          bool in_bSecondUp,
                          ConnectivityCode in_xCc,
                          Transition in_xTransition,
-                         vector<DirectedSectionPair> &inout_xPairs);
+                         std::vector<DirectedSectionPair> &inout_xPairs);
 
 /*
 Method ~FillDistanceStorage~
@@ -2447,7 +2449,7 @@ Method ~CountNeighbours~
 count the neighbours of all sections
 
 */
-void CountNeighbours(vector<DirectedSectionPair> in_xList);
+void CountNeighbours(std::vector<DirectedSectionPair> in_xList);
 
 
 /*
@@ -2598,7 +2600,7 @@ the size of the ~DbArray~ is dynamically extended later.
 
 */
 
-    ostream& Print( ostream& os ) const;
+    std::ostream& Print( std::ostream& os ) const;
 
     void SetNetworkId(int in_iNetworkId);
 
@@ -2727,7 +2729,7 @@ Returns the Bounding GPoints of the GLine.
        m_xRouteIntervals.TrimToSize();
      };
 
-    inline static const string BasicType() { return "gline"; }
+    inline static const std::string BasicType() { return "gline"; }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
@@ -3025,7 +3027,7 @@ Deletes the tree.
 
 */
 
-extern string edistjoinpointlist;
+extern std::string edistjoinpointlist;
 
 /*
 6.2 class GPoints
@@ -3045,7 +3047,7 @@ public:
 6.2.2 Methods of class ~GPoints~
 
 */
-  ostream& Print(ostream& os)const;
+  std::ostream& Print(std::ostream& os)const;
   inline bool IsEmpty()const;
   size_t Sizeof()const;
   GPoints& operator+=(const GPoint &gp);
@@ -3069,7 +3071,7 @@ public:
                           const ListExpr typeInfo, Word& value);
   static bool OpenGPoints(SmiRecord& valueRecord,size_t& offset,
                           const ListExpr typeInfo, Word& value);
-  inline static const string BasicType() { return "gpoints"; }
+  inline static const std::string BasicType() { return "gpoints"; }
   static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }

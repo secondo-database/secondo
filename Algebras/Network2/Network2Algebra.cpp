@@ -65,6 +65,7 @@ April-Mai 2011 - Nina Wrede
 
 
 using namespace network2;
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
