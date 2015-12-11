@@ -162,7 +162,7 @@ private:
     mpq_class y;
 };
 
-ostream& operator <<(ostream& o, Point2D& p);
+std::ostream& operator <<(std::ostream& o, Point2D& p);
 
 
 } 

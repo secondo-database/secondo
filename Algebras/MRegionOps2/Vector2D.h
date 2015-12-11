@@ -234,7 +234,7 @@ private:
     mpq_class y;
 };
 
-ostream& operator <<(ostream& o, Vector2D& p);
+std::ostream& operator <<(std::ostream& o, Vector2D& p);
 
 }
 }

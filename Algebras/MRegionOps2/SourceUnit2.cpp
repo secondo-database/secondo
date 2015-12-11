@@ -49,6 +49,10 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "PFace.h"
 #include "SourceUnitPair2.h"
 #include <stdlib.h>
+
+using namespace std;
+using namespace datetime;
+
 namespace temporalalgebra {
 namespace mregionops2 {
 
@@ -238,8 +242,8 @@ void SourceUnit2::SetCycleStatus(unsigned int pfaceNo,
     // if entry with key exist actualize status
     // else insert neu CyleInfo 
 
-     pair<unsigned int, unsigned int> key(pfaceNo, cycleNo);
-     map<pair<unsigned int, unsigned int>, CycleInfo*>::iterator it;
+     std::pair<unsigned int, unsigned int> key(pfaceNo, cycleNo);
+     std::map<std::pair<unsigned int, unsigned int>, CycleInfo*>::iterator it;
  
      it = cycleInfo.find(key);
 
@@ -247,7 +251,7 @@ void SourceUnit2::SetCycleStatus(unsigned int pfaceNo,
     cout << "insert new" << endl;
      CycleInfo* newentry = new CycleInfo();
          newentry->status = stat;
-         cycleInfo.insert(pair<pair<unsigned int, 
+         cycleInfo.insert(std::pair<std::pair<unsigned int, 
                           unsigned int>, 
                           CycleInfo*>(key, newentry ));   
      }
@@ -261,7 +265,7 @@ void SourceUnit2::SetCycleStatus(unsigned int pfaceNo,
 
 void SourceUnit2::FinalizeIntSegs()
 {
-  vector<PFace*>::iterator iter;
+  std::vector<PFace*>::iterator iter;
 
   for (iter = pFaces.begin(); iter != pFaces.end(); iter++)
   {
@@ -373,9 +377,9 @@ if((*iter)->HasIntersegs() == false && IsPFaceInsidePartner(*iter)==false)
     for (iter = pFaces.begin(); iter != pFaces.end(); iter++)
     {
      //is pface in map?
-pair<unsigned int, unsigned int> key((*iter)->Get_faceNo(),
+std::pair<unsigned int, unsigned int> key((*iter)->Get_faceNo(),
 (*iter)->Get_cycleNo());
-map<pair<unsigned int, unsigned int>, CycleInfo*>::iterator it;
+std::map<std::pair<unsigned int, unsigned int>, CycleInfo*>::iterator it;
         it = cycleInfo.find(key);
         if (it != cycleInfo.end())
         {
@@ -389,7 +393,7 @@ map<pair<unsigned int, unsigned int>, CycleInfo*>::iterator it;
 
 
 // show content:
-   map<pair<unsigned int, unsigned int>, CycleInfo*>::iterator it;
+   std::map<std::pair<unsigned int, unsigned int>, CycleInfo*>::iterator it;
 
     for (it = cycleInfo.begin(); it != cycleInfo.end(); ++it)
     {

@@ -119,7 +119,7 @@ private:
         return ms1.LogicLess(ms2);
     }
     const Interval<Instant> interval;
-    vector<MSegment> msegments;
+    std::vector<MSegment> msegments;
     unsigned int index;
 };
 }

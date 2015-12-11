@@ -256,16 +256,16 @@ public:
 	{
 		return &intSegs;
 	}
-   inline vector<IntersectionSegment*> GetIntSegs()
+   inline std::vector<IntersectionSegment*> GetIntSegs()
    {
 	return myIntSegs;
    }
-   inline vector<IntersectionSegment*> 
+   inline std::vector<IntersectionSegment*> 
 getIntersectionSegmentByInterval(unsigned int interval)
    {
-	vector<IntersectionSegment*> result;
+	std::vector<IntersectionSegment*> result;
 	
-	multimap<unsigned int, IntersectionSegment*>::iterator iter;
+	std::multimap<unsigned int, IntersectionSegment*>::iterator iter;
 for (iter = intSegsToInterval.begin(); iter != intSegsToInterval.end(); iter++)
 	{
 		cout << "key=" << (*iter).first << endl;
@@ -315,7 +315,7 @@ private:
     Vector3D wVector;
     bool initialStartPointIsA;
     IntSegContainer intSegs;
-    vector<IntersectionSegment*> myIntSegs;
+    std::vector<IntersectionSegment*> myIntSegs;
     IntSegContainer horizontalIntSegs;
     Angle angle;
 
@@ -324,11 +324,11 @@ private:
 //  alle Intersektionsegmente zurück gegeben die 
 //  für die Zeitscheibe Key relevant sind
 //  die Liste gilt pro pface dauerhaft
-    multimap<unsigned int, IntersectionSegment*> intSegsToInterval;
+    std::multimap<unsigned int, IntersectionSegment*> intSegsToInterval;
     
 //  Menge nach w-Koordinate geordnet
 //  wird pro Zeitscheibe neu berechnet, sortiert nach IntSegWCompare
-    set<IntersectionSegment*, IntSegWCompare> intSegIntervalList;
+    std::set<IntersectionSegment*, IntSegWCompare> intSegIntervalList;
 };
 
 }

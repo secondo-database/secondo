@@ -65,7 +65,7 @@ bool PointExtSet::GetIntersectionSegment(Segment3D& result) const {
     if (s.size() != 4)
         return false;
 
-    set<Point3DExt>::iterator it = s.begin();
+    std::set<Point3DExt>::iterator it = s.begin();
 
     Point3DExt p1 = *it;
     it++;
@@ -88,11 +88,11 @@ bool PointExtSet::GetIntersectionSegment(Segment3D& result) const {
 
 void PointExtSet::Print() const {
     
-    set<Point3DExt>::iterator iter;
+    std::set<Point3DExt>::iterator iter;
     
     for (iter = s.begin(); iter != s.end(); ++iter) {
         Point3DExt p = *iter;
-        cout << p << endl;
+        std::cout << p << std::endl;
     }
 }
 

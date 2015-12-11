@@ -177,13 +177,13 @@ A pointer to the current ~ResultUnit~.
     unsigned int decisionsByAdjacency;
     unsigned int decisionsByDegeneration;
 
-    vector<string> vrml;
+    std::vector<std::string> vrml;
 
 
-    set<double, DoubleCompare> time;
-    set<double, DoubleCompare>::const_iterator timeIter;
+    std::set<double, DoubleCompare> time;
+    std::set<double, DoubleCompare>::const_iterator timeIter;
 
-	vector<PFace*> pFaces;
+	std::vector<PFace*> pFaces;
 };
 
 
@@ -280,7 +280,7 @@ Converts this ~ResultUnit~ to a ~URegionEmb~.
 */
 
     void Print(const bool segments = true) const;
-    string GetVRMLDesc() const;
+    std::string GetVRMLDesc() const;
     bool Check() const;
 
 private:
@@ -304,7 +304,7 @@ The list of the ~MSegments~.
 
 */
 
-    vector<Segment3D> msegments;
+    std::vector<Segment3D> msegments;
 
 /*
 1.1.1 index

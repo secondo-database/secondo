@@ -80,7 +80,7 @@ bool Point2D::IsColinear(const Segment2D& s) const {
     return IsColinear(s.GetStart(), s.GetEnd());
 }
 
-ostream& operator <<(ostream& o, const Point2D& p) {
+std::ostream& operator <<(std::ostream& o, const Point2D& p) {
 
     o << "(" << p.GetX() << ", " << p.GetY() << ")";
 
@@ -100,7 +100,7 @@ Point3D::Point3D(const Point2D& p) :
 
 }
 
-ostream& operator <<(ostream& o, const Point3D& p) {
+std::ostream& operator <<(std::ostream& o, const Point3D& p) {
 
     o << "(" << p.GetX() << ", " << p.GetY() <<  ", " << p.GetZ() << ")";
 
@@ -117,7 +117,7 @@ Vector2D::Vector2D(const Vector3D& v) :
 
 }
 
-ostream& operator <<(ostream& o, const Vector2D& p) {
+std::ostream& operator <<(std::ostream& o, const Vector2D& p) {
 
     o << "(" << p.GetX() << ", " << p.GetY() << ")";
 
@@ -134,7 +134,7 @@ Vector3D::Vector3D(const Vector2D& v) :
 
 }
 
-ostream& operator <<(ostream& o, const Vector3D& p) {
+std::ostream& operator <<(std::ostream& o, const Vector3D& p) {
 
     o << "(" << p.GetX() << ", " << p.GetY() <<  ", " << p.GetZ() << ")";
 

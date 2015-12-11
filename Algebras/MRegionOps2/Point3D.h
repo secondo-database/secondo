@@ -120,7 +120,7 @@ private:
     mpq_class z;
 };
 
-ostream& operator <<(ostream& o, Point3D& p);
+std::ostream& operator <<(std::ostream& o, Point3D& p);
 
 }
 }

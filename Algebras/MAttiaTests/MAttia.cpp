@@ -13,6 +13,8 @@
 #include "fstream"
 
 using namespace temporalalgebra;
+using namespace std;
+using namespace datetime;
 
   void NDefUnit(MBool* arg, CcBool* nval, MBool* res)
   {

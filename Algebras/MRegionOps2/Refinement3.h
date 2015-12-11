@@ -207,9 +207,9 @@ Private attributes:
   * ~vup~: Same as ~vur~ for second mapping instance.
 
 */
-    vector<precTimeInterval> iv;
-    vector<int> vur;
-    vector<int> vup;
+    std::vector<precTimeInterval> iv;
+    std::vector<int> vur;
+    std::vector<int> vup;
 
 /*
 ~AddUnit()~ is a small helper method to create a new interval from

@@ -48,6 +48,9 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "SourceUnitPair2.h"
 #include "PFace.h"
 
+using namespace std;
+using namespace datetime;
+
 namespace temporalalgebra {
 namespace mregionops2 {
 

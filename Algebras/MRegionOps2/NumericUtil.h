@@ -54,7 +54,7 @@ floating point values.
 namespace temporalalgebra {
 namespace mregionops {
 
-const double MAX_DOUBLE = numeric_limits<double>::max();
+const double MAX_DOUBLE = std::numeric_limits<double>::max();
 const double MIN_DOUBLE = -MAX_DOUBLE;
 
 /*
@@ -194,7 +194,7 @@ Returns ~true~ if $a-eps \le x \le b+eps$ or $b-eps \le x \le a+eps$.
 Returns the minimum and maximum value of $a$, $b$, $c$ and $d$.
 
 */
-	static pair<double, double> 
+	static std::pair<double, double> 
 	MinMax4(double a, double b, double c, double d) {
 
 		double min = a;
@@ -213,7 +213,7 @@ Returns the minimum and maximum value of $a$, $b$, $c$ and $d$.
 		if (d > max)
 			max = d;
 
-		return pair<double, double>(min, max);
+		return std::pair<double, double>(min, max);
 	}
 	
 private:

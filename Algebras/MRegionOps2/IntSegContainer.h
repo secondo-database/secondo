@@ -127,7 +127,7 @@ A ~std::set~ to store the ~IntersectionSegments~ using the order
 provided by ~IntSegCompare~ and a suitable iterator.
 
 */
-    set<IntersectionSegment*, IntSegCompare> intSegs;
+    std::set<IntersectionSegment*, IntSegCompare> intSegs;
 
 
 };

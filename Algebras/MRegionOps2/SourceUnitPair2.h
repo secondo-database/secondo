@@ -166,11 +166,11 @@ private:
 
 //  set with t-values from Schnittsegmentendpunkte 
 //  sorted list
-    set<mpq_class> timestamps;
+    std::set<mpq_class> timestamps;
 //  faster access, because direct access of i-tes element is possible
 //  the i-te element vs. SET structure
 //  in SetTimestampVector the vector with elements are described
-    vector<mpq_class> timestampVector;
+    std::vector<mpq_class> timestampVector;
 
     void SetTimestampVector();
 /*
@@ -246,7 +246,7 @@ both ~SourceUnits~.
 
  ResultUnitFactory resultUnitFactory;
 
- vector<PFace*> myRelevantPFaces;
+ std::vector<PFace*> myRelevantPFaces;
 
  ResultUnit* resultUnit;
  void ConstructResultUnitAsURegionEmb();

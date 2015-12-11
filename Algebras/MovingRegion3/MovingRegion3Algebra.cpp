@@ -90,6 +90,8 @@ of these classes too.
 #include "MovingRegion3Algebra.h"
 #include "Refinement2.h"
 
+using namespace std;
+using namespace datetime;
 
 namespace temporalalgebra{
 

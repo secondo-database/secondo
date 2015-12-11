@@ -142,7 +142,7 @@ Returns ~true~, if this ~SourceUnit~ represents an empty unit.
    {
     partner = p;
    }
-   vector<PFace*> GetPFaces(); 
+   std::vector<PFace*> GetPFaces(); 
    int GetPFaceCount(); 
    void AddToMRegion(MRegion2* const target);
 
@@ -218,8 +218,8 @@ A ~std::vector~ to store all ~PFaces~.
 
 */
 
-    vector<PFace*> pFaces;
-    map<pair<unsigned int, unsigned int>, CycleInfo*> cycleInfo;
+    std::vector<PFace*> pFaces;
+    std::map<std::pair<unsigned int, unsigned int>, CycleInfo*> cycleInfo;
 
 
 /*
@@ -242,7 +242,7 @@ pass them to the ~ResultUnitFactory~.
 
 */
 
-void CollectRelevantPFaces(vector<PFace*>* storage);
+void CollectRelevantPFaces(std::vector<PFace*>* storage);
 bool IsPFaceInsidePartner(PFace* pface); 
 /*
 

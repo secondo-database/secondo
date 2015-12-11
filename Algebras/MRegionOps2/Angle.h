@@ -145,7 +145,7 @@ private:
 
 };
 
-ostream& operator <<(ostream& o, Angle& a);
+std::ostream& operator <<(std::ostream& o, Angle& a);
 
 }
 

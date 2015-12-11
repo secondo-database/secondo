@@ -55,6 +55,8 @@ April - November 2014, S. Schroer for master thesis.
 #include "Vector2D.h"
 #include "Angle.h"
 
+using namespace std;
+
 namespace temporalalgebra {
 namespace mregionops2 {
 

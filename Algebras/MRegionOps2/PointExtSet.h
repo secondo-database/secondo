@@ -53,6 +53,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 
 #include <set>
 
+
 namespace temporalalgebra {
 namespace mregionops2 {
 
@@ -134,7 +135,7 @@ A ~std::set~, using the overloaded operator $<$ for comparison.
 
 */
 
-    set<Point3DExt> s;
+    std::set<Point3DExt> s;
 };
 
 }

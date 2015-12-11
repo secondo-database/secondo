@@ -49,6 +49,7 @@ Oktober 2014 - Maerz 2015, S. Schroeer for master thesis.
 #include "PointExtSet.h"
 #include "IntersectionSegment.h"
 
+using namespace std;
 
 namespace temporalalgebra {
 namespace mregionops2 {
