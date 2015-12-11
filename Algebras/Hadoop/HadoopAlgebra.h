@@ -53,16 +53,19 @@ Select different collect option.
 #include "RelationAlgebra.h"
 #include "Stream.h"
 
-typedef vector<pair<string, fList*> > Para_FList;
+typedef std::vector<std::pair<std::string, fList*> > Para_FList;
 bool isFListStreamDescription(const NList& typeInfo);
-ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
-    vector<string>& DLF_NameList, vector<string>& DLF_fileLocList,
-    vector<string>& DLO_NameList, vector<string>& DLO_locList,
+ListExpr replaceDLOF(ListExpr createQuery, std::string listName, 
+    fList* listObject,
+    std::vector<std::string>& DLF_NameList, 
+    std::vector<std::string>& DLF_fileLocList,
+    std::vector<std::string>& DLO_NameList, 
+    std::vector<std::string>& DLO_locList,
     bool ua, bool& ok, int argIndex = 0);  //Replace DLO and DLF
 
 ListExpr replaceParaOp(
-    ListExpr queryList, vector<string>& flistNames,
-    vector<fList*>& flistObjects, bool& ok);
+    ListExpr queryList, std::vector<std::string>& flistNames,
+    std::vector<fList*>& flistObjects, bool& ok);
 ListExpr replaceParaOp(
     ListExpr queryList, Para_FList& para_flist, bool& ok);
 ListExpr replaceSecObj(ListExpr queryList, bool& ok);
@@ -102,7 +105,7 @@ class fList
 {
 public:
 
-  fList(string objectName, NList typeList,
+  fList(std::string objectName, NList typeList,
       clusterInfo *ci,NList fileLocList,
       size_t dupTime,
       bool isDistributed = false,
@@ -145,7 +148,7 @@ public:
   static void Delete(const ListExpr typeInfo, Word& w);
   static Word Clone(const ListExpr typeInfo,
                     const Word& w);
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "flist";
   }
 
@@ -168,10 +171,10 @@ public:
     return false;
   }
 
-  size_t getPartitionFileLoc(size_t row, vector<string>& locations);
+  size_t getPartitionFileLoc(size_t row, std::vector<std::string>& locations);
   ListExpr getColumnList(size_t row);
 
-  inline string getSubName(){ return subName; }
+  inline std::string getSubName(){ return subName; }
   inline int getMtxRowNum() { return mrNum; }
   inline int getMtxColNum() { return mcNum; }
   inline int getDupTimes() { return dupTimes; }
@@ -190,13 +193,13 @@ public:
   inline fListKind getKind() { return objKind; }
 
   inline NList getUEMapQuery() { return UEMapQuery; }
-  inline static string tempName(const bool isDB){
+  inline static std::string tempName(const bool isDB){
 /*
 Cut off the generated name if it is too long after adding the prefix.
 
 */
-    stringstream ss;
-    string name;
+    std::stringstream ss;
+    std::string name;
 
     if (isDB){
 /*
@@ -232,7 +235,7 @@ set names. Hence I picked up the rand function to substitute it.
 private:
   fList() {}
 
-  string subName;
+  std::string subName;
   NList objectType;
   clusterInfo *interCluster;
 
@@ -261,11 +264,12 @@ It describes one row in the flistLoc list.
 typedef struct
 {
   int dsIndex, column;
-  string filePath;
+  std::string filePath;
 
 }rowInLocRel;
 
-bool static rowRelInfo(pair<int, rowInLocRel> r1, pair<int, rowInLocRel> r2)
+bool static rowRelInfo(std::pair<int, rowInLocRel> r1, 
+                       std::pair<int, rowInLocRel> r2)
 {
   return r1.first < r2.first;
 }
@@ -277,7 +281,7 @@ bool static rowRelInfo(pair<int, rowInLocRel> r1, pair<int, rowInLocRel> r2)
 
 class SpreadLocalInfo{
 public:
-  SpreadLocalInfo(string fileName, string filePath, int dupTimes,
+  SpreadLocalInfo(std::string fileName, std::string filePath, int dupTimes,
              int attrIndex1, int rowNum, bool keepAI,
              int attrIndex2, int colNum, bool keepAJ);
 
@@ -289,7 +293,7 @@ public:
 
     // clean all file handles.
     openFileList.clear();
-    map<size_t, rowFile*>::iterator mit = matrixRel.begin();
+    std::map<size_t, rowFile*>::iterator mit = matrixRel.begin();
     while (mit != matrixRel.end()){
       rowFile::iterator rit = mit->second->begin();
       while ( rit!= mit->second->end()){
@@ -321,12 +325,12 @@ public:
   }
 
 private:
-  typedef map<size_t, fileInfo*> rowFile;
-  map<size_t, rowFile*> matrixRel;
+  typedef std::map<size_t, fileInfo*> rowFile;
+  std::map<size_t, rowFile*> matrixRel;
   clusterInfo *ci;
   fList* resultList;
 
-  string partFileName, partFilePath;
+  std::string partFileName, partFilePath;
   int attrIndex1,attrIndex2,rowAmount,colAmount;
   bool keepA1, keepA2;
   bool done;
@@ -335,7 +339,7 @@ private:
 
   TupleType *exportTupleType;
   //~openFileList~ keeps at most MAX_FILEHANDLENUM file handles.
-  vector<fileInfo*> openFileList;
+  std::vector<fileInfo*> openFileList;
 
 
   bool duplicateOneRow(rowFile *row);
@@ -378,7 +382,8 @@ private:
 class SPF_Thread
 {
 public:
-  SPF_Thread(SPF_LocalInfo* _sli, int _ti, int _fid, string _s, string _d):
+  SPF_Thread(SPF_LocalInfo* _sli, int _ti, int _fid, std::string _s,
+             std::string _d):
     sli(_sli), threadID(_ti), fileID(_fid), source(_s), dest(_d)
   {
     succ = false;
@@ -386,7 +391,7 @@ public:
 
   SPF_LocalInfo* sli;
   int threadID, fileID;
-  string source, dest;
+  std::string source, dest;
   bool succ;
 
   static void* tCopyFile(void* ptr);
@@ -449,8 +454,8 @@ private:
   size_t row, column;
 
   TupleType* resultType;
-  vector<string> partFiles;
-  ifstream *inputFile;
+  std::vector<std::string> partFiles;
+  std::ifstream *inputFile;
 
 #ifdef PIPECOPY
   static const int PipeWidth = 10;
@@ -460,7 +465,7 @@ private:
   pthread_t faf_TID;
   size_t fIdx;
   static pthread_mutex_t CLI_OWN_Mutex;
-  vector<CLI_Thread*> fileTasks;
+  std::vector<CLI_Thread*> fileTasks;
   static void* tCopyFile(void* ptr);
 #else
   bool partFileOpened();
@@ -471,12 +476,12 @@ private:
 class CLI_Thread
 {
 public:
-  CLI_Thread(CollectLocalInfo* _ci, string _sn, int _r, ListExpr _clst)
+  CLI_Thread(CollectLocalInfo* _ci, std::string _sn, int _r, ListExpr _clst)
     : cli(_ci), subName(_sn), row(_r)
   {
     columnList = _clst;
-    remotePaths = new vector<string>();
-    allColumns = new vector<int>();
+    remotePaths = new std::vector<std::string>();
+    allColumns = new std::vector<int>();
     token = 0;
   }
 
@@ -487,12 +492,12 @@ public:
 
 
   CollectLocalInfo* cli;
-  string subName;
+  std::string subName;
   int row;
   int token;
   ListExpr columnList;
-  vector<string>* remotePaths;
-  vector<int>* allColumns;
+  std::vector<std::string>* remotePaths;
+  std::vector<int>* allColumns;
 };
 
 class PFFeedLocalInfo{
@@ -500,7 +505,7 @@ public:
 
   PFFeedLocalInfo(Supplier s, Word inputStream,
       int rp, int cp, int dp,
-      string fileName, string filePath,
+      std::string fileName, std::string filePath,
       int attTimes, bool noFlob);
   ~PFFeedLocalInfo(){
     pthread_join(faf_TID, NULL);
@@ -515,16 +520,16 @@ public:
   //Thread to copy all files
   Tuple* getNextTuple(int mode);
 
-  string getFilePrefixName(){return fileName;}
-  string getLocalFilePath(){return localFilePath;}
+  std::string getFilePrefixName(){return fileName;}
+  std::string getLocalFilePath(){return localFilePath;}
   int getAttemptTimes(){return attTimes;}
 private:
   bool noFlob;
-  string fileName, localFilePath;
+  std::string fileName, localFilePath;
   TupleType* inputType;   //Type recorded inside the block file
   TupleType* resultType;  //Type output to the successive operator
   clusterInfo *interCluster;
-  vector<pair<string, int> > partFiles;
+  std::vector<std::pair<std::string, int> > partFiles;
   pthread_t faf_TID;
   int attTimes;
 
@@ -534,9 +539,9 @@ private:
   //Thread to copy one involved file
 
   size_t fIdx;
-  string curFileName;
+  std::string curFileName;
   int curPrdIndex;
-  ifstream *curFilePt;
+  std::ifstream *curFilePt;
 
 };
 
@@ -595,7 +600,7 @@ class HadoopMapAllLocalInfo{
 
 public:
   HadoopMapAllLocalInfo(){
-    locations = new vector<HMA_taskResult>();
+    locations = new std::vector<HMA_taskResult>();
   }
 
   void addLoc(int row, int ds, bool succ, ListExpr result){
@@ -617,8 +622,8 @@ public:
   }
 
 private:
-  vector<HMA_taskResult> *locations;
-  vector<HMA_taskResult>::iterator locIter;
+  std::vector<HMA_taskResult> *locations;
+  std::vector<HMA_taskResult>::iterator locIter;
 
 };
 #endif /* HADOOPALGEBRA_H_ */

@@ -57,6 +57,8 @@ This algebra includes follow operators:
 
 #include "HadoopAlgebra.h"
 
+using namespace std;
+using namespace temporalalgebra;
 
 /*
 9 Data Type fList
