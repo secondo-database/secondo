@@ -114,7 +114,7 @@ class mtCellIterator
 
   */
 
-  pair<double, double> Next();
+  std::pair<double, double> Next();
 
   private:
 
@@ -474,9 +474,9 @@ exceptions: -
 */
 
 template <typename Type>
-pair<double, double> mtCellIterator<Type>::Next()
+std::pair<double, double> mtCellIterator<Type>::Next()
 {
-  pair<double, double> retVal(m_dLastDelta, m_dCurrentDelta);
+  std::pair<double, double> retVal(m_dLastDelta, m_dCurrentDelta);
 
   ComputeNextDelta();
 

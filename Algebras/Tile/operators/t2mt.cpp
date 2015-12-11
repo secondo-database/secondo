@@ -44,6 +44,8 @@ TileAlgebra includes
 #include "../mt/mtbool.h"
 #include "../mt/mtstring.h"
 
+using namespace std;
+
 /*
 declaration of namespace TileAlgebra
 

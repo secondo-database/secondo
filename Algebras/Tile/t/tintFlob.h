@@ -306,7 +306,7 @@ class tintFlob : public Attribute
 
   */
   
-  static const string BasicType();
+  static const std::string BasicType();
 
   /*
   Method Cast casts a void pointer to a new tintFlob object.

@@ -1207,7 +1207,7 @@ void mt<Type, Properties>::atperiods(const temporalalgebra::Periods& rPeriods,
                 datetime::DateTime startTime = t + time * duration;
                 datetime::DateTime endTime = t + (time + 1) * duration;
 
-                temporalalgebra::Interval<DateTime> timeInterval(
+                temporalalgebra::Interval<datetime::DateTime> timeInterval(
                                                 startTime, endTime,
                                                 true, false);
 
@@ -1224,7 +1224,7 @@ void mt<Type, Properties>::atperiods(const temporalalgebra::Periods& rPeriods,
                     temporalalgebra::Range<datetime::DateTime> range(2);
                     rPeriods.Intersection(timeInterval, range);
 
-                    temporalalgebra::Interval<DateTime> rangeValue(
+                    temporalalgebra::Interval<datetime::DateTime> rangeValue(
                                                   startTime, endTime,
                                                   true, false);
                     range.Get(0, rangeValue);
@@ -1413,7 +1413,7 @@ void mt<Type, Properties>::deftime(temporalalgebra::Periods& rPeriods) const
         {
           Instant startTime(t + time * duration);
           Instant endTime(t + (time + 1) * duration);
-          periods.Add(temporalalgebra::Interval<DateTime>(
+          periods.Add(temporalalgebra::Interval<datetime::DateTime>(
                                         startTime, endTime, true, false));
         }
       }

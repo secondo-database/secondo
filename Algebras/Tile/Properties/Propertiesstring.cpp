@@ -152,7 +152,7 @@ exceptions: -
 
 */
 
-NList Properties<string>::ToNList(const std::string& rValue)
+NList Properties<std::string>::ToNList(const std::string& rValue)
 {
   NList nList = NList(Symbol::UNDEFINED());
 

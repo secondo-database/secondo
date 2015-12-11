@@ -36,6 +36,8 @@ TileAlgebra includes
 #include "UniqueStringArray.h"
 #include "../Constants.h"
 
+using namespace std;
+
 /*
 declaration of namespace TileAlgebra
 

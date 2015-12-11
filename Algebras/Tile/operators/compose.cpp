@@ -43,6 +43,8 @@ declaration of namespace TileAlgebra
 
 */
 using namespace temporalalgebra;
+using namespace datetime;
+using namespace std;
 
 namespace TileAlgebra
 {

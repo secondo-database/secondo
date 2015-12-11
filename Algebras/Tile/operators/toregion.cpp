@@ -35,6 +35,8 @@ TileAlgebra includes
 
 #include "toregion.h"
 
+using namespace std;
+
 /*
 declaration of namespace TileAlgebra
 

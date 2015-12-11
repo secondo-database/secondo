@@ -110,7 +110,7 @@ class tCellIterator
 
   */
 
-  pair<double,double> Next();
+  std::pair<double,double> Next();
 
   private:
 
@@ -389,9 +389,9 @@ exceptions: -
 */
 
 template <typename Type>
-pair<double,double> tCellIterator<Type>::Next()
+std::pair<double,double> tCellIterator<Type>::Next()
 {
-  pair<double,double> retVal(m_dLastDelta, m_dCurrentDelta);
+  std::pair<double,double> retVal(m_dLastDelta, m_dCurrentDelta);
 
   ComputeNextDelta();
 
