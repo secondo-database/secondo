@@ -46,7 +46,7 @@ enum SETOP {UNION, INTERSECTION, DIFFERENCE};
 Checks whether ~v~ is sorted according to the halfsegment order.
 
 */
-  bool isSorted(const vector<MPrecHalfSegment>& v);
+  bool isSorted(const std::vector<MPrecHalfSegment>& v);
 
 /*
 ~sort~
@@ -54,7 +54,7 @@ Checks whether ~v~ is sorted according to the halfsegment order.
 Sorts ~v~ using the halfsegment order.
 
 */
-  void sort(vector<MPrecHalfSegment>& v);
+  void sort(std::vector<MPrecHalfSegment>& v);
 
 
 /*
@@ -63,7 +63,7 @@ Sorts ~v~ using the halfsegment order.
 Checks whether ~v~ is sorted using the logical order (faceno, cycleno, edgeno) 
 
 */
-   bool isLogicalSorted(const vector<MPrecHalfSegment>& v);
+   bool isLogicalSorted(const std::vector<MPrecHalfSegment>& v);
 
 
 /*
@@ -74,7 +74,7 @@ Sorts ~v~ according to the logical order of halfsegments
 
 */
 
-  void sortLogical(vector<MPrecHalfSegment>& v);
+  void sortLogical(std::vector<MPrecHalfSegment>& v);
 
 
 /*
@@ -85,7 +85,7 @@ in the accerelated computation of the point in region algorithm. The argument
 v must be sorted according to the halfsegment order.
 
 */
-   void setCoverage(vector<MPrecHalfSegment>& v);
+   void setCoverage(std::vector<MPrecHalfSegment>& v);
 
 
 /*
@@ -98,7 +98,7 @@ number of contained segments ( v.size()/2).
 
 */
 
-   bool setPartnerNumbers(vector<MPrecHalfSegment>& v);
+   bool setPartnerNumbers(std::vector<MPrecHalfSegment>& v);
 
 
 /*
@@ -109,7 +109,7 @@ This means, two different segments in ~v~ have no common point except end
 points. The halfsegments in ~v~ have to be sorted in halfsegment order.
 
 */
-   bool checkRealm(const vector<MPrecHalfSegment>& v);
+   bool checkRealm(const std::vector<MPrecHalfSegment>& v);
 
 
 /*
@@ -120,8 +120,8 @@ The function computes a realminized version of ~v~ and stores it in ~res~.
 
 */
 
-   void realminize(const vector<MPrecHalfSegment>& v, 
-                   vector<MPrecHalfSegment>& res);
+   void realminize(const std::vector<MPrecHalfSegment>& v, 
+                   std::vector<MPrecHalfSegment>& res);
 
 
 
@@ -135,7 +135,7 @@ dominating point is reached by an even number of halfsegments. ~v~ has to
 be sorted according to the halfsegment order.
 
 */
-   bool checkCycles(const vector<MPrecHalfSegment>& v);
+   bool checkCycles(const std::vector<MPrecHalfSegment>& v);
 
 
 /*
@@ -145,8 +145,8 @@ This function will copy all halfsegments of ~v~ belonging to cycles into ~res~.
 v has to be sorted in halfsegment order.
 
 */
-   void removeConnections(const vector<MPrecHalfSegment>& v, 
-                          vector<MPrecHalfSegment>& res);
+   void removeConnections(const std::vector<MPrecHalfSegment>& v, 
+                          std::vector<MPrecHalfSegment>& res);
 
 
 /*
@@ -158,7 +158,7 @@ halfsegment in ~v~.
 
 */
 
-  void setInsideAbove(vector<MPrecHalfSegment>& v);
+  void setInsideAbove(std::vector<MPrecHalfSegment>& v);
 
 
 /*
@@ -170,7 +170,7 @@ realminized, and has to build only cycles.
 
 */
 
-  void computeCycles(vector<MPrecHalfSegment>& v);
+  void computeCycles(std::vector<MPrecHalfSegment>& v);
 
 
 /*
@@ -178,7 +178,8 @@ realminized, and has to build only cycles.
 
 */
 
-ostream& operator<<(ostream& o, const vector<MPrecHalfSegment>& v);
+std::ostream& operator<<(std::ostream& o, 
+                          const std::vector<MPrecHalfSegment>& v);
 
 
 /*
@@ -225,7 +226,8 @@ end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
             } else if(hs2.isVertical()){
                x0 = hs2.getLeftPoint().getX();
             } else {
-               x0 = max(hs1.getLeftPoint().getX(), hs2.getLeftPoint().getX());
+               x0 = std::max(hs1.getLeftPoint().getX(), 
+                             hs2.getLeftPoint().getX());
             }
 
             MPrecCoordinate y1 = hs1.getY(x0);
@@ -240,7 +242,8 @@ end points. The halfsegments in ~v~ have to be sorted in halfsegment order.
             if(hs2.isVertical()){
               return -1;
             }
-            x0 = min(hs1.getRightPoint().getX(), hs2.getRightPoint().getX());
+            x0 = std::min(hs1.getRightPoint().getX(), 
+                          hs2.getRightPoint().getX());
             y1 = hs1.getY(x0);
             y2 = hs2.getY(x0);             
             return y1.compare(y2);
@@ -362,14 +365,14 @@ This function computes the set operation specified by the last argument
        const S2* v2;
        size_t pos1;
        size_t pos2;
-       priority_queue<MPrecHalfSegment, 
-                      vector<MPrecHalfSegment>, 
+       std::priority_queue<MPrecHalfSegment, 
+                      std::vector<MPrecHalfSegment>, 
                       IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pq1;
-       priority_queue<MPrecHalfSegment, 
-                      vector<MPrecHalfSegment>, 
+       std::priority_queue<MPrecHalfSegment, 
+                      std::vector<MPrecHalfSegment>, 
                       IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pq2;
-       priority_queue<MPrecHalfSegment, 
-                      vector<MPrecHalfSegment>, 
+       std::priority_queue<MPrecHalfSegment, 
+                      std::vector<MPrecHalfSegment>, 
                       IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pqb;
        HalfSegmentComparator cmp;
 
@@ -380,10 +383,11 @@ This function computes the set operation specified by the last argument
 
 
   template<>
-  class EventStructure<vector<MPrecHalfSegment>, vector<MPrecHalfSegment> >{
+  class EventStructure<std::vector<MPrecHalfSegment>, 
+                       std::vector<MPrecHalfSegment> >{
     public: 
-     EventStructure(const vector<MPrecHalfSegment>* _v1,
-                    const vector<MPrecHalfSegment>* _v2) : 
+     EventStructure(const std::vector<MPrecHalfSegment>* _v1,
+                    const std::vector<MPrecHalfSegment>* _v2) : 
                           v1(_v1), v2(_v2), pos1(0), pos2(0),
                           pq1(), pq2(),pqb() {
         tmpCand = new MPrecHalfSegment[5];
@@ -439,18 +443,18 @@ This function computes the set operation specified by the last argument
 
 
     private:
-       const vector<MPrecHalfSegment>* v1;
-       const vector<MPrecHalfSegment>* v2;
+       const std::vector<MPrecHalfSegment>* v1;
+       const std::vector<MPrecHalfSegment>* v2;
        size_t pos1;
        size_t pos2;
-       priority_queue<MPrecHalfSegment, 
-                      vector<MPrecHalfSegment>, 
+       std::priority_queue<MPrecHalfSegment, 
+                      std::vector<MPrecHalfSegment>, 
                       IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pq1;
-       priority_queue<MPrecHalfSegment, 
-                      vector<MPrecHalfSegment>, 
+       std::priority_queue<MPrecHalfSegment, 
+                      std::vector<MPrecHalfSegment>, 
                       IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pq2;
-       priority_queue<MPrecHalfSegment, 
-                      vector<MPrecHalfSegment>, 
+       std::priority_queue<MPrecHalfSegment, 
+                      std::vector<MPrecHalfSegment>, 
                       IsGreater<MPrecHalfSegment, HalfSegmentComparator> > pqb;
        HalfSegmentComparator cmp;
        MPrecHalfSegment* tmpCand;
@@ -458,12 +462,12 @@ This function computes the set operation specified by the last argument
   };
 
 void makeRealm(const MPrecHalfSegment& hs1, const MPrecHalfSegment& hs2, 
-              vector<MPrecHalfSegment>& res); 
+              std::vector<MPrecHalfSegment>& res); 
 
 
-void setOP(const vector<MPrecHalfSegment>& v1,
-             const vector<MPrecHalfSegment>& v2,
-             vector<MPrecHalfSegment>& res,
+void setOP(const std::vector<MPrecHalfSegment>& v1,
+             const std::vector<MPrecHalfSegment>& v2,
+             std::vector<MPrecHalfSegment>& res,
              SETOP op);
 
 

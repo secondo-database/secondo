@@ -31,13 +31,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "PrecisePoint.h"
 
 
-ostream& operator<<(ostream& o, const MPrecPoint& p){
+std::ostream& operator<<(std::ostream& o, const MPrecPoint& p){
    o << p.toString();
    return o;
 }
 
 
-ostream& operator<<(ostream& o, const PPrecPoint& p){
+std::ostream& operator<<(std::ostream& o, const PPrecPoint& p){
    o << "("  << p.getX() << ", " << p.getY() << ")";
    return o;
 }

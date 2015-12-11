@@ -43,9 +43,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef PRECISE_COORDINATE
 #define PRECISE_COORDINATE
 
-class overflowException: public exception{
+class overflowException: public std::exception{
    public:
-        overflowException(const string& _msg): msg(_msg) {
+        overflowException(const std::string& _msg): msg(_msg) {
           
         } 
 
@@ -56,7 +56,7 @@ class overflowException: public exception{
         ~overflowException() throw(){}
    
    private:
-       string msg;
+       std::string msg;
   
 };
 
@@ -175,7 +175,7 @@ class MPrecCoordinate : public PPrecCoordinate{
         assert(_scale>0);
      }
 
-     MPrecCoordinate(const int64_t intPart, const string& fracPart, 
+     MPrecCoordinate(const int64_t intPart, const std::string& fracPart, 
                      const uint32_t _scale): 
             PPrecCoordinate(intPart,1), fracStorage(0), 
             fractional(0), scale(_scale){
@@ -265,7 +265,7 @@ class MPrecCoordinate : public PPrecCoordinate{
     }
 
 
-     bool readFromString(const string& str, uint32_t _scale=1 ){
+     bool readFromString(const std::string& str, uint32_t _scale=1 ){
 
         // the string may be in format a, a/b, a.b,  a.c where
        // a and b are in form [0-9]*
@@ -275,9 +275,9 @@ class MPrecCoordinate : public PPrecCoordinate{
         }
 
         bool isFraction = false;
-        string part1 ="";  // integer part
-        string part2 ="";  // fractional part
-        string part3 ="";  // potencial part
+        std::string part1 ="";  // integer part
+        std::string part2 ="";  // fractional part
+        std::string part3 ="";  // potencial part
 
         int fill = 1;
 
@@ -466,7 +466,7 @@ class MPrecCoordinate : public PPrecCoordinate{
      }
 
      std::string toString( bool includeScale=true) const{
-         stringstream ss;
+         std::stringstream ss;
          if(includeScale){
               ss << scale << " :: ";
          }
@@ -480,7 +480,7 @@ class MPrecCoordinate : public PPrecCoordinate{
      }
 
      std::string getDebugString() const{
-       stringstream ss;
+       std::stringstream ss;
        ss << "scale "        << scale << ", "
           << "grid "         << gridCoord << ", "
           << "precPos "      << precPos << ", "
@@ -506,8 +506,8 @@ class MPrecCoordinate : public PPrecCoordinate{
 
         assert(numerator < denominator);
 
-        vector<uint32_t> vn = getVector(numerator);
-        vector<uint32_t> vd = getVector(denominator);
+        std::vector<uint32_t> vn = getVector(numerator);
+        std::vector<uint32_t> vd = getVector(denominator);
         uint32_t ln = (uint32_t) vn.size();
         uint32_t ld = (uint32_t) vd.size();
 
@@ -742,7 +742,7 @@ Binary operators
         return result.operator/=(rhs);
     }
 
-    string getFracAsText() const{
+    std::string getFracAsText() const{
        if(precPos==0) return "";
        retrieveFractional();
        return fractional->get_str();
@@ -763,7 +763,7 @@ Binary operators
     }
    
 
-    void set(int64_t intPart, const string& frac, uint32_t _scale){
+    void set(int64_t intPart, const std::string& frac, uint32_t _scale){
         if(fractional){
           fractional->set_str(frac,10);
         } else {
@@ -865,7 +865,7 @@ Binary operators
         uint32_t pos = precPos+1;
         // read numerator
         uint32_t intval;
-        uint32_t factori = numeric_limits<uint32_t>::max();
+        uint32_t factori = std::numeric_limits<uint32_t>::max();
         mpz_class factor(factori);
         fracStorage->Get(pos,intval);
         
@@ -951,11 +951,11 @@ After calling this function, the fractional part is in (0,1).
      }
 
    
-     vector<uint32_t> getVector(mpz_class number) const{
-        static uint32_t maxi = numeric_limits<uint32_t>::max();
+     std::vector<uint32_t> getVector(mpz_class number) const{
+        static uint32_t maxi = std::numeric_limits<uint32_t>::max();
         static mpz_class max(maxi);
         static mpz_class zero(0);
-        vector<uint32_t> result;
+        std::vector<uint32_t> result;
         while(number > zero){
            mpz_class part = number % max;
            number = number / max;

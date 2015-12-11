@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace precisetools{
 
 
-  bool isClockwise(vector<MPrecPoint>& cycle){
+  bool isClockwise(std::vector<MPrecPoint>& cycle){
     assert(cycle.size()>3);
     int smallestIndex = 0;
     for(size_t i=1;i<cycle.size();i++){

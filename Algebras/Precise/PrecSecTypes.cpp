@@ -37,6 +37,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "MMRTree.h"
 
+using namespace std;
+
+
 class MPrecPointComp{
   public:
      bool operator()(const MPrecPoint& p1, const MPrecPoint& p2){
@@ -184,8 +187,8 @@ void enlarge(Rectangle<2>& box, const MPrecPoint& p){
      box.Set(true,min,max);
      return;
    } 
-   double MIN[] = {min(x,box.MinD(0)), min(y,box.MinD(1))};
-   double MAX[] = {max(x,box.MaxD(0)), max(y,box.MaxD(1))};
+   double MIN[] = {std::min(x,box.MinD(0)), std::min(y,box.MinD(1))};
+   double MAX[] = {std::max(x,box.MaxD(0)), std::max(y,box.MaxD(1))};
    box.Set(true,MIN,MAX);
 }
 
@@ -682,7 +685,7 @@ int PrecPoints::compareTo(const PrecPoints& rhs)const{
         if(!rhs.IsDefined()){
             return 1;
         }
-        size_t ms = min(Size(), rhs.Size());
+        size_t ms = std::min(Size(), rhs.Size());
         for(size_t i=0;i<ms;i++){
            int cmp = getPointAt(i).compareTo(rhs.getPointAt(i));
            if(cmp!=0) {
@@ -725,7 +728,7 @@ std::ostream& PrecPoints::Print(std::ostream &os) const{
        }
        double dist = getQDistance(rect,getPointAt(0));
        for(size_t i=1;i<Size() && dist > 0;i++){
-          dist = min(dist, getQDistance(rect,getPointAt(i)));
+          dist = std::min(dist, getQDistance(rect,getPointAt(i)));
        }
        return sqrt(dist);
     } 
@@ -1309,7 +1312,7 @@ void PrecLine::intersects(const PrecLine& l2, CcBool& result) {
    vector<MPrecHalfSegment> v1;
    vector<MPrecHalfSegment> v2;
    size_t pos = 0;
-   size_t end = min(size(),l2.size());
+   size_t end = std::min(size(),l2.size());
    while(pos<end){
       MPrecHalfSegment hs1 = getHalfSegment(pos);
       if(hs1.isLeftDomPoint()){

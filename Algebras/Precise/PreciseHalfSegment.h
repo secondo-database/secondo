@@ -98,8 +98,8 @@ class PPrecHalfSegment{
 };
 
 class MPrecHalfSegment;
-ostream& operator<<(ostream& os, const MPrecHalfSegment& hs);
-ostream& operator<<(ostream& os, const PPrecHalfSegment& hs);
+std::ostream& operator<<(std::ostream& os, const MPrecHalfSegment& hs);
+std::ostream& operator<<(std::ostream& os, const PPrecHalfSegment& hs);
 
 class MPrecHalfSegment{
 
@@ -191,8 +191,8 @@ i.e. if lp and rp are equal.
         double y0 = lp.getY().toDouble();
         double x1 = rp.getX().toDouble();
         double y1 = rp.getY().toDouble();
-        double MIN[] = { min(x0,x1), min(y0,y1)};
-        double MAX[] = { max(x0,x1), max(y0,y1)};
+        double MIN[] = { std::min(x0,x1), std::min(y0,y1)};
+        double MAX[] = { std::max(x0,x1), std::max(y0,y1)};
         Rectangle<2> res(true,MIN,MAX);
         return res;
      }

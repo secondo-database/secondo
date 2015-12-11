@@ -154,7 +154,7 @@ and edgeno are set
 correctly.
 
 */
-ListExpr getRegionList(vector<MPrecHalfSegment>& v);
+ListExpr getRegionList(std::vector<MPrecHalfSegment>& v);
 
 /*
 3 Secondo class representing a rational number with arbitrary precision
@@ -266,7 +266,7 @@ class PrecCoord: public Attribute{
        return &fracStorage;   
      }
 
-    static const string BasicType(){
+    static const std::string BasicType(){
        return "precise";
     }
 
@@ -486,7 +486,7 @@ class PrecTime: public Attribute{
 
     bool ReadFrom(ListExpr LE, const ListExpr typeInfo);
 
-    bool readFrom(const string& value);
+    bool readFrom(const std::string& value);
 
     void readFrom(const datetime::DateTime& time){
        if(!time.IsDefined()){
@@ -518,7 +518,7 @@ class PrecTime: public Attribute{
        return &fracStorage;   
      }
 
-    static const string BasicType(){
+    static const std::string BasicType(){
       return type==datetime::instanttype?"precInstant":"precDuration";
     }
 
@@ -636,7 +636,7 @@ class PrecPoint: public StandardSpatialAttribute<2> {
              pos(0,0), fracStorage(0), scale(1) {}
 
 
-    static string BasicType(){ 
+    static std::string BasicType(){ 
       return "precPoint";
     }
    
@@ -890,7 +890,7 @@ class PrecPoints: public StandardSpatialAttribute<2>{
    }
 
   
-    static string BasicType(){ 
+    static std::string BasicType(){ 
       return "precPoints";
     }
    
@@ -973,7 +973,7 @@ class PrecPoints: public StandardSpatialAttribute<2>{
           return 0;
        }   
        int sum = 0;
-       for(size_t i=0;i<min((size_t)5,Size());i++){
+       for(size_t i=0;i<std::min((size_t)5,Size());i++){
           sum += getPointAt(i).getHash();
        }
        return sum;
@@ -1011,7 +1011,7 @@ class PrecPoints: public StandardSpatialAttribute<2>{
        clear();
        assert(bulkloadStorage==0);
        scale = _scale;
-       bulkloadStorage = new vector<MPrecPoint>();  
+       bulkloadStorage = new std::vector<MPrecPoint>();  
      }
 
      void append(const MPrecPoint& p){
@@ -1130,7 +1130,7 @@ compute the difference of this and ps
     DbArray<PPrecPoint> gridPoints;
     DbArray<uint32_t> fracStorage;
     Rectangle<2> bbox; 
-    vector<MPrecPoint>* bulkloadStorage;
+    std::vector<MPrecPoint>* bulkloadStorage;
     uint32_t scale;
 
 
@@ -1226,7 +1226,7 @@ class PrecLine : public StandardSpatialAttribute<2> {
           return 0;
        } 
        size_t sum = 0;
-       for(size_t i=0;i<min((size_t)5,Size()); i++){
+       for(size_t i=0;i<std::min((size_t)5,Size()); i++){
           PPrecHalfSegment hs;
           gridData.Get(i,hs);
           sum += hs.getHash();
@@ -1248,7 +1248,7 @@ class PrecLine : public StandardSpatialAttribute<2> {
        return new PrecLine(*this);
     }
 
-    ostream& Print(ostream& os ) const{
+    std::ostream& Print(std::ostream& os ) const{
        os << "precLine " << endl;
        for(size_t i =0; i< Size(); i++){
            MPrecHalfSegment hs = getHalfSegment(i);
@@ -1268,7 +1268,7 @@ class PrecLine : public StandardSpatialAttribute<2> {
       return 0;
     }
 
-    static string BasicType() {
+    static std::string BasicType() {
        return "precLine";
     }
 
@@ -1323,7 +1323,7 @@ class PrecLine : public StandardSpatialAttribute<2> {
     void startBulkLoad(){
         assert(bulkloadStorage==0);
         clear(); // ensure to start from beginning
-        bulkloadStorage = new vector<MPrecHalfSegment>();
+        bulkloadStorage = new std::vector<MPrecHalfSegment>();
     }
     
     void startBulkLoad(uint32_t newScale){
@@ -1331,7 +1331,7 @@ class PrecLine : public StandardSpatialAttribute<2> {
         assert(newScale>0);
         scale = newScale;
         clear(); // ensure to start from beginning
-        bulkloadStorage = new vector<MPrecHalfSegment>();
+        bulkloadStorage = new std::vector<MPrecHalfSegment>();
     }
 
     void append(MPrecHalfSegment hs, bool autoTwice = true){
@@ -1398,7 +1398,7 @@ class PrecLine : public StandardSpatialAttribute<2> {
     DbArray<PPrecHalfSegment> gridData;
     DbArray<uint32_t> fracStorage;
 
-    vector<MPrecHalfSegment>* bulkloadStorage; // only used during bulkload
+    std::vector<MPrecHalfSegment>* bulkloadStorage; // only used during bulkload
                                                // after end of bulkload 0
 };
 
@@ -1490,7 +1490,7 @@ class PrecRegion : public StandardSpatialAttribute<2> {
           return 0;
        } 
        size_t sum = 0;
-       for(size_t i=0;i<min((size_t)5,Size()); i++){
+       for(size_t i=0;i<std::min((size_t)5,Size()); i++){
           PPrecHalfSegment hs;
           gridData.Get(i,hs);
           sum += hs.getHash();
@@ -1512,7 +1512,7 @@ class PrecRegion : public StandardSpatialAttribute<2> {
        return new PrecRegion(*this);
     }
 
-    ostream& Print(ostream& os ) const{
+    std::ostream& Print(std::ostream& os ) const{
        os << "precRegion " << endl;
        for(size_t i =0; i< Size(); i++){
            MPrecHalfSegment hs = getHalfSegment(i);
@@ -1532,7 +1532,7 @@ class PrecRegion : public StandardSpatialAttribute<2> {
       return 0;
     }
 
-    static string BasicType() {
+    static std::string BasicType() {
        return "precRegion";
     }
 
@@ -1586,7 +1586,7 @@ class PrecRegion : public StandardSpatialAttribute<2> {
     void startBulkLoad(){
         assert(bulkloadStorage==0);
         clear(); // ensure to start from beginning
-        bulkloadStorage = new vector<MPrecHalfSegment>();
+        bulkloadStorage = new std::vector<MPrecHalfSegment>();
     }
 
     void append(MPrecHalfSegment& hs){
@@ -1650,14 +1650,14 @@ class PrecRegion : public StandardSpatialAttribute<2> {
     DbArray<PPrecHalfSegment> gridData;
     DbArray<uint32_t> fracStorage;
 
-    vector<MPrecHalfSegment>* bulkloadStorage; // only used during bulkload
+    std::vector<MPrecHalfSegment>* bulkloadStorage; // only used during bulkload
                                                // after end of bulkload 0
 
      /** Finds cycles in segments and sets faceno, cycleno and edgeno for 
        * ecah segment. Throws an exceptin if the halfsegments do not
        * form a valid region. 
        **/
-     static void computeRegion(vector<MPrecHalfSegment>& segments);
+     static void computeRegion(std::vector<MPrecHalfSegment>& segments);
 
      bool addFace(ListExpr face, int faceNo, int& edgeNo);
      bool addCycle(ListExpr cycle, int faceNo, int cycleNo, int& edgeNo);
@@ -1698,7 +1698,7 @@ ListExpr PrecTime<type>::ToListExpr(ListExpr typeInfo) const{
      hour = ms;
 
      assert(hour < 24);
-     stringstream ss;
+     std::stringstream ss;
      ss << year<<"-"<<month<<"-"<<day;
      if(hour>0 || minute>0 || second>0 || millisecond>0 || coord.hasFracPart()){
        ss << "-" <<  hour << ":" << minute;
@@ -1746,7 +1746,7 @@ bool  PrecTime<type>::ReadFrom(ListExpr instance, ListExpr typeExpr) {
         if(nl->AtomType(nl->Third(instance))!=TextType){
            return false;
         }
-        string frac = nl->Text2String(nl->Third(instance));
+        std::string frac = nl->Text2String(nl->Third(instance));
         try{
            mpq_class f(frac);
            MPrecCoordinate mc(julian,f);
@@ -1765,7 +1765,7 @@ bool  PrecTime<type>::ReadFrom(ListExpr instance, ListExpr typeExpr) {
 }
 
 template<int type>
-bool PrecTime<type>::readFrom(const string& s){
+bool PrecTime<type>::readFrom(const std::string& s){
 
    int sign = 1;
    int64_t year = 0;
@@ -1844,7 +1844,7 @@ bool PrecTime<type>::readFrom(const string& s){
                 }
                 break;
        case 7 : {
-                string f = s.substr(i,s.size());
+                std::string f = s.substr(i,s.size());
                 if(!f.empty()){
                     try{
                       frac.set_str(f.c_str(),10);

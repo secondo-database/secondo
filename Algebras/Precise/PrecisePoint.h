@@ -72,8 +72,8 @@ class PPrecPoint {
 
 
 
-ostream& operator<<(ostream& o, const PPrecPoint& p);
-ostream& operator<<(ostream& o, const MPrecPoint& p);
+std::ostream& operator<<(std::ostream& o, const PPrecPoint& p);
+std::ostream& operator<<(std::ostream& o, const MPrecPoint& p);
 
 
 class MPrecPoint {
@@ -173,7 +173,7 @@ class MPrecPoint {
       }
 
       std::string toString(bool includeScale=true) const {
-        stringstream ss;
+        std::stringstream ss;
         if(includeScale){
             ss << x.getScale() << ":: ";
         } 

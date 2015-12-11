@@ -33,6 +33,9 @@ This file provides auxiliary function dealing with precise halfsegments.
 
 #include <algorithm>
 
+using namespace std;
+
+
 namespace hstools{
 
 

@@ -84,8 +84,8 @@ class PPrecInterval {
 
 
 
-ostream& operator<<(ostream& o, const PPrecInterval& p);
-ostream& operator<<(ostream& o, const MPrecInterval& p);
+std::ostream& operator<<(std::ostream& o, const PPrecInterval& p);
+std::ostream& operator<<(std::ostream& o, const MPrecInterval& p);
 
 
 class MPrecInterval {
