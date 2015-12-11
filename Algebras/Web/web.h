@@ -79,9 +79,9 @@ The scanner can analyse URI's, and tokens of a html document
 
 */
 
-bool isEqual (string s1, string s2);
-int SplitString(const string& input, const string& delimiter,
-                vector<string>& results,  bool includeEmpties);
+bool isEqual (std::string s1, std::string s2);
+int SplitString(const std::string& input, const std::string& delimiter,
+                std::vector<std::string>& results,  bool includeEmpties);
 bool isWhite(char c);
 
 
@@ -92,23 +92,23 @@ typedef struct FlobIndex{
 
 class WebLex : public yyFlexLexer {
     public:
-        WebLex(istream*);
+        WebLex(std::istream*);
         int nextToken(void);
         int nextToken(int);
-        string getVal(void);
+        std::string getVal(void);
         int yylex (int);
         int yylex (void);
         void switchStartCond(int);
-        bool findAttribute(string attribute, string& value);
-        bool findAttribute(vector<string>& attributes,
-                                   string& value, string & attribute);
-        int startElement (string& element);
-        flobindex setPos(string value, const string& content);
+        bool findAttribute(std::string attribute, std::string& value);
+        bool findAttribute(std::vector<std::string>& attributes,
+                                   std::string& value, std::string & attribute);
+        int startElement (std::string& element);
+        flobindex setPos(std::string value, const std::string& content);
         int readContent();
         int readContentTmp();
 
     private:
-        string tokenVal;
+        std::string tokenVal;
         int switchState;
         unsigned long pos;
 
@@ -117,19 +117,20 @@ class WebLex : public yyFlexLexer {
 /*
 1.4 Declaration of class AnalyseElement.
 
-Each instance of this class represent the occurences of a element in a html document.
+Each instance of this class represent the occurences of a element 
+in a html document.
 
 */
 
 class AnalyseElement {
     public:
-        AnalyseElement (string e){
+        AnalyseElement (std::string e){
             element= e;
             occurrences=1;
         }
 
 
-        AnalyseElement (string e, int s){
+        AnalyseElement (std::string e, int s){
             element= e;
             occurrences=1;
             symbol=s;
@@ -148,7 +149,7 @@ class AnalyseElement {
             return occurrences;
         }
 
-        string getElement() const{
+        std::string getElement() const{
             return element;
         }
 
@@ -169,7 +170,7 @@ class AnalyseElement {
         }
 
     private:
-        string element;
+        std::string element;
         int occurrences;
         int symbol;
         int depth;
@@ -182,9 +183,9 @@ class AnalyseElement {
 
 */
 
-class AnalyseList : public list<AnalyseElement> {
+class AnalyseList : public std::list<AnalyseElement> {
     public:
-        void add(string e){
+        void add(std::string e){
             AnalyseList::iterator it;
 
             it=begin();
@@ -199,18 +200,18 @@ class AnalyseList : public list<AnalyseElement> {
             if (it != end())
                 it->increment();
             else
-                list<AnalyseElement>::push_back(AnalyseElement (e));
+                std::list<AnalyseElement>::push_back(AnalyseElement (e));
 
         }
 
 
-        void push_back(string el){
+        void push_back(std::string el){
             AnalyseElement e(el);
 
-            list<AnalyseElement>::push_back(e);
+            std::list<AnalyseElement>::push_back(e);
         }
 
-        bool find(AnalyseList::const_iterator it, string e){
+        bool find(AnalyseList::const_iterator it, std::string e){
 
             while (it != end() && (it->getElement() != e))
                 it++;

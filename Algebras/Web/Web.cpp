@@ -72,6 +72,7 @@ November 2006
 extern NestedList* nl;
 extern QueryProcessor *qp;
 using namespace datetime;
+using namespace std;
 
 /*
 1.2 Dummy Functions
@@ -91,7 +92,7 @@ No dummy function needed.
 
 */
 
-WebLex::WebLex(istream *is) : yyFlexLexer (is) {switchState=-1;}
+WebLex::WebLex(std::istream *is) : yyFlexLexer (is) {switchState=-1;}
 
 int WebLex::nextToken(){
   int symbol=0;
