@@ -668,14 +668,14 @@ protected:
 #endif
 
 #ifndef UNIT_TEST
-const string map_atlocation[2][4] = { { Tin::BasicType(),
+const std::string map_atlocation[2][4] = { { Tin::BasicType(),
   CcReal::BasicType(), CcReal::BasicType(), CcReal::BasicType() }, {
   TinAttribute::BasicType(), CcReal::BasicType(), CcReal::BasicType(),
   CcReal::BasicType() } };
 
-const string map_min[2][2] = { { Tin::BasicType(), CcReal::BasicType() }, {
+const std::string map_min[2][2] = { { Tin::BasicType(), CcReal::BasicType() }, {
   TinAttribute::BasicType(), CcReal::BasicType() } };
-const string map_max[2][2] = { { Tin::BasicType(), CcReal::BasicType() }, {
+const std::string map_max[2][2] = { { Tin::BasicType(), CcReal::BasicType() }, {
   TinAttribute::BasicType(), CcReal::BasicType() } };
 template<typename N>
 int Tin::createTin_vm(Word* args, Word& result, int message, Word& local,

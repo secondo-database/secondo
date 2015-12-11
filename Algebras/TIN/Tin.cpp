@@ -35,6 +35,8 @@
 
 #include <TinLogging.h>
 
+using namespace std;
+
 namespace tin {
 #ifndef UNIT_TEST
 struct tin2tuplestreamState {
@@ -1000,7 +1002,7 @@ int Tin::tin2stlfile_vm(Word* args, Word& result, int message, Word& local,
  if (tin && tin->isDefined()) {
   std::ofstream stlfile;
 
-  stlfile.open(path->GetValue().c_str(), ios::binary | ios::trunc);
+  stlfile.open(path->GetValue().c_str(), std::ios::binary | std::ios::trunc);
 
   if (!stlfile.is_open())
    throw std::runtime_error(
