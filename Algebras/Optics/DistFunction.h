@@ -77,8 +77,8 @@ namespace clusteropticsalg
  {
   public:
 
-   double operator()(const pair<CcInt*,TupleId>& p1
-    ,const pair<CcInt*,TupleId>& p2)
+   double operator()(const std::pair<CcInt*,TupleId>& p1
+    ,const std::pair<CcInt*,TupleId>& p2)
    {
       return operator()(p1.first, p2.first);
    }
@@ -95,7 +95,7 @@ namespace clusteropticsalg
    
     if(!p1->IsDefined() || !p2->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
    
     int i1 = p1->GetValue();
@@ -105,7 +105,7 @@ namespace clusteropticsalg
     return c<0?-c:c;
    }
 
-   ostream& print(const pair<CcInt*,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<CcInt*,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -119,8 +119,8 @@ namespace clusteropticsalg
  {
   public:
 
-   double operator()(const pair<CcReal*,TupleId>& p1
-    ,const pair<CcReal*,TupleId>& p2) {
+   double operator()(const std::pair<CcReal*,TupleId>& p1
+    ,const std::pair<CcReal*,TupleId>& p2) {
      return operator()(p1.first, p2.first);
    }
 
@@ -136,7 +136,7 @@ namespace clusteropticsalg
    
     if(!p1->IsDefined() || !p2->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
    
     int i1 = p1->GetValue();
@@ -145,7 +145,7 @@ namespace clusteropticsalg
     return c<0?-c:c;
    }
 
-   ostream& print(const pair<CcReal*,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<CcReal*,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -159,8 +159,8 @@ namespace clusteropticsalg
  {
   public:
   
-   double operator()(const pair<Point*,TupleId>& p1
-    ,const pair<Point*,TupleId>& p2) {
+   double operator()(const std::pair<Point*,TupleId>& p1
+    ,const std::pair<Point*,TupleId>& p2) {
      return operator()(p1.first, p2.first);
    }
 
@@ -176,13 +176,13 @@ namespace clusteropticsalg
     
     if(!p1->IsDefined() || !p2->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
     
     return p1->Distance(*(p2));
    }
      
-   ostream& print(const pair<Point*,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<Point*,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -196,8 +196,8 @@ namespace clusteropticsalg
  {
   public:
   
-   double operator()(const pair<CcString*,TupleId>& p1
-    ,const pair<CcString*,TupleId>& p2) {
+   double operator()(const std::pair<CcString*,TupleId>& p1
+    ,const std::pair<CcString*,TupleId>& p2) {
       return operator()(p1.first, p2.first);
    }
 
@@ -213,13 +213,13 @@ namespace clusteropticsalg
     
     if(!p1->IsDefined() || !p2->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
     
     return stringutils::ld(p1->GetValue(), p2->GetValue());
    }
      
-   ostream& print(const pair<CcString*,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<CcString*,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -263,7 +263,8 @@ namespace clusteropticsalg
 
 
    
-   double operator()(const pair<T,TupleId>& p1 ,const pair<T,TupleId>& p2) {
+   double operator()(const std::pair<T,TupleId>& p1 ,
+                     const std::pair<T,TupleId>& p2) {
        return operator()(p1.first, p2.first);
     }
    
@@ -281,7 +282,7 @@ namespace clusteropticsalg
     
     if(!p1->IsDefined() || !p2->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
 
     funargs = qp->Argument(fun);
@@ -296,7 +297,7 @@ namespace clusteropticsalg
     result = (R*) funRes.addr;
 
     if(!result->IsDefined()){
-       return numeric_limits<double>::max();
+       return std::numeric_limits<double>::max();
     }
 
         
@@ -305,7 +306,7 @@ namespace clusteropticsalg
     return c < 0 ? -c : c;
    }
      
-   ostream& print(const pair<T,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<T,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -328,8 +329,8 @@ namespace clusteropticsalg
     init = false;
    };
    
-   double operator()(const pair<Picture*,TupleId>& p1
-    ,const pair<Picture*,TupleId>& p2) {
+   double operator()(const std::pair<Picture*,TupleId>& p1
+    ,const std::pair<Picture*,TupleId>& p2) {
      return operator()(p1.first, p2.first);
    }
    
@@ -345,7 +346,7 @@ namespace clusteropticsalg
     
     if(!p1->IsDefined() || !p2->IsDefined())
     {
-     return numeric_limits<double>::max();
+     return std::numeric_limits<double>::max();
     }
     
     if(!gta::DistfunReg::isInitialized())
@@ -372,7 +373,7 @@ namespace clusteropticsalg
     return distance;
    }
      
-   ostream& print(const pair<Picture*,TupleId>& p, ostream& o)
+   std::ostream& print(const std::pair<Picture*,TupleId>& p, std::ostream& o)
    {
     o << *(p.first);
     return o;
@@ -388,12 +389,12 @@ namespace clusteropticsalg
            return 0;
          }
          if(!r1->IsDefined() || !r2->IsDefined()){
-           return numeric_limits<double>::max();
+           return std::numeric_limits<double>::max();
          }
          return r1->Distance(*r2);
       } 
-      double operator()(const pair<Rectangle<dim>*, TupleId>& p1,
-                        const pair<Rectangle<dim>*, TupleId>& p2){
+      double operator()(const std::pair<Rectangle<dim>*, TupleId>& p1,
+                        const std::pair<Rectangle<dim>*, TupleId>& p2){
          return operator()(p1.first, p2.first);
       }
  }; 

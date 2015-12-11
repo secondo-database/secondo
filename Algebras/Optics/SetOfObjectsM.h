@@ -54,7 +54,7 @@ class SetOfObjectsM{
     SetOfObjectsM( Stream<Tuple>& instream, int _attrPos, D& _distfun, 
                    double _eps, size_t maxMem, ListExpr _resultType):
       buffer(0), attrPos(_attrPos),
-      tree(new MMMTree<pair<T*,TupleId>, D>(4,8,_distfun)),
+      tree(new MMMTree<std::pair<T*,TupleId>, D>(4,8,_distfun)),
       distfun(_distfun), eps(_eps){
 
       instream.open();
@@ -97,7 +97,7 @@ class SetOfObjectsM{
           TupleId id = relIt->GetTupleId();
           T* obj = (T*) tuple->GetAttribute(attrPos);
           if(obj->IsDefined()){
-             pair<T*,TupleId> p(obj,id);
+             std::pair<T*,TupleId> p(obj,id);
              tree->insert(p);
           }
           tuple->DeleteIfAllowed();
@@ -139,12 +139,12 @@ class SetOfObjectsM{
 1.5 Retrieving neighbors of a tuple.
 
 */
-   list<TupleId>* getNeighbors( TupleId id){
+   std::list<TupleId>* getNeighbors( TupleId id){
       Tuple* tuple = buffer->GetTuple(id,false);
       T* obj = (T*)tuple->GetAttribute(attrPos);
-      RangeIterator<pair<T*,TupleId>, D>* it 
-            = tree->rangeSearch(make_pair(obj,id), eps);
-      list<TupleId>* res = new list<TupleId>();
+      RangeIterator<std::pair<T*,TupleId>, D>* it 
+            = tree->rangeSearch(std::make_pair(obj,id), eps);
+      std::list<TupleId>* res = new std::list<TupleId>();
 
       while(it->hasNext()){
          res->push_back(it->next()->second);
@@ -261,15 +261,15 @@ called before this function returns meaningful results.
 */
      TupleBuffer* buffer;  // storage for tuples
      int attrPos;          // position of the attribute selected for clustering
-     MMMTree<pair<T*,TupleId>, D>* tree;
+     MMMTree<std::pair<T*,TupleId>, D>* tree;
      D distfun;  // distance function
      double eps; // the epsilon value
      int corePos; // position of the core distance in result tuple
      int reachPos; // position of the reachability distance
      int procPos;  // position of the processed flag        
      int epsPos;   // position of the chosen epsilon value
-     vector<TupleId> result; // ordered result
-     vector<TupleId>::iterator it;  // result iterator
+     std::vector<TupleId> result; // ordered result
+     std::vector<TupleId>::iterator it;  // result iterator
 
 
 };

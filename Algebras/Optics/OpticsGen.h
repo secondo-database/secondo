@@ -102,7 +102,7 @@ private:
    ORDERSEEDS* orderSeeds;
    double UNDEFINED;
    DistFun distfun;
-   set<TupleId> deferred;
+   std::set<TupleId> deferred;
 
 /*
 1.5 main algorithm
@@ -122,7 +122,7 @@ private:
       }
       delete it; 
 
-      set<TupleId>::iterator itd;
+      std::set<TupleId>::iterator itd;
       for(itd=deferred.begin(); itd!=deferred.end();itd++){
          TupleId object = *itd;
          setOfObjects->updateProcessed(object,true);
@@ -138,7 +138,7 @@ Puts new elements to a cluster
 */
    void expandCluster(TupleId object){
       Tuple* tuple = setOfObjects->GetTuple(object);
-      list<TupleId>* neighbors = setOfObjects->getNeighbors(object);
+      std::list<TupleId>* neighbors = setOfObjects->getNeighbors(object);
       double coreDist = setCoreDistance(tuple, object, neighbors);
 
       if(coreDist != UNDEFINED){
@@ -179,7 +179,8 @@ available, the distance to the min-pts neighbor (ordered by distance)
 otherwise.
 
 */
-  double setCoreDistance(Tuple* tuple, TupleId id, list<TupleId>* neighbors){
+  double setCoreDistance(Tuple* tuple, TupleId id, 
+                         std::list<TupleId>* neighbors){
       if(neighbors->size() < minPts){
           setOfObjects->updateCoreDistance(id, UNDEFINED);
           return UNDEFINED;
@@ -192,7 +193,7 @@ otherwise.
       // otherwise replace the maximum value with the new value 
       // and let sink in this value
       double heap[minPts]; 
-      list<TupleId>::iterator it;
+      std::list<TupleId>::iterator it;
       int entries = 0; 
       for(it= neighbors->begin(); it!=neighbors->end();it++){
          double dist = setOfObjects->distance(tuple, *it);

@@ -41,7 +41,7 @@ class OrderSeeds{
   public:
     OrderSeeds( SoO* objects, double _UNDEFINED);
 
-    void update(list<TupleId>& neighbors, TupleId objId);
+    void update(std::list<TupleId>& neighbors, TupleId objId);
 
     TupleId next();
 
@@ -50,8 +50,8 @@ class OrderSeeds{
   private:
      SoO* objs;
      double UNDEFINED; 
-     vector<TupleId> heap;
-     map<TupleId, size_t> index;
+     std::vector<TupleId> heap;
+     std::map<TupleId, size_t> index;
 
      bool firstError;
 
@@ -107,16 +107,16 @@ tuple with id ~objId~.
 
 */
 template <class S>
-  void OrderSeeds<S>::update(list<TupleId>& neighbors, TupleId objId){
+  void OrderSeeds<S>::update(std::list<TupleId>& neighbors, TupleId objId){
       Tuple* obj = objs->GetTuple(objId);
       double c_dist = objs->getCoreDist(objId);
-      list<TupleId>::iterator it;
+      std::list<TupleId>::iterator it;
       for(it = neighbors.begin(); it!=neighbors.end(); it++){
          TupleId cId = *it;
          bool processed = objs->getProcessed(cId);
          if(!processed){
             Tuple* cur = objs->GetTuple(cId);
-            double new_r_dist = max(c_dist, objs->distance(obj, cur));
+            double new_r_dist = std::max(c_dist, objs->distance(obj, cur));
             double old_r_dist = objs->getReachDist(cId); 
             if(old_r_dist == UNDEFINED){
                objs->updateReachability( cId, new_r_dist);
@@ -297,7 +297,7 @@ bool OrderSeeds<S>::checkStructureDebug(){
       }
   }
   // check whether map only contains vector entries
-  map<TupleId,size_t>::iterator it;
+  std::map<TupleId,size_t>::iterator it;
   for(it=index.begin();it!=index.end();it++){
      TupleId id = it->first;
      int index = it->second;

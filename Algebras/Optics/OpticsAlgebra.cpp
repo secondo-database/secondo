@@ -61,6 +61,9 @@ This file contains the implementation of the OpticsAlgebra.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+
+using namespace std;
+
 namespace clusteropticsalg
 {
 

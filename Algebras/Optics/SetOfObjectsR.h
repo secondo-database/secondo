@@ -132,15 +132,15 @@ class SetOfObjectsR{
 1.5 Retrieving neighbors of a tuple.
 
 */
-   list<TupleId>* getNeighbors( TupleId id){
+   std::list<TupleId>* getNeighbors( TupleId id){
       Tuple* tuple = buffer->GetTuple(id,false);
       Rectangle<dim>* rect = ((Rectangle<dim>*)
            tuple->GetAttribute(attrPos)->Clone());
       rect->Extend(eps);
-      set<TupleId> candidates;
+      std::set<TupleId> candidates;
       tree->findAll(*rect , candidates);
-      list<TupleId>* res = new list<TupleId>();
-      set<TupleId>::iterator it;
+      std::list<TupleId>* res = new std::list<TupleId>();
+      std::set<TupleId>::iterator it;
  
       for(it = candidates.begin(); it!=candidates.end(); it++){
            if(id != *it){
@@ -269,8 +269,8 @@ called before this function returns meaningful results.
      int reachPos; // position of the reachability distance
      int procPos;  // position of the processed flag        
      int epsPos;   // position of the chosen epsilon value
-     vector<TupleId> result; // ordered result
-     vector<TupleId>::iterator it;  // result iterator
+     std::vector<TupleId> result; // ordered result
+     std::vector<TupleId>::iterator it;  // result iterator
 
 
 };
