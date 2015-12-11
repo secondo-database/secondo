@@ -33,6 +33,9 @@ www.codeproject.com/Articles/10618/Loop-buffer-an-efficient-way-of-using-shared-
 
 #include "boost/date_time.hpp"
 
+
+using namespace std;
+
 IPCInit::IPCInit() : magicId(0), confirmIdx(0), nextIdx(0) {}
 
 IPCLoopBuffer::IPCLoopBuffer()

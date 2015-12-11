@@ -71,15 +71,15 @@ class QuadNode {
   void levels(QuadNode* node, const int& level, int* maxLevel);
 };
 
-void propagateUp(QuadNode* node, function<void(QuadNode*)> f);
+void propagateUp(QuadNode* node, std::function<void(QuadNode*)> f);
 
-void propagateDown(QuadNode* node, function<void(QuadNode*)> f);
+void propagateDown(QuadNode* node, std::function<void(QuadNode*)> f);
 
-void propagateDownB(QuadNode* node, function<bool(QuadNode*)> f);
+void propagateDownB(QuadNode* node, std::function<bool(QuadNode*)> f);
 
-void propagateDownPost(QuadNode* node, function<void(QuadNode*)> f);
+void propagateDownPost(QuadNode* node, std::function<void(QuadNode*)> f);
 
-bool findDescendant(QuadNode* node, function<bool(QuadNode*)> f);
+bool findDescendant(QuadNode* node, std::function<bool(QuadNode*)> f);
 
 bool touching(QuadNode* a, QuadNode* b);
 
@@ -95,14 +95,14 @@ class QuadTreeDistribution : public Distribution {
   void init(QuadTreeDistribution* prototype);
 
   void expand(double* mbb);
-  void insert(QuadNode* node, double* mbb, set<int>* results);
-  void insertDebug(QuadNode* node, double* mbb, set<int>* results);
+  void insert(QuadNode* node, double* mbb, std::set<int>* results);
+  void insertDebug(QuadNode* node, double* mbb, std::set<int>* results);
 
-  void retrieveIds(QuadNode* node, double* mbb, set<int>* results);
-  void retrieveIdsDebug(QuadNode* node, double* mbb, set<int>* results);
+  void retrieveIds(QuadNode* node, double* mbb, std::set<int>* results);
+  void retrieveIdsDebug(QuadNode* node, double* mbb, std::set<int>* results);
 
   void redistributeCluster();
-  void leafesInClusterOrder(QuadNode* node, function<bool(QuadNode*)> f);
+  void leafesInClusterOrder(QuadNode* node, std::function<bool(QuadNode*)> f);
 
   int split(int serverId);
   void redistribute(int serverId,
@@ -123,26 +123,27 @@ class QuadTreeDistribution : public Distribution {
   bool filter(int nrcoords, double* coords, const unsigned int& globalId,
               bool update);
 
-  void add(int value, set<int>* resultIds);
-  void add(int nrcoords, double* coords, set<int>* resultIds);
-  void addDebug(int nrcoords, double* coords, set<int>* resultIds);
+  void add(int value, std::set<int>* resultIds);
+  void add(int nrcoords, double* coords, std::set<int>* resultIds);
+  void addDebug(int nrcoords, double* coords, std::set<int>* resultIds);
 
-  void request(int value, set<int>* resultIds);
-  void request(int nrcoords, double* coords, set<int>* resultIds);
-  void requestDebug(int nrcoords, double* coords, set<int>* resultIds);
+  void request(int value, std::set<int>* resultIds);
+  void request(int nrcoords, double* coords, std::set<int>* resultIds);
+  void requestDebug(int nrcoords, double* coords, std::set<int>* resultIds);
 
-  string serverIdAssignment(string attributeName, string distributionName,
-                            bool requestOnly);
+  std::string serverIdAssignment(std::string attributeName, 
+                                 std::string distributionName,
+                                 bool requestOnly);
 
-  string toBin();
-  bool fromBin(const string& data);
+  std::string toBin();
+  bool fromBin(const std::string& data);
 
   QuadNode* root;
   int initialWidth, initialHeight;
 
  private:
-  string quadnodeToBin(QuadNode* node);
-  QuadNode* quadnodeFromBin(stringstream& data, QuadNode* parent);
+  std::string quadnodeToBin(QuadNode* node);
+  QuadNode* quadnodeFromBin(std::stringstream& data, QuadNode* parent);
 
   void addWeightNode(QuadNode* base, QuadNode* add, const int& id);
 
@@ -157,7 +158,7 @@ class QuadTreeDistribution : public Distribution {
   void consolidateLayers();
   void leafesInClusterOrderR(QuadNode* node, const int& currentIdx,
                              const int& nextIdx, QuadNode** lastVisited,
-                             function<bool(QuadNode*)> f);
+                             std::function<bool(QuadNode*)> f);
 };
 }
 

@@ -83,7 +83,7 @@ class IPCMessageBase {
 
 typedef IPCMessageBase<IPCMessage*, bool*> IPCMessageBoolResult;
 
-typedef IPCMessageBase<IPCMessage*, set<int>*> IPCMessageIntSetResult;
+typedef IPCMessageBase<IPCMessage*, std::set<int>*> IPCMessageIntSetResult;
 
 // refid, update, globalid, coords
 typedef IPCMessageBase<int*, bool*, unsigned int*, IPCArray<double>*>

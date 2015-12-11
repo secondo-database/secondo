@@ -38,7 +38,9 @@ QuadTreeDistributionType::QuadTreeDistributionType(
 
 QuadTreeDistributionType::~QuadTreeDistributionType() {}
 
-const string QuadTreeDistributionType::BasicType() { return "qtdistribution"; }
+const std::string QuadTreeDistributionType::BasicType() { 
+    return "qtdistribution";
+}
 
 const bool QuadTreeDistributionType::checkType(const ListExpr type) {
   return listutils::isSymbol(type, BasicType());

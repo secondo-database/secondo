@@ -42,6 +42,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+
+using namespace std;
+
 static const key_t IPC_INIT_KEY = 487348423;
 static const key_t IPC_CONNECTION_KEY = 23423522;
 

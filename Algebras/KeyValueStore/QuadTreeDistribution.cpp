@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sstream>
 #include <algorithm>
 
+using namespace std;
+
 namespace KVS {
 
 QuadNode::QuadNode(double x, double y, double width, double height)

@@ -65,7 +65,7 @@ class QuadTreeDistributionType : public QuadTreeDistribution {
   static bool Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& w);
 
-  static const string BasicType();
+  static const std::string BasicType();
 
   static const bool checkType(const ListExpr type);
 

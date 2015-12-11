@@ -40,7 +40,7 @@ class NetworkStreamIPC {
   ~NetworkStreamIPC();
 
   bool init();
-  string getStreamType();
+  std::string getStreamType();
   bool requestStream();
   char* nextTuple(unsigned int* n);
 

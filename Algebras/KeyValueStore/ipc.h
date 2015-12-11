@@ -102,21 +102,21 @@ class IPCConnection {
   bool write(IPCMessage* msgType);
   bool write(const int* data);
   bool write(const unsigned int* data);
-  bool write(const string* data);
+  bool write(const std::string* data);
   bool write(const bool* data);
   bool write(const double* data);
 
   bool read(IPCMessage* msgType);
   bool read(int* data);
   bool read(unsigned int* data);
-  bool read(string* data);
+  bool read(std::string* data);
   bool read(bool* data);
   bool read(double* data);
 
   bool read(IPCArray<double>* data);
   bool write(const IPCArray<double>* data);
-  bool read(set<int>* data);
-  bool write(const set<int>* data);
+  bool read(std::set<int>* data);
+  bool write(const std::set<int>* data);
 
   IPCLoopBuffer* writeBuffer;
   IPCLoopBuffer* readBuffer;

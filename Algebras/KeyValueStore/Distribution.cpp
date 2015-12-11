@@ -30,8 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace KVS {
 
-Distribution* Distribution::getInstance(const string& data) {
-  stringstream strData(data);
+Distribution* Distribution::getInstance(const std::string& data) {
+  std::stringstream strData(data);
 
   int type;
   strData.read((char*)&type, sizeof(type));

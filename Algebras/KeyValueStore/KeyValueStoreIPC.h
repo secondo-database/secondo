@@ -42,32 +42,33 @@ class KeyValueStoreIPC {
   ~KeyValueStoreIPC();
 
   bool connect();
-  bool connect(string execPath);
+  bool connect(std::string execPath);
   bool connected();
 
-  bool addConnection(string host, int interfacePort, int kvsPort,
-                     string config);
+  bool addConnection(std::string host, int interfacePort, int kvsPort,
+                     std::string config);
   bool removeConnection(int index);
   bool retryConnection(int index);
 
-  bool updateServerList(string separatedList);
+  bool updateServerList(std::string separatedList);
   bool syncServerList();
-  string getInformationString();
+  std::string getInformationString();
 
-  bool setDatabase(string databaseName);
-  string useDatabase(string databaseName);
+  bool setDatabase(std::string databaseName);
+  std::string useDatabase(std::string databaseName);
 
   unsigned int getTransferId();
 
   unsigned int getGlobalTupelId();
 
-  bool initClients(string localIp, int localInterfacePort, int localKvsPort);
+  bool initClients(std::string localIp, int localInterfacePort, 
+                   int localKvsPort);
 
   bool startClient(int port);
   bool stopClient(int port);
 
   bool setId(int id);
-  bool setMaster(string host, int interfacePort, int kvsPort);
+  bool setMaster(std::string host, int interfacePort, int kvsPort);
 
   NetworkStreamIPC* getNetworkStream(unsigned int id);
   void removeNetworkStream(unsigned int id);
@@ -76,43 +77,46 @@ class KeyValueStoreIPC {
   bool updateRestructureLock();
   bool unlockRestructureLock();
 
-  int getDistributionRef(string name);
-  int getDistributionRef(string name, int typeId, string data);
+  int getDistributionRef(std::string name);
+  int getDistributionRef(std::string name, int typeId, std::string data);
 
-  bool getDistributionData(int refId, string* data);
+  bool getDistributionData(int refId, std::string* data);
 
-  bool execCommand(string command);
+  bool execCommand(std::string command);
 
-  bool qtDistAdd(int refId, int nrcoords, double* coords, set<int>* resultIds);
+  bool qtDistAdd(int refId, int nrcoords, double* coords, 
+                 std::set<int>* resultIds);
   int qtDistPointId(int refId, double interx, double intery);
   bool qtDistRequest(int refId, int nrcoords, double* coords,
-                     set<int>* resultIds);
+                     std::set<int>* resultIds);
   bool qtDistinct(int refId, double x, double y);
 
-  bool distAddRect(int refId, int nrcoords, double* coords, set<int>* resultIds,
+  bool distAddRect(int refId, int nrcoords, double* coords, 
+                   std::set<int>* resultIds,
                    bool requestOnly);
-  bool distAddInt(int refId, int value, set<int>* resultIds, bool requestOnly);
+  bool distAddInt(int refId, int value, std::set<int>* resultIds, 
+                   bool requestOnly);
 
   bool distFilter(int& refId, int& nrcoords, double* coords,
                   unsigned int& globalId, bool& update);
 
-  string getAppName();
-  string getSCPTransferPath();
-  string getSCPSourcePath();
+  std::string getAppName();
+  std::string getSCPTransferPath();
+  std::string getSCPSourcePath();
 
   int localId;
 
  private:
-  void ipcServerStart(string execPath);
+  void ipcServerStart(std::string execPath);
 
   bool cmd(IPCMessage msg);
   bool getResult(bool* res);
   bool getResult(int* res);
   bool getResult(unsigned int* res);
-  bool getResult(string* data);
-  bool getResult(set<int>* res);
+  bool getResult(std::string* data);
+  bool getResult(std::set<int>* res);
 
-  map<unsigned int, NetworkStreamIPC*> streams;
+  std::map<unsigned int, NetworkStreamIPC*> streams;
 
   int appId;
   IPCConnection* connection;

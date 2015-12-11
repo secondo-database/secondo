@@ -55,8 +55,8 @@ class Distribution {
   enum DistributionType { TYPE_NONE, TYPE_QUADTREE, TYPE_CONSISTENT };
 
   Distribution(const int& type) : type(type), needsSync(false){};
-  Distribution(const int& type, const vector<int>& serverIdOrder,
-               const map<int, int>& serverWeight)
+  Distribution(const int& type, const std::vector<int>& serverIdOrder,
+               const std::map<int, int>& serverWeight)
       : type(type),
         serverIdOrder(serverIdOrder),
         serverWeight(serverWeight),
@@ -64,7 +64,7 @@ class Distribution {
 
   virtual ~Distribution() {}
 
-  static Distribution* getInstance(const string& data);
+  static Distribution* getInstance(const std::string& data);
 
   static const bool checkType(const ListExpr type);
 
@@ -73,11 +73,11 @@ class Distribution {
   void distributionUpdated();
   bool needsSynchronisation();
 
-  virtual string toBin() = 0;
-  virtual bool fromBin(const string& data) = 0;
+  virtual std::string toBin() = 0;
+  virtual bool fromBin(const std::string& data) = 0;
 
-  virtual string serverIdAssignment(string attributeName,
-                                    string distributionName,
+  virtual std::string serverIdAssignment(std::string attributeName,
+                                    std::string distributionName,
                                     bool requestOnly) = 0;
 
   virtual int split(int serverId) = 0;
@@ -98,22 +98,22 @@ class Distribution {
   virtual bool filter(int nrcoords, double* coords,
                       const unsigned int& globalId, bool update) = 0;
 
-  virtual void add(int value, set<int>* resultIds) = 0;  // int
+  virtual void add(int value, std::set<int>* resultIds) = 0;  // int
   virtual void add(int nrcoords, double* coords,
-                   set<int>* resultIds) = 0;  // rect
+                   std::set<int>* resultIds) = 0;  // rect
   virtual void addDebug(int nrcoords, double* coords,
-                        set<int>* resultIds) = 0;  // rect
+                        std::set<int>* resultIds) = 0;  // rect
 
-  virtual void request(int value, set<int>* resultIds) = 0;  // int
+  virtual void request(int value, std::set<int>* resultIds) = 0;  // int
   virtual void request(int nrcoords, double* coords,
-                       set<int>* resultIds) = 0;  // rect
+                       std::set<int>* resultIds) = 0;  // rect
   virtual void requestDebug(int nrcoords, double* coords,
-                            set<int>* resultIds) = 0;  // rect
+                            std::set<int>* resultIds) = 0;  // rect
 
   int type;
 
-  vector<int> serverIdOrder;
-  map<int, int> serverWeight;
+  std::vector<int> serverIdOrder;
+  std::map<int, int> serverWeight;
 
   boost::mutex syncMutex;
 
