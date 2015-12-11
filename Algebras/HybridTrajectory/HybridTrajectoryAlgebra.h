@@ -250,9 +250,9 @@ private :
 	 int numberofAttribute;
 	
 	 Tuple* tuple;
-	 vector<string> inType;
+	 std::vector<std::string> inType;
 
-	 map<int,BaseClass*> totals;
+	 std::map<int,BaseClass*> totals;
 
 	 void fillmaps();
 
@@ -260,7 +260,7 @@ private :
 
  public:
 	 ~FullRefinment();
-	 FullRefinment(Tuple* args,vector<string> inputType,
+	 FullRefinment(Tuple* args,std::vector<std::string> inputType,
    ListExpr outputTupleExpression);
 	 void getNext(Tuple** result);
 	 bool haveMoreUnits();
