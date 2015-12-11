@@ -510,6 +510,10 @@ sendTuple(0) {
  
     return result;
   }
+
+  void flush() {
+      cassandra -> waitForPendingFutures();
+  }
   
   size_t getTupleNumber() {
     return sendTuple; 
