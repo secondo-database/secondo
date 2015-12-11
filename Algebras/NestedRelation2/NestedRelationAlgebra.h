@@ -327,7 +327,7 @@ an nrel-type.
 struct SubRelation
 {
        
-       SubRelation(Relation* ptr, const string n, SmiFileId id, 
+       SubRelation(Relation* ptr, const std::string n, SmiFileId id, 
                                 ListExpr tI):
                              name(n),
                              typeInfo(tI),
@@ -339,7 +339,7 @@ struct SubRelation
        {     
        }
               
-       string name;
+       std::string name;
        
        ListExpr typeInfo;
            
@@ -367,7 +367,7 @@ from the meta-data passed in typeInfo
 */
 
           NestedRelation( ListExpr typeInfo, Relation* ptr, 
-                          vector<SubRelation*>& sR );
+                          std::vector<SubRelation*>& sR );
 /*
 The second constructor, used in the Open-function.
           
@@ -419,21 +419,21 @@ relation which is to be used for saving tuples.
           
 */
           
-          SubRelation* getSubRel(string name);
+          SubRelation* getSubRel(std::string name);
 /*
 returns a pointer to the Subrelation with Name name, if such a Relation exists,
 nil otherwise.
           
 */
           
-          static int getTypeId(int algId, string typeName);
+          static int getTypeId(int algId, std::string typeName);
 /*
 returns the typeId of the type with name typeName from algebra with
 id algId
           
 */
       
-          static bool namesUnique(ListExpr type, string& s);
+          static bool namesUnique(ListExpr type, std::string& s);
 /*
 Returns true, if all attribute names in the type are unique, false
 otherwise.
@@ -447,14 +447,14 @@ attribute names are unique.
           
 */
             
-          static bool saveString (string& s, SmiRecord& valueRecord, 
+          static bool saveString (std::string& s, SmiRecord& valueRecord, 
                                  size_t& offset);
 /*
 Auxiliary function for saving an instance of NestedRelation.
           
 */
       
-          static bool readString (string& s, SmiRecord& valueRecord, 
+          static bool readString (std::string& s, SmiRecord& valueRecord, 
                                  size_t& offset);
 /*
 Auxiliary function for opening an instance of NestedRelation.
@@ -473,7 +473,7 @@ Used to clone a nested relation
           
 */
           
-          vector<SubRelation*>* getSubRels();
+          std::vector<SubRelation*>* getSubRels();
 /*
 Returns a pointer to subrels.
           
@@ -526,7 +526,7 @@ the type of tuple corresponds to the type of the primary relation.
           
    private:
         Relation* primary;
-        vector<SubRelation*> subRels;
+        std::vector<SubRelation*> subRels;
         ListExpr tupleTypeInfo;
         ListExpr primaryTypeInfo;
 };
@@ -553,7 +553,7 @@ struct wortpos
 		if (a.pos>b.pos) return false;
 		return false;
 	}
-	string wort;
+	std::string wort;
 	int pos;
 } wp;
 
@@ -563,14 +563,14 @@ class Doclist : public Attribute
 {
   public:
     Doclist();
-    Doclist(bool Defined, string Term, Docidlist& Doc, DoclistState State);
-    string GetTerm() const;
+    Doclist(bool Defined, std::string Term, Docidlist& Doc, DoclistState State);
+    std::string GetTerm() const;
     DoclistState GetState();
     Doclist *Clone() const;
     void AppendID(const Docidlist& doc);
     void Complete();
     void Destroy();
-    void setTerm(const string term);
+    void setTerm(const std::string term);
     int NumOfFLOBs() const;
     Flob *GetFLOB(const int i);
     int Compare(const Attribute* attr) const;
@@ -579,11 +579,11 @@ class Doclist : public Attribute
     size_t Sizeof() const;
     size_t HashValue() const;
     void CopyFrom(const Attribute* right);
-    vector<wordpos> invert(string); 
+    std::vector<wordpos> invert(std::string); 
     
   private:
     DbArray<Docidlist> doclists;
     DoclistState state;
     bool defined;
-    string term;
+    std::string term;
 };

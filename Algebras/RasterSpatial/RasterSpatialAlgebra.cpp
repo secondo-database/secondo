@@ -34,7 +34,7 @@ extern Word InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct );
 
 
-
+using namespace std;
 
 //2. ~In~ and ~Out~ Functions
 

@@ -108,15 +108,15 @@ class Raster4CRS: public Signature4CRS, public Attribute
   void CopyFrom( const Attribute* right )
           {operator=(*((Raster4CRS *)right));}
   int Compare( const Attribute *arg ) const{ return 1;} //still to do
-  static const string BasicType() { return "raster4CRS"; }
+  static const std::string BasicType() { return "raster4CRS"; }
 };
 
 void printSignature(const Signature4CRS *raster4CRS);
 
 
-inline string unsignedLongToBinary( const unsigned long &x ) {
+inline std::string unsignedLongToBinary( const unsigned long &x ) {
   unsigned long t;
-  string ret;
+  std::string ret;
   if( x > 0 ) t = x; else t = -1 * x;
   for( unsigned int i = 0; i < sizeof(unsigned long) * 8; ++i )
     if( t & ( 1 << i ) ) ret.push_back( '1' ); else ret.push_back( '0' );

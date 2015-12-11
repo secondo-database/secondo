@@ -36,7 +36,7 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 class ClipCel : Box
 {
   public:
-    vector<TurningPoint> vTurningPointsTOP, vTurningPointsBOTTOM,
+    std::vector<TurningPoint> vTurningPointsTOP, vTurningPointsBOTTOM,
                          vTurningPointsLEFT, vTurningPointsRIGHT;
 
     ClipCel(RealCoordinate MIN, RealCoordinate MAX)
@@ -78,7 +78,7 @@ class ClipCel : Box
               bool &isIntersectionPoint, RealCoordinate &intersectionPoint);
     void evaluateNewSegmentsTopEdge(bool &consideredLeftVertex,
                                          bool &consideredRightVertex);
-    bool GetAcceptedPoint(vector <TurningPoint>vTurningPoint,int &i,
+    bool GetAcceptedPoint(std::vector <TurningPoint>vTurningPoint,int &i,
                       const int &end, TurningPoint &ep);
     void evaluateNewSegmentsOnTopEdge();
     void evaluateVerticesBottomEdge(bool &considerLeftVertex,

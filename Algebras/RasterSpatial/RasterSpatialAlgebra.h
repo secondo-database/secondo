@@ -62,7 +62,7 @@ class CRasterRegion: public Region
   private:
 
   public:
-    static const string BasicType() { return "rasterRegion"; }
+    static const std::string BasicType() { return "rasterRegion"; }
 
     Raster4CRS *rasterSignature;
 
@@ -479,7 +479,7 @@ class CRasterLine: public Line
     DbArray<unsigned long> rasterFLOB;
 
   public:
-    static const string BasicType() { return "rasterLine"; }
+    static const std::string BasicType() { return "rasterLine"; }
 
     Raster4CRS *rasterSignature;
 
@@ -917,7 +917,7 @@ class CRasterPoints: public Points
             object& obj, status& stat );
 
   public:
-    static const string BasicType() { return "rasterPoints"; }
+    static const std::string BasicType() { return "rasterPoints"; }
 
     bool rasterDefined;
     CRasterPoints(){};
