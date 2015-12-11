@@ -39,6 +39,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "Symbols.h"
 
+
+using namespace std;
+using namespace datetime;
+
 namespace temporalalgebra{
 
 /*

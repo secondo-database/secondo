@@ -49,19 +49,19 @@ one and the second components of both pairs are equal.
 
 */
 
-void mergeAdd(vector<pair<Interval<Instant>, toprel::Int9M> >& vec, 
-              const pair<Interval<Instant>, toprel::Int9M>& elem);
+void mergeAdd(std::vector<std::pair<Interval<Instant>, toprel::Int9M> >& vec, 
+              const std::pair<Interval<Instant>, toprel::Int9M>& elem);
 
 
-void mergeAdd(queue<pair<Interval<Instant>, toprel::Int9M> >& q, 
-              const pair<Interval<Instant>, toprel::Int9M>& elem);
+void mergeAdd(std::queue<std::pair<Interval<Instant>, toprel::Int9M> >& q, 
+              const std::pair<Interval<Instant>, toprel::Int9M>& elem);
 
-void mergeAdd(vector<pair<Interval<Instant>, toprel::Cluster> >& vec, 
-               const pair<Interval<Instant>, toprel::Cluster> & elem);
+void mergeAdd(std::vector<std::pair<Interval<Instant>, toprel::Cluster> >& vec, 
+               const std::pair<Interval<Instant>, toprel::Cluster> & elem);
 
 
-void mergeAdd(queue<pair<Interval<Instant>, toprel::Cluster> >& q, 
-               const pair<Interval<Instant>, toprel::Cluster> & elem);
+void mergeAdd(std::queue<std::pair<Interval<Instant>, toprel::Cluster> >& q, 
+               const std::pair<Interval<Instant>, toprel::Cluster> & elem);
 
 
 /*
@@ -88,13 +88,13 @@ qreg, and qup. The segment is removed from the corresponding container
 avlseg::ownertype SelectNext(
      const Region& reg,
      int& posreg,
-     priority_queue<avlseg::ExtendedHalfSegment,
-                    vector<avlseg::ExtendedHalfSegment>,
-                    greater<avlseg::ExtendedHalfSegment> >& qreg, 
+     std::priority_queue<avlseg::ExtendedHalfSegment,
+                    std::vector<avlseg::ExtendedHalfSegment>,
+                    std::greater<avlseg::ExtendedHalfSegment> >& qreg, 
      
-     priority_queue<avlseg::ExtendedHalfSegment,
-                    vector<avlseg::ExtendedHalfSegment>,
-                    greater<avlseg::ExtendedHalfSegment> >& qup, 
+     std::priority_queue<avlseg::ExtendedHalfSegment,
+                    std::vector<avlseg::ExtendedHalfSegment>,
+                    std::greater<avlseg::ExtendedHalfSegment> >& qup, 
      avlseg::ExtendedHalfSegment& result );
 
 
@@ -105,8 +105,8 @@ Checks whther the first component of the firt pair is smaller than
 the first component of the second pair;
 
 */
-     bool pCompare (const pair<Interval<Instant>, toprel::Int9M>& p1,
-                    const pair<Interval<Instant>, toprel::Int9M>& p2); 
+     bool pCompare (const std::pair<Interval<Instant>, toprel::Int9M>& p1,
+                    const std::pair<Interval<Instant>, toprel::Int9M>& p2); 
 
 
 /*
@@ -168,7 +168,7 @@ Returns the next element of the result. The result consists of a time interval
 and the corresponding topological relationship between the time interval.
 
 */
-      pair<Interval<Instant>, toprel::Int9M> next();
+      std::pair<Interval<Instant>, toprel::Int9M> next();
 
 
 /*
@@ -187,11 +187,11 @@ Precondition: hasNextCluster
 Returns the next cluster with its corresponding time interval.
 
 */
-      pair<Interval<Instant>, toprel::Cluster> nextCluster();
+      std::pair<Interval<Instant>, toprel::Cluster> nextCluster();
 
    private:
-      vector<pair<Interval<Instant>, toprel::Int9M> > toprels;
-      vector<pair<Interval<Instant>, toprel::Cluster> >clusters;
+      std::vector<std::pair<Interval<Instant>, toprel::Int9M> > toprels;
+      std::vector<std::pair<Interval<Instant>, toprel::Cluster> >clusters;
       unsigned int currentIndexInt9M;
       unsigned int currentIndexCluster;
 
@@ -248,7 +248,7 @@ and the corresponding topological relationship between the time interval.
 
 */
       template<bool sym>
-      pair<Interval<Instant>, toprel::Int9M> MTopRelAlg_PUP_T<sym>::next(){
+      std::pair<Interval<Instant>, toprel::Int9M> MTopRelAlg_PUP_T<sym>::next(){
           assert(hasNext());
           currentIndexInt9M++;
           return toprels[currentIndexInt9M-1];
@@ -275,7 +275,7 @@ Returns the next cluster with its corresponding time interval.
 
 */
      template<bool sym>
-     pair<Interval<Instant>, toprel::Cluster> 
+     std::pair<Interval<Instant>, toprel::Cluster> 
                           MTopRelAlg_PUP_T<sym>::nextCluster(){
          assert(hasNextCluster());
          currentIndexCluster++;
@@ -310,7 +310,7 @@ This functions computes the result and stores it into the private members.
         if(sym){
            m.Transpose();
         }
-        pair<Interval<Instant>, toprel::Int9M> r(up->timeInterval, m);
+        std::pair<Interval<Instant>, toprel::Int9M> r(up->timeInterval, m);
         toprels.push_back(r);
      } else { // nonstatic upoint
         HalfSegment hs(true,up->p0, up->p1);
@@ -319,7 +319,7 @@ This functions computes the result and stores it into the private members.
            if(sym){
               m.Transpose();
             }
-           pair<Interval<Instant>, toprel::Int9M> r(up->timeInterval, m);
+           std::pair<Interval<Instant>, toprel::Int9M> r(up->timeInterval, m);
            toprels.push_back(r);
         } else {
            // compute the instant when the points are equal
@@ -328,12 +328,12 @@ This functions computes the result and stores it into the private members.
            double delta = deltaX>deltaY? (p->GetX() - up->p0.GetX()) / deltaX
                                        : (p->GetY() - up->p0.GetY()) / deltaY;
 
-           DateTime dur(durationtype);
+           datetime::DateTime dur(datetime::durationtype);
            dur = up->timeInterval.end - up->timeInterval.start;
            dur.Mul(delta);
            datetime::DateTime in(datetime::instanttype);
            in = up->timeInterval.start + dur;
-           vector<Interval<Instant> > v = up->timeInterval.splitAround(in);
+           std::vector<Interval<Instant> > v = up->timeInterval.splitAround(in);
            for(unsigned int i=0; i < v.size(); i++){
               Interval<Instant> ci = v[i];
               if(ci.Contains(in)){
@@ -344,7 +344,7 @@ This functions computes the result and stores it into the private members.
               if(sym){
                  m.Transpose();
               }
-              pair<Interval<Instant>, toprel::Int9M> r(ci, m);
+              std::pair<Interval<Instant>, toprel::Int9M> r(ci, m);
               toprels.push_back(r);
            }
         }
@@ -363,12 +363,12 @@ This functions computes the result and stores it into the private members.
        return;
      }
 
-    pair<Interval<Instant>, toprel::Int9M> cpi = toprels[0];
+    std::pair<Interval<Instant>, toprel::Int9M> cpi = toprels[0];
     toprel::Cluster* cl = pg->GetClusterOf(cpi.second);
-    pair<Interval<Instant>, toprel::Cluster> cpc(cpi.first, *cl);
+    std::pair<Interval<Instant>, toprel::Cluster> cpc(cpi.first, *cl);
     delete cl;
     for(unsigned int i=1; i< toprels.size(); i++){
-       pair<Interval<Instant>, toprel::Int9M> npi = toprels[i];
+       std::pair<Interval<Instant>, toprel::Int9M> npi = toprels[i];
        cl = pg->GetClusterOf(npi.second);
        if(cpc.second == *cl){ // toprel within the same cluster, 
                               //just enlarge the interval
@@ -455,9 +455,9 @@ Returns the next element of the result. The result consists of a time interval
 and the corresponding topological relationship between the time interval.
 
 */
-      pair<Interval<Instant>, toprel::Int9M> next(){
+      std::pair<Interval<Instant>, toprel::Int9M> next(){
          assert(hasNext());
-         pair<Interval<Instant>, toprel::Int9M> result = 
+         std::pair<Interval<Instant>, toprel::Int9M> result = 
                                             currentUnitTopRel.front();
          currentUnitTopRel.pop();
          computeNextTopRel();
@@ -486,9 +486,9 @@ Precondition: hasNextCluster
 Returns the next cluster with its corresponding time interval.
 
 */
-      pair<Interval<Instant>, toprel::Cluster> nextCluster(){
+      std::pair<Interval<Instant>, toprel::Cluster> nextCluster(){
          assert(hasNextCluster());
-         pair<Interval<Instant>, toprel::Cluster> result = 
+         std::pair<Interval<Instant>, toprel::Cluster> result = 
                                                    currentUnitCluster.front();
          currentUnitCluster.pop();
          computeNextCluster();
@@ -501,8 +501,9 @@ Returns the next cluster with its corresponding time interval.
 1.6 Members
 
 */
-     queue< pair<Interval<Instant>, toprel::Int9M> > currentUnitTopRel;
-     queue< pair<Interval<Instant>, toprel::Cluster> > currentUnitCluster;
+     std::queue<std::pair<Interval<Instant>, toprel::Int9M> > currentUnitTopRel;
+     std::queue<std::pair<Interval<Instant>, 
+                                          toprel::Cluster> > currentUnitCluster;
      int32_t posTopRel;             // position in MO
      int32_t posCluster;            // position in MO
      const SO* so;                       // the point
@@ -548,8 +549,8 @@ corresponding intervals can be connected and the topologocal relationships
 of s and f are equal.
 
 */
-   bool canBeConnected(const pair<Interval<Instant>, toprel::Int9M>& f, 
-                       const pair<Interval<Instant>, toprel::Int9M>& s) const{
+   bool canBeConnected(const std::pair<Interval<Instant>, toprel::Int9M>& f, 
+                const std::pair<Interval<Instant>, toprel::Int9M>& s) const{
         return canBeConnected(f.first, s.first) && (f.second == s.second);
    }
 
@@ -561,8 +562,8 @@ Precondition: canBeConnected(f,s).
 
 */
 
-     void connect(pair<Interval<Instant>, toprel::Int9M>& f, 
-             const pair<Interval<Instant>, toprel::Int9M>& s){
+     void connect(std::pair<Interval<Instant>, toprel::Int9M>& f, 
+             const std::pair<Interval<Instant>, toprel::Int9M>& s){
 
            assert(canBeConnected(f,s));
            f.first.end = s.first.end;
@@ -606,7 +607,7 @@ next top rel.
             posTopRel++;
             UP up(so,&uo,pg);
             while(up.hasNext()){
-              pair<Interval<Instant>, toprel::Int9M> n = up.next();
+              std::pair<Interval<Instant>, toprel::Int9M> n = up.next();
               if(canBeConnected(currentUnitTopRel.back(), n)){
                  connect(currentUnitTopRel.back(), n);
               } else {
@@ -619,14 +620,14 @@ next top rel.
  
      
       bool canBeConnected(
-               const pair<Interval<Instant>, toprel::Cluster>& f, 
-               const pair<Interval<Instant>, toprel::Cluster>& s) const{
+               const std::pair<Interval<Instant>, toprel::Cluster>& f, 
+               const std::pair<Interval<Instant>, toprel::Cluster>& s) const{
           return canBeConnected(f.first, s.first) && (f.second == s.second);
       }
 
 
-      void connect(pair<Interval<Instant>, toprel::Cluster>& f, 
-             const pair<Interval<Instant>, toprel::Cluster>& s){
+      void connect(std::pair<Interval<Instant>, toprel::Cluster>& f, 
+             const std::pair<Interval<Instant>, toprel::Cluster>& s){
 
            assert(canBeConnected(f,s));
            f.first.end = s.first.end;
@@ -660,7 +661,8 @@ next top rel.
             posCluster++;
             UP up(so,&uo,pg);
             while(up.hasNextCluster()){
-              pair<Interval<Instant>, toprel::Cluster> n = up.nextCluster();
+              std::pair<Interval<Instant>, toprel::Cluster> n 
+                                                = up.nextCluster();
               if(canBeConnected(currentUnitCluster.back(), n)){
                  connect(currentUnitCluster.back(), n);
               } else {
@@ -734,7 +736,7 @@ Returns the next element of the result. The result consists of a time interval
 and the corresponding topological relationship between the time interval.
 
 */
-      pair<Interval<Instant>, toprel::Int9M> next();
+      std::pair<Interval<Instant>, toprel::Int9M> next();
 
 
 /*
@@ -753,11 +755,11 @@ Precondition: hasNextCluster
 Returns the next cluster with its corresponding time interval.
 
 */
-      pair<Interval<Instant>, toprel::Cluster> nextCluster();
+      std::pair<Interval<Instant>, toprel::Cluster> nextCluster();
 
    private:
-      vector< pair<Interval<Instant>, toprel::Int9M> > toprels;
-      vector< pair<Interval<Instant>, toprel::Cluster> > clusters;
+      std::vector< std::pair<Interval<Instant>, toprel::Int9M> > toprels;
+      std::vector< std::pair<Interval<Instant>, toprel::Cluster> > clusters;
       uint8_t toprelPos;
       uint8_t clusterPos;
       
@@ -815,7 +817,7 @@ Returns the next element of the result. The result consists of a time interval
 and the corresponding topological relationship between the time interval.
 
 */
-      pair<Interval<Instant>, toprel::Int9M> next();
+      std::pair<Interval<Instant>, toprel::Int9M> next();
 
 
 /*
@@ -834,7 +836,7 @@ Precondition: hasNextCluster
 Returns the next cluster with its corresponding time interval.
 
 */
-      pair<Interval<Instant>, toprel::Cluster> nextCluster();
+      std::pair<Interval<Instant>, toprel::Cluster> nextCluster();
 
    private:
        const UPoint* up;
@@ -842,8 +844,8 @@ Returns the next cluster with its corresponding time interval.
        RefinementStream<MPoint, MPoint, UPoint, UPoint> toprelRefinement; 
        RefinementStream<MPoint, MPoint, UPoint, UPoint> clusterRefinement; 
        const toprel::PredicateGroup* pg;
-       queue< pair<Interval<Instant> , toprel::Int9M> > toprelqueue;
-       queue< pair<Interval<Instant> , toprel::Cluster> > clusterqueue;
+       std::queue<std::pair<Interval<Instant> , toprel::Int9M> > toprelqueue;
+       std::queue<std::pair<Interval<Instant> , toprel::Cluster> > clusterqueue;
 
        void init();
        void computeNextTopRel();
@@ -900,9 +902,10 @@ and the corresponding topological relationship between the time interval.
 
 */
       template<bool sym>
-      pair<Interval<Instant>, toprel::Int9M> MTopRelAlg_UPMP_T<sym>::next(){
+      std::pair<Interval<Instant>, 
+                toprel::Int9M> MTopRelAlg_UPMP_T<sym>::next(){
         assert(hasNext());
-        pair<Interval<Instant>, toprel::Int9M> res = toprelqueue.front();
+        std::pair<Interval<Instant>, toprel::Int9M> res = toprelqueue.front();
         toprelqueue.pop();
         computeNextTopRel();
         return res;
@@ -929,10 +932,11 @@ Returns the next cluster with its corresponding time interval.
 
 */
       template<bool sym>
-      pair<Interval<Instant>, toprel::Cluster> 
+      std::pair<Interval<Instant>, toprel::Cluster> 
                            MTopRelAlg_UPMP_T<sym>::nextCluster(){
         assert(hasNextCluster());
-        pair<Interval<Instant>, toprel::Cluster> res = clusterqueue.front();
+        std::pair<Interval<Instant>, toprel::Cluster> res 
+                                            = clusterqueue.front();
         clusterqueue.pop();
         computeNextCluster();
         return res;
@@ -965,7 +969,7 @@ Returns the next cluster with its corresponding time interval.
            while(toprelqueue.size() < 2 && toprelRefinement.hasNext()){
                toprelRefinement.getNext(iv, pos1,pos2);
                if(pos1<0 || pos2 <0){
-                  pair<Interval<Instant> , toprel::Int9M> p(iv, undef);
+                  std::pair<Interval<Instant> , toprel::Int9M> p(iv, undef);
                   mergeAdd(toprelqueue,p);
                } else { // wow, found a common interval
                   UPoint up1(1);
@@ -976,7 +980,7 @@ Returns the next cluster with its corresponding time interval.
                   up2_1.AtInterval(iv,up2);
                   MTopRelAlg_UPUP alg(&up1,&up2);
                   while(alg.hasNext()){
-                     pair<Interval<Instant>, toprel::Int9M> p = alg.next();
+                     std::pair<Interval<Instant>, toprel::Int9M> p = alg.next();
                      if(sym){
                         p.second.Transpose();
                      }
@@ -1000,7 +1004,7 @@ Returns the next cluster with its corresponding time interval.
            while(clusterqueue.size() < 2 && clusterRefinement.hasNext()){
                clusterRefinement.getNext(iv, pos1,pos2);
                if(pos1<0 || pos2 <0){
-                  pair<Interval<Instant> , toprel::Cluster> p(iv, undef);
+                  std::pair<Interval<Instant> , toprel::Cluster> p(iv, undef);
                   mergeAdd(clusterqueue,p);
                } else { // wow, found a common interval
                   UPoint up1(1);
@@ -1011,11 +1015,11 @@ Returns the next cluster with its corresponding time interval.
                   up2_1.AtInterval(iv,up2);
                   MTopRelAlg_UPUP alg(&up1,&up2);
                   while(alg.hasNext()){
-                    pair<Interval<Instant>, toprel::Int9M> p1 = alg.next();
+                    std::pair<Interval<Instant>, toprel::Int9M> p1 = alg.next();
                     if(sym){
                         p1.second.Transpose();
                     }
-                    pair<Interval<Instant>, toprel::Cluster> 
+                    std::pair<Interval<Instant>, toprel::Cluster> 
                                   p2(p1.first, pg->GetClusterOf(p1.second));
                     mergeAdd(clusterqueue,p2);
                   }
@@ -1074,7 +1078,7 @@ Returns the next element of the result. The result consists of a time interval
 and the corresponding topological relationship between the time interval.
 
 */
-      pair<Interval<Instant>, toprel::Int9M> next();
+      std::pair<Interval<Instant>, toprel::Int9M> next();
 
 
 /*
@@ -1093,7 +1097,7 @@ Precondition: hasNextCluster
 Returns the next cluster with its corresponding time interval.
 
 */
-      pair<Interval<Instant>, toprel::Cluster> nextCluster();
+      std::pair<Interval<Instant>, toprel::Cluster> nextCluster();
 
    private:
        const MPoint* mp1;
@@ -1101,8 +1105,8 @@ Returns the next cluster with its corresponding time interval.
        RefinementStream<MPoint, MPoint, UPoint, UPoint> toprelRefinement; 
        RefinementStream<MPoint, MPoint, UPoint, UPoint> clusterRefinement; 
        const toprel::PredicateGroup* pg;
-       queue< pair<Interval<Instant> , toprel::Int9M> > toprelqueue;
-       queue< pair<Interval<Instant> , toprel::Cluster> > clusterqueue;
+       std::queue<std::pair<Interval<Instant> , toprel::Int9M> > toprelqueue;
+       std::queue<std::pair<Interval<Instant> , toprel::Cluster> > clusterqueue;
 
        void init();
        void computeNextTopRel();
@@ -1157,7 +1161,7 @@ Returns the next element of the result. The result consists of a time interval
 and the corresponding topological relationship between the time interval.
 
 */
-      pair<Interval<Instant>, toprel::Int9M> next();
+      std::pair<Interval<Instant>, toprel::Int9M> next();
 
 
 /*
@@ -1176,11 +1180,12 @@ Precondition: hasNextCluster
 Returns the next cluster with its corresponding time interval.
 
 */
-      pair<Interval<Instant>, toprel::Cluster> nextCluster();
+      std::pair<Interval<Instant>, toprel::Cluster> nextCluster();
 
    private:
-       vector<pair<Interval<Instant>, toprel::Int9M> > toprelvector;
-       vector<pair<Interval<Instant>, toprel::Cluster> > clustervector;
+       std::vector<std::pair<Interval<Instant>, toprel::Int9M> > toprelvector;
+       std::vector<std::pair<Interval<Instant>, toprel::Cluster> > 
+                                                                clustervector;
        size_t toprelpos;
        size_t clusterpos;
 
@@ -1238,9 +1243,10 @@ and the corresponding topological relationship between the time interval.
 
 */
       template<bool sym>
-      pair<Interval<Instant>, toprel::Int9M> MTopRelAlg_RUP_T<sym>::next(){
+      std::pair<Interval<Instant>, toprel::Int9M> MTopRelAlg_RUP_T<sym>::next(){
          assert(hasNext());
-         pair<Interval<Instant>, toprel::Int9M> res = toprelvector[toprelpos];
+         std::pair<Interval<Instant>, toprel::Int9M> res 
+                                                    = toprelvector[toprelpos];
          toprelpos++;
          return res;
       }
@@ -1268,10 +1274,10 @@ Returns the next cluster with its corresponding time interval.
 
 
       template<bool sym>
-      pair<Interval<Instant>, toprel::Cluster> 
+      std::pair<Interval<Instant>, toprel::Cluster> 
                               MTopRelAlg_RUP_T<sym>::nextCluster(){
          assert(hasNextCluster());
-         pair<Interval<Instant>, toprel::Cluster> 
+         std::pair<Interval<Instant>, toprel::Cluster> 
                  res = clustervector[clusterpos];
          clusterpos++;
          return res;
@@ -1303,34 +1309,34 @@ Returns the next cluster with its corresponding time interval.
       noreg.Transpose();
     }
 
-     vector<pair<Interval<Instant>, toprel::Int9M> > tmpvector;
+     std::vector<std::pair<Interval<Instant>, toprel::Int9M> > tmpvector;
      if(reg->IsEmpty()){
-       pair<Interval<Instant>, toprel::Int9M> p(up->timeInterval, noreg);
+       std::pair<Interval<Instant>, toprel::Int9M> p(up->timeInterval, noreg);
        tmpvector.push_back(p);
      } else { // nonempty region
 
         if(!reg->BoundingBox().Intersects(up->BoundingBoxSpatial())){
-          pair<Interval<Instant>, toprel::Int9M> 
+          std::pair<Interval<Instant>, toprel::Int9M> 
                    p(up->timeInterval, disjoint);
           tmpvector.push_back(p);
         } else if(AlmostEqual(up->p0, up->p1)){ // static upoint
           if(reg->InInterior(up->p0)){
-             pair<Interval<Instant>, toprel::Int9M> 
+             std::pair<Interval<Instant>, toprel::Int9M> 
                    p(up->timeInterval, ininterior);
              tmpvector.push_back(p);
           } else if(reg->OnBorder(up->p0)){
-             pair<Interval<Instant>, toprel::Int9M> 
+             std::pair<Interval<Instant>, toprel::Int9M> 
                     p(up->timeInterval, onborder);
              tmpvector.push_back(p);
           } else {
-             pair<Interval<Instant>, toprel::Int9M>
+             std::pair<Interval<Instant>, toprel::Int9M>
                      p(up->timeInterval, disjoint);
              tmpvector.push_back(p);
           }
         } else { // non-empty region, non-static upoint
 
            if(up->timeInterval.lc && reg->OnBorder(up->p0)){
-              pair<Interval<Instant>, toprel::Int9M> 
+              std::pair<Interval<Instant>, toprel::Int9M> 
                       p(Interval<Instant>(up->timeInterval.start, 
                                           up->timeInterval.start,
                                           true,true),
@@ -1346,13 +1352,13 @@ Returns the next cluster with its corresponding time interval.
            // and the upoint in parallel
            
            //priority queue for the splitted sgements of the region
-           priority_queue<avlseg::ExtendedHalfSegment,
-                vector<avlseg::ExtendedHalfSegment>,
-                greater<avlseg::ExtendedHalfSegment> > qreg;
+           std::priority_queue<avlseg::ExtendedHalfSegment,
+                std::vector<avlseg::ExtendedHalfSegment>,
+                std::greater<avlseg::ExtendedHalfSegment> > qreg;
            // periority queue for the upoint's halgsegments
-           priority_queue<avlseg::ExtendedHalfSegment,
-                vector<avlseg::ExtendedHalfSegment>,
-                greater<avlseg::ExtendedHalfSegment> > qup; 
+           std::priority_queue<avlseg::ExtendedHalfSegment,
+                std::vector<avlseg::ExtendedHalfSegment>,
+                std::greater<avlseg::ExtendedHalfSegment> > qup; 
 
            avlseg::ExtendedHalfSegment hs1(HalfSegment(true, up->p0, up->p1));
            avlseg::ExtendedHalfSegment hs2(HalfSegment(false, 
@@ -1420,7 +1426,8 @@ Returns the next cluster with its corresponding time interval.
                     insertEvents(common1,false,true,qreg,qup);
                  } else {
                      Interval<Instant> iv = computeInterval(*up, common1);
-                     pair<Interval<Instant>, toprel::Int9M> p(iv, onborder);
+                     std::pair<Interval<Instant>, toprel::Int9M>
+                                                          p(iv, onborder);
                      tmpvector.push_back(p);
                  }
                  if(parts & avlseg::RIGHT){
@@ -1480,18 +1487,20 @@ Returns the next cluster with its corresponding time interval.
              if(member && member->exactEqualsTo(current)){
                if( (member->getOwner()==avlseg::both)){
                    Interval<Instant> iv = computeInterval(*up, *member);
-                   pair<Interval<Instant>, toprel::Int9M> p(iv, onborder);
+                   std::pair<Interval<Instant>, toprel::Int9M> p(iv, onborder);
                    tmpvector.push_back(p); 
                }
                if( (member->getOwner()==avlseg::second)) {
                   Interval<Instant> iv = computeInterval(*up, *member);
 
                   if(member->con_above>0){
-                     pair<Interval<Instant>, toprel::Int9M> p(iv, ininterior);
+                     std::pair<Interval<Instant>, toprel::Int9M> 
+                                                          p(iv, ininterior);
                      tmpvector.push_back(p); 
                   } else {
                       // create a disjoint toprel for member
-                     pair<Interval<Instant>, toprel::Int9M> p(iv, disjoint);
+                     std::pair<Interval<Instant>, toprel::Int9M>
+                                                          p(iv, disjoint);
                      tmpvector.push_back(p); 
                   }
                } 
@@ -1502,7 +1511,7 @@ Returns the next cluster with its corresponding time interval.
       } // while
         
            if(up->timeInterval.rc && reg->OnBorder(up->p1)){
-              pair<Interval<Instant>, toprel::Int9M> p(
+              std::pair<Interval<Instant>, toprel::Int9M> p(
                                 Interval<Instant>(up->timeInterval.end, 
                                 up->timeInterval.end,
                                 true,true),
@@ -1523,9 +1532,9 @@ Returns the next cluster with its corresponding time interval.
     toprelvector.clear();
 
     if(tmpvector.size() > 0){
-       pair<Interval<Instant>, toprel::Int9M> 
+       std::pair<Interval<Instant>, toprel::Int9M> 
                       p1(Interval<Instant>(), toprel::Int9M(1));
-       pair<Interval<Instant>, toprel::Int9M> 
+       std::pair<Interval<Instant>, toprel::Int9M> 
                       p2(Interval<Instant>(), toprel::Int9M(1));
        p1 = tmpvector[0];
        for(size_t i = 1; i<tmpvector.size(); i++){
@@ -1562,7 +1571,7 @@ Returns the next cluster with its corresponding time interval.
                      p1.first.IntersectionWith(up->timeInterval);
                      toprelvector.push_back(p1);
                   }
-                  pair<Interval<Instant>, toprel::Int9M> 
+                  std::pair<Interval<Instant>, toprel::Int9M> 
                          p3(Interval<Instant>(p1.first.end,
                                               p1.first.end,true,true),
                             onborder);
@@ -1577,7 +1586,7 @@ Returns the next cluster with its corresponding time interval.
                   p1.first.IntersectionWith(up->timeInterval);
                   toprelvector.push_back(p1);
                }
-               pair<Interval<Instant>, toprel::Int9M> 
+               std::pair<Interval<Instant>, toprel::Int9M> 
                          p3(Interval<Instant>(p1.first.end,
                                               p1.first.end,true,true),
                              onborder);
@@ -1607,12 +1616,12 @@ Returns the next cluster with its corresponding time interval.
        return;
      }
 
-    pair<Interval<Instant>, toprel::Int9M> cpi = toprelvector[0];
+    std::pair<Interval<Instant>, toprel::Int9M> cpi = toprelvector[0];
     toprel::Cluster* cl = pg->GetClusterOf(cpi.second);
-    pair<Interval<Instant>, toprel::Cluster> cpc(cpi.first, *cl);
+    std::pair<Interval<Instant>, toprel::Cluster> cpc(cpi.first, *cl);
     delete cl;
     for(unsigned int i=1; i< toprelvector.size(); i++){
-       pair<Interval<Instant>, toprel::Int9M> npi = toprelvector[i];
+       std::pair<Interval<Instant>, toprel::Int9M> npi = toprelvector[i];
        cl = pg->GetClusterOf(npi.second);
        if(cpc.second == *cl){ // toprel within the same cluster, 
                               //just enlarge the interval

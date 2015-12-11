@@ -60,7 +60,7 @@ than the length of the second argument string.
 */
 
 
-bool lengthSmaller( const string& s1, const string& s2){
+bool lengthSmaller( const std::string& s1, const std::string& s2){
    return s1.length() < s2.length();
 }
 
@@ -72,7 +72,7 @@ This function checks whether the length of the first argument string is greater
 than the length of the second argument string.
 
 */
-bool lengthGreater( const string& s1, const string& s2){
+bool lengthGreater( const std::string& s1, const std::string& s2){
    return s1.length() > s2.length();
 }
 
@@ -83,8 +83,8 @@ bool lengthGreater( const string& s1, const string& s2){
 This function converts an integer to a string.
 
 */
-string num2str(const int num){
- stringstream s;
+std::string num2str(const int num){
+ std::stringstream s;
  s << num;
  return s.str();
 
@@ -203,7 +203,7 @@ when using the names for topological relationships from the predicate group.
 
 */
 
-  void setTo(const string& regex,
+  void setTo(const std::string& regex,
              const toprel::PredicateGroup& pg) {
     
    /* special case, predicate group is not defined,
@@ -223,21 +223,21 @@ when using the names for topological relationships from the predicate group.
       the regular expression. 
     */
 
-    std::vector<string> names = pg.getNames();
+    std::vector<std::string> names = pg.getNames();
     // sort vector by the  length of its elements
     std::sort(names.begin(), names.end(), lengthGreater); 
 
 
 
-    string changed = regex;
+    std::string changed = regex;
     for(unsigned int i=0;i<names.size();i++){
-      string res = " " + num2str(i)+" ";
+      std::string res = " " + num2str(i)+" ";
       changed = stringutils::replaceAll(changed,names[i],res); 
     }
 
     // replaces all dots by all possible symbols
     if(names.size()>0){
-       string repl = "( ";
+       std::string repl = "( ";
        for(unsigned int i=0;i< names.size(); i++){
           if(i>0){
              repl += " | ";
@@ -395,12 +395,12 @@ Checks whether the dfa is in a final state.
     return isFinal;
   }
 
-  bool isFinal(const set<int>& states){
+  bool isFinal(const std::set<int>& states){
     if(states.empty()){
       return false;
     }
     bool isFinal;
-    set<int>::iterator it;
+    std::set<int>::iterator it;
     for(it=states.begin(); it!=states.end(); it++){
       if(*it>=0 && *it<finalStates.Size()){
          finalStates.Get(*it, isFinal);
@@ -482,14 +482,14 @@ relationship are multiple occurences of the same cluster within a chain.
 For example the automaton defined by ("disjoint disjoint disjoint") should 
 accept all moving relationships with a duration of more than an instant 
 with value disjoint. The set must be initilized with the start state. 
-Values wtihin the set outside the available states are ignored. If tep is set to be
-true, 
+Values wtihin the set outside the available states are ignored. If tep is 
+set to be true, 
 
 */
 
 
 
-  bool next(const int clusternum, set<int>& states, const bool step){
+  bool next(const int clusternum, std::set<int>& states, const bool step){
     // check
     if(startState < 0 || states.empty()){
        return false;
@@ -501,8 +501,8 @@ true,
     int symbol;
     cluster2Symbol.Get(clusternum,symbol);
 
-    set<int> newStates;
-    set<int>::iterator it;
+    std::set<int> newStates;
+    std::set<int>::iterator it;
    for(it=states.begin(); it!=states.end(); it++){
       int index = numOfSymbols*(*it) + symbol;
       int nextState;
@@ -542,14 +542,15 @@ make the transition for the given name of the cluster. Returns
 true iff successful.
 
 */
-  bool next(const string& clusterName){
+  bool next(const std::string& clusterName){
      if(currentState < 0){
         return false;
      }
      return next(predicateGroup.getClusterNumber(clusterName));
   }
 
-  bool next(const string& clusterName, set<int>& states, const bool step){
+  bool next(const std::string& clusterName, 
+            std::set<int>& states, const bool step){
      return next(predicateGroup.getClusterNumber(clusterName), states, step);
   }
 
@@ -566,7 +567,8 @@ go to the next state by giving an Int9M value
      return next(predicateGroup.getClusterNumber(toprel));
   }
 
-  bool next(const toprel::Int9M& toprel, set<int>& states, const bool step){
+  bool next(const toprel::Int9M& toprel, std::set<int>& states, 
+            const bool step){
      return next(predicateGroup.getClusterNumber(toprel), states, step);
   }
 
@@ -581,7 +583,8 @@ Make a transition based on a cluster (only the name of the cluster is used.
       return next(cluster.GetName());
    } 
 
-   bool next(const toprel::Cluster& cluster, set<int>& states, const bool step){
+   bool next(const toprel::Cluster& cluster, 
+             std::set<int>& states, const bool step){
       return next(cluster.GetName(), states, step);
    } 
 
@@ -729,7 +732,7 @@ invalid after destroying this object
  }
 
 
- static const string BasicType(){
+ static const std::string BasicType(){
     return "mtoprel";
  }
  static const bool checkType(const ListExpr type){
@@ -1009,7 +1012,7 @@ Produces a listexpr for the value of this dfa.
  }
 
 
- ostream& Print( ostream& o ) const{
+ std::ostream& Print( std::ostream& o ) const{
    if(!IsDefined()){
       o << "undefined";
       return o;
@@ -1032,10 +1035,10 @@ Produces a listexpr for the value of this dfa.
         if(next >=0){
             bool finalstart;
             finalStates.Get(start,finalstart);
-            string finalstartMark = finalstart?"(*) ":"( ) ";
+            std::string finalstartMark = finalstart?"(*) ":"( ) ";
             bool finalnext;
             finalStates.Get(next,finalnext);
-            string finalnextMark = finalnext?"(*) ":"( ) ";
+            std::string finalnextMark = finalnext?"(*) ":"( ) ";
             o << finalstartMark << start << " \t "  << c.GetName()  
               << " \t\t " << next << finalnextMark << endl;
         }
