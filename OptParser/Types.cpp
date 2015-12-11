@@ -39,6 +39,9 @@ bison parser tree.
 
 #include "Types.h"
 
+using namespace std;
+
+
 OptParseStruct::OptParseStruct()
 {
   groupbyclause = false;

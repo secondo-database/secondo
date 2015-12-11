@@ -39,6 +39,7 @@
 #include "OptSecUtils.h"
 #include "Types.h"
 
+using namespace std;
 
 #define YYDEBUG 0
 #define YYERROR_VERBOSE 0

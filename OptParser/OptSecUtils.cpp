@@ -51,6 +51,8 @@ is in kind data). At this place these checks are not nessecary.
 extern NestedList* plnl; // use global si
 extern SecondoInterfaceTTY* si; // use the same si as the rest of prolog
 
+using namespace std;
+
 
 namespace optutils
 {

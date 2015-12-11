@@ -144,7 +144,7 @@ text '[^']'
              return TOKEN_TEXT;
             }
 {id}        {
-             string id = strdup(yytext);
+             std::string id = strdup(yytext);
              optlval.strval = strdup(yytext);
              if (optutils::isOperator(strdup(yytext)))
              {
@@ -154,10 +154,10 @@ text '[^']'
             }
 {variable}  { optlval.strval = strdup(yytext); return TOKEN_VARIABLE;}
 {symbol}    { 
-               string s = typeid(yytext).name();
+               std::string s = typeid(yytext).name();
                //cout << "Found a " << yytext << " type : " << s << endl;
                optlval.strval = strdup(yytext); 
-               string id = strdup(yytext);
+               std::string id = strdup(yytext);
                optlval.strval = strdup(yytext);
                if (optutils::isOperator(id))
                {

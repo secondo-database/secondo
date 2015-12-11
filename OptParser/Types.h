@@ -44,7 +44,7 @@ Use the prolog nested list plnl.
 */
 extern NestedList* plnl;
 
-const static string OPSTACKSEPARATOR = "---";
+const static std::string OPSTACKSEPARATOR = "---";
 /*
 Class which represents a multipurpose structure which passes information from the parser leafs up to the root of the parser. It also includes the needed checks.
 
@@ -182,14 +182,14 @@ This methods adds aliases to the usedAlias set and generates an error if the ali
 
 */
 
-  void addUsedAlias(string aliasname);
+  void addUsedAlias(std::string aliasname);
 
 /*
 ~addOperator~
 Takes a string and checks if it is an operator an adds it to  myOperators, if op does exist.
 
 */
-  void addToOpStack(string operatorname);
+  void addToOpStack(std::string operatorname);
 
 /*
 ~checkAttributes~
@@ -206,7 +206,7 @@ This method takes a stack<string> and appends it to the bottom of the local
 Operators stack.
 
 */
-  void appendToOpStack(stack<string> append);
+  void appendToOpStack(std::stack<std::string> append);
   void addOperatorSeparator();
 
 /*
@@ -215,7 +215,7 @@ Operators stack.
 Basic method to reverse a string stack.
 
 */
-  stack<string> reverseOpStack(stack<string> opstack);
+  std::stack<std::string> reverseOpStack(std::stack<std::string> opstack);
 
 /*
 ~checkOpStack~
@@ -224,7 +224,7 @@ A recursive Function which takes a string stack and tries to return
 
 */
 
-  string checkOpStack(stack<string> operators);
+  std::string checkOpStack(std::stack<std::string> operators);
 
 /*
 ~getAttributeType~
@@ -234,7 +234,7 @@ the given relations.
 
 */
 
-  string getAttributeType(string attribute);
+  std::string getAttributeType(std::string attribute);
 
 /*
 ~checkOperators~
