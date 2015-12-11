@@ -133,8 +133,8 @@ const unsigned minIntEntries  = 3;
 /////////////////////////////////////////////////////////////////////
 // max. count of entries for leaf / internal nodes
 /////////////////////////////////////////////////////////////////////
-const unsigned maxLeafEntries = numeric_limits<unsigned>::max();
-const unsigned maxIntEntries  = numeric_limits<unsigned>::max();
+const unsigned maxLeafEntries = std::numeric_limits<unsigned>::max();
+const unsigned maxIntEntries  = std::numeric_limits<unsigned>::max();
 
 
 /////////////////////////////////////////////////////////////////////
@@ -150,9 +150,9 @@ const unsigned supernodePrio  = 2; // default = 2
 /////////////////////////////////////////////////////////////////////
 // constants for the node type id's
 /////////////////////////////////////////////////////////////////////
-const NodeTypeId LEAF      = 0;
-const NodeTypeId INTERNAL  = 1;
-const NodeTypeId SUPERNODE = 2;
+const gtree::NodeTypeId LEAF      = 0;
+const gtree::NodeTypeId INTERNAL  = 1;
+const gtree::NodeTypeId SUPERNODE = 2;
 
 
 

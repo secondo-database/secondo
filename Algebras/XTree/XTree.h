@@ -262,10 +262,10 @@ Initializes a new created x-tree. This method must be called, before a new tree 
 */
     void initialize(
         unsigned dim,
-        const string &configName,
-        const string &typeName,
+        const std::string &configName,
+        const std::string &typeName,
         int getdataType,
-        const string &getdataName);
+        const std::string &getdataName);
 
 /*
 Creates a new LeafEntry from "bbox"[4] and inserts it into the xtree.
@@ -278,25 +278,25 @@ Returns all entries, wich have a maximum (eucledean) distance of "rad"[4] to the
 
 */
     void rangeSearch(
-            HPoint *p, const double &rad, list<TupleId> *results);
+            gta::HPoint *p, const double &rad, std::list<TupleId> *results);
 
 /*
 Returns all entries, wich intersect the given hyper rectangle in the result list.
 
 */
-    void windowIntersects(HRect *r, list<TupleId> *results);
+    void windowIntersects(gta::HRect *r, std::list<TupleId> *results);
 
 /*
 Returns the "nncount"[4] nearest neighbours ot the point in the result list.
 
 */
-    void nnSearch(HPoint *p, int nncount, list<TupleId> *results);
+    void nnSearch(gta::HPoint *p, int nncount, std::list<TupleId> *results);
 
 /*
 These methods are used for the nnscan operator, which returns a ranking of the indized elements, based on their distance to to the reference object "p"[4].
 
 */
-    void nnscan_init(HPoint *p);
+    void nnscan_init(gta::HPoint *p);
     TupleId nnscan_next();
     void nnscan_cleanup();
 
@@ -318,14 +318,14 @@ Returns the dimension of the assigned bounding boxes.
 Returns the name of the used "XTreeConfig"[4] object.
 
 */
-    inline string configName()
+    inline std::string configName()
     { return header.configName; }
 
 /*
 Returns the name of the assigned type constructor
 
 */
-    inline string typeName()
+    inline std::string typeName()
     { return header.typeName; }
 
 /*
@@ -339,7 +339,7 @@ Returns the type of the assigned getdata function (gethpoint or gethrect).
 Returns the name of the assigned getdata function.
 
 */
-    inline string getdataName()
+    inline std::string getdataName()
     { return header.getdataName; }
 
 /*
@@ -379,7 +379,7 @@ Prints some infos about the tree to cmsg.info().
         cmsg.send();
     }
 
-    static const string BasicType() { return "xtree"; }
+    static const std::string BasicType() { return "xtree"; }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
@@ -411,27 +411,27 @@ Topological Split.
 */
     template<class TEntry>
     unsigned topologicalSplit(
-            vector<TEntry*> *in,
-            vector<TEntry*> *out1,
-            vector<TEntry*> *out2);
+            std::vector<TEntry*> *in,
+            std::vector<TEntry*> *out1,
+            std::vector<TEntry*> *out2);
 
 /*
 Overlap minimal split.
 
 */
     unsigned overlapMinimalSplit(
-            vector<InternalEntry*> *in,
-            vector<InternalEntry*> *out1,
-            vector<InternalEntry*> *out2);
+            std::vector<InternalEntry*> *in,
+            std::vector<InternalEntry*> *out1,
+            std::vector<InternalEntry*> *out2);
 
 /*
 Selects one of the chields of "treeMngr->curNode"[4] as next node in the path.
 
 */
-    int chooseSubtree(HRect *bbox);
+    int chooseSubtree(gta::HRect *bbox);
 
-    vector<NNScanEntry> nnscan_queue;
-    HPoint *nnscan_ref;
+    std::vector<NNScanEntry> nnscan_queue;
+    gta::HPoint *nnscan_ref;
 }; // class XTree
 
 
@@ -447,7 +447,7 @@ struct SortedBBox
 {
     unsigned dim;
     unsigned index;
-    HRect *bbox;
+    gta::HRect *bbox;
     TEntry *entry;
 
 /*
@@ -501,16 +501,16 @@ Method ~topologicalSplit~:
 ********************************************************************/
 template<class TEntry>
 unsigned XTree::topologicalSplit(
-        vector<TEntry*>* in,
-        vector<TEntry*>* out1,
-        vector<TEntry*>* out2)
+        std::vector<TEntry*>* in,
+        std::vector<TEntry*>* out1,
+        std::vector<TEntry*>* out2)
 {
     unsigned n = in->size();
     unsigned minEntries = static_cast<unsigned>(n * 0.4);
     if (minEntries == 0)
         minEntries = 1;
 
-    HRect *bbox1_lb, *bbox2_lb, *bbox1_ub, *bbox2_ub;
+    gta::HRect *bbox1_lb, *bbox2_lb, *bbox1_ub, *bbox2_ub;
     SortedBBox<TEntry> sorted_lb[n], sorted_ub[n];
 
 
@@ -519,7 +519,7 @@ unsigned XTree::topologicalSplit(
     /////////////////////////////////////////////////////////////////
     unsigned split_axis = 0;
     double marginSum;
-    double minMarginSum = numeric_limits<double>::infinity();
+    double minMarginSum = std::numeric_limits<double>::infinity();
     for(unsigned d = 0; d < header.dim; ++d)
     {
         // sort entries by lower/upper bound for actual dimension
@@ -539,8 +539,8 @@ unsigned XTree::topologicalSplit(
             // compute bounding boxes for actual distribution
             unsigned pos = 0;
 
-            bbox1_lb = new HRect(*(sorted_lb[pos].bbox));
-            bbox1_ub = new HRect(*(sorted_ub[pos].bbox));
+            bbox1_lb = new gta::HRect(*(sorted_lb[pos].bbox));
+            bbox1_ub = new gta::HRect(*(sorted_ub[pos].bbox));
             ++pos;
             while(pos < minEntries+k)
             {
@@ -549,8 +549,8 @@ unsigned XTree::topologicalSplit(
                 ++pos;
             }
 
-            bbox2_lb = new HRect(*(sorted_lb[pos].bbox));
-            bbox2_ub = new HRect(*(sorted_ub[pos].bbox));
+            bbox2_lb = new gta::HRect(*(sorted_lb[pos].bbox));
+            bbox2_ub = new gta::HRect(*(sorted_ub[pos].bbox));
             ++pos;
             while(pos < n)
             {
@@ -584,14 +584,14 @@ unsigned XTree::topologicalSplit(
     /////////////////////////////////////////////////////////////////
     unsigned split_index = minEntries;
     double overlap;
-    double minOverlap = numeric_limits<double>::infinity();
+    double minOverlap = std::numeric_limits<double>::infinity();
     bool lb;
 
     #ifdef XTREE_SPLIT_USE_MIN_DEADSPACE
-    double minDeadspace = numeric_limits<double>::infinity();
+    double minDeadspace = std::numeric_limits<double>::infinity();
     #else
     double area;
-    double minArea = numeric_limits<double>::infinity();
+    double minArea = std::numeric_limits<double>::infinity();
     #endif
 
     // sort entries by lower/upper bound for actual dimension
@@ -617,8 +617,8 @@ unsigned XTree::topologicalSplit(
         // compute bounding boxes for actual distribution
         unsigned pos = 0;
 
-        bbox1_lb = new HRect(*(sorted_lb[pos].bbox));
-        bbox1_ub = new HRect(*(sorted_ub[pos].bbox));
+        bbox1_lb = new gta::HRect(*(sorted_lb[pos].bbox));
+        bbox1_ub = new gta::HRect(*(sorted_ub[pos].bbox));
         #ifdef XTREE_SPLIT_USE_MIN_DEADSPACE
         deadspace_lb -= sorted_lb[pos].bbox->area();
         deadspace_ub -= sorted_ub[pos].bbox->area();
@@ -635,8 +635,8 @@ unsigned XTree::topologicalSplit(
             ++pos;
         }
 
-        bbox2_lb = new HRect(*(sorted_lb[pos].bbox));
-        bbox2_ub = new HRect(*(sorted_ub[pos].bbox));
+        bbox2_lb = new gta::HRect(*(sorted_lb[pos].bbox));
+        bbox2_ub = new gta::HRect(*(sorted_ub[pos].bbox));
         #ifdef XTREE_SPLIT_USE_MIN_DEADSPACE
         deadspace_lb -= sorted_lb[pos].bbox->area();
         deadspace_ub -= sorted_ub[pos].bbox->area();

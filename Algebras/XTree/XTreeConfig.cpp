@@ -34,6 +34,8 @@ January-May 2008, Mirko Dibbert
 #include "XTreeConfig.h"
 
 using namespace xtreeAlgebra;
+using namespace std;
+using namespace gtree;
 
 /*
 Initialize static members :

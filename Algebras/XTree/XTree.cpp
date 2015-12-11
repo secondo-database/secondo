@@ -34,6 +34,9 @@ January-May 2008, Mirko Dibbert
 #include "XTree.h"
 
 using namespace xtreeAlgebra;
+using namespace gtree;
+using namespace gta;
+using namespace std;
 
 /*
 Method ~registerNodePrototypes~:

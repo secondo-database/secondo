@@ -195,7 +195,7 @@ Default constructor.
 Constructor (creates a new leaf entry with given values).
 
 */
-    inline LeafEntry(TupleId tid, HPoint *p)
+    inline LeafEntry(TupleId tid, gta::HPoint *p)
         : m_tid(tid), m_isPoint(true), m_bbox(p->bbox()), m_point(p)
     {
         #ifdef __XTREE_DEBUG
@@ -207,7 +207,7 @@ Constructor (creates a new leaf entry with given values).
 Constructor (creates a new leaf entry with given values).
 
 */
-    inline LeafEntry(TupleId tid, HRect *bbox)
+    inline LeafEntry(TupleId tid, gta::HRect *bbox)
         : m_tid(tid), m_isPoint(false), m_bbox(bbox), m_point(0)
     {
         #ifdef __XTREE_DEBUG
@@ -246,7 +246,7 @@ Returns the tuple id of the entry.
 Returns a reference to the "HRect"[4] object.
 
 */
-    inline HRect *bbox()
+    inline gta::HRect *bbox()
     { return m_bbox; }
 
 /*
@@ -289,13 +289,13 @@ Reads the entry from buffer and increases offset (defined inline, since this met
 
         if (m_isPoint)
         {
-            m_point = new HPoint(buffer, offset);
+            m_point = new gta::HPoint(buffer, offset);
             m_bbox = m_point->bbox();
         }
         else
         {
             m_point = 0;
-            m_bbox = new HRect(buffer, offset);
+            m_bbox = new gta::HRect(buffer, offset);
         }
     }
 
@@ -321,14 +321,14 @@ Returns the size of the entry on disc.
 Returns the square of the Euclidean distance between "p"[4] and the entry data (if the data is no point, the distance to the center of the bounding box is returned).
 
 */
-    double dist(HPoint *p)
+    double dist(gta::HPoint *p)
     {
         if (m_isPoint)
-            return SpatialDistfuns::euclDist2(p, m_point);
+            return gta::SpatialDistfuns::euclDist2(p, m_point);
         else
         {
-            HPoint c = m_bbox->center();
-            return SpatialDistfuns::euclDist2(p, &c);
+            gta::HPoint c = m_bbox->center();
+            return gta::SpatialDistfuns::euclDist2(p, &c);
         }
     }
 
@@ -336,8 +336,8 @@ Returns the square of the Euclidean distance between "p"[4] and the entry data (
 private:
     TupleId   m_tid;      // tuple-id of the entry
     bool      m_isPoint;  // true, if data is point data
-    HRect     *m_bbox;    // bounding box of the entry
-    HPoint    *m_point;   // used for point data
+    gta::HRect     *m_bbox;    // bounding box of the entry
+    gta::HPoint    *m_point;   // used for point data
 }; // class LeafEntry
 
 /********************************************************************
@@ -359,7 +359,7 @@ Default constructor.
 Constructor.
 
 */
-    inline InternalEntry(HRect *bbox, SmiRecordId _chield)
+    inline InternalEntry(gta::HRect *bbox, SmiRecordId _chield)
         : gtree::InternalEntry(_chield), m_bbox(bbox),
           m_history(new SplitHist(m_bbox->dim()))
     {}
@@ -369,7 +369,7 @@ Constructor.
 
 */
     inline InternalEntry(
-            HRect *bbox, SmiRecordId _chield, SplitHist *_hist)
+            gta::HRect *bbox, SmiRecordId _chield, SplitHist *_hist)
         : gtree::InternalEntry(_chield), m_bbox(bbox),
           m_history(new SplitHist(*_hist))
     {}
@@ -379,7 +379,7 @@ Default copy constructor.
 
 */
     inline InternalEntry(const InternalEntry &e)
-        : gtree::InternalEntry(e), m_bbox(new HRect(*e.m_bbox)),
+        : gtree::InternalEntry(e), m_bbox(new gta::HRect(*e.m_bbox)),
           m_history(e.history())
     {}
 
@@ -397,14 +397,14 @@ Destructor.
 Returns a reference to the "HRect"[4] object.
 
 */
-    inline HRect *bbox()
+    inline gta::HRect *bbox()
     { return m_bbox; }
 
 /*
 Replaces the bounding box with new one (used during split).
 
 */
-    inline void replaceHRect(HRect* _bbox)
+    inline void replaceHRect(gta::HRect* _bbox)
     {
         delete m_bbox;
         m_bbox = _bbox;
@@ -439,7 +439,7 @@ Reads the entry from buffer and increases offset (defined inline, since this met
     inline void read(const char *const buffer, int &offset)
     {
         gtree::InternalEntry::read(buffer, offset);
-        m_bbox = new HRect(buffer, offset);
+        m_bbox = new gta::HRect(buffer, offset);
         m_history = new SplitHist(buffer, offset);
     }
 
@@ -454,7 +454,7 @@ Returns the size of the entry on disc.
     }
 
 private:
-    HRect     *m_bbox;    // bounding box of the entry
+    gta::HRect     *m_bbox;    // bounding box of the entry
     SplitHist *m_history; // split history
 }; // class DirEntry
 
@@ -500,10 +500,10 @@ Returns a reference to a copy of the node.
 Returns the union of all contained bounding boxes.
 
 */
-    inline HRect *bbox()
+    inline gta::HRect *bbox()
     {
         iterator iter = begin();
-        HRect *new_bbox = new HRect(*(*iter)->bbox());
+        gta::HRect *new_bbox = new gta::HRect(*(*iter)->bbox());
         while(++iter != end())
             new_bbox->unite((*iter)->bbox());
 
@@ -514,10 +514,10 @@ Returns the union of all contained bounding boxes.
 Returns the union of the given entry vector.
 
 */
-    static HRect *bbox(vector<LeafEntry*> *entries)
+    static gta::HRect *bbox(std::vector<LeafEntry*> *entries)
     {
         iterator iter = entries->begin();
-        HRect *new_bbox = new HRect(*(*iter)->bbox());
+        gta::HRect *new_bbox = new gta::HRect(*(*iter)->bbox());
         while(++iter != entries->end())
             new_bbox->unite((*iter)->bbox());
 
@@ -605,10 +605,10 @@ Returns "true"[4] if "this"[4] is a supernode.
 Returns the union of all contained bounding boxes.
 
 */
-    inline HRect *bbox()
+    inline gta::HRect *bbox()
     {
         iterator iter = begin();
-        HRect *new_bbox = new HRect(*(*iter)->bbox());
+        gta::HRect *new_bbox = new gta::HRect(*(*iter)->bbox());
         while(++iter != end())
             new_bbox->unite((*iter)->bbox());
 
@@ -619,10 +619,10 @@ Returns the union of all contained bounding boxes.
 Returns the union of the given entry vector.
 
 */
-    static HRect *bbox(vector <InternalEntry*> *entries)
+    static gta::HRect *bbox(std::vector <InternalEntry*> *entries)
     {
         iterator iter = entries->begin();
-        HRect *new_bbox = new HRect(*(*iter)->bbox());
+        gta::HRect *new_bbox = new gta::HRect(*(*iter)->bbox());
         while(++iter != entries->end())
             new_bbox->unite((*iter)->bbox());
 

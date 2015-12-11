@@ -51,7 +51,7 @@ namespace xtreeAlgebra
 
 
 // name of the default config
-const string CONFIG_DEFAULT("default");
+const std::string CONFIG_DEFAULT("default");
 
 /********************************************************************
 1.1 Struct ~XTreeConfig~
@@ -63,8 +63,8 @@ struct XTreeConfig
 Config objects for all node types.
 
 */
-    NodeConfig leafNodeConfig;
-    NodeConfig internalNodeConfig;
+    gtree::NodeConfig leafNodeConfig;
+    gtree::NodeConfig internalNodeConfig;
 
 /*
 Constructor (creates object with default values).
@@ -84,8 +84,8 @@ Constructor (creates objects with the given parameters).
 
 */
     XTreeConfig(
-            NodeConfig _leafNodeConfig,
-            NodeConfig _internalNodeConfig)
+            gtree::NodeConfig _leafNodeConfig,
+            gtree::NodeConfig _internalNodeConfig)
         : leafNodeConfig(_leafNodeConfig),
           internalNodeConfig(_internalNodeConfig)
   {}
@@ -105,19 +105,19 @@ public:
 This method returns the specified "XTreeConfig"[4] object. If no such object could be found, the method returns a new object with default values.
 
 */
-    static XTreeConfig getConfig(const string &name);
+    static XTreeConfig getConfig(const std::string &name);
 
 /*
 Returns true, if the specified "XTreeConfig"[4] object is defiend.
 
 */
-    static bool isDefined(const string &name);
+    static bool isDefined(const std::string &name);
 
 /*
 Returns a string with the names of all defined config objects.
 
 */
-    static string definedNames();
+    static std::string definedNames();
 
 /*
 Registeres all config objects.
@@ -126,7 +126,7 @@ Registeres all config objects.
     static void initialize();
 
 private:
-    static map<string, XTreeConfig> configs;
+    static std::map<std::string, XTreeConfig> configs;
     static bool initialized;
 }; // class XTreeConfigReg
 
