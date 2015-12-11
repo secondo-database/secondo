@@ -1204,7 +1204,7 @@ SmiEnvironment::DeleteTmpEnvironment()
 
 
 bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
-                             ostream& errStream) {
+                             ostream& errStream, string dbDir /* = "" */) {
   #ifdef THREAD_SAFE
      boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
   #endif
@@ -1220,10 +1220,11 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
   int errors = GetNumOfErrors();
   DbEnv* dbenv = instance.impl->bdbEnv;
   assert(dbenv);
-  string dbDir;
   if (parmFile.find('|') != string::npos) {
     configFile = parmFile.substr(0, parmFile.find('|'));
-    dbDir = parmFile.substr(parmFile.find('|') + 1);
+    if (dbDir.empty()) {
+      dbDir = parmFile.substr(parmFile.find('|') + 1);
+    }
   }
   else {
     configFile = parmFile;
