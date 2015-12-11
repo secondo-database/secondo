@@ -63,9 +63,9 @@ Shows an error message and calls "assert(false)"[4]. "Error"[4] should be the na
     {
         const std::string seperator = "\n" + std::string(75, '-') + "\n";
         cmsg.error() << seperator
-        << "<GTree> FATAL ERROR: " << error << endl
+        << "<GTree> FATAL ERROR: " << error << std::endl
         << msg << seperator
-        << endl;
+        << std::endl;
         cmsg.send();
         assert(false);
     }
@@ -80,7 +80,7 @@ Prints a 'Debug mode enabled' message.
         const std::string seperator = "\n" + std::string(75, '-') + "\n";
         cmsg.info() << seperator
         << "<GTree> debug mode enabled" << seperator
-        << endl;
+        << std::endl;
         cmsg.send();
     }
 
@@ -95,7 +95,7 @@ Used to show a warning message, if not all nodes/entries had beed deleted.
         cmsg.warning() << seperator
         << "<GTree> Memory leak warning: "
         << count << " " << objectName << " left open!" << seperator
-        << endl;
+        << std::endl;
         cmsg.send();
     }
 
@@ -109,10 +109,10 @@ The following methods call the "fatalError"[4] method to show the respective err
         std::ostringstream msg;
         msg << "Tried to put a node to file, "
             << "but a record for that node has not yet"
-            << endl
+            << std::endl
             << "been created! Call <getNodeId> "
             << "before deleting the node or calling "
-            << endl << "the <put> method...";
+            << std::endl << "the <put> method...";
         fatalError(error, msg.str());
     }
 
@@ -122,7 +122,7 @@ The following methods call the "fatalError"[4] method to show the respective err
         std::ostringstream msg;
         msg << "Tryed to insert or replace an entry, "
             << "but the entry type does not"
-            << endl << "correspond to the nodes entry type!";
+            << std::endl << "correspond to the nodes entry type!";
         fatalError(error, msg.str());
     }
     static void undefinedNodeType_Error(int type)

@@ -34,6 +34,7 @@ January-May 2008, Mirko Dibbert
 #include "GTree_TreeManager.h"
 
 using namespace gtree;
+using namespace std;
 /*
 Method ~createNode~:
 
