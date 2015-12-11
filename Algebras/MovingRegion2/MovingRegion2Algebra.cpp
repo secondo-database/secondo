@@ -64,6 +64,8 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 using namespace temporalalgebra;
+using namespace std;
+using namespace datetime;
 
 /*
 Set ~MR2\_DEBUG~ to ~true~ for debug output. Please note that debug output is

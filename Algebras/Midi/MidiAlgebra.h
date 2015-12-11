@@ -94,17 +94,17 @@ The Midi format is only valid between 0 and 2.
 
 */
 
-static const string MIDI_HEADER    = "MThd";
+static const std::string MIDI_HEADER    = "MThd";
 /*
 Constant string for a Midi object header.
 
 */
-static const string TRACK_STRING   = "track";
+static const std::string TRACK_STRING   = "track";
 /*
 Constant string for Track.
 
 */
-static const string TRACK_HEADER   = "MTrk";
+static const std::string TRACK_HEADER   = "MTrk";
 /*
 Constant string for a Midi track header.
 
@@ -237,7 +237,7 @@ Sets the length of the ~Midi~ header. At the moment the value will be always 6.
 Returns the ~Midi~ object`s header length.
 
 */
-    const string GetHeader () const;
+    const std::string GetHeader () const;
 /*
 Returns the ~Midi~ object`s header. At the moment it is the constant string ''MThd''.
 
@@ -287,7 +287,7 @@ Sets  the division's most significant byte.
 Returns the division's least significant byte.
 
 */
-    void GetLyrics(string& result, bool all, bool lyr, bool any) const;
+    void GetLyrics(std::string& result, bool all, bool lyr, bool any) const;
 /*
 Utility for operators extract\_lyrics and contains\_words
 
@@ -315,12 +315,12 @@ There are totally 10 functions which are defined as virtual functions. They need
     int      Compare(const Attribute * arg) const;
     bool     Adjacent(const Attribute * arg) const;
     Midi*    Clone() const;
-    ostream& Print( ostream &os ) const;
+    std::ostream& Print( std::ostream &os ) const;
     int      NumOfFLOBs() const;
     Flob*    GetFLOB(const int);
     size_t   Sizeof() const;
 
-    static const string BasicType() { return "midi"; }
+    static const std::string BasicType() { return "midi"; }
 
     static const bool checkType(ListExpr list){
       return listutils::isSymbol(list, BasicType());
@@ -427,7 +427,7 @@ Appends the by index selected track of this Midi object
 Returns the number of all currently stored events for this track.
 
 */
-    const string GetHeader () const;
+    const std::string GetHeader () const;
 /*
 Returns the track`s header signature. At the moment it is the constant string ''MTrk''.
 
@@ -447,7 +447,7 @@ exclude in transposing process
 4.4 Attributes
 
 */
-    vector<Event*> listOfEvents;
+    std::vector<Event*> listOfEvents;
 /*
 Data structure for saving all events of a Midi object.
 
@@ -550,12 +550,13 @@ Specifies the length of a MidiEvent.
 Returns the length of a MidiEvent.
 
 */
-    void SetMetaData(vector<unsigned char>* data);
+    void SetMetaData(std::vector<unsigned char>* data);
 /*
 Stores MetaEvents.
 
 */
-    vector<unsigned char>* GetMetaData(vector<unsigned char>* result) const;
+    std::vector<unsigned char>* GetMetaData(
+                std::vector<unsigned char>* result) const;
 /*
 Returns the data of MetaEvents.
 
@@ -570,12 +571,13 @@ Returns the length of a MetaEvent. The returned value is the length of the entir
 Returns the kind of event.
 
 */
-    void SetSysexData(vector<unsigned char>* data);
+    void SetSysexData(std::vector<unsigned char>* data);
 /*
 Stores the data of a SysexMessage.
 
 */
-    vector<unsigned char>* GetSysexData(vector<unsigned char>* result) const;
+    std::vector<unsigned char>* GetSysexData(
+                      std::vector<unsigned char>* result) const;
 /*
 Returns the data of a SysexMessage.
 
@@ -595,7 +597,7 @@ Returns the MidiEvent`s command.
 Returns the MidiEvent`s channel. To call this method is prohibited if GetShortMessageRunningStatus() returns true. In this case this method will abort with an assertion.
 
 */
-    void GetTextFromMetaEvent(string& result) const;
+    void GetTextFromMetaEvent(std::string& result) const;
 /*
 Returns the text content from a meta event which contains text data of variable size. Some of the meta events between 0x01 and 0x58 are storing text in this way.
 
@@ -650,18 +652,18 @@ These constants represents some MetaEvents.
 5.4 Static methods
 
 */
-static vector<unsigned char>* ComputeIntToBytes( unsigned int arg,
-                              vector<unsigned char>* result);
+static std::vector<unsigned char>* ComputeIntToBytes( unsigned int arg,
+                              std::vector<unsigned char>* result);
 /*
 Utility method for computing an integer into a form called ''Variable Length Quantity''. The resulting bytes are stored in the vector result. For using in an expression, the result is also returned as the return value of this function. Explanation of ''Variable Length Quantity'': ''Some numbers in MIDI Files are represented in a form called VARIABLE-LENGTH QUANTITY. These numbers are represented 7 bits per byte, most significant bits first. All bytes except the last have bit 7 set, and the last byte has bit 7 clear. If the number is between 0 and 127, it is thus represented exactly as one byte.''
 
 */
-static unsigned int ComputeBytesToInt(vector<unsigned char>* arg);
+static unsigned int ComputeBytesToInt(std::vector<unsigned char>* arg);
 /*
 Utility method for computing a number which is represented in ''Variable Length Quantity''. See Event::ComputeIntToBytes for details.
 
 */
- static string FilterString(string textEvents );
+ static std::string FilterString(std::string textEvents );
 /*
 Utilty method for extract\_lyrics operator. The pure ASCI data in the
 metaevents are not well readable because of several ''break'' characters like "/"
@@ -705,7 +707,7 @@ Specifies the length of a MidiEvent`s command.
 Stores data of MidiEvents.
 
 */
-    vector<unsigned char> dataList;
+    std::vector<unsigned char> dataList;
 /*
 Stores data of MetaEvents and SysexMessages.
 
@@ -743,7 +745,7 @@ class NoteStringToListParser
 
     NoteStringToListParser();
 
-    bool ParseNoteString(char* inputStr, vector<int>* resultList);
+    bool ParseNoteString(char* inputStr, std::vector<int>* resultList);
 /*
 Parses the given string and returns a vector with note numbers. If the
 parsing is succesfull the function returns true. Occurs a syntax

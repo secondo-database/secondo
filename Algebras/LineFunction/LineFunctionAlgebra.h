@@ -29,7 +29,8 @@ April 2015 - Rene Steinbrueck
 
 1 Overview
 
-With LineFunctionAlgebra , it is possible to describe the height depending on the distance traveled.
+With LineFunctionAlgebra , it is possible to describe the height depending on 
+the distance traveled.
 
 [TOC]
 
@@ -85,7 +86,7 @@ double getHeightAtPosition
     if (P==CC)
     {
     double res = raster.atlocation(P.GetX (), P.GetY ());
-	return (raster.isUndefined(res) ? raster2::UNDEFINED_REAL : res);
+  return (raster.isUndefined(res) ? raster2::UNDEFINED_REAL : res);
     }
 
     Point A = CC;
@@ -295,19 +296,19 @@ struct heightatpositionInfo : OperatorInfo
     heightatpositionInfo ()
     {
         name      = "heightatposition";
-        signature = 	raster2::sint::BasicType () 
-			+ " heightatposition "
-                    	+ Point::BasicType ()
-                    	+ " -> real";
-        appendSignature (	
-			raster2::sreal::BasicType () 
-			+ " heightatposition "
-                       	+ Point::BasicType ()
-                       	+ " -> real");
+        signature =   raster2::sint::BasicType () 
+      + " heightatposition "
+                      + Point::BasicType ()
+                      + " -> real";
+        appendSignature (  
+      raster2::sreal::BasicType () 
+      + " heightatposition "
+                         + Point::BasicType ()
+                         + " -> real");
 
         syntax    = "_ heightatposition _ ";
-        meaning   = 	"This function returns the interpolated "
-			"height at the raster position.";
+        meaning   =   "This function returns the interpolated "
+      "height at the raster position.";
     }
 };
 
@@ -368,7 +369,7 @@ ListExpr heightatpositionTypeMap(ListExpr args)
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
 
-    string err = "stype x point expected";
+    std::string err = "stype x point expected";
 
         if(!raster2::util::isSType(arg1))
             return (listutils::typeError(err + " (first arg is not an stype)"));
@@ -409,9 +410,9 @@ struct lcomposeInfo : OperatorInfo
 
     syntax    = "_ lcompose [_,_]";
     meaning   = "This function merges sline, sT and boolean into lT. "
-		"If the bool parameter is TRUE, the Distance between "
-		"two points on the line is calculated by orthodrome "
-		"distance, otherwise by the euclidean distance.";
+    "If the bool parameter is TRUE, the Distance between "
+    "two points on the line is calculated by orthodrome "
+    "distance, otherwise by the euclidean distance.";
     }
 };
 
@@ -504,7 +505,7 @@ int constlcomposeFun
                     double dy = yEnd - yStart;
                     while(it.hasNext())
                     {
-                        pair<double,double> p = it.next();
+                        std::pair<double,double> p = it.next();
                         double s = start + (distance*p.first);
                         double e = start + (distance*p.second);
                         if(e>s)
@@ -576,7 +577,7 @@ int constlcomposeFun
                     double dy = yEnd - yStart;
                     while(it.hasNext())
                     {
-                        pair<double,double> p = it.next();
+                        std::pair<double,double> p = it.next();
                         double s = start + (distance*p.first);
                         double e = start + (distance*p.second);
                         if(e>s)
@@ -690,7 +691,7 @@ int reallcomposeFun
 
                     while(it.hasNext())
                     {
-                        pair<double,double> p = it.next();
+                        std::pair<double,double> p = it.next();
                         double s = start + (distance*p.first);
                         double e = start + (distance*p.second);
 
@@ -757,7 +758,7 @@ int reallcomposeFun
 
                     while(it.hasNext())
                     {
-                        pair<double,double> p = it.next();
+                        std::pair<double,double> p = it.next();
                         double s = start + (distance*p.first);
                         double e = start + (distance*p.second);
 
@@ -802,7 +803,7 @@ ValueMapping lcomposeFuns[] =
 
 int lcomposeSelectFun(ListExpr args)
 {
-string errmsg = "lcomposeSelectFun started";
+std::string errmsg = "lcomposeSelectFun started";
 
     NList type(args);
 
@@ -819,7 +820,7 @@ string errmsg = "lcomposeSelectFun started";
 
 ListExpr lcomposeTypeMap(ListExpr args)
 {
-string errmsg = "lcomposeTypeMap started";
+std::string errmsg = "lcomposeTypeMap started";
 
     if(!nl->HasLength(args,3))
         return listutils::typeError("3 arguments expected");
@@ -828,7 +829,7 @@ string errmsg = "lcomposeTypeMap started";
     ListExpr arg2 = nl->Second(args);
     ListExpr arg3 = nl->Third(args);
 
-    string err = "stype x sline x bool expected";
+    std::string err = "stype x sline x bool expected";
     if(!raster2::util::isSType(arg1))
         return listutils::typeError(err + " (first arg is not an stype)");
     if(!SimpleLine::checkType(arg2))
@@ -856,65 +857,65 @@ string errmsg = "lcomposeTypeMap started";
 
 struct lfdistanceInfo : OperatorInfo
     {
-		lfdistanceInfo()
-		{
+    lfdistanceInfo()
+    {
         name      = "lfdistance";
         signature = "lfdistance ("
-        	+ Point::BasicType()
-        	+ " , "
-        	+ Point::BasicType()
-            	+ ", "
-        	+ raster2::sint::BasicType()
-        	+ " , "
-        	+ CcInt::BasicType()
-        	+ "-> Real";
+          + Point::BasicType()
+          + " , "
+          + Point::BasicType()
+              + ", "
+          + raster2::sint::BasicType()
+          + " , "
+          + CcInt::BasicType()
+          + "-> Real";
         appendSignature("lfdistance ("
-            	+ Point::BasicType()
-            	+ " , "
-            	+ Point::BasicType()
+              + Point::BasicType()
+              + " , "
+              + Point::BasicType()
                 + " , "
-            	+ raster2::sreal::BasicType()
-            	+ " , "
+              + raster2::sreal::BasicType()
+              + " , "
                 + CcInt::BasicType()
                 + "-> Real");
 
-        syntax    = 	"lfdistance ( _ , _ , _ , _ )";
-        meaning   = 	"This function computes the distance "
-			"between two points including their height. "
-			"The First two parameters are "
-		    	"the two points, between the distance "
-			"should be calculated "
-		    	"and the third parameter is a raster, "
-			"from which the height "
-			"could be get. "
-			"The fourth parameter is 1 or 2: "
-			"1 for computing the pure "
-			"driving distance or "
-			"2 for computing the driving distance, "
-			"depending on the gradient.";
+        syntax    =   "lfdistance ( _ , _ , _ , _ )";
+        meaning   =   "This function computes the distance "
+      "between two points including their height. "
+      "The First two parameters are "
+          "the two points, between the distance "
+      "should be calculated "
+          "and the third parameter is a raster, "
+      "from which the height "
+      "could be get. "
+      "The fourth parameter is 1 or 2: "
+      "1 for computing the pure "
+      "driving distance or "
+      "2 for computing the driving distance, "
+      "depending on the gradient.";
       }
     };
 
 template<typename Raster> int lfdistanceFun
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-	result = qp->ResultStorage(s);
-	Point* a = static_cast<Point*>(args[0].addr);
-	Point* b = static_cast<Point*>(args[1].addr);
-	Raster* raster = static_cast<Raster*>(args[2].addr);
-	CcInt* suchart = static_cast<CcInt*>(args[3].addr);
-	CcReal* res = static_cast<CcReal*>(result.addr);
+  result = qp->ResultStorage(s);
+  Point* a = static_cast<Point*>(args[0].addr);
+  Point* b = static_cast<Point*>(args[1].addr);
+  Raster* raster = static_cast<Raster*>(args[2].addr);
+  CcInt* suchart = static_cast<CcInt*>(args[3].addr);
+  CcReal* res = static_cast<CcReal*>(result.addr);
 
     bool checkCoord;
 
-	if(!a->IsDefined() || !b->IsDefined() || a->IsEmpty() || b->IsEmpty() ||
+  if(!a->IsDefined() || !b->IsDefined() || a->IsEmpty() || b->IsEmpty() ||
        !suchart->IsDefined() || !( suchart->GetIntval() == 1 ||
             suchart->GetIntval() == 2 ) )
-	{
-		res->SetDefined(false);
-	}
-	else
-	{
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
         if (suchart->GetIntval() == 1)
         {
             double airDistance =
@@ -941,80 +942,80 @@ template<typename Raster> int lfdistanceFun
                 res->SetDefined(false);
             else if ((climb >= -1.00)&&(climb <= -0.10))
                 dist = drivingDistance *  0.30;
-			else if ((climb >  -0.10)&&(climb <  -0.01))
+      else if ((climb >  -0.10)&&(climb <  -0.01))
                 dist = drivingDistance *  0.60;
-			else if ((climb >= -0.01)&&(climb <=  0.01))
+      else if ((climb >= -0.01)&&(climb <=  0.01))
                 dist = drivingDistance *  1.00;
-			else if ((climb >   0.01)&&(climb <   0.02))
+      else if ((climb >   0.01)&&(climb <   0.02))
                 dist = drivingDistance *  1.25;
-			else if ((climb >=  0.02)&&(climb <   0.05))
+      else if ((climb >=  0.02)&&(climb <   0.05))
                 dist = drivingDistance *  1.75;
-			else if ((climb >=  0.05)&&(climb <   0.10))
+      else if ((climb >=  0.05)&&(climb <   0.10))
                 dist = drivingDistance *  2.75;
-			else if ((climb >=  0.10)&&(climb <=  1.00))
+      else if ((climb >=  0.10)&&(climb <=  1.00))
                 dist = drivingDistance * 20.00;
 
             res->Set(true,dist);
         }
     }
-	return (0);
+  return (0);
 }
 
 
 ValueMapping lfdistanceFuns[] =
 {
-		lfdistanceFun<raster2::sint>,
-		lfdistanceFun<raster2::sreal>,
-		0
+    lfdistanceFun<raster2::sint>,
+    lfdistanceFun<raster2::sreal>,
+    0
 };
 
 
 int lfdistanceSelectFun(ListExpr args)
 {
-	NList type(args);
+  NList type(args);
 
-	if (type.third().isSymbol(raster2::sint::BasicType()))
-	{
-		return (0);
-	}
-	if(type.third().isSymbol(raster2::sreal::BasicType()))
-	{
-		return (1);
-	}
-	return (-1);
+  if (type.third().isSymbol(raster2::sint::BasicType()))
+  {
+    return (0);
+  }
+  if(type.third().isSymbol(raster2::sreal::BasicType()))
+  {
+    return (1);
+  }
+  return (-1);
 }
 
 ListExpr lfdistanceTypeMap(ListExpr args)
 {
-	if(!nl->HasLength(args,4)){
-		return (listutils::typeError("4 arguments expected"));
-	}
-	ListExpr arg1 = nl->First(args);
-	ListExpr arg2 = nl->Second(args);
-	ListExpr arg3 = nl->Third(args);
-	ListExpr arg4 = nl->Fourth(args);
+  if(!nl->HasLength(args,4)){
+    return (listutils::typeError("4 arguments expected"));
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
 
-	string err = "Point x Point x stype x int expected";
-	if(!Point::checkType(arg1))
-	{
-		return (listutils::typeError(err
+  std::string err = "Point x Point x stype x int expected";
+  if(!Point::checkType(arg1))
+  {
+    return (listutils::typeError(err
             + " (first arg is not an point)"));
-	}
-	if(!Point::checkType(arg2))
-	{
-		return (listutils::typeError(err
+  }
+  if(!Point::checkType(arg2))
+  {
+    return (listutils::typeError(err
             + " (second arg is not an point)"));
-	}
-	if(!raster2::util::isSType(arg3)){
-		return (listutils::typeError(err
+  }
+  if(!raster2::util::isSType(arg3)){
+    return (listutils::typeError(err
             + " (third arg is not an stype)"));
-	}
-	if(!CcInt::checkType(arg4))
-	{
-		return (listutils::typeError(err
+  }
+  if(!CcInt::checkType(arg4))
+  {
+    return (listutils::typeError(err
             + " (fourth arg is not an int)"));
-	}
-	return (listutils::basicSymbol<CcReal>());
+  }
+  return (listutils::basicSymbol<CcReal>());
 }
 
 /*
@@ -1024,111 +1025,111 @@ ListExpr lfdistanceTypeMap(ListExpr args)
 
 struct lfdistanceparamInfo : OperatorInfo
     {
-		lfdistanceparamInfo()
-		{
+    lfdistanceparamInfo()
+    {
         name      = "lfdistanceparam";
         signature = "lfdistanceparam ("
-        	+ Point::BasicType()
-        	+ " , "
-        	+ Point::BasicType()
-            	+ " , "
-        	+ raster2::sint::BasicType()
-            	+ " , "
-            	+ CcString::BasicType()
-            	+ " , "
-            	+ CcString::BasicType()
-            	+ " , "
-            	+ CcString::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ "-> Real )";
+          + Point::BasicType()
+          + " , "
+          + Point::BasicType()
+              + " , "
+          + raster2::sint::BasicType()
+              + " , "
+              + CcString::BasicType()
+              + " , "
+              + CcString::BasicType()
+              + " , "
+              + CcString::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + "-> Real )";
         appendSignature("lfdistanceparam ("
-            	+ Point::BasicType()
-            	+ " , "
-            	+ Point::BasicType()
-            	+ " , "
-            	+ raster2::sreal::BasicType()
-            	+ " , "
-            	+ CcString::BasicType()
-            	+ " , "
-            	+ CcString::BasicType()
-            	+ " , "
-            	+ CcString::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ " , "
-            	+ CcReal::BasicType()
-            	+ "-> Real )");
+              + Point::BasicType()
+              + " , "
+              + Point::BasicType()
+              + " , "
+              + raster2::sreal::BasicType()
+              + " , "
+              + CcString::BasicType()
+              + " , "
+              + CcString::BasicType()
+              + " , "
+              + CcString::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + " , "
+              + CcReal::BasicType()
+              + "-> Real )");
 
         syntax    = "lfdistanceparam ( _ , _ , _ , _ , _ , _ , "
             "_ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _ )";
-        meaning   = 	"This function computes the distance "
-			"between two points including their height. "
-                   	"The First two parameters are the two points, "
-                   	"between the distance should be calculated "
-			"and the third parameter is a raster, "
-			"from which the height could be get. "
-                   	"Parameter fith, six and seven is used "
-                   	"to pass the sort of way, the dependence to "
-			"a cycle route and the surface. "
-                   	"With the last parameters the dependence "
-			"on the sort of way, "
-                   	"the gradient and the surface can be set. "
-                   	"Put in Zero for default value.";
+        meaning   =   "This function computes the distance "
+      "between two points including their height. "
+                     "The First two parameters are the two points, "
+                     "between the distance should be calculated "
+      "and the third parameter is a raster, "
+      "from which the height could be get. "
+                     "Parameter fith, six and seven is used "
+                     "to pass the sort of way, the dependence to "
+      "a cycle route and the surface. "
+                     "With the last parameters the dependence "
+      "on the sort of way, "
+                     "the gradient and the surface can be set. "
+                     "Put in Zero for default value.";
 
       }
     };
@@ -1136,29 +1137,29 @@ struct lfdistanceparamInfo : OperatorInfo
 template<typename Raster> int lfdistanceparamFun
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-	result = qp->ResultStorage(s);
-	Point* a = static_cast<Point*>(args[0].addr);
-	Point* b = static_cast<Point*>(args[1].addr);
-	Raster* raster = static_cast<Raster*>(args[2].addr);
-	CcString* roadType = static_cast<CcString*>(args[3].addr);
-	CcString* routePart = static_cast<CcString*>(args[4].addr);
-	CcString* surface = static_cast<CcString*>(args[5].addr);
-	CcReal* w1 = static_cast<CcReal*>(args[6].addr);
-	CcReal* w2 = static_cast<CcReal*>(args[7].addr);
-	CcReal* w3 = static_cast<CcReal*>(args[8].addr);
-	CcReal* w4 = static_cast<CcReal*>(args[9].addr);
-	CcReal* s1 = static_cast<CcReal*>(args[10].addr);
-	CcReal* s2 = static_cast<CcReal*>(args[11].addr);
-	CcReal* s3 = static_cast<CcReal*>(args[12].addr);
-	CcReal* s4 = static_cast<CcReal*>(args[13].addr);
-	CcReal* s5 = static_cast<CcReal*>(args[14].addr);
-	CcReal* s6 = static_cast<CcReal*>(args[15].addr);
-	CcReal* s7 = static_cast<CcReal*>(args[16].addr);
-	CcReal* o1 = static_cast<CcReal*>(args[17].addr);
-	CcReal* o2 = static_cast<CcReal*>(args[18].addr);
-	CcReal* o3 = static_cast<CcReal*>(args[19].addr);
-	CcReal* o4 = static_cast<CcReal*>(args[20].addr);
-	CcReal* res = static_cast<CcReal*>(result.addr);
+  result = qp->ResultStorage(s);
+  Point* a = static_cast<Point*>(args[0].addr);
+  Point* b = static_cast<Point*>(args[1].addr);
+  Raster* raster = static_cast<Raster*>(args[2].addr);
+  CcString* roadType = static_cast<CcString*>(args[3].addr);
+  CcString* routePart = static_cast<CcString*>(args[4].addr);
+  CcString* surface = static_cast<CcString*>(args[5].addr);
+  CcReal* w1 = static_cast<CcReal*>(args[6].addr);
+  CcReal* w2 = static_cast<CcReal*>(args[7].addr);
+  CcReal* w3 = static_cast<CcReal*>(args[8].addr);
+  CcReal* w4 = static_cast<CcReal*>(args[9].addr);
+  CcReal* s1 = static_cast<CcReal*>(args[10].addr);
+  CcReal* s2 = static_cast<CcReal*>(args[11].addr);
+  CcReal* s3 = static_cast<CcReal*>(args[12].addr);
+  CcReal* s4 = static_cast<CcReal*>(args[13].addr);
+  CcReal* s5 = static_cast<CcReal*>(args[14].addr);
+  CcReal* s6 = static_cast<CcReal*>(args[15].addr);
+  CcReal* s7 = static_cast<CcReal*>(args[16].addr);
+  CcReal* o1 = static_cast<CcReal*>(args[17].addr);
+  CcReal* o2 = static_cast<CcReal*>(args[18].addr);
+  CcReal* o3 = static_cast<CcReal*>(args[19].addr);
+  CcReal* o4 = static_cast<CcReal*>(args[20].addr);
+  CcReal* res = static_cast<CcReal*>(result.addr);
 
     bool checkCoord;
 
@@ -1234,12 +1235,12 @@ template<typename Raster> int lfdistanceparamFun
     else surfaceFactor = 1.0;
 
 
-	if(!a->IsDefined() || !b->IsDefined() || a->IsEmpty() || b->IsEmpty() )
-	{
-		res->SetDefined(false);
-	}
-	else
-	{
+  if(!a->IsDefined() || !b->IsDefined() || a->IsEmpty() || b->IsEmpty() )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
         double airDistance = a->DistanceOrthodrome(*b,Geoid(true),checkCoord);
         double heightA=getHeightAtPosition(a->GetX(),a->GetY(),*raster);
         double heightB=getHeightAtPosition(b->GetX(),b->GetY(),*raster);
@@ -1253,96 +1254,96 @@ template<typename Raster> int lfdistanceparamFun
             else if ((climb >= -1.00)&&(climb <= -0.10))
                 dist = drivingDistance *
                     (s1->GetRealval()!=0 ? s1->GetRealval() : 0.30);
-			else if ((climb >  -0.10)&&(climb <  -0.01))
+      else if ((climb >  -0.10)&&(climb <  -0.01))
                 dist = drivingDistance *
                     (s2->GetRealval()!=0 ? s2->GetRealval() : 0.60);
-			else if ((climb >= -0.01)&&(climb <=  0.01))
+      else if ((climb >= -0.01)&&(climb <=  0.01))
                 dist = drivingDistance *
                     (s3->GetRealval()!=0 ? s3->GetRealval() : 1.00);
-			else if ((climb >   0.01)&&(climb <   0.02))
+      else if ((climb >   0.01)&&(climb <   0.02))
                 dist = drivingDistance *
                     (s4->GetRealval()!=0 ? s4->GetRealval() : 1.25);
-			else if ((climb >=  0.02)&&(climb <   0.05))
+      else if ((climb >=  0.02)&&(climb <   0.05))
                 dist = drivingDistance *
                     (s5->GetRealval()!=0 ? s5->GetRealval() : 1.75);
-			else if ((climb >=  0.05)&&(climb <   0.10))
+      else if ((climb >=  0.05)&&(climb <   0.10))
                 dist = drivingDistance *
                     (s6->GetRealval()!=0 ? s6->GetRealval() : 2.75);
-			else if ((climb >=  0.10)&&(climb <=  1.00))
+      else if ((climb >=  0.10)&&(climb <=  1.00))
                 dist = drivingDistance *
                     (s7->GetRealval()!=0 ? s7->GetRealval() : 20.00);
 
             dist = dist * wayFactor * surfaceFactor;
             res->Set(true,dist);
         }
-	return (0);
+  return (0);
 }
 
 
 ValueMapping lfdistanceparamFuns[] =
 {
-		lfdistanceparamFun<raster2::sint>,
-		lfdistanceparamFun<raster2::sreal>,
-		0
+    lfdistanceparamFun<raster2::sint>,
+    lfdistanceparamFun<raster2::sreal>,
+    0
 };
 
 
 int lfdistanceparamSelectFun(ListExpr args)
 {
-	NList type(args);
+  NList type(args);
 
-	if (type.third().isSymbol(raster2::sint::BasicType()))
-	{
-		return (0);
-	}
-	if(type.third().isSymbol(raster2::sreal::BasicType()))
-	{
-		return (1);
-	}
-	return (-1);
+  if (type.third().isSymbol(raster2::sint::BasicType()))
+  {
+    return (0);
+  }
+  if(type.third().isSymbol(raster2::sreal::BasicType()))
+  {
+    return (1);
+  }
+  return (-1);
 }
 
 ListExpr lfdistanceparamTypeMap(ListExpr args)
 {
-	if(!nl->HasLength(args,21)){
-		return (listutils::typeError("21 arguments expected"));
-	}
+  if(!nl->HasLength(args,21)){
+    return (listutils::typeError("21 arguments expected"));
+  }
     ListExpr arg1 = nl->First(args);
-	ListExpr arg2 = nl->Second(args);
-	ListExpr arg3 = nl->Third(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
     ListExpr arg4 = nl->Fourth(args);
     ListExpr arg5 = nl->Fifth(args);
     ListExpr arg6 = nl->Sixth(args);
 
-	string err = "Point x Point x stype x 3 string x 15 real expected ";
-	if(!Point::checkType(arg1))
-	{
-		return (listutils::typeError(err + " (arg 1 is not an point)"));
-	}
-	if(!Point::checkType(arg2))
-	{
-		return (listutils::typeError(err + " (arg 2 is not an point)"));
-	}
-	if(!raster2::util::isSType(arg3))
-	{
-		return (listutils::typeError(err + " (arg 3 is not an stype)"));
-	}
-	if(!CcString::checkType(arg4))
-	{
+  std::string err = "Point x Point x stype x 3 string x 15 real expected ";
+  if(!Point::checkType(arg1))
+  {
+    return (listutils::typeError(err + " (arg 1 is not an point)"));
+  }
+  if(!Point::checkType(arg2))
+  {
+    return (listutils::typeError(err + " (arg 2 is not an point)"));
+  }
+  if(!raster2::util::isSType(arg3))
+  {
+    return (listutils::typeError(err + " (arg 3 is not an stype)"));
+  }
+  if(!CcString::checkType(arg4))
+  {
             return (listutils::typeError(err
                 + " (arg 4 arg is not an string)"));
-	}
-	if(!CcString::checkType(arg5))
-	{
-		return (listutils::typeError(err
+  }
+  if(!CcString::checkType(arg5))
+  {
+    return (listutils::typeError(err
                 + " (arg 5 is not an string)"));
-	}
-	if(!CcString::checkType(arg6))
-	{
+  }
+  if(!CcString::checkType(arg6))
+  {
             return (listutils::typeError(err + " (arg 6 is not an string)"));
-	}
+  }
 
-	NList type(args);
+  NList type(args);
 
     if(!CcReal::checkType(type.elem(7).listExpr()))
         {

@@ -299,7 +299,7 @@ if they are equal.
 
 */
 
-    virtual ostream& Print( ostream &os ) const
+    virtual std::ostream& Print( std::ostream &os ) const
     {
         if( IsDefined() )
         {
@@ -320,7 +320,7 @@ if they are equal.
 
 */
 
-    static const string BasicType(){ return "lureal"; }
+    static const std::string BasicType(){ return "lureal"; }
 
 /*
 3.1.4.7 Check Type
@@ -448,7 +448,7 @@ ListExpr OutLUReal( ListExpr typeInfo, Word value )
 Word InLUReal( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  string errmsg;
+  std::string errmsg;
   correct = true;
   if ( nl->ListLength( instance ) == 2 )
   {

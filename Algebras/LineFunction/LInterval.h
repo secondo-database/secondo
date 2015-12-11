@@ -257,7 +257,7 @@ Returns ~true~ if this linterval is adjacent with the linterval ~i~ and ~false~ 
 
 */
 
-    ostream& Print(ostream& os) const
+    std::ostream& Print(std::ostream& os) const
     {
         os << (lc?"[":"(");
         start.Print(os) << ", ";
@@ -581,7 +581,7 @@ void LInterval::CopyFrom( const LInterval& i )
 
 */
 
-ostream& operator<<(ostream& o, const LInterval& u)
+std::ostream& operator<<(std::ostream& o, const LInterval& u)
 {
    return u.Print(o);
 }

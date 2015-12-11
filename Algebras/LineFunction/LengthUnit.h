@@ -204,7 +204,7 @@ Returns ~true~ if this length unit is adjacent with the length unit ~i~ and ~fal
 
 */
 
-    inline static const string BasicType()
+    inline static const std::string BasicType()
     {
         return "lu"+Alpha::BasicType();
     }

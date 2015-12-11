@@ -327,12 +327,12 @@ number of units of the mapping ~Y~.
 
 */
 
-    inline virtual ostream& Print( ostream &os ) const;
+    inline virtual std::ostream& Print( std::ostream &os ) const;
 /*
 3.1.5.8 Basic Type
 
 */
-    inline static const string BasicType()
+    inline static const std::string BasicType()
     {
         return "l"+Alpha::BasicType();
     }
@@ -547,14 +547,14 @@ void LMapping<Unit, Alpha>::Get( const int i, Unit &unit ) const
     bool ok = units.Get( i, unit );
     if(!ok)
     {
-        cout << "Problem in getting data from " << units << endl;
+        std::cout << "Problem in getting data from " << units << std::endl;
         assert(ok);
     }
     if ( !unit.IsValid() )
     {
-        cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+        std::cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
         << " Get(" << i << ", Unit): Unit is invalid:";
-        unit.Print(cout); cout << endl;
+        unit.Print(std::cout); std::cout << std::endl;
         assert( unit.IsValid());
     }
 }
@@ -570,9 +570,9 @@ void LMapping<Unit, Alpha>::Add( const Unit& unit )
     assert( IsDefined() );
     if ( !unit.IsDefined() || !unit.IsValid() )
     {
-        cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+        std::cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
         << " Add(Unit): Unit is undefined or invalid:";
-        unit.Print(cout); cout << endl;
+        unit.Print(std::cout); std::cout << std::endl;
         assert( false );
     }
     units.Append( unit );
@@ -591,9 +591,9 @@ void LMapping<Unit, Alpha>::MergeAdd( const Unit& unit )
     int size = units.Size();
     if ( !unit.IsDefined() || !unit.IsValid() )
     {
-        cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+        std::cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
         << " MergeAdd(Unit): Unit is undefined or invalid:";
-        unit.Print(cout); cout << endl;
+        unit.Print(std::cout); std::cout << std::endl;
         assert( false );
     }
 
@@ -608,10 +608,10 @@ void LMapping<Unit, Alpha>::MergeAdd( const Unit& unit )
                 lastunit.lengthInterval.rc = unit.lengthInterval.rc;
                 if ( !lastunit.IsValid() )
                 {
-                    cout << __FILE__ << ","
+                    std::cout << __FILE__ << ","
                     << __LINE__ << ":" << __PRETTY_FUNCTION__
                     << "\nMapping::MergeAdd(): lastunit is invalid:";
-                    lastunit.Print(cout); cout << endl;
+                    lastunit.Print(std::cout); std::cout << std::endl;
                     assert( false );
                 }
                 units.Put(size - 1, lastunit);
@@ -662,8 +662,8 @@ bool LMapping<Unit, Alpha>::IsValid() const
     Get( 0, lastunit );
     if ( !lastunit.IsValid() )
     {
-        cerr << "Mapping<Unit, Alpha>::IsValid(): "
-                "unit is invalid: i=0" << endl;
+        std::cerr << "Mapping<Unit, Alpha>::IsValid(): "
+                "unit is invalid: i=0" << std::endl;
     return false;
     }
     if ( GetNoComponents() == 1 )
@@ -675,29 +675,30 @@ bool LMapping<Unit, Alpha>::IsValid() const
         if( !unit.IsValid() )
         {
             result = false;
-            cerr << "Mapping<Unit, Alpha>::IsValid(): "
-                    "unit is invalid: i=" << i << endl;
+            std::cerr << "Mapping<Unit, Alpha>::IsValid(): "
+                    "unit is invalid: i=" << i << std::endl;
             return false;
         }
         if( unit.lengthInterval.start < lastunit.lengthInterval.end)
         {
-            cerr << "Units are not ordered by length" << endl;
-            cerr << "lastUnit.lengthInterval =  ";
-                lastunit.lengthInterval.Print(cerr);
-            cerr << endl;
-            cerr << "unit.lengthInterval =  "; unit.lengthInterval.Print(cerr);
-            cerr << endl;
+            std::cerr << "Units are not ordered by length" << std::endl;
+            std::cerr << "lastUnit.lengthInterval =  ";
+                lastunit.lengthInterval.Print(std::cerr);
+            std::cerr << std::endl;
+            std::cerr << "unit.lengthInterval =  "; 
+            unit.lengthInterval.Print(std::cerr);
+            std::cerr << std::endl;
             return false;
         }
         if( (!lastunit.lengthInterval.Disjoint(unit.lengthInterval)) )
         {
             result = false;
-            cerr << "Mapping<Unit, Alpha>::IsValid(): "
-                    "unit and lastunit not disjoint: i=" << i << endl;
-            cerr << "\n\tlastunit = ";
-                lastunit.lengthInterval.Print(cerr);
-            cerr << "\n\tunit     = ";
-                unit.lengthInterval.Print(cerr); cerr << endl;
+            std::cerr << "Mapping<Unit, Alpha>::IsValid(): "
+                    "unit and lastunit not disjoint: i=" << i << std::endl;
+            std::cerr << "\n\tlastunit = ";
+                lastunit.lengthInterval.Print(std::cerr);
+            std::cerr << "\n\tunit     = ";
+                unit.lengthInterval.Print(std::cerr); std::cerr << std::endl;
             return false;
         }
         lastunit = unit;
@@ -958,7 +959,7 @@ inline Flob *LMapping<Unit, Alpha>::GetFLOB(const int i)
 */
 
 template <typename Unit, typename Alpha>
-inline ostream& LMapping<Unit, Alpha>::Print( ostream &os ) const
+inline std::ostream& LMapping<Unit, Alpha>::Print( std::ostream &os ) const
 {
     if( !IsDefined() )
     {
@@ -973,7 +974,7 @@ inline ostream& LMapping<Unit, Alpha>::Print( ostream &os ) const
         os << "\n\t";
         unit.Print(os);
     }
-    os << "\n)" << endl;
+    os << "\n)" << std::endl;
     return os;
 }
 
@@ -1079,7 +1080,7 @@ Word InLMapping( const ListExpr typeInfo, const ListExpr instance,
     LMapping* m = new LMapping( numUnits );
     correct = true;
     int unitcounter = 0;
-    string errmsg;
+    std::string errmsg;
 
     m->StartBulkLoad();
 
@@ -1111,7 +1112,7 @@ Word InLMapping( const ListExpr typeInfo, const ListExpr instance,
         if ( !correct )
         {
         errmsg = "InLMapping(): Representation of Unit "
-                + to_string(unitcounter) + " is wrong.";
+                + std::to_string(unitcounter) + " is wrong.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         m->Destroy();
         delete m;
@@ -1120,7 +1121,7 @@ Word InLMapping( const ListExpr typeInfo, const ListExpr instance,
         if( !unit->IsDefined() || !unit->IsValid() )
         {
             errmsg = "InMapping(): Unit "
-                + to_string(unitcounter) + " is undef.";
+                + std::to_string(unitcounter) + " is undef.";
             errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
             correct = false;
             delete unit;

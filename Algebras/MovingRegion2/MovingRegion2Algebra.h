@@ -495,7 +495,7 @@ the original interval ~origIv~ has been restricted to ~restrIv~.
 Return ~string~ representation of moving segment.
 
 */
-	string ToString(void) const;
+	std::string ToString(void) const;
 };
 
 /*
@@ -945,7 +945,7 @@ description below for details.
 		unsigned int cycleno,
 		unsigned int segmentno,
 		unsigned int partnerno,
-		DateTime& intervalLen,
+		datetime::DateTime& intervalLen,
 		ListExpr start,
 		ListExpr end);
 
@@ -1038,7 +1038,7 @@ The assignment operator
 */
 	URegionEmb2& operator=(const URegionEmb2&);
 
-	ostream& Print(ostream &os) const
+	std::ostream& Print(std::ostream &os) const
 	{
 	  os << "( URegionEmb2 NOT IMPLEMENTED YET )";
 	  return os;
@@ -1115,7 +1115,7 @@ This constructor creates an URegion2 by a given list of MSegmentData2.
 The MSegmentData2 are ordered, so that matching Segments are together.
 
 */
-  URegion2(vector<MSegmentData2> linelist, 
+  URegion2(std::vector<MSegmentData2> linelist, 
            const temporalalgebra::Interval<Instant> &tiv);
 
 /*
@@ -1270,7 +1270,7 @@ Print method, primarly used for debugging purposes
 
 */
 
-	virtual ostream& Print( ostream &os ) const
+	virtual std::ostream& Print( std::ostream &os ) const
 	{
 	  if( IsDefined() )
 		{
@@ -1285,11 +1285,11 @@ Print method, primarly used for debugging purposes
 		  os << " SegNum=" << uremb.GetSegmentsNum();
 		  os << " BBox=";
 		  uremb.BoundingBox().Print(os);
-		  os << " )" << endl;
+		  os << " )" << std::endl;
 		  return os;
 		}
 	  else
-		return os << "URegion2: (undef)" << endl;
+		return os << "URegion2: (undef)" << std::endl;
 	}
 
 /*
@@ -1306,9 +1306,9 @@ Distance function
 */
      double Distance(const Rectangle<3>& rect, const Geoid* geoid = 0) 
 		const{
-       cerr << "Warning URegion2::Distance(rect) not implemented. "
+       std::cerr << "Warning URegion2::Distance(rect) not implemented. "
             << "Using Rectangle<3>::Distance(Rectangle<3>) instead!" 
-	    << endl;
+	    << std::endl;
        if(!IsDefined()){
           return -1;
        } else {
@@ -1321,7 +1321,7 @@ Distance function
        return !IsDefined();
      }
 
-     static string BasicType() { return "uregion2"; }
+     static std::string BasicType() { return "uregion2"; }
      static const bool checkType(const ListExpr type){
         return listutils::isSymbol(type, BasicType());
      }
@@ -1473,7 +1473,7 @@ Copy ~MRegion2~ instance.
 Return the name of the Secondo type.
 
 */
-  static string BasicType(){ return "mregion2"; }
+  static std::string BasicType(){ return "mregion2"; }
    static const bool checkType(const ListExpr type){
 	  return listutils::isSymbol(type, BasicType());
    }

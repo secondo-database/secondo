@@ -154,7 +154,7 @@ This constructor intializes the StandardLengthUnit with the passed LInterval.
 
 */
 
-    virtual ostream& Print( ostream &os ) const
+    virtual std::ostream& Print( std::ostream &os ) const
     {
       if( IsDefined() )
         {
@@ -172,7 +172,7 @@ This constructor intializes the StandardLengthUnit with the passed LInterval.
 
 */
 
-    inline static const string BasicType()
+    inline static const std::string BasicType()
     {
         return "lu"+Alpha::BasicType();
     }
@@ -208,7 +208,7 @@ This constructor intializes the StandardLengthUnit with the passed LInterval.
 */
 
 template<class Alpha>
-ostream& operator<<(ostream& o, const StandardLengthUnit<Alpha>& u)
+std::ostream& operator<<(std::ostream& o, const StandardLengthUnit<Alpha>& u)
 {
     return  u.Print(o);
 }

@@ -293,7 +293,7 @@ and ~false~ if they are equal.
 
 */
 
-    virtual ostream& Print( ostream &os ) const
+    virtual std::ostream& Print( std::ostream &os ) const
     {
         if( this->IsDefined() )
         {
@@ -313,7 +313,7 @@ and ~false~ if they are equal.
 
 */
 
-    inline static const string BasicType()
+    inline static const std::string BasicType()
     {
         return "lu"+Alpha::BasicType();
     }
@@ -426,7 +426,7 @@ Word InConstLengthUnit( const ListExpr typeInfo,
                         ListExpr& errorInfo,
                         bool& correct             )
 {
-    string errmsg;
+    std::string errmsg;
 
     if( nl->ListLength( instance ) == 2 )
     {

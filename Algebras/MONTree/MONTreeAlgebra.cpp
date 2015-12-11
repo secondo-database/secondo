@@ -139,7 +139,7 @@ void MON_Tree<BottomR_TreeLeafInfo>::Insert(
   else
   {
     Tuple *t = network->GetRoute( routeId );
-    Line *curve = (Line*)t->GetAttribute( ROUTE_CURVE );
+    Line *curve = (Line*)t->GetAttribute( network::ROUTE_CURVE );
     Rectangle<2> routeBox = curve->BoundingBox();
 
     assert( bottom_RTree == NULL );
@@ -242,7 +242,7 @@ bool MON_Tree<BottomR_TreeLeafInfo>::First( const Rectangle<2>& box,
   bottom_RTree =
     new R_Tree<2, BottomR_TreeLeafInfo>( &index, entry.info.childTreeId );
   Tuple *t = network->GetRoute( entry.info.routeId );
-  SimpleLine *curve = (SimpleLine*)t->GetAttribute( ROUTE_CURVE );
+  SimpleLine *curve = (SimpleLine*)t->GetAttribute( network::ROUTE_CURVE );
 
   searchBoxSet.Clear();
   CalculateSearchBoxSet( searchBox,
@@ -299,7 +299,7 @@ bool MON_Tree<BottomR_TreeLeafInfo>::
         new R_Tree<2, BottomR_TreeLeafInfo>( &index,
                                              topEntry.info.childTreeId );
       Tuple *t = network->GetRoute( topEntry.info.routeId );
-      SimpleLine *curve = (SimpleLine*)t->GetAttribute( ROUTE_CURVE );
+      SimpleLine *curve = (SimpleLine*)t->GetAttribute( network::ROUTE_CURVE );
       searchBoxSet.Clear();
       CalculateSearchBoxSet( searchBox,
                              *curve,
