@@ -39,9 +39,9 @@ class PointAlgebraReasoner
 private:
   unsigned int n;
   PARelation plusTable[7][7], multTable[7][7];
-  queue<pair<int, int> > Queue;
-  vector<vector<PARelation> > Table;
-  set<int> Intervals;  //CSP variables (i.e., variable indexes).
+  std::queue<std::pair<int, int> > Queue;
+  std::vector<std::vector<PARelation> > Table;
+  std::set<int> Intervals;  //CSP variables (i.e., variable indexes).
   PointAlgebraReasoner();
 public:
 
@@ -50,8 +50,8 @@ public:
   void Add(int i, int j, PARelation Rij);
   bool Close();
   bool Propagate(int i, int j);
-  ostream& Print(ostream& os);
-  vector<PARelation>& GetRelations(int varIndex);
+  std::ostream& Print(std::ostream& os);
+  std::vector<PARelation>& GetRelations(int varIndex);
   void Clear();
   ListExpr ExportToNestedList();
   bool ImportFromNestedList(ListExpr& args);

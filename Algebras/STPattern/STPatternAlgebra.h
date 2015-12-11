@@ -94,7 +94,7 @@ paper "Spatiotemporal Pattern Queries"
 
 #include "TemporalReasoner.h"
 #include <map>
-typedef DateTime Instant;
+typedef datetime::DateTime Instant;
 extern NestedList *nl;
 extern QueryProcessor* qp;  
 
@@ -167,7 +167,7 @@ Process: uses the array StrSimpleConnectors for the translation.
 Output: the integer representation of the connector.
 
 */ 
-  inline int Str2Simple(string s);
+  inline int Str2Simple(std::string s);
 /*
 The Vector2List helper function.
 Input: none. The function operates on the class member "v";
@@ -184,7 +184,7 @@ public:
   STVector(int vec):v(vec), count(Count(vec)){};
   STVector(STVector* vec):v(vec->v), count(vec->count){};
   ~STVector(){};
-  static const string BasicType(){
+  static const std::string BasicType(){
     return "stvector";
   }
   static const bool checkType(const ListExpr list){
@@ -197,7 +197,7 @@ Process: translates the string into integer and adds it to the STVector.
 Output: none.
 
 */  
-  bool Add(string simple);
+  bool Add(std::string simple);
   
 /*
 The Add function. Used to add a simple temporal connector to "this".
@@ -308,13 +308,14 @@ temporalalgebra::MBool argument.
  
 */  
   int MBool2Vec(const temporalalgebra::MBool* mb, 
-                vector<temporalalgebra::Interval<Instant> >& vec);
+                std::vector<temporalalgebra::Interval<Instant> >& vec);
 
 /* 
 The Extend function as in the paper.  
     
 */  
-  int Extend(int index, vector<temporalalgebra::Interval<Instant> >& domain );
+  int Extend(int index, 
+             std::vector<temporalalgebra::Interval<Instant> >& domain );
     
 /*
 The IsSupported function.
@@ -324,7 +325,8 @@ fulfilled.
 Output: whether the partial assignment is consistent.
    
 */  
-  bool IsSupported(vector<temporalalgebra::Interval<Instant> > sa, int index);
+  bool IsSupported(std::vector<temporalalgebra::Interval<Instant> > sa, 
+                   int index);
 
 /*
 The CheckConstraint helper function. It checks whether an STVector is fulfilled 
@@ -334,7 +336,7 @@ by two lifted predicates.
 
   bool CheckConstraint(temporalalgebra::Interval<Instant>& p1, 
                        temporalalgebra::Interval<Instant>& p2,
-      vector<Supplier> constraint);
+      std::vector<Supplier> constraint);
 /*
 The PickVariable function. It implements the picking methodology based on the
 Connectivity rank as in the paper.
@@ -356,17 +358,17 @@ public:
 The list of supported assignments
 
 */  
-  vector< vector<temporalalgebra::Interval<Instant> > > SA;
-  vector<Supplier> Agenda;
-  vector<bool> UsedAgendaVars;
+  std::vector< std::vector<temporalalgebra::Interval<Instant> > > SA;
+  std::vector<Supplier> Agenda;
+  std::vector<bool> UsedAgendaVars;
   
 /*
 A helper data structure to translate the string aliases into their integer
 poistion in the Agenda, SA and ConstraintGeraph.
 
 */
-  map<string, int> VarAliasMap;
-  vector< vector< vector<Supplier> > >ConstraintGraph;
+  std::map<std::string, int> VarAliasMap;
+  std::vector< std::vector< std::vector<Supplier> > >ConstraintGraph;
 /*
 The total number of variables in the CSP.
  
@@ -384,7 +386,7 @@ The iterator is used in the "start" and "end" operators to iterate over the SA
 A list of the variable that have been consumed so far.
 
 */
-  vector<int> assignedVars;
+  std::vector<int> assignedVars;
   
   
   CSP();
@@ -398,7 +400,7 @@ Process: adds the variable to the Agenda and resizes the ConstraintGraph.
 Output: error code
 
 */ 
-  int AddVariable(string alias, Supplier handle);
+  int AddVariable(std::string alias, Supplier handle);
 
 /* 
 The AddConstraint function.
@@ -409,7 +411,7 @@ Output: error code
 
 */ 
  
-  int AddConstraint(string alias1, string alias2, Supplier handle);
+  int AddConstraint(std::string alias1, std::string alias2, Supplier handle);
 
 /*
 The ComputeClosure function. It converts the CSP into a PA network, and
@@ -442,13 +444,13 @@ used by the "start" and "end" operators in the extended STPP.
 The GetStart function. It is the impelementation of the "start" operator.
   
 */
-  bool GetStart(string alias, Instant& result);
+  bool GetStart(std::string alias, Instant& result);
   
 /*
 The GetStart function. It is the impelementation of the "end" operator.
     
 */
-  bool GetEnd(string alias, Instant& result);
+  bool GetEnd(std::string alias, Instant& result);
 
 /*
 The GetSA function. Reads the SA entries.
