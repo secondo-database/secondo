@@ -56,11 +56,14 @@ Defines, includes, and constants
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
-map<int,string> *netList;
 
 using namespace temporalalgebra;
 using namespace temporalalgebra::temporalnet2;
+using namespace std;
+using namespace network2;
+using namespace datetime;
 
+map<int,string> *netList;
 /*
 
 1.1 Additional Methods
