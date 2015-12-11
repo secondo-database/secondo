@@ -38,8 +38,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 int yyparse();
 
+namespace temporalalgebra{
+
 
 int parseString(const char* arg, IntNfa** res);
+
+
+}
 
 int main(int argc, char** argv){
 
@@ -57,7 +62,7 @@ int main(int argc, char** argv){
 
    std::cout << "call parseString" << std::endl;
   
-   parseString(expr, &res);
+   temporalalgebra::parseString(expr, &res);
 
    if(res){
     res->nfa.print(std::cout);

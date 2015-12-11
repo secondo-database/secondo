@@ -197,6 +197,9 @@ the first argument is parsed according to the rules given above.
 
 
 */
+
+namespace temporalalgebra{
+
 int parseString(const char* argument, IntNfa** T){
     mtoprel_lexDestroy();
 
@@ -244,4 +247,4 @@ char* MTopRel_GetLastMessage(){
   strcpy(M,regex_last_message);
   return M; 
 }
-
+} // end of namespace temporalalgebra
