@@ -69,6 +69,7 @@ UGrid-Algebra offers the following methods:
 
 using namespace std;
 using namespace temporalalgebra;
+using namespace datetime;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;

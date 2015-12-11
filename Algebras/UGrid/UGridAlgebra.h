@@ -215,8 +215,8 @@ struct UGridHeader
     numCells          = 0;
     numEntries        = 0;
     numFlEntries      = 0;
-    tiv.start         = DateTime(0,0,instanttype);
-    tiv.end           = DateTime(0,0,instanttype);
+    tiv.start         = datetime::DateTime(0,0,datetime::instanttype);
+    tiv.end           = datetime::DateTime(0,0,datetime::instanttype);
     tiv.lc            = false;
     tiv.rc            = false;
   }
@@ -234,8 +234,8 @@ struct UGridHeader
     numCells          = SPLITS*SPLITS;
     numEntries        = 0;
     numFlEntries      = 0;
-    tiv.start         = DateTime(0,0,instanttype);
-    tiv.end           = DateTime(0,0,instanttype);
+    tiv.start         = datetime::DateTime(0,0,datetime::instanttype);
+    tiv.end           = datetime::DateTime(0,0,datetime::instanttype);
     tiv.lc            = false;
     tiv.rc            = false;
   }
