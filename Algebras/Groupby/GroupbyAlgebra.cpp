@@ -79,6 +79,7 @@ extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
 using namespace listutils;
+using namespace std;
 
 
 /*
