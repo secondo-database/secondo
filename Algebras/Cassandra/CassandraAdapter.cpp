@@ -57,7 +57,8 @@
 // Activate debug messages
 //#define __DEBUG__
 
-#define MAX_PENDING_FUTURES 5000
+#define MAX_PENDING_FUTURES 30
+#define MAX_PENDING_FUTURES_LOW_WATERMARK 20
 
 using namespace std;
 
@@ -676,8 +677,18 @@ bool CassandraAdapter::dropTable(string tablename) {
 }
 
 void CassandraAdapter::waitForPendingFuturesIfNeeded() {
-   while(pendingFutures.size() > MAX_PENDING_FUTURES) {
-        waitForPendingFutures();
+
+  if(pendingFutures.size() > MAX_PENDING_FUTURES) {
+      int waitForFutures = (pendingFutures.size() 
+                      - MAX_PENDING_FUTURES_LOW_WATERMARK);
+
+      for(int i = 0; i < waitForFutures; i++) {
+           CassFuture* future = pendingFutures[i];
+           cass_future_wait(future);
+      }
+
+     // Force removal of finished futures
+     removeFinishedFutures(true);
    }
 }
 
