@@ -11648,7 +11648,7 @@ something other).
 */
 
 ListExpr dmapTM(ListExpr args){
-  string err = "dfarray(X)  x string x fun expected";
+  string err = "d[f]array(X)  x string x fun expected";
   if(!nl->HasLength(args,3)){
     return  listutils::typeError(err + " (wrong number of args)");
   }
@@ -11674,15 +11674,15 @@ ListExpr dmapTM(ListExpr args){
   }
 
 
-  ListExpr stream = nl->TwoElemList(
-                     listutils::basicSymbol<Stream<Tuple> >(),
+  ListExpr frelt = nl->TwoElemList(
+                     listutils::basicSymbol<frel>(),
                      nl->Second(nl->Second(arg1Type)));
 
   ListExpr funArg = nl->Second(arg3Type);
 
   ListExpr expFunArg = DArray::checkType(arg1Type)
                       ? nl->Second(arg1Type)
-                      : stream; 
+                      : frelt; 
 
 
   if(!nl->Equal(expFunArg,funArg)){
@@ -11926,11 +11926,6 @@ class Mapper{
                            + mapper->name + "_" + stringutils::int2str(nr)
                            + ".bin";
 
-
-     
-
-
-
            if(mapper->isRel) {
              cmd += " feed fconsume5['"+fname2+"'] count";
            } else {
@@ -11982,20 +11977,24 @@ class Mapper{
            return;
           } 
              
-          string stream;
+          string funarg;
           string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
 
           if(mapper->array->getType()==DFARRAY){  
               string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
                               + mapper->array->getName() + "/"
                               + n + ".bin";
-               stream = "'"+fname1 + "' ffeed5 ";
+               ListExpr frelType = nl->TwoElemList(
+                                     listutils::basicSymbol<frel>(),
+                                     nl->Second(nl->Second(mapper->aType))); 
+               funarg = "[ const " + getUDRelType(frelType) 
+                               + " value  '" + fname1 +"' ]"; 
           } else {
-               stream = n + " ";
+               funarg = n + " ";
           }
 
           string name2 = mapper->name + "_" + stringutils::int2str(nr);
-          cmd = "let "+ name2 +" = " + funName +"( " + stream + ")";
+          cmd = "let "+ name2 +" = " + funName +"( " + funarg + ")";
 
           ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
           if((err!=0)  ){ // ignore type map errors
