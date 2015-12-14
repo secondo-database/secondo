@@ -218,7 +218,7 @@ Remark    : remote server required
 Operator  : dmap
 Number    : 1
 Signature : dfarray x string x fun -> d[f]array
-Example   : query da8 dmap["", . head[25] ]
+Example   : query da8 dmap["", . feed head[25] ]
 Result    : bug
 Remark    : in development
 
@@ -233,21 +233,21 @@ Remark    : remote server required
 Operator  : dmap2 
 Number    : 1
 Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) x int -> d[f]array(Z)
-Example   : query dfa1 dfa2  dmap2["da3", .  .. product, 1238 ]
+Example   : query dfa1 dfa2  dmap2["da3", . feed  .. feed  product, 1238 ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : ARRAYFUNARG1 
 Number    : 1
-Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
-Example   : query dfa1 dfa2  dmap2["da3", .  .. product, 1238 ]
+Signature : darray(X) x ... -> X | dfarray(rel(Y)) x ... -> frel(Y) 
+Example   : query dfa1 dfa2  dmap2["da3", . feed  .. feed  product, 1238 ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : ARRAYFUNARG2
 Number    : 1
-Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) -> d[f]array(Z)
-Example   : query dfa1 dfa2  dmap2["da3", .  .. product,1238 ]
+Signature : ANY x darray(X) x ... -> X | ANY x dfarray(rel(Y)) x ... -> frel(Y) 
+Example   : query dfa1 dfa2  dmap2["da3", . feed  .. feed product,1238 ]
 Result    : bug
 Remark    : remote server required
 
@@ -285,52 +285,52 @@ Example   : query da2 getValue
 Result    : bug
 Remark    : remote server required
 
-Operator : deleteRemoteObjects
-Number   : 1
+Operator  : deleteRemoteObjects
+Number    : 1
 Signature : d[f]array(X) [x int] -> int
 Example   : query deleteRemoteObjects(da2)
 Result    : bug
 Remark    : remote server required
 
 
-Operator : clone 
-Number   : 1
+Operator  : clone 
+Number    : 1
 Signature : d[f]array(X) x string -> d[f]array(X)
 Example   : query da8 clone["da9"]
 Result    : bug
 Remark    : remote server required
 
-Operator : share 
-Number   : 1
+Operator  : share 
+Number    : 1
 Signature : string x bool [ x d[f]array] -> text
 Example   : query share("ten", FALSE)
 Result    : bug
 Remark    : remote server required
 
-Operator : cleanUp 
-Number   : 1
+Operator  : cleanUp 
+Number    : 1
 Signature : -> bool , d[f]array -> bool
 Example   : query cleanUp(da8)
 Result    : bug
 Remark    : remote server required
 
-Operator: dfdistribute2
-Number  : 1
+Operator  : dfdistribute2
+Number    : 1
 Signature : stream(tuple(X)) x ident x int x rel x string -> dfarray(X) 
 Example   : query strassen feed addcounter[No,0] dfdistribute2["dstrassen", No, 5, workers] 
 Result    : crashes
 Remark    : remote server required
 
-Operator: dfdistribute3
-Number  : 1
+Operator  : dfdistribute3
+Number    : 1
 Signature : stream(tuple(X)) x int x bool x rel x string -> dfarray(rel(tuple(X))) 
 Example   : query strassen feed dfdistribute3["fstrassen", 10, TRUE, workers] 
 Result    : bug
 Remark    : remote server required
 
 
-Operator: dfdistribute4
-Number  : 1
+Operator  : dfdistribute4
+Number    : 1
 Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray(X) 
 Example   : query strassen feed  dfdistribute4["dfstrassen4", hashvalue(.Name, 2000), 5, workers] 
 Result    : bug 
@@ -351,8 +351,8 @@ Example   : query da8 dmap["", . head[25] ]
 Result    : bug
 Remark    : in development
 
-Operator : gettuples
-Number   : 1
+Operator  : gettuples
+Number    : 1
 Signature : stream(tuple) x {string,text} -> stream(tuple)
 Example   : query strassenfile_btree exactmatchS["Hohe Strasse"] 'strassen.bin' gettuples consume
 Result    : bug
@@ -377,13 +377,11 @@ Signature : int x int x int x {string,text} x {string,text}
 Example   : query transferFile(0,1,1238,'Staedte.txt', "Staedte3.txt")
 Result    : FALSE
 
-
 Operator  : traceCommands
 Number    : 1
 Signature : bool -> bool
 Example   : query traceCommands(FALSE);
 Result    : TRUE
-
 
 Operator  : showProgress 
 Number    : 1
@@ -472,6 +470,19 @@ Example   : query m8a m8b  areduce2["a9", . . product count, 1236] getValue
 Result    : bug
 Remark    : under develeopment
 
+Operator  : AREDUCEARG1 
+Number    : 1
+Signature : dfmatrix(rel(x))  x  ... -> stream(x)
+Example   : query m8 areduce["a9", . count, 1236] getValue
+Result    : bug
+Remark    : Type mapping operator
+
+Operator  : AREDUCEARG2
+Number    : 1
+Signature : ANY  x  dfmatrix(rel(x)) x ... -> stream(x)
+Example   : query m8a m8b  areduce2["a9", . ..  product count, 1236] getValue
+Result    : bug
+Remark    : type mapping operator, remote server required
 
 Operator  : SUBTYPE1
 Number    : 1

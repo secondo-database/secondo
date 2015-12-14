@@ -12798,7 +12798,7 @@ Operator SUBTYPE2OP(
 TypeMapOperators ARRAYFUNARG1 and ARRAYFUNARG2
 
 */
-template<int pos>
+template<int pos, bool makeStream>
 ListExpr ARRAYFUNARG(ListExpr args){
 
   if(!nl->HasMinLength(args,pos)){
@@ -12814,21 +12814,27 @@ ListExpr ARRAYFUNARG(ListExpr args){
   }
   if(DFArray::checkType(arg) ||
      DFMatrix::checkType(arg)){
-     ListExpr res = nl->TwoElemList(
+     ListExpr res;
+     if(makeStream){
+       res  = nl->TwoElemList(
+               listutils::basicSymbol<Stream<Tuple> >(),
+               nl->Second(nl->Second(arg)));
+      } else {
+       res  = nl->TwoElemList(
                listutils::basicSymbol<frel>(),
                nl->Second(nl->Second(arg)));
-     return res;
+      }
+      return res;
 
   }
   return listutils::typeError("Invalid type found");
-
 }
 
 OperatorSpec ARRAYFUNARG1SPEC(
-  "darray(X) x ... -> X, dfarray(rel(X)) x ... -> stream(X)",
+  "darray(X) x ... -> X, dfarray(rel(X)) x ... -> frel(X)",
   "ARRAYFUNARG1(_)",
   "Type mapping operator.",
-  "query df1 df2 map [\"df3\" . .. product]"
+  "query df1 dmap [\"df3\" . count]"
 );
 
 Operator ARRAYFUNARG1OP(
@@ -12836,23 +12842,53 @@ Operator ARRAYFUNARG1OP(
    ARRAYFUNARG1SPEC.getStr(),
    0,
    Operator::SimpleSelect,
-   ARRAYFUNARG<1>
+   ARRAYFUNARG<1, false>
 );
 
 OperatorSpec ARRAYFUNARG2SPEC(
-  " any x darray(X) x ... -> X, any x dfarray(rel(X)) x ... -> stream(X)",
+  " any x darray(X) x ... -> X, any x dfarray(rel(X)) x ... -> frel(X)",
   " ARRAYFUNARG2(_)",
   "Type mapping operator.",
-  "query df1 df2 map [\"df3\" . .. product]"
+  "query df1 df2 dmap2 [\"df3\" . feed  .. feed  product, 1238]"
 );
 Operator ARRAYFUNARG2OP(
   "ARRAYFUNARG2",
    ARRAYFUNARG2SPEC.getStr(),
    0,
    Operator::SimpleSelect,
-   ARRAYFUNARG<2>
+   ARRAYFUNARG<2, false>
 );
 
+
+OperatorSpec AREDUCEARG1SPEC(
+  "darray(X) x ... -> X, dfarray(rel(X)) x ... -> stream(X)",
+  "AREDUCEARG1(_)",
+  "Type mapping operator.",
+  "query df1  areduce[\"d3\" . count , 1238]"
+);
+
+Operator AREDUCEARG1OP(
+  "AREDUCEARG1",
+   AREDUCEARG1SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   ARRAYFUNARG<1, true>
+);
+
+OperatorSpec AREDUCEARG2SPEC(
+  " any x darray(X) x ... -> X, any x dfarray(rel(X)) x ... -> stream(X)",
+  " AREDUCEARG2(_)",
+  "Type mapping operator.",
+  "query df1 df2 areduce[\"df3\" . .. product, 1238]"
+);
+
+Operator AREDUCEARG2OP(
+  "AREDUCEARG2",
+   AREDUCEARG2SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   ARRAYFUNARG<2, true>
+);
 
 ListExpr DFARRAYTUPLETM(ListExpr args){
 
@@ -15259,12 +15295,8 @@ ListExpr areduceTM(ListExpr args){
     isF = Relation::checkType(funres);
   }
   
-
-
-
   ListExpr funquery = nl->Second(f);
   
-
   ListExpr funargs = nl->Second(funquery);
 
   ListExpr dat = tupleStream;
@@ -16583,6 +16615,10 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&ARRAYFUNARG1OP);
    AddOperator(&ARRAYFUNARG2OP);
+
+   AddOperator(&AREDUCEARG1OP);
+   AddOperator(&AREDUCEARG2OP);
+
 
    AddOperator(&fileTransferServerOP);
    AddOperator(&recieveFileClientOP);
