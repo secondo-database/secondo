@@ -12223,12 +12223,12 @@ ListExpr dmap2TM(ListExpr args){
  }
 
  ListExpr a1 = DFArray::checkType(first)
-               ? nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+               ? nl->TwoElemList( listutils::basicSymbol<frel>(),
                                   nl->Second(nl->Second(first)))
                : nl->Second(first);
 
  ListExpr a2 = DFArray::checkType(second)
-               ? nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+               ? nl->TwoElemList( listutils::basicSymbol<frel>(),
                                   nl->Second(nl->Second(second)))
                : nl->Second(second);
  
@@ -12428,8 +12428,6 @@ class dmap2Info{
              } 
              string fa1 = getFunArg(mi->array1, mi->frelType1,ci1);
              string fa2 = getFunArg(mi->array2, mi->frelType2,ci2);
-
-
 
              if(mi->res->getType()!=DFARRAY){
                cmd = "let " + mi->objName + "_"+stringutils::int2str(i)
