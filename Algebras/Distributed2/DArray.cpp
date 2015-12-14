@@ -26,53 +26,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#include "Dist2Helper.h"
 #include "DArray.h"
 
 
 using namespace std;
 
 namespace distributed2{
-
-
-
-template<>
-bool readVar<string>(string& value, SmiRecord& record, size_t& offset){
-  size_t len;
-  if(!readVar<size_t>(len,record,offset)){
-    return false;
-  }
-  //assert(len<=48);
-
-  if(len==0){
-     value = "";
-     return true;
-  }
-  char* cstr = new char[len];
-  bool res = record.Read(cstr, len, offset) == len;
-  offset += len;
-  value.assign(cstr,len);
-  delete[] cstr;
-  return res;
-}
-
-template<>
-bool writeVar<string>(
-  const string& value, SmiRecord& record, size_t& offset){
-
-  // write the size of the sting
-  size_t len = value.length();
-  if(!writeVar<size_t>(len,record,offset)){
-     return false;
-  }
-  if(len==0){
-     return true;
-  }
-  if(record.Write(value.c_str(),len, offset)!=len){
-     return false;
-  }
-  offset+= len;
-  return true;
-}
 
 
 /*

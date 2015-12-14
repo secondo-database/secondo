@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
+#include "fsrel.h"
 #include "DArray.h"
 #include "frel.h"
 #include <iostream>
@@ -5861,6 +5862,17 @@ TypeConstructor FRelTC(
   frel::SizeOf,
   frel::TypeCheck );
 
+TypeConstructor FSRelTC(
+  fsrel::BasicType(),
+  fsrel::Property,
+  fsrel::Out, fsrel::In,
+  0,0,
+  fsrel::Create, fsrel::Delete,
+  fsrel::Open, fsrel::Save,
+  fsrel::Close, fsrel::Clone, 
+  fsrel::Cast, 
+  fsrel::SizeOf,
+  fsrel::TypeCheck );
 
 
 /*
@@ -6678,12 +6690,18 @@ ListExpr ffeed5TM(ListExpr args){
   }
   ListExpr arg = nl->First(argwt);
 
+  // accept frel
   if(frel::checkType(arg)){
     return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
                             nl->Second(arg));
   }
+  // accept fsrel
+  if(fsrel::checkType(arg)){
+    return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                            nl->Second(arg));
+  }
 
-
+  // accept string or text, retrieve type from file
   if(!CcString::checkType(arg) && !FText::checkType(arg)){
     return listutils::typeError(err);
   }
@@ -6794,19 +6812,112 @@ int ffeed5VMT(Word* args, Word& result, int message,
 }
 
 
+class ffeed5fsrelInfo{
+
+  public:
+      ffeed5fsrelInfo(fsrel* _fn, ListExpr _tt):
+        fn(_fn), tt(new TupleType(_tt)), pos(0), 
+        li(0) {}
+
+      Tuple* next(){
+         while(pos < fn->size()){
+            if(!li){
+              retrieveNextLi();
+            }
+            if(!li){
+               return 0;
+            }
+            Tuple* res = li->next();
+            if(res){
+               return res;
+            } 
+            delete li;
+            li = 0; 
+         }
+         return 0;
+      }
+
+      ~ffeed5fsrelInfo(){
+           tt->DeleteIfAllowed();
+           if(li){
+              delete li;
+              li = 0;
+           }
+       }
+
+
+  private:
+     fsrel* fn;
+     TupleType* tt;
+     size_t pos;
+     ffeed5Info* li;
+
+     void retrieveNextLi(){
+         assert(!li);
+         while(!li){
+           pos++;
+           if(pos >= fn->size()){
+             return;
+           }
+           string f = (*fn)[pos];
+           li = new ffeed5Info( f, tt);
+           if(!li->isOK()){
+              delete li;
+              li = 0;
+           }
+         }
+     }
+
+
+};
+
+
+int ffeed5VMfsrel(Word* args, Word& result, int message,
+          Word& local, Supplier s ){
+
+  ffeed5fsrelInfo* li = (ffeed5fsrelInfo*) local.addr;
+  switch(message){
+     case OPEN : {
+         if(li){
+           delete li;
+         }
+         local.addr = new ffeed5fsrelInfo( (fsrel*) args[0].addr,
+                                         nl->Second(GetTupleResultType(s)));
+         return 0;
+     }  
+     case REQUEST: {
+          result.addr = li?li->next():0;
+          return result.addr?YIELD:CANCEL;
+     }
+     case CLOSE: {
+          if(li){
+             delete li;
+             local.addr = 0;
+          }
+          return 0;
+     }
+  }
+  return -1;
+}
+
 /*
 1.4.4 Value Mapping Array and Selection
 
 */
 int ffeed5Select(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:
-         FText::checkType(nl->First(args))?1:2;
+  ListExpr arg = nl->First(args);
+  if(CcString::checkType(arg)) { return 0;}
+  if(FText::checkType(arg)){ return 1; }
+  if(frel::checkType(arg)) { return 2; }
+  if(fsrel::checkType(arg)) { return 3; }
+  return -1;
 }
 
 ValueMapping ffeed5VM[] = {
   ffeed5VMT<CcString>,
   ffeed5VMT<FText>,
-  ffeed5VMT<frel>
+  ffeed5VMT<frel>,
+  ffeed5VMfsrel
 };
 
 
@@ -6816,18 +6927,18 @@ ValueMapping ffeed5VM[] = {
 */
 
 OperatorSpec ffeed5Spec(
-     " {string, text} -> stream(TUPLE)  | frel(tuple(X)) -> stream(tuple(X))",
-     " _ ffeed5",
-     " Restores  a tuple stream from a binary file. ",
-     " query 'ten.bin' ffeed5 count "
-     );
+  " {string, text} -> stream(TUPLE)  | f[s]rel(tuple(X)) -> stream(tuple(X))",
+  " _ ffeed5",
+  " Restores  a tuple stream from a binary file. ",
+  " query 'ten.bin' ffeed5 count "
+ );
 
 OperatorSpec feedSpec(
-     " {string, text} -> stream(TUPLE)  | frel(tuple(X)) -> stream(tuple(X))",
-     " _ feed",
-     " Restores  a tuple stream from a binary file. ",
-     " query 'ten.bin' feed count "
-     );
+   " {string, text} -> stream(TUPLE)  | f[s]rel(tuple(X)) -> stream(tuple(X))",
+   " _ feed",
+   " Restores  a tuple stream from a binary file. ",
+   " query 'ten.bin' feed count "
+);
 
 /*
 1.4.6 Instance
@@ -6836,7 +6947,7 @@ OperatorSpec feedSpec(
 Operator ffeed5Op(
    "ffeed5",
    ffeed5Spec.getStr(),
-   3,
+   4,
    ffeed5VM,
    ffeed5Select,
    ffeed5TM
@@ -6845,7 +6956,7 @@ Operator ffeed5Op(
 Operator feedOp(
    "feed",
    feedSpec.getStr(),
-   3,
+   4,
    ffeed5VM,
    ffeed5Select,
    ffeed5TM
@@ -16524,6 +16635,79 @@ Operator createFrelOP(
 
 
 
+/*
+
+2.32 Operator ~createFrel~
+
+*/
+ListExpr createFSrelTM(ListExpr args){
+  string err = " stream({text,string}) x rel expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(   !Stream<FText>::checkType(nl->First(args))
+     && !Stream<CcString>::checkType(nl->First(args))){
+    return listutils::typeError(err + " (first arg has invalid type)");
+  }
+  if(!Relation::checkType(nl->Second(args))){
+     return listutils::typeError(err + " ( second arg is not a relation)");
+  }
+
+  return nl->TwoElemList(
+                listutils::basicSymbol<fsrel>(),
+                nl->Second(nl->Second(args)));
+}
+
+
+template<class T>
+int createFSrelVMT(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  fsrel* res = (fsrel*) result.addr;
+  res->clear();
+  Stream<T> stream(args[0]);
+  stream.open();
+  T* name;
+  while( (name = stream.request())!=0){
+     if(name->IsDefined()){
+        res->append(name->GetValue());
+     }
+     name->DeleteIfAllowed();
+  }
+  stream.close();
+  return 0;
+}
+
+ValueMapping createFSrelVM[] = {
+   createFSrelVMT<CcString>,
+   createFSrelVMT<FText>
+};
+
+int createFSrelSelect(ListExpr args){
+  return Stream<CcString>::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec createFSrelSpec(
+  " stream({string,text}) x rel(x) -> fsrel(x)",
+  " _ createFSRel[_]",
+  "This operator creates an fsrel object. "
+  "The relation is a type template, it's value is not used."
+  "All defined elements in the stream are collected within the "
+  "result. There is no duplicate elemination.",
+  " query names feed namedtransformstream[File] createfsrel[ten]"
+);
+
+Operator createFSrelOP(
+ "createFSrel",
+ createFSrelSpec.getStr(),
+ 2,
+ createFSrelVM,  
+ createFrelSelect,
+ createFSrelTM
+);
+
+
 
 
 /*
@@ -16541,6 +16725,8 @@ Distributed2Algebra::Distributed2Algebra(){
    DFMatrixTC.AssociateKind(Kind::SIMPLE());
    AddTypeConstructor(&FRelTC);
    FRelTC.AssociateKind(Kind::SIMPLE());
+   AddTypeConstructor(&FSRelTC);
+   FSRelTC.AssociateKind(Kind::SIMPLE());
    
    AddOperator(&connectOp);
    AddOperator(&checkConnectionsOp);
@@ -16672,6 +16858,9 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&createFrelOP);
    createFrelOP.SetUsesArgsInTypeMapping();
+
+   AddOperator(&createFSrelOP);
+
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);

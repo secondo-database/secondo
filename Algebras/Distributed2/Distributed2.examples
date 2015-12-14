@@ -541,6 +541,13 @@ Example   : query createFrel("ten,bin", ten, FALSE)
 Result    : unpredictable
 Remark    : depends on the existence and content of file ten.bin
 
+Operator  : createFSrel
+Number    : 1
+Signature : stream({text,string}) x rel(x) -> fsrel(x)
+Example   : query getDirectory(".") filter[ basename(.) startsWith "strassen"] createFSrel[strassen]
+Result    : unpredictable
+Remark    : result depends of existence of certain files
+
 
 
 
