@@ -6680,7 +6680,7 @@ This operator produces a stream of tuples from a file.
 
 */
 ListExpr ffeed5TM(ListExpr args){
-  string err = "string or text or frel expected";
+  string err = "string, text, frel, or fsrel expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err);
   }
@@ -12909,7 +12909,7 @@ Operator SUBTYPE2OP(
 TypeMapOperators ARRAYFUNARG1 and ARRAYFUNARG2
 
 */
-template<int pos, bool makeStream>
+template<int pos, bool makeFS>
 ListExpr ARRAYFUNARG(ListExpr args){
 
   if(!nl->HasMinLength(args,pos)){
@@ -12926,9 +12926,9 @@ ListExpr ARRAYFUNARG(ListExpr args){
   if(DFArray::checkType(arg) ||
      DFMatrix::checkType(arg)){
      ListExpr res;
-     if(makeStream){
+     if(makeFS){
        res  = nl->TwoElemList(
-               listutils::basicSymbol<Stream<Tuple> >(),
+               listutils::basicSymbol<fsrel>(),
                nl->Second(nl->Second(arg)));
       } else {
        res  = nl->TwoElemList(
@@ -15376,10 +15376,14 @@ ListExpr areduceTM(ListExpr args){
   ListExpr tupleStream = nl->TwoElemList(
                              listutils::basicSymbol<Stream<Tuple> >(),
                              tupleType);
+  
+   ListExpr fsrelt = nl->TwoElemList(
+                             listutils::basicSymbol<fsrel >(),
+                             tupleType);
 
   ListExpr funArg = nl->Second(f1);
 
-  if(!nl->Equal(tupleStream,funArg)){
+  if(!nl->Equal(fsrelt,funArg)){
      return listutils::typeError("function arg does not fit to"
                                  " the dmatrix subtype");
   }
@@ -15618,13 +15622,13 @@ class AReduceTask{
                }
           }
 
-          string tuplestream1 = " ( fsfeed5 (projecttransformstream" 
+          string tuplestream1 = " ( createFSrel (projecttransformstream" 
                                 + tuplestream0_1 + " L )(" 
                                 + nl->ToString(relType1) + "()) )";
 
           string tuplestream2 = ""; // no tuple stream
           if(matrix2){
-             tuplestream2 =   "( fsfeed5 (projecttransformstream" 
+             tuplestream2 =   "( createFSrel (projecttransformstream" 
                             + tuplestream0_2
                             + " L )(" + nl->ToString(relType2) + "())) ";
           }
