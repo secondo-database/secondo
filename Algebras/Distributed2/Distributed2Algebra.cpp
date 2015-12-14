@@ -6816,10 +6816,17 @@ ValueMapping ffeed5VM[] = {
 */
 
 OperatorSpec ffeed5Spec(
-     " {string, text} -> stream(TUPLE) ",
+     " {string, text} -> stream(TUPLE)  | frel(tuple(X)) -> stream(tuple(X))",
      " _ ffeed5",
      " Restores  a tuple stream from a binary file. ",
      " query 'ten.bin' ffeed5 count "
+     );
+
+OperatorSpec feedSpec(
+     " {string, text} -> stream(TUPLE)  | frel(tuple(X)) -> stream(tuple(X))",
+     " _ feed",
+     " Restores  a tuple stream from a binary file. ",
+     " query 'ten.bin' feed count "
      );
 
 /*
@@ -6829,6 +6836,15 @@ OperatorSpec ffeed5Spec(
 Operator ffeed5Op(
    "ffeed5",
    ffeed5Spec.getStr(),
+   3,
+   ffeed5VM,
+   ffeed5Select,
+   ffeed5TM
+);
+
+Operator feedOp(
+   "feed",
+   feedSpec.getStr(),
    3,
    ffeed5VM,
    ffeed5Select,
@@ -16524,6 +16540,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&fconsume5Op);
    AddOperator(&ffeed5Op);
    ffeed5Op.SetUsesArgsInTypeMapping();
+   AddOperator(&feedOp);
+   feedOp.SetUsesArgsInTypeMapping();
 
    AddOperator(&createDArrayOp);
 

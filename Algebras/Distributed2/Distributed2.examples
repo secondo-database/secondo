@@ -141,8 +141,14 @@ Result    : 10
 
 Operator  : ffeed5
 Number    : 1
-Signature : {string, text} -> stream(TUPLE)
+Signature : {string, text} -> stream(TUPLE) | frel(tuple(X)) -> stream(tuple(X))
 Example   : query 'ten.bin' ffeed5  count
+Result    : 10
+
+Operator  : feed
+Number    : 1
+Signature : {string, text} -> stream(TUPLE) | frel(tuple(X)) -> stream(tuple(X))
+Example   : query 'ten.bin' feed  count
 Result    : 10
 
 Operator  : createDArray
