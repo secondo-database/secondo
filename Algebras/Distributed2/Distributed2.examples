@@ -487,14 +487,14 @@ Remark    : type mapping operator, remote server required
 Operator  : SUBTYPE1
 Number    : 1
 Signature : a(b) x ... -> b
-Example   : query a1 partitionF["a2",  . head[23], hashValue(..AttrName, 13), 0]
+Example   : query a1 partitionF["a2",  . feed head[23], hashvalue(..AttrName, 13), 0]
 Result    : bug
 Remark    : under development
 
 Operator  : FFR
 Number    : 1
 Signature : d[f]array(rel(X)) x X -> stream(X) , A x B x ( C [x D] -> stream(tuple(Z)) ) -> tuple(Z)
-Example   : query a1 partitionF["", . head[23], hashValue(..AttrName, 13), 0]
+Example   : query a1 partitionF["", . feed head[23], hashvalue(..AttrName, 13), 0]
 Result    : bug
 Remark    : under development
 
@@ -502,7 +502,7 @@ Remark    : under development
 Operator  : partitionF
 Number    : 1
 Signature : d[f]array(A) x string x ( A -> B ) , (B -> int) x int -> dfmatrix
-Example   : query a1 partitionF["a2", . head[23], hashValue(..AttrName, 13), 0]
+Example   : query a1 partitionF["a2", . feed head[23], hashvalue(..AttrName, 13), 0]
 Result    : bug
 Remark    : under development
 

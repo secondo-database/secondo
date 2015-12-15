@@ -14813,8 +14813,9 @@ class partitionInfo{
 
 
         string stream1 = "(projecttransformstream (feed " + rel + ") T )";
-        string stream2 = "(feedS " + stream1 + "("+nl->ToString(relType) 
-                         + " ()))"; 
+        string stream2 =   "(consume (feedS " + stream1 
+                         + "("+nl->ToString(relType) 
+                         + " ())))"; 
         string stream3 = stream2;
         if(!sfun.empty()){
           stream3 = "("+ sfun +   stream2 + ")";
@@ -14887,7 +14888,7 @@ class partitionInfo{
                               nl->SymbolAtom("T"));
 
         ListExpr fsfeed = nl->ThreeElemList(
-                                nl->SymbolAtom("fsfeed5"),
+                                nl->SymbolAtom("createFSrel"),
                                 stream,
                                 relTemp);
 
@@ -14969,8 +14970,6 @@ int partitionVMT(Word* args, Word& result, int message,
       newSize = 0;
    }
 
-
-
    int size = array->getSize();
 
    if(newSize->IsDefined() &&
@@ -14990,7 +14989,6 @@ int partitionVMT(Word* args, Word& result, int message,
    if(tname.size()==0){
       tname = algInstance->getTempName();
    }
-
 
    if(!stringutils::isIdent(tname)){
      res->makeUndefined();
@@ -15012,16 +15010,15 @@ int partitionVMT(Word* args, Word& result, int message,
    ListExpr relType = nl->Second(qp->GetType(qp->GetSon(s,0)));
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
 
-
    for(size_t i=0;i<array->numOfWorkers();i++){
       DArrayElement de = array->getWorker(i);
       ConnectionInfo* ci = algInstance->getWorkerConnection(de,dbname);
-    //  string ip = ci->getHost();
-    //  string home = ci->getSecondoHome();
-    //  pair<string,string> p(ip,home);
-      partitionInfo<A>* info = new partitionInfo<A>(array, size, i, ci,funText,
-                                             dfunText, tname, relType, dbname);
-      infos.push_back(info);
+      if(ci){
+         partitionInfo<A>* info = new partitionInfo<A>(array, size, i, ci,
+                                             funText, dfunText, tname, 
+                                             relType, dbname);
+         infos.push_back(info);
+      }
    }
 
    for(size_t i=0;i<infos.size();i++){
@@ -15074,7 +15071,7 @@ the ~partitionF~ operator applies a function before redistributing the array.
 ListExpr partitionFTM(ListExpr args){
 
   string err = "expected: d[f]array(rel(tuple(X))) x string x "
-               "(stream(tuple(X)) -> stream(tuple(Y))) x "
+               "([fs]rel(tuple(X)) -> stream(tuple(Y))) x "
                "(tuple(Y)->int) x int";
 
   if(!nl->HasLength(args,5)){
@@ -15126,12 +15123,14 @@ ListExpr partitionFTM(ListExpr args){
      return listutils::typeError(err + " (fifth arg is not an int)");
   }
   // check function arguments and results
-  ListExpr arrayStream = nl->TwoElemList(
-                               listutils::basicSymbol<Stream<Tuple> >(),
+  ListExpr expFunArg =   DArray::checkType(a1)
+                        ?subtype
+                        : nl->TwoElemList(
+                               listutils::basicSymbol<fsrel>(),
                                nl->Second(subtype));
 
-  if(!nl->Equal(arrayStream, nl->Second(f1))){
-     return listutils::typeError(" stream argument of function does not "
+  if(!nl->Equal(expFunArg, nl->Second(f1))){
+     return listutils::typeError(" argument of function does not "
                                  "fit the array type.");
   }
 
@@ -15202,7 +15201,7 @@ ListExpr partitionFTM(ListExpr args){
                        nl->First(funDef),
                        nl->TwoElemList(
                              nl->First(fdarg),
-                             arrayStream),
+                             expFunArg),
                        dfcomp
                      );
 
@@ -15259,19 +15258,22 @@ ListExpr partitionFTM(ListExpr args){
 ListExpr FFRTM(ListExpr args){
 
   if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
-    return listutils::typeError("1 or two arguments expected") ;
+    return listutils::typeError("2 or 3 arguments expected") ;
   }
 
   if(nl->HasLength(args,2)){
     ListExpr arg = nl->First(args);
-    if(!DArray::checkType(arg) && !DFArray::checkType(arg)){
-       return listutils::typeError("d[f]array expected");
+    if(DArray::checkType(arg) ){
+       if(!Relation::checkType(nl->Second(arg))){
+          return listutils::typeError("darray's subtype muts be a relation");
+       }
+       return nl->Second(arg); // return the relation
+    } 
+    if(DFArray::checkType(arg)){
+       return nl->TwoElemList( listutils::basicSymbol<fsrel>(),
+                               nl->Second(nl->Second(arg)));
     }
-    if(!Relation::checkType(nl->Second(arg))){
-      return listutils::typeError("D[f]array's subtype muts be a relation");
-    }
-    return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
-                            nl->Second(nl->Second(arg)));
+    return listutils::typeError("first arg is not a d[f]array");
   }
   // three arguments
   ListExpr arg = nl->Third(args);
@@ -15292,8 +15294,8 @@ ListExpr FFRTM(ListExpr args){
 
 
 OperatorSpec FFRSpec(
-  "d[f]array(rela(tuple(X))) x A -> stream(tuple(X)) or  "
-  "B x C x (stream(tuple(D) -> stream(tuple(E)) ) -> tuple(E)",
+  "d[f]array(rela(tuple(X))) x A -> frel(tuple(X)) or  "
+  "B x C x (frel(tuple(D) -> stream(tuple(E)) ) -> tuple(E)",
   " FFR(_,_,_)",
   "Type Map Operator",
   "query FFR(test) getTypeNL"
@@ -15309,12 +15311,12 @@ Operator FFROp(
 );
 
 OperatorSpec partitionFSpec(
-  "d[f]array(rel(X)) x string x stream(X)->stream(Y)) x (Y -> int) x "
+  "d[f]array(rel(X)) x string x ([fs]rel(X)->stream(Y)) x (Y -> int) x "
   "int -> dfmatrix(rel(Y)) ",
   "_ partitionL[_,_,_,_] ",
   "Repartitions a distributed [file] array. Before repartition, a "
   "function is applied to the slots.",
-  "query a1 partitionL[ \"name\", . head[12], hashvalue(.Attr,23), 0]" 
+  "query a1 partitionL[ \"name\", . feed head[12], hashvalue(.Attr,23), 0]" 
 );
 
 
@@ -15877,16 +15879,16 @@ int areduceVMT(Word* args, Word& result, int message,
 
 
 OperatorSpec areduceSpec(
-   "dfmatrix(rel(t)) x string x (stream(t)->Y) x int -> d[f]array(Y)",
+   "dfmatrix(rel(t)) x string x (fsrel(t)->Y) x int -> d[f]array(Y)",
    "matrix areduce[newname, function, port]",
    "Performs a function on the distributed slots of an array. "
-   "The task distribution is dynamicalle, meaning that a fast "
+   "The task distribution is dynamically, meaning that a fast "
    "worker will handle more slots than a slower one. "
    "The result type depends on the result of the function. "
    "For a relation or a tuple stream, a dfarray will be created. "
    "For other non-stream results, a darray is the resulting type.",
    "The integer argument specifies the port for transferring files.",
-   "query m8 areduce[ . count, 1237]"
+   "query m8 areduce[ . feed count, 1237]"
 );
 
 ValueMapping areduceVM [] = {
@@ -16062,8 +16064,8 @@ Specification
 
 */
 OperatorSpec areduce2Spec(
-  "dfmatrix(rel(X)) x dfmatrix(rel(Y) x string x (stream(X) x "
-  "stream(Y) -> Z) x int -> d[f]array(Y)",
+  "dfmatrix(rel(X)) x dfmatrix(rel(Y) x string x (fsrel(X) x "
+  "fsrel(Y) -> Z) x int -> d[f]array(Y)",
   "_ _ areduce2[_,_,_] ",
   "Performs areduce function to two dfmatrices. The result type depends "
   "on the return type of the operation. If the result is a stream of tuples "
@@ -16072,7 +16074,7 @@ OperatorSpec areduce2Spec(
   "The string argument specified the name of the result array. "
   "The integer specified a port for transferring files between the workers. "
   "On this port automatically a staticFileTransferator is started.",
-  "query dfm1 dfm2 areduce2[ \"molly\", . .. product , 1236]"
+  "query dfm1 dfm2 areduce2[ \"molly\", . feed  .. feed product , 1236]"
 );
 
 Operator areduce2Op(
@@ -16083,14 +16085,6 @@ Operator areduce2Op(
   areduceSelect,
   areduce2TM
 );
-
-
-
-
-
-
-
-
 
 /*
 29 collect2
