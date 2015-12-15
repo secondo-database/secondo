@@ -47,8 +47,6 @@
 #include "CassandraResult.h"
 #include "CassandraTuplePrefetcher.h"
 
-using namespace std;
-
 /*
 1.1 Namspace
 
@@ -66,7 +64,7 @@ public:
    CassandraTuplePrefetcher(CassSession* mySession, 
            string myStatement, CassConsistency myConsistenceLevel) 
        : session(mySession), consistenceLevel(myConsistenceLevel), 
-           receivedTerminals(0) {
+           receivedTerminals(0), shutdown(false), workdone(false) {
           
       queries.push_back(myStatement);
       init();
@@ -108,6 +106,13 @@ created
 
 */  
 void prefetchTuple();
+
+/*
+2.1.4 Shutdown the prefetcher
+
+*/
+void shutdownQueue();
+
    
 private:
    
@@ -147,6 +152,8 @@ private:
    vector<string> queries;   
    pthread_mutex_t queryQueueMutex;
    size_t receivedTerminals;
+   volatile bool shutdown;
+   volatile bool workdone;
 };
 
 } // Namespace

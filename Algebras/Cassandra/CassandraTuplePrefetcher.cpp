@@ -57,7 +57,7 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
       pthread_mutex_lock(&tupleQueueMutex);
       
       while(tuples.size() >= MAX_PREFETCH_TUPLES) {
-         pthread_cond_wait(&tupleQueueCondition, &tupleQueueMutex); 
+         pthread_cond_wait(&tupleQueueCondition, &tupleQueueMutex);
       }
    
       bool wasEmpty = tuples.empty();
@@ -72,6 +72,9 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
    }
    
    void CassandraTuplePrefetcher::joinThreads() {
+      
+      workdone = true;
+
       for(vector<pthread_t*>::iterator iter = producerThreads.begin(); 
           iter != producerThreads.end(); iter++) {
              pthread_t *thread = *iter;
@@ -146,8 +149,7 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
       
       while(cassandraResult != NULL) {
       
-         while(cassandraResult->hasNext()) {
-      
+         while(cassandraResult->hasNext() && ! shutdown) {
            string key;
            string *fetchedTuple = new string();
        
@@ -176,6 +178,19 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
    cout << "Prefetch thread ended" << endl;
 #endif
    }
+
+   void CassandraTuplePrefetcher::shutdownQueue() {
+       shutdown = true;
+
+       while(! workdone) {
+          string *result = getNextTuple();
+          if(result != NULL) {
+             delete result;
+          } else {
+             break;
+          }
+       }
+   }
    
    void CassandraTuplePrefetcher::startTuplePrefetch() {
       int totalQueries = queries.size();
@@ -185,6 +200,8 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
       // there are no queries to be executed. This thread will
       // insert the NULL token into the result and exit afterwards.
       threads = max((size_t) 1, threads);
+      
+      threads = 1;
 
       // Create producer threads
       for(size_t i = 0; i < threads; i++) {

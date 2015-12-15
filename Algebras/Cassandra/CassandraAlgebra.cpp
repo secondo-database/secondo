@@ -1049,6 +1049,7 @@ public:
   virtual ~CCollectLocalInfo() {
     
     if(result != NULL) {
+      result -> shutdownQueue();
       delete result;
       result = NULL;
     }
