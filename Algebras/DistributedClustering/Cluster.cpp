@@ -52,7 +52,7 @@ namespace distributedClustering{
 template <class MEMB_TYP_CLASS, class TYPE>
 Cluster<MEMB_TYP_CLASS,TYPE>::
 Cluster( MEMB_TYP_CLASS* leftMember, double _eps, int _minPts) :
-eps(_eps), minPts(_minPts),leftOuterPoint(0),rightOuterPoint(0)
+leftOuterPoint(0),rightOuterPoint(0),eps(_eps), minPts(_minPts)
 {
   clusterCandList.push_back(leftMember);
   leftMember->setClusterNo(getClusterNo(0,CLUSTERCAND));
@@ -78,10 +78,9 @@ in members are stored calculated Clusters from dbdacscan
 template <class MEMB_TYP_CLASS, class TYPE>
 Cluster<MEMB_TYP_CLASS,TYPE>::
 Cluster(vector <MEMB_TYP_CLASS*>& members, double _eps, int _minPts):
-eps(_eps), minPts(_minPts),
 firstElem(members.front()),
 leftOuterPoint(members.front()->getPoint()),
-rightOuterPoint(members.back()->getPoint())
+rightOuterPoint(members.back()->getPoint()),eps(_eps), minPts(_minPts)
 {
   for(unsigned int i =0; i< members.size(); i++)
   {
@@ -639,10 +638,11 @@ meltClusters(Cluster * rightCluster,
   //Typen nicht richtig eingeordnet (BOTH LEFT RIGHT)
   
   //sort clsuterCands correct in List
+  pair<unsigned int,Kind> clCandInd = make_pair(0,CLUSTERCAND);
   testReachabilityAndSetClusterNoAtEachPoint(leftOuterPoint,rightOuterPoint,
                                              clusterCandList,
-                                             CLUSTERCAND_CL_NO,
-                                             CLUSTERCAND_CL_NO,true);
+                                             clCandInd,
+                                             true);
   
 }
 
@@ -655,8 +655,7 @@ template <class MEMB_TYP_CLASS, class TYPE>
 bool
 Cluster<MEMB_TYP_CLASS,TYPE>::
 compareLeftWithRightList( TYPE* leftInnerPoint, TYPE* rightInnerPoint,
-                          bool isNewClusterCand,/*  Kind leftKind,
-                          Kind rightKind,*/
+                          bool isNewClusterCand,
                           list<MEMB_TYP_CLASS*>& leftList ,
                           list<MEMB_TYP_CLASS*>& rightList,
                           vector<list<MEMB_TYP_CLASS*> >& retClusterCand,
@@ -691,10 +690,6 @@ compareLeftWithRightList( TYPE* leftInnerPoint, TYPE* rightInnerPoint,
           MEMB_TYP_CLASS* rightMemb = *itRight;
           
           updateNeighbor(*itLeft,*itRight);
-//           updateNeighborRightListToLeftList(leftList,rightList,
-//                                             false,false,
-//                                             leftInnerPoint,
-//                                             rightInnerPoint);
           
           concatClusterCand(rightCluster,
                             leftInnerPoint,
@@ -721,10 +716,6 @@ compareLeftWithRightList( TYPE* leftInnerPoint, TYPE* rightInnerPoint,
           retClusterCand.push_back(clusterList);
           retClusterCandMinMax.push_back(clusterMinMax);
           
-//           if(!deleteWorkedLeft || !deleteWorkedRight){
-//             cout << "FAIL delete didn't work "<< endl;
-//             cout << " in compareLeftWithRightList" << endl;
-//           }
           //start from beginning
           itLeft = --leftList.end();
           itRight = rightList.begin();
@@ -865,7 +856,8 @@ Cluster<MEMB_TYP_CLASS,TYPE>::
 addListToCorrectClusterType(
   list<MEMB_TYP_CLASS*>& clusterList,
   pair<double,double>& clusterPair,
-  pair<unsigned int,Kind>& listIndex
+  pair<unsigned int,Kind>& listIndex,
+  bool checkReachability = true
 )
 {
   // some Information regarding to left and right side of Lists
@@ -880,11 +872,9 @@ addListToCorrectClusterType(
     
     //test the list if each point is density reachable and
     //set ClusterNo and Type for each point
-    
-    bool allDensReachable =
     testReachabilityAndSetClusterNoAtEachPoint(
       leftOuterPoint,rightOuterPoint,
-      clusterList,newIndex,false);
+      clusterList,newIndex,false,checkReachability);
     
     if(clusterList.size()){
       //add list to correct cluster
@@ -935,6 +925,9 @@ addListToCorrectClusterType(
             " haven the same size!" << endl;
             undefinedCluster.push_back(clusterList);
           }
+          break;
+          
+        default:
           break;
           
       }
@@ -1074,32 +1067,15 @@ meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
   
   unsigned int sourceInd = sourceList.first;
   Kind srcKind = sourceList.second;
-  
-//   bool newRetKind = false;
   unsigned int retInd = destInd;
   
   Kind retKind = destKind;
-//   if(destinationList.second == BOTH //TODO TEST
- 
-//     ||sourceList.second == BOTH )
-//   {
-//     retKind =BOTH;
-//     if(destinationList.second != BOTH){
-//       newRetKind = true;
-//       retInd = getVectorSize(retKind);
-// //       retClNo = getClusterNo(
-// //         getVectorSize(retKind),
-// //                              retKind);
-//     }
-//   }
-  
   //insert elements along the x coord
   pair<unsigned int,Kind> retIndex(retInd,retKind);
   list<MEMB_TYP_CLASS*> retList;
   sortElemtsFromListsInNewList(getList(sourceInd,srcKind),
                                getList(destInd,destKind),
                                retList,
-//                                destinationList);
                                retIndex);
   //get MinMax borders
   pair <double,double> retMM =
@@ -1107,25 +1083,14 @@ meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
                              getMinMaxFromCluster(destKind,destInd));
   
   pair <double,double> initMM(MAX_DOUBLE,MIN_DOUBLE);
-  
-//   if(newRetKind){
-//     //push back
-//     clearList(destKind,destInd);
-//     updateMinMaxVal(destKind,destInd,initMM);
-//     pushListToCluster(retKind,retList);
-//     pushMinMaxToCluster(retKind,retMM);
-//     newIndicies.push_back(retIndex); //kind is both
-//   }else{
-    //insert
-    typename vector<list<MEMB_TYP_CLASS*> >::iterator
-    clusterIt =getClusterVector(destKind).begin()+(destInd);
-    typename vector<pair<double,double> >::iterator
-    minMaxIt= getMinMaxVector(retKind).begin()+(destInd);
-    eraseList(destKind,destInd);
-    insertList(clusterIt,retList,destKind);
-    eraseMinMax(destKind,destInd);
-    insertMinMax(minMaxIt,retMM,retKind);
-//   }
+  typename vector<list<MEMB_TYP_CLASS*> >::iterator
+  clusterIt =getClusterVector(destKind).begin()+(destInd);
+  typename vector<pair<double,double> >::iterator
+  minMaxIt= getMinMaxVector(retKind).begin()+(destInd);
+  eraseList(destKind,destInd);
+  insertList(clusterIt,retList,destKind);
+  eraseMinMax(destKind,destInd);
+  insertMinMax(minMaxIt,retMM,retKind);
   return retIndex;
 }
 
