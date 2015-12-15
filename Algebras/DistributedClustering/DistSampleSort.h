@@ -55,7 +55,7 @@ This file contains the implementation of the class Distsamp
 #include <sstream>
 #include <string>
 #include <iostream>
-#include <fstream> //TODO for log
+#include <fstream> 
 #include "FTextAlgebra.h"
 #include "Member.h"
 #include <limits>  
@@ -80,9 +80,14 @@ constructor
 
 */
     Distsamp(Word& _inSampStream, Word& _sampStream, ListExpr& _tupleType,
-             int _attrPos, int _cntWorkers, size_t _maxMem):
-             cntWorkers(_cntWorkers),resIt(0),tt(0),buffer(0),sampBuff(0)
-             ,attrPos(_attrPos)
+             int _attrPos, int _xPicRefPos, bool _appendPictureRefs,
+             int _cntWorkers, size_t _maxMem):
+             cntWorkers(_cntWorkers)
+             ,attrPos(_attrPos), xPicRefPos(_xPicRefPos)
+             ,appendPictureRefs(_appendPictureRefs)
+             ,buffer(0),sampBuff(0)
+             ,resIt(0),tt(0)
+             ,xRefPic(0),yRefPic(0),maxDist(0)
     {
       tt = new TupleType(_tupleType);
       init(_maxMem,_inSampStream, _sampStream);
@@ -115,7 +120,7 @@ next
         if(!tuple){
           return 0;
         }
-        TupleId id = resIt->GetTupleId();
+//         TupleId id = resIt->GetTupleId();
         Tuple* resTuple = new Tuple(tt);
         int noAttr = tuple->GetNoAttributes();
         for(int i = 0; i<noAttr; i++){
@@ -124,9 +129,17 @@ next
         tuple->DeleteIfAllowed();
         TYPE* obj = (TYPE*) tuple->GetAttribute(attrPos);
         MEMB_TYP_CLASS dummy(obj);
+        if(appendPictureRefs){ 
+          dummy.setCoordinates(xRefPic,yRefPic);
+        }
         resTuple->PutAttribute(noAttr, 
                                new CcInt(true,
                                       getWorkerID((double)dummy.getXVal())));
+        if(appendPictureRefs){ 
+          resTuple->PutAttribute(noAttr + 1, xRefPic->Clone());
+          resTuple->PutAttribute(noAttr + 2, 
+                                 new CcReal(true,dummy.getYVal()));
+        }
         return resTuple;
       } else {
         return 0;
@@ -142,18 +155,23 @@ next
 members
 
 */
-    int  cntWorkers,pos,sizeOfBuffer,attrPos;
+    int  cntWorkers,attrPos,xPicRefPos;
+    bool appendPictureRefs;
     TupleBuffer* buffer, *sampBuff;
     GenericRelationIterator* resIt;  // iterator 
     TupleType* tt;   // the result tuple type
     vector <MEMB_TYP_CLASS*> sampleArray;
     vector <double> border;
+    //for Picture
+    TYPE *xRefPic, *yRefPic;
+    double maxDist;
 
 /*
 initialize
 
 */
     void init(size_t maxMem, Word& _inStream, Word& _sampStream){
+      
       Tuple* tuple;
       buffer = new TupleBuffer(maxMem);
       Stream<Tuple> inStream(_inStream);
@@ -166,14 +184,72 @@ initialize
       sampBuff = new TupleBuffer();
       Stream<Tuple> sampStream(_sampStream);
       sampStream.open();
+      
+      bool firstRun = true;
+      bool findPictureCoordRefs = false;
+      bool pictureRefsExist = false;
+      if(TYPE::BasicType() == Picture::BasicType()
+        && appendPictureRefs)
+      {
+        findPictureCoordRefs = true;
+        pictureRefsExist = false;
+      }else if(TYPE::BasicType() == Picture::BasicType()
+        && !appendPictureRefs
+        && xPicRefPos >=0 )
+      {
+        findPictureCoordRefs = false;
+        pictureRefsExist = true;
+      }
+      
       while((tuple = sampStream.request())){
         sampBuff->AppendTuple(tuple);
         TYPE* obj = (TYPE*) tuple->GetAttribute(attrPos);
         if(obj->IsDefined()){
           MEMB_TYP_CLASS* member = new MEMB_TYP_CLASS(obj);
           sampleArray.push_back(member);
+          
+          if(pictureRefsExist){
+            xRefPic = (TYPE*) tuple->GetAttribute(xPicRefPos);
+            double yRefPicVal = ((CcReal*) 
+                      tuple->GetAttribute(xPicRefPos+1))->GetValue();
+            member->setCoordinates(xRefPic,yRefPicVal);
+          }
+          if(findPictureCoordRefs)
+          {
+            if(firstRun)
+            {
+              xRefPic = obj; 
+              firstRun = false;
+            }
+            else //  if(!firstRun && findPictureCoordRefs)
+            {
+              if(member->calcDistanz(xRefPic) > maxDist)
+              {
+                yRefPic = obj;
+                maxDist = member->calcDistanz(xRefPic);
+              }
+            }
+          }
         }
         tuple->DeleteIfAllowed();
+      }
+      
+      if(findPictureCoordRefs)
+      {
+        //search maxDist
+        for (int i = 1; i < sampleArray.size()-1;i++)
+        {
+          if( sampleArray.at(i)->calcDistanz(yRefPic) > maxDist)
+          {
+            xRefPic = sampleArray.at(i)->getPoint();
+            maxDist =sampleArray.at(i)->calcDistanz(yRefPic);
+          }
+        }
+        //set coordinates to each member
+        for (int i = 0; i < sampleArray.size();i++)
+        {
+          sampleArray.at(i)->setCoordinates(xRefPic,yRefPic);
+        }
       }
       sampStream.close();
     }
@@ -184,16 +260,26 @@ getWorkerID
 returns the WorkerId which is putted to the result relation
 
 */
-    int getWorkerID(double val){ //TODO make a binary search
-      bool workerFound = false;
-      int worker = 0;
-      for (int i=0; i< cntWorkers && !workerFound; i++){
-        if(val < border.at(i) && val >= border.at(i+1)){
-          workerFound = true;
-          worker = i;
+    int getWorkerID(double val){ 
+      int mid = 0,left = 0,right = border.size()-1;
+      while(left <= right)
+      {
+        mid = (int) floor(left + ((right - left) / 2 ));
+        if(val < border.at(mid) && val >= border.at(mid+1))
+        {
+          return mid;
+        }else
+          if(val >= border.at(mid))
+          {
+          right = mid -1;
+          }else
+            if(val < border.at(mid+1))
+            {
+              left = mid +1;
+            }
         }
-      }
-      return worker;
+        
+      return -1;
     }
     
 /*
@@ -287,7 +373,7 @@ auxiliary fuction to compare the maximum Object with the left object
 /*
 b(int i)
 return the position of Borderpoint i
-
+bi = i x floor(s/t)
 
 */
     int b(int i){
