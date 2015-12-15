@@ -66,10 +66,10 @@
 1.3 members
 
 */
-     int minPts, geoPos, clIdPos,clTypePos;
+     int minPts, geoPos, clIdPos,clTypePos,xPicRefPos;
      double eps;
      string outRelFileName, outNFileName;
-     bool meltTwoClusters,relNameFound, clusterProcessed;
+     bool meltTwoClusters,relNameFound, clusterProcessed,appendPictureRefs;
      TupleBuffer* buffer;
      GenericRelationIterator* resIt;  // iterator 
      TupleType* tt ,*neighborType;   // the result tuple type 
@@ -83,6 +83,9 @@
       relTupleTypeInfo,relTypeInfo;
      Tuple  *neighborTuple;
      
+     //for Picture
+     TYPE *xRefPic, *yRefPic;
+     double maxDist;
    public:
      
 /*
@@ -91,12 +94,17 @@
 */ 
      DbDacScanGen(Word &_inStream,  ListExpr &_tupleResultType, 
                   string& _relName, double _eps, 
-                  int _minPts, int _attrPos, size_t _maxMem): 
+                  int _minPts, int _attrPos,
+                  int _xPicRefPos, bool _appendPictureRefs, size_t _maxMem): 
                   minPts(_minPts), geoPos(_attrPos),
-                  clIdPos(0),clTypePos(0)
-                 , eps(_eps),outNFileName(_relName)
-                  ,meltTwoClusters(false),clusterProcessed(false), buffer(0), 
-                  resIt(0),tt(0),leftCluster(0),rightCluster(0)
+                  clIdPos(0),clTypePos(0),xPicRefPos(_xPicRefPos),
+                  eps(_eps),outRelFileName(""),outNFileName(_relName)
+                  ,meltTwoClusters(false),clusterProcessed(false),
+                  appendPictureRefs(_appendPictureRefs),buffer(0), 
+                  resIt(0),tt(0),neighborType(0),
+                  leftCluster(0),rightCluster(0),
+                  xRefPic(0),yRefPic(0),maxDist(0)
+//                   ,yRefPicVal(0)
                   
     {
       ListExpr empty;
@@ -108,6 +116,8 @@
       init(_inStream,membArrayPtr,membArrayUntouched);
       if(membArrayPtr.size()){
         clusterProcessed = true;
+        
+        
         mergeSort(membArrayPtr,0,membArrayPtr.size());
         leftCluster = 
         dbDacScan(membArrayPtr,0,membArrayPtr.size()-1,eps,minPts);
@@ -127,16 +137,21 @@ Constructor for operator distClMerge
       DbDacScanGen(const string&  _leftFN, const string& _leftNFN,
                   const string&  _rightFN, const string&  _rightNFN,
                   const int _geoPos, const int _clIdPos, const int _clTypePos,
+                   int _xPicRefPos,
                   const size_t _maxMem, ListExpr &_tupleResultType, 
                   ListExpr& _relFt, const string& _outRelName , 
                   string& _outNName, double _eps,int _minPts):
                   minPts(_minPts),geoPos(_geoPos),clIdPos(_clIdPos),
-                  clTypePos(_clTypePos) ,eps(_eps)
+                  clTypePos(_clTypePos) ,xPicRefPos(_xPicRefPos), eps(_eps)
                   ,outRelFileName(_outRelName),outNFileName(_outNName)
                   ,meltTwoClusters(true),relNameFound(false)
-                  , clusterProcessed(false) ,buffer(0), 
-                  resIt(0),tt(0),leftCluster(0),rightCluster(0)
-                  ,neighborType(0)
+                  , clusterProcessed(false),appendPictureRefs(false)
+                  ,buffer(0), 
+                  resIt(0),tt(0),neighborType(0),
+                  leftCluster(0),rightCluster(0),
+                  xRefPic(0),yRefPic(0),maxDist(0)
+//                   ,yRefPicVal(0)
+                  
     {
       bool readFileCorrect = true;
       bool readSecFileCorrect = true;
@@ -146,7 +161,7 @@ Constructor for operator distClMerge
       //read left rel and nrel file
       if(!readFile<TYPE,MEMB_TYP_CLASS>( _leftFN, _tupleResultType
         ,errMsg,membArrayPtr, membArrayUntouched
-        ,buffer, geoPos,DISTMERGE ,clIdPos,clTypePos))
+        ,buffer, geoPos,xPicRefPos,DISTMERGE ,clIdPos,clTypePos))
       {
         cout << "read left File failed: " << errMsg << endl;
         readFileCorrect = false;
@@ -154,7 +169,7 @@ Constructor for operator distClMerge
       
       if ( !readFile<TYPE,MEMB_TYP_CLASS>( _leftNFN, _tupleResultType
         ,errMsg,membArrayPtr, membArrayUntouched
-        ,buffer, geoPos,NEIGHBOR,clIdPos,clTypePos))
+        ,buffer, geoPos,xPicRefPos,NEIGHBOR,clIdPos,clTypePos))
       {
         cout << "read left Neighbor File failed: " << errMsg << endl;
         readFileCorrect = false;
@@ -163,7 +178,7 @@ Constructor for operator distClMerge
       //read right rel and nrel file
       if( !readFile<TYPE,MEMB_TYP_CLASS>( _rightFN, _tupleResultType
         ,errMsg,membArrayPtrSec, membArrayUntouchedSec
-        ,buffer, geoPos,DISTMERGE,clIdPos,clTypePos
+        ,buffer, geoPos,xPicRefPos,DISTMERGE,clIdPos,clTypePos
         ,membArrayPtr.size()))
       {
         cout << "read right File failed: " << errMsg << endl;
@@ -171,7 +186,7 @@ Constructor for operator distClMerge
       } 
       if (!readFile<TYPE,MEMB_TYP_CLASS>( _rightNFN, _tupleResultType
         ,errMsg,membArrayPtrSec, membArrayUntouchedSec
-        ,buffer, geoPos,NEIGHBOR,clIdPos,clTypePos
+        ,buffer, geoPos,xPicRefPos,NEIGHBOR,clIdPos,clTypePos
         ,membArrayPtr.size()))
       {
         cout << "read right Neighbor File failed: " << errMsg << endl;
@@ -283,6 +298,7 @@ Starts the begin of returning tuples.
 
 */
     void initOutput(){
+      cout << "in initOutput()" << endl;
       if(resIt) delete resIt;
       resIt = buffer->MakeScan(); 
     }
@@ -302,13 +318,17 @@ Returns the next output tuple.
           TupleId id = resIt->GetTupleId();
           Tuple* resTuple = new Tuple(tt);
           int noAttr = tuple->GetNoAttributes();
+       
           if (clusterProcessed) {
             if(meltTwoClusters){
-              noAttr = noAttr-5;
-              //because the four last appended Tuple must be overwritten
+                noAttr = noAttr-5;
             }
             for(int i = 0; i<noAttr; i++){
               resTuple->CopyAttribute(i,tuple,i);
+            }
+            if(appendPictureRefs){
+              resTuple->PutAttribute(noAttr, xRefPic->Clone());
+              noAttr++;
             }
             if(id < membArrayUntouched.size()){
               putAttribute(resTuple, noAttr,id, membArrayUntouched);
@@ -348,6 +368,11 @@ auxiliary function to put attribute into result Tuple
      void putAttribute(Tuple* resTuple,int noAttr, TupleId& id,
                        vector <MEMB_TYP_CLASS*>& array)
      {
+       if(appendPictureRefs){
+         resTuple->PutAttribute(noAttr, 
+                                new CcReal(true,array[id]->getYVal()));
+         noAttr++;
+       }
        resTuple->PutAttribute(noAttr, new LongInt(true,   
                                                   array[id]->getTupleId()));
        
@@ -371,7 +396,6 @@ auxiliary function to put attribute into result Tuple
        resTuple->PutAttribute(noAttr+4, 
                               new FText(true,outNFileName));
        
-       
        //write File
        writeFiles(resTuple,array[id]);
      }
@@ -389,7 +413,10 @@ writeFiles
       }
       }
       //write NRelFile
+      if(member->getClusterType() != 1){ 
+        //for type CLUSTER you don't nead information about neighbors
       writeNeighborFileTuples(member);
+      }
     }
      
 /*
@@ -428,6 +455,22 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
       Stream<Tuple> inStream(_stream);
       inStream.open();
       int id = 0;
+      
+      bool firstRun = true;
+      bool findPictureCoordRefs = false;
+      bool pictureRefsExist = false;
+      if(TYPE::BasicType() == Picture::BasicType()
+        && appendPictureRefs)
+      {
+        findPictureCoordRefs = true;
+        pictureRefsExist = false;
+      }else if(TYPE::BasicType() == Picture::BasicType()
+        && !appendPictureRefs
+        && xPicRefPos >=0 )
+      {
+        findPictureCoordRefs = false;
+        pictureRefsExist = true;
+      }
       while((tuple = inStream.request())){
         buffer->AppendTuple(tuple);
         TYPE* obj = (TYPE*) tuple->GetAttribute(geoPos);
@@ -437,10 +480,51 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
           member->setTupleId(id);
           membArrayUnt.push_back(member);
           membArray.push_back(member);
+          
+          if(pictureRefsExist){
+            xRefPic = (TYPE*) tuple->GetAttribute(xPicRefPos);
+            double yRefPicVal = ((CcReal*) 
+                              tuple->GetAttribute(xPicRefPos+1))->GetValue();
+            member->setCoordinates(xRefPic,yRefPicVal);
+          }
+          if(findPictureCoordRefs)
+          {
+            if(firstRun)
+            {
+              xRefPic = obj; 
+              firstRun = false;
+            }
+            else //  if(!firstRun && findPictureCoordRefs)
+            {
+              if(member->calcDistanz(xRefPic) > maxDist)
+              {
+                yRefPic = obj;
+                maxDist = member->calcDistanz(xRefPic);
+              }
+            }
+          }
         }
         tuple->DeleteIfAllowed();
         id++;
       }
+      if(findPictureCoordRefs)
+      {
+        //search maxDist
+        for (int i = 1; i < membArray.size()-1;i++)
+        {
+          if( membArray.at(i)->calcDistanz(yRefPic) > maxDist)
+          {
+            xRefPic = membArray.at(i)->getPoint();
+            maxDist =membArray.at(i)->calcDistanz(yRefPic);
+          }
+        }
+        //set coordinates to each member
+        for (int i = 0; i < membArray.size();i++)
+        {
+          membArray.at(i)->setCoordinates(xRefPic,yRefPic);
+        }
+      }
+      
       inStream.close();
     }
 
