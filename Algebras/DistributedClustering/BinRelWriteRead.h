@@ -179,7 +179,7 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
   , string& errMsg 
   ,vector <MEMB_TYP_CLASS*>& membArray
   ,vector <MEMB_TYP_CLASS*>& membArrayUnt
-  ,TupleBuffer* tupleBuffer, int geoPos
+  ,TupleBuffer* tupleBuffer, int geoPos, int xPicRefPos
   ,OpType optype
   ,int clIdPos = 0, int clTypePos = 0
   ,int arrOffset = 0
@@ -187,6 +187,9 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
   {
     ListExpr fileTypeList;
     TupleType* ftt;
+    //for picture
+    bool setPictureXYRef = ( TYPE::BasicType() == Picture::BasicType()
+    && xPicRefPos >=0 );
     
     TupleType* tt = new TupleType(_tt);
     char* inBuffer = new char[FILE_BUFFER_SIZE];
@@ -250,7 +253,7 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
           if(in.good()){
             Tuple* tuple = new Tuple(ftt); // use fileTupleType
             tuple->ReadFromBin(buffer);
-            tuple->SetTupleId(id); // TODO bei 2tem Array -> + sizeVomErsten
+            tuple->SetTupleId(id); 
             delete[] buffer;
             TYPE* obj;
             LongInt* member,*membNeighbor;
@@ -269,6 +272,12 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
                     member->setClusterNo(clId->GetIntval());
                     clType = (CcInt*) tuple->GetAttribute(clTypePos);
                     member->setClusterType(clType->GetIntval());
+                  }
+                  if(setPictureXYRef){
+                    member->setCoordinates(
+                      (TYPE*) tuple->GetAttribute(xPicRefPos),
+                      ((CcReal*) 
+                      tuple->GetAttribute(xPicRefPos+1))->GetValue());
                   }
                   membArrayUnt.push_back(member);
                   membArray.push_back(member);
