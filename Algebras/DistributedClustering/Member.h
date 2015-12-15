@@ -49,6 +49,8 @@
 #include "StringUtils.h"
 #include "PictureAlgebra.h"
 #include "RelationAlgebra.h"
+#include "DistfunReg.h"
+#include "PictureFuns.h"
 
 #ifndef MEMBER_H_
 #define MEMBER_H_
@@ -66,7 +68,9 @@ namespace distributedClustering{
 template <class MEMB_TYP_CLASS>
 class Member{ 
   
+  
 public:
+  Picture* picRef;
   //   int* point;
   std::list<MEMB_TYP_CLASS*> epsNeighborhood;
   
@@ -104,8 +108,11 @@ public:
 
 */
   bool updateInnerPnt(int minPts){
+    if(!innerPnt){ 
     int size = epsNeighborhood.size() ;
     size >= minPts ? innerPnt =true : innerPnt= false;
+    }
+    densityReachable = innerPnt;
     return innerPnt;
   }
   
@@ -215,14 +222,6 @@ public:
     return tuple;
   }
   
-//   int getTuplePos(){
-//     return tuplePos;
-//   }
-//   
-//   void setTuplePos(int pos){
-//     tuplePos = pos;
-//   }
-  
   long int getTupleId(){
     return tupleId;
   }
@@ -231,7 +230,6 @@ public:
     tupleId = id;
   }
   
-
 };
 
 
@@ -332,6 +330,9 @@ public:
     < outerPoint->GetValue() ? innerPoint : outerPoint ;
   }
   
+  void setCoordinates(CcInt* xRef,CcInt* yRef){};
+  void setCoordinates(CcInt* _xRef,double _yRef){};
+  
 };
 
 class RealMember :public Member<RealMember>{
@@ -427,6 +428,9 @@ public:
     return innerPoint->GetValue() 
     < outerPoint->GetValue() ? innerPoint : outerPoint ;
   }
+  
+  void setCoordinates(CcReal* xRef,CcReal* yRef){};
+  void setCoordinates(CcReal* _xRef,double _yRef){};
   
 };
 
@@ -537,6 +541,161 @@ calculate the distance between this and the committed point
     return innerPoint->GetX() < outerPoint->GetX() ? innerPoint : outerPoint ;
   }
   
+  void setCoordinates(Point* xRef,Point* yRef){};
+  void setCoordinates(Point* _xRef,double _yRef){};
+};
+
+
+
+//class PictureMember : Member;
+class PictureMember : public Member<PictureMember>{
+private:
+  Picture* point, *xRef; //, *yRef;
+  gta::DistfunInfo df;
+  double xVal,yVal;
+  
+public:
+  /*
+   Constructor
+   
+   */
+  PictureMember() : point(0),xVal(0),yVal(0){
+    innerPnt=false;
+    densityReachable = false;
+    init();
+
+  }
+  
+  PictureMember(Picture* memb):xVal(0),yVal(0){
+    point= memb;
+    innerPnt=false;
+    densityReachable = false;
+    init();
+
+  }
+
+  void init()
+  {
+    if(!gta::DistfunReg::isInitialized())
+    {
+      gta::DistfunReg::initialize();
+    }
+    gta::DistDataId id = gta::DistDataReg::getId(Picture::BasicType()
+    ,gta::DistDataReg::defaultName(Picture::BasicType()));
+    
+    df = gta::DistfunReg::getInfo(gta::DFUN_DEFAULT, id);
+  }
+  
+  
+  
+  /*
+   return the point value
+   
+   */
+  Picture* getPoint(){
+    return point;
+  }
+  
+  double getXVal(){
+    
+    return xVal;
+  }
+  
+  double getXValOfPic(Picture *pic){
+    return calcDistanz( xRef,  pic);
+  }
+  
+  double getYVal(){
+    return yVal;
+  }
+  
+  /*
+   calcDistanz
+   
+   calculate the distance between this and the committed point
+   
+   */
+  double calcDistanz (PictureMember* memb){
+    if(!point->IsDefined() && !(memb->getPoint())->IsDefined()){
+      return 0.0;
+    }
+    if(!point->IsDefined() || !(memb->getPoint())->IsDefined()){
+      return  std::numeric_limits<double>::max();
+    }
+    
+    return calcDistanz(point,memb->getPoint());
+    
+  }
+  
+  double calcDistanz(Picture* pnt){
+    
+    if(!point->IsDefined() && !pnt->IsDefined()){
+      return 0.0;
+    }
+    if(!point->IsDefined() || !pnt->IsDefined()){
+      return  std::numeric_limits<double>::max();
+    }
+    return calcDistanz(point,pnt);
+    
+  }
+  
+  double calcDistanz(Picture* pnt1, Picture* pnt2)
+  {
+    double distance;
+    gta::DistData* dd1 = df.getData(pnt1);
+    gta::DistData* dd2 = df.getData(pnt2); 
+    df.dist(dd1, dd2, distance);
+    delete dd1;
+    delete dd2;
+    return distance;
+  }
+  
+  double calcXDistanz(Picture* pnt){
+    return calcDistanz(pnt);
+    
+  }
+  
+  int getCntDimensions(){
+    return 2;
+  }
+  
+  void printPicture(){
+  }
+  
+  Picture* getOuterLeftValue(Picture* outerPicture, Picture* innerPicture ){
+    return getXValOfPic(innerPicture) 
+    > getXValOfPic(outerPicture) ? innerPicture : outerPicture ;
+  }
+  
+  Picture* getOuterRightValue(Picture* outerPicture,  
+                            Picture* outerPictureRighCl, Picture* innerPicture )
+  {
+    Picture* retPicture = getOuterRightValue( outerPicture,  innerPicture ) ;
+    return getOuterRightValue(outerPictureRighCl,retPicture) ;
+  }
+                            
+  Picture* getOuterRightValue(Picture* outerPicture, Picture* innerPicture )
+  {
+    return getXValOfPic(innerPicture) 
+    < getXValOfPic(outerPicture) ? 
+    innerPicture : outerPicture ;
+  }                          
+     
+     void setCoordinates(Picture* _xRef,Picture* _yRef)
+     {
+       xRef = _xRef;
+       xVal = calcDistanz(_xRef,point);
+       yVal = calcDistanz(_yRef,point);
+       
+    };
+    
+    void setCoordinates(Picture* _xRef,double _yRef)
+    {
+      xRef = _xRef;
+      xVal = calcDistanz(_xRef,point);
+      yVal = _yRef;
+      
+    };
 };
 
 
