@@ -399,19 +399,21 @@ class ConnectionInfo{
           } else {
             command = command1;
           }
-          boost::lock_guard<boost::recursive_mutex> guard(simtx);;
-          SecErrInfo serr;
-          ListExpr myResList = mynl->TheEmptyList();
-          StopWatch sw;
-          showCommand(si,host,port,command,true);
-          si->Secondo(command, myResList, serr);
-          showCommand(si,host,port,command,false);
-          runtime = sw.diffSecondsReal();
-          error = serr.code;
-          errMsg = serr.msg;
+          {
+             boost::lock_guard<boost::recursive_mutex> guard(simtx);;
+             SecErrInfo serr;
+             ListExpr myResList = mynl->TheEmptyList();
+             StopWatch sw;
+             showCommand(si,host,port,command,true);
+             si->Secondo(command, myResList, serr);
+             showCommand(si,host,port,command,false);
+             runtime = sw.diffSecondsReal();
+             error = serr.code;
+             errMsg = serr.msg;
 
-          resList = mynl->ToString(myResList);
-          mynl->Destroy(myResList);
+             resList = mynl->ToString(myResList);
+             mynl->Destroy(myResList);
+          }
        }
        
        void simpleCommandFromList(const string& command1, int& error, 
@@ -11103,9 +11105,9 @@ class shareInfo: public successListener{
 
     void createFile(ConnectionInfo* ci){
       boost::lock_guard<boost::mutex> guard(createFileMutex);
-      cout << "create file" << endl;
+      //cout << "create file" << endl;
       if(!fileCreated){
-          cout << "first time" << endl;
+          //cout << "first time" << endl;
           isAttribute = false;
           isRelation = Relation::checkType(typeList);
           filename = name + "_" + stringutils::int2str(WinUnix::getpid()) 
@@ -12268,6 +12270,8 @@ bool startFileTransferators( AT* array, int port){
         if(ci){
            usedIPs.insert(host);
            starters.push_back(new transferatorStarter(ci,port));
+        } else {
+          return false;
         }
      }
    }
@@ -12923,6 +12927,7 @@ ListExpr ARRAYFUNARG(ListExpr args){
   if(DArray::checkType(arg)){
      return nl->Second(arg);
   }
+
   if(DFArray::checkType(arg) ||
      DFMatrix::checkType(arg)){
      ListExpr res;
@@ -15339,7 +15344,7 @@ Operator partitionFOp(
 
 ListExpr areduceTM(ListExpr args){
 
-  string err = "dmatrix(rel(t)) x string x (stream(t)-Y) x int expected";
+  string err = "dmatrix(rel(t)) x string x (fsrel(t)-Y) x int expected";
   if(!nl->HasLength(args,4)){
    return listutils::typeError(err + " (wrong number of args)");
   }
@@ -15373,9 +15378,6 @@ ListExpr areduceTM(ListExpr args){
 
   // check function argument
   ListExpr tupleType = nl->Second(nl->Second(m1));
-  ListExpr tupleStream = nl->TwoElemList(
-                             listutils::basicSymbol<Stream<Tuple> >(),
-                             tupleType);
   
    ListExpr fsrelt = nl->TwoElemList(
                              listutils::basicSymbol<fsrel >(),
@@ -15414,7 +15416,7 @@ ListExpr areduceTM(ListExpr args){
   
   ListExpr funargs = nl->Second(funquery);
 
-  ListExpr dat = tupleStream;
+  ListExpr dat = fsrelt;
 
   ListExpr rfunargs = nl->TwoElemList(
                        nl->First(funargs),
@@ -15526,7 +15528,6 @@ class AReduceTask{
 
 
      void run(){
-          // dummy implementation
           stringstream ss;
           ss << "process slot " << currentSlot << " on worker " 
              << worker << endl;
@@ -15781,7 +15782,7 @@ int areduceVMT(Word* args, Word& result, int message,
 
    DFMatrix* matrix1 = (DFMatrix*) args[0].addr;
    if(!matrix1->IsDefined()){
-      cout << "Matrix is undefined" << endl;
+      //cout << "Matrix is undefined" << endl;
       res->makeUndefined();
       return 0;
    }
@@ -15798,13 +15799,13 @@ int areduceVMT(Word* args, Word& result, int message,
    if(qp->GetNoSons(s)==7){
       matrix2 = (DFMatrix*) args[1].addr;
       if(!matrix2->IsDefined()){
-         cout << "matrix2 is undefined" << endl;
+         //cout << "matrix2 is undefined" << endl;
          res->makeUndefined();
          return 0;
       }
 
       if(!matrix1->equalWorker(*matrix2)){
-         cerr << "different worker specification" << endl;
+         //cout << "different worker specification" << endl;
          res->makeUndefined();
          return 0;
       }
@@ -15853,7 +15854,11 @@ int areduceVMT(Word* args, Word& result, int message,
    res->setStdMap(resSize);
 
    
-   startFileTransferators(matrix1, port); // do not the same for matrix2 
+   if(!startFileTransferators(matrix1, port)){
+      res->makeUndefined();
+      return 0;
+   }
+
    // now, on each worker host, a file transferator is listen
 
    string funtext = ((FText*) args[o+4].addr)->GetValue();
@@ -15932,8 +15937,8 @@ unpreocessed slot is assigned to this worker.
 */
 ListExpr areduce2TM(ListExpr args){  
 
-  string err = "dfmatrix(rel(X)) x dfmatrix(rel(Y)) x string x (stream(X) x "
-               "stream(Y) -> Z) x int expected";
+  string err = "dfmatrix(rel(X)) x dfmatrix(rel(Y)) x string x (fsrel(X) x "
+               "fsrel(Y) -> Z) x int expected";
 
   // check length
   if(!nl->HasLength(args,5)){
@@ -15974,12 +15979,12 @@ ListExpr areduce2TM(ListExpr args){
   ListExpr fa2 = nl->Third(a4t);
 
   ListExpr s1 = nl->TwoElemList(
-       listutils::basicSymbol<Stream<Tuple> >(),
+       listutils::basicSymbol<fsrel>(),
        nl->Second(nl->Second(a1t))
   );
  
   ListExpr s2 = nl->TwoElemList(
-       listutils::basicSymbol<Stream<Tuple> >(),
+       listutils::basicSymbol<fsrel>(),
        nl->Second(nl->Second(a2t))
   );
 
@@ -16037,9 +16042,6 @@ ListExpr areduce2TM(ListExpr args){
                     fa2),
                nl->Fourth(fundef)
            );
-
-
-  cout << "areduce2TM isStream : " << isStream << endl;
 
   ListExpr appendList = nl->TwoElemList(
          nl->TextAtom(nl->ToString(rfundef)),
