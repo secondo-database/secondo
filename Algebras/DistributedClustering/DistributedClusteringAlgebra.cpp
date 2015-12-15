@@ -68,6 +68,8 @@ namespace distributedClustering{
   const static string IS_CLUSTER = "IsCluster";
   const static string CLUSTER_TYPE = "ClusterType";
   const static string NEIGHBORS_RELATION_NAME = "NeighborFName";
+  const static string PIC_X_REF = "PicXRef";
+  const static string PIC_Y_REF = "PicYRefVal";
   
 /*
 3 Operator dbDacScan
@@ -141,15 +143,19 @@ with a divide and conquer algorithm
       + attrName + " is no member of the tuple";
       return listutils::typeError(errMsg);;
     }
+    
+  
     //Check attrType
     if( !CcInt::checkType(attrType)
       && !CcReal::checkType(attrType)
-      && !Point::checkType(attrType))
+      && !Point::checkType(attrType)
+      && !Picture::checkType(attrType))
       {
-      errMsg = "Attribute "+attrName+"is not of type "
+      errMsg = "Attribute "+attrName+" is not of type "
       + CcInt::BasicType() + ", " 
       + CcReal::BasicType() + ", " 
       + Point::BasicType() + ", " 
+      + Picture::BasicType() + ", "
       +"!";
       return listutils::typeError(errMsg);
       }
@@ -171,6 +177,21 @@ with a divide and conquer algorithm
         return nl->TypeError();
       }//endif
       
+      //check if there exist picture coordinate references
+      bool pictureRefExist = false;
+      int foundXRef = 0;
+      if(Picture::checkType(attrType)){
+        ListExpr picXType,picYType;
+        foundXRef = FindAttribute(attrList, PIC_X_REF, picXType);
+        int foundYRef = FindAttribute(attrList, PIC_Y_REF, picYType);
+        if(foundXRef > 0 && foundYRef > 0
+          && Picture::checkType(picXType)
+          && CcReal::checkType(picYType))
+        {
+          pictureRefExist = true;
+        }
+      }
+      
       //Copy attrList to newAttrList
       ListExpr oldAttrList = nl->Second(nl->Second(stream));
       ListExpr newAttrList = nl->OneElemList(nl->First(oldAttrList));
@@ -182,22 +203,36 @@ with a divide and conquer algorithm
         oldAttrList = nl->Rest(oldAttrList);
       }
       
+      //if picture append x and y references
+      if(Picture::checkType(attrType) && !pictureRefExist){
+        newAttrListEnd = nl->Append(newAttrListEnd,
+                                    (nl->TwoElemList(
+                                      nl->SymbolAtom(PIC_X_REF),
+                                        nl->SymbolAtom(Picture::BasicType())
+                                    )));
+        newAttrListEnd = nl->Append(newAttrListEnd,
+                                    (nl->TwoElemList(
+                                      nl->SymbolAtom(PIC_Y_REF),
+                                          nl->SymbolAtom(CcReal::BasicType())
+                                    )));
+      }
+      
       // append LongInt for MemberId
       newAttrListEnd = nl->Append(newAttrListEnd,
                                   (nl->TwoElemList(
                                     nl->SymbolAtom(MEMBER_ID),
-                                        nl->SymbolAtom(LongInt::BasicType()))));
+                                      nl->SymbolAtom(LongInt::BasicType()))));
       //append int for ClusterID
       newAttrListEnd = nl->Append(newAttrListEnd,
                                   (nl->TwoElemList(
                                     name,
                                     nl->SymbolAtom(CcInt::BasicType()))));
       
-      //append bool for Visited
+      //append bool for is Cluster
       newAttrListEnd = nl->Append(newAttrListEnd,
                                   (nl->TwoElemList(
                                     nl->SymbolAtom(IS_CLUSTER),
-                                            nl->SymbolAtom(CcBool::BasicType())
+                                          nl->SymbolAtom(CcBool::BasicType())
                                   )));
       //append info for ClusterType  (CLUSTER = 1 , LEFT = 2, 
       //    RIGHT = 3, BOTH = 4,
@@ -214,10 +249,16 @@ with a divide and conquer algorithm
                                     nl->SymbolAtom(NEIGHBORS_RELATION_NAME),
                                             nl->SymbolAtom(FText::BasicType())
                                   )));
+      
+     
 
       return nl->ThreeElemList(
         nl->SymbolAtom(Symbol::APPEND())
-        ,nl->OneElemList(nl->IntAtom(found-1))
+        ,nl->ThreeElemList(nl->IntAtom(found-1),
+                           nl->IntAtom(foundXRef-1),
+                           nl->BoolAtom(
+                             (Picture::checkType(attrType) 
+                                      && !pictureRefExist)))
         ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->TwoElemList(
                            nl->SymbolAtom(Tuple::BasicType()),
@@ -233,7 +274,7 @@ with a divide and conquer algorithm
                    Word& local, Supplier s) {
     typedef DbDacScanGen<MEMB_TYP_CLASS,TYPE> dbdacscanClass;
     dbdacscanClass* li = (dbdacscanClass*) local.addr;
-    switch (message) //TODO switch not necessary only return bool val
+    switch (message)
     {
       case OPEN:
       {
@@ -243,18 +284,27 @@ with a divide and conquer algorithm
         Word argument;
         //get NewRelNamePrefix
         Supplier sup = qp->GetSupplier(args[1].addr,2);
+//         Supplier sup = qp->GetSupplier(args[3].addr,2);
         qp->Request(sup, argument);
         string relName = static_cast<FText*>(argument.addr)->GetValue();
         //get EPS
         sup = qp->GetSupplier(args[1].addr,3);
+//         sup = qp->GetSupplier(args[3].addr,3);
         qp->Request(sup, argument);
         double eps = static_cast<CcReal*>(argument.addr)->GetValue();
         //get MinPts
         sup = qp->GetSupplier(args[1].addr, 4);
+//         sup = qp->GetSupplier(args[3].addr, 4);
         qp->Request(sup, argument);
         int minPts = static_cast<CcInt*>(argument.addr)->GetValue();
         //set index of attribute position in tuple
         int attrPos = static_cast<CcInt*>(args[2].addr)->GetIntval();
+        
+        //get xRef Position for pictures
+        int xPicRefPos = static_cast<CcInt*>(args[3].addr)->GetIntval();
+        bool appendPictureRefs = 
+                      static_cast<CcBool*>(args[4].addr)->GetValue();
+        
         //set the result type of the tuple
         ListExpr resultType = GetTupleResultType(s);
         ListExpr tt = ( nl->Second( resultType ) );
@@ -276,6 +326,8 @@ with a divide and conquer algorithm
                                         eps,
                                         minPts, 
                                         attrPos,
+                                        xPicRefPos,
+                                        appendPictureRefs,
                                         maxMem);
         return 0;
       }
@@ -306,6 +358,7 @@ with a divide and conquer algorithm
     dbDacScanVM1<CcInt, IntMember>,
     dbDacScanVM1<CcReal, RealMember>,
     dbDacScanVM1<Point, PointMember>,
+    dbDacScanVM1<Picture, PictureMember>,
   };
   
 /*
@@ -326,7 +379,9 @@ selection function for one input stream
         return 1;
       } else if(Point::checkType(attrType)) {
         return 2;
-      } 
+      } else if(Picture::checkType(attrType)){
+        return 3;
+      }
     }
     else
     {
@@ -359,7 +414,7 @@ OperatorSpec dbDacScanSpec(
 */
   Operator dbDacScanOp("dbdacscan",
                        dbDacScanSpec.getStr(),
-                       3,
+                       4,
                        dbDacScanVM,
                        dbDacScanSel,
                        dbDacScanTM
@@ -519,12 +574,14 @@ Type Mapping of operator ~distclmerge~
     
     if( !CcInt::checkType(geDAttrL)
       && !CcReal::checkType(geDAttrL)
-      && !Point::checkType(geDAttrL))
+      && !Point::checkType(geDAttrL)
+      && !Picture::checkType(geDAttrL))
     {
       errMsg = "Attribute "+attrNGeoData+"is not of type "
       + CcInt::BasicType() + ", " 
       + CcReal::BasicType() + ", " 
       + Point::BasicType() + ", " 
+      + Picture::BasicType() + ", " 
       +"!";
       return listutils::typeError(errMsg);
     }
@@ -597,12 +654,37 @@ Type Mapping of operator ~distclmerge~
       + FText::BasicType() + "! ";
       return listutils::typeError(errMsg);
     }
+    
+    //if it is Picture Type search and check coordinate references for x and y
+    int foundXRefL = 0;
+    if(Picture::checkType(geDAttrL)){
+      ListExpr picXTypeL,picYTypeL, picXTypeR, picYTypeR;
+      foundXRefL = FindAttribute(attrListLeft, PIC_X_REF, picXTypeL);
+      int foundYRefL = FindAttribute(attrListLeft, PIC_Y_REF, picYTypeL);
+      int foundXRefR = FindAttribute(attrListRight, PIC_X_REF, picXTypeR);
+      int foundYRefR = FindAttribute(attrListRight, PIC_Y_REF, picYTypeR);
+      if(foundXRefL <= 0 || foundYRefL <= 0 || foundYRefL != foundYRefR
+        || foundXRefL != foundXRefR
+        || !Picture::checkType(picXTypeL) || !Picture::checkType(picXTypeR) 
+        || !CcReal::checkType(picYTypeL) || !CcReal::checkType(picYTypeR) )
+      {
+        errMsg = "Attribute "+attrNGeoData+" is of type "
+        + Picture::BasicType() + " but there are not correct"
+        " coordinate references for x and y! Reference "
+        "for coordinate x must be of type "+ Picture::BasicType() +
+        " and reference for y must be of type "+ CcReal::BasicType();
+        return listutils::typeError(errMsg);
+      }
+    }
 
+    
     return nl->ThreeElemList(
       nl->SymbolAtom(Symbol::APPEND())
-      ,nl->ThreeElemList(nl->IntAtom(foundGeoL-1) // position of GeoData
+      ,nl->FourElemList(nl->IntAtom(foundGeoL-1) // position of GeoData
       ,nl->IntAtom(foundClIdL-1) // position of ClusterId
-      ,nl->IntAtom(foundClTyL-1)) // position of ClusterType
+      ,nl->IntAtom(foundClTyL-1) // position of ClusterType
+      ,nl->IntAtom(foundXRefL-1) // position of coordinate reference x
+      ) 
       ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                      nl->Second(leftRelType)
                        ));
@@ -667,6 +749,8 @@ this the template method which is called from distClMergeVM
         int clIdPos = static_cast<CcInt*>(args[11].addr)->GetIntval();
         //set index of ClusterType attribute position in tuple
         int clTypePos = static_cast<CcInt*>(args[12].addr)->GetIntval();
+        //get xRef Position for pictures
+        int xPicRefPos = static_cast<CcInt*>(args[13].addr)->GetIntval();
         
         if(li) { 
           delete li;
@@ -683,7 +767,7 @@ this the template method which is called from distClMergeVM
         local.addr = 
         new distClMergeClass(fnL->GetValue(), fnNL->GetValue(),
                              fnR->GetValue(), fnNR->GetValue(),   
-                             geoPos,clIdPos,clTypePos, maxMem
+                             geoPos,clIdPos,clTypePos,xPicRefPos, maxMem
                              ,tt, relFileType, 
                              outRelFileName,outNFileName,
                              eps, minPts);
@@ -744,7 +828,11 @@ out the type of the passed Attributename in selection function.
         {
           return 
           distClMergeVMT<Point, PointMember >(args,result,message,local, s);
-        } else {
+        }  else 
+          if(Picture::checkType(attrType)){
+            return distClMergeVMT<Picture, PictureMember >
+            (args,result,message,local, s);
+          }else {
           return 0;
         }
   } 
@@ -822,15 +910,19 @@ Type Mapping of operator ~distsamp~
     //Check attrType
     if(( !CcInt::checkType(attrType)
       && !CcReal::checkType(attrType)
-      && !Point::checkType(attrType)) ||
+      && !Point::checkType(attrType)
+      && !Picture::checkType(attrType)) ||
       (!CcInt::checkType(attrTypeSamp)
       && !CcReal::checkType(attrTypeSamp)
-      && !Point::checkType(attrTypeSamp)))
+      && !Point::checkType(attrTypeSamp)
+      && !Picture::checkType(attrTypeSamp)
+      ))
     {
-      err = "Attribute "+attrName+"is not of type "
+      err = "Attribute "+attrName+" is not of type "
       + CcInt::BasicType() + ", " 
       + CcReal::BasicType() + ", " 
       + Point::BasicType() + ", " 
+      + Picture::BasicType() + ", " 
       +"! Both streams must have the same Attribute!";
       return listutils::typeError(err);
     }
@@ -851,6 +943,22 @@ Type Mapping of operator ~distsamp~
       return nl->TypeError();
     }//endif
     
+    //check if there exist picture coordinate references
+    bool pictureRefExist = false;
+    int foundXRef = 0;
+    
+    if(Picture::checkType(attrType)){
+      ListExpr picXType,picYType;
+      foundXRef = FindAttribute(attrList, PIC_X_REF, picXType);
+      int foundYRef = FindAttribute(attrList, PIC_Y_REF, picYType);
+      if(foundXRef > 0 && foundYRef > 0
+        && Picture::checkType(picXType)
+        && CcReal::checkType(picYType))
+      {
+        pictureRefExist = true;
+      }
+    }
+    
     //Copy attrList to newAttrList
     ListExpr stream = nl->First(args);
     
@@ -868,9 +976,31 @@ Type Mapping of operator ~distsamp~
                                 (nl->TwoElemList(
                                   name,
                                   nl->SymbolAtom(CcInt::BasicType()))));
+    
+    //append after WorkerId -> so always the last 
+    //two attributes are the references for picture
+    // at dbdacscan appen the attributes at first
+    if(Picture::checkType(attrType) && !pictureRefExist){
+      newAttrListEnd = nl->Append(newAttrListEnd,
+                                  (nl->TwoElemList(
+                                    nl->SymbolAtom(PIC_X_REF),
+                                          nl->SymbolAtom(Picture::BasicType())
+                                  )));
+      newAttrListEnd = nl->Append(newAttrListEnd,
+                                  (nl->TwoElemList(
+                                    nl->SymbolAtom(PIC_Y_REF),
+                                          nl->SymbolAtom(CcReal::BasicType())
+                                  )));
+    }
+    
     return nl->ThreeElemList(
       nl->SymbolAtom(Symbol::APPEND())
-      ,nl->OneElemList(nl->IntAtom(found-1))
+//       ,nl->OneElemList(nl->IntAtom(found-1))
+      ,nl->ThreeElemList(nl->IntAtom(found-1),
+                         nl->IntAtom(foundXRef-1),
+                         nl->BoolAtom(
+                           (Picture::checkType(attrType) 
+                           && !pictureRefExist)))
       ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                        nl->TwoElemList(
                          nl->SymbolAtom(Tuple::BasicType()),
@@ -904,7 +1034,11 @@ ValueMapping of operator ~distsamp~
         int cntWorkers = (static_cast<CcInt*>(argument.addr))->GetIntval();
         //get AttrPos:
         int attrPos = static_cast<CcInt*>(args[3].addr)->GetIntval();
-        cout << "attrPos= " << attrPos << endl;
+        
+        //get xRef Position for pictures
+        int xPicRefPos = static_cast<CcInt*>(args[4].addr)->GetIntval();
+        bool appendPictureRefs = 
+        static_cast<CcBool*>(args[5].addr)->GetValue();
         
         ListExpr resultType = GetTupleResultType(s);
         ListExpr tt = ( nl->Second( resultType ) );
@@ -914,7 +1048,9 @@ ValueMapping of operator ~distsamp~
         }
         size_t maxMem = qp->GetMemorySize(s)*1024*1024;
         local.addr = new distSample(inStream, sampStream,
-                                         tt, attrPos, cntWorkers, maxMem);
+                                         tt, attrPos,
+                                    xPicRefPos, appendPictureRefs,
+                                    cntWorkers, maxMem);
         
         return 0;
       }
@@ -973,7 +1109,9 @@ selection funktion for 2 input streams
         return 1;
       } else if(Point::checkType(attrType)) {
         return 2;
-      } 
+      } else if(Picture::checkType(attrType)){
+        return 3;
+      }
     }
     else
     {
@@ -993,6 +1131,7 @@ selection funktion for 2 input streams
     distsampVM1<CcInt, IntMember>,
     distsampVM1<CcReal, RealMember>,
     distsampVM1<Point, PointMember>,
+    distsampVM1<Picture, PictureMember>
   };
   
 /*
