@@ -153,6 +153,7 @@ public class ValueTableCellRenderer extends DefaultTableCellRenderer
 				}  
 				catch (Exception e) 
 				{
+      Reporter.debug(e);
 					Reporter.debug("ValueTableCellRenderer.getTableCellRendererComponent: highlighting failed ");
 				}
 			}

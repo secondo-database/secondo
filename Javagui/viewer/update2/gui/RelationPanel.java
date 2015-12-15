@@ -406,6 +406,7 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 		}
 		catch(InvalidRelationException e)
 		{
+      Reporter.debug(e);
 			Reporter.showError(e.getMessage());
 			return false;
 		}
@@ -599,6 +600,7 @@ public class RelationPanel extends JPanel implements PropertyChangeListener
 		} 
 		catch(BadLocationException e)
 		{
+      Reporter.debug(e);
 			Reporter.writeError(e.getMessage());
 		}
 		

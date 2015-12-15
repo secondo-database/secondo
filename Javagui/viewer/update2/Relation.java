@@ -114,6 +114,7 @@ public class Relation
 			{
 				// do nothing: as relTypeinfo is taken from this initialized 
 				// relation it is guaranteed to be ok.
+        Reporter.debug(e);
 			}
 		}
 		return null;

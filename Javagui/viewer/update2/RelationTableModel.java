@@ -155,6 +155,7 @@ public class RelationTableModel extends AbstractTableModel
 		}
 		catch (InvalidRelationException e)
 		{
+      Reporter.debug(e);
 			Reporter.writeError("RelationTableModel.addTuple: invalid LE is " + pTuple.toString());
 		}
 	}

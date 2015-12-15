@@ -515,9 +515,9 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			} 
 			catch(InvalidFormatException e)
 			{
+			  Reporter.debug(e);	
 				errorMessage = e.getMessage() + "\n at table position (" + e.getRow() + ", " + e.getColumn() 
 								+ "). Insert operation was not commited. Please correct error first.";
-				
 				Reporter.showError(errorMessage);
 				rp.goToInsert(e.getRow()-1);
 				return false;
@@ -575,6 +575,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
             }
             catch(InvalidFormatException e)
             {
+                Reporter.debug(e);
                 String message = e.getMessage()+"\n at position ("+ e.getRow() + ", " + e.getColumn() 
 										+ "). Update operations were not committed. Please correct error first. ";
                 Reporter.showError(message);
@@ -696,6 +697,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		}
 		catch (InvalidFormatException e)
 		{
+      Reporter.debug(e);
 			Reporter.showError("InvalidFormatException: " + e.getMessage());
 			return false;
 		}	
@@ -732,6 +734,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		}
 		catch (InvalidFormatException e)
 		{
+      Reporter.debug(e);
 			Reporter.showError("InvalidFormatException: " + e.getMessage());
 			return false;
 		}	
@@ -1004,6 +1007,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		}
 		catch (Exception e)
 		{
+      Reporter.debug(e);
 			Reporter.showError(e.getMessage());
 			return false;
 		}
@@ -1063,6 +1067,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			catch(InvalidRelationException e)
 			{
+      Reporter.debug(e);
 				Reporter.showError(e.getMessage());
 				return false;
 			}
@@ -1219,6 +1224,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 				}
 				catch (InvalidRelationException e)
 				{
+      Reporter.debug(e);
 					Reporter.showError(e.getMessage());
 					return;
 				}
@@ -1226,6 +1232,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 		}
 		catch(Exception e)
 		{
+      Reporter.debug(e);
 			Reporter.showError(e.getMessage());
 			return;
 		}
@@ -1492,6 +1499,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			catch (InvalidRelationException e)
 			{
+      Reporter.debug(e);
 				Reporter.showError(e.getMessage());
 				return false;
 			}
@@ -1511,6 +1519,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			catch (InvalidRelationException e) 
 			{
+      Reporter.debug(e);
 				Reporter.showError(e.getMessage());
 				return false;
 			}
@@ -1544,6 +1553,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			catch (InvalidRelationException e)
 			{
+      Reporter.debug(e);
 				Reporter.showError(e.getMessage());
 				return false;
 			}
@@ -1563,6 +1573,7 @@ public class UpdateViewerController implements ActionListener, MouseListener
 			}
 			catch (InvalidRelationException e)
 			{
+      Reporter.debug(e);
 				Reporter.showError(e.getMessage());
 				return false;
 			}

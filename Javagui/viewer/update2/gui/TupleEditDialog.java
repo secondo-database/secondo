@@ -143,6 +143,7 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 		{
 			// do nothing
 			// should always be ok as Tuples were cloned from valid relation
+      Reporter.debug(e);
 		}
 		
 		// table scrolling
@@ -221,6 +222,7 @@ public class TupleEditDialog extends JDialog implements PropertyChangeListener
 					}
 					catch (NumberFormatException ex)
 					{
+      Reporter.debug(ex);
 						tupleIndex = -1;
 					}
 					int attributeIndex = rtm.rowToAttributeIndex(row);

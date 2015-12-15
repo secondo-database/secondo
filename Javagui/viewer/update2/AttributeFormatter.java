@@ -130,6 +130,7 @@ public class AttributeFormatter
 		}
 		catch (Exception e)
 		{
+      Reporter.debug(e);
 			return null;
 		}
 	}

@@ -138,6 +138,7 @@ public class ValueTableCellEditor extends AbstractCellEditor implements TableCel
 				} 
 				catch (Exception e) 
 				{
+      Reporter.debug(e);
 					Reporter.debug("ValueTableCellEditor.getTableCellEditorComponent: highlighting failed ");
 				}
 			}

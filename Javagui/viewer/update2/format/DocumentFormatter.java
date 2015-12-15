@@ -39,12 +39,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Enumeration;
+import java.util.jar.JarFile;
+import java.util.jar.JarEntry;
 
 import sj.lang.*;
 import tools.Reporter;
 
 import viewer.update2.gui.LoadDialog;
 import viewer.update2.*;
+
+import java.net.URL;
+
 
 /*
 This class is the central instance for formatting documents within the 
@@ -85,24 +91,20 @@ public abstract class DocumentFormatter
 	 */
 	public static DocumentFormatter createFormatter(String pFormatType) throws Exception
 	{
-		if (!getFormatTypes().contains(pFormatType))
-		{
-			throw new Exception(pFormatType 
-								+ "Formatter is not implemented. DocumentFormatters are available for these FormatTypes: " 
-								+ getFormatTypes());
-		}
-		
 		// try to instatiate specific formatter class
-		String formatterName = "viewer.update2.format." + pFormatType.trim() + "Formatter";
-		Class formatterClass = Class.forName(formatterName);
-		Object o = formatterClass.newInstance();
-		if(!(o instanceof DocumentFormatter))
-		{
-			throw new Exception("Found class does not extend abstract class DocumentFormatter. ");
-		}
-		
-		DocumentFormatter formatter = (DocumentFormatter)o;
-		formatter.type = pFormatType;
+		DocumentFormatter formatter = null;
+    try{
+      String formatterName = "viewer.update2.format." + pFormatType.trim() + "Formatter";
+      Class formatterClass = Class.forName(formatterName);
+      Object o = formatterClass.newInstance();
+      if(!(o instanceof DocumentFormatter)) {
+        throw new Exception("Found class does not extend abstract class DocumentFormatter. ");
+      }
+		  formatter = (DocumentFormatter)o;
+      formatter.type = pFormatType;
+    } catch(Exception e){
+       throw new Exception("Found no formatter for " + pFormatType + "\n available Formatters are " + getFormatTypes());
+    }
 		return formatter;
 	}
 	
@@ -152,33 +154,84 @@ public abstract class DocumentFormatter
 
 		return commandOutput.toString();
 	}
+
+
+  private static class MyDummy{
+
+  };
+
+  static String jarName() {
+     MyDummy dummy = new MyDummy();
+     final String s[] = dummy.getClass().getProtectionDomain().getCodeSource().getLocation().toString().split("/");
+     return s[s.length - 1];
+  }
 	
 	
 	/**
 	 * Returns a list of the prefixes of currently implemented Formatters.
 	 * Each of the returned prefixes can be used as parameter 'FormatType'.
 	 */
-	public static List<String> getFormatTypes()
+	public  static List<String> getFormatTypes()
 	{
+
 		List<String> result = new ArrayList<String>();
-		
-		File dir = new File ("viewer/update2/format/");
-		File[] files = dir.listFiles();
-		
-		for (int i=0; i<files.length; i++)
-		{
-			File file = files[i];
-			if (file.isFile() && !file.isHidden() 
-				&& file.getName().endsWith("Formatter.class") 
-				&& !file.getName().contains("Document"))
-			{
-				String name = file.getPath();
-				name = name.substring(file.getParent().length()+1, name.length());
-				name = name.substring(0, name.indexOf("Formatter.class"));
-				result.add(name);
-			}
-		}
-		return result;
+    
+    String pkgname = "/viewer/update2/format/";
+    Object tmp = new Object();
+    URL url = tmp.getClass().getResource(pkgname);
+    File dir = new File(url.getFile());
+
+    if(!dir.exists()){
+       MyDummy dummy = new MyDummy();
+       URL jarfile = dummy.getClass().getProtectionDomain().getCodeSource().getLocation();
+       if(!jarfile.toString().toLowerCase().endsWith(".jar")){
+           Reporter.writeError("No directors and no jar file");
+           return result;
+       }
+       try{
+          File f = new File(jarfile.toURI());
+          if(!f.exists()){
+              System.out.println("file '"+f+"' not found");
+          } else {
+            JarFile ff = new JarFile(f);
+            Enumeration<JarEntry> entries = ff.entries();
+            while(entries.hasMoreElements()){
+                String n = entries.nextElement().toString();
+                if(   n.startsWith("viewer/update2/format/")
+                   && n.endsWith("Formatter.class") 
+                   && !n.endsWith("/DocumentFormatter.class")){
+        				   File file = new File(n);
+                   n = n.substring(file.getParent().length()+1, n.length());
+         				   n = n.substring(0, n.indexOf("Formatter.class"));
+                   result.add(n); 
+                }
+           }
+         }     
+
+
+       } catch(Exception e){
+           Reporter.debug(e);
+           Reporter.writeError("No formatter classes found ");
+       }
+      
+       
+    } else {
+        // simple file system
+        File[] files = dir.listFiles();
+				for (int i=0; i<files.length; i++) {
+          File file = files[i];
+      			if (file.isFile() && !file.isHidden() 
+			        	&& file.getName().endsWith("Formatter.class") 
+        				&& !file.getName().contains("Document"))
+      			{
+			        	String name = file.getPath();
+        				name = name.substring(file.getParent().length()+1, name.length());
+         				name = name.substring(0, name.indexOf("Formatter.class"));
+        				result.add(name);
+       			}
+     		}
+    }
+    return result;
 	}
 	
 	
