@@ -8,7 +8,7 @@ all: paintings Convert.class checkImage
 
 
 checkImage: checkImage.cpp
-	g++ -ggdb -ljpeg -I../../../Algebras/Picture -o $@ $<
+	g++ -ggdb -I../../../Algebras/Picture -o $@ $< -l:libjpeg.so.62
 
 
 paintings:
