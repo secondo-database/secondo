@@ -1290,100 +1290,6 @@ member werden von clusterCandList  zu foundMembList hinzugefuegt
    }
 
 /*
-searchClusterListToMelt
-suche zur linken lister rechte cluster die miteinander verschmolzen werden
-
-*/
-   bool  searchClusterListToMelt(std::list<MEMB_TYP_CLASS*>& leftList,
-                                 std::pair<double,double>& leftMinMax,
-                                 Cluster* rightCluster,int leftListNo,
-                                 Kind rightKind,
-                                 TYPE* leftInnerPoint,
-                                 //if richtCluster take leftInnerPoint
-                                 TYPE* rightInnerPoint,
-                                 std::vector<unsigned int> *clusterToMeltRight,
-                                 std::vector<unsigned int> *clusterToMeltLeft)
-   {
-     typename std::list<MEMB_TYP_CLASS*>::iterator
-     itLeft = --leftList.end(),
-     itRight;
-
-     bool jAlreadyAppend = false,memberAdded = false,
-         newClusterFoundInL = false;
-
-     if(itLeft != --leftList.begin() &&
-         (*itLeft)->calcXDistanz(rightInnerPoint) <=eps)
-       { //check outer point distance - if bigger than eps - take next list
-         while(itLeft != --leftList.begin() &&
-             (*itLeft)->calcXDistanz(rightInnerPoint) <=eps)
-           {
-             //compare with each cluster on the right side
-             for(unsigned int j=0;j<rightCluster->getVectorSize(rightKind) ;j++)
-               {
-                 if(
-                     listIsInYBordersOfList(leftMinMax,
-                                            rightCluster,j,rightKind))
-                   {
-                     bool jAlreadyAppend = false;
-                     std::vector<unsigned int>::iterator it =
-                         clusterToMeltRight[leftListNo].begin();
-                     while(!jAlreadyAppend && it !=
-                         clusterToMeltRight[leftListNo].end()){
-                         if(j==*it){
-                             jAlreadyAppend = true;
-                         }
-                         it++;
-                     }
-                     if(!jAlreadyAppend){
-                         newClusterFoundInL = false;
-                         // get this most left point from right Cluster
-                         itRight=rightCluster->getIterator(j,true,rightKind);
-
-                         if(!newClusterFoundInL &&
-                             itRight !=
-                             rightCluster->getIterator(j,false,rightKind) &&
-                             (*itRight)->calcXDistanz(leftInnerPoint) <=eps)
-                           {//check outer point distance -
-                             //if bigger than eps->take next list
-                             while(!newClusterFoundInL &&
-                                 itRight != 
-                                 rightCluster->getIterator(j,false,rightKind) &&
-                                 (*itRight)->
-                                 calcXDistanz(leftInnerPoint) <= eps)
-                               {//get distance from left Point to right Point
-
-                                 if((*itLeft)->calcDistanz(*itRight) <= eps){
-                                     memberAdded=true;
-                                     newClusterFoundInL = true;
-                                     updateNeighborRightListToLeftList(
-                                         leftList,
-                                         rightCluster->getList(j,rightKind),
-                                         true,true,
-                                         leftInnerPoint,rightInnerPoint);
-                                     if((*itLeft)->updateInnerPnt(minPts) &&
-                                         (*itRight)->updateInnerPnt(minPts))
-                                       {
-                                         //remember cluster listNo
-                                         clusterToMeltRight[
-                                                    leftListNo].push_back(j);
-                                         clusterToMeltLeft[j].
-                                                        push_back(leftListNo);
-                                       }
-                                 }
-                                 ++itRight;
-                               }
-                           } 
-                        //else newClusterFound || itRight==end || distance > eps
-                     }// else jAlreadyAppend
-                   }//else list is not in Y Border of Cluster
-               }
-             --itLeft;
-           }
-       }
-     return memberAdded;
-   }
-
-/*
 meltClusterLists
 melt lists of Cluster at one side Cluster. So all  list 
 which are stored in the meltingSideArray Index where melted.
@@ -2296,10 +2202,10 @@ finds out correct cluster type an push it to  correct cluster vector
 
 */
    void addListToCorrectClusterType(
-       std::list<MEMB_TYP_CLASS*>& clusterList,
-       std::pair<double,double>& clusterPair,
-       std::pair<unsigned int,Kind>& index
-   );
+                                    std::list<MEMB_TYP_CLASS*>& clusterList,
+                                    std::pair<double,double>& clusterPair,
+                                    std::pair<unsigned int,Kind>& index,
+                                    bool checkReachability);
 
 /*
 
@@ -2579,59 +2485,44 @@ update clusterNo and Type
 
 */
    bool testReachabilityAndSetClusterNoAtEachPoint(TYPE* leftOuterPoint,
-                             TYPE* rightOuterPoint,
-                             std::list<MEMB_TYP_CLASS*>& list,
-                             std::pair<unsigned int,Kind>& clusterPair,
-                             bool isAlreadyClusterCand)
-   {
-     return testReachabilityAndSetClusterNoAtEachPoint( leftOuterPoint,
-                                            rightOuterPoint,
-                                            list,
-                                            clusterPair.first,
-                                            getClusterType(clusterPair.second),
-                                            isAlreadyClusterCand);
-   }
-
-
-   bool testReachabilityAndSetClusterNoAtEachPoint(TYPE* leftOuterPoint,
-                                   TYPE* rightOuterPoint,
-                                   std::list<MEMB_TYP_CLASS*>& list,
-                                   int listNo,
-                                   int type,
-                                   bool isAlreadyClusterCand)
+                                    TYPE* rightOuterPoint,
+                                    std::list<MEMB_TYP_CLASS*>& list,
+                                    std::pair<unsigned int,Kind>& clusterPair,
+                                    bool isAlreadyClusterCand,
+                                    bool checkReachability = true
+                                                  )
    {
      typename std::list<MEMB_TYP_CLASS*>::iterator
      it = list.begin();
      bool allDensReachable = true;
-
-     Kind kind = getClusterKindFromType(type);
-
-     while(it!=list.end()){
-         if(!(*it)->updateInnerPnt(minPts)){
-           if(!(*it)->updateDensityReachable(minPts) && 
-             (kind == CLUSTER || kind == CLUSTERCAND) ){
-                 allDensReachable = false;
-                 if(moveItemToClusterCandOrNoise(leftOuterPoint,
-                                                 rightOuterPoint,
-                                                 it,list,
-                                                 isAlreadyClusterCand))
-                   {
-                     it = list.begin();
-                   }else{
-                       it++;
-                   }
+     int listNo = clusterPair.first;
+     int type = getClusterType(clusterPair.second);
+     Kind kind = clusterPair.second;
+       while(it!=list.end()){
+         if(checkReachability && !(*it)->updateInnerPnt(minPts)){
+           if(checkReachability && !(*it)->updateDensityReachable(minPts) && 
+                          (kind == CLUSTER || kind == CLUSTERCAND) ){
+             allDensReachable = false;
+           if(moveItemToClusterCandOrNoise(leftOuterPoint,
+             rightOuterPoint,
+             it,list,
+             isAlreadyClusterCand))
+           {
+             it = list.begin();
+           }else{
+             it++;
+           }
              } else{
-                 (*it)->setClusterNo(getClusterNo(listNo,kind));
-                 (*it)->setClusterType(type);
-                 it++;
+               (*it)->setClusterNo(getClusterNo(listNo,kind));
+               (*it)->setClusterType(type);
+               it++;
              }
          }else{
-             (*it)->setClusterNo(getClusterNo(listNo,kind));
-             (*it)->setClusterType(type);
-             it++;
+           (*it)->setClusterNo(getClusterNo(listNo,kind));
+           (*it)->setClusterType(type);
+           it++;
          }
-
-     }
+       }
      return allDensReachable;
    }
 
@@ -2886,7 +2777,7 @@ copy the untouched right Cluster lists to left Cluster
              addListToCorrectClusterType(
                  rightCluster->getList(i,kind),
                  rightCluster->getMinMaxFromCluster(i,kind),
-                 index);
+                 index,false);
            }
        }
    }
@@ -2928,8 +2819,10 @@ copy the untouched right Cluster lists to left Cluster
    }
 
 
-
-
+/*
+ deleteEmptyLists
+ 
+*/
    void deleteEmptyLists(Kind kind)
    {
 
@@ -3156,10 +3049,8 @@ calculates a unique identifier based on the cantor pairing function
    {
      switch (kind){
        case NOISE:
-         //        return getListNoOfClusterNo(clusterNo,NOISE_CL_NO);
          return NOISE_CL_NO;
        case CLUSTERCAND:
-         //        return getListNoOfClusterNo(clusterNo,CLUSTERCAND_CL_NO);
          return CLUSTERCAND_CL_NO;
        case CLUSTER:
          return getListNoOfClusterNo(clusterNo,CLUSTER_CL_NO);
@@ -3171,6 +3062,8 @@ calculates a unique identifier based on the cantor pairing function
          return getListNoOfClusterNo(clusterNo,BOTH_CL_NO);
        case CLCANDCLUSTERS:
          return getListNoOfClusterNo(clusterNo,CLCANDCL_CL_NO);
+       default:
+         return -1;
      }
      return -1;
    }
