@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
+#include "semaphore.h"
+
 #include "fsrel.h"
 #include "DArray.h"
 #include "frel.h"
@@ -14887,8 +14889,10 @@ class partitionInfo{
                               feed,
                               nl->SymbolAtom("T"));
 
+        string streamer = sfun.empty()?"fsfeed5":"createFSrel";
+
         ListExpr fsfeed = nl->ThreeElemList(
-                                nl->SymbolAtom("createFSrel"),
+                                nl->SymbolAtom(streamer),
                                 stream,
                                 relTemp);
 
@@ -16708,8 +16712,6 @@ Operator createFSrelOP(
 );
 
 
-
-
 /*
 3 Implementation of the Algebra
 
@@ -16860,10 +16862,12 @@ Distributed2Algebra::Distributed2Algebra(){
    createFrelOP.SetUsesArgsInTypeMapping();
 
    AddOperator(&createFSrelOP);
-
+   
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);
+
+   
 
 
 }

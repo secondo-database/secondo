@@ -97,4 +97,3 @@ operator createFrel alias CREATEFREL pattern op(_,_,_)
 operator createFSrel alias CREATEFSREL pattern _ op[_]
 
 
-
