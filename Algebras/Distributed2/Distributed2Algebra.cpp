@@ -6824,7 +6824,7 @@ class ffeed5fsrelInfo{
         li(0) {}
 
       Tuple* next(){
-         while(pos < fn->size()){
+         while(pos <= fn->size()){
             if(!li){
               retrieveNextLi();
             }
@@ -6859,11 +6859,11 @@ class ffeed5fsrelInfo{
      void retrieveNextLi(){
          assert(!li);
          while(!li){
-           pos++;
            if(pos >= fn->size()){
              return;
            }
            string f = (*fn)[pos];
+           pos++;
            li = new ffeed5Info( f, tt);
            if(!li->isOK()){
               delete li;
@@ -14815,9 +14815,9 @@ class partitionInfo{
 
 
         string stream1 = "(projecttransformstream (feed " + rel + ") T )";
-        string stream2 =   "(consume (feedS " + stream1 
+        string stream2 =   "(feedS " + stream1 
                          + "("+nl->ToString(relType) 
-                         + " ())))"; 
+                         + " ()))"; 
         string stream3 = stream2;
         if(!sfun.empty()){
           stream3 = "("+ sfun +   stream2 + ")";
@@ -15593,6 +15593,7 @@ class AReduceTask{
              }
           }
           rv += ")";
+
 
           string rel = "[const " + rt + " value " + rv+ "]";
           string nlrel="(" + nlrt + " " + rv +")";
