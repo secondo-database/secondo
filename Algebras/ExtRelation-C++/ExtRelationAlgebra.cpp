@@ -13430,25 +13430,7 @@ if(!CcBool::checkType(arg3))
 
 */
 
-class nthLocalInfo: public ProgressLocalInfo
-{
-  
-public:
-  
-  nthLocalInfo()
-  {
-    read = 0;
-    returned = 0;
-    
-    
-  }
-  
-  ~nthLocalInfo()
-  {
-  }
-  
- 
-};
+
 
 
 
@@ -13466,7 +13448,7 @@ int nthValueMapping(Word* args, Word& result, int message,
   int intvalue = 0;
   int randvalue;       
   bool boolvalue;
-  nthLocalInfo* nthli = (nthLocalInfo*) local.addr;
+  
   CcInt* currentval = static_cast<CcInt*>(args[1].addr);
   CcBool* currentbool = static_cast<CcBool*>(args[2].addr);
   
@@ -13496,17 +13478,10 @@ int nthValueMapping(Word* args, Word& result, int message,
    
  case OPEN: 
    
-    {     
-      if (nthli) delete nthli;
-      
-      nthli= new nthLocalInfo();
-      
-      //
+    { srand(time(0)); 
       qp->Open(args[0].addr);
-      local.setAddr(nthli);  
-      srand(time(0)); 
+      local.addr = 0;  
       
-      qp->Open(args[0].addr);
       return 0;
       
     }
@@ -13531,7 +13506,7 @@ int nthValueMapping(Word* args, Word& result, int message,
     for (int i=1; i< intvalue; i++)                      //normal case
     {
       qp->Request(args[0].addr, tuple);
-      nthli->read++;
+     
       
       
       if(!qp->Received(args[0].addr))
@@ -13549,8 +13524,7 @@ int nthValueMapping(Word* args, Word& result, int message,
     }   
         
    qp->Request(args[0].addr, tuple);
-   nthli->read++;
-   nthli->returned++;
+  
       
    
    if (qp->Received(args[0].addr))
@@ -13577,7 +13551,7 @@ int nthValueMapping(Word* args, Word& result, int message,
          for (int i=1; i< randvalue; i++)
         {
           qp->Request(args[0].addr, tuple);
-          nthli->read++;
+         
       
       
           if(!qp->Received(args[0].addr))
@@ -13597,8 +13571,7 @@ int nthValueMapping(Word* args, Word& result, int message,
            
             
            qp->Request(args[0].addr, tuple);
-           nthli->read++;
-           nthli->returned++;
+           
       
    
            if (qp->Received(args[0].addr))
@@ -13609,7 +13582,7 @@ int nthValueMapping(Word* args, Word& result, int message,
                 for (int i=randvalue; i< intvalue; i++)
                   {
                     qp->Request(args[0].addr, tuple);
-                    nthli->read++;
+                    
       
       
                    if(!qp->Received(args[0].addr))
@@ -13656,32 +13629,22 @@ int nthValueMapping(Word* args, Word& result, int message,
   
   
   
-  case CLOSEPROGRESS:
-   if (nthli) 
-    {
-      delete nthli;
-    }
-    
-    local.setAddr(0);
+ case CLOSEPROGRESS:
     return 0;
+   
+   
+   
   
-  
-  
-  case REQUESTPROGRESS:
+ case REQUESTPROGRESS:
     ProgressInfo p1;
     ProgressInfo* pRes;
     {
       
      pRes = (ProgressInfo*) result.addr;
      if (qp-> RequestProgress(args[0].addr, &p1) )
-     { 
+     {  
        
-       pRes->Time = p1.Time;
-       pRes->Progress = ((p1.Progress * p1.Time  +  
-                         nthli->returned / nthli-> read) / pRes->Time);
-       
-       
-       pRes->Copy(p1);
+       pRes->Progress = p1.Progress + (p1.Progress/intvalue);
        return YIELD;
      
       
@@ -13689,6 +13652,8 @@ int nthValueMapping(Word* args, Word& result, int message,
       else return CANCEL;
   
     }
+  
+  
      
   }
   return 0;
@@ -13706,19 +13671,13 @@ int nthValueMapping(Word* args, Word& result, int message,
 
 
 
-
-
-
-
-
-
 const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]))))" 
                          "x int x bool"
                          " -> (stream (tuple([ai:di,...... ,am:dm])))"
                          "</text--->"
-                         "<text>_ nth[_]</text--->"
+                         "<text>_ nth[_,_]</text--->"
                          "<text>normal (TRUE) get every intth tuple"
                          "<text>random (FALSE) in each case get" 
                          "one random tuple"
@@ -13727,6 +13686,14 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "<text>query Orte feed nth[2, TRUE] count"
                          "</text--->"
                               ") )";
+
+
+
+
+
+
+
+
 
 
 
