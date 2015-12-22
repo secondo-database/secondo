@@ -13430,14 +13430,6 @@ if(!CcBool::checkType(arg3))
 
 */
 
-
-
-
-
-
-
-
-
 int nthValueMapping(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
@@ -13448,7 +13440,6 @@ int nthValueMapping(Word* args, Word& result, int message,
   int intvalue = 0;
   int randvalue;       
   bool boolvalue;
-  
   CcInt* currentval = static_cast<CcInt*>(args[1].addr);
   CcBool* currentbool = static_cast<CcBool*>(args[2].addr);
   
@@ -13478,12 +13469,11 @@ int nthValueMapping(Word* args, Word& result, int message,
    
  case OPEN: 
    
-    { srand(time(0)); 
+    {     
+      srand(time(0)); 
       qp->Open(args[0].addr);
-      local.addr = 0;  
-      
+      local.addr = 0;
       return 0;
-      
     }
     
     
@@ -13493,12 +13483,10 @@ int nthValueMapping(Word* args, Word& result, int message,
 
  case REQUEST:  
    
-   
+   randvalue = rand()%intvalue + 1;
    
  
-  { randvalue = rand()%intvalue + 1;
-    
-    if (boolvalue)
+  { if (boolvalue)
    {
     
     
@@ -13506,8 +13494,6 @@ int nthValueMapping(Word* args, Word& result, int message,
     for (int i=1; i< intvalue; i++)                      //normal case
     {
       qp->Request(args[0].addr, tuple);
-     
-      
       
       if(!qp->Received(args[0].addr))
       {
@@ -13524,8 +13510,6 @@ int nthValueMapping(Word* args, Word& result, int message,
     }   
         
    qp->Request(args[0].addr, tuple);
-  
-      
    
    if (qp->Received(args[0].addr))
      
@@ -13551,8 +13535,6 @@ int nthValueMapping(Word* args, Word& result, int message,
          for (int i=1; i< randvalue; i++)
         {
           qp->Request(args[0].addr, tuple);
-         
-      
       
           if(!qp->Received(args[0].addr))
            {
@@ -13571,8 +13553,6 @@ int nthValueMapping(Word* args, Word& result, int message,
            
             
            qp->Request(args[0].addr, tuple);
-           
-      
    
            if (qp->Received(args[0].addr))
              
@@ -13582,13 +13562,9 @@ int nthValueMapping(Word* args, Word& result, int message,
                 for (int i=randvalue; i< intvalue; i++)
                   {
                     qp->Request(args[0].addr, tuple);
-                    
-      
       
                    if(!qp->Received(args[0].addr))
-                    { 
-                      current = static_cast<Tuple*>(result.addr);
-                      current -> DeleteIfAllowed();   
+                    {
                       result.addr = 0;
                       return CANCEL;
                     } 
@@ -13629,13 +13605,11 @@ int nthValueMapping(Word* args, Word& result, int message,
   
   
   
- case CLOSEPROGRESS:
+  case CLOSEPROGRESS:
     return 0;
-   
-   
-   
   
- case REQUESTPROGRESS:
+  
+  case REQUESTPROGRESS:
     ProgressInfo p1;
     ProgressInfo* pRes;
     {
@@ -13643,8 +13617,7 @@ int nthValueMapping(Word* args, Word& result, int message,
      pRes = (ProgressInfo*) result.addr;
      if (qp-> RequestProgress(args[0].addr, &p1) )
      {  
-       
-       pRes->Progress = p1.Progress + (p1.Progress/intvalue);
+       pRes->Copy(p1);
        return YIELD;
      
       
@@ -13652,8 +13625,6 @@ int nthValueMapping(Word* args, Word& result, int message,
       else return CANCEL;
   
     }
-  
-  
      
   }
   return 0;
