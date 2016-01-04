@@ -186,6 +186,7 @@ initialize
       sampStream.open();
       
       bool firstRun = true;
+      bool secondRun = true;
       bool findPictureCoordRefs = false;
       bool pictureRefsExist = false;
       if(TYPE::BasicType() == Picture::BasicType()
@@ -223,6 +224,9 @@ initialize
             }
             else //  if(!firstRun && findPictureCoordRefs)
             {
+              if(secondRun){
+                yRefPic = obj;
+              } else 
               if(member->calcDistanz(xRefPic) > maxDist)
               {
                 yRefPic = obj;

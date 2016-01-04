@@ -103,7 +103,7 @@
                   appendPictureRefs(_appendPictureRefs),buffer(0), 
                   resIt(0),tt(0),neighborType(0),
                   leftCluster(0),rightCluster(0),
-                  xRefPic(0),yRefPic(0),maxDist(0)
+                  xRefPic(0),yRefPic(0),maxDist(-1.0)
 //                   ,yRefPicVal(0)
                   
     {
@@ -149,7 +149,7 @@ Constructor for operator distClMerge
                   ,buffer(0), 
                   resIt(0),tt(0),neighborType(0),
                   leftCluster(0),rightCluster(0),
-                  xRefPic(0),yRefPic(0),maxDist(0)
+                  xRefPic(0),yRefPic(0),maxDist(-1.0)
 //                   ,yRefPicVal(0)
                   
     {
@@ -298,7 +298,6 @@ Starts the begin of returning tuples.
 
 */
     void initOutput(){
-      cout << "in initOutput()" << endl;
       if(resIt) delete resIt;
       resIt = buffer->MakeScan(); 
     }
@@ -457,6 +456,7 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
       int id = 0;
       
       bool firstRun = true;
+      bool secondRun = true;
       bool findPictureCoordRefs = false;
       bool pictureRefsExist = false;
       if(TYPE::BasicType() == Picture::BasicType()
@@ -496,6 +496,9 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
             }
             else //  if(!firstRun && findPictureCoordRefs)
             {
+              if(secondRun){
+                yRefPic = obj;
+              } else 
               if(member->calcDistanz(xRefPic) > maxDist)
               {
                 yRefPic = obj;
