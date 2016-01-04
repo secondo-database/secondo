@@ -1,0 +1,481 @@
+## This file is part of SECONDO.
+##
+## Copyright (C) 2015, University in Hagen, Department of Computer Science,
+## Database Systems for New Applications.
+##
+## SECONDO is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+##
+## SECONDO is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with SECONDO; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+delete database tsa_test_db;
+
+#setup pst_test \
+    TrajectorySimilarityAlgebra \
+    StandardAlgebra \
+    DateTimeAlgebra \
+    SpatialAlgebra \
+    TemporalAlgebra
+
+
+### Create temporary database for tests.
+
+create database tsa_test_db;
+open database tsa_test_db;
+
+
+
+###
+### Test type constructor 'pointseq'.
+###
+
+### Create valid objects.
+
+#testcase PointSeqUndefined
+#yields (pointseq undefined)
+query [const pointseq value undefined]
+
+#testcase PointSeqEmpty
+#yields (pointseq ())
+query [const pointseq value ()]
+
+#testcase PointSeq1Element
+#yields (pointseq ((1.0 2.3)))
+query [const pointseq value ((1.0 2.3))]
+
+#testcase PointSeq2Elements
+#yields (pointseq ((1.0 2.3) (-2.0 0.0)))
+query [const pointseq value ((1.0 2.3) (-2.0 0.0))]
+
+#testcase PointSeqLet
+#yields ()
+let ps = [const pointseq value ((1.0 2.3) (-2.0 0.0))]
+
+#testcase PointSeqReadObject
+#yields (pointseq ((1.0 2.3) (-2.0 0.0)))
+## Works only after test case PointSeqLet.
+query ps
+
+
+### Create invalid objects.
+
+#testcase PointSeqErrorAtom
+#yields error
+query [const pointseq value bad]
+
+#testcase PointSeqErrorAtomElement
+#yields error
+query [const pointseq value (bad)]
+
+#testcase PointSeqErrorEmptyElement
+#yields error
+query [const pointseq value (())]
+
+#testcase PointSeqErrorElement1Value
+#yields error
+query [const pointseq value ((1.0))]
+
+#testcase PointSeqErrorElement3Values
+#yields error
+query [const pointseq value ((1.0 2.0 3.0))]
+
+#testcase PointSeqErrorElementIntValue1
+#yields error
+query [const pointseq value ((1 2.0))]
+
+#testcase PointSeqErrorElementIntValue2
+#yields error
+query [const pointseq value ((1.0 2))]
+
+#testcase PointSeqErrorElementNAN
+#yields error
+query [const pointseq value ((NAN 1.0))]
+
+#testcase PointSeqErrorElementINF
+#yields error
+query [const pointseq value ((INF 1.0))]
+
+
+
+###
+### Test type constructor 'tpointseq'.
+###
+
+### Create valid objects.
+
+#testcase TPointSeqUndefined
+#yields (tpointseq undefined)
+query [const tpointseq value undefined]
+
+#testcase TPointSeqEmpty
+#yields (tpointseq ())
+query [const tpointseq value ()]
+
+#testcase TPointSeq1Element
+#yields (tpointseq (("2015-12-29-01:23:45" (1.0 2.3))))
+query [const tpointseq value (("2015-12-29-01:23:45" (1.0 2.3)))]
+
+#testcase TPointSeq2Elements
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:30:20" (-2.0 0.0))))
+query [const tpointseq value (
+  ("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:30:20" (-2.0 0.0)))]
+
+#testcase TPointSeqLet
+#yields ()
+let tps = [const tpointseq value (("2015-12-29-01:23:45" (1.0 2.3)))]
+
+#testcase TPointSeqReadObject
+#yields (tpointseq (("2015-12-29-01:23:45" (1.0 2.3))))
+## Works only after test case TPointSeqLet.
+query tps
+
+
+### Create invalid objects.
+
+#testcase TPointSeqWrongOrder
+#yields error
+query [const tpointseq value (
+  ("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:23:44" (-2.0 0.0)))]
+
+#testcase TPointSeqErrorAtom
+#yields error
+query [const tpointseq value bad]
+
+#testcase TPointSeqErrorAtomElement
+#yields error
+query [const tpointseq value (bad)]
+
+#testcase TPointSeqErrorEmptyElement
+#yields error
+query [const tpointseq value (())]
+
+#testcase TPointSeqErrorElement1Value
+#yields error
+query [const tpointseq value ((1))]
+
+#testcase TPointSeqErrorElement3Values
+#yields error
+query [const tpointseq value ((1 2 3))]
+
+#testcase PointSeqErrorInstantUndefined
+#yields error
+query [const tpointseq value ((undefined (1.0 2.0)))]
+
+#testcase PointSeqErrorInstantInvalid
+#yields error
+query [const tpointseq value ((bad (1.0 2.0)))]
+
+#testcase PointSeqErrorPointInvalid
+#yields error
+query [const tpointseq value (("2015-12-29-01:23:45" (bad 2.0)))]
+
+
+
+###
+### Test (general) operator 'isdefined'.
+###
+
+#testcase IsDefinedPointSeqUndefined
+#yields (bool FALSE)
+query isdefined([const pointseq value undefined])
+
+#testcase IsDefinedPointSeq0
+#yields (bool TRUE)
+query isdefined([const pointseq value ()])
+
+#testcase IsDefinedPointSeq1
+#yields (bool TRUE)
+query isdefined([const pointseq value ((1.0 2.3))])
+
+#testcase IsDefinedTPointSeqUndefined
+#yields (bool FALSE)
+query isdefined([const tpointseq value undefined])
+
+#testcase IsDefinedTPointSeq0
+#yields (bool TRUE)
+query isdefined([const tpointseq value ()])
+
+#testcase IsDefinedTPointSeq1
+#yields (bool TRUE)
+query isdefined([const tpointseq value (("2015-12-29-01:23:45" (1.0 2.3)))])
+
+
+
+###
+### Test operator 'isempty'.
+###
+
+#testcase IsDefinedPointSeqUndefined
+#yields (bool TRUE)
+query isempty([const pointseq value undefined])
+
+#testcase IsDefinedPointSeq0
+#yields (bool TRUE)
+query isempty([const pointseq value ()])
+
+#testcase IsDefinedPointSeq1
+#yields (bool FALSE)
+query isempty([const pointseq value ((1.0 2.3))])
+
+#testcase IsDefinedTPointSeqUndefined
+#yields (bool TRUE)
+query isempty([const tpointseq value undefined])
+
+#testcase IsDefinedTPointSeq0
+#yields (bool TRUE)
+query isempty([const tpointseq value ()])
+
+#testcase IsDefinedTPointSeq1
+#yields (bool FALSE)
+query isempty([const tpointseq value (("2015-12-29-01:23:45" (1.0 2.3)))])
+
+
+
+###
+### Test operator 'no_components'.
+###
+
+#testcase NoComponentsPointSeqUndefined
+#yields (int 0)
+query no_components([const pointseq value undefined])
+
+#testcase NoComponentsPointSeq0
+#yields (int 0)
+query no_components([const pointseq value ()])
+
+#testcase NoComponentsPointSeq1
+#yields (int 1)
+query no_components([const pointseq value ((1.0 2.3))])
+
+#testcase NoComponentsPointSeq2
+#yields (int 2)
+query no_components([const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase NoComponentsTPointSeqUndefined
+#yields (int 0)
+query no_components([const tpointseq value undefined])
+
+#testcase NoComponentsTPointSeq0
+#yields (int 0)
+query no_components([const tpointseq value ()])
+
+#testcase NoComponentsTPointSeq1
+#yields (int 1)
+query no_components([const tpointseq value (("2015-12-29-01:23:45" (1.0 2.3)))])
+
+#testcase NoComponentsTPointSeq2
+#yields (int 2)
+query no_components([const tpointseq value (
+  ("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:30:20" (-2.0 0.0)))])
+
+
+
+###
+### Test operator 'to_dline'.
+###
+
+#testcase ToDLinePointSeqUndefined
+#yields (dline ())
+## The list representation of the undefined dline is '()' and not 'undefined'.
+query to_dline([const pointseq value undefined])
+
+#testcase ToDLinePointSeq0
+#yields (dline ())
+query to_dline([const pointseq value ()])
+
+#testcase ToDLinePointSeq1
+#yields (dline ((1.0 2.3 1.0 2.3)))
+query to_dline([const pointseq value ((1.0 2.3))])
+
+#testcase ToDLinePointSeq2
+#yields (dline ((1.0 2.3 -2.0 0.0)))
+query to_dline([const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase ToDLinePointSeq3
+#yields (dline ((1.0 2.3 -2.0 0.0) (-2.0 0.0 4.5 6.7)))
+query to_dline([const pointseq value ((1.0 2.3) (-2.0 0.0) (4.5 6.7))])
+
+#testcase ToDLineTPointSeqUndefined
+#yields (dline ())
+## The list representation of the undefined dline is '()' and not 'undefined'.
+query to_dline([const tpointseq value undefined])
+
+#testcase ToDLineTPointSeq0
+#yields (dline ())
+query to_dline([const tpointseq value ()])
+
+#testcase ToDLineTPointSeq1
+#yields (dline ((1.0 2.3 1.0 2.3)))
+query to_dline([const tpointseq value (("2015-12-29-01:23:45" (1.0 2.3)))])
+
+#testcase ToDLineTPointSeq2
+#yields (dline ((1.0 2.3 -2.0 0.0)))
+query to_dline([const tpointseq value (
+  ("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:30:20" (-2.0 0.0)))])
+
+#testcase ToDLineTPointSeq3
+#yields (dline ((1.0 2.3 -2.0 0.0) (-2.0 0.0 4.5 6.7)))
+query to_dline([const tpointseq value (
+  ("2015-12-29-01:23:45" (1.0 2.3))
+  ("2015-12-29-01:30:20" (-2.0 0.0))
+  ("2015-12-29-01:35:05" (4.5 6.7)))])
+
+
+
+###
+### Test operator 'to_pointseq'.
+###
+
+### to_tpointseq : mpoint -> pointseq
+
+#testcase ToPointSeqMPointUndefined
+#yields (pointseq undefined)
+query to_pointseq([const mpoint value undefined])
+
+#testcase ToPointSeqMPoint0
+#yields (pointseq ())
+query to_pointseq([const mpoint value ()])
+
+#testcase ToPointSeqMPoint1
+#yields (pointseq ((1.0 2.3) (-2.0 0.0)))
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+)])
+
+#testcase ToPointSeqMPoint2
+#yields (pointseq ((1.0 2.3) (-2.0 0.0) (4.5 6.7)))
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) (-2.0 0.0 4.5 6.7))
+)])
+
+#testcase ToPointSeqMPointTemporalGap
+#yields (pointseq undefined)
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:31:20" "2015-12-29-01:33:05" TRUE FALSE) (-2.0 0.0 4.5 6.7))
+)])
+
+#testcase ToPointSeqMPointSpatialGap
+#yields (pointseq undefined)
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) (-1.5 0.5 4.5 6.7))
+)])
+
+#testcase ToPointSeqMPointTeleport
+#yields (pointseq undefined)
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:30:20" TRUE TRUE) (-2.0 0.0 4.5 6.7))
+)])
+
+#testcase ToPointSeqMPointInstantUnitWithNoMove
+#yields (pointseq ((1.0 2.3) (-2.0 0.0)))
+## Second unit contains just one instant and does not move in time. Therefore it
+## shall be skipped.
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:30:20" TRUE TRUE) (-2.0 0.0 -2.0 0.0))
+)])
+
+
+### to_pointseq : tpointseq -> pointseq
+
+#testcase ToPointSeqTPointSeqUndefined
+#yields (pointseq undefined)
+query to_pointseq([const tpointseq value undefined])
+
+#testcase ToPointSeqTPointSeq0
+#yields (pointseq ())
+query to_pointseq([const tpointseq value ()])
+
+#testcase ToPointSeqTPointSeq1
+#yields (pointseq ((1.0 2.3)))
+query to_pointseq([const tpointseq value (("2015-12-29-01:23:45" (1.0 2.3)))])
+
+#testcase ToPointSeqTPointSeq2
+#yields (pointseq ((1.0 2.3) (-2.0 0.0)))
+query to_pointseq([const tpointseq value (
+  ("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:30:20" (-2.0 0.0)))])
+
+
+
+###
+### Test operator 'to_tpointseq'.
+###
+
+### to_tpointseq : mpoint -> tpointseq
+
+#testcase ToTPointSeqMPointUndefined
+#yields (tpointseq undefined)
+query to_tpointseq([const mpoint value undefined])
+
+#testcase ToTPointSeqMPoint0
+#yields (tpointseq ())
+query to_tpointseq([const mpoint value ()])
+
+#testcase ToTPointSeqMPoint1
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:30:20" (-2.0 0.0))))
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+)])
+
+#testcase ToTPointSeqMPoint2
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (1.0 2.3)) \
+  ("2015-12-29-01:30:20" (-2.0 0.0)) \
+  ("2015-12-29-01:33:05" (4.5 6.7))))
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) (-2.0 0.0 4.5 6.7))
+)])
+
+#testcase ToTPointSeqMPointTemporalGap
+#yields (tpointseq undefined)
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:31:20" "2015-12-29-01:33:05" TRUE FALSE) (-2.0 0.0 4.5 6.7))
+)])
+
+#testcase ToTPointSeqMPointSpatialGap
+#yields (tpointseq undefined)
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) (-1.5 0.5 4.5 6.7))
+)])
+
+#testcase ToTPointSeqMPointTeleport
+#yields (tpointseq undefined)
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:30:20" TRUE TRUE) (-2.0 0.0 4.5 6.7))
+)])
+
+#testcase ToTPointSeqMPointInstantUnitWithNoMove
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:30:20" (-2.0 0.0))))
+## Second unit contains just one instant and does not move in time. Therefore it
+## shall be skipped.
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:30:20" TRUE TRUE) (-2.0 0.0 -2.0 0.0))
+)])
+
+
+
+#teardown
+
+close database;
+delete database tsa_test_db;
