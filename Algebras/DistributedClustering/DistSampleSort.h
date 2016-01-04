@@ -226,6 +226,7 @@ initialize
             {
               if(secondRun){
                 yRefPic = obj;
+                maxDist = member->calcDistanz(xRefPic);
               } else 
               if(member->calcDistanz(xRefPic) > maxDist)
               {

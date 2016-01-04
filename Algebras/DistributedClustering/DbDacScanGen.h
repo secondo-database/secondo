@@ -498,6 +498,7 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
             {
               if(secondRun){
                 yRefPic = obj;
+                maxDist = member->calcDistanz(xRefPic);
               } else 
               if(member->calcDistanz(xRefPic) > maxDist)
               {
