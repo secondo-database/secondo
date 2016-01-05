@@ -583,7 +583,8 @@ public:
     gta::DistDataId id = gta::DistDataReg::getId(Picture::BasicType()
     ,gta::DistDataReg::defaultName(Picture::BasicType()));
     
-    df = gta::DistfunReg::getInfo(gta::DFUN_DEFAULT, id);
+//     df = gta::DistfunReg::getInfo(gta::DFUN_DEFAULT, id);
+    df = gta::DistfunReg::getInfo(gta::DFUN_QUADRATIC, id);
   }
   
   
