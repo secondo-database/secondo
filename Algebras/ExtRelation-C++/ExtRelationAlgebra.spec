@@ -99,4 +99,4 @@ operator bringToMemory alias BRINGTOMEMORY pattern _ op
 
 operator feedS alias feedS pattern _ op[_]
 
-operator nth alias NTH pattern _ op [_, _] implicit parameter elem type STREAMELEM
+operator nth alias NTH pattern _ op [_, _] 
