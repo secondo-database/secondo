@@ -447,5 +447,16 @@ Example   : query [const rel(tuple([N : string])) value (("ten")("ten")) ] feed 
 Result    : 20
 
  
+Operator  : obojoin
+Number    : 1
+Signature : stream(tuple(X)) x stream(tuple(Y)) -> stream(tuple(XY))
+Example  : query intstream(0,10) namedtransformstream[No1] intstream(0,100) namedtransformstream[No2] obojoin count
+Result    : 11
 
+
+Operator  : obojoinD
+Number    : 1
+Signature : stream({tuple(X), DATA}) x stream({tuple(Y),DATA}) [ x ID [ x ID]]-> stream(tuple(XY))
+Example  : query intstream(0,10)  intstream(0,100) obojoinD[No1,No2] count
+Result    : 11
 

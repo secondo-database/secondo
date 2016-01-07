@@ -13678,8 +13678,290 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
          nthType                      // type mapping
 );
 
- 
 
+
+
+/*
+Operator ~obojoin~
+
+Connects two tuple streams one by one
+
+*/
+ListExpr obojoinTM(ListExpr args){
+
+ if(!nl->HasLength(args,2)){
+   return listutils::typeError("two tuple streams expected");
+ }
+ if(!Stream<Tuple>::checkType(nl->First(args))){
+   return listutils::typeError("first arg is not a tuple stream");
+ }
+ if(!Stream<Tuple>::checkType(nl->Second(args))){
+   return listutils::typeError("second arg is not a tuple stream");
+ }
+
+ ListExpr al1 = nl->Second(nl->Second(nl->First(args)));
+ ListExpr al2 = nl->Second(nl->Second(nl->Second(args)));
+ if(!listutils::disjointAttrNames(al1,al2)){
+    return listutils::typeError("name conflict in attribute names found");
+ }
+ return nl->TwoElemList(
+            listutils::basicSymbol<Stream<Tuple> >(),
+            nl->TwoElemList(listutils::basicSymbol<Tuple>(),
+            listutils::concat(al1,al2)));
+}
+
+template<class E1, class E2>
+class obojoinInfo{
+
+  public:
+    obojoinInfo(Word& s1, Word& s2, ListExpr _tt): stream1(s1), stream2(s2){
+      stream1.open();
+      stream2.open();
+      tt = new TupleType(_tt);
+    }
+    ~obojoinInfo(){
+        stream1.close();
+        stream2.close();
+        tt->DeleteIfAllowed();
+     }
+   
+    Tuple* next(){
+      E1* e1 = stream1.request();
+      E2* e2 = stream2.request();
+      if(!e1 && !e2){
+         return 0;
+      }
+      if(!e1){
+         e2->DeleteIfAllowed();
+         return 0;
+      }
+      if(!e2){
+         e1->DeleteIfAllowed();
+         return 0;
+      }
+      Tuple* res = new Tuple(tt);
+      concat(e1,e2,res);
+      return res;
+    }
+ 
+  private:
+    Stream<E1> stream1;
+    Stream<E2> stream2;
+    TupleType* tt;
+
+    void concat(Attribute* e1, Attribute* e2, Tuple* res){
+       res->PutAttribute(0,e1);
+       res->PutAttribute(1,e2);
+    }
+
+    void concat(Attribute* e1, Tuple* e2, Tuple* res){
+      res->PutAttribute(0,e1);
+      for(int i=0;i<e2->GetNoAttributes(); i++){
+         res->CopyAttribute(i, e2, i+1);
+      }
+      e2->DeleteIfAllowed();
+    }
+
+    void concat(Tuple* e1, Attribute* e2, Tuple* res){
+      for(int i=0;i<e1->GetNoAttributes(); i++){
+         res->CopyAttribute(i, e1, i);
+      }
+      res->PutAttribute(e1->GetNoAttributes(),e2);
+      e1->DeleteIfAllowed(); 
+    }
+
+    void concat(Tuple* e1, Tuple* e2, Tuple* res){
+       int e1num = e1->GetNoAttributes();
+       for(int i=0;i<e1num; i++){
+         res->CopyAttribute(i, e1, i);
+       }
+       for(int i=0; i<e2->GetNoAttributes();i++){
+          res->CopyAttribute(i, e2, i + e1num);
+       }
+       e1->DeleteIfAllowed();
+       e2->DeleteIfAllowed();
+    }
+};
+
+template<class e1, class e2> 
+int obojoinVM(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
+
+  obojoinInfo<e1,e2>* li = (obojoinInfo<e1,e2>*) local.addr;
+  switch(message){
+     case OPEN: {
+            if(li){
+               delete li;
+            }
+            local.addr = new obojoinInfo<e1,e2>(args[0],args[1], 
+                             nl->Second(GetTupleResultType(s)));
+            return 0;
+      }
+      case REQUEST :{
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+      }
+      case CLOSE :{
+            if(li){
+              delete li;
+              local.addr = 0;
+            }
+            return 0;
+      }
+  }
+  return -1;
+}
+
+OperatorSpec obojoinSpec(
+  "stream(tuple(X)) x stream(tuple(Y)) -> stream(tuple(XY))",
+  "_ _ obojoin",
+  "Joins two tuple streams one by one, meaning the first tuple"
+  " of the first stream is joined with the first tuple of the "
+  " second stream, both second tuples are joined and so on.",
+  " query ten feed ten feed {a} obojoind consume"
+);
+
+Operator obojoinOP(
+  "obojoin",
+  obojoinSpec.getStr(),
+  obojoinVM<Tuple,Tuple>,
+  Operator::SimpleSelect,
+  obojoinTM
+);
+
+
+ListExpr obojoinDTM(ListExpr args){
+  if(!nl->HasMinLength(args,3)){
+    return listutils::typeError("three args expected");
+  }
+  int noDATA = 0;  // number of data streams
+  bool fd = false; // first stream is a data stream
+
+  if(Stream<Attribute>::checkType(nl->First(args))){
+    noDATA++;
+    fd = true;
+  } else if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("first argument must be a stream "
+                                 "of DATA or a stream of tuples");
+  }
+  if(Stream<Attribute>::checkType(nl->Second(args))){
+    noDATA++;
+  } else if(!Stream<Tuple>::checkType(nl->Second(args))){
+    return listutils::typeError("second argument must be a stream "
+                                 "of DATA or a stream of tuples");
+  }
+
+  if(nl->AtomType(nl->Third(args))!=NoAtom){
+     return listutils::typeError("third arg is not a list of attr names");
+  }
+
+  if(!nl->HasLength(nl->Third(args),noDATA)){
+    return listutils::typeError("invalid number of attribute names");
+  }
+
+
+  if(noDATA == 0){ // two tuple streams
+     ListExpr al1 = nl->Second(nl->Second(nl->First(args)));
+     ListExpr al2 = nl->Second(nl->Second(nl->Second(args)));
+     if(!listutils::disjointAttrNames(al1,al2)){
+       return listutils::typeError("name conflict in attribute names found");
+     }
+     return nl->TwoElemList(
+            listutils::basicSymbol<Stream<Tuple> >(),
+            nl->TwoElemList(listutils::basicSymbol<Tuple>(),
+            listutils::concat(al1,al2)));
+  }
+  // noDATA > 0
+  ListExpr third = nl->Third(args);
+
+  if(nl->AtomType(nl->First(third))!=SymbolType){
+    return listutils::typeError("third arg is not an attribute name");
+  }
+  string n1 = nl->SymbolValue(nl->First(third));
+  if(!stringutils::isIdent(n1)){
+     return listutils::typeError(n1 + " is not a valid attribute name");
+  }
+  if(noDATA==1){
+     ListExpr al1;
+     ListExpr al2;
+     if(fd){
+       al1 = nl->OneElemList(nl->TwoElemList(nl->First(third), 
+                             nl->Second(nl->First(args))));
+       al2 = nl->Second(nl->Second(nl->Second(args)));
+     } else {
+       al1 = nl->Second(nl->Second(nl->First(args)));
+       al2 = nl->OneElemList(nl->TwoElemList(nl->First(third), 
+                               nl->Second(nl->Second(args))));
+     }
+     if(!listutils::disjointAttrNames(al1,al2)){
+       return listutils::typeError("name conflict in attribute names found");
+     }
+     return nl->TwoElemList(
+            listutils::basicSymbol<Stream<Tuple> >(),
+            nl->TwoElemList(listutils::basicSymbol<Tuple>(),
+            listutils::concat(al1,al2)));
+  }
+  // noDATA is 2
+  if(nl->AtomType(nl->Second(third))!=SymbolType){
+    return listutils::typeError("fourth arg is not an attribute name");
+  }
+  string n2 = nl->SymbolValue(nl->Second(third));
+  if(!stringutils::isIdent(n2)){
+     return listutils::typeError(n1 + " is not a valid attribute name");
+  }
+
+  if(n1==n2){
+    return listutils::typeError("cannot use the same attribute name twice");
+  }
+
+  ListExpr attrList = nl->TwoElemList(
+              nl->TwoElemList(
+                    nl->First(third),
+                    nl->Second(nl->First(args))),
+              nl->TwoElemList(
+                    nl->Second(third),
+                    nl->Second(nl->Second(args))));
+   return nl->TwoElemList(
+            listutils::basicSymbol<Stream<Tuple> >(),
+            nl->TwoElemList(listutils::basicSymbol<Tuple>(),
+            attrList));
+}
+
+ValueMapping obojoinDVM[] = {
+   obojoinVM<Attribute,Attribute>,
+   obojoinVM<Attribute,Tuple>,
+   obojoinVM<Tuple,Attribute>,
+   obojoinVM<Tuple,Tuple>
+};
+
+int obojoinDSelect(ListExpr args){
+  int n1 = Stream<Attribute>::checkType(nl->First(args))?0:2;
+  int n2 = Stream<Attribute>::checkType(nl->Second(args))?0:1;
+  return n1 + n2;
+}
+
+
+
+OperatorSpec obojoinDSpec(
+  "stream({tuple(X),DATA}) x stream({tuple(Y),DATA}) "
+  "[x ID [ x ID]]-> stream(tuple(XY))",
+  "_ _ obojoinD[_,_]",
+  "Joins two streams one by one, meaning the first element"
+  " of the first stream is joined with the first element of the "
+  " second stream, both second elements are joined and so on."
+  "For each data stream, an attribute name must be given within the "
+  "parameter list.",
+  "query ten feed intstream(0,100) obojoinD[K]  consume"
+);
+
+Operator obojoinDOP(
+  "obojoinD",
+  obojoinDSpec.getStr(),
+  4,
+  obojoinDVM,
+  obojoinDSelect,
+  obojoinDTM
+);
 
 /*
 
@@ -13794,6 +14076,8 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&bringToMemoryOP);
     AddOperator(&feedSOp);
     AddOperator(&extrelnth);
+    AddOperator(&obojoinOP);
+    AddOperator(&obojoinDOP);
 
 #ifdef USE_PROGRESS
 // support for progress queries
