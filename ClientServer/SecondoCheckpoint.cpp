@@ -74,15 +74,29 @@ SecondoCheckpoint::Execute()
   string parmFile;
   if (GetArgCount() > 1) {
     parmFile = GetArgValues()[1];
-  }
-  else {
+    if(parmFile=="--help"){
+      cout << "SecondoCheckpoint " << endl
+           << "This program sets a checkpoint at " << endl
+           << "some Berkeley DB Environment in regular time intervals."
+           << endl << endl
+           << "It accepts up to two arguments :" << endl
+           << "1st arg : parameter file "  << endl
+           << "2nd arg : SecondoHome " << endl
+           << "If the first argument is not given, SecondoConfig.ini " 
+           << "is used as a default value. " << endl
+           << "If the second argument is omitted, the SecondoHome is "
+           << "taken from the configuration file. " << endl;
+      cout << "This process is started automatically by the monitor. " << endl
+           << "Do not start it manually." << endl;
+      return 0;
+    }
+  } else {
     parmFile = "SecondoConfig.ini";
   }
   string dbDir;
   if (GetArgCount() > 2) {
     dbDir = GetArgValues()[2];
-  }
-  else {
+  } else {
     dbDir = SmiProfile::GetParameter("Environment", "SecondoHome", "",parmFile);
   }
   
@@ -99,7 +113,8 @@ SecondoCheckpoint::Execute()
   f.open("Checkpoint.msg");
   bdbEnv->set_error_stream( &f );
   bdbEnv->set_errpfx( "SecondoCheckpoint" );
-  f << "Opening environment " << dbDir << endl;
+  f << "using parmfile '" << parmFile << "'" << endl;
+  f << "Opening environment '" << dbDir << "'" << endl;
   rc = bdbEnv->open(dbDir.c_str(), DB_JOINENV | DB_USE_ENVIRON, 0 );
   if ( rc != 0 )
   {
@@ -108,6 +123,8 @@ SecondoCheckpoint::Execute()
     delete bdbEnv;
     return (EXIT_CHECKPOINT_NOENV);
   }
+  f << "Opening environment successful" << endl;
+  f << "Set checkpoint every " << minutes << " minutes" << endl;
 
   // --- Register the standard pgin/pgout functions, in case we do I/O
   rc = bdbEnv->memp_register( DB_FTYPE_SET, __db_pgin, __db_pgout );
