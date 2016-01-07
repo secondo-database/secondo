@@ -293,8 +293,8 @@ query RoadsB4 WaterwaysB4 dmap2["",
   filter[.GeoData_r intersects .GeoData_w] count, 1238 ]
   getValue tie[. + ..]
 
-# 25.1 seconds
-# result 99
+# 3:59min (239.123sec)
+# result 61579
 
 ##################################################################
 # (2) Not distributed by spatial attributes
@@ -315,13 +315,32 @@ query
   areduce2["",
     . feed {r} .. feed {w} itSpatialJoin[GeoData_r, GeoData_w]
     filter[.Cell_r = .Cell_w]
-    filter[gridintersects(grid, bbox(.GeoData_r),
-      bbox(.GeoData_w), .Cell_r)]
+    filter[gridintersects(grid, bbox(.GeoData_r), bbox(.GeoData_w), .Cell_r)]
     filter[.GeoData_r intersects .GeoData_w] count, 1238 ]
   getValue tie[. + ..]
 
 # 309 seconds
-# result 61579 (wrong)
+# result 61579 
+
+
+query
+  RoadsB1 partitionF["",
+    . feed extendstream[Cell: cellnumber(bbox(.GeoData), grid)], ..Cell, 0]
+    collect2["", 1238]
+  WaterwaysB1 partitionF["",
+    . feed extendstream[Cell: cellnumber(bbox(.GeoData), grid)], ..Cell, 0]
+    collect2["", 1238]
+  dmap2["",
+  . feed {r} .. feed {w} itSpatialJoin[GeoData_r, GeoData_w]
+  filter[.Cell_r = .Cell_w]
+  filter[gridintersects(grid, bbox(.GeoData_r),
+    bbox(.GeoData_w), .Cell_r)]
+  filter[.GeoData_r intersects .GeoData_w] count, 1238 ]
+  getValue tie[. + ..]
+
+# 364 seconds
+# result 61579
+
 
 ##################################################################
 # Expressions in the Select-Clause
@@ -337,8 +356,8 @@ query RoadsB4 WaterwaysB4 dmap2["",
     BridgePosition: crossings(.GeoData_r, .GeoData_w)]
   consume count
 
-# 26.6 seconds
-# result size 99
+# 6:09min (368.765sec)
+# result size 61579
 
 
 query RoadsB4 WaterwaysB4 dmap2["",
@@ -353,6 +372,9 @@ query RoadsB4 WaterwaysB4 dmap2["",
   dsummarize
   consume count
 
+# 4:08min (248.387sec)
+# result size 61579
+
 
 ##################################################################
 # 7.2.3 General Join
@@ -365,6 +387,9 @@ query RoadsB1 dmap["", . feed filter[not(.Name starts " ")]
     symmjoin[.Name_r contains ..Name_w] ]
     dsummarize
     consume count
+
+# 38.54 sec
+# result 0
 
 
 ##################################################################
@@ -383,6 +408,9 @@ query RoadsB3 RoadsB3_Name dmap2["",
   dsummarize
   consume count
 
+# 15.7 sec
+# result 29
+
 
 ##################################################################
 # 7.2.5 Index-Based Spatial Join
@@ -396,6 +424,9 @@ query RoadsB4 BuildingsB4_GeoData dmap2["",
   filter[gridintersects(grid, bbox(.GeoData_r), .EnlargedBox_b, .Cell_r)]
   filter[distance(gk(.GeoData_r), gk(.GeoData_b)) < 500] count, 1238 ]
   getValue tie[. + ..]
+
+# 2:42min (162.014sec)
+# result 14859
 
 
 ##################################################################
