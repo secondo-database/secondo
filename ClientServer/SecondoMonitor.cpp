@@ -523,19 +523,20 @@ SecondoMonitor::Initialize()
     return (false);
   }
   cout << "completed." << endl;
-  if (dbDir.empty()) {
-    dbDir = SmiEnvironment::GetSecondoHome();
-  }
+
   // --- Check storage management interface
-  cout << "Initializing storage management interface ... ";
+  cout << "Initializing storage management interface ... " << endl;
   if (SmiEnvironment::StartUp(SmiEnvironment::MultiUserMaster, 
                               cfgFile, cout, dbDir)) {
     cout << "completed." << endl;
+
+    dbDir = SmiEnvironment::GetSecondoHome();
+
     if (smiType == SmiEnvironment::SmiBerkeleyDB) {
       cout << "Launching Checkpoint service ... ";
       string pgmCheckpoint = SmiProfile::GetParameter("BerkeleyDB", 
                                               "CheckpointProgram", "", cfgFile);
-      string pgmArgs = "-d " + dbDir;
+      string pgmArgs = cfgFile + " " + dbDir;
       if ( ProcessFactory::SpawnProcess(pgmCheckpoint, 
                                         pgmArgs, pidCheckpoint, true)) {
         cout << "completed." << endl;
