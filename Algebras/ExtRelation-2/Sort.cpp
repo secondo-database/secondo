@@ -1003,7 +1003,7 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
       ProgressInfo p1;
       ProgressInfo *pRes;
       const double uSortBy = 0.0000873; //millisecs per byte input and sort
-	// old constant 0.000396;   
+  // old constant 0.000396;
       const double vSortBy = 0.0000243;  //millisecs per byte output
         // old constant 0.000194;  
       const double oSortBy = 0.00004;   //offset due to writing to disk
