@@ -2437,28 +2437,51 @@ CcMod( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
+
+/*
+4.8 Type Mapping for operator ~div~
+
+*/
+ListExpr divTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+   return listutils::typeError("invalid number of arguments");
+  }
+  if(   !CcInt::checkType(nl->First(args)) 
+     && !LongInt::checkType(nl->First(args))){
+   return listutils::typeError("first argument must be of type "
+                               "int or longint");
+  }
+  if(   !CcInt::checkType(nl->Second(args)) 
+     && !LongInt::checkType(nl->Second(args))){
+   return listutils::typeError("first argument must be of type "
+                               "int or longint");
+  }
+  return nl->First(args);
+}
+
+
 /*
 4.8 Value mapping functions of operator ~div~
 
 */
-
+template<class A, class B>
 int
 CcDiv( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((CcInt*)args[0].addr)->IsDefined() &&
-      ((CcInt*)args[1].addr)->IsDefined() &&
-      ((CcInt*)args[1].addr)->GetIntval() )
-  {
-    ((CcInt *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() /
-                 ((CcInt*)args[1].addr)->GetIntval() );
+  A* a = (A*) args[0].addr;
+  B* b = (B*) args[1].addr;
+  A* res = (A*) result.addr;
+  if(!a->IsDefined() || !b->IsDefined()){
+    res->SetDefined(false);
+    return 0;
   }
-  else
-  {
-    ((CcInt *)result.addr)->Set( false, 0 );
+  if(b->GetValue()==0){
+    res->SetDefined(false);
+    return 0;
   }
-  return (0);
+  res->Set(true,(typename A::inttype) (a->GetValue() / b->GetValue()));
+  return 0;
 }
 
 
@@ -4535,7 +4558,24 @@ ValueMapping ccdivisionmap[] =
          };
 
 ValueMapping ccmodmap[] = { CcMod };
-ValueMapping ccdivmap[] = { CcDiv };
+
+
+/*
+Value Mapping array and Selection for div
+
+*/
+ValueMapping ccdivmap[] = { CcDiv<CcInt, CcInt>, 
+                            CcDiv<CcInt, LongInt>,
+                            CcDiv<LongInt, CcInt>,
+                            CcDiv<LongInt,LongInt> };
+
+int ccdivSelect(ListExpr args){
+  int n1 = CcInt::checkType(nl->First(args))?0:2;
+  int n2 = CcInt::checkType(nl->Second(args))?0:1;
+  return n1 + n2;
+}
+
+
 ValueMapping ccsqrtmap[] = { CcSqrt };
 
 ValueMapping cclessmap[] = { CcLess<CcInt>,
@@ -4743,7 +4783,8 @@ const string CCSpecMod  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 const string CCSpecDiv2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Example\" )"
-                             "( <text>(int int) -> int</text--->"
+                             "( <text>({int, longint} {int,longint}) "
+                             "-> {int, longint}</text--->"
                                "<text>_ div _</text--->"
                                "<text>Integer Division.</text--->"
                                "<text>query 5 div 2 </text--->"
@@ -5422,8 +5463,11 @@ Operator ccdivision( "/", CCSpecDiv, 12, ccdivisionmap,
 Operator ccmod( "mod", CCSpecMod, 1, ccmodmap,
                 Operator::SimpleSelect, CcMathTypeMap1 );
 
-Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap,
-                Operator::SimpleSelect, CcMathTypeMap1 );
+Operator ccdiv( "div", 
+                CCSpecDiv2, 4, 
+                ccdivmap,
+                ccdivSelect, 
+                divTM );
 
 Operator ccsqrt( "sqrt", CCSpecSqrt, 1, ccsqrtmap,
                 Operator::SimpleSelect, RealReal );

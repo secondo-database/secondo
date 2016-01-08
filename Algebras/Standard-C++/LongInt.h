@@ -102,7 +102,11 @@ public:
      } else {
       SetDefined(false);
      }
-      
+   }
+
+   void Set(const bool def, const int64_t v){
+     SetDefined(def);
+     value = v;
    }
 
    int64_t GetValue() const{
