@@ -1283,6 +1283,16 @@ Signature : string-> string
 Example   : query "hello world, here i am" substrw[7,14]
 Result    : "world, here"
 
+Operator  : getConfig
+Number    : 1
+Signature : -> text
+Example   : query getConfig() endsWith "ini"
+Result    : TRUE
 
+Operator  : getParam
+Number    : 1
+Signature : {string, text} x {string,text} x {string,text} [ x {string,text}] -> text
+Example   : query getParam('Environment', 'AlgebraLevel', 'Descriptive' )  contains "Exe"
+Result    : TRUE
 
 

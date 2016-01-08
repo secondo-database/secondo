@@ -109,6 +109,8 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "LongInt.h"
 #include "PinyinTable.h"
 
+#include "Profiles.h"
+
 // includes for debugging
 #define LOGMSG_OFF
 #include "LogMsg.h"
@@ -11951,6 +11953,151 @@ Operator substrwOP(
 );
 
 
+/*
+4.46 Operator ~getConfig~
+
+*/
+
+ListExpr getConfigTM(ListExpr args){
+  if(!nl->IsEmpty(args)){
+     return listutils::typeError("no arguments expected");
+  }
+  return listutils::basicSymbol<FText>();
+}
+
+
+int getConfigVM( Word* args, Word& result, int message, 
+                 Word& local, Supplier s ) {
+
+  result = qp->ResultStorage(s);
+  FText* res = (FText*) result.addr;
+  res->Set(true, SmiEnvironment::ConfigFile());
+  return 0;
+}
+
+OperatorSpec getConfigSpec(
+  " -> text",
+  " getConfig() ",
+  "Returns the configuration file used by the current Secondo instance",
+  "query getConfig() "
+);
+
+Operator getConfigOP(
+  "getConfig",
+  getConfigSpec.getStr(),
+  getConfigVM,
+  Operator::SimpleSelect,
+  getConfigTM
+);
+
+/*
+4.47 Operator ~getParam~
+
+*/
+ListExpr getParamTM(ListExpr args){
+
+  if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
+    return listutils::typeError("3 or 4 arguments expected");
+  }
+  if(   !CcString::checkType(nl->First(args)) 
+     && !FText::checkType(nl->First(args))){
+    return listutils::typeError("first arg not of type string or text");
+  } 
+  if(   !CcString::checkType(nl->Second(args)) 
+     && !FText::checkType(nl->Second(args))){
+    return listutils::typeError("second arg not of type string or text");
+  } 
+  if(   !CcString::checkType(nl->Third(args)) 
+     && !FText::checkType(nl->Third(args))){
+    return listutils::typeError("third arg not of type string or text");
+  } 
+
+  if(nl->HasLength(args,4)){
+     if(   !CcString::checkType(nl->First(args)) 
+         && !FText::checkType(nl->Second(args))){
+        return listutils::typeError("first arg not of type string or text");
+     } 
+     return listutils::basicSymbol<FText>();
+  }
+  return nl->ThreeElemList(
+           nl->SymbolAtom(Symbols::APPEND()),
+           nl->OneElemList( nl->TextAtom( SmiEnvironment::ConfigFile())),
+           listutils::basicSymbol<FText>());
+}
+
+template<class A1, class A2, class A3, class A4>
+int getParamVMT( Word* args, Word& result, int message, 
+                 Word& local, Supplier s ) {
+
+  result = qp->ResultStorage(s);
+  FText* res = (FText*) result.addr;
+  A1* a1 = (A1*) args[0].addr;
+  A2* a2 = (A2*) args[1].addr;
+  A3* a3 = (A3*) args[2].addr;
+  A4* a4 = (A4*) args[3].addr;
+
+  if(   !a1->IsDefined() || !a2->IsDefined() || !a3->IsDefined()
+     || !a4->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  res->Set(true, SmiProfile::GetParameter(
+                    a1->GetValue(),
+                    a2->GetValue(),
+                    a3->GetValue(),
+                    a4->GetValue()));
+  return 0;
+}
+
+ValueMapping getParamVM[] = {
+  getParamVMT<CcString, CcString, CcString, CcString>,
+  getParamVMT<CcString, CcString, CcString, FText>,
+  getParamVMT<CcString, CcString, FText,    CcString>,
+  getParamVMT<CcString, CcString, FText,    FText>,
+  getParamVMT<CcString, FText,    CcString, CcString>,
+  getParamVMT<CcString, FText,    CcString, FText>,
+  getParamVMT<CcString, FText,    FText,    CcString>,
+  getParamVMT<CcString, FText,    FText,    FText>,
+  getParamVMT<FText   , CcString, CcString, CcString>,
+  getParamVMT<FText   , CcString, CcString, FText>,
+  getParamVMT<FText   , CcString, FText,    CcString>,
+  getParamVMT<FText   , CcString, FText,    FText>,
+  getParamVMT<FText   , FText,    CcString, CcString>,
+  getParamVMT<FText   , FText,    CcString, FText>,
+  getParamVMT<FText   , FText,    FText,    CcString>,
+  getParamVMT<FText   , FText,    FText,    FText>
+};
+
+int getParamSelect(ListExpr args){
+  int n1 = CcString::checkType(nl->First(args))?0:8;
+  int n2 = CcString::checkType(nl->Second(args))?0:4;
+  int n3 = CcString::checkType(nl->Third(args))?0:2;
+  int n4 = 0;
+  if(nl->HasLength(args,3)){
+     n4 = 1;
+  } else {
+    n4 = CcString::checkType(nl->Fourth(args))?0:1;
+  }
+  return n1 + n2 + n3 + n4;
+}
+
+OperatorSpec getParamSpec(
+  "{string,text} x {string,text} x {string, text} [ x {string,text} ] -> text",
+  "getParam(section, key, default [, file ] ) ",
+  "Retrieves a value from a secondo configuration file. "
+  "If the file argument is omitted, the currently used conifigration file "
+  "will be used. ",
+  "query getParam('Environment', 'AlgebraLevel', 'Descriptive' ) "
+);
+
+Operator getParamOP(
+  "getParam",
+  getParamSpec.getStr(),
+  16,
+  getParamVM,
+  getParamSelect,
+  getParamTM
+);
 
 
 
@@ -12097,6 +12244,8 @@ Operator substrwOP(
       AddOperator(&query2ListOP);
       AddOperator(&substrwOP);
 
+      AddOperator(&getConfigOP);
+      AddOperator(&getParamOP);
 
 
 
