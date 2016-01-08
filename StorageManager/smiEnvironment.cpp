@@ -89,6 +89,12 @@ SmiEnvironment::CurrentDatabase()
   }
 }
 
+string 
+SmiEnvironment::ConfigFile(){
+  return configFile;
+}
+
+
 
 void
 SmiEnvironment::ResetSmiErrors()

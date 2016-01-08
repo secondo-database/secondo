@@ -1006,6 +1006,8 @@ Returns a pointer to the "Secondo"[3] Storage Management Environment
 
   static std::string GetSecondoHome();
 
+  static std::string ConfigFile();
+
   static int CreateTmpEnvironment(std::ostream& err);
   static int DeleteTmpEnvironment();
 
