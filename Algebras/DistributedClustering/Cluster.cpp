@@ -1,43 +1,42 @@
 /*
- ---- 
- This file is part of SECONDO.
- 
- Copyright (C) 2004, University in Hagen, Department of Computer Science,
- Database Systems for New Applications.
- 
- SECONDO is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 2 of the License, or
- (at your option) any later version.
- 
- SECONDO is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with SECONDO; if not, write to the Free Software
- Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- ----
- 
- //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
- //paragraph [10] Footnote: [{\footnote{] [}}]
- //[TOC] [\tableofcontents]
- 
- [1] Implementation of the Spatial Algebra
- 
- Jun 2015, Daniel Fuchs 
- 
- [TOC]
- 
- 1 Overview
- 
- 
- This file contains the implementation of the class dbDacScanAlgebra
- 
- 2 Includes
- 
-*/
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [10] Footnote: [{\footnote{] [}}]
+//[TOC] [\tableofcontents]
+
+[1] Implementation of Class Cluster
+
+August-February 2015, Daniel Fuchs 
+
+[TOC]
+
+1 Overview
+
+This file contains the implementation of the class Cluster.
+
+1.1 Includes
+
+*/ 
 
 #include "Cluster.h"
 
@@ -46,7 +45,10 @@ namespace distributedClustering{
   
 
 /*
-3.0 ~Constructor~
+1.2 ~Constructor~
+
+Constructs a object of Cluster and stores the committed point 
+in clusterCand list.
 
 */
 template <class MEMB_TYP_CLASS, class TYPE>
@@ -68,7 +70,7 @@ leftOuterPoint(0),rightOuterPoint(0),eps(_eps), minPts(_minPts)
 }
 
 /*
-3.1 Constructor for merge Step
+1.3 ~constructor~ 
 
 this constructor is used for distMerge
 in members are stored calculated Clusters from dbdacscan
@@ -111,10 +113,11 @@ rightOuterPoint(members.back()->getPoint()),eps(_eps), minPts(_minPts)
 
 
 /*
-meltClusters
-melt this Cluster with the right cluster
-medianPoint and rightMedPoint are the two outer Points which
-represent the splitline
+1.4 ~meltClusters~
+
+Melt this Cluster with the right cluster.
+MedianPoint and rightMedPoint are the two outer Points which
+represent the splitline.
 
 */
 template <class MEMB_TYP_CLASS, class TYPE>
@@ -145,19 +148,7 @@ meltClusters(Cluster * rightCluster,
     firstElem->getOuterRightValue(rightCluster->getRightOuterPoint(),
                                   rightOuterPoint,rightInnerPoint);
   }
-  
-  
-  
-  //1.) verlgeiche ClusterCands und ertelle Listen und MinMay Borders #
-  //    vector<list<MEMB_TYP_CLASS*> > clusterCandClusters;
-  //    vector<pair <double,double> > clusterCandClMinMax;
-  
-  /*
-   *     compareLeftWithRightList
-   *     compares all clusterCands and add new possible clusterCands to
-   *     clusterCandClusters
-   */
-  
+  //compare clustercands and create lists for min and may borders
   
   compareLeftWithRightList(leftInnerPoint, rightInnerPoint,
                            true,
@@ -175,10 +166,7 @@ meltClusters(Cluster * rightCluster,
                                  clusterCandClusters,
                                  clusterCandClMinMax);
   
-  
-  
-  // 2.) vergleiche alle clusterlistern von Min zu Max und füge auch neue 
-  //listen hinzu
+  // compare all clusterlistr from min to max and add   
   
   int leftMin = 0,rightMin = 0,clusterCandMin = 0, leftCnt = 0,rightCnt = 0;
   Kind leftKind, rightKind;
@@ -191,7 +179,7 @@ meltClusters(Cluster * rightCluster,
   actMaxClCand = MAX_DOUBLE;
   
   
-  // *** LEFT indices ****************************************************
+  // *** LEFT indices ***************************************************
   //save indexes - for each list on left side save indexes for list on
   unsigned int leftIndexSize =  getVectorSize(RIGHT) +
   getVectorSize(BOTH);
@@ -221,7 +209,7 @@ meltClusters(Cluster * rightCluster,
   newRightIndices; //[rightIndexSize];
   initIndicies(newRightIndices,rightIndexSize,bothDistRight,true);
   
-  // ***CLUSTERCAND indices ****************************************************
+  // ***CLUSTERCAND indices **********************************************
   // save indexes for clusterCand
   vector< clusterCandMelt>
   clusterCandClustersToMeltWithClNo[clusterCandClusters.size()];
@@ -234,7 +222,7 @@ meltClusters(Cluster * rightCluster,
   vector< clusterCandMelt>
   rightClusterCandMemberToMeltWithLClNo[rightClCSize];
   
-  //***************************************************************************
+  //**********************************************************************
   
   //find left and right y min of existing
   // clusterLists RIGHT and BOTH on left side
@@ -252,8 +240,8 @@ meltClusters(Cluster * rightCluster,
   } else {
     getNewMinIndex = false;
   }
-  // find clusterCand y min if there are clusterCandList in clusterCandClusters
-  
+  // find clusterCand y min if there are
+  // clusterCandList in clusterCandClusters
   
   //check if clustercand or clusterlist reachable to other lists
   while(getNewMinIndex){
@@ -348,8 +336,8 @@ meltClusters(Cluster * rightCluster,
           leftInnerPoint,rightInnerPoint,
           false,
           getList(leftMin,leftKind),
-                                    rightCluster->getList(rightMin,rightKind),
-                                    emptyVectorList,emptyMinMaxY,false,false))
+          rightCluster->getList(rightMin,rightKind),
+          emptyVectorList,emptyMinMaxY,false,false))
         {
           
           
@@ -418,12 +406,6 @@ meltClusters(Cluster * rightCluster,
                     calcRightMin,rightCnt,
                     rightCluster);
   }
-  
-  
-  
-  // 2.1) Verschmelze cluster -> 
-  // prüfe auch clusterCands -> setze minima und maxima neu
-  
   // meltClusterlists on right side and update MinMax
   if(minToMaxIndexesLeft.size())
   {
@@ -472,8 +454,6 @@ meltClusters(Cluster * rightCluster,
       }
     }
   }
-  
-  
   //melt clusterCands with list ##############################################
   //add leftClusterCandMember and update MinMaxY
   
@@ -500,8 +480,6 @@ meltClusters(Cluster * rightCluster,
                                    newRightIndices,
                                    bothDistRight);
   }
-  
-  //3.) alle nicht verschmolzenen listen werden angehängt ##################
   //copy right noise to left noise
   pair<unsigned int,Kind> dummyIndex = make_pair(0,NOISE);
   pair<double,double> dummyMinMax = make_pair(MAX_DOUBLE,MIN_DOUBLE);
@@ -514,8 +492,6 @@ meltClusters(Cluster * rightCluster,
                             dummyIndex,dummyIndex,false,false);
     
   }
-  
-  
   //copy right clusterCand to left clusterCand
   dummyIndex.second = CLUSTERCAND;
   if(clusterCandList.size() || rightCluster->getListLength(0,CLUSTERCAND)){
@@ -527,7 +503,6 @@ meltClusters(Cluster * rightCluster,
     
   }
   //copy right clusterLists to left side
-  
   //first check clusterToMeltOnRightForLeftSide
   // then all RIGHT and BOTH on left cluster are checked and updated
   for(int i=0; i<leftIndexSize; i++)
@@ -546,11 +521,8 @@ meltClusters(Cluster * rightCluster,
     {
       //then there is a cluster
       //append first entry to list i
-      
-
       if(getListLength(leftIndex))
       {
-        
         //define new ClusterType
         pair<unsigned int,Kind> destIndex;
         defineDestIndexPair(getList(leftIndex),
@@ -558,10 +530,6 @@ meltClusters(Cluster * rightCluster,
                                   clusterToMeltOnRightForLeftSide[i].at(0)),
                             leftIndex,
                             destIndex);
-        
-        
-        
-        
         sortRightListToLeftList(this,
                                 rightCluster->
                                 getList(
@@ -573,7 +541,6 @@ meltClusters(Cluster * rightCluster,
                                 getMinMaxFromCluster(leftIndex),
                                 leftIndex, destIndex, true,true);
       }
-      
     }else{
       // index has no melting member
       //change Kind in left cluster
@@ -600,16 +567,12 @@ meltClusters(Cluster * rightCluster,
       
     }
   }//all RIGHT and BOTH on left cluster are checked and updated
-  
-  
   //nothing to do with LEFT and CLUSTER from leftSideCluster
-  
   // move all right lists to left Cluster
   copyRightClusterListToLeftCluster(rightCluster,CLUSTER);
   copyRightClusterListToLeftCluster(rightCluster,RIGHT);
   copyRightClusterListToLeftCluster(rightCluster,LEFT);
   copyRightClusterListToLeftCluster(rightCluster,BOTH);
-  
   //push back all ClusterCandCluster to correct ClusterType
   for(unsigned int i = 0; i< clusterCandClusters.size(); i++){
     if(clusterCandClustersToMeltWithClNo[i].size() == 0)
@@ -626,16 +589,13 @@ meltClusters(Cluster * rightCluster,
   //clear clusterCandClusters
     clusterCandClusters.clear();
   
-  //4.) delete all empty lists and pairs
+  // delete all empty lists and pairs
   delete rightCluster;
   clusterCandClMinMax.clear();
   deleteEmptyLists(CLUSTER);
   deleteEmptyLists(RIGHT);
   deleteEmptyLists(LEFT);
   deleteEmptyLists(BOTH);
-  
-  //5.) bei update clsuter -> diese neu organisieren -> eventuell sind
-  //Typen nicht richtig eingeordnet (BOTH LEFT RIGHT)
   
   //sort clsuterCands correct in List
   pair<unsigned int,Kind> clCandInd = make_pair(0,CLUSTERCAND);
@@ -648,9 +608,12 @@ meltClusters(Cluster * rightCluster,
 
 
 /*
-    compareLeftWithRightList
-    return true if lists are density reachable
- */
+1.5 ~compareLeftWithRightList~
+
+Return true if a point of one list is density reachable
+to a point in the other list.
+
+*/
 template <class MEMB_TYP_CLASS, class TYPE>
 bool
 Cluster<MEMB_TYP_CLASS,TYPE>::
@@ -760,9 +723,11 @@ compareLeftWithRightList( TYPE* leftInnerPoint, TYPE* rightInnerPoint,
 }
 
 /*
-    concatClusterCand
-    
- */
+1.6 ~concatClusterCand~
+
+Melt clusterCand points and theri neighbors to a list.
+
+*/
 template <class MEMB_TYP_CLASS, class TYPE>
 void
 Cluster<MEMB_TYP_CLASS,TYPE>::
@@ -845,11 +810,12 @@ concatClusterCand(Cluster* rightCluster, TYPE* leftInnerPoint,
 }
 
 /*
-   addListToCorrectClusterType
-    find out cluster type for given clusterlist and add
-   it to existing clusterlists.
-   
- */
+1.7 ~addListToCorrectClusterType~
+
+Find out cluster type for given clusterlist and add
+it to existing clusterlists.
+
+*/
 template <class MEMB_TYP_CLASS, class TYPE>
 void
 Cluster<MEMB_TYP_CLASS,TYPE>::
@@ -938,9 +904,11 @@ addListToCorrectClusterType(
 
 
 /*
- updateNeighbor
- update the eps neighborhood from left and right member
- */
+1.8 ~updateNeighbor~
+
+Update the eps neighborhood from left and right member.
+
+*/
 template <class MEMB_TYP_CLASS, class TYPE>
 void
 Cluster<MEMB_TYP_CLASS,TYPE>::
@@ -989,9 +957,11 @@ updateNeighbor(MEMB_TYP_CLASS * leftMemb, MEMB_TYP_CLASS *rightMemb,
 }
 
 /*
- isMembInList
- when point is in list -> return true
- */
+1.9 ~isMembInList~
+
+When given point is in given list then return true.
+
+*/
 template <class MEMB_TYP_CLASS, class TYPE>
 bool
 Cluster<MEMB_TYP_CLASS,TYPE>::
@@ -1010,9 +980,11 @@ isMembInList(MEMB_TYP_CLASS *memb, list<MEMB_TYP_CLASS*>& list)
 
 
 /*
- meltClusterCandListWithClusterList
+1.10 ~meltClusterCandListWithClusterList~
 
- */
+Melt the given ClusterCandList with the given ClsuterList.
+
+*/
 template <class MEMB_TYP_CLASS, class TYPE>
 void Cluster<MEMB_TYP_CLASS,TYPE>::
 meltClusterCandListWithClusterList(pair<unsigned int,Kind>& destinationList,
@@ -1049,11 +1021,11 @@ meltClusterCandListWithClusterList(pair<unsigned int,Kind>& destinationList,
 
 
 /*
-  meltListsOfCluster
+1.11  ~meltListsOfCluster~
 
-  melt cluster-lists at one side Cluster
-  
- */
+Melt the two given clusterlists.
+
+*/
 template <class MEMB_TYP_CLASS, class TYPE>
 pair<unsigned int,Kind>
 Cluster<MEMB_TYP_CLASS,TYPE>::
@@ -1096,9 +1068,11 @@ meltListsOfCluster(pair<unsigned int,Kind>& destinationList,
 
 
 /*
-    meltIndexOfCluster
-    melt the given clusterindexes
- */
+1.12 ~meltIndexOfCluster~
+
+Melt the given clusterindexes.
+
+*/
 template <class MEMB_TYP_CLASS, class TYPE>
 void Cluster<MEMB_TYP_CLASS,TYPE>::
 meltIndexOfCluster( vector<pair<unsigned int,Kind> > &destIndList ,
@@ -1139,7 +1113,9 @@ meltIndexOfCluster( vector<pair<unsigned int,Kind> > &destIndList ,
 }
 
 /*
-findNextMinList
+1.13 ~findNextMinList~
+
+Find the next minimum point in y direction in the clusterlists.
 
 */
 template <class MEMB_TYP_CLASS, class TYPE>
@@ -1188,13 +1164,8 @@ findNextMinList(int& leftIndex, Kind& leftKind,
     return retval;
   }
 
-/*
-findNextMinList
 
-find the next List in Y direction from a given minimum point
-if no min found return -1
-  
-*/
+
 template <class MEMB_TYP_CLASS, class TYPE>
 void Cluster<MEMB_TYP_CLASS,TYPE>::
 findNextMinList(int& retIndex, Kind& retKind,
@@ -1228,9 +1199,10 @@ findNextMinList(int& retIndex, Kind& retKind,
 
   
 /*
-findNextMinListOfClCand
+1.14 findNextMinListOfClCand
 
-returns the next minimum clustercand
+Returns the next minimum clustercand in y direction.
+
 */
 
 template <class MEMB_TYP_CLASS, class TYPE>
@@ -1273,9 +1245,9 @@ findNextMinListOfClCand(vector<pair <double,double> >&
   
   
 /*
-pushMemberToClusterList
+1.5 ~pushMemberToClusterList~
 
-push a committed member at the end or beginning of a given clusterlist
+Push a committed member at the end or beginning of a given clusterlist.
 
 */ 
   template <class MEMB_TYP_CLASS, class TYPE>
