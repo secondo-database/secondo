@@ -24,21 +24,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 //[_] [\_]
 
-[1] Implementation of the Spatial Algebra
+[1] Distsamp
 
-Jun 2015, Daniel Fuchs 
+August-February 2015, Daniel Fuchs 
 
 [TOC]
 
 1 Overview
 
 
-This file contains the implementation of the class Distsamp
+This is a implentation for distributed sort. This Class sort 
+data into groups.
 
-2 Includes
+1.1 Includes
 
-
-*/
+*/ 
 
 
 #include "AlgebraTypes.h"
@@ -67,7 +67,7 @@ This file contains the implementation of the class Distsamp
 namespace distributedClustering{
   
 /*
-class Distsamp
+2.1 class ~Distsamp~
 
 */
   template <class MEMB_TYP_CLASS, class TYPE>
@@ -76,7 +76,9 @@ class Distsamp
    
        
 /*
-constructor
+2.2 ~constructor~
+
+Constructor sorts the sample file and init the output.
 
 */
     Distsamp(Word& _inSampStream, Word& _sampStream, ListExpr& _tupleType,
@@ -96,7 +98,7 @@ constructor
     }
     
 /*
-destructor
+2.3 ~destructor~
 
 */
     ~Distsamp(){
@@ -111,7 +113,11 @@ destructor
     }
     
 /*
-next
+2.4 ~next~
+
+Returns the next output tuple which are expandet with
+Worker id.
+Requires the call of initOutput before.
 
 */    
     Tuple* next(){
@@ -152,7 +158,7 @@ next
   private:
 
 /*
-members
+2.5 ~members~
 
 */
     int  cntWorkers,attrPos,xPicRefPos;
@@ -167,7 +173,10 @@ members
     double maxDist;
 
 /*
-initialize
+2.6 ~initialize~
+ 
+Read in the tuple streams and store them in 
+a vector.
 
 */
     void init(size_t maxMem, Word& _inStream, Word& _sampStream){
@@ -260,9 +269,9 @@ initialize
     }
     
 /*
-getWorkerID
+2.7 ~getWorkerID~
 
-returns the WorkerId which is putted to the result relation
+Returns the WorkerId which is putted to the result relation.
 
 */
     int getWorkerID(double val){ 
@@ -288,7 +297,7 @@ returns the WorkerId which is putted to the result relation
     }
     
 /*
-init Output()
+2.8 ~initOutput~
 Starts the begin of returning tuples.
 
 */
@@ -306,7 +315,7 @@ Starts the begin of returning tuples.
     }
 
 /*
-mergeSort
+2.9 ~mergeSort~
 sort an array in ascending order
 
 */
@@ -318,11 +327,7 @@ sort an array in ascending order
        }
      }
      
-/*
-mergeSort
-sort an array in ascending order
-
-*/
+     
      void mergeSort(vector<MEMB_TYP_CLASS*>& array,int left, 
                     int right,MEMB_TYP_CLASS** auxiliaryArray){
        if(right == left+1)
@@ -361,8 +366,9 @@ sort an array in ascending order
      }
      
 /*
-leftIsMax()
-auxiliary fuction to compare the maximum Object with the left object
+2.10 ~leftIsMax~
+
+Auxiliary fuction to compare the maximum Object with the left object.
 
 */
      bool leftIsMax(vector<MEMB_TYP_CLASS*>& array,int left, int right){
@@ -376,9 +382,10 @@ auxiliary fuction to compare the maximum Object with the left object
      }
      
 /*
-b(int i)
-return the position of Borderpoint i
-bi = i x floor(s/t)
+2.11 ~b~
+
+Return the position of Borderpoint i with
+$b_i = i \cdot \lfloor \frac{s}{t} \rfloor$
 
 */
     int b(int i){
