@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation of the Spatial Algebra
 
-Jun 2015, Daniel Fuchs 
+August-February 2015, Daniel Fuchs 
 
 [TOC]
 
@@ -37,7 +37,7 @@ Jun 2015, Daniel Fuchs
 
 This file contains the implementation of the distributedClustering Algebra
 
-2 Includes
+1.1 Includes
  
 */ 
 
@@ -72,12 +72,12 @@ namespace distributedClustering{
   const static string PIC_Y_REF = "PicYRefVal";
   
 /*
-3 Operator dbDacScan
+2 Operator dbDacScan
 
 This operated realizes a inmemory db-scan for spatial objects
 with a divide and conquer algorithm
 
-4 Type Mapping ~dbDacScan~
+2.1 Type Mapping ~dbDacScan~
 
 */
   ListExpr
@@ -266,7 +266,7 @@ with a divide and conquer algorithm
   }
   
 /*
-5 Value mapping mehtod ~dbDacScan~
+2.2 Value mapping mehtod ~dbDacScan~
 
 */
   template <class TYPE, class MEMB_TYP_CLASS>
@@ -349,7 +349,7 @@ with a divide and conquer algorithm
   
 
 /*
-8 Value mapping array ~dbscanMVM~
+2.3 Value mapping array ~dbscanMVM~
 
 */
   
@@ -362,7 +362,7 @@ with a divide and conquer algorithm
   };
   
 /*
-7 Selection Function
+2.4 Selection Function
 selection function for one input stream
 
 */ 
@@ -392,7 +392,7 @@ selection function for one input stream
   
   
 /*
-1.4.5 Specification
+2.5 Specification
 
 */
 OperatorSpec dbDacScanSpec(
@@ -409,7 +409,7 @@ OperatorSpec dbDacScanSpec(
   );
   
 /*
-1.4.6 Instance
+2.6 Instance
 
 */
   Operator dbDacScanOp("dbdacscan",
@@ -423,7 +423,7 @@ OperatorSpec dbDacScanSpec(
 /*
 3 Operator ~distclmerge~
 
-Type Mapping of operator ~distclmerge~
+3.1 Type Mapping of operator ~distclmerge~
 
 */
   ListExpr
@@ -692,7 +692,7 @@ Type Mapping of operator ~distclmerge~
   
   
 /*
-Value Mapping of operator ~distclmerge~
+3.2 Value Mapping Template of operator ~distclmerge~
 
 this the template method which is called from distClMergeVM
 
@@ -791,7 +791,7 @@ this the template method which is called from distClMergeVM
   }
 
 /*
-Value Mapping of operator ~distclmerge~
+3.3 Value Mapping of operator ~distclmerge~
 
 value mapping acts as selection function.
 Because the relation is passed as a file, there is no way to find
@@ -838,7 +838,7 @@ out the type of the passed Attributename in selection function.
   } 
 
 /*
-1.4.5 Specification
+3.4 Specification
 
 */
   
@@ -852,7 +852,7 @@ OperatorSpec distClMergeSpec( " text x text x text x text "
   );
   
 /*
-1.4.6 Instance
+3.5 Instance
 
 */
 Operator distClMergeOp(
@@ -865,9 +865,9 @@ Operator distClMergeOp(
   
   
 /*
-3 Operator ~distsamp~
+4 Operator ~distsamp~
 
-Type Mapping of operator ~distsamp~
+4.1 Type Mapping of operator ~distsamp~
 
 */
   ListExpr
@@ -1009,7 +1009,7 @@ Type Mapping of operator ~distsamp~
   }
   
 /*
-ValueMapping of operator ~distsamp~
+4.2 ValueMapping of operator ~distsamp~
 
 */
   template <class TYPE, class MEMB_TYP_CLASS> 
@@ -1071,7 +1071,7 @@ ValueMapping of operator ~distsamp~
   }
   
 /*
-struct of operator ~distsamp~
+4.3 struct of operator ~distsamp~
 
 */
   struct distsampInfo :  OperatorInfo
@@ -1092,7 +1092,7 @@ struct of operator ~distsamp~
   };
 
 /*
-7 Selection Function of operator ~distsamp~
+4.4 Selection Function of operator ~distsamp~
 selection funktion for 2 input streams
 
 */ 
@@ -1122,7 +1122,7 @@ selection funktion for 2 input streams
   }
   
 /*
-8 Value mapping array ~distsamp~
+4.5 Value mapping array ~distsamp~
 
 */
   
@@ -1135,7 +1135,7 @@ selection funktion for 2 input streams
   };
   
 /*
-9 Algebra class ~ClusterDbDacScanAlgebra~
+5 Algebra class ~ClusterDbDacScanAlgebra~
 
 */
   class ClusterDbDacScanAlgebra : public Algebra
