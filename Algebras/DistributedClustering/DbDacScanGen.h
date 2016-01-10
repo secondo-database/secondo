@@ -19,23 +19,13 @@
  along with SECONDO; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  ----
-  
- //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
- //paragraph [10] Footnote: [{\footnote{] [}}]
- //[TOC] [\tableofcontents]
  
- [1] Implementation of the Spatial Algebra
+ 1 Class DbDacScanGen
  
- Jun 2015, Daniel Fuchs 
+ This is a generic implemention of the DBDACSCAN algorithm.
  
- [TOC]
- 
- 1 Overview
- 
- 
- This file contains the implementation of the class DbDacScanGen
- 
- 2 Includes
+ Template parameters are MEMB\_TYP\_CLASS, the realization of
+ Member Class and TYPE, the Secondo Type.
  
 */
  
@@ -63,7 +53,7 @@
    class DbDacScanGen{
    private:
 /* 
-1.3 members
+1.2 members
 
 */
      int minPts, geoPos, clIdPos,clTypePos,xPicRefPos;
@@ -89,7 +79,9 @@
    public:
      
 /*
-1.4 constructor for dbdacscan
+1.3 constructor
+
+This constructor is for execute the DBDACSCAN algorithm.
 
 */ 
      DbDacScanGen(Word &_inStream,  ListExpr &_tupleResultType, 
@@ -104,8 +96,6 @@
                   resIt(0),tt(0),neighborType(0),
                   leftCluster(0),rightCluster(0),
                   xRefPic(0),yRefPic(0),maxDist(-1.0)
-//                   ,yRefPicVal(0)
-                  
     {
       ListExpr empty;
       if(createOutputFiles(empty,false))
@@ -114,10 +104,9 @@
       tt = new TupleType(_tupleResultType);
       buffer = new TupleBuffer(_maxMem);
       init(_inStream,membArrayPtr,membArrayUntouched);
+      
       if(membArrayPtr.size()){
         clusterProcessed = true;
-        
-        
         mergeSort(membArrayPtr,0,membArrayPtr.size());
         leftCluster = 
         dbDacScan(membArrayPtr,0,membArrayPtr.size()-1,eps,minPts);
@@ -131,7 +120,9 @@
     }
     
 /*
-Constructor for operator distClMerge
+1.4 Constructor for operator distClMerge
+
+This constructor is for execute the Melt CLUSTERS algorithm.
 
 */
       DbDacScanGen(const string&  _leftFN, const string& _leftNFN,
@@ -150,8 +141,6 @@ Constructor for operator distClMerge
                   resIt(0),tt(0),neighborType(0),
                   leftCluster(0),rightCluster(0),
                   xRefPic(0),yRefPic(0),maxDist(-1.0)
-//                   ,yRefPicVal(0)
-                  
     {
       bool readFileCorrect = true;
       bool readSecFileCorrect = true;
@@ -246,7 +235,7 @@ Constructor for operator distClMerge
     }
     
 /*
-Destructor
+1.5 ~Destructor~
 
 */
     ~DbDacScanGen(){
@@ -274,7 +263,9 @@ Destructor
     }
 
 /*
-deleteEachTuple
+1.6  ~deleteEachTuple~
+
+Delete each tuple from tuple buffer.
 
 */
     void deleteEachTuple()
@@ -293,8 +284,9 @@ deleteEachTuple
      
     
 /*
-initOutput()
-Starts the begin of returning tuples.
+1.7 ~initOutput~
+
+Initialize the buffer to returning tuples.
 
 */
     void initOutput(){
@@ -303,8 +295,12 @@ Starts the begin of returning tuples.
     }
     
 /*
-next()
-Returns the next output tuple.
+1.8 ~next~
+
+Returns the next output tuple which are expandet with
+ClusterId, ClusterType, isCluster and the filname of 
+neighbor relationship file.
+Requires the call of initOutput before.
 
 */
     Tuple* next(){ 
@@ -360,8 +356,9 @@ Returns the next output tuple.
    private:
      
 /*
-PutAttribute
-auxiliary function to put attribute into result Tuple
+1.9 ~PutAttribute~
+
+Auxiliary function to put attribute into result Tuple.
 
 */
      void putAttribute(Tuple* resTuple,int noAttr, TupleId& id,
@@ -400,7 +397,9 @@ auxiliary function to put attribute into result Tuple
      }
      
 /*
-writeFiles
+1.10 ~writeFiles~
+
+write tuples to file
 
 */
     void writeFiles(Tuple* resTuple,MEMB_TYP_CLASS* member)
@@ -419,8 +418,9 @@ writeFiles
     }
      
 /*
-writeNeighborFileTuples()
-add attributes to realation
+1.11 ~writeNeighborFileTuples~
+
+write neighbor tuples to file
 
 */
 void writeNeighborFileTuples(MEMB_TYP_CLASS* member) 
@@ -442,7 +442,10 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
      }
      
 /*
-1.5 initialize
+1.12 ~initialize~
+ 
+ Read in the tuple streams and store them in 
+ a vector.
  
 */
     void init(Word& _stream, 
@@ -533,7 +536,9 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
     }
 
 /*
- createOutputFiles
+1.13 ~createOutputFiles~
+ 
+ Creates the output files in which tuples where stored.
  
 */
 bool createOutputFiles(ListExpr& _relFt, bool both=true)
@@ -566,8 +571,9 @@ bool createOutputFiles(ListExpr& _relFt, bool both=true)
     }
     
 /*
-defineNRel
-define relation type
+1.14 ~defineNRel~
+
+Define neigbor relation type.
 
 */
     ListExpr defineNRel() 
@@ -582,10 +588,11 @@ define relation type
     
      
 /*
-dbDacScan
+1.15 ~dbDacScan~
+
+Execute the DBDACSCAN algorithm.
  
 */
-
 Cluster<MEMB_TYP_CLASS, TYPE>* 
 dbDacScan(vector<MEMB_TYP_CLASS*>& _membArray, int left , int right , 
           double eps, int minPts)
@@ -615,7 +622,8 @@ dbDacScan(vector<MEMB_TYP_CLASS*>& _membArray, int left , int right ,
 }
 
 /*
-mergeSort
+1.16 ~mergeSort~
+
 sort an array in ascending order
 
 */
@@ -628,11 +636,7 @@ sort an array in ascending order
        }
      }
      
-/*
-mergeSort
-sort an array in ascending order
 
-*/
      void mergeSort(vector<MEMB_TYP_CLASS*>& array,int left, 
                     int right,MEMB_TYP_CLASS** auxiliaryArray){
        if(right == left+1)
@@ -671,8 +675,9 @@ sort an array in ascending order
      }
      
 /*
-leftIsMax()
-auxiliary fuction to compare the maximum Object with the left object
+1.17 ~leftIsMax~
+
+Auxiliary fuction to compare the maximum Object with the left object.
 
 */
      bool leftIsMax(vector<MEMB_TYP_CLASS*>& array,int left, int right){
