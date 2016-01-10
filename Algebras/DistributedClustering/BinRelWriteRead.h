@@ -26,18 +26,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 
 
-[1] Implementation of the Spatial Algebra
+[1] Methods to read and write files
 
-Jun 2015, Daniel Fuchs 
+August-February 2015, Daniel Fuchs 
 
 [TOC]
 
 1 Overview
 
 
-This file contains Auxiliary Methods to store and read files for all operators
+This file contains the implementation of methods to read
+and write files.
 
-2 Includes
+1.1 Includes
  
 */ 
 
@@ -64,9 +65,10 @@ extern QueryProcessor* qp;
 namespace distributedClustering{
     
 /*
-checkFile
+1.2 ~checkFile~
 
-used in typmapping to check if file is a reltype
+This method is used in typmapping to check the type of file resp.
+of the stored relation.
 
 */
 
@@ -165,9 +167,9 @@ boost::mutex copylistmutex;
   }
   
 /*
-readFile
+1.3 ~readFile~
 
-read tuple from a file and store members in a vector. 
+Read tuple from a file and store members in a vector. 
 The Method is written for all Operators of distributedClustering Algebra
 
 */
@@ -327,7 +329,7 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
   
   
 /*
- writeHeader
+1.4  ~writeHeader~
  
 */
   bool writeHeader(ofstream& out, string& filename, 
@@ -356,9 +358,9 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
   }
   
 /*
-writeNextTuple
+1.5 ~writeNextTuple~
 
-write a given tuple in a file
+Write a given tuple in a file.
 
 */
   bool writeNextTuple(ostream& out,Tuple* tuple)
@@ -382,7 +384,9 @@ write a given tuple in a file
   }
   
 /*
-finish
+1.6 ~finish~
+
+Finish file for storing.
 
 */
   bool finish(ostream& out)
