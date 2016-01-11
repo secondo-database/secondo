@@ -101,6 +101,7 @@ makes a spatial move in no time, the ~tpointseq~ is ~undefined~.
 #include "PointSeq.h"
 
 #include "TrajectorySimilarity.h"
+#include "VectorTypeMapUtils.h"
 
 #include "DLine.h"
 #include "Point.h"
@@ -111,7 +112,6 @@ makes a spatial move in no time, the ~tpointseq~ is ~undefined~.
 #include "ListUtils.h"
 #include "NList.h"
 #include "TypeConstructor.h"
-#include "TypeMapUtils.h"
 
 #include <climits>
 
@@ -598,6 +598,17 @@ std::string Point::toString() const
 
 
 /*
+Get the point as a ~Point~ of the SpatialAlgebra.
+
+*/
+::Point Point::toPoint() const
+{
+  return ::Point(/*defined*/ true, x, y);
+}
+
+
+
+/*
 Compare ~[*]this~ to ~rhs~.
 
 */
@@ -712,6 +723,16 @@ std::string TPoint::toString() const
 
 
 /*
+Get the spatial projection of the point as a ~Point~ of the SpatialAlgebra.
+
+*/
+::Point TPoint::toPoint() const
+{
+  return point.toPoint();
+}
+
+
+/*
 Compare ~[*]this~ to ~rhs~.
 
 */
@@ -819,16 +840,16 @@ void TrajectorySimilarityAlgebra::addTPointSeqTC()
 8.1 ~isempty~
 
 */
-const std::string is_empty_maps[2][2] = {
-  /*0*/ {PointSeq::BasicType(),  /* -> */ CcBool::BasicType()},
-  /*1*/ {TPointSeq::BasicType(), /* -> */ CcBool::BasicType()}
+const mappings::VectorTypeMaps is_empty_maps = {
+  /*0*/ {{PointSeq::BasicType()},  /* -> */ {CcBool::BasicType()}},
+  /*1*/ {{TPointSeq::BasicType()}, /* -> */ {CcBool::BasicType()}}
 };
 
 ListExpr IsEmptyTypeMap(ListExpr args)
-{ return mappings::SimpleMaps<2, 2>(is_empty_maps, args); }
+{ return mappings::vectorTypeMap(is_empty_maps, args); }
 
 int IsEmptySelect(ListExpr args)
-{ return mappings::SimpleSelect<2, 2>(is_empty_maps, args); }
+{ return mappings::vectorSelect(is_empty_maps, args); }
 
 template<class SEQ>
 int IsEmpty(
@@ -873,16 +894,16 @@ void TrajectorySimilarityAlgebra::addIsEmptyOp()
 8.2 ~no\_components~
 
 */
-const std::string no_components_maps[2][2] = {
-  /*0*/ {PointSeq::BasicType(),  /* -> */ CcInt::BasicType()},
-  /*1*/ {TPointSeq::BasicType(), /* -> */ CcInt::BasicType()}
+const mappings::VectorTypeMaps no_components_maps = {
+  /*0*/ {{PointSeq::BasicType()},  /* -> */ {CcInt::BasicType()}},
+  /*1*/ {{TPointSeq::BasicType()}, /* -> */ {CcInt::BasicType()}}
 };
 
 ListExpr NoComponentsTypeMap(ListExpr args)
-{ return mappings::SimpleMaps<2, 2>(no_components_maps, args); }
+{ return mappings::vectorTypeMap(no_components_maps, args); }
 
 int NoComponentsSelect(ListExpr args)
-{ return mappings::SimpleSelect<2, 2>(no_components_maps, args); }
+{ return mappings::vectorSelect(no_components_maps, args); }
 
 template<class SEQ>
 int NoComponents(
@@ -927,16 +948,16 @@ void TrajectorySimilarityAlgebra::addNoComponentsOp()
 8.3 ~to\_dline~
 
 */
-const std::string to_dline_maps[2][2] = {
-  /*0*/ {PointSeq::BasicType(), /* -> */ DLine::BasicType()},
-  /*1*/ {TPointSeq::BasicType(), /* -> */ DLine::BasicType()}
+const mappings::VectorTypeMaps to_dline_maps = {
+  /*0*/ {{PointSeq::BasicType()},  /* -> */ {DLine::BasicType()}},
+  /*1*/ {{TPointSeq::BasicType()}, /* -> */ {DLine::BasicType()}}
 };
 
 ListExpr ToDLineTypeMap(ListExpr args)
-{ return mappings::SimpleMaps<2, 2>(to_dline_maps, args); }
+{ return mappings::vectorTypeMap(to_dline_maps, args); }
 
 int ToDLineSelect(ListExpr args)
-{ return mappings::SimpleSelect<2, 2>(to_dline_maps, args); }
+{ return mappings::vectorSelect(to_dline_maps, args); }
 
 template<class T>
 int ToDLine(
@@ -984,16 +1005,16 @@ void TrajectorySimilarityAlgebra::addToDLineOp()
 8.4 ~to\_pointseq~
 
 */
-const std::string to_pointseq_maps[2][2] = {
-  /*0*/ {MPoint::BasicType(), /* -> */ PointSeq::BasicType()},
-  /*1*/ {TPointSeq::BasicType(), /* -> */ PointSeq::BasicType()}
+const mappings::VectorTypeMaps to_pointseq_maps = {
+  /*0*/ {{MPoint::BasicType()},  /* -> */ {PointSeq::BasicType()}},
+  /*1*/ {{TPointSeq::BasicType()}, /* -> */ {PointSeq::BasicType()}}
 };
 
 ListExpr ToPointSeqTypeMap(ListExpr args)
-{ return mappings::SimpleMaps<2, 2>(to_pointseq_maps, args); }
+{ return mappings::vectorTypeMap(to_pointseq_maps, args); }
 
 int ToPointSeqSelect(ListExpr args)
-{ return mappings::SimpleSelect<2, 2>(to_pointseq_maps, args); }
+{ return mappings::vectorSelect(to_pointseq_maps, args); }
 
 template<class T>
 int ToPointSeq(
@@ -1045,15 +1066,15 @@ void TrajectorySimilarityAlgebra::addToPointSeqOp()
 8.5 ~to\_tpointseq~
 
 */
-const std::string to_tpointseq_maps[1][2] = {
-  /*0*/ {MPoint::BasicType(), /* -> */ TPointSeq::BasicType()}
+const mappings::VectorTypeMaps to_tpointseq_maps = {
+  /*0*/ {{MPoint::BasicType()},  /* -> */ {TPointSeq::BasicType()}}
 };
 
 ListExpr ToTPointSeqTypeMap(ListExpr args)
-{ return mappings::SimpleMaps<1, 2>(to_tpointseq_maps, args); }
+{ return mappings::vectorTypeMap(to_tpointseq_maps, args); }
 
 int ToTPointSeqSelect(ListExpr args)
-{ return mappings::SimpleSelect<1, 2>(to_tpointseq_maps, args); }
+{ return mappings::vectorSelect(to_tpointseq_maps, args); }
 
 template<class T>
 int ToTPointSeq(

@@ -49,8 +49,8 @@ respectively.
 
 */
 
-#ifndef __POINTSEQ_H__
-#define __POINTSEQ_H__
+#ifndef __POINT_SEQ_H__
+#define __POINT_SEQ_H__
 
 #include "Attribute.h"
 #include "DateTime.h"   // Instant
@@ -365,6 +365,12 @@ Get a string representation for display purposes.
 */
   std::string toString() const;
 
+/*
+Get the point as a ~Point~ of the SpatialAlgebra.
+
+*/
+  ::Point toPoint() const;
+
 
 /*
 4.3 Access
@@ -567,6 +573,12 @@ Get a string representation for display purposes.
 */
   std::string toString() const;
 
+/*
+Get the spatial projection of the point as a ~Point~ of the SpatialAlgebra.
+
+*/
+  ::Point toPoint() const;
+
 
 /*
 6.3 Access
@@ -674,4 +686,4 @@ class TPointSeq : public Sequence<TPoint> { };
 
 } //-- namespace tsa
 
-#endif  //-- __POINTSEQ_H__
+#endif  //-- __POINT_SEQ_H__
