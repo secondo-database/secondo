@@ -84,6 +84,8 @@ Register operators.
   addToDLineOp();
   addToPointSeqOp();
   addToTPointSeqOp();
+
+  addEndPointDistOp();
 }
 
 } //-- namespace tsa

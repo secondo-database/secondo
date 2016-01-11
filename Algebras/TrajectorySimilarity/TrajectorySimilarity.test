@@ -475,6 +475,418 @@ query to_tpointseq([const mpoint value (
 
 
 
+###
+### Test operator 'dist_origin'.
+###
+
+### Bad parameters
+
+#testcase DistOriginParams0
+#yields error
+query dist_origin()
+
+#testcase DistOriginParams1
+#yields error
+query dist_origin([const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase DistOriginParams3
+#yields error
+query dist_origin(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+
+### dist_origin : pointseq x pointseq [x geoid] -> real
+
+#tolerance_real %0.1
+
+#testcase DistOriginPointSeq
+#yields (real 1.86)
+query dist_origin(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistOriginPointSeqEqual
+#yields (real 0.0)
+query dist_origin(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistOriginPointSeqGeoid
+#yields (real 206000.0)
+query dist_origin(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  create_geoid("WGS1984"))
+
+#testcase DistOriginPointSeqUndefined1
+#yields (real undefined)
+query dist_origin(
+  [const pointseq value undefined],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistOriginPointSeqUndefined2
+#yields (real undefined)
+query dist_origin(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value undefined])
+
+#testcase DistOriginPointSeqEmpty1
+#yields (real undefined)
+query dist_origin(
+  [const pointseq value ()],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistOriginPointSeqEmpty2
+#yields (real undefined)
+query dist_origin(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ()])
+
+
+### dist_origin : tpointseq x tpointseq [x geoid] -> real
+
+#testcase DistOriginTPointSeq
+#yields (real 1.86)
+query dist_origin(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistOriginTPointSeqEqual
+#yields (real 0.0)
+query dist_origin(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))])
+
+#testcase DistOriginTPointSeqGeoid
+#yields (real 206000.0)
+query dist_origin(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))],
+  create_geoid("WGS1984"))
+
+#testcase DistOriginTPointSeqUndefined1
+#yields (real undefined)
+query dist_origin(
+  [const tpointseq value undefined],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistOriginTPointSeqUndefined2
+#yields (real undefined)
+query dist_origin(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value undefined])
+
+#testcase DistOriginTPointSeqEmpty1
+#yields (real undefined)
+query dist_origin(
+  [const tpointseq value ()],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistOriginTPointSeqEmpty2
+#yields (real undefined)
+query dist_origin(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value ()])
+
+
+
+###
+### Test operator 'dist_destination'.
+###
+
+### Bad parameters
+
+#testcase DistDestinationParams0
+#yields error
+query dist_destination()
+
+#testcase DistDestinationParams1
+#yields error
+query dist_destination([const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase DistDestinationParams3
+#yields error
+query dist_destination(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+
+### dist_destination : pointseq x pointseq [x geoid] -> real
+
+#tolerance_real %0.1
+
+#testcase DistDestinationPointSeq
+#yields (real 4.06)
+query dist_destination(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistDestinationPointSeqEqual
+#yields (real 0.0)
+query dist_destination(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistDestinationPointSeqGeoid
+#yields (real 449500.0)
+query dist_destination(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  create_geoid("WGS1984"))
+
+#testcase DistDestinationPointSeqUndefined1
+#yields (real undefined)
+query dist_destination(
+  [const pointseq value undefined],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistDestinationPointSeqUndefined2
+#yields (real undefined)
+query dist_destination(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value undefined])
+
+#testcase DistDestinationPointSeqEmpty1
+#yields (real undefined)
+query dist_destination(
+  [const pointseq value ()],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistDestinationPointSeqEmpty2
+#yields (real undefined)
+query dist_destination(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ()])
+
+
+### dist_destination : tpointseq x tpointseq [x geoid] -> real
+
+#testcase DistDestinationTPointSeq
+#yields (real 4.06)
+query dist_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistDestinationTPointSeqEqual
+#yields (real 0.0)
+query dist_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))])
+
+#testcase DistDestinationTPointSeqGeoid
+#yields (real 449500.0)
+query dist_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))],
+  create_geoid("WGS1984"))
+
+#testcase DistDestinationTPointSeqUndefined1
+#yields (real undefined)
+query dist_destination(
+  [const tpointseq value undefined],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistDestinationTPointSeqUndefined2
+#yields (real undefined)
+query dist_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value undefined])
+
+#testcase DistDestinationTPointSeqEmpty1
+#yields (real undefined)
+query dist_destination(
+  [const tpointseq value ()],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistDestinationTPointSeqEmpty2
+#yields (real undefined)
+query dist_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value ()])
+
+
+
+###
+### Test operator 'dist_origin_and_destination'.
+###
+
+### Bad parameters
+
+#testcase DistOriginAndDestinationParams0
+#yields error
+query dist_origin_and_destination()
+
+#testcase DistOriginAndDestinationParams1
+#yields error
+query dist_origin_and_destination([const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase DistOriginAndDestinationParams3
+#yields error
+query dist_origin_and_destination(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+
+### dist_origin_and_destination : pointseq x pointseq [x geoid] -> real
+
+#tolerance_real %0.1
+
+#testcase DistOriginAndDestinationPointSeq
+#yields (real 2.96)
+query dist_origin_and_destination(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistOriginAndDestinationPointSeqEqual
+#yields (real 0.0)
+query dist_origin_and_destination(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistOriginAndDestinationPointSeqGeoid
+#yields (real 327700.0)
+query dist_origin_and_destination(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  create_geoid("WGS1984"))
+
+#testcase DistOriginAndDestinationPointSeqUndefined1
+#yields (real undefined)
+query dist_origin_and_destination(
+  [const pointseq value undefined],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistOriginAndDestinationPointSeqUndefined2
+#yields (real undefined)
+query dist_origin_and_destination(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value undefined])
+
+#testcase DistOriginAndDestinationPointSeqEmpty1
+#yields (real undefined)
+query dist_origin_and_destination(
+  [const pointseq value ()],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistOriginAndDestinationPointSeqEmpty2
+#yields (real undefined)
+query dist_origin_and_destination(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ()])
+
+
+### dist_origin_and_destination : tpointseq x tpointseq [x geoid] -> real
+
+#testcase DistOriginAndDestinationTPointSeq
+#yields (real 2.96)
+query dist_origin_and_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistOriginAndDestinationTPointSeqEqual
+#yields (real 0.0)
+query dist_origin_and_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))])
+
+#testcase DistOriginAndDestinationTPointSeqGeoid
+#yields (real 327700.0)
+query dist_origin_and_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))],
+  create_geoid("WGS1984"))
+
+#testcase DistOriginAndDestinationTPointSeqUndefined1
+#yields (real undefined)
+query dist_origin_and_destination(
+  [const tpointseq value undefined],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistOriginAndDestinationTPointSeqUndefined2
+#yields (real undefined)
+query dist_origin_and_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value undefined])
+
+#testcase DistOriginAndDestinationTPointSeqEmpty1
+#yields (real undefined)
+query dist_origin_and_destination(
+  [const tpointseq value ()],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistOriginAndDestinationTPointSeqEmpty2
+#yields (real undefined)
+query dist_origin_and_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value ()])
+
+
+
+
 #teardown
 
 close database;

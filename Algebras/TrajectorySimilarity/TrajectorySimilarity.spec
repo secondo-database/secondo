@@ -22,3 +22,7 @@ operator no_components alias NO_COMPONENTS pattern op(_)
 operator to_dline alias TO_DLINE pattern op(_)
 operator to_pointseq alias TO_POINTSEQ pattern op(_)
 operator to_tpointseq alias TO_TPOINTSEQ pattern op(_)
+
+operator dist_origin alias DIST_ORIGIN pattern op(_, _)
+operator dist_destination alias DIST_DESTINATION pattern op(_, _)
+operator dist_origin_and_destination alias DIST_DESTINATION pattern op(_, _)

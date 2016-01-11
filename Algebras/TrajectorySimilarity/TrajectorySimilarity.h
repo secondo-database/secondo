@@ -75,6 +75,8 @@ keep the interdependencies of the files low.
   void addToDLineOp();
   void addToPointSeqOp();
   void addToTPointSeqOp();
+
+  void addEndPointDistOp();
 };
 
 } //-- namespace tsa
