@@ -1,43 +1,42 @@
 /*
- ---- 
- This file is part of SECONDO.
- 
- Copyright (C) 2004, University in Hagen, Department of Computer Science,
- Database Systems for New Applications.
- 
- SECONDO is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 2 of the License, or
- (at your option) any later version.
- 
- SECONDO is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with SECONDO; if not, write to the Free Software
- Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- ----
- 
- //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
- //[TOC] [\tableofcontents]
- //[_] [\_]
- 
- [1] Implementation of the Spatial Algebra
- 
- Jun 2015, Daniel Fuchs 
- 
- [TOC]
- 
- 1 Overview
- 
- 
- This file contains the implementation of the class dbDacScanAlgebra
- 
- 2 Includes
- 
-*/
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [10] Footnote: [{\footnote{] [}}]
+//[TOC] [\tableofcontents]
+
+[1] Implementation of Class Cluster
+
+August-February 2015, Daniel Fuchs 
+
+[TOC]
+
+1 Overview
+
+This file contains the implementation of the class Cluster.
+
+1.1 Includes
+
+*/ 
 
 #ifndef CLUSTER_H_
 #define CLUSTER_H_
@@ -54,10 +53,23 @@
 
 namespace distributedClustering{
   
+/*
+2 ~enum Kind~
 
+Specify the clustertype.
+
+*/
 enum Kind {NOISE,CLUSTERCAND, CLUSTER , LEFT, 
   RIGHT, BOTH,CLCANDCLUSTERS, UNDEF};
 
+
+/*
+3 ~ccMelting~
+
+Is a struct to define the index type for storing cluster lists 
+which are to melt.
+
+*/
 template <class MEMB_TYP_CLASS>
 struct ccMelting {
   unsigned int clusterIndex;
@@ -67,8 +79,11 @@ struct ccMelting {
 };
 
 /*
-class Cluster
-this class represents a list of clusters.
+4 ~Class Cluster~
+
+This class represents a set of lists and vector lists to 
+store cluster with noise. Also it provides methods to 
+melt such objects of type Cluster.
 
 */
 
@@ -79,7 +94,7 @@ class Cluster
 private:
 
 /*
-Members
+4.1 ~members~
 
 */
   enum MinMaxKind {LEFTMM, RIGHTMM, BOTHMM, GLOBAL, CLCANDCLMM};
@@ -134,7 +149,10 @@ Members
 public:
 
 /*
-constructor
+4.2 ~constructor~
+
+constructor for creating a Cluster object and for 
+melting two objects of type Cluster.
 
 */
   Cluster( MEMB_TYP_CLASS* leftMember, double _eps, int _minPts);
@@ -142,10 +160,11 @@ constructor
 
 
 /*
-meltClusters
-melt this Cluster with the right cluster
+4.2 ~meltClusters~
+
+Melt this Cluster with the right cluster
 medianPoint and rightMedPoint are the two outer
-Points which represent the splitline
+Points which represent the splitline.
 
 */
   void meltClusters(Cluster * rightCluster,
@@ -155,8 +174,9 @@ Points which represent the splitline
 
 
 /*
-getVectorSize
-returns the quantity of Clsuters
+4.3 ~getVectorSize~
+
+Returns the quantity of Clsuters.
 
 */
   unsigned int getVectorSize(Kind kind){
@@ -178,7 +198,7 @@ returns the quantity of Clsuters
   }
 
 /*
-getClusterVector
+4.4 ~getClusterVector~
 
 */
   std::vector<std::list<MEMB_TYP_CLASS*> >& getClusterVector(Kind kind){
@@ -206,7 +226,7 @@ getClusterVector
 private: 
 
 /*
-getRightOuterPoint
+4.5 ~getRightOuterPoint~
 
 */
   TYPE* getRightOuterPoint()
@@ -215,9 +235,9 @@ getRightOuterPoint
   }
 
 /*
-getListLength
+4.6 ~getListLength~
 
-return the list length from position i
+Return the list length from position i.
 
 */
   unsigned int getListLength( std::pair<unsigned int,Kind>& index){
@@ -247,9 +267,10 @@ return the list length from position i
   }
 
 /*
-updateMinMaxVal
+4.7 ~updateMinMaxVal~
 
-compare new point with the value in the pair
+Compare given point with the value in the pair and update
+the min max vector for y direction.
 
 */
   void updateMinMaxVal(Kind kind, int listNo, MEMB_TYP_CLASS *member )
@@ -300,8 +321,10 @@ compare new point with the value in the pair
 
 
 /*
-  getNewMinMaxForClusterList
-  return a new MinMax Pair  and set MinMax from destination to standardVals
+4.8  ~getNewMinMaxForClusterList~
+  
+Return a new MinMax Pair  
+and set MinMax from destination to standard values.
   
 */
   std::pair <double,double> 
@@ -318,9 +341,9 @@ compare new point with the value in the pair
 
   
 /*
-findNextMinList
+4.9 ~findNextMinList~
 
-returns the nex minimum element from a list
+Find the next minimum point in y direction in the clusterlists.
 
 */
   bool findNextMinList(int& leftIndex, Kind& leftKind,
@@ -331,18 +354,14 @@ returns the nex minimum element from a list
                        bool calcRightMin, int& rightCnt,
                        Cluster* rightCluster);
   
-/*
-findNextMinList
 
-find the next List in Y direction from a given minimum point
-if no min found return -1
-  
-*/
   void findNextMinList(int& retIndex, Kind& retKind,
                        double actualMinima, bool rightCluster);
   
 /*
-  getIndexOfFindNextMinList
+4.10  ~getIndexOfFindNextMinList~
+
+Return the index value for the next minimum in y direction.
   
 */
   int getIndexOfFindNextMinList(double actualMinima, Kind kind)
@@ -362,10 +381,10 @@ if no min found return -1
   }
 
 /*
-  findNextMinListOfClCand
-   
-   returns the next minimum clustercand
-   
+4.11 findNextMinListOfClCand
+
+Returns the next minimum clustercand in y direction.
+
 */
 
   bool findNextMinListOfClCand(std::vector<std::pair <double,double> >&
@@ -379,7 +398,7 @@ if no min found return -1
 
 
 /*
-getYMinfromCluster
+4.12 ~getYMinfromCluster~
 
 return the min Y value from the appropriate cluster list
 
@@ -410,10 +429,9 @@ return the min Y value from the appropriate cluster list
   }
 
 /*
+4.13 ~getYMinfromCluster~
 
-getYMinfromCluster
-
-return the min Y value from the appropriate cluster list
+Return the min Y value from the appropriate cluster list.
 
 */
   double getYMaxfromCluster(Kind kind, int i)
@@ -438,7 +456,9 @@ return the min Y value from the appropriate cluster list
   }
 
 /*
-setNewMin
+4.14 ~setNewMin~
+
+Set new min value for list with given index.
 
 */
   void setNewYMin(Kind kind, int i, double val)
@@ -466,7 +486,9 @@ setNewMin
   }
 
 /*
-setNewMax
+4.15 ~setNewMax~
+
+Set new max value for list with given index.
 
 */
   void setNewYMax(Kind kind, int i, double val)
@@ -494,9 +516,9 @@ setNewMax
 
 
 /*
-pushMemberToClusterList
+4.16 ~pushMemberToClusterList~
 
-pushes a Member to list from a cluster-Vector
+Get minimum maximum value for given index.
 
 */
   std::pair <double,double>&
@@ -534,6 +556,12 @@ pushes a Member to list from a cluster-Vector
     return emptyMinMaxY.at(0);
   }
 
+/*
+4.17 ~getMinMaxSize~
+
+Get vector size from min max values for given cluster type.
+
+*/
   unsigned int getMinMaxSize(Kind kind)
   {
     switch (kind)
@@ -557,7 +585,7 @@ pushes a Member to list from a cluster-Vector
   }
   
 /*
-getMinMaxFromCluster
+4.18 ~getMinMaxVector~
 
 */
   std::vector<std::pair <double,double> >&
@@ -586,8 +614,9 @@ getMinMaxFromCluster
 
 
 /*
-  getList
-  return the clusterList on position i
+ 4.18 ~getList~
+ 
+Return the clusterList on position i.
 
 */
   std::list<MEMB_TYP_CLASS*> &getList(std::pair<unsigned int,Kind>& list){
@@ -616,8 +645,9 @@ getMinMaxFromCluster
   }
 
 /*
-insertElement
-insert a member at given position i
+4.19 ~insertElement~
+
+Insert a member at given position i.
 
 */
   void insertElement(typename std::list<MEMB_TYP_CLASS*>::iterator it,
@@ -651,6 +681,12 @@ insert a member at given position i
     }
   }
 
+/*
+4.19 ~insertList~
+
+Insert a list at given cluster type.
+
+*/
   void insertList(
         typename std::vector<std::list<MEMB_TYP_CLASS*> >::iterator it,
         std::list<MEMB_TYP_CLASS*>& list,Kind kind)
@@ -706,7 +742,9 @@ insert a member at given position i
 
 
 /*
-insertMinMax
+4.20 ~insertMinMax~
+
+Insert min and max value pair to vector.
 
 */
    void insertMinMax(
@@ -736,10 +774,7 @@ insertMinMax
      }
    }
 
-/*
-insertMinMax
 
-*/
    void insertMinMax(int i,
                      std::pair<double,double>& list,Kind kind)
    {
@@ -767,9 +802,10 @@ insertMinMax
    }
 
 /*
-getIterator
-returns an iterator from a clusterlist or 
-noiselist either at the beginning or at end
+4.21 ~getIterator~
+
+Returns an iterator from a clusterlist or 
+noiselist either at the beginning or at end.
 
 */
    typename std::list<MEMB_TYP_CLASS*>::iterator 
@@ -826,8 +862,9 @@ noiselist either at the beginning or at end
    }
 
 /*
- eraseItem
- delete an member item either at the beginning or at end
+4.22 ~eraseItem~
+
+Delete an member item either at the beginning or at end.
 
 */
    typename std::list<MEMB_TYP_CLASS*>::
@@ -860,7 +897,9 @@ noiselist either at the beginning or at end
 
 
 /*
-eraseList
+4.23 ~eraseList~
+
+Delete a list on given position from given cluster type.
 
 */
    void eraseList(Kind kind, unsigned int list)
@@ -890,7 +929,9 @@ eraseList
    }
 
 /*
-eraseMinMax
+4.24 ~eraseMinMax~
+
+Erase list from vector.
 
 */
    void eraseMinMax(Kind kind, unsigned int list)
@@ -919,7 +960,9 @@ eraseMinMax
    }
 
 /*
-clearList
+4.25 ~clearList~
+
+Empty list from given index.
 
 */
    void clearList(Kind kind, unsigned int list)
@@ -952,16 +995,18 @@ clearList
    }
 
 /*
-pushMemberToClusterList
+4.26 ~pushMemberToClusterList~
 
-push a committed member at the end or beginning of a given clusterlist
+Push a committed member at the end or beginning of a given clusterlist.
 
 */
    void pushMemberToClusterList(bool front,MEMB_TYP_CLASS *member,
                                 int list, Kind kind);
 
 /*
-pushListToCluster
+4.27 ~pushListToCluster~
+
+Insert given list to cluster vector of given cluster type.
 
 */
    void pushListToCluster(Kind kind,std::list<MEMB_TYP_CLASS *>& list)
@@ -993,8 +1038,10 @@ pushListToCluster
    }
 
 /*
-pushListToCluster
+ 4.28 ~pushMinMaxToCluster~
 
+ Insert given min max values to  vector of given cluster type.
+ 
 */
    void pushMinMaxToCluster(Kind kind,std::pair<double,double>& list)
    {
@@ -1025,11 +1072,11 @@ pushListToCluster
    }
 
 /*
-moveItemUnsorted
+4.29 ~moveItemUnsorted~
 
-moves item unsorted from srclist to destlist mostly 
+Moves item unsorted from srclist to destlist mostly 
 used for noise and clustercand list
-returns the Iterator from list where item was deleted
+returns the Iterator from list where item was deleted.
 
 */
    typename std::list<MEMB_TYP_CLASS*>::iterator
@@ -1045,7 +1092,8 @@ returns the Iterator from list where item was deleted
    }
 
 /*
-moveItemSorted
+4.30 ~moveItemSorted~
+
 moves item sorted from eraselist to pushlist list
 
 */
@@ -1098,8 +1146,9 @@ moves item sorted from eraselist to pushlist list
 
 /*
 
-moveNeighborsToDestList
-verschiebt alle moeglichen Nachbarn eines Members in die Zielliste
+4.31 ~moveNeighborsToDestList~
+
+Moves all neigbors from member to destination list of given index.
 
 */
    void moveNeighborsToDestList(Cluster* rightClsuter,
@@ -1150,7 +1199,8 @@ verschiebt alle moeglichen Nachbarn eines Members in die Zielliste
 
 
 /*
-moveClusterList
+4.32 ~moveClusterList~
+
 move a list from origIndex to destIndex
 only usable for left lists
 
@@ -1212,7 +1262,8 @@ only usable for left lists
    }
 
 /*
-findClusterCands
+4.33 ~findClusterCands~
+
 with given clusterList - search more clusterCands
 returns true if more clustercands are added
 member werden von clusterCandList  zu foundMembList hinzugefuegt
@@ -1290,8 +1341,9 @@ member werden von clusterCandList  zu foundMembList hinzugefuegt
    }
 
 /*
-meltClusterLists
-melt lists of Cluster at one side Cluster. So all  list 
+4.34 ~meltClusterLists~
+
+Melt lists of Cluster at one side Cluster. So all  list 
 which are stored in the meltingSideArray Index where melted.
 
 */
@@ -1330,8 +1382,9 @@ which are stored in the meltingSideArray Index where melted.
    }
 
 /*
+4.35 ~meltListsAndIndexOfCluster~
 
-meltListsAndIndexOfCluster
+Melt given cluster list and they respective indexes.
 
 */
    void meltListsAndIndexOfCluster(Cluster* meltingCluster,
@@ -1367,8 +1420,7 @@ meltListsAndIndexOfCluster
    }
 
 /*
-
-initIndicies
+4.36 ~initIndicies~
 
 initialice newIndicies Left and Right with respectivly the first entry of
 clusterToMelt indicies
@@ -1398,9 +1450,9 @@ void initIndicies( std::vector<std::pair<unsigned int,Kind> >& newIndices,
    }
 
 /*
+4.37 ~meltIndexOfCluster~
 
-meltIndexOfCluster
-melt the given clusterindexes
+Melt the given clusterindexes.
 
 */
    void meltIndexOfCluster(
@@ -1408,7 +1460,7 @@ melt the given clusterindexes
           std::vector<std::pair<unsigned int,Kind> > &sourceIndList);
 
 /*
-meltListsOfCluster
+4.38 ~meltListsOfCluster~
 
 melt two list of a cluster
 
@@ -1425,7 +1477,9 @@ melt two list of a cluster
                                   std::pair <double,double>& minMaxList);
 
 /*
-findClListToMeltWithClustCandList
+4.39 ~findClListToMeltWithClustCandList~
+
+Find cluster lists which can melt with cluster candidates list.
 
 */
    void findClListToMeltWithClustCandList(Cluster * rightCluster,
@@ -1478,9 +1532,10 @@ findClListToMeltWithClustCandList
    }
 
 /*
- meltClusterCandListWithClusterList
+4.40 ~meltClusterCandListWithClusterList~
+
 first find the index to melt the given 
-clusterList which is stored in clCaMeltInd
+clusterList which is stored in clCaMeltInd then
 melt the lists
 
 */
@@ -1512,8 +1567,7 @@ melt the lists
 
 
 /*
-
-meltClsuterCandWithClusterList
+4.41 ~meltClsuterCandWithClusterList~
 
 melt foundet reachabel clusterCands with cluster lists
 
@@ -1587,7 +1641,10 @@ melt foundet reachabel clusterCands with cluster lists
 
 
 /*
-findListToMeltWithClusterCand
+4.42 ~findListToMeltWithClusterCand~
+
+Retunrns the index from found cluster list
+to melt with clustercand.
 
 */
    int
@@ -1613,7 +1670,8 @@ findListToMeltWithClusterCand
    }
 
 /*
-getCorrectListIndex
+4.43 ~getCorrectListIndex~
+
  auxilary function to get corect Index regarding BothDist
 
 */
@@ -1627,8 +1685,9 @@ getCorrectListIndex
    }
 
 /*
-findLastIndex
-finds the last Index in newIndices
+4.44 ~findLastIndex~
+
+Finds the last Index in newIndices.
 preconditions: clusterList must be initialized
 
 */
@@ -1667,9 +1726,10 @@ preconditions: clusterList must be initialized
    }
 
 /*
-updateClusterToMelt
-used for clustercands
-melt all cluster list which are not melted yet
+4.45 ~updateClusterToMelt~
+
+Used for clustercands.
+Melt all cluster list which are not melted yet.
 
 */
    void updateMeltedCluster(Cluster * rightCluster,
@@ -1723,8 +1783,9 @@ melt all cluster list which are not melted yet
    }
 
 /*
-memberHasSameLastIndex
-compare a clusterCand member list if the indexes have the same
+4.46 ~memberHasSameLastIndex~
+
+Compare a clusterCand member list if the indexes have the same
 last index. If the result is true then the lists are melted
 
 */
@@ -1798,9 +1859,10 @@ last index. If the result is true then the lists are melted
    }
 
 /*
-compareLeftWithRightList
-compare two committed list if there are member who can merge together.
-if isNewClusterCand is true the a new list is created 
+4.47 ~compareLeftWithRightList~
+
+Compare two committed list if there are member who can merge together.
+If isNewClusterCand is true the a new list is created 
   - mostly when search Cluster Candidates
   
 */
@@ -1818,7 +1880,10 @@ if isNewClusterCand is true the a new list is created
 
 /*
 
-testClusterCandListsOnClusters
+4.48 ~testClusterCandListsOnClusters~
+
+Compare clustercand list with clusterlist and store clustercands
+in correct clusterlist.
 
 */
    void testClusterCandListsOnClusters(Cluster* rightCluster,
@@ -1863,10 +1928,10 @@ testClusterCandListsOnClusters
 
 
 /*
+4.49 ~compareClusterCandsWithoppositeList~
 
-compareClusterCandsWithoppositeList
-vergleicht die clusterCand liste mit der gegenueberliegenden liste
-speichert indexe in der uebergebenen indexvector
+Compare clustercand list with given clusterlist and save 
+indexes if the lists could be melt.
 
 */
    void compareClusterCandsWithOppositeList(TYPE* leftInnerPoint,
@@ -1902,7 +1967,8 @@ speichert indexe in der uebergebenen indexvector
    }
 
 /*
-insertIndexToClusterCandToMelt
+4.50 ~insertIndexToClusterCandToMelt~
+
 similar to insertIndexToClusterToMelt
 
 */
@@ -1933,10 +1999,10 @@ similar to insertIndexToClusterToMelt
 
 
 /*
+4.51 ~compareMemberWithList~
 
-compareMemberWithList
-similar to compareLeftWithRightList
-compare points with lists and return true if neighbor is in epsNeighborhood
+Similar to compareLeftWithRightList.
+Compare points with lists and return true if neighbor is in epsNeighborhood
 
 */
    bool compareMemberWithList(TYPE* leftInnerPoint,
@@ -1971,7 +2037,8 @@ compare points with lists and return true if neighbor is in epsNeighborhood
    }
 
 /*
-initIteratorOfList
+4.52 ~initIteratorOfList~
+
 initializes an iterator for a given list
 
 */
@@ -2005,7 +2072,8 @@ initializes an iterator for a given list
    }
 
 /*
-updateIterator
+4.53 ~updateIterator~
+
 updates a given Iterator
 
 */
@@ -2042,13 +2110,10 @@ updates a given Iterator
    }
    
 /*
-compareSrcListFromItWithRightList
+4.54 ~compareSrcListFromItWithRightList~
 
-durchsucht 2 listen - zielliste mit uebergebenen zieliterator und
-eine quellliste
-falls zwei punkte mit Abstand <= eps gefunden wird -> wird der Iterator
-datauf zurueckgegeben
-ansonsten wird der QuellIterator zurueckgegeben
+Compare two list together. If distance of two points is 
+less then EPS then returns iterator of destination  point.
 
 */
    typename std::list<MEMB_TYP_CLASS*>::iterator
@@ -2112,6 +2177,13 @@ ansonsten wird der QuellIterator zurueckgegeben
      return _destIt;
    }
 
+/*
+4.54 ~compareSrcListFromItWithRightList~
+
+Compare two list together. If distance of two points is 
+less then EPS then returns iterator of destination  point.
+
+*/ 
    typename std::list<MEMB_TYP_CLASS*>::iterator
    compareSrcListFromItWithLEFTList(TYPE* leftInnerPoint,
                      TYPE* rightInnerPoint,
@@ -2178,8 +2250,9 @@ ansonsten wird der QuellIterator zurueckgegeben
 
 
 /*
-concatPointsfromList
-concat the two points from iterators 
+4.55 ~concatPointsfromList~
+
+Concat the two points from iterators 
 - rummage eps neighborhood for appropriate members
 
 */
@@ -2197,7 +2270,8 @@ concat the two points from iterators
 
 
 /*
-addListToCorrectClusterType
+4.56 ~addListToCorrectClusterType~
+
 finds out correct cluster type an push it to  correct cluster vector
 
 */
@@ -2208,9 +2282,9 @@ finds out correct cluster type an push it to  correct cluster vector
                                     bool checkReachability);
 
 /*
+4.57 ~defineDestIndexPair~
 
-defineDestIndexPair
-define the new index for two concated clusterLists
+Define the new index for two concated clusterLists.
 if retKind is different from leftKind then return false
   
 */
@@ -2265,9 +2339,9 @@ if retKind is different from leftKind then return false
    }
 
 /*
+4.58 ~findNextEmptyList~
 
-findNextEmptyList
-find the next empty list in cluster vector
+Find the next empty list in cluster vector.
 if no list is empty retIndex==VectorSize
   
 */
@@ -2293,9 +2367,9 @@ if no list is empty retIndex==VectorSize
 
 
 /*
+4.59 ~searchAndDeletItemFromList~
 
-searchAndDeletItemFromList
-search an item in given list and delete it
+Search an item in given list and delete it.
 
 */
    typename std::list<MEMB_TYP_CLASS*>::iterator
@@ -2343,8 +2417,9 @@ search an item in given list and delete it
 
 
 /*
+4.60 ~updateNeighbor~
 
-updateNeighbor
+update neighborhood of given point and list.
 
 */
    void updateNeighborLeftPointToRightList(MEMB_TYP_CLASS* point, 
@@ -2385,6 +2460,12 @@ updateNeighbor
      }
    }
 
+/*
+4.61 ~updateNeighbor~
+
+update neighborhood of  point in given lists.
+
+*/
    void updateNeighborRightListToLeftList(std::list<MEMB_TYP_CLASS*>& leftList,
                                           std::list<MEMB_TYP_CLASS*>& rightList,
                                           bool leftListSorted,
@@ -2460,7 +2541,12 @@ updateNeighbor
        }
      return retVal;
    }
+/*
+4.62 ~updateNeighbor~
 
+update neighborhood of given points.
+
+*/
    void updateNeighbor(MEMB_TYP_CLASS * leftMemb, MEMB_TYP_CLASS *rightMemb,
                        std::list<MEMB_TYP_CLASS*>& neighborList);
 
@@ -2471,17 +2557,19 @@ updateNeighbor
    }
 
 /*
-isMembInList
-when point is in list -> return true
+4.63 ~isMembInList~
+
+When point is in list -> return true.
 
 */
    bool isMembInList(MEMB_TYP_CLASS *memb, std::list<MEMB_TYP_CLASS*>& list);
 
 
 /*
-testReachabilityAndSetClusterNoAtEachPoint
-test each point if it is density reachable
-update clusterNo and Type
+4.64 ~testReachabilityAndSetClusterNoAtEachPoint~
+
+Test each point if it is density reachable,
+update clusterNo and Type.
 
 */
    bool testReachabilityAndSetClusterNoAtEachPoint(TYPE* leftOuterPoint,
@@ -2526,6 +2614,13 @@ update clusterNo and Type
      return allDensReachable;
    }
 
+/*
+4.65 ~moveItemToClusterCandOrNoise~
+
+Find out if item is noise or clustercand. Then move item
+to correct list.
+
+*/
 
    bool moveItemToClusterCandOrNoise(TYPE* leftOuterPoint, 
                                      TYPE* rightOuterPoint,
@@ -2600,9 +2695,10 @@ update clusterNo and Type
    }
 
 /*
-inserElementSorted
-sort the elements from two lists in a new return list
-delete elements from sourceList
+4.66 ~inserElementSorted~
+
+Sort the elements from two lists in a new return list and
+delete elements from sourceList.
 
 */
    void sortElemtsFromListsInNewList(std::list<MEMB_TYP_CLASS*>& sourceList,
@@ -2654,9 +2750,9 @@ delete elements from sourceList
    }
 
 /*
-sortRightListToLeftList
+4.67 ~sortRightListToLeftList~
 
-sorts a given source list in a given destination list
+Sorts a given source list in a given destination list
 after this method the destinationList is empty.
 
 */
@@ -2733,8 +2829,9 @@ after this method the destinationList is empty.
    }
 
 /*
-updateClusterNoAndTypeInList
-update for each item in destList ClusterNo and ClusterType
+4.68 ~updateClusterNoAndTypeInList~
+
+Update for each item in destList ClusterNo and ClusterType.
 
 */
    void updateClusterNoAndTypeInList(std::list<MEMB_TYP_CLASS*>& destList,
@@ -2760,7 +2857,7 @@ update for each item in destList ClusterNo and ClusterType
    }
 
 /*
-copyRightClusterListToLeftCluster
+4.69 ~copyRightClusterListToLeftCluster~
 
 copy the untouched right Cluster lists to left Cluster
 
@@ -2783,7 +2880,10 @@ copy the untouched right Cluster lists to left Cluster
    }
 
 /*
- insertIndexToClusterToMelt
+4.70 ~insertIndexToClusterToMelt~
+
+If cluster to melt found, this mehthod insert the correct index
+to clusterCandToMelt indexes.
  
 */
    void insertIndexToClusterToMelt(int minIndex,
@@ -2806,7 +2906,9 @@ copy the untouched right Cluster lists to left Cluster
 
 
 /*
- insert val in index vector -> look up for doubles
+4.71 ~insertInMinToMaxIndex~
+
+insert val in index vector -> look up for doubles
  
 */
    void insertInMinToMaxIndex(std::vector<unsigned int >& minToMaxIndexes,
@@ -2820,7 +2922,9 @@ copy the untouched right Cluster lists to left Cluster
 
 
 /*
- deleteEmptyLists
+4.72 ~deleteEmptyLists~
+
+find empty lists and delete them
  
 */
    void deleteEmptyLists(Kind kind)
@@ -2884,7 +2988,8 @@ copy the untouched right Cluster lists to left Cluster
 
 
 /*
-pointIsInOuterBorders
+4.73 ~pointIsInOuterBorders~
+
 check if a point is within right or left outer boreder
 
 */
@@ -2895,6 +3000,12 @@ check if a point is within right or left outer boreder
          (*it)->calcXDistanz(rightOuterPoint) <= eps;
    }
 
+/*
+4.74 ~listIsInYBordersOfList~
+
+checks if a list is in y borders of other lsit
+   
+*/
    bool listIsInYBordersOfList(Cluster* srcCluster,
                                int srcListNo, Kind srcKind,
                                Cluster* destCluster,
@@ -2916,12 +3027,17 @@ check if a point is within right or left outer boreder
              border.second,destCluster,destListNo,destKind));
    }
 
+/*
+ 4.75 ~memberIsInYBordersOfList~
+
+checks if a member is in y borders of other lsit
+   
+*/
    bool memberIsInYBordersOfList(MEMB_TYP_CLASS* memb, Cluster* cluster,
                                  int listNo, Kind kind)
    {
      return valIsInYBordersOfList(memb->getYVal(),cluster,listNo,kind);
    }
-
 
 
    bool valIsInYBordersOfList(double val, Cluster* cluster,
@@ -2941,6 +3057,12 @@ check if a point is within right or left outer boreder
      return false;
    }
 
+/*
+ 4.76 ~deleteVector~
+
+delete vectror of  index
+   
+*/   
    void deleteVector(std::vector<std::pair<unsigned int,
                      Kind> >* vecAr, unsigned int size )
    {
@@ -2957,6 +3079,12 @@ check if a point is within right or left outer boreder
      //         delete[] vecAr;
    }
 
+/*
+4.77 ~getClusterType~
+
+return numerical value of cluster type
+
+*/
    int getClusterType(Kind kind){
      switch (kind){
        case NOISE:
@@ -2979,6 +3107,12 @@ check if a point is within right or left outer boreder
      return -3;
    }
 
+/*
+4.78 ~getClusterType~
+
+return cluster type from numerical value
+
+*/
    Kind getClusterKindFromType(int clusterType){
      switch (clusterType){
        case NOISE_CL_NO:
@@ -3001,9 +3135,10 @@ check if a point is within right or left outer boreder
      return UNDEF;
    }
    
-/*
 
-calcClusterNo
+/*
+7.79 ~calcClusterNo~
+
 calculates a unique identifier based on the cantor pairing function
 
 */
