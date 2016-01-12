@@ -125,8 +125,8 @@ This constructor is for execute the DBDACSCAN algorithm.
       }
       initOutput(); 
       }else{
-        cout << "NeighborRelaiton not created!" << endl;
-        cout << "Filename: " << outNFileName << endl;
+        std::cout << "NeighborRelaiton not created!" << std::endl;
+        std::cout << "Filename: " << outNFileName << std::endl;
         relNameFound = false;
       }
     }
@@ -164,7 +164,7 @@ This constructor is for execute the Melt CLUSTERS algorithm.
         ,errMsg,membArrayPtr, membArrayUntouched
         ,buffer, geoPos,xPicRefPos,DISTMERGE ,clIdPos,clTypePos))
       {
-        cout << "read left File failed: " << errMsg << endl;
+        std::cout << "read left File failed: " << errMsg << std::endl;
         readFileCorrect = false;
       }  
       
@@ -172,7 +172,7 @@ This constructor is for execute the Melt CLUSTERS algorithm.
         ,errMsg,membArrayPtr, membArrayUntouched
         ,buffer, geoPos,xPicRefPos,NEIGHBOR,clIdPos,clTypePos))
       {
-        cout << "read left Neighbor File failed: " << errMsg << endl;
+        std::cout << "read left Neighbor File failed: " << errMsg << std::endl;
         readFileCorrect = false;
       } 
 
@@ -182,7 +182,7 @@ This constructor is for execute the Melt CLUSTERS algorithm.
         ,buffer, geoPos,xPicRefPos,DISTMERGE,clIdPos,clTypePos
         ,membArrayPtr.size()))
       {
-        cout << "read right File failed: " << errMsg << endl;
+        std::cout << "read right File failed: " << errMsg << std::endl;
         readSecFileCorrect = false;
       } 
       if (!readFile<TYPE,MEMB_TYP_CLASS>( _rightNFN, _tupleResultType
@@ -190,7 +190,7 @@ This constructor is for execute the Melt CLUSTERS algorithm.
         ,buffer, geoPos,xPicRefPos,NEIGHBOR,clIdPos,clTypePos
         ,membArrayPtr.size()))
       {
-        cout << "read right Neighbor File failed: " << errMsg << endl;
+        std::cout << "read right Neighbor File failed: " << errMsg << std::endl;
         readSecFileCorrect = false;
       }
       
@@ -239,9 +239,9 @@ This constructor is for execute the Melt CLUSTERS algorithm.
         }
         initOutput(); 
       }else{
-        cout << "Files not created!" << endl;
-        cout << "RelFilename: " << outRelFileName <<
-        "RelNFileName: " << outNFileName << endl;
+        std::cout << "Files not created!" << std::endl;
+        std::cout << "RelFilename: " << outRelFileName <<
+        "RelNFileName: " << outNFileName << std::endl;
         relNameFound = false;
       }
     }
@@ -419,7 +419,7 @@ write tuples to file
       if(meltTwoClusters){
       //write RelFile
       if(!writeNextTuple(outRel,resTuple)){
-        cerr << "Problem in writing tuple" << endl;
+        cerr << "Problem in writing tuple" << std::endl;
       }
       }
       //write NRelFile
@@ -446,7 +446,7 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
         neighborTuple->PutAttribute(0, new LongInt(true,member->getTupleId())); 
         neighborTuple->PutAttribute(1, new LongInt(true,(*nIt)->getTupleId())); 
         if(!writeNextTuple(outNRel,neighborTuple)){
-          cerr << "Problem in writing tuple" << endl;
+          cerr << "Problem in writing tuple" << std::endl;
         }
         
         nIt++;
@@ -563,7 +563,7 @@ bool createOutputFiles(ListExpr& _relFt, bool both=true)
         //create output relation file
         if(!writeHeader(outRel,outRelFileName,relTypeInfo,errMsg))
         {
-          cerr << errMsg << endl;
+          cerr << errMsg << std::endl;
           return false;
         }
       }
@@ -576,7 +576,7 @@ bool createOutputFiles(ListExpr& _relFt, bool both=true)
      //create output neighbor relation file
      if(!writeHeader(outNRel, outNFileName,neighborTypeInfo,errMsg))
      {
-       cerr << "writeHeader not Successfully: " << errMsg << endl;
+       cerr << "writeHeader not Successfully: " << errMsg << std::endl;
        return false;
      }
      return true;
