@@ -187,7 +187,7 @@ class TaskElement{
     ListExpr toListExpr(){
       string fun = "";
       if(funQuery != 0){
-	fun = funQuery->GetValue();
+        fun = funQuery->GetValue();
       }
       
       ListExpr expr1 = nl->SixElemList(
@@ -197,7 +197,7 @@ class TaskElement{
         nl->TextAtom(fun),
         nl->StringAtom(resName),
         nl->IntAtom(resPart)
-	);
+      );
       
       ListExpr expr2 = nl->Cons(nl->StringAtom(a1Name),expr1);
       ListExpr expr3 = nl->Cons(nl->IntAtom(dep),expr2);
@@ -207,10 +207,8 @@ class TaskElement{
 
 
     ~TaskElement(){
-//       warum nicht?
-//       tt->DeleteIfAllowed();
-       if(funQuery != 0){
-	delete funQuery;
+      if(funQuery != 0){
+        delete funQuery;
       }
     }
     
@@ -223,9 +221,9 @@ class TaskElement{
       res->PutAttribute(4, new CcInt(true,part1));
       res->PutAttribute(5, new CcInt(true,part2));
       if(funQuery != 0){
-	res->PutAttribute(6, new FText(true,funQuery->GetValue()));
+        res->PutAttribute(6, new FText(true,funQuery->GetValue()));
       }else{
-	res->PutAttribute(6, new FText(true,""));
+        res->PutAttribute(6, new FText(true,""));
       }
       res->PutAttribute(7, new CcString(true,resName));
       res->PutAttribute(8, new CcInt(true,resPart));
@@ -445,12 +443,12 @@ class Code{
        if(tasks.empty()){
          tl =  nl->TheEmptyList();
        } else {
-	 int index = tasks.size() - 1;
-           tl = nl->OneElemList(tasks[index]->toListExpr());
-           while(index > 0){
-	     index--; 
-             tl = nl->Cons(tasks[index]->toListExpr(), tl);
-           }
+         int index = tasks.size() - 1;
+         tl = nl->OneElemList(tasks[index]->toListExpr());
+         while(index > 0){
+           index--; 
+           tl = nl->Cons(tasks[index]->toListExpr(), tl);
+         }
        }
        
        ListExpr listExpr = nl->ThreeElemList(nl->SymbolAtom( BasicType()), 
@@ -502,8 +500,8 @@ class Code{
         // read  vector
         vector<TaskElement*> tasks;
         Code* res= new Code(tasks);
-	
-         // append tasks
+
+        // append tasks
         for(size_t i=0; i< s; i++){
           size_t s = 0;
            TaskElement*  task = new TaskElement(s);
@@ -513,7 +511,7 @@ class Code{
            }
            res->tasks.push_back(task);
         }
-	res->defined = true;
+        res->defined = true;
         result.addr = res;
         return true;
      }
@@ -766,7 +764,7 @@ ListExpr dloop3TM(ListExpr args){
   if(DArray::checkType(arrayType)){
     if(!nl->Equal(nl->Second(arrayType), nl->Second(funType))){
       return listutils::typeError("type mismatch between darray and "
-				  "function arg");
+                                  "function arg");
     }
   }
    
@@ -1069,9 +1067,9 @@ int toTasksVM( Word* args, Word& result, int message,
     case REQUEST: {
       TaskElement* task = c->GetNext();
       if(task != 0){
-	result.addr = task->getTuple(tt);
+        result.addr = task->getTuple(tt);
       }else{
-	result.addr = 0;
+        result.addr = 0;
       }
       return result.addr ? YIELD : CANCEL;
     }
