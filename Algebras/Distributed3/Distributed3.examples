@@ -4,13 +4,24 @@ Restore  : No
 Operator  : dloop3 
 Number    : 1
 Signature : darray(X) x string x (X -> Y) -> code(Y)
-Example   : query [const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloop3["da3", fun( x : DARRAYELEM) x count ] toTasks count    
-Result    : bug
-Remark    : under develeopment
+Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloop3["da3", fun( x : DARRAYELEM) x ] toTasks count    
+Result    : 2
 
 Operator  : toTasks 
 Number    : 1
 Signature : code(X) -> stream(tuble)
-Example   : query [const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloop3["da3", fun( x : DARRAYELEM) x count ] toTasks count    
+Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloop3["da3", fun( x : DARRAYELEM) x ] toTasks count      
+Result    : 2
+
+Operator  : DARRAYELEM
+Number    : 1
+Signature : code(X) -> X
+Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloop3["da3", fun( x : DARRAYELEM) x ] toTasks count  
+Result    : 2
+
+Operator  : DARRAYELEM2 
+Number    : 1
+Signature : code(X) -> X
+Example   : query da1 da2  dloop2["da3", . + .. ]
 Result    : bug
-Remark    : under develeopment
+Remark    : under construction
