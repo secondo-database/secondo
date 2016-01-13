@@ -58,7 +58,8 @@ data into groups.
 #include <fstream> 
 #include "FTextAlgebra.h"
 #include "Member.h"
-#include <limits>  
+#include <limits>
+#include "MergeSort.h"
 
 #ifndef SISTRIBUTEDSORT_H
 #define SISTRIBUTEDSORT_H
@@ -93,7 +94,7 @@ Constructor sorts the sample file and init the output.
     {
       tt = new TupleType(_tupleType);
       init(_maxMem,_inSampStream, _sampStream);
-      mergeSort(sampleArray,0,sampleArray.size());
+      mergeSort<TYPE,MEMB_TYP_CLASS>(sampleArray,0,sampleArray.size());
       initOutput();
     }
     
@@ -314,73 +315,6 @@ Starts the begin of returning tuples.
       border.push_back(-1 * numeric_limits<double>::max());
     }
 
-/*
-2.9 ~mergeSort~
-sort an array in ascending order
-
-*/
-     void mergeSort(vector<MEMB_TYP_CLASS*>& array,int left, int right){
-       MEMB_TYP_CLASS ** auxiliaryArray = new MEMB_TYP_CLASS*[right-left+1];
-       if(auxiliaryArray!= 0){
-         mergeSort(array,left,right,auxiliaryArray);
-         delete [] auxiliaryArray;
-       }
-     }
-     
-     
-     void mergeSort(vector<MEMB_TYP_CLASS*>& array,int left, 
-                    int right,MEMB_TYP_CLASS** auxiliaryArray){
-       if(right == left+1)
-         return ; //mergeSort finisch
-         else{
-           int i = 0;
-           int length = right - left;
-           int median = (right - left)/2;
-           int l = left; //position to the left subarray
-           int r = left + median; //position to the right subarray
-           
-           //divide array
-           mergeSort(array, left, r, auxiliaryArray);
-           mergeSort(array, r, right, auxiliaryArray);
-           
-           //merge array
-           /* Check to see if any elements remain in the left array; if so,
-            * we check if there are any elements left in the right array; if
-            * so, we compare them.  Otherwise, we know that the merge must
-            * use take the element from the left array */
-           for(i = 0; i < length; i++){
-             if(l < left+median && (r==right || leftIsMax(array, l, r))){
-               auxiliaryArray[i]=array[l];
-               l++;
-             }
-             else{
-               auxiliaryArray[i]= array[r];
-               r++;
-             }
-           }
-           //Copy the sorted subarray back to the input array
-           for(i=left; i < right; i++){
-             array[i]=auxiliaryArray[i-left];
-           }
-         }
-     }
-     
-/*
-2.10 ~leftIsMax~
-
-Auxiliary fuction to compare the maximum Object with the left object.
-
-*/
-     bool leftIsMax(vector<MEMB_TYP_CLASS*>& array,int left, int right){
-       bool retVal = false;
-       
-       double leftXVal = array[left]->getXVal();
-       double rightXVal = array[right]->getXVal();
-       
-       leftXVal > rightXVal ? retVal = true : retVal = false;
-       return retVal;
-     }
-     
 /*
 2.11 ~b~
 

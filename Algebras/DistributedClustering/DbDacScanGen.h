@@ -52,6 +52,7 @@ Member Class and TYPE, the Secondo Type.
  #include "LongInt.h"
  #include "FTextAlgebra.h"
  #include "BinRelWriteRead.h"
+ #include "MergeSort.h"
  
  #ifndef DBDACSCANGEN_H
  #define DBDACSCANGEN_H
@@ -119,7 +120,7 @@ This constructor is for execute the DBDACSCAN algorithm.
       
       if(membArrayPtr.size()){
         clusterProcessed = true;
-        mergeSort(membArrayPtr,0,membArrayPtr.size());
+        mergeSort<TYPE,MEMB_TYP_CLASS>(membArrayPtr,0,membArrayPtr.size());
         leftCluster = 
         dbDacScan(membArrayPtr,0,membArrayPtr.size()-1,eps,minPts);
       }
@@ -202,10 +203,12 @@ This constructor is for execute the Melt CLUSTERS algorithm.
         
         if(readSecFileCorrect){
         if(membArrayPtr.size()){
-          mergeSort(membArrayPtr,0,membArrayPtr.size());
+          mergeSort<TYPE,MEMB_TYP_CLASS>
+          (membArrayPtr,0,membArrayPtr.size());
         }
         if(membArrayPtrSec.size()){
-          mergeSort(membArrayPtrSec,0,membArrayPtrSec.size());
+          mergeSort<TYPE,MEMB_TYP_CLASS>
+          (membArrayPtrSec,0,membArrayPtrSec.size());
         }
         //define border Points
         TYPE* leftInnerPoint=0;
@@ -632,75 +635,7 @@ dbDacScan(vector<MEMB_TYP_CLASS*>& _membArray, int left , int right ,
   }
   return 0; //should never reached
 }
-
-/*
-1.16 ~mergeSort~
-
-sort an array in ascending order
-
-*/
-     void mergeSort(vector<MEMB_TYP_CLASS*>& array,int left, int right){
-       MEMB_TYP_CLASS ** auxiliaryArray = new MEMB_TYP_CLASS*[right-left+1];
-       if(auxiliaryArray!= 0){
-         mergeSort(array,left,right,auxiliaryArray);
-         
-         delete [] auxiliaryArray;
-       }
-     }
      
-
-     void mergeSort(vector<MEMB_TYP_CLASS*>& array,int left, 
-                    int right,MEMB_TYP_CLASS** auxiliaryArray){
-       if(right == left+1)
-         return ; //mergeSort finisch
-         else{
-           int i = 0;
-           int length = right - left;
-           int median = (right - left)/2;
-           int l = left; //position to the left subarray
-           int r = left + median; //position to the right subarray
-           
-           //divide array
-           mergeSort(array, left, r, auxiliaryArray);
-           mergeSort(array, r, right, auxiliaryArray);
-           
-           //merge array
-           /* Check to see if any elements remain in the left array; if so,
-            * we check if there are any elements left in the right array; if
-            * so, we compare them.  Otherwise, we know that the merge must
-            * use take the element from the left array */
-           for(i = 0; i < length; i++){
-             if(l < left+median && (r==right || leftIsMax(array, l, r))){
-               auxiliaryArray[i]=array[l];
-               l++;
-             }
-             else{
-               auxiliaryArray[i]= array[r];
-               r++;
-             }
-           }
-           //Copy the sorted subarray back to the input array
-           for(i=left; i < right; i++){
-             array[i]=auxiliaryArray[i-left];
-           }
-         }
-     }
-     
-/*
-1.17 ~leftIsMax~
-
-Auxiliary fuction to compare the maximum Object with the left object.
-
-*/
-     bool leftIsMax(vector<MEMB_TYP_CLASS*>& array,int left, int right){
-       bool retVal = false;
-       
-       double leftXVal = array[left]->getXVal();
-       double rightXVal = array[right]->getXVal();
-       
-       leftXVal > rightXVal ? retVal = true : retVal = false;
-       return retVal;
-     }
    };
    
  }
