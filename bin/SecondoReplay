@@ -1,10 +1,9 @@
 
-
 replay="ReplayConfig.ini"
 r=false
 
 while getopts "r:" opt; do
-  case "opt" in
+  case $opt in
    r) replay=$OPTARG
       r=true;;
   esac
@@ -19,6 +18,8 @@ fi
 
 
 SecondoREPLAY $* $R
+
+
 
 
 

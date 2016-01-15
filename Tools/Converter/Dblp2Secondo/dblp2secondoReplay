@@ -25,6 +25,9 @@
 # F.Hoffmann , Th. Behr 2004-6
 # M. Kunsmann changes for Replay version 2015-10
 
+# compile sources from Dblp2Secondo, if necessary
+make >/dev/null
+
 # first step : set the input file
 DBLP_FILE="$1"
 DBLP_SPLIT_NO="$2"
