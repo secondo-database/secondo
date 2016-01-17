@@ -607,7 +607,6 @@ Get the point as a ~Point~ of the SpatialAlgebra.
 }
 
 
-
 /*
 Compare ~[*]this~ to ~rhs~.
 
@@ -621,6 +620,20 @@ int Point::compare(const Point& rhs) const
     return 0;
 
   return 1;
+}
+
+
+/*
+Squared Euclidean distance between two points under consideration of a geoid.
+
+*/
+double sqrEuclideanDistance(
+    const Point& lhs, const Point& rhs, const Geoid* geoid)
+{
+  if (geoid == nullptr)
+    return sqrEuclideanDistance(lhs, rhs);
+
+  return pow(lhs.toPoint().Distance(rhs.toPoint(), geoid), 2);
 }
 
 

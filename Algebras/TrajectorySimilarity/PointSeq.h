@@ -60,6 +60,7 @@ respectively.
 
 
 class DLine;
+class Geoid;
 class Point;
 
 namespace temporalalgebra {
@@ -431,7 +432,26 @@ The usual comparison operators.
   { return !(lhs < rhs); }
 
 /*
-4.5 ~Sequence~ Interface
+4.5 Operators
+
+Squared Euclidean distance between two points.
+
+*/
+  friend inline double sqrEuclideanDistance(const Point& lhs, const Point& rhs)
+  { return pow(lhs.x - rhs.x, 2) + pow(lhs.y - rhs.y, 2); }
+
+/*
+Squared Euclidean distance between two points under consideration of a geoid. If
+~geoid~ is ~nullptr~, this yields the same result as the preceding overload
+$sqrEuclideanDistance(lhs, rhs)$, but with a bit of run-time overhead.
+
+*/
+  friend double sqrEuclideanDistance(
+      const Point& lhs, const Point& rhs, const Geoid* geoid);
+
+
+/*
+4.6 ~Sequence~ Interface
 
 These methods are used by the class ~Sequence$<$Point$>$~.
 
@@ -450,7 +470,7 @@ Get the name of the type.
 
 
 /*
-4.6 Data Members
+4.7 Data Members
 
 */
 private:
