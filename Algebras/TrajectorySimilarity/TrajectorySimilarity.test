@@ -507,6 +507,12 @@ query dist_origin(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
   [const pointseq value ((2.5 1.2) (0.5 3.2))])
 
+#testcase DistOriginPointSeqSymmetry
+#yields (real 1.86)
+query dist_origin(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
 #testcase DistOriginPointSeqEqual
 #yields (real 0.0)
 query dist_origin(
@@ -556,6 +562,16 @@ query dist_origin(
   [const tpointseq value (
     ("2015-12-29-01:21:16" (2.5 1.2))
     ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistOriginTPointSeqSymmetry
+#yields (real 1.86)
+query dist_origin(
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))])
 
 #testcase DistOriginTPointSeqEqual
 #yields (real 0.0)
@@ -644,6 +660,12 @@ query dist_destination(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
   [const pointseq value ((2.5 1.2) (0.5 3.2))])
 
+#testcase DistDestinationPointSeqSymmetry
+#yields (real 4.06)
+query dist_destination(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
 #testcase DistDestinationPointSeqEqual
 #yields (real 0.0)
 query dist_destination(
@@ -693,6 +715,16 @@ query dist_destination(
   [const tpointseq value (
     ("2015-12-29-01:21:16" (2.5 1.2))
     ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistDestinationTPointSeqSymmetry
+#yields (real 4.06)
+query dist_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))])
 
 #testcase DistDestinationTPointSeqEqual
 #yields (real 0.0)
@@ -781,6 +813,12 @@ query dist_origin_and_destination(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
   [const pointseq value ((2.5 1.2) (0.5 3.2))])
 
+#testcase DistOriginAndDestinationPointSeqSymmetry
+#yields (real 2.96)
+query dist_origin_and_destination(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
 #testcase DistOriginAndDestinationPointSeqEqual
 #yields (real 0.0)
 query dist_origin_and_destination(
@@ -830,6 +868,16 @@ query dist_origin_and_destination(
   [const tpointseq value (
     ("2015-12-29-01:21:16" (2.5 1.2))
     ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistOriginAndDestinationTPointSeqSymmetry
+#yields (real 2.96)
+query dist_origin_and_destination(
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))])
 
 #testcase DistOriginAndDestinationTPointSeqEqual
 #yields (real 0.0)
@@ -885,6 +933,174 @@ query dist_origin_and_destination(
   [const tpointseq value ()])
 
 
+
+###
+### Test operator 'dist_euclidean'.
+###
+
+### Bad parameters
+
+#testcase DistEuclideanParams0
+#yields error
+query dist_euclidean()
+
+#testcase DistEuclideanParams1
+#yields error
+query dist_euclidean([const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase DistEuclideanParams3
+#yields error
+query dist_euclidean(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+
+### dist_euclidean : pointseq x pointseq [x geoid] -> real
+
+#tolerance_real %0.1
+
+#testcase DistEuclideanPointSeq
+#yields (real 4.467)
+query dist_euclidean(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistEuclideanPointSeqSymmetry
+#yields (real 4.467)
+query dist_euclidean(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase DistEuclideanPointSeqEqual
+#yields (real 0.0)
+query dist_euclidean(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistEuclideanPointSeqGeoid
+#yields (real 494480.0)
+query dist_euclidean(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  create_geoid("WGS1984"))
+
+#testcase DistEuclideanPointSeqDifferentLengths
+#yields (real undefined)
+query dist_euclidean(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0) (-2.5 0.7))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistEuclideanPointSeqUndefined1
+#yields (real undefined)
+query dist_euclidean(
+  [const pointseq value undefined],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistEuclideanPointSeqUndefined2
+#yields (real undefined)
+query dist_euclidean(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value undefined])
+
+#testcase DistEuclideanPointSeqEmpty1
+#yields (real undefined)
+query dist_euclidean(
+  [const pointseq value ()],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistEuclideanPointSeqEmpty2
+#yields (real undefined)
+query dist_euclidean(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ()])
+
+
+### dist_euclidean : tpointseq x tpointseq [x geoid] -> real
+
+#testcase DistEuclideanTPointSeq
+#yields (real 4.467)
+query dist_euclidean(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistEuclideanTPointSeqSymmetry
+#yields (real 4.467)
+query dist_euclidean(
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))])
+
+#testcase DistEuclideanTPointSeqEqual
+#yields (real 0.0)
+query dist_euclidean(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))])
+
+#testcase DistEuclideanTPointSeqGeoid
+#yields (real 494480.0)
+query dist_euclidean(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))],
+  create_geoid("WGS1984"))
+
+#testcase DistEuclideanTPointSeqDifferentLengths
+#yields (real undefined)
+query dist_euclidean(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0))
+    ("2015-12-29-01:35:05" (4.5 6.7)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistEuclideanTPointSeqUndefined1
+#yields (real undefined)
+query dist_euclidean(
+  [const tpointseq value undefined],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistEuclideanTPointSeqUndefined2
+#yields (real undefined)
+query dist_euclidean(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value undefined])
+
+#testcase DistEuclideanTPointSeqEmpty1
+#yields (real undefined)
+query dist_euclidean(
+  [const tpointseq value ()],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (2.5 1.2))
+    ("2015-12-29-01:32:28" (0.5 3.2)))])
+
+#testcase DistEuclideanTPointSeqEmpty2
+#yields (real undefined)
+query dist_euclidean(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
+  [const tpointseq value ()])
 
 
 #teardown
