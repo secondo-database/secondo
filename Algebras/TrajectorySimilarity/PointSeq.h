@@ -434,6 +434,22 @@ The usual comparison operators.
 /*
 4.5 Operators
 
+Euclidean ($L^2$) distance between two points.
+
+*/
+  friend inline double euclideanDistance(const Point& lhs, const Point& rhs)
+  { return sqrt(pow(lhs.x - rhs.x, 2) + pow(lhs.y - rhs.y, 2)); }
+
+/*
+Euclidean distance between two points under consideration of a geoid. If ~geoid~
+is ~nullptr~, this yields the same result as the preceding overload
+$euclideanDistance(lhs, rhs)$, but with a bit of run-time overhead.
+
+*/
+  friend double euclideanDistance(
+      const Point& lhs, const Point& rhs, const Geoid* geoid);
+
+/*
 Squared Euclidean distance between two points.
 
 */
@@ -448,6 +464,14 @@ $sqrEuclideanDistance(lhs, rhs)$, but with a bit of run-time overhead.
 */
   friend double sqrEuclideanDistance(
       const Point& lhs, const Point& rhs, const Geoid* geoid);
+
+/*
+$L^1$ distance between two points, also known as the taxicab distance or
+Manhattan distance.
+
+*/
+  friend inline double l1Distance(const Point& lhs, const Point& rhs)
+  { return std::min(fabs(lhs.x - rhs.x), fabs(lhs.y - rhs.y)); }
 
 
 /*

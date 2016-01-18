@@ -624,6 +624,19 @@ int Point::compare(const Point& rhs) const
 
 
 /*
+Euclidean distance between two points under consideration of a geoid.
+
+*/
+double euclideanDistance(const Point& lhs, const Point& rhs, const Geoid* geoid)
+{
+  if (geoid == nullptr)
+    return euclideanDistance(lhs, rhs);
+
+  return lhs.toPoint().Distance(rhs.toPoint(), geoid);
+}
+
+
+/*
 Squared Euclidean distance between two points under consideration of a geoid.
 
 */
