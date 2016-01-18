@@ -552,6 +552,8 @@ query dist_origin(
 
 
 ### dist_origin : tpointseq x tpointseq [x geoid] -> real
+# (Performing only a basic test, since this is the same implementation as for
+# pointseqs.)
 
 #testcase DistOriginTPointSeq
 #yields (real 1.86)
@@ -562,69 +564,6 @@ query dist_origin(
   [const tpointseq value (
     ("2015-12-29-01:21:16" (2.5 1.2))
     ("2015-12-29-01:32:28" (0.5 3.2)))])
-
-#testcase DistOriginTPointSeqSymmetry
-#yields (real 1.86)
-query dist_origin(
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))],
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))])
-
-#testcase DistOriginTPointSeqEqual
-#yields (real 0.0)
-query dist_origin(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))])
-
-#testcase DistOriginTPointSeqGeoid
-#yields (real 206000.0)
-query dist_origin(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))],
-  create_geoid("WGS1984"))
-
-#testcase DistOriginTPointSeqUndefined1
-#yields (real undefined)
-query dist_origin(
-  [const tpointseq value undefined],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))])
-
-#testcase DistOriginTPointSeqUndefined2
-#yields (real undefined)
-query dist_origin(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value undefined])
-
-#testcase DistOriginTPointSeqEmpty1
-#yields (real undefined)
-query dist_origin(
-  [const tpointseq value ()],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))])
-
-#testcase DistOriginTPointSeqEmpty2
-#yields (real undefined)
-query dist_origin(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value ()])
 
 
 
@@ -705,6 +644,8 @@ query dist_destination(
 
 
 ### dist_destination : tpointseq x tpointseq [x geoid] -> real
+# (Performing only a basic test, since this is the same implementation as for
+# pointseqs.)
 
 #testcase DistDestinationTPointSeq
 #yields (real 4.06)
@@ -715,69 +656,6 @@ query dist_destination(
   [const tpointseq value (
     ("2015-12-29-01:21:16" (2.5 1.2))
     ("2015-12-29-01:32:28" (0.5 3.2)))])
-
-#testcase DistDestinationTPointSeqSymmetry
-#yields (real 4.06)
-query dist_destination(
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))],
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))])
-
-#testcase DistDestinationTPointSeqEqual
-#yields (real 0.0)
-query dist_destination(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))])
-
-#testcase DistDestinationTPointSeqGeoid
-#yields (real 449500.0)
-query dist_destination(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))],
-  create_geoid("WGS1984"))
-
-#testcase DistDestinationTPointSeqUndefined1
-#yields (real undefined)
-query dist_destination(
-  [const tpointseq value undefined],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))])
-
-#testcase DistDestinationTPointSeqUndefined2
-#yields (real undefined)
-query dist_destination(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value undefined])
-
-#testcase DistDestinationTPointSeqEmpty1
-#yields (real undefined)
-query dist_destination(
-  [const tpointseq value ()],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))])
-
-#testcase DistDestinationTPointSeqEmpty2
-#yields (real undefined)
-query dist_destination(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value ()])
 
 
 
@@ -858,6 +736,8 @@ query dist_origin_and_destination(
 
 
 ### dist_origin_and_destination : tpointseq x tpointseq [x geoid] -> real
+# (Performing only a basic test, since this is the same implementation as for
+# pointseqs.)
 
 #testcase DistOriginAndDestinationTPointSeq
 #yields (real 2.96)
@@ -868,69 +748,6 @@ query dist_origin_and_destination(
   [const tpointseq value (
     ("2015-12-29-01:21:16" (2.5 1.2))
     ("2015-12-29-01:32:28" (0.5 3.2)))])
-
-#testcase DistOriginAndDestinationTPointSeqSymmetry
-#yields (real 2.96)
-query dist_origin_and_destination(
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))],
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))])
-
-#testcase DistOriginAndDestinationTPointSeqEqual
-#yields (real 0.0)
-query dist_origin_and_destination(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))])
-
-#testcase DistOriginAndDestinationTPointSeqGeoid
-#yields (real 327700.0)
-query dist_origin_and_destination(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))],
-  create_geoid("WGS1984"))
-
-#testcase DistOriginAndDestinationTPointSeqUndefined1
-#yields (real undefined)
-query dist_origin_and_destination(
-  [const tpointseq value undefined],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))])
-
-#testcase DistOriginAndDestinationTPointSeqUndefined2
-#yields (real undefined)
-query dist_origin_and_destination(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value undefined])
-
-#testcase DistOriginAndDestinationTPointSeqEmpty1
-#yields (real undefined)
-query dist_origin_and_destination(
-  [const tpointseq value ()],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))])
-
-#testcase DistOriginAndDestinationTPointSeqEmpty2
-#yields (real undefined)
-query dist_origin_and_destination(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value ()])
 
 
 
@@ -1017,6 +834,8 @@ query dist_euclidean(
 
 
 ### dist_euclidean : tpointseq x tpointseq [x geoid] -> real
+# (Performing only a basic test, since this is the same implementation as for
+# pointseqs.)
 
 #testcase DistEuclideanTPointSeq
 #yields (real 4.467)
@@ -1028,79 +847,425 @@ query dist_euclidean(
     ("2015-12-29-01:21:16" (2.5 1.2))
     ("2015-12-29-01:32:28" (0.5 3.2)))])
 
-#testcase DistEuclideanTPointSeqSymmetry
-#yields (real 4.467)
-query dist_euclidean(
+
+
+###
+### Test operator 'lcss'.
+###
+
+### Bad parameters
+
+#testcase LCSSParams0
+#yields error
+query lcss()
+
+#testcase LCSSParams1
+#yields error
+query lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase LCSSParams2
+#yields error
+query lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase LCSSParams3
+#yields error
+query lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const real value 1.5],
+  [const real value 2.5])
+
+
+### lcss : pointseq x pointseq x real [x int] -> int
+
+#testcase LCSSPointSeq
+#yields (int 1)
+query lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase LCSSPointSeqSymmetry
+#yields (int 1)
+query lcss(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const real value 1.5])
+
+#testcase LCSSPointSeqVariant2
+#yields (int 2)
+query lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (-0.6 3.2))],
+  [const real value 1.5])
+
+#testcase LCSSPointSeqVariant3
+#yields (int 1)
+query lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const real value 1.5])
+
+#testcase LCSSPointSeqVariant4
+#yields (int 0)
+query lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.8))],
+  [const pointseq value ((2.5 -0.7) (2.5 3.8))],
+  [const real value 1.5])
+
+#testcase LCSSPointSeqDelta0
+#yields (int 0)
+query lcss(
+  [const pointseq value ((1.0 2.3) (2.0 0.0))],
+  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const real value 1.5], [const int value 0])
+
+#testcase LCSSPointSeqDelta1
+#yields (int 1)
+query lcss(
+  [const pointseq value ((1.0 2.3) (2.0 0.0))],
+  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const real value 1.5], [const int value 1])
+
+#testcase LCSSPointSeqEqual
+#yields (int 2)
+query lcss(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase LCSSPointSeqDifferentLengths
+#yields (int 1)
+query lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0) (-2.5 0.7))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase LCSSPointSeqUndefined1
+#yields (int undefined)
+query lcss(
+  [const pointseq value undefined],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase LCSSPointSeqUndefined2
+#yields (int undefined)
+query lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value undefined],
+  [const real value 1.5])
+
+#testcase LCSSPointSeqEmpty1
+#yields (int 0)
+query lcss(
+  [const pointseq value ()],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase LCSSPointSeqEmpty2
+#yields (int 0)
+query lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ()],
+  [const real value 1.5])
+
+
+### lcss : tpointseq x tpointseq x real [x int] -> int
+# (Performing only a basic test, since this is the same implementation as for
+# pointseqs.)
+
+#testcase LCSSTPointSeq
+#yields (int 1)
+query lcss(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (1.0 2.3))
+    ("2015-12-29-01:30:20" (-2.0 0.0)))],
   [const tpointseq value (
     ("2015-12-29-01:21:16" (2.5 1.2))
     ("2015-12-29-01:32:28" (0.5 3.2)))],
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))])
+  [const real value 1.5])
 
-#testcase DistEuclideanTPointSeqEqual
+
+
+###
+### Test operator 'rel_lcss'.
+###
+
+### Bad parameters
+
+#testcase RelLCSSParams0
+#yields error
+query rel_lcss()
+
+#testcase RelLCSSParams1
+#yields error
+query rel_lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase RelLCSSParams2
+#yields error
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase RelLCSSParams3
+#yields error
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const real value 1.5],
+  [const real value 2.5])
+
+
+### rel_lcss : pointseq x pointseq x real [x int] -> real
+
+#testcase RelLCSSPointSeq
+#yields (real 0.5)
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase RelLCSSPointSeqSymmetry
+#yields (real 0.5)
+query rel_lcss(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const real value 1.5])
+
+#testcase RelLCSSPointSeqVariant2
+#yields (real 1.0)
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (-0.6 3.2))],
+  [const real value 1.5])
+
+#testcase RelLCSSPointSeqVariant3
+#yields (real 0.5)
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const real value 1.5])
+
+#testcase RelLCSSPointSeqVariant4
 #yields (real 0.0)
-query dist_euclidean(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))])
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.8))],
+  [const pointseq value ((2.5 -0.7) (2.5 3.8))],
+  [const real value 1.5])
 
-#testcase DistEuclideanTPointSeqGeoid
-#yields (real 494480.0)
-query dist_euclidean(
+#testcase RelLCSSPointSeqDelta0
+#yields (real 0.0)
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (2.0 0.0))],
+  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const real value 1.5], [const int value 0])
+
+#testcase RelLCSSPointSeqDelta1
+#yields (real 0.5)
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (2.0 0.0))],
+  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const real value 1.5], [const int value 1])
+
+#testcase RelLCSSPointSeqEqual
+#yields (real 1.0)
+query rel_lcss(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase RelLCSSPointSeqDifferentLengths
+#yields (real 0.5)
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0) (-2.5 0.7))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase RelLCSSPointSeqUndefined1
+#yields (real undefined)
+query rel_lcss(
+  [const pointseq value undefined],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase RelLCSSPointSeqUndefined2
+#yields (real undefined)
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value undefined],
+  [const real value 1.5])
+
+#testcase RelLCSSPointSeqEmpty1
+#yields (real undefined)
+query rel_lcss(
+  [const pointseq value ()],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase RelLCSSPointSeqEmpty2
+#yields (real undefined)
+query rel_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ()],
+  [const real value 1.5])
+
+
+### rel_lcss : tpointseq x tpointseq x real [x int] -> real
+# (Performing only a basic test, since this is the same implementation as for
+# pointseqs.)
+
+#testcase RelLCSSTPointSeq
+#yields (real 0.5)
+query rel_lcss(
   [const tpointseq value (
     ("2015-12-29-01:23:45" (1.0 2.3))
     ("2015-12-29-01:30:20" (-2.0 0.0)))],
   [const tpointseq value (
     ("2015-12-29-01:21:16" (2.5 1.2))
     ("2015-12-29-01:32:28" (0.5 3.2)))],
-  create_geoid("WGS1984"))
+  [const real value 1.5])
 
-#testcase DistEuclideanTPointSeqDifferentLengths
-#yields (real undefined)
-query dist_euclidean(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0))
-    ("2015-12-29-01:35:05" (4.5 6.7)))],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))])
 
-#testcase DistEuclideanTPointSeqUndefined1
-#yields (real undefined)
-query dist_euclidean(
-  [const tpointseq value undefined],
-  [const tpointseq value (
-    ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))])
 
-#testcase DistEuclideanTPointSeqUndefined2
+###
+### Test operator 'dist_lcss'.
+###
+
+### Bad parameters
+
+#testcase DistLCSSParams0
+#yields error
+query dist_lcss()
+
+#testcase DistLCSSParams1
+#yields error
+query dist_lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase DistLCSSParams2
+#yields error
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase DistLCSSParams3
+#yields error
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const real value 1.5],
+  [const real value 2.5])
+
+
+### dist_lcss : pointseq x pointseq x real [x int] -> real
+
+#testcase DistLCSSPointSeq
+#yields (real 0.5)
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase DistLCSSPointSeqSymmetry
+#yields (real 0.5)
+query dist_lcss(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const real value 1.5])
+
+#testcase DistLCSSPointSeqVariant2
+#yields (real 0.0)
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 1.2) (-0.6 3.2))],
+  [const real value 1.5])
+
+#testcase DistLCSSPointSeqVariant3
+#yields (real 0.5)
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const real value 1.5])
+
+#testcase DistLCSSPointSeqVariant4
+#yields (real 1.0)
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.8))],
+  [const pointseq value ((2.5 -0.7) (2.5 3.8))],
+  [const real value 1.5])
+
+#testcase DistLCSSPointSeqDelta0
+#yields (real 1.0)
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (2.0 0.0))],
+  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const real value 1.5], [const int value 0])
+
+#testcase DistLCSSPointSeqDelta1
+#yields (real 0.5)
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (2.0 0.0))],
+  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const real value 1.5], [const int value 1])
+
+#testcase DistLCSSPointSeqEqual
+#yields (real 0.0)
+query dist_lcss(
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase DistLCSSPointSeqDifferentLengths
+#yields (real 0.5)
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0) (-2.5 0.7))],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase DistLCSSPointSeqUndefined1
 #yields (real undefined)
-query dist_euclidean(
+query dist_lcss(
+  [const pointseq value undefined],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase DistLCSSPointSeqUndefined2
+#yields (real undefined)
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value undefined],
+  [const real value 1.5])
+
+#testcase DistLCSSPointSeqEmpty1
+#yields (real undefined)
+query dist_lcss(
+  [const pointseq value ()],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const real value 1.5])
+
+#testcase DistLCSSPointSeqEmpty2
+#yields (real undefined)
+query dist_lcss(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ()],
+  [const real value 1.5])
+
+
+### dist_lcss : tpointseq x tpointseq x real [x int] -> real
+# (Performing only a basic test, since this is the same implementation as for
+# pointseqs.)
+
+#testcase DistLCSSTPointSeq
+#yields (real 0.5)
+query dist_lcss(
   [const tpointseq value (
     ("2015-12-29-01:23:45" (1.0 2.3))
     ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value undefined])
-
-#testcase DistEuclideanTPointSeqEmpty1
-#yields (real undefined)
-query dist_euclidean(
-  [const tpointseq value ()],
   [const tpointseq value (
     ("2015-12-29-01:21:16" (2.5 1.2))
-    ("2015-12-29-01:32:28" (0.5 3.2)))])
-
-#testcase DistEuclideanTPointSeqEmpty2
-#yields (real undefined)
-query dist_euclidean(
-  [const tpointseq value (
-    ("2015-12-29-01:23:45" (1.0 2.3))
-    ("2015-12-29-01:30:20" (-2.0 0.0)))],
-  [const tpointseq value ()])
+    ("2015-12-29-01:32:28" (0.5 3.2)))],
+  [const real value 1.5])
 
 
 #teardown

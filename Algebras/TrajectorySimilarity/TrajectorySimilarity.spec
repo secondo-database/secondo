@@ -28,3 +28,7 @@ operator dist_destination alias DIST_DESTINATION pattern op(_, _)
 operator dist_origin_and_destination alias DIST_DESTINATION pattern op(_, _)
 
 operator dist_euclidean alias DIST_EUCLIDEAN pattern op(_, _)
+
+operator lcss alias LCSS pattern op(_, _, _)
+operator rel_lcss alias REL_LCSS pattern op(_, _, _)
+operator dist_lcss alias DIST_LCSS pattern op(_, _, _)

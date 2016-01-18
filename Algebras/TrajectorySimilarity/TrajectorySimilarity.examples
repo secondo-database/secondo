@@ -104,10 +104,49 @@ Operator : dist_euclidean
 Number   : 1
 Signature: pointseq x pointseq -> real
 Example  : query dist_euclidean([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))])
-Result   : (real 19.95)
+Result   : (real 4.466542286825459)
 
 Operator : dist_euclidean
 Number   : 2
 Signature: pointseq x pointseq x geoid -> real
 Example  : query dist_euclidean([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], create_geoid("WGS1984"))
-Result   : (real 244520115276.3768)
+Result   : (real 494489.7524482958)
+
+
+Operator : lcss
+Number   : 1
+Signature: pointseq x pointseq x real -> int
+Example  : query lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], 1.5)
+Result   : (int 1)
+
+Operator : lcss
+Number   : 2
+Signature: pointseq x pointseq x real x int -> int
+Example  : query lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], 0.5, 0)
+Result   : (int 0)
+
+
+Operator : rel_lcss
+Number   : 1
+Signature: pointseq x pointseq x real -> real
+Example  : query rel_lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], 1.5)
+Result   : (real 0.5)
+
+Operator : rel_lcss
+Number   : 2
+Signature: pointseq x pointseq x real x int -> real
+Example  : query rel_lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], 0.5, 0)
+Result   : (real 0.0)
+
+
+Operator : dist_lcss
+Number   : 1
+Signature: pointseq x pointseq x real -> real
+Example  : query dist_lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], 1.5)
+Result   : (real 0.5)
+
+Operator : dist_lcss
+Number   : 2
+Signature: pointseq x pointseq x real x int -> real
+Example  : query dist_lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], 0.5, 0)
+Result   : (real 1.0)

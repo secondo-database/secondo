@@ -78,6 +78,7 @@ keep the interdependencies of the files low.
 
   void addEndPointDistOp();
   void addEuclideanDistOp();
+  void addLCSSOp();
 };
 
 } //-- namespace tsa
