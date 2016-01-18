@@ -79,7 +79,6 @@ sequences.
 #include "TrajectorySimilarity.h"
 #include "VectorTypeMapUtils.h"
 
-#include "Point.h"
 #include "Geoid.h"
 
 
@@ -92,10 +91,10 @@ namespace tsa {
 
 */
 template<class SEQ>
-using EndPointDistType = double (*)(const SEQ&, const SEQ&, const Geoid*);
+using end_point_op_type = double (*)(const SEQ&, const SEQ&, const Geoid*);
 
-template<class SEQ, bool HAS_GEOID, EndPointDistType<SEQ> FUNC>
-int EndPointDist(
+template<class SEQ, bool HAS_GEOID, end_point_op_type<SEQ> FUNC>
+int EndPointDistValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s);
 
 
@@ -104,18 +103,18 @@ int EndPointDist(
 
 */
 template<class SEQ>
-double DistOrigin(const SEQ& seq1, const SEQ& seq2, const Geoid* geoid)
+double dist_origin(const SEQ& seq1, const SEQ& seq2, const Geoid* geoid)
 {
-  const ::Point p1 = seq1.get(0).toPoint();
-  const ::Point p2 = seq2.get(0).toPoint();
-  return p1.Distance(p2, geoid);
+  const Point p1 = seq1.get(0);
+  const Point p2 = seq2.get(0);
+  return euclideanDistance(p1, p2, geoid);
 }
 
 ValueMapping dist_origin_functions[] = {
-  EndPointDist<PointSeq,  /*HAS_GEOID*/ false, DistOrigin>,
-  EndPointDist<PointSeq,  /*HAS_GEOID*/ true,  DistOrigin>,
-  EndPointDist<TPointSeq, /*HAS_GEOID*/ false, DistOrigin>,
-  EndPointDist<TPointSeq, /*HAS_GEOID*/ true,  DistOrigin>,
+  EndPointDistValueMap<PointSeq,  /*HAS_GEOID*/ false, dist_origin>,
+  EndPointDistValueMap<PointSeq,  /*HAS_GEOID*/ true,  dist_origin>,
+  EndPointDistValueMap<TPointSeq, /*HAS_GEOID*/ false, dist_origin>,
+  EndPointDistValueMap<TPointSeq, /*HAS_GEOID*/ true,  dist_origin>,
   nullptr
 };
 
@@ -150,18 +149,18 @@ struct DistOriginInfo : OperatorInfo
 
 */
 template<class SEQ>
-double DistDestination(const SEQ& seq1, const SEQ& seq2, const Geoid* geoid)
+double dist_destination(const SEQ& seq1, const SEQ& seq2, const Geoid* geoid)
 {
-  const ::Point p1 = seq1.get(seq1.size()-1).toPoint();
-  const ::Point p2 = seq2.get(seq2.size()-1).toPoint();
-  return p1.Distance(p2, geoid);
+  const Point p1 = seq1.get(seq1.size()-1);
+  const Point p2 = seq2.get(seq2.size()-1);
+  return euclideanDistance(p1, p2, geoid);
 }
 
 ValueMapping dist_destination_functions[] = {
-  EndPointDist<PointSeq,  /*HAS_GEOID*/ false, DistDestination>,
-  EndPointDist<PointSeq,  /*HAS_GEOID*/ true,  DistDestination>,
-  EndPointDist<TPointSeq, /*HAS_GEOID*/ false, DistDestination>,
-  EndPointDist<TPointSeq, /*HAS_GEOID*/ true,  DistDestination>,
+  EndPointDistValueMap<PointSeq,  /*HAS_GEOID*/ false, dist_destination>,
+  EndPointDistValueMap<PointSeq,  /*HAS_GEOID*/ true,  dist_destination>,
+  EndPointDistValueMap<TPointSeq, /*HAS_GEOID*/ false, dist_destination>,
+  EndPointDistValueMap<TPointSeq, /*HAS_GEOID*/ true,  dist_destination>,
   nullptr
 };
 
@@ -196,21 +195,27 @@ struct DistDestinationInfo : OperatorInfo
 
 */
 template<class SEQ>
-double DistOriginAndDestination(
+double dist_origin_and_destination(
     const SEQ& seq1, const SEQ& seq2, const Geoid* geoid)
 {
-  const ::Point po1 = seq1.get(0).toPoint();
-  const ::Point po2 = seq2.get(0).toPoint();
-  const ::Point pd1 = seq1.get(seq1.size()-1).toPoint();
-  const ::Point pd2 = seq2.get(seq2.size()-1).toPoint();
-  return (po1.Distance(po2, geoid) + pd1.Distance(pd2, geoid)) / 2.0;
+  const Point po1 = seq1.get(0);
+  const Point po2 = seq2.get(0);
+  const Point pd1 = seq1.get(seq1.size()-1);
+  const Point pd2 = seq2.get(seq2.size()-1);
+  return
+      (euclideanDistance(po1, po2, geoid) +
+       euclideanDistance(pd1, pd2, geoid)) / 2.0;
 }
 
 ValueMapping dist_origin_and_destination_functions[] = {
-  EndPointDist<PointSeq,  /*HAS_GEOID*/ false, DistOriginAndDestination>,
-  EndPointDist<PointSeq,  /*HAS_GEOID*/ true,  DistOriginAndDestination>,
-  EndPointDist<TPointSeq, /*HAS_GEOID*/ false, DistOriginAndDestination>,
-  EndPointDist<TPointSeq, /*HAS_GEOID*/ true,  DistOriginAndDestination>,
+  EndPointDistValueMap<
+      PointSeq,  /*HAS_GEOID*/ false, dist_origin_and_destination>,
+  EndPointDistValueMap<
+      PointSeq,  /*HAS_GEOID*/ true,  dist_origin_and_destination>,
+  EndPointDistValueMap<
+      TPointSeq, /*HAS_GEOID*/ false, dist_origin_and_destination>,
+  EndPointDistValueMap<
+      TPointSeq, /*HAS_GEOID*/ true,  dist_origin_and_destination>,
   nullptr
 };
 
@@ -262,8 +267,8 @@ ListExpr EndPointDistTypeMap(ListExpr args)
 int EndPointDistSelect(ListExpr args)
 { return mappings::vectorSelect(end_point_dist_maps, args); }
 
-template<class SEQ, bool HAS_GEOID, EndPointDistType<SEQ> FUNC>
-int EndPointDist(
+template<class SEQ, bool HAS_GEOID, end_point_op_type<SEQ> FUNC>
+int EndPointDistValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
   const SEQ& seq1 = *static_cast<SEQ*>(args[0].addr);
@@ -272,6 +277,10 @@ int EndPointDist(
   result = qp->ResultStorage(s);    // CcReal
   CcReal& dist = *static_cast<CcReal*>(result.addr);
 
+/*
+Require defined and non-empty sequences.
+
+*/
   if (seq1.size() == 0 || seq2.size() == 0) {
     dist.SetDefined(false);
     return 0;

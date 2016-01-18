@@ -68,7 +68,6 @@ different numbers of points, the result is ~undefined~.
 #include "TrajectorySimilarity.h"
 #include "VectorTypeMapUtils.h"
 
-#include "Point.h"
 #include "Geoid.h"
 
 
@@ -83,7 +82,7 @@ This function expects two non-empty sequences with the same number of points.
 
 */
 template<class SEQ>
-double DistEuclidean(const SEQ& seq1, const SEQ& seq2, const Geoid* geoid)
+double dist_euclidean(const SEQ& seq1, const SEQ& seq2, const Geoid* geoid)
 {
   double dist = 0.0;
   for (size_t i = 0; i < seq1.size(); ++i) {
@@ -95,7 +94,7 @@ double DistEuclidean(const SEQ& seq1, const SEQ& seq2, const Geoid* geoid)
 }
 
 template<class SEQ, bool HAS_GEOID>
-int EndPointDist(
+int EuclideanDistValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
   const SEQ& seq1 = *static_cast<SEQ*>(args[0].addr);
@@ -104,20 +103,24 @@ int EndPointDist(
   result = qp->ResultStorage(s);    // CcReal
   CcReal& dist = *static_cast<CcReal*>(result.addr);
 
+/*
+Require defined and non-empty sequences of equal length.
+
+*/
   if (seq1.size() == 0 || seq2.size() == 0 || seq1.size() != seq2.size()) {
     dist.SetDefined(false);
     return 0;
   }
 
-  dist.Set(DistEuclidean(seq1, seq2, geoid));
+  dist.Set(dist_euclidean(seq1, seq2, geoid));
   return 0;
 }
 
 ValueMapping dist_euclidean_functions[] = {
-  EndPointDist<PointSeq,  /*HAS_GEOID*/ false>,
-  EndPointDist<PointSeq,  /*HAS_GEOID*/ true>,
-  EndPointDist<TPointSeq, /*HAS_GEOID*/ false>,
-  EndPointDist<TPointSeq, /*HAS_GEOID*/ true>,
+  EuclideanDistValueMap<PointSeq,  /*HAS_GEOID*/ false>,
+  EuclideanDistValueMap<PointSeq,  /*HAS_GEOID*/ true>,
+  EuclideanDistValueMap<TPointSeq, /*HAS_GEOID*/ false>,
+  EuclideanDistValueMap<TPointSeq, /*HAS_GEOID*/ true>,
   nullptr
 };
 
