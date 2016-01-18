@@ -119,7 +119,7 @@ class TaskElement{
       a2Name = ((DArray*) args[1].addr)->getName();
       part1 = 0;
       part2 = 0;
-      funQuery = (FText*) args[4].addr;
+      funQuery = ((CcString*) args[4].addr)->GetValue();
       max = min(((DArray*) args[0].addr)->getSize(), 
                 ((DArray*) args[1].addr)->getSize());
 
@@ -128,7 +128,7 @@ class TaskElement{
     }
 
     TaskElement( size_t _pos, size_t _dep, string _a1Name,string _a2Name,
-               size_t  _part1,size_t  _part2,FText* _funQuery,
+               size_t  _part1,size_t  _part2,string _funQuery,
                string _resArrayName,size_t  _resPart){
       pos =_pos;
       dep = _dep;
@@ -171,7 +171,7 @@ class TaskElement{
       list = nl->Rest(list);
 
       ListExpr e7 = nl->First(list);
-      funQuery = new FText(true, nl->StringValue(e7));
+      funQuery = nl->StringValue(e7);
       list = nl->Rest(list);
 
       ListExpr e8 = nl->First(list);
@@ -185,16 +185,11 @@ class TaskElement{
 
     
     ListExpr toListExpr(){
-      string fun = "";
-      if(funQuery != 0){
-        fun = funQuery->GetValue();
-      }
-      
       ListExpr expr1 = nl->SixElemList(
         nl->StringAtom(a2Name),
         nl->IntAtom(part1),
         nl->IntAtom(part2),
-        nl->TextAtom(fun),
+        nl->StringAtom(funQuery),
         nl->StringAtom(resName),
         nl->IntAtom(resPart)
       );
@@ -207,9 +202,6 @@ class TaskElement{
 
 
     ~TaskElement(){
-      if(funQuery != 0){
-        delete funQuery;
-      }
     }
     
     Tuple* getTuple(TupleType* tt){
@@ -220,11 +212,7 @@ class TaskElement{
       res->PutAttribute(3, new CcString(true,a2Name));
       res->PutAttribute(4, new CcInt(true,part1));
       res->PutAttribute(5, new CcInt(true,part2));
-      if(funQuery != 0){
-        res->PutAttribute(6, new FText(true,funQuery->GetValue()));
-      }else{
-        res->PutAttribute(6, new FText(true,""));
-      }
+      res->PutAttribute(6, new CcString(true,funQuery));
       res->PutAttribute(7, new CcString(true,resName));
       res->PutAttribute(8, new CcInt(true,resPart));
       return res;
@@ -297,7 +285,7 @@ class TaskElement{
       out << "( Task: " << pos << ", Dep : " << dep 
         << ", Arg1 : " << a1Name << ", Arg2 : " << a2Name
         << ", Part1 : " << part1 << ", Part2 : " << part2
-        << ", Query : " << funQuery->GetValue() 
+        << ", Query : " << funQuery 
         << ", Res : " << resName << ", ResPart : " << resPart
         << ")";
     }
@@ -326,7 +314,7 @@ class TaskElement{
       return part2;
     }
     
-    FText* GetFunQuery(){
+    string GetFunQuery(){
       return funQuery;
     }
     
@@ -349,7 +337,7 @@ class TaskElement{
     string a2Name;
     size_t  part1;
     size_t  part2;
-    FText* funQuery;
+    string funQuery;
     string resName;
     size_t  resPart;
 
@@ -503,7 +491,7 @@ class Code{
 
         // append tasks
         for(size_t i=0; i< s; i++){
-          size_t s = 0;
+           size_t s = 0;
            TaskElement*  task = new TaskElement(s);
            if(!task->readFrom(valueRecord, offset)){
                delete res;
@@ -518,7 +506,7 @@ class Code{
 
      static bool save(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Word& value) {
-
+       
          Code* c = (Code*) value.addr;
          // defined flag
          if(!writeVar(c->defined,valueRecord,offset)){
@@ -534,9 +522,9 @@ class Code{
          }
          // tasks
          for(size_t i=0;i<s;i++){
-              if(!c->tasks[i]->saveTo(valueRecord,offset)){
-                 return false;
-              }
+           if(!c->tasks[i]->saveTo(valueRecord,offset)){
+             return false;
+           }
          }
          return true; 
      }
@@ -724,6 +712,7 @@ or
 Code(darray(X)) x string x (X->Y) -> code(darray(Y))
 
 */
+
 ListExpr dloop3TM(ListExpr args){
    string err ="darray(X) x string x fun: X -> Y   or "
        "code(darray(X)) x string x fun: X -> Y   expected";
@@ -733,15 +722,12 @@ ListExpr dloop3TM(ListExpr args){
   }
   
   ListExpr temp = args;
- 
   while(!nl->IsEmpty(temp)){
     if(!nl->HasLength(nl->First(temp),2)){
         return listutils::typeError("internal Error");
      }
-     
      temp = nl->Rest(temp);
   }
-
 
   ListExpr darray = nl->First(args);
   ListExpr fun;
@@ -749,8 +735,8 @@ ListExpr dloop3TM(ListExpr args){
   if(!CcString::checkType(nl->First(nl->Second(args)))){
      return listutils::typeError("Second arg not of type string");
   }
+  
   fun = nl->Third(args);
-
   ListExpr funType = nl->First(fun);
   ListExpr arrayType = nl->First(darray);
 
@@ -768,16 +754,43 @@ ListExpr dloop3TM(ListExpr args){
     }
   }
    
-  if(    DArray::checkType(nl->First(nl->First(args))) 
-      && CcString::checkType(nl->First(nl->Second(args)))
-      && listutils::isMap<1>(nl->First(nl->Third(args)))){
-    return NList(Code::BasicType()).listExpr(); 
+  ListExpr funquery = nl->Second(fun);
+  
+  ListExpr funargs = nl->Second(funquery);
+
+  ListExpr dat;
+  if(DArray::checkType(nl->First(nl->First(args)))){
+    dat = nl->Second(arrayType);
+  }else{
+    dat = nl->Second(funType);
   }
 
-  if(    Code::checkType(nl->First(nl->First(args))) 
-      && CcString::checkType(nl->First(nl->Second(args)))
-      && listutils::isMap<1>(nl->First(nl->Third(args)))){
-    return NList(Code::BasicType()).listExpr(); 
+  ListExpr rfunargs = nl->TwoElemList(
+                        nl->First(funargs),
+                        dat);
+  ListExpr rfun = nl->ThreeElemList(
+                        nl->First(funquery),
+                        rfunargs,
+                        nl->Third(funquery));   
+
+  if(DArray::checkType(nl->First(nl->First(args))) 
+    && CcString::checkType(nl->First(nl->Second(args)))
+    && listutils::isMap<1>(nl->First(nl->Third(args)))){
+ 
+    return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
+               NList(Code::BasicType()).listExpr());
+  }
+
+  if(Code::checkType(nl->First(nl->First(args))) 
+    && CcString::checkType(nl->First(nl->Second(args)))
+    && listutils::isMap<1>(nl->First(nl->Third(args)))){
+    
+    return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
+               NList(Code::BasicType()).listExpr());
   }
   return listutils::typeError(err);
 }
@@ -798,6 +811,8 @@ int loop3Select( ListExpr args )
 1.15.3 Value Mapping Function
 
 */
+
+
 int dloop3VM_Array(Word* args, Word& result, int message,
            Word& local, Supplier s ){
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
@@ -820,8 +835,8 @@ int dloop3VM_Array(Word* args, Word& result, int message,
       resName = name->GetValue();
    }
 
-   FText* fun = (FText*) args[3].addr;
-
+   string fun = ((FText*) args[3].addr)->GetValue();
+   
    vector<TaskElement*> tasks;
    int pos = 0;
    TaskElement* element;
@@ -858,7 +873,7 @@ int dloop3VM_Code(Word* args, Word& result, int message,
     return 0;
    }
    
-   FText* fun = (FText*) args[3].addr;
+   string fun = ((CcString*) args[3].addr)->GetValue();
    
    vector<TaskElement*> tasks;
    TaskElement* e;
@@ -1014,7 +1029,7 @@ ListExpr  toTasksTM(ListExpr args){
   attrList = nl->Cons(attr8, attrList);
 
   ListExpr attr7 = nl->TwoElemList( nl->SymbolAtom("Query"),
-                                    listutils::basicSymbol<FText>());
+                                    nl->SymbolAtom(CcString::BasicType()));
   attrList = nl->Cons(attr7, attrList);
   
   ListExpr attr6 = nl->TwoElemList( nl->SymbolAtom("Part2"),
