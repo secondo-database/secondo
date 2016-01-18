@@ -1,0 +1,68 @@
+
+Beispiel für toTasks
+
+Secondo => open database berlintest
+
+Secondo => let xyz = "test"
+
+Secondo => let daString = [const darray(string) 
+value (da1 5 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))]
+
+Secondo => query daString dloop3["da3", fun( x : DARRAYELEM) x contains xyz ] toTasks consume
+
+Erasing file BERLINTEST/d115.sdb
+onCommit:1
+entry:1
+Total runtime ...   Times (elapsed / cpu): 0.024861sec / 0.03sec = 0.8287
+
+
+   Task : 1
+    Dep : 0
+   Arg1 : daString
+   Arg2 : 
+  Part1 : 1
+  Part2 : 0
+  Query : (fun (x string) (contains x xyz))
+    Res : da3
+ResPart : 1
+
+   Task : 2
+    Dep : 0
+   Arg1 : daString
+   Arg2 : 
+  Part1 : 2
+  Part2 : 0
+  Query : (fun (x string) (contains x xyz))
+    Res : da3
+ResPart : 2
+
+   Task : 3
+    Dep : 0
+   Arg1 : daString
+   Arg2 : 
+  Part1 : 3
+  Part2 : 0
+  Query : (fun (x string) (contains x xyz))
+    Res : da3
+ResPart : 3
+
+   Task : 4
+    Dep : 0
+   Arg1 : daString
+   Arg2 : 
+  Part1 : 4
+  Part2 : 0
+  Query : (fun (x string) (contains x xyz))
+    Res : da3
+ResPart : 4
+
+   Task : 5
+    Dep : 0
+   Arg1 : daString
+   Arg2 : 
+  Part1 : 5
+  Part2 : 0
+  Query : (fun (x string) (contains x xyz))
+    Res : da3
+ResPart : 5
+
