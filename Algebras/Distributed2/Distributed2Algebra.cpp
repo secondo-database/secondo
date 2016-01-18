@@ -876,16 +876,28 @@ class ConnectionInfo{
           bool retrieveRelationFile(const string& objName,
                                     const string& fname1){
              boost::lock_guard<boost::recursive_mutex> guard(simtx);
+
              string rfname = si->getRequestFilePath() + "/"+fname1;
              // save the remove relation into a binary file
-             string cmd = "query " + objName + " feed fconsume5['"
-                          +rfname+"'] count";
-
              SecErrInfo serr;
              ListExpr resList;
+             string cmd =   "query createDirectory('"+si->getRequestFilePath()  
+                   + "', TRUE) ";
              showCommand(si,host,port,cmd,true);
              si->Secondo(cmd,resList,serr);
              showCommand(si,host,port,cmd,false);
+             if(serr.code!=0){
+                 cerr << "Creating filetransfer directory failed" << endl;
+                 return false;
+             }
+
+
+             cmd = "query " + objName + " feed fconsume5['"
+                          +rfname+"'] count";
+             showCommand(si,host,port,cmd,true);
+             si->Secondo(cmd,resList,serr);
+             showCommand(si,host,port,cmd,false);
+
              if(serr.code!=0){
                  return false;
              }
@@ -6976,9 +6988,8 @@ As well as a template type.
 
 */ 
 ListExpr createDArrayTM(ListExpr args){
-   string err = "stream(tuple) x int x string x any "
-                               "x Ident x Ident x Ident expected";
-   if(!nl->HasLength(args,7)){
+   string err = "stream(tuple) x int x string x any expected";
+   if(!nl->HasLength(args,4)){
       return listutils::typeError(err);
    }
    ListExpr stream = nl->First(args);
@@ -6992,29 +7003,19 @@ ListExpr createDArrayTM(ListExpr args){
    if(!CcString::checkType(nl->Third(args))){
      return listutils::typeError("Third argument must be a string");
    }
-
-   ListExpr ha = nl->Fifth(args);
-   ListExpr pa = nl->Sixth(args);
-   ListExpr ca = nl->Seventh(args);
-   if(    (nl->AtomType(ha) != SymbolType)
-        ||(nl->AtomType(pa) != SymbolType)
-        ||(nl->AtomType(ca) != SymbolType)){
-     return listutils::typeError("One of the last three argument"
-                                 " is not an Identifier");
-   }
-   ListExpr ht; // host type
-   int hp; // host position
-   string hn = nl->SymbolValue(ha);
    ListExpr attrList = nl->Second(nl->Second(stream));
+
+   string hn = "Host";
+   ListExpr ht;
+   int hp;
    hp = listutils::findAttribute(attrList, hn, ht);
    if(!hp){
-      return listutils::typeError("Attribute " + hn + " not found");
+      return listutils::typeError("Attribute Host not found");
    }
-
    // fo the same for the port
    ListExpr pt;
    int pp; 
-   string pn = nl->SymbolValue(pa);
+   string pn = "Port";
    pp = listutils::findAttribute(attrList, pn, pt);
    if(!pp){
       return listutils::typeError("Attribute " + pn + " not found");
@@ -7022,7 +7023,7 @@ ListExpr createDArrayTM(ListExpr args){
    // and for the configuration
    ListExpr ct;
    int cp; 
-   string cn = nl->SymbolValue(ca);
+   string cn = "Config";
    cp = listutils::findAttribute(attrList, cn, ct);
    if(!cp){
       return listutils::typeError("Attribute " + cn + " not found");
@@ -7065,14 +7066,51 @@ ListExpr createDArrayTM(ListExpr args){
 /*
 1.5.3 Value Mapping Template
 
+Groups elements of a darray-type to those having the same IP and
+the same secondo home directory. Each group will be element of the 
+result.
+
 */
+template<class T>
+vector<vector< pair<DArrayElement, size_t> > > group(T& array){
+
+   typedef map<pair<string,string>, 
+               vector< pair<DArrayElement, size_t> > > groupt;
+
+   groupt groups;
+
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   for(size_t i=0;i<array->numOfWorkers();i++){
+     DArrayElement elem = array->getWorker(i);
+     ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+     if(!ci){
+       throw new SecondoException("worker cannot be reached");
+     }
+     string home = ci->getSecondoHome();
+     pair<string,string> p(ci->getHost(), home);
+     if(groups.find(p)==groups.end()){
+       vector< pair<DArrayElement, size_t> > v;
+       v.push_back(make_pair(elem, i));
+       groups[p] = v;
+     } else{
+       groups[p].push_back(make_pair(elem,i));
+     }
+   }
+   groupt::iterator it;
+   vector<vector<pair<DArrayElement, size_t> > > res;
+   for(it = groups.begin();it!=groups.end();it++){
+      res.push_back(it->second);
+   }
+   return res;
+}
+
 template<class H, class C>
 int createDArrayVMT(Word* args, Word& result, int message,
           Word& local, Supplier s ){
 
-   int host = ((CcInt*) args[7].addr)->GetValue();
-   int port = ((CcInt*) args[8].addr)->GetValue();
-   int config = ((CcInt*) args[9].addr)->GetValue();
+   int host = ((CcInt*) args[4].addr)->GetValue();
+   int port = ((CcInt*) args[5].addr)->GetValue();
+   int config = ((CcInt*) args[6].addr)->GetValue();
 
 
    result = qp->ResultStorage(s);
@@ -7113,6 +7151,96 @@ int createDArrayVMT(Word* args, Word& result, int message,
    }
    stream.close();
    res->set(si,n,v);
+   // TODO: auto mapping
+
+   // step 1:  Build groups of workers working on the same SecondoHome
+   vector<vector<pair<DArrayElement, size_t> > > groups = group(res);
+
+
+   // step 2: for each of these groups connect to one instance from this
+   vector<vector<string> > groupobjects;
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   vector<int> themap;
+   for(size_t i=0;i<si;i++){
+     themap.push_back(-1);
+   }
+   for(size_t i=0;i<groups.size();i++){
+     vector<pair<DArrayElement,size_t> >& g = groups[i];
+     DArrayElement elem = g[1].first;
+     ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+     if(!ci){
+       throw new SecondoException("worker cannot be reached");
+     }
+     string re = n + "_"+"[0-9]+"; 
+     string query =   "query getcatalog() filter[regexmatches(.ObjectName,"
+                      " [const regex value '"
+                    + re 
+                    + "' ])] project[ObjectName, TypeExpr] consume";
+     ListExpr reslist;
+     int err;
+     string errMsg;
+     double runtime; 
+     ci->simpleCommand(query, err, errMsg, reslist, false, runtime);
+     if(err!=0){
+        cerr << "error during command " << query << endl;
+        cerr << "match between existing objects failed" << endl;
+        res->makeUndefined();
+        return 0;
+     } 
+     ListExpr tuplelist = nl->Second(reslist);
+     vector<int> numbers;
+     ListExpr expType = nl->Second(qp->GetType(s));
+     while(!nl->IsEmpty(tuplelist)){
+       ListExpr tuple = nl->First(tuplelist);
+       tuplelist = nl->Rest(tuplelist);
+       // shoud not be necessarcy to check .. be who knows it?
+       if(   nl->HasLength(tuple,2)  
+          && (nl->AtomType(nl->First(tuple))==StringType)
+          && (nl->AtomType(nl->Second(tuple))==TextType)){
+         string ObjectName = nl->StringValue(nl->First(tuple));
+         string typeDescr = nl->Text2String(nl->Second(tuple));
+         ListExpr typelist;
+         if(nl->ReadFromString(typeDescr, typelist)){
+           if(nl->Equal(typelist, expType)){
+              bool ok;
+              string nu = ObjectName.substr(n.length()+1);
+              int num = stringutils::str2int<int>(nu,ok);
+              assert(ok);
+              if(num < si){
+                 numbers.push_back(num);
+              }
+           } else {
+              cerr << "type of stored objects does not fit the array type" 
+                   << endl;
+              res->makeUndefined();
+              return 0;
+           }
+ 
+         }
+       }
+     } // processing tuple list
+     for(size_t i=0;i<numbers.size();i++){
+        if(themap[numbers[i]] >= 0){
+           cerr << "slot number " << numbers[i] << " found multiple" << endl;
+           res->makeUndefined();
+           return 0;
+        } else {
+           themap[numbers[i] ] = g[i % g.size()].second;
+        }
+     }
+   } // for all groups
+
+   // check whether all slots where found
+   for( size_t i=0;i<themap.size();i++){
+      if(themap[i] <0){
+         cerr << "no worker found storing slot " << i << endl;
+         res->makeUndefined();
+         return 0;
+      } else {
+         res->setResponsible(i,themap[i]);
+      }
+   }
+
    return 0;
 }
 
@@ -7128,15 +7256,11 @@ ValueMapping createDArrayVM[] = {
 };
 
 int createDArraySelect(ListExpr args){
-  ListExpr H = nl->Fifth(args);
-  ListExpr C = nl->Seventh(args);
-
   ListExpr ht;
   ListExpr ct;
   ListExpr s = nl->Second(nl->Second(nl->First(args)));
-
-  listutils::findAttribute(s,nl->SymbolValue(H),ht);
-  listutils::findAttribute(s,nl->SymbolValue(C),ct);
+  listutils::findAttribute(s,"Host",ht);
+  listutils::findAttribute(s,"Config",ct);
 
   int n1 = CcString::checkType(ht)?0:1; 
   int n2 = CcString::checkType(ct)?0:1; 
@@ -7148,12 +7272,10 @@ int createDArraySelect(ListExpr args){
 
 */
 OperatorSpec createDArraySpec(
-     " stream<TUPLE> x int x string x ANY x attrName x "
-     "attrName x attrName  -> darray",
-     " _ createDArray[size, name, type template , HostAttr, "
-                     "PortAttr, ConfigAttr]",
+     " stream<TUPLE> x int x string x ANY   -> darray",
+     " _ createDArray[size, name, type template ]",
      " Creates a darray. The workers are given by the input stream. ",
-     " query workers feed createDArray[6,\"obj\",streets, Host, Port, Config] "
+     " query workers feed createDArray[6,\"obj\",streets] "
      );
 
 /*
@@ -9423,7 +9545,7 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
        { boost::lock_guard<boost::mutex> guard(mtx);
         delete getters[index];
         getters[index] = 0;
-       } 
+       }
        cond.notify_one();
      }
 
@@ -9452,6 +9574,7 @@ class dsummarizeRelInfo: public dsummarizeRelListener{
 
 
      void start(){
+
         for(size_t i=0;i< array->getSize();i++){
            RelationFileGetter<A>* getter = 
                           new RelationFileGetter<A>(array,i,this);
@@ -11107,9 +11230,7 @@ class shareInfo: public successListener{
 
     void createFile(ConnectionInfo* ci){
       boost::lock_guard<boost::mutex> guard(createFileMutex);
-      //cout << "create file" << endl;
       if(!fileCreated){
-          //cout << "first time" << endl;
           isAttribute = false;
           isRelation = Relation::checkType(typeList);
           filename = name + "_" + stringutils::int2str(WinUnix::getpid()) 
@@ -14800,12 +14921,15 @@ class partitionInfo{
         // for this worker
         stringstream ss;
         ss << "(" ; // open value
+
         for(size_t i=0;i<array->getSize();i++){
            if(array->getWorkerIndexForSlot(i)==workerNumber){
               ss << " (\"" << array->getName() << "_" << i << "\" )" << endl;
            }
         }
         ss << ")"; // end of value list
+
+
 
         string rel = " ( (rel(tuple((T string)))) " + ss.str() + ")";
 
@@ -14820,7 +14944,7 @@ class partitionInfo{
                          + " ()))"; 
         string stream3 = stream2;
         if(!sfun.empty()){
-          stream3 = "("+ sfun +   stream2 + ")";
+          stream3 = "("+ sfun + "(consume "+  stream2 + "))";
         }
 
 
@@ -14947,7 +15071,6 @@ class partitionInfo{
 template<class A>
 int partitionVMT(Word* args, Word& result, int message,
                     Word& local, Supplier s ){
-
 
    A* array = (A*) args[0].addr;
 
