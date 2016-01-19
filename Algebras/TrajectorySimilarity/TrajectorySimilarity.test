@@ -24,7 +24,8 @@ delete database tsa_test_db;
     StandardAlgebra \
     DateTimeAlgebra \
     SpatialAlgebra \
-    TemporalAlgebra
+    TemporalAlgebra \
+    SymbolicTrajectoryAlgebra
 
 
 ### Create temporary database for tests.
@@ -988,6 +989,134 @@ query lcss(
   [const real value 1.5])
 
 
+### lcss : mlabel x mlabel [x int] -> int
+
+#testcase LCSSMLabel
+#yields (int 2)
+query lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))])
+
+#testcase LCSSMLabelSymmetry
+#yields (int 2)
+query lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))])
+
+#testcase LCSSMLabelVariant2
+#yields (int 1)
+query lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_D'))])
+
+#testcase LCSSMLabelVariant3
+#yields (int 1)
+query lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_A'))])
+
+#testcase LCSSMLabelVariant4
+#yields (int 0)
+query lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_D')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_E'))])
+
+#testcase LCSSMLabelDelta0
+#yields (int 1)
+query lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))],
+    0)
+
+#testcase LCSSMLabelDelta1
+#yields (int 2)
+query lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))],
+    1)
+
+#testcase LCSSMLabelEqual
+#yields (int 3)
+query lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))])
+
+#testcase LCSSMLabelUndefined1
+#yields (int undefined)
+query lcss(
+  [const mlabel value undefined],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))])
+
+#testcase LCSSMLabelUndefined2
+#yields (int undefined)
+query lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value undefined])
+
+#testcase LCSSMLabelEmpty1
+#yields (int 0)
+query lcss(
+  [const mlabel value ()],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))])
+
+#testcase LCSSMLabelEmpty2
+#yields (int 0)
+query lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value ()])
+
+
 
 ###
 ### Test operator 'rel_lcss'.
@@ -1128,6 +1257,34 @@ query rel_lcss(
   [const real value 1.5])
 
 
+### rel_lcss : mlabel x mlabel [x int] -> real
+# (Performing only basic tests, since this is the same implementation as for
+# pointseqs in combination with the lcss implementation for mlabels.)
+
+#testcase RelLCSSMLabel
+#yields (real 1.0)
+query rel_lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))])
+
+#testcase RelLCSSMLabelDelta
+#yields (real 0.5)
+query rel_lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))],
+    0)
+
+
 
 ###
 ### Test operator 'dist_lcss'.
@@ -1266,6 +1423,34 @@ query dist_lcss(
     ("2015-12-29-01:21:16" (2.5 1.2))
     ("2015-12-29-01:32:28" (0.5 3.2)))],
   [const real value 1.5])
+
+
+### dist_lcss : mlabel x mlabel [x int] -> real
+# (Performing only basic tests, since this is the same implementation as for
+# pointseqs in combination with the lcss implementation for mlabels.)
+
+#testcase DistLCSSMLabel
+#yields (real 0.0)
+query dist_lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))])
+
+#testcase DistLCSSMLabelDelta
+#yields (real 0.5)
+query dist_lcss(
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B')
+    (("2015-12-29-01:33:05" "2015-12-29-01:35:00" TRUE FALSE) 'Label_C'))],
+  [const mlabel value (
+    (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A')
+    (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))],
+    0)
 
 
 #teardown

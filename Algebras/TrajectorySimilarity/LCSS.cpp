@@ -64,36 +64,57 @@ The operators
 
         $lcss : SEQ \times SEQ \times real\ [\times\ int] \rightarrow int$,
         \newline
-        $rel\_lcss : SEQ \times SEQ \times real\ [\times\ int] \rightarrow int$,
+        $rel\_lcss : SEQ \times SEQ \times real\ [\times\ int] \rightarrow
+        real$, and \newline
+        $dist\_lcss : SEQ \times SEQ \times real\ [\times\ int] \rightarrow
+        real$
+
+with $SEQ \in \{pointseq,\ tpointseq\}$ and their overloads
+
+        $lcss : mlabel \times mlabel\ [\times\ int] \rightarrow int$,
+        \newline
+        $rel\_lcss : mlabel \times mlabel\ [\times\ int] \rightarrow real$,
         and \newline
-        $dist\_lcss : SEQ \times SEQ \times real\ [\times\ int] \rightarrow int$
+        $dist\_lcss : mlabel \times mlabel\ [\times\ int] \rightarrow real$
 
-with $SEQ \in \{pointseq,\ tpointseq\}$ measure the similarity or the distance
-of two point sequences based on the length of the Longest Common Subsequence.
+measure the similarity or the distance of two point sequences or ~mlabel~
+objects based on the length of their Longest Common Subsequence.
 
-If $SEQ = tpointseq$, the temporal component is ignored.
+The temporal components of a ~tpointseq~ or ~mlabel~ are ignored.
 
-The overloads
+The point sequence overloads
 
-        $\circ : SEQ \times SEQ \times real \rightarrow int$
+        $\circ : SEQ \times SEQ \times real\ \rightarrow RESULT$
 
 with $\circ(P,\ Q,\ \epsilon)$ consider two points matching, if their $L^1$
-distance is less than $\epsilon$, as described in \cite[section 2]{COO05}.
+distance is less than $\epsilon$, as described in \cite[section 2]{COO05}. The
+point sequence overloads
 
-The overloads
-
-        $\circ : SEQ \times SEQ \times real \times int \rightarrow int$
+        $\circ : SEQ \times SEQ \times real \times int\ \rightarrow RESULT$
 
 with $\circ(P,\ Q,\ \epsilon,\ \delta)$ consider two points matching, if their
 $L^1$ distance is less than $\epsilon$ and their index positions in the original
 sequences are at most $\delta$ places apart, as described in \cite{VGK02}.
+
+Similarly, the ~mlabel~ overloads
+
+        $\circ : mlabel \times mlabel\ \rightarrow RESULT$
+
+with $\circ(P,\ Q)$ consider two labels matching, if they are equal. The
+~mlabel~ overloads
+
+        $\circ : mlabel \times mlabel \times int\ \rightarrow RESULT$
+
+with $\circ(P,\ Q,\ \delta)$ consider two labels matching, if they are equal and
+their index positions in the original ~mpoint~s are at most $\delta$ places
+apart.
 
 1.1.1 ~lcss~
 
 The operator ~lcss~ determines the absolute length of the Longest Common
 Subsequence of two point sequences. The result is in the range
 $[0,\ \min(m,\ n)]$, where $m,\ n$ are the lengths of the input sequences and a
-greater result indicates higher similarity. If any of the two sequences is
+greater result value indicates higher similarity. If any of the two sequences is
 ~undefined~, the result is ~undefined~.
 
 1.1.2 ~rel\_lcss~
@@ -125,33 +146,109 @@ the result is ~undefined~.
 #include "TrajectorySimilarity.h"
 #include "VectorTypeMapUtils.h"
 
+#include "../SymbolicTrajectory/Algorithms.h"   // stj::MLabel
+
 
 namespace tsa {
 
 /*
-3 Registration of Operators
+3 Helper Functions
 
-3.1 Common declarations
-
-The operators ~rel\_lcss~ and ~dist\_lcss~ have the same signature and the same
-requirements on their parameters. Therefore they can use common value mapping,
-type mapping, and select functions.
+Function template that tests if the items at positions $i1, i2$ of sequences
+$seq1, seq2$, respectively, match. The default implementation for point
+sequences tests if the spatial $L^1$ distance of the points is less than
+$epsilon$.
 
 */
 template<class SEQ>
-using lcss_func_t = double (*)(
+inline static bool items_match(
+    const SEQ& seq1, const SEQ& seq2,
+    const size_t i1, const size_t i2, const double epsilon)
+{
+  const Point p1 = seq1.get(i1);
+  const Point p2 = seq2.get(i2);
+  return l1Distance(p1, p2) < epsilon;
+}
+
+/*
+Template specialization for ~stj::MLabel~ objects. It tests for equality of the
+two labels.
+
+*/
+template<>
+inline bool items_match(
+    const stj::MLabel& seq1, const stj::MLabel& seq2,
+    const size_t i1, const size_t i2, const double /*epsilon*/)
+{
+  stj::Label l1(/*defined*/ false);
+  stj::Label l2(/*defined*/ false);
+  seq1.GetBasic(i1, l1);
+  seq2.GetBasic(i2, l2);
+  return (l1 == l2);
+}
+
+
+/*
+4 Registration of Operators
+
+4.1 Common Declarations
+
+Template for the type of the operator function with the following template
+parameters:
+
+  * ~SEQ~ is the sequence type of the operator, one of ~tsa::PointSeq~,
+    ~tsa::TPointSeq~, and ~stj::MLabel~.
+
+  * ~RES~ is the return type of the operator function. It is ~unsigned int~ for
+    the basic ~lcss~ operator and ~double~ for the operators ~rel\_lcss~ and
+    ~dist\_lcss~.
+
+*/
+template<class SEQ, typename RES>
+using op_func_t = RES (*)(
     const SEQ&, const SEQ&, const double epsilon, const int delta);
 
-template<class SEQ, bool HAS_DELTA, lcss_func_t<SEQ> FUNC>
+/*
+Struct template with specializations to determine the return type of the
+operator function from SECONDO's type ~CCRES~.
+
+*/
+template<class CCRES> struct OpTypeHelper { };
+template<> struct OpTypeHelper<CcInt> { using res_t = unsigned int; };
+template<> struct OpTypeHelper<CcReal> { using res_t = double; };
+
+/*
+Template for value mapping function for LCSS-based operators with the following
+template parameters:
+
+  * ~SEQ~ is the sequence type of the operator, one of ~tsa::PointSeq~,
+    ~tsa::TPointSeq~, and ~stj::MLabel~.
+
+  * ~CCRES~ is the SECONDO return type of the value mapping function. It is
+    ~CcInt~ for the basic ~lcss~ operator and ~CcReal~ for the operators
+    ~rel\_lcss~ and ~dist\_lcss~.
+
+  * ~NON\_EMPTY~ indicates whether the operator requires non-empty sequences.
+
+  * ~HAS\_EPS~ indicates whether the overload has an $epsilon$ parameter.
+
+  * ~HAS\_DEL~ indicates whether the overload has a $delta$ parameter.
+
+  * ~FUNC~ is the operator function that performs the actual calculation.
+
+*/
+template<
+    class SEQ, class CCRES, bool NON_EMPTY, bool HAS_EPS, bool HAS_DEL,
+    op_func_t<SEQ, typename OpTypeHelper<CCRES>::res_t> FUNC>
 int LCSSOpValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s);
 
 
 /*
-3.2 ~lcss~
+4.2 ~lcss~
 
-This function expects two defined sequences, an $epsilon > 0$ and optionally a
-$delta \ge 0$.
+This operator function expects two defined sequences, an $epsilon > 0$ for point
+sequences, and optionally a $delta \ge 0$.
 
 As shown in \cite[page 292]{Aho90}, the relationship between the Edit Distance
 $D_{ED}(P,\ Q)$ and the length of the Longest Common Subsequence $LCSS(P,\ Q)$
@@ -174,14 +271,16 @@ specified as a lambda function.
 
 */
   const unsigned int ed = edit_distance(
-      seq1.size(), seq2.size(),
+      seq1.GetNoComponents(), seq2.GetNoComponents(),
       [&](const unsigned int i1, const unsigned int i2) -> bool {
 /*
 It would be a bug in the algorithm's implementation, is one of the indices was
 out of range.
 
 */
-        assert(i1 < seq1.size() && i2 < seq2.size());
+        assert(
+            i1 < static_cast<unsigned int>(seq1.GetNoComponents()) &&
+            i2 < static_cast<unsigned int>(seq2.GetNoComponents()));
 
 /*
 If $delta \ne -1$, check for maximum distance of items in original
@@ -192,12 +291,10 @@ sequences.
           return false;
 
 /*
-Check for maximum spatial distance.
+Check for maximum spatial distance of points or equal labels.
 
 */
-        const Point p1 = seq1.get(i1);
-        const Point p2 = seq2.get(i2);
-        return l1Distance(p1, p2) < epsilon;
+        return items_match(seq1, seq2, i1, i2, epsilon);
       }
   );
 
@@ -205,68 +302,19 @@ Check for maximum spatial distance.
 Derive the LCSS length from the Edit Distance.
 
 */
-  const unsigned int max_edits = seq1.size() + seq2.size();
+  const unsigned int max_edits =
+      seq1.GetNoComponents() + seq2.GetNoComponents();
   return (max_edits - ed) / 2;
 }
 
-/*
-The signature of the operator ~lcss~ differs from the signatures of the other
-operators. Therefore it has its own value mapping, type mapping, and select
-functions.
-
-*/
-template<class SEQ, bool HAS_DELTA>
-int LCSSValueMap(
-    Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
-{
-  const SEQ& seq1 = *static_cast<SEQ*>(args[0].addr);
-  const SEQ& seq2 = *static_cast<SEQ*>(args[1].addr);
-  const CcReal &cc_epsilon = *static_cast<CcReal*>(args[2].addr);
-  const CcInt *cc_delta =
-      HAS_DELTA ? static_cast<CcInt*>(args[3].addr) : nullptr;
-  result = qp->ResultStorage(s);    // CcInt
-  CcInt& sim = *static_cast<CcInt*>(result.addr);
-
-/*
-Require defined sequences, a defined $epsilon$ and a defined $delta$, if
-specified.
-
-*/
-  if (!seq1.IsDefined() || !seq2.IsDefined() || !cc_epsilon.IsDefined() ||
-      (HAS_DELTA && !cc_delta->IsDefined())) {
-    sim.SetDefined(false);
-    return 0;
-  }
-
-/*
-Require a positive $epsilon$.
-
-*/
-  const double epsilon = cc_epsilon.GetValue();
-  if (epsilon < 0.0) {
-    sim.SetDefined(false);
-    return 0;
-  }
-
-/*
-Require a non-negative $delta$, if specified.
-
-*/
-  const int delta = HAS_DELTA ? cc_delta->GetValue() : -1;
-  if (HAS_DELTA && delta < 0) {
-    sim.SetDefined(false);
-    return 0;
-  }
-
-  sim.Set(lcss(seq1, seq2, epsilon, delta));
-  return 0;
-}
-
 ValueMapping lcss_functions[] = {
-  LCSSValueMap<PointSeq,  /*HAS_DELTA*/ false>,
-  LCSSValueMap<PointSeq,  /*HAS_DELTA*/ true>,
-  LCSSValueMap<TPointSeq, /*HAS_DELTA*/ false>,
-  LCSSValueMap<TPointSeq, /*HAS_DELTA*/ true>,
+  //             SEQ,         CCRES, NON_EMPTY, HAS_EPS, HAS_DEL, FUNC
+  LCSSOpValueMap<PointSeq,    CcInt, false,     true,    false,   lcss>,
+  LCSSOpValueMap<PointSeq,    CcInt, false,     true,    true,    lcss>,
+  LCSSOpValueMap<TPointSeq,   CcInt, false,     true,    false,   lcss>,
+  LCSSOpValueMap<TPointSeq,   CcInt, false,     true,    true,    lcss>,
+  LCSSOpValueMap<stj::MLabel, CcInt, false,     false,   false,   lcss>,
+  LCSSOpValueMap<stj::MLabel, CcInt, false,     false,   true,    lcss>,
   nullptr
 };
 
@@ -288,45 +336,39 @@ struct LCSSInfo : OperatorInfo
                 TPointSeq::BasicType() + " x " + TPointSeq::BasicType() + " x "
                 + CcReal::BasicType() + " x " + CcInt::BasicType() + " -> "
                 + CcInt::BasicType());
-    syntax    = "lcss(_, _, _[, _])";
+    appendSignature(
+                stj::MLabel::BasicType() + " x " + stj::MLabel::BasicType()
+                + " -> " + CcInt::BasicType());
+    appendSignature(
+                stj::MLabel::BasicType() + " x " + stj::MLabel::BasicType()
+                + " x " + CcInt::BasicType() + " -> " + CcInt::BasicType());
+    syntax    = "lcss(_, _[, _[, _]])";
     meaning   = "Length of Longest Common Subsequence (LCSS) of two point "
-                "sequences of lengths m, n. The result is in the range "
-                "[0, min(m,n)], where a greater value indicates higher "
-                "similarity. If any of the two sequences is undefined, the "
-                "result is undefined.\n"
-                "The overload lcss(P, Q, epsilon) considers two points "
-                "matching, if they are within spatial L^1 distance epsilon. "
-                "The overload lcss(P, Q, epsilon, delta) additionally requires "
-                "that the indices of the two points in the original sequences "
-                "P, Q are at most delta places apart.\n"
+                "sequences or mlabel objects of lengths m, n. The result is in "
+                "the range [0, min(m,n)], where a greater value indicates "
+                "higher similarity. If any of the two sequences is undefined, "
+                "the result is undefined.\n"
+                "The point sequence overloads lcss(P, Q, epsilon) consider "
+                "two points matching, if they are within spatial L^1 distance "
+                "epsilon.\n"
+                "The point sequence overloads lcss(P, Q, epsilon, delta) "
+                "additionally require that the indices of the two points in "
+                "the original sequences P, Q are at most delta places apart.\n"
+                "The mpoint oberload lcss(P, Q) considers two labels matching, "
+                "if they are equal, and the mpoint overload lcss(P, Q, delta) "
+                "additionally requires that the indices of the two labels in "
+                "the original sequences P, Q are at most delta places apart.\n"
                 "The time complexity is O((m+n)d) and the space complexity is "
                 "O(max(m,n)), where d is the length of the LCSS.";
   }
 };
 
-const mappings::VectorTypeMaps lcss_maps = {
-  /*0*/ {{PointSeq::BasicType(), PointSeq::BasicType(), CcReal::BasicType()},
-    /* -> */ {CcInt::BasicType()}},
-  /*1*/ {{PointSeq::BasicType(), PointSeq::BasicType(), CcReal::BasicType(),
-    CcInt::BasicType()}, /* -> */ {CcInt::BasicType()}},
-  /*2*/ {{TPointSeq::BasicType(), TPointSeq::BasicType(), CcReal::BasicType()},
-    /* -> */ {CcInt::BasicType()}},
-  /*3*/ {{TPointSeq::BasicType(), TPointSeq::BasicType(), CcReal::BasicType(),
-    CcInt::BasicType()}, /* -> */ {CcInt::BasicType()}}
-};
-
-ListExpr LCSSTypeMap(ListExpr args)
-{ return mappings::vectorTypeMap(lcss_maps, args); }
-
-int LCSSSelect(ListExpr args)
-{ return mappings::vectorSelect(lcss_maps, args); }
-
 
 /*
-3.3 ~rel\_lcss~
+4.3 ~rel\_lcss~
 
-This function expects two defined and non-empty sequences, an $epsilon > 0$ and
-optionally a $delta \ge 0$.
+This operator function expects two defined and non-empty sequences, an
+$epsilon > 0$ for point sequences, and optionally a $delta \ge 0$.
 
 */
 template<class SEQ>
@@ -345,21 +387,25 @@ The minimum sequence length is always positive, since both sequences are defined
 and non-empty.
 
 */
-  const unsigned int min_length = std::min(seq1.size(), seq2.size());
+  const unsigned int min_length =
+      std::min(seq1.GetNoComponents(), seq2.GetNoComponents());
 
 /*
-The absolute LCSS is at most the minimum sequence length. Therefore the return
-value is in the range $[0, 1]$.
+The absolute LCSS length is at most the minimum sequence length. Therefore the
+return value is in the range $[0, 1]$.
 
 */
   return static_cast<double>(l) / static_cast<double>(min_length);
 }
 
 ValueMapping rel_lcss_functions[] = {
-  LCSSOpValueMap<PointSeq,  /*HAS_DELTA*/ false, rel_lcss>,
-  LCSSOpValueMap<PointSeq,  /*HAS_DELTA*/ true,  rel_lcss>,
-  LCSSOpValueMap<TPointSeq, /*HAS_DELTA*/ false, rel_lcss>,
-  LCSSOpValueMap<TPointSeq, /*HAS_DELTA*/ true,  rel_lcss>,
+  //             SEQ,         CCRES,  NON_EMPTY, HAS_EPS, HAS_DEL, FUNC
+  LCSSOpValueMap<PointSeq,    CcReal, true,      true,    false,   rel_lcss>,
+  LCSSOpValueMap<PointSeq,    CcReal, true,      true,    true,    rel_lcss>,
+  LCSSOpValueMap<TPointSeq,   CcReal, true,      true,    false,   rel_lcss>,
+  LCSSOpValueMap<TPointSeq,   CcReal, true,      true,    true,    rel_lcss>,
+  LCSSOpValueMap<stj::MLabel, CcReal, true,      false,   false,   rel_lcss>,
+  LCSSOpValueMap<stj::MLabel, CcReal, true,      false,   true,    rel_lcss>,
   nullptr
 };
 
@@ -381,18 +427,22 @@ struct RelLCSSInfo : OperatorInfo
                 TPointSeq::BasicType() + " x " + TPointSeq::BasicType() + " x "
                 + CcReal::BasicType() + " x " + CcInt::BasicType() + " -> "
                 + CcReal::BasicType());
+    appendSignature(
+                stj::MLabel::BasicType() + " x " + stj::MLabel::BasicType()
+                + " -> " + CcReal::BasicType());
+    appendSignature(
+                stj::MLabel::BasicType() + " x " + stj::MLabel::BasicType()
+                + " x " + CcInt::BasicType() + " -> " + CcReal::BasicType());
     syntax    = "rel_lcss(_, _, _[, _])";
     meaning   = "Relative length of Longest Common Subsequence (LCSS) of two "
-                "point sequences. The result is in the range [0, 1], where a "
-                "value of 0 indicates low similarity and a value of 1 "
-                "indicates that the shorter sequence is a subsequence of the "
-                "longer sequence. If any of the two sequences is undefined or "
-                "empty, the result is undefined.\n"
-                "The overload rel_lcss(P, Q, epsilon) considers two points "
-                "matching, if they are within spatial L^1 distance epsilon. "
-                "The overload rel_lcss(P, Q, epsilon, delta) additionally "
-                "requires that the indices of the two points in the original "
-                "sequences P, Q are at most delta places apart.\n"
+                "point sequences or mlabel objects of lengths m, n. The result "
+                "is in the range [0, 1], where a value of 0 indicates low "
+                "similarity and a value of 1 indicates that the shorter "
+                "sequence is a subsequence of the longer sequence. If any of "
+                "the two sequences is undefined or empty, the result is "
+                "undefined.\n"
+                "The same rules apply for matching of points and labels as for "
+                "the lcss operator.\n"
                 "The time complexity is O((m+n)d) and the space complexity is "
                 "O(max(m,n)), where d is the length of the LCSS.";
   }
@@ -400,10 +450,10 @@ struct RelLCSSInfo : OperatorInfo
 
 
 /*
-3.4 ~dist\_lcss~
+4.4 ~dist\_lcss~
 
-This function expects two defined and non-empty sequences, an $epsilon > 0$ and
-optionally a $delta \ge 0$.
+This operator function expects two defined and non-empty sequences, an
+$epsilon > 0$ for point sequences, and optionally a $delta \ge 0$.
 
 */
 template<class SEQ>
@@ -415,10 +465,13 @@ double dist_lcss(
 }
 
 ValueMapping dist_lcss_functions[] = {
-  LCSSOpValueMap<PointSeq,  /*HAS_DELTA*/ false, dist_lcss>,
-  LCSSOpValueMap<PointSeq,  /*HAS_DELTA*/ true,  dist_lcss>,
-  LCSSOpValueMap<TPointSeq, /*HAS_DELTA*/ false, dist_lcss>,
-  LCSSOpValueMap<TPointSeq, /*HAS_DELTA*/ true,  dist_lcss>,
+  //             SEQ,         CCRES,  NON_EMPTY, HAS_EPS, HAS_DEL, FUNC
+  LCSSOpValueMap<PointSeq,    CcReal, true,      true,    false,   dist_lcss>,
+  LCSSOpValueMap<PointSeq,    CcReal, true,      true,    true,    dist_lcss>,
+  LCSSOpValueMap<TPointSeq,   CcReal, true,      true,    false,   dist_lcss>,
+  LCSSOpValueMap<TPointSeq,   CcReal, true,      true,    true,    dist_lcss>,
+  LCSSOpValueMap<stj::MLabel, CcReal, true,      false,   false,   dist_lcss>,
+  LCSSOpValueMap<stj::MLabel, CcReal, true,      false,   true,    dist_lcss>,
   nullptr
 };
 
@@ -440,15 +493,21 @@ struct DistLCSSInfo : OperatorInfo
                 TPointSeq::BasicType() + " x " + TPointSeq::BasicType() + " x "
                 + CcReal::BasicType() + " x " + CcInt::BasicType() + " -> "
                 + CcReal::BasicType());
+    appendSignature(
+                stj::MLabel::BasicType() + " x " + stj::MLabel::BasicType()
+                + " -> " + CcReal::BasicType());
+    appendSignature(
+                stj::MLabel::BasicType() + " x " + stj::MLabel::BasicType()
+                + " x " + CcInt::BasicType() + " -> " + CcReal::BasicType());
     syntax    = "dist_lcss(_, _, _[, _])";
-    meaning   = "Distance of two point sequences based defined as 1 - "
-                "rel_lcss. If any of the two sequences is undefined or empty, "
-                "the result is undefined.\n"
-                "The overload dist_lcss(P, Q, epsilon) considers two points "
-                "matching, if they are within spatial L^1 distance epsilon. "
-                "The overload dist_lcss(P, Q, epsilon, delta) additionally "
-                "requires that the indices of the two points in the original "
-                "sequences P, Q are at most delta places apart.\n"
+    meaning   = "Distance of two point sequences or mlabel objects defined as "
+                "(1 - rel_lcss). The result is in the range [0, 1], where a "
+                "value of 0 indicates that the shorter sequence is a "
+                "subsequence of the longer sequence and a value of 1 indicates "
+                "low similarity. If any of the two sequences is undefined or "
+                "empty, the result is undefined.\n"
+                "The same rules apply for matching of points and labels as for "
+                "the lcss operator.\n"
                 "The time complexity is O((m+n)d) and the space complexity is "
                 "O(max(m,n)), where d is the length of the LCSS.";
   }
@@ -456,56 +515,89 @@ struct DistLCSSInfo : OperatorInfo
 
 
 /*
-3.5 Common implementation
+4.5 Common Implementation
+
+The type maps of the operators differ only in the result type.
 
 */
-const mappings::VectorTypeMaps lcss_op_maps = {
+template<class CCRES> struct OpMaps
+{ static const mappings::VectorTypeMaps maps; };
+
+template<class CCRES>
+const mappings::VectorTypeMaps OpMaps<CCRES>::maps = {
   /*0*/ {{PointSeq::BasicType(), PointSeq::BasicType(), CcReal::BasicType()},
-    /* -> */ {CcReal::BasicType()}},
+    /* -> */ {CCRES::BasicType()}},
   /*1*/ {{PointSeq::BasicType(), PointSeq::BasicType(), CcReal::BasicType(),
-    CcInt::BasicType()}, /* -> */ {CcReal::BasicType()}},
+    CcInt::BasicType()}, /* -> */ {CCRES::BasicType()}},
   /*2*/ {{TPointSeq::BasicType(), TPointSeq::BasicType(), CcReal::BasicType()},
-    /* -> */ {CcReal::BasicType()}},
+    /* -> */ {CCRES::BasicType()}},
   /*3*/ {{TPointSeq::BasicType(), TPointSeq::BasicType(), CcReal::BasicType(),
-    CcInt::BasicType()}, /* -> */ {CcReal::BasicType()}}
+    CcInt::BasicType()}, /* -> */ {CCRES::BasicType()}},
+  /*4*/ {{stj::MLabel::BasicType(), stj::MLabel::BasicType()},
+    /* -> */ {CCRES::BasicType()}},
+  /*5*/ {{stj::MLabel::BasicType(), stj::MLabel::BasicType(),
+    CcInt::BasicType()}, /* -> */ {CCRES::BasicType()}}
 };
 
+template<class CCRES>
 ListExpr LCSSOpTypeMap(ListExpr args)
-{ return mappings::vectorTypeMap(lcss_op_maps, args); }
+{ return mappings::vectorTypeMap(OpMaps<CCRES>::maps, args); }
 
+template<class CCRES>
 int LCSSOpSelect(ListExpr args)
-{ return mappings::vectorSelect(lcss_op_maps, args); }
+{ return mappings::vectorSelect(OpMaps<CCRES>::maps, args); }
 
-template<class SEQ, bool HAS_DELTA, lcss_func_t<SEQ> FUNC>
+/*
+Template for value mapping function for LCSS-based operators. See above for a
+description of the template parameters.
+
+*/
+template<
+    class SEQ, class CCRES, bool NON_EMPTY, bool HAS_EPS, bool HAS_DEL,
+    op_func_t<SEQ, typename OpTypeHelper<CCRES>::res_t> FUNC>
 int LCSSOpValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
   const SEQ& seq1 = *static_cast<SEQ*>(args[0].addr);
   const SEQ& seq2 = *static_cast<SEQ*>(args[1].addr);
-  const CcReal &cc_epsilon = *static_cast<CcReal*>(args[2].addr);
+  size_t argc = 2;
+  const CcReal *cc_epsilon =
+      HAS_EPS ? static_cast<CcReal*>(args[argc++].addr) : nullptr;
   const CcInt *cc_delta =
-      HAS_DELTA ? static_cast<CcInt*>(args[3].addr) : nullptr;
-  result = qp->ResultStorage(s);    // CcReal
-  CcReal& sim = *static_cast<CcReal*>(result.addr);
+      HAS_DEL ? static_cast<CcInt*>(args[argc++].addr) : nullptr;
+  result = qp->ResultStorage(s);    // CCRES
+  CCRES& res = *static_cast<CCRES*>(result.addr);
 
 /*
-Require defined and non-empty sequences, a defined $epsilon$ and a defined
+Require defined sequences, a defined $epsilon$, if specified, and a defined
 $delta$, if specified.
 
 */
-  if (seq1.size() == 0 || seq2.size() == 0 || !cc_epsilon.IsDefined() ||
-      (HAS_DELTA && !cc_delta->IsDefined())) {
-    sim.SetDefined(false);
+  if (!seq1.IsDefined() || !seq2.IsDefined() ||
+      (HAS_EPS && !cc_epsilon->IsDefined()) ||
+      (HAS_DEL && !cc_delta->IsDefined()))
+  {
+    res.SetDefined(false);
     return 0;
   }
 
 /*
-Require a positive $epsilon$.
+Require non-empty sequences, if specified.
 
 */
-  const double epsilon = cc_epsilon.GetValue();
-  if (epsilon <= 0.0) {
-    sim.SetDefined(false);
+  if (NON_EMPTY && (seq1.GetNoComponents() == 0 || seq2.GetNoComponents() == 0))
+  {
+    res.SetDefined(false);
+    return 0;
+  }
+
+/*
+Require a positive $epsilon$, if specified.
+
+*/
+  const double epsilon = HAS_EPS ? cc_epsilon->GetValue() : NAN;
+  if (HAS_EPS && epsilon < 0.0) {
+    res.SetDefined(false);
     return 0;
   }
 
@@ -513,13 +605,13 @@ Require a positive $epsilon$.
 Require a non-negative $delta$, if specified.
 
 */
-  const int delta = HAS_DELTA ? cc_delta->GetValue() : -1;
-  if (HAS_DELTA && delta < 0) {
-    sim.SetDefined(false);
+  const int delta = HAS_DEL ? cc_delta->GetValue() : -1;
+  if (HAS_DEL && delta < 0) {
+    res.SetDefined(false);
     return 0;
   }
 
-  sim.Set(FUNC(seq1, seq2, epsilon, delta));
+  res.Set(FUNC(seq1, seq2, epsilon, delta));
   return 0;
 }
 
@@ -527,13 +619,13 @@ void TrajectorySimilarityAlgebra::addLCSSOp()
 {
   AddOperator(
       LCSSInfo(), lcss_functions,
-      LCSSSelect, LCSSTypeMap);
+      LCSSOpSelect<CcInt>, LCSSOpTypeMap<CcInt>);
   AddOperator(
       RelLCSSInfo(), rel_lcss_functions,
-      LCSSOpSelect, LCSSOpTypeMap);
+      LCSSOpSelect<CcReal>, LCSSOpTypeMap<CcReal>);
   AddOperator(
       DistLCSSInfo(), dist_lcss_functions,
-      LCSSOpSelect, LCSSOpTypeMap);
+      LCSSOpSelect<CcReal>, LCSSOpTypeMap<CcReal>);
 }
 
 } //-- namespace tsa

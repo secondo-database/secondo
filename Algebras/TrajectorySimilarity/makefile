@@ -31,7 +31,8 @@ ALGEBRA_DEPENDENCIES := \
 	StandardAlgebra \
 	DateTimeAlgebra \
 	SpatialAlgebra \
-	TemporalAlgebra
+	TemporalAlgebra \
+	SymbolicTrajectoryAlgebra
 
 
 # Include global definitions.

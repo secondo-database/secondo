@@ -125,6 +125,18 @@ Signature: pointseq x pointseq x real x int -> int
 Example  : query lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], 0.5, 0)
 Result   : (int 0)
 
+Operator : lcss
+Number   : 3
+Signature: mlabel x mlabel -> int
+Example  : query lcss([const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B'))], [const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_B') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))])
+Result   : (int 1)
+
+Operator : lcss
+Number   : 4
+Signature: mlabel x mlabel x int -> int
+Example  : query lcss([const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B'))], [const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_B') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))], 0)
+Result   : (int 0)
+
 
 Operator : rel_lcss
 Number   : 1
@@ -138,6 +150,18 @@ Signature: pointseq x pointseq x real x int -> real
 Example  : query rel_lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], 0.5, 0)
 Result   : (real 0.0)
 
+Operator : rel_lcss
+Number   : 3
+Signature: mlabel x mlabel -> int
+Example  : query rel_lcss([const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B'))], [const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_B') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))])
+Result   : (real 0.5)
+
+Operator : rel_lcss
+Number   : 4
+Signature: mlabel x mlabel x int -> int
+Example  : query rel_lcss([const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B'))], [const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_B') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))], 0)
+Result   : (real 0.0)
+
 
 Operator : dist_lcss
 Number   : 1
@@ -149,4 +173,16 @@ Operator : dist_lcss
 Number   : 2
 Signature: pointseq x pointseq x real x int -> real
 Example  : query dist_lcss([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], 0.5, 0)
+Result   : (real 1.0)
+
+Operator : dist_lcss
+Number   : 3
+Signature: mlabel x mlabel -> int
+Example  : query dist_lcss([const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B'))], [const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_B') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))])
+Result   : (real 0.5)
+
+Operator : dist_lcss
+Number   : 4
+Signature: mlabel x mlabel x int -> int
+Example  : query dist_lcss([const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B'))], [const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_B') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))], 0)
 Result   : (real 1.0)
