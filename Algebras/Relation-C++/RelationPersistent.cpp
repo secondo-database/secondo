@@ -3227,6 +3227,31 @@ Tuple* RelationIterator::GetNextTuple()
   return result;
 }
 
+Tuple* RelationIterator::GetNthTuple(const size_t n, const bool random){
+  if(endOfScan){
+     return 0;
+  }
+  assert(n>0);
+  Tuple* result = 0;
+  size_t num = random?rand()%n:n-1;
+  for(size_t i=0;i<n && !endOfScan ;i++){
+     if(!iterator->Next()){
+        endOfScan = true;
+     } else {
+       if(i==num){
+          result = new Tuple( relation.relDesc.tupleType );
+          bool openOK = result->Open( &relation.tupleFile,
+                                    relation.relDesc.lobFileId,
+                                    iterator );
+          assert(openOK); // otherwise the prefetching iterators works wrong
+       } 
+     }
+  }
+  currentTupleId = result?result->GetTupleId():-1; 
+  return result;
+}
+
+
 Tuple* RelationIterator::GetNextTuple( const list<int>& attrList )
 {
 //#define TRACE_ON

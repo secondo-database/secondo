@@ -5443,6 +5443,90 @@ Operator relalgfeedproject (
         FeedProjectCostEstimationFunc  // cost estimation
 );
 
+
+/*
+5.14 Operator ~feedNth~
+
+*/
+ListExpr feedNthTM(ListExpr args){
+  string err = "rel x int x bool expected";
+  if(!nl->HasLength(args,3)){
+     return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(   !Relation::checkType(nl->First(args))
+     || !CcInt::checkType(nl->Second(args))
+     || !CcBool::checkType(nl->Third(args))){
+     return listutils::typeError(err);
+  }
+  return nl->TwoElemList(
+              listutils::basicSymbol<Stream<Tuple> >(),
+              nl->Second(nl->First(args)));
+}
+
+
+int feedNthVM(Word* args, Word& result, int message,
+                        Word& local, Supplier s) {
+
+  typedef pair<GenericRelationIterator*, pair<int,bool> > LI;
+  LI* li = (LI*) local.addr;
+  switch(message){
+     case OPEN : {
+             if(li){
+               delete li->first;
+               delete li;
+               local.addr = 0;
+             }
+             Relation* rel = (Relation*) args[0].addr;
+             CcInt* n = (CcInt*) args[1].addr;
+             CcBool* r = (CcBool*) args[2].addr;
+             if(!n->IsDefined() || !r->IsDefined()){
+               return 0;
+             }
+             int num = n->GetValue();
+             if(num <=0 ){
+               return 0;
+             }
+             local.addr = new LI(rel->MakeScan(), 
+                         pair<int,bool>(num,!r->GetValue()));
+             return 0;
+     }
+     case REQUEST: {
+           result.addr = li?li->first->GetNthTuple(li->second.first, 
+                                                   li->second.second)
+                           :0;
+           return result.addr?YIELD:CANCEL;
+     }
+     case CLOSE:{
+            if(li){
+               delete li->first;
+               delete li;
+               local.addr = 0;
+            }
+            return 0;
+     }
+   }
+   return -1;
+}
+
+OperatorSpec feedNthSpec(
+  "rel(tuple(...)) x int x bool -> stream(tuple(...))",
+  "_ feedNth[_,_]",
+  "Returns each nth tuple from a relation. If the boolean "
+  "argument is false, from the block of the next n tuples "
+  "one is chosen randomly, otherwise exactly the nth element.",
+  "query plz feedNth[100,FALSE] count"
+);
+
+Operator feedNthOP(
+  "feedNth",
+  feedNthSpec.getStr(),
+  feedNthVM,
+  Operator::SimpleSelect,
+  feedNthTM
+);
+
+
+
 /*
 
 6 Class ~RelationAlgebra~
@@ -5523,6 +5607,7 @@ class RelationAlgebra : public Algebra
     AddOperator( CountBothInfo(), countboth_vm, countboth_tm );
     
     AddOperator(&relalgfeedproject);
+    AddOperator(&feedNthOP);
 
     cpptuple.AssociateKind( Kind::TUPLE() );
     cpprel.AssociateKind( Kind::REL() );

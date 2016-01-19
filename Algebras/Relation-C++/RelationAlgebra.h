@@ -1931,6 +1931,10 @@ both classes can be used in a generic way with polymorphism.
 class GenericRelationIterator
 {
   public:
+    GenericRelationIterator(){ 
+       srand (time(NULL));
+    }
+
     virtual ~GenericRelationIterator() {};
 /*
 The virtual destructor.
@@ -1948,7 +1952,27 @@ The function to retrieve the current tuple ~id~.
 
 */
 
+     virtual Tuple* GetNthTuple(const size_t n, 
+                                const bool random){
+         Tuple*  res = 0;
+         size_t num = random?rand()%n:n-1;
+         size_t c = 0;
+         Tuple* current;
+         while(c<n && ((current = GetNextTuple())!=0)){
+             if(c==num){
+                res = current;
+             } else {
+                current->DeleteIfAllowed();
+             }
+             c++;
+         }
+         return res;
+     }
+
  virtual bool EndOfScan() const{ return false;}
+
+  
+
 
 };
 
@@ -2582,6 +2606,8 @@ the end of a relation.
 Returns the tuple identifier of the current tuple.
 
 */
+    Tuple* GetNthTuple(const size_t n, const bool random);
+
     bool EndOfScan() const;
 /*
 Tells whether the cursor is in the end of a relation.
