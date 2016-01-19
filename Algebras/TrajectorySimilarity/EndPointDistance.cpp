@@ -50,8 +50,8 @@ The operators
 with $SEQ \in \{pointseq,\ tpointseq\}$ measure the Euclidean distance between
 specific 2-dimensional end-points of two point sequences of type ~SEQ~.
 
-The temporal components of ~tpointseq~ objects is ignored. The computation takes
-the ~geoid~ into account, if specified. If any of the two sequences is
+The temporal components of ~tpointseq~ objects are ignored. The computation
+takes the ~geoid~ into account, if specified. If any of the two sequences is
 ~undefined~ or empty (i.e. it contains no point), the result is ~undefined~.
 
 1.1.1 ~dist\_origin~
@@ -137,7 +137,7 @@ struct DistOriginInfo : OperatorInfo
     syntax    = "dist_origin(_, _[, _])";
     meaning   = "Euclidean distance between the two first points of the "
                 "sequences. The geoid is taken into account, if specified. "
-                "If any of the sequences if not defined or empty, the result "
+                "If any of the sequences is not defined or empty, the result "
                 "is undefined.\n"
                 "The time complexity is O(1).";
   }
@@ -183,7 +183,7 @@ struct DistDestinationInfo : OperatorInfo
     syntax    = "dist_destination(_, _[, _])";
     meaning   = "Euclidean distance between the two last points of the "
                 "sequences. The geoid is taken into account, if specified. "
-                "If any of the sequences if not defined or empty, the result "
+                "If any of the sequences is not defined or empty, the result "
                 "is undefined.\n"
                 "The time complexity is O(1).";
   }
@@ -239,7 +239,7 @@ struct DistOriginAndDestinationInfo : OperatorInfo
     meaning   = "Arithmetic mean of the Euclidean distances between the two "
                 "first points and the two last points of the sequences. "
                 "The geoid is taken into account, if specified. "
-                "If any of the sequences if not defined or empty, the result "
+                "If any of the sequences is not defined or empty, the result "
                 "is undefined.\n"
                 "The time complexity is O(1).";
   }

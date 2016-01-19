@@ -79,7 +79,7 @@ using temporalalgebra::MPoint;
 /*
 3 Declaration of Class Template ~Sequence$<$T$>$~
 
-This template class provides common functionality for the sequence classes
+This class template provides common functionality for the sequence classes
 ~PointSeq~ and ~TPointSeq~.
 
 An object of the class ~Sequence$<$T$>$~ with item type ~T~ is either

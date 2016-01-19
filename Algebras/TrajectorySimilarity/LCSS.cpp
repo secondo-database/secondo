@@ -121,7 +121,7 @@ greater result value indicates higher similarity. If any of the two sequences is
 
 The operator ~rel\_lcss~ determines the relative length of the Longest Common
 Subsequence of two point sequences, that is the absolute length of the LCSS
-divided by the length of the shorter of the two sequences. \cite[def. 2]{VGK02}
+divided by the length of the shorter of the two sequences. \cite[def.\ 2]{VGK02}
 presents this as the similarity function $S1$. The result is in the range
 $[0,\ 1]$, where a value of 0 indicates low similarity and a value of 1
 indicates that the shorter sequence is a subsequence of the longer sequence. If
@@ -132,7 +132,7 @@ the result is ~undefined~.
 
 The operator ~dist\_lcss~ measures the distance of two point sequences in the
 range $[0,\ 1]$. It is defined as $dist\_lcss = 1 - rel\_lcss$.
-\cite[def. 4]{VGK02} presents this as the distance function $D1$. If
+\cite[def.\ 4]{VGK02} presents this as the distance function $D1$. If
 any of the two sequences is ~undefined~ or empty (i.e. it contains no point),
 the result is ~undefined~.
 

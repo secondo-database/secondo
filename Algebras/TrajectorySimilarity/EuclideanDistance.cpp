@@ -54,8 +54,8 @@ distance of two points, defined as
 
 $$d^{2}(p,\thinspace q) := (p_{x}-q_{x})^{2}+(p_{y}-q_{y})^{2}.$$
 
-The temporal components of ~tpointseq~ objects is ignored. The computation takes
-the ~geoid~ into account, if specified. If any of the two sequences is
+The temporal components of ~tpointseq~ objects are ignored. The computation
+takes the ~geoid~ into account, if specified. If any of the two sequences is
 ~undefined~ or empty (i.e. it contains no point) or if the sequences have
 different numbers of points, the result is ~undefined~.
 
@@ -145,7 +145,7 @@ struct DistEuclideanInfo : OperatorInfo
     meaning   = "Euclidean distance of two point sequences, that is the square "
                 "root of the sum of squared Euclidean distances between "
                 "corresponding points of the sequences. The geoid is taken "
-                "into account, if specified. If any of the sequences if not "
+                "into account, if specified. If any of the sequences is not "
                 "defined or empty or if the sequences have different numbers "
                 "of points, the result is undefined.\n"
                 "The time complexity is O(n).";
