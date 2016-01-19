@@ -156,7 +156,7 @@ Get the number of items in the sequence. Returns 0, if the sequence is
 ~undefined~.
 
 */
-  size_t size() const
+  size_t GetNoComponents() const
   { return IsDefined() ? seq.Size() : 0; }
 
 /*
@@ -167,17 +167,18 @@ $0 \le pos < size()$.
   T get(const size_t pos) const;
 
 /*
-Copy ~item~ to position ~pos~ of the sequence, where $0 \le pos \le size()$ and
-$pos = 0$ identifies the first position. If $pos = size()$, the sequence grows
-by one item to $size() = pos+1$. Otherwise an existing item is replaced and the
-size of the sequence remains unchanged.
+Copy ~item~ to position ~pos~ of the sequence, where $0 \le pos \le
+GetNoComponents()$ and $pos = 0$ identifies the first position. If $pos =
+GetNoComponents()$, the sequence grows by one item to $GetNoComponents() =
+pos+1$. Otherwise an existing item is replaced and the size of the sequence
+remains unchanged.
 
 */
   void set(const size_t pos, const T& item);
 
 /*
 Copy ~item~ as a new item to the end of the sequence. Same as
-$set(size(),\ item)$.
+$set(GetNoComponents(),\ item)$.
 
 */
   void append(const T& item);
@@ -225,7 +226,7 @@ variables.
   inline std::ostream& Print(std::ostream& os) const override
   {
     os << Sequence<T>::BasicType() << ": (";
-    for (size_t i = 0; i < size(); ++i) {
+    for (size_t i = 0; i < GetNoComponents(); ++i) {
       if (i != 0)
         os << ", ";
       os << get(i).toString();

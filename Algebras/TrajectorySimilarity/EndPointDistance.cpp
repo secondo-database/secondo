@@ -50,8 +50,8 @@ The operators
 with $SEQ \in \{pointseq,\ tpointseq\}$ measure the Euclidean distance between
 specific 2-dimensional end-points of two point sequences of type ~SEQ~.
 
-If $SEQ = tpointseq$, the temporal component is ignored. If a ~geoid~ is
-specified, the computation takes it into account. If any of the two sequences is
+The temporal components of ~tpointseq~ objects is ignored. The computation takes
+the ~geoid~ into account, if specified. If any of the two sequences is
 ~undefined~ or empty (i.e. it contains no point), the result is ~undefined~.
 
 1.1.1 ~dist\_origin~
@@ -87,7 +87,7 @@ namespace tsa {
 /*
 3 Registration of Operators
 
-3.1 Common declarations
+3.1 Common Declarations
 
 */
 template<class SEQ>
@@ -151,8 +151,8 @@ struct DistOriginInfo : OperatorInfo
 template<class SEQ>
 double dist_destination(const SEQ& seq1, const SEQ& seq2, const Geoid* geoid)
 {
-  const Point p1 = seq1.get(seq1.size()-1);
-  const Point p2 = seq2.get(seq2.size()-1);
+  const Point p1 = seq1.get(seq1.GetNoComponents() - 1);
+  const Point p2 = seq2.get(seq2.GetNoComponents() - 1);
   return euclideanDistance(p1, p2, geoid);
 }
 
@@ -200,8 +200,8 @@ double dist_origin_and_destination(
 {
   const Point po1 = seq1.get(0);
   const Point po2 = seq2.get(0);
-  const Point pd1 = seq1.get(seq1.size()-1);
-  const Point pd2 = seq2.get(seq2.size()-1);
+  const Point pd1 = seq1.get(seq1.GetNoComponents() - 1);
+  const Point pd2 = seq2.get(seq2.GetNoComponents() - 1);
   return
       (euclideanDistance(po1, po2, geoid) +
        euclideanDistance(pd1, pd2, geoid)) / 2.0;
@@ -247,7 +247,7 @@ struct DistOriginAndDestinationInfo : OperatorInfo
 
 
 /*
-3.5 Common implementation
+3.5 Common Implementation
 
 */
 const mappings::VectorTypeMaps end_point_dist_maps = {
@@ -281,7 +281,7 @@ int EndPointDistValueMap(
 Require defined and non-empty sequences.
 
 */
-  if (seq1.size() == 0 || seq2.size() == 0) {
+  if (seq1.GetNoComponents() == 0 || seq2.GetNoComponents() == 0) {
     dist.SetDefined(false);
     return 0;
   }

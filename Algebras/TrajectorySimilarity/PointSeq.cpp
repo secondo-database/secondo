@@ -189,7 +189,7 @@ Copy constructor.
 template<class T>
 Sequence<T>::Sequence(const Sequence<T>& rhs)
   : Attribute(rhs.IsDefined()),
-    seq(rhs.size())
+    seq(rhs.GetNoComponents())
 {
   seq.copyFrom(rhs.seq);
 }
@@ -223,7 +223,7 @@ void Sequence<T>::toDLine(DLine& dline) const
 If the sequence is empty, create an empty ~DLine~.
 
 */
-  if (size() == 0)
+  if (GetNoComponents() == 0)
     return;
 
 /*
@@ -231,7 +231,7 @@ If the sequence has only one item, create a ~DLine~ with a single segment whose
 start and end point are equal.
 
 */
-  if (size() == 1) {
+  if (GetNoComponents() == 1) {
     const T& item = get(0);
     const SimpleSegment seg = makeSimpleSegment(item, item);
     dline.append(seg);
@@ -244,7 +244,7 @@ them.
 
 */
   T prev_item = get(0);
-  for(size_t i = 1; i < size(); ++i) {
+  for(size_t i = 1; i < GetNoComponents(); ++i) {
     const T& item = get(i);
     const SimpleSegment seg = makeSimpleSegment(prev_item, item);
     dline.append(seg);
@@ -382,7 +382,7 @@ ListExpr Sequence<T>::Out(ListExpr typeInfo, Word value)
     return nl->SymbolAtom(Symbol::UNDEFINED());
 
   NList list;
-  for (size_t i = 0; i < ps.size(); ++i) {
+  for (size_t i = 0; i < ps.GetNoComponents(); ++i) {
     const T& item = ps.get(i);
     list.append(item.toNList());
   }
@@ -450,7 +450,7 @@ Compare defined sequences. First compare them item by item until the end of the
 shorter sequence. The first pair of unequal items decides, if any.
 
 */
-  size_t min_size = std::min(size(), rps.size());
+  size_t min_size = std::min(GetNoComponents(), rps.GetNoComponents());
   for (size_t i = 0; i < min_size; ++i) {
     const int cmp = get(i).compare(rps.get(i));
     if (cmp != 0)
@@ -461,14 +461,14 @@ shorter sequence. The first pair of unequal items decides, if any.
 Otherwise the sequences are equal, if they have the same length.
 
 */
-  if (size() == rps.size())
+  if (GetNoComponents() == rps.GetNoComponents())
     return 0;
 
 /*
 Otherwise the shorter sequence is considered ~less than~ the longer sequence.
 
 */
-  if (rps.size() > min_size)
+  if (rps.GetNoComponents() > min_size)
     return -1;
 
   return 1;
@@ -491,7 +491,7 @@ Iterate the sequence, get the hash for each item, and XOR it with the previous
 hash value rotated by one bit.
 
 */
-  for (size_t i = 0; i < size(); ++i)
+  for (size_t i = 0; i < GetNoComponents(); ++i)
     hash = get(i).hash() ^ (hash << 1 | hash >> ((sizeof(size_t)*CHAR_BIT)-1));
 
   return hash;
@@ -666,8 +666,8 @@ void PointSeq::convertFrom(const TPointSeq& src) noexcept
     return;
 
   SetDefined(true);
-  seq.resize(src.size());
-  for (size_t i = 0; i < src.size(); ++i)
+  seq.resize(src.GetNoComponents());
+  for (size_t i = 0; i < src.GetNoComponents(); ++i)
     append(Point(src.get(i)));
 }
 
@@ -884,7 +884,7 @@ int IsEmpty(
   const SEQ& seq = *static_cast<SEQ*>(args[0].addr);
   result = qp->ResultStorage(s);    // CcBool
   CcBool& is_empty = *static_cast<CcBool*>(result.addr);
-  is_empty.Set(/*defined*/ true, seq.size() == 0);
+  is_empty.Set(/*defined*/ true, seq.GetNoComponents() == 0);
   return 0;
 }
 
@@ -938,7 +938,7 @@ int NoComponents(
   const SEQ& seq = *static_cast<SEQ*>(args[0].addr);
   result = qp->ResultStorage(s);    // CcInt
   CcInt& no_components = *static_cast<CcInt*>(result.addr);
-  no_components.Set(/*defined*/ true, seq.size());
+  no_components.Set(/*defined*/ true, seq.GetNoComponents());
   return 0;
 }
 

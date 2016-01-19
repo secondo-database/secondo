@@ -54,7 +54,7 @@ distance of two points, defined as
 
 $$d^{2}(p,\thinspace q) := (p_{x}-q_{x})^{2}+(p_{y}-q_{y})^{2}.$$
 
-If $SEQ = tpointseq$, the temporal component is ignored. The computation takes
+The temporal components of ~tpointseq~ objects is ignored. The computation takes
 the ~geoid~ into account, if specified. If any of the two sequences is
 ~undefined~ or empty (i.e. it contains no point) or if the sequences have
 different numbers of points, the result is ~undefined~.
@@ -85,7 +85,7 @@ template<class SEQ>
 double dist_euclidean(const SEQ& seq1, const SEQ& seq2, const Geoid* geoid)
 {
   double dist = 0.0;
-  for (size_t i = 0; i < seq1.size(); ++i) {
+  for (size_t i = 0; i < seq1.GetNoComponents(); ++i) {
     const Point p1 = seq1.get(i);
     const Point p2 = seq2.get(i);
     dist += sqrEuclideanDistance(p1, p2, geoid);
@@ -107,7 +107,8 @@ int EuclideanDistValueMap(
 Require defined and non-empty sequences of equal length.
 
 */
-  if (seq1.size() == 0 || seq2.size() == 0 || seq1.size() != seq2.size()) {
+  if (seq1.GetNoComponents() != seq2.GetNoComponents() ||
+      seq1.GetNoComponents() == 0) {
     dist.SetDefined(false);
     return 0;
   }
