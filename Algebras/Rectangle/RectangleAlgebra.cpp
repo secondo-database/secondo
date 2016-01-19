@@ -40,6 +40,8 @@ struct ~Rectangle~, and the definitions of the type constructur
 
 */
 
+
+
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -544,6 +546,10 @@ RectRectTypeMapBool( ListExpr args )
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
+
+
+
+
 /*
 4.1.4 Type mapping function ~TranslateTypeMap~
 
@@ -692,6 +698,36 @@ RectRectTypeMapReal( ListExpr args )
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
+
+
+
+/*
+4.1.7 Type mapping function ~RectRectTypeMapInt~
+
+Used for ~topleftmax~.
+
+*/
+ListExpr
+RectRectTypeMapInt( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if( ( nl->IsEqual( arg1,  Rectangle<2>::BasicType() )
+      && nl->IsEqual( arg2,  Rectangle<2>::BasicType() ) ) ||
+        ( nl->IsEqual( arg1, Rectangle<3>::BasicType() )
+        && nl->IsEqual( arg2, Rectangle<3>::BasicType() ) ) ||
+        ( nl->IsEqual( arg1, Rectangle<4>::BasicType() )
+        && nl->IsEqual( arg2, Rectangle<4>::BasicType() ) )   )
+    return nl->SymbolAtom( CcInt::BasicType() );
+  }
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
+}
+
+
+
 
 
 /*
@@ -1729,6 +1765,9 @@ int RectangleDistanceValueMap( Word* args, Word& result, int message,
   return 0;
 }
 
+
+
+
 /*
 4.4.7 Value mapping functions of operator ~rectproject~
 
@@ -1942,6 +1981,58 @@ int scalerectValueMap( Word* args, Word& result, int message,
    res->Set(true,min,max);
    return 0;
 }
+
+
+
+
+/*
+4.4.13 Value mapping functions of operator ~topleftmaxe~
+
+*/
+
+
+
+template<unsigned int dim>
+int RectangleTopleftmaxValueMap ( Word* args, Word& result, int message,
+                               Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcInt *res = (CcInt*) result.addr;
+  Rectangle<dim> *r1, *r2;
+  r1 = (Rectangle<dim> *) args[0].addr;
+  r2 = (Rectangle<dim> *) args[1].addr;
+  int value = 0;
+  
+  if ((r1->MinD(0) >= r2->MinD(0)) && (r1->MinD(0) <= r2->MaxD(0)))
+  {
+  value = value + 1; 
+    
+  }
+  
+  
+  if ((r1->MaxD(1) >= r2->MinD(1)) && (r1->MaxD(1) <= r2->MaxD(1)))
+  {
+   value= value + 2; 
+  }  
+   
+   
+   res->Set( true, value);
+   
+   return 0;
+  
+  }
+  
+
+
+
+
+
+
+
+
+
+
+
 
 /*
 4.4.4.1 Value mapping functions of operator ~bboxintersects~
@@ -2624,10 +2715,22 @@ ValueMapping rectanglerectangle4map[] = { RectangleValueMap<CcInt, 4>,
 ValueMapping rectanglerectangle8map[] = { Rectangle8ValueMap<CcInt, 8>,
                                           Rectangle8ValueMap<CcReal, 8> };
 
-ValueMapping rectangledistancemap[] = { RectangleDistanceValueMap<2>,
+ValueMapping rectangletopleftmaxmap[] = { RectangleTopleftmaxValueMap<2>,
+                                          RectangleTopleftmaxValueMap<3>,
+                                          RectangleTopleftmaxValueMap<4>,
+                                          RectangleTopleftmaxValueMap<8>};
+                                        
+                                        
+                                        
+                                        
+ ValueMapping rectangledistancemap[] = { RectangleDistanceValueMap<2>,
                                         RectangleDistanceValueMap<3>,
                                         RectangleDistanceValueMap<4>,
                                         RectangleDistanceValueMap<8> };
+                                                                               
+                                        
+                                        
+                                        
 
 ValueMapping rectanglerectprojectmap[] =
 {
@@ -2955,6 +3058,21 @@ const string RectangleSpecBboxIntersects  =
         "<text>query rect1 bboxintersects rect</text--->"
         ") )";
 
+    
+const string RectangleSpecTopleftmax  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(rect<d> x rect<d>) -> int</text--->"
+        "<text>topleftmax( _ , _ )</text--->"
+        "<text>return the Top-Left-Max Value of two rectangles."
+        "whereat the first rect intersect the second one"
+        " scoring 2 for Top intersection" 
+        " scoring 1 for Left intersection" 
+        " and scoring 0 for no intersection</text--->"        
+        "<text>query topleftmax(rect1, rect2)</text--->"
+        "<text></text--->"
+        ") )";
+    
+    
 
 /*
 4.5.3 Definition of the operators
@@ -3057,6 +3175,16 @@ Operator rectangledistance( "distance",
                           rectangledistancemap,
                           RectangleBinarySelect,
                           RectRectTypeMapReal );
+
+
+Operator rectangletopleftmax( "topleftmax",
+                          RectangleSpecTopleftmax,
+                          4,
+                          rectangletopleftmaxmap,
+                          RectangleBinarySelect,
+                          RectRectTypeMapInt );
+
+
 
 Operator rectanglerectproject( "rectproject",
                           RectangleSpecRectproject,
@@ -3428,6 +3556,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectangleintersection );
     AddOperator( &rectangletranslate );
     AddOperator( &rectangledistance );
+    AddOperator( &rectangletopleftmax);
     AddOperator( &rectanglerectangle1 );
     AddOperator( &rectanglerectangle2 );
     AddOperator( &rectanglerectangle3 );

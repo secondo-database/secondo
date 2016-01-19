@@ -125,6 +125,13 @@ Example  : query [const rect value (0.0 1.0 0.0 1.0)] translate[10.0, 20.0]
 Result   : (rect (10.0 11.0 20.0 21.0))
 
 
+Operator : topleftmax
+Number   : 1
+Signature: (rect<d> x rect<d>) -> int
+Example  : query topleftmax([const rect value (3.0 5.0 3.0 5.0)], [const rect value (2.0 7.0 1.0 4.0)])
+Result   : 1
+
+
 Operator : union
 Number   : 1
 Signature: (rect<d> x rect<d>) -> rect<d>
