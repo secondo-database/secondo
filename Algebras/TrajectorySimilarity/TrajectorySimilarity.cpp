@@ -88,6 +88,7 @@ Register operators.
   addEndPointDistOp();
   addEuclideanDistOp();
   addLCSSOp();
+  addLIPDistOp();
 }
 
 } //-- namespace tsa

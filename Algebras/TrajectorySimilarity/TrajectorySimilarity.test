@@ -1453,6 +1453,134 @@ query dist_lcss(
     0)
 
 
+
+###
+### Test operator 'dist_lip'.
+###
+
+### Bad parameters
+
+#testcase DistLIPParams0
+#yields error
+query dist_lip()
+
+#testcase DistLIPParams1
+#yields error
+query dist_lip([const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+#testcase DistLIPParams3
+#yields error
+query dist_lip(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))])
+
+
+### dist_lip : pointseq x pointseq [x geoid] -> real
+
+#testcase DistLIPPointSeq
+#yields (real 0.75)
+query dist_lip(
+  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+  [const pointseq value ((0.0 1.0) (1.0 0.5))])
+
+#testcase DistLIPPointSeqSymmetry1
+#yields (real 0.75)
+query dist_lip(
+  [const pointseq value ((0.0 1.0) (1.0 0.5))],
+  [const pointseq value ((0.0 0.0) (1.0 0.0))])
+
+#testcase DistLIPPointSeqSymmetry2
+#yields (real 0.75)
+query dist_lip(
+  [const pointseq value ((1.0 0.0) (0.0 0.0))],
+  [const pointseq value ((1.0 0.5) (0.0 1.0))])
+
+#testcase DistLIPPointSeqVariant2
+#yields (real 0.75)
+query dist_lip(
+  [const pointseq value ((0.0 0.0) (0.2 0.0) (1.0 0.0))],
+  [const pointseq value ((0.0 1.0) (1.0 0.5))])
+
+#testcase DistLIPPointSeqCross
+#yields (real 0.25)
+query dist_lip(
+  [const pointseq value ((0.0 0.0) (1.0 1.0))],
+  [const pointseq value ((0.0 1.0) (1.0 0.0))])
+
+#testcase DistLIPPointSeqNoSegments
+#yields (real undefined)
+query dist_lip(
+  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+  [const pointseq value ((0.0 1.0))])
+
+#testcase DistLIPPointSeqEqual
+#yields (real 0.0)
+query dist_lip(
+  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+  [const pointseq value ((0.0 0.0) (1.0 0.0))])
+
+#testcase DistLIPPointSeqFlat
+#yields (real 0.0)
+query dist_lip(
+  [const pointseq value ((0.0 0.0) (1.0 0.0) (2.0 0.0) (3.0 0.0))],
+  [const pointseq value ((0.0 0.0) (1.3 0.0))])
+
+##testcase DistLIPPointSeqGeoid
+## (Geoid support not yet implemented for HalfSegment::Intersection in
+## SpatialAlgebra.)
+##yields (real ???)
+#query dist_lip(
+#  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+#  [const pointseq value ((0.0 1.0) (1.0 0.5))],
+#  create_geoid("WGS1984"))
+
+#testcase DistLIPPointSeqUndefined1
+#yields (real undefined)
+query dist_lip(
+  [const pointseq value undefined],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistLIPPointSeqUndefined2
+#yields (real undefined)
+query dist_lip(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value undefined])
+
+#testcase DistLIPPointSeqEmpty1
+#yields (real undefined)
+query dist_lip(
+  [const pointseq value ()],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))])
+
+#testcase DistLIPPointSeqEmpty2
+#yields (real undefined)
+query dist_lip(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ()])
+
+#testcase DistLIPPointSeqLoops
+#yields (real 6.0)
+query dist_lip(
+  [const pointseq value ((0.0  1.0) (1.0  1.0) (2.0  2.0) (1.0  2.0) (2.0  1.0) (3.0  1.0))],
+  [const pointseq value ((0.0 -1.0) (1.0 -1.0) (2.0  0.0) (1.0  0.0) (2.0 -1.0) (3.0 -1.0))])
+
+
+### dist_lip : tpointseq x tpointseq [x geoid] -> real
+# (Performing only a basic test, since this is the same implementation as for
+# pointseqs.)
+
+#testcase DistLIPTPointSeq
+#yields (real 0.75)
+query dist_lip(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:30:20" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (0.0 1.0))
+    ("2015-12-29-01:32:28" (1.0 0.5)))])
+
+
 #teardown
 
 close database;

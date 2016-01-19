@@ -186,3 +186,10 @@ Number   : 4
 Signature: mlabel x mlabel x int -> int
 Example  : query dist_lcss([const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_A') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_B'))], [const mlabel value ((("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) 'Label_B') (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) 'Label_C'))], 0)
 Result   : (real 1.0)
+
+
+Operator : dist_lip
+Number   : 1
+Signature: pointseq x pointseq -> real
+Example  : query dist_lip([const pointseq value ((0.0 0.0) (1.0 0.0))], [const pointseq value ((0.0 1.0) (1.0 0.5))])
+Result   : (real 0.75)
