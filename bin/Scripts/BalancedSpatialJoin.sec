@@ -1,0 +1,238 @@
+# Script for Spatial Join
+#
+# Balanced Partition, Duplicate-free Computation
+
+
+# Define a bounding box for all objects to be processed
+
+let World = [const rect value (5.27 10.17 50.36 52.56)]
+
+let Left = minD(World, 1)
+
+let Right = maxD(World, 1)
+
+let Bottom = minD(World, 2)
+
+let Top = maxD(World, 2)
+
+
+# Set numbers of rows and columns for the partitioning
+
+let NRows = 6
+
+let NColumns = 8;
+
+let Sample = Buildings feedproject[GeoData] 
+  projectextend[; Box: bbox(.GeoData)] nth[100, FALSE] consume
+
+let Fraction = (2 * (Sample count)) div NRows;
+
+let VPartition = 
+  Sample feed projectextend[; Y: minD(.Box, 2)]
+  Sample feed projectextend[; Y: maxD(.Box, 2)]
+  concat sort
+  nth[Fraction, TRUE] head[NRows - 1]
+  consume;
+
+let Stripe1 = rectangle2(Left, Right, Bottom, VPartition feed extract[Y])
+
+let Stripes = VPartition feed 
+  extend_last[Stripe: rectangle2(Left, Right, ..Y, .Y)::Stripe1]
+  consume
+
+let LastY = VPartition feed tail[1] extract[Y]
+
+query Stripes inserttuple[LastY, rectangle2(Left, Right, LastY, Top)] consume
+
+query Stripes feed Buildings feed itSpatialJoin[Stripe, GeoData] count
+
+# 51.71 seconds, 44.67
+# result 6518935
+
+query Buildings count
+
+# result 6516159 
+
+query Stripes feed Buildings feed itSpatialJoin[Stripe, GeoData] 
+  groupby2[Stripe; Cnt: fun(t:TUPLE, i:int) i + 1::0]
+  consume
+
+Stripe : rect: ( (5.27,50.36) - (10.17,50.9654) )
+   Cnt : 1075359
+
+Stripe : rect: ( (5.27,50.9654) - (10.17,51.2061) )
+   Cnt : 1094955
+
+Stripe : rect: ( (5.27,51.2061) - (10.17,51.4372) )
+   Cnt : 1091435
+
+Stripe : rect: ( (5.27,51.4372) - (10.17,51.5984) )
+   Cnt : 1086471
+
+Stripe : rect: ( (5.27,51.5984) - (10.17,51.9018) )
+   Cnt : 1091686
+
+Stripe : rect: ( (5.27,51.9018) - (10.17,52.56) )
+   Cnt : 1079029
+
+# 152 seconds
+
+query Stripes feed Sample feed itSpatialJoin[Stripe, Box] 
+  groupby2[Stripe; Cnt: fun(t:TUPLE, i:int) i + 1::0]
+  consume
+
+Stripe : rect: ( (5.27,50.36) - (10.17,50.96535) )
+   Cnt : 10856
+
+Stripe : rect: ( (5.27,50.96535) - (10.17,51.20615) )
+   Cnt : 10865
+
+Stripe : rect: ( (5.27,51.20615) - (10.17,51.43722) )
+   Cnt : 10867
+
+Stripe : rect: ( (5.27,51.43722) - (10.17,51.59841) )
+   Cnt : 10869
+
+Stripe : rect: ( (5.27,51.59841) - (10.17,51.90177) )
+   Cnt : 10867
+
+Stripe : rect: ( (5.27,51.90177) - (10.17,52.56) )
+   Cnt : 10864
+
+# 0.51 seconds
+
+let Fraction2 = (2 * (Sample count)) div (NRows * NColumns)
+
+let Fields = Stripes feed Sample feed itSpatialJoin[Stripe, Box] 
+  sortby[Stripe]
+  nest[Stripe; Boxes]
+  extend[Boundaries: fun(t: TUPLE)
+    attr(t, Boxes) afeed projectextend[; X: minD(.Box, 1)]
+    attr(t, Boxes) afeed projectextend[; X: maxD(.Box, 1)]
+    concat sort 
+    nth[Fraction2, TRUE] head[NColumns - 1]
+    aconsume]
+  remove[Boxes]
+  extend[LeftField: rectangle2(minD(.Stripe, 1), .Boundaries afeed extract[X], 
+    minD(.Stripe, 2), maxD(.Stripe, 2))]
+  extend[RightField: rectangle2(.Boundaries afeed tail[1] extract[X], maxD(.Stripe, 1),  
+    minD(.Stripe, 2), maxD(.Stripe, 2))]
+  extend[Fields: fun(t2: TUPLE)
+    attr(t2, LeftField) feed namedtransformstream[Field]
+    attr(t2, Boundaries) afeed 
+      extend_last[Field: rectangle2(..X, .X, minD(attr(t2, Stripe), 2), maxD(attr(t2, Stripe), 2))::
+        [const rect value undef]]
+      filter[isdefined(.Field)] remove[X] concat
+    attr(t2, RightField) feed namedtransformstream[Field] concat
+    aconsume]
+  project[Fields]
+  unnest[Fields]
+  addcounter[N, 0]
+  consume
+
+# 5.27 seconds, 5.25, 5.24
+
+query Fields feed Buildings feed itSpatialJoin[Field, GeoData] count
+
+# 54.19 seconds, 55.48
+# result 6525125
+    
+    
+query Fields feed Buildings feed itSpatialJoin[Field, GeoData] 
+  groupby2[Field; Cnt: fun(t:TUPLE, i:int) i + 1::0]
+  consume
+
+# 129 seconds
+
+query Fields feed Buildings feed itSpatialJoin[Field, GeoData] 
+  groupby2[Field; Cnt: fun(t:TUPLE, i:int) i + 1::0]
+  groupby[; Min: group feed min[Cnt], Max: group feed max[Cnt]] consume
+
+# 122 seconds
+# result:
+#
+# Min : 129198
+# Max : 139990
+
+query Fields feed Buildings feed itSpatialJoin[Field, GeoData] 
+  groupby2[Field; Cnt: fun(t:TUPLE, i:int) i + 1::0]
+  sum[Cnt]
+
+# result: 6525125 (correct)
+
+# There are 6525125 - 6516159 = 8966 duplicate buildings = 0.13%.
+
+
+
+
+
+# Comparison with grid distribution. We use about 20 * 20 = 400 cells.
+
+let grid2 = [const cellgrid2d value (5.27 50.36 0.245 0.11 20)]
+
+# exactly partitions World into 400 cells.
+
+
+query Buildings feed extendstream[Cell: cellnumber(bbox(.GeoData), grid2)]
+  extend[N: .Cell mod 48]
+  count
+
+# 191 seconds
+# result 6527803
+
+
+query Buildings feed extendstream[Cell: cellnumber(bbox(.GeoData), grid2)]
+  extend[N: .Cell mod 48]
+  groupby2[N; Cnt: fun(t:TUPLE, i:int) i + 1::0]
+  consume
+  
+# 175 seconds
+# partial result (first 10):
+
+  N : 0
+Cnt : 111482
+
+  N : 1
+Cnt : 197285
+
+  N : 2
+Cnt : 184358
+
+  N : 3
+Cnt : 144331
+
+  N : 4
+Cnt : 203089
+
+  N : 5
+Cnt : 109011
+
+  N : 6
+Cnt : 123624
+
+  N : 7
+Cnt : 91586
+
+  N : 8
+Cnt : 128755
+
+  N : 9
+Cnt : 77923
+
+  N : 10
+Cnt : 38344
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
