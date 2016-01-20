@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 The Implementation-Module SecondoInterfaceREPLAY
 
-November 2015 Matthias Kunsmann, ReplayVersion of the ~SecondoInterfaceCS~
+January 2016 Matthias Kunsmann, ReplayVersion of the ~SecondoInterfaceCS~
 
 [TOC]
 
@@ -565,13 +565,16 @@ Split the params of special import commands to an array
   foundleft = cmdText.find("(");
   foundright = cmdText.find(")");
   string params = cmdText.substr(foundleft + 1, foundright - foundleft - 1);
+  string paramElement;
 
   stringutils::StringTokenizer token(params, ",");
   if (foundright != std::string::npos && 
       foundleft != std::string::npos &&
       foundright > foundleft + 1) {
     while (token.hasNextToken()) {
-      paramlist.push_back(token.nextToken());
+      paramElement = token.nextToken(); 
+      stringutils::trim(paramElement);
+      paramlist.push_back(paramElement);
     }
   }
 
@@ -579,9 +582,8 @@ Split the params of special import commands to an array
 }
 
 bool
-SecondoInterfaceREPLAY::checkReplayImportNoParams(
-           const string& replayImpCommand,
-           std::vector<string>& paramlist) {
+SecondoInterfaceREPLAY::checkReplayImportNoParams
+              (const string& replayImpCommand, std::vector<string>& paramlist) {
 /*
 Check number of params of replay command
 
