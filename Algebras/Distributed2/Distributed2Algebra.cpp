@@ -56,6 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DebugWriter.h"
 
 
+
 #include "FileRelations.h"
 #include "FileAttribute.h"
 
@@ -2674,10 +2675,14 @@ ListExpr rqueryTM(ListExpr args){
 
 */
 void sendMessage(MessageCenter* msg, const string& message){
-  ListExpr list = nl->TwoElemList( nl->SymbolAtom("error"),
+  ListExpr list = nl->TwoElemList( nl->SymbolAtom("simple"),
                                    nl->TextAtom(message));
   msg->Send(nl,list );
   msg->Flush();
+}
+
+void sendMessage(const string& message){
+  sendMessage(MessageCenter::GetInstance(), message);
 }
 
 
@@ -6988,8 +6993,8 @@ As well as a template type.
 
 */ 
 ListExpr createDArrayTM(ListExpr args){
-   string err = "stream(tuple) x int x string x any expected";
-   if(!nl->HasLength(args,4)){
+   string err = "stream(tuple) x string x int x any [x bool] expected";
+   if(!nl->HasLength(args,4) && !nl->HasLength(args,5)){
       return listutils::typeError(err);
    }
    ListExpr stream = nl->First(args);
@@ -6997,14 +7002,16 @@ ListExpr createDArrayTM(ListExpr args){
      return listutils::typeError("First argument must be a tuple stream");
    }
 
-   if(!CcInt::checkType(nl->Second(args))){
-     return listutils::typeError("Second argument must be an int");
+   if(!CcString::checkType(nl->Second(args))){
+     return listutils::typeError("Second argument must be a string");
    }
-   if(!CcString::checkType(nl->Third(args))){
-     return listutils::typeError("Third argument must be a string");
+   if(!CcInt::checkType(nl->Third(args))){
+     return listutils::typeError("Third argument must be an int");
    }
    ListExpr attrList = nl->Second(nl->Second(stream));
 
+
+   // check for attributes Host, Port, and Config in stream
    string hn = "Host";
    ListExpr ht;
    int hp;
@@ -7029,7 +7036,7 @@ ListExpr createDArrayTM(ListExpr args){
       return listutils::typeError("Attribute " + cn + " not found");
    }
     
-   // check correct types
+   // check correct types of these attributes
    if(!CcInt::checkType(pt)){
       return listutils::typeError(  "port attribute " + pn 
                                   + " not of type int");
@@ -7054,7 +7061,18 @@ ListExpr createDArrayTM(ListExpr args){
                                   "describe a valid type");
    } 
 
-
+   if(nl->HasLength(args,4)){
+      return nl->ThreeElemList(
+                 nl->SymbolAtom(Symbols::APPEND()),
+                 nl->FourElemList( nl->BoolAtom(false),
+                                   nl->IntAtom(hp-1),
+                                   nl->IntAtom(pp-1),
+                                   nl->IntAtom(cp-1)),
+                 resType);
+   }
+   if(!CcBool::checkType(nl->Fifth(args))){
+      return listutils::typeError("fifth arg not of typoe bool");
+   }
    return nl->ThreeElemList(
                  nl->SymbolAtom(Symbols::APPEND()),
                  nl->ThreeElemList( nl->IntAtom(hp-1),
@@ -7108,24 +7126,33 @@ template<class H, class C>
 int createDArrayVMT(Word* args, Word& result, int message,
           Word& local, Supplier s ){
 
-   int host = ((CcInt*) args[4].addr)->GetValue();
-   int port = ((CcInt*) args[5].addr)->GetValue();
-   int config = ((CcInt*) args[6].addr)->GetValue();
+   CcBool* cctrace = (CcBool*) args[4].addr;
+   bool trace = cctrace->IsDefined()?cctrace->GetValue():false;
+   int host = ((CcInt*) args[5].addr)->GetValue();
+   int port = ((CcInt*) args[6].addr)->GetValue();
+   int config = ((CcInt*) args[7].addr)->GetValue();
+
 
 
    result = qp->ResultStorage(s);
    DArray* res = (DArray*) result.addr;
 
-   CcInt* size = (CcInt*) args[1].addr;
-   CcString* name = (CcString*) args[2].addr;
+   CcString* name = (CcString*) args[1].addr;
+   CcInt* size = (CcInt*) args[2].addr;
    if(!size->IsDefined() || !name->IsDefined()){
       res->makeUndefined();
+      if(trace){
+        sendMessage("createDArray: size or name not defined");
+      }
       return 0; 
    }
    int si = size->GetValue();
    string n = name->GetValue();
    if(si<=0 || !stringutils::isIdent(n)){
       res->makeUndefined();
+      if(trace){
+        sendMessage("createDArray: invalid value for size or name");
+      }
       return 0; 
    }
    vector<DArrayElement> v;
@@ -7154,94 +7181,117 @@ int createDArrayVMT(Word* args, Word& result, int message,
    // TODO: auto mapping
 
    // step 1:  Build groups of workers working on the same SecondoHome
-   vector<vector<pair<DArrayElement, size_t> > > groups = group(res);
+   try{
+     vector<vector<pair<DArrayElement, size_t> > > groups = group(res);
 
 
-   // step 2: for each of these groups connect to one instance from this
-   vector<vector<string> > groupobjects;
-   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-   vector<int> themap;
-   for(size_t i=0;i<si;i++){
-     themap.push_back(-1);
-   }
-   for(size_t i=0;i<groups.size();i++){
-     vector<pair<DArrayElement,size_t> >& g = groups[i];
-     DArrayElement elem = g[1].first;
-     ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
-     if(!ci){
-       throw new SecondoException("worker cannot be reached");
+     // step 2: for each of these groups connect to one instance from this
+     vector<vector<string> > groupobjects;
+     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+     vector<int> themap;
+     for(size_t i=0;i<si;i++){
+       themap.push_back(-1);
      }
-     string re = n + "_"+"[0-9]+"; 
-     string query =   "query getcatalog() filter[regexmatches(.ObjectName,"
-                      " [const regex value '"
-                    + re 
-                    + "' ])] project[ObjectName, TypeExpr] consume";
-     ListExpr reslist;
-     int err;
-     string errMsg;
-     double runtime; 
-     ci->simpleCommand(query, err, errMsg, reslist, false, runtime);
-     if(err!=0){
-        cerr << "error during command " << query << endl;
-        cerr << "match between existing objects failed" << endl;
-        res->makeUndefined();
-        return 0;
-     } 
-     ListExpr tuplelist = nl->Second(reslist);
-     vector<int> numbers;
-     ListExpr expType = nl->Second(qp->GetType(s));
-     while(!nl->IsEmpty(tuplelist)){
-       ListExpr tuple = nl->First(tuplelist);
-       tuplelist = nl->Rest(tuplelist);
-       // shoud not be necessarcy to check .. be who knows it?
-       if(   nl->HasLength(tuple,2)  
-          && (nl->AtomType(nl->First(tuple))==StringType)
-          && (nl->AtomType(nl->Second(tuple))==TextType)){
-         string ObjectName = nl->StringValue(nl->First(tuple));
-         string typeDescr = nl->Text2String(nl->Second(tuple));
-         ListExpr typelist;
-         if(nl->ReadFromString(typeDescr, typelist)){
-           if(nl->Equal(typelist, expType)){
-              bool ok;
-              string nu = ObjectName.substr(n.length()+1);
-              int num = stringutils::str2int<int>(nu,ok);
-              assert(ok);
-              if(num < si){
-                 numbers.push_back(num);
-              }
-           } else {
-              cerr << "type of stored objects does not fit the array type" 
-                   << endl;
-              res->makeUndefined();
-              return 0;
-           }
- 
-         }
+     for(size_t i=0;i<groups.size();i++){
+       vector<pair<DArrayElement,size_t> >& g = groups[i];
+       DArrayElement elem = g[1].first;
+       ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+       if(!ci){
+         throw new SecondoException("worker cannot be reached");
        }
-     } // processing tuple list
-     for(size_t i=0;i<numbers.size();i++){
-        if(themap[numbers[i]] >= 0){
-           cerr << "slot number " << numbers[i] << " found multiple" << endl;
+       string re = n + "_"+"[0-9]+"; 
+       string query =   "query getcatalog() filter[regexmatches(.ObjectName,"
+                        " [const regex value '"
+                      + re 
+                      + "' ])] project[ObjectName, TypeExpr] consume";
+       ListExpr reslist;
+       int err;
+       string errMsg;
+       double runtime; 
+       ci->simpleCommand(query, err, errMsg, reslist, false, runtime);
+       if(err!=0){
+          if(trace){
+            sendMessage("createDArray: command " + query + " failed");
+          }
+          res->makeUndefined();
+          return 0;
+       } 
+       ListExpr tuplelist = nl->Second(reslist);
+       vector<int> numbers;
+       ListExpr expType = nl->Second(qp->GetType(s));
+       while(!nl->IsEmpty(tuplelist)){
+         ListExpr tuple = nl->First(tuplelist);
+         tuplelist = nl->Rest(tuplelist);
+         // shoud not be necessarcy to check .. be who knows it?
+         if(   nl->HasLength(tuple,2)  
+            && (nl->AtomType(nl->First(tuple))==StringType)
+            && (nl->AtomType(nl->Second(tuple))==TextType)){
+           string ObjectName = nl->StringValue(nl->First(tuple));
+           string typeDescr = nl->Text2String(nl->Second(tuple));
+           ListExpr typelist;
+           if(nl->ReadFromString(typeDescr, typelist)){
+             if(nl->Equal(typelist, expType)){
+                bool ok;
+                string nu = ObjectName.substr(n.length()+1);
+                int num = stringutils::str2int<int>(nu,ok);
+                assert(ok);
+                if(num < si){
+                   numbers.push_back(num);
+                }
+             } else {
+                if(trace){
+                  sendMessage("createDArray: type of stored object ("
+                             + ObjectName + ") does not fit the array type");
+                }
+                res->makeUndefined();
+                return 0;
+             }
+   
+           }
+         }
+       } // processing tuple list
+       for(size_t i=0;i<numbers.size();i++){
+          if(themap[numbers[i]] >= 0){
+             if(trace){
+                sendMessage("slot number " + stringutils::int2str(numbers[i])
+                             +  " found on several workers: "); 
+             }
+             res->makeUndefined();
+             return 0;
+          } else {
+             themap[numbers[i] ] = g[i % g.size()].second;
+          }
+       }
+     } // for all groups
+  
+     // check whether all slots where found
+     for( size_t i=0;i<themap.size();i++){
+        if(themap[i] <0){
+           if(trace){
+             sendMessage( "createDArray: no worker found storing slot " 
+                         + stringutils::int2str(i));
+           }
            res->makeUndefined();
            return 0;
         } else {
-           themap[numbers[i] ] = g[i % g.size()].second;
+           res->setResponsible(i,themap[i]);
         }
      }
-   } // for all groups
-
-   // check whether all slots where found
-   for( size_t i=0;i<themap.size();i++){
-      if(themap[i] <0){
-         cerr << "no worker found storing slot " << i << endl;
-         res->makeUndefined();
-         return 0;
-      } else {
-         res->setResponsible(i,themap[i]);
-      }
+  
+     return 0;
+   } catch(SecondoException e){
+     if(trace){
+        sendMessage(string("createDArray: Exception coourced") + e.what());
+     }
+     res->makeUndefined();
+     return 0;
+   } catch(...) {
+     if(trace){
+        sendMessage("createDArray: unknown exception occured");
+     }
+     res->makeUndefined();
+     return 0;
    }
-
-   return 0;
 }
 
 /*
@@ -7272,10 +7322,12 @@ int createDArraySelect(ListExpr args){
 
 */
 OperatorSpec createDArraySpec(
-     " stream<TUPLE> x int x string x ANY   -> darray",
-     " _ createDArray[size, name, type template ]",
-     " Creates a darray. The workers are given by the input stream. ",
-     " query workers feed createDArray[6,\"obj\",streets] "
+     " stream<TUPLE> x string x int x ANY [x bool]  -> darray",
+     " _ createDArray[name, size, type template [, verbose] ]",
+     "Creates a darray. The workers are given by the input stream. "
+     "If the boolean argument is present and true, in case of an error,"
+     " messages will be send.",
+     " query workers feed createDArray[\"obj\", 6, streets, TRUE] "
      );
 
 /*
@@ -9090,7 +9142,7 @@ class dloopInfo{
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
        ConnectionInfo* ci = algInstance->getWorkerConnection(elem,dbname);
        if(!ci){
-          sendError("Cannot find connection ");
+          sendMessage("Cannot find connection ");
           return;
        }
        string bn = resName + "_" + stringutils::int2str(index);
@@ -9105,12 +9157,8 @@ class dloopInfo{
                     + stringutils::int2str(index) +"))";
        ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime);
        if(err!=0){ 
-           sendError(" Problem in command " + cmd + ":" + errMsg);
+           sendMessage(" Problem in command " + cmd + ":" + errMsg);
        }
-    }
-    void sendError(const string&msg){
-       cmsg.error() << msg;
-       cmsg.send();
     }
 
 };
@@ -9985,8 +10033,11 @@ class dloop2Runner{
       ConnectionInfo* ci = algInstance->getWorkerConnection(
                               a1->getWorkerForSlot(index),dbname);
       if(!ci){
-         cmsg.error() << "could not open connection" ;
-         cmsg.send();
+         sendMessage("could not open connection to "
+                     +  a1->getWorkerForSlot(index).getHost()
+                     + "@" 
+                     + stringutils::int2str(
+                            a1->getWorkerForSlot(index).getPort()));
          return;
       }
       int err;
@@ -10049,9 +10100,7 @@ int dloop2VM(Word* args, Word& result, int message,
 
   // check whether workers of both arrays are the same
   if(a1->numOfWorkers()!=a2->numOfWorkers()){
-    cmsg.error() << "Different workers in dloop2";
-    cmsg.send();
-    res->makeUndefined();
+    sendMessage("dloop2 : Different workers ");
     return 0;
   } 
 
@@ -10059,8 +10108,7 @@ int dloop2VM(Word* args, Word& result, int message,
 
   for(size_t i=0;i<a1->numOfWorkers();i++){
     if(a1->getWorker(i) != a2->getWorker(i)){
-        cmsg.error() << "Different workers in dloop2";
-        cmsg.send();
+        sendMessage("dloop2: Different workers");
         res->makeUndefined();
         return 0;
     }
@@ -10070,8 +10118,7 @@ int dloop2VM(Word* args, Word& result, int message,
   int max = min(a1->getSize(), a2->getSize());
 
   if(!a1->equalMapping(*a2,true)){
-     cmsg.error() << "Different mappings in dloop2";
-     cmsg.send();
+     sendMessage("dloop2: Different mappings");
      res->makeUndefined();
      return 0;
   }
@@ -10621,8 +10668,11 @@ class Object_Del{
         ConnectionInfo* ci = algInstance->getWorkerConnection(
                               array->getWorkerForSlot(index),dbname);
         if(!ci){
-           cmsg.error() << "could not open connection" ;
-           cmsg.send();
+           sendMessage("could not open connection to "
+                     +  array->getWorkerForSlot(index).getHost()
+                     + "@" 
+                     + stringutils::int2str(
+                             array->getWorkerForSlot(index).getPort()));
            return;
         }
         string objName = array->getName() +"_" + stringutils::int2str(index);
@@ -10642,8 +10692,10 @@ class Object_Del{
         ConnectionInfo* ci = algInstance->getWorkerConnection(
                               farray->getWorkerForSlot(index),dbname);
         if(!ci){
-           cmsg.error() << "could not open connection" ;
-           cmsg.send();
+           sendMessage("could not open connection to "
+                     +  farray->getWorkerForSlot(index).getHost()
+                     + "@" + stringutils::int2str(
+                               farray->getWorkerForSlot(index).getPort()));
            return;
         }
          
@@ -10881,8 +10933,10 @@ class cloneTask{
         ConnectionInfo* ci = algInstance->getWorkerConnection(
                               darray->getWorkerForSlot(index),dbname);
         if(!ci){
-           cmsg.error() << "could not open connection" ;
-           cmsg.send();
+           sendMessage("could not open connection to "
+                     +  darray->getWorkerForSlot(index).getHost()
+                     + "@" + stringutils::int2str(
+                                darray->getWorkerForSlot(index).getPort()));
            return;
         }
         string objName = darray->getName() +"_" + stringutils::int2str(index);
@@ -10900,8 +10954,11 @@ class cloneTask{
         ConnectionInfo* ci = algInstance->getWorkerConnection(
                               farray->getWorkerForSlot(index),dbname);
         if(!ci){
-           cmsg.error() << "could not open connection" ;
-           cmsg.send();
+           sendMessage("could not open connection to "
+                     +  farray->getWorkerForSlot(index).getHost()
+                     + "@" 
+                     + stringutils::int2str(
+                           farray->getWorkerForSlot(index).getPort()));
            return;
         }
         string objName = farray->getName() +"_" + stringutils::int2str(index)
