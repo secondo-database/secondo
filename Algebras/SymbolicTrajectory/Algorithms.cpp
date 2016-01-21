@@ -3939,7 +3939,6 @@ void IndexMatchesLI::initialize() {
   memset(indexResult, 0, p->getSize() * sizeof(void*));
   deactivated.resize(rel->GetNoTuples() + 1, false);
   for (set<int>::iterator it = cruElems.begin(); it != cruElems.end(); it++) {
-    cout << "storeIndexResult(" << *it << ")" << endl;
     storeIndexResult(*it);
   }
   deactivated.resize(rel->GetNoTuples() + 1, true);
@@ -3954,47 +3953,49 @@ void IndexMatchesLI::initialize() {
 
 */
 IndexMatchSuper::~IndexMatchSuper() {
-  int pred(0), id(0);
-  for (int i = 0; i < p->getSize(); i++) {
-    if (indexResult[i] != 0) {
-      id = indexResult[i][0]->succ;
-      while (id != 0 && indexResult[i][id] != 0) {
-        pred = id;
-        id = indexResult[i][id]->succ;
-        delete indexResult[i][pred];
+  if (p) {
+    int pred(0), id(0);
+    for (int i = 0; i < p->getSize(); i++) {
+      if (indexResult[i] != 0) {
+        id = indexResult[i][0]->succ;
+        while (id != 0 && indexResult[i][id] != 0) {
+          pred = id;
+          id = indexResult[i][id]->succ;
+          delete indexResult[i][pred];
+        }
+        delete indexResult[i][0];
+        delete[] indexResult[i];
       }
-      delete indexResult[i][0];
-      delete[] indexResult[i];
     }
+    for (int i = 0; i < p->getNFAsize(); i++) {
+      if (matchInfo[i] != 0) {
+        id = matchInfo[i][0]->succ;
+        while (id != 0 && matchInfo[i][id] != 0) {
+          pred = id;
+          id = matchInfo[i][id]->succ;
+          delete matchInfo[i][pred];
+        }
+        delete matchInfo[i][0];
+        delete[] matchInfo[i];
+      }
+      if (newMatchInfo[i] != 0) {
+        id = newMatchInfo[i][0]->succ;
+        while (id != 0 && newMatchInfo[i][id] != 0) {
+          pred = id;
+          id = newMatchInfo[i][id]->succ;
+          delete newMatchInfo[i][pred];
+        }
+        delete newMatchInfo[i][0];
+        delete[] newMatchInfo[i];
+      }
+    }
+    delete[] indexResult;
+    delete[] matchInfo;
+    delete[] newMatchInfo;
+    delete[] trajSize;
+    delete[] active;
+    deletePattern();
   }
-  for (int i = 0; i < p->getNFAsize(); i++) {
-    if (matchInfo[i] != 0) {
-      id = matchInfo[i][0]->succ;
-      while (id != 0 && matchInfo[i][id] != 0) {
-        pred = id;
-        id = matchInfo[i][id]->succ;
-        delete matchInfo[i][pred];
-      }
-      delete matchInfo[i][0];
-      delete[] matchInfo[i];
-    }
-    if (newMatchInfo[i] != 0) {
-      id = newMatchInfo[i][0]->succ;
-      while (id != 0 && newMatchInfo[i][id] != 0) {
-        pred = id;
-        id = newMatchInfo[i][id]->succ;
-        delete newMatchInfo[i][pred];
-      }
-      delete newMatchInfo[i][0];
-      delete[] newMatchInfo[i];
-    }
-  }
-  delete[] indexResult;
-  delete[] matchInfo;
-  delete[] newMatchInfo;
-  delete[] trajSize;
-  delete[] active;
-  deletePattern();
 }
 
 /*
@@ -4407,6 +4408,7 @@ void IndexMatchSuper::deletePattern() {
                                       rel->GetTupleType(), attrNo, majorAttrNo);
   p->deleteAtomValues(relevantAttrs);
   delete p;
+  p = 0;
 }
 
 /*

@@ -4632,8 +4632,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     indexmatchesVM<MLabels, PatPersistent>, 
     indexmatchesVM<MPlace, PatPersistent>,
     indexmatchesVM<MPlaces, PatPersistent>, 0};
-  AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
-              indexmatchesTM);
+//   AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
+//               indexmatchesTM);
 
   ValueMapping filtermatchesVMs[] = {filtermatchesVM<MLabel, FText>,
     filtermatchesVM<MLabels, FText>, filtermatchesVM<MPlace, FText>,
