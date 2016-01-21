@@ -61,11 +61,18 @@ Example  : query to_tpointseq([const mpoint value ((("2015-12-29-01:23:45" "2015
 Result   : (tpointseq (("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:30:20" (-2.0 0.0))))
 
 
-Operator : sample_to_pointseq
+Operator : sample_to_tpointseq
 Number   : 1
 Signature: tpointseq x duration [x bool [x bool]] -> tpointseq
 Example  : query sample_to_tpointseq([const tpointseq value (("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:23:48" (3.0 1.5)))], [const duration value (0 1000)])
 Result   : (tpointseq (("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:23:46" (1.0 0.5)) ("2015-12-29-01:23:47" (2.0 1.0)) ("2015-12-29-01:23:48" (3.0 1.5))))
+
+
+Operator : sample_to_pointseq
+Number   : 1
+Signature: tpointseq x duration [x bool [x bool]] -> pointseq
+Example  : query sample_to_pointseq([const tpointseq value (("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:23:48" (3.0 1.5)))], [const duration value (0 1000)])
+Result   : (pointseq ((0.0 0.0) (1.0 0.5) (2.0 1.0) (3.0 1.5)))
 
 
 Operator : dist_origin

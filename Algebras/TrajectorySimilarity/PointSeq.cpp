@@ -93,7 +93,22 @@ The operator $to\_tpointseq : mpoint \rightarrow tpointseq$ extracts a
 If there is a temporal or spatial gap between two successive units or a unit
 makes a spatial move in no time, the ~tpointseq~ is ~undefined~.
 
-1.2.4 ~sample\_to\_tpointseq~
+1.2.4 ~sample\_to\_pointseq~
+
+The operator
+
+        $sample\_to\_pointseq : tpointseq \times duration\ [\times bool\ [
+        \times bool]] \rightarrow tpointseq$
+
+with $sample\_to\_pointseq(P, duration, keep\_end\_point, exact\_path)$
+resamples the sequence $P$ at intervals defined by $duration$ and projects it to
+the spatial domain. If $keep\_end\_point$ is ~TRUE~, the original last point is
+kept. If $exact\_path$ is ~TRUE~, all original points are kept, including the
+last point. Both boolean parameters default to ~FALSE~.
+
+If $duration$ is ~undefined~ or not positive, the result is ~undefined~.
+
+1.2.5 ~sample\_to\_tpointseq~
 
 The operator
 
@@ -1247,7 +1262,107 @@ void TrajectorySimilarityAlgebra::addToTPointSeqOp()
 
 
 /*
-8.6 ~sample\_to\_tpointseq~
+8.6 ~sample\_to\_pointseq~
+
+*/
+const mappings::VectorTypeMaps sample_to_pointseq_maps = {
+  /*0*/ {{TPointSeq::BasicType(), Duration::BasicType()},
+    /* -> */ {PointSeq::BasicType()}},
+  /*1*/ {{TPointSeq::BasicType(), Duration::BasicType(), CcBool::BasicType()},
+    /* -> */ {PointSeq::BasicType()}},
+  /*2*/ {{TPointSeq::BasicType(), Duration::BasicType(), CcBool::BasicType(),
+    CcBool::BasicType()}, /* -> */ {PointSeq::BasicType()}}
+};
+
+ListExpr SampleToPointSeqTypeMap(ListExpr args)
+{ return mappings::vectorTypeMap(sample_to_pointseq_maps, args); }
+
+int SampleToPointSeqSelect(ListExpr args)
+{ return mappings::vectorSelect(sample_to_pointseq_maps, args); }
+
+template<class SEQ, unsigned int PARAMS>
+int SampleToPointSeqValueMap(
+    Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
+{
+  const SEQ& src = *static_cast<SEQ*>(args[0].addr);
+  const datetime::DateTime& duration =
+      *static_cast<datetime::DateTime*>(args[1].addr);
+  const CcBool* cc_keep_end_point =
+      (PARAMS >= 3) ? static_cast<CcBool*>(args[2].addr) : nullptr;
+  const CcBool* cc_exact_path =
+      (PARAMS >= 4) ? static_cast<CcBool*>(args[3].addr) : nullptr;
+  result = qp->ResultStorage(s);    // PointSeq
+  PointSeq& ps = *static_cast<PointSeq*>(result.addr);
+
+/*
+Require a defined and positive $duration$.
+
+*/
+  if (!duration.IsDefined() || duration.GetType() != datetime::durationtype ||
+      duration.ToDouble() <= 0.0)
+  {
+    ps.SetDefined(false);
+    return 0;
+  }
+
+  const bool keep_end_point =
+      (cc_keep_end_point && cc_keep_end_point->IsDefined()) ?
+          cc_keep_end_point->GetBoolval() : false;
+  const bool exact_path =
+      (cc_exact_path && cc_exact_path->IsDefined()) ?
+          cc_exact_path->GetBoolval() : false;
+
+  ps.sample(src, duration, keep_end_point, exact_path);
+  return 0;
+}
+
+ValueMapping sample_to_pointseq_functions[] = {
+  SampleToPointSeqValueMap<TPointSeq, /*PARAMS*/ 2>,
+  SampleToPointSeqValueMap<TPointSeq, /*PARAMS*/ 3>,
+  SampleToPointSeqValueMap<TPointSeq, /*PARAMS*/ 4>,
+  nullptr
+};
+
+struct SampleToPointSeqInfo : OperatorInfo
+{
+  SampleToPointSeqInfo() : OperatorInfo()
+  {
+    name      = "sample_to_pointseq";
+    signature = TPointSeq::BasicType() + " x " + Duration::BasicType()
+                + " -> " + PointSeq::BasicType();
+    appendSignature(
+                TPointSeq::BasicType() + " x " + Duration::BasicType()
+                + " x " + CcBool::BasicType()
+                + " -> " + PointSeq::BasicType());
+    appendSignature(
+                TPointSeq::BasicType() + " x " + Duration::BasicType()
+                + " x " + CcBool::BasicType() + " x " + CcBool::BasicType()
+                + " -> " + PointSeq::BasicType());
+    syntax    = "sample_to_pointseq("
+                "seq, duration[, keep_end_point[, exact_path]])";
+    meaning   = "Resample the sequence at intervals defined by duration and "
+                "project it to the spatial domain. If keep_end_point is TRUE, "
+                "the last point is kept. If exact_path is TRUE, all original "
+                "points are kept, including the last point. Both boolean "
+                "parameters default to FALSE.\n"
+                "If the duration is undefined or not positive, the result is "
+                "undefined.\n"
+                "The time complexity is O(n+m), where n is the number of "
+                "points in the source sequence and m is the number of points "
+                "in the new sequence.";
+  }
+};
+
+void TrajectorySimilarityAlgebra::addSampleToPointSeqOp()
+{
+  AddOperator(
+      SampleToPointSeqInfo(), sample_to_pointseq_functions,
+      SampleToPointSeqSelect, SampleToPointSeqTypeMap);
+}
+
+
+/*
+8.7 ~sample\_to\_tpointseq~
 
 */
 const mappings::VectorTypeMaps sample_to_tpointseq_maps = {
