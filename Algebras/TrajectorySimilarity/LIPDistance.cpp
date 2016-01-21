@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 
-[1] Implementation of the Locality In-between Polylines (LIP) Operator
+[1] Implementation of the Locality In-between Polylines (LIP) Operators
 
 \tableofcontents
 
@@ -30,41 +30,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Introduction
 
-This file implements and registers the Locality In-between Polylines distance
-operator for point sequences as defined in \cite[def.\ 2]{PKM+07}.
+This file implements and registers Locality In-between Polylines (LIP) distance
+operator for point sequences and the Spatio-temporal Locality In-between
+Polylines (STLIP) for ~tpoinseq~ objects as defined in \cite{PKM+07}.
 
-The basic idea of the LIP operator is to measure the area of the shape formed by
-the two sequences, if their first points are connected and their last points are
-connected to close the shape.
+The basic idea of the LIP operators is to measure the area of the shape formed
+by the two sequences, if their first points are connected and their last points
+are connected to close the shape.
 
-On a more detailed level, the LIP distance $D_{LIP}(P,\ Q)$ is defined as the
-sum of the weighted areas of the polygons defined by the intersection points of
-the two sequences $P,\ Q$.
-
-$$D_{LIP}(P,\ Q) = \sum_{\forall\ polygon} area(polygon) \cdot weight(polygon)$$
-
-The weight of a polygon is defined as the length of the portions of the
-sequences $P,\ Q$ that participate in the construction of the polygon divided by
-the total length of the sequences.
-
-$$weight(polygon) =
-  \frac{length(Q_{polygon}) + length(P_{polygon})}{length(Q) + length(P)}$$
-
-As \cite{PKM+07} points out, the LIP measure works correctly for point sequences
-that follow a stable trend with no dramatic rotations. Below such pair of
-sequences is called ~well-formed~. With other pairs of sequences the LIP
+As \cite{PKM+07} points out, the LIP measures works correctly for point
+sequences that follow a stable trend with no dramatic rotations. Below such pair
+of sequences is called ~well-formed~. With other pairs of sequences the LIP
 algorithm may yield self-intersecting polygons that can render the distance
 measure meaningless or indefinite. The authors propose a separate algorithm
 called ~GenLIP~, that searches a pair of sequences for bad segments and feeds
 the good parts into the LIP algorithm. The ~GenLIP~ algorithm is not implemented
 here.
 
-The implementation of the LIP operator makes use of the classes ~Point~,
-~HalfSegment~, and ~Region~ of the SpatialAlgebra to find intersections and to
-calculate the areas of polygons.
 
+1.1 Operators
 
-1.1 Operator ~dist\_lip~
+1.1.1 ~dist\_lip~
 
 The operator
 
@@ -73,6 +59,19 @@ The operator
 with $SEQ \in \{pointseq,\ tpointseq\}$ determines the Locality In-between
 Polylines distance for a pair of ~well-formed~ point sequences $P,\ Q$ of type
 ~SEQ~. If the pair of sequences is not ~well-formed~, the result is indefinite.
+
+The LIP distance $D_{LIP}(P,\ Q)$ is defined as the sum of the weighted areas of
+the polygons defined by the intersection points of the two sequences $P,\ Q$.
+
+$$D_{LIP}(P,\ Q) = \sum_{\forall\ p\ \in\ Polygons} lip(p)$$
+
+$$lip(p) = area(p) \cdot weight(p)$$
+
+The weight of a polygon is defined as the length of the portions of the
+sequences $P,\ Q$ that participate in the construction of the polygon divided by
+the total length of the sequences.
+
+$$weight(p) = \frac{length(Q|_{p}) + length(P|_{p})}{length(Q) + length(P)}$$
 
 The temporal components of ~tpointseq~ objects are ignored. The computation
 takes the ~geoid~ into account, if specified and implemented in the functions of
@@ -85,282 +84,217 @@ points in the sequences. The time complexity can be improved to $O(n \log n)$
 according to \cite{PKM+07}.
 
 
+1.1.2 ~dist\_stlip~
+
+The operator
+
+        $dist\_stlip : tpoinseq \times tpoinseq \times real \times duration
+        \rightarrow real$
+
+with $dist\_stlip(P, Q, st\_factor, \delta)$ determines the Spatio-temporal
+Locality In-between Polylines (STLIP) distance for a pair of ~well-formed~
+~tpoinseq~ objects $P,\ Q$ that cover the same time interval, a non-negative
+~st\_factor~, and a non-negative duration $\delta$. If the pair of sequences is
+not ~well-formed~, the result is indefinite.
+
+STLIP extends LIP by multiplying each weighted polygon area with a factor that
+measures the temporal dissimilarity of the two portions of the two sequences
+that contribute to the polygon.
+
+$$D_{STLIP}(P,\ Q) = \sum_{\forall\ p\ \in\ Polygons} stlip(p)$$
+
+$$stlip(p) = lip(p) \cdot (1 + st\_factor \cdot tlip(p))$$
+
+$$tlip(p) = \left| 1 - \frac{2 \cdot mdi(p, \delta)}{duration(P) + duration(Q)}
+\right|$$
+
+$mdi(p, \delta)$ is the maximum duration of the temporal element that is the
+outcome of the intersection between $P|_p$ and either
+
+  * $Q|_p$,
+
+  * $Q|_p$ extended towards the future by $\delta$, or
+
+  * $Q|_p$ extended towards the past by $\delta$.
+
+If the portions of $P, Q$ that contribute to a polygon $p$ cover the same time
+interval within the tolerance $\delta$, they have highest similarity and thus
+a low $tlip(p)$. $st\_factor$ controls how much the temporal dissimilarity
+affects the result. With $st\_factor = 0$, STLIP yields the same result as LIP.
+
+If any of the sequences is undefined or has less than two points, if the
+sequences do not cover the same time interval, or if ~st\_factor~ or delta is
+negative, the result is ~undefined~.
+
+\cite{PKM+07} defines that STLIP first restricts the original sequences to the
+common temporal element and then uses the ~GenLIP~ algorithm to filter out bad
+segments. This is not implemented here.
+
+Time and space complexity are the same as for the operator ~dist\_lip~ with
+higher constants for the time complexity.
+
+
 2 Includes
 
 */
 
 #include "PointSeq.h"
-#include "SegmentIt.h"
+#include "Segment.h"
 #include "TrajectorySimilarity.h"
 #include "VectorTypeMapUtils.h"
 
+#include "DateTime.h"         // DateTime, Instant
 #include "Geoid.h"
-#include "RegionTools.h"     // reverseCycle, buildRegion
-#include "SpatialAlgebra.h"  // Point, HalfSegment, Region
+#include "RegionTools.h"      // reverseCycle, buildRegion
+#include "SpatialAlgebra.h"   // Point, Region
+#include "TemporalAlgebra.h"  // Interval<T>
 
 
 namespace tsa {
 
 /*
-3 Helpers
+3 Algorithm
 
-Struct representing a polygon together with the length of the portions of the
-original sequences that participate in the construction of the polygon.
+3.1 Struct ~Polygon~
+
+Struct representing a polygon with some properties needed for the calculation of
+LIP and STLIP measures.
 
 */
 struct Polygon
 {
   Polygon(const Region &&region, const double length)
     : region(region), length(length) { }
+
+/*
+A ~Region~ object of the SpatialAlgebra representing the polygon's shape.
+
+*/
   const Region region;
+
+/*
+The length of the portions of the original sequences that participate in the
+construction of the polygon.
+
+*/
   const double length;
+
+/*
+For STLIP: Maximum duration of the temporal element of the polygon as defined in
+\cite[sect.\ 4]{PKM+07}.
+
+*/
+  datetime::DateTime mdi{datetime::durationtype};
 };
 
 
 /*
-Create a polygon from a list of points and add it to the list of polygons.
+3.2 Function Template ~dist\_lip~
+
+This function template implements the LIP measures for two point sequences, each
+with at least two points (i.\ e.\ one segment).
+
+The aggregator ~agg~ of class ~AGG~ performs the operations that are specific
+to the LIP or STLIP distance measure. It maintains two lists of points, $list1$
+and $list2$, and a list of polygons.
 
 */
-static void append_polygon(
-    std::list<Polygon> &polygons, const std::list<::Point> &points,
-    const double length)
+template<class SEQ, class AGG>
+double dist_lip(AGG&& agg, const SEQ& seq1, const SEQ& seq2)
 {
 /*
-Create a cycle of points.
+The first segment on the second sequence that has not yet been included in a
+polygon.
 
 */
-  std::vector<::Point> cycle;
-/*
-In the worst case, that cycle has one more point than the original list of
-points, where the additional point is used to close the cycle.
-~std::list::size()~ has $O(1)$ complexity in C++11.
-
-*/
-  cycle.reserve(points.size() + 1);
+  SegmentIt<SEQ> sit2mark = SegmentIt<SEQ>::begin(seq2);
 
 /*
-Copy the points to the cycle, but skip duplicates.
+One past the end segment iterators for the sequences.
 
 */
-  for (const ::Point &pt : points) {
-    if (cycle.size() != 0 && AlmostEqual(pt, cycle.back()))
-      continue;
-    cycle.push_back(pt);
-  }
+  const SegmentIt<SEQ> sit1end = SegmentIt<SEQ>::end(seq1);
+  const SegmentIt<SEQ> sit2end = SegmentIt<SEQ>::end(seq2);
 
 /*
-Close the cycle, if needed.
+Iterate all segments of the first sequence.
 
 */
-  if (cycle.size() > 1 && !AlmostEqual(cycle.front(), cycle.back()))
-    cycle.push_back(cycle.front());
-
-/*
-Do not keep a polygon, whose area is apparently empty. The first and the last
-point of the cycle are always the same. Therefore at least four points are
-needed to make up a non-empty area.
-
-*/
-  if (cycle.size() < 4)
-    return;
-
-/*
-Force clockwise order of cycle, so that it makes a face.
-
-*/
-  if (!getDir(cycle))
-    reverseCycle(cycle);
-
-/*
-Create the polygon and append it to the list.
-
-*/
-  std::vector<std::vector<::Point>> cycles;
-  cycles.push_back(std::move(cycle));
-  std::unique_ptr<Region> polygon(buildRegion(cycles));
-
-  if (polygon.get() != nullptr)
-    polygons.push_back(Polygon(std::move(*polygon), length));
-}
-
-
-/*
-4 Registration of Operators
-
-4.1 ~dist\_lip~
-
-This function expects two point sequences, each with at least two points
-(i.\ e.\ one segment), and an optional geoid.
-
-*/
-template<class SEQ>
-double dist_lip(const SEQ& seq1, const SEQ& seq2, const Geoid* geoid = nullptr)
-{
-/*
-List of polygons.
-
-*/
-  std::list<Polygon> polygons;
-
-/*
-Total length of the two sequences.
-
-*/
-  double total_length = 0.0;
-
-
-/*
-Phase 1. Find intersections and create list of polygons.
-
-*/
+  for (SegmentIt<SEQ> sit1 = SegmentIt<SEQ>::begin(seq1);
+       sit1 != sit1end; ++sit1)
   {
 /*
-Get begin and (one past) end segment iterators for the sequences.
+Add the start point of the current segment of the first sequence to $list1$.
 
 */
-    const SegmentIt<SEQ> sit1begin = SegmentIt<SEQ>::begin(seq1);
-    const SegmentIt<SEQ> sit1end   = SegmentIt<SEQ>::end(seq1);
-    const SegmentIt<SEQ> sit2begin = SegmentIt<SEQ>::begin(seq2);
-    const SegmentIt<SEQ> sit2end   = SegmentIt<SEQ>::end(seq2);
+    agg.list1Add(sit1->getStart());
 
 /*
-List of points defining the current polygon.
+Iterate the segments of the second sequence starting at $sit2mark$.
 
 */
-    std::list<::Point> points;
-
-/*
-Helper storing the points of the current polygon on the second sequence.
-
-*/
-    std::list<::Point> points2;
-
-/*
-Length of the first and second sequence, respectively, on the current polygon.
-
-*/
-    double len1 = 0.0;
-    double len2 = 0.0;
-
-/*
-The segment where the current polygon starts on the second sequence.
-
-*/
-    SegmentIt<SEQ> sit2mark = sit2begin;
-
-/*
-The most recent intersection; initially ~undefined~.
-
-*/
-    ::Point prev_cross(/*defined*/ false);
-
-/*
-Iterate the segments of the first sequence.
-
-*/
-    for (SegmentIt<SEQ> sit1 = sit1begin; sit1 != sit1end; ++sit1)
+    for (SegmentIt<SEQ> sit2 = sit2mark; sit2 != sit2end; ++sit2)
     {
-      const ::Point &pt1 = sit1->GetDomPoint();
-      if (points.size())
-        len1 += points.back().Distance(pt1, geoid);
-      points.push_back(pt1);
-
 /*
-Prepare iteration of the second sequence.
+Test if the current segments intersect and if so, determine the point where they
+cross.
 
 */
-      points2.clear();
-      if (prev_cross.IsDefined())
-        points2.push_front(prev_cross);
-      len2 = 0.0;
+      Point cross(0.0, 0.0);
+      if (agg.testIntersection(*sit1, *sit2, cross)) {
+/*
+The segments intersect at $cross$. First, add the start point of each segment
+between $sit2mark$ and the current segment on the second sequence to $list2$.
+
+*/
+        for (SegmentIt<SEQ> sit2b = sit2mark; sit2b != sit2 + 1; ++sit2b)
+          agg.list2Add(sit2b->getStart());
 
 /*
-Iterate the segments of the second sequence starting after the most recent
+Determine the ~Point~ or ~TPoint~ objects where the segments meet and add them
+to the point lists. For LIP $cross1$ and $cross2$ are the same as $cross$. For
+STLIP the instants of $cross1$ and $cross2$ indicate when the segment passes the
 intersection.
 
 */
-      for (SegmentIt<SEQ> sit2 = sit2mark; sit2 != sit2end; ++sit2)
-      {
+        const auto cross1 = agg.getCross(*sit1, cross);
+        const auto cross2 = agg.getCross(*sit2, cross);
+        agg.list1Add(cross1);
+        agg.list2Add(cross2);
 /*
-Note: Is appears to be expensive to build up $points2$ and $len2$ each time this
-inner for loop is executed. Instead, this could be performed just once when an
-intersection is found or the ends of both sequences are reached.
+Close the polygon and add it to the list of polygons. Clear the point lists and
+start a new polygon at the intersection points. Move $sit2mark$ just after the
+last segment of the second sequence that was processed. Leave the inner loop.
 
 */
-        const ::Point &pt2 = sit2->GetDomPoint();
-        if (points2.size())
-          len2 += points2.front().Distance(pt2, geoid);
-        points2.push_front(pt2);
-
-/*
-Check for an intersection of the current segments.
-
-*/
-        ::Point cross;
-        if (sit1->Intersection(*sit2, cross, geoid)) {
-/*
-The current segments intersect. A polygon is defined by the concatenation of
-$points$, $cross$, and $points2$.
-
-Note: ~std::list::splice()~ clears $points2$.
-
-*/
-          len1 += points.back().Distance(cross, geoid);
-          points.push_back(cross);
-          len2 += points2.front().Distance(cross, geoid);
-          points.splice(points.end(), points2);
-
-/*
-Append the polygon to the list.
-
-*/
-          const double len = len1 + len2;
-          append_polygon(polygons, points, len);
-          total_length += len;
-
-/*
-Start the next polygon.
-
-*/
-          prev_cross = cross;
-          points.clear();
-          points.push_back(prev_cross);
-          points2.push_front(prev_cross);
-          len1 = 0.0;
-          len2 = 0.0;
-          sit2mark = sit2 + 1;
-          break;
-        }
+        agg.addPolygon(agg.closePolygon());
+        agg.reset();
+        agg.list1Add(cross1);
+        agg.list2Add(cross2);
+        sit2mark = sit2 + 1;
+        break;
       }
     }
-
-/*
-The remaining points make up the last polygon. Also add the end points of the
-last segments.
-
-*/
-    if (sit1begin != sit1end) {
-      const ::Point &pt1 = (sit1end-1)->GetSecPoint();
-      if (points.size())
-        len1 += points.back().Distance(pt1, geoid);
-      points.push_back(pt1);
-    }
-    if (sit2begin != sit2end) {
-      const ::Point &pt2 = (sit2end-1)->GetSecPoint();
-      if (points2.size())
-        len2 += points2.front().Distance(pt2, geoid);
-      points2.push_front(pt2);
-    }
-    points.splice(points.end(), points2);
-
-/*
-Append the last polygon to the list.
-
-*/
-    const double len = len1 + len2;
-    append_polygon(polygons, points, len);
-    total_length += len;
   }
+
+/*
+There were no more intersections. Add the start points of the remaining segments
+between $sit2mark$ and the end of the second sequence to $list2$. Add the end
+points of the two sequences to the point lists. Close the last polygon and add
+it to the list of polygons.
+
+*/
+  for (SegmentIt<SEQ> sit2b = sit2mark; sit2b != sit2end; ++sit2b)
+    agg.list2Add(sit2b->getStart());
+  agg.list1Add((sit1end-1)->getEnd());
+  agg.list2Add((sit2end-1)->getEnd());
+  agg.addPolygon(agg.closePolygon());
+
+/*
+Perform final computations.
+
+*/
+  agg.finalize();
 
 /*
 If the total length of the two sequences on the polygons is 0, we cannot weight
@@ -368,27 +302,283 @@ the areas of the polygons. Instead, we return a LIP distance of 0, assuming that
 the polygon areas are also empty.
 
 */
-  if (total_length == 0.0)
+  if (agg.empty())
     return 0.0;
 
-
 /*
-Phase 2. Process polygons.
-
-For each polygon determine its area and its weight and add the product of these
-two to the LIP distance.
+Sum up the distance values of the polygons.
 
 */
   double dist = 0.0;
-  for (const Polygon &polygon : polygons) {
-    const double area = polygon.region.Area(geoid);
-    const double weight = polygon.length / total_length;
-    dist += area * weight;
-  }
-
+  for (const Polygon &polygon : agg.getPolygons())
+    dist += agg.getDist(polygon);
   return dist;
 }
 
+
+/*
+3.2 Aggregator Class for LIP
+
+*/
+template<class SEQ>
+class LIPAggregator
+{
+public:
+  using segment_t = Segment<typename SEQ::point_t>;
+
+  LIPAggregator(const Geoid* geoid = nullptr)
+    : geoid(geoid)
+  { }
+
+  void list1Add(const Point& pt)
+  {
+    if (!list1.empty())
+      len1 += euclideanDistance(list1.back(), pt, geoid);
+    list1.push_back(pt);
+  }
+
+  void list2Add(const Point& pt)
+  {
+    if (!list2.empty())
+      len2 += euclideanDistance(list2.front(), pt, geoid);
+    list2.push_front(pt);
+  }
+
+  bool testIntersection(
+      const segment_t& seg1, const segment_t& seg2, Point& cross)
+  { return intersection(seg1, seg2, cross, geoid); }
+
+  const Point getCross(const segment_t& /*seg*/, const Point& cross)
+  { return cross; }
+
+  std::unique_ptr<Polygon> closePolygon()
+  {
+    const double length = len1 + len2;
+    total_length += length;
+
+    list1.splice(list1.end(), list2);
+    std::unique_ptr<Region> region = createRegion(list1);
+    if (!region)
+      return nullptr;
+
+    return std::unique_ptr<Polygon>(new Polygon(std::move(*region), length));
+  }
+
+  void addPolygon(std::unique_ptr<Polygon> polygon)
+  {
+    if (polygon)
+      polygons.push_back(std::move(*polygon.release()));
+  }
+
+  void reset()
+  {
+    list1.clear();
+    list2.clear();
+    len1 = 0.0;
+    len2 = 0.0;
+  }
+
+  void finalize() { }
+
+  bool empty() const
+  { return total_length == 0.0; }
+
+  const std::list<Polygon>& getPolygons() const
+  { return polygons; }
+
+  inline double getDist(const Polygon& polygon) const
+  {
+    const double area = polygon.region.Area();
+    const double weight = polygon.length / total_length;
+    const double lip = area * weight;
+    return lip;
+  }
+
+private:
+/*
+Create a ~Region~ object from a list of points.
+
+*/
+  static std::unique_ptr<Region> createRegion(const std::list<Point> &points)
+  {
+/*
+Create a cycle of points. In the worst case, that cycle has one more point than
+the original list of points, where the additional point is used to close the
+cycle. ~std::list::size()~ has $O(1)$ complexity in C++11.
+
+*/
+    std::vector<::Point> cycle;
+    cycle.reserve(points.size() + 1);
+
+/*
+Copy the points to the cycle, but skip duplicates.
+
+*/
+    for (const Point &tsa_pt : points) {
+      const ::Point pt(tsa_pt.toPoint());
+      if (cycle.size() != 0 && AlmostEqual(pt, cycle.back()))
+        continue;
+      cycle.push_back(pt);
+    }
+
+/*
+Close the cycle, if needed.
+
+*/
+    if (cycle.size() > 1 && !AlmostEqual(cycle.front(), cycle.back()))
+      cycle.push_back(cycle.front());
+
+/*
+Do not keep a polygon, whose area is apparently empty. The first and the last
+point of the cycle are always the same. Therefore at least four points are
+needed to make up a non-empty area.
+
+*/
+    if (cycle.size() < 4)
+      return nullptr;
+
+/*
+Force clockwise order of cycle, so that it makes a face of the region.
+
+*/
+    if (!getDir(cycle))
+      reverseCycle(cycle);
+
+/*
+Create and return the region.
+
+*/
+    std::vector<std::vector<::Point>> cycles;
+    cycles.push_back(std::move(cycle));
+    return std::unique_ptr<Region>(buildRegion(cycles));
+  }
+
+protected:
+  std::list<Point> list1;
+  std::list<Point> list2;
+
+private:
+  const Geoid* geoid = nullptr;
+  double len1 = 0.0;
+  double len2 = 0.0;
+  double total_length = 0.0;
+  std::list<Polygon> polygons;
+};
+
+/*
+3.3 Aggregator Class for STLIP
+
+*/
+class STLIPAggregator : public LIPAggregator<TPointSeq>
+{
+public:
+  using Base = LIPAggregator<TPointSeq>;
+  using Interval = temporalalgebra::Interval<Instant>;
+  using DateTime = datetime::DateTime;
+
+  STLIPAggregator(const double st_factor, const DateTime& delta)
+    : LIPAggregator(/*geoid*/ nullptr),
+      st_factor(st_factor), delta(delta)
+  { }
+
+  void list1Add(const TPoint& pt)
+  {
+    if (list1.empty()) {
+      list1_iv.start = pt.getInstant();
+      if (getPolygons().empty())
+        seq1_iv.start = pt.getInstant();
+    }
+    list1_iv.end = pt.getInstant();
+    seq1_iv.end = pt.getInstant();
+    Base::list1Add(pt);
+  }
+
+  void list2Add(const TPoint& pt)
+  {
+    if (list2.empty()) {
+      list2_iv.start = pt.getInstant();
+      if (getPolygons().empty())
+        seq2_iv.start = pt.getInstant();
+    }
+    list2_iv.end = pt.getInstant();
+    seq2_iv.end = pt.getInstant();
+    Base::list2Add(pt);
+  }
+
+  const TPoint getCross(const Segment<TPoint>& seg, const Point& cross)
+  {
+    const double bc = seg.baryCoord(cross);
+    const DateTime duration =
+        seg.getEnd().getInstant() - seg.getStart().getInstant();
+    const Instant t = seg.getStart().getInstant() + (duration * bc);
+    return TPoint(t, cross);
+  }
+
+  std::unique_ptr<Polygon> closePolygon()
+  {
+    std::unique_ptr<Polygon> polygon = Base::closePolygon();
+    if (!polygon)
+      return nullptr;
+
+    Interval iv_a(list2_iv.start,         list2_iv.end,         true, false);
+    Interval iv_b(list2_iv.start,         list2_iv.end + delta, true, false);
+    Interval iv_c(list2_iv.start - delta, list2_iv.end,         true, false);
+
+    DateTime mdi(datetime::durationtype, 0);
+    if (iv_a.Intersects(list1_iv)) {
+      iv_a.IntersectionWith(list1_iv);
+      mdi = iv_a.end - iv_a.start;
+    }
+    if (iv_b.Intersects(list1_iv)) {
+      iv_b.IntersectionWith(list1_iv);
+      mdi = std::max(mdi, iv_b.end - iv_b.start);
+    }
+    if (iv_c.Intersects(list1_iv)) {
+      iv_c.IntersectionWith(list1_iv);
+      mdi = std::max(mdi, iv_c.end - iv_c.start);
+    }
+
+    polygon->mdi = mdi;
+    return polygon;
+  }
+
+  void finalize()
+  {
+    total_duration =
+        (seq1_iv.end - seq1_iv.start) + (seq2_iv.end - seq2_iv.start);
+  }
+
+  inline double getDist(const Polygon& polygon) const
+  {
+    const double lip = Base::getDist(polygon);
+    const double tlip =
+        fabs(1.0 - (2.0 *
+            (polygon.mdi.ToDouble() / total_duration.ToDouble())));
+    const double stlip = lip * (1.0 + (st_factor * tlip));
+    return stlip;
+  }
+
+private:
+  const double st_factor;
+  const DateTime& delta;
+
+  Interval list1_iv{Instant(), Instant(), /*lc*/ true, /*rc*/ false};
+  Interval list2_iv{Instant(), Instant(), /*lc*/ true, /*rc*/ false};
+
+  Interval seq1_iv{Instant(), Instant(), /*lc*/ true, /*rc*/ false};
+  Interval seq2_iv{Instant(), Instant(), /*lc*/ true, /*rc*/ false};
+
+  DateTime total_duration{datetime::durationtype};
+};
+
+
+
+/*
+4 Registration of Operators
+
+4.1 ~dist\_lip~
+
+*/
 template<class SEQ, bool HAS_GEOID>
 int LIPDistValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
@@ -408,7 +598,8 @@ Require defined sequences with at least two points each.
     return 0;
   }
 
-  dist.Set(dist_lip(seq1, seq2, geoid));
+  LIPAggregator<SEQ> agg(geoid);
+  dist.Set(dist_lip(agg, seq1, seq2));
   return 0;
 }
 
@@ -438,7 +629,7 @@ struct DistLIPInfo : OperatorInfo
                 + " x " + Geoid::BasicType() + " -> " + CcReal::BasicType());
     syntax    = "dist_lip(_, _[, _])";
     meaning   = "Locality In-between Polylines (LIP) distance of a well-formed "
-                "pair of point sequences. This is defined as the sum of the "
+                "pair of point sequences. LIP is defined as the sum of the "
                 "weighted areas of the polygons defined by the intersection "
                 "points of the two sequences. If the pair of sequences is not "
                 "well-formed, the result is indefinite.\n"
@@ -469,11 +660,118 @@ ListExpr DistLIPTypeMap(ListExpr args)
 int DistLIPSelect(ListExpr args)
 { return mappings::vectorSelect(dist_lip_maps, args); }
 
+
+/*
+4.2 ~dist\_stlip~
+
+*/
+int STLIPDistValueMap(
+    Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
+{
+  const TPointSeq& seq1 = *static_cast<TPointSeq*>(args[0].addr);
+  const TPointSeq& seq2 = *static_cast<TPointSeq*>(args[1].addr);
+  const CcReal& cc_st_factor = *static_cast<CcReal*>(args[2].addr);
+  const datetime::DateTime& delta =
+      *static_cast<datetime::DateTime*>(args[3].addr);
+  result = qp->ResultStorage(s);    // CcReal
+  CcReal& dist = *static_cast<CcReal*>(result.addr);
+
+/*
+Require defined sequences with at least two points each and a defined
+$st\_factor$ and defined duration $delta$.
+
+*/
+  if (seq1.GetNoComponents() < 2 || seq2.GetNoComponents() < 2 ||
+      !cc_st_factor.IsDefined() ||
+      !delta.IsDefined() || delta.GetType() != datetime::durationtype)
+  {
+    dist.SetDefined(false);
+    return 0;
+  }
+
+/*
+Require that both sequences cover the same time interval.
+
+*/
+  if (seq1.get(0).getInstant() != seq2.get(0).getInstant() ||
+      seq1.get(seq1.GetNoComponents()-1).getInstant() !=
+      seq2.get(seq2.GetNoComponents()-1).getInstant())
+  {
+    dist.SetDefined(false);
+    return 0;
+  }
+
+/*
+Require a $st\_factor \ge 0$ and a $delta \ge 0$.
+
+*/
+  const double st_factor = cc_st_factor.GetValue();
+  if (st_factor < 0.0 || delta.ToDouble() < 0.0) {
+    dist.SetDefined(false);
+    return 0;
+  }
+
+  STLIPAggregator agg(st_factor, delta);
+  dist.Set(dist_lip(agg, seq1, seq2));
+  return 0;
+}
+
+ValueMapping dist_stlip_functions[] = {
+  STLIPDistValueMap,
+  nullptr
+};
+
+struct DistSTLIPInfo : OperatorInfo
+{
+  DistSTLIPInfo() : OperatorInfo()
+  {
+    name      = "dist_stlip";
+    signature = TPointSeq::BasicType() + " x " + TPointSeq::BasicType()
+                + " x " + CcReal::BasicType() + " x " + Duration::BasicType()
+                + " -> " + CcReal::BasicType();
+    syntax    = "dist_stlip(_, _, _, _)";
+    meaning   = "Spatio-temporal Locality In-between Polylines distance "
+                "STLIP(P, Q, st_factor, delta) of a well-formed pair of "
+                "tpoinseq objects that cover the same time range, a "
+                "non-negative st_factor and a non-negative duration delta.\n"
+                "STLIP extends LIP (operator dist_lip) by multiplying each "
+                "weighted polygon area with a factor that measures the "
+                "temporal dissimilarity of the two portions of the two "
+                "sequences that contribute to the polygon. Portions that cover "
+                "the same time interval within the tolerance delta, have "
+                "highest similarity. st_factor controls how much the temporal "
+                "dissimilarity affects the result. With an st_factor of 0, "
+                "STLIP yields the same result as LIP.\n"
+                "If the pair of sequences is not well-formed, the result is "
+                "indefinite. If any of the sequences is undefined or has less "
+                "than two points, if the sequences do not cover the same "
+                "time interval, or if st_factor or delta is negative, the "
+                "result is undefined.\n"
+                "Time and space complexity are the same as for dist_lip with "
+                "higher constants for the time complexity.";
+  }
+};
+
+const mappings::VectorTypeMaps dist_stlip_maps = {
+  /*0*/ {{TPointSeq::BasicType(), TPointSeq::BasicType(),
+    CcReal::BasicType(), Duration::BasicType()}, /* -> */ {CcReal::BasicType()}}
+};
+
+ListExpr DistSTLIPTypeMap(ListExpr args)
+{ return mappings::vectorTypeMap(dist_stlip_maps, args); }
+
+int DistSTLIPSelect(ListExpr args)
+{ return mappings::vectorSelect(dist_stlip_maps, args); }
+
+
 void TrajectorySimilarityAlgebra::addLIPDistOp()
 {
   AddOperator(
       DistLIPInfo(), dist_lip_functions,
       DistLIPSelect, DistLIPTypeMap);
+  AddOperator(
+      DistSTLIPInfo(), dist_stlip_functions,
+      DistSTLIPSelect, DistSTLIPTypeMap);
 }
 
 } //-- namespace tsa

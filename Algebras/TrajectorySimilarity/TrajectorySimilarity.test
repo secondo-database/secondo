@@ -1508,6 +1508,12 @@ query dist_lip(
   [const pointseq value ((0.0 0.0) (1.0 1.0))],
   [const pointseq value ((0.0 1.0) (1.0 0.0))])
 
+#testcase DistLIPPointSeqCrossExplicit
+#yields (real 0.25)
+query dist_lip(
+  [const pointseq value ((0.0 0.0) (0.5 0.5) (1.0 1.0))],
+  [const pointseq value ((0.0 1.0) (0.5 0.5) (1.0 0.0))])
+
 #testcase DistLIPPointSeqNoSegments
 #yields (real undefined)
 query dist_lip(
@@ -1579,6 +1585,222 @@ query dist_lip(
   [const tpointseq value (
     ("2015-12-29-01:21:16" (0.0 1.0))
     ("2015-12-29-01:32:28" (1.0 0.5)))])
+
+
+
+###
+### Test operator 'dist_stlip'.
+###
+
+### Bad parameters
+
+#testcase DistSTLIPParams0
+#yields error
+query dist_stlip()
+
+#testcase DistSTLIPParams1
+#yields error
+query dist_stlip(
+    [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:30:20" (1.0 0.0)))])
+
+#testcase DistSTLIPParams2
+#yields error
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:30:20" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 1.0)) ("2015-12-29-01:30:20" (1.0 0.5)))])
+
+#testcase DistSTLIPParams3
+#yields error
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:30:20" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:30:20" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 1.0)) ("2015-12-29-01:30:20" (1.0 0.5)))])
+
+
+### dist_stlip : tpointseq x tpointseq x real x duration -> real
+
+#testcase DistSTLIPTPointSeq
+#yields (real 0.75)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:30:20" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 1.0))
+    ("2015-12-29-01:30:20" (1.0 0.5)))],
+  [const real value 1.0],
+  [const duration value (0 0)])
+
+#testcase DistSTLIPTPointSeqSymmetry
+#yields (real 0.75)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 1.0))
+    ("2015-12-29-01:30:20" (1.0 0.5)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:30:20" (1.0 0.0)))],
+  [const real value 1.0],
+  [const duration value (0 0)])
+
+#testcase DistSTLIPTPointSeqVariant2
+#yields (real 0.75)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:25:00" (0.5 0.0))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 1.0))
+    ("2015-12-29-01:25:00" (0.5 0.75))
+    ("2015-12-29-01:30:00" (1.0 0.5)))],
+  [const real value 1.0],
+  [const duration value (0 0)])
+
+#testcase DistSTLIPTPointSeqVariant3
+#yields (real 0.75)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:30:20" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 1.0))
+    ("2015-12-29-01:30:20" (1.0 0.5)))],
+  [const real value 1.0],
+  [const duration value (0 60000)])
+
+#testcase DistSTLIPTPointSeqEqual
+#yields (real 0.0)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:25:00" (0.5 0.0))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:25:00" (0.5 0.0))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const real value 1.0],
+  [const duration value (0 0)])
+
+#testcase DistSTLIPTPointSeqSkewedInstants
+#yields (real 0.75)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:22:00" (0.5 0.0))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 1.0))
+    ("2015-12-29-01:28:00" (0.5 0.75))
+    ("2015-12-29-01:30:00" (1.0 0.5)))],
+  [const real value 1.0],
+  [const duration value (0 0)])
+
+#testcase DistSTLIPPointSeqCross
+#yields (real 0.375)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:30:00" (1.0 1.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 1.0))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const real value 1.0],
+  [const duration value (0 0)])
+
+#testcase DistSTLIPPointSeqCrossExplicit
+#yields (real 0.375)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:25:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 1.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 1.0))
+    ("2015-12-29-01:25:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const real value 1.0],
+  [const duration value (0 0)])
+
+#testcase DistSTLIPPointSeqSkewedCross
+#yields (real 0.425)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:23:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 1.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 1.0))
+    ("2015-12-29-01:27:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const real value 1.0],
+  [const duration value (0 0)])
+
+#testcase DistSTLIPPointSeqSkewedCrossSymmetry
+#yields (real 0.425)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 1.0))
+    ("2015-12-29-01:27:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:23:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 1.0)))],
+  [const real value 1.0],
+  [const duration value (0 0)])
+
+#testcase DistSTLIPPointSeqSkewedCrossSTFactor0
+## (This yields the same result as the dist_lip operator.)
+#yields (real 0.25)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:23:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 1.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 1.0))
+    ("2015-12-29-01:27:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const real value 0.0],
+  [const duration value (0 0)])
+
+#testcase DistSTLIPPointSeqSkewedCrossDelta4Min
+## (This cancels out the effects of the skewed intersection.)
+#yields (real 0.375)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:23:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 1.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 1.0))
+    ("2015-12-29-01:27:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const real value 1.0],
+  [const duration value (0 240000)])
+
+#testcase DistSTLIPPointSeqSkewedCrossDelta1Min
+## (This lowers the effects of the skewed intersection.)
+#yields (real 0.4125)
+query dist_stlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:23:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 1.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 1.0))
+    ("2015-12-29-01:27:00" (0.5 0.5))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const real value 1.0],
+  [const duration value (0 60000)])
 
 
 #teardown

@@ -34,3 +34,4 @@ operator rel_lcss alias REL_LCSS pattern op(_, _, _)
 operator dist_lcss alias DIST_LCSS pattern op(_, _, _)
 
 operator dist_lip alias DIST_LIP pattern op(_, _)
+operator dist_stlip alias DIST_STLIP pattern op(_, _, _, _)

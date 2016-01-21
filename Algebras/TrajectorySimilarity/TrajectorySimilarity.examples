@@ -193,3 +193,10 @@ Number   : 1
 Signature: pointseq x pointseq -> real
 Example  : query dist_lip([const pointseq value ((0.0 0.0) (1.0 0.0))], [const pointseq value ((0.0 1.0) (1.0 0.5))])
 Result   : (real 0.75)
+
+
+Operator : dist_stlip
+Number   : 1
+Signature: tpointseq x tpointseq x real x duration -> real
+Example  : query dist_stlip([const tpointseq value (("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:30:20" (1.0 0.0)))], [const tpointseq value (("2015-12-29-01:23:45" (0.0 1.0)) ("2015-12-29-01:30:20" (1.0 0.5)))], [const real value 1.0], [const duration value (0 0)])
+Result   : (real 0.75)
