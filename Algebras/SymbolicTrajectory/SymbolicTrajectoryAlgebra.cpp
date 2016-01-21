@@ -2699,6 +2699,7 @@ int createtupleindexVM(Word* args, Word& result, int message, Word& local,
   Stream<Tuple> stream = static_cast<Stream<Tuple> >(args[0].addr);
   CcInt *attrno = static_cast<CcInt*>(args[2].addr);
   TupleIndex* ti = static_cast<TupleIndex*>(result.addr);
+  int counter = 0;
   stream.open();
   Tuple* tuple = stream.request();
   if (tuple) {
@@ -2708,6 +2709,10 @@ int createtupleindexVM(Word* args, Word& result, int message, Word& local,
     if (!ti->addTuple(tuple)) {
       ti->deleteIndexes();
       return 0;
+    }
+    counter++;
+    if (counter % 1000 == 0) {
+      cout << counter << " tuples processed" << endl;
     }
     tuple->DeleteIfAllowed();
     tuple = stream.request();
@@ -2886,7 +2891,6 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
     }
     case CLOSE: {
       if (li) {
-        li->deletePattern();
         delete li;
         local.addr = 0;
       }

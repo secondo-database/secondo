@@ -986,6 +986,8 @@ struct IndexRetrieval {
   IndexRetrieval(unsigned int p, unsigned int s = 0) : pred(p), succ(s) {}
   IndexRetrieval(unsigned int p, unsigned int s, std::set<int>& u) : 
                  pred(p), succ(s), units(u) {}
+  IndexRetrieval(unsigned int p, unsigned int s, std::vector<int>& u) : 
+                 pred(p), succ(s) {units.insert(u.begin(), u.end());}
   
   unsigned int pred, succ;
   std::set<int> units;
@@ -1018,6 +1020,9 @@ struct IndexMatchInfo {
 */
 struct IndexMatchSlot {
   IndexMatchSlot() : pred(0), succ(0) {}
+  IndexMatchSlot(IndexMatchInfo &imi) : pred(0), succ(0) {imis.push_back(imi);}
+  IndexMatchSlot(IndexMatchSlot *src) : pred(src->pred), succ(src->succ),
+                                        imis(src->imis) {}
   
   unsigned int pred, succ;
   std::vector<IndexMatchInfo> imis;
@@ -1030,7 +1035,10 @@ struct IndexMatchSlot {
 class IndexMatchSuper {
  public:
   IndexMatchSuper(Relation *r, Pattern *_p, int a, DataType t) :
-    rel(r), p(_p), attrNo(a), mtype(t), activeTuples(0), unitCtr(0) {}
+    rel(r), p(_p), attrNo(a), mtype(t), trajSize(0), activeTuples(0),
+    unitCtr(0), indexResult(0), matchInfo(0), newMatchInfo(0) {}
+  
+  ~IndexMatchSuper();
   
   int getTrajSize(const TupleId tId, const DataType type);
   void getInterval(const TupleId tId, const int pos, 
@@ -1040,22 +1048,27 @@ class IndexMatchSuper {
   template<class M>
   void periodsToUnits(const temporalalgebra::Periods *per, 
                       const TupleId tId, std::set<int> &units);
+  void remove(std::vector<TupleId> &toRemove);
   void removeIdFromIndexResult(const TupleId id);
+  void removeIdFromMatchInfo(const TupleId id);
   void clearMatchInfo();
   bool hasIdIMIs(const TupleId id, const int state = -1);
   void extendBinding(IndexMatchInfo& imi, const int e);
+  void deletePattern();
   
   Relation *rel;
   Pattern *p;
   int attrNo;
   DataType mtype;
   std::vector<TupleId> matches;
-  std::vector<int> trajSize;
+  bool *active;
+  int *trajSize;
   int activeTuples, unitCtr;
-  std::vector<std::vector<IndexRetrieval> > indexResult; // atom, tupleid
-  std::vector<std::vector<IndexMatchSlot> > matchInfo, newMatchInfo; 
+  IndexRetrieval ***indexResult;
+  IndexMatchSlot ***matchInfo, ***newMatchInfo;
+//   std::vector<std::vector<IndexMatchSlot> > matchInfo, newMatchInfo; 
                                                       // state, tupleid
-  std::vector<std::vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
+//   std::vector<std::vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
   
 };
 
@@ -1091,17 +1104,14 @@ class TMatchIndexLI : public IndexMatchSuper {
                             std::vector<temporalalgebra::Periods*> &result);
   void storeIndexResult(int atomNo);
   void initMatchInfo();
-  void removeIdFromMatchInfo(const TupleId id);
   bool atomMatch(int state, std::pair<int, int> trans);
   void applyNFA();
   bool initialize();
   Tuple* nextTuple();
-  void deletePattern();
   
  private:
   ListExpr ttList;
   TupleIndex *ti;
-  std::vector<bool> active;
   int valueNo;
   std::set<int> crucialAtoms;
 };
@@ -5175,7 +5185,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
           return true;
         }
         else if (!newIMI.exhausted(trajSize[id])) { // continue
-          (*newMatchInfoPtr)[newState][id].imis.push_back(newIMI);
+          newMatchInfo[newState][id]->imis.push_back(newIMI);
   //         cout << "   IMI pushed back for new state " << newState
   //              << " and id " << id << endl;
           return true;
@@ -5203,10 +5213,12 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
             return true;
           }
           else if (!newIMI.exhausted(trajSize[id])) { // continue
-            if ((*newMatchInfoPtr)[newState].size() == 0) {
-              (*newMatchInfoPtr)[newState].resize(rel->GetNoTuples());
+            if (newMatchInfo[newState] == 0) {
+              newMatchInfo[newState] = new IndexMatchSlot*[rel->GetNoTuples()];
+              memset(newMatchInfo[newState], 0, 
+                     rel->GetNoTuples() * sizeof(void*));
             }
-            (*newMatchInfoPtr)[newState][id].imis.push_back(newIMI);
+            newMatchInfo[newState][id]->imis.push_back(newIMI);
             numOfNewIMIs++;
             result = true;
           }
@@ -5230,10 +5242,12 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
           return true;
         }
         else if (!newIMI.exhausted(trajSize[id])) { // continue
-          if ((*newMatchInfoPtr)[newState].size() == 0) {
-            (*newMatchInfoPtr)[newState].resize(rel->GetNoTuples());
+          if (newMatchInfo[newState] == 0) {
+            newMatchInfo[newState] = new IndexMatchSlot*[rel->GetNoTuples()];
+            memset(newMatchInfo[newState], 0, 
+                   rel->GetNoTuples() * sizeof(void*));
           }
-          (*newMatchInfoPtr)[newState][id].imis.push_back(newIMI);
+          newMatchInfo[newState][id]->imis.push_back(newIMI);
           return true;
         }
       }
