@@ -73,6 +73,9 @@ namespace tsa {
 class TPoint;
 class TPointSeq;
 
+template<class T>
+class Segment;
+
 using temporalalgebra::MPoint;
 
 
@@ -94,7 +97,15 @@ class Sequence : public Attribute
 {
 public:
 /*
-3.1 Constructors, Destructor
+3.1 Types
+
+The point type of the sequence.
+
+*/
+  using point_t = T;
+
+/*
+3.2 Constructors, Destructor
 
 The default constructor. It is used only the the Cast() function and must be
 empty.
@@ -134,7 +145,7 @@ Copy constructor.
   ~Sequence() { }
 
 /*
-3.2 Conversion
+3.3 Conversion
 
 Create a ~DLine~ from the sequence.
 
@@ -148,7 +159,7 @@ Discard the current content of the sequence and recreate it from an ~MPoint~.
   void convertFrom(const MPoint& src) noexcept;
 
 /*
-3.3 Access
+3.4 Access
 
 The following methods provide access to the items of the sequence.
 
@@ -184,7 +195,7 @@ $set(GetNoComponents(),\ item)$.
   void append(const T& item);
 
 /*
-3.4 Type Constructor Interface
+3.5 Type Constructor Interface
 
 */
   static ListExpr Out(ListExpr typeInfo, Word value);
@@ -211,7 +222,7 @@ variables.
 
 
 /*
-3.5 ~Attribute~ Interface
+3.6 ~Attribute~ Interface
 
 */
   inline int NumOfFLOBs() const override
@@ -300,6 +311,7 @@ private:
   Point() = default;
 
   friend class DbArray<Point>;
+  friend class Segment<Point>;
   friend class Sequence<Point>;
   friend class TPoint;
 
@@ -562,6 +574,7 @@ private:
   TPoint() = default;
 
   friend class DbArray<TPoint>;
+  friend class Segment<TPoint>;
   friend class Sequence<TPoint>;
 
 public:
