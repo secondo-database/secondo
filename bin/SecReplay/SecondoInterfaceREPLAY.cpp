@@ -2163,18 +2163,23 @@ Execute of ReplaySHPImport.
     commandsPerNode.push_back(vector <string>());
   }
 
+  unsigned int objCount;
+  std::size_t foundSep;
+
   // Now add the commands for the nodes to the array
-  int objCount = 0;
   for (unsigned int i=0; i<transferFilePath.size(); ++i) {
      stringutils::StringTokenizer token(transferFilePath[i], ":");
      currentNode = stoi(token.nextToken());
      currentFilePath = token.nextToken();
      currentType = currentFilePath.substr(currentFilePath.size() - 3);
      if (currentType == "shp") {
-       objCount++;
        currentFilePathDBF = currentFilePath.substr(0,
                                     currentFilePath.size() - 3) + "dbf";
        currentFilePathSHP = currentFilePath;
+
+       foundSep = currentFilePathSHP.find_last_of("_");
+       objCount = stoi(currentFilePath.substr(foundSep + 1));
+
        cmdText = "let " + paramlist[1] + "_" + stringutils::int2str(objCount) 
                  + " = dbimport2('" + currentFilePathDBF 
                  + "') addcounter[No, 1] " 
